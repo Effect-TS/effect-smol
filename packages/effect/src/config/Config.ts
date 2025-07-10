@@ -17,6 +17,7 @@ import type * as Option from "../Option.js"
 import type { Pipeable } from "../Pipeable.js"
 import { hasProperty } from "../Predicate.js"
 import * as Redacted_ from "../Redacted.js"
+import * as Str from "../String.js"
 import type { NoInfer } from "../Types.js"
 import { type ConfigError, filterMissingDataOnly, InvalidData, MissingData } from "./ConfigError.js"
 import * as ConfigProvider from "./ConfigProvider.js"
@@ -26,7 +27,7 @@ import * as ConfigProvider from "./ConfigProvider.js"
  *
  * @example
  * ```ts
- * import { Config } from "effect"
+ * import { Config } from "effect/config"
  *
  * // Check if a value is a Config using the TypeId
  * const myConfig = Config.String("DB_HOST")
@@ -35,7 +36,7 @@ import * as ConfigProvider from "./ConfigProvider.js"
  *
  * @example
  * ```ts
- * import { Config } from "effect"
+ * import { Config } from "effect/config"
  *
  * // Use with the isConfig guard function
  * const someValue: unknown = Config.String("PORT")
@@ -55,7 +56,7 @@ export const TypeId: TypeId = "~effect/config/Config"
  *
  * @example
  * ```ts
- * import { Config } from "effect"
+ * import { Config } from "effect/config"
  *
  * // The TypeId is used internally for type checking
  * const checkTypeId = (id: Config.TypeId) => {
@@ -65,7 +66,7 @@ export const TypeId: TypeId = "~effect/config/Config"
  *
  * @example
  * ```ts
- * import { Config } from "effect"
+ * import { Config } from "effect/config"
  *
  * // Used in generic type constraints
  * const processConfig = <T extends { [Config.TypeId]: Config.TypeId }>(
@@ -92,7 +93,7 @@ export type TypeId = "~effect/config/Config"
  *
  * @example
  * ```ts
- * import { Config } from "effect"
+ * import { Config } from "effect/config"
  *
  * // Check if a value is a Config instance
  * const stringConfig = Config.String("HOST")
@@ -106,7 +107,7 @@ export type TypeId = "~effect/config/Config"
  *
  * @example
  * ```ts
- * import { Config } from "effect"
+ * import { Config } from "effect/config"
  *
  * // Use as a type guard in conditional logic
  * const processValue = (value: unknown) => {
@@ -127,7 +128,7 @@ export type TypeId = "~effect/config/Config"
  *
  * @example
  * ```ts
- * import { Config } from "effect"
+ * import { Config } from "effect/config"
  *
  * // Filter Config instances from mixed arrays
  * const mixedValues = [
@@ -156,8 +157,8 @@ export const isConfig = (u: unknown): u is Config<unknown> => hasProperty(u, Typ
  *
  * @example
  * ```ts
- * import { Config, Effect } from "effect"
- * import { ConfigProvider } from "effect/config"
+ * import { Effect } from "effect"
+ * import { Config, ConfigProvider } from "effect/config"
  *
  * // Basic usage - creating and using a string config
  * const databaseHost = Config.String("DB_HOST")
@@ -175,8 +176,8 @@ export const isConfig = (u: unknown): u is Config<unknown> => hasProperty(u, Typ
  *
  * @example
  * ```ts
- * import { Config, Effect } from "effect"
- * import { ConfigProvider } from "effect/config"
+ * import { Effect } from "effect"
+ * import { Config, ConfigProvider } from "effect/config"
  *
  * // Using asEffect() method for direct execution
  * const portConfig = Config.Number("PORT")
@@ -193,8 +194,8 @@ export const isConfig = (u: unknown): u is Config<unknown> => hasProperty(u, Typ
  *
  * @example
  * ```ts
- * import { Config, Effect } from "effect"
- * import { ConfigProvider } from "effect/config"
+ * import { Effect } from "effect"
+ * import { Config, ConfigProvider } from "effect/config"
  *
  * // Complex configuration with multiple values
  * const appConfig = Config.all({
@@ -223,8 +224,8 @@ export const isConfig = (u: unknown): u is Config<unknown> => hasProperty(u, Typ
  *
  * @example
  * ```ts
- * import { Config, Effect } from "effect"
- * import { ConfigProvider } from "effect/config"
+ * import { Effect } from "effect"
+ * import { Config, ConfigProvider } from "effect/config"
  *
  * // Using Config with error handling
  * const apiConfig = Config.all({
@@ -244,8 +245,8 @@ export const isConfig = (u: unknown): u is Config<unknown> => hasProperty(u, Typ
  *
  * @example
  * ```ts
- * import { Config, Effect } from "effect"
- * import { ConfigProvider } from "effect/config"
+ * import { Effect } from "effect"
+ * import { Config, ConfigProvider } from "effect/config"
  *
  * // Using Config with default values and transformations
  * const serverConfig = Config.all({
@@ -286,8 +287,8 @@ export interface Config<out A> extends Pipeable, Effect.Yieldable<A, ConfigError
  *
  * @example
  * ```ts
- * import { Config, Effect } from "effect"
- * import { ConfigProvider, ConfigError } from "effect/config"
+ * import { Effect } from "effect"
+ * import { Config, ConfigProvider, ConfigError } from "effect/config"
  *
  * // Create a custom config that parses a positive number
  * const positiveNumber = Config.primitive((ctx) =>
@@ -322,8 +323,8 @@ export interface Config<out A> extends Pipeable, Effect.Yieldable<A, ConfigError
  *
  * @example
  * ```ts
- * import { Config, Effect } from "effect"
- * import { ConfigError, ConfigProvider } from "effect/config"
+ * import { Effect } from "effect"
+ * import { Config, ConfigError, ConfigProvider } from "effect/config"
  *
  * // Create a named config that parses a URL with validation
  * const apiUrlConfig = Config.primitive("API_URL", (ctx) =>
@@ -361,8 +362,8 @@ export interface Config<out A> extends Pipeable, Effect.Yieldable<A, ConfigError
  *
  * @example
  * ```ts
- * import { Config, Effect } from "effect"
- * import { ConfigError, ConfigProvider } from "effect/config"
+ * import { Effect } from "effect"
+ * import { Config, ConfigError, ConfigProvider } from "effect/config"
  *
  * // Create a config that parses JSON with error handling
  * const jsonConfig = Config.primitive("JSON_CONFIG", (ctx) =>
@@ -423,9 +424,8 @@ export const primitive: {
  *
  * @example
  * ```ts
- * import { Config, Filter } from "effect"
- * import { ConfigProvider } from "effect/config"
- * import { Effect } from "effect"
+ * import { Effect, Filter } from "effect"
+ * import { Config, ConfigProvider } from "effect/config"
  *
  * // Create a custom email validation config
  * const emailConfig = Config.fromFilter({
@@ -447,9 +447,8 @@ export const primitive: {
  *
  * @example
  * ```ts
- * import { Config, Filter } from "effect"
- * import { ConfigProvider } from "effect/config"
- * import { Effect } from "effect"
+ * import { Effect, Filter } from "effect"
+ * import { Config, ConfigProvider } from "effect/config"
  *
  * // Create a custom enum-like config using fromFilter
  * type LogLevel = "debug" | "info" | "warn" | "error"
@@ -470,9 +469,8 @@ export const primitive: {
  *
  * @example
  * ```ts
- * import { Config, Filter } from "effect"
- * import { ConfigProvider } from "effect/config"
- * import { Effect } from "effect"
+ * import { Effect, Filter } from "effect"
+ * import { Config, ConfigProvider } from "effect/config"
  *
  * // Create a config that parses comma-separated values into an array
  * const csvConfig = Config.fromFilter<string[]>({
@@ -541,8 +539,8 @@ export {
    *
    * @example
    * ```ts
-   * import { Config } from "effect"
    * import { Effect } from "effect"
+   * import { Config } from "effect/config"
    *
    * // Create a string config with a name
    * const dbHost = Config.String("DB_HOST")
@@ -559,8 +557,8 @@ export {
    *
    * @example
    * ```ts
-   * import { Config } from "effect"
    * import { Effect } from "effect"
+   * import { Config } from "effect/config"
    *
    * // Combine with other config operations
    * const appName = Config.String("APP_NAME").pipe(
@@ -579,81 +577,6 @@ export {
   String_ as String
 }
 
-/**
- * Constructs a config that parses non-empty string values from environment variables.
- * Validates that the string has at least one character after optional trimming.
- *
- * @example
- * ```ts
- * import { Config } from "effect/config"
- *
- * // Parse a non-empty string from environment variable
- * const config = Config.StringNonEmpty("DATABASE_NAME")
- *
- * // Parses "myapp" to "myapp"
- * // Environment: { DATABASE_NAME: "myapp" }
- * // Note: empty string "" would fail validation
- * ```
- *
- * @example
- * ```ts
- * import { Config } from "effect/config"
- *
- * // Using with trim option to remove leading/trailing whitespace
- * const config = Config.StringNonEmpty("API_KEY", {
- *   trim: true
- * })
- *
- * // Parses "  secret123  " to "secret123"
- * // Environment: { API_KEY: "  secret123  " }
- * // Note: "   " would fail validation after trimming
- * ```
- *
- * @example
- * ```ts
- * import { Config } from "effect/config"
- *
- * // Using in arrays to ensure all elements are non-empty
- * const config = Config.Array("TAGS", Config.StringNonEmpty({ trim: true }))
- *
- * // Parses "frontend,backend,api" to ["frontend", "backend", "api"]
- * // Environment: { TAGS: "frontend,backend,api" }
- * // Note: "frontend,,api" would fail validation due to empty string
- * ```
- *
- * @since 4.0.0
- * @category Primitives
- */
-export const StringNonEmpty: {
-  (options?: {
-    readonly trim?: boolean | undefined
-  }): Config<string>
-  (name: string, options?: {
-    readonly trim?: boolean | undefined
-  }): Config<string>
-} = function(): Config<string> {
-  let name: string | undefined
-  let options: { trim?: boolean | undefined } | undefined
-  if (typeof arguments[0] === "string") {
-    name = arguments[0]
-    options = arguments[1]
-  } else {
-    options = arguments[0]
-  }
-  return primitive(name, (ctx) =>
-    Effect.flatMap(ctx.load, (value) => {
-      if (options?.trim) {
-        value = value.trim()
-      }
-      return value.length > 0 ? Effect.succeed(value) : Effect.fail(
-        new MissingData({
-          path: ctx.currentPath,
-          fullPath: ctx.provider.formatPath(ctx.currentPath)
-        })
-      )
-    }))
-}
-
 const Number_ = (name?: string): Config<number> =>
   fromFilter({
     name,
@@ -669,7 +592,7 @@ export {
    *
    * @example
    * ```ts
-   * import { Config } from "effect"
+   * import { Config } from "effect/config"
    *
    * // Parse a number from environment variable
    * const config = Config.Number("PORT")
@@ -680,7 +603,7 @@ export {
    *
    * @example
    * ```ts
-   * import { Config } from "effect"
+   * import { Config } from "effect/config"
    *
    * // Parse numbers from array
    * const config = Config.Array("NUMBERS", Config.Number())
@@ -701,7 +624,7 @@ export {
  *
  * @example
  * ```ts
- * import { Config } from "effect"
+ * import { Config } from "effect/config"
  *
  * // Parse an integer from environment variable
  * const config = Config.Integer("PORT")
@@ -712,7 +635,7 @@ export {
  *
  * @example
  * ```ts
- * import { Config } from "effect"
+ * import { Config } from "effect/config"
  *
  * // Parse integers from array
  * const config = Config.Array("NUMBERS", Config.Integer())
@@ -855,7 +778,8 @@ export type LiteralValue = string | number | boolean | null | bigint
  *
  * @example
  * ```ts
- * import { Config, Effect } from "effect"
+ * import { Effect } from "effect"
+ * import { Config } from "effect/config"
  *
  * // Create a config for environment types
  * const envConfig = Config.Literal(
@@ -873,7 +797,8 @@ export type LiteralValue = string | number | boolean | null | bigint
  *
  * @example
  * ```ts
- * import { Config, Effect } from "effect"
+ * import { Effect } from "effect"
+ * import { Config } from "effect/config"
  *
  * // Create a config with mixed literal types
  * const statusConfig = Config.Literal(
@@ -892,7 +817,8 @@ export type LiteralValue = string | number | boolean | null | bigint
  *
  * @example
  * ```ts
- * import { Config, Effect } from "effect"
+ * import { Effect } from "effect"
+ * import { Config } from "effect/config"
  *
  * // Create a case-insensitive config
  * const logLevelConfig = Config.Literal(
@@ -912,7 +838,8 @@ export type LiteralValue = string | number | boolean | null | bigint
  *
  * @example
  * ```ts
- * import { Config, Effect } from "effect"
+ * import { Effect } from "effect"
+ * import { Config } from "effect/config"
  *
  * // Using with BigInt literals
  * const bigIntConfig = Config.Literal(
@@ -930,7 +857,8 @@ export type LiteralValue = string | number | boolean | null | bigint
  *
  * @example
  * ```ts
- * import { Config, Effect } from "effect"
+ * import { Effect } from "effect"
+ * import { Config } from "effect/config"
  *
  * // Using in arrays to validate all elements
  * const featureFlagsConfig = Config.Array(
@@ -1006,7 +934,7 @@ const falseValues = new Set(["false", "0", "no", "off"])
  *
  * @example
  * ```ts
- * import { Config } from "effect"
+ * import { Config } from "effect/config"
  *
  * // Creating a boolean config
  * const debugConfig = Config.Boolean("DEBUG")
@@ -1040,9 +968,8 @@ export const Boolean = (name?: string): Config<boolean> =>
  *
  * @example
  * ```ts
- * import { Config } from "effect/config"
- * import { ConfigProvider } from "effect/config"
  * import { Effect } from "effect"
+ * import { Config, ConfigProvider } from "effect/config"
  *
  * // Simple DateTime config
  * const dateTimeConfig = Config.DateTime("TIMESTAMP")
@@ -1055,9 +982,8 @@ export const Boolean = (name?: string): Config<boolean> =>
  *
  * @example
  * ```ts
- * import { Config } from "effect/config"
- * import { ConfigProvider } from "effect/config"
  * import { Effect } from "effect"
+ * import { Config, ConfigProvider } from "effect/config"
  *
  * // DateTime config without name (uses empty string as key)
  * const dateTimeConfig = Config.DateTime()
@@ -1087,9 +1013,8 @@ export const DateTime = (name?: string): Config<DateTime_.Utc> =>
  *
  * @example
  * ```ts
- * import { Config } from "effect/config"
- * import { ConfigProvider } from "effect/config"
  * import { Effect } from "effect"
+ * import { Config, ConfigProvider } from "effect/config"
  *
  * // Create a config for a URL
  * const urlConfig = Config.Url("WEBSITE_URL")
@@ -1106,9 +1031,8 @@ export const DateTime = (name?: string): Config<DateTime_.Utc> =>
  *
  * @example
  * ```ts
- * import { Config } from "effect/config"
- * import { ConfigProvider } from "effect/config"
  * import { Effect } from "effect"
+ * import { Config, ConfigProvider } from "effect/config"
  *
  * // Create a config for a URL without a name
  * const urlConfig = Config.Url()
@@ -1145,8 +1069,8 @@ export const Url = (name?: string): Config<URL> =>
  *
  * @example
  * ```ts
- * import { Config, Effect, LogLevel } from "effect"
- * import { ConfigProvider } from "effect/config"
+ * import { Effect, LogLevel } from "effect"
+ * import { Config, ConfigProvider } from "effect/config"
  *
  * // Create a log level config
  * const logLevel = Config.LogLevel("LOG_LEVEL")
@@ -1159,9 +1083,8 @@ export const Url = (name?: string): Config<URL> =>
  *
  * @example
  * ```ts
- * import { Config, Effect } from "effect"
- * import { ConfigProvider } from "effect/config"
- * import { LogLevel } from "effect"
+ * import { Effect, LogLevel } from "effect"
+ * import { Config, ConfigProvider } from "effect/config"
  *
  * // Case-insensitive parsing
  * const logLevel = Config.LogLevel("LOG_LEVEL")
@@ -1176,9 +1099,8 @@ export const Url = (name?: string): Config<URL> =>
  *
  * @example
  * ```ts
- * import { Config, Effect } from "effect"
- * import { ConfigProvider } from "effect/config"
- * import { LogLevel } from "effect"
+ * import { Effect, LogLevel } from "effect"
+ * import { Config, ConfigProvider } from "effect/config"
  *
  * // Using with default values and validation
  * const logLevel = Config.LogLevel("LOG_LEVEL").pipe(
@@ -1203,8 +1125,8 @@ export const LogLevel = (name?: string): Config<LogLevel_.LogLevel> =>
  *
  * @example
  * ```ts
- * import { Config, Effect } from "effect"
- * import { ConfigProvider } from "effect/config"
+ * import { Effect } from "effect"
+ * import { Config, ConfigProvider } from "effect/config"
  *
  * const program = Effect.gen(function* () {
  *   const timeout = yield* Config.Duration("TIMEOUT")
@@ -1244,8 +1166,8 @@ export const Duration = (name?: string): Config<Duration_.Duration> =>
  *
  * @example
  * ```ts
- * import { Config, Effect } from "effect"
- * import { ConfigProvider } from "effect/config"
+ * import { Effect } from "effect"
+ * import { Config, ConfigProvider } from "effect/config"
  *
  * // Create a redacted string config
  * const apiKey = Config.Redacted("API_KEY")
@@ -1258,8 +1180,8 @@ export const Duration = (name?: string): Config<Duration_.Duration> =>
  *
  * @example
  * ```ts
- * import { Config, Effect, Redacted } from "effect"
- * import { ConfigProvider } from "effect/config"
+ * import { Effect, Redacted } from "effect"
+ * import { Config, ConfigProvider } from "effect/config"
  *
  * // Create a redacted config without a name
  * const password = Config.Redacted()
@@ -1275,8 +1197,8 @@ export const Duration = (name?: string): Config<Duration_.Duration> =>
  *
  * @example
  * ```ts
- * import { Config, Effect } from "effect"
- * import { ConfigProvider } from "effect/config"
+ * import { Effect } from "effect"
+ * import { Config, ConfigProvider } from "effect/config"
  *
  * // Wrap non-string configs like numbers
  * const secretPort = Config.Redacted("SECRET_PORT", Config.Integer())
@@ -1289,8 +1211,8 @@ export const Duration = (name?: string): Config<Duration_.Duration> =>
  *
  * @example
  * ```ts
- * import { Config, Effect } from "effect"
- * import { ConfigProvider } from "effect/config"
+ * import { Effect } from "effect"
+ * import { Config, ConfigProvider } from "effect/config"
  *
  * // Create a redacted config with a custom label
  * const dbPassword = Config.Redacted("DB_PASSWORD", Config.String(), { label: "database password" })
@@ -1356,8 +1278,8 @@ export const Redacted: {
  *
  * @example
  * ```ts
- * import { Brand, Config, Effect } from "effect"
- * import { ConfigProvider } from "effect/config"
+ * import { Brand, Effect } from "effect"
+ * import { Config, ConfigProvider } from "effect/config"
  *
  * // Define a branded string type for user IDs
  * type UserId = Brand.Branded<string, "UserId">
@@ -1379,8 +1301,8 @@ export const Redacted: {
  *
  * @example
  * ```ts
- * import { Brand, Config, Effect } from "effect"
- * import { ConfigProvider } from "effect/config"
+ * import { Brand, Effect } from "effect"
+ * import { Config, ConfigProvider } from "effect/config"
  *
  * // Define a branded number type for positive integers
  * type PositiveInt = Brand.Branded<number, "PositiveInt">
@@ -1408,8 +1330,8 @@ export const Redacted: {
  *
  * @example
  * ```ts
- * import { Brand, Config, Effect } from "effect"
- * import { ConfigProvider } from "effect/config"
+ * import { Brand, Effect } from "effect"
+ * import { Config, ConfigProvider } from "effect/config"
  *
  * // Define a branded string type for email addresses
  * type Email = Brand.Branded<string, "Email">
@@ -1441,8 +1363,8 @@ export const Redacted: {
  *
  * @example
  * ```ts
- * import { Brand, Config, Effect } from "effect"
- * import { ConfigProvider } from "effect/config"
+ * import { Brand, Effect } from "effect"
+ * import { Config, ConfigProvider } from "effect/config"
  *
  * // Define a branded type for port numbers
  * type Port = Brand.Branded<number, "Port">
@@ -1671,7 +1593,7 @@ export const map: {
 
 /**
  * @since 4.0.0
- * @category Combinators
+ * @category Filters
  */
 export const filter: {
   <A, B>(options: {
@@ -1704,6 +1626,37 @@ export const filter: {
       })
     )
 )
+
+/**
+ * Trims whitespace from the parsed string value.
+ *
+ * @since 4.0.0
+ * @category Filters
+ */
+export const trimmed = (self: Config<string>): Config<string> => map(self, Str.trim)
+
+/**
+ * Ensures that the parsed value is not empty.
+ *
+ * @since 4.0.0
+ * @category Filters
+ */
+export const nonEmpty = <A extends { readonly length: number } | { readonly size: number } | Record<string, any>>(
+  self: Config<A>
+): Config<A> =>
+  primitive((ctx) =>
+    Effect.flatMap(self.parse(ctx), (value: any) => {
+      const nonEmpty = typeof value.length === "number" && value.length > 0 ||
+        typeof value.size === "number" && value.size > 0 ||
+        Object.keys(value).length > 0
+      return nonEmpty ? Effect.succeed(value) : Effect.fail(
+        new MissingData({
+          path: ctx.lastChildPath,
+          fullPath: ctx.provider.formatPath(ctx.lastChildPath)
+        })
+      )
+    })
+  )
 
 /**
  * @since 4.0.0

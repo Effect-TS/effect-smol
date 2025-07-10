@@ -146,19 +146,25 @@ describe("Config", () => {
     })
   })
 
-  describe("nonEmptyString", () => {
+  describe("nonEmpty - String", () => {
     it("name = undefined", () => {
-      const config = Config.Array("ITEMS", Config.StringNonEmpty())
-      assertConfig(config, { ITEMS: "foo" }, ["foo"])
+      const config = Config.nonEmpty(Config.String("ITEMS"))
+      assertConfig(config, { ITEMS: "foo" }, "foo")
+      assertConfig(config, { ITEMS: " " }, " ")
       assertConfigError(
         config,
         { ITEMS: "" },
-        new ConfigError.MissingData({ path: ["ITEMS", "0"], fullPath: "ITEMS_0" })
+        new ConfigError.MissingData({ path: ["ITEMS"], fullPath: "ITEMS" })
+      )
+      assertConfigError(
+        Config.nonEmpty(Config.trimmed(Config.String("ITEMS"))),
+        { ITEMS: " " },
+        new ConfigError.MissingData({ path: ["ITEMS"], fullPath: "ITEMS" })
       )
     })
 
     it("name != undefined", () => {
-      const config = Config.nested(Config.StringNonEmpty(), "NON_EMPTY_STRING")
+      const config = Config.nested(Config.nonEmpty(Config.String()), "NON_EMPTY_STRING")
       assertConfig(config, { NON_EMPTY_STRING: "foo" }, "foo")
       assertConfig(config, { NON_EMPTY_STRING: " " }, " ")
       assertConfigError(
@@ -166,6 +172,26 @@ describe("Config", () => {
         { NON_EMPTY_STRING: "" },
         new ConfigError.MissingData({ path: ["NON_EMPTY_STRING"], fullPath: "NON_EMPTY_STRING" })
       )
+    })
+  })
+
+  describe("nonEmpty - Array", () => {
+    it("name = undefined", () => {
+      const config = Config.Array("ITEMS", Config.String()).pipe(
+        Config.nonEmpty
+      )
+      assertConfig(config, { ITEMS: "foo" }, ["foo"])
+      assertConfigError(config, {}, new ConfigError.MissingData({ path: ["ITEMS"], fullPath: "ITEMS" }))
+    })
+  })
+
+  describe("nonEmpty - Record", () => {
+    it("name = undefined", () => {
+      const config = Config.Record("ITEMS", Config.String()).pipe(
+        Config.nonEmpty
+      )
+      assertConfig(config, { ITEMS: "foo=bar" }, { foo: "bar" })
+      assertConfigError(config, {}, new ConfigError.MissingData({ path: ["ITEMS"], fullPath: "ITEMS" }))
     })
   })
 
