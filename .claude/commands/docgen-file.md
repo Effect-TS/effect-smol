@@ -1,6 +1,8 @@
 Using the context from `.claude/context/docgen.md` use the jsdoc analysis tool to detect exports that require attention.
 
-Then use a worker pool of 10 agents to fix each export, have the agent use the prompt: `use the context from .claude/commands/docgen-file.md to fix the export interface Any in file effect/src/schema/Schema.ts`.
+The file to work on is `#$ARGUMENTS`
+
+Then use a worker pool of 10 agents to fix each export, have the agent use the prompt: `use the context from .claude/commands/docgen-export.md to fix the export {EXPORT NAME HERE} in file #$ARGUMENTS`.
 
 Include fixing examples that show errors in `pnpm docgen`.
 
@@ -12,9 +14,9 @@ THE LOOP SHOULD BE, EDIT -> CHECK -> EDIT -> CHECK -> ... UNTIL IT PASSES THEN P
 
 Examples:
 
-- `use the context from .claude/commands/docgen-file.md to fix the export const Number in file effect/src/schema/Schema.ts`
+- `use the context from .claude/commands/docgen-export.md to fix the export const Number in file #$ARGUMENTS`
 
-- `use the context from .claude/commands/docgen-file.md to fix the export const Record in file effect/src/schema/Schema.ts`
+- `use the context from .claude/commands/docgen-export.md to fix the export const Record in file #$ARGUMENTS`
 
 ## Continuous Worker Pool Strategy
 
@@ -29,3 +31,13 @@ When fixing documentation for an entire file, maintain a **continuous worker poo
 7. **Final validation** with `pnpm docgen` to ensure all examples compile correctly
 
 The goal is to achieve 100% JSDoc documentation coverage efficiently through parallel processing while maintaining quality standards.
+
+## Make a plan first
+
+Before making any changes, create a detailed plan for how to approach the
+documentation fixes in the file.
+
+You should save the plan in the `.claude/plans/docgen/` directory.
+
+Wait for approval before proceeding with the implementation, and check for any
+edits or changes to the plan before starting.

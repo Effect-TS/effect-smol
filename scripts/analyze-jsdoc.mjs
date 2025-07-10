@@ -56,6 +56,20 @@ class JSDocAnalyzer {
         .forEach((file) => allFiles.push(Path.join(schemaDir, file)))
     }
 
+    // Add config subdirectory files
+    const configDir = Path.join(effectSrcDir, "config")
+    if (Fs.existsSync(configDir)) {
+      const configFiles = Fs.readdirSync(configDir)
+      configFiles
+        .filter((file) => file.endsWith(".ts"))
+        .filter((file) => !file.endsWith(".test.ts"))
+        .filter((file) => {
+          const fullPath = Path.join(configDir, file)
+          return Fs.statSync(fullPath).isFile()
+        })
+        .forEach((file) => allFiles.push(Path.join(configDir, file)))
+    }
+
     return allFiles
   }
 
@@ -299,7 +313,8 @@ class JSDocAnalyzer {
         Process.stdout.write(`Error: File '${targetFile}' not found.\n`)
         Process.stdout.write(`Use relative paths from packages/effect/src/:\n`)
         Process.stdout.write(`  - For root files: Effect.ts, Array.ts, etc.\n`)
-        Process.stdout.write(`  - For schema files: schema/Schema.ts, schema/AST.ts, etc.\n\n`)
+        Process.stdout.write(`  - For schema files: schema/Schema.ts, schema/AST.ts, etc.\n`)
+        Process.stdout.write(`  - For config files: config/Config.ts, config/ConfigError.ts, etc.\n\n`)
         Process.stdout.write(`Available files:\n`)
         const effectSrcDir = Path.join(Process.cwd(), "packages/effect/src")
         files.forEach((f) => {
@@ -316,7 +331,7 @@ class JSDocAnalyzer {
     }
 
     Process.stdout.write(
-      `Analyzing ${files.length} TypeScript files in packages/effect/src/ (including schema subdirectory)...\n\n`
+      `Analyzing ${files.length} TypeScript files in packages/effect/src/ (including schema and config subdirectories)...\n\n`
     )
 
     this.results.totalFiles = files.length
