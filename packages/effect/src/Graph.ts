@@ -2093,7 +2093,7 @@ export interface PathResult<E> {
  *
  * @example
  * ```ts
- * import { Graph } from "effect"
+ * import { Graph, Option } from "effect"
  *
  * const graph = Graph.directed<string, number>((mutable) => {
  *   const a = Graph.addNode(mutable, "A")
@@ -2105,9 +2105,9 @@ export interface PathResult<E> {
  * })
  *
  * const result = Graph.dijkstra(graph, 0, 2, (edgeData) => edgeData)
- * if (result !== null) {
- *   console.log(result.path) // [0, 1, 2] - shortest path A->B->C
- *   console.log(result.distance) // 7 - total distance
+ * if (Option.isSome(result)) {
+ *   console.log(result.value.path) // [0, 1, 2] - shortest path A->B->C
+ *   console.log(result.value.distance) // 7 - total distance
  * }
  * ```
  *
@@ -2401,7 +2401,7 @@ export const floydWarshall = <N, E, T extends Kind = "directed">(
  *
  * @example
  * ```ts
- * import { Graph } from "effect"
+ * import { Graph, Option } from "effect"
  *
  * const graph = Graph.directed<{x: number, y: number}, number>((mutable) => {
  *   const a = Graph.addNode(mutable, {x: 0, y: 0})
@@ -2416,9 +2416,9 @@ export const floydWarshall = <N, E, T extends Kind = "directed">(
  *   Math.abs(nodeData.x - targetData.x) + Math.abs(nodeData.y - targetData.y)
  *
  * const result = Graph.astar(graph, 0, 2, (edgeData) => edgeData, heuristic)
- * if (result !== null) {
- *   console.log(result.path) // [0, 1, 2] - shortest path
- *   console.log(result.distance) // 2 - total distance
+ * if (Option.isSome(result)) {
+ *   console.log(result.value.path) // [0, 1, 2] - shortest path
+ *   console.log(result.value.distance) // 2 - total distance
  * }
  * ```
  *
@@ -2583,11 +2583,11 @@ export const astar = <N, E, T extends Kind = "directed">(
  *
  * Bellman-Ford algorithm can handle negative edge weights and detects negative cycles.
  * It has O(VE) time complexity, slower than Dijkstra's but more versatile.
- * Returns null if a negative cycle is detected that affects the path.
+ * Returns Option.none() if a negative cycle is detected that affects the path.
  *
  * @example
  * ```ts
- * import { Graph } from "effect"
+ * import { Graph, Option } from "effect"
  *
  * const graph = Graph.directed<string, number>((mutable) => {
  *   const a = Graph.addNode(mutable, "A")
@@ -2599,9 +2599,9 @@ export const astar = <N, E, T extends Kind = "directed">(
  * })
  *
  * const result = Graph.bellmanFord(graph, 0, 2, (edgeData) => edgeData)
- * if (result !== null) {
- *   console.log(result.path) // [0, 1, 2] - shortest path A->B->C
- *   console.log(result.distance) // 2 - total distance
+ * if (Option.isSome(result)) {
+ *   console.log(result.value.path) // [0, 1, 2] - shortest path A->B->C
+ *   console.log(result.value.distance) // 2 - total distance
  * }
  * ```
  *
