@@ -3,8 +3,10 @@
   "include": ["examples"],
   "references": [{ "path": "tsconfig.build.json" }],
   "compilerOptions": {
-    "tsBuildInfoFile": ".tsbuildinfo/examples.tsbuildinfo",
+    "tsBuildInfoFile": "node_modules/.tsbuildinfo/examples.tsbuildinfo",
+    "outDir": "node_modules/.tsbuildinfo/examples",
     "rootDir": "examples",
+    "types": ["node"],
     "noEmit": true
   }
 }

@@ -5,9 +5,8 @@
     { "path": "../platform-node-shared/tsconfig.build.json" }
   ],
   "compilerOptions": {
-    "tsBuildInfoFile": ".tsbuildinfo/build.tsbuildinfo",
+    "tsBuildInfoFile": "node_modules/.tsbuildinfo/build.tsbuildinfo",
     "outDir": "build",
-    "declarationDir": "build",
     "stripInternal": true
   }
 }

@@ -4,8 +4,8 @@
   "exclude": ["src/**/.*.ts"],
   "references": [{ "path": "../effect/tsconfig.src.json" }],
   "compilerOptions": {
-    "outDir": ".tsbuildinfo/src",
-    "tsBuildInfoFile": ".tsbuildinfo/src.tsbuildinfo",
+    "tsBuildInfoFile": "node_modules/.tsbuildinfo/src.tsbuildinfo",
+    "outDir": "node_modules/.tsbuildinfo/src",
     "rootDir": "src"
   }
 }

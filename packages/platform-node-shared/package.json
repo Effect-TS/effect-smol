@@ -39,9 +39,7 @@
     "./internal/*": null
   },
   "scripts": {
-    "build": "pnpm build-esm && pnpm build-annotate && utils pack",
-    "build-esm": "tsc -b tsconfig.build.json",
-    "build-annotate": "babel build --plugins annotate-pure-calls,annotate-no-side-effects --out-dir build --source-maps",
+    "build": "tsc -b tsconfig.build.json && babel build --plugins annotate-pure-calls --out-dir build --source-maps && utils pack",
     "check": "tsc -b tsconfig.json",
     "test": "vitest",
     "coverage": "vitest --coverage"
@@ -50,6 +48,7 @@
     "effect": "workspace:^"
   },
   "devDependencies": {
+    "@types/node": "^24.0.4",
     "effect": "workspace:^",
     "tar": "^7.4.3"
   }

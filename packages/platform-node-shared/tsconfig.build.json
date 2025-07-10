@@ -2,9 +2,8 @@
   "extends": "./tsconfig.src.json",
   "references": [{ "path": "../effect/tsconfig.build.json" }],
   "compilerOptions": {
-    "tsBuildInfoFile": ".tsbuildinfo/build.tsbuildinfo",
+    "tsBuildInfoFile": "node_modules/.tsbuildinfo/build.tsbuildinfo",
     "outDir": "build",
-    "declarationDir": "build",
     "stripInternal": true
   }
 }
