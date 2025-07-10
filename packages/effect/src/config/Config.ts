@@ -269,10 +269,9 @@ export const isConfig = (u: unknown): u is Config<unknown> => hasProperty(u, Typ
  * @since 4.0.0
  * @category Models
  */
-export interface Config<out A> extends Pipeable, Effect.Yieldable<A, ConfigError> {
+export interface Config<out A> extends Pipeable, Effect.Yieldable<Config<A>, A, ConfigError> {
   readonly [TypeId]: TypeId
   readonly parse: (context: ConfigProvider.Context) => Effect.Effect<A, ConfigError>
-  [Symbol.iterator](): Effect.EffectIterator<Config<A>>
 }
 
 /**
