@@ -1,7 +1,6 @@
 /**
  * @since 4.0.0
  */
-import * as Arr from "../../Array.js"
 import * as Config from "../../config/Config.js"
 import * as Effect from "../../Effect.js"
 import * as Inspectable from "../../Inspectable.js"
@@ -66,7 +65,6 @@ export const fromConfig: (
   readonly attributes?: Record<string, unknown> | undefined
 }) {
   const attributes = yield* Config.Record("OTEL_RESOURCE_ATTRIBUTES", Config.String()).pipe(
-    Config.withDefault({}),
     Config.map((envAttrs) => ({
       ...envAttrs,
       ...options?.attributes
