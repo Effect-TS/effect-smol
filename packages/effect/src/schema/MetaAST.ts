@@ -1,5 +1,6 @@
 /**
  * @since 4.0.0
+ * @experimental
  */
 
 import * as ast from "./AST.js"
