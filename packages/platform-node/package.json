@@ -41,8 +41,8 @@
     "./internal/*": null
   },
   "scripts": {
-    "codegen": "utils codegen",
-    "build": "tsc -b tsconfig.build.json && babel build --plugins annotate-pure-calls --out-dir build --source-maps && utils pack",
+    "codegen": "build-utils prepare-v4",
+    "build": "tsc -b tsconfig.build.json && babel build --plugins annotate-pure-calls --out-dir build --source-maps && build-utils pack-v5",
     "check": "tsc -b tsconfig.json",
     "test": "vitest",
     "coverage": "vitest --coverage"
