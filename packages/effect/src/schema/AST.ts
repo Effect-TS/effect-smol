@@ -1383,28 +1383,11 @@ type Type =
   | "bigint"
   | "function"
 
-function getInputType(input: unknown): Type {
-  if (input === null) {
-    return "null"
-  }
-  if (Array.isArray(input)) {
-    return "array"
-  }
-  return typeof input
+/** @internal */
+export type Sentinel = {
+  readonly key: PropertyKey
+  readonly literal: Literal
 }
-
-const allTypes: ReadonlyArray<Type> = [
-  "null",
-  "undefined",
-  "string",
-  "number",
-  "boolean",
-  "symbol",
-  "bigint",
-  "object",
-  "array",
-  "function"
-]
 
 function getCandidateTypes(ast: AST): ReadonlyArray<Type> {
   switch (ast._tag) {
@@ -1425,59 +1408,56 @@ function getCandidateTypes(ast: AST): ReadonlyArray<Type> {
       return ["symbol"]
     case "BigIntKeyword":
       return ["bigint"]
-    case "TypeLiteral": {
-      if (ast.propertySignatures.length === 0 && ast.indexSignatures.length === 0) {
-        return ["object", "array"]
-      }
-      return ["object"]
-    }
-    case "ObjectKeyword":
-      return ["object", "array", "function"]
-    case "Enums":
-      return ["string", "number"]
     case "TupleType":
       return ["array"]
+    case "ObjectKeyword":
+      return ["object", "array", "function"]
+    case "TypeLiteral":
+      return ast.propertySignatures.length || ast.indexSignatures.length
+        ? ["object"]
+        : ["object", "array"]
+    case "Enums":
+      return ["string", "number"]
     case "LiteralType":
       return [typeof ast.literal]
     default:
-      return allTypes
+      return [
+        "null",
+        "undefined",
+        "string",
+        "number",
+        "boolean",
+        "symbol",
+        "bigint",
+        "object",
+        "array",
+        "function"
+      ]
   }
-}
-
-/** @internal */
-export type Sentinel = {
-  readonly key: PropertyKey
-  readonly literal: Literal
 }
 
 /** @internal */
 export function collectSentinels(ast: AST): Array<Sentinel> | undefined {
   switch (ast._tag) {
     case "Declaration": {
-      const sentinels = ast.annotations?.["~sentinels"]
-      if (Array.isArray(sentinels)) {
-        return sentinels
-      }
-      return undefined
+      const s = ast.annotations?.["~sentinels"]
+      return Array.isArray(s) && s.length ? s : undefined
     }
     case "TypeLiteral": {
-      const out: Array<Sentinel> = []
-      for (const ps of ast.propertySignatures) {
-        if (isLiteralType(ps.type) && !isOptional(ps.type)) {
-          out.push({ key: ps.name, literal: ps.type.literal })
-        }
-      }
-      return out.length > 0 ? out : undefined
+      const v = ast.propertySignatures.flatMap((ps) =>
+        isLiteralType(ps.type) && !isOptional(ps.type)
+          ? [{ key: ps.name, literal: ps.type.literal }]
+          : []
+      )
+      return v.length ? v : undefined
     }
     case "TupleType": {
-      const out: Array<Sentinel> = []
-      for (let i = 0; i < ast.elements.length; i++) {
-        const e = ast.elements[i]
-        if (isLiteralType(e) && !isOptional(e)) {
-          out.push({ key: i, literal: e.literal })
-        }
-      }
-      return out.length > 0 ? out : undefined
+      const v = ast.elements.flatMap((e, i) =>
+        isLiteralType(e) && !isOptional(e)
+          ? [{ key: i, literal: e.literal }]
+          : []
+      )
+      return v.length ? v : undefined
     }
     case "Suspend":
       return collectSentinels(ast.thunk())
@@ -1485,76 +1465,55 @@ export function collectSentinels(ast: AST): Array<Sentinel> | undefined {
 }
 
 type CandidateIndex = {
-  byType: { [K in Type]?: Array<AST> } | undefined
-  bySentinel: Map<PropertyKey, Map<Literal, Array<AST>>> | undefined
-  otherwise: { [K in Type]?: Array<AST> } | undefined
+  byType?: { [K in Type]?: Array<AST> }
+  bySentinel?: Map<PropertyKey, Map<Literal, Array<AST>>>
+  otherwise?: { [K in Type]?: Array<AST> }
 }
 
 const candidateIndexCache = new WeakMap<ReadonlyArray<AST>, CandidateIndex>()
 
 /** @internal */
-export function getIndex(types: ReadonlyArray<AST>): CandidateIndex {
+function getIndex(types: ReadonlyArray<AST>): CandidateIndex {
   let idx = candidateIndexCache.get(types)
-  if (!idx) {
-    idx = {
-      byType: undefined,
-      bySentinel: undefined,
-      otherwise: undefined
+  if (idx) return idx
+
+  idx = {}
+  for (const a of types) {
+    const encoded = encodedAST(a)
+    const types = getCandidateTypes(encoded)
+    const sentinels = collectSentinels(encoded)
+
+    // by-type (always filled – cheap primary filter)
+    idx.byType ??= {}
+    for (const t of types) (idx.byType[t] ??= []).push(a)
+
+    if (sentinels?.length) { // discriminated variants
+      idx.bySentinel ??= new Map()
+      for (const { key, literal } of sentinels) {
+        let m = idx.bySentinel.get(key)
+        if (!m) idx.bySentinel.set(key, m = new Map())
+        let arr = m.get(literal)
+        if (!arr) m.set(literal, arr = [])
+        arr.push(a)
+      }
+    } else { // non-discriminated
+      idx.otherwise ??= {}
+      for (const t of types) (idx.otherwise[t] ??= []).push(a)
     }
-    for (const ast of types) {
-      const encoded = encodedAST(ast)
-      const types = getCandidateTypes(encoded)
-      if (!idx.byType) {
-        idx.byType = {}
-      }
-      for (const type of types) {
-        if (!Object.hasOwn(idx.byType, type)) {
-          idx.byType[type] = []
-        }
-        idx.byType[type]!.push(ast)
-      }
-      const sentinels = collectSentinels(encoded)
-      if (sentinels) {
-        if (!idx.bySentinel) {
-          idx.bySentinel = new Map()
-        }
-        for (const sentinel of sentinels) {
-          if (!idx.bySentinel.has(sentinel.key)) {
-            idx.bySentinel.set(sentinel.key, new Map())
-          }
-          const map = idx.bySentinel.get(sentinel.key)!
-          if (!map.has(sentinel.literal)) {
-            map.set(sentinel.literal, [])
-          }
-          map.get(sentinel.literal)!.push(ast)
-        }
-      } else {
-        if (!idx.otherwise) {
-          idx.otherwise = {}
-        }
-        for (const type of types) {
-          if (!Object.hasOwn(idx.otherwise, type)) {
-            idx.otherwise[type] = []
-          }
-          idx.otherwise[type]!.push(ast)
-        }
-      }
-    }
-    candidateIndexCache.set(types, idx)
   }
+
+  candidateIndexCache.set(types, idx)
   return idx
 }
 
 function filterLiterals(input: any) {
   return (ast: AST) => {
     const encoded = encodedAST(ast)
-    switch (encoded._tag) {
-      case "LiteralType":
-        return encoded.literal === input
-      case "UniqueSymbol":
-        return encoded.symbol === input
-    }
-    return true
+    return encoded._tag === "LiteralType" ?
+      encoded.literal === input
+      : encoded._tag === "UniqueSymbol" ?
+      encoded.symbol === input
+      : true
   }
 }
 
@@ -1566,29 +1525,24 @@ function filterLiterals(input: any) {
  */
 export function getCandidates(input: any, types: ReadonlyArray<AST>): ReadonlyArray<AST> {
   const idx = getIndex(types)
-  const type = getInputType(input)
+  const runtimeType: Type = input === null ? "null" : Array.isArray(input) ? "array" : typeof input
+
+  // 1. Try sentinel-based dispatch (most selective)
   if (idx.bySentinel) {
-    const otherwise = idx.otherwise?.[type] ?? []
-    if (type === "object" || type === "array") {
-      for (const [key, literals] of idx.bySentinel.entries()) {
-        if (Object.hasOwn(input, key)) {
-          const literal = input[key]
-          const candidates = literals.get(literal)
-          if (candidates) {
-            return candidates.concat(otherwise).filter(filterLiterals(input))
-          }
+    const base = idx.otherwise?.[runtimeType] ?? []
+    if (runtimeType === "object" || runtimeType === "array") {
+      for (const [k, m] of idx.bySentinel) {
+        if (Object.hasOwn(input, k)) {
+          const match = m.get((input as any)[k])
+          if (match) return [...match, ...base].filter(filterLiterals(input))
         }
       }
     }
-    return otherwise
+    return base
   }
-  if (idx.byType) {
-    const candidates = idx.byType[type]
-    if (candidates) {
-      return candidates.filter(filterLiterals(input))
-    }
-  }
-  return []
+
+  // 2. Fallback: runtime-type dispatch only
+  return (idx.byType?.[runtimeType] ?? []).filter(filterLiterals(input))
 }
 
 /**
