@@ -1678,7 +1678,7 @@ type Encoded = {
 export type Encoded = typeof schema.Encoded
 ```
 
-### Deriving Structs
+### 🆕 Deriving Structs
 
 You can map the fields of a struct schema using the `mapFields` static method on `Schema.Struct`. The `mapFields` static method accepts a function from `Struct.Fields` to new fields, and returns a new `Schema.Struct` based on the result.
 
