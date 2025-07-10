@@ -1,5 +1,5 @@
-import * as Schema from "./packages/effect/build/esm/schema/Schema.js"
-import * as Check from "./packages/effect/build/esm/schema/Check.js"
+import * as Check from "#dist/effect/schema/Check"
+import * as Schema from "#dist/effect/schema/Schema"
 
 // Test SchemaPart examples
 // Example 1: Basic SchemaPart Usage
@@ -12,7 +12,7 @@ const userIdSchema = Schema.TemplateLiteral([
   "user-",
   Schema.Number, // SchemaPart
   "-",
-  Schema.String  // SchemaPart
+  Schema.String // SchemaPart
 ])
 
 // Valid: "user-123-john"

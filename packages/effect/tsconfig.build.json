@@ -1,7 +1,7 @@
 {
   "extends": "./tsconfig.src.json",
   "compilerOptions": {
-    "tsBuildInfoFile": "node_modules/.tsbuildinfo/build.tsbuildinfo",
+    "tsBuildInfoFile": ".tsbuildinfo/build.tsbuildinfo",
     "outDir": "build",
     "types": ["node"],
     "stripInternal": true

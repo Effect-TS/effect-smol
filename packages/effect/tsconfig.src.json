@@ -3,8 +3,8 @@
   "include": ["src"],
   "exclude": ["src/**/.*.ts"],
   "compilerOptions": {
-    "tsBuildInfoFile": "node_modules/.tsbuildinfo/src.tsbuildinfo",
-    "outDir": "node_modules/.tsbuildinfo/src",
+    "tsBuildInfoFile": ".tsbuildinfo/src.tsbuildinfo",
+    "outDir": ".tsbuildinfo/src",
     "types": ["node"],
     "rootDir": "src"
   }
