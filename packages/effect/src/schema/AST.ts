@@ -1393,72 +1393,170 @@ function getInputType(input: unknown): Type {
   return typeof input
 }
 
-const getCandidateTypes = memoize((ast: AST): ReadonlyArray<Type> | Type | null => {
+const allTypes: ReadonlyArray<Type> = [
+  "null",
+  "undefined",
+  "string",
+  "number",
+  "boolean",
+  "symbol",
+  "bigint",
+  "object",
+  "array",
+  "function"
+]
+
+function getCandidateTypes(ast: AST): ReadonlyArray<Type> {
   switch (ast._tag) {
     case "NullKeyword":
-      return "null"
+      return ["null"]
     case "UndefinedKeyword":
     case "VoidKeyword":
-      return "undefined"
+      return ["undefined"]
     case "StringKeyword":
     case "TemplateLiteral":
-      return "string"
+      return ["string"]
     case "NumberKeyword":
-      return "number"
+      return ["number"]
     case "BooleanKeyword":
-      return "boolean"
+      return ["boolean"]
     case "SymbolKeyword":
     case "UniqueSymbol":
-      return "symbol"
+      return ["symbol"]
     case "BigIntKeyword":
-      return "bigint"
-    case "TypeLiteral":
+      return ["bigint"]
+    case "TypeLiteral": {
+      if (ast.propertySignatures.length === 0 && ast.indexSignatures.length === 0) {
+        return ["object", "array"]
+      }
+      return ["object"]
+    }
     case "ObjectKeyword":
-      return ["object", "array"]
+      return ["object", "array", "function"]
     case "Enums":
       return ["string", "number"]
     case "TupleType":
-      return "array"
+      return ["array"]
     case "LiteralType":
-      return typeof ast.literal
-    case "Declaration":
-    case "NeverKeyword":
-    case "AnyKeyword":
-    case "UnknownKeyword":
-    case "UnionType":
-    case "Suspend":
-      return null
+      return [typeof ast.literal]
+    default:
+      return allTypes
   }
-})
+}
 
 /** @internal */
 export type Sentinel = {
   readonly key: PropertyKey
   readonly literal: Literal
-  readonly isOptional: boolean
 }
 
 /** @internal */
-export const collectSentinels = memoize((ast: AST): ReadonlySet<Sentinel> | undefined => {
+export function collectSentinels(ast: AST): Array<Sentinel> | undefined {
   switch (ast._tag) {
     case "Declaration": {
       const sentinels = ast.annotations?.["~sentinels"]
-      if (sentinels instanceof Set) {
+      if (Array.isArray(sentinels)) {
         return sentinels
       }
       return undefined
     }
     case "TypeLiteral": {
-      const out: Set<Sentinel> = new Set()
+      const out: Array<Sentinel> = []
       for (const ps of ast.propertySignatures) {
-        if (isLiteralType(ps.type)) {
-          out.add({ key: ps.name, literal: ps.type.literal, isOptional: isOptional(ps.type) })
+        if (isLiteralType(ps.type) && !isOptional(ps.type)) {
+          out.push({ key: ps.name, literal: ps.type.literal })
         }
       }
-      return out.size > 0 ? out : undefined
+      return out.length > 0 ? out : undefined
     }
+    case "TupleType": {
+      const out: Array<Sentinel> = []
+      for (let i = 0; i < ast.elements.length; i++) {
+        const e = ast.elements[i]
+        if (isLiteralType(e) && !isOptional(e)) {
+          out.push({ key: i, literal: e.literal })
+        }
+      }
+      return out.length > 0 ? out : undefined
+    }
+    case "Suspend":
+      return collectSentinels(ast.thunk())
   }
-})
+}
+
+type CandidateIndex = {
+  byType: { [K in Type]?: Array<AST> } | undefined
+  bySentinel: Map<PropertyKey, Map<Literal, Array<AST>>> | undefined
+  otherwise: { [K in Type]?: Array<AST> } | undefined
+}
+
+const candidateIndexCache = new WeakMap<ReadonlyArray<AST>, CandidateIndex>()
+
+/** @internal */
+export function getIndex(types: ReadonlyArray<AST>): CandidateIndex {
+  let idx = candidateIndexCache.get(types)
+  if (!idx) {
+    idx = {
+      byType: undefined,
+      bySentinel: undefined,
+      otherwise: undefined
+    }
+    for (const ast of types) {
+      const encoded = encodedAST(ast)
+      const types = getCandidateTypes(encoded)
+      if (!idx.byType) {
+        idx.byType = {}
+      }
+      for (const type of types) {
+        if (!Object.hasOwn(idx.byType, type)) {
+          idx.byType[type] = []
+        }
+        idx.byType[type]!.push(ast)
+      }
+      const sentinels = collectSentinels(encoded)
+      if (sentinels) {
+        if (!idx.bySentinel) {
+          idx.bySentinel = new Map()
+        }
+        for (const sentinel of sentinels) {
+          if (!idx.bySentinel.has(sentinel.key)) {
+            idx.bySentinel.set(sentinel.key, new Map())
+          }
+          const map = idx.bySentinel.get(sentinel.key)!
+          if (!map.has(sentinel.literal)) {
+            map.set(sentinel.literal, [])
+          }
+          map.get(sentinel.literal)!.push(ast)
+        }
+      } else {
+        if (!idx.otherwise) {
+          idx.otherwise = {}
+        }
+        for (const type of types) {
+          if (!Object.hasOwn(idx.otherwise, type)) {
+            idx.otherwise[type] = []
+          }
+          idx.otherwise[type]!.push(ast)
+        }
+      }
+    }
+    candidateIndexCache.set(types, idx)
+  }
+  return idx
+}
+
+function filterLiterals(input: any) {
+  return (ast: AST) => {
+    const encoded = encodedAST(ast)
+    switch (encoded._tag) {
+      case "LiteralType":
+        return encoded.literal === input
+      case "UniqueSymbol":
+        return encoded.symbol === input
+    }
+    return true
+  }
+}
 
 /**
  * The goal is to reduce the number of a union members that will be checked.
@@ -1467,38 +1565,30 @@ export const collectSentinels = memoize((ast: AST): ReadonlySet<Sentinel> | unde
  * @internal
  */
 export function getCandidates(input: any, types: ReadonlyArray<AST>): ReadonlyArray<AST> {
+  const idx = getIndex(types)
   const type = getInputType(input)
-  if (type) {
-    return types.filter((ast) => {
-      const encoded = encodedAST(ast)
-      const types = getCandidateTypes(encoded)
-      const out = types === null || types === type || types.includes(type)
-      if (out) {
-        switch (encoded._tag) {
-          case "LiteralType":
-            return encoded.literal === input
-          case "UniqueSymbol":
-            return encoded.symbol === input
-        }
-        if (type === "object") {
-          const sentinels = collectSentinels(encoded)
-          if (sentinels) {
-            for (const sentinel of sentinels) {
-              if (Object.hasOwn(input, sentinel.key)) {
-                if (sentinel.literal !== input[sentinel.key]) {
-                  return false
-                }
-              } else if (!sentinel.isOptional) {
-                return false
-              }
-            }
+  if (idx.bySentinel) {
+    const otherwise = idx.otherwise?.[type] ?? []
+    if (type === "object" || type === "array") {
+      for (const [key, literals] of idx.bySentinel.entries()) {
+        if (Object.hasOwn(input, key)) {
+          const literal = input[key]
+          const candidates = literals.get(literal)
+          if (candidates) {
+            return candidates.concat(otherwise).filter(filterLiterals(input))
           }
         }
       }
-      return out
-    })
+    }
+    return otherwise
   }
-  return types
+  if (idx.byType) {
+    const candidates = idx.byType[type]
+    if (candidates) {
+      return candidates.filter(filterLiterals(input))
+    }
+  }
+  return []
 }
 
 /**
