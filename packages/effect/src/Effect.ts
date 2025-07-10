@@ -352,13 +352,6 @@ export declare namespace Effect {
 /**
  * @since 4.0.0
  * @category models
- * @example
- * ```ts
- * import { Effect } from "effect"
- *
- * // Yieldable namespace contains utilities for generator-based Effects
- * type YieldableSuccess = Effect.Yieldable.Success<Effect.Yieldable<string, Error, never>>  // string
- * ```
  */
 export declare namespace Yieldable {
   /**
@@ -375,8 +368,7 @@ export declare namespace Yieldable {
    * import { Effect } from "effect"
    *
    * // Extract the success type from a Yieldable
-   * type MyYieldable = Effect.Yieldable<string, Error, never>
-   * type SuccessType = Effect.Yieldable.Success<MyYieldable>  // string
+   * type SuccessType = Effect.Yieldable.Success<Effect.Effect<string>>  // string
    * ```
    */
   export type Success<T> = T extends Yieldable<infer _Self, infer _A, infer _E, infer _R> ? _A
