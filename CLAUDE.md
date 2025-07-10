@@ -270,6 +270,22 @@ Code is considered complete only when:
   - Any concurrent operations that depend on timing
 - Pattern: Use `TestClock.advance("duration")` to simulate time passage instead of actual delays
 
+### Testing Framework Selection
+
+#### When to Use @effect/vitest
+- **MANDATORY**: Use `@effect/vitest` for modules that work with Effect values
+- **Effect-based functions**: Functions that return `Effect<A, E, R>` types
+- **Modules**: Effect, Stream, Layer, TestClock, etc.
+- **Import pattern**: `import { assert, describe, it } from "@effect/vitest"`
+- **Test pattern**: `it.effect("description", () => Effect.gen(function*() { ... }))`
+
+#### When to Use Regular vitest
+- **MANDATORY**: Use regular `vitest` for pure TypeScript functions
+- **Pure functions**: Functions that don't return Effect types (Graph, Data, Equal, etc.)
+- **Utility modules**: Graph, Chunk, Array, String, Number, etc.
+- **Import pattern**: `import { describe, expect, it } from "vitest"`
+- **Test pattern**: `it("description", () => { ... })`
+
 ### it.effect Testing Pattern
 - **MANDATORY**: Use `it.effect` for all Effect-based tests, not `Effect.runSync` with regular `it`
 - **CRITICAL**: Import `{ assert, describe, it }` from `@effect/vitest`, not from `vitest`
