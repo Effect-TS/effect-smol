@@ -65,18 +65,7 @@ export const fromConfig: (
   readonly serviceVersion?: string | undefined
   readonly attributes?: Record<string, unknown> | undefined
 }) {
-  const attributes = yield* Config.String("OTEL_RESOURCE_ATTRIBUTES").pipe(
-    Config.map((s) => {
-      const attrs = s.split(",")
-      return Arr.reduce(attrs, {} as Record<string, string>, (acc, attr) => {
-        const parts = attr.split("=")
-        if (parts.length !== 2) {
-          return acc
-        }
-        acc[parts[0].trim()] = parts[1].trim()
-        return acc
-      })
-    }),
+  const attributes = yield* Config.Record("OTEL_RESOURCE_ATTRIBUTES", Config.String()).pipe(
     Config.withDefault({}),
     Config.map((envAttrs) => ({
       ...envAttrs,
@@ -85,8 +74,10 @@ export const fromConfig: (
   )
   const serviceName = options?.serviceName ?? attributes["service.name"] as string ??
     (yield* Config.String("OTEL_SERVICE_NAME"))
+  delete attributes["service.name"]
   const serviceVersion = options?.serviceVersion ?? attributes["service.version"] as string ??
     (yield* Config.String("OTEL_SERVICE_VERSION").pipe(Config.orUndefined))
+  delete attributes["service.version"]
   return make({
     serviceName,
     serviceVersion,

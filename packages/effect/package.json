@@ -37,6 +37,7 @@
     "./config": "./src/config/index.ts",
     "./schema": "./src/schema/index.ts",
     "./unstable/http": "./src/unstable/http/index.ts",
+    "./unstable/tracing": "./src/unstable/tracing/index.ts",
     "./*": "./src/*.ts",
     "./internal/*": null
   },
