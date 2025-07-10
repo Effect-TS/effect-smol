@@ -109,13 +109,12 @@ export type TypeId = "~effect/Option"
  * @category Models
  * @since 2.0.0
  */
-export interface None<out A> extends Pipeable, Inspectable, Yieldable<A, NoSuchElementError> {
+export interface None<out A> extends Pipeable, Inspectable, Yieldable<Option<A>, A, NoSuchElementError> {
   readonly _tag: "None"
   readonly _op: "None"
   readonly [TypeId]: {
     readonly _A: Covariant<A>
   }
-  [Symbol.iterator](): EffectIterator<Option<A>>
   [Unify.typeSymbol]?: unknown
   [Unify.unifySymbol]?: OptionUnify<this>
   [Unify.ignoreSymbol]?: OptionUnifyIgnore
@@ -139,7 +138,7 @@ export interface None<out A> extends Pipeable, Inspectable, Yieldable<A, NoSuchE
  * @category Models
  * @since 2.0.0
  */
-export interface Some<out A> extends Pipeable, Inspectable, Yieldable<A, NoSuchElementError> {
+export interface Some<out A> extends Pipeable, Inspectable, Yieldable<Option<A>, A, NoSuchElementError> {
   readonly _tag: "Some"
   readonly _op: "Some"
   readonly value: A

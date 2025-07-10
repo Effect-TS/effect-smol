@@ -7,7 +7,7 @@
  *
  * @since 4.0.0
  */
-import { type EffectIterator, type Yieldable } from "./Effect.js"
+import type { EffectIterator, Yieldable } from "./Effect.js"
 import * as Equal from "./Equal.js"
 import { constant, dual, type LazyArg } from "./Function.js"
 import * as Hash from "./Hash.js"
@@ -58,14 +58,15 @@ export type KeyTypeId = "~effect/ServiceMap/Key"
  * const serviceMap = ServiceMap.make(DatabaseKey, { query: (sql) => `Result: ${sql}` })
  * ```
  */
-export interface Key<in out Id, in out Service> extends Pipeable, Inspectable, Yieldable<Service, never, Id> {
+export interface Key<in out Id, in out Service>
+  extends Pipeable, Inspectable, Yieldable<Key<Id, Service>, Service, never, Id>
+{
   readonly [KeyTypeId]: {
     readonly _Service: Types.Invariant<Service>
     readonly _Identifier: Types.Invariant<Id>
   }
   readonly Service: Service
   readonly Identifier: Id
-  [Symbol.iterator](): EffectIterator<Key<Id, Service>>
   of(self: Service): Service
   serviceMap(self: Service): ServiceMap<Id>
 

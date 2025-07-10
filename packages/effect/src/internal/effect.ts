@@ -764,8 +764,9 @@ export const suspend: <A, E, R>(
 })
 
 /** @internal */
-export const fromYieldable = <A, E, R>(yieldable: Effect.Yieldable<A, E, R>): Effect.Effect<A, E, R> =>
-  yieldable.asEffect()
+export const fromYieldable = <Self extends Effect.Yieldable.Any, A, E, R>(
+  yieldable: Effect.Yieldable<Self, A, E, R>
+): Effect.Effect<A, E, R> => yieldable.asEffect()
 
 /** @internal */
 export const fromOption: <A>(option: Option.Option<A>) => Effect.Effect<A, Cause.NoSuchElementError> = fromYieldable
@@ -946,7 +947,7 @@ export const never: Effect.Effect<never> = callback<never>(constVoid)
 /** @internal */
 export const gen = <
   Self,
-  Eff extends YieldWrap<Effect.Yieldable<any, any, any>>,
+  Eff extends YieldWrap<Effect.Yieldable<any, any, any, any>>,
   AEff
 >(
   ...args:
@@ -1004,7 +1005,7 @@ export const fnUntracedEager: Effect.fn.Gen = (
 }
 
 const unsafeFromIteratorEager = (
-  createIterator: () => Iterator<YieldWrap<Effect.Yieldable<any, any, any>>>
+  createIterator: () => Iterator<YieldWrap<Effect.Yieldable<any, any, any, any>>>
 ): Effect.Effect<any, any, any> => {
   try {
     const iterator = createIterator()
@@ -1046,7 +1047,7 @@ const unsafeFromIteratorEager = (
 }
 
 const unsafeFromIterator: (
-  iterator: Iterator<YieldWrap<Effect.Yieldable<any, any, any>>>,
+  iterator: Iterator<YieldWrap<Effect.Yieldable<any, any, any, any>>>,
   initial?: undefined
 ) => Effect.Effect<any, any, any> = makePrimitive({
   op: "Iterator",

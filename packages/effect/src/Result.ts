@@ -2,7 +2,7 @@
  * @since 4.0.0
  */
 
-import type { EffectIterator, Yieldable } from "./Effect.js"
+import type { Yieldable } from "./Effect.js"
 import * as Equivalence from "./Equivalence.js"
 import type { LazyArg } from "./Function.js"
 import { constNull, constUndefined, dual, identity } from "./Function.js"
@@ -93,7 +93,7 @@ export type TypeId = "~effect/Result"
  * @category Models
  * @since 4.0.0
  */
-export interface Failure<out A, out E> extends Pipeable, Inspectable, Yieldable<A, E> {
+export interface Failure<out A, out E> extends Pipeable, Inspectable, Yieldable<Result<A, E>, A, E> {
   readonly _tag: "Failure"
   readonly _op: "Failure"
   readonly failure: E
@@ -101,7 +101,6 @@ export interface Failure<out A, out E> extends Pipeable, Inspectable, Yieldable<
     readonly _A: Covariant<E>
     readonly _E: Covariant<A>
   }
-  [Symbol.iterator](): EffectIterator<Result<A, E>>
   [Unify.typeSymbol]?: unknown
   [Unify.unifySymbol]?: ResultUnify<this>
   [Unify.ignoreSymbol]?: ResultUnifyIgnore
@@ -124,7 +123,7 @@ export interface Failure<out A, out E> extends Pipeable, Inspectable, Yieldable<
  * @category Models
  * @since 4.0.0
  */
-export interface Success<out A, out E> extends Pipeable, Inspectable, Yieldable<A, E> {
+export interface Success<out A, out E> extends Pipeable, Inspectable, Yieldable<Result<A, E>, A, E> {
   readonly _tag: "Success"
   readonly _op: "Success"
   readonly success: A
@@ -132,7 +131,6 @@ export interface Success<out A, out E> extends Pipeable, Inspectable, Yieldable<
     readonly _A: Covariant<E>
     readonly _E: Covariant<A>
   }
-  [Symbol.iterator](): EffectIterator<Result<A, E>>
   [Unify.typeSymbol]?: unknown
   [Unify.unifySymbol]?: ResultUnify<this>
   [Unify.ignoreSymbol]?: ResultUnifyIgnore
