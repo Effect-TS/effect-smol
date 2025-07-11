@@ -3503,16 +3503,11 @@ export {
 /** @internal */
 export const fork: {
   <
-    Args extends [
-      self: Effect.Effect<any, any, any>,
-      options?: {
-        readonly startImmediately?: boolean | undefined
-      } | undefined
-    ] | [
-      options?: {
-        readonly startImmediately?: boolean | undefined
-      } | undefined
-    ]
+    Args extends
+      | [options: { readonly startImmediately?: boolean | undefined } | undefined]
+      | [self: Effect.Effect<any, any, any>, options: { readonly startImmediately?: boolean | undefined } | undefined]
+      | [self: Effect.Effect<any, any, any>]
+      | []
   >(
     ...args: Args
   ): [Args[0]] extends [Effect.Effect<infer _A, infer _E, infer _R>] ? Effect.Effect<Fiber.Fiber<_A, _E>, never, _R>
@@ -3550,16 +3545,11 @@ const unsafeFork = <FA, FE, A, E, R>(
 /** @internal */
 export const forkDaemon: {
   <
-    Args extends [
-      self: Effect.Effect<any, any, any>,
-      options?: {
-        readonly startImmediately?: boolean | undefined
-      } | undefined
-    ] | [
-      options?: {
-        readonly startImmediately?: boolean | undefined
-      } | undefined
-    ]
+    Args extends
+      | [options: { readonly startImmediately?: boolean | undefined } | undefined]
+      | [self: Effect.Effect<any, any, any>, options: { readonly startImmediately?: boolean | undefined } | undefined]
+      | [self: Effect.Effect<any, any, any>]
+      | []
   >(
     ...args: Args
   ): [Args[0]] extends [Effect.Effect<infer _A, infer _E, infer _R>] ? Effect.Effect<Fiber.Fiber<_A, _E>, never, _R>
@@ -3617,16 +3607,11 @@ export const forkIn: {
 /** @internal */
 export const forkScoped: {
   <
-    Args extends [
-      self: Effect.Effect<any, any, any>,
-      options?: {
-        readonly startImmediately?: boolean | undefined
-      } | undefined
-    ] | [
-      options?: {
-        readonly startImmediately?: boolean | undefined
-      } | undefined
-    ]
+    Args extends
+      | [options: { readonly startImmediately?: boolean | undefined } | undefined]
+      | [self: Effect.Effect<any, any, any>, options: { readonly startImmediately?: boolean | undefined } | undefined]
+      | [self: Effect.Effect<any, any, any>]
+      | []
   >(
     ...args: Args
   ): [Args[0]] extends [Effect.Effect<infer _A, infer _E, infer _R>] ?

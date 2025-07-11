@@ -525,7 +525,7 @@ const runImpl = <A, E, R, XE extends E, XA extends A>(
   self: FiberHandle<A, E>,
   effect: Effect.Effect<XA, XE, R>,
   options?: {
-    readonly onlyIfMissing?: boolean
+    readonly onlyIfMissing?: boolean | undefined
     readonly startImmediately?: boolean | undefined
   }
 ): Effect.Effect<Fiber.Fiber<XA, XE>, never, R> =>

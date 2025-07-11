@@ -6627,19 +6627,10 @@ export const request: {
  */
 export const fork: <
   Args extends
-    | [
-      options: {
-        readonly startImmediately: boolean
-      }
-    ]
-    | [
-      self: Effect<any, any, any>,
-      options?:
-        | {
-          readonly startImmediately?: boolean | undefined
-        }
-        | undefined
-    ]
+    | [options: { readonly startImmediately: boolean }]
+    | [self: Effect<any, any, any>, options: { readonly startImmediately: boolean } | undefined]
+    | [self: Effect<any, any, any>]
+    | []
 >(
   ...args: Args
 ) => [Args[0]] extends [Effect<infer _A, infer _E, infer _R>] ? Effect<Fiber<_A, _E>, never, _R>
@@ -6717,17 +6708,10 @@ export const forkIn: {
  */
 export const forkScoped: <
   Args extends
-    | [
-      self: Effect<any, any, any>,
-      options?:
-        | { readonly startImmediately?: boolean | undefined }
-        | undefined
-    ]
-    | [
-      options?:
-        | { readonly startImmediately?: boolean | undefined }
-        | undefined
-    ]
+    | [options: { readonly startImmediately?: boolean | undefined } | undefined]
+    | [self: Effect<any, any, any>, options: { readonly startImmediately?: boolean | undefined } | undefined]
+    | [self: Effect<any, any, any>]
+    | []
 >(
   ...args: Args
 ) => [Args[0]] extends [Effect<infer _A, infer _E, infer _R>] ? Effect<Fiber<_A, _E>, never, _R | Scope>
@@ -6763,21 +6747,10 @@ export const forkScoped: <
  */
 export const forkDaemon: <
   Args extends
-    | [
-      self: Effect<any, any, any>,
-      options?:
-        | {
-          readonly startImmediately?: boolean | undefined
-        }
-        | undefined
-    ]
-    | [
-      options?:
-        | {
-          readonly startImmediately?: boolean | undefined
-        }
-        | undefined
-    ]
+    | [options: { readonly startImmediately?: boolean | undefined } | undefined]
+    | [self: Effect<any, any, any>, options: { readonly startImmediately?: boolean | undefined } | undefined]
+    | [self: Effect<any, any, any>]
+    | []
 >(
   ...args: Args
 ) => [Args[0]] extends [Effect<infer _A, infer _E, infer _R>] ? Effect<Fiber<_A, _E>, never, _R>
