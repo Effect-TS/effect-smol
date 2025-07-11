@@ -2047,15 +2047,12 @@ export const replicateEffect: {
 
 /** @internal */
 export const forever: {
-  <
-    Args extends
-      | [options: { readonly autoYield?: boolean | undefined } | undefined]
-      | [self: Effect.Effect<any, any, any>, options: { readonly autoYield?: boolean | undefined } | undefined]
-      | [self: Effect.Effect<any, any, any>]
-      | []
-  >(
-    ...args: Args
-  ): [Args[0]] extends [Effect.Effect<infer _A, infer _E, infer _R>] ? Effect.Effect<never, _E, _R>
+  <Arg extends Effect.Effect<any, any, any> | { readonly autoYield?: boolean | undefined } | undefined>(
+    effectOrOptions: Arg,
+    options?: {
+      readonly autoYield?: boolean | undefined
+    } | undefined
+  ): [Arg] extends [Effect.Effect<infer _A, infer _E, infer _R>] ? Effect.Effect<never, _E, _R>
     : <A, E, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<never, E, R>
 } = dual((args) => isEffect(args[0]), <A, E, R>(
   self: Effect.Effect<A, E, R>,
@@ -3502,15 +3499,10 @@ export {
 
 /** @internal */
 export const fork: {
-  <
-    Args extends
-      | [options: { readonly startImmediately?: boolean | undefined } | undefined]
-      | [self: Effect.Effect<any, any, any>, options: { readonly startImmediately?: boolean | undefined } | undefined]
-      | [self: Effect.Effect<any, any, any>]
-      | []
-  >(
-    ...args: Args
-  ): [Args[0]] extends [Effect.Effect<infer _A, infer _E, infer _R>] ? Effect.Effect<Fiber.Fiber<_A, _E>, never, _R>
+  <Arg extends Effect.Effect<any, any, any> | { readonly startImmediately?: boolean | undefined } | undefined>(
+    effectOrOptions: Arg,
+    options?: { readonly startImmediately?: boolean | undefined } | undefined
+  ): [Arg] extends [Effect.Effect<infer _A, infer _E, infer _R>] ? Effect.Effect<Fiber.Fiber<_A, _E>, never, _R>
     : <A, E, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<Fiber.Fiber<A, E>, never, R>
 } = dual((args) => isEffect(args[0]), <A, E, R>(
   self: Effect.Effect<A, E, R>,
@@ -3544,15 +3536,10 @@ const unsafeFork = <FA, FE, A, E, R>(
 
 /** @internal */
 export const forkDaemon: {
-  <
-    Args extends
-      | [options: { readonly startImmediately?: boolean | undefined } | undefined]
-      | [self: Effect.Effect<any, any, any>, options: { readonly startImmediately?: boolean | undefined } | undefined]
-      | [self: Effect.Effect<any, any, any>]
-      | []
-  >(
-    ...args: Args
-  ): [Args[0]] extends [Effect.Effect<infer _A, infer _E, infer _R>] ? Effect.Effect<Fiber.Fiber<_A, _E>, never, _R>
+  <Arg extends Effect.Effect<any, any, any> | { readonly startImmediately?: boolean | undefined } | undefined>(
+    effectOrOptions: Arg,
+    options?: { readonly startImmediately?: boolean | undefined } | undefined
+  ): [Arg] extends [Effect.Effect<infer _A, infer _E, infer _R>] ? Effect.Effect<Fiber.Fiber<_A, _E>, never, _R>
     : <A, E, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<Fiber.Fiber<A, E>, never, R>
 } = dual((args) => isEffect(args[0]), <A, E, R>(
   self: Effect.Effect<A, E, R>,
@@ -3606,16 +3593,10 @@ export const forkIn: {
 
 /** @internal */
 export const forkScoped: {
-  <
-    Args extends
-      | [options: { readonly startImmediately?: boolean | undefined } | undefined]
-      | [self: Effect.Effect<any, any, any>, options: { readonly startImmediately?: boolean | undefined } | undefined]
-      | [self: Effect.Effect<any, any, any>]
-      | []
-  >(
-    ...args: Args
-  ): [Args[0]] extends [Effect.Effect<infer _A, infer _E, infer _R>] ?
-    Effect.Effect<Fiber.Fiber<_A, _E>, never, _R | Scope.Scope>
+  <Arg extends Effect.Effect<any, any, any> | { readonly startImmediately?: boolean | undefined } | undefined>(
+    effectOrOptions: Arg,
+    options?: { readonly startImmediately?: boolean | undefined } | undefined
+  ): [Arg] extends [Effect.Effect<infer _A, infer _E, infer _R>] ? Effect.Effect<Fiber.Fiber<_A, _E>, never, _R>
     : <A, E, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<Fiber.Fiber<A, E>, never, R | Scope.Scope>
 } = dual((args) => isEffect(args[0]), <A, E, R>(
   self: Effect.Effect<A, E, R>,

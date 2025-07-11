@@ -5812,15 +5812,10 @@ export declare namespace Repeat {
  * @since 2.0.0
  * @category repetition / recursion
  */
-export const forever: <
-  Args extends
-    | [options: { readonly autoYield?: boolean | undefined } | undefined]
-    | [self: Effect<any, any, any>, options: { readonly autoYield?: boolean | undefined } | undefined]
-    | [self: Effect<any, any, any>]
-    | []
->(
-  ...args: Args
-) => [Args[0]] extends [Effect<infer _A, infer _E, infer _R>] ? Effect<never, _E, _R>
+export const forever: <Arg extends Effect<any, any, any> | { readonly autoYield?: boolean | undefined } | undefined>(
+  effectOrOptions: Arg,
+  options?: { readonly autoYield?: boolean | undefined } | undefined
+) => [Arg] extends [Effect<infer _A, infer _E, infer _R>] ? Effect<never, _E, _R>
   : <A, E, R>(self: Effect<A, E, R>) => Effect<never, E, R> = internal.forever
 
 /**
@@ -6625,14 +6620,11 @@ export const request: {
  * @category supervision & fibers
  */
 export const fork: <
-  Args extends
-    | [options: { readonly startImmediately: boolean }]
-    | [self: Effect<any, any, any>, options: { readonly startImmediately: boolean } | undefined]
-    | [self: Effect<any, any, any>]
-    | []
+  Arg extends Effect<any, any, any> | { readonly startImmediately?: boolean | undefined } | undefined
 >(
-  ...args: Args
-) => [Args[0]] extends [Effect<infer _A, infer _E, infer _R>] ? Effect<Fiber<_A, _E>, never, _R>
+  effectOrOptions: Arg,
+  options?: { readonly startImmediately?: boolean | undefined } | undefined
+) => [Arg] extends [Effect<infer _A, infer _E, infer _R>] ? Effect<Fiber<_A, _E>, never, _R>
   : <A, E, R>(self: Effect<A, E, R>) => Effect<Fiber<A, E>, never, R> = internal.fork
 
 /**
@@ -6706,14 +6698,11 @@ export const forkIn: {
  * @category supervision & fibers
  */
 export const forkScoped: <
-  Args extends
-    | [options: { readonly startImmediately?: boolean | undefined } | undefined]
-    | [self: Effect<any, any, any>, options: { readonly startImmediately?: boolean | undefined } | undefined]
-    | [self: Effect<any, any, any>]
-    | []
+  Arg extends Effect<any, any, any> | { readonly startImmediately?: boolean | undefined } | undefined
 >(
-  ...args: Args
-) => [Args[0]] extends [Effect<infer _A, infer _E, infer _R>] ? Effect<Fiber<_A, _E>, never, _R | Scope>
+  effectOrOptions: Arg,
+  options?: { readonly startImmediately?: boolean | undefined } | undefined
+) => [Arg] extends [Effect<infer _A, infer _E, infer _R>] ? Effect<Fiber<_A, _E>, never, _R>
   : <A, E, R>(self: Effect<A, E, R>) => Effect<Fiber<A, E>, never, R | Scope> = internal.forkScoped
 
 /**
@@ -6745,14 +6734,11 @@ export const forkScoped: <
  * @category supervision & fibers
  */
 export const forkDaemon: <
-  Args extends
-    | [options: { readonly startImmediately?: boolean | undefined } | undefined]
-    | [self: Effect<any, any, any>, options: { readonly startImmediately?: boolean | undefined } | undefined]
-    | [self: Effect<any, any, any>]
-    | []
+  Arg extends Effect<any, any, any> | { readonly startImmediately?: boolean | undefined } | undefined
 >(
-  ...args: Args
-) => [Args[0]] extends [Effect<infer _A, infer _E, infer _R>] ? Effect<Fiber<_A, _E>, never, _R>
+  effectOrOptions: Arg,
+  options?: { readonly startImmediately?: boolean | undefined } | undefined
+) => [Arg] extends [Effect<infer _A, infer _E, infer _R>] ? Effect<Fiber<_A, _E>, never, _R>
   : <A, E, R>(self: Effect<A, E, R>) => Effect<Fiber<A, E>, never, R> = internal.forkDaemon
 
 // -----------------------------------------------------------------------------
