@@ -168,14 +168,6 @@ export interface StreamTypeLambda extends TypeLambda {
 /**
  * Variance interface for Stream, encoding the type parameters' variance.
  *
- * @example
- * ```ts
- * import { Stream } from "effect"
- *
- * // Used internally to ensure proper type variance
- * declare const variance: Stream.Stream.Variance<string, Error, never>
- * ```
- *
  * @since 2.0.0
  * @category models
  */
@@ -185,14 +177,6 @@ export interface Variance<out A, out E, out R> {
 
 /**
  * Structure encoding the variance of Stream type parameters.
- *
- * @example
- * ```ts
- * import { Stream } from "effect"
- *
- * // Internal variance structure
- * declare const struct: Stream.Stream.VarianceStruct<number, string, never>
- * ```
  *
  * @since 3.4.0
  * @category models
@@ -211,7 +195,7 @@ export interface VarianceStruct<out A, out E, out R> {
  * import { Stream } from "effect"
  *
  * type NumberStream = Stream.Stream<number, string, never>
- * type SuccessType = Stream.Stream.Success<NumberStream>
+ * type SuccessType = Stream.Success<NumberStream>
  * // SuccessType is number
  * ```
  *
@@ -228,7 +212,7 @@ export type Success<T extends Stream<any, any, any>> = [T] extends [Stream<infer
  * import { Stream } from "effect"
  *
  * type NumberStream = Stream.Stream<number, string, never>
- * type ErrorType = Stream.Stream.Error<NumberStream>
+ * type ErrorType = Stream.Error<NumberStream>
  * // ErrorType is string
  * ```
  *
@@ -246,7 +230,7 @@ export type Error<T extends Stream<any, any, any>> = [T] extends [Stream<infer _
  *
  * interface Database { query: (sql: string) => unknown }
  * type NumberStream = Stream.Stream<number, string, { db: Database }>
- * type Services = Stream.Stream.ServiceMap<NumberStream>
+ * type Services = Stream.Services<NumberStream>
  * // Services is { db: Database }
  * ```
  *
