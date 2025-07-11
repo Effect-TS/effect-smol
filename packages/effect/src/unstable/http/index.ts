@@ -55,7 +55,22 @@ export * as HttpMethod from "./HttpMethod.js"
 /**
  * @since 4.0.0
  */
+export * as HttpServerError from "./HttpServerError.js"
+
+/**
+ * @since 4.0.0
+ */
+export * as HttpServerRequest from "./HttpServerRequest.js"
+
+/**
+ * @since 4.0.0
+ */
 export * as HttpTraceContext from "./HttpTraceContext.js"
+
+/**
+ * @since 4.0.0
+ */
+export * as Multipart from "./Multipart.js"
 
 /**
  * @since 4.0.0

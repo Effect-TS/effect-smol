@@ -1410,11 +1410,7 @@ const catch_: {
 } = dual(2, <A, E, R, A2, E2, R2>(
   self: Stream<A, E, R>,
   f: (error: E) => Stream<A2, E2, R2>
-): Stream<A | A2, E2, R | R2> =>
-  self.channel.pipe(
-    Channel.catch((error) => f(error).channel),
-    fromChannel
-  ))
+): Stream<A | A2, E2, R | R2> => fromChannel(Channel.catch(self.channel, (error) => f(error).channel)))
 
 export {
   /**
@@ -1423,6 +1419,20 @@ export {
    */
   catch_ as catch
 }
+
+/**
+ * Transforms the errors emitted by this stream using `f`.
+ *
+ * @since 2.0.0
+ * @category Error handling
+ */
+export const mapError: {
+  <E, E2>(f: (error: E) => E2): <A, R>(self: Stream<A, E, R>) => Stream<A, E2, R>
+  <A, E, R, E2>(self: Stream<A, E, R>, f: (error: E) => E2): Stream<A, E2, R>
+} = dual(2, <A, E, R, E2>(
+  self: Stream<A, E, R>,
+  f: (error: E) => E2
+): Stream<A, E2, R> => fromChannel(Channel.mapError(self.channel, f)))
 
 /**
  * Conditionally handles stream failures based on a predicate applied to the Cause.
