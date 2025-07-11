@@ -34,19 +34,6 @@ import type * as Types from "./Types.js"
 /**
  * The unique type identifier for Layer.
  *
- * @example
- * ```ts
- * import { Layer, ServiceMap } from "effect"
- *
- * class MyService extends ServiceMap.Reference("MyService", {
- *   defaultValue: () => ({ value: "default" })
- * }) {}
- *
- * // Check if a value is a Layer using the TypeId
- * const myLayer = Layer.succeed(MyService, { value: "test" })
- * console.log(myLayer[Layer.TypeId]) // "~effect/Layer"
- * ```
- *
  * @since 2.0.0
  * @category symbols
  */
@@ -54,16 +41,6 @@ export const TypeId: TypeId = "~effect/Layer"
 
 /**
  * The TypeId type alias for Layer.
- *
- * @example
- * ```ts
- * import { Layer } from "effect"
- *
- * // Use the TypeId type for type checking
- * function isLayerTypeId(id: unknown): id is Layer.TypeId {
- *   return id === Layer.TypeId
- * }
- * ```
  *
  * @since 2.0.0
  * @category symbols
@@ -78,21 +55,6 @@ export type TypeId = "~effect/Layer"
  * - E: The possible errors during layer construction
  * - RIn: The services this layer requires as dependencies
  *
- * @example
- * ```ts
- * import { Layer, ServiceMap, Effect } from "effect"
- *
- * // Define a simple database service
- * class Database extends ServiceMap.Reference("Database", {
- *   defaultValue: () => ({ query: (sql: string) => Effect.succeed("result") })
- * }) {}
- *
- * // Create a layer that provides the Database service
- * const databaseLayer = Layer.succeed(Database, {
- *   query: (sql: string) => Effect.succeed(`Query result: ${sql}`)
- * })
- * ```
- *
  * @since 2.0.0
  * @category models
  */
@@ -104,49 +66,12 @@ export interface Layer<in ROut, out E = never, out RIn = never> extends Layer.Va
 /**
  * The Layer namespace contains type-level utilities for working with Layer types.
  *
- * @example
- * ```ts
- * import { Layer, ServiceMap, Effect } from "effect"
- *
- * class Database extends ServiceMap.Reference("Database", {
- *   defaultValue: () => ({ query: (sql: string) => Effect.succeed("result") })
- * }) {}
- *
- * const databaseLayer = Layer.succeed(Database, {
- *   query: (sql: string) => Effect.succeed("result")
- * })
- *
- * // Extract the services type from a layer
- * // type DatabaseService = Layer.Success<typeof databaseLayer> // Database
- * // type LayerError = Layer.Error<typeof databaseLayer> // never
- * // type LayerDeps = Layer.Services<typeof databaseLayer> // never
- * ```
- *
  * @since 2.0.0
  * @category models
  */
 export declare namespace Layer {
   /**
    * The variance interface for Layer type parameters.
-   *
-   * Defines the variance of the Layer type parameters:
-   * - ROut is contravariant (input)
-   * - E is covariant (output)
-   * - RIn is covariant (output)
-   *
-   * @example
-   * ```ts
-   * import { Layer, ServiceMap, Effect } from "effect"
-   *
-   * class Database extends ServiceMap.Reference("Database", {
-   *   defaultValue: () => ({ query: (sql: string) => Effect.succeed("result") })
-   * }) {}
-   *
-   * // Layer with variance markers
-   * const layer = Layer.effect(Database,
-   *   Effect.sync(() => ({ query: (sql: string) => Effect.succeed("result") }))
-   * )
-   * ```
    *
    * @since 2.0.0
    * @category models
@@ -164,24 +89,6 @@ export declare namespace Layer {
    * This interface is used to constrain generic types to Layer types
    * without specifying exact type parameters.
    *
-   * @example
-   * ```ts
-   * import { Layer, ServiceMap, Effect } from "effect"
-   *
-   * class Database extends ServiceMap.Reference("Database", {
-   *   defaultValue: () => ({ query: (sql: string) => Effect.succeed("result") })
-   * }) {}
-   *
-   * // Function that accepts any Layer
-   * function processLayer(layer: any) {
-   *   // Extract error type from any Layer
-   *   return layer
-   * }
-   *
-   * const dbLayer = Layer.succeed(Database, { query: (sql: string) => Effect.succeed("result") })
-   * const processedLayer = processLayer(dbLayer)
-   * ```
-   *
    * @since 3.9.0
    * @category type-level
    */
@@ -195,27 +102,6 @@ export declare namespace Layer {
   /**
    * Extracts the service dependencies (RIn) from a Layer type.
    *
-   * @example
-   * ```ts
-   * import { Layer, ServiceMap, Effect } from "effect"
-   *
-   * class Database extends ServiceMap.Reference("Database", {
-   *   defaultValue: () => ({ query: (sql: string) => Effect.succeed("result") })
-   * }) {}
-   *
-   * class Logger extends ServiceMap.Reference("Logger", {
-   *   defaultValue: () => ({ log: (msg: string) => Effect.sync(() => console.log(msg)) })
-   * }) {}
-   *
-   * const dbLayer = Layer.effect(Database, Effect.gen(function* () {
-   *   const logger = yield* Logger
-   *   return { query: (sql: string) => Effect.succeed("result") }
-   * }))
-   *
-   * // Extract dependencies type: Logger
-   * // type DatabaseDeps = Logger // (extracted via Layer.Services)
-   * ```
-   *
    * @since 2.0.0
    * @category type-level
    */
@@ -225,54 +111,12 @@ export declare namespace Layer {
   /**
    * Extracts the error type (E) from a Layer type.
    *
-   * @example
-   * ```ts
-   * import { Layer, ServiceMap, Effect, Data } from "effect"
-   *
-   * class DatabaseError extends Data.TaggedError("DatabaseError")<{
-   *   message: string
-   * }> {}
-   *
-   * class Database extends ServiceMap.Reference("Database", {
-   *   defaultValue: () => ({ query: (sql: string) => Effect.succeed("result") })
-   * }) {}
-   *
-   * const dbLayer = Layer.effect(Database, Effect.gen(function* () {
-   *   yield* Effect.fail(new DatabaseError({ message: "Connection failed" }))
-   *   return { query: (sql: string) => Effect.succeed("result") }
-   * }))
-   *
-   * // Extract error type: DatabaseError
-   * // type ExtractedError = DatabaseError // (extracted via Layer.Error)
-   * ```
-   *
    * @since 2.0.0
    * @category type-level
    */
   export type Error<T extends Any> = T extends Layer<infer _ROut, infer _E, infer _RIn> ? _E : never
   /**
    * Extracts the service output type (ROut) from a Layer type.
-   *
-   * @example
-   * ```ts
-   * import { Layer, ServiceMap, Effect } from "effect"
-   *
-   * class Database extends ServiceMap.Reference("Database", {
-   *   defaultValue: () => ({ query: (sql: string) => Effect.succeed("result") })
-   * }) {}
-   *
-   * class Logger extends ServiceMap.Reference("Logger", {
-   *   defaultValue: () => ({ log: (msg: string) => Effect.sync(() => console.log(msg)) })
-   * }) {}
-   *
-   * const multiServiceLayer = Layer.mergeAll(
-   *   Layer.succeed(Database, { query: (sql: string) => Effect.succeed("result") }),
-   *   Layer.succeed(Logger, { log: (msg: string) => Effect.sync(() => console.log(msg)) })
-   * )
-   *
-   * // Extract services type: Database | Logger
-   * // type ProvidedServices = Database | Logger // (extracted via Layer.Success)
-   * ```
    *
    * @since 2.0.0
    * @category type-level
@@ -283,15 +127,6 @@ export declare namespace Layer {
 /**
  * The unique type identifier for MemoMap.
  *
- * @example
- * ```ts
- * import { Layer } from "effect"
- *
- * // Check if a value is a MemoMap using the TypeId
- * const memoMap = Layer.unsafeMakeMemoMap()
- * console.log(memoMap[Layer.MemoMapTypeId]) // "~effect/Layer/MemoMap"
- * ```
- *
  * @since 2.0.0
  * @category symbols
  */
@@ -299,16 +134,6 @@ export const MemoMapTypeId: MemoMapTypeId = "~effect/Layer/MemoMap"
 
 /**
  * The TypeId type alias for MemoMap.
- *
- * @example
- * ```ts
- * import { Layer } from "effect"
- *
- * // Use the TypeId type for type checking
- * function isMemoMapTypeId(id: unknown): id is Layer.MemoMapTypeId {
- *   return id === Layer.MemoMapTypeId
- * }
- * ```
  *
  * @since 2.0.0
  * @category symbols
@@ -918,12 +743,8 @@ export const effect: {
   <I, S, E, R>(key: ServiceMap.Key<I, S>, effect: Effect<NoInfer<S>, E, R>): Layer<I, E, Exclude<R, Scope.Scope>>
 } = dual(
   2,
-  <I, S, E, R>(key: ServiceMap.Key<I, S>, effect: Effect<S, E, R>): Layer<I, E, R> => {
-    if (!key) {
-      console.trace("undefined key in Layer.effect")
-    }
-    return effectServices(internalEffect.map(effect, (value) => ServiceMap.make(key, value)))
-  }
+  <I, S, E, R>(key: ServiceMap.Key<I, S>, effect: Effect<S, E, R>): Layer<I, E, R> =>
+    effectServices(internalEffect.map(effect, (value) => ServiceMap.make(key, value)))
 )
 
 /**
@@ -1693,36 +1514,6 @@ export const launch = <RIn, E, ROut>(self: Layer<ROut, E, RIn>): Effect<never, E
  * This type makes Effect methods and Effect-returning functions optional,
  * while keeping non-Effect properties required. This allows you to provide
  * only the methods you need to test while leaving others unimplemented.
- *
- * @example
- * ```ts
- * import { Layer, ServiceMap, Effect } from "effect"
- *
- * interface UserService {
- *   readonly config: { apiUrl: string }
- *   readonly getUser: (id: string) => Effect.Effect<{ id: string; name: string }, Error>
- *   readonly deleteUser: (id: string) => Effect.Effect<void, Error>
- *   readonly updateUser: (id: string, data: object) => Effect.Effect<{ id: string; name: string }, Error>
- * }
- *
- * class UserServiceRef extends ServiceMap.Reference("UserService", {
- *   defaultValue: (): UserService => ({
- *     config: { apiUrl: "https://api.example.com" },
- *     getUser: (id: string) => Effect.succeed({ id, name: "John" }),
- *     deleteUser: (id: string) => Effect.succeed(void 0),
- *     updateUser: (id: string, data: object) => Effect.succeed({ id, name: "Updated" })
- *   })
- * }) {}
- *
- * // PartialEffectful makes Effect methods optional but keeps config required
- * const mockService: Layer.PartialEffectful<UserService> = {
- *   config: { apiUrl: "https://test-api.com" }, // Required - non-Effect property
- *   getUser: (id: string) => Effect.succeed({ id, name: "Mock User" }), // Optional - Effect method
- *   // deleteUser and updateUser can be omitted - they'll throw when called
- * }
- *
- * const mockLayer = Layer.mock(UserServiceRef, mockService)
- * ```
  *
  * @since 4.0.0
  * @category Testing
