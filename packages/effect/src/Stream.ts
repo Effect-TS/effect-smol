@@ -300,6 +300,16 @@ export const fromChannel = <Arr extends Arr.NonEmptyReadonlyArray<any>, E, R>(
 }
 
 /**
+ * Either emits the success value of this effect or terminates the stream
+ * with the failure value of this effect.
+ *
+ * @since 2.0.0
+ * @category constructors
+ */
+export const fromEffect = <A, E, R>(effect: Effect.Effect<A, E, R>): Stream<A, E, R> =>
+  fromChannel(Channel.fromEffect(Effect.map(effect, Arr.of)))
+
+/**
  * Creates a stream from a pull effect.
  *
  * A pull effect is a low-level representation of a stream that can be used
@@ -2013,6 +2023,22 @@ export const onExit = dual<
     finalizer: (exit: Exit.Exit<unknown, E>) => Effect.Effect<unknown, never, R2>
   ) => Stream<A, E, R | R2>
 >(2, (self, finalizer) => fromChannel(Channel.onExit(self.channel, finalizer)))
+
+/**
+ * Provides the stream with some of its required services, which eliminates its
+ * dependency on `R`.
+ *
+ * @since 4.0.0
+ * @category context
+ */
+export const provideServices: {
+  <R2>(services: ServiceMap.ServiceMap<R2>): <A, E, R>(self: Stream<A, E, R>) => Stream<A, E, Exclude<R, R2>>
+  <A, E, R, R2>(self: Stream<A, E, R>, services: ServiceMap.ServiceMap<R2>): Stream<A, E, Exclude<R, R2>>
+} = dual(
+  2,
+  <A, E, R, R2>(self: Stream<A, E, R>, services: ServiceMap.ServiceMap<R2>): Stream<A, E, Exclude<R, R2>> =>
+    fromChannel(Channel.provideServices(self.channel, services))
+)
 
 /**
  * Runs the sink on the stream to produce either the sink's result or an error.
