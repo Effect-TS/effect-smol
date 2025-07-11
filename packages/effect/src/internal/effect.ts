@@ -3498,29 +3498,46 @@ export {
 
 /** @internal */
 export const fork: {
-  <Arg extends Effect.Effect<any, any, any> | { readonly startImmediately?: boolean | undefined } | undefined>(
+  <
+    Arg extends Effect.Effect<any, any, any> | {
+      readonly startImmediately?: boolean | undefined
+      readonly uninterruptible?: boolean | "inherit" | undefined
+    } | undefined
+  >(
     effectOrOptions: Arg,
-    options?: { readonly startImmediately?: boolean | undefined } | undefined
+    options?: {
+      readonly startImmediately?: boolean | undefined
+      readonly uninterruptible?: boolean | "inherit" | undefined
+    } | undefined
   ): [Arg] extends [Effect.Effect<infer _A, infer _E, infer _R>] ? Effect.Effect<Fiber.Fiber<_A, _E>, never, _R>
     : <A, E, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<Fiber.Fiber<A, E>, never, R>
 } = dual((args) => isEffect(args[0]), <A, E, R>(
   self: Effect.Effect<A, E, R>,
   options?: {
     readonly startImmediately?: boolean
+    readonly uninterruptible?: boolean | "inherit"
   }
 ): Effect.Effect<Fiber.Fiber<A, E>, never, R> =>
   withFiber((fiber) => {
     fiberMiddleware.interruptChildren ??= fiberInterruptChildren
-    return succeed(unsafeFork(fiber, self, options?.startImmediately))
+    return succeed(unsafeFork(
+      fiber,
+      self,
+      options?.startImmediately,
+      false,
+      options?.uninterruptible ?? false
+    ))
   }))
 
 const unsafeFork = <FA, FE, A, E, R>(
   parent: FiberImpl<FA, FE>,
   effect: Effect.Effect<A, E, R>,
   immediate = false,
-  daemon = false
+  daemon = false,
+  uninterruptible: boolean | "inherit" = false
 ): Fiber.Fiber<A, E> => {
-  const child = makeFiber<A, E>(parent.services, parent.interruptible)
+  const interruptible = uninterruptible === "inherit" ? parent.interruptible : !uninterruptible
+  const child = makeFiber<A, E>(parent.services, interruptible)
   if (immediate) {
     child.evaluate(effect as any)
   } else {
@@ -3535,18 +3552,27 @@ const unsafeFork = <FA, FE, A, E, R>(
 
 /** @internal */
 export const forkDaemon: {
-  <Arg extends Effect.Effect<any, any, any> | { readonly startImmediately?: boolean | undefined } | undefined>(
+  <
+    Arg extends Effect.Effect<any, any, any> | {
+      readonly startImmediately?: boolean | undefined
+      readonly uninterruptible?: boolean | "inherit" | undefined
+    } | undefined
+  >(
     effectOrOptions: Arg,
-    options?: { readonly startImmediately?: boolean | undefined } | undefined
+    options?: {
+      readonly startImmediately?: boolean | undefined
+      readonly uninterruptible?: boolean | "inherit" | undefined
+    } | undefined
   ): [Arg] extends [Effect.Effect<infer _A, infer _E, infer _R>] ? Effect.Effect<Fiber.Fiber<_A, _E>, never, _R>
     : <A, E, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<Fiber.Fiber<A, E>, never, R>
 } = dual((args) => isEffect(args[0]), <A, E, R>(
   self: Effect.Effect<A, E, R>,
   options?: {
     readonly startImmediately?: boolean
+    readonly uninterruptible?: boolean | "inherit" | undefined
   }
 ): Effect.Effect<Fiber.Fiber<A, E>, never, R> =>
-  withFiber((fiber) => succeed(unsafeFork(fiber, self, options?.startImmediately, true))))
+  withFiber((fiber) => succeed(unsafeFork(fiber, self, options?.startImmediately, true, options?.uninterruptible))))
 
 /** @internal */
 export const forkIn: {
@@ -3554,6 +3580,7 @@ export const forkIn: {
     scope: Scope.Scope,
     options?: {
       readonly startImmediately?: boolean | undefined
+      readonly uninterruptible?: boolean | "inherit" | undefined
     }
   ): <A, E, R>(
     self: Effect.Effect<A, E, R>
@@ -3563,6 +3590,7 @@ export const forkIn: {
     scope: Scope.Scope,
     options?: {
       readonly startImmediately?: boolean | undefined
+      readonly uninterruptible?: boolean | "inherit" | undefined
     }
   ): Effect.Effect<Fiber.Fiber<A, E>, never, R>
 } = dual(
@@ -3572,10 +3600,11 @@ export const forkIn: {
     scope: Scope.Scope,
     options?: {
       readonly startImmediately?: boolean | undefined
+      readonly uninterruptible?: boolean | "inherit" | undefined
     }
   ): Effect.Effect<Fiber.Fiber<A, E>, never, R> =>
     withFiber((parent) => {
-      const fiber = unsafeFork(parent, self, options?.startImmediately, true)
+      const fiber = unsafeFork(parent, self, options?.startImmediately, true, options?.uninterruptible)
       if (!(fiber as FiberImpl<any, any>)._exit) {
         if (scope.state._tag === "Open") {
           const key = {}
@@ -3592,15 +3621,24 @@ export const forkIn: {
 
 /** @internal */
 export const forkScoped: {
-  <Arg extends Effect.Effect<any, any, any> | { readonly startImmediately?: boolean | undefined } | undefined>(
+  <
+    Arg extends Effect.Effect<any, any, any> | {
+      readonly startImmediately?: boolean | undefined
+      readonly uninterruptible?: boolean | "inherit" | undefined
+    } | undefined
+  >(
     effectOrOptions: Arg,
-    options?: { readonly startImmediately?: boolean | undefined } | undefined
+    options?: {
+      readonly startImmediately?: boolean | undefined
+      readonly uninterruptible?: boolean | "inherit" | undefined
+    } | undefined
   ): [Arg] extends [Effect.Effect<infer _A, infer _E, infer _R>] ? Effect.Effect<Fiber.Fiber<_A, _E>, never, _R>
     : <A, E, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<Fiber.Fiber<A, E>, never, R | Scope.Scope>
 } = dual((args) => isEffect(args[0]), <A, E, R>(
   self: Effect.Effect<A, E, R>,
   options?: {
     readonly startImmediately?: boolean
+    readonly uninterruptible?: boolean | "inherit"
   }
 ): Effect.Effect<Fiber.Fiber<A, E>, never, R | Scope.Scope> => flatMap(scope, (scope) => forkIn(self, scope, options)))
 

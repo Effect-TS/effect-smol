@@ -51,5 +51,9 @@
     "@types/node": "^24.0.12",
     "effect": "workspace:^",
     "tar": "^7.4.3"
+  },
+  "dependencies": {
+    "@types/ws": "^8.18.1",
+    "ws": "^8.18.3"
   }
 }

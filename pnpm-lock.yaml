@@ -169,6 +169,9 @@ importers:
       vitest:
         specifier: ^3.2.4
         version: 3.2.4(@edge-runtime/vm@5.0.0)(@types/node@24.0.12)(@vitest/browser@3.2.4)(terser@5.43.1)(tsx@4.20.3)(yaml@2.8.0)
+      vitest-websocket-mock:
+        specifier: ^0.5.0
+        version: 0.5.0(vitest@3.2.4)
       zod:
         specifier: ^3.25.67
         version: 3.25.67
@@ -234,6 +237,13 @@ importers:
     publishDirectory: dist
 
   packages/platform-node-shared:
+    dependencies:
+      '@types/ws':
+        specifier: ^8.18.1
+        version: 8.18.1
+      ws:
+        specifier: ^8.18.3
+        version: 8.18.3
     devDependencies:
       '@types/node':
         specifier: ^24.0.12
@@ -1306,6 +1316,9 @@ packages:
 
   '@types/resolve@1.20.2':
     resolution: {integrity: sha512-60BCwRFOZCQhDncwQdxxeOEEkbc5dIMccYLwbxsS4TUNeVECQ/pBJ0j09mrHOl/JJvpRPGwO9SvE4nR2Nb/a4Q==}
+
+  '@types/ws@8.18.1':
+    resolution: {integrity: sha512-ThVF6DCVhA8kUGy+aazFQ4kXQ7E1Ty7A3ypFOe0IcJV8O/M511G99AW24irKrW56Wt44yG9+ij8FaqoBGkuBXg==}
 
   '@typescript-eslint/eslint-plugin@8.36.0':
     resolution: {integrity: sha512-lZNihHUVB6ZZiPBNgOQGSxUASI7UJWhT8nHyUGCnaQ28XFCw98IfrMCG3rUl1uwUWoAvodJQby2KTs79UTcrAg==}
@@ -2944,6 +2957,10 @@ packages:
     engines: {node: '>=10'}
     hasBin: true
 
+  mock-socket@9.3.1:
+    resolution: {integrity: sha512-qxBgB7Qa2sEQgHFjj0dSigq7fX4k6Saisd5Nelwp2q8mlbAFh5dHV9JTTlF8viYJLSSWgMCZFUom8PJcMNBoJw==}
+    engines: {node: '>= 8'}
+
   module-definition@5.0.1:
     resolution: {integrity: sha512-kvw3B4G19IXk+BOXnYq/D/VeO9qfHaapMeuS7w7sNUqmGaA6hywdFHMi+VWeR9wUScXM7XjoryTffCZ5B0/8IA==}
     engines: {node: '>=14'}
@@ -3908,6 +3925,11 @@ packages:
       yaml:
         optional: true
 
+  vitest-websocket-mock@0.5.0:
+    resolution: {integrity: sha512-vzBWeuF/kD/OCOFzB7WAclb7PxfI105qPkZtdOkPMwZdilBskQjJL4l319JtPtmeovDU7ZVhO3hTfGPjM4txQQ==}
+    peerDependencies:
+      vitest: '>=3'
+
   vitest@3.2.4:
     resolution: {integrity: sha512-LUCP5ev3GURDysTWiP47wRRUpLKMOfPh+yKTx3kVIEiu5KOMeqzpnYNsKyOoVrULivR8tLcks4+lga33Whn90A==}
     engines: {node: ^18.0.0 || ^20.0.0 || >=22.0.0}
@@ -3994,8 +4016,8 @@ packages:
     resolution: {integrity: sha512-+QU2zd6OTD8XWIJCbffaiQeH9U73qIqafo1x6V1snCWYGJf6cVE0cDR4D8xRzcEnfI21IFrUPzPGtcPf8AC+Rw==}
     engines: {node: ^14.17.0 || ^16.13.0 || >=18.0.0}
 
-  ws@8.18.2:
-    resolution: {integrity: sha512-DMricUmwGZUVr++AEAe2uiVM7UoO9MAVZMDu05UQOaUII0lp+zOzLLU4Xqh/JvTqklB1T4uELaaPBKyjE1r4fQ==}
+  ws@8.18.3:
+    resolution: {integrity: sha512-PEIGCY5tSlUt50cqyMXfCzX+oOPqN0vuGqWzbcJ2xvnkzkq46oOpz7dQaTDBdfICb4N14+GARUDw2XV2N4tvzg==}
     engines: {node: '>=10.0.0'}
     peerDependencies:
       bufferutil: ^4.0.1
@@ -5116,6 +5138,10 @@ snapshots:
 
   '@types/resolve@1.20.2': {}
 
+  '@types/ws@8.18.1':
+    dependencies:
+      '@types/node': 24.0.12
+
   '@typescript-eslint/eslint-plugin@8.36.0(@typescript-eslint/parser@8.36.0(eslint@9.30.1)(typescript@5.8.3))(eslint@9.30.1)(typescript@5.8.3)':
     dependencies:
       '@eslint-community/regexpp': 4.12.1
@@ -5300,7 +5326,7 @@ snapshots:
       sirv: 3.0.1
       tinyrainbow: 2.0.0
       vitest: 3.2.4(@edge-runtime/vm@5.0.0)(@types/node@24.0.12)(@vitest/browser@3.2.4)(terser@5.43.1)(tsx@4.20.3)(yaml@2.8.0)
-      ws: 8.18.2
+      ws: 8.18.3
     optionalDependencies:
       playwright: 1.53.2
     transitivePeerDependencies:
@@ -7011,6 +7037,8 @@ snapshots:
 
   mkdirp@3.0.1: {}
 
+  mock-socket@9.3.1: {}
+
   module-definition@5.0.1:
     dependencies:
       ast-module-types: 5.0.0
@@ -8028,6 +8056,12 @@ snapshots:
       tsx: 4.20.3
       yaml: 2.8.0
 
+  vitest-websocket-mock@0.5.0(vitest@3.2.4):
+    dependencies:
+      '@vitest/utils': 3.2.4
+      mock-socket: 9.3.1
+      vitest: 3.2.4(@edge-runtime/vm@5.0.0)(@types/node@24.0.12)(@vitest/browser@3.2.4)(terser@5.43.1)(tsx@4.20.3)(yaml@2.8.0)
+
   vitest@3.2.4(@edge-runtime/vm@5.0.0)(@types/node@24.0.12)(@vitest/browser@3.2.4)(terser@5.43.1)(tsx@4.20.3)(yaml@2.8.0):
     dependencies:
       '@types/chai': 5.2.2
@@ -8159,7 +8193,7 @@ snapshots:
       imurmurhash: 0.1.4
       signal-exit: 4.1.0
 
-  ws@8.18.2: {}
+  ws@8.18.3: {}
 
   xtend@4.0.2: {}
 

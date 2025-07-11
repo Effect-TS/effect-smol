@@ -2954,8 +2954,7 @@ export const mergeAll: {
           }
         }).pipe(
           Effect.catchCause((cause) => doneLatch.whenOpen(Queue.failCause(queue, cause))),
-          Effect.forkIn(forkedScope),
-          Effect.interruptible
+          Effect.forkIn(forkedScope)
         )
 
         return Queue.toPull(queue)
@@ -3139,8 +3138,7 @@ export const merge: {
             onExit(side, cause)
           )
         ),
-        Effect.forkIn(forkedScope),
-        Effect.interruptible
+        Effect.forkIn(forkedScope)
       )
     yield* runSide("left", left, yield* Scope.fork(forkedScope))
     yield* runSide("right", right, yield* Scope.fork(forkedScope))
@@ -3340,7 +3338,7 @@ export const embedInput: {
   ): Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env | R> =>
     makeImplBracket((upstream, scope, forkedScope) =>
       Effect.andThen(
-        Effect.interruptible(Effect.forkIn(input(upstream), forkedScope)),
+        Effect.forkIn(input(upstream), forkedScope),
         toTransform(self)(Pull.haltVoid, scope)
       )
     )
@@ -3773,8 +3771,7 @@ export const toQueue: {
     yield* Scope.addFinalizer(scope, Queue.shutdown(queue))
     yield* runForEach(self, (value) => Queue.offer(queue, value)).pipe(
       Effect.onExit((exit) => Queue.done(queue, Exit.asVoid(exit))),
-      Effect.forkIn(scope),
-      Effect.interruptible
+      Effect.forkIn(scope)
     )
     return queue
   })

@@ -12,6 +12,7 @@
  */
 import { constTrue } from "./Function.js"
 import type { LogLevel } from "./LogLevel.js"
+import * as Option from "./Option.js"
 import type { ReadonlyRecord } from "./Record.js"
 import { MaxOpsBeforeYield } from "./Scheduler.js"
 import * as ServiceMap from "./ServiceMap.js"
@@ -381,6 +382,18 @@ export const CurrentLogAnnotations = ServiceMap.Reference<ReadonlyRecord<string,
 export const CurrentLogLevel: ServiceMap.Reference<LogLevel> = ServiceMap.Reference<LogLevel>(
   "effect/References/CurrentLogLevel",
   { defaultValue: () => "Info" }
+)
+
+/**
+ * The log level for unhandled errors. This reference allows you to set the log
+ * level for unhandled errors that occur during Effect execution.
+ *
+ * @category references
+ * @since 4.0.0
+ */
+export const UnhandledLogLevel: ServiceMap.Reference<Option.Option<LogLevel>> = ServiceMap.Reference(
+  "effect/References/UnhandledLogLevel",
+  { defaultValue: () => Option.some<LogLevel>("Error") }
 )
 
 /**

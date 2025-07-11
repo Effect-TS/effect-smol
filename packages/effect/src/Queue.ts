@@ -761,7 +761,7 @@ export const offerAll = <A, E>(self: Queue<A, E>, messages: Iterable<A>): Effect
     }
     const remaining = unsafeOfferAll(self, messages)
     if (remaining.length === 0) {
-      return exitEmpty
+      return core.exitSucceed([])
     } else if (self.strategy === "dropping") {
       return internalEffect.succeed(remaining)
     }
@@ -1115,19 +1115,25 @@ export const shutdown = <A, E>(self: Queue<A, E>): Effect<boolean> =>
 export const clear = <A, E>(self: Dequeue<A, E>): Effect<Array<A>, E> =>
   internalEffect.suspend(() => {
     if (self.state._tag === "Done") {
-      return internalEffect.exitAs(self.state.exit, empty)
+      return internalEffect.exitAs(self.state.exit, [])
     }
     const messages = unsafeTakeAll(self)
     releaseCapacity(self)
     return internalEffect.succeed(messages)
   })
 
+/**
+ * @category Done
+ * @since 4.0.0
+ */
+export type Done = Pull.Done
+
 export {
   /**
    * @category Done
    * @since 4.0.0
    */
-  Done,
+  done as Done,
   /**
    * @category Done
    * @since 4.0.0
@@ -1175,8 +1181,8 @@ export {
  * @category taking
  * @since 4.0.0
  */
-export const takeAll = <A, E>(self: Dequeue<A, E>): Effect<readonly [messages: Array<A>, done: boolean], E> =>
-  takeBetween(self, 1, Number.POSITIVE_INFINITY)
+export const takeAll = <A, E>(self: Dequeue<A, E>): Effect<Arr.NonEmptyArray<A>, E | Pull.Done> =>
+  takeBetween(self, 1, Number.POSITIVE_INFINITY) as any
 
 /**
  * Take a specified number of messages from the queue. It will only take
@@ -1218,7 +1224,7 @@ export const takeAll = <A, E>(self: Dequeue<A, E>): Effect<readonly [messages: A
 export const takeN = <A, E>(
   self: Dequeue<A, E>,
   n: number
-): Effect<readonly [messages: Array<A>, done: boolean], E> => takeBetween(self, n, n)
+): Effect<Array<A>, E | Pull.Done> => takeBetween(self, n, n)
 
 /**
  * Take a variable number of messages from the queue, between specified min and max.
@@ -1259,7 +1265,7 @@ export const takeBetween = <A, E>(
   self: Dequeue<A, E>,
   min: number,
   max: number
-): Effect<readonly [messages: Array<A>, done: boolean], E> =>
+): Effect<Array<A>, E | Pull.Done> =>
   internalEffect.suspend(() =>
     unsafeTakeBetween(self, min, max) ?? internalEffect.andThen(awaitTake(self), takeBetween(self, 1, max))
   )
@@ -1600,22 +1606,16 @@ export const toPull: <A, E, L = void>(self: Dequeue<A, E>) => Pull.Pull<A, E, L>
  * @since 4.0.0
  * @category Queue
  */
-export const toPullArray = <A, E>(self: Dequeue<A, E>): Pull.Pull<Arr.NonEmptyReadonlyArray<A>, E> =>
-  internalEffect.flatMap(
-    takeAll(self),
-    ([values]) => Arr.isNonEmptyReadonlyArray(values) ? internalEffect.succeed(values) : Pull.haltVoid
-  )
+export const toPullArray: <A, E, L = void>(self: Dequeue<A, E>) => Pull.Pull<Arr.NonEmptyReadonlyArray<A>, E, L> =
+  takeAll as any
 
 // -----------------------------------------------------------------------------
 // internals
 // -----------------------------------------------------------------------------
 //
 
-const empty = Arr.empty()
-const exitEmpty = core.exitSucceed(empty)
 const exitFalse = core.exitSucceed(false)
 const exitTrue = core.exitSucceed(true)
-const constDone = [empty, true] as const
 const exitFailDone = core.exitFail(Pull.done)
 
 const releaseTaker = <A, E>(self: Queue<A, E>) => {
@@ -1640,22 +1640,24 @@ const unsafeTakeBetween = <A, E>(
   self: Dequeue<A, E>,
   min: number,
   max: number
-): Exit<readonly [messages: Array<A>, done: boolean], E> | undefined => {
+): Exit<Array<A>, E | Pull.Done> | undefined => {
   if (self.state._tag === "Done") {
-    return internalEffect.exitAs(self.state.exit, constDone)
+    return internalEffect.exitZipRight(self.state.exit, exitFailDone)
   } else if (max <= 0 || min <= 0) {
-    return core.exitSucceed([empty, false])
+    return core.exitSucceed([])
   } else if (self.capacity <= 0 && self.state.offers.size > 0) {
     self.capacity = 1
     releaseCapacity(self)
     self.capacity = 0
     const messages = [MutableList.take(self.messages)!]
-    const released = releaseCapacity(self)
-    return core.exitSucceed([messages, released])
+    releaseCapacity(self)
+    return core.exitSucceed(messages)
   }
   min = Math.min(min, self.capacity)
   if (min <= self.messages.length) {
-    return core.exitSucceed([MutableList.takeN(self.messages, max), releaseCapacity(self)])
+    const messages = MutableList.takeN(self.messages, max)
+    releaseCapacity(self)
+    return core.exitSucceed(messages)
   }
 }
 
@@ -1721,7 +1723,7 @@ const releaseCapacity = <A, E>(self: Dequeue<A, E>): boolean => {
         MutableList.append(self.messages, entry.remaining[entry.offset])
         n--
       }
-      entry.resume(exitEmpty)
+      entry.resume(core.exitSucceed([]))
       self.state.offers.delete(entry)
     }
   }
@@ -1754,7 +1756,7 @@ const unsafeTakeAll = <A, E>(self: Dequeue<A, E>) => {
     releaseCapacity(self)
     return messages
   }
-  return empty
+  return []
 }
 
 const finalize = <A, E>(self: Dequeue<A, E>, exit: Exit<void, E>) => {

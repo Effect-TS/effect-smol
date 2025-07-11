@@ -83,6 +83,7 @@ import * as internalSchedule from "./internal/schedule.js"
 import type { version } from "./internal/version.js"
 import type * as Layer from "./Layer.js"
 import type { Logger } from "./Logger.js"
+import type { LogLevel } from "./LogLevel.js"
 import * as Metric from "./Metric.js"
 import type { Option } from "./Option.js"
 import type { Pipeable } from "./Pipeable.js"
@@ -3666,6 +3667,44 @@ export const raceAllFirst: <Eff extends Effect<any, any, any>>(
   }
 ) => Effect<Success<Eff>, Error<Eff>, Services<Eff>> = internal.raceAllFirst
 
+/**
+ * Races two effects and returns the result of the first one to complete.
+ *
+ * **Details**
+ *
+ * This function takes two effects and runs them concurrently, returning the
+ * result of the first one that completes, regardless of whether it succeeds or
+ * fails.
+ *
+ * **When to Use**
+ *
+ * This function is useful when you want to race two operations, and you want to
+ * proceed with whichever one finishes first, regardless of whether it succeeds
+ * or fails.
+ *
+ * @since 2.0.0
+ * @category Racing
+ */
+export const raceFirst: {
+  <A2, E2, R2>(
+    that: Effect<A2, E2, R2>,
+    options?: {
+      readonly onWinner?: (
+        options: { readonly fiber: Fiber<any, any>; readonly index: number; readonly parentFiber: Fiber<any, any> }
+      ) => void
+    }
+  ): <A, E, R>(self: Effect<A, E, R>) => Effect<A | A2, E | E2, R | R2>
+  <A, E, R, A2, E2, R2>(
+    self: Effect<A, E, R>,
+    that: Effect<A2, E2, R2>,
+    options?: {
+      readonly onWinner?: (
+        options: { readonly fiber: Fiber<any, any>; readonly index: number; readonly parentFiber: Fiber<any, any> }
+      ) => void
+    }
+  ): Effect<A | A2, E | E2, R | R2>
+} = internal.raceFirst
+
 // -----------------------------------------------------------------------------
 // Filtering
 // -----------------------------------------------------------------------------
@@ -6597,10 +6636,16 @@ export const request: {
  * @category supervision & fibers
  */
 export const fork: <
-  Arg extends Effect<any, any, any> | { readonly startImmediately?: boolean | undefined } | undefined
+  Arg extends Effect<any, any, any> | {
+    readonly startImmediately?: boolean | undefined
+    readonly uninterruptible?: boolean | "inherit" | undefined
+  } | undefined
 >(
   effectOrOptions: Arg,
-  options?: { readonly startImmediately?: boolean | undefined } | undefined
+  options?: {
+    readonly startImmediately?: boolean | undefined
+    readonly uninterruptible?: boolean | "inherit" | undefined
+  } | undefined
 ) => [Arg] extends [Effect<infer _A, infer _E, infer _R>] ? Effect<Fiber<_A, _E>, never, _R>
   : <A, E, R>(self: Effect<A, E, R>) => Effect<Fiber<A, E>, never, R> = internal.fork
 
@@ -6636,6 +6681,7 @@ export const forkIn: {
     scope: Scope,
     options?: {
       readonly startImmediately?: boolean | undefined
+      readonly uninterruptible?: boolean | "inherit" | undefined
     }
   ): <A, E, R>(self: Effect<A, E, R>) => Effect<Fiber<A, E>, never, R>
   <A, E, R>(
@@ -6643,6 +6689,7 @@ export const forkIn: {
     scope: Scope,
     options?: {
       readonly startImmediately?: boolean | undefined
+      readonly uninterruptible?: boolean | "inherit" | undefined
     }
   ): Effect<Fiber<A, E>, never, R>
 } = internal.forkIn
@@ -6675,10 +6722,16 @@ export const forkIn: {
  * @category supervision & fibers
  */
 export const forkScoped: <
-  Arg extends Effect<any, any, any> | { readonly startImmediately?: boolean | undefined } | undefined
+  Arg extends Effect<any, any, any> | {
+    readonly startImmediately?: boolean | undefined
+    readonly uninterruptible?: boolean | "inherit" | undefined
+  } | undefined
 >(
   effectOrOptions: Arg,
-  options?: { readonly startImmediately?: boolean | undefined } | undefined
+  options?: {
+    readonly startImmediately?: boolean | undefined
+    readonly uninterruptible?: boolean | "inherit" | undefined
+  } | undefined
 ) => [Arg] extends [Effect<infer _A, infer _E, infer _R>] ? Effect<Fiber<_A, _E>, never, _R>
   : <A, E, R>(self: Effect<A, E, R>) => Effect<Fiber<A, E>, never, R | Scope> = internal.forkScoped
 
@@ -6711,10 +6764,16 @@ export const forkScoped: <
  * @category supervision & fibers
  */
 export const forkDaemon: <
-  Arg extends Effect<any, any, any> | { readonly startImmediately?: boolean | undefined } | undefined
+  Arg extends Effect<any, any, any> | {
+    readonly startImmediately?: boolean | undefined
+    readonly uninterruptible?: boolean | "inherit" | undefined
+  } | undefined
 >(
   effectOrOptions: Arg,
-  options?: { readonly startImmediately?: boolean | undefined } | undefined
+  options?: {
+    readonly startImmediately?: boolean | undefined
+    readonly uninterruptible?: boolean | "inherit" | undefined
+  } | undefined
 ) => [Arg] extends [Effect<infer _A, infer _E, infer _R>] ? Effect<Fiber<_A, _E>, never, _R>
   : <A, E, R>(self: Effect<A, E, R>) => Effect<Fiber<A, E>, never, R> = internal.forkDaemon
 
@@ -7904,6 +7963,13 @@ export const clockWith: <A, E, R>(
 // ========================================================================
 // Logging
 // ========================================================================
+
+/**
+ * @since 2.0.0
+ * @category logging
+ */
+export const logWithLevel: (level?: LogLevel) => (...message: ReadonlyArray<any>) => Effect<void> =
+  internal.logWithLevel
 
 /**
  * Logs one or more messages using the default log level.

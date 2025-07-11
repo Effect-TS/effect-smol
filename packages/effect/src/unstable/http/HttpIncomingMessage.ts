@@ -2,8 +2,7 @@
  * @since 4.0.0
  */
 import * as Effect from "../../Effect.js"
-import * as FileSystem from "../../FileSystem.js"
-import { dual } from "../../Function.js"
+import type * as FileSystem from "../../FileSystem.js"
 import * as Inspectable from "../../Inspectable.js"
 import * as Option from "../../Option.js"
 import { hasProperty } from "../../Predicate.js"
@@ -101,15 +100,6 @@ export const MaxBodySize = ServiceMap.Reference<Option.Option<FileSystem.Size>>(
   "effect/http/HttpIncomingMessage/MaxBodySize",
   { defaultValue: Option.none }
 )
-
-/**
- * @since 4.0.0
- * @category fiber refs
- */
-export const withMaxBodySize = dual<
-  (size: Option.Option<FileSystem.SizeInput>) => <A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.Effect<A, E, R>,
-  <A, E, R>(effect: Effect.Effect<A, E, R>, size: Option.Option<FileSystem.SizeInput>) => Effect.Effect<A, E, R>
->(2, (effect, size) => Effect.provideService(effect, MaxBodySize, Option.map(size, FileSystem.Size)))
 
 /**
  * @since 4.0.0

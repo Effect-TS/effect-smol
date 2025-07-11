@@ -368,8 +368,28 @@ export const isHaltFailure = <E>(
  */
 export const filterHalt: <E>(input: Cause.Cause<E>) => Halt.Only<E> | Filter.absent = Filter.compose(
   Cause.filterError,
-  (e) => isHalt(e) ? e : Filter.absent
+  Filter.fromPredicate(isHalt)
 ) as any
+
+/**
+ * Filters a Cause to extract only halt errors.
+ *
+ * @example
+ * ```ts
+ * import { Pull, Cause } from "effect"
+ *
+ * const halt = new Pull.Halt("completed")
+ * const causeWithHalt = Cause.fail(halt)
+ * const filtered = Pull.filterHalt(causeWithHalt)
+ *
+ * // filtered will be the halt error if present, or Filter.absent
+ * ```
+ *
+ * @since 4.0.0
+ * @category Halt
+ */
+export const filterNoHalt: <E>(input: Cause.Cause<E>) => Cause.Cause<Exclude<E, Halt<any>>> | Filter.absent = Filter
+  .fromPredicate((cause: Cause.Cause<unknown>) => cause.failures.every((failure) => !isHaltFailure(failure))) as any
 
 /**
  * Filters a Cause to extract the leftover value from halt errors.

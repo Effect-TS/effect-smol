@@ -12,15 +12,13 @@ describe("Queue", () => {
       assert.isUndefined(fiber.unsafePoll())
 
       let result = yield* Queue.takeAll(queue)
-      assert.deepStrictEqual(result[0], [1, 2])
-      assert.isFalse(result[1])
+      assert.deepStrictEqual(result, [1, 2])
 
       yield* Effect.yieldNow
       assert.isDefined(fiber.unsafePoll())
 
       result = yield* Queue.takeAll(queue)
-      assert.deepStrictEqual(result[0], [3, 4])
-      assert.isFalse(result[1])
+      assert.deepStrictEqual(result, [3, 4])
 
       yield* Effect.yieldNow
       assert.deepStrictEqual(fiber.unsafePoll(), Exit.succeed([]))
@@ -30,8 +28,8 @@ describe("Queue", () => {
     Effect.gen(function*() {
       const queue = yield* Queue.unbounded<number>()
       yield* Queue.offerAll(queue, [1, 2, 3, 4]).pipe(Effect.fork)
-      const [a] = yield* Queue.takeN(queue, 2)
-      const [b] = yield* Queue.takeN(queue, 2)
+      const a = yield* Queue.takeN(queue, 2)
+      const b = yield* Queue.takeN(queue, 2)
       assert.deepEqual(a, [1, 2])
       assert.deepEqual(b, [3, 4])
     }))
@@ -43,7 +41,7 @@ describe("Queue", () => {
       assert.deepStrictEqual(remaining, [3, 4])
       const result = yield* Queue.offer(queue, 5)
       assert.isFalse(result)
-      assert.deepStrictEqual((yield* Queue.takeAll(queue))[0], [1, 2])
+      assert.deepStrictEqual(yield* Queue.takeAll(queue), [1, 2])
     }))
 
   it.effect("offer sliding", () =>
@@ -53,7 +51,7 @@ describe("Queue", () => {
       assert.deepStrictEqual(remaining, [])
       const result = yield* Queue.offer(queue, 5)
       assert.isTrue(result)
-      assert.deepStrictEqual((yield* Queue.takeAll(queue))[0], [4, 5])
+      assert.deepStrictEqual(yield* Queue.takeAll(queue), [4, 5])
     }))
 
   it.effect("offerAll can be interrupted", () =>
@@ -68,15 +66,13 @@ describe("Queue", () => {
       yield* Effect.yieldNow
 
       let result = yield* Queue.takeAll(queue)
-      assert.deepStrictEqual(result[0], [1, 2])
-      assert.isFalse(result[1])
+      assert.deepStrictEqual(result, [1, 2])
 
       yield* Queue.offer(queue, 5)
       yield* Effect.yieldNow
 
       result = yield* Queue.takeAll(queue)
-      assert.deepStrictEqual(result[0], [5])
-      assert.isFalse(result[1])
+      assert.deepStrictEqual(result, [5])
     }))
 
   it.effect("done completes takes", () =>
@@ -87,7 +83,7 @@ describe("Queue", () => {
       )
       yield* Effect.yieldNow
       yield* Queue.done(queue, Exit.void)
-      assert.deepStrictEqual(yield* Fiber.await(fiber), Exit.succeed([[] as Array<number>, true] as const))
+      assert.deepStrictEqual(yield* Fiber.await(fiber), Exit.fail(Queue.Done))
     }))
 
   it.effect("end", () =>
@@ -123,12 +119,11 @@ describe("Queue", () => {
       yield* Effect.fork(Queue.offerAll(queue, [1, 2, 3, 4]))
       yield* Effect.fork(Queue.offer(queue, 5))
       yield* Effect.fork(Queue.fail(queue, "boom"))
-      const takeArr = Effect.map(Queue.takeAll(queue), ([_]) => _)
+      const takeArr = Queue.takeAll(queue)
       assert.deepStrictEqual(yield* takeArr, [1, 2])
       assert.deepStrictEqual(yield* takeArr, [3, 4])
-      const [items, done] = yield* Queue.takeAll(queue)
+      const items = yield* Queue.takeAll(queue)
       assert.deepStrictEqual(items, [5])
-      assert.strictEqual(done, false)
       const error = yield* Queue.takeAll(queue).pipe(Effect.flip)
       assert.deepStrictEqual(error, "boom")
       assert.strictEqual(yield* Queue.await(queue).pipe(Effect.flip), "boom")
@@ -172,9 +167,9 @@ describe("Queue", () => {
 
       yield* Effect.yieldNow
       assert.isUndefined(fiber.unsafePoll())
-      const [result, done] = yield* Queue.takeAll(queue)
+      const result = yield* Queue.takeAll(queue)
       assert.deepStrictEqual(result, [1])
-      assert.isTrue(done)
+      yield* Effect.flip(Queue.takeAll(queue))
       yield* Effect.yieldNow
       assert.isNotNull(fiber.unsafePoll())
     }))

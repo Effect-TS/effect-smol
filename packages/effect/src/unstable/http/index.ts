@@ -49,7 +49,6 @@ export * as HttpIncomingMessage from "./HttpIncomingMessage.js"
 
 /**
  * @since 4.0.0
- * @category models
  */
 export * as HttpMethod from "./HttpMethod.js"
 
