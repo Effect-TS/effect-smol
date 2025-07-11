@@ -1,4 +1,4 @@
-import { AST, Check, Schema, ToArbitrary } from "effect/schema"
+import { AST, Check, Schema, ToArbitrary, ToEquivalence } from "effect/schema"
 import { describe, it } from "vitest"
 import { deepStrictEqual } from "../utils/assert.js"
 import { assertions } from "../utils/schema.js"
@@ -795,6 +795,31 @@ describe("ToArbitrary", () => {
             _tag: "bigint",
             min: BigInt(0),
             max: BigInt(10)
+          }
+        }
+      })
+    })
+
+    it("UniqueArray", () => {
+      const comparator = ToEquivalence.make(Schema.String)
+      assertFragments(Schema.UniqueArray(Schema.String), {
+        fragments: {
+          array: {
+            _tag: "array",
+            comparator
+          }
+        }
+      })
+      assertFragments(Schema.UniqueArray(Schema.String).check(Check.maxLength(2)), {
+        fragments: {
+          array: {
+            _tag: "array",
+            maxLength: 2,
+            comparator
+          },
+          string: {
+            _tag: "string",
+            maxLength: 2
           }
         }
       })

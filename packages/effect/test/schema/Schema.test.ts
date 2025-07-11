@@ -953,7 +953,7 @@ describe("Schema", () => {
       })
     })
 
-    describe("refinement", () => {
+    describe("refinements", () => {
       it("guard", async () => {
         const schema = Schema.Option(Schema.String).pipe(
           Schema.guard(Option.isSome, { title: "isSome" }),
@@ -1652,6 +1652,29 @@ describe("Schema", () => {
 └─ maxSize(2)
    └─ Invalid data Map([["a",1],["b",NaN],["c",3]])`,
           { parseOptions: { errors: "all" } }
+        )
+      })
+    })
+
+    describe("Array checks", () => {
+      it("UniqueArray", async () => {
+        const schema = Schema.UniqueArray(Schema.Struct({
+          a: Schema.String,
+          b: Schema.String
+        }))
+
+        assertions.formatter.formatAST(
+          schema,
+          `ReadonlyArray<{ readonly "a": string; readonly "b": string }> & unique`
+        )
+
+        await assertions.decoding.succeed(schema, [{ a: "a", b: "b" }, { a: "c", b: "d" }])
+        await assertions.decoding.fail(
+          schema,
+          [{ a: "a", b: "b" }, { a: "a", b: "b" }],
+          `ReadonlyArray<{ readonly "a": string; readonly "b": string }> & unique
+└─ unique
+   └─ Invalid data [{"a":"a","b":"b"},{"a":"a","b":"b"}]`
         )
       })
     })

@@ -148,6 +148,7 @@ export declare namespace JsonSchema {
     prefixItems?: globalThis.Array<JsonSchema>
     items?: false | JsonSchema | globalThis.Array<JsonSchema>
     additionalItems?: false | JsonSchema
+    uniqueItems?: boolean
   }
 
   /**

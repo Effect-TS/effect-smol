@@ -28,6 +28,7 @@ import * as Check from "./Check.js"
 import * as Formatter from "./Formatter.js"
 import * as Getter from "./Getter.js"
 import * as Issue from "./Issue.js"
+import * as ToEquivalence from "./ToEquivalence.js"
 import * as ToParser from "./ToParser.js"
 import * as Transformation from "./Transformation.js"
 
@@ -2121,6 +2122,26 @@ export const NonEmptyArray = lambda<NonEmptyArrayLambda>(
     )
   }
 )
+
+/**
+ * @since 4.0.0
+ */
+export interface UniqueArray<S extends Top> extends Array$<S> {
+  readonly "~rebuild.out": UniqueArray<S>
+}
+
+/**
+ * Returns a new array schema that ensures all elements are unique.
+ *
+ * The equivalence used to determine uniqueness is the one provided by
+ * `ToEquivalence.make(item)`.
+ *
+ * @category Constructors
+ * @since 4.0.0
+ */
+export function UniqueArray<S extends Top>(item: S): UniqueArray<S> {
+  return Array(item).check(Check.unique(ToEquivalence.make(item)))
+}
 
 /**
  * @since 4.0.0

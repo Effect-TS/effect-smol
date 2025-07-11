@@ -42,6 +42,7 @@ export declare namespace Annotation {
    */
   export interface ArrayFragment extends FastCheck.ArrayConstraints {
     readonly _tag: "array"
+    readonly comparator?: (a: any, b: any) => boolean
   }
 
   /**
@@ -160,19 +161,29 @@ function applyChecks(
   )
 }
 
+function isUniqueArrayConstraintsCustomCompare(
+  fragment: Annotation.ArrayFragment | undefined
+): fragment is Annotation.ArrayFragment & FastCheck.UniqueArrayConstraintsCustomCompare<any> {
+  return fragment?.comparator !== undefined
+}
+
 function array(
   fc: typeof FastCheck,
   ctx: Context | undefined,
   item: FastCheck.Arbitrary<any>
 ) {
+  const fragment = ctx?.fragments?.array
+  const array = isUniqueArrayConstraintsCustomCompare(fragment)
+    ? fc.uniqueArray(item, fragment)
+    : fc.array(item, fragment)
   if (ctx?.isSuspend) {
     return fc.oneof(
       { maxDepth: 2, depthIdentifier: "" },
       fc.constant([]),
-      fc.array(item, ctx?.fragments?.array)
+      array
     )
   }
-  return fc.array(item, ctx?.fragments?.array)
+  return array
 }
 
 type Semigroup<A> = (x: A, y: A) => A
@@ -214,7 +225,8 @@ const semigroup: Semigroup<Partial<Annotation.Constraint>> = struct({
   noInteger: or,
   noInvalidDate: or,
   noNaN: or,
-  patterns: concat
+  patterns: concat,
+  comparator: or
 }) as any
 
 function merge(

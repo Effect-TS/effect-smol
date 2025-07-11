@@ -67,10 +67,7 @@ export interface Bottom<
    */
   makeSync(input: this["~type.make.in"], options?: MakeOptions): this["Type"]
   check(
-    ...checks: readonly [
-      Check.Check<this["Type"]>,
-      ...ReadonlyArray<Check.Check<this["Type"]>>
-    ]
+    ...checks: readonly [Check.Check<this["Type"]>, ...ReadonlyArray<Check.Check<this["Type"]>>]
   ): this["~rebuild.out"]
 }
 ```
@@ -160,9 +157,7 @@ import { Schema } from "effect/schema"
 class UserDatabase extends ServiceMap.Key<
   UserDatabase,
   {
-    getUserById: (
-      id: string
-    ) => Effect.Effect<{ readonly id: string; readonly name: string }>
+    getUserById: (id: string) => Effect.Effect<{ readonly id: string; readonly name: string }>
   }
 >()("UserDatabase") {}
 
@@ -265,9 +260,7 @@ const MyDate = Schema.instanceOf({
 
 const serializer = Serializer.json(MyDate)
 
-const serialized = JSON.stringify(
-  Schema.encodeUnknownSync(serializer)(new Date("2021-01-01"))
-)
+const serialized = JSON.stringify(Schema.encodeUnknownSync(serializer)(new Date("2021-01-01")))
 
 console.log(serialized)
 /*
@@ -405,10 +398,7 @@ To support constructing values from composed schemas, `makeSync` is now availabl
 ```ts
 import { Schema } from "effect/schema"
 
-const schema = Schema.Union([
-  Schema.Struct({ a: Schema.String }),
-  Schema.Struct({ b: Schema.Number })
-])
+const schema = Schema.Union([Schema.Struct({ a: Schema.String }), Schema.Struct({ b: Schema.Number })])
 
 schema.makeSync({ a: "hello" })
 schema.makeSync({ b: 1 })
@@ -516,9 +506,7 @@ import { Option } from "effect"
 import { Schema } from "effect/schema"
 
 const schema = Schema.Struct({
-  a: Schema.Date.pipe(
-    Schema.withConstructorDefault(() => Option.some(new Date()))
-  )
+  a: Schema.Date.pipe(Schema.withConstructorDefault(() => Option.some(new Date())))
 })
 
 console.log(schema.makeSync({}))
@@ -578,9 +566,7 @@ import { Schema } from "effect/schema"
 
 const schema = Schema.Struct({
   a: Schema.Struct({
-    b: Schema.Number.pipe(
-      Schema.withConstructorDefault(() => Result.succeedSome(-1))
-    )
+    b: Schema.Number.pipe(Schema.withConstructorDefault(() => Result.succeedSome(-1)))
   }).pipe(Schema.withConstructorDefault(() => Result.succeedSome({})))
 })
 
@@ -611,9 +597,7 @@ const schema = Schema.Struct({
   )
 })
 
-SchemaResult.asEffect(ToParser.makeSchemaResult(schema)({}))
-  .pipe(Effect.runPromise)
-  .then(console.log)
+SchemaResult.asEffect(ToParser.makeSchemaResult(schema)({})).pipe(Effect.runPromise).then(console.log)
 // { a: -1 }
 ```
 
@@ -624,10 +608,9 @@ import { ServiceMap, Effect, Option } from "effect"
 import { Schema, SchemaResult, ToParser } from "effect/schema"
 
 // Define a service that may provide a default value
-class ConstructorService extends ServiceMap.Key<
-  ConstructorService,
-  { defaultValue: Effect.Effect<number> }
->()("ConstructorService") {}
+class ConstructorService extends ServiceMap.Key<ConstructorService, { defaultValue: Effect.Effect<number> }>()(
+  "ConstructorService"
+) {}
 
 const schema = Schema.Struct({
   a: Schema.Number.pipe(
@@ -646,10 +629,7 @@ const schema = Schema.Struct({
 
 SchemaResult.asEffect(ToParser.makeSchemaResult(schema)({}))
   .pipe(
-    Effect.provideService(
-      ConstructorService,
-      ConstructorService.of({ defaultValue: Effect.succeed(-1) })
-    ),
+    Effect.provideService(ConstructorService, ConstructorService.of({ defaultValue: Effect.succeed(-1) })),
     Effect.runPromise
   )
   .then(console.log, console.error)
@@ -671,9 +651,7 @@ import { Check, Formatter, Schema } from "effect/schema"
 // A simple filter that checks if a string has at least 3 characters
 const schema = Schema.String.check(Check.make((s) => s.length >= 3))
 
-Formatter.decodeUnknownEffect(Formatter.getTree())(schema)("")
-  .pipe(Effect.runPromise)
-  .then(console.log, console.error)
+Formatter.decodeUnknownEffect(Formatter.getTree())(schema)("").pipe(Effect.runPromise).then(console.log, console.error)
 /*
 Output:
 string & <filter>
@@ -698,9 +676,7 @@ const schema = Schema.String.check(
   })
 )
 
-Formatter.decodeUnknownEffect(Formatter.getTree())(schema)("")
-  .pipe(Effect.runPromise)
-  .then(console.log, console.error)
+Formatter.decodeUnknownEffect(Formatter.getTree())(schema)("").pipe(Effect.runPromise).then(console.log, console.error)
 /*
 Output:
 string & length >= 3
@@ -783,9 +759,7 @@ import { Effect } from "effect"
 import { Check, Formatter, Schema } from "effect/schema"
 
 // Object has a numeric `length` field, which must be >= 3
-const schema = Schema.Struct({ length: Schema.Number }).check(
-  Check.minLength(3)
-)
+const schema = Schema.Struct({ length: Schema.Number }).check(Check.minLength(3))
 
 Formatter.decodeUnknownEffect(Formatter.getTree())(schema)({ length: 2 })
   .pipe(Effect.runPromise)
@@ -884,13 +858,10 @@ import { Check } from "effect/schema"
 
 //      ┌─── FilterGroup<number>
 //      ▼
-const int32 = Check.makeGroup(
-  [Check.int(), Check.between(-2147483648, 2147483647)],
-  {
-    title: "int32",
-    description: "a 32-bit integer"
-  }
-)
+const int32 = Check.makeGroup([Check.int(), Check.between(-2147483648, 2147483647)], {
+  title: "int32",
+  description: "a 32-bit integer"
+})
 ```
 
 ### Refinements
@@ -907,9 +878,7 @@ import { Schema } from "effect/schema"
 //      ┌─── refine<readonly [string, string, ...string[]], Schema.Array$<Schema.String>>
 //      ▼
 const guarded = Schema.Array(Schema.String).pipe(
-  Schema.guard(
-    (arr): arr is readonly [string, string, ...Array<string>] => arr.length >= 2
-  )
+  Schema.guard((arr): arr is readonly [string, string, ...Array<string>] => arr.length >= 2)
 )
 ```
 
@@ -938,10 +907,9 @@ import { Check } from "effect/schema"
 //
 //      ┌─── RefinementGroup<Lowercase<string>, string>
 //      ▼
-export const guardedGroup = Check.makeGroup(
-  [Check.minLength(3), Check.trimmed()],
-  undefined
-).pipe(Check.guard((s): s is Lowercase<string> => s.toLowerCase() === s))
+export const guardedGroup = Check.makeGroup([Check.minLength(3), Check.trimmed()], undefined).pipe(
+  Check.guard((s): s is Lowercase<string> => s.toLowerCase() === s)
+)
 ```
 
 **Example** (Grouping a brand with other checks)
@@ -956,10 +924,9 @@ import { Check } from "effect/schema"
 //
 //      ┌─── Check.RefinementGroup<string & Brand<"my-string">, string>
 //      ▼
-export const brandedGroup = Check.makeGroup(
-  [Check.minLength(3), Check.trimmed()],
-  undefined
-).pipe(Check.brand("my-string"))
+export const brandedGroup = Check.makeGroup([Check.minLength(3), Check.trimmed()], undefined).pipe(
+  Check.brand("my-string")
+)
 ```
 
 Let's see a more complex example:
@@ -1025,10 +992,7 @@ const schema = Schema.Struct({
   )
 })
 
-Formatter.decodeUnknownEffect(Formatter.getTree())(schema)(
-  { tags: ["a", ""] },
-  { errors: "all" }
-)
+Formatter.decodeUnknownEffect(Formatter.getTree())(schema)({ tags: ["a", ""] }, { errors: "all" })
   .pipe(Effect.runPromise)
   .then(console.log, console.error)
 
@@ -1075,9 +1039,7 @@ const schema = Schema.Finite.pipe(
         const user = yield* Effect.result(myapi(n))
 
         // If the result is an error, return a SchemaIssue
-        return Result.isErr(user)
-          ? new Issue.InvalidValue(Option.some(n), { title: "not found" })
-          : undefined // No issue, value is valid
+        return Result.isErr(user) ? new Issue.InvalidValue(Option.some(n), { title: "not found" }) : undefined // No issue, value is valid
       })
     ),
     encode: Getter.passthrough()
@@ -1414,8 +1376,7 @@ const Product = Schema.Struct({
     Schema.decodeTo(
       Schema.Option(Schema.Number),
       Transformation.transformOptional({
-        decode: (oe) =>
-          oe.pipe(Option.filter(Predicate.isNotUndefined), Option.some),
+        decode: (oe) => oe.pipe(Option.filter(Predicate.isNotUndefined), Option.some),
         encode: Option.flatten
       })
     )
@@ -1457,8 +1418,7 @@ const Product = Schema.Struct({
     Schema.decodeTo(
       Schema.Option(Schema.Number),
       Transformation.transformOptional({
-        decode: (oe) =>
-          oe.pipe(Option.filter(Predicate.isNotNull), Option.some),
+        decode: (oe) => oe.pipe(Option.filter(Predicate.isNotNull), Option.some),
         encode: Option.flatten
       })
     )
@@ -1497,8 +1457,7 @@ const Product = Schema.Struct({
     Schema.decodeTo(
       Schema.Option(Schema.Number),
       Transformation.transformOptional({
-        decode: (oe) =>
-          oe.pipe(Option.filter(Predicate.isNotNullish), Option.some),
+        decode: (oe) => oe.pipe(Option.filter(Predicate.isNotNullish), Option.some),
         encode: Option.flatten
       })
     )
@@ -1546,9 +1505,7 @@ const schema = Schema.Struct({
   )
 })
 
-Formatter.decodeUnknownEffect(Formatter.getTree())(schema)({})
-  .pipe(Effect.runPromise)
-  .then(console.log, console.error)
+Formatter.decodeUnknownEffect(Formatter.getTree())(schema)({}).pipe(Effect.runPromise).then(console.log, console.error)
 
 /*
 Output:
@@ -1572,10 +1529,7 @@ const schema = Schema.Struct({
   a: Schema.String
 }).annotate({ unexpectedKeyMessage: "Custom message" })
 
-Formatter.decodeUnknownEffect(Formatter.getTree())(schema)(
-  { a: "a", b: "b" },
-  { onExcessProperty: "error" }
-)
+Formatter.decodeUnknownEffect(Formatter.getTree())(schema)({ a: "a", b: "b" }, { onExcessProperty: "error" })
   .pipe(Effect.runPromise)
   .then(console.log, console.error)
 
@@ -1601,10 +1555,7 @@ const schema = Schema.Struct({
   a: Schema.String
 })
 
-Formatter.decodeUnknownEffect(Formatter.getTree())(schema)(
-  { a: "a", b: "b" },
-  { onExcessProperty: "preserve" }
-)
+Formatter.decodeUnknownEffect(Formatter.getTree())(schema)({ a: "a", b: "b" }, { onExcessProperty: "preserve" })
   .pipe(Effect.runPromise)
   .then(console.log, console.error)
 
@@ -1626,10 +1577,9 @@ Filters applied to either the struct or the record are preserved when combined.
 import { Schema } from "effect/schema"
 
 // Define a schema with one fixed key "a" and any number of string keys mapping to numbers
-export const schema = Schema.StructWithRest(
-  Schema.Struct({ a: Schema.Number }),
-  [Schema.Record(Schema.String, Schema.Number)]
-)
+export const schema = Schema.StructWithRest(Schema.Struct({ a: Schema.Number }), [
+  Schema.Record(Schema.String, Schema.Number)
+])
 
 /*
 type Type = {
@@ -1656,10 +1606,9 @@ If you want the record part to be mutable, you can wrap it in `Schema.mutable`.
 import { Schema } from "effect/schema"
 
 // Define a schema with one fixed key "a" and any number of string keys mapping to numbers
-export const schema = Schema.StructWithRest(
-  Schema.Struct({ a: Schema.Number }),
-  [Schema.mutable(Schema.Record(Schema.String, Schema.Number))]
-)
+export const schema = Schema.StructWithRest(Schema.Struct({ a: Schema.Number }), [
+  Schema.mutable(Schema.Record(Schema.String, Schema.Number))
+])
 
 /*
 type Type = {
@@ -2049,9 +1998,7 @@ Opaque structs can be used just like regular structs, with no other changes need
 import { Schema } from "effect/schema"
 
 // A function that takes a generic struct
-const getFields = <Fields extends Schema.Struct.Fields>(
-  struct: Schema.Struct<Fields>
-) => struct.fields
+const getFields = <Fields extends Schema.Struct.Fields>(struct: Schema.Struct<Fields>) => struct.fields
 
 class Person extends Schema.Opaque<Person>()(
   Schema.Struct({
@@ -2160,9 +2107,7 @@ import { Schema } from "effect/schema"
 export class Category extends Schema.Opaque<Category>()(
   Schema.Struct({
     name: Schema.String,
-    children: Schema.Array(
-      Schema.suspend((): Schema.Codec<Category> => Category)
-    )
+    children: Schema.Array(Schema.suspend((): Schema.Codec<Category> => Category))
   })
 ) {}
 
@@ -2185,9 +2130,7 @@ interface CategoryEncoded extends Schema.Codec.Encoded<typeof Category> {}
 export class Category extends Schema.Opaque<Category>()(
   Schema.Struct({
     name: Schema.FiniteFromString,
-    children: Schema.Array(
-      Schema.suspend((): Schema.Codec<Category, CategoryEncoded> => Category)
-    )
+    children: Schema.Array(Schema.suspend((): Schema.Codec<Category, CategoryEncoded> => Category))
   })
 ) {}
 
@@ -2208,10 +2151,7 @@ import { Schema } from "effect/schema"
 class Expression extends Schema.Opaque<Expression>()(
   Schema.Struct({
     type: Schema.Literal("expression"),
-    value: Schema.Union([
-      Schema.Number,
-      Schema.suspend((): Schema.Codec<Operation> => Operation)
-    ])
+    value: Schema.Union([Schema.Number, Schema.suspend((): Schema.Codec<Operation> => Operation)])
   })
 ) {}
 
@@ -2252,9 +2192,7 @@ export type Encoded = (typeof Operation)["Encoded"]
 ```ts
 import { Schema, Transformation } from "effect/schema"
 
-const SnakeToCamel = Schema.String.pipe(
-  Schema.decode(Transformation.snakeToCamel())
-)
+const SnakeToCamel = Schema.String.pipe(Schema.decode(Transformation.snakeToCamel()))
 
 const schema = Schema.Record(SnakeToCamel, Schema.Number)
 
@@ -2269,9 +2207,7 @@ By default, if a transformation results in duplicate keys, the last value wins.
 ```ts
 import { Schema, Transformation } from "effect/schema"
 
-const SnakeToCamel = Schema.String.pipe(
-  Schema.decode(Transformation.snakeToCamel())
-)
+const SnakeToCamel = Schema.String.pipe(Schema.decode(Transformation.snakeToCamel()))
 
 const schema = Schema.Record(SnakeToCamel, Schema.Number)
 
@@ -2286,9 +2222,7 @@ You can customize how key conflicts are resolved by providing a `combine` functi
 ```ts
 import { Schema, Transformation } from "effect/schema"
 
-const SnakeToCamel = Schema.String.pipe(
-  Schema.decode(Transformation.snakeToCamel())
-)
+const SnakeToCamel = Schema.String.pipe(Schema.decode(Transformation.snakeToCamel()))
 
 const schema = Schema.Record(SnakeToCamel, Schema.Number, {
   key: {
@@ -2319,10 +2253,7 @@ By default, records are tagged as `readonly`. You can mark a record as mutable u
 ```ts
 import { Schema } from "effect/schema"
 
-export const schema = Schema.Record(
-  Schema.String,
-  Schema.mutableKey(Schema.Number)
-)
+export const schema = Schema.Record(Schema.String, Schema.mutableKey(Schema.Number))
 
 /*
 type Type = {
@@ -2368,10 +2299,7 @@ By default, keys are readonly. To make them mutable, use `Schema.mutableKey` jus
 ```ts
 import { Schema } from "effect/schema"
 
-const schema = Schema.Record(
-  Schema.Literals(["a", "b"]),
-  Schema.mutableKey(Schema.Number)
-)
+const schema = Schema.Record(Schema.Literals(["a", "b"]), Schema.mutableKey(Schema.Number))
 
 /*
 type Type = {
@@ -2391,10 +2319,7 @@ You can make the keys optional by wrapping the value schema with `Schema.optiona
 ```ts
 import { Schema } from "effect/schema"
 
-const schema = Schema.Record(
-  Schema.Literals(["a", "b"]),
-  Schema.optional(Schema.Number)
-)
+const schema = Schema.Record(Schema.Literals(["a", "b"]), Schema.optional(Schema.Number))
 
 /*
 type Type = {
@@ -2416,10 +2341,10 @@ You can add rest elements to a tuple using `Schema.TupleWithRest`.
 ```ts
 import { Schema } from "effect/schema"
 
-export const schema = Schema.TupleWithRest(
-  Schema.Tuple([Schema.FiniteFromString, Schema.String]),
-  [Schema.Boolean, Schema.String]
-)
+export const schema = Schema.TupleWithRest(Schema.Tuple([Schema.FiniteFromString, Schema.String]), [
+  Schema.Boolean,
+  Schema.String
+])
 
 /*
 type Type = readonly [number, string, ...boolean[], string]
@@ -2452,9 +2377,7 @@ const schema = Schema.Tuple([
   )
 ])
 
-Formatter.decodeUnknownEffect(Formatter.getTree())(schema)([])
-  .pipe(Effect.runPromise)
-  .then(console.log, console.error)
+Formatter.decodeUnknownEffect(Formatter.getTree())(schema)([]).pipe(Effect.runPromise).then(console.log, console.error)
 /*
 Output:
 readonly [string]
@@ -2480,11 +2403,7 @@ import { Schema } from "effect/schema"
 /*
 const schema: Schema.Tuple<readonly [Schema.String, Schema.Boolean]>
 */
-const schema = Schema.Tuple([
-  Schema.String,
-  Schema.Number,
-  Schema.Boolean
-]).mapElements(Tuple.pick([0, 2]))
+const schema = Schema.Tuple([Schema.String, Schema.Number, Schema.Boolean]).mapElements(Tuple.pick([0, 2]))
 ```
 
 #### Omit
@@ -2500,11 +2419,7 @@ import { Schema } from "effect/schema"
 /*
 const schema: Schema.Tuple<readonly [Schema.String, Schema.Boolean]>
 */
-const schema = Schema.Tuple([
-  Schema.String,
-  Schema.Number,
-  Schema.Boolean
-]).mapElements(Tuple.omit([1]))
+const schema = Schema.Tuple([Schema.String, Schema.Number, Schema.Boolean]).mapElements(Tuple.omit([1]))
 ```
 
 #### Adding Elements
@@ -2548,11 +2463,7 @@ const schema: Schema.Tuple<readonly [
   Schema.NullOr<Schema.Boolean>
 ]>
 */
-const schema = Schema.Tuple([
-  Schema.String,
-  Schema.Number,
-  Schema.Boolean
-]).mapElements(
+const schema = Schema.Tuple([Schema.String, Schema.Number, Schema.Boolean]).mapElements(
   Tuple.evolve([
     (v) => Schema.NullOr(v),
     undefined, // no change
@@ -2578,11 +2489,7 @@ const schema: Schema.Tuple<readonly [
   Schema.NullOr<Schema.Boolean>
 ]>
 */
-const schema = Schema.Tuple([
-  Schema.String,
-  Schema.Number,
-  Schema.Boolean
-]).mapElements(Tuple.map(Schema.NullOr))
+const schema = Schema.Tuple([Schema.String, Schema.Number, Schema.Boolean]).mapElements(Tuple.map(Schema.NullOr))
 ```
 
 #### Mapping a subset of elements at once
@@ -2602,11 +2509,9 @@ const schema: Schema.Tuple<readonly [
   Schema.NullOr<Schema.Boolean>
 ]>
 */
-const schema = Schema.Tuple([
-  Schema.String,
-  Schema.Number,
-  Schema.Boolean
-]).mapElements(Tuple.mapPick([0, 2], Schema.NullOr))
+const schema = Schema.Tuple([Schema.String, Schema.Number, Schema.Boolean]).mapElements(
+  Tuple.mapPick([0, 2], Schema.NullOr)
+)
 ```
 
 Or if it's more convenient, you can use `Tuple.mapOmit`.
@@ -2622,11 +2527,9 @@ const schema: Schema.Tuple<readonly [
   Schema.NullOr<Schema.Boolean>
 ]>
 */
-const schema = Schema.Tuple([
-  Schema.String,
-  Schema.Number,
-  Schema.Boolean
-]).mapElements(Tuple.mapOmit([1], Schema.NullOr))
+const schema = Schema.Tuple([Schema.String, Schema.Number, Schema.Boolean]).mapElements(
+  Tuple.mapOmit([1], Schema.NullOr)
+)
 ```
 
 #### Renaming Indices
@@ -2646,11 +2549,7 @@ const schema: Schema.Tuple<readonly [
   Schema.Boolean
 ]>
 */
-const schema = Schema.Tuple([
-  Schema.String,
-  Schema.Number,
-  Schema.Boolean
-]).mapElements(
+const schema = Schema.Tuple([Schema.String, Schema.Number, Schema.Boolean]).mapElements(
   Tuple.renameIndices(["1", "0"]) // flip the first and second elements
 )
 ```
@@ -2668,17 +2567,38 @@ const schema: Schema.Tuple<readonly [
   Schema.String
 ]>
 */
-const schema = Schema.Tuple([
-  Schema.String,
-  Schema.Number,
-  Schema.Boolean
-]).mapElements(
+const schema = Schema.Tuple([Schema.String, Schema.Number, Schema.Boolean]).mapElements(
   Tuple.renameIndices([
     "2", // last element becomes first
     "1", // second element keeps its index
     "0" // first element becomes third
   ])
 )
+```
+
+## Arrays
+
+### 🆕 Unique Arrays
+
+You can deduplicate arrays using `Schema.UniqueArray`.
+
+Internally, `Schema.UniqueArray` uses `Schema.Array` and adds a check based on `Check.deduped` using `ToEquivalence.make(item)` for the equivalence.
+
+```ts
+import { Effect } from "effect"
+import { Formatter, Schema } from "effect/schema"
+
+const schema = Schema.UniqueArray(Schema.String)
+
+Formatter.decodeUnknownEffect(Formatter.getTree())(schema)(["a", "b", "a"])
+  .pipe(Effect.runPromise)
+  .then(console.log, console.error)
+/*
+Output:
+ReadonlyArray<string> & unique
+└─ unique
+   └─ Invalid data ["a","b","a"]
+*/
 ```
 
 ## Classes
@@ -2875,9 +2795,7 @@ const program = Effect.gen(function* () {
   yield* new Err({ message: "Uh oh" })
 })
 
-Effect.runPromiseExit(program).then((exit) =>
-  console.log(JSON.stringify(exit, null, 2))
-)
+Effect.runPromiseExit(program).then((exit) => console.log(JSON.stringify(exit, null, 2)))
 /*
 {
   "_id": "Exit",
@@ -2896,10 +2814,7 @@ Effect.runPromiseExit(program).then((exit) =>
 }
 */
 
-const transformation = SchemaTransformation.transform<
-  Err,
-  (typeof Props)["Type"]
->((props) => new Err(props), identity)
+const transformation = SchemaTransformation.transform<Err, (typeof Props)["Type"]>((props) => new Err(props), identity)
 
 const schema = Schema.instanceOf({
   constructor: Err,
@@ -3071,9 +2986,7 @@ import { Schema } from "effect/schema"
 export class Category extends Schema.Class<Category>("Category")(
   Schema.Struct({
     name: Schema.String,
-    children: Schema.Array(
-      Schema.suspend((): Schema.Codec<Category> => Category)
-    )
+    children: Schema.Array(Schema.suspend((): Schema.Codec<Category> => Category))
   })
 ) {}
 
@@ -3096,9 +3009,7 @@ interface CategoryEncoded extends Schema.Codec.Encoded<typeof Category> {}
 export class Category extends Schema.Class<Category>("Category")(
   Schema.Struct({
     name: Schema.FiniteFromString,
-    children: Schema.Array(
-      Schema.suspend((): Schema.Codec<Category, CategoryEncoded> => Category)
-    )
+    children: Schema.Array(Schema.suspend((): Schema.Codec<Category, CategoryEncoded> => Category))
   })
 ) {}
 
@@ -3119,10 +3030,7 @@ import { Schema } from "effect/schema"
 class Expression extends Schema.Class<Expression>("Expression")(
   Schema.Struct({
     type: Schema.Literal("expression"),
-    value: Schema.Union([
-      Schema.Number,
-      Schema.suspend((): Schema.Codec<Operation> => Operation)
-    ])
+    value: Schema.Union([Schema.Number, Schema.suspend((): Schema.Codec<Operation> => Operation)])
   })
 ) {}
 
@@ -3196,9 +3104,7 @@ const schema = Schema.Union([Schema.NonEmptyString, Schema.Number])
 
 // Input is "", which is not a number.
 // Schema.Number is excluded and Schema.NonEmptyString is used.
-Formatter.decodeUnknownEffect(Formatter.getTree())(schema)("")
-  .pipe(Effect.runPromise)
-  .then(console.log, console.error)
+Formatter.decodeUnknownEffect(Formatter.getTree())(schema)("").pipe(Effect.runPromise).then(console.log, console.error)
 /*
 Output:
 string & minLength(1)
@@ -3256,10 +3162,9 @@ You can create an exclusive union, where the union matches if exactly one member
 import { Effect } from "effect"
 import { Formatter, Schema } from "effect/schema"
 
-const schema = Schema.Union(
-  [Schema.Struct({ a: Schema.String }), Schema.Struct({ b: Schema.Number })],
-  { mode: "oneOf" }
-)
+const schema = Schema.Union([Schema.Struct({ a: Schema.String }), Schema.Struct({ b: Schema.Number })], {
+  mode: "oneOf"
+})
 
 Formatter.decodeUnknownEffect(Formatter.getTree())(schema)({ a: "a", b: 1 })
   .pipe(Effect.runPromise)
@@ -3315,11 +3220,7 @@ const schema: Schema.Union<readonly [
   Schema.Array$<Schema.Boolean>
 ]>
 */
-const schema = Schema.Union([
-  Schema.String,
-  Schema.Number,
-  Schema.Boolean
-]).mapMembers(
+const schema = Schema.Union([Schema.String, Schema.Number, Schema.Boolean]).mapMembers(
   Tuple.evolve([
     (v) => Schema.Array(v),
     undefined, // no change
@@ -3345,11 +3246,7 @@ const schema: Schema.Union<readonly [
   Schema.Array$<Schema.Boolean>
 ]>
 */
-const schema = Schema.Union([
-  Schema.String,
-  Schema.Number,
-  Schema.Boolean
-]).mapMembers(Tuple.map(Schema.Array))
+const schema = Schema.Union([Schema.String, Schema.Number, Schema.Boolean]).mapMembers(Tuple.map(Schema.Array))
 ```
 
 ### 🆕 Union of Literals
@@ -3423,9 +3320,7 @@ import { Transformation } from "effect/schema"
 decoding: trim + toLowerCase
 encoding: passthrough
 */
-const trimToLowerCase = SchemaTransformation.trim().compose(
-  SchemaTransformation.toLowerCase()
-)
+const trimToLowerCase = SchemaTransformation.trim().compose(SchemaTransformation.toLowerCase())
 ```
 
 ### Schema Composition
@@ -3507,9 +3402,7 @@ const From = Schema.FiniteFromString
 const To = Schema.UndefinedOr(Schema.Number)
 
 // From.Type (number) extends To.Encoded (number | undefined)
-const schema = From.pipe(
-  Schema.decodeTo(To, Transformation.passthroughSubtype())
-)
+const schema = From.pipe(Schema.decodeTo(To, Transformation.passthroughSubtype()))
 ```
 
 #### passthroughSupertype
@@ -3526,9 +3419,7 @@ const From = Schema.UndefinedOr(Schema.String)
 const To = Schema.FiniteFromString
 
 // To.Encoded (string) extends From.Type (string | undefined)
-const schema = From.pipe(
-  Schema.decodeTo(To, Transformation.passthroughSupertype())
-)
+const schema = From.pipe(Schema.decodeTo(To, Transformation.passthroughSupertype()))
 ```
 
 #### Turning off strict mode
@@ -3542,9 +3433,7 @@ const From = Schema.String
 
 const To = Schema.Number
 
-const schema = From.pipe(
-  Schema.decodeTo(To, Transformation.passthrough({ strict: false }))
-)
+const schema = From.pipe(Schema.decodeTo(To, Transformation.passthrough({ strict: false })))
 ```
 
 ## Generics Improvements
@@ -3559,9 +3448,7 @@ The plan is to make generics **covariant** and easier to use.
 declare const minLength: <S extends Schema.Any>(
   minLength: number,
   annotations?: Annotations.Filter<Schema.Type<S>>
-) => <A extends string>(
-  self: S & Schema<A, Schema.Encoded<S>, Schema.Services<S>>
-) => filter<S>
+) => <A extends string>(self: S & Schema<A, Schema.Encoded<S>, Schema.Services<S>>) => filter<S>
 ```
 
 **After (v4)**
@@ -3605,10 +3492,7 @@ b
 import { ServiceMap, Effect, Option } from "effect"
 import { Formatter, Schema } from "effect/schema"
 
-class Service extends ServiceMap.Key<
-  Service,
-  { fallback: Effect.Effect<string> }
->()("Service") {}
+class Service extends ServiceMap.Key<Service, { fallback: Effect.Effect<string> }>()("Service") {}
 
 //      ┌─── Codec<string, string, Service, never>
 //      ▼
@@ -3625,9 +3509,7 @@ const schema = Schema.String.pipe(
 //      ▼
 const provided = schema.pipe(
   Schema.decodingMiddleware((sr) =>
-    Effect.isEffect(sr)
-      ? Effect.provideService(sr, Service, { fallback: Effect.succeed("b") })
-      : sr
+    Effect.isEffect(sr) ? Effect.provideService(sr, Service, { fallback: Effect.succeed("b") }) : sr
   )
 )
 
@@ -3963,9 +3845,7 @@ or multiple fragments under a `"fragments"` annotation. Internally all filter fr
 **Example**
 
 ```ts
-const s = Schema.String.pipe(
-  Schema.check(Check.minLength(2), Check.maxLength(4))
-)
+const s = Schema.String.pipe(Schema.check(Check.minLength(2), Check.maxLength(4)))
 const arb = ToArbitrary.make(s)
 // arb will only generate strings of length 2–4
 ```
@@ -4011,9 +3891,8 @@ Some schemas in Effect, like `Schema.Option<T>`, `Schema.Map<K, V>` or any `Sche
 {
   arbitrary: {
     _tag: "declaration"
-    declaration: (innerArbs: FastCheck.Arbitrary<any>[]) =>
-      (fc: typeof FastCheck, ctx?: Context) =>
-        FastCheck.Arbitrary<Schema["Type"]>
+    declaration: (innerArbs: FastCheck.Arbitrary<any>[]) => (fc: typeof FastCheck, ctx?: Context) =>
+      FastCheck.Arbitrary<Schema["Type"]>
   }
 }
 ```
@@ -4096,10 +3975,7 @@ const schema = Schema.Struct({
   b: Schema.Number
 })
 
-Formatter.decodeUnknownEffect(Formatter.getTree())(schema)(
-  { a: "", b: null },
-  { errors: "all" }
-)
+Formatter.decodeUnknownEffect(Formatter.getTree())(schema)({ a: "", b: null }, { errors: "all" })
   .pipe(Effect.runPromise)
   .then(console.log, console.error)
 /*
@@ -4240,17 +4116,10 @@ export function getLogIssues(options: {
   readonly leafHook: SchemaFormatter.LeafHook
   readonly checkHook: SchemaFormatter.CheckHook
 }) {
-  return <S extends Schema.Codec<unknown, unknown, never, never>>(
-    schema: S,
-    input: unknown
-  ) => {
+  return <S extends Schema.Codec<unknown, unknown, never, never>>(schema: S, input: unknown) => {
     console.log(
       Schema.decodeUnknownResult(schema)(input, { errors: "all" }).pipe(
-        Result.mapErr(
-          (err) =>
-            SchemaFormatter.getStandardSchemaV1(options).format(err.issue)
-              .issues
-        ),
+        Result.mapErr((err) => SchemaFormatter.getStandardSchemaV1(options).format(err.issue).issues),
         Result.merge
       )
     )
@@ -4388,13 +4257,7 @@ It is a structured formatter that returns an array of issues, where each issue i
 ```ts
 export interface StructuredIssue {
   /** The type of issue that occurs at leaf nodes in the schema. */
-  readonly _tag:
-    | "InvalidType"
-    | "InvalidValue"
-    | "MissingKey"
-    | "UnexpectedKey"
-    | "Forbidden"
-    | "OneOf"
+  readonly _tag: "InvalidType" | "InvalidValue" | "MissingKey" | "UnexpectedKey" | "Forbidden" | "OneOf"
   /** The annotations of the issue, if any. */
   readonly annotations: SchemaAnnotations.Annotations | undefined
   /** The actual value that caused the issue. */
@@ -4422,10 +4285,7 @@ const schema = Schema.Struct({
   b: Schema.Number
 })
 
-Formatter.decodeUnknownEffect(Formatter.getStructured())(schema)(
-  { a: "", b: null },
-  { errors: "all" }
-)
+Formatter.decodeUnknownEffect(Formatter.getStructured())(schema)({ a: "", b: null }, { errors: "all" })
   .pipe(Effect.runPromise)
   .then(console.log, (issue) => console.dir(issue, { depth: null }))
 /*
@@ -4779,11 +4639,7 @@ function memoizeInvolution(f: (ast: AST) => AST): (ast: AST) => AST {
  *
  * @internal
  */
-export function truncateMiddle(
-  s: string,
-  keep: number,
-  ellipsis: string = "..."
-): string {
+export function truncateMiddle(s: string, keep: number, ellipsis: string = "..."): string {
   if (keep <= 0) return ellipsis // nothing to keep
   if (s.length <= keep + ellipsis.length) return s // no need to shorten
   if (keep === 1) return s[0] + ellipsis // degenerate split

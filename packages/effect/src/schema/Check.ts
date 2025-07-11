@@ -2,7 +2,9 @@
  * @since 4.0.0
  */
 
+import * as Arr from "../Array.js"
 import type { Brand } from "../Brand.js"
+import type * as Equivalence from "../Equivalence.js"
 import { formatUnknown, PipeableClass } from "../internal/schema/util.js"
 import * as Num from "../Number.js"
 import * as Option from "../Option.js"
@@ -1380,6 +1382,33 @@ export function entries(entries: number, annotations?: Annotations.Filter) {
           minLength: entries,
           maxLength: entries
         }
+      }
+    },
+    ...annotations
+  })
+}
+
+/**
+ * @since 4.0.0
+ */
+export function unique<T>(equivalence: Equivalence.Equivalence<T>, annotations?: Annotations.Filter) {
+  return make<ReadonlyArray<T>>((input) => Arr.dedupeWith(input, equivalence).length === input.length, {
+    title: "unique",
+    jsonSchema: {
+      _tag: "fragment",
+      fragment: {
+        uniqueItems: true
+      }
+    },
+    meta: {
+      _tag: "unique",
+      equivalence
+    },
+    arbitrary: {
+      _tag: "fragment",
+      fragment: {
+        _tag: "array",
+        comparator: equivalence
       }
     },
     ...annotations

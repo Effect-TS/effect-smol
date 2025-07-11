@@ -669,6 +669,16 @@ describe("ToJsonSchema", () => {
     })
   })
 
+  it("UniqueArray", () => {
+    const schema = Schema.UniqueArray(Schema.String)
+    assertDraft7(schema, {
+      type: "array",
+      items: { type: "string" },
+      title: "unique",
+      uniqueItems: true
+    })
+  })
+
   describe("Tuple", () => {
     describe("draft-07", () => {
       it("empty tuple", () => {
