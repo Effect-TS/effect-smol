@@ -41,7 +41,7 @@ type Flatten<Schemas> = Schemas extends readonly [infer Head, ...infer Tail]
   : [Head, ...Flatten<Tail>]
   : []
 
-type augmentUnion<
+type TaggedUnion<
   Tag extends PropertyKey,
   Members extends ReadonlyArray<Schema.Top & { readonly Type: { readonly [K in Tag]: PropertyKey } }>,
   Flattened extends ReadonlyArray<Schema.Top & { readonly Type: { readonly [K in Tag]: PropertyKey } }> = Flatten<
@@ -82,46 +82,53 @@ function getTag(tag: PropertyKey, ast: AST.AST): PropertyKey | undefined {
  * @since 4.0.0
  * @experimental
  */
-export function augmentUnion<
-  const Tag extends PropertyKey,
-  const Members extends ReadonlyArray<Schema.Top & { readonly Type: { readonly [K in Tag]: PropertyKey } }>
->(
-  tag: Tag,
-  self: Schema.Union<Members>
-): augmentUnion<Tag, Members> {
-  const membersByTag: Record<PropertyKey, unknown> = {}
-  const guards: Record<PropertyKey, (u: unknown) => boolean> = {}
-  const is = Schema.is(Schema.typeCodec(self))
-  const isAnyOf = (keys: ReadonlyArray<PropertyKey>) => (value: Members[number]["Type"]) => keys.includes(value[tag])
+export type asTaggedUnion<
+  Tag extends PropertyKey,
+  Members extends ReadonlyArray<Schema.Top & { readonly Type: { readonly [K in Tag]: PropertyKey } }>
+> = Schema.Union<Members> & TaggedUnion<Tag, Members>
 
-  function process(schema: any) {
-    const ast = schema.ast
-    if (AST.isUnionType(ast)) {
-      schema.members.forEach(process)
-    } else if (AST.isTypeLiteral(ast)) {
-      const value = getTag(tag, ast)
-      if (value) {
-        membersByTag[value] = schema
-        guards[value] = Schema.is(Schema.typeCodec(schema))
-      }
-    } else {
-      throw new Error("No literal found")
-    }
-  }
+/**
+ * @since 4.0.0
+ * @experimental
+ */
+export function asTaggedUnion<const Tag extends PropertyKey>(tag: Tag) {
+  return <const Members extends ReadonlyArray<Schema.Top & { readonly Type: { readonly [K in Tag]: PropertyKey } }>>(
+    self: Schema.Union<Members>
+  ): asTaggedUnion<Tag, Members> => {
+    const membersByTag: Record<PropertyKey, unknown> = {}
+    const guards: Record<PropertyKey, (u: unknown) => boolean> = {}
+    const is = Schema.is(Schema.typeCodec(self))
+    const isAnyOf = (keys: ReadonlyArray<PropertyKey>) => (value: Members[number]["Type"]) => keys.includes(value[tag])
 
-  process(self)
-
-  function match() {
-    if (arguments.length === 1) {
-      const cases = arguments[0]
-      return function(value: any) {
-        return cases[value[tag]](value)
+    function process(schema: any) {
+      const ast = schema.ast
+      if (AST.isUnionType(ast)) {
+        schema.members.forEach(process)
+      } else if (AST.isTypeLiteral(ast)) {
+        const value = getTag(tag, ast)
+        if (value) {
+          membersByTag[value] = schema
+          guards[value] = Schema.is(Schema.typeCodec(schema))
+        }
+      } else {
+        throw new Error("No literal found")
       }
     }
-    const value = arguments[0]
-    const cases = arguments[1]
-    return cases[value[tag]](value)
-  }
 
-  return { membersByTag, is, isAnyOf, guards, match } as any
+    process(self)
+
+    function match() {
+      if (arguments.length === 1) {
+        const cases = arguments[0]
+        return function(value: any) {
+          return cases[value[tag]](value)
+        }
+      }
+      const value = arguments[0]
+      const cases = arguments[1]
+      return cases[value[tag]](value)
+    }
+
+    return Object.assign(self, { membersByTag, is, isAnyOf, guards, match }) as any
+  }
 }

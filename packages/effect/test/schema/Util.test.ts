@@ -4,20 +4,17 @@ import { describe, it } from "vitest"
 import { assertFalse, assertTrue, deepStrictEqual } from "../utils/assert.js"
 
 describe("Util", () => {
-  describe("augmentUnion", () => {
+  describe("asTaggedUnion", () => {
     it("should augment a union", () => {
       const b = Symbol.for("B")
-      const schema = pipe(
+      const schema = Schema.Union([
+        Schema.Struct({ _tag: Schema.Literal("A"), a: Schema.String }),
+        Schema.Struct({ _tag: Schema.UniqueSymbol(b), b: Schema.FiniteFromString }),
         Schema.Union([
-          Schema.Struct({ _tag: Schema.Literal("A"), a: Schema.String }),
-          Schema.Struct({ _tag: Schema.UniqueSymbol(b), b: Schema.FiniteFromString }),
-          Schema.Union([
-            Schema.Struct({ _tag: Schema.Literal(1), c: Schema.Boolean }),
-            Schema.Struct({ _tag: Schema.Literal("D"), d: Schema.Date })
-          ])
-        ]),
-        (union) => ({ ...union, ...Util.augmentUnion("_tag", union) })
-      )
+          Schema.Struct({ _tag: Schema.Literal(1), c: Schema.Boolean }),
+          Schema.Struct({ _tag: Schema.Literal("D"), d: Schema.Date })
+        ])
+      ]).pipe(Util.asTaggedUnion("_tag"))
 
       // membersByTag
       deepStrictEqual(schema.membersByTag.A, schema.members[0])
@@ -98,13 +95,10 @@ describe("Util", () => {
     })
 
     it("should support multiple tags", () => {
-      const schema = pipe(
-        Schema.Union([
-          Schema.Struct({ _tag: Schema.tag("A"), type: Schema.tag("TypeA"), a: Schema.String }),
-          Schema.Struct({ _tag: Schema.tag("B"), type: Schema.tag("TypeB"), b: Schema.FiniteFromString })
-        ]),
-        (union) => ({ ...union, ...Util.augmentUnion("type", union) })
-      )
+      const schema = Schema.Union([
+        Schema.Struct({ _tag: Schema.tag("A"), type: Schema.tag("TypeA"), a: Schema.String }),
+        Schema.Struct({ _tag: Schema.tag("B"), type: Schema.tag("TypeB"), b: Schema.FiniteFromString })
+      ]).pipe(Util.asTaggedUnion("type"))
 
       // membersByTag
       deepStrictEqual(schema.membersByTag.TypeA, schema.members[0])
