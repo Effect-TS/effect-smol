@@ -1,15 +1,16 @@
 /**
  * @since 4.0.0
  */
+import * as Arr from "../../Array.js"
 import * as Cause from "../../Cause.js"
 import * as Data from "../../Data.js"
 import * as Effect from "../../Effect.js"
 import type * as Exit from "../../Exit.js"
 import * as Option from "../../Option.js"
 import { hasProperty } from "../../Predicate.js"
-import type * as HttpServerRequest from "./HttpServerRequest.js"
-import * as HttpServerRespondable from "./HttpServerRespondable.js"
-import * as HttpServerResponse from "./HttpServerResponse.js"
+import type * as Request from "./HttpServerRequest.js"
+import * as Respondable from "./HttpServerRespondable.js"
+import * as Response from "./HttpServerResponse.js"
 
 /**
  * @since 4.0.0
@@ -35,10 +36,10 @@ export type HttpServerError = RequestError | ResponseError
  */
 export class RequestError extends Data.TaggedError("HttpServerError")<{
   readonly reason: "RequestParseError" | "RouteNotFound"
-  readonly request: HttpServerRequest.HttpServerRequest
+  readonly request: Request.HttpServerRequest
   readonly description?: string
   readonly cause?: unknown
-}> implements HttpServerRespondable.Respondable {
+}> implements Respondable.Respondable {
   /**
    * @since 4.0.0
    */
@@ -52,8 +53,8 @@ export class RequestError extends Data.TaggedError("HttpServerError")<{
   /**
    * @since 4.0.0
    */
-  [HttpServerRespondable.symbol]() {
-    return HttpServerResponse.empty({ status: this.reason === "RouteNotFound" ? 404 : 400 })
+  [Respondable.symbol]() {
+    return Response.empty({ status: this.reason === "RouteNotFound" ? 404 : 400 }).asEffect()
   }
 
   get methodAndUrl() {
@@ -77,11 +78,11 @@ export const isHttpServerError = (u: unknown): u is HttpServerError => hasProper
  * @category error
  */
 export class ResponseError extends Data.TaggedError("HttpServerError")<{
-  readonly request: HttpServerRequest.HttpServerRequest
-  readonly response: HttpServerResponse.HttpServerResponse
+  readonly request: Request.HttpServerRequest
+  readonly response: Response.HttpServerResponse
   readonly description?: string
   readonly cause?: unknown
-}> {
+}> implements Respondable.Respondable {
   /**
    * @since 4.0.0
    */
@@ -99,8 +100,8 @@ export class ResponseError extends Data.TaggedError("HttpServerError")<{
   /**
    * @since 4.0.0
    */
-  [HttpServerRespondable.symbol]() {
-    return HttpServerRespondable.empty({ status: 500 })
+  [Respondable.symbol]() {
+    return Response.empty({ status: 500 }).asEffect()
   }
 
   get methodAndUrl() {
@@ -136,63 +137,65 @@ export const clientAbortFiberId = -499
  */
 export const causeResponse = <E>(
   cause: Cause.Cause<E>
-): Effect.Effect<readonly [HttpServerResponse, Cause.Cause<E>]> => {
-  const [effect, stripped] = Cause.reduce(
-    cause,
-    [Effect.succeed(internalServerError), Cause.empty as Cause.Cause<E>] as const,
-    (acc, cause) => {
-      switch (cause._tag) {
-        case "Empty": {
-          return Option.some(acc)
-        }
+): Effect.Effect<readonly [Response.HttpServerResponse, Cause.Cause<E>]> => {
+  const [effect, failures] = Arr.reduce(
+    cause.failures,
+    [Effect.succeed(internalServerError), Arr.empty<Cause.Failure<E>>()] as const,
+    (acc, f) => {
+      switch (f._tag) {
         case "Fail": {
-          return Option.some([Respondable.toResponseOrElse(cause.error, internalServerError), cause] as const)
+          return [Respondable.toResponseOrElse(f.error, internalServerError), [f]]
         }
         case "Die": {
-          return Option.some([Respondable.toResponseOrElseDefect(cause.defect, internalServerError), cause] as const)
+          return [Respondable.toResponseOrElseDefect(f.defect, internalServerError), [f]]
         }
         case "Interrupt": {
-          if (acc[1]._tag !== "Empty") {
-            return Option.none()
-          }
-          const response = cause.fiberId === clientAbortFiberId ? clientAbortError : serverAbortError
-          return Option.some([Effect.succeed(response), cause] as const)
+          if (acc[1].length > 0) return acc
+          const response = f.fiberId._tag === "Some" && f.fiberId.value === clientAbortFiberId
+            ? clientAbortError
+            : serverAbortError
+          return [Effect.succeed(response), [f]]
         }
         default: {
-          return Option.none()
+          return acc
         }
       }
     }
   )
   return Effect.map(effect, (response) => {
-    if (Cause.isEmptyType(stripped)) {
-      return [response, Cause.die(response)] as const
-    }
-    return [response, Cause.sequential(stripped, Cause.die(response))] as const
+    failures.push(Cause.die(response).failures[0])
+    return [response, Cause.fromFailures(failures)] as const
   })
 }
 
-/** @internal */
+/**
+ * @since 4.0.0
+ */
 export const causeResponseStripped = <E>(
   cause: Cause.Cause<E>
-): readonly [response: HttpServerResponse, cause: Option.Option<Cause.Cause<E>>] => {
-  let response: HttpServerResponse | undefined
-  const stripped = Cause.fromFailures(cause.failures.filter((f) => {
-    if (f._tag === "Die" && HttpServerResponse.isHttpServerResponse(f.defect)) {
+): readonly [response: Response.HttpServerResponse, cause: Option.Option<Cause.Cause<E>>] => {
+  let response: Response.HttpServerResponse | undefined
+  const failures = cause.failures.filter((f) => {
+    if (f._tag === "Die" && Response.isHttpServerResponse(f.defect)) {
       response = f.defect
       return false
     }
     return true
-  }))
-  return [response ?? internalServerError, stripped]
+  })
+  return [
+    response ?? internalServerError,
+    failures.length > 0 ? Option.some(Cause.fromFailures(failures)) : Option.none()
+  ]
 }
 
-const internalServerError = HttpServerResponse.empty({ status: 500 })
-const clientAbortError = HttpServerResponse.empty({ status: 499 })
-const serverAbortError = HttpServerResponse.empty({ status: 503 })
+const internalServerError = Response.empty({ status: 500 })
+const clientAbortError = Response.empty({ status: 499 })
+const serverAbortError = Response.empty({ status: 503 })
 
-/** @internal */
-export const exitResponse = <E>(exit: Exit.Exit<HttpServerResponse, E>): HttpServerResponse => {
+/**
+ * @since 4.0.0
+ */
+export const exitResponse = <E>(exit: Exit.Exit<Response.HttpServerResponse, E>): Response.HttpServerResponse => {
   if (exit._tag === "Success") {
     return exit.value
   }

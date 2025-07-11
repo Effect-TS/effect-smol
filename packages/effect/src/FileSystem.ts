@@ -1063,9 +1063,9 @@ export interface SinkOptions extends OpenFileOptions {}
  * @category options
  */
 export interface StreamOptions {
-  readonly bytesToRead?: SizeInput
-  readonly chunkSize?: SizeInput
-  readonly offset?: SizeInput
+  readonly bytesToRead?: SizeInput | undefined
+  readonly chunkSize?: SizeInput | undefined
+  readonly offset?: SizeInput | undefined
 }
 
 /**

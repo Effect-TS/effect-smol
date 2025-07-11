@@ -3462,6 +3462,26 @@ const runWith = <
   })
 
 /**
+ * @since 4.0.0
+ * @category Services
+ */
+export const provideServices: {
+  <R2>(
+    services: ServiceMap.ServiceMap<R2>
+  ): <OutElem, OutErr, OutDone, InElem, InErr, InDone, R>(
+    self: Channel<OutElem, InElem, OutErr, InErr, OutDone, InDone, R>
+  ) => Channel<OutElem, InElem, OutErr, InErr, OutDone, InDone, Exclude<R, R2>>
+  <OutElem, OutErr, OutDone, InElem, InErr, InDone, R, R2>(
+    self: Channel<OutElem, InElem, OutErr, InErr, OutDone, InDone, R>,
+    services: ServiceMap.ServiceMap<R2>
+  ): Channel<OutElem, InElem, OutErr, InErr, OutDone, InDone, Exclude<R, R2>>
+} = dual(2, <OutElem, OutErr, OutDone, InElem, InErr, InDone, R, R2>(
+  self: Channel<OutElem, InElem, OutErr, InErr, OutDone, InDone, R>,
+  services: ServiceMap.ServiceMap<R2>
+): Channel<OutElem, InElem, OutErr, InErr, OutDone, InDone, Exclude<R, R2>> =>
+  fromTransform((upstream, scope) => Effect.provideServices(toTransform(self)(upstream, scope), services)))
+
+/**
  * Runs a channel and counts the number of elements it outputs.
  *
  * @example
