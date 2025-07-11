@@ -65,8 +65,12 @@ type augmentUnion<
 function getTag(tag: PropertyKey, ast: AST.AST): PropertyKey | undefined {
   if (AST.isTypeLiteral(ast)) {
     const ps = ast.propertySignatures.find((p) => p.name === tag)
-    if (ps && AST.isLiteralType(ps.type) && Predicate.isPropertyKey(ps.type.literal)) {
-      return ps.type.literal
+    if (ps) {
+      if (AST.isLiteralType(ps.type) && Predicate.isPropertyKey(ps.type.literal)) {
+        return ps.type.literal
+      } else if (AST.isUniqueSymbol(ps.type)) {
+        return ps.type.symbol
+      }
     }
   }
 }
