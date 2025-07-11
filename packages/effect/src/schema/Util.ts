@@ -48,7 +48,7 @@ type TaggedUnion<
     Members
   >
 > = {
-  readonly membersByTag: Struct.Simplify<{ [M in Flattened[number] as M["Type"][Tag]]: M }>
+  readonly cases: Struct.Simplify<{ [M in Flattened[number] as M["Type"][Tag]]: M }>
   readonly is: <I>(input: I) => input is I & Members[number]["Type"]
   readonly isAnyOf: <const Keys>(
     keys: ReadonlyArray<Keys>
@@ -95,7 +95,7 @@ export function asTaggedUnion<const Tag extends PropertyKey>(tag: Tag) {
   return <const Members extends ReadonlyArray<Schema.Top & { readonly Type: { readonly [K in Tag]: PropertyKey } }>>(
     self: Schema.Union<Members>
   ): asTaggedUnion<Tag, Members> => {
-    const membersByTag: Record<PropertyKey, unknown> = {}
+    const cases: Record<PropertyKey, unknown> = {}
     const guards: Record<PropertyKey, (u: unknown) => boolean> = {}
     const is = Schema.is(Schema.typeCodec(self))
     const isAnyOf = (keys: ReadonlyArray<PropertyKey>) => (value: Members[number]["Type"]) => keys.includes(value[tag])
@@ -107,7 +107,7 @@ export function asTaggedUnion<const Tag extends PropertyKey>(tag: Tag) {
       } else if (AST.isTypeLiteral(ast)) {
         const value = getTag(tag, ast)
         if (value) {
-          membersByTag[value] = schema
+          cases[value] = schema
           guards[value] = Schema.is(Schema.typeCodec(schema))
         }
       } else {
@@ -129,6 +129,6 @@ export function asTaggedUnion<const Tag extends PropertyKey>(tag: Tag) {
       return cases[value[tag]](value)
     }
 
-    return Object.assign(self, { membersByTag, is, isAnyOf, guards, match }) as any
+    return Object.assign(self, { cases, is, isAnyOf, guards, match }) as any
   }
 }

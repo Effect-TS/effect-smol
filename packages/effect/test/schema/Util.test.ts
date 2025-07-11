@@ -16,12 +16,12 @@ describe("Util", () => {
         ])
       ]).pipe(Util.asTaggedUnion("_tag"))
 
-      // membersByTag
-      deepStrictEqual(schema.membersByTag.A, schema.members[0])
-      deepStrictEqual(schema.membersByTag[b], schema.members[1])
-      deepStrictEqual(schema.membersByTag[1], schema.members[2].members[0])
-      deepStrictEqual(schema.membersByTag["1"], schema.members[2].members[0])
-      deepStrictEqual(schema.membersByTag.D, schema.members[2].members[1])
+      // cases
+      deepStrictEqual(schema.cases.A, schema.members[0])
+      deepStrictEqual(schema.cases[b], schema.members[1])
+      deepStrictEqual(schema.cases[1], schema.members[2].members[0])
+      deepStrictEqual(schema.cases["1"], schema.members[2].members[0])
+      deepStrictEqual(schema.cases.D, schema.members[2].members[1])
 
       // is
       assertTrue(schema.is({ _tag: "A", a: "a" }))
@@ -100,9 +100,9 @@ describe("Util", () => {
         Schema.Struct({ _tag: Schema.tag("B"), type: Schema.tag("TypeB"), b: Schema.FiniteFromString })
       ]).pipe(Util.asTaggedUnion("type"))
 
-      // membersByTag
-      deepStrictEqual(schema.membersByTag.TypeA, schema.members[0])
-      deepStrictEqual(schema.membersByTag.TypeB, schema.members[1])
+      // cases
+      deepStrictEqual(schema.cases.TypeA, schema.members[0])
+      deepStrictEqual(schema.cases.TypeB, schema.members[1])
     })
   })
 })

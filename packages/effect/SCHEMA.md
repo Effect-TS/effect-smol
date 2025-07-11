@@ -3315,14 +3315,14 @@ const tagged = original.pipe(Util.asTaggedUnion("_tag"))
 
 #### Accessing Members by Tag
 
-The `membersByTag` property gives direct access to each member schema of the union.
+The `cases` property gives direct access to each member schema of the union.
 
 **Example** (Getting a member schema from a tagged union)
 
 ```ts
-const A = tagged.membersByTag.A
-const B = tagged.membersByTag.B
-const C = tagged.membersByTag.C
+const A = tagged.cases.A
+const B = tagged.cases.B
+const C = tagged.cases.C
 ```
 
 #### Checking Membership
