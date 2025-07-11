@@ -2779,7 +2779,7 @@ class PersonWithEmail extends Person {
 
 ```ts
 import { Data, Effect, identity } from "effect"
-import { Transformation, Schema } from "effect/schema"
+import { Schema, Transformation, Util } from "effect/schema"
 
 const Props = Schema.Struct({
   message: Schema.String
@@ -2814,7 +2814,10 @@ Effect.runPromiseExit(program).then((exit) => console.log(JSON.stringify(exit, n
 }
 */
 
-const transformation = SchemaTransformation.transform<Err, (typeof Props)["Type"]>((props) => new Err(props), identity)
+const transformation = Transformation.transform<Err, (typeof Props)["Type"]>({
+  decode: (props) => new Err(props),
+  encode: identity
+})
 
 const schema = Schema.instanceOf({
   constructor: Err,
@@ -2827,7 +2830,7 @@ const schema = Schema.instanceOf({
 }).pipe(Schema.encodeTo(Props, transformation))
 
 // built-in helper?
-const builtIn = Schema.getNativeClassSchema(Err, { encoding: Props })
+const builtIn = Util.getNativeClassSchema(Err, { encoding: Props })
 ```
 
 ### Class API

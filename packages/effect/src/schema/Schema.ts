@@ -3215,29 +3215,6 @@ export const FiniteFromString: FiniteFromString = String.pipe(
   )
 )
 
-/**
- * @since 4.0.0
- */
-export function getNativeClassSchema<C extends new(...args: any) => any, S extends Struct<Struct.Fields>>(
-  constructor: C,
-  options: {
-    readonly encoding: S
-    readonly annotations?: Annotations.Declaration<InstanceType<C>, readonly []>
-  }
-): decodeTo<instanceOf<InstanceType<C>>, S, never, never> {
-  const transformation = Transformation.transform<InstanceType<C>, S["Type"]>({
-    decode: (props) => new constructor(props),
-    encode: identity
-  })
-  return instanceOf({
-    constructor,
-    annotations: {
-      defaultJsonSerializer: () => link<InstanceType<C>>()(options.encoding, transformation),
-      ...options.annotations
-    }
-  }).pipe(encodeTo(options.encoding, transformation))
-}
-
 //
 // Class APIs
 //
