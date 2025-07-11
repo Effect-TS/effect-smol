@@ -145,17 +145,6 @@ export class GenKindImpl<F extends TypeLambda, R, O, E, A> implements GenKind<F,
 }
 
 /**
- * @example
- * ```ts
- * import { Utils } from "effect"
- *
- * const value = 42
- * const gen = new Utils.SingleShotGen(value)
- * const result = gen.next()
- * console.log(result.value) // 42
- * console.log(result.done) // false
- * ```
- *
  * @category constructors
  * @since 2.0.0
  */

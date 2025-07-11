@@ -2279,40 +2279,6 @@ const ensureCapacity = (capacity: number): void => {
  * risk that a slow subscriber will slow down the rate at which messages
  * are published and received by other subscribers.
  *
- * @example
- * ```ts
- * import { Effect, PubSub } from "effect"
- *
- * const program = Effect.gen(function*() {
- *   // Create PubSub with back pressure strategy (default for bounded)
- *   const pubsub = yield* PubSub.bounded<string>(2)
- *
- *   // Or explicitly create with back pressure strategy
- *   const customPubsub = yield* PubSub.make<string>({
- *     atomicPubSub: () => PubSub.makeAtomicBounded(2),
- *     strategy: () => new PubSub.BackPressureStrategy()
- *   })
- *
- *   // Fill the PubSub
- *   yield* PubSub.publish(pubsub, "msg1")
- *   yield* PubSub.publish(pubsub, "msg2")
- *
- *   // This will suspend until space becomes available
- *   const publishFiber = yield* Effect.fork(
- *     PubSub.publish(pubsub, "msg3")
- *   )
- *
- *   // Create subscriber to free space
- *   yield* Effect.scoped(Effect.gen(function*() {
- *     const subscription = yield* PubSub.subscribe(pubsub)
- *     yield* PubSub.take(subscription) // frees space, publisher resumes
- *   }))
- *
- *   const published = yield* Fiber.join(publishFiber)
- *   console.log("Published after backpressure:", published) // true
- * })
- * ```
- *
  * @since 4.0.0
  * @category models
  */

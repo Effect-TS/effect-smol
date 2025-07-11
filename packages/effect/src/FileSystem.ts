@@ -2078,7 +2078,7 @@ export const WatchEventRemove: Data.Case.Constructor<WatchEvent.Remove, "_tag"> 
  *
  * @example
  * ```ts
- * import { FileSystem, Effect, Stream } from "effect"
+ * import { FileSystem, Effect, Option, Stream } from "effect"
  *
  * // Custom watch backend implementation
  * const customWatchBackend = {
