@@ -8,6 +8,11 @@
 export * as Cookies from "./Cookies.js"
 
 /**
+ * @since 4.0.0
+ */
+export * as Etag from "./Etag.js"
+
+/**
  * @since 1.0.0
  */
 export * as FetchHttpClient from "./FetchHttpClient.js"
@@ -45,12 +50,27 @@ export * as HttpClientResponse from "./HttpClientResponse.js"
 /**
  * @since 4.0.0
  */
+export * as HttpEffect from "./HttpEffect.js"
+
+/**
+ * @since 4.0.0
+ */
 export * as HttpIncomingMessage from "./HttpIncomingMessage.js"
 
 /**
  * @since 4.0.0
  */
 export * as HttpMethod from "./HttpMethod.js"
+
+/**
+ * @since 4.0.0
+ */
+export * as HttpMiddleware from "./HttpMiddleware.js"
+
+/**
+ * @since 4.0.0
+ */
+export * as HttpPlatform from "./HttpPlatform.js"
 
 /**
  * @since 4.0.0
@@ -65,12 +85,27 @@ export * as HttpServerRequest from "./HttpServerRequest.js"
 /**
  * @since 4.0.0
  */
+export * as HttpServerRespondable from "./HttpServerRespondable.js"
+
+/**
+ * @since 4.0.0
+ */
+export * as HttpServerResponse from "./HttpServerResponse.js"
+
+/**
+ * @since 4.0.0
+ */
 export * as HttpTraceContext from "./HttpTraceContext.js"
 
 /**
  * @since 4.0.0
  */
 export * as Multipart from "./Multipart.js"
+
+/**
+ * @since 4.0.0
+ */
+export * as Template from "./Template.js"
 
 /**
  * @since 4.0.0

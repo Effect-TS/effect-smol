@@ -2014,15 +2014,31 @@ export const encodeText = <E, R>(self: Stream<string, E, R>): Stream<Uint8Array,
  * @since 4.0.0
  * @category utils
  */
-export const onExit = dual<
+export const onExit: {
   <E, R2>(
     finalizer: (exit: Exit.Exit<unknown, E>) => Effect.Effect<unknown, never, R2>
-  ) => <A, R>(self: Stream<A, E, R>) => Stream<A, E, R | R2>,
+  ): <A, R>(self: Stream<A, E, R>) => Stream<A, E, R | R2>
   <A, E, R, R2>(
     self: Stream<A, E, R>,
     finalizer: (exit: Exit.Exit<unknown, E>) => Effect.Effect<unknown, never, R2>
-  ) => Stream<A, E, R | R2>
->(2, (self, finalizer) => fromChannel(Channel.onExit(self.channel, finalizer)))
+  ): Stream<A, E, R | R2>
+} = dual(2, <A, E, R, R2>(
+  self: Stream<A, E, R>,
+  finalizer: (exit: Exit.Exit<unknown, E>) => Effect.Effect<unknown, never, R2>
+): Stream<A, E, R | R2> => fromChannel(Channel.onExit(self.channel, finalizer)))
+
+/**
+ * @since 4.0.0
+ * @category utils
+ */
+export const ensuring: {
+  <R2>(finalizer: Effect.Effect<unknown, never, R2>): <A, E, R>(self: Stream<A, E, R>) => Stream<A, E, R | R2>
+  <A, E, R, R2>(self: Stream<A, E, R>, finalizer: Effect.Effect<unknown, never, R2>): Stream<A, E, R | R2>
+} = dual(
+  2,
+  <A, E, R, R2>(self: Stream<A, E, R>, finalizer: Effect.Effect<unknown, never, R2>): Stream<A, E, R | R2> =>
+    fromChannel(Channel.ensuring(self.channel, finalizer))
+)
 
 /**
  * Provides the stream with some of its required services, which eliminates its
