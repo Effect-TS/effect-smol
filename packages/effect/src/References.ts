@@ -45,15 +45,29 @@ export {
  * import { References, Effect } from "effect"
  *
  * const limitConcurrency = Effect.gen(function* () {
- *   // Limit to 10 concurrent operations
- *   yield* References.CurrentConcurrency.set(10)
- *
- *   // Or remove the limit
- *   yield* References.CurrentConcurrency.set("unbounded")
- *
  *   // Get current setting
  *   const current = yield* References.CurrentConcurrency
- *   console.log(current) // 10 or "unbounded"
+ *   console.log(current) // "unbounded" (default)
+ *
+ *   // Run with limited concurrency
+ *   yield* Effect.provideService(
+ *     Effect.gen(function* () {
+ *       const limited = yield* References.CurrentConcurrency
+ *       console.log(limited) // 10
+ *     }),
+ *     References.CurrentConcurrency,
+ *     10
+ *   )
+ *
+ *   // Run with unlimited concurrency
+ *   yield* Effect.provideService(
+ *     Effect.gen(function* () {
+ *       const unlimited = yield* References.CurrentConcurrency
+ *       console.log(unlimited) // "unbounded"
+ *     }),
+ *     References.CurrentConcurrency,
+ *     "unbounded"
+ *   )
  * })
  * ```
  *
@@ -74,11 +88,22 @@ export class CurrentConcurrency extends ServiceMap.Reference<
  * import { References, Effect, Scheduler } from "effect"
  *
  * const customScheduling = Effect.gen(function* () {
- *   // Get current scheduler
- *   const scheduler = yield* References.CurrentScheduler
+ *   // Get current scheduler (default is MixedScheduler)
+ *   const current = yield* References.CurrentScheduler
+ *   console.log(current) // MixedScheduler instance
  *
- *   // Reset to default
- *   yield* References.CurrentScheduler.set(new Scheduler.MixedScheduler())
+ *   // Use a custom scheduler
+ *   yield* Effect.provideService(
+ *     Effect.gen(function* () {
+ *       const scheduler = yield* References.CurrentScheduler
+ *       console.log(scheduler) // Custom scheduler instance
+ *
+ *       // Effects will use the custom scheduler in this context
+ *       yield* Effect.log("Using custom scheduler")
+ *     }),
+ *     References.CurrentScheduler,
+ *     new Scheduler.MixedScheduler()
+ *   )
  * })
  * ```
  *
@@ -101,18 +126,35 @@ export class CurrentScheduler extends ServiceMap.Reference<
  * import { References, Effect } from "effect"
  *
  * const tracingControl = Effect.gen(function* () {
- *   // Disable tracing globally
- *   yield* References.TracerEnabled.set(false)
+ *   // Check if tracing is enabled (default is true)
+ *   const current = yield* References.TracerEnabled
+ *   console.log(current) // true
  *
- *   // Check if tracing is enabled
- *   const isEnabled = yield* References.TracerEnabled
- *   console.log(isEnabled) // false
+ *   // Disable tracing globally
+ *   yield* Effect.provideService(
+ *     Effect.gen(function* () {
+ *       const isEnabled = yield* References.TracerEnabled
+ *       console.log(isEnabled) // false
+ *
+ *       // Spans will not be traced in this context
+ *       yield* Effect.log("This will not be traced")
+ *     }),
+ *     References.TracerEnabled,
+ *     false
+ *   )
  *
  *   // Re-enable tracing
- *   yield* References.TracerEnabled.set(true)
+ *   yield* Effect.provideService(
+ *     Effect.gen(function* () {
+ *       const isEnabled = yield* References.TracerEnabled
+ *       console.log(isEnabled) // true
  *
- *   // All subsequent spans will be traced
- *   yield* Effect.withSpan("my-span", Effect.log("This will be traced"))
+ *       // All subsequent spans will be traced
+ *       yield* Effect.log("This will be traced")
+ *     }),
+ *     References.TracerEnabled,
+ *     true
+ *   )
  * })
  * ```
  *
@@ -135,25 +177,41 @@ export class TracerEnabled extends ServiceMap.Reference<
  * import { References, Effect } from "effect"
  *
  * const spanAnnotationExample = Effect.gen(function* () {
+ *   // Get current annotations (empty by default)
+ *   const current = yield* References.TracerSpanAnnotations
+ *   console.log(current) // {}
+ *
  *   // Set global span annotations
- *   yield* References.TracerSpanAnnotations.set({
- *     service: "user-service",
- *     version: "1.2.3",
- *     environment: "production"
- *   })
+ *   yield* Effect.provideService(
+ *     Effect.gen(function* () {
+ *       // Get current annotations
+ *       const annotations = yield* References.TracerSpanAnnotations
+ *       console.log(annotations) // { service: "user-service", version: "1.2.3", environment: "production" }
  *
- *   // All spans created will include these annotations
- *   yield* Effect.withSpan("process-user", Effect.gen(function* () {
- *     // Get current annotations
- *     const annotations = yield* References.TracerSpanAnnotations
- *     console.log(annotations) // { service: "user-service", version: "1.2.3", environment: "production" }
- *
- *     // Add more specific annotations for this span
- *     yield* Effect.annotateCurrentSpan("userId", "123")
- *   }))
+ *       // All spans created will include these annotations
+ *       yield* Effect.gen(function* () {
+ *         // Add more specific annotations for this span
+ *         yield* Effect.annotateCurrentSpan("userId", "123")
+ *         yield* Effect.log("Processing user")
+ *       })
+ *     }),
+ *     References.TracerSpanAnnotations,
+ *     {
+ *       service: "user-service",
+ *       version: "1.2.3",
+ *       environment: "production"
+ *     }
+ *   )
  *
  *   // Clear annotations
- *   yield* References.TracerSpanAnnotations.set({})
+ *   yield* Effect.provideService(
+ *     Effect.gen(function* () {
+ *       const annotations = yield* References.TracerSpanAnnotations
+ *       console.log(annotations) // {}
+ *     }),
+ *     References.TracerSpanAnnotations,
+ *     {}
+ *   )
  * })
  * ```
  *
@@ -176,12 +234,19 @@ export class TracerSpanAnnotations extends ServiceMap.Reference<
  * import { References, Effect, Tracer } from "effect"
  *
  * const spanLinksExample = Effect.gen(function* () {
- *   // Create some spans to link to
- *   const parentSpan = yield* Effect.withSpan("parent-operation", Effect.succeed("parent-result"))
+ *   // Get current links (empty by default)
+ *   const current = yield* References.TracerSpanLinks
+ *   console.log(current.length) // 0
+ *
+ *   // Create an external span for the example
+ *   const externalSpan = Tracer.externalSpan({
+ *     spanId: "external-span-123",
+ *     traceId: "trace-456"
+ *   })
  *
  *   // Create span links
  *   const spanLink: Tracer.SpanLink = {
- *     span: parentSpan,
+ *     span: externalSpan,
  *     attributes: {
  *       relationship: "follows-from",
  *       priority: "high"
@@ -189,19 +254,31 @@ export class TracerSpanAnnotations extends ServiceMap.Reference<
  *   }
  *
  *   // Set global span links
- *   yield* References.TracerSpanLinks.set([spanLink])
+ *   yield* Effect.provideService(
+ *     Effect.gen(function* () {
+ *       // Get current links
+ *       const links = yield* References.TracerSpanLinks
+ *       console.log(links.length) // 1
  *
- *   // All new spans will include these links
- *   yield* Effect.withSpan("linked-operation", Effect.gen(function* () {
- *     // Get current links
- *     const links = yield* References.TracerSpanLinks
- *     console.log(links.length) // 1
- *
- *     return "operation complete"
- *   }))
+ *       // All new spans will include these links
+ *       yield* Effect.gen(function* () {
+ *         yield* Effect.log("This span will have linked spans")
+ *         return "operation complete"
+ *       })
+ *     }),
+ *     References.TracerSpanLinks,
+ *     [spanLink]
+ *   )
  *
  *   // Clear links
- *   yield* References.TracerSpanLinks.set([])
+ *   yield* Effect.provideService(
+ *     Effect.gen(function* () {
+ *       const links = yield* References.TracerSpanLinks
+ *       console.log(links.length) // 0
+ *     }),
+ *     References.TracerSpanLinks,
+ *     []
+ *   )
  * })
  * ```
  *
@@ -224,29 +301,45 @@ export class TracerSpanLinks extends ServiceMap.Reference<
  * import { References, Effect, Console } from "effect"
  *
  * const logAnnotationExample = Effect.gen(function* () {
- *   // Set global log annotations
- *   yield* References.CurrentLogAnnotations.set({
- *     requestId: "req-123",
- *     userId: "user-456",
- *     version: "1.0.0"
- *   })
+ *   // Get current annotations (empty by default)
+ *   const current = yield* References.CurrentLogAnnotations
+ *   console.log(current) // {}
  *
- *   // All log entries will include these annotations
- *   yield* Console.log("Starting operation")
- *   yield* Console.info("Processing data")
+ *   // Run with custom log annotations
+ *   yield* Effect.provideService(
+ *     Effect.gen(function* () {
+ *       const annotations = yield* References.CurrentLogAnnotations
+ *       console.log(annotations) // { requestId: "req-123", userId: "user-456", version: "1.0.0" }
  *
- *   // Get current annotations
- *   const annotations = yield* References.CurrentLogAnnotations
- *   console.log(annotations) // { requestId: "req-123", userId: "user-456", version: "1.0.0" }
+ *       // All log entries will include these annotations
+ *       yield* Console.log("Starting operation")
+ *       yield* Console.info("Processing data")
+ *     }),
+ *     References.CurrentLogAnnotations,
+ *     {
+ *       requestId: "req-123",
+ *       userId: "user-456",
+ *       version: "1.0.0"
+ *     }
+ *   )
  *
- *   // Add more annotations
- *   yield* References.CurrentLogAnnotations.set({
- *     ...annotations,
- *     operation: "data-sync",
- *     timestamp: Date.now()
- *   })
+ *   // Run with extended annotations
+ *   yield* Effect.provideService(
+ *     Effect.gen(function* () {
+ *       const extended = yield* References.CurrentLogAnnotations
+ *       console.log(extended) // { requestId: "req-123", userId: "user-456", version: "1.0.0", operation: "data-sync", timestamp: 1234567890 }
  *
- *   yield* Console.log("Operation completed with extended context")
+ *       yield* Console.log("Operation completed with extended context")
+ *     }),
+ *     References.CurrentLogAnnotations,
+ *     {
+ *       requestId: "req-123",
+ *       userId: "user-456",
+ *       version: "1.0.0",
+ *       operation: "data-sync",
+ *       timestamp: 1234567890
+ *     }
+ *   )
  * })
  * ```
  *
@@ -268,18 +361,32 @@ export class CurrentLogAnnotations extends ServiceMap.Reference<
  * import { References, Effect, Console } from "effect"
  *
  * const dynamicLogging = Effect.gen(function* () {
+ *   // Get current log level (default is "Info")
+ *   const current = yield* References.CurrentLogLevel
+ *   console.log(current) // "Info"
+ *
  *   // Set log level to Debug for detailed logging
- *   yield* References.CurrentLogLevel.set("Debug")
- *   yield* Console.debug("This debug message will be shown")
+ *   yield* Effect.provideService(
+ *     Effect.gen(function* () {
+ *       const level = yield* References.CurrentLogLevel
+ *       console.log(level) // "Debug"
+ *       yield* Console.debug("This debug message will be shown")
+ *     }),
+ *     References.CurrentLogLevel,
+ *     "Debug"
+ *   )
  *
  *   // Change to Error level to reduce noise
- *   yield* References.CurrentLogLevel.set("Error")
- *   yield* Console.info("This info message will be filtered out")
- *   yield* Console.error("This error message will be shown")
- *
- *   // Get current level
- *   const level = yield* References.CurrentLogLevel
- *   console.log(level) // "Error"
+ *   yield* Effect.provideService(
+ *     Effect.gen(function* () {
+ *       const level = yield* References.CurrentLogLevel
+ *       console.log(level) // "Error"
+ *       yield* Console.info("This info message will be filtered out")
+ *       yield* Console.error("This error message will be shown")
+ *     }),
+ *     References.CurrentLogLevel,
+ *     "Error"
+ *   )
  * })
  * ```
  *
@@ -302,32 +409,49 @@ export class CurrentLogLevel extends ServiceMap.Reference<
  * import { References, Effect, Console } from "effect"
  *
  * const logSpanExample = Effect.gen(function* () {
- *   // Start with empty spans
- *   yield* References.CurrentLogSpans.set([])
+ *   // Get current spans (empty by default)
+ *   const current = yield* References.CurrentLogSpans
+ *   console.log(current.length) // 0
  *
  *   // Add a log span manually
  *   const startTime = Date.now()
- *   yield* References.CurrentLogSpans.set([
- *     ["database-connection", startTime]
- *   ])
+ *   yield* Effect.provideService(
+ *     Effect.gen(function* () {
+ *       // Simulate some work
+ *       yield* Effect.sleep("100 millis")
+ *       yield* Console.log("Database operation in progress")
  *
- *   // Simulate some work
- *   yield* Effect.sleep("100 millis")
- *   yield* Console.log("Database operation in progress")
+ *       const spans = yield* References.CurrentLogSpans
+ *       console.log("Active spans:", spans.map(([label]) => label)) // ["database-connection"]
+ *     }),
+ *     References.CurrentLogSpans,
+ *     [["database-connection", startTime]]
+ *   )
  *
  *   // Add another span
- *   const currentSpans = yield* References.CurrentLogSpans
- *   yield* References.CurrentLogSpans.set([
- *     ...currentSpans,
- *     ["data-processing", Date.now()]
- *   ])
+ *   yield* Effect.provideService(
+ *     Effect.gen(function* () {
+ *       const spans = yield* References.CurrentLogSpans
+ *       console.log("Active spans:", spans.map(([label]) => label)) // ["database-connection", "data-processing"]
  *
- *   // View current spans
- *   const spans = yield* References.CurrentLogSpans
- *   console.log("Active spans:", spans.map(([label]) => label)) // ["database-connection", "data-processing"]
+ *       yield* Console.log("Multiple operations in progress")
+ *     }),
+ *     References.CurrentLogSpans,
+ *     [
+ *       ["database-connection", startTime],
+ *       ["data-processing", Date.now()]
+ *     ]
+ *   )
  *
  *   // Clear spans when operations complete
- *   yield* References.CurrentLogSpans.set([])
+ *   yield* Effect.provideService(
+ *     Effect.gen(function* () {
+ *       const spans = yield* References.CurrentLogSpans
+ *       console.log("Active spans:", spans.length) // 0
+ *     }),
+ *     References.CurrentLogSpans,
+ *     []
+ *   )
  * })
  * ```
  *
@@ -350,20 +474,40 @@ export class CurrentLogSpans extends ServiceMap.Reference<
  * import { References, Effect, Console } from "effect"
  *
  * const configureMinimumLogging = Effect.gen(function* () {
- *   // Set minimum level to Warning - Debug and Info will be filtered
- *   yield* References.MinimumLogLevel.set("Warning")
+ *   // Get current minimum level (default is "Info")
+ *   const current = yield* References.MinimumLogLevel
+ *   console.log(current) // "Info"
  *
- *   // These won't be processed at all
- *   yield* Console.debug("Debug message") // Filtered out
- *   yield* Console.info("Info message")   // Filtered out
+ *   // Set minimum level to Warn - Debug and Info will be filtered
+ *   yield* Effect.provideService(
+ *     Effect.gen(function* () {
+ *       const minLevel = yield* References.MinimumLogLevel
+ *       console.log(minLevel) // "Warn"
  *
- *   // These will be processed
- *   yield* Console.warn("Warning message") // Shown
- *   yield* Console.error("Error message") // Shown
+ *       // These won't be processed at all
+ *       yield* Console.debug("Debug message") // Filtered out
+ *       yield* Console.info("Info message")   // Filtered out
  *
- *   // Get current minimum level
- *   const minLevel = yield* References.MinimumLogLevel
- *   console.log(minLevel) // "Warning"
+ *       // These will be processed
+ *       yield* Console.warn("Warning message") // Shown
+ *       yield* Console.error("Error message") // Shown
+ *     }),
+ *     References.MinimumLogLevel,
+ *     "Warn"
+ *   )
+ *
+ *   // Reset to default Info level
+ *   yield* Effect.provideService(
+ *     Effect.gen(function* () {
+ *       const minLevel = yield* References.MinimumLogLevel
+ *       console.log(minLevel) // "Info"
+ *
+ *       // Now info messages will be processed
+ *       yield* Console.info("Info message") // Shown
+ *     }),
+ *     References.MinimumLogLevel,
+ *     "Info"
+ *   )
  * })
  * ```
  *
