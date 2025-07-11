@@ -1,7 +1,7 @@
 import { pipe } from "effect"
 import { Schema, Util } from "effect/schema"
 import { describe, it } from "vitest"
-import { deepStrictEqual } from "../utils/assert.js"
+import { assertFalse, assertTrue, deepStrictEqual } from "../utils/assert.js"
 
 describe("Util", () => {
   describe("augmentUnion", () => {
@@ -27,33 +27,40 @@ describe("Util", () => {
       deepStrictEqual(schema.membersByTag.D, schema.members[2].members[1])
 
       // is
-      deepStrictEqual(schema.is({ _tag: "A", a: "a" }), true)
-      deepStrictEqual(schema.is({ _tag: "A", a: 1 }), false)
+      assertTrue(schema.is({ _tag: "A", a: "a" }))
+      assertFalse(schema.is({ _tag: "A", a: 1 }))
 
-      deepStrictEqual(schema.is({ _tag: b, b: 1 }), true)
-      deepStrictEqual(schema.is({ _tag: b, b: "b" }), false)
+      assertTrue(schema.is({ _tag: b, b: 1 }))
+      assertFalse(schema.is({ _tag: b, b: "b" }))
 
-      deepStrictEqual(schema.is({ _tag: 1, c: true }), true)
-      deepStrictEqual(schema.is({ _tag: 1, c: 1 }), false)
+      assertTrue(schema.is({ _tag: 1, c: true }))
+      assertFalse(schema.is({ _tag: 1, c: 1 }))
 
-      deepStrictEqual(schema.is({ _tag: "D", d: new Date() }), true)
-      deepStrictEqual(schema.is({ _tag: "D", d: "d" }), false)
+      assertTrue(schema.is({ _tag: "D", d: new Date() }))
+      assertFalse(schema.is({ _tag: "D", d: "d" }))
 
-      deepStrictEqual(schema.is(null), false)
-      deepStrictEqual(schema.is({}), false)
+      assertFalse(schema.is(null))
+      assertFalse(schema.is({}))
+
+      // isAnyOf
+      const isAOr1 = schema.isAnyOf(["A", 1])
+      assertTrue(isAOr1({ _tag: "A", a: "a" }))
+      assertTrue(isAOr1({ _tag: 1, c: true }))
+      assertFalse(isAOr1({ _tag: "D", d: new Date() }))
+      assertFalse(isAOr1({ _tag: b, b: 1 }))
 
       // guards
-      deepStrictEqual(schema.guards.A({ _tag: "A", a: "a" }), true)
-      deepStrictEqual(schema.guards.A({ _tag: "A", a: 1 }), false)
+      assertTrue(schema.guards.A({ _tag: "A", a: "a" }))
+      assertFalse(schema.guards.A({ _tag: "A", a: 1 }))
 
-      deepStrictEqual(schema.guards[b]({ _tag: b, b: 1 }), true)
-      deepStrictEqual(schema.guards[b]({ _tag: b, b: "b" }), false)
+      assertTrue(schema.guards[b]({ _tag: b, b: 1 }))
+      assertFalse(schema.guards[b]({ _tag: b, b: "b" }))
 
-      deepStrictEqual(schema.guards[1]({ _tag: 1, c: true }), true)
-      deepStrictEqual(schema.guards[1]({ _tag: 1, c: 1 }), false)
+      assertTrue(schema.guards[1]({ _tag: 1, c: true }))
+      assertFalse(schema.guards[1]({ _tag: 1, c: 1 }))
 
-      deepStrictEqual(schema.guards.D({ _tag: "D", d: new Date() }), true)
-      deepStrictEqual(schema.guards.D({ _tag: "D", d: "d" }), false)
+      assertTrue(schema.guards.D({ _tag: "D", d: new Date() }))
+      assertFalse(schema.guards.D({ _tag: "D", d: "d" }))
 
       // match
       deepStrictEqual(

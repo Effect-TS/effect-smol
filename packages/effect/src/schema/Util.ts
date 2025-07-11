@@ -50,6 +50,9 @@ type augmentUnion<
 > = {
   readonly membersByTag: Struct.Simplify<{ [M in Flattened[number] as M["Type"][Tag]]: M }>
   readonly is: <I>(input: I) => input is I & Members[number]["Type"]
+  readonly isAnyOf: <const Keys>(
+    keys: ReadonlyArray<Keys>
+  ) => (value: Members[number]["Type"]) => value is Extract<Members[number]["Type"], { _tag: Keys }>
   readonly guards: { [M in Flattened[number] as M["Type"][Tag]]: (u: unknown) => u is M["Type"] }
   readonly match: {
     <Output>(
@@ -89,6 +92,8 @@ export function augmentUnion<
   const membersByTag: Record<PropertyKey, unknown> = {}
   const guards: Record<PropertyKey, (u: unknown) => boolean> = {}
   const is = Schema.is(Schema.typeCodec(self))
+  const isAnyOf = (keys: ReadonlyArray<PropertyKey>) => (value: Members[number]["Type"]) => keys.includes(value[tag])
+
   function process(schema: any) {
     const ast = schema.ast
     if (AST.isUnionType(ast)) {
@@ -118,5 +123,5 @@ export function augmentUnion<
     return cases[value[tag]](value)
   }
 
-  return { membersByTag, is, guards, match } as any
+  return { membersByTag, is, isAnyOf, guards, match } as any
 }
