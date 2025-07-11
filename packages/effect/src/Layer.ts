@@ -150,9 +150,7 @@ export type MemoMapTypeId = "~effect/Layer/MemoMap"
  * ```ts
  * import { Layer, ServiceMap, Effect } from "effect"
  *
- * class Database extends ServiceMap.Reference("Database", {
- *   defaultValue: () => ({ query: (sql: string) => Effect.succeed("result") })
- * }) {}
+ * class Database extends ServiceMap.Key<Database, { readonly query: (sql: string) => Effect.Effect<string> }>()("Database") {}
  *
  * // Create a custom MemoMap for manual layer building
  * const program = Effect.gen(function* () {
@@ -185,9 +183,7 @@ export interface MemoMap {
  * ```ts
  * import { Layer, ServiceMap, Effect } from "effect"
  *
- * class Database extends ServiceMap.Reference("Database", {
- *   defaultValue: () => ({ query: (sql: string) => Effect.succeed("result") })
- * }) {}
+ * class Database extends ServiceMap.Key<Database, { readonly query: (sql: string) => Effect.Effect<string> }>()("Database") {}
  *
  * const dbLayer = Layer.succeed(Database, { query: (sql: string) => Effect.succeed("result") })
  * const notALayer = { someProperty: "value" }
@@ -233,9 +229,7 @@ const fromBuildUnsafe = <ROut, E, RIn>(
  * ```ts
  * import { Layer, ServiceMap, Effect } from "effect"
  *
- * class Database extends ServiceMap.Reference("Database", {
- *   defaultValue: () => ({ query: (sql: string) => Effect.succeed("result") })
- * }) {}
+ * class Database extends ServiceMap.Key<Database, { readonly query: (sql: string) => Effect.Effect<string> }>()("Database") {}
  *
  * const databaseLayer = Layer.fromBuild(() =>
  *   Effect.sync(() => ServiceMap.make(Database, { query: (sql: string) => Effect.succeed("result") }))
@@ -270,9 +264,7 @@ export const fromBuild = <ROut, E, RIn>(
  * ```ts
  * import { Layer, ServiceMap, Effect } from "effect"
  *
- * class Database extends ServiceMap.Reference("Database", {
- *   defaultValue: () => ({ query: (sql: string) => Effect.succeed("result") })
- * }) {}
+ * class Database extends ServiceMap.Key<Database, { readonly query: (sql: string) => Effect.Effect<string> }>()("Database") {}
  *
  * const databaseLayer = Layer.fromBuildMemo(() =>
  *   Effect.sync(() => ServiceMap.make(Database, { query: (sql: string) => Effect.succeed("result") }))
@@ -349,9 +341,7 @@ class MemoMapImpl implements MemoMap {
  * ```ts
  * import { Layer, ServiceMap, Effect } from "effect"
  *
- * class Database extends ServiceMap.Reference("Database", {
- *   defaultValue: () => ({ query: (sql: string) => Effect.succeed("result") })
- * }) {}
+ * class Database extends ServiceMap.Key<Database, { readonly query: (sql: string) => Effect.Effect<string> }>()("Database") {}
  *
  * // Create a memo map for manual layer building
  * const program = Effect.gen(function* () {
@@ -377,9 +367,7 @@ export const unsafeMakeMemoMap = (): MemoMap => new MemoMapImpl()
  * ```ts
  * import { Layer, ServiceMap, Effect } from "effect"
  *
- * class Database extends ServiceMap.Reference("Database", {
- *   defaultValue: () => ({ query: (sql: string) => Effect.succeed("result") })
- * }) {}
+ * class Database extends ServiceMap.Key<Database, { readonly query: (sql: string) => Effect.Effect<string> }>()("Database") {}
  *
  * // Create a memo map safely within an Effect
  * const program = Effect.gen(function* () {
@@ -426,13 +414,9 @@ export const CurrentMemoMap = ServiceMap.Reference<MemoMap>("effect/Layer/Curren
  * ```ts
  * import { Layer, ServiceMap, Effect } from "effect"
  *
- * class Database extends ServiceMap.Reference("Database", {
- *   defaultValue: () => ({ query: (sql: string) => Effect.succeed("result") })
- * }) {}
+ * class Database extends ServiceMap.Key<Database, { readonly query: (sql: string) => Effect.Effect<string> }>()("Database") {}
  *
- * class Logger extends ServiceMap.Reference("Logger", {
- *   defaultValue: () => ({ log: (msg: string) => Effect.sync(() => console.log(msg)) })
- * }) {}
+ * class Logger extends ServiceMap.Key<Logger, { readonly log: (msg: string) => Effect.Effect<void> }>()("Logger") {}
  *
  * // Build layers with explicit memoization control
  * const program = Effect.gen(function* () {
@@ -485,9 +469,7 @@ export const buildWithMemoMap: {
  * ```ts
  * import { Layer, ServiceMap, Effect } from "effect"
  *
- * class Database extends ServiceMap.Reference("Database", {
- *   defaultValue: () => ({ query: (sql: string) => Effect.succeed("result") })
- * }) {}
+ * class Database extends ServiceMap.Key<Database, { readonly query: (sql: string) => Effect.Effect<string> }>()("Database") {}
  *
  * // Build a layer to get its services
  * const program = Effect.gen(function* () {
@@ -522,9 +504,7 @@ export const build = <RIn, E, ROut>(
  * ```ts
  * import { Layer, ServiceMap, Effect, Scope } from "effect"
  *
- * class Database extends ServiceMap.Reference("Database", {
- *   defaultValue: () => ({ query: (sql: string) => Effect.succeed("result") })
- * }) {}
+ * class Database extends ServiceMap.Key<Database, { readonly query: (sql: string) => Effect.Effect<string> }>()("Database") {}
  *
  * // Build a layer with explicit scope control
  * const program = Effect.gen(function* () {
@@ -563,13 +543,9 @@ export const buildWithScope: {
  * ```ts
  * import { Layer, ServiceMap, Effect } from "effect"
  *
- * class Database extends ServiceMap.Reference("Database", {
- *   defaultValue: () => ({ query: (sql: string) => Effect.succeed("result") })
- * }) {}
+ * class Database extends ServiceMap.Key<Database, { readonly query: (sql: string) => Effect.Effect<string> }>()("Database") {}
  *
- * class Logger extends ServiceMap.Reference("Logger", {
- *   defaultValue: () => ({ log: (msg: string) => Effect.sync(() => console.log(msg)) })
- * }) {}
+ * class Logger extends ServiceMap.Key<Logger, { readonly log: (msg: string) => Effect.Effect<void> }>()("Logger") {}
  *
  * // Create layers from concrete service implementations
  * const databaseLayer = Layer.succeed(Database, {
@@ -617,13 +593,9 @@ export const succeed: {
  * ```ts
  * import { Layer, ServiceMap, Effect } from "effect"
  *
- * class Database extends ServiceMap.Reference("Database", {
- *   defaultValue: () => ({ query: (sql: string) => Effect.succeed("result") })
- * }) {}
+ * class Database extends ServiceMap.Key<Database, { readonly query: (sql: string) => Effect.Effect<string> }>()("Database") {}
  *
- * class Logger extends ServiceMap.Reference("Logger", {
- *   defaultValue: () => ({ log: (msg: string) => Effect.sync(() => console.log(msg)) })
- * }) {}
+ * class Logger extends ServiceMap.Key<Logger, { readonly log: (msg: string) => Effect.Effect<void> }>()("Logger") {}
  *
  * const services = ServiceMap.make(Database, { query: (sql: string) => Effect.succeed("result") })
  *   .pipe(ServiceMap.add(Logger, { log: (msg: string) => Effect.sync(() => console.log(msg)) }))
@@ -665,9 +637,7 @@ export const empty: Layer<never> = succeedServices(ServiceMap.empty())
  * ```ts
  * import { Layer, ServiceMap, Effect } from "effect"
  *
- * class Database extends ServiceMap.Reference("Database", {
- *   defaultValue: () => ({ query: (sql: string) => Effect.succeed("result") })
- * }) {}
+ * class Database extends ServiceMap.Key<Database, { readonly query: (sql: string) => Effect.Effect<string> }>()("Database") {}
  *
  * const layer = Layer.sync(Database, () => ({
  *   query: (sql: string) => Effect.succeed(`Query: ${sql}`)
@@ -696,9 +666,7 @@ export const sync: {
  * ```ts
  * import { Layer, ServiceMap, Effect } from "effect"
  *
- * class Database extends ServiceMap.Reference("Database", {
- *   defaultValue: () => ({ query: (sql: string) => Effect.succeed("result") })
- * }) {}
+ * class Database extends ServiceMap.Key<Database, { readonly query: (sql: string) => Effect.Effect<string> }>()("Database") {}
  *
  * const layer = Layer.syncServices(() =>
  *   ServiceMap.make(Database, {
@@ -724,9 +692,7 @@ export const syncServices = <A>(evaluate: LazyArg<ServiceMap.ServiceMap<A>>): La
  * ```ts
  * import { Layer, ServiceMap, Effect } from "effect"
  *
- * class Database extends ServiceMap.Reference("Database", {
- *   defaultValue: () => ({ query: (sql: string) => Effect.succeed("result") })
- * }) {}
+ * class Database extends ServiceMap.Key<Database, { readonly query: (sql: string) => Effect.Effect<string> }>()("Database") {}
  *
  * const layer = Layer.effect(Database,
  *   Effect.sync(() => ({
@@ -758,9 +724,7 @@ export const effect: {
  * ```ts
  * import { Layer, ServiceMap, Effect } from "effect"
  *
- * class Database extends ServiceMap.Reference("Database", {
- *   defaultValue: () => ({ query: (sql: string) => Effect.succeed("result") })
- * }) {}
+ * class Database extends ServiceMap.Key<Database, { readonly query: (sql: string) => Effect.Effect<string> }>()("Database") {}
  *
  * const layer = Layer.effectServices(
  *   Effect.succeed(ServiceMap.make(Database, {
@@ -810,9 +774,7 @@ export const effectDiscard = <X, E, R>(effect: Effect<X, E, R>): Layer<never, E,
  * ```ts
  * import { Layer, ServiceMap, Effect } from "effect"
  *
- * class Database extends ServiceMap.Reference("Database", {
- *   defaultValue: () => ({ query: (sql: string) => Effect.succeed("result") })
- * }) {}
+ * class Database extends ServiceMap.Key<Database, { readonly query: (sql: string) => Effect.Effect<string> }>()("Database") {}
  *
  * const layerEffect = Effect.succeed(
  *   Layer.succeed(Database, { query: (sql: string) => Effect.succeed("result") })
@@ -862,13 +824,9 @@ const mergeAllEffect = <Layers extends [Layer<never, any, any>, ...Array<Layer<n
  * ```ts
  * import { Layer, ServiceMap, Effect } from "effect"
  *
- * class Database extends ServiceMap.Reference("Database", {
- *   defaultValue: () => ({ query: (sql: string) => Effect.succeed("result") })
- * }) {}
+ * class Database extends ServiceMap.Key<Database, { readonly query: (sql: string) => Effect.Effect<string> }>()("Database") {}
  *
- * class Logger extends ServiceMap.Reference("Logger", {
- *   defaultValue: () => ({ log: (msg: string) => Effect.sync(() => console.log(msg)) })
- * }) {}
+ * class Logger extends ServiceMap.Key<Logger, { readonly log: (msg: string) => Effect.Effect<void> }>()("Logger") {}
  *
  * const dbLayer = Layer.succeed(Database, { query: (sql: string) => Effect.succeed("result") })
  * const loggerLayer = Layer.succeed(Logger, { log: (msg: string) => Effect.sync(() => console.log(msg)) })
@@ -897,13 +855,9 @@ export const mergeAll = <Layers extends [Layer<never, any, any>, ...Array<Layer<
  * ```ts
  * import { Layer, ServiceMap, Effect } from "effect"
  *
- * class Database extends ServiceMap.Reference("Database", {
- *   defaultValue: () => ({ query: (sql: string) => Effect.succeed("result") })
- * }) {}
+ * class Database extends ServiceMap.Key<Database, { readonly query: (sql: string) => Effect.Effect<string> }>()("Database") {}
  *
- * class Logger extends ServiceMap.Reference("Logger", {
- *   defaultValue: () => ({ log: (msg: string) => Effect.sync(() => console.log(msg)) })
- * }) {}
+ * class Logger extends ServiceMap.Key<Logger, { readonly log: (msg: string) => Effect.Effect<void> }>()("Logger") {}
  *
  * const dbLayer = Layer.succeed(Database, { query: (sql: string) => Effect.succeed("result") })
  * const loggerLayer = Layer.succeed(Logger, { log: (msg: string) => Effect.sync(() => console.log(msg)) })
@@ -976,17 +930,11 @@ const provideWith = (
  * ```ts
  * import { Layer, ServiceMap, Effect } from "effect"
  *
- * class Database extends ServiceMap.Reference("Database", {
- *   defaultValue: () => ({ query: (sql: string) => Effect.succeed("result") })
- * }) {}
+ * class Database extends ServiceMap.Key<Database, { readonly query: (sql: string) => Effect.Effect<string> }>()("Database") {}
  *
- * class UserService extends ServiceMap.Reference("UserService", {
- *   defaultValue: () => ({ getUser: (id: string) => Effect.succeed({ id, name: "unknown" }) })
- * }) {}
+ * class UserService extends ServiceMap.Key<UserService, { readonly getUser: (id: string) => Effect.Effect<{ id: string; name: string }> }>()("UserService") {}
  *
- * class Logger extends ServiceMap.Reference("Logger", {
- *   defaultValue: () => ({ log: (msg: string) => Effect.sync(() => console.log(msg)) })
- * }) {}
+ * class Logger extends ServiceMap.Key<Logger, { readonly log: (msg: string) => Effect.Effect<void> }>()("Logger") {}
  *
  * // Create dependency layers
  * const databaseLayer = Layer.succeed(Database, {
@@ -1069,17 +1017,11 @@ export const provide: {
  * ```ts
  * import { Layer, ServiceMap, Effect } from "effect"
  *
- * class Database extends ServiceMap.Reference("Database", {
- *   defaultValue: () => ({ query: (sql: string) => Effect.succeed("result") })
- * }) {}
+ * class Database extends ServiceMap.Key<Database, { readonly query: (sql: string) => Effect.Effect<string> }>()("Database") {}
  *
- * class Logger extends ServiceMap.Reference("Logger", {
- *   defaultValue: () => ({ log: (msg: string) => Effect.sync(() => console.log(msg)) })
- * }) {}
+ * class Logger extends ServiceMap.Key<Logger, { readonly log: (msg: string) => Effect.Effect<void> }>()("Logger") {}
  *
- * class UserService extends ServiceMap.Reference("UserService", {
- *   defaultValue: () => ({ getUser: (id: string) => Effect.succeed({ id, name: "unknown" }) })
- * }) {}
+ * class UserService extends ServiceMap.Key<UserService, { readonly getUser: (id: string) => Effect.Effect<{ id: string; name: string }> }>()("UserService") {}
  *
  * // Create dependency layers
  * const databaseLayer = Layer.succeed(Database, {
@@ -1171,17 +1113,11 @@ export const provideMerge: {
  * ```ts
  * import { Layer, ServiceMap, Effect } from "effect"
  *
- * class Config extends ServiceMap.Reference("Config", {
- *   defaultValue: () => ({ dbUrl: "default://localhost", logLevel: "info" })
- * }) {}
+ * class Config extends ServiceMap.Key<Config, { readonly dbUrl: string; readonly logLevel: string }>()("Config") {}
  *
- * class Database extends ServiceMap.Reference("Database", {
- *   defaultValue: () => ({ query: (sql: string) => Effect.succeed("result") })
- * }) {}
+ * class Database extends ServiceMap.Key<Database, { readonly query: (sql: string) => Effect.Effect<string> }>()("Database") {}
  *
- * class Logger extends ServiceMap.Reference("Logger", {
- *   defaultValue: () => ({ log: (msg: string) => Effect.sync(() => console.log(msg)) })
- * }) {}
+ * class Logger extends ServiceMap.Key<Logger, { readonly log: (msg: string) => Effect.Effect<void> }>()("Logger") {}
  *
  * // Base config layer
  * const configLayer = Layer.succeed(Config, {
@@ -1259,9 +1195,7 @@ export const flatMap: {
  *   message: string
  * }> {}
  *
- * class Database extends ServiceMap.Reference("Database", {
- *   defaultValue: () => ({ query: (sql: string) => Effect.succeed("result") })
- * }) {}
+ * class Database extends ServiceMap.Key<Database, { readonly query: (sql: string) => Effect.Effect<string> }>()("Database") {}
  *
  * // Layer that can fail during construction
  * const flakyDatabaseLayer = Layer.effect(Database, Effect.gen(function* () {
@@ -1339,13 +1273,9 @@ export {
  *   reason: string
  * }> {}
  *
- * class Database extends ServiceMap.Reference("Database", {
- *   defaultValue: () => ({ query: (sql: string) => Effect.succeed("result") })
- * }) {}
+ * class Database extends ServiceMap.Key<Database, { readonly query: (sql: string) => Effect.Effect<string> }>()("Database") {}
  *
- * class Logger extends ServiceMap.Reference("Logger", {
- *   defaultValue: () => ({ log: (msg: string) => Effect.sync(() => console.log(msg)) })
- * }) {}
+ * class Logger extends ServiceMap.Key<Logger, { readonly log: (msg: string) => Effect.Effect<void> }>()("Logger") {}
  *
  * // Primary database layer that might fail
  * const primaryDatabaseLayer = Layer.effect(Database, Effect.gen(function* () {
@@ -1405,9 +1335,7 @@ export const catchCause: {
  * ```ts
  * import { Layer, ServiceMap, Effect, Ref } from "effect"
  *
- * class Counter extends ServiceMap.Reference("Counter", {
- *   defaultValue: () => ({ count: 0, increment: () => {} })
- * }) {}
+ * class Counter extends ServiceMap.Key<Counter, { readonly count: number; readonly increment: () => Effect.Effect<number> }>()("Counter") {}
  *
  * // Layer that creates a counter with shared state
  * const counterLayer = Layer.effect(Counter, Effect.gen(function* () {
@@ -1457,16 +1385,12 @@ export const fresh = <A, E, R>(self: Layer<A, E, R>): Layer<A, E, R> =>
  * ```ts
  * import { Layer, ServiceMap, Effect, Console } from "effect"
  *
- * class HttpServer extends ServiceMap.Reference("HttpServer", {
- *   defaultValue: () => ({
- *     start: () => Effect.succeed("Server started"),
- *     stop: () => Effect.succeed("Server stopped")
- *   })
- * }) {}
+ * class HttpServer extends ServiceMap.Key<HttpServer, {
+ *   readonly start: () => Effect.Effect<string>
+ *   readonly stop: () => Effect.Effect<string>
+ * }>()("HttpServer") {}
  *
- * class Logger extends ServiceMap.Reference("Logger", {
- *   defaultValue: () => ({ log: (msg: string) => Effect.sync(() => console.log(msg)) })
- * }) {}
+ * class Logger extends ServiceMap.Key<Logger, { readonly log: (msg: string) => Effect.Effect<void> }>()("Logger") {}
  *
  * // Server layer that starts an HTTP server
  * const serverLayer = Layer.effect(HttpServer, Effect.gen(function* () {
@@ -1549,17 +1473,10 @@ export type PartialEffectful<A extends object> = Types.Simplify<
  *   readonly updateUser: (id: string, data: object) => Effect.Effect<{ id: string; name: string }, Error>
  * }
  *
- * class UserServiceRef extends ServiceMap.Reference("UserService", {
- *   defaultValue: (): UserService => ({
- *     config: { apiUrl: "https://api.example.com" },
- *     getUser: (id: string) => Effect.succeed({ id, name: "John" }),
- *     deleteUser: (id: string) => Effect.succeed(void 0),
- *     updateUser: (id: string, data: object) => Effect.succeed({ id, name: "Updated" })
- *   })
- * }) {}
+ * class UserService extends ServiceMap.Key<UserService, UserService>()("UserService") {}
  *
  * // Create a partial mock - only implement what you need for testing
- * const testUserLayer = Layer.mock(UserServiceRef, {
+ * const testUserLayer = Layer.mock(UserService, {
  *   config: { apiUrl: "https://test-api.com" }, // Required - non-Effect property
  *   getUser: (id: string) => Effect.succeed({ id, name: "Test User" }), // Mock implementation
  *   // deleteUser and updateUser are omitted - will throw UnimplementedError if called
@@ -1567,7 +1484,7 @@ export type PartialEffectful<A extends object> = Types.Simplify<
  *
  * // Use in tests
  * const testProgram = Effect.gen(function* () {
- *   const userService = yield* UserServiceRef
+ *   const userService = yield* UserService
  *
  *   // This works - we provided an implementation
  *   const user = yield* userService.getUser("123")

@@ -77,37 +77,38 @@ export const CurrentConcurrency = ServiceMap.Reference<"unbounded" | number>("ef
   defaultValue: () => "unbounded"
 })
 
-/**
- * Reference for the current scheduler implementation used by the Effect runtime.
- * Controls how Effects are scheduled and executed.
- *
- * @example
- * ```ts
- * import { References, Effect, Scheduler } from "effect"
- *
- * const customScheduling = Effect.gen(function* () {
- *   // Get current scheduler (default is MixedScheduler)
- *   const current = yield* References.CurrentScheduler
- *   console.log(current) // MixedScheduler instance
- *
- *   // Use a custom scheduler
- *   yield* Effect.provideService(
- *     Effect.gen(function* () {
- *       const scheduler = yield* References.CurrentScheduler
- *       console.log(scheduler) // Custom scheduler instance
- *
- *       // Effects will use the custom scheduler in this context
- *       yield* Effect.log("Using custom scheduler")
- *     }),
- *     References.CurrentScheduler,
- *     new Scheduler.MixedScheduler()
- *   )
- * })
- * ```
- *
- * @category references
- * @since 4.0.0
- */
+export {
+  /**
+   * Reference for the current scheduler implementation used by the Effect runtime.
+   * Controls how Effects are scheduled and executed.
+   *
+   * @example
+   * ```ts
+   * import { References, Effect, Scheduler } from "effect"
+   *
+   * const customScheduling = Effect.gen(function* () {
+   *   // Get current scheduler (default is MixedScheduler)
+   *   const current = yield* References.CurrentScheduler
+   *   console.log(current) // MixedScheduler instance
+   *
+   *   // Use a custom scheduler
+   *   yield* Effect.provideService(
+   *     Effect.gen(function* () {
+   *       const scheduler = yield* References.CurrentScheduler
+   *       console.log(scheduler) // Custom scheduler instance
+   *
+   *       // Effects will use the custom scheduler in this context
+   *       yield* Effect.log("Using custom scheduler")
+   *     }),
+   *     References.CurrentScheduler,
+   *     new Scheduler.MixedScheduler()
+   *   )
+   * })
+   * ```
+   *
+   * @category references
+   * @since 4.0.0
+   */
   Scheduler
 } from "./Scheduler.js"
 
