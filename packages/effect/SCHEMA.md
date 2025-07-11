@@ -3293,6 +3293,94 @@ type Type = {
 type Type = (typeof schema)["Type"]
 ```
 
+### 🆕 Augmenting Unions
+
+The `augmentUnion` function allows you to enhance a tagged union schema with extra methods. This is useful when you need better tooling to work with union members at runtime.
+
+You must provide the name of the tag field used to discriminate between variants.
+
+**Example** (Augmenting a union schema with `_tag`)
+
+```ts
+import { Schema, Util } from "effect/schema"
+
+const original = Schema.Union([
+  Schema.Struct({ _tag: Schema.tag("A"), a: Schema.String }),
+  Schema.Struct({ _tag: Schema.tag("B"), b: Schema.Finite }),
+  Schema.Struct({ _tag: Schema.tag("C"), c: Schema.Boolean })
+])
+
+const augmented = Util.augmentUnion("_tag", original)
+```
+
+### Accessing Members by Tag
+
+The `membersByTag` property gives direct access to each member schema of the union.
+
+**Example** (Getting a member schema from a tagged union)
+
+```ts
+const A = augmented.membersByTag.A
+const B = augmented.membersByTag.B
+const C = augmented.membersByTag.C
+```
+
+#### is
+
+Use the `is` method to check if an `unknown` value is a valid member of the union.
+
+```ts
+console.log(augmented.is({ _tag: "A", a: "a" })) // true
+console.log(augmented.is({ _tag: "B", b: 1 })) // true
+console.log(augmented.is({ _tag: "C", c: true })) // true
+
+console.log(augmented.is({ _tag: "A", b: 1 })) // false
+```
+
+#### isAnyOf
+
+The `isAnyOf` method lets you check if a value belongs to a selected subset of tags.
+
+**Example** (Checking membership in a subset of union tags)
+
+```ts
+console.log(augmented.isAnyOf(["A", "B"])({ _tag: "A", a: "a" })) // true
+console.log(augmented.isAnyOf(["A", "B"])({ _tag: "B", b: 1 })) // true
+
+console.log(augmented.isAnyOf(["A", "B"])({ _tag: "C", c: true })) // false
+```
+
+#### guards
+
+The `guards` property provides a type guard for each tag.
+
+**Example** (Using type guards for tagged members)
+
+```ts
+console.log(augmented.guards.A({ _tag: "A", a: "a" })) // true
+console.log(augmented.guards.B({ _tag: "B", b: 1 })) // true
+
+console.log(augmented.guards.A({ _tag: "B", b: 1 })) // false
+```
+
+#### match
+
+You can define a matcher function using the `match` method. This is a concise way to handle each variant of the union.
+
+**Example** (Handling union members with `match`)
+
+```ts
+const f = augmented.match({
+  A: (a) => `This is an A: ${a.a}`,
+  B: (b) => `This is a B: ${b.b}`,
+  C: (c) => `This is a C: ${c.c}`
+})
+
+console.log(f({ _tag: "A", a: "a" })) // This is an A: a
+console.log(f({ _tag: "B", b: 1 })) // This is a B: 1
+console.log(f({ _tag: "C", c: true })) // This is a C: true
+```
+
 ## Transformations Redesign
 
 ### Transformations as First-Class
