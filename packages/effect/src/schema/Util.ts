@@ -49,7 +49,7 @@ type augmentUnion<
   >
 > = {
   readonly membersByTag: Struct.Simplify<{ [M in Flattened[number] as M["Type"][Tag]]: M }>
-  readonly is: { [M in Flattened[number] as M["Type"][Tag]]: (u: unknown) => u is M["Type"] }
+  readonly guards: { [M in Flattened[number] as M["Type"][Tag]]: (u: unknown) => u is M["Type"] }
   readonly match: {
     <Output>(
       value: Members[number]["Type"],
@@ -82,7 +82,7 @@ export function augmentUnion<
   union: Schema.Union<Members>
 ): augmentUnion<Tag, Members> {
   const membersByTag: Record<PropertyKey, unknown> = {}
-  const is: Record<PropertyKey, (u: unknown) => boolean> = {}
+  const guards: Record<PropertyKey, (u: unknown) => boolean> = {}
   function process(schema: any) {
     const ast = schema.ast
     if (AST.isUnionType(ast)) {
@@ -91,7 +91,7 @@ export function augmentUnion<
       const value = getTag(tag, ast)
       if (value) {
         membersByTag[value] = schema
-        is[value] = (u: unknown) => Predicate.hasProperty(u, tag) && u[tag] === value
+        guards[value] = (u: unknown) => Predicate.hasProperty(u, tag) && u[tag] === value
       }
     } else {
       throw new Error("No literal found")
@@ -112,5 +112,5 @@ export function augmentUnion<
     return cases[value[tag]](value)
   }
 
-  return { membersByTag, is, match } as any
+  return { membersByTag, guards, match } as any
 }

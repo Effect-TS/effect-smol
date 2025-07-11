@@ -25,14 +25,13 @@ describe("Util", () => {
       deepStrictEqual(schema.membersByTag.D, schema.members[2].members[1])
 
       // guards
-      deepStrictEqual(schema.is.A({ _tag: "A", a: "a" }), true)
-      deepStrictEqual(schema.is.A({ _tag: "B", b: 1 }), false)
-      deepStrictEqual(schema.is.B({ _tag: "A", a: "a" }), false)
-      deepStrictEqual(schema.is.B({ _tag: "B", b: 1 }), true)
-      deepStrictEqual(schema.is.C({ _tag: "A", a: "a" }), false)
-      deepStrictEqual(schema.is.C({ _tag: "C", c: true }), true)
-      deepStrictEqual(schema.is.D({ _tag: "A", a: "a" }), false)
-      deepStrictEqual(schema.is.D({ _tag: "D", d: new Date() }), true)
+      deepStrictEqual(schema.guards.A({ _tag: "B", b: 1 }), false)
+      deepStrictEqual(schema.guards.B({ _tag: "A", a: "a" }), false)
+      deepStrictEqual(schema.guards.B({ _tag: "B", b: 1 }), true)
+      deepStrictEqual(schema.guards.C({ _tag: "A", a: "a" }), false)
+      deepStrictEqual(schema.guards.C({ _tag: "C", c: true }), true)
+      deepStrictEqual(schema.guards.D({ _tag: "A", a: "a" }), false)
+      deepStrictEqual(schema.guards.D({ _tag: "D", d: new Date() }), true)
 
       // match
       deepStrictEqual(
@@ -83,8 +82,8 @@ describe("Util", () => {
       deepStrictEqual(schema.membersByTag.TypeB, schema.members[1])
 
       // guards
-      deepStrictEqual(schema.is.TypeA({ _tag: "A", type: "TypeA", a: "a" }), true)
-      deepStrictEqual(schema.is.TypeA({ _tag: "B", type: "TypeB", b: 1 }), false)
+      deepStrictEqual(schema.guards.TypeA({ _tag: "A", type: "TypeA", a: "a" }), true)
+      deepStrictEqual(schema.guards.TypeA({ _tag: "B", type: "TypeB", b: 1 }), false)
 
       // match
       deepStrictEqual(
