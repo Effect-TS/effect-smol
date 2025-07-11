@@ -158,17 +158,6 @@ export type HaltTypeId = "~effect/Pull/Halt"
  * Represents a halt error that carries a leftover value.
  * Used to signal the end of a Pull operation with a final value.
  *
- * @example
- * ```ts
- * import { Pull } from "effect"
- *
- * // Create a halt with a leftover value
- * const halt = new Pull.Halt("end of stream")
- *
- * console.log(halt.leftover) // "end of stream"
- * console.log(halt._tag) // "Halt"
- * ```
- *
  * @since 4.0.0
  * @category Halt
  */
