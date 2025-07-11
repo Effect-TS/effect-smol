@@ -1197,9 +1197,9 @@ export const raceAll = <Eff extends Effect.Effect<any, any, any>>(
     }) => void
   }
 ): Effect.Effect<
-  Effect.Effect.Success<Eff>,
-  Effect.Effect.Error<Eff>,
-  Effect.Effect.Services<Eff>
+  Effect.Success<Eff>,
+  Effect.Error<Eff>,
+  Effect.Services<Eff>
 > =>
   withFiber((parent) =>
     callback((resume) => {
@@ -1256,9 +1256,9 @@ export const raceAllFirst = <Eff extends Effect.Effect<any, any, any>>(
     }) => void
   }
 ): Effect.Effect<
-  Effect.Effect.Success<Eff>,
-  Effect.Effect.Error<Eff>,
-  Effect.Effect.Services<Eff>
+  Effect.Success<Eff>,
+  Effect.Error<Eff>,
+  Effect.Services<Eff>
 > =>
   withFiber((parent) =>
     callback((resume) => {

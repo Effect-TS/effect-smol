@@ -58,71 +58,63 @@ export type TypeId = "~effect/Layer"
  * @since 2.0.0
  * @category models
  */
-export interface Layer<in ROut, out E = never, out RIn = never> extends Layer.Variance<ROut, E, RIn>, Pipeable {
+export interface Layer<in ROut, out E = never, out RIn = never> extends Variance<ROut, E, RIn>, Pipeable {
   /** @internal */
   build(memoMap: MemoMap, scope: Scope.Scope): Effect<ServiceMap.ServiceMap<ROut>, E, RIn>
 }
 
 /**
- * The Layer namespace contains type-level utilities for working with Layer types.
+ * The variance interface for Layer type parameters.
  *
  * @since 2.0.0
  * @category models
  */
-export declare namespace Layer {
-  /**
-   * The variance interface for Layer type parameters.
-   *
-   * @since 2.0.0
-   * @category models
-   */
-  export interface Variance<in ROut, out E, out RIn> {
-    readonly [TypeId]: {
-      readonly _ROut: Types.Contravariant<ROut>
-      readonly _E: Types.Covariant<E>
-      readonly _RIn: Types.Covariant<RIn>
-    }
+export interface Variance<in ROut, out E, out RIn> {
+  readonly [TypeId]: {
+    readonly _ROut: Types.Contravariant<ROut>
+    readonly _E: Types.Covariant<E>
+    readonly _RIn: Types.Covariant<RIn>
   }
-  /**
-   * A constraint interface for working with any Layer type.
-   *
-   * This interface is used to constrain generic types to Layer types
-   * without specifying exact type parameters.
-   *
-   * @since 3.9.0
-   * @category type-level
-   */
-  export interface Any {
-    readonly [TypeId]: {
-      readonly _ROut: any
-      readonly _E: any
-      readonly _RIn: any
-    }
-  }
-  /**
-   * Extracts the service dependencies (RIn) from a Layer type.
-   *
-   * @since 2.0.0
-   * @category type-level
-   */
-  export type Services<T extends Any> = T extends infer L
-    ? L extends Layer<infer _ROut, infer _E, infer _RIn> ? _RIn : never
-    : never
-  /**
-   * Extracts the error type (E) from a Layer type.
-   *
-   * @since 2.0.0
-   * @category type-level
-   */
-  export type Error<T extends Any> = T extends Layer<infer _ROut, infer _E, infer _RIn> ? _E : never
-  /**
-   * Extracts the service output type (ROut) from a Layer type.
-   *
-   * @since 2.0.0
-   * @category type-level
-   */
-  export type Success<T extends Any> = T extends Layer<infer _ROut, infer _E, infer _RIn> ? _ROut : never
 }
+/**
+ * A constraint interface for working with any Layer type.
+ *
+ * This interface is used to constrain generic types to Layer types
+ * without specifying exact type parameters.
+ *
+ * @since 3.9.0
+ * @category type-level
+ */
+export interface Any {
+  readonly [TypeId]: {
+    readonly _ROut: any
+    readonly _E: any
+    readonly _RIn: any
+  }
+}
+/**
+ * Extracts the service dependencies (RIn) from a Layer type.
+ *
+ * @since 2.0.0
+ * @category type-level
+ */
+export type Services<T extends Any> = T extends infer L
+  ? L extends Layer<infer _ROut, infer _E, infer _RIn> ? _RIn : never
+  : never
+/**
+ * Extracts the error type (E) from a Layer type.
+ *
+ * @since 2.0.0
+ * @category type-level
+ */
+export type Error<T extends Any> = T extends Layer<infer _ROut, infer _E, infer _RIn> ? _E : never
+/**
+ * Extracts the service output type (ROut) from a Layer type.
+ *
+ * @since 2.0.0
+ * @category type-level
+ */
+export type Success<T extends Any> = T extends Layer<infer _ROut, infer _E, infer _RIn> ? _ROut : never
 
 /**
  * The unique type identifier for MemoMap.
@@ -798,9 +790,9 @@ const mergeAllEffect = <Layers extends [Layer<never, any, any>, ...Array<Layer<n
   memoMap: MemoMap,
   scope: Scope.Scope
 ): Effect<
-  ServiceMap.ServiceMap<{ [k in keyof Layers]: Layer.Success<Layers[k]> }[number]>,
-  { [k in keyof Layers]: Layer.Error<Layers[k]> }[number],
-  { [k in keyof Layers]: Layer.Services<Layers[k]> }[number]
+  ServiceMap.ServiceMap<{ [k in keyof Layers]: Success<Layers[k]> }[number]>,
+  { [k in keyof Layers]: Error<Layers[k]> }[number],
+  { [k in keyof Layers]: Services<Layers[k]> }[number]
 > =>
   internalEffect.forEach(layers, (layer) => layer.build(memoMap, scope), { concurrency: layers.length }).pipe(
     internalEffect.map((contexts) => {
@@ -840,9 +832,9 @@ const mergeAllEffect = <Layers extends [Layer<never, any, any>, ...Array<Layer<n
 export const mergeAll = <Layers extends [Layer<never, any, any>, ...Array<Layer<never, any, any>>]>(
   ...layers: Layers
 ): Layer<
-  Layer.Success<Layers[number]>,
-  Layer.Error<Layers[number]>,
-  Layer.Services<Layers[number]>
+  Success<Layers[number]>,
+  Error<Layers[number]>,
+  Services<Layers[number]>
 > => fromBuild((memoMap, scope) => mergeAllEffect(layers, memoMap, scope))
 
 /**
@@ -872,27 +864,27 @@ export const merge: {
   <RIn, E, ROut>(
     that: Layer<ROut, E, RIn>
   ): <RIn2, E2, ROut2>(self: Layer<ROut2, E2, RIn2>) => Layer<ROut | ROut2, E | E2, RIn | RIn2>
-  <const Layers extends [Layer.Any, ...Array<Layer.Any>]>(
+  <const Layers extends [Any, ...Array<Any>]>(
     that: Layers
   ): <A, E, R>(
     self: Layer<A, E, R>
   ) => Layer<
-    A | Layer.Success<Layers[number]>,
-    E | Layer.Error<Layers[number]>,
-    | Layer.Services<Layers[number]>
+    A | Success<Layers[number]>,
+    E | Error<Layers[number]>,
+    | Services<Layers[number]>
     | R
   >
   <RIn2, E2, ROut2, RIn, E, ROut>(
     self: Layer<ROut2, E2, RIn2>,
     that: Layer<ROut, E, RIn>
   ): Layer<ROut | ROut2, E | E2, RIn | RIn2>
-  <A, E, R, const Layers extends [Layer.Any, ...Array<Layer.Any>]>(
+  <A, E, R, const Layers extends [Any, ...Array<Any>]>(
     self: Layer<A, E, R>,
     that: Layers
   ): Layer<
-    A | Layer.Success<Layers[number]>,
-    E | Layer.Error<Layers[number]>,
-    | Layer.Services<Layers[number]>
+    A | Success<Layers[number]>,
+    E | Error<Layers[number]>,
+    | Services<Layers[number]>
     | R
   >
 } = dual(2, (
@@ -980,28 +972,28 @@ export const provide: {
   <RIn, E, ROut>(
     that: Layer<ROut, E, RIn>
   ): <RIn2, E2, ROut2>(self: Layer<ROut2, E2, RIn2>) => Layer<ROut2, E | E2, RIn | Exclude<RIn2, ROut>>
-  <const Layers extends [Layer.Any, ...Array<Layer.Any>]>(
+  <const Layers extends [Any, ...Array<Any>]>(
     that: Layers
   ): <A, E, R>(
     self: Layer<A, E, R>
   ) => Layer<
     A,
-    E | Layer.Error<Layers[number]>,
-    | Layer.Services<Layers[number]>
-    | Exclude<R, Layer.Success<Layers[number]>>
+    E | Error<Layers[number]>,
+    | Services<Layers[number]>
+    | Exclude<R, Success<Layers[number]>>
   >
   <RIn2, E2, ROut2, RIn, E, ROut>(
     self: Layer<ROut2, E2, RIn2>,
     that: Layer<ROut, E, RIn>
   ): Layer<ROut2, E | E2, RIn | Exclude<RIn2, ROut>>
-  <A, E, R, const Layers extends [Layer.Any, ...Array<Layer.Any>]>(
+  <A, E, R, const Layers extends [Any, ...Array<Any>]>(
     self: Layer<A, E, R>,
     that: Layers
   ): Layer<
     A,
-    E | Layer.Error<Layers[number]>,
-    | Layer.Services<Layers[number]>
-    | Exclude<R, Layer.Success<Layers[number]>>
+    E | Error<Layers[number]>,
+    | Services<Layers[number]>
+    | Exclude<R, Success<Layers[number]>>
   >
 } = dual(2, (
   self: Layer<any, any, any>,
@@ -1073,28 +1065,28 @@ export const provideMerge: {
   <RIn, E, ROut>(
     that: Layer<ROut, E, RIn>
   ): <RIn2, E2, ROut2>(self: Layer<ROut2, E2, RIn2>) => Layer<ROut | ROut2, E | E2, RIn | Exclude<RIn2, ROut>>
-  <const Layers extends [Layer.Any, ...Array<Layer.Any>]>(
+  <const Layers extends [Any, ...Array<Any>]>(
     that: Layers
   ): <A, E, R>(
     self: Layer<A, E, R>
   ) => Layer<
-    A | Layer.Success<Layers[number]>,
-    E | Layer.Error<Layers[number]>,
-    | Layer.Services<Layers[number]>
-    | Exclude<R, Layer.Success<Layers[number]>>
+    A | Success<Layers[number]>,
+    E | Error<Layers[number]>,
+    | Services<Layers[number]>
+    | Exclude<R, Success<Layers[number]>>
   >
   <RIn2, E2, ROut2, RIn, E, ROut>(
     self: Layer<ROut2, E2, RIn2>,
     that: Layer<ROut, E, RIn>
   ): Layer<ROut | ROut2, E | E2, RIn | Exclude<RIn2, ROut>>
-  <A, E, R, const Layers extends [Layer.Any, ...Array<Layer.Any>]>(
+  <A, E, R, const Layers extends [Any, ...Array<Any>]>(
     self: Layer<A, E, R>,
     that: Layers
   ): Layer<
-    A | Layer.Success<Layers[number]>,
-    E | Layer.Error<Layers[number]>,
-    | Layer.Services<Layers[number]>
-    | Exclude<R, Layer.Success<Layers[number]>>
+    A | Success<Layers[number]>,
+    E | Error<Layers[number]>,
+    | Services<Layers[number]>
+    | Exclude<R, Success<Layers[number]>>
   >
 } = dual(2, (
   self: Layer<any, any, any>,
@@ -1466,14 +1458,12 @@ export type PartialEffectful<A extends object> = Types.Simplify<
  * ```ts
  * import { Layer, ServiceMap, Effect } from "effect"
  *
- * interface UserService {
+ * class UserService extends ServiceMap.Key<UserService, {
  *   readonly config: { apiUrl: string }
  *   readonly getUser: (id: string) => Effect.Effect<{ id: string; name: string }, Error>
  *   readonly deleteUser: (id: string) => Effect.Effect<void, Error>
  *   readonly updateUser: (id: string, data: object) => Effect.Effect<{ id: string; name: string }, Error>
- * }
- *
- * class UserService extends ServiceMap.Key<UserService, UserService>()("UserService") {}
+ * }>()("UserService") {}
  *
  * // Create a partial mock - only implement what you need for testing
  * const testUserLayer = Layer.mock(UserService, {
@@ -1522,7 +1512,7 @@ export const mock: {
     })
   ))
 
-const makeUnimplemented = (error: Error) => {
+const makeUnimplemented = (error: globalThis.Error) => {
   const dead = internalEffect.die(error)
   function unimplemented() {
     return dead

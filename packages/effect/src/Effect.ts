@@ -81,7 +81,7 @@ import * as internalLayer from "./internal/layer.js"
 import * as internalRequest from "./internal/request.js"
 import * as internalSchedule from "./internal/schedule.js"
 import type { version } from "./internal/version.js"
-import type { Layer } from "./Layer.js"
+import type * as Layer from "./Layer.js"
 import type { Logger } from "./Logger.js"
 import * as Metric from "./Metric.js"
 import type { Option } from "./Option.js"
@@ -168,7 +168,7 @@ export type TypeId = `~effect/Effect/${version}`
  * @category Models
  */
 export interface Effect<out A, out E = never, out R = never> extends Pipeable, Yieldable<Effect<A, E, R>, A, E, R> {
-  readonly [TypeId]: Effect.Variance<A, E, R>
+  readonly [TypeId]: Variance<A, E, R>
   [Unify.typeSymbol]?: unknown
   [Unify.unifySymbol]?: EffectUnify<this>
   [Unify.ignoreSymbol]?: EffectUnifyIgnore
@@ -274,80 +274,57 @@ export interface EffectTypeLambda extends TypeLambda {
 /**
  * @since 2.0.0
  * @category models
+ */
+export interface Variance<A, E, R> {
+  _A: Covariant<A>
+  _E: Covariant<E>
+  _R: Covariant<R>
+}
+
+/**
+ * @since 2.0.0
+ * @category models
  * @example
  * ```ts
  * import { Effect } from "effect"
  *
- * // The Effect namespace contains type utilities for working with Effect types
+ * // Extract the success type from an Effect
  * declare const myEffect: Effect.Effect<string, Error, never>
- * // Types like Success, Error, and Services are available within this namespace
- * // Use Effect.Effect.Success<T>, Effect.Effect.Error<T>, Effect.Effect.Services<T>
+ * // This type utility extracts the success type A from Effect<A, E, R>
  * ```
  */
-export declare namespace Effect {
-  /**
-   * @since 2.0.0
-   * @category models
-   * @example
-   * ```ts
-   * import { Effect } from "effect"
-   *
-   * // Variance interface defines the variance annotations for Effect type parameters
-   * // A is covariant (output), E is covariant (error), R is covariant (requirements)
-   * declare const variance: Effect.Effect.Variance<string, Error, never>
-   * ```
-   */
-  export interface Variance<A, E, R> {
-    _A: Covariant<A>
-    _E: Covariant<E>
-    _R: Covariant<R>
-  }
+export type Success<T> = T extends Effect<infer _A, infer _E, infer _R> ? _A
+  : never
 
-  /**
-   * @since 2.0.0
-   * @category models
-   * @example
-   * ```ts
-   * import { Effect } from "effect"
-   *
-   * // Extract the success type from an Effect
-   * declare const myEffect: Effect.Effect<string, Error, never>
-   * // This type utility extracts the success type A from Effect<A, E, R>
-   * ```
-   */
-  export type Success<T> = T extends Effect<infer _A, infer _E, infer _R> ? _A
-    : never
+/**
+ * @since 2.0.0
+ * @category models
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ *
+ * // Extract the error type from an Effect
+ * declare const myEffect: Effect.Effect<string, Error, never>
+ * // This type utility extracts the error type E from Effect<A, E, R>
+ * ```
+ */
+export type Error<T> = T extends Effect<infer _A, infer _E, infer _R> ? _E
+  : never
 
-  /**
-   * @since 2.0.0
-   * @category models
-   * @example
-   * ```ts
-   * import { Effect } from "effect"
-   *
-   * // Extract the error type from an Effect
-   * declare const myEffect: Effect.Effect<string, Error, never>
-   * // This type utility extracts the error type E from Effect<A, E, R>
-   * ```
-   */
-  export type Error<T> = T extends Effect<infer _A, infer _E, infer _R> ? _E
-    : never
-
-  /**
-   * @since 2.0.0
-   * @category models
-   * @example
-   * ```ts
-   * import { Effect } from "effect"
-   *
-   * // Extract the context/services type from an Effect
-   * declare const myEffect: Effect.Effect<string, Error, { database: string }>
-   * // This type utility extracts the context type R from Effect<A, E, R>
-   * ```
-   */
-  export type Services<T> = T extends Effect<infer _A, infer _E, infer _R> ? _R
-    : never
-}
+/**
+ * @since 2.0.0
+ * @category models
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ *
+ * // Extract the context/services type from an Effect
+ * declare const myEffect: Effect.Effect<string, Error, { database: string }>
+ * // This type utility extracts the context type R from Effect<A, E, R>
+ * ```
+ */
+export type Services<T> = T extends Effect<infer _A, infer _E, infer _R> ? _R
+  : never
 
 /**
  * @since 4.0.0
@@ -3649,7 +3626,7 @@ export const raceAll: <Eff extends Effect<any, any, any>>(
       readonly parentFiber: Fiber<any, any>
     }) => void
   }
-) => Effect<Effect.Success<Eff>, Effect.Error<Eff>, Effect.Services<Eff>> = internal.raceAll
+) => Effect<Success<Eff>, Error<Eff>, Services<Eff>> = internal.raceAll
 
 /**
  * Races multiple effects and returns the first successful result.
@@ -3687,7 +3664,7 @@ export const raceAllFirst: <Eff extends Effect<any, any, any>>(
       readonly parentFiber: Fiber<any, any>
     }) => void
   }
-) => Effect<Effect.Success<Eff>, Effect.Error<Eff>, Effect.Services<Eff>> = internal.raceAllFirst
+) => Effect<Success<Eff>, Error<Eff>, Services<Eff>> = internal.raceAllFirst
 
 // -----------------------------------------------------------------------------
 // Filtering
@@ -4331,7 +4308,7 @@ export const provide: {
     Layer.Services<Layers[number]> | Exclude<R, Layer.Success<Layers[number]>>
   >
   <ROut, E2, RIn>(
-    layer: Layer<ROut, E2, RIn>
+    layer: Layer.Layer<ROut, E2, RIn>
   ): <A, E, R>(
     self: Effect<A, E, R>
   ) => Effect<A, E | E2, RIn | Exclude<R, ROut>>
@@ -4348,7 +4325,7 @@ export const provide: {
   >
   <A, E, R, ROut, E2, RIn>(
     self: Effect<A, E, R>,
-    layer: Layer<ROut, E2, RIn>
+    layer: Layer.Layer<ROut, E2, RIn>
   ): Effect<A, E | E2, RIn | Exclude<R, ROut>>
   <A, E, R, R2>(
     self: Effect<A, E, R>,
@@ -9333,9 +9310,9 @@ export const effectify: {
 } =
   (<A>(fn: Function, onError?: (e: any, args: any) => any, onSyncError?: (e: any, args: any) => any) =>
   (...args: Array<any>) =>
-    callback<A, Error>((resume) => {
+    callback<A, globalThis.Error>((resume) => {
       try {
-        fn(...args, (err: Error | null, result: A) => {
+        fn(...args, (err: globalThis.Error | null, result: A) => {
           if (err) {
             resume(fail(onError ? onError(err, args) : err))
           } else {

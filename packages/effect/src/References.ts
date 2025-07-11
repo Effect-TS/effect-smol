@@ -88,19 +88,19 @@ export {
    *
    * const customScheduling = Effect.gen(function* () {
    *   // Get current scheduler (default is MixedScheduler)
-   *   const current = yield* References.CurrentScheduler
+   *   const current = yield* References.Scheduler
    *   console.log(current) // MixedScheduler instance
    *
    *   // Use a custom scheduler
    *   yield* Effect.provideService(
    *     Effect.gen(function* () {
-   *       const scheduler = yield* References.CurrentScheduler
+   *       const scheduler = yield* References.Scheduler
    *       console.log(scheduler) // Custom scheduler instance
    *
    *       // Effects will use the custom scheduler in this context
    *       yield* Effect.log("Using custom scheduler")
    *     }),
-   *     References.CurrentScheduler,
+   *     References.Scheduler,
    *     new Scheduler.MixedScheduler()
    *   )
    * })

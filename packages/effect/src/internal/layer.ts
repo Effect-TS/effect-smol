@@ -18,15 +18,15 @@ const provideLayer = <A, E, R, ROut, E2, RIn>(
 /** @internal */
 export const provide = dual<
   {
-    <const Layers extends [Layer.Layer.Any, ...Array<Layer.Layer.Any>]>(
+    <const Layers extends [Layer.Any, ...Array<Layer.Any>]>(
       layers: Layers
     ): <A, E, R>(
       self: Effect<A, E, R>
     ) => Effect<
       A,
-      E | Layer.Layer.Error<Layers[number]>,
-      | Layer.Layer.Services<Layers[number]>
-      | Exclude<R, Layer.Layer.Success<Layers[number]>>
+      E | Layer.Error<Layers[number]>,
+      | Layer.Services<Layers[number]>
+      | Exclude<R, Layer.Success<Layers[number]>>
     >
     <ROut, E2, RIn>(
       layer: Layer.Layer<ROut, E2, RIn>
@@ -34,14 +34,14 @@ export const provide = dual<
     <R2>(services: ServiceMap.ServiceMap<R2>): <A, E, R>(self: Effect<A, E, R>) => Effect<A, E, Exclude<R, R2>>
   },
   {
-    <A, E, R, const Layers extends [Layer.Layer.Any, ...Array<Layer.Layer.Any>]>(
+    <A, E, R, const Layers extends [Layer.Any, ...Array<Layer.Any>]>(
       self: Effect<A, E, R>,
       layers: Layers
     ): Effect<
       A,
-      E | Layer.Layer.Error<Layers[number]>,
-      | Layer.Layer.Services<Layers[number]>
-      | Exclude<R, Layer.Layer.Success<Layers[number]>>
+      E | Layer.Error<Layers[number]>,
+      | Layer.Services<Layers[number]>
+      | Exclude<R, Layer.Success<Layers[number]>>
     >
     <A, E, R, ROut, E2, RIn>(
       self: Effect<A, E, R>,
@@ -59,7 +59,7 @@ export const provide = dual<
     source:
       | Layer.Layer<ROut, any, any>
       | ServiceMap.ServiceMap<ROut>
-      | Array<Layer.Layer.Any>
+      | Array<Layer.Any>
   ): Effect<any, any, Exclude<R, ROut>> =>
     ServiceMap.isServiceMap(source)
       ? effect.provideServices(self, source)

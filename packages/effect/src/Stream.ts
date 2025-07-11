@@ -95,7 +95,7 @@ export type TypeId = "~effect/Stream"
  * @since 2.0.0
  * @category models
  */
-export interface Stream<out A, out E = never, out R = never> extends Stream.Variance<A, E, R>, Pipeable {
+export interface Stream<out A, out E = never, out R = never> extends Variance<A, E, R>, Pipeable {
   readonly channel: Channel.Channel<Arr.NonEmptyReadonlyArray<A>, E, void, unknown, unknown, unknown, R>
   [Unify.typeSymbol]?: unknown
   [Unify.unifySymbol]?: StreamUnify<this>
@@ -166,115 +166,95 @@ export interface StreamTypeLambda extends TypeLambda {
 }
 
 /**
- * A namespace containing utility types and interfaces for Stream operations.
+ * Variance interface for Stream, encoding the type parameters' variance.
  *
  * @example
  * ```ts
  * import { Stream } from "effect"
  *
- * // Using Stream namespace utility types
- * type StreamSuccess = Stream.Stream.Success<Stream.Stream<number, string, never>>
- * // StreamSuccess is number
- *
- * type StreamError = Stream.Stream.Error<Stream.Stream<number, string, never>>
- * // StreamError is string
+ * // Used internally to ensure proper type variance
+ * declare const variance: Stream.Stream.Variance<string, Error, never>
  * ```
  *
- * @category types
  * @since 2.0.0
+ * @category models
  */
-export declare namespace Stream {
-  /**
-   * Variance interface for Stream, encoding the type parameters' variance.
-   *
-   * @example
-   * ```ts
-   * import { Stream } from "effect"
-   *
-   * // Used internally to ensure proper type variance
-   * declare const variance: Stream.Stream.Variance<string, Error, never>
-   * ```
-   *
-   * @since 2.0.0
-   * @category models
-   */
-  export interface Variance<out A, out E, out R> {
-    readonly [TypeId]: VarianceStruct<A, E, R>
-  }
-
-  /**
-   * Structure encoding the variance of Stream type parameters.
-   *
-   * @example
-   * ```ts
-   * import { Stream } from "effect"
-   *
-   * // Internal variance structure
-   * declare const struct: Stream.Stream.VarianceStruct<number, string, never>
-   * ```
-   *
-   * @since 3.4.0
-   * @category models
-   */
-  export interface VarianceStruct<out A, out E, out R> {
-    readonly _A: Covariant<A>
-    readonly _E: Covariant<E>
-    readonly _R: Covariant<R>
-  }
-
-  /**
-   * Extract the success type from a Stream type.
-   *
-   * @example
-   * ```ts
-   * import { Stream } from "effect"
-   *
-   * type NumberStream = Stream.Stream<number, string, never>
-   * type SuccessType = Stream.Stream.Success<NumberStream>
-   * // SuccessType is number
-   * ```
-   *
-   * @since 3.4.0
-   * @category type-level
-   */
-  export type Success<T extends Stream<any, any, any>> = [T] extends [Stream<infer _A, infer _E, infer _R>] ? _A : never
-
-  /**
-   * Extract the error type from a Stream type.
-   *
-   * @example
-   * ```ts
-   * import { Stream } from "effect"
-   *
-   * type NumberStream = Stream.Stream<number, string, never>
-   * type ErrorType = Stream.Stream.Error<NumberStream>
-   * // ErrorType is string
-   * ```
-   *
-   * @since 3.4.0
-   * @category type-level
-   */
-  export type Error<T extends Stream<any, any, any>> = [T] extends [Stream<infer _A, infer _E, infer _R>] ? _E : never
-
-  /**
-   * Extract the context type from a Stream type.
-   *
-   * @example
-   * ```ts
-   * import { Stream } from "effect"
-   *
-   * interface Database { query: (sql: string) => unknown }
-   * type NumberStream = Stream.Stream<number, string, { db: Database }>
-   * type Services = Stream.Stream.ServiceMap<NumberStream>
-   * // Services is { db: Database }
-   * ```
-   *
-   * @since 3.4.0
-   * @category type-level
-   */
-  export type ServiceMap<T extends Stream<any, any, any>> = [T] extends [Stream<infer _A, infer _E, infer _R>] ? _R
-    : never
+export interface Variance<out A, out E, out R> {
+  readonly [TypeId]: VarianceStruct<A, E, R>
 }
+
+/**
+ * Structure encoding the variance of Stream type parameters.
+ *
+ * @example
+ * ```ts
+ * import { Stream } from "effect"
+ *
+ * // Internal variance structure
+ * declare const struct: Stream.Stream.VarianceStruct<number, string, never>
+ * ```
+ *
+ * @since 3.4.0
+ * @category models
+ */
+export interface VarianceStruct<out A, out E, out R> {
+  readonly _A: Covariant<A>
+  readonly _E: Covariant<E>
+  readonly _R: Covariant<R>
+}
+
+/**
+ * Extract the success type from a Stream type.
+ *
+ * @example
+ * ```ts
+ * import { Stream } from "effect"
+ *
+ * type NumberStream = Stream.Stream<number, string, never>
+ * type SuccessType = Stream.Stream.Success<NumberStream>
+ * // SuccessType is number
+ * ```
+ *
+ * @since 3.4.0
+ * @category type-level
+ */
+export type Success<T extends Stream<any, any, any>> = [T] extends [Stream<infer _A, infer _E, infer _R>] ? _A : never
+
+/**
+ * Extract the error type from a Stream type.
+ *
+ * @example
+ * ```ts
+ * import { Stream } from "effect"
+ *
+ * type NumberStream = Stream.Stream<number, string, never>
+ * type ErrorType = Stream.Stream.Error<NumberStream>
+ * // ErrorType is string
+ * ```
+ *
+ * @since 3.4.0
+ * @category type-level
+ */
+export type Error<T extends Stream<any, any, any>> = [T] extends [Stream<infer _A, infer _E, infer _R>] ? _E : never
+
+/**
+ * Extract the context type from a Stream type.
+ *
+ * @example
+ * ```ts
+ * import { Stream } from "effect"
+ *
+ * interface Database { query: (sql: string) => unknown }
+ * type NumberStream = Stream.Stream<number, string, { db: Database }>
+ * type Services = Stream.Stream.ServiceMap<NumberStream>
+ * // Services is { db: Database }
+ * ```
+ *
+ * @since 3.4.0
+ * @category type-level
+ */
+export type Services<T extends Stream<any, any, any>> = [T] extends [Stream<infer _A, infer _E, infer _R>] ? _R
+  : never
 
 const streamVariance = {
   _R: identity,

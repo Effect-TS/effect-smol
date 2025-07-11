@@ -180,7 +180,7 @@ export interface Channel<
   in InErr = unknown,
   in InDone = unknown,
   out Env = never
-> extends Channel.Variance<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>, Pipeable {
+> extends Variance<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>, Pipeable {
   [Unify.typeSymbol]?: unknown
   [Unify.unifySymbol]?: ChannelUnify<this>
   [Unify.ignoreSymbol]?: ChannelUnifyIgnore
@@ -231,70 +231,55 @@ export interface ChannelUnifyIgnore extends Effect.EffectUnifyIgnore {
  * ```ts
  * import { Channel } from "effect"
  *
- * // The Channel namespace contains types and utilities
- * type ChannelType = Channel.Channel<string>
- * type ChannelWithError = Channel.Channel<string, Error, number>
+ * // Variance interface defines the variance annotations for Channel types
+ * // This ensures proper type safety for contravariant and covariant positions
+ * type StringChannel = Channel.Channel<string, Error, number>
  * ```
  *
  * @since 2.0.0
- * @category namespace
+ * @category models
  */
-export declare namespace Channel {
-  /**
-   * @example
-   * ```ts
-   * import { Channel } from "effect"
-   *
-   * // Variance interface defines the variance annotations for Channel types
-   * // This ensures proper type safety for contravariant and covariant positions
-   * type StringChannel = Channel.Channel<string, Error, number>
-   * ```
-   *
-   * @since 2.0.0
-   * @category models
-   */
-  export interface Variance<
-    out OutElem,
-    out OutErr,
-    out OutDone,
-    in InElem,
-    in InErr,
-    in InDone,
-    out Env
-  > {
-    readonly [TypeId]: VarianceStruct<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>
-  }
-  /**
-   * @example
-   * ```ts
-   * import { Channel } from "effect"
-   *
-   * // VarianceStruct contains the actual variance markers for type checking
-   * // This is used internally to ensure proper subtyping relationships
-   * type StringChannel = Channel.Channel<string, Error, number>
-   * // VarianceStruct is used internally for type variance
-   * ```
-   *
-   * @since 2.0.0
-   * @category models
-   */
-  export interface VarianceStruct<
-    out OutElem,
-    out OutErr,
-    out OutDone,
-    in InElem,
-    in InErr,
-    in InDone,
-    out Env
-  > {
-    _Env: Types.Covariant<Env>
-    _InErr: Types.Contravariant<InErr>
-    _InElem: Types.Contravariant<InElem>
-    _InDone: Types.Contravariant<InDone>
-    _OutErr: Types.Covariant<OutErr>
-    _OutElem: Types.Covariant<OutElem>
-    _OutDone: Types.Covariant<OutDone>
-  }
+export interface Variance<
+  out OutElem,
+  out OutErr,
+  out OutDone,
+  in InElem,
+  in InErr,
+  in InDone,
+  out Env
+> {
+  readonly [TypeId]: VarianceStruct<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>
+}
+/**
+ * @example
+ * ```ts
+ * import { Channel } from "effect"
+ *
+ * // VarianceStruct contains the actual variance markers for type checking
+ * // This is used internally to ensure proper subtyping relationships
+ * type StringChannel = Channel.Channel<string, Error, number>
+ * // VarianceStruct is used internally for type variance
+ * ```
+ *
+ * @since 2.0.0
+ * @category models
+ */
+export interface VarianceStruct<
+  out OutElem,
+  out OutErr,
+  out OutDone,
+  in InElem,
+  in InErr,
+  in InDone,
+  out Env
+> {
+  _Env: Types.Covariant<Env>
+  _InErr: Types.Contravariant<InErr>
+  _InElem: Types.Contravariant<InElem>
+  _InDone: Types.Contravariant<InDone>
+  _OutErr: Types.Covariant<OutErr>
+  _OutElem: Types.Covariant<OutElem>
+  _OutDone: Types.Covariant<OutDone>
 }
 
 const ChannelProto = {

@@ -1664,68 +1664,13 @@ export const CurrentMetricAttributes = ServiceMap.Reference<Metric.AttributeSet>
 /**
  * Service key for the current metric registry context.
  *
- * @example
- * ```ts
- * import { Metric, Effect, Layer, Data } from "effect"
- *
- * class RegistryError extends Data.TaggedError("RegistryError")<{
- *   readonly operation: string
- * }> {}
- *
- * const program = Effect.gen(function* () {
- *   // The key is used internally by the Effect runtime to manage metric registry
- *   const key = Metric.CurrentMetricRegistryKey
- *   console.log("Registry key:", key) // "effect/Metric/CurrentMetricRegistry"
- *
- *   // Create a custom registry
- *   const customRegistry = new Map()
- *
- *   // Use with Layer to provide custom registry
- *   const layer = Layer.succeed(Metric.CurrentMetricRegistry, customRegistry)
- *
- *   return yield* Effect.gen(function* () {
- *     const counter = Metric.counter("test_counter")
- *     yield* Metric.update(counter, 1)
- *     return yield* Metric.value(counter)
- *   }).pipe(Effect.provide(layer))
- * })
- * ```
- *
  * @since 4.0.0
  * @category References
  */
 export const MetricRegistryKey = "effect/Metric/CurrentMetricRegistry" as const
 
 /**
- * Service class for managing the current metric registry context.
- *
- * @example
- * ```ts
- * import { Metric, Effect, Layer, Data } from "effect"
- *
- * class RegistryError extends Data.TaggedError("RegistryError")<{
- *   readonly operation: string
- * }> {}
- *
- * const program = Effect.gen(function* () {
- *   // Access the current metric registry
- *   const registry = yield* Metric.CurrentMetricRegistry
- *   console.log("Registry size:", registry.size)
- *
- *   // Create metrics and observe registry growth
- *   const counter = Metric.counter("requests")
- *   const gauge = Metric.gauge("memory_usage")
- *
- *   yield* Metric.update(counter, 1)
- *   yield* Metric.update(gauge, 1024)
- *
- *   // Check registry after adding metrics
- *   const updatedRegistry = yield* Metric.CurrentMetricRegistry
- *   console.log("Updated registry size:", updatedRegistry.size)
- *
- *   return updatedRegistry
- * })
- * ```
+ * Service class for accessing the current metric registry.
  *
  * @since 4.0.0
  * @category References

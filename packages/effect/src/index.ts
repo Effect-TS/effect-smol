@@ -310,7 +310,7 @@ export * as Chunk from "./Chunk.js"
  *
  * // Using Clock service directly
  * const program = Effect.gen(function* () {
- *   const clock = yield* Clock.CurrentClock
+ *   const clock = yield* Clock.Clock
  *   const currentTime = yield* clock.currentTimeMillis
  *   console.log(`Current time: ${currentTime}`)
  *
