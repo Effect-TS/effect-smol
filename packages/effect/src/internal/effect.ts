@@ -2048,11 +2048,11 @@ export const replicateEffect: {
 /** @internal */
 export const forever: {
   <
-    Args extends [self: Effect.Effect<any, any, any>, options?: {
-      readonly autoYield?: boolean | undefined
-    }] | [options?: {
-      readonly autoYield?: boolean | undefined
-    }]
+    Args extends
+      | [options: { readonly autoYield?: boolean | undefined } | undefined]
+      | [self: Effect.Effect<any, any, any>, options: { readonly autoYield?: boolean | undefined } | undefined]
+      | [self: Effect.Effect<any, any, any>]
+      | []
   >(
     ...args: Args
   ): [Args[0]] extends [Effect.Effect<infer _A, infer _E, infer _R>] ? Effect.Effect<never, _E, _R>

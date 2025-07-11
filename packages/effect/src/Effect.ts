@@ -5814,11 +5814,10 @@ export declare namespace Repeat {
  */
 export const forever: <
   Args extends
-    | [
-      self: Effect<any, any, any>,
-      options?: { readonly autoYield?: boolean | undefined }
-    ]
-    | [options?: { readonly autoYield?: boolean | undefined }]
+    | [options: { readonly autoYield?: boolean | undefined } | undefined]
+    | [self: Effect<any, any, any>, options: { readonly autoYield?: boolean | undefined } | undefined]
+    | [self: Effect<any, any, any>]
+    | []
 >(
   ...args: Args
 ) => [Args[0]] extends [Effect<infer _A, infer _E, infer _R>] ? Effect<never, _E, _R>
