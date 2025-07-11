@@ -3313,7 +3313,7 @@ const original = Schema.Union([
 const tagged = original.pipe(Util.asTaggedUnion("_tag"))
 ```
 
-### Accessing Members by Tag
+#### Accessing Members by Tag
 
 The `membersByTag` property gives direct access to each member schema of the union.
 
@@ -3325,7 +3325,7 @@ const B = tagged.membersByTag.B
 const C = tagged.membersByTag.C
 ```
 
-#### is
+#### Checking Membership
 
 Use the `is` method to check if an `unknown` value is a valid member of the union.
 
@@ -3337,7 +3337,7 @@ console.log(tagged.is({ _tag: "C", c: true })) // true
 console.log(tagged.is({ _tag: "A", b: 1 })) // false
 ```
 
-#### isAnyOf
+#### Checking Membership in a Subset of Tags
 
 The `isAnyOf` method lets you check if a value belongs to a selected subset of tags.
 
@@ -3350,7 +3350,7 @@ console.log(tagged.isAnyOf(["A", "B"])({ _tag: "B", b: 1 })) // true
 console.log(tagged.isAnyOf(["A", "B"])({ _tag: "C", c: true })) // false
 ```
 
-#### guards
+#### Type Guards
 
 The `guards` property provides a type guard for each tag.
 
@@ -3363,7 +3363,7 @@ console.log(tagged.guards.B({ _tag: "B", b: 1 })) // true
 console.log(tagged.guards.A({ _tag: "B", b: 1 })) // false
 ```
 
-#### match
+#### Matching on a Tag
 
 You can define a matcher function using the `match` method. This is a concise way to handle each variant of the union.
 
