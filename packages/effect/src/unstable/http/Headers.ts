@@ -20,6 +20,7 @@ import type { Mutable } from "../../Types.js"
  * @since 4.0.0
  * @category type ids
  */
+// note: this is a symbol to allow direct access of keys without conflicts
 export const TypeId: unique symbol = Symbol.for("effect/http/Headers")
 
 /**

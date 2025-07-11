@@ -3070,31 +3070,30 @@ export const acquireUseRelease = <Resource, E, R, A, E2, R2, E3, R3>(
 export const cachedInvalidateWithTTL: {
   (timeToLive: Duration.DurationInput): <A, E, R>(
     self: Effect.Effect<A, E, R>
-  ) => Effect.Effect<[Effect.Effect<A, E>, Effect.Effect<void>], never, R>
+  ) => Effect.Effect<[Effect.Effect<A, E, R>, Effect.Effect<void>]>
   <A, E, R>(
     self: Effect.Effect<A, E, R>,
     timeToLive: Duration.DurationInput
-  ): Effect.Effect<[Effect.Effect<A, E>, Effect.Effect<void>], never, R>
+  ): Effect.Effect<[Effect.Effect<A, E, R>, Effect.Effect<void>]>
 } = dual(2, <A, E, R>(
   self: Effect.Effect<A, E, R>,
   ttl: Duration.DurationInput
-): Effect.Effect<[Effect.Effect<A, E>, Effect.Effect<void>], never, R> =>
-  withFiber((fiber) => {
-    const services = fiber.services as ServiceMap.ServiceMap<R>
+): Effect.Effect<[Effect.Effect<A, E, R>, Effect.Effect<void>]> =>
+  sync(() => {
     const ttlMillis = Duration.toMillis(ttl)
     const latch = unsafeMakeLatch(false)
     let expiresAt = 0
     let running = false
     let exit: Exit.Exit<A, E> | undefined
     const wait = flatMap(latch.await, () => exit!)
-    return succeed([
+    return [
       withFiber((fiber) => {
         const now = fiber.getRef(ClockRef).unsafeCurrentTimeMillis()
         if (running || now < expiresAt) return exit ?? wait
         running = true
         latch.unsafeClose()
         exit = undefined
-        return onExit(provideServices(self, services), (exit_) => {
+        return onExit(self, (exit_) => {
           running = false
           expiresAt = now + ttlMillis
           exit = exit_
@@ -3106,28 +3105,28 @@ export const cachedInvalidateWithTTL: {
         latch.unsafeClose()
         exit = undefined
       })
-    ])
+    ]
   }))
 
 /** @internal */
 export const cachedWithTTL: {
   (
     timeToLive: Duration.DurationInput
-  ): <A, E, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<Effect.Effect<A, E>, never, R>
+  ): <A, E, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<Effect.Effect<A, E, R>>
   <A, E, R>(
     self: Effect.Effect<A, E, R>,
     timeToLive: Duration.DurationInput
-  ): Effect.Effect<Effect.Effect<A, E>, never, R>
+  ): Effect.Effect<Effect.Effect<A, E, R>>
 } = dual(
   2,
   <A, E, R>(
     self: Effect.Effect<A, E, R>,
     timeToLive: Duration.DurationInput
-  ): Effect.Effect<Effect.Effect<A, E>, never, R> => map(cachedInvalidateWithTTL(self, timeToLive), (tuple) => tuple[0])
+  ): Effect.Effect<Effect.Effect<A, E, R>> => map(cachedInvalidateWithTTL(self, timeToLive), (tuple) => tuple[0])
 )
 
 /** @internal */
-export const cached = <A, E, R>(self: Effect.Effect<A, E, R>): Effect.Effect<Effect.Effect<A, E>, never, R> =>
+export const cached = <A, E, R>(self: Effect.Effect<A, E, R>): Effect.Effect<Effect.Effect<A, E, R>> =>
   cachedWithTTL(self, Duration.infinity)
 
 // ----------------------------------------------------------------------------

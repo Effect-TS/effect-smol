@@ -5188,9 +5188,7 @@ export const onExit: {
  * @since 2.0.0
  * @category Caching
  */
-export const cached: <A, E, R>(
-  self: Effect<A, E, R>
-) => Effect<Effect<A, E>, never, R> = internal.cached
+export const cached: <A, E, R>(self: Effect<A, E, R>) => Effect<Effect<A, E, R>> = internal.cached
 
 /**
  * Returns an effect that caches its result for a specified `Duration`,
@@ -5259,13 +5257,8 @@ export const cached: <A, E, R>(
  * @category Caching
  */
 export const cachedWithTTL: {
-  (
-    timeToLive: Duration.DurationInput
-  ): <A, E, R>(self: Effect<A, E, R>) => Effect<Effect<A, E>, never, R>
-  <A, E, R>(
-    self: Effect<A, E, R>,
-    timeToLive: Duration.DurationInput
-  ): Effect<Effect<A, E>, never, R>
+  (timeToLive: Duration.DurationInput): <A, E, R>(self: Effect<A, E, R>) => Effect<Effect<A, E, R>>
+  <A, E, R>(self: Effect<A, E, R>, timeToLive: Duration.DurationInput): Effect<Effect<A, E, R>>
 } = internal.cachedWithTTL
 
 /**
@@ -5338,15 +5331,8 @@ export const cachedWithTTL: {
  * @category Caching
  */
 export const cachedInvalidateWithTTL: {
-  (
-    timeToLive: Duration.DurationInput
-  ): <A, E, R>(
-    self: Effect<A, E, R>
-  ) => Effect<[Effect<A, E>, Effect<void>], never, R>
-  <A, E, R>(
-    self: Effect<A, E, R>,
-    timeToLive: Duration.DurationInput
-  ): Effect<[Effect<A, E>, Effect<void>], never, R>
+  (timeToLive: Duration.DurationInput): <A, E, R>(self: Effect<A, E, R>) => Effect<[Effect<A, E, R>, Effect<void>]>
+  <A, E, R>(self: Effect<A, E, R>, timeToLive: Duration.DurationInput): Effect<[Effect<A, E, R>, Effect<void>]>
 } = internal.cachedInvalidateWithTTL
 
 // -----------------------------------------------------------------------------
