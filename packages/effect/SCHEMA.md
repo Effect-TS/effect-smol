@@ -1932,6 +1932,37 @@ const schema = A.mapFields(
 )
 ```
 
+### Tagged Structs
+
+A tagged struct is a struct that includes a `_tag` field. This field is used to identify the specific variant of the object, which is especially useful when working with union types.
+
+When using the `makeSync` method, the `_tag` field is optional and will be added automatically. However, when decoding or encoding, the `_tag` field must be present in the input.
+
+**Example** (Tagged struct as a shorthand for a struct with a `_tag` field)
+
+```ts
+import { Schema } from "effect/schema"
+
+// Defines a struct with a fixed `_tag` field
+const tagged = Schema.TaggedStruct("A", {
+  a: Schema.String
+})
+
+// This is the same as writing:
+const equivalent = Schema.Struct({
+  _tag: Schema.tag("A"),
+  a: Schema.String
+})
+```
+
+**Example** (Accessing the literal value of the tag)
+
+```ts
+// The `_tag` field is a schema with a known literal value
+const literal = tagged.fields._tag.schema.literal
+// literal: "A"
+```
+
 ## Opaque Structs
 
 Use an opaque struct when you want to create a distinct type from a `Struct` without adding runtime behavior.

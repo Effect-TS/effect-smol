@@ -2776,7 +2776,9 @@ export interface withConstructorDefault<S extends Top> extends
     S["~encoded.mutability"],
     S["~encoded.optionality"]
   >
-{}
+{
+  readonly schema: S
+}
 
 /**
  * @since 4.0.0
@@ -2784,11 +2786,12 @@ export interface withConstructorDefault<S extends Top> extends
 export function withConstructorDefault<S extends Top & { readonly "~type.constructor.default": "no-default" }>(
   defaultValue: (
     input: O.Option<undefined>
-    // `"~type.make.in"` is intentional here because it makes easier to define the default value
+    // `S["~type.make.in"]` instead of `S["Type"]` is intentional here because
+    // it makes easier to define the default value if there are nested defaults
   ) => O.Option<S["~type.make.in"]> | Effect.Effect<O.Option<S["~type.make.in"]>>
 ) {
   return (self: S): withConstructorDefault<S> => {
-    return make<withConstructorDefault<S>>(AST.withConstructorDefault(self.ast, defaultValue))
+    return new makeWithSchema$<S, withConstructorDefault<S>>(AST.withConstructorDefault(self.ast, defaultValue), self)
   }
 }
 
@@ -2813,19 +2816,42 @@ export function tag<Tag extends AST.Literal>(literal: Tag): tag<Tag> {
 }
 
 /**
- * A tagged struct is a struct that has a `_tag` property that is used to
- * distinguish between different types of objects.
+ * A tagged struct is a struct that includes a `_tag` field. This field is used
+ * to identify the specific variant of the object, which is especially useful
+ * when working with union types.
  *
- * The `_tag` is optional when using the `makeSync` method, but it is required
- * when decoding / encoding.
+ * When using the `makeSync` method, the `_tag` field is optional and will be
+ * added automatically. However, when decoding or encoding, the `_tag` field
+ * must be present in the input.
  *
- * **Example** (Tagged structs are equivalent to structs with a `_tag` field)
+ * **Example** (Tagged struct as a shorthand for a struct with a `_tag` field)
  *
  * ```ts
- * const tagged = Schema.TaggedStruct("A", { a: Schema.String })
+ * import { Schema } from "effect/schema"
  *
- * // Equivalent to the tagged struct
- * const equivalent = Schema.Struct({ _tag: Schema.tag("A"), a: Schema.String })
+ * // Defines a struct with a fixed `_tag` field
+ * const tagged = Schema.TaggedStruct("A", {
+ *   a: Schema.String
+ * })
+ *
+ * // This is the same as writing:
+ * const equivalent = Schema.Struct({
+ *   _tag: Schema.tag("A"),
+ *   a: Schema.String
+ * })
+ * ```
+ *
+ * **Example** (Accessing the literal value of the tag)
+ *
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * const tagged = Schema.TaggedStruct("A", {
+ *   a: Schema.String
+ * })
+ *
+ * // literal: "A"
+ * const literal = tagged.fields._tag.schema.literal
  * ```
  *
  * @category Constructors

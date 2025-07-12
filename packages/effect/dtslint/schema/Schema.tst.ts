@@ -1750,6 +1750,14 @@ describe("Schema", () => {
   })
 
   describe("withConstructorDefault", () => {
+    it("should be possible to access the original schema", () => {
+      const schema = Schema.Struct({
+        a: Schema.String.pipe(Schema.withConstructorDefault(() => Option.some("a")))
+      })
+
+      expect(schema.fields.a.schema).type.toBe<Schema.String>()
+    })
+
     it("effectful", () => {
       const service = hole<ServiceMap.Key<"Tag", "-">>()
 
@@ -2421,6 +2429,13 @@ describe("Schema", () => {
         })
       })
     })
+  })
+
+  it("tag", () => {
+    const schema = Schema.tag("A")
+    expect(schema).type.toBe<Schema.tag<"A">>()
+    expect(schema.schema).type.toBe<Schema.Literal<"A">>()
+    expect(schema.schema.literal).type.toBe<"A">()
   })
 
   it("TaggedStruct", () => {
