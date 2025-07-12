@@ -20,7 +20,8 @@
     "./package.json": "./package.json",
     ".": "./src/index.ts",
     "./*": "./src/*.ts",
-    "./internal/*": null
+    "./internal/*": null,
+    "./*/index": null
   },
   "files": [
     "src",
@@ -40,7 +41,8 @@
         "default": "./dist/*.js",
         "types": "./dist/*.d.ts"
       },
-      "./internal/*": null
+      "./internal/*": null,
+      "./*/index": null
     }
   },
   "scripts": {

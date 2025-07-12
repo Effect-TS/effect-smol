@@ -37,7 +37,8 @@
     "./unstable/socket": "./src/unstable/socket/index.ts",
     "./unstable/tracing": "./src/unstable/tracing/index.ts",
     "./*": "./src/*.ts",
-    "./internal/*": null
+    "./internal/*": null,
+    "./*/index": null
   },
   "files": [
     "src",
@@ -77,7 +78,8 @@
         "default": "./dist/*.js",
         "types": "./dist/*.d.ts"
       },
-      "./internal/*": null
+      "./internal/*": null,
+      "./*/index": null
     }
   },
   "scripts": {
