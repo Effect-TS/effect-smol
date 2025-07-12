@@ -56,7 +56,7 @@
       },
       "./config": {
         "default": "./dist/config/index.js",
-        "types": "./dist/config.index.d.ts"
+        "types": "./dist/config/index.d.ts"
       },
       "./schema": {
         "default": "./dist/schema/index.js",
