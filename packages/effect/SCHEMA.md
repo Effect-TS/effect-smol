@@ -3324,6 +3324,33 @@ type Type = {
 type Type = (typeof schema)["Type"]
 ```
 
+### 🆕 Tagged Unions
+
+You can define a tagged union using the `Util.TaggedUnion` helper. This is useful when combining multiple tagged structs into a union.
+
+**Example** (Defining a tagged union with `Util.TaggedUnion`)
+
+```ts
+import { Schema, Util } from "effect/schema"
+
+// Create a union of two tagged structs
+const schema = Util.TaggedUnion({
+  A: { a: Schema.String },
+  B: { b: Schema.Finite }
+})
+```
+
+This is equivalent to writing:
+
+```ts
+const schema = Schema.Union([
+  Schema.TaggedStruct("A", { a: Schema.String }),
+  Schema.TaggedStruct("B", { b: Schema.Finite })
+])
+```
+
+The result is a tagged union schema with built-in helpers based on the tag values. See the next section for more details.
+
 ### 🆕 Augmenting Tagged Unions
 
 The `asTaggedUnion` function enhances a tagged union schema by adding helper methods for working with its members.
@@ -3352,22 +3379,7 @@ This helper has some advantages over a dedicated constructor:
 - You can choose among multiple possible tag fields if present.
 - It supports unions that include nested unions.
 
-If the tag is the standard `_tag` field, you can use `Schema.TaggedStruct` directly to define the union members.
-
-**Example** (Enriching a union of tagged structs)
-
-```ts
-import { Schema, Util } from "effect/schema"
-
-const original = Schema.Union([
-  Schema.TaggedStruct("A", { a: Schema.String }),
-  Schema.TaggedStruct("B", { b: Schema.Finite }),
-  Schema.TaggedStruct("C", { c: Schema.Boolean })
-])
-
-// Enrich the union with tag-based utilities
-const tagged = original.pipe(Util.asTaggedUnion("_tag"))
-```
+**Note**. If the tag is the standard `_tag` field, you can use `Util.TaggedUnion` instead.
 
 #### Accessing Members by Tag
 

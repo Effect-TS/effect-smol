@@ -1,7 +1,7 @@
 import { pipe } from "effect"
 import { Schema, Util } from "effect/schema"
 import { describe, it } from "vitest"
-import { assertFalse, assertTrue, deepStrictEqual } from "../utils/assert.js"
+import { assertFalse, assertTrue, deepStrictEqual, strictEqual } from "../utils/assert.js"
 
 describe("Util", () => {
   describe("asTaggedUnion", () => {
@@ -103,6 +103,25 @@ describe("Util", () => {
       // cases
       deepStrictEqual(schema.cases.TypeA, schema.members[0])
       deepStrictEqual(schema.cases.TypeB, schema.members[1])
+    })
+  })
+
+  describe("TaggedUnion", () => {
+    it("should create a tagged union", () => {
+      const schema = Util.TaggedUnion({
+        A: { a: Schema.String },
+        B: { b: Schema.Finite }
+      })
+
+      const [A, B] = schema.members
+
+      strictEqual(A.fields._tag.ast.literal, "A")
+      strictEqual(A.fields.a, Schema.String)
+      strictEqual(B.fields._tag.ast.literal, "B")
+      strictEqual(B.fields.b, Schema.Finite)
+
+      strictEqual(schema.cases.A.makeSync, A.makeSync)
+      strictEqual(schema.cases.B.makeSync, B.makeSync)
     })
   })
 })

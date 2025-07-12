@@ -517,3 +517,12 @@ export type NotFunction<T> = T extends Function ? never : T
  * @category types
  */
 export type NoExcessProperties<T, U> = T & Readonly<Record<Exclude<keyof U, keyof T>, never>>
+
+type LastOf<U> = UnionToIntersection<U extends any ? (x: U) => void : never> extends (x: infer L) => void ? L
+  : never
+
+/**
+ * @since 4.0.0
+ */
+export type UnionToTuple<U, L = LastOf<U>> = [U] extends [never] ? readonly []
+  : readonly [...UnionToTuple<Exclude<U, L>>, L]

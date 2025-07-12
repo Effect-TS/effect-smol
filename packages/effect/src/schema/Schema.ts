@@ -2816,6 +2816,13 @@ export function tag<Tag extends AST.Literal>(literal: Tag): tag<Tag> {
 }
 
 /**
+ * @since 4.0.0
+ */
+export type TaggedStruct<Tag extends AST.Literal, Fields extends Struct.Fields> = Struct<
+  { readonly _tag: tag<Tag> } & Fields
+>
+
+/**
  * A tagged struct is a struct that includes a `_tag` field. This field is used
  * to identify the specific variant of the object, which is especially useful
  * when working with union types.
@@ -2860,7 +2867,7 @@ export function tag<Tag extends AST.Literal>(literal: Tag): tag<Tag> {
 export function TaggedStruct<const Tag extends AST.Literal, const Fields extends Struct.Fields>(
   value: Tag,
   fields: Fields
-) {
+): TaggedStruct<Tag, Fields> {
   return Struct({ _tag: tag(value), ...fields })
 }
 

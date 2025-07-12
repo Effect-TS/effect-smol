@@ -4,6 +4,7 @@
 import { identity } from "../Function.js"
 import * as Predicate from "../Predicate.js"
 import type * as Struct from "../Struct.js"
+import type * as Types from "../Types.js"
 import type * as Annotations from "./Annotations.js"
 import * as AST from "./AST.js"
 import * as Schema from "./Schema.js"
@@ -41,7 +42,7 @@ type Flatten<Schemas> = Schemas extends readonly [infer Head, ...infer Tail]
   : [Head, ...Flatten<Tail>]
   : []
 
-type TaggedUnion<
+type TaggedUnionUtils<
   Tag extends PropertyKey,
   Members extends ReadonlyArray<Schema.Top & { readonly Type: { readonly [K in Tag]: PropertyKey } }>,
   Flattened extends ReadonlyArray<Schema.Top & { readonly Type: { readonly [K in Tag]: PropertyKey } }> = Flatten<
@@ -85,7 +86,7 @@ function getTag(tag: PropertyKey, ast: AST.AST): PropertyKey | undefined {
 export type asTaggedUnion<
   Tag extends PropertyKey,
   Members extends ReadonlyArray<Schema.Top & { readonly Type: { readonly [K in Tag]: PropertyKey } }>
-> = Schema.Union<Members> & TaggedUnion<Tag, Members>
+> = Schema.Union<Members> & TaggedUnionUtils<Tag, Members>
 
 /**
  * @since 4.0.0
@@ -131,4 +132,25 @@ export function asTaggedUnion<const Tag extends PropertyKey>(tag: Tag) {
 
     return Object.assign(self, { cases, is, isAnyOf, guards, match }) as any
   }
+}
+
+type TaggedUnion<
+  O extends Record<string, Schema.Struct.Fields>,
+  Members = Types.UnionToTuple<
+    { readonly [K in keyof O & string]: Schema.TaggedStruct<K, O[K]> }[keyof O & string]
+  >
+> = Members extends ReadonlyArray<Schema.Top & { readonly Type: { readonly _tag: PropertyKey } }>
+  ? asTaggedUnion<"_tag", Members>
+  : never
+
+/**
+ * @since 4.0.0
+ * @experimental
+ */
+export function TaggedUnion<const O extends Record<string, Schema.Struct.Fields>>(
+  o: O
+): TaggedUnion<O> {
+  return (Schema.Union(Object.keys(o).map((key) => Schema.TaggedStruct(key, o[key]))) as any).pipe(
+    asTaggedUnion("_tag")
+  )
 }

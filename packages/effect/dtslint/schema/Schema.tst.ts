@@ -10,7 +10,7 @@ import {
   Tuple,
 } from "effect"
 import type { Issue } from 'effect/schema';
-import { AST, Check, Getter, Schema, Transformation } from 'effect/schema'
+import { AST, Check, Getter, Schema, Transformation, Util } from 'effect/schema'
 import type { NonEmptyReadonlyArray } from "effect/Array"
 import { immerable, produce } from "immer"
 import { describe, expect, it, when } from "tstyche"
@@ -2444,7 +2444,26 @@ describe("Schema", () => {
     })
 
     expect(schema).type.toBe<
+      Schema.TaggedStruct<"A", { readonly a: Schema.String }>
+    >()
+    expect(schema).type.toBe<
       Schema.Struct<{ readonly _tag: Schema.tag<"A">; } & { readonly a: Schema.String }>
     >()
+  })
+
+  it("TaggedUnion", () => {
+    const schema = Util.TaggedUnion({
+      A: { a: Schema.String },
+      B: { b: Schema.Number }
+    })
+
+    expect(schema.members).type.toBe<
+      readonly [
+        Schema.TaggedStruct<"A", { readonly a: Schema.String }>,
+        Schema.TaggedStruct<"B", { readonly b: Schema.Number }>
+      ]
+    >()
+    expect(schema.cases.A).type.toBe<Schema.TaggedStruct<"A", { readonly a: Schema.String }>>()
+    expect(schema.cases.B).type.toBe<Schema.TaggedStruct<"B", { readonly b: Schema.Number }>>()
   })
 })
