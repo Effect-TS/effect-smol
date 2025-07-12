@@ -77,8 +77,10 @@ export const Scheduler: ServiceMap.Reference<Scheduler> = ServiceMap.Reference<S
 
 const setImmediate = "setImmediate" in globalThis
   ? (f: () => void) => {
+    // @ts-ignore
     const timer = globalThis.setImmediate(f)
-    return () => clearImmediate(timer)
+    // @ts-ignore
+    return () => globalThis.clearImmediate(timer)
   }
   : (f: () => void) => {
     const timer = setTimeout(f, 0)

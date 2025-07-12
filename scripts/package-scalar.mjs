@@ -1,5 +1,5 @@
 /* eslint-disable no-undef */
-import * as Fs from "fs/promises"
+import * as Fs from "node:fs/promises"
 
 const jsBundle = await fetch(
   "https://cdn.jsdelivr.net/npm/@scalar/api-reference@latest/dist/browser/standalone.min.js"

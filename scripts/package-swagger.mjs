@@ -1,5 +1,5 @@
 /* eslint-disable no-undef */
-import * as Fs from "fs/promises"
+import * as Fs from "node:fs/promises"
 
 const jsBundle = await fetch(
   "https://unpkg.com/swagger-ui-dist/swagger-ui-bundle.js"
