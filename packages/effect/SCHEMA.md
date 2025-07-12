@@ -3295,11 +3295,11 @@ type Type = (typeof schema)["Type"]
 
 ### 🆕 Augmenting Tagged Unions
 
-The `asTaggedUnion` function allows you to enhance a tagged union schema with extra methods. This is useful when you need better tooling to work with union members at runtime.
+The `asTaggedUnion` function enhances a tagged union schema by adding helper methods for working with its members.
 
-You must provide the name of the tag field used to discriminate between variants.
+You need to specify the name of the tag field used to differentiate between variants.
 
-**Example** (Augmenting a union schema with `_tag`)
+**Example** (Adding tag-based helpers to a union)
 
 ```ts
 import { Schema, Util } from "effect/schema"
@@ -3310,8 +3310,16 @@ const original = Schema.Union([
   Schema.Struct({ _tag: Schema.tag("C"), c: Schema.Boolean })
 ])
 
+// Enrich the union with tag-based utilities
 const tagged = original.pipe(Util.asTaggedUnion("_tag"))
 ```
+
+This helper has some advantages over a dedicated constructor:
+
+- It does not require changes to the original schema, just call a helper.
+- You can apply it to schemas from external sources.
+- You can choose among multiple possible tag fields if present.
+- It supports unions that include nested unions.
 
 #### Accessing Members by Tag
 
