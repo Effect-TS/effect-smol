@@ -7,7 +7,7 @@ import { dual } from "./Function.js"
 import type * as Option from "./Option.js"
 import * as Predicate from "./Predicate.js"
 import type * as Result from "./Result.js"
-import type { ExcludeTag, ExtractTag, Tags } from "./Types.js"
+import type { EqualsWith, ExcludeTag, ExtractTag, Tags } from "./Types.js"
 
 /**
  * Represents a filter function that can transform inputs to outputs or filter them out.
@@ -243,7 +243,7 @@ export {
  * @category Constructors
  */
 export const fromPredicate: {
-  <A, B extends A>(refinement: Predicate.Refinement<A, B>): Filter<A, B>
+  <A, B extends A>(refinement: Predicate.Refinement<A, B>): Filter<A, B , EqualsWith<A, B, A, Exclude<A, B>>>
   <A>(predicate: Predicate.Predicate<A>): Filter<A>
 } = <A, B extends A = A>(predicate: Predicate.Predicate<A> | Predicate.Refinement<A, B>): Filter<A, B> => (input: A) =>
   predicate(input) ? input as B : fail(input)
