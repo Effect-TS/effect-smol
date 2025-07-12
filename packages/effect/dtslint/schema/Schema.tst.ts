@@ -10,7 +10,7 @@ import {
   Tuple,
 } from "effect"
 import type { Issue } from 'effect/schema';
-import { AST, Check, Getter, Schema, Transformation, Util } from 'effect/schema'
+import { AST, Check, Getter, Schema, Transformation } from 'effect/schema'
 import type { NonEmptyReadonlyArray } from "effect/Array"
 import { immerable, produce } from "immer"
 import { describe, expect, it, when } from "tstyche"
@@ -2452,7 +2452,7 @@ describe("Schema", () => {
   })
 
   it("TaggedUnion", () => {
-    const schema = Util.TaggedUnion({
+    const schema = Schema.TaggedUnion({
       A: { a: Schema.String },
       B: { b: Schema.Number }
     })
@@ -2465,5 +2465,19 @@ describe("Schema", () => {
     >()
     expect(schema.cases.A).type.toBe<Schema.TaggedStruct<"A", { readonly a: Schema.String }>>()
     expect(schema.cases.B).type.toBe<Schema.TaggedStruct<"B", { readonly b: Schema.Number }>>()
+  })
+
+  describe("TaggedUnion", () => {
+    describe("asTaggedUnion", () => {
+      it("should throw if the tag field is invalid", () => {
+        const original = Schema.Union([
+          Schema.Struct({ _tag: Schema.tag("A"), a: Schema.String }),
+          Schema.Struct({ _tag: Schema.tag("B"), b: Schema.Finite })
+        ])
+
+        expect(original.pipe).type.toBeCallableWith(Schema.asTaggedUnion("_tag"))
+        expect(original.pipe).type.not.toBeCallableWith(Schema.asTaggedUnion("a"))
+      })
+    })
   })
 })

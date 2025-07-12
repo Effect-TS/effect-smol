@@ -3326,15 +3326,15 @@ type Type = (typeof schema)["Type"]
 
 ### 🆕 Tagged Unions
 
-You can define a tagged union using the `Util.TaggedUnion` helper. This is useful when combining multiple tagged structs into a union.
+You can define a tagged union using the `Schema.TaggedUnion` helper. This is useful when combining multiple tagged structs into a union.
 
-**Example** (Defining a tagged union with `Util.TaggedUnion`)
+**Example** (Defining a tagged union with `Schema.TaggedUnion`)
 
 ```ts
-import { Schema, Util } from "effect/schema"
+import { Schema } from "effect/schema"
 
 // Create a union of two tagged structs
-const schema = Util.TaggedUnion({
+const schema = Schema.TaggedUnion({
   A: { a: Schema.String },
   B: { b: Schema.Finite }
 })
@@ -3360,7 +3360,7 @@ You need to specify the name of the tag field used to differentiate between vari
 **Example** (Adding tag-based helpers to a union)
 
 ```ts
-import { Schema, Util } from "effect/schema"
+import { Schema } from "effect/schema"
 
 const original = Schema.Union([
   Schema.Struct({ type: Schema.tag("A"), a: Schema.String }),
@@ -3369,7 +3369,7 @@ const original = Schema.Union([
 ])
 
 // Enrich the union with tag-based utilities
-const tagged = original.pipe(Util.asTaggedUnion("type"))
+const tagged = original.pipe(Schema.asTaggedUnion("type"))
 ```
 
 This helper has some advantages over a dedicated constructor:
@@ -3379,7 +3379,7 @@ This helper has some advantages over a dedicated constructor:
 - You can choose among multiple possible tag fields if present.
 - It supports unions that include nested unions.
 
-**Note**. If the tag is the standard `_tag` field, you can use `Util.TaggedUnion` instead.
+**Note**. If the tag is the standard `_tag` field, you can use `Schema.TaggedUnion` instead.
 
 #### Accessing Members by Tag
 
