@@ -22,6 +22,7 @@ import * as Result from "../Result.js"
 import * as Scheduler from "../Scheduler.js"
 import type { Lambda, Merge, Mutable, Simplify } from "../Struct.js"
 import { lambda, renameKeys } from "../Struct.js"
+import type * as Types from "../Types.js"
 import type * as Annotations from "./Annotations.js"
 import * as AST from "./AST.js"
 import * as Check from "./Check.js"
@@ -2776,7 +2777,9 @@ export interface withConstructorDefault<S extends Top> extends
     S["~encoded.mutability"],
     S["~encoded.optionality"]
   >
-{}
+{
+  readonly schema: S
+}
 
 /**
  * @since 4.0.0
@@ -2784,11 +2787,12 @@ export interface withConstructorDefault<S extends Top> extends
 export function withConstructorDefault<S extends Top & { readonly "~type.constructor.default": "no-default" }>(
   defaultValue: (
     input: O.Option<undefined>
-    // `"~type.make.in"` is intentional here because it makes easier to define the default value
+    // `S["~type.make.in"]` instead of `S["Type"]` is intentional here because
+    // it makes easier to define the default value if there are nested defaults
   ) => O.Option<S["~type.make.in"]> | Effect.Effect<O.Option<S["~type.make.in"]>>
 ) {
   return (self: S): withConstructorDefault<S> => {
-    return make<withConstructorDefault<S>>(AST.withConstructorDefault(self.ast, defaultValue))
+    return new makeWithSchema$<S, withConstructorDefault<S>>(AST.withConstructorDefault(self.ast, defaultValue), self)
   }
 }
 
@@ -2810,6 +2814,183 @@ export interface tag<Tag extends AST.Literal> extends withConstructorDefault<Lit
  */
 export function tag<Tag extends AST.Literal>(literal: Tag): tag<Tag> {
   return Literal(literal).pipe(withConstructorDefault(() => O.some(literal)))
+}
+
+/**
+ * @since 4.0.0
+ */
+export type TaggedStruct<Tag extends AST.Literal, Fields extends Struct.Fields> = Struct<
+  { readonly _tag: tag<Tag> } & Fields
+>
+
+/**
+ * A tagged struct is a struct that includes a `_tag` field. This field is used
+ * to identify the specific variant of the object, which is especially useful
+ * when working with union types.
+ *
+ * When using the `makeSync` method, the `_tag` field is optional and will be
+ * added automatically. However, when decoding or encoding, the `_tag` field
+ * must be present in the input.
+ *
+ * **Example** (Tagged struct as a shorthand for a struct with a `_tag` field)
+ *
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Defines a struct with a fixed `_tag` field
+ * const tagged = Schema.TaggedStruct("A", {
+ *   a: Schema.String
+ * })
+ *
+ * // This is the same as writing:
+ * const equivalent = Schema.Struct({
+ *   _tag: Schema.tag("A"),
+ *   a: Schema.String
+ * })
+ * ```
+ *
+ * **Example** (Accessing the literal value of the tag)
+ *
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * const tagged = Schema.TaggedStruct("A", {
+ *   a: Schema.String
+ * })
+ *
+ * // literal: "A"
+ * const literal = tagged.fields._tag.schema.literal
+ * ```
+ *
+ * @category Constructors
+ * @since 4.0.0
+ */
+export function TaggedStruct<const Tag extends AST.Literal, const Fields extends Struct.Fields>(
+  value: Tag,
+  fields: Fields
+): TaggedStruct<Tag, Fields> {
+  return Struct({ _tag: tag(value), ...fields })
+}
+
+/**
+ * Recursively flatten any nested Schema.Union members into a single tuple of leaf schemas.
+ */
+type Flatten<Schemas> = Schemas extends readonly [infer Head, ...infer Tail]
+  ? Head extends Union<infer Inner> ? [...Flatten<Inner>, ...Flatten<Tail>]
+  : [Head, ...Flatten<Tail>]
+  : []
+
+type TaggedUnionUtils<
+  Tag extends PropertyKey,
+  Members extends ReadonlyArray<Top & { readonly Type: { readonly [K in Tag]: PropertyKey } }>,
+  Flattened extends ReadonlyArray<Top & { readonly Type: { readonly [K in Tag]: PropertyKey } }> = Flatten<
+    Members
+  >
+> = {
+  readonly cases: Simplify<{ [M in Flattened[number] as M["Type"][Tag]]: M }>
+  readonly is: <I>(input: I) => input is I & Members[number]["Type"]
+  readonly isAnyOf: <const Keys>(
+    keys: ReadonlyArray<Keys>
+  ) => (value: Members[number]["Type"]) => value is Extract<Members[number]["Type"], { _tag: Keys }>
+  readonly guards: { [M in Flattened[number] as M["Type"][Tag]]: (u: unknown) => u is M["Type"] }
+  readonly match: {
+    <Output>(
+      value: Members[number]["Type"],
+      cases: { [M in Flattened[number] as M["Type"][Tag]]: (value: M["Type"]) => Output }
+    ): Output
+    <Output>(
+      cases: { [M in Flattened[number] as M["Type"][Tag]]: (value: M["Type"]) => Output }
+    ): (value: Members[number]["Type"]) => Output
+  }
+}
+
+function getTag(tag: PropertyKey, ast: AST.AST): PropertyKey | undefined {
+  if (AST.isTypeLiteral(ast)) {
+    const ps = ast.propertySignatures.find((p) => p.name === tag)
+    if (ps) {
+      if (AST.isLiteralType(ps.type) && Predicate.isPropertyKey(ps.type.literal)) {
+        return ps.type.literal
+      } else if (AST.isUniqueSymbol(ps.type)) {
+        return ps.type.symbol
+      }
+    }
+  }
+}
+
+/**
+ * @since 4.0.0
+ * @experimental
+ */
+export type asTaggedUnion<
+  Tag extends PropertyKey,
+  Members extends ReadonlyArray<Top & { readonly Type: { readonly [K in Tag]: PropertyKey } }>
+> = Union<Members> & TaggedUnionUtils<Tag, Members>
+
+/**
+ * @since 4.0.0
+ * @experimental
+ */
+export function asTaggedUnion<const Tag extends PropertyKey>(tag: Tag) {
+  return <const Members extends ReadonlyArray<Top & { readonly Type: { readonly [K in Tag]: PropertyKey } }>>(
+    self: Union<Members>
+  ): asTaggedUnion<Tag, Members> => {
+    const cases: Record<PropertyKey, unknown> = {}
+    const guards: Record<PropertyKey, (u: unknown) => boolean> = {}
+    const isAny = is(typeCodec(self))
+    const isAnyOf = (keys: ReadonlyArray<PropertyKey>) => (value: Members[number]["Type"]) => keys.includes(value[tag])
+
+    function process(schema: any) {
+      const ast = schema.ast
+      if (AST.isUnionType(ast)) {
+        schema.members.forEach(process)
+      } else if (AST.isTypeLiteral(ast)) {
+        const value = getTag(tag, ast)
+        if (value) {
+          cases[value] = schema
+          guards[value] = is(typeCodec(schema))
+        }
+      } else {
+        throw new Error("No literal found")
+      }
+    }
+
+    process(self)
+
+    function match() {
+      if (arguments.length === 1) {
+        const cases = arguments[0]
+        return function(value: any) {
+          return cases[value[tag]](value)
+        }
+      }
+      const value = arguments[0]
+      const cases = arguments[1]
+      return cases[value[tag]](value)
+    }
+
+    return Object.assign(self, { cases, is: isAny, isAnyOf, guards, match }) as any
+  }
+}
+
+type TaggedUnion<
+  O extends Record<string, Struct.Fields>,
+  Members = Types.UnionToTuple<
+    { readonly [K in keyof O & string]: TaggedStruct<K, O[K]> }[keyof O & string]
+  >
+> = Members extends ReadonlyArray<Top & { readonly Type: { readonly _tag: PropertyKey } }>
+  ? asTaggedUnion<"_tag", Members>
+  : never
+
+/**
+ * @since 4.0.0
+ * @experimental
+ */
+export function TaggedUnion<const O extends Record<string, Struct.Fields>>(
+  o: O
+): TaggedUnion<O> {
+  return (Union(Object.keys(o).map((key) => TaggedStruct(key, o[key]))) as any).pipe(
+    asTaggedUnion("_tag")
+  )
 }
 
 /**
@@ -3214,29 +3395,6 @@ export const FiniteFromString: FiniteFromString = String.pipe(
     Transformation.numberFromString
   )
 )
-
-/**
- * @since 4.0.0
- */
-export function getNativeClassSchema<C extends new(...args: any) => any, S extends Struct<Struct.Fields>>(
-  constructor: C,
-  options: {
-    readonly encoding: S
-    readonly annotations?: Annotations.Declaration<InstanceType<C>, readonly []>
-  }
-): decodeTo<instanceOf<InstanceType<C>>, S, never, never> {
-  const transformation = Transformation.transform<InstanceType<C>, S["Type"]>({
-    decode: (props) => new constructor(props),
-    encode: identity
-  })
-  return instanceOf({
-    constructor,
-    annotations: {
-      defaultJsonSerializer: () => link<InstanceType<C>>()(options.encoding, transformation),
-      ...options.annotations
-    }
-  }).pipe(encodeTo(options.encoding, transformation))
-}
 
 //
 // Class APIs

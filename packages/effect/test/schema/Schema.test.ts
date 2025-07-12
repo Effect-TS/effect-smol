@@ -1,4 +1,17 @@
-import { BigInt, Effect, Equal, flow, Option, Order, Predicate, ServiceMap, String as Str, Struct, Tuple } from "effect"
+import {
+  BigInt,
+  Effect,
+  Equal,
+  flow,
+  Option,
+  Order,
+  pipe,
+  Predicate,
+  ServiceMap,
+  String as Str,
+  Struct,
+  Tuple
+} from "effect"
 import { AST, Check, Getter, Issue, Schema, ToParser, Transformation } from "effect/schema"
 import { produce } from "immer"
 import { describe, it } from "vitest"
@@ -5317,6 +5330,132 @@ describe("SchemaGetter", () => {
       await assertions.encoding.succeed(DiscriminatedShape, { radius: 1, kind: "circle" }, { expected: { radius: 1 } })
       await assertions.encoding.succeed(DiscriminatedShape, { sideLength: 1, kind: "square" }, {
         expected: { sideLength: 1 }
+      })
+    })
+  })
+
+  describe("TaggedUnion", () => {
+    describe("asTaggedUnion", () => {
+      it("should augment a union", () => {
+        const b = Symbol.for("B")
+        const schema = Schema.Union([
+          Schema.Struct({ _tag: Schema.Literal("A"), a: Schema.String }),
+          Schema.Struct({ _tag: Schema.UniqueSymbol(b), b: Schema.FiniteFromString }),
+          Schema.Union([
+            Schema.Struct({ _tag: Schema.Literal(1), c: Schema.Boolean }),
+            Schema.Struct({ _tag: Schema.Literal("D"), d: Schema.Date })
+          ])
+        ]).pipe(Schema.asTaggedUnion("_tag"))
+
+        // cases
+        deepStrictEqual(schema.cases.A, schema.members[0])
+        deepStrictEqual(schema.cases[b], schema.members[1])
+        deepStrictEqual(schema.cases[1], schema.members[2].members[0])
+        deepStrictEqual(schema.cases["1"], schema.members[2].members[0])
+        deepStrictEqual(schema.cases.D, schema.members[2].members[1])
+
+        // is
+        assertTrue(schema.is({ _tag: "A", a: "a" }))
+        assertFalse(schema.is({ _tag: "A", a: 1 }))
+
+        assertTrue(schema.is({ _tag: b, b: 1 }))
+        assertFalse(schema.is({ _tag: b, b: "b" }))
+
+        assertTrue(schema.is({ _tag: 1, c: true }))
+        assertFalse(schema.is({ _tag: 1, c: 1 }))
+
+        assertTrue(schema.is({ _tag: "D", d: new Date() }))
+        assertFalse(schema.is({ _tag: "D", d: "d" }))
+
+        assertFalse(schema.is(null))
+        assertFalse(schema.is({}))
+
+        // isAnyOf
+        const isAOr1 = schema.isAnyOf(["A", 1])
+        assertTrue(isAOr1({ _tag: "A", a: "a" }))
+        assertTrue(isAOr1({ _tag: 1, c: true }))
+        assertFalse(isAOr1({ _tag: "D", d: new Date() }))
+        assertFalse(isAOr1({ _tag: b, b: 1 }))
+
+        // guards
+        assertTrue(schema.guards.A({ _tag: "A", a: "a" }))
+        assertFalse(schema.guards.A({ _tag: "A", a: 1 }))
+
+        assertTrue(schema.guards[b]({ _tag: b, b: 1 }))
+        assertFalse(schema.guards[b]({ _tag: b, b: "b" }))
+
+        assertTrue(schema.guards[1]({ _tag: 1, c: true }))
+        assertFalse(schema.guards[1]({ _tag: 1, c: 1 }))
+
+        assertTrue(schema.guards.D({ _tag: "D", d: new Date() }))
+        assertFalse(schema.guards.D({ _tag: "D", d: "d" }))
+
+        // match
+        deepStrictEqual(
+          schema.match({ _tag: "A", a: "a" }, { A: () => "A", [b]: () => "B", 1: () => "C", D: () => "D" }),
+          "A"
+        )
+        deepStrictEqual(
+          pipe({ _tag: "A", a: "a" }, schema.match({ A: () => "A", [b]: () => "B", 1: () => "C", D: () => "D" })),
+          "A"
+        )
+        deepStrictEqual(
+          schema.match({ _tag: b, b: 1 }, { A: () => "A", [b]: () => "B", 1: () => "C", D: () => "D" }),
+          "B"
+        )
+        deepStrictEqual(
+          pipe({ _tag: b, b: 1 }, schema.match({ A: () => "A", [b]: () => "B", 1: () => "C", D: () => "D" })),
+          "B"
+        )
+        deepStrictEqual(
+          schema.match({ _tag: 1, c: true }, { A: () => "A", [b]: () => "B", 1: () => "C", D: () => "D" }),
+          "C"
+        )
+        deepStrictEqual(
+          pipe({ _tag: 1, c: true }, schema.match({ A: () => "A", [b]: () => "B", 1: () => "C", D: () => "D" })),
+          "C"
+        )
+        deepStrictEqual(
+          schema.match({ _tag: "D", d: new Date() }, { A: () => "A", [b]: () => "B", 1: () => "C", D: () => "D" }),
+          "D"
+        )
+        deepStrictEqual(
+          pipe(
+            { _tag: "D", d: new Date() },
+            schema.match({ A: () => "A", [b]: () => "B", 1: () => "C", D: () => "D" })
+          ),
+          "D"
+        )
+      })
+
+      it("should support multiple tags", () => {
+        const schema = Schema.Union([
+          Schema.Struct({ _tag: Schema.tag("A"), type: Schema.tag("TypeA"), a: Schema.String }),
+          Schema.Struct({ _tag: Schema.tag("B"), type: Schema.tag("TypeB"), b: Schema.FiniteFromString })
+        ]).pipe(Schema.asTaggedUnion("type"))
+
+        // cases
+        deepStrictEqual(schema.cases.TypeA, schema.members[0])
+        deepStrictEqual(schema.cases.TypeB, schema.members[1])
+      })
+    })
+
+    describe("TaggedUnion", () => {
+      it("should create a tagged union", () => {
+        const schema = Schema.TaggedUnion({
+          A: { a: Schema.String },
+          B: { b: Schema.Finite }
+        })
+
+        const [A, B] = schema.members
+
+        strictEqual(A.fields._tag.ast.literal, "A")
+        strictEqual(A.fields.a, Schema.String)
+        strictEqual(B.fields._tag.ast.literal, "B")
+        strictEqual(B.fields.b, Schema.Finite)
+
+        strictEqual(schema.cases.A.makeSync, A.makeSync)
+        strictEqual(schema.cases.B.makeSync, B.makeSync)
       })
     })
   })

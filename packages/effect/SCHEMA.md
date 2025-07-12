@@ -1932,6 +1932,37 @@ const schema = A.mapFields(
 )
 ```
 
+### Tagged Structs
+
+A tagged struct is a struct that includes a `_tag` field. This field is used to identify the specific variant of the object, which is especially useful when working with union types.
+
+When using the `makeSync` method, the `_tag` field is optional and will be added automatically. However, when decoding or encoding, the `_tag` field must be present in the input.
+
+**Example** (Tagged struct as a shorthand for a struct with a `_tag` field)
+
+```ts
+import { Schema } from "effect/schema"
+
+// Defines a struct with a fixed `_tag` field
+const tagged = Schema.TaggedStruct("A", {
+  a: Schema.String
+})
+
+// This is the same as writing:
+const equivalent = Schema.Struct({
+  _tag: Schema.tag("A"),
+  a: Schema.String
+})
+```
+
+**Example** (Accessing the literal value of the tag)
+
+```ts
+// The `_tag` field is a schema with a known literal value
+const literal = tagged.fields._tag.schema.literal
+// literal: "A"
+```
+
 ## Opaque Structs
 
 Use an opaque struct when you want to create a distinct type from a `Struct` without adding runtime behavior.
@@ -2779,7 +2810,7 @@ class PersonWithEmail extends Person {
 
 ```ts
 import { Data, Effect, identity } from "effect"
-import { Transformation, Schema } from "effect/schema"
+import { Schema, Transformation, Util } from "effect/schema"
 
 const Props = Schema.Struct({
   message: Schema.String
@@ -2814,7 +2845,10 @@ Effect.runPromiseExit(program).then((exit) => console.log(JSON.stringify(exit, n
 }
 */
 
-const transformation = SchemaTransformation.transform<Err, (typeof Props)["Type"]>((props) => new Err(props), identity)
+const transformation = Transformation.transform<Err, (typeof Props)["Type"]>({
+  decode: (props) => new Err(props),
+  encode: identity
+})
 
 const schema = Schema.instanceOf({
   constructor: Err,
@@ -2827,7 +2861,7 @@ const schema = Schema.instanceOf({
 }).pipe(Schema.encodeTo(Props, transformation))
 
 // built-in helper?
-const builtIn = Schema.getNativeClassSchema(Err, { encoding: Props })
+const builtIn = Util.getNativeClassSchema(Err, { encoding: Props })
 ```
 
 ### Class API
@@ -3288,6 +3322,131 @@ type Type = {
 }
 */
 type Type = (typeof schema)["Type"]
+```
+
+### 🆕 Tagged Unions
+
+You can define a tagged union using the `Schema.TaggedUnion` helper. This is useful when combining multiple tagged structs into a union.
+
+**Example** (Defining a tagged union with `Schema.TaggedUnion`)
+
+```ts
+import { Schema } from "effect/schema"
+
+// Create a union of two tagged structs
+const schema = Schema.TaggedUnion({
+  A: { a: Schema.String },
+  B: { b: Schema.Finite }
+})
+```
+
+This is equivalent to writing:
+
+```ts
+const schema = Schema.Union([
+  Schema.TaggedStruct("A", { a: Schema.String }),
+  Schema.TaggedStruct("B", { b: Schema.Finite })
+])
+```
+
+The result is a tagged union schema with built-in helpers based on the tag values. See the next section for more details.
+
+### 🆕 Augmenting Tagged Unions
+
+The `asTaggedUnion` function enhances a tagged union schema by adding helper methods for working with its members.
+
+You need to specify the name of the tag field used to differentiate between variants.
+
+**Example** (Adding tag-based helpers to a union)
+
+```ts
+import { Schema } from "effect/schema"
+
+const original = Schema.Union([
+  Schema.Struct({ type: Schema.tag("A"), a: Schema.String }),
+  Schema.Struct({ type: Schema.tag("B"), b: Schema.Finite }),
+  Schema.Struct({ type: Schema.tag("C"), c: Schema.Boolean })
+])
+
+// Enrich the union with tag-based utilities
+const tagged = original.pipe(Schema.asTaggedUnion("type"))
+```
+
+This helper has some advantages over a dedicated constructor:
+
+- It does not require changes to the original schema, just call a helper.
+- You can apply it to schemas from external sources.
+- You can choose among multiple possible tag fields if present.
+- It supports unions that include nested unions.
+
+**Note**. If the tag is the standard `_tag` field, you can use `Schema.TaggedUnion` instead.
+
+#### Accessing Members by Tag
+
+The `cases` property gives direct access to each member schema of the union.
+
+**Example** (Getting a member schema from a tagged union)
+
+```ts
+const A = tagged.cases.A
+const B = tagged.cases.B
+const C = tagged.cases.C
+```
+
+#### Checking Membership
+
+Use the `is` method to check if an `unknown` value is a valid member of the union.
+
+```ts
+console.log(tagged.is({ type: "A", a: "a" })) // true
+console.log(tagged.is({ type: "B", b: 1 })) // true
+console.log(tagged.is({ type: "C", c: true })) // true
+
+console.log(tagged.is({ type: "A", b: 1 })) // false
+```
+
+#### Checking Membership in a Subset of Tags
+
+The `isAnyOf` method lets you check if a value belongs to a selected subset of tags.
+
+**Example** (Checking membership in a subset of union tags)
+
+```ts
+console.log(tagged.isAnyOf(["A", "B"])({ type: "A", a: "a" })) // true
+console.log(tagged.isAnyOf(["A", "B"])({ type: "B", b: 1 })) // true
+
+console.log(tagged.isAnyOf(["A", "B"])({ type: "C", c: true })) // false
+```
+
+#### Type Guards
+
+The `guards` property provides a type guard for each tag.
+
+**Example** (Using type guards for tagged members)
+
+```ts
+console.log(tagged.guards.A({ type: "A", a: "a" })) // true
+console.log(tagged.guards.B({ type: "B", b: 1 })) // true
+
+console.log(tagged.guards.A({ type: "B", b: 1 })) // false
+```
+
+#### Matching on a Tag
+
+You can define a matcher function using the `match` method. This is a concise way to handle each variant of the union.
+
+**Example** (Handling union members with `match`)
+
+```ts
+const matcher = tagged.match({
+  A: (a) => `This is an A: ${a.a}`,
+  B: (b) => `This is a B: ${b.b}`,
+  C: (c) => `This is a C: ${c.c}`
+})
+
+console.log(matcher({ type: "A", a: "a" })) // This is an A: a
+console.log(matcher({ type: "B", b: 1 })) // This is a B: 1
+console.log(matcher({ type: "C", c: true })) // This is a C: true
 ```
 
 ## Transformations Redesign

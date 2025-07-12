@@ -1750,6 +1750,14 @@ describe("Schema", () => {
   })
 
   describe("withConstructorDefault", () => {
+    it("should be possible to access the original schema", () => {
+      const schema = Schema.Struct({
+        a: Schema.String.pipe(Schema.withConstructorDefault(() => Option.some("a")))
+      })
+
+      expect(schema.fields.a.schema).type.toBe<Schema.String>()
+    })
+
     it("effectful", () => {
       const service = hole<ServiceMap.Key<"Tag", "-">>()
 
@@ -2419,6 +2427,56 @@ describe("Schema", () => {
             }
           }
         })
+      })
+    })
+  })
+
+  it("tag", () => {
+    const schema = Schema.tag("A")
+    expect(schema).type.toBe<Schema.tag<"A">>()
+    expect(schema.schema).type.toBe<Schema.Literal<"A">>()
+    expect(schema.schema.literal).type.toBe<"A">()
+  })
+
+  it("TaggedStruct", () => {
+    const schema = Schema.TaggedStruct("A", {
+      a: Schema.String
+    })
+
+    expect(schema).type.toBe<
+      Schema.TaggedStruct<"A", { readonly a: Schema.String }>
+    >()
+    expect(schema).type.toBe<
+      Schema.Struct<{ readonly _tag: Schema.tag<"A">; } & { readonly a: Schema.String }>
+    >()
+  })
+
+  it("TaggedUnion", () => {
+    const schema = Schema.TaggedUnion({
+      A: { a: Schema.String },
+      B: { b: Schema.Number }
+    })
+
+    expect(schema.members).type.toBe<
+      readonly [
+        Schema.TaggedStruct<"A", { readonly a: Schema.String }>,
+        Schema.TaggedStruct<"B", { readonly b: Schema.Number }>
+      ]
+    >()
+    expect(schema.cases.A).type.toBe<Schema.TaggedStruct<"A", { readonly a: Schema.String }>>()
+    expect(schema.cases.B).type.toBe<Schema.TaggedStruct<"B", { readonly b: Schema.Number }>>()
+  })
+
+  describe("TaggedUnion", () => {
+    describe("asTaggedUnion", () => {
+      it("should throw if the tag field is invalid", () => {
+        const original = Schema.Union([
+          Schema.Struct({ _tag: Schema.tag("A"), a: Schema.String }),
+          Schema.Struct({ _tag: Schema.tag("B"), b: Schema.Finite })
+        ])
+
+        expect(original.pipe).type.toBeCallableWith(Schema.asTaggedUnion("_tag"))
+        expect(original.pipe).type.not.toBeCallableWith(Schema.asTaggedUnion("a"))
       })
     })
   })

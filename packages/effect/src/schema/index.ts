@@ -77,3 +77,8 @@ export * as ToPretty from "./ToPretty.js"
  * @since 4.0.0
  */
 export * as Transformation from "./Transformation.js"
+
+/**
+ * @since 4.0.0
+ */
+export * as Util from "./Util.js"
