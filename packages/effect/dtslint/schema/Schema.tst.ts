@@ -2422,4 +2422,14 @@ describe("Schema", () => {
       })
     })
   })
+
+  it("TaggedStruct", () => {
+    const schema = Schema.TaggedStruct("A", {
+      a: Schema.String
+    })
+
+    expect(schema).type.toBe<
+      Schema.Struct<{ readonly _tag: Schema.tag<"A">; } & { readonly a: Schema.String }>
+    >()
+  })
 })

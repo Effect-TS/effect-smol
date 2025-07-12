@@ -3305,13 +3305,13 @@ You need to specify the name of the tag field used to differentiate between vari
 import { Schema, Util } from "effect/schema"
 
 const original = Schema.Union([
-  Schema.Struct({ _tag: Schema.tag("A"), a: Schema.String }),
-  Schema.Struct({ _tag: Schema.tag("B"), b: Schema.Finite }),
-  Schema.Struct({ _tag: Schema.tag("C"), c: Schema.Boolean })
+  Schema.Struct({ type: Schema.tag("A"), a: Schema.String }),
+  Schema.Struct({ type: Schema.tag("B"), b: Schema.Finite }),
+  Schema.Struct({ type: Schema.tag("C"), c: Schema.Boolean })
 ])
 
 // Enrich the union with tag-based utilities
-const tagged = original.pipe(Util.asTaggedUnion("_tag"))
+const tagged = original.pipe(Util.asTaggedUnion("type"))
 ```
 
 This helper has some advantages over a dedicated constructor:
@@ -3320,6 +3320,23 @@ This helper has some advantages over a dedicated constructor:
 - You can apply it to schemas from external sources.
 - You can choose among multiple possible tag fields if present.
 - It supports unions that include nested unions.
+
+If the tag is the standard `_tag` field, you can use `Schema.TaggedStruct` directly to define the union members.
+
+**Example** (Enriching a union of tagged structs)
+
+```ts
+import { Schema, Util } from "effect/schema"
+
+const original = Schema.Union([
+  Schema.TaggedStruct("A", { a: Schema.String }),
+  Schema.TaggedStruct("B", { b: Schema.Finite }),
+  Schema.TaggedStruct("C", { c: Schema.Boolean })
+])
+
+// Enrich the union with tag-based utilities
+const tagged = original.pipe(Util.asTaggedUnion("_tag"))
+```
 
 #### Accessing Members by Tag
 
@@ -3338,11 +3355,11 @@ const C = tagged.cases.C
 Use the `is` method to check if an `unknown` value is a valid member of the union.
 
 ```ts
-console.log(tagged.is({ _tag: "A", a: "a" })) // true
-console.log(tagged.is({ _tag: "B", b: 1 })) // true
-console.log(tagged.is({ _tag: "C", c: true })) // true
+console.log(tagged.is({ type: "A", a: "a" })) // true
+console.log(tagged.is({ type: "B", b: 1 })) // true
+console.log(tagged.is({ type: "C", c: true })) // true
 
-console.log(tagged.is({ _tag: "A", b: 1 })) // false
+console.log(tagged.is({ type: "A", b: 1 })) // false
 ```
 
 #### Checking Membership in a Subset of Tags
@@ -3352,10 +3369,10 @@ The `isAnyOf` method lets you check if a value belongs to a selected subset of t
 **Example** (Checking membership in a subset of union tags)
 
 ```ts
-console.log(tagged.isAnyOf(["A", "B"])({ _tag: "A", a: "a" })) // true
-console.log(tagged.isAnyOf(["A", "B"])({ _tag: "B", b: 1 })) // true
+console.log(tagged.isAnyOf(["A", "B"])({ type: "A", a: "a" })) // true
+console.log(tagged.isAnyOf(["A", "B"])({ type: "B", b: 1 })) // true
 
-console.log(tagged.isAnyOf(["A", "B"])({ _tag: "C", c: true })) // false
+console.log(tagged.isAnyOf(["A", "B"])({ type: "C", c: true })) // false
 ```
 
 #### Type Guards
@@ -3365,10 +3382,10 @@ The `guards` property provides a type guard for each tag.
 **Example** (Using type guards for tagged members)
 
 ```ts
-console.log(tagged.guards.A({ _tag: "A", a: "a" })) // true
-console.log(tagged.guards.B({ _tag: "B", b: 1 })) // true
+console.log(tagged.guards.A({ type: "A", a: "a" })) // true
+console.log(tagged.guards.B({ type: "B", b: 1 })) // true
 
-console.log(tagged.guards.A({ _tag: "B", b: 1 })) // false
+console.log(tagged.guards.A({ type: "B", b: 1 })) // false
 ```
 
 #### Matching on a Tag
@@ -3378,15 +3395,15 @@ You can define a matcher function using the `match` method. This is a concise wa
 **Example** (Handling union members with `match`)
 
 ```ts
-const f = tagged.match({
+const matcher = tagged.match({
   A: (a) => `This is an A: ${a.a}`,
   B: (b) => `This is a B: ${b.b}`,
   C: (c) => `This is a C: ${c.c}`
 })
 
-console.log(f({ _tag: "A", a: "a" })) // This is an A: a
-console.log(f({ _tag: "B", b: 1 })) // This is a B: 1
-console.log(f({ _tag: "C", c: true })) // This is a C: true
+console.log(matcher({ type: "A", a: "a" })) // This is an A: a
+console.log(matcher({ type: "B", b: 1 })) // This is a B: 1
+console.log(matcher({ type: "C", c: true })) // This is a C: true
 ```
 
 ## Transformations Redesign

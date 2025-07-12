@@ -2813,6 +2813,32 @@ export function tag<Tag extends AST.Literal>(literal: Tag): tag<Tag> {
 }
 
 /**
+ * A tagged struct is a struct that has a `_tag` property that is used to
+ * distinguish between different types of objects.
+ *
+ * The `_tag` is optional when using the `makeSync` method, but it is required
+ * when decoding / encoding.
+ *
+ * **Example** (Tagged structs are equivalent to structs with a `_tag` field)
+ *
+ * ```ts
+ * const tagged = Schema.TaggedStruct("A", { a: Schema.String })
+ *
+ * // Equivalent to the tagged struct
+ * const equivalent = Schema.Struct({ _tag: Schema.tag("A"), a: Schema.String })
+ * ```
+ *
+ * @category Constructors
+ * @since 4.0.0
+ */
+export function TaggedStruct<const Tag extends AST.Literal, const Fields extends Struct.Fields>(
+  value: Tag,
+  fields: Fields
+) {
+  return Struct({ _tag: tag(value), ...fields })
+}
+
+/**
  * @since 4.0.0
  */
 export interface Option<S extends Top> extends declare<O.Option<S["Type"]>, O.Option<S["Encoded"]>, readonly [S]> {
