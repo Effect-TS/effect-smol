@@ -1259,7 +1259,7 @@ export const Redacted: {
   return primitive(name, (ctx) =>
     Effect.map(
       config.parse(ctx),
-      (value) => Redacted_.make(value, options)
+      (value) => Redacted_.make(value, { label: options?.label ?? name })
     ))
 }
 
