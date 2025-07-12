@@ -174,18 +174,15 @@ export const tracer: <E, R>(
         if (request.remoteAddress._tag === "Some") {
           span.attribute("client.address", request.remoteAddress.value)
         }
-        return Effect.flatMap(
-          Effect.exit(Effect.withParentSpan(httpApp, span)),
-          (exit) => {
-            const response = exitResponse(exit)
-            span.attribute("http.response.status_code", response.status)
-            const redactedHeaders = Headers.redact(response.headers, redactedHeaderNames)
-            for (const name in redactedHeaders) {
-              span.attribute(`http.response.header.${name}`, String(redactedHeaders[name]))
-            }
-            return exit
+        return Effect.onExitInterruptible(Effect.withParentSpan(httpApp, span), (exit) => {
+          const response = exitResponse(exit)
+          span.attribute("http.response.status_code", response.status)
+          const redactedHeaders = Headers.redact(response.headers, redactedHeaderNames)
+          for (const name in redactedHeaders) {
+            span.attribute(`http.response.header.${name}`, String(redactedHeaders[name]))
           }
-        )
+          return Effect.void
+        })
       }
     )
   })
