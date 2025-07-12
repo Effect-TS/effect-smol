@@ -300,6 +300,16 @@ export const fromChannel = <Arr extends Arr.NonEmptyReadonlyArray<any>, E, R>(
 }
 
 /**
+ * Either emits the success value of this effect or terminates the stream
+ * with the failure value of this effect.
+ *
+ * @since 2.0.0
+ * @category constructors
+ */
+export const fromEffect = <A, E, R>(effect: Effect.Effect<A, E, R>): Stream<A, E, R> =>
+  fromChannel(Channel.fromEffect(Effect.map(effect, Arr.of)))
+
+/**
  * Creates a stream from a pull effect.
  *
  * A pull effect is a low-level representation of a stream that can be used
@@ -1410,11 +1420,7 @@ const catch_: {
 } = dual(2, <A, E, R, A2, E2, R2>(
   self: Stream<A, E, R>,
   f: (error: E) => Stream<A2, E2, R2>
-): Stream<A | A2, E2, R | R2> =>
-  self.channel.pipe(
-    Channel.catch((error) => f(error).channel),
-    fromChannel
-  ))
+): Stream<A | A2, E2, R | R2> => fromChannel(Channel.catch(self.channel, (error) => f(error).channel)))
 
 export {
   /**
@@ -1423,6 +1429,20 @@ export {
    */
   catch_ as catch
 }
+
+/**
+ * Transforms the errors emitted by this stream using `f`.
+ *
+ * @since 2.0.0
+ * @category Error handling
+ */
+export const mapError: {
+  <E, E2>(f: (error: E) => E2): <A, R>(self: Stream<A, E, R>) => Stream<A, E2, R>
+  <A, E, R, E2>(self: Stream<A, E, R>, f: (error: E) => E2): Stream<A, E2, R>
+} = dual(2, <A, E, R, E2>(
+  self: Stream<A, E, R>,
+  f: (error: E) => E2
+): Stream<A, E2, R> => fromChannel(Channel.mapError(self.channel, f)))
 
 /**
  * Conditionally handles stream failures based on a predicate applied to the Cause.
@@ -1994,15 +2014,47 @@ export const encodeText = <E, R>(self: Stream<string, E, R>): Stream<Uint8Array,
  * @since 4.0.0
  * @category utils
  */
-export const onExit = dual<
+export const onExit: {
   <E, R2>(
     finalizer: (exit: Exit.Exit<unknown, E>) => Effect.Effect<unknown, never, R2>
-  ) => <A, R>(self: Stream<A, E, R>) => Stream<A, E, R | R2>,
+  ): <A, R>(self: Stream<A, E, R>) => Stream<A, E, R | R2>
   <A, E, R, R2>(
     self: Stream<A, E, R>,
     finalizer: (exit: Exit.Exit<unknown, E>) => Effect.Effect<unknown, never, R2>
-  ) => Stream<A, E, R | R2>
->(2, (self, finalizer) => fromChannel(Channel.onExit(self.channel, finalizer)))
+  ): Stream<A, E, R | R2>
+} = dual(2, <A, E, R, R2>(
+  self: Stream<A, E, R>,
+  finalizer: (exit: Exit.Exit<unknown, E>) => Effect.Effect<unknown, never, R2>
+): Stream<A, E, R | R2> => fromChannel(Channel.onExit(self.channel, finalizer)))
+
+/**
+ * @since 4.0.0
+ * @category utils
+ */
+export const ensuring: {
+  <R2>(finalizer: Effect.Effect<unknown, never, R2>): <A, E, R>(self: Stream<A, E, R>) => Stream<A, E, R | R2>
+  <A, E, R, R2>(self: Stream<A, E, R>, finalizer: Effect.Effect<unknown, never, R2>): Stream<A, E, R | R2>
+} = dual(
+  2,
+  <A, E, R, R2>(self: Stream<A, E, R>, finalizer: Effect.Effect<unknown, never, R2>): Stream<A, E, R | R2> =>
+    fromChannel(Channel.ensuring(self.channel, finalizer))
+)
+
+/**
+ * Provides the stream with some of its required services, which eliminates its
+ * dependency on `R`.
+ *
+ * @since 4.0.0
+ * @category context
+ */
+export const provideServices: {
+  <R2>(services: ServiceMap.ServiceMap<R2>): <A, E, R>(self: Stream<A, E, R>) => Stream<A, E, Exclude<R, R2>>
+  <A, E, R, R2>(self: Stream<A, E, R>, services: ServiceMap.ServiceMap<R2>): Stream<A, E, Exclude<R, R2>>
+} = dual(
+  2,
+  <A, E, R, R2>(self: Stream<A, E, R>, services: ServiceMap.ServiceMap<R2>): Stream<A, E, Exclude<R, R2>> =>
+    fromChannel(Channel.provideServices(self.channel, services))
+)
 
 /**
  * Runs the sink on the stream to produce either the sink's result or an error.

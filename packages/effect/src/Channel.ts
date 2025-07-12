@@ -2640,6 +2640,29 @@ export {
 }
 
 /**
+ * Returns a new channel, which is the same as this one, except the failure
+ * value of the returned channel is created by applying the specified function
+ * to the failure value of this channel.
+ *
+ * @since 2.0.0
+ * @category Error handling
+ */
+export const mapError: {
+  <OutErr, OutErr2>(
+    f: (err: OutErr) => OutErr2
+  ): <OutElem, OutDone, InElem, InErr, InDone, Env>(
+    self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>
+  ) => Channel<OutElem, OutErr2, OutDone, InElem, InErr, InDone, Env>
+  <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, OutErr2>(
+    self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
+    f: (err: OutErr) => OutErr2
+  ): Channel<OutElem, OutErr2, OutDone, InElem, InErr, InDone, Env>
+} = dual(2, <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, OutErr2>(
+  self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
+  f: (err: OutErr) => OutErr2
+): Channel<OutElem, OutErr2, OutDone, InElem, InErr, InDone, Env> => catch_(self, (err) => fail(f(err))))
+
+/**
  * Converts all errors in the channel to defects (unrecoverable failures).
  * This is useful when you want to treat errors as programming errors.
  *
@@ -3455,6 +3478,26 @@ const runWith = <
       Effect.onExit((exit) => Scope.close(scope, exit))
     ) as any
   })
+
+/**
+ * @since 4.0.0
+ * @category Services
+ */
+export const provideServices: {
+  <R2>(
+    services: ServiceMap.ServiceMap<R2>
+  ): <OutElem, OutErr, OutDone, InElem, InErr, InDone, R>(
+    self: Channel<OutElem, InElem, OutErr, InErr, OutDone, InDone, R>
+  ) => Channel<OutElem, InElem, OutErr, InErr, OutDone, InDone, Exclude<R, R2>>
+  <OutElem, OutErr, OutDone, InElem, InErr, InDone, R, R2>(
+    self: Channel<OutElem, InElem, OutErr, InErr, OutDone, InDone, R>,
+    services: ServiceMap.ServiceMap<R2>
+  ): Channel<OutElem, InElem, OutErr, InErr, OutDone, InDone, Exclude<R, R2>>
+} = dual(2, <OutElem, OutErr, OutDone, InElem, InErr, InDone, R, R2>(
+  self: Channel<OutElem, InElem, OutErr, InErr, OutDone, InDone, R>,
+  services: ServiceMap.ServiceMap<R2>
+): Channel<OutElem, InElem, OutErr, InErr, OutDone, InDone, Exclude<R, R2>> =>
+  fromTransform((upstream, scope) => Effect.provideServices(toTransform(self)(upstream, scope), services)))
 
 /**
  * Runs a channel and counts the number of elements it outputs.

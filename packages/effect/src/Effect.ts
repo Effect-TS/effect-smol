@@ -5118,6 +5118,20 @@ export const onExit: {
   ): Effect<A, E, R | R2>
 } = internal.onExit
 
+/**
+ * @since 4.0.0
+ * @category Resource management & finalization
+ */
+export const onExitInterruptible: {
+  <A, E, X, R2>(
+    cleanup: (exit: Exit.Exit<A, E>) => Effect<X, never, R2>
+  ): <R>(self: Effect<A, E, R>) => Effect<A, E, R2 | R>
+  <A, E, R, X, R2>(
+    self: Effect<A, E, R>,
+    cleanup: (exit: Exit.Exit<A, E>) => Effect<X, never, R2>
+  ): Effect<A, E, R | R2>
+} = internal.onExitInterruptible
+
 // -----------------------------------------------------------------------------
 // Caching
 // -----------------------------------------------------------------------------
@@ -5185,9 +5199,7 @@ export const onExit: {
  * @since 2.0.0
  * @category Caching
  */
-export const cached: <A, E, R>(
-  self: Effect<A, E, R>
-) => Effect<Effect<A, E>, never, R> = internal.cached
+export const cached: <A, E, R>(self: Effect<A, E, R>) => Effect<Effect<A, E, R>> = internal.cached
 
 /**
  * Returns an effect that caches its result for a specified `Duration`,
@@ -5256,13 +5268,8 @@ export const cached: <A, E, R>(
  * @category Caching
  */
 export const cachedWithTTL: {
-  (
-    timeToLive: Duration.DurationInput
-  ): <A, E, R>(self: Effect<A, E, R>) => Effect<Effect<A, E>, never, R>
-  <A, E, R>(
-    self: Effect<A, E, R>,
-    timeToLive: Duration.DurationInput
-  ): Effect<Effect<A, E>, never, R>
+  (timeToLive: Duration.DurationInput): <A, E, R>(self: Effect<A, E, R>) => Effect<Effect<A, E, R>>
+  <A, E, R>(self: Effect<A, E, R>, timeToLive: Duration.DurationInput): Effect<Effect<A, E, R>>
 } = internal.cachedWithTTL
 
 /**
@@ -5335,15 +5342,8 @@ export const cachedWithTTL: {
  * @category Caching
  */
 export const cachedInvalidateWithTTL: {
-  (
-    timeToLive: Duration.DurationInput
-  ): <A, E, R>(
-    self: Effect<A, E, R>
-  ) => Effect<[Effect<A, E>, Effect<void>], never, R>
-  <A, E, R>(
-    self: Effect<A, E, R>,
-    timeToLive: Duration.DurationInput
-  ): Effect<[Effect<A, E>, Effect<void>], never, R>
+  (timeToLive: Duration.DurationInput): <A, E, R>(self: Effect<A, E, R>) => Effect<[Effect<A, E, R>, Effect<void>]>
+  <A, E, R>(self: Effect<A, E, R>, timeToLive: Duration.DurationInput): Effect<[Effect<A, E, R>, Effect<void>]>
 } = internal.cachedInvalidateWithTTL
 
 // -----------------------------------------------------------------------------

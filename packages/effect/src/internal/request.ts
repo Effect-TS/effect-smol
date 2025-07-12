@@ -41,7 +41,7 @@ export const request: {
         Request.Error<A>,
         Request.Services<A>
       >((resume) => {
-        const entry = addEntry(resolver, self, resume, effect.getCurrentFiberOrUndefined()!)
+        const entry = addEntry(resolver, self, resume, effect.getCurrentFiber()!)
         return maybeRemoveEntry(resolver, entry)
       })
     return isEffect(resolver) ? effect.flatMap(resolver, withResolver) : withResolver(resolver)
