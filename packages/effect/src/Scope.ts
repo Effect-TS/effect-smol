@@ -80,7 +80,7 @@ export type TypeId = "~effect/Scope"
 export interface Scope {
   readonly [TypeId]: TypeId
   readonly strategy: "sequential" | "parallel"
-  state: Scope.State.Open | Scope.State.Closed
+  state: Scope.State.Open | Scope.State.Closed | Scope.State.Empty
 }
 
 /**
@@ -141,6 +141,29 @@ export declare namespace Scope {
    * @category models
    */
   export namespace State {
+    /**
+     * Represents an open scope state where finalizers can be added and
+     * the scope is still accepting new resources.
+     *
+     * @example
+     * ```ts
+     * import { Scope, Effect, Exit } from "effect"
+     *
+     * const scope = Scope.unsafeMake()
+     *
+     * // When scope is open, you can check its state
+     * if (scope.state._tag === "Open") {
+     *   console.log("Scope is open and accepting finalizers")
+     *   console.log(scope.state.finalizers.size) // Number of registered finalizers
+     * }
+     * ```
+     *
+     * @since 2.0.0
+     * @category models
+     */
+    export type Empty = {
+      readonly _tag: "Empty"
+    }
     /**
      * Represents an open scope state where finalizers can be added and
      * the scope is still accepting new resources.

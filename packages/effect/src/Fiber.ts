@@ -76,7 +76,6 @@ import type { Effect } from "./Effect.js"
 import type { Exit } from "./Exit.js"
 import * as effect from "./internal/effect.js"
 import { version } from "./internal/version.js"
-import type { Option } from "./Option.js"
 import type { Pipeable } from "./Pipeable.js"
 import { hasProperty } from "./Predicate.js"
 import type { Scheduler } from "./Scheduler.js"
@@ -460,7 +459,7 @@ export const isFiber = (
  *
  * const program = Effect.gen(function* () {
  *   const current = Fiber.getCurrent()
- *   if (Option.isSome(current)) {
+ *   if (current) {
  *     console.log(`Current fiber ID: ${current.value.id}`)
  *   }
  * })
@@ -469,4 +468,4 @@ export const isFiber = (
  * @since 2.0.0
  * @category accessors
  */
-export const getCurrent: () => Option<Fiber<any, any>> = effect.getCurrentFiber
+export const getCurrent: () => Fiber<any, any> | undefined = effect.getCurrentFiber

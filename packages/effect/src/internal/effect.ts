@@ -416,11 +416,7 @@ const fiberIdStore = { id: 0 }
 const currentFiberUri = "effect/Fiber/currentFiber"
 
 /** @internal */
-export const getCurrentFiberOrUndefined = (): Fiber.Fiber<any, any> | undefined => (globalThis as any)[currentFiberUri]
-
-/** @internal */
-export const getCurrentFiber = (): Option.Option<Fiber.Fiber<any, any>> =>
-  Option.fromNullable((globalThis as any)[currentFiberUri])
+export const getCurrentFiber = (): Fiber.Fiber<any, any> | undefined => (globalThis as any)[currentFiberUri]
 
 const keepAlive = (() => {
   let count = 0
@@ -1081,7 +1077,10 @@ export const as: {
   <A, E, R, B>(
     self: Effect.Effect<A, E, R>,
     value: B
-  ): Effect.Effect<B, E, R> => map(self, (_) => value)
+  ): Effect.Effect<B, E, R> => {
+    const b = succeed(value)
+    return flatMap(self, (_) => b)
+  }
 )
 
 /** @internal */
@@ -2098,7 +2097,7 @@ export const forever: {
 ): Effect.Effect<never, E, R> =>
   whileLoop({
     while: constTrue,
-    body: constant(options?.autoYield ? flatMap(self, () => yieldNow) : self),
+    body: constant(options?.autoYield ? flatMap(self, (_) => yieldNow) : self),
     step: constVoid
   }) as any)
 
@@ -2811,10 +2810,16 @@ export const scopeTag: ServiceMap.Key<Scope.Scope, Scope.Scope> = ServiceMap.Key
 
 const ScopeProto = {
   [ScopeTypeId]: ScopeTypeId,
+  state: { _tag: "Empty" },
   close: fnUntraced(function*(this: Scope.Scope, exit_: Exit.Exit<any, any>) {
     if (this.state._tag === "Closed") return
+    const closed: Scope.Scope.State.Closed = { _tag: "Closed", exit: exit_ }
+    if (this.state._tag === "Empty") {
+      this.state = closed
+      return
+    }
     const { finalizers } = this.state
-    this.state = { _tag: "Closed", exit: exit_ }
+    this.state = closed
     if (finalizers.size === 0) {
       return
     } else if (finalizers.size === 1) {
@@ -2827,7 +2832,7 @@ const ScopeProto = {
       if (this.strategy === "sequential") {
         exits.push(yield* exit(finalizer(exit_)))
       } else {
-        fibers.push(unsafeFork(getCurrentFiberOrUndefined() as any, finalizer(exit_), true, true))
+        fibers.push(unsafeFork(getCurrentFiber() as any, finalizer(exit_), true, true))
       }
     }
     if (fibers.length > 0) {
@@ -2849,7 +2854,7 @@ export const scopeUnsafeFork = (scope: Scope.Scope, finalizerStrategy?: "sequent
     return newScope
   }
   const key = {}
-  scope.state.finalizers.set(key, (exit) => newScope.close(exit))
+  scopeUnsafeAddFinalizer(scope, key, (exit) => newScope.close(exit))
   scopeUnsafeAddFinalizer(newScope, key, (_) => sync(() => scopeUnsafeRemoveFinalizer(scope, key)))
   return newScope
 }
@@ -2860,11 +2865,11 @@ export const scopeAddFinalizerExit = (
   finalizer: (exit: Exit.Exit<any, any>) => Effect.Effect<unknown>
 ): Effect.Effect<void> => {
   return suspend(() => {
-    if (scope.state._tag === "Open") {
-      scope.state.finalizers.set({}, finalizer)
-      return void_
+    if (scope.state._tag === "Closed") {
+      return finalizer(scope.state.exit)
     }
-    return finalizer(scope.state.exit)
+    scopeUnsafeAddFinalizer(scope, {}, finalizer)
+    return void_
   })
 }
 
@@ -2880,7 +2885,9 @@ export const scopeUnsafeAddFinalizer = (
   key: {},
   finalizer: (exit: Exit.Exit<any, any>) => Effect.Effect<unknown>
 ): void => {
-  if (scope.state._tag === "Open") {
+  if (scope.state._tag === "Empty") {
+    scope.state = { _tag: "Open", finalizers: new Map([[key, finalizer]]) }
+  } else if (scope.state._tag === "Open") {
     scope.state.finalizers.set(key, finalizer)
   }
 }
@@ -2899,7 +2906,6 @@ export const scopeUnsafeRemoveFinalizer = (
 export const scopeUnsafeMake = (finalizerStrategy: "sequential" | "parallel" = "sequential"): Scope.Scope.Closeable => {
   const self = Object.create(ScopeProto)
   self.strategy = finalizerStrategy
-  self.state = { _tag: "Open", finalizers: new Map() }
   return self
 }
 
@@ -2965,13 +2971,34 @@ export const onExit: {
   <A, E, R, XE, XR>(
     self: Effect.Effect<A, E, R>,
     f: (exit: Exit.Exit<A, E>) => Effect.Effect<void, XE, XR>
+  ): Effect.Effect<A, E | XE, R | XR> => uninterruptibleMask((restore) => onExitInterruptible(restore(self), f))
+)
+
+/** @internal */
+export const onExitInterruptible: {
+  <A, E, XE, XR>(
+    f: (exit: Exit.Exit<A, E>) => Effect.Effect<void, XE, XR>
+  ): <R>(self: Effect.Effect<A, E, R>) => Effect.Effect<A, E | XE, R | XR>
+  <A, E, R, XE, XR>(
+    self: Effect.Effect<A, E, R>,
+    f: (exit: Exit.Exit<A, E>) => Effect.Effect<void, XE, XR>
+  ): Effect.Effect<A, E | XE, R | XR>
+} = dual(
+  2,
+  <A, E, R, XE, XR>(
+    self: Effect.Effect<A, E, R>,
+    f: (exit: Exit.Exit<A, E>) => Effect.Effect<void, XE, XR>
   ): Effect.Effect<A, E | XE, R | XR> =>
-    uninterruptibleMask((restore) =>
-      matchCauseEffect(restore(self), {
-        onFailure: (cause) => flatMap(internalCall(() => f(exitFailCause(cause))), () => failCause(cause)),
-        onSuccess: (a) => flatMap(internalCall(() => f(exitSucceed(a))), () => succeed(a))
-      })
-    )
+    matchCauseEffect(self, {
+      onFailure(cause) {
+        const exit = exitFailCause(cause)
+        return flatMap(f(exit), (_) => exit)
+      },
+      onSuccess(a) {
+        const exit = exitSucceed(a)
+        return flatMap(f(exit), (_) => exit)
+      }
+    })
 )
 
 /** @internal */

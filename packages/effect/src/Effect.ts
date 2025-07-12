@@ -5121,6 +5121,20 @@ export const onExit: {
   ): Effect<A, E, R | R2>
 } = internal.onExit
 
+/**
+ * @since 4.0.0
+ * @category Resource management & finalization
+ */
+export const onExitInterruptible: {
+  <A, E, X, R2>(
+    cleanup: (exit: Exit.Exit<A, E>) => Effect<X, never, R2>
+  ): <R>(self: Effect<A, E, R>) => Effect<A, E, R2 | R>
+  <A, E, R, X, R2>(
+    self: Effect<A, E, R>,
+    cleanup: (exit: Exit.Exit<A, E>) => Effect<X, never, R2>
+  ): Effect<A, E, R | R2>
+} = internal.onExitInterruptible
+
 // -----------------------------------------------------------------------------
 // Caching
 // -----------------------------------------------------------------------------
