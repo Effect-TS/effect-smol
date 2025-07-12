@@ -899,6 +899,17 @@ export * as Filter from "./Filter.js"
 export * as Function from "./Function.js"
 
 /**
+ * This module provides high-performance graph data structures and algorithms
+ * with immutable API surface and stack-safe traversal primitives.
+ *
+ * Supports directed and undirected graphs with efficient walker-based
+ * algorithms for pathfinding, cycle detection, and graph analysis.
+ *
+ * @since 2.0.0
+ */
+export * as Graph from "./Graph.js"
+
+/**
  * This module provides utilities for hashing values in TypeScript.
  *
  * Hashing is the process of converting data into a fixed-size numeric value,
