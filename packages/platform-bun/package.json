@@ -25,21 +25,39 @@
     "algebraic-data-types",
     "functional-programming"
   ],
-  "publishConfig": {
-    "access": "public",
-    "provenance": true,
-    "directory": "dist",
-    "linkDirectory": false
-  },
+  "sideEffects": [],
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
   "exports": {
     "./package.json": "./package.json",
     ".": "./src/index.ts",
     "./*": "./src/*.ts",
     "./internal/*": null
   },
+  "files": [
+    "src",
+    "dist"
+  ],
+  "publishConfig": {
+    "provenance": true,
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+      "./package.json": "./package.json",
+      ".": {
+        "default": "./dist/index.js",
+        "types": "./dist/index.d.ts"
+      },
+      "./*": {
+        "default": "./dist/*.js",
+        "types": "./dist/*.d.ts"
+      },
+      "./internal/*": null
+    }
+  },
   "scripts": {
     "codegen": "build-utils prepare-v4",
-    "build": "tsc -b tsconfig.build.json && babel build --plugins annotate-pure-calls --out-dir build --source-maps && build-utils pack-v5",
+    "build": "tsc -b tsconfig.build.json && babel dist --plugins annotate-pure-calls --out-dir dist --source-maps",
     "check": "tsc -b tsconfig.json",
     "test": "vitest",
     "coverage": "vitest --coverage"

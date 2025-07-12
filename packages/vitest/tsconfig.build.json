@@ -3,7 +3,7 @@
   "references": [{ "path": "../effect/tsconfig.build.json" }],
   "compilerOptions": {
     "tsBuildInfoFile": ".tsbuildinfo/build.tsbuildinfo",
-    "outDir": "build",
+    "outDir": "dist",
     "stripInternal": true
   }
 }

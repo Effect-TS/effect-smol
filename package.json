@@ -19,7 +19,7 @@
     "test-types": "tstyche",
     "visualize": "VISUALIZE=true rollup -c rollup.config.js -d tmp",
     "changeset-version": "changeset version",
-    "changeset-publish": "pnpm codemod && pnpm build && TEST_DIST= pnpm vitest && changeset publish"
+    "changeset-publish": "pnpm codemod && pnpm build && changeset publish"
   },
   "resolutions": {
     "dependency-tree": "^10.0.9",
@@ -35,8 +35,8 @@
   },
   "imports": {
     "#dist/effect/*": {
-      "types": "./packages/effect/dist/dist/*.d.ts",
-      "default": "./packages/effect/dist/dist/*.js"
+      "types": "./packages/effect/dist/*.d.ts",
+      "default": "./packages/effect/dist/*.js"
     }
   },
   "devDependencies": {
