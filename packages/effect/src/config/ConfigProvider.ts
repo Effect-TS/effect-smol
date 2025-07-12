@@ -2,9 +2,9 @@
  * @since 4.0.0
  */
 import * as Arr from "../Array.js"
+import * as Cause from "../Cause.js"
 import * as Effect from "../Effect.js"
 import { constant, dual, identity } from "../Function.js"
-import { Cause } from "../index.js"
 import { toStringUnknown } from "../Inspectable.js"
 import { PipeInspectableProto } from "../internal/core.js"
 import * as Layer from "../Layer.js"
