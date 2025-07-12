@@ -413,12 +413,12 @@ export const primitive: {
  *
  * This is a foundational constructor for creating custom config types. It takes a filter
  * function that attempts to parse a string value into the desired type, returning either
- * the parsed value or `Filter.absent` to indicate validation failure.
+ * the parsed value or `Filter.fail` to indicate validation failure.
  *
  * @param options - Configuration options for the filter-based config
  * @param options.name - Optional configuration key name for nested access
- * @param options.filter - Filter function that transforms string to A or Filter.absent
- * @param options.onAbsent - Function that generates error message when filter returns absent
+ * @param options.filter - Filter function that transforms string to A or Filter.fail
+ * @param options.onFail - Function that generates error message when filter returns fail
  * @returns A config that validates input using the provided filter
  *
  * @example
@@ -431,9 +431,9 @@ export const primitive: {
  *   name: "USER_EMAIL",
  *   filter: (value: string) => {
  *     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
- *     return emailRegex.test(value) ? value : Filter.absent
+ *     return emailRegex.test(value) ? value : Filter.fail(value)
  *   },
- *   onAbsent: (value) => `Expected a valid email address, but received: ${value}`
+ *   onFail: (value) => `Expected a valid email address, but received: ${value}`
  * })
  *
  * // Use the config
@@ -451,13 +451,13 @@ export const primitive: {
  *
  * // Create a custom enum-like config using fromFilter
  * type LogLevel = "debug" | "info" | "warn" | "error"
- * const logLevelConfig = Config.fromFilter<LogLevel>({
+ * const logLevelConfig = Config.fromFilter({
  *   name: "LOG_LEVEL",
  *   filter: (value: string) => {
  *     const levels: LogLevel[] = ["debug", "info", "warn", "error"]
- *     return levels.includes(value as LogLevel) ? value as LogLevel : Filter.absent
+ *     return levels.includes(value as LogLevel) ? value as LogLevel : Filter.fail(value)
  *   },
- *   onAbsent: (value) => `Expected one of: debug, info, warn, error, but received: ${value}`
+ *   onFail: (value) => `Expected one of: debug, info, warn, error, but received: ${value}`
  * })
  *
  * // Valid usage
@@ -472,13 +472,13 @@ export const primitive: {
  * import { Config, ConfigProvider } from "effect/config"
  *
  * // Create a config that parses comma-separated values into an array
- * const csvConfig = Config.fromFilter<string[]>({
+ * const csvConfig = Config.fromFilter({
  *   name: "CSV_VALUES",
  *   filter: (value: string) => {
  *     const trimmed = value.trim()
- *     return trimmed.length > 0 ? trimmed.split(",").map(s => s.trim()) : Filter.absent
+ *     return trimmed.length > 0 ? trimmed.split(",").map(s => s.trim()) : Filter.fail(trimmed)
  *   },
- *   onAbsent: (value) => `Expected a non-empty comma-separated list, but received: ${value}`
+ *   onFail: (value) => `Expected a non-empty comma-separated list, but received: ${value}`
  * })
  *
  * // Parse CSV values
@@ -490,21 +490,21 @@ export const primitive: {
  * @since 4.0.0
  * @category Constructors
  */
-export const fromFilter = <A>(
+export const fromFilter = <A, X>(
   options: {
     readonly name?: string | undefined
-    readonly filter: Filter.Filter<string, A>
-    readonly onAbsent: (value: string) => string
+    readonly filter: Filter.Filter<string, A, X>
+    readonly onFail: (value: string) => string
   }
 ): Config<A> =>
   primitive(options.name, (ctx) =>
     Effect.flatMap(ctx.load, (value) => {
       const result = options.filter(value)
-      return result === Filter.absent ?
+      return Filter.isFail(result) ?
         Effect.fail(
           new InvalidData({
             path: ctx.currentPath,
-            description: options.onAbsent(value)
+            description: options.onFail(value)
           })
         ) :
         Effect.succeed(result)
@@ -581,9 +581,9 @@ const Number_ = (name?: string): Config<number> =>
     name,
     filter(value) {
       const number = Number(value)
-      return isNaN(number) ? Filter.absent : number
+      return isNaN(number) ? Filter.fail(value) : number
     },
-    onAbsent: (value) => `Expected a number, but received: ${value}`
+    onFail: (value) => `Expected a number, but received: ${value}`
   })
 export {
   /**
@@ -652,9 +652,9 @@ export const Integer = (name?: string): Config<number> =>
     name,
     filter(value) {
       const number = Number(value)
-      return Number.isInteger(number) ? number : Filter.absent
+      return Number.isInteger(number) ? number : Filter.fail(value)
     },
-    onAbsent: (value) => `Expected an integer, but received: ${value}`
+    onFail: (value) => `Expected an integer, but received: ${value}`
   })
 
 /**
@@ -683,16 +683,16 @@ export const Port = (name?: string): Config<number> =>
     name,
     filter(value) {
       const number = Number(value)
-      return Number.isInteger(number) && number >= 0 && number <= 65535 ? number : Filter.absent
+      return Number.isInteger(number) && number >= 0 && number <= 65535 ? number : Filter.fail(value)
     },
-    onAbsent: (value) => `Expected a valid port number, but received: ${value}`
+    onFail: (value) => `Expected a valid port number, but received: ${value}`
   })
 
 const BigInt_ = (name?: string): Config<bigint> =>
   fromFilter({
     name,
     filter: Filter.try((s) => BigInt(s)),
-    onAbsent: (value) => `Expected a bigint, but received: ${value}`
+    onFail: (value) => `Expected a bigint, but received: ${value}`
   })
 export {
   /**
@@ -907,9 +907,9 @@ export const Literal: {
     filter(value) {
       const key = caseInsensitive ? value.toLowerCase() : value
       const result = map.get(key)
-      return result !== undefined ? result : Filter.absent
+      return result !== undefined ? result : Filter.fail(value)
     },
-    onAbsent: (value) => `Expected ${description}, but received: ${value}`
+    onFail: (value) => `Expected ${description}, but received: ${value}`
   })
 }
 
@@ -957,9 +957,9 @@ export const Boolean = (name?: string): Config<boolean> =>
     name,
     filter(value) {
       const lowerValue = value.toLowerCase()
-      return trueValues.has(lowerValue) ? true : falseValues.has(lowerValue) ? false : Filter.absent
+      return trueValues.has(lowerValue) ? true : falseValues.has(lowerValue) ? false : Filter.fail(value)
     },
-    onAbsent: (value) => `Expected a boolean, but received: ${value}`
+    onFail: (value) => `Expected a boolean, but received: ${value}`
   })
 
 /**
@@ -1004,7 +1004,7 @@ export const DateTime = (name?: string): Config<DateTime_.Utc> =>
   fromFilter({
     name,
     filter: Filter.fromPredicateOption(DateTime_.make),
-    onAbsent: (value) => `Expected a DateTime string, but received: ${value}`
+    onFail: (value) => `Expected a DateTime string, but received: ${value}`
   })
 
 /**
@@ -1053,7 +1053,7 @@ export const Url = (name?: string): Config<URL> =>
   fromFilter({
     name,
     filter: Filter.try((s) => new URL(s)),
-    onAbsent: (value) => `Expected a valid URL, but received: ${value}`
+    onFail: (value) => `Expected a valid URL, but received: ${value}`
   })
 
 /**
@@ -1148,7 +1148,7 @@ export const Duration = (name?: string): Config<Duration_.Duration> =>
   fromFilter({
     name,
     filter: Filter.fromPredicateOption(Duration_.decodeUnknown),
-    onAbsent: (value) => `Expected a Duration string, but received: ${value}`
+    onFail: (value) => `Expected a Duration string, but received: ${value}`
   })
 
 /**
@@ -1595,30 +1595,30 @@ export const map: {
  * @category Filters
  */
 export const filter: {
-  <A, B>(options: {
-    readonly filter: Filter.Filter<NoInfer<A>, B> | Filter.FilterEffect<NoInfer<A>, B, ConfigError>
-    readonly onAbsent: (value: NoInfer<A>) => string
+  <A, B, X>(options: {
+    readonly filter: Filter.Filter<NoInfer<A>, B, X> | Filter.FilterEffect<NoInfer<A>, B, X, ConfigError>
+    readonly onFail: (value: X) => string
   }): (self: Config<A>) => Config<B>
-  <A, B>(self: Config<A>, options: {
-    readonly filter: Filter.Filter<NoInfer<A>, B> | Filter.FilterEffect<NoInfer<A>, B, ConfigError>
-    readonly onAbsent: (value: NoInfer<A>) => string
+  <A, B, X>(self: Config<A>, options: {
+    readonly filter: Filter.Filter<NoInfer<A>, B, X> | Filter.FilterEffect<NoInfer<A>, B, X, ConfigError>
+    readonly onFail: (value: X) => string
   }): Config<B>
 } = dual(
   2,
-  <A, B>(self: Config<A>, options: {
-    readonly filter: Filter.Filter<NoInfer<A>, B> | Filter.FilterEffect<NoInfer<A>, B, ConfigError>
-    readonly onAbsent: (value: NoInfer<A>) => string
+  <A, B, X>(self: Config<A>, options: {
+    readonly filter: Filter.Filter<NoInfer<A>, B, X> | Filter.FilterEffect<NoInfer<A>, B, X, ConfigError>
+    readonly onFail: (value: X) => string
   }): Config<B> =>
     primitive((ctx) =>
       Effect.flatMap(self.parse(ctx), (value) => {
         const result = options.filter(value)
         const effect = Effect.isEffect(result) ? result : Effect.succeed(result)
         return Effect.flatMap(effect, (result) =>
-          result === Filter.absent ?
+          Filter.isFail(result) ?
             Effect.fail(
               new InvalidData({
                 path: ctx.lastChildPath,
-                description: options.onAbsent(value)
+                description: options.onFail(result.fail)
               })
             ) :
             Effect.succeed(result))

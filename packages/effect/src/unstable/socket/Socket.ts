@@ -9,6 +9,7 @@ import type { DurationInput } from "../../Duration.js"
 import * as Effect from "../../Effect.js"
 import * as Exit from "../../Exit.js"
 import * as FiberSet from "../../FiberSet.js"
+import * as Filter from "../../Filter.js"
 import { dual } from "../../Function.js"
 import * as Layer from "../../Layer.js"
 import * as Predicate from "../../Predicate.js"
@@ -171,9 +172,9 @@ export class SocketCloseError extends Data.TaggedError("SocketError")<{
   /**
    * @since 4.0.0
    */
-  static isClean(isClean: (code: number) => boolean) {
-    return function(u: unknown): u is SocketCloseError {
-      return SocketCloseError.is(u) && isClean(u.code)
+  static isClean(isClean: (code: number) => boolean): <E>(u: E) => SocketCloseError | Filter.fail<E> {
+    return function<E>(u: E) {
+      return SocketCloseError.is(u) && isClean(u.code) ? u : Filter.fail(u)
     }
   }
 

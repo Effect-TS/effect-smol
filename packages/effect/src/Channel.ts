@@ -2448,35 +2448,12 @@ export const catchCause: {
  * Catches causes of failure that match a specific filter, allowing
  * conditional error recovery based on the type of failure.
  *
- * @example
- * ```ts
- * import { Channel, Effect, Cause, Filter, Data } from "effect"
- *
- * class NetworkError extends Data.TaggedError("NetworkError")<{
- *   readonly code: number
- * }> {}
- *
- * class ValidationError extends Data.TaggedError("ValidationError")<{
- *   readonly field: string
- * }> {}
- *
- * // Create a failing channel
- * const failingChannel = Channel.fail(new NetworkError({ code: 500 }))
- *
- * // Catch only network errors with specific codes
- * const recoveredChannel = Channel.catchCauseIf(
- *   failingChannel,
- *   (cause): cause is Cause.Cause<NetworkError> => Cause.hasFail(cause),
- *   (networkError) => Channel.succeed("Network recovered")
- * )
- * ```
- *
  * @since 4.0.0
  * @category Error handling
  */
 export const catchCauseIf: {
-  <OutErr, EB, OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>(
-    filter: Filter.Filter<Cause.Cause<OutErr>, EB>,
+  <OutErr, EB, X extends Cause.Cause<any>, OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>(
+    filter: Filter.Filter<Cause.Cause<OutErr>, EB, X>,
     f: (failure: EB, cause: Cause.Cause<OutErr>) => Channel<OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>
   ): <
     OutElem,
@@ -2487,7 +2464,7 @@ export const catchCauseIf: {
     Env
   >(self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>) => Channel<
     OutElem | OutElem1,
-    Exclude<OutErr, Cause.Failure.Error<EB>> | OutErr1,
+    Cause.Cause.Error<X> | OutErr1,
     OutDone | OutDone1,
     InElem & InElem1,
     InErr & InErr1,
@@ -2503,6 +2480,7 @@ export const catchCauseIf: {
     InDone,
     Env,
     EB,
+    X extends Cause.Cause<any>,
     OutElem1,
     OutErr1,
     OutDone1,
@@ -2512,11 +2490,11 @@ export const catchCauseIf: {
     Env1
   >(
     self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
-    filter: Filter.Filter<Cause.Cause<OutErr>, EB>,
+    filter: Filter.Filter<Cause.Cause<OutErr>, EB, X>,
     f: (failure: EB, cause: Cause.Cause<OutErr>) => Channel<OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>
   ): Channel<
     OutElem | OutElem1,
-    Exclude<OutErr, Cause.Failure.Error<EB>> | OutErr1,
+    Cause.Cause.Error<X> | OutErr1,
     OutDone | OutDone1,
     InElem & InElem1,
     InErr & InErr1,
@@ -2532,6 +2510,7 @@ export const catchCauseIf: {
   InDone,
   Env,
   EB,
+  X extends Cause.Cause<any>,
   OutElem1,
   OutErr1,
   OutDone1,
@@ -2541,21 +2520,24 @@ export const catchCauseIf: {
   Env1
 >(
   self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
-  filter: Filter.Filter<Cause.Cause<OutErr>, EB>,
+  filter: Filter.Filter<Cause.Cause<OutErr>, EB, X>,
   f: (failure: EB, cause: Cause.Cause<OutErr>) => Channel<OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>
 ): Channel<
   OutElem | OutElem1,
-  OutErr | OutErr1,
+  Cause.Cause.Error<X> | OutErr1,
   OutDone | OutDone1,
   InElem & InElem1,
   InErr & InErr1,
   InDone & InDone1,
   Env | Env1
 > =>
-  catchCause(self, (cause): Channel<OutElem1, OutErr | OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1> => {
-    const eb = filter(cause)
-    return eb !== Filter.absent ? f(eb, cause) : failCause(cause)
-  }))
+  catchCause(
+    self,
+    (cause): Channel<OutElem1, Cause.Cause.Error<X> | OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1> => {
+      const eb = filter(cause)
+      return !Filter.isFail(eb) ? f(eb, cause) : failCause(eb.fail)
+    }
+  ))
 
 const catch_: {
   <OutErr, OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>(
@@ -2629,7 +2611,7 @@ const catch_: {
   InErr & InErr1,
   InDone & InDone1,
   Env | Env1
-> => catchCauseIf(self, Cause.filterError, f) as any)
+> => catchCauseIf(self, Cause.filterError, f))
 
 export {
   /**
@@ -2937,7 +2919,7 @@ export const mergeAll: {
                 const halt = Pull.filterHalt(cause)
                 yield* Scope.close(
                   childScope,
-                  halt !== Filter.absent ? Exit.succeed(halt.leftover) : Exit.failCause(cause)
+                  !Filter.isFail(halt) ? Exit.succeed(halt.leftover) : Exit.failCause(halt.fail)
                 )
                 if (!fibers.has(fiber)) return
                 fibers.delete(fiber)

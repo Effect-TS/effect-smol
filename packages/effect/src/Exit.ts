@@ -124,7 +124,7 @@ export declare namespace Exit {
  * @since 2.0.0
  * @category models
  */
-export interface Success<out A, out E> extends Exit.Proto<A, E> {
+export interface Success<out A, out E = never> extends Exit.Proto<A, E> {
   readonly _tag: "Success"
   readonly value: A
 }
