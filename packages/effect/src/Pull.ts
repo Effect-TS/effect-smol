@@ -356,7 +356,7 @@ export const isHaltFailure = <E>(
  * @category Halt
  */
 export const filterHalt: <E>(input: Cause.Cause<E>) => Halt.Only<E> | Filter.fail<Cause.Cause<ExcludeHalt<E>>> = Filter
-  .unsafeCompose(
+  .composePassthrough(
     Cause.filterError,
     (e) => isHalt(e) ? e : Filter.fail(e)
   ) as any
@@ -389,7 +389,7 @@ export const filterNoHalt: <E>(
  */
 export const filterHaltLeftover: <E>(
   cause: Cause.Cause<E>
-) => Halt.Extract<E> | Filter.fail<Cause.Cause<ExcludeHalt<E>>> = Filter.unsafeCompose(
+) => Halt.Extract<E> | Filter.fail<Cause.Cause<ExcludeHalt<E>>> = Filter.composePassthrough(
   Cause.filterError,
   (e) => isHalt(e) ? e.leftover : Filter.fail(e)
 ) as any

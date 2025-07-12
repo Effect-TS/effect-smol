@@ -161,7 +161,7 @@ export const causeFilterInterrupt = <E>(self: Cause.Cause<E>): Cause.Interrupt |
 
 /** @internal */
 export const causeFilterInterruptor: <E>(self: Cause.Cause<E>) => number | Filter.fail<Cause.Cause<E>> = Filter
-  .unsafeCompose(
+  .composePassthrough(
     causeFilterInterrupt,
     (_) => _.fiberId._tag === "Some" ? _.fiberId.value : Filter.fail(_)
   )
@@ -1569,7 +1569,7 @@ export const exitFilterCause = <A, E>(
 ): Cause.Cause<E> | Filter.fail<Exit.Success<A>> => self._tag === "Failure" ? self.cause : Filter.fail(self as any)
 
 /** @internal */
-export const exitFilterError = Filter.unsafeCompose(
+export const exitFilterError = Filter.composePassthrough(
   exitFilterCause,
   (cause) => causeFilterError(cause)
 )

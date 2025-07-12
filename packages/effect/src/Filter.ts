@@ -680,29 +680,28 @@ export const compose: {
  * Composes two filters sequentially, allowing the output of the first to be
  * passed to the second.
  *
- * This is an unsafe version of `compose` that fails with the fail type of the
- * left filter if the right filter fails. It assumes that the left filter will
- * not modify the input.
+ * This is similar to `compose`, but it will always fail with the original
+ * input.
  *
  * @since 4.0.0
  * @category Unsafe
  */
-export const unsafeCompose: {
-  <PassL, InputR extends PassL, PassR, FailR>(
+export const composePassthrough: {
+  <InputL, PassL, InputR extends PassL, PassR, FailR>(
     right: Filter<InputR, PassR, FailR>
-  ): <InputL, FailL>(left: Filter<InputL, PassL, FailL>) => Filter<InputL, PassR, FailL>
+  ): <FailL>(left: Filter<InputL, PassL, FailL>) => Filter<InputL, PassR, InputL>
   <InputL, PassL, FailL, InputR extends PassL, PassR, FailR>(
     left: Filter<InputL, PassL, FailL>,
     right: Filter<InputR, PassR, FailR>
-  ): Filter<InputL, PassR, FailL>
+  ): Filter<InputL, PassR, InputL>
 } = dual(2, <InputL, PassL, FailL, InputR extends PassL, PassR, FailR>(
   left: Filter<InputL, PassL, FailL>,
   right: Filter<InputR, PassR, FailR>
-): Filter<InputL, PassR, FailL> =>
+): Filter<InputL, PassR, InputL> =>
 (input) => {
   const leftOut = left(input)
-  if (isFail(leftOut)) return leftOut
+  if (isFail(leftOut)) return fail(input)
   const rightOut = right(leftOut as InputR)
-  if (isFail(rightOut)) return fail(input as any as FailL)
+  if (isFail(rightOut)) return fail(input)
   return rightOut
 })
