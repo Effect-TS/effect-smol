@@ -42,6 +42,7 @@ import {
   args,
   causeAnnotate,
   causeDie,
+  causeFail,
   causeFromFailures,
   CauseImpl,
   contA,
@@ -124,55 +125,56 @@ export const causeInterrupt = (
 export const causeHasFail = <E>(self: Cause.Cause<E>): boolean => self.failures.some(failureIsFail)
 
 /** @internal */
-export const causeFilterFail = <E>(self: Cause.Cause<E>): Cause.Fail<E> | Filter.absent => {
+export const causeFilterFail = <E>(self: Cause.Cause<E>): Cause.Fail<E> | Filter.fail<Cause.Cause<never>> => {
   const failure = self.failures.find(failureIsFail)
-  return failure ? failure : Filter.absent
+  return failure ? failure : Filter.fail(self as Cause.Cause<never>)
 }
 
 /** @internal */
-export const causeFilterError = <E>(self: Cause.Cause<E>): E | Filter.absent => {
+export const causeFilterError = <E>(self: Cause.Cause<E>): E | Filter.fail<Cause.Cause<never>> => {
   const failure = self.failures.find(failureIsFail)
-  return failure ? failure.error : Filter.absent
+  return failure ? failure.error : Filter.fail(self as Cause.Cause<never>)
 }
 
 /** @internal */
 export const causeHasDie = <E>(self: Cause.Cause<E>): boolean => self.failures.some(failureIsDie)
 
 /** @internal */
-export const causeFilterDie = <E>(self: Cause.Cause<E>): Cause.Die | Filter.absent => {
+export const causeFilterDie = <E>(self: Cause.Cause<E>): Cause.Die | Filter.fail<Cause.Cause<E>> => {
   const failure = self.failures.find(failureIsDie)
-  return failure ? failure : Filter.absent
+  return failure ? failure : Filter.fail(self)
 }
 
-const causeFilterDefect = <E>(self: Cause.Cause<E>): unknown | Filter.absent => {
+const causeFilterDefect = <E>(self: Cause.Cause<E>): unknown | Filter.fail<Cause.Cause<E>> => {
   const failure = self.failures.find(failureIsDie)
-  return failure ? failure.defect : Filter.absent
+  return failure ? failure.defect : Filter.fail(self)
 }
 
 /** @internal */
 export const causeHasInterrupt = <E>(self: Cause.Cause<E>): boolean => self.failures.some(failureIsInterrupt)
 
 /** @internal */
-export const causeFilterInterrupt = <E>(self: Cause.Cause<E>): Cause.Interrupt | Filter.absent => {
+export const causeFilterInterrupt = <E>(self: Cause.Cause<E>): Cause.Interrupt | Filter.fail<Cause.Cause<E>> => {
   const failure = self.failures.find(failureIsInterrupt)
-  return failure ? failure : Filter.absent
+  return failure ? failure : Filter.fail(self)
 }
 
 /** @internal */
-export const causeFilterInterruptor: <E>(self: Cause.Cause<E>) => number | Filter.absent = Filter.compose(
-  causeFilterInterrupt,
-  (_) => _.fiberId._tag === "Some" ? _.fiberId.value : Filter.absent
-)
+export const causeFilterInterruptor: <E>(self: Cause.Cause<E>) => number | Filter.fail<Cause.Cause<E>> = Filter
+  .unsafeCompose(
+    causeFilterInterrupt,
+    (_) => _.fiberId._tag === "Some" ? _.fiberId.value : Filter.fail(_)
+  )
 
 /** @internal */
-export const causeFilterInterruptors = <E>(self: Cause.Cause<E>): ReadonlySet<number> | Filter.absent => {
+export const causeFilterInterruptors = <E>(self: Cause.Cause<E>): ReadonlySet<number> | Filter.fail<Cause.Cause<E>> => {
   const interruptors = new Set<number>()
   for (const f of self.failures) {
     if (f._tag === "Interrupt" && f.fiberId._tag === "Some") {
       interruptors.add(f.fiberId.value)
     }
   }
-  return interruptors.size > 0 ? interruptors : Filter.absent
+  return interruptors.size > 0 ? interruptors : Filter.fail(self)
 }
 
 /** @internal */
@@ -1521,8 +1523,8 @@ export const catchEager: {
     if (effectIsExit(self)) {
       if (self._tag === "Success") return self as Exit.Exit<A>
       const error = causeFilterError(self.cause)
-      if (error === Filter.absent) return self as Exit.Exit<never>
-      return f(error as E)
+      if (Filter.isFail(error)) return self as Exit.Exit<never>
+      return f(error)
     }
     return catch_(self, f)
   }
@@ -1541,9 +1543,36 @@ export const exitIsSuccess = <A, E>(
 ): self is Exit.Success<A, E> => self._tag === "Success"
 
 /** @internal */
+export const exitFilterSuccess = <A, E>(
+  self: Exit.Exit<A, E>
+): Exit.Success<A> | Filter.fail<Exit.Failure<never, E>> =>
+  self._tag === "Success" ? self as any : Filter.fail(self as any)
+
+/** @internal */
+export const exitFilterValue = <A, E>(self: Exit.Exit<A, E>): A | Filter.fail<Exit.Failure<never, E>> =>
+  self._tag === "Success" ? self.value : Filter.fail(self as any)
+
+/** @internal */
 export const exitIsFailure = <A, E>(
   self: Exit.Exit<A, E>
 ): self is Exit.Failure<A, E> => self._tag === "Failure"
+
+/** @internal */
+export const exitFilterFailure = <A, E>(
+  self: Exit.Exit<A, E>
+): Exit.Failure<never, E> | Filter.fail<Exit.Success<A>> =>
+  self._tag === "Failure" ? self as any : Filter.fail(self as any)
+
+/** @internal */
+export const exitFilterCause = <A, E>(
+  self: Exit.Exit<A, E>
+): Cause.Cause<E> | Filter.fail<Exit.Success<A>> => self._tag === "Failure" ? self.cause : Filter.fail(self as any)
+
+/** @internal */
+export const exitFilterError = Filter.unsafeCompose(
+  exitFilterCause,
+  (cause) => causeFilterError(cause)
+)
 
 /** @internal */
 export const exitHasInterrupt = <A, E>(
@@ -1582,7 +1611,7 @@ export const exitMapError: {
   <A, E, E2>(self: Exit.Exit<A, E>, f: (a: NoInfer<E>) => E2): Exit.Exit<A, E2> => {
     if (self._tag === "Success") return self as Exit.Exit<A>
     const error = causeFilterError(self.cause)
-    if (error === Filter.absent) return self as Exit.Exit<never>
+    if (Filter.isFail(error)) return self as Exit.Exit<never>
     return exitFail(f(error))
   }
 )
@@ -1604,7 +1633,7 @@ export const exitMapBoth: {
   ): Exit.Exit<A2, E2> => {
     if (self._tag === "Success") return exitSucceed(options.onSuccess(self.value))
     const error = causeFilterError(self.cause)
-    if (error === Filter.absent) return self as Exit.Exit<never>
+    if (Filter.isFail(error)) return self as Exit.Exit<never>
     return exitFail(options.onFailure(error))
   }
 )
@@ -1906,21 +1935,21 @@ export const zipWith: {
 
 /** @internal */
 export const filterOrFailCause: {
-  <A, E2, B>(
-    filter: Filter.Filter<NoInfer<A>, B>,
-    orFailWith: (a: NoInfer<A>) => Cause.Cause<E2>
-  ): <E, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<B, E2 | E, R>
-  <A, E, R, E2, B>(
+  <A, E2, B, X>(
+    filter: Filter.Filter<NoInfer<A>, B, X>,
+    orFailWith: (a: NoInfer<X>) => Cause.Cause<E2>
+  ): <E, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<B, E | E2, R>
+  <A, E, R, E2, B, X>(
     self: Effect.Effect<A, E, R>,
-    filter: Filter.Filter<A, B>,
-    orFailWith: (a: A) => Cause.Cause<E2>
+    filter: Filter.Filter<A, B, X>,
+    orFailWith: (a: X) => Cause.Cause<E2>
   ): Effect.Effect<B, E2 | E, R>
 } = dual(
   (args) => isEffect(args[0]),
-  <A, E, R, E2, B>(
+  <A, E, R, E2, B, X>(
     self: Effect.Effect<A, E, R>,
-    filter: Filter.Filter<A, B>,
-    orFailWith: (a: A) => Cause.Cause<E2>
+    filter: Filter.Filter<A, B, X>,
+    orFailWith: (a: X) => Cause.Cause<E2>
   ): Effect.Effect<B, E2 | E, R> =>
     filterOrElse(
       self,
@@ -1931,21 +1960,21 @@ export const filterOrFailCause: {
 
 /* @internal */
 export const filterOrFail: {
-  <A, E2, B extends A>(
-    filter: Filter.Filter<NoInfer<A>, B>,
-    orFailWith: (a: A) => E2
+  <A, E2, B, X>(
+    filter: Filter.Filter<NoInfer<A>, B, X>,
+    orFailWith: (a: X) => E2
   ): <E, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<B, E2 | E, R>
-  <A, E, R, E2, B>(
+  <A, E, R, E2, B, X>(
     self: Effect.Effect<A, E, R>,
-    filter: Filter.Filter<NoInfer<A>, B>,
-    orFailWith: (a: A) => E2
+    filter: Filter.Filter<NoInfer<A>, B, X>,
+    orFailWith: (a: X) => E2
   ): Effect.Effect<B, E2 | E, R>
-  <A, B>(
-    filter: Filter.Filter<NoInfer<A>, B>
+  <A, B, X>(
+    filter: Filter.Filter<NoInfer<A>, B, X>
   ): <E, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<B, Cause.NoSuchElementError | E, R>
-  <A, E, R, B>(
+  <A, E, R, B, X>(
     self: Effect.Effect<A, E, R>,
-    filter: Filter.Filter<NoInfer<A>, B>
+    filter: Filter.Filter<NoInfer<A>, B, X>
   ): Effect.Effect<B, E | Cause.NoSuchElementError, R>
 } = dual((args) => isEffect(args[0]), <A, E, R, E2>(
   self: Effect.Effect<A, E, R>,
@@ -2100,27 +2129,27 @@ const OnFailureProto = makePrimitiveProto({
 
 /** @internal */
 export const catchCauseIf: {
-  <E, B, E2, R2, EB>(
-    filter: Filter.Filter<Cause.Cause<E>, EB>,
+  <E, B, E2, R2, EB, X extends Cause.Cause<any>>(
+    filter: Filter.Filter<Cause.Cause<E>, EB, X>,
     f: (failure: EB, cause: Cause.Cause<E>) => Effect.Effect<B, E2, R2>
   ): <A, R>(
     self: Effect.Effect<A, E, R>
-  ) => Effect.Effect<A | B, Exclude<E, Cause.Failure.Error<EB>> | E2, R | R2>
-  <A, E, R, B, E2, R2, EB>(
+  ) => Effect.Effect<A | B, Cause.Cause.Error<X> | E2, R | R2>
+  <A, E, R, B, E2, R2, EB, X extends Cause.Cause<any>>(
     self: Effect.Effect<A, E, R>,
-    filter: Filter.Filter<Cause.Cause<E>, EB>,
+    filter: Filter.Filter<Cause.Cause<E>, EB, X>,
     f: (failure: EB, cause: Cause.Cause<E>) => Effect.Effect<B, E2, R2>
-  ): Effect.Effect<A | B, Exclude<E, Cause.Failure.Error<EB>> | E2, R | R2>
+  ): Effect.Effect<A | B, Cause.Cause.Error<X> | E2, R | R2>
 } = dual(
   3,
-  <A, E, R, B, E2, R2, EB>(
+  <A, E, R, B, E2, R2, EB, X extends Cause.Cause<any>>(
     self: Effect.Effect<A, E, R>,
-    filter: Filter.Filter<Cause.Cause<E>, EB>,
+    filter: Filter.Filter<Cause.Cause<E>, EB, X>,
     f: (failure: EB, cause: Cause.Cause<E>) => Effect.Effect<B, E2, R2>
-  ): Effect.Effect<A | B, E | E2, R | R2> =>
-    catchCause(self, (cause): Effect.Effect<B, E | E2, R2> => {
+  ): Effect.Effect<A | B, Exclude<E, Cause.Cause.Error<X>> | E2, R | R2> =>
+    catchCause(self, (cause): Effect.Effect<B, Cause.Cause.Error<X> | E2, R2> => {
       const eb = filter(cause)
-      return eb !== Filter.absent ? internalCall(() => f(eb, cause)) : failCause(cause)
+      return !Filter.isFail(eb) ? internalCall(() => f(eb, cause)) : failCause(eb.fail)
     })
 )
 
@@ -2138,7 +2167,7 @@ export const catch_: {
   <A, E, R, B, E2, R2>(
     self: Effect.Effect<A, E, R>,
     f: (a: NoInfer<E>) => Effect.Effect<B, E2, R2>
-  ): Effect.Effect<A | B, E2, R | R2> => catchCauseIf(self, causeFilterError, f) as Effect.Effect<A | B, E2, R | R2>
+  ): Effect.Effect<A | B, E2, R | R2> => catchCauseIf(self, causeFilterError, (e) => f(e))
 )
 
 /** @internal */
@@ -2180,20 +2209,20 @@ export const tapCause: {
 
 /** @internal */
 export const tapCauseIf: {
-  <E, B, E2, R2, EB>(
-    filter: Filter.Filter<Cause.Cause<E>, EB>,
+  <E, B, E2, R2, EB, X extends Cause.Cause<any>>(
+    filter: Filter.Filter<Cause.Cause<E>, EB, X>,
     f: (a: EB, cause: Cause.Cause<E>) => Effect.Effect<B, E2, R2>
   ): <A, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<A, E | E2, R | R2>
-  <A, E, R, B, E2, R2, EB>(
+  <A, E, R, B, E2, R2, EB, X extends Cause.Cause<any>>(
     self: Effect.Effect<A, E, R>,
-    filter: Filter.Filter<Cause.Cause<E>, EB>,
+    filter: Filter.Filter<Cause.Cause<E>, EB, X>,
     f: (a: EB, cause: Cause.Cause<E>) => Effect.Effect<B, E2, R2>
   ): Effect.Effect<A, E | E2, R | R2>
 } = dual(
   3,
-  <A, E, R, B, E2, R2, EB>(
+  <A, E, R, B, E2, R2, EB, X extends Cause.Cause<any>>(
     self: Effect.Effect<A, E, R>,
-    filter: Filter.Filter<Cause.Cause<E>, EB>,
+    filter: Filter.Filter<Cause.Cause<E>, EB, X>,
     f: (a: EB, cause: Cause.Cause<E>) => Effect.Effect<B, E2, R2>
   ): Effect.Effect<A, E | E2, R | R2> =>
     catchCauseIf(self, filter, (failure, cause) => andThen(internalCall(() => f(failure, cause)), failCause(cause)))
@@ -2213,7 +2242,7 @@ export const tapError: {
   <A, E, R, B, E2, R2>(
     self: Effect.Effect<A, E, R>,
     f: (e: NoInfer<E>) => Effect.Effect<B, E2, R2>
-  ): Effect.Effect<A, E | E2, R | R2> => tapCauseIf(self, causeFilterError, f)
+  ): Effect.Effect<A, E | E2, R | R2> => tapCauseIf(self, causeFilterError, (e) => f(e))
 )
 
 /** @internal */
@@ -2230,33 +2259,33 @@ export const tapDefect: {
   <A, E, R, B, E2, R2>(
     self: Effect.Effect<A, E, R>,
     f: (defect: unknown) => Effect.Effect<B, E2, R2>
-  ): Effect.Effect<A, E | E2, R | R2> => tapCauseIf(self, causeFilterDefect, f)
+  ): Effect.Effect<A, E | E2, R | R2> => tapCauseIf(self, causeFilterDefect, (_) => f(_))
 )
 
 /** @internal */
 export const catchIf: {
-  <E, EB, A2, E2, R2>(
-    filter: Filter.Filter<NoInfer<E>, EB>,
+  <E, EB, A2, E2, R2, X>(
+    filter: Filter.Filter<NoInfer<E>, EB, X>,
     f: (e: EB) => Effect.Effect<A2, E2, R2>
   ): <A, R>(
     self: Effect.Effect<A, E, R>
-  ) => Effect.Effect<A2 | A, E2 | Exclude<E, EB>, R2 | R>
-  <A, E, R, EB, A2, E2, R2>(
+  ) => Effect.Effect<A2 | A, E2 | X, R2 | R>
+  <A, E, R, EB, A2, E2, R2, X>(
     self: Effect.Effect<A, E, R>,
-    filter: Filter.Filter<NoInfer<E>, EB>,
+    filter: Filter.Filter<NoInfer<E>, EB, X>,
     f: (e: EB) => Effect.Effect<A2, E2, R2>
-  ): Effect.Effect<A | A2, E2 | Exclude<E, EB>, R | R2>
+  ): Effect.Effect<A | A2, E2 | X, R | R2>
 } = dual(
   3,
-  <A, E, R, EB, A2, E2, R2>(
+  <A, E, R, EB, A2, E2, R2, X>(
     self: Effect.Effect<A, E, R>,
-    filter: Filter.Filter<NoInfer<E>, EB>,
+    filter: Filter.Filter<NoInfer<E>, EB, X>,
     f: (e: EB) => Effect.Effect<A2, E2, R2>
-  ): Effect.Effect<A | A2, E | E2, R | R2> =>
+  ): Effect.Effect<A | A2, E2 | X, R | R2> =>
     catchCauseIf(
       self,
-      Filter.compose(causeFilterError, filter),
-      f
+      Filter.compose(causeFilterError, Filter.mapFail(filter, causeFail)),
+      (e) => f(e)
     )
 )
 
@@ -2360,7 +2389,7 @@ export const catchTags: {
     self,
     (e) => {
       keys ??= Object.keys(cases)
-      return hasProperty(e, "_tag") && isString(e["_tag"]) && keys.includes(e["_tag"]) ? e : Filter.absent
+      return hasProperty(e, "_tag") && isString(e["_tag"]) && keys.includes(e["_tag"]) ? e : Filter.fail(e)
     },
     (e) => internalCall(() => cases[e["_tag"] as string](e))
   )
@@ -2626,7 +2655,7 @@ export const matchEager: {
     if (effectIsExit(self)) {
       if (self._tag === "Success") return exitSucceed(options.onSuccess(self.value))
       const error = causeFilterError(self.cause)
-      if (error === Filter.absent) return self as Exit.Exit<never>
+      if (Filter.isFail(error)) return self as Exit.Exit<never>
       return exitSucceed(options.onFailure(error))
     }
     return match(self, options)
@@ -2956,25 +2985,25 @@ export const ensuring: {
 
 /** @internal */
 export const onExitIf: {
-  <A, E, XE, XR, B extends Exit.Exit<A, E>>(
-    filter: Filter.Filter<Exit.Exit<NoInfer<A>, NoInfer<E>>, B>,
-    f: (exit: B) => Effect.Effect<void, XE, XR>
+  <A, E, XE, XR, B, X>(
+    filter: Filter.Filter<Exit.Exit<NoInfer<A>, NoInfer<E>>, B, X>,
+    f: (b: B) => Effect.Effect<void, XE, XR>
   ): <R>(self: Effect.Effect<A, E, R>) => Effect.Effect<A, E | XE, R | XR>
-  <A, E, R, XE, XR, B extends Exit.Exit<A, E>>(
+  <A, E, R, XE, XR, B extends Exit.Exit<A, E>, X>(
     self: Effect.Effect<A, E, R>,
-    filter: Filter.Filter<Exit.Exit<NoInfer<A>, NoInfer<E>>, B>,
-    f: (exit: B) => Effect.Effect<void, XE, XR>
+    filter: Filter.Filter<Exit.Exit<NoInfer<A>, NoInfer<E>>, B, X>,
+    f: (b: B) => Effect.Effect<void, XE, XR>
   ): Effect.Effect<A, E | XE, R | XR>
 } = dual(
   3,
-  <A, E, R, XE, XR, B extends Exit.Exit<A, E>>(
+  <A, E, R, XE, XR, B extends Exit.Exit<A, E>, X>(
     self: Effect.Effect<A, E, R>,
-    filter: Filter.Filter<Exit.Exit<NoInfer<A>, NoInfer<E>>, B>,
-    f: (exit: B) => Effect.Effect<void, XE, XR>
+    filter: Filter.Filter<Exit.Exit<NoInfer<A>, NoInfer<E>>, B, X>,
+    f: (b: B) => Effect.Effect<void, XE, XR>
   ): Effect.Effect<A, E | XE, R | XR> =>
     onExit(self, (exit) => {
       const b = filter(exit)
-      return b === Filter.absent ? exitVoid : f(b)
+      return Filter.isFail(b) ? exitVoid : f(b)
     })
 )
 
@@ -3388,32 +3417,32 @@ const forEachSequential = <A, B, E, R>(
 
 /* @internal */
 export const filterOrElse: {
-  <A, C, E2, R2, B>(
-    filter: Filter.Filter<NoInfer<A>, B>,
-    orElse: (a: A) => Effect.Effect<C, E2, R2>
+  <A, C, E2, R2, B, X>(
+    filter: Filter.Filter<NoInfer<A>, B, X>,
+    orElse: (a: X) => Effect.Effect<C, E2, R2>
   ): <E, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<B | C, E2 | E, R2 | R>
-  <A, E, R, C, E2, R2, B>(
+  <A, E, R, C, E2, R2, B, X>(
     self: Effect.Effect<A, E, R>,
-    filter: Filter.Filter<NoInfer<A>, B>,
-    orElse: (a: NoInfer<A>) => Effect.Effect<C, E2, R2>
+    filter: Filter.Filter<NoInfer<A>, B, X>,
+    orElse: (a: X) => Effect.Effect<C, E2, R2>
   ): Effect.Effect<B | C, E | E2, R | R2>
-} = dual(3, <A, E, R, C, E2, R2, B>(
+} = dual(3, <A, E, R, C, E2, R2, B, X>(
   self: Effect.Effect<A, E, R>,
-  filter: Filter.Filter<NoInfer<A>, B>,
-  orElse: (a: NoInfer<A>) => Effect.Effect<C, E2, R2>
+  filter: Filter.Filter<NoInfer<A>, B, X>,
+  orElse: (a: X) => Effect.Effect<C, E2, R2>
 ): Effect.Effect<B | C, E | E2, R | R2> =>
   flatMap(
     self,
     (a): Effect.Effect<B | C, E2, R2> => {
       const b = filter(a)
-      return b === Filter.absent ? internalCall(() => orElse(a)) : succeed(b)
+      return Filter.isFail(b) ? internalCall(() => orElse(b.fail)) : succeed(b)
     }
   ))
 
 /** @internal */
-export const filter = <A, B, E, R>(
+export const filter = <A, B, X, E, R>(
   iterable: Iterable<A>,
-  f: Filter.FilterEffect<NoInfer<A>, B, E, R>,
+  f: Filter.FilterEffect<NoInfer<A>, B, X, E, R>,
   options?: {
     readonly concurrency?: Concurrency | undefined
   }
@@ -3425,7 +3454,7 @@ export const filter = <A, B, E, R>(
         iterable,
         (a) =>
           map(f(a), (o) => {
-            if (o !== Filter.absent) {
+            if (Filter.isPass(o)) {
               out.push(o)
             }
           }),

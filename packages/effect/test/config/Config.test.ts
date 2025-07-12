@@ -384,8 +384,8 @@ describe("Config", () => {
     it("should preserve the original path", () => {
       const flat = Config.Number("NUMBER").pipe(
         Config.filter({
-          filter: (n) => n >= 0 ? n : Filter.absent,
-          onAbsent: () => "a positive number"
+          filter: (n) => n >= 0 ? n : Filter.fail(n),
+          onFail: () => "a positive number"
         })
       )
       assertConfig(flat, { NUMBER: "1" }, 1)

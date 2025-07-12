@@ -352,43 +352,22 @@ export const isHaltFailure = <E>(
 /**
  * Filters a Cause to extract only halt errors.
  *
- * @example
- * ```ts
- * import { Pull, Cause } from "effect"
- *
- * const halt = new Pull.Halt("completed")
- * const causeWithHalt = Cause.fail(halt)
- * const filtered = Pull.filterHalt(causeWithHalt)
- *
- * // filtered will be the halt error if present, or Filter.absent
- * ```
- *
  * @since 4.0.0
  * @category Halt
  */
-export const filterHalt: <E>(input: Cause.Cause<E>) => Halt.Only<E> | Filter.absent = Filter.compose(
-  Cause.filterError,
-  Filter.fromPredicate(isHalt)
-) as any
+export const filterHalt: <E>(input: Cause.Cause<E>) => Halt.Only<E> | Filter.fail<Cause.Cause<ExcludeHalt<E>>> = Filter
+  .unsafeCompose(
+    Cause.filterError,
+    (e) => isHalt(e) ? e : Filter.fail(e)
+  ) as any
 
 /**
- * Filters a Cause to extract only halt errors.
- *
- * @example
- * ```ts
- * import { Pull, Cause } from "effect"
- *
- * const halt = new Pull.Halt("completed")
- * const causeWithHalt = Cause.fail(halt)
- * const filtered = Pull.filterHalt(causeWithHalt)
- *
- * // filtered will be the halt error if present, or Filter.absent
- * ```
- *
  * @since 4.0.0
  * @category Halt
  */
-export const filterNoHalt: <E>(input: Cause.Cause<E>) => Cause.Cause<Exclude<E, Halt<any>>> | Filter.absent = Filter
+export const filterNoHalt: <E>(
+  input: Cause.Cause<E>
+) => Cause.Cause<ExcludeHalt<E>> | Filter.fail<Cause.Cause<E>> = Filter
   .fromPredicate((cause: Cause.Cause<unknown>) => cause.failures.every((failure) => !isHaltFailure(failure))) as any
 
 /**
@@ -408,9 +387,11 @@ export const filterNoHalt: <E>(input: Cause.Cause<E>) => Cause.Cause<Exclude<E, 
  * @since 4.0.0
  * @category Halt
  */
-export const filterHaltLeftover: <E>(cause: Cause.Cause<E>) => Halt.Extract<E> | Filter.absent = Filter.compose(
+export const filterHaltLeftover: <E>(
+  cause: Cause.Cause<E>
+) => Halt.Extract<E> | Filter.fail<Cause.Cause<ExcludeHalt<E>>> = Filter.unsafeCompose(
   Cause.filterError,
-  (e) => isHalt(e) ? e.leftover : Filter.absent
+  (e) => isHalt(e) ? e.leftover : Filter.fail(e)
 ) as any
 
 /**
@@ -470,7 +451,7 @@ export const haltVoid: Effect<never, Halt<void>> = internalEffect.fail(new Halt(
  */
 export const haltExitFromCause = <E>(cause: Cause.Cause<E>): Exit.Exit<Halt.Extract<E>, ExcludeHalt<E>> => {
   const halt = filterHalt(cause)
-  return halt !== Filter.absent ? Exit.succeed(halt.leftover as any) : Exit.failCause(cause) as any
+  return !Filter.isFail(halt) ? Exit.succeed(halt.leftover as any) : Exit.failCause(halt.fail)
 }
 
 /**
@@ -512,6 +493,6 @@ export const matchEffect: {
     onSuccess: options.onSuccess,
     onFailure: (cause): Effect<AS | AF | AH, ES | EF | EH, RS | RF | RH> => {
       const halt = filterHalt(cause)
-      return halt !== Filter.absent ? options.onHalt(halt.leftover as L) : options.onFailure(cause as Cause.Cause<E>)
+      return !Filter.isFail(halt) ? options.onHalt(halt.leftover as L) : options.onFailure(halt.fail)
     }
   }))

@@ -1444,20 +1444,20 @@ export {
  * @category Error handling
  */
 export const catchCauseIf: {
-  <E, EB, A2, E2, R2>(
-    filter: Filter.Filter<Cause.Cause<E>, EB>,
+  <E, EB, X extends Cause.Cause<any>, A2, E2, R2>(
+    filter: Filter.Filter<Cause.Cause<E>, EB, X>,
     f: (failure: EB, cause: Cause.Cause<E>) => Stream<A2, E2, R2>
-  ): <A, R>(self: Stream<A, E, R>) => Stream<A | A2, Exclude<E, Cause.Failure.Error<EB>> | E2, R2 | R>
-  <A, E, R, EB, A2, E2, R2>(
+  ): <A, R>(self: Stream<A, E, R>) => Stream<A | A2, Cause.Cause.Error<X> | E2, R2 | R>
+  <A, E, R, EB, X extends Cause.Cause<any>, A2, E2, R2>(
     self: Stream<A, E, R>,
-    filter: Filter.Filter<Cause.Cause<E>, EB>,
+    filter: Filter.Filter<Cause.Cause<E>, EB, X>,
     f: (failure: EB, cause: Cause.Cause<E>) => Stream<A2, E2, R2>
-  ): Stream<A | A2, Exclude<E, Cause.Failure.Error<EB>> | E2, R | R2>
-} = dual(3, <A, E, R, EB, A2, E2, R2>(
+  ): Stream<A | A2, Cause.Cause.Error<X> | E2, R | R2>
+} = dual(3, <A, E, R, EB, X extends Cause.Cause<any>, A2, E2, R2>(
   self: Stream<A, E, R>,
-  filter: Filter.Filter<Cause.Cause<E>, EB>,
+  filter: Filter.Filter<Cause.Cause<E>, EB, X>,
   f: (failure: EB, cause: Cause.Cause<E>) => Stream<A2, E2, R2>
-): Stream<A | A2, Exclude<E, Cause.Failure.Error<EB>> | E2, R | R2> =>
+): Stream<A | A2, Cause.Cause.Error<X> | E2, R | R2> =>
   self.channel.pipe(
     Channel.catchCauseIf(filter, (failure, cause) => f(failure, cause).channel),
     fromChannel

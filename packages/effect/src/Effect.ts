@@ -2672,15 +2672,15 @@ export const catchDefect: {
  * @category Error handling
  */
 export const catchIf: {
-  <E, EB, A2, E2, R2>(
-    filter: Filter.Filter<NoInfer<E>, EB>,
+  <E, EB, A2, E2, R2, X>(
+    filter: Filter.Filter<NoInfer<E>, EB, X>,
     f: (e: EB) => Effect<A2, E2, R2>
-  ): <A, R>(self: Effect<A, E, R>) => Effect<A2 | A, E2 | Exclude<E, EB>, R2 | R>
-  <A, E, R, EB, A2, E2, R2>(
+  ): <A, R>(self: Effect<A, E, R>) => Effect<A2 | A, E2 | X, R2 | R>
+  <A, E, R, EB, A2, E2, R2, X>(
     self: Effect<A, E, R>,
-    filter: Filter.Filter<NoInfer<E>, EB>,
+    filter: Filter.Filter<NoInfer<E>, EB, X>,
     f: (e: EB) => Effect<A2, E2, R2>
-  ): Effect<A | A2, E2 | Exclude<E, EB>, R | R2>
+  ): Effect<A | A2, E2 | X, R | R2>
 } = internal.catchIf
 
 /**
@@ -2715,15 +2715,15 @@ export const catchIf: {
  * @category Error handling
  */
 export const catchCauseIf: {
-  <E, B, E2, R2, EB>(
-    filter: Filter.Filter<Cause.Cause<E>, EB>,
+  <E, B, E2, R2, EB, X extends Cause.Cause<any>>(
+    filter: Filter.Filter<Cause.Cause<E>, EB, X>,
     f: (failure: EB, cause: Cause.Cause<E>) => Effect<B, E2, R2>
-  ): <A, R>(self: Effect<A, E, R>) => Effect<A | B, Exclude<E, Cause.Failure.Error<EB>> | E2, R | R2>
-  <A, E, R, B, E2, R2, EB>(
+  ): <A, R>(self: Effect<A, E, R>) => Effect<A | B, Cause.Cause.Error<X> | E2, R | R2>
+  <A, E, R, B, E2, R2, EB, X extends Cause.Cause<any>>(
     self: Effect<A, E, R>,
-    filter: Filter.Filter<Cause.Cause<E>, EB>,
+    filter: Filter.Filter<Cause.Cause<E>, EB, X>,
     f: (failure: EB, cause: Cause.Cause<E>) => Effect<B, E2, R2>
-  ): Effect<A | B, Exclude<E, Cause.Failure.Error<EB>> | E2, R | R2>
+  ): Effect<A | B, Cause.Cause.Error<X> | E2, R | R2>
 } = internal.catchCauseIf
 
 /**
@@ -2951,13 +2951,13 @@ export const tapCause: {
  * @category sequencing
  */
 export const tapCauseIf: {
-  <E, B, E2, R2, EB>(
-    filter: Filter.Filter<Cause.Cause<E>, EB>,
+  <E, B, E2, R2, EB, X extends Cause.Cause<any>>(
+    filter: Filter.Filter<Cause.Cause<E>, EB, X>,
     f: (a: EB, cause: Cause.Cause<E>) => Effect<B, E2, R2>
   ): <A, R>(self: Effect<A, E, R>) => Effect<A, E | E2, R | R2>
-  <A, E, R, B, E2, R2, EB>(
+  <A, E, R, B, E2, R2, EB, X extends Cause.Cause<any>>(
     self: Effect<A, E, R>,
-    filter: Filter.Filter<Cause.Cause<E>, EB>,
+    filter: Filter.Filter<Cause.Cause<E>, EB, X>,
     f: (a: EB, cause: Cause.Cause<E>) => Effect<B, E2, R2>
   ): Effect<A, E | E2, R | R2>
 } = internal.tapCauseIf
@@ -3727,9 +3727,9 @@ export const raceFirst: {
  * @since 2.0.0
  * @category Filtering
  */
-export const filter: <A, B, E, R>(
+export const filter: <A, B, X, E, R>(
   iterable: Iterable<A>,
-  f: Filter.FilterEffect<NoInfer<A>, B, E, R>,
+  f: Filter.FilterEffect<NoInfer<A>, B, X, E, R>,
   options?: { readonly concurrency?: Concurrency | undefined }
 ) => Effect<Array<B>, E, R> = internal.filter
 
@@ -3764,14 +3764,14 @@ export const filter: <A, B, E, R>(
  * @category Filtering
  */
 export const filterOrElse: {
-  <A, C, E2, R2, B>(
-    filter: Filter.Filter<NoInfer<A>, B>,
-    orElse: (a: A) => Effect<C, E2, R2>
+  <A, C, E2, R2, B, X>(
+    filter: Filter.Filter<NoInfer<A>, B, X>,
+    orElse: (a: X) => Effect<C, E2, R2>
   ): <E, R>(self: Effect<A, E, R>) => Effect<B | C, E2 | E, R2 | R>
-  <A, E, R, C, E2, R2, B>(
+  <A, E, R, C, E2, R2, B, X>(
     self: Effect<A, E, R>,
-    filter: Filter.Filter<NoInfer<A>, B>,
-    orElse: (a: NoInfer<A>) => Effect<C, E2, R2>
+    filter: Filter.Filter<NoInfer<A>, B, X>,
+    orElse: (a: X) => Effect<C, E2, R2>
   ): Effect<B | C, E | E2, R | R2>
 } = internal.filterOrElse
 
@@ -3805,19 +3805,22 @@ export const filterOrElse: {
  * @category Filtering
  */
 export const filterOrFail: {
-  <A, E2, B extends A>(
-    filter: Filter.Filter<NoInfer<A>, B>,
-    orFailWith: (a: A) => E2
+  <A, E2, B, X>(
+    filter: Filter.Filter<NoInfer<A>, B, X>,
+    orFailWith: (a: X) => E2
   ): <E, R>(self: Effect<A, E, R>) => Effect<B, E2 | E, R>
-  <A, E, R, E2, B>(
+  <A, E, R, E2, B, X>(
     self: Effect<A, E, R>,
-    filter: Filter.Filter<NoInfer<A>, B>,
-    orFailWith: (a: A) => E2
+    filter: Filter.Filter<NoInfer<A>, B, X>,
+    orFailWith: (a: X) => E2
   ): Effect<B, E2 | E, R>
-  <A, B>(
-    filter: Filter.Filter<NoInfer<A>, B>
+  <A, B, X>(
+    filter: Filter.Filter<NoInfer<A>, B, X>
   ): <E, R>(self: Effect<A, E, R>) => Effect<B, Cause.NoSuchElementError | E, R>
-  <A, E, R, B>(self: Effect<A, E, R>, filter: Filter.Filter<NoInfer<A>, B>): Effect<B, E | Cause.NoSuchElementError, R>
+  <A, E, R, B, X>(
+    self: Effect<A, E, R>,
+    filter: Filter.Filter<NoInfer<A>, B, X>
+  ): Effect<B, E | Cause.NoSuchElementError, R>
 } = internal.filterOrFail
 
 // -----------------------------------------------------------------------------
@@ -4106,7 +4109,7 @@ export const matchCauseEager: {
  *     Effect.gen(function* () {
  *       if (Cause.hasFail(cause)) {
  *         const error = Cause.filterError(cause)
- *         if (error !== Filter.absent) {
+ *         if (Filter.isPass(error)) {
  *           yield* Console.log(`Handling error: ${(error as Error).message}`)
  *         }
  *         return "recovered from error"

@@ -483,36 +483,18 @@ export const hasFail: <E>(self: Cause<E>) => boolean = effect.causeHasFail
 /**
  * Filters out the first typed error from a `Cause`.
  *
- * @example
- * ```ts
- * import { Cause, Filter } from "effect"
- *
- * const cause = Cause.fail("error")
- * const filtered = Cause.filterFail(cause)
- * console.log(filtered !== Filter.absent) // true
- * ```
- *
  * @category filters
  * @since 4.0.0
  */
-export const filterFail: <E>(self: Cause<E>) => Fail<E> | Filter.absent = effect.causeFilterFail
+export const filterFail: <E>(self: Cause<E>) => Fail<E> | Filter.fail<Cause<never>> = effect.causeFilterFail
 
 /**
  * Filters out the first typed error value from a `Cause`.
  *
- * @example
- * ```ts
- * import { Cause, Filter } from "effect"
- *
- * const cause = Cause.fail("error")
- * const filtered = Cause.filterError(cause)
- * console.log(filtered === "error") // true
- * ```
- *
  * @category filters
  * @since 4.0.0
  */
-export const filterError: <E>(self: Cause<E>) => E | Filter.absent = effect.causeFilterError
+export const filterError: <E>(self: Cause<E>) => E | Filter.fail<Cause<never>> = effect.causeFilterError
 
 /**
  * Tests if a `Cause` contains any defects.
@@ -536,19 +518,10 @@ export const hasDie: <E>(self: Cause<E>) => boolean = effect.causeHasDie
 /**
  * Filters out the first defect from a `Cause`.
  *
- * @example
- * ```ts
- * import { Cause, Filter } from "effect"
- *
- * const cause = Cause.die("defect")
- * const filtered = Cause.filterDie(cause)
- * console.log(filtered !== Filter.absent) // true
- * ```
- *
  * @category filters
  * @since 4.0.0
  */
-export const filterDie: <E>(self: Cause<E>) => Die | Filter.absent = effect.causeFilterDie
+export const filterDie: <E>(self: Cause<E>) => Die | Filter.fail<Cause<E>> = effect.causeFilterDie
 
 /**
  * Tests if a `Cause` contains any interruptions.
@@ -572,38 +545,16 @@ export const hasInterrupt: <E>(self: Cause<E>) => boolean = effect.causeHasInter
 /**
  * Filters out the first interruption from a `Cause`.
  *
- * @example
- * ```ts
- * import { Cause, Filter } from "effect"
- *
- * const cause = Cause.interrupt(123)
- * const filtered = Cause.filterInterrupt(cause)
- * console.log(filtered !== Filter.absent) // true
- * ```
- *
  * @category filters
  * @since 4.0.0
  */
-export const filterInterrupt: <E>(self: Cause<E>) => Interrupt | Filter.absent = effect.causeFilterInterrupt
+export const filterInterrupt: <E>(self: Cause<E>) => Interrupt | Filter.fail<Cause<E>> = effect.causeFilterInterrupt
 
 /**
- * @example
- * ```ts
- * import { Cause, Filter } from "effect"
- *
- * const cause = Cause.interrupt(123)
- * const interruptor = Cause.filterInterruptor(cause)
- * console.log(interruptor === 123) // true
- *
- * const failCause = Cause.fail("error")
- * const noInterruptor = Cause.filterInterruptor(failCause)
- * console.log(noInterruptor === Filter.absent) // true
- * ```
- *
  * @since 4.0.0
  * @category filters
  */
-export const filterInterruptor: <E>(self: Cause<E>) => number | Filter.absent = effect.causeFilterInterruptor
+export const filterInterruptor: <E>(self: Cause<E>) => number | Filter.fail<Cause<E>> = effect.causeFilterInterruptor
 
 /**
  * @since 4.0.0

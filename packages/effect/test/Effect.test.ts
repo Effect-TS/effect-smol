@@ -340,14 +340,14 @@ describe("Effect", () => {
   describe("filter", () => {
     it.live("odd numbers", () =>
       Effect.gen(function*() {
-        const results = yield* Effect.filter([1, 2, 3, 4, 5], (_) => Effect.succeed(_ % 2 === 1 ? _ : Filter.absent))
+        const results = yield* Effect.filter([1, 2, 3, 4, 5], (_) => Effect.succeed(_ % 2 === 1 ? _ : Filter.fail(_)))
         assert.deepStrictEqual(results, [1, 3, 5])
       }))
 
     it.live("iterable", () =>
       Effect.gen(function*() {
         const results = yield* Effect.filter(new Set([1, 2, 3, 4, 5]), (_) =>
-          Effect.succeed(_ % 2 === 1 ? _ : Filter.absent))
+          Effect.succeed(_ % 2 === 1 ? _ : Filter.fail(_)))
         assert.deepStrictEqual(results, [1, 3, 5])
       }))
   })
@@ -1260,13 +1260,13 @@ describe("Effect", () => {
   describe("catchCauseIf", () => {
     it.effect("first argument as success", () =>
       Effect.gen(function*() {
-        const result = yield* Effect.catchCauseIf(Effect.succeed(1), () => Filter.absent, () => Effect.fail("e2"))
+        const result = yield* Effect.catchCauseIf(Effect.succeed(1), (_) => Filter.fail(_), () => Effect.fail("e2"))
         assert.deepStrictEqual(result, 1)
       }))
     it.effect("first argument as failure and predicate return false", () =>
       Effect.gen(function*() {
         const result = yield* Effect.flip(
-          Effect.catchCauseIf(Effect.fail("e1" as const), () => Filter.absent, () => Effect.fail("e2" as const))
+          Effect.catchCauseIf(Effect.fail("e1" as const), (_) => Filter.fail(_), () => Effect.fail("e2" as const))
         )
         assert.deepStrictEqual(result, "e1")
       }))
