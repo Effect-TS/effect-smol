@@ -2749,18 +2749,18 @@ export const bellmanFord = <N, E, T extends Kind = "directed">(
  *   Graph.addEdge(mutable, a, b, 1)
  * })
  *
- * // Both traversal and element iterators return NodeIterable
- * const dfsNodes: Graph.NodeIterable<string> = Graph.dfs(graph, { startNodes: [0] })
- * const allNodes: Graph.NodeIterable<string> = Graph.nodes(graph)
+ * // Both traversal and element iterators return NodeWalker
+ * const dfsNodes: Graph.NodeWalker<string> = Graph.dfs(graph, { startNodes: [0] })
+ * const allNodes: Graph.NodeWalker<string> = Graph.nodes(graph)
  *
  * // Common interface for working with node iterables
- * function processNodes<N>(nodeIterable: Graph.NodeIterable<N>): Array<number> {
+ * function processNodes<N>(nodeIterable: Graph.NodeWalker<N>): Array<number> {
  *   return Array.from(Graph.indices(nodeIterable))
  * }
  *
  * // Access node data using values() or entries()
- * const nodeData = Array.from(dfsNodes.values()) // ["A", "B"]
- * const nodeEntries = Array.from(allNodes.entries()) // [[0, "A"], [1, "B"]]
+ * const nodeData = Array.from(Graph.values(dfsNodes)) // ["A", "B"]
+ * const nodeEntries = Array.from(Graph.entries(allNodes)) // [[0, "A"], [1, "B"]]
  * ```
  *
  * @since 4.0.0
