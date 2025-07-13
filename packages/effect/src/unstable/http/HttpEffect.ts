@@ -56,14 +56,14 @@ export const toHandled = <E, R, EH, RH>(
         const handler = fiber.getRef(PreResponseHandlers)
         if (handler._tag === "None") {
           ;(request as any)[handledSymbol] = true
-          return Effect.andThen(handleResponse(request, response), Effect.failCause(cause))
+          return Effect.flatMap(handleResponse(request, response), () => Effect.failCause(cause))
         }
-        return Effect.andThen(
-          Effect.tap(handler.value(request, response), (response) => {
+        return Effect.flatMap(
+          Effect.flatMap(handler.value(request, response), (response) => {
             ;(request as any)[handledSymbol] = true
             return handleResponse(request, response)
           }),
-          Effect.failCause(cause)
+          () => Effect.failCause(cause)
         )
       })
   )
@@ -103,7 +103,7 @@ export const toHandled = <E, R, EH, RH>(
  * @since 4.0.0
  * @category Scope
  */
-export const ejectDefaultScopeClose = (scope: Scope.Scope): void => {
+export const scopeDisableClose = (scope: Scope.Scope): void => {
   ejectedScopes.add(scope)
 }
 
@@ -111,7 +111,7 @@ export const ejectDefaultScopeClose = (scope: Scope.Scope): void => {
  * @since 4.0.0
  * @category Scope
  */
-export const unsafeEjectStreamScope = (
+export const scopeTransferToStream = (
   response: HttpServerResponse
 ): HttpServerResponse => {
   if (response.body._tag !== "Stream") {
@@ -119,7 +119,7 @@ export const unsafeEjectStreamScope = (
   }
   const fiber = Fiber.getCurrent()!
   const scope = ServiceMap.unsafeGet(fiber.services, Scope.Scope) as Scope.Scope.Closeable
-  ejectDefaultScopeClose(scope)
+  scopeDisableClose(scope)
   return Response.setBody(
     response,
     HttpBody.stream(
@@ -210,7 +210,7 @@ export const toWebHandlerWith = <R>(services: ServiceMap.ServiceMap<R>) => {
   ): (request: Request, services?: ServiceMap.ServiceMap<never> | undefined) => Promise<globalThis.Response> => {
     const resolveSymbol = Symbol.for("@effect/platform/HttpApp/resolve")
     const httpApp = toHandled(self, (request, response) => {
-      response = unsafeEjectStreamScope(response)
+      response = scopeTransferToStream(response)
       ;(request as any)[resolveSymbol](
         Response.toWeb(response, { withoutBody: request.method === "HEAD", services })
       )
