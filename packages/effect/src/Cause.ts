@@ -516,12 +516,20 @@ export const filterError: <E>(self: Cause<E>) => E | Filter.fail<Cause<never>> =
 export const hasDie: <E>(self: Cause<E>) => boolean = effect.causeHasDie
 
 /**
- * Filters out the first defect from a `Cause`.
+ * Filters out the first Die failure from a `Cause`.
  *
  * @category filters
  * @since 4.0.0
  */
 export const filterDie: <E>(self: Cause<E>) => Die | Filter.fail<Cause<E>> = effect.causeFilterDie
+
+/**
+ * Filters out the first defect from a `Cause`.
+ *
+ * @category filters
+ * @since 4.0.0
+ */
+export const filterDefect: <E>(self: Cause<E>) => {} | Filter.fail<Cause<E>> = effect.causeFilterDefect
 
 /**
  * Tests if a `Cause` contains any interruptions.
@@ -554,7 +562,8 @@ export const filterInterrupt: <E>(self: Cause<E>) => Interrupt | Filter.fail<Cau
  * @since 4.0.0
  * @category filters
  */
-export const filterInterruptor: <E>(self: Cause<E>) => number | Filter.fail<Cause<E>> = effect.causeFilterInterruptor
+export const filterInterruptors: <E>(self: Cause<E>) => Set<number> | Filter.fail<Cause<E>> =
+  effect.causeFilterInterruptors
 
 /**
  * @since 4.0.0

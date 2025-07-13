@@ -11,6 +11,7 @@
  */
 import type * as Cause from "./Cause.js"
 import type * as Effect from "./Effect.js"
+import type * as Filter from "./Filter.js"
 import * as core from "./internal/core.js"
 import * as effect from "./internal/effect.js"
 import type { version } from "./internal/version.js"
@@ -366,6 +367,45 @@ export const hasDie: <A, E>(self: Exit<A, E>) => self is Failure<A, E> = effect.
  * @since 4.0.0
  */
 export const hasInterrupt: <A, E>(self: Exit<A, E>) => self is Failure<A, E> = effect.exitHasInterrupt
+
+/**
+ * @category filters
+ * @since 4.0.0
+ */
+export const filterSuccess: <A, E>(
+  self: Exit<A, E>
+) => Success<A> | Filter.fail<Failure<never, E>> = effect.exitFilterSuccess
+
+/**
+ * @category filters
+ * @since 4.0.0
+ */
+export const filterValue: <A, E>(self: Exit<A, E>) => A | Filter.fail<Failure<never, E>> = effect.exitFilterValue
+
+/**
+ * @category filters
+ * @since 4.0.0
+ */
+export const filterFailure: <A, E>(self: Exit<A, E>) => Failure<never, E> | Filter.fail<Success<A>> =
+  effect.exitFilterFailure
+
+/**
+ * @category filters
+ * @since 4.0.0
+ */
+export const filterCause: <A, E>(self: Exit<A, E>) => Cause.Cause<E> | Filter.fail<Success<A>> = effect.exitFilterCause
+
+/**
+ * @category filters
+ * @since 4.0.0
+ */
+export const filterError: <A, E>(input: Exit<A, E>) => E | Filter.fail<Exit<A, E>> = effect.exitFilterError
+
+/**
+ * @category filters
+ * @since 4.0.0
+ */
+export const filterDefect: <A, E>(input: Exit<A, E>) => {} | Filter.fail<Exit<A, E>> = effect.exitFilterDefect
 
 /**
  * Pattern matches on an `Exit` value, handling both success and failure cases.

@@ -3,9 +3,9 @@
  *
  * @since 2.0.0
  */
-
 import * as Equal from "./Equal.js"
 import * as Equivalence from "./Equivalence.js"
+import * as Filter from "./Filter.js"
 import type { LazyArg } from "./Function.js"
 import { dual, identity } from "./Function.js"
 import type { TypeLambda } from "./HKT.js"
@@ -2809,6 +2809,29 @@ export const partitionMap: {
       }
     }
     return [left, right]
+  }
+)
+/**
+ * @category filtering
+ * @since 4.0.0
+ */
+export const partitionFilter: {
+  <A, Pass, Fail>(f: Filter.Filter<A, Pass, Fail>): (self: Iterable<A>) => [passes: Array<Pass>, fails: Array<Fail>]
+  <A, Pass, Fail>(self: Iterable<A>, f: Filter.Filter<A, Pass, Fail>): [passes: Array<Pass>, fails: Array<Fail>]
+} = dual(
+  2,
+  <A, Pass, Fail>(self: Iterable<A>, f: Filter.Filter<A, Pass, Fail>): [passes: Array<Pass>, fails: Array<Fail>] => {
+    const passes: Array<Pass> = []
+    const fails: Array<Fail> = []
+    for (const a of self) {
+      const e = f(a)
+      if (Filter.isFail(e)) {
+        fails.push(e.fail)
+      } else {
+        passes.push(e)
+      }
+    }
+    return [passes, fails]
   }
 )
 

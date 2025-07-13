@@ -266,8 +266,8 @@ export const makeRuntimePromise = <R, K, A = unknown, E = unknown>(): Effect.Eff
 
 const internalFiberId = -1
 const isInternalInterruption = Filter.toPredicate(Filter.compose(
-  Cause.filterInterruptor,
-  Filter.strictEquals(internalFiberId)
+  Cause.filterInterruptors,
+  Filter.has(internalFiberId)
 ))
 
 /**

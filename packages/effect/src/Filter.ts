@@ -243,7 +243,7 @@ export {
  * @category Constructors
  */
 export const fromPredicate: {
-  <A, B extends A>(refinement: Predicate.Refinement<A, B>): Filter<A, B , EqualsWith<A, B, A, Exclude<A, B>>>
+  <A, B extends A>(refinement: Predicate.Refinement<A, B>): Filter<A, B, EqualsWith<A, B, A, Exclude<A, B>>>
   <A>(predicate: Predicate.Predicate<A>): Filter<A>
 } = <A, B extends A = A>(predicate: Predicate.Predicate<A> | Predicate.Refinement<A, B>): Filter<A, B> => (input: A) =>
   predicate(input) ? input as B : fail(input)
@@ -311,9 +311,19 @@ export const string: Filter<unknown, string> = fromPredicate(Predicate.isString)
 
 /**
  * @since 4.0.0
- * @category Combinators
+ * @category Constructors
  */
-export const strictEquals = <const A>(value: A): Filter<unknown, A> => (u) => u === value ? value : fail(u)
+export const equalsStrict =
+  <const A, Input = unknown>(value: A): Filter<Input, A, EqualsWith<Input, A, A, Exclude<Input, A>>> => (u) =>
+    (u as unknown) === value ? value : fail(u as any)
+
+/**
+ * @since 4.0.0
+ * @category Constructors
+ */
+export const has =
+  <K>(key: K) => <Input extends { readonly has: (key: K) => boolean }>(input: Input): Input | fail<Input> =>
+    input.has(key) ? input : fail(input)
 
 /**
  * Creates a filter that only passes values equal to the specified value using structural equality.
@@ -323,9 +333,12 @@ export const strictEquals = <const A>(value: A): Filter<unknown, A> => (u) => u 
  * can handle objects, arrays, and other reference types properly.
  *
  * @since 4.0.0
- * @category Combinators
+ * @category Constructors
  */
-export const equals = <const A>(value: A): Filter<unknown, A> => (u) => Equal.equals(u, value) ? value : fail(u)
+export const instanceOf =
+  <K extends new(...args: any) => any>(constructor: K) =>
+  <Input>(u: Input): InstanceType<K> | fail<Exclude<Input, InstanceType<K>>> =>
+    u instanceof constructor ? u as InstanceType<K> : fail(u) as any
 
 /**
  * A predefined filter that only passes through number values.
@@ -428,6 +441,16 @@ const taggedImpl =
   <const Tag extends string>(tag: Tag) =>
   <Input>(input: Input): ExtractTag<Input, Tag> | fail<ExcludeTag<Input, Tag>> =>
     Predicate.isTagged(input, tag) ? input as any : fail(input as ExcludeTag<Input, Tag>)
+
+/**
+ * Creates a filter that only passes values equal to the specified value using structural equality.
+ *
+ * @since 4.0.0
+ * @category Constructors
+ */
+export const equals =
+  <const A, Input = unknown>(value: A): Filter<Input, A, EqualsWith<Input, A, A, Exclude<Input, A>>> => (u) =>
+    Equal.equals(u, value) ? value : fail(u as any)
 
 /**
  * Combines two filters with logical OR semantics.
@@ -659,21 +682,21 @@ export const andRight: {
  * @category Combinators
  */
 export const compose: {
-  <PassL, InputR extends PassL, PassR, FailR>(
-    right: Filter<InputR, PassR, FailR>
+  <PassL, PassR, FailR>(
+    right: Filter<PassL, PassR, FailR>
   ): <InputL, FailL>(left: Filter<InputL, PassL, FailL>) => Filter<InputL, PassR, FailL | FailR>
-  <InputL, PassL, FailL, InputR extends PassL, PassR, FailR>(
+  <InputL, PassL, FailL, PassR, FailR>(
     left: Filter<InputL, PassL, FailL>,
-    right: Filter<InputR, PassR, FailR>
+    right: Filter<PassL, PassR, FailR>
   ): Filter<InputL, PassR, FailL | FailR>
-} = dual(2, <InputL, PassL, FailL, InputR extends PassL, PassR, FailR>(
+} = dual(2, <InputL, PassL, FailL, PassR, FailR>(
   left: Filter<InputL, PassL, FailL>,
-  right: Filter<InputR, PassR, FailR>
+  right: Filter<PassL, PassR, FailR>
 ): Filter<InputL, PassR, FailL | FailR> =>
 (input) => {
   const leftOut = left(input)
   if (isFail(leftOut)) return leftOut
-  return right(leftOut as InputR)
+  return right(leftOut)
 })
 
 /**
@@ -687,21 +710,21 @@ export const compose: {
  * @category Unsafe
  */
 export const composePassthrough: {
-  <InputL, PassL, InputR extends PassL, PassR, FailR>(
-    right: Filter<InputR, PassR, FailR>
+  <InputL, PassL, PassR, FailR>(
+    right: Filter<PassL, PassR, FailR>
   ): <FailL>(left: Filter<InputL, PassL, FailL>) => Filter<InputL, PassR, InputL>
-  <InputL, PassL, FailL, InputR extends PassL, PassR, FailR>(
+  <InputL, PassL, FailL, PassR, FailR>(
     left: Filter<InputL, PassL, FailL>,
-    right: Filter<InputR, PassR, FailR>
+    right: Filter<PassL, PassR, FailR>
   ): Filter<InputL, PassR, InputL>
-} = dual(2, <InputL, PassL, FailL, InputR extends PassL, PassR, FailR>(
+} = dual(2, <InputL, PassL, FailL, PassR, FailR>(
   left: Filter<InputL, PassL, FailL>,
-  right: Filter<InputR, PassR, FailR>
+  right: Filter<PassL, PassR, FailR>
 ): Filter<InputL, PassR, InputL> =>
 (input) => {
   const leftOut = left(input)
   if (isFail(leftOut)) return fail(input)
-  const rightOut = right(leftOut as InputR)
+  const rightOut = right(leftOut)
   if (isFail(rightOut)) return fail(input)
   return rightOut
 })
