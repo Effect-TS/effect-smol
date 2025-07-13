@@ -268,6 +268,9 @@ export const causeFromFailures = <E>(
 ): Cause.Cause<E> => new CauseImpl(failures)
 
 /** @internal */
+export const causeEmpty: Cause.Cause<never> = new CauseImpl([])
+
+/** @internal */
 export const causeFail = <E>(error: E): Cause.Cause<E> => new CauseImpl([new Fail(error)])
 
 /** @internal */

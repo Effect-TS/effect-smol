@@ -356,6 +356,15 @@ export const fromFailures: <E>(
 ) => Cause<E> = core.causeFromFailures
 
 /**
+ * A `Cause` that that contains no failures, representing a successful
+ * computation or an empty state.
+ *
+ * @category constructors
+ * @since 2.0.0
+ */
+export const empty: Cause<never> = core.causeEmpty
+
+/**
  * Creates a `Cause` that represents a typed error.
  *
  * @example

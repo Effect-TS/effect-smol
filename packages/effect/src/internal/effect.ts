@@ -41,7 +41,7 @@ import type { Primitive } from "./core.js"
 import {
   args,
   causeAnnotate,
-  causeDie,
+  causeEmpty,
   causeFail,
   causeFromFailures,
   CauseImpl,
@@ -49,6 +49,7 @@ import {
   contAll,
   contE,
   CurrentSpanKey,
+  Die,
   evaluate,
   exitDie,
   exitFail,
@@ -3408,7 +3409,7 @@ export const forEach: {
           } catch (err) {
             failed = true
             length = index
-            failures.push(causeDie(err).failures[0])
+            failures.push(new Die(err))
             fibers.forEach((fiber) => fiber.unsafeInterrupt(parent.id, span))
           }
         }
@@ -4526,7 +4527,7 @@ export const logWithLevel = (level?: LogLevel.LogLevel) =>
     }
   }
   if (cause === undefined) {
-    cause = causeFromFailures([])
+    cause = causeEmpty
   }
   return withFiber((fiber) => {
     const logLevel = level ?? fiber.getRef(CurrentLogLevel)

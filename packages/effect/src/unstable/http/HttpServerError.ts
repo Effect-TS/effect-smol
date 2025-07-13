@@ -163,7 +163,7 @@ export const causeResponse = <E>(
     }
   )
   return Effect.map(effect, (response) => {
-    failures.push(Cause.die(response).failures[0])
+    failures.push(Cause.failureDie(response))
     return [response, Cause.fromFailures(failures)] as const
   })
 }

@@ -27,7 +27,7 @@ const assertConfigErrors = <A>(
 ) => {
   const configProvider = ConfigProvider.fromEnv({ environment: env })
   const result = Effect.runSyncExit(config.parse(configProvider.context()))
-  assertFailure(result, Cause.fromFailures(errors.flatMap((e) => Cause.fail(e).failures)))
+  assertFailure(result, Cause.fromFailures(errors.map(Cause.failureFail)))
 }
 
 const assertConfig = <A>(
