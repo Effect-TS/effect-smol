@@ -4,15 +4,19 @@
 import * as Arr from "../Array.js"
 import * as Cause from "../Cause.js"
 import * as Effect from "../Effect.js"
+import * as FileSystem from "../FileSystem.js"
 import { constant, dual, identity } from "../Function.js"
 import { toStringUnknown } from "../Inspectable.js"
 import { PipeInspectableProto } from "../internal/core.js"
 import * as Layer from "../Layer.js"
+import * as Path from "../Path.js"
 import type { Pipeable } from "../Pipeable.js"
+import type { PlatformError } from "../PlatformError.js"
 import { hasProperty } from "../Predicate.js"
+import type { Scope } from "../Scope.js"
 import * as ServiceMap from "../ServiceMap.js"
 import * as Str from "../String.js"
-import { type ConfigError, filterMissingDataOnly, MissingData } from "./ConfigError.js"
+import { type ConfigError, filterMissingDataOnly, MissingData, SourceError } from "./ConfigError.js"
 
 /**
  * @since 4.0.0
@@ -103,7 +107,35 @@ const defaultFormatPath = (path: ReadonlyArray<string>): string => path.join("."
  * @since 4.0.0
  * @category Layers
  */
-export const layer = (self: ConfigProvider): Layer.Layer<never> => Layer.succeed(ConfigProvider, self)
+export const layer = <E = never, R = never>(
+  self: ConfigProvider | Effect.Effect<ConfigProvider, E, R>
+): Layer.Layer<never, E, Exclude<R, Scope>> =>
+  Effect.isEffect(self) ? Layer.effect(ConfigProvider, self) : Layer.succeed(ConfigProvider, self)
+
+/**
+ * Create a Layer that adds a fallback ConfigProvider, which will be used if the
+ * current provider does not have a value for the requested path.
+ *
+ * If `asPrimary` is set to `true`, the new provider will be used as the
+ * primary provider, meaning it will be used first when looking up values.
+ *
+ * @since 4.0.0
+ * @category Layers
+ */
+export const layerAdd = <E = never, R = never>(
+  self: ConfigProvider | Effect.Effect<ConfigProvider, E, R>,
+  options?: {
+    readonly asPrimary?: boolean | undefined
+  } | undefined
+): Layer.Layer<never, E, Exclude<R, Scope>> =>
+  Layer.effect(
+    ConfigProvider,
+    Effect.gen(function*() {
+      const current = yield* ConfigProvider
+      const configProvider = Effect.isEffect(self) ? yield* self : self
+      return options?.asPrimary ? orElse(configProvider, current) : orElse(current, configProvider)
+    })
+  )
 
 const makeProto = (options: {
   readonly load: (path: ReadonlyArray<string>) => Effect.Effect<string, ConfigError>
@@ -362,3 +394,175 @@ export const orElse: {
         Effect.flatMap((values) => values.length > 0 ? Effect.succeed(values) : that.listCandidates(path))
       )
   }))
+
+/**
+ * A ConfigProvider that loads configuration from a `.env` file.
+ *
+ * Based on
+ * - https://github.com/motdotla/dotenv
+ * - https://github.com/motdotla/dotenv-expand
+ *
+ * @since 4.0.0
+ * @category Dotenv
+ */
+export const dotEnv: (
+  path: string,
+  options?: { readonly pathDelimiter?: string | undefined } | undefined
+) => Effect.Effect<
+  ConfigProvider,
+  PlatformError,
+  FileSystem.FileSystem
+> = Effect.fnUntraced(function*(path, options) {
+  const fs = yield* FileSystem.FileSystem
+  const content = yield* fs.readFileString(path)
+  return fromEnv({
+    environment: parseDotEnv(content),
+    pathDelimiter: options?.pathDelimiter
+  })
+})
+
+/**
+ * Creates a ConfigProvider from a file tree structure.
+ *
+ * @since 1.0.0
+ * @category File Tree
+ */
+export const fileTree: (options?: {
+  readonly rootDirectory?: string | undefined
+}) => Effect.Effect<
+  ConfigProvider,
+  never,
+  Path.Path | FileSystem.FileSystem
+> = Effect.fnUntraced(function*(options) {
+  const path_ = yield* Path.Path
+  const fs = yield* FileSystem.FileSystem
+  const rootDirectory = options?.rootDirectory ?? "/"
+
+  const formatPath = (path: ReadonlyArray<string>): string => path_.join(rootDirectory, ...path)
+
+  const mapError = (path: ReadonlyArray<string>) => (cause: PlatformError) =>
+    cause._tag === "SystemError" && cause.reason === "NotFound" ?
+      new MissingData({
+        path,
+        fullPath: formatPath(path),
+        cause
+      }) :
+      new SourceError({
+        path,
+        description: `Failed to read file at ${formatPath(path)}`,
+        cause
+      })
+
+  return make({
+    formatPath,
+    load: (path) =>
+      fs.readFileString(path_.join(rootDirectory, ...path)).pipe(
+        Effect.mapError(mapError(path)),
+        Effect.map(Str.trim)
+      ),
+    listCandidates: (path) =>
+      fs.readDirectory(formatPath(path)).pipe(
+        Effect.mapError(mapError(path)),
+        Effect.map(Arr.map((file) => ({
+          key: path_.basename(file),
+          path: [...path, path_.basename(file)]
+        })))
+      )
+  })
+})
+
+// -----------------------------------------------------------------------------
+// Internal
+// -----------------------------------------------------------------------------
+
+const DOT_ENV_LINE =
+  /(?:^|^)\s*(?:export\s+)?([\w.-]+)(?:\s*=\s*?|:\s+?)(\s*'(?:\\'|[^'])*'|\s*"(?:\\"|[^"])*"|\s*`(?:\\`|[^`])*`|[^#\r\n]+)?\s*(?:#.*)?(?:$|$)/mg
+
+const parseDotEnv = (lines: string): Record<string, string> => {
+  const obj: Record<string, string> = {}
+
+  // Convert line breaks to same format
+  lines = lines.replace(/\r\n?/gm, "\n")
+
+  let match: RegExpExecArray | null
+  while ((match = DOT_ENV_LINE.exec(lines)) != null) {
+    const key = match[1]
+
+    // Default undefined or null to empty string
+    let value = match[2] || ""
+
+    // Remove whitespace
+    value = value.trim()
+
+    // Check if double quoted
+    const maybeQuote = value[0]
+
+    // Remove surrounding quotes
+    value = value.replace(/^(['"`])([\s\S]*)\1$/gm, "$2")
+
+    // Expand newlines if double quoted
+    if (maybeQuote === "\"") {
+      value = value.replace(/\\n/g, "\n")
+      value = value.replace(/\\r/g, "\r")
+    }
+
+    // Add to object
+    obj[key] = value
+  }
+
+  return dotEnvExpand(obj)
+}
+
+const dotEnvExpand = (parsed: Record<string, string>) => {
+  const newParsed: Record<string, string> = {}
+
+  for (const configKey in parsed) {
+    // resolve escape sequences
+    newParsed[configKey] = interpolate(parsed[configKey], parsed).replace(/\\\$/g, "$")
+  }
+
+  return newParsed
+}
+
+const interpolate = (envValue: string, parsed: Record<string, string>) => {
+  // find the last unescaped dollar sign in the
+  // value so that we can evaluate it
+  const lastUnescapedDollarSignIndex = searchLast(envValue, /(?!(?<=\\))\$/g)
+
+  // If we couldn't match any unescaped dollar sign
+  // let's return the string as is
+  if (lastUnescapedDollarSignIndex === -1) return envValue
+
+  // This is the right-most group of variables in the string
+  const rightMostGroup = envValue.slice(lastUnescapedDollarSignIndex)
+
+  /**
+   * This finds the inner most variable/group divided
+   * by variable name and default value (if present)
+   * (
+   *   (?!(?<=\\))\$        // only match dollar signs that are not escaped
+   *   {?                   // optional opening curly brace
+   *     ([\w]+)            // match the variable name
+   *     (?::-([^}\\]*))?   // match an optional default value
+   *   }?                   // optional closing curly brace
+   * )
+   */
+  const matchGroup = /((?!(?<=\\))\${?([\w]+)(?::-([^}\\]*))?}?)/
+  const match = rightMostGroup.match(matchGroup)
+
+  if (match !== null) {
+    const [_, group, variableName, defaultValue] = match
+
+    return interpolate(
+      envValue.replace(group, defaultValue || parsed[variableName] || ""),
+      parsed
+    )
+  }
+
+  return envValue
+}
+
+const searchLast = (str: string, rgx: RegExp) => {
+  const matches = Array.from(str.matchAll(rgx))
+  return matches.length > 0 ? matches.slice(-1)[0].index : -1
+}
