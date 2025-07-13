@@ -222,7 +222,8 @@ export abstract class FailureBase<Tag extends string> implements Cause.Cause.Fai
   }
 }
 
-class Fail<E> extends FailureBase<"Fail"> implements Cause.Fail<E> {
+/** @internal */
+export class Fail<E> extends FailureBase<"Fail"> implements Cause.Fail<E> {
   constructor(
     readonly error: E,
     annotations = new Map<string, unknown>()
@@ -269,7 +270,8 @@ export const causeFromFailures = <E>(
 /** @internal */
 export const causeFail = <E>(error: E): Cause.Cause<E> => new CauseImpl([new Fail(error)])
 
-class Die extends FailureBase<"Die"> implements Cause.Die {
+/** @internal */
+export class Die extends FailureBase<"Die"> implements Cause.Die {
   constructor(
     readonly defect: unknown,
     annotations = new Map<string, unknown>()

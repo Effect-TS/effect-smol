@@ -1637,6 +1637,11 @@ export const trimmed = (self: Config<string>): Config<string> => map(self, Str.t
 /**
  * Ensures that the parsed value is not empty.
  *
+ * It works with:
+ * - Arrays: checks if the length is greater than 0
+ * - Set / Map: checks if the size is greater than 0
+ * - Objects: checks if the number of keys is greater than 0
+ *
  * @since 4.0.0
  * @category Filters
  */

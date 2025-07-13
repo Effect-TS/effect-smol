@@ -77,7 +77,8 @@ import { version } from "./version.js"
 // Cause
 // ----------------------------------------------------------------------------
 
-class Interrupt extends FailureBase<"Interrupt"> implements Cause.Interrupt {
+/** @internal */
+export class Interrupt extends FailureBase<"Interrupt"> implements Cause.Interrupt {
   constructor(
     readonly fiberId: Option.Option<number>,
     annotations = new Map<string, unknown>()
@@ -115,6 +116,10 @@ class Interrupt extends FailureBase<"Interrupt"> implements Cause.Interrupt {
       ))
   }
 }
+
+/** @internal */
+export const failureInterrupt = (fiberId?: number | undefined): Cause.Interrupt =>
+  new Interrupt(Option.fromNullable(fiberId))
 
 /** @internal */
 export const causeInterrupt = (
@@ -162,16 +167,16 @@ export const causeFilterInterrupt = <E>(self: Cause.Cause<E>): Cause.Interrupt |
 
 /** @internal */
 export const causeFilterInterruptors = <E>(self: Cause.Cause<E>): Set<number> | Filter.fail<Cause.Cause<E>> => {
-  let hasInterrupt = false
-  const interruptors = new Set<number>()
-  for (const f of self.failures) {
+  let interruptors: Set<number> | undefined
+  for (let i = 0; i < self.failures.length; i++) {
+    const f = self.failures[i]
     if (f._tag !== "Interrupt") continue
-    hasInterrupt = true
+    interruptors ??= new Set()
     if (f.fiberId._tag === "Some") {
       interruptors.add(f.fiberId.value)
     }
   }
-  return hasInterrupt ? interruptors : Filter.fail(self)
+  return interruptors ? interruptors : Filter.fail(self)
 }
 
 /** @internal */

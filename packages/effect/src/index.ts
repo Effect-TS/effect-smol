@@ -862,33 +862,6 @@ export * as FiberSet from "./FiberSet.js"
 export * as FileSystem from "./FileSystem.js"
 
 /**
- * This module provides utilities for creating and working with filters in TypeScript.
- *
- * Filters are functions that can selectively pass through values while potentially
- * transforming them. They are similar to predicates but can also refine types and
- * transform values during the filtering process.
- *
- * The key concept is the `absent` symbol, which represents values that should be
- * filtered out. Filters return either a transformed value or `absent` to indicate
- * that the input should be excluded from the result.
- *
- * @example
- * ```ts
- * import { Filter } from "effect"
- *
- * // Create a simple number filter
- * const positiveNumbers = Filter.fromPredicate((n: number) => n > 0)
- *
- * console.log(positiveNumbers(5))   // 5
- * console.log(positiveNumbers(-3))  // Symbol.for("effect/Filter/absent")
- *
- * // Combine filters
- * const evenPositive = Filter.zip(
- *   Filter.fromPredicate((n: number) => n > 0),
- *   Filter.fromPredicate((n: number) => n % 2 === 0)
- * )
- * ```
- *
  * @since 4.0.0
  */
 export * as Filter from "./Filter.js"

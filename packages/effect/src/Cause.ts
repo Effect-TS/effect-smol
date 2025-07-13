@@ -404,6 +404,24 @@ export const die: (defect: unknown) => Cause<never> = core.causeDie
 export const interrupt: (fiberId?: number | undefined) => Cause<never> = effect.causeInterrupt
 
 /**
+ * @category Failure
+ * @since 4.0.0
+ */
+export const failureFail = <E>(error: E): Fail<E> => new core.Fail(error)
+
+/**
+ * @category Failure
+ * @since 4.0.0
+ */
+export const failureDie = (defect: unknown): Die => new core.Die(defect)
+
+/**
+ * @category Failure
+ * @since 4.0.0
+ */
+export const failureInterrupt: (fiberId?: number | undefined) => Interrupt = effect.failureInterrupt
+
+/**
  * Tests if a `Cause` contains only interruptions.
  *
  * @example

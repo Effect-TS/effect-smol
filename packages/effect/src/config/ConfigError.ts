@@ -61,9 +61,8 @@ export class MissingData extends Data.TaggedError("ConfigError")<{
  * @since 4.0.0
  * @category Filters
  */
-export const filterMissingData: Filter.Filter<ConfigError, MissingData> = Filter.fromPredicate((e) =>
-  e.reason === "MissingData"
-)
+export const filterMissingData: Filter.Filter<ConfigError, MissingData, SourceError | InvalidData> = Filter
+  .fromPredicate((e: ConfigError) => e.reason === "MissingData")
 
 /**
  * @since 4.0.0
@@ -71,7 +70,8 @@ export const filterMissingData: Filter.Filter<ConfigError, MissingData> = Filter
  */
 export const filterMissingDataOnly: Filter.Filter<
   Cause.Cause<ConfigError>,
-  Cause.Cause<MissingData>
+  Cause.Cause<MissingData>,
+  Cause.Cause<SourceError | InvalidData>
 > = Filter.fromPredicate((cause: Cause.Cause<ConfigError>) =>
   cause.failures.every((f) => f._tag === "Fail" && f.error.reason === "MissingData")
 ) as any
@@ -130,6 +130,8 @@ export class InvalidData extends Data.TaggedError("ConfigError")<{
  * @since 4.0.0
  * @category Filters
  */
-export const filterInvalidData: Filter.Filter<ConfigError, InvalidData> = Filter.fromPredicate((e) =>
-  e.reason === "InvalidData"
-)
+export const filterInvalidData: Filter.Filter<
+  ConfigError,
+  InvalidData,
+  MissingData | SourceError
+> = Filter.fromPredicate((e: ConfigError) => e.reason === "InvalidData")
