@@ -248,6 +248,7 @@ export const use = <A, E, R>(
  * Create a layer that adds a single route to the HTTP router.
  *
  * ```ts
+ * import * as Effect from "effect/Effect"
  * import * as HttpRouter from "effect/unstable/http/HttpRouter"
  * import * as HttpServerResponse from "effect/unstable/http/HttpServerResponse"
  *
@@ -273,6 +274,7 @@ export const add = <E, R>(
  * Create a layer that adds multiple routes to the HTTP router.
  *
  * ```ts
+ * import * as Effect from "effect/Effect"
  * import * as HttpRouter from "effect/unstable/http/HttpRouter"
  * import * as HttpServerResponse from "effect/unstable/http/HttpServerResponse"
  *
@@ -878,6 +880,7 @@ export const cors = (
  * A middleware that disables the logger for some routes.
  *
  * ```ts
+ * import * as Effect from "effect/Effect"
  * import * as HttpRouter from "effect/unstable/http/HttpRouter"
  * import * as HttpServerResponse from "effect/unstable/http/HttpServerResponse"
  * import * as Layer from "effect/Layer"
