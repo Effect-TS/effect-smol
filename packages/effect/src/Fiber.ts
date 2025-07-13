@@ -452,7 +452,7 @@ export const isFiber = (
 
 /**
  * Returns the current fiber if called from within a fiber context,
- * otherwise returns `None`.
+ * otherwise returns `undefined`.
  *
  * @example
  * ```ts
@@ -461,7 +461,7 @@ export const isFiber = (
  * const program = Effect.gen(function* () {
  *   const current = Fiber.getCurrent()
  *   if (current) {
- *     console.log(`Current fiber ID: ${current.value.id}`)
+ *     console.log(`Current fiber ID: ${current.id}`)
  *   }
  * })
  * ```
