@@ -5,7 +5,6 @@ import * as Arr from "../../Array.js"
 import * as Effect from "../../Effect.js"
 import { compose, dual, identity } from "../../Function.js"
 import * as Layer from "../../Layer.js"
-import * as ManagedRuntime from "../../ManagedRuntime.js"
 import * as Option from "../../Option.js"
 import * as Scope from "../../Scope.js"
 import * as ServiceMap from "../../ServiceMap.js"
@@ -1010,24 +1009,9 @@ export const toWebHandler = <
   const RouterLayer = options?.routerConfig
     ? Layer.provide(layer, Layer.succeed(RouterConfig, options.routerConfig))
     : layer
-  const runtime = ManagedRuntime.make(
-    Layer.provideMerge(appLayer, RouterLayer) as any,
-    options
-  )
-  let handlerCached:
-    | ((request: globalThis.Request, context?: ServiceMap.ServiceMap<never> | undefined) => Promise<Response>)
-    | undefined
-  const handlerPromise = Effect.gen(function*() {
-    const router = yield* HttpRouter
-    const effect = router.asHttpEffect()
-    const services = yield* runtime.servicesEffect
-    const handler = HttpEffect.toWebHandlerWith(services)(effect, middleware)
-    handlerCached = handler
-    return handler
-  }).pipe(runtime.runPromise)
-  function handler(request: globalThis.Request, context?: ServiceMap.ServiceMap<never> | undefined): Promise<Response> {
-    if (handlerCached !== undefined) return handlerCached(request, context)
-    return handlerPromise.then((handler) => handler(request, context))
-  }
-  return { handler, dispose: runtime.dispose } as const
+  return HttpEffect.toWebHandlerLayerWith(Layer.provideMerge(appLayer, RouterLayer) as Layer.Layer<A | HttpRouter, E>, {
+    toHandler: (s) => Effect.succeed(ServiceMap.get(s, HttpRouter).asHttpEffect()),
+    middleware,
+    memoMap: options?.memoMap
+  })
 }

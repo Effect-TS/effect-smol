@@ -203,36 +203,40 @@ export const withPreResponseHandler: {
  * @since 4.0.0
  * @category conversions
  */
-export const toWebHandlerWith = <R>(services: ServiceMap.ServiceMap<R>) => {
-  return <E>(
-    self: Effect.Effect<HttpServerResponse, E, R | HttpServerRequest | Scope.Scope>,
-    middleware?: HttpMiddleware | undefined
-  ): (request: Request, services?: ServiceMap.ServiceMap<never> | undefined) => Promise<globalThis.Response> => {
-    const resolveSymbol = Symbol.for("@effect/platform/HttpApp/resolve")
-    const httpApp = toHandled(self, (request, response) => {
-      response = scopeTransferToStream(response)
-      ;(request as any)[resolveSymbol](
-        Response.toWeb(response, { withoutBody: request.method === "HEAD", services })
-      )
-      return Effect.void
-    }, middleware)
-    return (request: Request, reqServices?: ServiceMap.ServiceMap<never> | undefined): Promise<globalThis.Response> =>
-      new Promise((resolve) => {
-        const contextMap = new Map<string, any>(services.unsafeMap)
-        if (ServiceMap.isServiceMap(reqServices)) {
-          for (const [key, value] of reqServices.unsafeMap) {
-            contextMap.set(key, value)
-          }
+export const toWebHandlerWith = <Provided, R, ReqR = Exclude<R, Provided | Scope.Scope | HttpServerRequest>>(
+  services: ServiceMap.ServiceMap<Provided>
+) =>
+<E>(
+  self: Effect.Effect<HttpServerResponse, E, R>,
+  middleware?: HttpMiddleware | undefined
+): [ReqR] extends [never] ?
+  (request: Request, services?: ServiceMap.ServiceMap<never> | undefined) => Promise<globalThis.Response>
+  : (request: Request, services: ServiceMap.ServiceMap<ReqR>) => Promise<globalThis.Response> =>
+{
+  const resolveSymbol = Symbol.for("@effect/platform/HttpApp/resolve")
+  const httpApp = toHandled(self, (request, response) => {
+    response = scopeTransferToStream(response)
+    ;(request as any)[resolveSymbol](
+      Response.toWeb(response, { withoutBody: request.method === "HEAD", services })
+    )
+    return Effect.void
+  }, middleware)
+  return (request: Request, reqServices?: ServiceMap.ServiceMap<never> | undefined): Promise<globalThis.Response> =>
+    new Promise((resolve) => {
+      const contextMap = new Map<string, any>(services.unsafeMap)
+      if (ServiceMap.isServiceMap(reqServices)) {
+        for (const [key, value] of reqServices.unsafeMap) {
+          contextMap.set(key, value)
         }
-        const httpServerRequest = Request.fromWeb(request)
-        contextMap.set(HttpServerRequest.key, httpServerRequest)
-        ;(httpServerRequest as any)[resolveSymbol] = resolve
-        const fiber = Effect.runForkWith(ServiceMap.unsafeMake(contextMap))(httpApp as any)
-        request.signal?.addEventListener("abort", () => {
-          fiber.unsafeInterrupt(clientAbortFiberId)
-        }, { once: true })
-      })
-  }
+      }
+      const httpServerRequest = Request.fromWeb(request)
+      contextMap.set(HttpServerRequest.key, httpServerRequest)
+      ;(httpServerRequest as any)[resolveSymbol] = resolve
+      const fiber = Effect.runForkWith(ServiceMap.unsafeMake(contextMap))(httpApp as any)
+      request.signal?.addEventListener("abort", () => {
+        fiber.unsafeInterrupt(clientAbortFiberId)
+      }, { once: true })
+    })
 }
 
 /**
@@ -249,19 +253,83 @@ export const toWebHandler: <E>(
  * @since 4.0.0
  * @category conversions
  */
-export const toWebHandlerLayer = <E, R, RE>(
-  self: Effect.Effect<HttpServerResponse, E, R | HttpServerRequest | Scope.Scope>,
-  layer: Layer.Layer<R, RE>,
-  middleware?: HttpMiddleware | undefined
+export const toWebHandlerLayerWith = <
+  E,
+  Provided,
+  LE,
+  R,
+  ReqR = Exclude<R, Provided | Scope.Scope | HttpServerRequest>
+>(
+  layer: Layer.Layer<Provided, LE>,
+  options: {
+    readonly toHandler: (
+      services: ServiceMap.ServiceMap<Provided>
+    ) => Effect.Effect<Effect.Effect<HttpServerResponse, E, R>, LE>
+    readonly middleware?: HttpMiddleware | undefined
+    readonly memoMap?: Layer.MemoMap | undefined
+  }
 ): {
-  readonly close: () => Promise<void>
-  readonly handler: (request: Request, context?: ServiceMap.ServiceMap<never> | undefined) => Promise<Response>
+  readonly dispose: () => Promise<void>
+  readonly handler: [ReqR] extends [never] ? (
+      request: Request,
+      services?: ServiceMap.ServiceMap<never> | undefined
+    ) => Promise<globalThis.Response>
+    : (
+      request: Request,
+      services: ServiceMap.ServiceMap<ReqR>
+    ) => Promise<globalThis.Response>
 } => {
-  const scope = Effect.runSync(Scope.make())
-  const close = () => Effect.runPromise(Scope.close(scope, Exit.void))
-  const build = Effect.map(Layer.build(layer), (_) => toWebHandlerWith(_)(self, middleware))
-  const runner = Effect.runPromise(Scope.provide(build, scope))
-  const handler = (request: Request, context?: ServiceMap.ServiceMap<never> | undefined): Promise<Response> =>
-    runner.then((handler) => handler(request, context))
-  return { close, handler } as const
+  const scope = Scope.unsafeMake()
+  const dispose = () => Effect.runPromise(Scope.close(scope, Exit.void))
+
+  let handlerCache:
+    | ((request: Request, services?: ServiceMap.ServiceMap<ReqR> | undefined) => Promise<globalThis.Response>)
+    | undefined
+  let handlerPromise:
+    | Promise<(request: Request, services?: ServiceMap.ServiceMap<ReqR> | undefined) => Promise<globalThis.Response>>
+    | undefined
+  function handler(
+    request: Request,
+    services?: ServiceMap.ServiceMap<ReqR> | undefined
+  ): Promise<globalThis.Response> {
+    if (handlerCache) {
+      return handlerCache(request, services)
+    }
+    handlerPromise ??= Effect.runPromise(Effect.gen(function*() {
+      const services = yield* (options.memoMap
+        ? Layer.buildWithMemoMap(layer, options.memoMap, scope)
+        : Layer.buildWithScope(layer, scope))
+      return handlerCache = toWebHandlerWith(services)(
+        yield* options.toHandler(services),
+        options.middleware
+      ) as any
+    }))
+    return handlerPromise.then((f) => f(request, services))
+  }
+  return { dispose, handler: handler as any } as const
 }
+
+/**
+ * @since 4.0.0
+ * @category conversions
+ */
+export const toWebHandlerLayer = <E, R, Provided, LE, ReqR = Exclude<R, Provided | Scope.Scope | HttpServerRequest>>(
+  self: Effect.Effect<HttpServerResponse, E, R>,
+  layer: Layer.Layer<Provided, LE>,
+  options?: {
+    readonly middleware?: HttpMiddleware | undefined
+    readonly memoMap?: Layer.MemoMap | undefined
+  } | undefined
+): {
+  readonly dispose: () => Promise<void>
+  readonly handler: [ReqR] extends [never]
+    ? (request: Request, services?: ServiceMap.ServiceMap<never> | undefined) => Promise<globalThis.Response>
+    : (
+      request: Request,
+      services: ServiceMap.ServiceMap<ReqR>
+    ) => Promise<globalThis.Response>
+} =>
+  toWebHandlerLayerWith(layer, {
+    ...options,
+    toHandler: () => Effect.succeed(self)
+  })
