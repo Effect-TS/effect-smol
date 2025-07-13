@@ -301,6 +301,8 @@ const causePrettyError = (original: Record<string, unknown> | Error, span?: Trac
     }
     if (typeof original.stack === "string") {
       error.stack = cleanErrorStack(original.stack, error, span)
+    } else {
+      error.stack = `${error.name}: ${error.message}`
     }
     for (const key of Object.keys(original)) {
       if (!(key in error)) {

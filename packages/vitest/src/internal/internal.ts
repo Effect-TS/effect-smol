@@ -19,8 +19,8 @@ import * as TestConsole from "effect/TestConsole"
 import * as V from "vitest"
 import type * as Vitest from "../index.js"
 
-const runPromise = (ctx?: Vitest.TestContext) => <E, A>(effect: Effect.Effect<A, E>) =>
-  Effect.gen(function*() {
+const runPromise = (ctx?: Vitest.TestContext) =>
+  Effect.fnUntraced(function*<E, A>(effect: Effect.Effect<A, E>) {
     const exitFiber = yield* Effect.fork(Effect.exit(effect))
 
     ctx?.onTestFinished(() =>
@@ -34,16 +34,15 @@ const runPromise = (ctx?: Vitest.TestContext) => <E, A>(effect: Effect.Effect<A,
     if (Exit.isSuccess(exit)) {
       return () => exit.value
     } else {
-      // const errors = Cause.prettyErrors(exit.cause)
-      // for (let i = 1; i < errors.length; i++) {
-      //   yield* Effect.logError(errors[i])
-      // }
+      const errors = Cause.prettyErrors(exit.cause)
+      for (let i = 1; i < errors.length; i++) {
+        yield* Effect.logError(errors[i])
+      }
       return () => {
-        // throw errors[0]
-        throw Cause.squash(exit.cause)
+        throw errors[0]
       }
     }
-  }).pipe(Effect.runPromise).then((f) => f())
+  }, (effect) => Effect.runPromise(effect, { signal: ctx?.signal }).then((f) => f()))
 
 /** @internal */
 const runTest = (ctx?: Vitest.TestContext) => <E, A>(effect: Effect.Effect<A, E>) => runPromise(ctx)(effect)
