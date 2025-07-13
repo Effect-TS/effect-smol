@@ -472,6 +472,8 @@ export const isFiber = (
 export const getCurrent: () => Fiber<any, any> | undefined = effect.getCurrentFiber
 
 /**
+ * Links the lifetime of a fiber to the provided scope.
+ *
  * @since 4.0.0
  * @category Scope
  */

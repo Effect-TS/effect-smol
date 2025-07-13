@@ -3745,7 +3745,9 @@ export const fiberRunIn: {
   self: FiberImpl<A, E>,
   scope: Scope.Scope
 ): Fiber.Fiber<A, E> => {
-  if (scope.state._tag === "Closed") {
+  if (self._exit) {
+    return self
+  } else if (scope.state._tag === "Closed") {
     self.unsafeInterrupt(self.id)
     return self
   }
