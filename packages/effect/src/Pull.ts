@@ -283,7 +283,7 @@ export const catchHalt: {
   effect: Effect<A, E, R>,
   f: (leftover: Halt.Extract<E>) => Effect<A2, E2, R2>
 ): Effect<A | A2, ExcludeHalt<E> | E2, R | R2> =>
-  internalEffect.catchCauseIf(effect, filterHaltLeftover, (l) => f(l)) as any)
+  internalEffect.catchCauseFilter(effect, filterHaltLeftover, (l) => f(l)) as any)
 
 /**
  * Checks if a value is a Halt error.

@@ -1433,7 +1433,7 @@ export {
  *
  * const failingStream = Stream.fail("NetworkError")
  *
- * const recovered = Stream.catchCauseIf(
+ * const recovered = Stream.catchCauseFilter(
  *   failingStream,
  *   Cause.hasFail,
  *   (error, cause) => Stream.make("Recovered from network error")
@@ -1443,7 +1443,7 @@ export {
  * @since 4.0.0
  * @category Error handling
  */
-export const catchCauseIf: {
+export const catchCauseFilter: {
   <E, EB, X extends Cause.Cause<any>, A2, E2, R2>(
     filter: Filter.Filter<Cause.Cause<E>, EB, X>,
     f: (failure: EB, cause: Cause.Cause<E>) => Stream<A2, E2, R2>
@@ -1459,7 +1459,7 @@ export const catchCauseIf: {
   f: (failure: EB, cause: Cause.Cause<E>) => Stream<A2, E2, R2>
 ): Stream<A | A2, Cause.Cause.Error<X> | E2, R | R2> =>
   self.channel.pipe(
-    Channel.catchCauseIf(filter, (failure, cause) => f(failure, cause).channel),
+    Channel.catchCauseFilter(filter, (failure, cause) => f(failure, cause).channel),
     fromChannel
   ))
 

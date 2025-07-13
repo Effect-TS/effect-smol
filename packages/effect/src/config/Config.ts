@@ -1661,7 +1661,7 @@ export const nonEmpty = <A extends { readonly length: number } | { readonly size
  * @since 4.0.0
  * @category Fallbacks
  */
-export const orElseIf: {
+export const orElseFilter: {
   <E, B>(options: {
     readonly filter: Filter.Filter<ConfigError, E>
     readonly orElse: (e: E) => Config<B>
@@ -1675,7 +1675,7 @@ export const orElseIf: {
   readonly orElse: (e: E) => Config<B>
 }): Config<A | B> =>
   primitive((ctx) =>
-    Effect.catchIf(
+    Effect.catchFilter(
       self.parse(ctx),
       options.filter,
       (e) => options.orElse(e).parse(ctx)
@@ -1719,7 +1719,7 @@ export const withDefault: {
   2,
   <A, const B>(self: Config<A>, defaultValue: B): Config<A | B> =>
     primitive((ctx) =>
-      Effect.catchCauseIf(
+      Effect.catchCauseFilter(
         self.parse(ctx),
         filterMissingDataOnly,
         () => Effect.succeed(defaultValue)
@@ -1733,7 +1733,7 @@ export const withDefault: {
  */
 export const option = <A>(self: Config<A>): Config<Option.Option<A>> =>
   primitive((ctx) =>
-    Effect.catchCauseIf(
+    Effect.catchCauseFilter(
       Effect.asSome(self.parse(ctx)),
       filterMissingDataOnly,
       () => Effect.succeedNone

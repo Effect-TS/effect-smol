@@ -209,7 +209,7 @@ export const toChannelMap = <IE, A>(
     yield* upstream.pipe(
       Effect.flatMap(Effect.forEach(write, { discard: true })),
       Effect.forever({ autoYield: false }),
-      Effect.catchCauseIf(
+      Effect.catchCauseFilter(
         Pull.filterNoHalt,
         (cause) => Queue.failCause(queue, cause)
       ),
@@ -440,7 +440,7 @@ export const fromWebSocket = <RO>(
         currentWS = ws
         yield* latch.open
         return yield* FiberSet.join(fiberSet).pipe(
-          Effect.catchIf(
+          Effect.catchFilter(
             SocketCloseError.isClean((_) => !closeCodeIsError(_)),
             (_) => Effect.void
           )
@@ -580,7 +580,7 @@ export const fromTransformStream = <R>(acquire: Effect.Effect<InputTransformStre
         yield* latch.open
 
         return yield* FiberSet.join(fiberSet).pipe(
-          Effect.catchIf(
+          Effect.catchFilter(
             SocketCloseError.isClean((_) => !closeCodeIsError(_)),
             (_) => Effect.void
           )

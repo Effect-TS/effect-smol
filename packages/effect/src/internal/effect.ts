@@ -2128,7 +2128,7 @@ const OnFailureProto = makePrimitiveProto({
 })
 
 /** @internal */
-export const catchCauseIf: {
+export const catchCauseFilter: {
   <E, B, E2, R2, EB, X extends Cause.Cause<any>>(
     filter: Filter.Filter<Cause.Cause<E>, EB, X>,
     f: (failure: EB, cause: Cause.Cause<E>) => Effect.Effect<B, E2, R2>
@@ -2167,7 +2167,7 @@ export const catch_: {
   <A, E, R, B, E2, R2>(
     self: Effect.Effect<A, E, R>,
     f: (a: NoInfer<E>) => Effect.Effect<B, E2, R2>
-  ): Effect.Effect<A | B, E2, R | R2> => catchCauseIf(self, causeFilterError, (e) => f(e))
+  ): Effect.Effect<A | B, E2, R | R2> => catchCauseFilter(self, causeFilterError, (e) => f(e))
 )
 
 /** @internal */
@@ -2186,7 +2186,7 @@ export const catchDefect: {
   <A, E, R, B, E2, R2>(
     self: Effect.Effect<A, E, R>,
     f: (defect: unknown) => Effect.Effect<B, E2, R2>
-  ): Effect.Effect<A | B, E | E2, R | R2> => catchCauseIf(self, causeFilterDefect, f)
+  ): Effect.Effect<A | B, E | E2, R | R2> => catchCauseFilter(self, causeFilterDefect, f)
 )
 
 /** @internal */
@@ -2208,7 +2208,7 @@ export const tapCause: {
 )
 
 /** @internal */
-export const tapCauseIf: {
+export const tapCauseFilter: {
   <E, B, E2, R2, EB, X extends Cause.Cause<any>>(
     filter: Filter.Filter<Cause.Cause<E>, EB, X>,
     f: (a: EB, cause: Cause.Cause<E>) => Effect.Effect<B, E2, R2>
@@ -2225,7 +2225,7 @@ export const tapCauseIf: {
     filter: Filter.Filter<Cause.Cause<E>, EB, X>,
     f: (a: EB, cause: Cause.Cause<E>) => Effect.Effect<B, E2, R2>
   ): Effect.Effect<A, E | E2, R | R2> =>
-    catchCauseIf(self, filter, (failure, cause) => andThen(internalCall(() => f(failure, cause)), failCause(cause)))
+    catchCauseFilter(self, filter, (failure, cause) => andThen(internalCall(() => f(failure, cause)), failCause(cause)))
 )
 
 /** @internal */
@@ -2242,7 +2242,7 @@ export const tapError: {
   <A, E, R, B, E2, R2>(
     self: Effect.Effect<A, E, R>,
     f: (e: NoInfer<E>) => Effect.Effect<B, E2, R2>
-  ): Effect.Effect<A, E | E2, R | R2> => tapCauseIf(self, causeFilterError, (e) => f(e))
+  ): Effect.Effect<A, E | E2, R | R2> => tapCauseFilter(self, causeFilterError, (e) => f(e))
 )
 
 /** @internal */
@@ -2259,11 +2259,11 @@ export const tapDefect: {
   <A, E, R, B, E2, R2>(
     self: Effect.Effect<A, E, R>,
     f: (defect: unknown) => Effect.Effect<B, E2, R2>
-  ): Effect.Effect<A, E | E2, R | R2> => tapCauseIf(self, causeFilterDefect, (_) => f(_))
+  ): Effect.Effect<A, E | E2, R | R2> => tapCauseFilter(self, causeFilterDefect, (_) => f(_))
 )
 
 /** @internal */
-export const catchIf: {
+export const catchFilter: {
   <E, EB, A2, E2, R2, X>(
     filter: Filter.Filter<NoInfer<E>, EB, X>,
     f: (e: EB) => Effect.Effect<A2, E2, R2>
@@ -2282,7 +2282,7 @@ export const catchIf: {
     filter: Filter.Filter<NoInfer<E>, EB, X>,
     f: (e: EB) => Effect.Effect<A2, E2, R2>
   ): Effect.Effect<A | A2, E2 | X, R | R2> =>
-    catchCauseIf(
+    catchCauseFilter(
       self,
       Filter.compose(causeFilterError, Filter.mapFail(filter, causeFail)),
       (e) => f(e)
@@ -2330,7 +2330,7 @@ export const catchTag: {
     const pred = Array.isArray(k)
       ? ((e: E): e is any => hasProperty(e, "_tag") && k.includes(e._tag))
       : isTagged(k as string)
-    return catchIf(self, Filter.fromPredicate(pred), f) as any
+    return catchFilter(self, Filter.fromPredicate(pred), f) as any
   }
 )
 
@@ -2385,7 +2385,7 @@ export const catchTags: {
   >
 } = dual(2, (self, cases) => {
   let keys: Array<string>
-  return catchIf(
+  return catchFilter(
     self,
     (e) => {
       keys ??= Object.keys(cases)
@@ -2984,7 +2984,7 @@ export const ensuring: {
 )
 
 /** @internal */
-export const onExitIf: {
+export const onExitFilter: {
   <A, E, XE, XR, B, X>(
     filter: Filter.Filter<Exit.Exit<NoInfer<A>, NoInfer<E>>, B, X>,
     f: (b: B) => Effect.Effect<void, XE, XR>

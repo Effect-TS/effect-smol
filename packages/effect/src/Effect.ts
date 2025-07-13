@@ -2648,7 +2648,7 @@ export const catchDefect: {
  *
  * **When to Use**
  *
- * `catchIf` works similarly to {@link catchSome}, but it allows you to
+ * `catchFilter` works similarly to {@link catchSome}, but it allows you to
  * recover from errors by providing a predicate function. If the predicate
  * matches the error, the recovery effect is applied. This function doesn't
  * alter the error type, so the resulting effect still carries the original
@@ -2662,7 +2662,7 @@ export const catchDefect: {
  * const program = Effect.fail(42)
  *
  * // Recover only from specific error values
- * const recovered = Effect.catchIf(program,
+ * const recovered = Effect.catchFilter(program,
  *   (error) => error === 42,
  *   (error) => Effect.succeed(`Recovered from error: ${error}`)
  * )
@@ -2671,7 +2671,7 @@ export const catchDefect: {
  * @since 2.0.0
  * @category Error handling
  */
-export const catchIf: {
+export const catchFilter: {
   <E, EB, A2, E2, R2, X>(
     filter: Filter.Filter<NoInfer<E>, EB, X>,
     f: (e: EB) => Effect<A2, E2, R2>
@@ -2681,7 +2681,7 @@ export const catchIf: {
     filter: Filter.Filter<NoInfer<E>, EB, X>,
     f: (e: EB) => Effect<A2, E2, R2>
   ): Effect<A | A2, E2 | X, R | R2>
-} = internal.catchIf
+} = internal.catchFilter
 
 /**
  * Recovers from specific failures based on a predicate.
@@ -2697,7 +2697,7 @@ export const catchIf: {
  * const httpRequest = Effect.fail("Network Error")
  *
  * // Only catch network-related failures
- * const program = Effect.catchCauseIf(
+ * const program = Effect.catchCauseFilter(
  *   httpRequest,
  *   (cause) => Cause.hasFail(cause),
  *   (failure, cause) => Effect.gen(function* () {
@@ -2714,7 +2714,7 @@ export const catchIf: {
  * @since 4.0.0
  * @category Error handling
  */
-export const catchCauseIf: {
+export const catchCauseFilter: {
   <E, B, E2, R2, EB, X extends Cause.Cause<any>>(
     filter: Filter.Filter<Cause.Cause<E>, EB, X>,
     f: (failure: EB, cause: Cause.Cause<E>) => Effect<B, E2, R2>
@@ -2724,7 +2724,7 @@ export const catchCauseIf: {
     filter: Filter.Filter<Cause.Cause<E>, EB, X>,
     f: (failure: EB, cause: Cause.Cause<E>) => Effect<B, E2, R2>
   ): Effect<A | B, Cause.Cause.Error<X> | E2, R | R2>
-} = internal.catchCauseIf
+} = internal.catchCauseFilter
 
 /**
  * The `mapError` function is used to transform or modify the error
@@ -2935,7 +2935,7 @@ export const tapCause: {
  * const task = Effect.fail("Network timeout")
  *
  * // Only log causes that contain failures (not interrupts or defects)
- * const program = Effect.tapCauseIf(
+ * const program = Effect.tapCauseFilter(
  *   task,
  *   (cause) => Cause.hasFail(cause),
  *   (_, cause) =>
@@ -2950,7 +2950,7 @@ export const tapCause: {
  * @since 4.0.0
  * @category sequencing
  */
-export const tapCauseIf: {
+export const tapCauseFilter: {
   <E, B, E2, R2, EB, X extends Cause.Cause<any>>(
     filter: Filter.Filter<Cause.Cause<E>, EB, X>,
     f: (a: EB, cause: Cause.Cause<E>) => Effect<B, E2, R2>
@@ -2960,7 +2960,7 @@ export const tapCauseIf: {
     filter: Filter.Filter<Cause.Cause<E>, EB, X>,
     f: (a: EB, cause: Cause.Cause<E>) => Effect<B, E2, R2>
   ): Effect<A, E | E2, R | R2>
-} = internal.tapCauseIf
+} = internal.tapCauseFilter
 
 /**
  * Inspect severe errors or defects (non-recoverable failures) in an effect.

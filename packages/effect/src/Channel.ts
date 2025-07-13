@@ -2451,7 +2451,7 @@ export const catchCause: {
  * @since 4.0.0
  * @category Error handling
  */
-export const catchCauseIf: {
+export const catchCauseFilter: {
   <OutErr, EB, X extends Cause.Cause<any>, OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>(
     filter: Filter.Filter<Cause.Cause<OutErr>, EB, X>,
     f: (failure: EB, cause: Cause.Cause<OutErr>) => Channel<OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>
@@ -2611,7 +2611,7 @@ const catch_: {
   InErr & InErr1,
   InDone & InDone1,
   Env | Env1
-> => catchCauseIf(self, Cause.filterError, f))
+> => catchCauseFilter(self, Cause.filterError, f))
 
 export {
   /**

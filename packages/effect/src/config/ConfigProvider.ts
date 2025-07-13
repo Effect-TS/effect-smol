@@ -349,7 +349,7 @@ export const orElse: {
   make({
     ...self,
     load: (path) =>
-      Effect.catchCauseIf(
+      Effect.catchCauseFilter(
         self.load(path),
         filterMissingDataOnly,
         (causeA) =>
