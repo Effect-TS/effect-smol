@@ -6820,7 +6820,6 @@ export const forkDaemon: <
 export interface RunOptions {
   readonly signal?: AbortSignal | undefined
   readonly scheduler?: Scheduler | undefined
-  readonly scope?: Scope | undefined
 }
 
 /**

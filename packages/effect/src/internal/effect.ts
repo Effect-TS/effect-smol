@@ -3731,13 +3731,29 @@ export const runForkWith = <R>(services: ServiceMap.ServiceMap<R>) =>
       fiber.addObserver(() => options.signal!.removeEventListener("abort", abort))
     }
   }
-  if (options?.scope) {
-    const key = {}
-    scopeUnsafeAddFinalizer(options.scope, key, (_) => fiberInterrupt(fiber))
-    fiber.addObserver((_) => scopeUnsafeRemoveFinalizer(options.scope!, key))
-  }
   return fiber
 }
+
+/** @internal */
+export const fiberRunIn: {
+  (scope: Scope.Scope): <A, E>(self: Fiber.Fiber<A, E>) => Fiber.Fiber<A, E>
+  <A, E>(
+    self: Fiber.Fiber<A, E>,
+    scope: Scope.Scope
+  ): Fiber.Fiber<A, E>
+} = dual(2, <A, E>(
+  self: FiberImpl<A, E>,
+  scope: Scope.Scope
+): Fiber.Fiber<A, E> => {
+  if (scope.state._tag === "Closed") {
+    self.unsafeInterrupt(self.id)
+    return self
+  }
+  const key = {}
+  scopeUnsafeAddFinalizer(scope, {}, () => fiberInterrupt(self))
+  self.addObserver(() => scopeUnsafeRemoveFinalizer(scope, key))
+  return self
+})
 
 /** @internal */
 export const runFork: <A, E>(

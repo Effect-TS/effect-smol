@@ -170,14 +170,17 @@ export const make = <R, ER>(
   let buildFiber: Fiber.Fiber<ServiceMap.ServiceMap<R>, ER> | undefined
   const servicesEffect = Effect.withFiber<ServiceMap.ServiceMap<R>, ER>((fiber) => {
     if (!buildFiber) {
-      buildFiber = Effect.runFork(
-        Effect.tap(
-          Layer.buildWithMemoMap(layer, memoMap, scope),
-          (services) => {
-            self.cachedServices = services
-          }
+      buildFiber = Fiber.runIn(
+        Effect.runFork(
+          Effect.tap(
+            Layer.buildWithMemoMap(layer, memoMap, scope),
+            (services) => {
+              self.cachedServices = services
+            }
+          ),
+          { scheduler: fiber.currentScheduler }
         ),
-        { scope, scheduler: fiber.currentScheduler }
+        scope
       )
     }
     return Effect.flatten(Fiber.await(buildFiber))

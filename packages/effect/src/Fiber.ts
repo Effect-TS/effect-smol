@@ -79,6 +79,7 @@ import { version } from "./internal/version.js"
 import type { Pipeable } from "./Pipeable.js"
 import { hasProperty } from "./Predicate.js"
 import type { Scheduler } from "./Scheduler.js"
+import type { Scope } from "./Scope.js"
 import type * as ServiceMap from "./ServiceMap.js"
 import type { AnySpan, Span } from "./Tracer.js"
 import type { Covariant } from "./Types.js"
@@ -469,3 +470,12 @@ export const isFiber = (
  * @category accessors
  */
 export const getCurrent: () => Fiber<any, any> | undefined = effect.getCurrentFiber
+
+/**
+ * @since 4.0.0
+ * @category Scope
+ */
+export const runIn: {
+  (scope: Scope): <A, E>(self: Fiber<A, E>) => Fiber<A, E>
+  <A, E>(self: Fiber<A, E>, scope: Scope): Fiber<A, E>
+} = effect.fiberRunIn
