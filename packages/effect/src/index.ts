@@ -1229,6 +1229,11 @@ export * as Logger from "./Logger.js"
 export * as LogLevel from "./LogLevel.js"
 
 /**
+ * @since 2.0.0
+ */
+export * as ManagedRuntime from "./ManagedRuntime.js"
+
+/**
  * The `effect/match` module provides a type-safe pattern matching system for
  * TypeScript. Inspired by functional programming, it simplifies conditional
  * logic by replacing verbose if/else or switch statements with a structured and

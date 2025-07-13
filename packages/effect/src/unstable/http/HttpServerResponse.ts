@@ -6,7 +6,7 @@ import type * as FileSystem from "../../FileSystem.js"
 import { dual } from "../../Function.js"
 import { ServiceMap } from "../../index.js"
 import * as Inspectable from "../../Inspectable.js"
-import { PipeInspectableProto, YieldableProto } from "../../internal/core.js"
+import { PipeInspectableProto } from "../../internal/core.js"
 import type { Pipeable } from "../../Pipeable.js"
 import type { PlatformError } from "../../PlatformError.js"
 import { hasProperty } from "../../Predicate.js"
@@ -37,9 +37,7 @@ export type TypeId = "~effect/http/HttpServerResponse"
  * @since 4.0.0
  * @category models
  */
-export interface HttpServerResponse
-  extends Effect.Yieldable<HttpServerResponse, HttpServerResponse>, Inspectable.Inspectable, Pipeable
-{
+export interface HttpServerResponse extends Inspectable.Inspectable, Pipeable {
   readonly [TypeId]: TypeId
   readonly status: number
   readonly statusText?: string | undefined
@@ -667,11 +665,7 @@ export const toWeb = (response: HttpServerResponse, options?: {
 
 const Proto: Omit<HttpServerResponse, "status" | "statusText" | "headers" | "cookies" | "body"> = {
   ...PipeInspectableProto,
-  ...YieldableProto,
   [TypeId]: TypeId,
-  asEffect(this: HttpServerResponse) {
-    return Effect.succeed(this)
-  },
   toJSON(this: HttpServerResponse) {
     return {
       _id: "HttpServerResponse",

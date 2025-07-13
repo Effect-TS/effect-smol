@@ -1774,6 +1774,13 @@ export const flatMap: {
 } = internal.flatMap
 
 /**
+ * @since 2.0.0
+ * @category Sequencing
+ */
+export const flatten: <A, E, R, E2, R2>(self: Effect<Effect<A, E, R>, E2, R2>) => Effect<A, E | E2, R | R2> =
+  internal.flatten
+
+/**
  * Chains two actions, where the second action can depend on the result of the
  * first.
  *
@@ -6813,6 +6820,7 @@ export const forkDaemon: <
 export interface RunOptions {
   readonly signal?: AbortSignal | undefined
   readonly scheduler?: Scheduler | undefined
+  readonly scope?: Scope | undefined
 }
 
 /**

@@ -20,6 +20,11 @@ export * as FetchHttpClient from "./FetchHttpClient.js"
 /**
  * @since 4.0.0
  */
+export * as FindMyWay from "./FindMyWay.js"
+
+/**
+ * @since 4.0.0
+ */
 export * as Headers from "./Headers.js"
 
 /**
@@ -75,6 +80,16 @@ export * as HttpPlatform from "./HttpPlatform.js"
 /**
  * @since 4.0.0
  */
+export * as HttpRouter from "./HttpRouter.js"
+
+/**
+ * @since 4.0.0
+ */
+export * as HttpServer from "./HttpServer.js"
+
+/**
+ * @since 4.0.0
+ */
 export * as HttpServerError from "./HttpServerError.js"
 
 /**
@@ -101,6 +116,11 @@ export * as HttpTraceContext from "./HttpTraceContext.js"
  * @since 4.0.0
  */
 export * as Multipart from "./Multipart.js"
+
+/**
+ * @since 4.0.0
+ */
+export * as Multipasta from "./Multipasta.js"
 
 /**
  * @since 4.0.0

@@ -3720,6 +3720,8 @@ export const runForkWith = <R>(services: ServiceMap.ServiceMap<R>) =>
   serviceMap.set(Scheduler.Scheduler.key, options?.scheduler ?? new Scheduler.MixedScheduler())
   const fiber = makeFiber<A, E>(ServiceMap.unsafeMake(serviceMap))
   fiber.evaluate(effect as any)
+  if (fiber._exit) return fiber
+
   if (options?.signal) {
     if (options.signal.aborted) {
       fiber.unsafeInterrupt()
@@ -3728,6 +3730,11 @@ export const runForkWith = <R>(services: ServiceMap.ServiceMap<R>) =>
       options.signal.addEventListener("abort", abort, { once: true })
       fiber.addObserver(() => options.signal!.removeEventListener("abort", abort))
     }
+  }
+  if (options?.scope) {
+    const key = {}
+    scopeUnsafeAddFinalizer(options.scope, key, (_) => fiberInterrupt(fiber))
+    fiber.addObserver((_) => scopeUnsafeRemoveFinalizer(options.scope!, key))
   }
   return fiber
 }

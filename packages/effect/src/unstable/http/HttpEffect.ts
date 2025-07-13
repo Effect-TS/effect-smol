@@ -19,8 +19,6 @@ import * as Request from "./HttpServerRequest.js"
 import type { HttpServerResponse } from "./HttpServerResponse.js"
 import * as Response from "./HttpServerResponse.js"
 
-const handledSymbol = Symbol.for("effect/http/HttpEffect/handled")
-
 /**
  * @since 4.0.0
  * @category combinators
@@ -95,6 +93,8 @@ export const toHandled = <E, R, EH, RH>(
 
   return Effect.uninterruptible(scoped(withMiddleware)) as any
 }
+
+const handledSymbol = Symbol.for("effect/http/HttpEffect/handled")
 
 /**
  * If you want to finalize the http request scope elsewhere, you can use this

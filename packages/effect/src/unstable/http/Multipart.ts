@@ -1,7 +1,6 @@
 /**
  * @since 4.0.0
  */
-import * as MP from "multipasta"
 import * as Arr from "../../Array.js"
 import * as Channel from "../../Channel.js"
 import * as Effect from "../../Effect.js"
@@ -21,12 +20,7 @@ import type * as Scope from "../../Scope.js"
 import * as ServiceMap from "../../ServiceMap.js"
 import * as Stream from "../../Stream.js"
 import * as IncomingMessage from "./HttpIncomingMessage.js"
-
-/**
- * @since 4.0.0
- * @category re-exports
- */
-export * as Multipasta from "multipasta"
+import * as MP from "./Multipasta.js"
 
 /**
  * @since 4.0.0

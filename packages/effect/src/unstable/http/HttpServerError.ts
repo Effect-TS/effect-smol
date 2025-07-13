@@ -54,7 +54,7 @@ export class RequestError extends Data.TaggedError("HttpServerError")<{
    * @since 4.0.0
    */
   [Respondable.symbol]() {
-    return Response.empty({ status: this.reason === "RouteNotFound" ? 404 : 400 }).asEffect()
+    return Effect.succeed(Response.empty({ status: this.reason === "RouteNotFound" ? 404 : 400 }))
   }
 
   get methodAndUrl() {
@@ -101,7 +101,7 @@ export class ResponseError extends Data.TaggedError("HttpServerError")<{
    * @since 4.0.0
    */
   [Respondable.symbol]() {
-    return Response.empty({ status: 500 }).asEffect()
+    return Effect.succeed(Response.empty({ status: 500 }))
   }
 
   get methodAndUrl() {
