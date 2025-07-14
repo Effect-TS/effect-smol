@@ -13,7 +13,8 @@
  *
  * @example
  * ```ts
- * import { FileSystem, Effect, Console } from "effect"
+ * import { Effect, Console } from "effect"
+ * import { FileSystem  } from "effect/platform"
  *
  * const program = Effect.gen(function* () {
  *   const fs = yield* FileSystem.FileSystem

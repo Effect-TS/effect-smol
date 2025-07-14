@@ -298,9 +298,9 @@ const readableToQueue = <A, E>(queue: Queue.Queue<A, E>, options: {
       if (ended) {
         return Queue.end(queue)
       }
-      const chunk = Arr.empty<A>()
       let item = readable.read(options.chunkSize)
       if (item === null) return Effect.void
+      const chunk = Arr.empty<A>()
       while (item !== null) {
         chunk.push(item)
         item = readable.read(options.chunkSize)
