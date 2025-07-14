@@ -81,7 +81,7 @@ function make(asserts: {
           throw new Error(`Promise didn't reject, got: ${a}`)
         } catch (e: unknown) {
           if (Issue.isIssue(e)) {
-            strictEqual(Formatter.getTree().format(e), message)
+            strictEqual(Formatter.makeTree().format(e), message)
           } else {
             throw new Error(`Unknown promise rejection: ${e}`)
           }
@@ -254,7 +254,7 @@ function make(asserts: {
         } | undefined
       ) {
         const decoded = ToParser.decodeUnknownEffect(schema)(input, options?.parseOptions)
-        const effWithMessage = Effect.catch(decoded, (issue) => Effect.fail(Formatter.getTree().format(issue)))
+        const effWithMessage = Effect.catch(decoded, (issue) => Effect.fail(Formatter.makeTree().format(issue)))
         let provided = effWithMessage
         if (options?.provide) {
           for (const [tag, value] of options.provide) {
@@ -309,7 +309,7 @@ function make(asserts: {
         // Account for `expected` being `undefined`
         const encoded = ToParser.encodeUnknownEffect(schema)(input, options?.parseOptions)
         return out.effect.succeed(
-          Effect.catch(encoded, (issue) => Effect.fail(Formatter.getTree().format(issue))),
+          Effect.catch(encoded, (issue) => Effect.fail(Formatter.makeTree().format(issue))),
           options && Object.hasOwn(options, "expected") ? options.expected : input
         )
       },
@@ -353,7 +353,7 @@ function make(asserts: {
       ) {
         const effectWithMessage = Effect.catch(
           effect,
-          (issue) => Effect.fail(Formatter.getTree().format(issue))
+          (issue) => Effect.fail(Formatter.makeTree().format(issue))
         )
         const r = Effect.result(effectWithMessage) as Effect.Effect<Result.Result<A, string>>
         return out.result.fail(await Effect.runPromise(r), message)
@@ -397,7 +397,7 @@ function make(asserts: {
       async failMessage<A>(encoded: Result.Result<A, Issue.Issue>, message: string | ((message: string) => void)) {
         const encodedWithMessage = Effect.gen(function*() {
           if (Result.isFailure(encoded)) {
-            const message = Formatter.getTree().format(encoded.failure)
+            const message = Formatter.makeTree().format(encoded.failure)
             return yield* Effect.fail(message)
           }
           return encoded.success

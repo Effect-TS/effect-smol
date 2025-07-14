@@ -448,7 +448,7 @@ export const standardSchemaV1 = <S extends Top>(
     options?: AST.ParseOptions
   ) => Effect.Effect<S["Type"], Issue.Issue>
   const parseOptions: AST.ParseOptions = { errors: "all", ...options?.parseOptions }
-  const formatter = Formatter.getStandardSchemaV1({
+  const formatter = Formatter.makeStandardSchemaV1({
     leafHook: options.leafHook,
     checkHook: options.checkHook
   })

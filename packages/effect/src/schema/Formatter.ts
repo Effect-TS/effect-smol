@@ -94,24 +94,22 @@ function findMessage(
   }
 }
 
-interface Forest<A> extends ReadonlyArray<Tree<A>> {}
+interface Forest extends ReadonlyArray<Tree> {}
 
-interface Tree<A> {
-  readonly value: A
-  readonly forest: Forest<A>
+class Tree {
+  constructor(
+    readonly value: string,
+    readonly forest: Forest = []
+  ) {}
+  draw(): string {
+    return this.value + draw("\n", this.forest)
+  }
 }
 
-const makeTree = <A>(value: A, forest: Forest<A> = []): Tree<A> => ({
-  value,
-  forest
-})
-
-const drawTree = (tree: Tree<string>): string => tree.value + draw("\n", tree.forest)
-
-const draw = (indentation: string, forest: Forest<string>): string => {
+const draw = (indentation: string, forest: Forest): string => {
   let r = ""
   const len = forest.length
-  let tree: Tree<string>
+  let tree: Tree
   for (let i = 0; i < len; i++) {
     tree = forest[i]
     const isLast = i === len - 1
@@ -132,12 +130,12 @@ function formatUnknownOption(actual: Option.Option<unknown>): string {
  * @category Tree
  * @since 4.0.0
  */
-export function getTree(): Formatter<string> {
+export function makeTree(): Formatter<string> {
   const leafHook: LeafHook = (issue) => {
     return findMessage(issue) ?? treeLeafHook(issue)
   }
   return {
-    format: (issue) => drawTree(formatTree(issue, [], leafHook))
+    format: (issue) => formatTree(issue, [], leafHook).draw()
   }
 }
 
@@ -237,7 +235,7 @@ function formatTree(
   issue: Issue.Issue,
   path: ReadonlyArray<PropertyKey>,
   leafHook: LeafHook
-): Tree<string> {
+): Tree {
   switch (issue._tag) {
     case "MissingKey":
     case "UnexpectedKey":
@@ -245,30 +243,30 @@ function formatTree(
     case "InvalidValue":
     case "Forbidden":
     case "OneOf":
-      return makeTree(leafHook(issue))
+      return new Tree(leafHook(issue))
     case "Filter": {
       const message = findMessage(issue)
       if (message !== null) {
-        return makeTree(message)
+        return new Tree(message)
       }
-      return makeTree(formatCheck(issue.filter), [formatTree(issue.issue, path, leafHook)])
+      return new Tree(formatCheck(issue.filter), [formatTree(issue.issue, path, leafHook)])
     }
     case "Encoding": {
       const children = formatTree(issue.issue, path, leafHook)
       if (path.length > 0) {
-        return makeTree("Encoding failure", [children])
+        return new Tree("Encoding failure", [children])
       }
       return children
     }
     case "Pointer":
-      return makeTree(formatPath(issue.path), [formatTree(issue.issue, [...path, ...issue.path], leafHook)])
+      return new Tree(formatPath(issue.path), [formatTree(issue.issue, [...path, ...issue.path], leafHook)])
     case "Composite":
-      return makeTree(formatAST(issue.ast, issue), issue.issues.map((issue) => formatTree(issue, path, leafHook)))
+      return new Tree(formatAST(issue.ast, issue), issue.issues.map((issue) => formatTree(issue, path, leafHook)))
     case "AnyOf": {
       if (issue.issues.length === 1) {
         return formatTree(issue.issues[0], path, leafHook)
       }
-      return makeTree(formatAST(issue.ast, issue), issue.issues.map((issue) => formatTree(issue, path, leafHook)))
+      return new Tree(formatAST(issue.ast, issue), issue.issues.map((issue) => formatTree(issue, path, leafHook)))
     }
   }
 }
@@ -297,7 +295,7 @@ export type CheckHook = (issue: Issue.Filter) => string | undefined
  * @category StandardSchemaV1
  * @since 4.0.0
  */
-export function getStandardSchemaV1(options: {
+export function makeStandardSchemaV1(options: {
   readonly leafHook: LeafHook
   readonly checkHook: CheckHook
 }): Formatter<StandardSchemaV1.FailureResult> {
@@ -371,7 +369,7 @@ export interface StructuredIssue {
  * @category StructuredFormatter
  * @since 4.0.0
  */
-export function getStructured(): Formatter<Array<StructuredIssue>> {
+export function makeStructured(): Formatter<Array<StructuredIssue>> {
   return {
     format: (issue) => formatStructured(issue, [])
   }

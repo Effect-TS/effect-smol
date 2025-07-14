@@ -13,7 +13,7 @@ const assertStructuredIssue = async <T, E>(
   } | undefined
 ) => {
   const r = await ToParser.decodeUnknownEffect(schema)(input, { errors: "all", ...options?.parseOptions }).pipe(
-    Effect.mapError((issue) => Formatter.getStructured().format(issue)),
+    Effect.mapError((issue) => Formatter.makeStructured().format(issue)),
     Effect.result,
     Effect.runPromise
   )
@@ -21,7 +21,7 @@ const assertStructuredIssue = async <T, E>(
   return assertions.result.fail(r, expected)
 }
 
-describe("Tree formatter", () => {
+describe("makeTree", () => {
   it("should use the identifier annotation if present", async () => {
     await assertions.decoding.fail(
       Schema.String.annotate({ identifier: "id" }),
@@ -80,7 +80,7 @@ describe("Tree formatter", () => {
   })
 })
 
-describe("Structured formatter", () => {
+describe("makeStructured", () => {
   it("single InvalidType", async () => {
     const schema = Schema.Struct({
       a: Schema.String
