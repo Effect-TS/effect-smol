@@ -28,7 +28,6 @@
   },
   "sideEffects": [],
   "main": "./src/index.ts",
-  "types": "./src/index.ts",
   "exports": {
     "./package.json": "./package.json",
     ".": "./src/index.ts",
@@ -43,7 +42,6 @@
   "publishConfig": {
     "provenance": true,
     "main": "./dist/index.js",
-    "types": "./dist/index.d.ts",
     "exports": {
       "./package.json": "./package.json",
       ".": "./dist/index.js",
