@@ -444,6 +444,7 @@ const keepAlive = (() => {
 export interface FiberImpl<in out A = any, in out E = any> extends Fiber.Fiber<A, E> {
   id: number
   currentOpCount: number
+  currentLoopCount: number
   readonly services: ServiceMap.ServiceMap<never>
   readonly currentScheduler: Scheduler.Scheduler
   readonly currentTracerContext?: Tracer.Tracer["context"]
@@ -494,7 +495,6 @@ const FiberProto = {
     if (this._exit) {
       return
     }
-    const interrupted = !!this._interruptedCause
     let cause = causeInterrupt(fiberId)
     if (this.currentSpanLocal) {
       cause = causeAnnotate(cause, CurrentSpanKey, this.currentSpan as Tracer.Span)
@@ -502,10 +502,10 @@ const FiberProto = {
     if (span) {
       cause = causeAnnotate(cause, InterruptorSpanKey, span)
     }
-    this._interruptedCause = this._interruptedCause && fiberId
+    this._interruptedCause = this._interruptedCause
       ? causeMerge(this._interruptedCause, cause)
       : cause
-    if (!interrupted && this.interruptible) {
+    if (this.interruptible) {
       this.evaluate(failCause(this._interruptedCause) as any)
     }
   },
@@ -547,6 +547,7 @@ const FiberProto = {
     let yielding = false
     let current: Primitive | Yield = effect
     this.currentOpCount = 0
+    const currentLoop = ++this.currentLoopCount
     try {
       while (true) {
         this.currentOpCount++
@@ -561,7 +562,10 @@ const FiberProto = {
         current = this.currentTracerContext
           ? this.currentTracerContext(() => (current as any)[evaluate](this), this)
           : (current as any)[evaluate](this)
-        if (current === Yield) {
+        if (currentLoop !== this.currentLoopCount) {
+          // another effect has taken over the loop,
+          return Yield
+        } else if (current === Yield) {
           const yielded = this._yielded!
           if (ExitTypeId in yielded) {
             this._yielded = undefined
@@ -623,6 +627,7 @@ export const makeFiber = <A, E>(
   fiber.setServices(services)
   fiber.id = ++fiberIdStore.id
   fiber.currentOpCount = 0
+  fiber.currentLoopCount = 0
   fiber.interruptible = interruptible
   fiber._stack = []
   fiber._observers = []
