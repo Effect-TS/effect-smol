@@ -1,7 +1,8 @@
 import { assert, describe, it } from "@effect/vitest"
-import { Effect, FileSystem, Layer, Path, Redacted } from "effect"
+import { Effect, Layer, Redacted } from "effect"
 import { Config, ConfigProvider } from "effect/config"
-import { SystemError } from "../../src/platform/PlatformError.js"
+import { FileSystem, Path } from "effect/platform"
+import { SystemError } from "effect/platform/PlatformError"
 
 describe("ConfigProvider", () => {
   describe("fileTree", () => {
