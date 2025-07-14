@@ -4237,6 +4237,38 @@ There are two kinds of hooks:
 
 `CheckHook` handles `Check` issues, such as failed filters / refinements.
 
+**Example** (Default hooks)
+
+Default hooks are just for demo purposes:
+
+- LeafHook: returns the issue tag
+- CheckHook: returns the meta infos of the check as a string
+
+```ts
+import { Effect } from "effect"
+import { Formatter, Schema } from "effect/schema"
+
+const schema = Schema.Struct({
+  a: Schema.NonEmptyString,
+  b: Schema.NonEmptyString
+})
+
+Formatter.decodeUnknownEffect(Formatter.makeStandardSchemaV1())(schema)({ b: "" }, { errors: "all" })
+  .pipe(Effect.runPromise)
+  .then(console.log, (a) => console.dir(a, { depth: null }))
+/*
+Output:
+{
+  issues: [
+    { path: [ 'a' ], message: 'MissingKey' },
+    { path: [ 'b' ], message: 'minLength.{"minLength":1}' }
+  ]
+}
+*/
+```
+
+#### Customizing messages
+
 If a schema has a `message` annotation, it will take precedence over any formatter hook.
 
 To make the examples easier to follow, we define a helper function that prints formatted validation messages using `SchemaFormatter`.

@@ -291,19 +291,37 @@ export type LeafHook = (
  */
 export type CheckHook = (issue: Issue.Filter) => string | undefined
 
+/** @internal */
+export const defaultLeafHook: LeafHook = (issue) => {
+  return issue._tag
+}
+
+/** @internal */
+export const defaultCheckHook: CheckHook = (issue) => {
+  const meta = issue.filter.annotations?.meta
+  if (Predicate.isObject(meta)) {
+    const { _tag, ...rest } = meta
+    if (Predicate.isString(_tag)) {
+      return `${_tag}.${JSON.stringify(rest)}`
+    }
+  }
+}
+
 /**
  * @category StandardSchemaV1
  * @since 4.0.0
  */
-export function makeStandardSchemaV1(options: {
-  readonly leafHook: LeafHook
-  readonly checkHook: CheckHook
+export function makeStandardSchemaV1(options?: {
+  readonly leafHook?: LeafHook | undefined
+  readonly checkHook?: CheckHook | undefined
 }): Formatter<StandardSchemaV1.FailureResult> {
+  const lh = options?.leafHook ?? defaultLeafHook
+  const ch = options?.checkHook ?? defaultCheckHook
   const leafHook: LeafHook = (issue) => {
-    return findMessage(issue) ?? options.leafHook(issue)
+    return findMessage(issue) ?? lh(issue)
   }
   const checkHook: CheckHook = (issue) => {
-    return findMessage(issue) ?? options.checkHook(issue)
+    return findMessage(issue) ?? ch(issue)
   }
   return {
     format: (issue) => ({

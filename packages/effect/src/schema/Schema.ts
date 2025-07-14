@@ -437,9 +437,9 @@ function makeStandardResult<A>(exit: Exit.Exit<StandardSchemaV1.Result<A>>): Sta
  */
 export const standardSchemaV1 = <S extends Top>(
   self: S,
-  options: {
-    readonly leafHook: Formatter.LeafHook
-    readonly checkHook: Formatter.CheckHook
+  options?: {
+    readonly leafHook?: Formatter.LeafHook | undefined
+    readonly checkHook?: Formatter.CheckHook | undefined
     readonly parseOptions?: AST.ParseOptions | undefined
   }
 ): StandardSchemaV1<S["Encoded"], S["Type"]> & S => {
@@ -448,10 +448,7 @@ export const standardSchemaV1 = <S extends Top>(
     options?: AST.ParseOptions
   ) => Effect.Effect<S["Type"], Issue.Issue>
   const parseOptions: AST.ParseOptions = { errors: "all", ...options?.parseOptions }
-  const formatter = Formatter.makeStandardSchemaV1({
-    leafHook: options.leafHook,
-    checkHook: options.checkHook
-  })
+  const formatter = Formatter.makeStandardSchemaV1(options)
   const standard: StandardSchemaV1<S["Encoded"], S["Type"]> = {
     "~standard": {
       version: 1,
