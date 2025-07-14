@@ -12,7 +12,9 @@ export * as Mime from "./Mime.js"
  */
 export * as NodeFileSystem from "./NodeFileSystem.js"
 
-
+/**
+ * @since 1.0.0
+ */
 export * as NodeHttpClient from "./NodeHttpClient.js"
 
 /**
@@ -30,7 +32,9 @@ export * as NodeHttpPlatform from "./NodeHttpPlatform.js"
  */
 export * as NodeHttpServer from "./NodeHttpServer.js"
 
-
+/**
+ * @since 1.0.0
+ */
 export * as NodeHttpServerRequest from "./NodeHttpServerRequest.js"
 
 /**
@@ -72,3 +76,8 @@ export * as NodeSocketServer from "./NodeSocketServer.js"
  * @since 1.0.0
  */
 export * as NodeStream from "./NodeStream.js"
+
+/**
+ * @since 1.0.0
+ */
+export * as Undici from "./Undici.js"

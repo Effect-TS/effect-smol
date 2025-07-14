@@ -1,7 +1,6 @@
 /**
  * @since 1.0.0
  */
-
 import * as Effect from "effect/Effect"
 import * as Inspectable from "effect/Inspectable"
 import * as Layer from "effect/Layer"
