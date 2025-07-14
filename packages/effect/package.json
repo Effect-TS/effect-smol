@@ -52,36 +52,36 @@
     "exports": {
       "./package.json": "./package.json",
       ".": {
-        "default": "./dist/index.js",
-        "types": "./dist/index.d.ts"
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
       },
       "./config": {
-        "default": "./dist/config/index.js",
-        "types": "./dist/config/index.d.ts"
+        "types": "./dist/config/index.d.ts",
+        "default": "./dist/config/index.js"
       },
       "./platform": {
-        "default": "./dist/platform/index.js",
-        "types": "./dist/platform/index.d.ts"
+        "types": "./dist/platform/index.d.ts",
+        "default": "./dist/platform/index.js"
       },
       "./schema": {
-        "default": "./dist/schema/index.js",
-        "types": "./dist/schema/index.d.ts"
+        "types": "./dist/schema/index.d.ts",
+        "default": "./dist/schema/index.js"
       },
       "./unstable/http": {
-        "default": "./dist/unstable/http/index.js",
-        "types": "./dist/unstable/http/index.d.ts"
+        "types": "./dist/unstable/http/index.d.ts",
+        "default": "./dist/unstable/http/index.js"
       },
       "./unstable/socket": {
-        "default": "./dist/unstable/socket/index.js",
-        "types": "./dist/unstable/socket/index.d.ts"
+        "types": "./dist/unstable/socket/index.d.ts",
+        "default": "./dist/unstable/socket/index.js"
       },
       "./unstable/tracing": {
-        "default": "./dist/unstable/tracing/index.js",
-        "types": "./dist/unstable/tracing/index.d.ts"
+        "types": "./dist/unstable/tracing/index.d.ts",
+        "default": "./dist/unstable/tracing/index.js"
       },
       "./*": {
-        "default": "./dist/*.js",
-        "types": "./dist/*.d.ts"
+        "types": "./dist/*.d.ts",
+        "default": "./dist/*.js"
       },
       "./internal/*": null,
       "./*/index": null
