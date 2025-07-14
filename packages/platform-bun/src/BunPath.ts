@@ -3,7 +3,7 @@
  */
 import * as NodePath from "@effect/platform-node-shared/NodePath"
 import type { Layer } from "effect/Layer"
-import type { Path } from "effect/Path"
+import type { Path } from "effect/platform/Path"
 
 /**
  * @since 1.0.0

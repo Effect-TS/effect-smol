@@ -58,6 +58,10 @@
         "default": "./dist/config/index.js",
         "types": "./dist/config/index.d.ts"
       },
+      "./platform": {
+        "default": "./dist/platform/index.js",
+        "types": "./dist/platform/index.d.ts"
+      },
       "./schema": {
         "default": "./dist/schema/index.js",
         "types": "./dist/schema/index.d.ts"

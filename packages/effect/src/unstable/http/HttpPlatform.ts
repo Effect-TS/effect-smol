@@ -2,10 +2,10 @@
  * @since 4.0.0
  */
 import * as Effect from "../../Effect.js"
-import * as FileSystem from "../../FileSystem.js"
 import { identity } from "../../Function.js"
 import * as Layer from "../../Layer.js"
-import type { PlatformError } from "../../PlatformError.js"
+import * as FileSystem from "../../platform/FileSystem.js"
+import type { PlatformError } from "../../platform/PlatformError.js"
 import * as ServiceMap from "../../ServiceMap.js"
 import * as Stream from "../../Stream.js"
 import * as Etag from "./Etag.js"

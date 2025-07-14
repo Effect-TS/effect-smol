@@ -1,11 +1,11 @@
 /**
  * @since 4.0.0
  */
-import * as Effect from "./Effect.js"
-import { identity } from "./Function.js"
-import * as Layer from "./Layer.js"
+import * as Effect from "../Effect.js"
+import { identity } from "../Function.js"
+import * as Layer from "../Layer.js"
+import * as ServiceMap from "../ServiceMap.js"
 import { BadArgument } from "./PlatformError.js"
-import * as ServiceMap from "./ServiceMap.js"
 
 /**
  * @since 4.0.0

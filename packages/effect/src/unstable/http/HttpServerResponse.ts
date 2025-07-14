@@ -2,13 +2,13 @@
  * @since 4.0.0
  */
 import * as Effect from "../../Effect.js"
-import type * as FileSystem from "../../FileSystem.js"
 import { dual } from "../../Function.js"
 import { ServiceMap } from "../../index.js"
 import * as Inspectable from "../../Inspectable.js"
 import { PipeInspectableProto } from "../../internal/core.js"
 import type { Pipeable } from "../../Pipeable.js"
-import type { PlatformError } from "../../PlatformError.js"
+import type * as FileSystem from "../../platform/FileSystem.js"
+import type { PlatformError } from "../../platform/PlatformError.js"
 import { hasProperty } from "../../Predicate.js"
 import type { ParseOptions } from "../../schema/AST.js"
 import type * as Schema from "../../schema/Schema.js"

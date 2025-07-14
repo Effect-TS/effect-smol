@@ -2,10 +2,10 @@
  * @since 4.0.0
  */
 import * as Effect from "../../Effect.js"
-import * as FileSystem from "../../FileSystem.js"
 import { dual } from "../../Function.js"
 import * as Layer from "../../Layer.js"
-import * as Path from "../../Path.js"
+import * as FileSystem from "../../platform/FileSystem.js"
+import * as Path from "../../platform/Path.js"
 import type * as Scope from "../../Scope.js"
 import * as ServiceMap from "../../ServiceMap.js"
 import * as Etag from "./Etag.js"

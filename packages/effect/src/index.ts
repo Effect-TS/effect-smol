@@ -859,7 +859,7 @@ export * as FiberSet from "./FiberSet.js"
  *
  * @since 4.0.0
  */
-export * as FileSystem from "./FileSystem.js"
+export * as FileSystem from "./platform/FileSystem.js"
 
 /**
  * @since 4.0.0
@@ -1725,7 +1725,7 @@ export * as Ordering from "./Ordering.js"
 /**
  * @since 4.0.0
  */
-export * as Path from "./Path.js"
+export * as Path from "./platform/Path.js"
 
 /**
  * @since 2.0.0
@@ -1735,7 +1735,7 @@ export * as Pipeable from "./Pipeable.js"
 /**
  * @since 4.0.0
  */
-export * as PlatformError from "./PlatformError.js"
+export * as PlatformError from "./platform/PlatformError.js"
 
 /**
  * @since 2.0.0

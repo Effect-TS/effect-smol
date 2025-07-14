@@ -2,8 +2,8 @@
  * @since 4.0.0
  */
 import * as Effect from "../../Effect.js"
-import type * as FileSystem from "../../FileSystem.js"
 import * as Layer from "../../Layer.js"
+import type * as FileSystem from "../../platform/FileSystem.js"
 import * as ServiceMap from "../../ServiceMap.js"
 import type * as Body from "./HttpBody.js"
 

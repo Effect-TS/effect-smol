@@ -3,9 +3,9 @@
  */
 import * as Data from "../../Data.js"
 import * as Effect from "../../Effect.js"
-import * as FileSystem from "../../FileSystem.js"
 import * as Inspectable from "../../Inspectable.js"
-import type * as PlatformError from "../../PlatformError.js"
+import * as FileSystem from "../../platform/FileSystem.js"
+import type * as PlatformError from "../../platform/PlatformError.js"
 import * as Predicate from "../../Predicate.js"
 import type { ParseOptions } from "../../schema/AST.js"
 import type { Issue } from "../../schema/Issue.js"

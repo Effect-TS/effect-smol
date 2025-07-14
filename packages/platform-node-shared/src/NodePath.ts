@@ -3,8 +3,8 @@
  */
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
-import { Path, TypeId } from "effect/Path"
-import { BadArgument } from "effect/PlatformError"
+import { Path, TypeId } from "effect/platform/Path"
+import { BadArgument } from "effect/platform/PlatformError"
 import * as NodePath from "node:path"
 import * as NodeUrl from "node:url"
 

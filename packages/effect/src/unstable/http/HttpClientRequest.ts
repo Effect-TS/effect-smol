@@ -2,12 +2,12 @@
  * @since 4.0.0
  */
 import * as Effect from "../../Effect.js"
-import type * as FileSystem from "../../FileSystem.js"
 import { dual } from "../../Function.js"
 import * as Inspectable from "../../Inspectable.js"
 import * as Option from "../../Option.js"
 import { type Pipeable, pipeArguments } from "../../Pipeable.js"
-import type * as PlatformError from "../../PlatformError.js"
+import type * as FileSystem from "../../platform/FileSystem.js"
+import type * as PlatformError from "../../platform/PlatformError.js"
 import { hasProperty } from "../../Predicate.js"
 import * as Redacted from "../../Redacted.js"
 import * as Result from "../../Result.js"
