@@ -32,6 +32,7 @@
     "./package.json": "./package.json",
     ".": "./src/index.ts",
     "./config": "./src/config/index.ts",
+    "./platform": "./src/platform/index.ts",
     "./schema": "./src/schema/index.ts",
     "./unstable/http": "./src/unstable/http/index.ts",
     "./unstable/socket": "./src/unstable/socket/index.ts",

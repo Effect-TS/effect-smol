@@ -6,68 +6,16 @@ import * as Data from "../Data.js"
 /**
  * @since 1.0.0
  * @category type id
- * @example
- * ```ts
- * import { PlatformError } from "effect"
- *
- * // Used for type identification and branding
- * console.log(PlatformError.TypeId) // "~effect/PlatformError"
- *
- * // Check if an error has the PlatformError type identifier
- * const checkPlatformError = (error: unknown): error is PlatformError.PlatformError => {
- *   return typeof error === "object" && error !== null && PlatformError.TypeId in error
- * }
- * ```
  */
 export const TypeId: TypeId = "~effect/PlatformError"
 
 /**
  * @since 1.0.0
  * @category type id
- * @example
- * ```ts
- * import { PlatformError } from "effect"
- *
- * // Type representing the string literal identifier for PlatformError
- * type ErrorTypeId = PlatformError.TypeId // "~effect/PlatformError"
- *
- * // Used in type constraints and type-level operations
- * type HasPlatformErrorTypeId<T> = T extends { readonly [PlatformError.TypeId]: PlatformError.TypeId }
- *   ? T
- *   : never
- * ```
  */
 export type TypeId = "~effect/PlatformError"
 
 /**
- * @example
- * ```ts
- * import { PlatformError } from "effect"
- *
- * // Available platform modules that can report errors
- * const modules: PlatformError.Module[] = [
- *   "Clipboard",
- *   "Command",
- *   "FileSystem",
- *   "KeyValueStore",
- *   "Path",
- *   "Stream",
- *   "Terminal"
- * ]
- *
- * // Use in error creation
- * const createFileSystemError = (method: string, description: string) =>
- *   new PlatformError.BadArgument({
- *     module: "FileSystem" as PlatformError.Module,
- *     method,
- *     description
- *   })
- *
- * // Type checking for modules
- * const isValidModule = (value: string): value is PlatformError.Module =>
- *   modules.includes(value as PlatformError.Module)
- * ```
- *
  * @since 1.0.0
  * @category Models
  */
@@ -78,7 +26,7 @@ export type Module = "Clipboard" | "Command" | "FileSystem" | "KeyValueStore" | 
  * @category Models
  * @example
  * ```ts
- * import { PlatformError } from "effect"
+ * import { PlatformError } from "effect/platform"
  *
  * // Create a BadArgument error for invalid file path
  * const invalidPathError = new PlatformError.BadArgument({
@@ -124,7 +72,7 @@ export class BadArgument extends Data.TaggedError("BadArgument")<{
  * @category Model
  * @example
  * ```ts
- * import { PlatformError } from "effect"
+ * import { PlatformError } from "effect/platform"
  *
  * // Common system error reasons
  * const notFoundReason: PlatformError.SystemErrorReason = "NotFound"
@@ -162,7 +110,7 @@ export type SystemErrorReason =
 /**
  * @example
  * ```ts
- * import { PlatformError } from "effect"
+ * import { PlatformError } from "effect/platform"
  *
  * // Create a file not found system error
  * const fileNotFound = new PlatformError.SystemError({
@@ -229,7 +177,8 @@ export class SystemError extends Data.TaggedError("SystemError")<{
  * @category Models
  * @example
  * ```ts
- * import { PlatformError, Effect } from "effect"
+ * import { Effect } from "effect"
+ * import { PlatformError } from "effect/platform"
  *
  * // PlatformError is a union of BadArgument and SystemError
  * const handlePlatformError = (error: PlatformError.PlatformError): string => {

@@ -10,14 +10,6 @@ import { BadArgument } from "./PlatformError.js"
 /**
  * @since 4.0.0
  * @category type ids
- * @example
- * ```ts
- * import { Path } from "effect"
- *
- * // Access the unique type identifier for Path
- * const typeId: Path.TypeId = Path.TypeId
- * console.log(typeId) // "~effect/Path"
- * ```
  */
 export const TypeId: TypeId = "~effect/Path"
 
@@ -26,7 +18,7 @@ export const TypeId: TypeId = "~effect/Path"
  * @category type ids
  * @example
  * ```ts
- * import { Path } from "effect"
+ * import { Path } from "effect/platform"
  *
  * // Use the TypeId type for type-level operations
  * const isPathTypeId = (value: unknown): value is Path.TypeId =>
@@ -40,7 +32,8 @@ export type TypeId = "~effect/Path"
  * @category model
  * @example
  * ```ts
- * import { Path, Effect } from "effect"
+ * import { Effect } from "effect"
+ * import { Path } from "effect/platform"
  *
  * const program = Effect.gen(function* () {
  *   const path = yield* Path.Path
@@ -93,7 +86,8 @@ export interface Path {
  * @category namespace
  * @example
  * ```ts
- * import { Path, Effect } from "effect"
+ * import { Effect } from "effect"
+ * import { Path } from "effect/platform"
  *
  * // Access types and utilities in the Path namespace
  * const program = Effect.gen(function* () {
@@ -121,7 +115,8 @@ export declare namespace Path {
    * @category model
    * @example
    * ```ts
-   * import { Path, Effect } from "effect"
+   * import { Effect } from "effect"
+   * import { Path } from "effect/platform"
    *
    * const program = Effect.gen(function* () {
    *   const path = yield* Path.Path
@@ -161,7 +156,8 @@ export declare namespace Path {
  * @category tag
  * @example
  * ```ts
- * import { Path, Effect, Layer } from "effect"
+ * import { Effect, Layer } from "effect"
+ * import { Path } from "effect/platform"
  *
  * // Create a custom path implementation
  * const customPath: Path.Path = {
