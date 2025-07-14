@@ -17,6 +17,7 @@ import * as Cookies from "effect/unstable/http/Cookies"
 import * as Etag from "effect/unstable/http/Etag"
 import * as FetchHttpClient from "effect/unstable/http/FetchHttpClient"
 import type * as Headers from "effect/unstable/http/Headers"
+import type { HttpClient } from "effect/unstable/http/HttpClient"
 import * as HttpEffect from "effect/unstable/http/HttpEffect"
 import * as HttpIncomingMessage from "effect/unstable/http/HttpIncomingMessage"
 import type { HttpMethod } from "effect/unstable/http/HttpMethod"
@@ -389,30 +390,23 @@ export const layerConfig = (
  * @since 1.0.0
  * @category Testing
  */
-export const layerTest = HttpServer.layerTestClient.pipe(
+export const layerTest: Layer.Layer<
+  | HttpServer.HttpServer
+  | FileSystem.FileSystem
+  | Path.Path
+  | HttpPlatform.HttpPlatform
+  | Etag.Generator
+  | HttpClient,
+  ServeError,
+  never
+> = HttpServer.layerTestClient.pipe(
   Layer.provide(
-    // TODO: Switch to undici
     Layer.fresh(FetchHttpClient.layer).pipe(
       Layer.provide(Layer.succeed(FetchHttpClient.RequestInit, { keepalive: false }))
     )
   ),
   Layer.provideMerge(layer(Http.createServer, { port: 0 }))
 )
-
-/**
- * @since 1.0.0
- * @category Accessors
- */
-export const toIncomingMessage = (self: HttpServerRequest): Http.IncomingMessage => (self as ServerRequestImpl).source
-
-/**
- * @since 1.0.0
- * @category Accessors
- */
-export const toServerResponse = (self: HttpServerRequest): Http.ServerResponse => {
-  const res = (self as ServerRequestImpl).response
-  return typeof res === "function" ? res() : res
-}
 
 // -----------------------------------------------------------------------------
 // Internal

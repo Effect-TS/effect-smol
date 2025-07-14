@@ -237,6 +237,9 @@ importers:
       mime:
         specifier: ^4.0.7
         version: 4.0.7
+      undici:
+        specifier: ^7.11.0
+        version: 7.11.0
     devDependencies:
       '@types/node':
         specifier: ^24.0.12
@@ -3869,6 +3872,10 @@ packages:
 
   undici-types@7.8.0:
     resolution: {integrity: sha512-9UJ2xGDvQ43tYyVMpuHlsgApydB8ZKfVYTsLDhXkFL/6gfkp+U8xTGdh8pMJv1SpZna0zxG1DwsKZsreLbXBxw==}
+
+  undici@7.11.0:
+    resolution: {integrity: sha512-heTSIac3iLhsmZhUCjyS3JQEkZELateufzZuBaVM5RHXdSBMb1LPMQf5x+FH7qjsZYDP0ttAc3nnVpUB+wYbOg==}
+    engines: {node: '>=20.18.1'}
 
   universalify@0.1.2:
     resolution: {integrity: sha512-rBJeI5CXAlmy1pV+617WB9J63U6XcazHHF2f2dbJix4XzpUF0RS3Zbj0FGIOCAva5P/d/GBOYaACQ1w+0azUkg==}
@@ -7999,6 +8006,8 @@ snapshots:
     optional: true
 
   undici-types@7.8.0: {}
+
+  undici@7.11.0: {}
 
   universalify@0.1.2: {}
 

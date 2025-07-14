@@ -6,6 +6,9 @@ import * as Effect from "../../Effect.js"
 import { compose, dual, identity } from "../../Function.js"
 import * as Layer from "../../Layer.js"
 import * as Option from "../../Option.js"
+import type { ReadonlyRecord } from "../../Record.js"
+import type { ParseOptions } from "../../schema/AST.js"
+import * as Schema from "../../schema/Schema.js"
 import * as Scope from "../../Scope.js"
 import * as ServiceMap from "../../ServiceMap.js"
 import * as Tracer from "../../Tracer.js"
@@ -17,7 +20,7 @@ import * as HttpMiddleware from "./HttpMiddleware.js"
 import * as HttpServer from "./HttpServer.js"
 import * as HttpServerError from "./HttpServerError.js"
 import * as HttpServerRequest from "./HttpServerRequest.js"
-import type * as HttpServerResponse from "./HttpServerResponse.js"
+import * as HttpServerResponse from "./HttpServerResponse.js"
 
 /**
  * @since 4.0.0
@@ -40,10 +43,11 @@ export interface HttpRouter {
 
   readonly prefixed: (prefix: string) => HttpRouter
 
-  readonly add: <E, R>(
+  readonly add: <E = never, R = never>(
     method: "*" | "GET" | "POST" | "PUT" | "PATCH" | "DELETE" | "OPTIONS",
     path: PathInput,
     handler:
+      | HttpServerResponse.HttpServerResponse
       | Effect.Effect<HttpServerResponse.HttpServerResponse, E, R>
       | ((request: HttpServerRequest.HttpServerRequest) => Effect.Effect<HttpServerResponse.HttpServerResponse, E, R>),
     options?: { readonly uninterruptible?: boolean | undefined } | undefined
@@ -138,7 +142,9 @@ export const make = Effect.gen(function*() {
             makeRoute({
               method,
               path: prefixPath(path, prefix) as PathInput,
-              handler: Effect.isEffect(handler)
+              handler: HttpServerResponse.isHttpServerResponse(handler) ?
+                Effect.succeed(handler) :
+                Effect.isEffect(handler)
                 ? handler
                 : Effect.flatMap(HttpServerRequest.HttpServerRequest.asEffect(), handler),
               uninterruptible: options?.uninterruptible ?? false,
@@ -221,6 +227,139 @@ export class RouteContext extends ServiceMap.Key<RouteContext, {
 }>()("effect/http/HttpRouter/RouteContext") {}
 
 /**
+ * @since 4.0.0
+ * @category RouteContext
+ */
+export const params: Effect.Effect<
+  ReadonlyRecord<string, string | undefined>,
+  never,
+  RouteContext
+> = Effect.map(RouteContext.asEffect(), (_) => _.params)
+
+/**
+ * @since 4.0.0
+ * @category Schema
+ */
+export const schemaJson = <
+  A,
+  I extends Partial<{
+    readonly method: HttpMethod.HttpMethod
+    readonly url: string
+    readonly cookies: Readonly<Record<string, string | undefined>>
+    readonly headers: Readonly<Record<string, string | undefined>>
+    readonly pathParams: Readonly<Record<string, string | undefined>>
+    readonly searchParams: Readonly<Record<string, string | ReadonlyArray<string> | undefined>>
+    readonly body: any
+  }>,
+  RD,
+  RE
+>(
+  schema: Schema.Codec<A, I, RD, RE>,
+  options?: ParseOptions | undefined
+): Effect.Effect<
+  A,
+  HttpServerError.HttpServerError | Schema.SchemaError,
+  HttpServerRequest.HttpServerRequest | HttpServerRequest.ParsedSearchParams | RouteContext | RD
+> => {
+  const parse = Schema.decodeUnknownEffect(schema)
+  return Effect.servicesWith(
+    (
+      services: ServiceMap.ServiceMap<
+        HttpServerRequest.HttpServerRequest | HttpServerRequest.ParsedSearchParams | RouteContext
+      >
+    ) => {
+      const request = ServiceMap.get(services, HttpServerRequest.HttpServerRequest)
+      const searchParams = ServiceMap.get(services, HttpServerRequest.ParsedSearchParams)
+      const routeContext = ServiceMap.get(services, RouteContext)
+      return Effect.flatMap(request.json, (body) =>
+        parse({
+          method: request.method,
+          url: request.url,
+          headers: request.headers,
+          cookies: request.cookies,
+          pathParams: routeContext.params,
+          searchParams,
+          body
+        }, options))
+    }
+  )
+}
+
+/**
+ * @since 4.0.0
+ * @category Schema
+ */
+export const schemaNoBody = <
+  A,
+  I extends Partial<{
+    readonly method: HttpMethod.HttpMethod
+    readonly url: string
+    readonly cookies: Readonly<Record<string, string | undefined>>
+    readonly headers: Readonly<Record<string, string | undefined>>
+    readonly pathParams: Readonly<Record<string, string | undefined>>
+    readonly searchParams: Readonly<Record<string, string | ReadonlyArray<string> | undefined>>
+  }>,
+  RD,
+  RE
+>(
+  schema: Schema.Codec<A, I, RD, RE>,
+  options?: ParseOptions | undefined
+): Effect.Effect<
+  A,
+  Schema.SchemaError,
+  HttpServerRequest.HttpServerRequest | HttpServerRequest.ParsedSearchParams | RouteContext | RD
+> => {
+  const parse = Schema.decodeUnknownEffect(schema)
+  return Effect.servicesWith(
+    (
+      services: ServiceMap.ServiceMap<
+        HttpServerRequest.HttpServerRequest | HttpServerRequest.ParsedSearchParams | RouteContext
+      >
+    ) => {
+      const request = ServiceMap.get(services, HttpServerRequest.HttpServerRequest)
+      const searchParams = ServiceMap.get(services, HttpServerRequest.ParsedSearchParams)
+      const routeContext = ServiceMap.get(services, RouteContext)
+      return parse({
+        method: request.method,
+        url: request.url,
+        headers: request.headers,
+        cookies: request.cookies,
+        pathParams: routeContext.params,
+        searchParams
+      }, options)
+    }
+  )
+}
+
+/**
+ * @since 4.0.0
+ * @category Schema
+ */
+export const schemaParams = <A, I extends Readonly<Record<string, string | ReadonlyArray<string> | undefined>>, RD, RE>(
+  schema: Schema.Codec<A, I, RD, RE>,
+  options?: ParseOptions | undefined
+): Effect.Effect<A, Schema.SchemaError, HttpServerRequest.ParsedSearchParams | RouteContext | RD> => {
+  const parse = Schema.decodeUnknownEffect(schema)
+  return Effect.servicesWith((services: ServiceMap.ServiceMap<HttpServerRequest.ParsedSearchParams | RouteContext>) => {
+    const searchParams = ServiceMap.get(services, HttpServerRequest.ParsedSearchParams)
+    const routeContext = ServiceMap.get(services, RouteContext)
+    return parse({ ...searchParams, ...routeContext.params }, options)
+  })
+}
+
+/**
+ * @since 4.0.0
+ * @category Schema
+ */
+export const schemaPathParams = <A, I extends Readonly<Record<string, string | undefined>>, RD, RE>(
+  schema: Schema.Codec<A, I, RD, RE>,
+  options?: ParseOptions | undefined
+): Effect.Effect<A, Schema.SchemaError, RouteContext | RD> => {
+  const parse = Schema.decodeUnknownEffect(schema)
+  return Effect.flatMap(params, (_) => parse(_, options))
+}
+
+/**
  * A helper function that is the equivalent of:
  *
  * ```ts
@@ -257,10 +396,11 @@ export const use = <A, E, R>(
  * @since 4.0.0
  * @category HttpRouter
  */
-export const add = <E, R>(
+export const add = <E = never, R = never>(
   method: "*" | "GET" | "POST" | "PUT" | "PATCH" | "DELETE" | "OPTIONS",
   path: PathInput,
   handler:
+    | HttpServerResponse.HttpServerResponse
     | Effect.Effect<HttpServerResponse.HttpServerResponse, E, R>
     | ((request: HttpServerRequest.HttpServerRequest) => Effect.Effect<HttpServerResponse.HttpServerResponse, E, R>),
   options?: {
@@ -401,10 +541,11 @@ const makeRoute = <E, R>(options: {
  * @since 4.0.0
  * @category Route
  */
-export const route = <E, R>(
+export const route = <E = never, R = never>(
   method: "*" | "GET" | "POST" | "PUT" | "PATCH" | "DELETE" | "OPTIONS",
   path: PathInput,
   handler:
+    | HttpServerResponse.HttpServerResponse
     | Effect.Effect<HttpServerResponse.HttpServerResponse, E, R>
     | ((request: HttpServerRequest.HttpServerRequest) => Effect.Effect<HttpServerResponse.HttpServerResponse, E, R>),
   options?: {
@@ -415,7 +556,9 @@ export const route = <E, R>(
     ...options,
     method,
     path,
-    handler: Effect.isEffect(handler)
+    handler: HttpServerResponse.isHttpServerResponse(handler) ?
+      Effect.succeed(handler) :
+      Effect.isEffect(handler)
       ? handler
       : Effect.flatMap(HttpServerRequest.HttpServerRequest.asEffect(), handler),
     uninterruptible: options?.uninterruptible ?? false
