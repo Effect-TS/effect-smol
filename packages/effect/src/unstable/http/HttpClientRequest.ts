@@ -88,7 +88,7 @@ const Proto = {
   ...Inspectable.BaseProto,
   toJSON(this: HttpClientRequest): unknown {
     return {
-      _id: "effect/HttpClientRequest",
+      _id: "HttpClientRequest",
       method: this.method,
       url: this.url,
       urlParams: this.urlParams,

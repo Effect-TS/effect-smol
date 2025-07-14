@@ -222,7 +222,7 @@ export const schemaBodyUrlParams = <
   schema: Schema.Codec<A, I, RD, RE>,
   options?: ParseOptions | undefined
 ): Effect.Effect<A, HttpServerError | Schema.SchemaError, HttpServerRequest | RD> => {
-  const parse = HttpIncomingMessage.schemaBodyJson(schema, options)
+  const parse = HttpIncomingMessage.schemaBodyUrlParams(schema, options)
   return Effect.flatMap(HttpServerRequest.asEffect(), parse)
 }
 
@@ -313,7 +313,7 @@ class ServerRequestImpl extends Inspectable.Class implements HttpServerRequest {
   }
   toJSON(): unknown {
     return HttpIncomingMessage.inspect(this, {
-      _id: "effect/http/HttpServerRequest",
+      _id: "HttpServerRequest",
       method: this.method,
       url: this.originalUrl
     })

@@ -122,9 +122,19 @@ export const make = Effect.gen(function*() {
           handler: applyMiddleware(routes[i].handler as Effect.Effect<HttpServerResponse.HttpServerResponse>)
         })
         if (route.method === "*") {
-          router.all(route.path, route as any)
+          if (route.path.endsWith("/*")) {
+            router.all(route.path, route as any)
+            router.all(route.path.slice(0, -2) as any, route as any)
+          } else {
+            router.all(route.path, route as any)
+          }
         } else {
-          router.on(route.method, route.path, route as any)
+          if (route.path.endsWith("/*")) {
+            router.on(route.method, route.path, route as any)
+            router.on(route.method, route.path.slice(0, -2) as any, route as any)
+          } else {
+            router.on(route.method, route.path, route as any)
+          }
         }
       }
       return Effect.void
@@ -583,7 +593,9 @@ export const prefixPath: {
   (self: string, prefix: string): string
 } = dual(2, (self: string, prefix: string) => {
   prefix = removeTrailingSlash(prefix as PathInput)
-  return self === "/" ? prefix : prefix + self
+  if (self === "*") return `${prefix}/*`
+  else if (self === "/") return prefix
+  return prefix + self
 })
 
 /**

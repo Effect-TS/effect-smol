@@ -1,7 +1,7 @@
 /**
  * @since 1.0.0
  */
-/* eslint-disable import-x/namespace */
+
 import * as Effect from "effect/Effect"
 import * as Inspectable from "effect/Inspectable"
 import * as Layer from "effect/Layer"
@@ -150,20 +150,17 @@ class UndiciResponse extends Inspectable.Class implements HttpClientResponse {
     return undefined
   }
 
+  get headers(): Headers.Headers {
+    return Headers.fromInput(this.source.headers)
+  }
+
   cachedCookies?: Cookies.Cookies
   get cookies(): Cookies.Cookies {
     if (this.cachedCookies !== undefined) {
       return this.cachedCookies
     }
     const header = this.source.headers["set-cookie"]
-    if (header !== undefined) {
-      return this.cachedCookies = Cookies.fromSetCookie(Array.isArray(header) ? header : [header])
-    }
-    return this.cachedCookies = Cookies.empty
-  }
-
-  get headers(): Headers.Headers {
-    return Headers.fromInput(this.source.headers)
+    return this.cachedCookies = header ? Cookies.fromSetCookie(header) : Cookies.empty
   }
 
   get remoteAddress(): Option.Option<string> {
@@ -482,10 +479,7 @@ class NodeHttpResponse extends NodeHttpIncomingMessage<Error.ResponseError> impl
       return this.cachedCookies
     }
     const header = this.source.headers["set-cookie"]
-    if (Array.isArray(header)) {
-      return this.cachedCookies = Cookies.fromSetCookie(header)
-    }
-    return this.cachedCookies = Cookies.empty
+    return this.cachedCookies = header ? Cookies.fromSetCookie(header) : Cookies.empty
   }
 
   get formData(): Effect.Effect<FormData, Error.ResponseError> {

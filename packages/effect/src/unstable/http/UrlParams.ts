@@ -75,6 +75,7 @@ export interface CoercibleRecord {
 
 const Proto = {
   ...PipeInspectableProto,
+  [TypeId]: TypeId,
   [Symbol.iterator](this: UrlParams) {
     return this.params[Symbol.iterator]()
   },

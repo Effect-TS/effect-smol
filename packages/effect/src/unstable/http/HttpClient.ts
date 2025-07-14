@@ -877,7 +877,7 @@ export const withCookiesRef: {
       (request: Effect.Effect<HttpClientRequest.HttpClientRequest, E, R>) =>
         Effect.tap(
           self.postprocess(request),
-          (response) => Ref.update(ref, (cookies) => Cookies.merge(cookies, HttpClientResponse.cookies(response)))
+          (response) => Ref.update(ref, (cookies) => Cookies.merge(cookies, response.cookies))
         ),
       (request) =>
         Effect.flatMap(self.preprocess(request), (request) =>
@@ -1060,6 +1060,10 @@ class InterruptibleResponse implements HttpClientResponse.HttpClientResponse {
 
   get headers() {
     return this.original.headers
+  }
+
+  get cookies() {
+    return this.original.cookies
   }
 
   get remoteAddress() {

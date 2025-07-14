@@ -323,7 +323,7 @@ class ServerRequestImpl extends NodeHttpIncomingMessage<HttpServerError> impleme
 
   toJSON(): unknown {
     return HttpIncomingMessage.inspect(this, {
-      _id: "effect/http/HttpServerRequest",
+      _id: "HttpServerRequest",
       method: this.method,
       url: this.originalUrl
     })

@@ -36,6 +36,7 @@
  *
  * @since 2.0.0
  */
+import { pipeArguments } from "./Pipeable.js"
 import { hasProperty, isFunction } from "./Predicate.js"
 import type * as ServiceMap from "./ServiceMap.js"
 
@@ -562,8 +563,16 @@ const currentFiberUri = "effect/Fiber/currentFiber"
  * @category redactable
  */
 export const redact = (u: unknown): unknown => {
-  if (isRedactable(u) && (globalThis as any)[currentFiberUri]) {
-    return u[symbolRedactable]((globalThis as any)[currentFiberUri].context)
+  if (isRedactable(u)) {
+    return u[symbolRedactable]((globalThis as any)[currentFiberUri]?.services ?? emptyServiceMap)
   }
   return u
 }
+
+const emptyServiceMap: ServiceMap.ServiceMap<never> = {
+  "~effect/ServiceMap": {} as any,
+  unsafeMap: new Map(),
+  pipe() {
+    return pipeArguments(this, arguments)
+  }
+} as any

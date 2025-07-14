@@ -29,7 +29,7 @@ const IdParams = Schema.Struct({
 const todoResponse = HttpServerResponse.schemaJson(Todo)
 
 describe("HttpServer", () => {
-  it.effect.only("schema", () =>
+  it.effect("schema", () =>
     Effect.gen(function*() {
       yield* HttpRouter.add(
         "GET",
@@ -51,7 +51,7 @@ describe("HttpServer", () => {
   it.effect("formData", () =>
     Effect.gen(function*() {
       yield* HttpRouter.add(
-        "GET",
+        "POST",
         "/upload",
         Effect.gen(function*() {
           const request = yield* HttpServerRequest.HttpServerRequest
@@ -162,7 +162,7 @@ describe("HttpServer", () => {
   it.effect("mountApp", () =>
     Effect.gen(function*() {
       const child = Effect.map(HttpServerRequest.HttpServerRequest.asEffect(), (_) => HttpServerResponse.text(_.url))
-      yield* HttpRouter.add("*", "/child", child).pipe(
+      yield* HttpRouter.use((router) => router.prefixed("/child").add("*", "*", child)).pipe(
         HttpRouter.toHttpEffect,
         Effect.flatMap(HttpServer.serveEffect())
       )
@@ -374,8 +374,8 @@ describe("HttpServer", () => {
         "GET",
         "/",
         Effect.flatMap(
-          HttpServerRequest.HttpServerRequest.asEffect(),
-          (request) => HttpServerResponse.json({ url: request.url })
+          Effect.currentSpan,
+          (_) => HttpServerResponse.json({ spanId: _.spanId, parent: _.parent })
         )
       ).pipe(
         HttpRouter.toHttpEffect,
@@ -455,7 +455,7 @@ describe("HttpServer", () => {
       const client = yield* HttpClient.HttpClient
       const res = yield* client.get("/home")
       assert.deepStrictEqual(
-        HttpClientResponse.cookies(res).toJSON(),
+        res.cookies.toJSON(),
         Cookies.fromReadonlyRecord({
           test: Cookies.unsafeMakeCookie("test", "value"),
           test2: Cookies.unsafeMakeCookie("test2", "value2", {
@@ -482,7 +482,8 @@ describe("HttpServer", () => {
           setTimeout(() => fiber.unsafeInterrupt(fiber.id), 10)
           yield* Effect.sleep(50)
           return HttpServerResponse.empty()
-        })
+        }),
+        { uninterruptible: true }
       ).pipe(
         HttpRouter.toHttpEffect,
         Effect.flatMap(HttpServer.serveEffect())
