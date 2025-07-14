@@ -51,38 +51,14 @@
     "types": "./dist/index.d.ts",
     "exports": {
       "./package.json": "./package.json",
-      ".": {
-        "default": "./dist/index.js",
-        "types": "./dist/index.d.ts"
-      },
-      "./config": {
-        "default": "./dist/config/index.js",
-        "types": "./dist/config/index.d.ts"
-      },
-      "./platform": {
-        "default": "./dist/platform/index.js",
-        "types": "./dist/platform/index.d.ts"
-      },
-      "./schema": {
-        "default": "./dist/schema/index.js",
-        "types": "./dist/schema/index.d.ts"
-      },
-      "./unstable/http": {
-        "default": "./dist/unstable/http/index.js",
-        "types": "./dist/unstable/http/index.d.ts"
-      },
-      "./unstable/socket": {
-        "default": "./dist/unstable/socket/index.js",
-        "types": "./dist/unstable/socket/index.d.ts"
-      },
-      "./unstable/tracing": {
-        "default": "./dist/unstable/tracing/index.js",
-        "types": "./dist/unstable/tracing/index.d.ts"
-      },
-      "./*": {
-        "default": "./dist/*.js",
-        "types": "./dist/*.d.ts"
-      },
+      ".": "./dist/index.js",
+      "./config": "./dist/config/index.js",
+      "./platform": "./dist/platform/index.js",
+      "./schema": "./dist/schema/index.js",
+      "./unstable/http": "./dist/unstable/http/index.js",
+      "./unstable/socket": "./dist/unstable/socket/index.js",
+      "./unstable/tracing": "./dist/unstable/tracing/index.js",
+      "./*": "./dist/*.js",
       "./internal/*": null,
       "./*/index": null
     }

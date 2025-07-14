@@ -34,10 +34,7 @@
     "detective-typescript": "^11.1.0"
   },
   "imports": {
-    "#dist/effect/*": {
-      "types": "./packages/effect/dist/*.d.ts",
-      "default": "./packages/effect/dist/*.js"
-    }
+    "#dist/effect/*": "./packages/effect/dist/*.js"
   },
   "devDependencies": {
     "@babel/cli": "^7.28.0",
