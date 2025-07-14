@@ -90,13 +90,11 @@ export abstract class NodeHttpIncomingMessage<E> extends Inspectable.Class
   }
 
   get arrayBuffer(): Effect.Effect<ArrayBuffer, E> {
-    return Effect.flatMap(
-      IncomingMessage.MaxBodySize.asEffect(),
-      (maxBodySize) =>
-        NodeStream.toUint8Array(() => this.source, {
-          onError: this.onError,
-          maxBytes: Option.getOrUndefined(maxBodySize)
-        })
+    return Effect.withFiber((fiber) =>
+      NodeStream.toArrayBuffer(() => this.source, {
+        onError: this.onError,
+        maxBytes: Option.getOrUndefined(fiber.getRef(IncomingMessage.MaxBodySize))
+      })
     )
   }
 }

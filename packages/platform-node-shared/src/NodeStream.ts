@@ -225,13 +225,13 @@ export const toString = <E = Cause.UnknownError>(
  * @since 1.0.0
  * @category conversions
  */
-export const toUint8Array = <E = Cause.UnknownError>(
+export const toArrayBuffer = <E = Cause.UnknownError>(
   readable: LazyArg<Readable | NodeJS.ReadableStream>,
   options?: {
     readonly onError?: (error: unknown) => E
     readonly maxBytes?: SizeInput | undefined
   }
-): Effect.Effect<Uint8Array, E> => {
+): Effect.Effect<ArrayBuffer, E> => {
   const maxBytesNumber = options?.maxBytes ? Number(options.maxBytes) : undefined
   const onError = options?.onError ?? defaultOnError
   return Effect.callback((resume) => {
@@ -245,7 +245,10 @@ export const toUint8Array = <E = Cause.UnknownError>(
       resume(Effect.fail(onError(err) as E))
     })
     stream.once("end", () => {
-      resume(Effect.succeed(buffer))
+      if (buffer.buffer.byteLength === buffer.byteLength) {
+        return resume(Effect.succeed(buffer.buffer))
+      }
+      resume(Effect.succeed(buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength)))
     })
     stream.on("data", (chunk) => {
       buffer = Buffer.concat([buffer, chunk])
@@ -261,6 +264,18 @@ export const toUint8Array = <E = Cause.UnknownError>(
     })
   })
 }
+
+/**
+ * @since 1.0.0
+ * @category conversions
+ */
+export const toUint8Array = <E = Cause.UnknownError>(
+  readable: LazyArg<Readable | NodeJS.ReadableStream>,
+  options?: {
+    readonly onError?: (error: unknown) => E
+    readonly maxBytes?: SizeInput | undefined
+  }
+): Effect.Effect<Uint8Array, E> => Effect.map(toArrayBuffer(readable, options), (buffer) => new Uint8Array(buffer))
 
 /**
  * @since 1.0.0
