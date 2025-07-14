@@ -171,38 +171,6 @@ export class Halt<out L> {
 }
 
 /**
- * @since 4.0.0
- * @category Done
- */
-export class Done extends Halt<void> {
-  /**
-   * @since 4.0.0
-   */
-  readonly _tag: "Done" = "Done" as const
-  constructor() {
-    super(void 0)
-  }
-}
-
-/**
- * @since 4.0.0
- * @category Done
- */
-export const done: Done = new Done()
-
-/**
- * @since 4.0.0
- * @category Done
- */
-export const isDone = (u: unknown): u is Done => isHalt(u) && (u as Done)._tag === "Done"
-
-/**
- * @since 4.0.0
- * @category Done
- */
-export const filterDone: Filter.Filter<unknown, Done> = Filter.fromPredicate(isDone)
-
-/**
  * Namespace containing utility types for working with Halt errors.
  *
  * @example

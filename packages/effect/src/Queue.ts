@@ -36,6 +36,7 @@ import * as Arr from "./Array.js"
 import type { Cause } from "./Cause.js"
 import type { Effect } from "./Effect.js"
 import type { Exit } from "./Exit.js"
+import * as Filter from "./Filter.js"
 import { dual, identity } from "./Function.js"
 import type { Inspectable } from "./Inspectable.js"
 import * as core from "./internal/core.js"
@@ -1126,25 +1127,31 @@ export const clear = <A, E>(self: Dequeue<A, E>): Effect<Array<A>, E> =>
  * @category Done
  * @since 4.0.0
  */
-export type Done = Pull.Done
+export interface Done extends Pull.Halt<void> {
+  readonly _tag: "Done"
+}
 
-export {
-  /**
-   * @category Done
-   * @since 4.0.0
-   */
-  done as Done,
-  /**
-   * @category Done
-   * @since 4.0.0
-   */
-  filterDone,
-  /**
-   * @category Done
-   * @since 4.0.0
-   */
-  isDone
-} from "./Pull.js"
+/**
+ * @category Done
+ * @since 4.0.0
+ */
+export const Done: Done = {
+  [Pull.HaltTypeId]: Pull.HaltTypeId,
+  _tag: "Done",
+  leftover: void 0
+}
+
+/**
+ * @since 4.0.0
+ * @category Done
+ */
+export const isDone = (u: unknown): u is Done => Pull.isHalt(u) && (u as Done)._tag === "Done"
+
+/**
+ * @since 4.0.0
+ * @category Done
+ */
+export const filterDone: Filter.Filter<unknown, Done> = Filter.fromPredicate(isDone)
 
 /**
  * Take all messages from the queue, or wait for messages to be available.
@@ -1181,7 +1188,7 @@ export {
  * @category taking
  * @since 4.0.0
  */
-export const takeAll = <A, E>(self: Dequeue<A, E>): Effect<Arr.NonEmptyArray<A>, E | Pull.Done> =>
+export const takeAll = <A, E>(self: Dequeue<A, E>): Effect<Arr.NonEmptyArray<A>, E | Done> =>
   takeBetween(self, 1, Number.POSITIVE_INFINITY) as any
 
 /**
@@ -1224,7 +1231,7 @@ export const takeAll = <A, E>(self: Dequeue<A, E>): Effect<Arr.NonEmptyArray<A>,
 export const takeN = <A, E>(
   self: Dequeue<A, E>,
   n: number
-): Effect<Array<A>, E | Pull.Done> => takeBetween(self, n, n)
+): Effect<Array<A>, E | Done> => takeBetween(self, n, n)
 
 /**
  * Take a variable number of messages from the queue, between specified min and max.
@@ -1265,7 +1272,7 @@ export const takeBetween = <A, E>(
   self: Dequeue<A, E>,
   min: number,
   max: number
-): Effect<Array<A>, E | Pull.Done> =>
+): Effect<Array<A>, E | Done> =>
   internalEffect.suspend(() =>
     unsafeTakeBetween(self, min, max) ?? internalEffect.andThen(awaitTake(self), takeBetween(self, 1, max))
   )
@@ -1308,7 +1315,7 @@ export const takeBetween = <A, E>(
  * @category taking
  * @since 4.0.0
  */
-export const take = <A, E>(self: Dequeue<A, E>): Effect<A, E | Pull.Done> =>
+export const take = <A, E>(self: Dequeue<A, E>): Effect<A, E | Done> =>
   internalEffect.suspend(
     () => unsafeTake(self) ?? internalEffect.andThen(awaitTake(self), take(self))
   )
@@ -1351,7 +1358,7 @@ export const take = <A, E>(self: Dequeue<A, E>): Effect<A, E | Pull.Done> =>
  * @category taking
  * @since 4.0.0
  */
-export const unsafeTake = <A, E>(self: Dequeue<A, E>): Exit<A, E | Pull.Done> | undefined => {
+export const unsafeTake = <A, E>(self: Dequeue<A, E>): Exit<A, E | Done> | undefined => {
   if (self.state._tag === "Done") {
     const exit = self.state.exit
     if (exit._tag === "Success") return exitFailDone
@@ -1616,7 +1623,7 @@ export const toPullArray: <A, E, L = void>(self: Dequeue<A, E>) => Pull.Pull<Arr
 
 const exitFalse = core.exitSucceed(false)
 const exitTrue = core.exitSucceed(true)
-const exitFailDone = core.exitFail(Pull.done)
+const exitFailDone = core.exitFail(Done)
 
 const releaseTaker = <A, E>(self: Queue<A, E>) => {
   self.scheduleRunning = false
@@ -1640,7 +1647,7 @@ const unsafeTakeBetween = <A, E>(
   self: Dequeue<A, E>,
   min: number,
   max: number
-): Exit<Array<A>, E | Pull.Done> | undefined => {
+): Exit<Array<A>, E | Done> | undefined => {
   if (self.state._tag === "Done") {
     return internalEffect.exitZipRight(self.state.exit, exitFailDone)
   } else if (max <= 0 || min <= 0) {
