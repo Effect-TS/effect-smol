@@ -14,7 +14,6 @@
     "url": "https://github.com/Effect-TS/effect/issues"
   },
   "sideEffects": [],
-  "main": "./src/index.ts",
   "exports": {
     "./package.json": "./package.json",
     ".": "./src/index.ts",
@@ -28,7 +27,6 @@
   ],
   "publishConfig": {
     "provenance": true,
-    "main": "./dist/index.js",
     "exports": {
       "./package.json": "./package.json",
       ".": "./dist/index.js",
