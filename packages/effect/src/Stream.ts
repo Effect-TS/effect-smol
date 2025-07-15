@@ -17,6 +17,7 @@ import { hasProperty } from "./Predicate.js"
 import type * as PubSub from "./PubSub.js"
 import * as Pull from "./Pull.js"
 import * as Queue from "./Queue.js"
+import * as Schedule from "./Schedule.js"
 import * as Scope from "./Scope.js"
 import * as ServiceMap from "./ServiceMap.js"
 import type * as Sink from "./Sink.js"
@@ -788,6 +789,20 @@ export const fromReadableStream = <A, E>(
       ({ done, value }) => done ? Pull.haltVoid : Effect.succeed(Arr.of(value))
     )
   })))
+
+/**
+ * Creates a stream from a Schedule.
+ *
+ * @since 2.0.0
+ * @category constructors
+ */
+export const fromSchedule = <O, E, R>(schedule: Schedule.Schedule<O, unknown, E, R>): Stream<O, E, R> =>
+  fromPull(
+    Effect.map(
+      Schedule.toStepWithSleep(schedule),
+      (step) => Pull.catchHalt(Effect.map(step(void 0), Arr.of), () => Pull.haltVoid)
+    )
+  )
 
 /**
  * Creates a stream from a PubSub subscription.

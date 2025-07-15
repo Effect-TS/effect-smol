@@ -95,7 +95,7 @@ export const make = Effect.fnUntraced(
         const services = yield* Effect.services<never>()
         const httpEffect = HttpEffect.toHandled(httpApp, (request, response) =>
           Effect.sync(() => {
-            ;(request as BunServerRequest).resolve(makeResponse(request, response, services))
+            ;(request as BunServerRequest).resolve(makeResponse(request, response, services, scope))
           }), middleware)
 
         function handler(request: Request, server: BunServer) {
@@ -131,7 +131,8 @@ export const make = Effect.fnUntraced(
 const makeResponse = (
   request: ServerRequest.HttpServerRequest,
   response: ServerResponse.HttpServerResponse,
-  services: ServiceMap.ServiceMap<never>
+  services: ServiceMap.ServiceMap<never>,
+  scope: Scope.Scope
 ): Response => {
   const fields: {
     headers: globalThis.Headers
@@ -176,7 +177,13 @@ const makeResponse = (
     }
     case "Stream": {
       return new Response(
-        Stream.toReadableStreamWith(body.stream, services),
+        Stream.toReadableStreamWith(
+          Stream.unwrap(Effect.withFiber((fiber) => {
+            Fiber.runIn(fiber, scope)
+            return Effect.succeed(body.stream)
+          })),
+          services
+        ),
         fields
       )
     }

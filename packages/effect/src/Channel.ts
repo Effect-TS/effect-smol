@@ -73,6 +73,7 @@ import { hasProperty } from "./Predicate.js"
 import * as PubSub from "./PubSub.js"
 import * as Pull from "./Pull.js"
 import * as Queue from "./Queue.js"
+import * as Schedule from "./Schedule.js"
 import * as Scope from "./Scope.js"
 import * as ServiceMap from "./ServiceMap.js"
 import type * as Types from "./Types.js"
@@ -1506,6 +1507,17 @@ export const fromPubSubArray = <A>(
   chunkSize = DefaultChunkSize
 ): Channel<Arr.NonEmptyReadonlyArray<A>> =>
   unwrap(Effect.map(PubSub.subscribe(pubsub), (sub) => fromSubscriptionArray(sub, chunkSize)))
+
+/**
+ * Creates a Channel from a Schedule.
+ *
+ * @since 4.0.0
+ * @category constructors
+ */
+export const fromSchedule = <O, E, R>(
+  schedule: Schedule.Schedule<O, unknown, E, R>
+): Channel<O, E, O, unknown, unknown, unknown, R> =>
+  fromPull(Effect.map(Schedule.toStepWithSleep(schedule), (step) => step(void 0)))
 
 /**
  * Maps the output of this channel using the specified function.
