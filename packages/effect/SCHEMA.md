@@ -17,6 +17,62 @@ In general, Schema v4 requires more explicit decisions from the user about which
 
 Ultimately, the intent is to eliminate the need for two separate paths like in version 3 (Effect as the full-featured version and Micro for more constrained use cases).
 
+## Summary
+
+### 1. Design Goals
+
+- **Smaller bundles & opt‑in features** – defaults like issue formatting moved out of the core; you explicitly import what you use.
+- **Keep v3 names when possible** while borrowing ergonomics from Zod v4, so migrating users feel at home.
+
+### 2. Core Type Model
+
+- `Bottom<…>` now tracks **14 type parameters** giving fine‑grained control over mutability, optionality, defaults, encoded/decoded shapes, etc.
+- Separate requirement type params **`RD` / `RE`** let decoding and encoding depend on different service environments.
+
+### 3. Encoding / Decoding
+
+- **Default JSON codec generator**: `Serializer.json(schema)` does round‑trip‑safe network serialization (Maps → pairs, Options → arrays, Dates → ISO strings, etc.).
+- **Explicit helpers**: `Schema.UnknownFromJsonString`, `Schema.fromJsonString`.
+
+### 4. Schema Algebra Goodies
+
+- `Schema.flip` ‑ swap input/output types (encode ≙ decode of the flipped schema).
+- **Redesigned constructors** (`makeSync`) everywhere, including unions, with smart handling of brands / refinements / defaults (sync or effectful).
+- **Optional & mutable keys** via `Schema.optionalKey` / `Schema.mutableKey`; nested default‑value resolution.
+- **Derivation APIs** for structs, tuples, unions (`mapFields`, `mapElements`, `mapMembers`, etc.) to pick/omit/evolve/rename without losing checks.
+
+### 5. Validation Pipeline
+
+- Filters (`Check`) are **first‑class values**:
+  - chainable without losing original schema type info,
+  - reusable (groups, factories),
+  - structural vs element filters,
+  - `abort` wrapper to short‑circuit,
+  - multi‑issue reporting with `{ errors: "all" }`.
+
+### 6. Transformations
+
+- Now standalone objects (`Transformation<T,E,RD,RE>`) you attach with `Schema.decode`, `Schema.decodeTo`, etc.—composable like optics.
+- Passthrough helpers (`passthrough`, `passthroughSubtype`, `passthroughSupertype`) ease schema‑to‑schema transformations.
+
+### 7. Data Types Beyond Plain Structs
+
+- **Opaque structs & classes** – wrap a `Struct` in a class for nominal typing; `Schema.Class` when you need methods/constructors/equality.
+- **Tagged structs / tagged unions** helpers (`Schema.TaggedStruct`, `Schema.TaggedUnion`, `Schema.asTaggedUnion`) with auto‑generated guards, matchers, helpers.
+
+### 8. Tooling
+
+- **Middlewares** – intercept decoding/encoding, supply services, or provide fallbacks.
+- Generators:
+  - **JSON Schema** exporter with override hooks and per‑check fragments.
+  - **Fast‑Check Arbitrary** (`ToArbitrary`), **Equivalence** (`ToEquivalence`) derivation.
+
+- **Formatters**: Tree (debug), StandardSchemaV1 (i18n‑friendly hooks), Structured (machine‑consumable).
+
+### 9. Misc
+
+- **UniqueArray**, **TemplateLiteral** & parser, index‑signature merging, key transforms on records, generics are now covariant & simpler.
+
 ## Model
 
 A "schema" in is a strongly typed wrapper around an untyped AST (abstract syntax tree) node.
@@ -3768,6 +3824,69 @@ const From = Schema.String
 const To = Schema.Number
 
 const schema = From.pipe(Schema.decodeTo(To, Transformation.passthrough({ strict: false })))
+```
+
+### Managing Optional Keys
+
+You can control how optional values are handled during transformations using the `Transformation.transformOptional` helper.
+
+This helper works with `Option<E>` and returns an `Option<T>`, where:
+
+- `E` is the encoded type
+- `T` is the decoded type
+
+This function is useful when dealing with optional values that may be present or missing during decoding or encoding.
+
+If the input is `Option.none()`, it means the value is not provided.
+If it is `Option.some(value)`, then the transformation logic is applied to `value`.
+
+You control the optionality of the output by returning an `Option`:
+
+- `Option.none()`: exclude the key from the output
+- `Option.some(transformedValue)`: include the transformed value
+
+**Example** (Optional string key transformed to `Option<NonEmptyString>`)
+
+```ts
+import { Option } from "effect"
+import { Schema, Transformation } from "effect/schema"
+
+const OptionFromNonEmptyString = Schema.optionalKey(Schema.String).pipe(
+  Schema.decodeTo(
+    Schema.Option(Schema.NonEmptyString),
+    Transformation.transformOptional({
+      // Convert empty strings to None, and non-empty strings to Some(value)
+      decode: (oe) =>
+        Option.isSome(oe) && oe.value !== "" ? Option.some(Option.some(oe.value)) : Option.some(Option.none()),
+
+      // Flatten nested Options back to a single optional string
+      encode: (ot) => Option.flatten(ot)
+    })
+  )
+)
+
+const schema = Schema.Struct({
+  foo: OptionFromNonEmptyString
+})
+
+// Decoding examples
+
+console.log(Schema.decodeUnknownSync(schema)({}))
+// Output: { foo: None }
+
+console.log(Schema.decodeUnknownSync(schema)({ foo: "" }))
+// Output: { foo: None }
+
+console.log(Schema.decodeUnknownSync(schema)({ foo: "hi" }))
+// Output: { foo: Some("hi") }
+
+// Encoding examples
+
+console.log(Schema.encodeSync(schema)({ foo: Option.none() }))
+// Output: {}
+
+console.log(Schema.encodeSync(schema)({ foo: Option.some("hi") }))
+// Output: { foo: "hi" }
 ```
 
 ## Generics Improvements
