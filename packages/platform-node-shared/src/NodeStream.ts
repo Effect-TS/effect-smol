@@ -9,9 +9,9 @@ import * as Effect from "effect/Effect"
 import * as Exit from "effect/Exit"
 import * as Fiber from "effect/Fiber"
 import { dual, type LazyArg } from "effect/Function"
+import * as MutableRef from "effect/MutableRef"
 import type { SizeInput } from "effect/platform/FileSystem"
 import * as Pull from "effect/Pull"
-import * as Queue from "effect/Queue"
 import * as ServiceMap from "effect/ServiceMap"
 import * as Stream from "effect/Stream"
 import type { Duplex } from "node:stream"
@@ -37,16 +37,14 @@ export const fromReadableChannel = <A = Uint8Array, E = Cause.UnknownError>(opti
   readonly evaluate: LazyArg<Readable | NodeJS.ReadableStream>
   readonly onError?: (error: unknown) => E
   readonly chunkSize?: number | undefined
-  readonly bufferSize?: number | undefined
 }): Channel.Channel<NonEmptyReadonlyArray<A>, E> =>
-  Channel.callbackArray<A, E>((queue) =>
-    Effect.suspend(() =>
-      readableToQueue(queue, {
-        readable: options.evaluate(),
-        onError: options.onError ?? defaultOnError as any,
-        chunkSize: options.chunkSize
-      })
-    ), { bufferSize: options.bufferSize ?? 16 })
+  Channel.fromPull(Effect.sync(() =>
+    unsafeReadableToPull({
+      readable: options.evaluate(),
+      onError: options.onError ?? defaultOnError as any,
+      chunkSize: options.chunkSize
+    })
+  ))
 
 /**
  * @category constructors
@@ -62,36 +60,35 @@ export const fromDuplex = <IE, I = Uint8Array, O = Uint8Array, E = Cause.Unknown
     readonly encoding?: BufferEncoding | undefined
   }
 ): Channel.Channel<NonEmptyReadonlyArray<O>, IE | E, void, NonEmptyReadonlyArray<I>, IE> =>
-  Channel.fromTransform(Effect.fnUntraced(function*(upstream, scope) {
-    const queue = yield* Queue.make<O, IE | E>({ capacity: options.bufferSize ?? 16 })
-    const duplex = options.evaluate()
+  Channel.fromTransform((upstream, scope) =>
+    Effect.suspend(() => {
+      const duplex = options.evaluate()
+      const exit = MutableRef.make<Exit.Exit<never, IE | E | Pull.Halt<void>> | undefined>(undefined)
 
-    yield* pullIntoWritable({
-      pull: upstream,
-      writable: duplex,
-      onError: options.onError ?? defaultOnError as any,
-      endOnDone: options.endOnDone,
-      encoding: options.encoding
-    }).pipe(
-      Effect.catchCause((cause) => {
-        if (Pull.isHaltCause(cause)) return Effect.void
-        return Queue.failCause(queue, cause as Cause.Cause<IE | E>)
-      }),
-      Effect.interruptible,
-      Effect.forkIn(scope)
-    )
-
-    yield* readableToQueue(queue, {
-      readable: duplex,
-      onError: options.onError ?? defaultOnError as any,
-      chunkSize: options.chunkSize
-    }).pipe(
-      Effect.interruptible,
-      Effect.forkIn(scope)
-    )
-
-    return Queue.toPullArray(queue)
-  }))
+      return pullIntoWritable({
+        pull: upstream,
+        writable: duplex,
+        onError: options.onError ?? defaultOnError as any,
+        endOnDone: options.endOnDone,
+        encoding: options.encoding
+      }).pipe(
+        Effect.catchCause((cause) => {
+          if (Pull.isHaltCause(cause)) return Effect.void
+          exit.current = Exit.failCause(cause as Cause.Cause<IE | E | Pull.Halt<void>>)
+          return Effect.void
+        }),
+        Effect.forkIn(scope),
+        Effect.as(
+          unsafeReadableToPull({
+            exit,
+            readable: duplex,
+            onError: options.onError ?? defaultOnError as any,
+            chunkSize: options.chunkSize
+          })
+        )
+      )
+    })
+  )
 
 /**
  * @category combinators
@@ -289,41 +286,49 @@ export const stdin: Stream.Stream<Uint8Array> = Stream.orDie(fromReadable({
 // internal
 // ----------------------------------------------------------------------------
 
-const readableToQueue = <A, E>(queue: Queue.Queue<A, E>, options: {
+const unsafeReadableToPull = <A, E>(options: {
+  readonly exit?: MutableRef.MutableRef<Exit.Exit<never, E | Pull.Halt<void>> | undefined> | undefined
   readonly readable: Readable | NodeJS.ReadableStream
   readonly onError: (error: unknown) => E
   readonly chunkSize: number | undefined
 }) => {
-  const readable = options.readable
-  const latch = Effect.unsafeMakeLatch(true)
-  let ended = false
-  readable.on("readable", () => {
+  const exit = options.exit ?? MutableRef.make(undefined)
+  const latch = Effect.unsafeMakeLatch(false)
+  function onReadable() {
     latch.unsafeOpen()
-  })
-  readable.once("error", (error) => {
-    Queue.unsafeDone(queue, Exit.fail(options.onError(error)))
-  })
-  readable.once("end", () => {
-    ended = true
+  }
+  options.readable.on("readable", onReadable)
+  function onError(error: unknown) {
+    exit.current = Exit.fail(options.onError(error))
     latch.unsafeOpen()
-  })
-  return latch.await.pipe(
-    Effect.flatMap(() => {
+  }
+  options.readable.once("error", onError)
+  function onEnd() {
+    exit.current = Exit.fail(new Pull.Halt(void 0))
+    latch.unsafeOpen()
+  }
+  options.readable.once("end", onEnd)
+
+  return Effect.suspend(function loop(): Pull.Pull<Arr.NonEmptyReadonlyArray<A>, E> {
+    let item = options.readable.read(options.chunkSize) as A | null
+    if (item === null) {
+      if (exit.current) {
+        options.readable.off("readable", onReadable)
+        options.readable.off("error", onError)
+        options.readable.off("end", onEnd)
+        return exit.current
+      }
       latch.unsafeClose()
-      if (ended) {
-        return Queue.end(queue)
-      }
-      let item = readable.read(options.chunkSize)
-      if (item === null) return Effect.void
-      const chunk = Arr.empty<A>()
-      while (item !== null) {
-        chunk.push(item)
-        item = readable.read(options.chunkSize)
-      }
-      return Queue.offerAll(queue, chunk)
-    }),
-    Effect.forever({ autoYield: false })
-  )
+      return Effect.flatMap(latch.await, loop)
+    }
+    const chunk = Arr.of(item as A)
+    while (true) {
+      item = options.readable.read(options.chunkSize)
+      if (item === null) break
+      chunk.push(item)
+    }
+    return Effect.succeed(chunk)
+  })
 }
 
 class StreamAdapter<E, R> extends Readable {
