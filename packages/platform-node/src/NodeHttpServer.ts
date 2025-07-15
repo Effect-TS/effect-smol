@@ -1,11 +1,12 @@
 /**
  * @since 1.0.0
  */
+import { ServiceMap } from "effect"
 import type * as Cause from "effect/Cause"
 import * as Config from "effect/config/Config"
 import type * as ConfigError from "effect/config/ConfigError"
 import * as Effect from "effect/Effect"
-import * as FiberSet from "effect/FiberSet"
+import * as Fiber from "effect/Fiber"
 import type { LazyArg } from "effect/Function"
 import * as Layer from "effect/Layer"
 import type * as FileSystem from "effect/platform/FileSystem"
@@ -33,7 +34,7 @@ import {
   ServeError
 } from "effect/unstable/http/HttpServerError"
 import * as Request from "effect/unstable/http/HttpServerRequest"
-import type { HttpServerRequest } from "effect/unstable/http/HttpServerRequest"
+import { HttpServerRequest } from "effect/unstable/http/HttpServerRequest"
 import type { HttpServerResponse } from "effect/unstable/http/HttpServerResponse"
 import type * as Multipart from "effect/unstable/http/Multipart"
 import * as Socket from "effect/unstable/socket/Socket"
@@ -110,8 +111,15 @@ export const make = Effect.fnUntraced(function*(
         port: address.port
       },
     serve: Effect.fnUntraced(function*(httpApp, middleware) {
-      const handler = yield* makeHandler(httpApp, middleware!)
-      const upgradeHandler = yield* makeUpgradeHandler(wss, httpApp, middleware!)
+      const scope = yield* Effect.scope
+      const handler = yield* (makeHandler(httpApp, {
+        middleware: middleware as any,
+        scope
+      }) as Effect.Effect<(nodeRequest: Http.IncomingMessage, nodeResponse: Http.ServerResponse) => void>)
+      const upgradeHandler = yield* makeUpgradeHandler(wss, httpApp, {
+        middleware: middleware as any,
+        scope
+      })
       yield* Effect.addFinalizer(() =>
         Effect.sync(() => {
           server.off("request", handler)
@@ -128,35 +136,30 @@ export const make = Effect.fnUntraced(function*(
  * @since 1.0.0
  * @category Handlers
  */
-export const makeHandler: {
-  <R, E>(httpEffect: Effect.Effect<HttpServerResponse, E, R>): Effect.Effect<
-    (nodeRequest: Http.IncomingMessage, nodeResponse: Http.ServerResponse) => void,
-    never,
-    Exclude<R, HttpServerRequest | Scope.Scope>
-  >
-  <R, E, App extends Effect.Effect<HttpServerResponse, any, any>>(
-    httpEffect: Effect.Effect<HttpServerResponse, E, R>,
-    middleware: Middleware.HttpMiddleware.Applied<App, E, R>
-  ): Effect.Effect<
-    (nodeRequest: Http.IncomingMessage, nodeResponse: Http.ServerResponse) => void,
-    never,
-    Exclude<Effect.Services<App>, HttpServerRequest | Scope.Scope>
-  >
-} = <E, R>(httpEffect: Effect.Effect<HttpServerResponse, E, R>, middleware?: Middleware.HttpMiddleware) => {
-  const handledApp = HttpEffect.toHandled(httpEffect, handleResponse, middleware)
-  return Effect.map(Effect.services<R>(), (services) => {
-    const runFork = Effect.runForkWith(services)
+export const makeHandler = <
+  R,
+  E,
+  App extends Effect.Effect<HttpServerResponse, any, any> = Effect.Effect<HttpServerResponse, E, R>
+>(
+  httpEffect: Effect.Effect<HttpServerResponse, E, R>,
+  options: {
+    readonly scope: Scope.Scope
+    readonly middleware?: Middleware.HttpMiddleware.Applied<App, E, R> | undefined
+  }
+): Effect.Effect<
+  (nodeRequest: Http.IncomingMessage, nodeResponse: Http.ServerResponse) => void,
+  never,
+  Exclude<Effect.Services<App>, HttpServerRequest | Scope.Scope>
+> => {
+  const handled = HttpEffect.toHandled(httpEffect, handleResponse, options.middleware as any)
+  return Effect.map(Effect.services<any>(), (services) => {
     return function handler(
       nodeRequest: Http.IncomingMessage,
       nodeResponse: Http.ServerResponse
     ) {
-      const fiber = runFork(
-        Effect.provideService(
-          handledApp,
-          Request.HttpServerRequest,
-          new ServerRequestImpl(nodeRequest, nodeResponse)
-        )
-      )
+      const map = new Map(services.unsafeMap)
+      map.set(HttpServerRequest.key, new ServerRequestImpl(nodeRequest, nodeResponse))
+      const fiber = Fiber.runIn(Effect.runForkWith(ServiceMap.unsafeMake<any>(map))(handled), options.scope)
       nodeResponse.on("close", () => {
         if (!nodeResponse.writableEnded) {
           fiber.unsafeInterrupt(clientAbortFiberId)
@@ -170,13 +173,24 @@ export const makeHandler: {
  * @since 1.0.0
  * @category Handlers
  */
-export const makeUpgradeHandler = <R, E>(
+export const makeUpgradeHandler = <
+  R,
+  E,
+  App extends Effect.Effect<HttpServerResponse, any, any> = Effect.Effect<HttpServerResponse, E, R>
+>(
   lazyWss: Effect.Effect<NodeWS.WebSocketServer>,
   httpEffect: Effect.Effect<HttpServerResponse, E, R>,
-  middleware?: Middleware.HttpMiddleware
-) => {
-  const handledApp = HttpEffect.toHandled(httpEffect, handleResponse, middleware)
-  return Effect.map(FiberSet.makeRuntime<R>(), (runFork) =>
+  options: {
+    readonly scope: Scope.Scope
+    readonly middleware?: Middleware.HttpMiddleware.Applied<App, E, R> | undefined
+  }
+): Effect.Effect<
+  (nodeRequest: Http.IncomingMessage, socket: Duplex, head: Buffer) => void,
+  never,
+  Exclude<Effect.Services<App>, HttpServerRequest | Scope.Scope>
+> => {
+  const handledApp = HttpEffect.toHandled(httpEffect, handleResponse, options.middleware as any)
+  return Effect.map(Effect.services<any>(), (services) =>
     function handler(
       nodeRequest: Http.IncomingMessage,
       socket: Duplex,
@@ -205,13 +219,9 @@ export const makeUpgradeHandler = <R, E>(
             (ws) => Effect.sync(() => ws.close())
           )
       ))
-      const fiber = runFork(
-        Effect.provideService(
-          handledApp,
-          Request.HttpServerRequest,
-          new ServerRequestImpl(nodeRequest, nodeResponse, upgradeEffect)
-        )
-      )
+      const map = new Map(services.unsafeMap)
+      map.set(HttpServerRequest.key, new ServerRequestImpl(nodeRequest, nodeResponse, upgradeEffect))
+      const fiber = Fiber.runIn(Effect.runForkWith(ServiceMap.unsafeMake<any>(map))(handledApp), options.scope)
       socket.on("close", () => {
         if (!socket.writableEnded) {
           fiber.unsafeInterrupt(clientAbortFiberId)

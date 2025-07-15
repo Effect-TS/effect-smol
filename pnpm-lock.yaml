@@ -281,6 +281,9 @@ importers:
 
   scratchpad:
     dependencies:
+      '@effect/platform-bun':
+        specifier: workspace:*
+        version: link:../packages/platform-bun
       '@effect/platform-node':
         specifier: workspace:*
         version: link:../packages/platform-node

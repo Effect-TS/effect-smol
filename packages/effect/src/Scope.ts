@@ -502,3 +502,12 @@ export const unsafeFork: (scope: Scope, finalizerStrategy?: "sequential" | "para
  * @since 4.0.0
  */
 export const close = <A, E>(self: Scope.Closeable, exit: Exit<A, E>): Effect<void> => self.close(exit)
+
+/**
+ * @category combinators
+ * @since 4.0.0
+ */
+export const use: {
+  (scope: Scope.Closeable): <A, E, R>(self: Effect<A, E, R>) => Effect<A, E, Exclude<R, Scope>>
+  <A, E, R>(self: Effect<A, E, R>, scope: Scope.Closeable): Effect<A, E, Exclude<R, Scope>>
+} = effect.scopeUse

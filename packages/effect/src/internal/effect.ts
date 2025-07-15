@@ -2936,6 +2936,18 @@ export const scoped = <A, E, R>(self: Effect.Effect<A, E, R>): Effect.Effect<A, 
   scopedWith((scope) => provideScope(self, scope))
 
 /** @internal */
+export const scopeUse: {
+  (
+    scope: Scope.Scope.Closeable
+  ): <A, E, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<A, E, Exclude<R, Scope.Scope>>
+  <A, E, R>(self: Effect.Effect<A, E, R>, scope: Scope.Scope.Closeable): Effect.Effect<A, E, Exclude<R, Scope.Scope>>
+} = dual(
+  2,
+  <A, E, R>(self: Effect.Effect<A, E, R>, scope: Scope.Scope.Closeable): Effect.Effect<A, E, Exclude<R, Scope.Scope>> =>
+    onExit(provideScope(self, scope), (exit) => scope.close(exit))
+)
+
+/** @internal */
 export const scopedWith = <A, E, R>(
   f: (scope: Scope.Scope) => Effect.Effect<A, E, R>
 ): Effect.Effect<A, E, R> =>

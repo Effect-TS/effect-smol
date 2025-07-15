@@ -2089,7 +2089,7 @@ export * as TxQueue from "./TxQueue.js"
  *
  * Accessed values are tracked by the transaction in order to detect conflicts and in order to
  * track changes, a transaction will retry whenever a conflict is detected or whenever the
- * transaction explicitly calls to `Effect.retryTransaction` and any of the accessed TxRef values
+ * transaction explicitely calls to `Effect.retryTransaction` and any of the accessed TxRef values
  * change.
  *
  * @since 4.0.0

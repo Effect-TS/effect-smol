@@ -5,6 +5,7 @@
   "version": "0.0.0",
   "dependencies": {
     "effect": "workspace:*",
+    "@effect/platform-bun": "workspace:*",
     "@effect/platform-node": "workspace:*"
   }
 }

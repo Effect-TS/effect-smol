@@ -71,7 +71,7 @@ export interface UnixAddress {
 export const make = (
   options: {
     readonly serve: (
-      httpApp: Effect.Effect<HttpServerResponse, unknown, HttpServerRequest | Scope.Scope>,
+      httpEffect: Effect.Effect<HttpServerResponse, unknown, HttpServerRequest | Scope.Scope>,
       middleware?: Middleware.HttpMiddleware
     ) => Effect.Effect<void, never, Scope.Scope>
     readonly address: Address
