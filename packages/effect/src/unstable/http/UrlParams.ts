@@ -441,7 +441,7 @@ export const schemaJsonField = (field: string): schemaJsonField =>
       Transformation.transformOrFail({
         decode: (params) =>
           Option.match(getFirst(params, field), {
-            onNone: () => Effect.fail(new Issue.MissingKey({ missingKeyMessage: `UrlParams missing "${field}"` })),
+            onNone: () => Effect.fail(new Issue.Pointer([field], new Issue.MissingKey(undefined))),
             onSome: Effect.succeed
           }),
         encode: (value) => Effect.succeed(make([[field, value]]))

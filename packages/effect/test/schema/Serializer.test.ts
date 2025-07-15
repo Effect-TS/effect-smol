@@ -113,6 +113,11 @@ describe("Serializer", () => {
       await assertions.serialization.schema.succeed(schema, new URL("https://example.com"), "https://example.com/")
       await assertions.deserialization.schema.succeed(schema, "https://example.com", new URL("https://example.com"))
       await assertions.deserialization.schema.succeed(schema, "https://example.com/", new URL("https://example.com"))
+      await assertions.deserialization.schema.fail(
+        schema,
+        "not a url",
+        `Invalid data "not a url"`
+      )
     })
 
     it("declareRefinement without annotation", async () => {

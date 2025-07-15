@@ -3226,9 +3226,13 @@ export const URL = instanceOf({
     defaultJsonSerializer: () =>
       link<URL>()(
         String,
-        Transformation.transform({
-          decode: (s) => new globalThis.URL(s),
-          encode: (url) => url.toString()
+        Transformation.transformOrFail({
+          decode: (s) =>
+            Effect.try({
+              try: () => new globalThis.URL(s),
+              catch: (error) => new Issue.InvalidValue(O.some(s), { cause: error })
+            }),
+          encode: (url) => Effect.succeed(url.toString())
         })
       ),
     arbitrary: {

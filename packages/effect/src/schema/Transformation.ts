@@ -109,7 +109,7 @@ export function transformOptional<T, E>(options: {
 export function trim(): Transformation<string, string> {
   return new Transformation(
     Getter.trim(),
-    Getter.passthroughSupertype()
+    Getter.passthrough()
   )
 }
 
@@ -131,7 +131,7 @@ export function snakeToCamel(): Transformation<string, string> {
 export function toLowerCase(): Transformation<string, string> {
   return new Transformation(
     Getter.toLowerCase(),
-    Getter.passthroughSupertype()
+    Getter.passthrough()
   )
 }
 
@@ -142,7 +142,7 @@ export function toLowerCase(): Transformation<string, string> {
 export function toUpperCase(): Transformation<string, string> {
   return new Transformation(
     Getter.toUpperCase(),
-    Getter.passthroughSupertype()
+    Getter.passthrough()
   )
 }
 

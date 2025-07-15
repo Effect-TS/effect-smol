@@ -3451,13 +3451,40 @@ console.log(matcher({ type: "C", c: true })) // This is a C: true
 
 ## Transformations Redesign
 
-### Transformations as First-Class
+### 🆕 Transformations as First-Class
 
-Transformations are now treated as first-class values, rather than being tied to specific codec combinations as in v3.
+In previous versions, transformations were directly embedded in schemas. In the current version, they are defined as independent values that can be reused across schemas.
 
-For example, `trim` is no longer just a codec combinator. It is now a standalone transformation that can be used with any codec that supports it, in this case, any codec working with strings.
+**Example** (v3 inline transformation)
 
-**Example**
+```ts
+const Trim = transform(
+  String,
+  Trimmed,
+  // non re-usable transformation
+  {
+    decode: (i) => i.trim(),
+    encode: identity
+  }
+) {}
+```
+
+This style made it difficult to reuse logic across different schemas.
+
+Now, transformations like `trim` are declared once and reused wherever needed.
+
+**Example** (The `trim` built-in transformation)
+
+```ts
+import { Transformation } from "effect/schema"
+
+// const t: Transformation.Transformation<string, string, never, never>
+const t = Transformation.trim()
+```
+
+You can apply a transformation to any compatible schema. In this example, `trim` is applied to a string schema using `Schema.decode` (more on this later).
+
+**Example** (Applying `trim` to a string schema)
 
 ```ts
 import { Schema, Transformation } from "effect/schema"
@@ -3468,69 +3495,215 @@ console.log(Schema.decodeUnknownSync(schema)("  123"))
 // 123
 ```
 
-### Transformation Composition
+### Anatomy of a Transformation
 
-Transformation composition is the process of combining multiple transformations into a single transformation.
+Transformations use the following type:
 
 ```ts
+Transformation<T, E, RD, RE>
+```
+
+- `T`: the decoded (output) type
+- `E`: the encoded (input) type
+- `RD`: the context used while decoding
+- `RE`: the context used while encoding
+
+A transformation consists of two `Getter` functions:
+
+- `decode: Getter<T, E, RD>` — transforms a value during decoding
+- `encode: Getter<E, T, RE>` — transforms a value during encoding
+
+Each `Getter` receives an input and an optional context and returns either a value or an error. Getters can be composed to build more complex logic.
+
+**Example** (Implementation of `Transformation.trim`)
+
+```ts
+/**
+ * @category String transformations
+ * @since 4.0.0
+ */
+export function trim(): Transformation<string, string> {
+  return new Transformation(Getter.trim(), Getter.passthrough())
+}
+```
+
+In this case:
+
+- The `decode` process uses `Getter.trim()` to remove leading and trailing whitespace.
+- The `encode` process uses `Getter.passthrough()`, which returns the input as is.
+
+#### Composing Transformations
+
+You can combine transformations using the `.compose` method. The resulting transformation applies the `decode` and `encode` logic of both transformations in sequence.
+
+**Example** (Trim and lowercase a string)
+
+```ts
+import { Option } from "effect"
 import { Transformation } from "effect/schema"
 
+// Compose two transformations: trim followed by toLowerCase
+const trimToLowerCase = Transformation.trim().compose(Transformation.toLowerCase())
+
+// Run the decode logic manually to inspect the result
+console.log(trimToLowerCase.decode.run(Option.some("  Abc"), {}))
 /*
-decoding: trim + toLowerCase
-encoding: passthrough
+{
+  _id: 'Exit',
+  _tag: 'Success',
+  value: { _id: 'Option', _tag: 'Some', value: 'abc' }
+}
 */
-const trimToLowerCase = SchemaTransformation.trim().compose(SchemaTransformation.toLowerCase())
 ```
 
-### Schema Composition
+In this example:
 
-#### decodeTo / encodeTo
+- The `decode` logic applies `Getter.trim()` followed by `Getter.toLowerCase()`, producing a string that is trimmed and lowercased.
+- The `encode` logic is `Getter.passthrough()`, which simply returns the input as-is.
 
-The `Schema.decodeTo` API allows you to compose two schemas without requiring the types to match. It skips type checking during the transformation and focuses on structure alone.
+### Transforming One Schema into Another
+
+To define how one schema transforms into another, you can use:
+
+- `Schema.decodeTo` (and its inverse `Schema.encodeTo`)
+- `Schema.decode` (and its inverse `Schema.encode`)
+
+These functions let you attach transformations to schemas, defining how values should be converted during decoding or encoding.
+
+#### decodeTo
+
+Use `Schema.decodeTo` when you want to transform a source schema into a different target schema.
+
+You must provide:
+
+1. The target schema
+2. An optional transformation
+
+If no transformation is provided, the operation is called "schema composition" (see below).
+
+**Example** (Parsing a number from a string)
 
 ```ts
-import { Schema } from "effect/schema"
+import { Schema, Transformation } from "effect/schema"
 
-const From = Schema.Struct({
-  a: Schema.String,
-  b: Schema.FiniteFromString
-})
+const NumberFromString =
+  // source schema: String
+  Schema.String.pipe(
+    Schema.decodeTo(
+      Schema.Number, // target schema: Number
+      Transformation.numberFromString // built-in transformation that converts a string to a number (and back)
+    )
+  )
 
-const To = Schema.Struct({
-  a: Schema.FiniteFromString,
-  b: Schema.UndefinedOr(Schema.Number)
-})
-
-const schema = From.pipe(Schema.decodeTo(To))
+console.log(Schema.decodeUnknownSync(NumberFromString)("123"))
+// 123
 ```
 
-This approach is useful when you want to connect schemas without enforcing type compatibility between them.
+#### decode
 
-If you want more control over how the types align, such as ensuring one is a subtype or supertype of the other, you can use the `SchemaTransformation.passthrough*` helpers.
+Use `Schema.decode` when the source and target schemas are the same and you only want to apply a transformation.
 
-The `Schema.encodeTo` API is the same as `Schema.decodeTo` but it applies the composition in the other direction.
+This is a shorter version of `decodeTo`.
+
+**Example** (Trimming whitespace from a string)
 
 ```ts
-import { Schema } from "effect/schema"
+import { Schema, Transformation } from "effect/schema"
 
-const From = Schema.Struct({
-  a: Schema.String,
-  b: Schema.FiniteFromString
-})
-
-const To = Schema.Struct({
-  a: Schema.FiniteFromString,
-  b: Schema.UndefinedOr(Schema.Number)
-})
-
-const schema = To.pipe(Schema.encodeTo(From)) // same as From.pipe(Schema.decodeTo(To))
+// Equivalent to decodeTo(Schema.String, Transformation.trim())
+const TrimmedString = Schema.String.pipe(Schema.decode(Transformation.trim()))
 ```
+
+#### Defining an Inline Transformation
+
+You can create a transformation directly using helpers from the `Transformation` module.
+
+For example, `Transformation.transform` lets you define a simple transformation by providing `decode` and `encode` functions.
+
+**Example** (Converting meters to kilometers and back)
+
+```ts
+import { Schema, Transformation } from "effect/schema"
+
+// Defines a transformation that converts meters (number) to kilometers (number)
+// 1000 meters -> 1 kilometer (decode)
+// 1 kilometer -> 1000 meters (encode)
+const Kilometers = Schema.Finite.pipe(
+  Schema.decode(
+    Transformation.transform({
+      decode: (meters) => meters / 1000,
+      encode: (kilometers) => kilometers * 1000
+    })
+  )
+)
+```
+
+You can define transformations that may fail during decoding or encoding using `Transformation.transformOrFail`.
+
+This is useful when you need to validate input or enforce rules that may not always succeed.
+
+**Example** (Converting a string URL into a `URL` object)
+
+```ts
+import { Effect, Option } from "effect"
+import { Issue, Schema, Transformation } from "effect/schema"
+
+const URLFromString = Schema.String.pipe(
+  Schema.decodeTo(
+    Schema.instanceOf({ constructor: URL }),
+    Transformation.transformOrFail({
+      decode: (s) =>
+        Effect.try({
+          try: () => new URL(s),
+          catch: (error) => new Issue.InvalidValue(Option.some(s), { cause: error })
+        }),
+      encode: (url) => Effect.succeed(url.toString())
+    })
+  )
+)
+```
+
+### Schema composition
+
+You can compose transformations, but you can also compose schemas.
+
+**Example** (Converting meters to miles via kilometers)
+
+```ts
+import { Schema, Transformation } from "effect/schema"
+
+const KilometersFromMeters = Schema.Finite.pipe(
+  Schema.decode(
+    Transformation.transform({
+      decode: (meters) => meters / 1000,
+      encode: (kilometers) => kilometers * 1000
+    })
+  )
+)
+
+const MilesFromKilometers = Schema.Finite.pipe(
+  Schema.decode(
+    Transformation.transform({
+      decode: (kilometers) => kilometers * 0.621371,
+      encode: (miles) => miles / 0.621371
+    })
+  )
+)
+
+const MilesFromMeters = KilometersFromMeters.pipe(Schema.decodeTo(MilesFromKilometers))
+```
+
+This approach does not require the source and target schemas to be type-compatible. If you need more control over type compatibility, you can use one of the `Transformation.passthrough*` helpers.
+
+### Passthrough Helpers
+
+The `passthrough`, `passthroughSubtype`, and `passthroughSupertype` helpers let you compose schemas by describing how their types relate.
 
 #### passthrough
 
-The `passthrough` transformation lets you convert from one schema to another when the encoded output of the target schema matches the type of the source schema.
+Use `passthrough` when the encoded output of the target schema matches the type of the source schema.
 
-**Example** (Composing schemas where `To.Encoded = From.Type`)
+**Example** (When `To.Encoded === From.Type`)
 
 ```ts
 import { Schema, Transformation } from "effect/schema"
@@ -3549,9 +3722,9 @@ const schema = From.pipe(Schema.decodeTo(To, Transformation.passthrough()))
 
 #### passthroughSubtype
 
-Use `passthroughSubtype` when your source type extends the encoded output of your target schema.
+Use `passthroughSubtype` when the source type is a subtype of the target's encoded output.
 
-**Example** (Composing schemas where `From.Type extends To.Encoded`)
+**Example** (When `From.Type` is a subtype of `To.Encoded`)
 
 ```ts
 import { Schema, Transformation } from "effect/schema"
@@ -3566,9 +3739,9 @@ const schema = From.pipe(Schema.decodeTo(To, Transformation.passthroughSubtype()
 
 #### passthroughSupertype
 
-Use `passthroughSupertype` when the encoded output of your target schema extends the type of your source schema.
+Use `passthroughSupertype` when the target's encoded output is a subtype of the source type.
 
-**Example** (Composing schemas where `From.Encoded extends To.Type`)
+**Example** (When `To.Encoded` is a subtype of `From.Type`)
 
 ```ts
 import { Schema, Transformation } from "effect/schema"
@@ -3583,7 +3756,9 @@ const schema = From.pipe(Schema.decodeTo(To, Transformation.passthroughSupertype
 
 #### Turning off strict mode
 
-To turn off strict mode, pass `{ strict: false }` to `passthrough`
+Strict mode ensures that decoding and encoding fully match. You can disable it by passing `{ strict: false }` to `passthrough`.
+
+**Example** (Turning off strict mode)
 
 ```ts
 import { Schema, Transformation } from "effect/schema"
