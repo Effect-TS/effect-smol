@@ -269,6 +269,21 @@ export declare namespace TxQueue {
 }
 
 /**
+ * Represents the shared state of a transactional queue that can be inspected.
+ * This interface contains the core properties needed for queue state inspection
+ * operations like size, capacity, and completion status.
+ *
+ * @since 4.0.0
+ * @category models
+ */
+export interface TxQueueState extends Inspectable {
+  readonly strategy: "bounded" | "unbounded" | "dropping" | "sliding"
+  readonly capacity: number
+  readonly items: TxChunk.TxChunk<any>
+  readonly stateRef: TxRef.TxRef<State<any, any>>
+}
+
+/**
  * A TxEnqueue represents the write-only interface of a transactional queue, providing
  * operations for adding elements (enqueue operations) and inspecting queue state.
  *
@@ -296,12 +311,8 @@ export declare namespace TxQueue {
  * @since 4.0.0
  * @category models
  */
-export interface TxEnqueue<in A, in E = never> extends Inspectable {
+export interface TxEnqueue<in A, in E = never> extends TxQueueState {
   readonly [EnqueueTypeId]: TxEnqueue.Variance<A, E>
-  readonly strategy: "bounded" | "unbounded" | "dropping" | "sliding"
-  readonly capacity: number
-  readonly items: TxChunk.TxChunk<any>
-  readonly stateRef: TxRef.TxRef<State<any, any>>
 }
 
 /**
@@ -331,12 +342,8 @@ export interface TxEnqueue<in A, in E = never> extends Inspectable {
  * @since 4.0.0
  * @category models
  */
-export interface TxDequeue<out A, out E = never> extends Inspectable {
+export interface TxDequeue<out A, out E = never> extends TxQueueState {
   readonly [DequeueTypeId]: TxDequeue.Variance<A, E>
-  readonly strategy: "bounded" | "unbounded" | "dropping" | "sliding"
-  readonly capacity: number
-  readonly items: TxChunk.TxChunk<any>
-  readonly stateRef: TxRef.TxRef<State<any, any>>
 }
 
 /**
@@ -1157,7 +1164,7 @@ export const peek = <A, E>(self: TxDequeue<A, E>): Effect.Effect<A, E> =>
  * @since 4.0.0
  * @category combinators
  */
-export const size = <A, E>(self: TxEnqueue<A, E> | TxDequeue<A, E>): Effect.Effect<number> => TxChunk.size(self.items)
+export const size = (self: TxQueueState): Effect.Effect<number> => TxChunk.size(self.items)
 
 /**
  * Checks if the queue is empty.
@@ -1181,8 +1188,7 @@ export const size = <A, E>(self: TxEnqueue<A, E> | TxDequeue<A, E>): Effect.Effe
  * @since 4.0.0
  * @category combinators
  */
-export const isEmpty = <A, E>(self: TxEnqueue<A, E> | TxDequeue<A, E>): Effect.Effect<boolean> =>
-  TxChunk.isEmpty(self.items)
+export const isEmpty = (self: TxQueueState): Effect.Effect<boolean> => TxChunk.isEmpty(self.items)
 
 /**
  * Checks if the queue is at capacity.
@@ -1206,7 +1212,7 @@ export const isEmpty = <A, E>(self: TxEnqueue<A, E> | TxDequeue<A, E>): Effect.E
  * @since 4.0.0
  * @category combinators
  */
-export const isFull = <A, E>(self: TxEnqueue<A, E> | TxDequeue<A, E>): Effect.Effect<boolean> =>
+export const isFull = (self: TxQueueState): Effect.Effect<boolean> =>
   Effect.gen(function*() {
     if (self.capacity === Number.POSITIVE_INFINITY) {
       return false
@@ -1459,7 +1465,7 @@ export const shutdown = <A, E>(self: TxEnqueue<A, E>): Effect.Effect<boolean> =>
  * @since 4.0.0
  * @category combinators
  */
-export const isOpen = <A, E>(self: TxEnqueue<A, E> | TxDequeue<A, E>): Effect.Effect<boolean> =>
+export const isOpen = (self: TxQueueState): Effect.Effect<boolean> =>
   Effect.gen(function*() {
     const state = yield* TxRef.get(self.stateRef)
     return state._tag === "Open"
@@ -1488,7 +1494,7 @@ export const isOpen = <A, E>(self: TxEnqueue<A, E> | TxDequeue<A, E>): Effect.Ef
  * @since 4.0.0
  * @category combinators
  */
-export const isClosing = <A, E>(self: TxEnqueue<A, E> | TxDequeue<A, E>): Effect.Effect<boolean> =>
+export const isClosing = (self: TxQueueState): Effect.Effect<boolean> =>
   Effect.gen(function*() {
     const state = yield* TxRef.get(self.stateRef)
     return state._tag === "Closing"
@@ -1516,7 +1522,7 @@ export const isClosing = <A, E>(self: TxEnqueue<A, E> | TxDequeue<A, E>): Effect
  * @since 4.0.0
  * @category combinators
  */
-export const isDone = <A, E>(self: TxEnqueue<A, E> | TxDequeue<A, E>): Effect.Effect<boolean> =>
+export const isDone = (self: TxQueueState): Effect.Effect<boolean> =>
   Effect.gen(function*() {
     const state = yield* TxRef.get(self.stateRef)
     return state._tag === "Done"
@@ -1544,7 +1550,7 @@ export const isDone = <A, E>(self: TxEnqueue<A, E> | TxDequeue<A, E>): Effect.Ef
  * @since 4.0.0
  * @category combinators
  */
-export const isShutdown = <A, E>(self: TxEnqueue<A, E> | TxDequeue<A, E>): Effect.Effect<boolean> => isDone(self)
+export const isShutdown = (self: TxQueueState): Effect.Effect<boolean> => isDone(self)
 
 /**
  * Waits for the queue to complete (either successfully or with failure).
@@ -1568,7 +1574,7 @@ export const isShutdown = <A, E>(self: TxEnqueue<A, E> | TxDequeue<A, E>): Effec
  * @since 4.0.0
  * @category combinators
  */
-export const awaitCompletion = <A, E>(self: TxEnqueue<A, E> | TxDequeue<A, E>): Effect.Effect<void> =>
+export const awaitCompletion = (self: TxQueueState): Effect.Effect<void> =>
   Effect.atomic(
     Effect.gen(function*() {
       const state = yield* TxRef.get(self.stateRef)
