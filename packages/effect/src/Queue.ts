@@ -53,14 +53,6 @@ import type * as Types from "./Types.js"
 /**
  * The type identifier for Queue values.
  *
- * @example
- * ```ts
- * import { Queue } from "effect"
- *
- * // Check if a value is a Queue by using the TypeId
- * console.log(Queue.TypeId) // "~effect/Queue"
- * ```
- *
  * @since 3.8.0
  * @category type ids
  */
@@ -68,16 +60,6 @@ export const TypeId: TypeId = "~effect/Queue"
 
 /**
  * The type-level identifier for Queue values.
- *
- * @example
- * ```ts
- * import { Queue } from "effect"
- *
- * // The TypeId is used internally for type checking
- * const checkTypeId = (id: Queue.TypeId) => {
- *   console.log(id) // "~effect/Queue"
- * }
- * ```
  *
  * @since 3.8.0
  * @category type ids
@@ -87,14 +69,6 @@ export type TypeId = "~effect/Queue"
 /**
  * The type identifier for Dequeue values.
  *
- * @example
- * ```ts
- * import { Queue } from "effect"
- *
- * // Check the Dequeue TypeId
- * console.log(Queue.DequeueTypeId) // "~effect/Queue/Dequeue"
- * ```
- *
  * @since 3.8.0
  * @category type ids
  */
@@ -102,16 +76,6 @@ export const DequeueTypeId: DequeueTypeId = "~effect/Queue/Dequeue"
 
 /**
  * The type-level identifier for Dequeue values.
- *
- * @example
- * ```ts
- * import { Queue } from "effect"
- *
- * // The DequeueTypeId is used internally for type checking
- * const checkDequeueTypeId = (id: Queue.DequeueTypeId) => {
- *   console.log(id) // "~effect/Queue/Dequeue"
- * }
- * ```
  *
  * @since 3.8.0
  * @category type ids
@@ -180,42 +144,12 @@ export interface Dequeue<out A, out E = never> extends Inspectable {
 }
 
 /**
- * The Dequeue namespace containing type definitions and utilities.
- *
- * @example
- * ```ts
- * import { Effect, Queue } from "effect"
- *
- * const program = Effect.gen(function*() {
- *   const queue = yield* Queue.bounded<string>(10)
- *
- *   // Use Dequeue namespace types
- *   const processDequeue = (deq: Queue.Dequeue<string>) =>
- *     Queue.take(deq)
- *
- *   const result = yield* processDequeue(queue)
- * })
- * ```
- *
  * @since 4.0.0
  * @category models
  */
 export declare namespace Dequeue {
   /**
    * Variance interface for Dequeue types, defining the type parameter constraints.
-   *
-   * @example
-   * ```ts
-   * import { Effect, Queue } from "effect"
-   *
-   * // Dequeue variance is covariant in both A and E
-   * const program = Effect.gen(function*() {
-   *   const stringQueue = yield* Queue.bounded<string>(10)
-   *
-   *   // Covariant in A - can treat Dequeue<string> as Dequeue<unknown>
-   *   const unknownDequeue: Queue.Dequeue<unknown> = stringQueue
-   * })
-   * ```
    *
    * @since 3.8.0
    * @category models
@@ -229,8 +163,7 @@ export declare namespace Dequeue {
 /**
  * A `Queue` is an asynchronous queue that can be offered to and taken from.
  *
- * It also supports signaling that it is done or failed. Queues provide
- * thread-safe operations for concurrent producer-consumer scenarios.
+ * It also supports signaling that it is done or failed.
  *
  * @example
  * ```ts
@@ -261,54 +194,12 @@ export interface Queue<in out A, in out E = never> extends Dequeue<A, E> {
 }
 
 /**
- * The Queue namespace containing type definitions and utilities.
- *
- * @example
- * ```ts
- * import { Effect, Queue } from "effect"
- *
- * const program = Effect.gen(function*() {
- *   // Create different types of queues
- *   const bounded = yield* Queue.bounded<number>(10)
- *   const unbounded = yield* Queue.unbounded<string>()
- *
- *   // Use Queue types in function signatures
- *   const processQueue = (q: Queue.Queue<number>) =>
- *     Effect.gen(function*() {
- *       yield* Queue.offer(q, 42)
- *       return yield* Queue.take(q)
- *     })
- *
- *   // Process the bounded queue
- *   const result = yield* processQueue(bounded)
- *   console.log(result) // 42
- * })
- * ```
- *
  * @since 3.8.0
  * @category models
  */
 export declare namespace Queue {
   /**
    * Variance interface for Queue types, defining the type parameter constraints.
-   *
-   * @example
-   * ```ts
-   * import { Effect, Queue } from "effect"
-   *
-   * // Queue variance is invariant in both A and E
-   * const program = Effect.gen(function*() {
-   *   const numberQueue = yield* Queue.bounded<number>(10)
-   *
-   *   // Invariant in A - Queue<number> is exactly Queue<number>
-   *   // Cannot be treated as Queue<unknown> or Queue<any>
-   *   const processNumbers = (q: Queue.Queue<number>) =>
-   *     Effect.gen(function*() {
-   *       yield* Queue.offer(q, 42)
-   *       return yield* Queue.take(q)
-   *     })
-   * })
-   * ```
    *
    * @since 3.8.0
    * @category models
@@ -320,22 +211,6 @@ export declare namespace Queue {
 
   /**
    * Represents the internal state of a Queue.
-   *
-   * @example
-   * ```ts
-   * import { Effect, Queue } from "effect"
-   *
-   * const program = Effect.gen(function*() {
-   *   const queue = yield* Queue.bounded<number>(10)
-   *
-   *   // The queue starts in "Open" state
-   *   // You can check queue state through inspection
-   *   console.log(queue.state._tag) // "Open"
-   *
-   *   // After calling end(), queue moves to "Closing" then "Done"
-   *   yield* Queue.end(queue)
-   * })
-   * ```
    *
    * @since 4.0.0
    * @category models
@@ -361,29 +236,6 @@ export declare namespace Queue {
 
   /**
    * Represents an entry in the queue's offer buffer.
-   *
-   * @example
-   * ```ts
-   * import { Effect, Queue } from "effect"
-   *
-   * const program = Effect.gen(function*() {
-   *   const queue = yield* Queue.bounded<number>(1) // Small capacity
-   *
-   *   // When queue is full, offers create OfferEntry objects
-   *   // internally to track pending offers
-   *   yield* Queue.offer(queue, 1) // Goes directly to queue
-   *
-   *   // This offer will create an OfferEntry since queue is full
-   *   const offerEffect = Queue.offer(queue, 2)
-   *
-   *   // Take an item to make room
-   *   const taken = yield* Queue.take(queue)
-   *   console.log(taken) // 1
-   *
-   *   // Now the pending offer can complete
-   *   yield* offerEffect
-   * })
-   * ```
    *
    * @since 4.0.0
    * @category models
@@ -440,15 +292,13 @@ const QueueProto = {
  *   yield* Queue.offerAll(queue, [3, 4, 5])
  *
  *   // take messages from the queue
- *   const [messages, done] = yield* Queue.takeAll(queue)
+ *   const messages = yield* Queue.takeAll(queue)
  *   assert.deepStrictEqual(messages, [1, 2, 3, 4, 5])
- *   assert.strictEqual(done, false)
  *
  *   // signal that the queue is done
  *   yield* Queue.end(queue)
- *   const [messages2, done2] = yield* Queue.takeAll(queue)
- *   assert.deepStrictEqual(messages2, [])
- *   assert.strictEqual(done2, true)
+ *   const done = yield* Effect.flip(Queue.takeAll(queue))
+ *   assert.deepStrictEqual(done, Queue.Done)
  *
  *   // signal that the queue has failed
  *   yield* Queue.fail(queue, "boom")
@@ -603,9 +453,8 @@ export const dropping = <A, E = never>(capacity: number): Effect<Queue<A, E>> =>
  *   console.log(size) // Some(5)
  *
  *   // Take all messages
- *   const [messages, done] = yield* Queue.takeAll(queue)
+ *   const messages = yield* Queue.takeAll(queue)
  *   console.log(messages) // ["message1", "message2", "message3", "message4", "message5"]
- *   console.log(done) // false
  * })
  * ```
  *
@@ -743,7 +592,7 @@ export const unsafeOffer = <A, E>(self: Queue<A, E>, message: A): boolean => {
  *   console.log(remaining1) // [4, 5] - couldn't fit the last 2
  *
  *   // Check what's in the queue
- *   const [messages] = yield* Queue.takeAll(queue)
+ *   const messages = yield* Queue.takeAll(queue)
  *   console.log(messages) // [1, 2, 3]
  *
  *   // Try adding to empty queue
@@ -1170,18 +1019,19 @@ export const filterDone: Filter.Filter<unknown, Done> = Filter.fromPredicate(isD
  *   yield* Queue.offerAll(queue, [1, 2, 3, 4, 5])
  *
  *   // Take all available messages
- *   const [messages1, done1] = yield* Queue.takeAll(queue)
+ *   const messages1 = yield* Queue.takeAll(queue)
  *   console.log(messages1) // [1, 2, 3, 4, 5]
- *   console.log(done1) // false
  *
  *   // Add more messages and end the queue
  *   yield* Queue.offerAll(queue, [10, 20])
  *   yield* Queue.end(queue)
  *
  *   // Take remaining messages, done flag indicates completion
- *   const [messages2, done2] = yield* Queue.takeAll(queue)
+ *   const messages2 = yield* Queue.takeAll(queue)
  *   console.log(messages2) // [10, 20]
- *   console.log(done2) // true
+ *
+ *   const done = yield* Effect.flip(Queue.takeAll(queue))
+ *   console.log(done) // Queue.Done
  * })
  * ```
  *
@@ -1209,19 +1059,16 @@ export const takeAll = <A, E>(self: Dequeue<A, E>): Effect<Arr.NonEmptyArray<A>,
  *   yield* Queue.offerAll(queue, [1, 2, 3, 4, 5, 6, 7])
  *
  *   // Take exactly 3 messages
- *   const [first3, done1] = yield* Queue.takeN(queue, 3)
+ *   const first3 = yield* Queue.takeN(queue, 3)
  *   console.log(first3) // [1, 2, 3]
- *   console.log(done1) // false
  *
  *   // Take exactly 2 more messages
- *   const [next2, done2] = yield* Queue.takeN(queue, 2)
+ *   const next2 = yield* Queue.takeN(queue, 2)
  *   console.log(next2) // [4, 5]
- *   console.log(done2) // false
  *
  *   // Take remaining messages (will take 2, even though we asked for 5)
- *   const [remaining, done3] = yield* Queue.takeN(queue, 5)
+ *   const remaining = yield* Queue.takeN(queue, 5)
  *   console.log(remaining) // [6, 7]
- *   console.log(done3) // false
  * })
  * ```
  *
@@ -1251,17 +1098,15 @@ export const takeN = <A, E>(
  *   yield* Queue.offerAll(queue, [1, 2, 3, 4, 5, 6, 7, 8])
  *
  *   // Take between 2 and 5 messages
- *   const [batch1, done1] = yield* Queue.takeBetween(queue, 2, 5)
+ *   const batch1 = yield* Queue.takeBetween(queue, 2, 5)
  *   console.log(batch1) // [1, 2, 3, 4, 5] - took 5 (up to max)
- *   console.log(done1) // false
  *
  *   // Take between 1 and 10 messages (but only 3 remain)
- *   const [batch2, done2] = yield* Queue.takeBetween(queue, 1, 10)
+ *   const batch2 = yield* Queue.takeBetween(queue, 1, 10)
  *   console.log(batch2) // [6, 7, 8] - took 3 (all remaining)
- *   console.log(done2) // false
  *
  *   // No more messages available, will wait or return done
- *   // const [batch3, done3] = yield* Queue.takeBetween(queue, 1, 3)
+ *   // const batch3 = yield* Queue.takeBetween(queue, 1, 3)
  * })
  * ```
  *
@@ -1362,8 +1207,7 @@ export const unsafeTake = <A, E>(self: Dequeue<A, E>): Exit<A, E | Done> | undef
   if (self.state._tag === "Done") {
     const exit = self.state.exit
     if (exit._tag === "Success") return exitFailDone
-    const fail = exit.cause.failures.find((_) => _._tag === "Fail")
-    return fail ? core.exitFail(fail.error) : (exit as any)
+    return exit as any
   }
   if (self.messages.length > 0) {
     const message = MutableList.take(self.messages)!
