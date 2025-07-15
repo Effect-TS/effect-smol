@@ -252,11 +252,11 @@ function formatTree(
       return new Tree(formatCheck(issue.filter), [formatTree(issue.issue, path, leafHook)])
     }
     case "Encoding": {
-      const children = formatTree(issue.issue, path, leafHook)
-      if (path.length > 0) {
-        return new Tree("Encoding failure", [children])
+      const child = formatTree(issue.issue, path, leafHook)
+      if (path.length > 0 && issue.issue._tag !== "Encoding") {
+        return new Tree("Encoding failure", [child])
       }
-      return children
+      return child
     }
     case "Pointer":
       return new Tree(formatPath(issue.path), [formatTree(issue.issue, [...path, ...issue.path], leafHook)])

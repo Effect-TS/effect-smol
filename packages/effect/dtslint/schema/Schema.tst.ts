@@ -2480,4 +2480,26 @@ describe("Schema", () => {
       })
     })
   })
+
+  it("withDecodingDefaultKey", () => {
+    const schema = Schema.Struct({
+      a: Schema.FiniteFromString.pipe(Schema.withDecodingDefaultKey(() => "1"))
+    })
+
+    expect(schema).type.toBe<Schema.Struct<{ readonly a: Schema.withDecodingDefaultKey<Schema.FiniteFromString> }>>()
+    expect(Schema.revealCodec(schema)).type.toBe<
+        Schema.Codec<{ readonly a: number }, { readonly a?: string }, never, never>
+      >()
+  })
+
+  it("withDecodingDefault", () => {
+    const schema = Schema.Struct({
+      a: Schema.FiniteFromString.pipe(Schema.withDecodingDefault(() => "1"))
+    })
+
+    expect(schema).type.toBe<Schema.Struct<{ readonly a: Schema.withDecodingDefault<Schema.FiniteFromString> }>>()
+    expect(Schema.revealCodec(schema)).type.toBe<
+        Schema.Codec<{ readonly a: number }, { readonly a?: string | undefined }, never, never>
+      >()
+  })
 })

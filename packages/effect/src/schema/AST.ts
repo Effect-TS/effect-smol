@@ -1564,7 +1564,7 @@ export class UnionType<A extends AST = AST> extends Base {
   /** @internal */
   typeAST(): UnionType<A> {
     const types = mapOrSame(this.types, typeAST)
-    return types === this.types ?
+    return !this.encoding && types === this.types ?
       this :
       new UnionType(types, this.mode, this.annotations, this.checks, undefined, this.context)
   }

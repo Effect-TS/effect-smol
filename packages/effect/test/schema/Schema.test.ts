@@ -5459,4 +5459,73 @@ describe("SchemaGetter", () => {
       })
     })
   })
+
+  describe("withDecodingDefaultKey", () => {
+    it("should return a decoding default value if the key is missing", async () => {
+      const schema = Schema.Struct({
+        a: Schema.FiniteFromString.pipe(Schema.withDecodingDefaultKey(() => "1"))
+      })
+
+      await assertions.decoding.succeed(schema, {}, { expected: { a: 1 } })
+      await assertions.decoding.succeed(schema, { a: "2" }, { expected: { a: 2 } })
+
+      await assertions.decoding.fail(
+        schema,
+        { a: undefined },
+        `{ readonly "a": number }
+└─ ["a"]
+   └─ Encoding failure
+      └─ Expected string, actual undefined`
+      )
+    })
+
+    it("nested default values", async () => {
+      const schema = Schema.Struct({
+        a: Schema.Struct({
+          b: Schema.FiniteFromString.pipe(Schema.withDecodingDefaultKey(() => "1"))
+        }).pipe(Schema.withDecodingDefaultKey(() => ({})))
+      })
+
+      await assertions.decoding.succeed(schema, {}, { expected: { a: { b: 1 } } })
+      await assertions.decoding.succeed(schema, { a: {} }, { expected: { a: { b: 1 } } })
+      await assertions.decoding.succeed(schema, { a: { b: "2" } }, { expected: { a: { b: 2 } } })
+
+      await assertions.decoding.fail(
+        schema,
+        { a: { b: undefined } },
+        `{ readonly "a": { readonly "b": number } }
+└─ ["a"]
+   └─ Encoding failure
+      └─ { readonly "b"?: string }
+         └─ ["b"]
+            └─ Expected string, actual undefined`
+      )
+    })
+  })
+
+  describe("withDecodingDefault", () => {
+    it("should return a decoding default value if the key is missing", async () => {
+      const schema = Schema.Struct({
+        a: Schema.FiniteFromString.pipe(Schema.withDecodingDefault(() => "1"))
+      })
+
+      await assertions.decoding.succeed(schema, {}, { expected: { a: 1 } })
+      await assertions.decoding.succeed(schema, { a: undefined }, { expected: { a: 1 } })
+      await assertions.decoding.succeed(schema, { a: "2" }, { expected: { a: 2 } })
+    })
+
+    it("nested default values", async () => {
+      const schema = Schema.Struct({
+        a: Schema.Struct({
+          b: Schema.FiniteFromString.pipe(Schema.withDecodingDefault(() => "1"))
+        }).pipe(Schema.withDecodingDefault(() => ({})))
+      })
+
+      await assertions.decoding.succeed(schema, {}, { expected: { a: { b: 1 } } })
+      await assertions.decoding.succeed(schema, { a: {} }, { expected: { a: { b: 1 } } })
+      await assertions.decoding.succeed(schema, { a: undefined }, { expected: { a: { b: 1 } } })
+      await assertions.decoding.succeed(schema, { a: { b: undefined } }, { expected: { a: { b: 1 } } })
+      await assertions.decoding.succeed(schema, { a: { b: "2" } }, { expected: { a: { b: 2 } } })
+    })
+  })
 })

@@ -2796,6 +2796,44 @@ export function withConstructorDefault<S extends Top & { readonly "~type.constru
 /**
  * @since 4.0.0
  */
+export interface withDecodingDefaultKey<S extends Top> extends decodeTo<S, optionalKey<encodedCodec<S>>, never, never> {
+  readonly "~rebuild.out": withDecodingDefaultKey<S>
+}
+
+/**
+ * @since 4.0.0
+ */
+export function withDecodingDefaultKey<S extends Top>(defaultValue: () => S["Encoded"]) {
+  return (self: S): withDecodingDefaultKey<S> => {
+    return optionalKey(encodedCodec(self)).pipe(decodeTo(self, {
+      decode: Getter.withDefault(defaultValue),
+      encode: Getter.passthrough()
+    }))
+  }
+}
+
+/**
+ * @since 4.0.0
+ */
+export interface withDecodingDefault<S extends Top> extends decodeTo<S, optional<encodedCodec<S>>, never, never> {
+  readonly "~rebuild.out": withDecodingDefault<S>
+}
+
+/**
+ * @since 4.0.0
+ */
+export function withDecodingDefault<S extends Top>(defaultValue: () => S["Encoded"]) {
+  return (self: S): withDecodingDefault<S> => {
+    return optional(encodedCodec(self)).pipe(decodeTo(self, {
+      decode: Getter.withDefault(defaultValue),
+      encode: Getter.passthrough()
+    }))
+  }
+}
+
+/**
+ * @since 4.0.0
+ */
 export interface tag<Tag extends AST.Literal> extends withConstructorDefault<Literal<Tag>> {}
 
 /**

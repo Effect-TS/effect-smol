@@ -1190,7 +1190,7 @@ type Encoded = {
     readonly d?: string | null | undefined;
 }
 */
-export type Encoded = typeof schema.Encoded
+type Encoded = typeof schema.Encoded
 
 /*
 type Type = {
@@ -1200,7 +1200,7 @@ type Type = {
     readonly d?: number | null | undefined;
 }
 */
-export type Type = typeof schema.Type
+type Type = typeof schema.Type
 ```
 
 #### Omitting Values When Transforming Optional Fields
@@ -1225,14 +1225,14 @@ type Encoded = {
     readonly a?: string | undefined;
 }
 */
-export type Encoded = typeof schema.Encoded
+type Encoded = typeof schema.Encoded
 
 /*
 type Type = {
     readonly a?: number;
 }
 */
-export type Type = typeof schema.Type
+type Type = typeof schema.Type
 ```
 
 #### Representing Optional Fields with never Type
@@ -1249,41 +1249,44 @@ type Encoded = {
     readonly a?: never;
 }
 */
-export type Encoded = typeof schema.Encoded
+type Encoded = typeof schema.Encoded
 
 /*
 type Type = {
     readonly a?: never;
 }
 */
-export type Type = typeof schema.Type
+type Type = typeof schema.Type
 ```
 
-### Decoding / Encoding with Default Values
+### Decoding Defaults
 
-**Example**
+You can assign default values to fields during decoding using:
+
+- `Schema.withDecodingDefaultKey`: for optional fields
+- `Schema.withDecodingDefault`: for optional or undefined fields
+
+In both cases, the provided value must be of the **encoded** type, and it is used when:
+
+1. the field is missing, or
+2. the field is explicitly `undefined`
+
+**Example** (Providing a default for a missing or undefined value)
 
 ```ts
-import { Getter, Schema } from "effect/schema"
+import { Schema } from "effect/schema"
 
 const schema = Schema.Struct({
-  a: Schema.optional(Schema.FiniteFromString).pipe(
-    Schema.decodeTo(Schema.Number, {
-      decode: Getter.withDefault(() => 1),
-      encode: Getter.passthrough()
-    })
-  )
+  a: Schema.FiniteFromString.pipe(Schema.withDecodingDefault(() => "1"))
 })
 
 //     ┌─── { readonly a?: string | undefined; }
 //     ▼
-export type Encoded = typeof schema.Encoded
+type Encoded = typeof schema.Encoded
 
 //     ┌─── { readonly a: number; }
 //     ▼
-export type Type = typeof schema.Type
-
-// Decoding examples with default applied
+type Type = typeof schema.Type
 
 console.log(Schema.decodeUnknownSync(schema)({}))
 // Output: { a: 1 }
@@ -1295,19 +1298,76 @@ console.log(Schema.decodeUnknownSync(schema)({ a: "2" }))
 // Output: { a: 2 }
 ```
 
-#### Exact Optional Property with Nullability
+#### Nested Decoding Defaults
+
+You can also apply decoding defaults within nested structures.
+
+**Example** (Nested struct with defaults for missing or undefined fields)
+
+```ts
+import { Schema } from "effect/schema"
+
+const schema = Schema.Struct({
+  a: Schema.Struct({
+    b: Schema.FiniteFromString.pipe(Schema.withDecodingDefault(() => "1"))
+  }).pipe(Schema.withDecodingDefault(() => ({})))
+})
+
+/*
+type Encoded = {
+    readonly a?: {
+        readonly b?: string | undefined;
+    } | undefined;
+}
+*/
+type Encoded = typeof schema.Encoded
+
+/*
+type Type = {
+    readonly a: {
+        readonly b: number;
+    };
+}
+*/
+type Type = typeof schema.Type
+
+console.log(Schema.decodeUnknownSync(schema)({}))
+// Output: { a: { b: 1 } }
+
+console.log(Schema.decodeUnknownSync(schema)({ a: undefined }))
+// Output: { a: { b: 1 } }
+
+console.log(Schema.decodeUnknownSync(schema)({ a: {} }))
+// Output: { a: { b: 1 } }
+
+console.log(Schema.decodeUnknownSync(schema)({ a: { b: undefined } }))
+// Output: { a: { b: 1 } }
+
+console.log(Schema.decodeUnknownSync(schema)({ a: { b: "2" } }))
+// Output: { a: { b: 2 } }
+```
+
+### Manual Decoding Defaults
+
+If the defaulting logic is more specific than just handling `undefined` or missing values, you can use `Schema.decodeTo` to apply custom fallback rules.
+
+This is useful when you need to account for values like `null` or other invalid states.
+
+**Example** (Providing a fallback when value is `null` or missing)
 
 ```ts
 import { Option, Predicate } from "effect"
 import { Getter, Schema } from "effect/schema"
 
 const schema = Schema.Struct({
-  a: Schema.optionalKey(Schema.NullOr(Schema.FiniteFromString)).pipe(
-    Schema.decodeTo(Schema.Number, {
+  a: Schema.optionalKey(Schema.NullOr(Schema.String)).pipe(
+    Schema.decodeTo(Schema.FiniteFromString, {
       decode: Getter.mapOptional((oe) =>
         oe.pipe(
+          // remove null values
           Option.filter(Predicate.isNotNull),
-          Option.orElseSome(() => 1)
+          // default to "1" if none
+          Option.orElseSome(() => "1")
         )
       ),
       encode: Getter.passthrough()
@@ -1315,13 +1375,13 @@ const schema = Schema.Struct({
   )
 })
 
-//     ┌─── { readonly a?: string | null | undefined; }
+//     ┌─── { readonly a?: string | null; }
 //     ▼
-export type Encoded = typeof schema.Encoded
+type Encoded = typeof schema.Encoded
 
 //     ┌─── { readonly a: number; }
 //     ▼
-export type Type = typeof schema.Type
+type Type = typeof schema.Type
 
 console.log(Schema.decodeUnknownSync(schema)({}))
 // Output: { a: 1 }
@@ -1336,19 +1396,21 @@ console.log(Schema.decodeUnknownSync(schema)({ a: "2" }))
 // Output: { a: 2 }
 ```
 
-#### Optional Property with Nullability
+**Example** (Providing a fallback when value is `null`, `undefined`, or missing)
 
 ```ts
 import { Option, Predicate } from "effect"
 import { Getter, Schema } from "effect/schema"
 
 const schema = Schema.Struct({
-  a: Schema.optional(Schema.NullOr(Schema.FiniteFromString)).pipe(
-    Schema.decodeTo(Schema.Number, {
+  a: Schema.optional(Schema.NullOr(Schema.String)).pipe(
+    Schema.decodeTo(Schema.FiniteFromString, {
       decode: Getter.mapOptional((oe) =>
         oe.pipe(
+          // remove null and undefined
           Option.filter(Predicate.isNotNullish),
-          Option.orElseSome(() => 1)
+          // default to "1" if none
+          Option.orElseSome(() => "1")
         )
       ),
       encode: Getter.passthrough()
@@ -1358,11 +1420,11 @@ const schema = Schema.Struct({
 
 //     ┌─── { readonly a?: string | null | undefined; }
 //     ▼
-export type Encoded = typeof schema.Encoded
+type Encoded = typeof schema.Encoded
 
 //     ┌─── { readonly a: number; }
 //     ▼
-export type Type = typeof schema.Type
+type Type = typeof schema.Type
 
 console.log(Schema.decodeUnknownSync(schema)({}))
 // Output: { a: 1 }
@@ -1399,7 +1461,7 @@ const Product = Schema.Struct({
 
 //     ┌─── { readonly quantity?: string; }
 //     ▼
-export type Encoded = typeof Product.Encoded
+type Encoded = typeof Product.Encoded
 
 //     ┌─── { readonly quantity: Option<number>; }
 //     ▼
@@ -1441,7 +1503,7 @@ const Product = Schema.Struct({
 
 //     ┌─── { readonly quantity?: string; }
 //     ▼
-export type Encoded = typeof Product.Encoded
+type Encoded = typeof Product.Encoded
 
 //     ┌─── { readonly quantity: Option<number>; }
 //     ▼
@@ -1483,7 +1545,7 @@ const Product = Schema.Struct({
 
 //     ┌─── { readonly quantity?: string | null; }
 //     ▼
-export type Encoded = typeof Product.Encoded
+type Encoded = typeof Product.Encoded
 
 //     ┌─── { readonly quantity: Option<number>; }
 //     ▼
@@ -1522,7 +1584,7 @@ const Product = Schema.Struct({
 
 //     ┌─── { readonly quantity?: string | null | undefined; }
 //     ▼
-export type Encoded = typeof Product.Encoded
+type Encoded = typeof Product.Encoded
 
 //     ┌─── { readonly quantity: Option<number>; }
 //     ▼
@@ -1643,7 +1705,7 @@ type Type = {
     readonly a: number;
 }
 */
-export type Type = typeof schema.Type
+type Type = typeof schema.Type
 
 /*
 type Encoded = {
@@ -1651,7 +1713,7 @@ type Encoded = {
     readonly a: number;
 }
 */
-export type Encoded = typeof schema.Encoded
+type Encoded = typeof schema.Encoded
 ```
 
 If you want the record part to be mutable, you can wrap it in `Schema.mutable`.
@@ -1672,7 +1734,7 @@ type Type = {
     readonly a: number;
 }
 */
-export type Type = typeof schema.Type
+type Type = typeof schema.Type
 
 /*
 type Encoded = {
@@ -1680,7 +1742,7 @@ type Encoded = {
     readonly a: number;
 }
 */
-export type Encoded = typeof schema.Encoded
+type Encoded = typeof schema.Encoded
 ```
 
 ### 🆕 Deriving Structs
@@ -2347,14 +2409,14 @@ type Type = {
     [x: string]: number;
 }
 */
-export type Type = typeof schema.Type
+type Type = typeof schema.Type
 
 /*
 type Encoded = {
     [x: string]: number;
 }
 */
-export type Encoded = typeof schema.Encoded
+type Encoded = typeof schema.Encoded
 ```
 
 ### Literal Structs
@@ -2374,7 +2436,7 @@ type Type = {
     readonly b: number;
 }
 */
-export type Type = typeof schema.Type
+type Type = typeof schema.Type
 ```
 
 #### Mutable Keys
@@ -2394,7 +2456,7 @@ type Type = {
     b: number;
 }
 */
-export type Type = typeof schema.Type
+type Type = typeof schema.Type
 ```
 
 #### Optional Keys
@@ -2414,7 +2476,7 @@ type Type = {
     readonly b?: number;
 }
 */
-export type Type = typeof schema.Type
+type Type = typeof schema.Type
 ```
 
 ## Tuples
@@ -2436,12 +2498,12 @@ export const schema = Schema.TupleWithRest(Schema.Tuple([Schema.FiniteFromString
 /*
 type Type = readonly [number, string, ...boolean[], string]
 */
-export type Type = typeof schema.Type
+type Type = typeof schema.Type
 
 /*
 type Encoded = readonly [string, string, ...boolean[], string]
 */
-export type Encoded = typeof schema.Encoded
+type Encoded = typeof schema.Encoded
 ```
 
 ### Element Annotations
