@@ -445,10 +445,10 @@ export const Class: new<A extends Record<string, any>, Success, Error = never, S
  */
 export const TaggedClass = <Tag extends string>(
   tag: Tag
-): new<A extends Record<string, any>, Success, Error = never, ServiceMap = never>(
+): new<A extends Record<string, any>, Success, Error = never, Services = never>(
   args: Types.Equals<Omit<A, keyof Request<unknown, unknown>>, {}> extends true ? void
     : { readonly [P in keyof A as P extends "_tag" | keyof Request<any, any, any> ? never : P]: A[P] }
-) => Request<Success, Error, ServiceMap> & Readonly<A> & { readonly _tag: Tag } => {
+) => Request<Success, Error, Services> & Readonly<A> & { readonly _tag: Tag } => {
   return class TaggedClass extends Class<any, any, any> {
     readonly _tag = tag
   } as any

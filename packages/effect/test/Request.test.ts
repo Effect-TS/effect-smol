@@ -1,6 +1,7 @@
 import { assert, describe, expect, it } from "@effect/vitest"
 import * as Array from "effect/Array"
 import * as Cause from "effect/Cause"
+import * as Data from "effect/Data"
 import * as Effect from "effect/Effect"
 import * as Exit from "effect/Exit"
 import * as Fiber from "effect/Fiber"
@@ -214,5 +215,33 @@ describe.sequential("Request", () => {
       expect(requests.count).toEqual(2)
       expect(invocations.count).toEqual(1)
     }, provideEnv)
+  )
+
+  it.effect(
+    "grouped requests + batchN",
+    Effect.fnUntraced(function*() {
+      let count = 0
+      let requestsCount = 0
+
+      class Key extends Data.Class<{ id: number }> {}
+
+      const resolver = Resolver.make<GetNameById>(Effect.fnUntraced(function*(entries) {
+        count++
+        requestsCount += entries.length
+        for (const entry of entries) {
+          entry.unsafeComplete(Effect.succeed(userNames.get(entry.request.id)!))
+        }
+      })).pipe(
+        Resolver.batchN(5),
+        Resolver.grouped(({ request }) => new Key({ id: request.id % 2 }))
+      )
+
+      yield* Effect.forEach(userIds, (id) => Effect.request(new GetNameById({ id }), resolver), {
+        concurrency: "unbounded"
+      })
+
+      expect(count).toEqual(6)
+      expect(requestsCount).toEqual(26)
+    })
   )
 })

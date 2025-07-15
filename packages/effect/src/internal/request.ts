@@ -49,14 +49,14 @@ export const request: {
 )
 
 interface Batch {
-  readonly key: object
+  readonly key: unknown
   readonly resolver: RequestResolver<any>
   readonly entrySet: Set<Entry<any>>
   readonly entries: Set<Entry<any>>
   delayFiber?: Fiber<void> | undefined
 }
 
-const pendingBatches = new Map<RequestResolver<any>, Map<object, Batch>>()
+const pendingBatches = new Map<RequestResolver<any>, Map<unknown, Batch>>()
 
 const addEntry = <A extends Request<any, any, any>>(
   resolver: RequestResolver<A>,
@@ -69,8 +69,17 @@ const addEntry = <A extends Request<any, any, any>>(
     batchMap = new Map<object, Batch>()
     pendingBatches.set(resolver, batchMap)
   }
-  const key = resolver.batchKey(request as any)
-  let batch = batchMap.get(key)
+  let batch: Batch | undefined
+  const entry = makeEntry({
+    request,
+    services: fiber.services as any,
+    unsafeComplete(effect) {
+      resume(effect)
+      batch!.entrySet.delete(entry)
+    }
+  })
+  const key = resolver.batchKey(entry)
+  batch = batchMap.get(key)
   if (!batch) {
     batch = {
       key,
@@ -84,15 +93,6 @@ const addEntry = <A extends Request<any, any, any>>(
       { scheduler: fiber.currentScheduler }
     )
   }
-
-  const entry = makeEntry({
-    request,
-    services: fiber.services as any,
-    unsafeComplete(effect) {
-      resume(effect)
-      batch.entrySet.delete(entry)
-    }
-  })
 
   batch.entrySet.add(entry)
   batch.entries.add(entry)
@@ -126,14 +126,14 @@ const maybeRemoveEntry = <A extends Request<any, any, any>>(
   })
 
 const runBatch = (
-  batchMap: Map<object, Batch>,
+  batchMap: Map<unknown, Batch>,
   { entries, entrySet, key, resolver }: Batch
 ) =>
   effect.suspend(() => {
     if (!batchMap.has(key)) return effect.void
     batchMap.delete(key)
     return effect.onExit(
-      resolver.runAll(Array.from(entries) as NonEmptyArray<Entry<any>>),
+      resolver.runAll(Array.from(entries) as NonEmptyArray<Entry<any>>, key),
       (exit) => {
         for (const entry of entrySet) {
           entry.unsafeComplete(

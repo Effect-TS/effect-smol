@@ -97,7 +97,7 @@ export interface RequestResolver<in A> extends RequestResolver.Variance<A>, Pipe
   /**
    * Get a batch key for the given request.
    */
-  batchKey(entry: A): object
+  batchKey(entry: Request.Entry<A>): unknown
 
   /**
    * Should the resolver continue collecting requests? Otherwise, it will
@@ -108,7 +108,7 @@ export interface RequestResolver<in A> extends RequestResolver.Variance<A>, Pipe
   /**
    * Execute a collection of requests.
    */
-  runAll(entries: NonEmptyArray<Request.Entry<A>>): Effect<void>
+  runAll(entries: NonEmptyArray<Request.Entry<A>>, key: unknown): Effect<void>
 }
 
 /**
@@ -176,10 +176,10 @@ const RequestResolverProto = {
 export const isRequestResolver = (u: unknown): u is RequestResolver<unknown> => hasProperty(u, TypeId)
 
 const makeProto = <A>(options: {
-  readonly batchKey: (request: A) => object
+  readonly batchKey: (request: Request.Entry<A>) => unknown
   readonly delay: Effect<void>
   readonly collectWhile: (requests: ReadonlySet<Request.Entry<A>>) => boolean
-  readonly runAll: (entries: NonEmptyArray<Request.Entry<A>>) => Effect<void>
+  readonly runAll: (entries: NonEmptyArray<Request.Entry<A>>, key: unknown) => Effect<void>
 }): RequestResolver<A> => {
   const self = Object.create(RequestResolverProto)
   self.batchKey = options.batchKey
@@ -190,7 +190,7 @@ const makeProto = <A>(options: {
 }
 
 const defaultKeyObject = {}
-const defaultKey = (_request: unknown): object => defaultKeyObject
+const defaultKey = (_request: unknown): unknown => defaultKeyObject
 
 /**
  * Constructs a request resolver with the specified method to run requests.
@@ -224,7 +224,7 @@ const defaultKey = (_request: unknown): object => defaultKeyObject
  * @category constructors
  */
 export const make = <A>(
-  runAll: (entries: NonEmptyArray<Request.Entry<A>>) => Effect<void>
+  runAll: (entries: NonEmptyArray<Request.Entry<A>>, key: unknown) => Effect<void>
 ): RequestResolver<A> =>
   makeProto({
     batchKey: defaultKey,
@@ -251,7 +251,7 @@ export const make = <A>(
  *
  * // Group requests by role for efficient batch processing
  * const UserByRoleResolver = RequestResolver.makeGrouped<GetUserByRole, string>({
- *   key: (request) => request.role,
+ *   key: ({ request }) => request.role,
  *   resolver: (entries, role) =>
  *     Effect.sync(() => {
  *       console.log(`Processing ${entries.length} requests for role: ${role}`)
@@ -266,28 +266,27 @@ export const make = <A>(
  * @category constructors
  */
 export const makeGrouped = <A, K>(options: {
-  readonly key: (entry: A) => K
+  readonly key: (entry: Request.Entry<A>) => K
   readonly resolver: (entries: NonEmptyArray<Request.Entry<A>>, key: K) => Effect<void>
-}): RequestResolver<A> => {
-  const groupKeys = MutableHashMap.empty<K, {}>()
-  const getKey = (request: A): {} => {
-    const okey = MutableHashMap.get(groupKeys, options.key(request))
+}): RequestResolver<A> =>
+  makeProto({
+    batchKey: hashGroupKey(options.key),
+    delay: effect.yieldNow,
+    collectWhile: constTrue,
+    runAll: options.resolver as any
+  })
+
+const hashGroupKey = <A, K>(get: (entry: Request.Entry<A>) => K) => {
+  const groupKeys = MutableHashMap.empty<K, K>()
+  return (entry: Request.Entry<A>): unknown => {
+    const key = get(entry)
+    const okey = MutableHashMap.get(groupKeys, key)
     if (okey._tag === "Some") {
       return okey.value
     }
-    const key = {}
-    MutableHashMap.set(groupKeys, options.key(request), key)
+    MutableHashMap.set(groupKeys, key, key)
     return key
   }
-  return makeProto({
-    batchKey: getKey,
-    delay: effect.yieldNow,
-    collectWhile: constTrue,
-    runAll(entries) {
-      const key = options.key(entries[0].request)
-      return options.resolver(entries, key)
-    }
-  })
 }
 
 /**
@@ -629,10 +628,10 @@ export const around: {
 ): RequestResolver<A> =>
   makeProto({
     ...self,
-    runAll: (entries) =>
+    runAll: (entries, key) =>
       effect.acquireUseRelease(
         before(entries),
-        () => self.runAll(entries),
+        () => self.runAll(entries, key),
         (a) => after(entries, a)
       )
   }))
@@ -735,7 +734,7 @@ export const batchN: {
  * // Group requests by department for more efficient processing
  * const groupedResolver = RequestResolver.grouped(
  *   resolver,
- *   (request) => request.department
+ *   ({ request }) => request.department
  * )
  *
  * // Requests for the same department will be batched together
@@ -750,13 +749,16 @@ export const batchN: {
  * @category combinators
  */
 export const grouped: {
-  <A, K>(f: (request: A) => K): (self: RequestResolver<A>) => RequestResolver<A>
-  <A, K>(self: RequestResolver<A>, f: (request: A) => K): RequestResolver<A>
-} = dual(2, <A, K>(self: RequestResolver<A>, f: (request: A) => K): RequestResolver<A> =>
-  makeGrouped({
-    key: f,
-    resolver: self.runAll
-  }))
+  <A, K>(f: (entry: Request.Entry<A>) => K): (self: RequestResolver<A>) => RequestResolver<A>
+  <A, K>(self: RequestResolver<A>, f: (entry: Request.Entry<A>) => K): RequestResolver<A>
+} = dual(
+  2,
+  <A, K>(self: RequestResolver<A>, f: (entry: Request.Entry<A>) => K): RequestResolver<A> =>
+    makeProto({
+      ...self,
+      batchKey: hashGroupKey(f)
+    })
+)
 
 /**
  * Returns a new request resolver that executes requests by sending them to this
@@ -815,7 +817,7 @@ export const race: {
   that: RequestResolver<A2>
 ): RequestResolver<A & A2> =>
   make(
-    (requests) => effect.race(self.runAll(requests), that.runAll(requests))
+    (requests, key) => effect.race(self.runAll(requests, key), that.runAll(requests, key))
   ))
 
 /**
@@ -876,7 +878,7 @@ export const withSpan: {
 ): RequestResolver<A> =>
   makeProto({
     ...self,
-    runAll: (entries) =>
+    runAll: (entries, key) =>
       effect.suspend(() => {
         const links = options?.links ? options.links.slice() : []
         const seen = new Set<Tracer.AnySpan>()
@@ -886,7 +888,7 @@ export const withSpan: {
           seen.add(span.value)
           links.push({ span: span.value, attributes: {} })
         }
-        return effect.withSpan(self.runAll(entries), name, {
+        return effect.withSpan(self.runAll(entries, key), name, {
           ...options,
           links,
           attributes: {
