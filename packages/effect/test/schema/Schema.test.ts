@@ -4635,9 +4635,7 @@ describe("Schema", () => {
       └─ Expected number & finite, actual undefined`
     )
   })
-})
 
-describe("SchemaGetter", () => {
   describe("checkEffect", () => {
     it("no context", async () => {
       const schema = Schema.String.pipe(
@@ -5168,7 +5166,7 @@ describe("SchemaGetter", () => {
     await assertions.encoding.succeed(schema, { a: 1, b: "b" }, { expected: { c: "1", b: "b" } })
   })
 
-  describe("SchemaCheck.make", () => {
+  describe("Check.make", () => {
     it("returns undefined", async () => {
       const schema = Schema.String.check(Check.make(() => undefined))
       await assertions.decoding.succeed(schema, "a")
@@ -5334,7 +5332,7 @@ describe("SchemaGetter", () => {
     })
   })
 
-  describe("TaggedUnion", () => {
+  describe("Tagged unions", () => {
     describe("asTaggedUnion", () => {
       it("should augment a union", () => {
         const b = Symbol.for("B")
@@ -5353,22 +5351,6 @@ describe("SchemaGetter", () => {
         deepStrictEqual(schema.cases[1], schema.members[2].members[0])
         deepStrictEqual(schema.cases["1"], schema.members[2].members[0])
         deepStrictEqual(schema.cases.D, schema.members[2].members[1])
-
-        // is
-        assertTrue(schema.is({ _tag: "A", a: "a" }))
-        assertFalse(schema.is({ _tag: "A", a: 1 }))
-
-        assertTrue(schema.is({ _tag: b, b: 1 }))
-        assertFalse(schema.is({ _tag: b, b: "b" }))
-
-        assertTrue(schema.is({ _tag: 1, c: true }))
-        assertFalse(schema.is({ _tag: 1, c: 1 }))
-
-        assertTrue(schema.is({ _tag: "D", d: new Date() }))
-        assertFalse(schema.is({ _tag: "D", d: "d" }))
-
-        assertFalse(schema.is(null))
-        assertFalse(schema.is({}))
 
         // isAnyOf
         const isAOr1 = schema.isAnyOf(["A", 1])
@@ -5444,18 +5426,59 @@ describe("SchemaGetter", () => {
       it("should create a tagged union", () => {
         const schema = Schema.TaggedUnion({
           A: { a: Schema.String },
-          B: { b: Schema.Finite }
-        })
+          C: { c: Schema.Boolean },
+          B: { b: Schema.FiniteFromString }
+        }).annotate({})
 
-        const [A, B] = schema.members
+        const { A, B, C } = schema.cases
 
+        // cases
         strictEqual(A.fields._tag.ast.literal, "A")
         strictEqual(A.fields.a, Schema.String)
         strictEqual(B.fields._tag.ast.literal, "B")
-        strictEqual(B.fields.b, Schema.Finite)
+        strictEqual(B.fields.b, Schema.FiniteFromString)
+        strictEqual(C.fields._tag.ast.literal, "C")
+        strictEqual(C.fields.c, Schema.Boolean)
 
-        strictEqual(schema.cases.A.makeSync, A.makeSync)
-        strictEqual(schema.cases.B.makeSync, B.makeSync)
+        // isAnyOf
+        const isAOrB = schema.isAnyOf(["A", "B"])
+        assertTrue(isAOrB({ _tag: "A", a: "a" }))
+        assertTrue(isAOrB({ _tag: "B", b: 1 }))
+        assertFalse(isAOrB({ _tag: "C", c: true }))
+
+        // guards
+        assertTrue(schema.guards.A({ _tag: "A", a: "a" }))
+        assertTrue(schema.guards.B({ _tag: "B", b: 1 }))
+        assertTrue(schema.guards.C({ _tag: "C", c: true }))
+        assertFalse(schema.guards.A({ _tag: "A", b: 1 }))
+        assertFalse(schema.guards.B({ _tag: "B", a: "a" }))
+        assertFalse(schema.guards.C({ _tag: "C", c: 1 }))
+
+        // match
+        deepStrictEqual(
+          schema.match({ _tag: "A", a: "a" }, { A: () => "A", B: () => "B", C: () => "C" }),
+          "A"
+        )
+        deepStrictEqual(
+          pipe({ _tag: "A", a: "a" }, schema.match({ A: () => "A", B: () => "B", C: () => "C" })),
+          "A"
+        )
+        deepStrictEqual(
+          schema.match({ _tag: "B", b: 1 }, { A: () => "A", B: () => "B", C: () => "C" }),
+          "B"
+        )
+        deepStrictEqual(
+          pipe({ _tag: "B", b: 1 }, schema.match({ A: () => "A", B: () => "B", C: () => "C" })),
+          "B"
+        )
+        deepStrictEqual(
+          schema.match({ _tag: "C", c: true }, { A: () => "A", B: () => "B", C: () => "C" }),
+          "C"
+        )
+        deepStrictEqual(
+          pipe({ _tag: "C", c: true }, schema.match({ A: () => "A", B: () => "B", C: () => "C" })),
+          "C"
+        )
       })
     })
   })

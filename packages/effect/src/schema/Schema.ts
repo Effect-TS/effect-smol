@@ -22,7 +22,6 @@ import * as Result from "../Result.js"
 import * as Scheduler from "../Scheduler.js"
 import type { Lambda, Merge, Mutable, Simplify } from "../Struct.js"
 import { lambda, renameKeys } from "../Struct.js"
-import type * as Types from "../Types.js"
 import type * as Annotations from "./Annotations.js"
 import * as AST from "./AST.js"
 import * as Check from "./Check.js"
@@ -2923,7 +2922,6 @@ type TaggedUnionUtils<
   >
 > = {
   readonly cases: Simplify<{ [M in Flattened[number] as M["Type"][Tag]]: M }>
-  readonly is: <I>(input: I) => input is I & Members[number]["Type"]
   readonly isAnyOf: <const Keys>(
     keys: ReadonlyArray<Keys>
   ) => (value: Members[number]["Type"]) => value is Extract<Members[number]["Type"], { _tag: Keys }>
@@ -2971,7 +2969,6 @@ export function asTaggedUnion<const Tag extends PropertyKey>(tag: Tag) {
   ): asTaggedUnion<Tag, Members> => {
     const cases: Record<PropertyKey, unknown> = {}
     const guards: Record<PropertyKey, (u: unknown) => boolean> = {}
-    const isAny = is(typeCodec(self))
     const isAnyOf = (keys: ReadonlyArray<PropertyKey>) => (value: Members[number]["Type"]) => keys.includes(value[tag])
 
     function process(schema: any) {
@@ -3003,29 +3000,79 @@ export function asTaggedUnion<const Tag extends PropertyKey>(tag: Tag) {
       return cases[value[tag]](value)
     }
 
-    return Object.assign(self, { cases, is: isAny, isAnyOf, guards, match }) as any
+    return Object.assign(self, { cases, isAnyOf, guards, match }) as any
   }
 }
-
-type TaggedUnion<
-  O extends Record<string, Struct.Fields>,
-  Members = Types.UnionToTuple<
-    { readonly [K in keyof O & string]: TaggedStruct<K, O[K]> }[keyof O & string]
-  >
-> = Members extends ReadonlyArray<Top & { readonly Type: { readonly _tag: PropertyKey } }>
-  ? asTaggedUnion<"_tag", Members>
-  : never
 
 /**
  * @since 4.0.0
  * @experimental
  */
-export function TaggedUnion<const O extends Record<string, Struct.Fields>>(
-  o: O
-): TaggedUnion<O> {
-  return (Union(Object.keys(o).map((key) => TaggedStruct(key, o[key]))) as any).pipe(
-    asTaggedUnion("_tag")
-  )
+export interface TaggedUnion<Cases extends Record<string, Top>> extends
+  Bottom<
+    { [K in keyof Cases]: Cases[K]["Type"] }[keyof Cases],
+    { [K in keyof Cases]: Cases[K]["Encoded"] }[keyof Cases],
+    { [K in keyof Cases]: Cases[K]["DecodingServices"] }[keyof Cases],
+    { [K in keyof Cases]: Cases[K]["EncodingServices"] }[keyof Cases],
+    AST.UnionType<AST.TypeLiteral>,
+    TaggedUnion<Cases>,
+    Annotations.Bottom<{ [K in keyof Cases]: Cases[K]["Type"] }[keyof Cases]>,
+    { [K in keyof Cases]: Cases[K]["~type.make"] }[keyof Cases]
+  >
+{
+  readonly cases: Cases
+  readonly isAnyOf: <const Keys>(
+    keys: ReadonlyArray<Keys>
+  ) => (value: Cases[keyof Cases]["Type"]) => value is Extract<Cases[keyof Cases]["Type"], { _tag: Keys }>
+  readonly guards: { [K in keyof Cases]: (u: unknown) => u is Cases[K]["Type"] }
+  readonly match: {
+    <Output>(
+      value: Cases[keyof Cases]["Type"],
+      cases: { [K in keyof Cases]: (value: Cases[K]["Type"]) => Output }
+    ): Output
+    <Output>(
+      cases: { [K in keyof Cases]: (value: Cases[K]["Type"]) => Output }
+    ): (value: Cases[keyof Cases]["Type"]) => Output
+  }
+}
+
+class TaggedUnion$<Cases extends Record<string, Top>> extends make$<TaggedUnion<Cases>> implements TaggedUnion<Cases> {
+  constructor(
+    readonly ast: AST.UnionType<AST.TypeLiteral>,
+    readonly cases: Cases,
+    readonly isAnyOf: <const Keys>(
+      keys: ReadonlyArray<Keys>
+    ) => (value: Cases[keyof Cases]["Type"]) => value is Extract<Cases[keyof Cases]["Type"], { _tag: Keys }>,
+    readonly guards: { [K in keyof Cases]: (u: unknown) => u is Cases[K]["Type"] },
+    readonly match: {
+      <Output>(
+        value: Cases[keyof Cases]["Type"],
+        cases: { [K in keyof Cases]: (value: Cases[K]["Type"]) => Output }
+      ): Output
+      <Output>(
+        cases: { [K in keyof Cases]: (value: Cases[K]["Type"]) => Output }
+      ): (value: Cases[keyof Cases]["Type"]) => Output
+    }
+  ) {
+    super(ast, (ast) => new TaggedUnion$(ast, cases, isAnyOf, guards, match))
+  }
+}
+
+/**
+ * @since 4.0.0
+ * @experimental
+ */
+export function TaggedUnion<const CasesByTag extends Record<string, Struct.Fields>>(
+  casesByTag: CasesByTag
+): TaggedUnion<{ readonly [K in keyof CasesByTag & string]: TaggedStruct<K, CasesByTag[K]> }> {
+  const cases: any = {}
+  const members: any = []
+  for (const key of Object.keys(casesByTag)) {
+    members.push(cases[key] = TaggedStruct(key, casesByTag[key]))
+  }
+  const union = Union(members)
+  const { guards, isAnyOf, match } = asTaggedUnion("_tag")(union)
+  return new TaggedUnion$(union.ast, cases, isAnyOf, guards, match) as any
 }
 
 /**

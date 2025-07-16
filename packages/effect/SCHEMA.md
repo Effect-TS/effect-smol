@@ -3511,18 +3511,6 @@ const B = tagged.cases.B
 const C = tagged.cases.C
 ```
 
-#### Checking Membership
-
-Use the `is` method to check if an `unknown` value is a valid member of the union.
-
-```ts
-console.log(tagged.is({ type: "A", a: "a" })) // true
-console.log(tagged.is({ type: "B", b: 1 })) // true
-console.log(tagged.is({ type: "C", c: true })) // true
-
-console.log(tagged.is({ type: "A", b: 1 })) // false
-```
-
 #### Checking Membership in a Subset of Tags
 
 The `isAnyOf` method lets you check if a value belongs to a selected subset of tags.

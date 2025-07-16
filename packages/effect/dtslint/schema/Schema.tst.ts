@@ -2449,34 +2449,76 @@ describe("Schema", () => {
     expect(schema).type.toBe<
       Schema.Struct<{ readonly _tag: Schema.tag<"A">; } & { readonly a: Schema.String }>
     >()
+    expect(schema.fields._tag.schema.literal).type.toBe<"A">()
   })
 
-  it("TaggedUnion", () => {
-    const schema = Schema.TaggedUnion({
-      A: { a: Schema.String },
-      B: { b: Schema.Number }
-    })
-
-    expect(schema.members).type.toBe<
-      readonly [
-        Schema.TaggedStruct<"A", { readonly a: Schema.String }>,
-        Schema.TaggedStruct<"B", { readonly b: Schema.Number }>
-      ]
-    >()
-    expect(schema.cases.A).type.toBe<Schema.TaggedStruct<"A", { readonly a: Schema.String }>>()
-    expect(schema.cases.B).type.toBe<Schema.TaggedStruct<"B", { readonly b: Schema.Number }>>()
-  })
-
-  describe("TaggedUnion", () => {
+  describe("Tagged unions", () => {
     describe("asTaggedUnion", () => {
-      it("should throw if the tag field is invalid", () => {
+      it("should not be callable if the tag field is invalid", () => {
         const original = Schema.Union([
-          Schema.Struct({ _tag: Schema.tag("A"), a: Schema.String }),
-          Schema.Struct({ _tag: Schema.tag("B"), b: Schema.Finite })
+          Schema.TaggedStruct("A", { a: Schema.String }),
+          Schema.TaggedStruct("C", { c: Schema.Boolean }),
+          Schema.TaggedStruct("B", { b: Schema.FiniteFromString })
         ])
 
         expect(original.pipe).type.toBeCallableWith(Schema.asTaggedUnion("_tag"))
         expect(original.pipe).type.not.toBeCallableWith(Schema.asTaggedUnion("a"))
+
+        const schema = original.pipe(Schema.asTaggedUnion("_tag"))
+
+        expect(Schema.revealCodec(schema)).type.toBe<
+          Schema.Codec<
+            | { readonly _tag: "A"; readonly a: string }
+            | { readonly _tag: "B"; readonly b: number }
+            | { readonly _tag: "C"; readonly c: boolean },
+            | { readonly _tag: "A"; readonly a: string }
+            | { readonly _tag: "B"; readonly b: string }
+            | { readonly _tag: "C"; readonly c: boolean },
+            never,
+            never
+          >
+        >()
+
+        // cases
+        const { A, B, C } = schema.cases
+        expect(B.fields._tag.schema.literal).type.toBe<"B">()
+        expect(A.fields._tag.schema.literal).type.toBe<"A">()
+        expect(C.fields._tag.schema.literal).type.toBe<"C">()
+        expect(A).type.toBe<Schema.TaggedStruct<"A", { readonly a: Schema.String }>>()
+        expect(B).type.toBe<Schema.TaggedStruct<"B", { readonly b: Schema.FiniteFromString }>>()
+        expect(C).type.toBe<Schema.TaggedStruct<"C", { readonly c: Schema.Boolean }>>()
+      })
+    })
+
+    describe("TaggedUnion", () => {
+      it("should depends on the order of the cases", () => {
+        const schema = Schema.TaggedUnion({
+          A: { a: Schema.String },
+          C: { c: Schema.Boolean },
+          B: { b: Schema.FiniteFromString }
+        }).annotate({})
+
+        expect(Schema.revealCodec(schema)).type.toBe<
+          Schema.Codec<
+            | { readonly _tag: "A"; readonly a: string }
+            | { readonly _tag: "B"; readonly b: number }
+            | { readonly _tag: "C"; readonly c: boolean },
+            | { readonly _tag: "A"; readonly a: string }
+            | { readonly _tag: "B"; readonly b: string }
+            | { readonly _tag: "C"; readonly c: boolean },
+            never,
+            never
+          >
+        >()
+
+        // cases
+        const { A, B, C } = schema.cases
+        expect(B.fields._tag.schema.literal).type.toBe<"B">()
+        expect(A.fields._tag.schema.literal).type.toBe<"A">()
+        expect(C.fields._tag.schema.literal).type.toBe<"C">()
+        expect(A).type.toBe<Schema.TaggedStruct<"A", { readonly a: Schema.String }>>()
+        expect(B).type.toBe<Schema.TaggedStruct<"B", { readonly b: Schema.FiniteFromString }>>()
+        expect(C).type.toBe<Schema.TaggedStruct<"C", { readonly c: Schema.Boolean }>>()
       })
     })
   })
