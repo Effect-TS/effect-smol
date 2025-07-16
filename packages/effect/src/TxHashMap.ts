@@ -529,14 +529,16 @@ export const remove: {
 } = dual(
   2,
   <K1 extends K, K, V>(self: TxHashMap<K, V>, key: K1): Effect.Effect<boolean> =>
-    Effect.gen(function*() {
-      const currentMap = yield* TxRef.get(self.ref)
-      const existed = HashMap.has(currentMap, key)
-      if (existed) {
-        yield* TxRef.set(self.ref, HashMap.remove(currentMap, key))
-      }
-      return existed
-    })
+    Effect.atomic(
+      Effect.gen(function*() {
+        const currentMap = yield* TxRef.get(self.ref)
+        const existed = HashMap.has(currentMap, key)
+        if (existed) {
+          yield* TxRef.set(self.ref, HashMap.remove(currentMap, key))
+        }
+        return existed
+      })
+    )
 )
 
 /**
@@ -716,16 +718,18 @@ export const modify: {
 } = dual(
   3,
   <K, V>(self: TxHashMap<K, V>, key: K, f: (value: V) => V): Effect.Effect<Option.Option<V>> =>
-    Effect.gen(function*() {
-      const currentMap = yield* TxRef.get(self.ref)
-      const currentValue = HashMap.get(currentMap, key)
-      if (Option.isSome(currentValue)) {
-        const newValue = f(currentValue.value)
-        yield* TxRef.set(self.ref, HashMap.set(currentMap, key, newValue))
-        return currentValue
-      }
-      return Option.none()
-    })
+    Effect.atomic(
+      Effect.gen(function*() {
+        const currentMap = yield* TxRef.get(self.ref)
+        const currentValue = HashMap.get(currentMap, key)
+        if (Option.isSome(currentValue)) {
+          const newValue = f(currentValue.value)
+          yield* TxRef.set(self.ref, HashMap.set(currentMap, key, newValue))
+          return currentValue
+        }
+        return Option.none()
+      })
+    )
 )
 
 /**
@@ -774,17 +778,19 @@ export const modifyAt: {
 } = dual(
   3,
   <K, V>(self: TxHashMap<K, V>, key: K, f: (value: Option.Option<V>) => Option.Option<V>): Effect.Effect<void> =>
-    Effect.gen(function*() {
-      const currentMap = yield* TxRef.get(self.ref)
-      const currentValue = HashMap.get(currentMap, key)
-      const newValue = f(currentValue)
+    Effect.atomic(
+      Effect.gen(function*() {
+        const currentMap = yield* TxRef.get(self.ref)
+        const currentValue = HashMap.get(currentMap, key)
+        const newValue = f(currentValue)
 
-      if (Option.isSome(newValue)) {
-        yield* TxRef.set(self.ref, HashMap.set(currentMap, key, newValue.value))
-      } else if (Option.isSome(currentValue)) {
-        yield* TxRef.set(self.ref, HashMap.remove(currentMap, key))
-      }
-    })
+        if (Option.isSome(newValue)) {
+          yield* TxRef.set(self.ref, HashMap.set(currentMap, key, newValue.value))
+        } else if (Option.isSome(currentValue)) {
+          yield* TxRef.set(self.ref, HashMap.remove(currentMap, key))
+        }
+      })
+    )
 )
 
 /**
