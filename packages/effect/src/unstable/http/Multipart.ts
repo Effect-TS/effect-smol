@@ -170,7 +170,7 @@ export interface FileSchema extends Schema.declareRefinement<PersistedFile> {}
 export const FileSchema: FileSchema = Schema.declareRefinement({
   is: isPersistedFile,
   annotations: {
-    identifier: "PersistedFile",
+    id: "PersistedFile",
     jsonSchema: {
       _tag: "override",
       override: () => ({

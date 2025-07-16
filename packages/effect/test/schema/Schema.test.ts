@@ -3869,8 +3869,8 @@ describe("Schema", () => {
       assertTrue(Schema.isSchema(A))
       // should expose the fields
       deepStrictEqual(A.fields, { a: Schema.String })
-      // should expose the identifier
-      strictEqual(A.identifier, "A")
+      // should expose the id
+      strictEqual(A.id, "A")
 
       strictEqual(A.name, "A")
 
@@ -3922,8 +3922,8 @@ describe("Schema", () => {
       assertTrue(Schema.isSchema(A))
       // should expose the fields
       deepStrictEqual(A.fields, { a: Schema.String })
-      // should expose the identifier
-      strictEqual(A.identifier, "A")
+      // should expose the id
+      strictEqual(A.id, "A")
 
       strictEqual(A.name, "A")
 
@@ -3976,8 +3976,8 @@ describe("Schema", () => {
       assertTrue(Schema.isSchema(A))
       // should expose the fields
       deepStrictEqual(A.fields, { a: Schema.String })
-      // should expose the identifier
-      strictEqual(A.identifier, "A")
+      // should expose the id
+      strictEqual(A.id, "A")
 
       assertions.formatter.formatAST(A, `A`)
 
@@ -4029,8 +4029,8 @@ describe("Schema", () => {
       assertTrue(Schema.isSchema(A))
       // should expose the fields
       deepStrictEqual(A.fields, { a: Schema.String })
-      // should expose the identifier
-      strictEqual(A.identifier, "A")
+      // should expose the id
+      strictEqual(A.id, "A")
 
       assertions.formatter.formatAST(A, `A & <filter>`)
 

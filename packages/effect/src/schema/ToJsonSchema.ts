@@ -250,7 +250,7 @@ export function make<S extends Schema.Top>(schema: S, options?: Options): JsonSc
   const target = options?.target ?? "draft-07"
   const additionalPropertiesStrategy = options?.additionalPropertiesStrategy ?? "strict"
   const topLevelReferenceStrategy = options?.topLevelReferenceStrategy ?? "keep"
-  const skipIdentifier = topLevelReferenceStrategy === "skip"
+  const skipId = topLevelReferenceStrategy === "skip"
   const out: JsonSchema.Root = {
     $schema: getTarget(target),
     ...go(AST.encodedAST(schema.ast), [], {
@@ -258,7 +258,7 @@ export function make<S extends Schema.Top>(schema: S, options?: Options): JsonSc
       getRef,
       target,
       additionalPropertiesStrategy
-    }, skipIdentifier)
+    }, skipId)
   }
   if (Object.keys($defs).length > 0) {
     out.$defs = $defs
@@ -379,20 +379,20 @@ type GoOptions = {
   readonly additionalPropertiesStrategy: AdditionalPropertiesStrategy
 }
 
-function getIdentifier(ast: AST.AST): string | undefined {
+function getId(ast: AST.AST): string | undefined {
   if (ast.checks) {
     const last = ast.checks[ast.checks.length - 1]
-    const identifier = last.annotations?.identifier
-    if (Predicate.isString(identifier)) {
-      return identifier
+    const id = last.annotations?.id
+    if (Predicate.isString(id)) {
+      return id
     }
   } else {
-    const identifier = ast.annotations?.identifier
-    if (Predicate.isString(identifier)) {
-      return identifier
+    const id = ast.annotations?.id
+    if (Predicate.isString(id)) {
+      return id
     }
     if (AST.isSuspend(ast)) {
-      return getIdentifier(ast.thunk())
+      return getId(ast.thunk())
     }
   }
 }
@@ -401,19 +401,19 @@ function go(
   ast: AST.AST,
   path: ReadonlyArray<PropertyKey>,
   options: GoOptions,
-  ignoreIdentifier: boolean = false,
+  ignoreId: boolean = false,
   ignoreJsonSchemaAnnotation: boolean = false
 ): JsonSchema.JsonSchema {
-  if (!ignoreIdentifier) {
-    const identifier = getIdentifier(ast)
-    if (identifier !== undefined) {
-      if (Object.hasOwn(options.$defs, identifier)) {
-        return options.$defs[identifier]
+  if (!ignoreId) {
+    const id = getId(ast)
+    if (id !== undefined) {
+      if (Object.hasOwn(options.$defs, id)) {
+        return options.$defs[id]
       } else {
-        const escapedId = identifier.replace(/~/ig, "~0").replace(/\//ig, "~1")
+        const escapedId = id.replace(/~/ig, "~0").replace(/\//ig, "~1")
         const out = { $ref: options.getRef(escapedId) }
-        options.$defs[identifier] = out
-        options.$defs[identifier] = go(ast, path, options, true)
+        options.$defs[id] = out
+        options.$defs[id] = go(ast, path, options, true)
         return out
       }
     }
@@ -421,7 +421,7 @@ function go(
   if (!ignoreJsonSchemaAnnotation) {
     const annotation = getAnnotation(ast.annotations)
     if (annotation && annotation._tag === "override") {
-      return annotation.override(go(ast, path, options, ignoreIdentifier, true))
+      return annotation.override(go(ast, path, options, ignoreId, true))
     }
   }
   switch (ast._tag) {
@@ -587,14 +587,12 @@ function go(
       }
     }
     case "Suspend": {
-      const identifier = getIdentifier(ast)
-      if (identifier !== undefined) {
+      const id = getId(ast)
+      if (id !== undefined) {
         return go(ast.thunk(), path, options, true)
       }
       throw new Error(
-        `cannot generate JSON Schema for ${ast._tag} at ${
-          formatPath(path) || "root"
-        }, required \`identifier\` annotation`
+        `cannot generate JSON Schema for ${ast._tag} at ${formatPath(path) || "root"}, required \`id\` annotation`
       )
     }
   }

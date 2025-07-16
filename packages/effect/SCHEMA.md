@@ -2213,7 +2213,7 @@ class Person extends Schema.Opaque<Person>()(
   Schema.Struct({
     name: Schema.String
   })
-    .annotate({ identifier: "Person" })
+    .annotate({ id: "Person" })
     .check(Check.make(({ name }) => name.length > 0))
 ) {}
 
@@ -4518,7 +4518,7 @@ const Order = Schema.Struct({
   name: Schema.String,
   totalPrice: Schema.Number
 }).annotate({
-  identifier: "Order",
+  id: "Order",
   formatter: {
     Tree: {
       getTitle: getOrderId

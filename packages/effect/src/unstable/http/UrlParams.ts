@@ -166,7 +166,7 @@ export interface schema extends Schema.declareRefinement<UrlParams> {}
 export const schema: schema = Schema.declareRefinement({
   is: isUrlParams,
   annotations: {
-    identifier: "UrlParams",
+    id: "UrlParams",
     equivalence: {
       _tag: "declaration",
       declaration: () => Equivalence

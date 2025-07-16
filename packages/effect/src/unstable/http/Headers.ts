@@ -82,7 +82,7 @@ export interface schema extends Schema.declareRefinement<Headers> {}
 export const schema: schema = Schema.declareRefinement({
   is: isHeaders,
   annotations: {
-    identifier: "Headers",
+    id: "Headers",
     equivalence: {
       _tag: "declaration",
       declaration: () => Equivalence

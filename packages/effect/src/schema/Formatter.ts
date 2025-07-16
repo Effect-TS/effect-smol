@@ -176,15 +176,15 @@ export function formatAST(
     }
   }
   let checks: string = ""
-  const identifier = ast.annotations?.identifier
-  if (Predicate.isString(identifier)) {
-    out = identifier
+  const id = ast.annotations?.id
+  if (Predicate.isString(id)) {
+    out = id
   }
   if (ast.checks) {
     for (const check of ast.checks) {
-      const identifier = check.annotations?.identifier
-      if (Predicate.isString(identifier)) {
-        out = identifier
+      const id = check.annotations?.id
+      if (Predicate.isString(id)) {
+        out = id
         checks = ""
       } else {
         checks += ` & ${formatCheck(check)}`
