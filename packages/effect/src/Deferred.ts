@@ -67,7 +67,7 @@
  * @since 2.0.0
  */
 import * as Cause from "./Cause.js"
-import type { Effect, EffectUnify, EffectUnifyIgnore, Latch } from "./Effect.js"
+import type { Effect, Latch } from "./Effect.js"
 import * as Exit from "./Exit.js"
 import { dual, identity, type LazyArg } from "./Function.js"
 import * as core from "./internal/core.js"
@@ -76,38 +76,14 @@ import * as Option from "./Option.js"
 import type { Pipeable } from "./Pipeable.js"
 import { pipeArguments } from "./Pipeable.js"
 import type * as Types from "./Types.js"
-import type * as Unify from "./Unify.js"
 
 /**
- * @example
- * ```ts
- * import { Deferred } from "effect"
- *
- * // TypeId can be used to identify Deferred instances
- * const deferred = Deferred.unsafeMake<number>()
- * console.log(deferred[Deferred.TypeId]) // { _A: [Function: identity], _E: [Function: identity] }
- * console.log(Deferred.TypeId) // "~effect/Deferred"
- * ```
- *
  * @since 2.0.0
  * @category symbols
  */
 export const TypeId: TypeId = "~effect/Deferred"
 
 /**
- * @example
- * ```ts
- * import { Deferred } from "effect"
- *
- * // TypeId is a type-level identifier for Deferred instances
- * type DeferredTypeId = Deferred.TypeId // "~effect/Deferred"
- *
- * // It can be used in type guards or type-level operations
- * function isDeferredTypeId(value: string): value is Deferred.TypeId {
- *   return value === "~effect/Deferred"
- * }
- * ```
- *
  * @since 2.0.0
  * @category symbols
  */
@@ -159,95 +135,16 @@ export type TypeId = "~effect/Deferred"
  * @category models
  */
 export interface Deferred<in out A, in out E = never> extends Deferred.Variance<A, E>, Pipeable {
-  /** @internal */
   effect?: Effect<A, E>
-  /** @internal */
   latch?: Latch | undefined
-  readonly [Unify.typeSymbol]?: unknown
-  readonly [Unify.unifySymbol]?: DeferredUnify<this>
-  readonly [Unify.ignoreSymbol]?: DeferredUnifyIgnore
 }
 
 /**
- * @example
- * ```ts
- * import { Deferred, Effect } from "effect"
- *
- * // DeferredUnify is used internally for type-level operations
- * // It helps with unifying Deferred types in complex type operations
- * // Example of the interface structure (used internally by the type system)
- * type DeferredUnifyStructure = {
- *   Deferred?: () => Deferred.Deferred<any, any>
- * }
- *
- * // This interface extends EffectUnify to provide Deferred-specific unification
- * declare const unifyExample: DeferredUnifyStructure
- * ```
- *
- * @category models
- * @since 3.8.0
- */
-export interface DeferredUnify<A extends { [Unify.typeSymbol]?: any }> extends EffectUnify<A> {
-  Deferred?: () => Extract<A[Unify.typeSymbol], Deferred<any, any>>
-}
-
-/**
- * @example
- * ```ts
- * import { Deferred } from "effect"
- *
- * // DeferredUnifyIgnore specifies which types to ignore during unification
- * // It extends EffectUnifyIgnore and specifically ignores Effect types
- * type IgnoreConfig = Deferred.DeferredUnifyIgnore
- *
- * // This configuration is used internally by the type system
- * // to control which types participate in unification operations
- * declare const ignoreExample: IgnoreConfig
- * ```
- *
- * @category models
- * @since 3.8.0
- */
-export interface DeferredUnifyIgnore extends EffectUnifyIgnore {
-  Effect?: true
-}
-
-/**
- * @example
- * ```ts
- * import { Deferred, Effect } from "effect"
- *
- * // The Deferred namespace contains types and interfaces related to Deferred
- *
- * // Example usage with the namespace types
- * const program = Effect.gen(function* () {
- *   const deferred: Deferred.Deferred<string, Error> = yield* Deferred.make<string, Error>()
- *   yield* Deferred.succeed(deferred, "namespace example")
- *   return yield* Deferred.await(deferred)
- * })
- * ```
- *
  * @since 2.0.0
  * @category models
  */
 export declare namespace Deferred {
   /**
-   * @example
-   * ```ts
-   * import { Deferred } from "effect"
-   *
-   * // Variance interface defines the type variance for Deferred
-   * // It specifies how the type parameters A and E behave in subtyping
-   * // The variance information is used internally by TypeScript
-   * // to ensure type safety with respect to covariance and contravariance
-   * type VarianceExample = {
-   *   readonly [Deferred.TypeId]: {
-   *     readonly _A: unknown
-   *     readonly _E: unknown
-   *   }
-   * }
-   * ```
-   *
    * @since 2.0.0
    * @category models
    */
@@ -270,7 +167,7 @@ const DeferredProto = {
 }
 
 /**
- * Unsafely creates a new `Deferred` from the specified `FiberId`.
+ * Unsafely creates a new `Deferred`
  *
  * @example
  * ```ts
@@ -652,8 +549,16 @@ export const interruptWith: {
  * @since 2.0.0
  * @category getters
  */
-export const isDone = <A, E>(self: Deferred<A, E>): Effect<boolean> =>
-  internalEffect.sync(() => self.effect !== undefined)
+export const isDone = <A, E>(self: Deferred<A, E>): Effect<boolean> => internalEffect.sync(() => unsafeIsDone(self))
+
+/**
+ * Returns `true` if this `Deferred` has already been completed with a value or
+ * an error, `false` otherwise.
+ *
+ * @since 2.0.0
+ * @category getters
+ */
+export const unsafeIsDone = <A, E>(self: Deferred<A, E>): boolean => self.effect !== undefined
 
 /**
  * Returns a `Some<Effect<A, E, R>>` from the `Deferred` if this `Deferred` has

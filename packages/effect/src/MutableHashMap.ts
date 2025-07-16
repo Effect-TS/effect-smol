@@ -90,11 +90,8 @@ export type TypeId = "~effect/MutableHashMap"
  */
 export interface MutableHashMap<out K, out V> extends Iterable<[K, V]>, Pipeable, Inspectable {
   readonly [TypeId]: TypeId
-  /** @internal */
   readonly referential: Map<K, V>
-  /** @internal */
   readonly buckets: Map<number, NonEmptyArray<readonly [K & Equal.Equal, V]>>
-  /** @internal */
   bucketsSize: number
 }
 
