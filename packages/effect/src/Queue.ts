@@ -116,7 +116,7 @@ export const isQueue = <A = unknown, E = unknown>(
  * import { Effect, Queue } from "effect"
  *
  * const program = Effect.gen(function*() {
- *   const queue = yield* Queue.bounded<string>(10)
+ *   const queue = yield* Queue.bounded<string, never>(10)
  *
  *   // A Dequeue can only take elements
  *   const dequeue: Queue.Dequeue<string> = queue
@@ -284,7 +284,7 @@ const QueueProto = {
  * import { Effect, Queue } from "effect"
  *
  * Effect.gen(function*() {
- *   const queue = yield* Queue.make<number, string>()
+ *   const queue = yield* Queue.make<number, string | Queue.Done>()
  *
  *   // add messages to the queue
  *   yield* Queue.offer(queue, 1)
