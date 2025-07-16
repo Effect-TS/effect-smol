@@ -75,7 +75,7 @@ describe("TxQueue", () => {
         assert.deepStrictEqual(Chunk.toReadonlyArray(rejected), [])
 
         // State management operations should work
-        const result = yield* TxQueue.done(enqueue, Cause.interrupt())
+        const result = yield* TxQueue.failCause(enqueue, Cause.interrupt())
         assert.strictEqual(result, true)
 
         const endResult = yield* TxQueue.end(enqueue as TxQueue.TxEnqueue<number, string | Cause.NoSuchElementError>)
@@ -830,7 +830,7 @@ describe("TxQueue", () => {
           const queue = yield* TxQueue.bounded<number>(5)
 
           const customCause = Cause.interrupt()
-          const result = yield* TxQueue.done(queue, customCause)
+          const result = yield* TxQueue.failCause(queue, customCause)
           assert.strictEqual(result, true)
 
           const isDone = yield* TxQueue.isDone(queue)
@@ -930,7 +930,7 @@ describe("TxQueue", () => {
           const defect = new Error("system failure")
           const defectCause = Cause.die(defect)
 
-          yield* TxQueue.done(queue, defectCause)
+          yield* TxQueue.failCause(queue, defectCause)
 
           // awaitCompletion should succeed since queue is done (defects are not propagated)
           yield* TxQueue.awaitCompletion(queue)
@@ -941,7 +941,7 @@ describe("TxQueue", () => {
           const queue = yield* TxQueue.bounded<number>(5)
           const customInterrupt = Cause.interrupt(12345)
 
-          yield* TxQueue.done(queue, customInterrupt)
+          yield* TxQueue.failCause(queue, customInterrupt)
 
           // awaitCompletion should succeed with interrupt-only causes
           yield* TxQueue.awaitCompletion(queue)
@@ -1036,7 +1036,7 @@ describe("TxQueue", () => {
         Effect.gen(function*() {
           const queue = yield* TxQueue.bounded<number, string>(5)
           const interruptCause = Cause.interrupt(123)
-          yield* TxQueue.done(queue, interruptCause)
+          yield* TxQueue.failCause(queue, interruptCause)
 
           // take() should propagate the interruption directly, not wrap in Option
           const result = yield* Effect.exit(TxQueue.take(queue))
@@ -1053,7 +1053,7 @@ describe("TxQueue", () => {
           const customError = new Error("custom failure")
           const customCause = Cause.fail(customError)
 
-          yield* TxQueue.done(queue, customCause)
+          yield* TxQueue.failCause(queue, customCause)
 
           // take() should extract the custom error directly
           const result = yield* Effect.flip(TxQueue.take(queue))
@@ -1066,7 +1066,7 @@ describe("TxQueue", () => {
           const defect = new Error("unexpected defect")
           const defectCause = Cause.die(defect)
 
-          yield* TxQueue.done(queue, defectCause)
+          yield* TxQueue.failCause(queue, defectCause)
 
           // take() should propagate the defect directly, not wrap in Option
           const result = yield* Effect.exit(TxQueue.take(queue))
@@ -1085,7 +1085,7 @@ describe("TxQueue", () => {
           const typedError = "typed error"
           const failCause = Cause.fail(typedError)
 
-          yield* TxQueue.done(queue, failCause)
+          yield* TxQueue.failCause(queue, failCause)
 
           // take() should extract the typed error directly
           const result = yield* Effect.flip(TxQueue.take(queue))
