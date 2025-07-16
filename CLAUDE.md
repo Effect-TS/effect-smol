@@ -91,6 +91,11 @@ This is the Effect library repository, focusing on functional programming patter
 - **Zero Tolerance for Errors**: All automated checks must pass
 - **Clarity over Cleverness**: Choose clear, maintainable solutions
 
+### Implementation Specifications
+- **Specifications Directory**: `.specs/` contains detailed implementation plans and specifications for all features
+- **Organization**: Each specification is organized by feature name (e.g., `effect-transaction-to-atomic-refactor`, `txhashmap-implementation`)
+- **Purpose**: Reference these specifications when implementing new features or understanding existing implementation plans
+
 ### Structured Development Process
 1. **Research Phase**
    - Understand the codebase and existing patterns
@@ -159,7 +164,12 @@ pnpm lint --fix <typescript_file.ts>
 - Simplify the approach
 - Ask for guidance rather than guessing
 
-## Documentation Examples
+## JSDoc Documentation Enhancement
+
+### Overview
+Achieve 100% JSDoc documentation coverage for Effect library modules by adding comprehensive `@example` tags and proper `@category` annotations to all exported functions, types, interfaces, and constants.
+
+### Critical Requirements
 - **CRITICAL REQUIREMENT**: Check that all JSDoc examples compile: `pnpm docgen`
 - This command extracts code examples from JSDoc comments and type-checks them
 - **ABSOLUTELY NEVER COMMIT if docgen fails** - Fix ANY and ALL compilation errors in examples before committing
@@ -171,8 +181,153 @@ pnpm lint --fix <typescript_file.ts>
 - **DO NOT** edit files in the `docs/examples/` folder - these are auto-generated from JSDoc comments
 - **CRITICAL**: When the JSDoc analysis tool reports false positives (missing examples that actually exist), fix the tool in `scripts/analyze-jsdoc.mjs` to correctly detect existing examples
 
+### Finding Missing Documentation
+- **For all files**: `node scripts/analyze-jsdoc.mjs`
+- **For specific file**: `node scripts/analyze-jsdoc.mjs --file=FileName.ts`
+- **Example**: `node scripts/analyze-jsdoc.mjs --file=Effect.ts`
+- **Schema files**: `node scripts/analyze-jsdoc.mjs --file=schema/Schema.ts`
+
+### Documentation Enhancement Strategies
+
+#### Single File Approach
+For focused, deep documentation work on one complex module:
+- Choose one high-priority file
+- Work through it systematically
+- Ensure 100% completion before moving on
+
+#### Parallel Agent Approach
+For maximum efficiency across multiple files simultaneously:
+
+**When to Use Parallel Agents:**
+- Working on 5+ files with similar complexity
+- Need to quickly improve overall coverage
+- Files are independent (no cross-dependencies in examples)
+- Have identified top 10-20 priority files
+
+**Parallel Implementation:**
+```bash
+# 1. Identify top priority files
+node scripts/analyze-jsdoc.mjs | head -20
+
+# 2. Deploy multiple agents using Task tool
+# Agent 1: Work on File1.ts (X missing examples)
+# Agent 2: Work on File2.ts (Y missing examples) 
+# Agent 3: Work on File3.ts (Z missing examples)
+# ... up to 10 agents for maximum efficiency
+
+# 3. Coordinate agent tasks
+# - Each agent works on a different file
+# - Clear task descriptions with specific file targets
+# - Include missing example counts and categories needed
+```
+
+**Parallel Agent Task Template:**
+```
+Complete JSDoc documentation for [RelativePath] ([X] missing examples, [Y] missing categories)
+
+Instructions:
+- Read packages/effect/src/[RelativePath] (e.g., Effect.ts or schema/Schema.ts)
+- **For schema files**: First read packages/effect/SCHEMA.md for comprehensive understanding
+- Add @example tags for all missing exports
+- Add missing @category tags
+- Follow Effect library patterns
+- Ensure all examples compile with pnpm docgen
+- Run pnpm lint --fix after each edit
+
+Focus areas:
+- [List specific exports needing examples]
+- [Note any complex types or patterns]
+- [Mention related modules for context]
+
+Schema-specific guidance:
+- SCHEMA.md covers v4 model structure, transformations, and usage patterns
+- Use Bottom interface understanding (14 type parameters) for accurate examples
+- Reference constructor patterns, filtering, and transformation examples
+
+Note: Use relative paths when analyzing progress:
+- node scripts/analyze-jsdoc.mjs --file=[RelativePath]
+```
+
+### Development Workflow for Documentation
+
+**Step-by-Step Process:**
+1. **Identify Target Files**: Use `node scripts/analyze-jsdoc.mjs` to find missing documentation
+2. **Prioritize Files**: Focus on high-impact, frequently used modules
+3. **Read and Understand**: Analyze the target file structure and purpose
+4. **Add Examples Systematically**: Follow the example structure below
+5. **Validate**: Ensure all examples compile and lint correctly
+
+**IMPORTANT: After each edit, run linting:**
+```bash
+pnpm lint --fix packages/effect/src/TargetFile.ts
+```
+
+### Scratchpad Development Workflow
+For efficient example development, use the `./scratchpad/` directory:
+
+```bash
+# Create temporary development files
+touch ./scratchpad/test-example.ts
+
+# Check TypeScript compilation
+tsc --noEmit ./scratchpad/test-example.ts
+
+# Fix formatting using project rules
+pnpm lint --fix ./scratchpad/test-example.ts
+
+# Test execution if needed
+pnpm tsx ./scratchpad/test-example.ts
+```
+
+**Scratchpad Benefits:**
+- ✅ Rapid prototyping of complex examples
+- ✅ Safe testing without affecting main codebase
+- ✅ Easy iteration on example code
+- ✅ Type checking validation before copying to JSDoc
+
+**⚠️ Remember to Clean Up:**
+```bash
+# Clean up test files when done
+rm scratchpad/test-*.ts
+rm scratchpad/temp*.ts scratchpad/example*.ts
+```
+
 ### Writing Examples Guidelines
-- Always check test code to ensure the example reflects correct usage
+
+**Example Structure:**
+```typescript
+/**
+ * Brief description of what the function does.
+ *
+ * @example
+ * ```ts
+ * import { ModuleName, Effect } from "effect"
+ *
+ * // Clear description of what this example demonstrates
+ * const example = ModuleName.functionName(params)
+ *
+ * // Usage in Effect context
+ * const program = Effect.gen(function* () {
+ *   const result = yield* example
+ *   console.log(result)
+ * })
+ * ```
+ *
+ * @since version
+ * @category appropriate-category
+ */
+```
+
+**Key Requirements:**
+- **Working Examples**: All code must compile and be type-safe
+- **Practical Usage**: Show real-world use cases, not just API calls
+- **Effect Patterns**: Demonstrate proper Effect library usage
+- **Multiple Scenarios**: For complex functions, show different use cases
+- **Clear Comments**: Explain what each part of the example does
+- **Nested Namespace Types**: Always check if types are nested within namespaces and use proper access syntax `Module.Namespace.Type`
+- **Type Extractors**: For type-level utilities, demonstrate type extraction using conditional types and `infer`, not instance creation
+
+**Critical Guidelines:**
 - **MANDATORY**: All examples must compile without errors when docgen runs
 - **CRITICAL**: Use proper JSDoc `@example title` tags, not markdown-style `**Example**` headers
 - Convert any existing `**Example** (Title)` sections to `@example Title` format
@@ -188,11 +343,104 @@ pnpm lint --fix <typescript_file.ts>
 - **MANDATORY**: Always check if types are nested within namespaces and use proper access syntax `Module.Namespace.Type`
 - **TYPE EXTRACTORS**: For type-level utilities like `Request.Request.Success<T>`, demonstrate type extraction using conditional types and `infer`, not instance creation
 
-### Finding Missing Documentation
-- **For all files**: `node scripts/analyze-jsdoc.mjs`
-- **For specific file**: `node scripts/analyze-jsdoc.mjs --file=FileName.ts`
-- **Example**: `node scripts/analyze-jsdoc.mjs --file=Effect.ts`
-- **Schema files**: `node scripts/analyze-jsdoc.mjs --file=schema/Schema.ts`
+### Documentation Standards
+
+**Import Patterns:**
+```typescript
+// Core Effect library imports
+import { Schedule, Effect, Duration, Console } from "effect"
+
+// Schema imports (note: lowercase 'schema')
+import { Schema } from "effect/schema"
+
+// For mixed usage
+import { Effect } from "effect"
+import { Schema } from "effect/schema"
+
+// For type-only imports when needed
+import type { Schedule } from "effect"
+import type { Schema } from "effect/schema"
+```
+
+**Error Handling:**
+```typescript
+// Use Data.TaggedError for custom errors
+import { Data } from "effect"
+
+class CustomError extends Data.TaggedError("CustomError")<{
+  message: string
+}> {}
+```
+
+**Effect Patterns:**
+```typescript
+// Use Effect.gen for monadic composition
+const program = Effect.gen(function* () {
+  const result = yield* someEffect
+  return result
+})
+
+// Use proper error handling
+const safeProgram = Effect.gen(function* () {
+  const result = yield* Effect.tryPromise({
+    try: () => someAsyncOperation(),
+    catch: (error) => new CustomError({ message: String(error) })
+  })
+  return result
+})
+```
+
+**Schema Patterns:**
+```typescript
+// Basic schema usage
+import { Schema } from "effect/schema"
+
+// Simple validation
+const result = Schema.decodeUnknownSync(Schema.String)("hello")
+
+// With Effect for async validation
+import { Effect } from "effect"
+import { Schema } from "effect/schema"
+
+const program = Effect.gen(function* () {
+  const validated = yield* Schema.decodeUnknownEffect(Schema.Number)(42)
+  return validated
+})
+
+// Struct schemas
+const PersonSchema = Schema.Struct({
+  name: Schema.String,
+  age: Schema.Number
+})
+
+// Complex validation with error handling
+const safeValidation = Effect.gen(function* () {
+  const result = yield* Schema.decodeUnknownEffect(PersonSchema)(input)
+  console.log("Valid person:", result)
+  return result
+})
+```
+
+**Categories to Use:**
+- `constructors` - Functions that create new instances
+- `destructors` - Functions that extract or convert values  
+- `combinators` - Functions that combine or transform existing values
+- `utilities` - Helper functions and common operations
+- `predicates` - Functions that return boolean values
+- `getters` - Functions that extract properties or values
+- `models` - Types, interfaces, and data structures
+- `symbols` - Type identifiers and branded types
+- `guards` - Type guard functions
+- `refinements` - Type refinement functions
+- `mapping` - Transformation functions
+- `filtering` - Selection and filtering operations
+- `folding` - Reduction and aggregation operations
+- `sequencing` - Sequential operation combinators
+- `error handling` - Error management functions
+- `resource management` - Resource lifecycle functions
+- `concurrency` - Concurrent operation utilities
+- `testing` - Test utilities and helpers
+- `interop` - Interoperability functions
 
 ### Schema Module Documentation
 - **CRITICAL**: When working on schema modules, read `packages/effect/SCHEMA.md` first
@@ -206,13 +454,108 @@ pnpm lint --fix <typescript_file.ts>
 - Use SCHEMA.md examples as reference for accurate JSDoc examples
 - Schema modules include: Schema.ts, AST.ts, Check.ts, Transformation.ts, etc.
 
-### Common Issues
-- Missing imports (e.g., `Effect`, `Stream`, `Console`)
-- Using non-existent API methods
-- Type mismatches in function signatures
-- Incorrect generic type arguments
-- Missing type annotations causing implicit `any` types
-- Using direct type assertions instead of proper constructors
+### Handling Complex Functions
+
+**Advanced Functions:**
+For low-level or advanced functions that are rarely used directly:
+
+```typescript
+/**
+ * Advanced function for [specific use case].
+ *
+ * @example
+ * ```ts
+ * import { ModuleName } from "effect"
+ *
+ * // Note: This is an advanced function for specific use cases
+ * // Most users should use simpler alternatives like:
+ * const simpleApproach = ModuleName.commonFunction(args)
+ * const anotherOption = ModuleName.helperFunction(args)
+ *
+ * // Advanced usage (when absolutely necessary):
+ * const advancedResult = ModuleName.advancedFunction(complexArgs)
+ * ```
+ */
+```
+
+**Type-Level Functions:**
+```typescript
+/**
+ * Type-level constraint function for compile-time safety.
+ *
+ * @example
+ * ```ts
+ * import { ModuleName } from "effect"
+ *
+ * // Ensures type constraint at compile time
+ * const constrainedValue = someValue.pipe(
+ *   ModuleName.ensureType<SpecificType>()
+ * )
+ *
+ * // This provides compile-time type safety without runtime overhead
+ * ```
+ */
+```
+
+### Validation and Testing
+
+**Required Checks (run after every edit):**
+```bash
+# 1. Fix linting issues immediately
+pnpm lint --fix packages/effect/src/ModifiedFile.ts
+
+# 2. Verify examples compile
+pnpm docgen
+
+# 3. Verify type checking
+pnpm check
+
+# 4. Confirm progress
+node scripts/analyze-jsdoc.mjs --file=ModifiedFile.ts
+```
+
+**Success Criteria:**
+- ✅ Zero compilation errors in `pnpm docgen`
+- ✅ All lint checks pass
+- ✅ Examples demonstrate practical usage
+- ✅ 100% coverage achieved for target file
+- ✅ Documentation follows Effect patterns
+
+### Common Issues to Avoid
+- ❌ **Using `any` types** - Always use proper TypeScript types
+- ❌ **Non-compiling examples** - All code must pass `pnpm docgen`
+- ❌ **Import errors** - Check module exports and correct import paths
+- ❌ **Namespace confusion** - Use correct type references (e.g., `Schedule.InputMetadata`)
+- ❌ **Array vs Tuple issues** - Pay attention to exact type requirements
+- ❌ **Missing Effect imports** - Import all necessary Effect modules
+- ❌ **Outdated patterns** - Use current Effect API, not deprecated approaches
+- ❌ **Incorrect nested type access** - Use `Module.Namespace.Type` syntax for nested types
+- ❌ **Wrong type extractor examples** - Type-level utilities should show type extraction, not instance creation
+- ❌ **Wrong schema imports** - Use `effect/schema` (lowercase), not `effect/Schema` or `@effect/schema`
+- ❌ **Missing Schema import** - Always import Schema when using schema functions
+- ❌ **Incorrect validation patterns** - Use `decodeUnknownSync` for sync validation, `decodeUnknownEffect` for async
+
+### Success Metrics
+
+**Per File:**
+- 100% JSDoc coverage (all exports have @example tags)
+- Zero compilation errors in docgen
+- All functions have appropriate @category tags
+- Examples demonstrate practical, real-world usage
+
+**Per Module Domain:**
+- Core modules (Effect, Array, Chunk, etc.) should be prioritized
+- Schema modules (Schema, AST, etc.) benefit from validation examples
+- Stream/concurrency modules benefit from complex examples
+- Utility modules need practical, everyday use cases
+- Type-level modules need clear constraint examples
+
+**Long-term Impact:**
+- Improves developer experience with comprehensive examples
+- Reduces learning curve for Effect library adoption
+- Enhances IDE support with better IntelliSense
+- Ensures maintainability with consistent documentation patterns
+- Builds institutional knowledge through practical examples
 
 ## Code Style Guidelines
 
@@ -363,12 +706,16 @@ it.effect("test", () => Effect.gen(function*() {
 - `packages/vitest/` - Vitest testing utilities
 
 ## Key Directories
+
+### Core Library
 - `packages/effect/src/` - Core Effect library source code
 - `packages/effect/test/` - Effect library test files
 - `packages/effect/dtslint/` - TypeScript definition tests
 - `packages/effect/src/internal/` - Internal implementation details
 - `packages/effect/src/schema/` - Schema validation and parsing
 - `packages/effect/src/unstable/` - Experimental features (e.g., HTTP client)
+
+### Platform Implementations
 - `packages/platform-node/src/` - Node.js platform source code
 - `packages/platform-node/test/` - Node.js platform tests
 - `packages/platform-node-shared/src/` - Shared Node.js utilities source
@@ -376,8 +723,20 @@ it.effect("test", () => Effect.gen(function*() {
 - `packages/platform-bun/src/` - Bun platform source code
 - `packages/vitest/src/` - Vitest utilities source code
 - `packages/vitest/test/` - Vitest utilities tests
+
+### Development & Build
 - `scripts/` - Build and maintenance scripts
 - `bundle/` - Bundle size analysis files
+- `docs/` - Generated documentation files
+- `coverage/` - Test coverage reports
+- `scratchpad/` - Temporary development and testing files
+- `patches/` - Package patches for dependencies
+
+### Configuration & Specs
+- `.specs/` - Implementation specifications and plans organized by feature
+- `.github/` - GitHub Actions workflows and templates
+- `.vscode/` - VS Code workspace configuration
+- `.changeset/` - Changeset configuration for versioning
 
 ## Problem-Solving Strategies
 
