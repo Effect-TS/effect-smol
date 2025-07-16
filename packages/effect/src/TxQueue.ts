@@ -727,18 +727,20 @@ export const offerAll: {
 } = dual(
   2,
   <A, E>(self: TxEnqueue<A, E>, values: Iterable<A>): Effect.Effect<Chunk.Chunk<A>> =>
-    Effect.gen(function*() {
-      const rejected: Array<A> = []
+    Effect.atomic(
+      Effect.gen(function*() {
+        const rejected: Array<A> = []
 
-      for (const value of values) {
-        const accepted = yield* offer(self, value)
-        if (!accepted) {
-          rejected.push(value)
+        for (const value of values) {
+          const accepted = yield* offer(self, value)
+          if (!accepted) {
+            rejected.push(value)
+          }
         }
-      }
 
-      return Chunk.fromIterable(rejected)
-    })
+        return Chunk.fromIterable(rejected)
+      })
+    )
 )
 
 /**

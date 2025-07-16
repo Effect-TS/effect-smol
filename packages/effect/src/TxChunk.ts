@@ -774,7 +774,9 @@ export const concat: {
   <A>(other: TxChunk<A>): (self: TxChunk<A>) => Effect.Effect<void>
   <A>(self: TxChunk<A>, other: TxChunk<A>): Effect.Effect<void>
 } = dual(2, <A>(self: TxChunk<A>, other: TxChunk<A>): Effect.Effect<void> =>
-  Effect.gen(function*() {
-    const otherChunk = yield* get(other)
-    yield* appendAll(self, otherChunk)
-  }))
+  Effect.atomic(
+    Effect.gen(function*() {
+      const otherChunk = yield* get(other)
+      yield* appendAll(self, otherChunk)
+    })
+  ))

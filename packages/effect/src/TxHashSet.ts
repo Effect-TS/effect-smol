@@ -557,12 +557,14 @@ export const union: {
   <V1>(that: TxHashSet<V1>) => <V0>(self: TxHashSet<V0>) => Effect.Effect<TxHashSet<V1 | V0>>,
   <V0, V1>(self: TxHashSet<V0>, that: TxHashSet<V1>) => Effect.Effect<TxHashSet<V0 | V1>>
 >(2, <V0, V1>(self: TxHashSet<V0>, that: TxHashSet<V1>) =>
-  Effect.gen(function*() {
-    const set1 = yield* TxRef.get(self.ref)
-    const set2 = yield* TxRef.get(that.ref)
-    const combined = HashSet.union(set1, set2)
-    return yield* fromHashSet(combined)
-  }))
+  Effect.atomic(
+    Effect.gen(function*() {
+      const set1 = yield* TxRef.get(self.ref)
+      const set2 = yield* TxRef.get(that.ref)
+      const combined = HashSet.union(set1, set2)
+      return yield* fromHashSet(combined)
+    })
+  ))
 
 /**
  * Creates the intersection of two TxHashSets, returning a new TxHashSet.
@@ -592,12 +594,14 @@ export const intersection: {
   <V1>(that: TxHashSet<V1>) => <V0>(self: TxHashSet<V0>) => Effect.Effect<TxHashSet<V1 & V0>>,
   <V0, V1>(self: TxHashSet<V0>, that: TxHashSet<V1>) => Effect.Effect<TxHashSet<V0 & V1>>
 >(2, <V0, V1>(self: TxHashSet<V0>, that: TxHashSet<V1>) =>
-  Effect.gen(function*() {
-    const set1 = yield* TxRef.get(self.ref)
-    const set2 = yield* TxRef.get(that.ref)
-    const common = HashSet.intersection(set1, set2)
-    return yield* fromHashSet(common)
-  }))
+  Effect.atomic(
+    Effect.gen(function*() {
+      const set1 = yield* TxRef.get(self.ref)
+      const set2 = yield* TxRef.get(that.ref)
+      const common = HashSet.intersection(set1, set2)
+      return yield* fromHashSet(common)
+    })
+  ))
 
 /**
  * Creates the difference of two TxHashSets (elements in the first set that are not in the second), returning a new TxHashSet.
@@ -627,12 +631,14 @@ export const difference: {
   <V1>(that: TxHashSet<V1>) => <V0>(self: TxHashSet<V0>) => Effect.Effect<TxHashSet<V0>>,
   <V0, V1>(self: TxHashSet<V0>, that: TxHashSet<V1>) => Effect.Effect<TxHashSet<V0>>
 >(2, <V0, V1>(self: TxHashSet<V0>, that: TxHashSet<V1>) =>
-  Effect.gen(function*() {
-    const set1 = yield* TxRef.get(self.ref)
-    const set2 = yield* TxRef.get(that.ref)
-    const diff = HashSet.difference(set1, set2)
-    return yield* fromHashSet(diff)
-  }))
+  Effect.atomic(
+    Effect.gen(function*() {
+      const set1 = yield* TxRef.get(self.ref)
+      const set2 = yield* TxRef.get(that.ref)
+      const diff = HashSet.difference(set1, set2)
+      return yield* fromHashSet(diff)
+    })
+  ))
 
 /**
  * Checks if a TxHashSet is a subset of another TxHashSet.
@@ -663,11 +669,13 @@ export const isSubset: {
   <V1>(that: TxHashSet<V1>) => <V0>(self: TxHashSet<V0>) => Effect.Effect<boolean>,
   <V0, V1>(self: TxHashSet<V0>, that: TxHashSet<V1>) => Effect.Effect<boolean>
 >(2, <V0, V1>(self: TxHashSet<V0>, that: TxHashSet<V1>) =>
-  Effect.gen(function*() {
-    const set1 = yield* TxRef.get(self.ref)
-    const set2 = yield* TxRef.get(that.ref)
-    return HashSet.isSubset(set1, set2)
-  }))
+  Effect.atomic(
+    Effect.gen(function*() {
+      const set1 = yield* TxRef.get(self.ref)
+      const set2 = yield* TxRef.get(that.ref)
+      return HashSet.isSubset(set1, set2)
+    })
+  ))
 
 /**
  * Tests whether at least one value in the TxHashSet satisfies the predicate.
