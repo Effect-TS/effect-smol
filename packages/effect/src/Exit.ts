@@ -251,7 +251,7 @@ export const die: (defect: unknown) => Exit<never> = core.exitDie
  * @category constructors
  * @since 2.0.0
  */
-export const interrupt: (fiberId: number) => Exit<never> = effect.exitInterrupt
+export const interrupt: (fiberId?: number | undefined) => Exit<never> = effect.exitInterrupt
 
 const void_: Exit<void> = effect.exitVoid
 export {

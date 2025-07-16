@@ -418,7 +418,7 @@ export const toChannel = <A, E, R>(
  * @category constructors
  */
 export const callback = <A, E = never, R = never>(
-  f: (queue: Queue.Queue<A, E>) => void | Effect.Effect<unknown, E, R | Scope.Scope>,
+  f: (queue: Queue.Queue<A, E | Queue.Done>) => void | Effect.Effect<unknown, E, R | Scope.Scope>,
   options?: {
     readonly bufferSize?: number | undefined
     readonly strategy?: "sliding" | "dropping" | "suspend" | undefined
@@ -713,7 +713,8 @@ export const fromArray = <A>(array: ReadonlyArray<A>): Stream<A> =>
  * @since 4.0.0
  * @category constructors
  */
-export const fromQueue = <A, E>(queue: Queue.Dequeue<A, E>): Stream<A, E> => fromChannel(Channel.fromQueueArray(queue))
+export const fromQueue = <A, E>(queue: Queue.Dequeue<A, E>): Stream<A, Exclude<E, Queue.Done>> =>
+  fromChannel(Channel.fromQueueArray(queue))
 
 /**
  * Creates a stream from a PubSub.

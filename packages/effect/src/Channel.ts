@@ -413,13 +413,13 @@ export const DefaultChunkSize: number = 4096
 
 const asyncQueue = <A, E = never, R = never>(
   scope: Scope.Scope,
-  f: (queue: Queue.Queue<A, E>) => void | Effect.Effect<unknown, E, R | Scope.Scope>,
+  f: (queue: Queue.Queue<A, E | Queue.Done>) => void | Effect.Effect<unknown, E, R | Scope.Scope>,
   options?: {
     readonly bufferSize?: number | undefined
     readonly strategy?: "sliding" | "dropping" | "suspend" | undefined
   }
 ) =>
-  Queue.make<A, E>({
+  Queue.make<A, E | Queue.Done>({
     capacity: options?.bufferSize,
     strategy: options?.strategy
   }).pipe(
@@ -450,7 +450,7 @@ const asyncQueue = <A, E = never, R = never>(
  * @since 2.0.0
  */
 export const callback = <A, E = never, R = never>(
-  f: (queue: Queue.Queue<A, E>) => void | Effect.Effect<unknown, E, R | Scope.Scope>,
+  f: (queue: Queue.Queue<A, E | Queue.Done>) => void | Effect.Effect<unknown, E, R | Scope.Scope>,
   options?: {
     readonly bufferSize?: number | undefined
     readonly strategy?: "sliding" | "dropping" | "suspend" | undefined
@@ -476,7 +476,7 @@ export const callback = <A, E = never, R = never>(
  * @since 4.0.0
  */
 export const callbackArray = <A, E = never, R = never>(
-  f: (queue: Queue.Queue<A, E>) => void | Effect.Effect<unknown, E, R | Scope.Scope>,
+  f: (queue: Queue.Queue<A, E | Queue.Done>) => void | Effect.Effect<unknown, E, R | Scope.Scope>,
   options?: {
     readonly bufferSize?: number | undefined
     readonly strategy?: "sliding" | "dropping" | "suspend" | undefined
@@ -1070,7 +1070,7 @@ export const fromEffect = <A, E, R>(
  */
 export const fromQueue = <A, E>(
   queue: Queue.Dequeue<A, E>
-): Channel<A, E> => fromPull(Effect.succeed(Queue.toPull(queue)))
+): Channel<A, Exclude<E, Queue.Done>> => fromPull(Effect.succeed(Queue.toPull(queue)))
 
 /**
  * Create a channel from a queue that emits arrays of elements
@@ -1115,7 +1115,7 @@ export const fromQueue = <A, E>(
  */
 export const fromQueueArray = <A, E>(
   queue: Queue.Dequeue<A, E>
-): Channel<Arr.NonEmptyReadonlyArray<A>, E> => fromPull(Effect.succeed(Queue.toPullArray(queue)))
+): Channel<Arr.NonEmptyReadonlyArray<A>, Exclude<E, Queue.Done>> => fromPull(Effect.succeed(Queue.toPullArray(queue)))
 
 /**
  * Create a channel from a PubSub subscription
@@ -1732,7 +1732,9 @@ const mapEffectConcurrent = <
 
         yield* Queue.take(fibers).pipe(
           Effect.flatMap(identity),
-          Effect.flatMap((exit) => exit._tag === "Success" ? Queue.offer(queue, exit.value) : Queue.done(queue, exit)),
+          Effect.flatMap((exit) =>
+            exit._tag === "Success" ? Queue.offer(queue, exit.value) : Queue.failCause(queue, exit.cause)
+          ),
           Effect.forever({ autoYield: false }),
           Effect.ignore,
           Effect.forkIn(forkedScope)
@@ -3786,13 +3788,13 @@ export const toQueue: {
     readonly bufferSize?: number | undefined
   }): <OutElem, OutErr, OutDone, Env>(
     self: Channel<OutElem, OutErr, OutDone, unknown, unknown, unknown, Env>
-  ) => Effect.Effect<Queue.Dequeue<OutElem, OutErr>, never, Env | Scope.Scope>
+  ) => Effect.Effect<Queue.Dequeue<OutElem, OutErr | Queue.Done>, never, Env | Scope.Scope>
   <OutElem, OutErr, OutDone, Env>(
     self: Channel<OutElem, OutErr, OutDone, unknown, unknown, unknown, Env>,
     options?: {
       readonly bufferSize?: number | undefined
     }
-  ): Effect.Effect<Queue.Dequeue<OutElem, OutErr>, never, Env | Scope.Scope>
+  ): Effect.Effect<Queue.Dequeue<OutElem, OutErr | Queue.Done>, never, Env | Scope.Scope>
 } = dual(
   (args) => isChannel(args[0]),
   Effect.fnUntraced(function*<OutElem, OutErr, OutDone, Env>(
@@ -3802,7 +3804,7 @@ export const toQueue: {
     }
   ) {
     const scope = yield* Effect.scope
-    const queue = yield* Queue.make<OutElem, OutErr>({
+    const queue = yield* Queue.make<OutElem, OutErr | Queue.Done>({
       capacity: options?.bufferSize
     })
     yield* Scope.addFinalizer(scope, Queue.shutdown(queue))

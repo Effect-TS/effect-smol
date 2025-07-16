@@ -1545,7 +1545,7 @@ export const catchEager: {
 // ----------------------------------------------------------------------------
 
 /** @internal */
-export const exitInterrupt = (fiberId: number): Exit.Exit<never> => exitFailCause(causeInterrupt(fiberId))
+export const exitInterrupt = (fiberId?: number | undefined): Exit.Exit<never> => exitFailCause(causeInterrupt(fiberId))
 
 /** @internal */
 export const exitIsSuccess = <A, E>(

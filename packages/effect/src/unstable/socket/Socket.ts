@@ -201,7 +201,7 @@ export const toChannelMap = <IE, A>(
   IE
 > =>
   Channel.fromTransform(Effect.fnUntraced(function*(upstream, scope) {
-    const queue = yield* Queue.make<A, SocketError | IE>()
+    const queue = yield* Queue.make<A, SocketError | IE | Queue.Done>()
 
     const writeScope = yield* Scope.fork(scope)
     const write = yield* Scope.provide(self.writer, writeScope)

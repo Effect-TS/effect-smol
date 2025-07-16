@@ -136,9 +136,11 @@ describe("Queue", () => {
       yield* Effect.fork(Queue.offerAll(queue, [1, 2, 3, 4]))
       yield* Effect.fork(Queue.offerAll(queue, [5, 6, 7, 8]))
       yield* Effect.fork(Queue.shutdown(queue))
-      const items = yield* Stream.runCollect(Stream.fromQueue(queue))
-      assert.deepStrictEqual(items, [])
-      assert.strictEqual(yield* Queue.await(queue), void 0)
+      const exit = yield* Stream.runCollect(Stream.fromQueue(queue)).pipe(
+        Effect.exit
+      )
+      assert.isTrue(Exit.hasInterrupt(exit))
+      assert.isTrue(Exit.hasInterrupt(yield* Effect.exit(Queue.await(queue))))
       assert.strictEqual(yield* Queue.offer(queue, 10), false)
     }))
 
