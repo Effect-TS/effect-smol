@@ -117,6 +117,7 @@ export const get: {
       MutableHashMap.set(self.map, key, entry)
       checkCapacity(self)
       return Effect.onExit(self.lookup(key), (exit) => {
+        Deferred.unsafeDone(deferred, exit)
         const ttl = self.timeToLive(exit, key)
         if (!Duration.isFinite(ttl)) {
           return Effect.void
@@ -137,13 +138,36 @@ const hasExpired = <A, E>(entry: Entry<A, E>, fiber: Fiber.Fiber<unknown, unknow
 const checkCapacity = <K, A, E>(self: Cache<K, A, E>) => {
   if (self.capacity === undefined) return
   let diff = MutableHashMap.size(self.map) - self.capacity
-  if (diff === 0) return
+  if (diff <= 0) return
+  // MutableHashMap has insertion order, so we can remove the oldest entries
   for (const [key] of self.map) {
     MutableHashMap.remove(self.map, key)
     diff--
     if (diff === 0) return
   }
 }
+
+/**
+ * @since 4.0.0
+ * @category Combinators
+ */
+export const getOption: {
+  <Key, A>(key: Key): <E>(self: Cache<Key, A, E>) => Effect.Effect<Option.Option<A>, E>
+  <Key, A, E>(self: Cache<Key, A, E>, key: Key): Effect.Effect<Option.Option<A>, E>
+} = dual(
+  2,
+  <Key, A, E>(self: Cache<Key, A, E>, key: Key): Effect.Effect<Option.Option<A>, E> =>
+    Effect.withFiber((fiber) => {
+      const oentry = MutableHashMap.get(self.map, key)
+      if (Option.isNone(oentry)) {
+        return Effect.succeedNone
+      } else if (hasExpired(oentry.value, fiber)) {
+        MutableHashMap.remove(self.map, key)
+        return Effect.succeedNone
+      }
+      return Effect.asSome(Deferred.await(oentry.value.deferred))
+    })
+)
 
 /**
  * @since 4.0.0
@@ -167,5 +191,27 @@ export const set: {
           : undefined
       })
       return Effect.void
+    })
+)
+
+/**
+ * @since 4.0.0
+ * @category Combinators
+ */
+export const has: {
+  <Key, A>(key: Key): <E>(self: Cache<Key, A, E>) => Effect.Effect<boolean>
+  <Key, A, E>(self: Cache<Key, A, E>, key: Key): Effect.Effect<boolean>
+} = dual(
+  2,
+  <Key, A, E>(self: Cache<Key, A, E>, key: Key): Effect.Effect<boolean> =>
+    Effect.withFiber((fiber) => {
+      const oentry = MutableHashMap.get(self.map, key)
+      if (Option.isNone(oentry)) {
+        return Effect.succeed(false)
+      } else if (hasExpired(oentry.value, fiber)) {
+        MutableHashMap.remove(self.map, key)
+        return Effect.succeed(false)
+      }
+      return Effect.succeed(true)
     })
 )
