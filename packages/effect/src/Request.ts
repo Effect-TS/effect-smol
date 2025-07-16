@@ -140,7 +140,7 @@ export interface Constructor<R extends Request<any, any, any>, T extends keyof R
  * }
  *
  * // Extract the error type from a Request using the utility
- * type UserError = Request.Request.Error<GetUser> // Error
+ * type UserError = Request.Error<GetUser> // Error
  * ```
  *
  * @since 2.0.0
@@ -161,7 +161,7 @@ export type Error<T extends Request<any, any, any>> = [T] extends [Request<infer
  * }
  *
  * // Extract the success type from a Request using the utility
- * type UserSuccess = Request.Request.Success<GetUser> // string
+ * type UserSuccess = Request.Success<GetUser> // string
  * ```
  *
  * @since 2.0.0
@@ -182,7 +182,7 @@ export type Success<T extends Request<any, any, any>> = [T] extends [Request<inf
  * }
  *
  * // Extract the services type from a Request using the utility
- * type UserServices = Request.Request.Services<GetUserProfile> // { database: DatabaseService }
+ * type UserServices = Request.Services<GetUserProfile> // { database: DatabaseService }
  *
  * declare const DatabaseService: unique symbol
  * interface DatabaseService {
@@ -209,7 +209,7 @@ export type Services<T extends Request<any, any, any>> = [T] extends [Request<in
  * }
  *
  * // Extract the result type from a Request using the utility
- * type UserResult = Request.Request.Result<GetUser> // Exit.Exit<string, Error>
+ * type UserResult = Request.Result<GetUser> // Exit.Exit<string, Error>
  * ```
  *
  * @since 2.0.0
@@ -231,7 +231,7 @@ export type Result<T extends Request<any, any, any>> = T extends Request<infer A
  * }
  *
  * // Extract the optional result type from a Request using the utility
- * type OptionalUserResult = Request.Request.OptionalResult<GetUser> // Exit.Exit<Option.Option<string>, Error>
+ * type OptionalUserResult = Request.OptionalResult<GetUser> // Exit.Exit<Option.Option<string>, Error>
  * ```
  *
  * @since 2.0.0
