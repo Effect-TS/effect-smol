@@ -86,187 +86,160 @@ export type TypeId = "~effect/Request"
  * @since 2.0.0
  * @category models
  */
-export interface Request<out A, out E = never, out R = never> extends Request.Variance<A, E, R> {}
+export interface Request<out A, out E = never, out R = never> extends Variance<A, E, R> {}
+
+/**
+ * @since 2.0.0
+ * @category models
+ */
+export type Any = Request<any, any, any>
+
+/**
+ * @since 2.0.0
+ * @category models
+ */
+export interface Variance<out A, out E, out R> {
+  readonly [TypeId]: {
+    readonly _A: Types.Covariant<A>
+    readonly _E: Types.Covariant<E>
+    readonly _R: Types.Covariant<R>
+  }
+}
 
 /**
  * @example
  * ```ts
  * import { Request } from "effect"
  *
- * // Define a request interface
  * interface GetUser extends Request.Request<string, Error> {
  *   readonly _tag: "GetUser"
  *   readonly id: number
  * }
  *
- * // Extract types from Request using conditional types
- * type UserSuccess = GetUser extends Request.Request<infer A, any, any> ? A : never // string
- * type UserError = GetUser extends Request.Request<any, infer E, any> ? E : never // Error
- * type UserServices = GetUser extends Request.Request<any, any, infer R> ? R : never // never
+ * // Constructor type is used internally by Request.of() and Request.tagged()
+ * const GetUser = Request.tagged<GetUser>("GetUser")
+ * const userRequest = GetUser({ id: 123 })
  * ```
  *
  * @since 2.0.0
  * @category models
  */
-export declare namespace Request {
-  /**
-   * @example
-   * ```ts
-   * import { Request } from "effect"
-   *
-   * // Variance is used internally to ensure proper type variance
-   * // It's typically not used directly in application code
-   * interface MyRequest extends Request.Request<string, Error, never> {
-   *   readonly _tag: "MyRequest"
-   * }
-   * ```
-   *
-   * @since 2.0.0
-   * @category models
-   */
-  export interface Variance<out A, out E, out R> {
-    readonly [TypeId]: {
-      readonly _A: Types.Covariant<A>
-      readonly _E: Types.Covariant<E>
-      readonly _R: Types.Covariant<R>
-    }
-  }
-
-  /**
-   * @example
-   * ```ts
-   * import { Request } from "effect"
-   *
-   * interface GetUser extends Request.Request<string, Error> {
-   *   readonly _tag: "GetUser"
-   *   readonly id: number
-   * }
-   *
-   * // Constructor type is used internally by Request.of() and Request.tagged()
-   * const GetUser = Request.tagged<GetUser>("GetUser")
-   * const userRequest = GetUser({ id: 123 })
-   * ```
-   *
-   * @since 2.0.0
-   * @category models
-   */
-  export interface Constructor<R extends Request<any, any, any>, T extends keyof R = never> {
-    (args: Omit<R, T | keyof (Request.Variance<any, any, any>)>): R
-  }
-
-  /**
-   * A utility type to extract the error type from a `Request`.
-   *
-   * @example
-   * ```ts
-   * import { Request } from "effect"
-   *
-   * interface GetUser extends Request.Request<string, Error> {
-   *   readonly id: number
-   * }
-   *
-   * // Extract the error type from a Request using the utility
-   * type UserError = Request.Request.Error<GetUser> // Error
-   * ```
-   *
-   * @since 2.0.0
-   * @category type-level
-   */
-  export type Error<T extends Request<any, any, any>> = [T] extends [Request<infer _A, infer _E, infer _R>] ? _E : never
-
-  /**
-   * A utility type to extract the value type from a `Request`.
-   *
-   * @example
-   * ```ts
-   * import { Request } from "effect"
-   *
-   * interface GetUser extends Request.Request<string, Error> {
-   *   readonly _tag: "GetUser"
-   *   readonly id: number
-   * }
-   *
-   * // Extract the success type from a Request using the utility
-   * type UserSuccess = Request.Request.Success<GetUser> // string
-   * ```
-   *
-   * @since 2.0.0
-   * @category type-level
-   */
-  export type Success<T extends Request<any, any, any>> = [T] extends [Request<infer _A, infer _E, infer _R>] ? _A
-    : never
-
-  /**
-   * A utility type to extract the requirements type from a `Request`.
-   *
-   * @example
-   * ```ts
-   * import { Request } from "effect"
-   *
-   * interface GetUserProfile extends Request.Request<string, Error, { database: DatabaseService }> {
-   *   readonly userId: string
-   * }
-   *
-   * // Extract the services type from a Request using the utility
-   * type UserServices = Request.Request.Services<GetUserProfile> // { database: DatabaseService }
-   *
-   * declare const DatabaseService: unique symbol
-   * interface DatabaseService {
-   *   readonly [DatabaseService]: DatabaseService
-   * }
-   * ```
-   *
-   * @since 4.0.0
-   * @category type-level
-   */
-  export type Services<T extends Request<any, any, any>> = [T] extends [Request<infer _A, infer _E, infer _R>] ? _R
-    : never
-
-  /**
-   * A utility type to extract the result type from a `Request`.
-   *
-   * @example
-   * ```ts
-   * import { Request, Exit } from "effect"
-   *
-   * interface GetUser extends Request.Request<string, Error> {
-   *   readonly _tag: "GetUser"
-   *   readonly id: number
-   * }
-   *
-   * // Extract the result type from a Request using the utility
-   * type UserResult = Request.Request.Result<GetUser> // Exit.Exit<string, Error>
-   * ```
-   *
-   * @since 2.0.0
-   * @category type-level
-   */
-  export type Result<T extends Request<any, any, any>> = T extends Request<infer A, infer E, infer _R> ? Exit.Exit<A, E>
-    : never
-
-  /**
-   * A utility type to extract the optional result type from a `Request`.
-   *
-   * @example
-   * ```ts
-   * import { Request, Exit, Option } from "effect"
-   *
-   * interface GetUser extends Request.Request<string, Error> {
-   *   readonly _tag: "GetUser"
-   *   readonly id: number
-   * }
-   *
-   * // Extract the optional result type from a Request using the utility
-   * type OptionalUserResult = Request.Request.OptionalResult<GetUser> // Exit.Exit<Option.Option<string>, Error>
-   * ```
-   *
-   * @since 2.0.0
-   * @category type-level
-   */
-  export type OptionalResult<T extends Request<any, any, any>> = T extends Request<infer A, infer E, infer _R>
-    ? Exit.Exit<Option.Option<A>, E>
-    : never
+export interface Constructor<R extends Request<any, any, any>, T extends keyof R = never> {
+  (args: Omit<R, T | keyof (Variance<any, any, any>)>): R
 }
+
+/**
+ * A utility type to extract the error type from a `Request`.
+ *
+ * @example
+ * ```ts
+ * import { Request } from "effect"
+ *
+ * interface GetUser extends Request.Request<string, Error> {
+ *   readonly id: number
+ * }
+ *
+ * // Extract the error type from a Request using the utility
+ * type UserError = Request.Request.Error<GetUser> // Error
+ * ```
+ *
+ * @since 2.0.0
+ * @category type-level
+ */
+export type Error<T extends Request<any, any, any>> = [T] extends [Request<infer _A, infer _E, infer _R>] ? _E : never
+
+/**
+ * A utility type to extract the value type from a `Request`.
+ *
+ * @example
+ * ```ts
+ * import { Request } from "effect"
+ *
+ * interface GetUser extends Request.Request<string, Error> {
+ *   readonly _tag: "GetUser"
+ *   readonly id: number
+ * }
+ *
+ * // Extract the success type from a Request using the utility
+ * type UserSuccess = Request.Request.Success<GetUser> // string
+ * ```
+ *
+ * @since 2.0.0
+ * @category type-level
+ */
+export type Success<T extends Request<any, any, any>> = [T] extends [Request<infer _A, infer _E, infer _R>] ? _A
+  : never
+
+/**
+ * A utility type to extract the requirements type from a `Request`.
+ *
+ * @example
+ * ```ts
+ * import { Request } from "effect"
+ *
+ * interface GetUserProfile extends Request.Request<string, Error, { database: DatabaseService }> {
+ *   readonly userId: string
+ * }
+ *
+ * // Extract the services type from a Request using the utility
+ * type UserServices = Request.Request.Services<GetUserProfile> // { database: DatabaseService }
+ *
+ * declare const DatabaseService: unique symbol
+ * interface DatabaseService {
+ *   readonly [DatabaseService]: DatabaseService
+ * }
+ * ```
+ *
+ * @since 4.0.0
+ * @category type-level
+ */
+export type Services<T extends Request<any, any, any>> = [T] extends [Request<infer _A, infer _E, infer _R>] ? _R
+  : never
+
+/**
+ * A utility type to extract the result type from a `Request`.
+ *
+ * @example
+ * ```ts
+ * import { Request, Exit } from "effect"
+ *
+ * interface GetUser extends Request.Request<string, Error> {
+ *   readonly _tag: "GetUser"
+ *   readonly id: number
+ * }
+ *
+ * // Extract the result type from a Request using the utility
+ * type UserResult = Request.Request.Result<GetUser> // Exit.Exit<string, Error>
+ * ```
+ *
+ * @since 2.0.0
+ * @category type-level
+ */
+export type Result<T extends Request<any, any, any>> = T extends Request<infer A, infer E, infer _R> ? Exit.Exit<A, E>
+  : never
+
+/**
+ * A utility type to extract the optional result type from a `Request`.
+ *
+ * @example
+ * ```ts
+ * import { Request, Exit, Option } from "effect"
+ *
+ * interface GetUser extends Request.Request<string, Error> {
+ *   readonly _tag: "GetUser"
+ *   readonly id: number
+ * }
+ *
+ * // Extract the optional result type from a Request using the utility
+ * type OptionalUserResult = Request.Request.OptionalResult<GetUser> // Exit.Exit<Option.Option<string>, Error>
+ * ```
+ *
+ * @since 2.0.0
+ * @category type-level
+ */
+export type OptionalResult<T extends Request<any, any, any>> = T extends Request<infer A, infer E, infer _R>
+  ? Exit.Exit<Option.Option<A>, E>
+  : never
 
 const requestVariance = {
   /* c8 ignore next */
@@ -338,7 +311,7 @@ export const isRequest = (u: unknown): u is Request<unknown, unknown, unknown> =
  * @category constructors
  * @since 2.0.0
  */
-export const of = <R extends Request<any, any, any>>(): Request.Constructor<R> => (args) =>
+export const of = <R extends Request<any, any, any>>(): Constructor<R> => (args) =>
   Object.assign(Object.create(RequestPrototype), args)
 
 /**
@@ -384,7 +357,7 @@ export const of = <R extends Request<any, any, any>>(): Request.Constructor<R> =
  */
 export const tagged = <R extends Request<any, any, any> & { _tag: string }>(
   tag: R["_tag"]
-): Request.Constructor<R, "_tag"> =>
+): Constructor<R, "_tag"> =>
 (args) => {
   const request = Object.assign(Object.create(RequestPrototype), args)
   request._tag = tag
@@ -480,11 +453,11 @@ export const TaggedClass = <Tag extends string>(
  */
 export const complete = dual<
   <A extends Request<any, any, any>>(
-    result: Request.Result<A>
+    result: Result<A>
   ) => (self: Entry<A>) => Effect.Effect<void>,
   <A extends Request<any, any, any>>(
     self: Entry<A>,
-    result: Request.Result<A>
+    result: Result<A>
   ) => Effect.Effect<void>
 >(2, (self, result) => internalEffect.sync(() => self.unsafeComplete(result)))
 
@@ -514,11 +487,11 @@ export const complete = dual<
  */
 export const completeEffect = dual<
   <A extends Request<any, any, any>, R>(
-    effect: Effect.Effect<Request.Success<A>, Request.Error<A>, R>
+    effect: Effect.Effect<Success<A>, Error<A>, R>
   ) => (self: Entry<A>) => Effect.Effect<void, never, R>,
   <A extends Request<any, any, any>, R>(
     self: Entry<A>,
-    effect: Effect.Effect<Request.Success<A>, Request.Error<A>, R>
+    effect: Effect.Effect<Success<A>, Error<A>, R>
   ) => Effect.Effect<void, never, R>
 >(2, (self, effect) =>
   internalEffect.matchEffect(effect, {
@@ -545,11 +518,11 @@ export const completeEffect = dual<
  */
 export const fail = dual<
   <A extends Request<any, any, any>>(
-    error: Request.Error<A>
+    error: Error<A>
   ) => (self: Entry<A>) => Effect.Effect<void>,
   <A extends Request<any, any, any>>(
     self: Entry<A>,
-    error: Request.Error<A>
+    error: Error<A>
   ) => Effect.Effect<void>
 >(2, (self, error) => complete(self, core.exitFail(error) as any))
 
@@ -575,11 +548,11 @@ export const fail = dual<
  */
 export const failCause = dual<
   <A extends Request<any, any, any>>(
-    cause: Cause.Cause<Request.Error<A>>
+    cause: Cause.Cause<Error<A>>
   ) => (self: Entry<A>) => Effect.Effect<void>,
   <A extends Request<any, any, any>>(
     self: Entry<A>,
-    cause: Cause.Cause<Request.Error<A>>
+    cause: Cause.Cause<Error<A>>
   ) => Effect.Effect<void>
 >(2, (self, cause) => complete(self, core.exitFailCause(cause) as any))
 
@@ -602,11 +575,11 @@ export const failCause = dual<
  */
 export const succeed = dual<
   <A extends Request<any, any, any>>(
-    value: Request.Success<A>
+    value: Success<A>
   ) => (self: Entry<A>) => Effect.Effect<void>,
   <A extends Request<any, any, any>>(
     self: Entry<A>,
-    value: Request.Success<A>
+    value: Success<A>
   ) => Effect.Effect<void>
 >(2, (self, value) => complete(self, core.exitSucceed(value) as any))
 

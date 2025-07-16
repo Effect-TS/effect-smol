@@ -2,7 +2,7 @@ import type { NonEmptyArray } from "../Array.js"
 import type { Effect } from "../Effect.js"
 import type { Fiber } from "../Fiber.js"
 import { dual } from "../Function.js"
-import type { Entry, Request } from "../Request.js"
+import type * as Request from "../Request.js"
 import { makeEntry } from "../Request.js"
 import type { RequestResolver } from "../RequestResolver.js"
 import { exitDie, isEffect } from "./core.js"
@@ -10,14 +10,14 @@ import * as effect from "./effect.js"
 
 /** @internal */
 export const request: {
-  <A extends Request<any, any, any>, EX = never, RX = never>(
+  <A extends Request.Any, EX = never, RX = never>(
     resolver: RequestResolver<A> | Effect<RequestResolver<A>, EX, RX>
   ): (self: A) => Effect<
     Request.Success<A>,
     Request.Error<A> | EX,
     Request.Services<A> | RX
   >
-  <A extends Request<any, any, any>, EX = never, RX = never>(
+  <A extends Request.Any, EX = never, RX = never>(
     self: A,
     resolver: RequestResolver<A> | Effect<RequestResolver<A>, EX, RX>
   ): Effect<
@@ -27,7 +27,7 @@ export const request: {
   >
 } = dual(
   2,
-  <A extends Request<any, any, any>, EX = never, RX = never>(
+  <A extends Request.Any, EX = never, RX = never>(
     self: A,
     resolver: RequestResolver<A> | Effect<RequestResolver<A>, EX, RX>
   ): Effect<
@@ -51,14 +51,14 @@ export const request: {
 interface Batch {
   readonly key: unknown
   readonly resolver: RequestResolver<any>
-  readonly entrySet: Set<Entry<any>>
-  readonly entries: Set<Entry<any>>
-  delayFiber?: Fiber<void> | undefined
+  readonly entrySet: Set<Request.Entry<any>>
+  readonly entries: Set<Request.Entry<any>>
+  delayFiber?: Fiber<void, unknown> | undefined
 }
 
 const pendingBatches = new Map<RequestResolver<any>, Map<unknown, Batch>>()
 
-const addEntry = <A extends Request<any, any, any>>(
+const addEntry = <A extends Request.Any>(
   resolver: RequestResolver<A>,
   request: A,
   resume: (effect: Effect<any, any, any>) => void,
@@ -104,9 +104,9 @@ const addEntry = <A extends Request<any, any, any>>(
   return entry
 }
 
-const maybeRemoveEntry = <A extends Request<any, any, any>>(
+const maybeRemoveEntry = <A extends Request.Any>(
   resolver: RequestResolver<A>,
-  entry: Entry<A>
+  entry: Request.Entry<A>
 ) =>
   effect.suspend(() => {
     const batchMap = pendingBatches.get(resolver)
@@ -133,7 +133,7 @@ const runBatch = (
     if (!batchMap.has(key)) return effect.void
     batchMap.delete(key)
     return effect.onExit(
-      resolver.runAll(Array.from(entries) as NonEmptyArray<Entry<any>>, key),
+      resolver.runAll(Array.from(entries) as NonEmptyArray<Request.Entry<any>>, key),
       (exit) => {
         for (const entry of entrySet) {
           entry.unsafeComplete(

@@ -16,34 +16,12 @@ import * as Tracer from "./Tracer.js"
 import type * as Types from "./Types.js"
 
 /**
- * @example
- * ```ts
- * import { RequestResolver, Effect } from "effect"
- *
- * // The TypeId is used internally to identify RequestResolver instances
- * const resolver = RequestResolver.make((entries) =>
- *   Effect.void
- * )
- *
- * console.log(resolver[RequestResolver.TypeId]) // Object with type information
- * ```
- *
  * @since 2.0.0
  * @category symbols
  */
 export const TypeId: TypeId = "~effect/RequestResolver"
 
 /**
- * @example
- * ```ts
- * import { RequestResolver } from "effect"
- *
- * // TypeId is the unique identifier type for RequestResolver
- * const checkType = (value: unknown): value is { [RequestResolver.TypeId]: any } => {
- *   return typeof value === "object" && value !== null && RequestResolver.TypeId in value
- * }
- * ```
- *
  * @since 2.0.0
  * @category symbols
  */
@@ -91,7 +69,7 @@ export type TypeId = "~effect/RequestResolver"
  * @since 2.0.0
  * @category models
  */
-export interface RequestResolver<in A> extends RequestResolver.Variance<A>, Pipeable {
+export interface RequestResolver<in A extends Request.Any> extends RequestResolver.Variance<A>, Pipeable {
   readonly delay: Effect<void>
 
   /**
@@ -108,34 +86,15 @@ export interface RequestResolver<in A> extends RequestResolver.Variance<A>, Pipe
   /**
    * Execute a collection of requests.
    */
-  runAll(entries: NonEmptyArray<Request.Entry<A>>, key: unknown): Effect<void>
+  runAll(entries: NonEmptyArray<Request.Entry<A>>, key: unknown): Effect<void, Request.Error<A>>
 }
 
 /**
- * @example
- * ```ts
- * import { RequestResolver } from "effect"
- *
- * // The RequestResolver namespace contains types and utilities
- * type Util = typeof RequestResolver
- * ```
- *
  * @since 2.0.0
  * @category models
  */
 export declare namespace RequestResolver {
   /**
-   * @example
-   * ```ts
-   * import type { Types } from "effect"
-   *
-   * // The Variance interface is used internally for type safety
-   * // It uses contravariant position for the request type parameter
-   * type ExampleVariance = {
-   *   readonly _A: Types.Contravariant<string>
-   * }
-   * ```
-   *
    * @since 2.0.0
    * @category models
    */
@@ -173,13 +132,13 @@ const RequestResolverProto = {
  * @since 2.0.0
  * @category guards
  */
-export const isRequestResolver = (u: unknown): u is RequestResolver<unknown> => hasProperty(u, TypeId)
+export const isRequestResolver = (u: unknown): u is RequestResolver<any> => hasProperty(u, TypeId)
 
-const makeProto = <A>(options: {
+const makeProto = <A extends Request.Any>(options: {
   readonly batchKey: (request: Request.Entry<A>) => unknown
   readonly delay: Effect<void>
   readonly collectWhile: (requests: ReadonlySet<Request.Entry<A>>) => boolean
-  readonly runAll: (entries: NonEmptyArray<Request.Entry<A>>, key: unknown) => Effect<void>
+  readonly runAll: (entries: NonEmptyArray<Request.Entry<A>>, key: unknown) => Effect<void, Request.Error<A>>
 }): RequestResolver<A> => {
   const self = Object.create(RequestResolverProto)
   self.batchKey = options.batchKey
@@ -223,8 +182,8 @@ const defaultKey = (_request: unknown): unknown => defaultKeyObject
  * @since 2.0.0
  * @category constructors
  */
-export const make = <A>(
-  runAll: (entries: NonEmptyArray<Request.Entry<A>>, key: unknown) => Effect<void>
+export const make = <A extends Request.Any>(
+  runAll: (entries: NonEmptyArray<Request.Entry<A>>, key: unknown) => Effect<void, Request.Error<A>>
 ): RequestResolver<A> =>
   makeProto({
     batchKey: defaultKey,
@@ -265,9 +224,9 @@ export const make = <A>(
  * @since 4.0.0
  * @category constructors
  */
-export const makeGrouped = <A, K>(options: {
+export const makeGrouped = <A extends Request.Any, K>(options: {
   readonly key: (entry: Request.Entry<A>) => K
-  readonly resolver: (entries: NonEmptyArray<Request.Entry<A>>, key: K) => Effect<void>
+  readonly resolver: (entries: NonEmptyArray<Request.Entry<A>>, key: K) => Effect<void, Request.Error<A>>
 }): RequestResolver<A> =>
   makeProto({
     batchKey: hashGroupKey(options.key),
@@ -315,8 +274,8 @@ const hashGroupKey = <A, K>(get: (entry: Request.Entry<A>) => K) => {
  * @since 2.0.0
  * @category constructors
  */
-export const fromFunction = <A extends Request.Request<any>>(
-  f: (entry: Request.Entry<A>) => Request.Request.Success<A>
+export const fromFunction = <A extends Request.Any>(
+  f: (entry: Request.Entry<A>) => Request.Success<A>
 ): RequestResolver<A> =>
   make(
     (entries) =>
@@ -358,8 +317,8 @@ export const fromFunction = <A extends Request.Request<any>>(
  * @since 2.0.0
  * @category constructors
  */
-export const fromFunctionBatched = <A extends Request.Request<any>>(
-  f: (entries: NonEmptyArray<Request.Entry<A>>) => Iterable<Request.Request.Success<A>>
+export const fromFunctionBatched = <A extends Request.Any>(
+  f: (entries: NonEmptyArray<Request.Entry<A>>) => Iterable<Request.Success<A>>
 ): RequestResolver<A> =>
   make(
     (entries) =>
@@ -404,7 +363,7 @@ export const fromFunctionBatched = <A extends Request.Request<any>>(
  * @category constructors
  */
 export const fromEffect = <A extends Request.Request<any>>(
-  f: (entry: Request.Entry<A>) => Effect<Request.Request.Success<A>, Request.Request.Error<A>>
+  f: (entry: Request.Entry<A>) => Effect<Request.Success<A>, Request.Error<A>>
 ): RequestResolver<A> =>
   make(
     (entries) =>
@@ -526,9 +485,9 @@ export const fromEffectTagged = <A extends Request.Request<any, any, any> & { re
  * @category delay
  */
 export const setDelayEffect: {
-  (delay: Effect<void>): <A>(self: RequestResolver<A>) => RequestResolver<A>
-  <A>(self: RequestResolver<A>, delay: Effect<void>): RequestResolver<A>
-} = dual(2, <A>(self: RequestResolver<A>, delay: Effect<void>): RequestResolver<A> =>
+  (delay: Effect<void>): <A extends Request.Any>(self: RequestResolver<A>) => RequestResolver<A>
+  <A extends Request.Any>(self: RequestResolver<A>, delay: Effect<void>): RequestResolver<A>
+} = dual(2, <A extends Request.Any>(self: RequestResolver<A>, delay: Effect<void>): RequestResolver<A> =>
   makeProto({
     ...self,
     delay
@@ -565,13 +524,16 @@ export const setDelayEffect: {
  * @category delay
  */
 export const setDelay: {
-  (duration: Duration.DurationInput): <A>(self: RequestResolver<A>) => RequestResolver<A>
-  <A>(self: RequestResolver<A>, duration: Duration.DurationInput): RequestResolver<A>
-} = dual(2, <A>(self: RequestResolver<A>, duration: Duration.DurationInput): RequestResolver<A> =>
-  makeProto({
-    ...self,
-    delay: effect.sleep(Duration.toMillis(duration))
-  }))
+  (duration: Duration.DurationInput): <A extends Request.Any>(self: RequestResolver<A>) => RequestResolver<A>
+  <A extends Request.Any>(self: RequestResolver<A>, duration: Duration.DurationInput): RequestResolver<A>
+} = dual(
+  2,
+  <A extends Request.Any>(self: RequestResolver<A>, duration: Duration.DurationInput): RequestResolver<A> =>
+    makeProto({
+      ...self,
+      delay: effect.sleep(Duration.toMillis(duration))
+    })
+)
 
 /**
  * A request resolver aspect that executes requests between two effects, `before`
@@ -612,19 +574,19 @@ export const setDelay: {
  * @category combinators
  */
 export const around: {
-  <A, A2, X>(
-    before: (entries: NonEmptyArray<Request.Entry<NoInfer<A>>>) => Effect<A2>,
-    after: (entries: NonEmptyArray<Request.Entry<NoInfer<A>>>, a: A2) => Effect<X>
+  <A extends Request.Any, A2, X>(
+    before: (entries: NonEmptyArray<Request.Entry<NoInfer<A>>>) => Effect<A2, Request.Error<A>>,
+    after: (entries: NonEmptyArray<Request.Entry<NoInfer<A>>>, a: A2) => Effect<X, Request.Error<A>>
   ): (self: RequestResolver<A>) => RequestResolver<A>
-  <A, A2, X>(
+  <A extends Request.Any, A2, X>(
     self: RequestResolver<A>,
-    before: (entries: NonEmptyArray<Request.Entry<NoInfer<A>>>) => Effect<A2>,
-    after: (entries: NonEmptyArray<Request.Entry<NoInfer<A>>>, a: A2) => Effect<X>
+    before: (entries: NonEmptyArray<Request.Entry<NoInfer<A>>>) => Effect<A2, Request.Error<A>>,
+    after: (entries: NonEmptyArray<Request.Entry<NoInfer<A>>>, a: A2) => Effect<X, Request.Error<A>>
   ): RequestResolver<A>
-} = dual(3, <A, A2, X>(
+} = dual(3, <A extends Request.Any, A2, X>(
   self: RequestResolver<A>,
-  before: (entries: NonEmptyArray<Request.Entry<NoInfer<A>>>) => Effect<A2>,
-  after: (entries: NonEmptyArray<Request.Entry<NoInfer<A>>>, a: A2) => Effect<X>
+  before: (entries: NonEmptyArray<Request.Entry<NoInfer<A>>>) => Effect<A2, Request.Error<A>>,
+  after: (entries: NonEmptyArray<Request.Entry<NoInfer<A>>>, a: A2) => Effect<X, Request.Error<A>>
 ): RequestResolver<A> =>
   makeProto({
     ...self,
@@ -699,9 +661,9 @@ export const never: RequestResolver<never> = make(() => effect.never)
  * @category combinators
  */
 export const batchN: {
-  (n: number): <A>(self: RequestResolver<A>) => RequestResolver<A>
-  <A>(self: RequestResolver<A>, n: number): RequestResolver<A>
-} = dual(2, <A>(self: RequestResolver<A>, n: number): RequestResolver<A> =>
+  (n: number): <A extends Request.Any>(self: RequestResolver<A>) => RequestResolver<A>
+  <A extends Request.Any>(self: RequestResolver<A>, n: number): RequestResolver<A>
+} = dual(2, <A extends Request.Any>(self: RequestResolver<A>, n: number): RequestResolver<A> =>
   makeProto({
     ...self,
     collectWhile: (requests) => requests.size < n
@@ -749,11 +711,11 @@ export const batchN: {
  * @category combinators
  */
 export const grouped: {
-  <A, K>(f: (entry: Request.Entry<A>) => K): (self: RequestResolver<A>) => RequestResolver<A>
-  <A, K>(self: RequestResolver<A>, f: (entry: Request.Entry<A>) => K): RequestResolver<A>
+  <A extends Request.Any, K>(f: (entry: Request.Entry<A>) => K): (self: RequestResolver<A>) => RequestResolver<A>
+  <A extends Request.Any, K>(self: RequestResolver<A>, f: (entry: Request.Entry<A>) => K): RequestResolver<A>
 } = dual(
   2,
-  <A, K>(self: RequestResolver<A>, f: (entry: Request.Entry<A>) => K): RequestResolver<A> =>
+  <A extends Request.Any, K>(self: RequestResolver<A>, f: (entry: Request.Entry<A>) => K): RequestResolver<A> =>
     makeProto({
       ...self,
       batchKey: hashGroupKey(f)
@@ -805,14 +767,14 @@ export const grouped: {
  * @category combinators
  */
 export const race: {
-  <A2 extends Request.Request<any, any, any>>(
+  <A2 extends Request.Any>(
     that: RequestResolver<A2>
-  ): <A extends Request.Request<any, any, any>>(self: RequestResolver<A>) => RequestResolver<A2 | A>
-  <A extends Request.Request<any, any, any>, A2 extends Request.Request<any, any, any>>(
+  ): <A extends Request.Any>(self: RequestResolver<A>) => RequestResolver<A2 & A>
+  <A extends Request.Any, A2 extends Request.Any>(
     self: RequestResolver<A>,
     that: RequestResolver<A2>
   ): RequestResolver<A & A2>
-} = dual(2, <A extends Request.Request<any, any, any>, A2 extends Request.Request<any, any, any>>(
+} = dual(2, <A extends Request.Any, A2 extends Request.Any>(
   self: RequestResolver<A>,
   that: RequestResolver<A2>
 ): RequestResolver<A & A2> =>
@@ -862,25 +824,26 @@ export const race: {
  * @category combinators
  */
 export const withSpan: {
-  (
+  <A extends Request.Any>(
     name: string,
-    options?: Tracer.SpanOptions | undefined
-  ): <A>(self: RequestResolver<A>) => RequestResolver<A>
-  <A>(
+    options?: Tracer.SpanOptions | ((entries: NonEmptyArray<Request.Entry<A>>) => Tracer.SpanOptions) | undefined
+  ): (self: RequestResolver<A>) => RequestResolver<A>
+  <A extends Request.Any>(
     self: RequestResolver<A>,
     name: string,
-    options?: Tracer.SpanOptions | undefined
+    options?: Tracer.SpanOptions | ((entries: NonEmptyArray<Request.Entry<A>>) => Tracer.SpanOptions) | undefined
   ): RequestResolver<A>
-} = dual(2, <A>(
+} = dual(2, <A extends Request.Any>(
   self: RequestResolver<A>,
   name: string,
-  options?: Tracer.SpanOptions | undefined
+  options?: Tracer.SpanOptions | ((entries: NonEmptyArray<Request.Entry<A>>) => Tracer.SpanOptions) | undefined
 ): RequestResolver<A> =>
   makeProto({
     ...self,
     runAll: (entries, key) =>
       effect.suspend(() => {
-        const links = options?.links ? options.links.slice() : []
+        const opts = typeof options === "function" ? options(entries) : options
+        const links = opts?.links ? opts.links.slice() : []
         const seen = new Set<Tracer.AnySpan>()
         for (const entry of entries) {
           const span = ServiceMap.getOption(entry.services, Tracer.ParentSpan)
@@ -893,7 +856,7 @@ export const withSpan: {
           links,
           attributes: {
             batchSize: entries.length,
-            ...options?.attributes
+            ...opts?.attributes
           }
         })
       })

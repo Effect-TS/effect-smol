@@ -89,7 +89,7 @@ import type { Option } from "./Option.js"
 import type { Pipeable } from "./Pipeable.js"
 import type * as Predicate from "./Predicate.js"
 import { CurrentLogAnnotations, CurrentLogSpans } from "./References.js"
-import type { Request } from "./Request.js"
+import type * as Request from "./Request.js"
 import type { RequestResolver } from "./RequestResolver.js"
 import type * as Result from "./Result.js"
 import type { Schedule } from "./Schedule.js"
@@ -6584,16 +6584,10 @@ export const withParentSpan: {
  * @category requests & batching
  */
 export const request: {
-  <A extends Request<any, any, any>, EX = never, RX = never>(
+  <A extends Request.Any, EX = never, RX = never>(
     resolver: RequestResolver<A> | Effect<RequestResolver<A>, EX, RX>
-  ): (
-    self: A
-  ) => Effect<
-    Request.Success<A>,
-    Request.Error<A> | EX,
-    Request.Services<A> | RX
-  >
-  <A extends Request<any, any, any>, EX = never, RX = never>(
+  ): (self: A) => Effect<Request.Success<A>, Request.Error<A> | EX, Request.Services<A> | RX>
+  <A extends Request.Any, EX = never, RX = never>(
     self: A,
     resolver: RequestResolver<A> | Effect<RequestResolver<A>, EX, RX>
   ): Effect<Request.Success<A>, Request.Error<A> | EX, Request.Services<A> | RX>
