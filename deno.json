@@ -9,7 +9,8 @@
         "./packages/*"
     ],
     "compilerOptions": {
-        "noImplicitOverride": false
+        "noImplicitOverride": false,
+        "strict": true
     },
     "exclude": [
         "**/node_modules/",
