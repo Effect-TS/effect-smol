@@ -396,14 +396,16 @@ export const remove: {
   <V>(value: V) => (self: TxHashSet<V>) => Effect.Effect<boolean>,
   <V>(self: TxHashSet<V>, value: V) => Effect.Effect<boolean>
 >(2, <V>(self: TxHashSet<V>, value: V) =>
-  Effect.gen(function*() {
-    const currentSet = yield* TxRef.get(self.ref)
-    const existed = HashSet.has(currentSet, value)
-    if (existed) {
-      yield* TxRef.set(self.ref, HashSet.remove(currentSet, value))
-    }
-    return existed
-  }))
+  Effect.atomic(
+    Effect.gen(function*() {
+      const currentSet = yield* TxRef.get(self.ref)
+      const existed = HashSet.has(currentSet, value)
+      if (existed) {
+        yield* TxRef.set(self.ref, HashSet.remove(currentSet, value))
+      }
+      return existed
+    })
+  ))
 
 /**
  * Checks if the TxHashSet contains the specified value.
