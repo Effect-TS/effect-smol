@@ -828,21 +828,23 @@ export const take = <A, E>(self: TxDequeue<A, E>): Effect.Effect<A, E> =>
  * @category combinators
  */
 export const poll = <A, E>(self: TxDequeue<A, E>): Effect.Effect<Option.Option<A>> =>
-  Effect.gen(function*() {
-    const state = yield* TxRef.get(self.stateRef)
-    if (state._tag === "Done") {
-      return Option.none()
-    }
+  Effect.atomic(
+    Effect.gen(function*() {
+      const state = yield* TxRef.get(self.stateRef)
+      if (state._tag === "Done") {
+        return Option.none()
+      }
 
-    const chunk = yield* TxChunk.get(self.items)
-    const head = Chunk.head(chunk)
-    if (Option.isNone(head)) {
-      return Option.none()
-    }
+      const chunk = yield* TxChunk.get(self.items)
+      const head = Chunk.head(chunk)
+      if (Option.isNone(head)) {
+        return Option.none()
+      }
 
-    yield* TxChunk.drop(self.items, 1)
-    return Option.some(head.value)
-  })
+      yield* TxChunk.drop(self.items, 1)
+      return Option.some(head.value)
+    })
+  )
 
 /**
  * Takes all items from the queue. Blocks if the queue is empty.

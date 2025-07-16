@@ -776,11 +776,13 @@ export const map: {
   <V, U>(f: (value: V) => U) => (self: TxHashSet<V>) => Effect.Effect<TxHashSet<U>>,
   <V, U>(self: TxHashSet<V>, f: (value: V) => U) => Effect.Effect<TxHashSet<U>>
 >(2, <V, U>(self: TxHashSet<V>, f: (value: V) => U) =>
-  Effect.gen(function*() {
-    const currentSet = yield* TxRef.get(self.ref)
-    const mappedSet = HashSet.map(currentSet, f)
-    return yield* fromHashSet(mappedSet)
-  }))
+  Effect.atomic(
+    Effect.gen(function*() {
+      const currentSet = yield* TxRef.get(self.ref)
+      const mappedSet = HashSet.map(currentSet, f)
+      return yield* fromHashSet(mappedSet)
+    })
+  ))
 
 /**
  * Filters the TxHashSet keeping only values that satisfy the predicate, returning a new TxHashSet.
@@ -817,11 +819,13 @@ export const filter: {
     <V>(self: TxHashSet<V>, predicate: Predicate<V>): Effect.Effect<TxHashSet<V>>
   }
 >(2, <V>(self: TxHashSet<V>, predicate: Predicate<V>) =>
-  Effect.gen(function*() {
-    const currentSet = yield* TxRef.get(self.ref)
-    const filteredSet = HashSet.filter(currentSet, predicate)
-    return yield* fromHashSet(filteredSet)
-  }))
+  Effect.atomic(
+    Effect.gen(function*() {
+      const currentSet = yield* TxRef.get(self.ref)
+      const filteredSet = HashSet.filter(currentSet, predicate)
+      return yield* fromHashSet(filteredSet)
+    })
+  ))
 
 /**
  * Reduces the TxHashSet to a single value by iterating through the values and applying an accumulator function.
