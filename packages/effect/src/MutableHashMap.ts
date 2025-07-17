@@ -120,8 +120,10 @@ const MutableHashMapProto: Omit<MutableHashMap<unknown, unknown>, "referential" 
 class MutableHashMapIterator<K, V> implements IterableIterator<[K, V]> {
   readonly referentialIterator: Iterator<[K, V]>
   bucketIterator: Iterator<[K, V]> | undefined
+  readonly self: MutableHashMap<K, V>
 
-  constructor(readonly self: MutableHashMap<K, V>) {
+  constructor(self: MutableHashMap<K, V>) {
+    this.self = self
     this.referentialIterator = self.referential[Symbol.iterator]()
   }
   next(): IteratorResult<[K, V]> {
@@ -142,8 +144,12 @@ class MutableHashMapIterator<K, V> implements IterableIterator<[K, V]> {
 }
 
 class BucketIterator<K, V> implements Iterator<[K, V]> {
-  constructor(readonly backing: Iterator<NonEmptyArray<readonly [K, V]>>) {}
+  readonly backing: Iterator<NonEmptyArray<readonly [K, V]>>
   currentBucket: Iterator<readonly [K, V]> | undefined
+
+  constructor(backing: Iterator<NonEmptyArray<readonly [K, V]>>) {
+    this.backing = backing
+  }
   next(): IteratorResult<[K, V]> {
     if (this.currentBucket === undefined) {
       const result = this.backing.next()

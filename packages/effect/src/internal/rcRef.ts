@@ -43,13 +43,22 @@ class RcRefImpl<A, E> implements RcRef.RcRef<A, E> {
 
   state: State<A> = stateEmpty
   readonly semaphore = Effect.unsafeMakeSemaphore(1)
+  readonly acquire: Effect.Effect<A, E>
+  readonly services: ServiceMap.ServiceMap<never>
+  readonly scope: Scope.Scope
+  readonly idleTimeToLive: Duration.Duration | undefined
 
   constructor(
-    readonly acquire: Effect.Effect<A, E>,
-    readonly services: ServiceMap.ServiceMap<never>,
-    readonly scope: Scope.Scope,
-    readonly idleTimeToLive: Duration.Duration | undefined
-  ) {}
+    acquire: Effect.Effect<A, E>,
+    services: ServiceMap.ServiceMap<never>,
+    scope: Scope.Scope,
+    idleTimeToLive: Duration.Duration | undefined
+  ) {
+    this.acquire = acquire
+    this.services = services
+    this.scope = scope
+    this.idleTimeToLive = idleTimeToLive
+  }
 }
 
 /** @internal */

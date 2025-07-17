@@ -167,7 +167,11 @@ export class Halt<out L> {
    */
   readonly [HaltTypeId]: HaltTypeId = HaltTypeId
 
-  constructor(readonly leftover: L) {}
+  readonly leftover: L
+
+  constructor(leftover: L) {
+    this.leftover = leftover
+  }
 }
 
 /**

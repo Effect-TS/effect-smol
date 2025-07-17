@@ -146,12 +146,16 @@ export const isCause = (self: unknown): self is Cause.Cause<unknown> => hasPrope
 /** @internal */
 export class CauseImpl<E> implements Cause.Cause<E> {
   readonly [CauseTypeId]: Cause.TypeId
+  readonly failures: ReadonlyArray<
+    Cause.Fail<E> | Cause.Die | Cause.Interrupt
+  >
   constructor(
-    readonly failures: ReadonlyArray<
+    failures: ReadonlyArray<
       Cause.Fail<E> | Cause.Die | Cause.Interrupt
     >
   ) {
     this[CauseTypeId] = CauseTypeId
+    this.failures = failures
   }
   pipe() {
     return pipeArguments(this, arguments)
@@ -185,12 +189,14 @@ const errorAnnotations = new WeakMap<object, ReadonlyMap<string, unknown>>()
 /** @internal */
 export abstract class FailureBase<Tag extends string> implements Cause.Cause.FailureProto<Tag> {
   readonly annotations: ReadonlyMap<string, unknown>
+  readonly _tag: Tag
 
   constructor(
-    readonly _tag: Tag,
+    _tag: Tag,
     annotations: ReadonlyMap<string, unknown>,
     originalError: unknown
   ) {
+    this._tag = _tag
     if (isObject(originalError)) {
       if (errorAnnotations.has(originalError)) {
         annotations = new Map([
@@ -224,11 +230,13 @@ export abstract class FailureBase<Tag extends string> implements Cause.Cause.Fai
 
 /** @internal */
 export class Fail<E> extends FailureBase<"Fail"> implements Cause.Fail<E> {
+  readonly error: E
   constructor(
-    readonly error: E,
+    error: E,
     annotations = new Map<string, unknown>()
   ) {
     super("Fail", annotations, error)
+    this.error = error
   }
   toJSON(): unknown {
     return {
@@ -275,11 +283,13 @@ export const causeFail = <E>(error: E): Cause.Cause<E> => new CauseImpl([new Fai
 
 /** @internal */
 export class Die extends FailureBase<"Die"> implements Cause.Die {
+  readonly defect: unknown
   constructor(
-    readonly defect: unknown,
+    defect: unknown,
     annotations = new Map<string, unknown>()
   ) {
     super("Die", annotations, defect)
+    this.defect = defect
   }
   toJSON(): unknown {
     return {

@@ -80,11 +80,13 @@ import { version } from "./version.ts"
 
 /** @internal */
 export class Interrupt extends FailureBase<"Interrupt"> implements Cause.Interrupt {
+  readonly fiberId: Option.Option<number>
   constructor(
-    readonly fiberId: Option.Option<number>,
+    fiberId: Option.Option<number>,
     annotations = new Map<string, unknown>()
   ) {
     super("Interrupt", annotations, "Interrupted")
+    this.fiberId = fiberId
   }
   toJSON(): unknown {
     return {
@@ -3864,8 +3866,11 @@ export const runSync: <A, E>(effect: Effect.Effect<A, E>) => A = runSyncWith(Ser
 class Semaphore {
   public waiters = new Set<() => void>()
   public taken = 0
+  readonly permits: number
 
-  constructor(readonly permits: number) {}
+  constructor(permits: number) {
+    this.permits = permits
+  }
 
   get free() {
     return this.permits - this.taken
@@ -3940,7 +3945,11 @@ const succeedFalse = succeed(false)
 class Latch implements Effect.Latch {
   waiters: Array<(_: Effect.Effect<void>) => void> = []
   scheduled = false
-  constructor(private isOpen: boolean) {}
+  private isOpen: boolean
+
+  constructor(isOpen: boolean) {
+    this.isOpen = isOpen
+  }
 
   private unsafeSchedule(fiber: Fiber.Fiber<unknown, unknown>) {
     if (this.scheduled || this.waiters.length === 0) {

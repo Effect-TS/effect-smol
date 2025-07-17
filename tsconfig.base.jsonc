@@ -13,6 +13,7 @@
     "verbatimModuleSyntax": true, // Only transform/eliminate type-only import/export statements.
     "allowJs": false, // If you touch this, a puppy dies.
     "rewriteRelativeImportExtensions": true, // Rewrite `.ts` imports to `.js` at build time.
+    "erasableSyntaxOnly": true, // Allows to run directly with node and type removal
 
     // Emit source- & declaration maps.
     "declarationMap": true,

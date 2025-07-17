@@ -232,13 +232,17 @@ export const makeUpgradeHandler = <
 
 class ServerRequestImpl extends NodeHttpIncomingMessage<HttpServerError> implements HttpServerRequest {
   readonly [Request.TypeId]: Request.TypeId
+  readonly response: Http.ServerResponse | LazyArg<Http.ServerResponse>
+  private upgradeEffect?: Effect.Effect<Socket.Socket, HttpServerError> | undefined
+  readonly url: string
+  private headersOverride?: Headers.Headers | undefined
 
   constructor(
-    readonly source: Http.IncomingMessage,
-    readonly response: Http.ServerResponse | LazyArg<Http.ServerResponse>,
-    private upgradeEffect?: Effect.Effect<Socket.Socket, HttpServerError>,
-    readonly url = source.url!,
-    private headersOverride?: Headers.Headers,
+    source: Http.IncomingMessage,
+    response: Http.ServerResponse | LazyArg<Http.ServerResponse>,
+    upgradeEffect?: Effect.Effect<Socket.Socket, HttpServerError>,
+    url = source.url!,
+    headersOverride?: Headers.Headers,
     remoteAddressOverride?: string
   ) {
     super(source, (cause) =>
@@ -248,6 +252,10 @@ class ServerRequestImpl extends NodeHttpIncomingMessage<HttpServerError> impleme
         cause
       }), remoteAddressOverride)
     this[Request.TypeId] = Request.TypeId
+    this.response = response
+    this.upgradeEffect = upgradeEffect
+    this.url = url
+    this.headersOverride = headersOverride
   }
 
   private cachedCookies: ReadonlyRecord<string, string> | undefined

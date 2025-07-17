@@ -144,12 +144,22 @@ export const empty: Empty = new Empty()
  */
 export class Raw extends Proto {
   readonly _tag = "Raw"
+  readonly body: unknown
+  readonly contentType: string | undefined
+  readonly contentLength: number | undefined
+
   constructor(
-    readonly body: unknown,
-    readonly contentType: string | undefined,
-    readonly contentLength: number | undefined
+    /** @internal */
+    body: unknown,
+    /** @internal */
+    contentType: string | undefined,
+    /** @internal */
+    contentLength: number | undefined
   ) {
     super()
+    this.body = body
+    this.contentType = contentType
+    this.contentLength = contentLength
   }
   toJSON(): unknown {
     return {
@@ -180,12 +190,22 @@ export const raw = (
  */
 export class Uint8Array extends Proto {
   readonly _tag = "Uint8Array"
+  readonly body: globalThis.Uint8Array
+  readonly contentType: string
+  readonly contentLength: number
+
   constructor(
-    readonly body: globalThis.Uint8Array,
-    readonly contentType: string,
-    readonly contentLength: number
+    /** @internal */
+    body: globalThis.Uint8Array,
+    /** @internal */
+    contentType: string,
+    /** @internal */
+    contentLength: number
   ) {
     super()
+    this.body = body
+    this.contentType = contentType
+    this.contentLength = contentLength
   }
   toJSON(): unknown {
     const toString = this.contentType.startsWith("text/") || this.contentType.endsWith("json")
@@ -262,8 +282,14 @@ export class FormData extends Proto {
   readonly _tag = "FormData"
   readonly contentType = undefined
   readonly contentLength = undefined
-  constructor(readonly formData: globalThis.FormData) {
+  readonly formData: globalThis.FormData
+
+  constructor(
+    /** @internal */
+    formData: globalThis.FormData
+  ) {
     super()
+    this.formData = formData
   }
   toJSON(): unknown {
     return {
@@ -286,12 +312,22 @@ export const formData = (body: globalThis.FormData): FormData => new FormData(bo
  */
 export class Stream extends Proto {
   readonly _tag = "Stream"
+  readonly stream: Stream_.Stream<globalThis.Uint8Array, unknown>
+  readonly contentType: string
+  readonly contentLength: number | undefined
+
   constructor(
-    readonly stream: Stream_.Stream<globalThis.Uint8Array, unknown>,
-    readonly contentType: string,
-    readonly contentLength: number | undefined
+    /** @internal */
+    stream: Stream_.Stream<globalThis.Uint8Array, unknown>,
+    /** @internal */
+    contentType: string,
+    /** @internal */
+    contentLength: number | undefined
   ) {
     super()
+    this.stream = stream
+    this.contentType = contentType
+    this.contentLength = contentLength
   }
   toJSON(): unknown {
     return {

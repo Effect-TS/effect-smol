@@ -848,10 +848,17 @@ class MiddlewareImpl<
 > implements Middleware<Config> {
   readonly [MiddlewareTypeId]: Config = {} as any
 
+  readonly layerFn: Layer.Layer<never>
+  readonly dependencies?: Layer.Layer<any, any, any> | undefined
+
   constructor(
-    readonly layerFn: Layer.Layer<never>,
-    readonly dependencies?: Layer.Layer<any, any, any>
+    /** @internal */
+    layerFn: Layer.Layer<never>,
+    /** @internal */
+    dependencies?: Layer.Layer<any, any, any>
   ) {
+    this.layerFn = layerFn
+    this.dependencies = dependencies
     const contextKey = `effect/http/HttpRouter/Middleware-${++middlewareId}` as const
     this.layer = Layer.effectDiscard(Effect.gen(this, function*() {
       const context = yield* Effect.services<Scope.Scope>()

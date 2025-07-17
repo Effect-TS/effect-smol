@@ -1030,10 +1030,18 @@ const responseRegistry = (() => {
 const scopedRequests = new WeakMap<HttpClientRequest.HttpClientRequest, AbortController>()
 
 class InterruptibleResponse implements HttpClientResponse.HttpClientResponse {
+  readonly original: HttpClientResponse.HttpClientResponse
+  readonly controller: AbortController
+
   constructor(
-    readonly original: HttpClientResponse.HttpClientResponse,
-    readonly controller: AbortController
-  ) {}
+    /** @internal */
+    original: HttpClientResponse.HttpClientResponse,
+    /** @internal */
+    controller: AbortController
+  ) {
+    this.original = original
+    this.controller = controller
+  }
 
   readonly [HttpClientResponse.TypeId]: HttpClientResponse.TypeId = HttpClientResponse.TypeId
   readonly [HttpIncomingMessage.TypeId]: HttpIncomingMessage.TypeId = HttpIncomingMessage.TypeId

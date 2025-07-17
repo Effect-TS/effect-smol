@@ -152,14 +152,18 @@ function noopErrorHandler(_: any) {}
 class UndiciResponse extends Inspectable.Class implements HttpClientResponse {
   readonly [IncomingMessage.TypeId]: IncomingMessage.TypeId
   readonly [Response.TypeId]: Response.TypeId
+  readonly request: HttpClientRequest
+  readonly source: Undici.Dispatcher.ResponseData
 
   constructor(
-    readonly request: HttpClientRequest,
-    readonly source: Undici.Dispatcher.ResponseData
+    request: HttpClientRequest,
+    source: Undici.Dispatcher.ResponseData
   ) {
     super()
     this[IncomingMessage.TypeId] = IncomingMessage.TypeId
     this[Response.TypeId] = Response.TypeId
+    this.request = request
+    this.source = source
     source.body.on("error", noopErrorHandler)
   }
 
@@ -475,9 +479,10 @@ const waitForFinish = (nodeRequest: Http.ClientRequest, request: HttpClientReque
 
 class NodeHttpResponse extends NodeHttpIncomingMessage<Error.ResponseError> implements HttpClientResponse {
   readonly [Response.TypeId]: Response.TypeId
+  readonly request: HttpClientRequest
 
   constructor(
-    readonly request: HttpClientRequest,
+    request: HttpClientRequest,
     source: Http.IncomingMessage
   ) {
     super(source, (cause) =>
@@ -488,6 +493,7 @@ class NodeHttpResponse extends NodeHttpIncomingMessage<Error.ResponseError> impl
         cause
       }))
     this[Response.TypeId] = Response.TypeId
+    this.request = request
   }
 
   get status() {

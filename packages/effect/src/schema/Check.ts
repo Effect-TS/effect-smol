@@ -20,15 +20,25 @@ import * as Issue from "./Issue.ts"
  */
 export class Filter<in E> extends PipeableClass implements Annotations.Annotated {
   readonly _tag = "Filter"
+  readonly run: (input: E, self: AST.AST, options: AST.ParseOptions) => Issue.Issue | undefined
+  readonly annotations: Annotations.Filter | undefined
+  /**
+   * Whether the parsing process should be aborted after this check has failed.
+   */
+  readonly abort: boolean
+
   constructor(
-    readonly run: (input: E, self: AST.AST, options: AST.ParseOptions) => Issue.Issue | undefined,
-    readonly annotations: Annotations.Filter | undefined = undefined,
+    run: (input: E, self: AST.AST, options: AST.ParseOptions) => Issue.Issue | undefined,
+    annotations: Annotations.Filter | undefined = undefined,
     /**
      * Whether the parsing process should be aborted after this check has failed.
      */
-    readonly abort: boolean = false
+    abort: boolean = false
   ) {
     super()
+    this.run = run
+    this.annotations = annotations
+    this.abort = abort
   }
   annotate(annotations: Annotations.Filter): Filter<E> {
     return new Filter(this.run, { ...this.annotations, ...annotations }, this.abort)
@@ -46,11 +56,16 @@ export class Filter<in E> extends PipeableClass implements Annotations.Annotated
  */
 export class FilterGroup<in E> extends PipeableClass implements Annotations.Annotated {
   readonly _tag = "FilterGroup"
+  readonly checks: readonly [Check<E>, Check<E>, ...ReadonlyArray<Check<E>>]
+  readonly annotations: Annotations.Filter | undefined
+
   constructor(
-    readonly checks: readonly [Check<E>, Check<E>, ...ReadonlyArray<Check<E>>],
-    readonly annotations: Annotations.Filter | undefined = undefined
+    checks: readonly [Check<E>, Check<E>, ...ReadonlyArray<Check<E>>],
+    annotations: Annotations.Filter | undefined = undefined
   ) {
     super()
+    this.checks = checks
+    this.annotations = annotations
   }
   annotate(annotations: Annotations.Filter): FilterGroup<E> {
     return new FilterGroup(this.checks, { ...this.annotations, ...annotations })

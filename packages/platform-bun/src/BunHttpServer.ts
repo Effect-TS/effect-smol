@@ -273,17 +273,30 @@ function wsDefaultRun(this: WebSocketContext, _: Uint8Array | string) {
 class BunServerRequest extends Inspectable.Class implements ServerRequest.HttpServerRequest {
   readonly [ServerRequest.TypeId]: ServerRequest.TypeId
   readonly [IncomingMessage.TypeId]: IncomingMessage.TypeId
+  readonly source: Request
+  public resolve: (response: Response) => void
+  readonly url: string
+  private bunServer: BunServer
+  public headersOverride?: Headers.Headers | undefined
+  private remoteAddressOverride?: string | undefined
+
   constructor(
-    readonly source: Request,
-    public resolve: (response: Response) => void,
-    readonly url: string,
-    private bunServer: BunServer,
-    public headersOverride?: Headers.Headers,
-    private remoteAddressOverride?: string
+    source: Request,
+    resolve: (response: Response) => void,
+    url: string,
+    bunServer: BunServer,
+    headersOverride?: Headers.Headers,
+    remoteAddressOverride?: string
   ) {
     super()
     this[ServerRequest.TypeId] = ServerRequest.TypeId
     this[IncomingMessage.TypeId] = IncomingMessage.TypeId
+    this.source = source
+    this.resolve = resolve
+    this.url = url
+    this.bunServer = bunServer
+    this.headersOverride = headersOverride
+    this.remoteAddressOverride = remoteAddressOverride
   }
   toJSON(): unknown {
     return IncomingMessage.inspect(this, {

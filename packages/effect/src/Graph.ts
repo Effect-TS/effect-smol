@@ -2770,6 +2770,39 @@ export class Walker<T, N> implements Iterable<[T, N]> {
   // @ts-ignore
   readonly [Symbol.iterator]: () => Iterator<[T, N]>
 
+  /**
+   * Visits each element and maps it to a value using the provided function.
+   *
+   * Takes a function that receives the index and data,
+   * and returns an iterable of the mapped values. Skips elements that
+   * no longer exist in the graph.
+   *
+   * @example
+   * ```ts
+   * import { Graph } from "effect"
+   *
+   * const graph = Graph.directed<string, number>((mutable) => {
+   *   const a = Graph.addNode(mutable, "A")
+   *   const b = Graph.addNode(mutable, "B")
+   *   Graph.addEdge(mutable, a, b, 1)
+   * })
+   *
+   * const dfs = Graph.dfs(graph, { startNodes: [0] })
+   *
+   * // Map to just the node data
+   * const values = Array.from(dfs.visit((index, data) => data))
+   * console.log(values) // ["A", "B"]
+   *
+   * // Map to custom objects
+   * const custom = Array.from(dfs.visit((index, data) => ({ id: index, name: data })))
+   * console.log(custom) // [{ id: 0, name: "A" }, { id: 1, name: "B" }]
+   * ```
+   *
+   * @since 4.0.0
+   * @category iterators
+   */
+  readonly visit: <U>(f: (index: T, data: N) => U) => Iterable<U>
+
   constructor(
     /**
      * Visits each element and maps it to a value using the provided function.
@@ -2802,8 +2835,9 @@ export class Walker<T, N> implements Iterable<[T, N]> {
      * @since 4.0.0
      * @category iterators
      */
-    readonly visit: <U>(f: (index: T, data: N) => U) => Iterable<U>
+    visit: <U>(f: (index: T, data: N) => U) => Iterable<U>
   ) {
+    this.visit = visit
     this[Symbol.iterator] = visit((index, data) => [index, data] as [T, N])[Symbol.iterator]
   }
 }

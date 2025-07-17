@@ -231,14 +231,18 @@ const makeFile = (() => {
 
   class FileImpl implements FileSystem.File {
     readonly [FileSystem.FileTypeId]: FileSystem.FileTypeId
+    readonly fd: FileSystem.File.Descriptor
+    private readonly append: boolean
 
     private position: bigint = 0n
 
     constructor(
-      readonly fd: FileSystem.File.Descriptor,
-      private readonly append: boolean
+      fd: FileSystem.File.Descriptor,
+      append: boolean
     ) {
       this[FileSystem.FileTypeId] = FileSystem.FileTypeId
+      this.fd = fd
+      this.append = append
     }
 
     get stat() {

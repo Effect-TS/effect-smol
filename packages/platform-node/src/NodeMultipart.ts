@@ -110,9 +110,11 @@ class FileImpl extends PartBase implements Multipart.File {
   readonly contentType: string
   readonly content: Stream.Stream<Uint8Array, Multipart.MultipartError>
   readonly contentEffect: Effect.Effect<Uint8Array, Multipart.MultipartError>
+  readonly file: MP.FileStream
 
-  constructor(readonly file: MP.FileStream) {
+  constructor(file: MP.FileStream) {
     super()
+    this.file = file
     this.key = file.info.name
     this.name = file.filename ?? file.info.name
     this.contentType = file.info.contentType

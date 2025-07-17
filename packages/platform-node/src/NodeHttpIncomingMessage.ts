@@ -22,14 +22,20 @@ export abstract class NodeHttpIncomingMessage<E> extends Inspectable.Class
    * @since 1.0.0
    */
   readonly [IncomingMessage.TypeId]: IncomingMessage.TypeId
+  readonly source: Http.IncomingMessage
+  readonly onError: (error: unknown) => E
+  readonly remoteAddressOverride?: string | undefined
 
   constructor(
-    readonly source: Http.IncomingMessage,
-    readonly onError: (error: unknown) => E,
-    readonly remoteAddressOverride?: string
+    source: Http.IncomingMessage,
+    onError: (error: unknown) => E,
+    remoteAddressOverride?: string
   ) {
     super()
     this[IncomingMessage.TypeId] = IncomingMessage.TypeId
+    this.source = source
+    this.onError = onError
+    this.remoteAddressOverride = remoteAddressOverride
   }
 
   get headers() {

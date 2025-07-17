@@ -96,12 +96,19 @@ export const isGenKind = (u: unknown): u is GenKind<any, any, any, any, any> => 
  * @since 2.0.0
  */
 export class GenKindImpl<F extends TypeLambda, R, O, E, A> implements GenKind<F, R, O, E, A> {
+  /**
+   * @since 2.0.0
+   */
+  readonly value: Kind<F, R, O, E, A>
+
   constructor(
     /**
      * @since 2.0.0
      */
-    readonly value: Kind<F, R, O, E, A>
-  ) {}
+    value: Kind<F, R, O, E, A>
+  ) {
+    this.value = value
+  }
 
   /**
    * @since 2.0.0
@@ -150,8 +157,11 @@ export class GenKindImpl<F extends TypeLambda, R, O, E, A> implements GenKind<F,
  */
 export class SingleShotGen<T, A> implements IterableIterator<T, A> {
   private called = false
+  readonly self: T
 
-  constructor(readonly self: T) {}
+  constructor(self: T) {
+    this.self = self
+  }
 
   /**
    * @since 2.0.0

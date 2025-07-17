@@ -1691,11 +1691,19 @@ abstract class Metric$<in Input, out State> implements Metric<Input, State> {
   readonly #metadataCache = new WeakMap<Metric.Attributes, Metric.Metadata<Input, State>>()
   #metadata: Metric.Metadata<Input, State> | undefined
 
+  readonly id: string
+  readonly description: string | undefined
+  readonly attributes: Metric.AttributeSet | undefined
+
   constructor(
-    readonly id: string,
-    readonly description: string | undefined,
-    readonly attributes: Metric.AttributeSet | undefined
-  ) {}
+    id: string,
+    description: string | undefined,
+    attributes: Metric.AttributeSet | undefined
+  ) {
+    this.id = id
+    this.description = description
+    this.attributes = attributes
+  }
 
   unsafeValue(context: ServiceMap.ServiceMap<never>): State {
     return this.hook(context).get(context)
@@ -2013,13 +2021,22 @@ class SummaryMetric extends Metric$<readonly [value: number, timestamp: number],
 
 class MetricTransform<in Input, out State, in Input2> extends Metric$<Input2, State> {
   type: Metric.Type
+  readonly metric: Metric<Input, State>
+  readonly unsafeValue: (context: ServiceMap.ServiceMap<never>) => State
+  readonly unsafeUpdate: (input: Input2, context: ServiceMap.ServiceMap<never>) => void
+  readonly unsafeModify: (input: Input2, context: ServiceMap.ServiceMap<never>) => void
+
   constructor(
-    readonly metric: Metric<Input, State>,
-    readonly unsafeValue: (context: ServiceMap.ServiceMap<never>) => State,
-    readonly unsafeUpdate: (input: Input2, context: ServiceMap.ServiceMap<never>) => void,
-    readonly unsafeModify: (input: Input2, context: ServiceMap.ServiceMap<never>) => void
+    metric: Metric<Input, State>,
+    unsafeValue: (context: ServiceMap.ServiceMap<never>) => State,
+    unsafeUpdate: (input: Input2, context: ServiceMap.ServiceMap<never>) => void,
+    unsafeModify: (input: Input2, context: ServiceMap.ServiceMap<never>) => void
   ) {
     super(metric.id, metric.description, metric.attributes)
+    this.metric = metric
+    this.unsafeValue = unsafeValue
+    this.unsafeUpdate = unsafeUpdate
+    this.unsafeModify = unsafeModify
     this.type = metric.type
   }
   createHooks(): Metric.Hooks<Input2, State> {

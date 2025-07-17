@@ -246,9 +246,11 @@ export abstract class Bottom$<
   declare readonly "~encoded.mutability": EncodedMutability
   declare readonly "~encoded.optionality": EncodedOptionality
 
+  readonly ast: Ast
   readonly makeSync: (input: this["~type.make.in"], options?: MakeOptions) => this["Type"]
 
-  constructor(readonly ast: Ast) {
+  constructor(ast: Ast) {
+    this.ast = ast
     this.makeSync = ToParser.makeSync(this)
   }
   abstract rebuild(ast: this["ast"]): this["~rebuild.out"]
@@ -708,17 +710,23 @@ class make$<S extends Top> extends Bottom$<
   S["~encoded.mutability"],
   S["~encoded.optionality"]
 > {
+  readonly rebuild: (ast: S["ast"]) => S["~rebuild.out"]
+
   constructor(
     ast: S["ast"],
-    readonly rebuild: (ast: S["ast"]) => S["~rebuild.out"]
+    rebuild: (ast: S["ast"]) => S["~rebuild.out"]
   ) {
     super(ast)
+    this.rebuild = rebuild
   }
 }
 
 class makeWithSchema$<S extends Top, Result extends Top> extends make$<Result> {
-  constructor(ast: AST.AST, readonly schema: S) {
-    super(ast, (ast) => new makeWithSchema$(ast, this.schema))
+  readonly schema: S
+
+  constructor(ast: AST.AST, schema: S) {
+    super(ast, (ast) => new makeWithSchema$(ast, schema))
+    this.schema = schema
   }
 }
 
@@ -1037,8 +1045,11 @@ export interface Literal<L extends AST.Literal>
 }
 
 class Literal$<L extends AST.Literal> extends make$<Literal<L>> implements Literal<L> {
-  constructor(ast: AST.LiteralType, readonly literal: L) {
+  readonly literal: L
+
+  constructor(ast: AST.LiteralType, literal: L) {
     super(ast, (ast) => new Literal$(ast, literal))
+    this.literal = literal
   }
 }
 
@@ -1102,8 +1113,11 @@ export interface TemplateLiteral<Parts extends TemplateLiteral.Parts> extends
 class TemplateLiteral$<Parts extends TemplateLiteral.Parts> extends make$<TemplateLiteral<Parts>>
   implements TemplateLiteral<Parts>
 {
-  constructor(ast: AST.TemplateLiteral, readonly parts: Parts) {
+  readonly parts: Parts
+
+  constructor(ast: AST.TemplateLiteral, parts: Parts) {
     super(ast, (ast) => new TemplateLiteral$(ast, parts))
+    this.parts = parts
   }
 }
 
@@ -1157,8 +1171,11 @@ export interface TemplateLiteralParser<Parts extends TemplateLiteral.Parts> exte
 class TemplateLiteralParser$<Parts extends TemplateLiteral.Parts> extends make$<TemplateLiteralParser<Parts>>
   implements TemplateLiteralParser<Parts>
 {
-  constructor(ast: AST.TupleType, readonly parts: Parts) {
+  readonly parts: Parts
+
+  constructor(ast: AST.TupleType, parts: Parts) {
     super(ast, (ast) => new TemplateLiteralParser$(ast, parts))
+    this.parts = parts
   }
 }
 
@@ -1184,8 +1201,11 @@ export interface Enums<A extends { [x: string]: string | number }>
 }
 
 class Enums$<A extends { [x: string]: string | number }> extends make$<Enums<A>> implements Enums<A> {
-  constructor(ast: AST.Enums, readonly enums: A) {
+  readonly enums: A
+
+  constructor(ast: AST.Enums, enums: A) {
     super(ast, (ast) => new Enums$(ast, enums))
+    this.enums = enums
   }
 }
 
@@ -1687,8 +1707,13 @@ export interface Record$<Key extends Record.Key, Value extends Top> extends
 class Record$$<Key extends Record.Key, Value extends Top> extends make$<Record$<Key, Value>>
   implements Record$<Key, Value>
 {
-  constructor(ast: AST.TypeLiteral, readonly key: Key, readonly value: Value) {
+  readonly key: Key
+  readonly value: Value
+
+  constructor(ast: AST.TypeLiteral, key: Key, value: Value) {
     super(ast, (ast) => new Record$$(ast, key, value))
+    this.key = key
+    this.value = value
   }
 }
 
@@ -1798,9 +1823,12 @@ class StructWithRest$$<S extends StructWithRest.TypeLiteral, Records extends Str
   extends make$<StructWithRest<S, Records>>
   implements StructWithRest<S, Records>
 {
+  readonly schema: S
   readonly records: Records
-  constructor(ast: AST.TypeLiteral, readonly schema: S, records: Records) {
+
+  constructor(ast: AST.TypeLiteral, schema: S, records: Records) {
     super(ast, (ast) => new StructWithRest$$(ast, this.schema, this.records))
+    this.schema = schema
     // clone to avoid accidental external mutation
     this.records = [...records] as any
   }
@@ -2028,9 +2056,12 @@ export interface TupleWithRest<
 class TupleWithRest$<S extends Tuple<Tuple.Elements> | mutable<Tuple<Tuple.Elements>>, Rest extends TupleWithRest.Rest>
   extends make$<TupleWithRest<S, Rest>>
 {
+  readonly schema: S
   readonly rest: Rest
-  constructor(ast: AST.TupleType, readonly schema: S, rest: Rest) {
+
+  constructor(ast: AST.TupleType, schema: S, rest: Rest) {
     super(ast, (ast) => new TupleWithRest$(ast, this.schema, this.rest))
+    this.schema = schema
     // clone to avoid accidental external mutation
     this.rest = [...rest]
   }
@@ -2247,8 +2278,13 @@ export interface Union<Members extends ReadonlyArray<Top>> extends
 }
 
 class Union$<Members extends ReadonlyArray<Top>> extends make$<Union<Members>> implements Union<Members> {
-  constructor(readonly ast: AST.UnionType<Members[number]["ast"]>, readonly members: Members) {
+  readonly ast: AST.UnionType<Members[number]["ast"]>
+  readonly members: Members
+
+  constructor(ast: AST.UnionType<Members[number]["ast"]>, members: Members) {
     super(ast, (ast) => new Union$(ast, members))
+    this.ast = ast
+    this.members = members
   }
 
   mapMembers<To extends ReadonlyArray<Top>>(
@@ -2306,12 +2342,17 @@ export interface Literals<L extends ReadonlyArray<AST.Literal>> extends
 }
 
 class Literals$<L extends ReadonlyArray<AST.Literal>> extends make$<Literals<L>> implements Literals<L> {
+  readonly literals: L
+  readonly members: { readonly [K in keyof L]: Literal<L[K]> }
+
   constructor(
     ast: AST.UnionType<AST.LiteralType>,
-    readonly literals: L,
-    readonly members: { readonly [K in keyof L]: Literal<L[K]> }
+    literals: L,
+    members: { readonly [K in keyof L]: Literal<L[K]> }
   ) {
     super(ast, (ast) => new Literals$(ast, literals, members))
+    this.literals = literals
+    this.members = members
   }
 
   mapMembers<To extends ReadonlyArray<Top>>(f: (members: this["members"]) => To): Union<Simplify<Readonly<To>>> {
@@ -2664,12 +2705,19 @@ export interface compose<To extends Top, From extends Top> extends decodeTo<To, 
 class decodeTo$<To extends Top, From extends Top, RD, RE> extends make$<decodeTo<To, From, RD, RE>>
   implements decodeTo<To, From, RD, RE>
 {
+  readonly ast: From["ast"]
+  readonly from: From
+  readonly to: To
+
   constructor(
-    readonly ast: From["ast"],
-    readonly from: From,
-    readonly to: To
+    ast: From["ast"],
+    from: From,
+    to: To
   ) {
-    super(ast, (ast) => new decodeTo$<To, From, RD, RE>(ast, this.from, this.to))
+    super(ast, (ast) => new decodeTo$<To, From, RD, RE>(ast, from, to))
+    this.ast = ast
+    this.from = from
+    this.to = to
   }
 }
 
@@ -3037,14 +3085,30 @@ export interface TaggedUnion<Cases extends Record<string, Top>> extends
 }
 
 class TaggedUnion$<Cases extends Record<string, Top>> extends make$<TaggedUnion<Cases>> implements TaggedUnion<Cases> {
+  readonly ast: AST.UnionType<AST.TypeLiteral>
+  readonly cases: Cases
+  readonly isAnyOf: <const Keys>(
+    keys: ReadonlyArray<Keys>
+  ) => (value: Cases[keyof Cases]["Type"]) => value is Extract<Cases[keyof Cases]["Type"], { _tag: Keys }>
+  readonly guards: { [K in keyof Cases]: (u: unknown) => u is Cases[K]["Type"] }
+  readonly match: {
+    <Output>(
+      value: Cases[keyof Cases]["Type"],
+      cases: { [K in keyof Cases]: (value: Cases[K]["Type"]) => Output }
+    ): Output
+    <Output>(
+      cases: { [K in keyof Cases]: (value: Cases[K]["Type"]) => Output }
+    ): (value: Cases[keyof Cases]["Type"]) => Output
+  }
+
   constructor(
-    readonly ast: AST.UnionType<AST.TypeLiteral>,
-    readonly cases: Cases,
-    readonly isAnyOf: <const Keys>(
+    ast: AST.UnionType<AST.TypeLiteral>,
+    cases: Cases,
+    isAnyOf: <const Keys>(
       keys: ReadonlyArray<Keys>
     ) => (value: Cases[keyof Cases]["Type"]) => value is Extract<Cases[keyof Cases]["Type"], { _tag: Keys }>,
-    readonly guards: { [K in keyof Cases]: (u: unknown) => u is Cases[K]["Type"] },
-    readonly match: {
+    guards: { [K in keyof Cases]: (u: unknown) => u is Cases[K]["Type"] },
+    match: {
       <Output>(
         value: Cases[keyof Cases]["Type"],
         cases: { [K in keyof Cases]: (value: Cases[K]["Type"]) => Output }
@@ -3055,6 +3119,11 @@ class TaggedUnion$<Cases extends Record<string, Top>> extends make$<TaggedUnion<
     }
   ) {
     super(ast, (ast) => new TaggedUnion$(ast, cases, isAnyOf, guards, match))
+    this.ast = ast
+    this.cases = cases
+    this.isAnyOf = isAnyOf
+    this.guards = guards
+    this.match = match
   }
 }
 

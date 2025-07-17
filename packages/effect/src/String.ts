@@ -1083,8 +1083,17 @@ export const kebabToSnake = (self: string): string => self.replace(/-/g, "_")
 class LinesIterator implements IterableIterator<string> {
   private index: number
   private readonly length: number
+  readonly s: string
+  readonly stripped: boolean
 
-  constructor(readonly s: string, readonly stripped: boolean = false) {
+  constructor(
+    /** @internal */
+    s: string,
+    /** @internal */
+    stripped: boolean = false
+  ) {
+    this.s = s
+    this.stripped = stripped
     this.index = 0
     this.length = s.length
   }

@@ -132,10 +132,13 @@ const setImmediate = "setImmediate" in globalThis
 export class MixedScheduler implements Scheduler {
   private tasks: Array<() => void> = []
   private running: ReturnType<typeof setImmediate> | undefined = undefined
+  readonly executionMode: "sync" | "async"
 
   constructor(
-    readonly executionMode: "sync" | "async" = "async"
-  ) {}
+    executionMode: "sync" | "async" = "async"
+  ) {
+    this.executionMode = executionMode
+  }
 
   /**
    * @since 2.0.0

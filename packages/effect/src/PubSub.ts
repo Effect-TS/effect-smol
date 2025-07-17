@@ -1538,7 +1538,12 @@ class BoundedPubSubArb<in out A> implements PubSub.Atomic<A> {
   subscriberCount = 0
   subscribersIndex = 0
 
-  constructor(readonly capacity: number, readonly replayBuffer: ReplayBuffer<A> | undefined) {
+  readonly capacity: number
+  readonly replayBuffer: ReplayBuffer<A> | undefined
+
+  constructor(capacity: number, replayBuffer: ReplayBuffer<A> | undefined) {
+    this.capacity = capacity
+    this.replayBuffer = replayBuffer
     this.array = Array.from({ length: capacity })
     this.subscribers = Array.from({ length: capacity })
   }
@@ -1624,11 +1629,18 @@ class BoundedPubSubArb<in out A> implements PubSub.Atomic<A> {
 }
 
 class BoundedPubSubArbSubscription<in out A> implements PubSub.BackingSubscription<A> {
+  private self: BoundedPubSubArb<A>
+  private subscriberIndex: number
+  private unsubscribed: boolean
+
   constructor(
-    private self: BoundedPubSubArb<A>,
-    private subscriberIndex: number,
-    private unsubscribed: boolean
+    self: BoundedPubSubArb<A>,
+    subscriberIndex: number,
+    unsubscribed: boolean
   ) {
+    this.self = self
+    this.subscriberIndex = subscriberIndex
+    this.unsubscribed = unsubscribed
   }
 
   isEmpty(): boolean {
@@ -1718,7 +1730,12 @@ class BoundedPubSubPow2<in out A> implements PubSub.Atomic<A> {
   subscriberCount = 0
   subscribersIndex = 0
 
-  constructor(readonly capacity: number, readonly replayBuffer: ReplayBuffer<A> | undefined) {
+  readonly capacity: number
+  readonly replayBuffer: ReplayBuffer<A> | undefined
+
+  constructor(capacity: number, replayBuffer: ReplayBuffer<A> | undefined) {
+    this.capacity = capacity
+    this.replayBuffer = replayBuffer
     this.array = Array.from({ length: capacity })
     this.mask = capacity - 1
     this.subscribers = Array.from({ length: capacity })
@@ -1805,11 +1822,18 @@ class BoundedPubSubPow2<in out A> implements PubSub.Atomic<A> {
 }
 
 class BoundedPubSubPow2Subscription<in out A> implements PubSub.BackingSubscription<A> {
+  private self: BoundedPubSubPow2<A>
+  private subscriberIndex: number
+  private unsubscribed: boolean
+
   constructor(
-    private self: BoundedPubSubPow2<A>,
-    private subscriberIndex: number,
-    private unsubscribed: boolean
+    self: BoundedPubSubPow2<A>,
+    subscriberIndex: number,
+    unsubscribed: boolean
   ) {
+    this.self = self
+    this.subscriberIndex = subscriberIndex
+    this.unsubscribed = unsubscribed
   }
 
   isEmpty(): boolean {
@@ -1897,7 +1921,11 @@ class BoundedPubSubSingle<in out A> implements PubSub.Atomic<A> {
   value: A = AbsentValue as unknown as A
 
   readonly capacity = 1
-  constructor(readonly replayBuffer: ReplayBuffer<A> | undefined) {}
+  readonly replayBuffer: ReplayBuffer<A> | undefined
+
+  constructor(replayBuffer: ReplayBuffer<A> | undefined) {
+    this.replayBuffer = replayBuffer
+  }
 
   replayWindow(): PubSub.ReplayWindow<A> {
     return this.replayBuffer ? new ReplayWindowImpl(this.replayBuffer) : emptyReplayWindow
@@ -1969,11 +1997,18 @@ class BoundedPubSubSingle<in out A> implements PubSub.Atomic<A> {
 }
 
 class BoundedPubSubSingleSubscription<in out A> implements PubSub.BackingSubscription<A> {
+  private self: BoundedPubSubSingle<A>
+  private subscriberIndex: number
+  private unsubscribed: boolean
+
   constructor(
-    private self: BoundedPubSubSingle<A>,
-    private subscriberIndex: number,
-    private unsubscribed: boolean
+    self: BoundedPubSubSingle<A>,
+    subscriberIndex: number,
+    unsubscribed: boolean
   ) {
+    this.self = self
+    this.subscriberIndex = subscriberIndex
+    this.unsubscribed = unsubscribed
   }
 
   isEmpty(): boolean {
@@ -2045,7 +2080,11 @@ class UnboundedPubSub<in out A> implements PubSub.Atomic<A> {
   subscribersIndex = 0
 
   readonly capacity = Number.MAX_SAFE_INTEGER
-  constructor(readonly replayBuffer: ReplayBuffer<A> | undefined) {}
+  readonly replayBuffer: ReplayBuffer<A> | undefined
+
+  constructor(replayBuffer: ReplayBuffer<A> | undefined) {
+    this.replayBuffer = replayBuffer
+  }
 
   replayWindow(): PubSub.ReplayWindow<A> {
     return this.replayBuffer ? new ReplayWindowImpl(this.replayBuffer) : emptyReplayWindow
@@ -2114,12 +2153,21 @@ class UnboundedPubSub<in out A> implements PubSub.Atomic<A> {
 }
 
 class UnboundedPubSubSubscription<in out A> implements PubSub.BackingSubscription<A> {
+  private self: UnboundedPubSub<A>
+  private subscriberHead: Node<A>
+  private subscriberIndex: number
+  private unsubscribed: boolean
+
   constructor(
-    private self: UnboundedPubSub<A>,
-    private subscriberHead: Node<A>,
-    private subscriberIndex: number,
-    private unsubscribed: boolean
+    self: UnboundedPubSub<A>,
+    subscriberHead: Node<A>,
+    subscriberIndex: number,
+    unsubscribed: boolean
   ) {
+    this.self = self
+    this.subscriberHead = subscriberHead
+    this.subscriberIndex = subscriberIndex
+    this.unsubscribed = unsubscribed
   }
 
   isEmpty(): boolean {
@@ -2218,16 +2266,34 @@ class SubscriptionImpl<in out A> implements Subscription<A> {
     _A: identity
   }
 
+  readonly pubsub: PubSub.Atomic<A>
+  readonly subscribers: PubSub.Subscribers<A>
+  readonly subscription: PubSub.BackingSubscription<A>
+  readonly pollers: MutableList.MutableList<Deferred.Deferred<A>>
+  readonly shutdownHook: Effect.Latch
+  readonly shutdownFlag: MutableRef.MutableRef<boolean>
+  readonly strategy: PubSub.Strategy<A>
+  readonly replayWindow: PubSub.ReplayWindow<A>
+
   constructor(
-    readonly pubsub: PubSub.Atomic<A>,
-    readonly subscribers: PubSub.Subscribers<A>,
-    readonly subscription: PubSub.BackingSubscription<A>,
-    readonly pollers: MutableList.MutableList<Deferred.Deferred<A>>,
-    readonly shutdownHook: Effect.Latch,
-    readonly shutdownFlag: MutableRef.MutableRef<boolean>,
-    readonly strategy: PubSub.Strategy<A>,
-    readonly replayWindow: PubSub.ReplayWindow<A>
-  ) {}
+    pubsub: PubSub.Atomic<A>,
+    subscribers: PubSub.Subscribers<A>,
+    subscription: PubSub.BackingSubscription<A>,
+    pollers: MutableList.MutableList<Deferred.Deferred<A>>,
+    shutdownHook: Effect.Latch,
+    shutdownFlag: MutableRef.MutableRef<boolean>,
+    strategy: PubSub.Strategy<A>,
+    replayWindow: PubSub.ReplayWindow<A>
+  ) {
+    this.pubsub = pubsub
+    this.subscribers = subscribers
+    this.subscription = subscription
+    this.pollers = pollers
+    this.shutdownHook = shutdownHook
+    this.shutdownFlag = shutdownFlag
+    this.strategy = strategy
+    this.replayWindow = replayWindow
+  }
 
   pipe() {
     return pipeArguments(this, arguments)
@@ -2239,14 +2305,28 @@ class PubSubImpl<in out A> implements PubSub<A> {
     _A: identity
   }
 
+  readonly pubsub: PubSub.Atomic<A>
+  readonly subscribers: PubSub.Subscribers<A>
+  readonly scope: Scope.Scope.Closeable
+  readonly shutdownHook: Effect.Latch
+  readonly shutdownFlag: MutableRef.MutableRef<boolean>
+  readonly strategy: PubSub.Strategy<A>
+
   constructor(
-    readonly pubsub: PubSub.Atomic<A>,
-    readonly subscribers: PubSub.Subscribers<A>,
-    readonly scope: Scope.Scope.Closeable,
-    readonly shutdownHook: Effect.Latch,
-    readonly shutdownFlag: MutableRef.MutableRef<boolean>,
-    readonly strategy: PubSub.Strategy<A>
-  ) {}
+    pubsub: PubSub.Atomic<A>,
+    subscribers: PubSub.Subscribers<A>,
+    scope: Scope.Scope.Closeable,
+    shutdownHook: Effect.Latch,
+    shutdownFlag: MutableRef.MutableRef<boolean>,
+    strategy: PubSub.Strategy<A>
+  ) {
+    this.pubsub = pubsub
+    this.subscribers = subscribers
+    this.scope = scope
+    this.shutdownHook = shutdownHook
+    this.shutdownFlag = shutdownFlag
+    this.strategy = strategy
+  }
 
   pipe() {
     return pipeArguments(this, arguments)
@@ -2592,12 +2672,15 @@ interface ReplayNode<A> {
 }
 
 class ReplayBuffer<A> {
-  constructor(readonly capacity: number) {}
-
+  readonly capacity: number
   head: ReplayNode<A> = { value: AbsentValue, next: null }
   tail: ReplayNode<A> = this.head
   size = 0
   index = 0
+
+  constructor(capacity: number) {
+    this.capacity = capacity
+  }
 
   slide() {
     this.index++
@@ -2626,7 +2709,10 @@ class ReplayWindowImpl<A> implements PubSub.ReplayWindow<A> {
   head: ReplayNode<A>
   index: number
   remaining: number
-  constructor(readonly buffer: ReplayBuffer<A>) {
+  readonly buffer: ReplayBuffer<A>
+
+  constructor(buffer: ReplayBuffer<A>) {
+    this.buffer = buffer
     this.index = buffer.index
     this.remaining = buffer.size
     this.head = buffer.head

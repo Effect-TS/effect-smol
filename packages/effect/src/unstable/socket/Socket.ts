@@ -82,8 +82,13 @@ export class CloseEvent {
    * @since 4.0.0
    */
   readonly [CloseEventTypeId]: CloseEventTypeId
-  constructor(readonly code = 1000, readonly reason?: string) {
+  readonly code: number
+  readonly reason?: string | undefined
+
+  constructor(code = 1000, reason?: string) {
     this[CloseEventTypeId] = CloseEventTypeId
+    this.code = code
+    this.reason = reason
   }
   /**
    * @since 4.0.0

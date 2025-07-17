@@ -77,12 +77,18 @@ const makeImpl = <V>(root: Node<V> | undefined): TrieImpl<V> => {
 
 class TrieIterator<in out V, out T> implements IterableIterator<T> {
   stack: Array<[Node<V>, string, boolean]> = []
+  readonly trie: TrieImpl<V>
+  readonly f: TraversalMap<string, V, T>
+  readonly filter: TraversalFilter<string, V>
 
   constructor(
-    readonly trie: TrieImpl<V>,
-    readonly f: TraversalMap<string, V, T>,
-    readonly filter: TraversalFilter<string, V>
+    trie: TrieImpl<V>,
+    f: TraversalMap<string, V, T>,
+    filter: TraversalFilter<string, V>
   ) {
+    this.trie = trie
+    this.f = f
+    this.filter = filter
     const root = trie._root !== undefined ? trie._root : undefined
     if (root !== undefined) {
       this.stack.push([root, "", false])

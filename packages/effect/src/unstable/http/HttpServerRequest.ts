@@ -301,15 +301,24 @@ const removeHost = (url: string) => {
 class ServerRequestImpl extends Inspectable.Class implements HttpServerRequest {
   readonly [TypeId]: TypeId
   readonly [HttpIncomingMessage.TypeId]: HttpIncomingMessage.TypeId
+  readonly source: Request
+  readonly url: string
+  public headersOverride?: Headers.Headers | undefined
+  private remoteAddressOverride?: string | undefined
+
   constructor(
-    readonly source: Request,
-    readonly url: string,
-    public headersOverride?: Headers.Headers,
-    private remoteAddressOverride?: string
+    source: Request,
+    url: string,
+    headersOverride?: Headers.Headers,
+    remoteAddressOverride?: string
   ) {
     super()
     this[TypeId] = TypeId
     this[HttpIncomingMessage.TypeId] = HttpIncomingMessage.TypeId
+    this.source = source
+    this.url = url
+    this.headersOverride = headersOverride
+    this.remoteAddressOverride = remoteAddressOverride
   }
   toJSON(): unknown {
     return HttpIncomingMessage.inspect(this, {

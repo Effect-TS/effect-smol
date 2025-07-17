@@ -57,21 +57,37 @@ class Base {
  */
 export class Filter extends Base {
   readonly _tag = "Filter"
+  /**
+   * The input value that caused the issue.
+   */
+  readonly actual: unknown
+  /**
+   * The filter that failed.
+   */
+  readonly filter: Check.Filter<unknown>
+  /**
+   * The issue that occurred.
+   */
+  readonly issue: Issue
+
   constructor(
     /**
      * The input value that caused the issue.
      */
-    readonly actual: unknown,
+    actual: unknown,
     /**
      * The filter that failed.
      */
-    readonly filter: Check.Filter<unknown>,
+    filter: Check.Filter<unknown>,
     /**
      * The issue that occurred.
      */
-    readonly issue: Issue
+    issue: Issue
   ) {
     super()
+    this.actual = actual
+    this.filter = filter
+    this.issue = issue
   }
 }
 
@@ -83,21 +99,37 @@ export class Filter extends Base {
  */
 export class Encoding extends Base {
   readonly _tag = "Encoding"
+  /**
+   * The schema that caused the issue.
+   */
+  readonly ast: AST.AST
+  /**
+   * The input value that caused the issue.
+   */
+  readonly actual: Option.Option<unknown>
+  /**
+   * The issue that occurred.
+   */
+  readonly issue: Issue
+
   constructor(
     /**
      * The schema that caused the issue.
      */
-    readonly ast: AST.AST,
+    ast: AST.AST,
     /**
      * The input value that caused the issue.
      */
-    readonly actual: Option.Option<unknown>,
+    actual: Option.Option<unknown>,
     /**
      * The issue that occurred.
      */
-    readonly issue: Issue
+    issue: Issue
   ) {
     super()
+    this.ast = ast
+    this.actual = actual
+    this.issue = issue
   }
 }
 
@@ -109,17 +141,28 @@ export class Encoding extends Base {
  */
 export class Pointer extends Base {
   readonly _tag = "Pointer"
+  /**
+   * The path to the location in the input that caused the issue.
+   */
+  readonly path: ReadonlyArray<PropertyKey>
+  /**
+   * The issue that occurred.
+   */
+  readonly issue: Issue
+
   constructor(
     /**
      * The path to the location in the input that caused the issue.
      */
-    readonly path: ReadonlyArray<PropertyKey>,
+    path: ReadonlyArray<PropertyKey>,
     /**
      * The issue that occurred.
      */
-    readonly issue: Issue
+    issue: Issue
   ) {
     super()
+    this.path = path
+    this.issue = issue
   }
 }
 
@@ -131,13 +174,19 @@ export class Pointer extends Base {
  */
 export class MissingKey extends Base {
   readonly _tag = "MissingKey"
+  /**
+   * The metadata for the issue.
+   */
+  readonly annotations: Annotations.Key | undefined
+
   constructor(
     /**
      * The metadata for the issue.
      */
-    readonly annotations: Annotations.Key | undefined
+    annotations: Annotations.Key | undefined
   ) {
     super()
+    this.annotations = annotations
   }
 }
 
@@ -149,17 +198,28 @@ export class MissingKey extends Base {
  */
 export class UnexpectedKey extends Base {
   readonly _tag = "UnexpectedKey"
+  /**
+   * The schema that caused the issue.
+   */
+  readonly ast: AST.AST
+  /**
+   * The input value that caused the issue.
+   */
+  readonly actual: unknown
+
   constructor(
     /**
      * The schema that caused the issue.
      */
-    readonly ast: AST.AST,
+    ast: AST.AST,
     /**
      * The input value that caused the issue.
      */
-    readonly actual: unknown
+    actual: unknown
   ) {
     super()
+    this.ast = ast
+    this.actual = actual
   }
 }
 
@@ -171,21 +231,37 @@ export class UnexpectedKey extends Base {
  */
 export class Composite extends Base {
   readonly _tag = "Composite"
+  /**
+   * The schema that caused the issue.
+   */
+  readonly ast: AST.AST
+  /**
+   * The input value that caused the issue.
+   */
+  readonly actual: Option.Option<unknown>
+  /**
+   * The issues that occurred.
+   */
+  readonly issues: readonly [Issue, ...ReadonlyArray<Issue>]
+
   constructor(
     /**
      * The schema that caused the issue.
      */
-    readonly ast: AST.AST,
+    ast: AST.AST,
     /**
      * The input value that caused the issue.
      */
-    readonly actual: Option.Option<unknown>,
+    actual: Option.Option<unknown>,
     /**
      * The issues that occurred.
      */
-    readonly issues: readonly [Issue, ...ReadonlyArray<Issue>]
+    issues: readonly [Issue, ...ReadonlyArray<Issue>]
   ) {
     super()
+    this.ast = ast
+    this.actual = actual
+    this.issues = issues
   }
 }
 
@@ -198,17 +274,28 @@ export class Composite extends Base {
  */
 export class InvalidType extends Base {
   readonly _tag = "InvalidType"
+  /**
+   * The schema that caused the issue.
+   */
+  readonly ast: AST.AST
+  /**
+   * The input value that caused the issue.
+   */
+  readonly actual: Option.Option<unknown>
+
   constructor(
     /**
      * The schema that caused the issue.
      */
-    readonly ast: AST.AST,
+    ast: AST.AST,
     /**
      * The input value that caused the issue.
      */
-    readonly actual: Option.Option<unknown>
+    actual: Option.Option<unknown>
   ) {
     super()
+    this.ast = ast
+    this.actual = actual
   }
 }
 
@@ -220,17 +307,28 @@ export class InvalidType extends Base {
  */
 export class InvalidValue extends Base {
   readonly _tag = "InvalidValue"
+  /**
+   * The value that caused the issue.
+   */
+  readonly actual: Option.Option<unknown>
+  /**
+   * The metadata for the issue.
+   */
+  readonly annotations?: Annotations.Annotations | undefined
+
   constructor(
     /**
      * The value that caused the issue.
      */
-    readonly actual: Option.Option<unknown>,
+    actual: Option.Option<unknown>,
     /**
      * The metadata for the issue.
      */
-    readonly annotations?: Annotations.Annotations | undefined
+    annotations?: Annotations.Annotations | undefined
   ) {
     super()
+    this.actual = actual
+    this.annotations = annotations
   }
 }
 
@@ -244,17 +342,28 @@ export class InvalidValue extends Base {
  */
 export class Forbidden extends Base {
   readonly _tag = "Forbidden"
+  /**
+   * The input value that caused the issue.
+   */
+  readonly actual: Option.Option<unknown>
+  /**
+   * The metadata for the issue.
+   */
+  readonly annotations: Annotations.Annotations | undefined
+
   constructor(
     /**
      * The input value that caused the issue.
      */
-    readonly actual: Option.Option<unknown>,
+    actual: Option.Option<unknown>,
     /**
      * The metadata for the issue.
      */
-    readonly annotations: Annotations.Annotations | undefined
+    annotations: Annotations.Annotations | undefined
   ) {
     super()
+    this.actual = actual
+    this.annotations = annotations
   }
 }
 
@@ -267,21 +376,37 @@ export class Forbidden extends Base {
  */
 export class AnyOf extends Base {
   readonly _tag = "AnyOf"
+  /**
+   * The schema that caused the issue.
+   */
+  readonly ast: AST.AST
+  /**
+   * The input value that caused the issue.
+   */
+  readonly actual: Option.Option<unknown>
+  /**
+   * The issues that occurred.
+   */
+  readonly issues: readonly [Issue, ...ReadonlyArray<Issue>]
+
   constructor(
     /**
      * The schema that caused the issue.
      */
-    readonly ast: AST.AST,
+    ast: AST.AST,
     /**
      * The input value that caused the issue.
      */
-    readonly actual: Option.Option<unknown>,
+    actual: Option.Option<unknown>,
     /**
      * The issues that occurred.
      */
-    readonly issues: readonly [Issue, ...ReadonlyArray<Issue>]
+    issues: readonly [Issue, ...ReadonlyArray<Issue>]
   ) {
     super()
+    this.ast = ast
+    this.actual = actual
+    this.issues = issues
   }
 }
 
@@ -294,21 +419,37 @@ export class AnyOf extends Base {
  */
 export class OneOf extends Base {
   readonly _tag = "OneOf"
+  /**
+   * The schema that caused the issue.
+   */
+  readonly ast: AST.UnionType
+  /**
+   * The input value that caused the issue.
+   */
+  readonly actual: unknown
+  /**
+   * The schemas that were successful.
+   */
+  readonly successes: ReadonlyArray<AST.AST>
+
   constructor(
     /**
      * The schema that caused the issue.
      */
-    readonly ast: AST.UnionType,
+    ast: AST.UnionType,
     /**
      * The input value that caused the issue.
      */
-    readonly actual: unknown,
+    actual: unknown,
     /**
      * The schemas that were successful.
      */
-    readonly successes: ReadonlyArray<AST.AST>
+    successes: ReadonlyArray<AST.AST>
   ) {
     super()
+    this.ast = ast
+    this.actual = actual
+    this.successes = successes
   }
 }
 

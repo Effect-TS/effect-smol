@@ -380,13 +380,19 @@ abstract class PartBase extends Inspectable.Class {
 
 class FieldImpl extends PartBase implements Field {
   readonly _tag = "Field"
+  readonly key: string
+  readonly contentType: string
+  readonly value: string
 
   constructor(
-    readonly key: string,
-    readonly contentType: string,
-    readonly value: string
+    key: string,
+    contentType: string,
+    value: string
   ) {
     super()
+    this.key = key
+    this.contentType = contentType
+    this.value = value
   }
 
   toJSON(): unknown {
@@ -513,14 +519,22 @@ export const toPersisted = (
 
 class PersistedFileImpl extends PartBase implements PersistedFile {
   readonly _tag = "PersistedFile"
+  readonly key: string
+  readonly name: string
+  readonly contentType: string
+  readonly path: string
 
   constructor(
-    readonly key: string,
-    readonly name: string,
-    readonly contentType: string,
-    readonly path: string
+    key: string,
+    name: string,
+    contentType: string,
+    path: string
   ) {
     super()
+    this.key = key
+    this.name = name
+    this.contentType = contentType
+    this.path = path
   }
 
   toJSON(): unknown {

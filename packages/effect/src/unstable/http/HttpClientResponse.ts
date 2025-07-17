@@ -221,11 +221,18 @@ class WebHttpClientResponse extends Inspectable.Class implements HttpClientRespo
   readonly [HttpIncomingMessage.TypeId]: HttpIncomingMessage.TypeId
   readonly [TypeId]: TypeId
 
+  readonly request: HttpClientRequest.HttpClientRequest
+  private readonly source: globalThis.Response
+
   constructor(
-    readonly request: HttpClientRequest.HttpClientRequest,
-    private readonly source: globalThis.Response
+    /** @internal */
+    request: HttpClientRequest.HttpClientRequest,
+    /** @internal */
+    source: globalThis.Response
   ) {
     super()
+    this.request = request
+    this.source = source
     this[HttpIncomingMessage.TypeId] = HttpIncomingMessage.TypeId
     this[TypeId] = TypeId
   }

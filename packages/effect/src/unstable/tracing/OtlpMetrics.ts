@@ -506,8 +506,8 @@ interface IExemplar {
  * values. It describes how those values relate to the time interval over
  * which they are aggregated.
  */
-const enum EAggregationTemporality {
-  AGGREGATION_TEMPORALITY_UNSPECIFIED = 0,
+const EAggregationTemporality = {
+  AGGREGATION_TEMPORALITY_UNSPECIFIED: 0,
   /** DELTA is an AggregationTemporality for a metric aggregator which reports
     changes since last report time. Successive metrics contain aggregation of
     values from continuous and non-overlapping intervals.
@@ -532,7 +532,7 @@ const enum EAggregationTemporality {
     8. The 1 second collection cycle ends. A metric is exported for the
         number of requests received over the interval of time t_0+1 to
         t_0+2 with a value of 2. */
-  AGGREGATION_TEMPORALITY_DELTA = 1,
+  AGGREGATION_TEMPORALITY_DELTA: 1,
   /** CUMULATIVE is an AggregationTemporality for a metric aggregator which
     reports changes since a fixed start time. This means that current values
     of a CUMULATIVE metric depend on all previous measurements since the
@@ -568,5 +568,7 @@ const enum EAggregationTemporality {
     CUMULATIVE is valid, it is not recommended. This may cause problems for
     systems that do not use start_time to determine when the aggregation
     value was reset (e.g. Prometheus). */
-  AGGREGATION_TEMPORALITY_CUMULATIVE = 2
-}
+  AGGREGATION_TEMPORALITY_CUMULATIVE: 2
+} as const
+
+type EAggregationTemporality = typeof EAggregationTemporality[keyof typeof EAggregationTemporality]

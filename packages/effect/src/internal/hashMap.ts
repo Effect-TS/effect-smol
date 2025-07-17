@@ -105,12 +105,18 @@ class EmptyNode<K, V> extends Node<K, V> {
 
 /** @internal */
 class LeafNode<K, V> extends Node<K, V> {
+  readonly hash: number
+  readonly key: K
+  readonly value: V
   constructor(
-    readonly hash: number,
-    readonly key: K,
-    readonly value: V
+    hash: number,
+    key: K,
+    value: V
   ) {
     super()
+    this.hash = hash
+    this.key = key
+    this.value = value
   }
 
   get size(): number {
@@ -180,12 +186,14 @@ class LeafNode<K, V> extends Node<K, V> {
 /** @internal */
 class CollisionNode<K, V> extends Node<K, V> {
   readonly entries: Array<[K, V]>
+  readonly hash: number
 
   constructor(
-    readonly hash: number,
+    hash: number,
     ...entries: Array<[K, V]>
   ) {
     super()
+    this.hash = hash
     this.entries = entries
   }
 
@@ -278,12 +286,16 @@ class CollisionNode<K, V> extends Node<K, V> {
 /** @internal */
 class IndexedNode<K, V> extends Node<K, V> {
   private _size: number | undefined
+  readonly bitmap: number
+  readonly children: ReadonlyArray<Node<K, V>>
 
   constructor(
-    readonly bitmap: number,
-    readonly children: ReadonlyArray<Node<K, V>>
+    bitmap: number,
+    children: ReadonlyArray<Node<K, V>>
   ) {
     super()
+    this.bitmap = bitmap
+    this.children = children
   }
 
   get size(): number {
@@ -424,12 +436,16 @@ class IndexedNode<K, V> extends Node<K, V> {
 /** @internal */
 class ArrayNode<K, V> extends Node<K, V> {
   private _size: number | undefined
+  readonly count: number
+  readonly children: ReadonlyArray<Node<K, V> | undefined>
 
   constructor(
-    readonly count: number,
-    readonly children: ReadonlyArray<Node<K, V> | undefined>
+    count: number,
+    children: ReadonlyArray<Node<K, V> | undefined>
   ) {
     super()
+    this.count = count
+    this.children = children
   }
 
   get size(): number {
@@ -557,11 +573,16 @@ class ArrayNode<K, V> extends Node<K, V> {
 /** @internal */
 class HashMapImpl<K, V> implements HashMap<K, V> {
   readonly [HashMapTypeId]: HashMapTypeId = HashMapTypeId
+  readonly root: Node<K, V>
+  private readonly _size: number
 
   constructor(
-    readonly root: Node<K, V>,
-    private readonly _size: number
-  ) {}
+    root: Node<K, V>,
+    _size: number
+  ) {
+    this.root = root
+    this._size = _size
+  }
 
   get size(): number {
     return this._size

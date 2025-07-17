@@ -320,20 +320,22 @@ interface Status {
   message?: string
 }
 
-const enum StatusCode {
-  Unset = 0,
-  Ok = 1,
-  Error = 2
-}
+const StatusCode = {
+  Unset: 0,
+  Ok: 1,
+  Error: 2
+} as const
 
-enum SpanKind {
-  unspecified = 0,
-  internal = 1,
-  server = 2,
-  client = 3,
-  producer = 4,
-  consumer = 5
-}
+type StatusCode = typeof StatusCode[keyof typeof StatusCode]
+
+const SpanKind = {
+  unspecified: 0,
+  internal: 1,
+  server: 2,
+  client: 3,
+  producer: 4,
+  consumer: 5
+} as const
 
 const constOtelStatusSuccess: Status = {
   code: StatusCode.Ok

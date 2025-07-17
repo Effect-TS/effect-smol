@@ -14,16 +14,28 @@ import type * as Issue from "./Issue.ts"
  */
 export class Middleware<in out T, in out E, RD1, RD2, RE1, RE2> {
   readonly _tag = "Middleware"
+  readonly decode: (
+    sr: Effect.Effect<Option.Option<E>, Issue.Issue, RD1>,
+    options: AST.ParseOptions
+  ) => Effect.Effect<Option.Option<T>, Issue.Issue, RD2>
+  readonly encode: (
+    sr: Effect.Effect<Option.Option<T>, Issue.Issue, RE1>,
+    options: AST.ParseOptions
+  ) => Effect.Effect<Option.Option<E>, Issue.Issue, RE2>
+
   constructor(
-    readonly decode: (
+    decode: (
       sr: Effect.Effect<Option.Option<E>, Issue.Issue, RD1>,
       options: AST.ParseOptions
     ) => Effect.Effect<Option.Option<T>, Issue.Issue, RD2>,
-    readonly encode: (
+    encode: (
       sr: Effect.Effect<Option.Option<T>, Issue.Issue, RE1>,
       options: AST.ParseOptions
     ) => Effect.Effect<Option.Option<E>, Issue.Issue, RE2>
-  ) {}
+  ) {
+    this.decode = decode
+    this.encode = encode
+  }
   flip(): Middleware<E, T, RE1, RE2, RD1, RD2> {
     return new Middleware(this.encode, this.decode)
   }
@@ -35,10 +47,16 @@ export class Middleware<in out T, in out E, RD1, RD2, RE1, RE2> {
  */
 export class Transformation<in out T, in out E, RD = never, RE = never> {
   readonly _tag = "Transformation"
+  readonly decode: Getter.Getter<T, E, RD>
+  readonly encode: Getter.Getter<E, T, RE>
+
   constructor(
-    readonly decode: Getter.Getter<T, E, RD>,
-    readonly encode: Getter.Getter<E, T, RE>
-  ) {}
+    decode: Getter.Getter<T, E, RD>,
+    encode: Getter.Getter<E, T, RE>
+  ) {
+    this.decode = decode
+    this.encode = encode
+  }
   flip(): Transformation<E, T, RE, RD> {
     return new Transformation(this.encode, this.decode)
   }

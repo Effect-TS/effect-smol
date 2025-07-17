@@ -97,10 +97,16 @@ function findMessage(
 interface Forest extends ReadonlyArray<Tree> {}
 
 class Tree {
+  readonly value: string
+  readonly forest: Forest
+
   constructor(
-    readonly value: string,
-    readonly forest: Forest = []
-  ) {}
+    value: string,
+    forest: Forest = []
+  ) {
+    this.value = value
+    this.forest = forest
+  }
   draw(): string {
     return this.value + draw("\n", this.forest)
   }

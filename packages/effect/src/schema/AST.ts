@@ -193,10 +193,16 @@ export type Transformation = Transformation_.Transformation<any, any, any, any>
  * @since 4.0.0
  */
 export class Link {
+  readonly to: AST
+  readonly transformation: Transformation | Middleware
+
   constructor(
-    readonly to: AST,
-    readonly transformation: Transformation | Middleware
-  ) {}
+    to: AST,
+    transformation: Transformation | Middleware
+  ) {
+    this.to = to
+    this.transformation = transformation
+  }
 }
 
 /**
@@ -267,15 +273,29 @@ export interface ParseOptions {
  * @since 4.0.0
  */
 export class Context {
+  readonly isOptional: boolean
+  readonly isMutable: boolean
+  /** Used for constructor default values (e.g. `withConstructorDefault` API) */
+  readonly defaultValue: Encoding | undefined
+  /** Used for constructor encoding (e.g. `Class` API) */
+  readonly make: Encoding | undefined
+  readonly annotations: Annotations.Key | undefined
+
   constructor(
-    readonly isOptional: boolean,
-    readonly isMutable: boolean,
+    isOptional: boolean,
+    isMutable: boolean,
     /** Used for constructor default values (e.g. `withConstructorDefault` API) */
-    readonly defaultValue: Encoding | undefined = undefined,
+    defaultValue: Encoding | undefined = undefined,
     /** Used for constructor encoding (e.g. `Class` API) */
-    readonly make: Encoding | undefined = undefined,
-    readonly annotations: Annotations.Key | undefined = undefined
-  ) {}
+    make: Encoding | undefined = undefined,
+    annotations: Annotations.Key | undefined = undefined
+  ) {
+    this.isOptional = isOptional
+    this.isMutable = isMutable
+    this.defaultValue = defaultValue
+    this.make = make
+    this.annotations = annotations
+  }
 }
 
 /**
@@ -289,12 +309,22 @@ export type Checks = readonly [Check.Check<any>, ...ReadonlyArray<Check.Check<an
  * @since 4.0.0
  */
 export abstract class Base implements Annotated {
+  readonly annotations: Annotations.Annotations | undefined
+  readonly checks: Checks | undefined
+  readonly encoding: Encoding | undefined
+  readonly context: Context | undefined
+
   constructor(
-    readonly annotations: Annotations.Annotations | undefined = undefined,
-    readonly checks: Checks | undefined = undefined,
-    readonly encoding: Encoding | undefined = undefined,
-    readonly context: Context | undefined = undefined
-  ) {}
+    annotations: Annotations.Annotations | undefined = undefined,
+    checks: Checks | undefined = undefined,
+    encoding: Encoding | undefined = undefined,
+    context: Context | undefined = undefined
+  ) {
+    this.annotations = annotations
+    this.checks = checks
+    this.encoding = encoding
+    this.context = context
+  }
 }
 
 /**
@@ -323,10 +353,14 @@ export abstract class AbstractParser extends Base {
  */
 export class Declaration extends Base {
   readonly _tag = "Declaration"
+  readonly typeParameters: ReadonlyArray<AST>
+  readonly run: (
+    typeParameters: ReadonlyArray<AST>
+  ) => (input: unknown, self: Declaration, options: ParseOptions) => Effect.Effect<any, Issue.Issue, any>
 
   constructor(
-    readonly typeParameters: ReadonlyArray<AST>,
-    readonly run: (
+    typeParameters: ReadonlyArray<AST>,
+    run: (
       typeParameters: ReadonlyArray<AST>
     ) => (input: unknown, self: Declaration, options: ParseOptions) => Effect.Effect<any, Issue.Issue, any>,
     annotations?: Annotations.Annotations,
@@ -335,6 +369,8 @@ export class Declaration extends Base {
     context?: Context
   ) {
     super(annotations, checks, encoding, context)
+    this.typeParameters = typeParameters
+    this.run = run
   }
   /** @internal */
   typeAST(): Declaration {
@@ -487,14 +523,17 @@ export class ObjectKeyword extends AbstractParser {
  */
 export class Enums extends AbstractParser {
   readonly _tag = "Enums"
+  readonly enums: ReadonlyArray<readonly [string, string | number]>
+
   constructor(
-    readonly enums: ReadonlyArray<readonly [string, string | number]>,
+    enums: ReadonlyArray<readonly [string, string | number]>,
     annotations?: Annotations.Annotations,
     checks?: Checks,
     encoding?: Encoding,
     context?: Context
   ) {
     super(annotations, checks, encoding, context)
+    this.enums = enums
   }
   /** @internal */
   parser() {
@@ -560,16 +599,19 @@ function isASTPart(ast: AST): ast is TemplateLiteral.ASTPart {
  */
 export class TemplateLiteral extends AbstractParser {
   readonly _tag = "TemplateLiteral"
+  readonly parts: ReadonlyArray<AST | TemplateLiteral.LiteralPart>
   /** @internal */
   readonly flippedParts: ReadonlyArray<TemplateLiteral.ASTPart>
+
   constructor(
-    readonly parts: ReadonlyArray<AST | TemplateLiteral.LiteralPart>,
+    parts: ReadonlyArray<AST | TemplateLiteral.LiteralPart>,
     annotations?: Annotations.Annotations,
     checks?: Checks,
     encoding?: Encoding,
     context?: Context
   ) {
     super(annotations, checks, encoding, context)
+    this.parts = parts
     const flippedParts: Array<TemplateLiteral.ASTPart> = []
     for (const part of parts) {
       if (Predicate.isObject(part)) {
@@ -660,14 +702,17 @@ export type Literal = string | number | boolean | bigint
  */
 export class UniqueSymbol extends AbstractParser {
   readonly _tag = "UniqueSymbol"
+  readonly symbol: symbol
+
   constructor(
-    readonly symbol: symbol,
+    symbol: symbol,
     annotations?: Annotations.Annotations,
     checks?: Checks,
     encoding?: Encoding,
     context?: Context
   ) {
     super(annotations, checks, encoding, context)
+    this.symbol = symbol
   }
   /** @internal */
   parser() {
@@ -681,14 +726,17 @@ export class UniqueSymbol extends AbstractParser {
  */
 export class LiteralType extends AbstractParser {
   readonly _tag = "LiteralType"
+  readonly literal: Literal
+
   constructor(
-    readonly literal: Literal,
+    literal: Literal,
     annotations?: Annotations.Annotations,
     checks?: Checks,
     encoding?: Encoding,
     context?: Context
   ) {
     super(annotations, checks, encoding, context)
+    this.literal = literal
     if (process.env.NODE_ENV !== "production") {
       if (Predicate.isNumber(this.literal) && !Number.isFinite(this.literal)) {
         throw new Error("LiteralType must be a finite number")
@@ -791,10 +839,16 @@ export const bigIntKeyword = new BigIntKeyword()
  * @since 4.0.0
  */
 export class PropertySignature {
+  readonly name: PropertyKey
+  readonly type: AST
+
   constructor(
-    readonly name: PropertyKey,
-    readonly type: AST
-  ) {}
+    name: PropertyKey,
+    type: AST
+  ) {
+    this.name = name
+    this.type = type
+  }
 }
 
 /**
@@ -811,10 +865,16 @@ export type Combine<Key extends PropertyKey, Value> = (
  * @since 4.0.0
  */
 export class Merge {
+  readonly decode: Combine<PropertyKey, any> | undefined
+  readonly encode: Combine<PropertyKey, any> | undefined
+
   constructor(
-    readonly decode: Combine<PropertyKey, any> | undefined,
-    readonly encode: Combine<PropertyKey, any> | undefined
-  ) {}
+    decode: Combine<PropertyKey, any> | undefined,
+    encode: Combine<PropertyKey, any> | undefined
+  ) {
+    this.decode = decode
+    this.encode = encode
+  }
   /** @internal */
   flip(): Merge {
     return new Merge(this.encode, this.decode)
@@ -826,12 +886,21 @@ export class Merge {
  * @since 4.0.0
  */
 export class IndexSignature {
+  readonly isMutable: boolean
+  readonly parameter: AST
+  readonly type: AST
+  readonly merge: Merge | undefined
+
   constructor(
-    readonly isMutable: boolean,
-    readonly parameter: AST,
-    readonly type: AST,
-    readonly merge: Merge | undefined
+    isMutable: boolean,
+    parameter: AST,
+    type: AST,
+    merge: Merge | undefined
   ) {
+    this.isMutable = isMutable
+    this.parameter = parameter
+    this.type = type
+    this.merge = merge
     if (process.env.NODE_ENV !== "production") {
       if (isOptional(type) && !containsUndefined(type)) {
         throw new Error("Cannot use `Schema.optionalKey` with index signatures, use `Schema.optional` instead.")
@@ -846,16 +915,26 @@ export class IndexSignature {
  */
 export class TupleType extends Base {
   readonly _tag = "TupleType"
+  readonly isMutable: boolean
+  readonly elements: ReadonlyArray<AST>
+  readonly rest: ReadonlyArray<AST>
+
   constructor(
-    readonly isMutable: boolean,
-    readonly elements: ReadonlyArray<AST>,
-    readonly rest: ReadonlyArray<AST>,
+    /** @internal */
+    isMutable: boolean,
+    /** @internal */
+    elements: ReadonlyArray<AST>,
+    /** @internal */
+    rest: ReadonlyArray<AST>,
     annotations?: Annotations.Annotations,
     checks?: Checks,
     encoding?: Encoding,
     context?: Context
   ) {
     super(annotations, checks, encoding, context)
+    this.isMutable = isMutable
+    this.elements = elements
+    this.rest = rest
 
     if (process.env.NODE_ENV !== "production") {
       // A required element cannot follow an optional element. ts(1257)
@@ -1052,15 +1131,20 @@ export function getIndexSignatureKeys(
  */
 export class TypeLiteral extends Base {
   readonly _tag = "TypeLiteral"
+  readonly propertySignatures: ReadonlyArray<PropertySignature>
+  readonly indexSignatures: ReadonlyArray<IndexSignature>
+
   constructor(
-    readonly propertySignatures: ReadonlyArray<PropertySignature>,
-    readonly indexSignatures: ReadonlyArray<IndexSignature>,
+    propertySignatures: ReadonlyArray<PropertySignature>,
+    indexSignatures: ReadonlyArray<IndexSignature>,
     annotations?: Annotations.Annotations,
     checks?: Checks,
     encoding?: Encoding,
     context?: Context
   ) {
     super(annotations, checks, encoding, context)
+    this.propertySignatures = propertySignatures
+    this.indexSignatures = indexSignatures
 
     if (process.env.NODE_ENV !== "production") {
       // Duplicate property signatures
@@ -1551,15 +1635,20 @@ export function getCandidates(input: any, types: ReadonlyArray<AST>): ReadonlyAr
  */
 export class UnionType<A extends AST = AST> extends Base {
   readonly _tag = "UnionType"
+  readonly types: ReadonlyArray<A>
+  readonly mode: "anyOf" | "oneOf"
+
   constructor(
-    readonly types: ReadonlyArray<A>,
-    readonly mode: "anyOf" | "oneOf",
+    types: ReadonlyArray<A>,
+    mode: "anyOf" | "oneOf",
     annotations?: Annotations.Annotations,
     checks?: Checks,
     encoding?: Encoding,
     context?: Context
   ) {
     super(annotations, checks, encoding, context)
+    this.types = types
+    this.mode = mode
   }
   /** @internal */
   typeAST(): UnionType<A> {
@@ -1634,8 +1723,10 @@ export class UnionType<A extends AST = AST> extends Base {
  */
 export class Suspend extends Base {
   readonly _tag = "Suspend"
+  readonly thunk: () => AST
+
   constructor(
-    readonly thunk: () => AST,
+    thunk: () => AST,
     annotations?: Annotations.Annotations,
     checks?: Checks,
     encoding?: Encoding,

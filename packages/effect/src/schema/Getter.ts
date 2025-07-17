@@ -16,13 +16,19 @@ import * as Issue from "./Issue.ts"
  * @since 4.0.0
  */
 export class Getter<out T, in E, R = never> extends PipeableClass {
+  readonly run: (
+    input: Option.Option<E>,
+    options: AST.ParseOptions
+  ) => Effect.Effect<Option.Option<T>, Issue.Issue, R>
+
   constructor(
-    readonly run: (
+    run: (
       input: Option.Option<E>,
       options: AST.ParseOptions
     ) => Effect.Effect<Option.Option<T>, Issue.Issue, R>
   ) {
     super()
+    this.run = run
   }
   compose<T2, R2>(other: Getter<T2, T, R2>): Getter<T2, E, R | R2> {
     if (isPassthrough(this)) {
