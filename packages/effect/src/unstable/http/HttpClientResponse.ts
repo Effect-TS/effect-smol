@@ -225,9 +225,7 @@ class WebHttpClientResponse extends Inspectable.Class implements HttpClientRespo
   private readonly source: globalThis.Response
 
   constructor(
-    /** @internal */
     request: HttpClientRequest.HttpClientRequest,
-    /** @internal */
     source: globalThis.Response
   ) {
     super()

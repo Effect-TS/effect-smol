@@ -1034,9 +1034,7 @@ class InterruptibleResponse implements HttpClientResponse.HttpClientResponse {
   readonly controller: AbortController
 
   constructor(
-    /** @internal */
     original: HttpClientResponse.HttpClientResponse,
-    /** @internal */
     controller: AbortController
   ) {
     this.original = original
