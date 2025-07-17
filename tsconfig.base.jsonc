@@ -12,21 +12,17 @@
     "esModuleInterop": false, // Do not fiddle with import/export statements
     "verbatimModuleSyntax": true, // Only transform/eliminate type-only import/export statements.
     "allowJs": false, // If you touch this, a puppy dies.
+    "rewriteRelativeImportExtensions": true, // Rewrite `.ts` imports to `.js` at build time.
 
     // Emit source- & declaration maps.
     "declarationMap": true,
     "sourceMap": true,
-
-    // Rewrite `.ts` imports to `.js` at build time.
-    "rewriteRelativeImportExtensions": true,
-    "allowImportingTsExtensions": true,
 
     // Opt-in to stricter type checking and correctness guard rails. The more the merrier.
     "strict": true,
     "exactOptionalPropertyTypes": true,
     "noUnusedLocals": true,
     "noFallthroughCasesInSwitch": true,
-    "noUncheckedIndexedAccess": false,
 
     // Miscellaneoaus
     "skipLibCheck": true, // Skip type checking of third party libraries.
