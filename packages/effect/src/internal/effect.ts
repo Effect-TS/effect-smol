@@ -1245,7 +1245,7 @@ export const raceAll = <Eff extends Effect.Effect<any, any, any>>(
 
       for (let i = 0; i < len; i++) {
         if (done) break
-        const fiber = unsafeFork(parent, interruptible(effects[i]), true, true)
+        const fiber = unsafeFork(parent, interruptible(effects[i]), true, true, "inherit")
         fibers.add(fiber)
         fiber.addObserver((exit) => {
           fibers.delete(fiber)
@@ -1289,7 +1289,7 @@ export const raceAllFirst = <Eff extends Effect.Effect<any, any, any>>(
       for (const effect of all) {
         if (done) break
         const index = i++
-        const fiber = unsafeFork(parent, interruptible(effect), true, true)
+        const fiber = unsafeFork(parent, interruptible(effect), true, true, "inherit")
         fibers.add(fiber)
         fiber.addObserver((exit) => {
           fibers.delete(fiber)
@@ -2841,7 +2841,7 @@ const ScopeProto = {
       if (this.strategy === "sequential") {
         exits.push(yield* exit(finalizer(exit_)))
       } else {
-        fibers.push(unsafeFork(getCurrentFiber() as any, finalizer(exit_), true, true))
+        fibers.push(unsafeFork(getCurrentFiber() as any, finalizer(exit_), true, true, "inherit"))
       }
     }
     if (fibers.length > 0) {
@@ -3395,7 +3395,7 @@ export const forEach: {
           index++
           inProgress++
           try {
-            const child = unsafeFork(parent, f(item, currentIndex), true, true)
+            const child = unsafeFork(parent, f(item, currentIndex), true, true, "inherit")
             fibers.add(child)
             child.addObserver((exit) => {
               if (interrupted) {
@@ -3614,7 +3614,8 @@ export const fork: {
     ))
   }))
 
-const unsafeFork = <FA, FE, A, E, R>(
+/** @internal */
+export const unsafeFork = <FA, FE, A, E, R>(
   parent: FiberImpl<FA, FE>,
   effect: Effect.Effect<A, E, R>,
   immediate = false,

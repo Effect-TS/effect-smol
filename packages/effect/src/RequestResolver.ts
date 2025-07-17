@@ -12,7 +12,7 @@ import * as internal from "./internal/request.js"
 import * as MutableHashMap from "./MutableHashMap.js"
 import { type Pipeable, pipeArguments } from "./Pipeable.js"
 import { hasProperty } from "./Predicate.js"
-import * as Request from "./Request.js"
+import type * as Request from "./Request.js"
 import * as ServiceMap from "./ServiceMap.js"
 import * as Tracer from "./Tracer.js"
 import type * as Types from "./Types.js"
@@ -367,10 +367,24 @@ export const fromFunctionBatched = <A extends Request.Any>(
 export const fromEffect = <A extends Request.Any>(
   f: (entry: Request.Entry<A>) => Effect<Request.Success<A>, Request.Error<A>>
 ): RequestResolver<A> =>
-  make(effect.forEach((entry) => Request.completeEffect(entry, f(entry)), {
-    concurrency: "unbounded",
-    discard: true
-  }))
+  make((entries) =>
+    effect.callback<void>((resume) => {
+      effect.fork(effect.void) // ensure middleware is registered
+      const parent = effect.getCurrentFiber()!
+      let done = 0
+      for (let i = 0; i < entries.length; i++) {
+        const entry = entries[i]
+        const fiber = effect.unsafeFork(parent as any, f(entry), true)
+        fiber.addObserver((exit) => {
+          entry.unsafeComplete(exit)
+          done++
+          if (done === entries.length) {
+            resume(effect.void)
+          }
+        })
+      }
+    })
+  )
 
 /**
  * Constructs a request resolver from a list of tags paired to functions, that takes
