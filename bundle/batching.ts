@@ -1,7 +1,7 @@
 import * as Array from "#dist/effect/Array"
+import * as Request from "#dist/effect/batching/Request"
+import * as Resolver from "#dist/effect/batching/RequestResolver"
 import * as Effect from "#dist/effect/Effect"
-import * as Request from "#dist/effect/Request"
-import * as Resolver from "#dist/effect/RequestResolver"
 
 class GetNameById extends Request.TaggedClass("GetNameById")<{
   readonly id: number
