@@ -103,11 +103,11 @@ export type TypeId = "~effect/caching/Cache"
  * @since 4.0.0
  * @category Models
  */
-export interface Cache<in out Key, in out A, in out E> extends Pipeable {
+export interface Cache<in out Key, in out A, in out E = never, out R = never> extends Pipeable {
   readonly [TypeId]: TypeId
   readonly map: MutableHashMap.MutableHashMap<Key, Entry<A, E>>
   readonly capacity: number
-  readonly lookup: (key: Key) => Effect.Effect<A, E>
+  readonly lookup: (key: Key) => Effect.Effect<A, E, R>
   readonly timeToLive: (exit: Exit.Exit<A, E>, key: Key) => Duration.Duration
 }
 
@@ -180,12 +180,23 @@ export interface Entry<A, E> {
  * @since 4.0.0
  * @category Constructors
  */
-export const makeWithTtl = <Key, A, E = never, R = never>(options: {
+export const makeWithTtl = <
+  Key,
+  A,
+  E = never,
+  R = never,
+  ServiceMode extends "lookup" | "construction" = "construction"
+>(options: {
   readonly lookup: (key: Key) => Effect.Effect<A, E, R>
   readonly capacity: number
   readonly timeToLive?: ((exit: Exit.Exit<A, E>, key: Key) => Duration.DurationInput) | undefined
-}): Effect.Effect<Cache<Key, A, E>, never, R> =>
-  effect.servicesWith((services: ServiceMap.ServiceMap<R>) => {
+  readonly requireServicesAt?: ServiceMode & "lookup" | "construction" | undefined
+}): Effect.Effect<
+  Cache<Key, A, E, ServiceMode extends "lookup" ? R : never>,
+  never,
+  ServiceMode extends "lookup" ? never : R
+> =>
+  effect.servicesWith((services: ServiceMap.ServiceMap<any>) => {
     const self = Object.create(Proto)
     self.lookup = (key: Key): Effect.Effect<A, E> =>
       effect.updateServices(
@@ -250,12 +261,25 @@ export const makeWithTtl = <Key, A, E = never, R = never>(options: {
  * @since 4.0.0
  * @category Constructors
  */
-export const make = <Key, A, E = never, R = never>(options: {
-  readonly lookup: (key: Key) => Effect.Effect<A, E, R>
-  readonly capacity: number
-  readonly timeToLive?: Duration.DurationInput | undefined
-}): Effect.Effect<Cache<Key, A, E>, never, R> =>
-  makeWithTtl<Key, A, E, R>({
+export const make = <
+  Key,
+  A,
+  E = never,
+  R = never,
+  ServiceMode extends "lookup" | "construction" = "construction"
+>(
+  options: {
+    readonly lookup: (key: Key) => Effect.Effect<A, E, R>
+    readonly capacity: number
+    readonly timeToLive?: Duration.DurationInput | undefined
+    readonly requireServicesAt?: ServiceMode & "lookup" | "construction" | undefined
+  }
+): Effect.Effect<
+  Cache<Key, A, E, ServiceMode extends "lookup" ? R : never>,
+  never,
+  ServiceMode extends "lookup" ? never : R
+> =>
+  makeWithTtl<Key, A, E, R, ServiceMode>({
     ...options,
     timeToLive: options.timeToLive ? () => options.timeToLive! : defaultTimeToLive
   })
@@ -360,11 +384,11 @@ const defaultTimeToLive = <A, E>(_: Exit.Exit<A, E>, _key: unknown): Duration.Du
  * @category Combinators
  */
 export const get: {
-  <Key, A>(key: Key): <E>(self: Cache<Key, A, E>) => Effect.Effect<A, E>
-  <Key, A, E>(self: Cache<Key, A, E>, key: Key): Effect.Effect<A, E>
+  <Key, A>(key: Key): <E, R>(self: Cache<Key, A, E, R>) => Effect.Effect<A, E, R>
+  <Key, A, E, R>(self: Cache<Key, A, E, R>, key: Key): Effect.Effect<A, E, R>
 } = dual(
   2,
-  <Key, A, E>(self: Cache<Key, A, E>, key: Key): Effect.Effect<A, E> =>
+  <Key, A, E, R>(self: Cache<Key, A, E, R>, key: Key): Effect.Effect<A, E, R> =>
     core.withFiber((fiber) => {
       const oentry = MutableHashMap.get(self.map, key)
       if (Option.isSome(oentry) && !hasExpired(oentry.value, fiber)) {
@@ -400,7 +424,7 @@ const hasExpired = <A, E>(entry: Entry<A, E>, fiber: Fiber.Fiber<unknown, unknow
   return fiber.getRef(effect.ClockRef).unsafeCurrentTimeMillis() >= entry.expiresAt
 }
 
-const checkCapacity = <K, A, E>(self: Cache<K, A, E>) => {
+const checkCapacity = <K, A, E, R>(self: Cache<K, A, E, R>) => {
   let diff = MutableHashMap.size(self.map) - self.capacity
   if (diff <= 0) return
   // MutableHashMap has insertion order, so we can remove the oldest entries
@@ -506,19 +530,19 @@ const checkCapacity = <K, A, E>(self: Cache<K, A, E>) => {
  * @category Combinators
  */
 export const getOption: {
-  <Key, A>(key: Key): <E>(self: Cache<Key, A, E>) => Effect.Effect<Option.Option<A>, E>
-  <Key, A, E>(self: Cache<Key, A, E>, key: Key): Effect.Effect<Option.Option<A>, E>
+  <Key, A>(key: Key): <E, R>(self: Cache<Key, A, E, R>) => Effect.Effect<Option.Option<A>, E, R>
+  <Key, A, E, R>(self: Cache<Key, A, E, R>, key: Key): Effect.Effect<Option.Option<A>, E, R>
 } = dual(
   2,
-  <Key, A, E>(self: Cache<Key, A, E>, key: Key): Effect.Effect<Option.Option<A>, E> =>
+  <Key, A, E, R>(self: Cache<Key, A, E, R>, key: Key): Effect.Effect<Option.Option<A>, E, R> =>
     core.withFiber((fiber) => {
       const oentry = getOptionImpl(self, key, fiber)
       return Option.isSome(oentry) ? effect.asSome(Deferred.await(oentry.value.deferred)) : effect.succeedNone
     })
 )
 
-const getOptionImpl = <Key, A, E>(
-  self: Cache<Key, A, E>,
+const getOptionImpl = <Key, A, E, R>(
+  self: Cache<Key, A, E, R>,
   key: Key,
   fiber: Fiber.Fiber<any, any>,
   isRead = true
@@ -544,11 +568,11 @@ const getOptionImpl = <Key, A, E>(
  * @category Combinators
  */
 export const getSuccess: {
-  <Key, A>(key: Key): <E>(self: Cache<Key, A, E>) => Effect.Effect<Option.Option<A>>
-  <Key, A, E>(self: Cache<Key, A, E>, key: Key): Effect.Effect<Option.Option<A>>
+  <Key, A, R>(key: Key): <E>(self: Cache<Key, A, E, R>) => Effect.Effect<Option.Option<A>>
+  <Key, A, E, R>(self: Cache<Key, A, E, R>, key: Key): Effect.Effect<Option.Option<A>>
 } = dual(
   2,
-  <Key, A, E>(self: Cache<Key, A, E>, key: Key): Effect.Effect<Option.Option<A>> =>
+  <Key, A, E, R>(self: Cache<Key, A, E, R>, key: Key): Effect.Effect<Option.Option<A>> =>
     core.withFiber((fiber) =>
       effect.succeed(
         getOptionImpl(self, key, fiber).pipe(
@@ -656,11 +680,11 @@ export const getSuccess: {
  * @category Combinators
  */
 export const set: {
-  <Key, A>(key: Key, value: A): <E>(self: Cache<Key, A, E>) => Effect.Effect<void>
-  <Key, A, E>(self: Cache<Key, A, E>, key: Key, value: A): Effect.Effect<void>
+  <Key, A>(key: Key, value: A): <E, R>(self: Cache<Key, A, E, R>) => Effect.Effect<void>
+  <Key, A, E, R>(self: Cache<Key, A, E, R>, key: Key, value: A): Effect.Effect<void>
 } = dual(
   3,
-  <Key, A, E>(self: Cache<Key, A, E>, key: Key, value: A): Effect.Effect<void> =>
+  <Key, A, E, R>(self: Cache<Key, A, E, R>, key: Key, value: A): Effect.Effect<void> =>
     core.withFiber((fiber) => {
       const exit = core.exitSucceed(value)
       const deferred = Deferred.unsafeMake<A, E>()
@@ -765,8 +789,8 @@ export const set: {
  * @category Combinators
  */
 export const has: {
-  <Key, A>(key: Key): <E>(self: Cache<Key, A, E>) => Effect.Effect<boolean>
-  <Key, A, E>(self: Cache<Key, A, E>, key: Key): Effect.Effect<boolean>
+  <Key, A>(key: Key): <E, R>(self: Cache<Key, A, E, R>) => Effect.Effect<boolean>
+  <Key, A, E, R>(self: Cache<Key, A, E, R>, key: Key): Effect.Effect<boolean>
 } = dual(
   2,
   <Key, A, E>(self: Cache<Key, A, E>, key: Key): Effect.Effect<boolean> =>
@@ -818,9 +842,9 @@ export const has: {
  * @category Combinators
  */
 export const invalidate: {
-  <Key, A>(key: Key): <E>(self: Cache<Key, A, E>) => Effect.Effect<void>
-  <Key, A, E>(self: Cache<Key, A, E>, key: Key): Effect.Effect<void>
-} = dual(2, <Key, A, E>(self: Cache<Key, A, E>, key: Key): Effect.Effect<void> =>
+  <Key, A>(key: Key): <E, R>(self: Cache<Key, A, E, R>) => Effect.Effect<void>
+  <Key, A, E, R>(self: Cache<Key, A, E, R>, key: Key): Effect.Effect<void>
+} = dual(2, <Key, A, E, R>(self: Cache<Key, A, E, R>, key: Key): Effect.Effect<void> =>
   effect.sync(() => {
     MutableHashMap.remove(self.map, key)
   }))
@@ -874,11 +898,11 @@ export const invalidate: {
  * @category Combinators
  */
 export const invalidateWhen: {
-  <Key, A>(key: Key, f: Predicate<A>): <E>(self: Cache<Key, A, E>) => Effect.Effect<boolean>
-  <Key, A, E>(self: Cache<Key, A, E>, key: Key, f: Predicate<A>): Effect.Effect<boolean>
+  <Key, A>(key: Key, f: Predicate<A>): <E, R>(self: Cache<Key, A, E, R>) => Effect.Effect<boolean>
+  <Key, A, E, R>(self: Cache<Key, A, E, R>, key: Key, f: Predicate<A>): Effect.Effect<boolean>
 } = dual(
   3,
-  <Key, A, E>(self: Cache<Key, A, E>, key: Key, f: Predicate<A>): Effect.Effect<boolean> =>
+  <Key, A, E, R>(self: Cache<Key, A, E, R>, key: Key, f: Predicate<A>): Effect.Effect<boolean> =>
     core.withFiber((fiber) => {
       const oentry = getOptionImpl(self, key, fiber, false)
       if (Option.isNone(oentry)) {
@@ -987,11 +1011,11 @@ export const invalidateWhen: {
  * @category Combinators
  */
 export const refresh: {
-  <Key, A>(key: Key): <E>(self: Cache<Key, A, E>) => Effect.Effect<A, E>
-  <Key, A, E>(self: Cache<Key, A, E>, key: Key): Effect.Effect<A, E>
+  <Key, A>(key: Key): <E, R>(self: Cache<Key, A, E, R>) => Effect.Effect<A, E, R>
+  <Key, A, E, R>(self: Cache<Key, A, E, R>, key: Key): Effect.Effect<A, E, R>
 } = dual(
   2,
-  <Key, A, E>(self: Cache<Key, A, E>, key: Key): Effect.Effect<A, E> =>
+  <Key, A, E, R>(self: Cache<Key, A, E, R>, key: Key): Effect.Effect<A, E, R> =>
     core.withFiber((fiber) => {
       const deferred = Deferred.unsafeMake<A, E>()
       const entry: Entry<A, E> = {
@@ -1058,7 +1082,7 @@ export const refresh: {
  * @since 4.0.0
  * @category Combinators
  */
-export const invalidateAll = <Key, A, E>(self: Cache<Key, A, E>): Effect.Effect<void> =>
+export const invalidateAll = <Key, A, E, R>(self: Cache<Key, A, E, R>): Effect.Effect<void> =>
   effect.sync(() => {
     MutableHashMap.clear(self.map)
   })
@@ -1101,7 +1125,7 @@ export const invalidateAll = <Key, A, E>(self: Cache<Key, A, E>): Effect.Effect<
  * @since 4.0.0
  * @category Combinators
  */
-export const size = <Key, A, E>(self: Cache<Key, A, E>): Effect.Effect<number> =>
+export const size = <Key, A, E, R>(self: Cache<Key, A, E, R>): Effect.Effect<number> =>
   effect.sync(() => MutableHashMap.size(self.map))
 
 /**
@@ -1134,7 +1158,7 @@ export const size = <Key, A, E>(self: Cache<Key, A, E>): Effect.Effect<number> =
  * @since 4.0.0
  * @category Combinators
  */
-export const keys = <Key, A, E>(self: Cache<Key, A, E>): Effect.Effect<Iterable<Key>> =>
+export const keys = <Key, A, E, R>(self: Cache<Key, A, E, R>): Effect.Effect<Iterable<Key>> =>
   core.withFiber((fiber) => {
     const now = fiber.getRef(effect.ClockRef).unsafeCurrentTimeMillis()
     return effect.succeed(Iterable.filterMap(self.map, ([key, entry]) => {
@@ -1177,7 +1201,7 @@ export const keys = <Key, A, E>(self: Cache<Key, A, E>): Effect.Effect<Iterable<
  * @since 4.0.0
  * @category Combinators
  */
-export const values = <Key, A, E>(self: Cache<Key, A, E>): Effect.Effect<Iterable<A>> =>
+export const values = <Key, A, E, R>(self: Cache<Key, A, E, R>): Effect.Effect<Iterable<A>> =>
   effect.map(entries(self), Iterable.map(([, value]) => value))
 
 /**
@@ -1188,7 +1212,7 @@ export const values = <Key, A, E>(self: Cache<Key, A, E>): Effect.Effect<Iterabl
  * @since 4.0.0
  * @category Combinators
  */
-export const entries = <Key, A, E>(self: Cache<Key, A, E>): Effect.Effect<Iterable<[Key, A]>> =>
+export const entries = <Key, A, E, R>(self: Cache<Key, A, E, R>): Effect.Effect<Iterable<[Key, A]>> =>
   core.withFiber((fiber) => {
     const now = fiber.getRef(effect.ClockRef).unsafeCurrentTimeMillis()
     return effect.succeed(Iterable.filterMap(self.map, ([key, entry]) => {
