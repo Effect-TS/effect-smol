@@ -17,7 +17,7 @@ import type { Mutable } from "../../Types.js"
 import * as Cookies from "./Cookies.js"
 import * as Headers from "./Headers.js"
 import * as Body from "./HttpBody.js"
-import { HttpPlatform } from "./HttpPlatform.js"
+import type { HttpPlatform } from "./HttpPlatform.js"
 import * as Template from "./Template.js"
 import * as UrlParams from "./UrlParams.js"
 
@@ -328,6 +328,10 @@ export const stream = <E>(
   })
 }
 
+const HttpPlatformKey = ServiceMap.Key<HttpPlatform, HttpPlatform["Service"]>(
+  "effect/http/HttpPlatform" satisfies typeof HttpPlatform.key
+)
+
 /**
  * @since 4.0.0
  * @category constructors
@@ -337,7 +341,7 @@ export const file = (
   options?: (Options & FileSystem.StreamOptions) | undefined
 ): Effect.Effect<HttpServerResponse, PlatformError, HttpPlatform> =>
   Effect.flatMap(
-    HttpPlatform.asEffect(),
+    HttpPlatformKey.asEffect(),
     (platform) => platform.fileResponse(path, options)
   )
 
@@ -350,7 +354,7 @@ export const fileWeb = (
   options?: (Options.WithContent & FileSystem.StreamOptions) | undefined
 ): Effect.Effect<HttpServerResponse, never, HttpPlatform> =>
   Effect.flatMap(
-    HttpPlatform.asEffect(),
+    HttpPlatformKey.asEffect(),
     (platform) => platform.fileWebResponse(file, options)
   )
 

@@ -173,3 +173,16 @@ jobs:
         uses: ./.github/actions/setup
       - name: Generate Documentation
         run: pnpm docgen
+
+  circular:
+    name: Test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        uses: ./.github/actions/setup
+      - name: Check for circular dependencies
+        run: pnpm circular

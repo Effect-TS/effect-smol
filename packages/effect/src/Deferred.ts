@@ -66,9 +66,9 @@
  *
  * @since 2.0.0
  */
-import * as Cause from "./Cause.js"
+import type * as Cause from "./Cause.js"
 import type { Effect, Latch } from "./Effect.js"
-import * as Exit from "./Exit.js"
+import type * as Exit from "./Exit.js"
 import { dual, identity, type LazyArg } from "./Function.js"
 import * as core from "./internal/core.js"
 import * as internalEffect from "./internal/effect.js"
@@ -347,7 +347,7 @@ export const done: {
 export const fail: {
   <E>(error: E): <A>(self: Deferred<A, E>) => Effect<boolean>
   <A, E>(self: Deferred<A, E>, error: E): Effect<boolean>
-} = dual(2, <A, E>(self: Deferred<A, E>, error: E): Effect<boolean> => done(self, Exit.fail(error)))
+} = dual(2, <A, E>(self: Deferred<A, E>, error: E): Effect<boolean> => done(self, core.exitFail(error)))
 
 /**
  * Fails the `Deferred` with the specified error, which will be propagated to
@@ -399,7 +399,7 @@ export const failCause: {
   <A, E>(self: Deferred<A, E>, cause: Cause.Cause<E>): Effect<boolean>
 } = dual(
   2,
-  <A, E>(self: Deferred<A, E>, cause: Cause.Cause<E>): Effect<boolean> => done(self, Exit.failCause(cause))
+  <A, E>(self: Deferred<A, E>, cause: Cause.Cause<E>): Effect<boolean> => done(self, core.exitFailCause(cause))
 )
 
 /**
@@ -450,7 +450,7 @@ export const failCauseSync: {
 export const die: {
   (defect: unknown): <A, E>(self: Deferred<A, E>) => Effect<boolean>
   <A, E>(self: Deferred<A, E>, defect: unknown): Effect<boolean>
-} = dual(2, <A, E>(self: Deferred<A, E>, defect: unknown): Effect<boolean> => done(self, Exit.die(defect)))
+} = dual(2, <A, E>(self: Deferred<A, E>, defect: unknown): Effect<boolean> => done(self, core.exitDie(defect)))
 
 /**
  * Kills the `Deferred` with the specified defect, which will be propagated to
@@ -524,7 +524,8 @@ export const interruptWith: {
   <A, E>(self: Deferred<A, E>, fiberId: number): Effect<boolean>
 } = dual(
   2,
-  <A, E>(self: Deferred<A, E>, fiberId: number): Effect<boolean> => failCause(self, Cause.interrupt(fiberId))
+  <A, E>(self: Deferred<A, E>, fiberId: number): Effect<boolean> =>
+    failCause(self, internalEffect.causeInterrupt(fiberId))
 )
 
 /**
@@ -608,7 +609,7 @@ export const poll = <A, E>(
 export const succeed: {
   <A>(value: A): <E>(self: Deferred<A, E>) => Effect<boolean>
   <A, E>(self: Deferred<A, E>, value: A): Effect<boolean>
-} = dual(2, <A, E>(self: Deferred<A, E>, value: A): Effect<boolean> => done(self, Exit.succeed(value)))
+} = dual(2, <A, E>(self: Deferred<A, E>, value: A): Effect<boolean> => done(self, core.exitSucceed(value)))
 
 /**
  * Completes the `Deferred` with the specified lazily evaluated value.
