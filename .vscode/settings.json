@@ -2,7 +2,7 @@
   "typescript.tsdk": "node_modules/typescript/lib",
   "typescript.preferences.importModuleSpecifier": "relative",
   "typescript.enablePromptUseWorkspaceTsdk": true,
-  "editor.formatOnSave": false,
+  "editor.formatOnSave": true,
   "eslint.format.enable": true,
   "[json]": {
     "editor.defaultFormatter": "vscode.json-language-features"
