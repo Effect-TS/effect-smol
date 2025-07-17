@@ -530,11 +530,11 @@ const checkCapacity = <K, A, E, R>(self: Cache<K, A, E, R>) => {
  * @category Combinators
  */
 export const getOption: {
-  <Key, A>(key: Key): <E, R>(self: Cache<Key, A, E, R>) => Effect.Effect<Option.Option<A>, E, R>
-  <Key, A, E, R>(self: Cache<Key, A, E, R>, key: Key): Effect.Effect<Option.Option<A>, E, R>
+  <Key, A>(key: Key): <E, R>(self: Cache<Key, A, E, R>) => Effect.Effect<Option.Option<A>, E>
+  <Key, A, E, R>(self: Cache<Key, A, E, R>, key: Key): Effect.Effect<Option.Option<A>, E>
 } = dual(
   2,
-  <Key, A, E, R>(self: Cache<Key, A, E, R>, key: Key): Effect.Effect<Option.Option<A>, E, R> =>
+  <Key, A, E, R>(self: Cache<Key, A, E, R>, key: Key): Effect.Effect<Option.Option<A>, E> =>
     core.withFiber((fiber) => {
       const oentry = getOptionImpl(self, key, fiber)
       return Option.isSome(oentry) ? effect.asSome(Deferred.await(oentry.value.deferred)) : effect.succeedNone
