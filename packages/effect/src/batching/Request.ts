@@ -28,7 +28,7 @@ import type * as Types from "../Types.js"
 /**
  * @example
  * ```ts
- * import { Request } from "effect"
+ * import { Request } from "effect/batching"
  *
  * // The TypeId is used internally to identify Request instances
  * declare const GetUser: Request.Request<string, Error>
@@ -44,7 +44,7 @@ export const TypeId: TypeId = "~effect/Request"
 /**
  * @example
  * ```ts
- * import { Request } from "effect"
+ * import { Request } from "effect/batching"
  *
  * // TypeId is the unique identifier type for Request
  * const checkType = (value: unknown): value is { [Request.TypeId]: any } => {
@@ -63,7 +63,7 @@ export type TypeId = "~effect/Request"
  *
  * @example
  * ```ts
- * import { Request } from "effect"
+ * import { Request } from "effect/batching"
  *
  * // Define a request that fetches a user by ID
  * interface GetUser extends Request.Request<string, Error> {
@@ -109,7 +109,7 @@ export interface Variance<out A, out E, out R> {
 /**
  * @example
  * ```ts
- * import { Request } from "effect"
+ * import { Request } from "effect/batching"
  *
  * interface GetUser extends Request.Request<string, Error> {
  *   readonly _tag: "GetUser"
@@ -133,7 +133,7 @@ export interface Constructor<R extends Request<any, any, any>, T extends keyof R
  *
  * @example
  * ```ts
- * import { Request } from "effect"
+ * import { Request } from "effect/batching"
  *
  * interface GetUser extends Request.Request<string, Error> {
  *   readonly id: number
@@ -153,7 +153,7 @@ export type Error<T extends Request<any, any, any>> = [T] extends [Request<infer
  *
  * @example
  * ```ts
- * import { Request } from "effect"
+ * import { Request } from "effect/batching"
  *
  * interface GetUser extends Request.Request<string, Error> {
  *   readonly _tag: "GetUser"
@@ -175,7 +175,7 @@ export type Success<T extends Request<any, any, any>> = [T] extends [Request<inf
  *
  * @example
  * ```ts
- * import { Request } from "effect"
+ * import { Request } from "effect/batching"
  *
  * interface GetUserProfile extends Request.Request<string, Error, { database: DatabaseService }> {
  *   readonly userId: string
@@ -201,7 +201,8 @@ export type Services<T extends Request<any, any, any>> = [T] extends [Request<in
  *
  * @example
  * ```ts
- * import { Request, Exit } from "effect"
+ * import { Exit } from "effect"
+ * import { Request } from "effect/batching"
  *
  * interface GetUser extends Request.Request<string, Error> {
  *   readonly _tag: "GetUser"
@@ -223,7 +224,8 @@ export type Result<T extends Request<any, any, any>> = T extends Request<infer A
  *
  * @example
  * ```ts
- * import { Request, Exit, Option } from "effect"
+ * import { Exit, Option } from "effect"
+ * import { Request } from "effect/batching"
  *
  * interface GetUser extends Request.Request<string, Error> {
  *   readonly _tag: "GetUser"
@@ -260,7 +262,7 @@ const RequestPrototype = {
  *
  * @example
  * ```ts
- * import { Request } from "effect"
+ * import { Request } from "effect/batching"
  *
  * declare const User: unique symbol
  * declare const UserNotFound: unique symbol
@@ -288,7 +290,7 @@ export const isRequest = (u: unknown): u is Request<unknown, unknown, unknown> =
  *
  * @example
  * ```ts
- * import { Request } from "effect"
+ * import { Request } from "effect/batching"
  *
  * declare const UserProfile: unique symbol
  * declare const ProfileError: unique symbol
@@ -320,7 +322,7 @@ export const of = <R extends Request<any, any, any>>(): Constructor<R> => (args)
  *
  * @example
  * ```ts
- * import { Request } from "effect"
+ * import { Request } from "effect/batching"
  *
  * declare const User: unique symbol
  * declare const UserNotFound: unique symbol
@@ -367,7 +369,7 @@ export const tagged = <R extends Request<any, any, any> & { _tag: string }>(
 /**
  * @example
  * ```ts
- * import { Request } from "effect"
+ * import { Request } from "effect/batching"
  *
  * class GetUser extends Request.Class<{ id: number }, string, Error> {
  *   constructor(readonly id: number) {
@@ -398,7 +400,7 @@ export const Class: new<A extends Record<string, any>, Success, Error = never, S
 /**
  * @example
  * ```ts
- * import { Request } from "effect"
+ * import { Request } from "effect/batching"
  *
  * const GetUserByIdClass = Request.TaggedClass("GetUserById")
  *
@@ -433,7 +435,8 @@ export const TaggedClass = <Tag extends string>(
  *
  * @example
  * ```ts
- * import { Request, Effect, Exit } from "effect"
+ * import { Effect, Exit } from "effect"
+ * import { Request } from "effect/batching"
  *
  * declare const userRequest: Request.Request<string, Error>
  * declare const userData: string
@@ -464,7 +467,8 @@ export const complete = dual<
 /**
  * @example
  * ```ts
- * import { Request, Effect } from "effect"
+ * import { Effect } from "effect"
+ * import { Request } from "effect/batching"
  *
  * declare const userRequest: Request.Request<string, Error>
  * declare const entry: Request.Entry<Request.Request<string, Error>>
@@ -502,7 +506,8 @@ export const completeEffect = dual<
 /**
  * @example
  * ```ts
- * import { Request, Effect } from "effect"
+ * import { Effect } from "effect"
+ * import { Request } from "effect/batching"
  *
  * declare const userRequest: Request.Request<string, Error>
  * declare const entry: Request.Entry<Request.Request<string, Error>>
@@ -529,7 +534,8 @@ export const fail = dual<
 /**
  * @example
  * ```ts
- * import { Request, Effect, Cause } from "effect"
+ * import { Effect, Cause } from "effect"
+ * import { Request } from "effect/batching"
  *
  * declare const userRequest: Request.Request<string, Error>
  * declare const entry: Request.Entry<Request.Request<string, Error>>
@@ -559,7 +565,8 @@ export const failCause = dual<
 /**
  * @example
  * ```ts
- * import { Request, Effect } from "effect"
+ * import { Effect } from "effect"
+ * import { Request } from "effect/batching"
  *
  * declare const userRequest: Request.Request<string, Error>
  * declare const entry: Request.Entry<Request.Request<string, Error>>
@@ -586,7 +593,8 @@ export const succeed = dual<
 /**
  * @example
  * ```ts
- * import { Request, Effect, Exit } from "effect"
+ * import { Effect, Exit } from "effect"
+ * import { Request } from "effect/batching"
  *
  * interface GetUser extends Request.Request<string, Error> {
  *   readonly _tag: "GetUser"
@@ -622,7 +630,8 @@ export interface Entry<out R> {
 /**
  * @example
  * ```ts
- * import { Request, Effect, ServiceMap } from "effect"
+ * import { Effect, ServiceMap } from "effect"
+ * import { Request } from "effect/batching"
  *
  * interface GetUser extends Request.Request<string, Error> {
  *   readonly _tag: "GetUser"
