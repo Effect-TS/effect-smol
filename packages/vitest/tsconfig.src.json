@@ -2,7 +2,6 @@
   "$schema": "http://json.schemastore.org/tsconfig",
   "extends": "../../tsconfig.base.json",
   "include": ["src"],
-  "exclude": ["src/**/.*.ts"],
   "references": [{ "path": "../effect/tsconfig.src.json" }],
   "compilerOptions": {
     "tsBuildInfoFile": ".tsbuildinfo/src.tsbuildinfo",
