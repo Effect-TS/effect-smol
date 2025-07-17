@@ -1,4 +1,4 @@
-import type * as Tracer from "../Tracer.ts"
+import type * as Tracer from "../observability/Tracer.ts"
 
 export interface ErrorWithStackTraceLimit {
   stackTraceLimit?: number | undefined

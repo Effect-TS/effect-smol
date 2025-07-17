@@ -3,10 +3,10 @@
  */
 import type { StandardSchemaV1 } from "@standard-schema/spec"
 import * as Cause from "../Cause.ts"
+import * as Option from "../data/Option.ts"
+import * as Predicate from "../data/Predicate.ts"
 import * as Effect from "../Effect.ts"
 import { formatPath, formatUnknown } from "../internal/schema/util.ts"
-import * as Option from "../Option.ts"
-import * as Predicate from "../Predicate.ts"
 import type * as Annotations from "./Annotations.ts"
 import * as AST from "./AST.ts"
 import * as Check from "./Check.ts"
@@ -182,15 +182,15 @@ export function formatAST(
     }
   }
   let checks: string = ""
-  const id = ast.annotations?.id
-  if (Predicate.isString(id)) {
-    out = id
+  const identifier = ast.annotations?.identifier
+  if (Predicate.isString(identifier)) {
+    out = identifier
   }
   if (ast.checks) {
     for (const check of ast.checks) {
-      const id = check.annotations?.id
-      if (Predicate.isString(id)) {
-        out = id
+      const identifier = check.annotations?.identifier
+      if (Predicate.isString(identifier)) {
+        out = identifier
         checks = ""
       } else {
         checks += ` & ${formatCheck(check)}`

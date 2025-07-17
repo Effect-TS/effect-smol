@@ -1,6 +1,10 @@
 import { assert, describe, it } from "@effect/vitest"
-import { Array, Effect, Fiber, Option, PubSub } from "effect"
+import { Effect } from "effect"
+import { Array } from "effect/collections"
+import { PubSub } from "effect/concurrency"
+import { Option } from "effect/data"
 import { pipe } from "effect/Function"
+import { Fiber } from "effect/runtime"
 
 describe("PubSub", () => {
   it.effect("publishAll - capacity 2 (BoundedPubSubPow2)", () => {

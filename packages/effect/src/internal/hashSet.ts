@@ -2,13 +2,13 @@
  * @since 2.0.0
  */
 
-import * as Equal from "../Equal.ts"
-import * as Hash from "../Hash.ts"
-import type { Inspectable } from "../Inspectable.ts"
-import { format, NodeInspectSymbol, toJSON } from "../Inspectable.ts"
-import type { Pipeable } from "../Pipeable.ts"
-import { pipeArguments } from "../Pipeable.ts"
-import { hasProperty } from "../Predicate.ts"
+import { hasProperty } from "../data/Predicate.ts"
+import * as Equal from "../interfaces/Equal.ts"
+import * as Hash from "../interfaces/Hash.ts"
+import type { Inspectable } from "../interfaces/Inspectable.ts"
+import { format, NodeInspectSymbol, toJSON } from "../interfaces/Inspectable.ts"
+import type { Pipeable } from "../interfaces/Pipeable.ts"
+import { pipeArguments } from "../interfaces/Pipeable.ts"
 import * as HashMap from "./hashMap.ts"
 
 /** @internal */

@@ -1,7 +1,13 @@
 import { NodeHttpServer } from "@effect/platform-node"
 import { assert, describe, expect, it } from "@effect/vitest"
-import { Duration, Effect, Fiber, Layer, Option, Stream, Tracer } from "effect"
-import { Schema } from "effect/schema"
+import { Effect } from "effect"
+import * as Option from "effect/data/Option"
+import * as Tracer from "effect/observability/Tracer"
+import * as Fiber from "effect/runtime/Fiber"
+import * as Schema from "effect/schema/Schema"
+import * as Layer from "effect/services/Layer"
+import * as Stream from "effect/stream/Stream"
+import * as Duration from "effect/time/Duration"
 import {
   Cookies,
   HttpBody,

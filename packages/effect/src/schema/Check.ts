@@ -2,14 +2,14 @@
  * @since 4.0.0
  */
 
-import * as Arr from "../Array.ts"
-import type { Brand } from "../Brand.ts"
-import type * as Equivalence from "../Equivalence.ts"
+import * as Arr from "../collections/Array.ts"
+import type { Brand } from "../data/Brand.ts"
+import type * as Equivalence from "../data/Equivalence.ts"
+import * as Option from "../data/Option.ts"
+import * as Order from "../data/Order.ts"
+import * as Predicate from "../data/Predicate.ts"
 import { formatUnknown, PipeableClass } from "../internal/schema/util.ts"
-import * as Num from "../Number.ts"
-import * as Option from "../Option.ts"
-import * as Order from "../Order.ts"
-import * as Predicate from "../Predicate.ts"
+import * as Num from "../primitives/Number.ts"
 import type * as Annotations from "./Annotations.ts"
 import type * as AST from "./AST.ts"
 import * as Issue from "./Issue.ts"

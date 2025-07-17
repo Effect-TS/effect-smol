@@ -1,4 +1,4 @@
-import { Record } from "effect"
+import { Record } from "effect/data"
 import { describe, it } from "vitest"
 import { deepStrictEqual } from "./utils/assert.ts"
 

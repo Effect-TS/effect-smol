@@ -1,4 +1,4 @@
-import { Equivalence, Option } from "effect"
+import { Equivalence, Option } from "effect/data"
 import { Schema, ToEquivalence } from "effect/schema"
 import { describe, it } from "vitest"
 import { assertFalse, assertTrue } from "../utils/assert.ts"

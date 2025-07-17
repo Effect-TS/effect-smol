@@ -2,9 +2,9 @@
  * @since 1.0.0
  */
 import * as Effect from "../../Effect.ts"
-import type * as Layer from "../../Layer.ts"
-import * as ServiceMap from "../../ServiceMap.ts"
-import * as Stream from "../../Stream.ts"
+import type * as Layer from "../../services/Layer.ts"
+import * as ServiceMap from "../../services/ServiceMap.ts"
+import * as Stream from "../../stream/Stream.ts"
 import * as Headers from "./Headers.ts"
 import * as HttpClient from "./HttpClient.ts"
 import { RequestError } from "./HttpClientError.ts"

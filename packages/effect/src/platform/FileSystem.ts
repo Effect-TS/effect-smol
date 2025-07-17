@@ -9,7 +9,8 @@
  *
  * @example
  * ```ts
- * import { Effect, Console } from "effect"
+ * import { Effect } from "effect"
+ * import { Console } from "effect/logging"
  * import { FileSystem  } from "effect/platform"
  *
  * const program = Effect.gen(function* () {
@@ -36,18 +37,18 @@
  *
  * @since 4.0.0
  */
-import * as Arr from "../Array.ts"
-import * as Brand from "../Brand.ts"
-import * as Data from "../Data.ts"
+import * as Arr from "../collections/Array.ts"
+import * as Brand from "../data/Brand.ts"
+import * as Data from "../data/Data.ts"
+import * as Option from "../data/Option.ts"
 import * as Effect from "../Effect.ts"
 import { pipe } from "../Function.ts"
-import * as Layer from "../Layer.ts"
-import * as Option from "../Option.ts"
-import * as Pull from "../Pull.ts"
-import type { Scope } from "../Scope.ts"
-import * as ServiceMap from "../ServiceMap.ts"
-import * as Sink from "../Sink.ts"
-import * as Stream from "../Stream.ts"
+import type { Scope } from "../resources/Scope.ts"
+import * as Layer from "../services/Layer.ts"
+import * as ServiceMap from "../services/ServiceMap.ts"
+import * as Pull from "../stream/Pull.ts"
+import * as Sink from "../stream/Sink.ts"
+import * as Stream from "../stream/Stream.ts"
 import type { PlatformError } from "./PlatformError.ts"
 import { BadArgument, SystemError } from "./PlatformError.ts"
 
@@ -82,7 +83,8 @@ export type TypeId = "~effect/platform/FileSystem"
  *
  * @example
  * ```ts
- * import { Effect, Console } from "effect"
+ * import { Effect } from "effect"
+ * import { Console } from "effect/logging"
  * import { FileSystem  } from "effect/platform"
  *
  * const program = Effect.gen(function* () {
@@ -513,7 +515,8 @@ export const MiB = (n: number): Size => Size(n * 1024 * 1024)
  *
  * @example
  * ```ts
- * import { Effect, Console } from "effect"
+ * import { Effect } from "effect"
+ * import { Console } from "effect/logging"
  * import { FileSystem  } from "effect/platform"
  *
  * const program = Effect.gen(function* () {
@@ -544,7 +547,8 @@ export const GiB = (n: number): Size => Size(n * 1024 * 1024 * 1024)
  *
  * @example
  * ```ts
- * import { Effect, Console } from "effect"
+ * import { Effect } from "effect"
+ * import { Console } from "effect/logging"
  * import { FileSystem  } from "effect/platform"
  *
  * const program = Effect.gen(function* () {
@@ -582,7 +586,8 @@ const bigintPiB = bigint1024 * bigint1024 * bigint1024 * bigint1024 * bigint1024
  *
  * @example
  * ```ts
- * import { Effect, Console } from "effect"
+ * import { Effect } from "effect"
+ * import { Console } from "effect/logging"
  * import { FileSystem  } from "effect/platform"
  *
  * const program = Effect.gen(function* () {
@@ -1104,7 +1109,8 @@ export const makeNoop = (fileSystem: Partial<FileSystem>): FileSystem =>
  *
  * @example
  * ```ts
- * import { Effect, Layer } from "effect"
+ * import { Effect } from "effect"
+ * import { Layer } from "effect/services"
  * import { FileSystem } from "effect/platform"
  *
  * // Create a test layer with specific behaviors
@@ -1171,7 +1177,8 @@ export const isFile = (u: unknown): u is File => typeof u === "object" && u !== 
  *
  * @example
  * ```ts
- * import { Effect, Console } from "effect"
+ * import { Effect } from "effect"
+ * import { Console } from "effect/logging"
  * import { FileSystem } from "effect/platform"
  *
  * const program = Effect.gen(function* () {
@@ -1261,7 +1268,9 @@ export declare namespace File {
    *
    * @example
    * ```ts
-   * import { Effect, Console, Option } from "effect"
+   * import { Effect } from "effect"
+   * import { Console } from "effect/logging"
+   * import { Option } from "effect/data"
    * import { FileSystem } from "effect/platform"
    *
    * const program = Effect.gen(function* () {
@@ -1422,7 +1431,9 @@ export const WatchEventRemove: Data.Case.Constructor<WatchEvent.Remove, "_tag"> 
  *
  * @example
  * ```ts
- * import { Effect, Option, Stream } from "effect"
+ * import { Effect } from "effect"
+ * import { Stream } from "effect/stream"
+ * import { Option } from "effect/data"
  * import { FileSystem } from "effect/platform"
  *
  * // Custom watch backend implementation

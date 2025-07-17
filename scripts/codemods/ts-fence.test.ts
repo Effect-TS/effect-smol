@@ -2,7 +2,7 @@
 // npx vitest scripts/codemods/ts-fence.test.ts --config scripts/codemods/vitest.config.ts
 import type * as cs from "jscodeshift"
 import * as TestUtils from "jscodeshift/src/testUtils"
-import transformer from "./ts-fence.js"
+import transformer from "./ts-fence.ts"
 
 const expectTransformation_ = (transformer: cs.Transform) =>
 (

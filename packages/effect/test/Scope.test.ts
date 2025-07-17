@@ -1,5 +1,8 @@
 import { describe, expect, it } from "@effect/vitest"
-import { Duration, Effect, Exit, Scope, TestClock } from "effect"
+import { Effect, Exit } from "effect"
+import { Scope } from "effect/resources"
+import { TestClock } from "effect/testing"
+import { Duration } from "effect/time"
 
 describe("Scope", () => {
   describe("parallel finalization", () => {

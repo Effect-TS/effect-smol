@@ -1,17 +1,11 @@
-import type { Brand, ServiceMap } from "effect"
-import {
-  Effect,
-  flow,
-  hole,
-  Option,
-  Predicate,
-  String as Str,
-  Struct,
-  Tuple,
-} from "effect"
+import type { Brand } from "effect/data"
+import type { ServiceMap } from "effect/services"
+import { Effect, flow, hole } from "effect"
+import { Option, Predicate, Struct, Tuple } from "effect/data"
+import { String as Str } from "effect/primitives"
 import type { Issue } from 'effect/schema';
 import { AST, Check, Getter, Schema, Transformation } from 'effect/schema'
-import type { NonEmptyReadonlyArray } from "effect/Array"
+import type { Array } from "effect/collections"
 import { immerable, produce } from "immer"
 import { describe, expect, it, when } from "tstyche"
 
@@ -2338,8 +2332,8 @@ describe("Schema", () => {
       const schema = Schema.Union([Schema.String, Schema.Number]).mapMembers(Tuple.map(Schema.NonEmptyArray))
       expect(Schema.revealCodec(schema)).type.toBe<
         Schema.Codec<
-          NonEmptyReadonlyArray<string> | NonEmptyReadonlyArray<number>,
-          NonEmptyReadonlyArray<string> | NonEmptyReadonlyArray<number>,
+          Array.NonEmptyReadonlyArray<string> | Array.NonEmptyReadonlyArray<number>,
+          Array.NonEmptyReadonlyArray<string> | Array.NonEmptyReadonlyArray<number>,
           never,
           never
         >

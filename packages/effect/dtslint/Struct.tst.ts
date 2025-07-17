@@ -1,4 +1,6 @@
-import { hole, pipe, String as Str, Struct } from "effect"
+import { hole, pipe } from "effect"
+import { Struct } from "effect/data"
+import { String as Str } from "effect/primitives"
 import { Schema } from "effect/schema"
 import { describe, expect, it, when } from "tstyche"
 

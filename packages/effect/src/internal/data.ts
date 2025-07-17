@@ -1,6 +1,6 @@
-import * as Equal from "../Equal.ts"
-import * as Hash from "../Hash.ts"
-import type * as Types from "../Types.ts"
+import * as Equal from "../interfaces/Equal.ts"
+import * as Hash from "../interfaces/Hash.ts"
+import type * as Types from "../types/Types.ts"
 import { StructuralPrototype } from "./core.ts"
 
 /** @internal */

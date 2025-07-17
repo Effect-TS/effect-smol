@@ -1,22 +1,22 @@
 /**
  * @since 4.0.0
  */
-import type { NonEmptyReadonlyArray } from "../../Array.ts"
-import * as Channel from "../../Channel.ts"
-import * as Data from "../../Data.ts"
-import * as Deferred from "../../Deferred.ts"
-import type { DurationInput } from "../../Duration.ts"
+import type { NonEmptyReadonlyArray } from "../../collections/Array.ts"
+import * as Deferred from "../../concurrency/Deferred.ts"
+import * as FiberSet from "../../concurrency/FiberSet.ts"
+import * as Queue from "../../concurrency/Queue.ts"
+import * as Data from "../../data/Data.ts"
+import * as Filter from "../../data/Filter.ts"
+import * as Predicate from "../../data/Predicate.ts"
 import * as Effect from "../../Effect.ts"
 import * as Exit from "../../Exit.ts"
-import * as FiberSet from "../../FiberSet.ts"
-import * as Filter from "../../Filter.ts"
 import { dual } from "../../Function.ts"
-import * as Layer from "../../Layer.ts"
-import * as Predicate from "../../Predicate.ts"
-import * as Pull from "../../Pull.ts"
-import * as Queue from "../../Queue.ts"
-import * as Scope from "../../Scope.ts"
-import * as ServiceMap from "../../ServiceMap.ts"
+import * as Scope from "../../resources/Scope.ts"
+import * as Layer from "../../services/Layer.ts"
+import * as ServiceMap from "../../services/ServiceMap.ts"
+import * as Channel from "../../stream/Channel.ts"
+import * as Pull from "../../stream/Pull.ts"
+import type { DurationInput } from "../../time/Duration.ts"
 
 /**
  * @since 4.0.0

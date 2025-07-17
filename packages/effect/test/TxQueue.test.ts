@@ -1,10 +1,10 @@
 import { assert, describe, it } from "@effect/vitest"
 import * as Cause from "effect/Cause"
-import * as Chunk from "effect/Chunk"
+import { Chunk } from "effect/collections"
+import { Option } from "effect/data"
 import * as Effect from "effect/Effect"
-import * as Fiber from "effect/Fiber"
-import * as Option from "effect/Option"
-import * as TxQueue from "effect/TxQueue"
+import { Fiber } from "effect/runtime"
+import { TxQueue } from "effect/transactions"
 
 describe("TxQueue", () => {
   describe("interfaces", () => {

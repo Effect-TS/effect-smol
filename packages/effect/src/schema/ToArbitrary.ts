@@ -1,11 +1,11 @@
 /**
  * @since 4.0.0
  */
-import * as Array from "../Array.ts"
-import * as FastCheck from "../FastCheck.ts"
+import * as Array from "../collections/Array.ts"
+import * as Option from "../data/Option.ts"
+import * as Predicate from "../data/Predicate.ts"
 import { defaultParseOptions, memoizeThunk } from "../internal/schema/util.ts"
-import * as Option from "../Option.ts"
-import * as Predicate from "../Predicate.ts"
+import * as FastCheck from "../testing/FastCheck.ts"
 import * as AST from "./AST.ts"
 import type * as Check from "./Check.ts"
 import type * as Schema from "./Schema.ts"

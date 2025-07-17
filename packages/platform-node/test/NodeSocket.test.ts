@@ -1,6 +1,9 @@
 import { NodeSocket, NodeSocketServer } from "@effect/platform-node"
 import { assert, describe, expect, it } from "@effect/vitest"
-import { Effect, Fiber, Queue, Stream } from "effect"
+import { Effect } from "effect"
+import { Queue } from "effect/concurrency"
+import * as Fiber from "effect/runtime/Fiber"
+import * as Stream from "effect/stream/Stream"
 import { Socket, type SocketServer } from "effect/unstable/socket"
 import { WS } from "vitest-websocket-mock"
 

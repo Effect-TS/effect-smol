@@ -1,18 +1,18 @@
 /**
  * @since 4.0.0
  */
-import * as Arr from "../../Array.ts"
+import * as Arr from "../../collections/Array.ts"
+import * as Option from "../../data/Option.ts"
+import type { ReadonlyRecord } from "../../data/Record.ts"
 import * as Effect from "../../Effect.ts"
 import { compose, dual, identity } from "../../Function.ts"
-import * as Layer from "../../Layer.ts"
-import * as Option from "../../Option.ts"
-import type { ReadonlyRecord } from "../../Record.ts"
+import * as Tracer from "../../observability/Tracer.ts"
+import * as Scope from "../../resources/Scope.ts"
 import type { ParseOptions } from "../../schema/AST.ts"
 import * as Schema from "../../schema/Schema.ts"
-import * as Scope from "../../Scope.ts"
-import * as ServiceMap from "../../ServiceMap.ts"
-import * as Tracer from "../../Tracer.ts"
-import type * as Types from "../../Types.ts"
+import * as Layer from "../../services/Layer.ts"
+import * as ServiceMap from "../../services/ServiceMap.ts"
+import type * as Types from "../../types/Types.ts"
 import * as FindMyWay from "./FindMyWay.ts"
 import * as HttpEffect from "./HttpEffect.ts"
 import type * as HttpMethod from "./HttpMethod.ts"
@@ -374,8 +374,8 @@ export const schemaPathParams = <A, I extends Readonly<Record<string, string | u
  *
  * ```ts
  * import * as HttpRouter from "effect/unstable/http/HttpRouter"
- * import * as Effect from "effect/Effect"
- * import * as Layer from "effect/Layer"
+ * import { Effect } from "effect"
+ * import * as Layer from "effect/services/Layer"
  *
  * const MyRoute = Layer.effectDiscard(Effect.gen(function*() {
  *   const router = yield* HttpRouter.HttpRouter
@@ -396,7 +396,7 @@ export const use = <A, E, R>(
  * Create a layer that adds a single route to the HTTP router.
  *
  * ```ts
- * import * as Effect from "effect/Effect"
+ * import { Effect } from "effect"
  * import * as HttpRouter from "effect/unstable/http/HttpRouter"
  * import * as HttpServerResponse from "effect/unstable/http/HttpServerResponse"
  *
@@ -423,7 +423,7 @@ export const add = <E = never, R = never>(
  * Create a layer that adds multiple routes to the HTTP router.
  *
  * ```ts
- * import * as Effect from "effect/Effect"
+ * import { Effect } from "effect"
  * import * as HttpRouter from "effect/unstable/http/HttpRouter"
  * import * as HttpServerResponse from "effect/unstable/http/HttpServerResponse"
  *
@@ -754,9 +754,9 @@ export interface Middleware<
  * import * as HttpRouter from "effect/unstable/http/HttpRouter"
  * import * as HttpMiddleware from "effect/unstable/http/HttpMiddleware"
  * import * as HttpServerResponse from "effect/unstable/http/HttpServerResponse"
- * import * as ServiceMap from "effect/ServiceMap"
- * import * as Effect from "effect/Effect"
- * import * as Layer from "effect/Layer"
+ * import * as ServiceMap from "effect/services/ServiceMap"
+ * import { Effect } from "effect"
+ * import * as Layer from "effect/services/Layer"
  *
  * // Here we are defining a CORS middleware
  * const CorsMiddleware = HttpRouter.middleware(HttpMiddleware.cors()).layer
@@ -1039,10 +1039,10 @@ export const cors = (
  * A middleware that disables the logger for some routes.
  *
  * ```ts
- * import * as Effect from "effect/Effect"
+ * import { Effect } from "effect"
  * import * as HttpRouter from "effect/unstable/http/HttpRouter"
  * import * as HttpServerResponse from "effect/unstable/http/HttpServerResponse"
- * import * as Layer from "effect/Layer"
+ * import * as Layer from "effect/services/Layer"
  *
  * const Route = HttpRouter.add("GET", "/hello", Effect.succeed(HttpServerResponse.text("Hello, World!"))).pipe(
  *   // disable the logger for this route

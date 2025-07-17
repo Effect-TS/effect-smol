@@ -1,8 +1,10 @@
 import { describe, it } from "@effect/vitest"
 import { assertFailure, assertSuccess, deepStrictEqual, strictEqual } from "@effect/vitest/utils"
-import type { LogLevel } from "effect"
-import { Brand, Cause, DateTime, Duration, Effect, Filter, Option, pipe, Redacted } from "effect"
+import { Cause, Effect, pipe } from "effect"
 import { Config, ConfigError, ConfigProvider } from "effect/config"
+import { Brand, Filter, Option, Redacted } from "effect/data"
+import type { LogLevel } from "effect/logging"
+import { DateTime, Duration } from "effect/time"
 
 type Str = Brand.Branded<string, "Str">
 const Str = Brand.refined<Str>(

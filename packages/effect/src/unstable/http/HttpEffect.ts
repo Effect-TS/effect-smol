@@ -1,15 +1,15 @@
 /**
  * @since 4.0.0
  */
+import * as Option from "../../data/Option.ts"
 import * as Effect from "../../Effect.ts"
 import * as Exit from "../../Exit.ts"
-import * as Fiber from "../../Fiber.ts"
 import { dual } from "../../Function.ts"
-import * as Layer from "../../Layer.ts"
-import * as Option from "../../Option.ts"
-import * as Scope from "../../Scope.ts"
-import * as ServiceMap from "../../ServiceMap.ts"
-import * as Stream from "../../Stream.ts"
+import * as Scope from "../../resources/Scope.ts"
+import * as Fiber from "../../runtime/Fiber.ts"
+import * as Layer from "../../services/Layer.ts"
+import * as ServiceMap from "../../services/ServiceMap.ts"
+import * as Stream from "../../stream/Stream.ts"
 import * as HttpBody from "./HttpBody.ts"
 import { type HttpMiddleware, tracer } from "./HttpMiddleware.ts"
 import type { HttpServerError } from "./HttpServerError.ts"

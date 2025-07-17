@@ -2,14 +2,14 @@
  * @since 4.0.0
  */
 
-import * as Arr from "../Array.ts"
+import * as Arr from "../collections/Array.ts"
+import * as Option from "../data/Option.ts"
+import * as Predicate from "../data/Predicate.ts"
+import * as Result from "../data/Result.ts"
 import * as Effect from "../Effect.ts"
 import * as internalRecord from "../internal/record.ts"
 import { formatPropertyKey, memoizeThunk, ownKeys } from "../internal/schema/util.ts"
-import * as Option from "../Option.ts"
-import * as Predicate from "../Predicate.ts"
-import * as RegEx from "../RegExp.ts"
-import * as Result from "../Result.ts"
+import * as RegEx from "../primitives/RegExp.ts"
 import type { Annotated } from "./Annotations.ts"
 import type * as Annotations from "./Annotations.ts"
 import type * as Check from "./Check.ts"

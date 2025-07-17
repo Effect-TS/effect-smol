@@ -1,14 +1,13 @@
 import { assert, describe, it } from "@effect/vitest"
 import { Cache } from "effect/caching"
-import * as Data from "effect/Data"
-import * as Deferred from "effect/Deferred"
-import * as Duration from "effect/Duration"
+import { Deferred } from "effect/concurrency"
+import { Data, Option } from "effect/data"
 import * as Effect from "effect/Effect"
 import * as Exit from "effect/Exit"
-import * as Fiber from "effect/Fiber"
-import * as Option from "effect/Option"
-import * as ServiceMap from "effect/ServiceMap"
-import * as TestClock from "effect/TestClock"
+import { Fiber } from "effect/runtime"
+import { ServiceMap } from "effect/services"
+import { TestClock } from "effect/testing"
+import { Duration } from "effect/time"
 
 describe("Cache", () => {
   describe("constructors", () => {

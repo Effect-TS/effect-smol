@@ -1,10 +1,10 @@
-import type { NonEmptyArray } from "../Array.ts"
 import type * as Request from "../batching/Request.ts"
 import { makeEntry } from "../batching/Request.ts"
 import type { RequestResolver } from "../batching/RequestResolver.ts"
+import type { NonEmptyArray } from "../collections/Array.ts"
 import type { Effect } from "../Effect.ts"
-import type { Fiber } from "../Fiber.ts"
 import { dual } from "../Function.ts"
+import type { Fiber } from "../runtime/Fiber.ts"
 import { exitDie, isEffect } from "./core.ts"
 import * as effect from "./effect.ts"
 

@@ -1,8 +1,8 @@
 /**
  * @since 4.0.0
  */
-import * as Option from "../../Option.ts"
-import * as Tracer from "../../Tracer.ts"
+import * as Option from "../../data/Option.ts"
+import * as Tracer from "../../observability/Tracer.ts"
 import * as Headers from "./Headers.ts"
 
 /**

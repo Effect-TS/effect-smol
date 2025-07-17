@@ -2,8 +2,8 @@
  * @since 4.0.0
  */
 
+import type * as Option from "../data/Option.ts"
 import type * as Effect from "../Effect.ts"
-import type * as Option from "../Option.ts"
 import type * as AST from "./AST.ts"
 import * as Getter from "./Getter.ts"
 import type * as Issue from "./Issue.ts"

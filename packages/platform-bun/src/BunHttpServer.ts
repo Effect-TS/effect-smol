@@ -2,22 +2,22 @@
  * @since 1.0.0
  */
 import type { Server as BunServer, ServerWebSocket } from "bun"
+import * as Deferred from "effect/concurrency/Deferred"
+import * as FiberSet from "effect/concurrency/FiberSet"
 import * as Config from "effect/config/Config"
 import type { ConfigError } from "effect/config/ConfigError"
-import * as Deferred from "effect/Deferred"
+import * as Option from "effect/data/Option"
+import type * as Record from "effect/data/Record"
 import * as Effect from "effect/Effect"
 import * as Exit from "effect/Exit"
-import * as Fiber from "effect/Fiber"
-import * as FiberSet from "effect/FiberSet"
-import * as Inspectable from "effect/Inspectable"
-import * as Layer from "effect/Layer"
-import * as Option from "effect/Option"
+import * as Inspectable from "effect/interfaces/Inspectable"
 import type * as FileSystem from "effect/platform/FileSystem"
 import type * as Path from "effect/platform/Path"
-import type { ReadonlyRecord } from "effect/Record"
-import type * as Scope from "effect/Scope"
-import * as ServiceMap from "effect/ServiceMap"
-import * as Stream from "effect/Stream"
+import type * as Scope from "effect/resources/Scope"
+import * as Fiber from "effect/runtime/Fiber"
+import * as Layer from "effect/services/Layer"
+import * as ServiceMap from "effect/services/ServiceMap"
+import * as Stream from "effect/stream/Stream"
 import * as Cookies from "effect/unstable/http/Cookies"
 import * as Etag from "effect/unstable/http/Etag"
 import * as FetchHttpClient from "effect/unstable/http/FetchHttpClient"
@@ -337,7 +337,7 @@ class BunServerRequest extends Inspectable.Class implements ServerRequest.HttpSe
     return this.headersOverride
   }
 
-  private cachedCookies: ReadonlyRecord<string, string> | undefined
+  private cachedCookies: Record.ReadonlyRecord<string, string> | undefined
   get cookies() {
     if (this.cachedCookies) {
       return this.cachedCookies

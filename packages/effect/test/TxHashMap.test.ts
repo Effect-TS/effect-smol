@@ -1,9 +1,9 @@
 import { assert, describe, it } from "@effect/vitest"
+import { HashMap } from "effect/collections"
+import { Option } from "effect/data"
 import * as Effect from "effect/Effect"
-import * as Hash from "effect/Hash"
-import * as HashMap from "effect/HashMap"
-import * as Option from "effect/Option"
-import * as TxHashMap from "effect/TxHashMap"
+import { Hash } from "effect/interfaces"
+import { TxHashMap } from "effect/transactions"
 
 describe("TxHashMap", () => {
   describe("constructors", () => {

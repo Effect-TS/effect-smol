@@ -1,13 +1,13 @@
 /**
  * @since 1.0.0
  */
+import * as Option from "effect/data/Option"
 import * as Effect from "effect/Effect"
-import * as Inspectable from "effect/Inspectable"
-import * as Layer from "effect/Layer"
-import * as Option from "effect/Option"
-import type * as Scope from "effect/Scope"
-import * as ServiceMap from "effect/ServiceMap"
-import * as Stream from "effect/Stream"
+import * as Inspectable from "effect/interfaces/Inspectable"
+import type * as Scope from "effect/resources/Scope"
+import * as Layer from "effect/services/Layer"
+import * as ServiceMap from "effect/services/ServiceMap"
+import * as Stream from "effect/stream/Stream"
 import * as Cookies from "effect/unstable/http/Cookies"
 import * as Headers from "effect/unstable/http/Headers"
 import type * as Body from "effect/unstable/http/HttpBody"

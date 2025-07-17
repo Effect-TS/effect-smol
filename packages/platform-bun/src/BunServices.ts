@@ -1,9 +1,9 @@
 /**
  * @since 1.0.0
  */
-import * as Layer from "effect/Layer"
 import type { FileSystem } from "effect/platform/FileSystem"
 import type { Path } from "effect/platform/Path"
+import * as Layer from "effect/services/Layer"
 import * as NodeFileSystem from "./BunFileSystem.ts"
 import * as NodePath from "./BunPath.ts"
 

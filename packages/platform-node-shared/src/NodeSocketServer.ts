@@ -2,14 +2,14 @@
  * @since 1.0.0
  */
 import type { Cause } from "effect/Cause"
+import * as FiberSet from "effect/concurrency/FiberSet"
 import * as Effect from "effect/Effect"
 import * as Exit from "effect/Exit"
-import * as FiberSet from "effect/FiberSet"
 import { pipe } from "effect/Function"
-import * as Layer from "effect/Layer"
-import { UnhandledLogLevel } from "effect/References"
-import * as Scope from "effect/Scope"
-import * as ServiceMap from "effect/ServiceMap"
+import * as Scope from "effect/resources/Scope"
+import * as Layer from "effect/services/Layer"
+import * as References from "effect/services/References"
+import * as ServiceMap from "effect/services/ServiceMap"
 import * as Socket from "effect/unstable/socket/Socket"
 import * as SocketServer from "effect/unstable/socket/SocketServer"
 import type * as Http from "node:http"
@@ -217,7 +217,7 @@ export const layerWebSocket = (
 
 const reportUnhandledError = <E>(cause: Cause<E>) =>
   Effect.withFiber<void>((fiber) => {
-    const unhandledLogLevel = fiber.getRef(UnhandledLogLevel)
+    const unhandledLogLevel = fiber.getRef(References.UnhandledLogLevel)
     if (unhandledLogLevel._tag === "Some") {
       return Effect.logWithLevel(unhandledLogLevel.value)(cause, "Unhandled error in SocketServer")
     }

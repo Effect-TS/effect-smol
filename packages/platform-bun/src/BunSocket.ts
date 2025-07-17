@@ -1,7 +1,7 @@
 /**
  * @since 1.0.0
  */
-import * as Layer from "effect/Layer"
+import * as Layer from "effect/services/Layer"
 import * as Socket from "effect/unstable/socket/Socket"
 
 /**

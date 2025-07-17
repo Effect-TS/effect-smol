@@ -1,14 +1,14 @@
 /**
  * @since 1.0.0
  */
-import type { NonEmptyReadonlyArray } from "effect/Array"
-import * as Channel from "effect/Channel"
+import type { NonEmptyReadonlyArray } from "effect/collections/Array"
 import * as Effect from "effect/Effect"
 import { identity, type LazyArg } from "effect/Function"
 import type { PlatformError } from "effect/platform/PlatformError"
 import { SystemError } from "effect/platform/PlatformError"
-import * as Pull from "effect/Pull"
-import * as Sink from "effect/Sink"
+import * as Channel from "effect/stream/Channel"
+import * as Pull from "effect/stream/Pull"
+import * as Sink from "effect/stream/Sink"
 import type { Writable } from "node:stream"
 
 /**

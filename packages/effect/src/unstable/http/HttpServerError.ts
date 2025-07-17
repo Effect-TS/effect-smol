@@ -1,13 +1,13 @@
 /**
  * @since 4.0.0
  */
-import * as Arr from "../../Array.ts"
 import * as Cause from "../../Cause.ts"
-import * as Data from "../../Data.ts"
+import * as Arr from "../../collections/Array.ts"
+import * as Data from "../../data/Data.ts"
+import * as Option from "../../data/Option.ts"
+import { hasProperty } from "../../data/Predicate.ts"
 import * as Effect from "../../Effect.ts"
 import type * as Exit from "../../Exit.ts"
-import * as Option from "../../Option.ts"
-import { hasProperty } from "../../Predicate.ts"
 import type * as Request from "./HttpServerRequest.ts"
 import * as Respondable from "./HttpServerRespondable.ts"
 import * as Response from "./HttpServerResponse.ts"

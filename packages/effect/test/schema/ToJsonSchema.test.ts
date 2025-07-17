@@ -956,7 +956,7 @@ describe("ToJsonSchema", () => {
       }
       const schema = Schema.Struct({
         a: Schema.String,
-        as: Schema.Array(Schema.suspend((): Schema.Codec<A> => schema.annotate({ id: "A" })))
+        as: Schema.Array(Schema.suspend((): Schema.Codec<A> => schema.annotate({ identifier: "A" })))
       })
       assertDraft7(schema, {
         "$defs": {
@@ -1007,7 +1007,7 @@ describe("ToJsonSchema", () => {
       }
       const schema = Schema.Struct({
         a: Schema.String,
-        as: Schema.Array(Schema.suspend((): Schema.Codec<A> => schema).annotate({ id: "A" }))
+        as: Schema.Array(Schema.suspend((): Schema.Codec<A> => schema).annotate({ identifier: "A" }))
       })
       assertDraft7(schema, {
         "$defs": {
@@ -1059,7 +1059,7 @@ describe("ToJsonSchema", () => {
       const schema = Schema.Struct({
         a: Schema.String,
         as: Schema.Array(Schema.suspend((): Schema.Codec<A> => schema))
-      }).annotate({ id: "A" })
+      }).annotate({ identifier: "A" })
       assertDraft7(schema, {
         "$ref": "#/$defs/A",
         "$defs": {
@@ -1094,7 +1094,7 @@ describe("ToJsonSchema", () => {
       const schema = Schema.Struct({
         a: Schema.String,
         as: Schema.Array(Schema.suspend((): Schema.Codec<A> => schema))
-      }).annotate({ id: "A" })
+      }).annotate({ identifier: "A" })
       assertDraft7(schema, {
         "type": "object",
         "properties": {
@@ -1157,9 +1157,9 @@ describe("ToJsonSchema", () => {
     })
   })
 
-  describe("id", () => {
+  describe("identifier", () => {
     it(`topLevelReferenceStrategy: "skip"`, () => {
-      const schema = Schema.String.annotate({ id: "A" })
+      const schema = Schema.String.annotate({ identifier: "A" })
       assertDraft7(schema, {
         "type": "string"
       }, {
@@ -1169,7 +1169,7 @@ describe("ToJsonSchema", () => {
 
     describe(`topLevelReferenceStrategy: "keep" (default)`, () => {
       it(`String & annotation`, () => {
-        const schema = Schema.String.annotate({ id: "A" })
+        const schema = Schema.String.annotate({ identifier: "A" })
         assertDraft7(schema, {
           "$ref": "#/$defs/A",
           "$defs": {
@@ -1181,7 +1181,7 @@ describe("ToJsonSchema", () => {
       })
 
       it(`String & annotation & check`, () => {
-        const schema = Schema.String.annotate({ id: "A" }).check(Check.nonEmpty())
+        const schema = Schema.String.annotate({ identifier: "A" }).check(Check.nonEmpty())
         assertDraft7(schema, {
           "type": "string",
           "description": "a value with a length of at least 1",
@@ -1191,7 +1191,7 @@ describe("ToJsonSchema", () => {
       })
 
       it(`String & annotation & check & annotation`, () => {
-        const schema = Schema.String.annotate({ id: "A" }).check(Check.nonEmpty({ id: "B" }))
+        const schema = Schema.String.annotate({ identifier: "A" }).check(Check.nonEmpty({ identifier: "B" }))
         assertDraft7(schema, {
           "$ref": "#/$defs/B",
           "$defs": {
@@ -1206,8 +1206,8 @@ describe("ToJsonSchema", () => {
       })
 
       it(`String & annotation & check & annotation & check`, () => {
-        const schema = Schema.String.annotate({ id: "A" }).check(
-          Check.nonEmpty({ id: "B" }),
+        const schema = Schema.String.annotate({ identifier: "A" }).check(
+          Check.nonEmpty({ identifier: "B" }),
           Check.maxLength(2)
         )
         assertDraft7(schema, {

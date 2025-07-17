@@ -2,8 +2,7 @@
  * @since 1.0.0
  */
 import type { Effect } from "effect/Effect"
-import type { Teardown } from "effect/Runtime"
-import { makeRunMain } from "effect/Runtime"
+import * as Runtime from "effect/runtime/Runtime"
 
 /**
  * @since 1.0.0
@@ -11,13 +10,19 @@ import { makeRunMain } from "effect/Runtime"
  */
 export const runMain: {
   (
-    options?: { readonly disableErrorReporting?: boolean | undefined; readonly teardown?: Teardown | undefined }
+    options?: {
+      readonly disableErrorReporting?: boolean | undefined
+      readonly teardown?: Runtime.Teardown | undefined
+    }
   ): <E, A>(effect: Effect<A, E>) => void
   <E, A>(
     effect: Effect<A, E>,
-    options?: { readonly disableErrorReporting?: boolean | undefined; readonly teardown?: Teardown | undefined }
+    options?: {
+      readonly disableErrorReporting?: boolean | undefined
+      readonly teardown?: Runtime.Teardown | undefined
+    }
   ): void
-} = makeRunMain(({
+} = Runtime.makeRunMain(({
   fiber,
   teardown
 }) => {

@@ -1,24 +1,24 @@
 /**
  * @since 4.0.0
  */
-import * as Arr from "../Array.ts"
-import type * as Brand from "../Brand.ts"
 import * as Cause from "../Cause.ts"
-import * as DateTime_ from "../DateTime.ts"
-import * as Duration_ from "../Duration.ts"
+import * as Arr from "../collections/Array.ts"
+import type * as Brand from "../data/Brand.ts"
+import * as Filter from "../data/Filter.ts"
+import type * as Option from "../data/Option.ts"
+import { hasProperty } from "../data/Predicate.ts"
+import * as Redacted_ from "../data/Redacted.ts"
 import * as Effect from "../Effect.ts"
 import * as Exit from "../Exit.ts"
-import * as Filter from "../Filter.ts"
 import type { LazyArg } from "../Function.ts"
 import { constant, dual } from "../Function.ts"
+import type { Pipeable } from "../interfaces/Pipeable.ts"
 import { PipeInspectableProto, YieldableProto } from "../internal/core.ts"
-import * as LogLevel_ from "../LogLevel.ts"
-import type * as Option from "../Option.ts"
-import type { Pipeable } from "../Pipeable.ts"
-import { hasProperty } from "../Predicate.ts"
-import * as Redacted_ from "../Redacted.ts"
-import * as Str from "../String.ts"
-import type { NoInfer } from "../Types.ts"
+import * as LogLevel_ from "../logging/LogLevel.ts"
+import * as Str from "../primitives/String.ts"
+import * as DateTime_ from "../time/DateTime.ts"
+import * as Duration_ from "../time/Duration.ts"
+import type { NoInfer } from "../types/Types.ts"
 import { type ConfigError, filterMissingDataOnly, InvalidData, MissingData } from "./ConfigError.ts"
 import * as ConfigProvider from "./ConfigProvider.ts"
 
@@ -423,7 +423,8 @@ export const primitive: {
  *
  * @example
  * ```ts
- * import { Effect, Filter } from "effect"
+ * import { Effect } from "effect"
+ * import * as Filter from "effect/data/Filter"
  * import { Config, ConfigProvider } from "effect/config"
  *
  * // Create a custom email validation config
@@ -446,7 +447,8 @@ export const primitive: {
  *
  * @example
  * ```ts
- * import { Effect, Filter } from "effect"
+ * import { Effect } from "effect"
+ * import * as Filter from "effect/data/Filter"
  * import { Config, ConfigProvider } from "effect/config"
  *
  * // Create a custom enum-like config using fromFilter
@@ -468,7 +470,8 @@ export const primitive: {
  *
  * @example
  * ```ts
- * import { Effect, Filter } from "effect"
+ * import { Effect } from "effect"
+ * import * as Filter from "effect/data/Filter"
  * import { Config, ConfigProvider } from "effect/config"
  *
  * // Create a config that parses comma-separated values into an array
@@ -1068,7 +1071,8 @@ export const Url = (name?: string): Config<URL> =>
  *
  * @example
  * ```ts
- * import { Effect, LogLevel } from "effect"
+ * import { Effect } from "effect"
+ * import type { LogLevel } from "effect/logging/LogLevel"
  * import { Config, ConfigProvider } from "effect/config"
  *
  * // Create a log level config
@@ -1077,12 +1081,13 @@ export const Url = (name?: string): Config<URL> =>
  * // Parse from environment variable
  * const provider = ConfigProvider.fromEnv({ environment: { LOG_LEVEL: "Debug" } })
  * const result = Effect.runSync(Effect.provide(logLevel.asEffect(), ConfigProvider.layer(provider)))
- * // result is "Debug" as LogLevel.LogLevel
+ * // result is "Debug" as LogLevel
  * ```
  *
  * @example
  * ```ts
- * import { Effect, LogLevel } from "effect"
+ * import { Effect } from "effect"
+ * import type { LogLevel } from "effect/logging/LogLevel"
  * import { Config, ConfigProvider } from "effect/config"
  *
  * // Case-insensitive parsing
@@ -1093,17 +1098,18 @@ export const Url = (name?: string): Config<URL> =>
  * const provider2 = ConfigProvider.fromEnv({ environment: { LOG_LEVEL: "ERROR" } })
  * const provider3 = ConfigProvider.fromEnv({ environment: { LOG_LEVEL: "Error" } })
  *
- * // All produce "Error" as LogLevel.LogLevel
+ * // All produce "Error" as LogLevel
  * ```
  *
  * @example
  * ```ts
- * import { Effect, LogLevel } from "effect"
+ * import { Effect } from "effect"
+ * import type { LogLevel } from "effect/logging/LogLevel"
  * import { Config, ConfigProvider } from "effect/config"
  *
  * // Using with default values and validation
  * const logLevel = Config.LogLevel("LOG_LEVEL").pipe(
- *   Config.withDefault("Info" as LogLevel.LogLevel)
+ *   Config.withDefault("Info" as LogLevel)
  * )
  *
  * // Valid log levels: "All", "Fatal", "Error", "Warn", "Info", "Debug", "Trace", "None"
@@ -1179,7 +1185,8 @@ export const Duration = (name?: string): Config<Duration_.Duration> =>
  *
  * @example
  * ```ts
- * import { Effect, Redacted } from "effect"
+ * import { Effect } from "effect"
+ * import { Redacted } from "effect/data"
  * import { Config, ConfigProvider } from "effect/config"
  *
  * // Create a redacted config without a name
@@ -1277,7 +1284,8 @@ export const Redacted: {
  *
  * @example
  * ```ts
- * import { Brand, Effect } from "effect"
+ * import { Effect } from "effect"
+ * import { Brand } from "effect/data"
  * import { Config, ConfigProvider } from "effect/config"
  *
  * // Define a branded string type for user IDs
@@ -1300,7 +1308,8 @@ export const Redacted: {
  *
  * @example
  * ```ts
- * import { Brand, Effect } from "effect"
+ * import { Effect } from "effect"
+ * import { Brand } from "effect/data"
  * import { Config, ConfigProvider } from "effect/config"
  *
  * // Define a branded number type for positive integers
@@ -1329,7 +1338,8 @@ export const Redacted: {
  *
  * @example
  * ```ts
- * import { Brand, Effect } from "effect"
+ * import { Effect } from "effect"
+ * import { Brand } from "effect/data"
  * import { Config, ConfigProvider } from "effect/config"
  *
  * // Define a branded string type for email addresses
@@ -1362,7 +1372,8 @@ export const Redacted: {
  *
  * @example
  * ```ts
- * import { Brand, Effect } from "effect"
+ * import { Effect } from "effect"
+ * import { Brand } from "effect/data"
  * import { Config, ConfigProvider } from "effect/config"
  *
  * // Define a branded type for port numbers

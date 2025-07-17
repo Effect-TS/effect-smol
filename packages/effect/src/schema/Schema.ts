@@ -3,25 +3,25 @@
  */
 
 import type { StandardSchemaV1 } from "@standard-schema/spec"
-import * as Arr from "../Array.ts"
 import * as Request from "../batching/Request.ts"
-import type { Brand } from "../Brand.ts"
 import * as Cause from "../Cause.ts"
-import * as Data from "../Data.ts"
+import * as Arr from "../collections/Array.ts"
+import type { Brand } from "../data/Brand.ts"
+import * as Data from "../data/Data.ts"
+import * as Equivalence from "../data/Equivalence.ts"
+import * as O from "../data/Option.ts"
+import * as Predicate from "../data/Predicate.ts"
+import * as R from "../data/Record.ts"
+import * as Result from "../data/Result.ts"
+import type { Lambda, Merge, Mutable, Simplify } from "../data/Struct.ts"
+import { lambda, renameKeys } from "../data/Struct.ts"
 import * as Effect from "../Effect.ts"
-import * as Equivalence from "../Equivalence.ts"
 import * as Exit from "../Exit.ts"
 import { identity } from "../Function.ts"
+import type { Pipeable } from "../interfaces/Pipeable.ts"
+import { pipeArguments } from "../interfaces/Pipeable.ts"
 import * as core from "../internal/core.ts"
-import * as O from "../Option.ts"
-import type { Pipeable } from "../Pipeable.ts"
-import { pipeArguments } from "../Pipeable.ts"
-import * as Predicate from "../Predicate.ts"
-import * as R from "../Record.ts"
-import * as Result from "../Result.ts"
-import * as Scheduler from "../Scheduler.ts"
-import type { Lambda, Merge, Mutable, Simplify } from "../Struct.ts"
-import { lambda, renameKeys } from "../Struct.ts"
+import * as Scheduler from "../runtime/Scheduler.ts"
 import type * as Annotations from "./Annotations.ts"
 import * as AST from "./AST.ts"
 import * as Check from "./Check.ts"
@@ -3577,7 +3577,7 @@ export interface Class<Self, S extends Top & { readonly fields: Struct.Fields },
   >
 {
   new(props: S["~type.make.in"], options?: MakeOptions): S["Type"] & Inherited
-  readonly id: string
+  readonly identifier: string
   readonly fields: S["fields"]
 }
 
@@ -3591,7 +3591,7 @@ export interface ExtendableClass<Self, S extends Top & { readonly fields: Struct
 {
   readonly "~rebuild.out": ExtendableClass<Self, S, Self>
   extend<Extended>(
-    id: string
+    identifier: string
   ): <NewFields extends Struct.Fields>(
     fields: NewFields,
     annotations?: Annotations.Declaration<Extended, readonly [Struct<Simplify<Merge<S["fields"], NewFields>>>]>
@@ -3609,11 +3609,11 @@ function makeClass<
   Inherited extends new(...args: ReadonlyArray<any>) => any
 >(
   Inherited: Inherited,
-  id: string,
+  identifier: string,
   schema: S,
   annotations?: Annotations.Declaration<Self, readonly [S]>
 ): any {
-  const computeAST = getComputeAST(schema.ast, { id, ...annotations })
+  const computeAST = getComputeAST(schema.ast, { identifier, ...annotations })
 
   return class extends Inherited {
     constructor(...[input, options]: ReadonlyArray<any>) {
@@ -3645,7 +3645,7 @@ function makeClass<
     declare static readonly "~encoded.mutability": S["~encoded.mutability"]
     declare static readonly "~encoded.optionality": S["~encoded.optionality"]
 
-    static readonly id = id
+    static readonly identifier = identifier
     static readonly fields = schema.fields
 
     static get ast(): AST.Declaration {
@@ -3677,7 +3677,7 @@ function makeClass<
       return this.rebuild(AST.appendChecks(this.ast, checks))
     }
     static extend<Extended>(
-      id: string
+      identifier: string
     ): <NewFields extends Struct.Fields>(
       fields: NewFields,
       annotations?: Annotations.Declaration<Extended, readonly [Struct<Simplify<Merge<S["fields"], NewFields>>>]>
@@ -3687,7 +3687,7 @@ function makeClass<
         const struct: any = new Struct$(AST.struct(fields, schema.ast.checks), fields)
         return makeClass(
           this,
-          id,
+          identifier,
           struct,
           annotations
         )
@@ -3737,7 +3737,7 @@ function getComputeAST(
           },
           pretty: {
             _tag: "declaration",
-            declaration: ([from]) => (t) => `${self.id}(${from(t)})`
+            declaration: ([from]) => (t) => `${self.identifier}(${from(t)})`
           },
           ...annotations
         } as Annotations.Declaration<any, readonly [Top]>,
@@ -3763,7 +3763,7 @@ function getComputeAST(
  * @since 4.0.0
  */
 export const Class: {
-  <Self, Brand = {}>(id: string): {
+  <Self, Brand = {}>(identifier: string): {
     <const Fields extends Struct.Fields>(
       fields: Fields,
       annotations?: Annotations.Declaration<Self, readonly [Struct<Fields>]>
@@ -3773,7 +3773,7 @@ export const Class: {
       annotations?: Annotations.Declaration<Self, readonly [S]>
     ): ExtendableClass<Self, S, Brand>
   }
-} = <Self, Brand = {}>(id: string) =>
+} = <Self, Brand = {}>(identifier: string) =>
 (
   schema: Struct.Fields | Struct<Struct.Fields>,
   annotations?: Annotations.Declaration<Self, readonly [Struct<Struct.Fields>]>
@@ -3782,7 +3782,7 @@ export const Class: {
 
   return makeClass(
     Data.Class,
-    id,
+    identifier,
     struct,
     annotations
   )
@@ -3802,7 +3802,7 @@ export interface ErrorClass<Self, S extends Top & { readonly fields: Struct.Fiel
  * @since 4.0.0
  */
 export const ErrorClass: {
-  <Self, Brand = {}>(id: string): {
+  <Self, Brand = {}>(identifier: string): {
     <const Fields extends Struct.Fields>(
       fields: Fields,
       annotations?: Annotations.Declaration<Self, readonly [Struct<Fields>]>
@@ -3812,7 +3812,7 @@ export const ErrorClass: {
       annotations?: Annotations.Declaration<Self, readonly [S]>
     ): ErrorClass<Self, S, Cause.YieldableError & Brand>
   }
-} = <Self, Brand = {}>(id: string) =>
+} = <Self, Brand = {}>(identifier: string) =>
 (
   schema: Struct.Fields | Struct<Struct.Fields>,
   annotations?: Annotations.Declaration<Self, readonly [Struct<Struct.Fields>]>
@@ -3821,7 +3821,7 @@ export const ErrorClass: {
 
   return makeClass(
     core.Error,
-    id,
+    identifier,
     struct,
     annotations
   )
@@ -3848,7 +3848,7 @@ export interface RequestClass<
  * @since 4.0.0
  */
 export const RequestClass =
-  <Self, Brand = {}>(id: string) =>
+  <Self, Brand = {}>(identifier: string) =>
   <Payload extends Struct<Struct.Fields>, Success extends Top, Error extends Top>(
     options: {
       readonly payload: Payload
@@ -3869,7 +3869,7 @@ export const RequestClass =
   > => {
     return class RequestClass extends makeClass(
       Request.Class,
-      id,
+      identifier,
       options.payload,
       options.annotations
     ) {

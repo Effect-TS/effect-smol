@@ -2,7 +2,7 @@
  * @since 1.0.0
  */
 import { pipe } from "effect/Function"
-import * as Layer from "effect/Layer"
+import * as Layer from "effect/services/Layer"
 import * as EtagImpl from "effect/unstable/http/Etag"
 import * as Headers from "effect/unstable/http/Headers"
 import * as Platform from "effect/unstable/http/HttpPlatform"

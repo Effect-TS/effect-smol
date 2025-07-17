@@ -1,8 +1,7 @@
 import { assert, describe, it } from "@effect/vitest"
-import * as Effect from "effect/Effect"
-import * as Exit from "effect/Exit"
-import * as Fiber from "effect/Fiber"
-import * as TestClock from "effect/TestClock"
+import { Effect, Exit } from "effect"
+import { Fiber } from "effect/runtime"
+import { TestClock } from "effect/testing"
 
 describe("Effect Eager Operations", () => {
   describe("fnUntracedEager", () => {

@@ -2,11 +2,11 @@
  * @since 1.0.0
  */
 import * as Effect from "effect/Effect"
-import * as Inspectable from "effect/Inspectable"
+import * as Inspectable from "effect/interfaces/Inspectable"
 import type * as FileSystem from "effect/platform/FileSystem"
 import type * as Path from "effect/platform/Path"
-import type * as Scope from "effect/Scope"
-import * as Stream from "effect/Stream"
+import type * as Scope from "effect/resources/Scope"
+import * as Stream from "effect/stream/Stream"
 import * as Multipart from "effect/unstable/http/Multipart"
 import * as MP from "effect/unstable/http/Multipasta/Node"
 import * as NFS from "node:fs"

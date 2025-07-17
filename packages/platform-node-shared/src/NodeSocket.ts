@@ -1,14 +1,14 @@
 /**
  * @since 1.0.0
  */
-import type { NonEmptyReadonlyArray } from "effect/Array"
-import * as Channel from "effect/Channel"
-import * as Deferred from "effect/Deferred"
+import type { Array } from "effect/collections"
+import * as Deferred from "effect/concurrency/Deferred"
+import * as FiberSet from "effect/concurrency/FiberSet"
 import * as Effect from "effect/Effect"
-import * as FiberSet from "effect/FiberSet"
-import * as Layer from "effect/Layer"
-import * as Scope from "effect/Scope"
-import * as ServiceMap from "effect/ServiceMap"
+import * as Scope from "effect/resources/Scope"
+import * as Layer from "effect/services/Layer"
+import * as ServiceMap from "effect/services/ServiceMap"
+import * as Channel from "effect/stream/Channel"
 import * as Socket from "effect/unstable/socket/Socket"
 import * as Net from "node:net"
 import type { Duplex } from "node:stream"
@@ -168,10 +168,10 @@ export const fromDuplex = <RO>(
 export const makeNetChannel = <IE = never>(
   options: Net.NetConnectOpts
 ): Channel.Channel<
-  NonEmptyReadonlyArray<Uint8Array>,
+  Array.NonEmptyReadonlyArray<Uint8Array>,
   Socket.SocketError | IE,
   void,
-  NonEmptyReadonlyArray<Uint8Array | string | Socket.CloseEvent>,
+  Array.NonEmptyReadonlyArray<Uint8Array | string | Socket.CloseEvent>,
   IE
 > =>
   Channel.unwrap(

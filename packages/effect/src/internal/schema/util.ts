@@ -1,6 +1,6 @@
-import type { Pipeable } from "../../Pipeable.ts"
-import { pipeArguments } from "../../Pipeable.ts"
-import * as Predicate from "../../Predicate.ts"
+import * as Predicate from "../../data/Predicate.ts"
+import type { Pipeable } from "../../interfaces/Pipeable.ts"
+import { pipeArguments } from "../../interfaces/Pipeable.ts"
 import type * as AST from "../../schema/AST.ts"
 
 /**

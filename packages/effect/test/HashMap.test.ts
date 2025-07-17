@@ -1,7 +1,6 @@
-import * as Equal from "effect/Equal"
-import * as Hash from "effect/Hash"
-import * as HashMap from "effect/HashMap"
-import * as Option from "effect/Option"
+import { HashMap } from "effect/collections"
+import { Option } from "effect/data"
+import { Equal, Hash } from "effect/interfaces"
 import { describe, expect, it } from "vitest"
 
 describe("HashMap", () => {

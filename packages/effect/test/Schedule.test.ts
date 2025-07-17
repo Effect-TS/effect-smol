@@ -1,6 +1,12 @@
 import { describe, expect, it } from "@effect/vitest"
-import { Array, Duration, Effect, Fiber, Pull, Schedule, TestClock } from "effect"
+import { Effect } from "effect"
+import { Array } from "effect/collections"
 import { constant, constUndefined } from "effect/Function"
+import { Fiber } from "effect/runtime"
+import { Schedule } from "effect/scheduling"
+import { Pull } from "effect/stream"
+import { TestClock } from "effect/testing"
+import { Duration } from "effect/time"
 
 describe("Schedule", () => {
   describe("collecting", () => {

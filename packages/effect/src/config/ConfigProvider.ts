@@ -1,21 +1,21 @@
 /**
  * @since 4.0.0
  */
-import * as Arr from "../Array.ts"
 import * as Cause from "../Cause.ts"
+import * as Arr from "../collections/Array.ts"
+import { hasProperty } from "../data/Predicate.ts"
 import * as Effect from "../Effect.ts"
 import { constant, dual, identity } from "../Function.ts"
-import { toStringUnknown } from "../Inspectable.ts"
+import { toStringUnknown } from "../interfaces/Inspectable.ts"
+import type { Pipeable } from "../interfaces/Pipeable.ts"
 import { PipeInspectableProto } from "../internal/core.ts"
-import * as Layer from "../Layer.ts"
-import type { Pipeable } from "../Pipeable.ts"
 import * as FileSystem from "../platform/FileSystem.ts"
 import * as Path from "../platform/Path.ts"
 import type { PlatformError } from "../platform/PlatformError.ts"
-import { hasProperty } from "../Predicate.ts"
-import type { Scope } from "../Scope.ts"
-import * as ServiceMap from "../ServiceMap.ts"
-import * as Str from "../String.ts"
+import * as Str from "../primitives/String.ts"
+import type { Scope } from "../resources/Scope.ts"
+import * as Layer from "../services/Layer.ts"
+import * as ServiceMap from "../services/ServiceMap.ts"
 import { type ConfigError, filterMissingDataOnly, MissingData, SourceError } from "./ConfigError.ts"
 
 /**

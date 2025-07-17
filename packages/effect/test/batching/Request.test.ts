@@ -1,14 +1,14 @@
 import { assert, describe, expect, it } from "@effect/vitest"
-import * as Array from "effect/Array"
 import * as Request from "effect/batching/Request"
 import * as Resolver from "effect/batching/RequestResolver"
 import * as Cause from "effect/Cause"
-import * as Data from "effect/Data"
+import { Array } from "effect/collections"
+import { Data } from "effect/data"
 import * as Effect from "effect/Effect"
 import * as Exit from "effect/Exit"
-import * as Fiber from "effect/Fiber"
 import { flow, pipe } from "effect/Function"
-import * as ServiceMap from "effect/ServiceMap"
+import { Fiber } from "effect/runtime"
+import { ServiceMap } from "effect/services"
 
 class Counter extends ServiceMap.Key<Counter, { count: number }>()("Counter") {}
 class Requests extends ServiceMap.Key<Requests, { count: number }>()("Requests") {}

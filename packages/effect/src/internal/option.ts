@@ -1,11 +1,11 @@
 /**
  * @since 2.0.0
  */
-import * as Equal from "../Equal.ts"
-import * as Hash from "../Hash.ts"
-import { toJSON } from "../Inspectable.ts"
-import type * as Option from "../Option.ts"
-import { hasProperty } from "../Predicate.ts"
+import type * as Option from "../data/Option.ts"
+import { hasProperty } from "../data/Predicate.ts"
+import * as Equal from "../interfaces/Equal.ts"
+import * as Hash from "../interfaces/Hash.ts"
+import { toJSON } from "../interfaces/Inspectable.ts"
 import { exitFail, exitSucceed, NoSuchElementError, PipeInspectableProto, YieldableProto } from "./core.ts"
 
 const TypeId: Option.TypeId = "~effect/Option"

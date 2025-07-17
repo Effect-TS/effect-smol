@@ -1,16 +1,16 @@
 /**
  * @since 4.0.0
  */
+import * as Option from "../../data/Option.ts"
+import { hasProperty } from "../../data/Predicate.ts"
 import * as Effect from "../../Effect.ts"
-import * as Inspectable from "../../Inspectable.ts"
-import * as Option from "../../Option.ts"
+import * as Inspectable from "../../interfaces/Inspectable.ts"
 import type * as FileSystem from "../../platform/FileSystem.ts"
-import { hasProperty } from "../../Predicate.ts"
 import type { ParseOptions } from "../../schema/AST.ts"
 import * as Schema from "../../schema/Schema.ts"
 import * as Serializer from "../../schema/Serializer.ts"
-import * as ServiceMap from "../../ServiceMap.ts"
-import type * as Stream from "../../Stream.ts"
+import * as ServiceMap from "../../services/ServiceMap.ts"
+import type * as Stream from "../../stream/Stream.ts"
 import type * as Headers from "./Headers.ts"
 import * as UrlParams from "./UrlParams.ts"
 

@@ -1,5 +1,6 @@
-import type { Predicate } from "effect"
-import { Option, pipe } from "effect"
+import { pipe } from "effect"
+import type { Predicate } from "effect/data"
+import { Option } from "effect/data"
 import { describe, expect, it } from "tstyche"
 
 declare const number: Option.Option<number>

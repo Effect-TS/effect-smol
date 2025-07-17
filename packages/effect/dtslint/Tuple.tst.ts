@@ -1,4 +1,5 @@
-import { pipe, Tuple } from "effect"
+import { pipe } from "effect"
+import { Tuple } from "effect/data"
 import { Schema } from "effect/schema"
 import { describe, expect, it, when } from "tstyche"
 

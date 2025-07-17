@@ -1,5 +1,5 @@
-import type * as Encoding from "../../Encoding.ts"
-import * as Result from "../../Result.ts"
+import * as Result from "../../data/Result.ts"
+import type * as Encoding from "../../encoding/Encoding.ts"
 import { DecodeException } from "./common.ts"
 
 /** @internal */

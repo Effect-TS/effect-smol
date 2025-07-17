@@ -2,8 +2,8 @@
  * @since 1.0.0
  */
 import type { Effect } from "effect"
-import * as Layer from "effect/Layer"
 import type { FileSystem } from "effect/platform/FileSystem"
+import * as Layer from "effect/services/Layer"
 import * as Etag from "effect/unstable/http/Etag"
 import * as Platform from "effect/unstable/http/HttpPlatform"
 import * as Response from "effect/unstable/http/HttpServerResponse"

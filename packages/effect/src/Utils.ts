@@ -1,11 +1,11 @@
 /**
  * @since 2.0.0
  */
+import { isNullable, isObject } from "./data/Predicate.ts"
 import { identity } from "./Function.ts"
-import type { Kind, TypeLambda } from "./HKT.ts"
 import { getBugErrorMessage } from "./internal/errors.ts"
-import { isNullable, isObject } from "./Predicate.ts"
-import type * as Types from "./Types.ts"
+import type { Kind, TypeLambda } from "./types/HKT.ts"
+import type * as Types from "./types/Types.ts"
 
 /**
  * Copyright 2014 Thom Chiovoloni, released under the MIT license.
@@ -49,7 +49,8 @@ export type GenKindTypeId = "~effect/Utils/GenKind"
 /**
  * @example
  * ```ts
- * import { Utils, Option } from "effect"
+ * import { Utils } from "effect"
+import * as Option from "effect/data/Option"
  *
  * // A GenKind wraps types to make them generator-compatible
  * declare const genKind: Utils.GenKind<Option.OptionTypeLambda, never, never, never, number>
@@ -67,7 +68,8 @@ export interface GenKind<F extends TypeLambda, R, O, E, A> extends Variance<F, R
 /**
  * @example
  * ```ts
- * import { Utils, Option } from "effect"
+ * import { Utils } from "effect"
+import * as Option from "effect/data/Option"
  *
  * const adapter = Utils.adapter<Option.OptionTypeLambda>()
  * const genValue = adapter(Option.some(42))
@@ -208,7 +210,8 @@ export const makeGenKind = <F extends TypeLambda, R, O, E, A>(
 /**
  * @example
  * ```ts
- * import { Utils, Option } from "effect"
+ * import { Utils } from "effect"
+import * as Option from "effect/data/Option"
  *
  * // Variance defines the type parameter relationships
  * declare const variance: Utils.Variance<Option.OptionTypeLambda, never, never, never>
@@ -228,7 +231,8 @@ export interface Variance<in out F extends TypeLambda, in R, out O, out E> {
 /**
  * @example
  * ```ts
- * import { Utils, Option } from "effect"
+ * import { Utils } from "effect"
+import * as Option from "effect/data/Option"
  *
  * // Gen enables generator-based syntax
  * declare const gen: Utils.Gen<Option.OptionTypeLambda, Utils.Adapter<Option.OptionTypeLambda>>
@@ -267,7 +271,8 @@ export type Gen<F extends TypeLambda, Z> = <
 /**
  * @example
  * ```ts
- * import { Utils, Option } from "effect"
+ * import { Utils } from "effect"
+import * as Option from "effect/data/Option"
  *
  * // Adapter enables chaining computations in generator functions
  * const adapter: Utils.Adapter<Option.OptionTypeLambda> = Utils.adapter()
@@ -549,7 +554,8 @@ export interface Adapter<Z extends TypeLambda> {
 /**
  * @example
  * ```ts
- * import { Utils, Result } from "effect"
+ * import { Utils } from "effect"
+ * import { Result } from "effect/data"
  *
  * // Create an adapter for Result type
  * const adapter = Utils.adapter<Result.ResultTypeLambda>()

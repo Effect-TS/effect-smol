@@ -1,16 +1,16 @@
 /**
  * @since 1.0.0
  */
+import * as Queue from "effect/concurrency/Queue"
+import * as Option from "effect/data/Option"
 import * as Effect from "effect/Effect"
 import { effectify } from "effect/Effect"
 import * as Exit from "effect/Exit"
 import { pipe } from "effect/Function"
-import * as Layer from "effect/Layer"
-import * as Option from "effect/Option"
 import * as FileSystem from "effect/platform/FileSystem"
 import * as Error from "effect/platform/PlatformError"
-import * as Queue from "effect/Queue"
-import * as Stream from "effect/Stream"
+import * as Layer from "effect/services/Layer"
+import * as Stream from "effect/stream/Stream"
 import * as Crypto from "node:crypto"
 import * as NFS from "node:fs"
 import * as OS from "node:os"

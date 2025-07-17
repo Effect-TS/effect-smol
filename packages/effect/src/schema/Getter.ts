@@ -1,11 +1,11 @@
 /**
  * @since 4.0.0
  */
+import * as Option from "../data/Option.ts"
+import * as Predicate from "../data/Predicate.ts"
 import * as Effect from "../Effect.ts"
 import { PipeableClass } from "../internal/schema/util.ts"
-import * as Option from "../Option.ts"
-import * as Predicate from "../Predicate.ts"
-import * as Str from "../String.ts"
+import * as Str from "../primitives/String.ts"
 import type * as Annotations from "./Annotations.ts"
 import type * as AST from "./AST.ts"
 import * as Check from "./Check.ts"

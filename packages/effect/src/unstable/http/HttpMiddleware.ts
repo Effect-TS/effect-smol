@@ -2,12 +2,12 @@
  * @since 4.0.0
  */
 import * as Effect from "effect/Effect"
+import * as Option from "../../data/Option.ts"
+import type { Predicate } from "../../data/Predicate.ts"
+import type { ReadonlyRecord } from "../../data/Record.ts"
 import { constFalse } from "../../Function.ts"
-import * as Layer from "../../Layer.ts"
-import * as Option from "../../Option.ts"
-import type { Predicate } from "../../Predicate.ts"
-import type { ReadonlyRecord } from "../../Record.ts"
-import * as ServiceMap from "../../ServiceMap.ts"
+import * as Layer from "../../services/Layer.ts"
+import * as ServiceMap from "../../services/ServiceMap.ts"
 import * as Headers from "./Headers.ts"
 import type { PreResponseHandler } from "./HttpEffect.ts"
 import { causeResponseStripped, exitResponse } from "./HttpServerError.ts"

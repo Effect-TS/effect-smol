@@ -1,17 +1,17 @@
 /**
  * @since 4.0.0
  */
-import * as Data from "../../Data.ts"
+import * as Data from "../../data/Data.ts"
+import * as Predicate from "../../data/Predicate.ts"
 import * as Effect from "../../Effect.ts"
-import * as Inspectable from "../../Inspectable.ts"
+import * as Inspectable from "../../interfaces/Inspectable.ts"
 import * as FileSystem from "../../platform/FileSystem.ts"
 import type * as PlatformError from "../../platform/PlatformError.ts"
-import * as Predicate from "../../Predicate.ts"
 import type { ParseOptions } from "../../schema/AST.ts"
 import type { Issue } from "../../schema/Issue.ts"
 import * as Schema from "../../schema/Schema.ts"
 import * as Serializer from "../../schema/Serializer.ts"
-import type * as Stream_ from "../../Stream.ts"
+import type * as Stream_ from "../../stream/Stream.ts"
 import * as UrlParams from "./UrlParams.ts"
 
 /**

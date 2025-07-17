@@ -1,8 +1,8 @@
 /**
  * @since 4.0.0
  */
-import * as Option from "../Option.ts"
-import { hasProperty } from "../Predicate.ts"
+import * as Option from "../data/Option.ts"
+import { hasProperty } from "../data/Predicate.ts"
 import type * as Annotations from "./Annotations.ts"
 import type * as AST from "./AST.ts"
 import type * as Check from "./Check.ts"

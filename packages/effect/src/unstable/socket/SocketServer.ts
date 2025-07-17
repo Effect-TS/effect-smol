@@ -1,9 +1,9 @@
 /**
  * @since 4.0.0
  */
-import * as Data from "../../Data.ts"
+import * as Data from "../../data/Data.ts"
 import type * as Effect from "../../Effect.ts"
-import * as ServiceMap from "../../ServiceMap.ts"
+import * as ServiceMap from "../../services/ServiceMap.ts"
 import type * as Socket from "./Socket.ts"
 
 /**

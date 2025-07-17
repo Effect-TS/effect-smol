@@ -22,7 +22,8 @@
  *
  * @example
  * ```ts
- * import { Effect, Console } from "effect"
+ * import { Effect } from "effect"
+ * import { Console } from "effect/logging"
  *
  * // Creating a simple effect
  * const hello = Effect.succeed("Hello, World!")
@@ -66,40 +67,40 @@
  *
  * @since 2.0.0
  */
-import type * as Arr from "./Array.ts"
 import type * as Request from "./batching/Request.ts"
 import type { RequestResolver } from "./batching/RequestResolver.ts"
 import type * as Cause from "./Cause.ts"
-import type { Clock } from "./Clock.ts"
-import * as Duration from "./Duration.ts"
+import type * as Arr from "./collections/Array.ts"
+import type * as Filter from "./data/Filter.ts"
+import type { Option } from "./data/Option.ts"
+import type * as Predicate from "./data/Predicate.ts"
+import type * as Result from "./data/Result.ts"
 import * as Exit from "./Exit.ts"
-import type { Fiber } from "./Fiber.ts"
-import type * as Filter from "./Filter.ts"
 import { constant, dual, type LazyArg } from "./Function.ts"
-import type { TypeLambda } from "./HKT.ts"
+import type { Pipeable } from "./interfaces/Pipeable.ts"
 import * as core from "./internal/core.ts"
 import * as internal from "./internal/effect.ts"
 import * as internalLayer from "./internal/layer.ts"
 import * as internalRequest from "./internal/request.ts"
 import * as internalSchedule from "./internal/schedule.ts"
 import type { version } from "./internal/version.ts"
-import type * as Layer from "./Layer.ts"
-import type { Logger } from "./Logger.ts"
-import type { LogLevel } from "./LogLevel.ts"
-import * as Metric from "./Metric.ts"
-import type { Option } from "./Option.ts"
-import type { Pipeable } from "./Pipeable.ts"
-import type * as Predicate from "./Predicate.ts"
-import { CurrentLogAnnotations, CurrentLogSpans } from "./References.ts"
-import type * as Result from "./Result.ts"
-import type { Schedule } from "./Schedule.ts"
-import type { Scheduler } from "./Scheduler.ts"
-import type { Scope } from "./Scope.ts"
-import * as ServiceMap from "./ServiceMap.ts"
-import type { AnySpan, ParentSpan, Span, SpanLink, SpanOptions, Tracer } from "./Tracer.ts"
-import type { TxRef } from "./TxRef.ts"
-import type { Concurrency, Covariant, ExcludeTag, ExtractTag, NoInfer, NotFunction, Tags } from "./Types.ts"
-import type * as Unify from "./Unify.ts"
+import type { Logger } from "./logging/Logger.ts"
+import type { LogLevel } from "./logging/LogLevel.ts"
+import * as Metric from "./observability/Metric.ts"
+import type { AnySpan, ParentSpan, Span, SpanLink, SpanOptions, Tracer } from "./observability/Tracer.ts"
+import type { Scope } from "./resources/Scope.ts"
+import type { Fiber } from "./runtime/Fiber.ts"
+import type { Scheduler } from "./runtime/Scheduler.ts"
+import type { Schedule } from "./scheduling/Schedule.ts"
+import type * as Layer from "./services/Layer.ts"
+import { CurrentLogAnnotations, CurrentLogSpans } from "./services/References.ts"
+import * as ServiceMap from "./services/ServiceMap.ts"
+import type { Clock } from "./time/Clock.ts"
+import * as Duration from "./time/Duration.ts"
+import type { TxRef } from "./transactions/TxRef.ts"
+import type { TypeLambda } from "./types/HKT.ts"
+import type { Concurrency, Covariant, ExcludeTag, ExtractTag, NoInfer, NotFunction, Tags } from "./types/Types.ts"
+import type * as Unify from "./types/Unify.ts"
 import type { YieldWrap } from "./Utils.ts"
 import { internalCall, SingleShotGen } from "./Utils.ts"
 
@@ -625,7 +626,8 @@ export declare namespace All {
  *
  * @example Combining Effects in Tuples
  * ```ts
- * import { Effect, Console } from "effect"
+ * import { Effect } from "effect"
+ * import { Console } from "effect/logging"
  *
  * const tupleOfEffects = [
  *   Effect.succeed(42).pipe(Effect.tap(Console.log)),
@@ -645,7 +647,8 @@ export declare namespace All {
  *
  * @example Combining Effects in Iterables
  * ```ts
- * import { Effect, Console } from "effect"
+ * import { Effect } from "effect"
+ * import { Console } from "effect/logging"
  *
  * const iterableOfEffects: Iterable<Effect.Effect<number>> = [1, 2, 3].map(
  *   (n) => Effect.succeed(n).pipe(Effect.tap(Console.log))
@@ -665,7 +668,8 @@ export declare namespace All {
  *
  * @example Combining Effects in Structs
  * ```ts
- * import { Effect, Console } from "effect"
+ * import { Effect } from "effect"
+ * import { Console } from "effect/logging"
  *
  * const structOfEffects = {
  *   a: Effect.succeed(42).pipe(Effect.tap(Console.log)),
@@ -685,7 +689,8 @@ export declare namespace All {
  *
  * @example Combining Effects in Records
  * ```ts
- * import { Effect, Console } from "effect"
+ * import { Effect } from "effect"
+ * import { Console } from "effect/logging"
  *
  * const recordOfEffects: Record<string, Effect.Effect<number>> = {
  *   key1: Effect.succeed(1).pipe(Effect.tap(Console.log)),
@@ -705,7 +710,8 @@ export declare namespace All {
  *
  * @example Short-Circuiting Behavior
  * ```ts
- * import { Effect, Console } from "effect"
+ * import { Effect } from "effect"
+ * import { Console } from "effect/logging"
  *
  * const program = Effect.all([
  *   Effect.succeed("Task1").pipe(Effect.tap(Console.log)),
@@ -769,7 +775,8 @@ export const all: <
  * @example
  * ```ts
  * // Title: Applying Effects to Iterable Elements
- * import { Effect, Console } from "effect"
+ * import { Effect } from "effect"
+ * import { Console } from "effect/logging"
  *
  * const result = Effect.forEach([1, 2, 3, 4, 5], (n, index) =>
  *   Console.log(`Currently at index ${index}`).pipe(Effect.as(n * 2))
@@ -787,7 +794,8 @@ export const all: <
  *
  * @example
  * // Title: Using discard to Ignore Results
- * import { Effect, Console } from "effect"
+ * import { Effect } from "effect"
+ * import { Console } from "effect/logging"
  *
  * // Apply effects but discard the results
  * const result = Effect.forEach(
@@ -1631,7 +1639,8 @@ export const withFiber: <A, E = never, R = never>(
  *
  * @example
  * ```ts
- * import { Effect, Result } from "effect"
+ * import { Effect } from "effect"
+ * import { Result } from "effect/data"
  *
  * const success = Result.succeed(42)
  * const failure = Result.fail("Something went wrong")
@@ -1654,7 +1663,8 @@ export const fromResult: <A, E>(result: Result.Result<A, E>) => Effect<A, E> = i
  *
  * @example
  * ```ts
- * import { Effect, Option } from "effect"
+ * import { Effect } from "effect"
+import * as Option from "effect/data/Option"
  *
  * const some = Option.some(42)
  * const none = Option.none()
@@ -1679,7 +1689,8 @@ export const fromOption: <A>(
  *
  * @example
  * ```ts
- * import { Effect, Option } from "effect"
+ * import { Effect } from "effect"
+import * as Option from "effect/data/Option"
  *
  * // Option is yieldable in Effect
  * const program = Effect.gen(function* () {
@@ -1899,7 +1910,8 @@ export const andThen: {
  * @example
  * ```ts
  * // Title: Logging a step in a pipeline
- * import { Console, Effect, pipe } from "effect"
+ * import { Effect, pipe } from "effect"
+ * import { Console } from "effect/logging"
  *
  * // Function to apply a discount safely to a transaction amount
  * const applyDiscount = (
@@ -1998,7 +2010,8 @@ export const tap: {
  *
  * @example
  * ```ts
- * import { Effect, Result } from "effect"
+ * import { Effect } from "effect"
+ * import { Result } from "effect/data"
  *
  * const success = Effect.succeed(42)
  * const failure = Effect.fail("Something went wrong")
@@ -2168,7 +2181,8 @@ export const as: {
  *
  * @example
  * ```ts
- * import { Effect, Option } from "effect"
+ * import { Effect } from "effect"
+import * as Option from "effect/data/Option"
  *
  * const program = Effect.asSome(Effect.succeed(42))
  *
@@ -2475,7 +2489,8 @@ export const catchTag: {
  *
  * @example
  * ```ts
- * import { Effect, Data } from "effect"
+ * import { Effect } from "effect"
+ * import { Data } from "effect/data"
  *
  * // Define tagged error types
  * class ValidationError extends Data.TaggedError("ValidationError")<{
@@ -2568,7 +2583,8 @@ export const catchTags: {
  *
  * @example
  * ```ts
- * import { Effect, Console, Cause } from "effect"
+ * import { Effect, Cause } from "effect"
+ * import { Console } from "effect/logging"
  *
  * // An effect that might fail in different ways
  * const program = Effect.die("Something went wrong")
@@ -2622,7 +2638,8 @@ export const catchCause: {
  *
  * @example
  * ```ts
- * import { Effect, Console } from "effect"
+ * import { Effect } from "effect"
+ * import { Console } from "effect/logging"
  *
  * // An effect that might throw an unexpected error (defect)
  * const program = Effect.sync(() => {
@@ -2699,7 +2716,8 @@ export const catchFilter: {
  *
  * @example
  * ```ts
- * import { Effect, Cause, Console } from "effect"
+ * import { Effect, Cause } from "effect"
+ * import { Console } from "effect/logging"
  *
  * const httpRequest = Effect.fail("Network Error")
  *
@@ -2863,7 +2881,8 @@ export const orDie: <A, E, R>(self: Effect<A, E, R>) => Effect<A, never, R> = in
  *
  * @example
  * ```ts
- * import { Effect, Console } from "effect"
+ * import { Effect } from "effect"
+ * import { Console } from "effect/logging"
  *
  * // Simulate a task that fails with an error
  * const task: Effect.Effect<number, string> = Effect.fail("NetworkError")
@@ -2902,7 +2921,8 @@ export const tapError: {
  *
  * @example
  * ```ts
- * import { Effect, Cause, Console } from "effect"
+ * import { Effect, Cause } from "effect"
+ * import { Console } from "effect/logging"
  *
  * const task = Effect.fail("Something went wrong")
  *
@@ -2937,7 +2957,8 @@ export const tapCause: {
  *
  * @example
  * ```ts
- * import { Effect, Cause, Console } from "effect"
+ * import { Effect, Cause } from "effect"
+ * import { Console } from "effect/logging"
  *
  * const task = Effect.fail("Network timeout")
  *
@@ -2987,7 +3008,8 @@ export const tapCauseFilter: {
  *
  * @example
  * ```ts
- * import { Effect, Console } from "effect"
+ * import { Effect } from "effect"
+ * import { Console } from "effect/logging"
  *
  * // Simulate a task that fails with a recoverable error
  * const task1: Effect.Effect<number, string> = Effect.fail("NetworkError")
@@ -3089,7 +3111,8 @@ export declare namespace Retry {
    * @category Error handling
    * @example
    * ```ts
-   * import { Effect, Schedule } from "effect"
+   * import { Effect } from "effect"
+   * import { Schedule } from "effect/scheduling"
    *
    * // Options for configuring retry behavior
    * const retryOptions: Effect.Retry.Options<Error> = {
@@ -3130,7 +3153,8 @@ export declare namespace Retry {
  *
  * @example
  * ```ts
- * import { Effect, Schedule } from "effect"
+ * import { Effect } from "effect"
+ * import { Schedule } from "effect/scheduling"
  *
  * let attempt = 0
  * const task = Effect.callback<string, Error>((resume) => {
@@ -3192,7 +3216,9 @@ export const retry: {
  *
  * @example
  * ```ts
- * import { Effect, Schedule, Console } from "effect"
+ * import { Effect } from "effect"
+ * import { Schedule } from "effect/scheduling"
+ * import { Console } from "effect/logging"
  *
  * let attempt = 0
  * const networkRequest = Effect.gen(function* () {
@@ -3487,7 +3513,8 @@ export const timeoutOption: {
  *
  * @example
  * ```ts
- * import { Effect, Console } from "effect"
+ * import { Effect } from "effect"
+ * import { Console } from "effect/logging"
  *
  * const slowQuery = Effect.gen(function* () {
  *   yield* Console.log("Starting database query...")
@@ -3534,7 +3561,8 @@ export const timeoutOrElse: {
  *
  * @example
  * ```ts
- * import { Effect, Console } from "effect"
+ * import { Effect } from "effect"
+ * import { Console } from "effect/logging"
  *
  * const program = Effect.delay(
  *   Console.log("Delayed message"),
@@ -3564,7 +3592,8 @@ export const delay: {
  *
  * @example
  * ```ts
- * import { Effect, Console } from "effect"
+ * import { Effect } from "effect"
+ * import { Console } from "effect/logging"
  *
  * const program = Effect.gen(function* () {
  *   yield* Console.log("Start")
@@ -3609,7 +3638,8 @@ export const sleep: (duration: Duration.DurationInput) => Effect<void> = interna
  *
  * @example
  * ```ts
- * import { Effect, Duration } from "effect"
+ * import { Effect } from "effect"
+ * import { Duration } from "effect/time"
  *
  * // Multiple effects with different delays
  * const effect1 = Effect.delay(Effect.succeed("Fast"), Duration.millis(100))
@@ -3647,7 +3677,8 @@ export const raceAll: <Eff extends Effect<any, any, any>>(
  *
  * @example
  * ```ts
- * import { Effect, Duration } from "effect"
+ * import { Effect } from "effect"
+ * import { Duration } from "effect/time"
  *
  * // Multiple effects with different delays and potential failures
  * const effect1 = Effect.delay(Effect.succeed("First"), Duration.millis(200))
@@ -3852,7 +3883,9 @@ export const filterOrFail: {
  *
  * @example
  * ```ts
- * import { Effect, Option, Console } from "effect"
+ * import { Effect } from "effect"
+import * as Option from "effect/data/Option"
+ * import { Console } from "effect/logging"
  *
  * const shouldLog = true
  *
@@ -4107,7 +4140,9 @@ export const matchCauseEager: {
  *
  * @example
  * ```ts
- * import { Effect, Console, Cause, Filter } from "effect"
+ * import { Effect, Cause } from "effect"
+ * import * as Filter from "effect/data/Filter"
+ * import { Console } from "effect/logging"
  *
  * const task = Effect.fail(new Error("Task failed"))
  *
@@ -4244,7 +4279,10 @@ export const matchEffect: {
  *
  * @example
  * ```ts
- * import { Effect, ServiceMap, Console, Option } from "effect"
+ * import { Effect } from "effect"
+import * as Option from "effect/data/Option"
+ * import { Console } from "effect/logging"
+ * import { ServiceMap } from "effect/services"
  *
  * const Logger = ServiceMap.Key<{ log: (msg: string) => void }>("Logger")
  * const Database = ServiceMap.Key<{ query: (sql: string) => string }>("Database")
@@ -4280,7 +4318,10 @@ export const services: <R>() => Effect<ServiceMap.ServiceMap<R>, never, R> = int
  *
  * @example
  * ```ts
- * import { Effect, ServiceMap, Console, Option } from "effect"
+ * import { Effect } from "effect"
+import * as Option from "effect/data/Option"
+ * import { Console } from "effect/logging"
+ * import { ServiceMap } from "effect/services"
  *
  * const Logger = ServiceMap.Key<{ log: (msg: string) => void }>("Logger")
  * const Cache = ServiceMap.Key<{ get: (key: string) => string | null }>("Cache")
@@ -4320,7 +4361,9 @@ export const servicesWith: <R, A, E, R2>(
  *
  * @example
  * ```ts
- * import { Effect, ServiceMap, Layer } from "effect"
+ * import { Effect } from "effect"
+ * import { ServiceMap } from "effect/services"
+ * import { Layer } from "effect/services"
  *
  * interface Database {
  *   readonly query: (sql: string) => Effect.Effect<string>
@@ -4393,7 +4436,8 @@ export const provide: {
  *
  * @example
  * ```ts
- * import { Effect, ServiceMap } from "effect"
+ * import { Effect } from "effect"
+ * import { ServiceMap } from "effect/services"
  *
  * // Define service keys
  * const Logger = ServiceMap.Key<{ log: (msg: string) => void }>("Logger")
@@ -4432,7 +4476,8 @@ export const provideServices: {
  *
  * @example
  * ```ts
- * import { Effect, ServiceMap } from "effect"
+ * import { Effect } from "effect"
+ * import { ServiceMap } from "effect/services"
  *
  * interface Database {
  *   readonly query: (sql: string) => Effect.Effect<string>
@@ -4463,7 +4508,9 @@ export const service: <I, S>(key: ServiceMap.Key<I, S>) => Effect<S, never, I> =
  *
  * @example
  * ```ts
- * import { Effect, Option, ServiceMap } from "effect"
+ * import { Effect } from "effect"
+ * import { ServiceMap } from "effect/services"
+import * as Option from "effect/data/Option"
  *
  * // Define a service key
  * const Logger = ServiceMap.Key<{ log: (msg: string) => void }>("Logger")
@@ -4495,7 +4542,8 @@ export const serviceOption: <I, S>(key: ServiceMap.Key<I, S>) => Effect<Option<S
  *
  * @example
  * ```ts
- * import { Effect, ServiceMap } from "effect"
+ * import { Effect } from "effect"
+ * import { ServiceMap } from "effect/services"
  *
  * // Define services
  * const Logger = ServiceMap.Key<{ log: (msg: string) => void }>("Logger")
@@ -4536,7 +4584,9 @@ export const updateServices: {
  *
  * @example
  * ```ts
- * import { Effect, ServiceMap, Console } from "effect"
+ * import { Effect } from "effect"
+ * import { Console } from "effect/logging"
+ * import { ServiceMap } from "effect/services"
  *
  * // Define a counter service
  * const Counter = ServiceMap.Key<{ count: number }>("Counter")
@@ -4578,7 +4628,9 @@ export const updateService: {
  *
  * @example
  * ```ts
- * import { Effect, ServiceMap, Console } from "effect"
+ * import { Effect } from "effect"
+ * import { Console } from "effect/logging"
+ * import { ServiceMap } from "effect/services"
  *
  * // Define a service for configuration
  * const Config = ServiceMap.Key<{ apiUrl: string; timeout: number }>("Config")
@@ -4629,7 +4681,9 @@ export const provideService: {
  *
  * @example
  * ```ts
- * import { Effect, ServiceMap, Console } from "effect"
+ * import { Effect } from "effect"
+ * import { Console } from "effect/logging"
+ * import { ServiceMap } from "effect/services"
  *
  * // Define a database connection service
  * interface DatabaseConnection {
@@ -4686,7 +4740,8 @@ export const provideServiceEffect: {
  *
  * @example
  * ```ts
- * import { Effect, Console } from "effect"
+ * import { Effect } from "effect"
+ * import { Console } from "effect/logging"
  *
  * const task = (id: number) => Effect.gen(function* () {
  *   yield* Console.log(`Task ${id} starting`)
@@ -4730,7 +4785,9 @@ export const withConcurrency: {
  *
  * @example
  * ```ts
- * import { Effect, Console, Scope } from "effect"
+ * import { Effect } from "effect"
+ * import { Scope } from "effect/resources"
+ * import { Console } from "effect/logging"
  *
  * const program = Effect.gen(function* () {
  *   const currentScope = yield* Effect.scope
@@ -4765,7 +4822,8 @@ export const scope: Effect<Scope, never, Scope> = internal.scope
  *
  * @example
  * ```ts
- * import { Effect, Console } from "effect"
+ * import { Effect } from "effect"
+ * import { Console } from "effect/logging"
  *
  * const resource = Effect.acquireRelease(
  *   Console.log("Acquiring resource").pipe(Effect.as("resource")),
@@ -4798,7 +4856,9 @@ export const scoped: <A, E, R>(
  *
  * @example
  * ```ts
- * import { Effect, Console, Scope } from "effect"
+ * import { Effect } from "effect"
+ * import { Scope } from "effect/resources"
+ * import { Console } from "effect/logging"
  *
  * const program = Effect.scopedWith((scope) =>
  *   Effect.gen(function* () {
@@ -4850,7 +4910,8 @@ export const scopedWith: <A, E, R>(
  *
  * @example
  * ```ts
- * import { Effect, Console, Exit } from "effect"
+ * import { Effect, Exit } from "effect"
+ * import { Console } from "effect/logging"
  *
  * // Simulate a resource that needs cleanup
  * interface FileHandle {
@@ -4914,7 +4975,8 @@ export const acquireRelease: <A, E, R>(
  *
  * @example
  * ```ts
- * import { Effect, Console, Exit } from "effect"
+ * import { Effect, Exit } from "effect"
+ * import { Console } from "effect/logging"
  *
  * interface Database {
  *   readonly connection: string
@@ -4975,7 +5037,8 @@ export const acquireUseRelease: <Resource, E, R, A, E2, R2, E3, R3>(
  *
  * @example
  * ```ts
- * import { Effect, Console, Exit } from "effect"
+ * import { Effect, Exit } from "effect"
+ * import { Console } from "effect/logging"
  *
  * const program = Effect.scoped(
  *   Effect.gen(function* () {
@@ -5022,7 +5085,8 @@ export const addFinalizer: <R>(
  *
  * @example
  * ```ts
- * import { Effect, Console } from "effect"
+ * import { Effect } from "effect"
+ * import { Console } from "effect/logging"
  *
  * const task = Effect.gen(function* () {
  *   yield* Console.log("Task started")
@@ -5064,7 +5128,8 @@ export const ensuring: {
  *
  * @example
  * ```ts
- * import { Effect, Console, Cause } from "effect"
+ * import { Effect, Cause } from "effect"
+ * import { Console } from "effect/logging"
  *
  * const task = Effect.fail(new Error("Something went wrong"))
  *
@@ -5097,7 +5162,8 @@ export const onError: {
  *
  * @example
  * ```ts
- * import { Effect, Console, Exit } from "effect"
+ * import { Effect, Exit } from "effect"
+ * import { Console } from "effect/logging"
  *
  * const task = Effect.succeed(42)
  *
@@ -5171,7 +5237,8 @@ export const onExitInterruptible: {
  *
  * @example
  * ```ts
- * import { Effect, Console } from "effect"
+ * import { Effect } from "effect"
+ * import { Console } from "effect/logging"
  *
  * let i = 1
  * const expensiveTask = Effect.promise<string>(() => {
@@ -5245,7 +5312,8 @@ export const cached: <A, E, R>(self: Effect<A, E, R>) => Effect<Effect<A, E, R>>
  *
  * @example
  * ```ts
- * import { Effect, Console } from "effect"
+ * import { Effect } from "effect"
+ * import { Console } from "effect/logging"
  *
  * let i = 1
  * const expensiveTask = Effect.promise<string>(() => {
@@ -5316,7 +5384,8 @@ export const cachedWithTTL: {
  *
  * @example
  * ```ts
- * import { Effect, Console } from "effect"
+ * import { Effect } from "effect"
+ * import { Console } from "effect/logging"
  *
  * let i = 1
  * const expensiveTask = Effect.promise<string>(() => {
@@ -5409,7 +5478,9 @@ export const interruptible: <A, E, R>(
  *
  * @example
  * ```ts
- * import { Effect, Console, Fiber } from "effect"
+ * import { Effect } from "effect"
+ * import { Fiber } from "effect/runtime"
+ * import { Console } from "effect/logging"
  *
  * const task = Effect.forever(Effect.succeed("working..."))
  *
@@ -5441,7 +5512,9 @@ export const onInterrupt: {
  *
  * @example
  * ```ts
- * import { Effect, Console, Fiber } from "effect"
+ * import { Effect } from "effect"
+ * import { Fiber } from "effect/runtime"
+ * import { Console } from "effect/logging"
  *
  * const criticalTask = Effect.gen(function* () {
  *   yield* Console.log("Starting critical section...")
@@ -5469,7 +5542,8 @@ export const uninterruptible: <A, E, R>(
  *
  * @example
  * ```ts
- * import { Effect, Console } from "effect"
+ * import { Effect } from "effect"
+ * import { Console } from "effect/logging"
  *
  * const program = Effect.uninterruptibleMask((restore) =>
  *   Effect.gen(function* () {
@@ -5505,7 +5579,8 @@ export const uninterruptibleMask: <A, E, R>(
  *
  * @example
  * ```ts
- * import { Effect, Console } from "effect"
+ * import { Effect } from "effect"
+ * import { Console } from "effect/logging"
  *
  * const program = Effect.interruptibleMask((restore) =>
  *   Effect.gen(function* () {
@@ -5794,7 +5869,8 @@ export declare namespace Repeat {
    * @category repetition / recursion
    * @example
    * ```ts
-   * import { Effect, Schedule } from "effect"
+   * import { Effect } from "effect"
+   * import { Schedule } from "effect/scheduling"
    *
    * // Options for configuring repeat behavior
    * const repeatOptions: Effect.Repeat.Options<number> = {
@@ -5817,7 +5893,9 @@ export declare namespace Repeat {
  *
  * @example
  * ```ts
- * import { Effect, Console, Fiber } from "effect"
+ * import { Effect } from "effect"
+ * import { Fiber } from "effect/runtime"
+ * import { Console } from "effect/logging"
  *
  * const task = Effect.gen(function* () {
  *   yield* Console.log("Task running...")
@@ -5869,7 +5947,9 @@ export const forever: <Arg extends Effect<any, any, any> | { readonly autoYield?
  * @example
  * ```ts
  * // Success Example
- * import { Effect, Schedule, Console } from "effect"
+ * import { Effect } from "effect"
+ * import { Schedule } from "effect/scheduling"
+ * import { Console } from "effect/logging"
  *
  * const action = Console.log("success")
  * const policy = Schedule.addDelay(Schedule.recurs(2), () => "100 millis")
@@ -5880,7 +5960,8 @@ export const forever: <Arg extends Effect<any, any, any> | { readonly autoYield?
  *
  * @example
  * // Failure Example
- * import { Effect, Schedule } from "effect"
+ * import { Effect } from "effect"
+ * import { Schedule } from "effect/scheduling"
  *
  * let count = 0
  *
@@ -5941,7 +6022,10 @@ export const repeat: {
  *
  * @example
  * ```ts
- * import { Effect, Schedule, Console, Option } from "effect"
+ * import { Effect } from "effect"
+ * import { Schedule } from "effect/scheduling"
+import * as Option from "effect/data/Option"
+ * import { Console } from "effect/logging"
  *
  * let attempt = 0
  * const task = Effect.gen(function* () {
@@ -5997,7 +6081,9 @@ export const repeatOrElse: {
  *
  * @example
  * ```ts
- * import { Effect, Schedule, Console } from "effect"
+ * import { Effect } from "effect"
+ * import { Schedule } from "effect/scheduling"
+ * import { Console } from "effect/logging"
  *
  * const task = Effect.gen(function* () {
  *   yield* Console.log("Task executing...")
@@ -6051,7 +6137,9 @@ export const schedule = dual<
  *
  * @example
  * ```ts
- * import { Effect, Schedule, Console } from "effect"
+ * import { Effect } from "effect"
+ * import { Schedule } from "effect/scheduling"
+ * import { Console } from "effect/logging"
  *
  * const task = (input: number) =>
  *   Effect.gen(function* () {
@@ -6611,7 +6699,8 @@ export const request: {
  *
  * @example
  * ```ts
- * import { Effect, Fiber } from "effect"
+ * import { Effect } from "effect"
+ * import { Fiber } from "effect/runtime"
  *
  * const longRunningTask = Effect.gen(function* () {
  *   yield* Effect.sleep("2 seconds")
@@ -6650,7 +6739,9 @@ export const fork: <
  *
  * @example
  * ```ts
- * import { Effect, Scope, Fiber } from "effect"
+ * import { Effect } from "effect"
+ * import { Scope } from "effect/resources"
+ * import { Fiber } from "effect/runtime"
  *
  * const task = Effect.gen(function* () {
  *   yield* Effect.sleep("10 seconds")
@@ -6694,7 +6785,8 @@ export const forkIn: {
  *
  * @example
  * ```ts
- * import { Effect, Fiber } from "effect"
+ * import { Effect } from "effect"
+ * import { Fiber } from "effect/runtime"
  *
  * const backgroundTask = Effect.gen(function* () {
  *   yield* Effect.sleep("5 seconds")
@@ -6737,7 +6829,8 @@ export const forkScoped: <
  *
  * @example
  * ```ts
- * import { Effect, Fiber } from "effect"
+ * import { Effect } from "effect"
+ * import { Fiber } from "effect/runtime"
  *
  * const daemonTask = Effect.gen(function* () {
  *   while (true) {
@@ -6823,7 +6916,10 @@ export interface RunOptions {
  * @example
  * ```ts
  * // Title: Running an Effect in the Background
- * import { Effect, Console, Schedule, Fiber } from "effect"
+ * import { Effect } from "effect"
+ * import { Schedule } from "effect/scheduling"
+ * import { Fiber } from "effect/runtime"
+ * import { Console } from "effect/logging"
  *
  * //      ┌─── Effect<number, never, never>
  * //      ▼
@@ -6852,7 +6948,8 @@ export const runFork: <A, E>(effect: Effect<A, E, never>, options?: RunOptions |
  *
  * @example
  * ```ts
- * import { Effect, ServiceMap } from "effect"
+ * import { Effect } from "effect"
+ * import { ServiceMap } from "effect/services"
  *
  * interface Logger {
  *   log: (message: string) => void
@@ -6924,7 +7021,8 @@ export const runPromise: <A, E>(
  *
  * @example
  * ```ts
- * import { Effect, ServiceMap } from "effect"
+ * import { Effect } from "effect"
+ * import { ServiceMap } from "effect/services"
  *
  * interface Config {
  *   apiUrl: string
@@ -7008,7 +7106,8 @@ export const runPromiseExit: <A, E>(
  *
  * @example
  * ```ts
- * import { Effect, ServiceMap, Exit } from "effect"
+ * import { Effect, Exit } from "effect"
+ * import { ServiceMap } from "effect/services"
  *
  * interface Database {
  *   query: (sql: string) => string
@@ -7104,7 +7203,8 @@ export const runSync: <A, E>(effect: Effect<A, E>) => A = internal.runSync
  *
  * @example
  * ```ts
- * import { Effect, ServiceMap } from "effect"
+ * import { Effect } from "effect"
+ * import { ServiceMap } from "effect/services"
  *
  * interface MathService {
  *   add: (a: number, b: number) => number
@@ -7208,7 +7308,8 @@ export const runSyncExit: <A, E>(effect: Effect<A, E>) => Exit.Exit<A, E> = inte
  *
  * @example
  * ```ts
- * import { Effect, ServiceMap, Exit } from "effect"
+ * import { Effect, Exit } from "effect"
+ * import { ServiceMap } from "effect/services"
  *
  * // Define a logger service
  * const Logger = ServiceMap.Key<{ log: (msg: string) => void }>("Logger")
@@ -7934,7 +8035,8 @@ export const fnUntraced: fn.Untraced = internal.fnUntraced
  *
  * @example
  * ```ts
- * import { Console, Effect } from "effect"
+ * import { Effect } from "effect"
+ * import { Console } from "effect/logging"
  *
  * const program = Effect.clockWith((clock) =>
  *   clock.currentTimeMillis.pipe(
@@ -8175,7 +8277,8 @@ export const logTrace: (...message: ReadonlyArray<any>) => Effect<void> = intern
  *
  * @example
  * ```ts
- * import { Effect, Logger } from "effect"
+ * import { Effect } from "effect"
+ * import { Logger } from "effect/logging"
  *
  * // Create a custom logger that logs to the console
  * const customLogger = Logger.make(({ message }) =>
@@ -8334,7 +8437,8 @@ export const withLogSpan = dual<
  *
  * @example
  * ```ts
- * import { Effect, Metric } from "effect"
+ * import { Effect } from "effect"
+ * import { Metric } from "effect/observability"
  *
  * const counter = Metric.counter("effect_executions", {
  *   description: "Counts effect executions"
@@ -8353,7 +8457,8 @@ export const withLogSpan = dual<
  *
  * @example
  * ```ts
- * import { Effect, Metric, Exit } from "effect"
+ * import { Effect, Exit } from "effect"
+ * import { Metric } from "effect/observability"
  *
  * // Track different exit types with custom mapping
  * const exitTracker = Metric.frequency("exit_types", {
@@ -8413,7 +8518,8 @@ export const track: {
  *
  * @example
  * ```ts
- * import { Effect, Metric } from "effect"
+ * import { Effect } from "effect"
+ * import { Metric } from "effect/observability"
  *
  * const successCounter = Metric.counter("successes").pipe(
  *   Metric.withConstantInput(1)
@@ -8431,7 +8537,8 @@ export const track: {
  *
  * @example
  * ```ts
- * import { Effect, Metric } from "effect"
+ * import { Effect } from "effect"
+ * import { Metric } from "effect/observability"
  *
  * // Track successful request sizes
  * const requestSizeGauge = Metric.gauge("request_size_bytes")
@@ -8488,7 +8595,8 @@ export const trackSuccesses: {
  *
  * @example
  * ```ts
- * import { Effect, Metric } from "effect"
+ * import { Effect } from "effect"
+ * import { Metric } from "effect/observability"
  *
  * const errorCounter = Metric.counter("errors").pipe(
  *   Metric.withConstantInput(1)
@@ -8506,7 +8614,8 @@ export const trackSuccesses: {
  *
  * @example
  * ```ts
- * import { Effect, Metric } from "effect"
+ * import { Effect } from "effect"
+ * import { Metric } from "effect/observability"
  *
  * // Track error types using frequency metric
  * const errorTypeFrequency = Metric.frequency("error_types")
@@ -8563,7 +8672,8 @@ export const trackErrors: {
  *
  * @example
  * ```ts
- * import { Effect, Metric } from "effect"
+ * import { Effect } from "effect"
+ * import { Metric } from "effect/observability"
  *
  * const defectCounter = Metric.counter("defects").pipe(
  *   Metric.withConstantInput(1)
@@ -8581,7 +8691,8 @@ export const trackErrors: {
  *
  * @example
  * ```ts
- * import { Effect, Metric } from "effect"
+ * import { Effect } from "effect"
+ * import { Metric } from "effect/observability"
  *
  * // Track defect types using frequency metric
  * const defectTypeFrequency = Metric.frequency("defect_types")
@@ -8638,7 +8749,9 @@ export const trackDefects: {
  *
  * @example
  * ```ts
- * import { Effect, Metric, Duration } from "effect"
+ * import { Effect } from "effect"
+ * import { Metric } from "effect/observability"
+ * import { Duration } from "effect/time"
  *
  * const executionTimer = Metric.timer("execution_time")
  *
@@ -8654,7 +8767,9 @@ export const trackDefects: {
  *
  * @example
  * ```ts
- * import { Effect, Metric, Duration } from "effect"
+ * import { Effect } from "effect"
+ * import { Metric } from "effect/observability"
+ * import { Duration } from "effect/time"
  *
  * // Track execution time in milliseconds using custom mapping
  * const durationGauge = Metric.gauge("execution_millis")
@@ -8762,7 +8877,8 @@ export class Transaction extends ServiceMap.Key<
  *
  * @example
  * ```ts
- * import { Effect, TxRef } from "effect"
+ * import { Effect } from "effect"
+ * import { TxRef } from "effect/transactions"
  *
  * const program = Effect.gen(function* () {
  *   const ref1 = yield* TxRef.make(0)
@@ -8793,7 +8909,8 @@ export const atomic = <A, E, R>(
  *
  * @example
  * ```ts
- * import { Effect, TxRef } from "effect"
+ * import { Effect } from "effect"
+ * import { TxRef } from "effect/transactions"
  *
  * const program = Effect.atomicWith((txState) =>
  *   Effect.gen(function* () {
@@ -8852,7 +8969,8 @@ export const atomicWith = <A, E, R>(
  *
  * @example
  * ```ts
- * import { Effect, TxRef } from "effect"
+ * import { Effect } from "effect"
+ * import { TxRef } from "effect/transactions"
  *
  * const program = Effect.gen(function* () {
  *   const ref1 = yield* TxRef.make(0)
@@ -8894,7 +9012,8 @@ export const transaction = <A, E, R>(
  *
  * @example
  * ```ts
- * import { Effect, TxRef } from "effect"
+ * import { Effect } from "effect"
+ * import { TxRef } from "effect/transactions"
  *
  * const program = Effect.transactionWith((txState) =>
  *   Effect.gen(function* () {
@@ -9018,8 +9137,8 @@ function clearTransaction(state: Transaction["Service"]) {
  * @example
  *
  * ```ts
- * import * as Effect from "effect/Effect"
- * import * as TxRef from "effect/TxRef"
+ * import { Effect } from "effect"
+ * import * as TxRef from "effect/transactions/TxRef"
  *
  * const program = Effect.gen(function*() {
  *   // create a transactional reference

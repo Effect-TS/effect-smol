@@ -1,20 +1,20 @@
 /**
  * @since 4.0.0
  */
-import * as Equal from "../../Equal.ts"
-import type { Equivalence as Equivalence_ } from "../../Equivalence.ts"
+import type { Equivalence as Equivalence_ } from "../../data/Equivalence.ts"
+import type * as Option from "../../data/Option.ts"
+import * as Predicate from "../../data/Predicate.ts"
+import * as Record from "../../data/Record.ts"
+import * as Redacted from "../../data/Redacted.ts"
 import { dual } from "../../Function.ts"
-import * as Hash from "../../Hash.ts"
-import { type Redactable, symbolRedactable } from "../../Inspectable.ts"
-import type * as Option from "../../Option.ts"
-import * as Predicate from "../../Predicate.ts"
-import * as Record from "../../Record.ts"
-import * as Redacted from "../../Redacted.ts"
+import * as Equal from "../../interfaces/Equal.ts"
+import * as Hash from "../../interfaces/Hash.ts"
+import { type Redactable, symbolRedactable } from "../../interfaces/Inspectable.ts"
+import * as String from "../../primitives/String.ts"
 import * as Schema from "../../schema/Schema.ts"
 import * as Transformation from "../../schema/Transformation.ts"
-import * as ServiceMap from "../../ServiceMap.ts"
-import * as String from "../../String.ts"
-import type { Mutable } from "../../Types.ts"
+import * as ServiceMap from "../../services/ServiceMap.ts"
+import type { Mutable } from "../../types/Types.ts"
 
 /**
  * @since 4.0.0
@@ -82,7 +82,7 @@ export interface schema extends Schema.declareRefinement<Headers> {}
 export const schema: schema = Schema.declareRefinement({
   is: isHeaders,
   annotations: {
-    id: "Headers",
+    identifier: "Headers",
     equivalence: {
       _tag: "declaration",
       declaration: () => Equivalence

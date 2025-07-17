@@ -1,14 +1,14 @@
 /**
  * @since 4.0.0
  */
-import * as Arr from "../../Array.ts"
-import { Clock } from "../../Clock.ts"
-import * as Duration from "../../Duration.ts"
+import * as Arr from "../../collections/Array.ts"
 import * as Effect from "../../Effect.ts"
 import * as Exporter from "../../internal/tracing/otlpExporter.ts"
-import * as Layer from "../../Layer.ts"
-import * as Metric from "../../Metric.ts"
-import type * as Scope from "../../Scope.ts"
+import * as Metric from "../../observability/Metric.ts"
+import type * as Scope from "../../resources/Scope.ts"
+import * as Layer from "../../services/Layer.ts"
+import { Clock } from "../../time/Clock.ts"
+import * as Duration from "../../time/Duration.ts"
 import type * as Headers from "../http/Headers.ts"
 import type * as HttpClient from "../http/HttpClient.ts"
 import type { Fixed64, KeyValue } from "./OtlpResource.ts"

@@ -1,4 +1,5 @@
-import { Effect, Option } from "effect"
+import { Effect } from "effect"
+import { Option } from "effect/data"
 import type { AST } from "effect/schema"
 import { Check, Formatter, Getter, Issue, Schema, ToParser } from "effect/schema"
 import { describe, it } from "vitest"
@@ -22,19 +23,19 @@ const assertStructuredIssue = async <T, E>(
 }
 
 describe("makeTree", () => {
-  it("should use the id annotation if present", async () => {
+  it("should use the identifier annotation if present", async () => {
     await assertions.decoding.fail(
-      Schema.String.annotate({ id: "id" }),
+      Schema.String.annotate({ identifier: "id" }),
       null,
       `Expected id, actual null`
     )
     await assertions.decoding.fail(
-      Schema.NonEmptyString.annotate({ id: "id" }),
+      Schema.NonEmptyString.annotate({ identifier: "id" }),
       null,
       `Expected id, actual null`
     )
     await assertions.decoding.fail(
-      Schema.String.check(Check.nonEmpty({ id: "id" })),
+      Schema.String.check(Check.nonEmpty({ identifier: "id" })),
       null,
       `Expected id, actual null`
     )
@@ -55,7 +56,7 @@ describe("makeTree", () => {
       name: Schema.String,
       totalPrice: Schema.Number
     }).annotate({
-      id: "Order",
+      identifier: "Order",
       formatter: {
         Tree: {
           getTitle: getOrderId

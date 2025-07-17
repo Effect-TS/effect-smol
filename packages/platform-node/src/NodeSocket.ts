@@ -2,7 +2,7 @@
  * @since 1.0.0
  */
 import { NodeWS as WS } from "@effect/platform-node-shared/NodeSocket"
-import * as Layer from "effect/Layer"
+import * as Layer from "effect/services/Layer"
 import * as Socket from "effect/unstable/socket/Socket"
 
 /**

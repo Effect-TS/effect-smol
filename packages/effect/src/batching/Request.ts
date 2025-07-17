@@ -14,16 +14,16 @@
  * @since 2.0.0
  */
 import type * as Cause from "../Cause.ts"
+import type * as Option from "../data/Option.ts"
+import { hasProperty } from "../data/Predicate.ts"
 import type * as Effect from "../Effect.ts"
 import type * as Exit from "../Exit.ts"
 import { dual } from "../Function.ts"
 import * as core from "../internal/core.ts"
 import { StructuralPrototype } from "../internal/core.ts"
 import * as internalEffect from "../internal/effect.ts"
-import type * as Option from "../Option.ts"
-import { hasProperty } from "../Predicate.ts"
-import type * as ServiceMap from "../ServiceMap.ts"
-import type * as Types from "../Types.ts"
+import type * as ServiceMap from "../services/ServiceMap.ts"
+import type * as Types from "../types/Types.ts"
 
 /**
  * @example
@@ -224,7 +224,8 @@ export type Result<T extends Request<any, any, any>> = T extends Request<infer A
  *
  * @example
  * ```ts
- * import { Exit, Option } from "effect"
+ * import { Exit } from "effect"
+ * import { Option } from "effect/data"
  * import { Request } from "effect/batching"
  *
  * interface GetUser extends Request.Request<string, Error> {
@@ -630,7 +631,8 @@ export interface Entry<out R> {
 /**
  * @example
  * ```ts
- * import { Effect, ServiceMap } from "effect"
+ * import { Effect } from "effect"
+import { ServiceMap } from "effect/services"
  * import { Request } from "effect/batching"
  *
  * interface GetUser extends Request.Request<string, Error> {

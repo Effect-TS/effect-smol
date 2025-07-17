@@ -1,27 +1,27 @@
 /**
  * @since 4.0.0
  */
-import * as Arr from "../../Array.ts"
-import * as Data from "../../Data.ts"
+import * as Arr from "../../collections/Array.ts"
+import * as Data from "../../data/Data.ts"
+import * as Equivalence_ from "../../data/Equivalence.ts"
+import * as Option from "../../data/Option.ts"
+import { hasProperty } from "../../data/Predicate.ts"
+import type { ReadonlyRecord } from "../../data/Record.ts"
+import * as Result from "../../data/Result.ts"
+import * as Tuple from "../../data/Tuple.ts"
 import * as Effect from "../../Effect.ts"
-import * as Equal from "../../Equal.ts"
-import * as Equivalence_ from "../../Equivalence.ts"
 import { dual } from "../../Function.ts"
-import * as Hash from "../../Hash.ts"
-import { type Inspectable } from "../../Inspectable.ts"
+import * as Equal from "../../interfaces/Equal.ts"
+import * as Hash from "../../interfaces/Hash.ts"
+import { type Inspectable } from "../../interfaces/Inspectable.ts"
+import type { Pipeable } from "../../interfaces/Pipeable.ts"
 import { PipeInspectableProto } from "../../internal/core.ts"
-import * as Option from "../../Option.ts"
-import type { Pipeable } from "../../Pipeable.ts"
-import { hasProperty } from "../../Predicate.ts"
-import type { ReadonlyRecord } from "../../Record.ts"
-import * as Result from "../../Result.ts"
+import * as String$ from "../../primitives/String.ts"
 import type * as Annotations from "../../schema/Annotations.ts"
 import type * as AST from "../../schema/AST.ts"
 import * as Issue from "../../schema/Issue.ts"
 import * as Schema from "../../schema/Schema.ts"
 import * as Transformation from "../../schema/Transformation.ts"
-import * as String$ from "../../String.ts"
-import * as Tuple from "../../Tuple.ts"
 
 /**
  * @since 4.0.0
@@ -166,7 +166,7 @@ export interface schema extends Schema.declareRefinement<UrlParams> {}
 export const schema: schema = Schema.declareRefinement({
   is: isUrlParams,
   annotations: {
-    id: "UrlParams",
+    identifier: "UrlParams",
     equivalence: {
       _tag: "declaration",
       declaration: () => Equivalence

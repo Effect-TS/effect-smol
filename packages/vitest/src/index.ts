@@ -1,12 +1,12 @@
 /**
  * @since 1.0.0
  */
-import type * as Duration from "effect/Duration"
 import type * as Effect from "effect/Effect"
-import type * as FC from "effect/FastCheck"
-import type * as Layer from "effect/Layer"
+import type * as Scope from "effect/resources/Scope"
 import type * as Schema from "effect/schema/Schema"
-import type * as Scope from "effect/Scope"
+import type * as Layer from "effect/services/Layer"
+import type * as FC from "effect/testing/FastCheck"
+import type * as Duration from "effect/time/Duration"
 import * as V from "vitest"
 import * as internal from "./internal/internal.ts"
 
@@ -170,7 +170,8 @@ export const live: Vitest.Tester<Scope.Scope> = internal.live
  *
  * ```ts
  * import { expect, layer } from "@effect/vitest"
- * import { ServiceMap, Effect, Layer } from "effect"
+ * import { Effect, Layer } from "effect"
+ * import { ServiceMap } from "effect/services"
  *
  * class Foo extends ServiceMap.Key("Foo")<Foo, "foo">() {
  *   static Live = Layer.succeed(Foo, "foo")

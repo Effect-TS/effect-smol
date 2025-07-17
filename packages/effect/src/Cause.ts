@@ -39,17 +39,17 @@
  *
  * @since 2.0.0
  */
+import type * as Filter from "./data/Filter.ts"
+import type { Option } from "./data/Option.ts"
 import type * as Effect from "./Effect.ts"
-import type { Equal } from "./Equal.ts"
-import type * as Filter from "./Filter.ts"
-import type { Inspectable } from "./Inspectable.ts"
+import type { Equal } from "./interfaces/Equal.ts"
+import type { Inspectable } from "./interfaces/Inspectable.ts"
+import type { Pipeable } from "./interfaces/Pipeable.ts"
 import * as core from "./internal/core.ts"
 import * as effect from "./internal/effect.ts"
-import type { Option } from "./Option.ts"
-import type { Pipeable } from "./Pipeable.ts"
-import * as ServiceMap from "./ServiceMap.ts"
-import type { Span } from "./Tracer.ts"
-import type { NoInfer } from "./Types.ts"
+import type { Span } from "./observability/Tracer.ts"
+import * as ServiceMap from "./services/ServiceMap.ts"
+import type { NoInfer } from "./types/Types.ts"
 
 /**
  * @example
@@ -318,7 +318,8 @@ export interface Fail<out E> extends Cause.FailureProto<"Fail"> {
 /**
  * @example
  * ```ts
- * import { Cause, Option } from "effect"
+ * import { Cause } from "effect"
+import * as Option from "effect/data/Option"
  *
  * const cause = Cause.interrupt(123)
  * const failure = cause.failures[0]
@@ -1037,7 +1038,8 @@ export const UnknownError: new(cause: unknown, message?: string) => UnknownError
  *
  * @example
  * ```ts
- * import { Cause, ServiceMap } from "effect"
+ * import { Cause } from "effect"
+ * import { ServiceMap } from "effect/services"
  *
  * // Define a custom annotation key
  * class UserId extends ServiceMap.Key<UserId, string>()("UserId") {}

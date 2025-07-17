@@ -1,11 +1,11 @@
 import { assert, describe, it } from "@effect/vitest"
-import * as Duration from "effect/Duration"
+import { Option } from "effect/data"
 import * as Effect from "effect/Effect"
-import * as Fiber from "effect/Fiber"
-import * as Metric from "effect/Metric"
-import * as Option from "effect/Option"
-import * as String from "effect/String"
-import * as TestClock from "effect/TestClock"
+import { Metric } from "effect/observability"
+import { String } from "effect/primitives"
+import { Fiber } from "effect/runtime"
+import { TestClock } from "effect/testing"
+import { Duration } from "effect/time"
 
 const attributes = { x: "a", y: "b" }
 

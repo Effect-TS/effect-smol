@@ -1,18 +1,9 @@
-import {
-  BigInt,
-  Effect,
-  Equal,
-  flow,
-  Option,
-  Order,
-  pipe,
-  Predicate,
-  ServiceMap,
-  String as Str,
-  Struct,
-  Tuple
-} from "effect"
+import { Effect, flow, pipe } from "effect"
+import { Option, Order, Predicate, Struct, Tuple } from "effect/data"
+import { Equal } from "effect/interfaces"
+import { BigInt, String as Str } from "effect/primitives"
 import { AST, Check, Getter, Issue, Schema, ToParser, Transformation } from "effect/schema"
+import { ServiceMap } from "effect/services"
 import { produce } from "immer"
 import { describe, it } from "vitest"
 import { assertFalse, assertInclude, assertTrue, deepStrictEqual, strictEqual, throws } from "../utils/assert.ts"
@@ -3869,8 +3860,8 @@ describe("Schema", () => {
       assertTrue(Schema.isSchema(A))
       // should expose the fields
       deepStrictEqual(A.fields, { a: Schema.String })
-      // should expose the id
-      strictEqual(A.id, "A")
+      // should expose the identifier
+      strictEqual(A.identifier, "A")
 
       strictEqual(A.name, "A")
 
@@ -3922,8 +3913,8 @@ describe("Schema", () => {
       assertTrue(Schema.isSchema(A))
       // should expose the fields
       deepStrictEqual(A.fields, { a: Schema.String })
-      // should expose the id
-      strictEqual(A.id, "A")
+      // should expose the identifier
+      strictEqual(A.identifier, "A")
 
       strictEqual(A.name, "A")
 
@@ -3976,8 +3967,8 @@ describe("Schema", () => {
       assertTrue(Schema.isSchema(A))
       // should expose the fields
       deepStrictEqual(A.fields, { a: Schema.String })
-      // should expose the id
-      strictEqual(A.id, "A")
+      // should expose the identifier
+      strictEqual(A.identifier, "A")
 
       assertions.formatter.formatAST(A, `A`)
 
@@ -4029,8 +4020,8 @@ describe("Schema", () => {
       assertTrue(Schema.isSchema(A))
       // should expose the fields
       deepStrictEqual(A.fields, { a: Schema.String })
-      // should expose the id
-      strictEqual(A.id, "A")
+      // should expose the identifier
+      strictEqual(A.identifier, "A")
 
       assertions.formatter.formatAST(A, `A & <filter>`)
 

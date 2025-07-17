@@ -2,9 +2,9 @@
  * @since 4.0.0
  */
 import type * as Cause from "../Cause.ts"
-import * as Data from "../Data.ts"
-import * as Filter from "../Filter.ts"
-import { hasProperty } from "../Predicate.ts"
+import * as Data from "../data/Data.ts"
+import * as Filter from "../data/Filter.ts"
+import { hasProperty } from "../data/Predicate.ts"
 
 /**
  * @since 4.0.0

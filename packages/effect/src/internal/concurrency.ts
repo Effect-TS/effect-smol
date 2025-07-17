@@ -1,6 +1,6 @@
 import type { Effect } from "../Effect.ts"
-import { CurrentConcurrency } from "../References.ts"
-import type { Concurrency } from "../Types.ts"
+import { CurrentConcurrency } from "../services/References.ts"
+import type { Concurrency } from "../types/Types.ts"
 import * as effect from "./effect.ts"
 
 /** @internal */

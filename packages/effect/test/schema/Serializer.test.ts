@@ -1,4 +1,4 @@
-import { Option } from "effect"
+import { Option } from "effect/data"
 import { Schema, Serializer, Transformation } from "effect/schema"
 import { describe, it } from "vitest"
 import { strictEqual } from "../utils/assert.ts"

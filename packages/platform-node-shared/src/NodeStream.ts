@@ -1,20 +1,19 @@
 /**
  * @since 1.0.0
  */
-import type { NonEmptyReadonlyArray } from "effect/Array"
-import * as Arr from "effect/Array"
 import * as Cause from "effect/Cause"
-import * as Channel from "effect/Channel"
+import * as Arr from "effect/collections/Array"
+import * as MutableRef from "effect/concurrency/MutableRef"
 import * as Effect from "effect/Effect"
 import * as Exit from "effect/Exit"
-import * as Fiber from "effect/Fiber"
 import { dual, type LazyArg } from "effect/Function"
-import * as MutableRef from "effect/MutableRef"
 import type { SizeInput } from "effect/platform/FileSystem"
-import * as Pull from "effect/Pull"
-import * as Scope from "effect/Scope"
-import * as ServiceMap from "effect/ServiceMap"
-import * as Stream from "effect/Stream"
+import * as Scope from "effect/resources/Scope"
+import * as Fiber from "effect/runtime/Fiber"
+import * as ServiceMap from "effect/services/ServiceMap"
+import * as Channel from "effect/stream/Channel"
+import * as Pull from "effect/stream/Pull"
+import * as Stream from "effect/stream/Stream"
 import type { Duplex } from "node:stream"
 import { Readable } from "node:stream"
 import { pullIntoWritable } from "./NodeSink.ts"
@@ -40,7 +39,7 @@ export const fromReadableChannel = <A = Uint8Array, E = Cause.UnknownError>(opti
   readonly onError?: (error: unknown) => E
   readonly chunkSize?: number | undefined
   readonly closeOnDone?: boolean | undefined
-}): Channel.Channel<NonEmptyReadonlyArray<A>, E> =>
+}): Channel.Channel<Arr.NonEmptyReadonlyArray<A>, E> =>
   Channel.fromTransform((_, scope) =>
     unsafeReadableToPull({
       scope,
@@ -64,7 +63,7 @@ export const fromDuplex = <IE, I = Uint8Array, O = Uint8Array, E = Cause.Unknown
     readonly endOnDone?: boolean | undefined
     readonly encoding?: BufferEncoding | undefined
   }
-): Channel.Channel<NonEmptyReadonlyArray<O>, IE | E, void, NonEmptyReadonlyArray<I>, IE> =>
+): Channel.Channel<Arr.NonEmptyReadonlyArray<O>, IE | E, void, Arr.NonEmptyReadonlyArray<I>, IE> =>
   Channel.fromTransform((upstream, scope) => {
     const duplex = options.evaluate()
     const exit = MutableRef.make<Exit.Exit<never, IE | E | Pull.Halt<void>> | undefined>(undefined)

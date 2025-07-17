@@ -1,9 +1,9 @@
 /**
  * @since 4.0.0
  */
-import type * as Duration from "../../Duration.ts"
-import * as Layer from "../../Layer.ts"
-import type * as Tracer from "../../Tracer.ts"
+import type * as Tracer from "../../observability/Tracer.ts"
+import * as Layer from "../../services/Layer.ts"
+import type * as Duration from "../../time/Duration.ts"
 import type * as Headers from "../http/Headers.ts"
 import type * as HttpClient from "../http/HttpClient.ts"
 import * as OtlpLogger from "./OtlpLogger.ts"

@@ -1,7 +1,7 @@
 import type { Effect } from "../Effect.ts"
 import { dual } from "../Function.ts"
-import * as Layer from "../Layer.ts"
-import * as ServiceMap from "../ServiceMap.ts"
+import * as Layer from "../services/Layer.ts"
+import * as ServiceMap from "../services/ServiceMap.ts"
 import * as effect from "./effect.ts"
 
 const provideLayer = <A, E, R, ROut, E2, RIn>(

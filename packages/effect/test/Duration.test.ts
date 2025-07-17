@@ -8,7 +8,9 @@ import {
   strictEqual,
   throws
 } from "@effect/vitest/utils"
-import { Duration, Equal, pipe } from "effect"
+import { pipe } from "effect"
+import { Equal } from "effect/interfaces"
+import { Duration } from "effect/time"
 
 describe("Duration", () => {
   it("decode", () => {

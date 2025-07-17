@@ -1,8 +1,8 @@
 /**
  * @since 4.0.0
  */
+import * as Option from "../data/Option.ts"
 import { formatPropertyKey, formatUnknown, memoizeThunk } from "../internal/schema/util.ts"
-import * as Option from "../Option.ts"
 import * as AST from "./AST.ts"
 import type * as Schema from "./Schema.ts"
 import * as ToParser from "./ToParser.ts"

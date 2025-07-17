@@ -13,7 +13,8 @@
  *
  * @example
  * ```ts
- * import { Effect, Console } from "effect"
+ * import { Effect } from "effect"
+ * import { Console } from "effect/logging"
  * import { FileSystem  } from "effect/platform"
  *
  * const program = Effect.gen(function* () {

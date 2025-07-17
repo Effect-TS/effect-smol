@@ -1,10 +1,10 @@
 /**
  * @since 4.0.0
  */
-import * as Equal from "../Equal.ts"
-import * as Equivalence from "../Equivalence.ts"
+import * as Equivalence from "../data/Equivalence.ts"
+import * as Predicate from "../data/Predicate.ts"
+import * as Equal from "../interfaces/Equal.ts"
 import { memoizeThunk } from "../internal/schema/util.ts"
-import * as Predicate from "../Predicate.ts"
 import * as AST from "./AST.ts"
 import type * as Schema from "./Schema.ts"
 import * as ToParser from "./ToParser.ts"

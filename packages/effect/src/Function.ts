@@ -1,15 +1,15 @@
 /**
  * @since 2.0.0
  */
-import type { TypeLambda } from "./HKT.ts"
-import { pipeArguments } from "./Pipeable.ts"
+import { pipeArguments } from "./interfaces/Pipeable.ts"
+import type { TypeLambda } from "./types/HKT.ts"
 
 /**
  * Type lambda for function types, used for higher-kinded type operations.
  *
  * @example
  * ```ts
- * import type { Kind } from "effect/HKT"
+ * import type { Kind } from "effect/types/HKT"
  * import type { FunctionTypeLambda } from "effect/Function"
  *
  * // Create a function type using the type lambda
@@ -30,10 +30,10 @@ export interface FunctionTypeLambda extends TypeLambda {
  * @example
  * ```ts
  * import * as assert from "node:assert"
- * import { isFunction } from "effect/Predicate"
+ * import * as Predicate from "effect/data/Predicate"
  *
- * assert.deepStrictEqual(isFunction(isFunction), true)
- * assert.deepStrictEqual(isFunction("function"), false)
+ * assert.deepStrictEqual(Predicate.isFunction(Predicate.isFunction), true)
+ * assert.deepStrictEqual(Predicate.isFunction("function"), false)
  * ```
  *
  * @category guards
@@ -183,7 +183,7 @@ export const dual: {
  * ```ts
  * import * as assert from "node:assert"
  * import { pipe, apply } from "effect/Function"
- * import { length } from "effect/String"
+ * import { length } from "effect/primitives/String"
  *
  * assert.deepStrictEqual(pipe(length, apply("hello")), 5)
  * ```
@@ -530,7 +530,8 @@ export const untupled = <A extends ReadonlyArray<unknown>, B>(f: (a: A) => B): (
  * becomes:
  *
  * ```ts skip-type-checking
- * import { pipe, Array } from "effect"
+ * import { pipe } from "effect"
+ * import { Array } from "effect/collections"
  *
  * pipe(as, Array.map(f), Array.filter(g))
  * ```

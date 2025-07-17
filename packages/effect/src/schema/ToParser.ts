@@ -2,11 +2,11 @@
  * @since 4.0.0
  */
 
-import * as Arr from "../Array.ts"
+import * as Arr from "../collections/Array.ts"
+import * as Option from "../data/Option.ts"
+import * as Result from "../data/Result.ts"
 import * as Effect from "../Effect.ts"
 import { defaultParseOptions } from "../internal/schema/util.ts"
-import * as Option from "../Option.ts"
-import * as Result from "../Result.ts"
 import * as AST from "./AST.ts"
 import type * as Check from "./Check.ts"
 import * as Issue from "./Issue.ts"

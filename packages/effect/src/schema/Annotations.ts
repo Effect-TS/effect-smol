@@ -52,7 +52,7 @@ export interface Key extends Documentation {
  * @since 4.0.0
  */
 export interface JsonSchema<T> extends Documentation {
-  readonly id?: string | undefined
+  readonly identifier?: string | undefined
   readonly default?: T | undefined
   readonly examples?: ReadonlyArray<T> | undefined
   /**
