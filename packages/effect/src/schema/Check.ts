@@ -250,9 +250,9 @@ export function trimmed(annotations?: Annotations.Filter) {
     description: "a string with no leading or trailing whitespace",
     jsonSchema: {
       _tag: "fragment",
-      fragment: {
+      fragment: () => ({
         pattern: TRIMMED_PATTERN
-      }
+      })
     },
     meta: {
       _tag: "trimmed"
@@ -289,10 +289,10 @@ export function regex(regex: RegExp, options?: {
     description: options?.description ?? `a string matching the pattern ${source}`,
     jsonSchema: {
       _tag: "fragment",
-      fragment: {
+      fragment: () => ({
         pattern: regex.source,
         ...options?.fragment
-      }
+      })
     },
     meta: {
       _tag: "regex",
@@ -381,9 +381,9 @@ export function startsWith(startsWith: string, annotations?: Annotations.Filter)
     description: `a string starting with ${formatted}`,
     jsonSchema: {
       _tag: "fragment",
-      fragment: {
+      fragment: () => ({
         pattern: `^${startsWith}`
-      }
+      })
     },
     meta: {
       _tag: "startsWith",
@@ -411,9 +411,9 @@ export function endsWith(endsWith: string, annotations?: Annotations.Filter) {
     description: `a string ending with ${formatted}`,
     jsonSchema: {
       _tag: "fragment",
-      fragment: {
+      fragment: () => ({
         pattern: `${endsWith}$`
-      }
+      })
     },
     meta: {
       _tag: "endsWith",
@@ -441,9 +441,9 @@ export function includes(includes: string, annotations?: Annotations.Filter) {
     description: `a string including ${formatted}`,
     jsonSchema: {
       _tag: "fragment",
-      fragment: {
+      fragment: () => ({
         pattern: includes
-      }
+      })
     },
     meta: {
       _tag: "includes",
@@ -472,9 +472,9 @@ export function uppercased(annotations?: Annotations.Filter) {
     description: "a string with all characters in uppercase",
     jsonSchema: {
       _tag: "fragment",
-      fragment: {
+      fragment: () => ({
         pattern: UPPERCASED_PATTERN
-      }
+      })
     },
     meta: {
       _tag: "uppercased"
@@ -502,9 +502,9 @@ export function lowercased(annotations?: Annotations.Filter) {
     description: "a string with all characters in lowercase",
     jsonSchema: {
       _tag: "fragment",
-      fragment: {
+      fragment: () => ({
         pattern: LOWERCASED_PATTERN
-      }
+      })
     },
     meta: {
       _tag: "lowercased"
@@ -679,9 +679,9 @@ export const greaterThan = deriveGreaterThan({
   annotate: (exclusiveMinimum) => ({
     jsonSchema: {
       _tag: "fragment",
-      fragment: {
+      fragment: () => ({
         exclusiveMinimum
-      }
+      })
     },
     meta: {
       _tag: "greaterThan",
@@ -707,9 +707,9 @@ export const greaterThanOrEqualTo = deriveGreaterThanOrEqualTo({
   annotate: (minimum) => ({
     jsonSchema: {
       _tag: "fragment",
-      fragment: {
+      fragment: () => ({
         minimum
-      }
+      })
     },
     meta: {
       _tag: "greaterThanOrEqualTo",
@@ -734,9 +734,9 @@ export const lessThan = deriveLessThan({
   annotate: (exclusiveMaximum) => ({
     jsonSchema: {
       _tag: "fragment",
-      fragment: {
+      fragment: () => ({
         exclusiveMaximum
-      }
+      })
     },
     meta: {
       _tag: "lessThan",
@@ -762,9 +762,9 @@ export const lessThanOrEqualTo = deriveLessThanOrEqualTo({
   annotate: (maximum) => ({
     jsonSchema: {
       _tag: "fragment",
-      fragment: {
+      fragment: () => ({
         maximum
-      }
+      })
     },
     meta: {
       _tag: "lessThanOrEqualTo",
@@ -789,10 +789,10 @@ export const between = deriveBetween({
   annotate: (minimum, maximum) => ({
     jsonSchema: {
       _tag: "fragment",
-      fragment: {
+      fragment: () => ({
         minimum,
         maximum
-      }
+      })
     },
     meta: {
       _tag: "between",
@@ -854,9 +854,9 @@ export const multipleOf = deriveMultipleOf({
     description: `a value that is a multiple of ${divisor}`,
     jsonSchema: {
       _tag: "fragment",
-      fragment: {
+      fragment: () => ({
         multipleOf: Math.abs(divisor) // JSON Schema only supports positive divisors
-      }
+      })
     }
   })
 })
@@ -873,9 +873,9 @@ export function int(annotations?: Annotations.Filter) {
     description: "an integer",
     jsonSchema: {
       _tag: "fragment",
-      fragment: {
+      fragment: () => ({
         type: "integer"
-      }
+      })
     },
     meta: {
       _tag: "int"
@@ -904,9 +904,9 @@ export function int32(annotations?: Annotations.Filter) {
     description: "a 32-bit integer",
     jsonSchema: {
       _tag: "fragment",
-      fragment: {
+      fragment: () => ({
         format: "int32"
-      }
+      })
     },
     meta: {
       _tag: "int32"
@@ -928,9 +928,9 @@ export function uint32(annotations?: Annotations.Filter) {
     description: "a 32-bit unsigned integer",
     jsonSchema: {
       _tag: "fragment",
-      fragment: {
+      fragment: () => ({
         format: "uint32"
-      }
+      })
     },
     meta: {
       _tag: "uint32"
@@ -1099,13 +1099,14 @@ export function minLength(minLength: number, annotations?: Annotations.Filter) {
     title: `minLength(${minLength})`,
     description: `a value with a length of at least ${minLength}`,
     jsonSchema: {
-      _tag: "fragments",
-      fragments: {
-        string: {
-          minLength
-        },
-        array: {
-          minItems: minLength
+      _tag: "fragment",
+      fragment: (type) => {
+        switch (type) {
+          case "string":
+            return { minLength }
+          case "array":
+            return { minItems: minLength }
+          default:
         }
       }
     },
@@ -1149,13 +1150,13 @@ export function maxLength(maxLength: number, annotations?: Annotations.Filter) {
     title: `maxLength(${maxLength})`,
     description: `a value with a length of at most ${maxLength}`,
     jsonSchema: {
-      _tag: "fragments",
-      fragments: {
-        string: {
-          maxLength
-        },
-        array: {
-          maxItems: maxLength
+      _tag: "fragment",
+      fragment: (type) => {
+        switch (type) {
+          case "string":
+            return { maxLength }
+          case "array":
+            return { maxItems: maxLength }
         }
       }
     },
@@ -1192,9 +1193,9 @@ export function length(length: number, annotations?: Annotations.Filter) {
     description: `a value with a length of ${length}`,
     jsonSchema: {
       _tag: "fragment",
-      fragment: {
+      fragment: () => ({
         length
-      }
+      })
     },
     meta: {
       _tag: "length",
@@ -1313,9 +1314,9 @@ export function minEntries(minEntries: number, annotations?: Annotations.Filter)
     description: `an object with at least ${minEntries} entries`,
     jsonSchema: {
       _tag: "fragment",
-      fragment: {
+      fragment: () => ({
         minProperties: minEntries
-      }
+      })
     },
     meta: {
       _tag: "minEntries",
@@ -1346,9 +1347,9 @@ export function maxEntries(maxEntries: number, annotations?: Annotations.Filter)
     description: `an object with at most ${maxEntries} entries`,
     jsonSchema: {
       _tag: "fragment",
-      fragment: {
+      fragment: () => ({
         maxProperties: maxEntries
-      }
+      })
     },
     meta: {
       _tag: "maxEntries",
@@ -1379,10 +1380,10 @@ export function entries(entries: number, annotations?: Annotations.Filter) {
     description: `an object with exactly ${entries} entries`,
     jsonSchema: {
       _tag: "fragment",
-      fragment: {
+      fragment: () => ({
         minProperties: entries,
         maxProperties: entries
-      }
+      })
     },
     meta: {
       _tag: "entries",
@@ -1411,9 +1412,9 @@ export function unique<T>(equivalence: Equivalence.Equivalence<T>, annotations?:
     title: "unique",
     jsonSchema: {
       _tag: "fragment",
-      fragment: {
+      fragment: () => ({
         uniqueItems: true
-      }
+      })
     },
     meta: {
       _tag: "unique",

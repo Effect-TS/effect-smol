@@ -1,785 +1,1231 @@
+import type { Options as AjvOptions } from "ajv"
 // eslint-disable-next-line import-x/no-named-as-default
 import Ajv from "ajv"
 import { Check, Schema, ToJsonSchema } from "effect/schema"
 import { describe, it } from "vitest"
-import { assertFalse, assertTrue, deepStrictEqual, throws } from "../utils/assert.ts"
+import { assertFalse, assertTrue, deepStrictEqual, strictEqual, throws } from "../utils/assert.ts"
+
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const Ajv2020 = require("ajv/dist/2020")
 
 const ajvOptions: Ajv.Options = {
   strictTuples: false,
   allowMatchingProperties: true
 }
 
-function getAjvValidate(jsonSchema: ToJsonSchema.JsonSchema.Root): Ajv.ValidateFunction {
+function getAjvValidate(jsonSchema: object): Ajv.ValidateFunction {
   return new Ajv.default(ajvOptions).compile(jsonSchema)
 }
 
-function assertJsonSchema(options: ToJsonSchema.Options) {
-  return function<S extends Schema.Top>(
-    schema: S,
-    expected: ToJsonSchema.JsonSchema.Root,
-    overrideOptions?: ToJsonSchema.Options
-  ) {
-    const jsonSchema = ToJsonSchema.make(schema, { ...options, ...overrideOptions })
-    const $SCHEMA = ToJsonSchema.getTarget(options.target)
-    deepStrictEqual(jsonSchema, {
-      "$schema": $SCHEMA,
-      ...expected
-    })
-    return jsonSchema
-  }
+const baseAjvOptions: AjvOptions = {
+  allErrors: true,
+  strict: false, // warns/throws on unknown keywords depending on Ajv version
+  validateSchema: true,
+  code: { esm: true } // optional
 }
 
-const assertDraft7 = assertJsonSchema({
-  target: "draft-07"
-})
+const ajvDraft7 = new Ajv.default(baseAjvOptions)
+const ajv2020 = new Ajv2020.default(baseAjvOptions)
 
-const assertDraft202012 = assertJsonSchema({
-  target: "draft-2020-12"
-})
+async function assertDraft7<S extends Schema.Top>(
+  schema: S,
+  expected: object,
+  options?: ToJsonSchema.Draft07Options
+) {
+  const jsonSchema = ToJsonSchema.makeDraft07(schema, options)
+  deepStrictEqual(jsonSchema, {
+    "$schema": "http://json-schema.org/draft-07/schema",
+    ...expected
+  })
+  const valid = ajvDraft7.validateSchema(jsonSchema)
+  if (valid instanceof Promise) {
+    await valid
+  }
+  strictEqual(ajvDraft7.errors, null)
+  return jsonSchema
+}
 
-function assertAjvSuccess<S extends Schema.Top>(
+async function assertDraft202012<S extends Schema.Top>(
+  schema: S,
+  expected: object,
+  options?: ToJsonSchema.Draft2020Options
+) {
+  const jsonSchema = ToJsonSchema.makeDraft2020(schema, options)
+  deepStrictEqual(jsonSchema, {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    ...expected
+  })
+  const valid = ajv2020.validateSchema(jsonSchema)
+  if (valid instanceof Promise) {
+    await valid
+  }
+  strictEqual(ajvDraft7.errors, null)
+  return jsonSchema
+}
+
+async function assertOpenApi3_1<S extends Schema.Top>(
+  schema: S,
+  expected: object,
+  options?: ToJsonSchema.OpenApi3_1Options
+) {
+  const jsonSchema = ToJsonSchema.makeOpenApi3_1(schema, options)
+  deepStrictEqual(jsonSchema, {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    ...expected
+  })
+  const valid = ajv2020.validateSchema(jsonSchema)
+  if (valid instanceof Promise) {
+    await valid
+  }
+  strictEqual(ajvDraft7.errors, null)
+  return jsonSchema
+}
+
+function assertAjvDraft7Success<S extends Schema.Top>(
   schema: S,
   input: S["Type"]
 ) {
-  const jsonSchema = ToJsonSchema.make(schema)
+  const jsonSchema = ToJsonSchema.makeDraft07(schema)
   const validate = getAjvValidate(jsonSchema)
   assertTrue(validate(input))
 }
 
-function assertAjvFailure<S extends Schema.Top>(
+function assertAjvDraft7Failure<S extends Schema.Top>(
   schema: S,
   input: unknown
 ) {
-  const jsonSchema = ToJsonSchema.make(schema)
+  const jsonSchema = ToJsonSchema.makeDraft07(schema)
   const validate = getAjvValidate(jsonSchema)
   assertFalse(validate(input))
 }
 
 describe("ToJsonSchema", () => {
-  describe("Declaration", () => {
-    it("should throw if the schema is a declaration", () => {
-      const schema = Schema.Option(Schema.String)
-      throws(() => ToJsonSchema.make(schema), new Error(`cannot generate JSON Schema for Declaration at root`))
-    })
-  })
-
-  describe("Void", () => {
-    it("should throw if the schema is a Void", () => {
-      const schema = Schema.Void
-      throws(() => ToJsonSchema.make(schema), new Error(`cannot generate JSON Schema for VoidKeyword at root`))
-    })
-  })
-
-  describe("Undefined", () => {
-    it("should throw if the schema is a declaration", () => {
-      const schema = Schema.Undefined
-      throws(
-        () => ToJsonSchema.make(schema),
-        new Error(`cannot generate JSON Schema for UndefinedKeyword at root`)
-      )
-    })
-  })
-
-  describe("BigInt", () => {
-    it("should throw if the schema is a declaration", () => {
-      const schema = Schema.BigInt
-      throws(
-        () => ToJsonSchema.make(schema),
-        new Error(`cannot generate JSON Schema for BigIntKeyword at root`)
-      )
-    })
-  })
-
-  describe("Symbol", () => {
-    it("should throw if the schema is a declaration", () => {
-      const schema = Schema.Symbol
-      throws(
-        () => ToJsonSchema.make(schema),
-        new Error(`cannot generate JSON Schema for SymbolKeyword at root`)
-      )
-    })
-  })
-
-  describe("UniqueSymbol", () => {
-    it("should throw if the schema is a declaration", () => {
-      const schema = Schema.UniqueSymbol(Symbol.for("a"))
-      throws(
-        () => ToJsonSchema.make(schema),
-        new Error(`cannot generate JSON Schema for UniqueSymbol at root`)
-      )
-    })
-  })
-
-  describe("Any", () => {
-    it("Any", () => {
-      const schema = Schema.Any
-      assertDraft7(schema, {})
-    })
-
-    it("Any & annotations", () => {
-      const schema = Schema.Any.annotate({
-        title: "title",
-        description: "description",
-        documentation: "documentation",
-        default: "default",
-        examples: ["a"]
-      })
-      assertDraft7(schema, {
-        title: "title",
-        description: "description",
-        documentation: "documentation",
-        default: "default",
-        examples: ["a"]
-      })
-    })
-  })
-
-  describe("Unknown", () => {
-    it("Unknown", () => {
-      const schema = Schema.Unknown
-      assertDraft7(schema, {})
-    })
-
-    it("Unknown & annotations", () => {
-      const schema = Schema.Unknown.annotate({
-        title: "title",
-        description: "description",
-        documentation: "documentation",
-        default: "default",
-        examples: ["a"]
-      })
-      assertDraft7(schema, {
-        title: "title",
-        description: "description",
-        documentation: "documentation",
-        default: "default",
-        examples: ["a"]
-      })
-    })
-  })
-
-  describe("Never", () => {
-    it("Never", () => {
-      const schema = Schema.Never
-      assertDraft7(schema, {
-        not: {}
+  describe("Draft 07", () => {
+    describe("Declaration", () => {
+      it("should throw if the schema is a declaration", () => {
+        const schema = Schema.Option(Schema.String)
+        throws(() => ToJsonSchema.makeDraft07(schema), new Error(`cannot generate JSON Schema for Declaration at root`))
       })
     })
 
-    it("Never & annotations", () => {
-      const schema = Schema.Never.annotate({
-        title: "title",
-        description: "description"
-      })
-      assertDraft7(schema, {
-        not: {},
-        title: "title",
-        description: "description"
-      })
-    })
-  })
-
-  describe("Null", () => {
-    it("Null", () => {
-      const schema = Schema.Null
-      assertDraft7(schema, {
-        type: "null"
-      })
-      assertAjvSuccess(schema, null)
-      assertAjvFailure(schema, "a")
-    })
-
-    it("Null & annotations", () => {
-      const schema = Schema.Null.annotate({
-        title: "title",
-        description: "description",
-        documentation: "documentation",
-        default: null,
-        examples: [null],
-        allOf: [
-          {
-            type: "null"
-          }
-        ]
-      })
-      assertDraft7(schema, {
-        type: "null",
-        title: "title",
-        description: "description",
-        documentation: "documentation",
-        default: null,
-        examples: [null]
-      })
-    })
-  })
-
-  describe("String", () => {
-    it("String", () => {
-      const schema = Schema.String
-      assertDraft7(schema, {
-        type: "string"
-      })
-      assertAjvSuccess(schema, "a")
-      assertAjvFailure(schema, null)
-    })
-
-    it("String & annotations", () => {
-      const schema = Schema.String.annotate({
-        title: "title",
-        description: "description",
-        documentation: "documentation",
-        default: "default",
-        examples: ["a"]
-      })
-      assertDraft7(schema, {
-        type: "string",
-        title: "title",
-        description: "description",
-        documentation: "documentation",
-        default: "default",
-        examples: ["a"]
+    describe("Void", () => {
+      it("should throw if the schema is a Void", () => {
+        const schema = Schema.Void
+        throws(() => ToJsonSchema.makeDraft07(schema), new Error(`cannot generate JSON Schema for VoidKeyword at root`))
       })
     })
 
-    it("String & minLength", () => {
-      const schema = Schema.String.check(Check.minLength(1))
-      assertDraft7(schema, {
-        type: "string",
-        minLength: 1,
-        title: "minLength(1)",
-        description: "a value with a length of at least 1"
+    describe("Undefined", () => {
+      it("should throw if the schema is a declaration", () => {
+        const schema = Schema.Undefined
+        throws(
+          () => ToJsonSchema.makeDraft07(schema),
+          new Error(`cannot generate JSON Schema for UndefinedKeyword at root`)
+        )
       })
     })
 
-    it("String & minLength & maxlength", () => {
-      const schema = Schema.String.check(Check.minLength(1), Check.maxLength(2))
-      assertDraft7(schema, {
-        type: "string",
-        minLength: 1,
-        title: "minLength(1)",
-        description: "a value with a length of at least 1",
-        allOf: [
-          {
-            description: "a value with a length of at most 2",
-            maxLength: 2,
-            title: "maxLength(2)"
-          }
-        ]
+    describe("BigInt", () => {
+      it("should throw if the schema is a declaration", () => {
+        const schema = Schema.BigInt
+        throws(
+          () => ToJsonSchema.makeDraft07(schema),
+          new Error(`cannot generate JSON Schema for BigIntKeyword at root`)
+        )
       })
     })
 
-    it("String & annotations & minLength", () => {
-      const schema = Schema.String.annotate({
-        title: "title",
-        description: "description",
-        documentation: "documentation",
-        default: "default",
-        examples: ["a"]
-      }).check(Check.minLength(1))
-      assertDraft7(schema, {
-        type: "string",
-        title: "title",
-        description: "description",
-        documentation: "documentation",
-        default: "default",
-        examples: ["a"],
-        allOf: [
-          {
-            description: "a value with a length of at least 1",
-            minLength: 1,
-            title: "minLength(1)"
-          }
-        ]
+    describe("Symbol", () => {
+      it("should throw if the schema is a declaration", () => {
+        const schema = Schema.Symbol
+        throws(
+          () => ToJsonSchema.makeDraft07(schema),
+          new Error(`cannot generate JSON Schema for SymbolKeyword at root`)
+        )
       })
     })
 
-    it("String & minLength & annotations", () => {
-      const schema = Schema.String.check(Check.minLength(1)).annotate({
-        title: "title",
-        description: "description",
-        documentation: "documentation",
-        default: "default",
-        examples: ["a"]
-      })
-      assertDraft7(schema, {
-        type: "string",
-        title: "title",
-        description: "description",
-        documentation: "documentation",
-        default: "default",
-        examples: ["a"],
-        minLength: 1
+    describe("UniqueSymbol", () => {
+      it("should throw if the schema is a declaration", () => {
+        const schema = Schema.UniqueSymbol(Symbol.for("a"))
+        throws(
+          () => ToJsonSchema.makeDraft07(schema),
+          new Error(`cannot generate JSON Schema for UniqueSymbol at root`)
+        )
       })
     })
 
-    it("String & minLength(1) & minLength(2)", () => {
-      const schema = Schema.String.check(Check.minLength(1), Check.minLength(2))
-      assertDraft7(schema, {
-        type: "string",
-        description: "a value with a length of at least 1",
-        minLength: 1,
-        title: "minLength(1)",
-        allOf: [
-          {
-            description: "a value with a length of at least 2",
-            minLength: 2,
-            title: "minLength(2)"
-          }
-        ]
+    describe("Any", () => {
+      it("Any", async () => {
+        const schema = Schema.Any
+        await assertDraft7(schema, {})
+      })
+
+      it("Any & annotations", async () => {
+        const schema = Schema.Any.annotate({
+          title: "title",
+          description: "description",
+          documentation: "documentation",
+          default: "default",
+          examples: ["a"]
+        })
+        await assertDraft7(schema, {
+          title: "title",
+          description: "description",
+          documentation: "documentation",
+          default: "default",
+          examples: ["a"]
+        })
       })
     })
 
-    it("String & minLength(2) & minLength(1)", () => {
-      const schema = Schema.String.check(Check.minLength(2), Check.minLength(1))
-      assertDraft7(schema, {
-        type: "string",
-        description: "a value with a length of at least 2",
-        minLength: 2,
-        title: "minLength(2)",
-        allOf: [
-          {
-            description: "a value with a length of at least 1",
-            minLength: 1,
-            title: "minLength(1)"
-          }
-        ]
+    describe("Unknown", () => {
+      it("Unknown", async () => {
+        const schema = Schema.Unknown
+        await assertDraft7(schema, {})
       })
-    })
-  })
 
-  describe("Number", () => {
-    it("Number", () => {
-      const schema = Schema.Number
-      assertDraft7(schema, {
-        type: "number"
+      it("Unknown & annotations", async () => {
+        const schema = Schema.Unknown.annotate({
+          title: "title",
+          description: "description",
+          documentation: "documentation",
+          default: "default",
+          examples: ["a"]
+        })
+        await assertDraft7(schema, {
+          title: "title",
+          description: "description",
+          documentation: "documentation",
+          default: "default",
+          examples: ["a"]
+        })
       })
     })
 
-    it("Number & annotations", () => {
-      const schema = Schema.Number.annotate({
-        title: "title",
-        description: "description",
-        documentation: "documentation",
-        default: 1,
-        examples: [2]
+    describe("Never", () => {
+      it("Never", async () => {
+        const schema = Schema.Never
+        await assertDraft7(schema, {
+          not: {}
+        })
       })
-      assertDraft7(schema, {
-        type: "number",
-        title: "title",
-        description: "description",
-        documentation: "documentation",
-        default: 1,
-        examples: [2]
+
+      it("Never & annotations", async () => {
+        const schema = Schema.Never.annotate({
+          title: "title",
+          description: "description"
+        })
+        await assertDraft7(schema, {
+          not: {},
+          title: "title",
+          description: "description"
+        })
       })
     })
 
-    it("Integer", () => {
-      const schema = Schema.Number.check(Check.int())
-      assertDraft7(schema, {
-        type: "integer",
-        description: "an integer",
-        title: "int"
+    describe("Null", () => {
+      it("Null", async () => {
+        const schema = Schema.Null
+        await assertDraft7(schema, {
+          type: "null"
+        })
+        assertAjvDraft7Success(schema, null)
+        assertAjvDraft7Failure(schema, "a")
+      })
+
+      it("Null & annotations", async () => {
+        const schema = Schema.Null.annotate({
+          title: "title",
+          description: "description",
+          documentation: "documentation",
+          default: null,
+          examples: [null],
+          allOf: [
+            {
+              type: "null"
+            }
+          ]
+        })
+        await assertDraft7(schema, {
+          type: "null",
+          title: "title",
+          description: "description",
+          documentation: "documentation",
+          default: null,
+          examples: [null]
+        })
       })
     })
 
-    it("Integer & annotations", () => {
-      const schema = Schema.Number.annotate({
-        title: "title",
-        description: "description",
-        documentation: "documentation",
-        default: 1,
-        examples: [2]
-      }).check(Check.int())
-      assertDraft7(schema, {
-        type: "integer",
-        title: "title",
-        description: "description",
-        documentation: "documentation",
-        default: 1,
-        examples: [2],
-        allOf: [
-          {
-            description: "an integer",
-            title: "int"
-          }
-        ]
+    describe("String", () => {
+      it("String", async () => {
+        const schema = Schema.String
+        await assertDraft7(schema, {
+          type: "string"
+        })
+        assertAjvDraft7Success(schema, "a")
+        assertAjvDraft7Failure(schema, null)
       })
-    })
-  })
 
-  describe("Boolean", () => {
-    it("Boolean", () => {
-      const schema = Schema.Boolean
-      assertDraft7(schema, {
-        type: "boolean"
+      it("String & annotations", async () => {
+        const schema = Schema.String.annotate({
+          title: "title",
+          description: "description",
+          documentation: "documentation",
+          default: "default",
+          examples: ["a"]
+        })
+        await assertDraft7(schema, {
+          type: "string",
+          title: "title",
+          description: "description",
+          documentation: "documentation",
+          default: "default",
+          examples: ["a"]
+        })
       })
-    })
 
-    it("Boolean & annotations", () => {
-      const schema = Schema.Boolean.annotate({
-        title: "title",
-        description: "description",
-        documentation: "documentation",
-        default: true,
-        examples: [false]
+      it("String & minLength", async () => {
+        const schema = Schema.String.check(Check.minLength(1))
+        await assertDraft7(schema, {
+          type: "string",
+          minLength: 1,
+          title: "minLength(1)",
+          description: "a value with a length of at least 1"
+        })
       })
-      assertDraft7(schema, {
-        type: "boolean",
-        title: "title",
-        description: "description",
-        documentation: "documentation",
-        default: true,
-        examples: [false]
-      })
-    })
-  })
 
-  describe("Object", () => {
-    it("Object", () => {
-      const schema = Schema.Object
-      assertDraft7(schema, {
-        anyOf: [
-          { type: "object" },
-          { type: "array" }
-        ]
+      it("String & minLength & maxlength", async () => {
+        const schema = Schema.String.check(Check.minLength(1), Check.maxLength(2))
+        await assertDraft7(schema, {
+          type: "string",
+          minLength: 1,
+          title: "minLength(1)",
+          description: "a value with a length of at least 1",
+          allOf: [
+            {
+              description: "a value with a length of at most 2",
+              maxLength: 2,
+              title: "maxLength(2)"
+            }
+          ]
+        })
       })
-    })
 
-    it("Object & annotations", () => {
-      const schema = Schema.Object.annotate({
-        title: "title",
-        description: "description",
-        documentation: "documentation",
-        default: {},
-        examples: [{}, []]
+      it("String & annotations & minLength", async () => {
+        const schema = Schema.String.annotate({
+          title: "title",
+          description: "description",
+          documentation: "documentation",
+          default: "default",
+          examples: ["a"]
+        }).check(Check.minLength(1))
+        await assertDraft7(schema, {
+          type: "string",
+          title: "title",
+          description: "description",
+          documentation: "documentation",
+          default: "default",
+          examples: ["a"],
+          allOf: [
+            {
+              description: "a value with a length of at least 1",
+              minLength: 1,
+              title: "minLength(1)"
+            }
+          ]
+        })
       })
-      assertDraft7(schema, {
-        anyOf: [
-          { type: "object" },
-          { type: "array" }
-        ],
-        title: "title",
-        description: "description",
-        documentation: "documentation",
-        default: {},
-        examples: [{}, []]
-      })
-    })
-  })
 
-  describe("Literal", () => {
-    it("should throw if the literal is a bigint", () => {
-      const schema = Schema.Literal(1n)
-      throws(
-        () => ToJsonSchema.make(schema),
-        new Error(`cannot generate JSON Schema for LiteralType at root`)
-      )
-    })
+      it("String & minLength & annotations", async () => {
+        const schema = Schema.String.check(Check.minLength(1)).annotate({
+          title: "title",
+          description: "description",
+          documentation: "documentation",
+          default: "default",
+          examples: ["a"]
+        })
+        await assertDraft7(schema, {
+          type: "string",
+          title: "title",
+          description: "description",
+          documentation: "documentation",
+          default: "default",
+          examples: ["a"],
+          minLength: 1
+        })
+      })
 
-    it("string", () => {
-      const schema = Schema.Literal("a")
-      assertDraft7(schema, {
-        type: "string",
-        enum: ["a"]
+      it("String & minLength(1) & minLength(2)", async () => {
+        const schema = Schema.String.check(Check.minLength(1), Check.minLength(2))
+        await assertDraft7(schema, {
+          type: "string",
+          description: "a value with a length of at least 1",
+          minLength: 1,
+          title: "minLength(1)",
+          allOf: [
+            {
+              description: "a value with a length of at least 2",
+              minLength: 2,
+              title: "minLength(2)"
+            }
+          ]
+        })
       })
-    })
 
-    it("string & annotations", () => {
-      const schema = Schema.Literal("a").annotate({
-        title: "title",
-        description: "description",
-        documentation: "documentation",
-        default: "a",
-        examples: ["a"]
-      })
-      assertDraft7(schema, {
-        type: "string",
-        enum: ["a"],
-        title: "title",
-        description: "description",
-        documentation: "documentation",
-        default: "a",
-        examples: ["a"]
-      })
-    })
-
-    it("number", () => {
-      const schema = Schema.Literal(1)
-      assertDraft7(schema, {
-        type: "number",
-        enum: [1]
-      })
-    })
-
-    it("number & annotations", () => {
-      const schema = Schema.Literal(1).annotate({
-        title: "title",
-        description: "description",
-        documentation: "documentation",
-        default: 1,
-        examples: [1]
-      })
-      assertDraft7(schema, {
-        type: "number",
-        enum: [1],
-        title: "title",
-        description: "description",
-        documentation: "documentation",
-        default: 1,
-        examples: [1]
+      it("String & minLength(2) & minLength(1)", async () => {
+        const schema = Schema.String.check(Check.minLength(2), Check.minLength(1))
+        await assertDraft7(schema, {
+          type: "string",
+          description: "a value with a length of at least 2",
+          minLength: 2,
+          title: "minLength(2)",
+          allOf: [
+            {
+              description: "a value with a length of at least 1",
+              minLength: 1,
+              title: "minLength(1)"
+            }
+          ]
+        })
       })
     })
 
-    it("boolean", () => {
-      const schema = Schema.Literal(true)
-      assertDraft7(schema, {
-        type: "boolean",
-        enum: [true]
+    describe("Number", () => {
+      it("Number", async () => {
+        const schema = Schema.Number
+        await assertDraft7(schema, {
+          type: "number"
+        })
+      })
+
+      it("Number & annotations", async () => {
+        const schema = Schema.Number.annotate({
+          title: "title",
+          description: "description",
+          documentation: "documentation",
+          default: 1,
+          examples: [2]
+        })
+        await assertDraft7(schema, {
+          type: "number",
+          title: "title",
+          description: "description",
+          documentation: "documentation",
+          default: 1,
+          examples: [2]
+        })
+      })
+
+      it("Integer", async () => {
+        const schema = Schema.Number.check(Check.int())
+        await assertDraft7(schema, {
+          type: "integer",
+          description: "an integer",
+          title: "int"
+        })
+      })
+
+      it("Integer & annotations", async () => {
+        const schema = Schema.Number.annotate({
+          title: "title",
+          description: "description",
+          documentation: "documentation",
+          default: 1,
+          examples: [2]
+        }).check(Check.int())
+        await assertDraft7(schema, {
+          type: "integer",
+          title: "title",
+          description: "description",
+          documentation: "documentation",
+          default: 1,
+          examples: [2],
+          allOf: [
+            {
+              description: "an integer",
+              title: "int"
+            }
+          ]
+        })
       })
     })
 
-    it("boolean & annotations", () => {
-      const schema = Schema.Literal(true).annotate({
-        title: "title",
-        description: "description",
-        documentation: "documentation",
-        default: true,
-        examples: [true]
+    describe("Boolean", () => {
+      it("Boolean", async () => {
+        const schema = Schema.Boolean
+        await assertDraft7(schema, {
+          type: "boolean"
+        })
       })
-      assertDraft7(schema, {
-        type: "boolean",
-        enum: [true],
-        title: "title",
-        description: "description",
-        documentation: "documentation",
-        default: true,
-        examples: [true]
-      })
-    })
-  })
 
-  describe("Literals", () => {
-    it("strings", () => {
-      const schema = Schema.Literals(["a", "b"])
-      assertDraft7(schema, {
-        anyOf: [
-          { type: "string", enum: ["a"] },
-          { type: "string", enum: ["b"] }
-        ]
-      })
-    })
-  })
-
-  describe("Enums", () => {
-    enum Fruits {
-      Apple,
-      Banana,
-      Orange = "orange"
-    }
-
-    it("Enums", () => {
-      const schema = Schema.Enums(Fruits)
-      assertDraft7(schema, {
-        anyOf: [
-          { type: "number", enum: [0], title: "Apple" },
-          { type: "number", enum: [1], title: "Banana" },
-          { type: "string", enum: ["orange"], title: "Orange" }
-        ]
+      it("Boolean & annotations", async () => {
+        const schema = Schema.Boolean.annotate({
+          title: "title",
+          description: "description",
+          documentation: "documentation",
+          default: true,
+          examples: [false]
+        })
+        await assertDraft7(schema, {
+          type: "boolean",
+          title: "title",
+          description: "description",
+          documentation: "documentation",
+          default: true,
+          examples: [false]
+        })
       })
     })
 
-    it("Enums & annotations", () => {
-      const schema = Schema.Enums(Fruits).annotate({
-        title: "title",
-        description: "description",
-        documentation: "documentation",
-        default: Fruits.Apple,
-        examples: [Fruits.Banana, "orange"]
+    describe("Object", () => {
+      it("Object", async () => {
+        const schema = Schema.Object
+        await assertDraft7(schema, {
+          anyOf: [
+            { type: "object" },
+            { type: "array" }
+          ]
+        })
       })
-      assertDraft7(schema, {
-        anyOf: [
-          { type: "number", enum: [0], title: "Apple" },
-          { type: "number", enum: [1], title: "Banana" },
-          { type: "string", enum: ["orange"], title: "Orange" }
-        ],
-        title: "title",
-        description: "description",
-        documentation: "documentation",
-        default: Fruits.Apple,
-        examples: [Fruits.Banana, "orange"]
-      })
-    })
-  })
 
-  describe("TemplateLiteral", () => {
-    it("TemplateLiteral", () => {
-      const schema = Schema.TemplateLiteral(["a", Schema.String])
-      assertDraft7(schema, {
-        type: "string",
-        pattern: "^(a)([\\s\\S]*)$"
-      })
-    })
-
-    it("TemplateLiteral & annotations", () => {
-      const schema = Schema.TemplateLiteral(["a", Schema.String]).annotate({
-        title: "title",
-        description: "description",
-        documentation: "documentation",
-        default: "a",
-        examples: ["a"]
-      })
-      assertDraft7(schema, {
-        type: "string",
-        pattern: "^(a)([\\s\\S]*)$",
-        title: "title",
-        description: "description",
-        documentation: "documentation",
-        default: "a",
-        examples: ["a"]
-      })
-    })
-  })
-
-  describe("Array", () => {
-    it("Array", () => {
-      const schema = Schema.Array(Schema.String)
-      assertDraft7(schema, {
-        type: "array",
-        items: { type: "string" }
+      it("Object & annotations", async () => {
+        const schema = Schema.Object.annotate({
+          title: "title",
+          description: "description",
+          documentation: "documentation",
+          default: {},
+          examples: [{}, []]
+        })
+        await assertDraft7(schema, {
+          anyOf: [
+            { type: "object" },
+            { type: "array" }
+          ],
+          title: "title",
+          description: "description",
+          documentation: "documentation",
+          default: {},
+          examples: [{}, []]
+        })
       })
     })
 
-    it("Array & annotations", () => {
-      const schema = Schema.Array(Schema.String).annotate({
-        title: "title",
-        description: "description",
-        documentation: "documentation",
-        default: ["a"],
-        examples: [["a"]]
+    describe("Literal", () => {
+      it("should throw if the literal is a bigint", async () => {
+        const schema = Schema.Literal(1n)
+        throws(
+          () => ToJsonSchema.makeDraft07(schema),
+          new Error(`cannot generate JSON Schema for LiteralType at root`)
+        )
       })
-      assertDraft7(schema, {
+
+      it("string", async () => {
+        const schema = Schema.Literal("a")
+        await assertDraft7(schema, {
+          type: "string",
+          enum: ["a"]
+        })
+      })
+
+      it("string & annotations", async () => {
+        const schema = Schema.Literal("a").annotate({
+          title: "title",
+          description: "description",
+          documentation: "documentation",
+          default: "a",
+          examples: ["a"]
+        })
+        await assertDraft7(schema, {
+          type: "string",
+          enum: ["a"],
+          title: "title",
+          description: "description",
+          documentation: "documentation",
+          default: "a",
+          examples: ["a"]
+        })
+      })
+
+      it("number", async () => {
+        const schema = Schema.Literal(1)
+        await assertDraft7(schema, {
+          type: "number",
+          enum: [1]
+        })
+      })
+
+      it("number & annotations", async () => {
+        const schema = Schema.Literal(1).annotate({
+          title: "title",
+          description: "description",
+          documentation: "documentation",
+          default: 1,
+          examples: [1]
+        })
+        await assertDraft7(schema, {
+          type: "number",
+          enum: [1],
+          title: "title",
+          description: "description",
+          documentation: "documentation",
+          default: 1,
+          examples: [1]
+        })
+      })
+
+      it("boolean", async () => {
+        const schema = Schema.Literal(true)
+        await assertDraft7(schema, {
+          type: "boolean",
+          enum: [true]
+        })
+      })
+
+      it("boolean & annotations", async () => {
+        const schema = Schema.Literal(true).annotate({
+          title: "title",
+          description: "description",
+          documentation: "documentation",
+          default: true,
+          examples: [true]
+        })
+        await assertDraft7(schema, {
+          type: "boolean",
+          enum: [true],
+          title: "title",
+          description: "description",
+          documentation: "documentation",
+          default: true,
+          examples: [true]
+        })
+      })
+    })
+
+    describe("Literals", () => {
+      it("strings", async () => {
+        const schema = Schema.Literals(["a", "b"])
+        await assertDraft7(schema, {
+          anyOf: [
+            { type: "string", enum: ["a"] },
+            { type: "string", enum: ["b"] }
+          ]
+        })
+      })
+    })
+
+    describe("Enums", () => {
+      enum Fruits {
+        Apple,
+        Banana,
+        Orange = "orange"
+      }
+
+      it("Enums", async () => {
+        const schema = Schema.Enums(Fruits)
+        await assertDraft7(schema, {
+          anyOf: [
+            { type: "number", enum: [0], title: "Apple" },
+            { type: "number", enum: [1], title: "Banana" },
+            { type: "string", enum: ["orange"], title: "Orange" }
+          ]
+        })
+      })
+
+      it("Enums & annotations", async () => {
+        const schema = Schema.Enums(Fruits).annotate({
+          title: "title",
+          description: "description",
+          documentation: "documentation",
+          default: Fruits.Apple,
+          examples: [Fruits.Banana, "orange"]
+        })
+        await assertDraft7(schema, {
+          anyOf: [
+            { type: "number", enum: [0], title: "Apple" },
+            { type: "number", enum: [1], title: "Banana" },
+            { type: "string", enum: ["orange"], title: "Orange" }
+          ],
+          title: "title",
+          description: "description",
+          documentation: "documentation",
+          default: Fruits.Apple,
+          examples: [Fruits.Banana, "orange"]
+        })
+      })
+    })
+
+    describe("TemplateLiteral", () => {
+      it("TemplateLiteral", async () => {
+        const schema = Schema.TemplateLiteral(["a", Schema.String])
+        await assertDraft7(schema, {
+          type: "string",
+          pattern: "^(a)([\\s\\S]*)$"
+        })
+      })
+
+      it("TemplateLiteral & annotations", async () => {
+        const schema = Schema.TemplateLiteral(["a", Schema.String]).annotate({
+          title: "title",
+          description: "description",
+          documentation: "documentation",
+          default: "a",
+          examples: ["a"]
+        })
+        await assertDraft7(schema, {
+          type: "string",
+          pattern: "^(a)([\\s\\S]*)$",
+          title: "title",
+          description: "description",
+          documentation: "documentation",
+          default: "a",
+          examples: ["a"]
+        })
+      })
+    })
+
+    describe("Array", () => {
+      it("Array", async () => {
+        const schema = Schema.Array(Schema.String)
+        await assertDraft7(schema, {
+          type: "array",
+          items: { type: "string" }
+        })
+      })
+
+      it("Array & annotations", async () => {
+        const schema = Schema.Array(Schema.String).annotate({
+          title: "title",
+          description: "description",
+          documentation: "documentation",
+          default: ["a"],
+          examples: [["a"]]
+        })
+        await assertDraft7(schema, {
+          type: "array",
+          items: { type: "string" },
+          title: "title",
+          description: "description",
+          documentation: "documentation",
+          default: ["a"],
+          examples: [["a"]]
+        })
+      })
+    })
+
+    it("UniqueArray", async () => {
+      const schema = Schema.UniqueArray(Schema.String)
+      await assertDraft7(schema, {
         type: "array",
         items: { type: "string" },
-        title: "title",
-        description: "description",
-        documentation: "documentation",
-        default: ["a"],
-        examples: [["a"]]
+        title: "unique",
+        uniqueItems: true
       })
     })
-  })
 
-  it("UniqueArray", () => {
-    const schema = Schema.UniqueArray(Schema.String)
-    assertDraft7(schema, {
-      type: "array",
-      items: { type: "string" },
-      title: "unique",
-      uniqueItems: true
+    describe("Tuple", () => {
+      describe("draft-07", () => {
+        it("empty tuple", async () => {
+          const schema = Schema.Tuple([])
+          await assertDraft7(schema, {
+            type: "array",
+            items: false
+          })
+        })
+
+        it("required elements", async () => {
+          const schema = Schema.Tuple([Schema.String, Schema.Number])
+          await assertDraft7(schema, {
+            type: "array",
+            items: [{ type: "string" }, { type: "number" }],
+            additionalItems: false
+          })
+        })
+
+        it("required elements & annotations", async () => {
+          const schema = Schema.Tuple([Schema.String, Schema.Number]).annotate({
+            title: "title",
+            description: "description",
+            documentation: "documentation",
+            default: ["a", 1],
+            examples: [["a", 1]]
+          })
+          await assertDraft7(schema, {
+            type: "array",
+            items: [{ type: "string" }, { type: "number" }],
+            title: "title",
+            description: "description",
+            documentation: "documentation",
+            default: ["a", 1],
+            examples: [["a", 1]],
+            additionalItems: false
+          })
+        })
+
+        it("optionalKey elements", async () => {
+          const schema = Schema.Tuple([
+            Schema.String,
+            Schema.optionalKey(Schema.Number),
+            Schema.optionalKey(Schema.Boolean)
+          ])
+          await assertDraft7(schema, {
+            type: "array",
+            items: [{ type: "string" }, { type: "number" }, { type: "boolean" }],
+            minItems: 1,
+            additionalItems: false
+          })
+        })
+
+        it("optional elements", async () => {
+          const schema = Schema.Tuple([
+            Schema.String,
+            Schema.optional(Schema.Number),
+            Schema.optional(Schema.Boolean)
+          ])
+          await assertDraft7(schema, {
+            type: "array",
+            items: [{ type: "string" }, { type: "number" }, { type: "boolean" }],
+            minItems: 1,
+            additionalItems: false
+          })
+        })
+
+        it("undefined elements", async () => {
+          const schema = Schema.Tuple([
+            Schema.String,
+            Schema.UndefinedOr(Schema.Number)
+          ])
+          await assertDraft7(schema, {
+            type: "array",
+            items: [{ type: "string" }, { type: "number" }],
+            minItems: 1,
+            additionalItems: false
+          })
+        })
+      })
     })
-  })
 
-  describe("Tuple", () => {
-    describe("draft-07", () => {
-      it("empty tuple", () => {
-        const schema = Schema.Tuple([])
-        assertDraft7(schema, {
-          type: "array",
-          items: false
+    describe("Object", () => {
+      it("required properties", async () => {
+        const schema = Schema.Struct({
+          a: Schema.String,
+          b: Schema.Number
+        })
+        await assertDraft7(schema, {
+          type: "object",
+          properties: {
+            a: { type: "string" },
+            b: { type: "number" }
+          },
+          required: ["a", "b"],
+          additionalProperties: false
         })
       })
 
-      it("required elements", () => {
-        const schema = Schema.Tuple([Schema.String, Schema.Number])
-        assertDraft7(schema, {
-          type: "array",
-          items: [{ type: "string" }, { type: "number" }],
-          additionalItems: false
+      it("additionalPropertiesStrategy: allow", async () => {
+        const schema = Schema.Struct({
+          a: Schema.String,
+          b: Schema.Number
+        })
+        await assertDraft7(schema, {
+          type: "object",
+          properties: {
+            a: { type: "string" },
+            b: { type: "number" }
+          },
+          required: ["a", "b"]
+        }, {
+          additionalPropertiesStrategy: "allow"
         })
       })
 
-      it("required elements & annotations", () => {
-        const schema = Schema.Tuple([Schema.String, Schema.Number]).annotate({
-          title: "title",
-          description: "description",
-          documentation: "documentation",
-          default: ["a", 1],
-          examples: [["a", 1]]
+      it("optionalKey properties", async () => {
+        const schema = Schema.Struct({
+          a: Schema.String,
+          b: Schema.optionalKey(Schema.Number)
         })
-        assertDraft7(schema, {
-          type: "array",
-          items: [{ type: "string" }, { type: "number" }],
-          title: "title",
-          description: "description",
-          documentation: "documentation",
-          default: ["a", 1],
-          examples: [["a", 1]],
-          additionalItems: false
+        await assertDraft7(schema, {
+          type: "object",
+          properties: {
+            a: { type: "string" },
+            b: { type: "number" }
+          },
+          required: ["a"],
+          additionalProperties: false
         })
       })
 
-      it("optionalKey elements", () => {
-        const schema = Schema.Tuple([
-          Schema.String,
-          Schema.optionalKey(Schema.Number),
-          Schema.optionalKey(Schema.Boolean)
-        ])
-        assertDraft7(schema, {
-          type: "array",
-          items: [{ type: "string" }, { type: "number" }, { type: "boolean" }],
-          minItems: 1,
-          additionalItems: false
+      it("optional properties", async () => {
+        const schema = Schema.Struct({
+          a: Schema.String,
+          b: Schema.optional(Schema.Number)
+        })
+        await assertDraft7(schema, {
+          type: "object",
+          properties: {
+            a: { type: "string" },
+            b: { type: "number" }
+          },
+          required: ["a"],
+          additionalProperties: false
+        })
+      })
+    })
+
+    describe("Record", () => {
+      it("Record(String, Number)", async () => {
+        const schema = Schema.Record(Schema.String, Schema.Number)
+        await assertDraft7(schema, {
+          type: "object",
+          properties: {},
+          required: [],
+          additionalProperties: {
+            type: "number"
+          }
         })
       })
 
-      it("optional elements", () => {
-        const schema = Schema.Tuple([
-          Schema.String,
-          Schema.optional(Schema.Number),
-          Schema.optional(Schema.Boolean)
-        ])
-        assertDraft7(schema, {
-          type: "array",
-          items: [{ type: "string" }, { type: "number" }, { type: "boolean" }],
-          minItems: 1,
-          additionalItems: false
+      it("Record(String & minLength(1), Number) & annotations", async () => {
+        const schema = Schema.Record(Schema.String.check(Check.minLength(1)), Schema.Number)
+        await assertDraft7(schema, {
+          type: "object",
+          properties: {},
+          required: [],
+          additionalProperties: {
+            type: "number"
+          }
         })
       })
 
-      it("undefined elements", () => {
-        const schema = Schema.Tuple([
-          Schema.String,
-          Schema.UndefinedOr(Schema.Number)
-        ])
-        assertDraft7(schema, {
-          type: "array",
-          items: [{ type: "string" }, { type: "number" }],
-          minItems: 1,
-          additionalItems: false
+      it("Record(`a${string}`, Number) & annotations", async () => {
+        const schema = Schema.Record(Schema.TemplateLiteral(["a", Schema.String]), Schema.Number)
+        await assertDraft7(schema, {
+          type: "object",
+          properties: {},
+          required: [],
+          patternProperties: {
+            "^(a)([\\s\\S]*)$": {
+              type: "number"
+            }
+          }
+        })
+      })
+    })
+
+    describe("Suspend", () => {
+      it("inner annotation", async () => {
+        interface A {
+          readonly a: string
+          readonly as: ReadonlyArray<A>
+        }
+        const schema = Schema.Struct({
+          a: Schema.String,
+          as: Schema.Array(Schema.suspend((): Schema.Codec<A> => schema.annotate({ id: "A" })))
+        })
+        await assertDraft7(schema, {
+          "$defs": {
+            "A": {
+              "type": "object",
+              "required": [
+                "a",
+                "as"
+              ],
+              "properties": {
+                "a": {
+                  "type": "string"
+                },
+                "as": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/A"
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "type": "object",
+          "required": [
+            "a",
+            "as"
+          ],
+          "properties": {
+            "a": {
+              "type": "string"
+            },
+            "as": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/A"
+              }
+            }
+          },
+          "additionalProperties": false
+        })
+      })
+
+      it("outer annotation", async () => {
+        interface A {
+          readonly a: string
+          readonly as: ReadonlyArray<A>
+        }
+        const schema = Schema.Struct({
+          a: Schema.String,
+          as: Schema.Array(Schema.suspend((): Schema.Codec<A> => schema).annotate({ id: "A" }))
+        })
+        await assertDraft7(schema, {
+          "$defs": {
+            "A": {
+              "type": "object",
+              "required": [
+                "a",
+                "as"
+              ],
+              "properties": {
+                "a": {
+                  "type": "string"
+                },
+                "as": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/A"
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "type": "object",
+          "required": [
+            "a",
+            "as"
+          ],
+          "properties": {
+            "a": {
+              "type": "string"
+            },
+            "as": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/A"
+              }
+            }
+          },
+          "additionalProperties": false
+        })
+      })
+
+      it("top annotation", async () => {
+        interface A {
+          readonly a: string
+          readonly as: ReadonlyArray<A>
+        }
+        const schema = Schema.Struct({
+          a: Schema.String,
+          as: Schema.Array(Schema.suspend((): Schema.Codec<A> => schema))
+        }).annotate({ id: "A" })
+        await assertDraft7(schema, {
+          "$ref": "#/$defs/A",
+          "$defs": {
+            "A": {
+              "type": "object",
+              "properties": {
+                "a": {
+                  "type": "string"
+                },
+                "as": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/A"
+                  }
+                }
+              },
+              "required": [
+                "a",
+                "as"
+              ],
+              "additionalProperties": false
+            }
+          }
+        })
+      })
+
+      it(`top annotation but topLevelReferenceStrategy === "skip"`, async () => {
+        interface A {
+          readonly a: string
+          readonly as: ReadonlyArray<A>
+        }
+        const schema = Schema.Struct({
+          a: Schema.String,
+          as: Schema.Array(Schema.suspend((): Schema.Codec<A> => schema))
+        }).annotate({ id: "A" })
+        await assertDraft7(schema, {
+          "type": "object",
+          "properties": {
+            "a": {
+              "type": "string"
+            },
+            "as": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/A"
+              }
+            }
+          },
+          "required": [
+            "a",
+            "as"
+          ],
+          "additionalProperties": false,
+          "$defs": {
+            "A": {
+              "type": "object",
+              "properties": {
+                "a": {
+                  "type": "string"
+                },
+                "as": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/A"
+                  }
+                }
+              },
+              "required": [
+                "a",
+                "as"
+              ],
+              "additionalProperties": false
+            }
+          }
+        }, {
+          topLevelReferenceStrategy: "skip"
+        })
+      })
+    })
+
+    describe("Class", () => {
+      it("Class", async () => {
+        class A extends Schema.Class<A>("A")({
+          a: Schema.String
+        }) {}
+        const schema = A
+        await assertDraft7(schema, {
+          type: "object",
+          properties: {
+            a: { type: "string" }
+          },
+          required: ["a"],
+          additionalProperties: false
+        })
+      })
+    })
+
+    describe("id", () => {
+      it(`topLevelReferenceStrategy: "skip"`, async () => {
+        const schema = Schema.String.annotate({ id: "A" })
+        await assertDraft7(schema, {
+          "type": "string"
+        }, {
+          topLevelReferenceStrategy: "skip"
+        })
+      })
+
+      describe(`topLevelReferenceStrategy: "keep" (default)`, () => {
+        it(`String & annotation`, async () => {
+          const schema = Schema.String.annotate({ id: "A" })
+          await assertDraft7(schema, {
+            "$ref": "#/$defs/A",
+            "$defs": {
+              "A": {
+                "type": "string"
+              }
+            }
+          })
+        })
+
+        it(`String & annotation & check`, async () => {
+          const schema = Schema.String.annotate({ id: "A" }).check(Check.nonEmpty())
+          await assertDraft7(schema, {
+            "type": "string",
+            "description": "a value with a length of at least 1",
+            "title": "minLength(1)",
+            "minLength": 1
+          })
+        })
+
+        it(`String & annotation & check & annotation`, async () => {
+          const schema = Schema.String.annotate({ id: "A" }).check(Check.nonEmpty({ id: "B" }))
+          await assertDraft7(schema, {
+            "$ref": "#/$defs/B",
+            "$defs": {
+              "B": {
+                "type": "string",
+                "title": "minLength(1)",
+                "description": "a value with a length of at least 1",
+                "minLength": 1
+              }
+            }
+          })
+        })
+
+        it(`String & annotation & check & annotation & check`, async () => {
+          const schema = Schema.String.annotate({ id: "A" }).check(
+            Check.nonEmpty({ id: "B" }),
+            Check.maxLength(2)
+          )
+          await assertDraft7(schema, {
+            "type": "string",
+            "allOf": [
+              {
+                "title": "maxLength(2)",
+                "description": "a value with a length of at most 2",
+                "maxLength": 2
+              }
+            ],
+            "title": "minLength(1)",
+            "description": "a value with a length of at least 1",
+            "minLength": 1
+          })
+        })
+      })
+    })
+
+    describe("Annotations", () => {
+      it("override", async () => {
+        const schema = Schema.Number.annotate({
+          jsonSchema: {
+            _tag: "override",
+            override: () => ({ type: "integer" })
+          }
+        }).check(Check.greaterThan(0))
+        await assertDraft7(schema, {
+          "type": "integer"
         })
       })
     })
   })
 
   describe("draft-2020-12", () => {
-    it("empty tuple", () => {
+    it("empty tuple", async () => {
       const schema = Schema.Tuple([])
-      assertDraft202012(schema, {
+      await assertDraft202012(schema, {
         type: "array",
         items: false
       })
     })
 
-    it("required elements", () => {
+    it("required elements", async () => {
       const schema = Schema.Tuple([Schema.String, Schema.Number])
-      assertDraft202012(schema, {
+      await assertDraft202012(schema, {
         type: "array",
         prefixItems: [{ type: "string" }, { type: "number" }],
         items: false
       })
     })
 
-    it("required elements & annotations", () => {
+    it("required elements & annotations", async () => {
       const schema = Schema.Tuple([Schema.String, Schema.Number]).annotate({
         title: "title",
         description: "description",
@@ -787,7 +1233,7 @@ describe("ToJsonSchema", () => {
         default: ["a", 1],
         examples: [["a", 1]]
       })
-      assertDraft202012(schema, {
+      await assertDraft202012(schema, {
         type: "array",
         prefixItems: [{ type: "string" }, { type: "number" }],
         title: "title",
@@ -799,13 +1245,13 @@ describe("ToJsonSchema", () => {
       })
     })
 
-    it("optionalKey elements", () => {
+    it("optionalKey elements", async () => {
       const schema = Schema.Tuple([
         Schema.String,
         Schema.optionalKey(Schema.Number),
         Schema.optionalKey(Schema.Boolean)
       ])
-      assertDraft202012(schema, {
+      await assertDraft202012(schema, {
         type: "array",
         prefixItems: [{ type: "string" }, { type: "number" }, { type: "boolean" }],
         minItems: 1,
@@ -813,13 +1259,13 @@ describe("ToJsonSchema", () => {
       })
     })
 
-    it("optional elements", () => {
+    it("optional elements", async () => {
       const schema = Schema.Tuple([
         Schema.String,
         Schema.optional(Schema.Number),
         Schema.optional(Schema.Boolean)
       ])
-      assertDraft202012(schema, {
+      await assertDraft202012(schema, {
         type: "array",
         prefixItems: [{ type: "string" }, { type: "number" }, { type: "boolean" }],
         minItems: 1,
@@ -827,12 +1273,12 @@ describe("ToJsonSchema", () => {
       })
     })
 
-    it("undefined elements", () => {
+    it("undefined elements", async () => {
       const schema = Schema.Tuple([
         Schema.String,
         Schema.UndefinedOr(Schema.Number)
       ])
-      assertDraft202012(schema, {
+      await assertDraft202012(schema, {
         type: "array",
         prefixItems: [{ type: "string" }, { type: "number" }],
         minItems: 1,
@@ -841,428 +1287,52 @@ describe("ToJsonSchema", () => {
     })
   })
 
-  describe("Object", () => {
-    it("required properties", () => {
-      const schema = Schema.Struct({
-        a: Schema.String,
-        b: Schema.Number
-      })
-      assertDraft7(schema, {
-        type: "object",
-        properties: {
-          a: { type: "string" },
-          b: { type: "number" }
-        },
-        required: ["a", "b"],
-        additionalProperties: false
-      })
-    })
-
-    it("additionalPropertiesStrategy: allow", () => {
-      const schema = Schema.Struct({
-        a: Schema.String,
-        b: Schema.Number
-      })
-      assertDraft7(schema, {
-        type: "object",
-        properties: {
-          a: { type: "string" },
-          b: { type: "number" }
-        },
-        required: ["a", "b"]
-      }, {
-        additionalPropertiesStrategy: "allow"
-      })
-    })
-
-    it("optionalKey properties", () => {
-      const schema = Schema.Struct({
-        a: Schema.String,
-        b: Schema.optionalKey(Schema.Number)
-      })
-      assertDraft7(schema, {
-        type: "object",
-        properties: {
-          a: { type: "string" },
-          b: { type: "number" }
-        },
-        required: ["a"],
-        additionalProperties: false
-      })
-    })
-
-    it("optional properties", () => {
-      const schema = Schema.Struct({
-        a: Schema.String,
-        b: Schema.optional(Schema.Number)
-      })
-      assertDraft7(schema, {
-        type: "object",
-        properties: {
-          a: { type: "string" },
-          b: { type: "number" }
-        },
-        required: ["a"],
-        additionalProperties: false
-      })
-    })
-  })
-
-  describe("Record", () => {
-    it("Record(String, Number)", () => {
-      const schema = Schema.Record(Schema.String, Schema.Number)
-      assertDraft7(schema, {
-        type: "object",
-        properties: {},
-        required: [],
-        additionalProperties: {
-          type: "number"
-        }
-      })
-    })
-
-    it("Record(String & minLength(1), Number) & annotations", () => {
-      const schema = Schema.Record(Schema.String.check(Check.minLength(1)), Schema.Number)
-      assertDraft7(schema, {
-        type: "object",
-        properties: {},
-        required: [],
-        additionalProperties: {
-          type: "number"
-        }
-      })
-    })
-
-    it("Record(`a${string}`, Number) & annotations", () => {
-      const schema = Schema.Record(Schema.TemplateLiteral(["a", Schema.String]), Schema.Number)
-      assertDraft7(schema, {
-        type: "object",
-        properties: {},
-        required: [],
-        patternProperties: {
-          "^(a)([\\s\\S]*)$": {
-            type: "number"
-          }
-        }
-      })
-    })
-  })
-
-  describe("Suspend", () => {
-    it("inner annotation", () => {
-      interface A {
-        readonly a: string
-        readonly as: ReadonlyArray<A>
-      }
-      const schema = Schema.Struct({
-        a: Schema.String,
-        as: Schema.Array(Schema.suspend((): Schema.Codec<A> => schema.annotate({ identifier: "A" })))
-      })
-      assertDraft7(schema, {
-        "$defs": {
-          "A": {
-            "type": "object",
-            "required": [
-              "a",
-              "as"
-            ],
-            "properties": {
-              "a": {
-                "type": "string"
-              },
-              "as": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/$defs/A"
-                }
-              }
-            },
-            "additionalProperties": false
-          }
-        },
-        "type": "object",
-        "required": [
-          "a",
-          "as"
-        ],
-        "properties": {
-          "a": {
-            "type": "string"
-          },
-          "as": {
-            "type": "array",
-            "items": {
-              "$ref": "#/$defs/A"
-            }
-          }
-        },
-        "additionalProperties": false
-      })
-    })
-
-    it("outer annotation", () => {
-      interface A {
-        readonly a: string
-        readonly as: ReadonlyArray<A>
-      }
-      const schema = Schema.Struct({
-        a: Schema.String,
-        as: Schema.Array(Schema.suspend((): Schema.Codec<A> => schema).annotate({ identifier: "A" }))
-      })
-      assertDraft7(schema, {
-        "$defs": {
-          "A": {
-            "type": "object",
-            "required": [
-              "a",
-              "as"
-            ],
-            "properties": {
-              "a": {
-                "type": "string"
-              },
-              "as": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/$defs/A"
-                }
-              }
-            },
-            "additionalProperties": false
-          }
-        },
-        "type": "object",
-        "required": [
-          "a",
-          "as"
-        ],
-        "properties": {
-          "a": {
-            "type": "string"
-          },
-          "as": {
-            "type": "array",
-            "items": {
-              "$ref": "#/$defs/A"
-            }
-          }
-        },
-        "additionalProperties": false
-      })
-    })
-
-    it("top annotation", () => {
-      interface A {
-        readonly a: string
-        readonly as: ReadonlyArray<A>
-      }
-      const schema = Schema.Struct({
-        a: Schema.String,
-        as: Schema.Array(Schema.suspend((): Schema.Codec<A> => schema))
-      }).annotate({ identifier: "A" })
-      assertDraft7(schema, {
-        "$ref": "#/$defs/A",
-        "$defs": {
-          "A": {
-            "type": "object",
-            "properties": {
-              "a": {
-                "type": "string"
-              },
-              "as": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/$defs/A"
-                }
-              }
-            },
-            "required": [
-              "a",
-              "as"
-            ],
-            "additionalProperties": false
-          }
-        }
-      })
-    })
-
-    it(`top annotation but topLevelReferenceStrategy === "skip"`, () => {
-      interface A {
-        readonly a: string
-        readonly as: ReadonlyArray<A>
-      }
-      const schema = Schema.Struct({
-        a: Schema.String,
-        as: Schema.Array(Schema.suspend((): Schema.Codec<A> => schema))
-      }).annotate({ identifier: "A" })
-      assertDraft7(schema, {
-        "type": "object",
-        "properties": {
-          "a": {
-            "type": "string"
-          },
-          "as": {
-            "type": "array",
-            "items": {
-              "$ref": "#/$defs/A"
-            }
-          }
-        },
-        "required": [
-          "a",
-          "as"
-        ],
-        "additionalProperties": false,
-        "$defs": {
-          "A": {
-            "type": "object",
-            "properties": {
-              "a": {
-                "type": "string"
-              },
-              "as": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/$defs/A"
-                }
-              }
-            },
-            "required": [
-              "a",
-              "as"
-            ],
-            "additionalProperties": false
-          }
-        }
-      }, {
-        topLevelReferenceStrategy: "skip"
-      })
-    })
-  })
-
-  describe("Class", () => {
-    it("Class", () => {
-      class A extends Schema.Class<A>("A")({
-        a: Schema.String
-      }) {}
-      const schema = A
-      assertDraft7(schema, {
-        type: "object",
-        properties: {
-          a: { type: "string" }
-        },
-        required: ["a"],
-        additionalProperties: false
-      })
-    })
-  })
-
-  describe("identifier", () => {
-    it(`topLevelReferenceStrategy: "skip"`, () => {
-      const schema = Schema.String.annotate({ identifier: "A" })
-      assertDraft7(schema, {
-        "type": "string"
-      }, {
-        topLevelReferenceStrategy: "skip"
-      })
-    })
-
-    describe(`topLevelReferenceStrategy: "keep" (default)`, () => {
-      it(`String & annotation`, () => {
-        const schema = Schema.String.annotate({ identifier: "A" })
-        assertDraft7(schema, {
-          "$ref": "#/$defs/A",
-          "$defs": {
-            "A": {
-              "type": "string"
-            }
-          }
-        })
-      })
-
-      it(`String & annotation & check`, () => {
-        const schema = Schema.String.annotate({ identifier: "A" }).check(Check.nonEmpty())
-        assertDraft7(schema, {
-          "type": "string",
-          "description": "a value with a length of at least 1",
-          "title": "minLength(1)",
-          "minLength": 1
-        })
-      })
-
-      it(`String & annotation & check & annotation`, () => {
-        const schema = Schema.String.annotate({ identifier: "A" }).check(Check.nonEmpty({ identifier: "B" }))
-        assertDraft7(schema, {
-          "$ref": "#/$defs/B",
-          "$defs": {
-            "B": {
-              "type": "string",
-              "title": "minLength(1)",
-              "description": "a value with a length of at least 1",
-              "minLength": 1
-            }
-          }
-        })
-      })
-
-      it(`String & annotation & check & annotation & check`, () => {
-        const schema = Schema.String.annotate({ identifier: "A" }).check(
-          Check.nonEmpty({ identifier: "B" }),
-          Check.maxLength(2)
-        )
-        assertDraft7(schema, {
-          "type": "string",
-          "allOf": [
-            {
-              "title": "maxLength(2)",
-              "description": "a value with a length of at most 2",
-              "maxLength": 2
-            }
-          ],
-          "title": "minLength(1)",
-          "description": "a value with a length of at least 1",
-          "minLength": 1
-        })
-      })
-    })
-  })
-
-  describe("override jsonSchema annotation", () => {
-    it("pre check", () => {
-      const schema = Schema.Number.annotate({
-        jsonSchema: {
-          _tag: "override",
-          override: (jsonSchema) => ({ ...jsonSchema, type: "integer" })
-        }
-      }).check(Check.greaterThan(0))
-      assertDraft7(schema, {
-        "type": "integer",
-        "description": "a value greater than 0",
-        "exclusiveMinimum": 0,
-        "title": "greaterThan(0)"
-      })
-    })
-
-    it("post check", () => {
-      const schema = Schema.Number.annotate({
-        jsonSchema: {
-          _tag: "override",
-          override: (jsonSchema) => ({ ...jsonSchema, type: "integer" })
-        }
-      }).check(Check.greaterThan(0), Check.lessThan(5))
-      assertDraft7(schema, {
-        "type": "integer",
-        "description": "a value greater than 0",
-        "exclusiveMinimum": 0,
-        "title": "greaterThan(0)",
-        "allOf": [
-          {
-            "description": "a value less than 5",
-            "exclusiveMaximum": 5,
-            "title": "lessThan(5)"
-          }
+  describe("openApi3.1", () => {
+    it("does not support null type keyword", async () => {
+      const schema = Schema.NullOr(Schema.Number)
+      await assertOpenApi3_1(schema, {
+        anyOf: [
+          { type: "number" },
+          { enum: [null] }
         ]
       })
+    })
+  })
+
+  describe("fromJsonString", () => {
+    it("nested fromJsonString", async () => {
+      const schema = Schema.fromJsonString(Schema.FiniteFromString)
+      const expected = {
+        "type": "string",
+        "contentMediaType": "application/json",
+        "contentSchema": {
+          "type": "string"
+        }
+      }
+      await assertDraft202012(schema, expected)
+      await assertOpenApi3_1(schema, expected)
+    })
+
+    it("nested fromJsonString", async () => {
+      const schema = Schema.fromJsonString(Schema.Struct({
+        a: Schema.fromJsonString(Schema.FiniteFromString)
+      }))
+      const expected = {
+        "type": "string",
+        "contentMediaType": "application/json",
+        "contentSchema": {
+          "type": "object",
+          "properties": {
+            "a": {
+              "type": "string"
+            }
+          },
+          "required": ["a"],
+          "additionalProperties": false
+        }
+      }
+      await assertDraft202012(schema, expected)
+      await assertOpenApi3_1(schema, expected)
     })
   })
 })

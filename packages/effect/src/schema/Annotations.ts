@@ -131,11 +131,7 @@ export interface Filter extends Documentation {
    * JSON Schema representation used for documentation or code generation. This
    * can be a single fragment or a list of fragments.
    */
-  readonly jsonSchema?:
-    | ToJsonSchema.Annotation.Fragment
-    | ToJsonSchema.Annotation.Fragments
-    | ToJsonSchema.Annotation.Override
-    | undefined
+  readonly jsonSchema?: ToJsonSchema.Annotation.Fragment | undefined
 
   /**
    * Optional metadata used to identify or extend the filter with custom data.

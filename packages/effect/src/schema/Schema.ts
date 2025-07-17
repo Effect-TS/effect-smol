@@ -29,6 +29,7 @@ import * as Formatter from "./Formatter.ts"
 import * as Getter from "./Getter.ts"
 import * as Issue from "./Issue.ts"
 import * as ToEquivalence from "./ToEquivalence.ts"
+import type * as ToJsonSchema from "./ToJsonSchema.ts"
 import * as ToParser from "./ToParser.ts"
 import * as Transformation from "./Transformation.ts"
 
@@ -3513,7 +3514,20 @@ export interface fromJsonString<S extends Top> extends decodeTo<S, UnknownFromJs
  * @since 4.0.0
  */
 export function fromJsonString<S extends Top>(schema: S): fromJsonString<S> {
-  return UnknownFromJsonString.pipe(decodeTo(schema))
+  return UnknownFromJsonString.pipe(decodeTo(schema)).annotate({
+    jsonSchema: {
+      _tag: "override",
+      override: (target: ToJsonSchema.Target, go: (ast: AST.AST) => object) => {
+        if (target === "openApi3.1" || target === "draft-2020-12") {
+          return {
+            "type": "string",
+            "contentMediaType": "application/json",
+            "contentSchema": go(AST.encodedAST(schema.ast))
+          }
+        }
+      }
+    }
+  })
 }
 
 /**

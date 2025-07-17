@@ -16,22 +16,14 @@ export declare namespace Annotation {
   /**
    * @since 4.0.0
    */
+  export type Type = "string" | "number" | "boolean" | "array" | "object" | "null"
+
+  /**
+   * @since 4.0.0
+   */
   export type Fragment = {
     readonly _tag: "fragment"
-    readonly fragment: object
-  }
-
-  /**
-   * @since 4.0.0
-   */
-  export type FragmentKey = "string" | "number" | "boolean" | "array" | "object" | "null"
-
-  /**
-   * @since 4.0.0
-   */
-  export type Fragments = {
-    readonly _tag: "fragments"
-    readonly fragments: { readonly [K in FragmentKey]?: Fragment["fragment"] | undefined }
+    readonly fragment: (type: Type | undefined, target: Target) => object | undefined
   }
 
   /**
@@ -39,179 +31,14 @@ export declare namespace Annotation {
    */
   export type Override = {
     readonly _tag: "override"
-    readonly override: (defaultJson: JsonSchema.JsonSchema) => JsonSchema.JsonSchema
+    readonly override: (target: Target, go: (ast: AST.AST) => object) => object | undefined
   }
 }
 
 /**
  * @since 4.0.0
  */
-function getAnnotation(
-  annotations: Annotations.Annotations | undefined
-): Annotation.Override | Annotation.Fragment | Annotation.Fragments | undefined {
-  const jsonSchema = annotations?.jsonSchema
-  if (Predicate.isObject(jsonSchema)) { // TODO: better refinement
-    return jsonSchema as any
-  }
-}
-
-/**
- * @since 4.0.0
- */
-export declare namespace JsonSchema {
-  /**
-   * @since 4.0.0
-   */
-  export interface Annotations {
-    title?: string
-    description?: string
-    documentation?: string
-    default?: unknown
-    examples?: globalThis.Array<unknown>
-  }
-
-  /**
-   * @since 4.0.0
-   */
-  export interface Any extends Annotations {}
-
-  /**
-   * @since 4.0.0
-   */
-  export interface Never extends Annotations {
-    not: {}
-  }
-
-  /**
-   * @since 4.0.0
-   */
-  export interface Null extends Annotations {
-    type: "null"
-  }
-
-  /**
-   * @since 4.0.0
-   */
-  export interface String extends Annotations {
-    type: "string"
-    minLength?: number
-    maxLength?: number
-    pattern?: string
-    format?: string
-    contentMediaType?: string
-    allOf?: globalThis.Array<
-      Annotations & {
-        minLength?: number
-        maxLength?: number
-        pattern?: string
-      }
-    >
-    enum?: globalThis.Array<string>
-  }
-
-  /**
-   * @since 4.0.0
-   */
-  export interface Number extends Annotations {
-    type: "number" | "integer"
-    minimum?: number
-    exclusiveMinimum?: number
-    maximum?: number
-    exclusiveMaximum?: number
-    multipleOf?: number
-    allOf?: globalThis.Array<
-      Annotations & {
-        minimum?: number
-        exclusiveMinimum?: number
-        maximum?: number
-        exclusiveMaximum?: number
-        multipleOf?: number
-      }
-    >
-    enum?: globalThis.Array<number>
-  }
-
-  /**
-   * @since 4.0.0
-   */
-  export interface Boolean extends Annotations {
-    type: "boolean"
-    enum?: globalThis.Array<boolean>
-  }
-
-  /**
-   * @since 4.0.0
-   */
-  export interface Array extends Annotations {
-    type: "array"
-    minItems?: number
-    prefixItems?: globalThis.Array<JsonSchema>
-    items?: false | JsonSchema | globalThis.Array<JsonSchema>
-    additionalItems?: false | JsonSchema
-    uniqueItems?: boolean
-  }
-
-  /**
-   * @since 4.0.0
-   */
-  export interface Object extends Annotations {
-    type: "object"
-    properties?: Record<string, JsonSchema>
-    required?: globalThis.Array<string>
-    additionalProperties?: false | JsonSchema
-    patternProperties?: Record<string, JsonSchema>
-  }
-
-  /**
-   * @since 4.0.0
-   */
-  export interface AnyOf extends Annotations {
-    anyOf: globalThis.Array<JsonSchema>
-  }
-
-  /**
-   * @since 4.0.0
-   */
-  export interface OneOf extends Annotations {
-    oneOf: globalThis.Array<JsonSchema>
-  }
-
-  /**
-   * @since 4.0.0
-   */
-  export interface Ref {
-    $ref: string
-  }
-
-  /**
-   * @since 4.0.0
-   */
-  export type JsonSchema =
-    | JsonSchema.Any
-    | JsonSchema.Never
-    | JsonSchema.Null
-    | JsonSchema.String
-    | JsonSchema.Number
-    | JsonSchema.Boolean
-    | JsonSchema.Array
-    | JsonSchema.Object
-    | JsonSchema.AnyOf
-    | JsonSchema.OneOf
-    | JsonSchema.Ref
-
-  /**
-   * @since 4.0.0
-   */
-  export type Root = JsonSchema & {
-    $schema?: "http://json-schema.org/draft-07/schema" | "https://json-schema.org/draft/2020-12/schema"
-    $defs?: Record<string, JsonSchema>
-  }
-}
-
-/**
- * @since 4.0.0
- */
-export type Target = "draft-07" | "draft-2020-12"
+export type Target = "draft-07" | "draft-2020-12" | "openApi3.1"
 
 /**
  * @since 4.0.0
@@ -226,39 +53,78 @@ export type TopLevelReferenceStrategy = "skip" | "keep"
 /**
  * @since 4.0.0
  */
-export type Options = {
-  readonly $defs?: Record<string, JsonSchema.JsonSchema> | undefined
+export interface BaseOptions {
+  readonly $defs?: Record<string, object> | undefined
   readonly getRef?: ((id: string) => string) | undefined
-  readonly target?: Target | undefined
   readonly additionalPropertiesStrategy?: AdditionalPropertiesStrategy | undefined
   readonly topLevelReferenceStrategy?: TopLevelReferenceStrategy | undefined
-}
-
-/** @internal */
-export function getTarget(target?: Target) {
-  return target === "draft-2020-12"
-    ? "https://json-schema.org/draft/2020-12/schema"
-    : "http://json-schema.org/draft-07/schema"
 }
 
 /**
  * @since 4.0.0
  */
-export function make<S extends Schema.Top>(schema: S, options?: Options): JsonSchema.Root {
+export interface Draft07Options extends BaseOptions {}
+
+/**
+ * @since 4.0.0
+ */
+export function makeDraft07<S extends Schema.Top>(schema: S, options?: Draft07Options): object {
+  return make(schema, { ...options, target: "draft-07" })
+}
+
+/**
+ * @since 4.0.0
+ */
+export interface Draft2020Options extends BaseOptions {}
+
+/**
+ * @since 4.0.0
+ */
+export function makeDraft2020<S extends Schema.Top>(schema: S, options?: Draft2020Options): object {
+  return make(schema, { ...options, target: "draft-2020-12" })
+}
+
+/**
+ * @since 4.0.0
+ */
+export interface OpenApi3_1Options extends BaseOptions {}
+
+/**
+ * @since 4.0.0
+ */
+export function makeOpenApi3_1<S extends Schema.Top>(schema: S, options?: OpenApi3_1Options): object {
+  return make(schema, { ...options, target: "openApi3.1" })
+}
+
+interface Options extends Draft07Options {
+  readonly target?: Target | undefined
+}
+
+function get$schema(target: Target) {
+  switch (target) {
+    case "draft-07":
+      return "http://json-schema.org/draft-07/schema"
+    case "draft-2020-12":
+    case "openApi3.1":
+      return "https://json-schema.org/draft/2020-12/schema"
+  }
+}
+
+function make<S extends Schema.Top>(schema: S, options?: Options): object {
   const $defs = options?.$defs ?? {}
   const getRef = options?.getRef ?? ((id: string) => "#/$defs/" + id)
   const target = options?.target ?? "draft-07"
   const additionalPropertiesStrategy = options?.additionalPropertiesStrategy ?? "strict"
   const topLevelReferenceStrategy = options?.topLevelReferenceStrategy ?? "keep"
-  const skipIdentifier = topLevelReferenceStrategy === "skip"
-  const out: JsonSchema.Root = {
-    $schema: getTarget(target),
-    ...go(AST.encodedAST(schema.ast), [], {
+  const skipId = topLevelReferenceStrategy === "skip"
+  const out: Record<string, unknown> = {
+    $schema: get$schema(target),
+    ...go(schema.ast, [], {
       $defs,
       getRef,
       target,
       additionalPropertiesStrategy
-    }, skipIdentifier)
+    }, skipId)
   }
   if (Object.keys($defs).length > 0) {
     out.$defs = $defs
@@ -266,9 +132,9 @@ export function make<S extends Schema.Top>(schema: S, options?: Options): JsonSc
   return out
 }
 
-function getAnnotations(annotations: Annotations.Annotations | undefined): JsonSchema.Annotations | undefined {
+function getAnnotations(annotations: Annotations.Annotations | undefined): object | undefined {
   if (annotations) {
-    const out: JsonSchema.Annotations = {}
+    const out: Record<string, unknown> = {}
     if (hasOwn(annotations, "title") && Predicate.isString(annotations.title)) {
       out.title = annotations.title
     }
@@ -290,25 +156,24 @@ function getAnnotations(annotations: Annotations.Annotations | undefined): JsonS
 
 function getAnnotationFragment(
   check: Check.Check<any>,
-  fragmentKey?: Annotation.FragmentKey
-): JsonSchema.JsonSchema | undefined {
-  const annotation = getAnnotation(check.annotations)
+  target: Target,
+  type?: Annotation.Type
+): object | undefined {
+  const annotation = check.annotations?.jsonSchema
   if (annotation) {
     switch (annotation._tag) {
       case "fragment":
-        return annotation.fragment
-      case "fragments": {
-        if (fragmentKey !== undefined) {
-          return annotation.fragments[fragmentKey]
-        }
-      }
+        return annotation.fragment(type, target)
+      case "override":
+        throw new Error("BUG: Invalid override annotation")
     }
   }
 }
 
 function getChecksFragment(
   ast: AST.AST,
-  fragmentKey?: Annotation.FragmentKey
+  target: Target,
+  type?: Annotation.Type
 ): Record<string, unknown> | undefined {
   let out: { [x: string]: unknown; allOf: globalThis.Array<unknown> } = {
     ...getAnnotations(ast.annotations),
@@ -316,7 +181,7 @@ function getChecksFragment(
   }
   if (ast.checks) {
     function go(check: Check.Check<any>) {
-      const fragment = { ...getAnnotations(check.annotations), ...getAnnotationFragment(check, fragmentKey) }
+      const fragment = { ...getAnnotations(check.annotations), ...getAnnotationFragment(check, target, type) }
       if (hasOwn(fragment, "type")) {
         out.type = fragment.type
         delete fragment.type
@@ -373,27 +238,53 @@ function getPattern(
 }
 
 type GoOptions = {
-  readonly $defs: Record<string, JsonSchema.JsonSchema>
+  readonly $defs: Record<string, object>
   readonly getRef: (id: string) => string
   readonly target: Target
   readonly additionalPropertiesStrategy: AdditionalPropertiesStrategy
 }
 
-function getIdentifier(ast: AST.AST): string | undefined {
+function getId(ast: AST.AST): string | undefined {
   if (ast.checks) {
     const last = ast.checks[ast.checks.length - 1]
-    const identifier = last.annotations?.identifier
-    if (Predicate.isString(identifier)) {
-      return identifier
+    const id = last.annotations?.id
+    if (Predicate.isString(id)) {
+      return id
     }
   } else {
-    const identifier = ast.annotations?.identifier
-    if (Predicate.isString(identifier)) {
-      return identifier
+    const id = ast.annotations?.id
+    if (Predicate.isString(id)) {
+      return id
     }
     if (AST.isSuspend(ast)) {
-      return getIdentifier(ast.thunk())
+      return getId(ast.thunk())
     }
+  }
+}
+
+function isNullTypeKeywordSupported(target: Target): boolean {
+  switch (target) {
+    case "draft-07":
+    case "draft-2020-12":
+      return true
+    case "openApi3.1":
+      return false
+  }
+}
+
+function getOverrideAnnotation(ast: AST.AST): Annotation.Override | undefined {
+  if (ast.checks) {
+    for (let i = ast.checks.length - 1; i >= 0; i--) {
+      const check = ast.checks[i]
+      const annotation = check.annotations?.jsonSchema
+      if (annotation && annotation._tag === "override") {
+        return annotation
+      }
+    }
+  }
+  const annotation = ast.annotations?.jsonSchema as Annotation.Override | Annotation.Fragment | undefined
+  if (annotation && annotation._tag === "override") {
+    return annotation
   }
 }
 
@@ -401,27 +292,32 @@ function go(
   ast: AST.AST,
   path: ReadonlyArray<PropertyKey>,
   options: GoOptions,
-  ignoreIdentifier: boolean = false,
-  ignoreJsonSchemaAnnotation: boolean = false
-): JsonSchema.JsonSchema {
-  if (!ignoreIdentifier) {
-    const identifier = getIdentifier(ast)
-    if (identifier !== undefined) {
-      if (Object.hasOwn(options.$defs, identifier)) {
-        return options.$defs[identifier]
-      } else {
-        const escapedId = identifier.replace(/~/ig, "~0").replace(/\//ig, "~1")
-        const out = { $ref: options.getRef(escapedId) }
-        options.$defs[identifier] = out
-        options.$defs[identifier] = go(ast, path, options, true)
-        return out
-      }
+  ignoreId: boolean = false
+): object {
+  const target = options.target
+  const annotation = getOverrideAnnotation(ast)
+  if (annotation) {
+    const out = annotation.override(target, (ast) => go(ast, path, options, ignoreId))
+    if (out !== undefined) {
+      return out
     }
   }
-  if (!ignoreJsonSchemaAnnotation) {
-    const annotation = getAnnotation(ast.annotations)
-    if (annotation && annotation._tag === "override") {
-      return annotation.override(go(ast, path, options, ignoreIdentifier, true))
+  if (ast.encoding) {
+    const last = ast.encoding[ast.encoding.length - 1]
+    return go(last.to, path, options, ignoreId)
+  }
+  if (!ignoreId) {
+    const id = getId(ast)
+    if (id !== undefined) {
+      if (Object.hasOwn(options.$defs, id)) {
+        return options.$defs[id]
+      } else {
+        const escapedId = id.replace(/~/ig, "~0").replace(/\//ig, "~1")
+        const out = { $ref: options.getRef(escapedId) }
+        options.$defs[id] = out
+        options.$defs[id] = go(ast, path, options, true)
+        return out
+      }
     }
   }
   switch (ast._tag) {
@@ -434,46 +330,56 @@ function go(
       throw new Error(`cannot generate JSON Schema for ${ast._tag} at ${formatPath(path) || "root"}`)
     case "UnknownKeyword":
     case "AnyKeyword":
-      return { ...getChecksFragment(ast) }
+      return { ...getChecksFragment(ast, target) }
     case "NeverKeyword":
-      return { not: {}, ...getChecksFragment(ast) }
-    case "NullKeyword":
-      return { type: "null", ...getChecksFragment(ast, "null") }
+      return { not: {}, ...getChecksFragment(ast, target) }
+    case "NullKeyword": {
+      const fragment = getChecksFragment(ast, target, "null")
+      if (isNullTypeKeywordSupported(options.target)) {
+        // https://json-schema.org/draft-07/draft-handrews-json-schema-validation-00.pdf
+        // Section 6.1.1
+        return { type: "null", ...fragment }
+      } else {
+        // OpenAPI 3.1 does not support the "null" type keyword
+        // https://swagger.io/docs/specification/v3_0/data-models/data-types/#null
+        return { enum: [null], ...fragment }
+      }
+    }
     case "StringKeyword":
-      return { type: "string", ...getChecksFragment(ast, "string") }
+      return { type: "string", ...getChecksFragment(ast, target, "string") }
     case "NumberKeyword":
-      return { type: "number", ...getChecksFragment(ast, "number") }
+      return { type: "number", ...getChecksFragment(ast, target, "number") }
     case "BooleanKeyword":
-      return { type: "boolean", ...getChecksFragment(ast, "boolean") }
+      return { type: "boolean", ...getChecksFragment(ast, target, "boolean") }
     case "ObjectKeyword":
       return {
         anyOf: [
           { type: "object" },
           { type: "array" }
         ],
-        ...getChecksFragment(ast)
+        ...getChecksFragment(ast, target)
       }
     case "LiteralType": {
       if (Predicate.isString(ast.literal)) {
-        return { type: "string", enum: [ast.literal], ...getChecksFragment(ast, "string") }
+        return { type: "string", enum: [ast.literal], ...getChecksFragment(ast, target, "string") }
       } else if (Predicate.isNumber(ast.literal)) {
-        return { type: "number", enum: [ast.literal], ...getChecksFragment(ast, "number") }
+        return { type: "number", enum: [ast.literal], ...getChecksFragment(ast, target, "number") }
       } else if (Predicate.isBoolean(ast.literal)) {
-        return { type: "boolean", enum: [ast.literal], ...getChecksFragment(ast, "boolean") }
+        return { type: "boolean", enum: [ast.literal], ...getChecksFragment(ast, target, "boolean") }
       }
       throw new Error(`cannot generate JSON Schema for ${ast._tag} at ${formatPath(path) || "root"}`)
     }
     case "Enums": {
       return {
         ...go(AST.enumsToLiterals(ast), path, options),
-        ...getChecksFragment(ast)
+        ...getChecksFragment(ast, target)
       }
     }
     case "TemplateLiteral":
       return {
         type: "string",
         pattern: AST.getTemplateLiteralRegExp(ast).source,
-        ...getChecksFragment(ast, "string")
+        ...getChecksFragment(ast, target, "string")
       }
     case "TupleType": {
       // ---------------------------------------------
@@ -484,9 +390,9 @@ function go(
           "Generating a JSON Schema for post-rest elements is not currently supported. You're welcome to contribute by submitting a Pull Request"
         )
       }
-      const out: JsonSchema.Array = {
+      const out: Record<string, unknown> = {
         type: "array",
-        ...getChecksFragment(ast, "array")
+        ...getChecksFragment(ast, target, "array")
       }
       // ---------------------------------------------
       // handle elements
@@ -525,12 +431,12 @@ function go(
             { type: "object" },
             { type: "array" }
           ],
-          ...getChecksFragment(ast)
+          ...getChecksFragment(ast, target)
         }
       }
-      const out: JsonSchema.Object = {
+      const out: any = {
         type: "object",
-        ...getChecksFragment(ast, "object")
+        ...getChecksFragment(ast, target, "object")
       }
       // ---------------------------------------------
       // handle property signatures
@@ -554,7 +460,7 @@ function go(
       if (options.additionalPropertiesStrategy === "strict") {
         out.additionalProperties = false
       }
-      const patternProperties: Record<string, JsonSchema.JsonSchema> = {}
+      const patternProperties: Record<string, object> = {}
       for (const is of ast.indexSignatures) {
         const type = go(is.type, path, options)
         const pattern = getPattern(is.parameter, path, options)
@@ -580,21 +486,19 @@ function go(
         default:
           switch (ast.mode) {
             case "anyOf":
-              return { "anyOf": members, ...getChecksFragment(ast) }
+              return { "anyOf": members, ...getChecksFragment(ast, target) }
             case "oneOf":
-              return { "oneOf": members, ...getChecksFragment(ast) }
+              return { "oneOf": members, ...getChecksFragment(ast, target) }
           }
       }
     }
     case "Suspend": {
-      const identifier = getIdentifier(ast)
-      if (identifier !== undefined) {
+      const id = getId(ast)
+      if (id !== undefined) {
         return go(ast.thunk(), path, options, true)
       }
       throw new Error(
-        `cannot generate JSON Schema for ${ast._tag} at ${
-          formatPath(path) || "root"
-        }, required \`identifier\` annotation`
+        `cannot generate JSON Schema for ${ast._tag} at ${formatPath(path) || "root"}, required \`id\` annotation`
       )
     }
   }
