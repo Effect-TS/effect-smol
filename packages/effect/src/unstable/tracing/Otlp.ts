@@ -1,14 +1,14 @@
 /**
  * @since 4.0.0
  */
-import type * as Duration from "../../Duration.js"
-import * as Layer from "../../Layer.js"
-import type * as Tracer from "../../Tracer.js"
-import type * as Headers from "../http/Headers.js"
-import type * as HttpClient from "../http/HttpClient.js"
-import * as OtlpLogger from "./OtlpLogger.js"
-import * as OtlpMetrics from "./OtlpMetrics.js"
-import * as OtlpTracer from "./OtlpTracer.js"
+import type * as Duration from "../../Duration.ts"
+import * as Layer from "../../Layer.ts"
+import type * as Tracer from "../../Tracer.ts"
+import type * as Headers from "../http/Headers.ts"
+import type * as HttpClient from "../http/HttpClient.ts"
+import * as OtlpLogger from "./OtlpLogger.ts"
+import * as OtlpMetrics from "./OtlpMetrics.ts"
+import * as OtlpTracer from "./OtlpTracer.ts"
 
 /**
  * @since 4.0.0

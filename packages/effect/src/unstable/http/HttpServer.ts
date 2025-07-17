@@ -1,20 +1,20 @@
 /**
  * @since 4.0.0
  */
-import * as Effect from "../../Effect.js"
-import { dual } from "../../Function.js"
-import * as Layer from "../../Layer.js"
-import * as FileSystem from "../../platform/FileSystem.js"
-import * as Path from "../../platform/Path.js"
-import type * as Scope from "../../Scope.js"
-import * as ServiceMap from "../../ServiceMap.js"
-import * as Etag from "./Etag.js"
-import * as HttpClient from "./HttpClient.js"
-import * as ClientRequest from "./HttpClientRequest.js"
-import type * as Middleware from "./HttpMiddleware.js"
-import * as HttpPlatform from "./HttpPlatform.js"
-import type { HttpServerRequest } from "./HttpServerRequest.js"
-import type { HttpServerResponse } from "./HttpServerResponse.js"
+import * as Effect from "../../Effect.ts"
+import { dual } from "../../Function.ts"
+import * as Layer from "../../Layer.ts"
+import * as FileSystem from "../../platform/FileSystem.ts"
+import * as Path from "../../platform/Path.ts"
+import type * as Scope from "../../Scope.ts"
+import * as ServiceMap from "../../ServiceMap.ts"
+import * as Etag from "./Etag.ts"
+import * as HttpClient from "./HttpClient.ts"
+import * as ClientRequest from "./HttpClientRequest.ts"
+import type * as Middleware from "./HttpMiddleware.ts"
+import * as HttpPlatform from "./HttpPlatform.ts"
+import type { HttpServerRequest } from "./HttpServerRequest.ts"
+import type { HttpServerResponse } from "./HttpServerResponse.ts"
 
 /**
  * @since 4.0.0

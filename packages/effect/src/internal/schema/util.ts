@@ -1,7 +1,7 @@
-import type { Pipeable } from "../../Pipeable.js"
-import { pipeArguments } from "../../Pipeable.js"
-import * as Predicate from "../../Predicate.js"
-import type * as AST from "../../schema/AST.js"
+import type { Pipeable } from "../../Pipeable.ts"
+import { pipeArguments } from "../../Pipeable.ts"
+import * as Predicate from "../../Predicate.ts"
+import type * as AST from "../../schema/AST.ts"
 
 /**
  * JavaScript does not store the insertion order of properties in a way that

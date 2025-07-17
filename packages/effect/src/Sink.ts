@@ -1,16 +1,16 @@
 /**
  * @since 2.0.0
  */
-import type { NonEmptyReadonlyArray } from "./Array.js"
-import type * as Cause from "./Cause.js"
-import * as Channel from "./Channel.js"
-import * as Effect from "./Effect.js"
-import type { LazyArg } from "./Function.js"
-import { identity } from "./Function.js"
-import { type Pipeable, pipeArguments } from "./Pipeable.js"
-import type * as Scope from "./Scope.js"
-import type * as Types from "./Types.js"
-import type * as Unify from "./Unify.js"
+import type { NonEmptyReadonlyArray } from "./Array.ts"
+import type * as Cause from "./Cause.ts"
+import * as Channel from "./Channel.ts"
+import * as Effect from "./Effect.ts"
+import type { LazyArg } from "./Function.ts"
+import { identity } from "./Function.ts"
+import { type Pipeable, pipeArguments } from "./Pipeable.ts"
+import type * as Scope from "./Scope.ts"
+import type * as Types from "./Types.ts"
+import type * as Unify from "./Unify.ts"
 
 /**
  * The type identifier for Sink.

@@ -3,11 +3,11 @@
  *
  * @since 2.0.0
  */
-import * as Equivalence from "./Equivalence.js"
-import { dual } from "./Function.js"
-import type { TypeLambda } from "./HKT.js"
-import * as order from "./Order.js"
-import type { Apply, Lambda } from "./Struct.js"
+import * as Equivalence from "./Equivalence.ts"
+import { dual } from "./Function.ts"
+import type { TypeLambda } from "./HKT.ts"
+import * as order from "./Order.ts"
+import type { Apply, Lambda } from "./Struct.ts"
 
 /**
  * A type lambda for tuples with two elements, useful for higher-kinded type operations.
@@ -589,4 +589,4 @@ export {
    * @since 3.3.0
    */
   isTupleOfAtLeast
-} from "./Predicate.js"
+} from "./Predicate.ts"

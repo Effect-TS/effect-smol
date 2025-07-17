@@ -2,11 +2,11 @@
  * @since 4.0.0
  */
 
-import type * as Effect from "../Effect.js"
-import type * as Option from "../Option.js"
-import type * as AST from "./AST.js"
-import * as Getter from "./Getter.js"
-import type * as Issue from "./Issue.js"
+import type * as Effect from "../Effect.ts"
+import type * as Option from "../Option.ts"
+import type * as AST from "./AST.ts"
+import * as Getter from "./Getter.ts"
+import type * as Issue from "./Issue.ts"
 
 /**
  * @category model

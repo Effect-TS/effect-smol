@@ -1,22 +1,22 @@
 /**
  * @since 2.0.0
  */
-import type { NoSuchElementError } from "./Cause.js"
-import * as Cause from "./Cause.js"
-import * as Deferred from "./Deferred.js"
-import * as Effect from "./Effect.js"
-import * as Exit from "./Exit.js"
-import * as Fiber from "./Fiber.js"
-import * as Filter from "./Filter.js"
-import { constVoid, dual } from "./Function.js"
-import type * as Inspectable from "./Inspectable.js"
-import { PipeInspectableProto } from "./internal/core.js"
-import * as Iterable from "./Iterable.js"
-import * as MutableHashMap from "./MutableHashMap.js"
-import * as Option from "./Option.js"
-import { type Pipeable } from "./Pipeable.js"
-import * as Predicate from "./Predicate.js"
-import type * as Scope from "./Scope.js"
+import type { NoSuchElementError } from "./Cause.ts"
+import * as Cause from "./Cause.ts"
+import * as Deferred from "./Deferred.ts"
+import * as Effect from "./Effect.ts"
+import * as Exit from "./Exit.ts"
+import * as Fiber from "./Fiber.ts"
+import * as Filter from "./Filter.ts"
+import { constVoid, dual } from "./Function.ts"
+import type * as Inspectable from "./Inspectable.ts"
+import { PipeInspectableProto } from "./internal/core.ts"
+import * as Iterable from "./Iterable.ts"
+import * as MutableHashMap from "./MutableHashMap.ts"
+import * as Option from "./Option.ts"
+import { type Pipeable } from "./Pipeable.ts"
+import * as Predicate from "./Predicate.ts"
+import type * as Scope from "./Scope.ts"
 
 /**
  * @since 2.0.0

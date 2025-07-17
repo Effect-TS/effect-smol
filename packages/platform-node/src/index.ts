@@ -5,79 +5,79 @@
 /**
  * @since 1.0.0
  */
-export * as Mime from "./Mime.js"
+export * as Mime from "./Mime.ts"
 
 /**
  * @since 1.0.0
  */
-export * as NodeFileSystem from "./NodeFileSystem.js"
+export * as NodeFileSystem from "./NodeFileSystem.ts"
 
 /**
  * @since 1.0.0
  */
-export * as NodeHttpClient from "./NodeHttpClient.js"
+export * as NodeHttpClient from "./NodeHttpClient.ts"
 
 /**
  * @since 1.0.0
  */
-export * as NodeHttpIncomingMessage from "./NodeHttpIncomingMessage.js"
+export * as NodeHttpIncomingMessage from "./NodeHttpIncomingMessage.ts"
 
 /**
  * @since 1.0.0
  */
-export * as NodeHttpPlatform from "./NodeHttpPlatform.js"
+export * as NodeHttpPlatform from "./NodeHttpPlatform.ts"
 
 /**
  * @since 1.0.0
  */
-export * as NodeHttpServer from "./NodeHttpServer.js"
+export * as NodeHttpServer from "./NodeHttpServer.ts"
 
 /**
  * @since 1.0.0
  */
-export * as NodeHttpServerRequest from "./NodeHttpServerRequest.js"
+export * as NodeHttpServerRequest from "./NodeHttpServerRequest.ts"
 
 /**
  * @since 1.0.0
  */
-export * as NodeMultipart from "./NodeMultipart.js"
+export * as NodeMultipart from "./NodeMultipart.ts"
 
 /**
  * @since 1.0.0
  */
-export * as NodePath from "./NodePath.js"
+export * as NodePath from "./NodePath.ts"
 
 /**
  * @since 1.0.0
  */
-export * as NodeRuntime from "./NodeRuntime.js"
+export * as NodeRuntime from "./NodeRuntime.ts"
 
 /**
  * @since 1.0.0
  */
-export * as NodeServices from "./NodeServices.js"
+export * as NodeServices from "./NodeServices.ts"
 
 /**
  * @since 1.0.0
  */
-export * as NodeSink from "./NodeSink.js"
+export * as NodeSink from "./NodeSink.ts"
 
 /**
  * @since 1.0.0
  */
-export * as NodeSocket from "./NodeSocket.js"
+export * as NodeSocket from "./NodeSocket.ts"
 
 /**
  * @since 1.0.0
  */
-export * as NodeSocketServer from "./NodeSocketServer.js"
+export * as NodeSocketServer from "./NodeSocketServer.ts"
 
 /**
  * @since 1.0.0
  */
-export * as NodeStream from "./NodeStream.js"
+export * as NodeStream from "./NodeStream.ts"
 
 /**
  * @since 1.0.0
  */
-export * as Undici from "./Undici.js"
+export * as Undici from "./Undici.ts"

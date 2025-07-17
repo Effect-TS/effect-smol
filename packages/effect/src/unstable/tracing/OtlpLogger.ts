@@ -1,20 +1,20 @@
 /**
  * @since 4.0.0
  */
-import * as Arr from "../../Array.js"
-import * as Cause from "../../Cause.js"
-import * as Duration from "../../Duration.js"
-import * as Effect from "../../Effect.js"
-import * as Exporter from "../../internal/tracing/otlpExporter.js"
-import type * as Layer from "../../Layer.js"
-import * as Logger from "../../Logger.js"
-import type * as LogLevel from "../../LogLevel.js"
-import { CurrentLogAnnotations, CurrentLogSpans } from "../../References.js"
-import type * as Scope from "../../Scope.js"
-import type * as Headers from "../http/Headers.js"
-import type * as HttpClient from "../http/HttpClient.js"
-import type { AnyValue, Fixed64, KeyValue, Resource } from "./OtlpResource.js"
-import * as OtlpResource from "./OtlpResource.js"
+import * as Arr from "../../Array.ts"
+import * as Cause from "../../Cause.ts"
+import * as Duration from "../../Duration.ts"
+import * as Effect from "../../Effect.ts"
+import * as Exporter from "../../internal/tracing/otlpExporter.ts"
+import type * as Layer from "../../Layer.ts"
+import * as Logger from "../../Logger.ts"
+import type * as LogLevel from "../../LogLevel.ts"
+import { CurrentLogAnnotations, CurrentLogSpans } from "../../References.ts"
+import type * as Scope from "../../Scope.ts"
+import type * as Headers from "../http/Headers.ts"
+import type * as HttpClient from "../http/HttpClient.ts"
+import type { AnyValue, Fixed64, KeyValue, Resource } from "./OtlpResource.ts"
+import * as OtlpResource from "./OtlpResource.ts"
 
 /**
  * @since 4.0.0

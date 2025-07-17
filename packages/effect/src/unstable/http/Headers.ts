@@ -1,20 +1,20 @@
 /**
  * @since 4.0.0
  */
-import * as Equal from "../../Equal.js"
-import type { Equivalence as Equivalence_ } from "../../Equivalence.js"
-import { dual } from "../../Function.js"
-import * as Hash from "../../Hash.js"
-import { type Redactable, symbolRedactable } from "../../Inspectable.js"
-import type * as Option from "../../Option.js"
-import * as Predicate from "../../Predicate.js"
-import * as Record from "../../Record.js"
-import * as Redacted from "../../Redacted.js"
-import * as Schema from "../../schema/Schema.js"
-import * as Transformation from "../../schema/Transformation.js"
-import * as ServiceMap from "../../ServiceMap.js"
-import * as String from "../../String.js"
-import type { Mutable } from "../../Types.js"
+import * as Equal from "../../Equal.ts"
+import type { Equivalence as Equivalence_ } from "../../Equivalence.ts"
+import { dual } from "../../Function.ts"
+import * as Hash from "../../Hash.ts"
+import { type Redactable, symbolRedactable } from "../../Inspectable.ts"
+import type * as Option from "../../Option.ts"
+import * as Predicate from "../../Predicate.ts"
+import * as Record from "../../Record.ts"
+import * as Redacted from "../../Redacted.ts"
+import * as Schema from "../../schema/Schema.ts"
+import * as Transformation from "../../schema/Transformation.ts"
+import * as ServiceMap from "../../ServiceMap.ts"
+import * as String from "../../String.ts"
+import type { Mutable } from "../../Types.ts"
 
 /**
  * @since 4.0.0

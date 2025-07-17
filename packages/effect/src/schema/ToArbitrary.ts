@@ -1,14 +1,14 @@
 /**
  * @since 4.0.0
  */
-import * as Array from "../Array.js"
-import * as FastCheck from "../FastCheck.js"
-import { defaultParseOptions, memoizeThunk } from "../internal/schema/util.js"
-import * as Option from "../Option.js"
-import * as Predicate from "../Predicate.js"
-import * as AST from "./AST.js"
-import type * as Check from "./Check.js"
-import type * as Schema from "./Schema.js"
+import * as Array from "../Array.ts"
+import * as FastCheck from "../FastCheck.ts"
+import { defaultParseOptions, memoizeThunk } from "../internal/schema/util.ts"
+import * as Option from "../Option.ts"
+import * as Predicate from "../Predicate.ts"
+import * as AST from "./AST.ts"
+import type * as Check from "./Check.ts"
+import type * as Schema from "./Schema.ts"
 
 /**
  * @since 4.0.0

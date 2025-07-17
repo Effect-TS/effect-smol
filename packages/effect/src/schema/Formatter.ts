@@ -2,17 +2,17 @@
  * @since 4.0.0
  */
 import type { StandardSchemaV1 } from "@standard-schema/spec"
-import * as Cause from "../Cause.js"
-import * as Effect from "../Effect.js"
-import { formatPath, formatUnknown } from "../internal/schema/util.js"
-import * as Option from "../Option.js"
-import * as Predicate from "../Predicate.js"
-import type * as Annotations from "./Annotations.js"
-import * as AST from "./AST.js"
-import * as Check from "./Check.js"
-import type * as Issue from "./Issue.js"
-import type * as Schema from "./Schema.js"
-import * as ToParser from "./ToParser.js"
+import * as Cause from "../Cause.ts"
+import * as Effect from "../Effect.ts"
+import { formatPath, formatUnknown } from "../internal/schema/util.ts"
+import * as Option from "../Option.ts"
+import * as Predicate from "../Predicate.ts"
+import type * as Annotations from "./Annotations.ts"
+import * as AST from "./AST.ts"
+import * as Check from "./Check.ts"
+import type * as Issue from "./Issue.ts"
+import type * as Schema from "./Schema.ts"
+import * as ToParser from "./ToParser.ts"
 
 /**
  * @category Model

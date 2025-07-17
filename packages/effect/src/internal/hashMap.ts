@@ -2,16 +2,16 @@
  * @since 2.0.0
  */
 
-import * as Equal_ from "../Equal.js"
-import { dual, pipe } from "../Function.js"
-import * as Hash from "../Hash.js"
-import type { Inspectable } from "../Inspectable.js"
-import { format, NodeInspectSymbol, toJSON } from "../Inspectable.js"
-import * as Option from "../Option.js"
-import type { Pipeable } from "../Pipeable.js"
-import { pipeArguments } from "../Pipeable.js"
-import { hasProperty } from "../Predicate.js"
-import type { NoInfer } from "../Types.js"
+import * as Equal_ from "../Equal.ts"
+import { dual, pipe } from "../Function.ts"
+import * as Hash from "../Hash.ts"
+import type { Inspectable } from "../Inspectable.ts"
+import { format, NodeInspectSymbol, toJSON } from "../Inspectable.ts"
+import * as Option from "../Option.ts"
+import type { Pipeable } from "../Pipeable.ts"
+import { pipeArguments } from "../Pipeable.ts"
+import { hasProperty } from "../Predicate.ts"
+import type { NoInfer } from "../Types.ts"
 
 /** @internal */
 export const HashMapTypeId: "~effect/HashMap" = "~effect/HashMap" as const

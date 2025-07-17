@@ -2,15 +2,15 @@
  * @since 4.0.0
  */
 
-import * as Arr from "../Array.js"
-import * as Effect from "../Effect.js"
-import * as Option from "../Option.js"
-import * as Predicate from "../Predicate.js"
-import * as AST from "./AST.js"
-import * as Getter from "./Getter.js"
-import * as Issue from "./Issue.js"
-import * as Schema from "./Schema.js"
-import * as Transformation from "./Transformation.js"
+import * as Arr from "../Array.ts"
+import * as Effect from "../Effect.ts"
+import * as Option from "../Option.ts"
+import * as Predicate from "../Predicate.ts"
+import * as AST from "./AST.ts"
+import * as Getter from "./Getter.ts"
+import * as Issue from "./Issue.ts"
+import * as Schema from "./Schema.ts"
+import * as Transformation from "./Transformation.ts"
 
 /**
  * @since 4.0.0

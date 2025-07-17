@@ -14,10 +14,10 @@
  * @since 2.0.0
  */
 
-import type { Effect } from "./Effect.js"
-import type { Exit } from "./Exit.js"
-import * as effect from "./internal/effect.js"
-import type * as ServiceMap from "./ServiceMap.js"
+import type { Effect } from "./Effect.ts"
+import type { Exit } from "./Exit.ts"
+import * as effect from "./internal/effect.ts"
+import type * as ServiceMap from "./ServiceMap.ts"
 
 /**
  * The unique identifier for the `Scope` type.

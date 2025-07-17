@@ -1,14 +1,14 @@
 /**
  * @since 1.0.0
  */
-import * as Effect from "../../Effect.js"
-import type * as Layer from "../../Layer.js"
-import * as ServiceMap from "../../ServiceMap.js"
-import * as Stream from "../../Stream.js"
-import * as Headers from "./Headers.js"
-import * as HttpClient from "./HttpClient.js"
-import { RequestError } from "./HttpClientError.js"
-import * as HttpClientResponse from "./HttpClientResponse.js"
+import * as Effect from "../../Effect.ts"
+import type * as Layer from "../../Layer.ts"
+import * as ServiceMap from "../../ServiceMap.ts"
+import * as Stream from "../../Stream.ts"
+import * as Headers from "./Headers.ts"
+import * as HttpClient from "./HttpClient.ts"
+import { RequestError } from "./HttpClientError.ts"
+import * as HttpClientResponse from "./HttpClientResponse.ts"
 
 /**
  * @since 1.0.0

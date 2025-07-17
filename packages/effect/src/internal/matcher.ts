@@ -1,4 +1,4 @@
-import { dual, identity } from "../Function.js"
+import { dual, identity } from "../Function.ts"
 import type {
   Case,
   Matcher,
@@ -9,12 +9,12 @@ import type {
   Types,
   ValueMatcher,
   When
-} from "../Match.js"
-import * as Option from "../Option.js"
-import { pipeArguments } from "../Pipeable.js"
-import type * as Predicate from "../Predicate.js"
-import * as Result from "../Result.js"
-import type { Unify } from "../Unify.js"
+} from "../Match.ts"
+import * as Option from "../Option.ts"
+import { pipeArguments } from "../Pipeable.ts"
+import type * as Predicate from "../Predicate.ts"
+import * as Result from "../Result.ts"
+import type { Unify } from "../Unify.ts"
 
 /** @internal */
 export const TypeId: MatcherTypeId = "~effect/Match/Matcher"

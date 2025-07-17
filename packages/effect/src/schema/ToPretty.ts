@@ -1,11 +1,11 @@
 /**
  * @since 4.0.0
  */
-import { formatPropertyKey, formatUnknown, memoizeThunk } from "../internal/schema/util.js"
-import * as Option from "../Option.js"
-import * as AST from "./AST.js"
-import type * as Schema from "./Schema.js"
-import * as ToParser from "./ToParser.js"
+import { formatPropertyKey, formatUnknown, memoizeThunk } from "../internal/schema/util.ts"
+import * as Option from "../Option.ts"
+import * as AST from "./AST.ts"
+import type * as Schema from "./Schema.ts"
+import * as ToParser from "./ToParser.ts"
 
 /**
  * @category model

@@ -30,17 +30,17 @@
  * @since 2.0.0
  */
 
-import type { NonEmptyArray } from "./Array.js"
-import * as Equal from "./Equal.js"
-import { dual, identity } from "./Function.js"
-import type { Option } from "./Option.js"
-import * as O from "./Option.js"
-import { isBoolean } from "./Predicate.js"
-import type * as Record from "./Record.js"
-import type { Result } from "./Result.js"
-import * as R from "./Result.js"
-import * as Tuple from "./Tuple.js"
-import type { NoInfer } from "./Types.js"
+import type { NonEmptyArray } from "./Array.ts"
+import * as Equal from "./Equal.ts"
+import { dual, identity } from "./Function.ts"
+import type { Option } from "./Option.ts"
+import * as O from "./Option.ts"
+import { isBoolean } from "./Predicate.ts"
+import type * as Record from "./Record.ts"
+import type { Result } from "./Result.ts"
+import * as R from "./Result.ts"
+import * as Tuple from "./Tuple.ts"
+import type { NoInfer } from "./Types.ts"
 
 /**
  * Creates an iterable by applying a function to consecutive integers.

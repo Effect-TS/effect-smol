@@ -1,10 +1,10 @@
 /**
  * @since 4.0.0
  */
-import * as Data from "../../Data.js"
-import type * as Effect from "../../Effect.js"
-import * as ServiceMap from "../../ServiceMap.js"
-import type * as Socket from "./Socket.js"
+import * as Data from "../../Data.ts"
+import type * as Effect from "../../Effect.ts"
+import * as ServiceMap from "../../ServiceMap.ts"
+import type * as Socket from "./Socket.ts"
 
 /**
  * @since 4.0.0

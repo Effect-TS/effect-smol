@@ -1,18 +1,18 @@
 /**
  * @since 4.0.0
  */
-import * as Data from "../../Data.js"
-import * as Effect from "../../Effect.js"
-import * as Inspectable from "../../Inspectable.js"
-import * as FileSystem from "../../platform/FileSystem.js"
-import type * as PlatformError from "../../platform/PlatformError.js"
-import * as Predicate from "../../Predicate.js"
-import type { ParseOptions } from "../../schema/AST.js"
-import type { Issue } from "../../schema/Issue.js"
-import * as Schema from "../../schema/Schema.js"
-import * as Serializer from "../../schema/Serializer.js"
-import type * as Stream_ from "../../Stream.js"
-import * as UrlParams from "./UrlParams.js"
+import * as Data from "../../Data.ts"
+import * as Effect from "../../Effect.ts"
+import * as Inspectable from "../../Inspectable.ts"
+import * as FileSystem from "../../platform/FileSystem.ts"
+import type * as PlatformError from "../../platform/PlatformError.ts"
+import * as Predicate from "../../Predicate.ts"
+import type { ParseOptions } from "../../schema/AST.ts"
+import type { Issue } from "../../schema/Issue.ts"
+import * as Schema from "../../schema/Schema.ts"
+import * as Serializer from "../../schema/Serializer.ts"
+import type * as Stream_ from "../../Stream.ts"
+import * as UrlParams from "./UrlParams.ts"
 
 /**
  * @since 4.0.0

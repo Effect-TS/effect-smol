@@ -2,22 +2,22 @@
  * @since 4.0.0
  */
 
-import * as Arr from "../Array.js"
-import * as Effect from "../Effect.js"
-import * as internalRecord from "../internal/record.js"
-import { formatPropertyKey, memoizeThunk, ownKeys } from "../internal/schema/util.js"
-import * as Option from "../Option.js"
-import * as Predicate from "../Predicate.js"
-import * as RegEx from "../RegExp.js"
-import * as Result from "../Result.js"
-import type { Annotated } from "./Annotations.js"
-import type * as Annotations from "./Annotations.js"
-import type * as Check from "./Check.js"
-import * as Getter from "./Getter.js"
-import * as Issue from "./Issue.js"
-import type * as Schema from "./Schema.js"
-import type * as ToParser from "./ToParser.js"
-import * as Transformation_ from "./Transformation.js"
+import * as Arr from "../Array.ts"
+import * as Effect from "../Effect.ts"
+import * as internalRecord from "../internal/record.ts"
+import { formatPropertyKey, memoizeThunk, ownKeys } from "../internal/schema/util.ts"
+import * as Option from "../Option.ts"
+import * as Predicate from "../Predicate.ts"
+import * as RegEx from "../RegExp.ts"
+import * as Result from "../Result.ts"
+import type { Annotated } from "./Annotations.ts"
+import type * as Annotations from "./Annotations.ts"
+import type * as Check from "./Check.ts"
+import * as Getter from "./Getter.ts"
+import * as Issue from "./Issue.ts"
+import type * as Schema from "./Schema.ts"
+import type * as ToParser from "./ToParser.ts"
+import * as Transformation_ from "./Transformation.ts"
 
 /**
  * @category model

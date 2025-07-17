@@ -28,13 +28,13 @@
  *
  * @since 2.0.0
  */
-import * as Effect from "./Effect.js"
-import { dual, identity } from "./Function.js"
-import { PipeInspectableProto } from "./internal/core.js"
-import * as MutableRef from "./MutableRef.js"
-import type * as Option from "./Option.js"
-import type { Invariant } from "./Types.js"
-import type * as Unify from "./Unify.js"
+import * as Effect from "./Effect.ts"
+import { dual, identity } from "./Function.ts"
+import { PipeInspectableProto } from "./internal/core.ts"
+import * as MutableRef from "./MutableRef.ts"
+import type * as Option from "./Option.ts"
+import type { Invariant } from "./Types.ts"
+import type * as Unify from "./Unify.ts"
 
 /**
  * The type identifier for Ref values.

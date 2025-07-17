@@ -1,17 +1,17 @@
 /**
  * @since 4.0.0
  */
-import * as Effect from "../../Effect.js"
-import { identity } from "../../Function.js"
-import * as Layer from "../../Layer.js"
-import * as FileSystem from "../../platform/FileSystem.js"
-import type { PlatformError } from "../../platform/PlatformError.js"
-import * as ServiceMap from "../../ServiceMap.js"
-import * as Stream from "../../Stream.js"
-import * as Etag from "./Etag.js"
-import * as Headers from "./Headers.js"
-import type * as Body from "./HttpBody.js"
-import * as Response from "./HttpServerResponse.js"
+import * as Effect from "../../Effect.ts"
+import { identity } from "../../Function.ts"
+import * as Layer from "../../Layer.ts"
+import * as FileSystem from "../../platform/FileSystem.ts"
+import type { PlatformError } from "../../platform/PlatformError.ts"
+import * as ServiceMap from "../../ServiceMap.ts"
+import * as Stream from "../../Stream.ts"
+import * as Etag from "./Etag.ts"
+import * as Headers from "./Headers.ts"
+import type * as Body from "./HttpBody.ts"
+import * as Response from "./HttpServerResponse.ts"
 
 /**
  * @since 4.0.0

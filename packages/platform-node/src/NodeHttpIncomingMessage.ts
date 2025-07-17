@@ -9,7 +9,7 @@ import * as Headers from "effect/unstable/http/Headers"
 import * as IncomingMessage from "effect/unstable/http/HttpIncomingMessage"
 import * as UrlParams from "effect/unstable/http/UrlParams"
 import type * as Http from "node:http"
-import * as NodeStream from "./NodeStream.js"
+import * as NodeStream from "./NodeStream.ts"
 
 /**
  * @since 1.0.0

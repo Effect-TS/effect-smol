@@ -1,12 +1,12 @@
-import type { NonEmptyArray } from "../Array.js"
-import type * as Request from "../batching/Request.js"
-import { makeEntry } from "../batching/Request.js"
-import type { RequestResolver } from "../batching/RequestResolver.js"
-import type { Effect } from "../Effect.js"
-import type { Fiber } from "../Fiber.js"
-import { dual } from "../Function.js"
-import { exitDie, isEffect } from "./core.js"
-import * as effect from "./effect.js"
+import type { NonEmptyArray } from "../Array.ts"
+import type * as Request from "../batching/Request.ts"
+import { makeEntry } from "../batching/Request.ts"
+import type { RequestResolver } from "../batching/RequestResolver.ts"
+import type { Effect } from "../Effect.ts"
+import type { Fiber } from "../Fiber.ts"
+import { dual } from "../Function.ts"
+import { exitDie, isEffect } from "./core.ts"
+import * as effect from "./effect.ts"
 
 /** @internal */
 export const request: {

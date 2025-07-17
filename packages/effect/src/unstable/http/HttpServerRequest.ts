@@ -1,27 +1,27 @@
 /**
  * @since 4.0.0
  */
-import type * as Arr from "../../Array.js"
-import * as Channel from "../../Channel.js"
-import * as Effect from "../../Effect.js"
-import * as Inspectable from "../../Inspectable.js"
-import * as Option from "../../Option.js"
-import type * as FileSystem from "../../platform/FileSystem.js"
-import type * as Path from "../../platform/Path.js"
-import type { ReadonlyRecord } from "../../Record.js"
-import type { ParseOptions } from "../../schema/AST.js"
-import * as Schema from "../../schema/Schema.js"
-import type * as Scope from "../../Scope.js"
-import * as ServiceMap from "../../ServiceMap.js"
-import * as Stream from "../../Stream.js"
-import * as Socket from "../socket/Socket.js"
-import * as Cookies from "./Cookies.js"
-import * as Headers from "./Headers.js"
-import * as HttpIncomingMessage from "./HttpIncomingMessage.js"
-import type { HttpMethod } from "./HttpMethod.js"
-import { type HttpServerError, RequestError } from "./HttpServerError.js"
-import * as Multipart from "./Multipart.js"
-import * as UrlParams from "./UrlParams.js"
+import type * as Arr from "../../Array.ts"
+import * as Channel from "../../Channel.ts"
+import * as Effect from "../../Effect.ts"
+import * as Inspectable from "../../Inspectable.ts"
+import * as Option from "../../Option.ts"
+import type * as FileSystem from "../../platform/FileSystem.ts"
+import type * as Path from "../../platform/Path.ts"
+import type { ReadonlyRecord } from "../../Record.ts"
+import type { ParseOptions } from "../../schema/AST.ts"
+import * as Schema from "../../schema/Schema.ts"
+import type * as Scope from "../../Scope.ts"
+import * as ServiceMap from "../../ServiceMap.ts"
+import * as Stream from "../../Stream.ts"
+import * as Socket from "../socket/Socket.ts"
+import * as Cookies from "./Cookies.ts"
+import * as Headers from "./Headers.ts"
+import * as HttpIncomingMessage from "./HttpIncomingMessage.ts"
+import type { HttpMethod } from "./HttpMethod.ts"
+import { type HttpServerError, RequestError } from "./HttpServerError.ts"
+import * as Multipart from "./Multipart.ts"
+import * as UrlParams from "./UrlParams.ts"
 
 export {
   /**
@@ -29,7 +29,7 @@ export {
    * @category fiber refs
    */
   MaxBodySize
-} from "./HttpIncomingMessage.js"
+} from "./HttpIncomingMessage.ts"
 
 /**
  * @since 4.0.0

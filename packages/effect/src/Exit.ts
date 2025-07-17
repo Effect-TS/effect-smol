@@ -9,13 +9,13 @@
  *
  * @since 2.0.0
  */
-import type * as Cause from "./Cause.js"
-import type * as Effect from "./Effect.js"
-import type * as Filter from "./Filter.js"
-import * as core from "./internal/core.js"
-import * as effect from "./internal/effect.js"
-import type { version } from "./internal/version.js"
-import type { NoInfer } from "./Types.js"
+import type * as Cause from "./Cause.ts"
+import type * as Effect from "./Effect.ts"
+import type * as Filter from "./Filter.ts"
+import * as core from "./internal/core.ts"
+import * as effect from "./internal/effect.ts"
+import type { version } from "./internal/version.ts"
+import type { NoInfer } from "./Types.ts"
 
 /**
  * @example

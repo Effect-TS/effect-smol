@@ -1,10 +1,10 @@
 /**
  * @since 4.0.0
  */
-import * as Effect from "../../Effect.js"
-import * as Exit from "../../Exit.js"
-import * as Option from "../../Option.js"
-import * as Stream from "../../Stream.js"
+import * as Effect from "../../Effect.ts"
+import * as Exit from "../../Exit.ts"
+import * as Option from "../../Option.ts"
+import * as Stream from "../../Stream.ts"
 
 /**
  * @category models

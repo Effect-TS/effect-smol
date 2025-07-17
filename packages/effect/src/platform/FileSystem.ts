@@ -36,20 +36,20 @@
  *
  * @since 4.0.0
  */
-import * as Arr from "../Array.js"
-import * as Brand from "../Brand.js"
-import * as Data from "../Data.js"
-import * as Effect from "../Effect.js"
-import { pipe } from "../Function.js"
-import * as Layer from "../Layer.js"
-import * as Option from "../Option.js"
-import * as Pull from "../Pull.js"
-import type { Scope } from "../Scope.js"
-import * as ServiceMap from "../ServiceMap.js"
-import * as Sink from "../Sink.js"
-import * as Stream from "../Stream.js"
-import type { PlatformError } from "./PlatformError.js"
-import { BadArgument, SystemError } from "./PlatformError.js"
+import * as Arr from "../Array.ts"
+import * as Brand from "../Brand.ts"
+import * as Data from "../Data.ts"
+import * as Effect from "../Effect.ts"
+import { pipe } from "../Function.ts"
+import * as Layer from "../Layer.ts"
+import * as Option from "../Option.ts"
+import * as Pull from "../Pull.ts"
+import type { Scope } from "../Scope.ts"
+import * as ServiceMap from "../ServiceMap.ts"
+import * as Sink from "../Sink.ts"
+import * as Stream from "../Stream.ts"
+import type { PlatformError } from "./PlatformError.ts"
+import { BadArgument, SystemError } from "./PlatformError.ts"
 
 /**
  * The type identifier for the FileSystem service.

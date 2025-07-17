@@ -2,13 +2,13 @@
  * @since 4.0.0
  */
 
-import type * as AST from "./AST.js"
-import type * as Issue from "./Issue.js"
-import type * as Schema from "./Schema.js"
-import type * as ToArbitarary from "./ToArbitrary.js"
-import type * as ToEquivalence from "./ToEquivalence.js"
-import type * as ToJsonSchema from "./ToJsonSchema.js"
-import type * as ToPretty from "./ToPretty.js"
+import type * as AST from "./AST.ts"
+import type * as Issue from "./Issue.ts"
+import type * as Schema from "./Schema.ts"
+import type * as ToArbitarary from "./ToArbitrary.ts"
+import type * as ToEquivalence from "./ToEquivalence.ts"
+import type * as ToJsonSchema from "./ToJsonSchema.ts"
+import type * as ToPretty from "./ToPretty.ts"
 
 /**
  * @category Model

@@ -13,7 +13,7 @@ import * as NFS from "node:fs"
 import type { IncomingHttpHeaders } from "node:http"
 import type { Readable } from "node:stream"
 import * as NodeStreamP from "node:stream/promises"
-import * as NodeStream from "./NodeStream.js"
+import * as NodeStream from "./NodeStream.ts"
 
 /**
  * @since 1.0.0

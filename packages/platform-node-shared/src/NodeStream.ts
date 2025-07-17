@@ -17,7 +17,7 @@ import * as ServiceMap from "effect/ServiceMap"
 import * as Stream from "effect/Stream"
 import type { Duplex } from "node:stream"
 import { Readable } from "node:stream"
-import { pullIntoWritable } from "./NodeSink.js"
+import { pullIntoWritable } from "./NodeSink.ts"
 
 /**
  * @category constructors

@@ -2,7 +2,7 @@ import { Effect, Option } from "effect"
 import type { AST } from "effect/schema"
 import { Check, Formatter, Getter, Issue, Schema, ToParser } from "effect/schema"
 import { describe, it } from "vitest"
-import { assertions } from "../utils/schema.js"
+import { assertions } from "../utils/schema.ts"
 
 const assertStructuredIssue = async <T, E>(
   schema: Schema.Codec<T, E>,

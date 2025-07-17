@@ -1,13 +1,13 @@
 /**
  * @since 4.0.0
  */
-import * as Equal from "../Equal.js"
-import * as Equivalence from "../Equivalence.js"
-import { memoizeThunk } from "../internal/schema/util.js"
-import * as Predicate from "../Predicate.js"
-import * as AST from "./AST.js"
-import type * as Schema from "./Schema.js"
-import * as ToParser from "./ToParser.js"
+import * as Equal from "../Equal.ts"
+import * as Equivalence from "../Equivalence.ts"
+import { memoizeThunk } from "../internal/schema/util.ts"
+import * as Predicate from "../Predicate.ts"
+import * as AST from "./AST.ts"
+import type * as Schema from "./Schema.ts"
+import * as ToParser from "./ToParser.ts"
 
 /**
  * @since 4.0.0

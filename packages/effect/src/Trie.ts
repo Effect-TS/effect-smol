@@ -15,12 +15,12 @@
  *
  * @since 2.0.0
  */
-import type { Equal } from "./Equal.js"
-import type { Inspectable } from "./Inspectable.js"
-import * as TR from "./internal/trie.js"
-import type { Option } from "./Option.js"
-import type { Pipeable } from "./Pipeable.js"
-import type { Covariant, NoInfer } from "./Types.js"
+import type { Equal } from "./Equal.ts"
+import type { Inspectable } from "./Inspectable.ts"
+import * as TR from "./internal/trie.ts"
+import type { Option } from "./Option.ts"
+import type { Pipeable } from "./Pipeable.ts"
+import type { Covariant, NoInfer } from "./Types.ts"
 
 const TypeId: TypeId = "~effect/Trie"
 

@@ -5,14 +5,14 @@
 /**
  * @since 4.0.0
  */
-export * as Config from "./Config.js"
+export * as Config from "./Config.ts"
 
 /**
  * @since 4.0.0
  */
-export * as ConfigError from "./ConfigError.js"
+export * as ConfigError from "./ConfigError.ts"
 
 /**
  * @since 4.0.0
  */
-export * as ConfigProvider from "./ConfigProvider.js"
+export * as ConfigProvider from "./ConfigProvider.ts"

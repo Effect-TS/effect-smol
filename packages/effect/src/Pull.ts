@@ -1,13 +1,13 @@
 /**
  * @since 4.0.0
  */
-import * as Cause from "./Cause.js"
-import type { Effect } from "./Effect.js"
-import * as Exit from "./Exit.js"
-import * as Filter from "./Filter.js"
-import { dual } from "./Function.js"
-import * as internalEffect from "./internal/effect.js"
-import { hasProperty } from "./Predicate.js"
+import * as Cause from "./Cause.ts"
+import type { Effect } from "./Effect.ts"
+import * as Exit from "./Exit.ts"
+import * as Filter from "./Filter.ts"
+import { dual } from "./Function.ts"
+import * as internalEffect from "./internal/effect.ts"
+import { hasProperty } from "./Predicate.ts"
 
 /**
  * A Pull is a specialized Effect that represents a pull-based stream operation.

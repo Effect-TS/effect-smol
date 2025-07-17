@@ -7,17 +7,17 @@
  *
  * @since 4.0.0
  */
-import type { EffectIterator, Yieldable } from "./Effect.js"
-import * as Equal from "./Equal.js"
-import { constant, dual, type LazyArg } from "./Function.js"
-import * as Hash from "./Hash.js"
-import type { Inspectable } from "./Inspectable.js"
-import { exitSucceed, PipeInspectableProto, withFiber, YieldableProto } from "./internal/core.js"
+import type { EffectIterator, Yieldable } from "./Effect.ts"
+import * as Equal from "./Equal.ts"
+import { constant, dual, type LazyArg } from "./Function.ts"
+import * as Hash from "./Hash.ts"
+import type { Inspectable } from "./Inspectable.ts"
+import { exitSucceed, PipeInspectableProto, withFiber, YieldableProto } from "./internal/core.ts"
 import type { ErrorWithStackTraceLimit } from "./internal/tracer.ts"
-import * as Option from "./Option.js"
-import type { Pipeable } from "./Pipeable.js"
-import { hasProperty } from "./Predicate.js"
-import type * as Types from "./Types.js"
+import * as Option from "./Option.ts"
+import type { Pipeable } from "./Pipeable.ts"
+import { hasProperty } from "./Predicate.ts"
+import type * as Types from "./Types.ts"
 
 /**
  * @since 4.0.0

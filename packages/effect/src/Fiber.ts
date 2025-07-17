@@ -72,17 +72,17 @@
  *
  * @since 2.0.0
  */
-import type { Effect } from "./Effect.js"
-import type { Exit } from "./Exit.js"
-import * as effect from "./internal/effect.js"
-import { version } from "./internal/version.js"
-import type { Pipeable } from "./Pipeable.js"
-import { hasProperty } from "./Predicate.js"
-import type { Scheduler } from "./Scheduler.js"
-import type { Scope } from "./Scope.js"
-import type * as ServiceMap from "./ServiceMap.js"
-import type { AnySpan, Span } from "./Tracer.js"
-import type { Covariant } from "./Types.js"
+import type { Effect } from "./Effect.ts"
+import type { Exit } from "./Exit.ts"
+import * as effect from "./internal/effect.ts"
+import { version } from "./internal/version.ts"
+import type { Pipeable } from "./Pipeable.ts"
+import { hasProperty } from "./Predicate.ts"
+import type { Scheduler } from "./Scheduler.ts"
+import type { Scope } from "./Scope.ts"
+import type * as ServiceMap from "./ServiceMap.ts"
+import type { AnySpan, Span } from "./Tracer.ts"
+import type { Covariant } from "./Types.ts"
 
 /**
  * A unique identifier used to brand Fiber types.

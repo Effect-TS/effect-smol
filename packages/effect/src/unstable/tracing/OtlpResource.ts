@@ -1,9 +1,9 @@
 /**
  * @since 4.0.0
  */
-import * as Config from "../../config/Config.js"
-import * as Effect from "../../Effect.js"
-import * as Inspectable from "../../Inspectable.js"
+import * as Config from "../../config/Config.ts"
+import * as Effect from "../../Effect.ts"
+import * as Inspectable from "../../Inspectable.ts"
 
 /**
  * @since 4.0.0

@@ -6,14 +6,14 @@
  *
  * @since 3.3.0
  */
-import * as Equal from "./Equal.js"
-import * as Equivalence from "./Equivalence.js"
-import * as Hash from "./Hash.js"
-import { PipeInspectableProto } from "./internal/core.js"
-import { redactedRegistry } from "./internal/redacted.js"
-import type { Pipeable } from "./Pipeable.js"
-import { hasProperty } from "./Predicate.js"
-import type { Covariant } from "./Types.js"
+import * as Equal from "./Equal.ts"
+import * as Equivalence from "./Equivalence.ts"
+import * as Hash from "./Hash.ts"
+import { PipeInspectableProto } from "./internal/core.ts"
+import { redactedRegistry } from "./internal/redacted.ts"
+import type { Pipeable } from "./Pipeable.ts"
+import { hasProperty } from "./Predicate.ts"
+import type { Covariant } from "./Types.ts"
 
 /**
  * @example

@@ -1,22 +1,22 @@
 /**
  * @since 4.0.0
  */
-import * as Arr from "../Array.js"
-import * as Cause from "../Cause.js"
-import * as Effect from "../Effect.js"
-import { constant, dual, identity } from "../Function.js"
-import { toStringUnknown } from "../Inspectable.js"
-import { PipeInspectableProto } from "../internal/core.js"
-import * as Layer from "../Layer.js"
-import type { Pipeable } from "../Pipeable.js"
-import * as FileSystem from "../platform/FileSystem.js"
-import * as Path from "../platform/Path.js"
-import type { PlatformError } from "../platform/PlatformError.js"
-import { hasProperty } from "../Predicate.js"
-import type { Scope } from "../Scope.js"
-import * as ServiceMap from "../ServiceMap.js"
-import * as Str from "../String.js"
-import { type ConfigError, filterMissingDataOnly, MissingData, SourceError } from "./ConfigError.js"
+import * as Arr from "../Array.ts"
+import * as Cause from "../Cause.ts"
+import * as Effect from "../Effect.ts"
+import { constant, dual, identity } from "../Function.ts"
+import { toStringUnknown } from "../Inspectable.ts"
+import { PipeInspectableProto } from "../internal/core.ts"
+import * as Layer from "../Layer.ts"
+import type { Pipeable } from "../Pipeable.ts"
+import * as FileSystem from "../platform/FileSystem.ts"
+import * as Path from "../platform/Path.ts"
+import type { PlatformError } from "../platform/PlatformError.ts"
+import { hasProperty } from "../Predicate.ts"
+import type { Scope } from "../Scope.ts"
+import * as ServiceMap from "../ServiceMap.ts"
+import * as Str from "../String.ts"
+import { type ConfigError, filterMissingDataOnly, MissingData, SourceError } from "./ConfigError.ts"
 
 /**
  * @since 4.0.0

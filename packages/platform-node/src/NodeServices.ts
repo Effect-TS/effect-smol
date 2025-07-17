@@ -4,8 +4,8 @@
 import * as Layer from "effect/Layer"
 import type { FileSystem } from "effect/platform/FileSystem"
 import type { Path } from "effect/platform/Path"
-import * as NodeFileSystem from "./NodeFileSystem.js"
-import * as NodePath from "./NodePath.js"
+import * as NodeFileSystem from "./NodeFileSystem.ts"
+import * as NodePath from "./NodePath.ts"
 
 /**
  * @since 1.0.0

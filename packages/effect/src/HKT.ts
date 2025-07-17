@@ -31,7 +31,7 @@
  *
  * @since 2.0.0
  */
-import type * as Types from "./Types.js"
+import type * as Types from "./Types.ts"
 
 /**
  * A unique symbol used to identify TypeClass implementations.

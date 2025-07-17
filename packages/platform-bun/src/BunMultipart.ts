@@ -7,7 +7,7 @@ import type { Path } from "effect/platform/Path"
 import type * as Scope from "effect/Scope"
 import * as Stream from "effect/Stream"
 import * as Multipart from "effect/unstable/http/Multipart"
-import * as BunStream from "./BunStream.js"
+import * as BunStream from "./BunStream.ts"
 
 /**
  * @since 1.0.0

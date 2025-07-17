@@ -66,16 +66,16 @@
  *
  * @since 2.0.0
  */
-import type * as Cause from "./Cause.js"
-import type { Effect, Latch } from "./Effect.js"
-import type * as Exit from "./Exit.js"
-import { dual, identity, type LazyArg } from "./Function.js"
-import * as core from "./internal/core.js"
-import * as internalEffect from "./internal/effect.js"
-import * as Option from "./Option.js"
-import type { Pipeable } from "./Pipeable.js"
-import { pipeArguments } from "./Pipeable.js"
-import type * as Types from "./Types.js"
+import type * as Cause from "./Cause.ts"
+import type { Effect, Latch } from "./Effect.ts"
+import type * as Exit from "./Exit.ts"
+import { dual, identity, type LazyArg } from "./Function.ts"
+import * as core from "./internal/core.ts"
+import * as internalEffect from "./internal/effect.ts"
+import * as Option from "./Option.ts"
+import type { Pipeable } from "./Pipeable.ts"
+import { pipeArguments } from "./Pipeable.ts"
+import type * as Types from "./Types.ts"
 
 /**
  * @since 2.0.0

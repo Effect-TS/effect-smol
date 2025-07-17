@@ -6,12 +6,12 @@
  * @since 2.0.0
  */
 
-import * as equivalence from "./Equivalence.js"
-import { dual } from "./Function.js"
-import * as Option from "./Option.js"
-import * as order from "./Order.js"
-import type { Ordering } from "./Ordering.js"
-import * as predicate from "./Predicate.js"
+import * as equivalence from "./Equivalence.ts"
+import { dual } from "./Function.ts"
+import * as Option from "./Option.ts"
+import * as order from "./Order.ts"
+import type { Ordering } from "./Ordering.ts"
+import * as predicate from "./Predicate.ts"
 
 /**
  * Reference to the global BigInt constructor.

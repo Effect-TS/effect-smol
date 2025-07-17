@@ -1,11 +1,11 @@
 /**
  * @since 4.0.0
  */
-import * as Array from "./Array.js"
-import * as Console from "./Console.js"
-import * as Effect from "./Effect.js"
-import * as Layer from "./Layer.js"
-import * as Option from "./Option.js"
+import * as Array from "./Array.ts"
+import * as Console from "./Console.ts"
+import * as Effect from "./Effect.ts"
+import * as Layer from "./Layer.ts"
+import * as Option from "./Option.ts"
 
 /**
  * A `TestConsole` provides a testable implementation of the Console interface.

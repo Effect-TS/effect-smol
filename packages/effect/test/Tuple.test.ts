@@ -1,8 +1,8 @@
 import { pipe, Tuple } from "effect"
 import { Schema } from "effect/schema"
 import { describe, it } from "vitest"
-import { deepStrictEqual, strictEqual } from "./utils/assert.js"
-import { assertions } from "./utils/schema.js"
+import { deepStrictEqual, strictEqual } from "./utils/assert.ts"
+import { assertions } from "./utils/schema.ts"
 
 const tuple = ["a", 2, true] as [string, number, boolean]
 

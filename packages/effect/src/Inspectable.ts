@@ -36,9 +36,9 @@
  *
  * @since 2.0.0
  */
-import { pipeArguments } from "./Pipeable.js"
-import { hasProperty, isFunction } from "./Predicate.js"
-import type * as ServiceMap from "./ServiceMap.js"
+import { pipeArguments } from "./Pipeable.ts"
+import { hasProperty, isFunction } from "./Predicate.ts"
+import type * as ServiceMap from "./ServiceMap.ts"
 
 /**
  * Symbol used by Node.js for custom object inspection.

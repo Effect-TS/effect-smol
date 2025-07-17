@@ -1,21 +1,21 @@
 /**
  * @since 4.0.0
  */
-import * as Deferred from "../Deferred.js"
-import * as Duration from "../Duration.js"
-import type * as Effect from "../Effect.js"
-import type * as Exit from "../Exit.js"
-import type * as Fiber from "../Fiber.js"
-import { dual } from "../Function.js"
-import * as core from "../internal/core.js"
-import { PipeInspectableProto } from "../internal/core.js"
-import * as effect from "../internal/effect.js"
-import * as Iterable from "../Iterable.js"
-import * as MutableHashMap from "../MutableHashMap.js"
-import * as Option from "../Option.js"
-import type { Pipeable } from "../Pipeable.js"
-import type { Predicate } from "../Predicate.js"
-import * as ServiceMap from "../ServiceMap.js"
+import * as Deferred from "../Deferred.ts"
+import * as Duration from "../Duration.ts"
+import type * as Effect from "../Effect.ts"
+import type * as Exit from "../Exit.ts"
+import type * as Fiber from "../Fiber.ts"
+import { dual } from "../Function.ts"
+import * as core from "../internal/core.ts"
+import { PipeInspectableProto } from "../internal/core.ts"
+import * as effect from "../internal/effect.ts"
+import * as Iterable from "../Iterable.ts"
+import * as MutableHashMap from "../MutableHashMap.ts"
+import * as Option from "../Option.ts"
+import type { Pipeable } from "../Pipeable.ts"
+import type { Predicate } from "../Predicate.ts"
+import * as ServiceMap from "../ServiceMap.ts"
 
 /**
  * @since 4.0.0

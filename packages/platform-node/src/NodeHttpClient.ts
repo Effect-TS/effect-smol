@@ -22,10 +22,10 @@ import * as Http from "node:http"
 import * as Https from "node:https"
 import { Readable } from "node:stream"
 import { pipeline } from "node:stream/promises"
-import { NodeHttpIncomingMessage } from "./NodeHttpIncomingMessage.js"
-import * as NodeSink from "./NodeSink.js"
-import * as NodeStream from "./NodeStream.js"
-import * as Undici from "./Undici.js"
+import { NodeHttpIncomingMessage } from "./NodeHttpIncomingMessage.ts"
+import * as NodeSink from "./NodeSink.ts"
+import * as NodeStream from "./NodeStream.ts"
+import * as Undici from "./Undici.ts"
 
 // -----------------------------------------------------------------------------
 // Fetch

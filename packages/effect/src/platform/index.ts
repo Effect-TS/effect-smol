@@ -40,14 +40,14 @@
  *
  * @since 4.0.0
  */
-export * as FileSystem from "./FileSystem.js"
+export * as FileSystem from "./FileSystem.ts"
 
 /**
  * @since 4.0.0
  */
-export * as Path from "./Path.js"
+export * as Path from "./Path.ts"
 
 /**
  * @since 4.0.0
  */
-export * as PlatformError from "./PlatformError.js"
+export * as PlatformError from "./PlatformError.ts"

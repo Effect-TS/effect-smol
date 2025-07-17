@@ -1,10 +1,10 @@
 /**
  * @since 4.0.0
  */
-import type * as Cause from "../Cause.js"
-import * as Data from "../Data.js"
-import * as Filter from "../Filter.js"
-import { hasProperty } from "../Predicate.js"
+import type * as Cause from "../Cause.ts"
+import * as Data from "../Data.ts"
+import * as Filter from "../Filter.ts"
+import { hasProperty } from "../Predicate.ts"
 
 /**
  * @since 4.0.0

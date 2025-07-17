@@ -43,11 +43,11 @@ import type * as Net from "node:net"
 import type { Duplex } from "node:stream"
 import { Readable } from "node:stream"
 import { pipeline } from "node:stream/promises"
-import { NodeHttpIncomingMessage } from "./NodeHttpIncomingMessage.js"
-import * as NodeHttpPlatform from "./NodeHttpPlatform.js"
-import * as NodeMultipart from "./NodeMultipart.js"
-import * as NodeServices from "./NodeServices.js"
-import { NodeWS } from "./NodeSocket.js"
+import { NodeHttpIncomingMessage } from "./NodeHttpIncomingMessage.ts"
+import * as NodeHttpPlatform from "./NodeHttpPlatform.ts"
+import * as NodeMultipart from "./NodeMultipart.ts"
+import * as NodeServices from "./NodeServices.ts"
+import { NodeWS } from "./NodeSocket.ts"
 
 /**
  * @since 1.0.0

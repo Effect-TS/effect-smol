@@ -1,7 +1,7 @@
 import { Option } from "effect"
 import { Schema, ToPretty } from "effect/schema"
 import { describe, it } from "vitest"
-import { strictEqual } from "../utils/assert.js"
+import { strictEqual } from "../utils/assert.ts"
 
 describe("ToPretty", () => {
   it("Any", () => {

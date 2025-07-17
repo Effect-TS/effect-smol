@@ -36,8 +36,8 @@
  *
  * @since 2.0.0
  */
-import { dual } from "./Function.js"
-import type { TypeLambda } from "./HKT.js"
+import { dual } from "./Function.ts"
+import type { TypeLambda } from "./HKT.ts"
 
 /**
  * Represents an equivalence relation over type `A`.

@@ -17,7 +17,7 @@ import * as Scope from "effect/Scope"
 import * as TestClock from "effect/TestClock"
 import * as TestConsole from "effect/TestConsole"
 import * as V from "vitest"
-import type * as Vitest from "../index.js"
+import type * as Vitest from "../index.ts"
 
 const runPromise = (ctx?: Vitest.TestContext) =>
   Effect.fnUntraced(function*<E, A>(effect: Effect.Effect<A, E>) {

@@ -1,8 +1,8 @@
-import type { Effect } from "../Effect.js"
-import { dual } from "../Function.js"
-import * as Layer from "../Layer.js"
-import * as ServiceMap from "../ServiceMap.js"
-import * as effect from "./effect.js"
+import type { Effect } from "../Effect.ts"
+import { dual } from "../Function.ts"
+import * as Layer from "../Layer.ts"
+import * as ServiceMap from "../ServiceMap.ts"
+import * as effect from "./effect.ts"
 
 const provideLayer = <A, E, R, ROut, E2, RIn>(
   self: Effect<A, E, R>,

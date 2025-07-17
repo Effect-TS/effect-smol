@@ -7,8 +7,8 @@
  *
  * @since 2.0.0
  */
-import { pipe } from "./Function.js"
-import { hasProperty } from "./Predicate.js"
+import { pipe } from "./Function.ts"
+import { hasProperty } from "./Predicate.ts"
 
 /** @internal */
 const randomHashCache = new WeakMap<object, number>()

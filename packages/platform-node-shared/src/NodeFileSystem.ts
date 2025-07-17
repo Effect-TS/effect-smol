@@ -15,7 +15,7 @@ import * as Crypto from "node:crypto"
 import * as NFS from "node:fs"
 import * as OS from "node:os"
 import * as Path from "node:path"
-import { handleErrnoException } from "./internal/utils.js"
+import { handleErrnoException } from "./internal/utils.ts"
 
 const handleBadArgument = (method: string) => (err: unknown) =>
   new Error.BadArgument({

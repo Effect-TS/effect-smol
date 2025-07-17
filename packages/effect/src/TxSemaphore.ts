@@ -2,13 +2,13 @@
  * @since 4.0.0
  */
 
-import * as Effect from "./Effect.js"
-import type { Inspectable } from "./Inspectable.js"
-import { NodeInspectSymbol, toJSON } from "./Inspectable.js"
-import type { Pipeable } from "./Pipeable.js"
-import { pipeArguments } from "./Pipeable.js"
-import type * as Scope from "./Scope.js"
-import * as TxRef from "./TxRef.js"
+import * as Effect from "./Effect.ts"
+import type { Inspectable } from "./Inspectable.ts"
+import { NodeInspectSymbol, toJSON } from "./Inspectable.ts"
+import type { Pipeable } from "./Pipeable.ts"
+import { pipeArguments } from "./Pipeable.ts"
+import type * as Scope from "./Scope.ts"
+import * as TxRef from "./TxRef.ts"
 
 /**
  * Unique identifier for TxSemaphore instances.

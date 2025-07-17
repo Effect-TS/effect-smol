@@ -1,13 +1,13 @@
 /**
  * @since 4.0.0
  */
-import type { Effect } from "./Effect.js"
-import * as Equal from "./Equal.js"
-import { dual } from "./Function.js"
-import type * as Option from "./Option.js"
-import * as Predicate from "./Predicate.js"
-import type * as Result from "./Result.js"
-import type { EqualsWith, ExcludeTag, ExtractTag, Tags } from "./Types.js"
+import type { Effect } from "./Effect.ts"
+import * as Equal from "./Equal.ts"
+import { dual } from "./Function.ts"
+import type * as Option from "./Option.ts"
+import * as Predicate from "./Predicate.ts"
+import type * as Result from "./Result.ts"
+import type { EqualsWith, ExcludeTag, ExtractTag, Tags } from "./Types.ts"
 
 /**
  * Represents a filter function that can transform inputs to outputs or filter them out.

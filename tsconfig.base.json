@@ -12,7 +12,8 @@
     "skipLibCheck": true,
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
-    "moduleResolution": "NodeNext",
+    "rewriteRelativeImportExtensions": true,
+    "allowImportingTsExtensions": true,
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "types": [],
     "isolatedModules": true,
@@ -36,10 +37,6 @@
     "module": "NodeNext",
     "incremental": true,
     "removeComments": false,
-    "plugins": [
-      {
-        "name": "@effect/language-service"
-      }
-    ]
+    "plugins": [{ "name": "@effect/language-service" }]
   }
 }

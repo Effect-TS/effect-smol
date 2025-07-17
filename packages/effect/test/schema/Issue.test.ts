@@ -1,6 +1,6 @@
 import { Issue } from "effect/schema"
 import { describe, it } from "vitest"
-import { assertTrue } from "../utils/assert.js"
+import { assertTrue } from "../utils/assert.ts"
 
 describe("Issue", () => {
   it("isIssue", () => {

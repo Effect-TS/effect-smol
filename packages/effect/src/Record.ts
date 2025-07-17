@@ -4,14 +4,14 @@
  * @since 2.0.0
  */
 
-import * as Equal from "./Equal.js"
-import type { Equivalence } from "./Equivalence.js"
-import { dual, identity } from "./Function.js"
-import type { TypeLambda } from "./HKT.js"
-import * as Option from "./Option.js"
-import type { Result } from "./Result.js"
-import * as R from "./Result.js"
-import type { NoInfer } from "./Types.js"
+import * as Equal from "./Equal.ts"
+import type { Equivalence } from "./Equivalence.ts"
+import { dual, identity } from "./Function.ts"
+import type { TypeLambda } from "./HKT.ts"
+import * as Option from "./Option.ts"
+import type { Result } from "./Result.ts"
+import * as R from "./Result.ts"
+import type { NoInfer } from "./Types.ts"
 
 /**
  * Represents a readonly record with keys of type `K` and values of type `A`.

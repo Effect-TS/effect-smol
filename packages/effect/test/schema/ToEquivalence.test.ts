@@ -1,7 +1,7 @@
 import { Equivalence, Option } from "effect"
 import { Schema, ToEquivalence } from "effect/schema"
 import { describe, it } from "vitest"
-import { assertFalse, assertTrue } from "../utils/assert.js"
+import { assertFalse, assertTrue } from "../utils/assert.ts"
 
 describe("ToEquivalence", () => {
   it("String", () => {

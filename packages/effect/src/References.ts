@@ -10,13 +10,13 @@
  *
  * @since 4.0.0
  */
-import { constTrue } from "./Function.js"
-import type { LogLevel } from "./LogLevel.js"
-import * as Option from "./Option.js"
-import type { ReadonlyRecord } from "./Record.js"
-import { MaxOpsBeforeYield } from "./Scheduler.js"
-import * as ServiceMap from "./ServiceMap.js"
-import { DisablePropagation, type SpanLink, Tracer } from "./Tracer.js"
+import { constTrue } from "./Function.ts"
+import type { LogLevel } from "./LogLevel.ts"
+import * as Option from "./Option.ts"
+import type { ReadonlyRecord } from "./Record.ts"
+import { MaxOpsBeforeYield } from "./Scheduler.ts"
+import * as ServiceMap from "./ServiceMap.ts"
+import { DisablePropagation, type SpanLink, Tracer } from "./Tracer.ts"
 
 export {
   /**
@@ -111,7 +111,7 @@ export {
    * @since 4.0.0
    */
   Scheduler
-} from "./Scheduler.js"
+} from "./Scheduler.ts"
 
 /**
  * Reference for controlling whether tracing is enabled globally. When set to false,

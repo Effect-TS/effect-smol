@@ -1,12 +1,12 @@
 /**
  * @since 4.0.0
  */
-import * as Cause from "../../Cause.js"
-import * as Effect from "../../Effect.js"
-import { hasProperty } from "../../Predicate.js"
-import * as Schema from "../../schema/Schema.js"
-import type { HttpServerResponse } from "./HttpServerResponse.js"
-import * as Response from "./HttpServerResponse.js"
+import * as Cause from "../../Cause.ts"
+import * as Effect from "../../Effect.ts"
+import { hasProperty } from "../../Predicate.ts"
+import * as Schema from "../../schema/Schema.ts"
+import type { HttpServerResponse } from "./HttpServerResponse.ts"
+import * as Response from "./HttpServerResponse.ts"
 
 /**
  * @since 4.0.0

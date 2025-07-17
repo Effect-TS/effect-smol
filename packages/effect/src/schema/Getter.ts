@@ -1,15 +1,15 @@
 /**
  * @since 4.0.0
  */
-import * as Effect from "../Effect.js"
-import { PipeableClass } from "../internal/schema/util.js"
-import * as Option from "../Option.js"
-import * as Predicate from "../Predicate.js"
-import * as Str from "../String.js"
-import type * as Annotations from "./Annotations.js"
-import type * as AST from "./AST.js"
-import * as Check from "./Check.js"
-import * as Issue from "./Issue.js"
+import * as Effect from "../Effect.ts"
+import { PipeableClass } from "../internal/schema/util.ts"
+import * as Option from "../Option.ts"
+import * as Predicate from "../Predicate.ts"
+import * as Str from "../String.ts"
+import type * as Annotations from "./Annotations.ts"
+import type * as AST from "./AST.ts"
+import * as Check from "./Check.ts"
+import * as Issue from "./Issue.ts"
 
 /**
  * @category model

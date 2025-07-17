@@ -1,9 +1,9 @@
 /**
  * @since 4.0.0
  */
-import * as Option from "../../Option.js"
-import * as Tracer from "../../Tracer.js"
-import * as Headers from "./Headers.js"
+import * as Option from "../../Option.ts"
+import * as Tracer from "../../Tracer.ts"
+import * as Headers from "./Headers.ts"
 
 /**
  * @since 4.0.0

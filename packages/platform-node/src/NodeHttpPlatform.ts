@@ -9,8 +9,8 @@ import * as Platform from "effect/unstable/http/HttpPlatform"
 import * as ServerResponse from "effect/unstable/http/HttpServerResponse"
 import * as Fs from "node:fs"
 import { Readable } from "node:stream"
-import Mime from "./Mime.js"
-import * as NodeFileSystem from "./NodeFileSystem.js"
+import Mime from "./Mime.ts"
+import * as NodeFileSystem from "./NodeFileSystem.ts"
 
 /**
  * @since 1.0.0

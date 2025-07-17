@@ -1,13 +1,13 @@
 /**
  * @since 4.0.0
  */
-import { formatPath, hasOwn } from "../internal/schema/util.js"
-import * as Predicate from "../Predicate.js"
-import type * as Record from "../Record.js"
-import type * as Annotations from "./Annotations.js"
-import * as AST from "./AST.js"
-import type * as Check from "./Check.js"
-import type * as Schema from "./Schema.js"
+import { formatPath, hasOwn } from "../internal/schema/util.ts"
+import * as Predicate from "../Predicate.ts"
+import type * as Record from "../Record.ts"
+import type * as Annotations from "./Annotations.ts"
+import * as AST from "./AST.ts"
+import type * as Check from "./Check.ts"
+import type * as Schema from "./Schema.ts"
 
 /**
  * @since 4.0.0

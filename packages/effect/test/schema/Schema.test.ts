@@ -15,8 +15,8 @@ import {
 import { AST, Check, Getter, Issue, Schema, ToParser, Transformation } from "effect/schema"
 import { produce } from "immer"
 import { describe, it } from "vitest"
-import { assertFalse, assertInclude, assertTrue, deepStrictEqual, strictEqual, throws } from "../utils/assert.js"
-import { assertions } from "../utils/schema.js"
+import { assertFalse, assertInclude, assertTrue, deepStrictEqual, strictEqual, throws } from "../utils/assert.ts"
+import { assertions } from "../utils/schema.ts"
 
 const Trim = Schema.String.pipe(Schema.decode(Transformation.trim()))
 

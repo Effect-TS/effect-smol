@@ -5,9 +5,9 @@
 /**
  * @since 4.0.0
  */
-export * as Socket from "./Socket.js"
+export * as Socket from "./Socket.ts"
 
 /**
  * @since 4.0.0
  */
-export * as SocketServer from "./SocketServer.js"
+export * as SocketServer from "./SocketServer.ts"

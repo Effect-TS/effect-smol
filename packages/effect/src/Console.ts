@@ -70,12 +70,12 @@
  *
  * @since 2.0.0
  */
-import type * as Effect from "./Effect.js"
-import { dual } from "./Function.js"
-import * as core from "./internal/core.js"
-import * as effect from "./internal/effect.js"
-import type { Scope } from "./Scope.js"
-import type * as ServiceMap from "./ServiceMap.js"
+import type * as Effect from "./Effect.ts"
+import { dual } from "./Function.ts"
+import * as core from "./internal/core.ts"
+import * as effect from "./internal/effect.ts"
+import type { Scope } from "./Scope.ts"
+import type * as ServiceMap from "./ServiceMap.ts"
 
 /**
  * Represents a console interface for logging and debugging operations.

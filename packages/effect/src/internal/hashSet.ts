@@ -2,14 +2,14 @@
  * @since 2.0.0
  */
 
-import * as Equal from "../Equal.js"
-import * as Hash from "../Hash.js"
-import type { Inspectable } from "../Inspectable.js"
-import { format, NodeInspectSymbol, toJSON } from "../Inspectable.js"
-import type { Pipeable } from "../Pipeable.js"
-import { pipeArguments } from "../Pipeable.js"
-import { hasProperty } from "../Predicate.js"
-import * as HashMap from "./hashMap.js"
+import * as Equal from "../Equal.ts"
+import * as Hash from "../Hash.ts"
+import type { Inspectable } from "../Inspectable.ts"
+import { format, NodeInspectSymbol, toJSON } from "../Inspectable.ts"
+import type { Pipeable } from "../Pipeable.ts"
+import { pipeArguments } from "../Pipeable.ts"
+import { hasProperty } from "../Predicate.ts"
+import * as HashMap from "./hashMap.ts"
 
 /** @internal */
 export const HashSetTypeId: "~effect/HashSet" = "~effect/HashSet" as const

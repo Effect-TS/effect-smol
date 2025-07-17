@@ -1,7 +1,7 @@
 import { AST, Check, Schema, ToArbitrary, ToEquivalence } from "effect/schema"
 import { describe, it } from "vitest"
-import { deepStrictEqual } from "../utils/assert.js"
-import { assertions } from "../utils/schema.js"
+import { deepStrictEqual } from "../utils/assert.ts"
+import { assertions } from "../utils/schema.ts"
 
 function assertFragments(schema: Schema.Schema<any>, ctx: ToArbitrary.Context) {
   const ast = schema.ast

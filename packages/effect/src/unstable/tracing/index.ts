@@ -5,24 +5,24 @@
 /**
  * @since 4.0.0
  */
-export * as Otlp from "./Otlp.js"
+export * as Otlp from "./Otlp.ts"
 
 /**
  * @since 4.0.0
  */
-export * as OtlpLogger from "./OtlpLogger.js"
+export * as OtlpLogger from "./OtlpLogger.ts"
 
 /**
  * @since 4.0.0
  */
-export * as OtlpMetrics from "./OtlpMetrics.js"
+export * as OtlpMetrics from "./OtlpMetrics.ts"
 
 /**
  * @since 4.0.0
  */
-export * as OtlpResource from "./OtlpResource.js"
+export * as OtlpResource from "./OtlpResource.ts"
 
 /**
  * @since 4.0.0
  */
-export * as OtlpTracer from "./OtlpTracer.js"
+export * as OtlpTracer from "./OtlpTracer.ts"

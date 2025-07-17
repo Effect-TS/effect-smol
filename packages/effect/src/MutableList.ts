@@ -34,7 +34,7 @@
  * @since 4.0.0
  * @category data-structures
  */
-import * as Arr from "./Array.js"
+import * as Arr from "./Array.ts"
 
 /**
  * A mutable linked list data structure optimized for high-throughput operations.

@@ -1,18 +1,18 @@
 /**
  * @since 4.0.0
  */
-import * as Effect from "../../Effect.js"
-import * as Inspectable from "../../Inspectable.js"
-import * as Option from "../../Option.js"
-import type * as FileSystem from "../../platform/FileSystem.js"
-import { hasProperty } from "../../Predicate.js"
-import type { ParseOptions } from "../../schema/AST.js"
-import * as Schema from "../../schema/Schema.js"
-import * as Serializer from "../../schema/Serializer.js"
-import * as ServiceMap from "../../ServiceMap.js"
-import type * as Stream from "../../Stream.js"
-import type * as Headers from "./Headers.js"
-import * as UrlParams from "./UrlParams.js"
+import * as Effect from "../../Effect.ts"
+import * as Inspectable from "../../Inspectable.ts"
+import * as Option from "../../Option.ts"
+import type * as FileSystem from "../../platform/FileSystem.ts"
+import { hasProperty } from "../../Predicate.ts"
+import type { ParseOptions } from "../../schema/AST.ts"
+import * as Schema from "../../schema/Schema.ts"
+import * as Serializer from "../../schema/Serializer.ts"
+import * as ServiceMap from "../../ServiceMap.ts"
+import type * as Stream from "../../Stream.ts"
+import type * as Headers from "./Headers.ts"
+import * as UrlParams from "./UrlParams.ts"
 
 /**
  * @since 4.0.0

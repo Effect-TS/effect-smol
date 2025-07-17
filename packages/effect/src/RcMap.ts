@@ -1,18 +1,18 @@
 /**
  * @since 3.5.0
  */
-import * as Cause from "./Cause.js"
-import * as Deferred from "./Deferred.js"
-import * as Duration from "./Duration.js"
-import * as Effect from "./Effect.js"
-import * as Exit from "./Exit.js"
-import * as Fiber from "./Fiber.js"
-import { dual } from "./Function.js"
-import * as MutableHashMap from "./MutableHashMap.js"
-import type { Pipeable } from "./Pipeable.js"
-import { pipeArguments } from "./Pipeable.js"
-import * as Scope from "./Scope.js"
-import * as ServiceMap from "./ServiceMap.js"
+import * as Cause from "./Cause.ts"
+import * as Deferred from "./Deferred.ts"
+import * as Duration from "./Duration.ts"
+import * as Effect from "./Effect.ts"
+import * as Exit from "./Exit.ts"
+import * as Fiber from "./Fiber.ts"
+import { dual } from "./Function.ts"
+import * as MutableHashMap from "./MutableHashMap.ts"
+import type { Pipeable } from "./Pipeable.ts"
+import { pipeArguments } from "./Pipeable.ts"
+import * as Scope from "./Scope.ts"
+import * as ServiceMap from "./ServiceMap.ts"
 
 /**
  * The unique identifier for the RcMap type.

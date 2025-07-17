@@ -2,7 +2,7 @@ import { assertTrue, deepStrictEqual, strictEqual } from "@effect/vitest/utils"
 import { Effect, Option, ServiceMap } from "effect"
 import { Check, Getter, Schema } from "effect/schema"
 import { describe, it } from "vitest"
-import { standard } from "../utils/schema.js"
+import { standard } from "../utils/schema.ts"
 
 const AsyncString = Schema.String.pipe(Schema.decode({
   decode: new Getter.Getter((os: Option.Option<string>) =>

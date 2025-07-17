@@ -1,21 +1,21 @@
 /**
  * @since 2.0.0
  */
-import * as Arr from "./Array.js"
-import type * as DateTime from "./DateTime.js"
-import * as Equal from "./Equal.js"
-import * as equivalence from "./Equivalence.js"
-import { constVoid, dual, pipe } from "./Function.js"
-import * as Hash from "./Hash.js"
-import { format, type Inspectable, NodeInspectSymbol } from "./Inspectable.js"
-import * as dateTime from "./internal/dateTime.js"
-import * as N from "./Number.js"
-import * as Option from "./Option.js"
-import { type Pipeable, pipeArguments } from "./Pipeable.js"
-import { hasProperty } from "./Predicate.js"
-import * as Result from "./Result.js"
-import * as String from "./String.js"
-import type { Mutable } from "./Types.js"
+import * as Arr from "./Array.ts"
+import type * as DateTime from "./DateTime.ts"
+import * as Equal from "./Equal.ts"
+import * as equivalence from "./Equivalence.ts"
+import { constVoid, dual, pipe } from "./Function.ts"
+import * as Hash from "./Hash.ts"
+import { format, type Inspectable, NodeInspectSymbol } from "./Inspectable.ts"
+import * as dateTime from "./internal/dateTime.ts"
+import * as N from "./Number.ts"
+import * as Option from "./Option.ts"
+import { type Pipeable, pipeArguments } from "./Pipeable.ts"
+import { hasProperty } from "./Predicate.ts"
+import * as Result from "./Result.ts"
+import * as String from "./String.ts"
+import type { Mutable } from "./Types.ts"
 
 /**
  * Unique identifier for the Cron type.

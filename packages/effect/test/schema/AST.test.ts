@@ -1,6 +1,6 @@
 import { AST, Schema } from "effect/schema"
 import { describe, it } from "vitest"
-import { deepStrictEqual } from "../utils/assert.js"
+import { deepStrictEqual } from "../utils/assert.ts"
 
 describe("AST", () => {
   describe("collectSentinels", () => {

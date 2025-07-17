@@ -1,10 +1,10 @@
 /**
  * @since 4.0.0
  */
-import { identity } from "../Function.js"
-import type * as Annotations from "./Annotations.js"
-import * as Schema from "./Schema.js"
-import * as Transformation from "./Transformation.js"
+import { identity } from "../Function.ts"
+import type * as Annotations from "./Annotations.ts"
+import * as Schema from "./Schema.ts"
+import * as Transformation from "./Transformation.ts"
 
 /**
  * @since 4.0.0

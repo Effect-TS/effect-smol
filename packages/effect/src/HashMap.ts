@@ -2,12 +2,12 @@
  * @since 2.0.0
  */
 
-import type { Equal } from "./Equal.js"
-import type { Inspectable } from "./Inspectable.js"
-import * as internal from "./internal/hashMap.js"
-import type { Option } from "./Option.js"
-import type { Pipeable } from "./Pipeable.js"
-import type { NoInfer } from "./Types.js"
+import type { Equal } from "./Equal.ts"
+import type { Inspectable } from "./Inspectable.ts"
+import * as internal from "./internal/hashMap.ts"
+import type { Option } from "./Option.ts"
+import type { Pipeable } from "./Pipeable.ts"
+import type { NoInfer } from "./Types.ts"
 
 /**
  * Unique identifier for HashMap instances.

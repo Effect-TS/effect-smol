@@ -1,22 +1,22 @@
 /**
  * @since 4.0.0
  */
-import * as Cause from "../../Cause.js"
-import * as Duration from "../../Duration.js"
-import * as Effect from "../../Effect.js"
-import type * as Exit from "../../Exit.js"
-import * as Exporter from "../../internal/tracing/otlpExporter.js"
-import * as Layer from "../../Layer.js"
-import * as Option from "../../Option.js"
-import type * as Scope from "../../Scope.js"
-import type * as ServiceMap from "../../ServiceMap.js"
-import * as Tracer from "../../Tracer.js"
-import type { ExtractTag } from "../../Types.js"
-import type * as Headers from "../http/Headers.js"
-import type * as HttpClient from "../http/HttpClient.js"
-import type { KeyValue, Resource } from "./OtlpResource.js"
-import { entriesToAttributes } from "./OtlpResource.js"
-import * as OtlpResource from "./OtlpResource.js"
+import * as Cause from "../../Cause.ts"
+import * as Duration from "../../Duration.ts"
+import * as Effect from "../../Effect.ts"
+import type * as Exit from "../../Exit.ts"
+import * as Exporter from "../../internal/tracing/otlpExporter.ts"
+import * as Layer from "../../Layer.ts"
+import * as Option from "../../Option.ts"
+import type * as Scope from "../../Scope.ts"
+import type * as ServiceMap from "../../ServiceMap.ts"
+import * as Tracer from "../../Tracer.ts"
+import type { ExtractTag } from "../../Types.ts"
+import type * as Headers from "../http/Headers.ts"
+import type * as HttpClient from "../http/HttpClient.ts"
+import type { KeyValue, Resource } from "./OtlpResource.ts"
+import { entriesToAttributes } from "./OtlpResource.ts"
+import * as OtlpResource from "./OtlpResource.ts"
 
 /**
  * @since 4.0.0

@@ -7,7 +7,7 @@ import type { FileSystem } from "effect/platform/FileSystem"
 import * as Etag from "effect/unstable/http/Etag"
 import * as Platform from "effect/unstable/http/HttpPlatform"
 import * as Response from "effect/unstable/http/HttpServerResponse"
-import * as BunFileSystem from "./BunFileSystem.js"
+import * as BunFileSystem from "./BunFileSystem.ts"
 
 /**
  * @since 1.0.0

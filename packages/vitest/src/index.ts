@@ -8,7 +8,7 @@ import type * as Layer from "effect/Layer"
 import type * as Schema from "effect/schema/Schema"
 import type * as Scope from "effect/Scope"
 import * as V from "vitest"
-import * as internal from "./internal/internal.js"
+import * as internal from "./internal/internal.ts"
 
 /**
  * @since 1.0.0

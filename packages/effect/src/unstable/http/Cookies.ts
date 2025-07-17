@@ -1,18 +1,18 @@
 /**
  * @since 4.0.0
  */
-import * as Data from "../../Data.js"
-import * as Duration from "../../Duration.js"
-import { dual, identity } from "../../Function.js"
-import * as Inspectable from "../../Inspectable.js"
-import * as Option from "../../Option.js"
-import { type Pipeable, pipeArguments } from "../../Pipeable.js"
-import * as Predicate from "../../Predicate.js"
-import * as Record from "../../Record.js"
-import * as Result from "../../Result.js"
-import * as Schema from "../../schema/Schema.js"
-import * as Transformation from "../../schema/Transformation.js"
-import type * as Types from "../../Types.js"
+import * as Data from "../../Data.ts"
+import * as Duration from "../../Duration.ts"
+import { dual, identity } from "../../Function.ts"
+import * as Inspectable from "../../Inspectable.ts"
+import * as Option from "../../Option.ts"
+import { type Pipeable, pipeArguments } from "../../Pipeable.ts"
+import * as Predicate from "../../Predicate.ts"
+import * as Record from "../../Record.ts"
+import * as Result from "../../Result.ts"
+import * as Schema from "../../schema/Schema.ts"
+import * as Transformation from "../../schema/Transformation.ts"
+import type * as Types from "../../Types.ts"
 
 /**
  * @since 4.0.0

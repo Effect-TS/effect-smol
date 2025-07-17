@@ -2,7 +2,7 @@
 import Ajv from "ajv"
 import { Check, Schema, ToJsonSchema } from "effect/schema"
 import { describe, it } from "vitest"
-import { assertFalse, assertTrue, deepStrictEqual, throws } from "../utils/assert.js"
+import { assertFalse, assertTrue, deepStrictEqual, throws } from "../utils/assert.ts"
 
 const ajvOptions: Ajv.Options = {
   strictTuples: false,

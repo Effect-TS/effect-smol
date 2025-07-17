@@ -137,22 +137,22 @@
  * ```
  */
 
-import * as Arr from "./Array.js"
-import * as Duration from "./Duration.js"
-import type { Effect } from "./Effect.js"
-import type { Exit } from "./Exit.js"
-import { constUndefined, dual } from "./Function.js"
-import * as InternalEffect from "./internal/effect.js"
-import * as InternalMetric from "./internal/metric.js"
-import * as Layer from "./Layer.js"
-import * as Option from "./Option.js"
-import * as Order from "./Order.js"
-import type { Pipeable } from "./Pipeable.js"
-import { pipeArguments } from "./Pipeable.js"
-import * as Predicate from "./Predicate.js"
-import * as ServiceMap from "./ServiceMap.js"
-import * as _String from "./String.js"
-import type { Contravariant, Covariant } from "./Types.js"
+import * as Arr from "./Array.ts"
+import * as Duration from "./Duration.ts"
+import type { Effect } from "./Effect.ts"
+import type { Exit } from "./Exit.ts"
+import { constUndefined, dual } from "./Function.ts"
+import * as InternalEffect from "./internal/effect.ts"
+import * as InternalMetric from "./internal/metric.ts"
+import * as Layer from "./Layer.ts"
+import * as Option from "./Option.ts"
+import * as Order from "./Order.ts"
+import type { Pipeable } from "./Pipeable.ts"
+import { pipeArguments } from "./Pipeable.ts"
+import * as Predicate from "./Predicate.ts"
+import * as ServiceMap from "./ServiceMap.ts"
+import * as _String from "./String.ts"
+import type { Contravariant, Covariant } from "./Types.ts"
 
 /**
  * A `Metric<Input, State>` represents a concurrent metric which accepts update

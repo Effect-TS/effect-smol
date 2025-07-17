@@ -2,7 +2,7 @@
  * @since 2.0.0
  */
 
-import { identity } from "./Function.js"
+import { identity } from "./Function.ts"
 
 /**
  * A unique symbol used to identify unification behavior in Effect types.

@@ -1,14 +1,14 @@
 /**
  * @since 2.0.0
  */
-import * as Effect from "./Effect.js"
-import * as Exit from "./Exit.js"
-import * as Fiber from "./Fiber.js"
-import * as Layer from "./Layer.js"
-import { hasProperty } from "./Predicate.js"
-import * as Scope from "./Scope.js"
-import type * as ServiceMap from "./ServiceMap.js"
-import type { Mutable } from "./Types.js"
+import * as Effect from "./Effect.ts"
+import * as Exit from "./Exit.ts"
+import * as Fiber from "./Fiber.ts"
+import * as Layer from "./Layer.ts"
+import { hasProperty } from "./Predicate.ts"
+import * as Scope from "./Scope.ts"
+import type * as ServiceMap from "./ServiceMap.ts"
+import type { Mutable } from "./Types.ts"
 
 /**
  * @since 3.9.0

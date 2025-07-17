@@ -2,13 +2,13 @@
  * @since 2.0.0
  */
 
-import type { Equal } from "./Equal.js"
-import * as Dual from "./Function.js"
-import type { Inspectable } from "./Inspectable.js"
-import * as internal from "./internal/hashSet.js"
-import type { Pipeable } from "./Pipeable.js"
-import type { Predicate, Refinement } from "./Predicate.js"
-import type { NoInfer } from "./Types.js"
+import type { Equal } from "./Equal.ts"
+import * as Dual from "./Function.ts"
+import type { Inspectable } from "./Inspectable.ts"
+import * as internal from "./internal/hashSet.ts"
+import type { Pipeable } from "./Pipeable.ts"
+import type { Predicate, Refinement } from "./Predicate.ts"
+import type { NoInfer } from "./Types.ts"
 
 /**
  * Unique identifier for HashSet instances.

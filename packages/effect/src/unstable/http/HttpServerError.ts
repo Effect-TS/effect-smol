@@ -1,16 +1,16 @@
 /**
  * @since 4.0.0
  */
-import * as Arr from "../../Array.js"
-import * as Cause from "../../Cause.js"
-import * as Data from "../../Data.js"
-import * as Effect from "../../Effect.js"
-import type * as Exit from "../../Exit.js"
-import * as Option from "../../Option.js"
-import { hasProperty } from "../../Predicate.js"
-import type * as Request from "./HttpServerRequest.js"
-import * as Respondable from "./HttpServerRespondable.js"
-import * as Response from "./HttpServerResponse.js"
+import * as Arr from "../../Array.ts"
+import * as Cause from "../../Cause.ts"
+import * as Data from "../../Data.ts"
+import * as Effect from "../../Effect.ts"
+import type * as Exit from "../../Exit.ts"
+import * as Option from "../../Option.ts"
+import { hasProperty } from "../../Predicate.ts"
+import type * as Request from "./HttpServerRequest.ts"
+import * as Respondable from "./HttpServerRespondable.ts"
+import * as Response from "./HttpServerResponse.ts"
 
 /**
  * @since 4.0.0

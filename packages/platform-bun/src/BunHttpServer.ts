@@ -34,10 +34,10 @@ import type * as ServerResponse from "effect/unstable/http/HttpServerResponse"
 import type * as Multipart from "effect/unstable/http/Multipart"
 import * as UrlParams from "effect/unstable/http/UrlParams"
 import * as Socket from "effect/unstable/socket/Socket"
-import * as Platform from "./BunHttpPlatform.js"
-import * as BunMultipart from "./BunMultipart.js"
-import * as BunServices from "./BunServices.js"
-import * as BunStream from "./BunStream.js"
+import * as Platform from "./BunHttpPlatform.ts"
+import * as BunMultipart from "./BunMultipart.ts"
+import * as BunServices from "./BunServices.ts"
+import * as BunStream from "./BunStream.ts"
 
 /**
  * @since 1.0.0

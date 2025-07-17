@@ -1,7 +1,7 @@
 /**
  * @since 4.0.0
  */
-import * as Data from "../Data.js"
+import * as Data from "../Data.ts"
 
 /**
  * @since 1.0.0

@@ -26,13 +26,13 @@
  *
  * @since 4.0.0
  */
-import * as internal from "./internal/matcher.js"
-import type * as Option from "./Option.js"
-import type { Pipeable } from "./Pipeable.js"
-import * as Predicate from "./Predicate.js"
-import type * as Result from "./Result.js"
-import type * as T from "./Types.js"
-import type { Unify } from "./Unify.js"
+import * as internal from "./internal/matcher.ts"
+import type * as Option from "./Option.ts"
+import type { Pipeable } from "./Pipeable.ts"
+import * as Predicate from "./Predicate.ts"
+import type * as Result from "./Result.ts"
+import type * as T from "./Types.ts"
+import type { Unify } from "./Unify.ts"
 
 /**
  * Unique identifier for `Matcher` instances.

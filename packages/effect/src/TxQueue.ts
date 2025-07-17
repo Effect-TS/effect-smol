@@ -9,17 +9,17 @@
  *
  * @since 4.0.0
  */
-import * as Cause from "./Cause.js"
-import * as Chunk from "./Chunk.js"
-import * as Effect from "./Effect.js"
-import { dual } from "./Function.js"
-import type { Inspectable } from "./Inspectable.js"
-import { format, NodeInspectSymbol, toJSON } from "./Inspectable.js"
-import * as Option from "./Option.js"
-import { hasProperty } from "./Predicate.js"
-import * as TxChunk from "./TxChunk.js"
-import * as TxRef from "./TxRef.js"
-import type * as Types from "./Types.js"
+import * as Cause from "./Cause.ts"
+import * as Chunk from "./Chunk.ts"
+import * as Effect from "./Effect.ts"
+import { dual } from "./Function.ts"
+import type { Inspectable } from "./Inspectable.ts"
+import { format, NodeInspectSymbol, toJSON } from "./Inspectable.ts"
+import * as Option from "./Option.ts"
+import { hasProperty } from "./Predicate.ts"
+import * as TxChunk from "./TxChunk.ts"
+import * as TxRef from "./TxRef.ts"
+import type * as Types from "./Types.ts"
 
 /**
  * Represents the state of a transactional queue with sophisticated lifecycle management.

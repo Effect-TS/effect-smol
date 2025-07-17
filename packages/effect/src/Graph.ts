@@ -2,16 +2,16 @@
  * @since 4.0.0
  */
 
-import * as Data from "./Data.js"
-import * as Equal from "./Equal.js"
-import { dual } from "./Function.js"
-import * as Hash from "./Hash.js"
-import type { Inspectable } from "./Inspectable.js"
-import { format, NodeInspectSymbol } from "./Inspectable.js"
-import * as Option from "./Option.js"
-import type { Pipeable } from "./Pipeable.js"
-import { pipeArguments } from "./Pipeable.js"
-import type { Mutable } from "./Types.js"
+import * as Data from "./Data.ts"
+import * as Equal from "./Equal.ts"
+import { dual } from "./Function.ts"
+import * as Hash from "./Hash.ts"
+import type { Inspectable } from "./Inspectable.ts"
+import { format, NodeInspectSymbol } from "./Inspectable.ts"
+import * as Option from "./Option.ts"
+import type { Pipeable } from "./Pipeable.ts"
+import { pipeArguments } from "./Pipeable.ts"
+import type { Mutable } from "./Types.ts"
 
 /**
  * Safely get a value from a Map, returning an Option.

@@ -1,21 +1,21 @@
 /**
  * @since 4.0.0
  */
-import * as Effect from "../../Effect.js"
-import { dual } from "../../Function.js"
-import * as Inspectable from "../../Inspectable.js"
-import * as Option from "../../Option.js"
-import type { ParseOptions } from "../../schema/AST.js"
-import * as Schema from "../../schema/Schema.js"
-import * as Serializer from "../../schema/Serializer.js"
-import * as Stream from "../../Stream.js"
-import type { Unify } from "../../Unify.js"
-import * as Cookies from "./Cookies.js"
-import * as Headers from "./Headers.js"
-import * as Error from "./HttpClientError.js"
-import type * as HttpClientRequest from "./HttpClientRequest.js"
-import * as HttpIncomingMessage from "./HttpIncomingMessage.js"
-import * as UrlParams from "./UrlParams.js"
+import * as Effect from "../../Effect.ts"
+import { dual } from "../../Function.ts"
+import * as Inspectable from "../../Inspectable.ts"
+import * as Option from "../../Option.ts"
+import type { ParseOptions } from "../../schema/AST.ts"
+import * as Schema from "../../schema/Schema.ts"
+import * as Serializer from "../../schema/Serializer.ts"
+import * as Stream from "../../Stream.ts"
+import type { Unify } from "../../Unify.ts"
+import * as Cookies from "./Cookies.ts"
+import * as Headers from "./Headers.ts"
+import * as Error from "./HttpClientError.ts"
+import type * as HttpClientRequest from "./HttpClientRequest.ts"
+import * as HttpIncomingMessage from "./HttpIncomingMessage.ts"
+import * as UrlParams from "./UrlParams.ts"
 
 export {
   /**
@@ -33,7 +33,7 @@ export {
    * @category schema
    */
   schemaHeaders
-} from "./HttpIncomingMessage.js"
+} from "./HttpIncomingMessage.ts"
 
 /**
  * @since 4.0.0

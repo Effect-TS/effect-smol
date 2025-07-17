@@ -1,11 +1,11 @@
 /**
  * @since 4.0.0
  */
-import * as Effect from "../../Effect.js"
-import * as Layer from "../../Layer.js"
-import type * as FileSystem from "../../platform/FileSystem.js"
-import * as ServiceMap from "../../ServiceMap.js"
-import type * as Body from "./HttpBody.js"
+import * as Effect from "../../Effect.ts"
+import * as Layer from "../../Layer.ts"
+import type * as FileSystem from "../../platform/FileSystem.ts"
+import * as ServiceMap from "../../ServiceMap.ts"
+import type * as Body from "./HttpBody.ts"
 
 /**
  * @since 4.0.0

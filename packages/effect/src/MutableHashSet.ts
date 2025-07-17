@@ -24,11 +24,11 @@
  * @since 2.0.0
  * @category data-structures
  */
-import * as Dual from "./Function.js"
-import { format, type Inspectable, NodeInspectSymbol, toJSON } from "./Inspectable.js"
-import * as MutableHashMap from "./MutableHashMap.js"
-import type { Pipeable } from "./Pipeable.js"
-import { pipeArguments } from "./Pipeable.js"
+import * as Dual from "./Function.ts"
+import { format, type Inspectable, NodeInspectSymbol, toJSON } from "./Inspectable.ts"
+import * as MutableHashMap from "./MutableHashMap.ts"
+import type { Pipeable } from "./Pipeable.ts"
+import { pipeArguments } from "./Pipeable.ts"
 
 const TypeId: TypeId = "~effect/MutableHashSet"
 

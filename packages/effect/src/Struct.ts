@@ -4,9 +4,9 @@
  * @since 2.0.0
  */
 
-import * as Equivalence from "./Equivalence.js"
-import { dual } from "./Function.js"
-import * as order from "./Order.js"
+import * as Equivalence from "./Equivalence.ts"
+import { dual } from "./Function.ts"
+import * as order from "./Order.ts"
 
 /**
  * A utility type that simplifies the appearance of a type by flattening intersection types.

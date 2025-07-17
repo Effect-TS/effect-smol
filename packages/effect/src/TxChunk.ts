@@ -9,15 +9,15 @@
  *
  * @since 4.0.0
  */
-import * as Chunk from "./Chunk.js"
-import * as Effect from "./Effect.js"
-import { dual } from "./Function.js"
-import type { Inspectable } from "./Inspectable.js"
-import { format, NodeInspectSymbol, toJSON } from "./Inspectable.js"
-import type { Pipeable } from "./Pipeable.js"
-import { pipeArguments } from "./Pipeable.js"
-import * as TxRef from "./TxRef.js"
-import type { NoInfer } from "./Types.js"
+import * as Chunk from "./Chunk.ts"
+import * as Effect from "./Effect.ts"
+import { dual } from "./Function.ts"
+import type { Inspectable } from "./Inspectable.ts"
+import { format, NodeInspectSymbol, toJSON } from "./Inspectable.ts"
+import type { Pipeable } from "./Pipeable.ts"
+import { pipeArguments } from "./Pipeable.ts"
+import * as TxRef from "./TxRef.ts"
+import type { NoInfer } from "./Types.ts"
 
 /**
  * Unique identifier for TxChunk instances.

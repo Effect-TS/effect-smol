@@ -2,17 +2,17 @@
  * @since 4.0.0
  */
 
-import * as Arr from "../Array.js"
-import type { Brand } from "../Brand.js"
-import type * as Equivalence from "../Equivalence.js"
-import { formatUnknown, PipeableClass } from "../internal/schema/util.js"
-import * as Num from "../Number.js"
-import * as Option from "../Option.js"
-import * as Order from "../Order.js"
-import * as Predicate from "../Predicate.js"
-import type * as Annotations from "./Annotations.js"
-import type * as AST from "./AST.js"
-import * as Issue from "./Issue.js"
+import * as Arr from "../Array.ts"
+import type { Brand } from "../Brand.ts"
+import type * as Equivalence from "../Equivalence.ts"
+import { formatUnknown, PipeableClass } from "../internal/schema/util.ts"
+import * as Num from "../Number.ts"
+import * as Option from "../Option.ts"
+import * as Order from "../Order.ts"
+import * as Predicate from "../Predicate.ts"
+import type * as Annotations from "./Annotations.ts"
+import type * as AST from "./AST.ts"
+import * as Issue from "./Issue.ts"
 
 /**
  * @category model

@@ -27,14 +27,14 @@ export {
    * @since 2.0.0
    */
   unsafeCoerce
-} from "./Function.js"
+} from "./Function.ts"
 
 /**
  * This module provides utility functions for working with arrays in TypeScript.
  *
  * @since 2.0.0
  */
-export * as Array from "./Array.js"
+export * as Array from "./Array.ts"
 
 /**
  * This module provides utility functions and type class instances for working with the `BigDecimal` type in TypeScript.
@@ -51,7 +51,7 @@ export * as Array from "./Array.js"
  *
  * @since 2.0.0
  */
-export * as BigDecimal from "./BigDecimal.js"
+export * as BigDecimal from "./BigDecimal.ts"
 
 /**
  * This module provides utility functions and type class instances for working with the `bigint` type in TypeScript.
@@ -60,7 +60,7 @@ export * as BigDecimal from "./BigDecimal.js"
  *
  * @since 2.0.0
  */
-export * as BigInt from "./BigInt.js"
+export * as BigInt from "./BigInt.ts"
 
 /**
  * This module provides utility functions and type class instances for working with the `boolean` type in TypeScript.
@@ -69,7 +69,7 @@ export * as BigInt from "./BigInt.js"
  *
  * @since 2.0.0
  */
-export * as Boolean from "./Boolean.js"
+export * as Boolean from "./Boolean.ts"
 
 /**
  * This module provides types and utility functions to create and work with branded types,
@@ -89,7 +89,7 @@ export * as Boolean from "./Boolean.js"
  *
  * @since 2.0.0
  */
-export * as Brand from "./Brand.js"
+export * as Brand from "./Brand.ts"
 
 /**
  * This module provides utilities for working with `Cause`, a data type that represents
@@ -132,7 +132,7 @@ export * as Brand from "./Brand.js"
  *
  * @since 2.0.0
  */
-export * as Cause from "./Cause.js"
+export * as Cause from "./Cause.ts"
 
 /**
  * The `Channel` module provides a powerful abstraction for bi-directional communication
@@ -192,7 +192,7 @@ export * as Cause from "./Cause.js"
  *
  * @since 2.0.0
  */
-export * as Channel from "./Channel.js"
+export * as Channel from "./Channel.ts"
 
 /**
  * The `Chunk` module provides an immutable, high-performance sequence data structure
@@ -264,7 +264,7 @@ export * as Channel from "./Channel.js"
  *
  * @since 2.0.0
  */
-export * as Chunk from "./Chunk.js"
+export * as Chunk from "./Chunk.ts"
 
 /**
  * The `Clock` module provides functionality for time-based operations in Effect applications.
@@ -324,7 +324,7 @@ export * as Chunk from "./Chunk.js"
  *
  * @since 2.0.0
  */
-export * as Clock from "./Clock.js"
+export * as Clock from "./Clock.ts"
 
 /**
  * The `Console` module provides a functional interface for console operations within
@@ -398,12 +398,12 @@ export * as Clock from "./Clock.js"
  *
  * @since 2.0.0
  */
-export * as Console from "./Console.js"
+export * as Console from "./Console.ts"
 
 /**
  * @since 2.0.0
  */
-export * as Cron from "./Cron.js"
+export * as Cron from "./Cron.ts"
 
 /**
  * This module provides utilities for creating data types with structural equality
@@ -450,12 +450,12 @@ export * as Cron from "./Cron.js"
  *
  * @since 2.0.0
  */
-export * as Data from "./Data.js"
+export * as Data from "./Data.ts"
 
 /**
  * @since 3.6.0
  */
-export * as DateTime from "./DateTime.js"
+export * as DateTime from "./DateTime.ts"
 
 /**
  * This module provides utilities for working with `Deferred`, a powerful concurrency
@@ -525,7 +525,7 @@ export * as DateTime from "./DateTime.js"
  *
  * @since 2.0.0
  */
-export * as Deferred from "./Deferred.js"
+export * as Deferred from "./Deferred.ts"
 
 /**
  * This module provides utilities for working with durations of time. A `Duration`
@@ -573,7 +573,7 @@ export * as Deferred from "./Deferred.js"
  *
  * @since 2.0.0
  */
-export * as Duration from "./Duration.js"
+export * as Duration from "./Duration.ts"
 
 /**
  * The `Effect` module is the core of the Effect library, providing a powerful and expressive
@@ -643,7 +643,7 @@ export * as Duration from "./Duration.js"
  *
  * @since 2.0.0
  */
-export * as Effect from "./Effect.js"
+export * as Effect from "./Effect.ts"
 
 /**
  * This module provides encoding & decoding functionality for:
@@ -654,7 +654,7 @@ export * as Effect from "./Effect.js"
  *
  * @since 2.0.0
  */
-export * as Encoding from "./Encoding.js"
+export * as Encoding from "./Encoding.ts"
 
 /**
  * This module provides functionality for defining and working with equality between values.
@@ -663,7 +663,7 @@ export * as Encoding from "./Encoding.js"
  *
  * @since 2.0.0
  */
-export * as Equal from "./Equal.js"
+export * as Equal from "./Equal.ts"
 
 /**
  * This module provides utilities for working with equivalence relations - binary relations that are
@@ -703,7 +703,7 @@ export * as Equal from "./Equal.js"
  *
  * @since 2.0.0
  */
-export * as Equivalence from "./Equivalence.js"
+export * as Equivalence from "./Equivalence.ts"
 
 /**
  * The `Exit` type represents the result of running an Effect computation.
@@ -716,7 +716,7 @@ export * as Equivalence from "./Equivalence.js"
  *
  * @since 2.0.0
  */
-export * as Exit from "./Exit.js"
+export * as Exit from "./Exit.ts"
 
 /**
  * This module provides a re-export of the fast-check library for property-based testing.
@@ -729,7 +729,7 @@ export * as Exit from "./Exit.js"
  *
  * @since 3.10.0
  */
-export * as FastCheck from "./FastCheck.js"
+export * as FastCheck from "./FastCheck.ts"
 
 /**
  * This module provides utilities for working with `Fiber`, the fundamental unit of
@@ -805,37 +805,37 @@ export * as FastCheck from "./FastCheck.js"
  *
  * @since 2.0.0
  */
-export * as Fiber from "./Fiber.js"
+export * as Fiber from "./Fiber.ts"
 
 /**
  * @since 2.0.0
  */
-export * as FiberHandle from "./FiberHandle.js"
+export * as FiberHandle from "./FiberHandle.ts"
 
 /**
  * @since 2.0.0
  */
-export * as FiberMap from "./FiberMap.js"
+export * as FiberMap from "./FiberMap.ts"
 
 /**
  * @since 2.0.0
  */
-export * as FiberSet from "./FiberSet.js"
+export * as FiberSet from "./FiberSet.ts"
 
 /**
  * @since 4.0.0
  */
-export * as Filter from "./Filter.js"
+export * as Filter from "./Filter.ts"
 
 /**
  * @since 2.0.0
  */
-export * as Function from "./Function.js"
+export * as Function from "./Function.ts"
 
 /**
  * @since 4.0.0
  */
-export * as Graph from "./Graph.js"
+export * as Graph from "./Graph.ts"
 
 /**
  * This module provides utilities for hashing values in TypeScript.
@@ -846,17 +846,17 @@ export * as Graph from "./Graph.js"
  *
  * @since 2.0.0
  */
-export * as Hash from "./Hash.js"
+export * as Hash from "./Hash.ts"
 
 /**
  * @since 2.0.0
  */
-export * as HashMap from "./HashMap.js"
+export * as HashMap from "./HashMap.ts"
 
 /**
  * @since 2.0.0
  */
-export * as HashSet from "./HashSet.js"
+export * as HashSet from "./HashSet.ts"
 
 /**
  * This module provides utilities for Higher-Kinded Types (HKT) in TypeScript.
@@ -891,7 +891,7 @@ export * as HashSet from "./HashSet.js"
  *
  * @since 2.0.0
  */
-export * as HKT from "./HKT.js"
+export * as HKT from "./HKT.ts"
 
 /**
  * This module provides utilities for making values inspectable and debuggable in TypeScript.
@@ -931,7 +931,7 @@ export * as HKT from "./HKT.js"
  *
  * @since 2.0.0
  */
-export * as Inspectable from "./Inspectable.js"
+export * as Inspectable from "./Inspectable.ts"
 
 /**
  * This module provides utility functions for working with Iterables in TypeScript.
@@ -964,7 +964,7 @@ export * as Inspectable from "./Inspectable.js"
  *
  * @since 2.0.0
  */
-export * as Iterable from "./Iterable.js"
+export * as Iterable from "./Iterable.ts"
 
 /**
  * A `Layer<ROut, E, RIn>` describes how to build one or more services in your
@@ -985,13 +985,13 @@ export * as Iterable from "./Iterable.js"
  *
  * @since 2.0.0
  */
-export * as Layer from "./Layer.js"
+export * as Layer from "./Layer.ts"
 
 /**
  * @since 3.14.0
  * @experimental
  */
-export * as LayerMap from "./LayerMap.js"
+export * as LayerMap from "./LayerMap.ts"
 
 /**
  * @since 2.0.0
@@ -1092,7 +1092,7 @@ export * as LayerMap from "./LayerMap.js"
  * })
  * ```
  */
-export * as Logger from "./Logger.js"
+export * as Logger from "./Logger.ts"
 
 /**
  * @since 2.0.0
@@ -1192,12 +1192,12 @@ export * as Logger from "./Logger.js"
  * })
  * ```
  */
-export * as LogLevel from "./LogLevel.js"
+export * as LogLevel from "./LogLevel.ts"
 
 /**
  * @since 2.0.0
  */
-export * as ManagedRuntime from "./ManagedRuntime.js"
+export * as ManagedRuntime from "./ManagedRuntime.ts"
 
 /**
  * The `effect/match` module provides a type-safe pattern matching system for
@@ -1227,7 +1227,7 @@ export * as ManagedRuntime from "./ManagedRuntime.js"
  *
  * @since 4.0.0
  */
-export * as Match from "./Match.js"
+export * as Match from "./Match.ts"
 
 /**
  * @since 2.0.0
@@ -1367,7 +1367,7 @@ export * as Match from "./Match.js"
  * })
  * ```
  */
-export * as Metric from "./Metric.js"
+export * as Metric from "./Metric.ts"
 
 /**
  * @fileoverview
@@ -1396,7 +1396,7 @@ export * as Metric from "./Metric.js"
  * @since 2.0.0
  * @category data-structures
  */
-export * as MutableHashMap from "./MutableHashMap.js"
+export * as MutableHashMap from "./MutableHashMap.ts"
 
 /**
  * @fileoverview
@@ -1424,7 +1424,7 @@ export * as MutableHashMap from "./MutableHashMap.js"
  * @since 2.0.0
  * @category data-structures
  */
-export * as MutableHashSet from "./MutableHashSet.js"
+export * as MutableHashSet from "./MutableHashSet.ts"
 
 /**
  * @fileoverview
@@ -1462,7 +1462,7 @@ export * as MutableHashSet from "./MutableHashSet.js"
  * @since 4.0.0
  * @category data-structures
  */
-export * as MutableList from "./MutableList.js"
+export * as MutableList from "./MutableList.ts"
 
 /**
  * @fileoverview
@@ -1496,7 +1496,7 @@ export * as MutableList from "./MutableList.js"
  * @since 2.0.0
  * @category data-structures
  */
-export * as MutableRef from "./MutableRef.js"
+export * as MutableRef from "./MutableRef.ts"
 
 /**
  * @since 2.0.0
@@ -1612,7 +1612,7 @@ export * as MutableRef from "./MutableRef.js"
  * )
  * ```
  */
-export * as NonEmptyIterable from "./NonEmptyIterable.js"
+export * as NonEmptyIterable from "./NonEmptyIterable.ts"
 
 /**
  * This module provides utility functions and type class instances for working with the `number` type in TypeScript.
@@ -1621,12 +1621,12 @@ export * as NonEmptyIterable from "./NonEmptyIterable.js"
  *
  * @since 2.0.0
  */
-export * as Number from "./Number.js"
+export * as Number from "./Number.ts"
 
 /**
  * @since 2.0.0
  */
-export * as Option from "./Option.js"
+export * as Option from "./Option.ts"
 
 /**
  * This module provides an implementation of the `Order` type class which is used to define a total ordering on some type `A`.
@@ -1646,7 +1646,7 @@ export * as Option from "./Option.js"
  *
  * @since 2.0.0
  */
-export * as Order from "./Order.js"
+export * as Order from "./Order.ts"
 
 /**
  * @fileoverview
@@ -1675,17 +1675,17 @@ export * as Order from "./Order.js"
  * @since 2.0.0
  * @category utilities
  */
-export * as Ordering from "./Ordering.js"
+export * as Ordering from "./Ordering.ts"
 
 /**
  * @since 2.0.0
  */
-export * as Pipeable from "./Pipeable.js"
+export * as Pipeable from "./Pipeable.ts"
 
 /**
  * @since 2.0.0
  */
-export * as Predicate from "./Predicate.js"
+export * as Predicate from "./Predicate.ts"
 
 /**
  * This module provides functionality for working with primary keys.
@@ -1698,7 +1698,7 @@ export * as Predicate from "./Predicate.js"
  *
  * @since 2.0.0
  */
-export * as PrimaryKey from "./PrimaryKey.js"
+export * as PrimaryKey from "./PrimaryKey.ts"
 
 /**
  * This module provides utilities for working with publish-subscribe (PubSub) systems.
@@ -1730,12 +1730,12 @@ export * as PrimaryKey from "./PrimaryKey.js"
  *
  * @since 2.0.0
  */
-export * as PubSub from "./PubSub.js"
+export * as PubSub from "./PubSub.ts"
 
 /**
  * @since 4.0.0
  */
-export * as Pull from "./Pull.js"
+export * as Pull from "./Pull.ts"
 
 /**
  * This module provides utilities for working with asynchronous queues that support various backpressure strategies.
@@ -1771,24 +1771,24 @@ export * as Pull from "./Pull.js"
  *
  * @since 3.8.0
  */
-export * as Queue from "./Queue.js"
+export * as Queue from "./Queue.ts"
 
 /**
  * @since 3.5.0
  */
-export * as RcMap from "./RcMap.js"
+export * as RcMap from "./RcMap.ts"
 
 /**
  * @since 3.5.0
  */
-export * as RcRef from "./RcRef.js"
+export * as RcRef from "./RcRef.ts"
 
 /**
  * This module provides utility functions for working with records in TypeScript.
  *
  * @since 2.0.0
  */
-export * as Record from "./Record.js"
+export * as Record from "./Record.ts"
 
 /**
  * The Redacted module provides functionality for handling sensitive information
@@ -1798,7 +1798,7 @@ export * as Record from "./Record.js"
  *
  * @since 3.3.0
  */
-export * as Redacted from "./Redacted.js"
+export * as Redacted from "./Redacted.ts"
 
 /**
  * This module provides utilities for working with mutable references in a functional context.
@@ -1830,7 +1830,7 @@ export * as Redacted from "./Redacted.js"
  *
  * @since 2.0.0
  */
-export * as Ref from "./Ref.js"
+export * as Ref from "./Ref.ts"
 
 /**
  * This module provides a collection of reference implementations for commonly used
@@ -1844,19 +1844,19 @@ export * as Ref from "./Ref.js"
  *
  * @since 4.0.0
  */
-export * as References from "./References.js"
+export * as References from "./References.ts"
 
 /**
  * This module provides utility functions for working with RegExp in TypeScript.
  *
  * @since 2.0.0
  */
-export * as RegExp from "./RegExp.js"
+export * as RegExp from "./RegExp.ts"
 
 /**
  * @since 4.0.0
  */
-export * as Result from "./Result.js"
+export * as Result from "./Result.ts"
 
 /**
  * This module provides utilities for running Effect programs and managing their execution lifecycle.
@@ -1886,7 +1886,7 @@ export * as Result from "./Result.js"
  *
  * @since 4.0.0
  */
-export * as Runtime from "./Runtime.js"
+export * as Runtime from "./Runtime.ts"
 
 /**
  * This module provides utilities for creating and composing schedules for retrying operations,
@@ -1919,12 +1919,12 @@ export * as Runtime from "./Runtime.js"
  *
  * @since 2.0.0
  */
-export * as Schedule from "./Schedule.js"
+export * as Schedule from "./Schedule.ts"
 
 /**
  * @since 2.0.0
  */
-export * as Scheduler from "./Scheduler.js"
+export * as Scheduler from "./Scheduler.ts"
 
 /**
  * The `Scope` module provides functionality for managing resource lifecycles
@@ -1941,7 +1941,7 @@ export * as Scheduler from "./Scheduler.js"
  *
  * @since 2.0.0
  */
-export * as Scope from "./Scope.js"
+export * as Scope from "./Scope.ts"
 
 /**
  * This module provides a data structure called `ServiceMap` that can be used for dependency injection in effectful
@@ -1952,17 +1952,17 @@ export * as Scope from "./Scope.js"
  *
  * @since 4.0.0
  */
-export * as ServiceMap from "./ServiceMap.js"
+export * as ServiceMap from "./ServiceMap.ts"
 
 /**
  * @since 2.0.0
  */
-export * as Sink from "./Sink.js"
+export * as Sink from "./Sink.ts"
 
 /**
  * @since 2.0.0
  */
-export * as Stream from "./Stream.js"
+export * as Stream from "./Stream.ts"
 
 /**
  * This module provides utility functions and type class instances for working with the `string` type in TypeScript.
@@ -1971,34 +1971,34 @@ export * as Stream from "./Stream.js"
  *
  * @since 2.0.0
  */
-export * as String from "./String.js"
+export * as String from "./String.ts"
 
 /**
  * This module provides utility functions for working with structs in TypeScript.
  *
  * @since 2.0.0
  */
-export * as Struct from "./Struct.js"
+export * as Struct from "./Struct.ts"
 
 /**
  * @since 2.0.0
  */
-export * as Symbol from "./Symbol.js"
+export * as Symbol from "./Symbol.ts"
 
 /**
  * @since 2.0.0
  */
-export * as TestClock from "./TestClock.js"
+export * as TestClock from "./TestClock.ts"
 
 /**
  * @since 4.0.0
  */
-export * as TestConsole from "./TestConsole.js"
+export * as TestConsole from "./TestConsole.ts"
 
 /**
  * @since 2.0.0
  */
-export * as Tracer from "./Tracer.js"
+export * as Tracer from "./Tracer.ts"
 
 /**
  * A `Trie` is used for locating specific `string` keys from within a set.
@@ -2017,14 +2017,14 @@ export * as Tracer from "./Tracer.js"
  *
  * @since 2.0.0
  */
-export * as Trie from "./Trie.js"
+export * as Trie from "./Trie.ts"
 
 /**
  * This module provides utility functions for working with tuples in TypeScript.
  *
  * @since 2.0.0
  */
-export * as Tuple from "./Tuple.js"
+export * as Tuple from "./Tuple.ts"
 
 /**
  * TxChunk is a transactional chunk data structure that provides Software Transactional Memory (STM)
@@ -2037,17 +2037,17 @@ export * as Tuple from "./Tuple.js"
  *
  * @since 4.0.0
  */
-export * as TxChunk from "./TxChunk.js"
+export * as TxChunk from "./TxChunk.ts"
 
 /**
  * @since 2.0.0
  */
-export * as TxHashMap from "./TxHashMap.js"
+export * as TxHashMap from "./TxHashMap.ts"
 
 /**
  * @since 2.0.0
  */
-export * as TxHashSet from "./TxHashSet.js"
+export * as TxHashSet from "./TxHashSet.ts"
 
 /**
  * TxQueue is a transactional queue data structure that provides Software Transactional Memory (STM)
@@ -2060,7 +2060,7 @@ export * as TxHashSet from "./TxHashSet.js"
  *
  * @since 4.0.0
  */
-export * as TxQueue from "./TxQueue.js"
+export * as TxQueue from "./TxQueue.ts"
 
 /**
  * TxRef is a transactional value, it can be read and modified within the body of a transaction.
@@ -2072,26 +2072,26 @@ export * as TxQueue from "./TxQueue.js"
  *
  * @since 4.0.0
  */
-export * as TxRef from "./TxRef.js"
+export * as TxRef from "./TxRef.ts"
 
 /**
  * @since 4.0.0
  */
-export * as TxSemaphore from "./TxSemaphore.js"
+export * as TxSemaphore from "./TxSemaphore.ts"
 
 /**
  * A collection of types that are commonly used types.
  *
  * @since 2.0.0
  */
-export * as Types from "./Types.js"
+export * as Types from "./Types.ts"
 
 /**
  * @since 2.0.0
  */
-export * as Unify from "./Unify.js"
+export * as Unify from "./Unify.ts"
 
 /**
  * @since 2.0.0
  */
-export * as Utils from "./Utils.js"
+export * as Utils from "./Utils.ts"

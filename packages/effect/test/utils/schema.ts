@@ -2,7 +2,7 @@ import type { StandardSchemaV1 } from "@standard-schema/spec"
 import type { ServiceMap } from "effect"
 import { Effect, FastCheck, Predicate, Record, Result } from "effect"
 import { AST, Formatter, Issue, Schema, Serializer, ToArbitrary, ToParser } from "effect/schema"
-import { deepStrictEqual, fail, strictEqual, throws } from "./assert.js"
+import { deepStrictEqual, fail, strictEqual, throws } from "./assert.ts"
 
 export const assertions = make({
   deepStrictEqual,

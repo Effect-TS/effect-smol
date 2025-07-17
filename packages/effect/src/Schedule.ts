@@ -29,19 +29,19 @@
  *
  * @since 2.0.0
  */
-import * as Cron from "./Cron.js"
-import type * as DateTime from "./DateTime.js"
-import * as Duration from "./Duration.js"
-import type { Effect } from "./Effect.js"
-import type { LazyArg } from "./Function.js"
-import { constant, constTrue, dual, identity } from "./Function.js"
-import { isEffect } from "./internal/core.js"
-import * as effect from "./internal/effect.js"
-import { type Pipeable, pipeArguments } from "./Pipeable.js"
-import { hasProperty } from "./Predicate.js"
-import * as Pull from "./Pull.js"
-import * as Result from "./Result.js"
-import type { Contravariant, Covariant } from "./Types.js"
+import * as Cron from "./Cron.ts"
+import type * as DateTime from "./DateTime.ts"
+import * as Duration from "./Duration.ts"
+import type { Effect } from "./Effect.ts"
+import type { LazyArg } from "./Function.ts"
+import { constant, constTrue, dual, identity } from "./Function.ts"
+import { isEffect } from "./internal/core.ts"
+import * as effect from "./internal/effect.ts"
+import { type Pipeable, pipeArguments } from "./Pipeable.ts"
+import { hasProperty } from "./Predicate.ts"
+import * as Pull from "./Pull.ts"
+import * as Result from "./Result.ts"
+import type { Contravariant, Covariant } from "./Types.ts"
 
 /**
  * Unique identifier for Schedule types, used for type branding and runtime identification.

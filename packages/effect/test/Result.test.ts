@@ -13,7 +13,7 @@ import {
   deepStrictEqual,
   strictEqual,
   throws
-} from "./utils/assert.js"
+} from "./utils/assert.ts"
 
 describe("Result", () => {
   describe("Constructors", () => {

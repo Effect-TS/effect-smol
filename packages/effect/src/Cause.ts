@@ -39,17 +39,17 @@
  *
  * @since 2.0.0
  */
-import type * as Effect from "./Effect.js"
-import type { Equal } from "./Equal.js"
-import type * as Filter from "./Filter.js"
-import type { Inspectable } from "./Inspectable.js"
-import * as core from "./internal/core.js"
-import * as effect from "./internal/effect.js"
-import type { Option } from "./Option.js"
-import type { Pipeable } from "./Pipeable.js"
-import * as ServiceMap from "./ServiceMap.js"
-import type { Span } from "./Tracer.js"
-import type { NoInfer } from "./Types.js"
+import type * as Effect from "./Effect.ts"
+import type { Equal } from "./Equal.ts"
+import type * as Filter from "./Filter.ts"
+import type { Inspectable } from "./Inspectable.ts"
+import * as core from "./internal/core.ts"
+import * as effect from "./internal/effect.ts"
+import type { Option } from "./Option.ts"
+import type { Pipeable } from "./Pipeable.ts"
+import * as ServiceMap from "./ServiceMap.ts"
+import type { Span } from "./Tracer.ts"
+import type { NoInfer } from "./Types.ts"
 
 /**
  * @example

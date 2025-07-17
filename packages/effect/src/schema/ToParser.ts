@@ -2,15 +2,15 @@
  * @since 4.0.0
  */
 
-import * as Arr from "../Array.js"
-import * as Effect from "../Effect.js"
-import { defaultParseOptions } from "../internal/schema/util.js"
-import * as Option from "../Option.js"
-import * as Result from "../Result.js"
-import * as AST from "./AST.js"
-import type * as Check from "./Check.js"
-import * as Issue from "./Issue.js"
-import type * as Schema from "./Schema.js"
+import * as Arr from "../Array.ts"
+import * as Effect from "../Effect.ts"
+import { defaultParseOptions } from "../internal/schema/util.ts"
+import * as Option from "../Option.ts"
+import * as Result from "../Result.ts"
+import * as AST from "./AST.ts"
+import type * as Check from "./Check.ts"
+import * as Issue from "./Issue.ts"
+import type * as Schema from "./Schema.ts"
 
 /**
  * @category Constructing

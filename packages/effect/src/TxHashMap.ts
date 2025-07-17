@@ -2,15 +2,15 @@
  * @since 2.0.0
  */
 
-import * as Effect from "./Effect.js"
-import { dual } from "./Function.js"
-import * as HashMap from "./HashMap.js"
-import type { Inspectable } from "./Inspectable.js"
-import { format, NodeInspectSymbol, toJSON } from "./Inspectable.js"
-import * as Option from "./Option.js"
-import type { Pipeable } from "./Pipeable.js"
-import { pipeArguments } from "./Pipeable.js"
-import * as TxRef from "./TxRef.js"
+import * as Effect from "./Effect.ts"
+import { dual } from "./Function.ts"
+import * as HashMap from "./HashMap.ts"
+import type { Inspectable } from "./Inspectable.ts"
+import { format, NodeInspectSymbol, toJSON } from "./Inspectable.ts"
+import * as Option from "./Option.ts"
+import type { Pipeable } from "./Pipeable.ts"
+import { pipeArguments } from "./Pipeable.ts"
+import * as TxRef from "./TxRef.ts"
 
 /**
  * Unique identifier for TxHashMap instances.

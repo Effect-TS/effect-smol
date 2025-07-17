@@ -1,11 +1,11 @@
 /**
  * @since 4.0.0
  */
-import * as Effect from "../Effect.js"
-import { identity } from "../Function.js"
-import * as Layer from "../Layer.js"
-import * as ServiceMap from "../ServiceMap.js"
-import { BadArgument } from "./PlatformError.js"
+import * as Effect from "../Effect.ts"
+import { identity } from "../Function.ts"
+import * as Layer from "../Layer.ts"
+import * as ServiceMap from "../ServiceMap.ts"
+import { BadArgument } from "./PlatformError.ts"
 
 /**
  * @since 4.0.0
@@ -136,9 +136,9 @@ export declare namespace Path {
    *   const formatted = path.format({
    *     dir: "/home/user",
    *     name: "newfile",
-   *     ext: ".js"
+   *     ext: ".ts"
    *   })
-   *   console.log(formatted) // "/home/user/newfile.js"
+   *   console.log(formatted) // "/home/user/newfile.ts"
    * })
    * ```
    */

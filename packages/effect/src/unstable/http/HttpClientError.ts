@@ -1,10 +1,10 @@
 /**
  * @since 4.0.0
  */
-import * as Data from "../../Data.js"
-import { hasProperty } from "../../Predicate.js"
-import type * as HttpClientRequest from "./HttpClientRequest.js"
-import type * as ClientResponse from "./HttpClientResponse.js"
+import * as Data from "../../Data.ts"
+import { hasProperty } from "../../Predicate.ts"
+import type * as HttpClientRequest from "./HttpClientRequest.ts"
+import type * as ClientResponse from "./HttpClientResponse.ts"
 
 /**
  * @since 4.0.0

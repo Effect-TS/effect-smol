@@ -5,4 +5,4 @@
 /**
  * @since 4.0.0
  */
-export * as Cache from "./Cache.js"
+export * as Cache from "./Cache.ts"

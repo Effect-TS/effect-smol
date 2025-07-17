@@ -1,24 +1,24 @@
-import * as Arr from "../Array.js"
-import type * as Cause from "../Cause.js"
-import type * as Clock from "../Clock.js"
-import type * as Console from "../Console.js"
-import * as Duration from "../Duration.js"
-import type * as Effect from "../Effect.js"
-import * as Equal from "../Equal.js"
-import type * as Exit from "../Exit.js"
-import type * as Fiber from "../Fiber.js"
-import * as Filter from "../Filter.js"
-import type { LazyArg } from "../Function.js"
-import { constant, constTrue, constVoid, dual, identity } from "../Function.js"
-import * as Hash from "../Hash.js"
-import { redact, stringifyCircular, toJSON } from "../Inspectable.js"
-import type * as Logger from "../Logger.js"
-import type * as LogLevel from "../LogLevel.js"
-import type * as Metric from "../Metric.js"
-import * as Option from "../Option.js"
-import * as Order from "../Order.js"
-import { pipeArguments } from "../Pipeable.js"
-import { hasProperty, isIterable, isString, isTagged } from "../Predicate.js"
+import * as Arr from "../Array.ts"
+import type * as Cause from "../Cause.ts"
+import type * as Clock from "../Clock.ts"
+import type * as Console from "../Console.ts"
+import * as Duration from "../Duration.ts"
+import type * as Effect from "../Effect.ts"
+import * as Equal from "../Equal.ts"
+import type * as Exit from "../Exit.ts"
+import type * as Fiber from "../Fiber.ts"
+import * as Filter from "../Filter.ts"
+import type { LazyArg } from "../Function.ts"
+import { constant, constTrue, constVoid, dual, identity } from "../Function.ts"
+import * as Hash from "../Hash.ts"
+import { redact, stringifyCircular, toJSON } from "../Inspectable.ts"
+import type * as Logger from "../Logger.ts"
+import type * as LogLevel from "../LogLevel.ts"
+import type * as Metric from "../Metric.ts"
+import * as Option from "../Option.ts"
+import * as Order from "../Order.ts"
+import { pipeArguments } from "../Pipeable.ts"
+import { hasProperty, isIterable, isString, isTagged } from "../Predicate.ts"
 import {
   CurrentConcurrency,
   CurrentLogAnnotations,
@@ -28,16 +28,16 @@ import {
   TracerEnabled,
   TracerSpanAnnotations,
   TracerSpanLinks
-} from "../References.js"
-import * as Result from "../Result.js"
-import * as Scheduler from "../Scheduler.js"
-import type * as Scope from "../Scope.js"
-import * as ServiceMap from "../ServiceMap.js"
-import * as Tracer from "../Tracer.js"
-import type { Concurrency, ExcludeTag, ExtractTag, NoInfer, NotFunction, Simplify, Tags } from "../Types.js"
-import type { YieldWrap } from "../Utils.js"
-import { internalCall, yieldWrapGet } from "../Utils.js"
-import type { Primitive } from "./core.js"
+} from "../References.ts"
+import * as Result from "../Result.ts"
+import * as Scheduler from "../Scheduler.ts"
+import type * as Scope from "../Scope.ts"
+import * as ServiceMap from "../ServiceMap.ts"
+import * as Tracer from "../Tracer.ts"
+import type { Concurrency, ExcludeTag, ExtractTag, NoInfer, NotFunction, Simplify, Tags } from "../Types.ts"
+import type { YieldWrap } from "../Utils.ts"
+import { internalCall, yieldWrapGet } from "../Utils.ts"
+import type { Primitive } from "./core.ts"
 import {
   args,
   causeAnnotate,
@@ -68,11 +68,11 @@ import {
   TaggedError,
   withFiber,
   Yield
-} from "./core.js"
-import * as doNotation from "./doNotation.js"
-import * as InternalMetric from "./metric.js"
-import { addSpanStackTrace, type ErrorWithStackTraceLimit } from "./tracer.js"
-import { version } from "./version.js"
+} from "./core.ts"
+import * as doNotation from "./doNotation.ts"
+import * as InternalMetric from "./metric.ts"
+import { addSpanStackTrace, type ErrorWithStackTraceLimit } from "./tracer.ts"
+import { version } from "./version.ts"
 
 // ----------------------------------------------------------------------------
 // Cause

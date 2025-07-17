@@ -1,11 +1,11 @@
 /**
  * @since 4.0.0
  */
-import * as Option from "../Option.js"
-import { hasProperty } from "../Predicate.js"
-import type * as Annotations from "./Annotations.js"
-import type * as AST from "./AST.js"
-import type * as Check from "./Check.js"
+import * as Option from "../Option.ts"
+import { hasProperty } from "../Predicate.ts"
+import type * as Annotations from "./Annotations.ts"
+import type * as AST from "./AST.ts"
+import type * as Check from "./Check.ts"
 
 /**
  * @since 4.0.0

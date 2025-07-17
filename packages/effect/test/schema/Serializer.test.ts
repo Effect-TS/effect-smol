@@ -1,8 +1,8 @@
 import { Option } from "effect"
 import { Schema, Serializer, Transformation } from "effect/schema"
 import { describe, it } from "vitest"
-import { strictEqual } from "../utils/assert.js"
-import { assertions } from "../utils/schema.js"
+import { strictEqual } from "../utils/assert.ts"
+import { assertions } from "../utils/schema.ts"
 
 const FiniteFromDate = Schema.Date.pipe(Schema.decodeTo(
   Schema.Number,

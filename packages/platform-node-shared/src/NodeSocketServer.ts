@@ -14,8 +14,8 @@ import * as Socket from "effect/unstable/socket/Socket"
 import * as SocketServer from "effect/unstable/socket/SocketServer"
 import type * as Http from "node:http"
 import * as Net from "node:net"
-import * as NodeSocket from "./NodeSocket.js"
-import { NodeWS } from "./NodeSocket.js"
+import * as NodeSocket from "./NodeSocket.ts"
+import { NodeWS } from "./NodeSocket.ts"
 
 /**
  * @since 1.0.0

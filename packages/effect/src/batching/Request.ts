@@ -13,17 +13,17 @@
  *
  * @since 2.0.0
  */
-import type * as Cause from "../Cause.js"
-import type * as Effect from "../Effect.js"
-import type * as Exit from "../Exit.js"
-import { dual } from "../Function.js"
-import * as core from "../internal/core.js"
-import { StructuralPrototype } from "../internal/core.js"
-import * as internalEffect from "../internal/effect.js"
-import type * as Option from "../Option.js"
-import { hasProperty } from "../Predicate.js"
-import type * as ServiceMap from "../ServiceMap.js"
-import type * as Types from "../Types.js"
+import type * as Cause from "../Cause.ts"
+import type * as Effect from "../Effect.ts"
+import type * as Exit from "../Exit.ts"
+import { dual } from "../Function.ts"
+import * as core from "../internal/core.ts"
+import { StructuralPrototype } from "../internal/core.ts"
+import * as internalEffect from "../internal/effect.ts"
+import type * as Option from "../Option.ts"
+import { hasProperty } from "../Predicate.ts"
+import type * as ServiceMap from "../ServiceMap.ts"
+import type * as Types from "../Types.ts"
 
 /**
  * @example

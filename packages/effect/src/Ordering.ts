@@ -25,8 +25,8 @@
  * @since 2.0.0
  * @category utilities
  */
-import type { LazyArg } from "./Function.js"
-import { dual } from "./Function.js"
+import type { LazyArg } from "./Function.ts"
+import { dual } from "./Function.ts"
 
 /**
  * Represents the result of comparing two values.
