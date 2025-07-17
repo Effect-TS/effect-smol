@@ -119,6 +119,9 @@ export const get: {
     Effect.withFiber((fiber) => {
       const oentry = MutableHashMap.get(self.map, key)
       if (Option.isSome(oentry) && !hasExpired(oentry.value, fiber)) {
+        // Move the entry to the end of the map to keep it fresh
+        MutableHashMap.remove(self.map, key)
+        MutableHashMap.set(self.map, key, oentry.value)
         return Deferred.await(oentry.value.deferred)
       }
       const deferred = Deferred.unsafeMake<A, E>()
@@ -182,7 +185,8 @@ export const getOption: {
 const getOptionImpl = <Key, A, E>(
   self: Cache<Key, A, E>,
   key: Key,
-  fiber: Fiber.Fiber<any, any>
+  fiber: Fiber.Fiber<any, any>,
+  isRead = true
 ): Option.Option<Entry<A, E>> => {
   const oentry = MutableHashMap.get(self.map, key)
   if (Option.isNone(oentry)) {
@@ -190,6 +194,9 @@ const getOptionImpl = <Key, A, E>(
   } else if (hasExpired(oentry.value, fiber)) {
     MutableHashMap.remove(self.map, key)
     return Option.none()
+  } else if (isRead) {
+    MutableHashMap.remove(self.map, key)
+    MutableHashMap.set(self.map, key, oentry.value)
   }
   return Option.some(oentry.value)
 }
@@ -263,7 +270,7 @@ export const has: {
   2,
   <Key, A, E>(self: Cache<Key, A, E>, key: Key): Effect.Effect<boolean> =>
     Effect.withFiber((fiber) => {
-      const oentry = getOptionImpl(self, key, fiber)
+      const oentry = getOptionImpl(self, key, fiber, false)
       return Effect.succeed(Option.isSome(oentry))
     })
 )
@@ -293,7 +300,7 @@ export const invalidateWhen: {
   3,
   <Key, A, E>(self: Cache<Key, A, E>, key: Key, f: Predicate<A>): Effect.Effect<boolean> =>
     Effect.withFiber((fiber) => {
-      const oentry = getOptionImpl(self, key, fiber)
+      const oentry = getOptionImpl(self, key, fiber, false)
       if (Option.isNone(oentry)) {
         return Effect.succeed(false)
       }
@@ -331,7 +338,7 @@ export const refresh: {
         expiresAt: undefined,
         deferred
       }
-      const existing = Option.isSome(getOptionImpl(self, key, fiber))
+      const existing = Option.isSome(getOptionImpl(self, key, fiber, false))
       if (!existing) {
         MutableHashMap.set(self.map, key, entry)
         checkCapacity(self)

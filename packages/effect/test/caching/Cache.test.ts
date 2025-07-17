@@ -1023,7 +1023,7 @@ describe("Cache", () => {
         assert.isTrue(yield* Cache.has(cache, "d"))
       }))
 
-    it.effect("FIFO eviction - insertion order determines eviction", () =>
+    it.effect("LRU eviction - access order determines eviction", () =>
       Effect.gen(function*() {
         const cache = yield* Cache.make<string, number>({
           capacity: 3,
@@ -1034,14 +1034,12 @@ describe("Cache", () => {
         yield* Cache.get(cache, "b")
         yield* Cache.get(cache, "c")
 
-        // Access 'a' again - this doesn't change insertion order
         yield* Cache.get(cache, "a")
 
-        // Add new entry, oldest ('a') should be evicted based on insertion order
         yield* Cache.get(cache, "d")
 
-        assert.isFalse(yield* Cache.has(cache, "a")) // First inserted, first evicted
-        assert.isTrue(yield* Cache.has(cache, "b"))
+        assert.isTrue(yield* Cache.has(cache, "a"))
+        assert.isFalse(yield* Cache.has(cache, "b"))
         assert.isTrue(yield* Cache.has(cache, "c"))
         assert.isTrue(yield* Cache.has(cache, "d"))
       }))
