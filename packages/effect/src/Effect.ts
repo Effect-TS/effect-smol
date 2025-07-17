@@ -67,6 +67,8 @@
  * @since 2.0.0
  */
 import type * as Arr from "./Array.js"
+import type * as Request from "./batching/Request.js"
+import type { RequestResolver } from "./batching/RequestResolver.js"
 import type * as Cause from "./Cause.js"
 import type { Clock } from "./Clock.js"
 import * as Duration from "./Duration.js"
@@ -89,8 +91,6 @@ import type { Option } from "./Option.js"
 import type { Pipeable } from "./Pipeable.js"
 import type * as Predicate from "./Predicate.js"
 import { CurrentLogAnnotations, CurrentLogSpans } from "./References.js"
-import type * as Request from "./Request.js"
-import type { RequestResolver } from "./RequestResolver.js"
 import type * as Result from "./Result.js"
 import type { Schedule } from "./Schedule.js"
 import type { Scheduler } from "./Scheduler.js"
@@ -6570,15 +6570,6 @@ export const withParentSpan: {
 
 /**
  * Executes a request using the provided resolver.
- *
- * @example
- * ```ts
- * import { Effect } from "effect"
- *
- * // Request and RequestResolver usage requires
- * // complex setup - see Request module docs
- * const program = Effect.succeed("example")
- * ```
  *
  * @since 2.0.0
  * @category requests & batching

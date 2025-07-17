@@ -1,21 +1,21 @@
-/**
+/*
  * @since 2.0.0
  */
-import type { NonEmptyArray } from "./Array.js"
-import * as Cache from "./caching/Cache.js"
-import * as Duration from "./Duration.js"
-import type { Effect } from "./Effect.js"
-import { constTrue, dual, identity } from "./Function.js"
-import { exitFail, exitSucceed } from "./internal/core.js"
-import * as effect from "./internal/effect.js"
-import * as internal from "./internal/request.js"
-import * as MutableHashMap from "./MutableHashMap.js"
-import { type Pipeable, pipeArguments } from "./Pipeable.js"
-import { hasProperty } from "./Predicate.js"
+import type { NonEmptyArray } from "../Array.js"
+import * as Cache from "../caching/Cache.js"
+import * as Duration from "../Duration.js"
+import type { Effect } from "../Effect.js"
+import { constTrue, dual, identity } from "../Function.js"
+import { exitFail, exitSucceed } from "../internal/core.js"
+import * as effect from "../internal/effect.js"
+import * as internal from "../internal/request.js"
+import * as MutableHashMap from "../MutableHashMap.js"
+import { type Pipeable, pipeArguments } from "../Pipeable.js"
+import { hasProperty } from "../Predicate.js"
+import * as ServiceMap from "../ServiceMap.js"
+import * as Tracer from "../Tracer.js"
+import type * as Types from "../Types.js"
 import type * as Request from "./Request.js"
-import * as ServiceMap from "./ServiceMap.js"
-import * as Tracer from "./Tracer.js"
-import type * as Types from "./Types.js"
 
 /**
  * @since 2.0.0

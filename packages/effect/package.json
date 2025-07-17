@@ -29,6 +29,7 @@
   "exports": {
     "./package.json": "./package.json",
     ".": "./src/index.ts",
+    "./batching": "./src/batching/index.ts",
     "./caching": "./src/caching/index.ts",
     "./config": "./src/config/index.ts",
     "./platform": "./src/platform/index.ts",
@@ -49,6 +50,7 @@
     "exports": {
       "./package.json": "./package.json",
       ".": "./dist/index.js",
+      "./batching": "./dist/batching/index.js",
       "./caching": "./dist/caching/index.js",
       "./config": "./dist/config/index.js",
       "./platform": "./dist/platform/index.js",

@@ -1,10 +1,10 @@
 import type { NonEmptyArray } from "../Array.js"
+import type * as Request from "../batching/Request.js"
+import { makeEntry } from "../batching/Request.js"
+import type { RequestResolver } from "../batching/RequestResolver.js"
 import type { Effect } from "../Effect.js"
 import type { Fiber } from "../Fiber.js"
 import { dual } from "../Function.js"
-import type * as Request from "../Request.js"
-import { makeEntry } from "../Request.js"
-import type { RequestResolver } from "../RequestResolver.js"
 import { exitDie, isEffect } from "./core.js"
 import * as effect from "./effect.js"
 
