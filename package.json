@@ -44,7 +44,7 @@
     "@changesets/changelog-github": "^0.5.0",
     "@changesets/cli": "^2.29.5",
     "@edge-runtime/vm": "^5.0.0",
-    "@effect/build-utils": "^0.8.8",
+    "@effect/build-utils": "^0.8.9",
     "@effect/docgen": "https://pkg.pr.new/Effect-TS/docgen/@effect/docgen@49e99a2",
     "@effect/eslint-plugin": "^0.3.2",
     "@effect/language-service": "^0.24.0",

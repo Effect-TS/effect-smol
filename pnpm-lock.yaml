@@ -50,8 +50,8 @@ importers:
         specifier: ^5.0.0
         version: 5.0.0
       '@effect/build-utils':
-        specifier: ^0.8.8
-        version: 0.8.8
+        specifier: ^0.8.9
+        version: 0.8.9
       '@effect/docgen':
         specifier: https://pkg.pr.new/Effect-TS/docgen/@effect/docgen@49e99a2
         version: https://pkg.pr.new/Effect-TS/docgen/@effect/docgen@49e99a2(tsx@4.20.3)(typescript@5.8.3)
@@ -640,8 +640,8 @@ packages:
     resolution: {integrity: sha512-NKBGBSIKUG584qrS1tyxVpX/AKJKQw5HgjYEnPLC0QsTw79JrGn+qUr8CXFb955Iy7GUdiiUv1rJ6JBGvaKb6w==}
     engines: {node: '>=18'}
 
-  '@effect/build-utils@0.8.8':
-    resolution: {integrity: sha512-OWyGEMsInZaA1seUIqa16qJX9zgo0f85Vll304hnxo4KhjWZTByzUartJ/GG7BZJ+m8eRj0xOkr9Kv9PBnV+ng==}
+  '@effect/build-utils@0.8.9':
+    resolution: {integrity: sha512-wzunjr8pyNjghLueo5ePQD7vaM3qeO2H/jF57hNYbQM/rxfipBWYKukoqWyp04qGZ+V86FyOHb8zD5+PMZvH2A==}
     engines: {node: '>=16.17.1'}
     hasBin: true
 
@@ -4630,7 +4630,7 @@ snapshots:
     dependencies:
       '@edge-runtime/primitives': 6.0.0
 
-  '@effect/build-utils@0.8.8':
+  '@effect/build-utils@0.8.9':
     dependencies:
       micromatch: 4.0.8
       pkg-entry-points: 1.1.1
