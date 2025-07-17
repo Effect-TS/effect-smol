@@ -852,9 +852,7 @@ class MiddlewareImpl<
   readonly dependencies?: Layer.Layer<any, any, any> | undefined
 
   constructor(
-    /** @internal */
     layerFn: Layer.Layer<never>,
-    /** @internal */
     dependencies?: Layer.Layer<any, any, any>
   ) {
     this.layerFn = layerFn
