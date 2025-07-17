@@ -14,7 +14,7 @@ import * as MutableHashMap from "../MutableHashMap.js"
 import * as Option from "../Option.js"
 import type { Pipeable } from "../Pipeable.js"
 import type { Predicate } from "../Predicate.js"
-import type * as ServiceMap from "../ServiceMap.js"
+import * as ServiceMap from "../ServiceMap.js"
 
 /**
  * @since 4.0.0
@@ -53,14 +53,18 @@ export interface Entry<A, E> {
  * @since 4.0.0
  * @category Constructors
  */
-export const makeOptions = <Key, A, E, R>(options: {
+export const makeWithTtl = <Key, A, E = never, R = never>(options: {
   readonly lookup: (key: Key) => Effect.Effect<A, E, R>
   readonly capacity: number
   readonly timeToLive?: ((exit: Exit.Exit<A, E>, key: Key) => Duration.DurationInput) | undefined
 }): Effect.Effect<Cache<Key, A, E>, never, R> =>
   Effect.servicesWith((services: ServiceMap.ServiceMap<R>) => {
     const self = Object.create(Proto)
-    self.lookup = (key: Key): Effect.Effect<A, E> => Effect.provideServices(options.lookup(key), services)
+    self.lookup = (key: Key): Effect.Effect<A, E> =>
+      Effect.updateServices(
+        options.lookup(key),
+        (input) => ServiceMap.merge(services, input)
+      )
     self.map = MutableHashMap.make()
     self.capacity = options.capacity
     self.timeToLive = options.timeToLive
@@ -73,12 +77,12 @@ export const makeOptions = <Key, A, E, R>(options: {
  * @since 4.0.0
  * @category Constructors
  */
-export const make = <Key, A, E, R>(options: {
+export const make = <Key, A, E = never, R = never>(options: {
   readonly lookup: (key: Key) => Effect.Effect<A, E, R>
   readonly capacity: number
   readonly timeToLive?: Duration.DurationInput | undefined
 }): Effect.Effect<Cache<Key, A, E>, never, R> =>
-  makeOptions<Key, A, E, R>({
+  makeWithTtl<Key, A, E, R>({
     ...options,
     timeToLive: options.timeToLive ? () => options.timeToLive! : defaultTimeToLive
   })
@@ -127,10 +131,11 @@ export const get: {
       return Effect.onExit(self.lookup(key), (exit) => {
         Deferred.unsafeDone(deferred, exit)
         const ttl = self.timeToLive(exit, key)
-        if (!Duration.isFinite(ttl)) {
-          return Effect.void
+        if (Duration.isFinite(ttl)) {
+          entry.expiresAt = fiber.getRef(Clock).unsafeCurrentTimeMillis() + Duration.toMillis(ttl)
+        } else if (Duration.isZero(ttl)) {
+          MutableHashMap.remove(self.map, key)
         }
-        entry.expiresAt = fiber.getRef(Clock).unsafeCurrentTimeMillis() + Duration.toMillis(ttl)
         return Effect.void
       })
     })
@@ -230,12 +235,17 @@ export const set: {
       const deferred = Deferred.unsafeMake<A, E>()
       Deferred.unsafeDone(deferred, exit)
       const ttl = self.timeToLive(exit, key)
+      if (Duration.isZero(ttl)) {
+        MutableHashMap.remove(self.map, key)
+        return Effect.void
+      }
       MutableHashMap.set(self.map, key, {
         deferred,
         expiresAt: Duration.isFinite(ttl)
           ? fiber.getRef(Clock).unsafeCurrentTimeMillis() + Duration.toMillis(ttl)
           : undefined
       })
+      checkCapacity(self)
       return Effect.void
     })
 )
@@ -329,6 +339,10 @@ export const refresh: {
       return Effect.onExit(self.lookup(key), (exit) => {
         Deferred.unsafeDone(deferred, exit)
         const ttl = self.timeToLive(exit, key)
+        if (Duration.isZero(ttl)) {
+          MutableHashMap.remove(self.map, key)
+          return Effect.void
+        }
         entry.expiresAt = Duration.isFinite(ttl)
           ? fiber.getRef(Clock).unsafeCurrentTimeMillis() + Duration.toMillis(ttl)
           : undefined
@@ -364,8 +378,17 @@ export const size = <Key, A, E>(self: Cache<Key, A, E>): Effect.Effect<number> =
  * @since 4.0.0
  * @category Combinators
  */
-export const keys = <Key, A, E>(self: Cache<Key, A, E>): Effect.Effect<Array<Key>> =>
-  Effect.sync(() => MutableHashMap.keys(self.map))
+export const keys = <Key, A, E>(self: Cache<Key, A, E>): Effect.Effect<Iterable<Key>> =>
+  Effect.withFiber((fiber) => {
+    const now = fiber.getRef(Clock).unsafeCurrentTimeMillis()
+    return Effect.succeed(Iterable.filterMap(self.map, ([key, entry]) => {
+      if (entry.expiresAt === undefined || entry.expiresAt > now) {
+        return Option.some(key)
+      }
+      MutableHashMap.remove(self.map, key)
+      return Option.none()
+    }))
+  })
 
 /**
  * @since 4.0.0
@@ -382,9 +405,7 @@ export const entries = <Key, A, E>(self: Cache<Key, A, E>): Effect.Effect<Iterab
   Effect.withFiber((fiber) => {
     const now = fiber.getRef(Clock).unsafeCurrentTimeMillis()
     return Effect.succeed(Iterable.filterMap(self.map, ([key, entry]) => {
-      if (entry.expiresAt === undefined) {
-        return Option.none()
-      } else if (entry.expiresAt > now) {
+      if (entry.expiresAt === undefined || entry.expiresAt > now) {
         const exit = entry.deferred.effect
         return !Exit.isExit(exit) || Exit.isFailure(exit)
           ? Option.none()
