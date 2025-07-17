@@ -149,11 +149,8 @@ export class Raw extends Proto {
   readonly contentLength: number | undefined
 
   constructor(
-    /** @internal */
     body: unknown,
-    /** @internal */
     contentType: string | undefined,
-    /** @internal */
     contentLength: number | undefined
   ) {
     super()
@@ -195,11 +192,8 @@ export class Uint8Array extends Proto {
   readonly contentLength: number
 
   constructor(
-    /** @internal */
     body: globalThis.Uint8Array,
-    /** @internal */
     contentType: string,
-    /** @internal */
     contentLength: number
   ) {
     super()
@@ -285,7 +279,6 @@ export class FormData extends Proto {
   readonly formData: globalThis.FormData
 
   constructor(
-    /** @internal */
     formData: globalThis.FormData
   ) {
     super()
@@ -317,11 +310,8 @@ export class Stream extends Proto {
   readonly contentLength: number | undefined
 
   constructor(
-    /** @internal */
     stream: Stream_.Stream<globalThis.Uint8Array, unknown>,
-    /** @internal */
     contentType: string,
-    /** @internal */
     contentLength: number | undefined
   ) {
     super()

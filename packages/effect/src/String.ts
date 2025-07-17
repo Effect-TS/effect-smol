@@ -1087,9 +1087,7 @@ class LinesIterator implements IterableIterator<string> {
   readonly stripped: boolean
 
   constructor(
-    /** @internal */
     s: string,
-    /** @internal */
     stripped: boolean = false
   ) {
     this.s = s

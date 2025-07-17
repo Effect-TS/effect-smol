@@ -920,11 +920,8 @@ export class TupleType extends Base {
   readonly rest: ReadonlyArray<AST>
 
   constructor(
-    /** @internal */
     isMutable: boolean,
-    /** @internal */
     elements: ReadonlyArray<AST>,
-    /** @internal */
     rest: ReadonlyArray<AST>,
     annotations?: Annotations.Annotations,
     checks?: Checks,

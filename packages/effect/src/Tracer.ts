@@ -426,17 +426,11 @@ export class NativeSpan implements Span {
   events: Array<[name: string, startTime: bigint, attributes: Record<string, unknown>]> = []
 
   constructor(
-    /** @internal */
     name: string,
-    /** @internal */
     parent: Option.Option<AnySpan>,
-    /** @internal */
     context: ServiceMap.ServiceMap<never>,
-    /** @internal */
     links: ReadonlyArray<SpanLink>,
-    /** @internal */
     startTime: bigint,
-    /** @internal */
     kind: SpanKind
   ) {
     this.name = name
