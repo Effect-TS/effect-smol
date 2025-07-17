@@ -1,4 +1,4 @@
-/*
+/**
  * @since 2.0.0
  */
 import type { NonEmptyArray } from "../Array.js"

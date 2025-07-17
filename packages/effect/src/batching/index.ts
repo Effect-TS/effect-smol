@@ -21,6 +21,5 @@ export * as Request from "./Request.js"
 
 /**
  * @since 2.0.0
- * @category symbols
  */
 export * as RequestResolver from "./RequestResolver.js"
