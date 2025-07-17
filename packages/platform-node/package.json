@@ -37,8 +37,11 @@
     "./*/index": null
   },
   "files": [
-    "src",
-    "dist"
+    "src/**/*.ts",
+    "dist/**/*.js",
+    "dist/**/*.js.map",
+    "dist/**/*.d.ts",
+    "dist/**/*.d.ts.map"
   ],
   "publishConfig": {
     "provenance": true,
