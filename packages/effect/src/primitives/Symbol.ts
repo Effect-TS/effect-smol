@@ -30,7 +30,7 @@ export const isSymbol: (u: unknown) => u is symbol = predicate.isSymbol
  *
  * @example
  * ```ts
- * import * as S from "effect/data/Symbol"
+ * import * as S from "effect/primitives/Symbol"
  *
  * const sym1 = Symbol("test")
  * const sym2 = Symbol("test")
