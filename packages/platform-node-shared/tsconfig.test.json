@@ -8,6 +8,11 @@
     "outDir": ".tsbuildinfo/test",
     "rootDir": "test",
     "noEmit": true,
-    "erasableSyntaxOnly": false
+    "erasableSyntaxOnly": false,
+    "baseUrl": ".",
+    "paths": {
+      "@effect/platform-node-shared": ["src/index.ts"],
+      "@effect/platform-node-shared/*": ["src/*/index.ts", "src/*.ts"]
+    }
   }
 }

@@ -7,6 +7,11 @@
     "tsBuildInfoFile": ".tsbuildinfo/test.tsbuildinfo",
     "outDir": ".tsbuildinfo/test",
     "rootDir": "test",
-    "noEmit": true
+    "noEmit": true,
+    "baseUrl": ".",
+    "paths": {
+      "@effect/vitest": ["src/index.ts"],
+      "@effect/vitest/*": ["src/*/index.ts", "src/*.ts"]
+    }
   }
 }
