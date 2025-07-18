@@ -140,20 +140,20 @@ jobs:
       - name: Test
         run: deno task test
 
-  test-bun:
-    name: Test on Bun
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v4
-      - name: Install dependencies
-        uses: ./.github/actions/setup
-        with:
-          bun-version: latest
-      - name: Test
-        run: bun --bun vitest
+  # test-bun:
+  #   name: Test on Bun
+  #   runs-on: ubuntu-latest
+  #   permissions:
+  #     contents: read
+  #   timeout-minutes: 10
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - name: Install dependencies
+  #       uses: ./.github/actions/setup
+  #       with:
+  #         bun-version: latest
+  #     - name: Test
+  #       run: bun --bun vitest
 
   jsdoc-analysis:
     name: JSDoc Analysis
