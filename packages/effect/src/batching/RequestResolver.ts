@@ -361,10 +361,10 @@ export const fromFunctionBatched = <A extends Request.Any>(
  */
 export const fromEffect = <A extends Request.Any>(
   f: (entry: Request.Entry<A>) => Effect<Request.Success<A>, Request.Error<A>>
-): RequestResolver<A> =>
-  make((entries) =>
+): RequestResolver<A> => {
+  effect.fork(effect.void) // ensure middleware is registered
+  return make((entries) =>
     effect.callback<void>((resume) => {
-      effect.fork(effect.void) // ensure middleware is registered
       const parent = effect.getCurrentFiber()!
       let done = 0
       for (let i = 0; i < entries.length; i++) {
@@ -380,6 +380,7 @@ export const fromEffect = <A extends Request.Any>(
       }
     })
   )
+}
 
 /**
  * Constructs a request resolver from a list of tags paired to functions, that takes
@@ -881,8 +882,77 @@ export const withSpan: {
   }))
 
 /**
+ * Wraps a request resolver in a cache, allowing it to cache results up to a
+ * specified capacity and optional time-to-live.
+ *
  * @since 4.0.0
- * @category combinators
+ * @category Caching
+ */
+export const asCache: {
+  <
+    A extends Request.Any,
+    ServiceMode extends "lookup" | "construction" = "lookup"
+  >(options: {
+    readonly capacity: number
+    readonly timeToLive?: ((exit: Request.Result<A>, request: A) => Duration.DurationInput) | undefined
+    readonly requireServicesAt?: ServiceMode & "lookup" | "construction" | undefined
+  }): (self: RequestResolver<A>) => Effect<
+    Cache.Cache<
+      A,
+      Request.Success<A>,
+      Request.Error<A>,
+      ServiceMode extends "lookup" ? Request.Services<A> : never
+    >,
+    never,
+    ServiceMode extends "lookup" ? never : Request.Services<A>
+  >
+  <
+    A extends Request.Any,
+    ServiceMode extends "lookup" | "construction" = "lookup"
+  >(self: RequestResolver<A>, options: {
+    readonly capacity: number
+    readonly timeToLive?: ((exit: Request.Result<A>, request: A) => Duration.DurationInput) | undefined
+    readonly requireServicesAt?: ServiceMode & "lookup" | "construction" | undefined
+  }): Effect<
+    Cache.Cache<
+      A,
+      Request.Success<A>,
+      Request.Error<A>,
+      ServiceMode extends "lookup" ? Request.Services<A> : never
+    >,
+    never,
+    ServiceMode extends "lookup" ? never : Request.Services<A>
+  >
+} = dual(2, <
+  A extends Request.Any,
+  ServiceMode extends "lookup" | "construction" = never
+>(self: RequestResolver<A>, options: {
+  readonly capacity: number
+  readonly timeToLive?: ((exit: Request.Result<A>, request: A) => Duration.DurationInput) | undefined
+  readonly requireServicesAt?: ServiceMode | undefined
+}): Effect<
+  Cache.Cache<
+    A,
+    Request.Success<A>,
+    Request.Error<A>,
+    "lookup" extends ServiceMode ? Request.Services<A> : never
+  >,
+  never,
+  "lookup" extends ServiceMode ? never : Request.Services<A>
+> =>
+  Cache.makeWithTtl({
+    capacity: options.capacity,
+    timeToLive: options.timeToLive as any,
+    requireServicesAt: options.requireServicesAt ?? "lookup" as ServiceMode,
+    lookup: (req: A) => internal.request(req, self)
+  }))
+
+/**
+ * Adds caching capabilities to a request resolver, allowing it to cache
+ * results up to a specified capacity and optional time-to-live.
+ *
+ * @since 4.0.0
+ * @category Caching
  */
 export const withCache: {
   <A extends Request.Any>(options: {
@@ -898,10 +968,6 @@ export const withCache: {
   readonly timeToLive?: ((exit: Request.Result<A>, request: A) => Duration.DurationInput) | undefined
 }): Effect<RequestResolver<A>> =>
   effect.map(
-    Cache.makeWithTtl({
-      capacity: options.capacity,
-      timeToLive: options.timeToLive as any,
-      lookup: (req: A) => internal.request(req, self) as Effect<Request.Success<A>, Request.Error<A>>
-    }),
+    asCache(self, options),
     (cache) => fromEffect<A>((entry) => effect.provideServices(Cache.get(cache, entry.request), entry.services))
   ))
