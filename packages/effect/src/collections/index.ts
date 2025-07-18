@@ -349,11 +349,6 @@ export * as MutableList from "./MutableList.ts"
 export * as NonEmptyIterable from "./NonEmptyIterable.ts"
 
 /**
- * @since 2.0.0
- */
-export * as Symbol from "./Symbol.ts"
-
-/**
  * A `Trie` is used for locating specific `string` keys from within a set.
  *
  * It works similar to `HashMap`, but with keys required to be `string`.
