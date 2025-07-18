@@ -25,7 +25,7 @@ jobs:
       - name: Install dependencies
         uses: ./.github/actions/setup
         with:
-          node: true
+          node-version: latest
       - run: pnpm check
 
   types-deno:
@@ -58,7 +58,7 @@ jobs:
       - name: Install dependencies
         uses: ./.github/actions/setup
         with:
-          node: true
+          node-version: latest
       - name: Build
         run: pnpm build
       - name: Clone base ref
@@ -121,7 +121,7 @@ jobs:
       - name: Install dependencies
         uses: ./.github/actions/setup
         with:
-          node: true
+          node-version: latest
       - name: Test
         run: pnpm vitest
 
@@ -136,7 +136,7 @@ jobs:
       - name: Install dependencies
         uses: ./.github/actions/setup
         with:
-          deno: true
+          deno-version: canary
       - name: Test
         run: deno task test
 
@@ -151,7 +151,7 @@ jobs:
       - name: Install dependencies
         uses: ./.github/actions/setup
         with:
-          bun: true
+          bun-version: latest
       - name: Test
         run: bun --bun vitest
 
@@ -193,7 +193,7 @@ jobs:
       - name: Install dependencies
         uses: ./.github/actions/setup
         with:
-          node: true
+          node-version: latest
       - name: Generate Documentation
         run: pnpm docgen
 
@@ -208,6 +208,6 @@ jobs:
       - name: Install dependencies
         uses: ./.github/actions/setup
         with:
-          node: true
+          node-version: latest
       - name: Check for circular dependencies
         run: pnpm circular

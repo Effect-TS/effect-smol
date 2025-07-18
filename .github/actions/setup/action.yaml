@@ -1,30 +1,15 @@
 name: Setup
 description: Perform standard setup and install dependencies using pnpm.
 inputs:
-  node:
-    description: Whether to install Node.js
-    required: false
-    default: false
-  deno:
-    description: Whether to install Deno
-    required: false
-    default: false
-  bun:
-    description: Whether to install Bun
-    required: false
-    default: false
   node-version:
     description: The version of Node.js to install
-    required: true
-    default: latest
+    required: false
   deno-version:
     description: The version of Deno to install
-    required: true
-    default: canary
+    required: false
   bun-version:
     description: The version of Bun to install
-    required: true
-    default: latest
+    required: false
 
 runs:
   using: composite
@@ -33,18 +18,18 @@ runs:
       uses: pnpm/action-setup@v3
     - name: Install node
       uses: actions/setup-node@v4
-      if: ${{ inputs.node }}
+      if: ${{ inputs.node-version != '' }}
       with:
         cache: pnpm
         node-version: ${{ inputs.node-version }}
     - name: Install deno
       uses: denoland/setup-deno@v2
-      if: ${{ inputs.deno }}
+      if: ${{ inputs.deno-version != '' }}
       with:
         deno-version: ${{ inputs.deno-version }}
     - name: Install bun
       uses: oven-sh/setup-bun@v2
-      if: ${{ inputs.bun }}
+      if: ${{ inputs.bun-version != '' }}
       with:
         bun-version: ${{ inputs.bun-version }}
     - name: Install dependencies
