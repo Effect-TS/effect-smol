@@ -9,7 +9,7 @@ import tseslint from "typescript-eslint"
 
 export default tseslint.config(
   {
-    ignores: ["**/dist", "**/build", "**/docs", "**/.tsbuildinfo", "**/*.md"]
+    ignores: ["**/dist", "**/docs", "**/.tsbuildinfo", "**/*.md"]
   },
   eslint.configs.recommended,
   tseslint.configs.strict,
