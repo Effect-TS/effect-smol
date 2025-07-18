@@ -12,6 +12,12 @@
     "paths": {
       "@effect/vitest": ["src/index.ts"],
       "@effect/vitest/*": ["src/*/index.ts", "src/*.ts"]
-    }
+    },
+    "plugins": [
+      {
+        "name": "@effect/language-service",
+        "namespaceImportPackages": []
+      }
+    ]
   }
 }

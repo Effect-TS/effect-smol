@@ -33,7 +33,39 @@
     "plugins": [
       {
         "name": "@effect/language-service",
-        "namespaceImportPackages": ["effect", "@effect/*"]
+        "namespaceImportPackages": [
+          "effect",
+          "effect/batching",
+          "effect/caching",
+          "effect/collections",
+          "effect/concurrency",
+          "effect/config",
+          "effect/data",
+          "effect/encoding",
+          "effect/interfaces",
+          "effect/internal",
+          "effect/logging",
+          "effect/match",
+          "effect/observability",
+          "effect/platform",
+          "effect/primitives",
+          "effect/resources",
+          "effect/runtime",
+          "effect/scheduling",
+          "effect/schema",
+          "effect/services",
+          "effect/stream",
+          "effect/testing",
+          "effect/time",
+          "effect/transactions",
+          "effect/types",
+          "effect/unstable/http",
+          "effect/unstable/socket",
+          "effect/unstable/tracing",
+          "@effect/platform-bun",
+          "@effect/platform-node",
+          "@effect/platform-node-shared"
+        ]
       }
     ]
   }

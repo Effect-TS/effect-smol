@@ -13,6 +13,12 @@
     "paths": {
       "@effect/platform-node-shared": ["src/index.ts"],
       "@effect/platform-node-shared/*": ["src/*/index.ts", "src/*.ts"]
-    }
+    },
+    "plugins": [
+      {
+        "name": "@effect/language-service",
+        "namespaceImportPackages": []
+      }
+    ]
   }
 }

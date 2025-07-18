@@ -12,6 +12,12 @@
     "paths": {
       "effect": ["src/index.ts"],
       "effect/*": ["src/*/index.ts", "src/*.ts"]
-    }
+    },
+    "plugins": [
+      {
+        "name": "@effect/language-service",
+        "namespaceImportPackages": []
+      }
+    ]
   }
 }
