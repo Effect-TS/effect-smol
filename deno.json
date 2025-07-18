@@ -1,6 +1,6 @@
 {
   "nodeModulesDir": "manual",
-  "unstable": ["sloppy-imports", "bare-node-builtins", "node-globals"],
+  "unstable": ["bare-node-builtins", "node-globals"],
   "workspace": ["./packages/*"],
   "compilerOptions": {
     "noImplicitOverride": false,
