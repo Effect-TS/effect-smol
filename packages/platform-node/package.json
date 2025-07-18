@@ -69,7 +69,7 @@
     "effect": "workspace:^"
   },
   "devDependencies": {
-    "@types/node": "^24.0.12",
+    "@types/node": "^24.0.14",
     "effect": "workspace:^"
   }
 }
