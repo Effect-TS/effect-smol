@@ -198,7 +198,7 @@ jobs:
         run: pnpm docgen
 
   circular:
-    name: Test
+    name: Circular Dependencies
     runs-on: ubuntu-latest
     permissions:
       contents: read
