@@ -3492,13 +3492,14 @@ export interface fromJsonString<S extends Top> extends decodeTo<S, UnknownFromJs
 }
 
 /**
- * Returns a schema that decodes a JSON string and then decodes the parsed value using the given schema.
+ * Returns a schema that decodes a JSON string and then decodes the parsed value
+ * using the given schema.
  *
- * This is useful when working with JSON-encoded strings where the actual structure
- * of the value is known and described by an existing schema.
+ * This is useful when working with JSON-encoded strings where the actual
+ * structure of the value is known and described by an existing schema.
  *
- * The resulting schema first parses the input string as JSON, and then runs the provided
- * schema on the parsed result.
+ * The resulting schema first parses the input string as JSON, and then runs the
+ * provided schema on the parsed result.
  *
  * **Example**
  *
@@ -3511,6 +3512,44 @@ export interface fromJsonString<S extends Top> extends decodeTo<S, UnknownFromJs
  * Schema.decodeUnknownSync(schemaFromJsonString)(`{"a":1,"b":2}`)
  * // => { a: 1 }
  * ```
+ *
+ * **Json Schema Generation**
+ *
+ * When using `fromJsonString` with `draft-2020-12` or `openApi3.1`, the
+ * resulting schema will be a JSON Schema with a `contentSchema` property that
+ * contains the JSON Schema for the given schema.
+ *
+ * **Example**
+ *
+ * ```ts
+ * import { Schema, ToJsonSchema } from "effect/schema"
+ *
+ * const original = Schema.Struct({ a: Schema.String })
+ * const schema = Schema.fromJsonString(original)
+ *
+ * const jsonSchema = ToJsonSchema.makeDraft2020(schema)
+ *
+ * console.log(JSON.stringify(jsonSchema, null, 2))
+ * // Output:
+ * // {
+ * //   "$schema": "https://json-schema.org/draft/2020-12/schema",
+ * //   "type": "string",
+ * //   "contentMediaType": "application/json",
+ * //   "contentSchema": {
+ * //     "type": "object",
+ * //     "properties": {
+ * //       "a": {
+ * //         "type": "string"
+ * //       }
+ * //     },
+ * //     "required": [
+ * //       "a"
+ * //     ],
+ * //     "additionalProperties": false
+ * //   }
+ * // }
+ * ```
+ *
  * @since 4.0.0
  */
 export function fromJsonString<S extends Top>(schema: S): fromJsonString<S> {
@@ -3518,12 +3557,14 @@ export function fromJsonString<S extends Top>(schema: S): fromJsonString<S> {
     jsonSchema: {
       _tag: "override",
       override: (target: ToJsonSchema.Target, go: (ast: AST.AST) => object) => {
-        if (target === "openApi3.1" || target === "draft-2020-12") {
-          return {
-            "type": "string",
-            "contentMediaType": "application/json",
-            "contentSchema": go(AST.encodedAST(schema.ast))
-          }
+        switch (target) {
+          case "draft-2020-12":
+          case "openApi3.1":
+            return {
+              "type": "string",
+              "contentMediaType": "application/json",
+              "contentSchema": go(AST.encodedAST(schema.ast))
+            }
         }
       }
     }

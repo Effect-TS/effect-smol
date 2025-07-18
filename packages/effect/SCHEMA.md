@@ -4136,12 +4136,12 @@ Sometimes you want to tamper with the default JSON Schema that Effect would gene
 ```ts
 import { Check, Schema, ToJsonSchema } from "effect/schema"
 
-const schema = Schema.Number.check(Check.greaterThan(0)).annotate({
+const schema = Schema.Number.check(Check.make((n) => n > 0)).annotate({
   jsonSchema: {
     _tag: "override",
-    override: () => {
-      return { type: "integer" }
-    }
+    // this thunk is evaluated at the time of schema generation
+    // must return a JSON‐Schema compatible object representing the override
+    override: () => ({ type: "number", minimum: 0 })
   }
 })
 
@@ -4152,16 +4152,17 @@ console.log(JSON.stringify(jsonSchema, null, 2))
 Output:
 {
   "$schema": "http://json-schema.org/draft-07/schema",
-  "type": "integer"
+  "type": "number",
+  "minimum": 0
 }
 */
 ```
 
-### Embedding Schema-Level Fragments via `check` Annotations
+### JSON Schema Fragments For Filters
 
 Whenever you call `.check(...)` on a schema, Effect attaches a filter which may carry a `"jsonSchema"` annotation that represents a JSON Schema fragment that will be merged into the final JSON Schema.
 
-#### Single-fragment filters (e.g. `minLength`, `maxLength`, `exclusiveMinimum`, etc.)
+#### Built-in Filters
 
 Effect's built-in checks already carry a `jsonSchema` fragment. For example:
 
@@ -4225,7 +4226,7 @@ In other words:
 - Any **subsequent** fragments are wrapped under `"allOf": [ { /* fragment */ }, … ]`.
 - If you later call `.annotate(...)` on top of these checks, your `title/description/default/examples` appear alongside (or above) these filter fragments but never conflict.
 
-#### Declaring your own single-fragment filter
+#### Declaring your own fragment filter
 
 You can build a custom filter and attach a JSON fragment yourself:
 
@@ -4234,15 +4235,16 @@ import { Check, Schema, ToJsonSchema } from "effect/schema"
 
 const schema = Schema.String.check(
   Check.make((s) => /foo/.test(s), {
+    title: "containsFoo",
     description: "must contain 'foo'",
     jsonSchema: {
       _tag: "fragment",
+      // this thunk is evaluated at the time of schema generation
+      // must return a JSON‐Schema fragment representing the filter
       fragment: () => ({
-        pattern: "foo", // any valid JSON‐Schema string keyword
-        minLength: 3
+        pattern: "foo"
       })
-    },
-    meta: { _tag: "containsFoo" }
+    }
   })
 )
 
@@ -4254,14 +4256,51 @@ Output:
 {
   "$schema": "http://json-schema.org/draft-07/schema",
   "type": "string",
+  "title": "containsFoo",
   "description": "must contain 'foo'",
-  "pattern": "foo",
-  "minLength": 3
+  "pattern": "foo"
 }
 */
 ```
 
-The resulting JSON Schema merges `pattern: "foo"` at top level, along with the human‐readable `title` and `description` from your filter.
+The resulting JSON Schema merges `pattern: "foo"` at top level, along with the human‐readable `title` and `description` from your filter (if any).
+
+### The fromJsonString combinator
+
+When using `fromJsonString` with `draft-2020-12` or `openApi3.1`, the
+resulting schema will be a JSON Schema with a `contentSchema` property that
+contains the JSON Schema for the given schema.
+
+```ts
+import { Schema, ToJsonSchema } from "effect/schema"
+
+const original = Schema.Struct({ a: Schema.String })
+const schema = Schema.fromJsonString(original)
+
+const jsonSchema = ToJsonSchema.makeDraft2020(schema)
+
+console.log(JSON.stringify(jsonSchema, null, 2))
+/*
+Output:
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "string",
+  "contentMediaType": "application/json",
+  "contentSchema": {
+    "type": "object",
+    "properties": {
+      "a": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "a"
+    ],
+    "additionalProperties": false
+  }
+}
+*/
+```
 
 ## Generating an Arbitrary from a Schema
 

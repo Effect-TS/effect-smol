@@ -58,7 +58,7 @@ export interface JsonSchema<T> extends Documentation {
   /**
    * Totally replace ("override") the default JSON Schema for this type.
    */
-  readonly jsonSchema?: ToJsonSchema.Annotation.Override | undefined
+  readonly jsonSchema?: ToJsonSchema.Annotation.Override | ToJsonSchema.Annotation.Fragment | undefined
 }
 
 /**
@@ -131,7 +131,7 @@ export interface Filter extends Documentation {
    * JSON Schema representation used for documentation or code generation. This
    * can be a single fragment or a list of fragments.
    */
-  readonly jsonSchema?: ToJsonSchema.Annotation.Fragment | undefined
+  readonly jsonSchema?: ToJsonSchema.Annotation.Override | ToJsonSchema.Annotation.Fragment | undefined
 
   /**
    * Optional metadata used to identify or extend the filter with custom data.
