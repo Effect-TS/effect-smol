@@ -62,9 +62,7 @@
           "effect/unstable/http",
           "effect/unstable/socket",
           "effect/unstable/tracing",
-          "@effect/platform-bun",
-          "@effect/platform-node",
-          "@effect/platform-node-shared"
+          "@effect/*"
         ]
       }
     ]
