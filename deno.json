@@ -1,24 +1,24 @@
 {
+  "$schema": "https://raw.githubusercontent.com/denoland/deno/refs/heads/main/cli/schemas/config-file.v1.json",
   "nodeModulesDir": "manual",
   "unstable": ["bare-node-builtins", "node-globals"],
   "workspace": ["./packages/*"],
-  "compilerOptions": {
-    "noImplicitOverride": false,
-    "strict": true
-  },
   "exclude": [
-    "**/node_modules/",
+    "**/*.mjs",
+    "**/*.cjs",
+    "**/*.js",
+    "**/*.d.ts",
+    "**/vitest.*.ts",
     "**/.tsbuildinfo/",
-    "**/build/",
+    "**/node_modules/",
     "**/dist/",
-    "**/bundle/",
-    "scratchpad/",
+    "bundle/",
     "scripts/",
-    "packages/effect/dtslint/**/*.ts",
+    "scratchpad/",
+    "packages/*/dtslint/",
+    "packages/*/benchmark/",
     "packages/platform-bun/",
     "packages/platform-node/",
-    "packages/platform-node-shared/",
-    "test-schemapart.mjs",
-    "vitest.*.ts"
+    "packages/platform-node-shared/"
   ]
 }
