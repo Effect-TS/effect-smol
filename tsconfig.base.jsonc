@@ -33,12 +33,7 @@
     "plugins": [
       {
         "name": "@effect/language-service",
-        "namespaceImportPackages": [
-          "effect",
-          "@effect/platform-bun",
-          "@effect/platform-node",
-          "@effect/platform-node-shared"
-        ]
+        "namespaceImportPackages": ["effect", "@effect/*"]
       }
     ]
   }
