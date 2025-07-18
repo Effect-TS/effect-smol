@@ -23,6 +23,7 @@
     "strict": true,
     "exactOptionalPropertyTypes": true,
     "noUnusedLocals": true,
+    "noImplicitOverride": true,
     "noFallthroughCasesInSwitch": true,
 
     // Miscellaneoaus
