@@ -1,7 +1,7 @@
-import * as Duration from "#dist/effect/Duration"
 import * as Effect from "#dist/effect/Effect"
 import * as Schema from "#dist/effect/schema/Schema"
 import * as Transformation from "#dist/effect/schema/Transformation"
+import * as Duration from "#dist/effect/time/Duration"
 
 const schema = Schema.String.pipe(Schema.decodeTo(
   Schema.String,
