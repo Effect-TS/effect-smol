@@ -48,7 +48,7 @@ export class SocketServerError extends Data.TaggedError("SocketServerError")<{
   /**
    * @since 4.0.0
    */
-  get message(): string {
+  override get message(): string {
     return this.reason
   }
 }

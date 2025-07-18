@@ -144,7 +144,7 @@ export class SocketGenericError extends Data.TaggedError("SocketError")<{
   /**
    * @since 4.0.0
    */
-  get message() {
+  override get message() {
     return `An error occurred during ${this.reason}`
   }
 }
@@ -183,7 +183,7 @@ export class SocketCloseError extends Data.TaggedError("SocketError")<{
     }
   }
 
-  get message() {
+  override get message() {
     if (this.closeReason) {
       return `${this.reason}: ${this.code}: ${this.closeReason}`
     }

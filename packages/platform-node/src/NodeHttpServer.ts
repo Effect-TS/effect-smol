@@ -295,7 +295,7 @@ class ServerRequestImpl extends NodeHttpIncomingMessage<HttpServerError> impleme
     return this.source.method!.toUpperCase() as HttpMethod
   }
 
-  get headers(): Headers.Headers {
+  override get headers(): Headers.Headers {
     this.headersOverride ??= this.source.headers as Headers.Headers
     return this.headersOverride
   }
@@ -335,7 +335,7 @@ class ServerRequestImpl extends NodeHttpIncomingMessage<HttpServerError> impleme
     )
   }
 
-  toString(): string {
+  override toString(): string {
     return `ServerRequest(${this.method} ${this.url})`
   }
 

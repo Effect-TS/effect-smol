@@ -2022,9 +2022,9 @@ class SummaryMetric extends Metric$<readonly [value: number, timestamp: number],
 class MetricTransform<in Input, out State, in Input2> extends Metric$<Input2, State> {
   type: Metric.Type
   readonly metric: Metric<Input, State>
-  readonly unsafeValue: (context: ServiceMap.ServiceMap<never>) => State
-  readonly unsafeUpdate: (input: Input2, context: ServiceMap.ServiceMap<never>) => void
-  readonly unsafeModify: (input: Input2, context: ServiceMap.ServiceMap<never>) => void
+  override readonly unsafeValue: (context: ServiceMap.ServiceMap<never>) => State
+  override readonly unsafeUpdate: (input: Input2, context: ServiceMap.ServiceMap<never>) => void
+  override readonly unsafeModify: (input: Input2, context: ServiceMap.ServiceMap<never>) => void
 
   constructor(
     metric: Metric<Input, State>,

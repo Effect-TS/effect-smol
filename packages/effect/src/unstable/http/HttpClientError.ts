@@ -55,7 +55,7 @@ export class RequestError extends Data.TaggedError("RequestError")<{
   /**
    * @since 4.0.0
    */
-  get message() {
+  override get message() {
     return this.description ?
       `${this.reason}: ${this.description} (${this.methodAndUrl})` :
       `${this.reason} error (${this.methodAndUrl})`
@@ -88,7 +88,7 @@ export class ResponseError extends Data.TaggedError("ResponseError")<{
   /**
    * @since 4.0.0
    */
-  get message() {
+  override get message() {
     const info = `${this.response.status} ${this.methodAndUrl}`
     return this.description ?
       `${this.reason}: ${this.description} (${info})` :

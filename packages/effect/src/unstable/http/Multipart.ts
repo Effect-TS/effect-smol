@@ -152,7 +152,7 @@ export class MultipartError extends Schema.ErrorClass<MultipartError>(ErrorTypeI
   /**
    * @since 4.0.0
    */
-  get message(): string {
+  override get message(): string {
     return this.reason
   }
 }

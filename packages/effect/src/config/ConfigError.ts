@@ -50,7 +50,7 @@ export class MissingData extends Data.TaggedError("ConfigError")<{
   /**
    * @since 4.0.0
    */
-  get message(): string {
+  override get message(): string {
     const pathString = this.path.join(".")
     const showFullPath = this.fullPath && this.fullPath !== pathString
     return `Missing data at path: ${this.path.join(".")}${showFullPath ? ` (${this.fullPath})` : ""}`
@@ -96,7 +96,7 @@ export class SourceError extends Data.TaggedError("ConfigError")<{
   /**
    * @since 4.0.0
    */
-  get message(): string {
+  override get message(): string {
     return "Source error (" + this.path.join(".") + "): " + this.description
   }
 }
@@ -121,7 +121,7 @@ export class InvalidData extends Data.TaggedError("ConfigError")<{
   /**
    * @since 4.0.0
    */
-  get message(): string {
+  override get message(): string {
     return "Invalid data (" + this.path.join(".") + "): " + this.description
   }
 }

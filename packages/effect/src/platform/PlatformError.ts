@@ -62,7 +62,7 @@ export class BadArgument extends Data.TaggedError("BadArgument")<{
   /**
    * @since 1.0.0
    */
-  get message(): string {
+  override get message(): string {
     return `${this.module}.${this.method}${this.description ? `: ${this.description}` : ""}`
   }
 }
@@ -165,7 +165,7 @@ export class SystemError extends Data.TaggedError("SystemError")<{
   /**
    * @since 1.0.0
    */
-  get message(): string {
+  override get message(): string {
     return `${this.reason}: ${this.module}.${this.method}${
       this.pathOrDescriptor !== undefined ? ` (${this.pathOrDescriptor})` : ""
     }${this.description ? `: ${this.description}` : ""}`

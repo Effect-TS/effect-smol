@@ -48,7 +48,7 @@ export class RequestError extends Data.TaggedError("HttpServerError")<{
   /**
    * @since 4.0.0
    */
-  stack = `${this.name}: ${this.message}`;
+  override stack = `${this.name}: ${this.message}`;
 
   /**
    * @since 4.0.0
@@ -61,7 +61,7 @@ export class RequestError extends Data.TaggedError("HttpServerError")<{
     return `${this.request.method} ${this.request.url}`
   }
 
-  get message() {
+  override get message() {
     const prefix = `${this.reason} (${this.methodAndUrl})`
     return this.description ? `${prefix}: ${this.description}` : prefix
   }
@@ -95,7 +95,7 @@ export class ResponseError extends Data.TaggedError("HttpServerError")<{
   /**
    * @since 4.0.0
    */
-  stack = `${this.name}: ${this.message}`;
+  override stack = `${this.name}: ${this.message}`;
 
   /**
    * @since 4.0.0
@@ -108,7 +108,7 @@ export class ResponseError extends Data.TaggedError("HttpServerError")<{
     return `${this.request.method} ${this.request.url}`
   }
 
-  get message() {
+  override get message() {
     const info = `${this.reason} (${this.response.status} ${this.methodAndUrl})`
     return this.description ? `${info}: ${this.description}` : info
   }

@@ -128,7 +128,7 @@ export class CookiesError extends Data.TaggedError("CookieError")<{
   /**
    * @since 4.0.0
    */
-  get message() {
+  override get message() {
     return this.reason
   }
 }

@@ -2278,7 +2278,7 @@ export interface Union<Members extends ReadonlyArray<Top>> extends
 }
 
 class Union$<Members extends ReadonlyArray<Top>> extends make$<Union<Members>> implements Union<Members> {
-  readonly ast: AST.UnionType<Members[number]["ast"]>
+  override readonly ast: AST.UnionType<Members[number]["ast"]>
   readonly members: Members
 
   constructor(ast: AST.UnionType<Members[number]["ast"]>, members: Members) {
@@ -2705,7 +2705,7 @@ export interface compose<To extends Top, From extends Top> extends decodeTo<To, 
 class decodeTo$<To extends Top, From extends Top, RD, RE> extends make$<decodeTo<To, From, RD, RE>>
   implements decodeTo<To, From, RD, RE>
 {
-  readonly ast: From["ast"]
+  override readonly ast: From["ast"]
   readonly from: From
   readonly to: To
 
@@ -3085,7 +3085,7 @@ export interface TaggedUnion<Cases extends Record<string, Top>> extends
 }
 
 class TaggedUnion$<Cases extends Record<string, Top>> extends make$<TaggedUnion<Cases>> implements TaggedUnion<Cases> {
-  readonly ast: AST.UnionType<AST.TypeLiteral>
+  override readonly ast: AST.UnionType<AST.TypeLiteral>
   readonly cases: Cases
   readonly isAnyOf: <const Keys>(
     keys: ReadonlyArray<Keys>
@@ -3657,7 +3657,7 @@ function makeClass<
     static rebuild(ast: AST.Declaration): Class<Self, S, Self> {
       const computeAST = getComputeAST(this.ast, ast.annotations, ast.checks, ast.context)
       return class extends this {
-        static get ast() {
+        static override get ast() {
           return computeAST(this)
         }
       }

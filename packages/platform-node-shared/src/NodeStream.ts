@@ -387,11 +387,11 @@ class StreamAdapter<E, R> extends Readable {
     })
   }
 
-  _read(_size: number): void {
+  override _read(_size: number): void {
     this.readLatch.unsafeOpen()
   }
 
-  _destroy(error: Error | null, callback: (error?: Error | null | undefined) => void): void {
+  override _destroy(error: Error | null, callback: (error?: Error | null | undefined) => void): void {
     if (!this.fiber) {
       return callback(error)
     }
