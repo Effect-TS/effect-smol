@@ -16,7 +16,6 @@ jobs:
     permissions:
       actions: read
       pull-requests: write
-
     timeout-minutes: 1
     steps:
       - name: Download Artifact

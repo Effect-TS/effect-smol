@@ -24,6 +24,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install dependencies
         uses: ./.github/actions/setup
+        with:
+          node: true
       - run: pnpm check
 
   types-deno:
@@ -38,6 +40,8 @@ jobs:
         uses: denoland/setup-deno@v2
       - name: Install dependencies
         uses: ./.github/actions/setup
+        with:
+          deno: true
       - run: deno check
 
   bundle:
@@ -53,6 +57,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install dependencies
         uses: ./.github/actions/setup
+        with:
+          node: true
       - name: Build
         run: pnpm build
       - name: Clone base ref
@@ -114,10 +120,10 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install dependencies
         uses: ./.github/actions/setup
+        with:
+          node: true
       - name: Test
         run: pnpm vitest
-        env:
-          NODE_OPTIONS: --max_old_space_size=8192
 
   test-deno:
     name: Test on Deno
@@ -127,12 +133,27 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-      - name: Install deno
-        uses: denoland/setup-deno@v2
       - name: Install dependencies
         uses: ./.github/actions/setup
+        with:
+          deno: true
       - name: Test
         run: deno task test
+
+  test-bun:
+    name: Test on Bun
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        uses: ./.github/actions/setup
+        with:
+          bun: true
+      - name: Test
+        run: bun --bun vitest
 
   jsdoc-analysis:
     name: JSDoc Analysis
@@ -143,8 +164,8 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
-      - name: Install dependencies
-        uses: ./.github/actions/setup
+      - name: Install node
+        uses: actions/setup-node@v4
       - name: Generate JSDoc Analysis
         shell: bash
         run: |
@@ -171,6 +192,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install dependencies
         uses: ./.github/actions/setup
+        with:
+          node: true
       - name: Generate Documentation
         run: pnpm docgen
 
@@ -184,5 +207,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install dependencies
         uses: ./.github/actions/setup
+        with:
+          node: true
       - name: Check for circular dependencies
         run: pnpm circular
