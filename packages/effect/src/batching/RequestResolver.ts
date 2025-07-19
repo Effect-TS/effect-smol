@@ -935,17 +935,17 @@ export const asCache: {
     A,
     Request.Success<A>,
     Request.Error<A>,
-    "lookup" extends ServiceMode ? Request.Services<A> : never
+    "construction" extends ServiceMode ? never : Request.Services<A>
   >,
   never,
-  "lookup" extends ServiceMode ? never : Request.Services<A>
+  "construction" extends ServiceMode ? Request.Services<A> : never
 > =>
   Cache.makeWithTtl({
     capacity: options.capacity,
     timeToLive: options.timeToLive as any,
     requireServicesAt: options.requireServicesAt ?? "lookup" as ServiceMode,
     lookup: (req: A) => internal.request(req, self)
-  }))
+  }) as any)
 
 /**
  * Adds caching capabilities to a request resolver, allowing it to cache
