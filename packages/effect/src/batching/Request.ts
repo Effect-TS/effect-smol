@@ -14,7 +14,6 @@
  * @since 2.0.0
  */
 import type * as Cause from "../Cause.ts"
-import type * as Option from "../data/Option.ts"
 import { hasProperty } from "../data/Predicate.ts"
 import type * as Effect from "../Effect.ts"
 import type * as Exit from "../Exit.ts"
@@ -26,32 +25,12 @@ import type * as ServiceMap from "../services/ServiceMap.ts"
 import type * as Types from "../types/Types.ts"
 
 /**
- * @example
- * ```ts
- * import { Request } from "effect/batching"
- *
- * // The TypeId is used internally to identify Request instances
- * declare const GetUser: Request.Request<string, Error>
- *
- * console.log(Request.TypeId) // "~effect/Request"
- * ```
- *
  * @since 2.0.0
  * @category symbols
  */
 export const TypeId: TypeId = "~effect/Request"
 
 /**
- * @example
- * ```ts
- * import { Request } from "effect/batching"
- *
- * // TypeId is the unique identifier type for Request
- * const checkType = (value: unknown): value is { [Request.TypeId]: any } => {
- *   return typeof value === "object" && value !== null && Request.TypeId in value
- * }
- * ```
- *
  * @since 2.0.0
  * @category symbols
  */
@@ -74,12 +53,6 @@ export type TypeId = "~effect/Request"
  * // Define a request that fetches all users
  * interface GetAllUsers extends Request.Request<ReadonlyArray<string>, Error> {
  *   readonly _tag: "GetAllUsers"
- * }
- *
- * // Requests can have requirements (dependencies)
- * interface GetUserProfile extends Request.Request<string, Error, { database: any }> {
- *   readonly _tag: "GetUserProfile"
- *   readonly userId: string
  * }
  * ```
  *
@@ -173,23 +146,6 @@ export type Success<T extends Request<any, any, any>> = [T] extends [Request<inf
 /**
  * A utility type to extract the requirements type from a `Request`.
  *
- * @example
- * ```ts
- * import { Request } from "effect/batching"
- *
- * interface GetUserProfile extends Request.Request<string, Error, { database: DatabaseService }> {
- *   readonly userId: string
- * }
- *
- * // Extract the services type from a Request using the utility
- * type UserServices = Request.Services<GetUserProfile> // { database: DatabaseService }
- *
- * declare const DatabaseService: unique symbol
- * interface DatabaseService {
- *   readonly [DatabaseService]: DatabaseService
- * }
- * ```
- *
  * @since 4.0.0
  * @category type-level
  */
@@ -217,31 +173,6 @@ export type Services<T extends Request<any, any, any>> = [T] extends [Request<in
  * @category type-level
  */
 export type Result<T extends Request<any, any, any>> = T extends Request<infer A, infer E, infer _R> ? Exit.Exit<A, E>
-  : never
-
-/**
- * A utility type to extract the optional result type from a `Request`.
- *
- * @example
- * ```ts
- * import { Exit } from "effect"
- * import { Option } from "effect/data"
- * import { Request } from "effect/batching"
- *
- * interface GetUser extends Request.Request<string, Error> {
- *   readonly _tag: "GetUser"
- *   readonly id: number
- * }
- *
- * // Extract the optional result type from a Request using the utility
- * type OptionalUserResult = Request.OptionalResult<GetUser> // Exit.Exit<Option.Option<string>, Error>
- * ```
- *
- * @since 2.0.0
- * @category type-level
- */
-export type OptionalResult<T extends Request<any, any, any>> = T extends Request<infer A, infer E, infer _R>
-  ? Exit.Exit<Option.Option<A>, E>
   : never
 
 const requestVariance = {
@@ -403,15 +334,9 @@ export const Class: new<A extends Record<string, any>, Success, Error = never, S
  * ```ts
  * import { Request } from "effect/batching"
  *
- * const GetUserByIdClass = Request.TaggedClass("GetUserById")
+ * class GetUserById extends Request.TaggedClass("GetUserById")<{ id: number }, string, Error> {}
  *
- * class GetUserById extends GetUserByIdClass<{ id: number }, string, Error> {
- *   constructor(readonly id: number) {
- *     super({ id })
- *   }
- * }
- *
- * const request = new GetUserById(123)
+ * const request = new GetUserById({ id: 123 })
  * console.log(request._tag) // "GetUserById"
  * console.log(request.id) // 123
  * ```
@@ -434,184 +359,73 @@ export const TaggedClass = <Tag extends string>(
  * Completes a request entry with the provided result. This is typically used
  * within RequestResolver implementations to fulfill pending requests.
  *
- * @example
- * ```ts
- * import { Effect, Exit } from "effect"
- * import { Request } from "effect/batching"
- *
- * declare const userRequest: Request.Request<string, Error>
- * declare const userData: string
- * declare const entry: Request.Entry<Request.Request<string, Error>>
- *
- * const completeRequest = Effect.gen(function* () {
- *   // Complete with success
- *   yield* Request.complete(entry, Exit.succeed(userData))
- *
- *   // Or complete with failure
- *   // yield* Request.complete(entry, Exit.fail(new Error("User not found")))
- * })
- * ```
- *
  * @category completion
  * @since 2.0.0
  */
-export const complete = dual<
-  <A extends Request<any, any, any>>(
-    result: Result<A>
-  ) => (self: Entry<A>) => Effect.Effect<void>,
-  <A extends Request<any, any, any>>(
-    self: Entry<A>,
-    result: Result<A>
-  ) => Effect.Effect<void>
->(2, (self, result) => internalEffect.sync(() => self.unsafeComplete(result)))
+export const complete: {
+  <A extends Any>(result: Result<A>): (self: Entry<A>) => Effect.Effect<void>
+  <A extends Any>(self: Entry<A>, result: Result<A>): Effect.Effect<void>
+} = dual(
+  2,
+  <A extends Any>(self: Entry<A>, result: Result<A>): Effect.Effect<void> =>
+    internalEffect.sync(() => self.unsafeComplete(result))
+)
 
 /**
- * @example
- * ```ts
- * import { Effect } from "effect"
- * import { Request } from "effect/batching"
- *
- * declare const userRequest: Request.Request<string, Error>
- * declare const entry: Request.Entry<Request.Request<string, Error>>
- *
- * const fetchUserData = Effect.gen(function* () {
- *   // Simulate async operation that might fail
- *   const userData = yield* Effect.tryPromise({
- *     try: () => fetch("/api/user").then(res => res.json()),
- *     catch: () => new Error("Failed to fetch user")
- *   })
- *   return userData.name
- * })
- *
- * // Complete the request with an effect
- * const completeRequest = Request.completeEffect(entry, fetchUserData)
- * ```
- *
  * @since 2.0.0
  * @category completion
  */
-export const completeEffect = dual<
-  <A extends Request<any, any, any>, R>(
-    effect: Effect.Effect<Success<A>, Error<A>, R>
-  ) => (self: Entry<A>) => Effect.Effect<void, never, R>,
-  <A extends Request<any, any, any>, R>(
-    self: Entry<A>,
-    effect: Effect.Effect<Success<A>, Error<A>, R>
-  ) => Effect.Effect<void, never, R>
->(2, (self, effect) =>
-  internalEffect.matchEffect(effect, {
-    onFailure: (error) => complete(self, core.exitFail(error) as any),
-    onSuccess: (value) => complete(self, core.exitSucceed(value) as any)
-  }))
+export const completeEffect: {
+  <A extends Any, R>(effect: Effect.Effect<Success<A>, Error<A>, R>): (self: Entry<A>) => Effect.Effect<void, never, R>
+  <A extends Any, R>(self: Entry<A>, effect: Effect.Effect<Success<A>, Error<A>, R>): Effect.Effect<void, never, R>
+} = dual(
+  2,
+  <A extends Any, R>(self: Entry<A>, effect: Effect.Effect<Success<A>, Error<A>, R>): Effect.Effect<void, never, R> =>
+    internalEffect.matchEffect(effect, {
+      onFailure: (error) => complete(self, core.exitFail(error) as any),
+      onSuccess: (value) => complete(self, core.exitSucceed(value) as any)
+    })
+)
 
 /**
- * @example
- * ```ts
- * import { Effect } from "effect"
- * import { Request } from "effect/batching"
- *
- * declare const userRequest: Request.Request<string, Error>
- * declare const entry: Request.Entry<Request.Request<string, Error>>
- *
- * const handleRequestFailure = Effect.gen(function* () {
- *   // Complete the request with a failure
- *   yield* Request.fail(entry, new Error("User not found"))
- * })
- * ```
- *
  * @since 2.0.0
  * @category completion
  */
-export const fail = dual<
-  <A extends Request<any, any, any>>(
-    error: Error<A>
-  ) => (self: Entry<A>) => Effect.Effect<void>,
-  <A extends Request<any, any, any>>(
-    self: Entry<A>,
-    error: Error<A>
-  ) => Effect.Effect<void>
->(2, (self, error) => complete(self, core.exitFail(error) as any))
+export const fail: {
+  <A extends Any>(error: Error<A>): (self: Entry<A>) => Effect.Effect<void>
+  <A extends Any>(self: Entry<A>, error: Error<A>): Effect.Effect<void>
+} = dual(
+  2,
+  <A extends Any>(self: Entry<A>, error: Error<A>): Effect.Effect<void> => complete(self, core.exitFail(error) as any)
+)
 
 /**
- * @example
- * ```ts
- * import { Effect, Cause } from "effect"
- * import { Request } from "effect/batching"
- *
- * declare const userRequest: Request.Request<string, Error>
- * declare const entry: Request.Entry<Request.Request<string, Error>>
- *
- * const handleRequestFailureWithCause = Effect.gen(function* () {
- *   // Create a failure cause with interruption
- *   const cause = Cause.fail(new Error("Network timeout"))
- *
- *   // Complete the request with a cause
- *   yield* Request.failCause(entry, cause)
- * })
- * ```
- *
  * @since 2.0.0
  * @category completion
  */
-export const failCause = dual<
-  <A extends Request<any, any, any>>(
-    cause: Cause.Cause<Error<A>>
-  ) => (self: Entry<A>) => Effect.Effect<void>,
-  <A extends Request<any, any, any>>(
-    self: Entry<A>,
-    cause: Cause.Cause<Error<A>>
-  ) => Effect.Effect<void>
->(2, (self, cause) => complete(self, core.exitFailCause(cause) as any))
+export const failCause: {
+  <A extends Any>(cause: Cause.Cause<Error<A>>): (self: Entry<A>) => Effect.Effect<void>
+  <A extends Any>(self: Entry<A>, cause: Cause.Cause<Error<A>>): Effect.Effect<void>
+} = dual(
+  2,
+  <A extends Any>(self: Entry<A>, cause: Cause.Cause<Error<A>>): Effect.Effect<void> =>
+    complete(self, core.exitFailCause(cause) as any)
+)
 
 /**
- * @example
- * ```ts
- * import { Effect } from "effect"
- * import { Request } from "effect/batching"
- *
- * declare const userRequest: Request.Request<string, Error>
- * declare const entry: Request.Entry<Request.Request<string, Error>>
- *
- * const handleRequestSuccess = Effect.gen(function* () {
- *   // Complete the request with a successful value
- *   yield* Request.succeed(entry, "John Doe")
- * })
- * ```
- *
  * @since 2.0.0
  * @category completion
  */
-export const succeed = dual<
-  <A extends Request<any, any, any>>(
-    value: Success<A>
-  ) => (self: Entry<A>) => Effect.Effect<void>,
-  <A extends Request<any, any, any>>(
-    self: Entry<A>,
-    value: Success<A>
-  ) => Effect.Effect<void>
->(2, (self, value) => complete(self, core.exitSucceed(value) as any))
+export const succeed: {
+  <A extends Any>(value: Success<A>): (self: Entry<A>) => Effect.Effect<void>
+  <A extends Any>(self: Entry<A>, value: Success<A>): Effect.Effect<void>
+} = dual(
+  2,
+  <A extends Any>(self: Entry<A>, value: Success<A>): Effect.Effect<void> =>
+    complete(self, core.exitSucceed(value) as any)
+)
 
 /**
- * @example
- * ```ts
- * import { Effect, Exit } from "effect"
- * import { Request } from "effect/batching"
- *
- * interface GetUser extends Request.Request<string, Error> {
- *   readonly _tag: "GetUser"
- *   readonly id: number
- * }
- *
- * // Entry represents a request that needs to be resolved
- * declare const entry: Request.Entry<GetUser>
- *
- * // You can access the original request
- * console.log(entry.request.id)
- *
- * // Complete the entry with a result
- * entry.unsafeComplete(Effect.succeed("John Doe"))
- * ```
- *
  * @since 2.0.0
  * @category entry
  */
@@ -629,31 +443,6 @@ export interface Entry<out R> {
 }
 
 /**
- * @example
- * ```ts
- * import { Effect } from "effect"
-import { ServiceMap } from "effect/services"
- * import { Request } from "effect/batching"
- *
- * interface GetUser extends Request.Request<string, Error> {
- *   readonly _tag: "GetUser"
- *   readonly id: number
- * }
- *
- * const GetUser = Request.tagged<GetUser>("GetUser")
- * const userRequest = GetUser({ id: 123 })
- *
- * // Create an entry for processing in a resolver
- * const entry = Request.makeEntry({
- *   request: userRequest,
- *   services: ServiceMap.empty(),
- *   unsafeComplete: (effect) => {
- *     // This would be called by the resolver to complete the request
- *     Effect.runPromise(effect).then(console.log).catch(console.error)
- *   }
- * })
- * ```
- *
  * @since 2.0.0
  * @category entry
  */
