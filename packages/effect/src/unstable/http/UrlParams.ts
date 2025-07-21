@@ -168,7 +168,7 @@ export const schema: schema = Schema.declareRefinement({
   annotations: {
     identifier: "UrlParams",
     equivalence: {
-      _tag: "declaration",
+      _tag: "Declaration",
       declaration: () => Equivalence
     },
     defaultJsonSerializer: () =>

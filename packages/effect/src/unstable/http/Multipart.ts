@@ -172,7 +172,7 @@ export const FileSchema: FileSchema = Schema.declareRefinement({
   annotations: {
     identifier: "PersistedFile",
     jsonSchema: {
-      _tag: "override",
+      _tag: "Override",
       override: () => ({
         type: "string",
         format: "binary"

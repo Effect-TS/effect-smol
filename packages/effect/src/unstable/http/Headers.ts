@@ -84,7 +84,7 @@ export const schema: schema = Schema.declareRefinement({
   annotations: {
     identifier: "Headers",
     equivalence: {
-      _tag: "declaration",
+      _tag: "Declaration",
       declaration: () => Equivalence
     },
     defaultJsonSerializer: () =>
