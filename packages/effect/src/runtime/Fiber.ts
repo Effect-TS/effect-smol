@@ -308,7 +308,8 @@ export const join: <A, E>(self: Fiber<A, E>) => Effect<A, E> = effect.fiberJoin
 export const interrupt: <A, E>(self: Fiber<A, E>) => Effect<void> = effect.fiberInterrupt
 
 /**
- * Interrupts all fibers in the provided iterable.
+ * Interrupts a fiber with a specific fiber ID as the interruptor. This allows
+ * tracking which fiber initiated the interruption.
  *
  * @example
  * ```ts
@@ -316,10 +317,13 @@ export const interrupt: <A, E>(self: Fiber<A, E>) => Effect<void> = effect.fiber
  * import { Fiber } from "effect/runtime"
  *
  * const program = Effect.gen(function* () {
- *   const fiber1 = yield* Effect.fork(Effect.delay("1 second")(Effect.succeed(1)))
- *   const fiber2 = yield* Effect.fork(Effect.delay("1 second")(Effect.succeed(2)))
- *   yield* Fiber.interruptAll([fiber1, fiber2])
- *   console.log("All fibers interrupted")
+ *   const targetFiber = yield* Effect.fork(
+ *     Effect.delay("5 seconds")(Effect.succeed("task completed"))
+ *   )
+ *
+ *   // Interrupt the fiber, specifying fiber ID 123 as the interruptor
+ *   yield* Fiber.interruptAs(targetFiber, 123)
+ *   console.log("Fiber interrupted by fiber #123")
  * })
  * ```
  *
