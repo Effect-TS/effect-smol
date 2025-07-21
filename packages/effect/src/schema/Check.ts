@@ -249,8 +249,8 @@ export function trimmed(annotations?: Annotations.Filter) {
     title: "trimmed",
     description: "a string with no leading or trailing whitespace",
     jsonSchema: {
-      _tag: "fragment",
-      fragment: () => ({
+      _tag: "Constraint",
+      constraint: () => ({
         pattern: TRIMMED_PATTERN
       })
     },
@@ -258,9 +258,9 @@ export function trimmed(annotations?: Annotations.Filter) {
       _tag: "trimmed"
     },
     arbitrary: {
-      _tag: "fragment",
-      fragment: {
-        _tag: "string",
+      _tag: "Constraint",
+      constraint: {
+        _tag: "StringConstraints",
         patterns: [TRIMMED_PATTERN]
       }
     },
@@ -272,12 +272,7 @@ export function trimmed(annotations?: Annotations.Filter) {
  * @category String checks
  * @since 4.0.0
  */
-export function regex(regex: RegExp, options?: {
-  readonly title?: string | undefined
-  readonly description?: string | undefined
-  readonly fragment?: object | undefined
-  readonly meta?: object | undefined
-}) {
+export function regex(regex: RegExp, annotations?: Annotations.Filter) {
   if (process.env.NODE_ENV !== "production") {
     if (regex.flags !== "") {
       throw new Error("regex flags are not supported")
@@ -285,27 +280,26 @@ export function regex(regex: RegExp, options?: {
   }
   const source = regex.source
   return make((s: string) => regex.test(s), {
-    title: options?.title ?? `regex(${source})`,
-    description: options?.description ?? `a string matching the pattern ${source}`,
+    title: `regex(${source})`,
+    description: `a string matching the pattern ${source}`,
     jsonSchema: {
-      _tag: "fragment",
-      fragment: () => ({
-        pattern: regex.source,
-        ...options?.fragment
+      _tag: "Constraint",
+      constraint: () => ({
+        pattern: regex.source
       })
     },
     meta: {
       _tag: "regex",
-      regex,
-      ...options?.meta
+      regex
     },
     arbitrary: {
-      _tag: "fragment",
-      fragment: {
-        _tag: "string",
+      _tag: "Constraint",
+      constraint: {
+        _tag: "StringConstraints",
         patterns: [regex.source]
       }
-    }
+    },
+    ...annotations
   })
 }
 
@@ -333,14 +327,7 @@ const getUUIDRegex = (version?: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8): RegExp => {
  */
 export function uuid(version?: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8) {
   return regex(getUUIDRegex(version), {
-    title: "uuid",
-    fragment: {
-      format: "uuid"
-    },
-    meta: {
-      id: "uuid",
-      version
-    }
+    title: "uuid"
   })
 }
 
@@ -350,9 +337,7 @@ export function uuid(version?: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8) {
  */
 export function base64(annotations?: Annotations.Filter) {
   return regex(/^([0-9a-zA-Z+/]{4})*(([0-9a-zA-Z+/]{2}==)|([0-9a-zA-Z+/]{3}=))?$/, {
-    meta: {
-      id: "base64"
-    },
+    title: "base64",
     ...annotations
   })
 }
@@ -363,9 +348,7 @@ export function base64(annotations?: Annotations.Filter) {
  */
 export function base64url(annotations?: Annotations.Filter) {
   return regex(/^([0-9a-zA-Z-_]{4})*(([0-9a-zA-Z-_]{2}(==)?)|([0-9a-zA-Z-_]{3}(=)?))?$/, {
-    meta: {
-      id: "base64url"
-    },
+    title: "base64url",
     ...annotations
   })
 }
@@ -380,8 +363,8 @@ export function startsWith(startsWith: string, annotations?: Annotations.Filter)
     title: `startsWith(${formatted})`,
     description: `a string starting with ${formatted}`,
     jsonSchema: {
-      _tag: "fragment",
-      fragment: () => ({
+      _tag: "Constraint",
+      constraint: () => ({
         pattern: `^${startsWith}`
       })
     },
@@ -390,9 +373,9 @@ export function startsWith(startsWith: string, annotations?: Annotations.Filter)
       startsWith
     },
     arbitrary: {
-      _tag: "fragment",
-      fragment: {
-        _tag: "string",
+      _tag: "Constraint",
+      constraint: {
+        _tag: "StringConstraints",
         patterns: [`^${startsWith}`]
       }
     },
@@ -410,8 +393,8 @@ export function endsWith(endsWith: string, annotations?: Annotations.Filter) {
     title: `endsWith(${formatted})`,
     description: `a string ending with ${formatted}`,
     jsonSchema: {
-      _tag: "fragment",
-      fragment: () => ({
+      _tag: "Constraint",
+      constraint: () => ({
         pattern: `${endsWith}$`
       })
     },
@@ -420,9 +403,9 @@ export function endsWith(endsWith: string, annotations?: Annotations.Filter) {
       endsWith
     },
     arbitrary: {
-      _tag: "fragment",
-      fragment: {
-        _tag: "string",
+      _tag: "Constraint",
+      constraint: {
+        _tag: "StringConstraints",
         patterns: [`${endsWith}$`]
       }
     },
@@ -440,8 +423,8 @@ export function includes(includes: string, annotations?: Annotations.Filter) {
     title: `includes(${formatted})`,
     description: `a string including ${formatted}`,
     jsonSchema: {
-      _tag: "fragment",
-      fragment: () => ({
+      _tag: "Constraint",
+      constraint: () => ({
         pattern: includes
       })
     },
@@ -450,9 +433,9 @@ export function includes(includes: string, annotations?: Annotations.Filter) {
       includes
     },
     arbitrary: {
-      _tag: "fragment",
-      fragment: {
-        _tag: "string",
+      _tag: "Constraint",
+      constraint: {
+        _tag: "StringConstraints",
         patterns: [includes]
       }
     },
@@ -471,8 +454,8 @@ export function uppercased(annotations?: Annotations.Filter) {
     title: "uppercased",
     description: "a string with all characters in uppercase",
     jsonSchema: {
-      _tag: "fragment",
-      fragment: () => ({
+      _tag: "Constraint",
+      constraint: () => ({
         pattern: UPPERCASED_PATTERN
       })
     },
@@ -480,9 +463,9 @@ export function uppercased(annotations?: Annotations.Filter) {
       _tag: "uppercased"
     },
     arbitrary: {
-      _tag: "fragment",
-      fragment: {
-        _tag: "string",
+      _tag: "Constraint",
+      constraint: {
+        _tag: "StringConstraints",
         patterns: [UPPERCASED_PATTERN]
       }
     },
@@ -501,8 +484,8 @@ export function lowercased(annotations?: Annotations.Filter) {
     title: "lowercased",
     description: "a string with all characters in lowercase",
     jsonSchema: {
-      _tag: "fragment",
-      fragment: () => ({
+      _tag: "Constraint",
+      constraint: () => ({
         pattern: LOWERCASED_PATTERN
       })
     },
@@ -510,9 +493,9 @@ export function lowercased(annotations?: Annotations.Filter) {
       _tag: "lowercased"
     },
     arbitrary: {
-      _tag: "fragment",
-      fragment: {
-        _tag: "string",
+      _tag: "Constraint",
+      constraint: {
+        _tag: "StringConstraints",
         patterns: [LOWERCASED_PATTERN]
       }
     },
@@ -532,9 +515,9 @@ export function finite(annotations?: Annotations.Filter) {
       _tag: "finite"
     },
     arbitrary: {
-      _tag: "fragment",
-      fragment: {
-        _tag: "number",
+      _tag: "Constraint",
+      constraint: {
+        _tag: "NumberConstraints",
         noDefaultInfinity: true,
         noNaN: true
       }
@@ -678,8 +661,8 @@ export const greaterThan = deriveGreaterThan({
   order: Order.number,
   annotate: (exclusiveMinimum) => ({
     jsonSchema: {
-      _tag: "fragment",
-      fragment: () => ({
+      _tag: "Constraint",
+      constraint: () => ({
         exclusiveMinimum
       })
     },
@@ -688,9 +671,9 @@ export const greaterThan = deriveGreaterThan({
       exclusiveMinimum
     },
     arbitrary: {
-      _tag: "fragment",
-      fragment: {
-        _tag: "number",
+      _tag: "Constraint",
+      constraint: {
+        _tag: "NumberConstraints",
         min: exclusiveMinimum,
         minExcluded: true
       }
@@ -706,8 +689,8 @@ export const greaterThanOrEqualTo = deriveGreaterThanOrEqualTo({
   order: Order.number,
   annotate: (minimum) => ({
     jsonSchema: {
-      _tag: "fragment",
-      fragment: () => ({
+      _tag: "Constraint",
+      constraint: () => ({
         minimum
       })
     },
@@ -716,9 +699,9 @@ export const greaterThanOrEqualTo = deriveGreaterThanOrEqualTo({
       minimum
     },
     arbitrary: {
-      _tag: "fragment",
-      fragment: {
-        _tag: "number",
+      _tag: "Constraint",
+      constraint: {
+        _tag: "NumberConstraints",
         min: minimum
       }
     }
@@ -733,8 +716,8 @@ export const lessThan = deriveLessThan({
   order: Order.number,
   annotate: (exclusiveMaximum) => ({
     jsonSchema: {
-      _tag: "fragment",
-      fragment: () => ({
+      _tag: "Constraint",
+      constraint: () => ({
         exclusiveMaximum
       })
     },
@@ -743,9 +726,9 @@ export const lessThan = deriveLessThan({
       exclusiveMaximum
     },
     arbitrary: {
-      _tag: "fragment",
-      fragment: {
-        _tag: "number",
+      _tag: "Constraint",
+      constraint: {
+        _tag: "NumberConstraints",
         max: exclusiveMaximum,
         maxExcluded: true
       }
@@ -761,8 +744,8 @@ export const lessThanOrEqualTo = deriveLessThanOrEqualTo({
   order: Order.number,
   annotate: (maximum) => ({
     jsonSchema: {
-      _tag: "fragment",
-      fragment: () => ({
+      _tag: "Constraint",
+      constraint: () => ({
         maximum
       })
     },
@@ -771,9 +754,9 @@ export const lessThanOrEqualTo = deriveLessThanOrEqualTo({
       maximum
     },
     arbitrary: {
-      _tag: "fragment",
-      fragment: {
-        _tag: "number",
+      _tag: "Constraint",
+      constraint: {
+        _tag: "NumberConstraints",
         max: maximum
       }
     }
@@ -788,8 +771,8 @@ export const between = deriveBetween({
   order: Order.number,
   annotate: (minimum, maximum) => ({
     jsonSchema: {
-      _tag: "fragment",
-      fragment: () => ({
+      _tag: "Constraint",
+      constraint: () => ({
         minimum,
         maximum
       })
@@ -800,9 +783,9 @@ export const between = deriveBetween({
       maximum
     },
     arbitrary: {
-      _tag: "fragment",
-      fragment: {
-        _tag: "number",
+      _tag: "Constraint",
+      constraint: {
+        _tag: "NumberConstraints",
         min: minimum,
         max: maximum
       }
@@ -853,8 +836,8 @@ export const multipleOf = deriveMultipleOf({
     title: `multipleOf(${divisor})`,
     description: `a value that is a multiple of ${divisor}`,
     jsonSchema: {
-      _tag: "fragment",
-      fragment: () => ({
+      _tag: "Constraint",
+      constraint: () => ({
         multipleOf: Math.abs(divisor) // JSON Schema only supports positive divisors
       })
     }
@@ -872,8 +855,8 @@ export function int(annotations?: Annotations.Filter) {
     title: "int",
     description: "an integer",
     jsonSchema: {
-      _tag: "fragment",
-      fragment: () => ({
+      _tag: "Constraint",
+      constraint: () => ({
         type: "integer"
       })
     },
@@ -881,9 +864,9 @@ export function int(annotations?: Annotations.Filter) {
       _tag: "int"
     },
     arbitrary: {
-      _tag: "fragment",
-      fragment: {
-        _tag: "number",
+      _tag: "Constraint",
+      constraint: {
+        _tag: "NumberConstraints",
         isInteger: true
       }
     },
@@ -903,8 +886,8 @@ export function int32(annotations?: Annotations.Filter) {
     title: "int32",
     description: "a 32-bit integer",
     jsonSchema: {
-      _tag: "fragment",
-      fragment: () => ({
+      _tag: "Constraint",
+      constraint: () => ({
         format: "int32"
       })
     },
@@ -927,8 +910,8 @@ export function uint32(annotations?: Annotations.Filter) {
     title: "uint32",
     description: "a 32-bit unsigned integer",
     jsonSchema: {
-      _tag: "fragment",
-      fragment: () => ({
+      _tag: "Constraint",
+      constraint: () => ({
         format: "uint32"
       })
     },
@@ -949,9 +932,9 @@ export function validDate(annotations?: Annotations.Filter) {
       _tag: "validDate"
     },
     arbitrary: {
-      _tag: "fragment",
-      fragment: {
-        _tag: "date",
+      _tag: "Constraint",
+      constraint: {
+        _tag: "DateConstraints",
         noInvalidDate: true
       }
     },
@@ -971,9 +954,9 @@ export const greaterThanOrEqualToDate = deriveGreaterThanOrEqualTo({
       minimum
     },
     arbitrary: {
-      _tag: "fragment",
-      fragment: {
-        _tag: "date",
+      _tag: "Constraint",
+      constraint: {
+        _tag: "DateConstraints",
         min: minimum
       }
     }
@@ -992,9 +975,9 @@ export const lessThanOrEqualToDate = deriveLessThanOrEqualTo({
       maximum
     },
     arbitrary: {
-      _tag: "fragment",
-      fragment: {
-        _tag: "date",
+      _tag: "Constraint",
+      constraint: {
+        _tag: "DateConstraints",
         max: maximum
       }
     }
@@ -1014,9 +997,9 @@ export const betweenDate = deriveBetween({
       maximum
     },
     arbitrary: {
-      _tag: "fragment",
-      fragment: {
-        _tag: "date",
+      _tag: "Constraint",
+      constraint: {
+        _tag: "DateConstraints",
         min: minimum,
         max: maximum
       }
@@ -1036,9 +1019,9 @@ export const greaterThanOrEqualToBigInt = deriveGreaterThanOrEqualTo({
       minimum
     },
     arbitrary: {
-      _tag: "fragment",
-      fragment: {
-        _tag: "bigint",
+      _tag: "Constraint",
+      constraint: {
+        _tag: "BigIntConstraints",
         min: minimum
       }
     }
@@ -1057,9 +1040,9 @@ export const lessThanOrEqualToBigInt = deriveLessThanOrEqualTo({
       maximum
     },
     arbitrary: {
-      _tag: "fragment",
-      fragment: {
-        _tag: "bigint",
+      _tag: "Constraint",
+      constraint: {
+        _tag: "BigIntConstraints",
         max: maximum
       }
     }
@@ -1079,9 +1062,9 @@ export const betweenBigInt = deriveBetween({
       maximum
     },
     arbitrary: {
-      _tag: "fragment",
-      fragment: {
-        _tag: "bigint",
+      _tag: "Constraint",
+      constraint: {
+        _tag: "BigIntConstraints",
         min: minimum,
         max: maximum
       }
@@ -1099,8 +1082,8 @@ export function minLength(minLength: number, annotations?: Annotations.Filter) {
     title: `minLength(${minLength})`,
     description: `a value with a length of at least ${minLength}`,
     jsonSchema: {
-      _tag: "fragment",
-      fragment: (type) => {
+      _tag: "Constraint",
+      constraint: (type) => {
         switch (type) {
           case "string":
             return { minLength }
@@ -1116,14 +1099,14 @@ export function minLength(minLength: number, annotations?: Annotations.Filter) {
     },
     "~structural": true,
     arbitrary: {
-      _tag: "fragments",
-      fragments: {
-        string: {
-          _tag: "string",
+      _tag: "Constraints",
+      constraints: {
+        StringConstraints: {
+          _tag: "StringConstraints",
           minLength
         },
-        array: {
-          _tag: "array",
+        ArrayConstraints: {
+          _tag: "ArrayConstraints",
           minLength
         }
       }
@@ -1150,8 +1133,8 @@ export function maxLength(maxLength: number, annotations?: Annotations.Filter) {
     title: `maxLength(${maxLength})`,
     description: `a value with a length of at most ${maxLength}`,
     jsonSchema: {
-      _tag: "fragment",
-      fragment: (type) => {
+      _tag: "Constraint",
+      constraint: (type) => {
         switch (type) {
           case "string":
             return { maxLength }
@@ -1166,14 +1149,14 @@ export function maxLength(maxLength: number, annotations?: Annotations.Filter) {
     },
     "~structural": true,
     arbitrary: {
-      _tag: "fragments",
-      fragments: {
-        string: {
-          _tag: "string",
+      _tag: "Constraints",
+      constraints: {
+        StringConstraints: {
+          _tag: "StringConstraints",
           maxLength
         },
-        array: {
-          _tag: "array",
+        ArrayConstraints: {
+          _tag: "ArrayConstraints",
           maxLength
         }
       }
@@ -1192,8 +1175,8 @@ export function length(length: number, annotations?: Annotations.Filter) {
     title: `length(${length})`,
     description: `a value with a length of ${length}`,
     jsonSchema: {
-      _tag: "fragment",
-      fragment: () => ({
+      _tag: "Constraint",
+      constraint: () => ({
         length
       })
     },
@@ -1203,15 +1186,15 @@ export function length(length: number, annotations?: Annotations.Filter) {
     },
     "~structural": true,
     arbitrary: {
-      _tag: "fragments",
-      fragments: {
-        string: {
-          _tag: "string",
+      _tag: "Constraints",
+      constraints: {
+        StringConstraints: {
+          _tag: "StringConstraints",
           minLength: length,
           maxLength: length
         },
-        array: {
-          _tag: "array",
+        ArrayConstraints: {
+          _tag: "ArrayConstraints",
           minLength: length,
           maxLength: length
         }
@@ -1236,10 +1219,10 @@ export function minSize(minSize: number, annotations?: Annotations.Filter) {
     },
     "~structural": true,
     arbitrary: {
-      _tag: "fragments",
-      fragments: {
-        array: {
-          _tag: "array",
+      _tag: "Constraints",
+      constraints: {
+        ArrayConstraints: {
+          _tag: "ArrayConstraints",
           minLength: minSize
         }
       }
@@ -1263,10 +1246,10 @@ export function maxSize(maxSize: number, annotations?: Annotations.Filter) {
     },
     "~structural": true,
     arbitrary: {
-      _tag: "fragments",
-      fragments: {
-        array: {
-          _tag: "array",
+      _tag: "Constraints",
+      constraints: {
+        ArrayConstraints: {
+          _tag: "ArrayConstraints",
           maxLength: maxSize
         }
       }
@@ -1290,10 +1273,10 @@ export function size(size: number, annotations?: Annotations.Filter) {
     },
     "~structural": true,
     arbitrary: {
-      _tag: "fragments",
-      fragments: {
-        array: {
-          _tag: "array",
+      _tag: "Constraints",
+      constraints: {
+        ArrayConstraints: {
+          _tag: "ArrayConstraints",
           minLength: size,
           maxLength: size
         }
@@ -1313,8 +1296,8 @@ export function minEntries(minEntries: number, annotations?: Annotations.Filter)
     title: `minEntries(${minEntries})`,
     description: `an object with at least ${minEntries} entries`,
     jsonSchema: {
-      _tag: "fragment",
-      fragment: () => ({
+      _tag: "Constraint",
+      constraint: () => ({
         minProperties: minEntries
       })
     },
@@ -1324,10 +1307,10 @@ export function minEntries(minEntries: number, annotations?: Annotations.Filter)
     },
     "~structural": true,
     arbitrary: {
-      _tag: "fragments",
-      fragments: {
-        array: {
-          _tag: "array",
+      _tag: "Constraints",
+      constraints: {
+        ArrayConstraints: {
+          _tag: "ArrayConstraints",
           minLength: minEntries
         }
       }
@@ -1346,8 +1329,8 @@ export function maxEntries(maxEntries: number, annotations?: Annotations.Filter)
     title: `maxEntries(${maxEntries})`,
     description: `an object with at most ${maxEntries} entries`,
     jsonSchema: {
-      _tag: "fragment",
-      fragment: () => ({
+      _tag: "Constraint",
+      constraint: () => ({
         maxProperties: maxEntries
       })
     },
@@ -1357,10 +1340,10 @@ export function maxEntries(maxEntries: number, annotations?: Annotations.Filter)
     },
     "~structural": true,
     arbitrary: {
-      _tag: "fragments",
-      fragments: {
-        array: {
-          _tag: "array",
+      _tag: "Constraints",
+      constraints: {
+        ArrayConstraints: {
+          _tag: "ArrayConstraints",
           maxLength: maxEntries
         }
       }
@@ -1379,8 +1362,8 @@ export function entries(entries: number, annotations?: Annotations.Filter) {
     title: `entries(${entries})`,
     description: `an object with exactly ${entries} entries`,
     jsonSchema: {
-      _tag: "fragment",
-      fragment: () => ({
+      _tag: "Constraint",
+      constraint: () => ({
         minProperties: entries,
         maxProperties: entries
       })
@@ -1391,10 +1374,10 @@ export function entries(entries: number, annotations?: Annotations.Filter) {
     },
     "~structural": true,
     arbitrary: {
-      _tag: "fragments",
-      fragments: {
-        array: {
-          _tag: "array",
+      _tag: "Constraints",
+      constraints: {
+        ArrayConstraints: {
+          _tag: "ArrayConstraints",
           minLength: entries,
           maxLength: entries
         }
@@ -1411,8 +1394,8 @@ export function unique<T>(equivalence: Equivalence.Equivalence<T>, annotations?:
   return make<ReadonlyArray<T>>((input) => Arr.dedupeWith(input, equivalence).length === input.length, {
     title: "unique",
     jsonSchema: {
-      _tag: "fragment",
-      fragment: () => ({
+      _tag: "Constraint",
+      constraint: () => ({
         uniqueItems: true
       })
     },
@@ -1421,10 +1404,12 @@ export function unique<T>(equivalence: Equivalence.Equivalence<T>, annotations?:
       equivalence
     },
     arbitrary: {
-      _tag: "fragment",
-      fragment: {
-        _tag: "array",
-        comparator: equivalence
+      _tag: "Constraints",
+      constraints: {
+        ArrayConstraints: {
+          _tag: "ArrayConstraints",
+          comparator: equivalence
+        }
       }
     },
     ...annotations

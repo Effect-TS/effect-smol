@@ -385,7 +385,7 @@ export interface StructuredIssue {
     /** The annotations of the check, if any. */
     readonly annotations: Annotations.Filter | undefined
     /** Whether the check was aborted. */
-    readonly abort: boolean
+    readonly aborted: boolean
   }
 }
 
@@ -447,7 +447,7 @@ function formatStructured(
         return {
           check: {
             annotations: issue.filter.annotations,
-            abort: issue.filter.abort
+            aborted: issue.filter.abort
           },
           ...structured
         }

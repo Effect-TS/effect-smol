@@ -6,6 +6,7 @@ import * as Option from "../data/Option.ts"
 import * as Predicate from "../data/Predicate.ts"
 import { defaultParseOptions, memoizeThunk } from "../internal/schema/util.ts"
 import * as FastCheck from "../testing/FastCheck.ts"
+import type * as Annotations from "./Annotations.ts"
 import * as AST from "./AST.ts"
 import type * as Check from "./Check.ts"
 import type * as Schema from "./Schema.ts"
@@ -17,70 +18,80 @@ export declare namespace Annotation {
   /**
    * @since 4.0.0
    */
-  export interface StringFragment extends FastCheck.StringSharedConstraints {
-    readonly _tag: "string"
+  export type Declaration<T, TypeParameters extends ReadonlyArray<Schema.Top>> = {
+    readonly _tag: "Declaration"
+    readonly declaration: (
+      typeParameters: { readonly [K in keyof TypeParameters]: FastCheck.Arbitrary<TypeParameters[K]["Type"]> }
+    ) => (fc: typeof FastCheck, context?: Context) => FastCheck.Arbitrary<T>
+  }
+
+  /**
+   * @since 4.0.0
+   */
+  export interface StringConstraints extends FastCheck.StringSharedConstraints {
+    readonly _tag: "StringConstraints"
     readonly patterns?: readonly [string, ...Array<string>]
   }
 
   /**
    * @since 4.0.0
    */
-  export interface NumberFragment extends FastCheck.FloatConstraints {
-    readonly _tag: "number"
+  export interface NumberConstraints extends FastCheck.FloatConstraints {
+    readonly _tag: "NumberConstraints"
     readonly isInteger?: boolean
   }
 
   /**
    * @since 4.0.0
    */
-  export interface BigIntFragment extends FastCheck.BigIntConstraints {
-    readonly _tag: "bigint"
+  export interface BigIntConstraints extends FastCheck.BigIntConstraints {
+    readonly _tag: "BigIntConstraints"
   }
 
   /**
    * @since 4.0.0
    */
-  export interface ArrayFragment extends FastCheck.ArrayConstraints {
-    readonly _tag: "array"
+  export interface ArrayConstraints extends FastCheck.ArrayConstraints {
+    readonly _tag: "ArrayConstraints"
     readonly comparator?: (a: any, b: any) => boolean
   }
 
   /**
    * @since 4.0.0
    */
-  export interface DateFragment extends FastCheck.DateConstraints {
-    readonly _tag: "date"
+  export interface DateConstraints extends FastCheck.DateConstraints {
+    readonly _tag: "DateConstraints"
   }
 
   /**
    * @since 4.0.0
    */
-  export type FragmentTag = "string" | "number" | "bigint" | "array" | "date"
+  export type Any =
+    | StringConstraints
+    | NumberConstraints
+    | BigIntConstraints
+    | ArrayConstraints
+    | DateConstraints
 
   /**
    * @since 4.0.0
    */
-  export type Constraint = StringFragment | NumberFragment | BigIntFragment | ArrayFragment | DateFragment
-
-  /**
-   * @since 4.0.0
-   */
-  export type Fragment = {
-    readonly _tag: "fragment"
-    readonly fragment: Constraint
+  export type Constraint = {
+    readonly _tag: "Constraint"
+    readonly constraint: Any
   }
 
   /**
    * @since 4.0.0
    */
-  export type Fragments = {
-    readonly _tag: "fragments"
-    readonly fragments: {
-      readonly string?: StringFragment | undefined
-      readonly number?: NumberFragment | undefined
-      readonly bigint?: BigIntFragment | undefined
-      readonly array?: ArrayFragment | undefined
-      readonly date?: DateFragment | undefined
+  export type Constraints = {
+    readonly _tag: "Constraints"
+    readonly constraints: {
+      readonly StringConstraints?: StringConstraints | undefined
+      readonly NumberConstraints?: NumberConstraints | undefined
+      readonly BigIntConstraints?: BigIntConstraints | undefined
+      readonly ArrayConstraints?: ArrayConstraints | undefined
+      readonly DateConstraints?: DateConstraints | undefined
     }
   }
 
@@ -88,18 +99,8 @@ export declare namespace Annotation {
    * @since 4.0.0
    */
   export type Override<T> = {
-    readonly _tag: "override"
+    readonly _tag: "Override"
     readonly override: (fc: typeof FastCheck, context?: Context) => FastCheck.Arbitrary<T>
-  }
-
-  /**
-   * @since 4.0.0
-   */
-  export type Declaration<T, TypeParameters extends ReadonlyArray<Schema.Top>> = {
-    readonly _tag: "declaration"
-    readonly declaration: (
-      typeParameters: { readonly [K in keyof TypeParameters]: FastCheck.Arbitrary<TypeParameters[K]["Type"]> }
-    ) => (fc: typeof FastCheck, context?: Context) => FastCheck.Arbitrary<T>
   }
 }
 
@@ -107,8 +108,13 @@ export declare namespace Annotation {
  * @since 4.0.0
  */
 export interface Context {
+  /**
+   * This flag is set to `true` when the current schema is a suspend. The goal
+   * is to avoid infinite recursion when generating arbitrary values for
+   * suspends, so implementations should try to avoid excessive recursion.
+   */
   readonly isSuspend?: boolean | undefined
-  readonly fragments?: Annotation.Fragments["fragments"] | undefined
+  readonly constraints?: Annotation.Constraints["constraints"] | undefined
 }
 
 /**
@@ -132,21 +138,21 @@ export function make<T>(schema: Schema.Schema<T>): FastCheck.Arbitrary<T> {
 
 const arbitraryMemoMap = new WeakMap<AST.AST, LazyArbitrary<any>>()
 
-/**
- * @since 4.0.0
- */
-export function getAnnotation(
-  ast: AST.AST
-): Annotation.Declaration<any, ReadonlyArray<any>> | Annotation.Override<any> | undefined {
-  return ast.annotations?.arbitrary as any
+function getArbitraryAnnotation(
+  annotations: Annotations.Annotations | undefined
+):
+  | Annotation.Declaration<any, ReadonlyArray<any>>
+  | Annotation.Constraint
+  | Annotation.Constraints
+  | Annotation.Override<any>
+  | undefined
+{
+  return annotations?.arbitrary as any
 }
 
-/**
- * @since 4.0.0
- */
-export function getCheckAnnotation(
+function getCheckAnnotation(
   check: Check.Check<any>
-): Annotation.Fragment | Annotation.Fragments | undefined {
+): Annotation.Constraint | Annotation.Constraints | undefined {
   return check.annotations?.arbitrary as any
 }
 
@@ -162,9 +168,9 @@ function applyChecks(
 }
 
 function isUniqueArrayConstraintsCustomCompare(
-  fragment: Annotation.ArrayFragment | undefined
-): fragment is Annotation.ArrayFragment & FastCheck.UniqueArrayConstraintsCustomCompare<any> {
-  return fragment?.comparator !== undefined
+  constraint: Annotation.ArrayConstraints | undefined
+): constraint is Annotation.ArrayConstraints & FastCheck.UniqueArrayConstraintsCustomCompare<any> {
+  return constraint?.comparator !== undefined
 }
 
 function array(
@@ -172,10 +178,10 @@ function array(
   ctx: Context | undefined,
   item: FastCheck.Arbitrary<any>
 ) {
-  const fragment = ctx?.fragments?.array
-  const array = isUniqueArrayConstraintsCustomCompare(fragment)
-    ? fc.uniqueArray(item, fragment)
-    : fc.array(item, fragment)
+  const constraint = ctx?.constraints?.ArrayConstraints
+  const array = isUniqueArrayConstraintsCustomCompare(constraint)
+    ? fc.uniqueArray(item, constraint)
+    : fc.array(item, constraint)
   if (ctx?.isSuspend) {
     return fc.oneof(
       { maxDepth: 2, depthIdentifier: "" },
@@ -212,7 +218,7 @@ const min = lift(Math.min)
 const or = lift((x, y) => x || y)
 const concat = lift<ReadonlyArray<unknown>>((x, y) => x.concat(y))
 
-const semigroup: Semigroup<Partial<Annotation.Constraint>> = struct({
+const semigroup: Semigroup<Partial<Annotation.Any>> = struct({
   _tag: last,
   isInteger: or,
   max: min,
@@ -230,69 +236,72 @@ const semigroup: Semigroup<Partial<Annotation.Constraint>> = struct({
 }) as any
 
 function merge(
-  fragments: Annotation.Fragments["fragments"],
-  constraint: Annotation.Constraint
-): Annotation.Fragments["fragments"] {
+  constraints: Annotation.Constraints["constraints"],
+  constraint: Annotation.Any
+): Annotation.Constraints["constraints"] {
   const _tag = constraint._tag
-  const fragment = fragments[_tag]
-  if (fragment) {
-    return { ...fragments, [constraint._tag]: semigroup(fragment, constraint) }
+  const c = constraints[_tag]
+  if (c) {
+    return { ...constraints, [constraint._tag]: semigroup(c, constraint) }
   } else {
-    return { ...fragments, [constraint._tag]: constraint }
+    return { ...constraints, [constraint._tag]: constraint }
   }
 }
 
 /** @internal */
-export function mergeChecksFragments(
-  checks: Array<Check.Filter<any>>
+export function mergeFiltersConstraints(
+  filters: Array<Check.Filter<any>>
 ): (ctx: Context | undefined) => Context | undefined {
-  const annotations = checks.map(getCheckAnnotation).filter(Predicate.isNotUndefined)
+  const annotations = filters.map(getCheckAnnotation).filter(Predicate.isNotUndefined)
   return (ctx) => {
-    const fragments = annotations.reduce((acc: Annotation.Fragments["fragments"], f) => {
-      switch (f._tag) {
-        case "fragment":
-          return merge(acc, f.fragment)
-        case "fragments":
-          return Object.values(f.fragments).reduce((acc, v) => {
+    const constraints = annotations.reduce((acc: Annotation.Constraints["constraints"], c) => {
+      switch (c._tag) {
+        case "Constraint":
+          return merge(acc, c.constraint)
+        case "Constraints":
+          return Object.values(c.constraints).reduce((acc, v) => {
             if (v) {
               return merge(acc, v)
             }
             return acc
           }, acc)
       }
-    }, ctx?.fragments || {})
-    return { ...ctx, fragments }
+    }, ctx?.constraints || {})
+    return { ...ctx, constraints }
   }
 }
 
 function resetContext(ctx: Context | undefined): Context | undefined {
   if (ctx) {
-    return { ...ctx, fragments: undefined }
+    return { ...ctx, constraints: undefined }
   }
 }
 
 const go = AST.memoize((ast: AST.AST): LazyArbitrary<any> => {
   // ---------------------------------------------
-  // handle refinements
+  // handle annotations
   // ---------------------------------------------
   if (ast.checks) {
     const filters = AST.getFilters(ast.checks)
-    const f = mergeChecksFragments(filters)
+    const f = mergeFiltersConstraints(filters)
     const out = go(AST.replaceChecks(ast, undefined))
     return (fc, ctx) => applyChecks(ast, filters, out(fc, f(ctx)))
   }
-  // ---------------------------------------------
-  // handle annotations
-  // ---------------------------------------------
-  const annotation = getAnnotation(ast)
+  const annotation = getArbitraryAnnotation(ast.annotations)
   if (annotation) {
     switch (annotation._tag) {
-      case "declaration": {
-        const typeParameters = (AST.isDeclaration(ast) ? ast.typeParameters : []).map(go)
-        return (fc, ctx) => annotation.declaration(typeParameters.map((tp) => tp(fc, resetContext(ctx))))(fc, ctx)
+      case "Declaration": {
+        if (AST.isDeclaration(ast)) {
+          const typeParameters = ast.typeParameters.map(go)
+          return (fc, ctx) => annotation.declaration(typeParameters.map((tp) => tp(fc, resetContext(ctx))))(fc, ctx)
+        }
+        throw new Error("Declaration annotation found on non-declaration AST")
       }
-      case "override":
+      case "Override":
         return annotation.override
+      case "Constraint":
+      case "Constraints":
+        throw new Error("Constraint annotation found on non-constrained AST")
     }
   }
   switch (ast._tag) {
@@ -310,25 +319,25 @@ const go = AST.memoize((ast: AST.AST): LazyArbitrary<any> => {
       return (fc) => fc.anything()
     case "StringKeyword":
       return (fc, ctx) => {
-        const fragment = ctx?.fragments?.string
-        const patterns = fragment?.patterns
+        const constraint = ctx?.constraints?.StringConstraints
+        const patterns = constraint?.patterns
         if (patterns) {
           return fc.oneof(...patterns.map((pattern) => fc.stringMatching(new RegExp(pattern))))
         }
-        return fc.string(fragment)
+        return fc.string(constraint)
       }
     case "NumberKeyword":
       return (fc, ctx) => {
-        const fragment = ctx?.fragments?.number
-        if (fragment?.isInteger) {
-          return fc.integer(fragment)
+        const constraint = ctx?.constraints?.NumberConstraints
+        if (constraint?.isInteger) {
+          return fc.integer(constraint)
         }
-        return fc.float(fragment)
+        return fc.float(constraint)
       }
     case "BooleanKeyword":
       return (fc) => fc.boolean()
     case "BigIntKeyword":
-      return (fc, ctx) => fc.bigInt(ctx?.fragments?.bigint ?? {})
+      return (fc, ctx) => fc.bigInt(ctx?.constraints?.BigIntConstraints ?? {})
     case "SymbolKeyword":
       return (fc) => fc.string().map(Symbol.for)
     case "LiteralType":

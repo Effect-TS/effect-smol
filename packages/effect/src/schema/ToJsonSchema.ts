@@ -21,17 +21,17 @@ export declare namespace Annotation {
   /**
    * @since 4.0.0
    */
-  export type Fragment = {
-    readonly _tag: "fragment"
-    readonly fragment: (type: Type | undefined, target: Target) => object | undefined
+  export type Constraint = {
+    readonly _tag: "Constraint"
+    readonly constraint: (type: Type | undefined, target: Target) => object | undefined
   }
 
   /**
    * @since 4.0.0
    */
   export type Override = {
-    readonly _tag: "override"
-    readonly override: (target: Target, go: (ast: AST.AST) => object) => object | undefined
+    readonly _tag: "Override"
+    readonly override: (target: Target, go: (ast: AST.AST) => object) => object
   }
 }
 
@@ -132,7 +132,7 @@ function make<S extends Schema.Top>(schema: S, options?: Options): object {
   return out
 }
 
-function getAnnotations(annotations: Annotations.Annotations | undefined): object | undefined {
+function getJsonSchemaAnnotations(annotations: Annotations.Annotations | undefined): object | undefined {
   if (annotations) {
     const out: Record<string, unknown> = {}
     if (hasOwn(annotations, "title") && Predicate.isString(annotations.title)) {
@@ -154,42 +154,37 @@ function getAnnotations(annotations: Annotations.Annotations | undefined): objec
   }
 }
 
-function getAnnotationFragment(
+function getCheckConstraint(
   check: Check.Check<any>,
   target: Target,
   type?: Annotation.Type
 ): object | undefined {
   const annotation = check.annotations?.jsonSchema
   if (annotation) {
-    switch (annotation._tag) {
-      case "fragment":
-        return annotation.fragment(type, target)
-      case "override":
-        throw new Error("BUG: Invalid override annotation")
-    }
+    return annotation.constraint(type, target)
   }
 }
 
-function getChecksFragment(
+function getChecksConstraint(
   ast: AST.AST,
   target: Target,
   type?: Annotation.Type
 ): Record<string, unknown> | undefined {
-  let out: { [x: string]: unknown; allOf: globalThis.Array<unknown> } = {
-    ...getAnnotations(ast.annotations),
+  let out: { [x: string]: unknown; allOf: Array<unknown> } = {
+    ...getJsonSchemaAnnotations(ast.annotations),
     allOf: []
   }
   if (ast.checks) {
     function go(check: Check.Check<any>) {
-      const fragment = { ...getAnnotations(check.annotations), ...getAnnotationFragment(check, target, type) }
-      if (hasOwn(fragment, "type")) {
-        out.type = fragment.type
-        delete fragment.type
+      const constraint = { ...getJsonSchemaAnnotations(check.annotations), ...getCheckConstraint(check, target, type) }
+      if (hasOwn(constraint, "type")) {
+        out.type = constraint.type
+        delete constraint.type
       }
-      if (Object.keys(fragment).some((k) => hasOwn(out, k))) {
-        out.allOf.push(fragment)
+      if (Object.keys(constraint).some((k) => hasOwn(out, k))) {
+        out.allOf.push(constraint)
       } else {
-        out = { ...out, ...fragment }
+        out = { ...out, ...constraint }
       }
     }
     ast.checks.forEach(go)
@@ -200,7 +195,7 @@ function getChecksFragment(
   return out
 }
 
-function pruneUndefined(ast: AST.AST): globalThis.Array<AST.AST> {
+function pruneUndefined(ast: AST.AST): Array<AST.AST> {
   switch (ast._tag) {
     case "UndefinedKeyword":
       return []
@@ -276,14 +271,14 @@ function getOverrideAnnotation(ast: AST.AST): Annotation.Override | undefined {
   if (ast.checks) {
     for (let i = ast.checks.length - 1; i >= 0; i--) {
       const check = ast.checks[i]
-      const annotation = check.annotations?.jsonSchema
-      if (annotation && annotation._tag === "override") {
+      const annotation = check.annotations?.jsonSchema as Annotation.Override | Annotation.Constraint | undefined
+      if (annotation && annotation._tag === "Override") {
         return annotation
       }
     }
   }
-  const annotation = ast.annotations?.jsonSchema as Annotation.Override | Annotation.Fragment | undefined
-  if (annotation && annotation._tag === "override") {
+  const annotation = ast.annotations?.jsonSchema as Annotation.Override | Annotation.Constraint | undefined
+  if (annotation && annotation._tag === "Override") {
     return annotation
   }
 }
@@ -294,18 +289,6 @@ function go(
   options: GoOptions,
   ignoreId: boolean = false
 ): object {
-  const target = options.target
-  const annotation = getOverrideAnnotation(ast)
-  if (annotation) {
-    const out = annotation.override(target, (ast) => go(ast, path, options, ignoreId))
-    if (out !== undefined) {
-      return out
-    }
-  }
-  if (ast.encoding) {
-    const last = ast.encoding[ast.encoding.length - 1]
-    return go(last.to, path, options, ignoreId)
-  }
   if (!ignoreId) {
     const id = getId(ast)
     if (id !== undefined) {
@@ -320,6 +303,17 @@ function go(
       }
     }
   }
+  // ---------------------------------------------
+  // handle annotations
+  // ---------------------------------------------
+  const target = options.target
+  const annotation = getOverrideAnnotation(ast)
+  if (annotation) {
+    return annotation.override(target, (ast) => go(ast, path, options, ignoreId))
+  }
+  if (ast.encoding) {
+    return go(ast.encoding[ast.encoding.length - 1].to, path, options, ignoreId)
+  }
   switch (ast._tag) {
     case "Declaration":
     case "VoidKeyword":
@@ -330,56 +324,56 @@ function go(
       throw new Error(`cannot generate JSON Schema for ${ast._tag} at ${formatPath(path) || "root"}`)
     case "UnknownKeyword":
     case "AnyKeyword":
-      return { ...getChecksFragment(ast, target) }
+      return { ...getChecksConstraint(ast, target) }
     case "NeverKeyword":
-      return { not: {}, ...getChecksFragment(ast, target) }
+      return { not: {}, ...getChecksConstraint(ast, target) }
     case "NullKeyword": {
-      const fragment = getChecksFragment(ast, target, "null")
+      const constraint = getChecksConstraint(ast, target, "null")
       if (isNullTypeKeywordSupported(options.target)) {
         // https://json-schema.org/draft-07/draft-handrews-json-schema-validation-00.pdf
         // Section 6.1.1
-        return { type: "null", ...fragment }
+        return { type: "null", ...constraint }
       } else {
         // OpenAPI 3.1 does not support the "null" type keyword
         // https://swagger.io/docs/specification/v3_0/data-models/data-types/#null
-        return { enum: [null], ...fragment }
+        return { enum: [null], ...constraint }
       }
     }
     case "StringKeyword":
-      return { type: "string", ...getChecksFragment(ast, target, "string") }
+      return { type: "string", ...getChecksConstraint(ast, target, "string") }
     case "NumberKeyword":
-      return { type: "number", ...getChecksFragment(ast, target, "number") }
+      return { type: "number", ...getChecksConstraint(ast, target, "number") }
     case "BooleanKeyword":
-      return { type: "boolean", ...getChecksFragment(ast, target, "boolean") }
+      return { type: "boolean", ...getChecksConstraint(ast, target, "boolean") }
     case "ObjectKeyword":
       return {
         anyOf: [
           { type: "object" },
           { type: "array" }
         ],
-        ...getChecksFragment(ast, target)
+        ...getChecksConstraint(ast, target)
       }
     case "LiteralType": {
       if (Predicate.isString(ast.literal)) {
-        return { type: "string", enum: [ast.literal], ...getChecksFragment(ast, target, "string") }
+        return { type: "string", enum: [ast.literal], ...getChecksConstraint(ast, target, "string") }
       } else if (Predicate.isNumber(ast.literal)) {
-        return { type: "number", enum: [ast.literal], ...getChecksFragment(ast, target, "number") }
+        return { type: "number", enum: [ast.literal], ...getChecksConstraint(ast, target, "number") }
       } else if (Predicate.isBoolean(ast.literal)) {
-        return { type: "boolean", enum: [ast.literal], ...getChecksFragment(ast, target, "boolean") }
+        return { type: "boolean", enum: [ast.literal], ...getChecksConstraint(ast, target, "boolean") }
       }
       throw new Error(`cannot generate JSON Schema for ${ast._tag} at ${formatPath(path) || "root"}`)
     }
     case "Enums": {
       return {
         ...go(AST.enumsToLiterals(ast), path, options),
-        ...getChecksFragment(ast, target)
+        ...getChecksConstraint(ast, target)
       }
     }
     case "TemplateLiteral":
       return {
         type: "string",
         pattern: AST.getTemplateLiteralRegExp(ast).source,
-        ...getChecksFragment(ast, target, "string")
+        ...getChecksConstraint(ast, target, "string")
       }
     case "TupleType": {
       // ---------------------------------------------
@@ -392,7 +386,7 @@ function go(
       }
       const out: Record<string, unknown> = {
         type: "array",
-        ...getChecksFragment(ast, target, "array")
+        ...getChecksConstraint(ast, target, "array")
       }
       // ---------------------------------------------
       // handle elements
@@ -431,12 +425,12 @@ function go(
             { type: "object" },
             { type: "array" }
           ],
-          ...getChecksFragment(ast, target)
+          ...getChecksConstraint(ast, target)
         }
       }
       const out: any = {
         type: "object",
-        ...getChecksFragment(ast, target, "object")
+        ...getChecksConstraint(ast, target, "object")
       }
       // ---------------------------------------------
       // handle property signatures
@@ -486,9 +480,9 @@ function go(
         default:
           switch (ast.mode) {
             case "anyOf":
-              return { "anyOf": members, ...getChecksFragment(ast, target) }
+              return { "anyOf": members, ...getChecksConstraint(ast, target) }
             case "oneOf":
-              return { "oneOf": members, ...getChecksFragment(ast, target) }
+              return { "oneOf": members, ...getChecksConstraint(ast, target) }
           }
       }
     }

@@ -1193,15 +1193,41 @@ describe("ToJsonSchema", () => {
     })
 
     describe("Annotations", () => {
-      it("override", async () => {
-        const schema = Schema.Number.annotate({
-          jsonSchema: {
-            _tag: "override",
-            override: () => ({ type: "integer" })
-          }
-        }).check(Check.greaterThan(0))
-        await assertDraft7(schema, {
-          "type": "integer"
+      describe("Override", () => {
+        it("Number", async () => {
+          const schema = Schema.Number.annotate({
+            jsonSchema: {
+              _tag: "Override",
+              override: () => ({ type: "integer" })
+            }
+          })
+          await assertDraft7(schema, {
+            "type": "integer"
+          })
+        })
+
+        it("Number & positive + annotation", async () => {
+          const schema = Schema.Number.check(Check.greaterThan(0)).annotate({
+            jsonSchema: {
+              _tag: "Override",
+              override: () => ({ type: "integer" })
+            }
+          })
+          await assertDraft7(schema, {
+            "type": "integer"
+          })
+        })
+
+        it("Number + annotation & positive", async () => {
+          const schema = Schema.Number.annotate({
+            jsonSchema: {
+              _tag: "Override",
+              override: () => ({ type: "integer" })
+            }
+          }).check(Check.greaterThan(0))
+          await assertDraft7(schema, {
+            "type": "integer"
+          })
         })
       })
     })

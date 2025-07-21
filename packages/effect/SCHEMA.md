@@ -4131,14 +4131,14 @@ Output:
 
 ### Overriding the Generated JSON Schema
 
-Sometimes you want to tamper with the default JSON Schema that Effect would generate. For that, use the special `jsonSchema: { _tag: "override"; override: () => JsonSchema }` in your annotation. In other words:
+Sometimes you want to tamper with the default JSON Schema that Effect would generate. For that, use the special `jsonSchema: { _tag: "Override"; override: () => JsonSchema }` in your annotation. In other words:
 
 ```ts
 import { Check, Schema, ToJsonSchema } from "effect/schema"
 
 const schema = Schema.Number.check(Check.make((n) => n > 0)).annotate({
   jsonSchema: {
-    _tag: "override",
+    _tag: "Override",
     // this thunk is evaluated at the time of schema generation
     // must return a JSON‐Schema compatible object representing the override
     override: () => ({ type: "number", minimum: 0 })
@@ -4238,10 +4238,10 @@ const schema = Schema.String.check(
     title: "containsFoo",
     description: "must contain 'foo'",
     jsonSchema: {
-      _tag: "fragment",
+      _tag: "Constraint",
       // this thunk is evaluated at the time of schema generation
       // must return a JSON‐Schema fragment representing the filter
-      fragment: () => ({
+      constraint: () => ({
         pattern: "foo"
       })
     }
@@ -4336,36 +4336,6 @@ Under the hood, the library walks your schema's AST and, for each node:
 
 It also **collects any `.check(...)` filters** and applies them as `.filter(...)` calls on the generated arbitrary.
 
-### Applying Constraint Filters
-
-Whenever you write
-
-```ts
-Schema.String.check(Check.minLength(3), Check.regex(/^[A-Z]/))
-```
-
-each `Check` carries an `annotations.arbitrary` fragment like
-
-```json
-{
-  "_tag": "fragment",
-  "fragment": {
-    "_tag": "string",
-    "minLength": 3
-  }
-}
-```
-
-or multiple fragments under a `"fragments"` annotation. Internally all filter fragments for the same schema node are **merged** into a single `Context.
-
-**Example**
-
-```ts
-const s = Schema.String.pipe(Schema.check(Check.minLength(2), Check.maxLength(4)))
-const arb = ToArbitrary.make(s)
-// arb will only generate strings of length 2–4
-```
-
 ### Customizing Generation via Annotations
 
 Sometimes you need full control:
@@ -4377,7 +4347,7 @@ Any schema supporting `Bottom<T>` (primitives, arrays, tuples, objects, etc.) ca
 ```ts
 .annotate({
   arbitrary: {
-    _tag: "override",
+    _tag: "Override",
     override: (fc, ctx) => {
       // return any FastCheck.Arbitrary<T>
       return fc.constant("always this")
@@ -4391,7 +4361,7 @@ This replaces the entire default generation for that node:
 ```ts
 const s = Schema.Number.annotate({
   arbitrary: {
-    _tag: "override",
+    _tag: "Override",
     override: (fc) => fc.integer({ min: 10, max: 20 })
   }
 })
@@ -4406,7 +4376,7 @@ Some schemas in Effect, like `Schema.Option<T>`, `Schema.Map<K, V>` or any `Sche
 ```ts
 {
   arbitrary: {
-    _tag: "declaration"
+    _tag: "Declaration"
     declaration: (innerArbs: FastCheck.Arbitrary<any>[]) => (fc: typeof FastCheck, ctx?: Context) =>
       FastCheck.Arbitrary<Schema["Type"]>
   }
@@ -4443,7 +4413,7 @@ const schema = Schema.instanceOf({
   constructor: MyClass,
   annotations: {
     equivalence: {
-      type: "declaration",
+      _tag: "Declaration",
       declaration: () => (x, y) => x.a === y.a
     }
   }
@@ -4816,7 +4786,7 @@ export interface StructuredIssue {
     /** The annotations of the check, if any. */
     readonly annotations: SchemaAnnotations.Filter | undefined
     /** Whether the check was aborted. */
-    readonly abort: boolean
+    readonly aborted: boolean
   }
 }
 ```
@@ -4857,7 +4827,7 @@ Output:
           }
         }
       },
-      abort: false
+      aborted: false
     },
     _tag: 'InvalidValue',
     annotations: undefined,

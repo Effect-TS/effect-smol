@@ -132,7 +132,7 @@ describe("makeStructured", () => {
         annotations: undefined,
         check: {
           annotations: schema.fields.a.ast.checks?.[0]?.annotations,
-          abort: false
+          aborted: false
         }
       }
     ])
@@ -296,7 +296,7 @@ describe("makeStructured", () => {
         annotations: undefined,
         check: {
           annotations: schema.ast.checks?.[0]?.annotations,
-          abort: false
+          aborted: false
         }
       }
     ])
@@ -316,7 +316,7 @@ describe("makeStructured", () => {
           annotations: undefined,
           check: {
             annotations: schema.fields.tags.ast.rest[0].checks?.[0]?.annotations,
-            abort: false
+            aborted: false
           }
         },
         {
@@ -326,7 +326,7 @@ describe("makeStructured", () => {
           annotations: undefined,
           check: {
             annotations: schema.fields.tags.ast.checks?.[0]?.annotations,
-            abort: false
+            aborted: false
           }
         }
       ])

@@ -1,7 +1,7 @@
 import { Option } from "effect/data"
-import { Schema, ToPretty } from "effect/schema"
+import { Check, Schema, ToPretty } from "effect/schema"
 import { describe, it } from "vitest"
-import { strictEqual } from "../utils/assert.ts"
+import { strictEqual, throws } from "../utils/assert.ts"
 
 describe("ToPretty", () => {
   it("Any", () => {
@@ -414,11 +414,27 @@ describe("ToPretty", () => {
     strictEqual(pretty(new Map([["a", Option.none()]])), `Map(1) { "a" => none() }`)
   })
 
-  it("override annotation", () => {
-    const schema = Schema.Boolean.pipe(ToPretty.override(() => (b) => b ? "TRUE" : "FALSE"))
-    const pretty = ToPretty.make(schema)
-    strictEqual(pretty(true), "TRUE")
-    strictEqual(pretty(false), "FALSE")
+  describe("Annotations", () => {
+    it("should throw on non-declaration ASTs", () => {
+      const schema = Schema.String.annotate({
+        pretty: { _tag: "Declaration", declaration: () => (s: string) => s.toUpperCase() }
+      })
+      throws(() => ToPretty.make(schema), new Error("Declaration annotation found on non-declaration AST"))
+    })
+
+    describe("Override annotation", () => {
+      it("String", () => {
+        const schema = Schema.String.pipe(ToPretty.override(() => (s) => s.toUpperCase()))
+        const pretty = ToPretty.make(schema)
+        strictEqual(pretty("a"), "A")
+      })
+
+      it("String & minLength(1)", () => {
+        const schema = Schema.String.check(Check.minLength(1)).pipe(ToPretty.override(() => (s) => s.toUpperCase()))
+        const pretty = ToPretty.make(schema)
+        strictEqual(pretty("a"), "A")
+      })
+    })
   })
 
   it("should allow for custom compilers", () => {

@@ -6,7 +6,7 @@ import { assertions } from "../utils/schema.ts"
 function assertFragments(schema: Schema.Schema<any>, ctx: ToArbitrary.Context) {
   const ast = schema.ast
   const filters = AST.getFilters(ast.checks)
-  const f = ToArbitrary.mergeChecksFragments(filters)
+  const f = ToArbitrary.mergeFiltersConstraints(filters)
   deepStrictEqual(f({}), ctx)
 }
 
@@ -537,19 +537,19 @@ describe("ToArbitrary", () => {
   describe("fragments", () => {
     it("String", () => {
       assertFragments(Schema.String, {
-        fragments: {}
+        constraints: {}
       })
     })
 
     it("String & nonEmpty", () => {
       assertFragments(Schema.NonEmptyString, {
-        fragments: {
-          array: {
-            _tag: "array",
+        constraints: {
+          ArrayConstraints: {
+            _tag: "ArrayConstraints",
             minLength: 1
           },
-          string: {
-            _tag: "string",
+          StringConstraints: {
+            _tag: "StringConstraints",
             minLength: 1
           }
         }
@@ -558,13 +558,13 @@ describe("ToArbitrary", () => {
 
     it("String & nonEmpty & minLength(2)", () => {
       assertFragments(Schema.String.check(Check.nonEmpty()).check(Check.minLength(2)), {
-        fragments: {
-          array: {
-            _tag: "array",
+        constraints: {
+          ArrayConstraints: {
+            _tag: "ArrayConstraints",
             minLength: 2
           },
-          string: {
-            _tag: "string",
+          StringConstraints: {
+            _tag: "StringConstraints",
             minLength: 2
           }
         }
@@ -573,13 +573,13 @@ describe("ToArbitrary", () => {
 
     it("String & minLength(2) & nonEmpty", () => {
       assertFragments(Schema.String.check(Check.minLength(2)).check(Check.nonEmpty()), {
-        fragments: {
-          array: {
-            _tag: "array",
+        constraints: {
+          ArrayConstraints: {
+            _tag: "ArrayConstraints",
             minLength: 2
           },
-          string: {
-            _tag: "string",
+          StringConstraints: {
+            _tag: "StringConstraints",
             minLength: 2
           }
         }
@@ -588,14 +588,14 @@ describe("ToArbitrary", () => {
 
     it("String & nonEmpty & maxLength(2)", () => {
       assertFragments(Schema.String.check(Check.nonEmpty()).check(Check.maxLength(2)), {
-        fragments: {
-          array: {
-            _tag: "array",
+        constraints: {
+          ArrayConstraints: {
+            _tag: "ArrayConstraints",
             minLength: 1,
             maxLength: 2
           },
-          string: {
-            _tag: "string",
+          StringConstraints: {
+            _tag: "StringConstraints",
             minLength: 1,
             maxLength: 2
           }
@@ -605,14 +605,14 @@ describe("ToArbitrary", () => {
 
     it("String & length(2)", () => {
       assertFragments(Schema.String.check(Check.length(2)), {
-        fragments: {
-          array: {
-            _tag: "array",
+        constraints: {
+          ArrayConstraints: {
+            _tag: "ArrayConstraints",
             minLength: 2,
             maxLength: 2
           },
-          string: {
-            _tag: "string",
+          StringConstraints: {
+            _tag: "StringConstraints",
             minLength: 2,
             maxLength: 2
           }
@@ -622,9 +622,9 @@ describe("ToArbitrary", () => {
 
     it("startsWith", () => {
       assertFragments(Schema.String.check(Check.startsWith("a")), {
-        fragments: {
-          string: {
-            _tag: "string",
+        constraints: {
+          StringConstraints: {
+            _tag: "StringConstraints",
             patterns: ["^a"]
           }
         }
@@ -633,9 +633,9 @@ describe("ToArbitrary", () => {
 
     it("endsWith", () => {
       assertFragments(Schema.String.check(Check.endsWith("a")), {
-        fragments: {
-          string: {
-            _tag: "string",
+        constraints: {
+          StringConstraints: {
+            _tag: "StringConstraints",
             patterns: ["a$"]
           }
         }
@@ -644,15 +644,15 @@ describe("ToArbitrary", () => {
 
     it("Number", () => {
       assertFragments(Schema.Number, {
-        fragments: {}
+        constraints: {}
       })
     })
 
     it("finite", () => {
       assertFragments(Schema.Number.check(Check.finite()), {
-        fragments: {
-          number: {
-            _tag: "number",
+        constraints: {
+          NumberConstraints: {
+            _tag: "NumberConstraints",
             noDefaultInfinity: true,
             noNaN: true
           }
@@ -662,9 +662,9 @@ describe("ToArbitrary", () => {
 
     it("int", () => {
       assertFragments(Schema.Number.check(Check.int()), {
-        fragments: {
-          number: {
-            _tag: "number",
+        constraints: {
+          NumberConstraints: {
+            _tag: "NumberConstraints",
             isInteger: true
           }
         }
@@ -673,9 +673,9 @@ describe("ToArbitrary", () => {
 
     it("finite & int", () => {
       assertFragments(Schema.Number.check(Check.finite(), Check.int()), {
-        fragments: {
-          number: {
-            _tag: "number",
+        constraints: {
+          NumberConstraints: {
+            _tag: "NumberConstraints",
             noDefaultInfinity: true,
             noNaN: true,
             isInteger: true
@@ -686,9 +686,9 @@ describe("ToArbitrary", () => {
 
     it("int32", () => {
       assertFragments(Schema.Number.check(Check.int32()), {
-        fragments: {
-          number: {
-            _tag: "number",
+        constraints: {
+          NumberConstraints: {
+            _tag: "NumberConstraints",
             isInteger: true,
             max: 2147483647,
             min: -2147483648
@@ -699,9 +699,9 @@ describe("ToArbitrary", () => {
 
     it("greaterThan", () => {
       assertFragments(Schema.Number.check(Check.greaterThan(10)), {
-        fragments: {
-          number: {
-            _tag: "number",
+        constraints: {
+          NumberConstraints: {
+            _tag: "NumberConstraints",
             min: 10,
             minExcluded: true
           }
@@ -711,9 +711,9 @@ describe("ToArbitrary", () => {
 
     it("greaterThanOrEqualToDate", () => {
       assertFragments(Schema.Date.check(Check.greaterThanOrEqualToDate(new Date(0))), {
-        fragments: {
-          date: {
-            _tag: "date",
+        constraints: {
+          DateConstraints: {
+            _tag: "DateConstraints",
             min: new Date(0)
           }
         }
@@ -722,9 +722,9 @@ describe("ToArbitrary", () => {
 
     it("lessThanOrEqualToDate", () => {
       assertFragments(Schema.Date.check(Check.lessThanOrEqualToDate(new Date(10))), {
-        fragments: {
-          date: {
-            _tag: "date",
+        constraints: {
+          DateConstraints: {
+            _tag: "DateConstraints",
             max: new Date(10)
           }
         }
@@ -733,9 +733,9 @@ describe("ToArbitrary", () => {
 
     it("betweenDate", () => {
       assertFragments(Schema.Date.check(Check.betweenDate(new Date(0), new Date(10))), {
-        fragments: {
-          date: {
-            _tag: "date",
+        constraints: {
+          DateConstraints: {
+            _tag: "DateConstraints",
             min: new Date(0),
             max: new Date(10)
           }
@@ -745,9 +745,9 @@ describe("ToArbitrary", () => {
 
     it("validDate", () => {
       assertFragments(Schema.Date.check(Check.validDate()), {
-        fragments: {
-          date: {
-            _tag: "date",
+        constraints: {
+          DateConstraints: {
+            _tag: "DateConstraints",
             noInvalidDate: true
           }
         }
@@ -756,9 +756,9 @@ describe("ToArbitrary", () => {
 
     it("validDate & greaterThanOrEqualToDate", () => {
       assertFragments(Schema.Date.check(Check.validDate(), Check.greaterThanOrEqualToDate(new Date(0))), {
-        fragments: {
-          date: {
-            _tag: "date",
+        constraints: {
+          DateConstraints: {
+            _tag: "DateConstraints",
             noInvalidDate: true,
             min: new Date(0)
           }
@@ -768,9 +768,9 @@ describe("ToArbitrary", () => {
 
     it("greaterThanOrEqualToBigInt", () => {
       assertFragments(Schema.BigInt.check(Check.greaterThanOrEqualToBigInt(BigInt(0))), {
-        fragments: {
-          bigint: {
-            _tag: "bigint",
+        constraints: {
+          BigIntConstraints: {
+            _tag: "BigIntConstraints",
             min: BigInt(0)
           }
         }
@@ -779,9 +779,9 @@ describe("ToArbitrary", () => {
 
     it("lessThanOrEqualToBigInt", () => {
       assertFragments(Schema.BigInt.check(Check.lessThanOrEqualToBigInt(BigInt(10))), {
-        fragments: {
-          bigint: {
-            _tag: "bigint",
+        constraints: {
+          BigIntConstraints: {
+            _tag: "BigIntConstraints",
             max: BigInt(10)
           }
         }
@@ -790,9 +790,9 @@ describe("ToArbitrary", () => {
 
     it("betweenBigInt", () => {
       assertFragments(Schema.BigInt.check(Check.betweenBigInt(BigInt(0), BigInt(10))), {
-        fragments: {
-          bigint: {
-            _tag: "bigint",
+        constraints: {
+          BigIntConstraints: {
+            _tag: "BigIntConstraints",
             min: BigInt(0),
             max: BigInt(10)
           }
@@ -803,22 +803,22 @@ describe("ToArbitrary", () => {
     it("UniqueArray", () => {
       const comparator = ToEquivalence.make(Schema.String)
       assertFragments(Schema.UniqueArray(Schema.String), {
-        fragments: {
-          array: {
-            _tag: "array",
+        constraints: {
+          ArrayConstraints: {
+            _tag: "ArrayConstraints",
             comparator
           }
         }
       })
       assertFragments(Schema.UniqueArray(Schema.String).check(Check.maxLength(2)), {
-        fragments: {
-          array: {
-            _tag: "array",
+        constraints: {
+          ArrayConstraints: {
+            _tag: "ArrayConstraints",
             maxLength: 2,
             comparator
           },
-          string: {
-            _tag: "string",
+          StringConstraints: {
+            _tag: "StringConstraints",
             maxLength: 2
           }
         }

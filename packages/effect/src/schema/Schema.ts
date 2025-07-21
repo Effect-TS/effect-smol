@@ -3183,7 +3183,7 @@ export function Option<S extends Top>(value: S): Option<S> {
           })
         ),
       arbitrary: {
-        _tag: "declaration",
+        _tag: "Declaration",
         declaration: ([value]) => (fc, ctx) => {
           return fc.oneof(
             ctx?.isSuspend ? { maxDepth: 2, depthIdentifier: "Option" } : {},
@@ -3193,11 +3193,11 @@ export function Option<S extends Top>(value: S): Option<S> {
         }
       },
       equivalence: {
-        _tag: "declaration",
+        _tag: "Declaration",
         declaration: ([value]) => O.getEquivalence(value)
       },
       pretty: {
-        _tag: "declaration",
+        _tag: "Declaration",
         declaration: ([value]) =>
           O.match({
             onNone: () => "none()",
@@ -3261,17 +3261,17 @@ export function Map<Key extends Top, Value extends Top>(key: Key, value: Value):
           })
         ),
       arbitrary: {
-        _tag: "declaration",
+        _tag: "Declaration",
         declaration: ([key, value]) => (fc, ctx) => {
           return fc.oneof(
             ctx?.isSuspend ? { maxDepth: 2, depthIdentifier: "Map" } : {},
             fc.constant([]),
-            fc.array(fc.tuple(key, value), ctx?.fragments?.array)
+            fc.array(fc.tuple(key, value), ctx?.constraints?.ArrayConstraints)
           ).map((as) => new globalThis.Map(as))
         }
       },
       equivalence: {
-        _tag: "declaration",
+        _tag: "Declaration",
         declaration: ([key, value]) => {
           const entries = Arr.getEquivalence(
             Equivalence.make<[Key["Type"], Value["Type"]]>(([ka, va], [kb, vb]) => key(ka, kb) && value(va, vb))
@@ -3282,7 +3282,7 @@ export function Map<Key extends Top, Value extends Top>(key: Key, value: Value):
         }
       },
       pretty: {
-        _tag: "declaration",
+        _tag: "Declaration",
         declaration: ([key, value]) => (t) => {
           const size = t.size
           if (size === 0) {
@@ -3391,11 +3391,11 @@ export const URL = instanceOf({
         })
       ),
     arbitrary: {
-      _tag: "declaration",
+      _tag: "Declaration",
       declaration: () => (fc) => fc.webUrl().map((s) => new globalThis.URL(s))
     },
     equivalence: {
-      _tag: "declaration",
+      _tag: "Declaration",
       declaration: () => (a, b) => a.toString() === b.toString()
     }
   }
@@ -3429,8 +3429,8 @@ export const Date: Date = instanceOf({
         })
       ),
     arbitrary: {
-      _tag: "declaration",
-      declaration: () => (fc, ctx) => fc.date(ctx?.fragments?.date)
+      _tag: "Declaration",
+      declaration: () => (fc, ctx) => fc.date(ctx?.constraints?.DateConstraints)
     }
   }
 })
@@ -3555,7 +3555,7 @@ export interface fromJsonString<S extends Top> extends decodeTo<S, UnknownFromJs
 export function fromJsonString<S extends Top>(schema: S): fromJsonString<S> {
   return UnknownFromJsonString.pipe(decodeTo(schema)).annotate({
     jsonSchema: {
-      _tag: "override",
+      _tag: "Override",
       override: (target: ToJsonSchema.Target, go: (ast: AST.AST) => object) => {
         switch (target) {
           case "draft-2020-12":
@@ -3787,11 +3787,11 @@ function getComputeAST(
         {
           defaultJsonSerializer: ([from]: [Top]) => getLink(from.ast),
           arbitrary: {
-            _tag: "declaration",
+            _tag: "Declaration",
             declaration: ([from]) => () => from.map((args) => new self(args))
           },
           pretty: {
-            _tag: "declaration",
+            _tag: "Declaration",
             declaration: ([from]) => (t) => `${self.identifier}(${from(t)})`
           },
           ...annotations

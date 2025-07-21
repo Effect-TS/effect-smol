@@ -5,7 +5,7 @@
 import type * as AST from "./AST.ts"
 import type * as Issue from "./Issue.ts"
 import type * as Schema from "./Schema.ts"
-import type * as ToArbitarary from "./ToArbitrary.ts"
+import type * as ToArbitrary from "./ToArbitrary.ts"
 import type * as ToEquivalence from "./ToEquivalence.ts"
 import type * as ToJsonSchema from "./ToJsonSchema.ts"
 import type * as ToPretty from "./ToPretty.ts"
@@ -58,7 +58,7 @@ export interface JsonSchema<T> extends Documentation {
   /**
    * Totally replace ("override") the default JSON Schema for this type.
    */
-  readonly jsonSchema?: ToJsonSchema.Annotation.Override | ToJsonSchema.Annotation.Fragment | undefined
+  readonly jsonSchema?: ToJsonSchema.Annotation.Override | undefined
 }
 
 /**
@@ -66,7 +66,7 @@ export interface JsonSchema<T> extends Documentation {
  * @since 4.0.0
  */
 export interface Bottom<T> extends JsonSchema<T> {
-  readonly arbitrary?: ToArbitarary.Annotation.Override<T> | undefined
+  readonly arbitrary?: ToArbitrary.Annotation.Override<T> | undefined
   readonly message?: string | (() => string) | undefined
   readonly formatter?: {
     readonly Tree?: {
@@ -100,7 +100,7 @@ export interface Declaration<T, TypeParameters extends ReadonlyArray<Schema.Top>
       typeParameters: { readonly [K in keyof TypeParameters]: Schema.Schema<TypeParameters[K]["Encoded"]> }
     ) => AST.Link)
     | undefined
-  readonly arbitrary?: ToArbitarary.Annotation.Declaration<T, TypeParameters> | undefined
+  readonly arbitrary?: ToArbitrary.Annotation.Declaration<T, TypeParameters> | undefined
   readonly equivalence?: ToEquivalence.Annotation.Declaration<T, TypeParameters> | undefined
   readonly pretty?: ToPretty.Annotation.Declaration<T, TypeParameters> | undefined
   /** @internal */
@@ -128,10 +128,9 @@ export interface Filter extends Documentation {
   readonly "~structural"?: boolean | undefined
 
   /**
-   * JSON Schema representation used for documentation or code generation. This
-   * can be a single fragment or a list of fragments.
+   * JSON Schema representation used for documentation or code generation.
    */
-  readonly jsonSchema?: ToJsonSchema.Annotation.Override | ToJsonSchema.Annotation.Fragment | undefined
+  readonly jsonSchema?: ToJsonSchema.Annotation.Constraint | undefined
 
   /**
    * Optional metadata used to identify or extend the filter with custom data.
@@ -141,6 +140,6 @@ export interface Filter extends Documentation {
     readonly [x: string]: unknown
   } | undefined
 
-  readonly arbitrary?: ToArbitarary.Annotation.Fragment | ToArbitarary.Annotation.Fragments | undefined
+  readonly arbitrary?: ToArbitrary.Annotation.Constraint | ToArbitrary.Annotation.Constraints | undefined
   readonly message?: string | (() => string) | undefined
 }

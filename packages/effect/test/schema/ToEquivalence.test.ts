@@ -1,7 +1,7 @@
 import { Equivalence, Option } from "effect/data"
-import { Schema, ToEquivalence } from "effect/schema"
+import { Check, Schema, ToEquivalence } from "effect/schema"
 import { describe, it } from "vitest"
-import { assertFalse, assertTrue } from "../utils/assert.ts"
+import { assertFalse, assertTrue, throws } from "../utils/assert.ts"
 
 describe("ToEquivalence", () => {
   it("String", () => {
@@ -334,14 +334,30 @@ describe("ToEquivalence", () => {
     assertFalse(equivalence(new Map([["a", 1], ["b", 2]]), new Map([["a", 1]])))
   })
 
-  it("override annotation", () => {
-    const schema = Schema.Struct({
-      a: Schema.String,
-      b: Schema.Number
-    }).pipe(ToEquivalence.override(() => Equivalence.make((a, b) => a.a === b.a)))
-    const equivalence = ToEquivalence.make(schema)
-    assertTrue(equivalence({ a: "a", b: 1 }, { a: "a", b: 1 }))
-    assertTrue(equivalence({ a: "a", b: 1 }, { a: "a", b: 2 }))
-    assertFalse(equivalence({ a: "a", b: 1 }, { a: "b", b: 1 }))
+  describe("Annotations", () => {
+    it("should throw on non-declaration ASTs", () => {
+      const schema = Schema.String.annotate({
+        equivalence: { _tag: "Declaration", declaration: () => Equivalence.make((a, b) => a === b) }
+      })
+      throws(() => ToEquivalence.make(schema), new Error("Declaration annotation found on non-declaration AST"))
+    })
+
+    describe("Override annotation", () => {
+      it("String", () => {
+        const schema = Schema.String.pipe(
+          ToEquivalence.override(() => Equivalence.make((a, b) => a.substring(0, 1) === b.substring(0, 1)))
+        )
+        const equivalence = ToEquivalence.make(schema)
+        assertTrue(equivalence("ab", "ac"))
+      })
+
+      it("String & minLength(1)", () => {
+        const schema = Schema.String.check(Check.minLength(1)).pipe(
+          ToEquivalence.override(() => Equivalence.make((a, b) => a.substring(0, 1) === b.substring(0, 1)))
+        )
+        const equivalence = ToEquivalence.make(schema)
+        assertTrue(equivalence("ab", "ac"))
+      })
+    })
   })
 })

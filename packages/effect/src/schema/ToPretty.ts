@@ -3,6 +3,7 @@
  */
 import * as Option from "../data/Option.ts"
 import { formatPropertyKey, formatUnknown, memoizeThunk } from "../internal/schema/util.ts"
+import type * as Annotations from "./Annotations.ts"
 import * as AST from "./AST.ts"
 import type * as Schema from "./Schema.ts"
 import * as ToParser from "./ToParser.ts"
@@ -22,19 +23,19 @@ export declare namespace Annotation {
   /**
    * @since 4.0.0
    */
-  export type Override<T> = {
-    readonly _tag: "override"
-    readonly override: () => Pretty<T>
+  export type Declaration<T, TypeParameters extends ReadonlyArray<Schema.Top>> = {
+    readonly _tag: "Declaration"
+    readonly declaration: (
+      typeParameters: { readonly [K in keyof TypeParameters]: Pretty<TypeParameters[K]["Type"]> }
+    ) => Pretty<T>
   }
 
   /**
    * @since 4.0.0
    */
-  export type Declaration<T, TypeParameters extends ReadonlyArray<Schema.Top>> = {
-    readonly _tag: "declaration"
-    readonly declaration: (
-      typeParameters: { readonly [K in keyof TypeParameters]: Pretty<TypeParameters[K]["Type"]> }
-    ) => Pretty<T>
+  export type Override<T> = {
+    readonly _tag: "Override"
+    readonly override: () => Pretty<T>
   }
 }
 
@@ -43,17 +44,28 @@ export declare namespace Annotation {
  */
 export function override<S extends Schema.Top>(override: () => Pretty<S["Type"]>) {
   return (self: S): S["~rebuild.out"] => {
-    return self.annotate({ pretty: { _tag: "override", override } })
+    return self.annotate({ pretty: { _tag: "Override", override } })
   }
 }
 
-/**
- * @since 4.0.0
- */
-export function getAnnotation(
+function getPrettyAnnotation(
+  annotations: Annotations.Annotations | undefined
+): Annotation.Declaration<any, ReadonlyArray<any>> | Annotation.Override<any> | undefined {
+  return annotations?.pretty as any
+}
+
+function getAnnotation(
   ast: AST.AST
 ): Annotation.Declaration<any, ReadonlyArray<any>> | Annotation.Override<any> | undefined {
-  return ast.annotations?.pretty as any
+  if (ast.checks) {
+    for (let i = ast.checks.length - 1; i >= 0; i--) {
+      const annotation = getPrettyAnnotation(ast.checks[i].annotations)
+      if (annotation !== undefined) {
+        return annotation
+      }
+    }
+  }
+  return getPrettyAnnotation(ast.annotations)
 }
 
 const defaultFormat = () => formatUnknown
@@ -64,14 +76,19 @@ const defaultFormat = () => formatUnknown
  */
 export const defaultReducerAlg: AST.ReducerAlg<Pretty<any>> = {
   onEnter: (ast, reduce) => {
+    // ---------------------------------------------
+    // handle annotations
+    // ---------------------------------------------
     const annotation = getAnnotation(ast)
     if (annotation) {
       switch (annotation._tag) {
-        case "declaration": {
-          const typeParameters = (AST.isDeclaration(ast) ? ast.typeParameters : []).map(reduce)
-          return Option.some(annotation.declaration(typeParameters))
+        case "Declaration": {
+          if (AST.isDeclaration(ast)) {
+            return Option.some(annotation.declaration(ast.typeParameters.map(reduce)))
+          }
+          throw new Error("Declaration annotation found on non-declaration AST")
         }
-        case "override":
+        case "Override":
           return Option.some(annotation.override())
       }
     }

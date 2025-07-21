@@ -5,6 +5,7 @@ import * as Equivalence from "../data/Equivalence.ts"
 import * as Predicate from "../data/Predicate.ts"
 import * as Equal from "../interfaces/Equal.ts"
 import { memoizeThunk } from "../internal/schema/util.ts"
+import type * as Annotations from "./Annotations.ts"
 import * as AST from "./AST.ts"
 import type * as Schema from "./Schema.ts"
 import * as ToParser from "./ToParser.ts"
@@ -16,19 +17,19 @@ export declare namespace Annotation {
   /**
    * @since 4.0.0
    */
-  export type Override<T> = {
-    readonly _tag: "override"
-    readonly override: () => Equivalence.Equivalence<T>
+  export type Declaration<T, TypeParameters extends ReadonlyArray<Schema.Top>> = {
+    readonly _tag: "Declaration"
+    readonly declaration: (
+      typeParameters: { readonly [K in keyof TypeParameters]: Equivalence.Equivalence<TypeParameters[K]["Type"]> }
+    ) => Equivalence.Equivalence<T>
   }
 
   /**
    * @since 4.0.0
    */
-  export type Declaration<T, TypeParameters extends ReadonlyArray<Schema.Top>> = {
-    readonly _tag: "declaration"
-    readonly declaration: (
-      typeParameters: { readonly [K in keyof TypeParameters]: Equivalence.Equivalence<TypeParameters[K]["Type"]> }
-    ) => Equivalence.Equivalence<T>
+  export type Override<T> = {
+    readonly _tag: "Override"
+    readonly override: () => Equivalence.Equivalence<T>
   }
 }
 
@@ -44,17 +45,28 @@ export function make<T>(schema: Schema.Schema<T>): Equivalence.Equivalence<T> {
  */
 export function override<S extends Schema.Top>(override: () => Equivalence.Equivalence<S["Type"]>) {
   return (self: S): S["~rebuild.out"] => {
-    return self.annotate({ equivalence: { _tag: "override", override } })
+    return self.annotate({ equivalence: { _tag: "Override", override } })
   }
 }
 
-/**
- * @since 4.0.0
- */
-export function getAnnotation(
+function getEquivalenceAnnotation(
+  annotations: Annotations.Annotations | undefined
+): Annotation.Declaration<any, ReadonlyArray<any>> | Annotation.Override<any> | undefined {
+  return annotations?.equivalence as any
+}
+
+function getAnnotation(
   ast: AST.AST
 ): Annotation.Declaration<any, ReadonlyArray<any>> | Annotation.Override<any> | undefined {
-  return ast.annotations?.equivalence as any
+  if (ast.checks) {
+    for (let i = ast.checks.length - 1; i >= 0; i--) {
+      const annotation = getEquivalenceAnnotation(ast.checks[i].annotations)
+      if (annotation !== undefined) {
+        return annotation
+      }
+    }
+  }
+  return getEquivalenceAnnotation(ast.annotations)
 }
 
 const go = AST.memoize((ast: AST.AST): Equivalence.Equivalence<any> => {
@@ -64,11 +76,13 @@ const go = AST.memoize((ast: AST.AST): Equivalence.Equivalence<any> => {
   const annotation = getAnnotation(ast)
   if (annotation) {
     switch (annotation._tag) {
-      case "declaration": {
-        const typeParameters = (AST.isDeclaration(ast) ? ast.typeParameters : []).map(go)
-        return annotation.declaration(typeParameters)
+      case "Declaration": {
+        if (AST.isDeclaration(ast)) {
+          return annotation.declaration(ast.typeParameters.map(go))
+        }
+        throw new Error("Declaration annotation found on non-declaration AST")
       }
-      case "override":
+      case "Override":
         return annotation.override()
     }
   }
