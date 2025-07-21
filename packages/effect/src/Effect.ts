@@ -2413,7 +2413,7 @@ export {
    * **Note**: `catchAll` only handles recoverable errors. It will not recover
    * from unrecoverable defects.
    *
-   * @see {@link catchAllCause} for a version that can recover from both recoverable and unrecoverable errors.
+   * @see {@link catchCause} for a version that can recover from both recoverable and unrecoverable errors.
    *
    * @since 4.0.0
    * @category Error handling
@@ -2570,7 +2570,7 @@ export const catchTags: {
  *
  * **When to Use**
  *
- * The `catchAllCause` function allows you to handle all errors, including
+ * The `catchCause` function allows you to handle all errors, including
  * unrecoverable defects, by providing a recovery effect. The recovery logic is
  * based on the `Cause` of the error, which provides detailed information about
  * the failure.
