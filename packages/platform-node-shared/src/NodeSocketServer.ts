@@ -110,13 +110,12 @@ export const make = Effect.fnUntraced(function*(
  * @since 1.0.0
  * @category layers
  */
-export const layer = (
+export const layer: (
   options: Net.ServerOpts & Net.ListenOptions
-): Layer.Layer<SocketServer.SocketServer, SocketServer.SocketServerError> =>
-  Layer.effect(
-    SocketServer.SocketServer,
-    make(options)
-  )
+) => Layer.Layer<
+  SocketServer.SocketServer,
+  SocketServer.SocketServerError
+> = Layer.effect(SocketServer.SocketServer)(make)
 
 /**
  * @since 1.0.0
@@ -207,13 +206,12 @@ export const makeWebSocket: (
  * @since 1.0.0
  * @category layers
  */
-export const layerWebSocket = (
-  options: NodeWS.ServerOptions
-): Layer.Layer<SocketServer.SocketServer, SocketServer.SocketServerError> =>
-  Layer.effect(
-    SocketServer.SocketServer,
-    makeWebSocket(options)
-  )
+export const layerWebSocket: (
+  options: NodeSocket.NodeWS.ServerOptions<typeof NodeSocket.NodeWS.WebSocket, typeof Http.IncomingMessage>
+) => Layer.Layer<
+  SocketServer.SocketServer,
+  SocketServer.SocketServerError
+> = Layer.effect(SocketServer.SocketServer)(makeWebSocket)
 
 const reportUnhandledError = <E>(cause: Cause<E>) =>
   Effect.withFiber<void>((fiber) => {

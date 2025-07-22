@@ -182,5 +182,7 @@ export const makeNetChannel = <IE = never>(
  * @since 1.0.0
  * @category layers
  */
-export const layerNet = (options: Net.NetConnectOpts): Layer.Layer<Socket.Socket, Socket.SocketError> =>
-  Layer.effect(Socket.Socket, makeNet(options))
+export const layerNet: (options: Net.NetConnectOpts) => Layer.Layer<
+  Socket.Socket,
+  Socket.SocketError
+> = Layer.effect(Socket.Socket)(makeNet)

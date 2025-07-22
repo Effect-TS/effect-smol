@@ -49,7 +49,7 @@ export const make = Platform.make({
  * @category Layers
  */
 export const layer: Layer.Layer<Platform.HttpPlatform> = pipe(
-  Layer.effect(Platform.HttpPlatform, make),
+  Layer.effect(Platform.HttpPlatform)(make),
   Layer.provide(NodeFileSystem.layer),
   Layer.provide(EtagImpl.layer)
 )

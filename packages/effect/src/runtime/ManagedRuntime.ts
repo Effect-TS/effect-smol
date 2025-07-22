@@ -151,7 +151,7 @@ export interface ManagedRuntime<in R, out ER> {
  *   Notifications,
  *   { readonly notify: (message: string) => Effect.Effect<void> }
  * >()("Notifications") {
- *   static layer = Layer.succeed(this, { notify: (message) => Console.log(message) })
+ *   static layer = Layer.succeed(this)({ notify: (message) => Console.log(message) })
  * }
  *
  * async function main() {

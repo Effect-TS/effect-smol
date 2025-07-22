@@ -34,40 +34,31 @@ const toFileUrl = (path: string): Effect.Effect<URL, BadArgument> =>
  * @since 1.0.0
  * @category Layers
  */
-export const layerPosix: Layer.Layer<Path> = Layer.succeed(
-  Path,
-  Path.of({
-    [TypeId]: TypeId,
-    ...NodePath.posix,
-    fromFileUrl,
-    toFileUrl
-  })
-)
+export const layerPosix: Layer.Layer<Path> = Layer.succeed(Path)({
+  [TypeId]: TypeId,
+  ...NodePath.posix,
+  fromFileUrl,
+  toFileUrl
+})
 
 /**
  * @since 1.0.0
  * @category Layers
  */
-export const layerWin32: Layer.Layer<Path> = Layer.succeed(
-  Path,
-  Path.of({
-    [TypeId]: TypeId,
-    ...NodePath.win32,
-    fromFileUrl,
-    toFileUrl
-  })
-)
+export const layerWin32: Layer.Layer<Path> = Layer.succeed(Path)({
+  [TypeId]: TypeId,
+  ...NodePath.win32,
+  fromFileUrl,
+  toFileUrl
+})
 
 /**
  * @since 1.0.0
  * @category Layers
  */
-export const layer: Layer.Layer<Path> = Layer.succeed(
-  Path,
-  Path.of({
-    [TypeId]: TypeId,
-    ...NodePath,
-    fromFileUrl,
-    toFileUrl
-  })
-)
+export const layer: Layer.Layer<Path> = Layer.succeed(Path)({
+  [TypeId]: TypeId,
+  ...NodePath,
+  fromFileUrl,
+  toFileUrl
+})

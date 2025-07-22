@@ -35,7 +35,7 @@ const makeJsonPlaceholder = Effect.gen(function*() {
 })
 interface JsonPlaceholder extends Effect.Success<typeof makeJsonPlaceholder> {}
 const JsonPlaceholder = ServiceMap.Key<JsonPlaceholder>("test/JsonPlaceholder")
-const JsonPlaceholderLive = Layer.effect(JsonPlaceholder, makeJsonPlaceholder)
+const JsonPlaceholderLive = Layer.effect(JsonPlaceholder)(makeJsonPlaceholder)
 ;[
   {
     name: "FetchHttpClient",

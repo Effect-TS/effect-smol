@@ -110,7 +110,7 @@ const defaultFormatPath = (path: ReadonlyArray<string>): string => path.join("."
 export const layer = <E = never, R = never>(
   self: ConfigProvider | Effect.Effect<ConfigProvider, E, R>
 ): Layer.Layer<never, E, Exclude<R, Scope>> =>
-  Effect.isEffect(self) ? Layer.effect(ConfigProvider, self) : Layer.succeed(ConfigProvider, self)
+  Effect.isEffect(self) ? Layer.effect(ConfigProvider)(self) : Layer.succeed(ConfigProvider)(self)
 
 /**
  * Create a Layer that adds a fallback ConfigProvider, which will be used if the
@@ -128,8 +128,7 @@ export const layerAdd = <E = never, R = never>(
     readonly asPrimary?: boolean | undefined
   } | undefined
 ): Layer.Layer<never, E, Exclude<R, Scope>> =>
-  Layer.effect(
-    ConfigProvider,
+  Layer.effect(ConfigProvider)(
     Effect.gen(function*() {
       const current = yield* ConfigProvider
       const configProvider = Effect.isEffect(self) ? yield* self : self

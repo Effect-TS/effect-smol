@@ -194,9 +194,9 @@ const makeResponse = (
  * @since 1.0.0
  * @category Layers
  */
-export const layerServer = <R extends { [K in keyof R]: Bun.RouterTypes.RouteValue<Extract<K, string>> }>(
+export const layerServer: <R extends { [K in keyof R]: Bun.RouterTypes.RouteValue<Extract<K, string>> }>(
   options: ServeOptions<R>
-): Layer.Layer<Server.HttpServer> => Layer.effect(Server.HttpServer, make(options))
+) => Layer.Layer<Server.HttpServer> = Layer.effect(Server.HttpServer)(make)
 
 /**
  * @since 1.0.0
@@ -235,7 +235,7 @@ export const layerTest: Layer.Layer<
   Server.HttpServer | HttpPlatform | FileSystem.FileSystem | Etag.Generator | Path.Path | HttpClient
 > = Server.layerTestClient.pipe(
   Layer.provide(FetchHttpClient.layer.pipe(
-    Layer.provide(Layer.succeed(FetchHttpClient.RequestInit, { keepalive: false }))
+    Layer.provide(Layer.succeed(FetchHttpClient.RequestInit)({ keepalive: false }))
   )),
   Layer.provideMerge(layer({ port: 0 }))
 )
@@ -251,7 +251,7 @@ export const layerConfig = <R extends { [K in keyof R]: Bun.RouterTypes.RouteVal
   ConfigError
 > =>
   Layer.mergeAll(
-    Layer.effect(Server.HttpServer, Effect.flatMap(Config.unwrap(options).asEffect(), make)),
+    Layer.effect(Server.HttpServer)(Effect.flatMap(Config.unwrap(options).asEffect(), make)),
     layerHttpServices
   )
 

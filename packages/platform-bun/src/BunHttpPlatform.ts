@@ -31,7 +31,7 @@ const make: Effect.Effect<
 })
 
 /** @internal */
-export const layer = Layer.effect(Platform.HttpPlatform, make).pipe(
+export const layer = Layer.effect(Platform.HttpPlatform)(make).pipe(
   Layer.provide(BunFileSystem.layer),
   Layer.provide(Etag.layer)
 )

@@ -197,7 +197,7 @@ export declare namespace Path {
  * }
  *
  * // Provide the path service
- * const customPathLayer = Layer.succeed(Path.Path, customPath)
+ * const customPathLayer = Layer.succeed(Path.Path)(customPath)
  *
  * const program = Effect.gen(function* () {
  *   const path = yield* Path.Path
@@ -807,4 +807,4 @@ const posixImpl = Path.of({
  * @since 4.0.0
  * @category Layers
  */
-export const layer: Layer.Layer<Path> = Layer.succeed(Path, posixImpl)
+export const layer: Layer.Layer<Path> = Layer.succeed(Path)(posixImpl)

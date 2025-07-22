@@ -639,4 +639,4 @@ const makeFileSystem = Effect.map(Effect.serviceOption(FileSystem.WatchBackend),
  * @since 1.0.0
  * @category Layers
  */
-export const layer: Layer.Layer<FileSystem.FileSystem> = Layer.effect(FileSystem.FileSystem, makeFileSystem)
+export const layer: Layer.Layer<FileSystem.FileSystem> = Layer.effect(FileSystem.FileSystem)(makeFileSystem)

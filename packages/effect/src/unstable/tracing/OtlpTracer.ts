@@ -101,7 +101,7 @@ export const make: (
  * @since 4.0.0
  * @category Layers
  */
-export const layer = (options: {
+export const layer: (options: {
   readonly url: string
   readonly resource?: {
     readonly serviceName?: string | undefined
@@ -113,7 +113,7 @@ export const layer = (options: {
   readonly maxBatchSize?: number | undefined
   readonly context?: (<X>(f: () => X, span: Tracer.AnySpan) => X) | undefined
   readonly shutdownTimeout?: Duration.DurationInput | undefined
-}): Layer.Layer<never, never, HttpClient.HttpClient> => Layer.effect(Tracer.Tracer, make(options))
+}) => Layer.Layer<never, never, HttpClient.HttpClient> = Layer.effect(Tracer.Tracer)(make)
 
 // internal
 

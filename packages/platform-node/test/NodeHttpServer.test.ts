@@ -543,7 +543,7 @@ describe("HttpServer", () => {
     }).pipe(
       Effect.provide([
         NodeHttpServer.layerTest,
-        Layer.succeed(HttpRouter.RouterConfig, { maxParamLength: 5 })
+        Layer.succeed(HttpRouter.RouterConfig)({ maxParamLength: 5 })
       ])
     ))
 

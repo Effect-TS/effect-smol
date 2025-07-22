@@ -984,14 +984,14 @@ export const SpanNameGenerator = ServiceMap.Reference<
 export const layerMergedServices = <E, R>(
   effect: Effect.Effect<HttpClient, E, R>
 ): Layer.Layer<HttpClient, E, R> =>
-  Layer.effect(
-    HttpClient,
-    Effect.flatMap(Effect.services<never>(), (context) =>
+  Layer.effect(HttpClient)(
+    Effect.servicesWith((services: ServiceMap.ServiceMap<never>) =>
       Effect.map(effect, (client) =>
         transformResponse(
           client,
-          Effect.updateServices((input: ServiceMap.ServiceMap<never>) => ServiceMap.merge(context, input))
-        )))
+          Effect.updateServices((input: ServiceMap.ServiceMap<never>) => ServiceMap.merge(services, input))
+        ))
+    )
   )
 
 // -----------------------------------------------------------------------------

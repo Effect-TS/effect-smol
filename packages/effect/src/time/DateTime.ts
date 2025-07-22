@@ -2586,7 +2586,9 @@ export const formatIsoZoned: (self: Zoned) => string = Internal.formatIsoZoned
  * @category current time zone
  * @since 3.6.0
  */
-export const layerCurrentZone = (zone: TimeZone): Layer.Layer<CurrentTimeZone> => Layer.succeed(CurrentTimeZone, zone)
+export const layerCurrentZone: (resource: NoInfer<TimeZone>) => Layer.Layer<CurrentTimeZone> = Layer.succeed(
+  CurrentTimeZone
+)
 
 /**
  * Create a Layer from the given time zone offset.
@@ -2613,7 +2615,7 @@ export const layerCurrentZone = (zone: TimeZone): Layer.Layer<CurrentTimeZone> =
  * @since 3.6.0
  */
 export const layerCurrentZoneOffset = (offset: number): Layer.Layer<CurrentTimeZone> =>
-  Layer.succeed(CurrentTimeZone, Internal.zoneMakeOffset(offset))
+  Layer.succeed(CurrentTimeZone)(Internal.zoneMakeOffset(offset))
 
 /**
  * Create a Layer from the given IANA time zone identifier.
@@ -2639,10 +2641,10 @@ export const layerCurrentZoneOffset = (offset: number): Layer.Layer<CurrentTimeZ
  * @category current time zone
  * @since 3.6.0
  */
-export const layerCurrentZoneNamed = (
-  zoneId: string
-): Layer.Layer<CurrentTimeZone, IllegalArgumentError> =>
-  Layer.effect(CurrentTimeZone, Internal.zoneMakeNamedEffect(zoneId))
+export const layerCurrentZoneNamed: (zoneId: string) => Layer.Layer<
+  CurrentTimeZone,
+  IllegalArgumentError
+> = Layer.effect(CurrentTimeZone)(Internal.zoneMakeNamedEffect)
 
 /**
  * Create a Layer from the system's local time zone.
@@ -2667,4 +2669,4 @@ export const layerCurrentZoneNamed = (
  * @category current time zone
  * @since 3.6.0
  */
-export const layerCurrentZoneLocal: Layer.Layer<CurrentTimeZone> = Layer.sync(CurrentTimeZone, zoneMakeLocal)
+export const layerCurrentZoneLocal: Layer.Layer<CurrentTimeZone> = Layer.sync(CurrentTimeZone)(zoneMakeLocal)

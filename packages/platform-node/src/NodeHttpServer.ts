@@ -352,10 +352,10 @@ class ServerRequestImpl extends NodeHttpIncomingMessage<HttpServerError> impleme
  * @since 1.0.0
  * @category Layers
  */
-export const layerServer = (
-  evaluate: LazyArg<Http.Server>,
+export const layerServer: (
+  evaluate: LazyArg<Http.Server<typeof Http.IncomingMessage, typeof Http.ServerResponse>>,
   options: Net.ListenOptions
-): Layer.Layer<HttpServer.HttpServer, ServeError> => Layer.effect(HttpServer.HttpServer, make(evaluate, options))
+) => Layer.Layer<HttpServer.HttpServer, ServeError> = Layer.effect(HttpServer.HttpServer)(make)
 
 /**
  * @since 1.0.0
@@ -397,8 +397,7 @@ export const layerConfig = (
   ServeError | ConfigError.ConfigError
 > =>
   Layer.mergeAll(
-    Layer.effect(
-      HttpServer.HttpServer,
+    Layer.effect(HttpServer.HttpServer)(
       Effect.flatMap(Config.unwrap(options).asEffect(), (options) => make(evaluate, options))
     ),
     layerHttpServices
@@ -420,7 +419,7 @@ export const layerTest: Layer.Layer<
 > = HttpServer.layerTestClient.pipe(
   Layer.provide(
     Layer.fresh(FetchHttpClient.layer).pipe(
-      Layer.provide(Layer.succeed(FetchHttpClient.RequestInit, { keepalive: false }))
+      Layer.provide(Layer.succeed(FetchHttpClient.RequestInit)({ keepalive: false }))
     )
   ),
   Layer.provideMerge(layer(Http.createServer, { port: 0 }))

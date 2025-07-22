@@ -26,7 +26,6 @@ import type * as Exit from "../Exit.ts"
 import type { LazyArg } from "../Function.ts"
 import { constant, constTrue, dual, identity } from "../Function.ts"
 import { type Pipeable, pipeArguments } from "../interfaces/Pipeable.ts"
-import { isEffect } from "../internal/core.ts"
 import * as internalEffect from "../internal/effect.ts"
 import type { ErrorWithStackTraceLimit } from "../internal/tracer.ts"
 import * as Scope from "../resources/Scope.ts"
@@ -153,7 +152,7 @@ export type MemoMapTypeId = "~effect/Layer/MemoMap"
  *   const memoMap = yield* Layer.makeMemoMap
  *   const scope = yield* Effect.scope
  *
- *   const dbLayer = Layer.succeed(Database, { query: (sql: string) => Effect.succeed("result") })
+ *   const dbLayer = Layer.succeed(Database)({ query: (sql: string) => Effect.succeed("result") })
  *   const services = yield* Layer.buildWithMemoMap(dbLayer, memoMap, scope)
  *
  *   return ServiceMap.get(services, Database)
@@ -183,7 +182,7 @@ export interface MemoMap {
  *
  * class Database extends ServiceMap.Key<Database, { readonly query: (sql: string) => Effect.Effect<string> }>()("Database") {}
  *
- * const dbLayer = Layer.succeed(Database, { query: (sql: string) => Effect.succeed("result") })
+ * const dbLayer = Layer.succeed(Database)({ query: (sql: string) => Effect.succeed("result") })
  * const notALayer = { someProperty: "value" }
  *
  * console.log(Layer.isLayer(dbLayer)) // true
@@ -352,7 +351,7 @@ class MemoMapImpl implements MemoMap {
  *   const memoMap = Layer.unsafeMakeMemoMap()
  *   const scope = yield* Effect.scope
  *
- *   const dbLayer = Layer.succeed(Database, { query: (sql: string) => Effect.succeed("result") })
+ *   const dbLayer = Layer.succeed(Database)({ query: (sql: string) => Effect.succeed("result") })
  *   const services = yield* Layer.buildWithMemoMap(dbLayer, memoMap, scope)
  *
  *   return ServiceMap.get(services, Database)
@@ -380,7 +379,7 @@ export const unsafeMakeMemoMap = (): MemoMap => new MemoMapImpl()
  *   const memoMap = yield* Layer.makeMemoMap
  *   const scope = yield* Effect.scope
  *
- *   const dbLayer = Layer.succeed(Database, { query: (sql: string) => Effect.succeed("result") })
+ *   const dbLayer = Layer.succeed(Database)({ query: (sql: string) => Effect.succeed("result") })
  *   const services = yield* Layer.buildWithMemoMap(dbLayer, memoMap, scope)
  *
  *   return ServiceMap.get(services, Database)
@@ -434,11 +433,11 @@ export const CurrentMemoMap = ServiceMap.Reference<MemoMap>("effect/Layer/Curren
  *   const scope = yield* Effect.scope
  *
  *   // Build database layer with memoization
- *   const dbLayer = Layer.succeed(Database, { query: (sql: string) => Effect.succeed("result") })
+ *   const dbLayer = Layer.succeed(Database)({ query: (sql: string) => Effect.succeed("result") })
  *   const dbServices = yield* Layer.buildWithMemoMap(dbLayer, memoMap, scope)
  *
  *   // Build logger layer with same memoization (reuses memo if same layer)
- *   const loggerLayer = Layer.succeed(Logger, { log: (msg: string) => Effect.sync(() => console.log(msg)) })
+ *   const loggerLayer = Layer.succeed(Logger)({ log: (msg: string) => Effect.sync(() => console.log(msg)) })
  *   const loggerServices = yield* Layer.buildWithMemoMap(loggerLayer, memoMap, scope)
  *
  *   return {
@@ -485,7 +484,7 @@ export const buildWithMemoMap: {
  *
  * // Build a layer to get its services
  * const program = Effect.gen(function* () {
- *   const dbLayer = Layer.succeed(Database, { query: (sql: string) => Effect.succeed("result") })
+ *   const dbLayer = Layer.succeed(Database)({ query: (sql: string) => Effect.succeed("result") })
  *
  *   // Build the layer into ServiceMap - automatically manages scope and memoization
  *   const services = yield* Layer.build(dbLayer)
@@ -525,7 +524,7 @@ export const build = <RIn, E, ROut>(
  * const program = Effect.gen(function* () {
  *   const scope = yield* Effect.scope
  *
- *   const dbLayer = Layer.effect(Database, Effect.gen(function* () {
+ *   const dbLayer = Layer.effect(Database)(Effect.gen(function* () {
  *     console.log("Initializing database...")
  *     yield* Scope.addFinalizer(scope, Effect.sync(() => console.log("Database closed")))
  *     return { query: (sql: string) => Effect.succeed(`Result: ${sql}`) }
@@ -565,11 +564,11 @@ export const buildWithScope: {
  * class Logger extends ServiceMap.Key<Logger, { readonly log: (msg: string) => Effect.Effect<void> }>()("Logger") {}
  *
  * // Create layers from concrete service implementations
- * const databaseLayer = Layer.succeed(Database, {
+ * const databaseLayer = Layer.succeed(Database)({
  *   query: (sql: string) => Effect.succeed(`Query result: ${sql}`)
  * })
  *
- * const loggerLayer = Layer.succeed(Logger, {
+ * const loggerLayer = Layer.succeed(Logger)({
  *   log: (msg: string) => Effect.sync(() => console.log(`[LOG] ${msg}`))
  * })
  *
@@ -591,10 +590,8 @@ export const buildWithScope: {
  * @since 2.0.0
  * @category constructors
  */
-export const succeed = <I, S>(
-  key: ServiceMap.Key<I, S>,
-  resource: NoInfer<S>
-): Layer<NoInfer<I>> => succeedServices(ServiceMap.make(key, resource))
+export const succeed = <I, S>(key: ServiceMap.Key<I, S>) => (resource: NoInfer<S>): Layer<NoInfer<I>> =>
+  succeedServices(ServiceMap.make(key, resource))
 
 /**
  * Constructs a layer from the specified value, which must return one or more
@@ -657,7 +654,7 @@ export const empty: Layer<never> = succeedServices(ServiceMap.empty())
  *
  * class Database extends ServiceMap.Key<Database, { readonly query: (sql: string) => Effect.Effect<string> }>()("Database") {}
  *
- * const layer = Layer.sync(Database, () => ({
+ * const layer = Layer.sync(Database)(() => ({
  *   query: (sql: string) => Effect.succeed(`Query: ${sql}`)
  * }))
  * ```
@@ -665,7 +662,7 @@ export const empty: Layer<never> = succeedServices(ServiceMap.empty())
  * @since 2.0.0
  * @category constructors
  */
-export const sync = <I, S>(key: ServiceMap.Key<I, S>, evaluate: LazyArg<NoInfer<S>>): Layer<NoInfer<I>> =>
+export const sync = <I, S>(key: ServiceMap.Key<I, S>) => (evaluate: LazyArg<NoInfer<S>>): Layer<NoInfer<I>> =>
   syncServices(() => ServiceMap.make(key, evaluate()))
 
 /**
@@ -711,7 +708,7 @@ export const syncServices = <A>(evaluate: LazyArg<ServiceMap.ServiceMap<A>>): La
  *
  * class Database extends ServiceMap.Key<Database, { readonly query: (sql: string) => Effect.Effect<string> }>()("Database") {}
  *
- * const layer = Layer.effect(Database,
+ * const layer = Layer.effect(Database)(
  *   Effect.sync(() => ({
  *     query: (sql: string) => Effect.succeed(`Query: ${sql}`)
  *   }))
@@ -721,15 +718,18 @@ export const syncServices = <A>(evaluate: LazyArg<ServiceMap.ServiceMap<A>>): La
  * @since 2.0.0
  * @category constructors
  */
-export const effect: {
-  <I, S>(key: ServiceMap.Key<I, S>): <E, R>(effect: Effect<NoInfer<S>, E, R>) => Layer<I, E, Exclude<R, Scope.Scope>>
-  <I, S, E, R>(key: ServiceMap.Key<I, S>, effect: Effect<NoInfer<S>, E, R>): Layer<I, E, Exclude<R, Scope.Scope>>
-} = function() {
-  if (isEffect(arguments[1])) {
-    return effectImpl(arguments[0], arguments[1]) as any
-  }
-  return (effect: Effect<any>) => effectImpl(arguments[0], effect)
-}
+export const effect = <I, S>(key: ServiceMap.Key<I, S>): {
+  <E, R>(
+    effect: Effect<NoInfer<S>, E, R>
+  ): Layer<I, E, Exclude<R, Scope.Scope>>
+  <Args extends ReadonlyArray<any>, E, R>(
+    f: (...args: Args) => Effect<NoInfer<S>, E, R>
+  ): (...args: Args) => Layer<I, E, Exclude<R, Scope.Scope>>
+} =>
+(effectOrFn: Effect<any, any, any> | ((...args: any) => Effect<any, any, any>)) =>
+  typeof effectOrFn === "function"
+    ? (...args: any) => effectImpl(key, internalEffect.suspend(() => effectOrFn(...args)))
+    : effectImpl(key, effectOrFn) as any
 
 const effectImpl = <I, S, E, R>(
   key: ServiceMap.Key<I, S>,
@@ -806,7 +806,7 @@ export const effectDiscard = <X, E, R>(effect: Effect<X, E, R>): Layer<never, E,
  * class Database extends ServiceMap.Key<Database, { readonly query: (sql: string) => Effect.Effect<string> }>()("Database") {}
  *
  * const layerEffect = Effect.succeed(
- *   Layer.succeed(Database, { query: (sql: string) => Effect.succeed("result") })
+ *   Layer.succeed(Database)({ query: (sql: string) => Effect.succeed("result") })
  * )
  *
  * const unwrappedLayer = Layer.unwrap(layerEffect)
@@ -819,7 +819,7 @@ export const unwrap = <A, E1, R1, E, R>(
   self: Effect<Layer<A, E1, R1>, E, R>
 ): Layer<A, E | E1, R1 | Exclude<R, Scope.Scope>> => {
   const key = ServiceMap.Key<Layer<A, E1, R1>>("effect/Layer/unwrap")
-  return flatMap(effect(key, self), ServiceMap.get(key))
+  return flatMap(effect(key)(self), ServiceMap.get(key))
 }
 
 const mergeAllEffect = <Layers extends [Layer<never, any, any>, ...Array<Layer<never, any, any>>]>(
@@ -859,8 +859,8 @@ const mergeAllEffect = <Layers extends [Layer<never, any, any>, ...Array<Layer<n
  *
  * class Logger extends ServiceMap.Key<Logger, { readonly log: (msg: string) => Effect.Effect<void> }>()("Logger") {}
  *
- * const dbLayer = Layer.succeed(Database, { query: (sql: string) => Effect.succeed("result") })
- * const loggerLayer = Layer.succeed(Logger, { log: (msg: string) => Effect.sync(() => console.log(msg)) })
+ * const dbLayer = Layer.succeed(Database)({ query: (sql: string) => Effect.succeed("result") })
+ * const loggerLayer = Layer.succeed(Logger)({ log: (msg: string) => Effect.sync(() => console.log(msg)) })
  *
  * const mergedLayer = Layer.mergeAll(dbLayer, loggerLayer)
  * ```
@@ -892,8 +892,8 @@ export const mergeAll = <Layers extends [Layer<never, any, any>, ...Array<Layer<
  *
  * class Logger extends ServiceMap.Key<Logger, { readonly log: (msg: string) => Effect.Effect<void> }>()("Logger") {}
  *
- * const dbLayer = Layer.succeed(Database, { query: (sql: string) => Effect.succeed("result") })
- * const loggerLayer = Layer.succeed(Logger, { log: (msg: string) => Effect.sync(() => console.log(msg)) })
+ * const dbLayer = Layer.succeed(Database)({ query: (sql: string) => Effect.succeed("result") })
+ * const loggerLayer = Layer.succeed(Logger)({ log: (msg: string) => Effect.sync(() => console.log(msg)) })
  *
  * const mergedLayer = Layer.merge(dbLayer, loggerLayer)
  * ```
@@ -972,16 +972,16 @@ const provideWith = (
  * class Logger extends ServiceMap.Key<Logger, { readonly log: (msg: string) => Effect.Effect<void> }>()("Logger") {}
  *
  * // Create dependency layers
- * const databaseLayer = Layer.succeed(Database, {
+ * const databaseLayer = Layer.succeed(Database)({
  *   query: (sql: string) => Effect.succeed(`DB: ${sql}`)
  * })
  *
- * const loggerLayer = Layer.succeed(Logger, {
+ * const loggerLayer = Layer.succeed(Logger)({
  *   log: (msg: string) => Effect.sync(() => console.log(`[LOG] ${msg}`))
  * })
  *
  * // UserService depends on Database and Logger
- * const userServiceLayer = Layer.effect(UserService, Effect.gen(function* () {
+ * const userServiceLayer = Layer.effect(UserService)(Effect.gen(function* () {
  *   const database = yield* Database
  *   const logger = yield* Logger
  *
@@ -1061,16 +1061,16 @@ export const provide: {
  * class UserService extends ServiceMap.Key<UserService, { readonly getUser: (id: string) => Effect.Effect<{ id: string; name: string }> }>()("UserService") {}
  *
  * // Create dependency layers
- * const databaseLayer = Layer.succeed(Database, {
+ * const databaseLayer = Layer.succeed(Database)({
  *   query: (sql: string) => Effect.succeed(`DB: ${sql}`)
  * })
  *
- * const loggerLayer = Layer.succeed(Logger, {
+ * const loggerLayer = Layer.succeed(Logger)({
  *   log: (msg: string) => Effect.sync(() => console.log(`[LOG] ${msg}`))
  * })
  *
  * // UserService depends on Database and Logger
- * const userServiceLayer = Layer.effect(UserService, Effect.gen(function* () {
+ * const userServiceLayer = Layer.effect(UserService)(Effect.gen(function* () {
  *   const database = yield* Database
  *   const logger = yield* Logger
  *
@@ -1159,7 +1159,7 @@ export const provideMerge: {
  * class Logger extends ServiceMap.Key<Logger, { readonly log: (msg: string) => Effect.Effect<void> }>()("Logger") {}
  *
  * // Base config layer
- * const configLayer = Layer.succeed(Config, {
+ * const configLayer = Layer.succeed(Config)({
  *   dbUrl: "postgres://localhost:5432/mydb",
  *   logLevel: "debug"
  * })
@@ -1170,12 +1170,12 @@ export const provideMerge: {
  *     const config = ServiceMap.get(services, Config)
  *
  *     // Create database layer based on config
- *     const dbLayer = Layer.succeed(Database, {
+ *     const dbLayer = Layer.succeed(Database)({
  *       query: (sql: string) => Effect.succeed(`Querying ${config.dbUrl}: ${sql}`)
  *     })
  *
  *     // Create logger layer based on config
- *     const loggerLayer = Layer.succeed(Logger, {
+ *     const loggerLayer = Layer.succeed(Logger)({
  *       log: (msg: string) => config.logLevel === "debug"
  *         ? Effect.sync(() => console.log(`[DEBUG] ${msg}`))
  *         : Effect.sync(() => console.log(msg))
@@ -1240,7 +1240,7 @@ export const flatMap: {
  * class Database extends ServiceMap.Key<Database, { readonly query: (sql: string) => Effect.Effect<string> }>()("Database") {}
  *
  * // Layer that can fail during construction
- * const flakyDatabaseLayer = Layer.effect(Database, Effect.gen(function* () {
+ * const flakyDatabaseLayer = Layer.effect(Database)(Effect.gen(function* () {
  *   // Simulate a database connection that might fail
  *   const shouldFail = Math.random() > 0.5
  *   if (shouldFail) {
@@ -1323,7 +1323,7 @@ export {
  * class Logger extends ServiceMap.Key<Logger, { readonly log: (msg: string) => Effect.Effect<void> }>()("Logger") {}
  *
  * // Primary database layer that might fail
- * const primaryDatabaseLayer = Layer.effect(Database, Effect.gen(function* () {
+ * const primaryDatabaseLayer = Layer.effect(Database)(Effect.gen(function* () {
  *   yield* Effect.fail(new DatabaseError({ message: "Primary DB unreachable" }))
  *   return { query: (sql: string) => Effect.succeed(`Primary: ${sql}`) }
  * }))
@@ -1333,10 +1333,10 @@ export {
  *   Layer.catchCause(() => {
  *     // For any cause/error, fallback to in-memory database
  *     return Layer.mergeAll(
- *       Layer.succeed(Database, {
+ *       Layer.succeed(Database)({
  *         query: (sql: string) => Effect.succeed(`Memory: ${sql}`)
  *       }),
- *       Layer.succeed(Logger, {
+ *       Layer.succeed(Logger)({
  *         log: (msg: string) => Effect.sync(() => console.log(`[FALLBACK] ${msg}`))
  *       })
  *     )
@@ -1386,7 +1386,7 @@ export const catchCause: {
  * class Counter extends ServiceMap.Key<Counter, { readonly count: number; readonly increment: () => Effect.Effect<number> }>()("Counter") {}
  *
  * // Layer that creates a counter with shared state
- * const counterLayer = Layer.effect(Counter, Effect.gen(function* () {
+ * const counterLayer = Layer.effect(Counter)(Effect.gen(function* () {
  *   const ref = yield* Ref.make(0)
  *   return {
  *     count: 0,
@@ -1444,7 +1444,7 @@ export const fresh = <A, E, R>(self: Layer<A, E, R>): Layer<A, E, R> =>
  * class Logger extends ServiceMap.Key<Logger, { readonly log: (msg: string) => Effect.Effect<void> }>()("Logger") {}
  *
  * // Server layer that starts an HTTP server
- * const serverLayer = Layer.effect(HttpServer, Effect.gen(function* () {
+ * const serverLayer = Layer.effect(HttpServer)(Effect.gen(function* () {
  *   yield* Console.log("Starting HTTP server...")
  *
  *   return {
@@ -1459,7 +1459,7 @@ export const fresh = <A, E, R>(self: Layer<A, E, R>): Layer<A, E, R> =>
  *   }
  * }))
  *
- * const loggerLayer = Layer.succeed(Logger, {
+ * const loggerLayer = Layer.succeed(Logger)({
  *   log: (msg: string) => Console.log(`[LOG] ${msg}`)
  * })
  *
@@ -1527,7 +1527,7 @@ export type PartialEffectful<A extends object> = Types.Simplify<
  * }>()("UserService") {}
  *
  * // Create a partial mock - only implement what you need for testing
- * const testUserLayer = Layer.mock(UserService, {
+ * const testUserLayer = Layer.mock(UserService)({
  *   config: { apiUrl: "https://test-api.com" }, // Required - non-Effect property
  *   getUser: (id: string) => Effect.succeed({ id, name: "Test User" }), // Mock implementation
  *   // deleteUser and updateUser are omitted - will throw UnimplementedError if called
@@ -1551,12 +1551,8 @@ export type PartialEffectful<A extends object> = Types.Simplify<
  * @since 4.0.0
  * @category Testing
  */
-export const mock: {
-  <I, S extends object>(key: ServiceMap.Key<I, S>): (service: PartialEffectful<S>) => Layer<I>
-  <I, S extends object>(key: ServiceMap.Key<I, S>, service: PartialEffectful<S>): Layer<I>
-} = dual(2, <I, S extends object>(key: ServiceMap.Key<I, S>, service: PartialEffectful<S>): Layer<I> =>
-  succeed(
-    key,
+export const mock = <I, S extends object>(key: ServiceMap.Key<I, S>) => (service: PartialEffectful<S>): Layer<I> =>
+  succeed(key)(
     new Proxy({ ...service as object } as S, {
       get(target, prop, _receiver) {
         if (prop in target) {
@@ -1571,7 +1567,7 @@ export const mock: {
       },
       has: constTrue
     })
-  ))
+  )
 
 const makeUnimplemented = (error: globalThis.Error) => {
   const dead = internalEffect.die(error)

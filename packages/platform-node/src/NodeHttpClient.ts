@@ -74,13 +74,13 @@ export const makeDispatcher: Effect.Effect<Undici.Dispatcher, never, Scope.Scope
  * @since 1.0.0
  * @category Dispatcher
  */
-export const layerDispatcher: Layer.Layer<Dispatcher> = Layer.effect(Dispatcher, makeDispatcher)
+export const layerDispatcher: Layer.Layer<Dispatcher> = Layer.effect(Dispatcher)(makeDispatcher)
 
 /**
  * @since 1.0.0
  * @category Dispatcher
  */
-export const dispatcherLayerGlobal: Layer.Layer<Dispatcher> = Layer.sync(Dispatcher, () => Undici.getGlobalDispatcher())
+export const dispatcherLayerGlobal: Layer.Layer<Dispatcher> = Layer.sync(Dispatcher)(() => Undici.getGlobalDispatcher())
 
 /**
  * @since 1.0.0
@@ -334,8 +334,9 @@ export const makeAgent = (options?: Https.AgentOptions): Effect.Effect<HttpAgent
  * @since 1.0.0
  * @category HttpAgent
  */
-export const layerAgentOptions = (options?: Https.AgentOptions): Layer.Layer<HttpAgent> =>
-  Layer.effect(HttpAgent, makeAgent(options))
+export const layerAgentOptions: (options?: Https.AgentOptions | undefined) => Layer.Layer<
+  HttpAgent
+> = Layer.effect(HttpAgent)(makeAgent)
 
 /**
  * @since 1.0.0

@@ -119,8 +119,7 @@ export const make: (impl: {
  * @since 4.0.0
  * @category layers
  */
-export const layer = Layer.effect(
-  HttpPlatform,
+export const layer = Layer.effect(HttpPlatform)(
   Effect.flatMap(FileSystem.FileSystem.asEffect(), (fs) =>
     make({
       fileResponse(path, status, statusText, headers, start, end, contentLength) {

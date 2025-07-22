@@ -461,7 +461,7 @@ export const addAll = <Routes extends ReadonlyArray<Route<any, any>>, EX = never
  * @since 4.0.0
  * @category HttpRouter
  */
-export const layer: Layer.Layer<HttpRouter> = Layer.effect(HttpRouter, make)
+export const layer: Layer.Layer<HttpRouter> = Layer.effect(HttpRouter)(make)
 
 /**
  * @since 4.0.0
@@ -1099,7 +1099,7 @@ export const serve = <A, E, R, HE, HR = Request.Only<"Requires", R> | Request.On
     middleware = middleware ? compose(middleware, HttpMiddleware.logger) : HttpMiddleware.logger
   }
   const RouterLayer = options?.routerConfig
-    ? Layer.provide(layer, Layer.succeed(RouterConfig, options.routerConfig))
+    ? Layer.provide(layer, Layer.succeed(RouterConfig)(options.routerConfig))
     : layer
   return Effect.gen(function*() {
     const router = yield* HttpRouter
@@ -1167,7 +1167,7 @@ export const toWebHandler = <
     middleware = middleware ? compose(middleware, HttpMiddleware.logger) : HttpMiddleware.logger
   }
   const RouterLayer = options?.routerConfig
-    ? Layer.provide(layer, Layer.succeed(RouterConfig, options.routerConfig))
+    ? Layer.provide(layer, Layer.succeed(RouterConfig)(options.routerConfig))
     : layer
   return HttpEffect.toWebHandlerLayerWith(Layer.provideMerge(appLayer, RouterLayer) as Layer.Layer<A | HttpRouter, E>, {
     toHandler: (s) => Effect.succeed(ServiceMap.get(s, HttpRouter).asHttpEffect()),

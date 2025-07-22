@@ -1133,7 +1133,7 @@ export const makeNoop = (fileSystem: Partial<FileSystem>): FileSystem =>
  * @category layers
  */
 export const layerNoop = (fileSystem: Partial<FileSystem>): Layer.Layer<FileSystem> =>
-  Layer.succeed(FileSystem, makeNoop(fileSystem))
+  Layer.succeed(FileSystem)(makeNoop(fileSystem))
 
 /**
  * Unique symbol identifier for the File type.

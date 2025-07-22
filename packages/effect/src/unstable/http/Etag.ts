@@ -69,29 +69,27 @@ const fromFileWeb = (file: Body.HttpBody.FileLike) => {
  * @category Layers
  */
 export const layer: Layer.Layer<Generator> = Layer.succeed(
-  Generator,
-  Generator.of({
-    fromFileInfo(info) {
-      return Effect.sync(() => ({ _tag: "Strong", value: fromFileInfo(info) }))
-    },
-    fromFileWeb(file) {
-      return Effect.sync(() => ({ _tag: "Strong", value: fromFileWeb(file) }))
-    }
-  })
-)
+  Generator
+)({
+  fromFileInfo(info) {
+    return Effect.sync(() => ({ _tag: "Strong", value: fromFileInfo(info) }))
+  },
+  fromFileWeb(file) {
+    return Effect.sync(() => ({ _tag: "Strong", value: fromFileWeb(file) }))
+  }
+})
 
 /**
  * @since 4.0.0
  * @category Layers
  */
 export const layerWeak: Layer.Layer<Generator> = Layer.succeed(
-  Generator,
-  Generator.of({
-    fromFileInfo(info) {
-      return Effect.sync(() => ({ _tag: "Weak", value: fromFileInfo(info) }))
-    },
-    fromFileWeb(file) {
-      return Effect.sync(() => ({ _tag: "Weak", value: fromFileWeb(file) }))
-    }
-  })
-)
+  Generator
+)({
+  fromFileInfo(info) {
+    return Effect.sync(() => ({ _tag: "Weak", value: fromFileInfo(info) }))
+  },
+  fromFileWeb(file) {
+    return Effect.sync(() => ({ _tag: "Weak", value: fromFileWeb(file) }))
+  }
+})

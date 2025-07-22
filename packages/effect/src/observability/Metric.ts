@@ -3466,7 +3466,7 @@ const fiberFailures = counter("child_fiber_failures", {
  *   console.log("Fiber metrics key:", key)
  *
  *   // Enable runtime metrics using the key
- *   const layer = Layer.succeed(Metric.FiberRuntimeMetrics, Metric.FiberRuntimeMetricsImpl)
+ *   const layer = Layer.succeed(Metric.FiberRuntimeMetrics)(Metric.FiberRuntimeMetricsImpl)
  *
  *   return yield* Effect.gen(function* () {
  *     // This Effect will have fiber metrics automatically collected
@@ -3516,7 +3516,7 @@ export const FiberRuntimeMetricsKey: typeof InternalMetric.FiberRuntimeMetricsKe
  *
  * const program = Effect.gen(function* () {
  *   // Use the custom metrics service
- *   const layer = Layer.succeed(Metric.FiberRuntimeMetrics, customMetricsService)
+ *   const layer = Layer.succeed(Metric.FiberRuntimeMetrics)(customMetricsService)
  *
  *   return yield* Effect.sleep("100 millis").pipe(Effect.provide(layer))
  * })
@@ -3603,7 +3603,7 @@ export const FiberRuntimeMetrics = ServiceMap.Reference<FiberRuntimeMetricsServi
  *   console.log("Metrics implementation:", metrics)
  *
  *   // Enable runtime metrics using the default implementation
- *   const layer = Layer.succeed(Metric.FiberRuntimeMetrics, metrics)
+ *   const layer = Layer.succeed(Metric.FiberRuntimeMetrics)(metrics)
  *
  *   return yield* Effect.gen(function* () {
  *     // Run some Effects to trigger metric collection
@@ -3745,7 +3745,7 @@ export const FiberRuntimeMetricsImpl: FiberRuntimeMetricsService = {
  * @since 4.0.0
  * @category Runtime Metrics
  */
-export const enableRuntimeMetricsLayer = Layer.succeed(FiberRuntimeMetrics, FiberRuntimeMetricsImpl)
+export const enableRuntimeMetricsLayer = Layer.succeed(FiberRuntimeMetrics)(FiberRuntimeMetricsImpl)
 
 /**
  * A Layer that disables automatic collection of fiber runtime metrics.
@@ -3788,7 +3788,7 @@ export const enableRuntimeMetricsLayer = Layer.succeed(FiberRuntimeMetrics, Fibe
  * @since 4.0.0
  * @category Runtime Metrics
  */
-export const disableRuntimeMetricsLayer = Layer.succeed(FiberRuntimeMetrics, undefined)
+export const disableRuntimeMetricsLayer = Layer.succeed(FiberRuntimeMetrics)(undefined)
 
 /**
  * Enables automatic collection of fiber runtime metrics for the provided Effect.

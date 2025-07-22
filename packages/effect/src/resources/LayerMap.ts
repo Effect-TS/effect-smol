@@ -1,6 +1,5 @@
 /**
  * @since 3.14.0
- * @experimental
  */
 import * as Effect from "../Effect.ts"
 import { identity } from "../Function.ts"
@@ -14,35 +13,18 @@ import type { Mutable } from "../types/Types.ts"
 /**
  * @since 3.14.0
  * @category Symbols
- * @example
- * ```ts
- * import { LayerMap } from "effect/resources"
- *
- * console.log(LayerMap.TypeId)
- * // Output: "~effect/LayerMap"
- * ```
  */
 export const TypeId: TypeId = "~effect/LayerMap"
 
 /**
  * @since 3.14.0
  * @category Symbols
- * @example
- * ```ts
- * import { LayerMap } from "effect/resources"
- *
- * // Use the TypeId type for type checking
- * function isLayerMapTypeId(id: unknown): id is LayerMap.TypeId {
- *   return id === LayerMap.TypeId
- * }
- * ```
  */
 export type TypeId = "~effect/LayerMap"
 
 /**
  * @since 3.14.0
  * @category Models
- * @experimental
  * @example
  * ```ts
  * import { Effect } from "effect"
@@ -57,7 +39,7 @@ export type TypeId = "~effect/LayerMap"
  *
  * // Create a LayerMap that provides different database configurations
  * const createDatabaseLayerMap = LayerMap.make((env: string) =>
- *   Layer.succeed(DatabaseService, {
+ *   Layer.succeed(DatabaseService)({
  *     query: (sql) => Effect.succeed(`${env}: ${sql}`)
  *   })
  * )
@@ -104,7 +86,6 @@ export interface LayerMap<in out K, in out I, in out E = never> {
 /**
  * @since 3.14.0
  * @category Constructors
- * @experimental
  *
  * A `LayerMap` allows you to create a map of Layer's that can be used to
  * dynamically access resources based on a key.
@@ -123,7 +104,7 @@ export interface LayerMap<in out K, in out I, in out E = never> {
  * // Create a LayerMap that provides different database configurations
  * const program = Effect.gen(function* () {
  *   const layerMap = yield* LayerMap.make((env: string) =>
- *     Layer.succeed(DatabaseService, {
+ *     Layer.succeed(DatabaseService)({
  *       query: (sql) => Effect.succeed(`${env}: ${sql}`)
  *     }),
  *     { idleTimeToLive: "5 seconds" }
@@ -190,7 +171,6 @@ export const make: <
 /**
  * @since 3.14.0
  * @category Constructors
- * @experimental
  * @example
  * ```ts
  * import { Effect } from "effect"
@@ -208,10 +188,10 @@ export const make: <
  *
  * // Create predefined layers
  * const layers = {
- *   development: Layer.succeed(DevDatabase, {
+ *   development: Layer.succeed(DevDatabase)({
  *     query: (sql) => Effect.succeed(`DEV: ${sql}`)
  *   }),
- *   production: Layer.succeed(ProdDatabase, {
+ *   production: Layer.succeed(ProdDatabase)({
  *     query: (sql) => Effect.succeed(`PROD: ${sql}`)
  *   })
  * } as const
@@ -250,49 +230,6 @@ export const fromRecord = <
 /**
  * @since 3.14.0
  * @category Service
- * @example
- * ```ts
- * import { Effect } from "effect"
- * import { Layer } from "effect/services"
- * import { ServiceMap } from "effect/services"
- * import { LayerMap } from "effect/resources"
- *
- * // Define a service interface
- * interface DatabaseConfig {
- *   readonly host: string
- *   readonly port: number
- *   readonly query: (sql: string) => Effect.Effect<string>
- * }
- *
- * // Create a service key
- * const DatabaseKey = ServiceMap.Key<DatabaseConfig>("Database")
- *
- * // Create a service class using LayerMap.Service
- * class DatabasePool extends LayerMap.Service<DatabasePool>()("DatabasePool", {
- *   lookup: (region: string) =>
- *     Layer.succeed(DatabaseKey, {
- *       host: `${region}.db.example.com`,
- *       port: 5432,
- *       query: (sql) => Effect.succeed(`[${region}] ${sql}`)
- *     }),
- *   idleTimeToLive: "5 minutes"
- * }) {}
- *
- * // The TagClass interface defines the shape of the generated class
- * const program = Effect.gen(function* () {
- *   // Use the default layer
- *   const layer = DatabasePool.layer
- *
- *   // Get a region-specific layer
- *   const usEastLayer = DatabasePool.get("us-east")
- *
- *   // Get services directly
- *   const services = yield* DatabasePool.services("eu-west")
- *
- *   // Invalidate a cached layer
- *   yield* DatabasePool.invalidate("us-west")
- * })
- * ```
  */
 export interface TagClass<
   in out Self,
@@ -337,7 +274,6 @@ export interface TagClass<
 /**
  * @since 3.14.0
  * @category Service
- * @experimental
  *
  * Create a `LayerMap` service that provides a dynamic set of resources based on
  * a key.
@@ -359,7 +295,7 @@ export interface TagClass<
  * class GreeterMap extends LayerMap.Service<GreeterMap>()("GreeterMap", {
  *   // Define the lookup function for the layer map
  *   lookup: (name: string) =>
- *     Layer.succeed(Greeter, {
+ *     Layer.succeed(Greeter)({
  *       greet: Effect.succeed(`Hello, ${name}!`)
  *     }),
  *
@@ -423,8 +359,7 @@ export const Service = <Self>() =>
     }
   })
 
-  TagClass_.layerNoDeps = Layer.effect(
-    TagClass_,
+  TagClass_.layerNoDeps = Layer.effect(TagClass_)(
     "lookup" in options
       ? make(options.lookup, options)
       : fromRecord(options.layers as any, options) as any
@@ -443,60 +378,11 @@ export const Service = <Self>() =>
 /**
  * @since 3.14.0
  * @category Service
- * @experimental
- * @example
- * ```ts
- * import { Layer } from "effect/services"
- * import { ServiceMap } from "effect/services"
- * import { LayerMap } from "effect/resources"
- *
- * // Define options for a database service
- * const databaseOptions = {
- *   lookup: (region: string) =>
- *     Layer.succeed(ServiceMap.Key<{ query: string }>("Database"), {
- *       query: `Database in ${region}`
- *     })
- * }
- *
- * // Extract the key type from the options
- * type DatabaseKey = LayerMap.Service.Key<typeof databaseOptions>
- * // DatabaseKey is inferred as 'string'
- *
- * // Extract layer types
- * type DatabaseLayers = LayerMap.Service.Layers<typeof databaseOptions>
- * type DatabaseSuccess = LayerMap.Service.Success<typeof databaseOptions>
- * type DatabaseError = LayerMap.Service.Error<typeof databaseOptions>
- * type DatabaseServices = LayerMap.Service.Services<typeof databaseOptions>
- * ```
  */
 export declare namespace Service {
   /**
    * @since 3.14.0
    * @category Service
-   * @experimental
-   * @example
-   * ```ts
-   * import { Layer } from "effect/services"
-   * import { ServiceMap } from "effect/services"
-   * import { LayerMap } from "effect/resources"
-   *
-   * // Options with lookup function
-   * const lookupOptions = {
-   *   lookup: (id: number) => Layer.succeed(ServiceMap.Key<string>("Service"), "value")
-   * }
-   * type LookupKey = LayerMap.Service.Key<typeof lookupOptions>
-   * // LookupKey is 'number'
-   *
-   * // Options with layers record
-   * const layersOptions = {
-   *   layers: {
-   *     dev: Layer.succeed(ServiceMap.Key<string>("Service"), "dev"),
-   *     prod: Layer.succeed(ServiceMap.Key<string>("Service"), "prod")
-   *   }
-   * }
-   * type LayersKey = LayerMap.Service.Key<typeof layersOptions>
-   * // LayersKey is 'dev' | 'prod'
-   * ```
    */
   export type Key<Options> = Options extends { readonly lookup: (key: infer K) => any } ? K
     : Options extends { readonly layers: infer Layers } ? keyof Layers
@@ -505,30 +391,6 @@ export declare namespace Service {
   /**
    * @since 3.14.0
    * @category Service
-   * @experimental
-   * @example
-   * ```ts
-   * import { Layer } from "effect/services"
-   * import { ServiceMap } from "effect/services"
-   * import { LayerMap } from "effect/resources"
-   *
-   * // Options with lookup function
-   * const lookupOptions = {
-   *   lookup: (id: number) => Layer.succeed(ServiceMap.Key<string>("Service"), "value")
-   * }
-   * type LookupLayers = LayerMap.Service.Layers<typeof lookupOptions>
-   * // LookupLayers is Layer.Layer<string, never, never>
-   *
-   * // Options with layers record
-   * const layersOptions = {
-   *   layers: {
-   *     dev: Layer.succeed(ServiceMap.Key<string>("DevService"), "dev"),
-   *     prod: Layer.succeed(ServiceMap.Key<number>("ProdService"), 42)
-   *   }
-   * }
-   * type RecordLayers = LayerMap.Service.Layers<typeof layersOptions>
-   * // RecordLayers is Layer.Layer<string, never, never> | Layer.Layer<number, never, never>
-   * ```
    */
   export type Layers<Options> = Options extends { readonly lookup: (key: infer _K) => infer Layers } ? Layers
     : Options extends { readonly layers: infer Layers } ? Layers[keyof Layers]
@@ -537,107 +399,18 @@ export declare namespace Service {
   /**
    * @since 3.14.0
    * @category Service
-   * @experimental
-   * @example
-   * ```ts
-   * import { Layer } from "effect/services"
-   * import { ServiceMap } from "effect/services"
-   * import { LayerMap } from "effect/resources"
-   *
-   * // Service interface
-   * interface DatabaseService {
-   *   readonly host: string
-   *   readonly query: (sql: string) => string
-   * }
-   *
-   * // Options that provide DatabaseService
-   * const databaseOptions = {
-   *   lookup: (region: string) =>
-   *     Layer.succeed(ServiceMap.Key<DatabaseService>("Database"), {
-   *       host: `${region}.db.example.com`,
-   *       query: (sql) => `Result: ${sql}`
-   *     })
-   * }
-   *
-   * // Extract the success type (services provided)
-   * type DatabaseSuccess = LayerMap.Service.Success<typeof databaseOptions>
-   * // DatabaseSuccess is DatabaseService
-   * ```
    */
   export type Success<Options> = Layers<Options> extends Layer.Layer<infer _A, infer _E, infer _R> ? _A : never
 
   /**
    * @since 3.14.0
    * @category Service
-   * @experimental
-   * @example
-   * ```ts
-   * import { Effect } from "effect"
-   * import { Layer } from "effect/services"
-   * import { ServiceMap } from "effect/services"
-   * import { Data } from "effect/data"
-   * import { LayerMap } from "effect/resources"
-   *
-   * // Define a custom error type
-   * class DatabaseConnectionError extends Data.TaggedError("DatabaseConnectionError")<{
-   *   readonly message: string
-   * }> {}
-   *
-   * // Options that can fail with DatabaseConnectionError
-   * const databaseOptions = {
-   *   lookup: (region: string) =>
-   *     Layer.effect(
-   *       ServiceMap.Key<{ query: string }>("Database"),
-   *       Effect.fail(new DatabaseConnectionError({ message: `Failed to connect to ${region}` }))
-   *     )
-   * }
-   *
-   * // Extract the error type
-   * type DatabaseError = LayerMap.Service.Error<typeof databaseOptions>
-   * // DatabaseError is DatabaseConnectionError
-   * ```
    */
   export type Error<Options> = Layers<Options> extends Layer.Layer<infer _A, infer _E, infer _R> ? _E : never
 
   /**
    * @since 3.14.0
    * @category Service
-   * @experimental
-   * @example
-   * ```ts
-   * import { Effect } from "effect"
-   * import { Layer } from "effect/services"
-   * import { ServiceMap } from "effect/services"
-   * import { LayerMap } from "effect/resources"
-   *
-   * // Service that provides configuration
-   * const ConfigService = ServiceMap.Key<{
-   *   readonly apiUrl: string
-   * }>("Config")
-   *
-   * // Database service key
-   * const DatabaseService = ServiceMap.Key<{
-   *   readonly query: string
-   * }>("Database")
-   *
-   * // Options that require ConfigService as a dependency
-   * const databaseOptions = {
-   *   lookup: (region: string) =>
-   *     Layer.effect(
-   *       DatabaseService,
-   *       Effect.gen(function* () {
-   *         const config = yield* ConfigService
-   *         return {
-   *           query: `Query via ${config.apiUrl} in ${region}`
-   *         }
-   *       })
-   *     )
-   * }
-   *
-   * // Extract the services type (dependencies required)
-   * type DatabaseServices = LayerMap.Service.Services<typeof databaseOptions>
-   * // DatabaseServices is ConfigService
-   * ```
    */
   export type Services<Options> = Layers<Options> extends Layer.Layer<infer _A, infer _E, infer _R> ? _R : never
 }

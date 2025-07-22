@@ -39,7 +39,7 @@ describe("Layer", () => {
   it.effect("sharing itself with merge", () =>
     Effect.gen(function*() {
       const service1 = new Service1()
-      const layer = Layer.succeed(Service1Tag, service1)
+      const layer = Layer.succeed(Service1Tag)(service1)
       const env = layer.pipe(Layer.merge(layer), Layer.merge(layer), Layer.build)
       const result = yield* env.pipe(
         Effect.map((context) => ServiceMap.get(context, Service1Tag))
@@ -247,9 +247,11 @@ describe("Layer", () => {
             Effect.flip
           )
         }).pipe(
-          Effect.provide(Layer.mock(Service1, {
-            one: Effect.succeed(123)
-          }))
+          Effect.provide(
+            Layer.mock(Service1)({
+              one: Effect.succeed(123)
+            })
+          )
         )
       }))
   })
@@ -310,8 +312,7 @@ export class Service1 {
 }
 const Service1Tag = ServiceMap.Key<Service1>("Service1")
 const makeLayer1 = (array: Array<string>): Layer.Layer<Service1> => {
-  return Layer.effect(
-    Service1Tag,
+  return Layer.effect(Service1Tag)(
     Effect.acquireRelease(
       Effect.sync(() => {
         array.push(acquire1)
@@ -328,8 +329,7 @@ class Service2 {
 }
 const Service2Tag = ServiceMap.Key<Service2>("Service2")
 const makeLayer2 = (array: Array<string>): Layer.Layer<Service2> => {
-  return Layer.effect(
-    Service2Tag,
+  return Layer.effect(Service2Tag)(
     Effect.acquireRelease(
       Effect.sync(() => {
         array.push(acquire2)
@@ -346,8 +346,7 @@ class Service3 {
 }
 const Service3Tag = ServiceMap.Key<Service3>("Service3")
 const makeLayer3 = (array: Array<string>): Layer.Layer<Service3> => {
-  return Layer.effect(
-    Service3Tag,
+  return Layer.effect(Service3Tag)(
     Effect.acquireRelease(
       Effect.sync(() => {
         array.push(acquire3)

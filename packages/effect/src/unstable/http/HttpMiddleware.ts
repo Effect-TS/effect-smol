@@ -76,7 +76,7 @@ export const TracerDisabledWhen = ServiceMap.Reference<Predicate<HttpServerReque
  */
 export const layerTracerDisabledForUrls = (
   urls: ReadonlyArray<string>
-): Layer.Layer<never> => Layer.succeed(TracerDisabledWhen, (req) => urls.includes(req.url))
+): Layer.Layer<never> => Layer.succeed(TracerDisabledWhen)((req) => urls.includes(req.url))
 
 /**
  * @since 4.0.0

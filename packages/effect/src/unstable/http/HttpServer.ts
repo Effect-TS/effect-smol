@@ -234,7 +234,7 @@ export const layerTestClient: Layer.Layer<
   HttpClient.HttpClient,
   never,
   HttpServer | HttpClient.HttpClient
-> = Layer.effect(HttpClient.HttpClient, makeTestClient)
+> = Layer.effect(HttpClient.HttpClient)(makeTestClient)
 
 /**
  * @since 4.0.0

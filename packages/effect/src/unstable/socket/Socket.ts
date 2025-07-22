@@ -338,8 +338,7 @@ export class WebSocketConstructor extends ServiceMap.Key<
  * @since 4.0.0
  * @category layers
  */
-export const layerWebSocketConstructorGlobal: Layer.Layer<WebSocketConstructor> = Layer.succeed(
-  WebSocketConstructor,
+export const layerWebSocketConstructorGlobal: Layer.Layer<WebSocketConstructor> = Layer.succeed(WebSocketConstructor)(
   (url, protocols) => new globalThis.WebSocket(url, protocols)
 )
 
@@ -513,13 +512,14 @@ export const makeWebSocketChannel = <IE = never>(
  * @since 4.0.0
  * @category layers
  */
-export const layerWebSocket = (url: string, options?: {
-  readonly closeCodeIsError?: (code: number) => boolean
-}): Layer.Layer<Socket, never, WebSocketConstructor> =>
-  Layer.effect(
-    Socket,
-    makeWebSocket(url, options)
-  )
+export const layerWebSocket: (
+  url: string | Effect.Effect<string>,
+  options?: {
+    readonly closeCodeIsError?: ((code: number) => boolean) | undefined
+    readonly openTimeout?: DurationInput | undefined
+    readonly protocols?: string | Array<string> | undefined
+  } | undefined
+) => Layer.Layer<Socket, never, WebSocketConstructor> = Layer.effect(Socket)(makeWebSocket)
 
 /**
  * @since 4.0.0
