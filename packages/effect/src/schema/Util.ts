@@ -21,11 +21,8 @@ export function getNativeClassSchema<C extends new(...args: any) => any, S exten
     decode: (props) => new constructor(props),
     encode: identity
   })
-  return Schema.instanceOf({
-    constructor,
-    annotations: {
-      defaultJsonSerializer: () => Schema.link<InstanceType<C>>()(options.encoding, transformation),
-      ...options.annotations
-    }
+  return Schema.instanceOf(constructor, {
+    defaultJsonSerializer: () => Schema.link<InstanceType<C>>()(options.encoding, transformation),
+    ...options.annotations
   }).pipe(Schema.encodeTo(options.encoding, transformation))
 }

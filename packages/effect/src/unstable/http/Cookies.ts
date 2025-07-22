@@ -45,9 +45,9 @@ export interface Cookies extends Pipeable, Inspectable.Inspectable {
  * @since 4.0.0
  * @category Schemas
  */
-export const schema: Schema.Codec<Cookies> = Schema.declare({
-  is: isCookies,
-  annotations: {
+export const schema: Schema.Codec<Cookies> = Schema.declare(
+  isCookies,
+  {
     identifier: "Cookies",
     defaultJsonSerializer: () =>
       Schema.link<Cookies>()(
@@ -58,7 +58,7 @@ export const schema: Schema.Codec<Cookies> = Schema.declare({
         })
       )
   }
-})
+)
 
 /**
  * @since 4.0.0

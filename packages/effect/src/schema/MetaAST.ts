@@ -11,20 +11,20 @@ import * as Transformation from "./Transformation.ts"
 /**
  * @since 4.0.0
  */
-export const Declaration = Schema.instanceOf({
-  constructor: ast.Declaration,
-  annotations: {
+export const Declaration = Schema.instanceOf(
+  ast.Declaration,
+  {
     identifier: "Declaration",
     "~sentinels": [{ key: "_tag", literal: "Declaration" }]
   }
-})
+)
 
 /**
  * @since 4.0.0
  */
-export const NullKeyword = Schema.instanceOf({
-  constructor: ast.NullKeyword,
-  annotations: {
+export const NullKeyword = Schema.instanceOf(
+  ast.NullKeyword,
+  {
     identifier: "NullKeyword",
     "~sentinels": [{ key: "_tag", literal: "NullKeyword" }],
     defaultJsonSerializer: () =>
@@ -38,14 +38,14 @@ export const NullKeyword = Schema.instanceOf({
         })
       )
   }
-})
+)
 
 /**
  * @since 4.0.0
  */
-export const UndefinedKeyword = Schema.instanceOf({
-  constructor: ast.UndefinedKeyword,
-  annotations: {
+export const UndefinedKeyword = Schema.instanceOf(
+  ast.UndefinedKeyword,
+  {
     identifier: "UndefinedKeyword",
     "~sentinels": [{ key: "_tag", literal: "UndefinedKeyword" }],
     defaultJsonSerializer: () =>
@@ -59,14 +59,14 @@ export const UndefinedKeyword = Schema.instanceOf({
         })
       )
   }
-})
+)
 
 /**
  * @since 4.0.0
  */
-export const VoidKeyword = Schema.instanceOf({
-  constructor: ast.VoidKeyword,
-  annotations: {
+export const VoidKeyword = Schema.instanceOf(
+  ast.VoidKeyword,
+  {
     identifier: "VoidKeyword",
     "~sentinels": [{ key: "_tag", literal: "VoidKeyword" }],
     defaultJsonSerializer: () =>
@@ -80,14 +80,14 @@ export const VoidKeyword = Schema.instanceOf({
         })
       )
   }
-})
+)
 
 /**
  * @since 4.0.0
  */
-export const NeverKeyword = Schema.instanceOf({
-  constructor: ast.NeverKeyword,
-  annotations: {
+export const NeverKeyword = Schema.instanceOf(
+  ast.NeverKeyword,
+  {
     identifier: "NeverKeyword",
     "~sentinels": [{ key: "_tag", literal: "NeverKeyword" }],
     defaultJsonSerializer: () =>
@@ -101,14 +101,14 @@ export const NeverKeyword = Schema.instanceOf({
         })
       )
   }
-})
+)
 
 /**
  * @since 4.0.0
  */
-export const UnknownKeyword = Schema.instanceOf({
-  constructor: ast.UnknownKeyword,
-  annotations: {
+export const UnknownKeyword = Schema.instanceOf(
+  ast.UnknownKeyword,
+  {
     identifier: "UnknownKeyword",
     "~sentinels": [{ key: "_tag", literal: "UnknownKeyword" }],
     defaultJsonSerializer: () =>
@@ -122,14 +122,14 @@ export const UnknownKeyword = Schema.instanceOf({
         })
       )
   }
-})
+)
 
 /**
  * @since 4.0.0
  */
-export const AnyKeyword = Schema.instanceOf({
-  constructor: ast.AnyKeyword,
-  annotations: {
+export const AnyKeyword = Schema.instanceOf(
+  ast.AnyKeyword,
+  {
     identifier: "AnyKeyword",
     "~sentinels": [{ key: "_tag", literal: "AnyKeyword" }],
     defaultJsonSerializer: () =>
@@ -143,14 +143,14 @@ export const AnyKeyword = Schema.instanceOf({
         })
       )
   }
-})
+)
 
 /**
  * @since 4.0.0
  */
-export const StringKeyword = Schema.instanceOf({
-  constructor: ast.StringKeyword,
-  annotations: {
+export const StringKeyword = Schema.instanceOf(
+  ast.StringKeyword,
+  {
     identifier: "StringKeyword",
     "~sentinels": [{ key: "_tag", literal: "StringKeyword" }],
     defaultJsonSerializer: () =>
@@ -164,14 +164,14 @@ export const StringKeyword = Schema.instanceOf({
         })
       )
   }
-})
+)
 
 /**
  * @since 4.0.0
  */
-export const NumberKeyword = Schema.instanceOf({
-  constructor: ast.NumberKeyword,
-  annotations: {
+export const NumberKeyword = Schema.instanceOf(
+  ast.NumberKeyword,
+  {
     identifier: "NumberKeyword",
     "~sentinels": [{ key: "_tag", literal: "NumberKeyword" }],
     defaultJsonSerializer: () =>
@@ -185,14 +185,14 @@ export const NumberKeyword = Schema.instanceOf({
         })
       )
   }
-})
+)
 
 /**
  * @since 4.0.0
  */
-export const BooleanKeyword = Schema.instanceOf({
-  constructor: ast.BooleanKeyword,
-  annotations: {
+export const BooleanKeyword = Schema.instanceOf(
+  ast.BooleanKeyword,
+  {
     identifier: "BooleanKeyword",
     "~sentinels": [{ key: "_tag", literal: "BooleanKeyword" }],
     defaultJsonSerializer: () =>
@@ -206,14 +206,14 @@ export const BooleanKeyword = Schema.instanceOf({
         })
       )
   }
-})
+)
 
 /**
  * @since 4.0.0
  */
-export const BigIntKeyword = Schema.instanceOf({
-  constructor: ast.BigIntKeyword,
-  annotations: {
+export const BigIntKeyword = Schema.instanceOf(
+  ast.BigIntKeyword,
+  {
     identifier: "BigIntKeyword",
     "~sentinels": [{ key: "_tag", literal: "BigIntKeyword" }],
     defaultJsonSerializer: () =>
@@ -227,14 +227,14 @@ export const BigIntKeyword = Schema.instanceOf({
         })
       )
   }
-})
+)
 
 /**
  * @since 4.0.0
  */
-export const SymbolKeyword = Schema.instanceOf({
-  constructor: ast.SymbolKeyword,
-  annotations: {
+export const SymbolKeyword = Schema.instanceOf(
+  ast.SymbolKeyword,
+  {
     identifier: "SymbolKeyword",
     "~sentinels": [{ key: "_tag", literal: "SymbolKeyword" }],
     defaultJsonSerializer: () =>
@@ -248,14 +248,14 @@ export const SymbolKeyword = Schema.instanceOf({
         })
       )
   }
-})
+)
 
 /**
  * @since 4.0.0
  */
-export const LiteralType = Schema.instanceOf({
-  constructor: ast.LiteralType,
-  annotations: {
+export const LiteralType = Schema.instanceOf(
+  ast.LiteralType,
+  {
     identifier: "LiteralType",
     "~sentinels": [{ key: "_tag", literal: "LiteralType" }],
     defaultJsonSerializer: () =>
@@ -270,14 +270,14 @@ export const LiteralType = Schema.instanceOf({
         })
       )
   }
-})
+)
 
 /**
  * @since 4.0.0
  */
-export const UniqueSymbol = Schema.instanceOf({
-  constructor: ast.UniqueSymbol,
-  annotations: {
+export const UniqueSymbol = Schema.instanceOf(
+  ast.UniqueSymbol,
+  {
     identifier: "UniqueSymbol",
     "~sentinels": [{ key: "_tag", literal: "UniqueSymbol" }],
     defaultJsonSerializer: () =>
@@ -292,14 +292,14 @@ export const UniqueSymbol = Schema.instanceOf({
         })
       )
   }
-})
+)
 
 /**
  * @since 4.0.0
  */
-export const ObjectKeyword = Schema.instanceOf({
-  constructor: ast.ObjectKeyword,
-  annotations: {
+export const ObjectKeyword = Schema.instanceOf(
+  ast.ObjectKeyword,
+  {
     identifier: "ObjectKeyword",
     "~sentinels": [{ key: "_tag", literal: "ObjectKeyword" }],
     defaultJsonSerializer: () =>
@@ -313,14 +313,14 @@ export const ObjectKeyword = Schema.instanceOf({
         })
       )
   }
-})
+)
 
 /**
  * @since 4.0.0
  */
-export const Enums = Schema.instanceOf({
-  constructor: ast.Enums,
-  annotations: {
+export const Enums = Schema.instanceOf(
+  ast.Enums,
+  {
     identifier: "Enums",
     "~sentinels": [{ key: "_tag", literal: "Enums" }],
     defaultJsonSerializer: () =>
@@ -335,16 +335,16 @@ export const Enums = Schema.instanceOf({
         })
       )
   }
-})
+)
 
 const SuspendedAST: Schema.Codec<ast.AST> = Schema.suspend(() => AST)
 
 /**
  * @since 4.0.0
  */
-export const TemplateLiteral = Schema.instanceOf({
-  constructor: ast.TemplateLiteral,
-  annotations: {
+export const TemplateLiteral = Schema.instanceOf(
+  ast.TemplateLiteral,
+  {
     identifier: "TemplateLiteral",
     "~sentinels": [{ key: "_tag", literal: "TemplateLiteral" }],
     defaultJsonSerializer: () =>
@@ -361,14 +361,14 @@ export const TemplateLiteral = Schema.instanceOf({
         })
       )
   }
-})
+)
 
 /**
  * @since 4.0.0
  */
-export const TupleType = Schema.instanceOf({
-  constructor: ast.TupleType,
-  annotations: {
+export const TupleType = Schema.instanceOf(
+  ast.TupleType,
+  {
     identifier: "TupleType",
     "~sentinels": [{ key: "_tag", literal: "TupleType" }],
     defaultJsonSerializer: () =>
@@ -385,7 +385,7 @@ export const TupleType = Schema.instanceOf({
         })
       )
   }
-})
+)
 
 const PropertySignature = Schema.Struct({
   name: Schema.Union([Schema.String, Schema.Number, Schema.Symbol]),
@@ -395,9 +395,9 @@ const PropertySignature = Schema.Struct({
 /**
  * @since 4.0.0
  */
-export const TypeLiteral = Schema.instanceOf({
-  constructor: ast.TypeLiteral,
-  annotations: {
+export const TypeLiteral = Schema.instanceOf(
+  ast.TypeLiteral,
+  {
     identifier: "TypeLiteral",
     "~sentinels": [{ key: "_tag", literal: "TypeLiteral" }],
     defaultJsonSerializer: () =>
@@ -416,14 +416,14 @@ export const TypeLiteral = Schema.instanceOf({
         })
       )
   }
-})
+)
 
 /**
  * @since 4.0.0
  */
-export const UnionType = Schema.instanceOf({
-  constructor: ast.UnionType,
-  annotations: {
+export const UnionType = Schema.instanceOf(
+  ast.UnionType,
+  {
     identifier: "UnionType",
     "~sentinels": [{ key: "_tag", literal: "UnionType" }],
     defaultJsonSerializer: () =>
@@ -439,18 +439,18 @@ export const UnionType = Schema.instanceOf({
         })
       )
   }
-})
+)
 
 /**
  * @since 4.0.0
  */
-export const Suspend = Schema.instanceOf({
-  constructor: ast.Suspend,
-  annotations: {
+export const Suspend = Schema.instanceOf(
+  ast.Suspend,
+  {
     identifier: "Suspend",
     "~sentinels": [{ key: "_tag", literal: "Suspend" }]
   }
-})
+)
 
 /**
  * @since 4.0.0
