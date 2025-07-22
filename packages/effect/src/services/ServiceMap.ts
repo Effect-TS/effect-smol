@@ -9,7 +9,7 @@
  */
 import * as Option from "../data/Option.ts"
 import { hasProperty } from "../data/Predicate.ts"
-import type { EffectIterator, Yieldable } from "../Effect.ts"
+import type { Effect, EffectIterator, Yieldable } from "../Effect.ts"
 import { constant, dual, type LazyArg } from "../Function.ts"
 import * as Equal from "../interfaces/Equal.ts"
 import * as Hash from "../interfaces/Hash.ts"
@@ -118,7 +118,37 @@ export interface KeyClass<in out Self, in out Id extends string, in out Service>
  */
 export const Key: {
   <Id, Service = Id>(key: string): Key<Id, Service>
-  <Self, Service>(): <const Id extends string>(id: Id) => KeyClass<Self, Id, Service>
+  <Self, Service>(): <
+    const Id extends string,
+    E,
+    R = Types.unassigned,
+    Args extends ReadonlyArray<any> = never
+  >(
+    id: Id,
+    options?: {
+      readonly make: ((...args: Args) => Effect<Service, E, R>) | Effect<Service, E, R> | undefined
+    } | undefined
+  ) =>
+    & KeyClass<Self, Id, Service>
+    & ([Types.unassigned] extends [R] ? unknown
+      : { readonly make: [Args] extends [never] ? Effect<Service, E, R> : (...args: Args) => Effect<Service, E, R> })
+  <Self>(): <
+    const Id extends string,
+    Make extends Effect<any, any, any> | ((...args: any) => Effect<any, any, any>)
+  >(
+    id: Id,
+    options: {
+      readonly make: Make
+    }
+  ) =>
+    & KeyClass<
+      Self,
+      Id,
+      Make extends
+        Effect<infer _A, infer _E, infer _R> | ((...args: infer _Args) => Effect<infer _A, infer _E, infer _R>) ? _A
+        : never
+    >
+    & { readonly make: Make }
 } = function() {
   const prevLimit = (Error as ErrorWithStackTraceLimit).stackTraceLimit
   ;(Error as ErrorWithStackTraceLimit)
@@ -141,8 +171,11 @@ export const Key: {
     }
     return self
   }
-  return function(key: string) {
+  return function(key: string, make?: any) {
     self.key = key
+    if (make) {
+      ;(self as any).make = make
+    }
     return self
   }
 } as any

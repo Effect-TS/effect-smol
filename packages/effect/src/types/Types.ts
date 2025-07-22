@@ -517,3 +517,11 @@ export type NotFunction<T> = T extends Function ? never : T
  * @category types
  */
 export type NoExcessProperties<T, U> = T & Readonly<Record<Exclude<keyof U, keyof T>, never>>
+
+/**
+ * @since 4.0.0
+ * @category types
+ */
+export interface unassigned {
+  readonly _: unique symbol
+}
