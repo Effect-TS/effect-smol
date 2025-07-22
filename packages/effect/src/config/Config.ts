@@ -16,6 +16,8 @@ import type { Pipeable } from "../interfaces/Pipeable.ts"
 import { PipeInspectableProto, YieldableProto } from "../internal/core.ts"
 import * as LogLevel_ from "../logging/LogLevel.ts"
 import * as Str from "../primitives/String.ts"
+import * as Formatter from "../schema/Formatter.ts"
+import * as Schema from "../schema/Schema.ts"
 import * as DateTime_ from "../time/DateTime.ts"
 import * as Duration_ from "../time/Duration.ts"
 import type { NoInfer } from "../types/Types.ts"
@@ -408,6 +410,20 @@ export const primitive: {
   return self
 }
 
+const Proto = {
+  ...PipeInspectableProto,
+  ...YieldableProto,
+  [TypeId]: TypeId,
+  asEffect(this: Config<unknown>) {
+    return Effect.flatMap(ConfigProvider.ConfigProvider.asEffect(), (_) => this.parse(_.context()))
+  },
+  toJSON(this: Config<unknown>) {
+    return {
+      _id: "Config"
+    }
+  }
+}
+
 /**
  * Constructs a config from a filter function that validates and transforms string input.
  *
@@ -513,19 +529,6 @@ export const fromFilter = <A, X>(
         Effect.succeed(result)
     }))
 
-const Proto = {
-  ...PipeInspectableProto,
-  ...YieldableProto,
-  [TypeId]: TypeId,
-  asEffect(this: Config<unknown>) {
-    return Effect.flatMap(ConfigProvider.ConfigProvider.asEffect(), (_) => this.parse(_.context()))
-  },
-  toJSON(this: Config<unknown>) {
-    return {
-      _id: "Config"
-    }
-  }
-}
 const String_ = (name?: string): Config<string> => primitive(name, (ctx) => ctx.load)
 
 export {
@@ -1807,3 +1810,22 @@ export const unwrap = <A>(wrapped: Wrap<A>): Config<A> => {
       .map(([k, a]) => [k, unwrap(a as any)])
   )) as any
 }
+
+/**
+ * Apply a Schema to a Config, transforming its output type.
+ *
+ * @since 4.0.0
+ * @category Schema
+ */
+export const withSchema: {
+  <A, B>(schema: Schema.Codec<B, A>): (self: Config<A>) => Config<B>
+  <A, B>(self: Config<A>, schema: Schema.Codec<B, A>): Config<B>
+} = dual(2, <A, B>(self: Config<A>, schema: Schema.Codec<B, A>): Config<B> => {
+  const decode = Schema.decodeEffect(schema)
+  return map(self, (value, path) =>
+    Effect.mapError(decode(value), (error) =>
+      new InvalidData({
+        path,
+        description: Formatter.makeTree().format(error.issue)
+      })))
+})
