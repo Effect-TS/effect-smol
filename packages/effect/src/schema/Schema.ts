@@ -3612,6 +3612,24 @@ export const FiniteFromString: FiniteFromString = String.pipe(
   )
 )
 
+/**
+ * Verifies that a string contains no leading or trailing whitespaces.
+ *
+ * @since 4.0.0
+ */
+export const Trimmed = String.check(Check.trimmed())
+
+/**
+ * A schema that trims whitespace from a string while decoding.
+ * While encoding, the string is passed through unchanged.
+ *
+ * @since 4.0.0
+ */
+export const Trim = String.pipe(decodeTo(Trimmed, {
+  decode: Getter.trim(),
+  encode: Getter.passthrough()
+}))
+
 //
 // Class APIs
 //

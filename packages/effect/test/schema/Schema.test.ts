@@ -207,6 +207,24 @@ describe("Schema", () => {
     await assertions.encoding.fail(schema, "a", `Expected number, actual "a"`)
   })
 
+  it("Boolean", async () => {
+    const schema = Schema.Boolean
+
+    assertions.schema.format(schema, `boolean`)
+
+    await assertions.make.succeed(schema, true)
+    await assertions.make.succeed(schema, false)
+    await assertions.make.fail(schema, null, `Expected boolean, actual null`)
+
+    await assertions.decoding.succeed(schema, true)
+    await assertions.decoding.succeed(schema, false)
+    await assertions.decoding.fail(schema, "a", `Expected boolean, actual "a"`)
+
+    await assertions.encoding.succeed(schema, true)
+    await assertions.encoding.succeed(schema, false)
+    await assertions.encoding.fail(schema, "a", `Expected boolean, actual "a"`)
+  })
+
   it("Symbol", async () => {
     const schema = Schema.Symbol
 
@@ -3156,6 +3174,27 @@ describe("Schema", () => {
          └─ Missing key`
       )
     })
+  })
+
+  it("Trim", async () => {
+    const schema = Schema.Trim
+
+    assertions.schema.format(schema, `string`)
+
+    await assertions.decoding.succeed(schema, "a")
+    await assertions.decoding.succeed(schema, "a ", { expected: "a" })
+    await assertions.decoding.succeed(schema, " a", { expected: "a" })
+    await assertions.decoding.succeed(schema, " a ", { expected: "a" })
+    await assertions.decoding.succeed(schema, "a\n", { expected: "a" })
+
+    await assertions.encoding.succeed(schema, "a")
+    await assertions.encoding.fail(
+      schema,
+      "a ",
+      `string & trimmed
+└─ trimmed
+   └─ Invalid data "a "`
+    )
   })
 
   it("transformOrFail", async () => {
