@@ -368,9 +368,7 @@ export const make = Effect.fnUntraced(function*(
  * @since 4.0.0
  * @category layers
  */
-export const layer = (options?: TestClock.Options): Layer.Layer<TestClock> =>
-  // @ts-expect-error
-  Layer.effect(Clock.Clock, make(options))
+export const layer: (options?: TestClock.Options) => Layer.Layer<TestClock> = Layer.effect(Clock.Clock)(make) as any
 
 /**
  * Retrieves the `TestClock` service for this test and uses it to run the
