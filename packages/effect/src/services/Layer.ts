@@ -26,6 +26,7 @@ import type * as Exit from "../Exit.ts"
 import type { LazyArg } from "../Function.ts"
 import { constant, constTrue, dual, identity } from "../Function.ts"
 import { type Pipeable, pipeArguments } from "../interfaces/Pipeable.ts"
+import { isEffect } from "../internal/core.ts"
 import * as internalEffect from "../internal/effect.ts"
 import type { ErrorWithStackTraceLimit } from "../internal/tracer.ts"
 import * as Scope from "../resources/Scope.ts"
@@ -590,13 +591,10 @@ export const buildWithScope: {
  * @since 2.0.0
  * @category constructors
  */
-export const succeed: {
-  <I, S>(key: ServiceMap.Key<I, S>): (resource: NoInfer<S>) => Layer<NoInfer<I>>
-  <I, S>(key: ServiceMap.Key<I, S>, resource: NoInfer<S>): Layer<NoInfer<I>>
-} = dual(2, <I, S>(
+export const succeed = <I, S>(
   key: ServiceMap.Key<I, S>,
   resource: NoInfer<S>
-): Layer<NoInfer<I>> => succeedServices(ServiceMap.make(key, resource)))
+): Layer<NoInfer<I>> => succeedServices(ServiceMap.make(key, resource))
 
 /**
  * Constructs a layer from the specified value, which must return one or more
@@ -667,13 +665,8 @@ export const empty: Layer<never> = succeedServices(ServiceMap.empty())
  * @since 2.0.0
  * @category constructors
  */
-export const sync: {
-  <I, S>(key: ServiceMap.Key<I, S>): (evaluate: LazyArg<NoInfer<S>>) => Layer<NoInfer<I>>
-  <I, S>(key: ServiceMap.Key<I, S>, evaluate: LazyArg<NoInfer<S>>): Layer<NoInfer<I>>
-} = dual(2, <I, S>(
-  key: ServiceMap.Key<I, S>,
-  evaluate: LazyArg<NoInfer<S>>
-): Layer<NoInfer<I>> => syncServices(() => ServiceMap.make(key, evaluate())))
+export const sync = <I, S>(key: ServiceMap.Key<I, S>, evaluate: LazyArg<NoInfer<S>>): Layer<NoInfer<I>> =>
+  syncServices(() => ServiceMap.make(key, evaluate()))
 
 /**
  * Lazily constructs a layer from the specified value, which must return one or more
@@ -731,11 +724,18 @@ export const syncServices = <A>(evaluate: LazyArg<ServiceMap.ServiceMap<A>>): La
 export const effect: {
   <I, S>(key: ServiceMap.Key<I, S>): <E, R>(effect: Effect<NoInfer<S>, E, R>) => Layer<I, E, Exclude<R, Scope.Scope>>
   <I, S, E, R>(key: ServiceMap.Key<I, S>, effect: Effect<NoInfer<S>, E, R>): Layer<I, E, Exclude<R, Scope.Scope>>
-} = dual(
-  2,
-  <I, S, E, R>(key: ServiceMap.Key<I, S>, effect: Effect<S, E, R>): Layer<I, E, R> =>
-    effectServices(internalEffect.map(effect, (value) => ServiceMap.make(key, value)))
-)
+} = function() {
+  if (isEffect(arguments[1])) {
+    return effectImpl(arguments[0], arguments[1]) as any
+  }
+  return (effect: Effect<any>) => effectImpl(arguments[0], effect)
+}
+
+const effectImpl = <I, S, E, R>(
+  key: ServiceMap.Key<I, S>,
+  effect: Effect<NoInfer<S>, E, R>
+): Layer<I, E, Exclude<R, Scope.Scope>> =>
+  effectServices(internalEffect.map(effect, (value) => ServiceMap.make(key, value)))
 
 /**
  * Constructs a layer from the specified scoped effect, which must return one
