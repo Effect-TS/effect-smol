@@ -107,6 +107,14 @@ describe("Schema", () => {
         `Expected "red" | "green" | "blue", actual "yellow"`
       )
     })
+
+    it("pick", () => {
+      const schema = Schema.Literals(["a", "b", "c"]).pick(["a", "b"])
+
+      assertions.schema.format(schema, `"a" | "b"`)
+
+      deepStrictEqual(schema.literals, ["a", "b"])
+    })
   })
 
   it("Never", async () => {

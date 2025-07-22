@@ -5115,6 +5115,179 @@ Formatter.decodeUnknownEffect(Formatter.makeTree())(email)("a@b.com")
 // Output: [ 'a', '@', 'b.com' ]
 ```
 
+## Migration from v3
+
+### asSchema
+
+v3
+
+```ts
+import { Schema } from "effect"
+
+// Schema<string, string, never>
+const schema = Schema.asSchema(Schema.String)
+```
+
+v4
+
+```ts
+import { Schema } from "effect/schema"
+
+// Codec<string, string, never, never>
+const schema = Schema.revealCodec(Schema.String)
+```
+
+### format
+
+v3
+
+```ts
+import { Schema } from "effect"
+
+console.log(Schema.format(Schema.String))
+// string
+```
+
+v4
+
+```ts
+import { AST, Schema } from "effect/schema"
+
+console.log(AST.format(Schema.String.ast))
+// string
+```
+
+### encodedSchema
+
+v3
+
+```ts
+import { Schema } from "effect"
+
+// SchemaClass<string, string, never>
+const schema = Schema.encodedSchema(Schema.String)
+```
+
+v4
+
+```ts
+import { Schema } from "effect/schema"
+
+// encodedCodec<Schema.String>
+const schema = Schema.encodedCodec(Schema.String)
+```
+
+### typeSchema
+
+v3
+
+```ts
+import { Schema } from "effect"
+
+// SchemaClass<string, string, never>
+const schema = Schema.typeSchema(Schema.String)
+```
+
+v4
+
+```ts
+import { Schema } from "effect/schema"
+
+// typeCodec<Schema.String>
+const schema = Schema.typeCodec(Schema.String)
+```
+
+### Decoding / Encoding API Renames
+
+- `decodeUnknown` -> `decodeUnknownEffect`
+- `decode` -> `decodeEffect`
+- `decodeUnknownEither` -> `decodeUnknownResult`
+- `decodeEither` -> `decodeResult`
+- `encodeUnknown` -> `encodeUnknownEffect`
+- `encode` -> `encodeEffect`
+- `encodeUnknownEither` -> `encodeUnknownResult`
+- `encodeEither` -> `encodeResult`
+
+### Decoding / Encoding API Removal
+
+The following APIs have been removed:
+
+- `validate`
+- `validateEither`
+- `validatePromise`
+- `validateSync`
+- `validateOption`
+
+v4
+
+Use `Schema.decode*` + `Schema.typeCodec` instead.
+
+**Example** (Migrating from `validateSync`)
+
+```ts
+import { Schema } from "effect/schema"
+
+const validateSync = Schema.decodeSync(Schema.typeCodec(Schema.String))
+```
+
+### Literals
+
+#### Null
+
+v3
+
+```ts
+import { Schema } from "effect"
+
+const schema = Schema.Literal(null)
+```
+
+v4
+
+```ts
+import { Schema } from "effect/schema"
+
+const schema = Schema.Null
+```
+
+#### Union of literals
+
+v3
+
+```ts
+import { Schema } from "effect"
+
+const schema = Schema.Literal("a", "b")
+```
+
+v4
+
+```ts
+import { Schema } from "effect/schema"
+
+const schema = Schema.Literals(["a", "b"])
+```
+
+#### pickLiterals
+
+v3
+
+```ts
+import { Schema } from "effect"
+
+// Schema.Literal<["a", "b"]>
+const schema = Schema.Literal("a", "b", "c").pipe(Schema.pickLiteral("a", "b"))
+```
+
+v4
+
+```ts
+import { Schema } from "effect/schema"
+
+// Literals<readonly ["a", "b"]>
+const schema = Schema.Literals(["a", "b", "c"]).pick(["a", "b"])
+```
+
 ## RWC References
 
 - https://github.com/Anastasia-Labs/lucid-evolution/blob/5068114c9f8f95c6b997d0d2233a9e9543632f35/packages/experimental/src/TSchema.ts#L353

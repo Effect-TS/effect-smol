@@ -2340,6 +2340,8 @@ export interface Literals<L extends ReadonlyArray<AST.Literal>> extends
    * Map over the members of the union.
    */
   mapMembers<To extends ReadonlyArray<Top>>(f: (members: this["members"]) => To): Union<Simplify<Readonly<To>>>
+
+  pick<const L2 extends ReadonlyArray<L[number]>>(literals: L2): Literals<L2>
 }
 
 class Literals$<L extends ReadonlyArray<AST.Literal>> extends make$<Literals<L>> implements Literals<L> {
@@ -2358,6 +2360,10 @@ class Literals$<L extends ReadonlyArray<AST.Literal>> extends make$<Literals<L>>
 
   mapMembers<To extends ReadonlyArray<Top>>(f: (members: this["members"]) => To): Union<Simplify<Readonly<To>>> {
     return Union(f(this.members))
+  }
+
+  pick<const L2 extends ReadonlyArray<L[number]>>(literals: L2): Literals<L2> {
+    return Literals(literals)
   }
 }
 
