@@ -2171,12 +2171,10 @@ describe("Schema", () => {
   })
 
   it("declareRefinement", async () => {
-    const schema = Schema.declareRefinement({
-      is: (u) => u instanceof File,
-      annotations: {
-        title: "File"
-      }
-    })
+    const schema = Schema.declare(
+      (u) => u instanceof File,
+      { title: "File" }
+    )
 
     await assertions.decoding.succeed(schema, new File([], "a.txt"))
     await assertions.decoding.fail(schema, "a", `Expected File, actual "a"`)
@@ -3057,10 +3055,9 @@ describe("Schema", () => {
         }
       }
 
-      const schema = Schema.instanceOf({
-        constructor: MyError,
-
-        annotations: {
+      const schema = Schema.instanceOf(
+        MyError,
+        {
           title: "MyError",
           defaultJsonSerializer: () =>
             Schema.link<MyError>()(
@@ -3071,7 +3068,7 @@ describe("Schema", () => {
               })
             )
         }
-      })
+      )
 
       assertions.formatter.formatAST(schema, `MyError`)
 

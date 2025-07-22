@@ -79,9 +79,9 @@ export interface schema extends Schema.declareRefinement<Headers> {}
  * @since 4.0.0
  * @category schemas
  */
-export const schema: schema = Schema.declareRefinement({
-  is: isHeaders,
-  annotations: {
+export const schema: schema = Schema.declare(
+  isHeaders,
+  {
     identifier: "Headers",
     equivalence: {
       _tag: "Declaration",
@@ -96,7 +96,7 @@ export const schema: schema = Schema.declareRefinement({
         })
       )
   }
-})
+)
 
 /**
  * @since 4.0.0

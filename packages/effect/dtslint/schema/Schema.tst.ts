@@ -997,9 +997,9 @@ describe("Schema", () => {
       }
     }
 
-    const schema = Schema.instanceOf({
-      constructor: MyError,
-      annotations: {
+    const schema = Schema.instanceOf(
+      MyError,
+      {
         title: "MyError",
         defaultJsonSerializer: () =>
           new AST.Link(
@@ -1010,7 +1010,7 @@ describe("Schema", () => {
             })
           )
       }
-    })
+    )
 
     expect(Schema.revealCodec(schema)).type.toBe<Schema.Codec<MyError, MyError, never, never>>()
     expect(schema).type.toBe<Schema.instanceOf<MyError>>()
@@ -1314,7 +1314,7 @@ describe("Schema", () => {
     })
 
     it("double brand", () => {
-      const schema = Schema.Number.pipe(Schema.brand("MyBrand")).pipe(Schema.brand("MyBrand2"))
+      const schema = Schema.Number.pipe(Schema.brand("MyBrand"), Schema.brand("MyBrand2"))
       expect(Schema.revealCodec(schema)).type.toBe<
         Schema.Codec<number & Brand.Brand<"MyBrand"> & Brand.Brand<"MyBrand2">, number, never, never>
       >()

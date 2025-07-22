@@ -1055,6 +1055,9 @@ class Literal$<L extends AST.Literal> extends make$<Literal<L>> implements Liter
 }
 
 /**
+ * @see {@link Literals} for a schema that represents a union of literals.
+ * @see {@link tag} for a schema that represents a literal value that can be
+ * used as a discriminator field in tagged unions and has a constructor default.
  * @since 4.0.0
  */
 export function Literal<L extends AST.Literal>(literal: L): Literal<L> {
@@ -2368,6 +2371,7 @@ class Literals$<L extends ReadonlyArray<AST.Literal>> extends make$<Literals<L>>
 }
 
 /**
+ * @see {@link Literal} for a schema that represents a single literal.
  * @category Constructors
  * @since 4.0.0
  */
@@ -3163,7 +3167,7 @@ export interface Option<S extends Top> extends declare<O.Option<S["Type"]>, O.Op
  * @since 4.0.0
  */
 export function Option<S extends Top>(value: S): Option<S> {
-  return declare([value])<O.Option<S["Encoded"]>>()(
+  return declareConstructor([value])<O.Option<S["Encoded"]>>()(
     ([value]) => (oinput, ast, options) => {
       if (O.isOption(oinput)) {
         if (O.isNone(oinput)) {
@@ -3243,7 +3247,7 @@ export interface Map$<Key extends Top, Value extends Top> extends
  * @since 4.0.0
  */
 export function Map<Key extends Top, Value extends Top>(key: Key, value: Value): Map$<Key, Value> {
-  return declare([key, value])<globalThis.Map<Key["Encoded"], Value["Encoded"]>>()(
+  return declareConstructor([key, value])<globalThis.Map<Key["Encoded"], Value["Encoded"]>>()(
     ([key, value]) => (input, ast, options) => {
       if (input instanceof globalThis.Map) {
         const array = Array(Tuple([key, value]))
@@ -3352,15 +3356,10 @@ export interface instanceOf<T> extends declare<T, T, readonly []> {
  * @since 4.0.0
  */
 export function instanceOf<C extends abstract new(...args: any) => any>(
-  options: {
-    readonly constructor: C
-    readonly annotations?: Annotations.Declaration<InstanceType<C>, readonly []> | undefined
-  }
+  constructor: C,
+  annotations?: Annotations.Declaration<InstanceType<C>, readonly []> | undefined
 ): instanceOf<InstanceType<C>> {
-  return declareRefinement({
-    is: (u): u is InstanceType<C> => u instanceof options.constructor,
-    annotations: options.annotations
-  })
+  return declare((u): u is InstanceType<C> => u instanceof constructor, annotations)
 }
 
 /**
@@ -3380,9 +3379,9 @@ export function link<T>() { // TODO: better name
  *
  * @since 4.0.0
  */
-export const URL = instanceOf({
-  constructor: globalThis.URL,
-  annotations: {
+export const URL = instanceOf(
+  globalThis.URL,
+  {
     title: "URL",
     defaultJsonSerializer: () =>
       link<URL>()(
@@ -3405,7 +3404,7 @@ export const URL = instanceOf({
       declaration: () => (a, b) => a.toString() === b.toString()
     }
   }
-})
+)
 
 /**
  * @since 4.0.0
@@ -3422,9 +3421,9 @@ export interface Date extends instanceOf<globalThis.Date> {
  *
  * @since 4.0.0
  */
-export const Date: Date = instanceOf({
-  constructor: globalThis.Date,
-  annotations: {
+export const Date: Date = instanceOf(
+  globalThis.Date,
+  {
     title: "Date",
     defaultJsonSerializer: () =>
       link<globalThis.Date>()(
@@ -3439,7 +3438,7 @@ export const Date: Date = instanceOf({
       declaration: () => (fc, ctx) => fc.date(ctx?.constraints?.DateConstraints)
     }
   }
-})
+)
 
 /**
  * @since 4.0.0
@@ -3969,18 +3968,16 @@ export interface declareRefinement<T> extends declare<T, T, readonly []> {
 /**
  * @since 4.0.0
  */
-export function declareRefinement<T>(
-  options: {
-    readonly is: (u: unknown) => u is T
-    annotations?: Annotations.Declaration<T, readonly []> | undefined
-  }
+export function declare<T>(
+  is: (u: unknown) => u is T,
+  annotations?: Annotations.Declaration<T, readonly []> | undefined
 ): declareRefinement<T> {
-  return declare([])<T>()(
+  return declareConstructor([])<T>()(
     () => (input, ast) =>
-      options.is(input) ?
+      is(input) ?
         Effect.succeed(input) :
         Effect.fail(new Issue.InvalidType(ast, O.some(input))),
-    options.annotations
+    annotations
   )
 }
 
@@ -3988,7 +3985,7 @@ export function declareRefinement<T>(
  * @category Constructors
  * @since 4.0.0
  */
-export function declare<const TypeParameters extends ReadonlyArray<Top>>(typeParameters: TypeParameters) {
+export function declareConstructor<const TypeParameters extends ReadonlyArray<Top>>(typeParameters: TypeParameters) {
   return <E>() =>
   <T>(
     run: (

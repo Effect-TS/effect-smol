@@ -167,9 +167,9 @@ export interface FileSchema extends Schema.declareRefinement<PersistedFile> {}
  * @since 4.0.0
  * @category Schemas
  */
-export const FileSchema: FileSchema = Schema.declareRefinement({
-  is: isPersistedFile,
-  annotations: {
+export const FileSchema: FileSchema = Schema.declare(
+  isPersistedFile,
+  {
     identifier: "PersistedFile",
     jsonSchema: {
       _tag: "Override",
@@ -179,7 +179,7 @@ export const FileSchema: FileSchema = Schema.declareRefinement({
       })
     }
   }
-})
+)
 
 /**
  * @since 4.0.0

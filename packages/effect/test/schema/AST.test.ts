@@ -42,12 +42,10 @@ describe("AST", () => {
       class A {
         readonly _tag = "A"
       }
-      const schema = Schema.instanceOf({
-        constructor: A,
-        annotations: {
-          "~sentinels": [{ key: "_tag", literal: "A" }]
-        }
-      })
+      const schema = Schema.instanceOf(
+        A,
+        { "~sentinels": [{ key: "_tag", literal: "A" }] }
+      )
       const ast = schema.ast
       deepStrictEqual(AST.collectSentinels(ast), [{ key: "_tag", literal: "A" }])
     })

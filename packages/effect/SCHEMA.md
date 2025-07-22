@@ -5137,6 +5137,8 @@ import { Schema } from "effect/schema"
 const schema = Schema.revealCodec(Schema.String)
 ```
 
+Reason: In v3, `Schema` was the interface that represented both the type and encoded types. In v4, this has been renamed to `Codec` to better reflect its dual nature of handling both the TypeScript type and its encoded representation. The method name was changed from `asSchema` to `revealCodec` to align with this new terminology.
+
 ### format
 
 v3
@@ -5208,6 +5210,11 @@ const schema = Schema.typeCodec(Schema.String)
 - `encodeUnknownEither` -> `encodeUnknownResult`
 - `encodeEither` -> `encodeResult`
 
+Reasons:
+
+- `Either` is now `Result`
+- `decode` is now an API that defines a transformation between schemas.
+
 ### Decoding / Encoding API Removal
 
 The following APIs have been removed:
@@ -5230,6 +5237,8 @@ import { Schema } from "effect/schema"
 const validateSync = Schema.decodeSync(Schema.typeCodec(Schema.String))
 ```
 
+Reason: the "validate" term was confusing for the users that don't know the difference between validation and decoding.
+
 ### Literals
 
 #### Null
@@ -5250,6 +5259,8 @@ import { Schema } from "effect/schema"
 const schema = Schema.Null
 ```
 
+Reason: the `null` literal must be often treated as a special case from many `AST` compilers, this change makes it easier to handle `null` literals in a more consistent way.
+
 #### Union of literals
 
 v3
@@ -5268,6 +5279,9 @@ import { Schema } from "effect/schema"
 const schema = Schema.Literals(["a", "b"])
 ```
 
+Reason: In v3, many users were unaware that the `Literal` constructor could accept multiple literals as arguments.
+The new `Literals` constructor in v4 makes it explicitly clear that it handles a union of multiple literal values.
+
 #### pickLiterals
 
 v3
@@ -5281,12 +5295,118 @@ const schema = Schema.Literal("a", "b", "c").pipe(Schema.pickLiteral("a", "b"))
 
 v4
 
+As a method `pick` on the `Literals` schema:
+
 ```ts
 import { Schema } from "effect/schema"
 
 // Literals<readonly ["a", "b"]>
 const schema = Schema.Literals(["a", "b", "c"]).pick(["a", "b"])
 ```
+
+### TemplateLiteral
+
+v3
+
+```ts
+import { Schema } from "effect"
+
+const schema = Schema.TemplateLiteral(Schema.String, ".", Schema.String)
+```
+
+v4
+
+```ts
+import { Schema } from "effect/schema"
+
+const schema = Schema.TemplateLiteral([Schema.String, ".", Schema.String])
+```
+
+Reason: The array syntax allows for future extensibility by making it possible to add an optional configuration object parameter after the array, similar to other Schema constructors. This would not have been possible with the previous variadic arguments approach.
+
+### TemplateLiteralParser
+
+v3
+
+```ts
+import { Schema } from "effect"
+
+const schema = Schema.TemplateLiteral(Schema.String, ".", Schema.String)
+
+const parser = Schema.TemplateLiteralParser(Schema.String, ".", Schema.String)
+```
+
+v4
+
+```ts
+import { Schema } from "effect/schema"
+
+const schema = Schema.TemplateLiteral([Schema.String, ".", Schema.String])
+
+// you are not forced to repeat the parts of the template literal,
+// you can use the `parts` property
+const parser = Schema.TemplateLiteralParser(schema.parts)
+```
+
+### declare
+
+### fromBrand
+
+### BigIntFromSelf
+
+Renamed to `Schema.BigInt`.
+
+Reason: In v3, schemas were primarily focused on transformations between different representations of data. In v4, schemas now directly represent TypeScript types, making them more intuitive and aligned with the type system. For example, `Schema.BigInt` represents the TypeScript `bigint` type, rather than being named `BigIntFromSelf` which emphasized the transformation aspect.
+
+### SymbolFromSelf
+
+Renamed to `Schema.Symbol`.
+
+Reason: In v3, schemas were primarily focused on transformations between different representations of data. In v4, schemas now directly represent TypeScript types, making them more intuitive and aligned with the type system. For example, `Schema.Symbol` represents the TypeScript `symbol` type, rather than being named `SymbolFromSelf` which emphasized the transformation aspect.
+
+### Union
+
+v3
+
+```ts
+import { Schema } from "effect"
+
+const schema = Schema.Union(Schema.String, Schema.Number)
+```
+
+v4
+
+The `Union` constructor now accepts an array of schemas as its argument, similar to `Tuple`.
+
+```ts
+import { Schema } from "effect/schema"
+
+const schema = Schema.Union([Schema.String, Schema.Number])
+```
+
+Reason: The array syntax allows for future extensibility by making it possible to add an optional configuration object parameter after the array, similar to other Schema constructors. This would not have been possible with the previous variadic arguments approach.
+
+### Tuple
+
+v3
+
+```ts
+import { Schema } from "effect"
+
+const schema = Schema.Tuple(Schema.String, Schema.Number)
+```
+
+v4
+
+The `Tuple` constructor now accepts an array of schemas as its argument, similar to `Union`.
+
+```ts
+import { Schema } from "effect/schema"
+
+const schema = Schema.Tuple([Schema.String, Schema.Number])
+```
+
+Reason: The array syntax allows for future extensibility by making it possible to add an optional configuration object parameter after the array, similar to other Schema constructors. This would not have been possible with the previous variadic arguments approach.
 
 ## RWC References
 

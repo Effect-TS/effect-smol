@@ -163,9 +163,9 @@ export interface schema extends Schema.declareRefinement<UrlParams> {}
  * @since 4.0.0
  * @category schemas
  */
-export const schema: schema = Schema.declareRefinement({
-  is: isUrlParams,
-  annotations: {
+export const schema: schema = Schema.declare(
+  isUrlParams,
+  {
     identifier: "UrlParams",
     equivalence: {
       _tag: "Declaration",
@@ -180,7 +180,7 @@ export const schema: schema = Schema.declareRefinement({
         })
       )
   }
-})
+)
 
 /**
  * @since 4.0.0

@@ -124,7 +124,7 @@ describe("Serializer", () => {
       class A {
         readonly _tag = "A"
       }
-      const schema = Schema.declareRefinement({ is: (u): u is A => u instanceof A })
+      const schema = Schema.declare((u): u is A => u instanceof A)
       await assertions.serialization.schema.fail(
         schema,
         new A(),
@@ -310,9 +310,9 @@ describe("Serializer", () => {
         }
       }
 
-      const schema = Schema.instanceOf({
-        constructor: MyError,
-        annotations: {
+      const schema = Schema.instanceOf(
+        MyError,
+        {
           title: "MyError",
           defaultJsonSerializer: () =>
             Schema.link<MyError>()(
@@ -323,7 +323,7 @@ describe("Serializer", () => {
               })
             )
         }
-      })
+      )
 
       await assertions.serialization.schema.succeed(schema, new MyError("a"), "a")
       await assertions.deserialization.schema.succeed(schema, "a", new MyError("a"))
@@ -342,9 +342,9 @@ describe("Serializer", () => {
           Object.setPrototypeOf(this, MyError.prototype)
         }
 
-        static schema = Schema.instanceOf({
-          constructor: MyError,
-          annotations: {
+        static schema = Schema.instanceOf(
+          MyError,
+          {
             title: "MyError",
             defaultJsonSerializer: () =>
               Schema.link<MyError>()(
@@ -358,7 +358,7 @@ describe("Serializer", () => {
                 })
               )
           }
-        })
+        )
       }
 
       const schema = MyError.schema
