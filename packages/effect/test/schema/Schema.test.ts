@@ -5587,3 +5587,19 @@ describe("Schema", () => {
     })
   })
 })
+
+describe("Getter", () => {
+  it("succeed", async () => {
+    const schema = Schema.Literal(0).pipe(Schema.decodeTo(Schema.Literal("a"), {
+      decode: Getter.succeed("a"),
+      encode: Getter.succeed(0)
+    }))
+
+    assertions.schema.format(schema, `"a"`)
+
+    await assertions.decoding.succeed(schema, 0, { expected: "a" })
+    await assertions.decoding.fail(schema, 1, `Expected 0, actual 1`)
+    await assertions.encoding.succeed(schema, "a", { expected: 0 })
+    await assertions.encoding.fail(schema, "b", `Expected "a", actual "b"`)
+  })
+})

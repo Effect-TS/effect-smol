@@ -5117,6 +5117,8 @@ Formatter.decodeUnknownEffect(Formatter.makeTree())(email)("a@b.com")
 
 ## Migration from v3
 
+The goal of this section is to stabilize the APIs for version 4, after identifying how many breaking changes there are and whether any v3 APIs are missing or have overly complex equivalents in v4.
+
 ### asSchema
 
 v3
@@ -5384,7 +5386,7 @@ import { Schema } from "effect/schema"
 const schema = Schema.Union([Schema.String, Schema.Number])
 ```
 
-Reason: The array syntax allows for future extensibility by making it possible to add an optional configuration object parameter after the array, similar to other Schema constructors. This would not have been possible with the previous variadic arguments approach.
+Reason: The array syntax made it possible to add an optional configuration object parameter after the array.
 
 ### Tuple
 
@@ -5407,6 +5409,551 @@ const schema = Schema.Tuple([Schema.String, Schema.Number])
 ```
 
 Reason: The array syntax allows for future extensibility by making it possible to add an optional configuration object parameter after the array, similar to other Schema constructors. This would not have been possible with the previous variadic arguments approach.
+
+### keyof
+
+### ArrayEnsure
+
+### NonEmptyArrayEnsure
+
+### withDefaults
+
+### fromKey
+
+### optionalToRequired
+
+### requiredToOptional
+
+### optionalToOptional
+
+### optionalWith
+
+#### exact
+
+v3
+
+```ts
+import { Schema } from "effect"
+
+const schema = Schema.Struct({
+  a: Schema.optionalWith(Schema.String, { exact: true })
+})
+```
+
+v4
+
+```ts
+import { Schema } from "effect/schema"
+
+const schema = Schema.Struct({
+  a: Schema.optionalKey(Schema.String)
+})
+```
+
+#### default
+
+v3
+
+```ts
+import { Schema } from "effect"
+
+const schema = Schema.Struct({
+  a: Schema.optionalWith(Schema.String, { default: () => "default value" })
+})
+```
+
+v4
+
+```ts
+import { Getter, Schema } from "effect/schema"
+
+const schema = Schema.Struct({
+  a: Schema.optionalKey(Schema.String).pipe(
+    Schema.decode({
+      decode: Getter.withDefault(() => "default value"),
+      encode: Getter.passthrough()
+    })
+  )
+})
+```
+
+### Record
+
+v3
+
+```ts
+import { Schema } from "effect"
+
+// Record$<typeof Schema.String, typeof Schema.Number>
+const schema = Schema.Record({ key: Schema.String, value: Schema.Number })
+```
+
+v4
+
+Positional arguments.
+
+```ts
+import { Schema } from "effect/schema"
+
+// Record$<Schema.String, Schema.Number> <- positional arguments
+const schema = Schema.Record(Schema.String, Schema.Number)
+```
+
+Reason: Using positional arguments for `Record` is more consistent with the type signature of `Record$<Key, Value>`. This makes the API more intuitive and easier to understand.
+
+### pick
+
+v3
+
+```ts
+import { Schema } from "effect"
+
+/*
+const schema: Schema.SchemaClass<{
+    readonly a: string;
+}, {
+    readonly a: string;
+}, never>
+*/
+const schema = Schema.Struct({
+  a: Schema.String,
+  b: Schema.Number
+}).pipe(Schema.pick("a"))
+```
+
+v4
+
+```ts
+import { Struct } from "effect/data"
+import { Schema } from "effect/schema"
+
+/*
+const schema: Schema.Struct<{
+    readonly a: Schema.String;
+}>
+*/
+const schema = Schema.Struct({
+  a: Schema.String,
+  b: Schema.Number
+}).mapFields(Struct.pick(["a"]))
+```
+
+### omit
+
+v3
+
+```ts
+import { Schema } from "effect"
+
+/*
+const schema: Schema.SchemaClass<{
+    readonly a: string;
+}, {
+    readonly a: string;
+}, never>
+*/
+const schema = Schema.Struct({
+  a: Schema.String,
+  b: Schema.Number
+}).pipe(Schema.omit("b"))
+```
+
+v4
+
+```ts
+import { Struct } from "effect/data"
+import { Schema } from "effect/schema"
+
+/*
+const schema: Schema.Struct<{
+    readonly a: Schema.String;
+}>
+*/
+const schema = Schema.Struct({
+  a: Schema.String,
+  b: Schema.Number
+}).mapFields(Struct.omit(["b"]))
+```
+
+### pluck
+
+### partial
+
+v3
+
+```ts
+import { Schema } from "effect"
+
+/*
+const schema: Schema.SchemaClass<{
+    readonly a?: string | undefined;
+    readonly b?: number | undefined;
+}, {
+    readonly a?: string | undefined;
+    readonly b?: number | undefined;
+}, never>
+*/
+const schema = Schema.Struct({
+  a: Schema.String,
+  b: Schema.Number
+}).pipe(Schema.partial)
+```
+
+v4
+
+```ts
+import { Struct } from "effect/data"
+import { Schema } from "effect/schema"
+
+/*
+const schema: Schema.Struct<{
+    readonly a: Schema.optional<Schema.String>;
+    readonly b: Schema.optional<Schema.Number>;
+}>
+*/
+const schema = Schema.Struct({
+  a: Schema.String,
+  b: Schema.Number
+}).mapFields(Struct.map(Schema.optional))
+```
+
+### partialWith
+
+v3
+
+```ts
+import { Schema } from "effect"
+
+/*
+const schema: Schema.SchemaClass<{
+    readonly a?: string;
+    readonly b?: number;
+}, {
+    readonly a?: string;
+    readonly b?: number;
+}, never>
+*/
+const schema = Schema.Struct({
+  a: Schema.String,
+  b: Schema.Number
+}).pipe(Schema.partialWith({ exact: true }))
+```
+
+v4
+
+```ts
+import { Struct } from "effect/data"
+import { Schema } from "effect/schema"
+
+/*
+const schema: Schema.Struct<{
+    readonly a: Schema.optionalKey<Schema.String>;
+    readonly b: Schema.optionalKey<Schema.Number>;
+}>
+*/
+const schema = Schema.Struct({
+  a: Schema.String,
+  b: Schema.Number
+}).mapFields(Struct.map(Schema.optionalKey))
+```
+
+### required
+
+### extend
+
+#### Struct extends Struct
+
+v3
+
+```ts
+import { Schema } from "effect"
+
+const schema = Schema.Struct({
+  a: Schema.String,
+  b: Schema.Number
+}).pipe(Schema.extend(Schema.Struct({ c: Schema.Number })))
+```
+
+v4
+
+```ts
+import { Struct } from "effect/data"
+import { Schema } from "effect/schema"
+
+/*
+const schema: Schema.Struct<{
+    readonly a: Schema.String;
+    readonly b: Schema.Number;
+    readonly c: Schema.Number;
+}>
+*/
+const schema = Schema.Struct({
+  a: Schema.String,
+  b: Schema.Number
+}).mapFields(Struct.merge({ c: Schema.Number }))
+```
+
+Note that the result is more precise than the v3 result, it is still a `Struct` schema.
+
+#### Union extends Struct
+
+v3
+
+```ts
+import { Schema } from "effect"
+
+const schema = Schema.Union(
+  Schema.Struct({
+    a: Schema.String
+  }),
+  Schema.Struct({
+    b: Schema.Number
+  })
+).pipe(Schema.extend(Schema.Struct({ c: Schema.Boolean })))
+```
+
+v4
+
+```ts
+import { Struct, Tuple } from "effect/data"
+import { Schema } from "effect/schema"
+
+/*
+const schema: Schema.Union<readonly [Schema.Struct<{
+    readonly a: Schema.String;
+    readonly c: Schema.Number;
+}>, Schema.Struct<{
+    readonly b: Schema.Number;
+    readonly c: Schema.Number;
+}>]>
+*/
+const schema = Schema.Union([
+  Schema.Struct({
+    a: Schema.String
+  }),
+  Schema.Struct({
+    b: Schema.Number
+  })
+]).mapMembers(
+  Tuple.evolve([
+    (s) => s.mapFields(Struct.merge({ c: Schema.Number })),
+    (s) => s.mapFields(Struct.merge({ c: Schema.Number }))
+  ])
+)
+```
+
+### compose
+
+v3
+
+```ts
+import { Schema } from "effect"
+
+const schema = Schema.Trim.pipe(Schema.compose(Schema.NumberFromString))
+```
+
+v4
+
+```ts
+import { Schema } from "effect/schema"
+
+const schema = Schema.Trim.pipe(Schema.decodeTo(Schema.FiniteFromString))
+```
+
+### filter
+
+#### Inline filter
+
+v3
+
+```ts
+import { Schema } from "effect"
+
+const schema = Schema.String.pipe(Schema.filter((s) => s.length > 0))
+```
+
+v4
+
+```ts
+import { Check, Schema } from "effect/schema"
+
+const schema = Schema.String.check(Check.make((s) => s.length > 0))
+```
+
+#### Refinement
+
+v3
+
+```ts
+import { Schema, Option } from "effect"
+
+const schema = Schema.Option(Schema.String).pipe(Schema.filter(Option.isSome))
+```
+
+v4
+
+```ts
+import { Option } from "effect/data"
+import { Schema } from "effect/schema"
+
+const schema = Schema.Option(Schema.String).pipe(Schema.guard(Option.isSome))
+```
+
+### filterEffect
+
+v3
+
+```ts
+import { Effect, Schema } from "effect"
+
+// Mock
+async function validateUsername(username: string) {
+  return Promise.resolve(username === "gcanti")
+}
+
+const ValidUsername = Schema.String.pipe(
+  Schema.filterEffect((username) =>
+    Effect.promise(() => validateUsername(username).then((valid) => valid || "Invalid username"))
+  )
+)
+
+Effect.runPromise(Schema.decodeUnknown(ValidUsername)("xxx")).then(console.log)
+/*
+ParseError: (string <-> string)
+└─ Transformation process failure
+   └─ Invalid username
+*/
+```
+
+v4
+
+```ts
+import { Effect } from "effect"
+import { Formatter, Getter, Schema } from "effect/schema"
+
+// Mock
+async function validateUsername(username: string) {
+  return Promise.resolve(username === "gcanti")
+}
+
+const ValidUsername = Schema.String.pipe(
+  Schema.decode({
+    decode: Getter.checkEffect((username) =>
+      Effect.promise(() => validateUsername(username).then((valid) => valid || "Invalid username"))
+    ),
+    encode: Getter.passthrough()
+  })
+)
+
+Formatter.decodeUnknownEffect(Formatter.makeTree())(ValidUsername)("xxx")
+  .pipe(Effect.runPromise)
+  .then(console.log, console.error)
+/*
+Invalid username
+*/
+```
+
+### transformOrFail
+
+v3
+
+```ts
+import { ParseResult, Schema } from "effect"
+
+const NumberFromString = Schema.transformOrFail(Schema.String, Schema.Number, {
+  strict: true,
+  decode: (input, _, ast) => {
+    const parsed = parseFloat(input)
+    if (isNaN(parsed)) {
+      return ParseResult.fail(new ParseResult.Type(ast, input, "Failed to convert string to number"))
+    }
+    return ParseResult.succeed(parsed)
+  },
+  encode: (input) => ParseResult.succeed(input.toString())
+})
+```
+
+v4
+
+```ts
+import { Effect } from "effect"
+import { Option } from "effect/data"
+import { Getter, Issue, Schema } from "effect/schema"
+
+// manual
+const NumberFromString = Schema.String.pipe(
+  Schema.decodeTo(Schema.Number, {
+    decode: Getter.mapOrFail((input) => {
+      const parsed = parseFloat(input)
+      if (isNaN(parsed)) {
+        return Effect.fail(
+          new Issue.InvalidValue(Option.some(input), { message: "Failed to convert string to number" })
+        )
+      }
+      return Effect.succeed(parsed)
+    }),
+    encode: Getter.map((input) => input.toString())
+  })
+)
+
+// idiomatic
+const NumberFromString2 = Schema.String.pipe(
+  Schema.decodeTo(Schema.Finite, {
+    decode: Getter.Number(),
+    encode: Getter.String()
+  })
+)
+```
+
+### transform
+
+v3
+
+```ts
+import { Schema } from "effect"
+
+const BooleanFromString = Schema.transform(Schema.Literal("on", "off"), Schema.Boolean, {
+  strict: true,
+  decode: (literal) => literal === "on",
+  encode: (bool) => (bool ? "on" : "off")
+})
+```
+
+v4
+
+```ts
+import { Getter, Schema } from "effect/schema"
+
+const BooleanFromString = Schema.Literals(["on", "off"]).pipe(
+  Schema.decodeTo(Schema.Boolean, {
+    decode: Getter.map((literal) => literal === "on"),
+    encode: Getter.map((bool) => (bool ? "on" : "off"))
+  })
+)
+```
+
+### transformLiteral
+
+v3
+
+```ts
+import { Schema } from "effect"
+
+const schema = Schema.transformLiteral(0, "a")
+```
+
+v4
+
+```ts
+import { Getter, Schema } from "effect/schema"
+
+const schema = Schema.Literal(0).pipe(
+  Schema.decodeTo(Schema.Literal("a"), {
+    decode: Getter.succeed("a"),
+    encode: Getter.succeed(0)
+  })
+)
+```
 
 ## RWC References
 

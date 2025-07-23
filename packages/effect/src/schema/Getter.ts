@@ -42,6 +42,14 @@ export class Getter<out T, in E, R = never> extends PipeableClass {
 }
 
 /**
+ * @category constructors
+ * @since 4.0.0
+ */
+export function succeed<const T, E>(t: T): Getter<T, E> {
+  return new Getter(() => Effect.succeedSome(t))
+}
+
+/**
  * Fail with an issue.
  *
  * @category constructors
