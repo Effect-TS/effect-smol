@@ -335,7 +335,7 @@ const makeFile = (() => {
     private writeAllChunk(buffer: Uint8Array): Effect.Effect<void, Error.PlatformError> {
       return Effect.suspend(() => {
         const position = this.position
-        return Effect.map(
+        return Effect.flatMap(
           nodeWriteAll(this.fd, buffer, undefined, undefined, this.append ? undefined : Number(position)),
           (bytesWritten) => {
             if (bytesWritten === 0) {

@@ -3606,7 +3606,7 @@ export const fork: {
   }
 ): Effect.Effect<Fiber.Fiber<A, E>, never, R> =>
   withFiber((fiber) => {
-    fiberMiddleware.interruptChildren ??= fiberInterruptChildren
+    interruptChildrenPatch()
     return succeed(unsafeFork(
       fiber,
       self,
@@ -4826,3 +4826,8 @@ export const defaultLogger = loggerMake<unknown, void>(({ cause, date, fiber, lo
   const console = fiber.getRef(ConsoleRef)
   console.log(`[${defaultDateFormat(date)}] ${logLevel.toUpperCase()} (#${fiber.id})${spanString}:`, ...message_)
 })
+
+/** @internal */
+export function interruptChildrenPatch() {
+  fiberMiddleware.interruptChildren ??= fiberInterruptChildren
+}

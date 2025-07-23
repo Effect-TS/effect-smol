@@ -362,7 +362,7 @@ export const fromFunctionBatched = <A extends Request.Any>(
 export const fromEffect = <A extends Request.Any>(
   f: (entry: Request.Entry<A>) => Effect<Request.Success<A>, Request.Error<A>>
 ): RequestResolver<A> => {
-  effect.fork(effect.void) // ensure middleware is registered
+  effect.interruptChildrenPatch() // ensure middleware is registered
   return make((entries) =>
     effect.callback<void>((resume) => {
       const parent = effect.getCurrentFiber()!

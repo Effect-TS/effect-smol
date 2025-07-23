@@ -4,7 +4,6 @@
     // Use incremental builds with project references.
     "incremental": true,
     "composite": true,
-
     // Target modern JavaScript (ES2022+) whilst staying closely compatible with the Node.js module system.
     "target": "ES2022",
     "module": "NodeNext",
@@ -14,18 +13,15 @@
     "allowJs": false, // If you touch this, a puppy dies.
     "rewriteRelativeImportExtensions": true, // Rewrite `.ts` imports to `.js` at build time.
     "erasableSyntaxOnly": true, // Allows to run directly with node and type removal
-
     // Emit source- & declaration maps.
     "declarationMap": true,
     "sourceMap": true,
-
     // Opt-in to stricter type checking and correctness guard rails. The more the merrier.
     "strict": true,
     "exactOptionalPropertyTypes": true,
     "noUnusedLocals": true,
     "noImplicitOverride": true,
     "noFallthroughCasesInSwitch": true,
-
     // Miscellaneoaus
     "skipLibCheck": true, // Skip type checking of third party libraries.
     "noErrorTruncation": false, // Do not truncate error messages.
@@ -33,6 +29,7 @@
     "plugins": [
       {
         "name": "@effect/language-service",
+        "transform": "@effect/language-service/transform",
         "namespaceImportPackages": [
           "effect",
           "@effect/*"

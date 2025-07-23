@@ -1574,6 +1574,7 @@ const makeUnimplemented = (error: globalThis.Error) => {
   function unimplemented() {
     return dead
   }
+  // @effect-diagnostics-next-line floatingEffect:off
   Object.assign(unimplemented, dead)
   Object.setPrototypeOf(unimplemented, Object.getPrototypeOf(dead))
   return unimplemented
