@@ -82,27 +82,12 @@ import type * as Types from "../types/Types.ts"
 import type * as Unify from "../types/Unify.ts"
 
 /**
- * @example
- * ```ts
- * import { Channel } from "effect/stream"
- *
- * console.log(Channel.TypeId) // "~effect/Channel"
- * ```
- *
  * @since 4.0.0
  * @category symbols
  */
 export const TypeId: TypeId = "~effect/Channel"
 
 /**
- * @example
- * ```ts
- * import { Channel } from "effect/stream"
- *
- * // TypeId is used for type identification
- * type MyTypeId = Channel.TypeId // "~effect/Channel"
- * ```
- *
  * @since 4.0.0
  * @category symbols
  */
@@ -190,19 +175,6 @@ export interface Channel<
 }
 
 /**
- * @example
- * ```ts
- * import { Channel } from "effect/stream"
- * import * as Unify from "effect/types/Unify"
- *
- * // ChannelUnify helps with type inference when using generic operations
- * // This is typically used internally by the Effect system
- * type SampleChannel = Channel.Channel<string, Error, number>
- * type UnifiedChannel = Channel.ChannelUnify<{
- *   [Unify.typeSymbol]?: SampleChannel
- * }>
- * ```
- *
  * @since 2.0.0
  * @category models
  */
@@ -214,15 +186,6 @@ export interface ChannelUnify<A extends { [Unify.typeSymbol]?: any }> extends Ef
 }
 
 /**
- * @example
- * ```ts
- * import { Channel } from "effect/stream"
- *
- * // ChannelUnifyIgnore is used to control type unification behavior
- * // This is typically used internally by the Effect system
- * type IgnoreConfig = Channel.ChannelUnifyIgnore
- * ```
- *
  * @category models
  * @since 2.0.0
  */
@@ -231,15 +194,6 @@ export interface ChannelUnifyIgnore extends Effect.EffectUnifyIgnore {
 }
 
 /**
- * @example
- * ```ts
- * import { Channel } from "effect/stream"
- *
- * // Variance interface defines the variance annotations for Channel types
- * // This ensures proper type safety for contravariant and covariant positions
- * type StringChannel = Channel.Channel<string, Error, number>
- * ```
- *
  * @since 2.0.0
  * @category models
  */
@@ -255,16 +209,6 @@ export interface Variance<
   readonly [TypeId]: VarianceStruct<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>
 }
 /**
- * @example
- * ```ts
- * import { Channel } from "effect/stream"
- *
- * // VarianceStruct contains the actual variance markers for type checking
- * // This is used internally to ensure proper subtyping relationships
- * type StringChannel = Channel.Channel<string, Error, number>
- * // VarianceStruct is used internally for type variance
- * ```
- *
  * @since 2.0.0
  * @category models
  */
@@ -1301,13 +1245,9 @@ export const fromSubscription = <A>(
  * @category constructors
  */
 export const fromSubscriptionArray = <A>(
-  subscription: PubSub.Subscription<A>,
-  chunkSize = DefaultChunkSize
+  subscription: PubSub.Subscription<A>
 ): Channel<Arr.NonEmptyReadonlyArray<A>> =>
-  fromPull(Effect.succeed(Effect.onInterrupt(
-    PubSub.takeBetween(subscription, 1, chunkSize) as Effect.Effect<Arr.NonEmptyArray<A>>,
-    Pull.haltVoid
-  )))
+  fromPull(Effect.succeed(Effect.onInterrupt(PubSub.takeAll(subscription), Pull.haltVoid)))
 
 /**
  * Create a channel from a PubSub that outputs individual values.
@@ -1555,11 +1495,8 @@ export const fromPubSub = <A>(
  * @since 4.0.0
  * @category constructors
  */
-export const fromPubSubArray = <A>(
-  pubsub: PubSub.PubSub<A>,
-  chunkSize = DefaultChunkSize
-): Channel<Arr.NonEmptyReadonlyArray<A>> =>
-  unwrap(Effect.map(PubSub.subscribe(pubsub), (sub) => fromSubscriptionArray(sub, chunkSize)))
+export const fromPubSubArray = <A>(pubsub: PubSub.PubSub<A>): Channel<Arr.NonEmptyReadonlyArray<A>> =>
+  unwrap(Effect.map(PubSub.subscribe(pubsub), (sub) => fromSubscriptionArray(sub)))
 
 /**
  * Creates a Channel from a Schedule.
@@ -1783,7 +1720,8 @@ const mapEffectConcurrent = <
         // - 1 for the offer *after* starting a fiber
         // - 1 for the current processing fiber
         const fibers = yield* Queue.bounded<
-          Effect.Effect<Exit.Exit<OutElem2, OutErr | EX | Pull.Halt<OutDone>>>
+          Effect.Effect<Exit.Exit<OutElem2, OutErr | EX | Pull.Halt<OutDone>>>,
+          Queue.Done
         >(concurrencyN - 2)
         yield* Scope.addFinalizer(forkedScope, Queue.shutdown(queue))
 

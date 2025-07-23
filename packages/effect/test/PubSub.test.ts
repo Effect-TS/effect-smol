@@ -2,7 +2,6 @@ import { assert, describe, it } from "@effect/vitest"
 import { Effect } from "effect"
 import { Array } from "effect/collections"
 import { PubSub } from "effect/concurrency"
-import { Option } from "effect/data"
 import { pipe } from "effect/Function"
 import { Fiber } from "effect/runtime"
 
@@ -392,14 +391,14 @@ describe("PubSub", () => {
       const pubsub = yield* PubSub.dropping<number>(2)
       yield* PubSub.publish(pubsub, 1)
       yield* PubSub.publish(pubsub, 2)
-      assert.deepStrictEqual(PubSub.unsafeSize(pubsub), Option.some(0))
+      assert.deepStrictEqual(PubSub.unsafeSize(pubsub), 0)
     }))
 
   it.effect("publishAll does not increase size while no subscribers", () =>
     Effect.gen(function*() {
       const pubsub = yield* PubSub.dropping<number>(2)
       yield* PubSub.publishAll(pubsub, [1, 2])
-      assert.deepStrictEqual(PubSub.unsafeSize(pubsub), Option.some(0))
+      assert.deepStrictEqual(PubSub.unsafeSize(pubsub), 0)
     }))
 
   describe("replay", () => {

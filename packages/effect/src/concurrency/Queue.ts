@@ -38,7 +38,6 @@ import * as Arr from "../collections/Array.ts"
 import * as Iterable from "../collections/Iterable.ts"
 import * as MutableList from "../collections/MutableList.ts"
 import * as Filter from "../data/Filter.ts"
-import * as Option from "../data/Option.ts"
 import { hasProperty } from "../data/Predicate.ts"
 import type { Effect } from "../Effect.ts"
 import type { Exit, Failure } from "../Exit.ts"
@@ -270,7 +269,7 @@ const QueueProto = {
     return {
       _id: "effect/Queue",
       state: this.state._tag,
-      size: unsafeSize(this).toJSON()
+      size: unsafeSize(this)
     }
   }
 }
@@ -310,7 +309,7 @@ const QueueProto = {
  * })
  * ```
  */
-export const make = <A, E = Done>(
+export const make = <A, E = never>(
   options?: {
     readonly capacity?: number | undefined
     readonly strategy?: "suspend" | "dropping" | "sliding" | undefined
@@ -361,7 +360,7 @@ export const make = <A, E = Done>(
  * @since 2.0.0
  * @category constructors
  */
-export const bounded = <A, E = Done>(capacity: number): Effect<Queue<A, E>> => make({ capacity })
+export const bounded = <A, E = never>(capacity: number): Effect<Queue<A, E>> => make({ capacity })
 
 /**
  * Creates a bounded queue with sliding strategy. When the queue reaches capacity,
@@ -397,7 +396,7 @@ export const bounded = <A, E = Done>(capacity: number): Effect<Queue<A, E>> => m
  * @since 2.0.0
  * @category constructors
  */
-export const sliding = <A, E = Done>(capacity: number): Effect<Queue<A, E>> => make({ capacity, strategy: "sliding" })
+export const sliding = <A, E = never>(capacity: number): Effect<Queue<A, E>> => make({ capacity, strategy: "sliding" })
 
 /**
  * Creates a bounded queue with dropping strategy. When the queue reaches capacity,
@@ -434,7 +433,8 @@ export const sliding = <A, E = Done>(capacity: number): Effect<Queue<A, E>> => m
  * @since 2.0.0
  * @category constructors
  */
-export const dropping = <A, E = Done>(capacity: number): Effect<Queue<A, E>> => make({ capacity, strategy: "dropping" })
+export const dropping = <A, E = never>(capacity: number): Effect<Queue<A, E>> =>
+  make({ capacity, strategy: "dropping" })
 
 /**
  * Creates an unbounded queue that can grow to any size without blocking producers.
@@ -469,7 +469,7 @@ export const dropping = <A, E = Done>(capacity: number): Effect<Queue<A, E>> => 
  * @since 2.0.0
  * @category constructors
  */
-export const unbounded = <A, E = Done>(): Effect<Queue<A, E>> => make()
+export const unbounded = <A, E = never>(): Effect<Queue<A, E>> => make()
 
 /**
  * Add a message to the queue. Returns `false` if the queue is done.
@@ -1315,8 +1315,7 @@ import * as Option from "effect/data/Option"
  * @category size
  * @since 4.0.0
  */
-export const size = <A, E>(self: Dequeue<A, E>): Effect<Option.Option<number>> =>
-  internalEffect.sync(() => unsafeSize(self))
+export const size = <A, E>(self: Dequeue<A, E>): Effect<number> => internalEffect.sync(() => unsafeSize(self))
 
 /**
  * Check the size of the queue synchronously.
@@ -1359,8 +1358,7 @@ import * as Option from "effect/data/Option"
  * @category size
  * @since 4.0.0
  */
-export const unsafeSize = <A, E>(self: Dequeue<A, E>): Option.Option<number> =>
-  self.state._tag === "Done" ? Option.none() : Option.some(self.messages.length)
+export const unsafeSize = <A, E>(self: Dequeue<A, E>): number => self.state._tag === "Done" ? 0 : self.messages.length
 
 /**
  * Convert a Queue to a Dequeue, allowing only read operations.

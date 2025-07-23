@@ -83,7 +83,7 @@ describe("Channel", () => {
     it.effect("merge - interrupts left side if halt strategy is set to 'right'", () =>
       Effect.gen(function*() {
         const latch = yield* Effect.makeLatch(false)
-        const leftQueue = yield* Queue.make<number>()
+        const leftQueue = yield* Queue.make<number, Queue.Done>()
         const rightQueue = yield* Queue.make<number>()
         const left = Channel.fromQueue(rightQueue)
         const right = Channel.fromQueue(leftQueue).pipe(
@@ -103,7 +103,7 @@ describe("Channel", () => {
     it.effect("merge - interrupts right side if halt strategy is set to 'left'", () =>
       Effect.gen(function*() {
         const latch = yield* Effect.makeLatch(false)
-        const leftQueue = yield* Queue.make<number>()
+        const leftQueue = yield* Queue.make<number, Queue.Done>()
         const rightQueue = yield* Queue.make<number>()
         const left = Channel.fromQueue(leftQueue).pipe(
           Channel.ensuring(latch.open)

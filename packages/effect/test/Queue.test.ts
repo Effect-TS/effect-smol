@@ -80,7 +80,7 @@ describe("Queue", () => {
 
   it.effect("done completes takes", () =>
     Effect.gen(function*() {
-      const queue = yield* Queue.bounded<number>(2)
+      const queue = yield* Queue.bounded<number, Queue.Done>(2)
       const fiber = yield* Queue.takeAll(queue).pipe(
         Effect.fork
       )
@@ -91,7 +91,7 @@ describe("Queue", () => {
 
   it.effect("end", () =>
     Effect.gen(function*() {
-      const queue = yield* Queue.bounded<number>(2)
+      const queue = yield* Queue.bounded<number, Queue.Done>(2)
       yield* Effect.fork(Queue.offerAll(queue, [1, 2, 3, 4]))
       yield* Effect.fork(Queue.offerAll(queue, [5, 6, 7, 8]))
       yield* Effect.fork(Queue.offer(queue, 9))
@@ -104,7 +104,7 @@ describe("Queue", () => {
 
   it.effect("end with take", () =>
     Effect.gen(function*() {
-      const queue = yield* Queue.bounded<number>(2)
+      const queue = yield* Queue.bounded<number, Queue.Done>(2)
       yield* Effect.fork(Queue.offerAll(queue, [1, 2]))
       yield* Effect.fork(Queue.offer(queue, 3))
       yield* Effect.fork(Queue.end(queue))
@@ -164,7 +164,7 @@ describe("Queue", () => {
 
   it.effect("await waits for no items", () =>
     Effect.gen(function*() {
-      const queue = yield* Queue.unbounded<number>()
+      const queue = yield* Queue.unbounded<number, Queue.Done>()
       const fiber = yield* Queue.await(queue).pipe(Effect.fork)
       yield* Effect.yieldNow
       yield* Queue.offer(queue, 1)

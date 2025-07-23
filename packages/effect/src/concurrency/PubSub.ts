@@ -47,15 +47,6 @@ import type { Covariant, Invariant } from "../types/Types.ts"
 /**
  * The type identifier for PubSub instances.
  *
- * @example
- * ```ts
- * import { PubSub } from "effect/concurrency"
- *
- * // Check if a value is a PubSub instance
- * declare const pubsub: PubSub.PubSub<string>
- * console.log(pubsub[PubSub.TypeId] !== undefined) // true
- * ```
- *
  * @since 4.0.0
  * @category symbols
  */
@@ -63,16 +54,6 @@ export const TypeId: TypeId = "~effect/PubSub"
 
 /**
  * The type identifier type for PubSub instances.
- *
- * @example
- * ```ts
- * import { PubSub } from "effect/concurrency"
- *
- * // Use in type guards or type checking
- * const isPubSub = (value: unknown): value is PubSub.PubSub<unknown> =>
- *   typeof value === "object" && value !== null &&
- *   PubSub.TypeId in value
- * ```
  *
  * @since 4.0.0
  * @category symbols
@@ -123,33 +104,12 @@ export interface PubSub<in out A> extends Pipeable {
 }
 
 /**
- * The PubSub namespace containing types and interfaces used by PubSub implementations.
- *
- * @example
- * ```ts
- * import type { PubSub } from "effect/concurrency"
- *
- * // Access types from the namespace
- * type PubSubType<A> = PubSub.PubSub<A>
- * type SubscriptionType<A> = PubSub.Subscription<A>
- * ```
- *
  * @since 2.0.0
  * @category models
  */
 export namespace PubSub {
   /**
    * Low-level atomic PubSub interface that handles the core message storage and retrieval.
-   *
-   * @example
-   * ```ts
-   * import { PubSub } from "effect/concurrency"
-   *
-   * // This interface is used internally by PubSub implementations
-   * // Access through the main PubSub API instead
-   * declare const pubsub: PubSub.PubSub<string>
-   * console.log("Atomic interface provides low-level message storage")
-   * ```
    *
    * @since 4.0.0
    * @category models
@@ -169,16 +129,6 @@ export namespace PubSub {
   /**
    * Low-level subscription interface that handles message polling for individual subscribers.
    *
-   * @example
-   * ```ts
-   * import { PubSub } from "effect/concurrency"
-   *
-   * // This interface is used internally by subscription implementations
-   * // Access through the main PubSub subscription API instead
-   * declare const subscription: PubSub.Subscription<string>
-   * console.log("BackingSubscription interface handles message polling")
-   * ```
-   *
    * @since 4.0.0
    * @category models
    */
@@ -193,15 +143,6 @@ export namespace PubSub {
   /**
    * Internal type representing the mapping from subscriptions to their pollers.
    *
-   * @example
-   * ```ts
-   * import { PubSub } from "effect/concurrency"
-   *
-   * // This type is used internally to track subscribers
-   * declare const pubsub: PubSub.PubSub<string>
-   * console.log("Subscribers type is used internally for subscription management")
-   * ```
-   *
    * @since 4.0.0
    * @category models
    */
@@ -212,20 +153,6 @@ export namespace PubSub {
 
   /**
    * Interface for accessing replay buffer contents for late subscribers.
-   *
-   * @example
-   * ```ts
-   * import { PubSub } from "effect/concurrency"
-   *
-   * // Access replay window from a subscription
-   * declare const subscription: PubSub.Subscription<string>
-   * const replayWindow = subscription.replayWindow
-   *
-   * // Take messages from replay buffer
-   * const message = replayWindow.take()
-   * const messages = replayWindow.takeAll()
-   * console.log("Remaining in replay:", replayWindow.remaining)
-   * ```
    *
    * @since 4.0.0
    * @category models
@@ -239,24 +166,6 @@ export namespace PubSub {
 
   /**
    * Strategy interface defining how PubSub handles backpressure and message distribution.
-   *
-   * @example
-   * ```ts
-   * import { Effect } from "effect"
-import * as PubSub from "effect/concurrency/PubSub"
-   *
-   * // Strategy defines how PubSub handles backpressure
-   * const program = Effect.gen(function* () {
-   *   // Create a bounded PubSub (uses BackPressure strategy by default)
-   *   const pubsub = yield* PubSub.bounded<string>(10)
-   *
-   *   // You can also create with sliding or dropping strategies
-   *   const slidingPubSub = yield* PubSub.sliding<string>(10)
-   *   const droppingPubSub = yield* PubSub.dropping<string>(10)
-   *
-   *   return pubsub
-   * })
-   * ```
    *
    * @since 4.0.0
    * @category models
@@ -313,15 +222,6 @@ import * as PubSub from "effect/concurrency/PubSub"
 /**
  * The type identifier for Subscription instances.
  *
- * @example
- * ```ts
- * import { PubSub } from "effect/concurrency"
- *
- * // Check if a value is a Subscription instance
- * declare const subscription: PubSub.Subscription<string>
- * console.log(subscription[PubSub.SubscriptionTypeId] !== undefined) // true
- * ```
- *
  * @since 4.0.0
  * @category symbols
  */
@@ -329,16 +229,6 @@ export const SubscriptionTypeId: SubscriptionTypeId = "~effect/PubSub/Subscripti
 
 /**
  * The type identifier type for Subscription instances.
- *
- * @example
- * ```ts
- * import { PubSub } from "effect/concurrency"
- *
- * // Use in type guards
- * const isSubscription = (value: unknown): value is PubSub.Subscription<unknown> =>
- *   typeof value === "object" && value !== null &&
- *   PubSub.SubscriptionTypeId in value
- * ```
  *
  * @since 4.0.0
  * @category symbols
@@ -606,26 +496,6 @@ export const unbounded = <A>(options?: {
 /**
  * Creates a bounded atomic PubSub implementation with optional replay buffer.
  *
- * @example
- * ```ts
- * import { PubSub } from "effect/concurrency"
- *
- * // Create bounded atomic PubSub
- * const atomic1 = PubSub.makeAtomicBounded<string>(10)
- *
- * // With replay buffer for late subscribers
- * const atomic2 = PubSub.makeAtomicBounded<string>({
- *   capacity: 10,
- *   replay: 5
- * })
- *
- * // Use the atomic PubSub
- * const published = atomic1.publish("Hello")
- * console.log("Published:", published)
- * console.log("Capacity:", atomic1.capacity)
- * console.log("Size:", atomic1.size())
- * ```
- *
  * @since 4.0.0
  * @category constructors
  */
@@ -649,25 +519,6 @@ export const makeAtomicBounded = <A>(
 
 /**
  * Creates an unbounded atomic PubSub implementation with optional replay buffer.
- *
- * @example
- * ```ts
- * import { PubSub } from "effect/concurrency"
- *
- * // Create unbounded atomic PubSub
- * const atomic1 = PubSub.makeAtomicUnbounded<string>()
- *
- * // With replay buffer
- * const atomic2 = PubSub.makeAtomicUnbounded<string>({
- *   replay: 100
- * })
- *
- * // Can publish unlimited messages
- * for (let i = 0; i < 1000; i++) {
- *   atomic1.publish(`message-${i}`)
- * }
- * console.log("Size:", atomic1.size())
- * ```
  *
  * @since 4.0.0
  * @category constructors
@@ -708,7 +559,7 @@ export const capacity = <A>(self: PubSub<A>): number => self.pubsub.capacity
  * @example
  * ```ts
  * import { Effect } from "effect"
-import * as PubSub from "effect/concurrency/PubSub"
+ * import * as PubSub from "effect/concurrency/PubSub"
  *
  * const program = Effect.gen(function*() {
  *   const pubsub = yield* PubSub.bounded<string>(10)
@@ -729,12 +580,7 @@ import * as PubSub from "effect/concurrency/PubSub"
  * @since 2.0.0
  * @category getters
  */
-export const size = <A>(self: PubSub<A>): Effect.Effect<number> =>
-  Effect.suspend(() =>
-    MutableRef.get(self.shutdownFlag) ?
-      Effect.interrupt :
-      Effect.sync(() => self.pubsub.size())
-  )
+export const size = <A>(self: PubSub<A>): Effect.Effect<number> => Effect.sync(() => unsafeSize(self))
 /**
  * Retrieves the size of the queue, which is equal to the number of elements
  * in the queue. This may be negative if fibers are suspended waiting for
@@ -743,27 +589,23 @@ export const size = <A>(self: PubSub<A>): Effect.Effect<number> =>
  * @example
  * ```ts
  * import { PubSub } from "effect/concurrency"
-import * as Option from "effect/data/Option"
+ * import * as Option from "effect/data/Option"
  *
  * // Unsafe synchronous size check
  * declare const pubsub: PubSub.PubSub<string>
  *
- * const sizeOption = PubSub.unsafeSize(pubsub)
- * if (Option.isSome(sizeOption)) {
- *   console.log("Current size:", sizeOption.value)
- * } else {
- *   console.log("PubSub is shutdown")
- * }
+ * const size = PubSub.unsafeSize(pubsub)
+ * console.log("Current size:", size)
  * ```
  *
  * @since 2.0.0
  * @category getters
  */
-export const unsafeSize = <A>(self: PubSub<A>): Option.Option<number> => {
+export const unsafeSize = <A>(self: PubSub<A>): number => {
   if (MutableRef.get(self.shutdownFlag)) {
-    return Option.none()
+    return 0
   }
-  return Option.some(self.pubsub.size())
+  return self.pubsub.size()
 }
 
 /**
@@ -1236,25 +1078,7 @@ export const take = <A>(self: Subscription<A>): Effect.Effect<A> =>
       ? self.subscription.poll()
       : MutableList.Empty
     if (message === MutableList.Empty) {
-      const deferred = Deferred.unsafeMake<A>()
-      return Effect.suspend(() => {
-        MutableList.append(self.pollers, deferred)
-        let set = self.subscribers.get(self.subscription)
-        if (!set) {
-          set = new Set()
-          self.subscribers.set(self.subscription, set)
-        }
-        set.add(self.pollers)
-        self.strategy.unsafeCompletePollers(
-          self.pubsub,
-          self.subscribers,
-          self.subscription,
-          self.pollers
-        )
-        return self.shutdownFlag.current ? Effect.interrupt : Deferred.await(deferred)
-      }).pipe(
-        Effect.onInterrupt(Effect.sync(() => MutableList.remove(self.pollers, deferred)))
-      )
+      return pollForItem(self)
     } else {
       self.strategy.unsafeOnPubSubEmptySpace(self.pubsub, self.subscribers)
       return Effect.succeed(message)
@@ -1262,12 +1086,13 @@ export const take = <A>(self: Subscription<A>): Effect.Effect<A> =>
   })
 
 /**
- * Takes all available messages from the subscription without suspending.
+ * Takes all available messages from the subscription, suspending if no items
+ * are available.
  *
  * @example
  * ```ts
  * import { Effect } from "effect"
-import * as PubSub from "effect/concurrency/PubSub"
+ * import { PubSub } from "effect/concurrency"
  *
  * const program = Effect.gen(function*() {
  *   const pubsub = yield* PubSub.bounded<string>(10)
@@ -1281,10 +1106,6 @@ import * as PubSub from "effect/concurrency/PubSub"
  *     // Take all available messages at once
  *     const allMessages = yield* PubSub.takeAll(subscription)
  *     console.log("All messages:", allMessages) // ["msg1", "msg2", "msg3"]
- *
- *     // If no messages are available, returns empty array
- *     const noMessages = yield* PubSub.takeAll(subscription)
- *     console.log("No more messages:", noMessages) // []
  *   }))
  * })
  * ```
@@ -1292,20 +1113,45 @@ import * as PubSub from "effect/concurrency/PubSub"
  * @since 4.0.0
  * @category subscription
  */
-export const takeAll = <A>(self: Subscription<A>): Effect.Effect<Array<A>> =>
-  Effect.suspend(() => {
+export const takeAll = <A>(self: Subscription<A>): Effect.Effect<Arr.NonEmptyArray<A>> =>
+  Effect.suspend(function loop(value?: [A]): Effect.Effect<Arr.NonEmptyArray<A>> {
     if (self.shutdownFlag.current) {
       return Effect.interrupt
     }
-    const as = self.pollers.length === 0
+    let as = self.pollers.length === 0
       ? self.subscription.pollUpTo(Number.POSITIVE_INFINITY)
       : []
+    if (value) {
+      as = value.concat(as)
+    }
     self.strategy.unsafeOnPubSubEmptySpace(self.pubsub, self.subscribers)
     if (self.replayWindow.remaining > 0) {
-      return Effect.succeed(self.replayWindow.takeAll().concat(as))
+      return Effect.succeed(self.replayWindow.takeAll().concat(as) as Arr.NonEmptyArray<A>)
+    } else if (!Arr.isNonEmptyArray(as)) {
+      return Effect.flatMap(pollForItem(self), (item) => loop([item]))
     }
     return Effect.succeed(as)
   })
+
+const pollForItem = <A>(self: Subscription<A>) => {
+  const deferred = Deferred.unsafeMake<A>()
+  MutableList.append(self.pollers, deferred)
+  let set = self.subscribers.get(self.subscription)
+  if (!set) {
+    set = new Set()
+    self.subscribers.set(self.subscription, set)
+  }
+  set.add(self.pollers)
+  self.strategy.unsafeCompletePollers(
+    self.pubsub,
+    self.subscribers,
+    self.subscription,
+    self.pollers
+  )
+  return self.shutdownFlag.current
+    ? Effect.interrupt
+    : Effect.onInterrupt(Deferred.await(deferred), Effect.sync(() => MutableList.remove(self.pollers, deferred)))
+}
 
 /**
  * Takes up to the specified number of messages from the subscription without suspending.
@@ -1313,7 +1159,7 @@ export const takeAll = <A>(self: Subscription<A>): Effect.Effect<Array<A>> =>
  * @example
  * ```ts
  * import { Effect } from "effect"
-import * as PubSub from "effect/concurrency/PubSub"
+ * import * as PubSub from "effect/concurrency/PubSub"
  *
  * const program = Effect.gen(function*() {
  *   const pubsub = yield* PubSub.bounded<string>(10)

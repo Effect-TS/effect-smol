@@ -764,8 +764,7 @@ export const fromQueue = <A, E>(queue: Queue.Dequeue<A, E>): Stream<A, Exclude<E
  * @since 4.0.0
  * @category constructors
  */
-export const fromPubSub = <A>(pubsub: PubSub.PubSub<A>, chunkSize?: number): Stream<A> =>
-  fromChannel(Channel.fromPubSubArray(pubsub, chunkSize))
+export const fromPubSub = <A>(pubsub: PubSub.PubSub<A>): Stream<A> => fromChannel(Channel.fromPubSubArray(pubsub))
 
 /**
  * Creates a stream from a ReadableStream.
@@ -808,6 +807,7 @@ export const fromReadableStream = <A, E>(
         ? Effect.sync(() => reader.releaseLock())
         : Effect.promise(() => reader.cancel())
     )
+    // @effect-diagnostics-next-line returnEffectInGen:off
     return Effect.flatMap(
       Effect.tryPromise({
         try: () => reader.read(),
@@ -855,8 +855,8 @@ export const fromSchedule = <O, E, R>(schedule: Schedule.Schedule<O, unknown, E,
  * @since 4.0.0
  * @category constructors
  */
-export const fromSubscription = <A>(pubsub: PubSub.Subscription<A>, chunkSize?: number): Stream<A> =>
-  fromChannel(Channel.fromSubscriptionArray(pubsub, chunkSize))
+export const fromSubscription = <A>(pubsub: PubSub.Subscription<A>): Stream<A> =>
+  fromChannel(Channel.fromSubscriptionArray(pubsub))
 
 /**
  * Interface representing an event listener target.
