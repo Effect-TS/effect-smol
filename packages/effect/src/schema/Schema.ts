@@ -2861,11 +2861,28 @@ export interface withDecodingDefaultKey<S extends Top> extends decodeTo<S, optio
 /**
  * @since 4.0.0
  */
-export function withDecodingDefaultKey<S extends Top>(defaultValue: () => S["Encoded"]) {
+export type DecodingDefaultOptions = {
+  readonly encodingStrategy?: "omit" | "passthrough" | undefined
+}
+
+/**
+ * **Options**
+ *
+ * - `encodingStrategy`: The strategy to use when encoding.
+ *   - `passthrough`: (default) Pass the default value through to the output.
+ *   - `omit`: Omit the value from the output.
+ *
+ * @since 4.0.0
+ */
+export function withDecodingDefaultKey<S extends Top>(
+  defaultValue: () => S["Encoded"],
+  options?: DecodingDefaultOptions
+) {
+  const encode = options?.encodingStrategy === "omit" ? Getter.omit() : Getter.passthrough()
   return (self: S): withDecodingDefaultKey<S> => {
     return optionalKey(encodedCodec(self)).pipe(decodeTo(self, {
       decode: Getter.withDefault(defaultValue),
-      encode: Getter.passthrough()
+      encode
     }))
   }
 }
@@ -2878,13 +2895,23 @@ export interface withDecodingDefault<S extends Top> extends decodeTo<S, optional
 }
 
 /**
+ * **Options**
+ *
+ * - `encodingStrategy`: The strategy to use when encoding.
+ *   - `passthrough`: (default) Pass the default value through to the output.
+ *   - `omit`: Omit the value from the output.
+ *
  * @since 4.0.0
  */
-export function withDecodingDefault<S extends Top>(defaultValue: () => S["Encoded"]) {
+export function withDecodingDefault<S extends Top>(
+  defaultValue: () => S["Encoded"],
+  options?: DecodingDefaultOptions
+) {
+  const encode = options?.encodingStrategy === "omit" ? Getter.omit() : Getter.passthrough()
   return (self: S): withDecodingDefault<S> => {
     return optional(encodedCodec(self)).pipe(decodeTo(self, {
       decode: Getter.withDefault(defaultValue),
-      encode: Getter.passthrough()
+      encode
     }))
   }
 }

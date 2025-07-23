@@ -5537,6 +5537,22 @@ describe("Schema", () => {
       )
     })
 
+    it("by default should pass through the value", async () => {
+      const schema = Schema.Struct({
+        a: Schema.FiniteFromString.pipe(Schema.withDecodingDefaultKey(() => "1"))
+      })
+
+      await assertions.encoding.succeed(schema, { a: 1 }, { expected: { a: "1" } })
+    })
+
+    it("should omit the value if the encoding strategy is set to omit", async () => {
+      const schema = Schema.Struct({
+        a: Schema.FiniteFromString.pipe(Schema.withDecodingDefaultKey(() => "1", { encodingStrategy: "omit" }))
+      })
+
+      await assertions.encoding.succeed(schema, { a: 1 }, { expected: {} })
+    })
+
     it("nested default values", async () => {
       const schema = Schema.Struct({
         a: Schema.Struct({
@@ -5570,6 +5586,22 @@ describe("Schema", () => {
       await assertions.decoding.succeed(schema, {}, { expected: { a: 1 } })
       await assertions.decoding.succeed(schema, { a: undefined }, { expected: { a: 1 } })
       await assertions.decoding.succeed(schema, { a: "2" }, { expected: { a: 2 } })
+    })
+
+    it("by default should pass through the value", async () => {
+      const schema = Schema.Struct({
+        a: Schema.FiniteFromString.pipe(Schema.withDecodingDefault(() => "1"))
+      })
+
+      await assertions.encoding.succeed(schema, { a: 1 }, { expected: { a: "1" } })
+    })
+
+    it("should omit the value if the encoding strategy is set to omit", async () => {
+      const schema = Schema.Struct({
+        a: Schema.FiniteFromString.pipe(Schema.withDecodingDefault(() => "1", { encodingStrategy: "omit" }))
+      })
+
+      await assertions.encoding.succeed(schema, { a: 1 }, { expected: {} })
     })
 
     it("nested default values", async () => {

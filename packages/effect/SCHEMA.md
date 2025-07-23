@@ -5955,6 +5955,43 @@ const schema = Schema.Literal(0).pipe(
 )
 ```
 
+### transformLiterals
+
+### attachPropertySignature
+
+v3
+
+```ts
+import { Schema } from "effect"
+
+const schema = Schema.Struct({
+  a: Schema.String
+}).pipe(Schema.attachPropertySignature("b", "b"))
+
+console.log(Schema.decodeUnknownSync(schema)({ a: "a" }))
+// { a: 'a', b: 'b' }
+
+console.log(Schema.encodeUnknownSync(schema)({ a: "a", b: "b" }))
+// { a: 'a' }
+```
+
+v4
+
+```ts
+import { Schema } from "effect/schema"
+
+const schema = Schema.Struct({
+  a: Schema.String,
+  b: Schema.Literal("b").pipe(Schema.withDecodingDefaultKey(() => "b" as const, { encodingStrategy: "omit" }))
+})
+
+console.log(Schema.decodeUnknownSync(schema)({ a: "a" }))
+// { a: 'a', b: 'b' }
+
+console.log(Schema.encodeUnknownSync(schema)({ a: "a", b: "b" }))
+// { a: 'a' }
+```
+
 ## RWC References
 
 - https://github.com/Anastasia-Labs/lucid-evolution/blob/5068114c9f8f95c6b997d0d2233a9e9543632f35/packages/experimental/src/TSchema.ts#L353
