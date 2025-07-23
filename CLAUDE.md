@@ -709,11 +709,17 @@ it.effect("test", () => Effect.gen(function*() {
 
 ### Core Library
 - `packages/effect/src/` - Core Effect library source code
+  - `collections/` - Data structures (Array, HashMap, Chunk, etc.)
+  - `concurrency/` - Concurrent operations (Fiber, Semaphore, etc.)
+  - `data/` - Core data types (Option, Either, Result, etc.)
+  - `interfaces/` - Type interfaces (Equal, Hash, Pipeable, etc.)
+  - `internal/` - Private implementation details
+  - `platform/` - Platform abstractions
+  - `streaming/` - Stream operations
+  - `schema/` - Schema validation and parsing
+  - `unstable/` - Experimental features
 - `packages/effect/test/` - Effect library test files
 - `packages/effect/dtslint/` - TypeScript definition tests
-- `packages/effect/src/internal/` - Internal implementation details
-- `packages/effect/src/schema/` - Schema validation and parsing
-- `packages/effect/src/unstable/` - Experimental features (e.g., HTTP client)
 
 ### Platform Implementations
 - `packages/platform-node/src/` - Node.js platform source code
@@ -726,6 +732,9 @@ it.effect("test", () => Effect.gen(function*() {
 
 ### Development & Build
 - `scripts/` - Build and maintenance scripts
+  - `analyze-jsdoc.mjs` - JSDoc coverage analysis tool
+  - `docs.mjs` - Documentation generation
+  - `version.mjs` - Version management
 - `bundle/` - Bundle size analysis files
 - `docs/` - Generated documentation files
 - `coverage/` - Test coverage reports
@@ -734,9 +743,40 @@ it.effect("test", () => Effect.gen(function*() {
 
 ### Configuration & Specs
 - `.specs/` - Implementation specifications and plans organized by feature
+  - `README.md` - Specification workflow and feature tracking
+  - `spec-driven-development-integration/` - Current implementation specs
+- `.patterns/` - Development patterns and best practices
+  - `README.md` - Pattern organization and usage guide
+  - `effect-library-development.md` - Core Effect patterns
+  - `testing-patterns.md` - Testing strategies with @effect/vitest
+  - `module-organization.md` - Module structure and naming conventions
+  - `error-handling.md` - Structured error management patterns
+  - `jsdoc-documentation.md` - Documentation standards and examples
+  - `platform-integration.md` - Service abstractions and cross-platform patterns
+- `.claude/` - Claude AI development commands
+  - `commands/new-feature.md` - 5-phase spec-driven development workflow
+  - `commands/done-feature.md` - Feature completion and validation workflow
 - `.github/` - GitHub Actions workflows and templates
 - `.vscode/` - VS Code workspace configuration
 - `.changeset/` - Changeset configuration for versioning
+
+## Development Patterns Reference
+
+The `.patterns/` directory contains comprehensive development patterns and best practices for the Effect library. **Always reference these patterns before implementing new functionality** to ensure consistency with established codebase conventions.
+
+### Core Patterns to Follow:
+- **Effect Library Development**: Fundamental patterns, forbidden practices, and mandatory patterns
+- **Module Organization**: Directory structure, export patterns, naming conventions, and TypeId usage
+- **Error Handling**: Data.TaggedError usage, error transformation, and recovery patterns
+- **Testing**: @effect/vitest usage, TestClock patterns, and it.effect best practices
+- **JSDoc Documentation**: Documentation standards, example formats, and compilation requirements
+- **Platform Integration**: Service abstractions, layer composition, and cross-platform patterns
+
+### Pattern Usage Guidelines:
+1. **Before coding**: Review relevant patterns in `.patterns/` directory
+2. **During implementation**: Follow established conventions and naming patterns
+3. **For complex features**: Use patterns as templates for consistent implementation
+4. **When stuck**: Reference similar implementations in existing codebase following these patterns
 
 ## Problem-Solving Strategies
 
