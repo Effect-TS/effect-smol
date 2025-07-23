@@ -1135,22 +1135,23 @@ export const takeAll = <A>(self: Subscription<A>): Effect.Effect<Arr.NonEmptyArr
 
 const pollForItem = <A>(self: Subscription<A>) => {
   const deferred = Deferred.unsafeMake<A>()
-  MutableList.append(self.pollers, deferred)
   let set = self.subscribers.get(self.subscription)
   if (!set) {
     set = new Set()
     self.subscribers.set(self.subscription, set)
   }
   set.add(self.pollers)
+  MutableList.append(self.pollers, deferred)
   self.strategy.unsafeCompletePollers(
     self.pubsub,
     self.subscribers,
     self.subscription,
     self.pollers
   )
-  return self.shutdownFlag.current
-    ? Effect.interrupt
-    : Effect.onInterrupt(Deferred.await(deferred), Effect.sync(() => MutableList.remove(self.pollers, deferred)))
+  return Effect.onInterrupt(
+    Deferred.await(deferred),
+    Effect.sync(() => MutableList.remove(self.pollers, deferred))
+  )
 }
 
 /**
