@@ -60,7 +60,7 @@
  */
 // @effect-diagnostics returnEffectInGen:off
 import * as Cause from "../Cause.ts"
-import * as Arr from "../collections/Array.js"
+import * as Arr from "../collections/Array.ts"
 import * as Chunk from "../collections/Chunk.ts"
 import * as Iterable from "../collections/Iterable.ts"
 import * as PubSub from "../concurrency/PubSub.ts"
