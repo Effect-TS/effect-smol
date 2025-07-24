@@ -1160,7 +1160,7 @@ export const fromSubscription = <A>(
  *   const subscription = yield* PubSub.subscribe(pubsub)
  *
  *   // Create a channel that reads arrays of values
- *   const channel = Channel.fromSubscriptionArray(subscription, 3)
+ *   const channel = Channel.fromSubscriptionArray(subscription)
  *
  *   // Publish some values
  *   yield* PubSub.publish(pubsub, 1)
@@ -1189,7 +1189,7 @@ export const fromSubscription = <A>(
  *   const subscription = yield* PubSub.subscribe(pubsub)
  *
  *   // Create a channel that processes items in batches
- *   const batchChannel = Channel.fromSubscriptionArray(subscription, 5)
+ *   const batchChannel = Channel.fromSubscriptionArray(subscription)
  *
  *   // Transform to process each batch
  *   const processedChannel = Channel.map(batchChannel, (batch) => {
@@ -1217,7 +1217,7 @@ export const fromSubscription = <A>(
  *   const subscription = yield* PubSub.subscribe(metricsPubSub)
  *
  *   // Create a channel that collects metrics in chunks
- *   const metricsChannel = Channel.fromSubscriptionArray(subscription, 10)
+ *   const metricsChannel = Channel.fromSubscriptionArray(subscription)
  *
  *   // Transform to calculate aggregate statistics
  *   const aggregatedChannel = Channel.map(metricsChannel, (metrics) => {
@@ -1385,7 +1385,7 @@ export const fromPubSub = <A>(
  *   const pubsub = yield* PubSub.bounded<number>(16)
  *
  *   // Create a channel that reads arrays of values
- *   const channel = Channel.fromPubSubArray(pubsub, 3)
+ *   const channel = Channel.fromPubSubArray(pubsub)
  *
  *   // Publish some values
  *   yield* PubSub.publish(pubsub, 1)
@@ -1421,7 +1421,7 @@ export const fromPubSub = <A>(
  *   const orderPubSub = yield* PubSub.bounded<Order>(100)
  *
  *   // Create a channel that processes orders in batches
- *   const orderChannel = Channel.fromPubSubArray(orderPubSub, 10)
+ *   const orderChannel = Channel.fromPubSubArray(orderPubSub)
  *
  *   // Transform to process each batch of orders
  *   const processedChannel = Channel.map(orderChannel, (orderBatch) => {
@@ -1464,7 +1464,7 @@ export const fromPubSub = <A>(
  *   const logPubSub = yield* PubSub.bounded<LogEntry>(500)
  *
  *   // Create a channel that collects logs in batches
- *   const logChannel = Channel.fromPubSubArray(logPubSub, 50)
+ *   const logChannel = Channel.fromPubSubArray(logPubSub)
  *
  *   // Transform to analyze log batches
  *   const analysisChannel = Channel.map(logChannel, (logBatch) => {

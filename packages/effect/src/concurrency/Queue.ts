@@ -12,7 +12,7 @@
  *
  * // Creating a bounded queue with capacity 10
  * const program = Effect.gen(function*() {
- *   const queue = yield* Queue.bounded<number>(10)
+ *   const queue = yield* Queue.bounded<number, Queue.Done>(10)
  *
  *   // Producer: add items to queue
  *   yield* Queue.offer(queue, 1)
@@ -493,14 +493,7 @@ export const unbounded = <A, E = never>(): Effect<Queue<A, E>> => make()
  *
  *   // Queue state
  *   const size = yield* Queue.size(queue)
- *   console.log(size) // Some(2)
- *
- *   // End the queue
- *   yield* Queue.end(queue)
- *
- *   // Offer fails after queue is done
- *   const success3 = yield* Queue.offer(queue, 3)
- *   console.log(success3) // false
+ *   console.log(size) // 2
  * })
  * ```
  *
@@ -555,7 +548,7 @@ export const offer = <A, E>(self: Queue<A, E>, message: A): Effect<boolean> =>
  *
  *   // Check current size
  *   const size = Queue.unsafeSize(queue)
- *   console.log(size) // Some(2)
+ *   console.log(size) // 2
  * })
  * ```
  *
@@ -650,7 +643,7 @@ export const offerAll = <A, E>(self: Queue<A, E>, messages: Iterable<A>): Effect
  *
  *   // Check what's in the queue
  *   const size = Queue.unsafeSize(queue)
- *   console.log(size) // Some(3)
+ *   console.log(size) // 3
  * })
  * ```
  *
@@ -760,7 +753,7 @@ export const failCause = <A, E>(self: Queue<A, E>, cause: Cause<E>) => done(self
  * import { Queue } from "effect/concurrency"
  *
  * const program = Effect.gen(function*() {
- *   const queue = yield* Queue.bounded<number>(10)
+ *   const queue = yield* Queue.bounded<number, Queue.Done>(10)
  *
  *   // Add some messages
  *   yield* Queue.offer(queue, 1)
@@ -798,7 +791,7 @@ export const end = <A, E>(self: Queue<A, E | Done>): Effect<boolean> => done(sel
  *
  * // Create a queue and use unsafe operations
  * const program = Effect.gen(function*() {
- *   const queue = yield* Queue.bounded<number>(10)
+ *   const queue = yield* Queue.bounded<number, Queue.Done>(10)
  *
  *   // Add some messages
  *   Queue.unsafeOffer(queue, 1)
@@ -828,7 +821,7 @@ export const unsafeEnd = <A, E>(self: Queue<A, E | Done>) => unsafeDone(self, in
  * import { Queue } from "effect/concurrency"
  *
  * const program = Effect.gen(function*() {
- *   const queue = yield* Queue.bounded<number>(10)
+ *   const queue = yield* Queue.bounded<number, Queue.Done>(10)
  *
  *   // Add some messages
  *   yield* Queue.offer(queue, 1)
@@ -850,7 +843,7 @@ export const unsafeEnd = <A, E>(self: Queue<A, E | Done>) => unsafeDone(self, in
  * @category completion
  * @since 4.0.0
  */
-export const done = <A, E>(self: Queue<A, E>, exit: Exit<Done extends E ? void : never, E>): Effect<boolean> =>
+export const done = <A, E>(self: Queue<A, E>, exit: Exit<Done extends E ? unknown : never, E>): Effect<boolean> =>
   internalEffect.sync(() => unsafeDone(self, exit))
 
 /**
@@ -866,7 +859,7 @@ export const done = <A, E>(self: Queue<A, E>, exit: Exit<Done extends E ? void :
  *
  * // Create a queue and use unsafe operations
  * const program = Effect.gen(function*() {
- *   const queue = yield* Queue.bounded<number>(10)
+ *   const queue = yield* Queue.bounded<number, Queue.Done>(10)
  *
  *   // Add some messages
  *   Queue.unsafeOffer(queue, 1)
@@ -883,7 +876,7 @@ export const done = <A, E>(self: Queue<A, E>, exit: Exit<Done extends E ? void :
  * @category completion
  * @since 4.0.0
  */
-export const unsafeDone = <A, E>(self: Queue<A, E>, exit: Exit<Done extends E ? void : never, E>): boolean => {
+export const unsafeDone = <A, E>(self: Queue<A, E>, exit: Exit<Done extends E ? unknown : never, E>): boolean => {
   if (self.state._tag !== "Open") {
     return false
   }
@@ -924,7 +917,7 @@ export const unsafeDone = <A, E>(self: Queue<A, E>, exit: Exit<Done extends E ? 
  *
  *   // Queue is now done and cleared
  *   const size = yield* Queue.size(queue)
- *   console.log(size) // None
+ *   console.log(size) // 0
  * })
  * ```
  *
@@ -973,7 +966,7 @@ export const shutdown = <A, E>(self: Queue<A, E>): Effect<boolean> =>
  *
  *   // Queue is now empty
  *   const size = yield* Queue.size(queue)
- *   console.log(size) // Some(0)
+ *   console.log(size) // 0
  *
  *   // Clearing empty queue returns empty array
  *   const empty = yield* Queue.clear(queue)
@@ -1039,7 +1032,7 @@ export const filterDone: Filter.Filter<unknown, Done> = Filter.fromPredicate(isD
  * import { Queue } from "effect/concurrency"
  *
  * const program = Effect.gen(function*() {
- *   const queue = yield* Queue.bounded<number>(5)
+ *   const queue = yield* Queue.bounded<number, Queue.Done>(5)
  *
  *   // Add several messages
  *   yield* Queue.offerAll(queue, [1, 2, 3, 4, 5])
@@ -1163,7 +1156,7 @@ export const takeBetween = <A, E>(
  * import { Queue } from "effect/concurrency"
  *
  * const program = Effect.gen(function*() {
- *   const queue = yield* Queue.bounded<string>(3)
+ *   const queue = yield* Queue.bounded<string, Queue.Done>(3)
  *
  *   // Add some messages
  *   yield* Queue.offer(queue, "first")
@@ -1290,25 +1283,25 @@ export {
 import * as Option from "effect/data/Option"
  *
  * const program = Effect.gen(function*() {
- *   const queue = yield* Queue.bounded<number>(10)
+ *   const queue = yield* Queue.bounded<number, Queue.Done>(10)
  *
  *   // Check size of empty queue
  *   const size1 = yield* Queue.size(queue)
- *   console.log(size1) // Some(0)
+ *   console.log(size1) // 0
  *
  *   // Add some messages
  *   yield* Queue.offerAll(queue, [1, 2, 3, 4, 5])
  *
  *   // Check size after adding messages
  *   const size2 = yield* Queue.size(queue)
- *   console.log(size2) // Some(5)
+ *   console.log(size2) // 5
  *
  *   // End the queue
  *   yield* Queue.end(queue)
  *
- *   // Size of ended queue is None
+ *   // Size of ended queue is 0
  *   const size3 = yield* Queue.size(queue)
- *   console.log(Option.isNone(size3)) // true
+ *   console.log(size3) // 0
  * })
  * ```
  *
@@ -1331,11 +1324,11 @@ import * as Option from "effect/data/Option"
  *
  * // Create a queue and use unsafe operations
  * const program = Effect.gen(function*() {
- *   const queue = yield* Queue.bounded<number>(10)
+ *   const queue = yield* Queue.bounded<number, Queue.Done>(10)
  *
  *   // Check size of empty queue
  *   const size1 = Queue.unsafeSize(queue)
- *   console.log(Option.getOrElse(size1, () => -1)) // 0
+ *   console.log(size1) // 0
  *
  *   // Add some messages
  *   Queue.unsafeOffer(queue, 1)
@@ -1344,14 +1337,14 @@ import * as Option from "effect/data/Option"
  *
  *   // Check size after adding messages
  *   const size2 = Queue.unsafeSize(queue)
- *   console.log(Option.getOrElse(size2, () => -1)) // 3
+ *   console.log(size2) // 3
  *
  *   // End the queue
  *   Queue.unsafeEnd(queue)
  *
- *   // Size of ended queue is None
+ *   // Size of ended queue is 0
  *   const size3 = Queue.unsafeSize(queue)
- *   console.log(Option.isNone(size3)) // true
+ *   console.log(size3) // 0
  * })
  * ```
  *
@@ -1404,7 +1397,7 @@ export const asDequeue: <A, E>(self: Queue<A, E>) => Dequeue<A, E> = identity
  * import { Queue } from "effect/concurrency"
  *
  * const program = Effect.gen(function*() {
- *   const queue = yield* Queue.bounded<number>(10)
+ *   const queue = yield* Queue.bounded<number, Queue.Done>(10)
  *
  *   // Create an effect that succeeds
  *   const dataProcessing = Effect.gen(function*() {

@@ -171,7 +171,7 @@ export * as PubSub from "./PubSub.ts"
  *
  * // Creating a bounded queue with capacity 10
  * const program = Effect.gen(function*() {
- *   const queue = yield* Queue.bounded<number>(10)
+ *   const queue = yield* Queue.bounded<number, Queue.Done>(10)
  *
  *   // Producer: add items to queue
  *   yield* Queue.offer(queue, 1)
