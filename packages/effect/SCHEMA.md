@@ -6103,6 +6103,24 @@ const schema = Schema.String.pipe(Schema.check(Check.regex(/^[a-z]+$/)))
 
 Reason: The `pattern` method was renamed to `regex` to align with the naming convention of [zod](https://zod.dev/api?id=strings) and [valibot](https://valibot.dev/api/regex/).
 
+### nonEmptyString
+
+Renamed to `nonEmpty`.
+
+Reason: because it applies to any type with a `length` property.
+
+### Capitalize, Lowercase, Uppercase, Uncapitalize
+
+v4
+
+```ts
+import { Check, Schema, Transformation } from "effect/schema"
+
+const schema = Schema.String.pipe(
+  Schema.decodeTo(Schema.String.check(Check.capitalized()), Transformation.capitalize())
+)
+```
+
 ## RWC References
 
 - https://github.com/Anastasia-Labs/lucid-evolution/blob/5068114c9f8f95c6b997d0d2233a9e9543632f35/packages/experimental/src/TSchema.ts#L353

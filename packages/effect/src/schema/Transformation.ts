@@ -165,6 +165,28 @@ export function toUpperCase(): Transformation<string, string> {
 }
 
 /**
+ * @category String transformations
+ * @since 4.0.0
+ */
+export function capitalize(): Transformation<string, string> {
+  return new Transformation(
+    Getter.capitalize(),
+    Getter.passthrough()
+  )
+}
+
+/**
+ * @category String transformations
+ * @since 4.0.0
+ */
+export function uncapitalize(): Transformation<string, string> {
+  return new Transformation(
+    Getter.uncapitalize(),
+    Getter.passthrough()
+  )
+}
+
+/**
  * @since 4.0.0
  */
 export interface JsonOptions extends Getter.ParseJsonOptions, Getter.StringifyJsonOptions {}

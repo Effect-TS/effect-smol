@@ -5729,3 +5729,81 @@ describe("Getter", () => {
     await assertions.encoding.fail(schema, "b", `Expected "a", actual "b"`)
   })
 })
+
+describe("Transformation", () => {
+  it("Capitalize", async () => {
+    const schema = Schema.String.pipe(
+      Schema.decodeTo(
+        Schema.String.check(Check.capitalized()),
+        Transformation.capitalize()
+      )
+    )
+
+    await assertions.decoding.succeed(schema, "abc", { expected: "Abc" })
+    await assertions.encoding.succeed(schema, "Abc")
+    await assertions.encoding.fail(
+      schema,
+      "abc",
+      `string & capitalized
+└─ capitalized
+   └─ Invalid data "abc"`
+    )
+  })
+
+  it("Uncapitalize", async () => {
+    const schema = Schema.String.pipe(
+      Schema.decodeTo(
+        Schema.String.check(Check.uncapitalized()),
+        Transformation.uncapitalize()
+      )
+    )
+
+    await assertions.decoding.succeed(schema, "Abc", { expected: "abc" })
+    await assertions.encoding.succeed(schema, "abc")
+    await assertions.encoding.fail(
+      schema,
+      "Abc",
+      `string & uncapitalized
+└─ uncapitalized
+   └─ Invalid data "Abc"`
+    )
+  })
+
+  it("Lowercase", async () => {
+    const schema = Schema.String.pipe(
+      Schema.decodeTo(
+        Schema.String.check(Check.lowercased()),
+        Transformation.toLowerCase()
+      )
+    )
+
+    await assertions.decoding.succeed(schema, "ABC", { expected: "abc" })
+    await assertions.encoding.succeed(schema, "abc")
+    await assertions.encoding.fail(
+      schema,
+      "ABC",
+      `string & lowercased
+└─ lowercased
+   └─ Invalid data "ABC"`
+    )
+  })
+
+  it("Uppercase", async () => {
+    const schema = Schema.String.pipe(
+      Schema.decodeTo(
+        Schema.String.check(Check.uppercased()),
+        Transformation.toUpperCase()
+      )
+    )
+
+    await assertions.decoding.succeed(schema, "abc", { expected: "ABC" })
+    await assertions.encoding.succeed(schema, "ABC")
+    await assertions.encoding.fail(
+      schema,
+      "abc",
+      `string & uppercased
+└─ uppercased
+   └─ Invalid data "abc"`
+    )
+  })
+})

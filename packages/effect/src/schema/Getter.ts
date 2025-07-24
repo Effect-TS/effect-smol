@@ -255,6 +255,22 @@ export function trim<E extends string>(): Getter<string, E> {
  * @category String transformations
  * @since 4.0.0
  */
+export function capitalize<E extends string>(): Getter<string, E> {
+  return map(Str.capitalize)
+}
+
+/**
+ * @category String transformations
+ * @since 4.0.0
+ */
+export function uncapitalize<E extends string>(): Getter<string, E> {
+  return map(Str.uncapitalize)
+}
+
+/**
+ * @category String transformations
+ * @since 4.0.0
+ */
 export function snakeToCamel<E extends string>(): Getter<string, E> {
   return map(Str.snakeToCamel)
 }
