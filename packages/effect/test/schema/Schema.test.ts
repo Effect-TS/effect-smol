@@ -1188,6 +1188,54 @@ describe("Schema", () => {
         )
       })
 
+      it("capitalized", async () => {
+        const schema = Schema.String.check(Check.capitalized())
+
+        assertions.formatter.formatAST(schema, `string & capitalized`)
+
+        await assertions.decoding.succeed(schema, "Abc")
+        await assertions.decoding.fail(
+          schema,
+          "abc",
+          `string & capitalized
+└─ capitalized
+   └─ Invalid data "abc"`
+        )
+
+        await assertions.encoding.succeed(schema, "Abc")
+        await assertions.encoding.fail(
+          schema,
+          "abc",
+          `string & capitalized
+└─ capitalized
+   └─ Invalid data "abc"`
+        )
+      })
+
+      it("uncapitalized", async () => {
+        const schema = Schema.String.check(Check.uncapitalized())
+
+        assertions.formatter.formatAST(schema, `string & uncapitalized`)
+
+        await assertions.decoding.succeed(schema, "aBC")
+        await assertions.decoding.fail(
+          schema,
+          "ABC",
+          `string & uncapitalized
+└─ uncapitalized
+   └─ Invalid data "ABC"`
+        )
+
+        await assertions.encoding.succeed(schema, "aBC")
+        await assertions.encoding.fail(
+          schema,
+          "ABC",
+          `string & uncapitalized
+└─ uncapitalized
+   └─ Invalid data "ABC"`
+        )
+      })
+
       it("trimmed", async () => {
         const schema = Schema.String.check(Check.trimmed())
 

@@ -5878,25 +5878,28 @@ v4
 ```ts
 import { Effect } from "effect"
 import { Option } from "effect/data"
-import { Getter, Issue, Schema } from "effect/schema"
+import { Getter, Issue, Schema, Transformation } from "effect/schema"
 
 // manual
 const NumberFromString = Schema.String.pipe(
-  Schema.decodeTo(Schema.Number, {
-    decode: Getter.mapOrFail((input) => {
-      const parsed = parseFloat(input)
-      if (isNaN(parsed)) {
-        return Effect.fail(
-          new Issue.InvalidValue(Option.some(input), { message: "Failed to convert string to number" })
-        )
-      }
-      return Effect.succeed(parsed)
-    }),
-    encode: Getter.map((input) => input.toString())
-  })
+  Schema.decodeTo(
+    Schema.Number,
+    Transformation.transformOrFail({
+      decode: (input) => {
+        const parsed = parseFloat(input)
+        if (isNaN(parsed)) {
+          return Effect.fail(
+            new Issue.InvalidValue(Option.some(input), { message: "Failed to convert string to number" })
+          )
+        }
+        return Effect.succeed(parsed)
+      },
+      encode: (input) => Effect.succeed(input.toString())
+    })
+  )
 )
 
-// idiomatic
+// or
 const NumberFromString2 = Schema.String.pipe(
   Schema.decodeTo(Schema.Finite, {
     decode: Getter.Number(),
@@ -5922,13 +5925,16 @@ const BooleanFromString = Schema.transform(Schema.Literal("on", "off"), Schema.B
 v4
 
 ```ts
-import { Getter, Schema } from "effect/schema"
+import { Schema, Transformation } from "effect/schema"
 
 const BooleanFromString = Schema.Literals(["on", "off"]).pipe(
-  Schema.decodeTo(Schema.Boolean, {
-    decode: Getter.map((literal) => literal === "on"),
-    encode: Getter.map((bool) => (bool ? "on" : "off"))
-  })
+  Schema.decodeTo(
+    Schema.Boolean,
+    Transformation.transform({
+      decode: (literal) => literal === "on",
+      encode: (bool) => (bool ? "on" : "off")
+    })
+  )
 )
 ```
 
@@ -5945,13 +5951,24 @@ const schema = Schema.transformLiteral(0, "a")
 v4
 
 ```ts
-import { Getter, Schema } from "effect/schema"
+import { Getter, Schema, Transformation } from "effect/schema"
 
 const schema = Schema.Literal(0).pipe(
   Schema.decodeTo(Schema.Literal("a"), {
     decode: Getter.succeed("a"),
     encode: Getter.succeed(0)
   })
+)
+
+// or
+const schema2 = Schema.Literal(0).pipe(
+  Schema.decodeTo(
+    Schema.Literal("a"),
+    Transformation.transform({
+      decode: () => "a" as const,
+      encode: () => 0 as const
+    })
+  )
 )
 ```
 
@@ -5991,6 +6008,100 @@ console.log(Schema.decodeUnknownSync(schema)({ a: "a" }))
 console.log(Schema.encodeUnknownSync(schema)({ a: "a", b: "b" }))
 // { a: 'a' }
 ```
+
+### annotations
+
+v3
+
+```ts
+import { Schema } from "effect"
+
+const schema = Schema.Struct({
+  a: Schema.String
+}).pipe(Schema.annotations({ description: "A struct with a string" }))
+```
+
+v4
+
+```ts
+import { Schema } from "effect/schema"
+
+const schema = Schema.Struct({
+  a: Schema.String
+}).pipe(Schema.annotate({ description: "A struct with a string" }))
+```
+
+Reason: The `annotations` method was renamed to `annotate` to align with the naming convention of other packages.
+
+### rename
+
+v3
+
+```ts
+import { Schema } from "effect"
+
+const schema = Schema.Struct({
+  a: Schema.String,
+  b: Schema.Number
+}).pipe(Schema.rename({ a: "c" }))
+```
+
+v4
+
+```ts
+import { Schema, Transformation } from "effect/schema"
+
+// manual
+const schema = Schema.Struct({
+  a: Schema.String,
+  b: Schema.Number
+}).pipe(
+  Schema.decodeTo(
+    Schema.Struct({
+      c: Schema.String,
+      b: Schema.Number
+    }),
+    Transformation.transform({
+      decode: (input) => ({
+        c: input.a,
+        b: input.b
+      }),
+      encode: (input) => ({
+        a: input.c,
+        b: input.b
+      })
+    })
+  )
+)
+
+// experimental API
+const schema2 = Schema.Struct({
+  a: Schema.String,
+  b: Schema.Number
+}).pipe(Schema.encodeKeys({ a: "c" }))
+```
+
+### pattern
+
+Renamed to `regex`.
+
+v3
+
+```ts
+import { Schema } from "effect"
+
+const schema = Schema.String.pipe(Schema.pattern(/^[a-z]+$/))
+```
+
+v4
+
+```ts
+import { Check, Schema } from "effect/schema"
+
+const schema = Schema.String.pipe(Schema.check(Check.regex(/^[a-z]+$/)))
+```
+
+Reason: The `pattern` method was renamed to `regex` to align with the naming convention of [zod](https://zod.dev/api?id=strings) and [valibot](https://valibot.dev/api/regex/).
 
 ## RWC References
 
