@@ -6121,6 +6121,74 @@ const schema = Schema.String.pipe(
 )
 ```
 
+### NonEmptyTrimmedString
+
+v4
+
+```ts
+import { Check, Schema } from "effect/schema"
+
+const schema = Schema.Trimmed.check(Check.nonEmpty())
+```
+
+### split
+
+v4
+
+```ts
+import { Schema, Transformation } from "effect/schema"
+
+function split(separator: string) {
+  return Schema.String.pipe(
+    Schema.decodeTo(
+      Schema.Array(Schema.String),
+      Transformation.transform({
+        decode: (s) => s.split(separator) as ReadonlyArray<string>,
+        encode: (as) => as.join(separator)
+      })
+    )
+  )
+}
+```
+
+### parseJson
+
+#### Without a schema
+
+v3
+
+```ts
+import { Schema } from "effect"
+
+const schema = Schema.parseJson()
+```
+
+v4
+
+```ts
+import { Schema } from "effect/schema"
+
+const schema = Schema.UnknownFromJsonString
+```
+
+#### With a schema
+
+v3
+
+```ts
+import { Schema } from "effect"
+
+const schema = Schema.parseJson(Schema.Struct({ a: Schema.Number }))
+```
+
+v4
+
+```ts
+import { Schema } from "effect/schema"
+
+const schema = Schema.fromJsonString(Schema.Struct({ a: Schema.Number }))
+```
+
 ## RWC References
 
 - https://github.com/Anastasia-Labs/lucid-evolution/blob/5068114c9f8f95c6b997d0d2233a9e9543632f35/packages/experimental/src/TSchema.ts#L353

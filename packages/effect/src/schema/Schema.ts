@@ -3658,10 +3658,7 @@ export const Trimmed = String.check(Check.trimmed())
  *
  * @since 4.0.0
  */
-export const Trim = String.pipe(decodeTo(Trimmed, {
-  decode: Getter.trim(),
-  encode: Getter.passthrough()
-}))
+export const Trim = String.pipe(decodeTo(Trimmed, Transformation.trim()))
 
 //
 // Class APIs
