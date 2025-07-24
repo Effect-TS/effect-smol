@@ -1,6 +1,7 @@
 /**
  * @since 2.0.0
  */
+// @effect-diagnostics returnEffectInGen:off
 import * as Cause from "../Cause.ts"
 import * as Arr from "../collections/Array.ts"
 import type * as PubSub from "../concurrency/PubSub.ts"
@@ -9,7 +10,7 @@ import type * as Filter from "../data/Filter.ts"
 import * as Option from "../data/Option.ts"
 import { hasProperty } from "../data/Predicate.ts"
 import * as Effect from "../Effect.ts"
-import type * as Exit from "../Exit.ts"
+import * as Exit from "../Exit.ts"
 import type { LazyArg } from "../Function.ts"
 import { dual, identity } from "../Function.ts"
 import { type Pipeable, pipeArguments } from "../interfaces/Pipeable.ts"
@@ -27,16 +28,6 @@ import type * as Unify from "../types/Unify.ts"
 /**
  * The type identifier for Stream.
  *
- * @example
- * ```ts
- * import * as Stream from "effect/stream/Stream"
- *
- * declare const stream: Stream.Stream<number>
- *
- * // TypeId is used internally for type safety
- * const hasTypeId = Stream.TypeId in stream
- * ```
- *
  * @since 2.0.0
  * @category symbols
  */
@@ -44,15 +35,6 @@ export const TypeId: TypeId = "~effect/Stream"
 
 /**
  * The type-level identifier for the Stream type.
- *
- * @example
- * ```ts
- * import type * as Stream from "effect/stream/Stream"
- *
- * // TypeId can be used in type-level operations
- * type StreamTypeId = Stream.TypeId
- * // TypeId is "~effect/Stream"
- * ```
  *
  * @since 2.0.0
  * @category symbols
@@ -807,7 +789,6 @@ export const fromReadableStream = <A, E>(
         ? Effect.sync(() => reader.releaseLock())
         : Effect.promise(() => reader.cancel())
     )
-    // @effect-diagnostics-next-line returnEffectInGen:off
     return Effect.flatMap(
       Effect.tryPromise({
         try: () => reader.read(),
@@ -816,6 +797,17 @@ export const fromReadableStream = <A, E>(
       ({ done, value }) => done ? Pull.haltVoid : Effect.succeed(Arr.of(value))
     )
   })))
+
+/**
+ * Creates a stream from an AsyncIterable.
+ *
+ * @since 2.0.0
+ * @category constructors
+ */
+export const fromAsyncIterable = <A, E>(
+  iterable: AsyncIterable<A>,
+  onError: (error: unknown) => E
+): Stream<A, E> => fromChannel(Channel.fromAsyncIterableArray(iterable, onError))
 
 /**
  * Creates a stream from a Schedule.
@@ -2541,3 +2533,70 @@ export const toReadableStreamEffect: {
       (context) => toReadableStreamWith(self, context, options)
     )
 )
+
+/**
+ * @since 2.0.0
+ * @category destructors
+ */
+export const toAsyncIterableWith: {
+  <XR>(services: ServiceMap.ServiceMap<XR>): <A, E, R extends XR>(self: Stream<A, E, R>) => AsyncIterable<A>
+  <A, E, XR, R extends XR>(
+    self: Stream<A, E, R>,
+    services: ServiceMap.ServiceMap<XR>
+  ): AsyncIterable<A>
+} = dual(
+  2,
+  <A, E, XR, R extends XR>(
+    self: Stream<A, E, R>,
+    services: ServiceMap.ServiceMap<XR>
+  ): AsyncIterable<A> => ({
+    [Symbol.asyncIterator]() {
+      const runPromise = Effect.runPromiseWith(services)
+      const runPromiseExit = Effect.runPromiseExitWith(services)
+      const scope = Scope.unsafeMake()
+      let pull: Pull.Pull<Arr.NonEmptyReadonlyArray<A>, E, void, R> | undefined
+      let currentIter: Iterator<A> | undefined
+      return {
+        async next(): Promise<IteratorResult<A>> {
+          if (currentIter) {
+            const next = currentIter.next()
+            if (!next.done) return next
+            currentIter = undefined
+          }
+          pull ??= await runPromise(Channel.toPullScoped(self.channel, scope))
+          const exit = await runPromiseExit(pull)
+          if (Exit.isSuccess(exit)) {
+            currentIter = exit.value[Symbol.iterator]()
+            return currentIter.next()
+          } else if (Pull.isHaltCause(exit.cause)) {
+            return { done: true, value: undefined }
+          }
+          throw Cause.squash(exit.cause)
+        },
+        return(_) {
+          return runPromise(Effect.as(
+            Scope.close(scope, Exit.void),
+            { done: true, value: undefined }
+          ))
+        }
+      }
+    }
+  })
+)
+
+/**
+ * @since 2.0.0
+ * @category destructors
+ */
+export const toAsyncIterableEffect = <A, E, R>(self: Stream<A, E, R>): Effect.Effect<AsyncIterable<A>, never, R> =>
+  Effect.map(
+    Effect.services<R>(),
+    (services) => toAsyncIterableWith(self, services)
+  )
+
+/**
+ * @since 2.0.0
+ * @category destructors
+ */
+export const toAsyncIterable = <A, E>(self: Stream<A, E>): AsyncIterable<A> =>
+  toAsyncIterableWith(self, ServiceMap.empty())

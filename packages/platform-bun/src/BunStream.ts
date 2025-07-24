@@ -42,6 +42,7 @@ export const fromReadableStream = <A, E>(
         resume(Effect.succeed(result))
       }
     })
+    // @effect-diagnostics-next-line returnEffectInGen:off
     return Effect.flatMap(
       readMany,
       function loop(

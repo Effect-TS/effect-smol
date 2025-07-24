@@ -58,8 +58,9 @@
  *
  * @since 2.0.0
  */
+// @effect-diagnostics returnEffectInGen:off
 import * as Cause from "../Cause.ts"
-import type * as Arr from "../collections/Array.ts"
+import * as Arr from "../collections/Array.js"
 import * as Chunk from "../collections/Chunk.ts"
 import * as Iterable from "../collections/Iterable.ts"
 import * as PubSub from "../concurrency/PubSub.ts"
@@ -1508,6 +1509,41 @@ export const fromSchedule = <O, E, R>(
   schedule: Schedule.Schedule<O, unknown, E, R>
 ): Channel<O, E, O, unknown, unknown, unknown, R> =>
   fromPull(Effect.map(Schedule.toStepWithSleep(schedule), (step) => step(void 0)))
+
+/**
+ * Creates a Channel from a AsyncIterable.
+ *
+ * @since 4.0.0
+ * @category constructors
+ */
+export const fromAsyncIterable = <A, D, E>(
+  iterable: AsyncIterable<A, D>,
+  onError: (error: unknown) => E
+): Channel<A, E, D> =>
+  fromTransform(Effect.fnUntraced(function*(_, scope) {
+    const iter = iterable[Symbol.asyncIterator]()
+    if (iter.return) {
+      yield* Scope.addFinalizer(scope, Effect.promise(() => iter.return!()))
+    }
+    return Effect.flatMap(
+      Effect.tryPromise({
+        try: () => iter.next(),
+        catch: onError
+      }),
+      (result) => result.done ? Pull.halt(result.value) : Effect.succeed(result.value)
+    )
+  }))
+
+/**
+ * Creates a Channel from a AsyncIterable that emits arrays of elements.
+ *
+ * @since 4.0.0
+ * @category constructors
+ */
+export const fromAsyncIterableArray = <A, D, E>(
+  iterable: AsyncIterable<A, D>,
+  onError: (error: unknown) => E
+): Channel<Arr.NonEmptyReadonlyArray<A>, E, D> => map(fromAsyncIterable(iterable, onError), Arr.of)
 
 /**
  * Maps the output of this channel using the specified function.
