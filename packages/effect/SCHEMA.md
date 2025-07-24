@@ -6189,6 +6189,28 @@ import { Schema } from "effect/schema"
 const schema = Schema.fromJsonString(Schema.Struct({ a: Schema.Number }))
 ```
 
+### UUID
+
+v4
+
+```ts
+import { Check, Schema } from "effect/schema"
+
+const schema = Schema.String.check(Check.uuid())
+```
+
+### ULID
+
+v4
+
+```ts
+import { Check, Schema } from "effect/schema"
+
+const schema = Schema.String.check(Check.ulid())
+```
+
+### Base64
+
 ## RWC References
 
 - https://github.com/Anastasia-Labs/lucid-evolution/blob/5068114c9f8f95c6b997d0d2233a9e9543632f35/packages/experimental/src/TSchema.ts#L353

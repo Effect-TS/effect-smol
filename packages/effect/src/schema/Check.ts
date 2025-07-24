@@ -335,6 +335,17 @@ export function uuid(version?: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8) {
  * @category String checks
  * @since 4.0.0
  */
+export function ulid(annotations?: Annotations.Filter) {
+  return regex(/^[0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{26}$/, {
+    title: "ulid",
+    ...annotations
+  })
+}
+
+/**
+ * @category String checks
+ * @since 4.0.0
+ */
 export function base64(annotations?: Annotations.Filter) {
   return regex(/^([0-9a-zA-Z+/]{4})*(([0-9a-zA-Z+/]{2}==)|([0-9a-zA-Z+/]{3}=))?$/, {
     title: "base64",

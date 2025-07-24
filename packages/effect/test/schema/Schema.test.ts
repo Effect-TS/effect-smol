@@ -5730,6 +5730,21 @@ describe("Getter", () => {
   })
 })
 
+describe("Check", () => {
+  it("ULID", async () => {
+    const schema = Schema.String.check(Check.ulid())
+
+    await assertions.decoding.succeed(schema, "01H4PGGGJVN2DKP2K1H7EH996V")
+    await assertions.decoding.fail(
+      schema,
+      "",
+      `string & ulid
+└─ ulid
+   └─ Invalid data ""`
+    )
+  })
+})
+
 describe("Transformation", () => {
   it("Capitalize", async () => {
     const schema = Schema.String.pipe(
