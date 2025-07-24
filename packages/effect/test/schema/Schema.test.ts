@@ -5666,6 +5666,52 @@ describe("Schema", () => {
       await assertions.decoding.succeed(schema, { a: { b: "2" } }, { expected: { a: { b: 2 } } })
     })
   })
+
+  it("NonEmptyString", async () => {
+    const schema = Schema.NonEmptyString
+
+    assertions.schema.format(schema, `string`)
+
+    await assertions.decoding.succeed(schema, "a")
+    await assertions.decoding.fail(
+      schema,
+      "",
+      `string & minLength(1)
+└─ minLength(1)
+   └─ Invalid data ""`
+    )
+    await assertions.encoding.succeed(schema, "a")
+    await assertions.encoding.fail(
+      schema,
+      "",
+      `string & minLength(1)
+└─ minLength(1)
+   └─ Invalid data ""`
+    )
+  })
+
+  it("Char", async () => {
+    const schema = Schema.Char
+
+    assertions.schema.format(schema, `string`)
+
+    await assertions.decoding.succeed(schema, "a")
+    await assertions.decoding.fail(
+      schema,
+      "ab",
+      `string & length(1)
+└─ length(1)
+   └─ Invalid data "ab"`
+    )
+    await assertions.encoding.succeed(schema, "a")
+    await assertions.encoding.fail(
+      schema,
+      "ab",
+      `string & length(1)
+└─ length(1)
+   └─ Invalid data "ab"`
+    )
+  })
 })
 
 describe("Getter", () => {

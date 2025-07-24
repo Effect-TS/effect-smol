@@ -3254,6 +3254,13 @@ export function Option<S extends Top>(value: S): Option<S> {
 export const NonEmptyString = String.check(Check.nonEmpty())
 
 /**
+ * A schema representing a single character.
+ *
+ * @since 4.0.0
+ */
+export const Char = String.check(Check.length(1))
+
+/**
  * @since 4.0.0
  */
 export interface Map$<Key extends Top, Value extends Top> extends
