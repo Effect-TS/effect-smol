@@ -78,24 +78,26 @@ export interface Key<in out Id, in out Service>
 /**
  * @since 4.0.0
  * @category Models
- * @example
- * ```ts
- * import { ServiceMap } from "effect"
- *
- * // Define a key class for a logger service
- * class LoggerKey extends ServiceMap.Key<LoggerKey, { log: (msg: string) => void }>()("Logger") {}
- *
- * // Create an instance and use it
- * const serviceMap = ServiceMap.make(LoggerKey, { log: (msg: string) => console.log(msg) })
- * ```
  */
 export interface KeyClass<in out Self, in out Id extends string, in out Service> extends Key<Self, Service> {
-  new(_: never): {
+  new(_: never): KeyClass.Shape<Id, Service>
+  readonly key: Id
+}
+
+/**
+ * @since 4.0.0
+ * @category Models
+ */
+export declare namespace KeyClass {
+  /**
+   * @since 4.0.0
+   * @category Models
+   */
+  export interface Shape<Id extends string, Service> {
     readonly [KeyTypeId]: KeyTypeId
     readonly key: Id
     readonly Service: Service
   }
-  readonly key: Id
 }
 
 /**
