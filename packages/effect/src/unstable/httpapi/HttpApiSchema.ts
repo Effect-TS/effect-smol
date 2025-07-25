@@ -10,6 +10,7 @@ import type * as Annotations from "../../schema/Annotations.ts"
 import * as AST from "../../schema/AST.ts"
 import * as Schema from "../../schema/Schema.ts"
 import * as Transformation from "../../schema/Transformation.ts"
+import type { Mutable } from "../../types/Types.ts"
 import type * as Multipart_ from "../http/Multipart.ts"
 
 declare module "../../schema/Annotations.ts" {
@@ -31,6 +32,7 @@ declare module "../../schema/Annotations.ts" {
  * @category reflection
  */
 export const isVoid = (ast: AST.AST): boolean => {
+  ast = AST.encodedAST(ast)
   switch (ast._tag) {
     case "VoidKeyword": {
       return true
@@ -55,6 +57,22 @@ export const getStatusSuccess = (self: AST.AST): number => self.annotations?.htt
  * @category reflection
  */
 export const getStatusError = (self: AST.AST): number => self.annotations?.httpApiStatus ?? 500
+
+/**
+ * @since 4.0.0
+ * @category reflection
+ */
+export const getHttpApiAnnotations = (self: Annotations.Annotations | undefined): Annotations.Annotations => {
+  const out: Mutable<Annotations.Annotations> = {}
+  if (!self) return out
+
+  for (const [key, value] of Object.entries(self)) {
+    if (key.startsWith("httpApi")) {
+      out[key] = value
+    }
+  }
+  return out
+}
 
 /**
  * @since 4.0.0
@@ -412,6 +430,18 @@ export const withEncoding: {
       } :
       undefined)
   }))
+
+const encodingJson: Encoding = {
+  kind: "Json",
+  contentType: "application/json"
+}
+
+/**
+ * @since 1.0.0
+ * @category annotations
+ */
+export const getEncoding = (ast: AST.AST, fallback = encodingJson): Encoding =>
+  ast.annotations?.httpApiEncoding ?? fallback
 
 /**
  * @since 4.0.0
