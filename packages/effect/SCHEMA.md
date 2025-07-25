@@ -6209,7 +6209,13 @@ import { Check, Schema } from "effect/schema"
 const schema = Schema.String.check(Check.ulid())
 ```
 
-### Base64
+### URLFromSelf
+
+Renamed to `URL`.
+
+### NumberFromString
+
+Exported as the more useful `FiniteFromString` that excludes `NaN` and `+-Infinity`.
 
 ## RWC References
 

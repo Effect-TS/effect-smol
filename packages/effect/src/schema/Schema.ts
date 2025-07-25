@@ -3626,6 +3626,14 @@ export interface Finite extends Number {
 export const Finite = Number.check(Check.finite())
 
 /**
+ * A schema for integers that validates and ensures the value is an integer,
+ * excluding `NaN`, `Infinity`, and `-Infinity`.
+ *
+ * @since 4.0.0
+ */
+export const Int = Number.check(Check.int())
+
+/**
  * @since 4.0.0
  */
 export interface FiniteFromString extends decodeTo<Number, String, never, never> {

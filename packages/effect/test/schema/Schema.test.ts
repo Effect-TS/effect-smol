@@ -1437,6 +1437,27 @@ describe("Schema", () => {
 └─ int
    └─ Invalid data 1.1`
         )
+        await assertions.decoding.fail(
+          schema,
+          NaN,
+          `number & int
+└─ int
+   └─ Invalid data NaN`
+        )
+        await assertions.decoding.fail(
+          schema,
+          Infinity,
+          `number & int
+└─ int
+   └─ Invalid data Infinity`
+        )
+        await assertions.decoding.fail(
+          schema,
+          -Infinity,
+          `number & int
+└─ int
+   └─ Invalid data -Infinity`
+        )
       })
 
       it("int32", async () => {
@@ -5710,6 +5731,48 @@ describe("Schema", () => {
       `string & length(1)
 └─ length(1)
    └─ Invalid data "ab"`
+    )
+  })
+
+  it("Int", async () => {
+    const schema = Schema.Int
+
+    await assertions.decoding.succeed(schema, 1)
+    await assertions.decoding.fail(
+      schema,
+      1.1,
+      `number & int
+└─ int
+   └─ Invalid data 1.1`
+    )
+    await assertions.decoding.fail(
+      schema,
+      NaN,
+      `number & int
+└─ int
+   └─ Invalid data NaN`
+    )
+    await assertions.decoding.fail(
+      schema,
+      Infinity,
+      `number & int
+└─ int
+   └─ Invalid data Infinity`
+    )
+    await assertions.decoding.fail(
+      schema,
+      -Infinity,
+      `number & int
+└─ int
+   └─ Invalid data -Infinity`
+    )
+    await assertions.encoding.succeed(schema, 1)
+    await assertions.encoding.fail(
+      schema,
+      1.1,
+      `number & int
+└─ int
+   └─ Invalid data 1.1`
     )
   })
 })

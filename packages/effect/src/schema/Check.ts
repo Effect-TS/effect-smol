@@ -583,7 +583,7 @@ export function uncapitalized(annotations?: Annotations.Filter) {
  * @since 4.0.0
  */
 export function finite(annotations?: Annotations.Filter) {
-  return make((n: number) => globalThis.Number.isFinite(n), {
+  return make((n: number) => Number.isFinite(n), {
     title: "finite",
     description: "a finite number",
     meta: {
