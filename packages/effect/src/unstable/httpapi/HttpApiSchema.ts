@@ -10,7 +10,7 @@ import type * as Annotations from "../../schema/Annotations.ts"
 import * as AST from "../../schema/AST.ts"
 import * as Schema from "../../schema/Schema.ts"
 import * as Transformation from "../../schema/Transformation.ts"
-import type * as Multipart_ from "./Multipart.ts"
+import type * as Multipart_ from "../http/Multipart.ts"
 
 declare module "../../schema/Annotations.ts" {
   interface Annotations {
@@ -114,7 +114,7 @@ export interface Param<Name extends string, S extends Schema.Top> extends
     S["~encoded.optionality"]
   >
 {
-  readonly "~effect/http/HttpApiSchema/Param": {
+  readonly "~effect/httpapi/HttpApiSchema/Param": {
     readonly name: Name
     readonly schema: S
   }
@@ -245,9 +245,15 @@ export const NoContent: NoContent = Empty(204) as any
  * @since 4.0.0
  * @category multipart
  */
+export type MultipartId = "~effect/httpapi/HttpApiSchema/MultipartId"
+
+/**
+ * @since 4.0.0
+ * @category multipart
+ */
 export interface Multipart<S extends Schema.Top> extends
   Schema.Bottom<
-    S["Type"] & Brand<"~effect/http/HttpApiSchema/Multipart">,
+    S["Type"] & Brand<MultipartId>,
     S["Encoded"],
     S["DecodingServices"],
     S["EncodingServices"],
@@ -283,9 +289,15 @@ export const Multipart = <S extends Schema.Top>(self: S, options?: {
  * @since 4.0.0
  * @category multipart
  */
+export type MultipartStreamId = "~effect/httpapi/HttpApiSchema/MultipartStreamId"
+
+/**
+ * @since 4.0.0
+ * @category multipart
+ */
 export interface MultipartStream<S extends Schema.Top> extends
   Schema.Bottom<
-    S["Type"] & Brand<"~effect/http/HttpApiSchema/MultipartStream">,
+    S["Type"] & Brand<MultipartStreamId>,
     S["Encoded"],
     S["DecodingServices"],
     S["EncodingServices"],
@@ -478,7 +490,7 @@ export const EmptyError = <Self>() =>
   readonly tag: Tag
   readonly status: number
 }): EmptyErrorClass<Self, Tag> => {
-  class EmptyError extends Schema.ErrorClass<EmptyError>(`effect/http/HttpApiSchema/EmptyError/${options.tag}`)({
+  class EmptyError extends Schema.ErrorClass<EmptyError>(`effect/httpapi/HttpApiSchema/EmptyError/${options.tag}`)({
     _tag: Schema.tag(options.tag)
   }) {
     constructor() {
