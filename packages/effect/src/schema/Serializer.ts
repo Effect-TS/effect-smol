@@ -222,10 +222,10 @@ const booleanFromString = new Transformation.Transformation(
 
 const stringNull = new AST.LiteralType("")
 
-const nullFromEmptyString = new Transformation.Transformation(
-  Getter.succeed(null),
-  Getter.succeed(stringNull.literal)
-)
+const nullFromEmptyString = Transformation.transform({
+  decode: () => null,
+  encode: () => stringNull.literal
+})
 
 const goStringLeafJson = AST.memoize((ast: AST.AST): AST.AST => {
   if (ast.encoding) {
