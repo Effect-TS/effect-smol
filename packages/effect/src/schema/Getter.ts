@@ -220,6 +220,13 @@ export function Number<E>(): Getter<number, E> {
 }
 
 /**
+ * @since 4.0.0
+ */
+export function parseFloat<E extends string>(): Getter<number, E> {
+  return map(globalThis.parseFloat)
+}
+
+/**
  * @category Coercions
  * @since 4.0.0
  */

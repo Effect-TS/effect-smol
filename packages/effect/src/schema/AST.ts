@@ -2235,7 +2235,8 @@ export const getTemplateLiteralRegExp = memoize((ast: TemplateLiteral): RegExp =
 // any string, including newlines
 const STRING_KEYWORD_PATTERN = "[\\s\\S]*"
 // floating point or integer, with optional exponent
-const NUMBER_KEYWORD_PATTERN = "[+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?"
+/** @internal */
+export const NUMBER_KEYWORD_PATTERN = "[+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?"
 // signed integer only (no leading “+”)
 const BIGINT_KEYWORD_PATTERN = "-?\\d+"
 

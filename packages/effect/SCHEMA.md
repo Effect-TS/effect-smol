@@ -248,7 +248,7 @@ This section focuses on the first use case, where the exact JSON format is less 
 
 ### Transmitting Data Over the Network
 
-For use cases like RPC or messaging systems, the JSON format only needs to support round-trip encoding and decoding. The `SchemaSerializer.json` operator helps with this by taking a schema and returning a `Codec` that knows how to serialize and deserialize the data using a JSON-compatible format.
+For use cases like RPC or messaging systems, the JSON format only needs to support round-trip encoding and decoding. The `Serializer.json` operator helps with this by taking a schema and returning a `Codec` that knows how to serialize and deserialize the data using a JSON-compatible format.
 
 **Example** (Serializing and deserializing a Map with complex keys and values)
 
@@ -325,6 +325,127 @@ console.log(serialized)
 ```
 
 In this example, the `Date` is encoded as a string and decoded back using the standard ISO format.
+
+## 🆕 String‑Leaf Serializer
+
+`Serializer.stringLeafJson` lets you funnel many string‑based inputs—URL queries, form posts, CLI args—into any **Schema** without adding custom transformations.
+
+The process has two steps:
+
+1. **Format → tree**
+   A short helper converts the raw data into a structure whose leaves are all strings.
+
+   ```ts
+   type StringLeafJson = string | { [key: PropertyKey]: StringLeafJson } | Array<StringLeafJson>
+   ```
+
+2. **Tree → value**
+   A normal schema decodes that tree into your typed model.
+
+Write the schema using the types you actually need: `Schema.Number`, `Schema.Boolean`, `Schema.Date`, and so on.
+`Serializer.stringLeafJson` will convert the string leaves to these types while decoding, so you do **not** have to insert helpers like `numberFromString` or `booleanFromString`.
+
+Below are two quick examples.
+
+**Example** (Decode `URLSearchParams`)
+
+```ts
+import { Schema, Serializer } from "effect/schema"
+
+// 1. URL params ➜ StringLeafJson
+const toTree = (p: URLSearchParams) => Object.fromEntries(p)
+
+// 2. schema
+const Query = Schema.Struct({
+  page: Schema.Finite,
+  q: Schema.optionalKey(Schema.String)
+})
+
+const serializer = Serializer.stringLeafJson(Query)
+
+const params = new URLSearchParams("?page=2&q=foo")
+
+console.log(Schema.decodeSync(serializer)(toTree(params)))
+// → { page: 2, q: "foo" }
+```
+
+**Example** (Decode `FormData`)
+
+```ts
+import * as Predicate from "effect/data/Predicate"
+import { Schema, Serializer } from "effect/schema"
+
+// 1. FormData ➜ StringLeafJson
+const fdToTree = (fd: FormData) =>
+  // exclude File values
+  Object.fromEntries([...fd.entries()].filter(([_, v]) => Predicate.isString(v)) as Array<[string, string]>)
+
+// 2. schema
+const User = Schema.Struct({
+  user: Schema.NonEmptyString,
+  pass: Schema.NonEmptyString,
+  age: Schema.Finite
+})
+
+const serializer = Serializer.stringLeafJson(User)
+
+const fd = new FormData()
+fd.set("user", "alice")
+fd.set("pass", "secret")
+fd.set("age", "30")
+
+console.log(Schema.decodeSync(serializer)(fdToTree(fd)))
+// → { user: "alice", pass: "secret", age: 30 }
+```
+
+### How it works
+
+The `stringLeafJson` serializer first delegates to `Serializer.json` to obtain a plain JSON‑safe value, then converts every leaf (number, boolean, null) to a string so the whole tree matches `StringLeafJson`.
+
+**Example** (Difference between the two serializers)
+
+```ts
+import { Schema, Serializer } from "effect/schema"
+
+const schema = Schema.Struct({
+  name: Schema.String,
+  age: Schema.Number,
+  isAdmin: Schema.Boolean,
+  createdAt: Schema.Date
+})
+
+const json = Serializer.json(schema)
+
+const stringLeafJson = Serializer.stringLeafJson(schema)
+
+const value = {
+  name: "John",
+  age: 30,
+  isAdmin: true,
+  createdAt: new Date()
+}
+
+console.log(Schema.encodeSync(json)(value))
+/*
+{
+  name: 'John',
+  age: 30, // still a number
+  isAdmin: true, // still a boolean
+  createdAt: '2025-07-25T17:04:40.434Z' // Date represented as a string thanks to the `json` serializer
+}
+*/
+
+console.log(Schema.encodeSync(stringLeafJson)(value))
+/*
+everything is a string
+{
+  name: 'John',
+  age: '30',
+  isAdmin: 'true',
+  createdAt: '2025-07-25T17:04:40.434Z'
+}
+*/
+```
 
 ## Explicit JSON Serialization
 
@@ -1173,13 +1294,13 @@ import { Schema } from "effect/schema"
 
 export const schema = Schema.Struct({
   // Exact Optional Property
-  a: Schema.optionalKey(Schema.NumberFromString),
+  a: Schema.optionalKey(Schema.FiniteFromString),
   // Optional Property
-  b: Schema.optional(Schema.NumberFromString),
+  b: Schema.optional(Schema.FiniteFromString),
   // Exact Optional Property with Nullability
-  c: Schema.optionalKey(Schema.NullOr(Schema.NumberFromString)),
+  c: Schema.optionalKey(Schema.NullOr(Schema.FiniteFromString)),
   // Optional Property with Nullability
-  d: Schema.optional(Schema.NullOr(Schema.NumberFromString))
+  d: Schema.optional(Schema.NullOr(Schema.FiniteFromString))
 })
 
 /*
@@ -1210,7 +1331,7 @@ import { Option, Predicate } from "effect"
 import { Getter, Schema } from "effect/schema"
 
 export const schema = Schema.Struct({
-  a: Schema.optional(Schema.NumberFromString).pipe(
+  a: Schema.optional(Schema.FiniteFromString).pipe(
     Schema.decodeTo(Schema.optionalKey(Schema.Number), {
       decode: Getter.mapOptional(
         Option.filter(Predicate.isNotUndefined) // omit undefined
@@ -1448,7 +1569,7 @@ import { Option } from "effect"
 import { Schema, Transformation } from "effect/schema"
 
 const Product = Schema.Struct({
-  quantity: Schema.optionalKey(Schema.NumberFromString).pipe(
+  quantity: Schema.optionalKey(Schema.FiniteFromString).pipe(
     Schema.decodeTo(
       Schema.Option(Schema.Number),
       Transformation.transformOptional({
@@ -1490,7 +1611,7 @@ import { Option, Predicate } from "effect"
 import { Schema, Transformation } from "effect/schema"
 
 const Product = Schema.Struct({
-  quantity: Schema.optional(Schema.NumberFromString).pipe(
+  quantity: Schema.optional(Schema.FiniteFromString).pipe(
     Schema.decodeTo(
       Schema.Option(Schema.Number),
       Transformation.transformOptional({
@@ -1532,7 +1653,7 @@ import { Option, Predicate } from "effect"
 import { Schema, Transformation } from "effect/schema"
 
 const Product = Schema.Struct({
-  quantity: Schema.optionalKey(Schema.NullOr(Schema.NumberFromString)).pipe(
+  quantity: Schema.optionalKey(Schema.NullOr(Schema.FiniteFromString)).pipe(
     Schema.decodeTo(
       Schema.Option(Schema.Number),
       Transformation.transformOptional({
@@ -1571,7 +1692,7 @@ import { Option, Predicate } from "effect"
 import { Schema, Transformation } from "effect/schema"
 
 const Product = Schema.Struct({
-  quantity: Schema.optional(Schema.NullOr(Schema.NumberFromString)).pipe(
+  quantity: Schema.optional(Schema.NullOr(Schema.FiniteFromString)).pipe(
     Schema.decodeTo(
       Schema.Option(Schema.Number),
       Transformation.transformOptional({
@@ -5749,7 +5870,7 @@ v3
 ```ts
 import { Schema } from "effect"
 
-const schema = Schema.Trim.pipe(Schema.compose(Schema.NumberFromString))
+const schema = Schema.Trim.pipe(Schema.compose(Schema.FiniteFromString))
 ```
 
 v4

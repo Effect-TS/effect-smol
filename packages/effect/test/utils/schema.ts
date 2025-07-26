@@ -146,101 +146,161 @@ function make(asserts: {
     },
 
     serialization: {
-      schema: {
-        async succeed<const A, const I, RD, RE>(
-          schema: Schema.Codec<A, I, RD, RE>,
-          input: A,
-          expected?: unknown
-        ) {
-          return out.effect.succeed(
-            Schema.encodeEffect(Serializer.json(Schema.typeCodec(schema)))(input),
-            arguments.length > 2 ? expected : input
-          )
+      json: {
+        schema: {
+          async succeed<const A, const I, RD, RE>(
+            schema: Schema.Codec<A, I, RD, RE>,
+            input: A,
+            expected?: unknown
+          ) {
+            return out.effect.succeed(
+              Schema.encodeEffect(Serializer.json(Schema.typeCodec(schema)))(input),
+              arguments.length > 2 ? expected : input
+            )
+          },
+
+          async fail<const A, const I, RD, RE>(
+            schema: Schema.Codec<A, I, RD, RE>,
+            input: A,
+            message: string
+          ) {
+            return out.effect.fail(
+              Schema.encodeEffect(Serializer.json(Schema.typeCodec(schema)))(input).pipe(
+                Effect.mapError((err) => err.issue)
+              ),
+              message
+            )
+          }
         },
 
-        async fail<const A, const I, RD, RE>(
-          schema: Schema.Codec<A, I, RD, RE>,
-          input: A,
-          message: string
-        ) {
-          return out.effect.fail(
-            Schema.encodeEffect(Serializer.json(Schema.typeCodec(schema)))(input).pipe(
-              Effect.mapError((err) => err.issue)
-            ),
-            message
-          )
+        codec: {
+          async succeed<const A, const I, RD, RE>(
+            schema: Schema.Codec<A, I, RD, RE>,
+            input: A,
+            expected?: unknown
+          ) {
+            return out.encoding.succeed(
+              Serializer.json(schema),
+              input,
+              { expected: arguments.length > 2 ? expected : input }
+            )
+          },
+
+          async fail<const A, const I, RD, RE>(
+            schema: Schema.Codec<A, I, RD, RE>,
+            input: A,
+            message: string
+          ) {
+            return out.encoding.fail(Serializer.json(schema), input, message)
+          }
         }
       },
 
-      codec: {
-        async succeed<const A, const I, RD, RE>(
-          schema: Schema.Codec<A, I, RD, RE>,
-          input: A,
-          expected?: unknown
-        ) {
-          return out.encoding.succeed(
-            Serializer.json(schema),
-            input,
-            { expected: arguments.length > 2 ? expected : input }
-          )
-        },
+      stringLeafJson: {
+        schema: {
+          async succeed<const A, const I, RD, RE>(
+            schema: Schema.Codec<A, I, RD, RE>,
+            input: A,
+            expected?: Serializer.StringLeafJson
+          ) {
+            return out.effect.succeed(
+              Schema.encodeEffect(Serializer.stringLeafJson(Schema.typeCodec(schema)))(input),
+              arguments.length > 2 ? expected : input
+            )
+          },
 
-        async fail<const A, const I, RD, RE>(
-          schema: Schema.Codec<A, I, RD, RE>,
-          input: A,
-          message: string
-        ) {
-          return out.encoding.fail(Serializer.json(schema), input, message)
+          async fail<const A, const I, RD, RE>(
+            schema: Schema.Codec<A, I, RD, RE>,
+            input: A,
+            message: string
+          ) {
+            return out.effect.fail(
+              Schema.encodeEffect(Serializer.stringLeafJson(Schema.typeCodec(schema)))(input).pipe(
+                Effect.mapError((err) => err.issue)
+              ),
+              message
+            )
+          }
         }
       }
     },
 
     deserialization: {
-      schema: {
-        async succeed<const A, const I, RD, RE>(
-          schema: Schema.Codec<A, I, RD, RE>,
-          input: unknown,
-          expected?: A
-        ) {
-          return out.effect.succeed(
-            Schema.decodeEffect(Serializer.json(Schema.typeCodec(schema)))(input),
-            arguments.length > 2 ? expected : input
-          )
+      json: {
+        schema: {
+          async succeed<const A, const I, RD, RE>(
+            schema: Schema.Codec<A, I, RD, RE>,
+            input: unknown,
+            expected?: A
+          ) {
+            return out.effect.succeed(
+              Schema.decodeEffect(Serializer.json(Schema.typeCodec(schema)))(input),
+              arguments.length > 2 ? expected : input
+            )
+          },
+
+          async fail<const A, const I, RD, RE>(
+            schema: Schema.Codec<A, I, RD, RE>,
+            input: unknown,
+            message: string
+          ) {
+            return out.effect.fail(
+              Schema.decodeEffect(Serializer.json(Schema.typeCodec(schema)))(input).pipe(
+                Effect.mapError((err) => err.issue)
+              ),
+              message
+            )
+          }
         },
 
-        async fail<const A, const I, RD, RE>(
-          schema: Schema.Codec<A, I, RD, RE>,
-          input: unknown,
-          message: string
-        ) {
-          return out.effect.fail(
-            Schema.decodeEffect(Serializer.json(Schema.typeCodec(schema)))(input).pipe(
-              Effect.mapError((err) => err.issue)
-            ),
-            message
-          )
+        codec: {
+          async succeed<const A, const I, RD, RE>(
+            schema: Schema.Codec<A, I, RD, RE>,
+            input: unknown,
+            expected?: A
+          ) {
+            return out.decoding.succeed(
+              Serializer.json(schema),
+              input,
+              { expected: arguments.length > 2 ? expected : input }
+            )
+          },
+
+          async fail<const A, const I, RD, RE>(
+            schema: Schema.Codec<A, I, RD, RE>,
+            input: unknown,
+            message: string
+          ) {
+            return out.decoding.fail(Serializer.json(schema), input, message)
+          }
         }
       },
 
-      codec: {
-        async succeed<const A, const I, RD, RE>(
-          schema: Schema.Codec<A, I, RD, RE>,
-          input: unknown,
-          expected?: A
-        ) {
-          return out.decoding.succeed(
-            Serializer.json(schema),
-            input,
-            { expected: arguments.length > 2 ? expected : input }
-          )
-        },
+      stringLeafJson: {
+        schema: {
+          async succeed<const A, const I, RD, RE>(
+            schema: Schema.Codec<A, I, RD, RE>,
+            input: Serializer.StringLeafJson,
+            expected?: A
+          ) {
+            return out.effect.succeed(
+              Schema.decodeEffect(Serializer.stringLeafJson(Schema.typeCodec(schema)))(input),
+              arguments.length > 2 ? expected : input
+            )
+          },
 
-        async fail<const A, const I, RD, RE>(
-          schema: Schema.Codec<A, I, RD, RE>,
-          input: unknown,
-          message: string
-        ) {
-          return out.decoding.fail(Serializer.json(schema), input, message)
+          async fail<const A, const I, RD, RE>(
+            schema: Schema.Codec<A, I, RD, RE>,
+            input: Serializer.StringLeafJson,
+            message: string
+          ) {
+            return out.effect.fail(
+              Schema.decodeEffect(Serializer.stringLeafJson(Schema.typeCodec(schema)))(input).pipe(
+                Effect.mapError((err) => err.issue)
+              ),
+              message
+            )
+          }
         }
       }
     },
