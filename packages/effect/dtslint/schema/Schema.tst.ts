@@ -1,5 +1,5 @@
 import type { Brand } from "effect/data"
-import type { ServiceMap } from "effect/services"
+import type { ServiceMap } from "effect"
 import { Effect, flow, hole } from "effect"
 import { Option, Predicate, Struct, Tuple } from "effect/data"
 import { String as Str } from "effect/primitives"

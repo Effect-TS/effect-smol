@@ -1,8 +1,6 @@
 import { describe, it, test } from "@effect/vitest"
 import { strictEqual } from "@effect/vitest/utils"
-import { Effect } from "effect"
-import { ManagedRuntime } from "effect/runtime"
-import { Layer, ServiceMap } from "effect/services"
+import { Effect, Layer, ManagedRuntime, ServiceMap } from "effect"
 
 describe("ManagedRuntime", () => {
   test("memoizes the layer build", async () => {

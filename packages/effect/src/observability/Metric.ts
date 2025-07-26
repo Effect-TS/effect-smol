@@ -100,7 +100,7 @@
  * ```ts
  * import { Effect } from "effect"
  * import { Metric } from "effect/observability"
- * import { Schedule } from "effect/scheduling"
+ * import { Schedule } from "effect"
  *
  * // Business metrics
  * const userSignups = Metric.counter("user_signups_total")
@@ -152,9 +152,9 @@ import type { Pipeable } from "../interfaces/Pipeable.ts"
 import { pipeArguments } from "../interfaces/Pipeable.ts"
 import * as InternalEffect from "../internal/effect.ts"
 import * as InternalMetric from "../internal/metric.ts"
+import * as Layer from "../Layer.ts"
 import * as _String from "../primitives/String.ts"
-import * as Layer from "../services/Layer.ts"
-import * as ServiceMap from "../services/ServiceMap.ts"
+import * as ServiceMap from "../ServiceMap.ts"
 import * as Duration from "../time/Duration.ts"
 import type { Contravariant, Covariant } from "../types/Types.ts"
 
@@ -1623,7 +1623,7 @@ export declare namespace Metric {
  * ```ts
  * import { Effect } from "effect"
  * import { Metric } from "effect/observability"
- * import { Layer } from "effect/services"
+ * import { Layer } from "effect"
  * import { Data } from "effect/data"
  *
  * class AttributesKeyError extends Data.TaggedError("AttributesKeyError")<{
@@ -1676,7 +1676,7 @@ export const CurrentMetricAttributesKey = "effect/Metric/CurrentMetricAttributes
  * ```ts
  * import { Effect } from "effect"
  * import { Metric } from "effect/observability"
- * import { Layer } from "effect/services"
+ * import { Layer } from "effect"
  * import { Data } from "effect/data"
  *
  * class AttributesError extends Data.TaggedError("AttributesError")<{
@@ -2985,7 +2985,7 @@ export const withAttributes: {
  * ```ts
  * import { Effect } from "effect"
  * import { Metric } from "effect/observability"
- * import { Layer } from "effect/services"
+ * import { Layer } from "effect"
  * import { Console } from "effect/logging"
  * import { Data } from "effect/data"
  *
@@ -3044,7 +3044,7 @@ export const snapshot: Effect<ReadonlyArray<Metric.Snapshot>> = InternalEffect.m
  * ```ts
  * import { Effect } from "effect"
  * import { Metric } from "effect/observability"
- * import { Layer } from "effect/services"
+ * import { Layer } from "effect"
  * import { Console } from "effect/logging"
  * import { Data } from "effect/data"
  *
@@ -3453,7 +3453,7 @@ const fiberFailures = counter("child_fiber_failures", {
  * ```ts
  * import { Effect } from "effect"
  * import { Metric } from "effect/observability"
- * import { Layer } from "effect/services"
+ * import { Layer } from "effect"
  * import { Data } from "effect/data"
  *
  * class MetricsError extends Data.TaggedError("MetricsError")<{
@@ -3494,8 +3494,8 @@ export const FiberRuntimeMetricsKey: typeof InternalMetric.FiberRuntimeMetricsKe
  * import { Effect } from "effect"
  * import { Metric } from "effect/observability"
  * import { Data } from "effect/data"
- * import { Layer } from "effect/services"
- * import { ServiceMap } from "effect/services"
+ * import { Layer } from "effect"
+ * import { ServiceMap } from "effect"
  * import type { Exit } from "effect/Exit"
  *
  * class MetricsError extends Data.TaggedError("MetricsError")<{
@@ -3537,7 +3537,7 @@ export interface FiberRuntimeMetricsService {
  * ```ts
  * import { Effect } from "effect"
  * import { Metric } from "effect/observability"
- * import { Layer } from "effect/services"
+ * import { Layer } from "effect"
  * import { Data } from "effect/data"
  *
  * class MetricsError extends Data.TaggedError("MetricsError")<{
@@ -3590,7 +3590,7 @@ export const FiberRuntimeMetrics = ServiceMap.Reference<FiberRuntimeMetricsServi
  * ```ts
  * import { Effect } from "effect"
  * import { Metric } from "effect/observability"
- * import { Layer } from "effect/services"
+ * import { Layer } from "effect"
  * import { Data } from "effect/data"
  *
  * class MetricsError extends Data.TaggedError("MetricsError")<{
@@ -3658,7 +3658,7 @@ export const FiberRuntimeMetricsImpl: FiberRuntimeMetricsService = {
  * ```ts
  * import { Effect } from "effect"
  * import { Metric } from "effect/observability"
- * import { Layer } from "effect/services"
+ * import { Layer } from "effect"
  * import { Console } from "effect/logging"
  * import { Data } from "effect/data"
  *
@@ -3754,7 +3754,7 @@ export const enableRuntimeMetricsLayer = Layer.succeed(FiberRuntimeMetrics)(Fibe
  * ```ts
  * import { Effect } from "effect"
  * import { Metric } from "effect/observability"
- * import { Layer } from "effect/services"
+ * import { Layer } from "effect"
  * import { Data } from "effect/data"
  *
  * class MetricsError extends Data.TaggedError("MetricsError")<{
@@ -3801,7 +3801,7 @@ export const disableRuntimeMetricsLayer = Layer.succeed(FiberRuntimeMetrics)(und
  * ```ts
  * import { Effect } from "effect"
  * import { Metric } from "effect/observability"
- * import { Layer } from "effect/services"
+ * import { Layer } from "effect"
  * import { Console } from "effect/logging"
  * import { Data } from "effect/data"
  *
@@ -3887,7 +3887,7 @@ export const enableRuntimeMetrics: <A, E, R>(self: Effect<A, E, R>) => Effect<A,
  * ```ts
  * import { Effect } from "effect"
  * import { Metric } from "effect/observability"
- * import { Layer } from "effect/services"
+ * import { Layer } from "effect"
  * import { Console } from "effect/logging"
  * import { Data } from "effect/data"
  *

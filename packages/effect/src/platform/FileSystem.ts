@@ -43,9 +43,9 @@ import * as Data from "../data/Data.ts"
 import * as Option from "../data/Option.ts"
 import * as Effect from "../Effect.ts"
 import { pipe } from "../Function.ts"
-import type { Scope } from "../resources/Scope.ts"
-import * as Layer from "../services/Layer.ts"
-import * as ServiceMap from "../services/ServiceMap.ts"
+import * as Layer from "../Layer.ts"
+import type { Scope } from "../Scope.ts"
+import * as ServiceMap from "../ServiceMap.ts"
 import * as Pull from "../stream/Pull.ts"
 import * as Sink from "../stream/Sink.ts"
 import * as Stream from "../stream/Stream.ts"
@@ -1110,7 +1110,7 @@ export const makeNoop = (fileSystem: Partial<FileSystem>): FileSystem =>
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Layer } from "effect/services"
+ * import { Layer } from "effect"
  * import { FileSystem } from "effect/platform"
  *
  * // Create a test layer with specific behaviors

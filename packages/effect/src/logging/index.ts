@@ -142,7 +142,7 @@ export * as Console from "./Console.ts"
  *
  * ```ts
  * import { Effect } from "effect"
- * import { Layer } from "effect/services"
+ * import { Layer } from "effect"
  * import { Logger } from "effect/logging"
  *
  * // Combine multiple loggers

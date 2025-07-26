@@ -7,7 +7,7 @@ import type { Inspectable } from "../interfaces/Inspectable.ts"
 import { NodeInspectSymbol, toJSON } from "../interfaces/Inspectable.ts"
 import type { Pipeable } from "../interfaces/Pipeable.ts"
 import { pipeArguments } from "../interfaces/Pipeable.ts"
-import type * as Scope from "../resources/Scope.ts"
+import type * as Scope from "../Scope.ts"
 import * as TxRef from "../transactions/TxRef.ts"
 
 /**
@@ -554,7 +554,7 @@ export const withPermits = <A, E, R>(
  * import { Effect } from "effect"
  * import { Console } from "effect/logging"
  * import { TxSemaphore } from "effect/transactions"
- * import { Scope } from "effect/resources"
+ * import { Scope } from "effect"
  *
  * const program = Effect.gen(function* () {
  *   const semaphore = yield* TxSemaphore.make(3)

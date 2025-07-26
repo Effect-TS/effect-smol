@@ -1,8 +1,8 @@
 /**
  * @since 2.0.0
  */
-import type * as Fiber from "../runtime/Fiber.ts"
-import * as ServiceMap from "../services/ServiceMap.ts"
+import type * as Fiber from "./Fiber.ts"
+import * as ServiceMap from "./ServiceMap.ts"
 
 /**
  * A scheduler manages the execution of Effects by controlling when and how tasks
@@ -17,8 +17,8 @@ import * as ServiceMap from "../services/ServiceMap.ts"
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import type { Fiber } from "effect/runtime"
- * import type { Scheduler } from "effect/runtime/Scheduler"
+ * import type { Fiber } from "effect"
+ * import type { Scheduler } from "effect/Scheduler"
  *
  * // Create a custom scheduler implementation
  * class CustomScheduler implements Scheduler {
@@ -101,7 +101,7 @@ const setImmediate = "setImmediate" in globalThis
  *
  * @example
  * ```ts
- * import { MixedScheduler } from "effect/runtime/Scheduler"
+ * import { MixedScheduler } from "effect/Scheduler"
  *
  * // Create a mixed scheduler with async execution (default)
  * const asyncScheduler = new MixedScheduler("async")
@@ -202,7 +202,7 @@ export class MixedScheduler implements Scheduler {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { MaxOpsBeforeYield } from "effect/runtime/Scheduler"
+ * import { MaxOpsBeforeYield } from "effect/Scheduler"
  *
  * // Configure a fiber to yield more frequently
  * const program = Effect.gen(function* () {

@@ -12,8 +12,8 @@ import type { Inspectable } from "../interfaces/Inspectable.ts"
 import type { Pipeable } from "../interfaces/Pipeable.ts"
 import * as Internal from "../internal/dateTime.ts"
 import { provideService } from "../internal/effect.ts"
-import * as Layer from "../services/Layer.ts"
-import * as ServiceMap from "../services/ServiceMap.ts"
+import * as Layer from "../Layer.ts"
+import * as ServiceMap from "../ServiceMap.ts"
 import type * as Duration from "../time/Duration.ts"
 
 /**
@@ -2569,7 +2569,7 @@ export const formatIsoZoned: (self: Zoned) => string = Internal.formatIsoZoned
  * ```ts
  * import { DateTime } from "effect/time"
  * import { Effect } from "effect"
- * import { Layer } from "effect/services"
+ * import { Layer } from "effect"
  *
  * const zone = DateTime.zoneUnsafeMakeNamed("Europe/London")
  * const layer = DateTime.layerCurrentZone(zone)

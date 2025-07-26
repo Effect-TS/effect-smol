@@ -9,7 +9,7 @@
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Schedule } from "effect/scheduling"
+ * import { Schedule } from "effect"
  * import { Duration } from "effect/time"
  *
  * // Retry with exponential backoff
@@ -31,26 +31,26 @@
  *
  * @since 2.0.0
  */
-import { hasProperty } from "../data/Predicate.ts"
-import * as Result from "../data/Result.ts"
-import type { Effect } from "../Effect.ts"
-import type { LazyArg } from "../Function.ts"
-import { constant, constTrue, dual, identity } from "../Function.ts"
-import { type Pipeable, pipeArguments } from "../interfaces/Pipeable.ts"
-import { isEffect } from "../internal/core.ts"
-import * as effect from "../internal/effect.ts"
-import * as Pull from "../stream/Pull.ts"
-import * as Cron from "../time/Cron.ts"
-import type * as DateTime from "../time/DateTime.ts"
-import * as Duration from "../time/Duration.ts"
-import type { Contravariant, Covariant } from "../types/Types.ts"
+import { hasProperty } from "./data/Predicate.ts"
+import * as Result from "./data/Result.ts"
+import type { Effect } from "./Effect.ts"
+import type { LazyArg } from "./Function.ts"
+import { constant, constTrue, dual, identity } from "./Function.ts"
+import { type Pipeable, pipeArguments } from "./interfaces/Pipeable.ts"
+import { isEffect } from "./internal/core.ts"
+import * as effect from "./internal/effect.ts"
+import * as Pull from "./stream/Pull.ts"
+import * as Cron from "./time/Cron.ts"
+import type * as DateTime from "./time/DateTime.ts"
+import * as Duration from "./time/Duration.ts"
+import type { Contravariant, Covariant } from "./types/Types.ts"
 
 /**
  * Unique identifier for Schedule types, used for type branding and runtime identification.
  *
  * @example
  * ```ts
- * import { Schedule } from "effect/scheduling"
+ * import { Schedule } from "effect"
  *
  * console.log(Schedule.TypeId) // "~effect/Schedule"
  *
@@ -69,7 +69,7 @@ export const TypeId: TypeId = "~effect/Schedule"
  *
  * @example
  * ```ts
- * import { Schedule } from "effect/scheduling"
+ * import { Schedule } from "effect"
  *
  * // Type-level usage
  * type MyTypeId = Schedule.TypeId // "~effect/Schedule"
@@ -91,7 +91,7 @@ export type TypeId = "~effect/Schedule"
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Schedule } from "effect/scheduling"
+ * import { Schedule } from "effect"
  * import { Console } from "effect/logging"
  *
  * // Basic retry schedule - retry up to 3 times with exponential backoff
@@ -133,7 +133,7 @@ export interface Schedule<out Output, in Input = unknown, out Error = never, out
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Schedule } from "effect/scheduling"
+ * import { Schedule } from "effect"
  * import { Duration } from "effect/time"
  *
  * // Usage of the Schedule namespace for creating schedules
@@ -169,7 +169,7 @@ export declare namespace Schedule {
    * @example
    * ```ts
    * import { Effect } from "effect"
-   * import { Schedule } from "effect/scheduling"
+   * import { Schedule } from "effect"
    * import { Duration } from "effect/time"
    *
    * // Understanding Schedule variance:
@@ -205,7 +205,7 @@ export declare namespace Schedule {
    *
    * @example
    * ```ts
-   * import { Schedule } from "effect/scheduling"
+   * import { Schedule } from "effect"
    *
    * // The variance struct defines how Schedule's type parameters behave
    * // This internal interface is used for type variance annotations
@@ -239,7 +239,7 @@ export declare namespace Schedule {
    * @example
    * ```ts
    * import { Effect } from "effect"
-   * import { Schedule } from "effect/scheduling"
+   * import { Schedule } from "effect"
    * import { Duration } from "effect/time"
    * import { Console } from "effect/logging"
    *
@@ -283,7 +283,7 @@ export declare namespace Schedule {
    * @example
    * ```ts
    * import { Effect } from "effect"
-   * import { Schedule } from "effect/scheduling"
+   * import { Schedule } from "effect"
    * import { Duration } from "effect/time"
    * import { Console } from "effect/logging"
    *
@@ -334,7 +334,7 @@ const ScheduleProto = {
  *
  * @example
  * ```ts
- * import { Schedule } from "effect/scheduling"
+ * import { Schedule } from "effect"
  *
  * const schedule = Schedule.exponential("100 millis")
  * const notSchedule = { foo: "bar" }
@@ -356,7 +356,7 @@ export const isSchedule = (u: unknown): u is Schedule<any, any, any, any> => has
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Schedule } from "effect/scheduling"
+ * import { Schedule } from "effect"
  *
  * // fromStep is an advanced function for creating custom schedules
  * // It requires a step function that returns a Pull value
@@ -406,7 +406,7 @@ const metadataFn = () => {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Schedule } from "effect/scheduling"
+ * import { Schedule } from "effect"
  *
  * // fromStepWithMetadata is an advanced function for creating schedules
  * // that need access to execution metadata like timing and recurrence count
@@ -443,7 +443,7 @@ export const fromStepWithMetadata = <Input, Output, EnvX, ErrorX, Error, Env>(
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Schedule } from "effect/scheduling"
+ * import { Schedule } from "effect"
  *
  * // Extract step function from an existing schedule
  * const schedule = Schedule.exponential("100 millis").pipe(Schedule.take(3))
@@ -480,7 +480,7 @@ export const toStep = <Output, Input, Error, Env>(
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Schedule } from "effect/scheduling"
+ * import { Schedule } from "effect"
  *
  * // Convert schedule to step function with automatic sleeping
  * const schedule = Schedule.spaced("1 second").pipe(Schedule.take(3))
@@ -530,7 +530,7 @@ export const toStepWithSleep = <Output, Input, Error, Env>(
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Schedule } from "effect/scheduling"
+ * import { Schedule } from "effect"
  * import { Console } from "effect/logging"
  *
  * // Add random jitter to schedule delays
@@ -682,7 +682,7 @@ export const addDelay: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Schedule } from "effect/scheduling"
+ * import { Schedule } from "effect"
  * import { Console } from "effect/logging"
  *
  * // First retry 3 times quickly, then switch to slower retries
@@ -742,7 +742,7 @@ export const andThen: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Schedule } from "effect/scheduling"
+ * import { Schedule } from "effect"
  * import { Result } from "effect/data"
  * import { Console } from "effect/logging"
  *
@@ -825,7 +825,7 @@ export const andThenResult: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Schedule } from "effect/scheduling"
+ * import { Schedule } from "effect"
  * import { Console } from "effect/logging"
  *
  * // Both schedules must want to continue for the combined schedule to continue
@@ -910,7 +910,7 @@ export const both: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Schedule } from "effect/scheduling"
+ * import { Schedule } from "effect"
  * import { Console } from "effect/logging"
  *
  * // Combine two schedules, keeping left output
@@ -958,7 +958,7 @@ export const bothLeft: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Schedule } from "effect/scheduling"
+ * import { Schedule } from "effect"
  * import { Console } from "effect/logging"
  *
  * // Combine two schedules, keeping right output
@@ -1009,7 +1009,7 @@ export const bothRight: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Schedule } from "effect/scheduling"
+ * import { Schedule } from "effect"
  * import { Console } from "effect/logging"
  *
  * // Combine two schedules with custom output combination
@@ -1088,7 +1088,7 @@ export const bothWith: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Schedule } from "effect/scheduling"
+ * import { Schedule } from "effect"
  * import { Console } from "effect/logging"
  *
  * // Compose a quick retry phase followed by slower retry phase
@@ -1166,7 +1166,7 @@ export const compose: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Schedule } from "effect/scheduling"
+ * import { Schedule } from "effect"
  * import { Console } from "effect/logging"
  *
  * // Collect all inputs passed to the schedule
@@ -1201,7 +1201,7 @@ export const collectInputs = <Output, Input, Error, Env>(
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Schedule } from "effect/scheduling"
+ * import { Schedule } from "effect"
  * import { Console } from "effect/logging"
  *
  * // Collect all outputs from the schedule
@@ -1234,7 +1234,7 @@ export const collectOutputs = <Output, Input, Error, Env>(
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Schedule } from "effect/scheduling"
+ * import { Schedule } from "effect"
  * import { Console } from "effect/logging"
  *
  * // Collect outputs while under time limit
@@ -1363,7 +1363,7 @@ export const collectWhile: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Schedule } from "effect/scheduling"
+ * import { Schedule } from "effect"
  * import { Console } from "effect/logging"
  *
  * // Run every minute
@@ -1498,7 +1498,7 @@ export const cron: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Schedule } from "effect/scheduling"
+ * import { Schedule } from "effect"
  * import { Console } from "effect/logging"
  *
  * // Extract delays from an exponential backoff schedule
@@ -1600,7 +1600,7 @@ export const delays = <Out, In, E, R>(self: Schedule<Out, In, E, R>): Schedule<D
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Schedule } from "effect/scheduling"
+ * import { Schedule } from "effect"
  * import { Console } from "effect/logging"
  *
  * // Run a task for exactly 5 seconds, regardless of how many iterations
@@ -1691,7 +1691,7 @@ export const during = (duration: Duration.DurationInput): Schedule<Duration.Dura
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Schedule } from "effect/scheduling"
+ * import { Schedule } from "effect"
  * import { Console } from "effect/logging"
  *
  * // Either continues as long as at least one schedule wants to continue
@@ -1776,7 +1776,7 @@ export const either: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Schedule } from "effect/scheduling"
+ * import { Schedule } from "effect"
  * import { Console } from "effect/logging"
  *
  * // Combine two schedules with either semantics, keeping left output
@@ -1827,7 +1827,7 @@ export const eitherLeft: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Schedule } from "effect/scheduling"
+ * import { Schedule } from "effect"
  * import { Console } from "effect/logging"
  *
  * // Combine two schedules with either semantics, keeping right output
@@ -1879,7 +1879,7 @@ export const eitherRight: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Schedule } from "effect/scheduling"
+ * import { Schedule } from "effect"
  * import { Console } from "effect/logging"
  *
  * // Combine schedules with either semantics and custom combination
@@ -1972,7 +1972,7 @@ export const eitherWith: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Schedule } from "effect/scheduling"
+ * import { Schedule } from "effect"
  * import { Duration } from "effect/time"
  * import { Console } from "effect/logging"
  *
@@ -2005,7 +2005,7 @@ export const elapsed: Schedule<Duration.Duration> = fromStepWithMetadata(
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Schedule } from "effect/scheduling"
+ * import { Schedule } from "effect"
  * import { Console } from "effect/logging"
  *
  * // Basic exponential backoff with default factor of 2
@@ -2064,7 +2064,7 @@ export const exponential = (
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Schedule } from "effect/scheduling"
+ * import { Schedule } from "effect"
  * import { Console } from "effect/logging"
  *
  * // Basic fibonacci schedule starting with 100ms
@@ -2154,7 +2154,7 @@ export const fibonacci = (one: Duration.DurationInput): Schedule<Duration.Durati
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Schedule } from "effect/scheduling"
+ * import { Schedule } from "effect"
  * import { Console } from "effect/logging"
  *
  * // Fixed interval schedule - runs exactly every 1 second
@@ -2222,7 +2222,7 @@ export const fixed = (interval: Duration.DurationInput): Schedule<number> => {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Schedule } from "effect/scheduling"
+ * import { Schedule } from "effect"
  * import { Console } from "effect/logging"
  *
  * // Transform schedule output from number to string
@@ -2314,7 +2314,7 @@ export const map: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Schedule } from "effect/scheduling"
+ * import { Schedule } from "effect"
  * import { Duration } from "effect/time"
  * import { Console } from "effect/logging"
  *
@@ -2382,7 +2382,7 @@ export const modifyDelay: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Schedule } from "effect/scheduling"
+ * import { Schedule } from "effect"
  * import { Console } from "effect/logging"
  *
  * // Create a schedule that outputs the inputs instead of original outputs
@@ -2423,7 +2423,7 @@ export const passthrough = <Output, Input, Error, Env>(
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Schedule } from "effect/scheduling"
+ * import { Schedule } from "effect"
  * import { Console } from "effect/logging"
  *
  * // Basic recurs - retry at most 3 times
@@ -2482,7 +2482,7 @@ export const recurs = (times: number): Schedule<number> => while_(forever, ({ re
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Schedule } from "effect/scheduling"
+ * import { Schedule } from "effect"
  * import { Console } from "effect/logging"
  *
  * // Sum up execution counts from a counter schedule
@@ -2632,7 +2632,7 @@ export const reduce: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Schedule } from "effect/scheduling"
+ * import { Schedule } from "effect"
  * import { Console } from "effect/logging"
  *
  * // Basic spaced schedule - runs every 2 seconds
@@ -2689,7 +2689,7 @@ export const spaced = (duration: Duration.DurationInput): Schedule<number> => {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Schedule } from "effect/scheduling"
+ * import { Schedule } from "effect"
  * import { Console } from "effect/logging"
  *
  * // Log retry errors for debugging
@@ -2826,7 +2826,7 @@ export const tapInput: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Schedule } from "effect/scheduling"
+ * import { Schedule } from "effect"
  * import { Console } from "effect/logging"
  *
  * // Log schedule outputs for debugging/monitoring
@@ -2932,7 +2932,7 @@ export const tapOutput: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Schedule } from "effect/scheduling"
+ * import { Schedule } from "effect"
  * import { Console } from "effect/logging"
  *
  * // Limit an infinite schedule to run only 5 times
@@ -3022,7 +3022,7 @@ export const take: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Schedule } from "effect/scheduling"
+ * import { Schedule } from "effect"
  * import { Console } from "effect/logging"
  *
  * // Counter schedule that increments by 1 each time
@@ -3182,7 +3182,7 @@ export {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Schedule } from "effect/scheduling"
+ * import { Schedule } from "effect"
  * import { Console } from "effect/logging"
  *
  * // Execute tasks at regular intervals aligned to window boundaries
@@ -3222,7 +3222,7 @@ export const windowed = (interval: Duration.DurationInput): Schedule<number> => 
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Schedule } from "effect/scheduling"
+ * import { Schedule } from "effect"
  * import { Console } from "effect/logging"
  *
  * // A schedule that runs forever with no delay
@@ -3249,7 +3249,7 @@ export const forever: Schedule<number> = spaced(Duration.zero)
  *
  * @example
  * ```ts
- * import { Schedule } from "effect/scheduling"
+ * import { Schedule } from "effect"
  *
  * // Ensure schedule accepts string inputs
  * const stringSchedule = Schedule.exponential("100 millis").pipe(
@@ -3279,7 +3279,7 @@ export const ensureInput = <T>() =>
  *
  * @example
  * ```ts
- * import { Schedule } from "effect/scheduling"
+ * import { Schedule } from "effect"
  * import { Duration } from "effect/time"
  *
  * // ensureOutput is a type-level function for compile-time constraints
@@ -3305,7 +3305,7 @@ export const ensureOutput = <T>() =>
  *
  * @example
  * ```ts
- * import { Schedule } from "effect/scheduling"
+ * import { Schedule } from "effect"
  * import { Data } from "effect/data"
  *
  * // Create a custom error using Data.TaggedError
@@ -3337,7 +3337,7 @@ export const ensureError = <T>() =>
  *
  * @example
  * ```ts
- * import { Schedule } from "effect/scheduling"
+ * import { Schedule } from "effect"
  *
  * // Define service interfaces (type-level only)
  * interface Logger {

@@ -13,7 +13,7 @@ import { type Redactable, symbolRedactable } from "../../interfaces/Inspectable.
 import * as String from "../../primitives/String.ts"
 import * as Schema from "../../schema/Schema.ts"
 import * as Transformation from "../../schema/Transformation.ts"
-import * as ServiceMap from "../../services/ServiceMap.ts"
+import * as ServiceMap from "../../ServiceMap.ts"
 import type { Mutable } from "../../types/Types.ts"
 
 /**

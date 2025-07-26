@@ -14,17 +14,17 @@
  * @since 2.0.0
  */
 
-import type { Effect } from "../Effect.ts"
-import type { Exit } from "../Exit.ts"
-import * as effect from "../internal/effect.ts"
-import type * as ServiceMap from "../services/ServiceMap.ts"
+import type { Effect } from "./Effect.ts"
+import type { Exit } from "./Exit.ts"
+import * as effect from "./internal/effect.ts"
+import type * as ServiceMap from "./ServiceMap.ts"
 
 /**
  * The unique identifier for the `Scope` type.
  *
  * @example
  * ```ts
- * import { Scope } from "effect/resources"
+ * import { Scope } from "effect"
  *
  * const scope = Scope.unsafeMake()
  * console.log(scope[Scope.TypeId] === Scope.TypeId)
@@ -41,7 +41,7 @@ export const TypeId: TypeId = effect.ScopeTypeId
  *
  * @example
  * ```ts
- * import { Scope } from "effect/resources"
+ * import { Scope } from "effect"
  *
  * // The TypeId is used internally for type checking
  * type ScopeTypeId = Scope.TypeId
@@ -61,7 +61,7 @@ export type TypeId = "~effect/Scope"
  * ```ts
  * import { Effect, Exit } from "effect"
  * import { Console } from "effect/logging"
- * import { Scope } from "effect/resources"
+ * import { Scope } from "effect"
  *
  * const program = Effect.gen(function* () {
  *   const scope = yield* Scope.make("sequential")
@@ -91,7 +91,7 @@ export interface Scope {
  * @example
  * ```ts
  * import { Effect, Exit } from "effect"
- * import { Scope } from "effect/resources"
+ * import { Scope } from "effect"
  *
  * const program = Effect.gen(function* () {
  *   const scope = yield* Scope.make()
@@ -121,7 +121,7 @@ export declare namespace Scope {
    * @example
    * ```ts
    * import { Effect, Exit } from "effect"
-   * import { Scope } from "effect/resources"
+   * import { Scope } from "effect"
    *
    * // Example of checking scope states
    * const program = Effect.gen(function* () {
@@ -152,7 +152,7 @@ export declare namespace Scope {
      * @example
      * ```ts
      * import { Effect, Exit } from "effect"
-     * import { Scope } from "effect/resources"
+     * import { Scope } from "effect"
      *
      * const scope = Scope.unsafeMake()
      *
@@ -176,7 +176,7 @@ export declare namespace Scope {
      * @example
      * ```ts
      * import { Effect, Exit } from "effect"
-     * import { Scope } from "effect/resources"
+     * import { Scope } from "effect"
      *
      * const scope = Scope.unsafeMake()
      *
@@ -201,7 +201,7 @@ export declare namespace Scope {
      * @example
      * ```ts
      * import { Effect, Exit } from "effect"
-     * import { Scope } from "effect/resources"
+     * import { Scope } from "effect"
      *
      * const program = Effect.gen(function* () {
      *   const scope = yield* Scope.make()
@@ -233,7 +233,7 @@ export declare namespace Scope {
    * ```ts
    * import { Effect, Exit } from "effect"
    * import { Console } from "effect/logging"
-   * import { Scope } from "effect/resources"
+   * import { Scope } from "effect"
    *
    * const program = Effect.gen(function* () {
    *   const scope = yield* Scope.make()
@@ -262,7 +262,7 @@ export declare namespace Scope {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Scope } from "effect/resources"
+ * import { Scope } from "effect"
  *
  * const program = Effect.gen(function* () {
  *   // Access the scope from the context
@@ -288,7 +288,7 @@ export const Scope: ServiceMap.Key<Scope, Scope> = effect.scopeTag
  * ```ts
  * import { Effect, Exit } from "effect"
  * import { Console } from "effect/logging"
- * import { Scope } from "effect/resources"
+ * import { Scope } from "effect"
  *
  * const program = Effect.gen(function* () {
  *   // Create a scope with sequential cleanup
@@ -318,7 +318,7 @@ export const make: (finalizerStrategy?: "sequential" | "parallel") => Effect<Sco
  * ```ts
  * import { Effect, Exit } from "effect"
  * import { Console } from "effect/logging"
- * import { Scope } from "effect/resources"
+ * import { Scope } from "effect"
  *
  * // Create a scope immediately
  * const scope = Scope.unsafeMake("sequential")
@@ -343,7 +343,7 @@ export const unsafeMake: (finalizerStrategy?: "sequential" | "parallel") => Scop
  * ```ts
  * import { Effect } from "effect"
  * import { Console } from "effect/logging"
- * import { Scope } from "effect/resources"
+ * import { Scope } from "effect"
  *
  * // An effect that requires a Scope
  * const program = Effect.gen(function* () {
@@ -375,7 +375,7 @@ export const provide: {
  * ```ts
  * import { Effect, Exit } from "effect"
  * import { Console } from "effect/logging"
- * import { Scope } from "effect/resources"
+ * import { Scope } from "effect"
  *
  * const withResource = Effect.gen(function* () {
  *   const scope = yield* Scope.make()
@@ -408,7 +408,7 @@ export const addFinalizerExit: (scope: Scope, finalizer: (exit: Exit<any, any>) 
  * ```ts
  * import { Effect, Exit } from "effect"
  * import { Console } from "effect/logging"
- * import { Scope } from "effect/resources"
+ * import { Scope } from "effect"
  *
  * const program = Effect.gen(function* () {
  *   const scope = yield* Scope.make()
@@ -439,7 +439,7 @@ export const addFinalizer: (scope: Scope, finalizer: Effect<unknown>) => Effect<
  * ```ts
  * import { Effect, Exit } from "effect"
  * import { Console } from "effect/logging"
- * import { Scope } from "effect/resources"
+ * import { Scope } from "effect"
  *
  * const nestedScopes = Effect.gen(function* () {
  *   const parentScope = yield* Scope.make("sequential")
@@ -475,7 +475,7 @@ export const fork: (
  * ```ts
  * import { Effect, Exit } from "effect"
  * import { Console } from "effect/logging"
- * import { Scope } from "effect/resources"
+ * import { Scope } from "effect"
  *
  * const program = Effect.gen(function* () {
  *   const parentScope = Scope.unsafeMake("sequential")
@@ -505,7 +505,7 @@ export const unsafeFork: (scope: Scope, finalizerStrategy?: "sequential" | "para
  * ```ts
  * import { Effect, Exit } from "effect"
  * import { Console } from "effect/logging"
- * import { Scope } from "effect/resources"
+ * import { Scope } from "effect"
  *
  * const resourceManagement = Effect.gen(function* () {
  *   const scope = yield* Scope.make("sequential")

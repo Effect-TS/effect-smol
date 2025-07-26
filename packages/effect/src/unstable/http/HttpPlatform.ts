@@ -3,10 +3,10 @@
  */
 import * as Effect from "../../Effect.ts"
 import { identity } from "../../Function.ts"
+import * as Layer from "../../Layer.ts"
 import * as FileSystem from "../../platform/FileSystem.ts"
 import type { PlatformError } from "../../platform/PlatformError.ts"
-import * as Layer from "../../services/Layer.ts"
-import * as ServiceMap from "../../services/ServiceMap.ts"
+import * as ServiceMap from "../../ServiceMap.ts"
 import * as Stream from "../../stream/Stream.ts"
 import * as Etag from "./Etag.ts"
 import * as Headers from "./Headers.ts"

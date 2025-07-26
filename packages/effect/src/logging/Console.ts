@@ -77,8 +77,8 @@ import type * as Effect from "../Effect.ts"
 import { dual } from "../Function.ts"
 import * as core from "../internal/core.ts"
 import * as effect from "../internal/effect.ts"
-import type { Scope } from "../resources/Scope.ts"
-import type * as ServiceMap from "../services/ServiceMap.ts"
+import type { Scope } from "../Scope.ts"
+import type * as ServiceMap from "../ServiceMap.ts"
 
 /**
  * Represents a console interface for logging and debugging operations.

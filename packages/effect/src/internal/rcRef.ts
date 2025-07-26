@@ -1,10 +1,10 @@
 import * as Effect from "../Effect.ts"
 import * as Exit from "../Exit.ts"
+import * as Fiber from "../Fiber.ts"
 import { identity } from "../Function.ts"
-import type * as RcRef from "../resources/RcRef.ts"
-import * as Scope from "../resources/Scope.ts"
-import * as Fiber from "../runtime/Fiber.ts"
-import * as ServiceMap from "../services/ServiceMap.ts"
+import type * as RcRef from "../RcRef.ts"
+import * as Scope from "../Scope.ts"
+import * as ServiceMap from "../ServiceMap.ts"
 import * as Duration from "../time/Duration.ts"
 
 /** @internal */

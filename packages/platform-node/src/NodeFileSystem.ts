@@ -2,8 +2,8 @@
  * @since 1.0.0
  */
 import * as NodeFileSystem from "@effect/platform-node-shared/NodeFileSystem"
+import type * as Layer from "effect/Layer"
 import type { FileSystem } from "effect/platform/FileSystem"
-import type * as Layer from "effect/services/Layer"
 
 /**
  * @since 1.0.0

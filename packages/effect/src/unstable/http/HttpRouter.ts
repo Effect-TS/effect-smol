@@ -6,12 +6,12 @@ import * as Option from "../../data/Option.ts"
 import type { ReadonlyRecord } from "../../data/Record.ts"
 import * as Effect from "../../Effect.ts"
 import { compose, dual, identity } from "../../Function.ts"
+import * as Layer from "../../Layer.ts"
 import * as Tracer from "../../observability/Tracer.ts"
-import * as Scope from "../../resources/Scope.ts"
 import type { ParseOptions } from "../../schema/AST.ts"
 import * as Schema from "../../schema/Schema.ts"
-import * as Layer from "../../services/Layer.ts"
-import * as ServiceMap from "../../services/ServiceMap.ts"
+import * as Scope from "../../Scope.ts"
+import * as ServiceMap from "../../ServiceMap.ts"
 import type * as Types from "../../types/Types.ts"
 import * as FindMyWay from "./FindMyWay.ts"
 import * as HttpEffect from "./HttpEffect.ts"
@@ -375,7 +375,7 @@ export const schemaPathParams = <A, I extends Readonly<Record<string, string | u
  * ```ts
  * import * as HttpRouter from "effect/unstable/http/HttpRouter"
  * import { Effect } from "effect"
- * import * as Layer from "effect/services/Layer"
+ * import * as Layer from "effect/Layer"
  *
  * const MyRoute = Layer.effectDiscard(Effect.gen(function*() {
  *   const router = yield* HttpRouter.HttpRouter
@@ -754,9 +754,9 @@ export interface Middleware<
  * import * as HttpRouter from "effect/unstable/http/HttpRouter"
  * import * as HttpMiddleware from "effect/unstable/http/HttpMiddleware"
  * import * as HttpServerResponse from "effect/unstable/http/HttpServerResponse"
- * import * as ServiceMap from "effect/services/ServiceMap"
+ * import * as ServiceMap from "effect/ServiceMap"
  * import { Effect } from "effect"
- * import * as Layer from "effect/services/Layer"
+ * import * as Layer from "effect/Layer"
  *
  * // Here we are defining a CORS middleware
  * const CorsMiddleware = HttpRouter.middleware(HttpMiddleware.cors()).layer
@@ -1042,7 +1042,7 @@ export const cors = (
  * import { Effect } from "effect"
  * import * as HttpRouter from "effect/unstable/http/HttpRouter"
  * import * as HttpServerResponse from "effect/unstable/http/HttpServerResponse"
- * import * as Layer from "effect/services/Layer"
+ * import * as Layer from "effect/Layer"
  *
  * const Route = HttpRouter.add("GET", "/hello", Effect.succeed(HttpServerResponse.text("Hello, World!"))).pipe(
  *   // disable the logger for this route

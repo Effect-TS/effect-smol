@@ -104,7 +104,7 @@
  * ```ts
  * import { Effect } from "effect"
  * import { Metric } from "effect/observability"
- * import { Schedule } from "effect/scheduling"
+ * import { Schedule } from "effect"
  *
  * // Business metrics
  * const userSignups = Metric.counter("user_signups_total")

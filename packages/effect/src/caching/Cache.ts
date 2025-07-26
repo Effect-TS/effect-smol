@@ -3,18 +3,18 @@
  */
 import * as Iterable from "../collections/Iterable.ts"
 import * as MutableHashMap from "../collections/MutableHashMap.ts"
-import * as Deferred from "../concurrency/Deferred.ts"
 import * as Option from "../data/Option.ts"
 import type { Predicate } from "../data/Predicate.ts"
+import * as Deferred from "../Deferred.ts"
 import type * as Effect from "../Effect.ts"
 import type * as Exit from "../Exit.ts"
+import type * as Fiber from "../Fiber.ts"
 import { dual } from "../Function.ts"
 import type { Pipeable } from "../interfaces/Pipeable.ts"
 import * as core from "../internal/core.ts"
 import { PipeInspectableProto } from "../internal/core.ts"
 import * as effect from "../internal/effect.ts"
-import type * as Fiber from "../runtime/Fiber.ts"
-import * as ServiceMap from "../services/ServiceMap.ts"
+import * as ServiceMap from "../ServiceMap.ts"
 import * as Duration from "../time/Duration.ts"
 
 /**
@@ -509,9 +509,9 @@ const checkCapacity = <K, A, E, R>(self: Cache<K, A, E, R>) => {
  * @example
  * ```ts
  * import { Cache } from "effect/caching"
- * import { Deferred } from "effect/concurrency"
+ * import { Deferred } from "effect"
  * import { Option } from "effect/data"
- * import { Fiber } from "effect/runtime"
+ * import { Fiber } from "effect"
  * import { Effect } from "effect"
  *
  * // Waits for ongoing computation to complete

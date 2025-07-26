@@ -1,10 +1,9 @@
 import { assert, describe, it } from "@effect/vitest"
+import { Fiber, ServiceMap } from "effect"
 import * as Effect from "effect/Effect"
 import * as Exit from "effect/Exit"
-import * as Scope from "effect/resources/Scope"
-import { Fiber } from "effect/runtime"
-import { ServiceMap } from "effect/services"
-import * as Layer from "effect/services/Layer"
+import * as Layer from "effect/Layer"
+import * as Scope from "effect/Scope"
 
 describe("Layer", () => {
   it.effect("layers can be acquired in parallel", () =>

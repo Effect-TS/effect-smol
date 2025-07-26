@@ -76,6 +76,7 @@ import type { Option } from "./data/Option.ts"
 import type * as Predicate from "./data/Predicate.ts"
 import type * as Result from "./data/Result.ts"
 import * as Exit from "./Exit.ts"
+import type { Fiber } from "./Fiber.ts"
 import { constant, dual, type LazyArg } from "./Function.ts"
 import type { Pipeable } from "./interfaces/Pipeable.ts"
 import * as core from "./internal/core.ts"
@@ -84,17 +85,16 @@ import * as internalLayer from "./internal/layer.ts"
 import * as internalRequest from "./internal/request.ts"
 import * as internalSchedule from "./internal/schedule.ts"
 import type { version } from "./internal/version.ts"
+import type * as Layer from "./Layer.ts"
 import type { Logger } from "./logging/Logger.ts"
 import type { LogLevel } from "./logging/LogLevel.ts"
 import * as Metric from "./observability/Metric.ts"
 import type { AnySpan, ParentSpan, Span, SpanLink, SpanOptions, Tracer } from "./observability/Tracer.ts"
-import type { Scope } from "./resources/Scope.ts"
-import type { Fiber } from "./runtime/Fiber.ts"
-import type { Scheduler } from "./runtime/Scheduler.ts"
-import type { Schedule } from "./scheduling/Schedule.ts"
-import type * as Layer from "./services/Layer.ts"
-import { CurrentLogAnnotations, CurrentLogSpans } from "./services/References.ts"
-import * as ServiceMap from "./services/ServiceMap.ts"
+import { CurrentLogAnnotations, CurrentLogSpans } from "./References.ts"
+import type { Schedule } from "./Schedule.ts"
+import type { Scheduler } from "./Scheduler.ts"
+import type { Scope } from "./Scope.ts"
+import * as ServiceMap from "./ServiceMap.ts"
 import type { Clock } from "./time/Clock.ts"
 import * as Duration from "./time/Duration.ts"
 import type { TxRef } from "./transactions/TxRef.ts"
@@ -3112,7 +3112,7 @@ export declare namespace Retry {
    * @example
    * ```ts
    * import { Effect } from "effect"
-   * import { Schedule } from "effect/scheduling"
+   * import { Schedule } from "effect"
    *
    * // Options for configuring retry behavior
    * const retryOptions: Effect.Retry.Options<Error> = {
@@ -3154,7 +3154,7 @@ export declare namespace Retry {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Schedule } from "effect/scheduling"
+ * import { Schedule } from "effect"
  *
  * let attempt = 0
  * const task = Effect.callback<string, Error>((resume) => {
@@ -3217,7 +3217,7 @@ export const retry: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Schedule } from "effect/scheduling"
+ * import { Schedule } from "effect"
  * import { Console } from "effect/logging"
  *
  * let attempt = 0
@@ -4282,7 +4282,7 @@ export const matchEffect: {
  * import { Effect } from "effect"
 import * as Option from "effect/data/Option"
  * import { Console } from "effect/logging"
- * import { ServiceMap } from "effect/services"
+ * import { ServiceMap } from "effect"
  *
  * const Logger = ServiceMap.Key<{ log: (msg: string) => void }>("Logger")
  * const Database = ServiceMap.Key<{ query: (sql: string) => string }>("Database")
@@ -4321,7 +4321,7 @@ export const services: <R>() => Effect<ServiceMap.ServiceMap<R>, never, R> = int
  * import { Effect } from "effect"
 import * as Option from "effect/data/Option"
  * import { Console } from "effect/logging"
- * import { ServiceMap } from "effect/services"
+ * import { ServiceMap } from "effect"
  *
  * const Logger = ServiceMap.Key<{ log: (msg: string) => void }>("Logger")
  * const Cache = ServiceMap.Key<{ get: (key: string) => string | null }>("Cache")
@@ -4362,8 +4362,8 @@ export const servicesWith: <R, A, E, R2>(
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { ServiceMap } from "effect/services"
- * import { Layer } from "effect/services"
+ * import { ServiceMap } from "effect"
+ * import { Layer } from "effect"
  *
  * interface Database {
  *   readonly query: (sql: string) => Effect.Effect<string>
@@ -4437,7 +4437,7 @@ export const provide: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { ServiceMap } from "effect/services"
+ * import { ServiceMap } from "effect"
  *
  * // Define service keys
  * const Logger = ServiceMap.Key<{ log: (msg: string) => void }>("Logger")
@@ -4477,7 +4477,7 @@ export const provideServices: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { ServiceMap } from "effect/services"
+ * import { ServiceMap } from "effect"
  *
  * interface Database {
  *   readonly query: (sql: string) => Effect.Effect<string>
@@ -4509,7 +4509,7 @@ export const service: <I, S>(key: ServiceMap.Key<I, S>) => Effect<S, never, I> =
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { ServiceMap } from "effect/services"
+ * import { ServiceMap } from "effect"
 import * as Option from "effect/data/Option"
  *
  * // Define a service key
@@ -4543,7 +4543,7 @@ export const serviceOption: <I, S>(key: ServiceMap.Key<I, S>) => Effect<Option<S
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { ServiceMap } from "effect/services"
+ * import { ServiceMap } from "effect"
  *
  * // Define services
  * const Logger = ServiceMap.Key<{ log: (msg: string) => void }>("Logger")
@@ -4586,7 +4586,7 @@ export const updateServices: {
  * ```ts
  * import { Effect } from "effect"
  * import { Console } from "effect/logging"
- * import { ServiceMap } from "effect/services"
+ * import { ServiceMap } from "effect"
  *
  * // Define a counter service
  * const Counter = ServiceMap.Key<{ count: number }>("Counter")
@@ -4630,7 +4630,7 @@ export const updateService: {
  * ```ts
  * import { Effect } from "effect"
  * import { Console } from "effect/logging"
- * import { ServiceMap } from "effect/services"
+ * import { ServiceMap } from "effect"
  *
  * // Define a service for configuration
  * const Config = ServiceMap.Key<{ apiUrl: string; timeout: number }>("Config")
@@ -4683,7 +4683,7 @@ export const provideService: {
  * ```ts
  * import { Effect } from "effect"
  * import { Console } from "effect/logging"
- * import { ServiceMap } from "effect/services"
+ * import { ServiceMap } from "effect"
  *
  * // Define a database connection service
  * interface DatabaseConnection {
@@ -4786,7 +4786,7 @@ export const withConcurrency: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Scope } from "effect/resources"
+ * import { Scope } from "effect"
  * import { Console } from "effect/logging"
  *
  * const program = Effect.gen(function* () {
@@ -4857,7 +4857,7 @@ export const scoped: <A, E, R>(
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Scope } from "effect/resources"
+ * import { Scope } from "effect"
  * import { Console } from "effect/logging"
  *
  * const program = Effect.scopedWith((scope) =>
@@ -5479,7 +5479,7 @@ export const interruptible: <A, E, R>(
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Fiber } from "effect/runtime"
+ * import { Fiber } from "effect"
  * import { Console } from "effect/logging"
  *
  * const task = Effect.forever(Effect.succeed("working..."))
@@ -5513,7 +5513,7 @@ export const onInterrupt: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Fiber } from "effect/runtime"
+ * import { Fiber } from "effect"
  * import { Console } from "effect/logging"
  *
  * const criticalTask = Effect.gen(function* () {
@@ -5870,7 +5870,7 @@ export declare namespace Repeat {
    * @example
    * ```ts
    * import { Effect } from "effect"
-   * import { Schedule } from "effect/scheduling"
+   * import { Schedule } from "effect"
    *
    * // Options for configuring repeat behavior
    * const repeatOptions: Effect.Repeat.Options<number> = {
@@ -5894,7 +5894,7 @@ export declare namespace Repeat {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Fiber } from "effect/runtime"
+ * import { Fiber } from "effect"
  * import { Console } from "effect/logging"
  *
  * const task = Effect.gen(function* () {
@@ -5948,7 +5948,7 @@ export const forever: <Arg extends Effect<any, any, any> | { readonly autoYield?
  * ```ts
  * // Success Example
  * import { Effect } from "effect"
- * import { Schedule } from "effect/scheduling"
+ * import { Schedule } from "effect"
  * import { Console } from "effect/logging"
  *
  * const action = Console.log("success")
@@ -5961,7 +5961,7 @@ export const forever: <Arg extends Effect<any, any, any> | { readonly autoYield?
  * @example
  * // Failure Example
  * import { Effect } from "effect"
- * import { Schedule } from "effect/scheduling"
+ * import { Schedule } from "effect"
  *
  * let count = 0
  *
@@ -6023,7 +6023,7 @@ export const repeat: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Schedule } from "effect/scheduling"
+ * import { Schedule } from "effect"
 import * as Option from "effect/data/Option"
  * import { Console } from "effect/logging"
  *
@@ -6082,7 +6082,7 @@ export const repeatOrElse: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Schedule } from "effect/scheduling"
+ * import { Schedule } from "effect"
  * import { Console } from "effect/logging"
  *
  * const task = Effect.gen(function* () {
@@ -6138,7 +6138,7 @@ export const schedule = dual<
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Schedule } from "effect/scheduling"
+ * import { Schedule } from "effect"
  * import { Console } from "effect/logging"
  *
  * const task = (input: number) =>
@@ -6700,7 +6700,7 @@ export const request: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Fiber } from "effect/runtime"
+ * import { Fiber } from "effect"
  *
  * const longRunningTask = Effect.gen(function* () {
  *   yield* Effect.sleep("2 seconds")
@@ -6740,8 +6740,8 @@ export const fork: <
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Scope } from "effect/resources"
- * import { Fiber } from "effect/runtime"
+ * import { Scope } from "effect"
+ * import { Fiber } from "effect"
  *
  * const task = Effect.gen(function* () {
  *   yield* Effect.sleep("10 seconds")
@@ -6786,7 +6786,7 @@ export const forkIn: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Fiber } from "effect/runtime"
+ * import { Fiber } from "effect"
  *
  * const backgroundTask = Effect.gen(function* () {
  *   yield* Effect.sleep("5 seconds")
@@ -6830,7 +6830,7 @@ export const forkScoped: <
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Fiber } from "effect/runtime"
+ * import { Fiber } from "effect"
  *
  * const daemonTask = Effect.gen(function* () {
  *   while (true) {
@@ -6917,8 +6917,8 @@ export interface RunOptions {
  * ```ts
  * // Title: Running an Effect in the Background
  * import { Effect } from "effect"
- * import { Schedule } from "effect/scheduling"
- * import { Fiber } from "effect/runtime"
+ * import { Schedule } from "effect"
+ * import { Fiber } from "effect"
  * import { Console } from "effect/logging"
  *
  * //      ┌─── Effect<number, never, never>
@@ -6949,7 +6949,7 @@ export const runFork: <A, E>(effect: Effect<A, E, never>, options?: RunOptions |
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { ServiceMap } from "effect/services"
+ * import { ServiceMap } from "effect"
  *
  * interface Logger {
  *   log: (message: string) => void
@@ -7022,7 +7022,7 @@ export const runPromise: <A, E>(
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { ServiceMap } from "effect/services"
+ * import { ServiceMap } from "effect"
  *
  * interface Config {
  *   apiUrl: string
@@ -7107,7 +7107,7 @@ export const runPromiseExit: <A, E>(
  * @example
  * ```ts
  * import { Effect, Exit } from "effect"
- * import { ServiceMap } from "effect/services"
+ * import { ServiceMap } from "effect"
  *
  * interface Database {
  *   query: (sql: string) => string
@@ -7204,7 +7204,7 @@ export const runSync: <A, E>(effect: Effect<A, E>) => A = internal.runSync
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { ServiceMap } from "effect/services"
+ * import { ServiceMap } from "effect"
  *
  * interface MathService {
  *   add: (a: number, b: number) => number
@@ -7309,7 +7309,7 @@ export const runSyncExit: <A, E>(effect: Effect<A, E>) => Exit.Exit<A, E> = inte
  * @example
  * ```ts
  * import { Effect, Exit } from "effect"
- * import { ServiceMap } from "effect/services"
+ * import { ServiceMap } from "effect"
  *
  * // Define a logger service
  * const Logger = ServiceMap.Key<{ log: (msg: string) => void }>("Logger")

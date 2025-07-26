@@ -4,7 +4,7 @@
 import type * as Effect from "effect/Effect"
 import type { FileSystem } from "effect/platform/FileSystem"
 import type { Path } from "effect/platform/Path"
-import type * as Scope from "effect/resources/Scope"
+import type * as Scope from "effect/Scope"
 import * as Stream from "effect/stream/Stream"
 import * as Multipart from "effect/unstable/http/Multipart"
 import * as BunStream from "./BunStream.ts"

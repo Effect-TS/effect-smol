@@ -60,7 +60,7 @@
  */
 import type { Effect } from "../Effect.ts"
 import * as effect from "../internal/effect.ts"
-import type * as ServiceMap from "../services/ServiceMap.ts"
+import type * as ServiceMap from "../ServiceMap.ts"
 import type * as Duration from "../time/Duration.ts"
 
 /**

@@ -7,24 +7,24 @@
  *
  * @since 4.0.0
  */
-import * as Option from "../data/Option.ts"
-import { hasProperty } from "../data/Predicate.ts"
-import type { Effect, EffectIterator, Yieldable } from "../Effect.ts"
-import { constant, dual, type LazyArg } from "../Function.ts"
-import * as Equal from "../interfaces/Equal.ts"
-import * as Hash from "../interfaces/Hash.ts"
-import type { Inspectable } from "../interfaces/Inspectable.ts"
-import type { Pipeable } from "../interfaces/Pipeable.ts"
-import { exitSucceed, PipeInspectableProto, withFiber, YieldableProto } from "../internal/core.ts"
-import type { ErrorWithStackTraceLimit } from "../internal/tracer.ts"
-import type * as Types from "../types/Types.ts"
+import * as Option from "./data/Option.ts"
+import { hasProperty } from "./data/Predicate.ts"
+import type { Effect, EffectIterator, Yieldable } from "./Effect.ts"
+import { constant, dual, type LazyArg } from "./Function.ts"
+import * as Equal from "./interfaces/Equal.ts"
+import * as Hash from "./interfaces/Hash.ts"
+import type { Inspectable } from "./interfaces/Inspectable.ts"
+import type { Pipeable } from "./interfaces/Pipeable.ts"
+import { exitSucceed, PipeInspectableProto, withFiber, YieldableProto } from "./internal/core.ts"
+import type { ErrorWithStackTraceLimit } from "./internal/tracer.ts"
+import type * as Types from "./types/Types.ts"
 
 /**
  * @since 4.0.0
  * @category Symbols
  * @example
  * ```ts
- * import { ServiceMap } from "effect/services"
+ * import { ServiceMap } from "effect"
  *
  * console.log(ServiceMap.KeyTypeId)
  * // Output: "~effect/ServiceMap/Key"
@@ -37,7 +37,7 @@ export const KeyTypeId: KeyTypeId = "~effect/ServiceMap/Key"
  * @category Symbols
  * @example
  * ```ts
- * import { ServiceMap } from "effect/services"
+ * import { ServiceMap } from "effect"
  *
  * // KeyTypeId is a type representing the unique identifier for ServiceMap keys
  * type MyKeyTypeId = ServiceMap.KeyTypeId
@@ -50,7 +50,7 @@ export type KeyTypeId = "~effect/ServiceMap/Key"
  * @category Models
  * @example
  * ```ts
- * import { ServiceMap } from "effect/services"
+ * import { ServiceMap } from "effect"
  *
  * // Define a key for a database service
  * const DatabaseKey = ServiceMap.Key<{ query: (sql: string) => string }>("Database")
@@ -80,7 +80,7 @@ export interface Key<in out Id, in out Service>
  * @category Models
  * @example
  * ```ts
- * import { ServiceMap } from "effect/services"
+ * import { ServiceMap } from "effect"
  *
  * // Define a key class for a logger service
  * class LoggerKey extends ServiceMap.Key<LoggerKey, { log: (msg: string) => void }>()("Logger") {}
@@ -103,7 +103,7 @@ export interface KeyClass<in out Self, in out Id extends string, in out Service>
  * @category Constructors
  * @example
  * ```ts
- * import { ServiceMap } from "effect/services"
+ * import { ServiceMap } from "effect"
  *
  * // Create a simple key
  * const DatabaseKey = ServiceMap.Key<{ query: (sql: string) => string }>("Database")
@@ -214,7 +214,7 @@ const KeyProto: any = {
  * @category Symbols
  * @example
  * ```ts
- * import { ServiceMap } from "effect/services"
+ * import { ServiceMap } from "effect"
  *
  * console.log(ServiceMap.ReferenceTypeId)
  * // Output: "~effect/ServiceMap/Reference"
@@ -227,7 +227,7 @@ export const ReferenceTypeId: ReferenceTypeId = "~effect/ServiceMap/Reference"
  * @category Symbols
  * @example
  * ```ts
- * import { ServiceMap } from "effect/services"
+ * import { ServiceMap } from "effect"
  *
  * // ReferenceTypeId is a type representing the unique identifier for ServiceMap references
  * type MyReferenceTypeId = ServiceMap.ReferenceTypeId
@@ -240,7 +240,7 @@ export type ReferenceTypeId = "~effect/ServiceMap/Reference"
  * @category Models
  * @example
  * ```ts
- * import { ServiceMap } from "effect/services"
+ * import { ServiceMap } from "effect"
  *
  * // Define a reference with a default value
  * const LoggerRef: ServiceMap.Reference<{ log: (msg: string) => void }> =
@@ -262,7 +262,7 @@ export interface Reference<in out Service> extends Key<never, Service> {
  * @category Models
  * @example
  * ```ts
- * import { ServiceMap } from "effect/services"
+ * import { ServiceMap } from "effect"
  *
  * // Extract service type from a key
  * type DatabaseService = ServiceMap.Key.Service<typeof DatabaseKey>
@@ -279,7 +279,7 @@ export declare namespace Key {
    * @category Models
    * @example
    * ```ts
-   * import { ServiceMap } from "effect/services"
+   * import { ServiceMap } from "effect"
    *
    * // Variance interface is used internally for type inference
    * type MyVariance = ServiceMap.Key.Variance<"MyId", { value: number }>
@@ -296,7 +296,7 @@ export declare namespace Key {
    * @category Models
    * @example
    * ```ts
-   * import { ServiceMap } from "effect/services"
+   * import { ServiceMap } from "effect"
    *
    * // Any represents any possible key type
    * const keys: ServiceMap.Key.Any[] = [
@@ -311,7 +311,7 @@ export declare namespace Key {
    * @category Models
    * @example
    * ```ts
-   * import { ServiceMap } from "effect/services"
+   * import { ServiceMap } from "effect"
    *
    * const DatabaseKey = ServiceMap.Key<{ query: (sql: string) => string }>("Database")
    *
@@ -326,7 +326,7 @@ export declare namespace Key {
    * @category Models
    * @example
    * ```ts
-   * import { ServiceMap } from "effect/services"
+   * import { ServiceMap } from "effect"
    *
    * const DatabaseKey = ServiceMap.Key<{ query: (sql: string) => string }>("Database")
    *
@@ -343,7 +343,7 @@ export declare namespace Key {
  * @category Symbols
  * @example
  * ```ts
- * import { ServiceMap } from "effect/services"
+ * import { ServiceMap } from "effect"
  *
  * console.log(ServiceMap.TypeId)
  * // Output: "~effect/ServiceMap"
@@ -356,7 +356,7 @@ export const TypeId: TypeId = "~effect/ServiceMap"
  * @category Symbols
  * @example
  * ```ts
- * import { ServiceMap } from "effect/services"
+ * import { ServiceMap } from "effect"
  *
  * // TypeId is a type representing the unique identifier for ServiceMap
  * type MyTypeId = ServiceMap.TypeId
@@ -369,7 +369,7 @@ export type TypeId = "~effect/ServiceMap"
  * @category Models
  * @example
  * ```ts
- * import { ServiceMap } from "effect/services"
+ * import { ServiceMap } from "effect"
  *
  * // Create a service map with multiple services
  * const Logger = ServiceMap.Key<{ log: (msg: string) => void }>("Logger")
@@ -391,7 +391,7 @@ export interface ServiceMap<in Services> extends Equal.Equal, Pipeable, Inspecta
  * @category Constructors
  * @example
  * ```ts
- * import { ServiceMap } from "effect/services"
+ * import { ServiceMap } from "effect"
  *
  * // Create a service map from a Map (unsafe)
  * const map = new Map([[
@@ -447,7 +447,7 @@ const Proto: Omit<ServiceMap<never>, "unsafeMap"> = {
  * @example
  * ```ts
  * import * as assert from "node:assert"
- * import { ServiceMap } from "effect/services"
+ * import { ServiceMap } from "effect"
  *
  * assert.strictEqual(ServiceMap.isServiceMap(ServiceMap.empty()), true)
  * ```
@@ -465,7 +465,7 @@ export const isServiceMap = (u: unknown): u is ServiceMap<never> => hasProperty(
  * @example
  * ```ts
  * import * as assert from "node:assert"
- * import { ServiceMap } from "effect/services"
+ * import { ServiceMap } from "effect"
  *
  * assert.strictEqual(ServiceMap.isKey(ServiceMap.Key("Key")), true)
  * ```
@@ -481,7 +481,7 @@ export const isKey = (u: unknown): u is Key<any, any> => hasProperty(u, KeyTypeI
  * @example
  * ```ts
  * import * as assert from "node:assert"
- * import { ServiceMap } from "effect/services"
+ * import { ServiceMap } from "effect"
  *
  * const LoggerRef = ServiceMap.Reference("Logger", { defaultValue: () => ({ log: (msg: string) => console.log(msg) }) })
  *
@@ -500,7 +500,7 @@ export const isReference = (u: unknown): u is Reference<any> => hasProperty(u, R
  * @example
  * ```ts
  * import * as assert from "node:assert"
- * import { ServiceMap } from "effect/services"
+ * import { ServiceMap } from "effect"
  *
  * assert.strictEqual(ServiceMap.isServiceMap(ServiceMap.empty()), true)
  * ```
@@ -517,7 +517,7 @@ const emptyServiceMap = unsafeMake(new Map())
  * @example
  * ```ts
  * import * as assert from "node:assert"
- * import { ServiceMap } from "effect/services"
+ * import { ServiceMap } from "effect"
  *
  * const Port = ServiceMap.Key<{ PORT: number }>("Port")
  *
@@ -541,7 +541,7 @@ export const make = <I, S>(
  * ```ts
  * import * as assert from "node:assert"
  * import { pipe } from "effect"
- * import { ServiceMap } from "effect/services"
+ * import { ServiceMap } from "effect"
  *
  * const Port = ServiceMap.Key<{ PORT: number }>("Port")
  * const Timeout = ServiceMap.Key<{ TIMEOUT: number }>("Timeout")
@@ -587,7 +587,7 @@ export const add: {
  * @example
  * ```ts
  * import * as assert from "node:assert"
- * import { ServiceMap } from "effect/services"
+ * import { ServiceMap } from "effect"
  *
  * const Logger = ServiceMap.Key<{ log: (msg: string) => void }>("Logger")
  * const Database = ServiceMap.Key<{ query: (sql: string) => string }>("Database")
@@ -626,7 +626,7 @@ export const getOrElse: {
  * @example
  * ```ts
  * import * as assert from "node:assert"
- * import { ServiceMap } from "effect/services"
+ * import { ServiceMap } from "effect"
  *
  * const Port = ServiceMap.Key<{ PORT: number }>("Port")
  * const Timeout = ServiceMap.Key<{ TIMEOUT: number }>("Timeout")
@@ -658,7 +658,7 @@ export const unsafeGet: {
  * @example
  * ```ts
  * import * as assert from "node:assert"
- * import { ServiceMap } from "effect/services"
+ * import { ServiceMap } from "effect"
  *
  * const LoggerRef = ServiceMap.Reference("Logger", {
  *   defaultValue: () => ({ log: (msg: string) => console.log(msg) })
@@ -719,7 +719,7 @@ const serviceNotFoundError = (key: Key<any, any>) => {
  * ```ts
  * import * as assert from "node:assert"
  * import { pipe } from "effect"
- * import { ServiceMap } from "effect/services"
+ * import { ServiceMap } from "effect"
  *
  * const Port = ServiceMap.Key<{ PORT: number }>("Port")
  * const Timeout = ServiceMap.Key<{ TIMEOUT: number }>("Timeout")
@@ -750,7 +750,7 @@ export const get: {
  * @example
  * ```ts
  * import * as assert from "node:assert"
- * import { ServiceMap } from "effect/services"
+ * import { ServiceMap } from "effect"
  * import { Option } from "effect/data"
  *
  * const Port = ServiceMap.Key<{ PORT: number }>("Port")
@@ -784,7 +784,7 @@ export const getOption: {
  * @example
  * ```ts
  * import * as assert from "node:assert"
- * import { ServiceMap } from "effect/services"
+ * import { ServiceMap } from "effect"
  *
  * const Port = ServiceMap.Key<{ PORT: number }>("Port")
  * const Timeout = ServiceMap.Key<{ TIMEOUT: number }>("Timeout")
@@ -824,7 +824,7 @@ export const merge: {
  * ```ts
  * import * as assert from "node:assert"
  * import { pipe } from "effect"
- * import { ServiceMap } from "effect/services"
+ * import { ServiceMap } from "effect"
  * import { Option } from "effect/data"
  *
  * const Port = ServiceMap.Key<{ PORT: number }>("Port")
@@ -863,7 +863,7 @@ export const pick = <Keys extends ReadonlyArray<Key<any, any>>>(
  * ```ts
  * import * as assert from "node:assert"
  * import { pipe } from "effect"
- * import { ServiceMap } from "effect/services"
+ * import { ServiceMap } from "effect"
  * import { Option } from "effect/data"
  *
  * const Port = ServiceMap.Key<{ PORT: number }>("Port")
@@ -907,7 +907,7 @@ export const omit = <Keys extends ReadonlyArray<Key<any, any>>>(
  * @example
  * ```ts
  * import * as assert from "node:assert"
- * import { ServiceMap } from "effect/services"
+ * import { ServiceMap } from "effect"
  *
  * // Create a reference with a default value
  * const LoggerRef = ServiceMap.Reference("Logger", {

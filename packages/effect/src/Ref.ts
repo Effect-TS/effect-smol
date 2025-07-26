@@ -8,7 +8,7 @@
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Ref } from "effect/concurrency"
+ * import { Ref } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   // Create a ref with initial value
@@ -29,20 +29,20 @@
  *
  * @since 2.0.0
  */
-import * as MutableRef from "../concurrency/MutableRef.ts"
-import type * as Option from "../data/Option.ts"
-import * as Effect from "../Effect.ts"
-import { dual, identity } from "../Function.ts"
-import { PipeInspectableProto } from "../internal/core.ts"
-import type { Invariant } from "../types/Types.ts"
-import type * as Unify from "../types/Unify.ts"
+import type * as Option from "./data/Option.ts"
+import * as Effect from "./Effect.ts"
+import { dual, identity } from "./Function.ts"
+import { PipeInspectableProto } from "./internal/core.ts"
+import * as MutableRef from "./MutableRef.ts"
+import type { Invariant } from "./types/Types.ts"
+import type * as Unify from "./types/Unify.ts"
 
 /**
  * The type identifier for Ref values.
  *
  * @example
  * ```ts
- * import { Ref } from "effect/concurrency"
+ * import { Ref } from "effect"
  *
  * // Check if a value is a Ref by using the TypeId
  * const myRef = Ref.unsafeMake(42)
@@ -59,7 +59,7 @@ export const TypeId: TypeId = "~effect/Ref"
  *
  * @example
  * ```ts
- * import { Ref } from "effect/concurrency"
+ * import { Ref } from "effect"
  *
  * // The TypeId is used internally for type checking
  * const checkTypeId = (id: Ref.TypeId) => {
@@ -82,7 +82,7 @@ export type TypeId = "~effect/Ref"
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Ref } from "effect/concurrency"
+ * import { Ref } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   // Create a ref with initial value
@@ -117,7 +117,7 @@ export interface Ref<in out A> extends Ref.Variance<A> {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Ref } from "effect/concurrency"
+ * import { Ref } from "effect"
  *
  * // This interface is used internally for type unification
  * // Users typically don't need to interact with it directly
@@ -143,7 +143,7 @@ export interface RefUnify<A extends { [Unify.typeSymbol]?: any }> extends Effect
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Ref } from "effect/concurrency"
+ * import { Ref } from "effect"
  *
  * // This interface is used internally to control type unification
  * // Users typically don't need to interact with it directly
@@ -168,7 +168,7 @@ export interface RefUnifyIgnore extends Effect.EffectUnifyIgnore {
  *
  * @example
  * ```ts
- * import { Ref } from "effect/concurrency"
+ * import { Ref } from "effect"
  *
  * // Access the TypeId constant
  * console.log(Ref.TypeId) // "~effect/Ref"
@@ -189,7 +189,7 @@ export declare namespace Ref {
    * @example
    * ```ts
    * import { Effect } from "effect"
-   * import { Ref } from "effect/concurrency"
+   * import { Ref } from "effect"
    *
    * // This interface defines the invariant nature of Ref's type parameter
    * // A Ref<A> is both a producer and consumer of A
@@ -233,7 +233,7 @@ const RefProto = {
  *
  * @example
  * ```ts
- * import { Ref } from "effect/concurrency"
+ * import { Ref } from "effect"
  *
  * // Create a ref directly without Effect
  * const counter = Ref.unsafeMake(0)
@@ -264,7 +264,7 @@ export const unsafeMake = <A>(value: A): Ref<A> => {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Ref } from "effect/concurrency"
+ * import { Ref } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const ref = yield* Ref.make(42)
@@ -284,7 +284,7 @@ export const make = <A>(value: A): Effect.Effect<Ref<A>> => Effect.sync(() => un
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Ref } from "effect/concurrency"
+ * import { Ref } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const ref = yield* Ref.make(42)
@@ -304,7 +304,7 @@ export const get = <A>(self: Ref<A>) => Effect.sync(() => self.ref.current)
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Ref } from "effect/concurrency"
+ * import { Ref } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const ref = yield* Ref.make(0)
@@ -338,7 +338,7 @@ export const set = dual<
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Ref } from "effect/concurrency"
+ * import { Ref } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const ref = yield* Ref.make("initial")
@@ -373,7 +373,7 @@ export const getAndSet = dual<
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Ref } from "effect/concurrency"
+ * import { Ref } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const counter = yield* Ref.make(10)
@@ -410,7 +410,7 @@ export const getAndUpdate = dual<
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Ref } from "effect/concurrency"
+ * import { Ref } from "effect"
 import * as Option from "effect/data/Option"
  *
  * const program = Effect.gen(function*() {
@@ -460,7 +460,7 @@ export const getAndUpdateSome = dual<
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Ref } from "effect/concurrency"
+ * import { Ref } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const ref = yield* Ref.make(10)
@@ -500,7 +500,7 @@ export const setAndGet = dual<
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Ref } from "effect/concurrency"
+ * import { Ref } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const counter = yield* Ref.make(10)
@@ -553,7 +553,7 @@ export const modify = dual<
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Ref } from "effect/concurrency"
+ * import { Ref } from "effect"
 import * as Option from "effect/data/Option"
  *
  * const program = Effect.gen(function*() {
@@ -614,7 +614,7 @@ export const modifySome = dual<
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Ref } from "effect/concurrency"
+ * import { Ref } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const counter = yield* Ref.make(5)
@@ -652,7 +652,7 @@ export const update = dual<
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Ref } from "effect/concurrency"
+ * import { Ref } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const counter = yield* Ref.make(5)
@@ -684,7 +684,7 @@ export const updateAndGet = dual<
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Ref } from "effect/concurrency"
+ * import { Ref } from "effect"
 import * as Option from "effect/data/Option"
  *
  * const program = Effect.gen(function*() {
@@ -733,7 +733,7 @@ export const updateSome = dual<
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Ref } from "effect/concurrency"
+ * import { Ref } from "effect"
 import * as Option from "effect/data/Option"
  *
  * const program = Effect.gen(function*() {
@@ -776,7 +776,7 @@ export const updateSomeAndGet = dual<
  *
  * @example
  * ```ts
- * import { Ref } from "effect/concurrency"
+ * import { Ref } from "effect"
  *
  * // Create a ref directly
  * const counter = Ref.unsafeMake(42)

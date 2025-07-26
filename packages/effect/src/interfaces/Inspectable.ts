@@ -38,7 +38,7 @@
  */
 import { hasProperty, isFunction } from "../data/Predicate.ts"
 import { pipeArguments } from "../interfaces/Pipeable.ts"
-import type * as ServiceMap from "../services/ServiceMap.ts"
+import type * as ServiceMap from "../ServiceMap.ts"
 
 /**
  * Symbol used by Node.js for custom object inspection.
@@ -445,7 +445,7 @@ export const stringifyCircular = (
  * @example
  * ```ts
  * import { Inspectable } from "effect/interfaces"
- * import { ServiceMap } from "effect/services"
+ * import { ServiceMap } from "effect"
  *
  * class SensitiveData implements Inspectable.Redactable {
  *   constructor(private secret: string) {}

@@ -8,7 +8,7 @@
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Queue } from "effect/concurrency"
+ * import { Queue } from "effect"
  *
  * // Creating a bounded queue with capacity 10
  * const program = Effect.gen(function*() {
@@ -33,22 +33,22 @@
  *
  * @since 3.8.0
  */
-import type { Cause } from "../Cause.ts"
-import * as Arr from "../collections/Array.ts"
-import * as Iterable from "../collections/Iterable.ts"
-import * as MutableList from "../collections/MutableList.ts"
-import * as Filter from "../data/Filter.ts"
-import { hasProperty } from "../data/Predicate.ts"
-import type { Effect } from "../Effect.ts"
-import type { Exit, Failure } from "../Exit.ts"
-import { dual, identity } from "../Function.ts"
-import type { Inspectable } from "../interfaces/Inspectable.ts"
-import * as core from "../internal/core.ts"
-import { PipeInspectableProto } from "../internal/core.ts"
-import * as internalEffect from "../internal/effect.ts"
-import type { Scheduler } from "../runtime/Scheduler.ts"
-import * as Pull from "../stream/Pull.ts"
-import type * as Types from "../types/Types.ts"
+import type { Cause } from "./Cause.ts"
+import * as Arr from "./collections/Array.ts"
+import * as Iterable from "./collections/Iterable.ts"
+import * as MutableList from "./collections/MutableList.ts"
+import * as Filter from "./data/Filter.ts"
+import { hasProperty } from "./data/Predicate.ts"
+import type { Effect } from "./Effect.ts"
+import type { Exit, Failure } from "./Exit.ts"
+import { dual, identity } from "./Function.ts"
+import type { Inspectable } from "./interfaces/Inspectable.ts"
+import * as core from "./internal/core.ts"
+import { PipeInspectableProto } from "./internal/core.ts"
+import * as internalEffect from "./internal/effect.ts"
+import type { Scheduler } from "./Scheduler.ts"
+import * as Pull from "./stream/Pull.ts"
+import type * as Types from "./types/Types.ts"
 
 /**
  * The type identifier for Queue values.
@@ -88,7 +88,7 @@ export type DequeueTypeId = "~effect/Queue/Dequeue"
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Queue } from "effect/concurrency"
+ * import { Queue } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const queue = yield* Queue.bounded<number>(10)
@@ -115,7 +115,7 @@ export const isQueue = <A = unknown, E = unknown>(
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Queue } from "effect/concurrency"
+ * import { Queue } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const queue = yield* Queue.bounded<string, never>(10)
@@ -170,7 +170,7 @@ export declare namespace Dequeue {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Queue } from "effect/concurrency"
+ * import { Queue } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   // Create a bounded queue
@@ -285,7 +285,7 @@ const QueueProto = {
  * ```ts
  * import * as assert from "node:assert"
  * import { Effect } from "effect"
- * import { Queue } from "effect/concurrency"
+ * import { Queue } from "effect"
  *
  * Effect.gen(function*() {
  *   const queue = yield* Queue.make<number, string | Queue.Done>()
@@ -343,7 +343,7 @@ export const make = <A, E = never>(
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Queue } from "effect/concurrency"
+ * import { Queue } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const queue = yield* Queue.bounded<string>(5)
@@ -375,7 +375,7 @@ export const bounded = <A, E = never>(capacity: number): Effect<Queue<A, E>> => 
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Queue } from "effect/concurrency"
+ * import { Queue } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const queue = yield* Queue.sliding<number>(3)
@@ -411,7 +411,7 @@ export const sliding = <A, E = never>(capacity: number): Effect<Queue<A, E>> => 
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Queue } from "effect/concurrency"
+ * import { Queue } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const queue = yield* Queue.dropping<number>(2)
@@ -446,7 +446,7 @@ export const dropping = <A, E = never>(capacity: number): Effect<Queue<A, E>> =>
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Queue } from "effect/concurrency"
+ * import { Queue } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const queue = yield* Queue.unbounded<string>()
@@ -481,7 +481,7 @@ export const unbounded = <A, E = never>(): Effect<Queue<A, E>> => make()
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Queue } from "effect/concurrency"
+ * import { Queue } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const queue = yield* Queue.bounded<number>(3)
@@ -535,7 +535,7 @@ export const offer = <A, E>(self: Queue<A, E>, message: A): Effect<boolean> =>
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Queue } from "effect/concurrency"
+ * import { Queue } from "effect"
  *
  * // Create a queue effect and extract the queue for unsafe operations
  * const program = Effect.gen(function*() {
@@ -586,7 +586,7 @@ export const unsafeOffer = <A, E>(self: Queue<A, E>, message: A): boolean => {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Queue } from "effect/concurrency"
+ * import { Queue } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const queue = yield* Queue.bounded<number>(3)
@@ -631,7 +631,7 @@ export const offerAll = <A, E>(self: Queue<A, E>, messages: Iterable<A>): Effect
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Queue } from "effect/concurrency"
+ * import { Queue } from "effect"
  *
  * // Create a bounded queue and use unsafe API
  * const program = Effect.gen(function*() {
@@ -691,7 +691,7 @@ export const unsafeOfferAll = <A, E>(self: Queue<A, E>, messages: Iterable<A>): 
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Queue } from "effect/concurrency"
+ * import { Queue } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const queue = yield* Queue.bounded<number, string>(10)
@@ -721,7 +721,7 @@ export const fail = <A, E>(self: Queue<A, E>, error: E) => done(self, core.exitF
  * @example
  * ```ts
  * import { Effect, Cause } from "effect"
- * import { Queue } from "effect/concurrency"
+ * import { Queue } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const queue = yield* Queue.bounded<number, string>(10)
@@ -750,7 +750,7 @@ export const failCause = <A, E>(self: Queue<A, E>, cause: Cause<E>) => done(self
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Queue } from "effect/concurrency"
+ * import { Queue } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const queue = yield* Queue.bounded<number, Queue.Done>(10)
@@ -787,7 +787,7 @@ export const end = <A, E>(self: Queue<A, E | Done>): Effect<boolean> => done(sel
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Queue } from "effect/concurrency"
+ * import { Queue } from "effect"
  *
  * // Create a queue and use unsafe operations
  * const program = Effect.gen(function*() {
@@ -818,7 +818,7 @@ export const unsafeEnd = <A, E>(self: Queue<A, E | Done>) => unsafeDone(self, in
  * @example
  * ```ts
  * import { Effect, Exit } from "effect"
- * import { Queue } from "effect/concurrency"
+ * import { Queue } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const queue = yield* Queue.bounded<number, Queue.Done>(10)
@@ -855,7 +855,7 @@ export const done = <A, E>(self: Queue<A, E>, exit: Exit<Done extends E ? unknow
  * @example
  * ```ts
  * import { Effect, Exit } from "effect"
- * import { Queue } from "effect/concurrency"
+ * import { Queue } from "effect"
  *
  * // Create a queue and use unsafe operations
  * const program = Effect.gen(function*() {
@@ -899,7 +899,7 @@ export const unsafeDone = <A, E>(self: Queue<A, E>, exit: Exit<Done extends E ? 
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Queue } from "effect/concurrency"
+ * import { Queue } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const queue = yield* Queue.bounded<number>(2)
@@ -952,7 +952,7 @@ export const shutdown = <A, E>(self: Queue<A, E>): Effect<boolean> =>
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Queue } from "effect/concurrency"
+ * import { Queue } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const queue = yield* Queue.bounded<number>(10)
@@ -1029,7 +1029,7 @@ export const filterDone: Filter.Filter<unknown, Done> = Filter.fromPredicate(isD
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Queue } from "effect/concurrency"
+ * import { Queue } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const queue = yield* Queue.bounded<number, Queue.Done>(5)
@@ -1070,7 +1070,7 @@ export const takeAll = <A, E>(self: Dequeue<A, E>): Effect<Arr.NonEmptyArray<A>,
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Queue } from "effect/concurrency"
+ * import { Queue } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const queue = yield* Queue.bounded<number>(10)
@@ -1110,7 +1110,7 @@ export const takeN = <A, E>(
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Queue } from "effect/concurrency"
+ * import { Queue } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const queue = yield* Queue.bounded<number>(10)
@@ -1153,7 +1153,7 @@ export const takeBetween = <A, E>(
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Queue } from "effect/concurrency"
+ * import { Queue } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const queue = yield* Queue.bounded<string, Queue.Done>(3)
@@ -1200,7 +1200,7 @@ export const take = <A, E>(self: Dequeue<A, E>): Effect<A, E> =>
  * @example
  * ```ts
  * import { Effect, Exit } from "effect"
- * import { Queue } from "effect/concurrency"
+ * import { Queue } from "effect"
  *
  * // Create a queue and use unsafe operations
  * const program = Effect.gen(function*() {
@@ -1279,7 +1279,7 @@ export {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Queue } from "effect/concurrency"
+ * import { Queue } from "effect"
 import * as Option from "effect/data/Option"
  *
  * const program = Effect.gen(function*() {
@@ -1319,7 +1319,7 @@ export const size = <A, E>(self: Dequeue<A, E>): Effect<number> => internalEffec
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Queue } from "effect/concurrency"
+ * import { Queue } from "effect"
 import * as Option from "effect/data/Option"
  *
  * // Create a queue and use unsafe operations
@@ -1359,7 +1359,7 @@ export const unsafeSize = <A, E>(self: Dequeue<A, E>): number => self.state._tag
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Queue } from "effect/concurrency"
+ * import { Queue } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const queue = yield* Queue.bounded<number>(10)
@@ -1394,7 +1394,7 @@ export const asDequeue: <A, E>(self: Queue<A, E>) => Dequeue<A, E> = identity
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Queue } from "effect/concurrency"
+ * import { Queue } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const queue = yield* Queue.bounded<number, Queue.Done>(10)
@@ -1451,7 +1451,7 @@ export const into: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Queue } from "effect/concurrency"
+ * import { Queue } from "effect"
  *
  * const program = Effect.gen(function* () {
  *   const queue = yield* Queue.bounded<number, string>(10)
@@ -1473,7 +1473,7 @@ export const toPull: <A, E, L = void>(self: Dequeue<A, E | Done>) => Pull.Pull<A
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Queue } from "effect/concurrency"
+ * import { Queue } from "effect"
  *
  * const program = Effect.gen(function* () {
  *   const queue = yield* Queue.bounded<number, string>(10)

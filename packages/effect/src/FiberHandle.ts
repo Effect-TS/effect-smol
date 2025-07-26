@@ -1,28 +1,28 @@
 /**
  * @since 2.0.0
  */
-import type { NoSuchElementError } from "../Cause.ts"
-import * as Cause from "../Cause.ts"
-import * as Deferred from "../concurrency/Deferred.ts"
-import * as Filter from "../data/Filter.ts"
-import * as Option from "../data/Option.ts"
-import * as Predicate from "../data/Predicate.ts"
-import * as Effect from "../Effect.ts"
-import * as Exit from "../Exit.ts"
-import { dual } from "../Function.ts"
-import type * as Inspectable from "../interfaces/Inspectable.ts"
-import { type Pipeable } from "../interfaces/Pipeable.ts"
-import { PipeInspectableProto } from "../internal/core.ts"
-import type * as Scope from "../resources/Scope.ts"
-import * as Fiber from "../runtime/Fiber.ts"
-import type { Scheduler } from "../runtime/Scheduler.ts"
+import type { NoSuchElementError } from "./Cause.ts"
+import * as Cause from "./Cause.ts"
+import * as Filter from "./data/Filter.ts"
+import * as Option from "./data/Option.ts"
+import * as Predicate from "./data/Predicate.ts"
+import * as Deferred from "./Deferred.ts"
+import * as Effect from "./Effect.ts"
+import * as Exit from "./Exit.ts"
+import * as Fiber from "./Fiber.ts"
+import { dual } from "./Function.ts"
+import type * as Inspectable from "./interfaces/Inspectable.ts"
+import { type Pipeable } from "./interfaces/Pipeable.ts"
+import { PipeInspectableProto } from "./internal/core.ts"
+import type { Scheduler } from "./Scheduler.ts"
+import type * as Scope from "./Scope.ts"
 
 /**
  * @since 2.0.0
  * @category type ids
  * @example
  * ```ts
- * import { FiberHandle } from "effect/concurrency"
+ * import { FiberHandle } from "effect"
  *
  * const typeId = FiberHandle.TypeId
  * console.log(typeId) // "~effect/FiberHandle"
@@ -35,7 +35,7 @@ export const TypeId: TypeId = "~effect/FiberHandle"
  * @category type ids
  * @example
  * ```ts
- * import type { FiberHandle } from "effect/concurrency"
+ * import type { FiberHandle } from "effect"
  *
  * // TypeId is used to identify FiberHandle instances
  * type MyTypeId = FiberHandle.TypeId
@@ -49,8 +49,8 @@ export type TypeId = "~effect/FiberHandle"
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { FiberHandle } from "effect/concurrency"
- * import { Fiber } from "effect/runtime"
+ * import { FiberHandle } from "effect"
+ * import { Fiber } from "effect"
  *
  * Effect.gen(function*() {
  *   // Create a FiberHandle that can hold fibers producing strings
@@ -80,7 +80,7 @@ export interface FiberHandle<out A = unknown, out E = unknown> extends Pipeable,
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { FiberHandle } from "effect/concurrency"
+ * import { FiberHandle } from "effect"
  *
  * Effect.gen(function*() {
  *   const handle = yield* FiberHandle.make()
@@ -120,7 +120,7 @@ const unsafeMake = <A = unknown, E = unknown>(): FiberHandle<A, E> => {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { FiberHandle } from "effect/concurrency"
+ * import { FiberHandle } from "effect"
  *
  * Effect.gen(function*() {
  *   const handle = yield* FiberHandle.make()
@@ -163,8 +163,8 @@ export const make = <A = unknown, E = unknown>(): Effect.Effect<FiberHandle<A, E
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { FiberHandle } from "effect/concurrency"
- * import { Fiber } from "effect/runtime"
+ * import { FiberHandle } from "effect"
+ * import { Fiber } from "effect"
  *
  * Effect.gen(function*() {
  *   const run = yield* FiberHandle.makeRuntime<never>()
@@ -207,7 +207,7 @@ export const makeRuntime = <R, E = unknown, A = unknown>(): Effect.Effect<
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { FiberHandle } from "effect/concurrency"
+ * import { FiberHandle } from "effect"
  *
  * Effect.gen(function*() {
  *   const run = yield* FiberHandle.makeRuntimePromise()
@@ -252,8 +252,8 @@ const isInternalInterruption = Filter.toPredicate(Filter.compose(
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { FiberHandle } from "effect/concurrency"
- * import { Fiber } from "effect/runtime"
+ * import { FiberHandle } from "effect"
+ * import { Fiber } from "effect"
  *
  * Effect.gen(function*() {
  *   const handle = yield* FiberHandle.make()
@@ -333,8 +333,8 @@ export const unsafeSet: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { FiberHandle } from "effect/concurrency"
- * import { Fiber } from "effect/runtime"
+ * import { FiberHandle } from "effect"
+ * import { Fiber } from "effect"
  *
  * Effect.gen(function*() {
  *   const handle = yield* FiberHandle.make()
@@ -389,7 +389,7 @@ export const set: {
  * ```ts
  * import { Effect } from "effect"
  * import { Option } from "effect/data"
- * import { FiberHandle } from "effect/concurrency"
+ * import { FiberHandle } from "effect"
  *
  * Effect.gen(function*() {
  *   const handle = yield* FiberHandle.make()
@@ -416,8 +416,8 @@ export const unsafeGet = <A, E>(self: FiberHandle<A, E>): Option.Option<Fiber.Fi
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { FiberHandle } from "effect/concurrency"
- * import { Fiber } from "effect/runtime"
+ * import { FiberHandle } from "effect"
+ * import { Fiber } from "effect"
  *
  * Effect.gen(function*() {
  *   const handle = yield* FiberHandle.make()
@@ -441,7 +441,7 @@ export const get = <A, E>(self: FiberHandle<A, E>): Effect.Effect<Fiber.Fiber<A,
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { FiberHandle } from "effect/concurrency"
+ * import { FiberHandle } from "effect"
  *
  * Effect.gen(function*() {
  *   const handle = yield* FiberHandle.make()
@@ -492,8 +492,8 @@ const constInterruptedFiber = (function() {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { FiberHandle } from "effect/concurrency"
- * import { Fiber } from "effect/runtime"
+ * import { FiberHandle } from "effect"
+ * import { Fiber } from "effect"
  *
  * Effect.gen(function*() {
  *   const handle = yield* FiberHandle.make()
@@ -565,8 +565,8 @@ const runImpl = <A, E, R, XE extends E, XA extends A>(
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { ServiceMap } from "effect/services"
- * import { FiberHandle } from "effect/concurrency"
+ * import { ServiceMap } from "effect"
+ * import { FiberHandle } from "effect"
  *
  * interface Users {
  *   readonly _: unique symbol
@@ -647,7 +647,7 @@ export const runtime: <A, E>(
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { FiberHandle } from "effect/concurrency"
+ * import { FiberHandle } from "effect"
  *
  * Effect.gen(function*() {
  *   const handle = yield* FiberHandle.make()
@@ -710,7 +710,7 @@ export const runtimePromise = <A, E>(self: FiberHandle<A, E>): <R = never>() => 
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { FiberHandle } from "effect/concurrency";
+ * import { FiberHandle } from "effect";
  *
  * Effect.gen(function* () {
  *   const handle = yield* FiberHandle.make()
@@ -732,7 +732,7 @@ export const join = <A, E>(self: FiberHandle<A, E>): Effect.Effect<void, E> =>
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { FiberHandle } from "effect/concurrency"
+ * import { FiberHandle } from "effect"
  *
  * Effect.gen(function*() {
  *   const handle = yield* FiberHandle.make()

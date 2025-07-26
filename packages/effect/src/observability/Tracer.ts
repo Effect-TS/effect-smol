@@ -3,9 +3,9 @@
  */
 import type * as Option from "../data/Option.ts"
 import type * as Exit from "../Exit.ts"
+import type { Fiber } from "../Fiber.ts"
 import { constFalse, type LazyArg } from "../Function.ts"
-import type { Fiber } from "../runtime/Fiber.ts"
-import * as ServiceMap from "../services/ServiceMap.ts"
+import * as ServiceMap from "../ServiceMap.ts"
 
 /**
  * @since 2.0.0
@@ -13,7 +13,7 @@ import * as ServiceMap from "../services/ServiceMap.ts"
  * @example
  * ```ts
  * import { Tracer } from "effect/observability"
- * import { ServiceMap } from "effect/services"
+ * import { ServiceMap } from "effect"
  * import { Option } from "effect/data"
  *
  * // Create a custom tracer implementation
@@ -138,7 +138,7 @@ export class ParentSpan extends ServiceMap.Key<ParentSpan, AnySpan>()(ParentSpan
  * @example
  * ```ts
  * import { Tracer } from "effect/observability"
- * import { ServiceMap } from "effect/services"
+ * import { ServiceMap } from "effect"
  *
  * // Create an external span from another tracing system
  * const externalSpan: Tracer.ExternalSpan = {
@@ -283,7 +283,7 @@ export interface SpanLink {
  * @example
  * ```ts
  * import { Tracer } from "effect/observability"
- * import { ServiceMap } from "effect/services"
+ * import { ServiceMap } from "effect"
  * import { Option } from "effect/data"
  *
  * // Create a custom tracer with logging
@@ -406,7 +406,7 @@ export const Tracer: ServiceMap.Reference<Tracer> = ServiceMap.Reference<Tracer>
  * @example
  * ```ts
  * import { Tracer } from "effect/observability"
- * import { ServiceMap } from "effect/services"
+ * import { ServiceMap } from "effect"
  * import { Option } from "effect/data"
  *
  * // Create a native span directly

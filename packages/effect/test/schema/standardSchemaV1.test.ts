@@ -1,8 +1,7 @@
 import { assertTrue, deepStrictEqual, strictEqual } from "@effect/vitest/utils"
-import { Effect } from "effect"
+import { Effect, ServiceMap } from "effect"
 import { Option } from "effect/data"
 import { Check, Getter, Schema } from "effect/schema"
-import { ServiceMap } from "effect/services"
 import { describe, it } from "vitest"
 import { standard } from "../utils/schema.ts"
 

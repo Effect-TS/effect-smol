@@ -1,10 +1,7 @@
 import { assert, describe, it } from "@effect/vitest"
-import { Effect, Exit } from "effect"
+import { Deferred, Effect, Exit, Fiber, ServiceMap } from "effect"
 import { Cache } from "effect/caching"
-import { Deferred } from "effect/concurrency"
 import { Data, Option } from "effect/data"
-import { Fiber } from "effect/runtime"
-import { ServiceMap } from "effect/services"
 import { TestClock } from "effect/testing"
 import { Duration } from "effect/time"
 

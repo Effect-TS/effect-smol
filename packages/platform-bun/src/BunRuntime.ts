@@ -3,7 +3,7 @@
  */
 import * as NodeRuntime from "@effect/platform-node-shared/NodeRuntime"
 import type { Effect } from "effect/Effect"
-import type { Teardown } from "effect/runtime/Runtime"
+import type { Teardown } from "effect/Runtime"
 
 /**
  * Helps you run a main effect with built-in error handling, logging, and signal management.

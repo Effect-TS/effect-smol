@@ -4,20 +4,20 @@
 // @effect-diagnostics returnEffectInGen:off
 import * as Cause from "../Cause.ts"
 import * as Arr from "../collections/Array.ts"
-import type * as PubSub from "../concurrency/PubSub.ts"
-import * as Queue from "../concurrency/Queue.ts"
 import type * as Filter from "../data/Filter.ts"
 import * as Option from "../data/Option.ts"
 import { hasProperty } from "../data/Predicate.ts"
 import * as Effect from "../Effect.ts"
 import * as Exit from "../Exit.ts"
+import * as Fiber from "../Fiber.ts"
 import type { LazyArg } from "../Function.ts"
 import { dual, identity } from "../Function.ts"
 import { type Pipeable, pipeArguments } from "../interfaces/Pipeable.ts"
-import * as Scope from "../resources/Scope.ts"
-import * as Fiber from "../runtime/Fiber.ts"
-import * as Schedule from "../scheduling/Schedule.ts"
-import * as ServiceMap from "../services/ServiceMap.ts"
+import type * as PubSub from "../PubSub.ts"
+import * as Queue from "../Queue.ts"
+import * as Schedule from "../Schedule.ts"
+import * as Scope from "../Scope.ts"
+import * as ServiceMap from "../ServiceMap.ts"
 import * as Channel from "../stream/Channel.ts"
 import * as Pull from "../stream/Pull.ts"
 import type * as Sink from "../stream/Sink.ts"
@@ -388,7 +388,7 @@ export const toChannel = <A, E, R>(
  * ```ts
  * import { Stream } from "effect/stream"
  * import { Effect } from "effect"
- * import { Queue } from "effect/concurrency"
+ * import { Queue } from "effect"
  *
  * const stream = Stream.callback<number>((queue) => {
  *   // Emit values to the stream
@@ -701,7 +701,7 @@ export const fromArray = <A>(array: ReadonlyArray<A>): Stream<A> =>
  * ```ts
  * import { Stream } from "effect/stream"
  * import { Effect } from "effect"
- * import { Queue } from "effect/concurrency"
+ * import { Queue } from "effect"
  *
  * const program = Effect.gen(function* () {
  *   const queue = yield* Queue.unbounded<number>()
@@ -728,7 +728,7 @@ export const fromQueue = <A, E>(queue: Queue.Dequeue<A, E>): Stream<A, Exclude<E
  * ```ts
  * import { Effect } from "effect"
  * import { Stream } from "effect/stream"
- * import { PubSub } from "effect/concurrency"
+ * import { PubSub } from "effect"
  *
  * const program = Effect.gen(function* () {
  *   const pubsub = yield* PubSub.unbounded<number>()
@@ -830,7 +830,7 @@ export const fromSchedule = <O, E, R>(schedule: Schedule.Schedule<O, unknown, E,
  * ```ts
  * import { Effect } from "effect"
  * import { Stream } from "effect/stream"
- * import { PubSub } from "effect/concurrency"
+ * import { PubSub } from "effect"
  *
  * const program = Effect.gen(function* () {
  *   const pubsub = yield* PubSub.unbounded<number>()
@@ -2332,7 +2332,7 @@ export const runDrain = <A, E, R>(self: Stream<A, E, R>): Effect.Effect<void, E,
  * ```ts
  * import { Stream } from "effect/stream"
  * import { Effect } from "effect"
- * import { Scope } from "effect/resources"
+ * import { Scope } from "effect"
  *
  * const stream = Stream.make(1, 2, 3)
  * const program = Effect.scoped(
@@ -2387,7 +2387,7 @@ export const mkString = <E, R>(self: Stream<string, E, R>): Effect.Effect<string
  * @example
  * ```ts
  * import { Stream } from "effect/stream"
- * import { ServiceMap } from "effect/services"
+ * import { ServiceMap } from "effect"
  *
  * const stream = Stream.make(1, 2, 3, 4, 5)
  * const readableStream = Stream.toReadableStreamWith(stream, ServiceMap.empty())

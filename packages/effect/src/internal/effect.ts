@@ -7,6 +7,7 @@ import { hasProperty, isIterable, isString, isTagged } from "../data/Predicate.t
 import * as Result from "../data/Result.ts"
 import type * as Effect from "../Effect.ts"
 import type * as Exit from "../Exit.ts"
+import type * as Fiber from "../Fiber.ts"
 import type { LazyArg } from "../Function.ts"
 import { constant, constTrue, constVoid, dual, identity } from "../Function.ts"
 import * as Equal from "../interfaces/Equal.ts"
@@ -18,9 +19,6 @@ import type * as Logger from "../logging/Logger.ts"
 import type * as LogLevel from "../logging/LogLevel.ts"
 import type * as Metric from "../observability/Metric.ts"
 import * as Tracer from "../observability/Tracer.ts"
-import type * as Scope from "../resources/Scope.ts"
-import type * as Fiber from "../runtime/Fiber.ts"
-import * as Scheduler from "../runtime/Scheduler.ts"
 import {
   CurrentConcurrency,
   CurrentLogAnnotations,
@@ -30,8 +28,10 @@ import {
   TracerEnabled,
   TracerSpanAnnotations,
   TracerSpanLinks
-} from "../services/References.ts"
-import * as ServiceMap from "../services/ServiceMap.ts"
+} from "../References.ts"
+import * as Scheduler from "../Scheduler.ts"
+import type * as Scope from "../Scope.ts"
+import * as ServiceMap from "../ServiceMap.ts"
 import type * as Clock from "../time/Clock.ts"
 import * as Duration from "../time/Duration.ts"
 import type { Concurrency, ExcludeTag, ExtractTag, NoInfer, NotFunction, Simplify, Tags } from "../types/Types.ts"

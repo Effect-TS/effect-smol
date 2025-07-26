@@ -1,5 +1,5 @@
 import * as Effect from "#dist/effect/Effect"
-import * as Schedule from "#dist/effect/scheduling/Schedule"
+import * as Schedule from "#dist/effect/Schedule"
 
 Effect.succeed(123).pipe(
   Effect.repeat({

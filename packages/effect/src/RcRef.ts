@@ -1,18 +1,18 @@
 /**
  * @since 3.5.0
  */
-import type * as Effect from "../Effect.ts"
-import * as internal from "../internal/rcRef.ts"
-import type { Scope } from "../resources/Scope.ts"
-import type * as Duration from "../time/Duration.ts"
-import type * as Types from "../types/Types.ts"
+import type * as Effect from "./Effect.ts"
+import * as internal from "./internal/rcRef.ts"
+import type { Scope } from "./Scope.ts"
+import type * as Duration from "./time/Duration.ts"
+import type * as Types from "./types/Types.ts"
 
 /**
  * @since 3.5.0
  * @category type ids
  * @example
  * ```ts
- * import { RcRef } from "effect/resources"
+ * import { RcRef } from "effect"
  *
  * // Check if a value has the RcRef type ID
  * const hasRcRefTypeId = (value: unknown): value is RcRef.RcRef<unknown> =>
@@ -26,7 +26,7 @@ export const TypeId: TypeId = "~effect/RcRef"
  * @category type ids
  * @example
  * ```ts
- * import type { RcRef } from "effect/resources"
+ * import type { RcRef } from "effect"
  *
  * // Use TypeId in type constraints
  * type HasRcRefTypeId<T> = T extends { readonly [RcRef.TypeId]: any } ? T : never
@@ -46,7 +46,7 @@ export type TypeId = "~effect/RcRef"
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { RcRef } from "effect/resources"
+ * import { RcRef } from "effect"
  *
  * // Create an RcRef for a database connection
  * const createConnectionRef = (connectionString: string) =>
@@ -78,7 +78,7 @@ export interface RcRef<out A, out E = never> {
  * @category models
  * @example
  * ```ts
- * import type { RcRef } from "effect/resources"
+ * import type { RcRef } from "effect"
  *
  * // Use RcRef namespace types
  * type MyRcRef = RcRef.RcRef<string, Error>
@@ -91,7 +91,7 @@ export declare namespace RcRef {
    * @category models
    * @example
    * ```ts
-   * import type { RcRef } from "effect/resources"
+   * import type { RcRef } from "effect"
    *
    * // Variance interface defines covariance for type parameters
    * type StringRcRefVariance = RcRef.RcRef.Variance<string, Error>
@@ -120,7 +120,7 @@ export declare namespace RcRef {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { RcRef } from "effect/resources"
+ * import { RcRef } from "effect"
  *
  * Effect.gen(function*() {
  *   const ref = yield* RcRef.make({
@@ -162,7 +162,7 @@ export const make: <A, E, R>(
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { RcRef } from "effect/resources"
+ * import { RcRef } from "effect"
  *
  * const program = Effect.gen(function* () {
  *   // Create an RcRef with a resource

@@ -30,18 +30,18 @@
  * @since 2.0.0
  * @category data-structures
  */
-import * as Dual from "../Function.ts"
-import * as Equal from "../interfaces/Equal.ts"
-import { type Inspectable, toJSON } from "../interfaces/Inspectable.ts"
-import type { Pipeable } from "../interfaces/Pipeable.ts"
-import { PipeInspectableProto } from "../internal/core.ts"
+import * as Dual from "./Function.ts"
+import * as Equal from "./interfaces/Equal.ts"
+import { type Inspectable, toJSON } from "./interfaces/Inspectable.ts"
+import type { Pipeable } from "./interfaces/Pipeable.ts"
+import { PipeInspectableProto } from "./internal/core.ts"
 
 const TypeId: TypeId = "~effect/MutableRef"
 
 /**
  * @example
  * ```ts
- * import { MutableRef } from "effect/concurrency"
+ * import { MutableRef } from "effect"
  *
  * type RefTypeId = MutableRef.TypeId
  * const ref = MutableRef.make(42)
@@ -57,7 +57,7 @@ export type TypeId = "~effect/MutableRef"
 /**
  * @example
  * ```ts
- * import { MutableRef } from "effect/concurrency"
+ * import { MutableRef } from "effect"
  *
  * // Create a mutable reference
  * const ref: MutableRef.MutableRef<number> = MutableRef.make(42)
@@ -110,7 +110,7 @@ const MutableRefProto: Omit<MutableRef<unknown>, "current"> = {
  *
  * @example
  * ```ts
- * import { MutableRef } from "effect/concurrency"
+ * import { MutableRef } from "effect"
  *
  * // Create a counter reference
  * const counter = MutableRef.make(0)
@@ -142,7 +142,7 @@ export const make = <T>(value: T): MutableRef<T> => {
  *
  * @example
  * ```ts
- * import { MutableRef } from "effect/concurrency"
+ * import { MutableRef } from "effect"
  *
  * const ref = MutableRef.make("initial")
  *
@@ -190,7 +190,7 @@ export const compareAndSet: {
  *
  * @example
  * ```ts
- * import { MutableRef } from "effect/concurrency"
+ * import { MutableRef } from "effect"
  *
  * const counter = MutableRef.make(5)
  *
@@ -221,7 +221,7 @@ export const decrement = (self: MutableRef<number>): MutableRef<number> => updat
  *
  * @example
  * ```ts
- * import { MutableRef } from "effect/concurrency"
+ * import { MutableRef } from "effect"
  *
  * const counter = MutableRef.make(5)
  *
@@ -252,7 +252,7 @@ export const decrementAndGet = (self: MutableRef<number>): number => updateAndGe
  *
  * @example
  * ```ts
- * import { MutableRef } from "effect/concurrency"
+ * import { MutableRef } from "effect"
  *
  * const ref = MutableRef.make("hello")
  * console.log(MutableRef.get(ref)) // "hello"
@@ -281,7 +281,7 @@ export const get = <T>(self: MutableRef<T>): T => self.current
  *
  * @example
  * ```ts
- * import { MutableRef } from "effect/concurrency"
+ * import { MutableRef } from "effect"
  *
  * const counter = MutableRef.make(5)
  *
@@ -313,7 +313,7 @@ export const getAndDecrement = (self: MutableRef<number>): number => getAndUpdat
  *
  * @example
  * ```ts
- * import { MutableRef } from "effect/concurrency"
+ * import { MutableRef } from "effect"
  *
  * const counter = MutableRef.make(5)
  *
@@ -353,7 +353,7 @@ export const getAndIncrement = (self: MutableRef<number>): number => getAndUpdat
  *
  * @example
  * ```ts
- * import { MutableRef } from "effect/concurrency"
+ * import { MutableRef } from "effect"
  *
  * const ref = MutableRef.make("old")
  *
@@ -400,7 +400,7 @@ export const getAndSet: {
  *
  * @example
  * ```ts
- * import { MutableRef } from "effect/concurrency"
+ * import { MutableRef } from "effect"
  *
  * const counter = MutableRef.make(5)
  *
@@ -448,7 +448,7 @@ export const getAndUpdate: {
  *
  * @example
  * ```ts
- * import { MutableRef } from "effect/concurrency"
+ * import { MutableRef } from "effect"
  *
  * const counter = MutableRef.make(5)
  *
@@ -482,7 +482,7 @@ export const increment = (self: MutableRef<number>): MutableRef<number> => updat
  *
  * @example
  * ```ts
- * import { MutableRef } from "effect/concurrency"
+ * import { MutableRef } from "effect"
  *
  * const counter = MutableRef.make(5)
  *
@@ -517,7 +517,7 @@ export const incrementAndGet = (self: MutableRef<number>): number => updateAndGe
  *
  * @example
  * ```ts
- * import { MutableRef } from "effect/concurrency"
+ * import { MutableRef } from "effect"
  *
  * const ref = MutableRef.make("initial")
  *
@@ -566,7 +566,7 @@ export const set: {
  *
  * @example
  * ```ts
- * import { MutableRef } from "effect/concurrency"
+ * import { MutableRef } from "effect"
  *
  * const ref = MutableRef.make("old")
  *
@@ -612,7 +612,7 @@ export const setAndGet: {
  *
  * @example
  * ```ts
- * import { MutableRef } from "effect/concurrency"
+ * import { MutableRef } from "effect"
  *
  * const counter = MutableRef.make(5)
  *
@@ -663,7 +663,7 @@ export const update: {
  *
  * @example
  * ```ts
- * import { MutableRef } from "effect/concurrency"
+ * import { MutableRef } from "effect"
  *
  * const counter = MutableRef.make(5)
  *
@@ -715,7 +715,7 @@ export const updateAndGet: {
  *
  * @example
  * ```ts
- * import { MutableRef } from "effect/concurrency"
+ * import { MutableRef } from "effect"
  *
  * const flag = MutableRef.make(false)
  *

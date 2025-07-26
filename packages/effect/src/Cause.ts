@@ -48,7 +48,7 @@ import type { Pipeable } from "./interfaces/Pipeable.ts"
 import * as core from "./internal/core.ts"
 import * as effect from "./internal/effect.ts"
 import type { Span } from "./observability/Tracer.ts"
-import * as ServiceMap from "./services/ServiceMap.ts"
+import * as ServiceMap from "./ServiceMap.ts"
 import type { NoInfer } from "./types/Types.ts"
 
 /**
@@ -1039,7 +1039,7 @@ export const UnknownError: new(cause: unknown, message?: string) => UnknownError
  * @example
  * ```ts
  * import { Cause } from "effect"
- * import { ServiceMap } from "effect/services"
+ * import { ServiceMap } from "effect"
  *
  * // Define a custom annotation key
  * class UserId extends ServiceMap.Key<UserId, string>()("UserId") {}

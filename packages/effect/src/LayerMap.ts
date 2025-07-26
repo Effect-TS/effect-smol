@@ -1,14 +1,14 @@
 /**
  * @since 3.14.0
  */
-import * as Effect from "../Effect.ts"
-import { identity } from "../Function.ts"
-import * as RcMap from "../resources/RcMap.ts"
-import * as Scope from "../resources/Scope.ts"
-import * as Layer from "../services/Layer.ts"
-import * as ServiceMap from "../services/ServiceMap.ts"
-import type * as Duration from "../time/Duration.ts"
-import type { Mutable } from "../types/Types.ts"
+import * as Effect from "./Effect.ts"
+import { identity } from "./Function.ts"
+import * as Layer from "./Layer.ts"
+import * as RcMap from "./RcMap.ts"
+import * as Scope from "./Scope.ts"
+import * as ServiceMap from "./ServiceMap.ts"
+import type * as Duration from "./time/Duration.ts"
+import type { Mutable } from "./types/Types.ts"
 
 /**
  * @since 3.14.0
@@ -28,9 +28,9 @@ export type TypeId = "~effect/LayerMap"
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Layer } from "effect/services"
- * import { ServiceMap } from "effect/services"
- * import { LayerMap } from "effect/resources"
+ * import { Layer } from "effect"
+ * import { ServiceMap } from "effect"
+ * import { LayerMap } from "effect"
  *
  * // Define a service key
  * const DatabaseService = ServiceMap.Key<{
@@ -93,8 +93,8 @@ export interface LayerMap<in out K, in out I, in out E = never> {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Layer, ServiceMap } from "effect/services"
- * import { LayerMap, Scope } from "effect/resources"
+ * import { Layer, ServiceMap } from "effect"
+ * import { LayerMap, Scope } from "effect"
  *
  * // Define a service key
  * const DatabaseService = ServiceMap.Key<{
@@ -174,8 +174,8 @@ export const make: <
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { LayerMap } from "effect/resources"
- * import { Layer, ServiceMap } from "effect/services"
+ * import { LayerMap } from "effect"
+ * import { Layer, ServiceMap } from "effect"
  *
  * // Define service keys
  * const DevDatabase = ServiceMap.Key<{
@@ -281,10 +281,10 @@ export interface TagClass<
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Layer } from "effect/services"
- * import { ServiceMap } from "effect/services"
+ * import { Layer } from "effect"
+ * import { ServiceMap } from "effect"
  * import { Console } from "effect/logging"
- * import { LayerMap } from "effect/resources"
+ * import { LayerMap } from "effect"
  *
  * // Define a service key
  * const Greeter = ServiceMap.Key<{

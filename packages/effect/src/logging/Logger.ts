@@ -61,7 +61,7 @@
  *
  * ```ts
  * import { Effect } from "effect"
- * import { Layer } from "effect/services"
+ * import { Layer } from "effect"
  * import { Logger } from "effect/logging"
  *
  * // Combine multiple loggers
@@ -107,19 +107,19 @@ import type * as Cause from "../Cause.ts"
 import * as Array from "../collections/Array.ts"
 import * as Predicate from "../data/Predicate.ts"
 import type * as Effect from "../Effect.ts"
+import type * as Fiber from "../Fiber.ts"
 import { dual } from "../Function.ts"
 import * as Inspectable from "../interfaces/Inspectable.ts"
 import type { Pipeable } from "../interfaces/Pipeable.ts"
 import { isEffect, withFiber } from "../internal/core.ts"
 import * as effect from "../internal/effect.ts"
+import * as Layer from "../Layer.ts"
 import type * as LogLevel from "../logging/LogLevel.ts"
 import * as FileSystem from "../platform/FileSystem.ts"
 import type { PlatformError } from "../platform/PlatformError.ts"
-import type * as Scope from "../resources/Scope.ts"
-import type * as Fiber from "../runtime/Fiber.ts"
-import * as Layer from "../services/Layer.ts"
-import { CurrentLogAnnotations, CurrentLogSpans } from "../services/References.ts"
-import * as ServiceMap from "../services/ServiceMap.ts"
+import { CurrentLogAnnotations, CurrentLogSpans } from "../References.ts"
+import type * as Scope from "../Scope.ts"
+import * as ServiceMap from "../ServiceMap.ts"
 import type * as Duration from "../time/Duration.ts"
 import type * as Types from "../types/Types.ts"
 
@@ -576,7 +576,7 @@ const format = (
  * ```ts
  * import { Effect } from "effect"
  * import { Logger } from "effect/logging"
- * import { CurrentLogAnnotations } from "effect/services/References"
+ * import { CurrentLogAnnotations } from "effect/References"
  *
  * // Simple text logger
  * const textLogger = Logger.make((options) =>
@@ -1153,7 +1153,7 @@ export const consoleJson: Logger<unknown, void> = withConsoleLog(formatJson)
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Layer } from "effect/services"
+ * import { Layer } from "effect"
  * import { Logger } from "effect/logging"
  *
  * // Single logger layer
@@ -1217,7 +1217,7 @@ export const layer = <
  * ```ts
  * import { NodeFileSystem, NodeRuntime } from "@effect/platform-node"
  * import { Effect } from "effect"
- * import { Layer } from "effect/services"
+ * import { Layer } from "effect"
  * import { Logger } from "effect/logging"
  *
  * const fileLogger = Logger.formatJson.pipe(

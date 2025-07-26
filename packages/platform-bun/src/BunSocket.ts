@@ -3,7 +3,7 @@
  */
 import type { Effect } from "effect/Effect"
 import { flow } from "effect/Function"
-import * as Layer from "effect/services/Layer"
+import * as Layer from "effect/Layer"
 import type * as Duration from "effect/time/Duration"
 import * as Socket from "effect/unstable/socket/Socket"
 

@@ -2,7 +2,7 @@
  * @since 1.0.0
  */
 import type { Effect } from "effect/Effect"
-import * as Runtime from "effect/runtime/Runtime"
+import * as Runtime from "effect/Runtime"
 
 /**
  * @since 1.0.0

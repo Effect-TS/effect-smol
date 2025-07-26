@@ -1,26 +1,26 @@
 /**
  * @since 2.0.0
  */
-import * as Cause from "../Cause.ts"
-import * as Iterable from "../collections/Iterable.ts"
-import * as Deferred from "../concurrency/Deferred.ts"
-import * as Filter from "../data/Filter.ts"
-import * as Predicate from "../data/Predicate.ts"
-import * as Effect from "../Effect.ts"
-import * as Exit from "../Exit.ts"
-import { constVoid, dual } from "../Function.ts"
-import type * as Inspectable from "../interfaces/Inspectable.ts"
-import { type Pipeable } from "../interfaces/Pipeable.ts"
-import { PipeInspectableProto } from "../internal/core.ts"
-import type * as Scope from "../resources/Scope.ts"
-import * as Fiber from "../runtime/Fiber.ts"
+import * as Cause from "./Cause.ts"
+import * as Iterable from "./collections/Iterable.ts"
+import * as Filter from "./data/Filter.ts"
+import * as Predicate from "./data/Predicate.ts"
+import * as Deferred from "./Deferred.ts"
+import * as Effect from "./Effect.ts"
+import * as Exit from "./Exit.ts"
+import * as Fiber from "./Fiber.ts"
+import { constVoid, dual } from "./Function.ts"
+import type * as Inspectable from "./interfaces/Inspectable.ts"
+import { type Pipeable } from "./interfaces/Pipeable.ts"
+import { PipeInspectableProto } from "./internal/core.ts"
+import type * as Scope from "./Scope.ts"
 
 /**
  * @since 2.0.0
  * @category type ids
  * @example
  * ```ts
- * import { FiberSet } from "effect/concurrency"
+ * import { FiberSet } from "effect"
  *
  * console.log(FiberSet.TypeId === "~effect/FiberSet") // true
  * ```
@@ -32,7 +32,7 @@ export const TypeId: TypeId = "~effect/FiberSet"
  * @category type ids
  * @example
  * ```ts
- * import { FiberSet } from "effect/concurrency"
+ * import { FiberSet } from "effect"
  *
  * // TypeId is the unique identifier for FiberSet
  * type Id = FiberSet.TypeId
@@ -49,7 +49,7 @@ export type TypeId = "~effect/FiberSet"
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { FiberSet } from "effect/concurrency"
+ * import { FiberSet } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const set = yield* FiberSet.make<string, string>()
@@ -84,7 +84,7 @@ export interface FiberSet<out A = unknown, out E = unknown>
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { FiberSet } from "effect/concurrency"
+ * import { FiberSet } from "effect"
  *
  * Effect.gen(function*() {
  *   const set = yield* FiberSet.make()
@@ -133,7 +133,7 @@ const unsafeMake = <A, E>(
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { FiberSet } from "effect/concurrency"
+ * import { FiberSet } from "effect"
  *
  * Effect.gen(function*() {
  *   const set = yield* FiberSet.make()
@@ -174,8 +174,8 @@ export const make = <A = unknown, E = unknown>(): Effect.Effect<FiberSet<A, E>, 
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { FiberSet } from "effect/concurrency"
- * import { Fiber } from "effect/runtime"
+ * import { FiberSet } from "effect"
+ * import { Fiber } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const runFork = yield* FiberSet.makeRuntime()
@@ -213,7 +213,7 @@ export const makeRuntime = <R = never, A = unknown, E = unknown>(): Effect.Effec
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { FiberSet } from "effect/concurrency"
+ * import { FiberSet } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const runPromise = yield* FiberSet.makeRuntimePromise()
@@ -257,7 +257,7 @@ const isInternalInterruption = Filter.toPredicate(Filter.compose(
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { FiberSet } from "effect/concurrency"
+ * import { FiberSet } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const set = yield* FiberSet.make()
@@ -325,7 +325,7 @@ export const unsafeAdd: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { FiberSet } from "effect/concurrency"
+ * import { FiberSet } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const set = yield* FiberSet.make()
@@ -372,7 +372,7 @@ export const add: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { FiberSet } from "effect/concurrency"
+ * import { FiberSet } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const set = yield* FiberSet.make()
@@ -417,8 +417,8 @@ const constInterruptedFiber = (function() {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { FiberSet } from "effect/concurrency"
- * import { Fiber } from "effect/runtime"
+ * import { FiberSet } from "effect"
+ * import { Fiber } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const set = yield* FiberSet.make()
@@ -486,8 +486,8 @@ const runImpl = <A, E, R, XE extends E, XA extends A>(
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { ServiceMap } from "effect/services"
- * import { FiberSet } from "effect/concurrency"
+ * import { ServiceMap } from "effect"
+ * import { FiberSet } from "effect"
  *
  * interface Users {
  *   readonly _: unique symbol
@@ -552,7 +552,7 @@ export const runtime: <A, E>(
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { FiberSet } from "effect/concurrency"
+ * import { FiberSet } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const set = yield* FiberSet.make()
@@ -608,7 +608,7 @@ export const runtimePromise = <A, E>(self: FiberSet<A, E>): <R = never>() => Eff
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { FiberSet } from "effect/concurrency"
+ * import { FiberSet } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const set = yield* FiberSet.make()
@@ -635,7 +635,7 @@ export const size = <A, E>(self: FiberSet<A, E>): Effect.Effect<number> =>
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { FiberSet } from "effect/concurrency";
+ * import { FiberSet } from "effect";
  *
  * Effect.gen(function* () {
  *   const set = yield* FiberSet.make()
@@ -657,7 +657,7 @@ export const join = <A, E>(self: FiberSet<A, E>): Effect.Effect<void, E> =>
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { FiberSet } from "effect/concurrency"
+ * import { FiberSet } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const set = yield* FiberSet.make()

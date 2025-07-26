@@ -94,7 +94,7 @@ export type Leftover<P> = P extends Effect<infer _A, infer _E, infer _R> ? _E ex
  * ```ts
  * import { Pull } from "effect/stream"
  * import { Effect } from "effect"
- * import { ServiceMap } from "effect/services"
+ * import { ServiceMap } from "effect"
  *
  * interface MyService {
  *   readonly value: number

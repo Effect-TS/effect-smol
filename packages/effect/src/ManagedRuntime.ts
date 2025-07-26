@@ -1,14 +1,14 @@
 /**
  * @since 2.0.0
  */
-import { hasProperty } from "../data/Predicate.ts"
-import * as Effect from "../Effect.ts"
-import * as Exit from "../Exit.ts"
-import * as Scope from "../resources/Scope.ts"
-import * as Fiber from "../runtime/Fiber.ts"
-import * as Layer from "../services/Layer.ts"
-import type * as ServiceMap from "../services/ServiceMap.ts"
-import type { Mutable } from "../types/Types.ts"
+import { hasProperty } from "./data/Predicate.ts"
+import * as Effect from "./Effect.ts"
+import * as Exit from "./Exit.ts"
+import * as Fiber from "./Fiber.ts"
+import * as Layer from "./Layer.ts"
+import * as Scope from "./Scope.ts"
+import type * as ServiceMap from "./ServiceMap.ts"
+import type { Mutable } from "./types/Types.ts"
 
 /**
  * @since 3.9.0
@@ -142,10 +142,10 @@ export interface ManagedRuntime<in R, out ER> {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Layer } from "effect/services"
+ * import { Layer } from "effect"
  * import { Console } from "effect/logging"
- * import { ServiceMap } from "effect/services"
- * import { ManagedRuntime } from "effect/runtime"
+ * import { ServiceMap } from "effect"
+ * import { ManagedRuntime } from "effect"
  *
  * class Notifications extends ServiceMap.Key<
  *   Notifications,

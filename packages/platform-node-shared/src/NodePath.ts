@@ -2,9 +2,9 @@
  * @since 1.0.0
  */
 import * as Effect from "effect/Effect"
+import * as Layer from "effect/Layer"
 import { Path, TypeId } from "effect/platform/Path"
 import { BadArgument } from "effect/platform/PlatformError"
-import * as Layer from "effect/services/Layer"
 import * as NodePath from "node:path"
 import * as NodeUrl from "node:url"
 
