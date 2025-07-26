@@ -108,6 +108,36 @@ describe("Serializer", () => {
         await assertions.deserialization.json.schema.succeed(schema, "1", 1n)
       })
 
+      describe("Literal", () => {
+        it("string", async () => {
+          const schema = Schema.Literal("a")
+
+          await assertions.serialization.json.schema.succeed(schema, "a", "a")
+          await assertions.deserialization.json.schema.succeed(schema, "a", "a")
+        })
+
+        it("number", async () => {
+          const schema = Schema.Literal(1)
+
+          await assertions.serialization.json.schema.succeed(schema, 1, 1)
+          await assertions.deserialization.json.schema.succeed(schema, 1, 1)
+        })
+
+        it("boolean", async () => {
+          const schema = Schema.Literal(true)
+
+          await assertions.serialization.json.schema.succeed(schema, true)
+          await assertions.deserialization.json.schema.succeed(schema, true)
+        })
+
+        it("bigint", async () => {
+          const schema = Schema.Literal(1n)
+
+          await assertions.serialization.json.schema.succeed(schema, 1n, "1")
+          await assertions.deserialization.json.schema.succeed(schema, "1", 1n)
+        })
+      })
+
       it("URL", async () => {
         const schema = Schema.URL
 
@@ -415,14 +445,14 @@ describe("Serializer", () => {
     it("Enums", async () => {
       enum Fruits {
         Apple,
-        Banana
+        Banana = "banana"
       }
       const schema = Schema.Enums(Fruits)
 
       await assertions.serialization.json.codec.succeed(schema, Fruits.Apple, 0)
-      await assertions.serialization.json.codec.succeed(schema, Fruits.Banana, 1)
+      await assertions.serialization.json.codec.succeed(schema, Fruits.Banana, "banana")
       await assertions.deserialization.json.codec.succeed(schema, 0, Fruits.Apple)
-      await assertions.deserialization.json.codec.succeed(schema, 1, Fruits.Banana)
+      await assertions.deserialization.json.codec.succeed(schema, "banana", Fruits.Banana)
     })
   })
 
@@ -505,6 +535,51 @@ describe("Serializer", () => {
 
         await assertions.serialization.stringLeafJson.schema.succeed(schema, null, "")
         await assertions.deserialization.stringLeafJson.schema.succeed(schema, "", null)
+      })
+
+      describe("Literal", () => {
+        it("string", async () => {
+          const schema = Schema.Literal("a")
+
+          await assertions.serialization.stringLeafJson.schema.succeed(schema, "a", "a")
+          await assertions.deserialization.stringLeafJson.schema.succeed(schema, "a", "a")
+        })
+
+        it("number", async () => {
+          const schema = Schema.Literal(1)
+
+          await assertions.serialization.stringLeafJson.schema.succeed(schema, 1, "1")
+          await assertions.deserialization.stringLeafJson.schema.succeed(schema, "1", 1)
+        })
+
+        it("boolean", async () => {
+          const schema = Schema.Literal(true)
+
+          await assertions.serialization.stringLeafJson.schema.succeed(schema, true, "true")
+          await assertions.deserialization.stringLeafJson.schema.succeed(schema, "true", true)
+        })
+
+        it("bigint", async () => {
+          const schema = Schema.Literal(1n)
+
+          await assertions.serialization.stringLeafJson.schema.succeed(schema, 1n, "1")
+          await assertions.deserialization.stringLeafJson.schema.succeed(schema, "1", 1n)
+        })
+      })
+
+      describe("Enums", () => {
+        it("should serialize the enum value", async () => {
+          enum Fruits {
+            Apple,
+            Banana = "banana"
+          }
+          const schema = Schema.Enums(Fruits)
+
+          await assertions.serialization.stringLeafJson.schema.succeed(schema, Fruits.Apple, "0")
+          await assertions.serialization.stringLeafJson.schema.succeed(schema, Fruits.Banana, "banana")
+          await assertions.deserialization.stringLeafJson.schema.succeed(schema, "0", Fruits.Apple)
+          await assertions.deserialization.stringLeafJson.schema.succeed(schema, "banana", Fruits.Banana)
+        })
       })
 
       it("NullOr(Number)", async () => {

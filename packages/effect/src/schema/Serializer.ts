@@ -58,7 +58,12 @@ const goJson = AST.memoize((ast: AST.AST): AST.AST => {
         return AST.replaceEncoding(ast, [jsonForbiddenLink])
       }
     }
-    case "LiteralType":
+    case "LiteralType": {
+      if (Predicate.isBigInt(ast.literal)) {
+        return AST.replaceEncoding(ast, [bigIntLink])
+      }
+      return ast
+    }
     case "NullKeyword":
     case "StringKeyword":
     case "NumberKeyword":
@@ -252,6 +257,29 @@ const goStringLeafJson = AST.memoize((ast: AST.AST): AST.AST => {
       return AST.decodeTo(stringBoolean, ast, booleanFromString)
     case "NullKeyword":
       return AST.decodeTo(stringNull, ast, nullFromEmptyString)
+    case "LiteralType": {
+      if (Predicate.isNumber(ast.literal)) {
+        return AST.decodeTo(stringNumber, ast, numberFromString)
+      }
+      if (Predicate.isBoolean(ast.literal)) {
+        return AST.decodeTo(stringBoolean, ast, booleanFromString)
+      }
+      return ast
+    }
+    case "Enums": {
+      if (ast.enums.some(([_, v]) => Predicate.isNumber(v))) {
+        const coercions = Object.fromEntries(ast.enums.map(([_, v]) => [String(v), v]))
+        return AST.decodeTo(
+          AST.stringKeyword,
+          ast,
+          new Transformation.Transformation(
+            Getter.map((s) => coercions[s]),
+            Getter.String()
+          )
+        )
+      }
+      return ast
+    }
     case "TypeLiteral": {
       const propertySignatures = AST.mapOrSame(
         ast.propertySignatures,
