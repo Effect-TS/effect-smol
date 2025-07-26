@@ -427,6 +427,44 @@ describe("Serializer", () => {
   })
 
   describe("stringLeafJson", () => {
+    describe("should return the same reference if nothing changed", () => {
+      it("String", async () => {
+        const schema = Schema.String
+        const serializer = Serializer.stringLeafJson(schema)
+        strictEqual(serializer.ast, schema.ast)
+      })
+
+      it("Array", async () => {
+        const schema = Schema.Array(Schema.String)
+        const serializer = Serializer.stringLeafJson(schema)
+        strictEqual(serializer.ast, schema.ast)
+      })
+
+      it("Struct", async () => {
+        const schema = Schema.Struct({
+          a: Schema.String
+        })
+        const serializer = Serializer.stringLeafJson(schema)
+        strictEqual(serializer.ast, schema.ast)
+      })
+    })
+
+    describe("should memoize the result", () => {
+      it("Struct", async () => {
+        const schema = Schema.Struct({
+          a: Schema.Finite
+        })
+        const serializer = Serializer.stringLeafJson(schema)
+        strictEqual(serializer.ast, Serializer.stringLeafJson(serializer).ast)
+      })
+
+      it("Array", async () => {
+        const schema = Schema.Array(Schema.Finite)
+        const serializer = Serializer.stringLeafJson(schema)
+        strictEqual(serializer.ast, Serializer.stringLeafJson(serializer).ast)
+      })
+    })
+
     describe("default serialization", () => {
       it("Symbol", async () => {
         const schema = Schema.Symbol
