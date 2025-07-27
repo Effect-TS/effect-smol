@@ -17,7 +17,8 @@ import { PipeInspectableProto, YieldableProto } from "../internal/core.ts"
 import * as LogLevel_ from "../logging/LogLevel.ts"
 import * as Str from "../primitives/String.ts"
 import * as Formatter from "../schema/Formatter.ts"
-import * as Schema from "../schema/Schema.ts"
+import type * as Schema from "../schema/Schema.ts"
+import * as ToParser from "../schema/ToParser.ts"
 import * as DateTime_ from "../time/DateTime.ts"
 import * as Duration_ from "../time/Duration.ts"
 import type { NoInfer } from "../types/Types.ts"
@@ -1821,11 +1822,11 @@ export const withSchema: {
   <A, B>(schema: Schema.Codec<B, A>): (self: Config<A>) => Config<B>
   <A, B>(self: Config<A>, schema: Schema.Codec<B, A>): Config<B>
 } = dual(2, <A, B>(self: Config<A>, schema: Schema.Codec<B, A>): Config<B> => {
-  const decode = Schema.decodeEffect(schema)
+  const decode = ToParser.decodeEffect(schema)
   return map(self, (value, path) =>
-    Effect.mapError(decode(value), (error) =>
+    Effect.mapError(decode(value), (issue) =>
       new InvalidData({
         path,
-        description: Formatter.makeTree().format(error.issue)
+        description: Formatter.makeTree().format(issue)
       })))
 })
