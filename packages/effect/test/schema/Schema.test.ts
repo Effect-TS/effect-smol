@@ -3661,7 +3661,7 @@ describe("Schema", () => {
     })
 
     it("< + h + (1|2) + >", async () => {
-      const schema = Schema.TemplateLiteral(["<", Schema.TemplateLiteral(["h", Schema.Literals([1, 2])]), ">"])
+      const schema = Schema.TemplateLiteral(["<", Schema.TemplateLiteral(["h", Schema.Literals([1, 2n])]), ">"])
 
       assertions.schema.format(schema, "`<${`h${1 | 2}`}>`")
 

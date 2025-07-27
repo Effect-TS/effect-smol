@@ -1074,10 +1074,17 @@ export declare namespace TemplateLiteral {
   export interface SchemaPart extends Top {
     readonly Encoded: string | number | bigint
   }
+
   /**
    * @since 4.0.0
    */
-  export type Part = SchemaPart | AST.TemplateLiteral.LiteralPart
+  export type LiteralPart = string | number | bigint
+
+  /**
+   * @since 4.0.0
+   */
+  export type Part = SchemaPart | LiteralPart
+
   /**
    * @since 4.0.0
    */
@@ -1086,8 +1093,8 @@ export declare namespace TemplateLiteral {
   type AppendType<
     Template extends string,
     Next
-  > = Next extends AST.TemplateLiteral.LiteralPart ? `${Template}${Next}`
-    : Next extends Codec<unknown, infer E extends AST.TemplateLiteral.LiteralPart, unknown, unknown> ? `${Template}${E}`
+  > = Next extends LiteralPart ? `${Template}${Next}`
+    : Next extends Codec<unknown, infer E extends LiteralPart, unknown, unknown> ? `${Template}${E}`
     : never
 
   /**
@@ -1126,17 +1133,14 @@ class TemplateLiteral$<Parts extends TemplateLiteral.Parts> extends make$<Templa
 }
 
 function templateLiteralFromParts<Parts extends TemplateLiteral.Parts>(parts: Parts) {
-  return new AST.TemplateLiteral(parts.map((part) => isSchema(part) ? part.ast : part))
+  return new AST.TemplateLiteral(parts.map((part) => isSchema(part) ? part.ast : new AST.LiteralType(part)))
 }
 
 /**
  * @since 4.0.0
  */
 export function TemplateLiteral<const Parts extends TemplateLiteral.Parts>(parts: Parts): TemplateLiteral<Parts> {
-  return new TemplateLiteral$(
-    templateLiteralFromParts(parts),
-    [...parts] as Parts
-  )
+  return new TemplateLiteral$(templateLiteralFromParts(parts), [...parts] as Parts)
 }
 
 /**
@@ -1147,7 +1151,7 @@ export declare namespace TemplateLiteralParser {
    * @since 4.0.0
    */
   export type Type<Parts> = Parts extends readonly [infer Head, ...infer Tail] ? readonly [
-      Head extends AST.TemplateLiteral.LiteralPart ? Head :
+      Head extends TemplateLiteral.LiteralPart ? Head :
         Head extends Codec<infer T, unknown, unknown, unknown> ? T
         : never,
       ...Type<Tail>
@@ -1189,10 +1193,7 @@ class TemplateLiteralParser$<Parts extends TemplateLiteral.Parts> extends make$<
 export function TemplateLiteralParser<const Parts extends TemplateLiteral.Parts>(
   parts: Parts
 ): TemplateLiteralParser<Parts> {
-  return new TemplateLiteralParser$(
-    templateLiteralFromParts(parts).asTemplateLiteralParser(),
-    [...parts] as Parts
-  )
+  return new TemplateLiteralParser$(templateLiteralFromParts(parts).asTemplateLiteralParser(), [...parts] as Parts)
 }
 
 /**

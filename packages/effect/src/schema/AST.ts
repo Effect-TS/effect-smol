@@ -12,12 +12,12 @@ import { formatPropertyKey, memoizeThunk, ownKeys } from "../internal/schema/uti
 import * as RegEx from "../primitives/RegExp.ts"
 import type { Annotated } from "./Annotations.ts"
 import type * as Annotations from "./Annotations.ts"
-import type * as Check from "./Check.ts"
+import * as Check from "./Check.ts"
 import * as Getter from "./Getter.ts"
 import * as Issue from "./Issue.ts"
 import type * as Schema from "./Schema.ts"
 import type * as ToParser from "./ToParser.ts"
-import * as Transformation_ from "./Transformation.ts"
+import * as Transformation from "./Transformation.ts"
 
 /**
  * @category model
@@ -180,25 +180,17 @@ export const isSuspend = makeGuard("Suspend")
  * @category model
  * @since 4.0.0
  */
-export type Middleware = Transformation_.Middleware<any, any, any, any, any, any>
-
-/**
- * @category model
- * @since 4.0.0
- */
-export type Transformation = Transformation_.Transformation<any, any, any, any>
-
-/**
- * @category model
- * @since 4.0.0
- */
 export class Link {
   readonly to: AST
-  readonly transformation: Transformation | Middleware
+  readonly transformation:
+    | Transformation.Transformation<any, any, any, any>
+    | Transformation.Middleware<any, any, any, any, any, any>
 
   constructor(
     to: AST,
-    transformation: Transformation | Middleware
+    transformation:
+      | Transformation.Transformation<any, any, any, any>
+      | Transformation.Middleware<any, any, any, any, any, any>
   ) {
     this.to = to
     this.transformation = transformation
@@ -549,36 +541,15 @@ export class Enums extends AbstractParser {
  */
 export const objectKeyword = new ObjectKeyword()
 
-/**
- * @since 4.0.0
- */
-export declare namespace TemplateLiteral {
-  /**
-   * @category model
-   * @since 4.0.0
-   */
-  export type ASTPart =
-    | StringKeyword
-    | NumberKeyword
-    | BigIntKeyword
-    | LiteralType
-    | TemplateLiteral
-    | UnionType<ASTPart>
-  /**
-   * @since 4.0.0
-   */
-  export type LiteralPart = string | number | bigint
-  /**
-   * @since 4.0.0
-   */
-  export type Part = ASTPart | LiteralPart
-  /**
-   * @since 4.0.0
-   */
-  export type Parts = ReadonlyArray<Part>
-}
+type TemplateLiteralPart =
+  | StringKeyword
+  | NumberKeyword
+  | BigIntKeyword
+  | LiteralType
+  | TemplateLiteral
+  | UnionType<TemplateLiteralPart>
 
-function isASTPart(ast: AST): ast is TemplateLiteral.ASTPart {
+function isTemplateLiteralPart(ast: AST): ast is TemplateLiteralPart {
   switch (ast._tag) {
     case "StringKeyword":
     case "NumberKeyword":
@@ -587,7 +558,7 @@ function isASTPart(ast: AST): ast is TemplateLiteral.ASTPart {
     case "TemplateLiteral":
       return true
     case "UnionType":
-      return ast.types.every(isASTPart)
+      return ast.types.every(isTemplateLiteralPart)
     default:
       return false
   }
@@ -599,33 +570,29 @@ function isASTPart(ast: AST): ast is TemplateLiteral.ASTPart {
  */
 export class TemplateLiteral extends AbstractParser {
   readonly _tag = "TemplateLiteral"
-  readonly parts: ReadonlyArray<AST | TemplateLiteral.LiteralPart>
+  readonly parts: ReadonlyArray<AST>
   /** @internal */
-  readonly flippedParts: ReadonlyArray<TemplateLiteral.ASTPart>
+  readonly encodedParts: ReadonlyArray<TemplateLiteralPart>
 
   constructor(
-    parts: ReadonlyArray<AST | TemplateLiteral.LiteralPart>,
+    parts: ReadonlyArray<AST>,
     annotations?: Annotations.Annotations,
     checks?: Checks,
     encoding?: Encoding,
     context?: Context
   ) {
     super(annotations, checks, encoding, context)
-    this.parts = parts
-    const flippedParts: Array<TemplateLiteral.ASTPart> = []
+    const encodedParts: Array<TemplateLiteralPart> = []
     for (const part of parts) {
-      if (Predicate.isObject(part)) {
-        const flipped = flip(part)
-        if (isASTPart(flipped)) {
-          flippedParts.push(flipped)
-        } else {
-          throw new Error("Invalid TemplateLiteral part")
-        }
+      const encoded = encodedAST(part)
+      if (isTemplateLiteralPart(encoded)) {
+        encodedParts.push(encoded)
       } else {
-        flippedParts.push(new LiteralType(part))
+        throw new Error("Invalid TemplateLiteral part")
       }
     }
-    this.flippedParts = flippedParts
+    this.parts = parts
+    this.encodedParts = encodedParts
   }
   /** @internal */
   parser(go: (ast: AST) => ToParser.Parser): ToParser.Parser {
@@ -639,54 +606,23 @@ export class TemplateLiteral extends AbstractParser {
       )
   }
   /** @internal */
-  asTemplateLiteralParser() {
-    const elements = this.flippedParts.map((part) => flip(addPartCoercion(part)))
-    const tuple = new TupleType(false, elements, [])
+  asTemplateLiteralParser(): TupleType {
+    const tuple = goStringLeafJson(new TupleType(false, this.parts, [])) as TupleType
     const regex = getTemplateLiteralRegExp(this)
     return decodeTo(
       stringKeyword,
       tuple,
-      new Transformation_.Transformation(
+      new Transformation.Transformation(
         Getter.map((s: string) => {
           const match = regex.exec(s)
           if (match) {
-            return match.slice(1, elements.length + 1)
+            return match.slice(1, this.parts.length + 1)
           }
           return []
         }),
         Getter.map((parts) => parts.join(""))
       )
     )
-  }
-}
-
-function addPartNumberCoercion(part: NumberKeyword | LiteralType): AST {
-  return decodeTo(part, stringKeyword, Transformation_.numberFromString.flip())
-}
-
-function addPartBigIntCoercion(part: BigIntKeyword | LiteralType): AST {
-  return decodeTo(part, stringKeyword, Transformation_.bigintFromString.flip())
-}
-
-function addPartCoercion(part: TemplateLiteral.ASTPart): AST {
-  switch (part._tag) {
-    case "NumberKeyword":
-      return addPartNumberCoercion(part)
-    case "BigIntKeyword":
-      return addPartBigIntCoercion(part)
-    case "UnionType":
-      return new UnionType(part.types.map(addPartCoercion), part.mode)
-    case "LiteralType": {
-      if (Predicate.isNumber(part.literal)) {
-        return addPartNumberCoercion(part)
-      } else if (Predicate.isBigInt(part.literal)) {
-        return addPartBigIntCoercion(part)
-      } else {
-        return part
-      }
-    }
-    default:
-      return part
   }
 }
 
@@ -1099,9 +1035,11 @@ export class TupleType extends Base {
 }
 
 function getIndexSignatureHash(ast: AST): string {
-  return isTemplateLiteral(ast) ?
-    ast.parts.map((part) => Predicate.isObject(part) ? `\${${getIndexSignatureHash(part)}}` : String(part)).join("") :
-    ast._tag
+  if (isTemplateLiteral(ast)) {
+    return ast.parts.map((part) => isLiteralType(part) ? String(part.literal) : `\${${getIndexSignatureHash(part)}}`)
+      .join("")
+  }
+  return ast._tag
 }
 
 /** @internal */
@@ -1811,18 +1749,26 @@ function applyEncoded<A extends AST>(ast: A, f: (ast: AST) => AST): A {
 }
 
 /** @internal */
-export function decodingMiddleware(ast: AST, middleware: Middleware): AST {
+export function decodingMiddleware(
+  ast: AST,
+  middleware: Transformation.Middleware<any, any, any, any, any, any>
+): AST {
   return appendTransformation(ast, middleware, typeAST(ast))
 }
 
 /** @internal */
-export function encodingMiddleware(ast: AST, middleware: Middleware): AST {
+export function encodingMiddleware(
+  ast: AST,
+  middleware: Transformation.Middleware<any, any, any, any, any, any>
+): AST {
   return appendTransformation(encodedAST(ast), middleware, ast)
 }
 
 function appendTransformation<A extends AST>(
   from: AST,
-  transformation: Transformation | Middleware,
+  transformation:
+    | Transformation.Transformation<any, any, any, any>
+    | Transformation.Middleware<any, any, any, any, any, any>,
   to: A
 ): A {
   const link = new Link(from, transformation)
@@ -1906,7 +1852,7 @@ export function withConstructorDefault<A extends AST>(
   ast: A,
   defaultValue: (input: Option.Option<undefined>) => Option.Option<unknown> | Effect.Effect<Option.Option<unknown>>
 ): A {
-  const transformation = new Transformation_.Transformation(
+  const transformation = new Transformation.Transformation(
     new Getter.Getter((o) => {
       if (Option.isNone(Option.filter(o, Predicate.isNotUndefined))) {
         const oe = defaultValue(o as Option.Option<undefined>)
@@ -1928,7 +1874,7 @@ export function withConstructorDefault<A extends AST>(
 export function decodeTo<A extends AST>(
   from: AST,
   to: A,
-  transformation: Transformation
+  transformation: Transformation.Transformation<any, any, any, any>
 ): A {
   return appendTransformation(from, transformation, to)
 }
@@ -2103,10 +2049,10 @@ function formatTail(tail: ReadonlyArray<AST>): string {
 }
 
 const formatTemplateLiteral = (ast: TemplateLiteral): string =>
-  "`" + ast.flippedParts.map((ast) => formatTemplateLiteralASTPart(typeAST(ast))).join("") +
+  "`" + ast.encodedParts.map((ast) => formatTemplateLiteralASTPart(ast)).join("") +
   "`"
 
-function formatTemplateLiteralASTPart(part: TemplateLiteral.ASTPart): string {
+function formatTemplateLiteralASTPart(part: TemplateLiteralPart): string {
   switch (part._tag) {
     case "LiteralType":
       return String(part.literal)
@@ -2120,7 +2066,7 @@ function formatTemplateLiteralASTPart(part: TemplateLiteral.ASTPart): string {
   }
 }
 
-const formatTemplateLiteralASTWithinUnion = (part: TemplateLiteral.ASTPart): string => {
+const formatTemplateLiteralASTWithinUnion = (part: TemplateLiteralPart): string => {
   if (isUnionType(part)) {
     return part.types.map(formatTemplateLiteralASTWithinUnion).join(" | ")
   }
@@ -2139,7 +2085,7 @@ export const format = memoize((ast: AST): string => {
       return "<Declaration>"
     }
     case "LiteralType":
-      return JSON.stringify(ast.literal)
+      return Predicate.isString(ast.literal) ? JSON.stringify(ast.literal) : String(ast.literal)
     case "NeverKeyword":
       return "never"
     case "AnyKeyword":
@@ -2222,7 +2168,7 @@ export const format = memoize((ast: AST): string => {
 })
 
 function getTemplateLiteralSource(ast: TemplateLiteral, top: boolean): string {
-  return ast.flippedParts.map((part) =>
+  return ast.encodedParts.map((part) =>
     handleTemplateLiteralASTPartParens(part, getTemplateLiteralASTPartPattern(part), top)
   ).join("")
 }
@@ -2232,15 +2178,20 @@ export const getTemplateLiteralRegExp = memoize((ast: TemplateLiteral): RegExp =
   return new RegExp(`^${getTemplateLiteralSource(ast, true)}$`)
 })
 
-// any string, including newlines
+/**
+ * any string, including newlines
+ */
 const STRING_KEYWORD_PATTERN = "[\\s\\S]*"
-// floating point or integer, with optional exponent
-/** @internal */
-export const NUMBER_KEYWORD_PATTERN = "[+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?"
-// signed integer only (no leading “+”)
+/**
+ * floating point or integer, with optional exponent, no leading “+”
+ */
+const NUMBER_KEYWORD_PATTERN = "[+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?"
+/**
+ * signed integer only (no leading “+”)
+ */
 const BIGINT_KEYWORD_PATTERN = "-?\\d+"
 
-function getTemplateLiteralASTPartPattern(part: TemplateLiteral.ASTPart): string {
+function getTemplateLiteralASTPartPattern(part: TemplateLiteralPart): string {
   switch (part._tag) {
     case "LiteralType":
       return RegEx.escape(String(part.literal))
@@ -2257,7 +2208,7 @@ function getTemplateLiteralASTPartPattern(part: TemplateLiteral.ASTPart): string
   }
 }
 
-function handleTemplateLiteralASTPartParens(part: TemplateLiteral.ASTPart, s: string, top: boolean): string {
+function handleTemplateLiteralASTPartParens(part: TemplateLiteralPart, s: string, top: boolean): string {
   if (isUnionType(part)) {
     if (!top) {
       return `(?:${s})`
@@ -2268,8 +2219,7 @@ function handleTemplateLiteralASTPartParens(part: TemplateLiteral.ASTPart, s: st
   return `(${s})`
 }
 
-/** @internal */
-export function fromRefinement<T>(
+function fromRefinement<T>(
   ast: AST,
   refinement: (input: unknown) => input is T
 ): ToParser.Parser {
@@ -2362,3 +2312,172 @@ export function getReducer<A>(alg: ReducerAlg<A>) {
     }
   }
 }
+
+const stringNull = new LiteralType("")
+
+const nullLink = new Link(
+  stringNull,
+  Transformation.transform({
+    decode: () => null,
+    encode: () => stringNull.literal
+  })
+)
+
+function coerceNull(ast: NullKeyword): NullKeyword {
+  return replaceEncoding(ast, [nullLink])
+}
+
+const numberKeywordPattern = appendChecks(stringKeyword, [
+  Check.regex(new RegExp(NUMBER_KEYWORD_PATTERN))
+])
+
+const numberLink = new Link(
+  numberKeywordPattern,
+  Transformation.numberFromString
+)
+
+function coerceNumber<A extends NumberKeyword | LiteralType>(ast: A): A {
+  return replaceEncoding(ast, [numberLink])
+}
+
+const booleanLink = new Link(
+  new UnionType([new LiteralType("true"), new LiteralType("false")], "anyOf"),
+  new Transformation.Transformation(
+    Getter.map((s) => s === "true"),
+    Getter.String()
+  )
+)
+
+function coerceBoolean<A extends BooleanKeyword | LiteralType>(ast: A): A {
+  return replaceEncoding(ast, [booleanLink])
+}
+
+const bigIntLink = new Link(
+  numberKeywordPattern,
+  new Transformation.Transformation(
+    Getter.map(BigInt),
+    Getter.String()
+  )
+)
+
+/** @internal */
+export function coerceBigInt<A extends BigIntKeyword | LiteralType>(ast: A): A {
+  return replaceEncoding(ast, [bigIntLink])
+}
+
+/** @internal */
+export const goStringLeafJson = memoize((ast: AST): AST => {
+  if (ast.encoding) {
+    const links = ast.encoding
+    const last = links[links.length - 1]
+    const to = goStringLeafJson(last.to)
+    if (to === last.to) {
+      return ast
+    }
+    return replaceEncoding(
+      ast,
+      Arr.append(
+        links.slice(0, links.length - 1),
+        new Link(to, last.transformation)
+      )
+    )
+  }
+  switch (ast._tag) {
+    case "StringKeyword":
+    case "TemplateLiteral":
+      return ast
+    case "NumberKeyword":
+      return coerceNumber(ast)
+    case "BooleanKeyword":
+      return coerceBoolean(ast)
+    case "NullKeyword":
+      return coerceNull(ast)
+    case "BigIntKeyword":
+      return coerceBigInt(ast)
+    case "LiteralType": {
+      if (Predicate.isNumber(ast.literal)) {
+        return coerceNumber(ast)
+      }
+      if (Predicate.isBoolean(ast.literal)) {
+        return coerceBoolean(ast)
+      }
+      if (Predicate.isBigInt(ast.literal)) {
+        return coerceBigInt(ast)
+      }
+      return ast
+    }
+    case "Enums": {
+      if (ast.enums.some(([_, v]) => Predicate.isNumber(v))) {
+        const coercions = Object.fromEntries(ast.enums.map(([_, v]) => [String(v), v]))
+        const enumLink = new Link(
+          new UnionType(Object.keys(coercions).map((k) => new LiteralType(k)), "anyOf"),
+          new Transformation.Transformation(
+            Getter.map((s) => coercions[s]),
+            Getter.String()
+          )
+        )
+        return replaceEncoding(ast, [enumLink])
+      }
+      return ast
+    }
+    case "TypeLiteral": {
+      const propertySignatures = mapOrSame(
+        ast.propertySignatures,
+        (ps) => {
+          const type = goStringLeafJson(ps.type)
+          if (type === ps.type) {
+            return ps
+          }
+          return new PropertySignature(ps.name, type)
+        }
+      )
+      const indexSignatures = mapOrSame(
+        ast.indexSignatures,
+        (is) => {
+          const parameter = goStringLeafJson(is.parameter)
+          const type = goStringLeafJson(is.type)
+          if (parameter === is.parameter && type === is.type) {
+            return is
+          }
+          return new IndexSignature(is.isMutable, parameter, type, is.merge)
+        }
+      )
+      if (propertySignatures === ast.propertySignatures && indexSignatures === ast.indexSignatures) {
+        return ast
+      }
+      return new TypeLiteral(
+        propertySignatures,
+        indexSignatures,
+        ast.annotations,
+        ast.checks,
+        undefined,
+        ast.context
+      )
+    }
+    case "TupleType": {
+      const elements = mapOrSame(ast.elements, goStringLeafJson)
+      const rest = mapOrSame(ast.rest, goStringLeafJson)
+      if (elements === ast.elements && rest === ast.rest) {
+        return ast
+      }
+      return new TupleType(ast.isMutable, elements, rest, ast.annotations, ast.checks, undefined, ast.context)
+    }
+    case "UnionType": {
+      const types = mapOrSame(ast.types, goStringLeafJson)
+      if (types === ast.types) {
+        return ast
+      }
+      return new UnionType(types, ast.mode, ast.annotations, ast.checks, undefined, ast.context)
+    }
+    case "Suspend":
+      return new Suspend(
+        () => goStringLeafJson(ast.thunk()),
+        ast.annotations,
+        ast.checks,
+        undefined,
+        ast.context
+      )
+    default:
+      throw new Error(`BUG: unreachable: ${ast._tag}`)
+  }
+})

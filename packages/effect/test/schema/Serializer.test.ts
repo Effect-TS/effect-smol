@@ -138,6 +138,22 @@ describe("Serializer", () => {
         })
       })
 
+      describe("TemplateLiteral", () => {
+        it("1n + string", async () => {
+          const schema = Schema.TemplateLiteral([1n, Schema.String])
+
+          await assertions.serialization.json.schema.succeed(schema, "1a")
+          await assertions.deserialization.json.schema.succeed(schema, "1a")
+        })
+
+        it(`"a" + bigint`, async () => {
+          const schema = Schema.TemplateLiteral(["a", Schema.BigInt])
+
+          await assertions.serialization.json.schema.succeed(schema, "a1")
+          await assertions.deserialization.json.schema.succeed(schema, "a1")
+        })
+      })
+
       it("URL", async () => {
         const schema = Schema.URL
 
@@ -580,6 +596,12 @@ describe("Serializer", () => {
           await assertions.deserialization.stringLeafJson.schema.succeed(schema, "0", Fruits.Apple)
           await assertions.deserialization.stringLeafJson.schema.succeed(schema, "banana", Fruits.Banana)
         })
+      })
+
+      it("TemplateLiteral", async () => {
+        const schema = Schema.TemplateLiteral(["a", Schema.Literal(1), "b"])
+        await assertions.serialization.stringLeafJson.schema.succeed(schema, "a1b")
+        await assertions.deserialization.stringLeafJson.schema.succeed(schema, "a1b")
       })
 
       it("NullOr(Number)", async () => {

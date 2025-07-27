@@ -351,9 +351,7 @@ export const TemplateLiteral = Schema.instanceOf(
       Schema.link<ast.TemplateLiteral>()(
         Schema.Struct({
           _tag: Schema.tag("TemplateLiteral"),
-          parts: Schema.Array(
-            Schema.Union([SuspendedAST, Schema.String, Schema.Number, Schema.BigInt])
-          )
+          parts: Schema.Array(SuspendedAST)
         }),
         Transformation.transform({
           decode: (i) => new ast.TemplateLiteral(i.parts),
