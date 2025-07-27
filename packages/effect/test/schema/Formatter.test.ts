@@ -23,19 +23,19 @@ const assertStructuredIssue = async <T, E>(
 }
 
 describe("makeTree", () => {
-  it("should use the identifier annotation if present", async () => {
+  it("should use the id annotation if present", async () => {
     await assertions.decoding.fail(
-      Schema.String.annotate({ identifier: "id" }),
+      Schema.String.annotate({ id: "id" }),
       null,
       `Expected id, actual null`
     )
     await assertions.decoding.fail(
-      Schema.NonEmptyString.annotate({ identifier: "id" }),
+      Schema.NonEmptyString.annotate({ id: "id" }),
       null,
       `Expected id, actual null`
     )
     await assertions.decoding.fail(
-      Schema.String.check(Check.nonEmpty({ identifier: "id" })),
+      Schema.String.check(Check.nonEmpty({ id: "id" })),
       null,
       `Expected id, actual null`
     )
@@ -56,7 +56,7 @@ describe("makeTree", () => {
       name: Schema.String,
       totalPrice: Schema.Number
     }).annotate({
-      identifier: "Order",
+      id: "Order",
       formatter: {
         Tree: {
           getTitle: getOrderId

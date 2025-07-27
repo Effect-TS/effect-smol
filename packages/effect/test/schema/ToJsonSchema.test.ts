@@ -1112,12 +1112,17 @@ describe("ToJsonSchema", () => {
         }) {}
         const schema = A
         await assertDraft7(schema, {
-          type: "object",
-          properties: {
-            a: { type: "string" }
-          },
-          required: ["a"],
-          additionalProperties: false
+          "$ref": "#/$defs/A",
+          "$defs": {
+            "A": {
+              type: "object",
+              properties: {
+                a: { type: "string" }
+              },
+              required: ["a"],
+              additionalProperties: false
+            }
+          }
         })
       })
     })

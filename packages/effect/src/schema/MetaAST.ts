@@ -14,7 +14,7 @@ import * as Transformation from "./Transformation.ts"
 export const Declaration = Schema.instanceOf(
   ast.Declaration,
   {
-    identifier: "Declaration",
+    id: "Declaration",
     "~sentinels": [{ key: "_tag", literal: "Declaration" }]
   }
 )
@@ -25,7 +25,7 @@ export const Declaration = Schema.instanceOf(
 export const NullKeyword = Schema.instanceOf(
   ast.NullKeyword,
   {
-    identifier: "NullKeyword",
+    id: "NullKeyword",
     "~sentinels": [{ key: "_tag", literal: "NullKeyword" }],
     defaultJsonSerializer: () =>
       Schema.link<ast.NullKeyword>()(
@@ -46,7 +46,7 @@ export const NullKeyword = Schema.instanceOf(
 export const UndefinedKeyword = Schema.instanceOf(
   ast.UndefinedKeyword,
   {
-    identifier: "UndefinedKeyword",
+    id: "UndefinedKeyword",
     "~sentinels": [{ key: "_tag", literal: "UndefinedKeyword" }],
     defaultJsonSerializer: () =>
       Schema.link<ast.UndefinedKeyword>()(
@@ -67,7 +67,7 @@ export const UndefinedKeyword = Schema.instanceOf(
 export const VoidKeyword = Schema.instanceOf(
   ast.VoidKeyword,
   {
-    identifier: "VoidKeyword",
+    id: "VoidKeyword",
     "~sentinels": [{ key: "_tag", literal: "VoidKeyword" }],
     defaultJsonSerializer: () =>
       Schema.link<ast.VoidKeyword>()(
@@ -88,7 +88,7 @@ export const VoidKeyword = Schema.instanceOf(
 export const NeverKeyword = Schema.instanceOf(
   ast.NeverKeyword,
   {
-    identifier: "NeverKeyword",
+    id: "NeverKeyword",
     "~sentinels": [{ key: "_tag", literal: "NeverKeyword" }],
     defaultJsonSerializer: () =>
       Schema.link<ast.NeverKeyword>()(
@@ -109,7 +109,7 @@ export const NeverKeyword = Schema.instanceOf(
 export const UnknownKeyword = Schema.instanceOf(
   ast.UnknownKeyword,
   {
-    identifier: "UnknownKeyword",
+    id: "UnknownKeyword",
     "~sentinels": [{ key: "_tag", literal: "UnknownKeyword" }],
     defaultJsonSerializer: () =>
       Schema.link<ast.UnknownKeyword>()(
@@ -130,7 +130,7 @@ export const UnknownKeyword = Schema.instanceOf(
 export const AnyKeyword = Schema.instanceOf(
   ast.AnyKeyword,
   {
-    identifier: "AnyKeyword",
+    id: "AnyKeyword",
     "~sentinels": [{ key: "_tag", literal: "AnyKeyword" }],
     defaultJsonSerializer: () =>
       Schema.link<ast.AnyKeyword>()(
@@ -151,7 +151,7 @@ export const AnyKeyword = Schema.instanceOf(
 export const StringKeyword = Schema.instanceOf(
   ast.StringKeyword,
   {
-    identifier: "StringKeyword",
+    id: "StringKeyword",
     "~sentinels": [{ key: "_tag", literal: "StringKeyword" }],
     defaultJsonSerializer: () =>
       Schema.link<ast.StringKeyword>()(
@@ -172,7 +172,7 @@ export const StringKeyword = Schema.instanceOf(
 export const NumberKeyword = Schema.instanceOf(
   ast.NumberKeyword,
   {
-    identifier: "NumberKeyword",
+    id: "NumberKeyword",
     "~sentinels": [{ key: "_tag", literal: "NumberKeyword" }],
     defaultJsonSerializer: () =>
       Schema.link<ast.NumberKeyword>()(
@@ -193,7 +193,7 @@ export const NumberKeyword = Schema.instanceOf(
 export const BooleanKeyword = Schema.instanceOf(
   ast.BooleanKeyword,
   {
-    identifier: "BooleanKeyword",
+    id: "BooleanKeyword",
     "~sentinels": [{ key: "_tag", literal: "BooleanKeyword" }],
     defaultJsonSerializer: () =>
       Schema.link<ast.BooleanKeyword>()(
@@ -214,7 +214,7 @@ export const BooleanKeyword = Schema.instanceOf(
 export const BigIntKeyword = Schema.instanceOf(
   ast.BigIntKeyword,
   {
-    identifier: "BigIntKeyword",
+    id: "BigIntKeyword",
     "~sentinels": [{ key: "_tag", literal: "BigIntKeyword" }],
     defaultJsonSerializer: () =>
       Schema.link<ast.BigIntKeyword>()(
@@ -235,7 +235,7 @@ export const BigIntKeyword = Schema.instanceOf(
 export const SymbolKeyword = Schema.instanceOf(
   ast.SymbolKeyword,
   {
-    identifier: "SymbolKeyword",
+    id: "SymbolKeyword",
     "~sentinels": [{ key: "_tag", literal: "SymbolKeyword" }],
     defaultJsonSerializer: () =>
       Schema.link<ast.SymbolKeyword>()(
@@ -256,7 +256,7 @@ export const SymbolKeyword = Schema.instanceOf(
 export const LiteralType = Schema.instanceOf(
   ast.LiteralType,
   {
-    identifier: "LiteralType",
+    id: "LiteralType",
     "~sentinels": [{ key: "_tag", literal: "LiteralType" }],
     defaultJsonSerializer: () =>
       Schema.link<ast.LiteralType>()(
@@ -278,7 +278,7 @@ export const LiteralType = Schema.instanceOf(
 export const UniqueSymbol = Schema.instanceOf(
   ast.UniqueSymbol,
   {
-    identifier: "UniqueSymbol",
+    id: "UniqueSymbol",
     "~sentinels": [{ key: "_tag", literal: "UniqueSymbol" }],
     defaultJsonSerializer: () =>
       Schema.link<ast.UniqueSymbol>()(
@@ -300,7 +300,7 @@ export const UniqueSymbol = Schema.instanceOf(
 export const ObjectKeyword = Schema.instanceOf(
   ast.ObjectKeyword,
   {
-    identifier: "ObjectKeyword",
+    id: "ObjectKeyword",
     "~sentinels": [{ key: "_tag", literal: "ObjectKeyword" }],
     defaultJsonSerializer: () =>
       Schema.link<ast.ObjectKeyword>()(
@@ -321,7 +321,7 @@ export const ObjectKeyword = Schema.instanceOf(
 export const Enums = Schema.instanceOf(
   ast.Enums,
   {
-    identifier: "Enums",
+    id: "Enums",
     "~sentinels": [{ key: "_tag", literal: "Enums" }],
     defaultJsonSerializer: () =>
       Schema.link<ast.Enums>()(
@@ -345,7 +345,7 @@ const SuspendedAST: Schema.Codec<ast.AST> = Schema.suspend(() => AST)
 export const TemplateLiteral = Schema.instanceOf(
   ast.TemplateLiteral,
   {
-    identifier: "TemplateLiteral",
+    id: "TemplateLiteral",
     "~sentinels": [{ key: "_tag", literal: "TemplateLiteral" }],
     defaultJsonSerializer: () =>
       Schema.link<ast.TemplateLiteral>()(
@@ -367,7 +367,7 @@ export const TemplateLiteral = Schema.instanceOf(
 export const TupleType = Schema.instanceOf(
   ast.TupleType,
   {
-    identifier: "TupleType",
+    id: "TupleType",
     "~sentinels": [{ key: "_tag", literal: "TupleType" }],
     defaultJsonSerializer: () =>
       Schema.link<ast.TupleType>()(
@@ -396,7 +396,7 @@ const PropertySignature = Schema.Struct({
 export const TypeLiteral = Schema.instanceOf(
   ast.TypeLiteral,
   {
-    identifier: "TypeLiteral",
+    id: "TypeLiteral",
     "~sentinels": [{ key: "_tag", literal: "TypeLiteral" }],
     defaultJsonSerializer: () =>
       Schema.link<ast.TypeLiteral>()(
@@ -422,7 +422,7 @@ export const TypeLiteral = Schema.instanceOf(
 export const UnionType = Schema.instanceOf(
   ast.UnionType,
   {
-    identifier: "UnionType",
+    id: "UnionType",
     "~sentinels": [{ key: "_tag", literal: "UnionType" }],
     defaultJsonSerializer: () =>
       Schema.link<ast.UnionType>()(
@@ -445,7 +445,7 @@ export const UnionType = Schema.instanceOf(
 export const Suspend = Schema.instanceOf(
   ast.Suspend,
   {
-    identifier: "Suspend",
+    id: "Suspend",
     "~sentinels": [{ key: "_tag", literal: "Suspend" }]
   }
 )
@@ -475,7 +475,7 @@ export const AST = Schema.Union([
   TypeLiteral,
   UnionType,
   Suspend
-]).annotate({ identifier: "AST" })
+]).annotate({ id: "AST" })
 
 /**
  * @since 4.0.0
