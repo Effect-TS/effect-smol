@@ -348,7 +348,7 @@ describe("standardSchemaV1", () => {
     })
   })
 
-  describe("Tree hooks", () => {
+  describe("treeLeafHook & verboseCheckHook", () => {
     it("String", () => {
       const schema = Schema.String
       const standardSchema = Schema.standardSchemaV1(schema, {
