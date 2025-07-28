@@ -5,9 +5,10 @@ import * as Cause from "../Cause.ts"
 import * as Arr from "../collections/Array.ts"
 import type * as Brand from "../data/Brand.ts"
 import * as Filter from "../data/Filter.ts"
-import type * as Option from "../data/Option.ts"
+import * as Option from "../data/Option.ts"
 import { hasProperty } from "../data/Predicate.ts"
 import * as Redacted_ from "../data/Redacted.ts"
+import type { Simplify } from "../data/Struct.ts"
 import * as Effect from "../Effect.ts"
 import * as Exit from "../Exit.ts"
 import type { LazyArg } from "../Function.ts"
@@ -16,9 +17,15 @@ import type { Pipeable } from "../interfaces/Pipeable.ts"
 import { PipeInspectableProto, YieldableProto } from "../internal/core.ts"
 import * as LogLevel_ from "../logging/LogLevel.ts"
 import * as Str from "../primitives/String.ts"
+import * as AST from "../schema/AST.ts"
+import * as Check from "../schema/Check.ts"
 import * as Formatter from "../schema/Formatter.ts"
-import type * as Schema from "../schema/Schema.ts"
+import * as Getter from "../schema/Getter.ts"
+import * as Issue from "../schema/Issue.ts"
+import * as Schema from "../schema/Schema.ts"
+import * as Serializer from "../schema/Serializer.ts"
 import * as ToParser from "../schema/ToParser.ts"
+import * as Transformation from "../schema/Transformation.ts"
 import * as DateTime_ from "../time/DateTime.ts"
 import * as Duration_ from "../time/Duration.ts"
 import type { NoInfer } from "../types/Types.ts"
@@ -1823,10 +1830,176 @@ export const withSchema: {
   <A, B>(self: Config<A>, schema: Schema.Codec<B, A>): Config<B>
 } = dual(2, <A, B>(self: Config<A>, schema: Schema.Codec<B, A>): Config<B> => {
   const decode = ToParser.decodeEffect(schema)
-  return map(self, (value, path) =>
-    Effect.mapError(decode(value), (issue) =>
-      new InvalidData({
-        path,
-        description: Formatter.makeTree().format(issue)
-      })))
+  const formatter = Formatter.makeStandardSchemaV1({
+    leafHook: Formatter.treeLeafHook,
+    checkHook: Formatter.verboseCheckHook
+  })
+  return map(self, (value, currentPath) =>
+    Effect.mapError(decode(value), (issue) => {
+      const { message, path } = formatter.format(issue).issues[0] as { message: string; path: Array<string> }
+      return new InvalidData({
+        path: currentPath.concat(path),
+        description: message
+      })
+    }))
 })
+
+const parseConfigProvider: (
+  ctx: ConfigProvider.Context,
+  ast: AST.AST,
+  options?: {
+    readonly separator?: string | undefined
+    readonly keyValueSeparator?: string | undefined
+  }
+) => Effect.Effect<Serializer.StringLeafJson, ConfigError, never> = Effect.fnUntraced(
+  function*(ctx, ast, options) {
+    ast = AST.encodedAST(ast)
+    switch (ast._tag) {
+      case "TypeLiteral": {
+        const separator = options?.separator ?? ","
+        const keyValueSeparator = options?.keyValueSeparator ?? "="
+        const out: Record<string, Serializer.StringLeafJson> = {}
+        for (const ps of ast.propertySignatures) {
+          const name = ps.name as string
+          out[name] = yield* parseConfigProvider(ctx.setPath([...ctx.currentPath, name]), ps.type, options)
+        }
+        for (const is of ast.indexSignatures) {
+          const loadEntries = yield* ctx.load.pipe(
+            Effect.map((value) =>
+              value.split(separator).flatMap((pair): Array<ConfigProvider.Candidate> => {
+                const parts = pair.split(keyValueSeparator, 2)
+                if (parts.length !== 2) return []
+                const key = parts[0].trim()
+                const value = parts[1].trim()
+                return [{
+                  key,
+                  context: ctx.setPath([...ctx.currentPath, key]).withValue(value)
+                }]
+              })
+            ),
+            Effect.orElseSucceed(Arr.empty)
+          )
+          const entries = yield* ctx.listCandidates
+          const allEntries = [...loadEntries, ...entries]
+          if (allEntries.length === 0) return out
+          for (const { context, key } of allEntries) {
+            const parsedValue = yield* parseConfigProvider(context, is.type, options)
+            out[key] = parsedValue
+          }
+        }
+        return out
+      }
+      case "TupleType": {
+        if (ast.rest.length > 1) {
+          throw new Error("Invalid ast: TupleType cannot have more than one rest element")
+        }
+        const separator = options?.separator ?? ","
+        const value = yield* ctx.load
+        const items = value.split(separator)
+        const out: Array<Serializer.StringLeafJson> = []
+        const rest = ast.rest[0]
+        for (let i = 0; i < items.length; i++) {
+          const e = ast.elements[i]
+          if (e) {
+            out[i] = yield* parseConfigProvider(
+              ctx.setPath([...ctx.currentPath, i.toString()]).withValue(items[i]),
+              e,
+              options
+            )
+          } else if (rest) {
+            out[i] = yield* parseConfigProvider(
+              ctx.setPath([...ctx.currentPath, i.toString()]).withValue(items[i]),
+              rest,
+              options
+            )
+          }
+        }
+        return out
+      }
+      default:
+        return yield* ctx.load
+    }
+  }
+)
+
+const formatter = Formatter.makeStandardSchemaV1({
+  leafHook: Formatter.treeLeafHook,
+  checkHook: Formatter.verboseCheckHook
+})
+
+const format = formatter.format
+
+/**
+ * @since 4.0.0
+ * @category Schema
+ */
+export function schema<Fields extends { readonly [x: string]: Schema.Struct.Field }>(fields: Fields, options?: {
+  readonly separator?: string | undefined
+  readonly keyValueSeparator?: string | undefined
+}): Config<Simplify<Schema.Struct.Type<Fields>>> {
+  const schema = Schema.Struct(fields)
+  const serializer = Serializer.stringLeafJson(schema) as Schema.Codec<unknown, Serializer.StringLeafJson>
+  const decodeUnknownEffect = ToParser.decodeUnknownEffect(serializer)
+  return primitive<any>((ctx) => {
+    return parseConfigProvider(ctx, schema.ast, options).pipe(
+      Effect.flatMap((r) =>
+        decodeUnknownEffect(r, { errors: "first" }).pipe(Effect.catch((issue) => {
+          const issues = format(issue).issues
+          const failures = issues.map((issue) => {
+            const { message, path } = issue as { message: string; path: Array<string> }
+            return new InvalidData({
+              path: ctx.currentPath.concat(path),
+              description: message
+            })
+          })
+          return Effect.failCause(Cause.fromFailures(failures.map(Cause.failureFail)))
+        }))
+      )
+    )
+  })
+}
+
+// TODO: rename to Boolean
+/**
+ * @since 4.0.0
+ * @category Schema
+ */
+export const Boolean2 = Schema.Literals(["true", "yes", "on", "1", "false", "no", "off", "0"]).pipe(
+  Schema.decodeTo(
+    Schema.Boolean,
+    Transformation.transform({
+      decode: (value) => value === "true" || value === "yes" || value === "on" || value === "1",
+      encode: (value) => value ? "true" : "false"
+    })
+  )
+)
+
+// TODO: rename to Port
+/**
+ * @since 4.0.0
+ * @category Schema
+ */
+export const Port2 = Schema.Int.check(Check.between(0, 65535))
+
+// TODO: rename to LogLevel
+/**
+ * @since 4.0.0
+ * @category Schema
+ */
+export const LogLevel2 = Schema.Literals(LogLevel_.values)
+
+// TODO: rename to Duration
+/**
+ * @since 4.0.0
+ * @category Schema
+ */
+export const Duration2 = Schema.String.pipe(Schema.decodeTo(Schema.Duration, {
+  decode: Getter.mapOrFail((value) => {
+    const od = Duration_.decodeUnknown(value)
+    if (Option.isSome(od)) {
+      return Effect.succeed(od.value)
+    }
+    return Effect.fail(new Issue.InvalidValue(od, { message: `Invalid duration: ${value}` }))
+  }),
+  encode: Getter.forbidden("Encoding Duration is not supported")
+}))

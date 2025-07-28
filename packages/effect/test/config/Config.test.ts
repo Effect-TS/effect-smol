@@ -4,7 +4,10 @@ import { Cause, Effect, pipe } from "effect"
 import { Config, ConfigError, ConfigProvider } from "effect/config"
 import { Brand, Filter, Option, Redacted } from "effect/data"
 import type { LogLevel } from "effect/logging"
+import { Check, Schema, Transformation } from "effect/schema"
 import { DateTime, Duration } from "effect/time"
+
+const isDeno = "Deno" in globalThis
 
 type Str = Brand.Branded<string, "Str">
 const Str = Brand.refined<Str>(
@@ -35,7 +38,7 @@ const assertConfigErrors = <A>(
 const assertConfig = <A>(
   config: Config.Config<A>,
   env: Record<string, string>,
-  a: A
+  a: NoInfer<A>
 ) => {
   const configProvider = ConfigProvider.fromEnv({ environment: env })
   const result = Effect.runSyncExit(config.parse(configProvider.context()))
@@ -47,6 +50,13 @@ describe("Config", () => {
     it("name = undefined", () => {
       const config = Config.Array("ITEMS", Config.Boolean())
       assertConfig(config, { ITEMS: "true" }, [true])
+      assertConfig(config, { ITEMS: "yes" }, [true])
+      assertConfig(config, { ITEMS: "on" }, [true])
+      assertConfig(config, { ITEMS: "1" }, [true])
+      assertConfig(config, { ITEMS: "false" }, [false])
+      assertConfig(config, { ITEMS: "no" }, [false])
+      assertConfig(config, { ITEMS: "off" }, [false])
+      assertConfig(config, { ITEMS: "0" }, [false])
       assertConfigError(
         config,
         { ITEMS: "value" },
@@ -504,7 +514,7 @@ describe("Config", () => {
         Config.all([Config.Integer("key1"), Config.Integer("key2")]),
         Config.option
       )
-      assertConfig(config, { key1: "1", key2: "2" }, Option.some([1, 2]))
+      assertConfig(config, { key1: "1", key2: "2" }, Option.some([1, 2] as [number, number]))
       assertConfigErrors(
         config,
         { key1: "value" },
@@ -916,5 +926,1083 @@ describe("Config", () => {
         })
       })
     })
+  })
+})
+
+describe("Config.schema (old tests)", () => {
+  it("Config.Boolean", () => {
+    const config = Config.schema({
+      ITEMS: Config.Boolean2
+    })
+    assertConfig(config, { ITEMS: "true" }, { ITEMS: true })
+    assertConfig(config, { ITEMS: "yes" }, { ITEMS: true })
+    assertConfig(config, { ITEMS: "on" }, { ITEMS: true })
+    assertConfig(config, { ITEMS: "1" }, { ITEMS: true })
+    assertConfig(config, { ITEMS: "false" }, { ITEMS: false })
+    assertConfig(config, { ITEMS: "no" }, { ITEMS: false })
+    assertConfig(config, { ITEMS: "off" }, { ITEMS: false })
+    assertConfig(config, { ITEMS: "0" }, { ITEMS: false })
+    assertConfigError(
+      config,
+      { ITEMS: "value" },
+      new ConfigError.InvalidData({
+        path: ["ITEMS"],
+        description: `Expected "true" | "yes" | "on" | "1" | "false" | "no" | "off" | "0", actual "value"`
+      })
+    )
+  })
+
+  it("Array(Config.Boolean)", () => {
+    const config = Config.schema({
+      ITEMS: Schema.Array(Config.Boolean2)
+    })
+    assertConfig(config, { ITEMS: "true" }, { ITEMS: [true] })
+    assertConfig(config, { ITEMS: "yes" }, { ITEMS: [true] })
+    assertConfig(config, { ITEMS: "on" }, { ITEMS: [true] })
+    assertConfig(config, { ITEMS: "1" }, { ITEMS: [true] })
+    assertConfig(config, { ITEMS: "false" }, { ITEMS: [false] })
+    assertConfig(config, { ITEMS: "no" }, { ITEMS: [false] })
+    assertConfig(config, { ITEMS: "off" }, { ITEMS: [false] })
+    assertConfig(config, { ITEMS: "0" }, { ITEMS: [false] })
+    assertConfigError(
+      config,
+      { ITEMS: "value" },
+      new ConfigError.InvalidData({
+        path: ["ITEMS", 0],
+        description: `Expected "true" | "yes" | "on" | "1" | "false" | "no" | "off" | "0", actual "value"`
+      })
+    )
+  })
+
+  it("URL", () => {
+    const config = Config.schema({
+      WEBSITE_URL: Schema.URL
+    })
+    assertConfig(
+      config,
+      { WEBSITE_URL: "https://effect.website/docs/introduction#what-is-effect" },
+      { WEBSITE_URL: new URL("https://effect.website/docs/introduction#what-is-effect") }
+    )
+    assertConfigError(
+      config,
+      { WEBSITE_URL: "abra-kadabra" },
+      new ConfigError.InvalidData({
+        path: ["WEBSITE_URL"],
+        description: isDeno ? `TypeError: Invalid URL: 'abra-kadabra'` : `TypeError: Invalid URL`
+      })
+    )
+    assertConfigError(
+      config,
+      {},
+      new ConfigError.MissingData({ path: ["WEBSITE_URL"], fullPath: "WEBSITE_URL" })
+    )
+  })
+
+  it("Config.Port", () => {
+    const config = Config.schema({
+      WEBSITE_PORT: Config.Port2
+    })
+
+    assertConfig(
+      config,
+      { WEBSITE_PORT: "123" },
+      { WEBSITE_PORT: 123 }
+    )
+    assertConfigError(
+      config,
+      { WEBSITE_PORT: "abra-kadabra" },
+      new ConfigError.InvalidData({
+        path: ["WEBSITE_PORT"],
+        description: `Expected a string representing a number, actual "abra-kadabra"`
+      })
+    )
+    assertConfigError(
+      config,
+      {},
+      new ConfigError.MissingData({ path: ["WEBSITE_PORT"], fullPath: "WEBSITE_PORT" })
+    )
+  })
+
+  it("brand", () => {
+    const Str = Schema.String.check(Check.minLength(2)).pipe(Schema.brand("Str"))
+    const config = Config.schema({
+      STR: Str
+    })
+
+    assertConfig(
+      config,
+      { STR: "123" },
+      { STR: Str.makeSync("123") }
+    )
+    assertConfigError(
+      config,
+      { STR: "1" },
+      new ConfigError.InvalidData({
+        path: ["STR"],
+        description: `Expected a value with a length of at least 2, actual "1"`
+      })
+    )
+    assertConfigError(
+      config,
+      {},
+      new ConfigError.MissingData({ path: ["STR"], fullPath: "STR" })
+    )
+  })
+
+  it("NonEmptyString", () => {
+    const config = Config.schema({
+      ITEMS: Schema.NonEmptyString
+    })
+    assertConfig(config, { ITEMS: "foo" }, { ITEMS: "foo" })
+    assertConfig(config, { ITEMS: " " }, { ITEMS: " " })
+    assertConfigError(
+      config,
+      { ITEMS: "" },
+      new ConfigError.InvalidData({
+        path: ["ITEMS"],
+        description: `Expected a value with a length of at least 1, actual ""`
+      })
+    )
+    assertConfigError(
+      Config.schema({
+        ITEMS: Schema.Trim.pipe(Schema.decodeTo(Schema.NonEmptyString))
+      }),
+      { ITEMS: " " },
+      new ConfigError.InvalidData({
+        path: ["ITEMS"],
+        description: `Expected a value with a length of at least 1, actual ""`
+      })
+    )
+  })
+
+  it("Array(String) & nonEmpty", () => {
+    const config = Config.schema({
+      ITEMS: Schema.Array(Schema.String).check(Check.nonEmpty())
+    })
+    assertConfig(config, { ITEMS: "foo" }, { ITEMS: ["foo"] })
+    assertConfigError(config, {}, new ConfigError.MissingData({ path: ["ITEMS"], fullPath: "ITEMS" }))
+  })
+
+  it("Record(String, String) & minEntries(1)", () => {
+    const config = Config.schema({
+      ITEMS: Schema.Record(Schema.String, Schema.String).check(Check.minEntries(1))
+    })
+    assertConfig(config, { ITEMS: "foo=bar" }, { ITEMS: { foo: "bar" } })
+    assertConfigError(
+      config,
+      {},
+      new ConfigError.InvalidData({
+        path: ["ITEMS"],
+        description: `Expected an object with at least 1 entries, actual {}`
+      })
+    )
+  })
+
+  it("Array(Int)", () => {
+    const config = Config.schema({
+      ITEMS: Schema.Array(Schema.Int)
+    })
+    assertConfig(config, { ITEMS: "1" }, { ITEMS: [1] })
+    assertConfigError(
+      config,
+      { ITEMS: "123qq" },
+      new ConfigError.InvalidData({ path: ["ITEMS", 0], description: `Expected an integer, actual NaN` })
+    )
+    assertConfigError(
+      config,
+      { ITEMS: "value" },
+      new ConfigError.InvalidData({
+        path: ["ITEMS", 0],
+        description: `Expected a string representing a number, actual "value"`
+      })
+    )
+  })
+
+  it("Number", () => {
+    const config = Config.schema({
+      NUMBER: Schema.Number
+    })
+    assertConfig(config, { NUMBER: "1" }, { NUMBER: 1 })
+    assertConfig(config, { NUMBER: "1.2" }, { NUMBER: 1.2 })
+    assertConfig(config, { NUMBER: "-1" }, { NUMBER: -1 })
+    assertConfig(config, { NUMBER: "-1.2" }, { NUMBER: -1.2 })
+    assertConfig(config, { NUMBER: "0" }, { NUMBER: 0 })
+    assertConfig(config, { NUMBER: "-0" }, { NUMBER: -0 })
+
+    assertConfigError(config, {}, new ConfigError.MissingData({ path: ["NUMBER"], fullPath: "NUMBER" }))
+    assertConfigError(
+      config,
+      { NUMBER: "value" },
+      new ConfigError.InvalidData({
+        path: ["NUMBER"],
+        description: `Expected a string representing a number, actual "value"`
+      })
+    )
+  })
+
+  it(`Array("a" | "b")`, () => {
+    const config = Config.schema({
+      ITEMS: Schema.Array(Schema.Literals(["a", "b"]))
+    })
+    assertConfig(config, { ITEMS: "a" }, { ITEMS: ["a"] })
+    assertConfigError(
+      config,
+      { ITEMS: "value" },
+      new ConfigError.InvalidData({
+        path: ["ITEMS", 0],
+        description: `Expected "a" | "b", actual "value"`
+      })
+    )
+  })
+
+  it("Literal", () => {
+    const config = Config.schema({
+      LITERAL: Schema.Literals(["a", 0, -0.3, BigInt(5), false])
+    })
+    assertConfig(config, { LITERAL: "a" }, { LITERAL: "a" })
+    assertConfig(config, { LITERAL: "0" }, { LITERAL: 0 })
+    assertConfig(config, { LITERAL: "-0.3" }, { LITERAL: -0.3 })
+    assertConfig(config, { LITERAL: "5" }, { LITERAL: BigInt(5) })
+    assertConfig(config, { LITERAL: "false" }, { LITERAL: false })
+
+    assertConfigError(
+      config,
+      {},
+      new ConfigError.MissingData({ path: ["LITERAL"], fullPath: "LITERAL" })
+    )
+    assertConfigError(
+      config,
+      { LITERAL: "value" },
+      new ConfigError.InvalidData({
+        path: ["LITERAL"],
+        description: `Expected "a" | 0 | -0.3 | 5 | false, actual "value"`
+      })
+    )
+  })
+
+  it("DateTimeUtc", () => {
+    const config = Config.schema({
+      DATE: Schema.DateTimeUtc
+    })
+    assertConfig(
+      config,
+      { DATE: "0" },
+      { DATE: DateTime.unsafeMake("0") }
+    )
+
+    assertConfigError(config, {}, new ConfigError.MissingData({ path: ["DATE"], fullPath: "DATE" }))
+    assertConfigError(
+      config,
+      { DATE: "value" },
+      new ConfigError.InvalidData({ path: ["DATE"], description: "IllegalArgumentError: Invalid date" })
+    )
+  })
+
+  it("map", () => {
+    const config = Config.schema({
+      STRING: Schema.String
+    }).pipe(Config.map(({ STRING: s }) => {
+      const n = parseFloat(s)
+      if (Number.isNaN(n)) {
+        return new ConfigError.InvalidData({ path: [], description: "invalid number" }).asEffect()
+      }
+      if (n < 0) {
+        return new ConfigError.InvalidData({ path: [], description: "invalid negative number" }).asEffect()
+      }
+      return n
+    }))
+    assertConfig(config, { STRING: "1" }, 1)
+    assertConfigError(
+      config,
+      { STRING: "value" },
+      new ConfigError.InvalidData({ path: [], description: "invalid number" })
+    )
+    assertConfigError(
+      config,
+      { STRING: "-1" },
+      new ConfigError.InvalidData({ path: [], description: "invalid negative number" })
+    )
+    assertConfigError(config, {}, new ConfigError.MissingData({ path: ["STRING"], fullPath: "STRING" }))
+  })
+
+  it("Config.LogLevel", () => {
+    const config = Config.schema({
+      LOG_LEVEL: Config.LogLevel2
+    })
+    assertConfig(config, { LOG_LEVEL: "Debug" }, { LOG_LEVEL: "Debug" as LogLevel.LogLevel })
+
+    assertConfigError(
+      config,
+      { LOG_LEVEL: "-" },
+      new ConfigError.InvalidData({
+        path: ["LOG_LEVEL"],
+        description: `Expected "All" | "Fatal" | "Error" | "Warn" | "Info" | "Debug" | "Trace" | "None", actual "-"`
+      })
+    )
+  })
+
+  it("Config.Duration", () => {
+    const config = Config.schema({
+      DURATION: Config.Duration2
+    })
+    assertConfig(
+      config,
+      { DURATION: "10 seconds" },
+      { DURATION: Duration.seconds(10) }
+    )
+
+    assertConfigError(
+      config,
+      { DURATION: "-" },
+      new ConfigError.InvalidData({ path: ["DURATION"], description: "Invalid duration: -" })
+    )
+  })
+
+  describe("filter", () => {
+    it("should preserve the original path", () => {
+      const flat = Config.schema({
+        NUMBER: Schema.Number
+      }).pipe(
+        Config.filter({
+          filter: ({ NUMBER: n }) => n >= 0 ? n : Filter.fail(n),
+          onFail: () => "a positive number"
+        })
+      )
+      assertConfig(flat, { NUMBER: "1" }, 1)
+      assertConfig(flat, { NUMBER: "1.2" }, 1.2)
+      assertConfigError(
+        flat,
+        { NUMBER: "-1" },
+        new ConfigError.InvalidData({ path: ["NUMBER"], description: "a positive number" })
+      )
+
+      const nested = flat.pipe(
+        Config.nested("NESTED1")
+      )
+      assertConfig(nested, { "NESTED1_NUMBER": "1" }, 1)
+      assertConfig(nested, { "NESTED1_NUMBER": "1.2" }, 1.2)
+      assertConfigError(
+        nested,
+        { "NESTED1_NUMBER": "-1" },
+        new ConfigError.InvalidData({ path: ["NESTED1", "NUMBER"], description: "a positive number" })
+      )
+
+      const doubleNested = nested.pipe(Config.nested("NESTED2"))
+      assertConfig(doubleNested, { "NESTED2_NESTED1_NUMBER": "1" }, 1)
+      assertConfig(doubleNested, { "NESTED2_NESTED1_NUMBER": "1.2" }, 1.2)
+      assertConfigError(
+        doubleNested,
+        { "NESTED2_NESTED1_NUMBER": "-1" },
+        new ConfigError.InvalidData({ path: ["NESTED2", "NESTED1", "NUMBER"], description: "a positive number" })
+      )
+    })
+  })
+
+  describe("withDefault", () => {
+    it("recovers from missing data error", () => {
+      const config = pipe(
+        Config.schema({
+          key: Schema.Int
+        }),
+        Config.withDefault({ key: 0 })
+      )
+
+      // available data
+      assertConfig(config, { key: "1" }, { key: 1 })
+      // missing data
+      assertConfig(config, {}, { key: 0 })
+    })
+
+    it("does not recover from other errors", () => {
+      const config = pipe(
+        Config.schema({
+          key: Schema.Int
+        }),
+        Config.withDefault({ key: 0 })
+      )
+      assertConfig(config, { key: "1" }, { key: 1 })
+      assertConfigError(
+        config,
+        { key: "1.2" },
+        new ConfigError.InvalidData({ path: ["key"], description: "Expected an integer, actual 1.2" })
+      )
+      assertConfigError(
+        config,
+        { key: "value" },
+        new ConfigError.InvalidData({
+          path: ["key"],
+          description: `Expected a string representing a number, actual "value"`
+        })
+      )
+    })
+
+    it("does not recover from missing data and other error", () => {
+      const config = Config.schema({
+        key1: Schema.Int,
+        key2: Schema.Int
+      }).pipe(
+        Config.withDefault({ key1: 0, key2: 0 })
+      )
+      assertConfig(config, {}, { key1: 0, key2: 0 })
+      assertConfig(config, { key1: "1", key2: "2" }, { key1: 1, key2: 2 })
+      assertConfigError(
+        config,
+        { key1: "invalid", key2: "value" },
+        new ConfigError.InvalidData({
+          path: ["key1"],
+          description: `Expected a string representing a number, actual "invalid"`
+        })
+      )
+    })
+
+    it("does not recover from missing data or other error", () => {
+      const config = pipe(
+        Config.schema({
+          key1: Schema.Int
+        }),
+        Config.orElse(() =>
+          Config.schema({
+            key2: Schema.Int
+          })
+        ),
+        Config.withDefault({ key: 0 })
+      )
+      assertConfig(config, {}, { key: 0 })
+      assertConfig(config, { key1: "1" }, { key1: 1 })
+      assertConfig(config, { key2: "2" }, { key2: 2 })
+      assertConfigErrors(config, { key2: "value" }, [
+        new ConfigError.MissingData({ path: ["key1"], fullPath: "key1" }),
+        new ConfigError.InvalidData({
+          path: ["key2"],
+          description: `Expected a string representing a number, actual "value"`
+        })
+      ])
+    })
+  })
+
+  describe("option", () => {
+    it("recovers from missing data error", () => {
+      const config = Config.option(Config.schema({
+        key: Schema.Int
+      }))
+      assertConfig(config, {}, Option.none())
+      assertConfig(config, { key: "1" }, Option.some({ key: 1 }))
+    })
+
+    it("does not recover from other errors", () => {
+      const config = Config.option(Config.schema({
+        key: Schema.Int
+      }))
+      assertConfigError(
+        config,
+        { key: "value" },
+        new ConfigError.InvalidData({
+          path: ["key"],
+          description: `Expected a string representing a number, actual "value"`
+        })
+      )
+    })
+
+    it.skip("does not recover from other errors", () => {
+      const config = pipe(
+        Config.schema({
+          key1: Schema.Int,
+          key2: Schema.Int
+        }),
+        Config.option
+      )
+      assertConfig(config, { key1: "1", key2: "2" }, Option.some({ key1: 1, key2: 2 }))
+      assertConfigErrors(
+        config,
+        { key1: "value" },
+        [
+          new ConfigError.InvalidData({
+            path: ["key1"],
+            description: `Expected a string representing a number, actual "value"`
+          })
+          // new ConfigError.MissingData({ path: ["key2"], fullPath: "key2" })
+        ]
+      )
+    })
+
+    it("does not recover from other errors", () => {
+      const config = pipe(
+        Config.schema({ key1: Schema.Int }),
+        Config.orElse(() => Config.schema({ key2: Schema.Int })),
+        Config.option
+      )
+      assertConfig(config, { key1: "1" }, Option.some({ key1: 1 }))
+      assertConfig(config, { key1: "value", key2: "2" }, Option.some({ key2: 2 }))
+      assertConfigErrors(config, { key2: "value" }, [
+        new ConfigError.MissingData({ path: ["key1"], fullPath: "key1" }),
+        new ConfigError.InvalidData({
+          path: ["key2"],
+          description: `Expected a string representing a number, actual "value"`
+        })
+      ])
+    })
+  })
+
+  describe("tuple", () => {
+    it("length = 1", () => {
+      const config = Config.schema({ NUMBER: Schema.Tuple([Schema.Number]) })
+      assertConfig(config, { NUMBER: "1" }, { NUMBER: [1] })
+    })
+
+    it("length > 1", () => {
+      const config = Config.schema({ NUMBER: Schema.Number, BOOL: Schema.Boolean })
+      assertConfig(config, { NUMBER: "1", BOOL: "true" }, { NUMBER: 1, BOOL: true })
+      assertConfigError(
+        config,
+        { NUMBER: "value", BOOL: "true" },
+        new ConfigError.InvalidData({
+          path: ["NUMBER"],
+          description: `Expected a string representing a number, actual "value"`
+        })
+      )
+      assertConfigError(
+        config,
+        { NUMBER: "1", BOOL: "value" },
+        new ConfigError.InvalidData({
+          path: ["BOOL"],
+          description: `Expected "true" | "false", actual "value"`
+        })
+      )
+    })
+  })
+
+  describe.todo("Config.redacted", () => {
+    it("name = undefined", () => {
+      const config = Config.Array("ITEMS", Config.Redacted())
+      assertConfig(config, { ITEMS: "a" }, [Redacted.make("a")])
+    })
+
+    it("name != undefined", () => {
+      const config = Config.Redacted("SECRET")
+      assertConfig(config, { SECRET: "a" }, Redacted.make("a"))
+    })
+
+    it("can wrap generic Config", () => {
+      const config = Config.Redacted("NUM", Config.Integer())
+      assertConfig(config, { NUM: "2" }, Redacted.make(2))
+    })
+  })
+
+  it("can be yielded", () => {
+    const provider = ConfigProvider.fromEnv({ environment: { STRING: "value" } })
+    const result = Effect.runSync(Effect.provide(
+      Config.schema({ STRING: Schema.String }).asEffect(),
+      ConfigProvider.layer(provider)
+    ))
+    deepStrictEqual(result, { STRING: "value" })
+  })
+
+  it("array nested", () => {
+    const provider = ConfigProvider.fromEnv({ environment: { "NESTED_ARRAY": "1,2,3" } }).pipe(
+      ConfigProvider.nested("NESTED")
+    )
+    const result = Effect.runSync(Effect.provide(
+      Config.schema({ ARRAY: Schema.Array(Schema.Int) }).asEffect(),
+      ConfigProvider.layer(provider)
+    ))
+    deepStrictEqual(result, { ARRAY: [1, 2, 3] })
+  })
+
+  it("array double nested", () => {
+    const provider = ConfigProvider.fromEnv({ environment: { "NESTED_NESTED2_ARRAY": "1,2,3" } }).pipe(
+      ConfigProvider.nested("nested2"),
+      ConfigProvider.nested("nested"),
+      ConfigProvider.constantCase
+    )
+    const result = Effect.runSync(Effect.provide(
+      Config.schema({ ARRAY: Schema.Array(Schema.Int) }).asEffect(),
+      ConfigProvider.layer(provider)
+    ))
+    deepStrictEqual(result, { ARRAY: [1, 2, 3] })
+  })
+
+  describe("Record", () => {
+    describe("Basic Record Parsing", () => {
+      it("should parse simple key-value pairs", () => {
+        const config = Config.schema({ RECORD: Schema.Record(Schema.String, Schema.String) })
+        assertConfig(config, { RECORD: "key1=value1,key2=value2" }, {
+          RECORD: {
+            key1: "value1",
+            key2: "value2"
+          }
+        })
+      })
+
+      it("should return empty object for empty input", () => {
+        const config = Config.schema({ RECORD: Schema.Record(Schema.String, Schema.String) })
+        assertConfig(config, { RECORD: "" }, { RECORD: {} })
+      })
+
+      it("should parse single pair", () => {
+        const config = Config.schema({ RECORD: Schema.Record(Schema.String, Schema.String) })
+        assertConfig(config, { RECORD: "key=value" }, {
+          RECORD: {
+            key: "value"
+          }
+        })
+      })
+
+      it("should parse multiple pairs", () => {
+        const config = Config.schema({ RECORD: Schema.Record(Schema.String, Schema.String) })
+        assertConfig(config, { RECORD: "key1=value1,key2=value2,key3=value3,key4=value4" }, {
+          RECORD: {
+            key1: "value1",
+            key2: "value2",
+            key3: "value3",
+            key4: "value4"
+          }
+        })
+      })
+    })
+
+    describe("Custom Separators", () => {
+      it("should use custom pair separator", () => {
+        const config = Config.schema({ RECORD: Schema.Record(Schema.String, Schema.String) }, { separator: ";" })
+        assertConfig(config, { RECORD: "key1=value1;key2=value2" }, {
+          RECORD: {
+            key1: "value1",
+            key2: "value2"
+          }
+        })
+      })
+
+      it("should use custom key-value separator", () => {
+        const config = Config.schema({ RECORD: Schema.Record(Schema.String, Schema.String) }, {
+          keyValueSeparator: ":"
+        })
+        assertConfig(config, { RECORD: "key1:value1,key2:value2" }, {
+          RECORD: {
+            key1: "value1",
+            key2: "value2"
+          }
+        })
+      })
+
+      it("should use both custom separators", () => {
+        const config = Config.schema({ RECORD: Schema.Record(Schema.String, Schema.String) }, {
+          separator: "|",
+          keyValueSeparator: ":"
+        })
+        assertConfig(config, { RECORD: "key1:value1|key2:value2" }, {
+          RECORD: {
+            key1: "value1",
+            key2: "value2"
+          }
+        })
+      })
+
+      it("should use multi-character separators", () => {
+        const config = Config.schema({ RECORD: Schema.Record(Schema.String, Schema.String) }, {
+          separator: "||",
+          keyValueSeparator: ":::"
+        })
+        assertConfig(config, { RECORD: "key1:::value1||key2:::value2" }, {
+          RECORD: {
+            key1: "value1",
+            key2: "value2"
+          }
+        })
+      })
+    })
+
+    describe("Value Type Parsing", () => {
+      it("should parse number values", () => {
+        const config = Config.schema({ RECORD: Schema.Record(Schema.String, Schema.Int) })
+        assertConfig(config, { RECORD: "age=25,score=98" }, {
+          RECORD: {
+            age: 25,
+            score: 98
+          }
+        })
+      })
+
+      it("should parse boolean values", () => {
+        const config = Config.schema({ RECORD: Schema.Record(Schema.String, Schema.Boolean) })
+        assertConfig(config, { RECORD: "enabled=true,debug=false" }, {
+          RECORD: {
+            enabled: true,
+            debug: false
+          }
+        })
+      })
+
+      it.todo("should parse with custom config", () => {
+        const dateConfig = Config.map(Config.String(), (str) => new Date(str))
+        const config = Config.Record("RECORD", dateConfig)
+        assertConfig(config, { RECORD: "start=2024-01-01,end=2024-12-31" }, {
+          start: new Date("2024-01-01"),
+          end: new Date("2024-12-31")
+        })
+      })
+    })
+
+    describe("Edge Cases", () => {
+      it("should handle whitespace", () => {
+        const config = Config.schema({ RECORD: Schema.Record(Schema.String, Schema.String) })
+        assertConfig(config, { RECORD: " key1 = value1 , key2 = value2 " }, {
+          RECORD: {
+            key1: "value1",
+            key2: "value2"
+          }
+        })
+      })
+
+      it("should handle empty values", () => {
+        const config = Config.schema({ RECORD: Schema.Record(Schema.String, Schema.String) })
+        assertConfig(config, { RECORD: "key1=,key2=value2" }, {
+          RECORD: {
+            key1: "",
+            key2: "value2"
+          }
+        })
+      })
+
+      it("should skip empty keys", () => {
+        const config = Config.schema({ RECORD: Schema.Record(Schema.String, Schema.String) })
+        assertConfig(config, { RECORD: "=value1,key2=value2" }, {
+          RECORD: {
+            "": "value1",
+            key2: "value2"
+          }
+        })
+      })
+
+      it("should skip invalid format", () => {
+        const config = Config.schema({ RECORD: Schema.Record(Schema.String, Schema.String) })
+        assertConfig(config, { RECORD: "not-a-pair,key2=value2" }, {
+          RECORD: {
+            key2: "value2"
+          }
+        })
+      })
+
+      it("should handle special characters", () => {
+        const config = Config.schema({ RECORD: Schema.Record(Schema.String, Schema.String) })
+        assertConfig(config, { RECORD: "key-1=value 1,key.2=value-2" }, {
+          RECORD: {
+            "key-1": "value 1",
+            "key.2": "value-2"
+          }
+        })
+      })
+
+      it("should handle duplicate keys with last value winning", () => {
+        const config = Config.schema({ RECORD: Schema.Record(Schema.String, Schema.String) })
+        assertConfig(config, { RECORD: "key=value1,key=value2" }, {
+          RECORD: {
+            key: "value2"
+          }
+        })
+      })
+
+      it("should handle unicode characters", () => {
+        const config = Config.schema({ RECORD: Schema.Record(Schema.String, Schema.String) })
+        assertConfig(config, { RECORD: "名前=太郎,émoji=🚀" }, {
+          RECORD: {
+            "名前": "太郎",
+            "émoji": "🚀"
+          }
+        })
+      })
+    })
+
+    describe("Nested Configuration", () => {
+      it("should parse nested config paths", () => {
+        const config = Config.schema({ RECORD: Schema.Record(Schema.String, Schema.String) })
+        assertConfig(config, {
+          "RECORD[key1]": "value1",
+          "RECORD[key2]": "value2"
+        }, {
+          RECORD: {
+            key1: "value1",
+            key2: "value2"
+          }
+        })
+      })
+
+      it("should combine inline and nested config", () => {
+        const config = Config.schema({ RECORD: Schema.Record(Schema.String, Schema.String) })
+        assertConfig(config, {
+          RECORD: "key1=value1",
+          "RECORD[key2]": "value2"
+        }, {
+          RECORD: {
+            key1: "value1",
+            key2: "value2"
+          }
+        })
+      })
+
+      it("should handle precedence with nested values winning", () => {
+        const config = Config.schema({ RECORD: Schema.Record(Schema.String, Schema.String) })
+        assertConfig(config, {
+          RECORD: "key=inline",
+          "RECORD[key]": "nested"
+        }, {
+          RECORD: {
+            key: "nested"
+          }
+        })
+      })
+    })
+
+    describe("Error Handling", () => {
+      it("should fail on type mismatch", () => {
+        const config = Config.schema({ RECORD: Schema.Record(Schema.String, Schema.Int) })
+        assertConfigError(
+          config,
+          { RECORD: "age=not-a-number" },
+          new ConfigError.InvalidData({
+            path: ["RECORD", "age"],
+            description: `Expected a string representing a number, actual "not-a-number"`
+          })
+        )
+      })
+
+      it("should handle missing required nested values", () => {
+        const config = Config.schema({ RECORD: Schema.Record(Schema.String, Schema.Int) })
+        assertConfig(
+          config,
+          {},
+          { RECORD: {} }
+        )
+      })
+    })
+
+    describe("Integration Tests", () => {
+      it("should work with map combinator", () => {
+        const config = Config.map(
+          Config.schema({ RECORD: Schema.Record(Schema.String, Schema.Int) }),
+          (record) => Object.entries(record.RECORD).map(([k, v]) => `${k}:${v}`).join(",")
+        )
+        assertConfig(config, { RECORD: "a=1,b=2" }, "a:1,b:2")
+      })
+
+      it("should work with withDefault", () => {
+        const config = Config.withDefault(
+          Config.schema({ RECORD: Schema.Record(Schema.String, Schema.String) }),
+          { default: "value" }
+        )
+        assertConfig(config, { RECORD: "key=value" }, { RECORD: { key: "value" } })
+      })
+
+      it("should work as part of nested config structure", () => {
+        const config = Config.schema({
+          SETTINGS: Schema.Record(Schema.String, Schema.String),
+          FLAGS: Schema.Record(Schema.String, Schema.Boolean)
+        })
+        assertConfig(config, {
+          SETTINGS: "theme=dark,language=en",
+          FLAGS: "debug=true,verbose=false"
+        }, {
+          SETTINGS: { theme: "dark", language: "en" },
+          FLAGS: { debug: true, verbose: false }
+        })
+      })
+    })
+  })
+})
+
+describe("Config.schema (new tests)", () => {
+  it("Missing key", () => {
+    const config = Config.schema({
+      a: Schema.String
+    })
+
+    assertConfigError(
+      config,
+      {},
+      new ConfigError.MissingData({
+        path: ["a"],
+        fullPath: "a"
+      })
+    )
+  })
+
+  it("Invalid data", () => {
+    const config = Config.schema({
+      a: Schema.Int
+    })
+
+    assertConfigError(
+      config,
+      { a: "a" },
+      new ConfigError.InvalidData({
+        path: ["a"],
+        description: `Expected a string representing a number, actual "a"`
+      })
+    )
+    assertConfigError(
+      config,
+      { a: "1.1" },
+      new ConfigError.InvalidData({
+        path: ["a"],
+        description: `Expected an integer, actual 1.1`
+      })
+    )
+  })
+
+  it("String", () => {
+    const config = Config.schema({
+      a: Schema.String
+    })
+
+    assertConfig(config, { a: "a" }, { a: "a" })
+  })
+
+  describe("Record", () => {
+    it("default delimiter", () => {
+      const config = Config.schema({
+        a: Schema.Record(Schema.String, Schema.String)
+      })
+
+      assertConfig(config, { a: "" }, { a: {} })
+      assertConfig(config, { a: "b=" }, { a: { b: "" } })
+      assertConfig(config, { a: "b=c" }, { a: { b: "c" } })
+      assertConfig(config, { a: "b=c,d=e" }, { a: { b: "c", d: "e" } })
+    })
+
+    it("custom delimiter", () => {
+      const config = Config.schema({
+        a: Schema.Record(Schema.String, Schema.String)
+      }, { separator: ";" })
+
+      assertConfig(config, { a: "" }, { a: {} })
+      assertConfig(config, { a: "b=c" }, { a: { b: "c" } })
+      assertConfig(config, { a: "b=c;d=e" }, { a: { b: "c", d: "e" } })
+    })
+  })
+
+  describe("Tuple", () => {
+    it("default delimiter", () => {
+      const config = Config.schema({
+        a: Schema.Tuple([Schema.String, Schema.String])
+      })
+
+      assertConfig(config, { a: "b,c" }, { a: ["b", "c"] })
+      assertConfigError(
+        config,
+        { a: "b" },
+        new ConfigError.InvalidData({
+          path: ["a", 1],
+          description: `Missing key`
+        })
+      )
+    })
+
+    it("custom delimiter", () => {
+      const config = Config.schema({
+        a: Schema.Tuple([Schema.String, Schema.String])
+      }, { separator: ";" })
+
+      assertConfig(config, { a: "b;c" }, { a: ["b", "c"] })
+    })
+  })
+
+  describe("Array", () => {
+    it("default delimiter", () => {
+      const config = Config.schema({
+        a: Schema.Array(Schema.String)
+      })
+
+      assertConfig(config, { a: "" }, { a: [""] })
+      assertConfig(config, { a: "b" }, { a: ["b"] })
+      assertConfig(config, { a: "b,c" }, { a: ["b", "c"] })
+    })
+
+    it("custom delimiter", () => {
+      const config = Config.schema({
+        a: Schema.Array(Schema.String)
+      }, { separator: ";" })
+
+      assertConfig(config, { a: "" }, { a: [""] })
+      assertConfig(config, { a: "b" }, { a: ["b"] })
+      assertConfig(config, { a: "b;c" }, { a: ["b", "c"] })
+    })
+
+    it("Finite", () => {
+      const config = Config.schema({
+        a: Schema.Array(Schema.Finite)
+      })
+
+      assertConfig(config, { a: "1" }, { a: [1] })
+      assertConfig(config, { a: "1,1.1" }, { a: [1, 1.1] })
+      assertConfigError(
+        config,
+        { a: "" },
+        new ConfigError.InvalidData({
+          path: ["a", 0],
+          description: `Expected a string representing a number, actual ""`
+        })
+      )
+      assertConfigError(
+        config,
+        { a: "1,1.1,a" },
+        new ConfigError.InvalidData({
+          path: ["a", 2],
+          description: `Expected a string representing a number, actual "a"`
+        })
+      )
+    })
+
+    it("FiniteFromString", () => {
+      const config = Config.schema({
+        a: Schema.Array(Schema.FiniteFromString)
+      })
+
+      assertConfig(config, { a: "" }, { a: [0] })
+      assertConfig(config, { a: "1" }, { a: [1] })
+      assertConfig(config, { a: "1,1.1" }, { a: [1, 1.1] })
+      assertConfigError(
+        config,
+        { a: "a" },
+        new ConfigError.InvalidData({
+          path: ["a", 0],
+          description: `Expected a finite number, actual NaN`
+        })
+      )
+    })
+
+    it("struct <-> string", () => {
+      const schema = Schema.Struct({
+        b: Schema.String,
+        c: Schema.String
+      }).pipe(Schema.encodeTo(
+        Schema.String,
+        Transformation.transform({
+          decode: (s) => ({ b: s, c: s }),
+          encode: ({ b }) => b
+        })
+      ))
+
+      const config = Config.schema({
+        a: Schema.Array(schema)
+      })
+      assertConfig(config, { a: "a" }, { a: [{ b: "a", c: "a" }] })
+      assertConfig(config, { a: "a,d" }, { a: [{ b: "a", c: "a" }, { b: "d", c: "d" }] })
+    })
+  })
+
+  it("struct <-> [string]", () => {
+    const schema = Schema.Struct({
+      b: Schema.String,
+      c: Schema.String
+    }).pipe(Schema.encodeTo(
+      Schema.Tuple([Schema.String]),
+      Transformation.transform({
+        decode: ([s]) => ({ b: s, c: s }),
+        encode: ({ b }) => [b] as const
+      })
+    ))
+
+    const config = Config.schema({
+      a: Schema.Array(schema)
+    })
+    assertConfig(config, { a: "a" }, { a: [{ b: "a", c: "a" }] })
   })
 })
