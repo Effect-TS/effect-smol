@@ -9,8 +9,9 @@ import * as FileSystem from "../../platform/FileSystem.ts"
 import type * as PlatformError from "../../platform/PlatformError.ts"
 import type { ParseOptions } from "../../schema/AST.ts"
 import type { Issue } from "../../schema/Issue.ts"
-import * as Schema from "../../schema/Schema.ts"
+import type * as Schema from "../../schema/Schema.ts"
 import * as Serializer from "../../schema/Serializer.ts"
+import * as ToParser from "../../schema/ToParser.ts"
 import type * as Stream_ from "../../stream/Stream.ts"
 import * as UrlParams from "./UrlParams.ts"
 
@@ -253,10 +254,10 @@ export const jsonSchema = <S extends Schema.Schema<any>>(
   schema: S,
   options?: ParseOptions | undefined
 ) => {
-  const encode = Schema.encodeUnknownEffect(Serializer.json(schema))
+  const encode = ToParser.encodeUnknownEffect(Serializer.json(schema))
   return (body: S["Type"]): Effect.Effect<Uint8Array, HttpBodyError, S["EncodingServices"]> =>
     encode(body, options).pipe(
-      Effect.mapError(({ issue }) => new HttpBodyError({ reason: { _tag: "SchemaError", issue }, cause: issue })),
+      Effect.mapError((issue) => new HttpBodyError({ reason: { _tag: "SchemaError", issue }, cause: issue })),
       Effect.flatMap((body) => json(body))
     )
 }
