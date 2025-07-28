@@ -1,7 +1,7 @@
 import { Option } from "effect/data"
-import { Check, Schema, Serializer, Transformation } from "effect/schema"
+import { Check, Formatter, Schema, Serializer, ToParser, Transformation } from "effect/schema"
 import { describe, it } from "vitest"
-import { strictEqual } from "../utils/assert.ts"
+import { assertTrue, strictEqual } from "../utils/assert.ts"
 import { assertions } from "../utils/schema.ts"
 
 const FiniteFromDate = Schema.Date.pipe(Schema.decodeTo(
@@ -86,7 +86,7 @@ describe("Serializer", () => {
       it("Symbol", async () => {
         const schema = Schema.Symbol
 
-        await assertions.serialization.json.schema.succeed(schema, Symbol.for("a"), "a")
+        await assertions.serialization.json.schema.succeed(schema, Symbol.for("a"), "Symbol(a)")
         await assertions.serialization.json.schema.fail(
           schema,
           Symbol("a"),
@@ -98,7 +98,7 @@ describe("Serializer", () => {
           "cannot serialize to string, Symbol has no description"
         )
 
-        await assertions.deserialization.json.schema.succeed(schema, "a", Symbol.for("a"))
+        await assertions.deserialization.json.schema.succeed(schema, "Symbol(a)", Symbol.for("a"))
       })
 
       it("BigInt", async () => {
@@ -106,6 +106,17 @@ describe("Serializer", () => {
 
         await assertions.serialization.json.schema.succeed(schema, 1n, "1")
         await assertions.deserialization.json.schema.succeed(schema, "1", 1n)
+      })
+
+      it("PropertyKey", async () => {
+        const schema = Schema.PropertyKey
+        await assertions.serialization.json.schema.succeed(schema, "a", "a")
+        await assertions.serialization.json.schema.succeed(schema, 1, 1)
+        await assertions.serialization.json.schema.succeed(schema, Symbol.for("a"), "Symbol(a)")
+
+        await assertions.deserialization.json.schema.succeed(schema, "a", "a")
+        await assertions.deserialization.json.schema.succeed(schema, 1, 1)
+        await assertions.deserialization.json.schema.succeed(schema, "Symbol(a)", Symbol.for("a"))
       })
 
       describe("Literal", () => {
@@ -222,16 +233,16 @@ describe("Serializer", () => {
       it("Record(Symbol, Date)", async () => {
         const schema = Schema.Record(Schema.Symbol, Schema.Date)
 
-        await assertions.deserialization.json.schema.succeed(
-          schema,
-          { "a": "2021-01-01T00:00:00.000Z", "b": "2021-01-01T00:00:00.000Z" },
-          { [Symbol.for("a")]: new Date("2021-01-01"), [Symbol.for("b")]: new Date("2021-01-01") }
-        )
-
         await assertions.serialization.json.schema.succeed(
           schema,
           { [Symbol.for("a")]: new Date("2021-01-01"), [Symbol.for("b")]: new Date("2021-01-01") },
-          { "a": "2021-01-01T00:00:00.000Z", "b": "2021-01-01T00:00:00.000Z" }
+          { "Symbol(a)": "2021-01-01T00:00:00.000Z", "Symbol(b)": "2021-01-01T00:00:00.000Z" }
+        )
+
+        await assertions.deserialization.json.schema.succeed(
+          schema,
+          { "Symbol(a)": "2021-01-01T00:00:00.000Z", "Symbol(b)": "2021-01-01T00:00:00.000Z" },
+          { [Symbol.for("a")]: new Date("2021-01-01"), [Symbol.for("b")]: new Date("2021-01-01") }
         )
       })
 
@@ -353,13 +364,13 @@ describe("Serializer", () => {
           schema,
           new Map([[Option.some(Symbol.for("a")), new Date("2021-01-01")]]),
           [[
-            ["a"],
+            ["Symbol(a)"],
             "2021-01-01T00:00:00.000Z"
           ]]
         )
         await assertions.deserialization.json.codec.succeed(
           schema,
-          [[["a"], "2021-01-01T00:00:00.000Z"]],
+          [[["Symbol(a)"], "2021-01-01T00:00:00.000Z"]],
           new Map([[Option.some(Symbol.for("a")), new Date("2021-01-01")]])
         )
       })
@@ -470,6 +481,35 @@ describe("Serializer", () => {
       await assertions.deserialization.json.codec.succeed(schema, 0, Fruits.Apple)
       await assertions.deserialization.json.codec.succeed(schema, "banana", Fruits.Banana)
     })
+
+    it("FailureResult", async () => {
+      const b = Symbol.for("b")
+      const schema = Schema.Struct({
+        a: Schema.NonEmptyString,
+        [b]: Schema.Finite,
+        c: Schema.Tuple([Schema.String])
+      })
+      const r = ToParser.decodeUnknownResult(schema)({ a: "", c: [] }, { errors: "all" })
+      assertTrue(r._tag === "Failure")
+      const failureResult = Formatter.makeStandardSchemaV1({
+        leafHook: Formatter.treeLeafHook,
+        checkHook: Formatter.verboseCheckHook
+      }).format(r.failure)
+      await assertions.serialization.json.codec.succeed(Schema.FailureResult, failureResult, {
+        issues: [
+          { path: ["a"], message: `Expected a value with a length of at least 1, actual ""` },
+          { path: ["c", 0], message: "Missing key" },
+          { path: ["Symbol(b)"], message: "Missing key" }
+        ]
+      })
+      await assertions.deserialization.json.codec.succeed(Schema.FailureResult, {
+        issues: [
+          { path: ["a"], message: `Expected a value with a length of at least 1, actual ""` },
+          { path: ["c", 0], message: "Missing key" },
+          { path: ["Symbol(b)"], message: "Missing key" }
+        ]
+      }, failureResult)
+    })
   })
 
   describe("stringLeafJson", () => {
@@ -515,7 +555,7 @@ describe("Serializer", () => {
       it("Symbol", async () => {
         const schema = Schema.Symbol
 
-        await assertions.serialization.stringLeafJson.schema.succeed(schema, Symbol.for("a"), "a")
+        await assertions.serialization.stringLeafJson.schema.succeed(schema, Symbol.for("a"), "Symbol(a)")
         await assertions.serialization.stringLeafJson.schema.fail(
           schema,
           Symbol("a"),
@@ -527,7 +567,7 @@ describe("Serializer", () => {
           "cannot serialize to string, Symbol has no description"
         )
 
-        await assertions.deserialization.stringLeafJson.schema.succeed(schema, "a", Symbol.for("a"))
+        await assertions.deserialization.stringLeafJson.schema.succeed(schema, "Symbol(a)", Symbol.for("a"))
       })
 
       it("Number", async () => {

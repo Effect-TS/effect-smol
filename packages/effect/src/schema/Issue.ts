@@ -30,14 +30,20 @@ export function isIssue(u: unknown): u is Issue {
  * @category model
  * @since 4.0.0
  */
-export type Issue =
-  // leaf
+export type Leaf =
   | InvalidType
   | InvalidValue
   | MissingKey
   | UnexpectedKey
   | Forbidden
   | OneOf
+
+/**
+ * @category model
+ * @since 4.0.0
+ */
+export type Issue =
+  | Leaf
   // composite
   | Filter
   | Encoding

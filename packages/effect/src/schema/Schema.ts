@@ -3998,6 +3998,21 @@ export const RequestClass =
   }
 
 /**
+ * @since 4.0.0
+ */
+export const PropertyKey = Union([Symbol, String, Finite])
+
+/**
+ * @since 4.0.0
+ */
+export const FailureResult = Struct({
+  issues: Array(Struct({
+    message: String,
+    path: optional(Array(PropertyKey))
+  }))
+})
+
+/**
  * @category Constructors
  * @since 4.0.0
  */

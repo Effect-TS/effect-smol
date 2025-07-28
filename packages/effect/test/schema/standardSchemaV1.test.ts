@@ -1,7 +1,7 @@
 import { assertTrue, deepStrictEqual, strictEqual } from "@effect/vitest/utils"
 import { Effect, ServiceMap } from "effect"
 import { Option } from "effect/data"
-import { Check, Getter, Schema } from "effect/schema"
+import { Check, Formatter, Getter, Schema } from "effect/schema"
 import { describe, it } from "vitest"
 import { standard } from "../utils/schema.ts"
 
@@ -345,6 +345,36 @@ describe("standardSchemaV1", () => {
           }
         ])
       })
+    })
+  })
+
+  describe("Tree hooks", () => {
+    it("String", () => {
+      const schema = Schema.String
+      const standardSchema = Schema.standardSchemaV1(schema, {
+        leafHook: Formatter.treeLeafHook,
+        checkHook: Formatter.verboseCheckHook
+      })
+      standard.expectSyncFailure(standardSchema, null, [
+        {
+          message: "Expected string, actual null",
+          path: []
+        }
+      ])
+    })
+
+    it("NonEmptyString", () => {
+      const schema = Schema.NonEmptyString
+      const standardSchema = Schema.standardSchemaV1(schema, {
+        leafHook: Formatter.treeLeafHook,
+        checkHook: Formatter.verboseCheckHook
+      })
+      standard.expectSyncFailure(standardSchema, "", [
+        {
+          message: `Expected a value with a length of at least 1, actual ""`,
+          path: []
+        }
+      ])
     })
   })
 })

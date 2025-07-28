@@ -53,7 +53,7 @@ export function encodeEffect<Out>(
 function getMessageAnnotation(
   annotations: Annotations.Annotations | undefined,
   type: "message" | "missingKeyMessage" | "unexpectedKeyMessage" = "message"
-): string | null {
+): string | undefined {
   const message = annotations?.[type]
   if (Predicate.isString(message)) {
     return message
@@ -61,23 +61,12 @@ function getMessageAnnotation(
   if (Predicate.isFunction(message)) {
     return message()
   }
-  return null
 }
 
 /**
  * Tries to find a message in the annotations of the issue.
- * If no message is found, it returns `null`.
  */
-function findMessage(
-  issue:
-    | Issue.InvalidType
-    | Issue.InvalidValue
-    | Issue.MissingKey
-    | Issue.UnexpectedKey
-    | Issue.Forbidden
-    | Issue.OneOf
-    | Issue.Filter
-): string | null {
+function findMessage(issue: Issue.Leaf | Issue.Filter): string | undefined {
   switch (issue._tag) {
     case "InvalidType":
     case "OneOf":
@@ -140,12 +129,19 @@ export function makeTree(): Formatter<string> {
   const leafHook: LeafHook = (issue) => {
     return findMessage(issue) ?? treeLeafHook(issue)
   }
+  const checkHook: CheckHook = findMessage
   return {
-    format: (issue) => formatTree(issue, [], leafHook).draw()
+    format: (issue) => formatTree(issue, [], leafHook, checkHook).draw()
   }
 }
 
-function formatCheck<T>(filter: Check.Check<T>): string {
+function formatCheck<T>(filter: Check.Check<T>, verbose: boolean = false): string {
+  if (verbose) {
+    const description = filter.annotations?.description
+    if (Predicate.isString(description)) {
+      return description
+    }
+  }
   const title = filter.annotations?.title
   if (Predicate.isString(title)) {
     return title
@@ -158,7 +154,7 @@ function formatCheck<T>(filter: Check.Check<T>): string {
     case "Filter":
       return "<filter>"
     case "FilterGroup":
-      return filter.checks.map(formatCheck).join(" & ")
+      return filter.checks.map((check) => formatCheck(check, verbose)).join(" & ")
   }
 }
 
@@ -203,7 +199,10 @@ export function formatAST(
   return AST.format(ast) + checks
 }
 
-/** @internal */
+/**
+ * @category Tree
+ * @since 4.0.0
+ */
 export const treeLeafHook: LeafHook = (issue): string => {
   switch (issue._tag) {
     case "InvalidType":
@@ -240,7 +239,8 @@ export const treeLeafHook: LeafHook = (issue): string => {
 function formatTree(
   issue: Issue.Issue,
   path: ReadonlyArray<PropertyKey>,
-  leafHook: LeafHook
+  leafHook: LeafHook,
+  checkHook: CheckHook
 ): Tree {
   switch (issue._tag) {
     case "MissingKey":
@@ -251,28 +251,34 @@ function formatTree(
     case "OneOf":
       return new Tree(leafHook(issue))
     case "Filter": {
-      const message = findMessage(issue)
-      if (message !== null) {
+      const message = checkHook(issue)
+      if (message !== undefined) {
         return new Tree(message)
       }
-      return new Tree(formatCheck(issue.filter), [formatTree(issue.issue, path, leafHook)])
+      return new Tree(formatCheck(issue.filter), [formatTree(issue.issue, path, leafHook, checkHook)])
     }
     case "Encoding": {
-      const child = formatTree(issue.issue, path, leafHook)
+      const child = formatTree(issue.issue, path, leafHook, checkHook)
       if (path.length > 0 && issue.issue._tag !== "Encoding") {
         return new Tree("Encoding failure", [child])
       }
       return child
     }
     case "Pointer":
-      return new Tree(formatPath(issue.path), [formatTree(issue.issue, [...path, ...issue.path], leafHook)])
+      return new Tree(formatPath(issue.path), [formatTree(issue.issue, [...path, ...issue.path], leafHook, checkHook)])
     case "Composite":
-      return new Tree(formatAST(issue.ast, issue), issue.issues.map((issue) => formatTree(issue, path, leafHook)))
+      return new Tree(
+        formatAST(issue.ast, issue),
+        issue.issues.map((issue) => formatTree(issue, path, leafHook, checkHook))
+      )
     case "AnyOf": {
       if (issue.issues.length === 1) {
-        return formatTree(issue.issues[0], path, leafHook)
+        return formatTree(issue.issues[0], path, leafHook, checkHook)
       }
-      return new Tree(formatAST(issue.ast, issue), issue.issues.map((issue) => formatTree(issue, path, leafHook)))
+      return new Tree(
+        formatAST(issue.ast, issue),
+        issue.issues.map((issue) => formatTree(issue, path, leafHook, checkHook))
+      )
     }
   }
 }
@@ -281,29 +287,22 @@ function formatTree(
  * @category StandardSchemaV1
  * @since 4.0.0
  */
-export type LeafHook = (
-  issue:
-    | Issue.InvalidType
-    | Issue.InvalidValue
-    | Issue.MissingKey
-    | Issue.UnexpectedKey
-    | Issue.Forbidden
-    | Issue.OneOf
-) => string
+export type LeafHook = (issue: Issue.Leaf) => string
 
 /**
+ * If the hook returns `undefined`, the formatter will proceed with the
+ * inner issue.
+ *
  * @category StandardSchemaV1
  * @since 4.0.0
  */
 export type CheckHook = (issue: Issue.Filter) => string | undefined
 
-/** @internal */
-export const defaultLeafHook: LeafHook = (issue) => {
+const defaultLeafHook: LeafHook = (issue) => {
   return issue._tag
 }
 
-/** @internal */
-export const defaultCheckHook: CheckHook = (issue) => {
+const defaultCheckHook: CheckHook = (issue) => {
   const meta = issue.filter.annotations?.meta
   if (Predicate.isObject(meta)) {
     const { _tag, ...rest } = meta
@@ -311,6 +310,14 @@ export const defaultCheckHook: CheckHook = (issue) => {
       return `${_tag}.${JSON.stringify(rest)}`
     }
   }
+}
+
+/**
+ * @category StandardSchemaV1
+ * @since 4.0.0
+ */
+export const verboseCheckHook: CheckHook = (issue) => {
+  return `Expected ${formatCheck(issue.filter, true)}, actual ${formatUnknown(issue.actual)}`
 }
 
 /**
@@ -351,9 +358,9 @@ function formatStandardV1(
     case "OneOf":
       return [{ path, message: leafHook(issue) }]
     case "Filter": {
-      const checkMessage = checkHook(issue)
-      if (checkMessage !== undefined) {
-        return [{ path, message: checkMessage }]
+      const message = checkHook(issue)
+      if (message !== undefined) {
+        return [{ path, message }]
       }
       return formatStandardV1(issue.issue, path, leafHook, checkHook)
     }

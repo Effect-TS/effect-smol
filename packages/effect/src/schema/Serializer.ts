@@ -7,6 +7,7 @@ import * as Option from "../data/Option.ts"
 import * as Predicate from "../data/Predicate.ts"
 import * as Effect from "../Effect.ts"
 import * as AST from "./AST.ts"
+import * as Check from "./Check.ts"
 import * as Getter from "./Getter.ts"
 import * as Issue from "./Issue.ts"
 import * as Schema from "./Schema.ts"
@@ -26,15 +27,18 @@ export function json<T, E, RD, RE>(
   return Schema.make<Schema.Codec<T, unknown, RD, RE>>(goJson(codec.ast))
 }
 
+const SYMBOL_PATTERN = /^Symbol\((.*)\)$/
+
+// to distinguish between Symbol and String, we need to add a check to the string keyword
 const symbolLink = new AST.Link(
-  AST.stringKeyword,
+  AST.appendChecks(AST.stringKeyword, [Check.regex(SYMBOL_PATTERN)]),
   new Transformation.Transformation(
-    Getter.map(Symbol.for),
+    Getter.map((description) => Symbol.for(SYMBOL_PATTERN.exec(description)![1])),
     Getter.mapOrFail((sym: symbol) => {
       const description = sym.description
       if (description !== undefined) {
         if (Symbol.for(description) === sym) {
-          return Effect.succeed(description)
+          return Effect.succeed(String(sym))
         }
         return Effect.fail(
           new Issue.Forbidden(Option.some(sym), {
