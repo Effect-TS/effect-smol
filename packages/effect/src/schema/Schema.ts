@@ -4005,7 +4005,7 @@ export const PropertyKey = Union([Symbol, String, Finite])
 /**
  * @since 4.0.0
  */
-export const FailureResult = Struct({
+export const StandardSchemaV1FailureResult = Struct({
   issues: Array(Struct({
     message: String,
     path: optional(Array(Union([PropertyKey, Struct({ key: PropertyKey })])))

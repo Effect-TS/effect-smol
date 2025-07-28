@@ -4888,7 +4888,7 @@ logIssues(Person, { name: "" })
 
 #### Sending a FailureResult over the wire
 
-You can use the `Schema.FailureResult` schema to send a `FailureResult` over the wire.
+You can use the `Schema.StandardSchemaV1FailureResult` schema to send a `StandardSchemaV1.FailureResult` over the wire.
 
 **Example** (Sending a FailureResult over the wire)
 
@@ -4910,7 +4910,7 @@ if (r._tag === "Failure") {
     leafHook: Formatter.treeLeafHook,
     checkHook: Formatter.verboseCheckHook
   }).format(r.failure)
-  const serializer = Serializer.json(Schema.FailureResult)
+  const serializer = Serializer.json(Schema.StandardSchemaV1FailureResult)
   console.dir(Schema.encodeSync(serializer)(failureResult), { depth: null })
 }
 /*

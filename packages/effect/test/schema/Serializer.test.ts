@@ -482,27 +482,31 @@ describe("Serializer", () => {
       await assertions.deserialization.json.codec.succeed(schema, "banana", Fruits.Banana)
     })
 
-    it("FailureResult", async () => {
+    it("StandardSchemaV1FailureResult", async () => {
       const b = Symbol.for("b")
+
       const schema = Schema.Struct({
         a: Schema.NonEmptyString,
         [b]: Schema.Finite,
         c: Schema.Tuple([Schema.String])
       })
+
       const r = ToParser.decodeUnknownResult(schema)({ a: "", c: [] }, { errors: "all" })
+
       assertTrue(r._tag === "Failure")
+
       const failureResult = Formatter.makeStandardSchemaV1({
         leafHook: Formatter.treeLeafHook,
         checkHook: Formatter.verboseCheckHook
       }).format(r.failure)
-      await assertions.serialization.json.codec.succeed(Schema.FailureResult, failureResult, {
+      await assertions.serialization.json.codec.succeed(Schema.StandardSchemaV1FailureResult, failureResult, {
         issues: [
           { path: ["a"], message: `Expected a value with a length of at least 1, actual ""` },
           { path: ["c", 0], message: "Missing key" },
           { path: ["Symbol(b)"], message: "Missing key" }
         ]
       })
-      await assertions.deserialization.json.codec.succeed(Schema.FailureResult, {
+      await assertions.deserialization.json.codec.succeed(Schema.StandardSchemaV1FailureResult, {
         issues: [
           { path: ["a"], message: `Expected a value with a length of at least 1, actual ""` },
           { path: ["c", 0], message: "Missing key" },
