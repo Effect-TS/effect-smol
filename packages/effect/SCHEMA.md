@@ -253,7 +253,7 @@ For use cases like RPC or messaging systems, the JSON format only needs to suppo
 **Example** (Serializing and deserializing a Map with complex keys and values)
 
 ```ts
-import { Option } from "effect"
+import { Option } from "effect/data"
 import { Schema, Serializer } from "effect/schema"
 
 // A schema for Map<Option<symbol>, Date>
@@ -269,12 +269,12 @@ const data = new Map([[Option.some(Symbol.for("a")), new Date("2021-01-01")]])
 const serialized = JSON.stringify(Schema.encodeUnknownSync(serializer)(data))
 
 console.log(serialized)
-// → [[["a"],"2021-01-01T00:00:00.000Z"]]
+// → [[["Symbol(a)"],"2021-01-01T00:00:00.000Z"]]
 
 // Deserialize and decode the value
 console.log(Schema.decodeUnknownSync(serializer)(JSON.parse(serialized)))
 // → Map(1) {
-//     Some(Symbol(a)) => 2021-01-01T00:00:00.000Z
+//     { _id: 'Option', _tag: 'Some', value: Symbol(a) } => 2021-01-01T00:00:00.000Z
 //   }
 ```
 
@@ -300,18 +300,15 @@ This is done by attaching a `defaultJsonSerializer` annotation when defining the
 import { Schema, Serializer, Transformation } from "effect/schema"
 
 // Custom Date schema with a default serializer
-const MyDate = Schema.instanceOf({
-  constructor: Date,
-  annotations: {
-    defaultJsonSerializer: () =>
-      Schema.link<Date>()(
-        Schema.String, // JSON representation
-        Transformation.transform({
-          decode: (s) => new Date(s),
-          encode: (date) => date.toISOString()
-        })
-      )
-  }
+const MyDate = Schema.instanceOf(Date, {
+  defaultJsonSerializer: () =>
+    Schema.link<Date>()(
+      Schema.String, // JSON representation
+      Transformation.transform({
+        decode: (s) => new Date(s),
+        encode: (date) => date.toISOString()
+      })
+    )
 })
 
 const serializer = Serializer.json(MyDate)
@@ -760,7 +757,8 @@ Default values can also be computed using effects, as long as the environment is
 **Example** (Using an effect to provide a default)
 
 ```ts
-import { Effect, Option } from "effect"
+import { Effect } from "effect"
+import { Option } from "effect/data"
 import { Schema, SchemaResult, ToParser } from "effect/schema"
 
 const schema = Schema.Struct({
@@ -781,7 +779,8 @@ SchemaResult.asEffect(ToParser.makeSchemaResult(schema)({})).pipe(Effect.runProm
 **Example** (Providing a default from an optional service)
 
 ```ts
-import { ServiceMap, Effect, Option } from "effect"
+import { ServiceMap, Effect } from "effect"
+import { Option } from "effect/data"
 import { Schema, SchemaResult, ToParser } from "effect/schema"
 
 // Define a service that may provide a default value
@@ -1196,7 +1195,8 @@ For more advanced scenarios, such as performing asynchronous validation or acces
 **Example** (Asynchronous validation of a numeric value)
 
 ```ts
-import { Effect, Option, Result } from "effect"
+import { Effect } from "effect"
+import { Option, Result } from "effect/data"
 import { Getter, Issue, Schema } from "effect/schema"
 
 // Simulated API call that fails when userId is 0
@@ -1327,7 +1327,7 @@ type Type = typeof schema.Type
 #### Omitting Values When Transforming Optional Fields
 
 ```ts
-import { Option, Predicate } from "effect"
+import { Option, Predicate } from "effect/data"
 import { Getter, Schema } from "effect/schema"
 
 export const schema = Schema.Struct({
@@ -1477,7 +1477,7 @@ This is useful when you need to account for values like `null` or other invalid 
 **Example** (Providing a fallback when value is `null` or missing)
 
 ```ts
-import { Option, Predicate } from "effect"
+import { Option, Predicate } from "effect/data"
 import { Getter, Schema } from "effect/schema"
 
 const schema = Schema.Struct({
@@ -1520,7 +1520,7 @@ console.log(Schema.decodeUnknownSync(schema)({ a: "2" }))
 **Example** (Providing a fallback when value is `null`, `undefined`, or missing)
 
 ```ts
-import { Option, Predicate } from "effect"
+import { Option, Predicate } from "effect/data"
 import { Getter, Schema } from "effect/schema"
 
 const schema = Schema.Struct({
@@ -1607,7 +1607,7 @@ console.log(Schema.encodeSync(Product)({ quantity: Option.none() }))
 #### Optional Property
 
 ```ts
-import { Option, Predicate } from "effect"
+import { Option, Predicate } from "effect/data"
 import { Schema, Transformation } from "effect/schema"
 
 const Product = Schema.Struct({
@@ -1649,7 +1649,7 @@ console.log(Schema.encodeSync(Product)({ quantity: Option.none() }))
 #### Exact Optional Property with Nullability
 
 ```ts
-import { Option, Predicate } from "effect"
+import { Option, Predicate } from "effect/data"
 import { Schema, Transformation } from "effect/schema"
 
 const Product = Schema.Struct({
@@ -1688,7 +1688,7 @@ console.log(Schema.decodeUnknownSync(Product)({ quantity: "2" }))
 #### Optional Property with Nullability
 
 ```ts
-import { Option, Predicate } from "effect"
+import { Option, Predicate } from "effect/data"
 import { Schema, Transformation } from "effect/schema"
 
 const Product = Schema.Struct({
@@ -2961,20 +2961,17 @@ class Person {
   ) {}
 }
 
-const PersonSchema = Schema.instanceOf({
-  constructor: Person,
-  annotations: {
-    title: "Person",
-    // optional: default JSON serialization
-    defaultJsonSerializer: () =>
-      Schema.link<Person>()(
-        Schema.Tuple([Schema.String, Schema.Number]),
-        Transformation.transform({
-          decode: (args) => new Person(...args),
-          encode: (instance) => [instance.name, instance.age] as const
-        })
-      )
-  }
+const PersonSchema = Schema.instanceOf(Person, {
+  title: "Person",
+  // optional: default JSON serialization
+  defaultJsonSerializer: () =>
+    Schema.link<Person>()(
+      Schema.Tuple([Schema.String, Schema.Number]),
+      Transformation.transform({
+        decode: (args) => new Person(...args),
+        encode: (instance) => [instance.name, instance.age] as const
+      })
+    )
 })
   // optional: explicit encoding
   .pipe(
@@ -3003,20 +3000,17 @@ class Person {
   ) {}
 }
 
-const PersonSchema = Schema.instanceOf({
-  constructor: Person,
-  annotations: {
-    title: "Person",
-    // optional: default JSON serialization
-    defaultJsonSerializer: () =>
-      Schema.link<Person>()(
-        Schema.Tuple([Schema.String, Schema.Number]),
-        Transformation.transform({
-          decode: (args) => new Person(...args),
-          encode: (instance) => [instance.name, instance.age] as const
-        })
-      )
-  }
+const PersonSchema = Schema.instanceOf(Person, {
+  title: "Person",
+  // optional: default JSON serialization
+  defaultJsonSerializer: () =>
+    Schema.link<Person>()(
+      Schema.Tuple([Schema.String, Schema.Number]),
+      Transformation.transform({
+        decode: (args) => new Person(...args),
+        encode: (instance) => [instance.name, instance.age] as const
+      })
+    )
 })
   // optional: explicit encoding
   .pipe(
@@ -3050,7 +3044,8 @@ class PersonWithEmail extends Person {
 **Example** (Extending Data.Error)
 
 ```ts
-import { Data, Effect, identity } from "effect"
+import { Effect, identity } from "effect"
+import { Data } from "effect/data"
 import { Schema, Transformation, Util } from "effect/schema"
 
 const Props = Schema.Struct({
@@ -3091,13 +3086,10 @@ const transformation = Transformation.transform<Err, (typeof Props)["Type"]>({
   encode: identity
 })
 
-const schema = Schema.instanceOf({
-  constructor: Err,
-  annotations: {
-    title: "Err",
-    serialization: {
-      json: () => Schema.link<Err>()(Props, transformation)
-    }
+const schema = Schema.instanceOf(Err, {
+  title: "Err",
+  serialization: {
+    json: () => Schema.link<Err>()(Props, transformation)
   }
 }).pipe(Schema.encodeTo(Props, transformation))
 
@@ -3874,12 +3866,13 @@ This is useful when you need to validate input or enforce rules that may not alw
 **Example** (Converting a string URL into a `URL` object)
 
 ```ts
-import { Effect, Option } from "effect"
+import { Effect } from "effect"
+import { Option } from "effect/data"
 import { Issue, Schema, Transformation } from "effect/schema"
 
 const URLFromString = Schema.String.pipe(
   Schema.decodeTo(
-    Schema.instanceOf({ constructor: URL }),
+    Schema.instanceOf(URL),
     Transformation.transformOrFail({
       decode: (s) =>
         Effect.try({
@@ -4115,7 +4108,8 @@ b
 ### Providing a Service
 
 ```ts
-import { ServiceMap, Effect, Option } from "effect"
+import { ServiceMap, Effect } from "effect"
+import { Option } from "effect/data"
 import { Formatter, Schema } from "effect/schema"
 
 class Service extends ServiceMap.Key<Service, { fallback: Effect.Effect<string> }>()("Service") {}
@@ -4530,13 +4524,10 @@ class MyClass {
   constructor(readonly a: string) {}
 }
 
-const schema = Schema.instanceOf({
-  constructor: MyClass,
-  annotations: {
-    equivalence: {
-      _tag: "Declaration",
-      declaration: () => (x, y) => x.a === y.a
-    }
+const schema = Schema.instanceOf(MyClass, {
+  equivalence: {
+    _tag: "Declaration",
+    declaration: () => (x, y) => x.a === y.a
   }
 })
 
@@ -4604,7 +4595,8 @@ The `getTitle` annotation allows you to add dynamic context to error messages by
 **Example** (Generating a title based on the value being validated)
 
 ```ts
-import { Effect, Option } from "effect"
+import { Effect } from "effect"
+import { Option } from "effect/data"
 import { Formatter, Issue, Schema } from "effect/schema"
 
 const getOrderId = (issue: Issue.Issue) => {
