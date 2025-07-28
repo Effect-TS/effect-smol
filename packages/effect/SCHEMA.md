@@ -2204,20 +2204,24 @@ const literal = tagged.fields._tag.schema.literal
 // literal: "A"
 ```
 
-## Opaque Structs
+## 🆕 Opaque Structs
 
-Use an opaque struct when you want to create a distinct type from a `Struct` without adding runtime behavior.
+Goal: opaque typing without changing runtime behavior.
 
-An opaque struct wraps a `Struct` in a class while preserving its schema shape.
+`Schema.Opaque` lets you take an ordinary `Schema.Struct` and wrap it in a thin class shell whose **only** purpose is to create a distinct TypeScript type.
 
-Instance methods and custom constructors **are not allowed** in opaque structs. This is not enforced at the type level, but it may be enforced through a linter in the future.
+Internally the value is **still the same plain struct schema**.
 
-Use `Schema.Class` instead of an opaque struct when you need runtime behavior.
+Instance methods and custom constructors **are not allowed** in opaque structs (no `new ...`).
+This is not enforced at the type level, but it may be enforced through a linter in the future.
 
-`Schema.Class` wraps a `Struct` in a class and allows:
+### How is this different from `Schema.Class`?
 
-- Defining instance methods, getters, and custom constructors
-- Structural equality via the `Equal` trait
+`Schema.Class` also wraps a `Struct`, **but** it turns the wrapper into a proper class:
+
+- You can add instance methods, getters, setters, custom constructors.
+- The generated class automatically implements `Equal` so structural equality works out of the box.
+- Instances carry the class prototype at runtime, so `instanceof` checks succeed and methods are callable.
 
 **Example** (Creating an Opaque Struct)
 
@@ -2234,7 +2238,7 @@ class Person extends Schema.Opaque<Person>()(
 //      ▼
 const codec = Schema.revealCodec(Person)
 
-// const x: Person
+// const person: Person
 const person = Person.makeSync({ name: "John" })
 
 console.log(person.name)
