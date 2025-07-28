@@ -4008,7 +4008,7 @@ export const PropertyKey = Union([Symbol, String, Finite])
 export const FailureResult = Struct({
   issues: Array(Struct({
     message: String,
-    path: optional(Array(PropertyKey))
+    path: optional(Array(Union([PropertyKey, Struct({ key: PropertyKey })])))
   }))
 })
 

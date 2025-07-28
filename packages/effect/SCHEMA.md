@@ -4886,6 +4886,47 @@ logIssues(Person, { name: "" })
 // [ { path: [ 'name' ], message: 'Please enter at least 1 character(s)' } ]
 ```
 
+#### Sending a FailureResult over the wire
+
+You can use the `Schema.FailureResult` schema to send a `FailureResult` over the wire.
+
+**Example** (Sending a FailureResult over the wire)
+
+```ts
+import { Formatter, Schema, Serializer, ToParser } from "effect/schema"
+
+const b = Symbol.for("b")
+
+const schema = Schema.Struct({
+  a: Schema.NonEmptyString,
+  [b]: Schema.Finite,
+  c: Schema.Tuple([Schema.String])
+})
+
+const r = ToParser.decodeUnknownResult(schema)({ a: "", c: [] }, { errors: "all" })
+
+if (r._tag === "Failure") {
+  const failureResult = Formatter.makeStandardSchemaV1({
+    leafHook: Formatter.treeLeafHook,
+    checkHook: Formatter.verboseCheckHook
+  }).format(r.failure)
+  const serializer = Serializer.json(Schema.FailureResult)
+  console.dir(Schema.encodeSync(serializer)(failureResult), { depth: null })
+}
+/*
+{
+  issues: [
+    {
+      message: 'Expected a value with a length of at least 1, actual ""',
+      path: [ 'a' ]
+    },
+    { message: 'Missing key', path: [ 'c', 0 ] },
+    { message: 'Missing key', path: [ 'Symbol(b)' ] }
+  ]
+}
+*/
+```
+
 ### Structured formatter
 
 The Structured formatter is for **post-processing** purposes.
