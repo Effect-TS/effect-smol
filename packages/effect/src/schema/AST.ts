@@ -2332,7 +2332,7 @@ function coerceNull(ast: NullKeyword): NullKeyword {
 }
 
 const numberKeywordPattern = appendChecks(stringKeyword, [
-  Check.regex(new RegExp(NUMBER_KEYWORD_PATTERN))
+  Check.regex(new RegExp(NUMBER_KEYWORD_PATTERN), { title: "NUMBER_KEYWORD_PATTERN" })
 ])
 
 const numberLink = new Link(
@@ -2356,8 +2356,12 @@ function coerceBoolean<A extends BooleanKeyword | LiteralType>(ast: A): A {
   return replaceEncoding(ast, [booleanLink])
 }
 
+const bigintKeywordPattern = appendChecks(stringKeyword, [
+  Check.regex(new RegExp(BIGINT_KEYWORD_PATTERN), { title: "BIGINT_KEYWORD_PATTERN" })
+])
+
 const bigIntLink = new Link(
-  numberKeywordPattern,
+  bigintKeywordPattern,
   new Transformation.Transformation(
     Getter.map(BigInt),
     Getter.String()
