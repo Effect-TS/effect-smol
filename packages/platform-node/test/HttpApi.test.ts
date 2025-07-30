@@ -674,7 +674,7 @@ const HttpGroupsLive = HttpApiBuilder.group(
     handlers
       .handle("findById", ({ path }) =>
         path.id === 0
-          ? Effect.fail(new GroupError({}))
+          ? Effect.fail(new GroupError())
           : Effect.succeed(new Group({ id: 1, name: "foo" })))
       .handle("create", ({ payload }) =>
         Effect.succeed(
