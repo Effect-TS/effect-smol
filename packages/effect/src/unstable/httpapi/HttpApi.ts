@@ -10,10 +10,10 @@ import type * as Schema from "../../schema/Schema.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import type { Mutable } from "../../types/Types.ts"
 import type { PathInput } from "../http/HttpRouter.ts"
-import type * as HttpApiEndpoint from "./HttpApiEndpoint.js"
-import type * as HttpApiGroup from "./HttpApiGroup.js"
-import type * as HttpApiMiddleware from "./HttpApiMiddleware.js"
-import * as HttpApiSchema from "./HttpApiSchema.js"
+import type * as HttpApiEndpoint from "./HttpApiEndpoint.ts"
+import type * as HttpApiGroup from "./HttpApiGroup.ts"
+import type * as HttpApiMiddleware from "./HttpApiMiddleware.ts"
+import * as HttpApiSchema from "./HttpApiSchema.ts"
 
 /**
  * @since 4.0.0

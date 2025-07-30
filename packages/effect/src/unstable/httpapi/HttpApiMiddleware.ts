@@ -6,9 +6,9 @@ import type { Simplify } from "../../data/Struct.ts"
 import type * as Effect from "../../Effect.ts"
 import * as Schema from "../../schema/Schema.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
-import type * as HttpRouter from "../http/HttpRouter.js"
+import type * as HttpRouter from "../http/HttpRouter.ts"
 import type { HttpServerResponse } from "../http/HttpServerResponse.ts"
-import type * as HttpApiSecurity from "./HttpApiSecurity.js"
+import type * as HttpApiSecurity from "./HttpApiSecurity.ts"
 
 /**
  * @since 4.0.0

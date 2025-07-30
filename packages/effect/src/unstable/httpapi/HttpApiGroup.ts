@@ -6,8 +6,8 @@ import * as Record from "../../data/Record.ts"
 import { type Pipeable, pipeArguments } from "../../interfaces/Pipeable.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import type { PathInput } from "../http/HttpRouter.ts"
-import type * as HttpApiEndpoint from "./HttpApiEndpoint.js"
-import type * as HttpApiMiddleware from "./HttpApiMiddleware.js"
+import type * as HttpApiEndpoint from "./HttpApiEndpoint.ts"
+import type * as HttpApiMiddleware from "./HttpApiMiddleware.ts"
 
 /**
  * @since 4.0.0

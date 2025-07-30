@@ -2,9 +2,9 @@
  * @since 1.0.0
  */
 import * as Effect from "../../Effect.ts"
-import * as Formatter from "../../schema/Formatter.js"
+import * as Formatter from "../../schema/Formatter.ts"
 import * as Schema from "../../schema/Schema.ts"
-import * as HttpApiSchema from "./HttpApiSchema.js"
+import * as HttpApiSchema from "./HttpApiSchema.ts"
 
 /**
  * @since 1.0.0
