@@ -721,12 +721,6 @@ export type ContextWithName<Endpoints extends Any, Name extends string> = Servic
  * @since 4.0.0
  * @category models
  */
-export type ErrorContextWithName<Endpoints extends Any, Name extends string> = ErrorServices<WithName<Endpoints, Name>>
-
-/**
- * @since 4.0.0
- * @category models
- */
 export type MiddlewareWithName<Endpoints extends Any, Name extends string> = Middleware<WithName<Endpoints, Name>>
 
 /**
