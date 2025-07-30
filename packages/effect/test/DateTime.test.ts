@@ -19,6 +19,7 @@ const assertSomeIso = (value: Option.Option<DateTime.DateTime>, expected: string
   const iso = value.pipe(Option.map((value) => DateTime.formatIso(DateTime.toUtc(value))))
   assertSome(iso, expected)
 }
+const isDeno = "Deno" in globalThis
 
 describe("DateTime", () => {
   describe("mutate", () => {
@@ -211,7 +212,7 @@ describe("DateTime", () => {
     })
   })
 
-  describe("format", () => {
+  describe.skipIf(isDeno)("format", () => {
     it.effect("full", () =>
       Effect.gen(function*() {
         const now = yield* DateTime.now
@@ -226,7 +227,7 @@ describe("DateTime", () => {
       }))
   })
 
-  describe("formatUtc", () => {
+  describe.skipIf(isDeno)("formatUtc", () => {
     it.effect("full", () =>
       Effect.gen(function*() {
         const now = yield* DateTime.now
@@ -241,7 +242,7 @@ describe("DateTime", () => {
       }))
   })
 
-  describe("format zoned", () => {
+  describe.skipIf(isDeno)("format zoned", () => {
     it.effect("full", () =>
       Effect.gen(function*() {
         const now = yield* DateTime.nowInCurrentZone.pipe(
@@ -257,7 +258,7 @@ describe("DateTime", () => {
         )
       }))
 
-    it.effect("long with offset", () =>
+    it.effect.skipIf(isDeno)("long with offset", () =>
       Effect.gen(function*() {
         const now = yield* DateTime.now
         const formatted = now.pipe(
