@@ -28,7 +28,7 @@
               "application/json": {
                 "schema": {
                   "$schema": "https://json-schema.org/draft/2020-12/schema",
-                  "$ref": "#/$defs/Group"
+                  "$ref": "#/components/schemas/Group"
                 }
               }
             }
@@ -39,7 +39,7 @@
               "application/json": {
                 "schema": {
                   "$schema": "https://json-schema.org/draft/2020-12/schema",
-                  "$ref": "#/$defs/effect~1HttpApiSchemaError"
+                  "$ref": "#/components/schemas/effect~1HttpApiSchemaError"
                 }
               }
             }
@@ -63,19 +63,7 @@
               "application/json": {
                 "schema": {
                   "$schema": "https://json-schema.org/draft/2020-12/schema",
-                  "type": "object",
-                  "properties": {
-                    "id": {
-                      "type": "integer",
-                      "title": "int",
-                      "description": "an integer"
-                    },
-                    "name": {
-                      "type": "string"
-                    }
-                  },
-                  "required": ["id", "name"],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/Group"
                 }
               }
             }
@@ -86,18 +74,7 @@
               "application/json": {
                 "schema": {
                   "$schema": "https://json-schema.org/draft/2020-12/schema",
-                  "type": "object",
-                  "properties": {
-                    "_tag": {
-                      "type": "string",
-                      "enum": ["HttpApiSchemaError"]
-                    },
-                    "message": {
-                      "type": "string"
-                    }
-                  },
-                  "required": ["_tag", "message"],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/effect~1HttpApiSchemaError"
                 }
               }
             }
@@ -192,18 +169,7 @@
               "application/json": {
                 "schema": {
                   "$schema": "https://json-schema.org/draft/2020-12/schema",
-                  "type": "object",
-                  "properties": {
-                    "_tag": {
-                      "type": "string",
-                      "enum": ["HttpApiSchemaError"]
-                    },
-                    "message": {
-                      "type": "string"
-                    }
-                  },
-                  "required": ["_tag", "message"],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/effect~1HttpApiSchemaError"
                 }
               }
             }
@@ -272,18 +238,7 @@
               "application/json": {
                 "schema": {
                   "$schema": "https://json-schema.org/draft/2020-12/schema",
-                  "type": "object",
-                  "properties": {
-                    "_tag": {
-                      "type": "string",
-                      "enum": ["HttpApiSchemaError"]
-                    },
-                    "message": {
-                      "type": "string"
-                    }
-                  },
-                  "required": ["_tag", "message"],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/effect~1HttpApiSchemaError"
                 }
               }
             }
@@ -330,12 +285,12 @@
         ],
         "responses": {
           "200": {
-            "description": "Success",
+            "description": "Some description for User",
             "content": {
               "application/json": {
                 "schema": {
                   "$schema": "https://json-schema.org/draft/2020-12/schema",
-                  "$ref": "#/$defs/User"
+                  "$ref": "#/components/schemas/User"
                 }
               }
             }
@@ -348,21 +303,10 @@
                   "$schema": "https://json-schema.org/draft/2020-12/schema",
                   "anyOf": [
                     {
-                      "type": "object",
-                      "properties": {
-                        "_tag": {
-                          "type": "string",
-                          "enum": ["HttpApiSchemaError"]
-                        },
-                        "message": {
-                          "type": "string"
-                        }
-                      },
-                      "required": ["_tag", "message"],
-                      "additionalProperties": false
+                      "$ref": "#/components/schemas/effect~1HttpApiSchemaError"
                     },
                     {
-                      "$ref": "#/$defs/UserError"
+                      "$ref": "#/components/schemas/UserError"
                     }
                   ]
                 }
@@ -393,30 +337,12 @@
         ],
         "responses": {
           "200": {
-            "description": "Success",
+            "description": "Some description for User",
             "content": {
               "application/json": {
                 "schema": {
                   "$schema": "https://json-schema.org/draft/2020-12/schema",
-                  "type": "object",
-                  "properties": {
-                    "id": {
-                      "type": "integer",
-                      "title": "int",
-                      "description": "an integer"
-                    },
-                    "uuid": {
-                      "type": "string"
-                    },
-                    "name": {
-                      "type": "string"
-                    },
-                    "createdAt": {
-                      "type": "string"
-                    }
-                  },
-                  "required": ["id", "name", "createdAt"],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/User"
                 }
               }
             }
@@ -429,29 +355,10 @@
                   "$schema": "https://json-schema.org/draft/2020-12/schema",
                   "anyOf": [
                     {
-                      "type": "object",
-                      "properties": {
-                        "_tag": {
-                          "type": "string",
-                          "enum": ["HttpApiSchemaError"]
-                        },
-                        "message": {
-                          "type": "string"
-                        }
-                      },
-                      "required": ["_tag", "message"],
-                      "additionalProperties": false
+                      "$ref": "#/components/schemas/effect~1HttpApiSchemaError"
                     },
                     {
-                      "type": "object",
-                      "properties": {
-                        "_tag": {
-                          "type": "string",
-                          "enum": ["UserError"]
-                        }
-                      },
-                      "required": ["_tag"],
-                      "additionalProperties": false
+                      "$ref": "#/components/schemas/UserError"
                     }
                   ]
                 }
@@ -516,25 +423,7 @@
                   "$schema": "https://json-schema.org/draft/2020-12/schema",
                   "type": "array",
                   "items": {
-                    "type": "object",
-                    "properties": {
-                      "id": {
-                        "type": "integer",
-                        "title": "int",
-                        "description": "an integer"
-                      },
-                      "uuid": {
-                        "type": "string"
-                      },
-                      "name": {
-                        "type": "string"
-                      },
-                      "createdAt": {
-                        "type": "string"
-                      }
-                    },
-                    "required": ["id", "name", "createdAt"],
-                    "additionalProperties": false
+                    "$ref": "#/components/schemas/User"
                   }
                 }
               }
@@ -546,18 +435,7 @@
               "application/json": {
                 "schema": {
                   "$schema": "https://json-schema.org/draft/2020-12/schema",
-                  "type": "object",
-                  "properties": {
-                    "_tag": {
-                      "type": "string",
-                      "enum": ["HttpApiSchemaError"]
-                    },
-                    "message": {
-                      "type": "string"
-                    }
-                  },
-                  "required": ["_tag", "message"],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/effect~1HttpApiSchemaError"
                 }
               }
             }
@@ -568,7 +446,7 @@
               "application/json": {
                 "schema": {
                   "$schema": "https://json-schema.org/draft/2020-12/schema",
-                  "$ref": "#/$defs/NoStatusError"
+                  "$ref": "#/components/schemas/NoStatusError"
                 }
               }
             }
@@ -627,18 +505,7 @@
               "application/json": {
                 "schema": {
                   "$schema": "https://json-schema.org/draft/2020-12/schema",
-                  "type": "object",
-                  "properties": {
-                    "_tag": {
-                      "type": "string",
-                      "enum": ["HttpApiSchemaError"]
-                    },
-                    "message": {
-                      "type": "string"
-                    }
-                  },
-                  "required": ["_tag", "message"],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/effect~1HttpApiSchemaError"
                 }
               }
             }
@@ -705,18 +572,7 @@
               "application/json": {
                 "schema": {
                   "$schema": "https://json-schema.org/draft/2020-12/schema",
-                  "type": "object",
-                  "properties": {
-                    "_tag": {
-                      "type": "string",
-                      "enum": ["HttpApiSchemaError"]
-                    },
-                    "message": {
-                      "type": "string"
-                    }
-                  },
-                  "required": ["_tag", "message"],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/effect~1HttpApiSchemaError"
                 }
               }
             }
@@ -759,18 +615,7 @@
               "application/json": {
                 "schema": {
                   "$schema": "https://json-schema.org/draft/2020-12/schema",
-                  "type": "object",
-                  "properties": {
-                    "_tag": {
-                      "type": "string",
-                      "enum": ["HttpApiSchemaError"]
-                    },
-                    "message": {
-                      "type": "string"
-                    }
-                  },
-                  "required": ["_tag", "message"],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/effect~1HttpApiSchemaError"
                 }
               }
             }

@@ -237,10 +237,11 @@ export const fromApi = <Id extends string, Groups extends HttpApiGroup.Any>(
 
   function processAST(ast: AST.AST): object {
     const schema = ToJsonSchema.makeOpenApi3_1(Schema.make(ast), {
-      $defs: jsonSchemaDefs,
+      getRef: (id) => `#/components/schemas/${id}`,
       additionalPropertiesStrategy: options?.additionalPropertiesStrategy,
       topLevelReferenceStrategy: "keep"
     }) as any
+    Object.assign(jsonSchemaDefs, schema.$defs)
     delete schema.$defs
     return schema
   }
