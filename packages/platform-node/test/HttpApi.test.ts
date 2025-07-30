@@ -1,9 +1,11 @@
 import { NodeHttpServer } from "@effect/platform-node"
 import { assert, describe, it } from "@effect/vitest"
-import { Effect, Layer, ServiceMap } from "effect"
-import { Redacted, Struct } from "effect/data"
+import { Effect, Layer, Ref, ServiceMap } from "effect"
+import { Array } from "effect/collections"
+import { Filter, Redacted, Struct } from "effect/data"
 import { FileSystem } from "effect/platform"
 import { Getter, Schema, Transformation } from "effect/schema"
+import { Stream } from "effect/stream"
 import { DateTime } from "effect/time"
 import {
   Cookies,
@@ -25,7 +27,7 @@ import {
   HttpApiSecurity,
   OpenApi
 } from "effect/unstable/httpapi"
-// import OpenApiFixture from "./fixtures/openapi.json" with { type: "json" }
+import OpenApiFixture from "./fixtures/openapi.json" with { type: "json" }
 
 describe("HttpApi", () => {
   describe("payload", () => {
@@ -136,7 +138,7 @@ describe("HttpApi", () => {
         assert.deepStrictEqual(error, new GroupError())
       }).pipe(Effect.provide(HttpLive)))
 
-    it.scoped("default to 500 status code", () =>
+    it.effect("default to 500 status code", () =>
       Effect.gen(function*() {
         const response = yield* HttpClientRequest.get("/users").pipe(
           HttpClientRequest.setHeaders({ page: "0" }),
@@ -149,7 +151,7 @@ describe("HttpApi", () => {
         })
       }).pipe(Effect.provide(HttpLive)))
 
-    it.scoped("class level annotations", () =>
+    it.effect("class level annotations", () =>
       Effect.gen(function*() {
         const response = yield* HttpClientRequest.post("/users").pipe(
           HttpClientRequest.setUrlParams({ id: "0" }),
@@ -159,14 +161,15 @@ describe("HttpApi", () => {
         assert.strictEqual(response.status, 400)
       }).pipe(Effect.provide(HttpLive)))
 
-    it.effect("HttpApiDecodeError", () =>
+    it.effect("HttpApiSchemaError", () =>
       Effect.gen(function*() {
         const client = yield* HttpApiClient.make(Api)
         const error = yield* client.users.upload({ path: {}, payload: new FormData() }).pipe(
           Effect.flip
         )
-        assert(error._tag === "HttpApiDecodeError")
-        assert.deepStrictEqual(error.issues[0].path, ["file"])
+        assert(error._tag === "HttpApiSchemaError")
+        // TODO: add back issues
+        // assert.deepStrictEqual(error.issues[0].path, ["file"])
       }).pipe(Effect.provide(HttpLive)))
   })
 
@@ -317,34 +320,39 @@ describe("HttpApi", () => {
   })
 
   it.effect("error from plain text", () => {
-    class RateLimitError extends Schema.TaggedError<RateLimitError>("RateLimitError")(
-      "RateLimitError",
-      Schema.Struct({ message: Schema.String })
-    ) {}
+    class RateLimitError extends Schema.ErrorClass<RateLimitError>("RateLimitError")({
+      _tag: Schema.tag("RateLimitError"),
+      message: Schema.String
+    }) {}
 
     const RateLimitErrorSchema = HttpApiSchema.withEncoding(
-      Schema.transform(Schema.String, RateLimitError, {
-        encode: ({ message }) => message,
-        decode: (message) => RateLimitError.make({ message }),
-        strict: true
-      }),
+      Schema.String.pipe(
+        Schema.decodeTo(
+          RateLimitError,
+          Transformation.transform({
+            encode: ({ message }) => message,
+            decode: (message) => new RateLimitError({ message })
+          })
+        )
+      ),
       { kind: "Text" }
-    ).annotations(HttpApiSchema.annotations({ status: 429 }))
+    ).annotate({ httpApiStatus: 429 })
 
     const Api = HttpApi.make("api").add(
       HttpApiGroup.make("group").add(
-        HttpApiEndpoint.get("error")`/error`.addError(RateLimitErrorSchema)
+        HttpApiEndpoint.get("error", "/error").addError(RateLimitErrorSchema)
       )
     )
-    const ApiLive = HttpLayerRouter.addHttpApi(Api).pipe(
+    const ApiLive = HttpApiBuilder.layer(Api).pipe(
       Layer.provide(
         HttpApiBuilder.group(
           Api,
           "group",
-          (handlers) => handlers.handle("error", () => new RateLimitError({ message: "Rate limit exceeded" }))
+          (handlers) =>
+            handlers.handle("error", () => new RateLimitError({ message: "Rate limit exceeded" }).asEffect())
         )
       ),
-      HttpLayerRouter.serve,
+      HttpRouter.serve,
       Layer.provideMerge(NodeHttpServer.layerTest)
     )
     return Effect.gen(function*() {
@@ -359,6 +367,10 @@ class UserError extends Schema.ErrorClass<UserError>("UserError")({
   _tag: Schema.tag("UserError")
 }, {
   httpApiStatus: 400
+}) {}
+class GroupError extends HttpApiSchema.EmptyError<GroupError>()({
+  tag: "GroupError",
+  status: 418
 }) {}
 class NoStatusError extends Schema.ErrorClass<NoStatusError>("NoStatusError")({
   _tag: Schema.tag("NoStatusError")
@@ -417,6 +429,7 @@ class GroupsApi extends HttpApiGroup.make("groups")
         id: Schema.FiniteFromString
       }))
       .addSuccess(Group)
+      .addError(GroupError)
   )
   .add(
     HttpApiEndpoint.post("create", "/")
@@ -467,6 +480,7 @@ class UsersApi extends HttpApiGroup.make("users")
         id: Schema.FiniteFromString
       }))
       .addSuccess(User)
+      .addError(UserError)
   )
   .add(
     HttpApiEndpoint.post("create", "/")
@@ -629,14 +643,14 @@ const HttpUsersLive = HttpApiBuilder.group(
       .handle("uploadStream", (_) =>
         Effect.gen(function*() {
           const { content, file } = yield* _.payload.pipe(
-            Stream.filter((part) => part._tag === "File"),
+            Stream.filter((part) => part._tag === "File" ? part : Filter.fail(part)),
             Stream.mapEffect((file) =>
               file.contentEffect.pipe(
                 Effect.map((content) => ({ file, content }))
               )
             ),
             Stream.runCollect,
-            Effect.flatMap(Chunk.head),
+            Effect.flatMap((_) => Array.head(_).asEffect()),
             Effect.orDie
           )
           return {
@@ -645,11 +659,13 @@ const HttpUsersLive = HttpApiBuilder.group(
           }
         }))
   })
-).pipe(Layer.provide([
-  DateTime.layerCurrentZoneOffset(0),
-  UserRepo.Live,
-  AuthorizationLive
-]))
+).pipe(
+  Layer.provide([
+    DateTime.layerCurrentZoneOffset(0),
+    UserRepo.Live,
+    AuthorizationLive
+  ])
+)
 
 const HttpGroupsLive = HttpApiBuilder.group(
   Api,
@@ -658,7 +674,7 @@ const HttpGroupsLive = HttpApiBuilder.group(
     handlers
       .handle("findById", ({ path }) =>
         path.id === 0
-          ? Effect.fail(new GroupError())
+          ? Effect.fail(new GroupError({}))
           : Effect.succeed(new Group({ id: 1, name: "foo" })))
       .handle("create", ({ payload }) =>
         Effect.succeed(
@@ -669,7 +685,7 @@ const HttpGroupsLive = HttpApiBuilder.group(
         ))
       .handle(
         "handle",
-        Effect.fn(function*({ path, payload }) {
+        Effect.fnUntraced(function*({ path, payload }) {
           return HttpServerResponse.unsafeJson({
             id: path.id,
             name: payload.name
@@ -678,7 +694,7 @@ const HttpGroupsLive = HttpApiBuilder.group(
       )
       .handleRaw(
         "handleRaw",
-        Effect.fn(function*({ path, request }) {
+        Effect.fnUntraced(function*({ path, request }) {
           const body = (yield* Effect.orDie(request.json)) as { name: string }
           return HttpServerResponse.unsafeJson({
             id: path.id,
@@ -694,14 +710,15 @@ const TopLevelLive = HttpApiBuilder.group(
   (handlers) => handlers.handle("healthz", (_) => Effect.void)
 )
 
-const HttpApiLive = Layer.provide(HttpApiBuilder.api(Api), [
+const HttpApiLive = Layer.provide(HttpApiBuilder.layer(Api), [
   HttpGroupsLive,
   HttpUsersLive,
   TopLevelLive
 ])
 
-const HttpLive = HttpApiBuilder.serve().pipe(
-  Layer.provide(HttpApiBuilder.middlewareCors()),
-  Layer.provide(HttpApiLive),
+const HttpLive = HttpRouter.serve(HttpApiLive, {
+  disableListenLog: true,
+  disableLogger: true
+}).pipe(
   Layer.provideMerge(NodeHttpServer.layerTest)
 )

@@ -157,7 +157,7 @@ const Proto = {
       annotations: ServiceMap.add(this.annotations, key, value)
     })
   },
-  annotateContext(this: AnyWithProps, annotations: ServiceMap.ServiceMap<never>) {
+  annotateMerge(this: AnyWithProps, annotations: ServiceMap.ServiceMap<never>) {
     return makeProto({
       identifier: this.identifier,
       groups: this.groups,

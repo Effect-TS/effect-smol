@@ -32,7 +32,7 @@ export type TypeId = "~effect/httpapi/HttpApiError"
  * @since 1.0.0
  * @category errors
  */
-export class HttpApiSchemaError extends Schema.ErrorClass<HttpApiSchemaError>(TypeId)({
+export class HttpApiSchemaError extends Schema.ErrorClass<HttpApiSchemaError>("effect/HttpApiSchemaError")({
   _tag: Schema.tag("HttpApiSchemaError"),
   // issues: Schema.Array(Issue),
   message: Schema.String

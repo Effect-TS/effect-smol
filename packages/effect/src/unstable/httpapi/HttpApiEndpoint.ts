@@ -7,7 +7,7 @@ import * as Predicate from "../../data/Predicate.ts"
 import type { Simplify } from "../../data/Struct.ts"
 import type { Effect } from "../../Effect.ts"
 import { type Pipeable, pipeArguments } from "../../interfaces/Pipeable.ts"
-import * as Schema from "../../schema/Schema.ts"
+import type * as Schema from "../../schema/Schema.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import type * as Stream from "../../stream/Stream.ts"
 import type * as Types from "../../types/Types.ts"
@@ -16,6 +16,7 @@ import * as HttpRouter from "../http/HttpRouter.ts"
 import type { HttpServerRequest } from "../http/HttpServerRequest.ts"
 import type { HttpServerResponse } from "../http/HttpServerResponse.ts"
 import type * as Multipart from "../http/Multipart.ts"
+import { HttpApiSchemaError } from "./HttpApiError.ts"
 import type * as HttpApiMiddleware from "./HttpApiMiddleware.ts"
 import * as HttpApiSchema from "./HttpApiSchema.ts"
 
@@ -483,7 +484,7 @@ export type Error<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
   infer _Error,
   infer _M,
   infer _MR
-> ? _Error | HttpApiMiddleware.Error<Middleware<Endpoint>>
+> ? _Error["Type"] | HttpApiMiddleware.Error<Middleware<Endpoint>>
   : never
 
 /**
@@ -522,10 +523,10 @@ export type Request<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
   infer _M,
   infer _MR
 > ?
-    & ([_Path] extends [never] ? {} : { readonly path: _PathSchema["Type"] })
-    & ([_UrlParams] extends [never] ? {} : { readonly urlParams: _UrlParams["Type"] })
-    & ([_Payload] extends [never] ? {}
-      : _Payload extends Brand<HttpApiSchema.MultipartId> ?
+    & ([_PathSchema["Type"]] extends [never] ? {} : { readonly path: _PathSchema["Type"] })
+    & ([_UrlParams["Type"]] extends [never] ? {} : { readonly urlParams: _UrlParams["Type"] })
+    & ([_Payload["Type"]] extends [never] ? {}
+      : _Payload["Type"] extends Brand<HttpApiSchema.MultipartStreamId> ?
         { readonly payload: Stream.Stream<Multipart.Part, Multipart.MultipartError> }
       : { readonly payload: _Payload["Type"] })
     & ([_Headers] extends [never] ? {} : { readonly headers: _Headers["Type"] })
@@ -549,9 +550,9 @@ export type RequestRaw<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
   infer _M,
   infer _MR
 > ?
-    & ([_Path] extends [never] ? {} : { readonly path: _PathSchema["Type"] })
-    & ([_UrlParams] extends [never] ? {} : { readonly urlParams: _UrlParams["Type"] })
-    & ([_Headers] extends [never] ? {} : { readonly headers: _Headers["Type"] })
+    & ([_PathSchema["Type"]] extends [never] ? {} : { readonly path: _PathSchema["Type"] })
+    & ([_UrlParams["Type"]] extends [never] ? {} : { readonly urlParams: _UrlParams["Type"] })
+    & ([_Headers["Type"]] extends [never] ? {} : { readonly headers: _Headers["Type"] })
     & { readonly request: HttpServerRequest }
   : {}
 
@@ -566,11 +567,11 @@ export type ClientRequest<
   Headers extends Schema.Top,
   WithResponse extends boolean
 > = (
-  & ([PathSchema] extends [void] ? {} : { readonly path: PathSchema["Type"] })
-  & ([UrlParams] extends [never] ? {} : { readonly urlParams: UrlParams["Type"] })
-  & ([Headers] extends [never] ? {} : { readonly headers: Headers["Type"] })
-  & ([Payload] extends [never] ? {}
-    : Payload extends infer P ?
+  & ([PathSchema["Type"]] extends [void] ? {} : { readonly path: PathSchema["Type"] })
+  & ([UrlParams["Type"]] extends [never] ? {} : { readonly urlParams: UrlParams["Type"] })
+  & ([Headers["Type"]] extends [never] ? {} : { readonly headers: Headers["Type"] })
+  & ([Payload["Type"]] extends [never] ? {}
+    : Payload["Type"] extends infer P ?
       P extends Brand<HttpApiSchema.MultipartId> | Brand<HttpApiSchema.MultipartStreamId>
         ? { readonly payload: FormData }
       : { readonly payload: Schema.Schema.Type<Payload> }
@@ -1040,7 +1041,7 @@ export const make =
       payloadSchema: Option.none(),
       headersSchema: Option.none(),
       successSchema: HttpApiSchema.NoContent as any,
-      errorSchema: Schema.Never,
+      errorSchema: HttpApiSchemaError as any,
       annotations: ServiceMap.empty(),
       middlewares: new Set()
     })

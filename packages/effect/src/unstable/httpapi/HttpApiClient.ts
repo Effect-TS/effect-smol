@@ -1,6 +1,7 @@
 /**
  * @since 4.0.0
  */
+import * as Cause from "../../Cause.ts"
 import * as Option from "../../data/Option.ts"
 import type * as Predicate from "../../data/Predicate.ts"
 import * as Effect from "../../Effect.ts"
@@ -80,7 +81,7 @@ export declare namespace Client {
   ] ? <WithResponse extends boolean = false>(
       request: Simplify<HttpApiEndpoint.ClientRequest<_PathSchema, _UrlParams, _Payload, _Headers, WithResponse>>
     ) => Effect.Effect<
-      WithResponse extends true ? [_Success, HttpClientResponse.HttpClientResponse] : _Success,
+      WithResponse extends true ? [_Success["Type"], HttpClientResponse.HttpClientResponse] : _Success["Type"],
       _Error["Type"] | E | HttpClientError.HttpClientError | Schema.SchemaError,
       | R
       | _PathSchema["EncodingServices"]
@@ -164,7 +165,21 @@ const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any, E, R>
             return
           }
           const decode = schemaToResponse(ast.value)
-          decodeMap[status] = (response) => Effect.flatMap(decode(response), Effect.fail)
+          decodeMap[status] = (response) =>
+            Effect.flatMap(
+              Effect.catchCause(decode(response), (cause) =>
+                Effect.failCause(Cause.merge(
+                  Cause.fail(
+                    new HttpClientError.ResponseError({
+                      reason: "StatusCode",
+                      request: response.request,
+                      response
+                    })
+                  ),
+                  cause
+                ))),
+              Effect.fail
+            )
         })
         successes.forEach(({ ast }, status) => {
           decodeMap[status] = ast._tag === "None" ? responseAsVoid : schemaToResponse(ast.value)

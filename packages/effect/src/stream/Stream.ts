@@ -1425,6 +1425,19 @@ export const concat: {
 )
 
 /**
+ * @since 2.0.0
+ * @category Filtering
+ */
+export const filter: {
+  <A, B, X>(filter: Filter.Filter<A, B, X>): <E, R>(self: Stream<A, E, R>) => Stream<B, E, R>
+  <A, E, R, B, X>(self: Stream<A, E, R>, filter: Filter.Filter<A, B, X>): Stream<B, E, R>
+} = dual(
+  2,
+  <A, E, R, B, X>(self: Stream<A, E, R>, filter: Filter.Filter<A, B, X>): Stream<B, E, R> =>
+    fromChannel(Channel.filterArray(toChannel(self), filter))
+)
+
+/**
  * Handles stream failures by examining the full Cause of failure.
  *
  * @example

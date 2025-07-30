@@ -488,6 +488,7 @@ const handlerToRoute = (
         const response = yield* handler.handler(request)
         return Response.isHttpServerResponse(response) ? response : yield* encodeSuccess(response)
       }).pipe(
+        Effect.provide(services),
         Effect.catchFilter(filterIsSchemaError, HttpApiSchemaError.refailSchemaError)
       )
     ),
@@ -600,7 +601,7 @@ const makeSuccessSchema = (
 const makeErrorSchema = (
   api: HttpApi.AnyWithProps
 ): Schema.Codec<unknown, HttpServerResponse> => {
-  const schemas = new Set<Schema.Schema<any>>()
+  const schemas = new Set<Schema.Schema<any>>([HttpApiSchemaError])
   for (const group of Object.values(api.groups)) {
     for (const endpoint of Object.values(group.endpoints)) {
       HttpApiSchema.deunionize(schemas, endpoint.errorSchema)

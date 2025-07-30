@@ -9,6 +9,7 @@
     "rootDir": "test",
     "noEmit": true,
     "erasableSyntaxOnly": false,
+    "resolveJsonModule": true,
     "baseUrl": ".",
     "paths": {
       "@effect/platform-node": ["src/index.ts"],

@@ -522,6 +522,8 @@ export const EmptyError = <Self>() =>
 }): EmptyErrorClass<Self, Tag> => {
   class EmptyError extends Schema.ErrorClass<EmptyError>(`effect/httpapi/HttpApiSchema/EmptyError/${options.tag}`)({
     _tag: Schema.tag(options.tag)
+  }, {
+    id: options.tag
   }) {
     constructor() {
       super({}, { disableValidation: true })
