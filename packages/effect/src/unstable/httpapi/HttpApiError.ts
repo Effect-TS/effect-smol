@@ -32,26 +32,26 @@ export type TypeId = "~effect/httpapi/HttpApiError"
  * @since 1.0.0
  * @category errors
  */
-export class HttpApiDecodeError extends Schema.ErrorClass<HttpApiDecodeError>(TypeId)({
-  _tag: Schema.tag("HttpApiDecodeError"),
+export class HttpApiSchemaError extends Schema.ErrorClass<HttpApiSchemaError>(TypeId)({
+  _tag: Schema.tag("HttpApiSchemaError"),
   // issues: Schema.Array(Issue),
   message: Schema.String
 }, {
   httpApiStatus: 400,
-  description: "The request did not match the expected schema"
+  description: "The request or response did not match the expected schema"
 }) {
   /**
    * @since 1.0.0
    */
-  static fromSchemaError(error: Schema.SchemaError): HttpApiDecodeError {
+  static fromSchemaError(error: Schema.SchemaError): HttpApiSchemaError {
     const formatter = Formatter.makeTree()
-    return new HttpApiDecodeError({ message: formatter.format(error.issue) })
+    return new HttpApiSchemaError({ message: formatter.format(error.issue) })
   }
   /**
    * @since 1.0.0
    */
-  static refailSchemaError(error: Schema.SchemaError): Effect.Effect<never, HttpApiDecodeError> {
-    return Effect.fail(HttpApiDecodeError.fromSchemaError(error))
+  static refailSchemaError(error: Schema.SchemaError): Effect.Effect<never, HttpApiSchemaError> {
+    return Effect.fail(HttpApiSchemaError.fromSchemaError(error))
   }
 }
 

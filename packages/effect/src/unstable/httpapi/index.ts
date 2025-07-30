@@ -15,6 +15,11 @@ export * as HttpApiBuilder from "./HttpApiBuilder.ts"
 /**
  * @since 4.0.0
  */
+export * as HttpApiClient from "./HttpApiClient.ts"
+
+/**
+ * @since 4.0.0
+ */
 export * as HttpApiEndpoint from "./HttpApiEndpoint.ts"
 
 /**

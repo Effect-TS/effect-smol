@@ -35,7 +35,7 @@ import * as Multipart from "../http/Multipart.ts"
 import * as UrlParams from "../http/UrlParams.ts"
 import type * as HttpApi from "./HttpApi.ts"
 import type * as HttpApiEndpoint from "./HttpApiEndpoint.ts"
-import { HttpApiDecodeError } from "./HttpApiError.ts"
+import { HttpApiSchemaError } from "./HttpApiError.ts"
 import type * as HttpApiGroup from "./HttpApiGroup.ts"
 import * as HttpApiMiddleware from "./HttpApiMiddleware.ts"
 import * as HttpApiSchema from "./HttpApiSchema.ts"
@@ -171,10 +171,11 @@ export interface Handlers<
   ): Handlers<
     | R
     | HttpApiEndpoint.MiddlewareWithName<Endpoints, Name>
+    | HttpApiEndpoint.MiddlewareServicesWithName<Endpoints, Name>
     | HttpApiEndpoint.ExcludeProvided<
       Endpoints,
       Name,
-      R1 | HttpApiEndpoint.ContextWithName<Endpoints, Name>
+      R1 | HttpApiEndpoint.ServerServicesWithName<Endpoints, Name>
     >,
     HttpApiEndpoint.ExcludeName<Endpoints, Name>
   >
@@ -189,10 +190,12 @@ export interface Handlers<
     options?: { readonly uninterruptible?: boolean | undefined } | undefined
   ): Handlers<
     | R
+    | HttpApiEndpoint.MiddlewareWithName<Endpoints, Name>
+    | HttpApiEndpoint.MiddlewareServicesWithName<Endpoints, Name>
     | HttpApiEndpoint.ExcludeProvided<
       Endpoints,
       Name,
-      R1 | HttpApiEndpoint.ContextWithName<Endpoints, Name>
+      R1 | HttpApiEndpoint.ServerServicesWithName<Endpoints, Name>
     >,
     HttpApiEndpoint.ExcludeName<Endpoints, Name>
   >
@@ -485,7 +488,7 @@ const handlerToRoute = (
         const response = yield* handler.handler(request)
         return Response.isHttpServerResponse(response) ? response : yield* encodeSuccess(response)
       }).pipe(
-        Effect.catchFilter(filterIsSchemaError, HttpApiDecodeError.refailSchemaError)
+        Effect.catchFilter(filterIsSchemaError, HttpApiSchemaError.refailSchemaError)
       )
     ),
     { uninterruptible: handler.uninterruptible }

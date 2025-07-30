@@ -583,7 +583,7 @@ export type ClientRequest<
  * @since 4.0.0
  * @category models
  */
-export type Services<Endpoint> = Endpoint extends HttpApiEndpoint<
+export type ServerServices<Endpoint> = Endpoint extends HttpApiEndpoint<
   infer _Name,
   infer _Method,
   infer _Path,
@@ -597,18 +597,37 @@ export type Services<Endpoint> = Endpoint extends HttpApiEndpoint<
   infer _MR
 > ?
     | _PathSchema["DecodingServices"]
-    | _PathSchema["EncodingServices"]
     | _UrlParams["DecodingServices"]
-    | _UrlParams["EncodingServices"]
     | _Payload["DecodingServices"]
-    | _Payload["EncodingServices"]
     | _Headers["DecodingServices"]
-    | _Headers["EncodingServices"]
-    | _Success["DecodingServices"]
     | _Success["EncodingServices"]
   // Error services are handled globally
-  // | _Error["DecodingServices"]
   // | _Error["EncodingServices"]
+  : never
+
+/**
+ * @since 4.0.0
+ * @category models
+ */
+export type ClientServices<Endpoint> = Endpoint extends HttpApiEndpoint<
+  infer _Name,
+  infer _Method,
+  infer _Path,
+  infer _PathSchema,
+  infer _UrlParams,
+  infer _Payload,
+  infer _Headers,
+  infer _Success,
+  infer _Error,
+  infer _M,
+  infer _MR
+> ?
+    | _PathSchema["EncodingServices"]
+    | _UrlParams["EncodingServices"]
+    | _Payload["EncodingServices"]
+    | _Headers["EncodingServices"]
+    | _Success["DecodingServices"]
+    | _Error["DecodingServices"]
   : never
 
 /**
@@ -715,13 +734,23 @@ export type ErrorWithName<Endpoints extends Any, Name extends string> = Error<Wi
  * @since 4.0.0
  * @category models
  */
-export type ContextWithName<Endpoints extends Any, Name extends string> = Services<WithName<Endpoints, Name>>
+export type ServerServicesWithName<Endpoints extends Any, Name extends string> = ServerServices<
+  WithName<Endpoints, Name>
+>
 
 /**
  * @since 4.0.0
  * @category models
  */
 export type MiddlewareWithName<Endpoints extends Any, Name extends string> = Middleware<WithName<Endpoints, Name>>
+
+/**
+ * @since 4.0.0
+ * @category models
+ */
+export type MiddlewareServicesWithName<Endpoints extends Any, Name extends string> = MiddlewareServices<
+  WithName<Endpoints, Name>
+>
 
 /**
  * @since 4.0.0

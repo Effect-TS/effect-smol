@@ -198,7 +198,7 @@ export type EndpointsWithName<Group extends Any, Name extends string> = Endpoint
  * @category models
  */
 export type ClientServices<Group> = Group extends HttpApiGroup<infer _Name, infer _Endpoints, infer _TopLevel> ?
-  HttpApiEndpoint.Services<_Endpoints>
+  HttpApiEndpoint.ClientServices<_Endpoints>
   : never
 
 /**

@@ -209,10 +209,12 @@ export const make = <const Id extends string>(identifier: Id): HttpApi<Id, never
 export const reflect = <Id extends string, Groups extends HttpApiGroup.Any>(
   self: HttpApi<Id, Groups>,
   options: {
-    readonly predicate?: Predicate.Predicate<{
-      readonly endpoint: HttpApiEndpoint.AnyWithProps
-      readonly group: HttpApiGroup.AnyWithProps
-    }>
+    readonly predicate?:
+      | Predicate.Predicate<{
+        readonly endpoint: HttpApiEndpoint.AnyWithProps
+        readonly group: HttpApiGroup.AnyWithProps
+      }>
+      | undefined
     readonly onGroup: (options: {
       readonly group: HttpApiGroup.AnyWithProps
       readonly mergedAnnotations: ServiceMap.ServiceMap<never>

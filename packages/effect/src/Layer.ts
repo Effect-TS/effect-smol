@@ -590,7 +590,7 @@ export const buildWithScope: {
  * @since 2.0.0
  * @category constructors
  */
-export const succeed = <I, S>(key: ServiceMap.Key<I, S>) => (resource: NoInfer<S>): Layer<NoInfer<I>> =>
+export const succeed = <I, S>(key: ServiceMap.Key<I, S>) => (resource: S): Layer<I> =>
   succeedServices(ServiceMap.make(key, resource))
 
 /**
@@ -662,7 +662,7 @@ export const empty: Layer<never> = succeedServices(ServiceMap.empty())
  * @since 2.0.0
  * @category constructors
  */
-export const sync = <I, S>(key: ServiceMap.Key<I, S>) => (evaluate: LazyArg<NoInfer<S>>): Layer<NoInfer<I>> =>
+export const sync = <I, S>(key: ServiceMap.Key<I, S>) => (evaluate: LazyArg<S>): Layer<I> =>
   syncServices(() => ServiceMap.make(key, evaluate()))
 
 /**
@@ -720,10 +720,10 @@ export const syncServices = <A>(evaluate: LazyArg<ServiceMap.ServiceMap<A>>): La
  */
 export const effect = <I, S>(key: ServiceMap.Key<I, S>): {
   <E, R>(
-    effect: Effect<NoInfer<S>, E, R>
+    effect: Effect<S, E, R>
   ): Layer<I, E, Exclude<R, Scope.Scope>>
   <Args extends ReadonlyArray<any>, E, R>(
-    f: (...args: Args) => Effect<NoInfer<S>, E, R>
+    f: (...args: Args) => Effect<S, E, R>
   ): (...args: Args) => Layer<I, E, Exclude<R, Scope.Scope>>
 } =>
 (effectOrFn: Effect<any, any, any> | ((...args: any) => Effect<any, any, any>)) =>
@@ -733,7 +733,7 @@ export const effect = <I, S>(key: ServiceMap.Key<I, S>): {
 
 const effectImpl = <I, S, E, R>(
   key: ServiceMap.Key<I, S>,
-  effect: Effect<NoInfer<S>, E, R>
+  effect: Effect<S, E, R>
 ): Layer<I, E, Exclude<R, Scope.Scope>> =>
   effectServices(internalEffect.map(effect, (value) => ServiceMap.make(key, value)))
 

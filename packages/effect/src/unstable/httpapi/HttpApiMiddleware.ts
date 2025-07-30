@@ -67,7 +67,7 @@ export type HttpApiMiddlewareSecurity<
  * @since 4.0.0
  * @category models
  */
-export interface AnyKey {
+export interface AnyKey extends ServiceMap.Key<any, any> {
   readonly [TypeId]: TypeId
   readonly provides?: ServiceMap.Key<any, any>
   readonly error: Schema.Top
