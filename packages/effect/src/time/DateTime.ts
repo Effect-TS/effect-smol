@@ -17,30 +17,16 @@ import * as ServiceMap from "../ServiceMap.ts"
 import type * as Duration from "../time/Duration.ts"
 
 /**
- * @example
- * ```ts
- * import { DateTime } from "effect/time"
- *
- * console.log(DateTime.TypeId) // "~effect/DateTime"
- * ```
- *
  * @since 3.6.0
  * @category type ids
  */
 export const TypeId: TypeId = Internal.TypeId
 
 /**
- * @example
- * ```ts
- * import { DateTime } from "effect/time"
- *
- * type MyTypeId = DateTime.TypeId // "~effect/DateTime"
- * ```
- *
  * @since 3.6.0
  * @category type ids
  */
-export type TypeId = "~effect/DateTime"
+export type TypeId = "~effect/time/DateTime"
 
 /**
  * A `DateTime` represents a point in time. It can optionally have a time zone
@@ -115,15 +101,6 @@ export interface Zoned extends DateTime.Proto {
 }
 
 /**
- * @example
- * ```ts
- * import { DateTime } from "effect/time"
- *
- * // The DateTime namespace contains types and utilities
- * const dt = DateTime.unsafeNow()
- * const parts = DateTime.toParts(dt)
- * ```
- *
  * @since 3.6.0
  * @category models
  */
@@ -154,52 +131,18 @@ export declare namespace DateTime {
   export type Input = DateTime | Partial<Parts> | Date | number | string
 
   /**
-   * @example
-   * ```ts
-   * import { DateTime } from "effect/time"
-   *
-   * // When making from a zoned DateTime, preserves the zone
-   * const zoned = DateTime.unsafeMakeZoned(new Date(), { timeZone: "Europe/London" })
-   * const preservedZoned = DateTime.unsafeMake(zoned) // Still zoned
-   *
-   * // When making from other inputs, creates UTC
-   * const utc = DateTime.unsafeMake(new Date()) // Creates UTC
-   * ```
-   *
    * @since 3.6.0
    * @category models
    */
   export type PreserveZone<A extends DateTime.Input> = A extends Zoned ? Zoned : Utc
 
   /**
-   * @example
-   * ```ts
-   * import { DateTime } from "effect/time"
-   *
-   * const dt = DateTime.unsafeNow()
-   *
-   * // Both singular and plural forms work
-   * const startOfDay = DateTime.startOf(dt, "day")
-   * const futureTime = DateTime.add(dt, { days: 5 })
-   * ```
-   *
    * @since 3.6.0
    * @category models
    */
   export type Unit = UnitSingular | UnitPlural
 
   /**
-   * @example
-   * ```ts
-   * import { DateTime } from "effect/time"
-   *
-   * const dt = DateTime.unsafeNow()
-   *
-   * // Using singular units
-   * const startOfDay = DateTime.startOf(dt, "day")
-   * const endOfMonth = DateTime.endOf(dt, "month")
-   * ```
-   *
    * @since 3.6.0
    * @category models
    */
@@ -214,17 +157,6 @@ export declare namespace DateTime {
     | "year"
 
   /**
-   * @example
-   * ```ts
-   * import { DateTime } from "effect/time"
-   *
-   * const dt = DateTime.unsafeNow()
-   *
-   * // Using plural units for arithmetic
-   * const future = DateTime.add(dt, { hours: 2, minutes: 30 })
-   * const past = DateTime.subtract(dt, { days: 7 })
-   * ```
-   *
    * @since 3.6.0
    * @category models
    */
@@ -239,21 +171,6 @@ export declare namespace DateTime {
     | "years"
 
   /**
-   * @example
-   * ```ts
-   * import { DateTime } from "effect/time"
-   *
-   * const dt = DateTime.unsafeMake("2024-01-15T14:30:45.123Z")
-   * const parts = DateTime.toParts(dt)
-   *
-   * console.log(parts)
-   * // {
-   * //   year: 2024, month: 1, day: 15,
-   * //   hours: 14, minutes: 30, seconds: 45, millis: 123,
-   * //   weekDay: 1 // Monday
-   * // }
-   * ```
-   *
    * @since 3.6.0
    * @category models
    */
@@ -269,21 +186,6 @@ export declare namespace DateTime {
   }
 
   /**
-   * @example
-   * ```ts
-   * import { DateTime } from "effect/time"
-   *
-   * const parts = {
-   *   year: 2024,
-   *   month: 6,
-   *   day: 15,
-   *   hours: 12
-   * }
-   *
-   * const dt = DateTime.unsafeMake(parts)
-   * console.log(DateTime.formatIso(dt)) // "2024-06-15T12:00:00.000Z"
-   * ```
-   *
    * @since 3.6.0
    * @category models
    */
@@ -298,22 +200,6 @@ export declare namespace DateTime {
   }
 
   /**
-   * @example
-   * ```ts
-   * import { DateTime } from "effect/time"
-   *
-   * const dt = DateTime.unsafeNow()
-   *
-   * const mathParts = {
-   *   days: 7,
-   *   hours: 2,
-   *   minutes: 30
-   * }
-   *
-   * const future = DateTime.add(dt, mathParts)
-   * const past = DateTime.subtract(dt, mathParts)
-   * ```
-   *
    * @since 3.6.0
    * @category models
    */
@@ -329,23 +215,6 @@ export declare namespace DateTime {
   }
 
   /**
-   * @example
-   * ```ts
-   * import { DateTime } from "effect/time"
-   *
-   * // All DateTime instances implement Proto
-   * const dt = DateTime.unsafeNow()
-   *
-   * // Has TypeId
-   * console.log(dt[DateTime.TypeId]) // "~effect/DateTime"
-   *
-   * // Is pipeable
-   * const result = dt.pipe(
-   *   DateTime.add({ hours: 1 }),
-   *   DateTime.formatIso
-   * )
-   * ```
-   *
    * @since 3.6.0
    * @category models
    */
@@ -355,74 +224,29 @@ export declare namespace DateTime {
 }
 
 /**
- * @example
- * ```ts
- * import { DateTime } from "effect/time"
- *
- * console.log(DateTime.TimeZoneTypeId) // "~effect/DateTime/TimeZone"
- * ```
- *
  * @since 3.6.0
  * @category type ids
  */
-export const TimeZoneTypeId: TimeZoneTypeId = Internal.TimeZoneTypeId
+export const TimeZoneTypeId: TimeZoneTypeId = "~effect/time/DateTime/TimeZone"
 
 /**
- * @example
- * ```ts
- * import { DateTime } from "effect/time"
- *
- * type MyTimeZoneTypeId = DateTime.TimeZoneTypeId // "~effect/DateTime/TimeZone"
- * ```
- *
  * @since 3.6.0
  * @category type ids
  */
-export type TimeZoneTypeId = "~effect/DateTime/TimeZone"
+export type TimeZoneTypeId = "~effect/time/DateTime/TimeZone"
 
 /**
- * @example
- * ```ts
- * import { DateTime } from "effect/time"
- *
- * // Create different types of time zones
- * const offsetZone: DateTime.TimeZone = DateTime.zoneMakeOffset(3 * 60 * 60 * 1000)
- * const namedZone: DateTime.TimeZone = DateTime.zoneUnsafeMakeNamed("Europe/London")
- *
- * console.log(DateTime.zoneToString(offsetZone)) // "+03:00"
- * console.log(DateTime.zoneToString(namedZone)) // "Europe/London"
- * ```
- *
  * @since 3.6.0
  * @category models
  */
 export type TimeZone = TimeZone.Offset | TimeZone.Named
 
 /**
- * @example
- * ```ts
- * import { DateTime } from "effect/time"
- *
- * // The TimeZone namespace contains time zone-related types
- * type Offset = DateTime.TimeZone.Offset
- * type Named = DateTime.TimeZone.Named
- * ```
- *
  * @since 3.6.0
  * @category models
  */
 export declare namespace TimeZone {
   /**
-   * @example
-   * ```ts
-   * import { DateTime } from "effect/time"
-   *
-   * const zone = DateTime.zoneMakeOffset(0)
-   *
-   * // All TimeZone instances implement Proto
-   * console.log(zone[DateTime.TimeZoneTypeId]) // "~effect/DateTime/TimeZone"
-   * ```
-   *
    * @since 3.6.0
    * @category models
    */
@@ -431,19 +255,6 @@ export declare namespace TimeZone {
   }
 
   /**
-   * @example
-   * ```ts
-   * import { DateTime } from "effect/time"
-   *
-   * // Create an offset time zone (+3 hours)
-   * const zone = DateTime.zoneMakeOffset(3 * 60 * 60 * 1000)
-   *
-   * if (DateTime.isTimeZoneOffset(zone)) {
-   *   console.log(zone._tag) // "Offset"
-   *   console.log(zone.offset) // 10800000 (3 hours in milliseconds)
-   * }
-   * ```
-   *
    * @since 3.6.0
    * @category models
    */
@@ -453,18 +264,6 @@ export declare namespace TimeZone {
   }
 
   /**
-   * @example
-   * ```ts
-   * import { DateTime } from "effect/time"
-   *
-   * const zone = DateTime.zoneUnsafeMakeNamed("Europe/London")
-   *
-   * if (DateTime.isTimeZoneNamed(zone)) {
-   *   console.log(zone._tag) // "Named"
-   *   console.log(zone.id) // "Europe/London"
-   * }
-   * ```
-   *
    * @since 3.6.0
    * @category models
    */
@@ -476,117 +275,99 @@ export declare namespace TimeZone {
   }
 }
 
-// =============================================================================
-// guards
-// =============================================================================
-
 /**
- * Checks if a value is a `DateTime`.
+ * A `Disambiguation` is used to resolve ambiguities when a `DateTime` is
+ * ambiguous, such as during a daylight saving time transition.
+ *
+ * For more information, see the [Temporal documentation](https://tc39.es/proposal-temporal/docs/timezone.html#ambiguity-due-to-dst-or-other-time-zone-offset-changes)
+ *
+ * - `"compatible"`: (default) Behavior matching Temporal API and legacy JavaScript Date and moment.js.
+ *   For repeated times, chooses the earlier occurrence. For gap times, chooses the later interpretation.
+ *
+ * - `"earlier"`: For repeated times, always choose the earlier occurrence.
+ *   For gap times, choose the time before the gap.
+ *
+ * - `"later"`: For repeated times, always choose the later occurrence.
+ *   For gap times, choose the time after the gap.
+ *
+ * - `"reject"`: Throw an `RangeError` when encountering ambiguous or non-existent times.
  *
  * @example
  * ```ts
  * import { DateTime } from "effect/time"
  *
- * console.log(DateTime.isDateTime(DateTime.unsafeNow())) // true
- * console.log(DateTime.isDateTime(new Date())) // false
- * console.log(DateTime.isDateTime("2024-01-01")) // false
+ * // Fall-back example: 01:30 on Nov 2, 2025 in New York happens twice
+ * const ambiguousTime = { year: 2025, month: 11, day: 2, hours: 1, minutes: 30 }
+ * const timeZone = DateTime.zoneUnsafeMakeNamed("America/New_York")
+ *
+ * DateTime.makeZoned(ambiguousTime, { timeZone, adjustForTimeZone: true, disambiguation: "earlier" })
+ * // Earlier occurrence (DST time): 2025-11-02T05:30:00.000Z
+ *
+ * DateTime.makeZoned(ambiguousTime, { timeZone, adjustForTimeZone: true, disambiguation: "later" })
+ * // Later occurrence (standard time): 2025-11-02T06:30:00.000Z
+ *
+ * // Gap example: 02:30 on Mar 9, 2025 in New York doesn't exist
+ * const gapTime = { year: 2025, month: 3, day: 9, hours: 2, minutes: 30 }
+ *
+ * DateTime.makeZoned(gapTime, { timeZone, adjustForTimeZone: true, disambiguation: "earlier" })
+ * // Time before gap: 2025-03-09T06:30:00.000Z (01:30 EST)
+ *
+ * DateTime.makeZoned(gapTime, { timeZone, adjustForTimeZone: true, disambiguation: "later" })
+ * // Time after gap: 2025-03-09T07:30:00.000Z (03:30 EDT)
  * ```
  *
- * @category guards
+ * @since 3.18.0
+ * @category models
+ */
+export type Disambiguation = "compatible" | "earlier" | "later" | "reject"
+
+// =============================================================================
+// guards
+// =============================================================================
+
+/**
  * @since 3.6.0
+ * @category guards
  */
 export const isDateTime: (u: unknown) => u is DateTime = Internal.isDateTime
 
 /**
  * Checks if a value is a `TimeZone`.
  *
- * @example
- * ```ts
- * import { DateTime } from "effect/time"
- *
- * const zone = DateTime.zoneMakeOffset(3 * 60 * 60 * 1000)
- * console.log(DateTime.isTimeZone(zone)) // true
- * console.log(DateTime.isTimeZone("UTC")) // false
- * ```
- *
- * @category guards
  * @since 3.6.0
+ * @category guards
  */
 export const isTimeZone: (u: unknown) => u is TimeZone = Internal.isTimeZone
 
 /**
  * Checks if a value is an offset-based `TimeZone`.
  *
- * @example
- * ```ts
- * import { DateTime } from "effect/time"
- *
- * const offsetZone = DateTime.zoneMakeOffset(3 * 60 * 60 * 1000)
- * const namedZone = DateTime.zoneUnsafeMakeNamed("Europe/London")
- *
- * console.log(DateTime.isTimeZoneOffset(offsetZone)) // true
- * console.log(DateTime.isTimeZoneOffset(namedZone)) // false
- * ```
- *
- * @category guards
  * @since 3.6.0
+ * @category guards
  */
 export const isTimeZoneOffset: (u: unknown) => u is TimeZone.Offset = Internal.isTimeZoneOffset
 
 /**
  * Checks if a value is a named `TimeZone` (IANA time zone).
  *
- * @example
- * ```ts
- * import { DateTime } from "effect/time"
- *
- * const offsetZone = DateTime.zoneMakeOffset(3 * 60 * 60 * 1000)
- * const namedZone = DateTime.zoneUnsafeMakeNamed("Europe/London")
- *
- * console.log(DateTime.isTimeZoneNamed(offsetZone)) // false
- * console.log(DateTime.isTimeZoneNamed(namedZone)) // true
- * ```
- *
- * @category guards
  * @since 3.6.0
+ * @category guards
  */
 export const isTimeZoneNamed: (u: unknown) => u is TimeZone.Named = Internal.isTimeZoneNamed
 
 /**
  * Checks if a `DateTime` is a UTC `DateTime` (no time zone information).
  *
- * @example
- * ```ts
- * import { DateTime } from "effect/time"
- *
- * const utc = DateTime.unsafeNow()
- * const zoned = DateTime.unsafeMakeZoned(new Date(), { timeZone: "Europe/London" })
- *
- * console.log(DateTime.isUtc(utc)) // true
- * console.log(DateTime.isUtc(zoned)) // false
- * ```
- *
- * @category guards
  * @since 3.6.0
+ * @category guards
  */
 export const isUtc: (self: DateTime) => self is Utc = Internal.isUtc
 
 /**
  * Checks if a `DateTime` is a zoned `DateTime` (has time zone information).
  *
- * @example
- * ```ts
- * import { DateTime } from "effect/time"
- *
- * const utc = DateTime.unsafeNow()
- * const zoned = DateTime.unsafeMakeZoned(new Date(), { timeZone: "Europe/London" })
- *
- * console.log(DateTime.isZoned(utc)) // false
- * console.log(DateTime.isZoned(zoned)) // true
- * ```
- *
- * @category guards
  * @since 3.6.0
+ * @category guards
  */
 export const isZoned: (self: DateTime) => self is Zoned = Internal.isZoned
 
@@ -733,6 +514,13 @@ export const unsafeMake: <A extends DateTime.Input>(input: A) => DateTime.Preser
  * `adjustForTimeZone` is set to `true`. In that case, the input is treated as
  * already in the time zone.
  *
+ * When `adjustForTimeZone` is true and ambiguous times occur during DST transitions,
+ * the `disambiguation` option controls how to resolve the ambiguity:
+ * - `compatible` (default): Choose earlier time for repeated times, later for gaps
+ * - `earlier`: Always choose the earlier of two possible times
+ * - `later`: Always choose the later of two possible times
+ * - `reject`: Throw an error when ambiguous times are encountered
+ *
  * @since 3.6.0
  * @category constructors
  * @example
@@ -745,12 +533,22 @@ export const unsafeMake: <A extends DateTime.Input>(input: A) => DateTime.Preser
 export const unsafeMakeZoned: (input: DateTime.Input, options?: {
   readonly timeZone?: number | string | TimeZone | undefined
   readonly adjustForTimeZone?: boolean | undefined
+  readonly disambiguation?: Disambiguation | undefined
 }) => Zoned = Internal.unsafeMakeZoned
 
 /**
  * Create a `DateTime.Zoned` using `DateTime.make` and a time zone.
  *
- * The input is treated as UTC and then the time zone is attached.
+ * The input is treated as UTC and then the time zone is attached, unless
+ * `adjustForTimeZone` is set to `true`. In that case, the input is treated as
+ * already in the time zone.
+ *
+ * When `adjustForTimeZone` is true and ambiguous times occur during DST transitions,
+ * the `disambiguation` option controls how to resolve the ambiguity:
+ * - `compatible` (default): Choose earlier time for repeated times, later for gaps
+ * - `earlier`: Always choose the earlier of two possible times
+ * - `later`: Always choose the later of two possible times
+ * - `reject`: Throw an error when ambiguous times are encountered
  *
  * If the date time input or time zone is invalid, `None` will be returned.
  *
@@ -768,6 +566,7 @@ export const makeZoned: (
   options?: {
     readonly timeZone?: number | string | TimeZone | undefined
     readonly adjustForTimeZone?: boolean | undefined
+    readonly disambiguation?: Disambiguation | undefined
   }
 ) => Option.Option<Zoned> = Internal.makeZoned
 
@@ -866,6 +665,23 @@ export const unsafeNow: LazyArg<Utc> = Internal.unsafeNow
 // =============================================================================
 
 /**
+ * For a `DateTime` returns a new `DateTime.Utc`.
+ *
+ * @since 3.13.0
+ * @category time zones
+ * @example
+ * ```ts
+ * import { DateTime } from "effect"
+ *
+ * const now = DateTime.unsafeMakeZoned({ year: 2024 }, { timeZone: "Europe/London" })
+ *
+ * // set as UTC
+ * const utc: DateTime.Utc = DateTime.toUtc(now)
+ * ```
+ */
+export const toUtc: (self: DateTime) => Utc = Internal.toUtc
+
+/**
  * Set the time zone of a `DateTime`, returning a new `DateTime.Zoned`.
  *
  * @since 3.6.0
@@ -887,9 +703,11 @@ export const unsafeNow: LazyArg<Utc> = Internal.unsafeNow
 export const setZone: {
   (zone: TimeZone, options?: {
     readonly adjustForTimeZone?: boolean | undefined
+    readonly disambiguation?: Disambiguation | undefined
   }): (self: DateTime) => Zoned
   (self: DateTime, zone: TimeZone, options?: {
     readonly adjustForTimeZone?: boolean | undefined
+    readonly disambiguation?: Disambiguation | undefined
   }): Zoned
 } = Internal.setZone
 
@@ -916,9 +734,11 @@ export const setZone: {
 export const setZoneOffset: {
   (offset: number, options?: {
     readonly adjustForTimeZone?: boolean | undefined
+    readonly disambiguation?: Disambiguation | undefined
   }): (self: DateTime) => Zoned
   (self: DateTime, offset: number, options?: {
     readonly adjustForTimeZone?: boolean | undefined
+    readonly disambiguation?: Disambiguation | undefined
   }): Zoned
 } = Internal.setZoneOffset
 
@@ -1100,9 +920,11 @@ export const zoneToString: (self: TimeZone) => string = Internal.zoneToString
 export const setZoneNamed: {
   (zoneId: string, options?: {
     readonly adjustForTimeZone?: boolean | undefined
+    readonly disambiguation?: Disambiguation | undefined
   }): (self: DateTime) => Option.Option<Zoned>
   (self: DateTime, zoneId: string, options?: {
     readonly adjustForTimeZone?: boolean | undefined
+    readonly disambiguation?: Disambiguation | undefined
   }): Option.Option<Zoned>
 } = Internal.setZoneNamed
 
@@ -1127,9 +949,11 @@ export const setZoneNamed: {
 export const unsafeSetZoneNamed: {
   (zoneId: string, options?: {
     readonly adjustForTimeZone?: boolean | undefined
+    readonly disambiguation?: Disambiguation | undefined
   }): (self: DateTime) => Zoned
   (self: DateTime, zoneId: string, options?: {
     readonly adjustForTimeZone?: boolean | undefined
+    readonly disambiguation?: Disambiguation | undefined
   }): Zoned
 } = Internal.unsafeSetZoneNamed
 
@@ -1168,10 +992,10 @@ export const distance: {
  * Calulate the difference between two `DateTime` values.
  *
  * If the `other` DateTime is before `self`, the result will be a negative
- * `Duration`, returned as a `Err`.
+ * `Duration`, returned as a `Success`.
  *
  * If the `other` DateTime is after `self`, the result will be a positive
- * `Duration`, returned as a `Ok`.
+ * `Duration`, returned as a `Failure`.
  *
  * @since 3.6.0
  * @category comparisons
@@ -1940,6 +1764,8 @@ export const nowInCurrentZone: Effect.Effect<Zoned, never, CurrentTimeZone> = Ef
  * The `Date` will first have the time zone applied if possible, and then be
  * converted back to a `DateTime` within the same time zone.
  *
+ * Supports `disambiguation` when the new wall clock time is ambiguous.
+ *
  * @example
  * ```ts
  * import { DateTime } from "effect/time"
@@ -1958,8 +1784,19 @@ export const nowInCurrentZone: Effect.Effect<Zoned, never, CurrentTimeZone> = Ef
  * @category mapping
  */
 export const mutate: {
-  (f: (date: Date) => void): <A extends DateTime>(self: A) => A
-  <A extends DateTime>(self: A, f: (date: Date) => void): A
+  (
+    f: (date: Date) => void,
+    options?: {
+      readonly disambiguation?: Disambiguation | undefined
+    }
+  ): <A extends DateTime>(self: A) => A
+  <A extends DateTime>(
+    self: A,
+    f: (date: Date) => void,
+    options?: {
+      readonly disambiguation?: Disambiguation | undefined
+    }
+  ): A
 } = Internal.mutate
 
 /**
