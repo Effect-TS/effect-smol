@@ -1009,10 +1009,10 @@ export const distance: {
  * Calulate the difference between two `DateTime` values.
  *
  * If the `other` DateTime is before `self`, the result will be a negative
- * `Duration`, returned as a `Success`.
+ * `Duration`, returned as a `Failure`.
  *
  * If the `other` DateTime is after `self`, the result will be a positive
- * `Duration`, returned as a `Failure`.
+ * `Duration`, returned as a `Success`.
  *
  * @since 3.6.0
  * @category comparisons
