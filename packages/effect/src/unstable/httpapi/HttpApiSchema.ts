@@ -457,7 +457,7 @@ export const Text = (options?: {
  */
 export const Uint8Array = (options?: {
   readonly contentType?: string
-}): Schema.instanceOf<Uint8Array> =>
+}): Schema.instanceOf<Uint8Array<ArrayBuffer>> =>
   withEncoding(Schema.instanceOf(globalThis.Uint8Array), { kind: "Uint8Array", ...options })
 
 const astCache = new WeakMap<AST.AST, Schema.Top>()
