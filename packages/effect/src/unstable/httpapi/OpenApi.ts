@@ -206,25 +206,6 @@ export type AdditionalPropertiesStrategy = "allow" | "strict"
  *   - `"strict"`: Disallow additional properties (default behavior).
  *   - `"allow"`: Allow additional properties.
  *
- * **Example**
- *
- * ```ts
- * import { HttpApi, HttpApiEndpoint, HttpApiGroup, OpenApi } from "effect/httpapi"
- * import { Schema } from "effect"
- *
- * const api = HttpApi.make("api").add(
- *   HttpApiGroup.make("group").add(
- *     HttpApiEndpoint.get("get", "/items")
- *       .addSuccess(Schema.Array(Schema.String))
- *   )
- * )
- *
- * const spec = OpenApi.fromApi(api)
- *
- * console.log(JSON.stringify(spec, null, 2))
- * // Output: OpenAPI specification in JSON format
- * ```
- *
  * @category constructors
  * @since 4.0.0
  */
