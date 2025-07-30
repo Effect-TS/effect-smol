@@ -7,7 +7,9 @@
  */
 export * as HttpApi from "./HttpApi.ts"
 
-
+/**
+ * @since 4.0.0
+ */
 export * as HttpApiBuilder from "./HttpApiBuilder.ts"
 
 /**
@@ -39,3 +41,8 @@ export * as HttpApiSchema from "./HttpApiSchema.ts"
  * @since 4.0.0
  */
 export * as HttpApiSecurity from "./HttpApiSecurity.ts"
+
+/**
+ * @since 4.0.0
+ */
+export * as OpenApi from "./OpenApi.ts"

@@ -8,7 +8,7 @@ import type { Simplify } from "../../data/Struct.ts"
 import type { Effect } from "../../Effect.ts"
 import { type Pipeable, pipeArguments } from "../../interfaces/Pipeable.ts"
 import * as Schema from "../../schema/Schema.ts"
-import * as ServiceMap from "../../services/ServiceMap.ts"
+import * as ServiceMap from "../../ServiceMap.ts"
 import type * as Stream from "../../stream/Stream.ts"
 import type * as Types from "../../types/Types.ts"
 import type { HttpMethod } from "../http/HttpMethod.ts"
@@ -465,6 +465,50 @@ export type MiddlewareProvides<Endpoint extends Any> = HttpApiMiddleware.Provide
  * @since 4.0.0
  * @category models
  */
+export type MiddlewareError<Endpoint extends Any> = HttpApiMiddleware.Error<Middleware<Endpoint>>
+
+/**
+ * @since 4.0.0
+ * @category models
+ */
+export type Error<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
+  infer _Name,
+  infer _Method,
+  infer _Path,
+  infer _PathSchema,
+  infer _UrlParams,
+  infer _Payload,
+  infer _Headers,
+  infer _Success,
+  infer _Error,
+  infer _M,
+  infer _MR
+> ? _Error | HttpApiMiddleware.Error<Middleware<Endpoint>>
+  : never
+
+/**
+ * @since 4.0.0
+ * @category models
+ */
+export type ErrorServicesEncode<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
+  infer _Name,
+  infer _Method,
+  infer _Path,
+  infer _PathSchema,
+  infer _UrlParams,
+  infer _Payload,
+  infer _Headers,
+  infer _Success,
+  infer _Error,
+  infer _M,
+  infer _MR
+> ? _Error["EncodingServices"] | HttpApiMiddleware.ErrorServicesEncode<Middleware<Endpoint>>
+  : never
+
+/**
+ * @since 4.0.0
+ * @category models
+ */
 export type Request<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
   infer _Name,
   infer _Method,
@@ -562,8 +606,9 @@ export type Services<Endpoint> = Endpoint extends HttpApiEndpoint<
     | _Headers["EncodingServices"]
     | _Success["DecodingServices"]
     | _Success["EncodingServices"]
-    | _Error["DecodingServices"]
-    | _Error["EncodingServices"]
+  // Error services are handled globally
+  // | _Error["DecodingServices"]
+  // | _Error["EncodingServices"]
   : never
 
 /**
@@ -589,7 +634,7 @@ export type MiddlewareServices<Endpoint> = Endpoint extends HttpApiEndpoint<
  * @since 4.0.0
  * @category models
  */
-export type ErrorServices<Endpoint> = Endpoint extends HttpApiEndpoint<
+export type ErrorServicesDecode<Endpoint> = Endpoint extends HttpApiEndpoint<
   infer _Name,
   infer _Method,
   infer _Path,
@@ -601,7 +646,7 @@ export type ErrorServices<Endpoint> = Endpoint extends HttpApiEndpoint<
   infer _Error,
   infer _M,
   infer _MR
-> ? _Error["DecodingServices"] | _Error["EncodingServices"]
+> ? _Error["DecodingServices"] | HttpApiMiddleware.ErrorServicesDecode<Middleware<Endpoint>>
   : never
 
 /**
@@ -664,7 +709,7 @@ export type SuccessWithName<Endpoints extends Any, Name extends string> = Succes
  * @since 4.0.0
  * @category models
  */
-export type ErrorWithName<Endpoints extends Any, Name extends string> = ErrorSchema<WithName<Endpoints, Name>>["Type"]
+export type ErrorWithName<Endpoints extends Any, Name extends string> = Error<WithName<Endpoints, Name>>
 
 /**
  * @since 4.0.0
@@ -898,7 +943,6 @@ const Proto = {
   middleware(this: AnyWithProps, middleware: HttpApiMiddleware.AnyKey) {
     return makeProto({
       ...this,
-      errorSchema: HttpApiSchema.UnionUnify(this.errorSchema, middleware.failure),
       middlewares: new Set([...this.middlewares, middleware as any])
     })
   },

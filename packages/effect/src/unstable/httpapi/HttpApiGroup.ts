@@ -4,7 +4,7 @@
 import * as Predicate from "../../data/Predicate.ts"
 import * as Record from "../../data/Record.ts"
 import { type Pipeable, pipeArguments } from "../../interfaces/Pipeable.ts"
-import * as ServiceMap from "../../services/ServiceMap.ts"
+import * as ServiceMap from "../../ServiceMap.ts"
 import type { PathInput } from "../http/HttpRouter.ts"
 import type * as HttpApiEndpoint from "./HttpApiEndpoint.js"
 import type * as HttpApiMiddleware from "./HttpApiMiddleware.js"
@@ -44,6 +44,7 @@ export interface HttpApiGroup<
   new(_: never): {}
   readonly [TypeId]: TypeId
   readonly identifier: Id
+  readonly key: string
   readonly topLevel: TopLevel
   readonly endpoints: Record.ReadonlyRecord<string, Endpoints>
   readonly annotations: ServiceMap.ServiceMap<never>
@@ -76,7 +77,7 @@ export interface HttpApiGroup<
   >
 
   /**
-   * Merge the annotations of an `HttpApiGroup` with a new context.
+   * Merge the annotations of an `HttpApiGroup` with the provided annotations.
    */
   annotateMerge<I>(annotations: ServiceMap.ServiceMap<I>): HttpApiGroup<Id, Endpoints, TopLevel>
 
@@ -87,7 +88,7 @@ export interface HttpApiGroup<
 
   /**
    * For each endpoint in an `HttpApiGroup`, update the annotations with a new
-   * context.
+   * ServiceMap.
    *
    * Note that this will only update the annotations before this api is called.
    */
@@ -119,6 +120,7 @@ export interface ApiGroup<ApiId extends string, Name extends string> {
 export interface Any {
   readonly [TypeId]: TypeId
   readonly identifier: string
+  readonly key: string
 }
 
 /**
@@ -154,6 +156,36 @@ export type Name<Group> = Group extends HttpApiGroup<infer _Name, infer _Endpoin
  */
 export type Endpoints<Group> = Group extends HttpApiGroup<infer _Name, infer _Endpoints, infer _TopLevel> ? _Endpoints
   : never
+
+/**
+ * @since 4.0.0
+ * @category models
+ */
+export type ErrorServicesEncode<Group> = HttpApiEndpoint.ErrorServicesEncode<Endpoints<Group>>
+
+/**
+ * @since 4.0.0
+ * @category models
+ */
+export type ErrorServicesDecode<Group> = HttpApiEndpoint.ErrorServicesDecode<Endpoints<Group>>
+
+/**
+ * @since 4.0.0
+ * @category models
+ */
+export type MiddlewareError<Group> = HttpApiEndpoint.MiddlewareError<Endpoints<Group>>
+
+/**
+ * @since 4.0.0
+ * @category models
+ */
+export type MiddlewareProvides<Group> = HttpApiEndpoint.MiddlewareProvides<Endpoints<Group>>
+
+/**
+ * @since 4.0.0
+ * @category models
+ */
+export type MiddlewareServices<Group> = HttpApiEndpoint.MiddlewareServices<Endpoints<Group>>
 
 /**
  * @since 4.0.0
@@ -208,7 +240,7 @@ const Proto = {
       annotations: this.annotations
     })
   },
-  middlewareEndpoints(this: AnyWithProps, middleware: HttpApiMiddleware.AnyKey) {
+  middleware(this: AnyWithProps, middleware: HttpApiMiddleware.AnyKey) {
     return makeProto({
       identifier: this.identifier,
       topLevel: this.topLevel,
@@ -265,6 +297,7 @@ const makeProto = <
 }): HttpApiGroup<Id, Endpoints, TopLevel> => {
   function HttpApiGroup() {}
   Object.setPrototypeOf(HttpApiGroup, Proto)
+  HttpApiGroup.key = `effect/httpapi/HttpApiGroup/${options.identifier}`
   return Object.assign(HttpApiGroup, options) as any
 }
 

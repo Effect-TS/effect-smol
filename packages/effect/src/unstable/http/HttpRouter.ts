@@ -552,7 +552,7 @@ const makeRoute = <E, R>(options: {
  * @category Route
  */
 export const route = <E = never, R = never>(
-  method: "*" | "GET" | "POST" | "PUT" | "PATCH" | "DELETE" | "OPTIONS",
+  method: "*" | HttpMethod.HttpMethod,
   path: PathInput,
   handler:
     | HttpServerResponse.HttpServerResponse
@@ -858,7 +858,7 @@ class MiddlewareImpl<
     this.layerFn = layerFn
     this.dependencies = dependencies
     const contextKey = `effect/http/HttpRouter/Middleware-${++middlewareId}` as const
-    this.layer = Layer.effectDiscard(Effect.gen(this, function*() {
+    this.layer = Layer.effectServices(Effect.gen(this, function*() {
       const context = yield* Effect.services<Scope.Scope>()
       const stack = [context.unsafeMap.get(fnContextKey)]
       if (this.dependencies) {

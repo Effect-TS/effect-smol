@@ -5,7 +5,7 @@ import { hasProperty } from "../../data/Predicate.ts"
 import type { Simplify } from "../../data/Struct.ts"
 import type * as Effect from "../../Effect.ts"
 import * as Schema from "../../schema/Schema.ts"
-import * as ServiceMap from "../../services/ServiceMap.ts"
+import * as ServiceMap from "../../ServiceMap.ts"
 import type * as HttpRouter from "../http/HttpRouter.js"
 import type { HttpServerResponse } from "../http/HttpServerResponse.ts"
 import type * as HttpApiSecurity from "./HttpApiSecurity.js"
@@ -59,9 +59,8 @@ export type HttpApiMiddlewareSecurity<
   Requires
 > = {
   readonly [K in keyof Security]: (
-    httpEffect: Effect.Effect<HttpServerResponse, HttpRouter.unhandled, Provides>,
     payload: HttpApiSecurity.HttpApiSecurity.Type<Security[K]>
-  ) => Effect.Effect<HttpServerResponse, HttpRouter.unhandled | E["Type"], Requires | HttpRouter.Provided>
+  ) => Effect.Effect<[Provides] extends [never] ? unknown : Provides, E["Type"], Requires>
 }
 
 /**
@@ -70,9 +69,8 @@ export type HttpApiMiddlewareSecurity<
  */
 export interface AnyKey {
   readonly [TypeId]: TypeId
-  readonly optional: boolean
   readonly provides?: ServiceMap.Key<any, any>
-  readonly failure: Schema.Top
+  readonly error: Schema.Top
 }
 
 /**
@@ -130,20 +128,25 @@ export type Error<A> = ErrorSchema<A>["Type"]
  * @since 4.0.0
  * @category models
  */
-export type ErrorServices<A> = ErrorSchema<A>["DecodingServices"] | ErrorSchema<A>["EncodingServices"]
+export type ErrorServicesEncode<A> = ErrorSchema<A>["EncodingServices"]
+
+/**
+ * @since 4.0.0
+ * @category models
+ */
+export type ErrorServicesDecode<A> = ErrorSchema<A>["DecodingServices"]
 
 /**
  * @since 4.0.0
  * @category Schemas
  */
-export type TagClass<
+export type KeyClass<
   Self,
   Id extends string,
   Config extends {
     requires: any
     provides: ServiceMap.Key<any, any>
     error: Schema.Top
-    optional: boolean
     security: Record<string, HttpApiSecurity.HttpApiSecurity>
   },
   Service = ([keyof Config["security"]] extends [never] ? (
@@ -156,7 +159,7 @@ export type TagClass<
     : Simplify<
       HttpApiMiddlewareSecurity<
         Config["security"],
-        ServiceMap.Key.Identifier<Config["provides"]>,
+        ServiceMap.Key.Service<Config["provides"]>,
         Config["error"],
         Config["requires"]
       >
@@ -168,12 +171,12 @@ export type TagClass<
       readonly [TypeId]: {
         readonly error: Config["error"]
         readonly requires: Config["requires"]
+        readonly provides: ServiceMap.Key.Identifier<Config["provides"]>
       }
     }
     readonly [TypeId]: TypeId
     readonly error: Config["error"]
     readonly requires: Config["requires"]
-    readonly optional: Config["optional"]
   }
   & ([keyof Config["security"]] extends [never] ? {} : {
     readonly [SecurityTypeId]: SecurityTypeId
@@ -189,29 +192,25 @@ export type TagClass<
  */
 export const Key = <Self, Config extends { requires: any } = { requires: never }>(): <
   const Id extends string,
-  const Optional extends boolean = false,
   Error extends Schema.Top = Schema.Never,
   Provides extends ServiceMap.Key<any, any> = never,
   const Security extends Record<string, HttpApiSecurity.HttpApiSecurity> = {}
 >(
   id: Id,
   options?: {
-    readonly optional?: Optional | undefined
     readonly error?: Error | undefined
     readonly provides?: Provides | undefined
     readonly security?: Security | undefined
   } | undefined
-) => TagClass<Self, Id, {
+) => KeyClass<Self, Id, {
   requires: Config["requires"]
   provides: Provides
-  error: Optional extends true ? Schema.Never : Error
-  optional: Optional
+  error: Error
   security: Security
 }> =>
 (
   id: string,
   options?: {
-    readonly optional?: boolean | undefined
     readonly security?: Record<string, HttpApiSecurity.HttpApiSecurity> | undefined
     readonly error?: Schema.Top | undefined
     readonly provides?: ServiceMap.Key<any, any> | undefined
@@ -231,11 +230,10 @@ export const Key = <Self, Config extends { requires: any } = { requires: never }
     }
   })
   self[TypeId] = TypeId
-  self.error = options?.optional === true || options?.error === undefined ? Schema.Never : options.error
+  self.error = options?.error === undefined ? Schema.Never : options.error
   if (options?.provides) {
     self.provides = options.provides
   }
-  self.optional = options?.optional ?? false
   if (options?.security) {
     if (Object.keys(options.security).length === 0) {
       throw new Error("HttpApiMiddleware.Tag: security object must not be empty")

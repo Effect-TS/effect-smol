@@ -524,7 +524,7 @@ export const EmptyError = <Self>() =>
     _tag: Schema.tag(options.tag)
   }) {
     constructor() {
-      super({})
+      super({}, { disableValidation: true })
       this.name = options.tag
     }
   }

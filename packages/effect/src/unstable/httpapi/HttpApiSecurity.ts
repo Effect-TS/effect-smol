@@ -4,14 +4,14 @@
 import type { Redacted } from "../../data/Redacted.ts"
 import { dual } from "../../Function.ts"
 import { type Pipeable, pipeArguments } from "../../interfaces/Pipeable.ts"
-import * as ServiceMap from "../../services/ServiceMap.ts"
+import * as ServiceMap from "../../ServiceMap.ts"
 import type { Covariant } from "../../types/Types.ts"
 
 /**
  * @since 4.0.0
  * @category type ids
  */
-export const TypeId: unique symbol = Symbol.for("@effect/platform/HttpApiSecurity")
+export const TypeId: TypeId = "~effect/httpapi/HttpApiSecurity"
 
 /**
  * @since 4.0.0
