@@ -642,6 +642,23 @@ export const makeZonedFromString: (input: string) => Option.Option<Zoned> = Inte
 export const now: Effect.Effect<Utc> = Internal.now
 
 /**
+ * Get the current time using the `Clock` service and convert it to a `DateTime`.
+ *
+ * @since 3.6.0
+ * @category constructors
+ * @example
+ * ```ts
+ * import { DateTime } from "effect/time"
+ * import { Effect } from "effect"
+ *
+ * Effect.gen(function* () {
+ *   const now = yield* DateTime.now
+ * })
+ * ```
+ */
+export const nowAsDate: Effect.Effect<Date> = Internal.nowAsDate
+
+/**
  * Get the current time using `Date.now`.
  *
  * This is a synchronous version of `now` that directly uses `Date.now()`
@@ -671,7 +688,7 @@ export const unsafeNow: LazyArg<Utc> = Internal.unsafeNow
  * @category time zones
  * @example
  * ```ts
- * import { DateTime } from "effect"
+ * import { DateTime } from "effect/time"
  *
  * const now = DateTime.unsafeMakeZoned({ year: 2024 }, { timeZone: "Europe/London" })
  *
