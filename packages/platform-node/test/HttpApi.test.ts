@@ -393,6 +393,8 @@ class User extends Schema.Class<User>("User")({
   uuid: Schema.optional(Schema.String),
   name: Schema.String,
   createdAt: DateTimeFromString
+}, {
+  description: "Some description for User"
 }) {}
 
 class Group extends Schema.Class<Group>("Group")({
