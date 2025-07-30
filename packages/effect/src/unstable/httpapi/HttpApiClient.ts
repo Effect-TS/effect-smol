@@ -428,7 +428,7 @@ const StringFromArrayBuffer = SchemaArrayBuffer.pipe(
         return new TextDecoder().decode(fromA)
       },
       encode(toI) {
-        const arr = new TextEncoder().encode(toI)
+        const arr = new TextEncoder().encode(toI) as Uint8Array<ArrayBuffer>
         return arr.byteLength === arr.buffer.byteLength ?
           arr.buffer :
           arr.buffer.slice(arr.byteOffset, arr.byteOffset + arr.byteLength)
