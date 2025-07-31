@@ -182,6 +182,19 @@ importers:
         specifier: ^4.0.7
         version: 4.0.7
 
+  packages/cli:
+    dependencies:
+      effect:
+        specifier: workspace:^
+        version: link:../effect
+    devDependencies:
+      '@effect/platform-node':
+        specifier: workspace:^
+        version: link:../platform-node
+      '@types/node':
+        specifier: ^24.0.14
+        version: 24.1.0
+
   packages/effect:
     dependencies:
       '@standard-schema/spec':
