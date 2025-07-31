@@ -3620,6 +3620,197 @@ export const provideServices: {
   fromTransform((upstream, scope) => Effect.provideServices(toTransform(self)(upstream, scope), services)))
 
 /**
+ * @since 4.0.0
+ * @category Do notation
+ */
+export const Do: Channel<{}> = succeed({})
+
+const let_: {
+  <N extends string, OutElem extends object, B>(
+    name: Exclude<N, keyof OutElem>,
+    f: (a: NoInfer<OutElem>) => B
+  ): <OutErr, OutDone, InElem, InErr, InDone, R>(
+    self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, R>
+  ) => Channel<
+    { [K in N | keyof OutElem]: K extends keyof OutElem ? OutElem[K] : B },
+    OutErr,
+    OutDone,
+    InElem,
+    InErr,
+    InDone,
+    R
+  >
+  <OutElem extends object, OutErr, OutDone, InElem, InErr, InDone, R, N extends string, B>(
+    self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, R>,
+    name: Exclude<N, keyof OutElem>,
+    f: (a: NoInfer<OutElem>) => B
+  ): Channel<
+    { [K in N | keyof OutElem]: K extends keyof OutElem ? OutElem[K] : B },
+    OutErr,
+    OutDone,
+    InElem,
+    InErr,
+    InDone,
+    R
+  >
+} = dual(3, <OutElem extends object, OutErr, OutDone, InElem, InErr, InDone, R, N extends string, B>(
+  self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, R>,
+  name: Exclude<N, keyof OutElem>,
+  f: (a: NoInfer<OutElem>) => B
+): Channel<
+  { [K in N | keyof OutElem]: K extends keyof OutElem ? OutElem[K] : B },
+  OutErr,
+  OutDone,
+  InElem,
+  InErr,
+  InDone,
+  R
+> => map(self, (elem) => ({ ...elem, [name]: f(elem) }) as any))
+export {
+  /**
+   * @since 4.0.0
+   * @category Do notation
+   */
+  let_ as let
+}
+
+/**
+ * @since 4.0.0
+ * @category Do notation
+ */
+export const bind: {
+  <N extends string, OutElem extends object, B, OutErr2, OutDone2, InElem2, InErr2, InDone2, Env2>(
+    name: Exclude<N, keyof OutElem>,
+    f: (a: NoInfer<OutElem>) => Channel<B, OutErr2, OutDone2, InElem2, InErr2, InDone2, Env2>,
+    options?: {
+      readonly concurrency?: number | "unbounded" | undefined
+      readonly bufferSize?: number | undefined
+    }
+  ): <OutErr, OutDone, InElem, InErr, InDone, Env>(
+    self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>
+  ) => Channel<
+    { [K in N | keyof OutElem]: K extends keyof OutElem ? OutElem[K] : B },
+    OutErr2 | OutErr,
+    OutDone,
+    InElem & InElem2,
+    InErr & InErr2,
+    InDone & InDone2,
+    Env2 | Env
+  >
+  <
+    OutElem extends object,
+    OutErr,
+    OutDone,
+    InElem,
+    InErr,
+    InDone,
+    Env,
+    N extends string,
+    B,
+    OutErr2,
+    OutDone2,
+    InElem2,
+    InErr2,
+    InDone2,
+    Env2
+  >(
+    self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
+    name: Exclude<N, keyof OutElem>,
+    f: (a: NoInfer<OutElem>) => Channel<B, OutErr2, OutDone2, InElem2, InErr2, InDone2, Env2>,
+    options?: {
+      readonly concurrency?: number | "unbounded" | undefined
+      readonly bufferSize?: number | undefined
+    }
+  ): Channel<
+    { [K in N | keyof OutElem]: K extends keyof OutElem ? OutElem[K] : B },
+    OutErr2 | OutErr,
+    OutDone,
+    InElem & InElem2,
+    InErr & InErr2,
+    InDone & InDone2,
+    Env2 | Env
+  >
+} = dual((args) => isChannel(args[0]), <
+  OutElem extends object,
+  OutErr,
+  OutDone,
+  InElem,
+  InErr,
+  InDone,
+  Env,
+  N extends string,
+  B,
+  OutErr2,
+  OutDone2,
+  InElem2,
+  InErr2,
+  InDone2,
+  Env2
+>(
+  self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
+  name: Exclude<N, keyof OutElem>,
+  f: (a: NoInfer<OutElem>) => Channel<B, OutErr2, OutDone2, InElem2, InErr2, InDone2, Env2>,
+  options?: {
+    readonly concurrency?: number | "unbounded" | undefined
+    readonly bufferSize?: number | undefined
+  }
+): Channel<
+  { [K in N | keyof OutElem]: K extends keyof OutElem ? OutElem[K] : B },
+  OutErr2 | OutErr,
+  OutDone,
+  InElem & InElem2,
+  InErr & InErr2,
+  InDone & InDone2,
+  Env2 | Env
+> =>
+  flatMap(
+    self,
+    (elem) => map(f(elem), (b) => ({ ...elem, [name]: b } as any)),
+    options
+  ))
+
+/**
+ * @since 4.0.0
+ * @category Do notation
+ */
+export const bindTo: {
+  <N extends string>(name: N): <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>(
+    self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>
+  ) => Channel<
+    { [K in N]: OutElem },
+    OutErr,
+    OutDone,
+    InElem,
+    InErr,
+    InDone,
+    Env
+  >
+  <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, N extends string>(
+    self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
+    name: N
+  ): Channel<
+    { [K in N]: OutElem },
+    OutErr,
+    OutDone,
+    InElem,
+    InErr,
+    InDone,
+    Env
+  >
+} = dual(2, <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, N extends string>(
+  self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
+  name: N
+): Channel<
+  { [K in N]: OutElem },
+  OutErr,
+  OutDone,
+  InElem,
+  InErr,
+  InDone,
+  Env
+> => map(self, (elem) => ({ [name]: elem } as any)))
+
+/**
  * Runs a channel and counts the number of elements it outputs.
  *
  * @example
@@ -3756,6 +3947,41 @@ export const runCollect = <OutElem, OutErr, OutDone, Env>(
   runFold(self, () => [] as Array<OutElem>, (acc, o) => {
     acc.push(o)
     return acc
+  })
+
+/**
+ * @since 2.0.0
+ * @category execution
+ */
+export const runHead = <OutElem, OutErr, OutDone, Env>(
+  self: Channel<OutElem, OutErr, OutDone, unknown, unknown, unknown, Env>
+): Effect.Effect<Option.Option<OutElem>, OutErr, Env> =>
+  Effect.suspend(() => {
+    let head = Option.none<OutElem>()
+    return runWith(self, (pull) =>
+      pull.pipe(
+        Effect.asSome,
+        Effect.flatMap((head_) => {
+          head = head_
+          return Pull.haltVoid
+        })
+      ), () => Effect.succeed(head))
+  })
+
+/**
+ * @since 2.0.0
+ * @category execution
+ */
+export const runLast = <OutElem, OutErr, OutDone, Env>(
+  self: Channel<OutElem, OutErr, OutDone, unknown, unknown, unknown, Env>
+): Effect.Effect<Option.Option<OutElem>, OutErr, Env> =>
+  Effect.suspend(() => {
+    let last: Filter.fail<void> | OutElem = Filter.fail(void 0)
+    return runWith(self, (pull) =>
+      Effect.map(pull, (item) => {
+        last = item
+        return item
+      }), () => Filter.isFail(last) ? Effect.succeedNone : Effect.succeedSome(last))
   })
 
 /**

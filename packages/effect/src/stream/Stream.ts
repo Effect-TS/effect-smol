@@ -1214,6 +1214,7 @@ export const mapEffect: {
     f: (a: A) => Effect.Effect<A2, E2, R2>,
     options?: {
       readonly concurrency?: number | "unbounded" | undefined
+      readonly bufferSize?: number | undefined
       readonly unordered?: boolean | undefined
     } | undefined
   ): <E, R>(self: Stream<A, E, R>) => Stream<A2, E2 | E, R2 | R>
@@ -1222,6 +1223,7 @@ export const mapEffect: {
     f: (a: A) => Effect.Effect<A2, E2, R2>,
     options?: {
       readonly concurrency?: number | "unbounded" | undefined
+      readonly bufferSize?: number | undefined
       readonly unordered?: boolean | undefined
     } | undefined
   ): Stream<A2, E | E2, R | R2>
@@ -2150,6 +2152,117 @@ export const provideServices: {
 )
 
 /**
+ * @since 4.0.0
+ * @category Do notation
+ */
+export const Do: Stream<{}> = succeed({})
+
+const let_: {
+  <N extends string, A extends object, B>(
+    name: Exclude<N, keyof A>,
+    f: (a: NoInfer<A>) => B
+  ): <E, R>(self: Stream<A, E, R>) => Stream<{ [K in N | keyof A]: K extends keyof A ? A[K] : B }, E, R>
+  <A extends object, E, R, N extends string, B>(
+    self: Stream<A, E, R>,
+    name: Exclude<N, keyof A>,
+    f: (a: NoInfer<A>) => B
+  ): Stream<{ [K in N | keyof A]: K extends keyof A ? A[K] : B }, E, R>
+} = dual(3, <A extends object, E, R, N extends string, B>(
+  self: Stream<A, E, R>,
+  name: Exclude<N, keyof A>,
+  f: (a: NoInfer<A>) => B
+): Stream<{ [K in N | keyof A]: K extends keyof A ? A[K] : B }, E, R> =>
+  map(self, (a) => ({ ...a, [name]: f(a) } as any)))
+export {
+  /**
+   * @since 4.0.0
+   * @category Do notation
+   */
+  let_ as let
+}
+
+/**
+ * @since 4.0.0
+ * @category Do notation
+ */
+export const bind: {
+  <N extends string, A, B, E2, R2>(
+    tag: Exclude<N, keyof A>,
+    f: (_: NoInfer<A>) => Stream<B, E2, R2>,
+    options?: {
+      readonly concurrency?: number | "unbounded" | undefined
+      readonly bufferSize?: number | undefined
+    } | undefined
+  ): <E, R>(self: Stream<A, E, R>) => Stream<{ [K in N | keyof A]: K extends keyof A ? A[K] : B }, E2 | E, R2 | R>
+  <A, E, R, N extends string, B, E2, R2>(
+    self: Stream<A, E, R>,
+    tag: Exclude<N, keyof A>,
+    f: (_: NoInfer<A>) => Stream<B, E2, R2>,
+    options?: {
+      readonly concurrency?: number | "unbounded" | undefined
+      readonly bufferSize?: number | undefined
+    } | undefined
+  ): Stream<{ [K in N | keyof A]: K extends keyof A ? A[K] : B }, E | E2, R | R2>
+} = dual((args) => isStream(args[0]), <A, E, R, N extends string, B, E2, R2>(
+  self: Stream<A, E, R>,
+  tag: Exclude<N, keyof A>,
+  f: (_: NoInfer<A>) => Stream<B, E2, R2>,
+  options?: {
+    readonly concurrency?: number | "unbounded" | undefined
+    readonly bufferSize?: number | undefined
+  } | undefined
+): Stream<{ [K in N | keyof A]: K extends keyof A ? A[K] : B }, E | E2, R | R2> =>
+  flatMap(self, (a) => map(f(a), (b) => ({ ...a, [tag]: b } as any)), options))
+
+/**
+ * @category Do notation
+ * @since 4.0.0
+ */
+export const bindEffect: {
+  <N extends string, A, B, E2, R2>(
+    tag: Exclude<N, keyof A>,
+    f: (_: NoInfer<A>) => Effect.Effect<B, E2, R2>,
+    options?: {
+      readonly concurrency?: number | "unbounded" | undefined
+      readonly bufferSize?: number | undefined
+      readonly unordered?: boolean | undefined
+    }
+  ): <E, R>(self: Stream<A, E, R>) => Stream<{ [K in keyof A | N]: K extends keyof A ? A[K] : B }, E | E2, R | R2>
+  <A, E, R, N extends string, B, E2, R2>(
+    self: Stream<A, E, R>,
+    tag: Exclude<N, keyof A>,
+    f: (_: NoInfer<A>) => Effect.Effect<B, E2, R2>,
+    options?: {
+      readonly concurrency?: number | "unbounded" | undefined
+      readonly bufferSize?: number | undefined
+      readonly unordered?: boolean | undefined
+    }
+  ): Stream<{ [K in keyof A | N]: K extends keyof A ? A[K] : B }, E | E2, R | R2>
+} = dual((args) => isStream(args[0]), <A, E, R, N extends string, B, E2, R2>(
+  self: Stream<A, E, R>,
+  tag: Exclude<N, keyof A>,
+  f: (_: NoInfer<A>) => Effect.Effect<B, E2, R2>,
+  options?: {
+    readonly concurrency?: number | "unbounded" | undefined
+    readonly bufferSize?: number | undefined
+    readonly unordered?: boolean | undefined
+  } | undefined
+): Stream<{ [K in keyof A | N]: K extends keyof A ? A[K] : B }, E | E2, R | R2> =>
+  mapEffect(self, (a) => Effect.map(f(a), (b) => ({ ...a, [tag]: b } as any)), options))
+
+/**
+ * @category Do notation
+ * @since 4.0.0
+ */
+export const bindTo: {
+  <N extends string>(name: N): <A, E, R>(self: Stream<A, E, R>) => Stream<{ [K in N]: A }, E, R>
+  <A, E, R, N extends string>(self: Stream<A, E, R>, name: N): Stream<{ [K in N]: A }, E, R>
+} = dual(2, <A, E, R, N extends string>(
+  self: Stream<A, E, R>,
+  name: N
+): Stream<{ [K in N]: A }, E, R> => map(self, (a) => ({ [name]: a } as any)))
+
+/**
  * Runs the sink on the stream to produce either the sink's result or an error.
  *
  * @example
@@ -2237,6 +2350,20 @@ export const runCollect = <A, E, R>(self: Stream<A, E, R>): Effect.Effect<Array<
  */
 export const runCount = <A, E, R>(self: Stream<A, E, R>): Effect.Effect<number, E, R> =>
   Channel.runFold(self.channel, () => 0, (acc, chunk) => acc + chunk.length)
+
+/**
+ * @since 2.0.0
+ * @category destructors
+ */
+export const runHead = <A, E, R>(self: Stream<A, E, R>): Effect.Effect<Option.Option<A>, E, R> =>
+  Effect.map(Channel.runHead(self.channel), Option.map(Arr.unsafeGet(0)))
+
+/**
+ * @since 2.0.0
+ * @category destructors
+ */
+export const runLast = <A, E, R>(self: Stream<A, E, R>): Effect.Effect<Option.Option<A>, E, R> =>
+  Effect.map(Channel.runLast(self.channel), Option.map(Arr.lastNonEmpty))
 
 /**
  * Consumes all elements of the stream, passing them to the specified
