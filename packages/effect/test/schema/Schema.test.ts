@@ -2606,7 +2606,7 @@ describe("Schema", () => {
             combine: ([_, v1], [k2, v2]) => [k2, v1 + v2]
           },
           encode: {
-            combine: ([_, v1], [k2, v2]) => [k2, v1 + v2]
+            combine: ([_, v1], [k2, v2]) => [k2, v1 + "e" + v2]
           }
         }
       })
@@ -2619,7 +2619,7 @@ describe("Schema", () => {
 
       await assertions.encoding.succeed(schema, { a: 1 }, { expected: { a: "1" } })
       await assertions.encoding.succeed(schema, { aB: 1 }, { expected: { a_b: "1" } })
-      await assertions.encoding.succeed(schema, { a_b: 1, aB: 2 }, { expected: { a_b: "12" } })
+      await assertions.encoding.succeed(schema, { a_b: 1, aB: 2 }, { expected: { a_b: "1e2" } })
     })
 
     describe("Literals keys", () => {

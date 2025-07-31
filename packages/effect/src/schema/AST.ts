@@ -325,17 +325,6 @@ export abstract class Base implements Annotated {
  */
 export abstract class AbstractParser extends Base {
   /** @internal */
-  typeAST(this: AST): AST {
-    return replaceEncoding(this, undefined)
-  }
-  /** @internal */
-  flip(this: AST): AST {
-    if (this.encoding) {
-      return flipEncoding(this, this.encoding)
-    }
-    return this
-  }
-  /** @internal */
   abstract parser(go: (ast: AST) => ToParser.Parser): ToParser.Parser
 }
 
@@ -365,21 +354,11 @@ export class Declaration extends Base {
     this.run = run
   }
   /** @internal */
-  typeAST(): Declaration {
-    const tps = mapOrSame(this.typeParameters, (tp) => typeAST(tp))
-    return !this.encoding && tps === this.typeParameters ?
+  go(go: (ast: AST) => AST) {
+    const tps = mapOrSame(this.typeParameters, go)
+    return tps === this.typeParameters ?
       this :
       new Declaration(tps, this.run, this.annotations, this.checks, undefined, this.context)
-  }
-  /** @internal */
-  flip(): AST {
-    if (this.encoding) {
-      return flipEncoding(this, this.encoding)
-    }
-    const typeParameters = mapOrSame(this.typeParameters, flip)
-    return typeParameters === this.typeParameters ?
-      this :
-      new Declaration(typeParameters, this.run, this.annotations, this.checks, undefined, this.context)
   }
   /** @internal */
   parser(): ToParser.Parser {
@@ -393,6 +372,23 @@ export class Declaration extends Base {
       return run(oinput.value, ast, options).pipe(Effect.mapEager(Option.some))
     }
   }
+  /** @internal */
+  goJson(goJson: (ast: AST) => AST, make: (ast: AST) => Schema.Top) {
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
+    const ast = this
+    const defaultJsonSerializer = ast.annotations?.defaultJsonSerializer
+    if (Predicate.isFunction(defaultJsonSerializer)) {
+      const link = defaultJsonSerializer(ast.typeParameters.map((tp) => make(goJson(encodedAST(tp)))))
+      const to = goJson(link.to)
+      if (to === link.to) {
+        return replaceEncoding(ast, [link])
+      } else {
+        return replaceEncoding(ast, [new Link(to, link.transformation)])
+      }
+    } else {
+      return forbidden(ast)
+    }
+  }
 }
 
 /**
@@ -404,6 +400,14 @@ export class NullKeyword extends AbstractParser {
   /** @internal */
   parser() {
     return fromRefinement(this, Predicate.isNull)
+  }
+  /** @internal */
+  goJson() {
+    return this
+  }
+  /** @internal */
+  goStringLeafJson() {
+    return coerceNull(this)
   }
 }
 
@@ -534,6 +538,27 @@ export class Enums extends AbstractParser {
       (input): input is typeof this.enums[number][1] => this.enums.some(([_, value]) => value === input)
     )
   }
+  /** @internal */
+  goJson() {
+    return this
+  }
+  /** @internal */
+  goStringLeafJson() {
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
+    const ast = this
+    if (ast.enums.some(([_, v]) => Predicate.isNumber(v))) {
+      const coercions = Object.fromEntries(ast.enums.map(([_, v]) => [String(v), v]))
+      const enumLink = new Link(
+        new UnionType(Object.keys(coercions).map((k) => new LiteralType(k)), "anyOf"),
+        new Transformation.Transformation(
+          Getter.map((s) => coercions[s]),
+          Getter.String()
+        )
+      )
+      return replaceEncoding(ast, [enumLink])
+    }
+    return ast
+  }
 }
 
 /**
@@ -606,6 +631,14 @@ export class TemplateLiteral extends AbstractParser {
       )
   }
   /** @internal */
+  goJson() {
+    return this
+  }
+  /** @internal */
+  goStringLeafJson() {
+    return this
+  }
+  /** @internal */
   asTemplateLiteralParser(): TupleType {
     const tuple = goStringLeafJson(new TupleType(false, this.parts, [])) as TupleType
     const regex = getTemplateLiteralRegExp(this)
@@ -654,6 +687,10 @@ export class UniqueSymbol extends AbstractParser {
   parser() {
     return fromRefinement(this, (input): input is typeof this.symbol => input === this.symbol)
   }
+  /** @internal */
+  goJson() {
+    return coerceSymbol(this)
+  }
 }
 
 /**
@@ -683,6 +720,28 @@ export class LiteralType extends AbstractParser {
   parser() {
     return fromRefinement(this, (input): input is typeof this.literal => input === this.literal)
   }
+  /** @internal */
+  goJson() {
+    if (Predicate.isBigInt(this.literal)) {
+      return coerceBigInt(this)
+    }
+    return this
+  }
+  /** @internal */
+  goStringLeafJson() {
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
+    const ast = this
+    switch (typeof ast.literal) {
+      case "number":
+        return coerceNumber(ast)
+      case "boolean":
+        return coerceBoolean(ast)
+      case "bigint":
+        return coerceBigInt(ast)
+      default:
+    }
+    return ast
+  }
 }
 
 /**
@@ -694,6 +753,14 @@ export class StringKeyword extends AbstractParser {
   /** @internal */
   parser() {
     return fromRefinement(this, Predicate.isString)
+  }
+  /** @internal */
+  goJson() {
+    return this
+  }
+  /** @internal */
+  goStringLeafJson() {
+    return this
   }
 }
 
@@ -712,6 +779,14 @@ export class NumberKeyword extends AbstractParser {
   parser() {
     return fromRefinement(this, Predicate.isNumber)
   }
+  /** @internal */
+  goJson() {
+    return this
+  }
+  /** @internal */
+  goStringLeafJson() {
+    return coerceNumber(this)
+  }
 }
 
 /**
@@ -728,6 +803,14 @@ export class BooleanKeyword extends AbstractParser {
   /** @internal */
   parser() {
     return fromRefinement(this, Predicate.isBoolean)
+  }
+  /** @internal */
+  goJson() {
+    return this
+  }
+  /** @internal */
+  goStringLeafJson() {
+    return coerceBoolean(this)
   }
 }
 
@@ -746,6 +829,10 @@ export class SymbolKeyword extends AbstractParser {
   parser() {
     return fromRefinement(this, Predicate.isSymbol)
   }
+  /** @internal */
+  goJson() {
+    return coerceSymbol(this)
+  }
 }
 
 /**
@@ -762,6 +849,13 @@ export class BigIntKeyword extends AbstractParser {
   /** @internal */
   parser() {
     return fromRefinement(this, Predicate.isBigInt)
+  }
+  goJson() {
+    return coerceBigInt(this)
+  }
+  /** @internal */
+  goStringLeafJson() {
+    return coerceBigInt(this)
   }
 }
 
@@ -881,25 +975,6 @@ export class TupleType extends Base {
         throw new Error("An optional element cannot follow a rest element. ts(1266)")
       }
     }
-  }
-  /** @internal */
-  typeAST(): TupleType {
-    const elements = mapOrSame(this.elements, typeAST)
-    const rest = mapOrSame(this.rest, typeAST)
-    return !this.encoding && elements === this.elements && rest === this.rest ?
-      this :
-      new TupleType(this.isMutable, elements, rest, this.annotations, this.checks, undefined, this.context)
-  }
-  /** @internal */
-  flip(): AST {
-    if (this.encoding) {
-      return flipEncoding(this, this.encoding)
-    }
-    const elements = mapOrSame(this.elements, flip)
-    const rest = mapOrSame(this.rest, flip)
-    return !this.encoding && elements === this.elements && rest === this.rest ?
-      this :
-      new TupleType(this.isMutable, elements, rest, this.annotations, this.checks, undefined, this.context)
   }
   /** @internal */
   parser(go: (ast: AST) => ToParser.Parser): ToParser.Parser {
@@ -1032,6 +1107,14 @@ export class TupleType extends Base {
       return Option.some(output)
     })
   }
+  /** @internal */
+  go(go: (ast: AST) => AST) {
+    const elements = mapOrSame(this.elements, go)
+    const rest = mapOrSame(this.rest, go)
+    return elements === this.elements && rest === this.rest ?
+      this :
+      new TupleType(this.isMutable, elements, rest, this.annotations, this.checks, undefined, this.context)
+  }
 }
 
 function getIndexSignatureHash(ast: AST): string {
@@ -1096,54 +1179,6 @@ export class TypeLiteral extends Base {
         throw new Error(`Duplicate index signatures: ${JSON.stringify(duplicates)}. ts(2374)`)
       }
     }
-  }
-  /** @internal */
-  typeAST(): TypeLiteral {
-    const pss = mapOrSame(this.propertySignatures, (ps) => {
-      const type = typeAST(ps.type)
-      return type === ps.type ?
-        ps :
-        new PropertySignature(ps.name, type)
-    })
-    const iss = mapOrSame(this.indexSignatures, (is) => {
-      const parameter = typeAST(is.parameter)
-      const type = typeAST(is.type)
-      return parameter === is.parameter && type === is.type && is.merge === undefined ?
-        is :
-        new IndexSignature(is.isMutable, parameter, type, undefined)
-    })
-    return !this.encoding && pss === this.propertySignatures && iss === this.indexSignatures ?
-      this :
-      new TypeLiteral(pss, iss, this.annotations, this.checks, undefined, this.context)
-  }
-  /** @internal */
-  flip(): AST {
-    if (this.encoding) {
-      return flipEncoding(this, this.encoding)
-    }
-    const propertySignatures = mapOrSame(this.propertySignatures, (ps) => {
-      const type = flip(ps.type)
-      return type === ps.type ? ps : new PropertySignature(ps.name, type)
-    })
-    const indexSignatures = mapOrSame(this.indexSignatures, (is) => {
-      const parameter = flip(is.parameter)
-      const type = flip(is.type)
-      const merge = is.merge?.flip()
-      return parameter === is.parameter && type === is.type && merge === is.merge
-        ? is
-        : new IndexSignature(is.isMutable, parameter, type, merge)
-    })
-    return !this.encoding && propertySignatures === this.propertySignatures &&
-        indexSignatures === this.indexSignatures ?
-      this :
-      new TypeLiteral(
-        propertySignatures,
-        indexSignatures,
-        this.annotations,
-        this.checks,
-        undefined,
-        this.context
-      )
   }
   /** @internal */
   parser(go: (ast: AST) => ToParser.Parser): ToParser.Parser {
@@ -1312,6 +1347,37 @@ export class TypeLiteral extends Base {
       }
       return Option.some(out)
     })
+  }
+  private rebuild(
+    go: (ast: AST) => AST,
+    flipMerge: boolean
+  ): TypeLiteral {
+    const props = mapOrSame(this.propertySignatures, (ps) => {
+      const t = go(ps.type)
+      return t === ps.type ? ps : new PropertySignature(ps.name, t)
+    })
+
+    const indexes = mapOrSame(this.indexSignatures, (is) => {
+      const p = go(is.parameter)
+      const t = go(is.type)
+      const merge = flipMerge ? is.merge?.flip() : is.merge
+      return p === is.parameter && t === is.type && merge === is.merge
+        ? is
+        : new IndexSignature(is.isMutable, p, t, merge)
+    })
+
+    return props === this.propertySignatures && indexes === this.indexSignatures
+      ? this
+      : new TypeLiteral(props, indexes, this.annotations, this.checks, undefined, this.context)
+  }
+  /** @internal */
+  flip(go: (ast: AST) => AST): AST {
+    return this.rebuild(go, true)
+  }
+
+  /** @internal */
+  go(go: (ast: AST) => AST): AST {
+    return this.rebuild(go, false)
   }
 }
 
@@ -1586,23 +1652,6 @@ export class UnionType<A extends AST = AST> extends Base {
     this.mode = mode
   }
   /** @internal */
-  typeAST(): UnionType<A> {
-    const types = mapOrSame(this.types, typeAST)
-    return !this.encoding && types === this.types ?
-      this :
-      new UnionType(types, this.mode, this.annotations, this.checks, undefined, this.context)
-  }
-  /** @internal */
-  flip(): AST {
-    if (this.encoding) {
-      return flipEncoding(this, this.encoding)
-    }
-    const types = mapOrSame(this.types, flip)
-    return types === this.types ?
-      this :
-      new UnionType(types, this.mode, this.annotations, this.checks, undefined, this.context)
-  }
-  /** @internal */
   parser(go: (ast: AST) => ToParser.Parser): ToParser.Parser {
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const ast = this
@@ -1650,6 +1699,13 @@ export class UnionType<A extends AST = AST> extends Base {
       }
     })
   }
+  /** @internal */
+  go(go: (ast: AST) => AST) {
+    const types = mapOrSame(this.types, go)
+    return types === this.types ?
+      this :
+      new UnionType(types, this.mode, this.annotations, this.checks, undefined, this.context)
+  }
 }
 
 /**
@@ -1671,19 +1727,14 @@ export class Suspend extends Base {
     this.thunk = memoizeThunk(thunk)
   }
   /** @internal */
-  typeAST(): Suspend {
-    return new Suspend(() => typeAST(this.thunk()), this.annotations, this.checks, undefined, this.context)
-  }
-  /** @internal */
-  flip(): AST {
-    if (this.encoding) {
-      return flipEncoding(this, this.encoding)
-    }
-    return new Suspend(() => flip(this.thunk()), this.annotations, this.checks, undefined, this.context)
-  }
-  /** @internal */
   parser(go: (ast: AST) => ToParser.Parser): ToParser.Parser {
     return go(this.thunk())
+  }
+  /** @internal */
+  go(go: (ast: AST) => AST) {
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
+    const ast = this
+    return new Suspend(() => go(ast.thunk()), ast.annotations, ast.checks, undefined, ast.context)
   }
 }
 
@@ -1963,7 +2014,11 @@ export function isOptional(ast: AST): boolean {
  * @since 4.0.0
  */
 export const typeAST = memoize(<A extends AST>(ast: A): A => {
-  return ast.typeAST() as A
+  if (ast.encoding) {
+    return typeAST(replaceEncoding(ast, undefined))
+  }
+  const out: any = ast
+  return out.go?.(typeAST) ?? out
 })
 
 /**
@@ -1995,7 +2050,11 @@ function flipEncoding(ast: AST, encoding: Encoding): AST {
  * @since 4.0.0
  */
 export const flip = memoize((ast: AST): AST => {
-  return ast.flip()
+  if (ast.encoding) {
+    return flipEncoding(ast, ast.encoding)
+  }
+  const out: any = ast
+  return out.flip?.(flip) ?? out.go?.(flip) ?? out
 })
 
 /** @internal */
@@ -2332,7 +2391,7 @@ function coerceNull(ast: NullKeyword): NullKeyword {
 }
 
 const numberKeywordPattern = appendChecks(stringKeyword, [
-  Check.regex(new RegExp(NUMBER_KEYWORD_PATTERN), { title: "NUMBER_KEYWORD_PATTERN" })
+  Check.regex(new RegExp(NUMBER_KEYWORD_PATTERN), { description: "a string representing a number" })
 ])
 
 const numberLink = new Link(
@@ -2357,7 +2416,7 @@ function coerceBoolean<A extends BooleanKeyword | LiteralType>(ast: A): A {
 }
 
 const bigintKeywordPattern = appendChecks(stringKeyword, [
-  Check.regex(new RegExp(BIGINT_KEYWORD_PATTERN), { title: "BIGINT_KEYWORD_PATTERN" })
+  Check.regex(new RegExp(BIGINT_KEYWORD_PATTERN), { description: "a string representing a bigint" })
 ])
 
 const bigIntLink = new Link(
@@ -2382,110 +2441,58 @@ export const goStringLeafJson = memoize((ast: AST): AST => {
     if (to === last.to) {
       return ast
     }
-    return replaceEncoding(
-      ast,
-      Arr.append(
-        links.slice(0, links.length - 1),
-        new Link(to, last.transformation)
-      )
-    )
+    return replaceEncoding(ast, Arr.append(links.slice(0, links.length - 1), new Link(to, last.transformation)))
   }
-  switch (ast._tag) {
-    case "StringKeyword":
-    case "TemplateLiteral":
-      return ast
-    case "NumberKeyword":
-      return coerceNumber(ast)
-    case "BooleanKeyword":
-      return coerceBoolean(ast)
-    case "NullKeyword":
-      return coerceNull(ast)
-    case "BigIntKeyword":
-      return coerceBigInt(ast)
-    case "LiteralType": {
-      if (Predicate.isNumber(ast.literal)) {
-        return coerceNumber(ast)
-      }
-      if (Predicate.isBoolean(ast.literal)) {
-        return coerceBoolean(ast)
-      }
-      if (Predicate.isBigInt(ast.literal)) {
-        return coerceBigInt(ast)
-      }
-      return ast
-    }
-    case "Enums": {
-      if (ast.enums.some(([_, v]) => Predicate.isNumber(v))) {
-        const coercions = Object.fromEntries(ast.enums.map(([_, v]) => [String(v), v]))
-        const enumLink = new Link(
-          new UnionType(Object.keys(coercions).map((k) => new LiteralType(k)), "anyOf"),
-          new Transformation.Transformation(
-            Getter.map((s) => coercions[s]),
-            Getter.String()
-          )
-        )
-        return replaceEncoding(ast, [enumLink])
-      }
-      return ast
-    }
-    case "TypeLiteral": {
-      const propertySignatures = mapOrSame(
-        ast.propertySignatures,
-        (ps) => {
-          const type = goStringLeafJson(ps.type)
-          if (type === ps.type) {
-            return ps
-          }
-          return new PropertySignature(ps.name, type)
-        }
-      )
-      const indexSignatures = mapOrSame(
-        ast.indexSignatures,
-        (is) => {
-          const parameter = goStringLeafJson(is.parameter)
-          const type = goStringLeafJson(is.type)
-          if (parameter === is.parameter && type === is.type) {
-            return is
-          }
-          return new IndexSignature(is.isMutable, parameter, type, is.merge)
-        }
-      )
-      if (propertySignatures === ast.propertySignatures && indexSignatures === ast.indexSignatures) {
-        return ast
-      }
-      return new TypeLiteral(
-        propertySignatures,
-        indexSignatures,
-        ast.annotations,
-        ast.checks,
-        undefined,
-        ast.context
-      )
-    }
-    case "TupleType": {
-      const elements = mapOrSame(ast.elements, goStringLeafJson)
-      const rest = mapOrSame(ast.rest, goStringLeafJson)
-      if (elements === ast.elements && rest === ast.rest) {
-        return ast
-      }
-      return new TupleType(ast.isMutable, elements, rest, ast.annotations, ast.checks, undefined, ast.context)
-    }
-    case "UnionType": {
-      const types = mapOrSame(ast.types, goStringLeafJson)
-      if (types === ast.types) {
-        return ast
-      }
-      return new UnionType(types, ast.mode, ast.annotations, ast.checks, undefined, ast.context)
-    }
-    case "Suspend":
-      return new Suspend(
-        () => goStringLeafJson(ast.thunk()),
-        ast.annotations,
-        ast.checks,
-        undefined,
-        ast.context
-      )
-    default:
-      throw new Error(`BUG: unreachable: ${ast._tag}`)
-  }
+  const out: any = ast
+  return out.goStringLeafJson?.() ?? out.go?.(goStringLeafJson) ?? out
 })
+
+const jsonForbiddenLink = new Link(
+  neverKeyword,
+  new Transformation.Transformation(
+    Getter.passthrough(),
+    Getter.fail(
+      (o) =>
+        new Issue.Forbidden(o, {
+          description: "cannot serialize to JSON, required `defaultJsonSerializer` annotation"
+        })
+    )
+  )
+)
+
+/** @internal */
+export function forbidden(ast: AST): AST {
+  return replaceEncoding(ast, [jsonForbiddenLink])
+}
+
+const SYMBOL_PATTERN = /^Symbol\((.*)\)$/
+
+// to distinguish between Symbol and String, we need to add a check to the string keyword
+const symbolLink = new Link(
+  appendChecks(stringKeyword, [Check.regex(SYMBOL_PATTERN, { description: "a string representing a symbol" })]),
+  new Transformation.Transformation(
+    Getter.map((description) => Symbol.for(SYMBOL_PATTERN.exec(description)![1])),
+    Getter.mapOrFail((sym: symbol) => {
+      const description = sym.description
+      if (description !== undefined) {
+        if (Symbol.for(description) === sym) {
+          return Effect.succeed(String(sym))
+        }
+        return Effect.fail(
+          new Issue.Forbidden(Option.some(sym), {
+            description: "cannot serialize to string, Symbol is not registered"
+          })
+        )
+      }
+      return Effect.fail(
+        new Issue.Forbidden(Option.some(sym), {
+          description: "cannot serialize to string, Symbol has no description"
+        })
+      )
+    })
+  )
+)
+
+function coerceSymbol<A extends SymbolKeyword | UniqueSymbol>(ast: A): A {
+  return replaceEncoding(ast, [symbolLink])
+}
