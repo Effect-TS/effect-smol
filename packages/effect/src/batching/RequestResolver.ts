@@ -940,7 +940,7 @@ export const asCache: {
   never,
   "construction" extends ServiceMode ? Request.Services<A> : never
 > =>
-  Cache.makeWithTtl({
+  Cache.makeWith({
     capacity: options.capacity,
     timeToLive: options.timeToLive as any,
     requireServicesAt: options.requireServicesAt ?? "lookup" as ServiceMode,

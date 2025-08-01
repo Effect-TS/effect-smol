@@ -16,7 +16,6 @@ import { PipeInspectableProto } from "../internal/core.ts"
 import * as effect from "../internal/effect.ts"
 import * as ServiceMap from "../ServiceMap.ts"
 import * as Duration from "../time/Duration.ts"
-import type { NoInfer } from "../types/Types.ts"
 
 /**
  * @since 4.0.0
@@ -186,7 +185,7 @@ export interface Entry<A, E> {
  * @since 4.0.0
  * @category Constructors
  */
-export const makeWithTtl = <
+export const makeWith = <
   Key,
   A,
   E = never,
@@ -195,9 +194,7 @@ export const makeWithTtl = <
 >(options: {
   readonly lookup: (key: Key) => Effect.Effect<A, E, R>
   readonly capacity: number
-  readonly timeToLive?:
-    | ((exit: Exit.Exit<NoInfer<A>, NoInfer<E>>, key: NoInfer<Key>) => Duration.DurationInput)
-    | undefined
+  readonly timeToLive?: ((exit: Exit.Exit<A, E>, key: Key) => Duration.DurationInput) | undefined
   readonly requireServicesAt?: ServiceMode | undefined
 }): Effect.Effect<
   Cache<Key, A, E, "lookup" extends ServiceMode ? R : never>,
@@ -287,7 +284,7 @@ export const make = <
   never,
   "lookup" extends ServiceMode ? never : R
 > =>
-  makeWithTtl<Key, A, E, R, ServiceMode>({
+  makeWith<Key, A, E, R, ServiceMode>({
     ...options,
     timeToLive: options.timeToLive ? () => options.timeToLive! : defaultTimeToLive
   })

@@ -87,11 +87,11 @@ describe("Cache", () => {
         assert.strictEqual(result.parent.value.name, "parent")
       }))
 
-    it.effect("makeWithTtl - creates cache with function-based TTL", () =>
+    it.effect("makeWith - creates cache with function-based TTL", () =>
       Effect.gen(function*() {
-        const cache = yield* Cache.makeWithTtl<string, number, string>({
+        const cache = yield* Cache.makeWith({
           capacity: 10,
-          lookup: (key) => key === "fail" ? Effect.fail("error") : Effect.succeed(key.length),
+          lookup: (key: string) => key === "fail" ? Effect.fail("error") : Effect.succeed(key.length),
           timeToLive: (exit, key) => {
             if (Exit.isFailure(exit)) return "1 second"
             return key === "short" ? "1 minute" : "1 hour"
@@ -117,11 +117,11 @@ describe("Cache", () => {
         assert.isFalse(yield* Cache.has(cache, "fail"))
       }))
 
-    it.effect("makeWithTtl - TTL function receives correct parameters", () =>
+    it.effect("makeWith - TTL function receives correct parameters", () =>
       Effect.gen(function*() {
         const receivedParams: Array<{ exit: Exit.Exit<number, string>; key: string }> = []
 
-        const cache = yield* Cache.makeWithTtl<string, number, string>({
+        const cache = yield* Cache.makeWith<string, number, string>({
           capacity: 10,
           lookup: (key) => key === "fail" ? Effect.fail("error") : Effect.succeed(key.length),
           timeToLive: (exit, key) => {
@@ -1124,7 +1124,7 @@ describe("Cache", () => {
 
     it.effect("function-based TTL - different TTL for success vs failure", () =>
       Effect.gen(function*() {
-        const cache = yield* Cache.makeWithTtl<string, number, string>({
+        const cache = yield* Cache.makeWith<string, number, string>({
           capacity: 10,
           lookup: (key) => key === "fail" ? Effect.fail("error") : Effect.succeed(key.length),
           timeToLive: (exit) => Exit.isSuccess(exit) ? "1 hour" : "1 minute"
@@ -1140,7 +1140,7 @@ describe("Cache", () => {
 
     it.effect("function-based TTL - TTL based on key", () =>
       Effect.gen(function*() {
-        const cache = yield* Cache.makeWithTtl<string, number, never>({
+        const cache = yield* Cache.makeWith<string, number, never>({
           capacity: 10,
           lookup: (key) => Effect.succeed(key.length),
           timeToLive: (_exit, key) => key === "short" ? "1 minute" : "1 hour"
@@ -1156,7 +1156,7 @@ describe("Cache", () => {
 
     it.effect("function-based TTL - TTL based on value", () =>
       Effect.gen(function*() {
-        const cache = yield* Cache.makeWithTtl<string, number, never>({
+        const cache = yield* Cache.makeWith<string, number, never>({
           capacity: 10,
           lookup: (key) => Effect.succeed(key.length),
           timeToLive: (exit) => {
@@ -1175,7 +1175,7 @@ describe("Cache", () => {
 
     it.effect("infinite TTL", () =>
       Effect.gen(function*() {
-        const cache = yield* Cache.makeWithTtl<string, number, never>({
+        const cache = yield* Cache.makeWith<string, number, never>({
           capacity: 10,
           lookup: (key) => Effect.succeed(key.length),
           timeToLive: () => Duration.infinity
