@@ -3301,10 +3301,10 @@ export const mergeAll: {
               Effect.forever,
               Effect.onError(Effect.fnUntraced(function*(cause) {
                 const halt = Pull.filterHalt(cause)
-                yield* Scope.close(
+                yield* Effect.exit(Scope.close(
                   childScope,
                   !Filter.isFail(halt) ? Exit.succeed(halt.leftover) : Exit.failCause(halt.fail)
-                )
+                ))
                 if (!fibers.has(fiber)) return
                 fibers.delete(fiber)
                 if (semaphore) yield* semaphore.release(1)
@@ -3660,9 +3660,22 @@ export const unwrap = <OutElem, OutErr, OutDone, InElem, InErr, InDone, R2, E, R
   channel: Effect.Effect<Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, R2>, E, R>
 ): Channel<OutElem, E | OutErr, OutDone, InElem, InErr, InDone, Exclude<R, Scope.Scope> | R2> =>
   fromTransform((upstream, scope) =>
-    Effect.flatMap(
-      Scope.provide(channel, scope),
-      (channel) => toTransform(channel)(upstream, scope)
+    channel.pipe(
+      Scope.provide(scope),
+      Effect.flatMap((channel) => toTransform(channel)(upstream, scope)),
+      Effect.forkIn(scope),
+      Effect.map((fiber) => {
+        let pull: Pull.Pull<OutElem, E | OutErr, OutDone> | undefined
+        return Effect.suspend(() => {
+          if (pull) return pull
+          return Fiber.join(fiber).pipe(
+            Effect.flatMap((pull_) => {
+              pull = pull_
+              return pull_
+            })
+          )
+        })
+      })
     )
   )
 
