@@ -141,7 +141,7 @@ export interface Entry<A, E> {
  *
  * // Cache with different TTL for success vs failure
  * const program = Effect.gen(function*() {
- *   const cache = yield* Cache.makeWithTtl<string, number, string>({
+ *   const cache = yield* Cache.makeWith<string, number, string>({
  *     capacity: 100,
  *     lookup: (key) => key === "fail"
  *       ? Effect.fail("error")
@@ -166,7 +166,7 @@ export interface Entry<A, E> {
  *
  * // Cache with TTL based on computed value
  * const userCache = Effect.gen(function*() {
- *   const cache = yield* Cache.makeWithTtl<number, { id: number; active: boolean }, never>({
+ *   const cache = yield* Cache.makeWith<number, { id: number; active: boolean }, never>({
  *     capacity: 1000,
  *     lookup: (id) => Effect.succeed({ id, active: id % 2 === 0 }),
  *     timeToLive: (exit) => {

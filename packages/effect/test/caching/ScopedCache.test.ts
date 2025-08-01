@@ -86,10 +86,10 @@ describe("ScopedCache", () => {
         }))
     })
 
-    describe("makeWithTtl", () => {
+    describe("makeWith", () => {
       it.effect("creates cache with function-based TTL", () =>
         Effect.gen(function*() {
-          const cache = yield* ScopedCache.makeWithTtl({
+          const cache = yield* ScopedCache.makeWith({
             capacity: 10,
             lookup: (key: string) => key === "fail" ? Effect.fail("error") : Effect.succeed(key.length),
             timeToLive: (exit, key) => {
@@ -121,7 +121,7 @@ describe("ScopedCache", () => {
         Effect.gen(function*() {
           const receivedParams: Array<{ exit: Exit.Exit<number, string>; key: string }> = []
 
-          const cache = yield* ScopedCache.makeWithTtl({
+          const cache = yield* ScopedCache.makeWith({
             capacity: 10,
             lookup: (key: string) => key === "fail" ? Effect.fail("error") : Effect.succeed(key.length),
             timeToLive: (exit, key) => {
@@ -146,7 +146,7 @@ describe("ScopedCache", () => {
 
       it.effect("different TTL for success vs failure", () =>
         Effect.gen(function*() {
-          const cache = yield* ScopedCache.makeWithTtl({
+          const cache = yield* ScopedCache.makeWith({
             capacity: 10,
             lookup: (key: string) => key === "fail" ? Effect.fail("error") : Effect.succeed(key.length),
             timeToLive: (exit) => Exit.isSuccess(exit) ? "1 hour" : "1 minute"
@@ -162,7 +162,7 @@ describe("ScopedCache", () => {
 
       it.effect("TTL based on key values", () =>
         Effect.gen(function*() {
-          const cache = yield* ScopedCache.makeWithTtl({
+          const cache = yield* ScopedCache.makeWith({
             capacity: 10,
             lookup: (key: string) => Effect.succeed(key.length),
             timeToLive: (_exit, key) => key === "short" ? "1 minute" : "1 hour"
@@ -178,7 +178,7 @@ describe("ScopedCache", () => {
 
       it.effect("TTL based on result values", () =>
         Effect.gen(function*() {
-          const cache = yield* ScopedCache.makeWithTtl({
+          const cache = yield* ScopedCache.makeWith({
             capacity: 10,
             lookup: (key: string) => Effect.succeed(key.length),
             timeToLive: (exit) => {
@@ -197,7 +197,7 @@ describe("ScopedCache", () => {
 
       it.effect("infinite TTL handling", () =>
         Effect.gen(function*() {
-          const cache = yield* ScopedCache.makeWithTtl({
+          const cache = yield* ScopedCache.makeWith({
             capacity: 10,
             lookup: (key: string) => Effect.succeed(key.length),
             timeToLive: () => Duration.infinity
@@ -210,7 +210,7 @@ describe("ScopedCache", () => {
 
       it.effect("zero duration TTL", () =>
         Effect.gen(function*() {
-          const cache = yield* ScopedCache.makeWithTtl({
+          const cache = yield* ScopedCache.makeWith({
             capacity: 10,
             lookup: (key: string) => Effect.succeed(key.length),
             timeToLive: () => Duration.zero
@@ -1512,7 +1512,7 @@ describe("ScopedCache", () => {
     describe("Function-based TTL", () => {
       it.effect("different TTL for success vs failure", () =>
         Effect.gen(function*() {
-          const cache = yield* ScopedCache.makeWithTtl({
+          const cache = yield* ScopedCache.makeWith({
             capacity: 10,
             lookup: (key: string) => key === "fail" ? Effect.fail("error") : Effect.succeed(key.length),
             timeToLive: (exit) => Exit.isSuccess(exit) ? "2 hours" : "30 minutes"
@@ -1531,7 +1531,7 @@ describe("ScopedCache", () => {
 
       it.effect("TTL based on key", () =>
         Effect.gen(function*() {
-          const cache = yield* ScopedCache.makeWithTtl({
+          const cache = yield* ScopedCache.makeWith({
             capacity: 10,
             lookup: (key: string) => Effect.succeed(key.length),
             timeToLive: (_exit, key) => {
@@ -1557,7 +1557,7 @@ describe("ScopedCache", () => {
 
       it.effect("TTL based on value", () =>
         Effect.gen(function*() {
-          const cache = yield* ScopedCache.makeWithTtl({
+          const cache = yield* ScopedCache.makeWith({
             capacity: 10,
             lookup: (key: string) => Effect.succeed(key.length),
             timeToLive: (exit) => {
@@ -1579,7 +1579,7 @@ describe("ScopedCache", () => {
 
       it.effect("infinite TTL", () =>
         Effect.gen(function*() {
-          const cache = yield* ScopedCache.makeWithTtl({
+          const cache = yield* ScopedCache.makeWith({
             capacity: 10,
             lookup: (key: string) => Effect.succeed(key.length),
             timeToLive: () => Duration.infinity
@@ -1592,7 +1592,7 @@ describe("ScopedCache", () => {
 
       it.effect("zero duration TTL", () =>
         Effect.gen(function*() {
-          const cache = yield* ScopedCache.makeWithTtl({
+          const cache = yield* ScopedCache.makeWith({
             capacity: 10,
             lookup: (key: string) => Effect.succeed(key.length),
             timeToLive: () => Duration.zero
@@ -1606,7 +1606,7 @@ describe("ScopedCache", () => {
       it.effect("TTL updates on refresh", () =>
         Effect.gen(function*() {
           let refreshCount = 0
-          const cache = yield* ScopedCache.makeWithTtl({
+          const cache = yield* ScopedCache.makeWith({
             capacity: 10,
             lookup: (_key: string) => Effect.sync(() => ++refreshCount),
             timeToLive: (exit) => {

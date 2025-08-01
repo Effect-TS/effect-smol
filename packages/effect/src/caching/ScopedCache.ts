@@ -70,7 +70,7 @@ export interface Entry<A, E> {
  * @since 4.0.0
  * @category Constructors
  */
-export const makeWithTtl = <
+export const makeWith = <
   Key,
   A,
   E = never,
@@ -134,7 +134,7 @@ export const make = <
   never,
   ("lookup" extends ServiceMode ? never : R) | Scope.Scope
 > =>
-  makeWithTtl<Key, A, E, R, ServiceMode>({
+  makeWith<Key, A, E, R, ServiceMode>({
     ...options,
     timeToLive: options.timeToLive ? () => options.timeToLive! : defaultTimeToLive
   })
