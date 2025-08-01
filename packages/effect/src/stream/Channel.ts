@@ -4243,12 +4243,20 @@ export const runLast = <OutElem, OutErr, OutDone, Env>(
   self: Channel<OutElem, OutErr, OutDone, unknown, unknown, unknown, Env>
 ): Effect.Effect<Option.Option<OutElem>, OutErr, Env> =>
   Effect.suspend(() => {
-    let last: Filter.fail<void> | OutElem = Filter.fail(void 0)
-    return runWith(self, (pull) =>
-      Effect.map(pull, (item) => {
-        last = item
-        return item
-      }), () => Filter.isFail(last) ? Effect.succeedNone : Effect.succeedSome(last))
+    const absent = Symbol() // Prevent boxing
+    let last: typeof absent | OutElem = absent
+    return runWith(
+      self,
+      (pull) =>
+        Effect.forever(
+          Effect.flatMap(pull, (item) => {
+            last = item
+            return Effect.void
+          }),
+          { autoYield: false }
+        ),
+      () => last === absent ? Effect.succeedNone : Effect.succeedSome(last)
+    )
   })
 
 /**
