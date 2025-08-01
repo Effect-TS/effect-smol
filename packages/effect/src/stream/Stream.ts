@@ -2313,7 +2313,7 @@ export const withSpan: {
   (name: string, options?: SpanOptions): <A, E, R>(self: Stream<A, E, R>) => Stream<A, E, Exclude<R, ParentSpan>>
   <A, E, R>(self: Stream<A, E, R>, name: string, options?: SpanOptions): Stream<A, E, Exclude<R, ParentSpan>>
 } = dual(
-  2,
+  (args) => isStream(args[0]),
   <A, E, R>(self: Stream<A, E, R>, name: string, options?: SpanOptions): Stream<A, E, Exclude<R, ParentSpan>> =>
     fromChannel(Channel.withSpan(self.channel, name, options))
 )

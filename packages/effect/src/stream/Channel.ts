@@ -3875,7 +3875,7 @@ export const withSpan: {
     name: string,
     options?: SpanOptions
   ): Channel<OutElem, InElem, OutErr, InErr, OutDone, InDone, Exclude<R, ParentSpan>>
-} = dual(2, <OutElem, OutErr, OutDone, InElem, InErr, InDone, R>(
+} = dual((args) => isChannel(args[0]), <OutElem, OutErr, OutDone, InElem, InErr, InDone, R>(
   self: Channel<OutElem, InElem, OutErr, InErr, OutDone, InDone, R>,
   name: string,
   options?: SpanOptions
