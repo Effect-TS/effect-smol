@@ -693,6 +693,19 @@ export class UniqueSymbol extends AbstractParser {
   }
 }
 
+function coerceLiteral(ast: LiteralType): LiteralType {
+  const s = String(ast.literal)
+  return replaceEncoding(ast, [
+    new Link(
+      new LiteralType(s),
+      new Transformation.Transformation(
+        Getter.succeed(ast.literal),
+        Getter.succeed(s)
+      )
+    )
+  ])
+}
+
 /**
  * @category model
  * @since 4.0.0
@@ -723,7 +736,7 @@ export class LiteralType extends AbstractParser {
   /** @internal */
   goJson() {
     if (Predicate.isBigInt(this.literal)) {
-      return coerceBigInt(this)
+      return coerceLiteral(this)
     }
     return this
   }
@@ -733,11 +746,11 @@ export class LiteralType extends AbstractParser {
     const ast = this
     switch (typeof ast.literal) {
       case "number":
-        return coerceNumber(ast)
+        return coerceLiteral(ast)
       case "boolean":
-        return coerceBoolean(ast)
+        return coerceLiteral(ast)
       case "bigint":
-        return coerceBigInt(ast)
+        return coerceLiteral(ast)
       default:
     }
     return ast
@@ -2399,7 +2412,7 @@ const numberLink = new Link(
   Transformation.numberFromString
 )
 
-function coerceNumber<A extends NumberKeyword | LiteralType>(ast: A): A {
+function coerceNumber(ast: NumberKeyword): NumberKeyword {
   return replaceEncoding(ast, [numberLink])
 }
 
@@ -2411,7 +2424,7 @@ const booleanLink = new Link(
   )
 )
 
-function coerceBoolean<A extends BooleanKeyword | LiteralType>(ast: A): A {
+function coerceBoolean(ast: BooleanKeyword): BooleanKeyword {
   return replaceEncoding(ast, [booleanLink])
 }
 
@@ -2428,7 +2441,7 @@ const bigIntLink = new Link(
 )
 
 /** @internal */
-export function coerceBigInt<A extends BigIntKeyword | LiteralType>(ast: A): A {
+export function coerceBigInt(ast: BigIntKeyword): BigIntKeyword {
   return replaceEncoding(ast, [bigIntLink])
 }
 

@@ -629,6 +629,15 @@ describe("Serializer", () => {
         })
       })
 
+      it("Literals", async () => {
+        const schema = Schema.Literals(["a", 1, 2n, true])
+        await assertions.deserialization.stringLeafJson.schema.fail(
+          schema,
+          "-",
+          `Expected "a" | 1 | 2 | true, actual "-"`
+        )
+      })
+
       describe("Enums", () => {
         it("should serialize the enum value", async () => {
           enum Fruits {
