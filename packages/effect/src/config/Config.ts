@@ -1829,19 +1829,15 @@ export const withSchema: {
   <A, B>(schema: Schema.Codec<B, A>): (self: Config<A>) => Config<B>
   <A, B>(self: Config<A>, schema: Schema.Codec<B, A>): Config<B>
 } = dual(2, <A, B>(self: Config<A>, schema: Schema.Codec<B, A>): Config<B> => {
-  const decode = ToParser.decodeEffect(schema)
-  const formatter = Formatter.makeStandardSchemaV1({
-    leafHook: Formatter.treeLeafHook,
-    checkHook: Formatter.verboseCheckHook
-  })
-  return map(self, (value, currentPath) =>
-    Effect.mapError(decode(value), (issue) => {
-      const { message, path } = formatter.format(issue).issues[0] as { message: string; path: Array<string> }
-      return new InvalidData({
-        path: currentPath.concat(path),
-        description: message
-      })
-    }))
+  const decodeEffect = ToParser.decodeEffect(schema)
+  return map(
+    self,
+    (value) =>
+      Effect.catch(
+        decodeEffect(value, { errors: "all" }),
+        (issue) => Effect.failCause(Cause.fromFailures(formatConfigError(issue, []).map(Cause.failureFail)))
+      )
+  )
 })
 
 const parseConfigProvider: (
@@ -1891,7 +1887,7 @@ const parseConfigProvider: (
       }
       case "TupleType": {
         if (ast.rest.length > 1) {
-          throw new Error("Invalid ast: TupleType cannot have more than one rest element")
+          throw new Error("TupleType cannot have more than one rest element")
         }
         const separator = options?.separator ?? ","
         const value = yield* ctx.load
@@ -1899,20 +1895,12 @@ const parseConfigProvider: (
         const out: Array<Serializer.StringLeafJson> = []
         const rest = ast.rest[0]
         for (let i = 0; i < items.length; i++) {
-          const e = ast.elements[i]
-          if (e) {
-            out[i] = yield* parseConfigProvider(
-              ctx.setPath([...ctx.currentPath, i.toString()]).withValue(items[i]),
-              e,
-              options
-            )
-          } else if (rest) {
-            out[i] = yield* parseConfigProvider(
-              ctx.setPath([...ctx.currentPath, i.toString()]).withValue(items[i]),
-              rest,
-              options
-            )
-          }
+          const item = ast.elements[i] ?? rest
+          out[i] = yield* parseConfigProvider(
+            ctx.setPath([...ctx.currentPath, i.toString()]).withValue(items[i]),
+            item,
+            options
+          )
         }
         return out
       }
@@ -1922,12 +1910,40 @@ const parseConfigProvider: (
   }
 )
 
-const formatter = Formatter.makeStandardSchemaV1({
-  leafHook: Formatter.treeLeafHook,
-  checkHook: Formatter.verboseCheckHook
-})
+const leafHook: Formatter.LeafHook = (issue) => {
+  return Formatter.findMessage(issue) ?? Formatter.treeLeafHook(issue)
+}
 
-const format = formatter.format
+const checkHook: Formatter.CheckHook = (issue) => {
+  return Formatter.findMessage(issue) ?? Formatter.verboseCheckHook(issue)
+}
+
+/**
+ * A Formatter for ConfigError.
+ */
+function formatConfigError(
+  issue: Issue.Issue,
+  path: ReadonlyArray<PropertyKey>
+): Array<ConfigError> {
+  switch (issue._tag) {
+    case "Filter": {
+      const message = checkHook(issue)
+      if (message !== undefined) {
+        return [new InvalidData({ path, description: message })]
+      }
+      return formatConfigError(issue.issue, path)
+    }
+    case "Encoding":
+      return formatConfigError(issue.issue, path)
+    case "Pointer":
+      return formatConfigError(issue.issue, [...path, ...issue.path])
+    case "Composite":
+    case "AnyOf":
+      return issue.issues.flatMap((issue) => formatConfigError(issue, path))
+    default:
+      return [new InvalidData({ path, description: leafHook(issue) })]
+  }
+}
 
 /**
  * @since 4.0.0
@@ -1939,21 +1955,15 @@ export function schema<Fields extends { readonly [x: string]: Schema.Struct.Fiel
 }): Config<Simplify<Schema.Struct.Type<Fields>>> {
   const schema = Schema.Struct(fields)
   const serializer = Serializer.stringLeafJson(schema) as Schema.Codec<unknown, Serializer.StringLeafJson>
-  const decodeUnknownEffect = ToParser.decodeUnknownEffect(serializer)
+  const decodeEffect = ToParser.decodeEffect(serializer)
   return primitive<any>((ctx) => {
     return parseConfigProvider(ctx, schema.ast, options).pipe(
       Effect.flatMap((r) =>
-        decodeUnknownEffect(r, { errors: "first" }).pipe(Effect.catch((issue) => {
-          const issues = format(issue).issues
-          const failures = issues.map((issue) => {
-            const { message, path } = issue as { message: string; path: Array<string> }
-            return new InvalidData({
-              path: ctx.currentPath.concat(path),
-              description: message
-            })
-          })
-          return Effect.failCause(Cause.fromFailures(failures.map(Cause.failureFail)))
-        }))
+        decodeEffect(r, { errors: "all" }).pipe(
+          Effect.catch((issue) =>
+            Effect.failCause(Cause.fromFailures(formatConfigError(issue, []).map(Cause.failureFail)))
+          )
+        )
       )
     )
   })

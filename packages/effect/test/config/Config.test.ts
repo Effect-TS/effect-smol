@@ -1345,13 +1345,19 @@ describe("Config.schema (old tests)", () => {
       )
       assertConfig(config, {}, { key1: 0, key2: 0 })
       assertConfig(config, { key1: "1", key2: "2" }, { key1: 1, key2: 2 })
-      assertConfigError(
+      assertConfigErrors(
         config,
         { key1: "invalid", key2: "value" },
-        new ConfigError.InvalidData({
-          path: ["key1"],
-          description: `Expected a string representing a number, actual "invalid"`
-        })
+        [
+          new ConfigError.InvalidData({
+            path: ["key1"],
+            description: `Expected a string representing a number, actual "invalid"`
+          }),
+          new ConfigError.InvalidData({
+            path: ["key2"],
+            description: `Expected a string representing a number, actual "value"`
+          })
+        ]
       )
     })
 
@@ -1628,15 +1634,6 @@ describe("Config.schema (old tests)", () => {
             enabled: true,
             debug: false
           }
-        })
-      })
-
-      it.todo("should parse with custom config", () => {
-        const dateConfig = Config.map(Config.String(), (str) => new Date(str))
-        const config = Config.Record("RECORD", dateConfig)
-        assertConfig(config, { RECORD: "start=2024-01-01,end=2024-12-31" }, {
-          start: new Date("2024-01-01"),
-          end: new Date("2024-12-31")
         })
       })
     })

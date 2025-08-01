@@ -106,7 +106,7 @@ export class SourceError extends Data.TaggedError("ConfigError")<{
  * @category Models
  */
 export class InvalidData extends Data.TaggedError("ConfigError")<{
-  readonly path: ReadonlyArray<string | number>
+  readonly path: ReadonlyArray<PropertyKey>
   readonly description: string
   readonly cause?: unknown
 }> {
