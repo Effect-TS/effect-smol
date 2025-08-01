@@ -284,6 +284,40 @@ export const fromTransform = <OutElem, OutErr, OutDone, InElem, InErr, InDone, E
 }
 
 /**
+ * @category constructors
+ * @since 4.0.0
+ */
+export const transformPull = <
+  OutElem,
+  OutErr,
+  OutDone,
+  InElem,
+  InErr,
+  InDone,
+  Env,
+  OutElem2,
+  OutErr2,
+  OutDone2,
+  Env2,
+  OutErrX,
+  EnvX
+>(
+  self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
+  f: (
+    pull: Pull.Pull<OutElem, OutErr, OutDone, Env>,
+    scope: Scope.Scope
+  ) => Effect.Effect<Pull.Pull<OutElem2, OutErr2, OutDone2, Env2>, OutErrX, EnvX>
+): Channel<
+  OutElem2,
+  Pull.ExcludeHalt<OutErr2> | OutErrX,
+  OutDone2,
+  InElem,
+  InErr,
+  InDone,
+  Env | Env2 | EnvX
+> => fromTransform((upstream, scope) => Effect.flatMap(toTransform(self)(upstream, scope), (pull) => f(pull, scope)))
+
+/**
  * Creates a `Channel` from an `Effect` that produces a `Pull`.
  *
  * @example
@@ -1601,7 +1635,7 @@ export const map: {
     self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
     f: (o: OutElem) => OutElem2
   ): Channel<OutElem2, OutErr, OutDone, InElem, InErr, InDone, Env> =>
-    fromTransform((upstream, scope) => Effect.map(toTransform(self)(upstream, scope), Effect.map(f)))
+    transformPull(self, (pull) => Effect.succeed(Effect.map(pull, f)))
 )
 
 const concurrencyIsSequential = (
@@ -2376,6 +2410,31 @@ export const flattenArray = <
       return pump
     })
   )
+
+/**
+ * @since 2.0.0
+ * @category constructors
+ */
+export const drain = <
+  OutElem,
+  OutErr,
+  OutDone,
+  InElem,
+  InErr,
+  InDone,
+  Env
+>(
+  self: Channel<
+    OutElem,
+    OutErr,
+    OutDone,
+    InElem,
+    InErr,
+    InDone,
+    Env
+  >
+): Channel<never, OutErr, OutDone, InElem, InErr, InDone, Env> =>
+  transformPull(self, (pull) => Effect.succeed(Effect.forever(pull, { autoYield: false })))
 
 /**
  * @since 2.0.0

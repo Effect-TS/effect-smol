@@ -1400,6 +1400,12 @@ export const flattenArray = <A, E, R>(self: Stream<Arr.NonEmptyReadonlyArray<A>,
   fromChannel(Channel.flattenArray(self.channel))
 
 /**
+ * @since 2.0.0
+ * @category sequencing
+ */
+export const drain = <A, E, R>(self: Stream<A, E, R>): Stream<never, E, R> => fromChannel(Channel.drain(self.channel))
+
+/**
  * Flattens a stream of iterables into a single stream.
  *
  * @since 4.0.0
