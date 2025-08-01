@@ -2453,9 +2453,7 @@ const jsonForbiddenLink = new Link(
     Getter.passthrough(),
     Getter.fail(
       (o) =>
-        new Issue.Forbidden(o, {
-          description: "cannot serialize to JSON, required `defaultJsonSerializer` annotation"
-        })
+        new Issue.Forbidden(o, { message: "cannot serialize to JSON, required `defaultJsonSerializer` annotation" })
     )
   )
 )
@@ -2479,15 +2477,11 @@ const symbolLink = new Link(
           return Effect.succeed(String(sym))
         }
         return Effect.fail(
-          new Issue.Forbidden(Option.some(sym), {
-            description: "cannot serialize to string, Symbol is not registered"
-          })
+          new Issue.Forbidden(Option.some(sym), { message: "cannot serialize to string, Symbol is not registered" })
         )
       }
       return Effect.fail(
-        new Issue.Forbidden(Option.some(sym), {
-          description: "cannot serialize to string, Symbol has no description"
-        })
+        new Issue.Forbidden(Option.some(sym), { message: "cannot serialize to string, Symbol has no description" })
       )
     })
   )

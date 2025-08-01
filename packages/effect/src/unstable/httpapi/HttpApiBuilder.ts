@@ -614,8 +614,7 @@ const makeErrorSchema = (
   return Schema.Union(Array.from(schemas, toResponseError)) as any
 }
 
-const decodeForbidden = <A>(_: A) =>
-  Effect.fail(new Issue.Forbidden(Option.some(_), { description: "Encode only schema" }))
+const decodeForbidden = <A>(_: A) => Effect.fail(new Issue.Forbidden(Option.some(_), { message: "Encode only schema" }))
 
 const responseTransformation = <A, I, RD, RE>(
   getStatus: (ast: AST.AST) => number,

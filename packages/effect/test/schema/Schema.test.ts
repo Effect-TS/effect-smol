@@ -3202,7 +3202,7 @@ describe("Schema", () => {
       await assertions.decoding.fail(
         schema,
         `{"a"`,
-        "Expected ':' after property name in JSON at position 4 (line 1 column 5)"
+        "SyntaxError: Expected ':' after property name in JSON at position 4 (line 1 column 5)"
       )
 
       await assertions.encoding.succeed(schema, { a: 1 }, { expected: `{"a":1}` })

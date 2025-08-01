@@ -3425,7 +3425,7 @@ export const URL = instanceOf(
           decode: (s) =>
             Effect.try({
               try: () => new globalThis.URL(s),
-              catch: (error) => new Issue.InvalidValue(O.some(s), { cause: error })
+              catch: (e) => new Issue.InvalidValue(O.some(s), { message: globalThis.String(e) })
             }),
           encode: (url) => Effect.succeed(url.toString())
         })

@@ -323,10 +323,7 @@ export function parseJson<E extends string>(options?: {
   return onSome((input) =>
     Effect.try({
       try: () => Option.some(JSON.parse(input, options?.options?.reviver)),
-      catch: (e) =>
-        new Issue.InvalidValue(Option.some(input), {
-          description: e instanceof Error ? e.message : globalThis.String(e)
-        })
+      catch: (e) => new Issue.InvalidValue(Option.some(input), { message: globalThis.String(e) })
     })
   )
 }
@@ -349,10 +346,7 @@ export function stringifyJson(options?: {
   return onSome((input) =>
     Effect.try({
       try: () => Option.some(JSON.stringify(input, options?.options?.replacer, options?.options?.space)),
-      catch: (e) =>
-        new Issue.InvalidValue(Option.some(input), {
-          description: e instanceof Error ? e.message : globalThis.String(e)
-        })
+      catch: (e) => new Issue.InvalidValue(Option.some(input), { message: globalThis.String(e) })
     })
   )
 }

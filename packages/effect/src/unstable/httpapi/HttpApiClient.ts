@@ -447,9 +447,7 @@ const parseJsonOrVoid = Schema.String.pipe(
           return Effect.succeed(JSON.parse(i))
         } catch {
           return Effect.fail(
-            new Issue.InvalidValue(Option.some(i), {
-              description: "Could not parse JSON"
-            })
+            new Issue.InvalidValue(Option.some(i), { message: "Could not parse JSON" })
           )
         }
       },
@@ -459,9 +457,7 @@ const parseJsonOrVoid = Schema.String.pipe(
           return Effect.succeed(JSON.stringify(a))
         } catch {
           return Effect.fail(
-            new Issue.InvalidValue(Option.some(a), {
-              description: "Could not encode as JSON"
-            })
+            new Issue.InvalidValue(Option.some(a), { message: "Could not encode as JSON" })
           )
         }
       }
@@ -541,25 +537,21 @@ const bodyFromPayload = (ast: AST.AST) => {
     schema as Schema.Any,
     Transformation.transformOrFail({
       decode(fromA) {
-        return Effect.fail(new Issue.Forbidden(Option.some(fromA), { description: "encode only schema" }))
+        return Effect.fail(new Issue.Forbidden(Option.some(fromA), { message: "encode only schema" }))
       },
       encode(toI: any) {
         switch (encoding.kind) {
           case "Json": {
             return HttpBody.json(toI).pipe(
               Effect.mapError((error) =>
-                new Issue.InvalidValue(Option.some(toI), {
-                  description: `Could not encode as JSON: ${error}`
-                })
+                new Issue.InvalidValue(Option.some(toI), { message: `Could not encode as JSON: ${error}` })
               )
             )
           }
           case "Text": {
             if (typeof toI !== "string") {
               return Effect.fail(
-                new Issue.InvalidValue(Option.some(toI), {
-                  description: "Expected a string"
-                })
+                new Issue.InvalidValue(Option.some(toI), { message: "Expected a string" })
               )
             }
             return Effect.succeed(HttpBody.text(toI))
@@ -570,9 +562,7 @@ const bodyFromPayload = (ast: AST.AST) => {
           case "Uint8Array": {
             if (!(toI instanceof Uint8Array)) {
               return Effect.fail(
-                new Issue.InvalidValue(Option.some(toI), {
-                  description: "Expected a Uint8Array"
-                })
+                new Issue.InvalidValue(Option.some(toI), { message: "Expected a Uint8Array" })
               )
             }
             return Effect.succeed(HttpBody.uint8Array(toI))

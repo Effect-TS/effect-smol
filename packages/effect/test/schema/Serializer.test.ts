@@ -4,6 +4,8 @@ import { describe, it } from "vitest"
 import { assertTrue, strictEqual } from "../utils/assert.ts"
 import { assertions } from "../utils/schema.ts"
 
+const isDeno = "Deno" in globalThis
+
 const FiniteFromDate = Schema.Date.pipe(Schema.decodeTo(
   Schema.Number,
   Transformation.transform({
@@ -186,7 +188,7 @@ describe("Serializer", () => {
         await assertions.deserialization.json.schema.fail(
           schema,
           "not a url",
-          `Invalid data "not a url"`
+          isDeno ? `TypeError: Invalid URL: 'not a url'` : `TypeError: Invalid URL`
         )
       })
 
