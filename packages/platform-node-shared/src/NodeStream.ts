@@ -360,7 +360,7 @@ class StreamAdapter<E, R> extends Readable {
   ) {
     super({})
     this.readLatch = Effect.unsafeMakeLatch(false)
-    this.fiber = Stream.runForEachChunk(stream, (chunk) =>
+    this.fiber = Stream.runForEachArray(stream, (chunk) =>
       this.readLatch.whenOpen(Effect.sync(() => {
         this.readLatch.unsafeClose()
         for (let i = 0; i < chunk.length; i++) {

@@ -529,7 +529,7 @@ const handleResponse = (
       nodeResponse.writeHead(response.status, headers)
       return body.stream.pipe(
         Stream.orDie,
-        Stream.runForEachChunk((array) =>
+        Stream.runForEachArray((array) =>
           Effect.callback<void>((resume) => {
             for (let i = 0; i < array.length - 1; i++) {
               nodeResponse.write(array[i])
