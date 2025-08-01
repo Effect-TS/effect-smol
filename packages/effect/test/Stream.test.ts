@@ -1,5 +1,5 @@
 import { assert, describe, it } from "@effect/vitest"
-import { Effect, Exit, Fiber, pipe, Queue } from "effect"
+import { Effect, Exit, Fiber, Queue } from "effect"
 import { Array } from "effect/collections"
 import { Option } from "effect/data"
 import { Stream } from "effect/stream"
@@ -196,7 +196,7 @@ describe("Stream", () => {
           nums.length === 0 ?
             [n, Option.none()] as const :
             [n, Option.some([nums[0], nums.slice(1)] as const)] as const).pipe(Stream.runCollect)
-        assert.deepStrictEqual(Array.from(result), [0, 1, 2, 3])
+        assert.deepStrictEqual(result, [0, 1, 2, 3])
       }))
 
     it.effect("paginateEffect", () =>
@@ -211,7 +211,7 @@ describe("Stream", () => {
               Effect.succeed([n, Option.none()]) :
               Effect.succeed([n, Option.some([nums[0], nums.slice(1)])])
         ).pipe(Stream.runCollect)
-        assert.deepStrictEqual(Array.from(result), [0, 1, 2, 3])
+        assert.deepStrictEqual(result, [0, 1, 2, 3])
       }))
 
     it.effect("paginateChunk", () =>
@@ -230,7 +230,7 @@ describe("Stream", () => {
                 ] as const
               )
             ] as const).pipe(Stream.runCollect)
-        assert.deepStrictEqual(Array.from(result), [0, 1, 2, 3, 4, 5])
+        assert.deepStrictEqual(result, [0, 1, 2, 3, 4, 5])
       }))
 
     it.effect("paginateChunkEffect", () =>
