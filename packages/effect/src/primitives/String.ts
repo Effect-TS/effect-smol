@@ -1209,10 +1209,10 @@ export const noCase: {
 }): string => {
   const delimiter = options?.delimiter ?? " "
   const transform = options?.transform ?? toLowerCase
-  const result = input.replace(SPLIT_REGEXP[0], "$1\0$2`").replace(SPLIT_REGEXP[1], "$1\0$2`").replace(
-    STRIP_REGEXP,
-    "\0"
-  )
+  const result = input
+    .replace(SPLIT_REGEXP[0], "$1\0$2")
+    .replace(SPLIT_REGEXP[1], "$1\0$2")
+    .replace(STRIP_REGEXP, "\0")
   let start = 0
   let end = result.length
   // Trim the delimiter from around the output string.
@@ -1222,6 +1222,7 @@ export const noCase: {
   while (result.charAt(end - 1) === "\0") {
     end--
   }
+
   // Transform each token independently.
   return result.slice(start, end).split("\0").map(transform).join(delimiter)
 })
