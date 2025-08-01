@@ -208,10 +208,6 @@ export const treeLeafHook: LeafHook = (issue): string => {
     case "InvalidType":
       return `Expected ${formatAST(issue.ast, issue)}, actual ${formatUnknownOption(issue.actual)}`
     case "InvalidValue": {
-      const message = issue.annotations?.message
-      if (Predicate.isString(message)) {
-        return message
-      }
       return `Invalid data ${formatUnknownOption(issue.actual)}`
     }
     case "MissingKey":
@@ -219,10 +215,6 @@ export const treeLeafHook: LeafHook = (issue): string => {
     case "UnexpectedKey":
       return "Unexpected key"
     case "Forbidden": {
-      const message = issue.annotations?.message
-      if (Predicate.isString(message)) {
-        return message
-      }
       const cause = issue.annotations?.cause
       if (Cause.isCause(cause)) {
         return Cause.pretty(cause)
