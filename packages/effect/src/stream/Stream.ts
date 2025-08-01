@@ -996,7 +996,7 @@ export const paginateArray = <S, A>(
  * import { Effect } from "effect"
 import * as Option from "effect/data/Option"
  *
- * const stream = Stream.paginateChunkEffect(0, (n: number) =>
+ * const stream = Stream.paginateArrayEffect(0, (n: number) =>
  *   Effect.succeed([
  *     [n],
  *     n < 3 ? Option.some(n + 1) : Option.none<number>()
