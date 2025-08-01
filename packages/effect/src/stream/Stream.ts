@@ -13,6 +13,7 @@ import * as Fiber from "../Fiber.ts"
 import type { LazyArg } from "../Function.ts"
 import { dual, identity } from "../Function.ts"
 import { type Pipeable, pipeArguments } from "../interfaces/Pipeable.ts"
+import type { ParentSpan, SpanOptions } from "../observability/Tracer.ts"
 import type * as PubSub from "../PubSub.ts"
 import * as Queue from "../Queue.ts"
 import * as Schedule from "../Schedule.ts"
@@ -2302,6 +2303,19 @@ export const provideServices: {
   2,
   <A, E, R, R2>(self: Stream<A, E, R>, services: ServiceMap.ServiceMap<R2>): Stream<A, E, Exclude<R, R2>> =>
     fromChannel(Channel.provideServices(self.channel, services))
+)
+
+/**
+ * @since 4.0.0
+ * @category Tracing
+ */
+export const withSpan: {
+  (name: string, options?: SpanOptions): <A, E, R>(self: Stream<A, E, R>) => Stream<A, E, Exclude<R, ParentSpan>>
+  <A, E, R>(self: Stream<A, E, R>, name: string, options?: SpanOptions): Stream<A, E, Exclude<R, ParentSpan>>
+} = dual(
+  2,
+  <A, E, R>(self: Stream<A, E, R>, name: string, options?: SpanOptions): Stream<A, E, Exclude<R, ParentSpan>> =>
+    fromChannel(Channel.withSpan(self.channel, name, options))
 )
 
 /**

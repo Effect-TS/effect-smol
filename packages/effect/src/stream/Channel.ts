@@ -73,6 +73,8 @@ import type { LazyArg } from "../Function.ts"
 import { constTrue, dual, identity } from "../Function.ts"
 import type { Pipeable } from "../interfaces/Pipeable.ts"
 import { pipeArguments } from "../interfaces/Pipeable.ts"
+import { endSpan } from "../internal/effect.ts"
+import { ParentSpan, type SpanOptions } from "../observability/Tracer.js"
 import * as PubSub from "../PubSub.ts"
 import * as Queue from "../Queue.ts"
 import * as Schedule from "../Schedule.ts"
@@ -3856,6 +3858,33 @@ export const provideServices: {
   services: ServiceMap.ServiceMap<R2>
 ): Channel<OutElem, InElem, OutErr, InErr, OutDone, InDone, Exclude<R, R2>> =>
   fromTransform((upstream, scope) => Effect.provideServices(toTransform(self)(upstream, scope), services)))
+
+/**
+ * @since 4.0.0
+ * @category Tracing
+ */
+export const withSpan: {
+  (
+    name: string,
+    options?: SpanOptions
+  ): <OutElem, OutErr, OutDone, InElem, InErr, InDone, R>(
+    self: Channel<OutElem, InElem, OutErr, InErr, OutDone, InDone, R>
+  ) => Channel<OutElem, InElem, OutErr, InErr, OutDone, InDone, Exclude<R, ParentSpan>>
+  <OutElem, OutErr, OutDone, InElem, InErr, InDone, R>(
+    self: Channel<OutElem, InElem, OutErr, InErr, OutDone, InDone, R>,
+    name: string,
+    options?: SpanOptions
+  ): Channel<OutElem, InElem, OutErr, InErr, OutDone, InDone, Exclude<R, ParentSpan>>
+} = dual(2, <OutElem, OutErr, OutDone, InElem, InErr, InDone, R>(
+  self: Channel<OutElem, InElem, OutErr, InErr, OutDone, InDone, R>,
+  name: string,
+  options?: SpanOptions
+): Channel<OutElem, InElem, OutErr, InErr, OutDone, InDone, Exclude<R, ParentSpan>> =>
+  acquireUseRelease(
+    Effect.makeSpan(name, options),
+    (span) => provideServices(self, ParentSpan.serviceMap(span)),
+    (span, exit) => Effect.clockWith((clock) => endSpan(span, exit, clock))
+  ))
 
 /**
  * @since 4.0.0
