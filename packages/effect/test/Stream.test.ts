@@ -1,5 +1,6 @@
 import { assert, describe, it } from "@effect/vitest"
-import { Effect, Exit, Fiber, Queue } from "effect"
+import { Effect, Exit, Fiber, pipe, Queue } from "effect"
+import { Array } from "effect/collections"
 import { Option } from "effect/data"
 import { Stream } from "effect/stream"
 
@@ -217,7 +218,7 @@ describe("Stream", () => {
       Effect.gen(function*() {
         const s: readonly [ReadonlyArray<number>, Array<number>] = [[0], [1, 2, 3, 4, 5]]
         const pageSize = 2
-        const result = yield* Stream.paginateChunk(s, ([chunk, nums]) =>
+        const result = yield* Stream.paginateArray(s, ([chunk, nums]) =>
           nums.length === 0 ?
             [chunk, Option.none()] as const :
             [
@@ -236,7 +237,7 @@ describe("Stream", () => {
       Effect.gen(function*() {
         const s: readonly [ReadonlyArray<number>, Array<number>] = [[0], [1, 2, 3, 4, 5]]
         const pageSize = 2
-        const result = yield* Stream.paginateChunkEffect(s, ([chunk, nums]) =>
+        const result = yield* Stream.paginateArrayEffect(s, ([chunk, nums]) =>
           nums.length === 0 ?
             Effect.succeed([chunk, Option.none<readonly [ReadonlyArray<number>, Array<number>]>()] as const) :
             Effect.succeed(
@@ -268,6 +269,20 @@ describe("Stream", () => {
         )
         assert.deepStrictEqual(results, [1, 2, 3, 4, 5, 6])
         assert.strictEqual(error, "boom")
+      }))
+  })
+
+  describe("scanning", () => {
+    it.effect("scan", () =>
+      Effect.gen(function*() {
+        const stream = Stream.make(1, 2, 3, 4, 5)
+        const { result1, result2 } = yield* Effect.all({
+          result1: stream.pipe(Stream.scan(0, (acc, curr) => acc + curr), Stream.runCollect),
+          result2: Stream.runCollect(stream).pipe(
+            Effect.map((chunk) => Array.scan(chunk, 0, (acc, curr) => acc + curr))
+          )
+        })
+        assert.deepStrictEqual(result1, result2)
       }))
   })
 })
