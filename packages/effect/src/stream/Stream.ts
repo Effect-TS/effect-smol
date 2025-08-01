@@ -4,7 +4,7 @@
 // @effect-diagnostics returnEffectInGen:off
 import * as Cause from "../Cause.ts"
 import * as Arr from "../collections/Array.ts"
-import * as Filter from "../data/Filter.ts"
+import type * as Filter from "../data/Filter.ts"
 import * as Option from "../data/Option.ts"
 import { hasProperty } from "../data/Predicate.ts"
 import * as Effect from "../Effect.ts"
@@ -1412,16 +1412,7 @@ export const drain = <A, E, R>(self: Stream<A, E, R>): Stream<never, E, R> => fr
  * @category sequencing
  */
 export const flattenIterable = <A, E, R>(self: Stream<Iterable<A>, E, R>): Stream<A, E, R> =>
-  fromChannel(Channel.flattenArray(Channel.filter(self.channel, (iters) => {
-    const chunk = Arr.empty<Arr.NonEmptyReadonlyArray<A>>()
-    for (const it of iters) {
-      const arr = Arr.fromIterable(it)
-      if (Arr.isNonEmptyReadonlyArray(arr)) {
-        chunk.push(arr)
-      }
-    }
-    return Arr.isNonEmptyArray(chunk) ? chunk : Filter.fail(iters)
-  })))
+  flatMap(self, fromIterable)
 
 /**
  * Concatenates two streams, emitting all elements from the first stream
