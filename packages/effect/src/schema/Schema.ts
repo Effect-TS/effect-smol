@@ -22,6 +22,8 @@ import type { Pipeable } from "../interfaces/Pipeable.ts"
 import { pipeArguments } from "../interfaces/Pipeable.ts"
 import * as core from "../internal/core.ts"
 import * as Scheduler from "../Scheduler.ts"
+import * as DateTime from "../time/DateTime.ts"
+import * as Duration_ from "../time/Duration.ts"
 import type * as Annotations from "./Annotations.ts"
 import * as AST from "./AST.ts"
 import * as Check from "./Check.ts"
@@ -3491,6 +3493,75 @@ export interface ValidDate extends Date {
  * @since 4.0.0
  */
 export const ValidDate = Date.check(Check.validDate())
+
+// TODO: add API interface
+/**
+ * @since 4.0.0
+ */
+export const DateTimeUtc = declare(
+  (u) => DateTime.isDateTime(u) && DateTime.isUtc(u),
+  {
+    title: "Date",
+    defaultJsonSerializer: () =>
+      link<DateTime.Utc>()(
+        String,
+        Transformation.transformOrFail({
+          decode: (s) =>
+            Effect.try({
+              try: () => DateTime.unsafeMake(s),
+              catch: (e) => new Issue.InvalidValue(O.some(s), { message: globalThis.String(e) })
+            }),
+          encode: (utc) => Effect.succeed(utc.toString())
+        })
+      ),
+    // TODO: test arbitrary, pretty and equivalence annotations
+    arbitrary: {
+      _tag: "Declaration",
+      declaration: () => (fc, ctx) =>
+        fc.date({ noInvalidDate: true, ...ctx?.constraints?.DateConstraints }).map((date) =>
+          DateTime.unsafeFromDate(date)
+        )
+    },
+    pretty: {
+      _tag: "Declaration",
+      declaration: () => (utc) => utc.toString()
+    },
+    equivalence: {
+      _tag: "Declaration",
+      declaration: () => DateTime.Equivalence
+    }
+  }
+)
+
+// TODO: add API interface
+/**
+ * @since 4.0.0
+ */
+export const Duration = declare(
+  Duration_.isDuration,
+  {
+    title: "Duration",
+    // TODO: add defaultJsonSerializer
+    // TODO: test arbitrary, pretty and equivalence annotations
+    arbitrary: {
+      _tag: "Declaration",
+      declaration: () => (fc) =>
+        fc.oneof(
+          fc.constant(Duration_.infinity),
+          fc.bigInt({ min: 0n }).map((_) => Duration_.nanos(_)),
+          fc.maxSafeNat().map((_) => Duration_.millis(_))
+        )
+    },
+    pretty: {
+      _tag: "Declaration",
+      declaration: () => globalThis.String
+    },
+    equivalence: {
+      _tag: "Declaration",
+      declaration: () => Duration_.Equivalence
+    }
+  }
+)
 
 /**
  * @since 4.0.0

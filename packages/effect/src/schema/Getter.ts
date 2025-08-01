@@ -59,6 +59,14 @@ export function fail<T, E>(f: (oe: Option.Option<E>) => Issue.Issue): Getter<T, 
   return new Getter((oe) => Effect.fail(f(oe)))
 }
 
+/**
+ * @category constructors
+ * @since 4.0.0
+ */
+export function forbidden<T, E>(message: string): Getter<T, E> {
+  return fail<T, E>((oe) => new Issue.Forbidden(oe, { message }))
+}
+
 const passthrough_ = new Getter<any, any>(Effect.succeed)
 
 function isPassthrough<T, E, R>(getter: Getter<T, E, R>): getter is typeof passthrough_ {

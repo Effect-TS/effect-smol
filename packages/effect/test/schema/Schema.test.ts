@@ -1287,6 +1287,14 @@ describe("Schema", () => {
 └─ minEntries(1)
    └─ Invalid data {}`
         )
+        await assertions.decoding.fail(
+          schema,
+          {},
+          `{ readonly [x: string]: number } & minEntries(1)
+└─ minEntries(1)
+   └─ Invalid data {}`,
+          { parseOptions: { errors: "all" } }
+        )
       })
 
       it("maxEntries", async () => {
@@ -1301,6 +1309,14 @@ describe("Schema", () => {
           `{ readonly [x: string]: number } & maxEntries(2)
 └─ maxEntries(2)
    └─ Invalid data {"a":1,"b":2,"c":3}`
+        )
+        await assertions.decoding.fail(
+          schema,
+          { a: 1, b: 2, c: 3 },
+          `{ readonly [x: string]: number } & maxEntries(2)
+└─ maxEntries(2)
+   └─ Invalid data {"a":1,"b":2,"c":3}`,
+          { parseOptions: { errors: "all" } }
         )
       })
     })

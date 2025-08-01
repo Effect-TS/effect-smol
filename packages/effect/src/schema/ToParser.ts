@@ -336,38 +336,21 @@ const go = AST.memoize(
           issues: Array<Issue.Issue>
         ) {
           for (const check of checks) {
-            switch (check._tag) {
-              case "Filter": {
-                const issue = check.run(value, ast, options)
-                if (issue) {
-                  issues.push(new Issue.Filter(value, check, issue))
-                  if (check.abort || !errorsAllOption) {
-                    return
-                  }
+            if (check._tag === "FilterGroup") {
+              runChecks(check.checks, value, issues)
+            } else {
+              const issue = check.run(value, ast, options)
+              if (issue) {
+                issues.push(new Issue.Filter(value, check, issue))
+                if (check.abort || !errorsAllOption) {
+                  return
                 }
-                break
               }
-              case "FilterGroup":
-                runChecks(check.checks, value, issues)
-                break
             }
           }
         }
 
         const checks = ast.checks
-        sroa = sroa.pipe(Effect.flatMapEager((oa) => {
-          if (Option.isSome(oa)) {
-            const value = oa.value
-            const issues: Array<Issue.Issue> = []
-
-            runChecks(checks, value, issues)
-
-            if (Arr.isNonEmptyArray(issues)) {
-              return Effect.fail(new Issue.Composite(ast, oa, issues))
-            }
-          }
-          return Effect.succeed(oa)
-        }))
         const isStructural = AST.isTupleType(ast) || AST.isTypeLiteral(ast) ||
           (AST.isDeclaration(ast) && ast.typeParameters.length > 0)
         if (errorsAllOption && isStructural && Option.isSome(ou)) {
@@ -384,6 +367,19 @@ const go = AST.memoize(
             })
           )
         }
+        sroa = sroa.pipe(Effect.flatMapEager((oa) => {
+          if (Option.isSome(oa)) {
+            const value = oa.value
+            const issues: Array<Issue.Issue> = []
+
+            runChecks(checks, value, issues)
+
+            if (Arr.isNonEmptyArray(issues)) {
+              return Effect.fail(new Issue.Composite(ast, oa, issues))
+            }
+          }
+          return Effect.succeed(oa)
+        }))
       }
 
       return yield* sroa
