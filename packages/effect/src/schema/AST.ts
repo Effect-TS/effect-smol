@@ -1389,14 +1389,6 @@ export class TypeLiteral extends Base {
   }
 
   /** @internal */
-  goJson(go: (ast: AST) => AST): AST {
-    if (this.propertySignatures.some((ps) => !Predicate.isString(ps.name))) {
-      return forbidden(this, "cannot serialize to JSON, property names must be strings")
-    }
-    return this.rebuild(go, false)
-  }
-
-  /** @internal */
   go(go: (ast: AST) => AST): AST {
     return this.rebuild(go, false)
   }
@@ -2468,7 +2460,8 @@ export const goStringLeafJson = memoize((ast: AST): AST => {
   return out.goStringLeafJson?.() ?? out.go?.(goStringLeafJson) ?? out
 })
 
-function forbidden<A extends AST>(ast: A, message: string): A {
+/** @internal */
+export function forbidden<A extends AST>(ast: A, message: string): A {
   const link = new Link(
     neverKeyword,
     new Transformation.Transformation(
