@@ -98,7 +98,14 @@ export const fail = <Fail>(value: Fail): fail<Fail> => ({
  * @since 4.0.0
  * @category fail
  */
-export const isFail = <A = unknown>(u: unknown): u is fail<A> => typeof u === "object" && u !== null && FailTypeId in u
+export const failVoid: fail<void> = fail(void 0)
+
+/**
+ * @since 4.0.0
+ * @category fail
+ */
+export const isFail = <A = unknown>(u: unknown): u is fail<A> =>
+  u === failVoid || (typeof u === "object" && u !== null && FailTypeId in u)
 
 /**
  * @since 4.0.0
