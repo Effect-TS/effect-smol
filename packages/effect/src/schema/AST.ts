@@ -386,7 +386,7 @@ export class Declaration extends Base {
         return replaceEncoding(ast, [new Link(to, link.transformation)])
       }
     } else {
-      return forbidden(ast)
+      return jsonRequiredAnnotationError(ast)
     }
   }
 }
@@ -1386,6 +1386,14 @@ export class TypeLiteral extends Base {
   /** @internal */
   flip(go: (ast: AST) => AST): AST {
     return this.rebuild(go, true)
+  }
+
+  /** @internal */
+  goJson(go: (ast: AST) => AST): AST {
+    if (this.propertySignatures.some((ps) => !Predicate.isString(ps.name))) {
+      return forbidden(this, "cannot serialize to JSON, property names must be strings")
+    }
+    return this.rebuild(go, false)
   }
 
   /** @internal */
@@ -2460,20 +2468,20 @@ export const goStringLeafJson = memoize((ast: AST): AST => {
   return out.goStringLeafJson?.() ?? out.go?.(goStringLeafJson) ?? out
 })
 
-const jsonForbiddenLink = new Link(
-  neverKeyword,
-  new Transformation.Transformation(
-    Getter.passthrough(),
-    Getter.fail(
-      (o) =>
-        new Issue.Forbidden(o, { message: "cannot serialize to JSON, required `defaultJsonSerializer` annotation" })
+function forbidden<A extends AST>(ast: A, message: string): A {
+  const link = new Link(
+    neverKeyword,
+    new Transformation.Transformation(
+      Getter.passthrough(),
+      Getter.forbidden(message)
     )
   )
-)
+  return replaceEncoding(ast, [link])
+}
 
 /** @internal */
-export function forbidden(ast: AST): AST {
-  return replaceEncoding(ast, [jsonForbiddenLink])
+export function jsonRequiredAnnotationError(ast: AST): AST {
+  return forbidden(ast, "cannot serialize to JSON, required `defaultJsonSerializer` annotation")
 }
 
 const SYMBOL_PATTERN = /^Symbol\((.*)\)$/

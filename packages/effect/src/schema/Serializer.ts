@@ -31,7 +31,7 @@ const goJson = AST.memoize((ast: AST.AST): AST.AST => {
     return AST.replaceEncoding(ast, Arr.append(links.slice(0, links.length - 1), new AST.Link(to, last.transformation)))
   }
   const out: any = ast
-  return out.goJson?.(goJson, Schema.make) ?? out.go?.(goJson) ?? AST.forbidden(ast)
+  return out.goJson?.(goJson, Schema.make) ?? out.go?.(goJson) ?? AST.jsonRequiredAnnotationError(ast)
 })
 
 /**
@@ -39,7 +39,7 @@ const goJson = AST.memoize((ast: AST.AST): AST.AST => {
  *
  * @since 4.0.0
  */
-export type StringLeafJson = string | { [x: PropertyKey]: StringLeafJson } | Array<StringLeafJson>
+export type StringLeafJson = string | { [x: string]: StringLeafJson } | Array<StringLeafJson>
 
 /**
  * The `stringLeafJson` serializer is a wrapper around the `json` serializer. It

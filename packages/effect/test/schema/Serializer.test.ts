@@ -691,6 +691,19 @@ describe("Serializer", () => {
         }, { a: 1, b: null })
       })
 
+      it("Struct with Symbol property name", async () => {
+        const a = Symbol.for("a")
+        const schema = Schema.Struct({
+          [a]: Schema.String
+        })
+
+        await assertions.serialization.stringLeafJson.schema.fail(
+          schema,
+          { [a]: "b" },
+          "cannot serialize to JSON, property names must be strings"
+        )
+      })
+
       it("Suspend", async () => {
         interface Category<A, T> {
           readonly a: A
