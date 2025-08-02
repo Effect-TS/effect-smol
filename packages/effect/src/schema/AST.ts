@@ -386,7 +386,7 @@ export class Declaration extends Base {
         return replaceEncoding(ast, [new Link(to, link.transformation)])
       }
     } else {
-      return jsonRequiredAnnotationError(ast)
+      return requiredDefaultJsonAnnotation(ast)
     }
   }
 }
@@ -2480,7 +2480,7 @@ function forbidden<A extends AST>(ast: A, message: string): A {
 }
 
 /** @internal */
-export function jsonRequiredAnnotationError(ast: AST): AST {
+export function requiredDefaultJsonAnnotation(ast: AST): AST {
   return forbidden(ast, "cannot serialize to JSON, required `defaultJsonSerializer` annotation")
 }
 

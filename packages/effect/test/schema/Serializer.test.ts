@@ -79,6 +79,12 @@ describe("Serializer", () => {
         )
       })
 
+      it("Null", async () => {
+        const schema = Schema.Null
+
+        await assertions.serialization.json.schema.succeed(schema, null, null)
+      })
+
       it("String", async () => {
         const schema = Schema.String
 
@@ -657,6 +663,15 @@ describe("Serializer", () => {
         const schema = Schema.TemplateLiteral(["a", Schema.Literal(1), "b"])
         await assertions.serialization.stringLeafJson.schema.succeed(schema, "a1b")
         await assertions.deserialization.stringLeafJson.schema.succeed(schema, "a1b")
+      })
+
+      it("NullOr(String)", async () => {
+        const schema = Schema.NullOr(Schema.String)
+
+        await assertions.serialization.stringLeafJson.schema.succeed(schema, "a", "a")
+        await assertions.serialization.stringLeafJson.schema.succeed(schema, null, "")
+        await assertions.deserialization.stringLeafJson.schema.succeed(schema, "", "")
+        await assertions.deserialization.stringLeafJson.schema.succeed(schema, "a", "a")
       })
 
       it("NullOr(Number)", async () => {
