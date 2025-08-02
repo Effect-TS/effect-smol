@@ -12,6 +12,7 @@ import type { Pipeable } from "./interfaces/Pipeable.ts"
 import { pipeArguments } from "./interfaces/Pipeable.ts"
 import * as Scope from "./Scope.ts"
 import * as ServiceMap from "./ServiceMap.ts"
+import { Clock } from "./time/Clock.ts"
 import * as Duration from "./time/Duration.ts"
 
 /**
@@ -84,7 +85,6 @@ export type TypeId = "~effect/RcMap"
  *   // - lookup: Function to acquire resources
  *   // - capacity: Maximum number of resources
  *   // - idleTimeToLive: Time before idle resources are released
- *   // - semaphore: Concurrency control
  *   // - state: Current state of the map
  *
  *   console.log(`Capacity: ${dbConnectionMap.capacity}`)
@@ -98,7 +98,6 @@ export interface RcMap<in out K, in out A, in out E = never> extends Pipeable {
   readonly scope: Scope.Scope
   readonly idleTimeToLive: Duration.Duration | undefined
   readonly capacity: number
-  readonly semaphore: Effect.Semaphore
   state: State<K, A, E>
 }
 
@@ -252,7 +251,6 @@ const unsafeMake = <K, A, E>(options: {
   scope: options.scope,
   idleTimeToLive: options.idleTimeToLive,
   capacity: options.capacity,
-  semaphore: Effect.unsafeMakeSemaphore(1),
   state: {
     _tag: "Open",
     map: MutableHashMap.empty()
@@ -334,12 +332,11 @@ export const make: {
         self.state = { _tag: "Closed" }
         return Effect.forEach(
           map,
-          ([, entry]) => Scope.close(entry.scope, Exit.void)
+          ([, entry]) => Effect.exit(Scope.close(entry.scope, Exit.void))
         ).pipe(
           Effect.tap(() => {
             MutableHashMap.clear(map)
-          }),
-          self.semaphore.withPermits(1)
+          })
         )
       }),
       self
@@ -376,68 +373,58 @@ export const make: {
 export const get: {
   <K>(key: K): <A, E>(self: RcMap<K, A, E>) => Effect.Effect<A, E, Scope.Scope>
   <K, A, E>(self: RcMap<K, A, E>, key: K): Effect.Effect<A, E, Scope.Scope>
-} = dual(2, <K, A, E>(self: RcMap<K, A, E>, key: K): Effect.Effect<A, E, Scope.Scope> => {
-  return Effect.uninterruptibleMask((restore) => getImpl(self, key, restore as any))
-})
-
-const getImpl = Effect.fnUntraced(function*<K, A, E>(self: RcMap<K, A, E>, key: K, restore: <A>(a: A) => A) {
-  if (self.state._tag === "Closed") {
-    return yield* Effect.interrupt
-  }
-  const state = self.state
-  const o = MutableHashMap.get(state.map, key)
-  let entry: State.Entry<A, E>
-  if (o._tag === "Some") {
-    entry = o.value
-    entry.refCount++
-  } else if (Number.isFinite(self.capacity) && MutableHashMap.size(self.state.map) >= self.capacity) {
-    return yield* Effect.fail(
-      new Cause.ExceededCapacityError(`RcMap attempted to exceed capacity of ${self.capacity}`)
-    ) as Effect.Effect<never>
-  } else {
-    entry = yield* self.semaphore.withPermits(1)(acquire(self, key, restore))
-  }
-  const scope = yield* Scope.Scope
-  yield* Scope.addFinalizer(scope, entry.finalizer)
-  return yield* restore(Deferred.await(entry.deferred))
-})
-
-const acquire = Effect.fnUntraced(function*<K, A, E>(self: RcMap<K, A, E>, key: K, restore: <A>(a: A) => A) {
-  const scope = Scope.unsafeMake()
-  const deferred = Deferred.unsafeMake<A, E>()
-  const acquire = self.lookup(key)
-  const servicesMap = new Map(self.services.unsafeMap)
-  yield* restore(Effect.updateServices(
-    acquire as Effect.Effect<A, E>,
-    (inputServices: ServiceMap.ServiceMap<never>) => {
-      inputServices.unsafeMap.forEach((value, key) => {
-        servicesMap.set(key, value)
-      })
-      servicesMap.set(Scope.Scope.key, scope)
-      return ServiceMap.unsafeMake(servicesMap)
-    }
-  )).pipe(
-    Effect.exit,
-    Effect.flatMap((exit) => Deferred.done(deferred, exit)),
-    Effect.forkIn(scope)
-  )
-  const entry: State.Entry<A, E> = {
-    deferred,
-    scope,
-    finalizer: undefined as any,
-    fiber: undefined,
-    expiresAt: 0,
-    refCount: 1
-  }
-  ;(entry as any).finalizer = release(self, key, entry)
-  if (self.state._tag === "Open") {
-    MutableHashMap.set(self.state.map, key, entry)
-  }
-  return entry
-})
+} = dual(
+  2,
+  <K, A, E>(self: RcMap<K, A, E>, key: K): Effect.Effect<A, E, Scope.Scope> =>
+    Effect.uninterruptibleMask((restore) => {
+      if (self.state._tag === "Closed") {
+        return Effect.interrupt
+      }
+      const state = self.state
+      const parent = Fiber.getCurrent()!
+      const o = MutableHashMap.get(state.map, key)
+      let entry: State.Entry<A, E>
+      if (o._tag === "Some") {
+        entry = o.value
+        entry.refCount++
+      } else if (Number.isFinite(self.capacity) && MutableHashMap.size(self.state.map) >= self.capacity) {
+        return Effect.fail(
+          new Cause.ExceededCapacityError(`RcMap attempted to exceed capacity of ${self.capacity}`)
+        ) as Effect.Effect<never>
+      } else {
+        entry = {
+          deferred: Deferred.unsafeMake(),
+          scope: Scope.unsafeMake(),
+          finalizer: undefined as any,
+          fiber: undefined,
+          expiresAt: 0,
+          refCount: 1
+        }
+        ;(entry as any).finalizer = release(self, key, entry)
+        MutableHashMap.set(state.map, key, entry)
+        const services = new Map(self.services.unsafeMap)
+        parent.services.unsafeMap.forEach((value, key) => {
+          services.set(key, value)
+        })
+        services.set(Scope.Scope.key, entry.scope)
+        self.lookup(key).pipe(
+          Effect.runForkWith(ServiceMap.unsafeMake(services)),
+          Fiber.runIn(entry.scope)
+        ).addObserver((exit) => Deferred.unsafeDone(entry.deferred, exit))
+      }
+      if (self.idleTimeToLive && !Duration.isFinite(self.idleTimeToLive)) {
+        entry.refCount--
+        return restore(Deferred.await(entry.deferred))
+      }
+      const scope = ServiceMap.unsafeGet(parent.services, Scope.Scope)
+      return Scope.addFinalizer(scope, entry.finalizer).pipe(
+        Effect.andThen(restore(Deferred.await(entry.deferred)))
+      )
+    })
+)
 
 const release = <K, A, E>(self: RcMap<K, A, E>, key: K, entry: State.Entry<A, E>) =>
-  Effect.clockWith((clock) => {
+  Effect.withFiber((fiber) => {
     entry.refCount--
     if (entry.refCount > 0) {
       return Effect.void
@@ -452,14 +439,11 @@ const release = <K, A, E>(self: RcMap<K, A, E>, key: K, entry: State.Entry<A, E>
       return Scope.close(entry.scope, Exit.void)
     }
 
-    if (!Duration.isFinite(self.idleTimeToLive)) {
-      return Effect.void
-    }
-
+    const clock = fiber.getRef(Clock)
     entry.expiresAt = clock.unsafeCurrentTimeMillis() + Duration.toMillis(self.idleTimeToLive)
     if (entry.fiber) return Effect.void
 
-    return Effect.interruptibleMask(function loop(restore): Effect.Effect<void> {
+    entry.fiber = Effect.interruptibleMask(function loop(restore): Effect.Effect<void> {
       const now = clock.unsafeCurrentTimeMillis()
       const remaining = entry.expiresAt - now
       if (remaining <= 0) {
@@ -472,12 +456,10 @@ const release = <K, A, E>(self: RcMap<K, A, E>, key: K, entry: State.Entry<A, E>
       Effect.ensuring(Effect.sync(() => {
         entry.fiber = undefined
       })),
-      Effect.forkIn(self.scope),
-      Effect.tap((fiber) => {
-        entry.fiber = fiber
-      }),
-      self.semaphore.withPermits(1)
+      Effect.runForkWith(fiber.services),
+      Fiber.runIn(self.scope)
     )
+    return Effect.void
   })
 
 /**
@@ -558,7 +540,7 @@ export const invalidate: {
     if (entry.refCount > 0) return
     yield* Scope.close(entry.scope, Exit.void)
     if (entry.fiber) yield* Fiber.interrupt(entry.fiber)
-  })
+  }, Effect.uninterruptible)
 )
 
 /**
@@ -602,7 +584,11 @@ export const touch: {
   2,
   <K, A, E>(self: RcMap<K, A, E>, key: K) =>
     Effect.clockWith((clock) => {
-      if (!self.idleTimeToLive || self.state._tag === "Closed") return Effect.void
+      if (
+        !self.idleTimeToLive || !Duration.isFinite(self.idleTimeToLive) || self.state._tag === "Closed"
+      ) {
+        return Effect.void
+      }
       const o = MutableHashMap.get(self.state.map, key)
       if (o._tag === "None") return Effect.void
       o.value.expiresAt = clock.unsafeCurrentTimeMillis() + Duration.toMillis(self.idleTimeToLive)

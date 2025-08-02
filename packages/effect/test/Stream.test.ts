@@ -285,4 +285,25 @@ describe("Stream", () => {
         assert.deepStrictEqual(result1, result2)
       }))
   })
+
+  describe("grouping", () => {
+    it.effect("groupBy", () =>
+      Effect.gen(function*() {
+        const stream = Stream.make(1, 2, 3, 4, 5)
+        const grouped = yield* stream.pipe(
+          Stream.groupByKey((n) => n % 2 === 0 ? "even" : "odd"),
+          Stream.mapEffect(
+            Effect.fnUntraced(function*([key, stream]) {
+              return [key, yield* Stream.runCollect(stream)] as const
+            }),
+            { concurrency: "unbounded" }
+          ),
+          Stream.runCollect
+        )
+        assert.deepStrictEqual(grouped, [
+          ["odd", [1, 3, 5]],
+          ["even", [2, 4]]
+        ])
+      }))
+  })
 })

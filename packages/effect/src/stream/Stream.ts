@@ -4,6 +4,7 @@
 // @effect-diagnostics returnEffectInGen:off
 import * as Cause from "../Cause.ts"
 import * as Arr from "../collections/Array.ts"
+import * as MutableHashMap from "../collections/MutableHashMap.ts"
 import type * as Filter from "../data/Filter.ts"
 import * as Option from "../data/Option.ts"
 import { hasProperty } from "../data/Predicate.ts"
@@ -11,17 +12,19 @@ import * as Effect from "../Effect.ts"
 import * as Exit from "../Exit.ts"
 import * as Fiber from "../Fiber.ts"
 import type { LazyArg } from "../Function.ts"
-import { constant, dual, identity } from "../Function.ts"
+import { constant, constTrue, constVoid, dual, identity } from "../Function.ts"
 import { type Pipeable, pipeArguments } from "../interfaces/Pipeable.ts"
 import type { ParentSpan, SpanOptions } from "../observability/Tracer.ts"
 import type * as PubSub from "../PubSub.ts"
 import * as Queue from "../Queue.ts"
+import * as RcMap from "../RcMap.ts"
 import * as Schedule from "../Schedule.ts"
 import * as Scope from "../Scope.ts"
 import * as ServiceMap from "../ServiceMap.ts"
 import * as Channel from "../stream/Channel.ts"
 import * as Pull from "../stream/Pull.ts"
 import type * as Sink from "../stream/Sink.ts"
+import * as Duration from "../time/Duration.ts"
 import type { TypeLambda } from "../types/HKT.ts"
 import type { Covariant } from "../types/Types.ts"
 import type * as Unify from "../types/Unify.ts"
@@ -349,6 +352,33 @@ export const transformPull = <A, E, R, B, E2, R2, EX, RX>(
   fromChannel(
     Channel.fromTransform((_, scope) =>
       Effect.flatMap(Channel.toPullScoped(self.channel, scope), (pull) => f(pull, scope))
+    )
+  )
+
+/**
+ * Transforms a stream by effectfully transforming its pull effect.
+ *
+ * A forked scope is also provided to the transformation function, which is
+ * closed once the resulting stream has finished processing.
+ *
+ * @since 4.0.0
+ * @category utils
+ */
+export const transformPullBracket = <A, E, R, B, E2, R2, EX, RX>(
+  self: Stream<A, E, R>,
+  f: (
+    pull: Pull.Pull<Arr.NonEmptyReadonlyArray<A>, E, void, R>,
+    scope: Scope.Scope,
+    forkedScope: Scope.Scope
+  ) => Effect.Effect<
+    Pull.Pull<Arr.NonEmptyReadonlyArray<B>, E2, void, R2>,
+    EX,
+    RX
+  >
+): Stream<B, EX | Pull.ExcludeHalt<E2>, R | R2 | RX> =>
+  fromChannel(
+    Channel.fromTransformBracket((_, scope, forkedScope) =>
+      Effect.flatMap(Channel.toPullScoped(self.channel, scope), (pull) => f(pull, scope, forkedScope))
     )
   )
 
@@ -1875,6 +1905,58 @@ export const chunks = <A, E, R>(self: Stream<A, E, R>): Stream<Arr.NonEmptyReado
 
 /**
  * @since 2.0.0
+ * @category utils
+ */
+export const rechunk: {
+  (size: number): <A, E, R>(self: Stream<A, E, R>) => Stream<A, E, R>
+  <A, E, R>(self: Stream<A, E, R>, size: number): Stream<A, E, R>
+} = dual(2, <A, E, R>(self: Stream<A, E, R>, target: number): Stream<A, E, R> => {
+  target = Math.max(1, target)
+  return transformPull(self, (pull, _scope) =>
+    Effect.sync(() => {
+      let chunk = Arr.empty<A>() as Arr.NonEmptyArray<A>
+      let index = 0
+      let current: Arr.NonEmptyReadonlyArray<A> | undefined
+      let done = false
+
+      return Effect.suspend(function loop(): Pull.Pull<Arr.NonEmptyReadonlyArray<A>, E, void, R> {
+        if (done) return Pull.haltVoid
+        if (current === undefined) {
+          return Effect.flatMap(pull, (arr) => {
+            if (chunk.length === 0 && arr.length === target) {
+              return Effect.succeed(arr)
+            } else if (chunk.length + arr.length < target) {
+              // eslint-disable-next-line no-restricted-syntax
+              chunk.push(...arr)
+              return loop()
+            }
+            current = arr
+            return loop()
+          })
+        }
+        for (; index < current.length; index++) {
+          chunk.push(current[index])
+          if (chunk.length === target) {
+            const result = chunk
+            chunk = [] as any
+            return Effect.succeed(result)
+          }
+        }
+        index = 0
+        current = undefined
+        return loop()
+      }).pipe(
+        Pull.catchHalt(() => {
+          if (chunk.length === 0) return Pull.haltVoid
+          done = true
+          return Effect.succeed(chunk)
+        })
+      )
+    }))
+})
+
+/**
+ * @since 2.0.0
  * @category sequencing
  */
 export const mapAccum: {
@@ -1995,6 +2077,155 @@ export const scanEffect: {
     Channel.map(Arr.of),
     fromChannel
   ))
+
+/**
+ * @since 2.0.0
+ * @category Grouping
+ */
+export const groupBy: {
+  <A, K, V, E2, R2>(
+    f: (a: NoInfer<A>) => Effect.Effect<readonly [K, V], E2, R2>,
+    options?: {
+      readonly bufferSize?: number | undefined
+      readonly idleTimeToLive?: Duration.DurationInput | undefined
+    }
+  ): <E, R>(self: Stream<A, E, R>) => Stream<readonly [K, Stream<V>], E | E2, R | R2>
+  <A, E, R, K, V, E2, R2>(
+    self: Stream<A, E, R>,
+    f: (a: NoInfer<A>) => Effect.Effect<readonly [K, V], E2, R2>,
+    options?: {
+      readonly bufferSize?: number | undefined
+      readonly idleTimeToLive?: Duration.DurationInput | undefined
+    }
+  ): Stream<readonly [K, Stream<V>], E | E2, R | R2>
+} = dual((args) => isStream(args[0]), <A, E, R, K, V, E2, R2>(
+  self: Stream<A, E, R>,
+  f: (a: NoInfer<A>) => Effect.Effect<readonly [K, V], E2, R2>,
+  options?: {
+    readonly bufferSize?: number | undefined
+    readonly idleTimeToLive?: Duration.DurationInput | undefined
+  }
+): Stream<readonly [K, Stream<V>], E | E2, R | R2> =>
+  groupByImpl(
+    self,
+    Effect.fnUntraced(function*(arr, queues, queueMap) {
+      for (let i = 0; i < arr.length; i++) {
+        const [key, value] = yield* f(arr[i])
+        const oentry = MutableHashMap.get(queueMap, key)
+        const queue = Option.isSome(oentry)
+          ? oentry.value
+          : yield* Effect.scoped(RcMap.get(queues, key))
+        yield* RcMap.touch(queues, key)
+        yield* Queue.offer(queue, value)
+      }
+    }),
+    options
+  ))
+
+/**
+ * @since 2.0.0
+ * @category Grouping
+ */
+export const groupByKey: {
+  <A, K>(
+    f: (a: NoInfer<A>) => K,
+    options?: {
+      readonly bufferSize?: number | undefined
+      readonly idleTimeToLive?: Duration.DurationInput | undefined
+    }
+  ): <E, R>(self: Stream<A, E, R>) => Stream<readonly [K, Stream<A>], E, R>
+  <A, E, R, K>(
+    self: Stream<A, E, R>,
+    f: (a: NoInfer<A>) => K,
+    options?: {
+      readonly bufferSize?: number | undefined
+      readonly idleTimeToLive?: Duration.DurationInput | undefined
+    }
+  ): Stream<readonly [K, Stream<A>], E, R>
+} = dual((args) => isStream(args[0]), <A, E, R, K>(
+  self: Stream<A, E, R>,
+  f: (a: NoInfer<A>) => K,
+  options?: {
+    readonly bufferSize?: number | undefined
+    readonly idleTimeToLive?: Duration.DurationInput | undefined
+  }
+): Stream<readonly [K, Stream<A>], E, R> =>
+  suspend(() => {
+    const batch = MutableHashMap.empty<K, Arr.NonEmptyArray<A>>()
+    return groupByImpl(
+      self,
+      Effect.fnUntraced(function*(arr, queues, queueMap) {
+        for (let i = 0; i < arr.length; i++) {
+          const key = f(arr[i])
+          const ovalues = MutableHashMap.get(batch, key)
+          if (Option.isNone(ovalues)) {
+            MutableHashMap.set(batch, key, [arr[i]])
+          } else {
+            ovalues.value.push(arr[i])
+          }
+        }
+        for (const [key, values] of batch) {
+          const oentry = MutableHashMap.get(queueMap, key)
+          const queue = Option.isSome(oentry)
+            ? oentry.value
+            : yield* Effect.scoped(RcMap.get(queues, key))
+          yield* RcMap.touch(queues, key)
+          yield* Queue.offerAll(queue, values)
+        }
+        MutableHashMap.clear(batch)
+      }),
+      options
+    )
+  }))
+
+const groupByImpl = <A, E, R, K, V, E2, R2>(
+  self: Stream<A, E, R>,
+  f: (
+    arr: Arr.NonEmptyReadonlyArray<A>,
+    queues: RcMap.RcMap<K, Queue.Queue<V, Queue.Done>>,
+    queueMap: MutableHashMap.MutableHashMap<K, Queue.Queue<V, Queue.Done>>
+  ) => Effect.Effect<void, E2, R2>,
+  options?: {
+    readonly bufferSize?: number | undefined
+    readonly idleTimeToLive?: Duration.DurationInput | undefined
+  }
+): Stream<readonly [K, Stream<V>], E | E2, R | R2> =>
+  transformPullBracket(
+    self,
+    Effect.fnUntraced(function*(pull, scope, forkedScope) {
+      const out = yield* Queue.unbounded<readonly [K, Stream<V>], E | E2 | Pull.Halt<void>>()
+      yield* Scope.addFinalizer(scope, Queue.shutdown(out))
+
+      const queueMap = MutableHashMap.empty<K, Queue.Queue<V, Queue.Done>>()
+      const queues = yield* RcMap.make({
+        lookup: (key: K) =>
+          Effect.acquireRelease(
+            Queue.make<V, Queue.Done>({ capacity: options?.bufferSize ?? 4096 }).pipe(
+              Effect.tap((queue) => {
+                MutableHashMap.set(queueMap, key, queue)
+                return Queue.offer(out, [key, fromQueue(queue)])
+              })
+            ),
+            (queue) => {
+              MutableHashMap.remove(queueMap, key)
+              return Queue.end(queue)
+            }
+          ),
+        idleTimeToLive: options?.idleTimeToLive ?? Duration.infinity
+      }).pipe(Scope.provide(forkedScope))
+
+      yield* Effect.whileLoop({
+        while: constTrue,
+        body: constant(Effect.flatMap(pull, (arr) => f(arr, queues, queueMap))),
+        step: constVoid
+      }).pipe(
+        Queue.into(out),
+        Effect.forkIn(scope)
+      )
+
+      return Queue.toPullArray(out)
+    })
+  )
 
 /**
  * Pipes all the values from this stream through the provided channel.

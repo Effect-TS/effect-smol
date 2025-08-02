@@ -340,7 +340,15 @@ export const fromPull = <OutElem, OutErr, OutDone, EX, EnvX, Env>(
 ): Channel<OutElem, Pull.ExcludeHalt<OutErr> | EX, OutDone, unknown, unknown, unknown, Env | EnvX> =>
   fromTransform((_, __) => effect) as any
 
-const makeImplBracket = <OutElem, OutErr, OutDone, InElem, InErr, InDone, EX, EnvX, Env>(
+/**
+ * Creates a `Channel` from a transformation function that operates on upstream
+ * pulls, but also provides a forked scope that closes when the resulting
+ * Channel completes.
+ *
+ * @since 4.0.0
+ * @category constructors
+ */
+export const fromTransformBracket = <OutElem, OutErr, OutDone, InElem, InErr, InDone, EX, EnvX, Env>(
   f: (
     upstream: Pull.Pull<InElem, InErr, InDone>,
     scope: Scope.Scope,
@@ -514,7 +522,7 @@ export const acquireUseRelease = <A, E, R, OutElem, OutErr, OutDone, InElem, InE
   use: (a: A) => Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
   release: (a: A, exit: Exit.Exit<OutDone, OutErr>) => Effect.Effect<unknown>
 ): Channel<OutElem, OutErr | E, OutDone, InElem, InErr, InDone, Env | R> =>
-  makeImplBracket(
+  fromTransformBracket(
     Effect.fnUntraced(function*(upstream, scope, forkedScope) {
       let option = Option.none<A>()
       yield* Scope.addFinalizerExit(forkedScope, (exit) =>
@@ -1761,7 +1769,7 @@ const mapEffectConcurrent = <
     readonly unordered?: boolean | undefined
   }
 ): Channel<OutElem2, OutErr | EX, OutDone, InElem, InErr, InDone, Env | RX> =>
-  makeImplBracket(
+  fromTransformBracket(
     Effect.fnUntraced(function*(upstream, scope, forkedScope) {
       const pull = yield* toTransform(self)(upstream, scope)
       const concurrencyN = options.concurrency === "unbounded"
@@ -3251,7 +3259,7 @@ export const mergeAll: {
     InDone & InDone1,
     Env1 | Env
   > =>
-    makeImplBracket(
+    fromTransformBracket(
       Effect.fnUntraced(function*(upstream, scope, forkedScope) {
         const concurrencyN = concurrency === "unbounded"
           ? Number.MAX_SAFE_INTEGER
@@ -3439,7 +3447,7 @@ export const merge: {
   InDone & InDone1,
   Env | Env1
 > =>
-  makeImplBracket(Effect.fnUntraced(function*(upstream, _scope, forkedScope) {
+  fromTransformBracket(Effect.fnUntraced(function*(upstream, _scope, forkedScope) {
     const strategy = options?.haltStrategy ?? "both"
     const queue = yield* Queue.bounded<OutElem | OutElem1, OutErr | OutErr1 | Pull.Halt<OutDone | OutDone1>>(0)
     yield* Scope.addFinalizer(forkedScope, Queue.shutdown(queue))
@@ -3703,7 +3711,7 @@ export const embedInput: {
       upstream: Pull.Pull<InElem, InErr, InDone>
     ) => Effect.Effect<void, never, R>
   ): Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env | R> =>
-    makeImplBracket((upstream, scope, forkedScope) =>
+    fromTransformBracket((upstream, scope, forkedScope) =>
       Effect.andThen(
         Effect.forkIn(input(upstream), forkedScope),
         toTransform(self)(Pull.haltVoid, scope)
@@ -3757,7 +3765,7 @@ export const onExit: {
   self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
   finalizer: (e: Exit.Exit<OutDone, OutErr>) => Effect.Effect<unknown, never, Env2>
 ): Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env2 | Env> =>
-  makeImplBracket((upstream, scope, forkedScope) =>
+  fromTransformBracket((upstream, scope, forkedScope) =>
     Scope.addFinalizerExit(forkedScope, finalizer as any).pipe(
       Effect.andThen(toTransform(self)(upstream, scope))
     )

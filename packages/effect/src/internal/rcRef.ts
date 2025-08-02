@@ -76,36 +76,33 @@ export const make = <A, E, R>(options: {
       options.idleTimeToLive ? Duration.decode(options.idleTimeToLive) : undefined
     )
     return Effect.as(
-      Scope.addFinalizer(
-        scope,
-        ref.semaphore.withPermits(1)(Effect.suspend(() => {
-          const close = ref.state._tag === "Acquired"
-            ? Scope.close(ref.state.scope, Exit.void)
-            : Effect.void
-          ref.state = stateClosed
-          return close
-        }))
-      ),
+      Scope.addFinalizerExit(scope, () => {
+        const close = ref.state._tag === "Acquired"
+          ? Scope.close(ref.state.scope, Exit.void)
+          : Effect.void
+        ref.state = stateClosed
+        return close
+      }),
       ref
     )
   })
 
 const getState = <A, E>(self: RcRefImpl<A, E>) =>
-  self.semaphore.withPermits(1)(Effect.uninterruptibleMask((restore) =>
-    Effect.suspend(() => {
-      switch (self.state._tag) {
-        case "Closed": {
-          return Effect.interrupt
-        }
-        case "Acquired": {
-          self.state.refCount++
-          return self.state.fiber
-            ? Effect.as(Fiber.interrupt(self.state.fiber), self.state)
-            : Effect.succeed(self.state)
-        }
-        case "Empty": {
-          const scope = Scope.unsafeMake()
-          return restore(Effect.provideServices(
+  Effect.uninterruptibleMask((restore) => {
+    switch (self.state._tag) {
+      case "Closed": {
+        return Effect.interrupt
+      }
+      case "Acquired": {
+        self.state.refCount++
+        return self.state.fiber
+          ? Effect.as(Fiber.interrupt(self.state.fiber), self.state)
+          : Effect.succeed(self.state)
+      }
+      case "Empty": {
+        const scope = Scope.unsafeMake()
+        return self.semaphore.withPermits(1)(
+          restore(Effect.provideServices(
             self.acquire as Effect.Effect<A, E>,
             ServiceMap.add(self.services, Scope.Scope, scope)
           )).pipe(Effect.map((value) => {
@@ -119,10 +116,10 @@ const getState = <A, E>(self: RcRefImpl<A, E>) =>
             self.state = state
             return state
           }))
-        }
+        )
       }
-    })
-  ))
+    }
+  })
 
 /** @internal */
 export const get = Effect.fnUntraced(function*<A, E>(
@@ -131,34 +128,30 @@ export const get = Effect.fnUntraced(function*<A, E>(
   const self = self_ as RcRefImpl<A, E>
   const state = yield* getState(self)
   const scope = yield* Effect.scope
-  yield* Scope.addFinalizerExit(scope, () =>
-    Effect.suspend(() => {
-      state.refCount--
-      if (state.refCount > 0) {
+  yield* Scope.addFinalizerExit(scope, () => {
+    state.refCount--
+    if (state.refCount > 0) {
+      return Effect.void
+    }
+    if (self.idleTimeToLive === undefined) {
+      self.state = stateEmpty
+      return Scope.close(state.scope, Exit.void)
+    }
+    state.fiber = Effect.sleep(self.idleTimeToLive).pipe(
+      Effect.flatMap(() => {
+        if (self.state._tag === "Acquired" && self.state.refCount === 0) {
+          self.state = stateEmpty
+          return Scope.close(state.scope, Exit.void)
+        }
         return Effect.void
-      }
-      if (self.idleTimeToLive === undefined) {
-        self.state = stateEmpty
-        return Scope.close(state.scope, Exit.void)
-      }
-      return Effect.sleep(self.idleTimeToLive).pipe(
-        Effect.interruptible,
-        Effect.andThen(Effect.suspend(() => {
-          if (self.state._tag === "Acquired" && self.state.refCount === 0) {
-            self.state = stateEmpty
-            return Scope.close(state.scope, Exit.void)
-          }
-          return Effect.void
-        })),
-        Effect.ensuring(Effect.sync(() => {
-          state.fiber = undefined
-        })),
-        Effect.forkIn(self.scope),
-        Effect.tap((fiber) => {
-          state.fiber = fiber
-        }),
-        self.semaphore.withPermits(1)
-      )
-    }))
+      }),
+      Effect.ensuring(Effect.sync(() => {
+        state.fiber = undefined
+      })),
+      Effect.runForkWith(self.services),
+      Fiber.runIn(self.scope)
+    )
+    return Effect.void
+  })
   return state.value
 })
