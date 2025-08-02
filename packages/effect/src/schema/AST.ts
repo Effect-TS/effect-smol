@@ -742,18 +742,7 @@ export class LiteralType extends AbstractParser {
   }
   /** @internal */
   goStringLeafJson() {
-    // eslint-disable-next-line @typescript-eslint/no-this-alias
-    const ast = this
-    switch (typeof ast.literal) {
-      case "number":
-        return coerceLiteral(ast)
-      case "boolean":
-        return coerceLiteral(ast)
-      case "bigint":
-        return coerceLiteral(ast)
-      default:
-    }
-    return ast
+    return Predicate.isString(this.literal) ? this : coerceLiteral(this)
   }
 }
 
