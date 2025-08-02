@@ -11,7 +11,7 @@ import * as Effect from "../Effect.ts"
 import * as Exit from "../Exit.ts"
 import * as Fiber from "../Fiber.ts"
 import type { LazyArg } from "../Function.ts"
-import { dual, identity } from "../Function.ts"
+import { constant, dual, identity } from "../Function.ts"
 import { type Pipeable, pipeArguments } from "../interfaces/Pipeable.ts"
 import type { ParentSpan, SpanOptions } from "../observability/Tracer.ts"
 import type * as PubSub from "../PubSub.ts"
@@ -1879,17 +1879,17 @@ export const chunks = <A, E, R>(self: Stream<A, E, R>): Stream<Arr.NonEmptyReado
  */
 export const mapAccum: {
   <S, A, B>(
-    initial: S,
+    initial: LazyArg<S>,
     f: (s: S, a: A) => readonly [state: S, values: ReadonlyArray<B>]
   ): <E, R>(self: Stream<A, E, R>) => Stream<B, E, R>
   <A, E, R, S, B>(
     self: Stream<A, E, R>,
-    initial: S,
+    initial: LazyArg<S>,
     f: (s: S, a: A) => readonly [state: S, values: ReadonlyArray<B>]
   ): Stream<B, E, R>
 } = dual(3, <A, E, R, S, B>(
   self: Stream<A, E, R>,
-  initial: S,
+  initial: LazyArg<S>,
   f: (s: S, a: A) => readonly [state: S, values: ReadonlyArray<B>]
 ): Stream<B, E, R> =>
   fromChannel(Channel.mapAccum(self.channel, initial, (state, arr) => {
@@ -1909,39 +1909,31 @@ export const mapAccum: {
  */
 export const mapAccumEffect: {
   <S, A, B, E2, R2>(
-    initial: S,
+    initial: LazyArg<S>,
     f: (s: S, a: A) => Effect.Effect<readonly [state: S, values: ReadonlyArray<B>], E2, R2>
   ): <E, R>(self: Stream<A, E, R>) => Stream<B, E | E2, R | R2>
   <A, E, R, S, B, E2, R2>(
     self: Stream<A, E, R>,
-    initial: S,
+    initial: LazyArg<S>,
     f: (s: S, a: A) => Effect.Effect<readonly [state: S, values: ReadonlyArray<B>], E2, R2>
   ): Stream<B, E | E2, R | R2>
 } = dual(3, <A, E, R, S, B, E2, R2>(
   self: Stream<A, E, R>,
-  initial: S,
+  initial: LazyArg<S>,
   f: (s: S, a: A) => Effect.Effect<readonly [state: S, values: ReadonlyArray<B>], E2, R2>
 ): Stream<B, E | E2, R | R2> =>
-  fromChannel(Channel.mapAccumEffect(self.channel, initial, (state, arr) => {
-    let index = 0
-    const acc = Arr.empty<B>()
-    return Effect.map(
-      Effect.whileLoop({
-        while: () => index < arr.length,
-        body: () => f(state, arr[index]),
-        step([newState, values]) {
-          state = newState
-          index++
-          // eslint-disable-next-line no-restricted-syntax
-          acc.push(...values)
-        }
-      }),
-      () => [
-        state,
-        Arr.isNonEmptyArray(acc) ? Arr.of(acc) : Arr.empty<Arr.NonEmptyReadonlyArray<B>>()
-      ]
-    )
-  })))
+  self.channel.pipe(
+    Channel.flattenArray,
+    Channel.mapAccum(initial, (state, a) =>
+      Effect.map(
+        f(state, a),
+        ([state, values]) => [
+          state,
+          Arr.isNonEmptyReadonlyArray(values) ? Arr.of(values) : Arr.empty<Arr.NonEmptyReadonlyArray<B>>()
+        ]
+      )),
+    fromChannel
+  ))
 
 /**
  * @since 2.0.0
@@ -1964,7 +1956,7 @@ export const scan: {
 ): Stream<S, E, R> =>
   suspend(() => {
     let isFirst = true
-    return fromChannel(Channel.mapAccum(self.channel, initial, (state, arr) => {
+    return fromChannel(Channel.mapAccum(self.channel, constant(initial), (state, arr) => {
       const states = Arr.empty<S>() as Arr.NonEmptyArray<S>
       if (isFirst) {
         isFirst = false
@@ -1997,28 +1989,12 @@ export const scanEffect: {
   initial: S,
   f: (s: S, a: A) => Effect.Effect<S, E2, R2>
 ): Stream<S, E | E2, R | R2> =>
-  suspend(() => {
-    let isFirst = true
-    return fromChannel(Channel.mapAccumEffect(self.channel, initial, (state, arr) => {
-      const states = Arr.empty<S>() as Arr.NonEmptyArray<S>
-      if (isFirst) {
-        isFirst = false
-        states.push(state)
-      }
-      const index = 0
-      return Effect.map(
-        Effect.whileLoop({
-          while: () => index < arr.length,
-          body: () => f(state, arr[index]),
-          step(newState) {
-            state = newState
-            states.push(state)
-          }
-        }),
-        () => [state, Arr.of(states)]
-      )
-    }))
-  }))
+  self.channel.pipe(
+    Channel.flattenArray,
+    Channel.scanEffect(initial, f),
+    Channel.map(Arr.of),
+    fromChannel
+  ))
 
 /**
  * Pipes all the values from this stream through the provided channel.

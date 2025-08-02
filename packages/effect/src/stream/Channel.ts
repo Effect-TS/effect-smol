@@ -2498,42 +2498,14 @@ export const filterArray: {
  * @category Sequencing
  */
 export const mapAccum: {
-  <S, OutElem, B>(initial: S, f: (s: S, a: Types.NoInfer<OutElem>) => readonly [state: S, values: ReadonlyArray<B>]): <
-    OutErr,
-    OutDone,
-    InElem,
-    InErr,
-    InDone,
-    Env
-  >(self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>) => Channel<
-    B,
-    OutErr,
-    OutDone,
-    InElem,
-    InErr,
-    InDone,
-    Env
-  >
-  <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, S, B>(
-    self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
-    initial: S,
-    f: (s: S, a: Types.NoInfer<OutElem>) => readonly [state: S, values: ReadonlyArray<B>]
-  ): Channel<B, OutErr, OutDone, InElem, InErr, InDone, Env>
-} = dual(3, <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, S, B>(
-  self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
-  initial: S,
-  f: (s: S, a: Types.NoInfer<OutElem>) => readonly [state: S, values: ReadonlyArray<B>]
-): Channel<B, OutErr, OutDone, InElem, InErr, InDone, Env> =>
-  mapAccumEffect(self, initial, (s, a) => Effect.succeed(f(s, a))))
-
-/**
- * @since 2.0.0
- * @category Sequencing
- */
-export const mapAccumEffect: {
-  <S, OutElem, B, E, R>(
-    initial: S,
-    f: (s: S, a: Types.NoInfer<OutElem>) => Effect.Effect<readonly [state: S, values: ReadonlyArray<B>], E, R>
+  <S, OutElem, B, E = never, R = never>(
+    initial: LazyArg<S>,
+    f: (
+      s: S,
+      a: Types.NoInfer<OutElem>
+    ) =>
+      | Effect.Effect<readonly [state: S, values: ReadonlyArray<B>], E, R>
+      | readonly [state: S, values: ReadonlyArray<B>]
   ): <
     OutErr,
     OutDone,
@@ -2550,25 +2522,38 @@ export const mapAccumEffect: {
     InDone,
     Env | R
   >
-  <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, S, B, E, R>(
+  <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, S, B, E = never, R = never>(
     self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
-    initial: S,
-    f: (s: S, a: Types.NoInfer<OutElem>) => Effect.Effect<readonly [state: S, values: ReadonlyArray<B>], E, R>
+    initial: LazyArg<S>,
+    f: (
+      s: S,
+      a: Types.NoInfer<OutElem>
+    ) =>
+      | Effect.Effect<readonly [state: S, values: ReadonlyArray<B>], E, R>
+      | readonly [state: S, values: ReadonlyArray<B>]
   ): Channel<B, OutErr | E, OutDone, InElem, InErr, InDone, Env | R>
-} = dual(3, <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, S, B, E, R>(
+} = dual(3, <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, S, B, E = never, R = never>(
   self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
-  initial: S,
-  f: (s: S, a: Types.NoInfer<OutElem>) => Effect.Effect<readonly [state: S, values: ReadonlyArray<B>], E, R>
+  initial: LazyArg<S>,
+  f: (
+    s: S,
+    a: Types.NoInfer<OutElem>
+  ) =>
+    | Effect.Effect<readonly [state: S, values: ReadonlyArray<B>], E, R>
+    | readonly [state: S, values: ReadonlyArray<B>]
 ): Channel<B, OutErr | E, OutDone, InElem, InErr, InDone, Env | R> =>
   fromTransform((upstream, scope) =>
     Effect.map(toTransform(self)(upstream, scope), (pull) => {
-      let state = initial
+      let state = initial()
       let current: ReadonlyArray<B> | undefined
       let index = 0
       const pump = Effect.suspend(function loop(): Pull.Pull<B, OutErr | E, OutDone, R> {
         if (current === undefined) {
           return Effect.flatMap(
-            Effect.flatMap(pull, (a) => f(state, a)),
+            Effect.flatMap(pull, (a): Effect.Effect<readonly [state: S, values: ReadonlyArray<B>]> => {
+              const b = f(state, a)
+              return Arr.isArray(b) ? Effect.succeed(b as any) : b as any
+            }),
             ([newState, values]) => {
               state = newState
               if (values.length === 0) {
@@ -2579,12 +2564,12 @@ export const mapAccumEffect: {
             }
           )
         }
+        const next = current[index++]
         if (index >= current.length) {
           current = undefined
           index = 0
-          return loop()
         }
-        return Effect.succeed(current[index++])
+        return Effect.succeed(next)
       })
       return pump
     })
