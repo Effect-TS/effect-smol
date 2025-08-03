@@ -1949,7 +1949,7 @@ export const rechunk: {
 
       return Effect.suspend(function loop(): Pull.Pull<Arr.NonEmptyReadonlyArray<A>, E, void, R> {
         if (done) return Pull.haltVoid
-        if (current === undefined) {
+        else if (current === undefined) {
           return Effect.flatMap(pull, (arr) => {
             if (chunk.length === 0 && arr.length === target) {
               return Effect.succeed(arr)
@@ -1962,8 +1962,8 @@ export const rechunk: {
             return loop()
           })
         }
-        for (; index < current.length; index++) {
-          chunk.push(current[index])
+        for (; index < current.length;) {
+          chunk.push(current[index++])
           if (chunk.length === target) {
             const result = chunk
             chunk = [] as any
@@ -1976,8 +1976,10 @@ export const rechunk: {
       }).pipe(
         Pull.catchHalt(() => {
           if (chunk.length === 0) return Pull.haltVoid
+          const result = chunk
           done = true
-          return Effect.succeed(chunk)
+          chunk = [] as any
+          return Effect.succeed(result)
         })
       )
     }))

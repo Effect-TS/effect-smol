@@ -6,11 +6,11 @@ import * as Cause from "effect/Cause"
 import { isObject } from "effect/data/Predicate"
 import * as Effect from "effect/Effect"
 import * as Exit from "effect/Exit"
-import * as Fiber from "effect/Fiber"
 import { flow, pipe } from "effect/Function"
 import * as Layer from "effect/Layer"
 import * as Schedule from "effect/Schedule"
 import * as Schema from "effect/schema/Schema"
+import * as ToArbitrary from "effect/schema/ToArbitrary"
 import * as Scope from "effect/Scope"
 import * as fc from "effect/testing/FastCheck"
 import * as TestClock from "effect/testing/TestClock"
@@ -19,33 +19,22 @@ import * as Duration from "effect/time/Duration"
 import * as V from "vitest"
 import type * as Vitest from "../index.ts"
 
-const runPromise = (ctx?: Vitest.TestContext) =>
-  Effect.fnUntraced(function*<E, A>(effect: Effect.Effect<A, E>) {
-    const exitFiber = yield* Effect.fork(Effect.exit(effect))
-
-    ctx?.onTestFinished(() =>
-      Fiber.interrupt(exitFiber).pipe(
-        Effect.asVoid,
-        Effect.runPromise
-      )
-    )
-
-    const exit = yield* Fiber.join(exitFiber)
-    if (Exit.isSuccess(exit)) {
-      return () => exit.value
-    } else {
-      const errors = Cause.prettyErrors(exit.cause)
-      for (let i = 1; i < errors.length; i++) {
-        yield* Effect.logError(errors[i])
-      }
-      return () => {
-        throw errors[0]
-      }
+const runPromise: <E, A>(
+  _: Effect.Effect<A, E, never>,
+  ctx?: V.TestContext | undefined
+) => Promise<A> = Effect.fnUntraced(function*<E, A>(effect: Effect.Effect<A, E>, _ctx?: Vitest.TestContext) {
+  const exit = yield* Effect.exit(effect)
+  if (Exit.isFailure(exit)) {
+    const errors = Cause.prettyErrors(exit.cause)
+    for (let i = 1; i < errors.length; i++) {
+      yield* Effect.logError(errors[i])
     }
-  }, (effect) => Effect.runPromise(effect, { signal: ctx?.signal }).then((f) => f()))
+  }
+  return yield* exit
+}, (effect, _, ctx) => Effect.runPromise(effect, { signal: ctx?.signal }))
 
 /** @internal */
-const runTest = (ctx?: Vitest.TestContext) => <E, A>(effect: Effect.Effect<A, E>) => runPromise(ctx)(effect)
+const runTest = (ctx?: Vitest.TestContext) => <E, A>(effect: Effect.Effect<A, E>) => runPromise(effect, ctx)
 
 /** @internal */
 export type TestContext = TestConsole.TestConsole | TestClock.TestClock
@@ -100,9 +89,9 @@ const makeTester = <R>(
     if (Array.isArray(arbitraries)) {
       const arbs = arbitraries.map((arbitrary) => {
         if (Schema.isSchema(arbitrary)) {
-          throw new Error("Schemas are not supported yet")
+          return ToArbitrary.make(arbitrary)
         }
-        return arbitrary
+        return arbitrary as fc.Arbitrary<any>
       })
       return it(
         name,
@@ -121,7 +110,7 @@ const makeTester = <R>(
       Object.keys(arbitraries).reduce(function(result, key) {
         const arb: any = arbitraries[key]
         if (Schema.isSchema(arb)) {
-          throw new Error("Schemas are not supported yet")
+          result[key] = ToArbitrary.make(arb)
         }
         result[key] = arb
         return result
@@ -240,11 +229,11 @@ export const layer = <R, E>(
 
   if (args.length === 1) {
     V.beforeAll(
-      () => runPromise()(Effect.asVoid(contextEffect)),
+      () => runPromise(Effect.asVoid(contextEffect)),
       options?.timeout ? Duration.toMillis(options.timeout) : undefined
     )
     V.afterAll(
-      () => runPromise()(Scope.close(scope, Exit.void)),
+      () => runPromise(Scope.close(scope, Exit.void)),
       options?.timeout ? Duration.toMillis(options.timeout) : undefined
     )
     return args[0](makeIt(V.it))
@@ -252,11 +241,11 @@ export const layer = <R, E>(
 
   return V.describe(args[0], () => {
     V.beforeAll(
-      () => runPromise()(Effect.asVoid(contextEffect)),
+      () => runPromise(Effect.asVoid(contextEffect)),
       options?.timeout ? Duration.toMillis(options.timeout) : undefined
     )
     V.afterAll(
-      () => runPromise()(Scope.close(scope, Exit.void)),
+      () => runPromise(Scope.close(scope, Exit.void)),
       options?.timeout ? Duration.toMillis(options.timeout) : undefined
     )
     return args[1](makeIt(V.it))
