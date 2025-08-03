@@ -4,6 +4,9 @@
 
 import * as Data from "../data/Data.ts"
 import * as Effect from "../Effect.ts"
+import { dual } from "../Function.ts"
+import type { Pipeable } from "../interfaces/Pipeable.ts"
+import { PipeInspectableProto } from "../internal/core.ts"
 import * as Layer from "../Layer.ts"
 import * as FileSystem from "../platform/FileSystem.ts"
 import type { PlatformError } from "../platform/PlatformError.ts"
@@ -61,8 +64,9 @@ export class GetError extends Data.TaggedError("GetError")<{
 
 /**
  * @since 4.0.0
+ * @category Models
  */
-export interface ConfigProvider {
+export interface ConfigProvider extends Pipeable {
   readonly get: (path: Path) => Effect.Effect<Node | undefined, GetError>
 }
 
@@ -75,6 +79,69 @@ export const ConfigProvider: ServiceMap.Reference<ConfigProvider> = ServiceMap.R
   { defaultValue: () => fromEnv() }
 )
 
+const Proto = {
+  ...PipeInspectableProto,
+  toJSON(this: ConfigProvider) {
+    return {
+      _id: "ConfigProvider"
+    }
+  }
+}
+
+/**
+ * @since 4.0.0
+ * @category Constructors
+ */
+export function make(get: (path: Path) => Effect.Effect<Node | undefined, GetError>): ConfigProvider {
+  const self = Object.create(Proto)
+  self.get = get
+  return self
+}
+
+/**
+ * @since 4.0.0
+ * @category Combinators
+ */
+export const orElse: {
+  (that: ConfigProvider): (self: ConfigProvider) => ConfigProvider
+  (self: ConfigProvider, that: ConfigProvider): ConfigProvider
+} = dual(2, (self: ConfigProvider, that: ConfigProvider): ConfigProvider => {
+  return make((path) => Effect.flatMap(self.get(path), (node) => node ? Effect.succeed(node) : that.get(path)))
+})
+
+/**
+ * @since 4.0.0
+ * @category Layers
+ */
+export const layer = <E = never, R = never>(
+  self: ConfigProvider | Effect.Effect<ConfigProvider, E, R>
+): Layer.Layer<never, E, Exclude<R, Scope>> =>
+  Effect.isEffect(self) ? Layer.effect(ConfigProvider)(self) : Layer.succeed(ConfigProvider)(self)
+
+/**
+ * Create a Layer that adds a fallback ConfigProvider, which will be used if the
+ * current provider does not have a value for the requested path.
+ *
+ * If `asPrimary` is set to `true`, the new provider will be used as the
+ * primary provider, meaning it will be used first when looking up values.
+ *
+ * @since 4.0.0
+ * @category Layers
+ */
+export const layerAdd = <E = never, R = never>(
+  self: ConfigProvider | Effect.Effect<ConfigProvider, E, R>,
+  options?: {
+    readonly asPrimary?: boolean | undefined
+  } | undefined
+): Layer.Layer<never, E, Exclude<R, Scope>> =>
+  Layer.effect(ConfigProvider)(
+    Effect.gen(function*() {
+      const current = yield* ConfigProvider
+      const configProvider = Effect.isEffect(self) ? yield* self : self
+      return options?.asPrimary ? orElse(configProvider, current) : orElse(current, configProvider)
+    })
+  )
+
 // -----------------------------------------------------------------------------
 // fromStringLeafJson
 // -----------------------------------------------------------------------------
@@ -83,12 +150,10 @@ export const ConfigProvider: ServiceMap.Reference<ConfigProvider> = ServiceMap.R
  * @since 4.0.0
  */
 export function fromStringLeafJson(root: StringLeafJson): ConfigProvider {
-  return {
-    get(path: Path): Effect.Effect<Node | undefined, GetError> {
-      const resolved = resolvePath(root, path)
-      return Effect.succeed(resolved === undefined ? undefined : describeNode(resolved))
-    }
-  }
+  return make((path) => {
+    const resolved = resolvePath(root, path)
+    return Effect.succeed(resolved === undefined ? undefined : describeNode(resolved))
+  })
 }
 
 function resolvePath(input: StringLeafJson, path: Path): StringLeafJson | undefined {
@@ -238,95 +303,93 @@ export function fromEnv(options?: {
 
   const parser = options?.parser ?? defaultParser
 
-  return {
-    get(path: Path): Effect.Effect<Node | undefined, GetError> {
-      if (!env) return Effect.succeed(undefined)
+  return make((path) => {
+    if (!env) return Effect.succeed(undefined)
 
-      const prefix = path.map(String)
-      const prefixLen = prefix.length
+    const prefix = path.map(String)
+    const prefixLen = prefix.length
 
-      let exactValue: string | undefined
-      const childTokens = new Set<string>()
+    let exactValue: string | undefined
+    const childTokens = new Set<string>()
 
-      for (const fullKey of Object.keys(env)) {
-        const val = env[fullKey]
-        if (typeof val !== "string") continue
+    for (const fullKey of Object.keys(env)) {
+      const val = env[fullKey]
+      if (typeof val !== "string") continue
 
-        const tokens = parser.splitKey(fullKey)
+      const tokens = parser.splitKey(fullKey)
 
-        // prefix match
-        let matches = true
-        for (let i = 0; i < prefixLen; i++) {
-          if (tokens[i] !== prefix[i]) {
-            matches = false
-            break
-          }
-        }
-        if (!matches) continue
-
-        if (tokens.length === prefixLen) {
-          exactValue = val
-        } else {
-          childTokens.add(tokens[prefixLen])
+      // prefix match
+      let matches = true
+      for (let i = 0; i < prefixLen; i++) {
+        if (tokens[i] !== prefix[i]) {
+          matches = false
+          break
         }
       }
+      if (!matches) continue
 
-      // 1) No structural children -> inspect exact value via leafParser
-      if (childTokens.size === 0) {
-        if (exactValue === undefined) {
-          // Child lookup of an inline container (parent fallback)
-          if (prefixLen > 0) {
-            const parentKey = prefix.slice(0, -1)
-            const childToken = prefix[prefixLen - 1]!
-            const parentExact = env[parser.joinTokens(parentKey)]
-            if (typeof parentExact === "string") {
-              const parsed = parser.inlineParser(parentExact)
-              if (parsed._tag === "arrayInline") {
-                const idx = Number(childToken)
-                if (Number.isInteger(idx) && idx >= 0 && idx < parsed.items.length) {
-                  return Effect.succeed(leaf(parsed.items[idx]))
-                }
-              } else if (parsed._tag === "objectInline") {
-                if (
-                  typeof childToken === "string" &&
-                  Object.prototype.hasOwnProperty.call(parsed.entries, childToken)
-                ) {
-                  return Effect.succeed(leaf(parsed.entries[childToken]))
-                }
+      if (tokens.length === prefixLen) {
+        exactValue = val
+      } else {
+        childTokens.add(tokens[prefixLen])
+      }
+    }
+
+    // 1) No structural children -> inspect exact value via leafParser
+    if (childTokens.size === 0) {
+      if (exactValue === undefined) {
+        // Child lookup of an inline container (parent fallback)
+        if (prefixLen > 0) {
+          const parentKey = prefix.slice(0, -1)
+          const childToken = prefix[prefixLen - 1]!
+          const parentExact = env[parser.joinTokens(parentKey)]
+          if (typeof parentExact === "string") {
+            const parsed = parser.inlineParser(parentExact)
+            if (parsed._tag === "arrayInline") {
+              const idx = Number(childToken)
+              if (Number.isInteger(idx) && idx >= 0 && idx < parsed.items.length) {
+                return Effect.succeed(leaf(parsed.items[idx]))
+              }
+            } else if (parsed._tag === "objectInline") {
+              if (
+                typeof childToken === "string" &&
+                Object.prototype.hasOwnProperty.call(parsed.entries, childToken)
+              ) {
+                return Effect.succeed(leaf(parsed.entries[childToken]))
               }
             }
           }
-          return Effect.succeed(undefined)
         }
-
-        // Exact value present at the prefix
-        const parsed = parser.inlineParser(exactValue)
-        switch (parsed._tag) {
-          case "leaf":
-            return Effect.succeed(leaf(parsed.value))
-          case "arrayInline":
-            return Effect.succeed(array(parsed.items.length))
-          case "objectInline":
-            return Effect.succeed(object(Object.keys(parsed.entries)))
-        }
+        return Effect.succeed(undefined)
       }
 
-      // 2) Structural children exist -> infer array vs object
-      let allNumeric = true
-      let maxIndex = -1
-      for (const t of childTokens) {
-        const n = Number(t)
-        if (!Number.isInteger(n) || n < 0 || String(n) !== t) {
-          allNumeric = false
-          break
-        }
-        if (n > maxIndex) maxIndex = n
+      // Exact value present at the prefix
+      const parsed = parser.inlineParser(exactValue)
+      switch (parsed._tag) {
+        case "leaf":
+          return Effect.succeed(leaf(parsed.value))
+        case "arrayInline":
+          return Effect.succeed(array(parsed.items.length))
+        case "objectInline":
+          return Effect.succeed(object(Object.keys(parsed.entries)))
       }
-
-      if (allNumeric) return Effect.succeed(array(maxIndex + 1))
-      return Effect.succeed(object(Array.from(childTokens)))
     }
-  }
+
+    // 2) Structural children exist -> infer array vs object
+    let allNumeric = true
+    let maxIndex = -1
+    for (const t of childTokens) {
+      const n = Number(t)
+      if (!Number.isInteger(n) || n < 0 || String(n) !== t) {
+        allNumeric = false
+        break
+      }
+      if (n > maxIndex) maxIndex = n
+    }
+
+    if (allNumeric) return Effect.succeed(array(maxIndex + 1))
+    return Effect.succeed(object(Array.from(childTokens)))
+  })
 }
 
 // -----------------------------------------------------------------------------
@@ -484,16 +547,3 @@ export const dotEnv: (options?: {
     return fromEnv({ environment: parseDotEnv(content) })
   }
 )
-
-// -----------------------------------------------------------------------------
-// API
-// -----------------------------------------------------------------------------
-
-/**
- * @since 4.0.0
- * @category Layers
- */
-export const layer = <E = never, R = never>(
-  self: ConfigProvider | Effect.Effect<ConfigProvider, E, R>
-): Layer.Layer<never, E, Exclude<R, Scope>> =>
-  Effect.isEffect(self) ? Layer.effect(ConfigProvider)(self) : Layer.succeed(ConfigProvider)(self)

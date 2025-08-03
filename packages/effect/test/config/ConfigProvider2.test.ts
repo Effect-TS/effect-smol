@@ -24,6 +24,22 @@ async function assertPathSuccess(
 // }
 
 describe("ConfigProvider2", () => {
+  it("orElse", async () => {
+    const provider1 = ConfigProvider2.fromEnv({
+      environment: {
+        "A": "value1"
+      }
+    })
+    const provider2 = ConfigProvider2.fromEnv({
+      environment: {
+        "B": "value2"
+      }
+    })
+    const provider = provider1.pipe(ConfigProvider2.orElse(provider2))
+    await assertPathSuccess(provider, ["A"], ConfigProvider2.leaf("value1"))
+    await assertPathSuccess(provider, ["B"], ConfigProvider2.leaf("value2"))
+  })
+
   describe("fromEnv", () => {
     it("should support nested keys", async () => {
       const provider = ConfigProvider2.fromEnv({
