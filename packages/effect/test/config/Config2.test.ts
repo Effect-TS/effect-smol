@@ -1,4 +1,5 @@
 import { describe, it } from "@effect/vitest"
+import { deepStrictEqual } from "@effect/vitest/utils"
 import { Effect } from "effect"
 import { Config2, ConfigProvider2 } from "effect/config"
 import { Option } from "effect/data"
@@ -22,6 +23,35 @@ async function assertFailure<T>(config: Config2.Config<T>, provider: ConfigProvi
 }
 
 describe("Config2", () => {
+  it("can be yielded", () => {
+    const provider = ConfigProvider2.fromEnv({ environment: { STRING: "value" } })
+    const result = Effect.runSync(Effect.provide(
+      Config2.schema(Schema.Struct({ STRING: Schema.String })).asEffect(),
+      ConfigProvider2.layer(provider)
+    ))
+    deepStrictEqual(result, { STRING: "value" })
+  })
+
+  describe("fromEnv", () => {
+    describe("Struct", () => {
+      it("required properties", async () => {
+        const schema = Schema.Struct({ a: Schema.Finite })
+        const config = Config2.schema(schema)
+
+        await assertSuccess(config, ConfigProvider2.fromStringLeafJson({ a: "1" }), { a: 1 })
+      })
+
+      it("Array(Finite)", async () => {
+        const schema = Schema.Struct({ a: Schema.Array(Schema.Finite) })
+        const config = Config2.schema(schema)
+
+        await assertSuccess(config, ConfigProvider2.fromStringLeafJson({ a: ["1"] }), { a: [1] })
+        // ensure array
+        await assertSuccess(config, ConfigProvider2.fromStringLeafJson({ a: "1" }), { a: [1] })
+      })
+    })
+  })
+
   describe("fromStringLeafJson", () => {
     it("String", async () => {
       const schema = Schema.String
@@ -97,26 +127,39 @@ describe("Config2", () => {
       )
     })
 
-    it("Tuple", async () => {
-      const schema = Schema.Tuple([Schema.String, Schema.FiniteFromString])
-      const config = Config2.schema(schema)
+    describe("Tuple", () => {
+      it("ensure array", async () => {
+        const schema = Schema.Tuple([Schema.Finite])
+        const config = Config2.schema(schema)
 
-      await assertSuccess(config, ConfigProvider2.fromStringLeafJson(["1", "2"]), ["1", 2])
-      await assertFailure(
-        config,
-        ConfigProvider2.fromStringLeafJson(["1", "value"]),
-        `readonly [string, number]
+        await assertSuccess(config, ConfigProvider2.fromStringLeafJson(["1"]), [1])
+        await assertSuccess(config, ConfigProvider2.fromStringLeafJson("1"), [1])
+      })
+
+      it("required elements", async () => {
+        const schema = Schema.Tuple([Schema.String, Schema.FiniteFromString])
+        const config = Config2.schema(schema)
+
+        await assertSuccess(config, ConfigProvider2.fromStringLeafJson(["1", "2"]), ["1", 2])
+        await assertFailure(
+          config,
+          ConfigProvider2.fromStringLeafJson(["1", "value"]),
+          `readonly [string, number]
 └─ [1]
    └─ number & finite
       └─ finite
          └─ Invalid data NaN`
-      )
+        )
+      })
     })
 
     it("Array", async () => {
       const schema = Schema.Array(Schema.FiniteFromString)
       const config = Config2.schema(schema)
 
+      await assertSuccess(config, ConfigProvider2.fromStringLeafJson(["1"]), [1])
+      // ensure array
+      await assertSuccess(config, ConfigProvider2.fromStringLeafJson("1"), [1])
       await assertSuccess(config, ConfigProvider2.fromStringLeafJson(["1", "2"]), [1, 2])
       await assertFailure(
         config,

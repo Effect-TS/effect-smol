@@ -2,6 +2,7 @@
  * @since 4.0.0
  */
 
+import { hasProperty } from "../data/Predicate.ts"
 import * as Effect from "../Effect.ts"
 import type { Pipeable } from "../interfaces/Pipeable.ts"
 import { PipeInspectableProto, YieldableProto } from "../internal/core.ts"
@@ -14,9 +15,65 @@ import * as ConfigProvider from "./ConfigProvider2.ts"
 
 /**
  * @since 4.0.0
+ * @category symbols
+ */
+export const TypeId: TypeId = "~effect/config/Config"
+
+/**
+ * @since 4.0.0
+ * @category symbols
+ */
+export type TypeId = "~effect/config/Config"
+
+/**
+ * A type guard that checks if a value is a Config instance.
+ *
+ * This function is useful for runtime type checking to determine if an unknown value
+ * is a Config before calling Config-specific methods or properties.
+ *
+ * @since 4.0.0
+ * @category Guards
+ */
+export const isConfig = (u: unknown): u is Config<unknown> => hasProperty(u, TypeId)
+
+/**
+ * @since 4.0.0
  */
 export interface Config<out T> extends Pipeable, Effect.Yieldable<Config<T>, T, GetError | Schema.SchemaError> {
+  readonly [TypeId]: TypeId
   readonly parse: (provider: ConfigProvider.ConfigProvider) => Effect.Effect<T, GetError | Schema.SchemaError>
+}
+
+const Proto = {
+  ...PipeInspectableProto,
+  ...YieldableProto,
+  [TypeId]: TypeId,
+  asEffect(this: Config<unknown>) {
+    return Effect.flatMap(ConfigProvider.ConfigProvider.asEffect(), (provider) => this.parse(provider))
+  },
+  toJSON(this: Config<unknown>) {
+    return {
+      _id: "Config"
+    }
+  }
+}
+
+/**
+ * Constructs a low-level Config from a parsing function.
+ *
+ * This is the primitive constructor used internally by other Config constructors
+ * to create custom configuration parsers. It provides direct access to the
+ * configuration provider and allows for fine-grained control over parsing behavior.
+ *
+ * @category Constructors
+ * @since 4.0.0
+ */
+export function make<T>(
+  parse: (provider: ConfigProvider.ConfigProvider) => Effect.Effect<T, GetError | Schema.SchemaError>
+): Config<T> {
+  const self = Object.create(Proto)
+  self.parse = parse
+  return self
 }
 
 const dump: (
@@ -83,7 +140,15 @@ const go: (
         return out
       }
       case "TupleType": {
-        if (ast.rest.length > 0) return yield* dump(provider, path)
+        if (ast.rest.length > 0) {
+          const out = yield* dump(provider, path)
+          // ensure array
+          if (typeof out === "string") return [out]
+          return out
+        }
+        const node = yield* provider.get(path)
+        // ensure array
+        if (node && node._tag === "leaf") return [node.value]
         const out: Array<StringLeafJson> = []
         for (let i = 0; i < ast.elements.length; i++) {
           const value = yield* go(ast.elements[i], provider, [...path, i])
@@ -104,41 +169,6 @@ const go: (
     }
   }
 )
-
-/**
- * @since 4.0.0
- */
-export const TypeId: TypeId = "~effect/config/Config"
-
-/**
- * @since 4.0.0
- */
-export type TypeId = "~effect/config/Config"
-
-const Proto = {
-  ...PipeInspectableProto,
-  ...YieldableProto,
-  [TypeId]: TypeId,
-  asEffect(this: Config<unknown>) {
-    return Effect.flatMap(ConfigProvider.ConfigProvider.asEffect(), (provider) => this.parse(provider))
-  },
-  toJSON(this: Config<unknown>) {
-    return {
-      _id: "Config"
-    }
-  }
-}
-
-/**
- * @since 4.0.0
- */
-export function make<T>(
-  parse: (provider: ConfigProvider.ConfigProvider) => Effect.Effect<T, GetError | Schema.SchemaError>
-): Config<T> {
-  const self = Object.create(Proto)
-  self.parse = parse
-  return self
-}
 
 /**
  * @since 4.0.0
