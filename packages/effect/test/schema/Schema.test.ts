@@ -3334,20 +3334,20 @@ describe("Schema", () => {
       )
       assertSource(
         [Schema.Literals(["a", "b"]), Schema.String, Schema.Literals(["d", "e"])],
-        "^(a|b)([\\s\\S]*)(d|e)$"
+        "^(a|b)([\\s\\S]*?)(d|e)$"
       )
-      assertSource(["a", Schema.String], "^(a)([\\s\\S]*)$")
-      assertSource(["a", Schema.String, "b"], "^(a)([\\s\\S]*)(b)$")
+      assertSource(["a", Schema.String], "^(a)([\\s\\S]*?)$")
+      assertSource(["a", Schema.String, "b"], "^(a)([\\s\\S]*?)(b)$")
       assertSource(
         ["a", Schema.String, "b", Schema.Number],
-        "^(a)([\\s\\S]*)(b)([+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?)$"
+        "^(a)([\\s\\S]*?)(b)([+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?)$"
       )
       assertSource(["a", Schema.Number], "^(a)([+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?)$")
-      assertSource([Schema.String, "a"], "^([\\s\\S]*)(a)$")
+      assertSource([Schema.String, "a"], "^([\\s\\S]*?)(a)$")
       assertSource([Schema.Number, "a"], "^([+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?)(a)$")
       assertSource(
         [Schema.Union([Schema.String, Schema.Literal(1)]), Schema.Union([Schema.Number, Schema.Literal("true")])],
-        "^([\\s\\S]*|1)([+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?|true)$"
+        "^([\\s\\S]*?|1)([+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?|true)$"
       )
       assertSource(
         [Schema.Union([Schema.Literals(["a", "b"]), Schema.Literals([1, 2])])],
@@ -3355,7 +3355,7 @@ describe("Schema", () => {
       )
       assertSource(
         ["c", Schema.Union([Schema.TemplateLiteral(["a", Schema.String, "b"]), Schema.Literal("e")]), "d"],
-        "^(c)(a[\\s\\S]*b|e)(d)$"
+        "^(c)(a[\\s\\S]*?b|e)(d)$"
       )
       assertSource(
         ["<", Schema.TemplateLiteral(["h", Schema.Literals([1, 2])]), ">"],
@@ -3783,6 +3783,60 @@ describe("Schema", () => {
         `readonly ["a", " ", "b"]
 └─ [0]
    └─ Missing key`
+      )
+    })
+
+    it(`Int + "a"`, async () => {
+      const schema = Schema.TemplateLiteralParser([Schema.Int, "a"])
+
+      await assertions.decoding.succeed(schema, "1a", { expected: [1, "a"] })
+      await assertions.decoding.fail(
+        schema,
+        "1.1a",
+        `readonly [number, "a"]
+└─ [0]
+   └─ number & int
+      └─ int
+         └─ Invalid data 1.1`
+      )
+
+      await assertions.encoding.succeed(schema, [1, "a"], { expected: "1a" })
+      await assertions.encoding.fail(
+        schema,
+        [1.1, "a"],
+        `readonly [string, "a"]
+└─ [0]
+   └─ Encoding failure
+      └─ number & int
+         └─ int
+            └─ Invalid data 1.1`
+      )
+    })
+
+    it(`NumberFromString + "a" + NonEmptyString`, async () => {
+      const schema = Schema.TemplateLiteralParser([Schema.FiniteFromString, "a", Schema.NonEmptyString])
+
+      await assertions.decoding.succeed(schema, "100ab", { expected: [100, "a", "b"] })
+      await assertions.decoding.succeed(schema, "100ab23a", { expected: [100, "a", "b23a"] })
+      await assertions.decoding.fail(
+        schema,
+        "-ab",
+        `readonly [number, "a", string]
+└─ [0]
+   └─ number & finite
+      └─ finite
+         └─ Invalid data NaN`
+      )
+
+      await assertions.encoding.succeed(schema, [100, "a", "b"], { expected: "100ab" })
+      await assertions.encoding.fail(
+        schema,
+        [100, "a", ""],
+        `readonly [string, "a", string]
+└─ [2]
+   └─ string & minLength(1)
+      └─ minLength(1)
+         └─ Invalid data ""`
       )
     })
 

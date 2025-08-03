@@ -2257,7 +2257,7 @@ export const getTemplateLiteralRegExp = memoize((ast: TemplateLiteral): RegExp =
 /**
  * any string, including newlines
  */
-const STRING_KEYWORD_PATTERN = "[\\s\\S]*"
+const STRING_KEYWORD_PATTERN = "[\\s\\S]*?"
 /**
  * floating point or integer, with optional exponent, no leading “+”
  */

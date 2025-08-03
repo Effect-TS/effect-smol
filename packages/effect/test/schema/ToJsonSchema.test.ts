@@ -661,7 +661,7 @@ describe("ToJsonSchema", () => {
         const schema = Schema.TemplateLiteral(["a", Schema.String])
         await assertDraft7(schema, {
           type: "string",
-          pattern: "^(a)([\\s\\S]*)$"
+          pattern: "^(a)([\\s\\S]*?)$"
         })
       })
 
@@ -675,7 +675,7 @@ describe("ToJsonSchema", () => {
         })
         await assertDraft7(schema, {
           type: "string",
-          pattern: "^(a)([\\s\\S]*)$",
+          pattern: "^(a)([\\s\\S]*?)$",
           title: "title",
           description: "description",
           documentation: "documentation",
@@ -905,7 +905,7 @@ describe("ToJsonSchema", () => {
           properties: {},
           required: [],
           patternProperties: {
-            "^(a)([\\s\\S]*)$": {
+            "^(a)([\\s\\S]*?)$": {
               type: "number"
             }
           }
