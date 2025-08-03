@@ -33,21 +33,36 @@ describe("Config2", () => {
   })
 
   describe("fromEnv", () => {
+    it("example", async () => {
+      const schema = Schema.Struct({
+        API_KEY: Schema.String,
+        PORT: Schema.Int,
+        LOCALHOST: Schema.URL
+      })
+      const config = Config2.schema(schema)
+
+      await assertSuccess(
+        config,
+        ConfigProvider2.fromEnv({ environment: { API_KEY: "abc123", PORT: "1", LOCALHOST: "https://example.com" } }),
+        { API_KEY: "abc123", PORT: 1, LOCALHOST: new URL("https://example.com") }
+      )
+    })
+
     describe("Struct", () => {
       it("required properties", async () => {
         const schema = Schema.Struct({ a: Schema.Finite })
         const config = Config2.schema(schema)
 
-        await assertSuccess(config, ConfigProvider2.fromStringLeafJson({ a: "1" }), { a: 1 })
+        await assertSuccess(config, ConfigProvider2.fromEnv({ environment: { a: "1" } }), { a: 1 })
       })
 
       it("Array(Finite)", async () => {
         const schema = Schema.Struct({ a: Schema.Array(Schema.Finite) })
         const config = Config2.schema(schema)
 
-        await assertSuccess(config, ConfigProvider2.fromStringLeafJson({ a: ["1"] }), { a: [1] })
+        await assertSuccess(config, ConfigProvider2.fromEnv({ environment: { a: "1" } }), { a: [1] })
         // ensure array
-        await assertSuccess(config, ConfigProvider2.fromStringLeafJson({ a: "1" }), { a: [1] })
+        await assertSuccess(config, ConfigProvider2.fromEnv({ environment: { a: "1" } }), { a: [1] })
       })
     })
   })
