@@ -10,6 +10,7 @@ import { PipeInspectableProto } from "../internal/core.ts"
 import * as Layer from "../Layer.ts"
 import * as FileSystem from "../platform/FileSystem.ts"
 import type { PlatformError } from "../platform/PlatformError.ts"
+import * as Str from "../primitives/String.ts"
 import type { Scope } from "../Scope.ts"
 import * as ServiceMap from "../ServiceMap.ts"
 
@@ -105,9 +106,28 @@ export function make(get: (path: Path) => Effect.Effect<Node | undefined, GetErr
 export const orElse: {
   (that: ConfigProvider): (self: ConfigProvider) => ConfigProvider
   (self: ConfigProvider, that: ConfigProvider): ConfigProvider
-} = dual(2, (self: ConfigProvider, that: ConfigProvider): ConfigProvider => {
-  return make((path) => Effect.flatMap(self.get(path), (node) => node ? Effect.succeed(node) : that.get(path)))
-})
+} = dual(
+  2,
+  (self: ConfigProvider, that: ConfigProvider): ConfigProvider =>
+    make((path) => Effect.flatMap(self.get(path), (node) => node ? Effect.succeed(node) : that.get(path)))
+)
+
+/**
+ * @since 4.0.0
+ * @category Combinators
+ */
+export const mapPath: {
+  (f: (path: Path) => Path): (self: ConfigProvider) => ConfigProvider
+  (self: ConfigProvider, f: (path: Path) => Path): ConfigProvider
+} = dual(2, (self: ConfigProvider, f: (path: Path) => Path): ConfigProvider => make((path) => self.get(f(path))))
+
+/**
+ * @since 4.0.0
+ * @category Combinators
+ */
+export const constantCase: (self: ConfigProvider) => ConfigProvider = mapPath((path) =>
+  path.map((seg) => typeof seg === "number" ? seg : Str.constantCase(seg))
+)
 
 /**
  * @since 4.0.0

@@ -40,6 +40,15 @@ describe("ConfigProvider2", () => {
     await assertPathSuccess(provider, ["B"], ConfigProvider2.leaf("value2"))
   })
 
+  it("constantCase", async () => {
+    const provider = ConfigProvider2.constantCase(ConfigProvider2.fromEnv({
+      environment: {
+        "CONSTANT_CASE": "value1"
+      }
+    }))
+    await assertPathSuccess(provider, ["constant.case"], ConfigProvider2.leaf("value1"))
+  })
+
   describe("fromEnv", () => {
     it("should support nested keys", async () => {
       const provider = ConfigProvider2.fromEnv({
