@@ -1,9 +1,10 @@
 import { describe, it } from "@effect/vitest"
 import { deepStrictEqual } from "@effect/vitest/utils"
-import { Effect } from "effect"
+import { Effect, Layer } from "effect"
 import { ConfigProvider2 } from "effect/config"
 import { Result } from "effect/data"
-import { FileSystem } from "effect/platform"
+import { FileSystem, Path } from "effect/platform"
+import { SystemError } from "effect/platform/PlatformError"
 
 async function assertPathSuccess(
   provider: ConfigProvider2.ConfigProvider,
@@ -396,6 +397,104 @@ A=1`)
 
       await assertPathSuccess(provider, ["CUSTOM_PATH"], ConfigProvider2.leaf("custom.env"))
       await assertPathSuccess(provider, ["A"], ConfigProvider2.leaf("1"))
+    })
+  })
+
+  describe("fileTree", () => {
+    const provider = ConfigProvider2.fileTree({ rootDirectory: "/" })
+    const files: Record<string, string> = {
+      "/secret": "keepitsafe\n", // test trimming
+      "/SHOUTING": "value",
+      "/integer": "123",
+      "/nested/config": "hello"
+    }
+    const Fs = FileSystem.layerNoop({
+      readFileString(path) {
+        if (path in files) {
+          return Effect.succeed(files[path])
+        }
+        return Effect.fail(
+          new SystemError({
+            module: "FileSystem",
+            reason: "NotFound",
+            method: "readFileString"
+          })
+        )
+      },
+      readDirectory(_path) {
+        // For the test, we only have files, no directories
+        return Effect.fail(
+          new SystemError({
+            module: "FileSystem",
+            reason: "NotFound",
+            method: "readDirectory"
+          })
+        )
+      }
+    })
+    const Platform = Layer.mergeAll(Fs, Path.layer)
+    const SetLayer = ConfigProvider2.layer(provider).pipe(
+      Layer.provide(Platform),
+      Layer.provide(ConfigProvider2.layer(ConfigProvider2.fromEnv({
+        environment: { secret: "fail" }
+      })))
+    )
+    const AddLayer = ConfigProvider2.layerAdd(provider).pipe(
+      Layer.provide(Platform),
+      Layer.provide(ConfigProvider2.layer(ConfigProvider2.fromEnv({
+        environment: {
+          secret: "shh",
+          fallback: "value"
+        }
+      })))
+    )
+
+    it("reads config", async () => {
+      const result = await Effect.runPromise(
+        Effect.gen(function*() {
+          const provider = yield* ConfigProvider2.ConfigProvider
+          const secret = yield* provider.get(["secret"])
+          const shouting = yield* provider.get(["SHOUTING"])
+          const integer = yield* provider.get(["integer"])
+          const nestedConfig = yield* provider.get(["nested", "config"])
+
+          return { secret, shouting, integer, nestedConfig }
+        }).pipe(Effect.provide(SetLayer))
+      )
+
+      deepStrictEqual(result.secret, ConfigProvider2.leaf("keepitsafe"))
+      deepStrictEqual(result.shouting, ConfigProvider2.leaf("value"))
+      deepStrictEqual(result.integer, ConfigProvider2.leaf("123"))
+      deepStrictEqual(result.nestedConfig, ConfigProvider2.leaf("hello"))
+
+      // Test that non-existent path throws an error
+      const error = await Effect.runPromise(
+        Effect.flip(
+          Effect.gen(function*() {
+            const provider = yield* ConfigProvider2.ConfigProvider
+            yield* provider.get(["fallback"])
+          }).pipe(Effect.provide(SetLayer))
+        )
+      )
+
+      deepStrictEqual(error.reason, "Failed to read file at /fallback")
+    })
+
+    it("layerAdd uses fallback", async () => {
+      const result = await Effect.runPromise(
+        Effect.gen(function*() {
+          const provider = yield* ConfigProvider2.ConfigProvider
+          const secret = yield* provider.get(["secret"])
+          const integer = yield* provider.get(["integer"])
+          const fallback = yield* provider.get(["fallback"])
+
+          return { secret, integer, fallback }
+        }).pipe(Effect.provide(AddLayer))
+      )
+
+      deepStrictEqual(result.secret, ConfigProvider2.leaf("shh"))
+      deepStrictEqual(result.integer, ConfigProvider2.leaf("123"))
+      deepStrictEqual(result.fallback, ConfigProvider2.leaf("value"))
     })
   })
 })

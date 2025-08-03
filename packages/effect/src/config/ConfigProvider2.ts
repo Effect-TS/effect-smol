@@ -9,6 +9,7 @@ import type { Pipeable } from "../interfaces/Pipeable.ts"
 import { PipeInspectableProto } from "../internal/core.ts"
 import * as Layer from "../Layer.ts"
 import * as FileSystem from "../platform/FileSystem.ts"
+import * as Path_ from "../platform/Path.ts"
 import type { PlatformError } from "../platform/PlatformError.ts"
 import * as Str from "../primitives/String.ts"
 import type { Scope } from "../Scope.ts"
@@ -61,6 +62,7 @@ export function array(length: number): Node {
  */
 export class GetError extends Data.TaggedError("GetError")<{
   readonly reason: string
+  readonly cause?: unknown
 }> {}
 
 /**
@@ -275,39 +277,6 @@ export const defaultParser: Parser = {
 
 /**
  * Create a ConfigProvider that reads values from environment variables.
- *
- * The default delimiter for hierarchical config is `"__"`.
- *
- * **Why `"__"` is the better default**
- *
- * - **Avoids accidental splitting of common keys**. With `"_"`, names like
- *   `NODE_ENV`, `DATABASE_URL`, `JWT_SECRET` get split into multiple tokens and
- *   turn into containers unless callers remember to query as `["NODE","ENV"]`,
- *   etc. With `"__"`, those remain single tokens.
- * - **Clearer intent**. A double underscore is rarely used "accidentally”
- *   inside an env name, so when you see it, it almost certainly means "nest
- *   here”.
- *
- * @example
- * ```ts
- * import { fromEnv } from "effect/config/ConfigProvider2"
- *
- * const provider = fromEnv({
- *   environment: {
- *     // leaf
- *     "leaf": "value1",
- *
- *     // object { key1: "value2", key2: { key3: "value3" } }
- *     "object__key1": "value2",
- *     "object__key2__key3": "value3",
- *
- *     // array [ "value4", { key4: "value5" }, ["value6"] ]
- *     "array__0": "value4",
- *     "array__1__key4": "value5",
- *     "array__2__0": "value6"
- *   }
- * })
- * ```
  *
  * @since 4.0.0
  */
@@ -567,3 +536,59 @@ export const dotEnv: (options?: {
     return fromEnv({ environment: parseDotEnv(content) })
   }
 )
+
+// -----------------------------------------------------------------------------
+// fileTree
+// -----------------------------------------------------------------------------
+
+/**
+ * Creates a ConfigProvider from a file tree structure.
+ *
+ * Resolution rules:
+ * - Regular file  -> `{ _tag: "leaf", value }` where `value` is the file text, trimmed.
+ * - Directory     -> `{ _tag: "object", keys }` collecting immediate child names (order unspecified).
+ * - Not found     -> `undefined`.
+ * - Other I/O     -> `GetError`.
+ *
+ * @since 4.0.0
+ * @category File Tree
+ */
+export const fileTree: (options?: {
+  readonly rootDirectory?: string | undefined
+}) => Effect.Effect<
+  ConfigProvider,
+  never,
+  Path_.Path | FileSystem.FileSystem
+> = Effect.fnUntraced(function*(options) {
+  const path_ = yield* Path_.Path
+  const fs = yield* FileSystem.FileSystem
+  const rootDirectory = options?.rootDirectory ?? "/"
+
+  const formatPath = (path: Path) => path_.join(rootDirectory, ...path.map(String))
+
+  const mapError = (path: Path) => (cause: PlatformError) =>
+    new GetError({
+      reason: `Failed to read file at ${formatPath(path)}`,
+      cause
+    })
+
+  return make((path) => {
+    const fullPath = path_.join(rootDirectory, ...path.map(String))
+
+    // Try reading as a *file*
+    const asFile = fs.readFileString(fullPath).pipe(
+      Effect.map((content) => leaf(String(content).trim()))
+    )
+
+    // If not a file, try reading as a *directory*
+    const asDirectory = fs.readDirectory(fullPath).pipe(
+      Effect.map((entries: ReadonlyArray<any>) => {
+        // Support both string paths and DirEntry-like objects
+        const keys = entries.map((e) => typeof e === "string" ? path_.basename(e) : String(e?.name ?? ""))
+        return object(keys)
+      })
+    )
+
+    return asFile.pipe(Effect.catch(() => asDirectory), Effect.mapError(mapError(path)))
+  })
+})
