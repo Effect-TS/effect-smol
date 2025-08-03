@@ -4,39 +4,84 @@
 
 import * as Data from "../data/Data.ts"
 import * as Effect from "../Effect.ts"
+import * as Layer from "../Layer.ts"
+import * as FileSystem from "../platform/FileSystem.ts"
+import type { PlatformError } from "../platform/PlatformError.ts"
+import type { Scope } from "../Scope.ts"
+import * as ServiceMap from "../ServiceMap.ts"
 
+/**
+ * @since 4.0.0
+ */
 export type StringLeafJson =
   | string
   | { readonly [k: string]: StringLeafJson }
   | ReadonlyArray<StringLeafJson>
 
+/**
+ * @since 4.0.0
+ */
 export type Path = ReadonlyArray<string | number>
 
+/**
+ * @since 4.0.0
+ */
 export type Node =
   | { readonly _tag: "leaf"; readonly value: string }
   | { readonly _tag: "object"; readonly keys: ReadonlyArray<string> }
   | { readonly _tag: "array"; readonly length: number }
 
+/**
+ * @since 4.0.0
+ */
 export function leaf(value: string): Node {
   return { _tag: "leaf", value }
 }
 
+/**
+ * @since 4.0.0
+ */
 export function object(keys: ReadonlyArray<string>): Node {
   return { _tag: "object", keys }
 }
 
+/**
+ * @since 4.0.0
+ */
 export function array(length: number): Node {
   return { _tag: "array", length }
 }
 
+/**
+ * @since 4.0.0
+ */
 export class GetError extends Data.TaggedError("GetError")<{
   readonly reason: string
 }> {}
 
+/**
+ * @since 4.0.0
+ */
 export interface ConfigProvider {
   readonly get: (path: Path) => Effect.Effect<Node | undefined, GetError>
 }
 
+/**
+ * @since 4.0.0
+ * @category References
+ */
+export const ConfigProvider: ServiceMap.Reference<ConfigProvider> = ServiceMap.Reference<ConfigProvider>(
+  "effect/config/ConfigProvider",
+  { defaultValue: () => fromEnv() }
+)
+
+// -----------------------------------------------------------------------------
+// fromStringLeafJson
+// -----------------------------------------------------------------------------
+
+/**
+ * @since 4.0.0
+ */
 export function fromStringLeafJson(root: StringLeafJson): ConfigProvider {
   return {
     get(path: Path): Effect.Effect<Node | undefined, GetError> {
@@ -68,11 +113,18 @@ function describeNode(value: StringLeafJson): Node {
   return object(Object.keys(value))
 }
 
+// -----------------------------------------------------------------------------
+// fromEnv
+// -----------------------------------------------------------------------------
+
 type InlineParsed =
   | { readonly _tag: "leaf"; readonly value: string }
   | { readonly _tag: "arrayInline"; readonly items: ReadonlyArray<string> }
   | { readonly _tag: "objectInline"; readonly entries: Record<string, string> }
 
+/**
+ * @since 4.0.0
+ */
 export function makeInlineParser(options?: {
   readonly tokenSeparator?: string | undefined
   readonly keyValueSeparator?: string | undefined
@@ -127,6 +179,9 @@ type Parser = {
   readonly inlineParser: (value: string) => InlineParsed
 }
 
+/**
+ * @since 4.0.0
+ */
 export const defaultParser: Parser = {
   splitKey: (key) => key.replace(/\]/g, "").split(/(?:__|\[)/),
   joinTokens: (tokens) => tokens.length === 0 ? "" : tokens[0] + tokens.slice(1).map((t) => `[${t}]`).join(""),
@@ -150,7 +205,7 @@ export const defaultParser: Parser = {
  *
  * @example
  * ```ts
- * import { fromEnv } from "effect/ConfigProvider"
+ * import { fromEnv } from "effect/config/ConfigProvider2"
  *
  * const provider = fromEnv({
  *   environment: {
@@ -168,6 +223,8 @@ export const defaultParser: Parser = {
  *   }
  * })
  * ```
+ *
+ * @since 4.0.0
  */
 export function fromEnv(options?: {
   readonly parser?: Parser | undefined
@@ -271,3 +328,172 @@ export function fromEnv(options?: {
     }
   }
 }
+
+// -----------------------------------------------------------------------------
+// fromDotEnv
+// -----------------------------------------------------------------------------
+
+const defaultDotEnvParser: Parser = {
+  splitKey: defaultParser.splitKey,
+  joinTokens: defaultParser.joinTokens,
+  inlineParser: (value) => ({ _tag: "leaf", value })
+}
+
+/**
+ * A ConfigProvider that parses a `.env` file.
+ *
+ * Default parser:
+ *
+ * - structural arrays/objects (on)
+ * - inline containers (off)
+ * - variable expansion (off)
+ *
+ * Based on
+ * - https://github.com/motdotla/dotenv
+ * - https://github.com/motdotla/dotenv-expand
+ *
+ * @see {@link dotEnv} for a ConfigProvider that loads a `.env` file.
+ *
+ * @since 4.0.0
+ * @category Dotenv
+ */
+export function fromDotEnv(lines: string, options?: {
+  readonly parser?: Parser | undefined
+  readonly expandVariables?: boolean | undefined
+}): ConfigProvider {
+  let environment = parseDotEnv(lines)
+  const parser = options?.parser ?? defaultDotEnvParser
+  if (options?.expandVariables) {
+    environment = dotEnvExpand(environment)
+  }
+  return fromEnv({ environment, parser })
+}
+
+const DOT_ENV_LINE =
+  /(?:^|^)\s*(?:export\s+)?([\w.-]+)(?:\s*=\s*?|:\s+?)(\s*'(?:\\'|[^'])*'|\s*"(?:\\"|[^"])*"|\s*`(?:\\`|[^`])*`|[^#\r\n]+)?\s*(?:#.*)?(?:$|$)/mg
+
+function parseDotEnv(lines: string): Record<string, string> {
+  const obj: Record<string, string> = {}
+
+  // Convert line breaks to same format
+  lines = lines.replace(/\r\n?/gm, "\n")
+
+  let match: RegExpExecArray | null
+  while ((match = DOT_ENV_LINE.exec(lines)) != null) {
+    const key = match[1]
+
+    // Default undefined or null to empty string
+    let value = match[2] || ""
+
+    // Remove whitespace
+    value = value.trim()
+
+    // Check if double quoted
+    const maybeQuote = value[0]
+
+    // Remove surrounding quotes
+    value = value.replace(/^(['"`])([\s\S]*)\1$/gm, "$2")
+
+    // Expand newlines if double quoted
+    if (maybeQuote === "\"") {
+      value = value.replace(/\\n/g, "\n")
+      value = value.replace(/\\r/g, "\r")
+    }
+
+    // Add to object
+    obj[key] = value
+  }
+
+  return obj
+}
+
+function dotEnvExpand(parsed: Record<string, string>): Record<string, string> {
+  const newParsed: Record<string, string> = {}
+
+  for (const configKey in parsed) {
+    // resolve escape sequences
+    newParsed[configKey] = interpolate(parsed[configKey], parsed).replace(/\\\$/g, "$")
+  }
+
+  return newParsed
+}
+
+function interpolate(envValue: string, parsed: Record<string, string>): string {
+  // find the last unescaped dollar sign in the
+  // value so that we can evaluate it
+  const lastUnescapedDollarSignIndex = searchLast(envValue, /(?!(?<=\\))\$/g)
+
+  // If we couldn't match any unescaped dollar sign
+  // let's return the string as is
+  if (lastUnescapedDollarSignIndex === -1) return envValue
+
+  // This is the right-most group of variables in the string
+  const rightMostGroup = envValue.slice(lastUnescapedDollarSignIndex)
+
+  /**
+   * This finds the inner most variable/group divided
+   * by variable name and default value (if present)
+   * (
+   *   (?!(?<=\\))\$        // only match dollar signs that are not escaped
+   *   {?                   // optional opening curly brace
+   *     ([\w]+)            // match the variable name
+   *     (?::-([^}\\]*))?   // match an optional default value
+   *   }?                   // optional closing curly brace
+   * )
+   */
+  const matchGroup = /((?!(?<=\\))\${?([\w]+)(?::-([^}\\]*))?}?)/
+  const match = rightMostGroup.match(matchGroup)
+
+  if (match !== null) {
+    const [_, group, variableName, defaultValue] = match
+
+    return interpolate(
+      envValue.replace(group, defaultValue || parsed[variableName] || ""),
+      parsed
+    )
+  }
+
+  return envValue
+}
+
+function searchLast(str: string, rgx: RegExp): number {
+  const matches = Array.from(str.matchAll(rgx))
+  return matches.length > 0 ? matches.slice(-1)[0].index : -1
+}
+
+// -----------------------------------------------------------------------------
+// dotEnv
+// -----------------------------------------------------------------------------
+
+/**
+ * A ConfigProvider that loads configuration from a `.env` file.
+ *
+ * @see {@link fromDotEnv} for a ConfigProvider that parses a `.env` file.
+ *
+ * @since 4.0.0
+ * @category Dotenv
+ */
+export const dotEnv: (options?: {
+  readonly path?: string | undefined
+  readonly parser?: Parser | undefined
+  readonly expandVariables?: boolean | undefined
+}) => Effect.Effect<ConfigProvider, PlatformError, FileSystem.FileSystem> = Effect.fnUntraced(
+  function*(options) {
+    const fs = yield* FileSystem.FileSystem
+    const content = yield* fs.readFileString(options?.path ?? ".env")
+    return fromEnv({ environment: parseDotEnv(content) })
+  }
+)
+
+// -----------------------------------------------------------------------------
+// API
+// -----------------------------------------------------------------------------
+
+/**
+ * @since 4.0.0
+ * @category Layers
+ */
+export const layer = <E = never, R = never>(
+  self: ConfigProvider | Effect.Effect<ConfigProvider, E, R>
+): Layer.Layer<never, E, Exclude<R, Scope>> =>
+  Effect.isEffect(self) ? Layer.effect(ConfigProvider)(self) : Layer.succeed(ConfigProvider)(self)

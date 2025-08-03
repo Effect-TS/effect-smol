@@ -3,6 +3,7 @@ import { deepStrictEqual } from "@effect/vitest/utils"
 import { Effect } from "effect"
 import { ConfigProvider2 } from "effect/config"
 import { Result } from "effect/data"
+import { FileSystem } from "effect/platform"
 
 async function assertPathSuccess(
   provider: ConfigProvider2.ConfigProvider,
@@ -280,6 +281,96 @@ describe("ConfigProvider2", () => {
       await assertPathSuccess(provider, ["leaf", "non-existing"], undefined)
       await assertPathSuccess(provider, ["object", "non-existing"], undefined)
       await assertPathSuccess(provider, ["array", 3, "non-existing"], undefined)
+    })
+  })
+
+  describe("fromDotEnv", () => {
+    it("should support dotenv parsing", async () => {
+      const provider = ConfigProvider2.fromDotEnv(`
+# comments are ignored
+export NODE_ENV="production"
+API_URL=https://api.example.com
+
+# inline containers (off by default)
+TAGS="a, b , c"
+MAP="a=,b=2,c=3"
+
+# structural arrays/objects (on by default)
+USERS__0__name=alice
+USERS__1__name=bob
+
+# expansion of environment variables (off by default)
+PASSWORD="s1mpl3"
+DB_PASS=$PASSWORD
+`)
+      await assertPathSuccess(
+        provider,
+        [],
+        ConfigProvider2.object(["NODE_ENV", "API_URL", "TAGS", "MAP", "USERS", "PASSWORD", "DB_PASS"])
+      )
+      await assertPathSuccess(provider, ["NODE_ENV"], ConfigProvider2.leaf("production"))
+      await assertPathSuccess(provider, ["API_URL"], ConfigProvider2.leaf("https://api.example.com"))
+      await assertPathSuccess(provider, ["TAGS"], ConfigProvider2.leaf("a, b , c"))
+      await assertPathSuccess(provider, ["MAP"], ConfigProvider2.leaf("a=,b=2,c=3"))
+      await assertPathSuccess(provider, ["PASSWORD"], ConfigProvider2.leaf("s1mpl3"))
+      await assertPathSuccess(provider, ["DB_PASS"], ConfigProvider2.leaf("$PASSWORD"))
+    })
+
+    it("should support custom parser", async () => {
+      const provider = ConfigProvider2.fromDotEnv(
+        `
+# inline containers (your inline parser handles these)
+TAGS="a, b , c"
+MAP="a=,b=2,c=3"
+`,
+        { parser: ConfigProvider2.defaultParser }
+      )
+      await assertPathSuccess(provider, ["TAGS"], ConfigProvider2.array(3))
+      await assertPathSuccess(provider, ["MAP"], ConfigProvider2.object(["a", "b", "c"]))
+    })
+
+    it("should expand variables", async () => {
+      const provider = ConfigProvider2.fromDotEnv(
+        `
+API_URL=https://api.example.com
+DB_PASS=$API_URL
+`,
+        { expandVariables: true }
+      )
+      await assertPathSuccess(provider, ["API_URL"], ConfigProvider2.leaf("https://api.example.com"))
+      await assertPathSuccess(provider, ["DB_PASS"], ConfigProvider2.leaf("https://api.example.com"))
+    })
+  })
+
+  describe("dotEnv", () => {
+    it("should load configuration from .env file", async () => {
+      const provider = await Effect.runPromise(
+        ConfigProvider2.dotEnv().pipe(
+          Effect.provide(FileSystem.layerNoop({
+            readFileString: (path) =>
+              Effect.succeed(`PATH=${path}
+A=1`)
+          }))
+        )
+      )
+
+      await assertPathSuccess(provider, ["PATH"], ConfigProvider2.leaf(".env"))
+      await assertPathSuccess(provider, ["A"], ConfigProvider2.leaf("1"))
+    })
+
+    it("should support custom path", async () => {
+      const provider = await Effect.runPromise(
+        ConfigProvider2.dotEnv({ path: "custom.env" }).pipe(
+          Effect.provide(FileSystem.layerNoop({
+            readFileString: (path) =>
+              Effect.succeed(`CUSTOM_PATH=${path}
+A=1`)
+          }))
+        )
+      )
+
+      await assertPathSuccess(provider, ["CUSTOM_PATH"], ConfigProvider2.leaf("custom.env"))
+      await assertPathSuccess(provider, ["A"], ConfigProvider2.leaf("1"))
     })
   })
 })

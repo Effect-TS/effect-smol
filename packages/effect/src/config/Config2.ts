@@ -3,19 +3,24 @@
  */
 
 import * as Effect from "../Effect.ts"
+import type { Pipeable } from "../interfaces/Pipeable.ts"
+import { PipeInspectableProto, YieldableProto } from "../internal/core.ts"
 import * as AST from "../schema/AST.ts"
 import * as Schema from "../schema/Schema.ts"
 import * as Serializer from "../schema/Serializer.ts"
 import * as ToParser from "../schema/ToParser.ts"
-import type { ConfigProvider, Path, StringLeafJson } from "./ConfigProvider2.ts"
-import { GetError } from "./ConfigProvider2.ts"
+import type { GetError, Path, StringLeafJson } from "./ConfigProvider2.ts"
+import * as ConfigProvider from "./ConfigProvider2.ts"
 
-export interface Config<out T> {
-  readonly parse: (provider: ConfigProvider) => Effect.Effect<T, GetError | Schema.SchemaError>
+/**
+ * @since 4.0.0
+ */
+export interface Config<out T> extends Pipeable, Effect.Yieldable<Config<T>, T, GetError | Schema.SchemaError> {
+  readonly parse: (provider: ConfigProvider.ConfigProvider) => Effect.Effect<T, GetError | Schema.SchemaError>
 }
 
 const dump: (
-  provider: ConfigProvider,
+  provider: ConfigProvider.ConfigProvider,
   path: Path
 ) => Effect.Effect<StringLeafJson | undefined, GetError> = Effect.fnUntraced(function*(
   provider,
@@ -47,7 +52,7 @@ const dump: (
 
 const go: (
   ast: AST.AST,
-  provider: ConfigProvider,
+  provider: ConfigProvider.ConfigProvider,
   path: Path
 ) => Effect.Effect<StringLeafJson | undefined, Schema.SchemaError | GetError> = Effect.fnUntraced(
   function*(ast, provider, path) {
@@ -94,19 +99,53 @@ const go: (
         const node = yield* provider.get(path)
         if (node === undefined) return undefined
         if (node._tag === "leaf") return node.value
-        return yield* Effect.fail(new GetError({ reason: "Expected a leaf, but received a container" }))
+        return yield* Effect.fail(new ConfigProvider.GetError({ reason: "Expected a leaf, but received a container" }))
       }
     }
   }
 )
 
-export function make<T, E>(codec: Schema.Codec<T, E>): Config<T> {
+/**
+ * @since 4.0.0
+ */
+export const TypeId: TypeId = "~effect/config/Config"
+
+/**
+ * @since 4.0.0
+ */
+export type TypeId = "~effect/config/Config"
+
+const Proto = {
+  ...PipeInspectableProto,
+  ...YieldableProto,
+  [TypeId]: TypeId,
+  asEffect(this: Config<unknown>) {
+    return Effect.flatMap(ConfigProvider.ConfigProvider.asEffect(), (provider) => this.parse(provider))
+  },
+  toJSON(this: Config<unknown>) {
+    return {
+      _id: "Config"
+    }
+  }
+}
+
+/**
+ * @since 4.0.0
+ */
+export function make<T>(
+  parse: (provider: ConfigProvider.ConfigProvider) => Effect.Effect<T, GetError | Schema.SchemaError>
+): Config<T> {
+  const self = Object.create(Proto)
+  self.parse = parse
+  return self
+}
+
+/**
+ * @since 4.0.0
+ */
+export function schema<T, E>(codec: Schema.Codec<T, E>): Config<T> {
   const serializer = Serializer.stringLeafJson(codec)
   const decodeUnknownEffect = Schema.decodeUnknownEffect(serializer)
   const serializerEncodedAST = AST.encodedAST(serializer.ast)
-  return {
-    parse(provider: ConfigProvider): Effect.Effect<T, GetError | Schema.SchemaError> {
-      return go(serializerEncodedAST, provider, []).pipe(Effect.flatMap(decodeUnknownEffect))
-    }
-  }
+  return make((provider) => go(serializerEncodedAST, provider, []).pipe(Effect.flatMap(decodeUnknownEffect)))
 }

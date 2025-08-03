@@ -25,7 +25,7 @@ describe("Config2", () => {
   describe("fromStringLeafJson", () => {
     it("String", async () => {
       const schema = Schema.String
-      const config = Config2.make(schema)
+      const config = Config2.schema(schema)
 
       await assertSuccess(config, ConfigProvider2.fromStringLeafJson("value"), "value")
     })
@@ -33,7 +33,7 @@ describe("Config2", () => {
     describe("Struct", () => {
       it("required properties", async () => {
         const schema = Schema.Struct({ a: Schema.FiniteFromString })
-        const config = Config2.make(schema)
+        const config = Config2.schema(schema)
 
         await assertSuccess(config, ConfigProvider2.fromStringLeafJson({ a: "1" }), { a: 1 })
         await assertFailure(
@@ -56,14 +56,14 @@ describe("Config2", () => {
 
       it("optionalKey properties", async () => {
         const schema = Schema.Struct({ a: Schema.optionalKey(Schema.FiniteFromString) })
-        const config = Config2.make(schema)
+        const config = Config2.schema(schema)
 
         await assertSuccess(config, ConfigProvider2.fromStringLeafJson({ a: "1" }), { a: 1 })
         await assertSuccess(config, ConfigProvider2.fromStringLeafJson({}), {})
       })
 
       it("optional properties", async () => {
-        const config = Config2.make(
+        const config = Config2.schema(
           Schema.Struct({ a: Schema.optional(Schema.FiniteFromString) })
         )
 
@@ -73,7 +73,7 @@ describe("Config2", () => {
 
       it("Literals", async () => {
         const schema = Schema.Struct({ a: Schema.Literals(["b", "c"]) })
-        const config = Config2.make(schema)
+        const config = Config2.schema(schema)
 
         await assertSuccess(config, ConfigProvider2.fromStringLeafJson({ a: "b" }), { a: "b" })
         await assertSuccess(config, ConfigProvider2.fromStringLeafJson({ a: "c" }), { a: "c" })
@@ -82,7 +82,7 @@ describe("Config2", () => {
 
     it("Record", async () => {
       const schema = Schema.Record(Schema.String, Schema.FiniteFromString)
-      const config = Config2.make(schema)
+      const config = Config2.schema(schema)
 
       await assertSuccess(config, ConfigProvider2.fromStringLeafJson({ a: "1" }), { a: 1 })
       await assertSuccess(config, ConfigProvider2.fromStringLeafJson({ a: "1", b: "2" }), { a: 1, b: 2 })
@@ -99,7 +99,7 @@ describe("Config2", () => {
 
     it("Tuple", async () => {
       const schema = Schema.Tuple([Schema.String, Schema.FiniteFromString])
-      const config = Config2.make(schema)
+      const config = Config2.schema(schema)
 
       await assertSuccess(config, ConfigProvider2.fromStringLeafJson(["1", "2"]), ["1", 2])
       await assertFailure(
@@ -115,7 +115,7 @@ describe("Config2", () => {
 
     it("Array", async () => {
       const schema = Schema.Array(Schema.FiniteFromString)
-      const config = Config2.make(schema)
+      const config = Config2.schema(schema)
 
       await assertSuccess(config, ConfigProvider2.fromStringLeafJson(["1", "2"]), [1, 2])
       await assertFailure(
@@ -133,7 +133,7 @@ describe("Config2", () => {
       describe("Literals", () => {
         it("string", async () => {
           const schema = Schema.Literals(["a", "b"])
-          const config = Config2.make(schema)
+          const config = Config2.schema(schema)
 
           await assertSuccess(config, ConfigProvider2.fromStringLeafJson("a"), "a")
           await assertSuccess(config, ConfigProvider2.fromStringLeafJson("b"), "b")
@@ -150,7 +150,7 @@ describe("Config2", () => {
         a: Schema.String,
         as: Schema.Array(Schema.suspend((): Schema.Codec<A> => schema))
       })
-      const config = Config2.make(schema)
+      const config = Config2.schema(schema)
 
       await assertSuccess(config, ConfigProvider2.fromStringLeafJson({ a: "1", as: [] }), { a: "1", as: [] })
       await assertSuccess(config, ConfigProvider2.fromStringLeafJson({ a: "1", as: [{ a: "2", as: [] }] }), {
@@ -161,7 +161,7 @@ describe("Config2", () => {
 
     it("URL", async () => {
       const schema = Schema.Struct({ url: Schema.URL })
-      const config = Config2.make(schema)
+      const config = Config2.schema(schema)
 
       await assertSuccess(
         config,
