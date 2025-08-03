@@ -306,7 +306,7 @@ export const transformPull = <
 >(
   self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
   f: (
-    pull: Pull.Pull<OutElem, OutErr, OutDone, Env>,
+    pull: Pull.Pull<OutElem, OutErr, OutDone>,
     scope: Scope.Scope
   ) => Effect.Effect<Pull.Pull<OutElem2, OutErr2, OutDone2, Env2>, OutErrX, EnvX>
 ): Channel<
@@ -2403,23 +2403,33 @@ export const flattenArray = <
 >(
   self: Channel<ReadonlyArray<OutElem>, OutErr, OutDone, InElem, InErr, InDone, Env>
 ): Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env> =>
-  fromTransform((upstream, scope) =>
-    Effect.map(toTransform(self)(upstream, scope), (pull) => {
-      let array: ReadonlyArray<OutElem> | undefined
-      let index = 0
-      const pump = Effect.suspend(function loop(): Pull.Pull<OutElem, OutErr, OutDone> {
-        if (!array || index >= array.length) {
-          return Effect.flatMap(pull, (array_) => {
-            index = 0
-            array = array_
-            return loop()
-          })
-        }
-        return Effect.succeed(array[index++])
-      })
-      return pump
+  transformPull(self, (pull) => {
+    let array: ReadonlyArray<OutElem> | undefined
+    let index = 0
+    const pump = Effect.suspend(function loop(): Pull.Pull<OutElem, OutErr, OutDone> {
+      if (array === undefined) {
+        return Effect.flatMap(pull, (array_) => {
+          switch (array_.length) {
+            case 0:
+              return loop()
+            case 1:
+              return Effect.succeed(array_[0])
+            default: {
+              array = array_
+              return Effect.succeed(array_[index++])
+            }
+          }
+        })
+      }
+      const next = array[index++]
+      if (index >= array.length) {
+        array = undefined
+        index = 0
+      }
+      return Effect.succeed(next)
     })
-  )
+    return Effect.succeed(pump)
+  })
 
 /**
  * @since 2.0.0

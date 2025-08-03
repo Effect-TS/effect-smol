@@ -499,8 +499,7 @@ export const succeed = <A>(value: A): Stream<A> => fromChannel(Channel.succeed(A
  * @since 2.0.0
  * @category constructors
  */
-export const make = <const As extends ReadonlyArray<any>>(...values: As): Stream<As[number]> =>
-  Arr.isNonEmptyReadonlyArray(values) ? fromArray(values) : empty
+export const make = <const As extends ReadonlyArray<any>>(...values: As): Stream<As[number]> => fromArray(values)
 
 /**
  * Creates a single-valued pure stream.
@@ -699,7 +698,7 @@ export const fromIterable = <A>(iterable: Iterable<A>): Stream<A> => fromChannel
  * @category constructors
  */
 export const fromIterableEffect = <A, E, R>(iterable: Effect.Effect<Iterable<A>, E, R>): Stream<A, E, R> =>
-  flattenIterable(fromEffect(iterable))
+  unwrap(Effect.map(iterable, fromIterable))
 
 /**
  * Creates a stream from an array.
@@ -723,6 +722,18 @@ export const fromIterableEffect = <A, E, R>(iterable: Effect.Effect<Iterable<A>,
  */
 export const fromArray = <A>(array: ReadonlyArray<A>): Stream<A> =>
   Arr.isNonEmptyReadonlyArray(array) ? fromChannel(Channel.succeed(array)) : empty
+
+/**
+ * Creates a stream from an effect that produces an array of values.
+ *
+ * This function creates a Stream that emits all values from the provided array.
+ * If the array is empty, it returns an empty Stream.
+ *
+ * @since 4.0.0
+ * @category constructors
+ */
+export const fromArrayEffect = <A, E, R>(effect: Effect.Effect<ReadonlyArray<A>, E, R>): Stream<A, E, R> =>
+  unwrap(Effect.map(effect, fromArray))
 
 /**
  * Creates a stream from a queue.
