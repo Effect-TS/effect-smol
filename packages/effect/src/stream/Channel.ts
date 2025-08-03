@@ -3031,6 +3031,42 @@ export const orDie = <
 ): Channel<OutElem, never, OutDone, InElem, InErr, InDone, Env> => catch_(self, die)
 
 /**
+ * Ignores all errors in the channel, converting them to an empty channel.
+ *
+ * @since 4.0.0
+ * @category Error handling
+ */
+export const ignore = <
+  OutElem,
+  OutErr,
+  OutDone,
+  InElem,
+  InErr,
+  InDone,
+  Env
+>(
+  self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>
+): Channel<OutElem, never, OutDone | void, InElem, InErr, InDone, Env> => catch_(self, () => empty)
+
+/**
+ * Ignores all errors in the channel including defects, converting them to an empty channel.
+ *
+ * @since 4.0.0
+ * @category Error handling
+ */
+export const ignoreCause = <
+  OutElem,
+  OutErr,
+  OutDone,
+  InElem,
+  InErr,
+  InDone,
+  Env
+>(
+  self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>
+): Channel<OutElem, never, OutDone | void, InElem, InErr, InDone, Env> => catchCause(self, () => empty)
+
+/**
  * Returns a new channel, which sequentially combines this channel, together
  * with the provided factory function, which creates a second channel based on
  * the output values of this channel. The result is a channel that will first

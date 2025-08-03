@@ -1626,6 +1626,23 @@ export const catchCauseFilter: {
 export const orDie = <A, E, R>(self: Stream<A, E, R>): Stream<A, never, R> => fromChannel(Channel.orDie(self.channel))
 
 /**
+ * Ignore errors and convert them into an empty stream.
+ *
+ * @since 4.0.0
+ * @category Error handling
+ */
+export const ignore = <A, E, R>(self: Stream<A, E, R>): Stream<A, never, R> => fromChannel(Channel.ignore(self.channel))
+
+/**
+ * Ignore errors and convert them into an empty stream.
+ *
+ * @since 4.0.0
+ * @category Error handling
+ */
+export const ignoreCause = <A, E, R>(self: Stream<A, E, R>): Stream<A, never, R> =>
+  fromChannel(Channel.ignoreCause(self.channel))
+
+/**
  * Takes the specified number of elements from this stream.
  *
  * @example
