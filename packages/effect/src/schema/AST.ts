@@ -742,18 +742,7 @@ export class LiteralType extends AbstractParser {
   }
   /** @internal */
   goStringLeafJson() {
-    // eslint-disable-next-line @typescript-eslint/no-this-alias
-    const ast = this
-    switch (typeof ast.literal) {
-      case "number":
-        return coerceLiteral(ast)
-      case "boolean":
-        return coerceLiteral(ast)
-      case "bigint":
-        return coerceLiteral(ast)
-      default:
-    }
-    return ast
+    return Predicate.isString(this.literal) ? this : coerceLiteral(this)
   }
 }
 
@@ -2404,7 +2393,7 @@ function coerceNull(ast: NullKeyword): NullKeyword {
 }
 
 const numberKeywordPattern = appendChecks(stringKeyword, [
-  Check.regex(new RegExp(NUMBER_KEYWORD_PATTERN), { description: "a string representing a number" })
+  Check.regex(new RegExp(NUMBER_KEYWORD_PATTERN), { title: "a string representing a number" })
 ])
 
 const numberLink = new Link(
@@ -2429,7 +2418,7 @@ function coerceBoolean(ast: BooleanKeyword): BooleanKeyword {
 }
 
 const bigintKeywordPattern = appendChecks(stringKeyword, [
-  Check.regex(new RegExp(BIGINT_KEYWORD_PATTERN), { description: "a string representing a bigint" })
+  Check.regex(new RegExp(BIGINT_KEYWORD_PATTERN), { title: "a string representing a bigint" })
 ])
 
 const bigIntLink = new Link(
@@ -2481,7 +2470,7 @@ const SYMBOL_PATTERN = /^Symbol\((.*)\)$/
 
 // to distinguish between Symbol and String, we need to add a check to the string keyword
 const symbolLink = new Link(
-  appendChecks(stringKeyword, [Check.regex(SYMBOL_PATTERN, { description: "a string representing a symbol" })]),
+  appendChecks(stringKeyword, [Check.regex(SYMBOL_PATTERN, { title: "a string representing a symbol" })]),
   new Transformation.Transformation(
     Getter.map((description) => Symbol.for(SYMBOL_PATTERN.exec(description)![1])),
     Getter.mapOrFail((sym: symbol) => {

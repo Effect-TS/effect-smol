@@ -65,8 +65,10 @@ function getMessageAnnotation(
 
 /**
  * Tries to find a message in the annotations of the issue.
+ *
+ * @internal
  */
-function findMessage(issue: Issue.Leaf | Issue.Filter): string | undefined {
+export function findMessage(issue: Issue.Leaf | Issue.Filter): string | undefined {
   switch (issue._tag) {
     case "InvalidType":
     case "OneOf":
@@ -235,13 +237,6 @@ function formatTree(
   checkHook: CheckHook
 ): Tree {
   switch (issue._tag) {
-    case "MissingKey":
-    case "UnexpectedKey":
-    case "InvalidType":
-    case "InvalidValue":
-    case "Forbidden":
-    case "OneOf":
-      return new Tree(leafHook(issue))
     case "Filter": {
       const message = checkHook(issue)
       if (message !== undefined) {
@@ -272,6 +267,8 @@ function formatTree(
         issue.issues.map((issue) => formatTree(issue, path, leafHook, checkHook))
       )
     }
+    default:
+      return new Tree(leafHook(issue))
   }
 }
 
@@ -342,13 +339,6 @@ function formatStandardV1(
   checkHook: CheckHook
 ): Array<StandardSchemaV1.Issue> {
   switch (issue._tag) {
-    case "InvalidType":
-    case "InvalidValue":
-    case "MissingKey":
-    case "UnexpectedKey":
-    case "Forbidden":
-    case "OneOf":
-      return [{ path, message: leafHook(issue) }]
     case "Filter": {
       const message = checkHook(issue)
       if (message !== undefined) {
@@ -363,6 +353,8 @@ function formatStandardV1(
     case "Composite":
     case "AnyOf":
       return issue.issues.flatMap((issue) => formatStandardV1(issue, path, leafHook, checkHook))
+    default:
+      return [{ path, message: leafHook(issue) }]
   }
 }
 

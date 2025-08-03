@@ -48,6 +48,13 @@ describe("Config2", () => {
       )
     })
 
+    it("String", async () => {
+      const schema = Schema.String
+      const config = Config2.schema(schema)
+
+      await assertFailure(config, ConfigProvider2.fromEnv({ environment: {} }), `Expected string, actual undefined`)
+    })
+
     describe("Struct", () => {
       it("required properties", async () => {
         const schema = Schema.Struct({ a: Schema.Finite })
@@ -77,7 +84,7 @@ describe("Config2", () => {
 
     describe("Struct", () => {
       it("required properties", async () => {
-        const schema = Schema.Struct({ a: Schema.FiniteFromString })
+        const schema = Schema.Struct({ a: Schema.Finite })
         const config = Config2.schema(schema)
 
         await assertSuccess(config, ConfigProvider2.fromStringLeafJson({ a: "1" }), { a: 1 })
@@ -93,9 +100,10 @@ describe("Config2", () => {
           ConfigProvider2.fromStringLeafJson({ a: "value" }),
           `{ readonly "a": number }
 └─ ["a"]
-   └─ number & finite
-      └─ finite
-         └─ Invalid data NaN`
+   └─ Encoding failure
+      └─ string & a string representing a number
+         └─ a string representing a number
+            └─ Invalid data "value"`
         )
       })
 

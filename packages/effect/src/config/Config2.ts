@@ -1,15 +1,21 @@
 /**
  * @since 4.0.0
  */
-
+import * as Option from "../data/Option.ts"
 import { hasProperty } from "../data/Predicate.ts"
 import * as Effect from "../Effect.ts"
 import type { Pipeable } from "../interfaces/Pipeable.ts"
 import { PipeInspectableProto, YieldableProto } from "../internal/core.ts"
+import * as LogLevel_ from "../logging/LogLevel.ts"
 import * as AST from "../schema/AST.ts"
+import * as Check from "../schema/Check.ts"
+import * as Getter from "../schema/Getter.ts"
+import * as Issue from "../schema/Issue.ts"
 import * as Schema from "../schema/Schema.ts"
 import * as Serializer from "../schema/Serializer.ts"
 import * as ToParser from "../schema/ToParser.ts"
+import * as Transformation from "../schema/Transformation.ts"
+import * as Duration_ from "../time/Duration.ts"
 import type { GetError, Path, StringLeafJson } from "./ConfigProvider2.ts"
 import * as ConfigProvider from "./ConfigProvider2.ts"
 
@@ -171,6 +177,7 @@ const go: (
 )
 
 /**
+ * @category Schema
  * @since 4.0.0
  */
 export function schema<T, E>(codec: Schema.Codec<T, E>): Config<T> {
@@ -179,3 +186,44 @@ export function schema<T, E>(codec: Schema.Codec<T, E>): Config<T> {
   const serializerEncodedAST = AST.encodedAST(serializer.ast)
   return make((provider) => go(serializerEncodedAST, provider, []).pipe(Effect.flatMap(decodeUnknownEffect)))
 }
+
+/**
+ * @category Schema
+ * @since 4.0.0
+ */
+export const Boolean = Schema.Literals(["true", "yes", "on", "1", "false", "no", "off", "0"]).pipe(
+  Schema.decodeTo(
+    Schema.Boolean,
+    Transformation.transform({
+      decode: (value) => value === "true" || value === "yes" || value === "on" || value === "1",
+      encode: (value) => value ? "true" : "false"
+    })
+  )
+)
+
+/**
+ * @category Schema
+ * @since 4.0.0
+ */
+export const Port = Schema.Int.check(Check.between(0, 65535))
+
+/**
+ * @category Schema
+ * @since 4.0.0
+ */
+export const LogLevel = Schema.Literals(LogLevel_.values)
+
+/**
+ * @category Schema
+ * @since 4.0.0
+ */
+export const Duration = Schema.String.pipe(Schema.decodeTo(Schema.Duration, {
+  decode: Getter.mapOrFail((value) => {
+    const od = Duration_.decodeUnknown(value)
+    if (Option.isSome(od)) {
+      return Effect.succeed(od.value)
+    }
+    return Effect.fail(new Issue.InvalidValue(od, { message: `Invalid duration: ${value}` }))
+  }),
+  encode: Getter.forbidden("Encoding Duration is not supported")
+}))
