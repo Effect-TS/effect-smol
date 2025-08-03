@@ -310,6 +310,52 @@ describe("ConfigProvider2", () => {
     })
   })
 
+  describe("fromJson", () => {
+    it("should convert various JSON types to StringLeafJson", async () => {
+      const provider = ConfigProvider2.fromJson({
+        string: "hello",
+        number: 42,
+        boolean: true,
+        null: null,
+        undefined,
+        array: [1, "two", false],
+        object: {
+          nested: "value",
+          deep: {
+            key: 123
+          }
+        }
+      })
+
+      await assertPathSuccess(
+        provider,
+        [],
+        ConfigProvider2.object([
+          "string",
+          "number",
+          "boolean",
+          "null",
+          "undefined",
+          "array",
+          "object"
+        ])
+      )
+      await assertPathSuccess(provider, ["string"], ConfigProvider2.leaf("hello"))
+      await assertPathSuccess(provider, ["number"], ConfigProvider2.leaf("42"))
+      await assertPathSuccess(provider, ["boolean"], ConfigProvider2.leaf("true"))
+      await assertPathSuccess(provider, ["null"], ConfigProvider2.leaf(""))
+      await assertPathSuccess(provider, ["undefined"], ConfigProvider2.leaf(""))
+      await assertPathSuccess(provider, ["array"], ConfigProvider2.array(3))
+      await assertPathSuccess(provider, ["array", 0], ConfigProvider2.leaf("1"))
+      await assertPathSuccess(provider, ["array", 1], ConfigProvider2.leaf("two"))
+      await assertPathSuccess(provider, ["array", 2], ConfigProvider2.leaf("false"))
+      await assertPathSuccess(provider, ["object"], ConfigProvider2.object(["nested", "deep"]))
+      await assertPathSuccess(provider, ["object", "nested"], ConfigProvider2.leaf("value"))
+      await assertPathSuccess(provider, ["object", "deep"], ConfigProvider2.object(["key"]))
+      await assertPathSuccess(provider, ["object", "deep", "key"], ConfigProvider2.leaf("123"))
+    })
+  })
+
   describe("fromDotEnv", () => {
     it("should support dotenv parsing", async () => {
       const provider = ConfigProvider2.fromDotEnv(`

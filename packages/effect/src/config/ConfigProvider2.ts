@@ -201,6 +201,38 @@ function describeNode(value: StringLeafJson): Node {
 }
 
 // -----------------------------------------------------------------------------
+// fromJson
+// -----------------------------------------------------------------------------
+
+/**
+ * Create a ConfigProvider that reads values from a JSON object.
+ *
+ * @since 4.0.0
+ */
+export function fromJson(root: unknown): ConfigProvider {
+  return fromStringLeafJson(asStringLeafJson(root))
+}
+
+function asStringLeafJson(root: unknown): StringLeafJson {
+  if (root === null || root === undefined) return ""
+  if (typeof root === "string") return root
+  if (typeof root === "number") return String(root)
+  if (typeof root === "boolean") return String(root)
+  if (Array.isArray(root)) return root.map(asStringLeafJson)
+
+  if (typeof root === "object" && root !== null) {
+    const result: Record<string, StringLeafJson> = {}
+    for (const [key, value] of Object.entries(root)) {
+      result[key] = asStringLeafJson(value)
+    }
+    return result
+  }
+
+  // Fallback for any other type
+  return String(root)
+}
+
+// -----------------------------------------------------------------------------
 // fromEnv
 // -----------------------------------------------------------------------------
 
