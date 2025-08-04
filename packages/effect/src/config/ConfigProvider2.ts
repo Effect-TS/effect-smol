@@ -35,7 +35,7 @@ export type Stat =
   /* a terminal string value */
   | { readonly _tag: "leaf"; readonly value: string }
   /* an object; keys are unordered */
-  | { readonly _tag: "object"; readonly keys: ReadonlyArray<string> }
+  | { readonly _tag: "object"; readonly keys: ReadonlySet<string> }
   /* an array-like container; length is the number of elements */
   | { readonly _tag: "array"; readonly length: number }
 
@@ -49,7 +49,7 @@ export function leaf(value: string): Stat {
 /**
  * @since 4.0.0
  */
-export function object(keys: ReadonlyArray<string>): Stat {
+export function object(keys: ReadonlySet<string>): Stat {
   return { _tag: "object", keys }
 }
 
@@ -202,7 +202,7 @@ function describeStat(value: StringLeafJson | undefined): Stat | undefined {
   if (value === undefined) return undefined
   if (typeof value === "string") return leaf(value)
   if (Array.isArray(value)) return array(value.length)
-  return object(Object.keys(value))
+  return object(new Set(Object.keys(value)))
 }
 
 // -----------------------------------------------------------------------------
@@ -397,7 +397,7 @@ export function fromEnv(options?: {
         case "arrayInline":
           return Effect.succeed(array(parsed.items.length))
         case "objectInline":
-          return Effect.succeed(object(Object.keys(parsed.entries)))
+          return Effect.succeed(object(new Set(Object.keys(parsed.entries))))
       }
     }
 
@@ -414,7 +414,7 @@ export function fromEnv(options?: {
     }
 
     if (allNumeric) return Effect.succeed(array(maxIndex + 1))
-    return Effect.succeed(object(Array.from(childTokens)))
+    return Effect.succeed(object(childTokens))
   })
 }
 
@@ -622,7 +622,7 @@ export const fileTree: (options?: {
       Effect.map((entries: ReadonlyArray<any>) => {
         // Support both string paths and DirEntry-like objects
         const keys = entries.map((e) => typeof e === "string" ? path_.basename(e) : String(e?.name ?? ""))
-        return object(keys)
+        return object(new Set(keys))
       })
     )
 

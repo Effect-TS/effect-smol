@@ -63,7 +63,7 @@ describe("ConfigProvider2", () => {
         }
       })
 
-      await assertPathSuccess(provider, [], ConfigProvider2.object(["leaf", "object", "array"]))
+      await assertPathSuccess(provider, [], ConfigProvider2.object(new Set(["leaf", "object", "array"])))
 
       await assertPathSuccess(provider, ["leaf"], ConfigProvider2.leaf("value1"))
       await assertPathSuccess(provider, ["object", "key1"], ConfigProvider2.leaf("value2"))
@@ -71,8 +71,8 @@ describe("ConfigProvider2", () => {
       await assertPathSuccess(provider, ["array", 1, "key4"], ConfigProvider2.leaf("value5"))
       await assertPathSuccess(provider, ["array", 2, 0], ConfigProvider2.leaf("value6"))
 
-      await assertPathSuccess(provider, ["object"], ConfigProvider2.object(["key1", "key2"]))
-      await assertPathSuccess(provider, ["object", "key2"], ConfigProvider2.object(["key3"]))
+      await assertPathSuccess(provider, ["object"], ConfigProvider2.object(new Set(["key1", "key2"])))
+      await assertPathSuccess(provider, ["object", "key2"], ConfigProvider2.object(new Set(["key3"])))
 
       await assertPathSuccess(provider, ["array"], ConfigProvider2.array(3))
       await assertPathSuccess(provider, ["array", 2], ConfigProvider2.array(1))
@@ -90,8 +90,8 @@ describe("ConfigProvider2", () => {
         }
       })
 
-      await assertPathSuccess(provider, [], ConfigProvider2.object(["A"]))
-      await assertPathSuccess(provider, ["A"], ConfigProvider2.object(["0", "B"]))
+      await assertPathSuccess(provider, [], ConfigProvider2.object(new Set(["A"])))
+      await assertPathSuccess(provider, ["A"], ConfigProvider2.object(new Set(["0", "B"])))
     })
 
     it("Integer validation for array indices", async () => {
@@ -104,10 +104,10 @@ describe("ConfigProvider2", () => {
         }
       })
 
-      await assertPathSuccess(provider, [], ConfigProvider2.object(["A", "B"]))
+      await assertPathSuccess(provider, [], ConfigProvider2.object(new Set(["A", "B"])))
       await assertPathSuccess(provider, ["A", "0"], ConfigProvider2.leaf("value1"))
       await assertPathSuccess(provider, ["A", "1"], ConfigProvider2.leaf("value2"))
-      await assertPathSuccess(provider, ["B"], ConfigProvider2.object(["01"]))
+      await assertPathSuccess(provider, ["B"], ConfigProvider2.object(new Set(["01"])))
     })
 
     it("NODE_ENV should be parsed as string", async () => {
@@ -136,7 +136,7 @@ describe("ConfigProvider2", () => {
         }
       })
 
-      await assertPathSuccess(provider, [], ConfigProvider2.object(["leaf", "object", "array"]))
+      await assertPathSuccess(provider, [], ConfigProvider2.object(new Set(["leaf", "object", "array"])))
 
       await assertPathSuccess(provider, ["leaf"], ConfigProvider2.leaf("value1"))
       await assertPathSuccess(provider, ["object", "key1"], ConfigProvider2.leaf("value2"))
@@ -144,8 +144,8 @@ describe("ConfigProvider2", () => {
       await assertPathSuccess(provider, ["array", 1, "key4"], ConfigProvider2.leaf("value5"))
       await assertPathSuccess(provider, ["array", 2, 0], ConfigProvider2.leaf("value6"))
 
-      await assertPathSuccess(provider, ["object"], ConfigProvider2.object(["key1", "key2"]))
-      await assertPathSuccess(provider, ["object", "key2"], ConfigProvider2.object(["key3"]))
+      await assertPathSuccess(provider, ["object"], ConfigProvider2.object(new Set(["key1", "key2"])))
+      await assertPathSuccess(provider, ["object", "key2"], ConfigProvider2.object(new Set(["key3"])))
 
       await assertPathSuccess(provider, ["array"], ConfigProvider2.array(3))
       await assertPathSuccess(provider, ["array", 2], ConfigProvider2.array(1))
@@ -170,9 +170,9 @@ describe("ConfigProvider2", () => {
         }
       })
 
-      await assertPathSuccess(provider, [], ConfigProvider2.object(["LIST", "OBJECT", "LIST_OF_OBJECTS"]))
+      await assertPathSuccess(provider, [], ConfigProvider2.object(new Set(["LIST", "OBJECT", "LIST_OF_OBJECTS"])))
 
-      await assertPathSuccess(provider, ["OBJECT"], ConfigProvider2.object(["name", "age"]))
+      await assertPathSuccess(provider, ["OBJECT"], ConfigProvider2.object(new Set(["name", "age"])))
 
       await assertPathSuccess(provider, ["LIST"], ConfigProvider2.array(3))
       await assertPathSuccess(provider, ["LIST", 0], ConfigProvider2.leaf("a"))
@@ -180,8 +180,8 @@ describe("ConfigProvider2", () => {
       await assertPathSuccess(provider, ["LIST", 2], ConfigProvider2.leaf("c"))
 
       await assertPathSuccess(provider, ["LIST_OF_OBJECTS"], ConfigProvider2.array(2))
-      await assertPathSuccess(provider, ["LIST_OF_OBJECTS", 0], ConfigProvider2.object(["name", "age"]))
-      await assertPathSuccess(provider, ["LIST_OF_OBJECTS", 1], ConfigProvider2.object(["name", "age"]))
+      await assertPathSuccess(provider, ["LIST_OF_OBJECTS", 0], ConfigProvider2.object(new Set(["name", "age"])))
+      await assertPathSuccess(provider, ["LIST_OF_OBJECTS", 1], ConfigProvider2.object(new Set(["name", "age"])))
     })
 
     it("should support inline parsing", async () => {
@@ -200,20 +200,22 @@ describe("ConfigProvider2", () => {
       await assertPathSuccess(
         provider,
         [],
-        ConfigProvider2.object([
-          "LIST",
-          "OBJECT",
-          "WHITESPACED_LIST",
-          "WHITESPACED_OBJECT",
-          "EMPTY_OBJECT"
-        ])
+        ConfigProvider2.object(
+          new Set([
+            "LIST",
+            "OBJECT",
+            "WHITESPACED_LIST",
+            "WHITESPACED_OBJECT",
+            "EMPTY_OBJECT"
+          ])
+        )
       )
       await assertPathSuccess(provider, ["LIST"], ConfigProvider2.array(3))
       await assertPathSuccess(provider, ["LIST", 0], ConfigProvider2.leaf("1"))
       await assertPathSuccess(provider, ["LIST", 1], ConfigProvider2.leaf("2"))
       await assertPathSuccess(provider, ["LIST", 2], ConfigProvider2.leaf("3"))
 
-      await assertPathSuccess(provider, ["OBJECT"], ConfigProvider2.object(["a", "b", "c"]))
+      await assertPathSuccess(provider, ["OBJECT"], ConfigProvider2.object(new Set(["a", "b", "c"])))
       await assertPathSuccess(provider, ["OBJECT", "a"], ConfigProvider2.leaf("1"))
       await assertPathSuccess(provider, ["OBJECT", "b"], ConfigProvider2.leaf("2"))
       await assertPathSuccess(provider, ["OBJECT", "c"], ConfigProvider2.leaf("3"))
@@ -223,12 +225,12 @@ describe("ConfigProvider2", () => {
       await assertPathSuccess(provider, ["WHITESPACED_LIST", 1], ConfigProvider2.leaf("2"))
       await assertPathSuccess(provider, ["WHITESPACED_LIST", 2], ConfigProvider2.leaf("3"))
 
-      await assertPathSuccess(provider, ["WHITESPACED_OBJECT"], ConfigProvider2.object(["a", "b", "c"]))
+      await assertPathSuccess(provider, ["WHITESPACED_OBJECT"], ConfigProvider2.object(new Set(["a", "b", "c"])))
       await assertPathSuccess(provider, ["WHITESPACED_OBJECT", "a"], ConfigProvider2.leaf("1"))
       await assertPathSuccess(provider, ["WHITESPACED_OBJECT", "b"], ConfigProvider2.leaf("2"))
       await assertPathSuccess(provider, ["WHITESPACED_OBJECT", "c"], ConfigProvider2.leaf("3"))
 
-      await assertPathSuccess(provider, ["EMPTY_OBJECT"], ConfigProvider2.object(["a", "b", "c"]))
+      await assertPathSuccess(provider, ["EMPTY_OBJECT"], ConfigProvider2.object(new Set(["a", "b", "c"])))
       await assertPathSuccess(provider, ["EMPTY_OBJECT", "a"], ConfigProvider2.leaf(""))
       await assertPathSuccess(provider, ["EMPTY_OBJECT", "b"], ConfigProvider2.leaf("2"))
       await assertPathSuccess(provider, ["EMPTY_OBJECT", "c"], ConfigProvider2.leaf("3"))
@@ -244,7 +246,7 @@ describe("ConfigProvider2", () => {
         }
       })
 
-      await assertPathSuccess(provider, [], ConfigProvider2.object(["LIST", "OBJECT"]))
+      await assertPathSuccess(provider, [], ConfigProvider2.object(new Set(["LIST", "OBJECT"])))
       await assertPathSuccess(provider, ["LIST"], ConfigProvider2.array(2))
 
       await assertPathSuccess(provider, ["LIST", 0], ConfigProvider2.array(3))
@@ -252,17 +254,17 @@ describe("ConfigProvider2", () => {
       await assertPathSuccess(provider, ["LIST", 0, 1], ConfigProvider2.leaf("2"))
       await assertPathSuccess(provider, ["LIST", 0, 2], ConfigProvider2.leaf("3"))
 
-      await assertPathSuccess(provider, ["LIST", 1], ConfigProvider2.object(["a", "b", "c"]))
+      await assertPathSuccess(provider, ["LIST", 1], ConfigProvider2.object(new Set(["a", "b", "c"])))
       await assertPathSuccess(provider, ["LIST", 1, "a"], ConfigProvider2.leaf("1"))
       await assertPathSuccess(provider, ["LIST", 1, "b"], ConfigProvider2.leaf("2"))
       await assertPathSuccess(provider, ["LIST", 1, "c"], ConfigProvider2.leaf("3"))
 
-      await assertPathSuccess(provider, ["OBJECT"], ConfigProvider2.object(["a", "b"]))
+      await assertPathSuccess(provider, ["OBJECT"], ConfigProvider2.object(new Set(["a", "b"])))
       await assertPathSuccess(provider, ["OBJECT", "a"], ConfigProvider2.array(3))
       await assertPathSuccess(provider, ["OBJECT", "a", 0], ConfigProvider2.leaf("1"))
       await assertPathSuccess(provider, ["OBJECT", "a", 1], ConfigProvider2.leaf("2"))
       await assertPathSuccess(provider, ["OBJECT", "a", 2], ConfigProvider2.leaf("3"))
-      await assertPathSuccess(provider, ["OBJECT", "b"], ConfigProvider2.object(["a", "b", "c"]))
+      await assertPathSuccess(provider, ["OBJECT", "b"], ConfigProvider2.object(new Set(["a", "b", "c"])))
       await assertPathSuccess(provider, ["OBJECT", "b", "a"], ConfigProvider2.leaf("1"))
     })
   })
@@ -282,7 +284,7 @@ describe("ConfigProvider2", () => {
     })
 
     it("Root node", async () => {
-      await assertPathSuccess(provider, [], ConfigProvider2.object(["leaf", "object", "array"]))
+      await assertPathSuccess(provider, [], ConfigProvider2.object(new Set(["leaf", "object", "array"])))
     })
 
     it("Exact leaf resolution", async () => {
@@ -294,8 +296,8 @@ describe("ConfigProvider2", () => {
     })
 
     it("Object detection", async () => {
-      await assertPathSuccess(provider, ["object"], ConfigProvider2.object(["key1", "key2"]))
-      await assertPathSuccess(provider, ["object", "key2"], ConfigProvider2.object(["key3"]))
+      await assertPathSuccess(provider, ["object"], ConfigProvider2.object(new Set(["key1", "key2"])))
+      await assertPathSuccess(provider, ["object", "key2"], ConfigProvider2.object(new Set(["key3"])))
     })
 
     it("Array detection", async () => {
@@ -330,15 +332,17 @@ describe("ConfigProvider2", () => {
       await assertPathSuccess(
         provider,
         [],
-        ConfigProvider2.object([
-          "string",
-          "number",
-          "boolean",
-          "null",
-          "undefined",
-          "array",
-          "object"
-        ])
+        ConfigProvider2.object(
+          new Set([
+            "string",
+            "number",
+            "boolean",
+            "null",
+            "undefined",
+            "array",
+            "object"
+          ])
+        )
       )
       await assertPathSuccess(provider, ["string"], ConfigProvider2.leaf("hello"))
       await assertPathSuccess(provider, ["number"], ConfigProvider2.leaf("42"))
@@ -349,9 +353,9 @@ describe("ConfigProvider2", () => {
       await assertPathSuccess(provider, ["array", 0], ConfigProvider2.leaf("1"))
       await assertPathSuccess(provider, ["array", 1], ConfigProvider2.leaf("two"))
       await assertPathSuccess(provider, ["array", 2], ConfigProvider2.leaf("false"))
-      await assertPathSuccess(provider, ["object"], ConfigProvider2.object(["nested", "deep"]))
+      await assertPathSuccess(provider, ["object"], ConfigProvider2.object(new Set(["nested", "deep"])))
       await assertPathSuccess(provider, ["object", "nested"], ConfigProvider2.leaf("value"))
-      await assertPathSuccess(provider, ["object", "deep"], ConfigProvider2.object(["key"]))
+      await assertPathSuccess(provider, ["object", "deep"], ConfigProvider2.object(new Set(["key"])))
       await assertPathSuccess(provider, ["object", "deep", "key"], ConfigProvider2.leaf("123"))
     })
   })
@@ -378,7 +382,7 @@ DB_PASS=$PASSWORD
       await assertPathSuccess(
         provider,
         [],
-        ConfigProvider2.object(["NODE_ENV", "API_URL", "TAGS", "MAP", "USERS", "PASSWORD", "DB_PASS"])
+        ConfigProvider2.object(new Set(["NODE_ENV", "API_URL", "TAGS", "MAP", "USERS", "PASSWORD", "DB_PASS"]))
       )
       await assertPathSuccess(provider, ["NODE_ENV"], ConfigProvider2.leaf("production"))
       await assertPathSuccess(provider, ["API_URL"], ConfigProvider2.leaf("https://api.example.com"))
@@ -398,7 +402,7 @@ MAP="a=,b=2,c=3"
         { parser: ConfigProvider2.defaultParser }
       )
       await assertPathSuccess(provider, ["TAGS"], ConfigProvider2.array(3))
-      await assertPathSuccess(provider, ["MAP"], ConfigProvider2.object(["a", "b", "c"]))
+      await assertPathSuccess(provider, ["MAP"], ConfigProvider2.object(new Set(["a", "b", "c"])))
     })
 
     it("should expand variables", async () => {

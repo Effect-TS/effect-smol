@@ -27,7 +27,7 @@ interface ConfigProvider extends Pipeable {
     // terminal string value
     | { readonly _tag: "leaf"; readonly value: string }
     // object container; keys are unordered
-    | { readonly _tag: "object"; readonly keys: ReadonlyArray<string> }
+    | { readonly _tag: "object"; readonly keys: ReadonlySet<string> }
     // array-like container; `length` is the number of elements
     | { readonly _tag: "array"; readonly length: number }
   ```
