@@ -32,8 +32,11 @@ export type Path = ReadonlyArray<string | number>
  * @since 4.0.0
  */
 export type Node =
+  // a terminal string value
   | { readonly _tag: "leaf"; readonly value: string }
+  // an object; keys are unordered
   | { readonly _tag: "object"; readonly keys: ReadonlyArray<string> }
+  // an array-like container; length is the number of elements
   | { readonly _tag: "array"; readonly length: number }
 
 /**
@@ -172,10 +175,7 @@ export const layerAdd = <E = never, R = never>(
  * @since 4.0.0
  */
 export function fromStringLeafJson(root: StringLeafJson): ConfigProvider {
-  return make((path) => {
-    const resolved = resolvePath(root, path)
-    return Effect.succeed(resolved === undefined ? undefined : describeNode(resolved))
-  })
+  return make((path) => Effect.succeed(describeNode(resolvePath(root, path))))
 }
 
 function resolvePath(input: StringLeafJson, path: Path): StringLeafJson | undefined {
@@ -194,7 +194,8 @@ function resolvePath(input: StringLeafJson, path: Path): StringLeafJson | undefi
   return out
 }
 
-function describeNode(value: StringLeafJson): Node {
+function describeNode(value: StringLeafJson | undefined): Node | undefined {
+  if (value === undefined) return undefined
   if (typeof value === "string") return leaf(value)
   if (Array.isArray(value)) return array(value.length)
   return object(Object.keys(value))

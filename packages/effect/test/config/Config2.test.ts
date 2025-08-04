@@ -16,7 +16,9 @@ async function assertFailure<T>(config: Config2.Config<T>, provider: ConfigProvi
     Effect.catchTag(
       "GetError",
       (e) =>
-        Effect.fail(new Schema.SchemaError({ issue: new Issue.InvalidValue(Option.none(), { message: e.reason }) }))
+        Effect.fail(
+          new Schema.SchemaError({ issue: new Issue.InvalidValue(Option.none(), { message: `GetError: ${e.reason}` }) })
+        )
     )
   )
   return await assertions.effect.fail(result.pipe(Effect.mapError((e) => e.issue)), message)
@@ -80,6 +82,7 @@ describe("Config2", () => {
       const config = Config2.schema(schema)
 
       await assertSuccess(config, ConfigProvider2.fromStringLeafJson("value"), "value")
+      await assertFailure(config, ConfigProvider2.fromStringLeafJson({}), `Expected string, actual undefined`)
     })
 
     describe("Struct", () => {
@@ -108,7 +111,7 @@ describe("Config2", () => {
       })
 
       it("optionalKey properties", async () => {
-        const schema = Schema.Struct({ a: Schema.optionalKey(Schema.FiniteFromString) })
+        const schema = Schema.Struct({ a: Schema.optionalKey(Schema.Finite) })
         const config = Config2.schema(schema)
 
         await assertSuccess(config, ConfigProvider2.fromStringLeafJson({ a: "1" }), { a: 1 })
@@ -117,7 +120,7 @@ describe("Config2", () => {
 
       it("optional properties", async () => {
         const config = Config2.schema(
-          Schema.Struct({ a: Schema.optional(Schema.FiniteFromString) })
+          Schema.Struct({ a: Schema.optional(Schema.Finite) })
         )
 
         await assertSuccess(config, ConfigProvider2.fromStringLeafJson({ a: "1" }), { a: 1 })
@@ -134,7 +137,7 @@ describe("Config2", () => {
     })
 
     it("Record", async () => {
-      const schema = Schema.Record(Schema.String, Schema.FiniteFromString)
+      const schema = Schema.Record(Schema.String, Schema.Finite)
       const config = Config2.schema(schema)
 
       await assertSuccess(config, ConfigProvider2.fromStringLeafJson({ a: "1" }), { a: 1 })
@@ -144,9 +147,10 @@ describe("Config2", () => {
         ConfigProvider2.fromStringLeafJson({ a: "1", b: "value" }),
         `{ readonly [x: string]: number }
 └─ ["b"]
-   └─ number & finite
-      └─ finite
-         └─ Invalid data NaN`
+   └─ Encoding failure
+      └─ string & a string representing a number
+         └─ a string representing a number
+            └─ Invalid data "value"`
       )
     })
 
@@ -160,24 +164,32 @@ describe("Config2", () => {
       })
 
       it("required elements", async () => {
-        const schema = Schema.Tuple([Schema.String, Schema.FiniteFromString])
+        const schema = Schema.Tuple([Schema.String, Schema.Finite])
         const config = Config2.schema(schema)
 
-        await assertSuccess(config, ConfigProvider2.fromStringLeafJson(["1", "2"]), ["1", 2])
+        await assertSuccess(config, ConfigProvider2.fromStringLeafJson(["a", "2"]), ["a", 2])
         await assertFailure(
           config,
-          ConfigProvider2.fromStringLeafJson(["1", "value"]),
+          ConfigProvider2.fromStringLeafJson(["a"]),
           `readonly [string, number]
 └─ [1]
-   └─ number & finite
-      └─ finite
-         └─ Invalid data NaN`
+   └─ Missing key`
+        )
+        await assertFailure(
+          config,
+          ConfigProvider2.fromStringLeafJson(["a", "value"]),
+          `readonly [string, number]
+└─ [1]
+   └─ Encoding failure
+      └─ string & a string representing a number
+         └─ a string representing a number
+            └─ Invalid data "value"`
         )
       })
     })
 
     it("Array", async () => {
-      const schema = Schema.Array(Schema.FiniteFromString)
+      const schema = Schema.Array(Schema.Finite)
       const config = Config2.schema(schema)
 
       await assertSuccess(config, ConfigProvider2.fromStringLeafJson(["1"]), [1])
@@ -189,9 +201,10 @@ describe("Config2", () => {
         ConfigProvider2.fromStringLeafJson(["1", "value"]),
         `ReadonlyArray<number>
 └─ [1]
-   └─ number & finite
-      └─ finite
-         └─ Invalid data NaN`
+   └─ Encoding failure
+      └─ string & a string representing a number
+         └─ a string representing a number
+            └─ Invalid data "value"`
       )
     })
 

@@ -168,9 +168,8 @@ const go: (
         return yield* go(ast.thunk(), provider, path)
       default: {
         const node = yield* provider.get(path)
-        if (node === undefined) return undefined
-        if (node._tag === "leaf") return node.value
-        return yield* Effect.fail(new ConfigProvider.GetError({ reason: "Expected a leaf, but received a container" }))
+        if (node === undefined || node._tag !== "leaf") return undefined
+        return node.value
       }
     }
   }
