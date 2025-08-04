@@ -10,7 +10,7 @@ import { pipeArguments } from "../interfaces/Pipeable.ts"
 import type { Span } from "../observability/Tracer.ts"
 import type * as ServiceMap from "../ServiceMap.ts"
 import type { Equals, NoInfer } from "../types/Types.ts"
-import { SingleShotGen, YieldWrap } from "../Utils.ts"
+import { SingleShotGen } from "../Utils.ts"
 import type { FiberImpl } from "./effect.ts"
 import { version } from "./version.ts"
 
@@ -80,7 +80,7 @@ export const PipeInspectableProto = {
 /** @internal */
 export const YieldableProto = {
   [Symbol.iterator]() {
-    return new SingleShotGen(new YieldWrap(this)) as any
+    return new SingleShotGen(this) as any
   }
 }
 
@@ -89,7 +89,7 @@ export const EffectProto = {
   [TypeId]: effectVariance,
   ...PipeInspectableProto,
   [Symbol.iterator]() {
-    return new SingleShotGen(new YieldWrap(this)) as any
+    return new SingleShotGen(this) as any
   },
   asEffect(): any {
     return this

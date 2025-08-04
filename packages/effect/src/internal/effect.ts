@@ -35,8 +35,7 @@ import * as ServiceMap from "../ServiceMap.ts"
 import type * as Clock from "../time/Clock.ts"
 import * as Duration from "../time/Duration.ts"
 import type { Concurrency, ExcludeTag, ExtractTag, NoInfer, NotFunction, Simplify, Tags } from "../types/Types.ts"
-import type { YieldWrap } from "../Utils.ts"
-import { internalCall, yieldWrapGet } from "../Utils.ts"
+import { internalCall } from "../Utils.ts"
 import type { Primitive } from "./core.ts"
 import {
   args,
@@ -961,7 +960,7 @@ export const never: Effect.Effect<never> = callback<never>(constVoid)
 /** @internal */
 export const gen = <
   Self,
-  Eff extends YieldWrap<Effect.Yieldable<any, any, any, any>>,
+  Eff extends Effect.Yieldable<any, any, any, any>,
   AEff
 >(
   ...args:
@@ -970,10 +969,10 @@ export const gen = <
 ): Effect.Effect<
   AEff,
   [Eff] extends [never] ? never
-    : [Eff] extends [YieldWrap<Effect.Yieldable<infer _A, infer E, infer _R>>] ? E
+    : [Eff] extends [Effect.Yieldable<infer _A, infer E, infer _R>] ? E
     : never,
   [Eff] extends [never] ? never
-    : [Eff] extends [YieldWrap<Effect.Yieldable<infer _A, infer _E, infer R>>] ? R
+    : [Eff] extends [Effect.Yieldable<infer _A, infer _E, infer R>] ? R
     : never
 > =>
   suspend(() =>
@@ -1019,7 +1018,7 @@ export const fnUntracedEager: Effect.fn.Gen = (
 }
 
 const unsafeFromIteratorEager = (
-  createIterator: () => Iterator<YieldWrap<Effect.Yieldable<any, any, any, any>>>
+  createIterator: () => Iterator<Effect.Yieldable<any, any, any, any>>
 ): Effect.Effect<any, any, any> => {
   try {
     const iterator = createIterator()
@@ -1033,7 +1032,7 @@ const unsafeFromIteratorEager = (
         return succeed(state.value)
       }
 
-      const yieldable = yieldWrapGet(state.value)
+      const yieldable = state.value
       const effect = yieldable.asEffect()
       const primitive = effect as any
 
@@ -1061,7 +1060,7 @@ const unsafeFromIteratorEager = (
 }
 
 const unsafeFromIterator: (
-  iterator: Iterator<YieldWrap<Effect.Yieldable<any, any, any, any>>>,
+  iterator: Iterator<Effect.Yieldable<any, any, any, any>>,
   initial?: undefined
 ) => Effect.Effect<any, any, any> = makePrimitive({
   op: "Iterator",
@@ -1070,7 +1069,7 @@ const unsafeFromIterator: (
     const state = this[args][0].next(value)
     if (state.done) return succeed(state.value)
     fiber._stack.push(this)
-    return yieldWrapGet(state.value).asEffect()
+    return state.value.asEffect()
   },
   [evaluate](this: any, fiber: FiberImpl) {
     return this[contA](this[args][1], fiber)

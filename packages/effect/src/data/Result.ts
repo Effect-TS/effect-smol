@@ -1103,8 +1103,6 @@ export const all: <const I extends Iterable<Result<any, any>> | Record<string, R
 export const flip = <A, E>(self: Result<A, E>): Result<E, A> =>
   isFailure(self) ? succeed(self.failure) : fail(self.success)
 
-const adapter = Gen.adapter<ResultTypeLambda>()
-
 /**
  * Provides a generator-based DSL for working with `Result` values in a sequential manner.
  *
@@ -1125,14 +1123,14 @@ const adapter = Gen.adapter<ResultTypeLambda>()
  * @category Generators
  * @since 4.0.0
  */
-export const gen: Gen.Gen<ResultTypeLambda, Gen.Adapter<ResultTypeLambda>> = (...args) => {
+export const gen: Gen.Gen<ResultTypeLambda> = (...args) => {
   const f = args.length === 1 ? args[0] : args[1].bind(args[0])
-  const iterator = f(adapter)
+  const iterator = f()
   let state: IteratorResult<any> = iterator.next()
   while (!state.done) {
     const current = Gen.isGenKind(state.value)
       ? state.value.value
-      : Gen.yieldWrapGet(state.value)
+      : state.value
     if (isFailure(current)) {
       return current
     }

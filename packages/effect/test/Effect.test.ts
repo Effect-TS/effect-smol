@@ -11,6 +11,14 @@ import { TxRef } from "effect/transactions"
 class ATag extends ServiceMap.Key<ATag, "A">()("ATag") {}
 
 describe("Effect", () => {
+  describe("structural compare", () => {
+    it("should pass structural comparison", () => {
+      assert.deepEqual(Effect.succeed(0), Effect.succeed(0))
+    })
+    it("should fail structural comparison", () => {
+      assert.notDeepEqual(Effect.succeed(0), Effect.succeed(1))
+    })
+  })
   describe("tracing", () => {
     it.effect("failCause captures current span", () =>
       Effect.gen(function*() {

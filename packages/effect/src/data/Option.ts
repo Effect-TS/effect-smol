@@ -2423,8 +2423,6 @@ export const bind: {
  */
 export const Do: Option<{}> = some({})
 
-const adapter = Gen.adapter<OptionTypeLambda>()
-
 /**
  * Similar to `Effect.gen`, `Option.gen` provides a more readable,
  * generator-based syntax for working with `Option` values, making code that
@@ -2452,14 +2450,14 @@ const adapter = Gen.adapter<OptionTypeLambda>()
  * @category Generators
  * @since 2.0.0
  */
-export const gen: Gen.Gen<OptionTypeLambda, Gen.Adapter<OptionTypeLambda>> = (...args) => {
+export const gen: Gen.Gen<OptionTypeLambda> = (...args) => {
   const f = args.length === 1 ? args[0] : args[1].bind(args[0])
-  const iterator = f(adapter)
+  const iterator = f()
   let state: IteratorResult<any> = iterator.next()
   while (!state.done) {
     const current = Gen.isGenKind(state.value)
       ? state.value.value
-      : Gen.yieldWrapGet(state.value)
+      : state.value
     if (isNone(current)) {
       return current
     }
