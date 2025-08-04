@@ -9,7 +9,7 @@ import { SystemError } from "effect/platform/PlatformError"
 async function assertPathSuccess(
   provider: ConfigProvider2.ConfigProvider,
   path: ConfigProvider2.Path,
-  expected: ConfigProvider2.Node | undefined
+  expected: ConfigProvider2.Stat | undefined
 ) {
   const r = Effect.result(provider.get(path))
   deepStrictEqual(await Effect.runPromise(r), Result.succeed(expected))

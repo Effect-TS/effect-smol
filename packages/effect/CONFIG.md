@@ -1,32 +1,58 @@
 # ConfigProvider
 
-A `ConfigProvider` exposes a single operation used to navigate and read values.
+A `ConfigProvider` exposes one operation to navigate configuration data and read values.
 
 ```ts
 interface ConfigProvider extends Pipeable {
-  readonly get: (path: Path) => Effect<Node | undefined, GetError>
+  /**
+   * Returns the node found at `path`, or `undefined` if it does not exist.
+   * Fails with `GetError` when the underlying source cannot be read.
+   */
+  readonly get: (path: Path) => Effect<Stat | undefined, GetError>
 }
 ```
 
-- **Path**. A path is a list of segments. Use **strings** for object keys and **numbers** for array indices.
+- **Path**
+  A path is a list of segments. Use **strings** for object keys and **numbers** for array indices.
 
   ```ts
   type Path = ReadonlyArray<string | number>
   ```
 
-- **Node**. Describes what exists at a path. If the path does not exist, `get` resolves to `undefined`.
+- **Stat**
+  Describes what exists at a path. If the path does not exist, `get` resolves to `undefined`.
 
   ```ts
-  type Node =
-    // a terminal string value
+  type Stat =
+    // terminal string value
     | { readonly _tag: "leaf"; readonly value: string }
-    // an object; keys are unordered
+    // object container; keys are unordered
     | { readonly _tag: "object"; readonly keys: ReadonlyArray<string> }
-    // an array-like container; length is the number of elements
+    // array-like container; `length` is the number of elements
     | { readonly _tag: "array"; readonly length: number }
   ```
 
-- **GetError**. Returned when the provider cannot read a value due to an underlying failure (I/O, permissions, etc.).
+- **GetError**
+  Returned when the provider cannot read a value due to an underlying failure (I/O, permissions, and similar).
+
+Why a stat result instead of the full value?
+
+- `Stat` tells you the **kind** of node at a path without loading everything under it.
+- This mirrors filesystem APIs where you first check what a path is (file or directory) and then decide how to read it.
+
+## Filesystem Analogy
+
+- **Path navigation**: As with a filesystem (`/usr/local/bin`, `C:\Program Files\App`), you navigate config with paths like `["database", "host"]` or `["api", "endpoints", 0]`.
+- **Stat-like response**: `get` returns metadata about what exists at that path:
+  - **Leaf** → similar to a regular file (it holds a value).
+  - **Object** → similar to a directory (it holds named entries).
+  - **Array** → similar to a directory with numbered entries.
+
+- **Virtual filesystem**: The provider hides the actual source (environment variables, files, and so on) behind a unified interface.
+- **Behavior**:
+  - Returns `undefined` when a path is missing.
+  - Returns the node type and basic structure when present.
+  - Does not return nested content for containers (similar to `stat` not reading file contents).
 
 # Config
 

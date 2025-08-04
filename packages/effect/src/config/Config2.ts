@@ -89,14 +89,14 @@ const dump: (
   provider,
   path
 ) {
-  const node = yield* provider.get(path)
-  if (node === undefined) return undefined
-  switch (node._tag) {
+  const stat = yield* provider.get(path)
+  if (stat === undefined) return undefined
+  switch (stat._tag) {
     case "leaf":
-      return node.value
+      return stat.value
     case "object": {
       const out: Record<string, StringLeafJson> = {}
-      for (const key of node.keys) {
+      for (const key of stat.keys) {
         const child = yield* dump(provider, [...path, key])
         if (child !== undefined) out[key] = child
       }
@@ -104,7 +104,7 @@ const dump: (
     }
     case "array": {
       const out: Array<StringLeafJson> = []
-      for (let i = 0; i < node.length; i++) {
+      for (let i = 0; i < stat.length; i++) {
         const child = yield* dump(provider, [...path, i])
         if (child !== undefined) out.push(child)
       }
@@ -130,11 +130,11 @@ const go: (
           }
         }
         if (ast.indexSignatures.length > 0) {
-          const node = yield* provider.get(path)
-          if (node && node._tag === "object") {
+          const stat = yield* provider.get(path)
+          if (stat && stat._tag === "object") {
             for (const is of ast.indexSignatures) {
               const matches = ToParser.refinement(is.parameter)
-              for (const key of node.keys) {
+              for (const key of stat.keys) {
                 if (!Object.prototype.hasOwnProperty.call(out, key) && matches(key)) {
                   const value = yield* go(is.type, provider, [...path, key])
                   if (value !== undefined) out[key] = value
@@ -152,9 +152,9 @@ const go: (
           if (typeof out === "string") return [out]
           return out
         }
-        const node = yield* provider.get(path)
+        const stat = yield* provider.get(path)
         // ensure array
-        if (node && node._tag === "leaf") return [node.value]
+        if (stat && stat._tag === "leaf") return [stat.value]
         const out: Array<StringLeafJson> = []
         for (let i = 0; i < ast.elements.length; i++) {
           const value = yield* go(ast.elements[i], provider, [...path, i])
@@ -167,9 +167,9 @@ const go: (
       case "Suspend":
         return yield* go(ast.thunk(), provider, path)
       default: {
-        const node = yield* provider.get(path)
-        if (node === undefined || node._tag !== "leaf") return undefined
-        return node.value
+        const stat = yield* provider.get(path)
+        if (stat === undefined || stat._tag !== "leaf") return undefined
+        return stat.value
       }
     }
   }

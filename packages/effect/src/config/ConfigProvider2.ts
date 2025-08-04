@@ -31,32 +31,32 @@ export type Path = ReadonlyArray<string | number>
 /**
  * @since 4.0.0
  */
-export type Node =
-  // a terminal string value
+export type Stat =
+  /* a terminal string value */
   | { readonly _tag: "leaf"; readonly value: string }
-  // an object; keys are unordered
+  /* an object; keys are unordered */
   | { readonly _tag: "object"; readonly keys: ReadonlyArray<string> }
-  // an array-like container; length is the number of elements
+  /* an array-like container; length is the number of elements */
   | { readonly _tag: "array"; readonly length: number }
 
 /**
  * @since 4.0.0
  */
-export function leaf(value: string): Node {
+export function leaf(value: string): Stat {
   return { _tag: "leaf", value }
 }
 
 /**
  * @since 4.0.0
  */
-export function object(keys: ReadonlyArray<string>): Node {
+export function object(keys: ReadonlyArray<string>): Stat {
   return { _tag: "object", keys }
 }
 
 /**
  * @since 4.0.0
  */
-export function array(length: number): Node {
+export function array(length: number): Stat {
   return { _tag: "array", length }
 }
 
@@ -73,7 +73,11 @@ export class GetError extends Data.TaggedError("GetError")<{
  * @category Models
  */
 export interface ConfigProvider extends Pipeable {
-  readonly get: (path: Path) => Effect.Effect<Node | undefined, GetError>
+  /**
+   * Returns the node found at `path`, or `undefined` if it does not exist.
+   * Fails with `GetError` when the underlying source cannot be read.
+   */
+  readonly get: (path: Path) => Effect.Effect<Stat | undefined, GetError>
 }
 
 /**
@@ -98,7 +102,7 @@ const Proto = {
  * @since 4.0.0
  * @category Constructors
  */
-export function make(get: (path: Path) => Effect.Effect<Node | undefined, GetError>): ConfigProvider {
+export function make(get: (path: Path) => Effect.Effect<Stat | undefined, GetError>): ConfigProvider {
   const self = Object.create(Proto)
   self.get = get
   return self
@@ -114,7 +118,7 @@ export const orElse: {
 } = dual(
   2,
   (self: ConfigProvider, that: ConfigProvider): ConfigProvider =>
-    make((path) => Effect.flatMap(self.get(path), (node) => node ? Effect.succeed(node) : that.get(path)))
+    make((path) => Effect.flatMap(self.get(path), (stat) => stat ? Effect.succeed(stat) : that.get(path)))
 )
 
 /**
@@ -175,7 +179,7 @@ export const layerAdd = <E = never, R = never>(
  * @since 4.0.0
  */
 export function fromStringLeafJson(root: StringLeafJson): ConfigProvider {
-  return make((path) => Effect.succeed(describeNode(resolvePath(root, path))))
+  return make((path) => Effect.succeed(describeStat(resolvePath(root, path))))
 }
 
 function resolvePath(input: StringLeafJson, path: Path): StringLeafJson | undefined {
@@ -194,7 +198,7 @@ function resolvePath(input: StringLeafJson, path: Path): StringLeafJson | undefi
   return out
 }
 
-function describeNode(value: StringLeafJson | undefined): Node | undefined {
+function describeStat(value: StringLeafJson | undefined): Stat | undefined {
   if (value === undefined) return undefined
   if (typeof value === "string") return leaf(value)
   if (Array.isArray(value)) return array(value.length)
