@@ -125,7 +125,7 @@ describe("Config2", () => {
 
         await assertSuccess(config, ConfigProvider2.fromEnv({ environment: { a: "" } }), { a: [] })
         await assertSuccess(config, ConfigProvider2.fromEnv({ environment: { a: "1" } }), { a: [1] })
-        await assertSuccess(config, ConfigProvider2.fromEnv({ environment: { a: "1,2" } }), { a: [1, 2] })
+        await assertSuccess(config, ConfigProvider2.fromEnv({ environment: { a__0: "1", a__1: "2" } }), { a: [1, 2] })
       })
     })
 
@@ -166,7 +166,7 @@ describe("Config2", () => {
         const schema = Schema.Struct({ a: Schema.Tuple([Schema.String, Schema.Finite]) })
         const config = Config2.schema(schema)
 
-        await assertSuccess(config, ConfigProvider2.fromEnv({ environment: { a: "a,2" } }), { a: ["a", 2] })
+        await assertSuccess(config, ConfigProvider2.fromEnv({ environment: { a__0: "a", a__1: "2" } }), { a: ["a", 2] })
         await assertFailure(
           config,
           ConfigProvider2.fromEnv({ environment: { a: "a" } }),
@@ -178,7 +178,7 @@ describe("Config2", () => {
         )
         await assertFailure(
           config,
-          ConfigProvider2.fromEnv({ environment: { a: "a,value" } }),
+          ConfigProvider2.fromEnv({ environment: { a__0: "a", a__1: "value" } }),
           `{ readonly "a": readonly [string, number] }
 └─ ["a"]
    └─ readonly [string, number]
@@ -196,10 +196,10 @@ describe("Config2", () => {
       const config = Config2.schema(schema)
 
       await assertSuccess(config, ConfigProvider2.fromEnv({ environment: { a: "1" } }), { a: [1] })
-      await assertSuccess(config, ConfigProvider2.fromEnv({ environment: { a: "1,2" } }), { a: [1, 2] })
+      await assertSuccess(config, ConfigProvider2.fromEnv({ environment: { a__0: "1", a__1: "2" } }), { a: [1, 2] })
       await assertFailure(
         config,
-        ConfigProvider2.fromEnv({ environment: { a: "1,value" } }),
+        ConfigProvider2.fromEnv({ environment: { a__0: "1", a__1: "value" } }),
         `{ readonly "a": ReadonlyArray<number> }
 └─ ["a"]
    └─ ReadonlyArray<number>
@@ -254,20 +254,23 @@ describe("Config2", () => {
     it("Suspend", async () => {
       interface A {
         readonly a: string
-        readonly na: A | null
+        readonly as: ReadonlyArray<A>
       }
       const schema = Schema.Struct({
         a: Schema.String,
-        na: Schema.NullOr(Schema.suspend((): Schema.Codec<A> => schema))
+        as: Schema.Array(Schema.suspend((): Schema.Codec<A> => schema))
       })
-
       const config = Config2.schema(schema)
 
-      await assertSuccess(config, ConfigProvider2.fromEnv({ environment: { a: "1", na: "" } }), { a: "1", na: null })
-      await assertSuccess(config, ConfigProvider2.fromEnv({ environment: { a: "1", "na": "a=2,na=" } }), {
-        a: "1",
-        na: { a: "2", na: null }
-      })
+      await assertSuccess(config, ConfigProvider2.fromEnv({ environment: { a: "1", as: "" } }), { a: "1", as: [] })
+      await assertSuccess(
+        config,
+        ConfigProvider2.fromEnv({ environment: { a: "1", as__0__a: "2", as__0__as__TYPE: "A" } }),
+        {
+          a: "1",
+          as: [{ a: "2", as: [] }]
+        }
+      )
     })
   })
 

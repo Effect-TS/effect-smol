@@ -1,4 +1,4 @@
-import { describe, it } from "@effect/vitest"
+import { describe, expect, it } from "@effect/vitest"
 import { deepStrictEqual } from "@effect/vitest/utils"
 import { Effect, Layer } from "effect"
 import { ConfigProvider2 } from "effect/config"
@@ -105,8 +105,8 @@ describe("ConfigProvider2", () => {
       })
 
       await assertPathSuccess(provider, [], ConfigProvider2.object(new Set(["A", "B"])))
-      await assertPathSuccess(provider, ["A", "0"], ConfigProvider2.leaf("value1"))
-      await assertPathSuccess(provider, ["A", "1"], ConfigProvider2.leaf("value2"))
+      await assertPathSuccess(provider, ["A", 0], ConfigProvider2.leaf("value1"))
+      await assertPathSuccess(provider, ["A", 1], ConfigProvider2.leaf("value2"))
       await assertPathSuccess(provider, ["B"], ConfigProvider2.object(new Set(["01"])))
     })
 
@@ -117,155 +117,6 @@ describe("ConfigProvider2", () => {
         }
       })
       await assertPathSuccess(provider, ["NODE_ENV"], ConfigProvider2.leaf("value"))
-    })
-
-    it("should support custom split/join", async () => {
-      const provider = ConfigProvider2.fromEnv({
-        environment: {
-          "leaf": "value1",
-          "object_key1": "value2",
-          "object_key2_key3": "value3",
-          "array_0": "value4",
-          "array_1_key4": "value5",
-          "array_2_0": "value6"
-        },
-        parser: {
-          splitKey: (key) => key.split("_"),
-          joinTokens: (tokens) => tokens.join("_"),
-          inlineParser: ConfigProvider2.defaultParser.inlineParser
-        }
-      })
-
-      await assertPathSuccess(provider, [], ConfigProvider2.object(new Set(["leaf", "object", "array"])))
-
-      await assertPathSuccess(provider, ["leaf"], ConfigProvider2.leaf("value1"))
-      await assertPathSuccess(provider, ["object", "key1"], ConfigProvider2.leaf("value2"))
-      await assertPathSuccess(provider, ["array", 0], ConfigProvider2.leaf("value4"))
-      await assertPathSuccess(provider, ["array", 1, "key4"], ConfigProvider2.leaf("value5"))
-      await assertPathSuccess(provider, ["array", 2, 0], ConfigProvider2.leaf("value6"))
-
-      await assertPathSuccess(provider, ["object"], ConfigProvider2.object(new Set(["key1", "key2"])))
-      await assertPathSuccess(provider, ["object", "key2"], ConfigProvider2.object(new Set(["key3"])))
-
-      await assertPathSuccess(provider, ["array"], ConfigProvider2.array(3))
-      await assertPathSuccess(provider, ["array", 2], ConfigProvider2.array(1))
-
-      await assertPathSuccess(provider, ["leaf", "non-existing"], undefined)
-      await assertPathSuccess(provider, ["object", "non-existing"], undefined)
-      await assertPathSuccess(provider, ["array", 3, "non-existing"], undefined)
-    })
-
-    it("should support bracket tokenization", async () => {
-      const provider = ConfigProvider2.fromEnv({
-        environment: {
-          "LIST[0]": "a",
-          "LIST[1]": "b",
-          "LIST[2]": "c",
-          "OBJECT[name]": "bob",
-          "OBJECT[age]": "30",
-          "LIST_OF_OBJECTS[0]__name": "alice",
-          "LIST_OF_OBJECTS[0]__age": "25",
-          "LIST_OF_OBJECTS[1][name]": "bob",
-          "LIST_OF_OBJECTS[1][age]": "30"
-        }
-      })
-
-      await assertPathSuccess(provider, [], ConfigProvider2.object(new Set(["LIST", "OBJECT", "LIST_OF_OBJECTS"])))
-
-      await assertPathSuccess(provider, ["OBJECT"], ConfigProvider2.object(new Set(["name", "age"])))
-
-      await assertPathSuccess(provider, ["LIST"], ConfigProvider2.array(3))
-      await assertPathSuccess(provider, ["LIST", 0], ConfigProvider2.leaf("a"))
-      await assertPathSuccess(provider, ["LIST", 1], ConfigProvider2.leaf("b"))
-      await assertPathSuccess(provider, ["LIST", 2], ConfigProvider2.leaf("c"))
-
-      await assertPathSuccess(provider, ["LIST_OF_OBJECTS"], ConfigProvider2.array(2))
-      await assertPathSuccess(provider, ["LIST_OF_OBJECTS", 0], ConfigProvider2.object(new Set(["name", "age"])))
-      await assertPathSuccess(provider, ["LIST_OF_OBJECTS", 1], ConfigProvider2.object(new Set(["name", "age"])))
-    })
-
-    it("should support inline parsing", async () => {
-      const provider = ConfigProvider2.fromEnv({
-        environment: {
-          "LIST": "1,2,3",
-          "OBJECT": "a=1,b=2,c=3",
-          // edge cases: whitespace
-          "WHITESPACED_LIST": " 1, 2 , 3 ",
-          "WHITESPACED_OBJECT": " a = 1, b = 2 , c = 3 ",
-          // edge cases: empty values
-          "EMPTY_OBJECT": "a=,b=2,c=3"
-        }
-      })
-
-      await assertPathSuccess(
-        provider,
-        [],
-        ConfigProvider2.object(
-          new Set([
-            "LIST",
-            "OBJECT",
-            "WHITESPACED_LIST",
-            "WHITESPACED_OBJECT",
-            "EMPTY_OBJECT"
-          ])
-        )
-      )
-      await assertPathSuccess(provider, ["LIST"], ConfigProvider2.array(3))
-      await assertPathSuccess(provider, ["LIST", 0], ConfigProvider2.leaf("1"))
-      await assertPathSuccess(provider, ["LIST", 1], ConfigProvider2.leaf("2"))
-      await assertPathSuccess(provider, ["LIST", 2], ConfigProvider2.leaf("3"))
-
-      await assertPathSuccess(provider, ["OBJECT"], ConfigProvider2.object(new Set(["a", "b", "c"])))
-      await assertPathSuccess(provider, ["OBJECT", "a"], ConfigProvider2.leaf("1"))
-      await assertPathSuccess(provider, ["OBJECT", "b"], ConfigProvider2.leaf("2"))
-      await assertPathSuccess(provider, ["OBJECT", "c"], ConfigProvider2.leaf("3"))
-
-      await assertPathSuccess(provider, ["WHITESPACED_LIST"], ConfigProvider2.array(3))
-      await assertPathSuccess(provider, ["WHITESPACED_LIST", 0], ConfigProvider2.leaf("1"))
-      await assertPathSuccess(provider, ["WHITESPACED_LIST", 1], ConfigProvider2.leaf("2"))
-      await assertPathSuccess(provider, ["WHITESPACED_LIST", 2], ConfigProvider2.leaf("3"))
-
-      await assertPathSuccess(provider, ["WHITESPACED_OBJECT"], ConfigProvider2.object(new Set(["a", "b", "c"])))
-      await assertPathSuccess(provider, ["WHITESPACED_OBJECT", "a"], ConfigProvider2.leaf("1"))
-      await assertPathSuccess(provider, ["WHITESPACED_OBJECT", "b"], ConfigProvider2.leaf("2"))
-      await assertPathSuccess(provider, ["WHITESPACED_OBJECT", "c"], ConfigProvider2.leaf("3"))
-
-      await assertPathSuccess(provider, ["EMPTY_OBJECT"], ConfigProvider2.object(new Set(["a", "b", "c"])))
-      await assertPathSuccess(provider, ["EMPTY_OBJECT", "a"], ConfigProvider2.leaf(""))
-      await assertPathSuccess(provider, ["EMPTY_OBJECT", "b"], ConfigProvider2.leaf("2"))
-      await assertPathSuccess(provider, ["EMPTY_OBJECT", "c"], ConfigProvider2.leaf("3"))
-    })
-
-    it("should support both bracket and inline parsing", async () => {
-      const provider = ConfigProvider2.fromEnv({
-        environment: {
-          "LIST[0]": "1,2,3",
-          "LIST[1]": "a=1,b=2,c=3",
-          "OBJECT[a]": "1,2,3",
-          "OBJECT[b]": "a=1,b=2,c=3"
-        }
-      })
-
-      await assertPathSuccess(provider, [], ConfigProvider2.object(new Set(["LIST", "OBJECT"])))
-      await assertPathSuccess(provider, ["LIST"], ConfigProvider2.array(2))
-
-      await assertPathSuccess(provider, ["LIST", 0], ConfigProvider2.array(3))
-      await assertPathSuccess(provider, ["LIST", 0, 0], ConfigProvider2.leaf("1"))
-      await assertPathSuccess(provider, ["LIST", 0, 1], ConfigProvider2.leaf("2"))
-      await assertPathSuccess(provider, ["LIST", 0, 2], ConfigProvider2.leaf("3"))
-
-      await assertPathSuccess(provider, ["LIST", 1], ConfigProvider2.object(new Set(["a", "b", "c"])))
-      await assertPathSuccess(provider, ["LIST", 1, "a"], ConfigProvider2.leaf("1"))
-      await assertPathSuccess(provider, ["LIST", 1, "b"], ConfigProvider2.leaf("2"))
-      await assertPathSuccess(provider, ["LIST", 1, "c"], ConfigProvider2.leaf("3"))
-
-      await assertPathSuccess(provider, ["OBJECT"], ConfigProvider2.object(new Set(["a", "b"])))
-      await assertPathSuccess(provider, ["OBJECT", "a"], ConfigProvider2.array(3))
-      await assertPathSuccess(provider, ["OBJECT", "a", 0], ConfigProvider2.leaf("1"))
-      await assertPathSuccess(provider, ["OBJECT", "a", 1], ConfigProvider2.leaf("2"))
-      await assertPathSuccess(provider, ["OBJECT", "a", 2], ConfigProvider2.leaf("3"))
-      await assertPathSuccess(provider, ["OBJECT", "b"], ConfigProvider2.object(new Set(["a", "b", "c"])))
-      await assertPathSuccess(provider, ["OBJECT", "b", "a"], ConfigProvider2.leaf("1"))
     })
   })
 
@@ -367,11 +218,7 @@ describe("ConfigProvider2", () => {
 export NODE_ENV="production"
 API_URL=https://api.example.com
 
-# inline containers (off by default)
-TAGS="a, b , c"
-MAP="a=,b=2,c=3"
-
-# structural arrays/objects (on by default)
+# structural arrays/objects
 USERS__0__name=alice
 USERS__1__name=bob
 
@@ -382,39 +229,12 @@ DB_PASS=$PASSWORD
       await assertPathSuccess(
         provider,
         [],
-        ConfigProvider2.object(new Set(["NODE_ENV", "API_URL", "TAGS", "MAP", "USERS", "PASSWORD", "DB_PASS"]))
+        ConfigProvider2.object(new Set(["NODE_ENV", "API_URL", "USERS", "PASSWORD", "DB_PASS"]))
       )
       await assertPathSuccess(provider, ["NODE_ENV"], ConfigProvider2.leaf("production"))
       await assertPathSuccess(provider, ["API_URL"], ConfigProvider2.leaf("https://api.example.com"))
-      await assertPathSuccess(provider, ["TAGS"], ConfigProvider2.leaf("a, b , c"))
-      await assertPathSuccess(provider, ["MAP"], ConfigProvider2.leaf("a=,b=2,c=3"))
       await assertPathSuccess(provider, ["PASSWORD"], ConfigProvider2.leaf("s1mpl3"))
       await assertPathSuccess(provider, ["DB_PASS"], ConfigProvider2.leaf("$PASSWORD"))
-    })
-
-    it("should support custom parser", async () => {
-      const provider = ConfigProvider2.fromDotEnv(
-        `
-# inline containers (your inline parser handles these)
-TAGS="a, b , c"
-MAP="a=,b=2,c=3"
-`,
-        { parser: ConfigProvider2.defaultParser }
-      )
-      await assertPathSuccess(provider, ["TAGS"], ConfigProvider2.array(3))
-      await assertPathSuccess(provider, ["MAP"], ConfigProvider2.object(new Set(["a", "b", "c"])))
-    })
-
-    it("should expand variables", async () => {
-      const provider = ConfigProvider2.fromDotEnv(
-        `
-API_URL=https://api.example.com
-DB_PASS=$API_URL
-`,
-        { expandVariables: true }
-      )
-      await assertPathSuccess(provider, ["API_URL"], ConfigProvider2.leaf("https://api.example.com"))
-      await assertPathSuccess(provider, ["DB_PASS"], ConfigProvider2.leaf("https://api.example.com"))
     })
   })
 
@@ -546,5 +366,116 @@ A=1`)
       deepStrictEqual(result.integer, ConfigProvider2.leaf("123"))
       deepStrictEqual(result.fallback, ConfigProvider2.leaf("value"))
     })
+  })
+})
+
+describe("decode", () => {
+  type Env = Record<string, string>
+
+  function expectDecode(env: Env, expected: ConfigProvider2.StringLeafJson) {
+    const got = ConfigProvider2.decode(env)
+    deepStrictEqual(got, expected)
+  }
+
+  // -------------------------
+  // R1/R2: Segmentation + Trie
+  // -------------------------
+  it("R1/R2 basic path segmentation builds nested containers and leaf", () => {
+    const env: Env = { "a__0__b__c": "foo" }
+    expectDecode(env, { a: [{ b: { c: "foo" } }] })
+  })
+
+  it("R1 forbids empty segments", () => {
+    const env: Env = { "a____b": "x" } // empty segment between ____
+    expect(() => ConfigProvider2.decode(env)).toThrow(/R1/i)
+  })
+
+  // ------------------------------------------
+  // R3: Role exclusivity (leaf vs container)
+  // ------------------------------------------
+  it("R3 error: node cannot be leaf and container (a=foo + a__b=bar)", () => {
+    const env: Env = { a: "foo", "a__b": "bar" }
+    expect(() => ConfigProvider2.decode(env)).toThrow(/R3/i)
+  })
+
+  // ---------------------------------------------------------
+  // R4: Disambiguation per node (all numeric => array; else object)
+  // ---------------------------------------------------------
+  it("R4 array: all children numeric -> array", () => {
+    const env: Env = { "x__0": "a", "x__1": "b" }
+    expectDecode(env, { x: ["a", "b"] })
+  })
+
+  it("R4 object: at least one non-numeric -> object", () => {
+    const env: Env = { "x__0": "a", "x__foo": "b" }
+    expectDecode(env, { x: { "0": "a", "foo": "b" } })
+  })
+
+  it("R4 with \"01\": not numeric (leading zero) -> object, not array", () => {
+    const env: Env = { "x__0": "a", "x__01": "b" }
+    expectDecode(env, { x: { "0": "a", "01": "b" } })
+  })
+
+  // ----------------------------------------------
+  // R5: Arrays must be dense (0..max), no gaps
+  // ----------------------------------------------
+  it("R5 error: non-dense array (missing index)", () => {
+    const env: Env = { "x__0": "a", "x__2": "b" }
+    expect(() => ConfigProvider2.decode(env)).toThrow(/R5/i)
+  })
+
+  it("R5 dense array with nested objects", () => {
+    const env: Env = {
+      "items__0__id": "1",
+      "items__0__name": "A",
+      "items__1__id": "2",
+      "items__1__name": "B"
+    }
+    expectDecode(env, { items: [{ id: "1", name: "A" }, { id: "2", name: "B" }] })
+  })
+
+  // --------------------------------------
+  // R6: Object keys are used as-is
+  // --------------------------------------
+  it("R6 object keys preserved as-is (dashes, dots, spaces)", () => {
+    const env: Env = {
+      "meta-key__a.b": "dots",
+      "user name__first-name": "Ada"
+    }
+    expectDecode(env, {
+      "meta-key": { "a.b": "dots" },
+      "user name": { "first-name": "Ada" }
+    })
+  })
+
+  // ------------------------------------------
+  // R7: Empty containers via __TYPE sentinels
+  // ------------------------------------------
+  it("R7 empty containers at leaf paths", () => {
+    const env: Env = {
+      "list__TYPE": "A",
+      "opts__TYPE": "O"
+    }
+    expectDecode(env, { list: [], opts: {} })
+  })
+
+  it("R7 root empty array/object via __TYPE only", () => {
+    expectDecode({ "__TYPE": "A" }, [])
+    expectDecode({ "__TYPE": "O" }, {})
+  })
+
+  it("R7 error: __TYPE cannot coexist with children", () => {
+    const env: Env = { "x__TYPE": "A", "x__0": "v" }
+    expect(() => ConfigProvider2.decode(env)).toThrow(/__TYPE/i)
+  })
+
+  it("R7 error: __TYPE cannot coexist with leaf", () => {
+    const env: Env = { "x__TYPE": "O", "x": "leaf" }
+    expect(() => ConfigProvider2.decode(env)).toThrow(/__TYPE/i)
+  })
+
+  it("R7 error: bad __TYPE value", () => {
+    const env: Env = { "x__TYPE": "Z" as any }
+    expect(() => ConfigProvider2.decode(env)).toThrow(/R7/i)
   })
 })

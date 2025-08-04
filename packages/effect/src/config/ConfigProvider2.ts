@@ -242,75 +242,126 @@ function asStringLeafJson(root: unknown): StringLeafJson {
 // fromEnv
 // -----------------------------------------------------------------------------
 
-type InlineParsed =
-  | { readonly _tag: "leaf"; readonly value: string }
-  | { readonly _tag: "arrayInline"; readonly items: ReadonlyArray<string> }
-  | { readonly _tag: "objectInline"; readonly entries: Record<string, string> }
+// Internal trie node used during decoding.
+type TrieNode = {
+  leafValue?: string // R2: leaf value (string) if this node is a leaf
+  typeSentinel?: "A" | "O" // R7: __TYPE sentinel for empty array/object
+  children?: Record<string, TrieNode> // R2: children keyed by segment (plain object)
+}
 
-/**
- * @since 4.0.0
- */
-export function makeInlineParser(options?: {
-  readonly tokenSeparator?: string | undefined
-  readonly keyValueSeparator?: string | undefined
-}) {
-  return (value: string): InlineParsed => {
-    const tokenSeparator = options?.tokenSeparator ?? ","
-    const keyValueSeparator = options?.keyValueSeparator ?? "="
+// Utility: fetch or create a child node by segment (plain object).
+function getOrCreateChild(parent: TrieNode, segment: string): TrieNode {
+  parent.children ??= {}
+  return (parent.children[segment] ??= {})
+}
 
-    // split on commas to inspect tokens
-    const raw = value.split(tokenSeparator)
-    const tokens = raw.map((s) => s.trim())
+// Numeric index per R4/R5 (array indices; no leading zeros except "0").
+const NUMERIC_INDEX = /^(0|[1-9][0-9]*)$/
 
-    // Object inline if EVERY non-empty token contains exactly one '='
-    const kvPairs = tokens
-      .filter((t) => t.length > 0)
-      .map((t) => {
-        const first = t.indexOf(keyValueSeparator)
-        const last = t.lastIndexOf(keyValueSeparator)
-        // require a non-empty key (first > 0) and exactly one '=' (first === last)
-        if (first > 0 && first === last) {
-          const key = t.slice(0, first).trim()
-          const val = t.slice(first + 1).trim() // may be empty -> ""
-          return [key, val] as const
-        }
-        return null
-      })
-
-    const allAreKV = kvPairs.length > 0 && kvPairs.every((p) => p !== null)
-    if (allAreKV) {
-      const entries: Record<string, string> = {}
-      for (const p of kvPairs as ReadonlyArray<readonly [string, string]>) {
-        const [k, v] = p
-        entries[k] = v
-      }
-      return { _tag: "objectInline", entries }
-    }
-
-    // Array inline if we saw at least one comma; keep empty items? (here: filter them out)
-    if (raw.length > 1) {
-      const items = tokens.filter((t) => t.length > 0)
-      return { _tag: "arrayInline", items }
-    }
-
-    // Fallback: plain leaf
-    return { _tag: "leaf", value }
+function materialize(node: TrieNode, debugPath = "<root>"): StringLeafJson {
+  // R3: leaf vs container exclusivity
+  if (node.leafValue !== undefined && node.children) {
+    throw new Error(`Invalid input (R3): node "${debugPath}" is both leaf and container.`)
   }
+
+  // R7: __TYPE sentinel represents an empty container; it must not coexist with leaf/children (R3)
+  if (node.typeSentinel) {
+    if (node.leafValue !== undefined || node.children) {
+      throw new Error(
+        `Invalid input (R3/R7): node "${debugPath}" has __TYPE and also leaf/children.`
+      )
+    }
+    return node.typeSentinel === "A" ? ([] as StringLeafJson) : ({} as StringLeafJson)
+  }
+
+  // Container with children → decide object vs array (R4), then enforce density if array (R5)
+  if (node.children && Object.keys(node.children).length > 0) {
+    const children = node.children
+    const childNames = Object.keys(children)
+    const allNumeric = childNames.every((s) => NUMERIC_INDEX.test(s)) // R4
+
+    if (allNumeric) {
+      // Array (R4) and must be dense (R5)
+      const indices = childNames.map((s) => parseInt(s, 10))
+      const max = Math.max(...indices)
+      if (indices.length !== max + 1) {
+        throw new Error(
+          `Invalid input (R5): array at "${debugPath}" is not dense (expected indices 0..${max}).`
+        )
+      }
+      const out: Array<StringLeafJson> = []
+      for (let i = 0; i <= max; i++) {
+        const key = String(i)
+        if (!Object.prototype.hasOwnProperty.call(children, key)) {
+          throw new Error(`Invalid input (R5): missing index ${i} at "${debugPath}".`)
+        }
+        out[i] = materialize(children[key]!, `${debugPath}__${i}`)
+      }
+      return out
+    } else {
+      // Object (R4, R6)
+      const obj: Record<string, StringLeafJson> = {}
+      for (const seg of childNames) obj[seg] = materialize(children[seg]!, `${debugPath}__${seg}`)
+      return obj
+    }
+  }
+
+  // Leaf only (R2)
+  if (node.leafValue !== undefined) {
+    return node.leafValue
+  }
+
+  // Dangling empty node (should not occur with well-formed inputs)
+  throw new Error(`Invalid input: dangling empty node at "${debugPath}".`)
 }
 
-type Parser = {
-  readonly splitKey: (key: string) => Array<string>
-  readonly joinTokens: (tokens: ReadonlyArray<string>) => string
-  readonly inlineParser: (value: string) => InlineParsed
-}
+/** @internal */
+export function decode(env: Record<string, string>): StringLeafJson {
+  const root: TrieNode = {}
 
-/**
- * @since 4.0.0
- */
-export const defaultParser: Parser = {
-  splitKey: (key) => key.replace(/\]/g, "").split(/(?:__|\[)/),
-  joinTokens: (tokens) => tokens.length === 0 ? "" : tokens[0] + tokens.slice(1).map((t) => `[${t}]`).join(""),
-  inlineParser: makeInlineParser()
+  for (const [name, value] of Object.entries(env)) {
+    const endsWithType = name.endsWith("__TYPE") // R7
+    const baseName = endsWithType ? name.slice(0, -6) : name
+
+    // R1: path segmentation (no empty segments like "a____b")
+    const segments = baseName === "" ? [] : baseName.split("__")
+    if (segments.some((s) => s.length === 0)) {
+      throw new Error(`Invalid input (R1): empty segment in variable name "${name}".`)
+    }
+
+    let node = root
+    for (const seg of segments) {
+      node = getOrCreateChild(node, seg)
+    }
+
+    if (endsWithType) {
+      const kind = value.trim().toUpperCase()
+      if (kind !== "A" && kind !== "O") {
+        throw new Error(`Invalid input (R7): "${name}" must be "A" or "O".`)
+      }
+      if (node.typeSentinel && node.typeSentinel !== (kind as "A" | "O")) {
+        throw new Error(`Invalid input (R7): conflicting __TYPE at "${name}".`)
+      }
+      node.typeSentinel = kind
+    } else {
+      if (node.leafValue !== undefined && node.leafValue !== value) {
+        throw new Error(`Invalid input (R9): duplicate leaf with different values at "${name}".`)
+      }
+      node.leafValue = value
+    }
+  }
+
+  // R8: empty environment
+  if (
+    root.leafValue === undefined &&
+    root.typeSentinel === undefined &&
+    (!root.children || Object.keys(root.children).length === 0)
+  ) {
+    return {}
+  }
+
+  // Materialize (R3–R6)
+  return materialize(root)
 }
 
 /**
@@ -319,7 +370,6 @@ export const defaultParser: Parser = {
  * @since 4.0.0
  */
 export function fromEnv(options?: {
-  readonly parser?: Parser | undefined
   readonly environment?: Record<string, string> | undefined
 }): ConfigProvider {
   // Merge env sources (Node / Deno / Vite-like) unless an explicit env is passed.
@@ -328,106 +378,12 @@ export function fromEnv(options?: {
     ...(import.meta as any)?.env
   }
 
-  const parser = options?.parser ?? defaultParser
-
-  return make((path) => {
-    if (!env) return Effect.succeed(undefined)
-
-    const prefix = path.map(String)
-    const prefixLen = prefix.length
-
-    let exactValue: string | undefined
-    const childTokens = new Set<string>()
-
-    for (const fullKey of Object.keys(env)) {
-      const val = env[fullKey]
-      if (!Predicate.isString(val)) continue
-
-      const tokens = parser.splitKey(fullKey)
-
-      // prefix match
-      let matches = true
-      for (let i = 0; i < prefixLen; i++) {
-        if (tokens[i] !== prefix[i]) {
-          matches = false
-          break
-        }
-      }
-      if (!matches) continue
-
-      if (tokens.length === prefixLen) {
-        exactValue = val
-      } else {
-        childTokens.add(tokens[prefixLen])
-      }
-    }
-
-    // 1) No structural children -> inspect exact value via leafParser
-    if (childTokens.size === 0) {
-      if (exactValue === undefined) {
-        // Child lookup of an inline container (parent fallback)
-        if (prefixLen > 0) {
-          const parentKey = prefix.slice(0, -1)
-          const childToken = prefix[prefixLen - 1]!
-          const parentExact = env[parser.joinTokens(parentKey)]
-          if (Predicate.isString(parentExact)) {
-            const parsed = parser.inlineParser(parentExact)
-            if (parsed._tag === "arrayInline") {
-              const idx = Number(childToken)
-              if (Number.isInteger(idx) && idx >= 0 && idx < parsed.items.length) {
-                return Effect.succeed(leaf(parsed.items[idx]))
-              }
-            } else if (parsed._tag === "objectInline") {
-              if (
-                Predicate.isString(childToken) &&
-                Object.prototype.hasOwnProperty.call(parsed.entries, childToken)
-              ) {
-                return Effect.succeed(leaf(parsed.entries[childToken]))
-              }
-            }
-          }
-        }
-        return Effect.succeed(undefined)
-      }
-
-      // Exact value present at the prefix
-      const parsed = parser.inlineParser(exactValue)
-      switch (parsed._tag) {
-        case "leaf":
-          return Effect.succeed(leaf(parsed.value))
-        case "arrayInline":
-          return Effect.succeed(array(parsed.items.length))
-        case "objectInline":
-          return Effect.succeed(object(new Set(Object.keys(parsed.entries))))
-      }
-    }
-
-    // 2) Structural children exist -> infer array vs object
-    let allNumeric = true
-    let maxIndex = -1
-    for (const t of childTokens) {
-      const n = Number(t)
-      if (!Number.isInteger(n) || n < 0 || String(n) !== t) {
-        allNumeric = false
-        break
-      }
-      if (n > maxIndex) maxIndex = n
-    }
-
-    if (allNumeric) return Effect.succeed(array(maxIndex + 1))
-    return Effect.succeed(object(childTokens))
-  })
+  return fromStringLeafJson(decode(env))
 }
 
 // -----------------------------------------------------------------------------
 // fromDotEnv
 // -----------------------------------------------------------------------------
-
-const defaultDotEnvParser: Parser = {
-  splitKey: defaultParser.splitKey,
-  joinTokens: defaultParser.joinTokens,
-  inlineParser: (value) => ({ _tag: "leaf", value })
-}
 
 /**
  * A ConfigProvider that parses a `.env` file.
@@ -448,15 +404,13 @@ const defaultDotEnvParser: Parser = {
  * @category Dotenv
  */
 export function fromDotEnv(lines: string, options?: {
-  readonly parser?: Parser | undefined
   readonly expandVariables?: boolean | undefined
 }): ConfigProvider {
   let environment = parseDotEnv(lines)
-  const parser = options?.parser ?? defaultDotEnvParser
   if (options?.expandVariables) {
     environment = dotEnvExpand(environment)
   }
-  return fromEnv({ environment, parser })
+  return fromEnv({ environment })
 }
 
 const DOT_ENV_LINE =
@@ -565,7 +519,6 @@ function searchLast(str: string, rgx: RegExp): number {
  */
 export const dotEnv: (options?: {
   readonly path?: string | undefined
-  readonly parser?: Parser | undefined
   readonly expandVariables?: boolean | undefined
 }) => Effect.Effect<ConfigProvider, PlatformError, FileSystem.FileSystem> = Effect.fnUntraced(
   function*(options) {
