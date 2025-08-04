@@ -62,6 +62,8 @@ Why a stat result instead of the full value?
 - Do not worry about how strings are decoded into typed values.
 - Optionally customize how raw values are transformed before decoding.
 
+## schema API
+
 **Example** (Config from a Schema)
 
 The environment provides strings only, but you can describe the desired output using a schema. The library decodes strings into typed values (e.g., `Int`, `URL`) for you.
@@ -122,4 +124,113 @@ Effect.runFork(program)
 
 // Output:
 // { API_KEY: 'abc123', PORT: 1, LOCALHOST: https://example.com/ }
+```
+
+The `schema` function accepts an optional second argument: the `path` from which to read the value.
+
+- If omitted, the config is read from the root.
+- The path can be a string or an array of strings.
+- This is useful for reading a single nested value from a larger structure.
+
+**Example** (Reading a value from the root)
+
+```ts
+import { Effect } from "effect"
+import { Config2, ConfigProvider2 } from "effect/config"
+import { Formatter, Schema } from "effect/schema"
+
+// Expecting a string at the root
+const config = Config2.schema(Schema.String)
+
+// Provide a single value at the root
+const configProvider = ConfigProvider2.fromJson("value")
+
+const program = Effect.gen(function* () {
+  const c = yield* config
+  console.dir(c)
+}).pipe(
+  Effect.tapError((e) =>
+    Effect.sync(() => {
+      switch (e._tag) {
+        case "SchemaError":
+          console.log("SchemaError", Formatter.makeTree().format(e.issue))
+          break
+        default:
+          console.log("GetError", e.reason)
+      }
+    })
+  ),
+  Effect.provide(ConfigProvider2.layer(configProvider))
+)
+
+Effect.runFork(program)
+// "value"
+```
+
+**Example** (Using a string path)
+
+```ts
+import { Effect } from "effect"
+import { Config2, ConfigProvider2 } from "effect/config"
+import { Formatter, Schema } from "effect/schema"
+
+// Read a string at path "a"
+const config = Config2.schema(Schema.String, "a")
+
+const configProvider = ConfigProvider2.fromJson({ a: "value" })
+
+const program = Effect.gen(function* () {
+  const c = yield* config
+  console.dir(c)
+}).pipe(
+  Effect.tapError((e) =>
+    Effect.sync(() => {
+      switch (e._tag) {
+        case "SchemaError":
+          console.log("SchemaError", Formatter.makeTree().format(e.issue))
+          break
+        default:
+          console.log("GetError", e.reason)
+      }
+    })
+  ),
+  Effect.provide(ConfigProvider2.layer(configProvider))
+)
+
+Effect.runFork(program)
+// "value"
+```
+
+**Example** (Using an array path)
+
+```ts
+import { Effect } from "effect"
+import { Config2, ConfigProvider2 } from "effect/config"
+import { Formatter, Schema } from "effect/schema"
+
+// Read a string at nested path ["a", "b"]
+const config = Config2.schema(Schema.String, ["a", "b"])
+
+const configProvider = ConfigProvider2.fromJson({ a: { b: "value" } })
+
+const program = Effect.gen(function* () {
+  const c = yield* config
+  console.dir(c)
+}).pipe(
+  Effect.tapError((e) =>
+    Effect.sync(() => {
+      switch (e._tag) {
+        case "SchemaError":
+          console.log("SchemaError", Formatter.makeTree().format(e.issue))
+          break
+        default:
+          console.log("GetError", e.reason)
+      }
+    })
+  ),
+  Effect.provide(ConfigProvider2.layer(configProvider))
+)
+
+Effect.runFork(program)
+// "value"
 ```

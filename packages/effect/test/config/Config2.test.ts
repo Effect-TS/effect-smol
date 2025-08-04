@@ -34,6 +34,50 @@ describe("Config2", () => {
     deepStrictEqual(result, { STRING: "value" })
   })
 
+  describe("schema", () => {
+    it("path argument", async () => {
+      await assertSuccess(
+        Config2.schema(Schema.String, []),
+        ConfigProvider2.fromStringLeafJson("value"),
+        "value"
+      )
+      await assertSuccess(
+        Config2.schema(Schema.String, "a"),
+        ConfigProvider2.fromStringLeafJson({ a: "value" }),
+        "value"
+      )
+      await assertSuccess(
+        Config2.schema(Schema.String, ["a", "b"]),
+        ConfigProvider2.fromStringLeafJson({ a: { b: "value" } }),
+        "value"
+      )
+    })
+  })
+
+  describe("unwrap", () => {
+    it("plain object", async () => {
+      const config = Config2.unwrap({
+        a: Config2.schema(Schema.String, "a2")
+      })
+
+      await assertSuccess(config, ConfigProvider2.fromStringLeafJson({ a2: "value" }), { a: "value" })
+    })
+
+    it("nested", async () => {
+      const config = Config2.unwrap({
+        a: {
+          b: Config2.schema(Schema.String, "b2")
+        }
+      })
+
+      await assertSuccess(
+        config,
+        ConfigProvider2.fromStringLeafJson({ b2: "value" }),
+        { a: { b: "value" } }
+      )
+    })
+  })
+
   describe("fromEnv", () => {
     it("example", async () => {
       const schema = Schema.Struct({

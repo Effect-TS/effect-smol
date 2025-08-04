@@ -82,6 +82,57 @@ export function make<T>(
   return self
 }
 
+/**
+ * Wraps a nested structure, converting all primitives to a `Config`.
+ *
+ * `Config.Wrap<{ key: string }>` becomes `{ key: Config<string> }`
+ *
+ * To create the resulting config, use the `unwrap` constructor.
+ *
+ * @category Wrap
+ * @since 4.0.0
+ */
+export type Wrap<A> = [NonNullable<A>] extends [infer T] ? [IsPlainObject<T>] extends [true] ?
+      | { readonly [K in keyof A]: Wrap<A[K]> }
+      | Config<A>
+  : Config<A>
+  : Config<A>
+
+type IsPlainObject<A> = [A] extends [Record<string, any>]
+  ? [keyof A] extends [never] ? false : [keyof A] extends [string] ? true : false
+  : false
+
+/**
+ * Constructs a config from some configuration wrapped with the `Wrap<A>` utility type.
+ *
+ * **Example**
+ *
+ * ```ts
+ * import { Config2 } from "effect/config"
+ *
+ * interface Options { key: string }
+ *
+ * const makeConfig = (config: Config2.Wrap<Options>): Config2.Config<Options> => Config2.unwrap(config)
+ * ```
+ *
+ * @category Wrap
+ * @since 4.0.0
+ */
+export const unwrap = <T>(wrapped: Wrap<T>): Config<T> => {
+  if (isConfig(wrapped)) return wrapped
+  return make((provider) => {
+    const entries = Object.entries(wrapped)
+    const configs = entries.map(([key, config]) =>
+      unwrap(config as any).parse(provider).pipe(Effect.map((value) => [key, value] as const))
+    )
+    return Effect.all(configs).pipe(Effect.map(Object.fromEntries))
+  })
+}
+
+// -----------------------------------------------------------------------------
+// schema
+// -----------------------------------------------------------------------------
+
 const dump: (
   provider: ConfigProvider.ConfigProvider,
   path: Path
@@ -179,11 +230,12 @@ const go: (
  * @category Schema
  * @since 4.0.0
  */
-export function schema<T, E>(codec: Schema.Codec<T, E>): Config<T> {
+export function schema<T, E>(codec: Schema.Codec<T, E>, path?: string | ConfigProvider.Path): Config<T> {
   const serializer = Serializer.stringLeafJson(codec)
   const decodeUnknownEffect = Schema.decodeUnknownEffect(serializer)
   const serializerEncodedAST = AST.encodedAST(serializer.ast)
-  return make((provider) => go(serializerEncodedAST, provider, []).pipe(Effect.flatMap(decodeUnknownEffect)))
+  const defaultPath = typeof path === "string" ? [path] : path ?? []
+  return make((provider) => go(serializerEncodedAST, provider, defaultPath).pipe(Effect.flatMap(decodeUnknownEffect)))
 }
 
 /**
