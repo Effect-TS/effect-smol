@@ -25,7 +25,7 @@ async function assertFailure<T>(config: Config2.Config<T>, provider: ConfigProvi
 }
 
 describe("Config2", () => {
-  it("can be yielded", () => {
+  it("a config can be yielded", () => {
     const provider = ConfigProvider2.fromEnv({ environment: { STRING: "value" } })
     const result = Effect.runSync(Effect.provide(
       Config2.schema(Schema.Struct({ STRING: Schema.String })).asEffect(),
@@ -79,21 +79,6 @@ describe("Config2", () => {
   })
 
   describe("fromEnv", () => {
-    it("example", async () => {
-      const schema = Schema.Struct({
-        API_KEY: Schema.String,
-        PORT: Schema.Int,
-        LOCALHOST: Schema.URL
-      })
-      const config = Config2.schema(schema)
-
-      await assertSuccess(
-        config,
-        ConfigProvider2.fromEnv({ environment: { API_KEY: "abc123", PORT: "1", LOCALHOST: "https://example.com" } }),
-        { API_KEY: "abc123", PORT: 1, LOCALHOST: new URL("https://example.com") }
-      )
-    })
-
     it("String", async () => {
       const schema = Schema.String
       const config = Config2.schema(schema)
@@ -109,13 +94,179 @@ describe("Config2", () => {
         await assertSuccess(config, ConfigProvider2.fromEnv({ environment: { a: "1" } }), { a: 1 })
       })
 
+      it("optionalKey properties", async () => {
+        const schema = Schema.Struct({ a: Schema.optionalKey(Schema.Finite) })
+        const config = Config2.schema(schema)
+
+        await assertSuccess(config, ConfigProvider2.fromEnv({ environment: { a: "1" } }), { a: 1 })
+        await assertSuccess(config, ConfigProvider2.fromEnv({ environment: {} }), {})
+      })
+
+      it("optional properties", async () => {
+        const config = Config2.schema(
+          Schema.Struct({ a: Schema.optional(Schema.Finite) })
+        )
+
+        await assertSuccess(config, ConfigProvider2.fromEnv({ environment: { a: "1" } }), { a: 1 })
+        await assertSuccess(config, ConfigProvider2.fromEnv({ environment: {} }), {})
+      })
+
+      it("Literals", async () => {
+        const schema = Schema.Struct({ a: Schema.Literals(["b", "c"]) })
+        const config = Config2.schema(schema)
+
+        await assertSuccess(config, ConfigProvider2.fromEnv({ environment: { a: "b" } }), { a: "b" })
+        await assertSuccess(config, ConfigProvider2.fromEnv({ environment: { a: "c" } }), { a: "c" })
+      })
+
       it("Array(Finite)", async () => {
         const schema = Schema.Struct({ a: Schema.Array(Schema.Finite) })
         const config = Config2.schema(schema)
 
+        await assertSuccess(config, ConfigProvider2.fromEnv({ environment: { a: "" } }), { a: [] })
         await assertSuccess(config, ConfigProvider2.fromEnv({ environment: { a: "1" } }), { a: [1] })
-        // ensure array
+        await assertSuccess(config, ConfigProvider2.fromEnv({ environment: { a: "1,2" } }), { a: [1, 2] })
+      })
+    })
+
+    it("Record", async () => {
+      const schema = Schema.Record(Schema.String, Schema.Finite)
+      const config = Config2.schema(schema)
+
+      await assertSuccess(config, ConfigProvider2.fromEnv({ environment: { a: "1" } }), { a: 1 })
+      await assertSuccess(config, ConfigProvider2.fromEnv({ environment: { a: "1", b: "2" } }), { a: 1, b: 2 })
+      await assertFailure(
+        config,
+        ConfigProvider2.fromEnv({ environment: { a: "1", b: "value" } }),
+        `{ readonly [x: string]: number }
+└─ ["b"]
+   └─ Encoding failure
+      └─ string & a string representing a number
+         └─ a string representing a number
+            └─ Invalid data "value"`
+      )
+    })
+
+    describe("Tuple", () => {
+      it("empty", async () => {
+        const schema = Schema.Struct({ a: Schema.Tuple([]) })
+        const config = Config2.schema(schema)
+
+        await assertSuccess(config, ConfigProvider2.fromEnv({ environment: { a: "" } }), { a: [] })
+      })
+
+      it("ensure array", async () => {
+        const schema = Schema.Struct({ a: Schema.Tuple([Schema.Finite]) })
+        const config = Config2.schema(schema)
+
         await assertSuccess(config, ConfigProvider2.fromEnv({ environment: { a: "1" } }), { a: [1] })
+      })
+
+      it("required elements", async () => {
+        const schema = Schema.Struct({ a: Schema.Tuple([Schema.String, Schema.Finite]) })
+        const config = Config2.schema(schema)
+
+        await assertSuccess(config, ConfigProvider2.fromEnv({ environment: { a: "a,2" } }), { a: ["a", 2] })
+        await assertFailure(
+          config,
+          ConfigProvider2.fromEnv({ environment: { a: "a" } }),
+          `{ readonly "a": readonly [string, number] }
+└─ ["a"]
+   └─ readonly [string, number]
+      └─ [1]
+         └─ Missing key`
+        )
+        await assertFailure(
+          config,
+          ConfigProvider2.fromEnv({ environment: { a: "a,value" } }),
+          `{ readonly "a": readonly [string, number] }
+└─ ["a"]
+   └─ readonly [string, number]
+      └─ [1]
+         └─ Encoding failure
+            └─ string & a string representing a number
+               └─ a string representing a number
+                  └─ Invalid data "value"`
+        )
+      })
+    })
+
+    it("Array", async () => {
+      const schema = Schema.Struct({ a: Schema.Array(Schema.Finite) })
+      const config = Config2.schema(schema)
+
+      await assertSuccess(config, ConfigProvider2.fromEnv({ environment: { a: "1" } }), { a: [1] })
+      await assertSuccess(config, ConfigProvider2.fromEnv({ environment: { a: "1,2" } }), { a: [1, 2] })
+      await assertFailure(
+        config,
+        ConfigProvider2.fromEnv({ environment: { a: "1,value" } }),
+        `{ readonly "a": ReadonlyArray<number> }
+└─ ["a"]
+   └─ ReadonlyArray<number>
+      └─ [1]
+         └─ Encoding failure
+            └─ string & a string representing a number
+               └─ a string representing a number
+                  └─ Invalid data "value"`
+      )
+    })
+
+    describe("Union", () => {
+      describe("Literals", () => {
+        it("string", async () => {
+          const schema = Schema.Struct({ a: Schema.Literals(["a", "b"]) })
+          const config = Config2.schema(schema)
+
+          await assertSuccess(config, ConfigProvider2.fromEnv({ environment: { a: "a" } }), { a: "a" })
+          await assertSuccess(config, ConfigProvider2.fromEnv({ environment: { a: "b" } }), { a: "b" })
+        })
+      })
+
+      it("inclusive", async () => {
+        const schema = Schema.Union([
+          Schema.Struct({ a: Schema.String }),
+          Schema.Struct({ b: Schema.Finite })
+        ])
+        const config = Config2.schema(schema)
+
+        await assertSuccess(config, ConfigProvider2.fromEnv({ environment: { a: "a" } }), { a: "a" })
+        await assertSuccess(config, ConfigProvider2.fromEnv({ environment: { b: "1" } }), { b: 1 })
+        await assertSuccess(config, ConfigProvider2.fromEnv({ environment: { a: "a", b: "1" } }), { a: "a" })
+      })
+
+      it("exclusive", async () => {
+        const schema = Schema.Union([
+          Schema.Struct({ a: Schema.String }),
+          Schema.Struct({ b: Schema.Finite })
+        ], { mode: "oneOf" })
+        const config = Config2.schema(schema)
+
+        await assertSuccess(config, ConfigProvider2.fromEnv({ environment: { a: "a" } }), { a: "a" })
+        await assertSuccess(config, ConfigProvider2.fromEnv({ environment: { b: "1" } }), { b: 1 })
+        await assertFailure(
+          config,
+          ConfigProvider2.fromEnv({ environment: { a: "a", b: "1" } }),
+          `Expected exactly one member to match the input {"a":"a","b":"1"}, but multiple members matched in { readonly "a": string } ⊻ { readonly "b": number }`
+        )
+      })
+    })
+
+    it("Suspend", async () => {
+      interface A {
+        readonly a: string
+        readonly na: A | null
+      }
+      const schema = Schema.Struct({
+        a: Schema.String,
+        na: Schema.NullOr(Schema.suspend((): Schema.Codec<A> => schema))
+      })
+
+      const config = Config2.schema(schema)
+
+      await assertSuccess(config, ConfigProvider2.fromEnv({ environment: { a: "1", na: "" } }), { a: "1", na: null })
+      await assertSuccess(config, ConfigProvider2.fromEnv({ environment: { a: "1", "na": "a=2,na=" } }), {
+        a: "1",
+        na: { a: "2", na: null }
       })
     })
   })

@@ -2,7 +2,7 @@
  * @since 4.0.0
  */
 import * as Option from "../data/Option.ts"
-import { hasProperty } from "../data/Predicate.ts"
+import * as Predicate from "../data/Predicate.ts"
 import * as Effect from "../Effect.ts"
 import type { Pipeable } from "../interfaces/Pipeable.ts"
 import { PipeInspectableProto, YieldableProto } from "../internal/core.ts"
@@ -40,7 +40,7 @@ export type TypeId = "~effect/config/Config"
  * @since 4.0.0
  * @category Guards
  */
-export const isConfig = (u: unknown): u is Config<unknown> => hasProperty(u, TypeId)
+export const isConfig = (u: unknown): u is Config<unknown> => Predicate.hasProperty(u, TypeId)
 
 /**
  * @since 4.0.0
@@ -175,7 +175,7 @@ const go: (
         const out: Record<string, StringLeafJson> = {}
         for (const ps of ast.propertySignatures) {
           const name = ps.name
-          if (typeof name === "string") {
+          if (Predicate.isString(name)) {
             const value = yield* go(ps.type, provider, [...path, name])
             if (value !== undefined) out[name] = value
           }
@@ -199,13 +199,13 @@ const go: (
       case "TupleType": {
         if (ast.rest.length > 0) {
           const out = yield* dump(provider, path)
-          // ensure array
-          if (typeof out === "string") return [out]
+          // ensure array (empty string is an empty array)
+          if (Predicate.isString(out)) return out === "" ? [] : [out]
           return out
         }
         const stat = yield* provider.get(path)
-        // ensure array
-        if (stat && stat._tag === "leaf") return [stat.value]
+        // ensure array (empty string is an empty array)
+        if (stat && stat._tag === "leaf") return stat.value === "" ? [] : [stat.value]
         const out: Array<StringLeafJson> = []
         for (let i = 0; i < ast.elements.length; i++) {
           const value = yield* go(ast.elements[i], provider, [...path, i])
@@ -234,7 +234,7 @@ export function schema<T, E>(codec: Schema.Codec<T, E>, path?: string | ConfigPr
   const serializer = Serializer.stringLeafJson(codec)
   const decodeUnknownEffect = Schema.decodeUnknownEffect(serializer)
   const serializerEncodedAST = AST.encodedAST(serializer.ast)
-  const defaultPath = typeof path === "string" ? [path] : path ?? []
+  const defaultPath = Predicate.isString(path) ? [path] : path ?? []
   return make((provider) => go(serializerEncodedAST, provider, defaultPath).pipe(Effect.flatMap(decodeUnknownEffect)))
 }
 

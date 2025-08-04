@@ -3,6 +3,7 @@
  */
 
 import * as Data from "../data/Data.ts"
+import * as Predicate from "../data/Predicate.ts"
 import * as Effect from "../Effect.ts"
 import { dual } from "../Function.ts"
 import type { Pipeable } from "../interfaces/Pipeable.ts"
@@ -135,7 +136,7 @@ export const mapPath: {
  * @category Combinators
  */
 export const constantCase: (self: ConfigProvider) => ConfigProvider = mapPath((path) =>
-  path.map((seg) => typeof seg === "number" ? seg : Str.constantCase(seg))
+  path.map((seg) => Predicate.isNumber(seg) ? seg : Str.constantCase(seg))
 )
 
 /**
@@ -186,11 +187,11 @@ function resolvePath(input: StringLeafJson, path: Path): StringLeafJson | undefi
   let out: StringLeafJson = input
 
   for (const seg of path) {
-    if (typeof out === "string") return undefined
+    if (Predicate.isString(out)) return undefined
     if (Array.isArray(out)) {
-      if (typeof seg !== "number" || !Number.isInteger(seg) || seg < 0 || seg >= out.length) return undefined
+      if (!Predicate.isNumber(seg) || !Number.isInteger(seg) || seg < 0 || seg >= out.length) return undefined
     } else {
-      if (typeof seg !== "string" || !Object.prototype.hasOwnProperty.call(out, seg)) return undefined
+      if (!Predicate.isString(seg) || !Object.prototype.hasOwnProperty.call(out, seg)) return undefined
     }
     out = (out as any)[seg]
   }
@@ -200,7 +201,7 @@ function resolvePath(input: StringLeafJson, path: Path): StringLeafJson | undefi
 
 function describeStat(value: StringLeafJson | undefined): Stat | undefined {
   if (value === undefined) return undefined
-  if (typeof value === "string") return leaf(value)
+  if (Predicate.isString(value)) return leaf(value)
   if (Array.isArray(value)) return array(value.length)
   return object(new Set(Object.keys(value)))
 }
@@ -220,12 +221,12 @@ export function fromJson(root: unknown): ConfigProvider {
 
 function asStringLeafJson(root: unknown): StringLeafJson {
   if (root === null || root === undefined) return ""
-  if (typeof root === "string") return root
-  if (typeof root === "number") return String(root)
-  if (typeof root === "boolean") return String(root)
+  if (Predicate.isString(root)) return root
+  if (Predicate.isNumber(root)) return String(root)
+  if (Predicate.isBoolean(root)) return String(root)
   if (Array.isArray(root)) return root.map(asStringLeafJson)
 
-  if (typeof root === "object" && root !== null) {
+  if (Predicate.isObject(root)) {
     const result: Record<string, StringLeafJson> = {}
     for (const [key, value] of Object.entries(root)) {
       result[key] = asStringLeafJson(value)
@@ -340,7 +341,7 @@ export function fromEnv(options?: {
 
     for (const fullKey of Object.keys(env)) {
       const val = env[fullKey]
-      if (typeof val !== "string") continue
+      if (!Predicate.isString(val)) continue
 
       const tokens = parser.splitKey(fullKey)
 
@@ -369,7 +370,7 @@ export function fromEnv(options?: {
           const parentKey = prefix.slice(0, -1)
           const childToken = prefix[prefixLen - 1]!
           const parentExact = env[parser.joinTokens(parentKey)]
-          if (typeof parentExact === "string") {
+          if (Predicate.isString(parentExact)) {
             const parsed = parser.inlineParser(parentExact)
             if (parsed._tag === "arrayInline") {
               const idx = Number(childToken)
@@ -378,7 +379,7 @@ export function fromEnv(options?: {
               }
             } else if (parsed._tag === "objectInline") {
               if (
-                typeof childToken === "string" &&
+                Predicate.isString(childToken) &&
                 Object.prototype.hasOwnProperty.call(parsed.entries, childToken)
               ) {
                 return Effect.succeed(leaf(parsed.entries[childToken]))
@@ -621,7 +622,7 @@ export const fileTree: (options?: {
     const asDirectory = fs.readDirectory(fullPath).pipe(
       Effect.map((entries: ReadonlyArray<any>) => {
         // Support both string paths and DirEntry-like objects
-        const keys = entries.map((e) => typeof e === "string" ? path_.basename(e) : String(e?.name ?? ""))
+        const keys = entries.map((e) => Predicate.isString(e) ? path_.basename(e) : String(e?.name ?? ""))
         return object(new Set(keys))
       })
     )

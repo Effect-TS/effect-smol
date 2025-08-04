@@ -43,19 +43,6 @@ const assertConfig = <A>(
 }
 
 describe("Config", () => {
-  it("example", () => {
-    const config = Config.all({
-      API_KEY: Config.String("API_KEY"),
-      PORT: Config.Integer("PORT"),
-      LOCALHOST: Config.Url("LOCALHOST")
-    })
-    assertConfig(config, { API_KEY: "abc123", PORT: "1", LOCALHOST: "https://example.com" }, {
-      API_KEY: "abc123",
-      PORT: 1,
-      LOCALHOST: new URL("https://example.com")
-    })
-  })
-
   describe("boolean", () => {
     it("name = undefined", () => {
       const config = Config.Array("ITEMS", Config.Boolean())
