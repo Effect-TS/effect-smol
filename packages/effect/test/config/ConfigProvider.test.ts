@@ -1,4 +1,4 @@
-import { describe, expect, it } from "@effect/vitest"
+import { describe, it } from "@effect/vitest"
 import { deepStrictEqual } from "@effect/vitest/utils"
 import { Effect, Layer } from "effect"
 import { ConfigProvider } from "effect/config"
@@ -6,6 +6,7 @@ import { Result } from "effect/data"
 import { FileSystem, Path } from "effect/platform"
 import { SystemError } from "effect/platform/PlatformError"
 import type { StringLeafJson } from "effect/schema/Serializer"
+import { throws } from "../utils/assert.ts"
 
 async function assertPathSuccess(
   provider: ConfigProvider.ConfigProvider,
@@ -395,7 +396,10 @@ describe("decode", () => {
 
   it("R1 forbids empty segments", () => {
     const env = { "a____b": "x" } // empty segment between ____
-    expect(() => ConfigProvider.decode(env)).toThrow(/R1/i)
+    throws(
+      () => ConfigProvider.decode(env),
+      new Error(`Invalid input (R1): empty segment in variable name "a____b"`)
+    )
   })
 
   // ------------------------------------------
@@ -403,7 +407,10 @@ describe("decode", () => {
   // ------------------------------------------
   it("R3 error: node cannot be leaf and container (a=foo + a__b=bar)", () => {
     const env = { a: "foo", "a__b": "bar" }
-    expect(() => ConfigProvider.decode(env)).toThrow(/R3/i)
+    throws(
+      () => ConfigProvider.decode(env),
+      new Error(`Invalid input (R3): node "a" is both leaf and container`)
+    )
   })
 
   // ---------------------------------------------------------
@@ -429,7 +436,10 @@ describe("decode", () => {
   // ----------------------------------------------
   it("R5 error: non-dense array (missing index)", () => {
     const env = { "x__0": "a", "x__2": "b" }
-    expect(() => ConfigProvider.decode(env)).toThrow(/R5/i)
+    throws(
+      () => ConfigProvider.decode(env),
+      new Error(`Invalid input (R5): array at "x" is not dense (expected indices 0..2)`)
+    )
   })
 
   it("R5 dense array with nested objects", () => {
@@ -474,16 +484,25 @@ describe("decode", () => {
 
   it("R7 error: __TYPE cannot coexist with children", () => {
     const env = { "x__TYPE": "A", "x__0": "v" }
-    expect(() => ConfigProvider.decode(env)).toThrow(/__TYPE/i)
+    throws(
+      () => ConfigProvider.decode(env),
+      new Error(`Invalid input (R3/R7): node "x" has __TYPE and also leaf/children`)
+    )
   })
 
   it("R7 error: __TYPE cannot coexist with leaf", () => {
     const env = { "x__TYPE": "O", "x": "leaf" }
-    expect(() => ConfigProvider.decode(env)).toThrow(/__TYPE/i)
+    throws(
+      () => ConfigProvider.decode(env),
+      new Error(`Invalid input (R3/R7): node "x" has __TYPE and also leaf/children`)
+    )
   })
 
   it("R7 error: bad __TYPE value", () => {
     const env = { "x__TYPE": "Z" as any }
-    expect(() => ConfigProvider.decode(env)).toThrow(/R7/i)
+    throws(
+      () => ConfigProvider.decode(env),
+      new Error(`Invalid input (R7): "x__TYPE" must be "A" or "O"`)
+    )
   })
 })

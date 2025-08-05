@@ -260,17 +260,21 @@ function getOrCreateChild(parent: TrieNode, segment: string): TrieNode {
 // Numeric index per R4/R5 (array indices; no leading zeros except "0").
 const NUMERIC_INDEX = /^(0|[1-9][0-9]*)$/
 
-function materialize(node: TrieNode, debugPath = "<root>"): StringLeafJson {
+function append(path: string, segment: string | number): string {
+  return path === "" ? String(segment) : `${path}__${segment}`
+}
+
+function materialize(node: TrieNode, path: string): StringLeafJson {
   // R3: leaf vs container exclusivity
   if (node.leafValue !== undefined && node.children) {
-    throw new Error(`Invalid input (R3): node "${debugPath}" is both leaf and container.`)
+    throw new Error(`Invalid input (R3): node "${path}" is both leaf and container`)
   }
 
   // R7: __TYPE sentinel represents an empty container; it must not coexist with leaf/children (R3)
   if (node.typeSentinel) {
     if (node.leafValue !== undefined || node.children) {
       throw new Error(
-        `Invalid input (R3/R7): node "${debugPath}" has __TYPE and also leaf/children.`
+        `Invalid input (R3/R7): node "${path}" has __TYPE and also leaf/children`
       )
     }
     return node.typeSentinel === "A" ? ([] as StringLeafJson) : ({} as StringLeafJson)
@@ -288,22 +292,22 @@ function materialize(node: TrieNode, debugPath = "<root>"): StringLeafJson {
       const max = Math.max(...indices)
       if (indices.length !== max + 1) {
         throw new Error(
-          `Invalid input (R5): array at "${debugPath}" is not dense (expected indices 0..${max}).`
+          `Invalid input (R5): array at "${path}" is not dense (expected indices 0..${max})`
         )
       }
       const out: Array<StringLeafJson> = []
       for (let i = 0; i <= max; i++) {
         const key = String(i)
         if (!Object.prototype.hasOwnProperty.call(children, key)) {
-          throw new Error(`Invalid input (R5): missing index ${i} at "${debugPath}".`)
+          throw new Error(`Invalid input (R5): missing index ${i} at "${path}"`)
         }
-        out[i] = materialize(children[key]!, `${debugPath}__${i}`)
+        out[i] = materialize(children[key]!, append(path, i))
       }
       return out
     } else {
       // Object (R4, R6)
       const obj: Record<string, StringLeafJson> = {}
-      for (const seg of childNames) obj[seg] = materialize(children[seg]!, `${debugPath}__${seg}`)
+      for (const seg of childNames) obj[seg] = materialize(children[seg]!, append(path, seg))
       return obj
     }
   }
@@ -314,7 +318,7 @@ function materialize(node: TrieNode, debugPath = "<root>"): StringLeafJson {
   }
 
   // Dangling empty node (should not occur with well-formed inputs)
-  throw new Error(`Invalid input: dangling empty node at "${debugPath}".`)
+  throw new Error(`Invalid input: dangling empty node at "${path}"`)
 }
 
 /** @internal */
@@ -328,7 +332,7 @@ export function decode(env: Record<string, string>): StringLeafJson {
     // R1: path segmentation (no empty segments like "a____b")
     const segments = baseName === "" ? [] : baseName.split("__")
     if (segments.some((s) => s.length === 0)) {
-      throw new Error(`Invalid input (R1): empty segment in variable name "${name}".`)
+      throw new Error(`Invalid input (R1): empty segment in variable name "${name}"`)
     }
 
     let node = root
@@ -339,15 +343,15 @@ export function decode(env: Record<string, string>): StringLeafJson {
     if (endsWithType) {
       const kind = value.trim().toUpperCase()
       if (kind !== "A" && kind !== "O") {
-        throw new Error(`Invalid input (R7): "${name}" must be "A" or "O".`)
+        throw new Error(`Invalid input (R7): "${name}" must be "A" or "O"`)
       }
       if (node.typeSentinel && node.typeSentinel !== (kind as "A" | "O")) {
-        throw new Error(`Invalid input (R7): conflicting __TYPE at "${name}".`)
+        throw new Error(`Invalid input (R7): conflicting __TYPE at "${name}"`)
       }
       node.typeSentinel = kind
     } else {
       if (node.leafValue !== undefined && node.leafValue !== value) {
-        throw new Error(`Invalid input (R9): duplicate leaf with different values at "${name}".`)
+        throw new Error(`Invalid input (R9): duplicate leaf with different values at "${name}"`)
       }
       node.leafValue = value
     }
@@ -363,7 +367,7 @@ export function decode(env: Record<string, string>): StringLeafJson {
   }
 
   // Materialize (R3–R6)
-  return materialize(root)
+  return materialize(root, "")
 }
 
 /**
