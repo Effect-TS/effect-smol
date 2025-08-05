@@ -260,21 +260,21 @@ function getOrCreateChild(parent: TrieNode, segment: string): TrieNode {
 // Numeric index per R4/R5 (array indices; no leading zeros except "0").
 const NUMERIC_INDEX = /^(0|[1-9][0-9]*)$/
 
-function append(path: string, segment: string | number): string {
+function appendDebugSegment(path: string, segment: string | number): string {
   return path === "" ? String(segment) : `${path}__${segment}`
 }
 
-function materialize(node: TrieNode, path: string): StringLeafJson {
+function materialize(node: TrieNode, debugPath: string): StringLeafJson {
   // R3: leaf vs container exclusivity
   if (node.leafValue !== undefined && node.children) {
-    throw new Error(`Invalid input (R3): node "${path}" is both leaf and container`)
+    throw new Error(`Invalid input (R3): node "${debugPath}" is both leaf and container`)
   }
 
   // R7: __TYPE sentinel represents an empty container; it must not coexist with leaf/children (R3)
   if (node.typeSentinel) {
     if (node.leafValue !== undefined || node.children) {
       throw new Error(
-        `Invalid input (R3/R7): node "${path}" has __TYPE and also leaf/children`
+        `Invalid input (R3/R7): node "${debugPath}" has __TYPE and also leaf/children`
       )
     }
     return node.typeSentinel === "A" ? ([] as StringLeafJson) : ({} as StringLeafJson)
@@ -292,22 +292,22 @@ function materialize(node: TrieNode, path: string): StringLeafJson {
       const max = Math.max(...indices)
       if (indices.length !== max + 1) {
         throw new Error(
-          `Invalid input (R5): array at "${path}" is not dense (expected indices 0..${max})`
+          `Invalid input (R5): array at "${debugPath}" is not dense (expected indices 0..${max})`
         )
       }
       const out: Array<StringLeafJson> = []
       for (let i = 0; i <= max; i++) {
         const key = String(i)
         if (!Object.prototype.hasOwnProperty.call(children, key)) {
-          throw new Error(`Invalid input (R5): missing index ${i} at "${path}"`)
+          throw new Error(`Invalid input (R5): missing index ${i} at "${debugPath}"`)
         }
-        out[i] = materialize(children[key]!, append(path, i))
+        out[i] = materialize(children[key]!, appendDebugSegment(debugPath, i))
       }
       return out
     } else {
       // Object (R4, R6)
       const obj: Record<string, StringLeafJson> = {}
-      for (const seg of childNames) obj[seg] = materialize(children[seg]!, append(path, seg))
+      for (const seg of childNames) obj[seg] = materialize(children[seg]!, appendDebugSegment(debugPath, seg))
       return obj
     }
   }
@@ -318,7 +318,7 @@ function materialize(node: TrieNode, path: string): StringLeafJson {
   }
 
   // Dangling empty node (should not occur with well-formed inputs)
-  throw new Error(`Invalid input: dangling empty node at "${path}"`)
+  throw new Error(`Invalid input: dangling empty node at "${debugPath}"`)
 }
 
 /** @internal */
