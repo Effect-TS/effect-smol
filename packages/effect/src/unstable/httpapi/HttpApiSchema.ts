@@ -106,8 +106,8 @@ export const UnionUnifyAST = (self: AST.AST, that: AST.AST): AST.AST =>
  * @since 4.0.0
  */
 export const UnionUnify = <
-  A extends Schema.Schema<any>,
-  B extends Schema.Schema<any>
+  A extends Schema.Top,
+  B extends Schema.Top
 >(self: A, that: B): Schema.Union<[A, B]> => Schema.make(UnionUnifyAST(self.ast, that.ast)) as any
 
 /**

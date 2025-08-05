@@ -1,6 +1,7 @@
 /**
  * @since 4.0.0
  */
+import type { NonEmptyReadonlyArray } from "../../collections/Array.ts"
 import * as Option from "../../data/Option.ts"
 import * as Predicate from "../../data/Predicate.ts"
 import * as Record from "../../data/Record.ts"
@@ -55,7 +56,7 @@ export interface HttpApi<
   /**
    * Add a `HttpApiGroup` to the `HttpApi`.
    */
-  add<A extends HttpApiGroup.Any>(group: A): HttpApi<Id, Groups | A>
+  add<A extends NonEmptyReadonlyArray<HttpApiGroup.Any>>(...groups: A): HttpApi<Id, Groups | A[number]>
 
   /**
    * Add another `HttpApi` to the `HttpApi`.
@@ -112,11 +113,15 @@ const Proto = {
   },
   add(
     this: AnyWithProps,
-    group: HttpApiGroup.AnyWithProps
+    ...toAdd: NonEmptyReadonlyArray<HttpApiGroup.AnyWithProps>
   ) {
+    const groups = { ...this.groups }
+    for (const group of toAdd) {
+      groups[group.identifier] = group
+    }
     return makeProto({
       identifier: this.identifier,
-      groups: Record.set(this.groups, group.identifier, group),
+      groups,
       annotations: this.annotations
     })
   },

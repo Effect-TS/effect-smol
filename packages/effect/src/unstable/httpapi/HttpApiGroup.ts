@@ -1,6 +1,7 @@
 /**
  * @since 4.0.0
  */
+import type { NonEmptyReadonlyArray } from "../../collections/Array.ts"
 import * as Predicate from "../../data/Predicate.ts"
 import * as Record from "../../data/Record.ts"
 import { type Pipeable, pipeArguments } from "../../interfaces/Pipeable.ts"
@@ -52,9 +53,9 @@ export interface HttpApiGroup<
   /**
    * Add an `HttpApiEndpoint` to an `HttpApiGroup`.
    */
-  add<A extends HttpApiEndpoint.Any>(
-    endpoint: A
-  ): HttpApiGroup<Id, Endpoints | A, TopLevel>
+  add<A extends NonEmptyReadonlyArray<HttpApiEndpoint.Any>>(
+    ...endpoints: A
+  ): HttpApiGroup<Id, Endpoints | A[number], TopLevel>
 
   /**
    * Add a path prefix to all endpoints in an `HttpApiGroup`. Note that this will only
@@ -221,14 +222,15 @@ export type AddMiddleware<Group, Id extends HttpApiMiddleware.AnyId> = Group ext
 
 const Proto = {
   [TypeId]: TypeId,
-  add<A extends HttpApiEndpoint.AnyWithProps>(this: AnyWithProps, endpoint: A) {
+  add(this: AnyWithProps, ...toAdd: NonEmptyReadonlyArray<HttpApiEndpoint.AnyWithProps>) {
+    const endpoints = { ...this.endpoints }
+    for (const endpoint of toAdd) {
+      endpoints[endpoint.name] = endpoint
+    }
     return makeProto({
       identifier: this.identifier,
       topLevel: this.topLevel,
-      endpoints: {
-        ...this.endpoints,
-        [endpoint.name]: endpoint
-      },
+      endpoints,
       annotations: this.annotations
     })
   },

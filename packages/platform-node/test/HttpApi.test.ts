@@ -424,85 +424,71 @@ class Authorization extends HttpApiMiddleware.Key<Authorization>()("Authorizatio
   provides: CurrentUser
 }) {}
 
-class GroupsApi extends HttpApiGroup.make("groups")
-  .add(
-    HttpApiEndpoint.get("findById", "/:id")
-      .setPath(Schema.Struct({
-        id: Schema.FiniteFromString
-      }))
-      .addSuccess(Group)
-      .addError(GroupError)
-  )
-  .add(
-    HttpApiEndpoint.post("create", "/")
-      .setPayload(Schema.Union([
-        Schema.Struct(Struct.pick(Group.fields, ["name"])),
-        Schema.Struct({ foo: Schema.String }).pipe(
-          HttpApiSchema.withEncoding({ kind: "UrlParams" })
-        ),
-        HttpApiSchema.Multipart(
-          Schema.Struct(Struct.pick(Group.fields, ["name"]))
-        )
-      ]))
-      .addSuccess(Group)
-  )
-  .add(
-    HttpApiEndpoint.post("handle", "/handle/:id")
-      .setPath(Schema.Struct({
-        id: Schema.FiniteFromString
-      }))
-      .setPayload(Schema.Struct({
-        name: Schema.String
-      }))
-      .addSuccess(Schema.Struct({
-        id: Schema.Number,
-        name: Schema.String
-      }))
-  )
-  .add(
-    HttpApiEndpoint.post("handleRaw", "/handleraw/:id")
-      .setPath(Schema.Struct({
-        id: Schema.FiniteFromString
-      }))
-      .setPayload(Schema.Struct({
-        name: Schema.String
-      }))
-      .addSuccess(Schema.Struct({
-        id: Schema.Number,
-        name: Schema.String
-      }))
-  )
-  .prefix("/groups")
-{}
+class GroupsApi extends HttpApiGroup.make("groups").add(
+  HttpApiEndpoint.get("findById", "/:id", {
+    path: {
+      id: Schema.FiniteFromString
+    },
+    success: Group,
+    error: GroupError
+  }),
+  HttpApiEndpoint.post("create", "/", {
+    payload: Schema.Union([
+      Schema.Struct(Struct.pick(Group.fields, ["name"])),
+      Schema.Struct({ foo: Schema.String }).pipe(
+        HttpApiSchema.withEncoding({ kind: "UrlParams" })
+      ),
+      HttpApiSchema.Multipart(
+        Schema.Struct(Struct.pick(Group.fields, ["name"]))
+      )
+    ]),
+    success: Group
+  }),
+  HttpApiEndpoint.post("handle", "/handle/:id", {
+    path: {
+      id: Schema.FiniteFromString
+    },
+    payload: Schema.Struct({
+      name: Schema.String
+    }),
+    success: {
+      id: Schema.Number,
+      name: Schema.String
+    }
+  }),
+  HttpApiEndpoint.post("handleRaw", "/handleraw/:id", {
+    path: {
+      id: Schema.FiniteFromString
+    },
+    payload: {
+      name: Schema.String
+    },
+    success: {
+      id: Schema.Number,
+      name: Schema.String
+    }
+  })
+).prefix("/groups") {}
 
 class UsersApi extends HttpApiGroup.make("users")
   .add(
-    HttpApiEndpoint.get("findById", "/:id")
-      .setPath(Schema.Struct({
+    HttpApiEndpoint.get("findById", "/:id", {
+      path: {
         id: Schema.FiniteFromString
-      }))
-      .addSuccess(User)
-      .addError(UserError)
-  )
-  .add(
-    HttpApiEndpoint.post("create", "/")
-      .setPayload(Schema.Struct(Struct.omit(
-        User.fields,
-        [
-          "id",
-          "createdAt"
-        ]
-      )))
-      .setUrlParams(Schema.Struct({
+      },
+      success: User,
+      error: UserError
+    }),
+    HttpApiEndpoint.post("create", "/", {
+      payload: Struct.omit(User.fields, ["id", "createdAt"]),
+      urlParams: {
         id: Schema.FiniteFromString
-      }))
-      .addSuccess(User)
-      .addError(UserError)
-      .addError(UserError) // ensure errors are deduplicated
-  )
-  .add(
-    HttpApiEndpoint.get("list", "/")
-      .setHeaders(Schema.Struct({
+      },
+      success: User,
+      error: [UserError, UserError]
+    }),
+    HttpApiEndpoint.get("list", "/", {
+      headers: {
         page: Schema.FiniteFromString.pipe(
           Schema.optionalKey,
           Schema.decode({
@@ -510,38 +496,37 @@ class UsersApi extends HttpApiGroup.make("users")
             encode: Getter.passthrough()
           })
         )
-      }))
-      .setUrlParams(Schema.Struct({
+      },
+      urlParams: {
         query: Schema.optional(Schema.String).annotate({ description: "search query" })
-      }))
-      .addSuccess(Schema.Array(User))
-      .addError(NoStatusError)
+      },
+      success: Schema.Array(User),
+      error: NoStatusError
+    })
       .annotate(OpenApi.Deprecated, true)
       .annotate(OpenApi.Summary, "test summary")
-      .annotateMerge(OpenApi.annotations({ identifier: "listUsers" }))
-  )
-  .add(
-    HttpApiEndpoint.post("upload", "/upload/:0?")
-      .setPath(Schema.Struct({
+      .annotateMerge(OpenApi.annotations({ identifier: "listUsers" })),
+    HttpApiEndpoint.post("upload", "/upload/:0?", {
+      path: {
         0: Schema.optional(Schema.String)
-      }))
-      .setPayload(HttpApiSchema.Multipart(Schema.Struct({
+      },
+      payload: HttpApiSchema.Multipart(Schema.Struct({
         file: Multipart.SingleFileSchema
-      })))
-      .addSuccess(Schema.Struct({
+      })),
+      success: {
         contentType: Schema.String,
         length: Schema.Int
-      }))
-  )
-  .add(
-    HttpApiEndpoint.post("uploadStream", `/uploadstream`)
-      .setPayload(HttpApiSchema.MultipartStream(Schema.Struct({
+      }
+    }),
+    HttpApiEndpoint.post("uploadStream", `/uploadstream`, {
+      payload: HttpApiSchema.MultipartStream(Schema.Struct({
         file: Multipart.SingleFileSchema
-      })))
-      .addSuccess(Schema.Struct({
+      })),
+      success: {
         contentType: Schema.String,
         length: Schema.Int
-      }))
+      }
+    })
   )
   .middleware(Authorization)
   .annotateMerge(OpenApi.annotations({ title: "Users API" }))

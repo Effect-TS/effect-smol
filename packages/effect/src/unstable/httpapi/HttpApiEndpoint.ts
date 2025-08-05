@@ -4,10 +4,11 @@
 import type { Brand } from "../../data/Brand.ts"
 import * as Option from "../../data/Option.ts"
 import * as Predicate from "../../data/Predicate.ts"
+import type { ReadonlyRecord } from "../../data/Record.ts"
 import type { Simplify } from "../../data/Struct.ts"
 import type { Effect } from "../../Effect.ts"
 import { type Pipeable, pipeArguments } from "../../interfaces/Pipeable.ts"
-import type * as Schema from "../../schema/Schema.ts"
+import * as Schema from "../../schema/Schema.js"
 import * as ServiceMap from "../../ServiceMap.ts"
 import type * as Stream from "../../stream/Stream.ts"
 import type * as Types from "../../types/Types.ts"
@@ -53,7 +54,7 @@ export interface HttpApiEndpoint<
   in out UrlParams extends Schema.Top = never,
   in out Payload extends Schema.Top = never,
   in out Headers extends Schema.Top = never,
-  in out Success extends Schema.Top = Schema.Void,
+  in out Success extends Schema.Top = HttpApiSchema.NoContent,
   in out Error extends Schema.Top = Schema.Never,
   in out Middleware = never,
   out MiddlewareR = never
@@ -775,6 +776,14 @@ export type PayloadConstraint<Method extends HttpMethod> = Method extends HttpMe
  * @since 4.0.0
  * @category models
  */
+export type PayloadConstraintField<Method extends HttpMethod> = Method extends HttpMethod.NoBody ?
+  string | ReadonlyArray<string> | undefined :
+  any
+
+/**
+ * @since 4.0.0
+ * @category models
+ */
 export type ValidateParams<
   Schemas extends ReadonlyArray<Schema.Top>,
   Prev extends Schema.Top = never
@@ -1026,85 +1035,390 @@ const makeProto = <
  * @since 4.0.0
  * @category constructors
  */
-export const make =
-  <Method extends HttpMethod>(method: Method) =>
-  <const Name extends string, const Path extends HttpRouter.PathInput>(
-    name: Name,
-    path: Path
-  ): HttpApiEndpoint<Name, Method, Path> =>
-    makeProto({
-      name,
-      path,
-      method,
-      pathSchema: Option.none(),
-      urlParamsSchema: Option.none(),
-      payloadSchema: Option.none(),
-      headersSchema: Option.none(),
-      successSchema: HttpApiSchema.NoContent as any,
-      errorSchema: HttpApiSchemaError as any,
-      annotations: ServiceMap.empty(),
-      middlewares: new Set()
-    })
+export const make = <Method extends HttpMethod>(method: Method) =>
+<
+  const Name extends string,
+  const Path extends HttpRouter.PathInput,
+  PathSchema extends
+    | Schema.Codec<any, ReadonlyRecord<string, string | undefined>, any, any>
+    | Record<string, Schema.Codec<any, string | undefined, any, any>> = never,
+  UrlParams extends
+    | Schema.Codec<any, ReadonlyRecord<string, string | ReadonlyArray<string> | undefined>, any, any>
+    | Record<string, Schema.Codec<any, string | ReadonlyArray<string> | undefined, any, any>> = never,
+  Payload extends
+    | Schema.Codec<any, PayloadConstraint<Method>, any, any>
+    | Record<string, Schema.Codec<any, PayloadConstraintField<Method>, any, any>> = never,
+  Headers extends
+    | Schema.Codec<any, Readonly<Record<string, string | undefined>>, any, any>
+    | Record<string, Schema.Codec<any, string | undefined, any, any>> = never,
+  Success extends
+    | Schema.Top
+    | Record<string, Schema.Top> = HttpApiSchema.NoContent,
+  const Error extends Schema.Top | ReadonlyArray<Schema.Top> = Schema.Never
+>(
+  name: Name,
+  path: Path,
+  options?: {
+    readonly path?: PathSchema | undefined
+    readonly urlParams?: UrlParams | undefined
+    readonly payload?: Payload | undefined
+    readonly headers?: Headers | undefined
+    readonly success?: Success | undefined
+    readonly error?: Error | undefined
+  }
+): HttpApiEndpoint<
+  Name,
+  Method,
+  Path,
+  PathSchema extends Schema.Struct.Fields ? Schema.Struct<PathSchema> : PathSchema,
+  UrlParams extends Schema.Struct.Fields ? Schema.Struct<UrlParams> : UrlParams,
+  Payload extends Schema.Struct.Fields ? Schema.Struct<Payload> : Payload,
+  Headers extends Schema.Struct.Fields ? Schema.Struct<Headers> : Headers,
+  Success extends Schema.Struct.Fields ? Schema.Struct<Success> : Success,
+  Error extends ReadonlyArray<Schema.Top> ? Error[number] : Error
+> =>
+  makeProto({
+    name,
+    path,
+    method,
+    pathSchema: Option.fromNullable(options?.path).pipe(
+      Option.map(structToSchema)
+    ),
+    urlParamsSchema: Option.fromNullable(options?.urlParams).pipe(
+      Option.map(structToSchema)
+    ),
+    payloadSchema: Option.fromNullable(options?.payload).pipe(
+      Option.map(structToSchema)
+    ),
+    headersSchema: Option.fromNullable(options?.headers).pipe(
+      Option.map(structToSchema)
+    ),
+    successSchema: options?.success ? structToSchema(options.success) : HttpApiSchema.NoContent as any,
+    errorSchema: options?.error ?
+      HttpApiSchema.UnionUnify(
+        HttpApiSchemaError,
+        Array.isArray(options.error) ? Schema.Union(options.error) : options.error as Schema.Top
+      ) as any :
+      HttpApiSchemaError as any,
+    annotations: ServiceMap.empty(),
+    middlewares: new Set()
+  })
+
+const structToSchema = <S>(
+  schema: S
+): S extends Schema.Struct.Fields ? Schema.Struct<S> : S =>
+  Schema.isSchema(schema) ? schema as any : Schema.Struct(schema as any) as any
 
 /**
  * @since 4.0.0
  * @category constructors
  */
-export const get: <const Name extends string, const Path extends HttpRouter.PathInput>(
+export const get: <
+  const Name extends string,
+  const Path extends HttpRouter.PathInput,
+  PathSchema extends
+    | Schema.Codec<any, ReadonlyRecord<string, string | undefined>, any, any>
+    | Record<string, Schema.Codec<any, string | undefined, any, any>> = never,
+  UrlParams extends
+    | Schema.Codec<any, ReadonlyRecord<string, string | ReadonlyArray<string> | undefined>, any, any>
+    | Record<string, Schema.Codec<any, string | ReadonlyArray<string> | undefined, any, any>> = never,
+  Payload extends
+    | Schema.Codec<any, Readonly<Record<string, string | ReadonlyArray<string> | undefined>>, any, any>
+    | Record<string, Schema.Codec<any, string | ReadonlyArray<string> | undefined, any, any>> = never,
+  Headers extends
+    | Schema.Codec<any, Readonly<Record<string, string | undefined>>, any, any>
+    | Record<string, Schema.Codec<any, string | undefined, any, any>> = never,
+  Success extends
+    | Schema.Top
+    | Record<string, Schema.Top> = HttpApiSchema.NoContent,
+  const Error extends Schema.Top | ReadonlyArray<Schema.Top> = Schema.Never
+>(
   name: Name,
-  path: Path
-) => HttpApiEndpoint<Name, "GET", Path> = make("GET")
+  path: Path,
+  options?: {
+    readonly path?: PathSchema | undefined
+    readonly urlParams?: UrlParams | undefined
+    readonly payload?: Payload | undefined
+    readonly headers?: Headers | undefined
+    readonly success?: Success | undefined
+    readonly error?: Error | undefined
+  } | undefined
+) => HttpApiEndpoint<
+  Name,
+  "GET",
+  Path,
+  PathSchema extends Schema.Struct.Fields ? Schema.Struct<PathSchema> : PathSchema,
+  UrlParams extends Schema.Struct.Fields ? Schema.Struct<UrlParams> : UrlParams,
+  Payload extends Schema.Struct.Fields ? Schema.Struct<Payload> : Payload,
+  Headers extends Schema.Struct.Fields ? Schema.Struct<Headers> : Headers,
+  Success extends Schema.Struct.Fields ? Schema.Struct<Success> : Success,
+  Error extends ReadonlyArray<Schema.Top> ? Error[number] : Error
+> = make("GET")
 
 /**
  * @since 4.0.0
  * @category constructors
  */
-export const post: <const Name extends string, const Path extends HttpRouter.PathInput>(
+export const post: <
+  const Name extends string,
+  const Path extends HttpRouter.PathInput,
+  PathSchema extends
+    | Schema.Codec<any, ReadonlyRecord<string, string | undefined>, any, any>
+    | Record<string, Schema.Codec<any, string | undefined, any, any>> = never,
+  UrlParams extends
+    | Schema.Codec<any, ReadonlyRecord<string, string | ReadonlyArray<string> | undefined>, any, any>
+    | Record<string, Schema.Codec<any, string | ReadonlyArray<string> | undefined, any, any>> = never,
+  Payload extends Schema.Codec<any, any, any, any> | Record<string, Schema.Codec<any, any, any, any>> = never,
+  Headers extends
+    | Schema.Codec<any, Readonly<Record<string, string | undefined>>, any, any>
+    | Record<string, Schema.Codec<any, string | undefined, any, any>> = never,
+  Success extends
+    | Schema.Top
+    | Record<string, Schema.Top> = HttpApiSchema.NoContent,
+  const Error extends Schema.Top | ReadonlyArray<Schema.Top> = Schema.Never
+>(
   name: Name,
-  path: Path
-) => HttpApiEndpoint<Name, "POST", Path> = make("POST")
+  path: Path,
+  options?: {
+    readonly path?: PathSchema | undefined
+    readonly urlParams?: UrlParams | undefined
+    readonly payload?: Payload | undefined
+    readonly headers?: Headers | undefined
+    readonly success?: Success | undefined
+    readonly error?: Error | undefined
+  } | undefined
+) => HttpApiEndpoint<
+  Name,
+  "POST",
+  Path,
+  PathSchema extends Schema.Struct.Fields ? Schema.Struct<PathSchema> : PathSchema,
+  UrlParams extends Schema.Struct.Fields ? Schema.Struct<UrlParams> : UrlParams,
+  Payload extends Schema.Struct.Fields ? Schema.Struct<Payload> : Payload,
+  Headers extends Schema.Struct.Fields ? Schema.Struct<Headers> : Headers,
+  Success extends Schema.Struct.Fields ? Schema.Struct<Success> : Success,
+  Error extends ReadonlyArray<Schema.Top> ? Error[number] : Error
+> = make("POST")
 
 /**
  * @since 4.0.0
  * @category constructors
  */
-export const put: <const Name extends string, const Path extends HttpRouter.PathInput>(
+export const put: <
+  const Name extends string,
+  const Path extends HttpRouter.PathInput,
+  PathSchema extends
+    | Schema.Codec<any, ReadonlyRecord<string, string | undefined>, any, any>
+    | Record<string, Schema.Codec<any, string | undefined, any, any>> = never,
+  UrlParams extends
+    | Schema.Codec<any, ReadonlyRecord<string, string | ReadonlyArray<string> | undefined>, any, any>
+    | Record<string, Schema.Codec<any, string | ReadonlyArray<string> | undefined, any, any>> = never,
+  Payload extends Schema.Codec<any, any, any, any> | Record<string, Schema.Codec<any, any, any, any>> = never,
+  Headers extends
+    | Schema.Codec<any, Readonly<Record<string, string | undefined>>, any, any>
+    | Record<string, Schema.Codec<any, string | undefined, any, any>> = never,
+  Success extends
+    | Schema.Top
+    | Record<string, Schema.Top> = HttpApiSchema.NoContent,
+  const Error extends Schema.Top | ReadonlyArray<Schema.Top> = Schema.Never
+>(
   name: Name,
-  path: Path
-) => HttpApiEndpoint<Name, "PUT", Path> = make("PUT")
+  path: Path,
+  options?: {
+    readonly path?: PathSchema | undefined
+    readonly urlParams?: UrlParams | undefined
+    readonly payload?: Payload | undefined
+    readonly headers?: Headers | undefined
+    readonly success?: Success | undefined
+    readonly error?: Error | undefined
+  } | undefined
+) => HttpApiEndpoint<
+  Name,
+  "PUT",
+  Path,
+  PathSchema extends Schema.Struct.Fields ? Schema.Struct<PathSchema> : PathSchema,
+  UrlParams extends Schema.Struct.Fields ? Schema.Struct<UrlParams> : UrlParams,
+  Payload extends Schema.Struct.Fields ? Schema.Struct<Payload> : Payload,
+  Headers extends Schema.Struct.Fields ? Schema.Struct<Headers> : Headers,
+  Success extends Schema.Struct.Fields ? Schema.Struct<Success> : Success,
+  Error extends ReadonlyArray<Schema.Top> ? Error[number] : Error
+> = make("PUT")
 
 /**
  * @since 4.0.0
  * @category constructors
  */
-export const patch: <const Name extends string, const Path extends HttpRouter.PathInput>(
+export const patch: <
+  const Name extends string,
+  const Path extends HttpRouter.PathInput,
+  PathSchema extends
+    | Schema.Codec<any, ReadonlyRecord<string, string | undefined>, any, any>
+    | Record<string, Schema.Codec<any, string | undefined, any, any>> = never,
+  UrlParams extends
+    | Schema.Codec<any, ReadonlyRecord<string, string | ReadonlyArray<string> | undefined>, any, any>
+    | Record<string, Schema.Codec<any, string | ReadonlyArray<string> | undefined, any, any>> = never,
+  Payload extends Schema.Codec<any, any, any, any> | Record<string, Schema.Codec<any, any, any, any>> = never,
+  Headers extends
+    | Schema.Codec<any, Readonly<Record<string, string | undefined>>, any, any>
+    | Record<string, Schema.Codec<any, string | undefined, any, any>> = never,
+  Success extends
+    | Schema.Top
+    | Record<string, Schema.Top> = HttpApiSchema.NoContent,
+  const Error extends Schema.Top | ReadonlyArray<Schema.Top> = Schema.Never
+>(
   name: Name,
-  path: Path
-) => HttpApiEndpoint<Name, "PATCH", Path> = make("PATCH")
+  path: Path,
+  options?: {
+    readonly path?: PathSchema | undefined
+    readonly urlParams?: UrlParams | undefined
+    readonly payload?: Payload | undefined
+    readonly headers?: Headers | undefined
+    readonly success?: Success | undefined
+    readonly error?: Error | undefined
+  } | undefined
+) => HttpApiEndpoint<
+  Name,
+  "PATCH",
+  Path,
+  PathSchema extends Schema.Struct.Fields ? Schema.Struct<PathSchema> : PathSchema,
+  UrlParams extends Schema.Struct.Fields ? Schema.Struct<UrlParams> : UrlParams,
+  Payload extends Schema.Struct.Fields ? Schema.Struct<Payload> : Payload,
+  Headers extends Schema.Struct.Fields ? Schema.Struct<Headers> : Headers,
+  Success extends Schema.Struct.Fields ? Schema.Struct<Success> : Success,
+  Error extends ReadonlyArray<Schema.Top> ? Error[number] : Error
+> = make("PATCH")
 
 /**
  * @since 4.0.0
  * @category constructors
  */
-export const del: <const Name extends string, const Path extends HttpRouter.PathInput>(
+export const del: <
+  const Name extends string,
+  const Path extends HttpRouter.PathInput,
+  PathSchema extends
+    | Schema.Codec<any, ReadonlyRecord<string, string | undefined>, any, any>
+    | Record<string, Schema.Codec<any, string | undefined, any, any>> = never,
+  UrlParams extends
+    | Schema.Codec<any, ReadonlyRecord<string, string | ReadonlyArray<string> | undefined>, any, any>
+    | Record<string, Schema.Codec<any, string | ReadonlyArray<string> | undefined, any, any>> = never,
+  Payload extends Schema.Codec<any, any, any, any> | Record<string, Schema.Codec<any, any, any, any>> = never,
+  Headers extends
+    | Schema.Codec<any, Readonly<Record<string, string | undefined>>, any, any>
+    | Record<string, Schema.Codec<any, string | undefined, any, any>> = never,
+  Success extends
+    | Schema.Top
+    | Record<string, Schema.Top> = HttpApiSchema.NoContent,
+  const Error extends Schema.Top | ReadonlyArray<Schema.Top> = Schema.Never
+>(
   name: Name,
-  path: Path
-) => HttpApiEndpoint<Name, "DELETE", Path> = make("DELETE")
+  path: Path,
+  options?: {
+    readonly path?: PathSchema | undefined
+    readonly urlParams?: UrlParams | undefined
+    readonly payload?: Payload | undefined
+    readonly headers?: Headers | undefined
+    readonly success?: Success | undefined
+    readonly error?: Error | undefined
+  } | undefined
+) => HttpApiEndpoint<
+  Name,
+  "DELETE",
+  Path,
+  PathSchema extends Schema.Struct.Fields ? Schema.Struct<PathSchema> : PathSchema,
+  UrlParams extends Schema.Struct.Fields ? Schema.Struct<UrlParams> : UrlParams,
+  Payload extends Schema.Struct.Fields ? Schema.Struct<Payload> : Payload,
+  Headers extends Schema.Struct.Fields ? Schema.Struct<Headers> : Headers,
+  Success extends Schema.Struct.Fields ? Schema.Struct<Success> : Success,
+  Error extends ReadonlyArray<Schema.Top> ? Error[number] : Error
+> = make("DELETE")
 
 /**
  * @since 4.0.0
  * @category constructors
  */
-export const head: <const Name extends string, const Path extends HttpRouter.PathInput>(
+export const head: <
+  const Name extends string,
+  const Path extends HttpRouter.PathInput,
+  PathSchema extends
+    | Schema.Codec<any, ReadonlyRecord<string, string | undefined>, any, any>
+    | Record<string, Schema.Codec<any, string | undefined, any, any>> = never,
+  UrlParams extends
+    | Schema.Codec<any, ReadonlyRecord<string, string | ReadonlyArray<string> | undefined>, any, any>
+    | Record<string, Schema.Codec<any, string | ReadonlyArray<string> | undefined, any, any>> = never,
+  Payload extends
+    | Record<string, Schema.Codec<any, string | ReadonlyArray<string> | undefined, any, any>>
+    | Schema.Codec<any, Readonly<Record<string, string | ReadonlyArray<string> | undefined>>, any, any> = never,
+  Headers extends
+    | Schema.Codec<any, Readonly<Record<string, string | undefined>>, any, any>
+    | Record<string, Schema.Codec<any, string | undefined, any, any>> = never,
+  Success extends
+    | Schema.Top
+    | Record<string, Schema.Top> = HttpApiSchema.NoContent,
+  const Error extends Schema.Top | ReadonlyArray<Schema.Top> = Schema.Never
+>(
   name: Name,
-  path: Path
-) => HttpApiEndpoint<Name, "HEAD", Path> = make("HEAD")
+  path: Path,
+  options?: {
+    readonly path?: PathSchema | undefined
+    readonly urlParams?: UrlParams | undefined
+    readonly payload?: Payload | undefined
+    readonly headers?: Headers | undefined
+    readonly success?: Success | undefined
+    readonly error?: Error | undefined
+  } | undefined
+) => HttpApiEndpoint<
+  Name,
+  "HEAD",
+  Path,
+  PathSchema extends Schema.Struct.Fields ? Schema.Struct<PathSchema> : PathSchema,
+  UrlParams extends Schema.Struct.Fields ? Schema.Struct<UrlParams> : UrlParams,
+  Payload extends Schema.Struct.Fields ? Schema.Struct<Payload> : Payload,
+  Headers extends Schema.Struct.Fields ? Schema.Struct<Headers> : Headers,
+  Success extends Schema.Struct.Fields ? Schema.Struct<Success> : Success,
+  Error extends ReadonlyArray<Schema.Top> ? Error[number] : Error
+> = make("HEAD")
 
 /**
  * @since 4.0.0
  * @category constructors
  */
-export const options: <const Name extends string, const Path extends HttpRouter.PathInput>(
+export const options: <
+  const Name extends string,
+  const Path extends HttpRouter.PathInput,
+  PathSchema extends
+    | Schema.Codec<any, ReadonlyRecord<string, string | undefined>, any, any>
+    | Record<string, Schema.Codec<any, string | undefined, any, any>> = never,
+  UrlParams extends
+    | Schema.Codec<any, ReadonlyRecord<string, string | ReadonlyArray<string> | undefined>, any, any>
+    | Record<string, Schema.Codec<any, string | ReadonlyArray<string> | undefined, any, any>> = never,
+  Payload extends
+    | Record<string, Schema.Codec<any, string | ReadonlyArray<string> | undefined, any, any>>
+    | Schema.Codec<any, Readonly<Record<string, string | ReadonlyArray<string> | undefined>>, any, any> = never,
+  Headers extends
+    | Schema.Codec<any, Readonly<Record<string, string | undefined>>, any, any>
+    | Record<string, Schema.Codec<any, string | undefined, any, any>> = never,
+  Success extends
+    | Schema.Top
+    | Record<string, Schema.Top> = HttpApiSchema.NoContent,
+  const Error extends Schema.Top | ReadonlyArray<Schema.Top> = Schema.Never
+>(
   name: Name,
-  path: Path
-) => HttpApiEndpoint<Name, "OPTIONS", Path> = make("OPTIONS")
+  path: Path,
+  options?: {
+    readonly path?: PathSchema | undefined
+    readonly urlParams?: UrlParams | undefined
+    readonly payload?: Payload | undefined
+    readonly headers?: Headers | undefined
+    readonly success?: Success | undefined
+    readonly error?: Error | undefined
+  } | undefined
+) => HttpApiEndpoint<
+  Name,
+  "OPTIONS",
+  Path,
+  PathSchema extends Schema.Struct.Fields ? Schema.Struct<PathSchema> : PathSchema,
+  UrlParams extends Schema.Struct.Fields ? Schema.Struct<UrlParams> : UrlParams,
+  Payload extends Schema.Struct.Fields ? Schema.Struct<Payload> : Payload,
+  Headers extends Schema.Struct.Fields ? Schema.Struct<Headers> : Headers,
+  Success extends Schema.Struct.Fields ? Schema.Struct<Success> : Success,
+  Error extends ReadonlyArray<Schema.Top> ? Error[number] : Error
+> = make("OPTIONS")
