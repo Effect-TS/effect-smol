@@ -379,10 +379,10 @@ export function decode(env: Record<string, string>): StringLeafJson {
  * @since 4.0.0
  */
 export function fromEnv(options?: {
-  readonly environment?: Record<string, string> | undefined
+  readonly env?: Record<string, string> | undefined
 }): ConfigProvider {
   // Merge env sources (Node / Deno / Vite-like) unless an explicit env is passed.
-  const env = options?.environment ?? {
+  const env = options?.env ?? {
     ...globalThis?.process?.env,
     ...(import.meta as any)?.env
   }
@@ -419,7 +419,7 @@ export function fromDotEnv(lines: string, options?: {
   if (options?.expandVariables) {
     environment = dotEnvExpand(environment)
   }
-  return fromEnv({ environment })
+  return fromEnv({ env: environment })
 }
 
 const DOT_ENV_LINE =
@@ -533,7 +533,7 @@ export const dotEnv: (options?: {
   function*(options) {
     const fs = yield* FileSystem.FileSystem
     const content = yield* fs.readFileString(options?.path ?? ".env")
-    return fromEnv({ environment: parseDotEnv(content) })
+    return fromEnv({ env: parseDotEnv(content) })
   }
 )
 

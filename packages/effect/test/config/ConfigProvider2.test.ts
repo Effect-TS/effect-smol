@@ -27,12 +27,12 @@ async function assertPathSuccess(
 describe("ConfigProvider2", () => {
   it("orElse", async () => {
     const provider1 = ConfigProvider2.fromEnv({
-      environment: {
+      env: {
         "A": "value1"
       }
     })
     const provider2 = ConfigProvider2.fromEnv({
-      environment: {
+      env: {
         "B": "value2"
       }
     })
@@ -43,7 +43,7 @@ describe("ConfigProvider2", () => {
 
   it("constantCase", async () => {
     const provider = ConfigProvider2.constantCase(ConfigProvider2.fromEnv({
-      environment: {
+      env: {
         "CONSTANT_CASE": "value1"
       }
     }))
@@ -52,7 +52,7 @@ describe("ConfigProvider2", () => {
 
   it("nested", async () => {
     const provider = ConfigProvider2.nested("prefix")(ConfigProvider2.fromEnv({
-      environment: {
+      env: {
         "prefix__leaf": "value1"
       }
     }))
@@ -62,7 +62,7 @@ describe("ConfigProvider2", () => {
   describe("fromEnv", () => {
     it("should support nested keys", async () => {
       const provider = ConfigProvider2.fromEnv({
-        environment: {
+        env: {
           "leaf": "value1",
           "object__key1": "value2",
           "object__key2__key3": "value3",
@@ -93,7 +93,7 @@ describe("ConfigProvider2", () => {
 
     it("When immediate child tokens are not all canonical non-negative integers, return object", async () => {
       const provider = ConfigProvider2.fromEnv({
-        environment: {
+        env: {
           "A__0": "value1",
           "A__B": "value2"
         }
@@ -105,7 +105,7 @@ describe("ConfigProvider2", () => {
 
     it("Integer validation for array indices", async () => {
       const provider = ConfigProvider2.fromEnv({
-        environment: {
+        env: {
           "A__0": "value1",
           "A__1": "value2",
           // "01" is not considered canonical
@@ -121,7 +121,7 @@ describe("ConfigProvider2", () => {
 
     it("NODE_ENV should be parsed as string", async () => {
       const provider = ConfigProvider2.fromEnv({
-        environment: {
+        env: {
           "NODE_ENV": "value"
         }
       })
@@ -315,13 +315,13 @@ A=1`)
     const SetLayer = ConfigProvider2.layer(provider).pipe(
       Layer.provide(Platform),
       Layer.provide(ConfigProvider2.layer(ConfigProvider2.fromEnv({
-        environment: { secret: "fail" }
+        env: { secret: "fail" }
       })))
     )
     const AddLayer = ConfigProvider2.layerAdd(provider).pipe(
       Layer.provide(Platform),
       Layer.provide(ConfigProvider2.layer(ConfigProvider2.fromEnv({
-        environment: {
+        env: {
           secret: "shh",
           fallback: "value"
         }
@@ -379,9 +379,7 @@ A=1`)
 })
 
 describe("decode", () => {
-  type Env = Record<string, string>
-
-  function expectDecode(env: Env, expected: ConfigProvider2.StringLeafJson) {
+  function expectDecode(env: Record<string, string>, expected: ConfigProvider2.StringLeafJson) {
     const got = ConfigProvider2.decode(env)
     deepStrictEqual(got, expected)
   }
@@ -390,12 +388,12 @@ describe("decode", () => {
   // R1/R2: Segmentation + Trie
   // -------------------------
   it("R1/R2 basic path segmentation builds nested containers and leaf", () => {
-    const env: Env = { "a__0__b__c": "foo" }
+    const env = { "a__0__b__c": "foo" }
     expectDecode(env, { a: [{ b: { c: "foo" } }] })
   })
 
   it("R1 forbids empty segments", () => {
-    const env: Env = { "a____b": "x" } // empty segment between ____
+    const env = { "a____b": "x" } // empty segment between ____
     expect(() => ConfigProvider2.decode(env)).toThrow(/R1/i)
   })
 
@@ -403,7 +401,7 @@ describe("decode", () => {
   // R3: Role exclusivity (leaf vs container)
   // ------------------------------------------
   it("R3 error: node cannot be leaf and container (a=foo + a__b=bar)", () => {
-    const env: Env = { a: "foo", "a__b": "bar" }
+    const env = { a: "foo", "a__b": "bar" }
     expect(() => ConfigProvider2.decode(env)).toThrow(/R3/i)
   })
 
@@ -411,17 +409,17 @@ describe("decode", () => {
   // R4: Disambiguation per node (all numeric => array; else object)
   // ---------------------------------------------------------
   it("R4 array: all children numeric -> array", () => {
-    const env: Env = { "x__0": "a", "x__1": "b" }
+    const env = { "x__0": "a", "x__1": "b" }
     expectDecode(env, { x: ["a", "b"] })
   })
 
   it("R4 object: at least one non-numeric -> object", () => {
-    const env: Env = { "x__0": "a", "x__foo": "b" }
+    const env = { "x__0": "a", "x__foo": "b" }
     expectDecode(env, { x: { "0": "a", "foo": "b" } })
   })
 
   it("R4 with \"01\": not numeric (leading zero) -> object, not array", () => {
-    const env: Env = { "x__0": "a", "x__01": "b" }
+    const env = { "x__0": "a", "x__01": "b" }
     expectDecode(env, { x: { "0": "a", "01": "b" } })
   })
 
@@ -429,12 +427,12 @@ describe("decode", () => {
   // R5: Arrays must be dense (0..max), no gaps
   // ----------------------------------------------
   it("R5 error: non-dense array (missing index)", () => {
-    const env: Env = { "x__0": "a", "x__2": "b" }
+    const env = { "x__0": "a", "x__2": "b" }
     expect(() => ConfigProvider2.decode(env)).toThrow(/R5/i)
   })
 
   it("R5 dense array with nested objects", () => {
-    const env: Env = {
+    const env = {
       "items__0__id": "1",
       "items__0__name": "A",
       "items__1__id": "2",
@@ -447,7 +445,7 @@ describe("decode", () => {
   // R6: Object keys are used as-is
   // --------------------------------------
   it("R6 object keys preserved as-is (dashes, dots, spaces)", () => {
-    const env: Env = {
+    const env = {
       "meta-key__a.b": "dots",
       "user name__first-name": "Ada"
     }
@@ -461,7 +459,7 @@ describe("decode", () => {
   // R7: Empty containers via __TYPE sentinels
   // ------------------------------------------
   it("R7 empty containers at leaf paths", () => {
-    const env: Env = {
+    const env = {
       "list__TYPE": "A",
       "opts__TYPE": "O"
     }
@@ -474,17 +472,17 @@ describe("decode", () => {
   })
 
   it("R7 error: __TYPE cannot coexist with children", () => {
-    const env: Env = { "x__TYPE": "A", "x__0": "v" }
+    const env = { "x__TYPE": "A", "x__0": "v" }
     expect(() => ConfigProvider2.decode(env)).toThrow(/__TYPE/i)
   })
 
   it("R7 error: __TYPE cannot coexist with leaf", () => {
-    const env: Env = { "x__TYPE": "O", "x": "leaf" }
+    const env = { "x__TYPE": "O", "x": "leaf" }
     expect(() => ConfigProvider2.decode(env)).toThrow(/__TYPE/i)
   })
 
   it("R7 error: bad __TYPE value", () => {
-    const env: Env = { "x__TYPE": "Z" as any }
+    const env = { "x__TYPE": "Z" as any }
     expect(() => ConfigProvider2.decode(env)).toThrow(/R7/i)
   })
 })

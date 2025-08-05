@@ -154,7 +154,7 @@ const config = Config2.schema(
 )
 
 // Simulated environment: all values are strings.
-const environment = {
+const env = {
   API_KEY: "abc123",
   PORT: "1",
   LOCALHOST: "https://example.com"
@@ -162,7 +162,7 @@ const environment = {
 
 // Create a provider that reads from the given environment object.
 // In a real application you can omit `environment` to use process/env defaults.
-const configProvider = ConfigProvider2.fromEnv({ environment })
+const configProvider = ConfigProvider2.fromEnv({ env })
 
 // Program that reads the typed configuration once and logs it.
 const program = Effect.gen(function* () {
@@ -191,7 +191,7 @@ const program = Effect.gen(function* () {
 Effect.runFork(program)
 
 // Output:
-// { API_KEY: 'abc123', PORT: 1, LOCALHOST: https://example.com/ }
+// { API_KEY: 'abc123', PORT: 1, LOCALHOST: URL { href: 'https://example.com/' } }
 ```
 
 The `schema` function accepts an optional second argument: the `path` from which to read the value.
