@@ -52,13 +52,33 @@ describe("ConfigProvider", () => {
     await assertPathSuccess(provider, ["constant.case"], ConfigProvider.leaf("value1"))
   })
 
-  it("nested", async () => {
-    const provider = ConfigProvider.nested("prefix")(ConfigProvider.fromEnv({
-      env: {
-        "prefix__leaf": "value1"
-      }
-    }))
-    await assertPathSuccess(provider, ["leaf"], ConfigProvider.leaf("value1"))
+  describe("nested", () => {
+    it("simple", async () => {
+      const provider = ConfigProvider.fromEnv({
+        env: {
+          "prefix__leaf": "value1"
+        }
+      }).pipe(ConfigProvider.nested("prefix"))
+      await assertPathSuccess(provider, ["leaf"], ConfigProvider.leaf("value1"))
+    })
+
+    it("constantCase + nested", async () => {
+      const provider = ConfigProvider.fromEnv({
+        env: {
+          "PREFIX_CONSTANT_CASE__CONSTANT_CASE": "value1"
+        }
+      }).pipe(ConfigProvider.constantCase, ConfigProvider.nested("prefix.constant.case"))
+      await assertPathSuccess(provider, ["constant.case"], ConfigProvider.leaf("value1"))
+    })
+
+    it("nested + constantCase", async () => {
+      const provider = ConfigProvider.fromEnv({
+        env: {
+          "prefix__CONSTANT_CASE": "value1"
+        }
+      }).pipe(ConfigProvider.nested("prefix"), ConfigProvider.constantCase)
+      await assertPathSuccess(provider, ["constant.case"], ConfigProvider.leaf("value1"))
+    })
   })
 
   describe("fromEnv", () => {
