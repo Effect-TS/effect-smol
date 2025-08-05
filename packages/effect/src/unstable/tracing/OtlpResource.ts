@@ -4,6 +4,7 @@
 import * as Config from "../../config/Config.ts"
 import * as Effect from "../../Effect.ts"
 import * as Inspectable from "../../interfaces/Inspectable.ts"
+import * as Schema from "../../schema/Schema.ts"
 
 /**
  * @since 4.0.0
@@ -64,17 +65,15 @@ export const fromConfig: (
   readonly serviceVersion?: string | undefined
   readonly attributes?: Record<string, unknown> | undefined
 }) {
-  const attributes = yield* Config.Record("OTEL_RESOURCE_ATTRIBUTES", Config.String()).pipe(
-    Config.map((envAttrs) => ({
-      ...envAttrs,
-      ...options?.attributes
-    }))
-  )
+  const attributes = {
+    ...yield* Config.schema(Schema.Record(Schema.String, Schema.String), "OTEL_RESOURCE_ATTRIBUTES"),
+    ...options?.attributes
+  }
   const serviceName = options?.serviceName ?? attributes["service.name"] as string ??
-    (yield* Config.String("OTEL_SERVICE_NAME"))
+    (yield* Config.schema(Schema.String, "OTEL_SERVICE_NAME"))
   delete attributes["service.name"]
   const serviceVersion = options?.serviceVersion ?? attributes["service.version"] as string ??
-    (yield* Config.String("OTEL_SERVICE_VERSION").pipe(Config.orUndefined))
+    (yield* Config.schema(Schema.String, "OTEL_SERVICE_VERSION"))
   delete attributes["service.version"]
   return make({
     serviceName,

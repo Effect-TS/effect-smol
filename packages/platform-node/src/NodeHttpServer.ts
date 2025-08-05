@@ -3,7 +3,6 @@
  */
 import type * as Cause from "effect/Cause"
 import * as Config from "effect/config/Config"
-import type * as ConfigError from "effect/config/ConfigError"
 import type * as Record from "effect/data/Record"
 import * as Effect from "effect/Effect"
 import * as Fiber from "effect/Fiber"
@@ -394,7 +393,7 @@ export const layerConfig = (
   options: Config.Wrap<Net.ListenOptions>
 ): Layer.Layer<
   HttpServer.HttpServer | FileSystem.FileSystem | Path.Path | HttpPlatform.HttpPlatform | Etag.Generator,
-  ServeError | ConfigError.ConfigError
+  ServeError | Config.ConfigError
 > =>
   Layer.mergeAll(
     Layer.effect(HttpServer.HttpServer)(

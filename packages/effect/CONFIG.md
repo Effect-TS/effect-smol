@@ -138,14 +138,14 @@ The environment provides strings only, but you can describe the desired output u
 
 ```ts
 import { Effect } from "effect"
-import { Config2, ConfigProvider2 } from "effect/config"
+import { Config, ConfigProvider } from "effect/config"
 import { Formatter, Schema } from "effect/schema"
 
 // Define the shape of the configuration you want to read.
 // Each field declares the target type you expect in your program.
 // - PORT will be parsed from string to an integer.
 // - LOCALHOST will be parsed from string to a URL instance.
-const config = Config2.schema(
+const config = Config.schema(
   Schema.Struct({
     API_KEY: Schema.String,
     PORT: Schema.Int,
@@ -162,7 +162,7 @@ const env = {
 
 // Create a provider that reads from the given environment object.
 // In a real application you can omit `environment` to use process/env defaults.
-const configProvider = ConfigProvider2.fromEnv({ env })
+const configProvider = ConfigProvider.fromEnv({ env })
 
 // Program that reads the typed configuration once and logs it.
 const program = Effect.gen(function* () {
@@ -179,12 +179,12 @@ const program = Effect.gen(function* () {
           console.log("SchemaError", Formatter.makeTree().format(e.issue))
           break
         default:
-          console.log("GetError", e.reason)
+          console.log("ConfigProviderError", e.reason)
       }
     })
   ),
   // Supply the provider to the program.
-  Effect.provide(ConfigProvider2.layer(configProvider))
+  Effect.provide(ConfigProvider.layer(configProvider))
 )
 
 // Run in the background (fire-and-forget for this example).
@@ -204,14 +204,14 @@ The `schema` function accepts an optional second argument: the `path` from which
 
 ```ts
 import { Effect } from "effect"
-import { Config2, ConfigProvider2 } from "effect/config"
+import { Config, ConfigProvider } from "effect/config"
 import { Formatter, Schema } from "effect/schema"
 
 // Expecting a string at the root
-const config = Config2.schema(Schema.String)
+const config = Config.schema(Schema.String)
 
 // Provide a single value at the root
-const configProvider = ConfigProvider2.fromJson("value")
+const configProvider = ConfigProvider.fromJson("value")
 
 const program = Effect.gen(function* () {
   const c = yield* config
@@ -224,11 +224,11 @@ const program = Effect.gen(function* () {
           console.log("SchemaError", Formatter.makeTree().format(e.issue))
           break
         default:
-          console.log("GetError", e.reason)
+          console.log("ConfigProviderError", e.reason)
       }
     })
   ),
-  Effect.provide(ConfigProvider2.layer(configProvider))
+  Effect.provide(ConfigProvider.layer(configProvider))
 )
 
 Effect.runFork(program)
@@ -239,13 +239,13 @@ Effect.runFork(program)
 
 ```ts
 import { Effect } from "effect"
-import { Config2, ConfigProvider2 } from "effect/config"
+import { Config, ConfigProvider } from "effect/config"
 import { Formatter, Schema } from "effect/schema"
 
 // Read a string at path "a"
-const config = Config2.schema(Schema.String, "a")
+const config = Config.schema(Schema.String, "a")
 
-const configProvider = ConfigProvider2.fromJson({ a: "value" })
+const configProvider = ConfigProvider.fromJson({ a: "value" })
 
 const program = Effect.gen(function* () {
   const c = yield* config
@@ -258,11 +258,11 @@ const program = Effect.gen(function* () {
           console.log("SchemaError", Formatter.makeTree().format(e.issue))
           break
         default:
-          console.log("GetError", e.reason)
+          console.log("ConfigProviderError", e.reason)
       }
     })
   ),
-  Effect.provide(ConfigProvider2.layer(configProvider))
+  Effect.provide(ConfigProvider.layer(configProvider))
 )
 
 Effect.runFork(program)
@@ -273,13 +273,13 @@ Effect.runFork(program)
 
 ```ts
 import { Effect } from "effect"
-import { Config2, ConfigProvider2 } from "effect/config"
+import { Config, ConfigProvider } from "effect/config"
 import { Formatter, Schema } from "effect/schema"
 
 // Read a string at nested path ["a", "b"]
-const config = Config2.schema(Schema.String, ["a", "b"])
+const config = Config.schema(Schema.String, ["a", "b"])
 
-const configProvider = ConfigProvider2.fromJson({ a: { b: "value" } })
+const configProvider = ConfigProvider.fromJson({ a: { b: "value" } })
 
 const program = Effect.gen(function* () {
   const c = yield* config
@@ -292,11 +292,11 @@ const program = Effect.gen(function* () {
           console.log("SchemaError", Formatter.makeTree().format(e.issue))
           break
         default:
-          console.log("GetError", e.reason)
+          console.log("ConfigProviderError", e.reason)
       }
     })
   ),
-  Effect.provide(ConfigProvider2.layer(configProvider))
+  Effect.provide(ConfigProvider.layer(configProvider))
 )
 
 Effect.runFork(program)

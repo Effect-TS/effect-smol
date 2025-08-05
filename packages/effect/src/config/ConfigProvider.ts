@@ -1,69 +1,77 @@
 /**
  * @since 4.0.0
  */
-import * as Cause from "../Cause.ts"
-import * as Arr from "../collections/Array.ts"
-import { hasProperty } from "../data/Predicate.ts"
+
+import * as Data from "../data/Data.ts"
+import * as Predicate from "../data/Predicate.ts"
 import * as Effect from "../Effect.ts"
-import { constant, dual, identity } from "../Function.ts"
-import { toStringUnknown } from "../interfaces/Inspectable.ts"
+import { dual } from "../Function.ts"
 import type { Pipeable } from "../interfaces/Pipeable.ts"
 import { PipeInspectableProto } from "../internal/core.ts"
 import * as Layer from "../Layer.ts"
 import * as FileSystem from "../platform/FileSystem.ts"
-import * as Path from "../platform/Path.ts"
+import * as Path_ from "../platform/Path.ts"
 import type { PlatformError } from "../platform/PlatformError.ts"
 import * as Str from "../primitives/String.ts"
+import type { StringLeafJson } from "../schema/Serializer.ts"
 import type { Scope } from "../Scope.ts"
 import * as ServiceMap from "../ServiceMap.ts"
-import { type ConfigError, filterMissingDataOnly, MissingData, SourceError } from "./ConfigError.ts"
+
+/**
+ * @since 4.0.0
+ */
+export type Path = ReadonlyArray<string | number>
+
+/**
+ * @since 4.0.0
+ */
+export type Stat =
+  /* a terminal string value */
+  | { readonly _tag: "leaf"; readonly value: string }
+  /* an object; keys are unordered */
+  | { readonly _tag: "object"; readonly keys: ReadonlySet<string> }
+  /* an array-like container; length is the number of elements */
+  | { readonly _tag: "array"; readonly length: number }
+
+/**
+ * @since 4.0.0
+ */
+export function leaf(value: string): Stat {
+  return { _tag: "leaf", value }
+}
+
+/**
+ * @since 4.0.0
+ */
+export function object(keys: ReadonlySet<string>): Stat {
+  return { _tag: "object", keys }
+}
+
+/**
+ * @since 4.0.0
+ */
+export function array(length: number): Stat {
+  return { _tag: "array", length }
+}
+
+/**
+ * @since 4.0.0
+ */
+export class ConfigProviderError extends Data.TaggedError("ConfigProviderError")<{
+  readonly reason: string
+  readonly cause?: unknown
+}> {}
 
 /**
  * @since 4.0.0
  * @category Models
  */
 export interface ConfigProvider extends Pipeable {
-  readonly load: (path: ReadonlyArray<string>) => Effect.Effect<string, ConfigError>
-  readonly listCandidates: (path: ReadonlyArray<string>) => Effect.Effect<
-    Array<{
-      readonly key: string
-      readonly path: ReadonlyArray<string>
-    }>,
-    ConfigError
-  >
-  readonly formatPath: (path: ReadonlyArray<string>) => string
-  readonly transformPath: (path: string) => string
-  readonly prefix: ReadonlyArray<string>
-  readonly context: () => Context
-}
-
-/**
- * @since 4.0.0
- * @category Models
- */
-export interface Context {
-  readonly provider: ConfigProvider
-  readonly load: Effect.Effect<string, ConfigError>
-  readonly listCandidates: Effect.Effect<Array<Candidate>, ConfigError>
-
-  readonly currentPath: ReadonlyArray<string>
-  readonly appendPath: (path: string) => Context
-  readonly setPath: (path: ReadonlyArray<string>) => Context
-
-  readonly contentCache: Map<ReadonlyArray<string>, string>
-  readonly withValue: (value: string) => Context
-
-  lastChildContext?: Context | undefined
-  readonly lastChildPath: ReadonlyArray<string>
-}
-
-/**
- * @since 4.0.0
- * @category Models
- */
-export interface Candidate {
-  readonly key: string
-  readonly context: Context
+  /**
+   * Returns the node found at `path`, or `undefined` if it does not exist.
+   * Fails with `ConfigProviderError` when the underlying source cannot be read.
+   */
+  readonly get: (path: Path) => Effect.Effect<Stat | undefined, ConfigProviderError>
 }
 
 /**
@@ -75,33 +83,63 @@ export const ConfigProvider: ServiceMap.Reference<ConfigProvider> = ServiceMap.R
   { defaultValue: () => fromEnv() }
 )
 
+const Proto = {
+  ...PipeInspectableProto,
+  toJSON(this: ConfigProvider) {
+    return {
+      _id: "ConfigProvider"
+    }
+  }
+}
+
 /**
  * @since 4.0.0
  * @category Constructors
  */
-export const make = (options: {
-  readonly load: (path: ReadonlyArray<string>) => Effect.Effect<string, ConfigError>
-  readonly listCandidates?: (path: ReadonlyArray<string>) => Effect.Effect<
-    Array<{
-      readonly key: string
-      readonly path: ReadonlyArray<string>
-    }>,
-    ConfigError
-  >
-  readonly formatPath?: (path: ReadonlyArray<string>) => string
-  readonly transformPath?: (path: string) => string
-}): ConfigProvider =>
-  makeProto({
-    load: options.load,
-    listCandidates: options.listCandidates ?? defaultLoadEntries,
-    formatPath: options.formatPath ?? defaultFormatPath,
-    transformPath: options.transformPath ?? identity,
-    prefix: emptyArr
-  })
+export function make(get: (path: Path) => Effect.Effect<Stat | undefined, ConfigProviderError>): ConfigProvider {
+  const self = Object.create(Proto)
+  self.get = get
+  return self
+}
 
-const emptyArr: Array<never> = []
-const defaultLoadEntries = constant(Effect.succeed(emptyArr))
-const defaultFormatPath = (path: ReadonlyArray<string>): string => path.join(".")
+/**
+ * @since 4.0.0
+ * @category Combinators
+ */
+export const orElse: {
+  (that: ConfigProvider): (self: ConfigProvider) => ConfigProvider
+  (self: ConfigProvider, that: ConfigProvider): ConfigProvider
+} = dual(
+  2,
+  (self: ConfigProvider, that: ConfigProvider): ConfigProvider =>
+    make((path) => Effect.flatMap(self.get(path), (stat) => stat ? Effect.succeed(stat) : that.get(path)))
+)
+
+/**
+ * @since 4.0.0
+ * @category Combinators
+ */
+export const mapPath: {
+  (f: (path: Path) => Path): (self: ConfigProvider) => ConfigProvider
+  (self: ConfigProvider, f: (path: Path) => Path): ConfigProvider
+} = dual(2, (self: ConfigProvider, f: (path: Path) => Path): ConfigProvider => make((path) => self.get(f(path))))
+
+/**
+ * @since 4.0.0
+ * @category Combinators
+ */
+export const constantCase: (self: ConfigProvider) => ConfigProvider = mapPath((path) =>
+  path.map((seg) => Predicate.isNumber(seg) ? seg : Str.constantCase(seg))
+)
+
+/**
+ * @category Combinators
+ * @since 4.0.0
+ */
+export const nested: {
+  (prefix: string): (self: ConfigProvider) => ConfigProvider
+  (self: ConfigProvider, prefix: string): ConfigProvider
+} = dual(2, (self: ConfigProvider, prefix: string): ConfigProvider => make((path) => self.get([prefix, ...path])))
 
 /**
  * @since 4.0.0
@@ -136,350 +174,251 @@ export const layerAdd = <E = never, R = never>(
     })
   )
 
-const makeProto = (options: {
-  readonly load: (path: ReadonlyArray<string>) => Effect.Effect<string, ConfigError>
-  readonly listCandidates: (path: ReadonlyArray<string>) => Effect.Effect<
-    Array<{
-      readonly key: string
-      readonly path: ReadonlyArray<string>
-    }>,
-    ConfigError
-  >
-  readonly formatPath: (path: ReadonlyArray<string>) => string
-  readonly transformPath: (path: string) => string
-  readonly prefix: ReadonlyArray<string>
-  readonly context?: () => Context
-}): ConfigProvider => {
-  const self = Object.create(Proto)
-  self.load = options.load
-  self.listCandidates = options.listCandidates
-  self.formatPath = options.formatPath
-  self.transformPath = options.transformPath
-  self.prefix = options.prefix
-  if (options.context) {
-    self.context = options.context
-  }
-  return self
-}
-
-const Proto = {
-  ...PipeInspectableProto,
-  toJSON(this: ConfigProvider) {
-    return {
-      _id: "ConfigProvider"
-    }
-  },
-  context(this: ConfigProvider): Context {
-    return makeContext({
-      provider: this,
-      currentPath: this.prefix
-    })
-  }
-}
-
-const makeContext = (options: {
-  readonly provider: ConfigProvider
-  readonly currentPath: ReadonlyArray<string>
-  readonly contentCache?: Map<ReadonlyArray<string>, string>
-}): Context => {
-  const self = Object.create(ContextProto)
-  self.contentCache = options.contentCache ?? new Map()
-  self.provider = options.provider
-  self.currentPath = options.currentPath
-  return self
-}
-
-const ContextProto = {
-  setPath(this: Context, path: ReadonlyArray<string>): Context {
-    const next = makeContext({
-      ...this,
-      currentPath: path
-    })
-    this.lastChildContext = next
-    return next
-  },
-  get lastChildPath(): ReadonlyArray<string> {
-    return (this as any).lastChildContext?.currentPath ?? (this as any).currentPath
-  },
-  appendPath(this: Context, path: string): Context {
-    return this.setPath([...this.currentPath, this.provider.transformPath(path)])
-  },
-  withValue(this: Context, value: string): Context {
-    this.contentCache.set(this.currentPath, value)
-    return this
-  },
-  get load(): Effect.Effect<string, ConfigError> {
-    return Effect.suspend(() => {
-      const self = this as any as Context
-      if (self.contentCache.has(self.currentPath)) {
-        return Effect.succeed(self.contentCache.get(self.currentPath)!)
-      }
-      return self.provider.load(self.currentPath)
-    })
-  },
-  get listCandidates(): Effect.Effect<Array<Candidate>, ConfigError> {
-    const self = this as any as Context
-    return self.provider.listCandidates(self.currentPath).pipe(
-      Effect.map(Arr.map(({ key, path }) => ({
-        key,
-        context: self.setPath(path)
-      })))
-    )
-  }
-}
+// -----------------------------------------------------------------------------
+// fromStringLeafJson
+// -----------------------------------------------------------------------------
 
 /**
  * @since 4.0.0
- * @category Constructors
  */
-export const fromEnv = (options?: {
-  readonly pathDelimiter?: string | undefined
-  readonly environment?: Record<string, string | undefined> | undefined
-}): ConfigProvider => {
-  const env = options?.environment ?? {
+export function fromStringLeafJson(root: StringLeafJson): ConfigProvider {
+  return make((path) => Effect.succeed(describeStat(resolvePath(root, path))))
+}
+
+function resolvePath(input: StringLeafJson, path: Path): StringLeafJson | undefined {
+  let out: StringLeafJson = input
+
+  for (const seg of path) {
+    if (Predicate.isString(out)) return undefined
+    if (Array.isArray(out)) {
+      if (!Predicate.isNumber(seg) || !Number.isInteger(seg) || seg < 0 || seg >= out.length) return undefined
+    } else {
+      if (!Predicate.isString(seg) || !Object.prototype.hasOwnProperty.call(out, seg)) return undefined
+    }
+    out = (out as any)[seg]
+  }
+
+  return out
+}
+
+function describeStat(value: StringLeafJson | undefined): Stat | undefined {
+  if (value === undefined) return undefined
+  if (Predicate.isString(value)) return leaf(value)
+  if (Array.isArray(value)) return array(value.length)
+  return object(new Set(Object.keys(value)))
+}
+
+// -----------------------------------------------------------------------------
+// fromJson
+// -----------------------------------------------------------------------------
+
+/**
+ * Create a ConfigProvider that reads values from a JSON object.
+ *
+ * @since 4.0.0
+ */
+export function fromJson(root: unknown): ConfigProvider {
+  return fromStringLeafJson(asStringLeafJson(root))
+}
+
+function asStringLeafJson(root: unknown): StringLeafJson {
+  if (root === null || root === undefined) return ""
+  if (Predicate.isString(root)) return root
+  if (Predicate.isNumber(root)) return String(root)
+  if (Predicate.isBoolean(root)) return String(root)
+  if (Array.isArray(root)) return root.map(asStringLeafJson)
+
+  if (Predicate.isObject(root)) {
+    const result: Record<string, StringLeafJson> = {}
+    for (const [key, value] of Object.entries(root)) {
+      result[key] = asStringLeafJson(value)
+    }
+    return result
+  }
+
+  // Fallback for any other type
+  return String(root)
+}
+
+// -----------------------------------------------------------------------------
+// fromEnv
+// -----------------------------------------------------------------------------
+
+// Internal trie node used during decoding.
+type TrieNode = {
+  leafValue?: string // R2: leaf value (string) if this node is a leaf
+  typeSentinel?: "A" | "O" // R7: __TYPE sentinel for empty array/object
+  children?: Record<string, TrieNode> // R2: children keyed by segment (plain object)
+}
+
+// Utility: fetch or create a child node by segment (plain object).
+function getOrCreateChild(parent: TrieNode, segment: string): TrieNode {
+  parent.children ??= {}
+  return (parent.children[segment] ??= {})
+}
+
+// Numeric index per R4/R5 (array indices; no leading zeros except "0").
+const NUMERIC_INDEX = /^(0|[1-9][0-9]*)$/
+
+function materialize(node: TrieNode, debugPath = "<root>"): StringLeafJson {
+  // R3: leaf vs container exclusivity
+  if (node.leafValue !== undefined && node.children) {
+    throw new Error(`Invalid input (R3): node "${debugPath}" is both leaf and container.`)
+  }
+
+  // R7: __TYPE sentinel represents an empty container; it must not coexist with leaf/children (R3)
+  if (node.typeSentinel) {
+    if (node.leafValue !== undefined || node.children) {
+      throw new Error(
+        `Invalid input (R3/R7): node "${debugPath}" has __TYPE and also leaf/children.`
+      )
+    }
+    return node.typeSentinel === "A" ? ([] as StringLeafJson) : ({} as StringLeafJson)
+  }
+
+  // Container with children → decide object vs array (R4), then enforce density if array (R5)
+  if (node.children && Object.keys(node.children).length > 0) {
+    const children = node.children
+    const childNames = Object.keys(children)
+    const allNumeric = childNames.every((s) => NUMERIC_INDEX.test(s)) // R4
+
+    if (allNumeric) {
+      // Array (R4) and must be dense (R5)
+      const indices = childNames.map((s) => parseInt(s, 10))
+      const max = Math.max(...indices)
+      if (indices.length !== max + 1) {
+        throw new Error(
+          `Invalid input (R5): array at "${debugPath}" is not dense (expected indices 0..${max}).`
+        )
+      }
+      const out: Array<StringLeafJson> = []
+      for (let i = 0; i <= max; i++) {
+        const key = String(i)
+        if (!Object.prototype.hasOwnProperty.call(children, key)) {
+          throw new Error(`Invalid input (R5): missing index ${i} at "${debugPath}".`)
+        }
+        out[i] = materialize(children[key]!, `${debugPath}__${i}`)
+      }
+      return out
+    } else {
+      // Object (R4, R6)
+      const obj: Record<string, StringLeafJson> = {}
+      for (const seg of childNames) obj[seg] = materialize(children[seg]!, `${debugPath}__${seg}`)
+      return obj
+    }
+  }
+
+  // Leaf only (R2)
+  if (node.leafValue !== undefined) {
+    return node.leafValue
+  }
+
+  // Dangling empty node (should not occur with well-formed inputs)
+  throw new Error(`Invalid input: dangling empty node at "${debugPath}".`)
+}
+
+/** @internal */
+export function decode(env: Record<string, string>): StringLeafJson {
+  const root: TrieNode = {}
+
+  for (const [name, value] of Object.entries(env)) {
+    const endsWithType = name.endsWith("__TYPE") // R7
+    const baseName = endsWithType ? name.slice(0, -6) : name
+
+    // R1: path segmentation (no empty segments like "a____b")
+    const segments = baseName === "" ? [] : baseName.split("__")
+    if (segments.some((s) => s.length === 0)) {
+      throw new Error(`Invalid input (R1): empty segment in variable name "${name}".`)
+    }
+
+    let node = root
+    for (const seg of segments) {
+      node = getOrCreateChild(node, seg)
+    }
+
+    if (endsWithType) {
+      const kind = value.trim().toUpperCase()
+      if (kind !== "A" && kind !== "O") {
+        throw new Error(`Invalid input (R7): "${name}" must be "A" or "O".`)
+      }
+      if (node.typeSentinel && node.typeSentinel !== (kind as "A" | "O")) {
+        throw new Error(`Invalid input (R7): conflicting __TYPE at "${name}".`)
+      }
+      node.typeSentinel = kind
+    } else {
+      if (node.leafValue !== undefined && node.leafValue !== value) {
+        throw new Error(`Invalid input (R9): duplicate leaf with different values at "${name}".`)
+      }
+      node.leafValue = value
+    }
+  }
+
+  // R8: empty environment
+  if (
+    root.leafValue === undefined &&
+    root.typeSentinel === undefined &&
+    (!root.children || Object.keys(root.children).length === 0)
+  ) {
+    return {}
+  }
+
+  // Materialize (R3–R6)
+  return materialize(root)
+}
+
+/**
+ * Create a ConfigProvider that reads values from environment variables.
+ *
+ * @since 4.0.0
+ */
+export function fromEnv(options?: {
+  readonly env?: Record<string, string> | undefined
+}): ConfigProvider {
+  // Merge env sources (Node / Deno / Vite-like) unless an explicit env is passed.
+  const env = options?.env ?? {
     ...globalThis?.process?.env,
     ...(import.meta as any)?.env
   }
-  const delimiter = options?.pathDelimiter ?? "_"
-  const formatPath = (path: ReadonlyArray<string>): string => path.join(delimiter)
-  const safeDelimiter = delimiter.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&")
-  const envKeyRegex = new RegExp(`^\\[([a-z0-9]+)\\]|^${safeDelimiter}([a-z0-9]+)`, "i")
-  return make({
-    formatPath,
-    load: (path) =>
-      Effect.suspend(() => {
-        const envKey = formatPath(path)
-        const value = env[envKey]
-        if (typeof value !== "string") {
-          return Effect.fail(new MissingData({ path, fullPath: envKey }))
-        }
-        return Effect.succeed(value)
-      }),
-    listCandidates: (path) =>
-      Effect.sync(() => {
-        const prefix = path.join(delimiter)
-        const pathPartial = path.slice()
-        const lastSegment = pathPartial.pop()
-        const children = Arr.empty<{
-          readonly key: string
-          readonly path: ReadonlyArray<string>
-        }>()
-        const seen = new Set<string>()
-        for (const key of Object.keys(env)) {
-          if (!key.startsWith(prefix)) continue
-          const value = env[key]
-          if (typeof value !== "string") continue
-          const withoutPrefix = key.slice(prefix.length)
-          const match = withoutPrefix.match(envKeyRegex)
-          if (!match) continue
-          const childPath = lastSegment + match[0]
-          const childKey = match[1] ?? match[2]
-          if (seen.has(childPath)) continue
-          children.push({
-            key: childKey,
-            path: [...pathPartial, childPath]
-          })
-          seen.add(childPath)
-        }
-        return children
-      })
-  })
+
+  return fromStringLeafJson(decode(env))
 }
 
-/**
- * @since 4.0.0
- * @category Constructors
- */
-export const fromJson = (env: unknown): ConfigProvider => {
-  const valueAtPath = (path: ReadonlyArray<string>): unknown => {
-    let value = env
-    for (const segment of path) {
-      if (Array.isArray(value)) {
-        const index = Number(segment)
-        value = value[index]
-      } else if (hasProperty(value, segment)) {
-        value = value[segment]
-      } else {
-        return undefined
-      }
-    }
-    return value
-  }
-  return make({
-    load: (path) =>
-      Effect.suspend(() => {
-        const value = valueAtPath(path)
-        return value === undefined || typeof value === "object"
-          ? Effect.fail(new MissingData({ path, fullPath: path.join(".") }))
-          : Effect.succeed(toStringUnknown(value))
-      }),
-    listCandidates(this: ConfigProvider, path) {
-      return Effect.sync(() => {
-        const value = valueAtPath(path)
-        if (!value || typeof value !== "object") {
-          return []
-        } else if (Array.isArray(value)) {
-          return value.map((_, index) => {
-            const key = index.toString()
-            return {
-              key,
-              path: [...path, key]
-            }
-          })
-        }
-        return Object.keys(value).map((key) => ({
-          key,
-          path: [...path, key]
-        }))
-      })
-    }
-  })
-}
+// -----------------------------------------------------------------------------
+// fromDotEnv
+// -----------------------------------------------------------------------------
 
 /**
- * @since 4.0.0
- * @category Combinators
- */
-export const mapPath: {
-  (f: (pathSegment: string) => string): (self: ConfigProvider) => ConfigProvider
-  (self: ConfigProvider, f: (pathSegment: string) => string): ConfigProvider
-} = dual(2, (self: ConfigProvider, f: (pathSegment: string) => string): ConfigProvider =>
-  makeProto({
-    ...self,
-    prefix: self.prefix.map(f),
-    transformPath: (p) => f(self.transformPath(p))
-  }))
-
-/**
- * @since 4.0.0
- * @category Combinators
- */
-export const constantCase: (self: ConfigProvider) => ConfigProvider = mapPath(Str.constantCase)
-
-/**
- * @since 4.0.0
- * @category Combinators
- */
-export const nested: {
-  (prefix: string): (self: ConfigProvider) => ConfigProvider
-  (self: ConfigProvider, prefix: string): ConfigProvider
-} = dual(2, (self: ConfigProvider, prefix: string): ConfigProvider =>
-  makeProto({
-    ...self,
-    prefix: [self.transformPath(prefix), ...self.prefix]
-  }))
-
-/**
- * @since 4.0.0
- * @category Combinators
- */
-export const orElse: {
-  (that: ConfigProvider): (self: ConfigProvider) => ConfigProvider
-  (self: ConfigProvider, that: ConfigProvider): ConfigProvider
-} = dual(2, (self: ConfigProvider, that: ConfigProvider): ConfigProvider =>
-  make({
-    ...self,
-    load: (path) =>
-      Effect.catchCauseFilter(
-        self.load(path),
-        filterMissingDataOnly,
-        (causeA) =>
-          that.load(path).pipe(
-            Effect.catchCause((causeB) => Effect.failCause(Cause.merge(causeA, causeB)))
-          )
-      ),
-    listCandidates: (path) =>
-      self.listCandidates(path).pipe(
-        Effect.flatMap((values) => values.length > 0 ? Effect.succeed(values) : that.listCandidates(path))
-      )
-  }))
-
-/**
- * A ConfigProvider that loads configuration from a `.env` file.
+ * A ConfigProvider that parses a `.env` file.
+ *
+ * Default parser:
+ *
+ * - structural arrays/objects (on)
+ * - inline containers (off)
+ * - variable expansion (off)
  *
  * Based on
  * - https://github.com/motdotla/dotenv
  * - https://github.com/motdotla/dotenv-expand
  *
+ * @see {@link dotEnv} for a ConfigProvider that loads a `.env` file.
+ *
  * @since 4.0.0
  * @category Dotenv
  */
-export const dotEnv: (
-  options?: {
-    readonly path?: string | undefined
-    readonly pathDelimiter?: string | undefined
-  } | undefined
-) => Effect.Effect<
-  ConfigProvider,
-  PlatformError,
-  FileSystem.FileSystem
-> = Effect.fnUntraced(function*(options) {
-  const fs = yield* FileSystem.FileSystem
-  const content = yield* fs.readFileString(options?.path ?? ".env")
-  return fromEnv({
-    environment: parseDotEnv(content),
-    pathDelimiter: options?.pathDelimiter
-  })
-})
-
-/**
- * Creates a ConfigProvider from a file tree structure.
- *
- * @since 1.0.0
- * @category File Tree
- */
-export const fileTree: (options?: {
-  readonly rootDirectory?: string | undefined
-}) => Effect.Effect<
-  ConfigProvider,
-  never,
-  Path.Path | FileSystem.FileSystem
-> = Effect.fnUntraced(function*(options) {
-  const path_ = yield* Path.Path
-  const fs = yield* FileSystem.FileSystem
-  const rootDirectory = options?.rootDirectory ?? "/"
-
-  const formatPath = (path: ReadonlyArray<string>): string => path_.join(rootDirectory, ...path)
-
-  const mapError = (path: ReadonlyArray<string>) => (cause: PlatformError) =>
-    cause._tag === "SystemError" && cause.reason === "NotFound" ?
-      new MissingData({
-        path,
-        fullPath: formatPath(path),
-        cause
-      }) :
-      new SourceError({
-        path,
-        description: `Failed to read file at ${formatPath(path)}`,
-        cause
-      })
-
-  return make({
-    formatPath,
-    load: (path) =>
-      fs.readFileString(path_.join(rootDirectory, ...path)).pipe(
-        Effect.mapError(mapError(path)),
-        Effect.map(Str.trim)
-      ),
-    listCandidates: (path) =>
-      fs.readDirectory(formatPath(path)).pipe(
-        Effect.mapError(mapError(path)),
-        Effect.map(Arr.map((file) => ({
-          key: path_.basename(file),
-          path: [...path, path_.basename(file)]
-        })))
-      )
-  })
-})
-
-// -----------------------------------------------------------------------------
-// Internal
-// -----------------------------------------------------------------------------
+export function fromDotEnv(lines: string, options?: {
+  readonly expandVariables?: boolean | undefined
+}): ConfigProvider {
+  let environment = parseDotEnv(lines)
+  if (options?.expandVariables) {
+    environment = dotEnvExpand(environment)
+  }
+  return fromEnv({ env: environment })
+}
 
 const DOT_ENV_LINE =
   /(?:^|^)\s*(?:export\s+)?([\w.-]+)(?:\s*=\s*?|:\s+?)(\s*'(?:\\'|[^'])*'|\s*"(?:\\"|[^"])*"|\s*`(?:\\`|[^`])*`|[^#\r\n]+)?\s*(?:#.*)?(?:$|$)/mg
 
-const parseDotEnv = (lines: string): Record<string, string> => {
+function parseDotEnv(lines: string): Record<string, string> {
   const obj: Record<string, string> = {}
 
   // Convert line breaks to same format
@@ -511,10 +450,10 @@ const parseDotEnv = (lines: string): Record<string, string> => {
     obj[key] = value
   }
 
-  return dotEnvExpand(obj)
+  return obj
 }
 
-const dotEnvExpand = (parsed: Record<string, string>) => {
+function dotEnvExpand(parsed: Record<string, string>): Record<string, string> {
   const newParsed: Record<string, string> = {}
 
   for (const configKey in parsed) {
@@ -525,7 +464,7 @@ const dotEnvExpand = (parsed: Record<string, string>) => {
   return newParsed
 }
 
-const interpolate = (envValue: string, parsed: Record<string, string>) => {
+function interpolate(envValue: string, parsed: Record<string, string>): string {
   // find the last unescaped dollar sign in the
   // value so that we can evaluate it
   const lastUnescapedDollarSignIndex = searchLast(envValue, /(?!(?<=\\))\$/g)
@@ -563,7 +502,86 @@ const interpolate = (envValue: string, parsed: Record<string, string>) => {
   return envValue
 }
 
-const searchLast = (str: string, rgx: RegExp) => {
+function searchLast(str: string, rgx: RegExp): number {
   const matches = Array.from(str.matchAll(rgx))
   return matches.length > 0 ? matches.slice(-1)[0].index : -1
 }
+
+// -----------------------------------------------------------------------------
+// dotEnv
+// -----------------------------------------------------------------------------
+
+/**
+ * A ConfigProvider that loads configuration from a `.env` file.
+ *
+ * @see {@link fromDotEnv} for a ConfigProvider that parses a `.env` file.
+ *
+ * @since 4.0.0
+ * @category Dotenv
+ */
+export const dotEnv: (options?: {
+  readonly path?: string | undefined
+  readonly expandVariables?: boolean | undefined
+}) => Effect.Effect<ConfigProvider, PlatformError, FileSystem.FileSystem> = Effect.fnUntraced(
+  function*(options) {
+    const fs = yield* FileSystem.FileSystem
+    const content = yield* fs.readFileString(options?.path ?? ".env")
+    return fromEnv({ env: parseDotEnv(content) })
+  }
+)
+
+// -----------------------------------------------------------------------------
+// fileTree
+// -----------------------------------------------------------------------------
+
+/**
+ * Creates a ConfigProvider from a file tree structure.
+ *
+ * Resolution rules:
+ * - Regular file  -> `{ _tag: "leaf", value }` where `value` is the file text, trimmed.
+ * - Directory     -> `{ _tag: "object", keys }` collecting immediate child names (order unspecified).
+ * - Not found     -> `undefined`.
+ * - Other I/O     -> `ConfigProviderError`.
+ *
+ * @since 4.0.0
+ * @category File Tree
+ */
+export const fileTree: (options?: {
+  readonly rootDirectory?: string | undefined
+}) => Effect.Effect<
+  ConfigProvider,
+  never,
+  Path_.Path | FileSystem.FileSystem
+> = Effect.fnUntraced(function*(options) {
+  const path_ = yield* Path_.Path
+  const fs = yield* FileSystem.FileSystem
+  const rootDirectory = options?.rootDirectory ?? "/"
+
+  return make((path) => {
+    const fullPath = path_.join(rootDirectory, ...path.map(String))
+
+    // Try reading as a *file*
+    const asFile = fs.readFileString(fullPath).pipe(
+      Effect.map((content) => leaf(String(content).trim()))
+    )
+
+    // If not a file, try reading as a *directory*
+    const asDirectory = fs.readDirectory(fullPath).pipe(
+      Effect.map((entries: ReadonlyArray<any>) => {
+        // Support both string paths and DirEntry-like objects
+        const keys = entries.map((e) => Predicate.isString(e) ? path_.basename(e) : String(e?.name ?? ""))
+        return object(new Set(keys))
+      })
+    )
+
+    return asFile.pipe(
+      Effect.catch(() => asDirectory),
+      Effect.mapError((cause: PlatformError) =>
+        new ConfigProviderError({
+          reason: `Failed to read file at ${path_.join(rootDirectory, ...path.map(String))}`,
+          cause
+        })
+      )
+    )
+  })
+})
