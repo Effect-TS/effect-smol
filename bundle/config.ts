@@ -1,4 +1,4 @@
-import * as Config2 from "#dist/effect/config/Config2"
+import * as Config from "#dist/effect/config/Config"
 import * as Effect from "#dist/effect/Effect"
 import * as Schema from "#dist/effect/schema/Schema"
 
@@ -8,6 +8,6 @@ const schema = Schema.Struct({
   LOCALHOST: Schema.URL
 })
 
-const config = Config2.schema(schema)
+const config = Config.schema(schema)
 
 Effect.runFork(config.asEffect())
