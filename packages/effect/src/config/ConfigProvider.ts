@@ -119,7 +119,7 @@ export const orElse: {
  * @since 4.0.0
  * @category Combinators
  */
-export const mapPath: {
+export const mapInput: {
   (f: (path: Path) => Path): (self: ConfigProvider) => ConfigProvider
   (self: ConfigProvider, f: (path: Path) => Path): ConfigProvider
 } = dual(2, (self: ConfigProvider, f: (path: Path) => Path): ConfigProvider => make((path) => self.get(f(path))))
@@ -128,7 +128,7 @@ export const mapPath: {
  * @since 4.0.0
  * @category Combinators
  */
-export const constantCase: (self: ConfigProvider) => ConfigProvider = mapPath((path) =>
+export const constantCase: (self: ConfigProvider) => ConfigProvider = mapInput((path) =>
   path.map((seg) => Predicate.isNumber(seg) ? seg : Str.constantCase(seg))
 )
 
