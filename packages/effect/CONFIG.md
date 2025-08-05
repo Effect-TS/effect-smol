@@ -6,9 +6,9 @@ A `ConfigProvider` exposes one operation to navigate configuration data and read
 interface ConfigProvider extends Pipeable {
   /**
    * Returns the node found at `path`, or `undefined` if it does not exist.
-   * Fails with `GetError` when the underlying source cannot be read.
+   * Fails with `ConfigProviderError` when the underlying source cannot be read.
    */
-  readonly get: (path: Path) => Effect<Stat | undefined, GetError>
+  readonly get: (path: Path) => Effect.Effect<Stat | undefined, ConfigProviderError>
 }
 ```
 

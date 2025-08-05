@@ -3,7 +3,7 @@
  */
 import type { Server as BunServer, ServerWebSocket } from "bun"
 import * as Config from "effect/config/Config"
-import type { ConfigError } from "effect/config/ConfigError"
+import type { ConfigError } from "effect/config/Config"
 import * as Option from "effect/data/Option"
 import type * as Record from "effect/data/Record"
 import * as Deferred from "effect/Deferred"
