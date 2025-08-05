@@ -140,6 +140,15 @@ export const constantCase: (self: ConfigProvider) => ConfigProvider = mapPath((p
 )
 
 /**
+ * @category Combinators
+ * @since 4.0.0
+ */
+export const nested: {
+  (prefix: string): (self: ConfigProvider) => ConfigProvider
+  (self: ConfigProvider, prefix: string): ConfigProvider
+} = dual(2, (self: ConfigProvider, prefix: string): ConfigProvider => make((path) => self.get([prefix, ...path])))
+
+/**
  * @since 4.0.0
  * @category Layers
  */
