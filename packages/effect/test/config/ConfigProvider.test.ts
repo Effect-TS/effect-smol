@@ -15,14 +15,14 @@ async function assertPathSuccess(
   deepStrictEqual(await Effect.runPromise(r), Result.succeed(expected))
 }
 
-// async function assertPathFailure(
-//   provider: ConfigProvider.ConfigProvider,
-//   path: ConfigProvider.Path,
-//   expected: ConfigProvider.SourceError
-// ) {
-//   const r = Effect.result(provider.get(path))
-//   deepStrictEqual(await Effect.runPromise(r), Result.fail(expected))
-// }
+async function assertPathFailure(
+  provider: ConfigProvider.ConfigProvider,
+  path: ConfigProvider.Path,
+  expected: ConfigProvider.SourceError
+) {
+  const r = Effect.result(provider.get(path))
+  deepStrictEqual(await Effect.runPromise(r), Result.fail(expected))
+}
 
 describe("ConfigProvider", () => {
   it("orElse", async () => {
@@ -93,6 +93,20 @@ describe("ConfigProvider", () => {
   })
 
   describe("fromEnv", () => {
+    describe("should fail with a SourceError when the environment is invalid", () => {
+      it("array is not dense", async () => {
+        const env = { a: "foo", "a__0": "bar", "a__2": "baz" }
+        const provider = ConfigProvider.fromEnv({ env })
+        await assertPathFailure(
+          provider,
+          ["a"],
+          new ConfigProvider.SourceError({
+            reason: `Invalid environment: array at "a" is not dense (expected indices 0..2)`
+          })
+        )
+      })
+    })
+
     it("node can be both leaf and object (a=value1 + a__b=value2)", async () => {
       const env = { a: "value1", "a__b": "value2" }
       const provider = ConfigProvider.fromEnv({ env })

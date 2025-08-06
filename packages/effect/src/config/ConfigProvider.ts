@@ -424,7 +424,7 @@ export function fromEnv(options?: { readonly env?: Record<string, string> | unde
       return Effect.succeed(statAt(node))
     })
   } catch (e: any) {
-    return make(() => Effect.fail(new SourceError({ reason: e?.message ?? String(e), cause: e })))
+    return make(() => Effect.fail(new SourceError({ reason: e?.message ?? String(e) })))
   }
 }
 
