@@ -54,14 +54,14 @@ describe("ConfigProvider", () => {
 
   describe("mapInput", () => {
     it("two mappings", async () => {
-      const prependA = ConfigProvider.mapInput((path) => ["A", ...path])
-      const prependB = ConfigProvider.mapInput((path) => ["B", ...path])
+      const appendA = ConfigProvider.mapInput((path) => path.map((sn) => typeof sn === "string" ? sn + "_A" : sn))
+      const appendB = ConfigProvider.mapInput((path) => path.map((sn) => typeof sn === "string" ? sn + "_B" : sn))
       const provider = ConfigProvider.fromEnv({
         env: {
-          "A__B__c": "value"
+          "KEY_A_B": "value"
         }
-      }).pipe(prependB, prependA)
-      await assertPathSuccess(provider, ["c"], ConfigProvider.leaf("value"))
+      }).pipe(appendA, appendB)
+      await assertPathSuccess(provider, ["KEY"], ConfigProvider.leaf("value"))
     })
   })
 
@@ -75,22 +75,22 @@ describe("ConfigProvider", () => {
       await assertPathSuccess(provider, ["leaf"], ConfigProvider.leaf("value"))
     })
 
-    it(`mapInput and nested should be "commutative"`, async () => {
-      // constantCase + nested
-      const provider1 = ConfigProvider.fromEnv({
+    it("constantCase + nested", async () => {
+      const provider = ConfigProvider.fromEnv({
         env: {
-          "prefix__CONSTANT_CASE": "value"
+          "prefix__KEY_WITH_DOTS": "value"
         }
       }).pipe(ConfigProvider.constantCase, ConfigProvider.nested("prefix"))
-      await assertPathSuccess(provider1, ["constant.case"], ConfigProvider.leaf("value"))
+      await assertPathSuccess(provider, ["key.with.dots"], ConfigProvider.leaf("value"))
+    })
 
-      // nested + constantCase
-      const provider2 = ConfigProvider.fromEnv({
+    it("nested + constantCase", async () => {
+      const provider = ConfigProvider.fromEnv({
         env: {
-          "prefix__CONSTANT_CASE": "value"
+          "PREFIX_WITH_DOTS__KEY_WITH_DOTS": "value"
         }
-      }).pipe(ConfigProvider.nested("prefix"), ConfigProvider.constantCase)
-      await assertPathSuccess(provider2, ["constant.case"], ConfigProvider.leaf("value"))
+      }).pipe(ConfigProvider.nested("prefix.with.dots"), ConfigProvider.constantCase)
+      await assertPathSuccess(provider, ["key.with.dots"], ConfigProvider.leaf("value"))
     })
   })
 
@@ -471,7 +471,7 @@ describe("decode", () => {
     expectDecode(env, { x: { "0": "a", "foo": "b" } })
   })
 
-  it("R4 with \"01\": not numeric (leading zero) -> object, not array", () => {
+  it(`R4 with "01": not numeric (leading zero) -> object, not array`, () => {
     const env = { "x__0": "a", "x__01": "b" }
     expectDecode(env, { x: { "0": "a", "01": "b" } })
   })

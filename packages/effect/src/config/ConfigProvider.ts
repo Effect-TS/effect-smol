@@ -156,7 +156,7 @@ export const mapInput: {
 } = dual(
   2,
   (self: ConfigProvider, f: (path: Path) => Path): ConfigProvider => {
-    return make(self.get, self.mapInput ? flow(self.mapInput, f) : f, self.prefix)
+    return make(self.get, self.mapInput ? flow(self.mapInput, f) : f, self.prefix ? f(self.prefix) : undefined)
   }
 )
 
