@@ -145,6 +145,8 @@ const dump: (
     case "leaf":
       return stat.value
     case "object": {
+      // If the object has no children but has a co-located value, surface that value.
+      if (stat.keys.size === 0 && stat.value !== undefined) return stat.value
       const out: Record<string, Serializer.StringLeafJson> = {}
       for (const key of stat.keys) {
         const child = yield* dump(provider, [...path, key])
@@ -153,6 +155,8 @@ const dump: (
       return out
     }
     case "array": {
+      // If the array has no children but has a co-located value, surface that value.
+      if (stat.length === 0 && stat.value !== undefined) return stat.value
       const out: Array<Serializer.StringLeafJson> = []
       for (let i = 0; i < stat.length; i++) {
         const child = yield* dump(provider, [...path, i])
@@ -215,13 +219,19 @@ const go: (
         return out
       }
       case "UnionType":
+        // Let downstream decoding decide; dump can return a string, object, or array.
         return yield* dump(provider, path)
       case "Suspend":
         return yield* go(ast.thunk(), provider, path)
       default: {
+        // Base primitives / string-like encoded nodes.
         const stat = yield* ConfigProvider.run(provider, path)
-        if (stat === undefined || stat._tag !== "leaf") return undefined
-        return stat.value
+        if (stat === undefined) return undefined
+        if (stat._tag === "leaf") return stat.value
+        if (stat._tag === "object" && stat.value !== undefined) return stat.value
+        if (stat._tag === "array" && stat.value !== undefined) return stat.value
+        // Container without a co-located value cannot satisfy a scalar request.
+        return undefined
       }
     }
   }

@@ -88,6 +88,20 @@ describe("Config", () => {
       await assertFailure(config, ConfigProvider.fromEnv({ env: {} }), `Expected string, actual undefined`)
     })
 
+    it("node can be both leaf and object", async () => {
+      const schema = Schema.Struct({ a: Schema.Finite })
+      const config = Config.schema(schema)
+
+      await assertSuccess(config, ConfigProvider.fromEnv({ env: { a: "1", "a__b": "2" } }), { a: 1 })
+    })
+
+    it("node can be both leaf and array", async () => {
+      const schema = Schema.Struct({ a: Schema.Finite })
+      const config = Config.schema(schema)
+
+      await assertSuccess(config, ConfigProvider.fromEnv({ env: { a: "1", "a__0": "2" } }), { a: 1 })
+    })
+
     describe("Struct", () => {
       it("required properties", async () => {
         const schema = Schema.Struct({ a: Schema.Finite })

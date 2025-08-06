@@ -29,9 +29,9 @@ export type Stat =
   /** A terminal string value */
   | { readonly _tag: "leaf"; readonly value: string }
   /** An object; keys are unordered */
-  | { readonly _tag: "object"; readonly keys: ReadonlySet<string> }
+  | { readonly _tag: "object"; readonly keys: ReadonlySet<string>; readonly value: string | undefined }
   /** An array-like container; length is the number of elements */
-  | { readonly _tag: "array"; readonly length: number }
+  | { readonly _tag: "array"; readonly length: number; readonly value: string | undefined }
 
 /**
  * @since 4.0.0
@@ -43,15 +43,15 @@ export function leaf(value: string): Stat {
 /**
  * @since 4.0.0
  */
-export function object(keys: ReadonlySet<string>): Stat {
-  return { _tag: "object", keys }
+export function object(keys: ReadonlySet<string>, value?: string): Stat {
+  return { _tag: "object", keys, value }
 }
 
 /**
  * @since 4.0.0
  */
-export function array(length: number): Stat {
-  return { _tag: "array", length }
+export function array(length: number, value?: string): Stat {
+  return { _tag: "array", length, value }
 }
 
 /**
@@ -292,9 +292,9 @@ function asStringLeafJson(root: unknown): StringLeafJson {
 
 // Internal trie node used during decoding.
 type TrieNode = {
-  leafValue?: string // R2: leaf value (string) if this node is a leaf
-  typeSentinel?: "A" | "O" // R7: __TYPE sentinel for empty array/object
-  children?: Record<string, TrieNode> // R2: children keyed by segment (plain object)
+  leafValue?: string // optional co-located value
+  typeSentinel?: "A" | "O" // __TYPE for empty array/object
+  children?: Record<string, TrieNode>
 }
 
 // fetch or create a child node by segment (plain object).
@@ -303,117 +303,102 @@ function getOrCreateChild(parent: TrieNode, segment: string): TrieNode {
   return (parent.children[segment] ??= {})
 }
 
-// Numeric index per R4/R5 (array indices; no leading zeros except "0").
-const NUMERIC_INDEX = /^(0|[1-9][0-9]*)$/
-
-function appendDebugSegment(path: string, segment: string | number): string {
-  return path === "" ? String(segment) : `${path}__${segment}`
-}
-
-function materialize(node: TrieNode, debugPath: string): StringLeafJson {
-  // R3: leaf vs container exclusivity
-  if (node.leafValue !== undefined && node.children) {
-    throw new Error(`Invalid environment: node "${debugPath}" is both leaf and container`)
-  }
-
-  // R7: __TYPE sentinel represents an empty container; it must not coexist with leaf/children (R3)
-  if (node.typeSentinel) {
-    if (node.leafValue !== undefined || node.children) {
-      throw new Error(
-        `Invalid environment: node "${debugPath}" has __TYPE and also leaf/children`
-      )
-    }
-    return node.typeSentinel === "A" ? [] : {}
-  }
-
-  // Container with children: decide object vs array (R4), then enforce density if array (R5)
-  if (node.children && Object.keys(node.children).length > 0) {
-    const children = node.children
-    const childNames = Object.keys(children)
-    const allNumeric = childNames.every((s) => NUMERIC_INDEX.test(s)) // R4
-
-    if (allNumeric) {
-      // Array (R4) and must be dense (R5)
-      const indices = childNames.map((s) => parseInt(s, 10))
-      const max = Math.max(...indices)
-      if (indices.length !== max + 1) {
-        throw new Error(
-          `Invalid environment: array at "${debugPath}" is not dense (expected indices 0..${max})`
-        )
-      }
-      const out: Array<StringLeafJson> = []
-      for (let i = 0; i <= max; i++) {
-        const key = String(i)
-        if (!Object.prototype.hasOwnProperty.call(children, key)) {
-          throw new Error(`Invalid environment: missing index ${i} at "${debugPath}"`)
-        }
-        out[i] = materialize(children[key]!, appendDebugSegment(debugPath, i))
-      }
-      return out
-    } else {
-      // Object (R4, R6)
-      const obj: Record<string, StringLeafJson> = {}
-      for (const seg of childNames) obj[seg] = materialize(children[seg]!, appendDebugSegment(debugPath, seg))
-      return obj
-    }
-  }
-
-  // Leaf only (R2)
-  if (node.leafValue !== undefined) {
-    return node.leafValue
-  }
-
-  // Dangling empty node (should not occur with well-formed inputs)
-  throw new Error(`Invalid environment: dangling empty node at "${debugPath}"`)
-}
-
-/** @internal */
-export function decode(env: Record<string, string>): StringLeafJson {
+function buildTrie(env: Record<string, string>): TrieNode {
   const root: TrieNode = {}
 
-  for (const [name, value] of Object.entries(env)) {
-    const endsWithType = name.endsWith("__TYPE") // R7
-    const baseName = endsWithType ? name.slice(0, -6) : name
-
-    // R1: path segmentation (no empty segments like "a____b")
-    const segments = baseName === "" ? [] : baseName.split("__")
-    if (segments.some((s) => s.length === 0)) {
-      throw new Error(`Invalid environment: empty segment in variable name "${name}"`)
-    }
+  for (const [name, raw] of Object.entries(env)) {
+    const endsWithType = name.endsWith("__TYPE")
+    const base = endsWithType ? name.slice(0, -6) : name
+    const segments = base === "" ? [] : base.split("__")
 
     let node = root
-    for (const seg of segments) {
-      node = getOrCreateChild(node, seg)
-    }
+    for (const seg of segments) node = getOrCreateChild(node, seg)
 
     if (endsWithType) {
-      const kind = value.trim().toUpperCase()
+      const kind = raw.trim().toUpperCase()
       if (kind !== "A" && kind !== "O") {
         throw new Error(`Invalid environment: "${name}" must be "A" or "O"`)
       }
-      if (node.typeSentinel && node.typeSentinel !== kind) {
-        throw new Error(`Invalid environment: conflicting __TYPE at "${name}"`)
-      }
       node.typeSentinel = kind
     } else {
-      if (node.leafValue !== undefined && node.leafValue !== value) {
+      if (node.leafValue !== undefined && node.leafValue !== raw) {
         throw new Error(`Invalid environment: duplicate leaf with different values at "${name}"`)
       }
-      node.leafValue = value
+      node.leafValue = raw
     }
   }
 
-  // R8: empty environment
-  if (
-    root.leafValue === undefined &&
-    root.typeSentinel === undefined &&
-    (!root.children || Object.keys(root.children).length === 0)
-  ) {
-    return {}
+  return root
+}
+
+// Numeric index per R4/R5 (array indices; no leading zeros except "0").
+const NUMERIC_INDEX = /^(0|[1-9][0-9]*)$/
+
+// Validate constraints that still hold:
+// - __TYPE cannot coexist with children (it's an *empty* container marker)
+// - numeric children => must be dense (0..max)
+function validate(node: TrieNode, path: Array<string> = []): void {
+  const children = node.children ? Object.keys(node.children) : []
+
+  if (node.typeSentinel && children.length > 0) {
+    throw new Error(`Invalid environment: node "${path.join("__")}" has __TYPE and also children`)
   }
 
-  // Materialize (R3–R6)
-  return materialize(root, "")
+  if (children.length > 0) {
+    const allNumeric = children.every((k) => NUMERIC_INDEX.test(k))
+    if (allNumeric) {
+      const indices = children.map((k) => parseInt(k, 10)).sort((a, b) => a - b)
+      const max = indices[indices.length - 1]!
+      if (max !== indices.length - 1) {
+        throw new Error(
+          `Invalid environment: array at "${path.join("__")}" is not dense (expected indices 0..${max})`
+        )
+      }
+    }
+    // recurse
+    for (const k of children) validate(node.children![k]!, [...path, k])
+  }
+}
+
+// Navigate and return Stat with optional value on containers
+function statAt(node: TrieNode | undefined): Stat | undefined {
+  if (!node) return undefined
+
+  const children = node.children ? Object.keys(node.children) : []
+
+  // __TYPE yields an empty container; leafValue may coexist (R3 relaxed)
+  if (node.typeSentinel) {
+    return node.typeSentinel === "A"
+      ? array(0, node.leafValue)
+      : object(new Set<string>(), node.leafValue)
+  }
+
+  if (children.length > 0) {
+    const allNumeric = children.every((k) => NUMERIC_INDEX.test(k))
+    if (allNumeric) {
+      const length = Math.max(...children.map((k) => parseInt(k, 10))) + 1
+      return array(length, node.leafValue)
+    } else {
+      return object(new Set(children), node.leafValue)
+    }
+  }
+
+  // leaf only
+  if (node.leafValue !== undefined) {
+    return leaf(node.leafValue)
+  }
+
+  return undefined
+}
+
+function findNode(root: TrieNode, path: Path): TrieNode | undefined {
+  let cur: TrieNode | undefined = root
+  for (const seg of path) {
+    if (!cur?.children) return undefined
+    const key = String(seg)
+    cur = cur.children[key]
+  }
+  return cur
 }
 
 /**
@@ -421,19 +406,25 @@ export function decode(env: Record<string, string>): StringLeafJson {
  *
  * @since 4.0.0
  */
-export function fromEnv(options?: {
-  readonly env?: Record<string, string> | undefined
-}): ConfigProvider {
-  // Merge env sources (Node / Deno / Vite-like) unless an explicit env is passed.
+export function fromEnv(options?: { readonly env?: Record<string, string> | undefined }): ConfigProvider {
   const env = options?.env ?? {
     ...globalThis?.process?.env,
     ...(import.meta as any)?.env
   }
 
   try {
-    return fromStringLeafJson(decode(env))
+    const root = buildTrie(env)
+    validate(root)
+
+    return make((path) => {
+      if (path.length === 0) {
+        return Effect.succeed(statAt(root))
+      }
+      const node = findNode(root, path)
+      return Effect.succeed(statAt(node))
+    })
   } catch (e: any) {
-    return make(() => Effect.fail(new SourceError({ reason: e.message })))
+    return make(() => Effect.fail(new SourceError({ reason: e?.message ?? String(e), cause: e })))
   }
 }
 

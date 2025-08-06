@@ -5,8 +5,6 @@ import { ConfigProvider } from "effect/config"
 import { Result } from "effect/data"
 import { FileSystem, Path } from "effect/platform"
 import { SystemError } from "effect/platform/PlatformError"
-import type { StringLeafJson } from "effect/schema/Serializer"
-import { throws } from "../utils/assert.ts"
 
 async function assertPathSuccess(
   provider: ConfigProvider.ConfigProvider,
@@ -17,14 +15,14 @@ async function assertPathSuccess(
   deepStrictEqual(await Effect.runPromise(r), Result.succeed(expected))
 }
 
-async function assertPathFailure(
-  provider: ConfigProvider.ConfigProvider,
-  path: ConfigProvider.Path,
-  expected: ConfigProvider.SourceError
-) {
-  const r = Effect.result(provider.get(path))
-  deepStrictEqual(await Effect.runPromise(r), Result.fail(expected))
-}
+// async function assertPathFailure(
+//   provider: ConfigProvider.ConfigProvider,
+//   path: ConfigProvider.Path,
+//   expected: ConfigProvider.SourceError
+// ) {
+//   const r = Effect.result(provider.get(path))
+//   deepStrictEqual(await Effect.runPromise(r), Result.fail(expected))
+// }
 
 describe("ConfigProvider", () => {
   it("orElse", async () => {
@@ -95,16 +93,18 @@ describe("ConfigProvider", () => {
   })
 
   describe("fromEnv", () => {
-    describe("SourceErrors", () => {
-      it("node cannot be leaf and container (a=foo + a__b=bar)", async () => {
-        const env = { a: "foo", "a__b": "bar" }
-        const provider = ConfigProvider.fromEnv({ env })
-        await assertPathFailure(
-          provider,
-          ["a"],
-          new ConfigProvider.SourceError({ reason: `Invalid environment: node "a" is both leaf and container` })
-        )
-      })
+    it("node can be both leaf and object (a=value1 + a__b=value2)", async () => {
+      const env = { a: "value1", "a__b": "value2" }
+      const provider = ConfigProvider.fromEnv({ env })
+      await assertPathSuccess(provider, ["a"], ConfigProvider.object(new Set(["b"]), "value1"))
+      await assertPathSuccess(provider, ["a", "b"], ConfigProvider.leaf("value2"))
+    })
+
+    it("node can be both leaf and array (a=value1 + a__0=value2)", async () => {
+      const env = { a: "value1", "a__0": "value2" }
+      const provider = ConfigProvider.fromEnv({ env })
+      await assertPathSuccess(provider, ["a"], ConfigProvider.array(1, "value1"))
+      await assertPathSuccess(provider, ["a", 0], ConfigProvider.leaf("value2"))
     })
 
     it("should support nested keys", async () => {
@@ -268,29 +268,98 @@ describe("ConfigProvider", () => {
   })
 
   describe("fromDotEnv", () => {
-    it("should support dotenv parsing", async () => {
+    it("comments are ignored", async () => {
       const provider = ConfigProvider.fromDotEnv(`
 # comments are ignored
-export NODE_ENV="production"
 API_URL=https://api.example.com
+`)
+      await assertPathSuccess(provider, [], ConfigProvider.object(new Set(["API_URL"])))
+      await assertPathSuccess(provider, ["API_URL"], ConfigProvider.leaf("https://api.example.com"))
+    })
 
-# structural arrays/objects
-USERS__0__name=alice
-USERS__1__name=bob
+    it("export is allowed", async () => {
+      const provider = ConfigProvider.fromDotEnv(`
+export NODE_ENV=production
+`)
+      await assertPathSuccess(provider, [], ConfigProvider.object(new Set(["NODE_ENV"])))
+      await assertPathSuccess(provider, ["NODE_ENV"], ConfigProvider.leaf("production"))
+    })
 
-# expansion of environment variables (off by default)
-PASSWORD="s1mpl3"
+    it("quoting is allowed", async () => {
+      const provider = ConfigProvider.fromDotEnv(`
+NODE_ENV="production"
+`)
+      await assertPathSuccess(provider, [], ConfigProvider.object(new Set(["NODE_ENV"])))
+      await assertPathSuccess(provider, ["NODE_ENV"], ConfigProvider.leaf("production"))
+    })
+
+    it("objects are supported", async () => {
+      const provider = ConfigProvider.fromDotEnv(`
+OBJECT__key1=value1
+OBJECT__key2=value2
+`)
+      await assertPathSuccess(provider, [], ConfigProvider.object(new Set(["OBJECT"])))
+      await assertPathSuccess(provider, ["OBJECT"], ConfigProvider.object(new Set(["key1", "key2"])))
+      await assertPathSuccess(provider, ["OBJECT", "key1"], ConfigProvider.leaf("value1"))
+      await assertPathSuccess(provider, ["OBJECT", "key2"], ConfigProvider.leaf("value2"))
+    })
+
+    it("a node may be both leaf and object", async () => {
+      const provider = ConfigProvider.fromDotEnv(`
+OBJECT=value1
+OBJECT__key1=value2
+OBJECT__key2=value3
+`)
+      await assertPathSuccess(provider, [], ConfigProvider.object(new Set(["OBJECT"])))
+      await assertPathSuccess(provider, ["OBJECT"], ConfigProvider.object(new Set(["key1", "key2"]), "value1"))
+      await assertPathSuccess(provider, ["OBJECT", "key1"], ConfigProvider.leaf("value2"))
+      await assertPathSuccess(provider, ["OBJECT", "key2"], ConfigProvider.leaf("value3"))
+    })
+
+    it("a node may be both leaf and array", async () => {
+      const provider = ConfigProvider.fromDotEnv(`
+ARRAY=value1
+ARRAY__0=value2
+ARRAY__1=value3
+`)
+      await assertPathSuccess(provider, [], ConfigProvider.object(new Set(["ARRAY"])))
+      await assertPathSuccess(provider, ["ARRAY"], ConfigProvider.array(2, "value1"))
+      await assertPathSuccess(provider, ["ARRAY", 0], ConfigProvider.leaf("value2"))
+      await assertPathSuccess(provider, ["ARRAY", 1], ConfigProvider.leaf("value3"))
+    })
+
+    it("arrays are supported", async () => {
+      const provider = ConfigProvider.fromDotEnv(`
+ARRAY__0=value1
+ARRAY__1=value2
+`)
+      await assertPathSuccess(provider, [], ConfigProvider.object(new Set(["ARRAY"])))
+      await assertPathSuccess(provider, ["ARRAY"], ConfigProvider.array(2))
+      await assertPathSuccess(provider, ["ARRAY", 0], ConfigProvider.leaf("value1"))
+      await assertPathSuccess(provider, ["ARRAY", 1], ConfigProvider.leaf("value2"))
+    })
+
+    it("expansion of environment variables is off by default", async () => {
+      const provider = ConfigProvider.fromDotEnv(`
+PASSWORD="value"
 DB_PASS=$PASSWORD
 `)
-      await assertPathSuccess(
-        provider,
-        [],
-        ConfigProvider.object(new Set(["NODE_ENV", "API_URL", "USERS", "PASSWORD", "DB_PASS"]))
-      )
-      await assertPathSuccess(provider, ["NODE_ENV"], ConfigProvider.leaf("production"))
-      await assertPathSuccess(provider, ["API_URL"], ConfigProvider.leaf("https://api.example.com"))
-      await assertPathSuccess(provider, ["PASSWORD"], ConfigProvider.leaf("s1mpl3"))
+      await assertPathSuccess(provider, [], ConfigProvider.object(new Set(["PASSWORD", "DB_PASS"])))
+      await assertPathSuccess(provider, ["PASSWORD"], ConfigProvider.leaf("value"))
       await assertPathSuccess(provider, ["DB_PASS"], ConfigProvider.leaf("$PASSWORD"))
+    })
+
+    it("expansion of environment variables is supported", async () => {
+      const provider = ConfigProvider.fromDotEnv(
+        `
+PASSWORD="value"
+DB_PASS=$PASSWORD
+`,
+        { expandVariables: true }
+      )
+      await assertPathSuccess(provider, [], ConfigProvider.object(new Set(["PASSWORD", "DB_PASS"])))
+      await assertPathSuccess(provider, ["PASSWORD"], ConfigProvider.leaf("value"))
+      await assertPathSuccess(provider, ["DB_PASS"], ConfigProvider.leaf("value"))
     })
   })
 
@@ -422,132 +491,5 @@ A=1`)
       deepStrictEqual(result.integer, ConfigProvider.leaf("123"))
       deepStrictEqual(result.fallback, ConfigProvider.leaf("value"))
     })
-  })
-})
-
-describe("decode", () => {
-  function expectDecode(env: Record<string, string>, expected: StringLeafJson) {
-    const got = ConfigProvider.decode(env)
-    deepStrictEqual(got, expected)
-  }
-
-  // -------------------------
-  // R1/R2: Segmentation + Trie
-  // -------------------------
-  it("R1/R2 basic path segmentation builds nested containers and leaf", () => {
-    const env = { "a__0__b__c": "foo" }
-    expectDecode(env, { a: [{ b: { c: "foo" } }] })
-  })
-
-  it("R1 forbids empty segments", () => {
-    const env = { "a____b": "x" } // empty segment between ____
-    throws(
-      () => ConfigProvider.decode(env),
-      new Error(`Invalid environment: empty segment in variable name "a____b"`)
-    )
-  })
-
-  // ------------------------------------------
-  // R3: Role exclusivity (leaf vs container)
-  // ------------------------------------------
-  it("R3 error: node cannot be leaf and container (a=foo + a__b=bar)", () => {
-    const env = { a: "foo", "a__b": "bar" }
-    throws(
-      () => ConfigProvider.decode(env),
-      new Error(`Invalid environment: node "a" is both leaf and container`)
-    )
-  })
-
-  // ---------------------------------------------------------
-  // R4: Disambiguation per node (all numeric => array; else object)
-  // ---------------------------------------------------------
-  it("R4 array: all children numeric -> array", () => {
-    const env = { "x__0": "a", "x__1": "b" }
-    expectDecode(env, { x: ["a", "b"] })
-  })
-
-  it("R4 object: at least one non-numeric -> object", () => {
-    const env = { "x__0": "a", "x__foo": "b" }
-    expectDecode(env, { x: { "0": "a", "foo": "b" } })
-  })
-
-  it(`R4 with "01": not numeric (leading zero) -> object, not array`, () => {
-    const env = { "x__0": "a", "x__01": "b" }
-    expectDecode(env, { x: { "0": "a", "01": "b" } })
-  })
-
-  // ----------------------------------------------
-  // R5: Arrays must be dense (0..max), no gaps
-  // ----------------------------------------------
-  it("R5 error: non-dense array (missing index)", () => {
-    const env = { "x__0": "a", "x__2": "b" }
-    throws(
-      () => ConfigProvider.decode(env),
-      new Error(`Invalid environment: array at "x" is not dense (expected indices 0..2)`)
-    )
-  })
-
-  it("R5 dense array with nested objects", () => {
-    const env = {
-      "items__0__id": "1",
-      "items__0__name": "A",
-      "items__1__id": "2",
-      "items__1__name": "B"
-    }
-    expectDecode(env, { items: [{ id: "1", name: "A" }, { id: "2", name: "B" }] })
-  })
-
-  // --------------------------------------
-  // R6: Object keys are used as-is
-  // --------------------------------------
-  it("R6 object keys preserved as-is (dashes, dots, spaces)", () => {
-    const env = {
-      "meta-key__a.b": "dots",
-      "user name__first-name": "Ada"
-    }
-    expectDecode(env, {
-      "meta-key": { "a.b": "dots" },
-      "user name": { "first-name": "Ada" }
-    })
-  })
-
-  // ------------------------------------------
-  // R7: Empty containers via __TYPE sentinels
-  // ------------------------------------------
-  it("R7 empty containers at leaf paths", () => {
-    const env = {
-      "list__TYPE": "A",
-      "opts__TYPE": "O"
-    }
-    expectDecode(env, { list: [], opts: {} })
-  })
-
-  it("R7 root empty array/object via __TYPE only", () => {
-    expectDecode({ "__TYPE": "A" }, [])
-    expectDecode({ "__TYPE": "O" }, {})
-  })
-
-  it("R7 error: __TYPE cannot coexist with children", () => {
-    const env = { "x__TYPE": "A", "x__0": "v" }
-    throws(
-      () => ConfigProvider.decode(env),
-      new Error(`Invalid environment: node "x" has __TYPE and also leaf/children`)
-    )
-  })
-
-  it("R7 error: __TYPE cannot coexist with leaf", () => {
-    const env = { "x__TYPE": "O", "x": "leaf" }
-    throws(
-      () => ConfigProvider.decode(env),
-      new Error(`Invalid environment: node "x" has __TYPE and also leaf/children`)
-    )
-  })
-
-  it("R7 error: bad __TYPE value", () => {
-    const env = { "x__TYPE": "Z" as any }
-    throws(
-      () => ConfigProvider.decode(env),
-      new Error(`Invalid environment: "x__TYPE" must be "A" or "O"`)
-    )
   })
 })
