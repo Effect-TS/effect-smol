@@ -6,6 +6,7 @@ import type * as Tracer from "../../observability/Tracer.ts"
 import type * as Duration from "../../time/Duration.ts"
 import type * as Headers from "../http/Headers.ts"
 import type * as HttpClient from "../http/HttpClient.ts"
+import * as HttpClientRequest from "../http/HttpClientRequest.ts"
 import * as OtlpLogger from "./OtlpLogger.ts"
 import * as OtlpMetrics from "./OtlpMetrics.ts"
 import * as OtlpTracer from "./OtlpTracer.ts"
@@ -30,10 +31,12 @@ export const layer = (options: {
   readonly metricsExportInterval?: Duration.DurationInput | undefined
   readonly tracerExportInterval?: Duration.DurationInput | undefined
   readonly shutdownTimeout?: Duration.DurationInput | undefined
-}): Layer.Layer<never, never, HttpClient.HttpClient> =>
-  Layer.mergeAll(
+}): Layer.Layer<never, never, HttpClient.HttpClient> => {
+  const base = HttpClientRequest.get(options.baseUrl)
+  const url = (path: string) => HttpClientRequest.appendUrl(base, path).url
+  return Layer.mergeAll(
     OtlpLogger.layer({
-      url: new URL("/v1/logs", options.baseUrl).toString(),
+      url: url("/v1/logs"),
       resource: options.resource,
       headers: options.headers,
       exportInterval: options.loggerExportInterval,
@@ -43,14 +46,14 @@ export const layer = (options: {
       mergeWithExisting: options.loggerMergeWithExisting
     }),
     OtlpMetrics.layer({
-      url: new URL("/v1/metrics", options.baseUrl).toString(),
+      url: url("/v1/metrics"),
       resource: options.resource,
       headers: options.headers,
       exportInterval: options.metricsExportInterval,
       shutdownTimeout: options.shutdownTimeout
     }),
     OtlpTracer.layer({
-      url: new URL("/v1/traces", options.baseUrl).toString(),
+      url: url("/v1/traces"),
       resource: options.resource,
       headers: options.headers,
       exportInterval: options.tracerExportInterval,
@@ -59,3 +62,4 @@ export const layer = (options: {
       shutdownTimeout: options.shutdownTimeout
     })
   )
+}
