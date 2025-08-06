@@ -273,7 +273,7 @@ export const causePrettyErrors = <E>(self: Cause.Cause<E>): Array<Error> => {
     errors.push(
       causePrettyError(
         failure._tag === "Die" ? failure.defect : failure.error as any,
-        failure.annotations.get(CurrentSpanKey.key) as any
+        failure.annotations
       )
     )
   }
@@ -284,14 +284,17 @@ export const causePrettyErrors = <E>(self: Cause.Cause<E>): Array<Error> => {
     const error = new globalThis.Error("All fibers interrupted without error", { cause })
     error.name = "InterruptError"
     error.stack = `${error.name}: ${error.message}`
-    errors.push(causePrettyError(error, interrupts[0].annotations.get(CurrentSpanKey.key) as any))
+    errors.push(causePrettyError(error, interrupts[0].annotations))
   }
 
   ;(Error as ErrorWithStackTraceLimit).stackTraceLimit = prevStackLimit
   return errors
 }
 
-const causePrettyError = (original: Record<string, unknown> | Error, span?: Tracer.Span): Error => {
+const causePrettyError = (
+  original: Record<string, unknown> | Error,
+  annotations?: ReadonlyMap<string, unknown>
+): Error => {
   const kind = typeof original
   let error: Error
   if (original && kind === "object") {
@@ -302,7 +305,7 @@ const causePrettyError = (original: Record<string, unknown> | Error, span?: Trac
       error.name = original.name
     }
     if (typeof original.stack === "string") {
-      error.stack = cleanErrorStack(original.stack, error, span)
+      error.stack = cleanErrorStack(original.stack, error, annotations)
     } else {
       error.stack = `${error.name}: ${error.message}`
     }
@@ -338,7 +341,11 @@ const extractErrorMessage = (u: Record<string, unknown> | Error): string => {
 
 const locationRegex = /\((.*)\)/g
 
-const cleanErrorStack = (stack: string, error: Error, span: Tracer.Span | undefined): string => {
+const cleanErrorStack = (
+  stack: string,
+  error: Error,
+  annotations: ReadonlyMap<string, unknown> | undefined
+): string => {
   const message = `${error.name}: ${error.message}`
   const lines = (stack.startsWith(message) ? stack.slice(message.length) : stack).split("\n")
   const out: Array<string> = [message]
@@ -348,7 +355,14 @@ const cleanErrorStack = (stack: string, error: Error, span: Tracer.Span | undefi
     }
     out.push(lines[i])
   }
+  const span = annotations?.get(CurrentSpanKey.key) as Tracer.Span | undefined
+  const defStack = (annotations?.get(defErrorKey.key) as Error | undefined)?.stack
+  const callsiteStack = (annotations?.get(callsiteErrorKey.key) as Error | undefined)?.stack
+
+  if (callsiteStack) out.push(callsiteStack.split("\n")[2])
+  if (defStack) out.push(defStack.split("\n")[2])
   if (span) pushSpanStack(out, span)
+
   return out.join("\n")
 }
 
@@ -993,11 +1007,55 @@ export const fnUntraced: Effect.fn.Gen = (
     : function(this: any, ...args: Array<any>) {
       let effect = suspend(() => unsafeFromIterator(body.apply(this, args)))
       for (const pipeable of pipeables) {
-        effect = pipeable(effect)
+        effect = pipeable(effect, ...args)
       }
       return effect
     }
 }
+
+/** @internal */
+export const fn: Effect.fn.Gen & Effect.fn.NonGen = (
+  body: Function,
+  ...pipeables: Array<any>
+) => {
+  const prevLimit = globalThis.Error.stackTraceLimit
+  globalThis.Error.stackTraceLimit = 2
+  const defError = new globalThis.Error()
+  globalThis.Error.stackTraceLimit = prevLimit
+
+  return function(this: any, ...args: Array<any>) {
+    let result = suspend(() => {
+      const iter = body.apply(this, args)
+      return isEffect(iter) ? iter : unsafeFromIterator(iter)
+    })
+    for (let i = 0; i < pipeables.length; i++) {
+      result = pipeables[i](result, ...args)
+    }
+    if (!isEffect(result)) {
+      return result
+    }
+    const prevLimit = globalThis.Error.stackTraceLimit
+    globalThis.Error.stackTraceLimit = 2
+    const callError = new globalThis.Error()
+    globalThis.Error.stackTraceLimit = prevLimit
+    return catchCause(
+      result,
+      (cause) =>
+        failCause(causeFromFailures(
+          cause.failures.map((f) =>
+            f
+              .annotate(defErrorKey, defError)
+              .annotate(callsiteErrorKey, callError)
+          )
+        ))
+    )
+  }
+}
+
+const defErrorKey = ServiceMap.Key<Error>("effect/Cause/FnDefinitionTrace" satisfies typeof Cause.FnDefinitionTrace.key)
+const callsiteErrorKey = ServiceMap.Key<Error>(
+  "effect/Cause/FnCallsiteTrace" satisfies typeof Cause.FnCallsiteTrace.key
+)
 
 /** @internal */
 export const fnUntracedEager: Effect.fn.Gen = (
@@ -4289,10 +4347,11 @@ export const withParentSpan: {
 
 /** @internal */
 export const withSpan: {
-  (
+  <Args extends ReadonlyArray<any>>(
     name: string,
-    options?: Tracer.SpanOptions | undefined
-  ): <A, E, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<A, E, Exclude<R, Tracer.ParentSpan>>
+    options?: Tracer.SpanOptionsNoTrace | ((...args: NoInfer<Args>) => Tracer.SpanOptionsNoTrace) | undefined,
+    traceOptions?: Tracer.TraceOptions | undefined
+  ): <A, E, R>(self: Effect.Effect<A, E, R>, ...args: Args) => Effect.Effect<A, E, Exclude<R, Tracer.ParentSpan>>
   <A, E, R>(
     self: Effect.Effect<A, E, R>,
     name: string,
@@ -4301,12 +4360,19 @@ export const withSpan: {
 } = function() {
   const dataFirst = typeof arguments[0] !== "string"
   const name = dataFirst ? arguments[1] : arguments[0]
-  const options = addSpanStackTrace(dataFirst ? arguments[2] : arguments[1])
   if (dataFirst) {
     const self = arguments[0]
-    return useSpan(name, options, (span) => withParentSpan(self, span))
+    return useSpan(name, addSpanStackTrace(arguments[2]), (span) => withParentSpan(self, span))
   }
-  return (self: Effect.Effect<any, any, any>) => useSpan(name, options, (span) => withParentSpan(self, span))
+  const fnArg = typeof arguments[1] === "function" ? arguments[1] : undefined
+  const traceOptions = addSpanStackTrace(arguments[2])
+  const partialOptions = fnArg ? traceOptions : { ...traceOptions, ...arguments[1] }
+  return (self: Effect.Effect<any, any, any>, ...args: any) =>
+    useSpan(
+      name,
+      fnArg ? { ...partialOptions, ...fnArg(...args) } : partialOptions,
+      (span) => withParentSpan(self, span)
+    )
 } as any
 
 /** @internal */

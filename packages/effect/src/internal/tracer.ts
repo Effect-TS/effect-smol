@@ -5,7 +5,9 @@ export interface ErrorWithStackTraceLimit {
 }
 
 /** @internal */
-export const addSpanStackTrace = (options: Tracer.SpanOptions | undefined): Tracer.SpanOptions => {
+export const addSpanStackTrace = <A extends Tracer.TraceOptions>(
+  options: A | undefined
+): A => {
   if (options?.captureStackTrace === false) {
     return options
   } else if (options?.captureStackTrace !== undefined && typeof options.captureStackTrace !== "boolean") {
@@ -30,5 +32,5 @@ export const addSpanStackTrace = (options: Tracer.SpanOptions | undefined): Trac
         }
       }
     }
-  }
+  } as A
 }

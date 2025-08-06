@@ -181,13 +181,26 @@ export interface ExternalSpan {
  * )
  * ```
  */
-export interface SpanOptions {
+export interface SpanOptions extends SpanOptionsNoTrace, TraceOptions {}
+
+/**
+ * @since 3.1.0
+ * @category models
+ */
+export interface SpanOptionsNoTrace {
   readonly attributes?: Record<string, unknown> | undefined
   readonly links?: ReadonlyArray<SpanLink> | undefined
   readonly parent?: AnySpan | undefined
   readonly root?: boolean | undefined
   readonly context?: ServiceMap.ServiceMap<never> | undefined
   readonly kind?: SpanKind | undefined
+}
+
+/**
+ * @since 3.1.0
+ * @category models
+ */
+export interface TraceOptions {
   readonly captureStackTrace?: boolean | LazyArg<string | undefined> | undefined
 }
 
