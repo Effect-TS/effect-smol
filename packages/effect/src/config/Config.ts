@@ -9,7 +9,7 @@ import * as AST from "../schema/AST.ts"
 import * as Schema from "../schema/Schema.ts"
 import * as Serializer from "../schema/Serializer.ts"
 import * as ToParser from "../schema/ToParser.ts"
-import type { ConfigProviderError, Path } from "./ConfigProvider.ts"
+import type { Path, SourceError } from "./ConfigProvider.ts"
 import * as ConfigProvider from "./ConfigProvider.ts"
 
 /**
@@ -39,7 +39,7 @@ export const isConfig = (u: unknown): u is Config<unknown> => Predicate.hasPrope
  * @since 4.0.0
  * @category Models
  */
-export type ConfigError = ConfigProviderError | Schema.SchemaError
+export type ConfigError = SourceError | Schema.SchemaError
 
 /**
  * @since 4.0.0
@@ -135,11 +135,11 @@ export const unwrap = <T>(wrapped: Wrap<T>): Config<T> => {
 const dump: (
   provider: ConfigProvider.ConfigProvider,
   path: Path
-) => Effect.Effect<Serializer.StringLeafJson | undefined, ConfigProviderError> = Effect.fnUntraced(function*(
+) => Effect.Effect<Serializer.StringLeafJson | undefined, SourceError> = Effect.fnUntraced(function*(
   provider,
   path
 ) {
-  const stat = yield* provider.get(path)
+  const stat = yield* ConfigProvider.run(provider, path)
   if (stat === undefined) return undefined
   switch (stat._tag) {
     case "leaf":
@@ -171,7 +171,7 @@ const go: (
   ast: AST.AST,
   provider: ConfigProvider.ConfigProvider,
   path: Path
-) => Effect.Effect<Serializer.StringLeafJson | undefined, Schema.SchemaError | ConfigProviderError> = Effect.fnUntraced(
+) => Effect.Effect<Serializer.StringLeafJson | undefined, Schema.SchemaError | SourceError> = Effect.fnUntraced(
   function*(ast, provider, path) {
     switch (ast._tag) {
       case "TypeLiteral": {
@@ -184,7 +184,7 @@ const go: (
           }
         }
         if (ast.indexSignatures.length > 0) {
-          const stat = yield* provider.get(path)
+          const stat = yield* ConfigProvider.run(provider, path)
           if (stat && stat._tag === "object") {
             for (const is of ast.indexSignatures) {
               const matches = ToParser.refinement(is.parameter)
@@ -205,7 +205,7 @@ const go: (
           if (Predicate.isString(out)) return ensureArray(out)
           return out
         }
-        const stat = yield* provider.get(path)
+        const stat = yield* ConfigProvider.run(provider, path)
         if (stat && stat._tag === "leaf") return ensureArray(stat.value)
         const out: Array<Serializer.StringLeafJson> = []
         for (let i = 0; i < ast.elements.length; i++) {
@@ -219,7 +219,7 @@ const go: (
       case "Suspend":
         return yield* go(ast.thunk(), provider, path)
       default: {
-        const stat = yield* provider.get(path)
+        const stat = yield* ConfigProvider.run(provider, path)
         if (stat === undefined || stat._tag !== "leaf") return undefined
         return stat.value
       }

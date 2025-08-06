@@ -5,7 +5,7 @@
 import * as Data from "../data/Data.ts"
 import * as Predicate from "../data/Predicate.ts"
 import * as Effect from "../Effect.ts"
-import { dual } from "../Function.ts"
+import { dual, flow } from "../Function.ts"
 import type { Pipeable } from "../interfaces/Pipeable.ts"
 import { PipeInspectableProto } from "../internal/core.ts"
 import * as Layer from "../Layer.ts"
@@ -26,11 +26,11 @@ export type Path = ReadonlyArray<string | number>
  * @since 4.0.0
  */
 export type Stat =
-  /* a terminal string value */
+  /** A terminal string value */
   | { readonly _tag: "leaf"; readonly value: string }
-  /* an object; keys are unordered */
+  /** An object; keys are unordered */
   | { readonly _tag: "object"; readonly keys: ReadonlySet<string> }
-  /* an array-like container; length is the number of elements */
+  /** An array-like container; length is the number of elements */
   | { readonly _tag: "array"; readonly length: number }
 
 /**
@@ -57,26 +57,36 @@ export function array(length: number): Stat {
 /**
  * @since 4.0.0
  */
-export class ConfigProviderError extends Data.TaggedError("ConfigProviderError")<{
+export class SourceError extends Data.TaggedError("SourceError")<{
   readonly reason: string
   readonly cause?: unknown
 }> {}
 
 /**
- * @since 4.0.0
  * @category Models
+ * @since 4.0.0
  */
 export interface ConfigProvider extends Pipeable {
   /**
    * Returns the node found at `path`, or `undefined` if it does not exist.
-   * Fails with `ConfigProviderError` when the underlying source cannot be read.
+   * Fails with `SourceError` when the underlying source cannot be read.
    */
-  readonly get: (path: Path) => Effect.Effect<Stat | undefined, ConfigProviderError>
+  readonly get: (path: Path) => Effect.Effect<Stat | undefined, SourceError>
+
+  /**
+   * Function to map the input path.
+   */
+  readonly mapInput: ((path: Path) => Path) | undefined
+
+  /**
+   * Prefix to add to the input path.
+   */
+  readonly prefix: Path | undefined
 }
 
 /**
- * @since 4.0.0
  * @category References
+ * @since 4.0.0
  */
 export const ConfigProvider: ServiceMap.Reference<ConfigProvider> = ServiceMap.Reference<ConfigProvider>(
   "effect/config/ConfigProvider",
@@ -93,18 +103,39 @@ const Proto = {
 }
 
 /**
- * @since 4.0.0
  * @category Constructors
+ * @since 4.0.0
  */
-export function make(get: (path: Path) => Effect.Effect<Stat | undefined, ConfigProviderError>): ConfigProvider {
+export function make(
+  get: (path: Path) => Effect.Effect<Stat | undefined, SourceError>,
+  mapInput?: (path: Path) => Path,
+  prefix?: Path
+): ConfigProvider {
   const self = Object.create(Proto)
   self.get = get
+  self.mapInput = mapInput
+  self.prefix = prefix
   return self
 }
 
 /**
  * @since 4.0.0
+ */
+export const run: {
+  (path: Path): (self: ConfigProvider) => Effect.Effect<Stat | undefined, SourceError>
+  (self: ConfigProvider, path: Path): Effect.Effect<Stat | undefined, SourceError>
+} = dual(
+  2,
+  (self: ConfigProvider, path: Path): Effect.Effect<Stat | undefined, SourceError> => {
+    if (self.mapInput) path = self.mapInput(path)
+    if (self.prefix) path = [...self.prefix, ...path]
+    return self.get(path)
+  }
+)
+
+/**
  * @category Combinators
+ * @since 4.0.0
  */
 export const orElse: {
   (that: ConfigProvider): (self: ConfigProvider) => ConfigProvider
@@ -116,13 +147,18 @@ export const orElse: {
 )
 
 /**
- * @since 4.0.0
  * @category Combinators
+ * @since 4.0.0
  */
 export const mapInput: {
   (f: (path: Path) => Path): (self: ConfigProvider) => ConfigProvider
   (self: ConfigProvider, f: (path: Path) => Path): ConfigProvider
-} = dual(2, (self: ConfigProvider, f: (path: Path) => Path): ConfigProvider => make((path) => self.get(f(path))))
+} = dual(
+  2,
+  (self: ConfigProvider, f: (path: Path) => Path): ConfigProvider => {
+    return make(self.get, self.mapInput ? flow(self.mapInput, f) : f, self.prefix)
+  }
+)
 
 /**
  * @since 4.0.0
@@ -137,13 +173,19 @@ export const constantCase: (self: ConfigProvider) => ConfigProvider = mapInput((
  * @since 4.0.0
  */
 export const nested: {
-  (prefix: string): (self: ConfigProvider) => ConfigProvider
-  (self: ConfigProvider, prefix: string): ConfigProvider
-} = dual(2, (self: ConfigProvider, prefix: string): ConfigProvider => make((path) => self.get([prefix, ...path])))
+  (prefix: string | Path): (self: ConfigProvider) => ConfigProvider
+  (self: ConfigProvider, prefix: string | Path): ConfigProvider
+} = dual(
+  2,
+  (self: ConfigProvider, prefix: string | Path): ConfigProvider => {
+    const path = Predicate.isString(prefix) ? [prefix] : prefix
+    return make(self.get, self.mapInput, self.prefix ? [...self.prefix, ...path] : path)
+  }
+)
 
 /**
- * @since 4.0.0
  * @category Layers
+ * @since 4.0.0
  */
 export const layer = <E = never, R = never>(
   self: ConfigProvider | Effect.Effect<ConfigProvider, E, R>
@@ -157,8 +199,8 @@ export const layer = <E = never, R = never>(
  * If `asPrimary` is set to `true`, the new provider will be used as the
  * primary provider, meaning it will be used first when looking up values.
  *
- * @since 4.0.0
  * @category Layers
+ * @since 4.0.0
  */
 export const layerAdd = <E = never, R = never>(
   self: ConfigProvider | Effect.Effect<ConfigProvider, E, R>,
@@ -191,9 +233,13 @@ function resolvePath(input: StringLeafJson, path: Path): StringLeafJson | undefi
   for (const seg of path) {
     if (Predicate.isString(out)) return undefined
     if (Array.isArray(out)) {
-      if (!Predicate.isNumber(seg) || !Number.isInteger(seg) || seg < 0 || seg >= out.length) return undefined
+      if (!Predicate.isNumber(seg) || !Number.isInteger(seg) || seg < 0 || seg >= out.length) {
+        return undefined
+      }
     } else {
-      if (!Predicate.isString(seg) || !Object.prototype.hasOwnProperty.call(out, seg)) return undefined
+      if (!Predicate.isString(seg) || !Object.prototype.hasOwnProperty.call(out, seg)) {
+        return undefined
+      }
     }
     out = (out as any)[seg]
   }
@@ -251,7 +297,7 @@ type TrieNode = {
   children?: Record<string, TrieNode> // R2: children keyed by segment (plain object)
 }
 
-// Utility: fetch or create a child node by segment (plain object).
+// fetch or create a child node by segment (plain object).
 function getOrCreateChild(parent: TrieNode, segment: string): TrieNode {
   parent.children ??= {}
   return (parent.children[segment] ??= {})
@@ -277,10 +323,10 @@ function materialize(node: TrieNode, debugPath: string): StringLeafJson {
         `Invalid input (R3/R7): node "${debugPath}" has __TYPE and also leaf/children`
       )
     }
-    return node.typeSentinel === "A" ? ([] as StringLeafJson) : ({} as StringLeafJson)
+    return node.typeSentinel === "A" ? [] : {}
   }
 
-  // Container with children → decide object vs array (R4), then enforce density if array (R5)
+  // Container with children: decide object vs array (R4), then enforce density if array (R5)
   if (node.children && Object.keys(node.children).length > 0) {
     const children = node.children
     const childNames = Object.keys(children)
@@ -345,7 +391,7 @@ export function decode(env: Record<string, string>): StringLeafJson {
       if (kind !== "A" && kind !== "O") {
         throw new Error(`Invalid input (R7): "${name}" must be "A" or "O"`)
       }
-      if (node.typeSentinel && node.typeSentinel !== (kind as "A" | "O")) {
+      if (node.typeSentinel && node.typeSentinel !== kind) {
         throw new Error(`Invalid input (R7): conflicting __TYPE at "${name}"`)
       }
       node.typeSentinel = kind
@@ -545,7 +591,7 @@ export const dotEnv: (options?: {
  * - Regular file  -> `{ _tag: "leaf", value }` where `value` is the file text, trimmed.
  * - Directory     -> `{ _tag: "object", keys }` collecting immediate child names (order unspecified).
  * - Not found     -> `undefined`.
- * - Other I/O     -> `ConfigProviderError`.
+ * - Other I/O     -> `SourceError`.
  *
  * @since 4.0.0
  * @category File Tree
@@ -581,7 +627,7 @@ export const fileTree: (options?: {
     return asFile.pipe(
       Effect.catch(() => asDirectory),
       Effect.mapError((cause: PlatformError) =>
-        new ConfigProviderError({
+        new SourceError({
           reason: `Failed to read file at ${path_.join(rootDirectory, ...path.map(String))}`,
           cause
         })

@@ -13,14 +13,14 @@ async function assertPathSuccess(
   path: ConfigProvider.Path,
   expected: ConfigProvider.Stat | undefined
 ) {
-  const r = Effect.result(provider.get(path))
+  const r = Effect.result(ConfigProvider.run(provider, path))
   deepStrictEqual(await Effect.runPromise(r), Result.succeed(expected))
 }
 
 // async function assertPathFailure(
 //   provider: ConfigProvider.ConfigProvider,
 //   path: ConfigProvider.Path,
-//   expected: ConfigProvider.ConfigProviderError
+//   expected: ConfigProvider.SourceError
 // ) {
 //   const r = Effect.result(provider.get(path))
 //   deepStrictEqual(await Effect.runPromise(r), Result.fail(expected))
@@ -52,8 +52,21 @@ describe("ConfigProvider", () => {
     await assertPathSuccess(provider, ["constant.case"], ConfigProvider.leaf("value1"))
   })
 
+  describe("mapInput", () => {
+    it("two mappings", async () => {
+      const prependA = ConfigProvider.mapInput((path) => ["A", ...path])
+      const prependB = ConfigProvider.mapInput((path) => ["B", ...path])
+      const provider = ConfigProvider.fromEnv({
+        env: {
+          "A__B__c": "value"
+        }
+      }).pipe(prependB, prependA)
+      await assertPathSuccess(provider, ["c"], ConfigProvider.leaf("value"))
+    })
+  })
+
   describe("nested", () => {
-    it("simple", async () => {
+    it("should add a prefix to the path", async () => {
       const provider = ConfigProvider.fromEnv({
         env: {
           "prefix__leaf": "value"
@@ -62,22 +75,22 @@ describe("ConfigProvider", () => {
       await assertPathSuccess(provider, ["leaf"], ConfigProvider.leaf("value"))
     })
 
-    it.todo("mapInput + nested", async () => {
-      const provider = ConfigProvider.fromEnv({
+    it(`mapInput and nested should be "commutative"`, async () => {
+      // constantCase + nested
+      const provider1 = ConfigProvider.fromEnv({
         env: {
           "prefix__CONSTANT_CASE": "value"
         }
       }).pipe(ConfigProvider.constantCase, ConfigProvider.nested("prefix"))
-      await assertPathSuccess(provider, ["constant.case"], ConfigProvider.leaf("value"))
-    })
+      await assertPathSuccess(provider1, ["constant.case"], ConfigProvider.leaf("value"))
 
-    it("nested + mapInput", async () => {
-      const provider = ConfigProvider.fromEnv({
+      // nested + constantCase
+      const provider2 = ConfigProvider.fromEnv({
         env: {
           "prefix__CONSTANT_CASE": "value"
         }
       }).pipe(ConfigProvider.nested("prefix"), ConfigProvider.constantCase)
-      await assertPathSuccess(provider, ["constant.case"], ConfigProvider.leaf("value"))
+      await assertPathSuccess(provider2, ["constant.case"], ConfigProvider.leaf("value"))
     })
   })
 

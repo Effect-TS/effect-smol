@@ -14,11 +14,11 @@ async function assertSuccess<T>(config: Config.Config<T>, provider: ConfigProvid
 async function assertFailure<T>(config: Config.Config<T>, provider: ConfigProvider.ConfigProvider, message: string) {
   const result = config.parse(provider).pipe(
     Effect.catchTag(
-      "ConfigProviderError",
+      "SourceError",
       (e) =>
         Effect.fail(
           new Schema.SchemaError({
-            issue: new Issue.InvalidValue(Option.none(), { message: `ConfigProviderError: ${e.reason}` })
+            issue: new Issue.InvalidValue(Option.none(), { message: `SourceError: ${e.reason}` })
           })
         )
     )

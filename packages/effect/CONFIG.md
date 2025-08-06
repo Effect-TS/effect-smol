@@ -6,9 +6,9 @@ A `ConfigProvider` exposes one operation to navigate configuration data and read
 interface ConfigProvider extends Pipeable {
   /**
    * Returns the node found at `path`, or `undefined` if it does not exist.
-   * Fails with `ConfigProviderError` when the underlying source cannot be read.
+   * Fails with `SourceError` when the underlying source cannot be read.
    */
-  readonly get: (path: Path) => Effect.Effect<Stat | undefined, ConfigProviderError>
+  readonly get: (path: Path) => Effect.Effect<Stat | undefined, SourceError>
 }
 ```
 
@@ -179,7 +179,7 @@ const program = Effect.gen(function* () {
           console.log("SchemaError", Formatter.makeTree().format(e.issue))
           break
         default:
-          console.log("ConfigProviderError", e.reason)
+          console.log("SourceError", e.reason)
       }
     })
   ),
@@ -224,7 +224,7 @@ const program = Effect.gen(function* () {
           console.log("SchemaError", Formatter.makeTree().format(e.issue))
           break
         default:
-          console.log("ConfigProviderError", e.reason)
+          console.log("SourceError", e.reason)
       }
     })
   ),
@@ -258,7 +258,7 @@ const program = Effect.gen(function* () {
           console.log("SchemaError", Formatter.makeTree().format(e.issue))
           break
         default:
-          console.log("ConfigProviderError", e.reason)
+          console.log("SourceError", e.reason)
       }
     })
   ),
@@ -292,7 +292,7 @@ const program = Effect.gen(function* () {
           console.log("SchemaError", Formatter.makeTree().format(e.issue))
           break
         default:
-          console.log("ConfigProviderError", e.reason)
+          console.log("SourceError", e.reason)
       }
     })
   ),
