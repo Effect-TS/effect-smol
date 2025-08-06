@@ -313,14 +313,14 @@ function appendDebugSegment(path: string, segment: string | number): string {
 function materialize(node: TrieNode, debugPath: string): StringLeafJson {
   // R3: leaf vs container exclusivity
   if (node.leafValue !== undefined && node.children) {
-    throw new Error(`Invalid input (R3): node "${debugPath}" is both leaf and container`)
+    throw new Error(`Invalid environment: node "${debugPath}" is both leaf and container`)
   }
 
   // R7: __TYPE sentinel represents an empty container; it must not coexist with leaf/children (R3)
   if (node.typeSentinel) {
     if (node.leafValue !== undefined || node.children) {
       throw new Error(
-        `Invalid input (R3/R7): node "${debugPath}" has __TYPE and also leaf/children`
+        `Invalid environment: node "${debugPath}" has __TYPE and also leaf/children`
       )
     }
     return node.typeSentinel === "A" ? [] : {}
@@ -338,14 +338,14 @@ function materialize(node: TrieNode, debugPath: string): StringLeafJson {
       const max = Math.max(...indices)
       if (indices.length !== max + 1) {
         throw new Error(
-          `Invalid input (R5): array at "${debugPath}" is not dense (expected indices 0..${max})`
+          `Invalid environment: array at "${debugPath}" is not dense (expected indices 0..${max})`
         )
       }
       const out: Array<StringLeafJson> = []
       for (let i = 0; i <= max; i++) {
         const key = String(i)
         if (!Object.prototype.hasOwnProperty.call(children, key)) {
-          throw new Error(`Invalid input (R5): missing index ${i} at "${debugPath}"`)
+          throw new Error(`Invalid environment: missing index ${i} at "${debugPath}"`)
         }
         out[i] = materialize(children[key]!, appendDebugSegment(debugPath, i))
       }
@@ -364,7 +364,7 @@ function materialize(node: TrieNode, debugPath: string): StringLeafJson {
   }
 
   // Dangling empty node (should not occur with well-formed inputs)
-  throw new Error(`Invalid input: dangling empty node at "${debugPath}"`)
+  throw new Error(`Invalid environment: dangling empty node at "${debugPath}"`)
 }
 
 /** @internal */
@@ -378,7 +378,7 @@ export function decode(env: Record<string, string>): StringLeafJson {
     // R1: path segmentation (no empty segments like "a____b")
     const segments = baseName === "" ? [] : baseName.split("__")
     if (segments.some((s) => s.length === 0)) {
-      throw new Error(`Invalid input (R1): empty segment in variable name "${name}"`)
+      throw new Error(`Invalid environment: empty segment in variable name "${name}"`)
     }
 
     let node = root
@@ -389,15 +389,15 @@ export function decode(env: Record<string, string>): StringLeafJson {
     if (endsWithType) {
       const kind = value.trim().toUpperCase()
       if (kind !== "A" && kind !== "O") {
-        throw new Error(`Invalid input (R7): "${name}" must be "A" or "O"`)
+        throw new Error(`Invalid environment: "${name}" must be "A" or "O"`)
       }
       if (node.typeSentinel && node.typeSentinel !== kind) {
-        throw new Error(`Invalid input (R7): conflicting __TYPE at "${name}"`)
+        throw new Error(`Invalid environment: conflicting __TYPE at "${name}"`)
       }
       node.typeSentinel = kind
     } else {
       if (node.leafValue !== undefined && node.leafValue !== value) {
-        throw new Error(`Invalid input (R9): duplicate leaf with different values at "${name}"`)
+        throw new Error(`Invalid environment: duplicate leaf with different values at "${name}"`)
       }
       node.leafValue = value
     }
@@ -430,7 +430,11 @@ export function fromEnv(options?: {
     ...(import.meta as any)?.env
   }
 
-  return fromStringLeafJson(decode(env))
+  try {
+    return fromStringLeafJson(decode(env))
+  } catch (e: any) {
+    return make(() => Effect.fail(new SourceError({ reason: e.message })))
+  }
 }
 
 // -----------------------------------------------------------------------------

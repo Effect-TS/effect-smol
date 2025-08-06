@@ -17,14 +17,14 @@ async function assertPathSuccess(
   deepStrictEqual(await Effect.runPromise(r), Result.succeed(expected))
 }
 
-// async function assertPathFailure(
-//   provider: ConfigProvider.ConfigProvider,
-//   path: ConfigProvider.Path,
-//   expected: ConfigProvider.SourceError
-// ) {
-//   const r = Effect.result(provider.get(path))
-//   deepStrictEqual(await Effect.runPromise(r), Result.fail(expected))
-// }
+async function assertPathFailure(
+  provider: ConfigProvider.ConfigProvider,
+  path: ConfigProvider.Path,
+  expected: ConfigProvider.SourceError
+) {
+  const r = Effect.result(provider.get(path))
+  deepStrictEqual(await Effect.runPromise(r), Result.fail(expected))
+}
 
 describe("ConfigProvider", () => {
   it("orElse", async () => {
@@ -95,6 +95,18 @@ describe("ConfigProvider", () => {
   })
 
   describe("fromEnv", () => {
+    describe("SourceErrors", () => {
+      it("node cannot be leaf and container (a=foo + a__b=bar)", async () => {
+        const env = { a: "foo", "a__b": "bar" }
+        const provider = ConfigProvider.fromEnv({ env })
+        await assertPathFailure(
+          provider,
+          ["a"],
+          new ConfigProvider.SourceError({ reason: `Invalid environment: node "a" is both leaf and container` })
+        )
+      })
+    })
+
     it("should support nested keys", async () => {
       const provider = ConfigProvider.fromEnv({
         env: {
@@ -431,7 +443,7 @@ describe("decode", () => {
     const env = { "a____b": "x" } // empty segment between ____
     throws(
       () => ConfigProvider.decode(env),
-      new Error(`Invalid input (R1): empty segment in variable name "a____b"`)
+      new Error(`Invalid environment: empty segment in variable name "a____b"`)
     )
   })
 
@@ -442,7 +454,7 @@ describe("decode", () => {
     const env = { a: "foo", "a__b": "bar" }
     throws(
       () => ConfigProvider.decode(env),
-      new Error(`Invalid input (R3): node "a" is both leaf and container`)
+      new Error(`Invalid environment: node "a" is both leaf and container`)
     )
   })
 
@@ -471,7 +483,7 @@ describe("decode", () => {
     const env = { "x__0": "a", "x__2": "b" }
     throws(
       () => ConfigProvider.decode(env),
-      new Error(`Invalid input (R5): array at "x" is not dense (expected indices 0..2)`)
+      new Error(`Invalid environment: array at "x" is not dense (expected indices 0..2)`)
     )
   })
 
@@ -519,7 +531,7 @@ describe("decode", () => {
     const env = { "x__TYPE": "A", "x__0": "v" }
     throws(
       () => ConfigProvider.decode(env),
-      new Error(`Invalid input (R3/R7): node "x" has __TYPE and also leaf/children`)
+      new Error(`Invalid environment: node "x" has __TYPE and also leaf/children`)
     )
   })
 
@@ -527,7 +539,7 @@ describe("decode", () => {
     const env = { "x__TYPE": "O", "x": "leaf" }
     throws(
       () => ConfigProvider.decode(env),
-      new Error(`Invalid input (R3/R7): node "x" has __TYPE and also leaf/children`)
+      new Error(`Invalid environment: node "x" has __TYPE and also leaf/children`)
     )
   })
 
@@ -535,7 +547,7 @@ describe("decode", () => {
     const env = { "x__TYPE": "Z" as any }
     throws(
       () => ConfigProvider.decode(env),
-      new Error(`Invalid input (R7): "x__TYPE" must be "A" or "O"`)
+      new Error(`Invalid environment: "x__TYPE" must be "A" or "O"`)
     )
   })
 })
