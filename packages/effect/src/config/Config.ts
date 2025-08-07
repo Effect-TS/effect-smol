@@ -1,14 +1,21 @@
 /**
  * @since 4.0.0
  */
+import * as Option from "../data/Option.ts"
 import * as Predicate from "../data/Predicate.ts"
 import * as Effect from "../Effect.ts"
 import type { Pipeable } from "../interfaces/Pipeable.ts"
 import { PipeInspectableProto, YieldableProto } from "../internal/core.ts"
+import * as LogLevel_ from "../logging/LogLevel.ts"
 import * as AST from "../schema/AST.ts"
+import * as Check from "../schema/Check.ts"
+import * as Getter from "../schema/Getter.ts"
+import * as Issue from "../schema/Issue.ts"
 import * as Schema from "../schema/Schema.ts"
 import * as Serializer from "../schema/Serializer.ts"
 import * as ToParser from "../schema/ToParser.ts"
+import * as Transformation from "../schema/Transformation.ts"
+import * as Duration_ from "../time/Duration.ts"
 import type { Path, SourceError } from "./ConfigProvider.ts"
 import * as ConfigProvider from "./ConfigProvider.ts"
 
@@ -249,31 +256,68 @@ export function schema<T, E>(codec: Schema.Codec<T, E>, path?: string | ConfigPr
   return make((provider) => go(serializerEncodedAST, provider, defaultPath).pipe(Effect.flatMap(decodeUnknownEffect)))
 }
 
-// /**
-//  * @category Schema
-//  * @since 4.0.0
-//  */
-// export const Boolean = Schema.Literals(["true", "yes", "on", "1", "false", "no", "off", "0"]).pipe(
-//   Schema.decodeTo(
-//     Schema.Boolean,
-//     Transformation.transform({
-//       decode: (value) => value === "true" || value === "yes" || value === "on" || value === "1",
-//       encode: (value) => value ? "true" : "false"
-//     })
-//   )
-// )
+/**
+ * A schema for strings that can be parsed as boolean values.
+ *
+ * Booleans can be encoded as `true`, `false`, `yes`, `no`, `on`, `off`, `1`, or `0`.
+ *
+ * @category Schema
+ * @since 4.0.0
+ */
+export const Boolean = Schema.Literals(["true", "yes", "on", "1", "false", "no", "off", "0"]).pipe(
+  Schema.decodeTo(
+    Schema.Boolean,
+    Transformation.transform({
+      decode: (value) => value === "true" || value === "yes" || value === "on" || value === "1",
+      encode: (value) => value ? "true" : "false"
+    })
+  )
+)
 
-// /**
-//  * @category Schema
-//  * @since 4.0.0
-//  */
-// export const Duration = Schema.String.pipe(Schema.decodeTo(Schema.Duration, {
-//   decode: Getter.mapOrFail((value) => {
-//     const od = Duration_.decodeUnknown(value)
-//     if (Option.isSome(od)) {
-//       return Effect.succeed(od.value)
-//     }
-//     return Effect.fail(new Issue.InvalidValue(od, { message: `Invalid duration: ${value}` }))
-//   }),
-//   encode: Getter.forbidden("Encoding Duration is not supported")
-// }))
+/**
+ * A schema for strings that can be parsed as duration values.
+ *
+ * Durations can be encoded as `DurationInput` values.
+ *
+ * @category Schema
+ * @since 4.0.0
+ */
+export const Duration = Schema.String.pipe(Schema.decodeTo(Schema.Duration, {
+  decode: Getter.mapOrFail((value) => {
+    const od = Duration_.decodeUnknown(value)
+    if (Option.isSome(od)) {
+      return Effect.succeed(od.value)
+    }
+    return Effect.fail(new Issue.InvalidValue(Option.some(value)))
+  }),
+  encode: Getter.forbidden("Encoding Duration is not supported")
+}))
+
+/**
+ * A schema for strings that can be parsed as port values.
+ *
+ * Ports can be encoded as integers between 1 and 65535.
+ *
+ * @category Schema
+ * @since 4.0.0
+ */
+export const Port = Schema.Int.check(Check.between(1, 65535))
+
+/**
+ * A schema for strings that can be parsed as log level values.
+ *
+ * Log levels can be encoded as the string values of the `LogLevel` enum:
+ *
+ * - `"All"`
+ * - `"Fatal"`
+ * - `"Error"`
+ * - `"Warn"`
+ * - `"Info"`
+ * - `"Debug"`
+ * - `"Trace"`
+ * - `"None"`
+ *
+ * @category Schema
+ * @since 4.0.0
+ */
+export const LogLevel = Schema.Literals(LogLevel_.values)

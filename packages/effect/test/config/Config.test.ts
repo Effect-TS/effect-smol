@@ -4,6 +4,7 @@ import { Effect } from "effect"
 import { Config, ConfigProvider } from "effect/config"
 import { Option } from "effect/data"
 import { Issue, Schema } from "effect/schema"
+import { Duration } from "effect/time"
 import { assertions } from "../utils/schema.ts"
 
 async function assertSuccess<T>(config: Config.Config<T>, provider: ConfigProvider.ConfigProvider, expected: T) {
@@ -460,6 +461,84 @@ describe("Config", () => {
         config,
         ConfigProvider.fromStringLeafJson({ url: "https://example.com" }),
         { url: new URL("https://example.com") }
+      )
+    })
+  })
+
+  describe("schemas", () => {
+    it("Boolean", async () => {
+      const provider = ConfigProvider.fromStringLeafJson({
+        a: "true",
+        b: "false",
+        c: "yes",
+        d: "no",
+        e: "on",
+        f: "off",
+        g: "1",
+        h: "0",
+        failure: "value"
+      })
+
+      await assertSuccess(Config.schema(Config.Boolean, "a"), provider, true)
+      await assertSuccess(Config.schema(Config.Boolean, "b"), provider, false)
+      await assertSuccess(Config.schema(Config.Boolean, "c"), provider, true)
+      await assertSuccess(Config.schema(Config.Boolean, "d"), provider, false)
+      await assertSuccess(Config.schema(Config.Boolean, "e"), provider, true)
+      await assertSuccess(Config.schema(Config.Boolean, "f"), provider, false)
+      await assertSuccess(Config.schema(Config.Boolean, "g"), provider, true)
+      await assertSuccess(Config.schema(Config.Boolean, "h"), provider, false)
+      await assertFailure(
+        Config.schema(Config.Boolean, "failure"),
+        provider,
+        `Expected "true" | "yes" | "on" | "1" | "false" | "no" | "off" | "0", actual "value"`
+      )
+    })
+
+    it("Duration", async () => {
+      const provider = ConfigProvider.fromStringLeafJson({
+        a: "1000 millis",
+        b: "1 second",
+        failure: "value"
+      })
+
+      await assertSuccess(Config.schema(Config.Duration, "a"), provider, Duration.millis(1000))
+      await assertSuccess(Config.schema(Config.Duration, "b"), provider, Duration.seconds(1))
+      await assertFailure(Config.schema(Config.Duration, "failure"), provider, `Invalid data "value"`)
+    })
+
+    it("Port", async () => {
+      const provider = ConfigProvider.fromStringLeafJson({
+        a: "8080",
+        failure: "-1"
+      })
+
+      await assertSuccess(Config.schema(Config.Port, "a"), provider, 8080)
+      await assertFailure(
+        Config.schema(Config.Port, "failure"),
+        provider,
+        `number & int & between(1, 65535)
+└─ between(1, 65535)
+   └─ Invalid data -1`
+      )
+    })
+
+    it("LogLevel", async () => {
+      const provider = ConfigProvider.fromStringLeafJson({
+        a: "Info",
+        failure_1: "info",
+        failure_2: "value"
+      })
+
+      await assertSuccess(Config.schema(Config.LogLevel, "a"), provider, "Info")
+      await assertFailure(
+        Config.schema(Config.LogLevel, "failure_1"),
+        provider,
+        `Expected "All" | "Fatal" | "Error" | "Warn" | "Info" | "Debug" | "Trace" | "None", actual "info"`
+      )
+      await assertFailure(
+        Config.schema(Config.LogLevel, "failure_2"),
+        provider,
+        `Expected "All" | "Fatal" | "Error" | "Warn" | "Info" | "Debug" | "Trace" | "None", actual "value"`
       )
     })
   })

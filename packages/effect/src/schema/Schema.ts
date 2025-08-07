@@ -21,7 +21,6 @@ import { identity } from "../Function.ts"
 import type { Pipeable } from "../interfaces/Pipeable.ts"
 import { pipeArguments } from "../interfaces/Pipeable.ts"
 import * as core from "../internal/core.ts"
-import * as LogLevel_ from "../logging/LogLevel.ts"
 import * as Scheduler from "../Scheduler.ts"
 import * as DateTime from "../time/DateTime.ts"
 import * as Duration_ from "../time/Duration.ts"
@@ -3705,18 +3704,6 @@ export const Finite = Number.check(Check.finite())
  * @since 4.0.0
  */
 export const Int = Number.check(Check.int())
-
-/**
- * @category Schema
- * @since 4.0.0
- */
-export const Port = Int.check(Check.between(0, 65535))
-
-/**
- * @category Schema
- * @since 4.0.0
- */
-export const LogLevel = Literals(LogLevel_.values)
 
 /**
  * @since 4.0.0
