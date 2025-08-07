@@ -281,9 +281,9 @@ describe("ConfigProvider", () => {
     })
   })
 
-  describe("fromDotEnv", () => {
+  describe("fromDotEnvContents", () => {
     it("comments are ignored", async () => {
-      const provider = ConfigProvider.fromDotEnv(`
+      const provider = ConfigProvider.fromDotEnvContents(`
 # comments are ignored
 API_URL=https://api.example.com
 `)
@@ -292,7 +292,7 @@ API_URL=https://api.example.com
     })
 
     it("export is allowed", async () => {
-      const provider = ConfigProvider.fromDotEnv(`
+      const provider = ConfigProvider.fromDotEnvContents(`
 export NODE_ENV=production
 `)
       await assertPathSuccess(provider, [], ConfigProvider.object(new Set(["NODE_ENV"])))
@@ -300,7 +300,7 @@ export NODE_ENV=production
     })
 
     it("quoting is allowed", async () => {
-      const provider = ConfigProvider.fromDotEnv(`
+      const provider = ConfigProvider.fromDotEnvContents(`
 NODE_ENV="production"
 `)
       await assertPathSuccess(provider, [], ConfigProvider.object(new Set(["NODE_ENV"])))
@@ -308,7 +308,7 @@ NODE_ENV="production"
     })
 
     it("objects are supported", async () => {
-      const provider = ConfigProvider.fromDotEnv(`
+      const provider = ConfigProvider.fromDotEnvContents(`
 OBJECT__key1=value1
 OBJECT__key2=value2
 `)
@@ -319,7 +319,7 @@ OBJECT__key2=value2
     })
 
     it("a node may be both leaf and object", async () => {
-      const provider = ConfigProvider.fromDotEnv(`
+      const provider = ConfigProvider.fromDotEnvContents(`
 OBJECT=value1
 OBJECT__key1=value2
 OBJECT__key2=value3
@@ -331,7 +331,7 @@ OBJECT__key2=value3
     })
 
     it("a node may be both leaf and array", async () => {
-      const provider = ConfigProvider.fromDotEnv(`
+      const provider = ConfigProvider.fromDotEnvContents(`
 ARRAY=value1
 ARRAY__0=value2
 ARRAY__1=value3
@@ -343,7 +343,7 @@ ARRAY__1=value3
     })
 
     it("arrays are supported", async () => {
-      const provider = ConfigProvider.fromDotEnv(`
+      const provider = ConfigProvider.fromDotEnvContents(`
 ARRAY__0=value1
 ARRAY__1=value2
 `)
@@ -354,7 +354,7 @@ ARRAY__1=value2
     })
 
     it("expansion of environment variables is off by default", async () => {
-      const provider = ConfigProvider.fromDotEnv(`
+      const provider = ConfigProvider.fromDotEnvContents(`
 PASSWORD="value"
 DB_PASS=$PASSWORD
 `)
@@ -364,7 +364,7 @@ DB_PASS=$PASSWORD
     })
 
     it("expansion of environment variables is supported", async () => {
-      const provider = ConfigProvider.fromDotEnv(
+      const provider = ConfigProvider.fromDotEnvContents(
         `
 PASSWORD="value"
 DB_PASS=$PASSWORD
@@ -377,10 +377,10 @@ DB_PASS=$PASSWORD
     })
   })
 
-  describe("dotEnv", () => {
+  describe("fromDotEnv", () => {
     it("should load configuration from .env file", async () => {
       const provider = await Effect.runPromise(
-        ConfigProvider.dotEnv().pipe(
+        ConfigProvider.fromDotEnv().pipe(
           Effect.provide(FileSystem.layerNoop({
             readFileString: (path) =>
               Effect.succeed(`PATH=${path}
@@ -395,7 +395,7 @@ A=1`)
 
     it("should support custom path", async () => {
       const provider = await Effect.runPromise(
-        ConfigProvider.dotEnv({ path: "custom.env" }).pipe(
+        ConfigProvider.fromDotEnv({ path: "custom.env" }).pipe(
           Effect.provide(FileSystem.layerNoop({
             readFileString: (path) =>
               Effect.succeed(`CUSTOM_PATH=${path}
@@ -409,8 +409,8 @@ A=1`)
     })
   })
 
-  describe("fileTree", () => {
-    const provider = ConfigProvider.fileTree({ rootDirectory: "/" })
+  describe("fromDir", () => {
+    const provider = ConfigProvider.fromDir({ rootPath: "/" })
     const files: Record<string, string> = {
       "/secret": "keepitsafe\n", // test trimming
       "/SHOUTING": "value",

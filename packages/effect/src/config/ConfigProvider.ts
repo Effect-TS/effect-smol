@@ -18,22 +18,36 @@ import type { Scope } from "../Scope.ts"
 import * as ServiceMap from "../ServiceMap.ts"
 
 /**
+ * @category Models
  * @since 4.0.0
  */
 export type Path = ReadonlyArray<string | number>
 
 /**
+ * @category Models
  * @since 4.0.0
  */
 export type Stat =
   /** A terminal string value */
-  | { readonly _tag: "leaf"; readonly value: string }
+  | {
+    readonly _tag: "leaf"
+    readonly value: string
+  }
   /** An object; keys are unordered */
-  | { readonly _tag: "object"; readonly keys: ReadonlySet<string>; readonly value: string | undefined }
+  | {
+    readonly _tag: "object"
+    readonly keys: ReadonlySet<string>
+    readonly value: string | undefined
+  }
   /** An array-like container; length is the number of elements */
-  | { readonly _tag: "array"; readonly length: number; readonly value: string | undefined }
+  | {
+    readonly _tag: "array"
+    readonly length: number
+    readonly value: string | undefined
+  }
 
 /**
+ * @category Constructors
  * @since 4.0.0
  */
 export function leaf(value: string): Stat {
@@ -41,6 +55,7 @@ export function leaf(value: string): Stat {
 }
 
 /**
+ * @category Constructors
  * @since 4.0.0
  */
 export function object(keys: ReadonlySet<string>, value?: string): Stat {
@@ -48,6 +63,7 @@ export function object(keys: ReadonlySet<string>, value?: string): Stat {
 }
 
 /**
+ * @category Constructors
  * @since 4.0.0
  */
 export function array(length: number, value?: string): Stat {
@@ -55,6 +71,7 @@ export function array(length: number, value?: string): Stat {
 }
 
 /**
+ * @category Models
  * @since 4.0.0
  */
 export class SourceError extends Data.TaggedError("SourceError")<{
@@ -221,6 +238,9 @@ export const layerAdd = <E = never, R = never>(
 // -----------------------------------------------------------------------------
 
 /**
+ * Create a ConfigProvider that reads values from a string-leaf JSON object.
+ *
+ * @category ConfigProviders
  * @since 4.0.0
  */
 export function fromStringLeafJson(root: StringLeafJson): ConfigProvider {
@@ -261,34 +281,66 @@ function describeStat(value: StringLeafJson | undefined): Stat | undefined {
 /**
  * Create a ConfigProvider that reads values from a JSON object.
  *
+ * @category ConfigProviders
  * @since 4.0.0
  */
 export function fromJson(root: unknown): ConfigProvider {
   return fromStringLeafJson(asStringLeafJson(root))
 }
 
-function asStringLeafJson(root: unknown): StringLeafJson {
-  if (root === null || root === undefined) return ""
-  if (Predicate.isString(root)) return root
-  if (Predicate.isNumber(root)) return String(root)
-  if (Predicate.isBoolean(root)) return String(root)
-  if (Array.isArray(root)) return root.map(asStringLeafJson)
+function asStringLeafJson(u: unknown): StringLeafJson {
+  if (u === null || u === undefined) return ""
+  if (Predicate.isString(u)) return u
+  if (Predicate.isNumber(u)) return String(u)
+  if (Predicate.isBoolean(u)) return String(u)
+  if (Array.isArray(u)) return u.map(asStringLeafJson)
 
-  if (Predicate.isObject(root)) {
+  if (Predicate.isObject(u)) {
     const result: Record<string, StringLeafJson> = {}
-    for (const [key, value] of Object.entries(root)) {
+    for (const [key, value] of Object.entries(u)) {
       result[key] = asStringLeafJson(value)
     }
     return result
   }
 
   // Fallback for any other type
-  return String(root)
+  return String(u)
 }
 
 // -----------------------------------------------------------------------------
 // fromEnv
 // -----------------------------------------------------------------------------
+
+/**
+ * Create a ConfigProvider that reads values from environment variables.
+ *
+ * The default environment is the global `process.env` and `import.meta.env`
+ * (if available). You can override this by passing `{ env: ... }`.
+ *
+ * @category ConfigProviders
+ * @since 4.0.0
+ */
+export function fromEnv(options?: { readonly env?: Record<string, string> | undefined }): ConfigProvider {
+  const env = options?.env ?? {
+    ...globalThis?.process?.env,
+    ...(import.meta as any)?.env
+  }
+
+  try {
+    const root = buildTrie(env)
+    validate(root)
+
+    return make((path) => {
+      if (path.length === 0) {
+        return Effect.succeed(statAt(root))
+      }
+      const node = findNode(root, path)
+      return Effect.succeed(statAt(node))
+    })
+  } catch (e: any) {
+    return make(() => Effect.fail(new SourceError({ reason: e?.message ?? String(e) })))
+  }
+}
 
 // Internal trie node used during decoding.
 type TrieNode = {
@@ -401,69 +453,39 @@ function findNode(root: TrieNode, path: Path): TrieNode | undefined {
   return cur
 }
 
-/**
- * Create a ConfigProvider that reads values from environment variables.
- *
- * @since 4.0.0
- */
-export function fromEnv(options?: { readonly env?: Record<string, string> | undefined }): ConfigProvider {
-  const env = options?.env ?? {
-    ...globalThis?.process?.env,
-    ...(import.meta as any)?.env
-  }
-
-  try {
-    const root = buildTrie(env)
-    validate(root)
-
-    return make((path) => {
-      if (path.length === 0) {
-        return Effect.succeed(statAt(root))
-      }
-      const node = findNode(root, path)
-      return Effect.succeed(statAt(node))
-    })
-  } catch (e: any) {
-    return make(() => Effect.fail(new SourceError({ reason: e?.message ?? String(e) })))
-  }
-}
-
 // -----------------------------------------------------------------------------
-// fromDotEnv
+// fromDotEnvContents
 // -----------------------------------------------------------------------------
 
 /**
- * A ConfigProvider that parses a `.env` file.
+ * A ConfigProvider that parses the contents of a `.env` file.
  *
- * Default parser:
- *
- * - structural arrays/objects (on)
- * - inline containers (off)
- * - variable expansion (off)
+ * By default, variables are not expanded. You can enable variable expansion by
+ * passing `{ expandVariables: true }`.
  *
  * Based on
  * - https://github.com/motdotla/dotenv
  * - https://github.com/motdotla/dotenv-expand
  *
- * @see {@link dotEnv} for a ConfigProvider that loads a `.env` file.
+ * @see {@link fromDotEnv} for a ConfigProvider that loads a `.env` file.
  *
+ * @category ConfigProviders
  * @since 4.0.0
- * @category Dotenv
  */
-export function fromDotEnv(lines: string, options?: {
+export function fromDotEnvContents(lines: string, options?: {
   readonly expandVariables?: boolean | undefined
 }): ConfigProvider {
-  let environment = parseDotEnv(lines)
+  let env = parseDotEnvContents(lines)
   if (options?.expandVariables) {
-    environment = dotEnvExpand(environment)
+    env = dotEnvExpand(env)
   }
-  return fromEnv({ env: environment })
+  return fromEnv({ env })
 }
 
 const DOT_ENV_LINE =
   /(?:^|^)\s*(?:export\s+)?([\w.-]+)(?:\s*=\s*?|:\s+?)(\s*'(?:\\'|[^'])*'|\s*"(?:\\"|[^"])*"|\s*`(?:\\`|[^`])*`|[^#\r\n]+)?\s*(?:#.*)?(?:$|$)/mg
 
-function parseDotEnv(lines: string): Record<string, string> {
+function parseDotEnvContents(lines: string): Record<string, string> {
   const obj: Record<string, string> = {}
 
   // Convert line breaks to same format
@@ -553,34 +575,35 @@ function searchLast(str: string, rgx: RegExp): number {
 }
 
 // -----------------------------------------------------------------------------
-// dotEnv
+// fromDotEnv
 // -----------------------------------------------------------------------------
 
 /**
  * A ConfigProvider that loads configuration from a `.env` file.
  *
- * @see {@link fromDotEnv} for a ConfigProvider that parses a `.env` file.
+ * @see {@link fromDotEnvContents} for a ConfigProvider that parses a `.env` file.
  *
  * @since 4.0.0
- * @category Dotenv
  */
-export const dotEnv: (options?: {
+export const fromDotEnv: (options?: {
   readonly path?: string | undefined
   readonly expandVariables?: boolean | undefined
 }) => Effect.Effect<ConfigProvider, PlatformError, FileSystem.FileSystem> = Effect.fnUntraced(
   function*(options) {
     const fs = yield* FileSystem.FileSystem
     const content = yield* fs.readFileString(options?.path ?? ".env")
-    return fromEnv({ env: parseDotEnv(content) })
+    return fromEnv({ env: parseDotEnvContents(content) })
   }
 )
 
 // -----------------------------------------------------------------------------
-// fileTree
+// fromDir
 // -----------------------------------------------------------------------------
 
 /**
  * Creates a ConfigProvider from a file tree structure.
+ *
+ * The default root path is `/`. You can change it by passing `{ rootPath: "..." }`.
  *
  * Resolution rules:
  * - Regular file  -> `{ _tag: "leaf", value }` where `value` is the file text, trimmed.
@@ -588,22 +611,22 @@ export const dotEnv: (options?: {
  * - Not found     -> `undefined`.
  * - Other I/O     -> `SourceError`.
  *
+ * @category ConfigProviders
  * @since 4.0.0
- * @category File Tree
  */
-export const fileTree: (options?: {
-  readonly rootDirectory?: string | undefined
+export const fromDir: (options?: {
+  readonly rootPath?: string | undefined
 }) => Effect.Effect<
   ConfigProvider,
   never,
   Path_.Path | FileSystem.FileSystem
 > = Effect.fnUntraced(function*(options) {
-  const path_ = yield* Path_.Path
+  const platformPath = yield* Path_.Path
   const fs = yield* FileSystem.FileSystem
-  const rootDirectory = options?.rootDirectory ?? "/"
+  const rootPath = options?.rootPath ?? "/"
 
   return make((path) => {
-    const fullPath = path_.join(rootDirectory, ...path.map(String))
+    const fullPath = platformPath.join(rootPath, ...path.map(String))
 
     // Try reading as a *file*
     const asFile = fs.readFileString(fullPath).pipe(
@@ -614,7 +637,7 @@ export const fileTree: (options?: {
     const asDirectory = fs.readDirectory(fullPath).pipe(
       Effect.map((entries: ReadonlyArray<any>) => {
         // Support both string paths and DirEntry-like objects
-        const keys = entries.map((e) => Predicate.isString(e) ? path_.basename(e) : String(e?.name ?? ""))
+        const keys = entries.map((e) => Predicate.isString(e) ? platformPath.basename(e) : String(e?.name ?? ""))
         return object(new Set(keys))
       })
     )
@@ -623,7 +646,7 @@ export const fileTree: (options?: {
       Effect.catch(() => asDirectory),
       Effect.mapError((cause: PlatformError) =>
         new SourceError({
-          reason: `Failed to read file at ${path_.join(rootDirectory, ...path.map(String))}`,
+          reason: `Failed to read file at ${platformPath.join(rootPath, ...path.map(String))}`,
           cause
         })
       )

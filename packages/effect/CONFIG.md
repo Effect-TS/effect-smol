@@ -173,7 +173,7 @@ const provider = ConfigProvider.fromStringLeafJson({
 })
 ```
 
-### `fileTree`
+### `fromDir`
 
 Creates a `ConfigProvider` from a file system tree structure.
 
