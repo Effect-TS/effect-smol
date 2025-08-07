@@ -88,6 +88,11 @@ export interface ConfigProvider extends Pipeable {
    * Returns the node found at `path`, or `undefined` if it does not exist.
    * Fails with `SourceError` when the underlying source cannot be read.
    */
+  readonly load: (path: Path) => Effect.Effect<Stat | undefined, SourceError>
+
+  /**
+   * Raw access to the underlying source.
+   */
   readonly get: (path: Path) => Effect.Effect<Stat | undefined, SourceError>
 
   /**
@@ -132,23 +137,13 @@ export function make(
   self.get = get
   self.mapInput = mapInput
   self.prefix = prefix
+  self.load = (path: Path) => {
+    if (mapInput) path = mapInput(path)
+    if (prefix) path = [...prefix, ...path]
+    return get(path)
+  }
   return self
 }
-
-/**
- * @since 4.0.0
- */
-export const run: {
-  (path: Path): (self: ConfigProvider) => Effect.Effect<Stat | undefined, SourceError>
-  (self: ConfigProvider, path: Path): Effect.Effect<Stat | undefined, SourceError>
-} = dual(
-  2,
-  (self: ConfigProvider, path: Path): Effect.Effect<Stat | undefined, SourceError> => {
-    if (self.mapInput) path = self.mapInput(path)
-    if (self.prefix) path = [...self.prefix, ...path]
-    return self.get(path)
-  }
-)
 
 /**
  * @category Combinators

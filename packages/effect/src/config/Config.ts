@@ -139,7 +139,7 @@ const dump: (
   provider,
   path
 ) {
-  const stat = yield* ConfigProvider.run(provider, path)
+  const stat = yield* provider.load(path)
   if (stat === undefined) return undefined
   switch (stat._tag) {
     case "leaf":
@@ -188,7 +188,7 @@ const go: (
           }
         }
         if (ast.indexSignatures.length > 0) {
-          const stat = yield* ConfigProvider.run(provider, path)
+          const stat = yield* provider.load(path)
           if (stat && stat._tag === "object") {
             for (const is of ast.indexSignatures) {
               const matches = ToParser.refinement(is.parameter)
@@ -209,7 +209,7 @@ const go: (
           if (Predicate.isString(out)) return ensureArray(out)
           return out
         }
-        const stat = yield* ConfigProvider.run(provider, path)
+        const stat = yield* provider.load(path)
         if (stat && stat._tag === "leaf") return ensureArray(stat.value)
         const out: Array<Serializer.StringLeafJson> = []
         for (let i = 0; i < ast.elements.length; i++) {
@@ -225,7 +225,7 @@ const go: (
         return yield* go(ast.thunk(), provider, path)
       default: {
         // Base primitives / string-like encoded nodes.
-        const stat = yield* ConfigProvider.run(provider, path)
+        const stat = yield* provider.load(path)
         if (stat === undefined) return undefined
         if (stat._tag === "leaf") return stat.value
         if (stat._tag === "object" && stat.value !== undefined) return stat.value

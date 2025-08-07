@@ -11,7 +11,7 @@ async function assertPathSuccess(
   path: ConfigProvider.Path,
   expected: ConfigProvider.Stat | undefined
 ) {
-  const r = Effect.result(ConfigProvider.run(provider, path))
+  const r = Effect.result(provider.load(path))
   deepStrictEqual(await Effect.runPromise(r), Result.succeed(expected))
 }
 
@@ -20,7 +20,7 @@ async function assertPathFailure(
   path: ConfigProvider.Path,
   expected: ConfigProvider.SourceError
 ) {
-  const r = Effect.result(provider.get(path))
+  const r = Effect.result(provider.load(path))
   deepStrictEqual(await Effect.runPromise(r), Result.fail(expected))
 }
 
@@ -462,10 +462,10 @@ A=1`)
       const result = await Effect.runPromise(
         Effect.gen(function*() {
           const provider = yield* ConfigProvider.ConfigProvider
-          const secret = yield* provider.get(["secret"])
-          const shouting = yield* provider.get(["SHOUTING"])
-          const integer = yield* provider.get(["integer"])
-          const nestedConfig = yield* provider.get(["nested", "config"])
+          const secret = yield* provider.load(["secret"])
+          const shouting = yield* provider.load(["SHOUTING"])
+          const integer = yield* provider.load(["integer"])
+          const nestedConfig = yield* provider.load(["nested", "config"])
 
           return { secret, shouting, integer, nestedConfig }
         }).pipe(Effect.provide(SetLayer))
@@ -481,7 +481,7 @@ A=1`)
         Effect.flip(
           Effect.gen(function*() {
             const provider = yield* ConfigProvider.ConfigProvider
-            yield* provider.get(["fallback"])
+            yield* provider.load(["fallback"])
           }).pipe(Effect.provide(SetLayer))
         )
       )
@@ -493,9 +493,9 @@ A=1`)
       const result = await Effect.runPromise(
         Effect.gen(function*() {
           const provider = yield* ConfigProvider.ConfigProvider
-          const secret = yield* provider.get(["secret"])
-          const integer = yield* provider.get(["integer"])
-          const fallback = yield* provider.get(["fallback"])
+          const secret = yield* provider.load(["secret"])
+          const integer = yield* provider.load(["integer"])
+          const fallback = yield* provider.load(["fallback"])
 
           return { secret, integer, fallback }
         }).pipe(Effect.provide(AddLayer))

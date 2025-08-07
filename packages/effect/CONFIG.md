@@ -240,7 +240,7 @@ const provider = ConfigProvider.fromEnv({ env: { DATABASE_HOST: "localhost" } })
 
 const program = Effect.gen(function* () {
   const provider = yield* ConfigProvider.ConfigProvider
-  const host = yield* ConfigProvider.run(provider, ["DATABASE_HOST"])
+  const host = yield* provider.load(["DATABASE_HOST"])
   console.log(host)
   return host
 }).pipe(Effect.provide(ConfigProvider.layer(provider)))
