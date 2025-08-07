@@ -1,14 +1,16 @@
 /**
  * @since 4.0.0
  */
-import * as Effect from "effect/Effect"
 import * as Option from "../../data/Option.ts"
 import type { Predicate } from "../../data/Predicate.ts"
 import type { ReadonlyRecord } from "../../data/Record.ts"
+import * as Effect from "../../Effect.js"
 import { constFalse } from "../../Function.ts"
+import * as internalEffect from "../../internal/effect.js"
 import * as Layer from "../../Layer.ts"
 import { TracerEnabled } from "../../References.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
+import { Clock } from "../../time/Clock.ts"
 import * as Headers from "./Headers.ts"
 import type { PreResponseHandler } from "./HttpEffect.ts"
 import { causeResponseStripped, exitResponse } from "./HttpServerError.ts"
@@ -140,22 +142,22 @@ export const tracer: <E, R>(
     if (disabled) {
       return httpApp
     }
-    const url = Option.getOrUndefined(Request.toURL(request))
-    if (url !== undefined && (url.username !== "" || url.password !== "")) {
-      url.username = "REDACTED"
-      url.password = "REDACTED"
-    }
-    const redactedHeaderNames = fiber.getRef(Headers.CurrentRedactedNames)
-    const redactedHeaders = Headers.redact(request.headers, redactedHeaderNames)
     const nameGenerator = fiber.getRef(SpanNameGenerator)
-    return Effect.useSpan(
-      nameGenerator(request),
-      {
-        parent: Option.getOrUndefined(TraceContext.fromHeaders(request.headers)),
-        kind: "server",
-        captureStackTrace: false
-      },
-      (span) => {
+    const span = internalEffect.unsafeMakeSpan(fiber, nameGenerator(request), {
+      parent: Option.getOrUndefined(TraceContext.fromHeaders(request.headers)),
+      kind: "server",
+      captureStackTrace: false
+    })
+    return Effect.onExitInterruptible(Effect.withParentSpan(httpApp, span), (exit) => {
+      const endTime = fiber.getRef(Clock).unsafeCurrentTimeNanos()
+      return Effect.flatMap(Effect.yieldNow, () => {
+        const url = Option.getOrUndefined(Request.toURL(request))
+        if (url !== undefined && (url.username !== "" || url.password !== "")) {
+          url.username = "REDACTED"
+          url.password = "REDACTED"
+        }
+        const redactedHeaderNames = fiber.getRef(Headers.CurrentRedactedNames)
+        const requestHeaders = Headers.redact(request.headers, redactedHeaderNames)
         span.attribute("http.request.method", request.method)
         if (url !== undefined) {
           span.attribute("url.full", url.toString())
@@ -169,23 +171,22 @@ export const tracer: <E, R>(
         if (request.headers["user-agent"] !== undefined) {
           span.attribute("user_agent.original", request.headers["user-agent"])
         }
-        for (const name in redactedHeaders) {
-          span.attribute(`http.request.header.${name}`, String(redactedHeaders[name]))
+        for (const name in requestHeaders) {
+          span.attribute(`http.request.header.${name}`, String(requestHeaders[name]))
         }
         if (request.remoteAddress._tag === "Some") {
           span.attribute("client.address", request.remoteAddress.value)
         }
-        return Effect.onExitInterruptible(Effect.withParentSpan(httpApp, span), (exit) => {
-          const response = exitResponse(exit)
-          span.attribute("http.response.status_code", response.status)
-          const redactedHeaders = Headers.redact(response.headers, redactedHeaderNames)
-          for (const name in redactedHeaders) {
-            span.attribute(`http.response.header.${name}`, String(redactedHeaders[name]))
-          }
-          return Effect.void
-        })
-      }
-    )
+        const response = exitResponse(exit)
+        span.attribute("http.response.status_code", response.status)
+        const responseHeaders = Headers.redact(response.headers, redactedHeaderNames)
+        for (const name in responseHeaders) {
+          span.attribute(`http.response.header.${name}`, String(responseHeaders[name]))
+        }
+        span.end(endTime, exit)
+        return Effect.void
+      })
+    })
   })
 )
 
