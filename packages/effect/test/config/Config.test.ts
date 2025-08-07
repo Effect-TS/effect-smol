@@ -1,6 +1,6 @@
 import { describe, it } from "@effect/vitest"
 import { deepStrictEqual } from "@effect/vitest/utils"
-import { Effect } from "effect"
+import { Effect, pipe } from "effect"
 import { Config, ConfigProvider } from "effect/config"
 import { Option } from "effect/data"
 import { Issue, Schema } from "effect/schema"
@@ -55,6 +55,20 @@ describe("Config", () => {
         "value"
       )
     })
+  })
+
+  it("map", async () => {
+    const config = Config.schema(Schema.String)
+    await assertSuccess(
+      Config.map(config, (value) => value.toUpperCase()),
+      ConfigProvider.fromStringLeafJson("value"),
+      "VALUE"
+    )
+    await assertSuccess(
+      pipe(config, Config.map((value) => value.toUpperCase())),
+      ConfigProvider.fromStringLeafJson("value"),
+      "VALUE"
+    )
   })
 
   describe("unwrap", () => {

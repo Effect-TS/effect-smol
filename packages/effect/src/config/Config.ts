@@ -4,6 +4,7 @@
 import * as Option from "../data/Option.ts"
 import * as Predicate from "../data/Predicate.ts"
 import * as Effect from "../Effect.ts"
+import { dual } from "../Function.ts"
 import type { Pipeable } from "../interfaces/Pipeable.ts"
 import { PipeInspectableProto, YieldableProto } from "../internal/core.ts"
 import * as LogLevel_ from "../logging/LogLevel.ts"
@@ -87,6 +88,17 @@ export function make<T>(
   self.parse = parse
   return self
 }
+
+/**
+ * @category Mapping
+ * @since 4.0.0
+ */
+export const map: {
+  <A, B>(f: (a: A) => B): (self: Config<A>) => Config<B>
+  <A, B>(self: Config<A>, f: (a: A) => B): Config<B>
+} = dual(2, <A, B>(self: Config<A>, f: (a: A) => B): Config<B> => {
+  return make((provider) => Effect.map(self.parse(provider), f))
+})
 
 /**
  * Wraps a nested structure, converting all primitives to a `Config`.
