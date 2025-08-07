@@ -44,7 +44,7 @@ export class HttpApiSchemaError extends Schema.ErrorClass<HttpApiSchemaError>("e
    * @since 1.0.0
    */
   static fromSchemaError(error: Schema.SchemaError): HttpApiSchemaError {
-    const formatter = Formatter.makeTree()
+    const formatter = Formatter.makeDefault()
     return new HttpApiSchemaError({ message: formatter.format(error.issue) })
   }
   /**

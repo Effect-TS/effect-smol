@@ -100,7 +100,7 @@ describe("Config", () => {
       const schema = Schema.String
       const config = Config.schema(schema)
 
-      await assertFailure(config, ConfigProvider.fromEnv({ env: {} }), `Expected string, actual undefined`)
+      await assertFailure(config, ConfigProvider.fromEnv({ env: {} }), `Expected string, got undefined`)
     })
 
     it("node can be both leaf and object", async () => {
@@ -169,12 +169,8 @@ describe("Config", () => {
       await assertFailure(
         config,
         ConfigProvider.fromEnv({ env: { a: "1", b: "value" } }),
-        `{ readonly [x: string]: number }
-└─ ["b"]
-   └─ Encoding failure
-      └─ string & a string representing a number
-         └─ a string representing a number
-            └─ Invalid data "value"`
+        `Expected a string matching the regex [+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?, got "value"
+  at ["b"]`
       )
     })
 
@@ -201,23 +197,14 @@ describe("Config", () => {
         await assertFailure(
           config,
           ConfigProvider.fromEnv({ env: { a: "a" } }),
-          `{ readonly "a": readonly [string, number] }
-└─ ["a"]
-   └─ readonly [string, number]
-      └─ [1]
-         └─ Missing key`
+          `Missing key
+  at ["a"][1]`
         )
         await assertFailure(
           config,
           ConfigProvider.fromEnv({ env: { a__0: "a", a__1: "value" } }),
-          `{ readonly "a": readonly [string, number] }
-└─ ["a"]
-   └─ readonly [string, number]
-      └─ [1]
-         └─ Encoding failure
-            └─ string & a string representing a number
-               └─ a string representing a number
-                  └─ Invalid data "value"`
+          `Expected a string matching the regex [+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?, got "value"
+  at ["a"][1]`
         )
       })
     })
@@ -231,14 +218,8 @@ describe("Config", () => {
       await assertFailure(
         config,
         ConfigProvider.fromEnv({ env: { a__0: "1", a__1: "value" } }),
-        `{ readonly "a": ReadonlyArray<number> }
-└─ ["a"]
-   └─ ReadonlyArray<number>
-      └─ [1]
-         └─ Encoding failure
-            └─ string & a string representing a number
-               └─ a string representing a number
-                  └─ Invalid data "value"`
+        `Expected a string matching the regex [+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?, got "value"
+  at ["a"][1]`
       )
     })
 
@@ -277,7 +258,7 @@ describe("Config", () => {
         await assertFailure(
           config,
           ConfigProvider.fromEnv({ env: { a: "a", b: "1" } }),
-          `Expected exactly one member to match the input {"a":"a","b":"1"}, but multiple members matched in { readonly "a": string } ⊻ { readonly "b": number }`
+          `Expected exactly one member to match the input {"a":"a","b":"1"}`
         )
       })
     })
@@ -311,7 +292,7 @@ describe("Config", () => {
       const config = Config.schema(schema)
 
       await assertSuccess(config, ConfigProvider.fromStringLeafJson("value"), "value")
-      await assertFailure(config, ConfigProvider.fromStringLeafJson({}), `Expected string, actual undefined`)
+      await assertFailure(config, ConfigProvider.fromStringLeafJson({}), `Expected string, got undefined`)
     })
 
     describe("Struct", () => {
@@ -323,19 +304,14 @@ describe("Config", () => {
         await assertFailure(
           config,
           ConfigProvider.fromStringLeafJson({}),
-          `{ readonly "a": number }
-└─ ["a"]
-   └─ Missing key`
+          `Missing key
+  at ["a"]`
         )
         await assertFailure(
           config,
           ConfigProvider.fromStringLeafJson({ a: "value" }),
-          `{ readonly "a": number }
-└─ ["a"]
-   └─ Encoding failure
-      └─ string & a string representing a number
-         └─ a string representing a number
-            └─ Invalid data "value"`
+          `Expected a string matching the regex [+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?, got "value"
+  at ["a"]`
         )
       })
 
@@ -374,12 +350,8 @@ describe("Config", () => {
       await assertFailure(
         config,
         ConfigProvider.fromStringLeafJson({ a: "1", b: "value" }),
-        `{ readonly [x: string]: number }
-└─ ["b"]
-   └─ Encoding failure
-      └─ string & a string representing a number
-         └─ a string representing a number
-            └─ Invalid data "value"`
+        `Expected a string matching the regex [+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?, got "value"
+  at ["b"]`
       )
     })
 
@@ -400,19 +372,14 @@ describe("Config", () => {
         await assertFailure(
           config,
           ConfigProvider.fromStringLeafJson(["a"]),
-          `readonly [string, number]
-└─ [1]
-   └─ Missing key`
+          `Missing key
+  at [1]`
         )
         await assertFailure(
           config,
           ConfigProvider.fromStringLeafJson(["a", "value"]),
-          `readonly [string, number]
-└─ [1]
-   └─ Encoding failure
-      └─ string & a string representing a number
-         └─ a string representing a number
-            └─ Invalid data "value"`
+          `Expected a string matching the regex [+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?, got "value"
+  at [1]`
         )
       })
     })
@@ -428,12 +395,8 @@ describe("Config", () => {
       await assertFailure(
         config,
         ConfigProvider.fromStringLeafJson(["1", "value"]),
-        `ReadonlyArray<number>
-└─ [1]
-   └─ Encoding failure
-      └─ string & a string representing a number
-         └─ a string representing a number
-            └─ Invalid data "value"`
+        `Expected a string matching the regex [+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?, got "value"
+  at [1]`
       )
     })
 
@@ -504,7 +467,7 @@ describe("Config", () => {
       await assertFailure(
         Config.schema(Config.Boolean, "failure"),
         provider,
-        `Expected "true" | "yes" | "on" | "1" | "false" | "no" | "off" | "0", actual "value"`
+        `Expected "true" | "yes" | "on" | "1" | "false" | "no" | "off" | "0", got "value"`
       )
     })
 
@@ -530,9 +493,7 @@ describe("Config", () => {
       await assertFailure(
         Config.schema(Config.Port, "failure"),
         provider,
-        `number & int & between(1, 65535)
-└─ between(1, 65535)
-   └─ Invalid data -1`
+        `Expected a value between 1 and 65535, got -1`
       )
     })
 
@@ -547,12 +508,12 @@ describe("Config", () => {
       await assertFailure(
         Config.schema(Config.LogLevel, "failure_1"),
         provider,
-        `Expected "All" | "Fatal" | "Error" | "Warn" | "Info" | "Debug" | "Trace" | "None", actual "info"`
+        `Expected "All" | "Fatal" | "Error" | "Warn" | "Info" | "Debug" | "Trace" | "None", got "info"`
       )
       await assertFailure(
         Config.schema(Config.LogLevel, "failure_2"),
         provider,
-        `Expected "All" | "Fatal" | "Error" | "Warn" | "Info" | "Debug" | "Trace" | "None", actual "value"`
+        `Expected "All" | "Fatal" | "Error" | "Warn" | "Info" | "Debug" | "Trace" | "None", got "value"`
       )
     })
   })

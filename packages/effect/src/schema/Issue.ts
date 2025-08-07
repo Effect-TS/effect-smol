@@ -393,7 +393,7 @@ export class AnyOf extends Base {
   /**
    * The issues that occurred.
    */
-  readonly issues: readonly [Issue, ...ReadonlyArray<Issue>]
+  readonly issues: ReadonlyArray<Issue>
 
   constructor(
     /**
@@ -407,7 +407,7 @@ export class AnyOf extends Base {
     /**
      * The issues that occurred.
      */
-    issues: readonly [Issue, ...ReadonlyArray<Issue>]
+    issues: ReadonlyArray<Issue>
   ) {
     super()
     this.ast = ast

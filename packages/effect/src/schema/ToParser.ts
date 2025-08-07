@@ -9,6 +9,7 @@ import * as Effect from "../Effect.ts"
 import { defaultParseOptions } from "../internal/schema/util.ts"
 import * as AST from "./AST.ts"
 import type * as Check from "./Check.ts"
+import * as Formatter from "./Formatter.ts"
 import * as Issue from "./Issue.ts"
 import type * as Schema from "./Schema.ts"
 
@@ -284,7 +285,14 @@ function asSync<T, E, R>(
   parser: (input: E, options?: AST.ParseOptions) => Effect.Effect<T, Issue.Issue, R>
 ): (input: E, options?: AST.ParseOptions) => T {
   const parserResult = asResult(parser)
-  return (input: E, options?: AST.ParseOptions) => Result.getOrThrow(parserResult(input, options))
+  return (input: E, options?: AST.ParseOptions) => {
+    const r = parserResult(input, options)
+    if (Result.isFailure(r)) {
+      const issue = r.failure
+      throw new Error(Formatter.makeDefault().format(issue), { cause: issue })
+    }
+    return r.success
+  }
 }
 
 /** @internal */

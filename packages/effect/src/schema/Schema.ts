@@ -366,7 +366,14 @@ export function revealCodec<T, E, RD, RE>(codec: Codec<T, E, RD, RE>) {
  */
 export class SchemaError extends Data.TaggedError("SchemaError")<{
   readonly issue: Issue.Issue
-}> {}
+}> {
+  /**
+   * @since 4.0.0
+   */
+  override get message() {
+    return Formatter.makeDefault().format(this.issue)
+  }
+}
 
 function makeStandardResult<A>(exit: Exit.Exit<StandardSchemaV1.Result<A>>): StandardSchemaV1.Result<A> {
   return Exit.isSuccess(exit) ? exit.value : {
@@ -408,10 +415,6 @@ function makeStandardResult<A>(exit: Exit.Exit<StandardSchemaV1.Result<A>>): Sta
  *   }
  * }
  *
- * const checkHook = (issue: any) => {
- *   return `Check failed: ${issue.filter.annotations?.description || "validation error"}`
- * }
- *
  * // Create a standard schema from a regular schema
  * const PersonSchema = Schema.Struct({
  *   name: Schema.NonEmptyString,
@@ -419,8 +422,7 @@ function makeStandardResult<A>(exit: Exit.Exit<StandardSchemaV1.Result<A>>): Sta
  * })
  *
  * const standardSchema = Schema.standardSchemaV1(PersonSchema, {
- *   leafHook,
- *   checkHook
+ *   leafHook
  * })
  *
  * // The standard schema can be used with any Standard Schema v1 compatible library
@@ -443,7 +445,6 @@ export const standardSchemaV1 = <S extends Top>(
   self: S,
   options?: {
     readonly leafHook?: Formatter.LeafHook | undefined
-    readonly checkHook?: Formatter.CheckHook | undefined
     readonly parseOptions?: AST.ParseOptions | undefined
   }
 ): StandardSchemaV1<S["Encoded"], S["Type"]> & S => {

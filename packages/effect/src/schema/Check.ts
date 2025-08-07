@@ -135,9 +135,7 @@ export const BRAND_KEY = "~brand.type"
 /** @internal */
 export function getBrand<T>(check: Check<T>): string | symbol | undefined {
   const brand = check.annotations?.[BRAND_KEY]
-  if (Predicate.isString(brand) || Predicate.isSymbol(brand)) {
-    return brand
-  }
+  if (Predicate.isString(brand) || Predicate.isSymbol(brand)) return brand
 }
 
 const baseBrand = makeGuard((u): u is any => true)
@@ -281,7 +279,7 @@ export function regex(regex: RegExp, annotations?: Annotations.Filter) {
   const source = regex.source
   return make((s: string) => regex.test(s), {
     title: `regex(${source})`,
-    description: `a string matching the pattern ${source}`,
+    description: `a string matching the regex ${source}`,
     jsonSchema: {
       _tag: "Constraint",
       constraint: () => ({

@@ -8,7 +8,7 @@ import * as Predicate from "../data/Predicate.ts"
 import * as Result from "../data/Result.ts"
 import * as Effect from "../Effect.ts"
 import * as internalRecord from "../internal/record.ts"
-import { formatPropertyKey, memoizeThunk, ownKeys } from "../internal/schema/util.ts"
+import { memoizeThunk, ownKeys } from "../internal/schema/util.ts"
 import * as RegEx from "../primitives/RegExp.ts"
 import type { Annotated } from "./Annotations.ts"
 import type * as Annotations from "./Annotations.ts"
@@ -626,6 +626,7 @@ export class TemplateLiteral extends AbstractParser {
       parser(oinput, options).pipe(
         Effect.mapBothEager({
           onSuccess: () => oinput,
+          // TODO: InvalidType is not correct here
           onFailure: () => new Issue.InvalidType(this, oinput)
         })
       )
@@ -1476,7 +1477,8 @@ export type Sentinel = {
   readonly literal: Literal
 }
 
-function getCandidateTypes(ast: AST): ReadonlyArray<Type> {
+/** @internal */
+export function getCandidateTypes(ast: AST): ReadonlyArray<Type> {
   switch (ast._tag) {
     case "NullKeyword":
       return ["null"]
@@ -1694,10 +1696,8 @@ export class UnionType<A extends AST = AST> extends Base {
 
       if (tracking.out) {
         return tracking.out
-      } else if (Arr.isNonEmptyArray(issues)) {
-        return yield* Effect.fail(new Issue.AnyOf(ast, oinput, issues))
       } else {
-        return yield* Effect.fail(new Issue.InvalidType(ast, oinput))
+        return yield* Effect.fail(new Issue.AnyOf(ast, oinput, issues))
       }
     })
   }
@@ -2060,28 +2060,6 @@ export const flip = memoize((ast: AST): AST => {
 })
 
 /** @internal */
-export function formatIsMutable(isMutable: boolean | undefined): string {
-  return isMutable === true ? "" : "readonly "
-}
-
-/** @internal */
-export function formatIsOptional(isOptional: boolean | undefined): string {
-  return isOptional === true ? "?" : ""
-}
-
-function formatPropertySignature(ps: PropertySignature): string {
-  return formatIsMutable(ps.type.context?.isMutable)
-    + formatPropertyKey(ps.name)
-    + formatIsOptional(ps.type.context?.isOptional)
-    + ": "
-    + format(ps.type)
-}
-
-function formatPropertySignatures(pss: ReadonlyArray<PropertySignature>): string {
-  return pss.map(formatPropertySignature).join("; ")
-}
-
-/** @internal */
 export function containsUndefined(ast: AST): boolean {
   switch (ast._tag) {
     case "UndefinedKeyword":
@@ -2093,144 +2071,53 @@ export function containsUndefined(ast: AST): boolean {
   }
 }
 
-function formatIndexSignature(is: IndexSignature): string {
-  return formatIsMutable(is.isMutable) + `[x: ${format(is.parameter)}]: ${format(is.type)}`
-}
-
-function formatIndexSignatures(iss: ReadonlyArray<IndexSignature>): string {
-  return iss.map(formatIndexSignature).join("; ")
-}
-
-function formatElements(es: ReadonlyArray<AST>): string {
-  return es.map((e) => format(e) + formatIsOptional(e.context?.isOptional)).join(", ")
-}
-
-function formatTail(tail: ReadonlyArray<AST>): string {
-  return tail.map(format).join(", ")
-}
-
-const formatTemplateLiteral = (ast: TemplateLiteral): string =>
-  "`" + ast.encodedParts.map((ast) => formatTemplateLiteralASTPart(ast)).join("") +
-  "`"
-
-function formatTemplateLiteralASTPart(part: TemplateLiteralPart): string {
-  switch (part._tag) {
-    case "LiteralType":
-      return String(part.literal)
-    case "StringKeyword":
-    case "NumberKeyword":
-    case "BigIntKeyword":
-    case "TemplateLiteral":
-      return "${" + format(part) + "}"
-    case "UnionType":
-      return "${" + part.types.map(formatTemplateLiteralASTWithinUnion).join(" | ") + "}"
+/** @internal */
+export function formatTemplateLiteral(ast: TemplateLiteral): string {
+  const formatUnionPart = (part: TemplateLiteralPart): string => {
+    if (isUnionType(part)) {
+      return part.types.map(formatUnionPart).join(" | ")
+    }
+    switch (part._tag) {
+      case "LiteralType":
+        return formatLiteralType(part)
+      case "StringKeyword":
+        return "string"
+      case "NumberKeyword":
+        return "number"
+      case "BigIntKeyword":
+        return "bigint"
+      case "TemplateLiteral":
+        return formatTemplateLiteral(part)
+    }
   }
-}
 
-const formatTemplateLiteralASTWithinUnion = (part: TemplateLiteralPart): string => {
-  if (isUnionType(part)) {
-    return part.types.map(formatTemplateLiteralASTWithinUnion).join(" | ")
-  }
-  return format(part)
+  return "`" + ast.encodedParts.map((part) => {
+    switch (part._tag) {
+      case "LiteralType":
+        return String(part.literal)
+      case "StringKeyword":
+        return "${string}"
+      case "NumberKeyword":
+        return "${number}"
+      case "BigIntKeyword":
+        return "${bigint}"
+      case "TemplateLiteral":
+        return "${" + formatTemplateLiteral(part) + "}"
+      case "UnionType":
+        return "${" + part.types.map(formatUnionPart).join(" | ") + "}"
+    }
+  }).join("") + "`"
 }
 
 /** @internal */
-export const format = memoize((ast: AST): string => {
-  switch (ast._tag) {
-    case "Declaration": {
-      const id = ast.annotations?.id
-      if (Predicate.isString(id)) {
-        return id
-      }
-      const title = ast.annotations?.title
-      if (Predicate.isString(title)) {
-        const tps = ast.typeParameters.map(format)
-        return `${title}${tps.length > 0 ? `<${tps.join(", ")}>` : ""}`
-      }
-      return "<Declaration>"
-    }
-    case "LiteralType":
-      return Predicate.isString(ast.literal) ? JSON.stringify(ast.literal) : String(ast.literal)
-    case "NeverKeyword":
-      return "never"
-    case "AnyKeyword":
-      return "any"
-    case "UnknownKeyword":
-      return "unknown"
-    case "NullKeyword":
-      return "null"
-    case "UndefinedKeyword":
-      return "undefined"
-    case "StringKeyword":
-      return "string"
-    case "NumberKeyword":
-      return "number"
-    case "BooleanKeyword":
-      return "boolean"
-    case "SymbolKeyword":
-      return "symbol"
-    case "BigIntKeyword":
-      return "bigint"
-    case "UniqueSymbol":
-      return ast.symbol.toString()
-    case "VoidKeyword":
-      return "void"
-    case "ObjectKeyword":
-      return "object"
-    case "Enums":
-      return `<enum ${ast.enums.length} value(s): ${ast.enums.map(([_, value]) => JSON.stringify(value)).join(" | ")}>`
-    case "TemplateLiteral":
-      return formatTemplateLiteral(ast)
-    case "TupleType": {
-      if (ast.rest.length === 0) {
-        return `${formatIsMutable(ast.isMutable)}[${formatElements(ast.elements)}]`
-      }
-      const [h, ...tail] = ast.rest
-      const head = format(h)
+export function formatLiteralType(ast: LiteralType): string {
+  return Predicate.isString(ast.literal) ? JSON.stringify(ast.literal) : String(ast.literal)
+}
 
-      if (tail.length > 0) {
-        if (ast.elements.length > 0) {
-          return `${formatIsMutable(ast.isMutable)}[${formatElements(ast.elements)}, ...Array<${head}>, ${
-            formatTail(tail)
-          }]`
-        } else {
-          return `${formatIsMutable(ast.isMutable)}[...Array<${head}>, ${formatTail(tail)}]`
-        }
-      } else {
-        if (ast.elements.length > 0) {
-          return `${formatIsMutable(ast.isMutable)}[${formatElements(ast.elements)}, ...Array<${head}>]`
-        } else {
-          return `${ast.isMutable ? "Array<" : "ReadonlyArray<"}${head}>`
-        }
-      }
-    }
-    case "TypeLiteral": {
-      if (ast.propertySignatures.length > 0) {
-        const pss = formatPropertySignatures(ast.propertySignatures)
-        if (ast.indexSignatures.length > 0) {
-          return `{ ${pss}; ${formatIndexSignatures(ast.indexSignatures)} }`
-        } else {
-          return `{ ${pss} }`
-        }
-      } else {
-        if (ast.indexSignatures.length > 0) {
-          return `{ ${formatIndexSignatures(ast.indexSignatures)} }`
-        } else {
-          return "{}"
-        }
-      }
-    }
-    case "UnionType": {
-      if (ast.types.length === 0) {
-        return "never"
-      } else {
-        return ast.types.map(format).join(ast.mode === "oneOf" ? " ⊻ " : " | ")
-      }
-    }
-    case "Suspend":
-      return "#"
-  }
-})
+/** @internal */
+export function formatEnums(ast: Enums): string {
+  return ast.enums.map(([_, value]) => JSON.stringify(value)).join(" | ")
+}
 
 function getTemplateLiteralSource(ast: TemplateLiteral, top: boolean): string {
   return ast.encodedParts.map((part) =>
@@ -2248,11 +2135,11 @@ export const getTemplateLiteralRegExp = memoize((ast: TemplateLiteral): RegExp =
  */
 const STRING_KEYWORD_PATTERN = "[\\s\\S]*?"
 /**
- * floating point or integer, with optional exponent, no leading “+”
+ * floating point or integer, with optional exponent, no leading "+"
  */
 const NUMBER_KEYWORD_PATTERN = "[+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?"
 /**
- * signed integer only (no leading “+”)
+ * signed integer only (no leading "+")
  */
 const BIGINT_KEYWORD_PATTERN = "-?\\d+"
 

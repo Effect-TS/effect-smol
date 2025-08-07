@@ -504,19 +504,18 @@ describe("Serializer", () => {
       assertTrue(r._tag === "Failure")
 
       const failureResult = Formatter.makeStandardSchemaV1({
-        leafHook: Formatter.treeLeafHook,
-        checkHook: Formatter.verboseCheckHook
+        leafHook: Formatter.defaultLeafHook
       }).format(r.failure)
       await assertions.serialization.json.codec.succeed(Schema.StandardSchemaV1FailureResult, failureResult, {
         issues: [
-          { path: ["a"], message: `Expected a value with a length of at least 1, actual ""` },
+          { path: ["a"], message: `Expected a value with a length of at least 1, got ""` },
           { path: ["c", 0], message: "Missing key" },
           { path: ["Symbol(b)"], message: "Missing key" }
         ]
       })
       await assertions.deserialization.json.codec.succeed(Schema.StandardSchemaV1FailureResult, {
         issues: [
-          { path: ["a"], message: `Expected a value with a length of at least 1, actual ""` },
+          { path: ["a"], message: `Expected a value with a length of at least 1, got ""` },
           { path: ["c", 0], message: "Missing key" },
           { path: ["Symbol(b)"], message: "Missing key" }
         ]
@@ -640,7 +639,7 @@ describe("Serializer", () => {
         await assertions.deserialization.stringLeafJson.schema.fail(
           schema,
           "-",
-          `Expected "a" | 1 | 2 | true, actual "-"`
+          `Expected "a" | 1 | 2 | true, got "-"`
         )
       })
 

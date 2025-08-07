@@ -33,17 +33,7 @@ function make(asserts: {
   }
 
   const out = {
-    formatter: {
-      formatAST: (schema: Schema.Top, expected: string) => {
-        strictEqual(Formatter.formatAST(schema.ast), expected)
-      }
-    },
-
     schema: {
-      format: (schema: Schema.Top, expected: string) => {
-        strictEqual(AST.format(schema.ast), expected)
-      },
-
       fields: {
         equals: (a: Schema.Struct.Fields, b: Schema.Struct.Fields) => {
           deepStrictEqual(Record.map(a, AST.getAST), Record.map(b, AST.getAST))
@@ -83,7 +73,7 @@ function make(asserts: {
           throw new Error(`Promise didn't reject, got: ${a}`)
         } catch (e: unknown) {
           if (Issue.isIssue(e)) {
-            strictEqual(Formatter.makeTree().format(e), message)
+            strictEqual(Formatter.makeDefault().format(e), message)
           } else {
             throw new Error(`Unknown promise rejection: ${e}`)
           }
@@ -316,7 +306,7 @@ function make(asserts: {
         } | undefined
       ) {
         const decoded = ToParser.decodeUnknownEffect(schema)(input, options?.parseOptions)
-        const effWithMessage = Effect.catch(decoded, (issue) => Effect.fail(Formatter.makeTree().format(issue)))
+        const effWithMessage = Effect.catch(decoded, (issue) => Effect.fail(Formatter.makeDefault().format(issue)))
         let provided = effWithMessage
         if (options?.provide) {
           for (const [tag, value] of options.provide) {
@@ -371,7 +361,7 @@ function make(asserts: {
         // Account for `expected` being `undefined`
         const encoded = ToParser.encodeUnknownEffect(schema)(input, options?.parseOptions)
         return out.effect.succeed(
-          Effect.catch(encoded, (issue) => Effect.fail(Formatter.makeTree().format(issue))),
+          Effect.catch(encoded, (issue) => Effect.fail(Formatter.makeDefault().format(issue))),
           options && Object.hasOwn(options, "expected") ? options.expected : input
         )
       },
@@ -415,7 +405,7 @@ function make(asserts: {
       ) {
         const effectWithMessage = Effect.catch(
           effect,
-          (issue) => Effect.fail(Formatter.makeTree().format(issue))
+          (issue) => Effect.fail(Formatter.makeDefault().format(issue))
         )
         const r = Effect.result(effectWithMessage) as Effect.Effect<Result.Result<A, string>>
         return out.result.fail(await Effect.runPromise(r), message)
@@ -459,7 +449,7 @@ function make(asserts: {
       async failMessage<A>(encoded: Result.Result<A, Issue.Issue>, message: string | ((message: string) => void)) {
         const encodedWithMessage = Effect.gen(function*() {
           if (Result.isFailure(encoded)) {
-            const message = Formatter.makeTree().format(encoded.failure)
+            const message = Formatter.makeDefault().format(encoded.failure)
             return yield* Effect.fail(message)
           }
           return encoded.success
@@ -495,14 +485,14 @@ function validate<I, A>(
 
 const isPromise = (value: unknown): value is Promise<unknown> => value instanceof Promise
 
-const expectSuccess = async <A>(
+const expectSuccess = <A>(
   result: StandardSchemaV1.Result<A>,
   a: A
 ) => {
   deepStrictEqual(result, { value: a })
 }
 
-const expectFailure = async <A>(
+const expectFailure = <A>(
   result: StandardSchemaV1.Result<A>,
   issues: ReadonlyArray<StandardSchemaV1.Issue> | ((issues: ReadonlyArray<StandardSchemaV1.Issue>) => void)
 ) => {

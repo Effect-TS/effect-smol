@@ -30,13 +30,13 @@ describe("standardSchemaV1", () => {
     standard.expectSyncSuccess(standardSchema, "a", "a")
     standard.expectSyncFailure(standardSchema, null, [
       {
-        message: "InvalidType",
+        message: "Expected string, got null",
         path: []
       }
     ])
     standard.expectSyncFailure(standardSchema, "", [
       {
-        message: `minLength.{"minLength":1}`,
+        message: `Expected a value with a length of at least 1, got ""`,
         path: []
       }
     ])
@@ -48,13 +48,13 @@ describe("standardSchemaV1", () => {
     await standard.expectAsyncSuccess(standardSchema, "a", "a")
     standard.expectSyncFailure(standardSchema, null, [
       {
-        message: "InvalidType",
+        message: "Expected string, got null",
         path: []
       }
     ])
     await standard.expectAsyncFailure(standardSchema, "", [
       {
-        message: `minLength.{"minLength":1}`,
+        message: `Expected a value with a length of at least 1, got ""`,
         path: []
       }
     ])
@@ -114,29 +114,29 @@ describe("standardSchemaV1", () => {
     standard.expectSyncSuccess(standardSchema, { a: "a", b: "b" }, { a: "a", b: "b" })
     standard.expectSyncFailure(standardSchema, null, [
       {
-        message: "InvalidType",
+        message: "Expected object, got null",
         path: []
       }
     ])
     standard.expectSyncFailure(standardSchema, { a: "a", b: "" }, [
       {
-        message: `minLength.{"minLength":1}`,
+        message: `Expected a value with a length of at least 1, got ""`,
         path: ["b"]
       }
     ])
     standard.expectSyncFailure(standardSchema, { a: "", b: "b" }, [
       {
-        message: `minLength.{"minLength":1}`,
+        message: `Expected a value with a length of at least 1, got ""`,
         path: ["a"]
       }
     ])
     standard.expectSyncFailure(standardSchema, { a: "", b: "" }, [
       {
-        message: `minLength.{"minLength":1}`,
+        message: `Expected a value with a length of at least 1, got ""`,
         path: ["a"]
       },
       {
-        message: `minLength.{"minLength":1}`,
+        message: `Expected a value with a length of at least 1, got ""`,
         path: ["b"]
       }
     ])
@@ -150,7 +150,7 @@ describe("standardSchemaV1", () => {
     const standardSchema = Schema.standardSchemaV1(schema, { parseOptions: { errors: "first" } })
     standard.expectSyncFailure(standardSchema, { a: "", b: "" }, [
       {
-        message: `minLength.{"minLength":1}`,
+        message: `Expected a value with a length of at least 1, got ""`,
         path: ["a"]
       }
     ])
@@ -165,11 +165,11 @@ describe("standardSchemaV1", () => {
       const standardSchema = Schema.standardSchemaV1(schema)
       standard.expectSyncFailure(standardSchema, { tags: ["a", ""] }, [
         {
-          "message": `minLength.{"minLength":1}`,
+          "message": `Expected a value with a length of at least 1, got ""`,
           "path": ["tags", 1]
         },
         {
-          "message": `minLength.{"minLength":3}`,
+          "message": `Expected a value with a length of at least 3, got ["a",""]`,
           "path": ["tags"]
         }
       ])
@@ -205,7 +205,7 @@ describe("standardSchemaV1", () => {
         const standardSchema = Schema.standardSchemaV1(schema)
         standard.expectSyncFailure(standardSchema, null, [
           {
-            message: "InvalidType",
+            message: "Expected string, got null",
             path: []
           }
         ])
@@ -222,7 +222,7 @@ describe("standardSchemaV1", () => {
         const standardSchema = Schema.standardSchemaV1(schema)
         standard.expectSyncFailure(standardSchema, null, [
           {
-            message: "InvalidType",
+            message: "Expected string, got null",
             path: []
           }
         ])
@@ -352,12 +352,11 @@ describe("standardSchemaV1", () => {
     it("String", () => {
       const schema = Schema.String
       const standardSchema = Schema.standardSchemaV1(schema, {
-        leafHook: Formatter.treeLeafHook,
-        checkHook: Formatter.verboseCheckHook
+        leafHook: Formatter.defaultLeafHook
       })
       standard.expectSyncFailure(standardSchema, null, [
         {
-          message: "Expected string, actual null",
+          message: "Expected string, got null",
           path: []
         }
       ])
@@ -366,12 +365,11 @@ describe("standardSchemaV1", () => {
     it("NonEmptyString", () => {
       const schema = Schema.NonEmptyString
       const standardSchema = Schema.standardSchemaV1(schema, {
-        leafHook: Formatter.treeLeafHook,
-        checkHook: Formatter.verboseCheckHook
+        leafHook: Formatter.defaultLeafHook
       })
       standard.expectSyncFailure(standardSchema, "", [
         {
-          message: `Expected a value with a length of at least 1, actual ""`,
+          message: `Expected a value with a length of at least 1, got ""`,
           path: []
         }
       ])
