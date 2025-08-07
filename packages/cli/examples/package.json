@@ -1,0 +1,21 @@
+{
+	"name": "@effect/cli-examples",
+	"version": "0.1.0",
+	"type": "module",
+	"description": "Examples for @effect/cli",
+	"scripts": {
+		"fake-git": "tsx fake-git.ts",
+		"fake-git:help": "tsx fake-git.ts --help",
+		"fake-git:clone": "tsx fake-git.ts clone --url https://github.com/Effect-TS/effect.git --depth 1",
+		"fake-git:status": "tsx fake-git.ts status --short",
+		"fake-git:add": "tsx fake-git.ts add --all",
+		"fake-git:commit": "tsx fake-git.ts commit --message 'Example commit' --all"
+	},
+	"dependencies": {
+		"effect": "workspace:^",
+		"tsx": "^4.7.0"
+	},
+	"devDependencies": {
+		"@types/node": "^20.0.0"
+	}
+}
