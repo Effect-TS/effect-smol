@@ -10,6 +10,7 @@ import * as ServiceMap from "effect/services/ServiceMap"
 import * as CliError from "./CliError.ts"
 import type { ArgDoc, FlagDoc, HelpDoc, SubcommandDoc } from "./HelpDoc.ts"
 import * as HelpFormatter from "./HelpFormatter.ts"
+import { generateBashCompletions, generateFishCompletions, generateZshCompletions } from "./internal/completions.ts"
 import type { CommandConfig, InferConfig, ParsedConfig } from "./internal/config.ts"
 import { parseConfig, reconstructConfigTree } from "./internal/config.ts"
 import { extractSingleParams, getParamMetadata, type Param } from "./internal/param.ts"
@@ -653,7 +654,7 @@ export const run = <Name extends string, Input, E, R>(
   Effect.gen(function*() {
     // Parse command arguments (built-ins are extracted automatically)
     const { tokens, trailingOperands } = lex(input)
-    const { help, logLevel, remainder, version } = yield* extractBuiltInOptions(tokens)
+    const { completions, help, logLevel, remainder, version } = yield* extractBuiltInOptions(tokens)
     const parsedArgs = yield* parseArgs({ tokens: remainder, trailingOperands }, command)
     const helpRenderer = yield* HelpFormatter.HelpRenderer
 
@@ -662,6 +663,15 @@ export const run = <Name extends string, Input, E, R>(
       const helpDoc = getHelpForCommandPath(command, commandPath)
       const helpText = helpRenderer.formatHelpDoc(helpDoc)
       yield* Console.log(helpText)
+      return
+    } else if (Option.isSome(completions)) {
+      const shell = completions.value
+      const script = shell === "bash"
+        ? generateBashCompletions(command, _config.name)
+        : shell === "fish"
+        ? generateFishCompletions(command, _config.name)
+        : generateZshCompletions(command, _config.name)
+      yield* Console.log(script)
       return
     } else if (version && command.subcommands.length === 0) {
       const versionText = helpRenderer.formatVersion(_config.name, _config.version)
