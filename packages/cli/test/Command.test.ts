@@ -6,6 +6,7 @@ import * as Effect from "effect/Effect"
 import * as Layer from "effect/services/Layer"
 import * as TestConsole from "effect/testing/TestConsole"
 
+import { Path } from "effect/platform"
 import * as CliError from "../src/CliError.js"
 import * as Command from "../src/Command.js"
 import * as Flag from "../src/Flag.ts"
@@ -27,6 +28,9 @@ describe("Command", () => {
     it.effect("should execute handler with parsed config", () =>
       Effect.gen(function*() {
         yield* runComprehensiveCli(["copy", "src.txt", "dest.txt", "--recursive", "--force"])
+        const path = yield* Path.Path
+        const resolvedSrc = path.resolve("src.txt")
+        const resolvedDest = path.resolve("dest.txt")
 
         // Check the logged actions
         const actions = yield* TestActions.getActions
@@ -34,8 +38,8 @@ describe("Command", () => {
         assert.deepStrictEqual(actions[0], {
           command: "copy",
           details: {
-            source: "/Users/kit/code/open-source/effect-smol/packages/cli/src.txt",
-            destination: "/Users/kit/code/open-source/effect-smol/packages/cli/dest.txt",
+            source: resolvedSrc,
+            destination: resolvedDest,
             recursive: true,
             force: true,
             bufferSize: 64 // default value
@@ -367,14 +371,14 @@ describe("Command", () => {
 
         // Create leaf command that accesses both parent contexts
         const deploy = Command.make("deploy", {
-          version: Flag.string("version")
+          targetVersion: Flag.string("target-version")
         }, (config) =>
           Effect.gen(function*() {
             const rootConfig = yield* root.tag
             const serviceConfig = yield* service.tag
             messages.push(`deploy: root.env=${rootConfig.env}`)
             messages.push(`deploy: service.name=${serviceConfig.name}`)
-            messages.push(`deploy: version=${config.version}`)
+            messages.push(`deploy: target-version=${config.targetVersion}`)
           }))
 
         // Build the nested command structure
@@ -394,14 +398,14 @@ describe("Command", () => {
           "--name",
           "api",
           "deploy",
-          "--version",
+          "--target-version",
           "1.0.0"
         ]).pipe(Effect.provide(TestLayer))
 
         assert.deepStrictEqual(messages, [
           "deploy: root.env=production",
           "deploy: service.name=api",
-          "deploy: version=1.0.0"
+          "deploy: target-version=1.0.0"
         ])
       }))
 
@@ -451,6 +455,10 @@ describe("Command", () => {
 
     it.effect("should support options before, after, or between operands (relaxed POSIX Syntax Guideline No. 9)", () =>
       Effect.gen(function*() {
+        const path = yield* Path.Path
+        const resolvedSrc = path.resolve("src.txt")
+        const resolvedDest = path.resolve("dest.txt")
+
         // Test both orderings work: POSIX (options before operands) and modern (mixed)
 
         // Test 1: POSIX style - options before operands
@@ -459,14 +467,14 @@ describe("Command", () => {
           "--recursive",
           "--force",
           "src.txt",
-          "dest1.txt"
+          "dest.txt"
         ])
 
         // Test 2: Modern style - options after operands
         yield* runComprehensiveCli([
           "copy",
-          "src2.txt",
-          "dest2.txt",
+          "src.txt",
+          "dest.txt",
           "--recursive",
           "--force"
         ])
@@ -475,8 +483,8 @@ describe("Command", () => {
         yield* runComprehensiveCli([
           "copy",
           "--recursive",
-          "src3.txt",
-          "dest3.txt",
+          "src.txt",
+          "dest.txt",
           "--force"
         ])
 
@@ -494,8 +502,8 @@ describe("Command", () => {
         assert.deepStrictEqual(actions[0], {
           command: "copy",
           details: {
-            source: "/Users/kit/code/open-source/effect-smol/packages/cli/src.txt",
-            destination: "/Users/kit/code/open-source/effect-smol/packages/cli/dest1.txt",
+            source: resolvedSrc,
+            destination: resolvedDest,
             ...expectedDetails
           }
         })
@@ -503,8 +511,8 @@ describe("Command", () => {
         assert.deepStrictEqual(actions[1], {
           command: "copy",
           details: {
-            source: "/Users/kit/code/open-source/effect-smol/packages/cli/src2.txt",
-            destination: "/Users/kit/code/open-source/effect-smol/packages/cli/dest2.txt",
+            source: resolvedSrc,
+            destination: resolvedDest,
             ...expectedDetails
           }
         })
@@ -512,8 +520,8 @@ describe("Command", () => {
         assert.deepStrictEqual(actions[2], {
           command: "copy",
           details: {
-            source: "/Users/kit/code/open-source/effect-smol/packages/cli/src3.txt",
-            destination: "/Users/kit/code/open-source/effect-smol/packages/cli/dest3.txt",
+            source: resolvedSrc,
+            destination: resolvedDest,
             ...expectedDetails
           }
         })
