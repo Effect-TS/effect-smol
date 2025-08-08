@@ -37,6 +37,8 @@ const optionRequiresValue = (s: SingleFlagMeta): boolean => s.primitiveTag !== "
 
 const isDirType = (s: SingleFlagMeta): boolean => s.typeName === "directory"
 const isFileType = (s: SingleFlagMeta): boolean => s.typeName === "file"
+const isEitherPath = (s: SingleFlagMeta): boolean =>
+  s.typeName === "path" || s.typeName === "either" || s.primitiveTag === "Path"
 
 /* -------------------------------------------------------------------------------------------------
  * Bash
@@ -78,7 +80,7 @@ export const generateBashCompletions = <Name extends string, I, E, R>(
       ]
       const comp = isDirType(s)
         ? "$(compgen -d \"${cur}\")"
-        : isFileType(s)
+        : (isFileType(s) || isEitherPath(s))
         ? "$(compgen -f \"${cur}\")"
         : "\"${cur}\""
       for (const p of prevs) optionCases.push(`"${p}") COMPREPLY=( ${comp} ); return 0 ;;`)
@@ -188,7 +190,7 @@ export const generateFishCompletions = <Name extends string, I, E, R>(
       ]
       if (optionRequiresValue(s)) {
         if (isDirType(s)) parts.push("-f -a \"(__fish_complete_directories (commandline -ct))\"")
-        else if (isFileType(s)) parts.push("-f -a \"(__fish_complete_path (commandline -ct))\"")
+        else if (isFileType(s) || isEitherPath(s)) parts.push("-f -a \"(__fish_complete_path (commandline -ct))\"")
       } else {
         parts.push("-f")
       }
@@ -267,7 +269,11 @@ export const generateZshCompletions = <Name extends string, I, E, R>(
       if (!optionRequiresValue(s)) continue
       handlers.push(
         `  ${s.name})`,
-        isDirType(s) ? "    _path_files -/" : isFileType(s) ? "    _path_files" : "    _message 'value'",
+        isDirType(s)
+          ? "    _path_files -/"
+          : (isFileType(s) || isEitherPath(s))
+          ? "    _path_files"
+          : "    _message 'value'",
         "    ;;"
       )
     }
@@ -314,6 +320,16 @@ export const generateCompletions = <Name extends string, I, E, R>(
   executableName: string,
   shell: Shell
 ): string => {
+  /*
+   * TODO(completions)
+   * - Add a `completion` subcommand with `show|install|uninstall <shell>` UX; keep `--completions` as hidden alias
+   * - Include descriptions for flags/subcommands (zsh `_arguments[...]`, fish `--description`)
+   * - Support positional argument completions (type hints, choices)
+   * - Auto-complete `choice` values and add dynamic `withCompletions(ctx)` hooks
+   * - Consider dynamic completion mode (`__complete`) that consults real parser
+   * - Unify parent/child flag visibility policy across shells
+   * - Add PowerShell support if needed
+   */
   switch (shell) {
     case "bash":
       return generateBashCompletions(rootCmd, executableName)
