@@ -74,6 +74,39 @@ const CommandProto = {
 }
 
 /**
+ * Creates a new Command by cloning an existing one and overriding selected fields.
+ * Keeps the surface area small and helps readability when composing commands.
+ * @internal
+ */
+const deriveCommand = <Name extends string, NewInput, E, R>(
+  base: Command<Name, any, any, any>,
+  overrides: {
+    readonly subcommands?: ReadonlyArray<Command<any, unknown, unknown, unknown>>
+    readonly handler?: ((input: NewInput) => Effect.Effect<void, E, R>) | undefined
+    readonly parse: (
+      input: ParsedCommandInput
+    ) => Effect.Effect<NewInput, CliError.CliError, Environment>
+    readonly handle: (
+      input: NewInput,
+      commandPath: ReadonlyArray<string>
+    ) => Effect.Effect<void, E | CliError.CliError, R>
+  }
+): Command<Name, NewInput, E, R> => {
+  const command = Object.create(CommandProto)
+  command._tag = "Command"
+  command.name = base.name
+  command.description = base.description
+  command.config = base.config
+  command.subcommands = overrides.subcommands ?? base.subcommands
+  command.parsedConfig = base.parsedConfig
+  command.handler = overrides.handler ?? base.handler
+  command.tag = ServiceMap.Key<Command.Context<Name>, NewInput>(`@effect/cli/Command/${base.name}`)
+  command.handle = overrides.handle
+  command.parse = overrides.parse
+  return Object.freeze(command)
+}
+
+/**
  * Parses param values from parsed command arguments into their typed representations.
  * @internal
  */
@@ -332,66 +365,80 @@ export const withSubcommands = <const Subcommands extends ReadonlyArray<Command<
   ...subcommands: Subcommands
 ) =>
 <Name extends string, Input, E, R>(
-  parent: Command<Name, Input, E, R>
+  self: Command<Name, Input, E, R>
 ): Command<
   Name,
-  Input,
+  Input & { readonly subcommand: Option.Option<ExtractSubcommandInputs<Subcommands>> },
   ExtractSubcommandErrors<Subcommands>,
   R | Exclude<ExtractSubcommandContext<Subcommands>, Command.Context<Name>>
 > => {
-  checkForDuplicateFlags(parent, subcommands)
+  checkForDuplicateFlags(self, subcommands)
 
   type NewInput = Input & { readonly subcommand: Option.Option<ExtractSubcommandInputs<Subcommands>> }
 
-  // Enhanced parse that handles subcommands
+  // Build a stable name → subcommand index to avoid repeated linear scans
+  const subcommandIndex = new Map<string, Command<any, any, any, any>>()
+  for (const s of subcommands) subcommandIndex.set(s.name, s)
+
   const enhancedParse = (
     input: ParsedCommandInput
   ): Effect.Effect<NewInput, CliError.CliError, Environment> =>
     Effect.gen(function*() {
-      const parentResult = yield* parent.parse(input)
+      const parentResult = yield* self.parse(input)
 
-      if (!input.subcommand) {
+      const subRef = input.subcommand
+      if (!subRef) {
         return { ...parentResult, subcommand: Option.none() } as NewInput
       }
 
-      const sub = subcommands.find((s) => s.name === input.subcommand!.name)!
-      const subResult = yield* sub.parse(input.subcommand.parsedInput)
+      const sub = subcommandIndex.get(subRef.name)
+      // Parser guarantees valid subcommand names, but guard defensively
+      if (!sub) {
+        return {
+          ...parentResult,
+          subcommand: Option.none()
+        } as NewInput
+      }
 
-      return {
-        ...parentResult,
-        subcommand: Option.some({ name: sub.name, result: subResult } as ExtractSubcommandInputs<Subcommands>)
-      } as NewInput
+      const subResult = yield* sub.parse(subRef.parsedInput)
+      const value = { name: sub.name, result: subResult } as ExtractSubcommandInputs<Subcommands>
+      return { ...parentResult, subcommand: Option.some(value) } as NewInput
     })
 
-  // Create new command with proper typing
-  const handle = (input: NewInput, commandPath: ReadonlyArray<string>) =>
+  const enhancedHandle = (input: NewInput, commandPath: ReadonlyArray<string>) =>
     Effect.gen(function*() {
       if (Option.isSome(input.subcommand)) {
-        const sc = input.subcommand.value
-        const child = subcommands.find((c) => c.name === sc.name)!
-        yield* child.handle(sc.result, [...commandPath, child.name]).pipe(
-          Effect.provideService(parent.tag, input)
-        )
-      } else if (parent.handler) {
-        yield* parent.handler(input as any)
-      } else {
-        return yield* Effect.fail(new CliError.ShowHelp({ commandPath }))
+        const selected = input.subcommand.value
+        const child = subcommandIndex.get(selected.name)
+        if (!child) {
+          return yield* Effect.fail(new CliError.ShowHelp({ commandPath }))
+        }
+        yield* child
+          .handle(selected.result, [...commandPath, child.name])
+          .pipe(Effect.provideService(self.tag, input))
+        return
       }
+
+      if (self.handler) {
+        yield* self.handler(input as any)
+        return
+      }
+
+      return yield* Effect.fail(new CliError.ShowHelp({ commandPath }))
     })
 
-  const command = Object.create(CommandProto)
-  command._tag = "Command"
-  command.name = parent.name
-  command.description = parent.description
-  command.config = parent.config
-  command.subcommands = subcommands
-  command.parsedConfig = parent.parsedConfig
-  command.handler = parent.handler
-  command.tag = ServiceMap.Key<Command.Context<Name>, NewInput>(`@effect/cli/Command/${parent.name}`)
-  command.handle = handle
-  command.parse = enhancedParse
-
-  return Object.freeze(command)
+  return deriveCommand<
+    Name,
+    NewInput,
+    ExtractSubcommandErrors<Subcommands>,
+    R | Exclude<ExtractSubcommandContext<Subcommands>, Command.Context<Name>>
+  >(self, {
+    subcommands,
+    // Maintain the same handler reference; type-widen for the derived input
+    handler: (self.handler as unknown as ((input: NewInput) => Effect.Effect<void, any, any>)) ?? undefined,
+    parse: enhancedParse,
+    handle: enhancedHandle
+  })
 }
 
 // Helper to get E from a single Command
@@ -606,15 +653,19 @@ export const run = <Name extends string, Input, E, R>(
   Effect.gen(function*() {
     // Parse command arguments (built-ins are extracted automatically)
     const { tokens, trailingOperands } = lex(input)
-    const { help, logLevel, remainder } = yield* extractBuiltInOptions(tokens)
+    const { help, logLevel, remainder, version } = yield* extractBuiltInOptions(tokens)
     const parsedArgs = yield* parseArgs({ tokens: remainder, trailingOperands }, command)
+    const helpRenderer = yield* HelpFormatter.HelpRenderer
 
     if (help) {
       const commandPath = [command.name, ...ParsedCommandInput.getCommandPath(parsedArgs)]
       const helpDoc = getHelpForCommandPath(command, commandPath)
-      const helpRenderer = yield* HelpFormatter.HelpRenderer
       const helpText = helpRenderer.formatHelpDoc(helpDoc)
       yield* Console.log(helpText)
+      return
+    } else if (version && command.subcommands.length === 0) {
+      const versionText = helpRenderer.formatVersion(_config.name, _config.version)
+      yield* Console.log(versionText)
       return
     }
 
@@ -642,7 +693,14 @@ export const run = <Name extends string, Input, E, R>(
         const helpText = helpRenderer.formatHelpDoc(helpDoc)
         yield* Console.log(helpText)
       })),
-    // NOTE: What if we use the HelpRenderer for these errors too?
-    Effect.catchTag("UnknownSubcommand", (error) => Console.error((error as CliError.UnknownSubcommand).message)),
-    Effect.catchTag("UnrecognizedOption", (error) => Console.error((error as CliError.UnrecognizedOption).message))
+    Effect.catchTag("UnknownSubcommand", (error) =>
+      Effect.gen(function*() {
+        const helpRenderer = yield* HelpFormatter.HelpRenderer
+        yield* Console.error(helpRenderer.formatCliError(error))
+      })),
+    Effect.catchTag("UnrecognizedOption", (error) =>
+      Effect.gen(function*() {
+        const helpRenderer = yield* HelpFormatter.HelpRenderer
+        yield* Console.error(helpRenderer.formatCliError(error))
+      }))
   )

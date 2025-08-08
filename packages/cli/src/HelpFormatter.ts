@@ -4,6 +4,7 @@
 
 import * as Layer from "effect/services/Layer"
 import * as ServiceMap from "effect/services/ServiceMap"
+import type * as CliError from "./CliError.ts"
 import type { HelpDoc } from "./HelpDoc.ts"
 
 /**
@@ -15,6 +16,16 @@ import type { HelpDoc } from "./HelpDoc.ts"
  */
 export interface HelpRenderer {
   readonly formatHelpDoc: (doc: HelpDoc) => string
+  /**
+   * Formats a CLI error for display. Default implementation mirrors the error message.
+   * @since 4.0.0
+   */
+  readonly formatCliError: (error: CliError.CliError) => string
+  /**
+   * Formats version output for display.
+   * @since 4.0.0
+   */
+  readonly formatVersion: (name: string, version: string) => string
 }
 
 /**
@@ -102,7 +113,10 @@ export const defaultHelpRenderer = (options: { colors: boolean }): HelpRenderer 
     }
 
   return {
-    formatHelpDoc: (doc: HelpDoc): string => formatHelpDocImpl(doc, colors)
+    formatHelpDoc: (doc: HelpDoc): string => formatHelpDocImpl(doc, colors),
+    formatCliError: (error): string => error.message,
+    formatVersion: (name: string, version: string): string =>
+      `${colors.bold(name)} ${colors.dim("v")}${colors.bold(version)}`
   }
 }
 
