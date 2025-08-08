@@ -67,7 +67,7 @@ export const versionFlag: Flag.Flag<boolean> = Flag
  * @since 4.0.0
  * @internal
  */
-export const completionsFlag: Flag.Flag<Option.Option<"bash" | "zsh" | "fish">> = Flag
+export const completionsFlag: Flag.Flag<Option.Option<"bash" | "zsh" | "fish" | "sh">> = Flag
   .choice("completions", ["bash", "zsh", "fish", "sh"] as const)
   .pipe(
     Flag.optional,
