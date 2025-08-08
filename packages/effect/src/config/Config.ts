@@ -101,6 +101,35 @@ export const map: {
 })
 
 /**
+ * @category Schemas
+ * @since 4.0.0
+ */
+export const Record = <K extends Schema.Record.Key, V extends Schema.Schema<any>>(key: K, value: V) => {
+  const record = Schema.Record(key, value)
+  const recordString = keyValue.pipe(
+    Schema.decodeTo(record)
+  )
+  return Schema.Union([record, recordString])
+}
+
+const keyValue = Schema.String.pipe(
+  Schema.decodeTo(
+    Schema.Record(Schema.String, Schema.String),
+    Transformation.transform({
+      decode: (input) =>
+        input.split(",").reduce((acc, pair) => {
+          const [key, value] = pair.split("=")
+          if (key && value) {
+            acc[key] = value
+          }
+          return acc
+        }, {} as Record<string, string>),
+      encode: (r) => Object.entries(r).map(([key, value]) => `${key}=${value}`).join(",")
+    })
+  )
+)
+
+/**
  * Wraps a nested structure, converting all primitives to a `Config`.
  *
  * `Config.Wrap<{ key: string }>` becomes `{ key: Config<string> }`

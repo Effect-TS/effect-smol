@@ -66,7 +66,7 @@ export const fromConfig: (
   readonly attributes?: Record<string, unknown> | undefined
 }) {
   const attributes = {
-    ...yield* Config.schema(Schema.Record(Schema.String, Schema.String), "OTEL_RESOURCE_ATTRIBUTES"),
+    ...yield* Config.schema(Config.Record(Schema.String, Schema.String), "OTEL_RESOURCE_ATTRIBUTES"),
     ...options?.attributes
   }
   const serviceName = options?.serviceName ?? attributes["service.name"] as string ??
