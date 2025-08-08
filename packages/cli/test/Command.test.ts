@@ -424,12 +424,12 @@ describe("Command", () => {
 
         // Create subcommand
         const deploy = Command.make("deploy", {
-          version: Flag.string("version")
+          targetVersion: Flag.string("target-version")
         }, (config) =>
           Effect.gen(function*() {
             const parentConfig = yield* parent.tag
             messages.push(`deploy: parent.verbose=${parentConfig.verbose}`)
-            messages.push(`deploy: version=${config.version}`)
+            messages.push(`deploy: target-version=${config.targetVersion}`)
           }))
 
         // Combine commands
@@ -443,13 +443,13 @@ describe("Command", () => {
           "prod.json",
           "--verbose", // Boolean flag without explicit value
           "deploy", // This should be recognized as subcommand, not as value for --verbose
-          "--version",
+          "--target-version",
           "1.0.0"
         ]).pipe(Effect.provide(TestLayer))
 
         assert.deepStrictEqual(messages, [
           "deploy: parent.verbose=true",
-          "deploy: version=1.0.0"
+          "deploy: target-version=1.0.0"
         ])
       }))
 

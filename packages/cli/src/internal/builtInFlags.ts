@@ -4,7 +4,7 @@
  * @internal
  */
 
-import type * as Option from "effect/data/Option"
+import * as Option from "effect/data/Option"
 import type { LogLevel } from "effect/logging/LogLevel"
 import * as Flag from "./flag.ts"
 
@@ -58,4 +58,20 @@ export const versionFlag: Flag.Flag<boolean> = Flag
   .boolean("version")
   .pipe(
     Flag.withDescription("Show version information")
+  )
+
+/**
+ * Built-in --completions option to print shell completion scripts.
+ * Accepts one of: bash | zsh | fish | sh (alias of bash).
+ *
+ * @since 4.0.0
+ * @internal
+ */
+export const completionsFlag: Flag.Flag<Option.Option<"bash" | "zsh" | "fish">> = Flag
+  .choice("completions", ["bash", "zsh", "fish", "sh"] as const)
+  .pipe(
+    Flag.optional,
+    // Map "sh" to "bash" while preserving Option-ness
+    Flag.map((v) => Option.map(v, (s) => (s === "sh" ? "bash" : s))),
+    Flag.withDescription("Print shell completion script for the given shell")
   )
