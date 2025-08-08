@@ -33,6 +33,7 @@ export type CliError =
   | InvalidValue
   | UnknownSubcommand
   | ShowHelp
+  | UserError
 
 /**
  * Error thrown when an unrecognized option is encountered.
@@ -172,5 +173,26 @@ export class ShowHelp extends Data.TaggedError("ShowHelp")<{
    */
   override get message() {
     return "Help requested"
+  }
+}
+
+/**
+ * Wrapper for user (handler) errors to unify under CLI error channel when desired.
+ *
+ * @since 4.0.0
+ * @category Models
+ */
+export class UserError extends Data.TaggedError("UserError")<{
+  readonly cause: unknown
+}> {
+  /**
+   * @since 4.0.0
+   */
+  readonly [TypeId]: TypeId = TypeId
+  /**
+   * @since 4.0.0
+   */
+  override get message() {
+    return String(this.cause)
   }
 }
