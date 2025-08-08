@@ -67,7 +67,7 @@ export class Dispatcher extends ServiceMap.Key<Dispatcher, Undici.Dispatcher>()(
  */
 export const makeDispatcher: Effect.Effect<Undici.Dispatcher, never, Scope.Scope> = Effect.acquireRelease(
   Effect.sync(() => new Undici.Agent()),
-  (dispatcher) => Effect.promise(() => dispatcher.close())
+  (dispatcher) => Effect.promise(() => dispatcher.destroy())
 )
 
 /**
