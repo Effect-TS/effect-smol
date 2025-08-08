@@ -380,7 +380,7 @@ export const withSubcommands = <const Subcommands extends ReadonlyArray<Command<
   const subcommandIndex = new Map<string, Command<any, any, any, any>>()
   for (const s of subcommands) subcommandIndex.set(s.name, s)
 
-  const enhancedParse = (
+  const parse = (
     input: ParsedCommandInput
   ): Effect.Effect<NewInput, CliError.CliError, Environment> =>
     Effect.gen(function*() {
@@ -405,7 +405,7 @@ export const withSubcommands = <const Subcommands extends ReadonlyArray<Command<
       return { ...parentResult, subcommand: Option.some(value) } as NewInput
     })
 
-  const enhancedHandle = (input: NewInput, commandPath: ReadonlyArray<string>) =>
+  const handle = (input: NewInput, commandPath: ReadonlyArray<string>) =>
     Effect.gen(function*() {
       if (Option.isSome(input.subcommand)) {
         const selected = input.subcommand.value
@@ -436,8 +436,8 @@ export const withSubcommands = <const Subcommands extends ReadonlyArray<Command<
     subcommands,
     // Maintain the same handler reference; type-widen for the derived input
     handler: (self.handler as unknown as ((input: NewInput) => Effect.Effect<void, any, any>)) ?? undefined,
-    parse: enhancedParse,
-    handle: enhancedHandle
+    parse,
+    handle
   })
 }
 
@@ -684,23 +684,34 @@ export const run = <Name extends string, Input, E, R>(
       ? Effect.provideService(program, References.MinimumLogLevel, logLevel.value)
       : program
 
-    yield* finalProgram
+    // Normalize non-CLI errors into CliError.UserError so downstream catchTags
+    // can rely on CLI-tagged errors only.
+    const normalized = finalProgram.pipe(
+      Effect.catch((err) =>
+        CliError.isCliError(err) ? Effect.fail(err) : Effect.fail(new CliError.UserError({ cause: err }))
+      )
+    )
+    yield* normalized
   }).pipe(
-    Effect.catchTag("ShowHelp", (error) =>
-      Effect.gen(function*() {
-        const helpDoc = getHelpForCommandPath(command, (error as CliError.ShowHelp).commandPath)
-        const helpRenderer = yield* HelpFormatter.HelpRenderer
-        const helpText = helpRenderer.formatHelpDoc(helpDoc)
-        yield* Console.log(helpText)
-      })),
-    Effect.catchTag("UnknownSubcommand", (error) =>
-      Effect.gen(function*() {
-        const helpRenderer = yield* HelpFormatter.HelpRenderer
-        yield* Console.error(helpRenderer.formatCliError(error))
-      })),
-    Effect.catchTag("UnrecognizedOption", (error) =>
-      Effect.gen(function*() {
-        const helpRenderer = yield* HelpFormatter.HelpRenderer
-        yield* Console.error(helpRenderer.formatCliError(error))
-      }))
+    Effect.catchTags({
+      ShowHelp: (error: CliError.ShowHelp) =>
+        Effect.gen(function*() {
+          const helpDoc = getHelpForCommandPath(command, error.commandPath)
+          const helpRenderer = yield* HelpFormatter.HelpRenderer
+          const helpText = helpRenderer.formatHelpDoc(helpDoc)
+          yield* Console.log(helpText)
+        }),
+      UnknownSubcommand: (error: CliError.UnknownSubcommand) =>
+        Effect.gen(function*() {
+          const helpRenderer = yield* HelpFormatter.HelpRenderer
+          yield* Console.error(helpRenderer.formatCliError(error))
+        }),
+      UnrecognizedOption: (error: CliError.UnrecognizedOption) =>
+        Effect.gen(function*() {
+          const helpRenderer = yield* HelpFormatter.HelpRenderer
+          yield* Console.error(helpRenderer.formatCliError(error))
+        })
+    }),
+    // Preserve prior public behavior: surface original handler errors
+    Effect.catchTag("UserError", (error: CliError.UserError) => Effect.fail(error.cause as any))
   )
