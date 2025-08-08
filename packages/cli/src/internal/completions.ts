@@ -84,11 +84,14 @@ export const generateBashCompletions = <Name extends string, I, E, R>(
       for (const p of prevs) optionCases.push(`"${p}") COMPREPLY=( ${comp} ); return 0 ;;`)
     }
 
-    funcCases.push(
-      `            ,${trail.join(" ")})`,
-      `                cmd="${trail[trail.length - 1]}"`,
-      "                ;;"
-    )
+    if (trail.length > 1) {
+      const funcName = `__${executableName}_${trail.join("_")}_opts`
+      funcCases.push(
+        `            ,${trail.join(" ")})`,
+        `                cmd="${funcName}"`,
+        "                ;;"
+      )
+    }
 
     const funcName = `__${executableName}_${trail.join("_")}_opts`
     cmdCases.push(
@@ -126,7 +129,7 @@ export const generateBashCompletions = <Name extends string, I, E, R>(
     "    for i in \"${COMP_WORDS[@]}\"; do",
     "        case \"${cmd},${i}\" in",
     `            ,${executableName})`,
-    `                cmd="${executableName}"`,
+    `                cmd="__${executableName}_${executableName}_opts"`,
     "                ;;",
     ...funcCases,
     "            *)",
@@ -153,24 +156,17 @@ export const generateFishCompletions = <Name extends string, I, E, R>(
   type AnyCommand = Command<any, any, any, any>
   const lines: Array<string> = []
 
-  const condForTrail = (trail: Array<string>, siblings: Array<string>): Array<string> => {
-    if (trail.length === 1) return ["-n \"__fish_use_subcommand\""]
-    const parents = trail.slice(0, -1)
-    const positives = parents.map((p) => `__fish_seen_subcommand_from ${p}`)
-    const negatives = siblings.map((s) => `not __fish_seen_subcommand_from ${s}`)
-    return ["-n \"" + [...positives, ...negatives].join("; and ") + "\""]
-  }
-
   const dfs = (cmd: AnyCommand, parents: Array<string> = []) => {
     const trail = [...parents, cmd.name]
-    const subs = cmd.subcommands.map((c) => c.name)
     const singles = getSingles(cmd.parsedConfig.flags)
 
     for (const sub of cmd.subcommands) {
       const parts = [
         "complete",
         `-c ${executableName}`,
-        ...condForTrail(trail, subs),
+        ...(trail.length === 1
+          ? ["-n \"__fish_use_subcommand\""]
+          : [`-n "__fish_seen_subcommand_from ${trail[trail.length - 1]}"`]),
         "-f",
         `-a "${sub.name}"`
       ]
@@ -185,7 +181,9 @@ export const generateFishCompletions = <Name extends string, I, E, R>(
       const parts = [
         "complete",
         `-c ${executableName}`,
-        ...condForTrail(trail, subs),
+        ...(trail.length === 1
+          ? ["-n \"__fish_use_subcommand\""]
+          : [`-n "__fish_seen_subcommand_from ${trail[trail.length - 1]}"`]),
         ...tokens
       ]
       if (optionRequiresValue(s)) {
