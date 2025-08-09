@@ -152,15 +152,6 @@ function formatCheck<T>(filter: Check.Check<T>): string {
 // makeDefault
 // -----------------------------------------------------------------------------
 
-function formatDefaultIssue(issue: DefaultIssue): string {
-  let out = issue.message
-  if (issue.path && issue.path.length > 0) {
-    const path = formatPath(issue.path as ReadonlyArray<PropertyKey>)
-    out += `\n  at ${path}`
-  }
-  return out
-}
-
 /**
  * The default formatter used across the Effect ecosystem to keep the bundle
  * size small.
@@ -175,6 +166,15 @@ export function makeDefault(): Formatter<string> {
         .map(formatDefaultIssue)
         .join("\n")
   }
+}
+
+function formatDefaultIssue(issue: DefaultIssue): string {
+  let out = issue.message
+  if (issue.path && issue.path.length > 0) {
+    const path = formatPath(issue.path as ReadonlyArray<PropertyKey>)
+    out += `\n  at ${path}`
+  }
+  return out
 }
 
 function findMessage(issue: Issue.Issue): string | undefined {

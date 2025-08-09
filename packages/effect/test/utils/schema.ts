@@ -126,11 +126,12 @@ function make(asserts: {
        */
       fail<S extends Schema.Top>(
         schema: S,
-        input: unknown
+        input: unknown,
+        message: string
       ) {
         throws(() => schema.makeSync(input), (err) => {
           assertInstanceOf(err, Error)
-          strictEqual(err.message, "makeSync failure")
+          strictEqual(err.message, message)
         })
       }
     },
@@ -464,10 +465,10 @@ function make(asserts: {
         deepStrictEqual(Schema.asserts(schema)(input), undefined)
       },
 
-      fail<T, E, RE>(schema: Schema.Codec<T, E, never, RE>, input: unknown) {
+      fail<T, E, RE>(schema: Schema.Codec<T, E, never, RE>, input: unknown, message: string) {
         throws(() => Schema.asserts(schema)(input), (err) => {
           assertInstanceOf(err, Error)
-          strictEqual(err.message, "asserts failure")
+          strictEqual(err.message, message)
         })
       }
     }

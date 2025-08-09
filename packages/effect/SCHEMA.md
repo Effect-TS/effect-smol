@@ -11,8 +11,6 @@ We're aiming to design APIs that strike a balance: preserving names and behavior
 
 An important note about the breaking changes in version 4 is our strong focus on **bundle size**. To avoid bloat, we're designing new ways of doing things that, in some cases, require a bit more work from users but result in a slimmer bundle.
 
-For example, we're removing some defaults like built-in formatting of parse issues, so that formatting code doesn't end up in the bundle if the feature is never used.
-
 In general, Schema v4 requires more explicit decisions from the user about which features to use. This is especially important to make Schema usable even in contexts where bundle size is critical, without giving up the features that make Effect great.
 
 Ultimately, the intent is to eliminate the need for two separate paths like in version 3 (Effect as the full-featured version and Micro for more constrained use cases).
@@ -269,11 +267,11 @@ const data = new Map([[Option.some(Symbol.for("a")), new Date("2021-01-01")]])
 const serialized = JSON.stringify(Schema.encodeUnknownSync(serializer)(data))
 
 console.log(serialized)
-// → [[["Symbol(a)"],"2021-01-01T00:00:00.000Z"]]
+// => [[["Symbol(a)"],"2021-01-01T00:00:00.000Z"]]
 
 // Deserialize and decode the value
 console.log(Schema.decodeUnknownSync(serializer)(JSON.parse(serialized)))
-// → Map(1) {
+// => Map(1) {
 //     { _id: 'Option', _tag: 'Some', value: Symbol(a) } => 2021-01-01T00:00:00.000Z
 //   }
 ```
@@ -333,7 +331,7 @@ The process has two steps:
    A short helper converts the raw data into a structure whose leaves are all strings.
 
    ```ts
-   type StringLeafJson = string | { [key: PropertyKey]: StringLeafJson } | Array<StringLeafJson>
+   type StringLeafJson = string | { [key: string]: StringLeafJson } | Array<StringLeafJson>
    ```
 
 2. **Tree → value**
@@ -363,7 +361,7 @@ const serializer = Serializer.stringLeafJson(Query)
 const params = new URLSearchParams("?page=2&q=foo")
 
 console.log(Schema.decodeSync(serializer)(toTree(params)))
-// → { page: 2, q: "foo" }
+// => { page: 2, q: "foo" }
 ```
 
 **Example** (Decode `FormData`)
@@ -392,7 +390,7 @@ fd.set("pass", "secret")
 fd.set("age", "30")
 
 console.log(Schema.decodeSync(serializer)(fdToTree(fd)))
-// → { user: "alice", pass: "secret", age: 30 }
+// => { user: "alice", pass: "secret", age: 30 }
 ```
 
 ### How it works
@@ -618,7 +616,7 @@ schema.makeSync
 For refined schemas, the constructor accepts the unrefined type and returns the refined one.
 
 ```ts
-import { Option } from "effect"
+import { Option } from "effect/data"
 import { Schema } from "effect/schema"
 
 const schema = Schema.Option(Schema.String).pipe(Schema.guard(Option.isSome))
@@ -630,7 +628,7 @@ schema.makeSync
 As with branding, when used in a composite schema, the refined value must be provided.
 
 ```ts
-import { Option } from "effect"
+import { Option } from "effect/data"
 import { Schema } from "effect/schema"
 
 const schema = Schema.Struct({
@@ -657,7 +655,7 @@ You can define a default value for a field using `Schema.withConstructorDefault`
 **Example** (Providing a default number)
 
 ```ts
-import { Option } from "effect"
+import { Option } from "effect/data"
 import { Schema } from "effect/schema"
 
 const schema = Schema.Struct({
@@ -676,7 +674,7 @@ The function passed to `withConstructorDefault` will be executed each time a def
 **Example** (Re-executing the default function)
 
 ```ts
-import { Option } from "effect"
+import { Option } from "effect/data"
 import { Schema } from "effect/schema"
 
 const schema = Schema.Struct({
@@ -695,7 +693,7 @@ If the default function returns `Option.none()`, it means no default value was p
 **Example** (Returning `None` to skip a default)
 
 ```ts
-import { Option } from "effect"
+import { Option } from "effect/data"
 import { Schema } from "effect/schema"
 
 const schema = Schema.Struct({
@@ -717,7 +715,10 @@ try {
 } catch (error) {
   console.error(error)
 }
-// Error: makeSync failure
+/*
+Error: Missing key
+  at ["a"]
+*/
 
 try {
   console.log(schema.makeSync({}))
@@ -1593,7 +1594,7 @@ console.log(Schema.decodeUnknownSync(schema)({ a: "2" }))
 #### Exact Optional Property
 
 ```ts
-import { Option } from "effect"
+import { Option } from "effect/data"
 import { Schema, Transformation } from "effect/schema"
 
 const Product = Schema.Struct({
@@ -3832,7 +3833,7 @@ You can combine transformations using the `.compose` method. The resulting trans
 **Example** (Trim and lowercase a string)
 
 ```ts
-import { Option } from "effect"
+import { Option } from "effect/data"
 import { Transformation } from "effect/schema"
 
 // Compose two transformations: trim followed by toLowerCase
@@ -4086,7 +4087,7 @@ You control the optionality of the output by returning an `Option`:
 **Example** (Optional string key transformed to `Option<NonEmptyString>`)
 
 ```ts
-import { Option } from "effect"
+import { Option } from "effect/data"
 import { Schema, Transformation } from "effect/schema"
 
 const OptionFromNonEmptyString = Schema.optionalKey(Schema.String).pipe(

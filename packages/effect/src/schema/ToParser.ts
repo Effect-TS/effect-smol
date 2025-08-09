@@ -33,7 +33,9 @@ export function makeSync<S extends Schema.Top>(schema: S) {
   const parser = makeEffect(schema)
   return (input: S["~type.make.in"], options?: Schema.MakeOptions): S["Type"] => {
     return Effect.runSync(
-      parser(input, options).pipe(Effect.mapErrorEager((issue) => new Error("makeSync failure", { cause: issue })))
+      parser(input, options).pipe(
+        Effect.mapErrorEager((issue) => new Error(Formatter.makeDefault().format(issue), { cause: issue }))
+      )
     )
   }
 }
@@ -63,7 +65,7 @@ export function asserts<T, E, RE>(codec: Schema.Codec<T, E, never, RE>) {
   return <I>(input: I): asserts input is I & T => {
     const result = parser(input, defaultParseOptions)
     if (Result.isFailure(result)) {
-      throw new Error("asserts failure", { cause: result.failure })
+      throw new Error(Formatter.makeDefault().format(result.failure), { cause: result.failure })
     }
   }
 }

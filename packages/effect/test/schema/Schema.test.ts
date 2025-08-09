@@ -60,7 +60,7 @@ describe("Schema", () => {
       await assertions.make.succeed(schema, "a")
       await assertions.make.fail(schema, null, `Expected "a", got null`)
       assertions.makeSync.succeed(schema, "a")
-      assertions.makeSync.fail(schema, null)
+      assertions.makeSync.fail(schema, null, `Expected "a", got null`)
 
       await assertions.decoding.succeed(schema, "a")
       await assertions.decoding.fail(schema, 1, `Expected "a", got 1`)
@@ -75,7 +75,7 @@ describe("Schema", () => {
       await assertions.make.succeed(schema, 1)
       await assertions.make.fail(schema, null, `Expected 1, got null`)
       assertions.makeSync.succeed(schema, 1)
-      assertions.makeSync.fail(schema, null)
+      assertions.makeSync.fail(schema, null, `Expected 1, got null`)
 
       await assertions.decoding.succeed(schema, 1)
       await assertions.decoding.fail(schema, "1", `Expected 1, got "1"`)
@@ -112,7 +112,7 @@ describe("Schema", () => {
     const schema = Schema.Never
 
     await assertions.make.fail(schema, null as never, `Expected never, got null`)
-    assertions.makeSync.fail(schema, null as never)
+    assertions.makeSync.fail(schema, null as never, `Expected never, got null`)
 
     await assertions.decoding.fail(schema, "a", `Expected never, got "a"`)
     await assertions.encoding.fail(schema, "a", `Expected never, got "a"`)
@@ -142,7 +142,7 @@ describe("Schema", () => {
     await assertions.make.succeed(schema, null)
     await assertions.make.fail(schema, undefined, `Expected null, got undefined`)
     assertions.makeSync.succeed(schema, null)
-    assertions.makeSync.fail(schema, undefined)
+    assertions.makeSync.fail(schema, undefined, `Expected null, got undefined`)
   })
 
   it("Undefined", async () => {
@@ -151,7 +151,7 @@ describe("Schema", () => {
     await assertions.make.succeed(schema, undefined)
     await assertions.make.fail(schema, null, `Expected undefined, got null`)
     assertions.makeSync.succeed(schema, undefined)
-    assertions.makeSync.fail(schema, null)
+    assertions.makeSync.fail(schema, null, `Expected undefined, got null`)
   })
 
   it("String", async () => {
@@ -160,7 +160,7 @@ describe("Schema", () => {
     await assertions.make.succeed(schema, "a")
     await assertions.make.fail(schema, null, `Expected string, got null`)
     assertions.makeSync.succeed(schema, "a")
-    assertions.makeSync.fail(schema, null)
+    assertions.makeSync.fail(schema, null, `Expected string, got null`)
 
     await assertions.decoding.succeed(schema, "a")
     await assertions.decoding.fail(schema, 1, "Expected string, got 1")
@@ -175,7 +175,7 @@ describe("Schema", () => {
     await assertions.make.succeed(schema, 1)
     await assertions.make.fail(schema, null, `Expected number, got null`)
     assertions.makeSync.succeed(schema, 1)
-    assertions.makeSync.fail(schema, null)
+    assertions.makeSync.fail(schema, null, `Expected number, got null`)
 
     await assertions.decoding.succeed(schema, 1)
     await assertions.decoding.fail(schema, "a", `Expected number, got "a"`)
@@ -206,7 +206,7 @@ describe("Schema", () => {
     await assertions.make.succeed(schema, Symbol("a"))
     await assertions.make.fail(schema, null, `Expected symbol, got null`)
     assertions.makeSync.succeed(schema, Symbol("a"))
-    assertions.makeSync.fail(schema, null)
+    assertions.makeSync.fail(schema, null, `Expected symbol, got null`)
 
     await assertions.decoding.succeed(schema, Symbol("a"))
     await assertions.decoding.fail(schema, "a", `Expected symbol, got "a"`)
@@ -222,7 +222,7 @@ describe("Schema", () => {
     await assertions.make.succeed(schema, a)
     await assertions.make.fail(schema, Symbol("b"), `Expected Symbol(a), got Symbol(b)`)
     assertions.makeSync.succeed(schema, a)
-    assertions.makeSync.fail(schema, Symbol("b"))
+    assertions.makeSync.fail(schema, Symbol("b"), `Expected Symbol(a), got Symbol(b)`)
 
     await assertions.decoding.succeed(schema, a)
     await assertions.decoding.fail(schema, Symbol("b"), `Expected Symbol(a), got Symbol(b)`)
@@ -234,7 +234,7 @@ describe("Schema", () => {
     await assertions.make.succeed(schema, 1n)
     await assertions.make.fail(schema, null, `Expected bigint, got null`)
     assertions.makeSync.succeed(schema, 1n)
-    assertions.makeSync.fail(schema, null)
+    assertions.makeSync.fail(schema, null, `Expected bigint, got null`)
 
     await assertions.decoding.succeed(schema, 1n)
     await assertions.decoding.fail(schema, "1", `Expected bigint, got "1"`)
@@ -249,7 +249,7 @@ describe("Schema", () => {
     await assertions.make.succeed(schema, undefined)
     await assertions.make.fail(schema, null, `Expected void, got null`)
     assertions.makeSync.succeed(schema, undefined)
-    assertions.makeSync.fail(schema, null)
+    assertions.makeSync.fail(schema, null, `Expected void, got null`)
 
     await assertions.decoding.succeed(schema, undefined)
     await assertions.decoding.fail(schema, "1", `Expected void, got "1"`)
@@ -266,7 +266,7 @@ describe("Schema", () => {
     await assertions.make.fail(schema, null, `Expected object | array | function, got null`)
     assertions.makeSync.succeed(schema, {})
     assertions.makeSync.succeed(schema, [])
-    assertions.makeSync.fail(schema, null)
+    assertions.makeSync.fail(schema, null, `Expected object | array | function, got null`)
 
     await assertions.decoding.succeed(schema, {})
     await assertions.decoding.succeed(schema, [])
@@ -407,7 +407,7 @@ Unexpected key
       await assertions.make.succeed(schema, { a: "a" })
       await assertions.make.fail(schema, null, `Expected object, got null`)
       assertions.makeSync.succeed(schema, { a: "a" })
-      assertions.makeSync.fail(schema, null)
+      assertions.makeSync.fail(schema, null, `Expected object, got null`)
 
       await assertions.decoding.succeed(schema, { a: "a" })
       await assertions.decoding.fail(
@@ -703,7 +703,12 @@ Unexpected key
   at [0]`
       )
       assertions.makeSync.succeed(schema, ["a"])
-      assertions.makeSync.fail(schema, [""])
+      assertions.makeSync.fail(
+        schema,
+        [""],
+        `Expected a value with a length of at least 1, got ""
+  at [0]`
+      )
 
       await assertions.decoding.succeed(schema, ["a"])
       await assertions.decoding.fail(schema, null, `Expected array, got null`)
@@ -1996,7 +2001,12 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
         })
 
         assertions.makeSync.succeed(schema, { a: 1 })
-        assertions.makeSync.fail(schema, {})
+        assertions.makeSync.fail(
+          schema,
+          {},
+          `Missing key
+  at ["a"]`
+        )
       })
 
       describe("nested defaults", () => {
@@ -2122,7 +2132,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       await assertions.make.succeed(schema, { a: 1 })
       await assertions.make.fail(schema, null, `Expected object, got null`)
       assertions.makeSync.succeed(schema, { a: 1 })
-      assertions.makeSync.fail(schema, null)
+      assertions.makeSync.fail(schema, null, `Expected object, got null`)
 
       await assertions.decoding.succeed(schema, { a: 1 })
       await assertions.decoding.fail(schema, null, "Expected object, got null")
@@ -2169,7 +2179,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       await assertions.make.succeed(schema, { [Symbol.for("a")]: 1 })
       await assertions.make.fail(schema, null, `Expected object, got null`)
       assertions.makeSync.succeed(schema, { [Symbol.for("a")]: 1 })
-      assertions.makeSync.fail(schema, null)
+      assertions.makeSync.fail(schema, null, `Expected object, got null`)
 
       await assertions.decoding.succeed(schema, { [Symbol.for("a")]: 1 })
       await assertions.decoding.fail(schema, null, "Expected object, got null")
@@ -4258,7 +4268,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     it("FiniteFromString", () => {
       const schema = Schema.FiniteFromString
       assertions.asserts.succeed(schema, 1)
-      assertions.asserts.fail(schema, "a")
+      assertions.asserts.fail(schema, "a", `Expected number, got "a"`)
     })
   })
 
