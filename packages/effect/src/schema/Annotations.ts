@@ -44,7 +44,7 @@ export interface Key extends Documentation {
   /**
    * The message to use when a key is missing.
    */
-  readonly missingKeyMessage?: string | (() => string) | undefined
+  readonly missingKeyMessage?: string | undefined
 }
 
 /**
@@ -67,7 +67,7 @@ export interface JsonSchema<T> extends Documentation {
  */
 export interface Bottom<T> extends JsonSchema<T> {
   readonly arbitrary?: ToArbitrary.Annotation.Override<T> | undefined
-  readonly message?: string | (() => string) | undefined
+  readonly message?: string | undefined
   readonly formatter?: {
     readonly Tree?: {
       /**
@@ -87,7 +87,7 @@ export interface Struct<T> extends Bottom<T> {
   /**
    * The message to use when a key is unexpected.
    */
-  readonly unexpectedKeyMessage?: string | (() => string) | undefined
+  readonly unexpectedKeyMessage?: string | undefined
 }
 
 /**
@@ -141,5 +141,5 @@ export interface Filter extends Documentation {
   } | undefined
 
   readonly arbitrary?: ToArbitrary.Annotation.Constraint | ToArbitrary.Annotation.Constraints | undefined
-  readonly message?: string | (() => string) | undefined
+  readonly message?: string | undefined
 }

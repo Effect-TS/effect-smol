@@ -240,20 +240,10 @@ type GoOptions = {
 }
 
 function getId(ast: AST.AST): string | undefined {
-  if (ast.checks) {
-    const last = ast.checks[ast.checks.length - 1]
-    const id = last.annotations?.id
-    if (Predicate.isString(id)) {
-      return id
-    }
-  } else {
-    const id = ast.annotations?.id
-    if (Predicate.isString(id)) {
-      return id
-    }
-    if (AST.isSuspend(ast)) {
-      return getId(ast.thunk())
-    }
+  const id = AST.getIdAnnotation(ast)
+  if (id !== undefined) return id
+  if (AST.isSuspend(ast)) {
+    return getId(ast.thunk())
   }
 }
 

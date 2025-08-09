@@ -24,147 +24,8 @@ export interface Formatter<Out> {
  */
 export type LeafHook = (issue: Issue.Leaf) => string
 
-function formatCheck<T>(filter: Check.Check<T>, verbose: boolean = false): string {
-  if (verbose) {
-    const description = filter.annotations?.description
-    if (Predicate.isString(description)) return description
-  }
-  const title = filter.annotations?.title
-  if (Predicate.isString(title)) return title
-  const brand = Check.getBrand(filter)
-  if (brand !== undefined) return `Brand<"${String(brand)}">`
-  switch (filter._tag) {
-    case "Filter":
-      return "<filter>"
-    case "FilterGroup":
-      return filter.checks.map((check) => formatCheck(check, verbose)).join(" & ")
-  }
-}
-
-// -----------------------------------------------------------------------------
-// StandardSchemaV1
-// -----------------------------------------------------------------------------
-
 /**
- * @category StandardSchemaV1
- * @since 4.0.0
- */
-export function makeStandardSchemaV1(options?: {
-  readonly leafHook?: LeafHook | undefined
-}): Formatter<StandardSchemaV1.FailureResult> {
-  return {
-    format: (issue) => ({
-      issues: toDefaultIssues(issue, [], options?.leafHook ?? defaultLeafHook)
-    })
-  }
-}
-
-type DefaultIssue = {
-  readonly message: string
-  readonly path: ReadonlyArray<PropertyKey>
-}
-
-function toDefaultIssues(
-  issue: Issue.Issue,
-  path: ReadonlyArray<PropertyKey>,
-  leafHook: LeafHook
-): Array<DefaultIssue> {
-  switch (issue._tag) {
-    case "Filter": {
-      const message = findMessage(issue.issue) ?? findMessage(issue)
-      if (message !== undefined) {
-        return [{ path, message }]
-      }
-      switch (issue.issue._tag) {
-        case "InvalidValue":
-          return [{
-            path,
-            message: `Expected ${formatCheck(issue.filter, true)}, got ${formatUnknown(issue.actual)}`
-          }]
-        default:
-          return toDefaultIssues(issue.issue, path, leafHook)
-      }
-    }
-    case "Encoding":
-      return toDefaultIssues(issue.issue, path, leafHook)
-    case "Pointer":
-      return toDefaultIssues(issue.issue, [...path, ...issue.path], leafHook)
-    case "Composite":
-    case "AnyOf": {
-      if (issue.issues.length === 0) {
-        return [{
-          path,
-          message: getMessageAnnotation(issue.ast.annotations) ??
-            `Expected ${getExpected(issue.ast)}, got ${formatUnknownOption(issue.actual)}`
-        }]
-      }
-      return issue.issues.flatMap((issue) => toDefaultIssues(issue, path, leafHook))
-    }
-    default:
-      return [{ path, message: leafHook(issue) }]
-  }
-}
-
-function getExpected(ast: AST.AST): string {
-  switch (ast._tag) {
-    case "Declaration": {
-      const id = ast.annotations?.id
-      if (Predicate.isString(id)) return id
-      const title = ast.annotations?.title
-      if (Predicate.isString(title)) {
-        const tps = ast.typeParameters.map(getExpected)
-        return `${title}${tps.length > 0 ? `<${tps.join(", ")}>` : ""}`
-      }
-      return "<Declaration>"
-    }
-    case "AnyKeyword":
-      return "any"
-    case "UnknownKeyword":
-      return "unknown"
-    case "NeverKeyword":
-      return "never"
-    case "NullKeyword":
-      return "null"
-    case "UndefinedKeyword":
-      return "undefined"
-    case "VoidKeyword":
-      return "void"
-    case "StringKeyword":
-      return "string"
-    case "TemplateLiteral":
-      return AST.formatTemplateLiteral(ast)
-    case "NumberKeyword":
-      return "number"
-    case "BooleanKeyword":
-      return "boolean"
-    case "SymbolKeyword":
-      return "symbol"
-    case "UniqueSymbol":
-      return String(ast.symbol)
-    case "BigIntKeyword":
-      return "bigint"
-    case "TupleType":
-      return "array"
-    case "ObjectKeyword":
-      return "object | array | function"
-    case "TypeLiteral":
-      return ast.propertySignatures.length || ast.indexSignatures.length
-        ? "object"
-        : "object | array"
-    case "Enums":
-      return AST.formatEnums(ast)
-    case "LiteralType":
-      return AST.formatLiteralType(ast)
-    case "UnionType": {
-      if (ast.types.length === 0) return "never"
-      return Array.from(new Set(ast.types.map((ast) => getExpected(ast)))).join(" | ")
-    }
-    case "Suspend":
-      return getExpected(ast.thunk())
-  }
-}
-
-/**
+ * @category LeafHook
  * @since 4.0.0
  */
 export const defaultLeafHook: LeafHook = (issue): string => {
@@ -172,7 +33,7 @@ export const defaultLeafHook: LeafHook = (issue): string => {
   if (message !== undefined) return message
   switch (issue._tag) {
     case "InvalidType":
-      return `Expected ${getExpected(issue.ast)}, got ${formatUnknownOption(issue.actual)}`
+      return getExpectedMessage(AST.getExpected(issue.ast), formatUnknownOption(issue.actual))
     case "InvalidValue":
       return `Invalid data ${formatUnknownOption(issue.actual)}`
     case "MissingKey":
@@ -185,6 +46,111 @@ export const defaultLeafHook: LeafHook = (issue): string => {
       return `Expected exactly one member to match the input ${formatUnknown(issue.actual)}`
   }
 }
+
+/**
+ * @category Model
+ * @since 4.0.0
+ */
+export type CheckHook = (issue: Issue.Filter) => string | undefined
+
+/**
+ * @category CheckHook
+ * @since 4.0.0
+ */
+export const defaultCheckHook: CheckHook = (issue): string | undefined => {
+  return findMessage(issue.issue) ?? findMessage(issue)
+}
+
+// -----------------------------------------------------------------------------
+// makeStandardSchemaV1
+// -----------------------------------------------------------------------------
+
+/**
+ * @category Formatter
+ * @since 4.0.0
+ */
+export function makeStandardSchemaV1(options?: {
+  readonly leafHook?: LeafHook | undefined
+  readonly checkHook?: CheckHook | undefined
+}): Formatter<StandardSchemaV1.FailureResult> {
+  return {
+    format: (issue) => ({
+      issues: toDefaultIssues(issue, [], options?.leafHook ?? defaultLeafHook, options?.checkHook ?? defaultCheckHook)
+    })
+  }
+}
+
+// A subtype of StandardSchemaV1.Issue
+type DefaultIssue = {
+  readonly message: string
+  readonly path: ReadonlyArray<PropertyKey>
+}
+
+function getExpectedMessage(expected: string, actual: string): string {
+  return `Expected ${expected}, got ${actual}`
+}
+
+function toDefaultIssues(
+  issue: Issue.Issue,
+  path: ReadonlyArray<PropertyKey>,
+  leafHook: LeafHook,
+  checkHook: CheckHook
+): Array<DefaultIssue> {
+  switch (issue._tag) {
+    case "Filter": {
+      const message = checkHook(issue)
+      if (message !== undefined) {
+        return [{ path, message }]
+      }
+      switch (issue.issue._tag) {
+        case "InvalidValue":
+          return [{
+            path,
+            message: getExpectedMessage(formatCheck(issue.filter), formatUnknown(issue.actual))
+          }]
+        default:
+          return toDefaultIssues(issue.issue, path, leafHook, checkHook)
+      }
+    }
+    case "Encoding":
+      return toDefaultIssues(issue.issue, path, leafHook, checkHook)
+    case "Pointer":
+      return toDefaultIssues(issue.issue, [...path, ...issue.path], leafHook, checkHook)
+    case "Composite":
+      return issue.issues.flatMap((issue) => toDefaultIssues(issue, path, leafHook, checkHook))
+    case "AnyOf": {
+      if (issue.issues.length === 0) {
+        return [{
+          path,
+          message: findMessage(issue) ??
+            getExpectedMessage(AST.getExpected(issue.ast), formatUnknownOption(issue.actual))
+        }]
+      }
+      return issue.issues.flatMap((issue) => toDefaultIssues(issue, path, leafHook, checkHook))
+    }
+    default:
+      return [{ path, message: leafHook(issue) }]
+  }
+}
+
+function formatCheck<T>(filter: Check.Check<T>): string {
+  const out = filter.annotations?.description ?? filter.annotations?.title
+  if (Predicate.isString(out)) return out
+
+  const brand = Check.getBrand(filter)
+  if (brand !== undefined) return `Brand<"${String(brand)}">`
+
+  switch (filter._tag) {
+    case "Filter":
+      return "<filter>"
+    case "FilterGroup":
+      return filter.checks.map((check) => formatCheck(check)).join(" & ")
+  }
+}
+
+// -----------------------------------------------------------------------------
+// makeDefault
+// -----------------------------------------------------------------------------
 
 function formatDefaultIssue(issue: DefaultIssue): string {
   let out = issue.message
@@ -199,12 +165,13 @@ function formatDefaultIssue(issue: DefaultIssue): string {
  * The default formatter used across the Effect ecosystem to keep the bundle
  * size small.
  *
+ * @category Formatter
  * @since 4.0.0
  */
 export function makeDefault(): Formatter<string> {
   return {
     format: (issue) =>
-      toDefaultIssues(issue, [], defaultLeafHook)
+      toDefaultIssues(issue, [], defaultLeafHook, defaultCheckHook)
         .map(formatDefaultIssue)
         .join("\n")
   }
@@ -237,7 +204,6 @@ function getMessageAnnotation(
 ): string | undefined {
   const message = annotations?.[type]
   if (Predicate.isString(message)) return message
-  if (Predicate.isFunction(message)) return message()
 }
 
 function formatUnknownOption(actual: Option.Option<unknown>): string {

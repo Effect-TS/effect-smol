@@ -706,6 +706,7 @@ Unexpected key
       assertions.makeSync.fail(schema, [""])
 
       await assertions.decoding.succeed(schema, ["a"])
+      await assertions.decoding.fail(schema, null, `Expected array, got null`)
       await assertions.decoding.fail(
         schema,
         [],
@@ -2342,7 +2343,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     })
 
     describe("should exclude members based on failed sentinels", () => {
-      it("struct | string", async () => {
+      it("string | struct", async () => {
         const schema = Schema.Union([
           Schema.String,
           Schema.Struct({ _tag: Schema.Literal("a"), a: Schema.String })
@@ -2350,8 +2351,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
         await assertions.decoding.fail(
           schema,
           {},
-          // TODO: better message
-          `Expected string | object, got {}`
+          `Expected string | { _tag: "a", ... }, got {}`
         )
       })
 
@@ -2375,8 +2375,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
         await assertions.decoding.fail(
           schema,
           { _tag: "c" },
-          // TODO: better message
-          `Expected object, got {"_tag":"c"}`
+          `Expected { _tag: "a", ... } | { _tag: "b", ... }, got {"_tag":"c"}`
         )
       })
     })
@@ -3326,14 +3325,12 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       await assertions.decoding.fail(
         schema,
         "cabd",
-        // TODO: improve this
         `Expected a value with a length of at least 1, got ""
   at [1][1]`
       )
       await assertions.decoding.fail(
         schema,
         "ed",
-        // TODO: improve this
         `Missing key
   at [0]`
       )
@@ -3353,14 +3350,12 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       await assertions.decoding.fail(
         schema,
         "ca1.1bd",
-        // TODO: improve this
         `Expected an integer, got 1.1
   at [1][1]`
       )
       await assertions.decoding.fail(
         schema,
         "ca-bd",
-        // TODO: improve this
         `Missing key
   at [1][0]`
       )
@@ -3373,7 +3368,6 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       await assertions.decoding.fail(
         schema,
         "<h3>",
-        // TODO: improve this
         `Missing key
   at [0]`
       )
@@ -3390,7 +3384,6 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       await assertions.decoding.fail(
         schema,
         "<h3>",
-        // TODO: improve this
         `Missing key
   at [1][0]`
       )
@@ -3619,7 +3612,6 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       assertions.makeSync.succeed(A, { a: "a" }, new A({ a: "a" }))
 
       await assertions.decoding.succeed(A, { a: "a" }, { expected: new A({ a: "a" }) })
-      // TODO: remove duplicate A
       await assertions.decoding.fail(
         A,
         { a: 1 },

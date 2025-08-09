@@ -389,6 +389,17 @@ export class Declaration extends Base {
       return requiredDefaultJsonAnnotation(ast)
     }
   }
+  /** @internal */
+  getExpected(getExpected: (ast: AST) => string): string {
+    const id = this.annotations?.id
+    if (Predicate.isString(id)) return id
+    const title = this.annotations?.title
+    if (Predicate.isString(title)) {
+      const tps = this.typeParameters.map(getExpected)
+      return `${title}${tps.length > 0 ? `<${tps.join(", ")}>` : ""}`
+    }
+    return "<Declaration>"
+  }
 }
 
 /**
@@ -409,6 +420,10 @@ export class NullKeyword extends AbstractParser {
   goStringLeafJson() {
     return coerceNull(this)
   }
+  /** @internal */
+  getExpected(): string {
+    return "null"
+  }
 }
 
 /**
@@ -425,6 +440,10 @@ export class UndefinedKeyword extends AbstractParser {
   /** @internal */
   parser() {
     return fromRefinement(this, Predicate.isUndefined)
+  }
+  /** @internal */
+  getExpected(): string {
+    return "undefined"
   }
 }
 
@@ -443,6 +462,10 @@ export class VoidKeyword extends AbstractParser {
   parser() {
     return fromRefinement(this, Predicate.isUndefined)
   }
+  /** @internal */
+  getExpected(): string {
+    return "void"
+  }
 }
 
 /**
@@ -459,6 +482,10 @@ export class NeverKeyword extends AbstractParser {
   /** @internal */
   parser() {
     return fromRefinement(this, Predicate.isNever)
+  }
+  /** @internal */
+  getExpected(): string {
+    return "never"
   }
 }
 
@@ -477,6 +504,10 @@ export class AnyKeyword extends AbstractParser {
   parser() {
     return fromRefinement(this, Predicate.isUnknown)
   }
+  /** @internal */
+  getExpected(): string {
+    return "any"
+  }
 }
 
 /**
@@ -494,6 +525,10 @@ export class UnknownKeyword extends AbstractParser {
   parser() {
     return fromRefinement(this, Predicate.isUnknown)
   }
+  /** @internal */
+  getExpected(): string {
+    return "unknown"
+  }
 }
 
 /**
@@ -510,6 +545,10 @@ export class ObjectKeyword extends AbstractParser {
   /** @internal */
   parser() {
     return fromRefinement(this, Predicate.isObject)
+  }
+  /** @internal */
+  getExpected(): string {
+    return "object | array | function"
   }
 }
 
@@ -558,6 +597,10 @@ export class Enums extends AbstractParser {
       return replaceEncoding(ast, [enumLink])
     }
     return ast
+  }
+  /** @internal */
+  getExpected(): string {
+    return this.enums.map(([_, value]) => JSON.stringify(value)).join(" | ")
   }
 }
 
@@ -626,7 +669,6 @@ export class TemplateLiteral extends AbstractParser {
       parser(oinput, options).pipe(
         Effect.mapBothEager({
           onSuccess: () => oinput,
-          // TODO: InvalidType is not correct here
           onFailure: () => new Issue.InvalidType(this, oinput)
         })
       )
@@ -638,6 +680,10 @@ export class TemplateLiteral extends AbstractParser {
   /** @internal */
   goStringLeafJson() {
     return this
+  }
+  /** @internal */
+  getExpected(): string {
+    return formatTemplateLiteral(this)
   }
   /** @internal */
   asTemplateLiteralParser(): TupleType {
@@ -692,6 +738,10 @@ export class UniqueSymbol extends AbstractParser {
   goJson() {
     return coerceSymbol(this)
   }
+  /** @internal */
+  getExpected(): string {
+    return String(this.symbol)
+  }
 }
 
 function coerceLiteral(ast: LiteralType): LiteralType {
@@ -745,6 +795,10 @@ export class LiteralType extends AbstractParser {
   goStringLeafJson() {
     return Predicate.isString(this.literal) ? this : coerceLiteral(this)
   }
+  /** @internal */
+  getExpected(): string {
+    return Predicate.isString(this.literal) ? JSON.stringify(this.literal) : String(this.literal)
+  }
 }
 
 /**
@@ -764,6 +818,10 @@ export class StringKeyword extends AbstractParser {
   /** @internal */
   goStringLeafJson() {
     return this
+  }
+  /** @internal */
+  getExpected(): string {
+    return "string"
   }
 }
 
@@ -790,6 +848,10 @@ export class NumberKeyword extends AbstractParser {
   goStringLeafJson() {
     return coerceNumber(this)
   }
+  /** @internal */
+  getExpected(): string {
+    return "number"
+  }
 }
 
 /**
@@ -815,6 +877,10 @@ export class BooleanKeyword extends AbstractParser {
   goStringLeafJson() {
     return coerceBoolean(this)
   }
+  /** @internal */
+  getExpected(): string {
+    return "boolean"
+  }
 }
 
 /**
@@ -835,6 +901,10 @@ export class SymbolKeyword extends AbstractParser {
   /** @internal */
   goJson() {
     return coerceSymbol(this)
+  }
+  /** @internal */
+  getExpected(): string {
+    return "symbol"
   }
 }
 
@@ -859,6 +929,10 @@ export class BigIntKeyword extends AbstractParser {
   /** @internal */
   goStringLeafJson() {
     return coerceBigInt(this)
+  }
+  /** @internal */
+  getExpected(): string {
+    return "bigint"
   }
 }
 
@@ -1117,6 +1191,10 @@ export class TupleType extends Base {
     return elements === this.elements && rest === this.rest ?
       this :
       new TupleType(this.isMutable, elements, rest, this.annotations, this.checks, undefined, this.context)
+  }
+  /** @internal */
+  getExpected(): string {
+    return "array"
   }
 }
 
@@ -1377,10 +1455,16 @@ export class TypeLiteral extends Base {
   flip(go: (ast: AST) => AST): AST {
     return this.rebuild(go, true)
   }
-
   /** @internal */
   go(go: (ast: AST) => AST): AST {
     return this.rebuild(go, false)
+  }
+  /** @internal */
+  getExpected(): string {
+    if (this.propertySignatures.length === 0 && this.indexSignatures.length === 0) return "object | array"
+    const tag = this.propertySignatures.find((ps) => ps.name === "_tag")
+    if (tag) return `{ _tag: ${getExpected(tag.type)}, ... }`
+    return "object"
   }
 }
 
@@ -1708,6 +1792,11 @@ export class UnionType<A extends AST = AST> extends Base {
       this :
       new UnionType(types, this.mode, this.annotations, this.checks, undefined, this.context)
   }
+  /** @internal */
+  getExpected(getExpected: (ast: AST) => string): string {
+    if (this.types.length === 0) return "never"
+    return Array.from(new Set(this.types.map(getExpected))).join(" | ")
+  }
 }
 
 /**
@@ -1737,6 +1826,10 @@ export class Suspend extends Base {
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const ast = this
     return new Suspend(() => go(ast.thunk()), ast.annotations, ast.checks, undefined, ast.context)
+  }
+  /** @internal */
+  getExpected(getExpected: (ast: AST) => string): string {
+    return getExpected(this.thunk())
   }
 }
 
@@ -2071,15 +2164,14 @@ export function containsUndefined(ast: AST): boolean {
   }
 }
 
-/** @internal */
-export function formatTemplateLiteral(ast: TemplateLiteral): string {
+function formatTemplateLiteral(ast: TemplateLiteral): string {
   const formatUnionPart = (part: TemplateLiteralPart): string => {
     if (isUnionType(part)) {
       return part.types.map(formatUnionPart).join(" | ")
     }
     switch (part._tag) {
       case "LiteralType":
-        return formatLiteralType(part)
+        return getExpected(part)
       case "StringKeyword":
         return "string"
       case "NumberKeyword":
@@ -2107,16 +2199,6 @@ export function formatTemplateLiteral(ast: TemplateLiteral): string {
         return "${" + part.types.map(formatUnionPart).join(" | ") + "}"
     }
   }).join("") + "`"
-}
-
-/** @internal */
-export function formatLiteralType(ast: LiteralType): string {
-  return Predicate.isString(ast.literal) ? JSON.stringify(ast.literal) : String(ast.literal)
-}
-
-/** @internal */
-export function formatEnums(ast: Enums): string {
-  return ast.enums.map(([_, value]) => JSON.stringify(value)).join(" | ")
 }
 
 function getTemplateLiteralSource(ast: TemplateLiteral, top: boolean): string {
@@ -2380,3 +2462,29 @@ const symbolLink = new Link(
 function coerceSymbol<A extends SymbolKeyword | UniqueSymbol>(ast: A): A {
   return replaceEncoding(ast, [symbolLink])
 }
+
+/** @internal */
+export const getExpected = memoize((ast: AST): string => {
+  return getIdAnnotation(ast) ?? ast.getExpected(getExpected)
+})
+
+/** @internal */
+export function getAnnotation<A>(
+  f: (annotations: Annotations.Annotations | undefined) => A | undefined
+) {
+  return (ast: AST): A | undefined => {
+    if (ast.checks) {
+      const last = ast.checks[ast.checks.length - 1]
+      const annotation = f(last.annotations)
+      if (annotation !== undefined) return annotation
+    } else {
+      return f(ast.annotations)
+    }
+  }
+}
+
+/** @internal */
+export const getIdAnnotation = getAnnotation((annotations) => {
+  const id = annotations?.id
+  if (Predicate.isString(id)) return id
+})

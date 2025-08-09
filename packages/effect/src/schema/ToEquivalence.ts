@@ -55,19 +55,7 @@ function getEquivalenceAnnotation(
   return annotations?.equivalence as any
 }
 
-function getAnnotation(
-  ast: AST.AST
-): Annotation.Declaration<any, ReadonlyArray<any>> | Annotation.Override<any> | undefined {
-  if (ast.checks) {
-    for (let i = ast.checks.length - 1; i >= 0; i--) {
-      const annotation = getEquivalenceAnnotation(ast.checks[i].annotations)
-      if (annotation !== undefined) {
-        return annotation
-      }
-    }
-  }
-  return getEquivalenceAnnotation(ast.annotations)
-}
+const getAnnotation = AST.getAnnotation(getEquivalenceAnnotation)
 
 const go = AST.memoize((ast: AST.AST): Equivalence.Equivalence<any> => {
   // ---------------------------------------------

@@ -445,6 +445,7 @@ export const standardSchemaV1 = <S extends Top>(
   self: S,
   options?: {
     readonly leafHook?: Formatter.LeafHook | undefined
+    readonly checkHook?: Formatter.CheckHook | undefined
     readonly parseOptions?: AST.ParseOptions | undefined
   }
 ): StandardSchemaV1<S["Encoded"], S["Type"]> & S => {
