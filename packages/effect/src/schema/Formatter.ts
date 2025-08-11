@@ -123,7 +123,7 @@ function toDefaultIssues(
         return [{
           path,
           message: findMessage(issue) ??
-            getExpectedMessage(AST.getExpected(issue.ast), formatUnknownOption(issue.actual))
+            getExpectedMessage(AST.getExpected(AST.encodedAST(issue.ast)), formatUnknownOption(issue.actual))
         }]
       }
       return issue.issues.flatMap((issue) => toDefaultIssues(issue, path, leafHook, checkHook))

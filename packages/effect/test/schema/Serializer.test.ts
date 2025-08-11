@@ -639,7 +639,7 @@ describe("Serializer", () => {
         await assertions.deserialization.stringLeafJson.schema.fail(
           schema,
           "-",
-          `Expected "a" | 1 | 2 | true, got "-"`
+          `Expected "a" | "1" | "2" | "true", got "-"`
         )
       })
 
