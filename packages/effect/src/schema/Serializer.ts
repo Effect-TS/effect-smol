@@ -39,11 +39,11 @@ const goJson = AST.memoize((ast: AST.AST): AST.AST => {
 })
 
 /**
- * A subtype of `Json` whose leaves are always strings.
+ * A subtype of `Json` whose leaves are always strings (or `undefined`).
  *
  * @since 4.0.0
  */
-export type StringLeafJson = string | { [x: string]: StringLeafJson } | Array<StringLeafJson>
+export type StringLeafJson = string | undefined | { [x: string]: StringLeafJson } | Array<StringLeafJson>
 
 /**
  * The `stringLeafJson` serializer is a wrapper around the `json` serializer. It

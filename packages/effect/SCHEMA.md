@@ -331,7 +331,7 @@ The process has two steps:
    A short helper converts the raw data into a structure whose leaves are all strings.
 
    ```ts
-   type StringLeafJson = string | { [key: string]: StringLeafJson } | Array<StringLeafJson>
+   type StringLeafJson = string | undefined | { [key: string]: StringLeafJson } | Array<StringLeafJson>
    ```
 
 2. **Tree → value**
@@ -358,9 +358,10 @@ const Query = Schema.Struct({
 
 const serializer = Serializer.stringLeafJson(Query)
 
-const params = new URLSearchParams("?page=2&q=foo")
+console.log(Schema.decodeSync(serializer)(toTree(new URLSearchParams("?page=1&q=foo"))))
+// => { page: 1, q: "foo" }
 
-console.log(Schema.decodeSync(serializer)(toTree(params)))
+console.log(Schema.decodeSync(serializer)(toTree(new URLSearchParams("?page=2"))))
 // => { page: 2, q: "foo" }
 ```
 

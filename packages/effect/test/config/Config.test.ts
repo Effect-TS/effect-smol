@@ -37,26 +37,6 @@ describe("Config", () => {
     deepStrictEqual(result, { STRING: "value" })
   })
 
-  describe("schema", () => {
-    it("path argument", async () => {
-      await assertSuccess(
-        Config.schema(Schema.String, []),
-        ConfigProvider.fromStringLeafJson("value"),
-        "value"
-      )
-      await assertSuccess(
-        Config.schema(Schema.String, "a"),
-        ConfigProvider.fromStringLeafJson({ a: "value" }),
-        "value"
-      )
-      await assertSuccess(
-        Config.schema(Schema.String, ["a", "b"]),
-        ConfigProvider.fromStringLeafJson({ a: { b: "value" } }),
-        "value"
-      )
-    })
-  })
-
   it("map", async () => {
     const config = Config.schema(Schema.String)
     await assertSuccess(
@@ -96,25 +76,59 @@ describe("Config", () => {
   })
 
   describe("fromEnv", () => {
+    describe("leafs and containers", () => {
+      it("node can be both leaf and object", async () => {
+        const schema = Schema.Struct({ a: Schema.Finite })
+        const config = Config.schema(schema)
+
+        await assertSuccess(config, ConfigProvider.fromEnv({ env: { a: "1", "a__b": "2" } }), { a: 1 })
+      })
+
+      it("node can be both leaf and array", async () => {
+        const schema = Schema.Struct({ a: Schema.Finite })
+        const config = Config.schema(schema)
+
+        await assertSuccess(config, ConfigProvider.fromEnv({ env: { a: "1", "a__0": "2" } }), { a: 1 })
+      })
+
+      it("if a node can be both object and array, it should be an object", async () => {
+        const schema = Schema.Struct({ a: Schema.Struct({ b: Schema.Finite }) })
+        const config = Config.schema(schema)
+
+        await assertSuccess(config, ConfigProvider.fromEnv({ env: { a: "1", "a__b": "2", "a__0": "3" } }), {
+          a: { b: 2 }
+        })
+      })
+    })
+
+    it("path argument", async () => {
+      await assertSuccess(
+        Config.schema(Schema.String, "a"),
+        ConfigProvider.fromEnv({ env: { a: "value" } }),
+        "value"
+      )
+      await assertSuccess(
+        Config.schema(Schema.String, ["a", "b"]),
+        ConfigProvider.fromEnv({ env: { "a__b": "value" } }),
+        "value"
+      )
+      await assertSuccess(
+        Config.schema(Schema.UndefinedOr(Schema.String)),
+        ConfigProvider.fromEnv({ env: {} }),
+        undefined
+      )
+      await assertSuccess(
+        Config.schema(Schema.UndefinedOr(Schema.String), "a"),
+        ConfigProvider.fromEnv({ env: {} }),
+        undefined
+      )
+    })
+
     it("String", async () => {
       const schema = Schema.String
       const config = Config.schema(schema)
 
       await assertFailure(config, ConfigProvider.fromEnv({ env: {} }), `Expected string, got undefined`)
-    })
-
-    it("node can be both leaf and object", async () => {
-      const schema = Schema.Struct({ a: Schema.Finite })
-      const config = Config.schema(schema)
-
-      await assertSuccess(config, ConfigProvider.fromEnv({ env: { a: "1", "a__b": "2" } }), { a: 1 })
-    })
-
-    it("node can be both leaf and array", async () => {
-      const schema = Schema.Struct({ a: Schema.Finite })
-      const config = Config.schema(schema)
-
-      await assertSuccess(config, ConfigProvider.fromEnv({ env: { a: "1", "a__0": "2" } }), { a: 1 })
     })
 
     describe("Struct", () => {
@@ -287,6 +301,24 @@ describe("Config", () => {
   })
 
   describe("fromStringLeafJson", () => {
+    it("path argument", async () => {
+      await assertSuccess(
+        Config.schema(Schema.String, []),
+        ConfigProvider.fromStringLeafJson("value"),
+        "value"
+      )
+      await assertSuccess(
+        Config.schema(Schema.String, "a"),
+        ConfigProvider.fromStringLeafJson({ a: "value" }),
+        "value"
+      )
+      await assertSuccess(
+        Config.schema(Schema.String, ["a", "b"]),
+        ConfigProvider.fromStringLeafJson({ a: { b: "value" } }),
+        "value"
+      )
+    })
+
     it("String", async () => {
       const schema = Schema.String
       const config = Config.schema(schema)

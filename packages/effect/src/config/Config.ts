@@ -154,7 +154,7 @@ export const unwrap = <T>(wrapped: Wrap<T>): Config<T> => {
 const dump: (
   provider: ConfigProvider.ConfigProvider,
   path: Path
-) => Effect.Effect<Serializer.StringLeafJson | undefined, SourceError> = Effect.fnUntraced(function*(
+) => Effect.Effect<Serializer.StringLeafJson, SourceError> = Effect.fnUntraced(function*(
   provider,
   path
 ) {
@@ -194,7 +194,7 @@ const go: (
   ast: AST.AST,
   provider: ConfigProvider.ConfigProvider,
   path: Path
-) => Effect.Effect<Serializer.StringLeafJson | undefined, Schema.SchemaError | SourceError> = Effect.fnUntraced(
+) => Effect.Effect<Serializer.StringLeafJson, Schema.SchemaError | SourceError> = Effect.fnUntraced(
   function*(ast, provider, path) {
     switch (ast._tag) {
       case "TypeLiteral": {

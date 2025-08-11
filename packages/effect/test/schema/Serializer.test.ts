@@ -72,17 +72,13 @@ describe("Serializer", () => {
       it("Undefined", async () => {
         const schema = Schema.Undefined
 
-        await assertions.serialization.json.schema.fail(
-          schema,
-          undefined,
-          "cannot serialize to JSON, required `defaultJsonSerializer` annotation"
-        )
+        await assertions.serialization.json.schema.succeed(schema, undefined)
       })
 
       it("Null", async () => {
         const schema = Schema.Null
 
-        await assertions.serialization.json.schema.succeed(schema, null, null)
+        await assertions.serialization.json.schema.succeed(schema, null)
       })
 
       it("String", async () => {
@@ -531,13 +527,19 @@ describe("Serializer", () => {
         strictEqual(serializer.ast, schema.ast)
       })
 
-      it("Array", async () => {
+      it("Undefined", async () => {
+        const schema = Schema.Undefined
+        const serializer = Serializer.stringLeafJson(schema)
+        strictEqual(serializer.ast, schema.ast)
+      })
+
+      it("Array(String)", async () => {
         const schema = Schema.Array(Schema.String)
         const serializer = Serializer.stringLeafJson(schema)
         strictEqual(serializer.ast, schema.ast)
       })
 
-      it("Struct", async () => {
+      it("Struct({ a: String })", async () => {
         const schema = Schema.Struct({
           a: Schema.String
         })

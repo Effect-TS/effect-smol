@@ -442,6 +442,10 @@ export class UndefinedKeyword extends AbstractParser {
     return fromRefinement(this, Predicate.isUndefined)
   }
   /** @internal */
+  goJson() {
+    return this
+  }
+  /** @internal */
   getExpected(): string {
     return "undefined"
   }
