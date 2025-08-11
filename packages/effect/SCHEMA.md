@@ -1679,7 +1679,7 @@ console.log(Schema.decodeUnknownSync(Product)({ quantity: "2" }))
 
 ### Key Annotations
 
-You can annotate individual keys using `Schema.annotateKey`. This is useful for adding a description or customizing the error message shown when the key is missing.
+You can annotate individual keys using the `annotateKey` method. This is useful for adding a description or customizing the error message shown when the key is missing.
 
 **Example** (Annotating a required `username` field)
 
@@ -1688,13 +1688,11 @@ import { Result } from "effect/data"
 import { Schema } from "effect/schema"
 
 const schema = Schema.Struct({
-  username: Schema.String.pipe(
-    Schema.annotateKey({
-      description: "The username used to log in",
-      // Custom message shown if the key is missing
-      missingKeyMessage: "Username is required"
-    })
-  )
+  username: Schema.String.annotateKey({
+    description: "The username used to log in",
+    // Custom message shown if the key is missing
+    missingKeyMessage: "Username is required"
+  })
 })
 
 console.log(Schema.decodeUnknownResult(schema)({}).pipe(Result.merge))
@@ -2564,7 +2562,7 @@ type Encoded = typeof schema.Encoded
 
 ### Element Annotations
 
-You can annotate elements using `Schema.annotateKey`.
+You can annotate elements using the `annotateKey` method.
 
 **Example** (Annotating an element)
 
@@ -2573,13 +2571,11 @@ import { Result } from "effect/data"
 import { Schema } from "effect/schema"
 
 const schema = Schema.Tuple([
-  Schema.String.pipe(
-    Schema.annotateKey({
-      description: "my element description",
-      // a message to display when the element is missing
-      missingKeyMessage: "this element is required"
-    })
-  )
+  Schema.String.annotateKey({
+    description: "my element description",
+    // a message to display when the element is missing
+    missingKeyMessage: "this element is required"
+  })
 ])
 
 console.log(Schema.decodeUnknownResult(schema)([]).pipe(Result.merge))
@@ -4634,7 +4630,7 @@ const Person = Schema.Struct({
     // Message for invalid type (e.g., number instead of string)
     .annotate({ message: t("string.mismatch") })
     // Message to show when the key is missing
-    .pipe(Schema.annotateKey({ missingKeyMessage: t("struct.missingKey") }))
+    .annotateKey({ missingKeyMessage: t("struct.missingKey") })
     // Message to show when the string is empty
     .check(Check.nonEmpty({ message: t("string.minLength", { minLength: 1 }) }))
 })

@@ -301,7 +301,7 @@ describe("standardSchemaV1", () => {
     describe("Struct", () => {
       it("Struct & missingKeyMessage", () => {
         const schema = Schema.Struct({
-          a: Schema.String.pipe(Schema.annotateKey({ missingKeyMessage: "Custom message" }))
+          a: Schema.String.annotateKey({ missingKeyMessage: "Custom message" })
         })
         const standardSchema = Schema.standardSchemaV1(schema)
         standard.expectSyncFailure(standardSchema, {}, [

@@ -942,6 +942,21 @@ Expected a string including "c", got "ab"`,
 
           deepStrictEqual(schema.ast.checks?.[0]?.annotations?.examples, ["a", "b"])
         })
+
+        it("annotateKey should support getters", () => {
+          const schema = Schema.String.pipe(
+            Schema.brand("brand")
+          ).annotateKey({
+            get examples() {
+              return [
+                schema.makeSync("a"),
+                schema.makeSync("b")
+              ]
+            }
+          })
+
+          deepStrictEqual(schema.ast.context?.annotations?.examples, ["a", "b"])
+        })
       })
 
       it("group", async () => {

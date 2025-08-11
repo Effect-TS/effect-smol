@@ -44,36 +44,34 @@ describe("AST", () => {
 
   describe("annotateKey", () => {
     it("should keep getters", () => {
-      const schema = Schema.String.pipe(Schema.annotateKey({
+      const schema = Schema.String.annotateKey({
         get title() {
           return "value"
         }
-      }))
+      })
       const annotations = schema.ast.context?.annotations
       assertGetter(annotations, "title", "value")
     })
 
     it("should preserve existing getters when merging", () => {
       const schema = Schema.String
-        .pipe(
-          Schema.annotateKey({
-            a: "a",
-            get b() {
-              return "b"
-            },
-            get c() {
-              return "c"
-            }
-          }),
-          Schema.annotateKey({
-            get c() {
-              return "c2"
-            },
-            get d() {
-              return "d"
-            }
-          })
-        )
+        .annotateKey({
+          a: "a",
+          get b() {
+            return "b"
+          },
+          get c() {
+            return "c"
+          }
+        })
+        .annotateKey({
+          get c() {
+            return "c2"
+          },
+          get d() {
+            return "d"
+          }
+        })
 
       const annotations = schema.ast.context?.annotations
       strictEqual(annotations?.a, "a")
