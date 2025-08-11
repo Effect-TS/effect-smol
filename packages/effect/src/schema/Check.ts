@@ -8,7 +8,7 @@ import type * as Equivalence from "../data/Equivalence.ts"
 import * as Option from "../data/Option.ts"
 import * as Order from "../data/Order.ts"
 import * as Predicate from "../data/Predicate.ts"
-import { formatUnknown, PipeableClass } from "../internal/schema/util.ts"
+import { formatUnknown, mergeAnnotations, PipeableClass } from "../internal/schema/util.ts"
 import * as Num from "../primitives/Number.ts"
 import type * as Annotations from "./Annotations.ts"
 import type * as AST from "./AST.ts"
@@ -41,7 +41,7 @@ export class Filter<in E> extends PipeableClass implements Annotations.Annotated
     this.abort = abort
   }
   annotate(annotations: Annotations.Filter): Filter<E> {
-    return new Filter(this.run, { ...this.annotations, ...annotations }, this.abort)
+    return new Filter(this.run, mergeAnnotations(this.annotations, annotations), this.abort)
   }
   and<T extends E>(other: Refine<T, E>, annotations?: Annotations.Filter): RefinementGroup<T, E>
   and(other: Check<E>, annotations?: Annotations.Filter): FilterGroup<E>
@@ -68,7 +68,7 @@ export class FilterGroup<in E> extends PipeableClass implements Annotations.Anno
     this.annotations = annotations
   }
   annotate(annotations: Annotations.Filter): FilterGroup<E> {
-    return new FilterGroup(this.checks, { ...this.annotations, ...annotations })
+    return new FilterGroup(this.checks, mergeAnnotations(this.annotations, annotations))
   }
   and<T extends E>(other: Refine<T, E>, annotations?: Annotations.Filter): RefinementGroup<T, E>
   and(other: Check<E>, annotations?: Annotations.Filter): FilterGroup<E>
@@ -145,7 +145,7 @@ export function makeBrand<B extends string | symbol, T>(
   brand: B,
   annotations?: Annotations.Filter
 ): Refinement<T & Brand<B>, T> {
-  return baseBrand.annotate({ ...annotations, [BRAND_KEY]: brand })
+  return baseBrand.annotate({ [BRAND_KEY]: brand, ...annotations })
 }
 
 /**

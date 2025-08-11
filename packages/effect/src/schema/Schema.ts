@@ -2521,7 +2521,7 @@ export interface refine<T extends S["Type"], S extends Top> extends
     S["EncodingServices"],
     S["ast"],
     refine<T, S["~rebuild.out"]>,
-    S["~annotate.in"],
+    Annotations.Bottom<T>,
     S["~type.make.in"],
     T,
     S["~type.mutability"],

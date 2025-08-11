@@ -929,6 +929,19 @@ Expected a string including "c", got "ab"`,
           deepStrictEqual(schema.ast.checks?.[0]?.annotations?.["~brand.type"], "MyBrand")
           deepStrictEqual(schema.ast.checks?.[1]?.annotations?.["~brand.type"], "MyBrand2")
         })
+
+        it("annotate should support getters", () => {
+          const schema = Schema.String.pipe(Schema.brand("brand")).annotate({
+            get examples() {
+              return [
+                schema.makeSync("a"),
+                schema.makeSync("b")
+              ]
+            }
+          })
+
+          deepStrictEqual(schema.ast.checks?.[0]?.annotations?.examples, ["a", "b"])
+        })
       })
 
       it("group", async () => {
