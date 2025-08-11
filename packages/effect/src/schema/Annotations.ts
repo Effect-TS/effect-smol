@@ -143,3 +143,26 @@ export interface Filter extends Documentation {
   readonly arbitrary?: ToArbitrary.Annotation.Constraint | ToArbitrary.Annotation.Constraints | undefined
   readonly message?: string | undefined
 }
+
+/**
+ * Merges annotations while preserving getters from both objects
+ *
+ * @internal
+ */
+export function merge(existing: Filter, incoming: Annotations | undefined): Filter
+export function merge(existing: Annotations | undefined, incoming: Annotations | undefined): Annotations | undefined
+export function merge(existing: Annotations | undefined, incoming: Annotations | undefined): Annotations | undefined {
+  if (!existing) return incoming
+  if (!incoming) return existing
+
+  const out = {}
+  // Apply existing descriptors first
+  for (const [key, descriptor] of Object.entries(Object.getOwnPropertyDescriptors(existing))) {
+    Object.defineProperty(out, key, descriptor)
+  }
+  // Apply incoming descriptors (this will override existing ones)
+  for (const [key, descriptor] of Object.entries(Object.getOwnPropertyDescriptors(incoming))) {
+    Object.defineProperty(out, key, descriptor)
+  }
+  return out
+}

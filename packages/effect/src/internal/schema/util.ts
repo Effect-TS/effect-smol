@@ -1,7 +1,6 @@
 import * as Predicate from "../../data/Predicate.ts"
 import type { Pipeable } from "../../interfaces/Pipeable.ts"
 import { pipeArguments } from "../../interfaces/Pipeable.ts"
-import type * as Annotations from "../../schema/Annotations.ts"
 import type * as AST from "../../schema/AST.ts"
 
 /**
@@ -117,28 +116,3 @@ export function hasOwn<O extends object, Key extends PropertyKey>(
 
 /** @internal */
 export const defaultParseOptions: AST.ParseOptions = {}
-
-/**
- * Merges annotations while preserving getters from both objects
- *
- * @internal
- */
-export function mergeAnnotations(
-  existing: Annotations.Annotations | undefined,
-  incoming: Annotations.Annotations
-): Annotations.Annotations {
-  if (!existing) return incoming
-  const result = {}
-
-  // Apply existing descriptors first
-  for (const [key, descriptor] of Object.entries(Object.getOwnPropertyDescriptors(existing))) {
-    Object.defineProperty(result, key, descriptor)
-  }
-
-  // Apply incoming descriptors (this will override existing ones)
-  for (const [key, descriptor] of Object.entries(Object.getOwnPropertyDescriptors(incoming))) {
-    Object.defineProperty(result, key, descriptor)
-  }
-
-  return result
-}

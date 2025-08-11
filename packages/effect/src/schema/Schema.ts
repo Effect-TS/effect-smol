@@ -24,7 +24,7 @@ import * as core from "../internal/core.ts"
 import * as Scheduler from "../Scheduler.ts"
 import * as DateTime from "../time/DateTime.ts"
 import * as Duration_ from "../time/Duration.ts"
-import type * as Annotations from "./Annotations.ts"
+import * as Annotations from "./Annotations.ts"
 import * as AST from "./AST.ts"
 import * as Check from "./Check.ts"
 import * as Formatter from "./Formatter.ts"
@@ -3808,7 +3808,7 @@ function makeClass<
   schema: S,
   annotations?: Annotations.Declaration<Self, readonly [S]>
 ): any {
-  const computeAST = getComputeAST(schema.ast, { id, ...annotations })
+  const computeAST = getComputeAST(schema.ast, Annotations.merge({ id } as Annotations.Annotations, annotations))
 
   return class extends Inherited {
     constructor(...[input, options]: ReadonlyArray<any>) {
@@ -3927,18 +3927,17 @@ function getComputeAST(
           }
           return Effect.fail(new Issue.InvalidType(ast, O.some(input)))
         },
-        {
-          defaultJsonSerializer: ([from]: [Top]) => getLink(from.ast),
+        Annotations.merge({
+          defaultJsonSerializer: ([from]: [any]) => getLink(from.ast),
           arbitrary: {
             _tag: "Declaration",
-            declaration: ([from]) => () => from.map((args) => new self(args))
+            declaration: ([from]: [any]) => () => from.map((args: any) => new self(args))
           },
           pretty: {
             _tag: "Declaration",
-            declaration: ([from]) => (t) => `${self.id}(${from(t)})`
-          },
-          ...annotations
-        } as Annotations.Declaration<any, readonly [Top]>,
+            declaration: ([from]: [any]) => (t: any) => `${self.id}(${from(t)})`
+          }
+        }, annotations),
         checks,
         [getLink(from)],
         context ?

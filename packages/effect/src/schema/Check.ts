@@ -8,9 +8,9 @@ import type * as Equivalence from "../data/Equivalence.ts"
 import * as Option from "../data/Option.ts"
 import * as Order from "../data/Order.ts"
 import * as Predicate from "../data/Predicate.ts"
-import { formatUnknown, mergeAnnotations, PipeableClass } from "../internal/schema/util.ts"
+import { formatUnknown, PipeableClass } from "../internal/schema/util.ts"
 import * as Num from "../primitives/Number.ts"
-import type * as Annotations from "./Annotations.ts"
+import * as Annotations from "./Annotations.ts"
 import type * as AST from "./AST.ts"
 import * as Issue from "./Issue.ts"
 
@@ -41,7 +41,7 @@ export class Filter<in E> extends PipeableClass implements Annotations.Annotated
     this.abort = abort
   }
   annotate(annotations: Annotations.Filter): Filter<E> {
-    return new Filter(this.run, mergeAnnotations(this.annotations, annotations), this.abort)
+    return new Filter(this.run, Annotations.merge(this.annotations, annotations), this.abort)
   }
   and<T extends E>(other: Refine<T, E>, annotations?: Annotations.Filter): RefinementGroup<T, E>
   and(other: Check<E>, annotations?: Annotations.Filter): FilterGroup<E>
@@ -68,7 +68,7 @@ export class FilterGroup<in E> extends PipeableClass implements Annotations.Anno
     this.annotations = annotations
   }
   annotate(annotations: Annotations.Filter): FilterGroup<E> {
-    return new FilterGroup(this.checks, mergeAnnotations(this.annotations, annotations))
+    return new FilterGroup(this.checks, Annotations.merge(this.annotations, annotations))
   }
   and<T extends E>(other: Refine<T, E>, annotations?: Annotations.Filter): RefinementGroup<T, E>
   and(other: Check<E>, annotations?: Annotations.Filter): FilterGroup<E>
@@ -145,7 +145,7 @@ export function makeBrand<B extends string | symbol, T>(
   brand: B,
   annotations?: Annotations.Filter
 ): Refinement<T & Brand<B>, T> {
-  return baseBrand.annotate({ [BRAND_KEY]: brand, ...annotations })
+  return baseBrand.annotate(Annotations.merge({ [BRAND_KEY]: brand }, annotations))
 }
 
 /**
@@ -243,27 +243,29 @@ const TRIMMED_PATTERN = "^\\S[\\s\\S]*\\S$|^\\S$|^$"
  * @since 4.0.0
  */
 export function trimmed(annotations?: Annotations.Filter) {
-  return make((s: string) => s.trim() === s, {
-    title: "trimmed",
-    description: "a string with no leading or trailing whitespace",
-    jsonSchema: {
-      _tag: "Constraint",
-      constraint: () => ({
-        pattern: TRIMMED_PATTERN
-      })
-    },
-    meta: {
-      _tag: "trimmed"
-    },
-    arbitrary: {
-      _tag: "Constraint",
-      constraint: {
-        _tag: "StringConstraints",
-        patterns: [TRIMMED_PATTERN]
+  return make(
+    (s: string) => s.trim() === s,
+    Annotations.merge({
+      title: "trimmed",
+      description: "a string with no leading or trailing whitespace",
+      jsonSchema: {
+        _tag: "Constraint",
+        constraint: () => ({
+          pattern: TRIMMED_PATTERN
+        })
+      },
+      meta: {
+        _tag: "trimmed"
+      },
+      arbitrary: {
+        _tag: "Constraint",
+        constraint: {
+          _tag: "StringConstraints",
+          patterns: [TRIMMED_PATTERN]
+        }
       }
-    },
-    ...annotations
-  })
+    }, annotations)
+  )
 }
 
 /**
@@ -277,28 +279,30 @@ export function regex(regex: RegExp, annotations?: Annotations.Filter) {
     }
   }
   const source = regex.source
-  return make((s: string) => regex.test(s), {
-    title: `regex(${source})`,
-    description: `a string matching the regex ${source}`,
-    jsonSchema: {
-      _tag: "Constraint",
-      constraint: () => ({
-        pattern: regex.source
-      })
-    },
-    meta: {
-      _tag: "regex",
-      regex
-    },
-    arbitrary: {
-      _tag: "Constraint",
-      constraint: {
-        _tag: "StringConstraints",
-        patterns: [regex.source]
+  return make(
+    (s: string) => regex.test(s),
+    Annotations.merge({
+      title: `regex(${source})`,
+      description: `a string matching the regex ${source}`,
+      jsonSchema: {
+        _tag: "Constraint",
+        constraint: () => ({
+          pattern: regex.source
+        })
+      },
+      meta: {
+        _tag: "regex",
+        regex
+      },
+      arbitrary: {
+        _tag: "Constraint",
+        constraint: {
+          _tag: "StringConstraints",
+          patterns: [regex.source]
+        }
       }
-    },
-    ...annotations
-  })
+    }, annotations)
+  )
 }
 
 /**
@@ -334,10 +338,10 @@ export function uuid(version?: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8) {
  * @since 4.0.0
  */
 export function ulid(annotations?: Annotations.Filter) {
-  return regex(/^[0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{26}$/, {
-    title: "ulid",
-    ...annotations
-  })
+  return regex(
+    /^[0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{26}$/,
+    Annotations.merge({ title: "ulid" }, annotations)
+  )
 }
 
 /**
@@ -345,10 +349,10 @@ export function ulid(annotations?: Annotations.Filter) {
  * @since 4.0.0
  */
 export function base64(annotations?: Annotations.Filter) {
-  return regex(/^([0-9a-zA-Z+/]{4})*(([0-9a-zA-Z+/]{2}==)|([0-9a-zA-Z+/]{3}=))?$/, {
-    title: "base64",
-    ...annotations
-  })
+  return regex(
+    /^([0-9a-zA-Z+/]{4})*(([0-9a-zA-Z+/]{2}==)|([0-9a-zA-Z+/]{3}=))?$/,
+    Annotations.merge({ title: "base64" }, annotations)
+  )
 }
 
 /**
@@ -356,10 +360,10 @@ export function base64(annotations?: Annotations.Filter) {
  * @since 4.0.0
  */
 export function base64url(annotations?: Annotations.Filter) {
-  return regex(/^([0-9a-zA-Z-_]{4})*(([0-9a-zA-Z-_]{2}(==)?)|([0-9a-zA-Z-_]{3}(=)?))?$/, {
-    title: "base64url",
-    ...annotations
-  })
+  return regex(
+    /^([0-9a-zA-Z-_]{4})*(([0-9a-zA-Z-_]{2}(==)?)|([0-9a-zA-Z-_]{3}(=)?))?$/,
+    Annotations.merge({ title: "base64url" }, annotations)
+  )
 }
 
 /**
@@ -368,28 +372,30 @@ export function base64url(annotations?: Annotations.Filter) {
  */
 export function startsWith(startsWith: string, annotations?: Annotations.Filter) {
   const formatted = JSON.stringify(startsWith)
-  return make((s: string) => s.startsWith(startsWith), {
-    title: `startsWith(${formatted})`,
-    description: `a string starting with ${formatted}`,
-    jsonSchema: {
-      _tag: "Constraint",
-      constraint: () => ({
-        pattern: `^${startsWith}`
-      })
-    },
-    meta: {
-      _tag: "startsWith",
-      startsWith
-    },
-    arbitrary: {
-      _tag: "Constraint",
-      constraint: {
-        _tag: "StringConstraints",
-        patterns: [`^${startsWith}`]
+  return make(
+    (s: string) => s.startsWith(startsWith),
+    Annotations.merge({
+      title: `startsWith(${formatted})`,
+      description: `a string starting with ${formatted}`,
+      jsonSchema: {
+        _tag: "Constraint",
+        constraint: () => ({
+          pattern: `^${startsWith}`
+        })
+      },
+      meta: {
+        _tag: "startsWith",
+        startsWith
+      },
+      arbitrary: {
+        _tag: "Constraint",
+        constraint: {
+          _tag: "StringConstraints",
+          patterns: [`^${startsWith}`]
+        }
       }
-    },
-    ...annotations
-  })
+    }, annotations)
+  )
 }
 
 /**
@@ -398,28 +404,30 @@ export function startsWith(startsWith: string, annotations?: Annotations.Filter)
  */
 export function endsWith(endsWith: string, annotations?: Annotations.Filter) {
   const formatted = JSON.stringify(endsWith)
-  return make((s: string) => s.endsWith(endsWith), {
-    title: `endsWith(${formatted})`,
-    description: `a string ending with ${formatted}`,
-    jsonSchema: {
-      _tag: "Constraint",
-      constraint: () => ({
-        pattern: `${endsWith}$`
-      })
-    },
-    meta: {
-      _tag: "endsWith",
-      endsWith
-    },
-    arbitrary: {
-      _tag: "Constraint",
-      constraint: {
-        _tag: "StringConstraints",
-        patterns: [`${endsWith}$`]
+  return make(
+    (s: string) => s.endsWith(endsWith),
+    Annotations.merge({
+      title: `endsWith(${formatted})`,
+      description: `a string ending with ${formatted}`,
+      jsonSchema: {
+        _tag: "Constraint",
+        constraint: () => ({
+          pattern: `${endsWith}$`
+        })
+      },
+      meta: {
+        _tag: "endsWith",
+        endsWith
+      },
+      arbitrary: {
+        _tag: "Constraint",
+        constraint: {
+          _tag: "StringConstraints",
+          patterns: [`${endsWith}$`]
+        }
       }
-    },
-    ...annotations
-  })
+    }, annotations)
+  )
 }
 
 /**
@@ -428,28 +436,30 @@ export function endsWith(endsWith: string, annotations?: Annotations.Filter) {
  */
 export function includes(includes: string, annotations?: Annotations.Filter) {
   const formatted = JSON.stringify(includes)
-  return make((s: string) => s.includes(includes), {
-    title: `includes(${formatted})`,
-    description: `a string including ${formatted}`,
-    jsonSchema: {
-      _tag: "Constraint",
-      constraint: () => ({
-        pattern: includes
-      })
-    },
-    meta: {
-      _tag: "includes",
-      includes
-    },
-    arbitrary: {
-      _tag: "Constraint",
-      constraint: {
-        _tag: "StringConstraints",
-        patterns: [includes]
+  return make(
+    (s: string) => s.includes(includes),
+    Annotations.merge({
+      title: `includes(${formatted})`,
+      description: `a string including ${formatted}`,
+      jsonSchema: {
+        _tag: "Constraint",
+        constraint: () => ({
+          pattern: includes
+        })
+      },
+      meta: {
+        _tag: "includes",
+        includes
+      },
+      arbitrary: {
+        _tag: "Constraint",
+        constraint: {
+          _tag: "StringConstraints",
+          patterns: [includes]
+        }
       }
-    },
-    ...annotations
-  })
+    }, annotations)
+  )
 }
 
 const UPPERCASED_PATTERN = "^[^a-z]*$"
@@ -459,27 +469,29 @@ const UPPERCASED_PATTERN = "^[^a-z]*$"
  * @since 4.0.0
  */
 export function uppercased(annotations?: Annotations.Filter) {
-  return make((s: string) => s.toUpperCase() === s, {
-    title: "uppercased",
-    description: "a string with all characters in uppercase",
-    jsonSchema: {
-      _tag: "Constraint",
-      constraint: () => ({
-        pattern: UPPERCASED_PATTERN
-      })
-    },
-    meta: {
-      _tag: "uppercased"
-    },
-    arbitrary: {
-      _tag: "Constraint",
-      constraint: {
-        _tag: "StringConstraints",
-        patterns: [UPPERCASED_PATTERN]
+  return make(
+    (s: string) => s.toUpperCase() === s,
+    Annotations.merge({
+      title: "uppercased",
+      description: "a string with all characters in uppercase",
+      jsonSchema: {
+        _tag: "Constraint",
+        constraint: () => ({
+          pattern: UPPERCASED_PATTERN
+        })
+      },
+      meta: {
+        _tag: "uppercased"
+      },
+      arbitrary: {
+        _tag: "Constraint",
+        constraint: {
+          _tag: "StringConstraints",
+          patterns: [UPPERCASED_PATTERN]
+        }
       }
-    },
-    ...annotations
-  })
+    }, annotations)
+  )
 }
 
 const LOWERCASED_PATTERN = "^[^A-Z]*$"
@@ -489,27 +501,29 @@ const LOWERCASED_PATTERN = "^[^A-Z]*$"
  * @since 4.0.0
  */
 export function lowercased(annotations?: Annotations.Filter) {
-  return make((s: string) => s.toLowerCase() === s, {
-    title: "lowercased",
-    description: "a string with all characters in lowercase",
-    jsonSchema: {
-      _tag: "Constraint",
-      constraint: () => ({
-        pattern: LOWERCASED_PATTERN
-      })
-    },
-    meta: {
-      _tag: "lowercased"
-    },
-    arbitrary: {
-      _tag: "Constraint",
-      constraint: {
-        _tag: "StringConstraints",
-        patterns: [LOWERCASED_PATTERN]
+  return make(
+    (s: string) => s.toLowerCase() === s,
+    Annotations.merge({
+      title: "lowercased",
+      description: "a string with all characters in lowercase",
+      jsonSchema: {
+        _tag: "Constraint",
+        constraint: () => ({
+          pattern: LOWERCASED_PATTERN
+        })
+      },
+      meta: {
+        _tag: "lowercased"
+      },
+      arbitrary: {
+        _tag: "Constraint",
+        constraint: {
+          _tag: "StringConstraints",
+          patterns: [LOWERCASED_PATTERN]
+        }
       }
-    },
-    ...annotations
-  })
+    }, annotations)
+  )
 }
 
 const CAPITALIZED_PATTERN = "^[^a-z]?.*$"
@@ -521,27 +535,29 @@ const CAPITALIZED_PATTERN = "^[^a-z]?.*$"
  * @since 4.0.0
  */
 export function capitalized(annotations?: Annotations.Filter) {
-  return make((s: string) => s.charAt(0).toUpperCase() === s.charAt(0), {
-    title: "capitalized",
-    description: "a string with the first character in uppercase",
-    jsonSchema: {
-      _tag: "Constraint",
-      constraint: () => ({
-        pattern: CAPITALIZED_PATTERN
-      })
-    },
-    meta: {
-      _tag: "capitalized"
-    },
-    arbitrary: {
-      _tag: "Constraint",
-      constraint: {
-        _tag: "StringConstraints",
-        patterns: [CAPITALIZED_PATTERN]
+  return make(
+    (s: string) => s.charAt(0).toUpperCase() === s.charAt(0),
+    Annotations.merge({
+      title: "capitalized",
+      description: "a string with the first character in uppercase",
+      jsonSchema: {
+        _tag: "Constraint",
+        constraint: () => ({
+          pattern: CAPITALIZED_PATTERN
+        })
+      },
+      meta: {
+        _tag: "capitalized"
+      },
+      arbitrary: {
+        _tag: "Constraint",
+        constraint: {
+          _tag: "StringConstraints",
+          patterns: [CAPITALIZED_PATTERN]
+        }
       }
-    },
-    ...annotations
-  })
+    }, annotations)
+  )
 }
 
 const UNCAPITALIZED_PATTERN = "^[^A-Z]?.*$"
@@ -553,27 +569,29 @@ const UNCAPITALIZED_PATTERN = "^[^A-Z]?.*$"
  * @since 4.0.0
  */
 export function uncapitalized(annotations?: Annotations.Filter) {
-  return make((s: string) => s.charAt(0).toLowerCase() === s.charAt(0), {
-    title: "uncapitalized",
-    description: "a string with the first character in lowercase",
-    jsonSchema: {
-      _tag: "Constraint",
-      constraint: () => ({
-        pattern: UNCAPITALIZED_PATTERN
-      })
-    },
-    meta: {
-      _tag: "uncapitalized"
-    },
-    arbitrary: {
-      _tag: "Constraint",
-      constraint: {
-        _tag: "StringConstraints",
-        patterns: [UNCAPITALIZED_PATTERN]
+  return make(
+    (s: string) => s.charAt(0).toLowerCase() === s.charAt(0),
+    Annotations.merge({
+      title: "uncapitalized",
+      description: "a string with the first character in lowercase",
+      jsonSchema: {
+        _tag: "Constraint",
+        constraint: () => ({
+          pattern: UNCAPITALIZED_PATTERN
+        })
+      },
+      meta: {
+        _tag: "uncapitalized"
+      },
+      arbitrary: {
+        _tag: "Constraint",
+        constraint: {
+          _tag: "StringConstraints",
+          patterns: [UNCAPITALIZED_PATTERN]
+        }
       }
-    },
-    ...annotations
-  })
+    }, annotations)
+  )
 }
 
 /**
@@ -581,22 +599,24 @@ export function uncapitalized(annotations?: Annotations.Filter) {
  * @since 4.0.0
  */
 export function finite(annotations?: Annotations.Filter) {
-  return make((n: number) => Number.isFinite(n), {
-    title: "finite",
-    description: "a finite number",
-    meta: {
-      _tag: "finite"
-    },
-    arbitrary: {
-      _tag: "Constraint",
-      constraint: {
-        _tag: "NumberConstraints",
-        noDefaultInfinity: true,
-        noNaN: true
+  return make(
+    (n: number) => Number.isFinite(n),
+    Annotations.merge({
+      title: "finite",
+      description: "a finite number",
+      meta: {
+        _tag: "finite"
+      },
+      arbitrary: {
+        _tag: "Constraint",
+        constraint: {
+          _tag: "NumberConstraints",
+          noDefaultInfinity: true,
+          noNaN: true
+        }
       }
-    },
-    ...annotations
-  })
+    }, annotations)
+  )
 }
 
 /**
@@ -611,12 +631,14 @@ export function deriveGreaterThan<T>(options: {
   const greaterThan = Order.greaterThan(options.order)
   const format = options.format ?? formatUnknown
   return (exclusiveMinimum: T, annotations?: Annotations.Filter) => {
-    return make<T>((input) => greaterThan(input, exclusiveMinimum), {
-      title: `greaterThan(${format(exclusiveMinimum)})`,
-      description: `a value greater than ${format(exclusiveMinimum)}`,
-      ...options.annotate?.(exclusiveMinimum),
-      ...annotations
-    })
+    return make<T>(
+      (input) => greaterThan(input, exclusiveMinimum),
+      Annotations.merge({
+        title: `greaterThan(${format(exclusiveMinimum)})`,
+        description: `a value greater than ${format(exclusiveMinimum)}`,
+        ...options.annotate?.(exclusiveMinimum)
+      }, annotations)
+    )
   }
 }
 
@@ -632,12 +654,14 @@ export function deriveGreaterThanOrEqualTo<T>(options: {
   const greaterThanOrEqualTo = Order.greaterThanOrEqualTo(options.order)
   const format = options.format ?? formatUnknown
   return (minimum: T, annotations?: Annotations.Filter) => {
-    return make<T>((input) => greaterThanOrEqualTo(input, minimum), {
-      title: `greaterThanOrEqualTo(${format(minimum)})`,
-      description: `a value greater than or equal to ${format(minimum)}`,
-      ...options.annotate?.(minimum),
-      ...annotations
-    })
+    return make<T>(
+      (input) => greaterThanOrEqualTo(input, minimum),
+      Annotations.merge({
+        title: `greaterThanOrEqualTo(${format(minimum)})`,
+        description: `a value greater than or equal to ${format(minimum)}`,
+        ...options.annotate?.(minimum)
+      }, annotations)
+    )
   }
 }
 
@@ -653,12 +677,14 @@ export function deriveLessThan<T>(options: {
   const lessThan = Order.lessThan(options.order)
   const format = options.format ?? formatUnknown
   return (exclusiveMaximum: T, annotations?: Annotations.Filter) => {
-    return make<T>((input) => lessThan(input, exclusiveMaximum), {
-      title: `lessThan(${format(exclusiveMaximum)})`,
-      description: `a value less than ${format(exclusiveMaximum)}`,
-      ...options.annotate?.(exclusiveMaximum),
-      ...annotations
-    })
+    return make<T>(
+      (input) => lessThan(input, exclusiveMaximum),
+      Annotations.merge({
+        title: `lessThan(${format(exclusiveMaximum)})`,
+        description: `a value less than ${format(exclusiveMaximum)}`,
+        ...options.annotate?.(exclusiveMaximum)
+      }, annotations)
+    )
   }
 }
 
@@ -674,12 +700,14 @@ export function deriveLessThanOrEqualTo<T>(options: {
   const lessThanOrEqualTo = Order.lessThanOrEqualTo(options.order)
   const format = options.format ?? formatUnknown
   return (maximum: T, annotations?: Annotations.Filter) => {
-    return make<T>((input) => lessThanOrEqualTo(input, maximum), {
-      title: `lessThanOrEqualTo(${format(maximum)})`,
-      description: `a value less than or equal to ${format(maximum)}`,
-      ...options.annotate?.(maximum),
-      ...annotations
-    })
+    return make<T>(
+      (input) => lessThanOrEqualTo(input, maximum),
+      Annotations.merge({
+        title: `lessThanOrEqualTo(${format(maximum)})`,
+        description: `a value less than or equal to ${format(maximum)}`,
+        ...options.annotate?.(maximum)
+      }, annotations)
+    )
   }
 }
 
@@ -696,12 +724,14 @@ export function deriveBetween<T>(options: {
   const lessThanOrEqualTo = Order.lessThanOrEqualTo(options.order)
   const format = options.format ?? formatUnknown
   return (minimum: T, maximum: T, annotations?: Annotations.Filter) => {
-    return make<T>((input) => greaterThanOrEqualTo(input, minimum) && lessThanOrEqualTo(input, maximum), {
-      title: `between(${format(minimum)}, ${format(maximum)})`,
-      description: `a value between ${format(minimum)} and ${format(maximum)}`,
-      ...options.annotate?.(minimum, maximum),
-      ...annotations
-    })
+    return make<T>(
+      (input) => greaterThanOrEqualTo(input, minimum) && lessThanOrEqualTo(input, maximum),
+      Annotations.merge({
+        title: `between(${format(minimum)}, ${format(maximum)})`,
+        description: `a value between ${format(minimum)} and ${format(maximum)}`,
+        ...options.annotate?.(minimum, maximum)
+      }, annotations)
+    )
   }
 }
 
@@ -717,12 +747,14 @@ export function deriveMultipleOf<T>(options: {
 }) {
   return (divisor: T, annotations?: Annotations.Filter) => {
     const format = options.format ?? formatUnknown
-    return make<T>((input) => options.remainder(input, divisor) === options.zero, {
-      title: `multipleOf(${format(divisor)})`,
-      description: `a value that is a multiple of ${format(divisor)}`,
-      ...options.annotate?.(divisor),
-      ...annotations
-    })
+    return make<T>(
+      (input) => options.remainder(input, divisor) === options.zero,
+      Annotations.merge({
+        title: `multipleOf(${format(divisor)})`,
+        description: `a value that is a multiple of ${format(divisor)}`,
+        ...options.annotate?.(divisor)
+      }, annotations)
+    )
   }
 }
 
@@ -924,27 +956,29 @@ export const multipleOf = deriveMultipleOf({
  * @since 4.0.0
  */
 export function int(annotations?: Annotations.Filter) {
-  return make((n: number) => Number.isSafeInteger(n), {
-    title: "int",
-    description: "an integer",
-    jsonSchema: {
-      _tag: "Constraint",
-      constraint: () => ({
-        type: "integer"
-      })
-    },
-    meta: {
-      _tag: "int"
-    },
-    arbitrary: {
-      _tag: "Constraint",
-      constraint: {
-        _tag: "NumberConstraints",
-        isInteger: true
+  return make(
+    (n: number) => Number.isSafeInteger(n),
+    Annotations.merge({
+      title: "int",
+      description: "an integer",
+      jsonSchema: {
+        _tag: "Constraint",
+        constraint: () => ({
+          type: "integer"
+        })
+      },
+      meta: {
+        _tag: "int"
+      },
+      arbitrary: {
+        _tag: "Constraint",
+        constraint: {
+          _tag: "NumberConstraints",
+          isInteger: true
+        }
       }
-    },
-    ...annotations
-  })
+    }, annotations)
+  )
 }
 
 /**
@@ -952,23 +986,25 @@ export function int(annotations?: Annotations.Filter) {
  * @since 4.0.0
  */
 export function int32(annotations?: Annotations.Filter) {
-  return new FilterGroup([
-    int(annotations),
-    between(-2147483648, 2147483647)
-  ], {
-    title: "int32",
-    description: "a 32-bit integer",
-    jsonSchema: {
-      _tag: "Constraint",
-      constraint: () => ({
-        format: "int32"
-      })
-    },
-    meta: {
-      _tag: "int32"
-    },
-    ...annotations
-  })
+  return new FilterGroup(
+    [
+      int(annotations),
+      between(-2147483648, 2147483647)
+    ],
+    Annotations.merge({
+      title: "int32",
+      description: "a 32-bit integer",
+      jsonSchema: {
+        _tag: "Constraint",
+        constraint: () => ({
+          format: "int32"
+        })
+      },
+      meta: {
+        _tag: "int32"
+      }
+    }, annotations)
+  )
 }
 
 /**
@@ -976,23 +1012,25 @@ export function int32(annotations?: Annotations.Filter) {
  * @since 4.0.0
  */
 export function uint32(annotations?: Annotations.Filter) {
-  return new FilterGroup([
-    int(),
-    between(0, 4294967295)
-  ], {
-    title: "uint32",
-    description: "a 32-bit unsigned integer",
-    jsonSchema: {
-      _tag: "Constraint",
-      constraint: () => ({
-        format: "uint32"
-      })
-    },
-    meta: {
-      _tag: "uint32"
-    },
-    ...annotations
-  })
+  return new FilterGroup(
+    [
+      int(),
+      between(0, 4294967295)
+    ],
+    Annotations.merge({
+      title: "uint32",
+      description: "a 32-bit unsigned integer",
+      jsonSchema: {
+        _tag: "Constraint",
+        constraint: () => ({
+          format: "uint32"
+        })
+      },
+      meta: {
+        _tag: "uint32"
+      }
+    }, annotations)
+  )
 }
 
 /**
@@ -1000,19 +1038,21 @@ export function uint32(annotations?: Annotations.Filter) {
  * @since 4.0.0
  */
 export function validDate(annotations?: Annotations.Filter) {
-  return make<Date>((date) => !isNaN(date.getTime()), {
-    meta: {
-      _tag: "validDate"
-    },
-    arbitrary: {
-      _tag: "Constraint",
-      constraint: {
-        _tag: "DateConstraints",
-        noInvalidDate: true
+  return make<Date>(
+    (date) => !isNaN(date.getTime()),
+    Annotations.merge({
+      meta: {
+        _tag: "validDate"
+      },
+      arbitrary: {
+        _tag: "Constraint",
+        constraint: {
+          _tag: "DateConstraints",
+          noInvalidDate: true
+        }
       }
-    },
-    ...annotations
-  })
+    }, annotations)
+  )
 }
 
 /**
@@ -1151,41 +1191,43 @@ export const betweenBigInt = deriveBetween({
  */
 export function minLength(minLength: number, annotations?: Annotations.Filter) {
   minLength = Math.max(0, Math.floor(minLength))
-  return make<{ readonly length: number }>((input) => input.length >= minLength, {
-    title: `minLength(${minLength})`,
-    description: `a value with a length of at least ${minLength}`,
-    jsonSchema: {
-      _tag: "Constraint",
-      constraint: (type) => {
-        switch (type) {
-          case "string":
-            return { minLength }
-          case "array":
-            return { minItems: minLength }
-          default:
+  return make<{ readonly length: number }>(
+    (input) => input.length >= minLength,
+    Annotations.merge({
+      title: `minLength(${minLength})`,
+      description: `a value with a length of at least ${minLength}`,
+      jsonSchema: {
+        _tag: "Constraint",
+        constraint: (type) => {
+          switch (type) {
+            case "string":
+              return { minLength }
+            case "array":
+              return { minItems: minLength }
+            default:
+          }
+        }
+      },
+      meta: {
+        _tag: "minLength",
+        minLength
+      },
+      "~structural": true,
+      arbitrary: {
+        _tag: "Constraints",
+        constraints: {
+          StringConstraints: {
+            _tag: "StringConstraints",
+            minLength
+          },
+          ArrayConstraints: {
+            _tag: "ArrayConstraints",
+            minLength
+          }
         }
       }
-    },
-    meta: {
-      _tag: "minLength",
-      minLength
-    },
-    "~structural": true,
-    arbitrary: {
-      _tag: "Constraints",
-      constraints: {
-        StringConstraints: {
-          _tag: "StringConstraints",
-          minLength
-        },
-        ArrayConstraints: {
-          _tag: "ArrayConstraints",
-          minLength
-        }
-      }
-    },
-    ...annotations
-  })
+    }, annotations)
+  )
 }
 
 /**
@@ -1202,40 +1244,42 @@ export function nonEmpty(annotations?: Annotations.Filter) {
  */
 export function maxLength(maxLength: number, annotations?: Annotations.Filter) {
   maxLength = Math.max(0, Math.floor(maxLength))
-  return make<{ readonly length: number }>((input) => input.length <= maxLength, {
-    title: `maxLength(${maxLength})`,
-    description: `a value with a length of at most ${maxLength}`,
-    jsonSchema: {
-      _tag: "Constraint",
-      constraint: (type) => {
-        switch (type) {
-          case "string":
-            return { maxLength }
-          case "array":
-            return { maxItems: maxLength }
+  return make<{ readonly length: number }>(
+    (input) => input.length <= maxLength,
+    Annotations.merge({
+      title: `maxLength(${maxLength})`,
+      description: `a value with a length of at most ${maxLength}`,
+      jsonSchema: {
+        _tag: "Constraint",
+        constraint: (type) => {
+          switch (type) {
+            case "string":
+              return { maxLength }
+            case "array":
+              return { maxItems: maxLength }
+          }
+        }
+      },
+      meta: {
+        _tag: "maxLength",
+        maxLength
+      },
+      "~structural": true,
+      arbitrary: {
+        _tag: "Constraints",
+        constraints: {
+          StringConstraints: {
+            _tag: "StringConstraints",
+            maxLength
+          },
+          ArrayConstraints: {
+            _tag: "ArrayConstraints",
+            maxLength
+          }
         }
       }
-    },
-    meta: {
-      _tag: "maxLength",
-      maxLength
-    },
-    "~structural": true,
-    arbitrary: {
-      _tag: "Constraints",
-      constraints: {
-        StringConstraints: {
-          _tag: "StringConstraints",
-          maxLength
-        },
-        ArrayConstraints: {
-          _tag: "ArrayConstraints",
-          maxLength
-        }
-      }
-    },
-    ...annotations
-  })
+    }, annotations)
+  )
 }
 
 /**
@@ -1244,37 +1288,39 @@ export function maxLength(maxLength: number, annotations?: Annotations.Filter) {
  */
 export function length(length: number, annotations?: Annotations.Filter) {
   length = Math.max(0, Math.floor(length))
-  return make<{ readonly length: number }>((input) => input.length === length, {
-    title: `length(${length})`,
-    description: `a value with a length of ${length}`,
-    jsonSchema: {
-      _tag: "Constraint",
-      constraint: () => ({
+  return make<{ readonly length: number }>(
+    (input) => input.length === length,
+    Annotations.merge({
+      title: `length(${length})`,
+      description: `a value with a length of ${length}`,
+      jsonSchema: {
+        _tag: "Constraint",
+        constraint: () => ({
+          length
+        })
+      },
+      meta: {
+        _tag: "length",
         length
-      })
-    },
-    meta: {
-      _tag: "length",
-      length
-    },
-    "~structural": true,
-    arbitrary: {
-      _tag: "Constraints",
-      constraints: {
-        StringConstraints: {
-          _tag: "StringConstraints",
-          minLength: length,
-          maxLength: length
-        },
-        ArrayConstraints: {
-          _tag: "ArrayConstraints",
-          minLength: length,
-          maxLength: length
+      },
+      "~structural": true,
+      arbitrary: {
+        _tag: "Constraints",
+        constraints: {
+          StringConstraints: {
+            _tag: "StringConstraints",
+            minLength: length,
+            maxLength: length
+          },
+          ArrayConstraints: {
+            _tag: "ArrayConstraints",
+            minLength: length,
+            maxLength: length
+          }
         }
       }
-    },
-    ...annotations
-  })
+    }, annotations)
+  )
 }
 
 /**
@@ -1283,25 +1329,27 @@ export function length(length: number, annotations?: Annotations.Filter) {
  */
 export function minSize(minSize: number, annotations?: Annotations.Filter) {
   minSize = Math.max(0, Math.floor(minSize))
-  return make<{ readonly size: number }>((input) => input.size >= minSize, {
-    title: `minSize(${minSize})`,
-    description: `a value with a size of at least ${minSize}`,
-    meta: {
-      _tag: "minSize",
-      minSize
-    },
-    "~structural": true,
-    arbitrary: {
-      _tag: "Constraints",
-      constraints: {
-        ArrayConstraints: {
-          _tag: "ArrayConstraints",
-          minLength: minSize
+  return make<{ readonly size: number }>(
+    (input) => input.size >= minSize,
+    Annotations.merge({
+      title: `minSize(${minSize})`,
+      description: `a value with a size of at least ${minSize}`,
+      meta: {
+        _tag: "minSize",
+        minSize
+      },
+      "~structural": true,
+      arbitrary: {
+        _tag: "Constraints",
+        constraints: {
+          ArrayConstraints: {
+            _tag: "ArrayConstraints",
+            minLength: minSize
+          }
         }
       }
-    },
-    ...annotations
-  })
+    }, annotations)
+  )
 }
 
 /**
@@ -1310,25 +1358,27 @@ export function minSize(minSize: number, annotations?: Annotations.Filter) {
  */
 export function maxSize(maxSize: number, annotations?: Annotations.Filter) {
   maxSize = Math.max(0, Math.floor(maxSize))
-  return make<{ readonly size: number }>((input) => input.size <= maxSize, {
-    title: `maxSize(${maxSize})`,
-    description: `a value with a size of at most ${maxSize}`,
-    meta: {
-      _tag: "maxSize",
-      maxSize
-    },
-    "~structural": true,
-    arbitrary: {
-      _tag: "Constraints",
-      constraints: {
-        ArrayConstraints: {
-          _tag: "ArrayConstraints",
-          maxLength: maxSize
+  return make<{ readonly size: number }>(
+    (input) => input.size <= maxSize,
+    Annotations.merge({
+      title: `maxSize(${maxSize})`,
+      description: `a value with a size of at most ${maxSize}`,
+      meta: {
+        _tag: "maxSize",
+        maxSize
+      },
+      "~structural": true,
+      arbitrary: {
+        _tag: "Constraints",
+        constraints: {
+          ArrayConstraints: {
+            _tag: "ArrayConstraints",
+            maxLength: maxSize
+          }
         }
       }
-    },
-    ...annotations
-  })
+    }, annotations)
+  )
 }
 
 /**
@@ -1337,26 +1387,28 @@ export function maxSize(maxSize: number, annotations?: Annotations.Filter) {
  */
 export function size(size: number, annotations?: Annotations.Filter) {
   size = Math.max(0, Math.floor(size))
-  return make<{ readonly size: number }>((input) => input.size === size, {
-    title: `size(${size})`,
-    description: `a value with a size of ${size}`,
-    meta: {
-      _tag: "size",
-      size
-    },
-    "~structural": true,
-    arbitrary: {
-      _tag: "Constraints",
-      constraints: {
-        ArrayConstraints: {
-          _tag: "ArrayConstraints",
-          minLength: size,
-          maxLength: size
+  return make<{ readonly size: number }>(
+    (input) => input.size === size,
+    Annotations.merge({
+      title: `size(${size})`,
+      description: `a value with a size of ${size}`,
+      meta: {
+        _tag: "size",
+        size
+      },
+      "~structural": true,
+      arbitrary: {
+        _tag: "Constraints",
+        constraints: {
+          ArrayConstraints: {
+            _tag: "ArrayConstraints",
+            minLength: size,
+            maxLength: size
+          }
         }
       }
-    },
-    ...annotations
-  })
+    }, annotations)
+  )
 }
 
 /**
@@ -1365,31 +1417,33 @@ export function size(size: number, annotations?: Annotations.Filter) {
  */
 export function minEntries(minEntries: number, annotations?: Annotations.Filter) {
   minEntries = Math.max(0, Math.floor(minEntries))
-  return make<object>((input) => Object.entries(input).length >= minEntries, {
-    title: `minEntries(${minEntries})`,
-    description: `an object with at least ${minEntries} entries`,
-    jsonSchema: {
-      _tag: "Constraint",
-      constraint: () => ({
-        minProperties: minEntries
-      })
-    },
-    meta: {
-      _tag: "minEntries",
-      minEntries
-    },
-    "~structural": true,
-    arbitrary: {
-      _tag: "Constraints",
-      constraints: {
-        ArrayConstraints: {
-          _tag: "ArrayConstraints",
-          minLength: minEntries
+  return make<object>(
+    (input) => Object.entries(input).length >= minEntries,
+    Annotations.merge({
+      title: `minEntries(${minEntries})`,
+      description: `an object with at least ${minEntries} entries`,
+      jsonSchema: {
+        _tag: "Constraint",
+        constraint: () => ({
+          minProperties: minEntries
+        })
+      },
+      meta: {
+        _tag: "minEntries",
+        minEntries
+      },
+      "~structural": true,
+      arbitrary: {
+        _tag: "Constraints",
+        constraints: {
+          ArrayConstraints: {
+            _tag: "ArrayConstraints",
+            minLength: minEntries
+          }
         }
       }
-    },
-    ...annotations
-  })
+    }, annotations)
+  )
 }
 
 /**
@@ -1398,31 +1452,33 @@ export function minEntries(minEntries: number, annotations?: Annotations.Filter)
  */
 export function maxEntries(maxEntries: number, annotations?: Annotations.Filter) {
   maxEntries = Math.max(0, Math.floor(maxEntries))
-  return make<object>((input) => Object.entries(input).length <= maxEntries, {
-    title: `maxEntries(${maxEntries})`,
-    description: `an object with at most ${maxEntries} entries`,
-    jsonSchema: {
-      _tag: "Constraint",
-      constraint: () => ({
-        maxProperties: maxEntries
-      })
-    },
-    meta: {
-      _tag: "maxEntries",
-      maxEntries
-    },
-    "~structural": true,
-    arbitrary: {
-      _tag: "Constraints",
-      constraints: {
-        ArrayConstraints: {
-          _tag: "ArrayConstraints",
-          maxLength: maxEntries
+  return make<object>(
+    (input) => Object.entries(input).length <= maxEntries,
+    Annotations.merge({
+      title: `maxEntries(${maxEntries})`,
+      description: `an object with at most ${maxEntries} entries`,
+      jsonSchema: {
+        _tag: "Constraint",
+        constraint: () => ({
+          maxProperties: maxEntries
+        })
+      },
+      meta: {
+        _tag: "maxEntries",
+        maxEntries
+      },
+      "~structural": true,
+      arbitrary: {
+        _tag: "Constraints",
+        constraints: {
+          ArrayConstraints: {
+            _tag: "ArrayConstraints",
+            maxLength: maxEntries
+          }
         }
       }
-    },
-    ...annotations
-  })
+    }, annotations)
+  )
 }
 
 /**
@@ -1431,60 +1487,64 @@ export function maxEntries(maxEntries: number, annotations?: Annotations.Filter)
  */
 export function entries(entries: number, annotations?: Annotations.Filter) {
   entries = Math.max(0, Math.floor(entries))
-  return make<object>((input) => Object.entries(input).length === entries, {
-    title: `entries(${entries})`,
-    description: `an object with exactly ${entries} entries`,
-    jsonSchema: {
-      _tag: "Constraint",
-      constraint: () => ({
-        minProperties: entries,
-        maxProperties: entries
-      })
-    },
-    meta: {
-      _tag: "entries",
-      entries
-    },
-    "~structural": true,
-    arbitrary: {
-      _tag: "Constraints",
-      constraints: {
-        ArrayConstraints: {
-          _tag: "ArrayConstraints",
-          minLength: entries,
-          maxLength: entries
+  return make<object>(
+    (input) => Object.entries(input).length === entries,
+    Annotations.merge({
+      title: `entries(${entries})`,
+      description: `an object with exactly ${entries} entries`,
+      jsonSchema: {
+        _tag: "Constraint",
+        constraint: () => ({
+          minProperties: entries,
+          maxProperties: entries
+        })
+      },
+      meta: {
+        _tag: "entries",
+        entries
+      },
+      "~structural": true,
+      arbitrary: {
+        _tag: "Constraints",
+        constraints: {
+          ArrayConstraints: {
+            _tag: "ArrayConstraints",
+            minLength: entries,
+            maxLength: entries
+          }
         }
       }
-    },
-    ...annotations
-  })
+    }, annotations)
+  )
 }
 
 /**
  * @since 4.0.0
  */
 export function unique<T>(equivalence: Equivalence.Equivalence<T>, annotations?: Annotations.Filter) {
-  return make<ReadonlyArray<T>>((input) => Arr.dedupeWith(input, equivalence).length === input.length, {
-    title: "unique",
-    jsonSchema: {
-      _tag: "Constraint",
-      constraint: () => ({
-        uniqueItems: true
-      })
-    },
-    meta: {
-      _tag: "unique",
-      equivalence
-    },
-    arbitrary: {
-      _tag: "Constraints",
-      constraints: {
-        ArrayConstraints: {
-          _tag: "ArrayConstraints",
-          comparator: equivalence
+  return make<ReadonlyArray<T>>(
+    (input) => Arr.dedupeWith(input, equivalence).length === input.length,
+    Annotations.merge({
+      title: "unique",
+      jsonSchema: {
+        _tag: "Constraint",
+        constraint: () => ({
+          uniqueItems: true
+        })
+      },
+      meta: {
+        _tag: "unique",
+        equivalence
+      },
+      arbitrary: {
+        _tag: "Constraints",
+        constraints: {
+          ArrayConstraints: {
+            _tag: "ArrayConstraints",
+            comparator: equivalence
+          }
         }
       }
-    },
-    ...annotations
-  })
+    }, annotations)
+  )
 }
