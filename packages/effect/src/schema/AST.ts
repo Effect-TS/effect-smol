@@ -1653,6 +1653,8 @@ function getIndex(types: ReadonlyArray<AST>): CandidateIndex {
   idx = {}
   for (const a of types) {
     const encoded = encodedAST(a)
+    if (isNeverKeyword(encoded)) continue
+
     const types = getCandidateTypes(encoded)
     const sentinels = collectSentinels(encoded)
 

@@ -52,6 +52,12 @@ describe("AST", () => {
   })
 
   describe("getCandidates", () => {
+    it("should exclude never", () => {
+      const schema = Schema.Union([Schema.String, Schema.Never])
+      const ast = schema.ast
+      deepStrictEqual(AST.getCandidates("a", ast.types), [ast.types[0]])
+    })
+
     it("should exclude by type", () => {
       const schema = Schema.NullishOr(Schema.String)
       const ast = schema.ast

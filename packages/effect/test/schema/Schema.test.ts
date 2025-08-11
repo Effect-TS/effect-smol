@@ -2288,14 +2288,14 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       await assertions.decoding.fail(schema, null, `Expected never, got null`)
     })
 
-    it(`string`, async () => {
+    it(`String`, async () => {
       const schema = Schema.Union([Schema.String])
 
       await assertions.decoding.succeed(schema, "a")
       await assertions.decoding.fail(schema, null, `Expected string, got null`)
     })
 
-    it(`string | number`, async () => {
+    it(`String | Number`, async () => {
       const schema = Schema.Union([Schema.String, Schema.Number])
 
       deepStrictEqual(schema.members, [Schema.String, Schema.Number])
@@ -2309,7 +2309,14 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       )
     })
 
-    it(`string & minLength(1) | number & greaterThan(0)`, async () => {
+    it(`String | Never`, async () => {
+      const schema = Schema.Union([Schema.String, Schema.Never])
+
+      await assertions.decoding.succeed(schema, "a")
+      await assertions.decoding.fail(schema, null, `Expected string | never, got null`)
+    })
+
+    it(`String & minLength(1) | number & greaterThan(0)`, async () => {
       const schema = Schema.Union([
         Schema.NonEmptyString,
         Schema.Number.check(Check.greaterThan(0))
