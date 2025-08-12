@@ -186,10 +186,6 @@ const dump: (
   }
 })
 
-function ensureArray(value: string): Array<string> {
-  return value === "" ? [] : [value]
-}
-
 const go: (
   ast: AST.AST,
   provider: ConfigProvider.ConfigProvider,
@@ -225,11 +221,11 @@ const go: (
       case "TupleType": {
         if (ast.rest.length > 0) {
           const out = yield* dump(provider, path)
-          if (Predicate.isString(out)) return ensureArray(out)
+          if (Predicate.isString(out)) return out
           return out
         }
         const stat = yield* provider.load(path)
-        if (stat && stat._tag === "leaf") return ensureArray(stat.value)
+        if (stat && stat._tag === "leaf") return stat.value
         const out: Array<Serializer.StringLeafJson> = []
         for (let i = 0; i < ast.elements.length; i++) {
           const value = yield* go(ast.elements[i], provider, [...path, i])
@@ -261,7 +257,7 @@ const go: (
  * @since 4.0.0
  */
 export function schema<T, E>(codec: Schema.Codec<T, E>, path?: string | ConfigProvider.Path): Config<T> {
-  const serializer = Serializer.stringLeafJson(codec)
+  const serializer = Serializer.ensureArray(Serializer.stringLeafJson(codec))
   const decodeUnknownEffect = Schema.decodeUnknownEffect(serializer)
   const serializerEncodedAST = AST.encodedAST(serializer.ast)
   const defaultPath = Predicate.isString(path) ? [path] : path ?? []

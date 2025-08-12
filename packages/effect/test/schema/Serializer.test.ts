@@ -533,12 +533,6 @@ describe("Serializer", () => {
         strictEqual(serializer.ast, schema.ast)
       })
 
-      it("Array(String)", async () => {
-        const schema = Schema.Array(Schema.String)
-        const serializer = Serializer.stringLeafJson(schema)
-        strictEqual(serializer.ast, schema.ast)
-      })
-
       it("Struct({ a: String })", async () => {
         const schema = Schema.Struct({
           a: Schema.String
@@ -756,6 +750,24 @@ describe("Serializer", () => {
             { a: "2", categories: [] }
           ]
         }, { a: 1, categories: [{ a: 2, categories: [] }] })
+      })
+    })
+  })
+
+  describe("ensureArray", () => {
+    describe("should memoize the result", () => {
+      it("Struct", async () => {
+        const schema = Schema.Struct({
+          a: Schema.Finite
+        })
+        const serializer = Serializer.ensureArray(Serializer.stringLeafJson(schema))
+        strictEqual(serializer.ast, Serializer.ensureArray(Serializer.stringLeafJson(serializer)).ast)
+      })
+
+      it("Array", async () => {
+        const schema = Schema.Array(Schema.Finite)
+        const serializer = Serializer.ensureArray(Serializer.stringLeafJson(schema))
+        strictEqual(serializer.ast, Serializer.ensureArray(Serializer.stringLeafJson(serializer)).ast)
       })
     })
   })

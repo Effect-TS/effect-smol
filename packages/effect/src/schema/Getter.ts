@@ -408,3 +408,18 @@ export function joinKeyValue<E extends Record<PropertyKey, string>>(options?: {
     Object.entries(input).map(([key, value]) => `${key}${keyValueSeparator}${value}`).join(separator)
   )
 }
+
+/**
+ * Parses a string into an array of strings.
+ *
+ * An empty string is parsed as an empty array.
+ *
+ * @category String transformations
+ * @since 4.0.0
+ */
+export function split<E extends string>(options?: {
+  readonly separator?: string | undefined
+}): Getter<ReadonlyArray<string>, E> {
+  const separator = options?.separator ?? ","
+  return map((input) => input === "" ? [] : input.split(separator))
+}

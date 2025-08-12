@@ -5,7 +5,9 @@
 import * as Arr from "../collections/Array.ts"
 import * as Predicate from "../data/Predicate.ts"
 import * as AST from "./AST.ts"
+import * as Getter from "./Getter.ts"
 import * as Schema from "./Schema.ts"
+import * as Transformation from "./Transformation.ts"
 
 /**
  * For use cases like RPC or messaging systems, the JSON format only needs to
@@ -57,3 +59,47 @@ export function stringLeafJson<T, E, RD, RE>(
 ): Schema.Codec<T, StringLeafJson, RD, RE> {
   return Schema.make<Schema.Codec<T, StringLeafJson, RD, RE>>(AST.goStringLeafJson(goJson(codec.ast)))
 }
+
+/**
+ * @since 4.0.0
+ */
+export function ensureArray<T, RD, RE>(
+  codec: Schema.Codec<T, StringLeafJson, RD, RE>
+): Schema.Codec<T, StringLeafJson, RD, RE> {
+  return Schema.make<Schema.Codec<T, StringLeafJson, RD, RE>>(goEnsureArray(codec.ast))
+}
+
+/** @internal */
+export const goEnsureArray = AST.memoize((ast: AST.AST): AST.AST => {
+  if (ast.encoding) {
+    const links = ast.encoding
+    const last = links[links.length - 1]
+    const to = goEnsureArray(last.to)
+    if (to === last.to) {
+      return ast
+    }
+    return AST.replaceEncoding(ast, Arr.append(links.slice(0, links.length - 1), new AST.Link(to, last.transformation)))
+  }
+  if (AST.isUnionType(ast) && ast.annotations?.["~effect/schema/AST/ensureArray"]) {
+    return ast
+  }
+  const out: AST.AST = (ast as any).go?.(goEnsureArray) ?? ast
+  if (AST.isTupleType(out)) {
+    return new AST.UnionType(
+      [
+        out,
+        AST.decodeTo(
+          AST.stringKeyword,
+          out,
+          new Transformation.Transformation(
+            Getter.split(),
+            Getter.passthrough()
+          )
+        )
+      ],
+      "anyOf",
+      { "~effect/schema/AST/ensureArray": true }
+    )
+  }
+  return out
+})
