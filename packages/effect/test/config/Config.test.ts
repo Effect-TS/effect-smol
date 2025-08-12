@@ -591,6 +591,25 @@ describe("Config", () => {
           }
         )
       })
+
+      it("options", async () => {
+        const schema = Config.Record(Schema.String, Schema.String, { separator: "&", keyValueSeparator: "==" })
+        const config = Config.schema(schema, "OTEL_RESOURCE_ATTRIBUTES")
+
+        await assertSuccess(
+          config,
+          ConfigProvider.fromEnv({
+            env: {
+              OTEL_RESOURCE_ATTRIBUTES: "service.name==my-service&service.version==1.0.0&custom.attribute==value"
+            }
+          }),
+          {
+            "service.name": "my-service",
+            "service.version": "1.0.0",
+            "custom.attribute": "value"
+          }
+        )
+      })
     })
   })
 })

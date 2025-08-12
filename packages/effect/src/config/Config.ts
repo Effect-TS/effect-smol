@@ -366,17 +366,18 @@ export const LogLevel = Schema.Literals(LogLevel_.values)
  * @category Schemas
  * @since 4.0.0
  */
-export const Record = <K extends Schema.Record.Key, V extends Schema.Top>(key: K, value: V) => {
+export const Record = <K extends Schema.Record.Key, V extends Schema.Top>(key: K, value: V, options?: {
+  readonly separator?: string | undefined
+  readonly keyValueSeparator?: string | undefined
+}) => {
   const record = Schema.Record(key, value)
-  const recordString = RecordFromKeyValue.pipe(
+  const recordString = Schema.String.pipe(
+    Schema.decodeTo(
+      Schema.Record(Schema.String, Schema.String),
+      Transformation.splitKeyValue(options)
+    ),
     Schema.decodeTo(record)
   )
+
   return Schema.Union([record, recordString])
 }
-
-const RecordFromKeyValue = Schema.String.pipe(
-  Schema.decodeTo(
-    Schema.Record(Schema.String, Schema.String),
-    Transformation.splitKeyValue()
-  )
-)
