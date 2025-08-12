@@ -9,7 +9,7 @@ import * as ServiceMap from "../../ServiceMap.ts"
 import type { Mutable, unhandled } from "../../types/Types.ts"
 import type { Headers } from "../http/Headers.ts"
 import type * as Rpc from "./Rpc.ts"
-import type { Request } from "./RpcMessage.js"
+import type { Request } from "./RpcMessage.ts"
 
 /**
  * @since 4.0.0
