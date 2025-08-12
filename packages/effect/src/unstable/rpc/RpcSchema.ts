@@ -4,7 +4,7 @@
 import * as Option from "../../data/Option.ts"
 import type { Annotations } from "../../schema/Annotations.ts"
 import type * as AST from "../../schema/AST.ts"
-import * as Schema from "../../schema/Schema.js"
+import * as Schema from "../../schema/Schema.ts"
 import * as Stream_ from "../../stream/Stream.ts"
 
 /**

@@ -8,7 +8,7 @@ import { Scope } from "../../Scope.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import type { Mutable, unhandled } from "../../types/Types.ts"
 import type { Headers } from "../http/Headers.ts"
-import type * as Rpc from "./Rpc.js"
+import type * as Rpc from "./Rpc.ts"
 import type { Request } from "./RpcMessage.js"
 
 /**

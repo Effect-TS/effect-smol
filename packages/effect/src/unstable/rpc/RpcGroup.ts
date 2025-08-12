@@ -11,7 +11,7 @@ import type { Scope } from "../../Scope.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import * as Stream from "../../stream/Stream.ts"
 import type { Headers } from "../http/Headers.ts"
-import * as Rpc from "./Rpc.js"
+import * as Rpc from "./Rpc.ts"
 import type * as RpcMiddleware from "./RpcMiddleware.ts"
 
 /**
