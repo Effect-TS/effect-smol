@@ -205,6 +205,28 @@ export function unknownFromJsonString(options?: JsonOptions): Transformation<unk
   )
 }
 
+/**
+ * A transformation that decodes a string into a record of key-value pairs and
+ * encodes a record of key-value pairs into a string.
+ *
+ * **Options**
+ *
+ * - `separator`: The separator between key-value pairs. Defaults to `,`.
+ * - `keyValueSeparator`: The separator between key and value. Defaults to `=`.
+ *
+ * @category String transformations
+ * @since 4.0.0
+ */
+export function splitKeyValue(options?: {
+  readonly separator?: string | undefined
+  readonly keyValueSeparator?: string | undefined
+}): Transformation<Record<string, string>, string> {
+  return new Transformation(
+    Getter.splitKeyValue(options),
+    Getter.joinKeyValue(options)
+  )
+}
+
 const passthrough_ = new Transformation(
   Getter.passthrough<any>(),
   Getter.passthrough<any>()

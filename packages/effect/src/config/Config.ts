@@ -101,35 +101,6 @@ export const map: {
 })
 
 /**
- * @category Schemas
- * @since 4.0.0
- */
-export const Record = <K extends Schema.Record.Key, V extends Schema.Schema<any>>(key: K, value: V) => {
-  const record = Schema.Record(key, value)
-  const recordString = keyValue.pipe(
-    Schema.decodeTo(record)
-  )
-  return Schema.Union([record, recordString])
-}
-
-const keyValue = Schema.String.pipe(
-  Schema.decodeTo(
-    Schema.Record(Schema.String, Schema.String),
-    Transformation.transform({
-      decode: (input) =>
-        input.split(",").reduce((acc, pair) => {
-          const [key, value] = pair.split("=")
-          if (key && value) {
-            acc[key] = value
-          }
-          return acc
-        }, {} as Record<string, string>),
-      encode: (r) => Object.entries(r).map(([key, value]) => `${key}=${value}`).join(",")
-    })
-  )
-)
-
-/**
  * Wraps a nested structure, converting all primitives to a `Config`.
  *
  * `Config.Wrap<{ key: string }>` becomes `{ key: Config<string> }`
@@ -362,3 +333,50 @@ export const Port = Schema.Int.check(Check.between(1, 65535))
  * @since 4.0.0
  */
 export const LogLevel = Schema.Literals(LogLevel_.values)
+
+/**
+ * A schema for records of key-value pairs.
+ *
+ * Records can be encoded as strings of key-value pairs separated by commas.
+ *
+ * **Example**
+ *
+ * ```ts
+ * import { Effect } from "effect"
+ * import { Config, ConfigProvider } from "effect/config"
+ * import { Schema } from "effect/schema"
+ *
+ * const schema = Config.Record(Schema.String, Schema.String)
+ * const config = Config.schema(schema, "OTEL_RESOURCE_ATTRIBUTES")
+ *
+ * const provider = ConfigProvider.fromEnv({
+ *   env: {
+ *     OTEL_RESOURCE_ATTRIBUTES: "service.name=my-service,service.version=1.0.0,custom.attribute=value"
+ *   }
+ * })
+ *
+ * console.dir(Effect.runSync(config.parse(provider)))
+ * // {
+ * //   'service.name': 'my-service',
+ * //   'service.version': '1.0.0',
+ * //   'custom.attribute': 'value'
+ * // }
+ * ```
+ *
+ * @category Schemas
+ * @since 4.0.0
+ */
+export const Record = <K extends Schema.Record.Key, V extends Schema.Top>(key: K, value: V) => {
+  const record = Schema.Record(key, value)
+  const recordString = RecordFromKeyValue.pipe(
+    Schema.decodeTo(record)
+  )
+  return Schema.Union([record, recordString])
+}
+
+const RecordFromKeyValue = Schema.String.pipe(
+  Schema.decodeTo(
+    Schema.Record(Schema.String, Schema.String),
+    Transformation.splitKeyValue()
+  )
+)
