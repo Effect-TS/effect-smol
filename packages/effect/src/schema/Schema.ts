@@ -3808,7 +3808,7 @@ function makeClass<
   schema: S,
   annotations?: Annotations.Declaration<Self, readonly [S]>
 ): any {
-  const computeAST = getComputeAST(schema.ast, Annotations.merge({ id } as Annotations.Annotations, annotations))
+  const computeAST = getComputeAST(schema.ast, Annotations.merge(annotations, { id }))
 
   return class extends Inherited {
     constructor(...[input, options]: ReadonlyArray<any>) {

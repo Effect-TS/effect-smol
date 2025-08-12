@@ -38,6 +38,14 @@ describe("Schema", () => {
     assertFalse(Schema.isSchema({}))
   })
 
+  describe("annotate", () => {
+    it("should remove any existing id annotation", () => {
+      const schema = Schema.String.annotate({ id: "a" })
+      strictEqual(schema.ast.annotations?.id, "a")
+      strictEqual(schema.annotate({}).ast.annotations?.id, undefined)
+    })
+  })
+
   describe("Literal", () => {
     it("should throw an error if the literal is not a finite number", () => {
       throws(
@@ -3667,12 +3675,12 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       await assertions.encoding.fail(
         A,
         null,
-        "Expected A, got null"
+        "Expected <Declaration>, got null"
       )
       await assertions.encoding.fail(
         A,
         { a: "a" },
-        `Expected A, got {"a":"a"}`
+        `Expected <Declaration>, got {"a":"a"}`
       )
     })
 
