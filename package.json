@@ -102,7 +102,9 @@
       "msw",
       "protobufjs",
       "ssh2",
-      "workerd"
+      "workerd",
+      "core-js",
+      "unrs-resolver"
     ],
     "onlyBuiltDependencies": [
       "better-sqlite3"

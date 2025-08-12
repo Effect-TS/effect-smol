@@ -36,12 +36,10 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-      - name: Install deno
-        uses: denoland/setup-deno@v2
       - name: Install dependencies
         uses: ./.github/actions/setup
         with:
-          deno: true
+          deno-version: canary
       - run: deno check
 
   bundle:
