@@ -414,14 +414,16 @@ const securityQuery = HttpApiSecurity.apiKey({
 
 class CurrentUser extends ServiceMap.Key<CurrentUser, User>()("CurrentUser") {}
 
-class Authorization extends HttpApiMiddleware.Key<Authorization>()("Authorization", {
+class Authorization extends HttpApiMiddleware.Key<Authorization, {
+  provides: CurrentUser
+  requires: never
+}>()("Authorization", {
   security: {
     cookie: HttpApiSecurity.apiKey({
       in: "cookie",
       key: "token"
     })
-  },
-  provides: CurrentUser
+  }
 }) {}
 
 class GroupsApi extends HttpApiGroup.make("groups").add(
@@ -581,8 +583,10 @@ class UserRepo extends ServiceMap.Key<UserRepo, {
 const AuthorizationLive = Layer.succeed(
   Authorization
 )({
-  cookie: (token) =>
-    Effect.succeed(
+  cookie: (effect, token) =>
+    Effect.provideService(
+      effect,
+      CurrentUser,
       new User({
         id: 1,
         name: Redacted.value(token),
