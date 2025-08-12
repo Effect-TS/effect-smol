@@ -1,4 +1,4 @@
-import { Effect, flow, pipe, ServiceMap } from "effect"
+import { Effect, Exit, flow, pipe, ServiceMap } from "effect"
 import { Option, Order, Predicate, Struct, Tuple } from "effect/data"
 import { Equal } from "effect/interfaces"
 import { String as Str } from "effect/primitives"
@@ -1940,6 +1940,52 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
         Option.some(null),
         `Expected number, got null
   at ["value"]`
+      )
+    })
+  })
+
+  describe("Exit", () => {
+    it("Exit(FiniteFromString, String, Unknown)", async () => {
+      const schema = Schema.Exit(Schema.FiniteFromString, Schema.String, Schema.Unknown)
+
+      await assertions.decoding.succeed(schema, Exit.succeed("123"), { expected: Exit.succeed(123) })
+      await assertions.decoding.succeed(schema, Exit.fail("boom"), { expected: Exit.fail("boom") })
+      await assertions.decoding.fail(
+        schema,
+        null,
+        `Expected Exit<number, Cause<Failure<string, unknown>>>, got null`
+      )
+      await assertions.decoding.fail(
+        schema,
+        Exit.succeed(123),
+        `Expected string, got 123
+  at ["value"]`
+      )
+      await assertions.decoding.fail(
+        schema,
+        Exit.fail(null),
+        `Expected string, got null
+  at ["cause"]["failures"][0]["error"]`
+      )
+    })
+
+    it("Exit(FiniteFromString, String, Defect)", async () => {
+      const schema = Schema.Exit(Schema.FiniteFromString, Schema.String, Schema.Defect)
+      const boomError = new Error("boom message", {
+        cause: {
+          name: "boom",
+          message: "boom message"
+        }
+      })
+      boomError.name = "boom"
+
+      await assertions.decoding.succeed(
+        schema,
+        Exit.die({
+          name: "boom",
+          message: "boom message"
+        }),
+        { expected: Exit.die(boomError) }
       )
     })
   })

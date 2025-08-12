@@ -1,6 +1,7 @@
 /**
  * @since 4.0.0
  */
+import * as Option from "../../data/Option.ts"
 import * as Predicate from "../../data/Predicate.ts"
 import type * as Struct from "../../data/Struct.ts"
 import type { Effect } from "../../Effect.ts"
@@ -186,14 +187,20 @@ export type Tag<R> = R extends Rpc<
  * @since 4.0.0
  * @category models
  */
-export type Success<R> = R extends Rpc<
+export type SuccessSchema<R> = R extends Rpc<
   infer _Tag,
   infer _Payload,
   infer _Success,
   infer _Error,
   infer _Middleware
-> ? _Success["Type"]
+> ? _Success
   : never
+
+/**
+ * @since 4.0.0
+ * @category models
+ */
+export type Success<R> = SuccessSchema<R>["Type"]
 
 /**
  * @since 4.0.0
@@ -212,6 +219,12 @@ export type SuccessEncoded<R> = R extends Rpc<
  * @since 4.0.0
  * @category models
  */
+export type SuccessExitSchema<R> = SuccessSchema<R> extends RpcSchema.Stream<infer _A, infer _E> ? _A : SuccessSchema<R>
+
+/**
+ * @since 4.0.0
+ * @category models
+ */
 export type SuccessExit<R> = Success<R> extends infer T ? T extends Stream<infer _A, infer _E, infer _Env> ? void : T
   : never
 
@@ -219,21 +232,7 @@ export type SuccessExit<R> = Success<R> extends infer T ? T extends Stream<infer
  * @since 4.0.0
  * @category models
  */
-export type SuccessExitEncoded<R> = SuccessEncoded<R> extends infer T ?
-  T extends Stream<infer _A, infer _E, infer _Env> ? void : T
-  : never
-
-/**
- * @since 4.0.0
- * @category models
- */
 export type SuccessChunk<R> = Success<R> extends Stream<infer _A, infer _E, infer _Env> ? _A : never
-
-/**
- * @since 4.0.0
- * @category models
- */
-export type SuccessChunkEncoded<R> = SuccessEncoded<R> extends Stream<infer _A, infer _E, infer _Env> ? _A : never
 
 /**
  * @since 4.0.0
@@ -258,7 +257,9 @@ export type Error<R> = Schema.Schema.Type<ErrorSchema<R>>
  * @since 4.0.0
  * @category models
  */
-export type ErrorEncoded<R> = ErrorSchema<R>["Encoded"]
+export type ErrorExitSchema<R> = SuccessSchema<R> extends RpcSchema.Stream<infer _A, infer _E> ? _E | ErrorSchema<R>
+  : ErrorSchema<R>
+
 /**
  * @since 4.0.0
  * @category models
@@ -269,21 +270,7 @@ export type ErrorExit<R> = Success<R> extends Stream<infer _A, infer _E, infer _
  * @since 4.0.0
  * @category models
  */
-export type ErrorExitEncoded<R> = SuccessEncoded<R> extends Stream<infer _A, infer _E, infer _Env>
-  ? _E | ErrorEncoded<R>
-  : ErrorEncoded<R>
-
-/**
- * @since 4.0.0
- * @category models
- */
 export type Exit<R> = Exit_<SuccessExit<R>, ErrorExit<R>>
-
-/**
- * @since 4.0.0
- * @category models
- */
-export type ExitEncoded<R, Defect = unknown> = Schema.ExitEncoded<SuccessExitEncoded<R>, ErrorExitEncoded<R>, Defect>
 
 /**
  * @since 4.0.0
@@ -672,36 +659,39 @@ export const make = <
   }) as any
 }
 
-// TODO: Schema.Exit
-// const exitSchemaCache = new WeakMap<Any, Schema.Schema<any>>()
-//
-// /**
-//  * @since 4.0.0
-//  * @category constructors
-//  */
-// export const exitSchema = <R extends Any>(
-//   self: R
-// ): Schema.Schema<Exit<R>, ExitEncoded<R>, Context<R>> => {
-//   if (exitSchemaCache.has(self)) {
-//     return exitSchemaCache.get(self) as any
-//   }
-//   const rpc = self as any as AnyWithProps
-//   const failures = new Set<Schema.Top>([rpc.errorSchema])
-//   const streamSchemas = RpcSchema.getStreamSchemas(rpc.successSchema.ast)
-//   if (Option.isSome(streamSchemas)) {
-//     failures.add(streamSchemas.value.failure)
-//   }
-//   for (const middleware of rpc.middlewares) {
-//     failures.add(middleware.failure)
-//   }
-//   const schema = Schema.Exit({
-//     success: Option.isSome(streamSchemas) ? Schema.Void : rpc.successSchema,
-//     failure: Schema.Union(...failures),
-//     defect: Schema.Defect
-//   })
-//   exitSchemaCache.set(self, schema)
-//   return schema as any
-// }
+const exitSchemaCache = new WeakMap<Any, Schema.Exit<Schema.Top, Schema.Top, Schema.Defect>>()
+
+/**
+ * @since 4.0.0
+ * @category constructors
+ */
+export const exitSchema = <R extends Any>(
+  self: R
+): Schema.Exit<
+  SuccessExitSchema<R>,
+  ErrorExitSchema<R>,
+  Schema.Defect
+> => {
+  if (exitSchemaCache.has(self)) {
+    return exitSchemaCache.get(self) as any
+  }
+  const rpc = self as any as AnyWithProps
+  const failures = new Set<Schema.Top>([rpc.errorSchema])
+  const streamSchemas = RpcSchema.getStreamSchemas(rpc.successSchema.ast)
+  if (Option.isSome(streamSchemas)) {
+    failures.add(streamSchemas.value.error)
+  }
+  for (const middleware of rpc.middlewares) {
+    failures.add(middleware.error)
+  }
+  const schema = Schema.Exit(
+    Option.isSome(streamSchemas) ? Schema.Void : rpc.successSchema,
+    Schema.Union([...failures]),
+    Schema.Defect
+  )
+  exitSchemaCache.set(self, schema as any)
+  return schema as any
+}
 
 /**
  * @since 4.0.0

@@ -4,7 +4,7 @@
 
 import type { StandardSchemaV1 } from "@standard-schema/spec"
 import * as Request from "../batching/Request.ts"
-import * as Cause from "../Cause.ts"
+import * as Cause_ from "../Cause.ts"
 import * as Arr from "../collections/Array.ts"
 import type { Brand } from "../data/Brand.ts"
 import * as Data from "../data/Data.ts"
@@ -16,11 +16,14 @@ import * as Result from "../data/Result.ts"
 import type { Lambda, Merge, Mutable, Simplify } from "../data/Struct.ts"
 import { lambda, renameKeys } from "../data/Struct.ts"
 import * as Effect from "../Effect.ts"
-import * as Exit from "../Exit.ts"
+import * as Exit_ from "../Exit.ts"
 import { identity } from "../Function.ts"
+import * as Equal from "../interfaces/Equal.ts"
+import { stringifyCircular } from "../interfaces/Inspectable.ts"
 import type { Pipeable } from "../interfaces/Pipeable.ts"
 import { pipeArguments } from "../interfaces/Pipeable.ts"
 import * as core from "../internal/core.ts"
+import * as InternalEffect from "../internal/effect.ts"
 import * as Scheduler from "../Scheduler.ts"
 import * as DateTime from "../time/DateTime.ts"
 import * as Duration_ from "../time/Duration.ts"
@@ -379,9 +382,9 @@ export class SchemaError extends Data.TaggedError("SchemaError")<{
   }
 }
 
-function makeStandardResult<A>(exit: Exit.Exit<StandardSchemaV1.Result<A>>): StandardSchemaV1.Result<A> {
-  return Exit.isSuccess(exit) ? exit.value : {
-    issues: [{ message: Cause.pretty(exit.cause) }]
+function makeStandardResult<A>(exit: Exit_.Exit<StandardSchemaV1.Result<A>>): StandardSchemaV1.Result<A> {
+  return Exit_.isSuccess(exit) ? exit.value : {
+    issues: [{ message: Cause_.pretty(exit.cause) }]
   }
 }
 
@@ -3255,6 +3258,307 @@ export function Option<S extends Top>(value: S): Option<S> {
 }
 
 /**
+ * @since 4.0.0
+ */
+export interface CauseFailure<E extends Top, D extends Top>
+  extends declare<Cause_.Failure<E["Type"]>, Cause_.Failure<E["Encoded"]>, readonly [E, D]>
+{
+  readonly "~rebuild.out": CauseFailure<E, D>
+}
+
+/**
+ * @category Constructors
+ * @since 4.0.0
+ */
+export function CauseFailure<E extends Top, D extends Top>(error: E, defect: D): CauseFailure<E, D> {
+  return declareConstructor([error, defect])<Cause_.Failure<E["Encoded"]>>()(
+    ([error, defect]) => (finput, ast, options): Effect.Effect<Cause_.Failure<E["Type"]>, Issue.Issue> => {
+      if (!Cause_.isFailure(finput)) {
+        return Effect.fail(new Issue.InvalidType(ast, O.some(finput)))
+      }
+      switch (finput._tag) {
+        case "Fail":
+          return ToParser.decodeUnknownEffect(error)(finput.error, options).pipe(Effect.mapBothEager(
+            {
+              onSuccess: Cause_.failureFail,
+              onFailure: (issue) => new Issue.Composite(ast, O.some(finput), [new Issue.Pointer(["error"], issue)])
+            }
+          ))
+        case "Die":
+          return ToParser.decodeUnknownEffect(defect)(finput.defect, options).pipe(Effect.mapBothEager(
+            {
+              onSuccess: Cause_.failureDie,
+              onFailure: (issue) => new Issue.Composite(ast, O.some(finput), [new Issue.Pointer(["defect"], issue)])
+            }
+          ))
+        case "Interrupt":
+          return Effect.succeed(finput)
+      }
+    },
+    {
+      title: "Failure",
+      defaultJsonSerializer: ([error, defect]) =>
+        link<Cause_.Failure<E["Encoded"]>>()(
+          Union([
+            TaggedStruct("Fail", { error }),
+            TaggedStruct("Die", { defect }),
+            TaggedStruct("Interrupt", { fiberId: Option(Finite) })
+          ]),
+          Transformation.transform({
+            decode: (input) => {
+              switch (input._tag) {
+                case "Fail":
+                  return Cause_.failureFail(input.error)
+                case "Die":
+                  return Cause_.failureDie(input.defect)
+                case "Interrupt":
+                  return Cause_.failureInterrupt(O.getOrUndefined(input.fiberId))
+              }
+            },
+            encode: (o) => {
+              switch (o._tag) {
+                case "Fail":
+                  return { _tag: "Fail", error: o.error } as const
+                case "Die":
+                  return { _tag: "Die", defect: o.defect } as const
+                case "Interrupt":
+                  return { _tag: "Interrupt", fiberId: o.fiberId } as const
+              }
+            }
+          })
+        ),
+      arbitrary: {
+        _tag: "Declaration",
+        declaration: ([error, defect]) => (fc, ctx) => {
+          return fc.oneof(
+            ctx?.isSuspend ? { maxDepth: 2, depthIdentifier: "Cause.Failure" } : {},
+            fc.constant(Cause_.failureInterrupt()),
+            fc.integer({ min: 1 }).map(Cause_.failureInterrupt),
+            error.map((e) => Cause_.failureFail(e)),
+            defect.map((d) => Cause_.failureDie(d))
+          )
+        }
+      },
+      equivalence: {
+        _tag: "Declaration",
+        declaration: ([error, defect]) => (a, b) => {
+          if (a._tag !== b._tag) return false
+          switch (a._tag) {
+            case "Fail":
+              return error(a.error, (b as Cause_.Fail<unknown>).error)
+            case "Die":
+              return defect(a.defect, (b as Cause_.Die).defect)
+            case "Interrupt":
+              return Equal.equals(a.fiberId, (b as Cause_.Interrupt).fiberId)
+          }
+        }
+      },
+      pretty: {
+        _tag: "Declaration",
+        declaration: ([error, defect]) => (t) => {
+          switch (t._tag) {
+            case "Fail":
+              return `Fail(${error(t.error)})`
+            case "Die":
+              return `Die(${defect(t.defect)})`
+            case "Interrupt":
+              return "Interrupt"
+          }
+        }
+      }
+    }
+  )
+}
+
+/**
+ * @since 4.0.0
+ */
+export interface Cause<E extends Top, D extends Top>
+  extends declare<Cause_.Cause<E["Type"]>, Cause_.Cause<E["Encoded"]>, readonly [CauseFailure<E, D>]>
+{
+  readonly "~rebuild.out": Cause<E, D>
+}
+
+/**
+ * @category Constructors
+ * @since 4.0.0
+ */
+export function Cause<E extends Top, D extends Top>(error: E, defect: D): Cause<E, D> {
+  return declareConstructor([CauseFailure(error, defect)])<Cause_.Cause<E["Encoded"]>>()(
+    ([failure]) => (cinput, ast, options) => {
+      if (!Cause_.isCause(cinput)) {
+        return Effect.fail(new Issue.InvalidType(ast, O.some(cinput)))
+      }
+      return ToParser.decodeUnknownEffect(Array(failure))(cinput.failures, options).pipe(Effect.mapBothEager(
+        {
+          onSuccess: Cause_.fromFailures,
+          onFailure: (issue) => new Issue.Composite(ast, O.some(cinput), [new Issue.Pointer(["failures"], issue)])
+        }
+      ))
+    },
+    {
+      title: "Cause",
+      defaultJsonSerializer: ([failure]) =>
+        link<Cause_.Cause<E["Encoded"]>>()(
+          Struct({
+            _id: tag("Cause"),
+            failures: Array(failure)
+          }),
+          Transformation.transform({
+            decode: ({ failures }) => Cause_.fromFailures(failures),
+            encode: ({ failures }) => ({ _id: "Cause", failures } as const)
+          })
+        ),
+      arbitrary: {
+        _tag: "Declaration",
+        declaration: ([failure]) => (fc, _ctx) =>
+          fc.array(failure, { maxLength: 10 }).map((failures) => Cause_.fromFailures(failures))
+      },
+      equivalence: {
+        _tag: "Declaration",
+        declaration: ([failure]) => (a, b) => Arr.getEquivalence(failure)(a.failures, b.failures)
+      },
+      pretty: {
+        _tag: "Declaration",
+        declaration: ([failure]) => (t) => {
+          return `Cause([${t.failures.map((f) => failure(f)).join(", ")}])`
+        }
+      }
+    }
+  )
+}
+
+/**
+ * @since 4.0.0
+ */
+export interface Defect extends Unknown {
+  readonly "~rebuild.out": Defect
+}
+
+/**
+ * @category Constructors
+ * @since 4.0.0
+ */
+export const Defect: Defect = Unknown.annotate({
+  title: "Defect"
+}).pipe(
+  decodeTo(
+    Unknown,
+    Transformation.transform({
+      decode: (i): unknown => {
+        if (Predicate.isObject(i) && "message" in i && typeof i.message === "string") {
+          const err = new Error(i.message, { cause: i })
+          if ("name" in i && typeof i.name === "string") {
+            err.name = i.name
+          }
+          err.stack = "stack" in i && typeof i.stack === "string" ? i.stack : ""
+          return err
+        }
+        return stringifyCircular(i)
+      },
+      encode: (a) => {
+        if (a instanceof Error) {
+          return {
+            name: a.name,
+            message: a.message
+            // no stack because of security reasons
+          }
+        } else if (typeof a === "object" && a !== null) {
+          return InternalEffect.causePrettyMessage(a as Record<string, unknown>)
+        }
+        return stringifyCircular(a)
+      }
+    })
+  )
+)
+
+/**
+ * @since 4.0.0
+ */
+export interface Exit<A extends Top, E extends Top, D extends Top>
+  extends declare<Exit_.Exit<A["Type"], E["Type"]>, Exit_.Exit<A["Encoded"], E["Encoded"]>, readonly [A, Cause<E, D>]>
+{
+  readonly "~rebuild.out": Exit<A, E, D>
+}
+
+/**
+ * @category Constructors
+ * @since 4.0.0
+ */
+export function Exit<A extends Top, E extends Top, D extends Top>(value: A, error: E, defect: D): Exit<A, E, D> {
+  return declareConstructor([value, Cause(error, defect)])<Exit_.Exit<A["Encoded"], E["Encoded"]>>()(
+    ([value, cause]) => (einput, ast, options): Effect.Effect<Exit_.Exit<A["Type"], E["Type"]>, Issue.Issue> => {
+      if (!Exit_.isExit(einput)) {
+        return Effect.fail(new Issue.InvalidType(ast, O.some(einput)))
+      }
+      switch (einput._tag) {
+        case "Success":
+          return ToParser.decodeUnknownEffect(value)(einput.value, options).pipe(Effect.mapBothEager(
+            {
+              onSuccess: Exit_.succeed,
+              onFailure: (issue) => new Issue.Composite(ast, O.some(einput), [new Issue.Pointer(["value"], issue)])
+            }
+          ))
+        case "Failure":
+          return ToParser.decodeUnknownEffect(cause)(einput.cause, options).pipe(Effect.mapBothEager(
+            {
+              onSuccess: Exit_.failCause,
+              onFailure: (issue) => new Issue.Composite(ast, O.some(einput), [new Issue.Pointer(["cause"], issue)])
+            }
+          ))
+      }
+    },
+    {
+      title: "Exit",
+      defaultJsonSerializer: ([value, cause]) =>
+        link<Exit_.Exit<A["Encoded"], E["Encoded"]>>()(
+          Union([
+            TaggedStruct("Success", { value }),
+            TaggedStruct("Failure", { cause })
+          ]),
+          Transformation.transform({
+            decode: (encoded): Exit_.Exit<A["Encoded"], E["Encoded"]> =>
+              encoded._tag === "Success" ? Exit_.succeed(encoded.value) : Exit_.failCause(encoded.cause),
+            encode: (exit) => exit
+          })
+        ),
+      arbitrary: {
+        _tag: "Declaration",
+        declaration: ([value, cause]) => (fc, ctx) =>
+          fc.oneof(
+            ctx?.isSuspend ? { maxDepth: 2, depthIdentifier: "Exit" } : {},
+            value.map((v) => Exit_.succeed(v)),
+            cause.map((cause) => Exit_.failCause(cause))
+          )
+      },
+      equivalence: {
+        _tag: "Declaration",
+        declaration: ([value, cause]) => (a, b) => {
+          if (a._tag !== b._tag) return false
+          switch (a._tag) {
+            case "Success":
+              return value(a.value, (b as Exit_.Success<A["Type"]>).value)
+            case "Failure":
+              return cause(a.cause, (b as Exit_.Failure<E["Type"], D["Type"]>).cause)
+          }
+        }
+      },
+      pretty: {
+        _tag: "Declaration",
+        declaration: ([value, cause]) => (t) => {
+          switch (t._tag) {
+            case "Success":
+              return `Exit.Success(${value(t.value)})`
+            case "Failure":
+              return `Exit.Failure(${cause(t.cause)})`
+          }
+        }
+      }
+    }
+  )
+}
+
+/**
  * A schema for non-empty strings. Validates that a string has at least one
  * character.
  *
@@ -4003,17 +4307,17 @@ export const ErrorClass: {
     <const Fields extends Struct.Fields>(
       fields: Fields,
       annotations?: Annotations.Declaration<Self, readonly [Struct<Fields>]>
-    ): ErrorClass<Self, Struct<Fields>, Cause.YieldableError & Brand>
+    ): ErrorClass<Self, Struct<Fields>, Cause_.YieldableError & Brand>
     <S extends Struct<Struct.Fields>>(
       schema: S,
       annotations?: Annotations.Declaration<Self, readonly [S]>
-    ): ErrorClass<Self, S, Cause.YieldableError & Brand>
+    ): ErrorClass<Self, S, Cause_.YieldableError & Brand>
   }
 } = <Self, Brand = {}>(id: string) =>
 (
   schema: Struct.Fields | Struct<Struct.Fields>,
   annotations?: Annotations.Declaration<Self, readonly [Struct<Struct.Fields>]>
-): ErrorClass<Self, Struct<Struct.Fields>, Cause.YieldableError & Brand> => {
+): ErrorClass<Self, Struct<Struct.Fields>, Cause_.YieldableError & Brand> => {
   const struct = isSchema(schema) ? schema : Struct(schema)
 
   return makeClass(

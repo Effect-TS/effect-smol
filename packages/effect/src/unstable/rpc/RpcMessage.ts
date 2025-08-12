@@ -196,8 +196,6 @@ export interface ResponseExitEncoded {
   readonly _tag: "Exit"
   readonly requestId: string
   readonly exit: unknown
-  // TODO: Use Schema.Exit when available
-  // readonly exit: Schema.ExitEncoded<unknown, unknown, unknown>
 }
 
 /**

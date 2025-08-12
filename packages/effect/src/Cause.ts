@@ -80,6 +80,18 @@ export const TypeId: TypeId = core.CauseTypeId
 export type TypeId = "~effect/Cause"
 
 /**
+ * @since 4.0.0
+ * @category type ids
+ */
+export const FailureTypeId: FailureTypeId = core.CauseFailureTypeId
+
+/**
+ * @since 2.0.0
+ * @category type ids
+ */
+export type FailureTypeId = "~effect/Cause/Failure"
+
+/**
  * A `Cause` is a data type that represents the different ways a `Effect` can fail.
  *
  * @example
@@ -118,6 +130,12 @@ export interface Cause<out E> extends Pipeable, Inspectable, Equal {
  * @since 2.0.0
  */
 export const isCause: (self: unknown) => self is Cause<unknown> = core.isCause
+
+/**
+ * @category guards
+ * @since 2.0.0
+ */
+export const isFailure: (self: unknown) => self is Failure<unknown> = core.isCauseFailure
 
 /**
  * @example
@@ -239,6 +257,7 @@ export declare namespace Cause {
    * @category models
    */
   export interface FailureProto<Tag extends string> extends Inspectable {
+    readonly [FailureTypeId]: FailureTypeId
     readonly _tag: Tag
     readonly annotations: ReadonlyMap<string, unknown>
     annotate<I, S>(tag: ServiceMap.Key<I, S>, value: S, options?: {

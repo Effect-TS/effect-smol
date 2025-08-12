@@ -298,7 +298,7 @@ const causePrettyError = (
   const kind = typeof original
   let error: Error
   if (original && kind === "object") {
-    error = new globalThis.Error(extractErrorMessage(original), {
+    error = new globalThis.Error(causePrettyMessage(original), {
       cause: original.cause ? causePrettyError(original.cause as any) : undefined
     })
     if (typeof original.name === "string") {
@@ -322,7 +322,8 @@ const causePrettyError = (
   return error
 }
 
-const extractErrorMessage = (u: Record<string, unknown> | Error): string => {
+/** @internal */
+export const causePrettyMessage = (u: Record<string, unknown> | Error): string => {
   if (typeof u.message === "string") {
     return u.message
   } else if (
