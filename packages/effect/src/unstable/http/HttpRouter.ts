@@ -69,14 +69,14 @@ export interface HttpRouter {
   readonly addGlobalMiddleware: <E, R>(
     middleware:
       & ((
-        effect: Effect.Effect<HttpServerResponse.HttpServerResponse, unhandled>
+        effect: Effect.Effect<HttpServerResponse.HttpServerResponse, Types.unhandled>
       ) => Effect.Effect<HttpServerResponse.HttpServerResponse, E, R>)
-      & (unhandled extends E ? unknown : "You cannot handle any errors")
+      & (Types.unhandled extends E ? unknown : "You cannot handle any errors")
   ) => Effect.Effect<
     void,
     never,
     | Request.From<"GlobalRequires", Exclude<R, GlobalProvided>>
-    | Request.From<"GlobalError", Exclude<E, unhandled>>
+    | Request.From<"GlobalError", Exclude<E, Types.unhandled>>
   >
 
   readonly asHttpEffect: () => Effect.Effect<
@@ -688,17 +688,6 @@ export const MiddlewareTypeId: MiddlewareTypeId = "~effect/http/HttpRouter/Middl
 export type MiddlewareTypeId = "~effect/http/HttpRouter/Middleware"
 
 /**
- * A pseudo-error type that represents an error that should be not handled by
- * the middleware.
- *
- * @since 4.0.0
- * @category Middleware
- */
-export interface unhandled {
-  readonly _: unique symbol
-}
-
-/**
  * @since 4.0.0
  * @category Middleware
  */
@@ -937,7 +926,7 @@ export declare namespace middleware {
         (
           effect: Effect.Effect<
             HttpServerResponse.HttpServerResponse,
-            Types.NoInfer<Handles | unhandled>,
+            Types.NoInfer<Handles | Types.unhandled>,
             Types.NoInfer<Provides>
           >
         ) =>
@@ -946,7 +935,7 @@ export declare namespace middleware {
             E,
             R
           >
-          & (unhandled extends E ? unknown : "You must only handle the configured errors"),
+          & (Types.unhandled extends E ? unknown : "You must only handle the configured errors"),
         EX,
         RX
       >,
@@ -962,12 +951,12 @@ export declare namespace middleware {
         | HttpRouter
         | Exclude<RX, Scope.Scope>
         | Request.From<"GlobalRequires", Exclude<R, GlobalProvided>>
-        | Request.From<"GlobalError", Exclude<E, unhandled>>
+        | Request.From<"GlobalError", Exclude<E, Types.unhandled>>
       > :
       Middleware<{
         provides: Provides
         handles: Handles
-        error: Exclude<E, unhandled>
+        error: Exclude<E, Types.unhandled>
         requires: Exclude<R, Provided>
         layerError: EX
         layerRequires: Exclude<RX, Scope.Scope>
@@ -977,7 +966,7 @@ export declare namespace middleware {
         & ((
           effect: Effect.Effect<
             HttpServerResponse.HttpServerResponse,
-            Types.NoInfer<Handles | unhandled>,
+            Types.NoInfer<Handles | Types.unhandled>,
             Types.NoInfer<Provides>
           >
         ) => Effect.Effect<
@@ -985,7 +974,7 @@ export declare namespace middleware {
           E,
           R
         >)
-        & (unhandled extends E ? unknown : "You must only handle the configured errors"),
+        & (Types.unhandled extends E ? unknown : "You must only handle the configured errors"),
       options?: {
         readonly global?: Global | undefined
       }
@@ -997,12 +986,12 @@ export declare namespace middleware {
         never,
         | HttpRouter
         | Request.From<"GlobalRequires", Exclude<R, GlobalProvided>>
-        | Request.From<"GlobalError", Exclude<E, unhandled>>
+        | Request.From<"GlobalError", Exclude<E, Types.unhandled>>
       > :
       Middleware<{
         provides: Provides
         handles: Handles
-        error: Exclude<E, unhandled>
+        error: Exclude<E, Types.unhandled>
         requires: Exclude<R, Provided>
         layerError: never
         layerRequires: never

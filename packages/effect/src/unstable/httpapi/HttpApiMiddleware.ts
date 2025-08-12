@@ -6,6 +6,7 @@ import type { Simplify } from "../../data/Struct.ts"
 import type * as Effect from "../../Effect.ts"
 import * as Schema from "../../schema/Schema.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
+import type { unhandled } from "../../types/Types.ts"
 import type * as HttpRouter from "../http/HttpRouter.ts"
 import type { HttpServerResponse } from "../http/HttpServerResponse.ts"
 import type * as HttpApiSecurity from "./HttpApiSecurity.ts"
@@ -45,8 +46,8 @@ export const isSecurity = (u: AnyKey): u is AnyKeySecurity => hasProperty(u, Sec
  * @category models
  */
 export type HttpApiMiddleware<Provides, E extends Schema.Top, Requires> = (
-  httpEffect: Effect.Effect<HttpServerResponse, HttpRouter.unhandled, Provides>
-) => Effect.Effect<HttpServerResponse, HttpRouter.unhandled | E["Type"], Requires | HttpRouter.Provided>
+  httpEffect: Effect.Effect<HttpServerResponse, unhandled, Provides>
+) => Effect.Effect<HttpServerResponse, unhandled | E["Type"], Requires | HttpRouter.Provided>
 
 /**
  * @since 4.0.0
@@ -59,9 +60,9 @@ export type HttpApiMiddlewareSecurity<
   Requires
 > = {
   readonly [K in keyof Security]: (
-    httpEffect: Effect.Effect<HttpServerResponse, HttpRouter.unhandled, Provides>,
+    httpEffect: Effect.Effect<HttpServerResponse, unhandled, Provides>,
     payload: HttpApiSecurity.HttpApiSecurity.Type<Security[K]>
-  ) => Effect.Effect<HttpServerResponse, HttpRouter.unhandled | E["Type"], Requires | HttpRouter.Provided>
+  ) => Effect.Effect<HttpServerResponse, unhandled | E["Type"], Requires | HttpRouter.Provided>
 }
 
 /**
