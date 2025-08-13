@@ -348,21 +348,39 @@ Below are two quick examples.
 import { Schema, Serializer } from "effect/schema"
 
 // 1. URL params ➜ StringLeafJson
-const toTree = (p: URLSearchParams) => Object.fromEntries(p)
+function toStringLeafJson(p: URLSearchParams): Serializer.StringLeafJson {
+  const out: Serializer.StringLeafJson = {}
+  for (const [key, value] of p.entries()) {
+    if (out[key] === undefined) {
+      out[key] = value
+    } else if (Array.isArray(out[key])) {
+      out[key].push(value)
+    } else {
+      out[key] = [out[key], value]
+    }
+  }
+  return out
+}
 
 // 2. schema
 const Query = Schema.Struct({
   page: Schema.Finite,
-  q: Schema.optionalKey(Schema.String)
+  q: Schema.optionalKey(Schema.Array(Schema.String))
 })
 
-const serializer = Serializer.stringLeafJson(Query)
+const serializer = Serializer.ensureArray(Serializer.stringLeafJson(Query))
 
-console.log(Schema.decodeSync(serializer)(toTree(new URLSearchParams("?page=1&q=foo"))))
-// => { page: 1, q: "foo" }
+console.log(Schema.decodeSync(serializer)(toStringLeafJson(new URLSearchParams("?page=1&q=foo"))))
+// => { page: 1, q: [ 'foo' ] }
 
-console.log(Schema.decodeSync(serializer)(toTree(new URLSearchParams("?page=2"))))
-// => { page: 2, q: "foo" }
+console.log(Schema.decodeSync(serializer)(toStringLeafJson(new URLSearchParams("?page=2"))))
+// => { page: 2 }
+
+console.log(Schema.decodeSync(serializer)(toStringLeafJson(new URLSearchParams("?page=1&q=foo&q=bar"))))
+// => { page: 1, q: [ 'foo', 'bar' ] }
+
+console.log(Schema.decodeSync(serializer)(toStringLeafJson(new URLSearchParams("?page=1&q="))))
+// => { page: 1, q: [] }
 ```
 
 **Example** (Decode `FormData`)
@@ -372,9 +390,9 @@ import * as Predicate from "effect/data/Predicate"
 import { Schema, Serializer } from "effect/schema"
 
 // 1. FormData ➜ StringLeafJson
-const fdToTree = (fd: FormData) =>
+const toStringLeafJson = (fd: FormData): Serializer.StringLeafJson =>
   // exclude File values
-  Object.fromEntries([...fd.entries()].filter(([_, v]) => Predicate.isString(v)) as Array<[string, string]>)
+  Object.fromEntries([...fd.entries()].filter((entry): entry is [string, string] => Predicate.isString(entry[1])))
 
 // 2. schema
 const User = Schema.Struct({
@@ -389,8 +407,9 @@ const fd = new FormData()
 fd.set("user", "alice")
 fd.set("pass", "secret")
 fd.set("age", "30")
+fd.set("age", "31")
 
-console.log(Schema.decodeSync(serializer)(fdToTree(fd)))
+console.log(Schema.decodeSync(serializer)(toStringLeafJson(fd)))
 // => { user: "alice", pass: "secret", age: 30 }
 ```
 

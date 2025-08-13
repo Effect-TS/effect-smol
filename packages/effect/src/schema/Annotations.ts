@@ -145,7 +145,9 @@ export interface Filter extends Documentation {
 }
 
 /**
- * Merges annotations while preserving getters from both objects
+ * Merges annotations while preserving getters from both objects.
+ *
+ * **Warning**. Any existing `id` annotation will be removed.
  *
  * @internal
  */
@@ -158,6 +160,7 @@ export function merge(existing: Annotations | undefined, incoming: Annotations |
   const out = {}
   // Apply existing descriptors first
   for (const [key, descriptor] of Object.entries(Object.getOwnPropertyDescriptors(existing))) {
+    if (key === "id") continue
     Object.defineProperty(out, key, descriptor)
   }
   // Apply incoming descriptors (this will override existing ones)

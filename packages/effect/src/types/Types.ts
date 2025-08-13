@@ -525,3 +525,11 @@ export type NoExcessProperties<T, U> = T & Readonly<Record<Exclude<keyof U, keyo
 export interface unassigned {
   readonly _: unique symbol
 }
+
+/**
+ * @since 4.0.0
+ * @category types
+ */
+export interface unhandled {
+  readonly _: unique symbol
+}

@@ -141,7 +141,13 @@ export const isExit = (u: unknown): u is Exit.Exit<unknown, unknown> => hasPrope
 export const CauseTypeId: Cause.TypeId = "~effect/Cause"
 
 /** @internal */
+export const CauseFailureTypeId: Cause.FailureTypeId = "~effect/Cause/Failure"
+
+/** @internal */
 export const isCause = (self: unknown): self is Cause.Cause<unknown> => hasProperty(self, CauseTypeId)
+
+/** @internal */
+export const isCauseFailure = (self: unknown): self is Cause.Failure<unknown> => hasProperty(self, CauseFailureTypeId)
 
 /** @internal */
 export class CauseImpl<E> implements Cause.Cause<E> {
@@ -188,6 +194,7 @@ const errorAnnotations = new WeakMap<object, ReadonlyMap<string, unknown>>()
 
 /** @internal */
 export abstract class FailureBase<Tag extends string> implements Cause.Cause.FailureProto<Tag> {
+  readonly [CauseFailureTypeId]: Cause.FailureTypeId
   readonly annotations: ReadonlyMap<string, unknown>
   readonly _tag: Tag
 
@@ -196,6 +203,7 @@ export abstract class FailureBase<Tag extends string> implements Cause.Cause.Fai
     annotations: ReadonlyMap<string, unknown>,
     originalError: unknown
   ) {
+    this[CauseFailureTypeId] = CauseFailureTypeId
     this._tag = _tag
     if (isObject(originalError)) {
       if (errorAnnotations.has(originalError)) {

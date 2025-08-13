@@ -6,6 +6,7 @@ import type { Simplify } from "../../data/Struct.ts"
 import type * as Effect from "../../Effect.ts"
 import * as Schema from "../../schema/Schema.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
+import type { unhandled } from "../../types/Types.ts"
 import type * as HttpRouter from "../http/HttpRouter.ts"
 import type { HttpServerResponse } from "../http/HttpServerResponse.ts"
 import type * as HttpApiSecurity from "./HttpApiSecurity.ts"
@@ -45,8 +46,8 @@ export const isSecurity = (u: AnyKey): u is AnyKeySecurity => hasProperty(u, Sec
  * @category models
  */
 export type HttpApiMiddleware<Provides, E extends Schema.Top, Requires> = (
-  httpEffect: Effect.Effect<HttpServerResponse, HttpRouter.unhandled, Provides>
-) => Effect.Effect<HttpServerResponse, HttpRouter.unhandled | E["Type"], Requires | HttpRouter.Provided>
+  httpEffect: Effect.Effect<HttpServerResponse, unhandled, Provides>
+) => Effect.Effect<HttpServerResponse, unhandled | E["Type"], Requires | HttpRouter.Provided>
 
 /**
  * @since 4.0.0
@@ -59,8 +60,9 @@ export type HttpApiMiddlewareSecurity<
   Requires
 > = {
   readonly [K in keyof Security]: (
+    httpEffect: Effect.Effect<HttpServerResponse, unhandled, Provides>,
     payload: HttpApiSecurity.HttpApiSecurity.Type<Security[K]>
-  ) => Effect.Effect<[Provides] extends [never] ? unknown : Provides, E["Type"], Requires>
+  ) => Effect.Effect<HttpServerResponse, unhandled | E["Type"], Requires | HttpRouter.Provided>
 }
 
 /**
@@ -69,7 +71,7 @@ export type HttpApiMiddlewareSecurity<
  */
 export interface AnyKey extends ServiceMap.Key<any, any> {
   readonly [TypeId]: TypeId
-  readonly provides?: ServiceMap.Key<any, any>
+  readonly provides: any
   readonly error: Schema.Top
 }
 
@@ -145,25 +147,16 @@ export type KeyClass<
   Id extends string,
   Config extends {
     requires: any
-    provides: ServiceMap.Key<any, any>
+    provides: any
     error: Schema.Top
     security: Record<string, HttpApiSecurity.HttpApiSecurity>
   },
-  Service = ([keyof Config["security"]] extends [never] ? (
-      httpEffect: Effect.Effect<HttpServerResponse, HttpRouter.unhandled, ServiceMap.Key.Identifier<Config["provides"]>>
-    ) => Effect.Effect<
-      HttpServerResponse,
-      HttpRouter.unhandled | Config["error"]["Type"],
-      Config["requires"] | HttpRouter.Provided
-    >
-    : Simplify<
-      HttpApiMiddlewareSecurity<
-        Config["security"],
-        ServiceMap.Key.Service<Config["provides"]>,
-        Config["error"],
-        Config["requires"]
-      >
-    >)
+  Service =
+    ([keyof Config["security"]] extends [never] ?
+      HttpApiMiddleware<Config["provides"], Config["error"], Config["requires"]>
+      : Simplify<
+        HttpApiMiddlewareSecurity<Config["security"], Config["provides"], Config["error"], Config["requires"]>
+      >)
 > =
   & ServiceMap.Key<Self, Service>
   & {
@@ -171,40 +164,40 @@ export type KeyClass<
       readonly [TypeId]: {
         readonly error: Config["error"]
         readonly requires: Config["requires"]
-        readonly provides: ServiceMap.Key.Identifier<Config["provides"]>
+        readonly provides: Config["provides"]
       }
     }
     readonly [TypeId]: TypeId
     readonly error: Config["error"]
-    readonly requires: Config["requires"]
   }
   & ([keyof Config["security"]] extends [never] ? {} : {
     readonly [SecurityTypeId]: SecurityTypeId
     readonly security: Config["security"]
-  })
-  & ([Config["provides"]] extends [never] ? {} : {
-    readonly provides: Config["provides"]
   })
 
 /**
  * @since 4.0.0
  * @category Schemas
  */
-export const Key = <Self, Config extends { requires: any } = { requires: never }>(): <
+export const Key = <
+  Self,
+  Config extends {
+    requires?: any
+    provides?: any
+  } = { requires: never; provides: never }
+>(): <
   const Id extends string,
   Error extends Schema.Top = Schema.Never,
-  Provides extends ServiceMap.Key<any, any> = never,
   const Security extends Record<string, HttpApiSecurity.HttpApiSecurity> = {}
 >(
   id: Id,
   options?: {
     readonly error?: Error | undefined
-    readonly provides?: Provides | undefined
     readonly security?: Security | undefined
   } | undefined
 ) => KeyClass<Self, Id, {
-  requires: Config["requires"]
-  provides: Provides
+  requires: "requires" extends keyof Config ? Config["requires"] : never
+  provides: "provides" extends keyof Config ? Config["provides"] : never
   error: Error
   security: Security
 }> =>
@@ -213,7 +206,6 @@ export const Key = <Self, Config extends { requires: any } = { requires: never }
   options?: {
     readonly security?: Record<string, HttpApiSecurity.HttpApiSecurity> | undefined
     readonly error?: Schema.Top | undefined
-    readonly provides?: ServiceMap.Key<any, any> | undefined
   } | undefined
 ) => {
   const Err = globalThis.Error as any
@@ -231,9 +223,6 @@ export const Key = <Self, Config extends { requires: any } = { requires: never }
   })
   self[TypeId] = TypeId
   self.error = options?.error === undefined ? Schema.Never : options.error
-  if (options?.provides) {
-    self.provides = options.provides
-  }
   if (options?.security) {
     if (Object.keys(options.security).length === 0) {
       throw new Error("HttpApiMiddleware.Tag: security object must not be empty")

@@ -42,6 +42,14 @@ describe("Check", () => {
         assertGetter(annotations, "d", "d")
       })
     })
+
+    it("should remove any existing id annotation", () => {
+      const filter = Check.nonEmpty().annotate({
+        id: "a"
+      })
+      strictEqual(filter.annotations?.id, "a")
+      strictEqual(filter.annotate({}).annotations?.id, undefined)
+    })
   })
 
   describe("FilterGroup", () => {
@@ -81,6 +89,14 @@ describe("Check", () => {
         assertGetter(annotations, "b", "b")
         assertGetter(annotations, "c", "c2")
         assertGetter(annotations, "d", "d")
+      })
+
+      it("should remove any existing id annotation", () => {
+        const filter = Check.int32().annotate({
+          id: "a"
+        })
+        strictEqual(filter.annotations?.id, "a")
+        strictEqual(filter.annotate({}).annotations?.id, undefined)
       })
     })
   })

@@ -186,10 +186,6 @@ const dump: (
   }
 })
 
-function ensureArray(value: string): Array<string> {
-  return value === "" ? [] : [value]
-}
-
 const go: (
   ast: AST.AST,
   provider: ConfigProvider.ConfigProvider,
@@ -225,11 +221,11 @@ const go: (
       case "TupleType": {
         if (ast.rest.length > 0) {
           const out = yield* dump(provider, path)
-          if (Predicate.isString(out)) return ensureArray(out)
+          if (Predicate.isString(out)) return out
           return out
         }
         const stat = yield* provider.load(path)
-        if (stat && stat._tag === "leaf") return ensureArray(stat.value)
+        if (stat && stat._tag === "leaf") return stat.value
         const out: Array<Serializer.StringLeafJson> = []
         for (let i = 0; i < ast.elements.length; i++) {
           const value = yield* go(ast.elements[i], provider, [...path, i])
@@ -261,7 +257,7 @@ const go: (
  * @since 4.0.0
  */
 export function schema<T, E>(codec: Schema.Codec<T, E>, path?: string | ConfigProvider.Path): Config<T> {
-  const serializer = Serializer.stringLeafJson(codec)
+  const serializer = Serializer.ensureArray(Serializer.stringLeafJson(codec))
   const decodeUnknownEffect = Schema.decodeUnknownEffect(serializer)
   const serializerEncodedAST = AST.encodedAST(serializer.ast)
   const defaultPath = Predicate.isString(path) ? [path] : path ?? []
@@ -333,3 +329,51 @@ export const Port = Schema.Int.check(Check.between(1, 65535))
  * @since 4.0.0
  */
 export const LogLevel = Schema.Literals(LogLevel_.values)
+
+/**
+ * A schema for records of key-value pairs.
+ *
+ * Records can be encoded as strings of key-value pairs separated by commas.
+ *
+ * **Example**
+ *
+ * ```ts
+ * import { Effect } from "effect"
+ * import { Config, ConfigProvider } from "effect/config"
+ * import { Schema } from "effect/schema"
+ *
+ * const schema = Config.Record(Schema.String, Schema.String)
+ * const config = Config.schema(schema, "OTEL_RESOURCE_ATTRIBUTES")
+ *
+ * const provider = ConfigProvider.fromEnv({
+ *   env: {
+ *     OTEL_RESOURCE_ATTRIBUTES: "service.name=my-service,service.version=1.0.0,custom.attribute=value"
+ *   }
+ * })
+ *
+ * console.dir(Effect.runSync(config.parse(provider)))
+ * // {
+ * //   'service.name': 'my-service',
+ * //   'service.version': '1.0.0',
+ * //   'custom.attribute': 'value'
+ * // }
+ * ```
+ *
+ * @category Schemas
+ * @since 4.0.0
+ */
+export const Record = <K extends Schema.Record.Key, V extends Schema.Top>(key: K, value: V, options?: {
+  readonly separator?: string | undefined
+  readonly keyValueSeparator?: string | undefined
+}) => {
+  const record = Schema.Record(key, value)
+  const recordString = Schema.String.pipe(
+    Schema.decodeTo(
+      Schema.Record(Schema.String, Schema.String),
+      Transformation.splitKeyValue(options)
+    ),
+    Schema.decodeTo(record)
+  )
+
+  return Schema.Union([record, recordString])
+}

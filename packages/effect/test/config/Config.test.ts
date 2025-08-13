@@ -174,18 +174,20 @@ describe("Config", () => {
       })
     })
 
-    it("Record", async () => {
-      const schema = Schema.Record(Schema.String, Schema.Finite)
-      const config = Config.schema(schema)
+    describe("Record", () => {
+      it("Finite", async () => {
+        const schema = Schema.Record(Schema.String, Schema.Finite)
+        const config = Config.schema(schema)
 
-      await assertSuccess(config, ConfigProvider.fromEnv({ env: { a: "1" } }), { a: 1 })
-      await assertSuccess(config, ConfigProvider.fromEnv({ env: { a: "1", b: "2" } }), { a: 1, b: 2 })
-      await assertFailure(
-        config,
-        ConfigProvider.fromEnv({ env: { a: "1", b: "value" } }),
-        `Expected a string matching the regex [+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?, got "value"
+        await assertSuccess(config, ConfigProvider.fromEnv({ env: { a: "1" } }), { a: 1 })
+        await assertSuccess(config, ConfigProvider.fromEnv({ env: { a: "1", b: "2" } }), { a: 1, b: 2 })
+        await assertFailure(
+          config,
+          ConfigProvider.fromEnv({ env: { a: "1", b: "value" } }),
+          `Expected a string matching the regex [+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?, got "value"
   at ["b"]`
-      )
+        )
+      })
     })
 
     describe("Tuple", () => {
@@ -547,6 +549,67 @@ describe("Config", () => {
         provider,
         `Expected "All" | "Fatal" | "Error" | "Warn" | "Info" | "Debug" | "Trace" | "None", got "value"`
       )
+    })
+
+    describe("Record", () => {
+      it("from record", async () => {
+        const schema = Config.Record(Schema.String, Schema.String)
+        const config = Config.schema(schema, "OTEL_RESOURCE_ATTRIBUTES")
+
+        await assertSuccess(
+          config,
+          ConfigProvider.fromStringLeafJson({
+            OTEL_RESOURCE_ATTRIBUTES: {
+              "service.name": "my-service",
+              "service.version": "1.0.0",
+              "custom.attribute": "value"
+            }
+          }),
+          {
+            "service.name": "my-service",
+            "service.version": "1.0.0",
+            "custom.attribute": "value"
+          }
+        )
+      })
+
+      it("from string", async () => {
+        const schema = Config.Record(Schema.String, Schema.String)
+        const config = Config.schema(schema, "OTEL_RESOURCE_ATTRIBUTES")
+
+        await assertSuccess(
+          config,
+          ConfigProvider.fromEnv({
+            env: {
+              OTEL_RESOURCE_ATTRIBUTES: "service.name=my-service,service.version=1.0.0,custom.attribute=value"
+            }
+          }),
+          {
+            "service.name": "my-service",
+            "service.version": "1.0.0",
+            "custom.attribute": "value"
+          }
+        )
+      })
+
+      it("options", async () => {
+        const schema = Config.Record(Schema.String, Schema.String, { separator: "&", keyValueSeparator: "==" })
+        const config = Config.schema(schema, "OTEL_RESOURCE_ATTRIBUTES")
+
+        await assertSuccess(
+          config,
+          ConfigProvider.fromEnv({
+            env: {
+              OTEL_RESOURCE_ATTRIBUTES: "service.name==my-service&service.version==1.0.0&custom.attribute==value"
+            }
+          }),
+          {
+            "service.name": "my-service",
+            "service.version": "1.0.0",
+            "custom.attribute": "value"
+          }
+        )
+      })
     })
   })
 })

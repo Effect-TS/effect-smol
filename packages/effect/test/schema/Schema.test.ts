@@ -1,4 +1,4 @@
-import { Effect, flow, pipe, ServiceMap } from "effect"
+import { Effect, Exit, flow, pipe, ServiceMap } from "effect"
 import { Option, Order, Predicate, Struct, Tuple } from "effect/data"
 import { Equal } from "effect/interfaces"
 import { String as Str } from "effect/primitives"
@@ -36,6 +36,14 @@ describe("Schema", () => {
     assertTrue(Schema.isSchema(A))
     assertTrue(Schema.isSchema(B))
     assertFalse(Schema.isSchema({}))
+  })
+
+  describe("annotate", () => {
+    it("should remove any existing id annotation", () => {
+      const schema = Schema.String.annotate({ id: "a" })
+      strictEqual(schema.ast.annotations?.id, "a")
+      strictEqual(schema.annotate({}).ast.annotations?.id, undefined)
+    })
   })
 
   describe("Literal", () => {
@@ -1944,6 +1952,52 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     })
   })
 
+  describe("Exit", () => {
+    it("Exit(FiniteFromString, String, Unknown)", async () => {
+      const schema = Schema.Exit(Schema.FiniteFromString, Schema.String, Schema.Unknown)
+
+      await assertions.decoding.succeed(schema, Exit.succeed("123"), { expected: Exit.succeed(123) })
+      await assertions.decoding.succeed(schema, Exit.fail("boom"), { expected: Exit.fail("boom") })
+      await assertions.decoding.fail(
+        schema,
+        null,
+        `Expected Exit<number, Cause<Failure<string, unknown>>>, got null`
+      )
+      await assertions.decoding.fail(
+        schema,
+        Exit.succeed(123),
+        `Expected string, got 123
+  at ["value"]`
+      )
+      await assertions.decoding.fail(
+        schema,
+        Exit.fail(null),
+        `Expected string, got null
+  at ["cause"]["failures"][0]["error"]`
+      )
+    })
+
+    it("Exit(FiniteFromString, String, Defect)", async () => {
+      const schema = Schema.Exit(Schema.FiniteFromString, Schema.String, Schema.Defect)
+      const boomError = new Error("boom message", {
+        cause: {
+          name: "boom",
+          message: "boom message"
+        }
+      })
+      boomError.name = "boom"
+
+      await assertions.decoding.succeed(
+        schema,
+        Exit.die({
+          name: "boom",
+          message: "boom message"
+        }),
+        { expected: Exit.die(boomError) }
+      )
+    })
+  })
+
   describe("suspend", () => {
     it("should work", async () => {
       interface Category<A, T> {
@@ -3667,12 +3721,12 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       await assertions.encoding.fail(
         A,
         null,
-        "Expected A, got null"
+        "Expected <Declaration>, got null"
       )
       await assertions.encoding.fail(
         A,
         { a: "a" },
-        `Expected A, got {"a":"a"}`
+        `Expected <Declaration>, got {"a":"a"}`
       )
     })
 

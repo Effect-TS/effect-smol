@@ -572,14 +572,12 @@ const makeSecurityMiddleware = (
     let lastResult: Result.Result<any, any> | undefined
     for (let i = 0; i < entries.length; i++) {
       const { decode, middleware } = entries[i]
-      const result = yield* Effect.result(Effect.flatMap(decode, middleware))
+      const result = yield* Effect.result(Effect.flatMap(decode, (payload) => middleware(handler, payload)))
       if (Result.isFailure(result)) {
         lastResult = result
         continue
-      } else if (key.provides) {
-        return yield* Effect.provideService(handler, key.provides, result.success)
       }
-      return yield* handler
+      return result.success
     }
     return yield* lastResult!.asEffect()
   })

@@ -54,8 +54,9 @@
     "./types": "./src/types/index.ts",
     "./unstable/http": "./src/unstable/http/index.ts",
     "./unstable/httpapi": "./src/unstable/httpapi/index.ts",
+    "./unstable/rpc": "./src/unstable/rpc/index.ts",
     "./unstable/socket": "./src/unstable/socket/index.ts",
-    "./unstable/tracing": "./src/unstable/tracing/index.ts",
+    "./unstable/observability": "./src/unstable/observability/index.ts",
     "./*": "./src/*.ts",
     "./internal/*": null,
     "./*/index": null
@@ -97,8 +98,9 @@
       "./types": "./dist/types/index.js",
       "./unstable/http": "./dist/unstable/http/index.js",
       "./unstable/httpapi": "./dist/unstable/httpapi/index.js",
+      "./unstable/rpc": "./dist/unstable/rpc/index.js",
       "./unstable/socket": "./dist/unstable/socket/index.js",
-      "./unstable/tracing": "./dist/unstable/tracing/index.js",
+      "./unstable/observability": "./dist/unstable/observability/index.js",
       "./*": "./dist/*.js",
       "./internal/*": null,
       "./*/index": null

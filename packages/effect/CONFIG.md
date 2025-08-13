@@ -24,7 +24,7 @@ The module provides a composable architecture where providers can be:
 Executes a configuration lookup at the specified path.
 
 ```ts
-const result = await Effect.runPromise(ConfigProvider.run(provider, ["database", "host"]))
+const result = await Effect.runPromise(provider.load(["database", "host"]))
 ```
 
 The `run` function applies any configured `mapInput` transformations and `prefix` additions before performing the lookup.

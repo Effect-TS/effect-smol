@@ -3,7 +3,7 @@ import * as Schema from "#dist/effect/schema/Schema"
 
 const schema = Schema.Struct({
   a: Schema.String,
-  b: Schema.optionalKey(Schema.Number),
+  b: Schema.optional(Schema.Number),
   c: Schema.Array(Schema.String)
 })
 

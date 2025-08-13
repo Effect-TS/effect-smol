@@ -358,3 +358,68 @@ export function stringifyJson(options?: {
     })
   )
 }
+
+/**
+ * Parse a string into a record of key-value pairs.
+ *
+ * **Options**
+ *
+ * - `separator`: The separator between key-value pairs. Defaults to `,`.
+ * - `keyValueSeparator`: The separator between key and value. Defaults to `=`.
+ *
+ * @category String transformations
+ * @since 4.0.0
+ */
+export function splitKeyValue<E extends string>(options?: {
+  readonly separator?: string | undefined
+  readonly keyValueSeparator?: string | undefined
+}): Getter<Record<string, string>, E> {
+  const separator = options?.separator ?? ","
+  const keyValueSeparator = options?.keyValueSeparator ?? "="
+  return map((input) =>
+    input.split(separator).reduce((acc, pair) => {
+      const [key, value] = pair.split(keyValueSeparator)
+      if (key && value) {
+        acc[key] = value
+      }
+      return acc
+    }, {} as Record<string, string>)
+  )
+}
+
+/**
+ * Join a record of key-value pairs into a string.
+ *
+ * **Options**
+ *
+ * - `separator`: The separator between key-value pairs. Defaults to `,`.
+ * - `keyValueSeparator`: The separator between key and value. Defaults to `=`.
+ *
+ * @category String transformations
+ * @since 4.0.0
+ */
+export function joinKeyValue<E extends Record<PropertyKey, string>>(options?: {
+  readonly separator?: string | undefined
+  readonly keyValueSeparator?: string | undefined
+}): Getter<string, E> {
+  const separator = options?.separator ?? ","
+  const keyValueSeparator = options?.keyValueSeparator ?? "="
+  return map((input) =>
+    Object.entries(input).map(([key, value]) => `${key}${keyValueSeparator}${value}`).join(separator)
+  )
+}
+
+/**
+ * Parses a string into an array of strings.
+ *
+ * An empty string is parsed as an empty array.
+ *
+ * @category String transformations
+ * @since 4.0.0
+ */
+export function split<E extends string>(options?: {
+  readonly separator?: string | undefined
+}): Getter<ReadonlyArray<string>, E> {
+  const separator = options?.separator ?? ","
+  return map((input) => input === "" ? [] : input.split(separator))
+}
