@@ -1975,12 +1975,55 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     })
   })
 
+  describe("Defect", () => {
+    it("decoding", async () => {
+      const schema = Schema.Defect
+
+      // Error: message only
+      await assertions.decoding.succeed(schema, { message: "a" }, {
+        expected: new Error("a", { cause: { message: "a" } })
+      })
+      // Error: message and name
+      await assertions.decoding.succeed(schema, { message: "a", name: "b" }, {
+        expected: (() => {
+          const err = new Error("a", { cause: { message: "a", name: "b" } })
+          err.name = "b"
+          return err
+        })()
+      })
+      // Error: message, name, and stack
+      await assertions.decoding.succeed(schema, { message: "a", name: "b", stack: "c" }, {
+        expected: (() => {
+          const err = new Error("a", { cause: { message: "a", name: "b", stack: "c" } })
+          err.name = "b"
+          err.stack = "c"
+          return err
+        })()
+      })
+      // string
+      await assertions.decoding.succeed(schema, "a", { expected: "a" })
+    })
+
+    it("encoding", async () => {
+      const schema = Schema.Defect
+
+      // Error
+      await assertions.encoding.succeed(schema, new Error("a"), { expected: { name: "Error", message: "a" } })
+      // string
+      await assertions.encoding.succeed(schema, "a")
+      // a value with a custom toString method
+      await assertions.encoding.succeed(schema, { toString: () => "a" }, { expected: "a" })
+      // anything else
+      await assertions.encoding.succeed(schema, { a: 1 }, { expected: `{"a":1}` })
+    })
+  })
+
   describe("Exit", () => {
     it("Exit(FiniteFromString, String, Unknown)", async () => {
       const schema = Schema.Exit(Schema.FiniteFromString, Schema.String, Schema.Unknown)
 
       await assertions.decoding.succeed(schema, Exit.succeed("123"), { expected: Exit.succeed(123) })
-      await assertions.decoding.succeed(schema, Exit.fail("boom"), { expected: Exit.fail("boom") })
+      await assertions.decoding.succeed(schema, Exit.fail("boom"))
       await assertions.decoding.fail(
         schema,
         null,

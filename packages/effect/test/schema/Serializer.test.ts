@@ -395,6 +395,13 @@ describe("Serializer", () => {
           new Map([[Option.some(Symbol.for("a")), new Date("2021-01-01")]])
         )
       })
+
+      it("Defect", async () => {
+        const schema = Schema.Defect
+        await assertions.serialization.json.codec.succeed(schema, new Error("a"), { name: "Error", message: "a" })
+        await assertions.serialization.json.codec.succeed(schema, "a", "a")
+        await assertions.serialization.json.codec.succeed(schema, { toString: () => "a" }, "a")
+      })
     })
 
     describe("instanceOf", () => {

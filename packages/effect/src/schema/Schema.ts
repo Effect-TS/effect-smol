@@ -3501,25 +3501,41 @@ export interface Defect extends Unknown {
 }
 
 /**
+ * A schema that represents defects (errors or error messages) in the Effect system.
+ *
+ * This schema can handle both string-based error messages and structured Error objects.
+ *
+ * When encoding:
+ * - An Error object returns a struct with `name` and `message` properties (stack is omitted for security)
+ * - A string returns the string as-is
+ * - Other values are converted to their string representation:
+ *   - if the value has a custom `toString` method, it will be called
+ *   - otherwise, the value will be converted to a string using `JSON.stringify`
+ *
+ * When decoding:
+ * - A string input returns the string as-is
+ * - A struct with `message`, `name`, and `stack` properties is converted to an Error object
+ *
  * @category Constructors
  * @since 4.0.0
  */
-export const Defect: Defect = Unknown.annotate({
-  title: "Defect"
-}).pipe(
+export const Defect: Defect = Union([
+  String,
+  Struct({
+    message: String,
+    name: optionalKey(String),
+    stack: optionalKey(String)
+  })
+]).pipe(
   decodeTo(
     Unknown,
     Transformation.transform({
       decode: (i): unknown => {
-        if (Predicate.isObject(i) && "message" in i && typeof i.message === "string") {
-          const err = new Error(i.message, { cause: i })
-          if ("name" in i && typeof i.name === "string") {
-            err.name = i.name
-          }
-          err.stack = "stack" in i && typeof i.stack === "string" ? i.stack : ""
-          return err
-        }
-        return stringifyCircular(i)
+        if (Predicate.isString(i)) return i
+        const err = new Error(i.message, { cause: i })
+        if (Predicate.isString(i.name)) err.name = i.name
+        if (Predicate.isString(i.stack)) err.stack = i.stack
+        return err
       },
       encode: (a) => {
         if (a instanceof Error) {
@@ -3528,9 +3544,9 @@ export const Defect: Defect = Unknown.annotate({
             message: a.message
             // no stack because of security reasons
           }
-        } else if (typeof a === "object" && a !== null) {
-          return InternalEffect.causePrettyMessage(a as Record<string, unknown>)
         }
+        if (Predicate.isString(a)) return a
+        if (Predicate.isRecord(a)) return InternalEffect.causePrettyMessage(a)
         return stringifyCircular(a)
       }
     })
