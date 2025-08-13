@@ -138,7 +138,7 @@ function make(asserts: {
 
     serialization: {
       json: {
-        schema: {
+        typeCodec: {
           async succeed<const A, const I, RD, RE>(
             schema: Schema.Codec<A, I, RD, RE>,
             input: A,
@@ -188,7 +188,7 @@ function make(asserts: {
       },
 
       stringLeafJson: {
-        schema: {
+        typeCodec: {
           async succeed<const A, const I, RD, RE>(
             schema: Schema.Codec<A, I, RD, RE>,
             input: A,
@@ -218,7 +218,7 @@ function make(asserts: {
 
     deserialization: {
       json: {
-        schema: {
+        typeCodec: {
           async succeed<const A, const I, RD, RE>(
             schema: Schema.Codec<A, I, RD, RE>,
             input: unknown,
@@ -268,7 +268,7 @@ function make(asserts: {
       },
 
       stringLeafJson: {
-        schema: {
+        typeCodec: {
           async succeed<const A, const I, RD, RE>(
             schema: Schema.Codec<A, I, RD, RE>,
             input: Serializer.StringLeafJson,
