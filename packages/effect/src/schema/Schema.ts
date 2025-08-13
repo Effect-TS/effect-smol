@@ -1572,9 +1572,7 @@ export function encodeKeys<
           K in keyof S["fields"] as K extends keyof M ? M[K] extends PropertyKey ? M[K] : K : K
         ]: encodedCodec<S["fields"][K]>
       }
-    >,
-    never,
-    never
+    >
   > {
     const fields: any = {}
     const reverseMapping: any = {}
@@ -1608,7 +1606,7 @@ export function extendTo<S extends Struct<Struct.Fields>, const Fields extends S
 ) {
   return (
     self: S
-  ): decodeTo<Struct<Simplify<{ [K in keyof S["fields"]]: typeCodec<S["fields"][K]> } & Fields>>, S, never, never> => {
+  ): decodeTo<Struct<Simplify<{ [K in keyof S["fields"]]: typeCodec<S["fields"][K]> } & Fields>>, S> => {
     const f = R.map(self.fields, typeCodec)
     const to = Struct({ ...f, ...fields })
     return self.pipe(decodeTo(
@@ -2699,7 +2697,7 @@ export function catchEncodingWithContext<S extends Top, R = never>(
 /**
  * @since 4.0.0
  */
-export interface decodeTo<To extends Top, From extends Top, RD, RE> extends
+export interface decodeTo<To extends Top, From extends Top, RD = never, RE = never> extends
   Bottom<
     To["Type"],
     From["Encoded"],
@@ -2724,7 +2722,7 @@ export interface decodeTo<To extends Top, From extends Top, RD, RE> extends
 /**
  * @since 4.0.0
  */
-export interface compose<To extends Top, From extends Top> extends decodeTo<To, From, never, never> {}
+export interface compose<To extends Top, From extends Top> extends decodeTo<To, From> {}
 
 class decodeTo$<To extends Top, From extends Top, RD, RE> extends make$<decodeTo<To, From, RD, RE>>
   implements decodeTo<To, From, RD, RE>
@@ -2793,7 +2791,7 @@ export function decode<S extends Top, RD = never, RE = never>(transformation: {
  */
 export function encodeTo<To extends Top>(
   to: To
-): <From extends Top>(from: From) => decodeTo<From, To, never, never>
+): <From extends Top>(from: From) => decodeTo<From, To>
 export function encodeTo<To extends Top, From extends Top, RD = never, RE = never>(
   to: To,
   transformation: {
@@ -2867,7 +2865,7 @@ export function withConstructorDefault<S extends Top & { readonly "~type.constru
 /**
  * @since 4.0.0
  */
-export interface withDecodingDefaultKey<S extends Top> extends decodeTo<S, optionalKey<encodedCodec<S>>, never, never> {
+export interface withDecodingDefaultKey<S extends Top> extends decodeTo<S, optionalKey<encodedCodec<S>>> {
   readonly "~rebuild.out": withDecodingDefaultKey<S>
 }
 
@@ -2903,7 +2901,7 @@ export function withDecodingDefaultKey<S extends Top>(
 /**
  * @since 4.0.0
  */
-export interface withDecodingDefault<S extends Top> extends decodeTo<S, optional<encodedCodec<S>>, never, never> {
+export interface withDecodingDefault<S extends Top> extends decodeTo<S, optional<encodedCodec<S>>> {
   readonly "~rebuild.out": withDecodingDefault<S>
 }
 
@@ -3081,7 +3079,7 @@ export function asTaggedUnion<const Tag extends PropertyKey>(tag: Tag) {
           guards[value] = is(typeCodec(schema))
         }
       } else {
-        throw new Error("No literal found")
+        throw new globalThis.Error("No literal found")
       }
     }
 
@@ -3493,12 +3491,67 @@ export function Cause<E extends Top, D extends Top>(error: E, defect: D): Cause<
 /**
  * @since 4.0.0
  */
-export interface Defect extends Unknown {
+export interface Error extends instanceOf<globalThis.Error> {
+  readonly "~rebuild.out": Error
+}
+
+const ErrorEncoded = Struct({
+  message: String,
+  name: optionalKey(String),
+  stack: optionalKey(String)
+})
+
+/**
+ * A schema that represents `Error` objects.
+ *
+ * @category Schemas
+ * @since 4.0.0
+ */
+export const Error: Error = instanceOf(globalThis.Error, {
+  defaultJsonSerializer: () =>
+    link<globalThis.Error>()(
+      ErrorEncoded,
+      Transformation.error()
+    )
+})
+
+/**
+ * @since 4.0.0
+ */
+export interface Defect extends
+  Union<
+    readonly [
+      String,
+      decodeTo<
+        Error,
+        Struct<{
+          readonly message: String
+          readonly name: optionalKey<String>
+          readonly stack: optionalKey<String>
+        }>
+      >,
+      decodeTo<Unknown, String>
+    ]
+  >
+{
   readonly "~rebuild.out": Defect
 }
 
+const ErrorFromStruct = ErrorEncoded.pipe(decodeTo(Error, Transformation.error()))
+
+const UnknownFromString = String.pipe(decodeTo(
+  Unknown,
+  {
+    decode: Getter.passthrough(),
+    encode: Getter.map((a) => {
+      if (Predicate.isRecord(a)) return InternalEffect.causePrettyMessage(a)
+      return stringifyCircular(a)
+    })
+  }
+))
+
 /**
- * A schema that represents defects (errors or error messages) in the Effect system.
+ * A schema that represents defects.
  *
  * This schema can handle both string-based error messages and structured Error objects.
  *
@@ -3516,39 +3569,7 @@ export interface Defect extends Unknown {
  * @category Constructors
  * @since 4.0.0
  */
-export const Defect: Defect = Union([
-  String,
-  Struct({
-    message: String,
-    name: optionalKey(String),
-    stack: optionalKey(String)
-  })
-]).pipe(
-  decodeTo(
-    Unknown,
-    Transformation.transform({
-      decode: (i): unknown => {
-        if (Predicate.isString(i)) return i
-        const err = new Error(i.message, { cause: i })
-        if (Predicate.isString(i.name)) err.name = i.name
-        if (Predicate.isString(i.stack)) err.stack = i.stack
-        return err
-      },
-      encode: (a) => {
-        if (a instanceof Error) {
-          return {
-            name: a.name,
-            message: a.message
-            // no stack because of security reasons
-          }
-        }
-        if (Predicate.isString(a)) return a
-        if (Predicate.isRecord(a)) return InternalEffect.causePrettyMessage(a)
-        return stringifyCircular(a)
-      }
-    })
-  )
-)
+export const Defect: Defect = Union([String, ErrorFromStruct, UnknownFromString])
 
 /**
  * @since 4.0.0
@@ -3565,23 +3586,23 @@ export interface Exit<A extends Top, E extends Top, D extends Top>
  */
 export function Exit<A extends Top, E extends Top, D extends Top>(value: A, error: E, defect: D): Exit<A, E, D> {
   return declareConstructor([value, Cause(error, defect)])<Exit_.Exit<A["Encoded"], E["Encoded"]>>()(
-    ([value, cause]) => (einput, ast, options): Effect.Effect<Exit_.Exit<A["Type"], E["Type"]>, Issue.Issue> => {
-      if (!Exit_.isExit(einput)) {
-        return Effect.fail(new Issue.InvalidType(ast, O.some(einput)))
+    ([value, cause]) => (input, ast, options): Effect.Effect<Exit_.Exit<A["Type"], E["Type"]>, Issue.Issue> => {
+      if (!Exit_.isExit(input)) {
+        return Effect.fail(new Issue.InvalidType(ast, O.some(input)))
       }
-      switch (einput._tag) {
+      switch (input._tag) {
         case "Success":
-          return ToParser.decodeUnknownEffect(value)(einput.value, options).pipe(Effect.mapBothEager(
+          return ToParser.decodeUnknownEffect(value)(input.value, options).pipe(Effect.mapBothEager(
             {
               onSuccess: Exit_.succeed,
-              onFailure: (issue) => new Issue.Composite(ast, O.some(einput), [new Issue.Pointer(["value"], issue)])
+              onFailure: (issue) => new Issue.Composite(ast, O.some(input), [new Issue.Pointer(["value"], issue)])
             }
           ))
         case "Failure":
-          return ToParser.decodeUnknownEffect(cause)(einput.cause, options).pipe(Effect.mapBothEager(
+          return ToParser.decodeUnknownEffect(cause)(input.cause, options).pipe(Effect.mapBothEager(
             {
               onSuccess: Exit_.failCause,
-              onFailure: (issue) => new Issue.Composite(ast, O.some(einput), [new Issue.Pointer(["cause"], issue)])
+              onFailure: (issue) => new Issue.Composite(ast, O.some(input), [new Issue.Pointer(["cause"], issue)])
             }
           ))
       }
@@ -3954,7 +3975,7 @@ export const Duration = declare(
 /**
  * @since 4.0.0
  */
-export interface UnknownFromJsonString extends decodeTo<Unknown, String, never, never> {
+export interface UnknownFromJsonString extends decodeTo<Unknown, String> {
   readonly "~rebuild.out": UnknownFromJsonString
 }
 
@@ -3986,7 +4007,7 @@ export const UnknownFromJsonString: UnknownFromJsonString = String.pipe(
 /**
  * @since 4.0.0
  */
-export interface fromJsonString<S extends Top> extends decodeTo<S, UnknownFromJsonString, never, never> {
+export interface fromJsonString<S extends Top> extends decodeTo<S, UnknownFromJsonString> {
   readonly "~rebuild.out": fromJsonString<S>
 }
 
@@ -4096,7 +4117,7 @@ export const Int = Number.check(Check.int())
 /**
  * @since 4.0.0
  */
-export interface FiniteFromString extends decodeTo<Number, String, never, never> {
+export interface FiniteFromString extends decodeTo<Number, String> {
   readonly "~rebuild.out": FiniteFromString
 }
 

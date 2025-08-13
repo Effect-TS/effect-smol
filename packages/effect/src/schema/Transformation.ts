@@ -3,6 +3,7 @@
  */
 
 import type * as Option from "../data/Option.ts"
+import * as Predicate from "../data/Predicate.ts"
 import type * as Effect from "../Effect.ts"
 import type * as AST from "./AST.ts"
 import * as Getter from "./Getter.ts"
@@ -274,3 +275,28 @@ export const bigintFromString = new Transformation(
   Getter.BigInt(),
   Getter.String()
 )
+
+/**
+ * @since 4.0.0
+ */
+export function error(): Transformation<Error, {
+  message: string
+  name?: string
+  stack?: string
+}> {
+  return transform({
+    decode: (i) => {
+      const err = new globalThis.Error(i.message, { cause: i })
+      if (Predicate.isString(i.name)) err.name = i.name
+      if (Predicate.isString(i.stack)) err.stack = i.stack
+      return err
+    },
+    encode: (a) => {
+      return {
+        name: a.name,
+        message: a.message
+        // no stack because of security reasons
+      }
+    }
+  })
+}

@@ -217,6 +217,43 @@ describe("Serializer", () => {
         )
       })
 
+      it("Error", async () => {
+        const schema = Schema.Error
+
+        await assertions.serialization.json.typeCodec.succeed(
+          schema,
+          new Error("a"),
+          { name: "Error", message: "a" }
+        )
+        // Error: message only
+        await assertions.deserialization.json.typeCodec.succeed(
+          schema,
+          { message: "a" },
+          new Error("a", { cause: { message: "a" } })
+        )
+        // Error: message and name
+        await assertions.deserialization.json.typeCodec.succeed(
+          schema,
+          { name: "b", message: "a" },
+          (() => {
+            const err = new Error("a", { cause: { message: "a", name: "b" } })
+            err.name = "b"
+            return err
+          })()
+        )
+        // Error: message, name, and stack
+        await assertions.deserialization.json.typeCodec.succeed(
+          schema,
+          { name: "b", message: "a", stack: "c" },
+          (() => {
+            const err = new Error("a", { cause: { message: "a", name: "b", stack: "c" } })
+            err.name = "b"
+            err.stack = "c"
+            return err
+          })()
+        )
+      })
+
       it("Option(Date)", async () => {
         const schema = Schema.Option(Schema.Date)
 

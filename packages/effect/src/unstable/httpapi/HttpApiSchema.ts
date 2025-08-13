@@ -176,7 +176,7 @@ export const Empty = (status: number): Schema.Void => Schema.Void.annotate({ htt
  */
 export interface asEmpty<
   S extends Schema.Top
-> extends Schema.decodeTo<Schema.typeCodec<S>, Schema.Void, never, never> {}
+> extends Schema.decodeTo<Schema.typeCodec<S>, Schema.Void> {}
 
 /**
  * @since 4.0.0

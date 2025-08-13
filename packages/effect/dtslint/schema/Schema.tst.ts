@@ -539,10 +539,10 @@ describe("Schema", () => {
         Schema.Codec<{ readonly a: number }, { readonly a: string }>
       >()
       expect(schema).type.toBe<
-        Schema.Struct<{ readonly a: Schema.decodeTo<Schema.Number, Schema.String, never, never> }>
+        Schema.Struct<{ readonly a: Schema.decodeTo<Schema.Number, Schema.String> }>
       >()
       expect(schema.annotate({})).type.toBe<
-        Schema.Struct<{ readonly a: Schema.decodeTo<Schema.Number, Schema.String, never, never> }>
+        Schema.Struct<{ readonly a: Schema.decodeTo<Schema.Number, Schema.String> }>
       >()
     })
 
@@ -633,8 +633,8 @@ describe("Schema", () => {
     it("decodeTo", () => {
       const schema = Schema.FiniteFromString
       const flipped = Schema.flip(schema)
-      expect(flipped).type.toBe<Schema.flip<Schema.decodeTo<Schema.Number, Schema.String, never, never>>>()
-      expect(flipped.annotate({})).type.toBe<Schema.flip<Schema.decodeTo<Schema.Number, Schema.String, never, never>>>()
+      expect(flipped).type.toBe<Schema.flip<Schema.decodeTo<Schema.Number, Schema.String>>>()
+      expect(flipped.annotate({})).type.toBe<Schema.flip<Schema.decodeTo<Schema.Number, Schema.String>>>()
       expect(Schema.revealCodec(flipped)).type.toBe<Schema.Codec<string, number>>()
       expect(Schema.revealCodec(flipped.annotate({}))).type.toBe<Schema.Codec<string, number>>()
     })
@@ -965,13 +965,13 @@ describe("Schema", () => {
       expect(Schema.revealCodec(schema)).type.toBe<Schema.Codec<A, { readonly a: string }>>()
       expect(schema).type.toBe<typeof A>()
       expect(schema.annotate({})).type.toBe<
-        Schema.Struct<{ readonly a: Schema.decodeTo<Schema.Number, Schema.String, never, never> }>
+        Schema.Struct<{ readonly a: Schema.decodeTo<Schema.Number, Schema.String> }>
       >()
       expect(schema.ast).type.toBe<AST.TypeLiteral>()
       expect(schema.makeSync).type.toBe<
         (input: { readonly a: number }, options?: Schema.MakeOptions | undefined) => A
       >()
-      expect(schema.fields).type.toBe<{ readonly a: Schema.decodeTo<Schema.Number, Schema.String, never, never> }>()
+      expect(schema.fields).type.toBe<{ readonly a: Schema.decodeTo<Schema.Number, Schema.String> }>()
 
       expect(A).type.not.toHaveProperty("a")
     })
@@ -2401,9 +2401,7 @@ describe("Schema", () => {
         Schema.Struct<{
           readonly c: Schema.encodedCodec<Schema.FiniteFromString>
           readonly b: Schema.encodedCodec<Schema.String>
-        }>,
-        never,
-        never
+        }>
       >
     >()
   })

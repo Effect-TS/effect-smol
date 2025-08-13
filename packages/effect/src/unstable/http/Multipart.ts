@@ -191,12 +191,9 @@ export const FilesSchema: Schema.Array$<FileSchema> = Schema.Array(FileSchema)
  * @since 4.0.0
  * @category Schemas
  */
-export const SingleFileSchema: Schema.decodeTo<
-  FileSchema,
-  Schema.Array$<FileSchema>,
-  never,
-  never
-> = FilesSchema.check(Check.length(1)).pipe(
+export const SingleFileSchema: Schema.decodeTo<FileSchema, Schema.Array$<FileSchema>> = FilesSchema.check(
+  Check.length(1)
+).pipe(
   Schema.decodeTo(
     FileSchema,
     Transformation.transform({

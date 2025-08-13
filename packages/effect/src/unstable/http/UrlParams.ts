@@ -407,7 +407,7 @@ export const toReadonlyRecord: (self: UrlParams) => ReadonlyRecord<string, strin
  * @since 4.0.0
  * @category Schemas
  */
-export interface schemaJsonField extends Schema.decodeTo<Schema.UnknownFromJsonString, schema, never, never> {}
+export interface schemaJsonField extends Schema.decodeTo<Schema.UnknownFromJsonString, schema> {}
 
 /**
  * Extract a JSON value from the first occurrence of the given `field` in the

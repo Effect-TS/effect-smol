@@ -470,7 +470,7 @@ const parseJsonArrayBuffer = StringFromArrayBuffer.pipe(Schema.decodeTo(parseJso
 const schemaFromArrayBuffer = (
   ast: AST.AST,
   encoding: HttpApiSchema.Encoding
-): Schema.decodeTo<Schema.Any, Schema.instanceOf<ArrayBuffer>, never, never> => {
+): Schema.decodeTo<Schema.Any, Schema.instanceOf<ArrayBuffer>> => {
   if (ast._tag === "UnionType") {
     return Schema.Union(
       ast.types.map((ast) => schemaFromArrayBuffer(ast, HttpApiSchema.getEncoding(ast, encoding)))
@@ -520,7 +520,7 @@ const responseAsVoid = (_response: HttpClientResponse.HttpClientResponse) => Eff
 
 const HttpBodyFromSelf = Schema.declare(HttpBody.isHttpBody)
 
-const payloadSchemaBody = (schema: Schema.Top): Schema.decodeTo<typeof HttpBodyFromSelf, Schema.Any, never, never> => {
+const payloadSchemaBody = (schema: Schema.Top): Schema.decodeTo<typeof HttpBodyFromSelf, Schema.Any> => {
   const members = schema.ast._tag === "UnionType" ? schema.ast.types : [schema.ast]
   return Schema.Union(members.map(bodyFromPayload)) as any
 }
