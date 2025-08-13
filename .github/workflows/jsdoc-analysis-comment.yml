@@ -11,8 +11,7 @@ permissions: {}
 jobs:
   comment:
     name: JSDoc Analysis
-    if: github.event.workflow_run.event == 'pull_request' &&
-      github.event.workflow_run.conclusion == 'success'
+    if: github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     permissions:
       actions: read
@@ -33,7 +32,7 @@ jobs:
             echo EOF
           } >> $GITHUB_OUTPUT
       # https://github.com/orgs/community/discussions/25220#discussioncomment-11300118
-      - name: 'Get PR number'
+      - name: Get PR number
         id: pr-context
         env:
           GH_TOKEN: ${{ github.token }}
