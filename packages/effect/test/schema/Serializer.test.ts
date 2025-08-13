@@ -770,5 +770,16 @@ describe("Serializer", () => {
         strictEqual(serializer.ast, Serializer.ensureArray(Serializer.stringLeafJson(serializer)).ast)
       })
     })
+
+    it("should handle optional keys", async () => {
+      const schema = Schema.Struct({
+        a: Schema.optionalKey(Schema.NonEmptyArray(Schema.String))
+      })
+      const serializer = Serializer.ensureArray(Serializer.stringLeafJson(schema))
+
+      await assertions.decoding.succeed(serializer, {})
+      await assertions.decoding.succeed(serializer, { a: ["a"] })
+      await assertions.decoding.succeed(serializer, { a: "a" }, { expected: { a: ["a"] } })
+    })
   })
 })

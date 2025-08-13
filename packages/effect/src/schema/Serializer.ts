@@ -85,7 +85,7 @@ export const goEnsureArray = AST.memoize((ast: AST.AST): AST.AST => {
   }
   const out: AST.AST = (ast as any).go?.(goEnsureArray) ?? ast
   if (AST.isTupleType(out)) {
-    return new AST.UnionType(
+    const ensure = new AST.UnionType(
       [
         out,
         AST.decodeTo(
@@ -100,6 +100,7 @@ export const goEnsureArray = AST.memoize((ast: AST.AST): AST.AST => {
       "anyOf",
       { "~effect/schema/AST/ensureArray": true }
     )
+    return out.context?.isOptional ? AST.optionalKey(ensure) : ensure
   }
   return out
 })
