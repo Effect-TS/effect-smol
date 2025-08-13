@@ -1,4 +1,4 @@
-import { Effect, Exit, flow, pipe, ServiceMap } from "effect"
+import { Cause, Effect, Exit, flow, pipe, ServiceMap } from "effect"
 import { Option, Order, Predicate, Redacted, Struct, Tuple } from "effect/data"
 import { Equal } from "effect/interfaces"
 import { String as Str } from "effect/primitives"
@@ -2015,6 +2015,45 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       await assertions.encoding.succeed(schema, { toString: () => "a" }, { expected: "a" })
       // anything else
       await assertions.encoding.succeed(schema, { a: 1 }, { expected: `{"a":1}` })
+    })
+  })
+
+  describe("Cause", () => {
+    it("Cause(FiniteFromString, FiniteFromString)", async () => {
+      const schema = Schema.Cause(Schema.FiniteFromString, Schema.FiniteFromString)
+      await assertions.decoding.succeed(schema, Cause.fail("1"), { expected: Cause.fail(1) })
+      await assertions.decoding.succeed(schema, Cause.die("2"), { expected: Cause.die(2) })
+      await assertions.decoding.succeed(schema, Cause.interrupt(3))
+
+      await assertions.decoding.fail(
+        schema,
+        Cause.fail("a"),
+        `Expected a finite number, got NaN
+  at ["failures"][0]["error"]`
+      )
+      await assertions.decoding.fail(
+        schema,
+        Cause.die("a"),
+        `Expected a finite number, got NaN
+  at ["failures"][0]["defect"]`
+      )
+
+      await assertions.encoding.succeed(schema, Cause.fail(1), { expected: Cause.fail("1") })
+      await assertions.encoding.succeed(schema, Cause.die(2), { expected: Cause.die("2") })
+      await assertions.encoding.succeed(schema, Cause.interrupt(3))
+
+      await assertions.encoding.fail(
+        schema,
+        Cause.fail("a"),
+        `Expected number, got "a"
+  at ["failures"][0]["error"]`
+      )
+      await assertions.encoding.fail(
+        schema,
+        Cause.die("a"),
+        `Expected number, got "a"
+  at ["failures"][0]["defect"]`
+      )
     })
   })
 

@@ -3337,37 +3337,37 @@ export interface CauseFailure<E extends Top, D extends Top>
  */
 export function CauseFailure<E extends Top, D extends Top>(error: E, defect: D): CauseFailure<E, D> {
   return declareConstructor([error, defect])<Cause_.Failure<E["Encoded"]>>()(
-    ([error, defect]) => (finput, ast, options): Effect.Effect<Cause_.Failure<E["Type"]>, Issue.Issue> => {
-      if (!Cause_.isFailure(finput)) {
-        return Effect.fail(new Issue.InvalidType(ast, O.some(finput)))
+    ([error, defect]) => (input, ast, options): Effect.Effect<Cause_.Failure<E["Type"]>, Issue.Issue> => {
+      if (!Cause_.isFailure(input)) {
+        return Effect.fail(new Issue.InvalidType(ast, O.some(input)))
       }
-      switch (finput._tag) {
+      switch (input._tag) {
         case "Fail":
-          return ToParser.decodeUnknownEffect(error)(finput.error, options).pipe(Effect.mapBothEager(
+          return ToParser.decodeUnknownEffect(error)(input.error, options).pipe(Effect.mapBothEager(
             {
               onSuccess: Cause_.failureFail,
-              onFailure: (issue) => new Issue.Composite(ast, O.some(finput), [new Issue.Pointer(["error"], issue)])
+              onFailure: (issue) => new Issue.Composite(ast, O.some(input), [new Issue.Pointer(["error"], issue)])
             }
           ))
         case "Die":
-          return ToParser.decodeUnknownEffect(defect)(finput.defect, options).pipe(Effect.mapBothEager(
+          return ToParser.decodeUnknownEffect(defect)(input.defect, options).pipe(Effect.mapBothEager(
             {
               onSuccess: Cause_.failureDie,
-              onFailure: (issue) => new Issue.Composite(ast, O.some(finput), [new Issue.Pointer(["defect"], issue)])
+              onFailure: (issue) => new Issue.Composite(ast, O.some(input), [new Issue.Pointer(["defect"], issue)])
             }
           ))
         case "Interrupt":
-          return Effect.succeed(finput)
+          return Effect.succeed(input)
       }
     },
     {
-      title: "Failure",
+      title: "Cause.Failure",
       defaultJsonSerializer: ([error, defect]) =>
         link<Cause_.Failure<E["Encoded"]>>()(
           Union([
             TaggedStruct("Fail", { error }),
             TaggedStruct("Die", { defect }),
-            TaggedStruct("Interrupt", { fiberId: Option(Finite) })
+            TaggedStruct("Interrupt", { fiberId: UndefinedOr(Finite) }) // TODO: UndefinedOr(Int)?
           ]),
           Transformation.transform({
             decode: (input) => {
@@ -3377,17 +3377,17 @@ export function CauseFailure<E extends Top, D extends Top>(error: E, defect: D):
                 case "Die":
                   return Cause_.failureDie(input.defect)
                 case "Interrupt":
-                  return Cause_.failureInterrupt(O.getOrUndefined(input.fiberId))
+                  return Cause_.failureInterrupt(input.fiberId)
               }
             },
-            encode: (o) => {
-              switch (o._tag) {
+            encode: (failure) => {
+              switch (failure._tag) {
                 case "Fail":
-                  return { _tag: "Fail", error: o.error } as const
+                  return { _tag: "Fail", error: failure.error } as const
                 case "Die":
-                  return { _tag: "Die", defect: o.defect } as const
+                  return { _tag: "Die", defect: failure.defect } as const
                 case "Interrupt":
-                  return { _tag: "Interrupt", fiberId: o.fiberId } as const
+                  return { _tag: "Interrupt", fiberId: O.getOrUndefined(failure.fiberId) } as const
               }
             }
           })
@@ -3450,14 +3450,14 @@ export interface Cause<E extends Top, D extends Top>
  */
 export function Cause<E extends Top, D extends Top>(error: E, defect: D): Cause<E, D> {
   return declareConstructor([CauseFailure(error, defect)])<Cause_.Cause<E["Encoded"]>>()(
-    ([failure]) => (cinput, ast, options) => {
-      if (!Cause_.isCause(cinput)) {
-        return Effect.fail(new Issue.InvalidType(ast, O.some(cinput)))
+    ([failure]) => (input, ast, options) => {
+      if (!Cause_.isCause(input)) {
+        return Effect.fail(new Issue.InvalidType(ast, O.some(input)))
       }
-      return ToParser.decodeUnknownEffect(Array(failure))(cinput.failures, options).pipe(Effect.mapBothEager(
+      return ToParser.decodeUnknownEffect(Array(failure))(input.failures, options).pipe(Effect.mapBothEager(
         {
           onSuccess: Cause_.fromFailures,
-          onFailure: (issue) => new Issue.Composite(ast, O.some(cinput), [new Issue.Pointer(["failures"], issue)])
+          onFailure: (issue) => new Issue.Composite(ast, O.some(input), [new Issue.Pointer(["failures"], issue)])
         }
       ))
     },
@@ -3465,19 +3465,16 @@ export function Cause<E extends Top, D extends Top>(error: E, defect: D): Cause<
       title: "Cause",
       defaultJsonSerializer: ([failure]) =>
         link<Cause_.Cause<E["Encoded"]>>()(
-          Struct({
-            _id: tag("Cause"),
-            failures: Array(failure)
-          }),
+          Array(failure),
           Transformation.transform({
-            decode: ({ failures }) => Cause_.fromFailures(failures),
-            encode: ({ failures }) => ({ _id: "Cause", failures } as const)
+            decode: (failures) => Cause_.fromFailures(failures),
+            encode: ({ failures }) => failures
           })
         ),
       arbitrary: {
         _tag: "Declaration",
-        declaration: ([failure]) => (fc, _ctx) =>
-          fc.array(failure, { maxLength: 10 }).map((failures) => Cause_.fromFailures(failures))
+        declaration: ([failure]) => (fc, ctx) =>
+          fc.array(failure, ctx?.constraints?.ArrayConstraints).map((failures) => Cause_.fromFailures(failures))
       },
       equivalence: {
         _tag: "Declaration",

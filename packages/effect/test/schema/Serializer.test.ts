@@ -1,3 +1,4 @@
+import { Cause } from "effect"
 import { Option, Redacted } from "effect/data"
 import { Check, Formatter, Schema, Serializer, ToParser, Transformation } from "effect/schema"
 import { describe, it } from "vitest"
@@ -228,18 +229,18 @@ describe("Serializer", () => {
       it("Redacted(Option(String))", async () => {
         const schema = Schema.Redacted(Schema.Option(Schema.String))
 
-        await assertions.serialization.json.schema.fail(
+        await assertions.serialization.json.typeCodec.fail(
           schema,
           Redacted.make(Option.none()),
           `Cannot serialize Redacted`
         )
-        await assertions.serialization.json.schema.fail(
+        await assertions.serialization.json.typeCodec.fail(
           schema,
           Redacted.make(Option.some("a")),
           `Cannot serialize Redacted`
         )
-        await assertions.deserialization.json.schema.succeed(schema, [], Redacted.make(Option.none()))
-        await assertions.deserialization.json.schema.succeed(schema, ["a"], Redacted.make(Option.some("a")))
+        await assertions.deserialization.json.typeCodec.succeed(schema, [], Redacted.make(Option.none()))
+        await assertions.deserialization.json.typeCodec.succeed(schema, ["a"], Redacted.make(Option.some("a")))
       })
 
       it("Struct", async () => {
@@ -409,6 +410,26 @@ describe("Serializer", () => {
         await assertions.serialization.json.codec.succeed(schema, new Error("a"), { name: "Error", message: "a" })
         await assertions.serialization.json.codec.succeed(schema, "a", "a")
         await assertions.serialization.json.codec.succeed(schema, { toString: () => "a" }, "a")
+      })
+
+      it("Cause(Option(Finite), Option(String))", async () => {
+        const schema = Schema.Cause(Schema.Option(Schema.Finite), Schema.Option(Schema.String))
+        await assertions.serialization.json.codec.succeed(schema, Cause.fail(Option.some(1)), [{
+          _tag: "Fail",
+          error: [1]
+        }])
+        await assertions.serialization.json.codec.succeed(schema, Cause.die(Option.some("a")), [{
+          _tag: "Die",
+          defect: ["a"]
+        }])
+        await assertions.serialization.json.codec.succeed(schema, Cause.interrupt(1), [{
+          _tag: "Interrupt",
+          fiberId: 1
+        }])
+        await assertions.serialization.json.codec.succeed(schema, Cause.interrupt(), [{
+          _tag: "Interrupt",
+          fiberId: undefined
+        }])
       })
     })
 

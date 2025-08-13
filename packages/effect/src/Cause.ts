@@ -352,7 +352,7 @@ import * as Option from "effect/data/Option"
  * @category models
  */
 export interface Interrupt extends Cause.FailureProto<"Interrupt"> {
-  readonly fiberId: Option<number>
+  readonly fiberId: Option<number> // TODO: why not `number | undefined`?
 }
 
 /**
