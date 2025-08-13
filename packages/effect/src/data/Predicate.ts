@@ -460,8 +460,10 @@ export const isBigInt = (input: unknown): input is bigint => typeof input === "b
  */
 export const isSymbol = (input: unknown): input is symbol => typeof input === "symbol"
 
-// TODO: make public
-/** @internal */
+/**
+ * @category guards
+ * @since 4.0.0
+ */
 export const isPropertyKey = (u: unknown): u is PropertyKey => isString(u) || isNumber(u) || isSymbol(u)
 
 /**
@@ -639,8 +641,15 @@ export const isNever: (input: unknown) => input is never = (_: unknown): _ is ne
  */
 export const isUnknown: (input: unknown) => input is unknown = (_): _ is unknown => true
 
-/** @internal */
-export const isRecordOrArray = (input: unknown): input is { [x: PropertyKey]: unknown } =>
+/**
+ * Tests if a value is a `Record` or an `Array`.
+ *
+ * Equivalent to `typeof input === "object" && input !== null`.
+ *
+ * @category guards
+ * @since 4.0.0
+ */
+export const isRecordOrArray = (input: unknown): input is { [x: PropertyKey]: unknown } | Array<unknown> =>
   typeof input === "object" && input !== null
 
 /**
@@ -868,7 +877,7 @@ export const isIterable = (input: unknown): input is Iterable<unknown> => hasPro
  * @category guards
  * @since 2.0.0
  */
-export const isRecord = (input: unknown): input is { [x: string | symbol]: unknown } =>
+export const isRecord = (input: unknown): input is { [x: PropertyKey]: unknown } =>
   isRecordOrArray(input) && !Array.isArray(input)
 
 /**
@@ -893,7 +902,7 @@ export const isRecord = (input: unknown): input is { [x: string | symbol]: unkno
  */
 export const isReadonlyRecord: (
   input: unknown
-) => input is { readonly [x: string | symbol]: unknown } = isRecord
+) => input is { readonly [x: PropertyKey]: unknown } = isRecord
 
 /**
  * A guard that succeeds when the input is a Promise.
