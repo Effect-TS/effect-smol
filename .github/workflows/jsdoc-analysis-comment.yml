@@ -1,10 +1,13 @@
 name: JSDoc Analysis Comment
-
 on:
   workflow_run:
     workflows: ["Check"]
     types:
       - completed
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions: {}
 
