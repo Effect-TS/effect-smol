@@ -3504,6 +3504,9 @@ const ErrorEncoded = Struct({
 /**
  * A schema that represents `Error` objects.
  *
+ * The default json serializer decodes to a struct with `name` and `message`
+ * properties (stack is omitted for security).
+ *
  * @category Schemas
  * @since 4.0.0
  */
@@ -3537,27 +3540,14 @@ export interface Defect extends
   readonly "~rebuild.out": Defect
 }
 
-const ErrorFromStruct = ErrorEncoded.pipe(decodeTo(Error, Transformation.error()))
-
-const UnknownFromString = String.pipe(decodeTo(
-  Unknown,
-  {
-    decode: Getter.passthrough(),
-    encode: Getter.map((a) => {
-      if (Predicate.isRecord(a)) return InternalEffect.causePrettyMessage(a)
-      return stringifyCircular(a)
-    })
-  }
-))
-
 /**
  * A schema that represents defects.
  *
  * This schema can handle both string-based error messages and structured Error objects.
  *
  * When encoding:
- * - An Error object returns a struct with `name` and `message` properties (stack is omitted for security)
  * - A string returns the string as-is
+ * - An Error object returns a struct with `name` and `message` properties (stack is omitted for security)
  * - Other values are converted to their string representation:
  *   - if the value has a custom `toString` method, it will be called
  *   - otherwise, the value will be converted to a string using `JSON.stringify`
@@ -3569,7 +3559,22 @@ const UnknownFromString = String.pipe(decodeTo(
  * @category Constructors
  * @since 4.0.0
  */
-export const Defect: Defect = Union([String, ErrorFromStruct, UnknownFromString])
+export const Defect: Defect = Union([
+  String,
+  // error from struct
+  ErrorEncoded.pipe(decodeTo(Error, Transformation.error())),
+  // unknown from string
+  String.pipe(decodeTo(
+    Unknown,
+    {
+      decode: Getter.passthrough(),
+      encode: Getter.map((a) => {
+        if (Predicate.isRecord(a)) return InternalEffect.causePrettyMessage(a)
+        return stringifyCircular(a)
+      })
+    }
+  ))
+])
 
 /**
  * @since 4.0.0
