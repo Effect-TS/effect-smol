@@ -2,7 +2,7 @@ import { describe, it } from "@effect/vitest"
 import { deepStrictEqual } from "@effect/vitest/utils"
 import { Effect, pipe } from "effect"
 import { Config, ConfigProvider } from "effect/config"
-import { Option } from "effect/data"
+import { Option, Redacted } from "effect/data"
 import { Issue, Schema } from "effect/schema"
 import { Duration } from "effect/time"
 import { assertions } from "../utils/schema.ts"
@@ -126,8 +126,9 @@ describe("Config", () => {
 
     it("String", async () => {
       const schema = Schema.String
-      const config = Config.schema(schema)
+      const config = Config.schema(schema, "a")
 
+      await assertSuccess(config, ConfigProvider.fromEnv({ env: { a: "a" } }), "a")
       await assertFailure(config, ConfigProvider.fromEnv({ env: {} }), `Expected string, got undefined`)
     })
 
@@ -299,6 +300,15 @@ describe("Config", () => {
           as: [{ a: "2", as: [] }]
         }
       )
+    })
+
+    it("Redacted(Int)", async () => {
+      const schema = Schema.Redacted(Schema.Int)
+      const config = Config.schema(schema, "a")
+
+      await assertSuccess(config, ConfigProvider.fromEnv({ env: { a: "1" } }), Redacted.make(1))
+      await assertFailure(config, ConfigProvider.fromEnv({ env: {} }), `Expected string, got undefined`)
+      await assertFailure(config, ConfigProvider.fromEnv({ env: { a: "1.1" } }), `Expected an integer, got 1.1`)
     })
   })
 
