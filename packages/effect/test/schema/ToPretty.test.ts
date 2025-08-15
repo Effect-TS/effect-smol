@@ -1,4 +1,4 @@
-import { Option } from "effect/data"
+import { Option, Redacted } from "effect/data"
 import { Check, Schema, ToPretty } from "effect/schema"
 import { describe, it } from "vitest"
 import { strictEqual, throws } from "../utils/assert.ts"
@@ -412,6 +412,11 @@ describe("ToPretty", () => {
     const pretty = ToPretty.make(Schema.Map(Schema.String, Schema.Option(Schema.Number)))
     strictEqual(pretty(new Map([["a", Option.some(1)]])), `Map(1) { "a" => some(1) }`)
     strictEqual(pretty(new Map([["a", Option.none()]])), `Map(1) { "a" => none() }`)
+  })
+
+  it("Redacted(String)", () => {
+    const pretty = ToPretty.make(Schema.Redacted(Schema.String))
+    strictEqual(pretty(Redacted.make("a")), `<redacted>`)
   })
 
   describe("Annotations", () => {

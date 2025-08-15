@@ -1,4 +1,4 @@
-import { Equivalence, Option } from "effect/data"
+import { Equivalence, Option, Redacted } from "effect/data"
 import { Check, Schema, ToEquivalence } from "effect/schema"
 import { describe, it } from "vitest"
 import { assertFalse, assertTrue, throws } from "../utils/assert.ts"
@@ -310,6 +310,13 @@ describe("ToEquivalence", () => {
     const equivalence = ToEquivalence.make(schema)
     assertTrue(equivalence(new URL("https://example.com"), new URL("https://example.com")))
     assertFalse(equivalence(new URL("https://example.com"), new URL("https://example.org")))
+  })
+
+  it("Redacted(String)", () => {
+    const schema = Schema.Redacted(Schema.String)
+    const equivalence = ToEquivalence.make(schema)
+    assertTrue(equivalence(Redacted.make("a"), Redacted.make("a")))
+    assertFalse(equivalence(Redacted.make("a"), Redacted.make("b")))
   })
 
   it("Option(Number)", () => {

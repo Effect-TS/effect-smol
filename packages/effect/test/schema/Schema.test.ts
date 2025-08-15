@@ -1,5 +1,5 @@
 import { Effect, Exit, flow, pipe, ServiceMap } from "effect"
-import { Option, Order, Predicate, Struct, Tuple } from "effect/data"
+import { Option, Order, Predicate, Redacted, Struct, Tuple } from "effect/data"
 import { Equal } from "effect/interfaces"
 import { String as Str } from "effect/primitives"
 import { AST, Check, Getter, Issue, Schema, ToParser, Transformation } from "effect/schema"
@@ -914,7 +914,7 @@ Expected a string including "c", got "ab"`,
         await assertions.decoding.fail(
           schema,
           Option.none(),
-          `Expected Option<string>, got {
+          `Expected Option, got {
   "_id": "Option",
   "_tag": "None"
 }`
@@ -1481,7 +1481,7 @@ Expected an object with at most 2 entries, got {"a":1,"b":NaN,"c":3}`,
         await assertions.decoding.fail(
           schema,
           null,
-          `Expected Map<string, number>, got null`
+          `Expected Map, got null`
         )
         await assertions.decoding.fail(
           schema,
@@ -1926,13 +1926,36 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     await assertions.decoding.fail(schema, "a", `Expected File, got "a"`)
   })
 
+  describe("Redacted", () => {
+    it("Redacted(Finite)", async () => {
+      const schema = Schema.Redacted(Schema.Finite)
+      await assertions.decoding.succeed(schema, Redacted.make(123))
+      await assertions.decoding.fail(schema, null, `Expected Redacted, got null`)
+      await assertions.decoding.fail(
+        schema,
+        Redacted.make("a"),
+        `Invalid data <redacted>
+  at ["value"]`
+      )
+
+      await assertions.encoding.succeed(schema, Redacted.make(123))
+      await assertions.encoding.fail(schema, null, `Expected Redacted, got null`)
+      await assertions.encoding.fail(
+        schema,
+        Redacted.make("a"),
+        `Invalid data <redacted>
+  at ["value"]`
+      )
+    })
+  })
+
   describe("Option", () => {
     it("Option(FiniteFromString)", async () => {
       const schema = Schema.Option(Schema.FiniteFromString)
 
       await assertions.decoding.succeed(schema, Option.none())
       await assertions.decoding.succeed(schema, Option.some("123"), { expected: Option.some(123) })
-      await assertions.decoding.fail(schema, null, `Expected Option<number>, got null`)
+      await assertions.decoding.fail(schema, null, `Expected Option, got null`)
       await assertions.decoding.fail(
         schema,
         Option.some(null),
@@ -1942,7 +1965,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
       await assertions.encoding.succeed(schema, Option.none())
       await assertions.encoding.succeed(schema, Option.some(123), { expected: Option.some("123") })
-      await assertions.encoding.fail(schema, null, `Expected Option<string>, got null`)
+      await assertions.encoding.fail(schema, null, `Expected Option, got null`)
       await assertions.encoding.fail(
         schema,
         Option.some(null),
@@ -1961,7 +1984,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       await assertions.decoding.fail(
         schema,
         null,
-        `Expected Exit<number, Cause<Failure<string, unknown>>>, got null`
+        `Expected Exit, got null`
       )
       await assertions.decoding.fail(
         schema,
@@ -2697,7 +2720,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     const schema = Schema.Map(Schema.String, Schema.Number)
 
     await assertions.decoding.succeed(schema, new Map([["a", 1]]))
-    await assertions.decoding.fail(schema, null, `Expected Map<string, number>, got null`)
+    await assertions.decoding.fail(schema, null, `Expected Map, got null`)
     await assertions.decoding.fail(
       schema,
       new Map([["a", "b"]]),

@@ -390,14 +390,9 @@ export class Declaration extends Base {
     }
   }
   /** @internal */
-  getExpected(getExpected: (ast: AST) => string): string {
-    const id = this.annotations?.id
-    if (Predicate.isString(id)) return id
-    const title = this.annotations?.title
-    if (Predicate.isString(title)) {
-      const tps = this.typeParameters.map(getExpected)
-      return `${title}${tps.length > 0 ? `<${tps.join(", ")}>` : ""}`
-    }
+  getExpected(): string {
+    const expected = this.annotations?.id ?? this.annotations?.title
+    if (Predicate.isString(expected)) return expected
     return "<Declaration>"
   }
 }

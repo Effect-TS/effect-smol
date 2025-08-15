@@ -534,6 +534,11 @@ describe("ToArbitrary", () => {
     })
   })
 
+  it("Redacted(String)", () => {
+    const schema = Schema.Redacted(Schema.String)
+    assertions.arbitrary.satisfy(schema)
+  })
+
   describe("fragments", () => {
     it("String", () => {
       assertFragments(Schema.String, {

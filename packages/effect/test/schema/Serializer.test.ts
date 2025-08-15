@@ -1,4 +1,4 @@
-import { Option } from "effect/data"
+import { Option, Redacted } from "effect/data"
 import { Check, Formatter, Schema, Serializer, ToParser, Transformation } from "effect/schema"
 import { describe, it } from "vitest"
 import { assertTrue, strictEqual } from "../utils/assert.ts"
@@ -219,6 +219,23 @@ describe("Serializer", () => {
           "2021-01-01T00:00:00.000Z"
         ])
         await assertions.serialization.json.schema.succeed(schema, Option.none(), [])
+      })
+
+      it("Redacted(Option(String))", async () => {
+        const schema = Schema.Redacted(Schema.Option(Schema.String))
+
+        await assertions.serialization.json.schema.fail(
+          schema,
+          Redacted.make(Option.none()),
+          `Cannot serialize Redacted`
+        )
+        await assertions.serialization.json.schema.fail(
+          schema,
+          Redacted.make(Option.some("a")),
+          `Cannot serialize Redacted`
+        )
+        await assertions.deserialization.json.schema.succeed(schema, [], Redacted.make(Option.none()))
+        await assertions.deserialization.json.schema.succeed(schema, ["a"], Redacted.make(Option.some("a")))
       })
 
       it("Struct", async () => {

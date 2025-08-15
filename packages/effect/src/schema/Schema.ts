@@ -12,6 +12,7 @@ import * as Equivalence from "../data/Equivalence.ts"
 import * as O from "../data/Option.ts"
 import * as Predicate from "../data/Predicate.ts"
 import * as R from "../data/Record.ts"
+import * as Redacted_ from "../data/Redacted.ts"
 import * as Result from "../data/Result.ts"
 import type { Lambda, Merge, Mutable, Simplify } from "../data/Struct.ts"
 import { lambda, renameKeys } from "../data/Struct.ts"
@@ -3207,19 +3208,19 @@ export interface Option<S extends Top> extends declare<O.Option<S["Type"]>, O.Op
  */
 export function Option<S extends Top>(value: S): Option<S> {
   return declareConstructor([value])<O.Option<S["Encoded"]>>()(
-    ([value]) => (oinput, ast, options) => {
-      if (O.isOption(oinput)) {
-        if (O.isNone(oinput)) {
+    ([value]) => (input, ast, options) => {
+      if (O.isOption(input)) {
+        if (O.isNone(input)) {
           return Effect.succeedNone
         }
-        return ToParser.decodeUnknownEffect(value)(oinput.value, options).pipe(Effect.mapBothEager(
+        return ToParser.decodeUnknownEffect(value)(input.value, options).pipe(Effect.mapBothEager(
           {
             onSuccess: O.some,
-            onFailure: (issue) => new Issue.Composite(ast, oinput, [new Issue.Pointer(["value"], issue)])
+            onFailure: (issue) => new Issue.Composite(ast, O.some(input), [new Issue.Pointer(["value"], issue)])
           }
         ))
       }
-      return Effect.fail(new Issue.InvalidType(ast, O.some(oinput)))
+      return Effect.fail(new Issue.InvalidType(ast, O.some(input)))
     },
     {
       title: "Option",
@@ -3252,6 +3253,70 @@ export function Option<S extends Top>(value: S): Option<S> {
             onNone: () => "none()",
             onSome: (t) => `some(${value(t)})`
           })
+      }
+    }
+  )
+}
+
+/**
+ * @since 4.0.0
+ */
+export interface Redacted<S extends Top>
+  extends declare<Redacted_.Redacted<S["Type"]>, Redacted_.Redacted<S["Encoded"]>, readonly [S]>
+{
+  readonly "~rebuild.out": Redacted<S>
+}
+
+/**
+ * Creates a schema for the Redacted type that provides secure handling of
+ * sensitive information.
+ *
+ * In case of failure of the wrapped schema, the issue will be redacted to prevent
+ * the actual value and the associated schema from being exposed.
+ *
+ * The default JSON serializer will fail to serialize a Redacted value, but it
+ * will deserialize a value to a Redacted instance.
+ *
+ * @category Constructors
+ * @since 4.0.0
+ */
+export function Redacted<S extends Top>(value: S): Redacted<S> {
+  return declareConstructor([value])<Redacted_.Redacted<S["Encoded"]>>()(
+    ([value]) => (input, ast, options) => {
+      if (Redacted_.isRedacted(input)) {
+        return ToParser.decodeUnknownEffect(value)(Redacted_.value(input), options).pipe(Effect.mapBothEager(
+          {
+            onSuccess: () => input,
+            onFailure: (/** ignore the actual issue because of security reasons */) => {
+              const oinput = O.some(input)
+              return new Issue.Composite(ast, oinput, [new Issue.Pointer(["value"], new Issue.InvalidValue(oinput))])
+            }
+          }
+        ))
+      }
+      return Effect.fail(new Issue.InvalidType(ast, O.some(input)))
+    },
+    {
+      title: "Redacted",
+      defaultJsonSerializer: ([value]) =>
+        link<Redacted_.Redacted<S["Encoded"]>>()(
+          value,
+          new Transformation.Transformation(
+            Getter.map(Redacted_.make),
+            Getter.forbidden("Cannot serialize Redacted")
+          )
+        ),
+      arbitrary: {
+        _tag: "Declaration",
+        declaration: ([value]) => () => value.map(Redacted_.make)
+      },
+      pretty: {
+        _tag: "Declaration",
+        declaration: () => globalThis.String
+      },
+      equivalence: {
+        _tag: "Declaration",
+        declaration: ([value]) => Redacted_.getEquivalence(value)
       }
     }
   )
