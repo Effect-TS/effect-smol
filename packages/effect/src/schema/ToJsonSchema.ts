@@ -141,9 +141,6 @@ function getJsonSchemaAnnotations(annotations: Annotations.Annotations | undefin
     if (hasOwn(annotations, "description") && Predicate.isString(annotations.description)) {
       out.description = annotations.description
     }
-    if (hasOwn(annotations, "documentation") && Predicate.isString(annotations.documentation)) {
-      out.documentation = annotations.documentation
-    }
     if (hasOwn(annotations, "default")) {
       out.default = annotations.default
     }
