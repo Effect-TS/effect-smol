@@ -7,7 +7,7 @@ import type { Exit } from "../Exit.ts"
 import type { Fiber } from "../Fiber.ts"
 import { dual } from "../Function.ts"
 import { Scheduler } from "../Scheduler.ts"
-import * as ServiceMap from "../ServiceMap.js"
+import * as ServiceMap from "../ServiceMap.ts"
 import { exitDie, isEffect } from "./core.ts"
 import * as effect from "./effect.ts"
 
