@@ -435,7 +435,7 @@ export interface Entry<out R> {
     [R] extends [Request<infer _A, infer _E, infer _R>] ? _R : never
   >
   readonly unsafeComplete: (
-    effect: Effect.Effect<
+    exit: Exit.Exit<
       [R] extends [Request<infer _A, infer _E, infer _R>] ? _A : never,
       [R] extends [Request<infer _A, infer _E, infer _R>] ? _E : never
     >
@@ -452,7 +452,7 @@ export const makeEntry = <R>(options: {
     [R] extends [Request<infer _A, infer _E, infer _R>] ? _R : never
   >
   readonly unsafeComplete: (
-    effect: Effect.Effect<
+    exit: Exit.Exit<
       [R] extends [Request<infer _A, infer _E, infer _R>] ? _A : never,
       [R] extends [Request<infer _A, infer _E, infer _R>] ? _E : never
     >

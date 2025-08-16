@@ -3,8 +3,11 @@ import { makeEntry } from "../batching/Request.ts"
 import type { RequestResolver } from "../batching/RequestResolver.ts"
 import type { NonEmptyArray } from "../collections/Array.ts"
 import type { Effect } from "../Effect.ts"
+import type { Exit } from "../Exit.ts"
 import type { Fiber } from "../Fiber.ts"
 import { dual } from "../Function.ts"
+import { Scheduler } from "../Scheduler.ts"
+import * as ServiceMap from "../ServiceMap.js"
 import { exitDie, isEffect } from "./core.ts"
 import * as effect from "./effect.ts"
 
@@ -48,6 +51,22 @@ export const request: {
   }
 )
 
+/** @internal */
+export const unsafeRequest = <A extends Request.Any>(
+  self: A,
+  options: {
+    readonly resolver: RequestResolver<A>
+    readonly onExit: (exit: Exit<Request.Success<A>, Request.Error<A>>) => void
+    readonly services: ServiceMap.ServiceMap<never>
+  }
+): () => void => {
+  const entry = addEntry(options.resolver, self, options.onExit, {
+    services: options.services,
+    currentScheduler: ServiceMap.get(options.services, Scheduler)
+  })
+  return () => unsafeRemoveEntry(options.resolver, entry)
+}
+
 interface Batch {
   readonly key: unknown
   readonly resolver: RequestResolver<any>
@@ -61,8 +80,12 @@ const pendingBatches = new Map<RequestResolver<any>, Map<unknown, Batch>>()
 const addEntry = <A extends Request.Any>(
   resolver: RequestResolver<A>,
   request: A,
-  resume: (effect: Effect<any, any, any>) => void,
-  fiber: Fiber<any, any>
+  resume: (exit: Exit<any, any>) => void,
+  fiber: {
+    readonly services: ServiceMap.ServiceMap<never>
+    readonly currentScheduler: Scheduler
+    readonly id?: number
+  }
 ) => {
   let batchMap = pendingBatches.get(resolver)
   if (!batchMap) {
@@ -104,26 +127,31 @@ const addEntry = <A extends Request.Any>(
   return entry
 }
 
+const unsafeRemoveEntry = <A extends Request.Any>(
+  resolver: RequestResolver<A>,
+  entry: Request.Entry<A>
+) => {
+  const batchMap = pendingBatches.get(resolver)
+  if (!batchMap) return
+  const key = resolver.batchKey(entry.request as any)
+  const batch = batchMap.get(key)
+  if (!batch) return
+
+  batch.entries.delete(entry)
+  batch.entrySet.delete(entry)
+
+  if (batch.entries.size === 0) {
+    pendingBatches.delete(resolver)
+    if (batch.delayFiber) {
+      batch.delayFiber.unsafeInterrupt()
+    }
+  }
+}
+
 const maybeRemoveEntry = <A extends Request.Any>(
   resolver: RequestResolver<A>,
   entry: Request.Entry<A>
-) =>
-  effect.suspend(() => {
-    const batchMap = pendingBatches.get(resolver)
-    if (!batchMap) return effect.void
-    const key = resolver.batchKey(entry.request as any)
-    const batch = batchMap.get(key)
-    if (!batch) return effect.void
-
-    batch.entries.delete(entry)
-    batch.entrySet.delete(entry)
-
-    if (batch.entries.size === 0) {
-      pendingBatches.delete(resolver)
-      return batch.delayFiber ? effect.fiberInterrupt(batch.delayFiber) : effect.void
-    }
-    return effect.void
-  })
+) => effect.sync(() => unsafeRemoveEntry(resolver, entry))
 
 const runBatch = (
   batchMap: Map<unknown, Batch>,

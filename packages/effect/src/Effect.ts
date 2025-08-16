@@ -6702,6 +6702,25 @@ export const request: {
   ): Effect<Request.Success<A>, Request.Error<A> | EX, Request.Services<A> | RX>
 } = internalRequest.request
 
+/**
+ * A low-level function that executes a request using the provided resolver.
+ *
+ * The resolver will call the `onExit` function with the exit value of the request.
+ *
+ * It returns a function that, when called, will cancel the request.
+ *
+ * @since 4.0.0
+ * @category requests & batching
+ */
+export const unsafeRequest: <A extends Request.Any>(
+  self: A,
+  options: {
+    readonly resolver: RequestResolver<A>
+    readonly onExit: (exit: Exit.Exit<Request.Success<A>, Request.Error<A>>) => void
+    readonly services: ServiceMap.ServiceMap<never>
+  }
+) => () => void = internalRequest.unsafeRequest
+
 // -----------------------------------------------------------------------------
 // Supervision & Fiber's
 // -----------------------------------------------------------------------------
