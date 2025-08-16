@@ -488,7 +488,7 @@ const release = <K, A, E>(self: RcMap<K, A, E>, key: K, entry: State.Entry<A, E>
  * }).pipe(Effect.scoped)
  * ```
  */
-export const keys = <K, A, E>(self: RcMap<K, A, E>): Effect.Effect<Array<K>> => {
+export const keys = <K, A, E>(self: RcMap<K, A, E>): Effect.Effect<Iterable<K>> => {
   return Effect.suspend(() =>
     self.state._tag === "Closed" ? Effect.interrupt : Effect.succeed(MutableHashMap.keys(self.state.map))
   )

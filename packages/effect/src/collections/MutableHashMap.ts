@@ -90,15 +90,14 @@ export type TypeId = "~effect/MutableHashMap"
  */
 export interface MutableHashMap<out K, out V> extends Iterable<[K, V]>, Pipeable, Inspectable {
   readonly [TypeId]: TypeId
-  readonly referential: Map<K, V>
-  readonly buckets: Map<number, NonEmptyArray<readonly [K & Equal.Equal, V]>>
-  bucketsSize: number
+  readonly backing: Map<K, V>
+  readonly buckets: Map<number, NonEmptyArray<K & Equal.Equal>>
 }
 
-const MutableHashMapProto: Omit<MutableHashMap<unknown, unknown>, "referential" | "buckets" | "bucketsSize"> = {
+const MutableHashMapProto: Omit<MutableHashMap<unknown, unknown>, "backing" | "buckets" | "bucketsSize"> = {
   [TypeId]: TypeId,
   [Symbol.iterator](this: MutableHashMap<unknown, unknown>): Iterator<[unknown, unknown]> {
-    return new MutableHashMapIterator(this)
+    return this.backing[Symbol.iterator]()
   },
   toString() {
     return format(this.toJSON())
@@ -114,56 +113,6 @@ const MutableHashMapProto: Omit<MutableHashMap<unknown, unknown>, "referential" 
   },
   pipe() {
     return pipeArguments(this, arguments)
-  }
-}
-
-class MutableHashMapIterator<K, V> implements IterableIterator<[K, V]> {
-  readonly referentialIterator: Iterator<[K, V]>
-  bucketIterator: Iterator<[K, V]> | undefined
-  readonly self: MutableHashMap<K, V>
-
-  constructor(self: MutableHashMap<K, V>) {
-    this.self = self
-    this.referentialIterator = self.referential[Symbol.iterator]()
-  }
-  next(): IteratorResult<[K, V]> {
-    if (this.bucketIterator !== undefined) {
-      return this.bucketIterator.next()
-    }
-    const result = this.referentialIterator.next()
-    if (result.done) {
-      this.bucketIterator = new BucketIterator(this.self.buckets.values())
-      return this.next()
-    }
-    return result
-  }
-
-  [Symbol.iterator](): IterableIterator<[K, V]> {
-    return new MutableHashMapIterator(this.self)
-  }
-}
-
-class BucketIterator<K, V> implements Iterator<[K, V]> {
-  readonly backing: Iterator<NonEmptyArray<readonly [K, V]>>
-  currentBucket: Iterator<readonly [K, V]> | undefined
-
-  constructor(backing: Iterator<NonEmptyArray<readonly [K, V]>>) {
-    this.backing = backing
-  }
-  next(): IteratorResult<[K, V]> {
-    if (this.currentBucket === undefined) {
-      const result = this.backing.next()
-      if (result.done) {
-        return result
-      }
-      this.currentBucket = result.value[Symbol.iterator]()
-    }
-    const result = this.currentBucket.next()
-    if (result.done) {
-      this.currentBucket = undefined
-      return this.next()
-    }
-    return result as IteratorResult<[K, V]>
   }
 }
 
@@ -188,9 +137,8 @@ class BucketIterator<K, V> implements Iterator<[K, V]> {
  */
 export const empty = <K, V>(): MutableHashMap<K, V> => {
   const self = Object.create(MutableHashMapProto)
-  self.referential = new Map()
+  self.backing = new Map()
   self.buckets = new Map()
-  self.bucketsSize = 0
   return self
 }
 
@@ -283,18 +231,24 @@ export const get: {
   <K>(key: K) => <V>(self: MutableHashMap<K, V>) => Option.Option<V>,
   <K, V>(self: MutableHashMap<K, V>, key: K) => Option.Option<V>
 >(2, <K, V>(self: MutableHashMap<K, V>, key: K): Option.Option<V> => {
-  if (Equal.isEqual(key) === false) {
-    return self.referential.has(key) ? Option.some(self.referential.get(key)!) : Option.none()
+  if (self.backing.has(key)) {
+    return Option.some(self.backing.get(key)!)
+  } else if (Equal.isEqual(key) === false) {
+    return Option.none()
   }
-
+  const refKey = referentialKeysCache.get(self)
+  if (refKey !== undefined) {
+    return self.backing.has(refKey) ? Option.some(self.backing.get(refKey)!) : Option.none()
+  }
   const hash = key[Hash.symbol]()
   const bucket = self.buckets.get(hash)
   if (bucket === undefined) {
     return Option.none()
   }
-
   return getFromBucket(self, bucket, key)
 })
+
+const referentialKeysCache = new WeakMap<any, any>()
 
 /**
  * Extracts all keys from the MutableHashMap into an array.
@@ -319,13 +273,7 @@ export const get: {
  * @since 3.8.0
  * @category elements
  */
-export const keys = <K, V>(self: MutableHashMap<K, V>): Array<K> => {
-  const keys: Array<K> = []
-  for (const [key] of self) {
-    keys.push(key)
-  }
-  return keys
-}
+export const keys = <K, V>(self: MutableHashMap<K, V>): Iterable<K> => self.backing.keys()
 
 /**
  * Extracts all values from the MutableHashMap into an array.
@@ -355,33 +303,20 @@ export const keys = <K, V>(self: MutableHashMap<K, V>): Array<K> => {
  * @since 3.8.0
  * @category elements
  */
-export const values = <K, V>(self: MutableHashMap<K, V>): Array<V> => {
-  const values = Array.from(self.referential.values())
-  for (const bucket of self.buckets.values()) {
-    for (let i = 0, len = bucket.length; i < len; i++) {
-      values.push(bucket[i][1])
-    }
-  }
-  return values
-}
+export const values = <K, V>(self: MutableHashMap<K, V>): Iterable<V> => self.backing.values()
 
 const getFromBucket = <K, V>(
   self: MutableHashMap<K, V>,
-  bucket: NonEmptyArray<readonly [K & Equal.Equal, V]>,
-  key: K & Equal.Equal,
-  remove = false
+  bucket: NonEmptyArray<K & Equal.Equal>,
+  key: K & Equal.Equal
 ): Option.Option<V> => {
   for (let i = 0, len = bucket.length; i < len; i++) {
-    if (key[Equal.symbol](bucket[i][0])) {
-      const value = bucket[i][1]
-      if (remove) {
-        bucket.splice(i, 1)
-        self.bucketsSize--
-      }
-      return Option.some(value)
+    if (key[Equal.symbol](bucket[i])) {
+      const refKey = bucket[i]
+      referentialKeysCache.set(key, refKey)
+      return Option.some(self.backing.get(refKey)!)
     }
   }
-
   return Option.none()
 }
 
@@ -450,35 +385,41 @@ export const set: {
   <K, V>(key: K, value: V) => (self: MutableHashMap<K, V>) => MutableHashMap<K, V>,
   <K, V>(self: MutableHashMap<K, V>, key: K, value: V) => MutableHashMap<K, V>
 >(3, <K, V>(self: MutableHashMap<K, V>, key: K, value: V) => {
-  if (Equal.isEqual(key) === false) {
-    self.referential.set(key, value)
+  if (self.backing.has(key) || Equal.isEqual(key) === false) {
+    self.backing.set(key, value)
+    return self
+  }
+  let refKey = referentialKeysCache.get(self)
+  if (refKey !== undefined && self.backing.has(refKey)) {
+    self.backing.set(refKey, value)
     return self
   }
 
   const hash = key[Hash.symbol]()
   const bucket = self.buckets.get(hash)
   if (bucket === undefined) {
-    self.buckets.set(hash, [[key, value]])
-    self.bucketsSize++
+    self.buckets.set(hash, [key])
+    self.backing.set(key, value)
     return self
   }
 
-  removeFromBucket(self, bucket, key)
-  bucket.push([key, value])
-  self.bucketsSize++
+  refKey = getRefKey(bucket, key)
+  if (refKey === undefined) {
+    bucket.push(key)
+    refKey = key
+  }
+  self.backing.set(refKey, value)
   return self
 })
 
-const removeFromBucket = <K, V>(
-  self: MutableHashMap<K, V>,
-  bucket: NonEmptyArray<readonly [K & Equal.Equal, V]>,
+const getRefKey = <K>(
+  bucket: NonEmptyArray<K & Equal.Equal>,
   key: K & Equal.Equal
 ) => {
   for (let i = 0, len = bucket.length; i < len; i++) {
-    if (key[Equal.symbol](bucket[i][0])) {
-      bucket.splice(i, 1)
-      self.bucketsSize--
-      return
+    if (key[Equal.symbol](bucket[i])) {
+      referentialKeysCache.set(key, bucket[i])
+      return bucket[i]
     }
   }
 }
@@ -520,10 +461,16 @@ export const modify: {
   <K, V>(key: K, f: (v: V) => V) => (self: MutableHashMap<K, V>) => MutableHashMap<K, V>,
   <K, V>(self: MutableHashMap<K, V>, key: K, f: (v: V) => V) => MutableHashMap<K, V>
 >(3, <K, V>(self: MutableHashMap<K, V>, key: K, f: (v: V) => V) => {
-  if (Equal.isEqual(key) === false) {
-    if (self.referential.has(key)) {
-      self.referential.set(key, f(self.referential.get(key)!))
+  const hasKey = self.backing.has(key)
+  if (hasKey || Equal.isEqual(key) === false) {
+    if (hasKey) {
+      self.backing.set(key, f(self.backing.get(key)!))
     }
+    return self
+  }
+  let refKey = referentialKeysCache.get(self)
+  if (refKey !== undefined && self.backing.has(refKey)) {
+    self.backing.set(refKey, f(self.backing.get(refKey)!))
     return self
   }
 
@@ -533,12 +480,11 @@ export const modify: {
     return self
   }
 
-  const value = getFromBucket(self, bucket, key, true)
-  if (Option.isNone(value)) {
+  refKey = getRefKey(bucket, key)
+  if (refKey === undefined) {
     return self
   }
-  bucket.push([key, f(value.value)])
-  self.bucketsSize++
+  self.backing.set(refKey, f(self.backing.get(refKey)!))
   return self
 })
 
@@ -595,32 +541,15 @@ export const modifyAt: {
     f: (value: Option.Option<V>) => Option.Option<V>
   ) => MutableHashMap<K, V>
 >(3, (self, key, f) => {
-  if (Equal.isEqual(key) === false) {
-    const result = f(get(self, key))
-    if (Option.isSome(result)) {
-      set(self, key, result.value)
-    } else {
+  const current = get(self, key)
+  const result = f(current)
+  if (Option.isNone(result)) {
+    if (Option.isSome(current)) {
       remove(self, key)
     }
     return self
   }
-
-  const hash = key[Hash.symbol]()
-  const bucket = self.buckets.get(hash)
-  if (bucket === undefined) {
-    const result = f(Option.none())
-    return Option.isSome(result) ? set(self, key, result.value) : self
-  }
-
-  const result = f(getFromBucket(self, bucket, key, true))
-  if (Option.isNone(result)) {
-    if (bucket.length === 0) {
-      self.buckets.delete(hash)
-    }
-    return self
-  }
-  bucket.push([key, result.value])
-  self.bucketsSize++
+  set(self, key, result.value)
   return self
 })
 
@@ -664,18 +593,26 @@ export const remove: {
 } = dual<
   <K>(key: K) => <V>(self: MutableHashMap<K, V>) => MutableHashMap<K, V>,
   <K, V>(self: MutableHashMap<K, V>, key: K) => MutableHashMap<K, V>
->(2, <K, V>(self: MutableHashMap<K, V>, key: K) => {
-  if (Equal.isEqual(key) === false) {
-    self.referential.delete(key)
+>(2, <K, V>(self: MutableHashMap<K, V>, key_: K) => {
+  if (Equal.isEqual(key_) === false) {
+    self.backing.delete(key_)
     return self
   }
 
+  const key = referentialKeysCache.get(self) ?? key_
   const hash = key[Hash.symbol]()
   const bucket = self.buckets.get(hash)
   if (bucket === undefined) {
     return self
   }
-  removeFromBucket(self, bucket, key)
+  for (let i = 0, len = bucket.length; i < len; i++) {
+    const bkey = bucket[i]
+    if (bkey === key || key[Equal.symbol](bkey)) {
+      self.backing.delete(bkey)
+      bucket.splice(i, 1)
+      break
+    }
+  }
   if (bucket.length === 0) {
     self.buckets.delete(hash)
   }
@@ -713,9 +650,8 @@ export const remove: {
  * @category mutations
  */
 export const clear = <K, V>(self: MutableHashMap<K, V>) => {
-  self.referential.clear()
+  self.backing.clear()
   self.buckets.clear()
-  self.bucketsSize = 0
   return self
 }
 
@@ -743,6 +679,4 @@ export const clear = <K, V>(self: MutableHashMap<K, V>) => {
  * @since 2.0.0
  * @category elements
  */
-export const size = <K, V>(self: MutableHashMap<K, V>): number => {
-  return self.referential.size + self.bucketsSize
-}
+export const size = <K, V>(self: MutableHashMap<K, V>): number => self.backing.size

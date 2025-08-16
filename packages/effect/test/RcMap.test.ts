@@ -174,6 +174,6 @@ describe("RcMap", () => {
       yield* RcMap.get(map, "bar")
       yield* RcMap.get(map, "baz")
 
-      assert.deepStrictEqual(yield* RcMap.keys(map), ["foo", "bar", "baz"])
+      assert.deepStrictEqual(Array.from(yield* RcMap.keys(map)), ["foo", "bar", "baz"])
     }))
 })
