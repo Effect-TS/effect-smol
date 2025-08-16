@@ -1,5 +1,4 @@
 /**
- * @fileoverview
  * MutableHashMap is a high-performance, mutable hash map implementation designed for efficient key-value storage
  * with support for both structural and referential equality. It provides O(1) average-case performance for
  * basic operations and integrates seamlessly with Effect's Equal and Hash interfaces.
@@ -263,7 +262,7 @@ const referentialKeysCache = new WeakMap<any, any>()
  *   ["cherry", 3]
  * )
  *
- * const allKeys = MutableHashMap.keys(map)
+ * const allKeys = Array.from(MutableHashMap.keys(map))
  * console.log(allKeys) // ["apple", "banana", "cherry"]
  *
  * // Useful for iteration or validation
@@ -288,7 +287,7 @@ export const keys = <K, V>(self: MutableHashMap<K, V>): Iterable<K> => self.back
  *   ["cherry", 3]
  * )
  *
- * const allValues = MutableHashMap.values(map)
+ * const allValues = Array.from(MutableHashMap.values(map))
  * console.log(allValues) // [1, 2, 3]
  *
  * // Useful for calculations

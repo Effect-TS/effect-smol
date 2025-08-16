@@ -51,7 +51,7 @@ export type TypeId = "~effect/RequestResolver"
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
+ * import { Effect, Exit } from "effect"
  * import { RequestResolver, Request } from "effect/batching"
  *
  * interface GetUserRequest extends Request.Request<string, Error> {
@@ -63,7 +63,7 @@ export type TypeId = "~effect/RequestResolver"
  * const resolver = RequestResolver.make<GetUserRequest>((entries) =>
  *   Effect.sync(() => {
  *     for (const entry of entries) {
- *       entry.unsafeComplete(Effect.succeed(`User ${entry.request.id}`))
+ *       entry.unsafeComplete(Exit.succeed(`User ${entry.request.id}`))
  *     }
  *   })
  * )
@@ -148,7 +148,7 @@ const defaultKey = (_request: unknown): unknown => defaultKeyObject
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
+ * import { Effect, Exit } from "effect"
  * import { RequestResolver, Request } from "effect/batching"
  *
  * // Define a request type
@@ -163,7 +163,7 @@ const defaultKey = (_request: unknown): unknown => defaultKeyObject
  *   Effect.sync(() => {
  *     for (const entry of entries) {
  *       // Complete each request with a result
- *       entry.unsafeComplete(Effect.succeed(`User ${entry.request.id}`))
+ *       entry.unsafeComplete(Exit.succeed(`User ${entry.request.id}`))
  *     }
  *   })
  * )
@@ -192,7 +192,7 @@ export const make = <A extends Request.Any>(
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
+ * import { Effect, Exit } from "effect"
  * import { RequestResolver, Request } from "effect/batching"
  *
  * interface GetUserByRole extends Request.Request<string, Error> {
@@ -209,7 +209,7 @@ export const make = <A extends Request.Any>(
  *     Effect.sync(() => {
  *       console.log(`Processing ${entries.length} requests for role: ${role}`)
  *       for (const entry of entries) {
- *         entry.unsafeComplete(Effect.succeed(`User ${entry.request.id} with role ${role}`))
+ *         entry.unsafeComplete(Exit.succeed(`User ${entry.request.id} with role ${role}`))
  *       }
  *     })
  * })
@@ -467,7 +467,7 @@ export const fromEffectTagged = <A extends Request.Any & { readonly _tag: string
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
+ * import { Effect, Exit } from "effect"
  * import { RequestResolver, Request } from "effect/batching"
  *
  * interface GetDataRequest extends Request.Request<string> {
@@ -478,7 +478,7 @@ export const fromEffectTagged = <A extends Request.Any & { readonly _tag: string
  * const resolver = RequestResolver.make<GetDataRequest>((entries) =>
  *   Effect.sync(() => {
  *     for (const entry of entries) {
- *       entry.unsafeComplete(Effect.succeed("data"))
+ *       entry.unsafeComplete(Exit.succeed("data"))
  *     }
  *   })
  * )
@@ -510,7 +510,7 @@ export const setDelayEffect: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
+ * import { Effect, Exit } from "effect"
  * import { RequestResolver, Request } from "effect/batching"
  *
  * interface GetDataRequest extends Request.Request<string> {
@@ -521,7 +521,7 @@ export const setDelayEffect: {
  * const resolver = RequestResolver.make<GetDataRequest>((entries) =>
  *   Effect.sync(() => {
  *     for (const entry of entries) {
- *       entry.unsafeComplete(Effect.succeed("data"))
+ *       entry.unsafeComplete(Exit.succeed("data"))
  *     }
  *   })
  * )
@@ -554,7 +554,7 @@ export const setDelay: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
+ * import { Effect, Exit } from "effect"
  * import { RequestResolver, Request } from "effect/batching"
  *
  * interface GetDataRequest extends Request.Request<string> {
@@ -565,7 +565,7 @@ export const setDelay: {
  * const resolver = RequestResolver.make<GetDataRequest>((entries) =>
  *   Effect.sync(() => {
  *     for (const entry of entries) {
- *       entry.unsafeComplete(Effect.succeed("data"))
+ *       entry.unsafeComplete(Exit.succeed("data"))
  *     }
  *   })
  * )
@@ -646,7 +646,7 @@ export const never: RequestResolver<never> = make(() => effect.never)
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
+ * import { Effect, Exit } from "effect"
  * import { RequestResolver, Request } from "effect/batching"
  *
  * interface GetDataRequest extends Request.Request<string> {
@@ -659,7 +659,7 @@ export const never: RequestResolver<never> = make(() => effect.never)
  *   Effect.sync(() => {
  *     console.log(`Processing batch of ${entries.length} requests`)
  *     for (const entry of entries) {
- *       entry.unsafeComplete(Effect.succeed(`data-${entry.request.id}`))
+ *       entry.unsafeComplete(Exit.succeed(`data-${entry.request.id}`))
  *     }
  *   })
  * )
@@ -691,7 +691,7 @@ export const batchN: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
+ * import { Effect, Exit } from "effect"
  * import { RequestResolver, Request } from "effect/batching"
  *
  * interface GetUserRequest extends Request.Request<string> {
@@ -705,7 +705,7 @@ export const batchN: {
  *   Effect.sync(() => {
  *     console.log(`Processing ${entries.length} users`)
  *     for (const entry of entries) {
- *       entry.unsafeComplete(Effect.succeed(`User ${entry.request.userId}`))
+ *       entry.unsafeComplete(Exit.succeed(`User ${entry.request.userId}`))
  *     }
  *   })
  * )
@@ -748,7 +748,7 @@ export const grouped: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
+ * import { Effect, Exit } from "effect"
  * import { RequestResolver, Request } from "effect/batching"
  *
  * interface GetDataRequest extends Request.Request<string> {
@@ -762,7 +762,7 @@ export const grouped: {
  *   Effect.gen(function* () {
  *     yield* Effect.sleep("10 millis")
  *     for (const entry of entries) {
- *       entry.unsafeComplete(Effect.succeed(`fast-${entry.request.id}`))
+ *       entry.unsafeComplete(Exit.succeed(`fast-${entry.request.id}`))
  *     }
  *   })
  * )
@@ -772,7 +772,7 @@ export const grouped: {
  *   Effect.gen(function* () {
  *     yield* Effect.sleep("100 millis")
  *     for (const entry of entries) {
- *       entry.unsafeComplete(Effect.succeed(`slow-${entry.request.id}`))
+ *       entry.unsafeComplete(Exit.succeed(`slow-${entry.request.id}`))
  *     }
  *   })
  * )
@@ -806,7 +806,7 @@ export const race: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
+ * import { Effect, Exit } from "effect"
  * import { RequestResolver, Request } from "effect/batching"
  *
  * interface GetDataRequest extends Request.Request<string> {
@@ -818,7 +818,7 @@ export const race: {
  * const resolver = RequestResolver.make<GetDataRequest>((entries) =>
  *   Effect.sync(() => {
  *     for (const entry of entries) {
- *       entry.unsafeComplete(Effect.succeed(`data-${entry.request.id}`))
+ *       entry.unsafeComplete(Exit.succeed(`data-${entry.request.id}`))
  *     }
  *   })
  * )
