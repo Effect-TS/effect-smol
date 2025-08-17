@@ -455,45 +455,50 @@ const keepAlive = (() => {
   })
 })()
 
-/** @internal */
-export interface FiberImpl<in out A = any, in out E = any> extends Fiber.Fiber<A, E> {
-  id: number
+export class FiberImpl<A = any, E = any> implements Fiber.Fiber<A, E> {
+  constructor(
+    services: ServiceMap.ServiceMap<never>,
+    interruptible: boolean = true
+  ) {
+    this[FiberTypeId] = fiberVariance as any
+    this.setServices(services)
+    this.id = ++fiberIdStore.id
+    this.currentOpCount = 0
+    this.currentLoopCount = 0
+    this.interruptible = interruptible
+    this._stack = []
+    this._observers = []
+    this._exit = undefined
+    this._children = undefined
+    this._interruptedCause = undefined
+    this._yielded = undefined
+  }
+
+  readonly [FiberTypeId]: Fiber.Fiber.Variance<A, E>
+
+  readonly id: number
+  interruptible: boolean
   currentOpCount: number
   currentLoopCount: number
-  readonly services: ServiceMap.ServiceMap<never>
-  readonly currentScheduler: Scheduler.Scheduler
-  readonly currentTracerContext?: Tracer.Tracer["context"]
-  readonly currentSpan?: Tracer.AnySpan | undefined
-  readonly currentSpanLocal: Tracer.Span | undefined
-  readonly runtimeMetrics?: Metric.FiberRuntimeMetricsService | undefined
-  readonly maxOpsBeforeYield: number
-  interruptible: boolean
   readonly _stack: Array<Primitive>
   readonly _observers: Array<(exit: Exit.Exit<A, E>) => void>
   _exit: Exit.Exit<A, E> | undefined
   _children: Set<FiberImpl<any, any>> | undefined
   _interruptedCause: Cause.Cause<never> | undefined
   _yielded: Exit.Exit<any, any> | (() => void) | undefined
-  evaluate(effect: Primitive): void
-  runLoop<A, E>(this: FiberImpl<A, E>, effect: Primitive): Exit.Exit<A, E> | Yield
-  getRef<A, E, X>(this: Fiber.Fiber<A, E>, ref: ServiceMap.Reference<X>): X
-  addObserver<A, E>(this: FiberImpl<A, E>, cb: (exit: Exit.Exit<A, E>) => void): () => void
-  unsafeInterrupt<A, E>(this: FiberImpl<A, E>, fiberId?: number | undefined, span?: Tracer.Span | undefined): void
-  unsafePoll<A, E>(this: FiberImpl<A, E>): Exit.Exit<A, E> | undefined
-  getCont<A, E, S extends contA | contE>(this: FiberImpl<A, E>, symbol: S):
-    | (Primitive & Record<S, (value: any, fiber: FiberImpl) => Primitive>)
-    | undefined
-  yieldWith<A, E>(this: FiberImpl<A, E>, value: Exit.Exit<any, any> | (() => void)): Yield
-  children<A, E>(this: FiberImpl<A, E>): Set<Fiber.Fiber<any, any>>
-  setServices(this: FiberImpl<A, E>, services: ServiceMap.ServiceMap<never>): void
-}
 
-const FiberProto = {
-  [FiberTypeId]: fiberVariance,
-  getRef<A, E, X>(this: Fiber.Fiber<A, E>, ref: ServiceMap.Reference<X>): X {
+  // set in setServices
+  services!: ServiceMap.ServiceMap<never>
+  currentScheduler!: Scheduler.Scheduler
+  currentTracerContext: Tracer.Tracer["context"]
+  currentSpan: Tracer.AnySpan | undefined
+  runtimeMetrics: Metric.FiberRuntimeMetricsService | undefined
+  maxOpsBeforeYield!: number
+
+  getRef<X>(ref: ServiceMap.Reference<X>): X {
     return ServiceMap.unsafeGetReference(this.services, ref)
-  },
-  addObserver<A, E>(this: FiberImpl<A, E>, cb: (exit: Exit.Exit<A, E>) => void): () => void {
+  }
+  addObserver(cb: (exit: Exit.Exit<A, E>) => void): () => void {
     if (this._exit) {
       cb(this._exit)
       return constVoid
@@ -505,8 +510,8 @@ const FiberProto = {
         this._observers.splice(index, 1)
       }
     }
-  },
-  unsafeInterrupt<A, E>(this: FiberImpl<A, E>, fiberId?: number | undefined, span?: Tracer.Span | undefined): void {
+  }
+  unsafeInterrupt(fiberId?: number | undefined, span?: Tracer.Span | undefined): void {
     if (this._exit) {
       return
     }
@@ -523,11 +528,11 @@ const FiberProto = {
     if (this.interruptible) {
       this.evaluate(failCause(this._interruptedCause) as any)
     }
-  },
-  unsafePoll<A, E>(this: FiberImpl<A, E>): Exit.Exit<A, E> | undefined {
+  }
+  unsafePoll(): Exit.Exit<A, E> | undefined {
     return this._exit
-  },
-  evaluate<A, E>(this: FiberImpl<A, E>, effect: Primitive): void {
+  }
+  evaluate(effect: Primitive): void {
     this.runtimeMetrics?.recordFiberStart(this.services)
     if (this._exit) {
       return
@@ -550,13 +555,12 @@ const FiberProto = {
 
     this._exit = exit
     this.runtimeMetrics?.recordFiberEnd(this.services, this._exit)
-    keepAlive.decrement()
     for (let i = 0; i < this._observers.length; i++) {
       this._observers[i](exit)
     }
     this._observers.length = 0
-  },
-  runLoop<A, E>(this: FiberImpl<A, E>, effect: Primitive): Exit.Exit<A, E> | Yield {
+  }
+  runLoop(effect: Primitive): Exit.Exit<A, E> | Yield {
     const prevFiber = (globalThis as any)[currentFiberUri]
     ;(globalThis as any)[currentFiberUri] = this
     let yielding = false
@@ -597,8 +601,8 @@ const FiberProto = {
     } finally {
       ;(globalThis as any)[currentFiberUri] = prevFiber
     }
-  },
-  getCont<A, E, S extends contA | contE>(this: FiberImpl<A, E>, symbol: S):
+  }
+  getCont<S extends contA | contE>(symbol: S):
     | (Primitive & Record<S, (value: any, fiber: FiberImpl) => Primitive>)
     | undefined
   {
@@ -609,18 +613,18 @@ const FiberProto = {
       if (cont) return { [symbol]: cont } as any
       if (op[symbol]) return op as any
     }
-  },
-  yieldWith<A, E>(this: FiberImpl<A, E>, value: Exit.Exit<any, any> | (() => void)): Yield {
+  }
+  yieldWith(value: Exit.Exit<any, any> | (() => void)): Yield {
     this._yielded = value
     return Yield
-  },
-  children<A, E>(this: FiberImpl<A, E>): Set<Fiber.Fiber<any, any>> {
+  }
+  children(): Set<Fiber.Fiber<any, any>> {
     return (this._children ??= new Set())
-  },
-  pipe<A, E>(this: FiberImpl<A, E>) {
+  }
+  pipe() {
     return pipeArguments(this, arguments)
-  },
-  setServices(this: any, services: ServiceMap.ServiceMap<never>): void {
+  }
+  setServices(services: ServiceMap.ServiceMap<never>): void {
     this.services = services
     this.currentScheduler = this.getRef(Scheduler.Scheduler)
     this.currentSpan = services.unsafeMap.get(Tracer.ParentSpanKey)
@@ -628,30 +632,10 @@ const FiberProto = {
     this.runtimeMetrics = services.unsafeMap.get(InternalMetric.FiberRuntimeMetricsKey)
     const currentTracer = services.unsafeMap.get(Tracer.TracerKey)
     this.currentTracerContext = currentTracer ? currentTracer["context"] : undefined
-  },
-  get currentSpanLocal(): Tracer.Span | undefined {
-    return (this as any).currentSpan?._tag === "Span" ? (this as any).currentSpan : undefined
   }
-}
-
-export const makeFiber = <A, E>(
-  services: ServiceMap.ServiceMap<never>,
-  interruptible: boolean = true
-): FiberImpl<A, E> => {
-  const fiber = Object.create(FiberProto)
-  fiber.setServices(services)
-  fiber.id = ++fiberIdStore.id
-  fiber.currentOpCount = 0
-  fiber.currentLoopCount = 0
-  fiber.interruptible = interruptible
-  fiber._stack = []
-  fiber._observers = []
-  fiber._exit = undefined
-  fiber._children = undefined
-  fiber._interruptedCause = undefined
-  fiber._yielded = undefined
-  keepAlive.increment()
-  return fiber
+  get currentSpanLocal(): Tracer.Span | undefined {
+    return this.currentSpan?._tag === "Span" ? this.currentSpan : undefined
+  }
 }
 
 const fiberMiddleware = {
@@ -925,8 +909,10 @@ const callbackOptions: <A, E = never, R = never>(
     }, controller?.signal)
     if (yielded !== false) return yielded
     yielded = true
+    keepAlive.increment()
     fiber._yielded = () => {
       resumed = true
+      keepAlive.decrement()
     }
     if (controller === undefined && onCancel === undefined) {
       return Yield
@@ -3719,7 +3705,7 @@ export const unsafeFork = <FA, FE, A, E, R>(
   uninterruptible: boolean | "inherit" = false
 ): Fiber.Fiber<A, E> => {
   const interruptible = uninterruptible === "inherit" ? parent.interruptible : !uninterruptible
-  const child = makeFiber<A, E>(parent.services, interruptible)
+  const child = new FiberImpl<A, E>(parent.services, interruptible)
   if (immediate) {
     child.evaluate(effect as any)
   } else {
@@ -3836,7 +3822,7 @@ export const runForkWith = <R>(services: ServiceMap.ServiceMap<R>) =>
 ): Fiber.Fiber<A, E> => {
   const serviceMap = new Map(services.unsafeMap)
   serviceMap.set(Scheduler.Scheduler.key, options?.scheduler ?? new Scheduler.MixedScheduler())
-  const fiber = makeFiber<A, E>(ServiceMap.unsafeMake(serviceMap))
+  const fiber = new FiberImpl<A, E>(ServiceMap.unsafeMake(serviceMap))
   fiber.evaluate(effect as any)
   if (fiber._exit) return fiber
 
