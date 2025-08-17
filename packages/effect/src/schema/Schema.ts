@@ -3365,7 +3365,7 @@ export function CauseFailure<E extends Top, D extends Top>(error: E, defect: D):
           Union([
             TaggedStruct("Fail", { error }),
             TaggedStruct("Die", { defect }),
-            TaggedStruct("Interrupt", { fiberId: UndefinedOr(Finite) }) // TODO: UndefinedOr(Int)?
+            TaggedStruct("Interrupt", { fiberId: UndefinedOr(Finite) })
           ]),
           Transformation.transform({
             decode: (input) => {
@@ -3378,16 +3378,7 @@ export function CauseFailure<E extends Top, D extends Top>(error: E, defect: D):
                   return Cause_.failureInterrupt(input.fiberId)
               }
             },
-            encode: (failure) => {
-              switch (failure._tag) {
-                case "Fail":
-                  return { _tag: "Fail", error: failure.error } as const
-                case "Die":
-                  return { _tag: "Die", defect: failure.defect } as const
-                case "Interrupt":
-                  return { _tag: "Interrupt", fiberId: O.getOrUndefined(failure.fiberId) } as const
-              }
-            }
+            encode: identity
           })
         ),
       arbitrary: {

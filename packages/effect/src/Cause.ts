@@ -40,7 +40,6 @@
  * @since 2.0.0
  */
 import type * as Filter from "./data/Filter.ts"
-import type { Option } from "./data/Option.ts"
 import type * as Effect from "./Effect.ts"
 import type { Equal } from "./interfaces/Equal.ts"
 import type { Inspectable } from "./interfaces/Inspectable.ts"
@@ -338,13 +337,12 @@ export interface Fail<out E> extends Cause.FailureProto<"Fail"> {
  * @example
  * ```ts
  * import { Cause } from "effect"
-import * as Option from "effect/data/Option"
  *
  * const cause = Cause.interrupt(123)
  * const failure = cause.failures[0]
  * if (Cause.failureIsInterrupt(failure)) {
  *   console.log(failure._tag) // "Interrupt"
- *   console.log(Option.isSome(failure.fiberId)) // true
+ *   console.log(failure.fiberId !== undefined) // true
  * }
  * ```
  *
@@ -352,7 +350,7 @@ import * as Option from "effect/data/Option"
  * @category models
  */
 export interface Interrupt extends Cause.FailureProto<"Interrupt"> {
-  readonly fiberId: Option<number> // TODO: why not `number | undefined`?
+  readonly fiberId: number | undefined
 }
 
 /**

@@ -79,9 +79,9 @@ import { version } from "./version.ts"
 
 /** @internal */
 export class Interrupt extends FailureBase<"Interrupt"> implements Cause.Interrupt {
-  readonly fiberId: Option.Option<number>
+  readonly fiberId: number | undefined
   constructor(
-    fiberId: Option.Option<number>,
+    fiberId: number | undefined,
     annotations = new Map<string, unknown>()
   ) {
     super("Interrupt", annotations, "Interrupted")
@@ -120,13 +120,12 @@ export class Interrupt extends FailureBase<"Interrupt"> implements Cause.Interru
 }
 
 /** @internal */
-export const failureInterrupt = (fiberId?: number | undefined): Cause.Interrupt =>
-  new Interrupt(Option.fromNullable(fiberId))
+export const failureInterrupt = (fiberId?: number | undefined): Cause.Interrupt => new Interrupt(fiberId)
 
 /** @internal */
 export const causeInterrupt = (
   fiberId?: number | undefined
-): Cause.Cause<never> => new CauseImpl([new Interrupt(Option.fromNullable(fiberId))])
+): Cause.Cause<never> => new CauseImpl([new Interrupt(fiberId)])
 
 /** @internal */
 export const causeHasFail = <E>(self: Cause.Cause<E>): boolean => self.failures.some(failureIsFail)
@@ -174,8 +173,8 @@ export const causeFilterInterruptors = <E>(self: Cause.Cause<E>): Set<number> | 
     const f = self.failures[i]
     if (f._tag !== "Interrupt") continue
     interruptors ??= new Set()
-    if (f.fiberId._tag === "Some") {
-      interruptors.add(f.fiberId.value)
+    if (f.fiberId !== undefined) {
+      interruptors.add(f.fiberId)
     }
   }
   return interruptors ? interruptors : Filter.fail(self)
@@ -370,7 +369,7 @@ const cleanErrorStack = (
 const interruptCauseStack = (error: Error, interrupts: Array<Cause.Interrupt>): string => {
   const out: Array<string> = [`${error.name}: ${error.message}`]
   for (const current of interrupts) {
-    const fiberId = current.fiberId._tag === "Some" ? `#${current.fiberId.value}` : "unknown"
+    const fiberId = current.fiberId !== undefined ? `#${current.fiberId}` : "unknown"
     const span = current.annotations.get(InterruptorSpanKey.key) as Tracer.Span | undefined
     out.push(`    at fiber (${fiberId})`)
     if (span) pushSpanStack(out, span)

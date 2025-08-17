@@ -151,7 +151,7 @@ export const causeResponse = <E>(
         }
         case "Interrupt": {
           if (acc[1].length > 0) return acc
-          const response = f.fiberId._tag === "Some" && f.fiberId.value === clientAbortFiberId
+          const response = f.fiberId === clientAbortFiberId
             ? clientAbortError
             : serverAbortError
           return [Effect.succeed(response), [f]]
