@@ -129,7 +129,12 @@ describe("Config", () => {
       const config = Config.schema(schema, "a")
 
       await assertSuccess(config, ConfigProvider.fromEnv({ env: { a: "a" } }), "a")
-      await assertFailure(config, ConfigProvider.fromEnv({ env: {} }), `Expected string, got undefined`)
+      await assertFailure(
+        config,
+        ConfigProvider.fromEnv({ env: {} }),
+        `Expected string, got undefined
+  at ["a"]`
+      )
     })
 
     describe("Struct", () => {
@@ -307,8 +312,18 @@ describe("Config", () => {
       const config = Config.schema(schema, "a")
 
       await assertSuccess(config, ConfigProvider.fromEnv({ env: { a: "1" } }), Redacted.make(1))
-      await assertFailure(config, ConfigProvider.fromEnv({ env: {} }), `Expected string, got undefined`)
-      await assertFailure(config, ConfigProvider.fromEnv({ env: { a: "1.1" } }), `Expected an integer, got 1.1`)
+      await assertFailure(
+        config,
+        ConfigProvider.fromEnv({ env: {} }),
+        `Expected string, got undefined
+  at ["a"]`
+      )
+      await assertFailure(
+        config,
+        ConfigProvider.fromEnv({ env: { a: "1.1" } }),
+        `Expected an integer, got 1.1
+  at ["a"]`
+      )
     })
   })
 
@@ -511,7 +526,8 @@ describe("Config", () => {
       await assertFailure(
         Config.schema(Config.Boolean, "failure"),
         provider,
-        `Expected "true" | "yes" | "on" | "1" | "false" | "no" | "off" | "0", got "value"`
+        `Expected "true" | "yes" | "on" | "1" | "false" | "no" | "off" | "0", got "value"
+  at ["failure"]`
       )
     })
 
@@ -524,7 +540,12 @@ describe("Config", () => {
 
       await assertSuccess(Config.schema(Config.Duration, "a"), provider, Duration.millis(1000))
       await assertSuccess(Config.schema(Config.Duration, "b"), provider, Duration.seconds(1))
-      await assertFailure(Config.schema(Config.Duration, "failure"), provider, `Invalid data "value"`)
+      await assertFailure(
+        Config.schema(Config.Duration, "failure"),
+        provider,
+        `Invalid data "value"
+  at ["failure"]`
+      )
     })
 
     it("Port", async () => {
@@ -537,7 +558,8 @@ describe("Config", () => {
       await assertFailure(
         Config.schema(Config.Port, "failure"),
         provider,
-        `Expected a value between 1 and 65535, got -1`
+        `Expected a value between 1 and 65535, got -1
+  at ["failure"]`
       )
     })
 
@@ -552,12 +574,14 @@ describe("Config", () => {
       await assertFailure(
         Config.schema(Config.LogLevel, "failure_1"),
         provider,
-        `Expected "All" | "Fatal" | "Error" | "Warn" | "Info" | "Debug" | "Trace" | "None", got "info"`
+        `Expected "All" | "Fatal" | "Error" | "Warn" | "Info" | "Debug" | "Trace" | "None", got "info"
+  at ["failure_1"]`
       )
       await assertFailure(
         Config.schema(Config.LogLevel, "failure_2"),
         provider,
-        `Expected "All" | "Fatal" | "Error" | "Warn" | "Info" | "Debug" | "Trace" | "None", got "value"`
+        `Expected "All" | "Fatal" | "Error" | "Warn" | "Info" | "Debug" | "Trace" | "None", got "value"
+  at ["failure_2"]`
       )
     })
 

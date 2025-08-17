@@ -258,10 +258,20 @@ const go: (
  */
 export function schema<T, E>(codec: Schema.Codec<T, E>, path?: string | ConfigProvider.Path): Config<T> {
   const serializer = Serializer.ensureArray(Serializer.stringLeafJson(codec))
-  const decodeUnknownEffect = Schema.decodeUnknownEffect(serializer)
+  const decodeUnknownEffect = ToParser.decodeUnknownEffect(serializer)
   const serializerEncodedAST = AST.encodedAST(serializer.ast)
   const defaultPath = Predicate.isString(path) ? [path] : path ?? []
-  return make((provider) => go(serializerEncodedAST, provider, defaultPath).pipe(Effect.flatMap(decodeUnknownEffect)))
+  return make((provider) =>
+    go(serializerEncodedAST, provider, defaultPath).pipe(
+      Effect.flatMapEager((stringLeafJson) =>
+        decodeUnknownEffect(stringLeafJson).pipe(Effect.mapErrorEager((issue) =>
+          new Schema.SchemaError({
+            issue: defaultPath.length > 0 ? new Issue.Pointer(defaultPath, issue) : issue
+          })
+        ))
+      )
+    )
+  )
 }
 
 /**
