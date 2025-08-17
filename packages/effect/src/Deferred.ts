@@ -70,7 +70,7 @@
  */
 import type * as Cause from "./Cause.ts"
 import * as Option from "./data/Option.ts"
-import type { Effect, Latch } from "./Effect.ts"
+import type { Effect } from "./Effect.ts"
 import type * as Exit from "./Exit.ts"
 import { dual, identity, type LazyArg } from "./Function.ts"
 import type { Pipeable } from "./interfaces/Pipeable.ts"
@@ -140,7 +140,7 @@ export type TypeId = "~effect/Deferred"
  */
 export interface Deferred<in out A, in out E = never> extends Deferred.Variance<A, E>, Pipeable {
   effect?: Effect<A, E>
-  latch?: Latch | undefined
+  resumes?: Array<(effect: Effect<A, E>) => void> | undefined
 }
 
 /**
@@ -186,7 +186,7 @@ const DeferredProto = {
  */
 export const unsafeMake = <A, E = never>(): Deferred<A, E> => {
   const self = Object.create(DeferredProto)
-  self.latch = undefined
+  self.resumes = undefined
   self.effect = undefined
   return self
 }
@@ -213,10 +213,14 @@ export const unsafeMake = <A, E = never>(): Deferred<A, E> => {
 export const make = <A, E = never>(): Effect<Deferred<A, E>> => internalEffect.sync(() => unsafeMake())
 
 const _await = <A, E>(self: Deferred<A, E>): Effect<A, E> =>
-  internalEffect.suspend(() => {
-    if (self.effect) return self.effect
-    self.latch ??= internalEffect.unsafeMakeLatch(false)
-    return internalEffect.flatMap(self.latch.await, () => self.effect!)
+  internalEffect.callback<A, E>((resume) => {
+    if (self.effect) return resume(self.effect)
+    self.resumes ??= []
+    self.resumes.push(resume)
+    return internalEffect.sync(() => {
+      const index = self.resumes!.indexOf(resume)
+      self.resumes!.splice(index, 1)
+    })
   })
 
 export {
@@ -681,9 +685,11 @@ export const sync: {
 export const unsafeDone = <A, E>(self: Deferred<A, E>, effect: Effect<A, E>): boolean => {
   if (self.effect) return false
   self.effect = effect
-  if (self.latch) {
-    self.latch.unsafeOpen()
-    self.latch = undefined
+  if (self.resumes) {
+    for (let i = 0; i < self.resumes.length; i++) {
+      self.resumes[i](effect)
+    }
+    self.resumes = undefined
   }
   return true
 }
