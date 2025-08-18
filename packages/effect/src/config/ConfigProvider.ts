@@ -146,6 +146,10 @@ export function make(
 }
 
 /**
+ * Returns a config provider that falls back to the specified config provider if
+ * the current config provider does not have a value (i.e. returns `undefined`)
+ * for the requested path.
+ *
  * @category Combinators
  * @since 4.0.0
  */

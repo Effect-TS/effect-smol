@@ -39,6 +39,7 @@ describe("Config", () => {
 
   it("map", async () => {
     const config = Config.schema(Schema.String)
+
     await assertSuccess(
       Config.map(config, (value) => value.toUpperCase()),
       ConfigProvider.fromStringLeafJson("value"),
@@ -49,6 +50,162 @@ describe("Config", () => {
       ConfigProvider.fromStringLeafJson("value"),
       "VALUE"
     )
+  })
+
+  it("mapOrFail", async () => {
+    const config = Config.schema(Schema.String)
+    const f = (s: string) =>
+      s === ""
+        ? Effect.fail(new Schema.SchemaError({ issue: new Issue.InvalidValue(Option.some(s), { message: "empty" }) }))
+        : Effect.succeed(s.toUpperCase())
+
+    await assertSuccess(
+      Config.mapOrFail(config, f),
+      ConfigProvider.fromStringLeafJson("value"),
+      "VALUE"
+    )
+    await assertFailure(
+      Config.mapOrFail(config, f),
+      ConfigProvider.fromStringLeafJson(""),
+      `empty`
+    )
+  })
+
+  it("orElse", async () => {
+    const config = Config.orElse(Config.string("a"), () => Config.finite("b"))
+
+    await assertSuccess(
+      config,
+      ConfigProvider.fromStringLeafJson({ a: "value" }),
+      "value"
+    )
+    await assertSuccess(
+      config,
+      ConfigProvider.fromStringLeafJson({ b: "1" }),
+      1
+    )
+  })
+
+  describe("all", () => {
+    it("tuple", async () => {
+      const config = Config.all([Config.nonEmptyString("a"), Config.finite("b")])
+
+      await assertSuccess(config, ConfigProvider.fromStringLeafJson({ a: "a", b: "1" }), ["a", 1])
+      await assertFailure(
+        config,
+        ConfigProvider.fromStringLeafJson({ a: "", b: "1" }),
+        `Expected a value with a length of at least 1, got ""
+  at ["a"]`
+      )
+      await assertFailure(
+        config,
+        ConfigProvider.fromStringLeafJson({ a: "a", b: "b" }),
+        `Expected a string matching the regex [+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?, got "b"
+  at ["b"]`
+      )
+    })
+
+    it("iterable", async () => {
+      const config = Config.all(new Set([Config.nonEmptyString("a"), Config.finite("b")]))
+
+      await assertSuccess(config, ConfigProvider.fromStringLeafJson({ a: "a", b: "1" }), ["a", 1])
+      await assertFailure(
+        config,
+        ConfigProvider.fromStringLeafJson({ a: "", b: "1" }),
+        `Expected a value with a length of at least 1, got ""
+  at ["a"]`
+      )
+      await assertFailure(
+        config,
+        ConfigProvider.fromStringLeafJson({ a: "a", b: "b" }),
+        `Expected a string matching the regex [+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?, got "b"
+  at ["b"]`
+      )
+    })
+
+    it("struct", async () => {
+      const config = Config.all({ a: Config.nonEmptyString("b"), c: Config.finite("d") })
+
+      await assertSuccess(config, ConfigProvider.fromStringLeafJson({ b: "b", d: "1" }), { a: "b", c: 1 })
+      await assertFailure(
+        config,
+        ConfigProvider.fromStringLeafJson({ b: "", d: "1" }),
+        `Expected a value with a length of at least 1, got ""
+  at ["b"]`
+      )
+      await assertFailure(
+        config,
+        ConfigProvider.fromStringLeafJson({ b: "b", d: "b" }),
+        `Expected a string matching the regex [+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?, got "b"
+  at ["d"]`
+      )
+    })
+  })
+
+  describe("withDefault", () => {
+    it("value", async () => {
+      const defaultValue = 0
+      const config = Config.finite("a").pipe(Config.withDefault(() => defaultValue))
+
+      await assertSuccess(config, ConfigProvider.fromStringLeafJson({ a: "1" }), 1)
+      await assertSuccess(config, ConfigProvider.fromStringLeafJson({}), defaultValue)
+      await assertFailure(
+        config,
+        ConfigProvider.fromStringLeafJson({ a: "value" }),
+        `Expected a string matching the regex [+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?, got "value"
+  at ["a"]`
+      )
+    })
+
+    it("struct", async () => {
+      const defaultValue = { a: "a", c: 0 }
+      const config = Config.all({ a: Config.nonEmptyString("b"), c: Config.finite("d") }).pipe(
+        Config.withDefault(() => defaultValue)
+      )
+
+      await assertSuccess(config, ConfigProvider.fromStringLeafJson({ b: "b", d: "1" }), { a: "b", c: 1 })
+      await assertSuccess(config, ConfigProvider.fromStringLeafJson({ b: "b" }), defaultValue)
+      await assertSuccess(config, ConfigProvider.fromStringLeafJson({ d: "1" }), defaultValue)
+
+      await assertFailure(
+        config,
+        ConfigProvider.fromStringLeafJson({ b: "", d: "1" }),
+        `Expected a value with a length of at least 1, got ""
+  at ["b"]`
+      )
+    })
+  })
+
+  describe("option", () => {
+    it("value", async () => {
+      const config = Config.finite("a").pipe(Config.option)
+
+      await assertSuccess(config, ConfigProvider.fromStringLeafJson({ a: "1" }), Option.some(1))
+      await assertSuccess(config, ConfigProvider.fromStringLeafJson({}), Option.none())
+      await assertFailure(
+        config,
+        ConfigProvider.fromStringLeafJson({ a: "value" }),
+        `Expected a string matching the regex [+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?, got "value"
+  at ["a"]`
+      )
+    })
+
+    it("struct", async () => {
+      const config = Config.all({ a: Config.nonEmptyString("b"), c: Config.finite("d") }).pipe(
+        Config.option
+      )
+
+      await assertSuccess(config, ConfigProvider.fromStringLeafJson({ b: "b", d: "1" }), Option.some({ a: "b", c: 1 }))
+      await assertSuccess(config, ConfigProvider.fromStringLeafJson({ b: "b" }), Option.none())
+      await assertSuccess(config, ConfigProvider.fromStringLeafJson({ d: "1" }), Option.none())
+
+      await assertFailure(
+        config,
+        ConfigProvider.fromStringLeafJson({ b: "", d: "1" }),
+        `Expected a value with a length of at least 1, got ""
+  at ["b"]`
+      )
+    })
   })
 
   describe("unwrap", () => {
@@ -504,7 +661,9 @@ describe("Config", () => {
   describe("constructors", () => {
     it("fail", async () => {
       await assertFailure(
-        Config.fail("failure message"),
+        Config.fail(
+          new Schema.SchemaError({ issue: new Issue.Forbidden(Option.none(), { message: "failure message" }) })
+        ),
         ConfigProvider.fromStringLeafJson({}),
         `failure message`
       )

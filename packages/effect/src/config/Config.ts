@@ -3,8 +3,9 @@
  */
 import * as Option from "../data/Option.ts"
 import * as Predicate from "../data/Predicate.ts"
+import * as Rec from "../data/Record.ts"
 import * as Effect from "../Effect.ts"
-import { dual } from "../Function.ts"
+import { dual, type LazyArg } from "../Function.ts"
 import type { Pipeable } from "../interfaces/Pipeable.ts"
 import { PipeInspectableProto, YieldableProto } from "../internal/core.ts"
 import * as LogLevel_ from "../logging/LogLevel.ts"
@@ -90,6 +91,10 @@ export function make<T>(
 }
 
 /**
+ * Returns a config that maps the value of this config to a new value.
+ *
+ * @see {@link mapOrFail} for a version that may fail.
+ *
  * @category Mapping
  * @since 4.0.0
  */
@@ -99,6 +104,126 @@ export const map: {
 } = dual(2, <A, B>(self: Config<A>, f: (a: A) => B): Config<B> => {
   return make((provider) => Effect.map(self.parse(provider), f))
 })
+
+/**
+ * Returns a config that maps the value of this config to a new value, possibly
+ * failing.
+ *
+ * @see {@link map} for a version that does not fail.
+ *
+ * @category Mapping
+ * @since 4.0.0
+ */
+export const mapOrFail: {
+  <A, B>(f: (a: A) => Effect.Effect<B, ConfigError>): (self: Config<A>) => Config<B>
+  <A, B>(self: Config<A>, f: (a: A) => Effect.Effect<B, ConfigError>): Config<B>
+} = dual(2, <A, B>(self: Config<A>, f: (a: A) => Effect.Effect<B, ConfigError>): Config<B> => {
+  return make((provider) => Effect.flatMap(self.parse(provider), f))
+})
+
+/**
+ * Returns a config that falls back to the specified config if there is an error
+ * reading from this config.
+ *
+ * @since 4.0.0
+ */
+export const orElse: {
+  <A2>(that: (error: ConfigError) => Config<A2>): <A>(self: Config<A>) => Config<A2 | A>
+  <A, A2>(self: Config<A>, that: (error: ConfigError) => Config<A2>): Config<A | A2>
+} = dual(2, <A, A2>(self: Config<A>, that: (error: ConfigError) => Config<A2>): Config<A | A2> => {
+  return make((provider) => Effect.catch(self.parse(provider), (error) => that(error).parse(provider)))
+})
+
+/**
+ * Constructs a config from a tuple / iterable/ struct of configs.
+ *
+ * @since 4.0.0
+ */
+export function all<const Arg extends Iterable<Config<any>> | Record<string, Config<any>>>(
+  arg: Arg
+): Config<
+  [Arg] extends [ReadonlyArray<Config<any>>] ? {
+      -readonly [K in keyof Arg]: [Arg[K]] extends [Config<infer A>] ? A : never
+    }
+    : [Arg] extends [Iterable<Config<infer A>>] ? Array<A>
+    : [Arg] extends [Record<string, Config<any>>] ? {
+        -readonly [K in keyof Arg]: [Arg[K]] extends [Config<infer A>] ? A : never
+      }
+    : never
+> {
+  const configs: Array<Config<any>> | Record<string, Config<any>> = Array.isArray(arg)
+    ? arg
+    : Symbol.iterator in arg
+    ? [...arg as any]
+    : arg
+  if (Array.isArray(configs)) {
+    return make((provider) => Effect.all(configs.map((config) => config.parse(provider)))) as any
+  } else {
+    return make((provider) => Effect.all(Rec.map(configs, (config) => config.parse(provider)))) as any
+  }
+}
+
+function isMissingDataOnly(issue: Issue.Issue): boolean {
+  switch (issue._tag) {
+    case "MissingKey":
+      return true
+    case "InvalidType":
+      return Option.isSome(issue.actual) && issue.actual.value === undefined
+    case "InvalidValue":
+    case "OneOf":
+      return issue.actual === undefined
+    case "Encoding":
+    case "Pointer":
+    case "Filter":
+      return isMissingDataOnly(issue.issue)
+    case "UnexpectedKey":
+      return false
+    case "Forbidden":
+      return false
+    case "Composite":
+    case "AnyOf":
+      return issue.issues.every(isMissingDataOnly)
+  }
+}
+
+/**
+ * Provides a default value for a configuration when it fails to load due to
+ * missing data.
+ *
+ * This function is useful for providing fallback values when configuration
+ * sources are incomplete or missing. It only applies the default when the
+ * configuration error is specifically a `SchemaError` caused by missing data -
+ * other types of errors will still fail.
+ *
+ * @since 4.0.0
+ */
+export const withDefault: {
+  <const A2>(defaultValue: LazyArg<A2>): <A>(self: Config<A>) => Config<A2 | A>
+  <A, const A2>(self: Config<A>, defaultValue: LazyArg<A2>): Config<A | A2>
+} = dual(2, <A, const A2>(self: Config<A>, defaultValue: LazyArg<A2>): Config<A | A2> => {
+  return orElse(self, (err) => {
+    if (err instanceof Schema.SchemaError) {
+      const issue = err.issue
+      if (isMissingDataOnly(issue)) {
+        return succeed(defaultValue())
+      }
+    }
+    return fail(err)
+  })
+})
+
+/**
+ * Converts a configuration to an optional configuration that handles missing
+ * data gracefully.
+ *
+ * When the configuration fails due to missing data, it returns `None`. When
+ * successful, the value is wrapped in `Some`. Note that other types of errors
+ * (validation, parsing, etc.) will still cause the configuration to fail.
+ *
+ * @since 4.0.0
+ */
+export const option = <A>(self: Config<A>): Config<Option.Option<A>> =>
+  self.pipe(map(Option.some), withDefault(() => Option.none()))
 
 /**
  * Wraps a nested structure, converting all primitives to a `Config`.
@@ -398,8 +523,8 @@ export const Record = <K extends Schema.Record.Key, V extends Schema.Top>(key: K
  * @category Constructors
  * @since 4.0.0
  */
-export function fail(message: string) {
-  return make(() => Effect.fail(new Schema.SchemaError({ issue: new Issue.Forbidden(Option.none(), { message }) })))
+export function fail(err: ConfigError) {
+  return make(() => Effect.fail(err))
 }
 
 /**
