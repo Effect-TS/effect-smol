@@ -54,7 +54,7 @@ export type TopLevelReferenceStrategy = "skip" | "keep"
  * @since 4.0.0
  */
 export interface BaseOptions {
-  readonly $defs?: Record<string, object> | undefined
+  readonly definitions?: Record<string, object> | undefined
   readonly getRef?: ((id: string) => string) | undefined
   readonly additionalPropertiesStrategy?: AdditionalPropertiesStrategy | undefined
   readonly topLevelReferenceStrategy?: TopLevelReferenceStrategy | undefined
@@ -111,7 +111,7 @@ function get$schema(target: Target) {
 }
 
 function make<S extends Schema.Top>(schema: S, options?: Options): object {
-  const $defs = options?.$defs ?? {}
+  const definitions = options?.definitions ?? {}
   const getRef = options?.getRef ?? ((id: string) => "#/$defs/" + id)
   const target = options?.target ?? "draft-07"
   const additionalPropertiesStrategy = options?.additionalPropertiesStrategy ?? "strict"
@@ -120,14 +120,14 @@ function make<S extends Schema.Top>(schema: S, options?: Options): object {
   const out: Record<string, unknown> = {
     $schema: get$schema(target),
     ...go(schema.ast, [], {
-      $defs,
+      definitions,
       getRef,
       target,
       additionalPropertiesStrategy
     }, skipId)
   }
-  if (Object.keys($defs).length > 0) {
-    out.$defs = $defs
+  if (Object.keys(definitions).length > 0) {
+    out.$defs = definitions
   }
   return out
 }
@@ -192,15 +192,8 @@ function getChecksConstraint(
   return out
 }
 
-function pruneUndefined(ast: AST.AST): Array<AST.AST> {
-  switch (ast._tag) {
-    case "UndefinedKeyword":
-      return []
-    case "UnionType":
-      return ast.types.flatMap(pruneUndefined)
-    default:
-      return [ast]
-  }
+function pruneUndefined(ast: AST.UnionType): Array<AST.AST> {
+  return ast.types.filter((ast) => !AST.isUndefinedKeyword(ast))
 }
 
 /** Either the AST is optional or it contains an undefined keyword */
@@ -230,7 +223,7 @@ function getPattern(
 }
 
 type GoOptions = {
-  readonly $defs: Record<string, object>
+  readonly definitions: Record<string, object>
   readonly getRef: (id: string) => string
   readonly target: Target
   readonly additionalPropertiesStrategy: AdditionalPropertiesStrategy
@@ -241,16 +234,6 @@ function getId(ast: AST.AST): string | undefined {
   if (id !== undefined) return id
   if (AST.isSuspend(ast)) {
     return getId(ast.thunk())
-  }
-}
-
-function isNullTypeKeywordSupported(target: Target): boolean {
-  switch (target) {
-    case "draft-07":
-    case "draft-2020-12":
-      return true
-    case "openApi3.1":
-      return false
   }
 }
 
@@ -279,13 +262,13 @@ function go(
   if (!ignoreId) {
     const id = getId(ast)
     if (id !== undefined) {
-      if (Object.hasOwn(options.$defs, id)) {
-        return options.$defs[id]
+      if (Object.hasOwn(options.definitions, id)) {
+        return options.definitions[id]
       } else {
         const escapedId = id.replace(/~/ig, "~0").replace(/\//ig, "~1")
         const out = { $ref: options.getRef(escapedId) }
-        options.$defs[id] = out
-        options.$defs[id] = go(ast, path, options, true)
+        options.definitions[id] = out
+        options.definitions[id] = go(ast, path, options, true)
         return out
       }
     }
@@ -303,12 +286,12 @@ function go(
   }
   switch (ast._tag) {
     case "Declaration":
-    case "VoidKeyword":
     case "UndefinedKeyword":
     case "BigIntKeyword":
     case "SymbolKeyword":
     case "UniqueSymbol":
       throw new Error(`cannot generate JSON Schema for ${ast._tag} at ${formatPath(path) || "root"}`)
+    case "VoidKeyword":
     case "UnknownKeyword":
     case "AnyKeyword":
       return { ...getChecksConstraint(ast, target) }
@@ -316,15 +299,7 @@ function go(
       return { not: {}, ...getChecksConstraint(ast, target) }
     case "NullKeyword": {
       const constraint = getChecksConstraint(ast, target, "null")
-      if (isNullTypeKeywordSupported(options.target)) {
-        // https://json-schema.org/draft-07/draft-handrews-json-schema-validation-00.pdf
-        // Section 6.1.1
-        return { type: "null", ...constraint }
-      } else {
-        // OpenAPI 3.1 does not support the "null" type keyword
-        // https://swagger.io/docs/specification/v3_0/data-models/data-types/#null
-        return { enum: [null], ...constraint }
-      }
+      return { type: "null", ...constraint }
     }
     case "StringKeyword":
       return { type: "string", ...getChecksConstraint(ast, target, "string") }
@@ -378,7 +353,10 @@ function go(
       // ---------------------------------------------
       // handle elements
       // ---------------------------------------------
-      const items = ast.elements.map((e, i) => go(e, [...path, i], options))
+      const items = ast.elements.map((e, i) => ({
+        ...go(e, [...path, i], options),
+        ...getJsonSchemaAnnotations(e.context?.annotations)
+      }))
       const minItems = ast.elements.findIndex(isLooseOptional)
       if (minItems !== -1) {
         out.minItems = minItems
@@ -429,7 +407,10 @@ function go(
         if (Predicate.isSymbol(name)) {
           throw new Error(`cannot generate JSON Schema for ${ast._tag} at ${formatPath([...path, name]) || "root"}`)
         } else {
-          out.properties[name] = go(ps.type, [...path, name], options)
+          out.properties[name] = {
+            ...go(ps.type, [...path, name], options),
+            ...getJsonSchemaAnnotations(ps.type.context?.annotations)
+          }
           if (!isLooseOptional(ps.type)) {
             out.required.push(String(name))
           }
@@ -440,6 +421,8 @@ function go(
       // ---------------------------------------------
       if (options.additionalPropertiesStrategy === "strict") {
         out.additionalProperties = false
+      } else {
+        out.additionalProperties = true
       }
       const patternProperties: Record<string, object> = {}
       for (const is of ast.indexSignatures) {
@@ -463,7 +446,7 @@ function go(
         case 0:
           return { not: {} }
         case 1:
-          return members[0]
+          return { ...members[0], ...getChecksConstraint(ast, target) }
         default:
           switch (ast.mode) {
             case "anyOf":

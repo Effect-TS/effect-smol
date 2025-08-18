@@ -4074,12 +4074,14 @@ export function fromJsonString<S extends Top>(schema: S): fromJsonString<S> {
       _tag: "Override",
       override: (target: ToJsonSchema.Target, go: (ast: AST.AST) => object) => {
         switch (target) {
+          case "draft-07":
+            return { "type": "string" }
           case "draft-2020-12":
           case "openApi3.1":
             return {
               "type": "string",
               "contentMediaType": "application/json",
-              "contentSchema": go(AST.encodedAST(schema.ast))
+              "contentSchema": go(schema.ast)
             }
         }
       }
@@ -4143,7 +4145,9 @@ export const Trimmed = String.check(Check.trimmed())
  *
  * @since 4.0.0
  */
-export const Trim = String.pipe(decodeTo(Trimmed, Transformation.trim()))
+export const Trim = String.annotate({
+  description: "a string that will be trimmed"
+}).pipe(decodeTo(Trimmed, Transformation.trim()))
 
 //
 // Class APIs

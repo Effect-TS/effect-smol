@@ -401,10 +401,12 @@
             "required": false
           },
           {
+            "description": "search query",
             "name": "query",
             "in": "query",
             "schema": {
-              "type": "string"
+              "type": "string",
+              "description": "search query"
             },
             "required": false
           }
