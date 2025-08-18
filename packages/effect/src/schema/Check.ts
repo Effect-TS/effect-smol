@@ -1041,6 +1041,8 @@ export function validDate(annotations?: Annotations.Filter) {
   return make<Date>(
     (date) => !isNaN(date.getTime()),
     Annotations.merge({
+      title: "validDate",
+      description: "a valid date",
       meta: {
         _tag: "validDate"
       },

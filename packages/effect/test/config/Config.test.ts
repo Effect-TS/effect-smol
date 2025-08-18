@@ -501,8 +501,100 @@ describe("Config", () => {
     })
   })
 
+  describe("constructors", () => {
+    it("fail", async () => {
+      await assertFailure(
+        Config.fail("failure message"),
+        ConfigProvider.fromStringLeafJson({}),
+        `failure message`
+      )
+    })
+
+    it("succeed", async () => {
+      const provider = ConfigProvider.fromStringLeafJson({})
+      await assertSuccess(Config.succeed(1), provider, 1)
+    })
+
+    it("string", async () => {
+      const provider = ConfigProvider.fromStringLeafJson({ a: "value" })
+      await assertSuccess(Config.string("a"), provider, "value")
+      await assertFailure(
+        Config.string("b"),
+        provider,
+        `Expected string, got undefined
+  at ["b"]`
+      )
+    })
+
+    it("nonEmptyString", async () => {
+      const provider = ConfigProvider.fromStringLeafJson({ a: "value", b: "" })
+      await assertSuccess(Config.nonEmptyString("a"), provider, "value")
+      await assertFailure(
+        Config.nonEmptyString("b"),
+        provider,
+        `Expected a value with a length of at least 1, got ""
+  at ["b"]`
+      )
+    })
+
+    it("number", async () => {
+      const provider = ConfigProvider.fromStringLeafJson({ a: "1" })
+      await assertSuccess(Config.number("a"), provider, 1)
+      await assertFailure(
+        Config.number("b"),
+        provider,
+        `Expected string, got undefined
+  at ["b"]`
+      )
+    })
+
+    it("finite", async () => {
+      const provider = ConfigProvider.fromStringLeafJson({ a: "1", b: "a" })
+      await assertSuccess(Config.finite("a"), provider, 1)
+      await assertFailure(
+        Config.finite("b"),
+        provider,
+        `Expected a string matching the regex [+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?, got "a"
+  at ["b"]`
+      )
+    })
+
+    it("int", async () => {
+      const provider = ConfigProvider.fromStringLeafJson({ a: "1", b: "1.2" })
+      await assertSuccess(Config.int("a"), provider, 1)
+      await assertFailure(
+        Config.int("b"),
+        provider,
+        `Expected an integer, got 1.2
+  at ["b"]`
+      )
+    })
+
+    it("literal", async () => {
+      const provider = ConfigProvider.fromStringLeafJson({ a: "L" })
+      await assertSuccess(Config.literal("L", "a"), provider, "L")
+      await assertFailure(
+        Config.literal("-", "a"),
+        provider,
+        `Expected "-", got "L"
+  at ["a"]`
+      )
+    })
+
+    it("date", async () => {
+      const provider = ConfigProvider.fromStringLeafJson({ a: "2021-01-01", b: "invalid" })
+      await assertSuccess(Config.date("a"), provider, new Date("2021-01-01"))
+      await assertFailure(
+        Config.date("b"),
+        provider,
+        `Expected a valid date, got Invalid Date
+  at ["b"]`
+      )
+    })
+  })
+
   describe("schemas", () => {
-    it("Boolean", async () => {
+    it("Boolean / boolean", async () => {
       const provider = ConfigProvider.fromStringLeafJson({
         a: "true",
         b: "false",
@@ -515,73 +607,101 @@ describe("Config", () => {
         failure: "value"
       })
 
-      await assertSuccess(Config.schema(Config.Boolean, "a"), provider, true)
-      await assertSuccess(Config.schema(Config.Boolean, "b"), provider, false)
-      await assertSuccess(Config.schema(Config.Boolean, "c"), provider, true)
-      await assertSuccess(Config.schema(Config.Boolean, "d"), provider, false)
-      await assertSuccess(Config.schema(Config.Boolean, "e"), provider, true)
-      await assertSuccess(Config.schema(Config.Boolean, "f"), provider, false)
-      await assertSuccess(Config.schema(Config.Boolean, "g"), provider, true)
-      await assertSuccess(Config.schema(Config.Boolean, "h"), provider, false)
+      await assertSuccess(Config.boolean("a"), provider, true)
+      await assertSuccess(Config.boolean("b"), provider, false)
+      await assertSuccess(Config.boolean("c"), provider, true)
+      await assertSuccess(Config.boolean("d"), provider, false)
+      await assertSuccess(Config.boolean("e"), provider, true)
+      await assertSuccess(Config.boolean("f"), provider, false)
+      await assertSuccess(Config.boolean("g"), provider, true)
+      await assertSuccess(Config.boolean("h"), provider, false)
       await assertFailure(
-        Config.schema(Config.Boolean, "failure"),
+        Config.boolean("failure"),
         provider,
         `Expected "true" | "yes" | "on" | "1" | "false" | "no" | "off" | "0", got "value"
   at ["failure"]`
       )
     })
 
-    it("Duration", async () => {
+    it("Duration / duration", async () => {
       const provider = ConfigProvider.fromStringLeafJson({
         a: "1000 millis",
         b: "1 second",
         failure: "value"
       })
 
-      await assertSuccess(Config.schema(Config.Duration, "a"), provider, Duration.millis(1000))
-      await assertSuccess(Config.schema(Config.Duration, "b"), provider, Duration.seconds(1))
+      await assertSuccess(Config.duration("a"), provider, Duration.millis(1000))
+      await assertSuccess(Config.duration("b"), provider, Duration.seconds(1))
       await assertFailure(
-        Config.schema(Config.Duration, "failure"),
+        Config.duration("failure"),
         provider,
         `Invalid data "value"
   at ["failure"]`
       )
     })
 
-    it("Port", async () => {
+    it("Port / port", async () => {
       const provider = ConfigProvider.fromStringLeafJson({
         a: "8080",
         failure: "-1"
       })
 
-      await assertSuccess(Config.schema(Config.Port, "a"), provider, 8080)
+      await assertSuccess(Config.port("a"), provider, 8080)
       await assertFailure(
-        Config.schema(Config.Port, "failure"),
+        Config.port("failure"),
         provider,
         `Expected a value between 1 and 65535, got -1
   at ["failure"]`
       )
     })
 
-    it("LogLevel", async () => {
+    it("LogLevel / logLevel", async () => {
       const provider = ConfigProvider.fromStringLeafJson({
         a: "Info",
         failure_1: "info",
         failure_2: "value"
       })
 
-      await assertSuccess(Config.schema(Config.LogLevel, "a"), provider, "Info")
+      await assertSuccess(Config.logLevel("a"), provider, "Info")
       await assertFailure(
-        Config.schema(Config.LogLevel, "failure_1"),
+        Config.logLevel("failure_1"),
         provider,
         `Expected "All" | "Fatal" | "Error" | "Warn" | "Info" | "Debug" | "Trace" | "None", got "info"
   at ["failure_1"]`
       )
       await assertFailure(
-        Config.schema(Config.LogLevel, "failure_2"),
+        Config.logLevel("failure_2"),
         provider,
         `Expected "All" | "Fatal" | "Error" | "Warn" | "Info" | "Debug" | "Trace" | "None", got "value"
   at ["failure_2"]`
+      )
+    })
+
+    it("redacted", async () => {
+      const provider = ConfigProvider.fromStringLeafJson({
+        a: "value"
+      })
+
+      await assertSuccess(Config.redacted("a"), provider, Redacted.make("value"))
+      await assertFailure(
+        Config.redacted("failure"),
+        provider,
+        `Expected string, got undefined
+  at ["failure"]`
+      )
+    })
+
+    it("url", async () => {
+      const provider = ConfigProvider.fromStringLeafJson({
+        a: "https://example.com"
+      })
+
+      await assertSuccess(Config.url("a"), provider, new URL("https://example.com"))
+      await assertFailure(
+        Config.url("failure"),
+        provider,
+        `Expected string, got undefined
+  at ["failure"]`
       )
     })
 

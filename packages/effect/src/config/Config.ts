@@ -387,3 +387,321 @@ export const Record = <K extends Schema.Record.Key, V extends Schema.Top>(key: K
 
   return Schema.Union([record, recordString])
 }
+
+// -----------------------------------------------------------------------------
+// constructors
+// -----------------------------------------------------------------------------
+
+/**
+ * Creates a configuration that always fails with a given issue.
+ *
+ * @category Constructors
+ * @since 4.0.0
+ */
+export function fail(message: string) {
+  return make(() => Effect.fail(new Schema.SchemaError({ issue: new Issue.Forbidden(Option.none(), { message }) })))
+}
+
+/**
+ * Creates a configuration that always succeeds with a given value.
+ *
+ * @category Constructors
+ * @since 4.0.0
+ */
+export function succeed<T>(value: T) {
+  return make(() => Effect.succeed(value))
+}
+
+/**
+ * Creates a configuration for string values.
+ *
+ * @category Constructors
+ * @since 4.0.0
+ */
+export function string(name?: string) {
+  return schema(Schema.String, name)
+}
+
+/**
+ * Creates a configuration for non-empty string values.
+ *
+ * @category Constructors
+ * @since 4.0.0
+ */
+export function nonEmptyString(name?: string) {
+  return schema(Schema.NonEmptyString, name)
+}
+
+/**
+ * Creates a configuration for number values.
+ *
+ * @see {@link finite} for a configuration that is guaranteed to be a finite number.
+ *
+ * @category Constructors
+ * @since 4.0.0
+ */
+export function number(name?: string) {
+  return schema(Schema.Number, name)
+}
+
+/**
+ * Creates a configuration for finite number values.
+ *
+ * @category Constructors
+ * @since 4.0.0
+ */
+export function finite(name?: string) {
+  return schema(Schema.Finite, name)
+}
+
+/**
+ * Creates a configuration for integer values.
+ *
+ * @category Constructors
+ * @since 4.0.0
+ */
+export function int(name?: string) {
+  return schema(Schema.Int, name)
+}
+
+/**
+ * Creates a configuration for literal values.
+ *
+ * @category Constructors
+ * @since 4.0.0
+ */
+export function literal<L extends AST.Literal>(literal: L, name?: string) {
+  return schema(Schema.Literal(literal), name)
+}
+
+/**
+ * Creates a configuration for boolean values.
+ *
+ * Booleans can be encoded as `true`, `false`, `yes`, `no`, `on`, `off`, `1`, or `0`.
+ *
+ * **Example**
+ *
+ * ```ts
+ * import { Effect } from "effect"
+ * import { Config, ConfigProvider } from "effect/config"
+ *
+ * const program = Effect.gen(function*() {
+ *   const flag = yield* Config.boolean("FEATURE_FLAG")
+ *   console.log(flag)
+ * })
+ *
+ * const provider = ConfigProvider.fromEnv({
+ *   env: {
+ *     FEATURE_FLAG: "yes"
+ *   }
+ * })
+ *
+ * Effect.runSync(program.pipe(Effect.provideService(ConfigProvider.ConfigProvider, provider)))
+ * // Output: true
+ * ```
+ *
+ * @category Constructors
+ * @since 4.0.0
+ */
+export function boolean(name?: string) {
+  return schema(Boolean, name)
+}
+
+/**
+ * Creates a configuration for duration values.
+ *
+ * Durations can be encoded as `DurationInput` values.
+ *
+ * **Example**
+ *
+ * ```ts
+ * import { Effect } from "effect"
+ * import { Config, ConfigProvider } from "effect/config"
+ *
+ * const program = Effect.gen(function*() {
+ *   const duration = yield* Config.duration("DURATION")
+ *   console.log(duration)
+ * })
+ *
+ * const provider = ConfigProvider.fromEnv({
+ *   env: {
+ *     DURATION: "10 seconds"
+ *   }
+ * })
+ *
+ * Effect.runSync(program.pipe(Effect.provideService(ConfigProvider.ConfigProvider, provider)))
+ * // Output: Duration { _tag: "millis", value: 10000 }
+ * ```
+ *
+ * @category Constructors
+ * @since 4.0.0
+ */
+export function duration(name?: string) {
+  return schema(Duration, name)
+}
+
+/**
+ * Creates a configuration for port values.
+ *
+ * Ports can be encoded as integers between 1 and 65535.
+ *
+ * **Example**
+ *
+ * ```ts
+ * import { Effect } from "effect"
+ * import { Config, ConfigProvider } from "effect/config"
+ *
+ * const program = Effect.gen(function*() {
+ *   const port = yield* Config.port("PORT")
+ *   console.log(port)
+ * })
+ *
+ * const provider = ConfigProvider.fromEnv({
+ *   env: {
+ *     PORT: "8080"
+ *   }
+ * })
+ *
+ * Effect.runSync(program.pipe(Effect.provideService(ConfigProvider.ConfigProvider, provider)))
+ * // Output: 8080
+ * ```
+ *
+ * @category Constructors
+ * @since 4.0.0
+ */
+export function port(name?: string) {
+  return schema(Port, name)
+}
+
+/**
+ * Creates a configuration for log level values.
+ *
+ * Log levels can be encoded as the string values of the `LogLevel` enum:
+ *
+ * - `"All"`
+ * - `"Fatal"`
+ * - `"Error"`
+ * - `"Warn"`
+ * - `"Info"`
+ * - `"Debug"`
+ * - `"Trace"`
+ * - `"None"`
+ *
+ * **Example**
+ *
+ * ```ts
+ * import { Effect } from "effect"
+ * import { Config, ConfigProvider } from "effect/config"
+ *
+ * const program = Effect.gen(function*() {
+ *   const logLevel = yield* Config.logLevel("LOG_LEVEL")
+ *   console.log(logLevel)
+ * })
+ *
+ * const provider = ConfigProvider.fromEnv({
+ *   env: {
+ *     LOG_LEVEL: "Info"
+ *   }
+ * })
+ *
+ * Effect.runSync(program.pipe(Effect.provideService(ConfigProvider.ConfigProvider, provider)))
+ * // Output: "Info"
+ * ```
+ *
+ * @category Constructors
+ * @since 4.0.0
+ */
+export function logLevel(name?: string) {
+  return schema(LogLevel, name)
+}
+
+/**
+ * Creates a configuration for redacted string values.
+ *
+ * **Example**
+ *
+ * ```ts
+ * import { Effect } from "effect"
+ * import { Config, ConfigProvider } from "effect/config"
+ *
+ * const program = Effect.gen(function*() {
+ *   const apiKey = yield* Config.redacted("API_KEY")
+ *   console.log(apiKey)
+ * })
+ *
+ * const provider = ConfigProvider.fromEnv({
+ *   env: {
+ *     API_KEY: "sk-1234567890abcdef"
+ *   }
+ * })
+ *
+ * Effect.runSync(program.pipe(Effect.provideService(ConfigProvider.ConfigProvider, provider)))
+ * // Output: <redacted>
+ * ```
+ *
+ * @category Constructors
+ * @since 4.0.0
+ */
+export function redacted(name?: string) {
+  return schema(Schema.Redacted(Schema.String), name)
+}
+
+/**
+ * Creates a configuration for URL values.
+ *
+ * URLs can be encoded as strings that can be parsed by the `URL` constructor.
+ *
+ * **Example**
+ *
+ * ```ts
+ * import { Effect } from "effect"
+ * import { Config, ConfigProvider } from "effect/config"
+ *
+ * const program = Effect.gen(function*() {
+ *   const url = yield* Config.url("URL")
+ *   console.log(url)
+ * })
+ *
+ * const provider = ConfigProvider.fromEnv({
+ *   env: {
+ *     URL: "https://example.com"
+ *   }
+ * })
+ *
+ * Effect.runSync(program.pipe(Effect.provideService(ConfigProvider.ConfigProvider, provider)))
+ * // Output:
+ * // URL {
+ * //   href: 'https://example.com/',
+ * //   origin: 'https://example.com',
+ * //   protocol: 'https:',
+ * //   username: '',
+ * //   password: '',
+ * //   host: 'example.com',
+ * //   hostname: 'example.com',
+ * //   port: '',
+ * //   pathname: '/',
+ * //   search: '',
+ * //   searchParams: URLSearchParams {},
+ * //   hash: ''
+ * // }
+ * ```
+ *
+ * @category Constructors
+ * @since 4.0.0
+ */
+export function url(name?: string) {
+  return schema(Schema.URL, name)
+}
+
+/**
+ * Creates a configuration for date values.
+ *
+ * Dates can be encoded as strings that can be parsed by the `Date` constructor.
+ * Invalid dates will fail with a `SchemaError`.
+ *
+ * @category Constructors
+ * @since 4.0.0
+ */
+export function date(name?: string) {
+  return schema(Schema.ValidDate, name)
+}
