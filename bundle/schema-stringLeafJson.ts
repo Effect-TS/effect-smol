@@ -4,7 +4,7 @@ import * as Serializer from "#dist/effect/schema/Serializer"
 
 const schema = Serializer.stringLeafJson(Schema.Struct({
   a: Schema.String,
-  b: Schema.optionalKey(Schema.Number),
+  b: Schema.optional(Schema.Number),
   c: Schema.Array(Schema.String)
 }))
 
