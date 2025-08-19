@@ -255,6 +255,28 @@ function getOverrideAnnotation(ast: AST.AST): Annotation.Override | undefined {
   }
 }
 
+function isCompactableLiteral(jsonSchema: object | undefined): boolean {
+  return Predicate.hasProperty(jsonSchema, "enum") && "type" in jsonSchema && Object.keys(jsonSchema).length === 2
+}
+
+function compactLiterals(members: Array<any>): Array<object> {
+  const out: Array<object> = []
+  for (const m of members) {
+    if (isCompactableLiteral(m) && out.length > 0) {
+      const last: any = out[out.length - 1]
+      if (isCompactableLiteral(last) && last.type === m.type) {
+        out[out.length - 1] = {
+          type: last.type,
+          enum: [...last.enum, ...m.enum]
+        }
+        continue
+      }
+    }
+    out.push(m)
+  }
+  return out
+}
+
 function go(
   ast: AST.AST,
   path: ReadonlyArray<PropertyKey>,
@@ -293,7 +315,7 @@ function go(
     case "UniqueSymbol":
       throw new Error(`cannot generate JSON Schema for ${ast._tag} at ${formatPath(path) || "root"}`)
     case "UndefinedKeyword":
-      return { not: {} }
+      return { not: {}, ...getChecksConstraint(ast, target) }
     case "VoidKeyword":
     case "UnknownKeyword":
     case "AnyKeyword":
@@ -444,18 +466,20 @@ function go(
       return out
     }
     case "UnionType": {
-      const members = ast.types
-        .filter((ast) => !AST.isUndefinedKeyword(ast)) // prune undefined
-        .map((ast) => {
-          const out = go(ast, path, options)
-          if (path.length > 0) {
-            return { ...out, ...getJsonSchemaAnnotations(ast.context?.annotations) }
-          }
-          return out
-        })
+      const members = compactLiterals(
+        ast.types
+          .filter((ast) => !AST.isUndefinedKeyword(ast)) // prune undefined
+          .map((ast) => {
+            const out = go(ast, path, options)
+            if (path.length > 0) {
+              return { ...out, ...getJsonSchemaAnnotations(ast.context?.annotations) }
+            }
+            return out
+          })
+      )
       switch (members.length) {
         case 0:
-          return { not: {} }
+          return { not: {}, ...getChecksConstraint(ast, target) }
         case 1:
           return { ...members[0], ...getChecksConstraint(ast, target) }
         default:
