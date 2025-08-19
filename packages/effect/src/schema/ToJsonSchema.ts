@@ -38,7 +38,7 @@ export declare namespace Annotation {
 /**
  * @since 4.0.0
  */
-export type Target = "draft-07" | "draft-2020-12" | "openApi3.1"
+export type Target = "draft-07" | "draft-2020-12"
 
 /**
  * @since 4.0.0
@@ -63,40 +63,37 @@ export interface BaseOptions {
 /**
  * @since 4.0.0
  */
-export interface Draft07Options extends BaseOptions {}
+export interface Draft07_Options extends BaseOptions {}
 
 /**
+ * Returns a JSON Schema Draft 07 object.
+ *
  * @since 4.0.0
  */
-export function makeDraft07<S extends Schema.Top>(schema: S, options?: Draft07Options): object {
+export function makeDraft07<S extends Schema.Top>(schema: S, options?: Draft07_Options): object {
   return make(schema, { ...options, target: "draft-07" })
 }
 
 /**
  * @since 4.0.0
  */
-export interface Draft2020Options extends BaseOptions {}
+export interface Draft2020_12_Options extends BaseOptions {}
 
 /**
+ * Returns a JSON Schema Draft 2020-12 object.
+ *
+ * **OpenAPI 3.1**
+ *
+ * OpenAPI 3.1 schemas are fully compatible with JSON Schema Draft 2020-12 (see
+ * OpenAPI Initiative blog announcement, February 18 2021)
+ *
  * @since 4.0.0
  */
-export function makeDraft2020<S extends Schema.Top>(schema: S, options?: Draft2020Options): object {
+export function makeDraft2020_12<S extends Schema.Top>(schema: S, options?: Draft2020_12_Options): object {
   return make(schema, { ...options, target: "draft-2020-12" })
 }
 
-/**
- * @since 4.0.0
- */
-export interface OpenApi3_1Options extends BaseOptions {}
-
-/**
- * @since 4.0.0
- */
-export function makeOpenApi3_1<S extends Schema.Top>(schema: S, options?: OpenApi3_1Options): object {
-  return make(schema, { ...options, target: "openApi3.1" })
-}
-
-interface Options extends Draft07Options {
+interface Options extends Draft07_Options {
   readonly target?: Target | undefined
 }
 
@@ -105,7 +102,6 @@ function get$schema(target: Target) {
     case "draft-07":
       return "http://json-schema.org/draft-07/schema"
     case "draft-2020-12":
-    case "openApi3.1":
       return "https://json-schema.org/draft/2020-12/schema"
   }
 }
@@ -132,7 +128,9 @@ function make<S extends Schema.Top>(schema: S, options?: Options): object {
   return out
 }
 
-function getJsonSchemaAnnotations(annotations: Annotations.Annotations | undefined): object | undefined {
+function getJsonSchemaAnnotations(
+  annotations: Annotations.Annotations | undefined
+): Record<string, unknown> | undefined {
   if (annotations) {
     const out: Record<string, unknown> = {}
     if (hasOwn(annotations, "title") && Predicate.isString(annotations.title)) {
@@ -142,12 +140,17 @@ function getJsonSchemaAnnotations(annotations: Annotations.Annotations | undefin
       out.description = annotations.description
     }
     if (hasOwn(annotations, "default")) {
-      out.default = annotations.default
+      if (annotations.default !== undefined) {
+        out.default = annotations.default
+      }
     }
     if (hasOwn(annotations, "examples") && Array.isArray(annotations.examples)) {
-      out.examples = annotations.examples
+      const examples = annotations.examples.filter((example) => example !== undefined)
+      if (examples.length > 0) {
+        out.examples = examples
+      }
     }
-    return out
+    return Object.keys(out).length > 0 ? out : undefined
   }
 }
 
@@ -173,7 +176,10 @@ function getChecksConstraint(
   }
   if (ast.checks) {
     function go(check: Check.Check<any>) {
-      const constraint = { ...getJsonSchemaAnnotations(check.annotations), ...getCheckConstraint(check, target, type) }
+      const constraint = {
+        ...getJsonSchemaAnnotations(check.annotations),
+        ...getCheckConstraint(check, target, type)
+      }
       if (hasOwn(constraint, "type")) {
         out.type = constraint.type
         delete constraint.type
@@ -190,10 +196,6 @@ function getChecksConstraint(
     delete (out as any).allOf
   }
   return out
-}
-
-function pruneUndefined(ast: AST.UnionType): Array<AST.AST> {
-  return ast.types.filter((ast) => !AST.isUndefinedKeyword(ast))
 }
 
 /** Either the AST is optional or it contains an undefined keyword */
@@ -286,11 +288,12 @@ function go(
   }
   switch (ast._tag) {
     case "Declaration":
-    case "UndefinedKeyword":
     case "BigIntKeyword":
     case "SymbolKeyword":
     case "UniqueSymbol":
       throw new Error(`cannot generate JSON Schema for ${ast._tag} at ${formatPath(path) || "root"}`)
+    case "UndefinedKeyword":
+      return { not: {} }
     case "VoidKeyword":
     case "UnknownKeyword":
     case "AnyKeyword":
@@ -441,7 +444,15 @@ function go(
       return out
     }
     case "UnionType": {
-      const members = pruneUndefined(ast).map((ast) => go(ast, path, options))
+      const members = ast.types
+        .filter((ast) => !AST.isUndefinedKeyword(ast)) // prune undefined
+        .map((ast) => {
+          const out = go(ast, path, options)
+          if (path.length > 0) {
+            return { ...out, ...getJsonSchemaAnnotations(ast.context?.annotations) }
+          }
+          return out
+        })
       switch (members.length) {
         case 0:
           return { not: {} }

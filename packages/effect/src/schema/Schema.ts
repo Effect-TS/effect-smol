@@ -3996,7 +3996,9 @@ export interface UnknownFromJsonString extends decodeTo<Unknown, String> {
  *
  * @since 4.0.0
  */
-export const UnknownFromJsonString: UnknownFromJsonString = String.pipe(
+export const UnknownFromJsonString: UnknownFromJsonString = String.annotate({
+  description: "a string that will be decoded as JSON"
+}).pipe(
   decodeTo(Unknown, Transformation.unknownFromJsonString())
 )
 
@@ -4043,7 +4045,7 @@ export interface fromJsonString<S extends Top> extends decodeTo<S, UnknownFromJs
  * const original = Schema.Struct({ a: Schema.String })
  * const schema = Schema.fromJsonString(original)
  *
- * const jsonSchema = ToJsonSchema.makeDraft2020(schema)
+ * const jsonSchema = ToJsonSchema.makeDraft2020_12(schema)
  *
  * console.log(JSON.stringify(jsonSchema, null, 2))
  * // Output:
@@ -4075,11 +4077,14 @@ export function fromJsonString<S extends Top>(schema: S): fromJsonString<S> {
       override: (target: ToJsonSchema.Target, go: (ast: AST.AST) => object) => {
         switch (target) {
           case "draft-07":
-            return { "type": "string" }
-          case "draft-2020-12":
-          case "openApi3.1":
             return {
               "type": "string",
+              "description": "a string that will be decoded as JSON"
+            }
+          case "draft-2020-12":
+            return {
+              "type": "string",
+              "description": "a string that will be decoded as JSON",
               "contentMediaType": "application/json",
               "contentSchema": go(schema.ast)
             }
@@ -4125,7 +4130,9 @@ export interface FiniteFromString extends decodeTo<Number, String> {
  *
  * @since 4.0.0
  */
-export const FiniteFromString: FiniteFromString = String.pipe(
+export const FiniteFromString: FiniteFromString = String.annotate({
+  description: "a string that will be parsed as a finite number"
+}).pipe(
   decodeTo(
     Finite,
     Transformation.numberFromString

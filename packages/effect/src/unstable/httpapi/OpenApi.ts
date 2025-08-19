@@ -236,7 +236,7 @@ export const fromApi = <Id extends string, Groups extends HttpApiGroup.Any>(
   }
 
   function processAST(ast: AST.AST): object {
-    const schema = ToJsonSchema.makeOpenApi3_1(Schema.make(ast), {
+    const schema = ToJsonSchema.makeDraft2020_12(Schema.make(ast), {
       getRef: (id) => `#/components/schemas/${id}`,
       additionalPropertiesStrategy: options?.additionalPropertiesStrategy,
       topLevelReferenceStrategy: "keep"

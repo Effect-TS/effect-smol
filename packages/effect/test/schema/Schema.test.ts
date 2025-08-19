@@ -1567,7 +1567,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     it("should expose the source and the target schemas", () => {
       const schema = Schema.FiniteFromString
 
-      strictEqual(schema.from, Schema.String)
+      strictEqual(schema.from.ast._tag, "StringKeyword")
       strictEqual(schema.to, Schema.Finite)
     })
 
