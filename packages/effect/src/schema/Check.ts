@@ -1297,9 +1297,15 @@ export function length(length: number, annotations?: Annotations.Filter) {
       description: `a value with a length of ${length}`,
       jsonSchema: {
         _tag: "Constraint",
-        constraint: () => ({
-          length
-        })
+        constraint: (type) => {
+          switch (type) {
+            case "string":
+              return { minLength: length, maxLength: length }
+            case "array":
+              return { minItems: length, maxItems: length }
+            default:
+          }
+        }
       },
       meta: {
         _tag: "length",

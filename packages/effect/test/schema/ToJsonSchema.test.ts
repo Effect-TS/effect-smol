@@ -1768,6 +1768,760 @@ describe("ToJsonSchema", () => {
       })
     })
 
+    describe("Refinement", () => {
+      it("length (Array)", async () => {
+        await assertDraft7(Schema.Array(Schema.String).check(Check.length(2)), {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "a value with a length of 2",
+          "title": "length(2)",
+          "minItems": 2,
+          "maxItems": 2
+        })
+      })
+
+      it("length (NonEmptyArray)", async () => {
+        await assertDraft7(Schema.NonEmptyArray(Schema.String).check(Check.length(2)), {
+          "type": "array",
+          "items": [{
+            "type": "string"
+          }],
+          "description": "a value with a length of 2",
+          "title": "length(2)",
+          "minItems": 2,
+          "maxItems": 2,
+          "additionalItems": {
+            "type": "string"
+          }
+        })
+      })
+
+      it("minLength (Array)", async () => {
+        await assertDraft7(Schema.Array(Schema.String).check(Check.minLength(2)), {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "a value with a length of at least 2",
+          "title": "minLength(2)",
+          "minItems": 2
+        })
+      })
+
+      it("minLength (NonEmptyArray)", async () => {
+        await assertDraft7(Schema.NonEmptyArray(Schema.String).check(Check.minLength(2)), {
+          "type": "array",
+          "items": [{
+            "type": "string"
+          }],
+          "description": "a value with a length of at least 2",
+          "title": "minLength(2)",
+          "minItems": 2,
+          "additionalItems": {
+            "type": "string"
+          }
+        })
+      })
+
+      it("maxLength (Array)", async () => {
+        await assertDraft7(Schema.Array(Schema.String).check(Check.maxLength(2)), {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "a value with a length of at most 2",
+          "title": "maxLength(2)",
+          "maxItems": 2
+        })
+      })
+
+      it("maxLength (NonEmptyArray)", async () => {
+        await assertDraft7(Schema.NonEmptyArray(Schema.String).check(Check.maxLength(2)), {
+          "type": "array",
+          "items": [{
+            "type": "string"
+          }],
+          "description": "a value with a length of at most 2",
+          "title": "maxLength(2)",
+          "maxItems": 2,
+          "additionalItems": {
+            "type": "string"
+          }
+        })
+      })
+
+      it("minLength (String)", async () => {
+        await assertDraft7(Schema.String.check(Check.minLength(1)), {
+          "type": "string",
+          "title": "minLength(1)",
+          "description": "a value with a length of at least 1",
+          "minLength": 1
+        })
+      })
+
+      it("maxLength (String)", async () => {
+        await assertDraft7(Schema.String.check(Check.maxLength(1)), {
+          "type": "string",
+          "title": "maxLength(1)",
+          "description": "a value with a length of at most 1",
+          "maxLength": 1
+        })
+      })
+
+      it("length (String)", async () => {
+        await assertDraft7(Schema.String.check(Check.length(1)), {
+          "type": "string",
+          "title": "length(1)",
+          "description": "a value with a length of 1",
+          "maxLength": 1,
+          "minLength": 1
+        })
+      })
+
+      it("greaterThan", async () => {
+        await assertDraft7(Schema.Number.check(Check.greaterThan(1)), {
+          "type": "number",
+          "title": "greaterThan(1)",
+          "description": "a value greater than 1",
+          "exclusiveMinimum": 1
+        })
+      })
+
+      it("greaterThanOrEqualTo", async () => {
+        await assertDraft7(Schema.Number.check(Check.greaterThanOrEqualTo(1)), {
+          "type": "number",
+          "title": "greaterThanOrEqualTo(1)",
+          "description": "a value greater than or equal to 1",
+          "minimum": 1
+        })
+      })
+
+      it("lessThan", async () => {
+        await assertDraft7(Schema.Number.check(Check.lessThan(1)), {
+          "type": "number",
+          "title": "lessThan(1)",
+          "description": "a value less than 1",
+          "exclusiveMaximum": 1
+        })
+      })
+
+      it("lessThanOrEqualTo", async () => {
+        await assertDraft7(Schema.Number.check(Check.lessThanOrEqualTo(1)), {
+          "type": "number",
+          "title": "lessThanOrEqualTo(1)",
+          "description": "a value less than or equal to 1",
+          "maximum": 1
+        })
+      })
+
+      it("pattern", async () => {
+        await assertDraft7(Schema.String.check(Check.regex(/^abb+$/)), {
+          "type": "string",
+          "title": "regex(^abb+$)",
+          "description": "a string matching the regex ^abb+$",
+          "pattern": "^abb+$"
+        })
+      })
+
+      it("int", async () => {
+        await assertDraft7(Schema.Number.check(Check.int()), {
+          "type": "integer",
+          "title": "int",
+          "description": "an integer"
+        })
+      })
+
+      it("Trimmed", async () => {
+        const schema = Schema.Trimmed
+        await assertDraft7(schema, {
+          "title": "trimmed",
+          "description": "a string with no leading or trailing whitespace",
+          "pattern": "^\\S[\\s\\S]*\\S$|^\\S$|^$",
+          "type": "string"
+        })
+      })
+
+      it("lowercased", async () => {
+        const schema = Schema.String.check(Check.lowercased())
+        await assertDraft7(schema, {
+          "title": "lowercased",
+          "description": "a string with all characters in lowercase",
+          "pattern": "^[^A-Z]*$",
+          "type": "string"
+        })
+      })
+
+      it("uppercased", async () => {
+        const schema = Schema.String.check(Check.uppercased())
+        await assertDraft7(schema, {
+          "title": "uppercased",
+          "description": "a string with all characters in uppercase",
+          "pattern": "^[^a-z]*$",
+          "type": "string"
+        })
+      })
+
+      it("capitalized", async () => {
+        const schema = Schema.String.check(Check.capitalized())
+        await assertDraft7(schema, {
+          "title": "capitalized",
+          "description": "a string with the first character in uppercase",
+          "pattern": "^[^a-z]?.*$",
+          "type": "string"
+        })
+      })
+
+      it("uncapitalized", async () => {
+        const schema = Schema.String.check(Check.uncapitalized())
+        await assertDraft7(schema, {
+          "title": "uncapitalized",
+          "description": "a string with the first character in lowercase",
+          "pattern": "^[^A-Z]?.*$",
+          "type": "string"
+        })
+      })
+
+      describe("should handle merge conflicts", () => {
+        it("minLength + minLength", async () => {
+          await assertDraft7(Schema.String.check(Check.minLength(1), Check.minLength(2)), {
+            "allOf": [
+              {
+                "description": "a value with a length of at least 2",
+                "minLength": 2,
+                "title": "minLength(2)"
+              }
+            ],
+            "description": "a value with a length of at least 1",
+            "minLength": 1,
+            "title": "minLength(1)",
+            "type": "string"
+          })
+          await assertDraft7(Schema.String.check(Check.minLength(2), Check.minLength(1)), {
+            "allOf": [
+              {
+                "description": "a value with a length of at least 1",
+                "minLength": 1,
+                "title": "minLength(1)"
+              }
+            ],
+            "description": "a value with a length of at least 2",
+            "minLength": 2,
+            "title": "minLength(2)",
+            "type": "string"
+          })
+          await assertDraft7(Schema.String.check(Check.minLength(2), Check.minLength(1), Check.minLength(2)), {
+            "allOf": [
+              {
+                "description": "a value with a length of at least 1",
+                "minLength": 1,
+                "title": "minLength(1)"
+              },
+              {
+                "description": "a value with a length of at least 2",
+                "minLength": 2,
+                "title": "minLength(2)"
+              }
+            ],
+            "description": "a value with a length of at least 2",
+            "minLength": 2,
+            "title": "minLength(2)",
+            "type": "string"
+          })
+        })
+
+        it("maxLength + maxLength", async () => {
+          await assertDraft7(Schema.String.check(Check.maxLength(1), Check.maxLength(2)), {
+            "allOf": [
+              {
+                "description": "a value with a length of at most 2",
+                "maxLength": 2,
+                "title": "maxLength(2)"
+              }
+            ],
+            "description": "a value with a length of at most 1",
+            "maxLength": 1,
+            "title": "maxLength(1)",
+            "type": "string"
+          })
+          await assertDraft7(Schema.String.check(Check.maxLength(2), Check.maxLength(1)), {
+            "allOf": [
+              {
+                "description": "a value with a length of at most 1",
+                "maxLength": 1,
+                "title": "maxLength(1)"
+              }
+            ],
+            "description": "a value with a length of at most 2",
+            "maxLength": 2,
+            "title": "maxLength(2)",
+            "type": "string"
+          })
+          await assertDraft7(Schema.String.check(Check.maxLength(1), Check.maxLength(2), Check.maxLength(1)), {
+            "allOf": [
+              {
+                "description": "a value with a length of at most 2",
+                "maxLength": 2,
+                "title": "maxLength(2)"
+              },
+              {
+                "description": "a value with a length of at most 1",
+                "maxLength": 1,
+                "title": "maxLength(1)"
+              }
+            ],
+            "description": "a value with a length of at most 1",
+            "maxLength": 1,
+            "title": "maxLength(1)",
+            "type": "string"
+          })
+        })
+
+        it("pattern + pattern", async () => {
+          await assertDraft7(Schema.String.check(Check.startsWith("a"), Check.endsWith("c")), {
+            "allOf": [
+              {
+                "description": "a string ending with \"c\"",
+                "pattern": "c$",
+                "title": "endsWith(\"c\")"
+              }
+            ],
+            "description": "a string starting with \"a\"",
+            "pattern": "^a",
+            "title": "startsWith(\"a\")",
+            "type": "string"
+          })
+          await assertDraft7(
+            Schema.String.check(Check.startsWith("a"), Check.endsWith("c"), Check.startsWith("a")),
+            {
+              "allOf": [
+                {
+                  "description": "a string ending with \"c\"",
+                  "pattern": "c$",
+                  "title": "endsWith(\"c\")"
+                },
+                {
+                  "description": "a string starting with \"a\"",
+                  "pattern": "^a",
+                  "title": "startsWith(\"a\")"
+                }
+              ],
+              "description": "a string starting with \"a\"",
+              "pattern": "^a",
+              "title": "startsWith(\"a\")",
+              "type": "string"
+            }
+          )
+          await assertDraft7(
+            Schema.String.check(Check.endsWith("c"), Check.startsWith("a"), Check.endsWith("c")),
+            {
+              "allOf": [
+                {
+                  "description": "a string starting with \"a\"",
+                  "pattern": "^a",
+                  "title": "startsWith(\"a\")"
+                },
+                {
+                  "description": "a string ending with \"c\"",
+                  "pattern": "c$",
+                  "title": "endsWith(\"c\")"
+                }
+              ],
+              "description": "a string ending with \"c\"",
+              "pattern": "c$",
+              "title": "endsWith(\"c\")",
+              "type": "string"
+            }
+          )
+        })
+
+        it("minItems + minItems", async () => {
+          await assertDraft7(Schema.Array(Schema.String).check(Check.minLength(1), Check.minLength(2)), {
+            "allOf": [
+              {
+                "description": "a value with a length of at least 2",
+                "minItems": 2,
+                "title": "minLength(2)"
+              }
+            ],
+            "description": "a value with a length of at least 1",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "title": "minLength(1)",
+            "type": "array"
+          })
+          await assertDraft7(Schema.Array(Schema.String).check(Check.minLength(2), Check.minLength(1)), {
+            "allOf": [
+              {
+                "description": "a value with a length of at least 1",
+                "minItems": 1,
+                "title": "minLength(1)"
+              }
+            ],
+            "description": "a value with a length of at least 2",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 2,
+            "title": "minLength(2)",
+            "type": "array"
+          })
+          await assertDraft7(
+            Schema.Array(Schema.String).check(Check.minLength(2), Check.minLength(1), Check.minLength(2)),
+            {
+              "allOf": [
+                {
+                  "description": "a value with a length of at least 1",
+                  "minItems": 1,
+                  "title": "minLength(1)"
+                },
+                {
+                  "description": "a value with a length of at least 2",
+                  "minItems": 2,
+                  "title": "minLength(2)"
+                }
+              ],
+              "description": "a value with a length of at least 2",
+              "items": {
+                "type": "string"
+              },
+              "minItems": 2,
+              "title": "minLength(2)",
+              "type": "array"
+            }
+          )
+        })
+
+        it("maxItems + maxItems", async () => {
+          await assertDraft7(Schema.Array(Schema.String).check(Check.maxLength(1), Check.maxLength(2)), {
+            "allOf": [
+              {
+                "description": "a value with a length of at most 2",
+                "maxItems": 2,
+                "title": "maxLength(2)"
+              }
+            ],
+            "description": "a value with a length of at most 1",
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 1,
+            "title": "maxLength(1)",
+            "type": "array"
+          })
+          await assertDraft7(Schema.Array(Schema.String).check(Check.maxLength(2), Check.maxLength(1)), {
+            "allOf": [
+              {
+                "description": "a value with a length of at most 1",
+                "maxItems": 1,
+                "title": "maxLength(1)"
+              }
+            ],
+            "description": "a value with a length of at most 2",
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 2,
+            "title": "maxLength(2)",
+            "type": "array"
+          })
+          await assertDraft7(
+            Schema.Array(Schema.String).check(Check.maxLength(1), Check.maxLength(2), Check.maxLength(1)),
+            {
+              "allOf": [
+                {
+                  "description": "a value with a length of at most 2",
+                  "maxItems": 2,
+                  "title": "maxLength(2)"
+                },
+                {
+                  "description": "a value with a length of at most 1",
+                  "maxItems": 1,
+                  "title": "maxLength(1)"
+                }
+              ],
+              "description": "a value with a length of at most 1",
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 1,
+              "title": "maxLength(1)",
+              "type": "array"
+            }
+          )
+        })
+
+        it("minimum + minimum", async () => {
+          await assertDraft7(Schema.Number.check(Check.greaterThanOrEqualTo(1), Check.greaterThanOrEqualTo(2)), {
+            "allOf": [
+              {
+                "description": "a value greater than or equal to 2",
+                "minimum": 2,
+                "title": "greaterThanOrEqualTo(2)"
+              }
+            ],
+            "description": "a value greater than or equal to 1",
+            "minimum": 1,
+            "title": "greaterThanOrEqualTo(1)",
+            "type": "number"
+          })
+          await assertDraft7(Schema.Number.check(Check.greaterThanOrEqualTo(2), Check.greaterThanOrEqualTo(1)), {
+            "allOf": [
+              {
+                "description": "a value greater than or equal to 1",
+                "minimum": 1,
+                "title": "greaterThanOrEqualTo(1)"
+              }
+            ],
+            "description": "a value greater than or equal to 2",
+            "minimum": 2,
+            "title": "greaterThanOrEqualTo(2)",
+            "type": "number"
+          })
+          await assertDraft7(
+            Schema.Number.check(
+              Check.greaterThanOrEqualTo(2),
+              Check.greaterThanOrEqualTo(1),
+              Check.greaterThanOrEqualTo(2)
+            ),
+            {
+              "allOf": [
+                {
+                  "description": "a value greater than or equal to 1",
+                  "minimum": 1,
+                  "title": "greaterThanOrEqualTo(1)"
+                },
+                {
+                  "description": "a value greater than or equal to 2",
+                  "minimum": 2,
+                  "title": "greaterThanOrEqualTo(2)"
+                }
+              ],
+              "description": "a value greater than or equal to 2",
+              "minimum": 2,
+              "title": "greaterThanOrEqualTo(2)",
+              "type": "number"
+            }
+          )
+        })
+
+        it("maximum + maximum", async () => {
+          await assertDraft7(Schema.Number.check(Check.lessThanOrEqualTo(1), Check.lessThanOrEqualTo(2)), {
+            "allOf": [
+              {
+                "description": "a value less than or equal to 2",
+                "maximum": 2,
+                "title": "lessThanOrEqualTo(2)"
+              }
+            ],
+            "description": "a value less than or equal to 1",
+            "maximum": 1,
+            "title": "lessThanOrEqualTo(1)",
+            "type": "number"
+          })
+          await assertDraft7(Schema.Number.check(Check.lessThanOrEqualTo(2), Check.lessThanOrEqualTo(1)), {
+            "allOf": [
+              {
+                "description": "a value less than or equal to 1",
+                "maximum": 1,
+                "title": "lessThanOrEqualTo(1)"
+              }
+            ],
+            "description": "a value less than or equal to 2",
+            "maximum": 2,
+            "title": "lessThanOrEqualTo(2)",
+            "type": "number"
+          })
+          await assertDraft7(
+            Schema.Number.check(Check.lessThanOrEqualTo(1), Check.lessThanOrEqualTo(2), Check.lessThanOrEqualTo(1)),
+            {
+              "allOf": [
+                {
+                  "description": "a value less than or equal to 2",
+                  "maximum": 2,
+                  "title": "lessThanOrEqualTo(2)"
+                },
+                {
+                  "description": "a value less than or equal to 1",
+                  "maximum": 1,
+                  "title": "lessThanOrEqualTo(1)"
+                }
+              ],
+              "description": "a value less than or equal to 1",
+              "maximum": 1,
+              "title": "lessThanOrEqualTo(1)",
+              "type": "number"
+            }
+          )
+        })
+
+        it("exclusiveMinimum + exclusiveMinimum", async () => {
+          await assertDraft7(Schema.Number.check(Check.greaterThan(1), Check.greaterThan(2)), {
+            "allOf": [
+              {
+                "description": "a value greater than 2",
+                "exclusiveMinimum": 2,
+                "title": "greaterThan(2)"
+              }
+            ],
+            "description": "a value greater than 1",
+            "exclusiveMinimum": 1,
+            "title": "greaterThan(1)",
+            "type": "number"
+          })
+          await assertDraft7(Schema.Number.check(Check.greaterThan(2), Check.greaterThan(1)), {
+            "allOf": [
+              {
+                "description": "a value greater than 1",
+                "exclusiveMinimum": 1,
+                "title": "greaterThan(1)"
+              }
+            ],
+            "description": "a value greater than 2",
+            "exclusiveMinimum": 2,
+            "title": "greaterThan(2)",
+            "type": "number"
+          })
+          await assertDraft7(
+            Schema.Number.check(
+              Check.greaterThan(2),
+              Check.greaterThan(1),
+              Check.greaterThan(2)
+            ),
+            {
+              "allOf": [
+                {
+                  "description": "a value greater than 1",
+                  "exclusiveMinimum": 1,
+                  "title": "greaterThan(1)"
+                },
+                {
+                  "description": "a value greater than 2",
+                  "exclusiveMinimum": 2,
+                  "title": "greaterThan(2)"
+                }
+              ],
+              "description": "a value greater than 2",
+              "exclusiveMinimum": 2,
+              "title": "greaterThan(2)",
+              "type": "number"
+            }
+          )
+        })
+
+        it("exclusiveMaximum + exclusiveMaximum", async () => {
+          await assertDraft7(Schema.Number.check(Check.lessThan(1), Check.lessThan(2)), {
+            "allOf": [
+              {
+                "description": "a value less than 2",
+                "exclusiveMaximum": 2,
+                "title": "lessThan(2)"
+              }
+            ],
+            "description": "a value less than 1",
+            "exclusiveMaximum": 1,
+            "title": "lessThan(1)",
+            "type": "number"
+          })
+          await assertDraft7(Schema.Number.check(Check.lessThan(2), Check.lessThan(1)), {
+            "allOf": [
+              {
+                "description": "a value less than 1",
+                "exclusiveMaximum": 1,
+                "title": "lessThan(1)"
+              }
+            ],
+            "description": "a value less than 2",
+            "exclusiveMaximum": 2,
+            "title": "lessThan(2)",
+            "type": "number"
+          })
+          await assertDraft7(
+            Schema.Number.check(Check.lessThan(1), Check.lessThan(2), Check.lessThan(1)),
+            {
+              "allOf": [
+                {
+                  "description": "a value less than 2",
+                  "exclusiveMaximum": 2,
+                  "title": "lessThan(2)"
+                },
+                {
+                  "description": "a value less than 1",
+                  "exclusiveMaximum": 1,
+                  "title": "lessThan(1)"
+                }
+              ],
+              "description": "a value less than 1",
+              "exclusiveMaximum": 1,
+              "title": "lessThan(1)",
+              "type": "number"
+            }
+          )
+        })
+
+        it("multipleOf + multipleOf", async () => {
+          await assertDraft7(Schema.Number.check(Check.multipleOf(2), Check.multipleOf(3)), {
+            "allOf": [
+              {
+                "description": "a value that is a multiple of 3",
+                "multipleOf": 3,
+                "title": "multipleOf(3)"
+              }
+            ],
+            "description": "a value that is a multiple of 2",
+            "multipleOf": 2,
+            "title": "multipleOf(2)",
+            "type": "number"
+          })
+          await assertDraft7(
+            Schema.Number.check(Check.multipleOf(2), Check.multipleOf(3), Check.multipleOf(3)),
+            {
+              "allOf": [
+                {
+                  "description": "a value that is a multiple of 3",
+                  "multipleOf": 3,
+                  "title": "multipleOf(3)"
+                },
+                {
+                  "description": "a value that is a multiple of 3",
+                  "multipleOf": 3,
+                  "title": "multipleOf(3)"
+                }
+              ],
+              "description": "a value that is a multiple of 2",
+              "multipleOf": 2,
+              "title": "multipleOf(2)",
+              "type": "number"
+            }
+          )
+          await assertDraft7(
+            Schema.Number.check(Check.multipleOf(3), Check.multipleOf(2), Check.multipleOf(3)),
+            {
+              "allOf": [
+                {
+                  "description": "a value that is a multiple of 2",
+                  "multipleOf": 2,
+                  "title": "multipleOf(2)"
+                },
+                {
+                  "description": "a value that is a multiple of 3",
+                  "multipleOf": 3,
+                  "title": "multipleOf(3)"
+                }
+              ],
+              "description": "a value that is a multiple of 3",
+              "multipleOf": 3,
+              "title": "multipleOf(3)",
+              "type": "number"
+            }
+          )
+        })
+      })
+    })
+
     describe("id annotation", () => {
       it(`String & annotation`, async () => {
         const schema = Schema.String.annotate({ id: "A" })
