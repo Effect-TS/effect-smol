@@ -154,13 +154,19 @@ function getJsonSchemaAnnotations(
   }
 }
 
+function getRawAnnotation(
+  annotations: Annotations.Annotations | undefined
+): Annotation.Override | Annotation.Constraint | undefined {
+  return annotations?.jsonSchema as Annotation.Override | Annotation.Constraint | undefined
+}
+
 function getCheckConstraint(
   check: Check.Check<any>,
   target: Target,
   type?: Annotation.Type
 ): object | undefined {
-  const annotation = check.annotations?.jsonSchema
-  if (annotation) {
+  const annotation = getRawAnnotation(check.annotations)
+  if (annotation && annotation._tag === "Constraint") {
     return annotation.constraint(type, target)
   }
 }
@@ -239,20 +245,22 @@ function getId(ast: AST.AST): string | undefined {
   }
 }
 
-function getOverrideAnnotation(ast: AST.AST): Annotation.Override | undefined {
+/**
+ * If the AST has checks, we look for an override annotation in the checks. If
+ * not, we look for an override annotation or constraint annotation in the
+ * annotations.
+ */
+function getBottomJsonSchemaAnnotation(ast: AST.AST): Annotation.Override | Annotation.Constraint | undefined {
   if (ast.checks) {
     for (let i = ast.checks.length - 1; i >= 0; i--) {
       const check = ast.checks[i]
-      const annotation = check.annotations?.jsonSchema as Annotation.Override | Annotation.Constraint | undefined
+      const annotation = getRawAnnotation(check.annotations)
       if (annotation && annotation._tag === "Override") {
         return annotation
       }
     }
   }
-  const annotation = ast.annotations?.jsonSchema as Annotation.Override | Annotation.Constraint | undefined
-  if (annotation && annotation._tag === "Override") {
-    return annotation
-  }
+  return getRawAnnotation(ast.annotations)
 }
 
 function isCompactableLiteral(jsonSchema: object | undefined): boolean {
@@ -281,8 +289,30 @@ function go(
   ast: AST.AST,
   path: ReadonlyArray<PropertyKey>,
   options: GoOptions,
-  ignoreId: boolean = false
+  ignoreId: boolean = false,
+  ignoreAnnotation: boolean = false
 ): object {
+  // ---------------------------------------------
+  // handle json schema annotations
+  // ---------------------------------------------
+  const target = options.target
+  if (!ignoreAnnotation) {
+    const annotation = getBottomJsonSchemaAnnotation(ast)
+    if (annotation) {
+      switch (annotation._tag) {
+        case "Override":
+          return annotation.override(target, (ast) => go(ast, path, options, ignoreId))
+        case "Constraint":
+          return {
+            ...go(ast, path, options, ignoreId, true),
+            ...annotation.constraint(undefined, target)
+          }
+      }
+    }
+  }
+  // ---------------------------------------------
+  // handle id annotation
+  // ---------------------------------------------
   if (!ignoreId) {
     const id = getId(ast)
     if (id !== undefined) {
@@ -298,16 +328,14 @@ function go(
     }
   }
   // ---------------------------------------------
-  // handle annotations
+  // handle encoding
   // ---------------------------------------------
-  const target = options.target
-  const annotation = getOverrideAnnotation(ast)
-  if (annotation) {
-    return annotation.override(target, (ast) => go(ast, path, options, ignoreId))
-  }
   if (ast.encoding) {
     return go(ast.encoding[ast.encoding.length - 1].to, path, options, ignoreId)
   }
+  // ---------------------------------------------
+  // handle base cases
+  // ---------------------------------------------
   switch (ast._tag) {
     case "Declaration":
     case "BigIntKeyword":

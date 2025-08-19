@@ -1976,11 +1976,17 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
   })
 
   describe("Defect", () => {
+    const noPrototypeObject = Object.create(null)
+    noPrototypeObject.message = "a"
+
     it("decoding", async () => {
       const schema = Schema.Defect
 
       // Error: message only
       await assertions.decoding.succeed(schema, { message: "a" }, {
+        expected: new Error("a", { cause: { message: "a" } })
+      })
+      await assertions.decoding.succeed(schema, noPrototypeObject, {
         expected: new Error("a", { cause: { message: "a" } })
       })
       // Error: message and name
@@ -2015,6 +2021,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       await assertions.encoding.succeed(schema, { toString: () => "a" }, { expected: "a" })
       // anything else
       await assertions.encoding.succeed(schema, { a: 1 }, { expected: `{"a":1}` })
+      await assertions.encoding.succeed(schema, noPrototypeObject, { expected: "a" })
     })
   })
 

@@ -2619,6 +2619,21 @@ describe("ToJsonSchema", () => {
           })
         })
       })
+
+      describe("Constraint", () => {
+        it("Number", async () => {
+          const schema = Schema.String.annotate({
+            jsonSchema: {
+              _tag: "Constraint",
+              constraint: () => ({ format: "email" })
+            }
+          })
+          await assertDraft7(schema, {
+            "type": "string",
+            "format": "email"
+          })
+        })
+      })
     })
 
     describe("fromJsonString", () => {

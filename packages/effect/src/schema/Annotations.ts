@@ -3,7 +3,6 @@
  */
 
 import type * as AST from "./AST.ts"
-import type * as Issue from "./Issue.ts"
 import type * as Schema from "./Schema.ts"
 import type * as ToArbitrary from "./ToArbitrary.ts"
 import type * as ToEquivalence from "./ToEquivalence.ts"
@@ -51,32 +50,13 @@ export interface Key extends Documentation {
  * @category Model
  * @since 4.0.0
  */
-export interface JsonSchema<T> extends Documentation {
+export interface Bottom<T> extends Documentation {
   readonly id?: string | undefined
   readonly default?: T | undefined
   readonly examples?: ReadonlyArray<T> | undefined
-  /**
-   * Totally replace ("override") the default JSON Schema for this type.
-   */
-  readonly jsonSchema?: ToJsonSchema.Annotation.Override | undefined
-}
-
-/**
- * @category Model
- * @since 4.0.0
- */
-export interface Bottom<T> extends JsonSchema<T> {
+  readonly jsonSchema?: ToJsonSchema.Annotation.Override | ToJsonSchema.Annotation.Constraint | undefined
   readonly arbitrary?: ToArbitrary.Annotation.Override<T> | undefined
   readonly message?: string | undefined
-  readonly formatter?: {
-    readonly Tree?: {
-      /**
-       * This annotation allows you to add dynamic context to error messages by
-       * generating titles based on the value being validated
-       */
-      readonly getTitle?: (issue: Issue.Issue) => string | undefined
-    } | undefined
-  } | undefined
 }
 
 /**
@@ -94,7 +74,11 @@ export interface Struct<T> extends Bottom<T> {
  * @category Model
  * @since 4.0.0
  */
-export interface Declaration<T, TypeParameters extends ReadonlyArray<Schema.Top>> extends JsonSchema<T> {
+export interface Declaration<T, TypeParameters extends ReadonlyArray<Schema.Top>> extends Documentation {
+  readonly id?: string | undefined
+  readonly default?: T | undefined
+  readonly examples?: ReadonlyArray<T> | undefined
+  readonly jsonSchema?: ToJsonSchema.Annotation.Override | undefined
   readonly defaultJsonSerializer?:
     | ((
       typeParameters: { readonly [K in keyof TypeParameters]: Schema.Schema<TypeParameters[K]["Encoded"]> }
@@ -130,7 +114,7 @@ export interface Filter extends Documentation {
   /**
    * JSON Schema representation used for documentation or code generation.
    */
-  readonly jsonSchema?: ToJsonSchema.Annotation.Constraint | undefined
+  readonly jsonSchema?: ToJsonSchema.Annotation.Override | ToJsonSchema.Annotation.Constraint | undefined
 
   /**
    * Optional metadata used to identify or extend the filter with custom data.

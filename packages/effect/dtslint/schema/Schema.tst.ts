@@ -3,7 +3,6 @@ import type { ServiceMap } from "effect"
 import { Effect, flow, hole } from "effect"
 import { Option, Predicate, Struct, Tuple } from "effect/data"
 import { String as Str } from "effect/primitives"
-import type { Issue } from 'effect/schema';
 import { AST, Check, Getter, Schema, Transformation } from 'effect/schema'
 import type { Array } from "effect/collections"
 import { immerable, produce } from "immer"
@@ -2404,23 +2403,6 @@ describe("Schema", () => {
         }>
       >
     >()
-  })
-
-  describe("Formatter", () => {
-    describe("Tree", () => {
-    it("getTitle", () => {
-      Schema.String.annotate({
-        formatter: {
-          Tree: {
-            getTitle: (issue) => {
-              expect(issue).type.toBe<Issue.Issue>()
-              return undefined
-            }
-            }
-          }
-        })
-      })
-    })
   })
 
   it("tag", () => {
