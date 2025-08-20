@@ -2638,6 +2638,20 @@ describe("ToJsonSchema", () => {
       })
     })
 
+    describe("annotations", () => {
+      it("should support getters", async () => {
+        const schema = Schema.String.annotate({
+          get description() {
+            return "description"
+          }
+        })
+        await assertDraft7(schema, {
+          "type": "string",
+          "description": "description"
+        })
+      })
+    })
+
     describe("id annotation", () => {
       it(`String & annotation`, async () => {
         const schema = Schema.String.annotate({ id: "A" })
