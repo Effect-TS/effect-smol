@@ -447,7 +447,7 @@ describe("ToJsonSchema", () => {
         await assertDraft7(schema, { "type": "null" })
       })
 
-      it("NullOr(Undefined) & annotate", async () => {
+      it("NullOr(Undefined) & annotate (undefined)", async () => {
         const schema = Schema.NullOr(Schema.Undefined).annotate({
           title: "title",
           description: "description",
@@ -458,6 +458,22 @@ describe("ToJsonSchema", () => {
           type: "null",
           title: "title",
           description: "description"
+        })
+      })
+
+      it("NullOr(Undefined) & annotate (null)", async () => {
+        const schema = Schema.NullOr(Schema.Undefined).annotate({
+          title: "title",
+          description: "description",
+          default: null,
+          examples: [null]
+        })
+        await assertDraft7(schema, {
+          type: "null",
+          title: "title",
+          description: "description",
+          default: null,
+          examples: [null]
         })
       })
     })
@@ -1236,6 +1252,26 @@ describe("ToJsonSchema", () => {
         })
       })
 
+      it("Undefined properties", async () => {
+        const schema = Schema.Struct({
+          a: Schema.Undefined,
+          b: Schema.Undefined.annotate({ description: "b" }),
+          c: Schema.Undefined.annotate({ description: "b" }).annotateKey({ description: "c" }),
+          d: Schema.Undefined.annotate({ description: "d-inner" }).annotateKey({ description: "d-outer" })
+        })
+        await assertDraft7(schema, {
+          type: "object",
+          properties: {
+            a: { not: {} },
+            b: { not: {}, description: "b" },
+            c: { not: {}, description: "c" },
+            d: { not: {}, description: "d-outer" }
+          },
+          required: [],
+          additionalProperties: false
+        })
+      })
+
       it("UndefinedOr properties", async () => {
         const schema = Schema.Struct({
           a: Schema.String,
@@ -1258,20 +1294,6 @@ describe("ToJsonSchema", () => {
             e: { type: "string", description: "e-outer" }
           },
           required: ["a"],
-          additionalProperties: false
-        })
-      })
-
-      it("Undefined properties", async () => {
-        const schema = Schema.Struct({
-          a: Schema.Undefined
-        })
-        await assertDraft7(schema, {
-          type: "object",
-          properties: {
-            a: { not: {} }
-          },
-          required: [],
           additionalProperties: false
         })
       })
@@ -2595,8 +2617,8 @@ describe("ToJsonSchema", () => {
           })
         })
 
-        it("Number & positive + annotation", async () => {
-          const schema = Schema.Number.check(Check.greaterThan(0)).annotate({
+        it("Number & nonNegative + annotation", async () => {
+          const schema = Schema.Number.check(Check.nonNegative()).annotate({
             jsonSchema: {
               _tag: "Override",
               override: () => ({ type: "integer" })
@@ -2607,13 +2629,13 @@ describe("ToJsonSchema", () => {
           })
         })
 
-        it("Number + annotation & positive", async () => {
+        it("Number + annotation & nonNegative", async () => {
           const schema = Schema.Number.annotate({
             jsonSchema: {
               _tag: "Override",
               override: () => ({ type: "integer" })
             }
-          }).check(Check.greaterThan(0))
+          }).check(Check.nonNegative())
           await assertDraft7(schema, {
             "type": "integer"
           })

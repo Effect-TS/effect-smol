@@ -13,6 +13,7 @@ import * as Num from "../primitives/Number.ts"
 import * as Annotations from "./Annotations.ts"
 import type * as AST from "./AST.ts"
 import * as Issue from "./Issue.ts"
+import type * as ToJsonSchema from "./ToJsonSchema.ts"
 
 /**
  * @category model
@@ -250,9 +251,10 @@ export function trimmed(annotations?: Annotations.Filter) {
       description: "a string with no leading or trailing whitespace",
       jsonSchema: {
         _tag: "Constraint",
-        constraint: () => ({
-          pattern: TRIMMED_PATTERN
-        })
+        constraint: (ctx) =>
+          ctx.type === "string" ?
+            { pattern: TRIMMED_PATTERN } :
+            undefined
       },
       meta: {
         _tag: "trimmed"
@@ -286,9 +288,10 @@ export function regex(regex: RegExp, annotations?: Annotations.Filter) {
       description: `a string matching the regex ${source}`,
       jsonSchema: {
         _tag: "Constraint",
-        constraint: () => ({
-          pattern: regex.source
-        })
+        constraint: (ctx) =>
+          ctx.type === "string" ?
+            { pattern: regex.source } :
+            undefined
       },
       meta: {
         _tag: "regex",
@@ -379,9 +382,10 @@ export function startsWith(startsWith: string, annotations?: Annotations.Filter)
       description: `a string starting with ${formatted}`,
       jsonSchema: {
         _tag: "Constraint",
-        constraint: () => ({
-          pattern: `^${startsWith}`
-        })
+        constraint: (ctx) =>
+          ctx.type === "string" ?
+            { pattern: `^${startsWith}` } :
+            undefined
       },
       meta: {
         _tag: "startsWith",
@@ -411,9 +415,10 @@ export function endsWith(endsWith: string, annotations?: Annotations.Filter) {
       description: `a string ending with ${formatted}`,
       jsonSchema: {
         _tag: "Constraint",
-        constraint: () => ({
-          pattern: `${endsWith}$`
-        })
+        constraint: (ctx) =>
+          ctx.type === "string" ?
+            { pattern: `${endsWith}$` } :
+            undefined
       },
       meta: {
         _tag: "endsWith",
@@ -443,9 +448,10 @@ export function includes(includes: string, annotations?: Annotations.Filter) {
       description: `a string including ${formatted}`,
       jsonSchema: {
         _tag: "Constraint",
-        constraint: () => ({
-          pattern: includes
-        })
+        constraint: (ctx) =>
+          ctx.type === "string" ?
+            { pattern: includes } :
+            undefined
       },
       meta: {
         _tag: "includes",
@@ -476,9 +482,10 @@ export function uppercased(annotations?: Annotations.Filter) {
       description: "a string with all characters in uppercase",
       jsonSchema: {
         _tag: "Constraint",
-        constraint: () => ({
-          pattern: UPPERCASED_PATTERN
-        })
+        constraint: (ctx) =>
+          ctx.type === "string" ?
+            { pattern: UPPERCASED_PATTERN } :
+            undefined
       },
       meta: {
         _tag: "uppercased"
@@ -508,9 +515,10 @@ export function lowercased(annotations?: Annotations.Filter) {
       description: "a string with all characters in lowercase",
       jsonSchema: {
         _tag: "Constraint",
-        constraint: () => ({
-          pattern: LOWERCASED_PATTERN
-        })
+        constraint: (ctx) =>
+          ctx.type === "string" ?
+            { pattern: LOWERCASED_PATTERN } :
+            undefined
       },
       meta: {
         _tag: "lowercased"
@@ -542,9 +550,10 @@ export function capitalized(annotations?: Annotations.Filter) {
       description: "a string with the first character in uppercase",
       jsonSchema: {
         _tag: "Constraint",
-        constraint: () => ({
-          pattern: CAPITALIZED_PATTERN
-        })
+        constraint: (ctx) =>
+          ctx.type === "string" ?
+            { pattern: CAPITALIZED_PATTERN } :
+            undefined
       },
       meta: {
         _tag: "capitalized"
@@ -576,9 +585,10 @@ export function uncapitalized(annotations?: Annotations.Filter) {
       description: "a string with the first character in lowercase",
       jsonSchema: {
         _tag: "Constraint",
-        constraint: () => ({
-          pattern: UNCAPITALIZED_PATTERN
-        })
+        constraint: (ctx) =>
+          ctx.type === "string" ?
+            { pattern: UNCAPITALIZED_PATTERN } :
+            undefined
       },
       meta: {
         _tag: "uncapitalized"
@@ -767,9 +777,10 @@ export const greaterThan = deriveGreaterThan({
   annotate: (exclusiveMinimum) => ({
     jsonSchema: {
       _tag: "Constraint",
-      constraint: () => ({
-        exclusiveMinimum
-      })
+      constraint: (ctx) =>
+        ctx.type === "number" || ctx.type === "integer" ?
+          { exclusiveMinimum } :
+          undefined
     },
     meta: {
       _tag: "greaterThan",
@@ -795,9 +806,10 @@ export const greaterThanOrEqualTo = deriveGreaterThanOrEqualTo({
   annotate: (minimum) => ({
     jsonSchema: {
       _tag: "Constraint",
-      constraint: () => ({
-        minimum
-      })
+      constraint: (ctx) =>
+        ctx.type === "number" || ctx.type === "integer" ?
+          { minimum } :
+          undefined
     },
     meta: {
       _tag: "greaterThanOrEqualTo",
@@ -822,9 +834,10 @@ export const lessThan = deriveLessThan({
   annotate: (exclusiveMaximum) => ({
     jsonSchema: {
       _tag: "Constraint",
-      constraint: () => ({
-        exclusiveMaximum
-      })
+      constraint: (ctx) =>
+        ctx.type === "number" || ctx.type === "integer" ?
+          { exclusiveMaximum } :
+          undefined
     },
     meta: {
       _tag: "lessThan",
@@ -850,9 +863,10 @@ export const lessThanOrEqualTo = deriveLessThanOrEqualTo({
   annotate: (maximum) => ({
     jsonSchema: {
       _tag: "Constraint",
-      constraint: () => ({
-        maximum
-      })
+      constraint: (ctx) =>
+        ctx.type === "number" || ctx.type === "integer" ?
+          { maximum } :
+          undefined
     },
     meta: {
       _tag: "lessThanOrEqualTo",
@@ -877,10 +891,10 @@ export const between = deriveBetween({
   annotate: (minimum, maximum) => ({
     jsonSchema: {
       _tag: "Constraint",
-      constraint: () => ({
-        minimum,
-        maximum
-      })
+      constraint: (ctx) =>
+        ctx.type === "number" || ctx.type === "integer" ?
+          { minimum, maximum } :
+          undefined
     },
     meta: {
       _tag: "between",
@@ -942,9 +956,11 @@ export const multipleOf = deriveMultipleOf({
     description: `a value that is a multiple of ${divisor}`,
     jsonSchema: {
       _tag: "Constraint",
-      constraint: () => ({
-        multipleOf: Math.abs(divisor) // JSON Schema only supports positive divisors
-      })
+      constraint: (ctx) =>
+        ctx.type === "number" || ctx.type === "integer" ?
+          // JSON Schema only supports positive divisors
+          { multipleOf: Math.abs(divisor) } :
+          undefined
     }
   })
 })
@@ -963,9 +979,10 @@ export function int(annotations?: Annotations.Filter) {
       description: "an integer",
       jsonSchema: {
         _tag: "Constraint",
-        constraint: () => ({
-          type: "integer"
-        })
+        constraint: (ctx) =>
+          ctx.type === "number" || ctx.type === "integer" ?
+            { type: "integer" } :
+            undefined
       },
       meta: {
         _tag: "int"
@@ -996,9 +1013,10 @@ export function int32(annotations?: Annotations.Filter) {
       description: "a 32-bit integer",
       jsonSchema: {
         _tag: "Constraint",
-        constraint: () => ({
-          format: "int32"
-        })
+        constraint: (ctx) =>
+          ctx.type === "number" || ctx.type === "integer" ?
+            { format: "int32" } :
+            undefined
       },
       meta: {
         _tag: "int32"
@@ -1022,9 +1040,10 @@ export function uint32(annotations?: Annotations.Filter) {
       description: "a 32-bit unsigned integer",
       jsonSchema: {
         _tag: "Constraint",
-        constraint: () => ({
-          format: "uint32"
-        })
+        constraint: (ctx) =>
+          ctx.type === "number" || ctx.type === "integer" ?
+            { format: "uint32" } :
+            undefined
       },
       meta: {
         _tag: "uint32"
@@ -1200,8 +1219,8 @@ export function minLength(minLength: number, annotations?: Annotations.Filter) {
       description: `a value with a length of at least ${minLength}`,
       jsonSchema: {
         _tag: "Constraint",
-        constraint: (type) => {
-          switch (type) {
+        constraint: (ctx) => {
+          switch (ctx.type) {
             case "string":
               return { minLength }
             case "array":
@@ -1253,8 +1272,8 @@ export function maxLength(maxLength: number, annotations?: Annotations.Filter) {
       description: `a value with a length of at most ${maxLength}`,
       jsonSchema: {
         _tag: "Constraint",
-        constraint: (type) => {
-          switch (type) {
+        constraint: (ctx) => {
+          switch (ctx.type) {
             case "string":
               return { maxLength }
             case "array":
@@ -1297,8 +1316,8 @@ export function length(length: number, annotations?: Annotations.Filter) {
       description: `a value with a length of ${length}`,
       jsonSchema: {
         _tag: "Constraint",
-        constraint: (type) => {
-          switch (type) {
+        constraint: (ctx) => {
+          switch (ctx.type) {
             case "string":
               return { minLength: length, maxLength: length }
             case "array":
@@ -1432,9 +1451,10 @@ export function minEntries(minEntries: number, annotations?: Annotations.Filter)
       description: `an object with at least ${minEntries} entries`,
       jsonSchema: {
         _tag: "Constraint",
-        constraint: () => ({
-          minProperties: minEntries
-        })
+        constraint: (ctx) =>
+          ctx.type === "object" ?
+            { minProperties: minEntries } :
+            undefined
       },
       meta: {
         _tag: "minEntries",
@@ -1467,9 +1487,10 @@ export function maxEntries(maxEntries: number, annotations?: Annotations.Filter)
       description: `an object with at most ${maxEntries} entries`,
       jsonSchema: {
         _tag: "Constraint",
-        constraint: () => ({
-          maxProperties: maxEntries
-        })
+        constraint: (ctx) =>
+          ctx.type === "object" ?
+            { maxProperties: maxEntries } :
+            undefined
       },
       meta: {
         _tag: "maxEntries",
@@ -1502,10 +1523,10 @@ export function entries(entries: number, annotations?: Annotations.Filter) {
       description: `an object with exactly ${entries} entries`,
       jsonSchema: {
         _tag: "Constraint",
-        constraint: () => ({
-          minProperties: entries,
-          maxProperties: entries
-        })
+        constraint: (ctx) =>
+          ctx.type === "object" ?
+            { minProperties: entries, maxProperties: entries } :
+            undefined
       },
       meta: {
         _tag: "entries",
@@ -1536,9 +1557,10 @@ export function unique<T>(equivalence: Equivalence.Equivalence<T>, annotations?:
       title: "unique",
       jsonSchema: {
         _tag: "Constraint",
-        constraint: () => ({
-          uniqueItems: true
-        })
+        constraint: (ctx: ToJsonSchema.Annotation.ConstraintContext) =>
+          ctx.type === "array" ?
+            { uniqueItems: true } :
+            undefined
       },
       meta: {
         _tag: "unique",

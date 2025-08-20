@@ -4074,8 +4074,8 @@ export function fromJsonString<S extends Top>(schema: S): fromJsonString<S> {
   return UnknownFromJsonString.pipe(decodeTo(schema)).annotate({
     jsonSchema: {
       _tag: "Override",
-      override: (target: ToJsonSchema.Target, go: (ast: AST.AST) => object) => {
-        switch (target) {
+      override: (ctx: ToJsonSchema.Annotation.OverrideContext) => {
+        switch (ctx.target) {
           case "draft-07":
             return {
               "type": "string",
@@ -4086,7 +4086,7 @@ export function fromJsonString<S extends Top>(schema: S): fromJsonString<S> {
               "type": "string",
               "description": "a string that will be decoded as JSON",
               "contentMediaType": "application/json",
-              "contentSchema": go(schema.ast)
+              "contentSchema": ctx.go(schema.ast)
             }
         }
       }

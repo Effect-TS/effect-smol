@@ -12,18 +12,49 @@ import type * as Schema from "./Schema.ts"
 /**
  * @since 4.0.0
  */
+export type Type = "string" | "number" | "boolean" | "array" | "object" | "null" | "integer"
+
+/**
+ * @since 4.0.0
+ */
+export type JsonSchema = {
+  type?: Type
+  [x: string]: unknown
+}
+
+/**
+ * @since 4.0.0
+ */
+export type JsonSchemaFragment = {
+  [x: string]: unknown
+}
+
+/**
+ * @since 4.0.0
+ */
 export declare namespace Annotation {
   /**
    * @since 4.0.0
    */
-  export type Type = "string" | "number" | "boolean" | "array" | "object" | "null"
+  export type ConstraintContext = {
+    readonly target: Target
+    readonly type?: Type | undefined
+  }
 
   /**
    * @since 4.0.0
    */
   export type Constraint = {
     readonly _tag: "Constraint"
-    readonly constraint: (type: Type | undefined, target: Target) => object | undefined
+    readonly constraint: (context: ConstraintContext) => JsonSchemaFragment | undefined
+  }
+
+  /**
+   * @since 4.0.0
+   */
+  export type OverrideContext = {
+    readonly target: Target
+    readonly go: (ast: AST.AST) => JsonSchema
   }
 
   /**
@@ -31,7 +62,7 @@ export declare namespace Annotation {
    */
   export type Override = {
     readonly _tag: "Override"
-    readonly override: (target: Target, go: (ast: AST.AST) => object) => object
+    readonly override: (context: OverrideContext) => JsonSchema
   }
 }
 
@@ -54,7 +85,7 @@ export type TopLevelReferenceStrategy = "skip" | "keep"
  * @since 4.0.0
  */
 export interface BaseOptions {
-  readonly definitions?: Record<string, object> | undefined
+  readonly definitions?: Record<string, JsonSchema> | undefined
   readonly getRef?: ((id: string) => string) | undefined
   readonly additionalPropertiesStrategy?: AdditionalPropertiesStrategy | undefined
   readonly topLevelReferenceStrategy?: TopLevelReferenceStrategy | undefined
@@ -70,7 +101,7 @@ export interface Draft07_Options extends BaseOptions {}
  *
  * @since 4.0.0
  */
-export function makeDraft07<S extends Schema.Top>(schema: S, options?: Draft07_Options): object {
+export function makeDraft07<S extends Schema.Top>(schema: S, options?: Draft07_Options): JsonSchema {
   return make(schema, { ...options, target: "draft-07" })
 }
 
@@ -89,7 +120,7 @@ export interface Draft2020_12_Options extends BaseOptions {}
  *
  * @since 4.0.0
  */
-export function makeDraft2020_12<S extends Schema.Top>(schema: S, options?: Draft2020_12_Options): object {
+export function makeDraft2020_12<S extends Schema.Top>(schema: S, options?: Draft2020_12_Options): JsonSchema {
   return make(schema, { ...options, target: "draft-2020-12" })
 }
 
@@ -106,14 +137,14 @@ function get$schema(target: Target) {
   }
 }
 
-function make<S extends Schema.Top>(schema: S, options?: Options): object {
+function make<S extends Schema.Top>(schema: S, options?: Options): JsonSchema {
   const definitions = options?.definitions ?? {}
   const getRef = options?.getRef ?? ((id: string) => "#/$defs/" + id)
   const target = options?.target ?? "draft-07"
   const additionalPropertiesStrategy = options?.additionalPropertiesStrategy ?? "strict"
   const topLevelReferenceStrategy = options?.topLevelReferenceStrategy ?? "keep"
   const skipId = topLevelReferenceStrategy === "skip"
-  const out: Record<string, unknown> = {
+  const out: JsonSchema = {
     $schema: get$schema(target),
     ...go(schema.ast, [], {
       definitions,
@@ -128,11 +159,9 @@ function make<S extends Schema.Top>(schema: S, options?: Options): object {
   return out
 }
 
-function getJsonSchemaAnnotations(
-  annotations: Annotations.Annotations | undefined
-): Record<string, unknown> | undefined {
+function getJsonSchemaAnnotations(annotations: Annotations.Annotations | undefined): JsonSchemaFragment | undefined {
   if (annotations) {
-    const out: Record<string, unknown> = {}
+    const out: JsonSchemaFragment = {}
     if (hasOwn(annotations, "title") && Predicate.isString(annotations.title)) {
       out.title = annotations.title
     }
@@ -154,46 +183,46 @@ function getJsonSchemaAnnotations(
   }
 }
 
-function getRawAnnotation(
+function getAnnotation(
   annotations: Annotations.Annotations | undefined
 ): Annotation.Override | Annotation.Constraint | undefined {
   return annotations?.jsonSchema as Annotation.Override | Annotation.Constraint | undefined
 }
 
-function getCheckConstraint(
-  check: Check.Check<any>,
+function getCheckJsonFragment<T>(
+  check: Check.Check<T>,
   target: Target,
-  type?: Annotation.Type
-): object | undefined {
-  const annotation = getRawAnnotation(check.annotations)
+  type?: Type
+): JsonSchemaFragment | undefined {
+  const annotation = getAnnotation(check.annotations)
   if (annotation && annotation._tag === "Constraint") {
-    return annotation.constraint(type, target)
+    return annotation.constraint({ target, type })
   }
 }
 
-function getChecksConstraint(
+function getChecksJsonFragment(
   ast: AST.AST,
   target: Target,
-  type?: Annotation.Type
-): Record<string, unknown> | undefined {
-  let out: { [x: string]: unknown; allOf: Array<unknown> } = {
+  type?: Type
+): JsonSchemaFragment | undefined {
+  let out: JsonSchemaFragment & { allOf: Array<unknown> } = {
     ...getJsonSchemaAnnotations(ast.annotations),
     allOf: []
   }
   if (ast.checks) {
     function go(check: Check.Check<any>) {
-      const constraint = {
+      const fragment: JsonSchemaFragment = {
         ...getJsonSchemaAnnotations(check.annotations),
-        ...getCheckConstraint(check, target, type)
+        ...getCheckJsonFragment(check, target, type)
       }
-      if (hasOwn(constraint, "type")) {
-        out.type = constraint.type
-        delete constraint.type
+      if (hasOwn(fragment, "type")) {
+        out.type = fragment.type
+        delete fragment.type
       }
-      if (Object.keys(constraint).some((k) => hasOwn(out, k))) {
-        out.allOf.push(constraint)
+      if (Object.keys(fragment).some((k) => hasOwn(out, k))) {
+        out.allOf.push(fragment)
       } else {
-        out = { ...out, ...constraint }
+        out = { ...out, ...fragment }
       }
     }
     ast.checks.forEach(go)
@@ -209,11 +238,7 @@ function isLooseOptional(ast: AST.AST): boolean {
   return AST.isOptional(ast) || AST.containsUndefined(ast)
 }
 
-function getPattern(
-  ast: AST.AST,
-  path: ReadonlyArray<PropertyKey>,
-  options: GoOptions
-): string | undefined {
+function getPattern(ast: AST.AST, path: ReadonlyArray<PropertyKey>, options: GoOptions): string | undefined {
   switch (ast._tag) {
     case "StringKeyword": {
       const json = go(ast, path, options)
@@ -231,7 +256,7 @@ function getPattern(
 }
 
 type GoOptions = {
-  readonly definitions: Record<string, object>
+  readonly definitions: Record<string, JsonSchema>
   readonly getRef: (id: string) => string
   readonly target: Target
   readonly additionalPropertiesStrategy: AdditionalPropertiesStrategy
@@ -254,27 +279,30 @@ function getBottomJsonSchemaAnnotation(ast: AST.AST): Annotation.Override | Anno
   if (ast.checks) {
     for (let i = ast.checks.length - 1; i >= 0; i--) {
       const check = ast.checks[i]
-      const annotation = getRawAnnotation(check.annotations)
+      const annotation = getAnnotation(check.annotations)
       if (annotation && annotation._tag === "Override") {
         return annotation
       }
     }
   }
-  return getRawAnnotation(ast.annotations)
+  return getAnnotation(ast.annotations)
 }
 
-function isCompactableLiteral(jsonSchema: object | undefined): boolean {
-  return Predicate.hasProperty(jsonSchema, "enum") && "type" in jsonSchema && Object.keys(jsonSchema).length === 2
+function isCompactableLiteral(
+  jsonSchema: JsonSchema | undefined
+): jsonSchema is JsonSchema & { enum: Array<unknown> } {
+  return jsonSchema !== undefined && "enum" in jsonSchema && "type" in jsonSchema &&
+    Object.keys(jsonSchema).length === 2
 }
 
-function compactLiterals(members: Array<any>): Array<object> {
-  const out: Array<object> = []
+function compactLiterals(members: Array<JsonSchema>) {
+  const out: Array<JsonSchema> = []
   for (const m of members) {
     if (isCompactableLiteral(m) && out.length > 0) {
-      const last: any = out[out.length - 1]
+      const last = out[out.length - 1]
       if (isCompactableLiteral(last) && last.type === m.type) {
         out[out.length - 1] = {
-          type: last.type,
+          ...last,
           enum: [...last.enum, ...m.enum]
         }
         continue
@@ -291,7 +319,7 @@ function go(
   options: GoOptions,
   ignoreId: boolean = false,
   ignoreAnnotation: boolean = false
-): object {
+): JsonSchema {
   // ---------------------------------------------
   // handle json schema annotations
   // ---------------------------------------------
@@ -301,12 +329,17 @@ function go(
     if (annotation) {
       switch (annotation._tag) {
         case "Override":
-          return annotation.override(target, (ast) => go(ast, path, options, ignoreId))
-        case "Constraint":
+          return annotation.override({
+            target,
+            go: (ast) => go(ast, path, options, ignoreId)
+          })
+        case "Constraint": {
+          const jsonSchema = go(ast, path, options, ignoreId, true)
           return {
-            ...go(ast, path, options, ignoreId, true),
-            ...annotation.constraint(undefined, target)
+            ...jsonSchema,
+            ...annotation.constraint({ target, type: jsonSchema.type })
           }
+        }
       }
     }
   }
@@ -343,52 +376,52 @@ function go(
     case "UniqueSymbol":
       throw new Error(`cannot generate JSON Schema for ${ast._tag} at ${formatPath(path) || "root"}`)
     case "UndefinedKeyword":
-      return { not: {}, ...getChecksConstraint(ast, target) }
+      return { not: {}, ...getChecksJsonFragment(ast, target) }
     case "VoidKeyword":
     case "UnknownKeyword":
     case "AnyKeyword":
-      return { ...getChecksConstraint(ast, target) }
+      return { ...getChecksJsonFragment(ast, target) }
     case "NeverKeyword":
-      return { not: {}, ...getChecksConstraint(ast, target) }
+      return { not: {}, ...getChecksJsonFragment(ast, target) }
     case "NullKeyword": {
-      const constraint = getChecksConstraint(ast, target, "null")
+      const constraint = getChecksJsonFragment(ast, target, "null")
       return { type: "null", ...constraint }
     }
     case "StringKeyword":
-      return { type: "string", ...getChecksConstraint(ast, target, "string") }
+      return { type: "string", ...getChecksJsonFragment(ast, target, "string") }
     case "NumberKeyword":
-      return { type: "number", ...getChecksConstraint(ast, target, "number") }
+      return { type: "number", ...getChecksJsonFragment(ast, target, "number") }
     case "BooleanKeyword":
-      return { type: "boolean", ...getChecksConstraint(ast, target, "boolean") }
+      return { type: "boolean", ...getChecksJsonFragment(ast, target, "boolean") }
     case "ObjectKeyword":
       return {
         anyOf: [
           { type: "object" },
           { type: "array" }
         ],
-        ...getChecksConstraint(ast, target)
+        ...getChecksJsonFragment(ast, target)
       }
     case "LiteralType": {
       if (Predicate.isString(ast.literal)) {
-        return { type: "string", enum: [ast.literal], ...getChecksConstraint(ast, target, "string") }
+        return { type: "string", enum: [ast.literal], ...getChecksJsonFragment(ast, target, "string") }
       } else if (Predicate.isNumber(ast.literal)) {
-        return { type: "number", enum: [ast.literal], ...getChecksConstraint(ast, target, "number") }
+        return { type: "number", enum: [ast.literal], ...getChecksJsonFragment(ast, target, "number") }
       } else if (Predicate.isBoolean(ast.literal)) {
-        return { type: "boolean", enum: [ast.literal], ...getChecksConstraint(ast, target, "boolean") }
+        return { type: "boolean", enum: [ast.literal], ...getChecksJsonFragment(ast, target, "boolean") }
       }
       throw new Error(`cannot generate JSON Schema for ${ast._tag} at ${formatPath(path) || "root"}`)
     }
     case "Enums": {
       return {
         ...go(AST.enumsToLiterals(ast), path, options),
-        ...getChecksConstraint(ast, target)
+        ...getChecksJsonFragment(ast, target)
       }
     }
     case "TemplateLiteral":
       return {
         type: "string",
         pattern: AST.getTemplateLiteralRegExp(ast).source,
-        ...getChecksConstraint(ast, target, "string")
+        ...getChecksJsonFragment(ast, target, "string")
       }
     case "TupleType": {
       // ---------------------------------------------
@@ -399,9 +432,9 @@ function go(
           "Generating a JSON Schema for post-rest elements is not currently supported. You're welcome to contribute by submitting a Pull Request"
         )
       }
-      const out: Record<string, unknown> = {
+      const out: JsonSchema = {
         type: "array",
-        ...getChecksConstraint(ast, target, "array")
+        ...getChecksJsonFragment(ast, target, "array")
       }
       // ---------------------------------------------
       // handle elements
@@ -443,12 +476,12 @@ function go(
             { type: "object" },
             { type: "array" }
           ],
-          ...getChecksConstraint(ast, target)
+          ...getChecksJsonFragment(ast, target)
         }
       }
       const out: any = {
         type: "object",
-        ...getChecksConstraint(ast, target, "object")
+        ...getChecksJsonFragment(ast, target, "object")
       }
       // ---------------------------------------------
       // handle property signatures
@@ -507,15 +540,15 @@ function go(
       )
       switch (members.length) {
         case 0:
-          return { not: {}, ...getChecksConstraint(ast, target) }
+          return { not: {}, ...getChecksJsonFragment(ast, target) }
         case 1:
-          return { ...members[0], ...getChecksConstraint(ast, target) }
+          return { ...members[0], ...getChecksJsonFragment(ast, target) }
         default:
           switch (ast.mode) {
             case "anyOf":
-              return { "anyOf": members, ...getChecksConstraint(ast, target) }
+              return { "anyOf": members, ...getChecksJsonFragment(ast, target) }
             case "oneOf":
-              return { "oneOf": members, ...getChecksConstraint(ast, target) }
+              return { "oneOf": members, ...getChecksJsonFragment(ast, target) }
           }
       }
     }
