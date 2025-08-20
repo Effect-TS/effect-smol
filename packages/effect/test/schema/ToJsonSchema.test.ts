@@ -63,6 +63,24 @@ async function assertDraft2020_12<S extends Schema.Top>(
   return jsonSchema
 }
 
+async function assertOpenApi3_1<S extends Schema.Top>(
+  schema: S,
+  expected: object,
+  options?: ToJsonSchema.OpenApi3_1Options
+) {
+  const jsonSchema = ToJsonSchema.makeOpenApi3_1(schema, options)
+  deepStrictEqual(jsonSchema, {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    ...expected
+  })
+  const valid = ajv2020.validateSchema(jsonSchema)
+  if (valid instanceof Promise) {
+    await valid
+  }
+  strictEqual(ajv2020.errors, null)
+  return jsonSchema
+}
+
 function assertAjvDraft7Success<S extends Schema.Top>(
   schema: S,
   input: S["Type"]
@@ -1790,7 +1808,83 @@ describe("ToJsonSchema", () => {
       })
     })
 
-    describe("Refinement", () => {
+    describe("Checks", () => {
+      it("uuid", async () => {
+        await assertDraft7(Schema.String.check(Check.uuid()), {
+          "description": "a UUID",
+          "format": "uuid",
+          "pattern":
+            "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$",
+          "title": "uuid",
+          "type": "string"
+        })
+        await assertDraft7(Schema.String.check(Check.uuid(4)), {
+          "description": "a UUID v4",
+          "format": "uuid",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$",
+          "title": "uuid-v4",
+          "type": "string"
+        })
+      })
+
+      it("int32", async () => {
+        await assertDraft7(Schema.Number.check(Check.int32()), {
+          "allOf": [
+            {
+              "description": "an integer",
+              "title": "int"
+            },
+            {
+              "description": "a value between -2147483648 and 2147483647",
+              "maximum": 2147483647,
+              "minimum": -2147483648,
+              "title": "between(-2147483648, 2147483647)"
+            }
+          ],
+          "type": "integer",
+          "title": "int32",
+          "description": "a 32-bit integer"
+        })
+      })
+
+      it("uint32", async () => {
+        await assertDraft7(Schema.Number.check(Check.uint32()), {
+          "allOf": [
+            {
+              "description": "an integer",
+              "title": "int"
+            },
+            {
+              "description": "a value between 0 and 4294967295",
+              "maximum": 4294967295,
+              "minimum": 0,
+              "title": "between(0, 4294967295)"
+            }
+          ],
+          "type": "integer",
+          "title": "uint32",
+          "description": "a 32-bit unsigned integer"
+        })
+      })
+
+      it("base64", async () => {
+        await assertDraft7(Schema.String.check(Check.base64()), {
+          "type": "string",
+          "title": "base64",
+          "description": "a base64 encoded string",
+          "pattern": "^([0-9a-zA-Z+/]{4})*(([0-9a-zA-Z+/]{2}==)|([0-9a-zA-Z+/]{3}=))?$"
+        })
+      })
+
+      it("base64url", async () => {
+        await assertDraft7(Schema.String.check(Check.base64url()), {
+          "type": "string",
+          "title": "base64url",
+          "description": "a base64url encoded string",
+          "pattern": "^([0-9a-zA-Z-_]{4})*(([0-9a-zA-Z-_]{2}(==)?)|([0-9a-zA-Z-_]{3}(=)?))?$"
+        })
+      })
+
       it("length (Array)", async () => {
         await assertDraft7(Schema.Array(Schema.String).check(Check.length(2)), {
           "type": "array",
@@ -2643,16 +2737,16 @@ describe("ToJsonSchema", () => {
       })
 
       describe("Constraint", () => {
-        it("Number", async () => {
+        it("String & format", async () => {
           const schema = Schema.String.annotate({
             jsonSchema: {
               _tag: "Constraint",
-              constraint: () => ({ format: "email" })
+              constraint: () => ({ minLength: 1 })
             }
           })
           await assertDraft7(schema, {
             "type": "string",
-            "format": "email"
+            "minLength": 1
           })
         })
       })
@@ -2680,6 +2774,68 @@ describe("ToJsonSchema", () => {
   })
 
   describe("draft-2020-12", () => {
+    describe("Checks", () => {
+      it("int32", async () => {
+        await assertDraft2020_12(Schema.Number.check(Check.int32()), {
+          "allOf": [
+            {
+              "description": "an integer",
+              "title": "int"
+            },
+            {
+              "description": "a value between -2147483648 and 2147483647",
+              "maximum": 2147483647,
+              "minimum": -2147483648,
+              "title": "between(-2147483648, 2147483647)"
+            }
+          ],
+          "type": "integer",
+          "title": "int32",
+          "description": "a 32-bit integer"
+        })
+      })
+
+      it("uint32", async () => {
+        await assertDraft2020_12(Schema.Number.check(Check.uint32()), {
+          "allOf": [
+            {
+              "description": "an integer",
+              "title": "int"
+            },
+            {
+              "description": "a value between 0 and 4294967295",
+              "maximum": 4294967295,
+              "minimum": 0,
+              "title": "between(0, 4294967295)"
+            }
+          ],
+          "type": "integer",
+          "title": "uint32",
+          "description": "a 32-bit unsigned integer"
+        })
+      })
+
+      it("base64", async () => {
+        await assertDraft2020_12(Schema.String.check(Check.base64()), {
+          "type": "string",
+          "title": "base64",
+          "description": "a base64 encoded string",
+          "contentEncoding": "base64",
+          "pattern": "^([0-9a-zA-Z+/]{4})*(([0-9a-zA-Z+/]{2}==)|([0-9a-zA-Z+/]{3}=))?$"
+        })
+      })
+
+      it("base64url", async () => {
+        await assertDraft2020_12(Schema.String.check(Check.base64url()), {
+          "type": "string",
+          "title": "base64url",
+          "description": "a base64url encoded string",
+          "contentEncoding": "base64",
+          "pattern": "^([0-9a-zA-Z-_]{4})*(([0-9a-zA-Z-_]{2}(==)?)|([0-9a-zA-Z-_]{3}(=)?))?$"
+        })
+      })
+    })
+
     describe("fromJsonString", () => {
       it("top level fromJsonString", async () => {
         const schema = Schema.fromJsonString(Schema.FiniteFromString)
@@ -2718,6 +2874,72 @@ describe("ToJsonSchema", () => {
             "required": ["a"],
             "additionalProperties": false
           }
+        })
+      })
+    })
+  })
+
+  describe("openApi3.1", () => {
+    describe("Checks", () => {
+      it("int32", async () => {
+        await assertOpenApi3_1(Schema.Number.check(Check.int32()), {
+          "allOf": [
+            {
+              "description": "an integer",
+              "title": "int"
+            },
+            {
+              "description": "a value between -2147483648 and 2147483647",
+              "maximum": 2147483647,
+              "minimum": -2147483648,
+              "title": "between(-2147483648, 2147483647)"
+            }
+          ],
+          "type": "integer",
+          "title": "int32",
+          "description": "a 32-bit integer",
+          "format": "int32"
+        })
+      })
+
+      it("uint32", async () => {
+        await assertOpenApi3_1(Schema.Number.check(Check.uint32()), {
+          "allOf": [
+            {
+              "description": "an integer",
+              "title": "int"
+            },
+            {
+              "description": "a value between 0 and 4294967295",
+              "maximum": 4294967295,
+              "minimum": 0,
+              "title": "between(0, 4294967295)"
+            }
+          ],
+          "type": "integer",
+          "title": "uint32",
+          "description": "a 32-bit unsigned integer",
+          "format": "uint32"
+        })
+      })
+
+      it("base64", async () => {
+        await assertOpenApi3_1(Schema.String.check(Check.base64()), {
+          "type": "string",
+          "title": "base64",
+          "description": "a base64 encoded string",
+          "contentEncoding": "base64",
+          "pattern": "^([0-9a-zA-Z+/]{4})*(([0-9a-zA-Z+/]{2}==)|([0-9a-zA-Z+/]{3}=))?$"
+        })
+      })
+
+      it("base64url", async () => {
+        await assertOpenApi3_1(Schema.String.check(Check.base64url()), {
+          "type": "string",
+          "title": "base64url",
+          "description": "a base64url encoded string",
+          "contentEncoding": "base64",
+          "pattern": "^([0-9a-zA-Z-_]{4})*(([0-9a-zA-Z-_]{2}(==)?)|([0-9a-zA-Z-_]{3}(=)?))?$"
         })
       })
     })

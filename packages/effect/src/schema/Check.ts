@@ -332,7 +332,9 @@ const getUUIDRegex = (version?: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8): RegExp => {
  */
 export function uuid(version?: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8) {
   return regex(getUUIDRegex(version), {
-    title: "uuid"
+    title: version ? `uuid-v${version}` : "uuid",
+    description: version ? `a UUID v${version}` : "a UUID",
+    format: "uuid"
   })
 }
 
@@ -354,7 +356,11 @@ export function ulid(annotations?: Annotations.Filter) {
 export function base64(annotations?: Annotations.Filter) {
   return regex(
     /^([0-9a-zA-Z+/]{4})*(([0-9a-zA-Z+/]{2}==)|([0-9a-zA-Z+/]{3}=))?$/,
-    Annotations.merge({ title: "base64" }, annotations)
+    Annotations.merge({
+      title: "base64",
+      description: "a base64 encoded string",
+      contentEncoding: "base64"
+    }, annotations)
   )
 }
 
@@ -365,7 +371,11 @@ export function base64(annotations?: Annotations.Filter) {
 export function base64url(annotations?: Annotations.Filter) {
   return regex(
     /^([0-9a-zA-Z-_]{4})*(([0-9a-zA-Z-_]{2}(==)?)|([0-9a-zA-Z-_]{3}(=)?))?$/,
-    Annotations.merge({ title: "base64url" }, annotations)
+    Annotations.merge({
+      title: "base64url",
+      description: "a base64url encoded string",
+      contentEncoding: "base64"
+    }, annotations)
   )
 }
 
@@ -1014,7 +1024,7 @@ export function int32(annotations?: Annotations.Filter) {
       jsonSchema: {
         _tag: "Constraint",
         constraint: (ctx) =>
-          ctx.type === "number" || ctx.type === "integer" ?
+          ctx.target === "openApi3.1" && (ctx.type === "number" || ctx.type === "integer") ?
             { format: "int32" } :
             undefined
       },
@@ -1041,7 +1051,7 @@ export function uint32(annotations?: Annotations.Filter) {
       jsonSchema: {
         _tag: "Constraint",
         constraint: (ctx) =>
-          ctx.type === "number" || ctx.type === "integer" ?
+          ctx.target === "openApi3.1" && (ctx.type === "number" || ctx.type === "integer") ?
             { format: "uint32" } :
             undefined
       },

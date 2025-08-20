@@ -69,7 +69,7 @@ export declare namespace Annotation {
 /**
  * @since 4.0.0
  */
-export type Target = "draft-07" | "draft-2020-12"
+export type Target = "draft-07" | "draft-2020-12" | "openApi3.1"
 
 /**
  * @since 4.0.0
@@ -124,6 +124,18 @@ export function makeDraft2020_12<S extends Schema.Top>(schema: S, options?: Draf
   return make(schema, { ...options, target: "draft-2020-12" })
 }
 
+/**
+ * @since 4.0.0
+ */
+export interface OpenApi3_1Options extends BaseOptions {}
+
+/**
+ * @since 4.0.0
+ */
+export function makeOpenApi3_1<S extends Schema.Top>(schema: S, options?: OpenApi3_1Options): object {
+  return make(schema, { ...options, target: "openApi3.1" })
+}
+
 interface Options extends Draft07_Options {
   readonly target?: Target | undefined
 }
@@ -133,6 +145,7 @@ function get$schema(target: Target) {
     case "draft-07":
       return "http://json-schema.org/draft-07/schema"
     case "draft-2020-12":
+    case "openApi3.1":
       return "https://json-schema.org/draft/2020-12/schema"
   }
 }
@@ -159,7 +172,20 @@ function make<S extends Schema.Top>(schema: S, options?: Options): JsonSchema {
   return out
 }
 
-function getJsonSchemaAnnotations(annotations: Annotations.Annotations | undefined): JsonSchemaFragment | undefined {
+function isContentEncodingSupported(target: Target): boolean {
+  switch (target) {
+    case "draft-07":
+      return false
+    case "draft-2020-12":
+    case "openApi3.1":
+      return true
+  }
+}
+
+function getJsonSchemaAnnotations(
+  target: Target,
+  annotations: Annotations.Annotations | undefined
+): JsonSchemaFragment | undefined {
   if (annotations) {
     const out: JsonSchemaFragment = {}
     if (hasOwn(annotations, "title") && Predicate.isString(annotations.title)) {
@@ -177,6 +203,14 @@ function getJsonSchemaAnnotations(annotations: Annotations.Annotations | undefin
       const examples = annotations.examples.filter((example) => example !== undefined)
       if (examples.length > 0) {
         out.examples = examples
+      }
+    }
+    if (hasOwn(annotations, "format") && Predicate.isString(annotations.format)) {
+      out.format = annotations.format
+    }
+    if (isContentEncodingSupported(target)) {
+      if (hasOwn(annotations, "contentEncoding") && Predicate.isString(annotations.contentEncoding)) {
+        out.contentEncoding = annotations.contentEncoding
       }
     }
     return Object.keys(out).length > 0 ? out : undefined
@@ -206,13 +240,13 @@ function getChecksJsonFragment(
   type?: Type
 ): JsonSchemaFragment | undefined {
   let out: JsonSchemaFragment & { allOf: Array<unknown> } = {
-    ...getJsonSchemaAnnotations(ast.annotations),
+    ...getJsonSchemaAnnotations(target, ast.annotations),
     allOf: []
   }
   if (ast.checks) {
-    function go(check: Check.Check<any>) {
+    function handle(check: Check.Check<any>) {
       const fragment: JsonSchemaFragment = {
-        ...getJsonSchemaAnnotations(check.annotations),
+        ...getJsonSchemaAnnotations(target, check.annotations),
         ...getCheckJsonFragment(check, target, type)
       }
       if (hasOwn(fragment, "type")) {
@@ -223,6 +257,12 @@ function getChecksJsonFragment(
         out.allOf.push(fragment)
       } else {
         out = { ...out, ...fragment }
+      }
+    }
+    function go(check: Check.Check<any>) {
+      handle(check)
+      if (check._tag === "FilterGroup") {
+        check.checks.forEach(go)
       }
     }
     ast.checks.forEach(go)
@@ -441,7 +481,7 @@ function go(
       // ---------------------------------------------
       const items = ast.elements.map((e, i) => ({
         ...go(e, [...path, i], options),
-        ...getJsonSchemaAnnotations(e.context?.annotations)
+        ...getJsonSchemaAnnotations(target, e.context?.annotations)
       }))
       const minItems = ast.elements.findIndex(isLooseOptional)
       if (minItems !== -1) {
@@ -495,7 +535,7 @@ function go(
         } else {
           out.properties[name] = {
             ...go(ps.type, [...path, name], options),
-            ...getJsonSchemaAnnotations(ps.type.context?.annotations)
+            ...getJsonSchemaAnnotations(target, ps.type.context?.annotations)
           }
           if (!isLooseOptional(ps.type)) {
             out.required.push(String(name))
@@ -533,7 +573,7 @@ function go(
           .map((ast) => {
             const out = go(ast, path, options)
             if (path.length > 0) {
-              return { ...out, ...getJsonSchemaAnnotations(ast.context?.annotations) }
+              return { ...out, ...getJsonSchemaAnnotations(target, ast.context?.annotations) }
             }
             return out
           })
