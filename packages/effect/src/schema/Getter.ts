@@ -119,7 +119,7 @@ export function onNone<T, R = never>(
  * @category constructors
  * @since 4.0.0
  */
-export function required<T>(annotations?: Annotations.Key): Getter<T, T> {
+export function required<T>(annotations?: Annotations.Key<T>): Getter<T, T> {
   return onNone(() => Effect.fail(new Issue.MissingKey(annotations)))
 }
 

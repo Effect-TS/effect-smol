@@ -130,7 +130,7 @@ export interface Bottom<
   readonly "~encoded.optionality": EncodedOptionality
 
   annotate(annotations: this["~annotate.in"]): this["~rebuild.out"]
-  annotateKey(annotations: Annotations.Key): this["~rebuild.out"]
+  annotateKey(annotations: Annotations.Key<this["Type"]>): this["~rebuild.out"]
   rebuild(ast: this["ast"]): this["~rebuild.out"]
   /**
    * @throws {Error} The issue is contained in the error cause.
@@ -193,7 +193,7 @@ export function annotate<S extends Top>(annotations: S["~annotate.in"]) {
  * @category Annotations
  * @since 4.0.0
  */
-export function annotateKey<S extends Top>(annotations: Annotations.Key) {
+export function annotateKey<S extends Top>(annotations: Annotations.Key<S["Type"]>) {
   return (self: S): S["~rebuild.out"] => {
     return self.rebuild(AST.annotateKey(self.ast, annotations))
   }
@@ -268,7 +268,7 @@ export abstract class Bottom$<
   annotate(annotations: this["~annotate.in"]): this["~rebuild.out"] {
     return this.rebuild(AST.annotate(this.ast, annotations))
   }
-  annotateKey(annotations: Annotations.Key): this["~rebuild.out"] {
+  annotateKey(annotations: Annotations.Key<this["Type"]>): this["~rebuild.out"] {
     return this.rebuild(AST.annotateKey(this.ast, annotations))
   }
   check(
@@ -4273,7 +4273,7 @@ function makeClass<
     static annotate(annotations: Annotations.Declaration<Self, readonly [S]>): Class<Self, S, Self> {
       return this.rebuild(AST.annotate(this.ast, annotations))
     }
-    static annotateKey(annotations: Annotations.Key): Class<Self, S, Self> {
+    static annotateKey(annotations: Annotations.Key<Self>): Class<Self, S, Self> {
       return this.rebuild(AST.annotateKey(this.ast, annotations))
     }
     static check(

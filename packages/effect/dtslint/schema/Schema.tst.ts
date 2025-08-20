@@ -2518,4 +2518,19 @@ describe("Schema", () => {
         Schema.Codec<{ readonly a: number }, { readonly a?: string | undefined }, never, never>
       >()
   })
+
+  it("annotateKey", () => {
+    expect(Schema.String.annotateKey).type.toBeCallableWith(
+      { examples: ['a'] }
+    )
+    expect(Schema.String.annotateKey).type.not.toBeCallableWith(
+      { examples: [1] }
+    )
+    expect(Schema.String.annotateKey).type.toBeCallableWith(
+      { default: "a" }
+    )
+    expect(Schema.String.annotateKey).type.not.toBeCallableWith(
+      { default: 1 }
+    )
+  })
 })

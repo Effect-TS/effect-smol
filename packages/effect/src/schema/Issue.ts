@@ -183,13 +183,13 @@ export class MissingKey extends Base {
   /**
    * The metadata for the issue.
    */
-  readonly annotations: Annotations.Key | undefined
+  readonly annotations: Annotations.Key<unknown> | undefined
 
   constructor(
     /**
      * The metadata for the issue.
      */
-    annotations: Annotations.Key | undefined
+    annotations: Annotations.Key<unknown> | undefined
   ) {
     super()
     this.annotations = annotations

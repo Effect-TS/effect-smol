@@ -1078,14 +1078,16 @@ describe("ToJsonSchema", () => {
         const schema = Schema.Tuple([
           Schema.String,
           Schema.String.annotate({ description: "1" }),
-          Schema.String.annotate({ description: "2-inner" }).annotateKey({ description: "2-outer" })
+          Schema.String.annotate({ description: "2-inner" }).annotateKey({ description: "2-outer" }),
+          Schema.String.annotateKey({ default: "d", examples: ["d"] })
         ]).annotate({ description: "tuple-description" })
         await assertDraft7(schema, {
           type: "array",
           items: [
             { type: "string" },
             { type: "string", description: "1" },
-            { type: "string", description: "2-outer" }
+            { type: "string", description: "2-outer" },
+            { type: "string", default: "d", examples: ["d"] }
           ],
           additionalItems: false,
           description: "tuple-description"
@@ -1207,16 +1209,18 @@ describe("ToJsonSchema", () => {
         const schema = Schema.Struct({
           a: Schema.String,
           b: Schema.String.annotate({ description: "b" }),
-          c: Schema.String.annotate({ description: "c-inner" }).annotateKey({ description: "c-outer" })
+          c: Schema.String.annotate({ description: "c-inner" }).annotateKey({ description: "c-outer" }),
+          d: Schema.String.annotateKey({ default: "d", examples: ["d"] })
         }).annotate({ description: "struct-description" })
         await assertDraft7(schema, {
           type: "object",
           properties: {
             a: { type: "string" },
             b: { type: "string", description: "b" },
-            c: { type: "string", description: "c-outer" }
+            c: { type: "string", description: "c-outer" },
+            d: { type: "string", default: "d", examples: ["d"] }
           },
-          required: ["a", "b", "c"],
+          required: ["a", "b", "c", "d"],
           additionalProperties: false,
           description: "struct-description"
         })

@@ -41,11 +41,14 @@ export interface Documentation extends Annotations {
  * @category Model
  * @since 4.0.0
  */
-export interface Key extends Documentation {
+export interface Key<T> extends Documentation {
   /**
    * The message to use when a key is missing.
    */
   readonly missingKeyMessage?: string | undefined
+
+  readonly default?: T | undefined
+  readonly examples?: ReadonlyArray<T> | undefined
 }
 
 /**
@@ -97,7 +100,7 @@ export interface Declaration<T, TypeParameters extends ReadonlyArray<Schema.Top>
  * @category Model
  * @since 4.0.0
  */
-export interface Filter extends Documentation {
+export interface Filter extends Documentation { // This annotation group is not parametric since it would make the filters invariant
   /**
    * System annotation for branded types. Used internally to identify types that
    * carry a brand marker.

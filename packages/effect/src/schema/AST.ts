@@ -271,7 +271,7 @@ export class Context {
   readonly defaultValue: Encoding | undefined
   /** Used for constructor encoding (e.g. `Class` API) */
   readonly make: Encoding | undefined
-  readonly annotations: Annotations.Key | undefined
+  readonly annotations: Annotations.Key<unknown> | undefined
 
   constructor(
     isOptional: boolean,
@@ -280,7 +280,7 @@ export class Context {
     defaultValue: Encoding | undefined = undefined,
     /** Used for constructor encoding (e.g. `Class` API) */
     make: Encoding | undefined = undefined,
-    annotations: Annotations.Key | undefined = undefined
+    annotations: Annotations.Key<unknown> | undefined = undefined
   ) {
     this.isOptional = isOptional
     this.isMutable = isMutable
