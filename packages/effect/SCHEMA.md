@@ -4061,7 +4061,7 @@ import { Schema, ToJsonSchema } from "effect/schema"
 
 const schema = Schema.Tuple([Schema.String, Schema.Number])
 
-const jsonSchema = ToJsonSchema.makeDraft2020(schema)
+const jsonSchema = ToJsonSchema.makeDraft2020_12(schema)
 
 console.log(JSON.stringify(jsonSchema, null, 2))
 /*
@@ -4082,11 +4082,11 @@ Output:
 */
 ```
 
-No errors are thrown as long as your schema is not a “Declaration” (e.g. `Schema.Option(Schema.String)`), `Void`, `Undefined`, `BigInt`, `Symbol`, or `UniqueSymbol` at the top level. In those cases, you'll see runtime errors like:
+No errors are thrown as long as your schema is not a “Declaration” (e.g. `Schema.Option(Schema.String)`), `BigInt`, `Symbol`, or `UniqueSymbol` at the top level. In those cases, you'll see runtime errors like:
 
 > `cannot generate JSON Schema for Declaration at root`
 
-> `cannot generate JSON Schema for VoidKeyword at root`
+> `cannot generate JSON Schema for SymbolKeyword at root`
 
 > etc.
 
@@ -4126,7 +4126,19 @@ Output:
 
 ### Overriding the Generated JSON Schema
 
-Sometimes you want to tamper with the default JSON Schema that Effect would generate. For that, use the special `jsonSchema: { _tag: "Override"; override: () => JsonSchema }` in your annotation. In other words:
+Sometimes you want to tamper with the default JSON Schema that Effect would generate. For that, use the annotation:
+
+```ts
+{
+  jsonSchema: {
+    _tag: "Override"
+    override: (ctx) => JsonSchema,
+    required?: boolean
+  }
+}
+```
+
+In other words:
 
 ```ts
 import { Check, Schema, ToJsonSchema } from "effect/schema"
@@ -4181,7 +4193,7 @@ Output:
 */
 ```
 
-Because no “outer” annotate() was used, and this is the first filter, we merge the fragment's keywords into the top‐level schema.
+Because no "outer" annotate() was used, and this is the first filter, we merge the fragment's keywords into the top‐level schema.
 
 If you stack two filters:
 
@@ -4272,7 +4284,7 @@ import { Schema, ToJsonSchema } from "effect/schema"
 const original = Schema.Struct({ a: Schema.String })
 const schema = Schema.fromJsonString(original)
 
-const jsonSchema = ToJsonSchema.makeDraft2020(schema)
+const jsonSchema = ToJsonSchema.makeDraft2020_12(schema)
 
 console.log(JSON.stringify(jsonSchema, null, 2))
 /*
@@ -4280,6 +4292,7 @@ Output:
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "string",
+  "description": "a string that will be decoded as JSON",
   "contentMediaType": "application/json",
   "contentSchema": {
     "type": "object",

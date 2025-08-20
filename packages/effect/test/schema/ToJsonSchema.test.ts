@@ -2748,6 +2748,41 @@ describe("ToJsonSchema", () => {
             "type": "integer"
           })
         })
+
+        it("required: true", async () => {
+          const schema = Schema.Struct({
+            a: Schema.UndefinedOr(Schema.Number).annotate({
+              jsonSchema: {
+                _tag: "Override",
+                override: (ctx) => ({ ...ctx.jsonSchema, description: "a" }),
+                required: true
+              }
+            })
+          })
+          await assertDraft7(schema, {
+            "type": "object",
+            "properties": {
+              "a": {
+                "type": "number",
+                "description": "a"
+              }
+            },
+            "required": ["a"],
+            "additionalProperties": false
+          })
+        })
+
+        it("should ignore errors", async () => {
+          const schema = Schema.Symbol.annotate({
+            jsonSchema: {
+              _tag: "Override",
+              override: () => ({ type: "string" })
+            }
+          })
+          await assertDraft7(schema, {
+            "type": "string"
+          })
+        })
       })
 
       describe("Constraint", () => {

@@ -4086,7 +4086,7 @@ export function fromJsonString<S extends Top>(schema: S): fromJsonString<S> {
               "type": "string",
               "description": "a string that will be decoded as JSON",
               "contentMediaType": "application/json",
-              "contentSchema": ctx.go(schema.ast)
+              "contentSchema": ctx.make(schema.ast)
             }
         }
       }
