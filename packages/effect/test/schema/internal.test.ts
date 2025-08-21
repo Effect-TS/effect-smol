@@ -63,19 +63,21 @@ describe("internal", () => {
       const obj: any = { a: 1 }
       const map = new Map([["obj", obj]])
       obj.map = map
-      strictEqual(format(map), `Map([["obj",{"a":1,"map":Map([["obj",[Circular]]])}]])`)
+      strictEqual(format(map), `Map([["obj",{"a":1,"map":[Circular]}]])`)
     })
 
     it("circular Set contents", () => {
       const obj: any = { a: 1 }
       const set = new Set([obj])
       obj.set = set
-      strictEqual(format(set), `Set([{"a":1,"set":Set([[Circular]])}])`)
+      strictEqual(format(set), `Set([{"a":1,"set":[Circular]}])`)
     })
 
     it("object", () => {
       strictEqual(format({ a: 1 }), `{"a":1}`)
+      strictEqual(format({ a: 1, b: 2 }), `{"a":1,"b":2}`)
       strictEqual(format({ [Symbol.for("a")]: 1 }), `{Symbol(a):1}`)
+      strictEqual(format({ a: 1, b: [1, 2, 3n] }), `{"a":1,"b":[1,2,3n]}`)
     })
 
     it("circular object", () => {
@@ -136,6 +138,51 @@ describe("internal", () => {
         a: Schema.String
       }) {}
       strictEqual(format(new E({ a: "a" })), `Error`)
+    })
+
+    describe("whitespace", () => {
+      it("object", () => {
+        strictEqual(format({ a: 1 }, 2), `{"a":1}`)
+        strictEqual(
+          format({ a: 1, b: 2 }, 2),
+          `{
+  "a": 1,
+  "b": 2
+}`
+        )
+        strictEqual(
+          format({ a: 1, b: [1, 2, 3n] }, 2),
+          `{
+  "a": 1,
+  "b": [
+    1,
+    2,
+    3n
+  ]
+}`
+        )
+        strictEqual(format({ [Symbol.for("a")]: 1 }, 2), `{Symbol(a):1}`)
+      })
+
+      it("circular object", () => {
+        const obj: any = { a: 1 }
+        obj.b = obj
+        strictEqual(
+          format(obj, 2),
+          `{
+  "a": 1,
+  "b": [Circular]
+}`
+        )
+      })
+
+      it("object with null prototype", () => {
+        strictEqual(format(Object.create(null), 2), `{}`)
+        strictEqual(
+          format(Object.create(null, { a: { value: 1 } }), 2),
+          `{"a":1}`
+        )
+      })
     })
   })
 
@@ -219,7 +266,21 @@ describe("internal", () => {
   "a": 1
 }`
       )
-      strictEqual(format({ [Symbol.for("a")]: 1 }), `{}`)
+      strictEqual(
+        format({ a: 1, b: 2 }),
+        `{
+  "a": 1,
+  "b": 2
+}`
+      )
+      strictEqual(
+        format({ [Symbol.for("a")]: 1 }),
+        `{}`
+      )
+      strictEqual(
+        format({ a: 1, b: [1, 2, 3n] }),
+        `[object Object]`
+      )
     })
 
     it("circular object", () => {
