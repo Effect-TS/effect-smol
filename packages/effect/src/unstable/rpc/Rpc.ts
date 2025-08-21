@@ -13,6 +13,7 @@ import * as Schema from "../../schema/Schema.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import type { Stream } from "../../stream/Stream.ts"
 import type { Headers } from "../http/Headers.ts"
+import type { RequestId } from "./RpcMessage.ts"
 import type * as RpcMiddleware from "./RpcMiddleware.ts"
 import * as RpcSchema from "./RpcSchema.ts"
 
@@ -141,7 +142,11 @@ export interface Rpc<
 export interface Handler<Tag extends string> {
   readonly _: unique symbol
   readonly tag: Tag
-  readonly handler: (request: any, headers: Headers) => Effect<any, any> | Stream<any, any>
+  readonly handler: (request: any, options: {
+    readonly clientId: number
+    readonly requestId: RequestId
+    readonly headers: Headers
+  }) => Effect<any, any> | Stream<any, any>
   readonly services: ServiceMap.ServiceMap<never>
 }
 
@@ -420,6 +425,7 @@ export type ToHandlerFn<Current extends Any, R = any> = (
   payload: Payload<Current>,
   options: {
     readonly clientId: number
+    readonly requestId: RequestId
     readonly headers: Headers
   }
 ) => ResultFrom<Current, R> | Fork<ResultFrom<Current, R>>

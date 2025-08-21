@@ -55,6 +55,7 @@ import {
   exitFailCause,
   exitSucceed,
   ExitTypeId,
+  Fail,
   FailureBase,
   failureIsDie,
   failureIsFail,
@@ -219,6 +220,25 @@ export const causeMerge: {
       Arr.union(self.failures, that.failures)
     )
     return self[Equal.symbol](newCause) ? self : newCause
+  }
+)
+
+/** @internal */
+export const causeMap: {
+  <E, E2>(f: (error: NoInfer<E>) => E2): (self: Cause.Cause<E>) => Cause.Cause<E2>
+  <E, E2>(self: Cause.Cause<E>, f: (error: NoInfer<E>) => E2): Cause.Cause<E2>
+} = dual(
+  2,
+  <E, E2>(self: Cause.Cause<E>, f: (error: NoInfer<E>) => E2): Cause.Cause<E2> => {
+    let hasFail = false
+    const failures = self.failures.map((failure) => {
+      if (failureIsFail(failure)) {
+        hasFail = true
+        return new Fail(f(failure.error))
+      }
+      return failure
+    })
+    return hasFail ? causeFromFailures(failures) : self as any
   }
 )
 

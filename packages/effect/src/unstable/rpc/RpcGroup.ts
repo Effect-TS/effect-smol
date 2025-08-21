@@ -1,5 +1,5 @@
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 import type * as Record from "../../data/Record.ts"
 import * as Effect from "../../Effect.ts"
@@ -12,22 +12,23 @@ import * as ServiceMap from "../../ServiceMap.ts"
 import * as Stream from "../../stream/Stream.ts"
 import type { Headers } from "../http/Headers.ts"
 import * as Rpc from "./Rpc.ts"
+import type { RequestId } from "./RpcMessage.ts"
 import type * as RpcMiddleware from "./RpcMiddleware.ts"
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category type ids
  */
 export const TypeId: TypeId = "~effect/rpc/RpcGroup"
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category type ids
  */
 export type TypeId = "~effect/rpc/RpcGroup"
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category groups
  */
 export interface RpcGroup<in out R extends Rpc.Any> extends Pipeable {
@@ -126,7 +127,11 @@ export interface RpcGroup<in out R extends Rpc.Any> extends Pipeable {
   accessHandler<const Tag extends R["_tag"]>(tag: Tag): Effect.Effect<
     (
       payload: Rpc.Payload<Extract<R, { readonly _tag: Tag }>>,
-      headers: Headers
+      options: {
+        readonly clientId: number
+        readonly requestId: RequestId
+        readonly headers: Headers
+      }
     ) => Rpc.ResultFrom<Extract<R, { readonly _tag: Tag }>, never>,
     never,
     Rpc.Handler<Tag>
@@ -154,7 +159,7 @@ export interface RpcGroup<in out R extends Rpc.Any> extends Pipeable {
 }
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category groups
  */
 export interface Any {
@@ -162,7 +167,7 @@ export interface Any {
 }
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category groups
  */
 export type HandlersFrom<Rpc extends Rpc.Any> = {
@@ -170,14 +175,14 @@ export type HandlersFrom<Rpc extends Rpc.Any> = {
 }
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category groups
  */
 export type HandlerFrom<Rpc extends Rpc.Any, Tag extends Rpc["_tag"]> = Extract<Rpc, { readonly _tag: Tag }> extends
   infer Current ? Current extends Rpc.Any ? Rpc.ToHandlerFn<Current> : never : never
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category groups
  */
 export type HandlersServices<Rpcs extends Rpc.Any, Handlers> = keyof Handlers extends infer K ?
@@ -185,7 +190,7 @@ export type HandlersServices<Rpcs extends Rpc.Any, Handlers> = keyof Handlers ex
   never
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category groups
  */
 export type HandlerServices<Rpcs extends Rpc.Any, K extends Rpcs["_tag"], Handler> = [Rpc.IsStream<Rpcs, K>] extends
@@ -212,7 +217,7 @@ export type HandlerServices<Rpcs extends Rpc.Any, K extends Rpcs["_tag"], Handle
   : never
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category groups
  */
 export type Rpcs<Group> = Group extends RpcGroup<infer R> ? string extends R["_tag"] ? never : R : never
@@ -303,8 +308,8 @@ const RpcGroupProto = {
     return Effect.servicesWith((parentServices: ServiceMap.ServiceMap<any>) => {
       const rpc = this.requests.get(tag)!
       const { handler, services } = parentServices.unsafeMap.get(rpc.key) as Rpc.Handler<any>
-      return Effect.succeed((payload: Rpc.Payload<any>, headers: Headers) => {
-        const result = handler(payload, headers)
+      return Effect.succeed((payload: Rpc.Payload<any>, options: any) => {
+        const result = handler(payload, options)
         const effectOrStream = Rpc.isFork(result) ? result.value : result
         return Effect.isEffect(effectOrStream)
           ? Effect.provide(effectOrStream, services)
@@ -349,7 +354,7 @@ const makeProto = <Rpcs extends Rpc.Any>(options: {
   }) as any
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category groups
  */
 export const make = <const Rpcs extends ReadonlyArray<Rpc.Any>>(

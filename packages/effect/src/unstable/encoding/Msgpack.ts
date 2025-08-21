@@ -1,0 +1,311 @@
+/**
+ * @since 4.0.0
+ */
+import * as Arr from "../../collections/Array.ts"
+import * as Data from "../../data/Data.ts"
+import * as Option from "../../data/Option.ts"
+import * as Predicate from "../../data/Predicate.ts"
+import * as Effect from "../../Effect.ts"
+import { dual } from "../../Function.ts"
+import * as Issue from "../../schema/Issue.ts"
+import * as Schema from "../../schema/Schema.ts"
+import * as Transformation from "../../schema/Transformation.ts"
+import * as Channel from "../../stream/Channel.ts"
+import * as ChannelSchema from "../../stream/ChannelSchema.js"
+import type * as Pull from "../../stream/Pull.ts"
+import { Packr, Unpackr } from "./Msgpackr.ts"
+import * as Msgpackr from "./Msgpackr.ts"
+
+/**
+ * @since 4.0.0
+ * @category errors
+ */
+export const ErrorTypeId: ErrorTypeId = "~effect/encoding/MsgPack/MsgPackError"
+
+/**
+ * @since 4.0.0
+ * @category errors
+ */
+export type ErrorTypeId = "~effect/encoding/MsgPack/MsgPackError"
+
+/**
+ * @since 4.0.0
+ * @category errors
+ */
+export class MsgPackError extends Data.TaggedError("MsgPackError")<{
+  readonly reason: "Pack" | "Unpack"
+  readonly cause: unknown
+}> {
+  /**
+   * @since 4.0.0
+   */
+  readonly [ErrorTypeId]: ErrorTypeId = ErrorTypeId
+
+  /**
+   * @since 4.0.0
+   */
+  override get message() {
+    return this.reason
+  }
+}
+
+/**
+ * @since 4.0.0
+ * @category constructors
+ */
+export const pack = <IE = never, Done = unknown>(): Channel.Channel<
+  Arr.NonEmptyReadonlyArray<Uint8Array<ArrayBuffer>>,
+  IE | MsgPackError,
+  Done,
+  Arr.NonEmptyReadonlyArray<unknown>,
+  IE,
+  Done
+> =>
+  Channel.fromTransform((upstream, _scope) =>
+    Effect.sync(() => {
+      const packr = new Packr()
+      return Effect.flatMap(upstream, (chunk) => {
+        try {
+          return Effect.succeed(Arr.map(chunk, (item) => packr.pack(item)))
+        } catch (cause) {
+          return Effect.fail(new MsgPackError({ reason: "Pack", cause }))
+        }
+      })
+    })
+  )
+
+/**
+ * @since 4.0.0
+ * @category constructors
+ */
+export const packSchema = <S extends Schema.Top>(
+  schema: S
+) =>
+<IE = never, Done = unknown>(): Channel.Channel<
+  Arr.NonEmptyReadonlyArray<Uint8Array<ArrayBuffer>>,
+  MsgPackError | Schema.SchemaError | IE,
+  Done,
+  Arr.NonEmptyReadonlyArray<S["Type"]>,
+  IE,
+  Done,
+  S["EncodingServices"]
+> => Channel.pipeTo(ChannelSchema.encode(schema)(), pack())
+
+/**
+ * @since 4.0.0
+ * @category constructors
+ */
+export const unpack = <IE = never, Done = unknown>(): Channel.Channel<
+  Arr.NonEmptyReadonlyArray<unknown>,
+  IE | MsgPackError,
+  Done,
+  Arr.NonEmptyReadonlyArray<Uint8Array<ArrayBufferLike>>,
+  IE,
+  Done
+> =>
+  Channel.fromTransform((upstream, _scope) =>
+    Effect.sync(() => {
+      const unpackr = new Unpackr()
+      let incomplete: Uint8Array<ArrayBuffer> | undefined = undefined
+      return Effect.flatMap(
+        upstream,
+        function loop(chunk): Pull.Pull<Arr.NonEmptyReadonlyArray<unknown>, IE | MsgPackError, Done> {
+          const out = Arr.empty<unknown>()
+          for (let i = 0; i < chunk.length; i++) {
+            let buf = chunk[i]
+            if (incomplete !== undefined) {
+              const prev = buf
+              buf = new Uint8Array(incomplete.length + buf.length)
+              buf.set(incomplete)
+              buf.set(prev, incomplete.length)
+              incomplete = undefined
+            }
+            try {
+              // eslint-disable-next-line no-restricted-syntax
+              out.push(...unpackr.unpackMultiple(buf))
+            } catch (cause) {
+              const error: any = cause
+              if (error.incomplete) {
+                incomplete = buf.subarray(error.lastPosition)
+                if (error.values) {
+                  // eslint-disable-next-line no-restricted-syntax
+                  out.push(...error.values)
+                }
+              } else {
+                return Effect.fail(new MsgPackError({ reason: "Unpack", cause }))
+              }
+            }
+          }
+          return Arr.isNonEmptyReadonlyArray(out) ? Effect.succeed(out) : Effect.flatMap(upstream, loop)
+        }
+      )
+    })
+  )
+
+/**
+ * @since 4.0.0
+ * @category constructors
+ */
+export const unpackSchema = <S extends Schema.Top>(
+  schema: S
+) =>
+<IE = never, Done = unknown>(): Channel.Channel<
+  Arr.NonEmptyReadonlyArray<S["Type"]>,
+  Schema.SchemaError | MsgPackError | IE,
+  Done,
+  Arr.NonEmptyReadonlyArray<Uint8Array<ArrayBufferLike>>,
+  IE,
+  Done,
+  S["DecodingServices"]
+> => Channel.pipeTo(unpack<IE, Done>(), ChannelSchema.decodeUnknown(schema)())
+
+/**
+ * @since 4.0.0
+ * @category combinators
+ */
+export const duplex = <R, IE, OE, OutDone, InDone>(
+  self: Channel.Channel<
+    Arr.NonEmptyReadonlyArray<Uint8Array<ArrayBuffer>>,
+    OE,
+    OutDone,
+    Arr.NonEmptyReadonlyArray<Uint8Array<ArrayBufferLike>>,
+    IE | MsgPackError,
+    InDone,
+    R
+  >
+): Channel.Channel<
+  Arr.NonEmptyReadonlyArray<unknown>,
+  MsgPackError | OE,
+  OutDone,
+  Arr.NonEmptyReadonlyArray<unknown>,
+  IE,
+  InDone,
+  R
+> =>
+  pack<IE, InDone>().pipe(
+    Channel.pipeTo(self),
+    Channel.pipeTo(unpack())
+  )
+
+/**
+ * @since 4.0.0
+ * @category combinators
+ */
+export const duplexSchema: {
+  <In extends Schema.Top, Out extends Schema.Top>(
+    options: {
+      readonly inputSchema: In
+      readonly outputSchema: Out
+    }
+  ): <OutErr, OutDone, InErr, InDone, R>(
+    self: Channel.Channel<
+      Arr.NonEmptyReadonlyArray<Uint8Array<ArrayBuffer>>,
+      OutErr,
+      OutDone,
+      Arr.NonEmptyReadonlyArray<Uint8Array<ArrayBufferLike>>,
+      MsgPackError | Schema.SchemaError | InErr,
+      InDone,
+      R
+    >
+  ) => Channel.Channel<
+    Arr.NonEmptyReadonlyArray<Out["Type"]>,
+    MsgPackError | Schema.SchemaError | OutErr,
+    OutDone,
+    Arr.NonEmptyReadonlyArray<In["Type"]>,
+    InErr,
+    InDone,
+    R | In["EncodingServices"] | Out["DecodingServices"]
+  >
+  <Out extends Schema.Top, In extends Schema.Top, OutErr, OutDone, InErr, InDone, R>(
+    self: Channel.Channel<
+      Arr.NonEmptyReadonlyArray<Uint8Array<ArrayBuffer>>,
+      OutErr,
+      OutDone,
+      Arr.NonEmptyReadonlyArray<Uint8Array<ArrayBufferLike>>,
+      MsgPackError | Schema.SchemaError | InErr,
+      InDone,
+      R
+    >,
+    options: {
+      readonly inputSchema: In
+      readonly outputSchema: Out
+    }
+  ): Channel.Channel<
+    Arr.NonEmptyReadonlyArray<Out["Type"]>,
+    MsgPackError | Schema.SchemaError | OutErr,
+    OutDone,
+    Arr.NonEmptyReadonlyArray<In["Type"]>,
+    InErr,
+    InDone,
+    R | In["EncodingServices"] | Out["DecodingServices"]
+  >
+} = dual(2, <Out extends Schema.Top, In extends Schema.Top, OutErr, OutDone, InErr, InDone, R>(
+  self: Channel.Channel<
+    Arr.NonEmptyReadonlyArray<Uint8Array<ArrayBuffer>>,
+    OutErr,
+    OutDone,
+    Arr.NonEmptyReadonlyArray<Uint8Array<ArrayBufferLike>>,
+    MsgPackError | Schema.SchemaError | InErr,
+    InDone,
+    R
+  >,
+  options: {
+    readonly inputSchema: In
+    readonly outputSchema: Out
+  }
+): Channel.Channel<
+  Arr.NonEmptyReadonlyArray<Out["Type"]>,
+  MsgPackError | Schema.SchemaError | OutErr,
+  OutDone,
+  Arr.NonEmptyReadonlyArray<In["Type"]>,
+  InErr,
+  InDone,
+  R | In["EncodingServices"] | Out["DecodingServices"]
+> => ChannelSchema.duplexUnknown(duplex(self), options))
+
+/**
+ * @since 4.0.0
+ * @category schemas
+ */
+export interface schema<S extends Schema.Top> extends Schema.decodeTo<S, Schema.instanceOf<Uint8Array>> {}
+
+/**
+ * @since 4.0.0
+ * @category schemas
+ */
+export const transformation: Transformation.Transformation<
+  unknown,
+  Uint8Array<ArrayBufferLike>
+> = Transformation.transformOrFail({
+  decode(e, _options) {
+    try {
+      return Effect.succeed(Msgpackr.decode(e))
+    } catch (cause) {
+      return Effect.fail(
+        new Issue.InvalidValue(Option.some(e), {
+          description: Predicate.hasProperty(cause, "message") ? String(cause.message) : String(cause)
+        })
+      )
+    }
+  },
+  encode(t, _options) {
+    try {
+      return Effect.succeed(Msgpackr.encode(t))
+    } catch (cause) {
+      return Effect.fail(
+        new Issue.InvalidValue(Option.some(t), {
+          description: Predicate.hasProperty(cause, "message") ? String(cause.message) : String(cause)
+        })
+      )
+    }
+  }
+})
+
+/**
+ * @since 4.0.0
+ * @category schemas
+ */
+export const schema = <S extends Schema.Top>(schema: S): schema<S> =>
+  Schema.instanceOf(Uint8Array).pipe(
+    Schema.decodeTo(schema, transformation)
+  )

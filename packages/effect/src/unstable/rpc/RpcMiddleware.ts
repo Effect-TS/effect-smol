@@ -9,7 +9,7 @@ import * as ServiceMap from "../../ServiceMap.ts"
 import type { Mutable, unhandled } from "../../types/Types.ts"
 import type { Headers } from "../http/Headers.ts"
 import type * as Rpc from "./Rpc.ts"
-import type { Request } from "./RpcMessage.ts"
+import type { Request, RequestId } from "./RpcMessage.ts"
 
 /**
  * @since 4.0.0
@@ -32,6 +32,7 @@ export interface RpcMiddleware<Provides, E, Requires> {
     effect: Effect.Effect<SuccessValue, E | unhandled, Provides>,
     options: {
       readonly clientId: number
+      readonly requestId: RequestId
       readonly rpc: Rpc.AnyWithProps
       readonly payload: unknown
       readonly headers: Headers
@@ -79,6 +80,7 @@ export interface Any {
     effect: Effect.Effect<SuccessValue, any, any>,
     options: {
       readonly clientId: number
+      readonly requestId: RequestId
       readonly rpc: Rpc.AnyWithProps
       readonly payload: unknown
       readonly headers: Headers

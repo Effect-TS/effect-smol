@@ -23,8 +23,7 @@ export class RpcClientError extends Schema.ErrorClass<RpcClientError>(TypeId)({
   _tag: Schema.tag("RpcClientError"),
   reason: Schema.Literals(["Protocol", "Unknown"]),
   message: Schema.String,
-  // TODO: Use Schema.Defect when available
-  cause: Schema.optional(Schema.Unknown)
+  cause: Schema.optional(Schema.Defect)
 }) {
   /**
    * @since 4.0.0

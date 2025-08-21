@@ -127,6 +127,7 @@
     "@standard-schema/spec": "^1.0.0",
     "fast-check": "^4.2.0",
     "find-my-way-ts": "^0.1.6",
+    "msgpackr": "^1.11.5",
     "multipasta": "^0.2.7"
   }
 }

@@ -195,7 +195,23 @@ export interface ResponseChunk<A extends Rpc.Any> {
 export interface ResponseExitEncoded {
   readonly _tag: "Exit"
   readonly requestId: string
-  readonly exit: unknown
+  readonly exit: {
+    readonly _tag: "Success"
+    readonly value: unknown
+  } | {
+    readonly _tag: "Failure"
+    readonly cause: {
+      readonly failures: ReadonlyArray<
+        {
+          readonly _tag: "Fail"
+          readonly error: unknown
+        } | {
+          readonly _tag: "Die"
+          readonly defect: unknown
+        }
+      >
+    }
+  }
 }
 
 /**
@@ -227,8 +243,7 @@ export interface ResponseDefectEncoded {
   readonly defect: unknown
 }
 
-// TODO: Use Schema.Defect when available
-const encodeDefect = Schema.encodeSync(Schema.Unknown)
+const encodeDefect = Schema.encodeSync(Schema.Defect)
 
 /**
  * @since 4.0.0
