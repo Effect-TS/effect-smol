@@ -8,7 +8,7 @@ import * as Predicate from "../data/Predicate.ts"
 import * as Result from "../data/Result.ts"
 import * as Effect from "../Effect.ts"
 import * as internalRecord from "../internal/record.ts"
-import { memoizeThunk, ownKeys } from "../internal/schema/util.ts"
+import { memoizeThunk } from "../internal/schema/util.ts"
 import * as RegEx from "../primitives/RegExp.ts"
 import type { Annotated } from "./Annotations.ts"
 import * as Annotations from "./Annotations.ts"
@@ -1302,7 +1302,7 @@ export class TypeLiteral extends Base {
       // ---------------------------------------------
       let inputKeys: Array<PropertyKey> | undefined
       if (ast.indexSignatures.length === 0 && (onExcessPropertyError || onExcessPropertyPreserve)) {
-        inputKeys = ownKeys(input)
+        inputKeys = Reflect.ownKeys(input)
         for (const key of inputKeys) {
           if (!Object.hasOwn(expectedKeysMap, key)) {
             // key is unexpected
@@ -1420,7 +1420,7 @@ export class TypeLiteral extends Base {
       }
       if (options?.propertyOrder === "original") {
         // preserve input keys order
-        const keys = (inputKeys ?? ownKeys(input)).concat(expectedKeys)
+        const keys = (inputKeys ?? Reflect.ownKeys(input)).concat(expectedKeys)
         const preserved: Record<PropertyKey, unknown> = {}
         for (const key of keys) {
           if (Object.hasOwn(out, key)) {
@@ -1487,7 +1487,7 @@ export function struct<Fields extends Schema.Struct.Fields>(
   checks: Checks | undefined
 ): TypeLiteral {
   return new TypeLiteral(
-    ownKeys(fields).map((key) => {
+    Reflect.ownKeys(fields).map((key) => {
       return new PropertySignature(key, fields[key].ast)
     }),
     [],

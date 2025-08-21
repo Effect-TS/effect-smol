@@ -4,7 +4,7 @@
 import type { StandardSchemaV1 } from "@standard-schema/spec"
 import * as Option from "../data/Option.ts"
 import * as Predicate from "../data/Predicate.ts"
-import { formatPath, formatUnknown } from "../internal/schema/util.ts"
+import * as util from "../internal/schema/util.ts"
 import type * as Annotations from "./Annotations.ts"
 import * as AST from "./AST.ts"
 import * as Check from "./Check.ts"
@@ -17,6 +17,9 @@ import type * as Issue from "./Issue.ts"
 export interface Formatter<Out> {
   readonly format: (issue: Issue.Issue) => Out
 }
+
+/** @internal */
+export const formatUnknown = util.formatUnknown // TODO: make this public?
 
 /**
  * @category Model
@@ -171,7 +174,7 @@ export function makeDefault(): Formatter<string> {
 function formatDefaultIssue(issue: DefaultIssue): string {
   let out = issue.message
   if (issue.path && issue.path.length > 0) {
-    const path = formatPath(issue.path as ReadonlyArray<PropertyKey>)
+    const path = util.formatPath(issue.path as ReadonlyArray<PropertyKey>)
     out += `\n  at ${path}`
   }
   return out
