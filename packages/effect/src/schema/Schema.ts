@@ -2136,7 +2136,7 @@ export const Array = lambda<ArrayLambda>(function Array<S extends Top>(item: S):
 export interface NonEmptyArray<S extends Top> extends
   Bottom<
     readonly [S["Type"], ...Array<S["Type"]>],
-    readonly [S["Type"], ...Array<S["Encoded"]>],
+    readonly [S["Encoded"], ...Array<S["Encoded"]>],
     S["DecodingServices"],
     S["EncodingServices"],
     AST.TupleType,
