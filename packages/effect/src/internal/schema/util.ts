@@ -105,14 +105,5 @@ export const PipeableClass: new() => Pipeable = class {
     return pipeArguments(this, arguments)
   }
 }
-
-/** @internal */
-export function hasOwn<O extends object, Key extends PropertyKey>(
-  o: O,
-  k: Key
-): o is O & { [K in Key]: unknown } {
-  return Object.hasOwn(o, k)
-}
-
 /** @internal */
 export const defaultParseOptions: AST.ParseOptions = {}

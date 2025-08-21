@@ -3,7 +3,7 @@
  */
 import * as Predicate from "../data/Predicate.ts"
 import type * as Record from "../data/Record.ts"
-import { formatPath, hasOwn } from "../internal/schema/util.ts"
+import { formatPath } from "../internal/schema/util.ts"
 import type * as Annotations from "./Annotations.ts"
 import * as AST from "./AST.ts"
 import type * as Check from "./Check.ts"
@@ -196,28 +196,26 @@ function getJsonSchemaAnnotations(
 ): JsonSchemaFragment | undefined {
   if (annotations) {
     const out: JsonSchemaFragment = {}
-    if (hasOwn(annotations, "title") && Predicate.isString(annotations.title)) {
+    if (Predicate.isString(annotations.title)) {
       out.title = annotations.title
     }
-    if (hasOwn(annotations, "description") && Predicate.isString(annotations.description)) {
+    if (Predicate.isString(annotations.description)) {
       out.description = annotations.description
     }
-    if (hasOwn(annotations, "default")) {
-      if (annotations.default !== undefined) {
-        out.default = annotations.default
-      }
+    if (annotations.default !== undefined) {
+      out.default = annotations.default
     }
-    if (hasOwn(annotations, "examples") && Array.isArray(annotations.examples)) {
+    if (Array.isArray(annotations.examples)) {
       const examples = annotations.examples.filter((example) => example !== undefined)
       if (examples.length > 0) {
         out.examples = examples
       }
     }
-    if (hasOwn(annotations, "format") && Predicate.isString(annotations.format)) {
+    if (Predicate.isString(annotations.format)) {
       out.format = annotations.format
     }
     if (isContentEncodingSupported(target)) {
-      if (hasOwn(annotations, "contentEncoding") && Predicate.isString(annotations.contentEncoding)) {
+      if (Predicate.isString(annotations.contentEncoding)) {
         out.contentEncoding = annotations.contentEncoding
       }
     }
@@ -257,11 +255,11 @@ function getChecksJsonFragment(
         ...getJsonSchemaAnnotations(target, check.annotations),
         ...getCheckJsonFragment(check, target, type)
       }
-      if (hasOwn(fragment, "type")) {
+      if (fragment.type !== undefined) {
         out.type = fragment.type
         delete fragment.type
       }
-      if (Object.keys(fragment).some((k) => hasOwn(out, k))) {
+      if (Object.keys(fragment).some((k) => Object.hasOwn(out, k))) {
         out.allOf.push(fragment)
       } else {
         out = { ...out, ...fragment }
@@ -299,7 +297,7 @@ function getPattern(
   switch (ast._tag) {
     case "StringKeyword": {
       const json = go(ast, path, options)
-      if (hasOwn(json, "pattern") && Predicate.isString(json.pattern)) {
+      if (Object.hasOwn(json, "pattern") && Predicate.isString(json.pattern)) {
         return json.pattern
       }
       return undefined
