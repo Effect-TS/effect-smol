@@ -38,6 +38,7 @@
  */
 import { hasProperty, isFunction } from "../data/Predicate.ts"
 import { pipeArguments } from "../interfaces/Pipeable.ts"
+import { formatUnknown } from "../internal/schema/util.ts"
 import type * as ServiceMap from "../ServiceMap.ts"
 
 /**
@@ -370,14 +371,7 @@ export const toStringUnknown = (
   u: unknown,
   whitespace: number | string | undefined = 2
 ): string => {
-  if (typeof u === "string") {
-    return u
-  }
-  try {
-    return typeof u === "object" ? stringifyCircular(u, whitespace) : String(u)
-  } catch {
-    return String(u)
-  }
+  return formatUnknown(u, whitespace)
 }
 
 /**
