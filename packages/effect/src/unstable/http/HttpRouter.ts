@@ -1045,6 +1045,33 @@ export const cors = (
 export const disableLogger: Layer.Layer<never> = middleware(HttpMiddleware.withLoggerDisabled).layer
 
 /**
+ * Provides request-level dependencies to some routes.
+ *
+ * @since 4.0.0
+ * @category Middleware
+ */
+export const provideRequest =
+  <A2, E2, R2>(layer: Layer.Layer<A2, E2, R2>) =>
+  <A, E, R>(self: Layer.Layer<A, E, R>): Layer.Layer<
+    A,
+    E | E2,
+    R2 | Exclude<R, Request.From<"Requires", A2>>
+  > =>
+    Layer.provide(
+      self,
+      middleware<{ provides: A2 }>()(Effect.gen(function*() {
+        const scope = yield* Effect.scope
+        const memoMap = yield* Layer.CurrentMemoMap
+        const services = yield* Layer.buildWithMemoMap(layer as Layer.Layer<A2>, memoMap, scope)
+        return (effect) =>
+          Effect.provideServices(effect, services) as Effect.Effect<
+            HttpServerResponse.HttpServerResponse,
+            Types.unhandled
+          >
+      })).layer
+    )
+
+/**
  * Serves the provided application layer as an HTTP server.
  *
  * @since 4.0.0
@@ -1116,7 +1143,7 @@ export const toWebHandler = <
     | Request<"Error", any>
     | Request<"GlobalError", any>,
   HE,
-  HR = Request.Only<"Requires", R> | Request.Only<"GlobalRequires", R>
+  HR = Exclude<Request.Only<"Requires", R> | Request.Only<"GlobalRequires", R>, A>
 >(
   appLayer: Layer.Layer<A, E, R>,
   options?: {
