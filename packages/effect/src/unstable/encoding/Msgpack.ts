@@ -66,7 +66,7 @@ export const pack = <IE = never, Done = unknown>(): Channel.Channel<
       const packr = new Packr()
       return Effect.flatMap(upstream, (chunk) => {
         try {
-          return Effect.succeed(Arr.map(chunk, (item) => packr.pack(item)))
+          return Effect.succeed(Arr.map(chunk, (item) => packr.pack(item) as Uint8Array<ArrayBuffer>))
         } catch (cause) {
           return Effect.fail(new MsgPackError({ reason: "Pack", cause }))
         }
@@ -290,7 +290,7 @@ export const transformation: Transformation.Transformation<
   },
   encode(t, _options) {
     try {
-      return Effect.succeed(Msgpackr.encode(t))
+      return Effect.succeed(Msgpackr.encode(t) as Uint8Array<ArrayBuffer>)
     } catch (cause) {
       return Effect.fail(
         new Issue.InvalidValue(Option.some(t), {
