@@ -36,8 +36,9 @@ const goJson = AST.memoize((ast: AST.AST): AST.AST => {
   if (AST.isTypeLiteral(ast) && ast.propertySignatures.some((ps) => !Predicate.isString(ps.name))) {
     return AST.forbidden(ast, "cannot serialize to JSON, property names must be strings")
   }
-  const out: any = ast
-  return out.goJson?.(goJson, Schema.make) ?? out.go?.(goJson) ?? AST.requiredDefaultJsonAnnotation(ast)
+  const out = (ast as any).goJson?.(goJson, Schema.make) ?? (ast as any).go?.(goJson) ??
+    AST.requiredDefaultJsonSerializerAnnotation(ast)
+  return AST.isOptional(ast) ? AST.optionalKey(out) : out
 })
 
 /**
