@@ -559,12 +559,10 @@ export const make: <Rpcs extends Rpc.Any>(
         requestId: String(requestId),
         exit: {
           _tag: "Failure",
-          cause: {
-            failures: [{
-              _tag: "Die",
-              defect
-            }]
-          }
+          cause: [{
+            _tag: "Die",
+            defect
+          }]
         }
       }),
       (cause) => sendDefect(client, Cause.squash(cause))

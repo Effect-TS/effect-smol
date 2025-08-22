@@ -200,17 +200,15 @@ export interface ResponseExitEncoded {
     readonly value: unknown
   } | {
     readonly _tag: "Failure"
-    readonly cause: {
-      readonly failures: ReadonlyArray<
-        {
-          readonly _tag: "Fail"
-          readonly error: unknown
-        } | {
-          readonly _tag: "Die"
-          readonly defect: unknown
-        }
-      >
-    }
+    readonly cause: ReadonlyArray<
+      {
+        readonly _tag: "Fail"
+        readonly error: unknown
+      } | {
+        readonly _tag: "Die"
+        readonly defect: unknown
+      }
+    >
   }
 }
 

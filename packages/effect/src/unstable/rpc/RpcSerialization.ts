@@ -6,7 +6,7 @@ import { hasProperty } from "../../data/Predicate.ts"
 import * as Layer from "../../Layer.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import * as Msgpackr from "../encoding/Msgpackr.ts"
-import type * as RpcMessage from "./RpcMessage.js"
+import type * as RpcMessage from "./RpcMessage.ts"
 
 /**
  * @since 4.0.0
@@ -226,12 +226,10 @@ function decodeJsonRpcMessage(decoded: JsonRpcMessage): RpcMessage.FromClientEnc
         _tag: "Failure",
         cause: decoded.error._tag === "Cause" ?
           decoded.error.data as any :
-          {
-            failures: [{
-              _tag: "Die",
-              defect: decoded.error
-            }]
-          }
+          [{
+            _tag: "Die",
+            defect: decoded.error
+          }]
       } :
       {
         _tag: "Success",
@@ -300,7 +298,7 @@ function encodeJsonRpcMessage(response: RpcMessage.FromServerEncoded | RpcMessag
           result: response.exit.value
         } as any
       }
-      const error = response.exit.cause.failures.find((failure) => failure._tag === "Fail")
+      const error = response.exit.cause.find((failure) => failure._tag === "Fail")
       return {
         jsonrpc: "2.0",
         id: response.requestId ? Number(response.requestId) : undefined,

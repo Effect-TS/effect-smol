@@ -3454,10 +3454,10 @@ export function Cause<E extends Top, D extends Top>(error: E, defect: D): Cause<
       title: "Cause",
       defaultJsonSerializer: ([failure]) =>
         link<Cause_.Cause<E["Encoded"]>>()(
-          Struct({ failures: Array(failure) }),
+          Array(failure),
           Transformation.transform({
-            decode: ({ failures }) => Cause_.fromFailures(failures),
-            encode: (cause) => cause
+            decode: (failures) => Cause_.fromFailures(failures),
+            encode: ({ failures }) => failures
           })
         ),
       arbitrary: {

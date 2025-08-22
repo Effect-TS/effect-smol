@@ -3,10 +3,10 @@
  */
 import * as Effect from "../../Effect.ts"
 import type * as Scope from "../../Scope.ts"
-import type * as Rpc from "./Rpc.js"
-import * as RpcClient from "./RpcClient.js"
-import type * as RpcGroup from "./RpcGroup.js"
-import * as RpcServer from "./RpcServer.js"
+import type * as Rpc from "./Rpc.ts"
+import * as RpcClient from "./RpcClient.ts"
+import type * as RpcGroup from "./RpcGroup.ts"
+import * as RpcServer from "./RpcServer.ts"
 
 /**
  * @since 4.0.0
