@@ -267,7 +267,7 @@ export const duplexSchema: {
  * @since 4.0.0
  * @category schemas
  */
-export interface schema<S extends Schema.Top> extends Schema.decodeTo<S, Schema.instanceOf<Uint8Array>> {}
+export interface schema<S extends Schema.Top> extends Schema.decodeTo<S, Schema.instanceOf<Uint8Array<ArrayBuffer>>> {}
 
 /**
  * @since 4.0.0
