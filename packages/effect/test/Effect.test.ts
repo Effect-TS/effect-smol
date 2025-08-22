@@ -380,7 +380,7 @@ describe("Effect", () => {
       const fiber = yield* Effect.raceAll([500, 300, 200, 0, 100].map((ms) =>
         (ms === 0 ? Effect.fail("boom") : Effect.succeed(ms)).pipe(
           Effect.delay(ms),
-          Effect.onInterrupt(
+          Effect.onInterrupt(() =>
             Effect.sync(() => {
               interrupted.push(ms)
             })
@@ -399,7 +399,7 @@ describe("Effect", () => {
       const fiber = yield* Effect.raceAllFirst([500, 300, 200, 0, 100].map((ms) =>
         (ms === 0 ? Effect.fail("boom") : Effect.succeed(ms)).pipe(
           Effect.delay(ms),
-          Effect.onInterrupt(
+          Effect.onInterrupt(() =>
             Effect.sync(() => {
               interrupted.push(ms)
             })
@@ -881,7 +881,7 @@ describe("Effect", () => {
             resume(Effect.succeed("foo"))
           }, 10)
         }).pipe(
-          Effect.onInterrupt(Effect.sleep(30)),
+          Effect.onInterrupt(() => Effect.sleep(30)),
           Effect.fork({ startImmediately: true })
         )
         yield* Fiber.interrupt(fiber)
@@ -919,14 +919,18 @@ describe("Effect", () => {
         let child = false
         let parent = false
         const fiber = yield* Effect.never.pipe(
-          Effect.onInterrupt(Effect.sync(() => {
-            child = true
-          })),
+          Effect.onInterrupt(() =>
+            Effect.sync(() => {
+              child = true
+            })
+          ),
           Effect.fork({ startImmediately: true }),
           Effect.andThen(Effect.never),
-          Effect.onInterrupt(Effect.sync(() => {
-            parent = true
-          })),
+          Effect.onInterrupt(() =>
+            Effect.sync(() => {
+              parent = true
+            })
+          ),
           Effect.fork({ startImmediately: true })
         )
         yield* Fiber.interrupt(fiber)
@@ -941,14 +945,18 @@ describe("Effect", () => {
         let child = false
         let parent = false
         const handle = yield* Effect.never.pipe(
-          Effect.onInterrupt(Effect.sync(() => {
-            child = true
-          })),
+          Effect.onInterrupt(() =>
+            Effect.sync(() => {
+              child = true
+            })
+          ),
           Effect.forkDaemon,
           Effect.andThen(Effect.never),
-          Effect.onInterrupt(Effect.sync(() => {
-            parent = true
-          })),
+          Effect.onInterrupt(() =>
+            Effect.sync(() => {
+              parent = true
+            })
+          ),
           Effect.fork({ startImmediately: true })
         )
         yield* Fiber.interrupt(handle)
@@ -963,9 +971,11 @@ describe("Effect", () => {
         let interrupted = false
         const scope = yield* Scope.make()
         yield* Effect.never.pipe(
-          Effect.onInterrupt(Effect.sync(() => {
-            interrupted = true
-          })),
+          Effect.onInterrupt(() =>
+            Effect.sync(() => {
+              interrupted = true
+            })
+          ),
           Effect.forkIn(scope, { startImmediately: true })
         )
         yield* Scope.close(scope, Exit.void)
@@ -979,9 +989,11 @@ describe("Effect", () => {
         let interrupted = false
         const scope = yield* Scope.make()
         yield* Effect.never.pipe(
-          Effect.onInterrupt(Effect.sync(() => {
-            interrupted = true
-          })),
+          Effect.onInterrupt(() =>
+            Effect.sync(() => {
+              interrupted = true
+            })
+          ),
           Effect.forkScoped({ startImmediately: true }),
           Scope.provide(scope)
         )

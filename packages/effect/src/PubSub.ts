@@ -1150,7 +1150,10 @@ const pollForItem = <A>(self: Subscription<A>) => {
   )
   return Effect.onInterrupt(
     Deferred.await(deferred),
-    Effect.sync(() => MutableList.remove(self.pollers, deferred))
+    () => {
+      MutableList.remove(self.pollers, deferred)
+      return Effect.void
+    }
   )
 }
 
@@ -2268,7 +2271,10 @@ export class BackPressureStrategy<in out A> implements PubSub.Strategy<A> {
       this.unsafeOnPubSubEmptySpace(pubsub, subscribers)
       this.unsafeCompleteSubscribers(pubsub, subscribers)
       return (MutableRef.get(isShutdown) ? Effect.interrupt : Deferred.await(deferred)).pipe(
-        Effect.onInterrupt(Effect.sync(() => this.unsafeRemove(deferred)))
+        Effect.onInterrupt(() => {
+          this.unsafeRemove(deferred)
+          return Effect.void
+        })
       )
     })
   }

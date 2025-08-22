@@ -67,6 +67,11 @@ export * as Channel from "./Channel.ts"
 /**
  * @since 4.0.0
  */
+export * as ChannelSchema from "./ChannelSchema.ts"
+
+/**
+ * @since 4.0.0
+ */
 export * as Pull from "./Pull.ts"
 
 /**

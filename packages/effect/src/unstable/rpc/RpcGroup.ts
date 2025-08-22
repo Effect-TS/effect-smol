@@ -208,12 +208,12 @@ export type HandlerServices<Rpcs extends Rpc.Any, K extends Rpcs["_tag"], Handle
         infer _EX,
         infer _R
       >
-    > ? Exclude<Rpc.ExcludeProvides<_R, Rpcs, K>, Scope> :
+    > ? Exclude<Rpc.ExcludeProvides<_R, Rpcs, K>, Scope> | Rpc.ExtractRequires<Rpcs, K> :
   never :
   Handler extends (
     ...args: any
   ) => Effect.Effect<infer _A, infer _E, infer _R> | Rpc.Fork<Effect.Effect<infer _A, infer _E, infer _R>> ?
-    Rpc.ExcludeProvides<_R, Rpcs, K>
+    Rpc.ExcludeProvides<_R, Rpcs, K> | Rpc.ExtractRequires<Rpcs, K>
   : never
 
 /**
@@ -269,8 +269,9 @@ const RpcGroupProto = {
       for (const [tag, handler] of Object.entries(handlers)) {
         const rpc = this.requests.get(tag)!
         contextMap.set(rpc.key, {
+          tag: rpc._tag,
           handler,
-          context: services
+          services
         })
       }
       return ServiceMap.unsafeMake(contextMap)

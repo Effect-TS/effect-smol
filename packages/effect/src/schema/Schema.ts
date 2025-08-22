@@ -3454,10 +3454,10 @@ export function Cause<E extends Top, D extends Top>(error: E, defect: D): Cause<
       title: "Cause",
       defaultJsonSerializer: ([failure]) =>
         link<Cause_.Cause<E["Encoded"]>>()(
-          Array(failure),
+          Struct({ failures: Array(failure) }),
           Transformation.transform({
-            decode: (failures) => Cause_.fromFailures(failures),
-            encode: ({ failures }) => failures
+            decode: ({ failures }) => Cause_.fromFailures(failures),
+            encode: (cause) => cause
           })
         ),
       arbitrary: {
@@ -3614,7 +3614,10 @@ export function Exit<A extends Top, E extends Top, D extends Top>(value: A, erro
           Transformation.transform({
             decode: (encoded): Exit_.Exit<A["Encoded"], E["Encoded"]> =>
               encoded._tag === "Success" ? Exit_.succeed(encoded.value) : Exit_.failCause(encoded.cause),
-            encode: (exit) => exit
+            encode: (exit) =>
+              Exit_.isSuccess(exit)
+                ? { _tag: "Success", value: exit.value } as const
+                : { _tag: "Failure", cause: exit.cause } as const
           })
         ),
       arbitrary: {

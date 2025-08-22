@@ -5183,6 +5183,25 @@ export const onError: {
 } = internal.onError
 
 /**
+ * Runs the specified effect if this effect fails, providing the error to the
+ * effect if it exists. The provided effect will not be interrupted.
+ *
+ * @since 4.0.0
+ * @category Resource management & finalization
+ */
+export const onErrorFilter: {
+  <A, E, EB, X, XE, XR>(
+    filter: Filter.Filter<Cause.Cause<E>, EB, X>,
+    f: (failure: EB, cause: Cause.Cause<E>) => Effect<void, XE, XR>
+  ): <R>(self: Effect<A, E, R>) => Effect<A, E | XE, R | XR>
+  <A, E, R, EB, X, XE, XR>(
+    self: Effect<A, E, R>,
+    filter: Filter.Filter<Cause.Cause<E>, EB, X>,
+    f: (failure: EB, cause: Cause.Cause<E>) => Effect<void, XE, XR>
+  ): Effect<A, E | XE, R | XR>
+} = internal.onErrorFilter
+
+/**
  * Ensures that a cleanup functions runs, whether this effect succeeds, fails,
  * or is interrupted.
  *
@@ -5525,11 +5544,11 @@ export const interruptible: <A, E, R>(
  */
 export const onInterrupt: {
   <XE, XR>(
-    finalizer: Effect<void, XE, XR>
+    finalizer: Effect<void, XE, XR> | ((interruptors: ReadonlySet<number>) => Effect<void, XE, XR>)
   ): <A, E, R>(self: Effect<A, E, R>) => Effect<A, E | XE, R | XR>
   <A, E, R, XE, XR>(
     self: Effect<A, E, R>,
-    finalizer: Effect<void, XE, XR>
+    finalizer: Effect<void, XE, XR> | ((interruptors: ReadonlySet<number>) => Effect<void, XE, XR>)
   ): Effect<A, E | XE, R | XR>
 } = internal.onInterrupt
 

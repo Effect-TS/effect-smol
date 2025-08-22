@@ -31,9 +31,11 @@ describe("Channel", () => {
           Channel.mapEffect(() =>
             latch.open.pipe(
               Effect.andThen(Effect.never),
-              Effect.onInterrupt(Effect.sync(() => {
-                interrupted = true
-              }))
+              Effect.onInterrupt(() =>
+                Effect.sync(() => {
+                  interrupted = true
+                })
+              )
             ), { concurrency: 2 }),
           Channel.runDrain,
           Effect.fork
@@ -52,17 +54,21 @@ describe("Channel", () => {
             if (n === 1) {
               return latch1.open.pipe(
                 Effect.andThen(Effect.never),
-                Effect.onInterrupt(Effect.sync(() => {
-                  interrupts++
-                }))
+                Effect.onInterrupt(() =>
+                  Effect.sync(() => {
+                    interrupts++
+                  })
+                )
               )
             }
             if (n === 2) {
               return latch2.open.pipe(
                 Effect.andThen(Effect.never),
-                Effect.onInterrupt(Effect.sync(() => {
-                  interrupts++
-                }))
+                Effect.onInterrupt(() =>
+                  Effect.sync(() => {
+                    interrupts++
+                  })
+                )
               )
             }
             return Effect.fail("boom").pipe(

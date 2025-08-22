@@ -15,7 +15,7 @@ describe("FiberMap", () => {
             Effect.forEach(Array.range(1, 10), (i) =>
               Effect.onInterrupt(
                 Effect.never,
-                Ref.update(ref, (n) => n + 1)
+                () => Ref.update(ref, (n) => n + 1)
               ).pipe(
                 FiberMap.run(map, i)
               ))
@@ -40,7 +40,7 @@ describe("FiberMap", () => {
               i,
               Effect.onInterrupt(
                 Effect.never,
-                Ref.update(ref, (n) => n + 1)
+                () => Ref.update(ref, (n) => n + 1)
               )
             )
           )

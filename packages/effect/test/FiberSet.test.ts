@@ -11,13 +11,14 @@ describe("FiberSet", () => {
       yield* Effect.scoped(
         Effect.gen(function*() {
           const set = yield* FiberSet.make()
-          yield* pipe(
-            Effect.onInterrupt(
-              Effect.never,
-              Ref.update(ref, (n) => n + 1)
-            ).pipe(FiberSet.run(set)),
+          yield* Effect.onInterrupt(
+            Effect.never,
+            () => Ref.update(ref, (n) => n + 1)
+          ).pipe(
+            FiberSet.run(set),
             Effect.repeat({ times: 9 })
           )
+
           yield* Effect.yieldNow
         })
       )
@@ -36,7 +37,7 @@ describe("FiberSet", () => {
             run(
               Effect.onInterrupt(
                 Effect.never,
-                Ref.update(ref, (n) => n + 1)
+                () => Ref.update(ref, (n) => n + 1)
               )
             )
           )

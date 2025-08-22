@@ -1,3 +1,6 @@
+/**
+ * @since 4.0.0
+ */
 import * as Effect from "../../Effect.ts"
 import type * as ServiceMap from "../../ServiceMap.ts"
 

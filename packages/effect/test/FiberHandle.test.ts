@@ -10,7 +10,7 @@ describe("FiberHandle", () => {
       yield* pipe(
         Effect.gen(function*() {
           const handle = yield* FiberHandle.make()
-          yield* FiberHandle.run(handle, Effect.onInterrupt(Effect.never, Ref.update(ref, (n) => n + 1)))
+          yield* FiberHandle.run(handle, Effect.onInterrupt(Effect.never, () => Ref.update(ref, (n) => n + 1)))
           yield* Effect.yieldNow
         }),
         Effect.scoped
@@ -26,11 +26,11 @@ describe("FiberHandle", () => {
         Effect.gen(function*() {
           const handle = yield* FiberHandle.make()
           const run = yield* FiberHandle.runtime(handle)<never>()
-          run(Effect.onInterrupt(Effect.never, Ref.update(ref, (n) => n + 1)))
+          run(Effect.onInterrupt(Effect.never, () => Ref.update(ref, (n) => n + 1)))
           yield* Effect.yieldNow
-          run(Effect.onInterrupt(Effect.never, Ref.update(ref, (n) => n + 1)))
+          run(Effect.onInterrupt(Effect.never, () => Ref.update(ref, (n) => n + 1)))
           yield* Effect.yieldNow
-          run(Effect.onInterrupt(Effect.never, Ref.update(ref, (n) => n + 1)), {
+          run(Effect.onInterrupt(Effect.never, () => Ref.update(ref, (n) => n + 1)), {
             onlyIfMissing: true
           })
           yield* Effect.yieldNow

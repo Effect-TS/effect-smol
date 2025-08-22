@@ -10,6 +10,7 @@ import { type Pipeable, pipeArguments } from "../../interfaces/Pipeable.ts"
 import * as PrimaryKey from "../../interfaces/PrimaryKey.ts"
 import type * as Queue from "../../Queue.ts"
 import * as Schema from "../../schema/Schema.ts"
+import * as Serializer from "../../schema/Serializer.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import type { Stream } from "../../stream/Stream.ts"
 import type { Headers } from "../http/Headers.ts"
@@ -47,7 +48,8 @@ export interface Rpc<
   out Payload extends Schema.Top = Schema.Void,
   out Success extends Schema.Top = Schema.Void,
   out Error extends Schema.Top = Schema.Never,
-  out Middleware extends RpcMiddleware.AnyKey = never
+  out Middleware extends RpcMiddleware.AnyKey = never,
+  out Requires = never
 > extends Pipeable {
   new(_: never): {}
 
@@ -59,6 +61,7 @@ export interface Rpc<
   readonly errorSchema: Error
   readonly annotations: ServiceMap.ServiceMap<never>
   readonly middlewares: ReadonlySet<Middleware>
+  readonly "~requires": Requires
 
   /**
    * Set the schema for the success response of the rpc.
@@ -68,7 +71,8 @@ export interface Rpc<
     Payload,
     S,
     Error,
-    Middleware
+    Middleware,
+    Requires
   >
 
   /**
@@ -79,7 +83,8 @@ export interface Rpc<
     Payload,
     Success,
     E,
-    Middleware
+    Middleware,
+    Requires
   >
 
   /**
@@ -92,7 +97,8 @@ export interface Rpc<
     P extends Schema.Struct.Fields ? Schema.Struct<P> : P,
     Success,
     Error,
-    Middleware
+    Middleware,
+    Requires
   >
 
   /**
@@ -103,7 +109,8 @@ export interface Rpc<
     Payload,
     Success,
     Error,
-    Middleware | M
+    Middleware | M,
+    RpcMiddleware.ApplyServices<M["Identifier"], Requires>
   >
 
   /**
@@ -114,7 +121,8 @@ export interface Rpc<
     Payload,
     Success,
     Error,
-    Middleware
+    Middleware,
+    Requires
   >
 
   /**
@@ -123,14 +131,14 @@ export interface Rpc<
   annotate<I, S>(
     tag: ServiceMap.Key<I, S>,
     value: S
-  ): Rpc<Tag, Payload, Success, Error, Middleware>
+  ): Rpc<Tag, Payload, Success, Error, Middleware, Requires>
 
   /**
    * Merge the annotations of the rpc with the provided annotations.
    */
   annotateMerge<I>(
     annotations: ServiceMap.ServiceMap<I>
-  ): Rpc<Tag, Payload, Success, Error, Middleware>
+  ): Rpc<Tag, Payload, Success, Error, Middleware, Requires>
 }
 
 /**
@@ -173,6 +181,7 @@ export interface AnyWithProps {
   readonly errorSchema: Schema.Top
   readonly annotations: ServiceMap.ServiceMap<never>
   readonly middlewares: ReadonlySet<RpcMiddleware.AnyKeyWithProps>
+  readonly "~requires": any
 }
 
 /**
@@ -184,7 +193,8 @@ export type Tag<R> = R extends Rpc<
   infer _Payload,
   infer _Success,
   infer _Error,
-  infer _Middleware
+  infer _Middleware,
+  infer _Requires
 > ? _Tag
   : never
 
@@ -197,7 +207,8 @@ export type SuccessSchema<R> = R extends Rpc<
   infer _Payload,
   infer _Success,
   infer _Error,
-  infer _Middleware
+  infer _Middleware,
+  infer _Requires
 > ? _Success
   : never
 
@@ -216,7 +227,8 @@ export type SuccessEncoded<R> = R extends Rpc<
   infer _Payload,
   infer _Success,
   infer _Error,
-  infer _Middleware
+  infer _Middleware,
+  infer _Requires
 > ? _Success["Encoded"]
   : never
 
@@ -248,7 +260,8 @@ export type ErrorSchema<R> = R extends Rpc<
   infer _Payload,
   infer _Success,
   infer _Error,
-  infer _Middleware
+  infer _Middleware,
+  infer _Requires
 > ? _Error | _Middleware["error"]
   : never
 
@@ -286,7 +299,8 @@ export type PayloadConstructor<R> = R extends Rpc<
   infer _Payload,
   infer _Success,
   infer _Error,
-  infer _Middleware
+  infer _Middleware,
+  infer _Requires
 > ? _Payload["~type.make.in"]
   : never
 
@@ -299,7 +313,8 @@ export type Payload<R> = R extends Rpc<
   infer _Payload,
   infer _Success,
   infer _Error,
-  infer _Middleware
+  infer _Middleware,
+  infer _Requires
 > ? _Payload["Type"]
   : never
 
@@ -312,7 +327,8 @@ export type ServicesServer<R> = R extends Rpc<
   infer _Payload,
   infer _Success,
   infer _Error,
-  infer _Middleware
+  infer _Middleware,
+  infer _Requires
 > ?
     | _Payload["DecodingServices"]
     | _Success["EncodingServices"]
@@ -329,7 +345,8 @@ export type ServicesClient<R> = R extends Rpc<
   infer _Payload,
   infer _Success,
   infer _Error,
-  infer _Middleware
+  infer _Middleware,
+  infer _Requires
 > ?
     | _Payload["EncodingServices"]
     | _Success["DecodingServices"]
@@ -346,7 +363,8 @@ export type Middleware<R> = R extends Rpc<
   infer _Payload,
   infer _Success,
   infer _Error,
-  infer _Middleware
+  infer _Middleware,
+  infer _Requires
 > ? ServiceMap.Key.Identifier<_Middleware>
   : never
 
@@ -359,7 +377,8 @@ export type MiddlewareClient<R> = R extends Rpc<
   infer _Payload,
   infer _Success,
   infer _Error,
-  infer _Middleware
+  infer _Middleware,
+  infer _Requires
 > ?
   _Middleware extends { readonly requiredForClient: true }
     ? RpcMiddleware.ForClient<ServiceMap.Key.Identifier<_Middleware>>
@@ -375,13 +394,15 @@ export type AddError<R extends Any, Error extends Schema.Top> = R extends Rpc<
   infer _Payload,
   infer _Success,
   infer _Error,
-  infer _Middleware
+  infer _Middleware,
+  infer _Requires
 > ? Rpc<
     _Tag,
     _Payload,
     _Success,
     _Error | Error,
-    _Middleware
+    _Middleware,
+    _Requires
   > :
   never
 
@@ -394,13 +415,15 @@ export type AddMiddleware<R extends Any, Middleware extends RpcMiddleware.AnyKey
   infer _Payload,
   infer _Success,
   infer _Error,
-  infer _Middleware
+  infer _Middleware,
+  infer _Requires
 > ? Rpc<
     _Tag,
     _Payload,
     _Success,
     _Error,
-    _Middleware | Middleware
+    _Middleware | Middleware,
+    RpcMiddleware.ApplyServices<Middleware["Identifier"], _Requires>
   > :
   never
 
@@ -413,7 +436,8 @@ export type ToHandler<R extends Any> = R extends Rpc<
   infer _Payload,
   infer _Success,
   infer _Error,
-  infer _Middleware
+  infer _Middleware,
+  infer _Requires
 > ? Handler<_Tag> :
   never
 
@@ -434,22 +458,56 @@ export type ToHandlerFn<Current extends Any, R = any> = (
  * @since 4.0.0
  * @category models
  */
-export type IsStream<R extends Any, Tag extends string> = R extends
-  Rpc<Tag, infer _Payload, RpcSchema.Stream<infer _A, infer _E>, infer _Error, infer _Middleware> ? true : never
+export type IsStream<R extends Any, Tag extends string> = R extends Rpc<
+  Tag,
+  infer _Payload,
+  RpcSchema.Stream<infer _A, infer _E>,
+  infer _Error,
+  infer _Middleware,
+  infer _Requires
+> ? true :
+  never
 
 /**
  * @since 4.0.0
  * @category models
  */
-export type ExtractTag<R extends Any, Tag extends string> = R extends
-  Rpc<Tag, infer _Payload, infer _Success, infer _Error, infer _Middleware> ? R : never
+export type ExtractTag<R extends Any, Tag extends string> = R extends Rpc<
+  Tag,
+  infer _Payload,
+  infer _Success,
+  infer _Error,
+  infer _Middleware,
+  infer _Requires
+> ? R :
+  never
 
 /**
  * @since 4.0.0
  * @category models
  */
-export type ExtractProvides<R extends Any, Tag extends string> = R extends
-  Rpc<Tag, infer _Payload, infer _Success, infer _Error, infer _Middleware> ? RpcMiddleware.Provides<_Middleware> :
+export type ExtractProvides<R extends Any, Tag extends string> = R extends Rpc<
+  Tag,
+  infer _Payload,
+  infer _Success,
+  infer _Error,
+  infer _Middleware,
+  infer _Requires
+> ? RpcMiddleware.Provides<_Middleware> :
+  never
+
+/**
+ * @since 4.0.0
+ * @category models
+ */
+export type ExtractRequires<R extends Any, Tag extends string> = R extends Rpc<
+  Tag,
+  infer _Payload,
+  infer _Success,
+  infer _Error,
+  infer _Middleware,
+  infer _Requires
+> ? _Requires :
   never
 
 /**
@@ -470,7 +528,8 @@ export type ResultFrom<R extends Any, Services> = R extends Rpc<
   infer _Payload,
   infer _Success,
   infer _Error,
-  infer _Middleware
+  infer _Middleware,
+  infer _Requires
 > ? [_Success] extends [RpcSchema.Stream<infer _SA, infer _SE>] ?
       | Stream<
         _SA["Type"],
@@ -498,13 +557,15 @@ export type Prefixed<Rpcs extends Any, Prefix extends string> = Rpcs extends Rpc
   infer _Payload,
   infer _Success,
   infer _Error,
-  infer _Middleware
+  infer _Middleware,
+  infer _Requires
 > ? Rpc<
     `${Prefix}${_Tag}`,
     _Payload,
     _Success,
     _Error,
-    _Middleware
+    _Middleware,
+    _Requires
   >
   : never
 
@@ -593,7 +654,8 @@ const makeProto = <
   Payload extends Schema.Top,
   Success extends Schema.Top,
   Error extends Schema.Top,
-  Middleware extends RpcMiddleware.AnyKey
+  Middleware extends RpcMiddleware.AnyKey,
+  Requires
 >(options: {
   readonly _tag: Tag
   readonly payloadSchema: Payload
@@ -601,7 +663,7 @@ const makeProto = <
   readonly errorSchema: Error
   readonly annotations: ServiceMap.ServiceMap<never>
   readonly middlewares: ReadonlySet<Middleware>
-}): Rpc<Tag, Payload, Success, Error, Middleware> => {
+}): Rpc<Tag, Payload, Success, Error, Middleware, Requires> => {
   function Rpc() {}
   Object.setPrototypeOf(Rpc, Proto)
   Object.assign(Rpc, options)
@@ -690,11 +752,11 @@ export const exitSchema = <R extends Any>(
   for (const middleware of rpc.middlewares) {
     failures.add(middleware.error)
   }
-  const schema = Schema.Exit(
+  const schema = Serializer.json(Schema.Exit(
     Option.isSome(streamSchemas) ? Schema.Void : rpc.successSchema,
     Schema.Union([...failures]),
     Schema.Defect
-  )
+  ))
   exitSchemaCache.set(self, schema as any)
   return schema as any
 }

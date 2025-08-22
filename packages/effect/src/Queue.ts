@@ -1561,7 +1561,7 @@ const unsafeTakeBetween = <A, E>(
     releaseCapacity(self)
     return core.exitSucceed(messages)
   }
-  min = Math.min(min, self.capacity)
+  min = Math.min(min, self.capacity || 1)
   if (min <= self.messages.length) {
     const messages = MutableList.takeN(self.messages, max)
     releaseCapacity(self)

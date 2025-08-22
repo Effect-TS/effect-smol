@@ -614,6 +614,12 @@ export const filterInterrupt: <E>(self: Cause<E>) => Interrupt | Filter.fail<Cau
 
 /**
  * @since 4.0.0
+ * @category Accessors
+ */
+export const interruptors: <E>(self: Cause<E>) => ReadonlySet<number> = effect.causeInterruptors
+
+/**
+ * @since 4.0.0
  * @category filters
  */
 export const filterInterruptors: <E>(self: Cause<E>) => Set<number> | Filter.fail<Cause<E>> =

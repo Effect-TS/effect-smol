@@ -182,6 +182,13 @@ export const causeFilterInterruptors = <E>(self: Cause.Cause<E>): Set<number> | 
 }
 
 /** @internal */
+export const causeInterruptors = <E>(self: Cause.Cause<E>): ReadonlySet<number> => {
+  const result = causeFilterInterruptors(self)
+  return Filter.isFail(result) ? emptySet : result
+}
+const emptySet = new Set<number>()
+
+/** @internal */
 export const causeIsInterruptedOnly = <E>(self: Cause.Cause<E>): boolean => self.failures.every(failureIsInterrupt)
 
 /** @internal */
@@ -2327,23 +2334,30 @@ export const tapCause: {
 
 /** @internal */
 export const tapCauseFilter: {
-  <E, B, E2, R2, EB, X extends Cause.Cause<any>>(
+  <E, B, E2, R2, EB, X>(
     filter: Filter.Filter<Cause.Cause<E>, EB, X>,
     f: (a: EB, cause: Cause.Cause<E>) => Effect.Effect<B, E2, R2>
   ): <A, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<A, E | E2, R | R2>
-  <A, E, R, B, E2, R2, EB, X extends Cause.Cause<any>>(
+  <A, E, R, B, E2, R2, EB, X>(
     self: Effect.Effect<A, E, R>,
     filter: Filter.Filter<Cause.Cause<E>, EB, X>,
     f: (a: EB, cause: Cause.Cause<E>) => Effect.Effect<B, E2, R2>
   ): Effect.Effect<A, E | E2, R | R2>
 } = dual(
   3,
-  <A, E, R, B, E2, R2, EB, X extends Cause.Cause<any>>(
+  <A, E, R, B, E2, R2, EB, X>(
     self: Effect.Effect<A, E, R>,
     filter: Filter.Filter<Cause.Cause<E>, EB, X>,
     f: (a: EB, cause: Cause.Cause<E>) => Effect.Effect<B, E2, R2>
   ): Effect.Effect<A, E | E2, R | R2> =>
-    catchCauseFilter(self, filter, (failure, cause) => andThen(internalCall(() => f(failure, cause)), failCause(cause)))
+    catchCauseFilter(
+      self,
+      (cause) => {
+        const result = filter(cause)
+        return Filter.isFail(result) ? Filter.fail(cause) : result
+      },
+      (failure, cause) => andThen(internalCall(() => f(failure, cause)), failCause(cause))
+    )
 )
 
 /** @internal */
@@ -3183,20 +3197,41 @@ export const onError: {
 )
 
 /** @internal */
+export const onErrorFilter: {
+  <A, E, EB, X, XE, XR>(
+    filter: Filter.Filter<Cause.Cause<E>, EB, X>,
+    f: (failure: EB, cause: Cause.Cause<E>) => Effect.Effect<void, XE, XR>
+  ): <R>(self: Effect.Effect<A, E, R>) => Effect.Effect<A, E | XE, R | XR>
+  <A, E, R, EB, X, XE, XR>(
+    self: Effect.Effect<A, E, R>,
+    filter: Filter.Filter<Cause.Cause<E>, EB, X>,
+    f: (failure: EB, cause: Cause.Cause<E>) => Effect.Effect<void, XE, XR>
+  ): Effect.Effect<A, E | XE, R | XR>
+} = dual(
+  3,
+  <A, E, R, EB, X, XE, XR>(
+    self: Effect.Effect<A, E, R>,
+    filter: Filter.Filter<Cause.Cause<E>, EB, X>,
+    f: (failure: EB, cause: Cause.Cause<E>) => Effect.Effect<void, XE, XR>
+  ): Effect.Effect<A, E | XE, R | XR> => uninterruptibleMask((restore) => tapCauseFilter(restore(self), filter, f))
+)
+
+/** @internal */
 export const onInterrupt: {
   <XE, XR>(
-    finalizer: Effect.Effect<void, XE, XR>
+    finalizer: Effect.Effect<void, XE, XR> | ((interruptors: ReadonlySet<number>) => Effect.Effect<void, XE, XR>)
   ): <A, E, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<A, E | XE, R | XR>
   <A, E, R, XE, XR>(
     self: Effect.Effect<A, E, R>,
-    finalizer: Effect.Effect<void, XE, XR>
+    finalizer: Effect.Effect<void, XE, XR> | ((interruptors: ReadonlySet<number>) => Effect.Effect<void, XE, XR>)
   ): Effect.Effect<A, E | XE, R | XR>
 } = dual(
   2,
   <A, E, R, XE, XR>(
     self: Effect.Effect<A, E, R>,
-    finalizer: Effect.Effect<void, XE, XR>
-  ): Effect.Effect<A, E | XE, R | XR> => onError(self, (cause) => causeHasInterrupt(cause) ? finalizer : void_)
+    finalizer: Effect.Effect<void, XE, XR> | ((interruptors: ReadonlySet<number>) => Effect.Effect<void, XE, XR>)
+  ): Effect.Effect<A, E | XE, R | XR> =>
+    onErrorFilter(self, causeFilterInterruptors, isEffect(finalizer) ? constant(finalizer) : finalizer)
 )
 
 /** @internal */

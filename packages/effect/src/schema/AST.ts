@@ -438,12 +438,14 @@ export class UndefinedKeyword extends AbstractParser {
   }
   /** @internal */
   goJson() {
-    return this
+    return UndefinedKeyword.optional
   }
   /** @internal */
   getExpected(): string {
     return "undefined"
   }
+  /** @internal */
+  static optional = new UndefinedKeyword(undefined, undefined, undefined, new Context(true, false))
 }
 
 /**
@@ -462,9 +464,15 @@ export class VoidKeyword extends AbstractParser {
     return fromRefinement(this, Predicate.isUndefined)
   }
   /** @internal */
+  goJson() {
+    return VoidKeyword.optional
+  }
+  /** @internal */
   getExpected(): string {
     return "void"
   }
+  /** @internal */
+  static optional = new VoidKeyword(undefined, undefined, undefined, new Context(true, false))
 }
 
 /**
@@ -481,6 +489,10 @@ export class NeverKeyword extends AbstractParser {
   /** @internal */
   parser() {
     return fromRefinement(this, Predicate.isNever)
+  }
+  /** @internal */
+  goJson() {
+    return this
   }
   /** @internal */
   getExpected(): string {

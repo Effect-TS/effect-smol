@@ -227,8 +227,10 @@ function decodeJsonRpcMessage(decoded: JsonRpcMessage): RpcMessage.FromClientEnc
         cause: decoded.error._tag === "Cause" ?
           decoded.error.data as any :
           {
-            _tag: "Die",
-            defect: decoded.error
+            failures: [{
+              _tag: "Die",
+              defect: decoded.error
+            }]
           }
       } :
       {

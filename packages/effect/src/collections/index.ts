@@ -132,7 +132,6 @@ import * as Option from "effect/data/Option"
 export * as Iterable from "./Iterable.ts"
 
 /**
- * @fileoverview
  * MutableHashMap is a high-performance, mutable hash map implementation designed for efficient key-value storage
  * with support for both structural and referential equality. It provides O(1) average-case performance for
  * basic operations and integrates seamlessly with Effect's Equal and Hash interfaces.
