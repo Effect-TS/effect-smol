@@ -438,6 +438,7 @@ export class UndefinedKeyword extends AbstractParser {
   }
   /** @internal */
   goJson() {
+    // TODO: Should undefined be optional by default?
     return UndefinedKeyword.optional
   }
   /** @internal */
@@ -465,6 +466,7 @@ export class VoidKeyword extends AbstractParser {
   }
   /** @internal */
   goJson() {
+    // TODO: Should undefined be optional by default?
     return VoidKeyword.optional
   }
   /** @internal */

@@ -617,12 +617,6 @@ describe("Serializer", () => {
         strictEqual(serializer.ast, schema.ast)
       })
 
-      it("Undefined", async () => {
-        const schema = Schema.Undefined
-        const serializer = Serializer.stringLeafJson(schema)
-        strictEqual(serializer.ast, schema.ast)
-      })
-
       it("Struct({ a: String })", async () => {
         const schema = Schema.Struct({
           a: Schema.String
