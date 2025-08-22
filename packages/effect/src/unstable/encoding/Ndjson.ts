@@ -78,7 +78,7 @@ export const encode = <IE = never, Done = unknown>(): Channel.Channel<
   Arr.NonEmptyReadonlyArray<unknown>,
   IE,
   Done
-> => Channel.map(encodeString(), Arr.map((_) => encoder.encode(_)))
+> => Channel.map(encodeString(), Arr.map((_) => encoder.encode(_) as Uint8Array<ArrayBuffer>))
 
 /**
  * @since 4.0.0

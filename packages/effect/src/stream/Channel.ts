@@ -3674,7 +3674,7 @@ export const encodeText = <Err, Done>(): Channel<
   fromTransform((upstream, _scope) =>
     Effect.sync(() => {
       const encoder = new TextEncoder()
-      return Effect.map(upstream, Arr.map((line) => encoder.encode(line)))
+      return Effect.map(upstream, Arr.map((line) => encoder.encode(line) as Uint8Array<ArrayBuffer>))
     })
   )
 
