@@ -6,6 +6,8 @@
   "compilerOptions": {
     "tsBuildInfoFile": ".tsbuildinfo/src.tsbuildinfo",
     "outDir": ".tsbuildinfo/src",
-    "rootDir": "src"
+    "rootDir": "src",
+    "erasableSyntaxOnly": true,
+    "rewriteRelativeImportExtensions": true
   }
 }

@@ -6,6 +6,8 @@
     "tsBuildInfoFile": ".tsbuildinfo/src.tsbuildinfo",
     "outDir": ".tsbuildinfo/src",
     "types": ["node"],
-    "rootDir": "src"
+    "rootDir": "src",
+    "erasableSyntaxOnly": true,
+    "rewriteRelativeImportExtensions": true
   }
 }

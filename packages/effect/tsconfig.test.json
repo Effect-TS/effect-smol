@@ -7,8 +7,8 @@
     "tsBuildInfoFile": ".tsbuildinfo/test.tsbuildinfo",
     "outDir": ".tsbuildinfo/test",
     "noEmit": true,
-    "erasableSyntaxOnly": false,
     "baseUrl": ".",
+    "allowImportingTsExtensions": true,
     "paths": {
       "effect": ["src/index.ts"],
       "effect/*": ["src/*/index.ts", "src/*.ts"]

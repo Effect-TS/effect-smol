@@ -8,9 +8,9 @@
     "outDir": ".tsbuildinfo/test",
     "rootDir": "test",
     "noEmit": true,
-    "erasableSyntaxOnly": false,
     "resolveJsonModule": true,
     "baseUrl": ".",
+    "allowImportingTsExtensions": true,
     "paths": {
       "@effect/platform-node": ["src/index.ts"],
       "@effect/platform-node/*": ["src/*/index.ts", "src/*.ts"]
