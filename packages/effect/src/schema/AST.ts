@@ -386,7 +386,7 @@ export class Declaration extends Base {
         return replaceEncoding(ast, [new Link(to, link.transformation)])
       }
     } else {
-      return requiredDefaultJsonAnnotation(ast)
+      return requiredDefaultJsonSerializerAnnotation(ast)
     }
   }
   /** @internal */
@@ -413,7 +413,7 @@ export class NullKeyword extends AbstractParser {
   }
   /** @internal */
   goStringLeafJson() {
-    return coerceNull(this)
+    return replaceEncoding(this, [nullLink])
   }
   /** @internal */
   getExpected(): string {
@@ -438,15 +438,12 @@ export class UndefinedKeyword extends AbstractParser {
   }
   /** @internal */
   goJson() {
-    // TODO: Should undefined be optional by default?
-    return UndefinedKeyword.optional
+    return coerceUndefined(this)
   }
   /** @internal */
   getExpected(): string {
     return "undefined"
   }
-  /** @internal */
-  static optional = new UndefinedKeyword(undefined, undefined, undefined, new Context(true, false))
 }
 
 /**
@@ -466,15 +463,12 @@ export class VoidKeyword extends AbstractParser {
   }
   /** @internal */
   goJson() {
-    // TODO: Should undefined be optional by default?
-    return VoidKeyword.optional
+    return coerceUndefined(this)
   }
   /** @internal */
   getExpected(): string {
     return "void"
   }
-  /** @internal */
-  static optional = new VoidKeyword(undefined, undefined, undefined, new Context(true, false))
 }
 
 /**
@@ -491,10 +485,6 @@ export class NeverKeyword extends AbstractParser {
   /** @internal */
   parser() {
     return fromRefinement(this, Predicate.isNever)
-  }
-  /** @internal */
-  goJson() {
-    return this
   }
   /** @internal */
   getExpected(): string {
@@ -763,8 +753,8 @@ function coerceLiteral(ast: LiteralType): LiteralType {
     new Link(
       new LiteralType(s),
       new Transformation.Transformation(
-        Getter.succeed(ast.literal),
-        Getter.succeed(s)
+        Getter.map(() => ast.literal),
+        Getter.map(() => s)
       )
     )
   ])
@@ -859,7 +849,7 @@ export class NumberKeyword extends AbstractParser {
   }
   /** @internal */
   goStringLeafJson() {
-    return coerceNumber(this)
+    return replaceEncoding(this, [numberLink])
   }
   /** @internal */
   getExpected(): string {
@@ -888,7 +878,7 @@ export class BooleanKeyword extends AbstractParser {
   }
   /** @internal */
   goStringLeafJson() {
-    return coerceBoolean(this)
+    return replaceEncoding(this, [booleanLink])
   }
   /** @internal */
   getExpected(): string {
@@ -2365,19 +2355,13 @@ export function getReducer<A>(alg: ReducerAlg<A>) {
   }
 }
 
-const stringNull = new LiteralType("")
-
 const nullLink = new Link(
-  stringNull,
-  Transformation.transform({
-    decode: () => null,
-    encode: () => stringNull.literal
-  })
+  undefinedKeyword,
+  new Transformation.Transformation(
+    Getter.map(() => null),
+    Getter.map(() => undefined)
+  )
 )
-
-function coerceNull(ast: NullKeyword): NullKeyword {
-  return replaceEncoding(ast, [nullLink])
-}
 
 const numberKeywordPattern = appendChecks(stringKeyword, [
   Check.regex(new RegExp(NUMBER_KEYWORD_PATTERN), { title: "a string representing a number" })
@@ -2388,10 +2372,6 @@ const numberLink = new Link(
   Transformation.numberFromString
 )
 
-function coerceNumber(ast: NumberKeyword): NumberKeyword {
-  return replaceEncoding(ast, [numberLink])
-}
-
 const booleanLink = new Link(
   new UnionType([new LiteralType("true"), new LiteralType("false")], "anyOf"),
   new Transformation.Transformation(
@@ -2399,10 +2379,6 @@ const booleanLink = new Link(
     Getter.String()
   )
 )
-
-function coerceBoolean(ast: BooleanKeyword): BooleanKeyword {
-  return replaceEncoding(ast, [booleanLink])
-}
 
 const bigintKeywordPattern = appendChecks(stringKeyword, [
   Check.regex(new RegExp(BIGINT_KEYWORD_PATTERN), { title: "a string representing a bigint" })
@@ -2432,8 +2408,8 @@ export const goStringLeafJson = memoize((ast: AST): AST => {
     }
     return replaceEncoding(ast, Arr.append(links.slice(0, links.length - 1), new Link(to, last.transformation)))
   }
-  const out: any = ast
-  return out.goStringLeafJson?.() ?? out.go?.(goStringLeafJson) ?? out
+  const out = (ast as any).goStringLeafJson?.() ?? (ast as any).go?.(goStringLeafJson) ?? ast
+  return isOptional(ast) ? optionalKey(out) : out
 })
 
 /** @internal */
@@ -2449,8 +2425,8 @@ export function forbidden<A extends AST>(ast: A, message: string): A {
 }
 
 /** @internal */
-export function requiredDefaultJsonAnnotation(ast: AST): AST {
-  return forbidden(ast, "cannot serialize to JSON, required `defaultJsonSerializer` annotation")
+export function requiredDefaultJsonSerializerAnnotation(ast: AST): AST {
+  return forbidden(ast, `cannot serialize to JSON, required \`defaultJsonSerializer\` annotation for ${ast._tag}`)
 }
 
 const SYMBOL_PATTERN = /^Symbol\((.*)\)$/
@@ -2479,6 +2455,18 @@ const symbolLink = new Link(
 
 function coerceSymbol<A extends SymbolKeyword | UniqueSymbol>(ast: A): A {
   return replaceEncoding(ast, [symbolLink])
+}
+
+const undefinedLink = new Link(
+  nullKeyword,
+  new Transformation.Transformation(
+    Getter.map(() => undefined),
+    Getter.map(() => null)
+  )
+)
+
+function coerceUndefined<A extends UndefinedKeyword | VoidKeyword>(ast: A): A {
+  return replaceEncoding(ast, [undefinedLink])
 }
 
 /** @internal */
