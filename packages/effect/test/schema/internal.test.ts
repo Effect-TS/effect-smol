@@ -186,6 +186,7 @@ describe("internal", () => {
     })
   })
 
+  // TODO: replace with schema formatUnknown?
   describe("toStringUnknown", () => {
     const format = toStringUnknown
 

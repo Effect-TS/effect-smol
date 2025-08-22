@@ -366,7 +366,7 @@ export abstract class Class {
  * @since 2.0.0
  * @category conversions
  */
-export const toStringUnknown = (
+export const toStringUnknown = ( // TODO: replace with schema formatUnknown?
   u: unknown,
   whitespace: number | string | undefined = 2
 ): string => {
