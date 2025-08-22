@@ -3553,6 +3553,132 @@ export const merge: {
   })))
 
 /**
+ * @since 2.0.0
+ * @category String manipulation
+ */
+export const splitLines = <Err, Done>(): Channel<
+  Arr.NonEmptyReadonlyArray<string>,
+  Err,
+  Done,
+  Arr.NonEmptyReadonlyArray<string>,
+  Err,
+  Done
+> =>
+  fromTransform((upstream, _scope) =>
+    Effect.sync(() => {
+      let stringBuilder = ""
+      let midCRLF = false
+
+      const splitLinesArray = (chunk: Arr.NonEmptyReadonlyArray<string>): Arr.NonEmptyReadonlyArray<string> | null => {
+        const chunkBuilder: Array<string> = []
+        for (let i = 0; i < chunk.length; i++) {
+          const str = chunk[i]
+          if (str.length !== 0) {
+            let from = 0
+            let indexOfCR = str.indexOf("\r")
+            let indexOfLF = str.indexOf("\n")
+            if (midCRLF) {
+              if (indexOfLF === 0) {
+                chunkBuilder.push(stringBuilder)
+                stringBuilder = ""
+                from = 1
+                indexOfLF = str.indexOf("\n", from)
+              } else {
+                stringBuilder = stringBuilder + "\r"
+              }
+              midCRLF = false
+            }
+            while (indexOfCR !== -1 || indexOfLF !== -1) {
+              if (indexOfCR === -1 || (indexOfLF !== -1 && indexOfLF < indexOfCR)) {
+                if (stringBuilder.length === 0) {
+                  chunkBuilder.push(str.substring(from, indexOfLF))
+                } else {
+                  chunkBuilder.push(stringBuilder + str.substring(from, indexOfLF))
+                  stringBuilder = ""
+                }
+                from = indexOfLF + 1
+                indexOfLF = str.indexOf("\n", from)
+              } else {
+                if (str.length === indexOfCR + 1) {
+                  midCRLF = true
+                  indexOfCR = -1
+                } else {
+                  if (indexOfLF === indexOfCR + 1) {
+                    if (stringBuilder.length === 0) {
+                      chunkBuilder.push(str.substring(from, indexOfCR))
+                    } else {
+                      stringBuilder = stringBuilder + str.substring(from, indexOfCR)
+                      chunkBuilder.push(stringBuilder)
+                      stringBuilder = ""
+                    }
+                    from = indexOfCR + 2
+                    indexOfCR = str.indexOf("\r", from)
+                    indexOfLF = str.indexOf("\n", from)
+                  } else {
+                    indexOfCR = str.indexOf("\r", indexOfCR + 1)
+                  }
+                }
+              }
+            }
+            if (midCRLF) {
+              stringBuilder = stringBuilder + str.substring(from, str.length - 1)
+            } else {
+              stringBuilder = stringBuilder + str.substring(from, str.length)
+            }
+          }
+        }
+        return Arr.isNonEmptyReadonlyArray(chunkBuilder) ? chunkBuilder : null
+      }
+
+      return Effect.flatMap(
+        upstream,
+        function loop(chunk): Pull.Pull<Arr.NonEmptyReadonlyArray<string>, Err, Done> {
+          const lines = splitLinesArray(chunk)
+          return lines !== null ? Effect.succeed(lines) : Effect.flatMap(upstream, loop)
+        }
+      )
+    })
+  )
+
+/**
+ * @since 4.0.0
+ * @category String manipulation
+ */
+export const decodeText = <Err, Done>(encoding?: string, options?: TextDecoderOptions): Channel<
+  Arr.NonEmptyReadonlyArray<string>,
+  Err,
+  Done,
+  Arr.NonEmptyReadonlyArray<Uint8Array<ArrayBuffer>>,
+  Err,
+  Done
+> =>
+  fromTransform((upstream, _scope) =>
+    Effect.sync(() => {
+      const decoder = new TextDecoder(encoding, options)
+      return Effect.map(upstream, Arr.map((line) => decoder.decode(line)))
+    })
+  )
+
+/**
+ * @since 4.0.0
+ * @category String manipulation
+ */
+export const encodeText = <Err, Done>(): Channel<
+  Arr.NonEmptyReadonlyArray<Uint8Array<ArrayBuffer>>,
+  Err,
+  Done,
+  Arr.NonEmptyReadonlyArray<string>,
+  Err,
+  Done
+> =>
+  fromTransform((upstream, _scope) =>
+    Effect.sync(() => {
+      const encoder = new TextEncoder()
+      return Effect.map(upstream, Arr.map((line) => encoder.encode(line)))
+    })
+  )
+
+/**
  * Returns a new channel that pipes the output of this channel into the
  * specified channel. The returned channel has the input type of this channel,
  * and the output type of the specified channel, terminating with the value of

@@ -2477,6 +2477,16 @@ export const encodeText = <E, R>(self: Stream<string, E, R>): Stream<Uint8Array,
   })
 
 /**
+ * @since 2.0.0
+ * @category encoding
+ */
+export const splitLines = <E, R>(self: Stream<string, E, R>): Stream<string, E, R> =>
+  self.channel.pipe(
+    Channel.pipeTo(Channel.splitLines()),
+    fromChannel
+  )
+
+/**
  * Executes the provided finalizer after this stream's finalizers run.
  *
  * @example

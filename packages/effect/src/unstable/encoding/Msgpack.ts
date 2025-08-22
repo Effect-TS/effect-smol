@@ -53,7 +53,7 @@ export class MsgPackError extends Data.TaggedError("MsgPackError")<{
  * @since 4.0.0
  * @category constructors
  */
-export const pack = <IE = never, Done = unknown>(): Channel.Channel<
+export const encode = <IE = never, Done = unknown>(): Channel.Channel<
   Arr.NonEmptyReadonlyArray<Uint8Array<ArrayBuffer>>,
   IE | MsgPackError,
   Done,
@@ -78,7 +78,7 @@ export const pack = <IE = never, Done = unknown>(): Channel.Channel<
  * @since 4.0.0
  * @category constructors
  */
-export const packSchema = <S extends Schema.Top>(
+export const encodeSchema = <S extends Schema.Top>(
   schema: S
 ) =>
 <IE = never, Done = unknown>(): Channel.Channel<
@@ -89,13 +89,13 @@ export const packSchema = <S extends Schema.Top>(
   IE,
   Done,
   S["EncodingServices"]
-> => Channel.pipeTo(ChannelSchema.encode(schema)(), pack())
+> => Channel.pipeTo(ChannelSchema.encode(schema)(), encode())
 
 /**
  * @since 4.0.0
  * @category constructors
  */
-export const unpack = <IE = never, Done = unknown>(): Channel.Channel<
+export const decode = <IE = never, Done = unknown>(): Channel.Channel<
   Arr.NonEmptyReadonlyArray<unknown>,
   IE | MsgPackError,
   Done,
@@ -146,7 +146,7 @@ export const unpack = <IE = never, Done = unknown>(): Channel.Channel<
  * @since 4.0.0
  * @category constructors
  */
-export const unpackSchema = <S extends Schema.Top>(
+export const decodeSchema = <S extends Schema.Top>(
   schema: S
 ) =>
 <IE = never, Done = unknown>(): Channel.Channel<
@@ -157,7 +157,7 @@ export const unpackSchema = <S extends Schema.Top>(
   IE,
   Done,
   S["DecodingServices"]
-> => Channel.pipeTo(unpack<IE, Done>(), ChannelSchema.decodeUnknown(schema)())
+> => Channel.pipeTo(decode<IE, Done>(), ChannelSchema.decodeUnknown(schema)())
 
 /**
  * @since 4.0.0
@@ -182,9 +182,9 @@ export const duplex = <R, IE, OE, OutDone, InDone>(
   InDone,
   R
 > =>
-  pack<IE, InDone>().pipe(
+  encode<IE, InDone>().pipe(
     Channel.pipeTo(self),
-    Channel.pipeTo(unpack())
+    Channel.pipeTo(decode())
   )
 
 /**
