@@ -99,7 +99,7 @@ export const unpack = <IE = never, Done = unknown>(): Channel.Channel<
   Arr.NonEmptyReadonlyArray<unknown>,
   IE | MsgPackError,
   Done,
-  Arr.NonEmptyReadonlyArray<Uint8Array<ArrayBufferLike>>,
+  Arr.NonEmptyReadonlyArray<Uint8Array<ArrayBuffer>>,
   IE,
   Done
 > =>
@@ -153,7 +153,7 @@ export const unpackSchema = <S extends Schema.Top>(
   Arr.NonEmptyReadonlyArray<S["Type"]>,
   Schema.SchemaError | MsgPackError | IE,
   Done,
-  Arr.NonEmptyReadonlyArray<Uint8Array<ArrayBufferLike>>,
+  Arr.NonEmptyReadonlyArray<Uint8Array<ArrayBuffer>>,
   IE,
   Done,
   S["DecodingServices"]
@@ -168,7 +168,7 @@ export const duplex = <R, IE, OE, OutDone, InDone>(
     Arr.NonEmptyReadonlyArray<Uint8Array<ArrayBuffer>>,
     OE,
     OutDone,
-    Arr.NonEmptyReadonlyArray<Uint8Array<ArrayBufferLike>>,
+    Arr.NonEmptyReadonlyArray<Uint8Array<ArrayBuffer>>,
     IE | MsgPackError,
     InDone,
     R
@@ -202,7 +202,7 @@ export const duplexSchema: {
       Arr.NonEmptyReadonlyArray<Uint8Array<ArrayBuffer>>,
       OutErr,
       OutDone,
-      Arr.NonEmptyReadonlyArray<Uint8Array<ArrayBufferLike>>,
+      Arr.NonEmptyReadonlyArray<Uint8Array<ArrayBuffer>>,
       MsgPackError | Schema.SchemaError | InErr,
       InDone,
       R
@@ -221,7 +221,7 @@ export const duplexSchema: {
       Arr.NonEmptyReadonlyArray<Uint8Array<ArrayBuffer>>,
       OutErr,
       OutDone,
-      Arr.NonEmptyReadonlyArray<Uint8Array<ArrayBufferLike>>,
+      Arr.NonEmptyReadonlyArray<Uint8Array<ArrayBuffer>>,
       MsgPackError | Schema.SchemaError | InErr,
       InDone,
       R
@@ -244,7 +244,7 @@ export const duplexSchema: {
     Arr.NonEmptyReadonlyArray<Uint8Array<ArrayBuffer>>,
     OutErr,
     OutDone,
-    Arr.NonEmptyReadonlyArray<Uint8Array<ArrayBufferLike>>,
+    Arr.NonEmptyReadonlyArray<Uint8Array<ArrayBuffer>>,
     MsgPackError | Schema.SchemaError | InErr,
     InDone,
     R
@@ -275,7 +275,7 @@ export interface schema<S extends Schema.Top> extends Schema.decodeTo<S, Schema.
  */
 export const transformation: Transformation.Transformation<
   unknown,
-  Uint8Array<ArrayBufferLike>
+  Uint8Array<ArrayBuffer>
 > = Transformation.transformOrFail({
   decode(e, _options) {
     try {
