@@ -686,7 +686,7 @@ describe("Schema", () => {
     it("NonEmptyArray<transformation>", () => {
       const schema = Schema.NonEmptyArray(FiniteFromString)
       expect(Schema.revealCodec(schema)).type.toBe<
-        Schema.Codec<readonly [number, ...Array<number>], readonly [number, ...Array<string>]>
+        Schema.Codec<readonly [number, ...Array<number>], readonly [string, ...Array<string>]>
       >()
       expect(schema).type.toBe<Schema.NonEmptyArray<typeof FiniteFromString>>()
       expect(schema.annotate({})).type.toBe<Schema.NonEmptyArray<typeof FiniteFromString>>()
@@ -1654,7 +1654,7 @@ describe("Schema", () => {
     it("NonEmptyArray", () => {
       const schema = Schema.mutable(Schema.NonEmptyArray(FiniteFromString))
       expect(Schema.revealCodec(schema)).type.toBe<
-        Schema.Codec<[number, ...Array<number>], [number, ...Array<string>]>
+        Schema.Codec<[number, ...Array<number>], [string, ...Array<string>]>
       >()
       expect(schema).type.toBe<Schema.mutable<Schema.NonEmptyArray<typeof FiniteFromString>>>()
       expect(schema.annotate({})).type.toBe<Schema.mutable<Schema.NonEmptyArray<typeof FiniteFromString>>>()
@@ -1721,7 +1721,7 @@ describe("Schema", () => {
     it("NonEmptyArray", () => {
       const schema = Schema.readonly(Schema.mutable(Schema.NonEmptyArray(FiniteFromString)))
       expect(Schema.revealCodec(schema)).type.toBe<
-        Schema.Codec<readonly [number, ...Array<number>], readonly [number, ...Array<string>]>
+        Schema.Codec<readonly [number, ...Array<number>], readonly [string, ...Array<string>]>
       >()
     })
 
