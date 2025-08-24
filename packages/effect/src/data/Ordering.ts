@@ -27,6 +27,7 @@
  */
 import type { LazyArg } from "../Function.ts"
 import { dual } from "../Function.ts"
+import * as Reducer_ from "./Reducer.ts"
 
 /**
  * Represents the result of comparing two values.
@@ -146,155 +147,23 @@ export const match: {
 ): A | B | C => self === -1 ? onLessThan() : self === 0 ? onEqual() : onGreaterThan())
 
 /**
- * Combines two orderings, returning the first ordering if it's not equal (0),
- * otherwise returning the second ordering. This implements a "tie-breaking" behavior
- * where the second ordering is only used if the first comparison is equal.
+ * A `Reducer` for combining `Ordering`s.
  *
- * @example
- * ```ts
- * import { Ordering } from "effect/data"
+ * If any of the `Ordering`s is non-zero, the result is the first non-zero `Ordering`.
+ * If all the `Ordering`s are zero, the result is zero.
  *
- * // Basic combination
- * console.log(Ordering.combine(-1, 1))  // -1 (first is decisive)
- * console.log(Ordering.combine(1, -1))  // 1 (first is decisive)
- * console.log(Ordering.combine(0, -1))  // -1 (second breaks tie)
- * console.log(Ordering.combine(0, 0))   // 0 (both equal)
- *
- * // Multi-level sorting example
- * interface Person {
- *   lastName: string
- *   firstName: string
- *   age: number
- * }
- *
- * const comparePeople = (a: Person, b: Person): Ordering.Ordering => {
- *   // Primary sort: last name
- *   const lastNameOrder = a.lastName.localeCompare(b.lastName) as Ordering.Ordering
- *
- *   // Secondary sort: first name (only if last names are equal)
- *   const firstNameOrder = a.firstName.localeCompare(b.firstName) as Ordering.Ordering
- *
- *   return Ordering.combine(lastNameOrder, firstNameOrder)
- * }
- *
- * // Pipe-able version
- * const combineWith = Ordering.combine(1)
- * console.log(combineWith(0)) // 1 (uses the provided ordering)
- * console.log(combineWith(-1)) // -1 (keeps the first ordering)
- * ```
- *
- * @category combining
- * @since 2.0.0
+ * @since 4.0.0
  */
-export const combine: {
-  (that: Ordering): (self: Ordering) => Ordering
-  (self: Ordering, that: Ordering): Ordering
-} = dual(2, (self: Ordering, that: Ordering): Ordering => self !== 0 ? self : that)
-
-/**
- * Combines an initial ordering with many other orderings, returning the first non-equal ordering found.
- * This is useful for implementing complex multi-criteria sorting where each criterion acts as a tie-breaker.
- *
- * @example
- * ```ts
- * import { Ordering } from "effect/data"
- *
- * // Basic usage
- * const result1 = Ordering.combineMany(-1, [1, 0, -1]) // -1 (initial is decisive)
- * const result2 = Ordering.combineMany(0, [0, 0, 1])   // 1 (first non-zero wins)
- * const result3 = Ordering.combineMany(0, [0, 0, 0])   // 0 (all equal)
- *
- * // Complex sorting example
- * interface Product {
- *   category: string
- *   price: number
- *   rating: number
- *   name: string
- * }
- *
- * const compareProducts = (a: Product, b: Product): Ordering.Ordering => {
- *   const categoryOrder = a.category.localeCompare(b.category) as Ordering.Ordering
- *
- *   const additionalCriteria = [
- *     // Price (ascending)
- *     (a.price < b.price ? -1 : a.price > b.price ? 1 : 0) as Ordering.Ordering,
- *     // Rating (descending)
- *     Ordering.reverse(a.rating < b.rating ? -1 : a.rating > b.rating ? 1 : 0),
- *     // Name (ascending)
- *     a.name.localeCompare(b.name) as Ordering.Ordering
- *   ]
- *
- *   return Ordering.combineMany(categoryOrder, additionalCriteria)
- * }
- *
- * // Pipe-able version
- * const combineWithMany = Ordering.combineMany([0, 1, -1])
- * console.log(combineWithMany(0))  // 1 (first non-zero from collection)
- * console.log(combineWithMany(-1)) // -1 (initial is decisive)
- * ```
- *
- * @category combining
- * @since 2.0.0
- */
-export const combineMany: {
-  (collection: Iterable<Ordering>): (self: Ordering) => Ordering
-  (self: Ordering, collection: Iterable<Ordering>): Ordering
-} = dual(2, (self: Ordering, collection: Iterable<Ordering>): Ordering => {
-  let ordering = self
-  if (ordering !== 0) {
+export const Reducer: Reducer_.Reducer<Ordering> = Reducer_.make<Ordering>(
+  (self, that) => self !== 0 ? self : that,
+  0,
+  (collection) => {
+    let ordering: Ordering = 0
+    for (ordering of collection) {
+      if (ordering !== 0) {
+        return ordering
+      }
+    }
     return ordering
   }
-  for (ordering of collection) {
-    if (ordering !== 0) {
-      return ordering
-    }
-  }
-  return ordering
-})
-
-/**
- * Combines all orderings in a collection, returning the first non-equal ordering found.
- * This is equivalent to `combineMany(0, collection)` and is useful when you want to
- * find the first decisive comparison from a series of comparisons.
- *
- * @example
- * ```ts
- * import { Ordering } from "effect/data"
- *
- * // Basic usage
- * console.log(Ordering.combineAll([0, 0, 1]))    // 1 (first non-zero)
- * console.log(Ordering.combineAll([-1, 0, 1]))   // -1 (first non-zero)
- * console.log(Ordering.combineAll([0, 0, 0]))    // 0 (all equal)
- * console.log(Ordering.combineAll([]))           // 0 (empty defaults to equal)
- *
- * // Lexicographic comparison implementation
- * const compareLexicographically = (a: string[], b: string[]): Ordering.Ordering => {
- *   const comparisons: Ordering.Ordering[] = []
- *
- *   const maxLength = Math.max(a.length, b.length)
- *   for (let i = 0; i < maxLength; i++) {
- *     const aItem = a[i] ?? ""
- *     const bItem = b[i] ?? ""
- *     comparisons.push(aItem.localeCompare(bItem) as Ordering.Ordering)
- *   }
- *
- *   return Ordering.combineAll(comparisons)
- * }
- *
- * console.log(compareLexicographically(["a", "b"], ["a", "c"])) // -1
- * console.log(compareLexicographically(["x"], ["x", "y"]))       // -1
- *
- * // Combining multiple comparison results
- * const orderings: Ordering.Ordering[] = [
- *   0,  // Equal on first criterion
- *   0,  // Equal on second criterion
- *   -1, // Less than on third criterion (this will be the result)
- *   1   // This won't be reached
- * ]
- * console.log(Ordering.combineAll(orderings)) // -1
- * ```
- *
- * @category combining
- * @since 2.0.0
- */
-export const combineAll = (collection: Iterable<Ordering>): Ordering => combineMany(0, collection)
+)

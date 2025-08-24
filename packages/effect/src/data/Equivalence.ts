@@ -39,6 +39,7 @@
  */
 import { dual } from "../Function.ts"
 import type { TypeLambda } from "../types/HKT.ts"
+import * as Reducer from "./Reducer.ts"
 
 /**
  * Represents an equivalence relation over type `A`.
@@ -330,60 +331,6 @@ export const combine: {
 } = dual(2, <A>(self: Equivalence<A>, that: Equivalence<A>): Equivalence<A> => make((x, y) => self(x, y) && that(x, y)))
 
 /**
- * Combines multiple equivalence relations using logical AND.
- *
- * The resulting equivalence considers two values equivalent only if the initial
- * equivalence and all equivalences in the collection consider them equivalent.
- * Evaluation is short-circuited - stops at the first non-equivalent comparison.
- *
- * @example
- * ```ts
- * import { Equivalence } from "effect/data"
- *
- * interface Product {
- *   id: string
- *   name: string
- *   price: number
- *   category: string
- * }
- *
- * const idEq = Equivalence.mapInput(Equivalence.string, (p: Product) => p.id)
- * const nameEq = Equivalence.mapInput(Equivalence.string, (p: Product) => p.name)
- * const priceEq = Equivalence.mapInput(Equivalence.number, (p: Product) => p.price)
- * const categoryEq = Equivalence.mapInput(Equivalence.string, (p: Product) => p.category)
- *
- * const productEq = Equivalence.combineMany(idEq, [nameEq, priceEq, categoryEq])
- *
- * const product1 = { id: "1", name: "Widget", price: 9.99, category: "Tools" }
- * const product2 = { id: "1", name: "Widget", price: 9.99, category: "Tools" }
- * const product3 = { id: "1", name: "Widget", price: 10.99, category: "Tools" }
- *
- * console.log(productEq(product1, product2)) // true
- * console.log(productEq(product1, product3)) // false (different price)
- * ```
- *
- * @category combining
- * @since 2.0.0
- */
-export const combineMany: {
-  <A>(collection: Iterable<Equivalence<A>>): (self: Equivalence<A>) => Equivalence<A>
-  <A>(self: Equivalence<A>, collection: Iterable<Equivalence<A>>): Equivalence<A>
-} = dual(2, <A>(self: Equivalence<A>, collection: Iterable<Equivalence<A>>): Equivalence<A> =>
-  make((x, y) => {
-    if (!self(x, y)) {
-      return false
-    }
-    for (const equivalence of collection) {
-      if (!equivalence(x, y)) {
-        return false
-      }
-    }
-    return true
-  }))
-
-const isAlwaysEquivalent: Equivalence<unknown> = (_x, _y) => true
-
-/**
  * Combines multiple equivalence relations into a single equivalence using logical AND.
  *
  * All equivalences in the collection must consider the values equivalent for the
@@ -422,7 +369,14 @@ const isAlwaysEquivalent: Equivalence<unknown> = (_x, _y) => true
  * @since 2.0.0
  */
 export const combineAll = <A>(collection: Iterable<Equivalence<A>>): Equivalence<A> =>
-  combineMany(isAlwaysEquivalent, collection)
+  make((x, y) => {
+    for (const equivalence of collection) {
+      if (!equivalence(x, y)) {
+        return false
+      }
+    }
+    return true
+  })
 
 /**
  * Transforms an equivalence relation by mapping the input values.
@@ -795,4 +749,15 @@ export const struct = <R extends Record<string, Equivalence<any>>>(
     }
     return true
   })
+}
+
+/**
+ * @since 4.0.0
+ */
+export function getReducer<A>() {
+  return Reducer.make<Equivalence<A>>(
+    combine,
+    () => true,
+    combineAll
+  )
 }

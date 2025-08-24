@@ -6,11 +6,13 @@
  * @since 2.0.0
  */
 
+import * as Combiner from "../data/Combiner.ts"
 import * as equivalence from "../data/Equivalence.ts"
 import * as Option from "../data/Option.ts"
 import * as order from "../data/Order.ts"
 import type { Ordering } from "../data/Ordering.ts"
 import * as predicate from "../data/Predicate.ts"
+import * as Reducer from "../data/Reducer.ts"
 import { dual } from "../Function.ts"
 
 /**
@@ -716,3 +718,38 @@ export const remainder: {
   (divisor: bigint): (self: bigint) => bigint
   (self: bigint, divisor: bigint): bigint
 } = dual(2, (self: bigint, divisor: bigint): bigint => self % divisor)
+
+/**
+ * A `Reducer` for combining `bigint`s using addition.
+ *
+ * @since 4.0.0
+ */
+export const ReducerSum: Reducer.Reducer<bigint> = Reducer.make((a, b) => a + b, 0n)
+
+/**
+ * A `Reducer` for combining `bigint`s using multiplication.
+ *
+ * @since 4.0.0
+ */
+export const ReducerMultiply: Reducer.Reducer<bigint> = Reducer.make((a, b) => a * b, 1n, (collection) => {
+  let acc = 1n
+  for (const n of collection) {
+    if (n === 0n) return 0n
+    acc *= n
+  }
+  return acc
+})
+
+/**
+ * A `Combiner` that returns the maximum `bigint`.
+ *
+ * @since 4.0.0
+ */
+export const CombinerMax: Combiner.Combiner<bigint> = Combiner.max(Order)
+
+/**
+ * A `Combiner` that returns the minimum `bigint`.
+ *
+ * @since 4.0.0
+ */
+export const CombinerMin: Combiner.Combiner<bigint> = Combiner.min(Order)

@@ -578,4 +578,16 @@ describe("Duration", () => {
     strictEqual(Duration.toWeeks("2 weeks"), 2)
     strictEqual(Duration.toWeeks("14 days"), 2)
   })
+
+  it("ReducerSum", () => {
+    deepStrictEqual(Duration.ReducerSum.combine(Duration.millis(1), Duration.millis(2)), Duration.millis(3))
+  })
+
+  it("CombinerMax", () => {
+    deepStrictEqual(Duration.CombinerMax.combine(Duration.millis(1), Duration.millis(2)), Duration.millis(2))
+  })
+
+  it("CombinerMin", () => {
+    deepStrictEqual(Duration.CombinerMin.combine(Duration.millis(1), Duration.millis(2)), Duration.millis(1))
+  })
 })

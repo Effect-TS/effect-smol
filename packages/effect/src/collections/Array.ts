@@ -10,6 +10,7 @@ import * as Option from "../data/Option.ts"
 import * as Order from "../data/Order.ts"
 import * as Predicate from "../data/Predicate.ts"
 import * as Record from "../data/Record.ts"
+import * as Reducer from "../data/Reducer.ts"
 import * as Result from "../data/Result.ts"
 import * as Tuple from "../data/Tuple.ts"
 import type { LazyArg } from "../Function.ts"
@@ -3891,4 +3892,24 @@ export {
    * @since 3.2.0
    */
   let_ as let
+}
+
+const reducer = Reducer.make((a, b) => a.concat(b), [] as any)
+
+/**
+ * A `Reducer` for combining `ReadonlyArray`s using concatenation.
+ *
+ * @since 4.0.0
+ */
+export function getReadonlyReducerConcat<A>(): Reducer.Reducer<ReadonlyArray<A>> {
+  return reducer
+}
+
+/**
+ * A `Reducer` for combining `Array`s using concatenation.
+ *
+ * @since 4.0.0
+ */
+export function getReducerConcat<A>(): Reducer.Reducer<Array<A>> {
+  return reducer
 }

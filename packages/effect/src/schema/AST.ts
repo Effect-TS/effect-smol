@@ -3,6 +3,7 @@
  */
 
 import * as Arr from "../collections/Array.ts"
+import type * as Combiner from "../data/Combiner.ts"
 import * as Option from "../data/Option.ts"
 import * as Predicate from "../data/Predicate.ts"
 import * as Result from "../data/Result.ts"
@@ -965,29 +966,20 @@ export class PropertySignature {
  * @category model
  * @since 4.0.0
  */
-export type Combine<Key extends PropertyKey, Value> = (
-  a: readonly [key: Key, value: Value],
-  b: readonly [key: Key, value: Value]
-) => readonly [key: Key, value: Value]
-
-/**
- * @category model
- * @since 4.0.0
- */
-export class Merge {
-  readonly decode: Combine<PropertyKey, any> | undefined
-  readonly encode: Combine<PropertyKey, any> | undefined
+export class KeyValueCombiner {
+  readonly decode: Combiner.Combiner<readonly [key: PropertyKey, value: any]> | undefined
+  readonly encode: Combiner.Combiner<readonly [key: PropertyKey, value: any]> | undefined
 
   constructor(
-    decode: Combine<PropertyKey, any> | undefined,
-    encode: Combine<PropertyKey, any> | undefined
+    decode: Combiner.Combiner<readonly [key: PropertyKey, value: any]> | undefined,
+    encode: Combiner.Combiner<readonly [key: PropertyKey, value: any]> | undefined
   ) {
     this.decode = decode
     this.encode = encode
   }
   /** @internal */
-  flip(): Merge {
-    return new Merge(this.encode, this.decode)
+  flip(): KeyValueCombiner {
+    return new KeyValueCombiner(this.encode, this.decode)
   }
 }
 
@@ -999,13 +991,13 @@ export class IndexSignature {
   readonly isMutable: boolean
   readonly parameter: AST
   readonly type: AST
-  readonly merge: Merge | undefined
+  readonly merge: KeyValueCombiner | undefined
 
   constructor(
     isMutable: boolean,
     parameter: AST,
     type: AST,
-    merge: Merge | undefined
+    merge: KeyValueCombiner | undefined
   ) {
     this.isMutable = isMutable
     this.parameter = parameter
@@ -1405,7 +1397,7 @@ export class TypeLiteral extends Base {
               const k2 = rKey.success.value
               const v2 = rValue.success.value
               if (is.merge && is.merge.decode && Object.hasOwn(out, k2)) {
-                const [k, v] = is.merge.decode([k2, out[k2]], [k2, v2])
+                const [k, v] = is.merge.decode.combine([k2, out[k2]], [k2, v2])
                 internalRecord.set(out, k, v)
               } else {
                 internalRecord.set(out, k2, v2)
@@ -2096,12 +2088,12 @@ function getRecordKeyLiterals(ast: AST): ReadonlyArray<PropertyKey> {
 }
 
 /** @internal */
-export function record(key: AST, value: AST, merge: Merge | undefined): TypeLiteral {
+export function record(key: AST, value: AST, keyValueCombiner: KeyValueCombiner | undefined): TypeLiteral {
   const literals = getRecordKeyLiterals(key)
   if (literals.length > 0) {
     return new TypeLiteral(literals.map((literal) => new PropertySignature(literal, value)), [])
   }
-  return new TypeLiteral([], [new IndexSignature(false, key, value, merge)])
+  return new TypeLiteral([], [new IndexSignature(false, key, value, keyValueCombiner)])
 }
 
 /** @internal */

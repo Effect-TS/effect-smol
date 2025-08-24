@@ -12,6 +12,8 @@ import { dual, identity } from "../Function.ts"
 import * as Equal from "../interfaces/Equal.ts"
 import type { TypeLambda } from "../types/HKT.ts"
 import type { NoInfer } from "../types/Types.ts"
+import type * as Combiner from "./Combiner.ts"
+import * as Reducer from "./Reducer.ts"
 
 /**
  * Represents a readonly record with keys of type `K` and values of type `A`.
@@ -1469,3 +1471,33 @@ export const getEquivalence = <K extends string, A>(
 export const singleton = <K extends string | symbol, A>(key: K, value: A): Record<K, A> => ({
   [key]: value
 } as any)
+
+/**
+ * A `Reducer` for combining `Record`s using union.
+ *
+ * Values for keys that exist in both records are combined using the provided `Combiner`.
+ *
+ * @since 4.0.0
+ */
+export function getReducerUnion<K extends string, A>(combiner: Combiner.Combiner<A>): Reducer.Reducer<Record<K, A>> {
+  return Reducer.make<Record<K, A>>(
+    (self, that) => union(self, that, combiner.combine),
+    {} as Record<K, A>
+  )
+}
+
+/**
+ * A `Reducer` for combining `Record`s using intersection.
+ *
+ * Values are combined using the provided `Combiner`.
+ *
+ * @since 4.0.0
+ */
+export function getReducerIntersection<K extends string, A>(
+  combiner: Combiner.Combiner<A>
+): Reducer.Reducer<Record<K, A>> {
+  return Reducer.make(
+    (self, that) => intersection(self, that, combiner.combine) as any,
+    {} as Record<K, A>
+  )
+}

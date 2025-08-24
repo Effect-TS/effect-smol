@@ -45,10 +45,12 @@
  *
  * @since 2.0.0
  */
+import * as Combiner from "../data/Combiner.ts"
 import type * as equivalence from "../data/Equivalence.ts"
 import * as Option from "../data/Option.ts"
 import * as order from "../data/Order.ts"
 import { hasProperty, isBigInt, isNumber, isString } from "../data/Predicate.ts"
+import * as Reducer from "../data/Reducer.ts"
 import { dual } from "../Function.ts"
 import * as Equal from "../interfaces/Equal.ts"
 import * as Hash from "../interfaces/Hash.ts"
@@ -1476,3 +1478,24 @@ export const format = (self: DurationInput): string => {
 
   return pieces.join(" ")
 }
+
+/**
+ * A `Reducer` for summing `Duration`s.
+ *
+ * @since 4.0.0
+ */
+export const ReducerSum: Reducer.Reducer<Duration> = Reducer.make(sum, zero)
+
+/**
+ * A `Combiner` that returns the maximum `Duration`.
+ *
+ * @since 4.0.0
+ */
+export const CombinerMax: Combiner.Combiner<Duration> = Combiner.max(Order)
+
+/**
+ * A `Combiner` that returns the minimum `Duration`.
+ *
+ * @since 4.0.0
+ */
+export const CombinerMin: Combiner.Combiner<Duration> = Combiner.min(Order)

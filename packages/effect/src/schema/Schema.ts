@@ -7,6 +7,7 @@ import * as Request from "../batching/Request.ts"
 import * as Cause_ from "../Cause.ts"
 import * as Arr from "../collections/Array.ts"
 import type { Brand } from "../data/Brand.ts"
+import type * as Combiner from "../data/Combiner.ts"
 import * as Data from "../data/Data.ts"
 import * as Equivalence from "../data/Equivalence.ts"
 import * as O from "../data/Option.ts"
@@ -1739,23 +1740,16 @@ export function Record<Key extends Record.Key, Value extends Top>(
   key: Key,
   value: Value,
   options?: {
-    readonly key: {
-      readonly decode?: {
-        readonly combine?: AST.Combine<Key["Type"], Value["Type"]> | undefined
-      }
-      readonly encode?: {
-        readonly combine?: AST.Combine<Key["Encoded"], Value["Encoded"]> | undefined
-      }
+    readonly keyValueCombiner: {
+      readonly decode?: Combiner.Combiner<readonly [Key["Type"], Value["Type"]]> | undefined
+      readonly encode?: Combiner.Combiner<readonly [Key["Encoded"], Value["Encoded"]]> | undefined
     }
   }
 ): Record$<Key, Value> {
-  const merge = options?.key?.decode?.combine || options?.key?.encode?.combine
-    ? new AST.Merge(
-      options.key.decode?.combine,
-      options.key.encode?.combine
-    )
+  const keyValueCombiner = options?.keyValueCombiner?.decode || options?.keyValueCombiner?.encode
+    ? new AST.KeyValueCombiner(options.keyValueCombiner.decode, options.keyValueCombiner.encode)
     : undefined
-  return new Record$$(AST.record(key.ast, value.ast, merge), key, value)
+  return new Record$$(AST.record(key.ast, value.ast, keyValueCombiner), key, value)
 }
 
 /**

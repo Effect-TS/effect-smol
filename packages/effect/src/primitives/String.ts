@@ -13,6 +13,7 @@ import * as order from "../data/Order.ts"
 import type * as Ordering from "../data/Ordering.ts"
 import type { Refinement } from "../data/Predicate.ts"
 import * as predicate from "../data/Predicate.ts"
+import * as Reducer from "../data/Reducer.ts"
 import { dual } from "../Function.ts"
 import * as readonlyArray from "../internal/array.ts"
 import * as number from "../primitives/Number.ts"
@@ -1299,3 +1300,10 @@ export const kebabCase: (self: string) => string = noCase({
 export const snakeCase: (self: string) => string = noCase({
   delimiter: "_"
 })
+
+/**
+ * A `Reducer` for concatenating `string`s.
+ *
+ * @since 4.0.0
+ */
+export const ReducerConcat: Reducer.Reducer<string> = Reducer.make((a, b) => a + b, "")

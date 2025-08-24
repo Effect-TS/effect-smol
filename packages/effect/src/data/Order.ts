@@ -18,6 +18,8 @@
  */
 import { dual } from "../Function.ts"
 import type { TypeLambda } from "../types/HKT.ts"
+import type { Ordering } from "./Ordering.ts"
+import * as Reducer from "./Reducer.ts"
 
 /**
  * Represents a total ordering for values of type `A`.
@@ -46,7 +48,7 @@ import type { TypeLambda } from "../types/HKT.ts"
  * @since 2.0.0
  */
 export interface Order<in A> {
-  (self: A, that: A): -1 | 0 | 1
+  (self: A, that: A): Ordering
 }
 
 /**
@@ -223,48 +225,6 @@ export const combine: {
   }))
 
 /**
- * Combines multiple `Order` instances with a primary `Order` to create a new `Order` that compares using the
- * primary `Order` first, then falls back to the provided collection of `Order` instances in sequence.
- *
- * @example
- * ```ts
- * import * as assert from "node:assert"
- * import { Order } from "effect/data"
- *
- * const byAge = Order.mapInput(Order.number, (person: { name: string, age: number, city: string }) => person.age)
- * const byName = Order.mapInput(Order.string, (person: { name: string, age: number, city: string }) => person.name)
- * const byCity = Order.mapInput(Order.string, (person: { name: string, age: number, city: string }) => person.city)
- *
- * const multiOrder = Order.combineMany(byAge, [byName, byCity])
- *
- * const person1 = { name: "Alice", age: 30, city: "New York" }
- * const person2 = { name: "Bob", age: 30, city: "New York" }
- *
- * assert.deepStrictEqual(multiOrder(person1, person2), -1) // Same age and city, Alice < Bob
- * ```
- *
- * @category combining
- * @since 2.0.0
- */
-export const combineMany: {
-  <A>(collection: Iterable<Order<A>>): (self: Order<A>) => Order<A>
-  <A>(self: Order<A>, collection: Iterable<Order<A>>): Order<A>
-} = dual(2, <A>(self: Order<A>, collection: Iterable<Order<A>>): Order<A> =>
-  make((a1, a2) => {
-    let out = self(a1, a2)
-    if (out !== 0) {
-      return out
-    }
-    for (const O of collection) {
-      out = O(a1, a2)
-      if (out !== 0) {
-        return out
-      }
-    }
-    return out
-  }))
-
-/**
  * Creates an `Order` that considers all values as equal.
  *
  * @example
@@ -307,7 +267,17 @@ export const empty = <A>(): Order<A> => make(() => 0)
  * @category combining
  * @since 2.0.0
  */
-export const combineAll = <A>(collection: Iterable<Order<A>>): Order<A> => combineMany(empty(), collection)
+export const combineAll = <A>(collection: Iterable<Order<A>>): Order<A> =>
+  make((a1, a2) => {
+    let out: Ordering = 0
+    for (const O of collection) {
+      out = O(a1, a2)
+      if (out !== 0) {
+        return out
+      }
+    }
+    return out
+  })
 
 /**
  * Transforms an `Order` on type `A` into an `Order` on type `B` by providing a function that
@@ -772,3 +742,14 @@ export const between = <A>(O: Order<A>): {
       maximum: A
     }): boolean => !lessThan(O)(self, options.minimum) && !greaterThan(O)(self, options.maximum)
   )
+
+/**
+ * @since 4.0.0
+ */
+export function getReducer<A>() {
+  return Reducer.make<Order<A>>(
+    combine,
+    () => 0,
+    combineAll
+  )
+}

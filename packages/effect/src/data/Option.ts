@@ -20,6 +20,8 @@ import type { TypeLambda } from "../types/HKT.ts"
 import type { Covariant, NoInfer, NotFunction } from "../types/Types.ts"
 import type * as Unify from "../types/Unify.ts"
 import * as Gen from "../Utils.ts"
+import type * as Combiner from "./Combiner.ts"
+import * as Reducer from "./Reducer.ts"
 
 /**
  * The `Option` data type represents optional values. An `Option<A>` can either
@@ -2479,4 +2481,20 @@ export const mergeWith = <A>(f: (a1: A, a2: A) => A) => (o1: Option<A>, o2: Opti
     return o1
   }
   return some(f(o1.value, o2.value))
+}
+
+/**
+ * A `Reducer` for combining `Option`s using a `Combiner`.
+ *
+ * If both `Option`s are `Some`, the `Combiner` is applied to the values.
+ * If either `Option` is `None`, the result is the other `Option`.
+ *
+ * @since 4.0.0
+ */
+export function getReducer<A>(combiner: Combiner.Combiner<A>): Reducer.Reducer<Option<A>> {
+  return Reducer.make((self, that) => {
+    if (isNone(self)) return that
+    if (isNone(that)) return self
+    return some(combiner.combine(self.value, that.value))
+  }, none())
 }

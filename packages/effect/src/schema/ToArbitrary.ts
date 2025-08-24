@@ -2,9 +2,12 @@
  * @since 4.0.0
  */
 import * as Array from "../collections/Array.ts"
+import * as Combiner from "../data/Combiner.ts"
 import * as Option from "../data/Option.ts"
 import * as Predicate from "../data/Predicate.ts"
 import { defaultParseOptions, memoizeThunk } from "../internal/schema/util.ts"
+import * as Boolean from "../primitives/Boolean.ts"
+import * as Number from "../primitives/Number.ts"
 import * as FastCheck from "../testing/FastCheck.ts"
 import type * as Annotations from "./Annotations.ts"
 import * as AST from "./AST.ts"
@@ -192,33 +195,13 @@ function array(
   return array
 }
 
-type Semigroup<A> = (x: A, y: A) => A
+const last = Combiner.UndefinedOr(Combiner.last())
+const max = Combiner.UndefinedOr(Number.ReducerMax)
+const min = Combiner.UndefinedOr(Number.ReducerMin)
+const or = Combiner.UndefinedOr(Boolean.ReducerOr)
+const concat = Combiner.UndefinedOr(Array.getReducerConcat())
 
-function lift<A>(S: Semigroup<A>): Semigroup<A | undefined> {
-  return (x, y) => x === undefined ? y : y === undefined ? x : S(x, y)
-}
-
-function struct<A>(semigroups: { readonly [K in keyof A]: Semigroup<A[K]> }): Semigroup<A> {
-  return (x, y) => {
-    const keys = Object.keys(semigroups) as Array<keyof A>
-    const out = {} as A
-    for (const key of keys) {
-      const merge = semigroups[key](x[key], y[key])
-      if (merge !== undefined) {
-        out[key] = merge
-      }
-    }
-    return out
-  }
-}
-
-const last = lift((_, y) => y)
-const max = lift(Math.max)
-const min = lift(Math.min)
-const or = lift((x, y) => x || y)
-const concat = lift<ReadonlyArray<unknown>>((x, y) => x.concat(y))
-
-const semigroup: Semigroup<Partial<Annotation.Any>> = struct({
+const combiner: Combiner.Combiner<any> = Combiner.Struct({
   _tag: last,
   isInteger: or,
   max: min,
@@ -233,7 +216,9 @@ const semigroup: Semigroup<Partial<Annotation.Any>> = struct({
   noNaN: or,
   patterns: concat,
   comparator: or
-}) as any
+}, {
+  omitKeyWhen: Predicate.isUndefined
+})
 
 function merge(
   constraints: Annotation.Constraints["constraints"],
@@ -242,7 +227,7 @@ function merge(
   const _tag = constraint._tag
   const c = constraints[_tag]
   if (c) {
-    return { ...constraints, [constraint._tag]: semigroup(c, constraint) }
+    return { ...constraints, [constraint._tag]: combiner.combine(c, constraint) }
   } else {
     return { ...constraints, [constraint._tag]: constraint }
   }

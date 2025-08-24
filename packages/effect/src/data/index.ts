@@ -23,6 +23,11 @@
 export * as Brand from "./Brand.ts"
 
 /**
+ * @since 4.0.0
+ */
+export * as Combiner from "./Combiner.ts"
+
+/**
  * This module provides utilities for creating data types with structural equality
  * semantics. Unlike regular JavaScript objects, `Data` types support value-based
  * equality comparison using the `Equal` module.
@@ -191,6 +196,11 @@ export * as Record from "./Record.ts"
  * @since 3.3.0
  */
 export * as Redacted from "./Redacted.ts"
+
+/**
+ * @since 4.0.0
+ */
+export * as Reducer from "./Reducer.ts"
 
 /**
  * @since 4.0.0

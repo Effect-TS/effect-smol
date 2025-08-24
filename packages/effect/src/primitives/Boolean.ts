@@ -8,6 +8,7 @@
 import * as equivalence from "../data/Equivalence.ts"
 import * as order from "../data/Order.ts"
 import * as predicate from "../data/Predicate.ts"
+import * as Reducer from "../data/Reducer.ts"
 import type { LazyArg } from "../Function.ts"
 import { dual } from "../Function.ts"
 
@@ -332,3 +333,21 @@ export const some = (collection: Iterable<boolean>): boolean => {
   }
   return false
 }
+
+/**
+ * A `Reducer` for combining `boolean`s using AND.
+ *
+ * The `initialValue` is `true`.
+ *
+ * @since 4.0.0
+ */
+export const ReducerAnd: Reducer.Reducer<boolean> = Reducer.make((a, b) => a && b, true)
+
+/**
+ * A `Reducer` for combining `boolean`s using OR.
+ *
+ * The `initialValue` is `false`.
+ *
+ * @since 4.0.0
+ */
+export const ReducerOr: Reducer.Reducer<boolean> = Reducer.make((a, b) => a || b, false)

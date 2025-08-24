@@ -10,6 +10,7 @@ import type { Option } from "../data/Option.ts"
 import * as order from "../data/Order.ts"
 import type { Ordering } from "../data/Ordering.ts"
 import * as predicate from "../data/Predicate.ts"
+import * as Reducer from "../data/Reducer.ts"
 import { dual } from "../Function.ts"
 import * as option from "../internal/option.ts"
 
@@ -578,3 +579,38 @@ export const round: {
   const factor = Math.pow(10, precision)
   return Math.round(self * factor) / factor
 })
+
+/**
+ * A `Reducer` for combining `number`s using addition.
+ *
+ * @since 4.0.0
+ */
+export const ReducerSum: Reducer.Reducer<number> = Reducer.make((a, b) => a + b, 0)
+
+/**
+ * A `Reducer` for combining `number`s using multiplication.
+ *
+ * @since 4.0.0
+ */
+export const ReducerMultiply: Reducer.Reducer<number> = Reducer.make((a, b) => a * b, 1, (collection) => {
+  let acc = 1
+  for (const n of collection) {
+    if (n === 0) return 0
+    acc *= n
+  }
+  return acc
+})
+
+/**
+ * A `Combiner` that returns the maximum `number`.
+ *
+ * @since 4.0.0
+ */
+export const ReducerMax: Reducer.Reducer<number> = Reducer.make((a, b) => Math.max(a, b), -Infinity)
+
+/**
+ * A `Combiner` that returns the minimum `number`.
+ *
+ * @since 4.0.0
+ */
+export const ReducerMin: Reducer.Reducer<number> = Reducer.make((a, b) => Math.min(a, b), Infinity)

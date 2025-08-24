@@ -2408,7 +2408,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
     it("Record(SnakeToCamel, Number, { key: ... })", async () => {
       const schema = Schema.Record(SnakeToCamel, NumberFromString, {
-        key: {
+        keyValueCombiner: {
           decode: {
             combine: ([_, v1], [k2, v2]) => [k2, v1 + v2]
           },
