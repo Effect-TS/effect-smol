@@ -369,7 +369,7 @@ export class Declaration extends Base {
       if (Option.isNone(oinput)) {
         return Effect.succeed(Option.none())
       }
-      return run(oinput.value, ast, options).pipe(Effect.mapEager(Option.some))
+      return Effect.mapEager(run(oinput.value, ast, options), Option.some)
     }
   }
   /** @internal */
@@ -669,12 +669,10 @@ export class TemplateLiteral extends AbstractParser {
   parser(go: (ast: AST) => ToParser.Parser): ToParser.Parser {
     const parser = go(this.asTemplateLiteralParser())
     return (oinput: Option.Option<unknown>, options: ParseOptions) =>
-      parser(oinput, options).pipe(
-        Effect.mapBothEager({
-          onSuccess: () => oinput,
-          onFailure: () => new Issue.InvalidType(this, oinput)
-        })
-      )
+      Effect.mapBothEager(parser(oinput, options), {
+        onSuccess: () => oinput,
+        onFailure: () => new Issue.InvalidType(this, oinput)
+      })
   }
   /** @internal */
   goJson() {
@@ -1334,31 +1332,30 @@ export class TypeLiteral extends Base {
         }
         const parser = go(type)
         const keyAnnotations = type.context?.annotations
-        const r = yield* Effect.result(parser(value, options))
-        if (Result.isFailure(r)) {
-          const issue = new Issue.Pointer([name], r.failure)
+        const ovalue = yield* Effect.catchEager(parser(value, options), (failure) => {
+          const issue = new Issue.Pointer([name], failure)
           if (errorsAllOption) {
             issues.push(issue)
-            continue
+            return Effect.void
           } else {
-            return yield* Effect.fail(
+            return Effect.fail(
               new Issue.Composite(ast, oinput, [issue])
             )
           }
+        })
+        if (ovalue === undefined) continue
+        if (Option.isSome(ovalue)) {
+          internalRecord.set(out, name, ovalue.value)
         } else {
-          if (Option.isSome(r.success)) {
-            internalRecord.set(out, name, r.success.value)
-          } else {
-            if (!isOptional(ps.type)) {
-              const issue = new Issue.Pointer([name], new Issue.MissingKey(keyAnnotations))
-              if (errorsAllOption) {
-                issues.push(issue)
-                continue
-              } else {
-                return yield* Effect.fail(
-                  new Issue.Composite(ast, oinput, [issue])
-                )
-              }
+          if (!isOptional(ps.type)) {
+            const issue = new Issue.Pointer([name], new Issue.MissingKey(keyAnnotations))
+            if (errorsAllOption) {
+              issues.push(issue)
+              continue
+            } else {
+              return yield* Effect.fail(
+                new Issue.Composite(ast, oinput, [issue])
+              )
             }
           }
         }
