@@ -17,7 +17,7 @@ import {
   deepStrictEqual,
   strictEqual,
   throws
-} from "./utils/assert.ts"
+} from "../utils/assert.ts"
 
 describe("Result", () => {
   describe("Constructors", () => {

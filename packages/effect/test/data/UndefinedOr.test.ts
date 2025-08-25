@@ -33,5 +33,8 @@ describe("UndefinedOr", () => {
     strictEqual(R.combine(R.initialValue, undefined), undefined)
     strictEqual(R.combine(1, R.initialValue), 1)
     strictEqual(R.combine(R.initialValue, 1), 1)
+
+    strictEqual(R.combineAll([1, undefined, 2]), undefined)
+    strictEqual(R.combineAll([1, 2]), 3)
   })
 })

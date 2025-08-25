@@ -16,7 +16,23 @@ const config: ViteUserConfig = {
     sequence: {
       concurrent: true
     },
-    include: ["test/**/*.test.ts"]
+    include: ["test/**/*.test.ts"],
+    coverage: {
+      provider: "v8",
+      reporter: ["html"],
+      reportsDirectory: "coverage",
+      exclude: [
+        "node_modules/",
+        "dist/",
+        "build/",
+        "coverage/",
+        "**/*.d.ts",
+        "**/*.config.*",
+        "**/vitest.setup.*",
+        "**/vitest.shared.*"
+      ],
+      all: true
+    }
   }
 }
 

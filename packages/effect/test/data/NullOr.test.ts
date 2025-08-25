@@ -33,5 +33,8 @@ describe("NullOr", () => {
     strictEqual(R.combine(R.initialValue, null), null)
     strictEqual(R.combine(1, R.initialValue), 1)
     strictEqual(R.combine(R.initialValue, 1), 1)
+
+    strictEqual(R.combineAll([1, null, 2]), null)
+    strictEqual(R.combineAll([1, 2]), 3)
   })
 })
