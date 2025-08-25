@@ -522,10 +522,10 @@ export const fromIterable = <A>(collection: Iterable<A>): Option<A> => {
  * import { Result } from "effect/data"
  * import { Option } from "effect/data"
  *
- * console.log(Option.getOk(Result.succeed("ok")))
+ * console.log(Option.getSuccess(Result.succeed("ok")))
  * // Output: { _id: 'Option', _tag: 'Some', value: 'ok' }
  *
- * console.log(Option.getOk(Result.fail("err")))
+ * console.log(Option.getSuccess(Result.fail("err")))
  * // Output: { _id: 'Option', _tag: 'None' }
  * ```
  *
@@ -557,10 +557,10 @@ export const getSuccess: <A, E>(self: Result<A, E>) => Option<A> = result.getSuc
  * import { Result } from "effect/data"
  * import { Option } from "effect/data"
  *
- * console.log(Option.getErr(Result.succeed("ok")))
+ * console.log(Option.getFailure(Result.succeed("ok")))
  * // Output: { _id: 'Option', _tag: 'None' }
  *
- * console.log(Option.getErr(Result.fail("err")))
+ * console.log(Option.getFailure(Result.fail("err")))
  * // Output: { _id: 'Option', _tag: 'Some', value: 'err' }
  * ```
  *

@@ -1620,7 +1620,7 @@ export const getSomes: <A>(self: Iterable<Option<A>>) => Iterable<A> = filterMap
 import * as Result from "effect/data/Result"
  *
  * assert.deepStrictEqual(
- *   Array.from(Iterable.getErrs([Result.succeed(1), Result.fail("err"), Result.succeed(2)])),
+ *   Array.from(Iterable.getFailures([Result.succeed(1), Result.fail("err"), Result.succeed(2)])),
  *   ["err"]
  * )
  * ```
@@ -1628,7 +1628,7 @@ import * as Result from "effect/data/Result"
  * @category filtering
  * @since 2.0.0
  */
-export const getErrs = <R, L>(self: Iterable<Result<R, L>>): Iterable<L> => filterMap(self, R.getFailure)
+export const getFailures = <R, L>(self: Iterable<Result<R, L>>): Iterable<L> => filterMap(self, R.getFailure)
 
 /**
  * Retrieves the `Ok` values from an `Iterable` of `Result`s.
@@ -1640,7 +1640,7 @@ export const getErrs = <R, L>(self: Iterable<Result<R, L>>): Iterable<L> => filt
 import * as Result from "effect/data/Result"
  *
  * assert.deepStrictEqual(
- *   Array.from(Iterable.getOks([Result.succeed(1), Result.fail("err"), Result.succeed(2)])),
+ *   Array.from(Iterable.getSuccesses([Result.succeed(1), Result.fail("err"), Result.succeed(2)])),
  *   [1, 2]
  * )
  * ```
@@ -1648,7 +1648,7 @@ import * as Result from "effect/data/Result"
  * @category filtering
  * @since 2.0.0
  */
-export const getOks = <R, L>(self: Iterable<Result<R, L>>): Iterable<R> => filterMap(self, R.getSuccess)
+export const getSuccesses = <R, L>(self: Iterable<Result<R, L>>): Iterable<R> => filterMap(self, R.getSuccess)
 
 /**
  * Filters an iterable to only include elements that match a predicate.
