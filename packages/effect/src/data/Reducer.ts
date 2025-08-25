@@ -2,7 +2,7 @@
  * @since 4.0.0
  */
 
-import * as Combiner from "./Combiner.ts"
+import type * as Combiner from "./Combiner.ts"
 
 /**
  * A `Reducer` is a `Combiner` with an `initialValue` and a way to
@@ -48,22 +48,4 @@ export function make<A>(
         return acc
       })
   }
-}
-
-/**
- * `Reducer` for `A | undefined`, using `undefined` as the neutral start.
- *
- * @since 4.0.0
- */
-export function UndefinedOr<A>(reducer: Reducer<A>): Reducer<A | undefined> {
-  return make(Combiner.UndefinedOr(reducer).combine, undefined)
-}
-
-/**
- * `Reducer` for `A | null`, using `null` as the neutral start.
- *
- * @since 4.0.0
- */
-export function NullOr<A>(reducer: Reducer<A>): Reducer<A | null> {
-  return make(Combiner.NullOr(reducer).combine, null)
 }

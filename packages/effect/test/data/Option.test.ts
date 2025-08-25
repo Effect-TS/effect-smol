@@ -13,8 +13,8 @@ describe("Option", () => {
     deepStrictEqual(R.combine(Option.none(), Option.none()), Option.none())
   })
 
-  it("getFailFastReducer", () => {
-    const R = Option.getFailFastReducer(Number.ReducerSum)
+  it("getReducerFailFast", () => {
+    const R = Option.getReducerFailFast(Number.ReducerSum)
 
     deepStrictEqual(R.combine(Option.some(1), Option.some(2)), Option.some(3))
     deepStrictEqual(R.combine(Option.some(1), Option.none()), Option.none())

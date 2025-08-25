@@ -1,31 +1,9 @@
-import { Combiner } from "effect/data"
+import { Combiner, UndefinedOr } from "effect/data"
 import { Number, String } from "effect/primitives"
 import { describe, it } from "vitest"
-import { deepStrictEqual, strictEqual } from "../utils/assert.ts"
+import { deepStrictEqual } from "../utils/assert.ts"
 
 describe("Combiner", () => {
-  it("UndefinedOr", () => {
-    const C = Combiner.UndefinedOr(Number.ReducerSum)
-
-    // if one side is undefined, return the other
-    strictEqual(C.combine(undefined, 2), 2)
-    strictEqual(C.combine(2, undefined), 2)
-
-    // when both defined, combine
-    strictEqual(C.combine(1, 2), 3)
-  })
-
-  it("NullOr", () => {
-    const C = Combiner.NullOr(Number.ReducerSum)
-
-    // if one side is null, return the other
-    strictEqual(C.combine(null, 2), 2)
-    strictEqual(C.combine(2, null), 2)
-
-    // when both non-null, combine
-    strictEqual(C.combine(1, 2), 3)
-  })
-
   describe("Struct", () => {
     it("default omitKeyWhen (never omit)", () => {
       const C = Combiner.Struct({
@@ -39,8 +17,8 @@ describe("Combiner", () => {
     it("custom omitKeyWhen", () => {
       const C = Combiner.Struct<{ n?: number | undefined; s?: string | undefined }>(
         {
-          n: Combiner.UndefinedOr(Number.ReducerSum),
-          s: Combiner.UndefinedOr(String.ReducerConcat)
+          n: UndefinedOr.getReducer(Number.ReducerSum),
+          s: UndefinedOr.getReducer(String.ReducerConcat)
         },
         { omitKeyWhen: (v) => v === undefined }
       )

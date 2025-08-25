@@ -122,6 +122,11 @@ export * as Equivalence from "./Equivalence.ts"
 export * as Filter from "./Filter.ts"
 
 /**
+ * @since 4.0.0
+ */
+export * as NullOr from "./NullOr.ts"
+
+/**
  * @since 2.0.0
  */
 export * as Option from "./Option.ts"
@@ -220,3 +225,8 @@ export * as Struct from "./Struct.ts"
  * @since 2.0.0
  */
 export * as Tuple from "./Tuple.ts"
+
+/**
+ * @since 4.0.0
+ */
+export * as UndefinedOr from "./UndefinedOr.ts"

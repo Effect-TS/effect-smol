@@ -32,30 +32,6 @@ export function make<A>(combine: (self: A, that: A) => A): Combiner<A> {
 }
 
 /**
- * Creates a `Combiner` for `A | undefined`.
- *
- * If one of the values is `undefined`, the other is returned.
- * If both values are defined, they are combined using the provided `Combiner`.
- *
- * @since 4.0.0
- */
-export function UndefinedOr<A>(combiner: Combiner<A>): Combiner<A | undefined> {
-  return make((self, that) => (self === undefined ? that : that === undefined ? self : combiner.combine(self, that)))
-}
-
-/**
- * Creates a `Combiner` for `A | null`.
- *
- * If one of the values is `null`, the other is returned.
- * If both values are non-null, they are combined using the provided `Combiner`.
- *
- * @since 4.0.0
- */
-export function NullOr<A>(combiner: Combiner<A>): Combiner<A | null> {
-  return make((self, that) => (self === null ? that : that === null ? self : combiner.combine(self, that)))
-}
-
-/**
  * Creates a `Combiner` for a struct (object) shape.
  *
  * Each property is combined using its corresponding property-specific
