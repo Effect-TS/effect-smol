@@ -19,7 +19,7 @@ async function assertFailure<T>(config: Config.Config<T>, provider: ConfigProvid
       (e) =>
         Effect.fail(
           new Schema.SchemaError({
-            issue: new Issue.InvalidValue(Option.none(), { message: `SourceError: ${e.reason}` })
+            issue: new Issue.InvalidValue(Option.none(), { message: `SourceError: ${e.message}` })
           })
         )
     )

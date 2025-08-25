@@ -101,7 +101,8 @@ describe("ConfigProvider", () => {
           provider,
           ["a"],
           new ConfigProvider.SourceError({
-            reason: `Invalid environment: array at "a" is not dense (expected indices 0..2)`
+            message: `Invalid environment: array at "a" is not dense (expected indices 0..2)`,
+            cause: new Error(`Invalid environment: array at "a" is not dense (expected indices 0..2)`)
           })
         )
       })
@@ -486,7 +487,7 @@ A=1`)
         )
       )
 
-      deepStrictEqual(error.reason, "Failed to read file at /fallback")
+      deepStrictEqual(error.message, "Failed to read file at /fallback")
     })
 
     it("layerAdd uses fallback", async () => {

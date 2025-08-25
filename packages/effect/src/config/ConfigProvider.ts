@@ -75,7 +75,7 @@ export function array(length: number, value?: string): Stat {
  * @since 4.0.0
  */
 export class SourceError extends Data.TaggedError("SourceError")<{
-  readonly reason: string
+  readonly message: string
   readonly cause?: unknown
 }> {}
 
@@ -336,8 +336,15 @@ export function fromEnv(options?: { readonly env?: Record<string, string> | unde
       const node = findNode(root, path)
       return Effect.succeed(statAt(node))
     })
-  } catch (e: any) {
-    return make(() => Effect.fail(new SourceError({ reason: e?.message ?? String(e) })))
+  } catch (e) {
+    return make(() =>
+      Effect.fail(
+        new SourceError({
+          message: e instanceof Error ? e.message : String(e),
+          cause: e
+        })
+      )
+    )
   }
 }
 
@@ -645,7 +652,7 @@ export const fromDir: (options?: {
       Effect.catch(() => asDirectory),
       Effect.mapError((cause: PlatformError) =>
         new SourceError({
-          reason: `Failed to read file at ${platformPath.join(rootPath, ...path.map(String))}`,
+          message: `Failed to read file at ${platformPath.join(rootPath, ...path.map(String))}`,
           cause
         })
       )
