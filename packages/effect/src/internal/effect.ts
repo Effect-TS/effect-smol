@@ -3968,6 +3968,7 @@ export const runPromise: <A, E>(
 export const runSyncExitWith = <R>(services: ServiceMap.ServiceMap<R>) => {
   const runFork = runForkWith(services)
   return <A, E>(effect: Effect.Effect<A, E, R>): Exit.Exit<A, E> => {
+    if (effectIsExit(effect)) return effect
     const scheduler = new Scheduler.MixedScheduler("sync")
     const fiber = runFork(effect, { scheduler })
     scheduler.flush()

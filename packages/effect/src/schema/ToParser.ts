@@ -304,6 +304,7 @@ export interface Parser {
 
 const go = AST.memoize(
   (ast: AST.AST): Parser => {
+    let parser: Parser
     return Effect.fnUntracedEager(function*(ou, options) {
       let encoding = ast.encoding
       if (options["~variant"] === "make" && ast.context) {
@@ -334,7 +335,7 @@ const go = AST.memoize(
         srou = srou.pipe(Effect.mapErrorEager((issue) => new Issue.Encoding(ast, ou, issue)))
       }
 
-      const parser = ast.parser(go)
+      parser ??= ast.parser(go)
       let sroa = srou.pipe(Effect.flatMapEager((ou) => parser(ou, options)))
 
       if (ast.checks) {
