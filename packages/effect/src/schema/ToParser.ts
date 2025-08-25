@@ -253,14 +253,15 @@ export const encodeSync: <T, E, RD>(
 function run<T, R>(ast: AST.AST) {
   const parser = go(ast)
   return (input: unknown, options?: AST.ParseOptions): Effect.Effect<T, Issue.Issue, R> => {
-    const oinput = Option.some(input)
-    const oa = parser(oinput, options ?? defaultParseOptions)
-    return oa.pipe(Effect.flatMapEager((oa) => {
-      if (Option.isNone(oa)) {
-        return Effect.fail(new Issue.InvalidValue(oa))
+    return Effect.flatMapEager(
+      parser(Option.some(input), options ?? defaultParseOptions),
+      (oa) => {
+        if (Option.isNone(oa)) {
+          return Effect.fail(new Issue.InvalidValue(oa))
+        }
+        return Effect.succeed(oa.value as T)
       }
-      return Effect.succeed(oa.value as T)
-    }))
+    )
   }
 }
 
