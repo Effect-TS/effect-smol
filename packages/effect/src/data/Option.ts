@@ -522,19 +522,19 @@ export const fromIterable = <A>(collection: Iterable<A>): Option<A> => {
  * import { Result } from "effect/data"
  * import { Option } from "effect/data"
  *
- * console.log(Option.getOk(Result.succeed("ok")))
+ * console.log(Option.getSuccess(Result.succeed("ok")))
  * // Output: { _id: 'Option', _tag: 'Some', value: 'ok' }
  *
- * console.log(Option.getOk(Result.fail("err")))
+ * console.log(Option.getSuccess(Result.fail("err")))
  * // Output: { _id: 'Option', _tag: 'None' }
  * ```
  *
- * @see {@link getErr} for the opposite operation.
+ * @see {@link getFailure} for the opposite operation.
  *
  * @category Conversions
  * @since 2.0.0
  */
-export const getOk: <A, E>(self: Result<A, E>) => Option<A> = result.getSuccess
+export const getSuccess: <A, E>(self: Result<A, E>) => Option<A> = result.getSuccess
 
 /**
  * Converts a `Result` into an `Option` by discarding the right value and
@@ -557,19 +557,19 @@ export const getOk: <A, E>(self: Result<A, E>) => Option<A> = result.getSuccess
  * import { Result } from "effect/data"
  * import { Option } from "effect/data"
  *
- * console.log(Option.getErr(Result.succeed("ok")))
+ * console.log(Option.getFailure(Result.succeed("ok")))
  * // Output: { _id: 'Option', _tag: 'None' }
  *
- * console.log(Option.getErr(Result.fail("err")))
+ * console.log(Option.getFailure(Result.fail("err")))
  * // Output: { _id: 'Option', _tag: 'Some', value: 'err' }
  * ```
  *
- * @see {@link getOk} for the opposite operation.
+ * @see {@link getSuccess} for the opposite operation.
  *
  * @category Conversions
  * @since 2.0.0
  */
-export const getErr: <A, E>(self: Result<A, E>) => Option<E> = result.getFailure
+export const getFailure: <A, E>(self: Result<A, E>) => Option<E> = result.getFailure
 
 /**
  * Returns the value contained in the `Option` if it is `Some`, otherwise

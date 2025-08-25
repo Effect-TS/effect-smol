@@ -830,7 +830,7 @@ export const getSomes: <K extends string, A>(
  * import { Result } from "effect/data"
  *
  * assert.deepStrictEqual(
- *   Record.getErrs({ a: Result.succeed(1), b: Result.fail("err"), c: Result.succeed(2) }),
+ *   Record.getFailures({ a: Result.succeed(1), b: Result.fail("err"), c: Result.succeed(2) }),
  *   { b: "err" }
  * )
  * ```
@@ -838,10 +838,10 @@ export const getSomes: <K extends string, A>(
  * @category filtering
  * @since 2.0.0
  */
-export const getErrs = <K extends string, R, L>(
-  self: ReadonlyRecord<K, Result<R, L>>
-): Record<ReadonlyRecord.NonLiteralKey<K>, L> => {
-  const out: Record<string, L> = empty()
+export const getFailures = <K extends string, A, E>(
+  self: ReadonlyRecord<K, Result<A, E>>
+): Record<ReadonlyRecord.NonLiteralKey<K>, E> => {
+  const out: Record<string, E> = empty()
   for (const key of keys(self)) {
     const value = self[key]
     if (R.isFailure(value)) {
@@ -862,7 +862,7 @@ export const getErrs = <K extends string, R, L>(
  * import { Result } from "effect/data"
  *
  * assert.deepStrictEqual(
- *   Record.getOks({ a: Result.succeed(1), b: Result.fail("err"), c: Result.succeed(2) }),
+ *   Record.getSuccesses({ a: Result.succeed(1), b: Result.fail("err"), c: Result.succeed(2) }),
  *   { a: 1, c: 2 }
  * )
  * ```
@@ -870,10 +870,10 @@ export const getErrs = <K extends string, R, L>(
  * @category filtering
  * @since 2.0.0
  */
-export const getOks = <K extends string, R, L>(
-  self: ReadonlyRecord<K, Result<R, L>>
-): Record<string, R> => {
-  const out: Record<string, R> = empty()
+export const getSuccesses = <K extends string, A, E>(
+  self: ReadonlyRecord<K, Result<A, E>>
+): Record<string, A> => {
+  const out: Record<string, A> = empty()
   for (const key of keys(self)) {
     const value = self[key]
     if (R.isSuccess(value)) {

@@ -302,6 +302,29 @@ export interface Parser {
   (input: Option.Option<unknown>, options: AST.ParseOptions): Effect.Effect<Option.Option<unknown>, Issue.Issue, any>
 }
 
+/** @internal */
+export function runChecks<T>(
+  checks: ReadonlyArray<Check.Check<T>>,
+  value: T,
+  issues: Array<Issue.Issue>,
+  ast: AST.AST,
+  options: AST.ParseOptions
+) {
+  for (const check of checks) {
+    if (check._tag === "FilterGroup") {
+      runChecks(check.checks, value, issues, ast, options)
+    } else {
+      const issue = check.run(value, ast, options)
+      if (issue) {
+        issues.push(new Issue.Filter(value, check, issue))
+        if (check.abort || options?.errors !== "all") {
+          return
+        }
+      }
+    }
+  }
+}
+
 const go = AST.memoize(
   (ast: AST.AST): Parser => {
     let parser: Parser
@@ -339,36 +362,14 @@ const go = AST.memoize(
       let sroa = srou.pipe(Effect.flatMapEager((ou) => parser(ou, options)))
 
       if (ast.checks) {
-        const errorsAllOption = options?.errors === "all"
-
-        function runChecks(
-          checks: ReadonlyArray<Check.Check<unknown>>,
-          value: unknown,
-          issues: Array<Issue.Issue>
-        ) {
-          for (const check of checks) {
-            if (check._tag === "FilterGroup") {
-              runChecks(check.checks, value, issues)
-            } else {
-              const issue = check.run(value, ast, options)
-              if (issue) {
-                issues.push(new Issue.Filter(value, check, issue))
-                if (check.abort || !errorsAllOption) {
-                  return
-                }
-              }
-            }
-          }
-        }
-
         const checks = ast.checks
         const isStructural = AST.isTupleType(ast) || AST.isTypeLiteral(ast) ||
           (AST.isDeclaration(ast) && ast.typeParameters.length > 0)
-        if (errorsAllOption && isStructural && Option.isSome(ou)) {
+        if (options?.errors === "all" && isStructural && Option.isSome(ou)) {
           sroa = sroa.pipe(
             Effect.catchEager((issue) => {
               const issues: Array<Issue.Issue> = []
-              runChecks(checks.filter((check) => check.annotations?.["~structural"]), ou.value, issues)
+              runChecks(checks.filter((check) => check.annotations?.["~structural"]), ou.value, issues, ast, options)
               const out: Issue.Issue = Arr.isNonEmptyArray(issues)
                 ? issue._tag === "Composite" && issue.ast === ast
                   ? new Issue.Composite(ast, issue.actual, [...issue.issues, ...issues])
@@ -383,7 +384,7 @@ const go = AST.memoize(
             const value = oa.value
             const issues: Array<Issue.Issue> = []
 
-            runChecks(checks, value, issues)
+            runChecks(checks, value, issues, ast, options)
 
             if (Arr.isNonEmptyArray(issues)) {
               return Effect.fail(new Issue.Composite(ast, oa, issues))

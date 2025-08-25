@@ -2876,14 +2876,14 @@ export const getSomes: <T extends Iterable<Option.Option<X>>, X = any>(
  * import { Array } from "effect/collections"
  * import { Result } from "effect/data"
  *
- * const result = Array.getErrs([Result.succeed(1), Result.fail("err"), Result.succeed(2)])
+ * const result = Array.getFailures([Result.succeed(1), Result.fail("err"), Result.succeed(2)])
  * console.log(result) // ["err"]
  * ```
  *
  * @category filtering
  * @since 2.0.0
  */
-export const getErrs = <T extends Iterable<Result.Result<any, any>>>(
+export const getFailures = <T extends Iterable<Result.Result<any, any>>>(
   self: T
 ): Array<Result.Result.Failure<ReadonlyArray.Infer<T>>> => {
   const out: Array<any> = []
@@ -2905,14 +2905,14 @@ export const getErrs = <T extends Iterable<Result.Result<any, any>>>(
  * import { Array } from "effect/collections"
  * import { Result } from "effect/data"
  *
- * const result = Array.getOks([Result.succeed(1), Result.fail("err"), Result.succeed(2)])
+ * const result = Array.getSuccesses([Result.succeed(1), Result.fail("err"), Result.succeed(2)])
  * console.log(result) // [1, 2]
  * ```
  *
  * @category filtering
  * @since 2.0.0
  */
-export const getOks = <T extends Iterable<Result.Result<any, any>>>(
+export const getSuccesses = <T extends Iterable<Result.Result<any, any>>>(
   self: T
 ): Array<Result.Result.Success<ReadonlyArray.Infer<T>>> => {
   const out: Array<any> = []
