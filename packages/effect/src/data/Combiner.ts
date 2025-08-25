@@ -32,34 +32,6 @@ export function make<A>(combine: (self: A, that: A) => A): Combiner<A> {
 }
 
 /**
- * Creates a `Combiner` for a struct (object) shape.
- *
- * Each property is combined using its corresponding property-specific
- * `Combiner`. Optionally, properties can be omitted from the result when the
- * merged value matches `omitKeyWhen`.
- *
- * @since 4.0.0
- */
-export function Struct<A>(
-  combiners: { readonly [K in keyof A]: Combiner<A[K]> },
-  options?: {
-    readonly omitKeyWhen?: ((a: A[keyof A]) => boolean) | undefined
-  }
-): Combiner<A> {
-  const omitKeyWhen = options?.omitKeyWhen ?? (() => false)
-  return make((self, that) => {
-    const keys = Reflect.ownKeys(combiners) as Array<keyof A>
-    const out = {} as A
-    for (const key of keys) {
-      const merge = combiners[key].combine(self[key], that[key])
-      if (omitKeyWhen(merge)) continue
-      out[key] = merge
-    }
-    return out
-  })
-}
-
-/**
  * Creates a `Combiner` that returns the smaller of two values.
  *
  * @since 4.0.0

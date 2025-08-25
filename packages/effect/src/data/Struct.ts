@@ -7,6 +7,8 @@
 import * as Equivalence from "../data/Equivalence.ts"
 import * as order from "../data/Order.ts"
 import { dual } from "../Function.ts"
+import * as Combiner from "./Combiner.ts"
+import * as Reducer from "./Reducer.ts"
 
 /**
  * A utility type that simplifies the appearance of a type by flattening intersection types.
@@ -584,4 +586,60 @@ function buildStruct<
     }
   }
   return out
+}
+
+/**
+ * Creates a `Combiner` for a struct (object) shape.
+ *
+ * Each property is combined using its corresponding property-specific
+ * `Combiner`. Optionally, properties can be omitted from the result when the
+ * merged value matches `omitKeyWhen`.
+ *
+ * @since 4.0.0
+ */
+export function getCombiner<A>(
+  combiners: { readonly [K in keyof A]: Combiner.Combiner<A[K]> },
+  options?: {
+    readonly omitKeyWhen?: ((a: A[keyof A]) => boolean) | undefined
+  }
+): Combiner.Combiner<A> {
+  const omitKeyWhen = options?.omitKeyWhen ?? (() => false)
+  return Combiner.make((self, that) => {
+    const keys = Reflect.ownKeys(combiners) as Array<keyof A>
+    const out = {} as A
+    for (const key of keys) {
+      const merge = combiners[key].combine(self[key], that[key])
+      if (omitKeyWhen(merge)) continue
+      out[key] = merge
+    }
+    return out
+  })
+}
+
+/**
+ * Creates a `Reducer` for a struct (object) shape.
+ *
+ * Each property is combined using its corresponding property-specific
+ * `Reducer`. Optionally, properties can be omitted from the result when the
+ * merged value matches `omitKeyWhen`.
+ *
+ * The initial value is computed by combining the initial values of the
+ * properties that are not omitted.
+ *
+ * @since 4.0.0
+ */
+export function getReducer<A>(
+  reducers: { readonly [K in keyof A]: Reducer.Reducer<A[K]> },
+  options?: {
+    readonly omitKeyWhen?: ((a: A[keyof A]) => boolean) | undefined
+  }
+): Reducer.Reducer<A> {
+  const combine = getCombiner(reducers, options).combine
+  const initialValue = {} as A
+  for (const key of Reflect.ownKeys(reducers) as Array<keyof A>) {
+    const i = reducers[key].initialValue
+    if (options?.omitKeyWhen?.(i)) continue
+    initialValue[key] = i
+  }
+  return Reducer.make(combine, initialValue)
 }

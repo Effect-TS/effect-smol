@@ -41,11 +41,11 @@ export function make<A>(
     initialValue,
     combineAll: combineAll ??
       ((collection) => {
-        let acc = initialValue
+        let out = initialValue
         for (const value of collection) {
-          acc = combine(acc, value)
+          out = combine(out, value)
         }
-        return acc
+        return out
       })
   }
 }

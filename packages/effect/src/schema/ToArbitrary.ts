@@ -5,6 +5,7 @@ import * as Array from "../collections/Array.ts"
 import * as Combiner from "../data/Combiner.ts"
 import * as Option from "../data/Option.ts"
 import * as Predicate from "../data/Predicate.ts"
+import * as Struct from "../data/Struct.ts"
 import * as UndefinedOr from "../data/UndefinedOr.ts"
 import { defaultParseOptions, memoizeThunk } from "../internal/schema/util.ts"
 import * as Boolean from "../primitives/Boolean.ts"
@@ -202,7 +203,7 @@ const min = UndefinedOr.getReducer(Number.ReducerMin)
 const or = UndefinedOr.getReducer(Boolean.ReducerOr)
 const concat = UndefinedOr.getReducer(Array.getReducerConcat())
 
-const combiner: Combiner.Combiner<any> = Combiner.Struct({
+const combiner: Combiner.Combiner<any> = Struct.getCombiner({
   _tag: last,
   isInteger: or,
   max: min,
