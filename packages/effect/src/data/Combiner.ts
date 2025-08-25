@@ -32,6 +32,13 @@ export function make<A>(combine: (self: A, that: A) => A): Combiner<A> {
 }
 
 /**
+ * @since 4.0.0
+ */
+export function flip<A>(combiner: Combiner<A>): Combiner<A> {
+  return make((self, that) => combiner.combine(that, self))
+}
+
+/**
  * Creates a `Combiner` that returns the smaller of two values.
  *
  * @since 4.0.0
@@ -65,4 +72,23 @@ export function first<A>(): Combiner<A> {
  */
 export function last<A>(): Combiner<A> {
   return make((_, that) => that)
+}
+
+/**
+ * Creates a `Combiner` that returns a constant value.
+ *
+ * @since 4.0.0
+ */
+export function constant<A>(a: A): Combiner<A> {
+  return make(() => a)
+}
+
+/**
+ * Between each pair of elements insert `middle`.
+ *
+ * @since 4.0.0
+ */
+export function intercalate<A>(middle: A) {
+  return (combiner: Combiner<A>): Combiner<A> =>
+    make((self, that) => combiner.combine(self, combiner.combine(middle, that)))
 }

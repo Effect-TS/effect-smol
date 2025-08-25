@@ -1,5 +1,7 @@
 import { pipe } from "effect"
 import { Tuple } from "effect/data"
+import type { Reducer } from "effect/data"
+import { Number, String as Str } from "effect/primitives"
 import { Schema } from "effect/schema"
 import { describe, expect, it, when } from "tstyche"
 
@@ -143,5 +145,16 @@ describe("Tuple", () => {
         Schema.NullOr<Schema.Boolean>
       ]
     >()
+  })
+
+  it("getReducer", () => {
+    expect(Tuple.getReducer([
+      Number.ReducerSum,
+      Str.ReducerConcat
+    ])).type.toBe<Reducer.Reducer<[number, string]>>()
+    expect(Tuple.getReducer<readonly [number, string]>([
+      Number.ReducerSum,
+      Str.ReducerConcat
+    ])).type.toBe<Reducer.Reducer<readonly [number, string]>>()
   })
 })

@@ -589,11 +589,26 @@ function buildStruct<
 }
 
 /**
- * Creates a `Combiner` for a struct (object) shape.
+ * Creates a `Combiner` for a struct shape.
  *
  * Each property is combined using its corresponding property-specific
  * `Combiner`. Optionally, properties can be omitted from the result when the
  * merged value matches `omitKeyWhen`.
+ *
+ * By default the returned type is mutable. You can control this by adding an
+ * explicit type annotation.
+ *
+ * **Example**
+ *
+ * ```ts
+ * import { Struct } from "effect/data"
+ * import { Number, String } from "effect/primitives"
+ *
+ * const C = Struct.getCombiner<{ readonly n: number; readonly s: string }>({
+ *   n: Number.ReducerSum,
+ *   s: String.ReducerConcat
+ * })
+ * ```
  *
  * @since 4.0.0
  */
@@ -626,6 +641,21 @@ export function getCombiner<A>(
  * The initial value is computed by combining the initial values of the
  * properties that are not omitted.
  *
+ * By default the returned type is mutable. You can control this by adding an
+ * explicit type annotation.
+ *
+ * **Example**
+ *
+ * ```ts
+ * import { Struct } from "effect/data"
+ * import { Number, String } from "effect/primitives"
+ *
+ * const R = Struct.getReducer<{ readonly n: number; readonly s: string }>({
+ *   n: Number.ReducerSum,
+ *   s: String.ReducerConcat
+ * })
+ * ```
+ *
  * @since 4.0.0
  */
 export function getReducer<A>(
@@ -637,9 +667,9 @@ export function getReducer<A>(
   const combine = getCombiner(reducers, options).combine
   const initialValue = {} as A
   for (const key of Reflect.ownKeys(reducers) as Array<keyof A>) {
-    const i = reducers[key].initialValue
-    if (options?.omitKeyWhen?.(i)) continue
-    initialValue[key] = i
+    const iv = reducers[key].initialValue
+    if (options?.omitKeyWhen?.(iv)) continue
+    initialValue[key] = iv
   }
   return Reducer.make(combine, initialValue)
 }

@@ -1,6 +1,7 @@
 import { hole, pipe } from "effect"
+import type { Reducer } from "effect/data"
 import { Struct } from "effect/data"
-import { String as Str } from "effect/primitives"
+import { Number, String as Str } from "effect/primitives"
 import { Schema } from "effect/schema"
 import { describe, expect, it, when } from "tstyche"
 
@@ -336,5 +337,16 @@ describe("Struct", () => {
     expect(Struct.renameKeys({ a: "a", b: 1, c: true }, { a: "A", b: "B" })).type.toBe<
       { A: string; B: number; c: boolean }
     >()
+  })
+
+  it("getReducer", () => {
+    expect(Struct.getReducer({
+      n: Number.ReducerSum,
+      s: Str.ReducerConcat
+    })).type.toBe<Reducer.Reducer<{ n: number; s: string }>>()
+    expect(Struct.getReducer<{ readonly n: number; readonly s: string }>({
+      n: Number.ReducerSum,
+      s: Str.ReducerConcat
+    })).type.toBe<Reducer.Reducer<{ readonly n: number; readonly s: string }>>()
   })
 })

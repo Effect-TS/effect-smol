@@ -8,6 +8,8 @@ import * as order from "../data/Order.ts"
 import type { Apply, Lambda } from "../data/Struct.ts"
 import { dual } from "../Function.ts"
 import type { TypeLambda } from "../types/HKT.ts"
+import * as Combiner from "./Combiner.ts"
+import * as Reducer from "./Reducer.ts"
 
 /**
  * A type lambda for tuples with two elements, useful for higher-kinded type operations.
@@ -594,3 +596,71 @@ export {
    */
   isTupleOfAtLeast
 } from "./Predicate.ts"
+
+/**
+ * Creates a `Combiner` for a tuple shape.
+ *
+ * Each element is combined using its corresponding element-specific
+ * `Combiner`. Optionally, elements can be omitted from the result when the
+ * merged value matches `omitKeyWhen`.
+ *
+ * By default the returned type is mutable. You can control this by adding an
+ * explicit type annotation.
+ *
+ * **Example**
+ *
+ * ```ts
+ * import { Tuple } from "effect/data"
+ * import { Number, String } from "effect/primitives"
+ *
+ * const C = Tuple.getCombiner<readonly [number, string]>([Number.ReducerSum, String.ReducerConcat])
+ * ```
+ *
+ * @since 4.0.0
+ */
+export function getCombiner<A extends ReadonlyArray<unknown>>(
+  combiners: { readonly [K in keyof A]: Combiner.Combiner<A[K]> }
+): Combiner.Combiner<A> {
+  return Combiner.make((self, that) => {
+    const out = []
+    for (let i = 0; i < self.length; i++) {
+      out.push(combiners[i].combine(self[i], that[i]))
+    }
+    return out as any
+  })
+}
+
+/**
+ * Creates a `Reducer` for a tuple shape.
+ *
+ * Each element is combined using its corresponding element-specific
+ * `Reducer`. Optionally, elements can be omitted from the result when the
+ * merged value matches `omitKeyWhen`.
+ *
+ * The initial value is computed by combining the initial values of the
+ * elements that are not omitted.
+ *
+ * By default the returned type is mutable. You can control this by adding an
+ * explicit type annotation.
+ *
+ * **Example**
+ *
+ * ```ts
+ * import { Tuple } from "effect/data"
+ * import { Number, String } from "effect/primitives"
+ *
+ * const R = Tuple.getReducer<readonly [number, string]>([Number.ReducerSum, String.ReducerConcat])
+ * ```
+ *
+ * @since 4.0.0
+ */
+export function getReducer<A extends ReadonlyArray<unknown>>(
+  reducers: { readonly [K in keyof A]: Reducer.Reducer<A[K]> }
+): Reducer.Reducer<A> {
+  const combine = getCombiner(reducers).combine
+  const initialValue = []
+  for (let i = 0; i < reducers.length; i++) {
+    initialValue.push(reducers[i].initialValue)
+  }
+  return Reducer.make(combine, initialValue as unknown as A)
+}

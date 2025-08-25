@@ -49,3 +49,10 @@ export function make<A>(
       })
   }
 }
+
+/**
+ * @since 4.0.0
+ */
+export function flip<A>(reducer: Reducer<A>): Reducer<A> {
+  return make((self, that) => reducer.combine(that, self), reducer.initialValue)
+}
