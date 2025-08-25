@@ -20,7 +20,7 @@ import type { TypeLambda } from "../types/HKT.ts"
 import type { Covariant, NoInfer, NotFunction } from "../types/Types.ts"
 import type * as Unify from "../types/Unify.ts"
 import * as Gen from "../Utils.ts"
-import type * as Combiner from "./Combiner.ts"
+import * as Combiner from "./Combiner.js"
 import * as Reducer from "./Reducer.ts"
 
 /**
@@ -2484,10 +2484,21 @@ export const mergeWith = <A>(f: (a1: A, a2: A) => A) => (o1: Option<A>, o2: Opti
 }
 
 /**
- * A `Reducer` for combining `Option`s using a `Combiner`.
+ * Creates a `Reducer` for `Option<A>` that prioritizes the first non-`None`
+ * value and combines values when both operands are present.
  *
- * If both `Option`s are `Some`, the `Combiner` is applied to the values.
- * If either `Option` is `None`, the result is the other `Option`.
+ * This `Reducer` is useful for scenarios where you want to:
+ * - Take the first available value (like a fallback chain)
+ * - Combine values when both are present
+ * - Maintain a `None` state only when all values are `None`
+ *
+ * The `initialValue` of the `Reducer` is `none()`.
+ *
+ * **Behavior:**
+ * - `none()` + `none()` = `none()`
+ * - `some(a)` + `none()` = `some(a)` (first value wins)
+ * - `none()` + `some(b)` = `some(b)` (second value wins)
+ * - `some(a)` + `some(b)` = `some(a + b)` (values combined)
  *
  * @since 4.0.0
  */
@@ -2497,4 +2508,66 @@ export function getReducer<A>(combiner: Combiner.Combiner<A>): Reducer.Reducer<O
     if (isNone(that)) return self
     return some(combiner.combine(self.value, that.value))
   }, none())
+}
+
+/**
+ * Creates a `Combiner` for `Option<A>` that only combines values when both
+ * operands are `Some`, failing fast if either is `None`.
+ *
+ * This `Combiner` is useful for scenarios where you need both values to be
+ * present to perform an operation, such as:
+ * - Mathematical operations that require two operands
+ * - Data validation that needs both fields
+ * - Operations that can't proceed with partial data
+ *
+ * **Behavior:**
+ * - `none()` + `none()` = `none()`
+ * - `some(a)` + `none()` = `none()` (fails fast)
+ * - `none()` + `some(b)` = `none()` (fails fast)
+ * - `some(a)` + `some(b)` = `some(a + b)` (values combined)
+ *
+ * @see {@link getFailFastReducer} if you have a `Reducer` and want to lift it
+ * to `Option` values.
+ *
+ * @since 4.0.0
+ */
+export function getFailFastCombiner<A>(combiner: Combiner.Combiner<A>): Combiner.Combiner<Option<A>> {
+  return Combiner.make((self, that) => {
+    if (isNone(self) || isNone(that)) return none()
+    return some(combiner.combine(self.value, that.value))
+  })
+}
+
+/**
+ * Creates a `Reducer` for `Option<A>` by wrapping an existing `Reducer` with
+ * fail-fast semantics for `Option` values.
+ *
+ * This function lifts a regular `Reducer` into the `Option` context, allowing
+ * you to use existing `Reducer`s with `Option` values while maintaining the
+ * fail-fast behavior where any `None` value causes the entire reduction to fail.
+ *
+ * The initial value is `some(reducer.initialValue)`, ensuring the `Reducer`
+ * starts with a valid `Option` value.
+ *
+ * **Behavior:**
+ * - Combines values only when both operands are `Some`
+ * - Fails fast (returns `none()`) if any operand is `None`
+ * - Uses the underlying reducer's combine logic when both values are present
+ *
+ * @see {@link getFailFastCombiner} if you only have a `Combiner` and want to
+ * lift it to `Option` values.
+ *
+ * @since 4.0.0
+ */
+export function getFailFastReducer<A>(reducer: Reducer.Reducer<A>): Reducer.Reducer<Option<A>> {
+  const combine = getFailFastCombiner(reducer).combine
+  const initialValue = some(reducer.initialValue)
+  return Reducer.make(combine, initialValue, (collection) => {
+    let out = initialValue
+    for (const value of collection) {
+      out = combine(out, value)
+      if (isNone(out)) return out
+    }
+    return out
+  })
 }
