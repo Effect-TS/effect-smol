@@ -84,7 +84,7 @@ export class Filter extends Base {
     /**
      * The filter that failed.
      */
-    filter: Check.Filter<unknown>,
+    filter: Check.Filter<any>,
     /**
      * The issue that occurred.
      */
