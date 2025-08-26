@@ -25,7 +25,7 @@
 import * as Arr from "../collections/Array.ts"
 import { identity } from "../Function.ts"
 import * as AST from "../schema/AST.ts"
-import type * as Check from "../schema/Check.ts"
+import * as Check from "../schema/Check.ts"
 import * as Formatter from "../schema/Formatter.ts"
 import * as Issue from "../schema/Issue.ts"
 import * as ToParser from "../schema/ToParser.ts"
@@ -68,6 +68,43 @@ export interface Brand<in out K extends string | symbol> {
 }
 
 /**
+ * A constructor for a branded type that provides validation and safe
+ * construction methods.
+ *
+ * @category models
+ * @since 2.0.0
+ */
+export interface Constructor<in out A extends Brand<any>> {
+  /**
+   * Constructs a branded type from a value of type `A`, throwing an error if
+   * the provided `A` is not valid.
+   */
+  (args: Brand.Unbranded<A>): A
+  /**
+   * Constructs a branded type from a value of type `A`, returning `Some<A>`
+   * if the provided `A` is valid, `None` otherwise.
+   */
+  option(args: Brand.Unbranded<A>): Option.Option<A>
+  /**
+   * Constructs a branded type from a value of type `A`, returning `Ok<A>` if
+   * the provided `A` is valid, `Err<BrandError>` otherwise.
+   */
+  result(args: Brand.Unbranded<A>): Result.Result<A, BrandError>
+  /**
+   * Attempts to refine the provided value of type `A`, returning `true` if
+   * the provided `A` is valid, `false` otherwise.
+   */
+  is(a: Brand.Unbranded<A>): a is Brand.Unbranded<A> & A
+
+  /**
+   * The checks that are applied to the branded type.
+   *
+   * @internal
+   */
+  checks: readonly [Check.Check<Brand.Unbranded<A>>, ...ReadonlyArray<Check.Check<Brand.Unbranded<A>>>]
+}
+
+/**
  * @category models
  * @since 4.0.0
  */
@@ -88,42 +125,12 @@ export class BrandError extends Data.TaggedError("BrandError")<{
  */
 export declare namespace Brand {
   /**
-   * A constructor for a branded type that provides validation and safe
-   * construction methods.
+   * A utility type to extract a branded type from a `Constructor`.
    *
    * @category models
    * @since 2.0.0
    */
-  export interface Constructor<in out A extends Brand<any>> {
-    /**
-     * Constructs a branded type from a value of type `A`, throwing an error if
-     * the provided `A` is not valid.
-     */
-    (args: Brand.Unbranded<A>): A
-    /**
-     * Constructs a branded type from a value of type `A`, returning `Some<A>`
-     * if the provided `A` is valid, `None` otherwise.
-     */
-    option(args: Brand.Unbranded<A>): Option.Option<A>
-    /**
-     * Constructs a branded type from a value of type `A`, returning `Ok<A>` if
-     * the provided `A` is valid, `Err<BrandError>` otherwise.
-     */
-    result(args: Brand.Unbranded<A>): Result.Result<A, BrandError>
-    /**
-     * Attempts to refine the provided value of type `A`, returning `true` if
-     * the provided `A` is valid, `false` otherwise.
-     */
-    is(a: Brand.Unbranded<A>): a is Brand.Unbranded<A> & A
-  }
-
-  /**
-   * A utility type to extract a branded type from a `Brand.Constructor`.
-   *
-   * @category models
-   * @since 2.0.0
-   */
-  export type FromConstructor<A> = A extends Brand.Constructor<infer B> ? B : never
+  export type FromConstructor<A> = A extends Constructor<infer B> ? B : never
 
   /**
    * A utility type to extract the value type from a brand.
@@ -154,7 +161,7 @@ export declare namespace Brand {
    * @since 2.0.0
    */
   export type EnsureCommonBase<
-    Brands extends readonly [Brand.Constructor<any>, ...Array<Brand.Constructor<any>>]
+    Brands extends readonly [Constructor<any>, ...Array<Constructor<any>>]
   > = {
     [B in keyof Brands]: Brand.Unbranded<Brand.FromConstructor<Brands[0]>> extends
       Brand.Unbranded<Brand.FromConstructor<Brands[B]>>
@@ -176,7 +183,7 @@ export type Branded<A, K extends string | symbol> = A & Brand<K>
 const nominal_ = make<any>(() => undefined)
 
 /**
- * This function returns a `Brand.Constructor` that **does not apply any runtime
+ * This function returns a `Constructor` that **does not apply any runtime
  * checks**, it just returns the provided value. It can be used to create
  * nominal types that allow distinguishing between two values of the same type
  * but with different meanings.
@@ -187,12 +194,12 @@ const nominal_ = make<any>(() => undefined)
  * @category constructors
  * @since 2.0.0
  */
-export function nominal<A extends Brand<any>>(): Brand.Constructor<A> {
+export function nominal<A extends Brand<any>>(): Constructor<A> {
   return nominal_
 }
 
 /**
- * Returns a `Brand.Constructor` that can construct a branded type from an
+ * Returns a `Constructor` that can construct a branded type from an
  * unbranded value using the provided `refinement` predicate as validation of
  * the input data.
  *
@@ -203,17 +210,12 @@ export function nominal<A extends Brand<any>>(): Brand.Constructor<A> {
  * @since 2.0.0
  */
 export function make<A extends Brand<any>>(
-  f: (unbranded: Brand.Unbranded<A>) => Issue.Issue | undefined
-): Brand.Constructor<A> {
-  const result = (input: Brand.Unbranded<A>): Result.Result<A, BrandError> => {
-    const issue = f(input)
-    return issue ? Result.fail(new BrandError({ issue })) : Result.succeed(input as A)
+  f: (unbranded: Brand.Unbranded<A>) => undefined | boolean | string | Issue.Issue | {
+    readonly path: ReadonlyArray<PropertyKey>
+    readonly message: string
   }
-  return Object.assign((input: Brand.Unbranded<A>) => Result.getOrThrowWith(result(input), identity), {
-    option: (input: Brand.Unbranded<A>) => Option.getSuccess(result(input)),
-    result,
-    is: (input: Brand.Unbranded<A>): input is Brand.Unbranded<A> & A => Result.isSuccess(result(input))
-  })
+): Constructor<A> {
+  return check(Check.make(f))
 }
 
 /**
@@ -224,8 +226,8 @@ export function check<A extends Brand<any>>(
     Check.Check<Brand.Unbranded<A>>,
     ...ReadonlyArray<Check.Check<Brand.Unbranded<A>>>
   ]
-): Brand.Constructor<A> {
-  return make((input) => {
+): Constructor<A> {
+  const result = (input: Brand.Unbranded<A>): Result.Result<A, BrandError> => {
     const issues: Array<Issue.Issue> = []
     ToParser.runChecks(checks, input, issues, AST.unknownKeyword, { errors: "all" })
     const issue = Arr.isNonEmptyArray(issues) ?
@@ -233,7 +235,13 @@ export function check<A extends Brand<any>>(
         issues[0] :
         new Issue.Composite(AST.unknownKeyword, Option.some(input), issues) :
       undefined
-    return issue
+    return issue ? Result.fail(new BrandError({ issue })) : Result.succeed(input as A)
+  }
+  return Object.assign((input: Brand.Unbranded<A>) => Result.getOrThrowWith(result(input), identity), {
+    option: (input: Brand.Unbranded<A>) => Option.getSuccess(result(input)),
+    result,
+    is: (input: Brand.Unbranded<A>): input is Brand.Unbranded<A> & A => Result.isSuccess(result(input)),
+    checks
   })
 }
 
@@ -242,8 +250,8 @@ export function check<A extends Brand<any>>(
  */
 export function refine<B extends string | symbol, T>(
   refine: Check.Refine<T & Brand<B>, T>
-): Brand.Constructor<T & Brand<B>> {
-  return check(refine as Check.Filter<Brand.Unbranded<T & Brand<B>>>)
+): Constructor<T & Brand<B>> {
+  return check(refine as any)
 }
 
 /**
@@ -254,33 +262,14 @@ export function refine<B extends string | symbol, T>(
  * @category combining
  * @since 2.0.0
  */
-export function all<Brands extends readonly [Brand.Constructor<any>, ...Array<Brand.Constructor<any>>]>(
+export function all<Brands extends readonly [Constructor<any>, ...Array<Constructor<any>>]>(
   ...brands: Brand.EnsureCommonBase<Brands>
-): Brand.Constructor<
+): Constructor<
   Types.UnionToIntersection<{ [B in keyof Brands]: Brand.FromConstructor<Brands[B]> }[number]> extends
     infer X extends Brand<any> ? X : Brand<any>
 > {
-  const result = (input: unknown): Result.Result<any, BrandError> => {
-    const issues: Array<Issue.Issue> = []
-    for (const brand of brands) {
-      const r = brand.result(input)
-      if (Result.isFailure(r)) {
-        issues.push(r.failure.issue)
-      }
-    }
-    return Arr.isNonEmptyArray(issues)
-      ? Result.fail(
-        new BrandError({
-          issue: issues.length === 1 ?
-            issues[0] :
-            new Issue.Composite(AST.unknownKeyword, Option.some(input), issues)
-        })
-      )
-      : Result.succeed(input)
-  }
-  return Object.assign((input: unknown) => Result.getOrThrow(result(input)), {
-    option: (input: unknown) => Option.getSuccess(result(input)),
-    result,
-    is: (input: unknown): input is any => Result.isSuccess(result(input))
-  })
+  const checks = brands.flatMap((brand) => brand.checks)
+  return Arr.isNonEmptyArray(checks) ?
+    check(...checks) :
+    nominal()
 }

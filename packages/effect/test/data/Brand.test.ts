@@ -9,15 +9,15 @@ import {
   strictEqual,
   throws
 } from "@effect/vitest/utils"
-import { Brand, Option, Result } from "effect/data"
-import { Check, Issue } from "effect/schema"
+import { Brand, Result } from "effect/data"
+import { Check } from "effect/schema"
 
-function assertSuccess<T extends Brand.Brand<any>>(ctor: Brand.Brand.Constructor<T>, value: Brand.Brand.Unbranded<T>) {
+function assertSuccess<T extends Brand.Brand<any>>(ctor: Brand.Constructor<T>, value: Brand.Brand.Unbranded<T>) {
   assertOk(ctor.result(value), value as T)
 }
 
 function assertFailure<T extends Brand.Brand<any>>(
-  ctor: Brand.Brand.Constructor<T>,
+  ctor: Brand.Constructor<T>,
   value: Brand.Brand.Unbranded<T>,
   message: string
 ) {
@@ -49,10 +49,7 @@ describe("Brand", () => {
   it("make", () => {
     type Int = number & Brand.Brand<"Int">
     const Int = Brand.make<Int>(
-      (n) =>
-        Number.isInteger(n) ?
-          undefined :
-          new Issue.InvalidValue(Option.some(n), { message: `Expected ${n} to be an integer` })
+      (n) => Number.isInteger(n) || `Expected ${n} to be an integer`
     )
 
     strictEqual(Int(1), 1)
