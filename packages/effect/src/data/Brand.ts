@@ -47,18 +47,6 @@ export const TypeId: TypeId = "~effect/Brand"
 export type TypeId = "~effect/Brand"
 
 /**
- * @category symbols
- * @since 2.0.0
- */
-export const RefinedConstructorsTypeId: RefinedConstructorsTypeId = "~effect/Brand/Refined"
-
-/**
- * @category symbols
- * @since 2.0.0
- */
-export type RefinedConstructorsTypeId = "~effect/Brand/Refined"
-
-/**
  * A generic interface that defines a branded type.
  *
  * **Example**
@@ -107,7 +95,6 @@ export declare namespace Brand {
    * @since 2.0.0
    */
   export interface Constructor<in out A extends Brand<any>> {
-    readonly [RefinedConstructorsTypeId]: RefinedConstructorsTypeId
     /**
      * Constructs a branded type from a value of type `A`, throwing an error if
      * the provided `A` is not valid.
@@ -223,7 +210,6 @@ export function make<A extends Brand<any>>(
     return issue ? Result.fail(new BrandError({ issue })) : Result.succeed(input as A)
   }
   return Object.assign((input: Brand.Unbranded<A>) => Result.getOrThrowWith(result(input), identity), {
-    [RefinedConstructorsTypeId]: RefinedConstructorsTypeId,
     option: (input: Brand.Unbranded<A>) => Option.getSuccess(result(input)),
     result,
     is: (input: Brand.Unbranded<A>): input is Brand.Unbranded<A> & A => Result.isSuccess(result(input))
@@ -293,7 +279,6 @@ export function all<Brands extends readonly [Brand.Constructor<any>, ...Array<Br
       : Result.succeed(input)
   }
   return Object.assign((input: unknown) => Result.getOrThrow(result(input)), {
-    [RefinedConstructorsTypeId]: RefinedConstructorsTypeId,
     option: (input: unknown) => Option.getSuccess(result(input)),
     result,
     is: (input: unknown): input is any => Result.isSuccess(result(input))
