@@ -34,12 +34,6 @@ export * as Issue from "./Issue.ts"
 
 /**
  * @since 4.0.0
- * @experimental
- */
-export * as MetaAST from "./MetaAST.ts"
-
-/**
- * @since 4.0.0
  */
 export * as Schema from "./Schema.ts"
 

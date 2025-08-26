@@ -3,10 +3,10 @@
  * @experimental
  */
 
-import * as ast from "./AST.ts"
-import * as Schema from "./Schema.ts"
-import * as Serializer from "./Serializer.ts"
-import * as Transformation from "./Transformation.ts"
+import * as ast from "../AST.ts"
+import * as Schema from "../Schema.ts"
+import * as Serializer from "../Serializer.ts"
+import * as Transformation from "../Transformation.ts"
 
 /**
  * @since 4.0.0
