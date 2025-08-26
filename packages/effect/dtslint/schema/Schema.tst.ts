@@ -109,8 +109,8 @@ describe("Schema", () => {
       expect(schema.makeSync).type.toBe<MakeSync<string, string & Brand.Brand<"a">>>()
     })
 
-    it("guard", () => {
-      const schema = Schema.Option(Schema.String).pipe(Schema.guard(Option.isSome))
+    it("refineByGuard", () => {
+      const schema = Schema.Option(Schema.String).pipe(Schema.refineByGuard(Option.isSome))
       expect(schema.makeSync).type.toBe<MakeSync<Option.Option<string>, Option.Some<string>>>()
     })
 
@@ -131,9 +131,9 @@ describe("Schema", () => {
         >()
       })
 
-      it("guarded field", () => {
+      it("refineByGuard field", () => {
         const schema = Schema.Struct({
-          a: Schema.Option(Schema.String).pipe(Schema.guard(Option.isSome))
+          a: Schema.Option(Schema.String).pipe(Schema.refineByGuard(Option.isSome))
         })
         expect(schema.makeSync).type.toBe<
           MakeSync<{ readonly a: Option.Some<string> }, { readonly a: Option.Some<string> }>
@@ -696,9 +696,9 @@ describe("Schema", () => {
   })
 
   describe("refinements", () => {
-    describe("guard", () => {
+    describe("refineByGuard", () => {
       it("String & isString", () => {
-        const schema = Schema.String.pipe(Schema.guard(Predicate.isString))
+        const schema = Schema.String.pipe(Schema.refineByGuard(Predicate.isString))
         expect(Schema.revealCodec(schema)).type.toBe<
           Schema.Codec<string, string, never, never>
         >()
@@ -706,7 +706,7 @@ describe("Schema", () => {
 
       it("String | Number & isString", () => {
         const schema = Schema.Union([Schema.String, Schema.Number]).pipe(
-          Schema.guard(Predicate.isString)
+          Schema.refineByGuard(Predicate.isString)
         )
         expect(Schema.revealCodec(schema)).type.toBe<
           Schema.Codec<string, string | number, never, never>
@@ -714,7 +714,7 @@ describe("Schema", () => {
       })
 
       it("Option(String) & isSome", () => {
-        const schema = Schema.Option(Schema.String).pipe(Schema.guard(Option.isSome))
+        const schema = Schema.Option(Schema.String).pipe(Schema.refineByGuard(Option.isSome))
         expect(Schema.revealCodec(schema)).type.toBe<
           Schema.Codec<Option.Some<string>, Option.Option<string>, never, never>
         >()
@@ -1427,7 +1427,7 @@ describe("Schema", () => {
       expect(s).type.toBe<{ b: string } & { readonly a: string }>()
     }
     const schema = Schema.Array(Schema.String).pipe(
-      Schema.guard(
+      Schema.refineByGuard(
         (arr): arr is readonly [string, string, ...Array<string>] => arr.length >= 2
       )
     )

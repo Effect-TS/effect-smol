@@ -1,15 +1,8 @@
 import type { Brand } from "effect/data"
-import { Check, Schema } from "effect/schema"
+import { Check } from "effect/schema"
 import { describe, expect, it } from "tstyche"
 
 describe("Check", () => {
-  it("asCheck", () => {
-    const check = Schema.asCheck(Check.maxLength(5))
-    expect(check).type.toBe<
-      <S extends Schema.Schema<{ readonly length: number }>>(self: S) => S["~rebuild.out"]
-    >()
-  })
-
   describe("and / annotate", () => {
     it("Filter + Filter", () => {
       const f1 = Check.int()

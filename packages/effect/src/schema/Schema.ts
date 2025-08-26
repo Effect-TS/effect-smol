@@ -2494,20 +2494,8 @@ export function check<S extends Top>(
     Check.Check<S["Type"]>,
     ...ReadonlyArray<Check.Check<S["Type"]>>
   ]
-): (self: S) => S["~rebuild.out"] {
-  return asCheck(...checks)
-}
-
-/**
- * @category Filtering
- * @since 4.0.0
- */
-export function asCheck<T>(
-  ...checks: readonly [Check.Check<T>, ...ReadonlyArray<Check.Check<T>>]
 ) {
-  return <S extends Schema<T>>(self: S): S["~rebuild.out"] => {
-    return self.check(...checks)
-  }
+  return (self: S): S["~rebuild.out"] => self.check(...checks)
 }
 
 /**
@@ -2547,12 +2535,12 @@ export function refine<T extends E, E>(refine: Check.Refine<T, E>) {
  * @category Filtering
  * @since 4.0.0
  */
-export function guard<T extends S["Type"], S extends Top>(
+export function refineByGuard<T extends S["Type"], S extends Top>(
   is: (value: S["Type"]) => value is T,
   annotations?: Annotations.Filter
 ) {
   return (self: S): refine<T, S["~rebuild.out"]> => {
-    return self.pipe(refine(Check.makeGuard(is, annotations)))
+    return self.pipe(refine(Check.makeRefine(is, annotations)))
   }
 }
 

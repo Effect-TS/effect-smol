@@ -639,7 +639,7 @@ For refined schemas, the constructor accepts the unrefined type and returns the 
 import { Option } from "effect/data"
 import { Schema } from "effect/schema"
 
-const schema = Schema.Option(Schema.String).pipe(Schema.guard(Option.isSome))
+const schema = Schema.Option(Schema.String).pipe(Schema.refineByGuard(Option.isSome))
 
 // makeSync(input: Option.Option<string>, options?: Schema.MakeOptions): Option.Some<string>
 schema.makeSync
@@ -652,7 +652,7 @@ import { Option } from "effect/data"
 import { Schema } from "effect/schema"
 
 const schema = Schema.Struct({
-  a: Schema.Option(Schema.String).pipe(Schema.guard(Option.isSome)),
+  a: Schema.Option(Schema.String).pipe(Schema.refineByGuard(Option.isSome)),
   b: Schema.Number
 })
 
@@ -1035,7 +1035,7 @@ import { Schema } from "effect/schema"
 //      ┌─── refine<readonly [string, string, ...string[]], Schema.Array$<Schema.String>>
 //      ▼
 const guarded = Schema.Array(Schema.String).pipe(
-  Schema.guard((arr): arr is readonly [string, string, ...Array<string>] => arr.length >= 2)
+  Schema.refineByGuard((arr): arr is readonly [string, string, ...Array<string>] => arr.length >= 2)
 )
 ```
 
@@ -1065,7 +1065,7 @@ import { Check } from "effect/schema"
 //      ┌─── RefinementGroup<Lowercase<string>, string>
 //      ▼
 export const guardedGroup = Check.makeGroup([Check.minLength(3), Check.trimmed()], undefined).pipe(
-  Check.guard((s): s is Lowercase<string> => s.toLowerCase() === s)
+  Check.refine((s): s is Lowercase<string> => s.toLowerCase() === s)
 )
 ```
 
@@ -5675,7 +5675,7 @@ v4
 import { Option } from "effect/data"
 import { Schema } from "effect/schema"
 
-const schema = Schema.Option(Schema.String).pipe(Schema.guard(Option.isSome))
+const schema = Schema.Option(Schema.String).pipe(Schema.refineByGuard(Option.isSome))
 ```
 
 ### filterEffect

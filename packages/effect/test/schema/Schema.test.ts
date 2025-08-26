@@ -893,9 +893,9 @@ Expected a string including "c", got "ab"`,
     })
 
     describe("refinements", () => {
-      it("guard", async () => {
+      it("refineByGuard", async () => {
         const schema = Schema.Option(Schema.String).pipe(
-          Schema.guard(Option.isSome, { title: "isSome" }),
+          Schema.refineByGuard(Option.isSome, { title: "isSome" }),
           Schema.check(
             Check.make(({ value }) => value.length > 0, { title: "length > 0" })
           )

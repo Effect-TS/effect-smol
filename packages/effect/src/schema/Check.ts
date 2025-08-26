@@ -118,7 +118,7 @@ export interface RefinementGroup<T extends E, E> extends FilterGroup<E> {
 export type Refine<T extends E, E> = Refinement<T, E> | RefinementGroup<T, E>
 
 /** @internal */
-export function makeGuard<T extends E, E>(
+export function makeRefine<T extends E, E>(
   is: (value: E) => value is T,
   annotations?: Annotations.Filter
 ): Refinement<T, E> {
@@ -129,16 +129,21 @@ export function makeGuard<T extends E, E>(
   ) as any
 }
 
-/** @internal */
-export const BRAND_KEY = "~brand.type"
-
-/** @internal */
-export function getBrand<T>(check: Check<T>): string | symbol | undefined {
-  const brand = check.annotations?.[BRAND_KEY]
-  if (Predicate.isString(brand) || Predicate.isSymbol(brand)) return brand
+/**
+ * @since 4.0.0
+ */
+export function refine<T extends E, E>(
+  is: (value: E) => value is T,
+  annotations?: Annotations.Filter
+) {
+  return (self: Check<E>): RefinementGroup<T, E> => {
+    return self.and(makeRefine(is, annotations))
+  }
 }
 
-const brand_ = makeGuard((_u): _u is any => true)
+const brand_ = makeRefine((_u): _u is any => true)
+
+const BRAND_KEY = "~brand.type"
 
 /** @internal */
 export function makeBrand<B extends string | symbol, T>(
@@ -148,15 +153,11 @@ export function makeBrand<B extends string | symbol, T>(
   return brand_.annotate(Annotations.merge({ [BRAND_KEY]: brand }, annotations))
 }
 
-/**
- * @since 4.0.0
- */
-export function guard<T extends E, E>(
-  is: (value: E) => value is T,
-  annotations?: Annotations.Filter
-) {
-  return (self: Check<E>): RefinementGroup<T, E> => {
-    return self.and(makeGuard(is, annotations))
+/** @internal */
+export function getBrand<T>(check: Check<T>): string | symbol | undefined {
+  const brand = check.annotations?.[BRAND_KEY]
+  if (Predicate.isString(brand) || Predicate.isSymbol(brand)) {
+    return brand
   }
 }
 
