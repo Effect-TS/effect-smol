@@ -230,12 +230,11 @@ export function check<A extends Brand<any>>(
   const result = (input: Brand.Unbranded<A>): Result.Result<A, BrandError> => {
     const issues: Array<Issue.Issue> = []
     ToParser.runChecks(checks, input, issues, AST.unknownKeyword, { errors: "all" })
-    const issue = Arr.isNonEmptyArray(issues) ?
-      issues.length === 1 ?
-        issues[0] :
-        new Issue.Composite(AST.unknownKeyword, Option.some(input), issues) :
-      undefined
-    return issue ? Result.fail(new BrandError({ issue })) : Result.succeed(input as A)
+    if (Arr.isNonEmptyArray(issues)) {
+      const issue = new Issue.Composite(AST.unknownKeyword, Option.some(input), issues)
+      return Result.fail(new BrandError({ issue }))
+    }
+    return Result.succeed(input as A)
   }
   return Object.assign((input: Brand.Unbranded<A>) => Result.getOrThrowWith(result(input), identity), {
     option: (input: Brand.Unbranded<A>) => Option.getSuccess(result(input)),
