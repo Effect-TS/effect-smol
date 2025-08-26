@@ -55,6 +55,7 @@
     "./unstable/cluster": "./src/unstable/cluster/index.ts",
     "./unstable/http": "./src/unstable/http/index.ts",
     "./unstable/httpapi": "./src/unstable/httpapi/index.ts",
+    "./unstable/reactivity": "./src/unstable/reactivity/index.ts",
     "./unstable/rpc": "./src/unstable/rpc/index.ts",
     "./unstable/socket": "./src/unstable/socket/index.ts",
     "./unstable/observability": "./src/unstable/observability/index.ts",
