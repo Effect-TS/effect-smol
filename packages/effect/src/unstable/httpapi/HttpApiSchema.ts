@@ -437,7 +437,7 @@ const encodingJson: Encoding = {
 }
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category annotations
  */
 export const getEncoding = (ast: AST.AST, fallback = encodingJson): Encoding =>

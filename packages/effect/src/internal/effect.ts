@@ -2825,6 +2825,23 @@ export const matchCauseEager: {
 )
 
 // ----------------------------------------------------------------------------
+// Condition checking
+// ----------------------------------------------------------------------------
+
+/** @internal */
+export const isFailure = <A, E, R>(self: Effect.Effect<A, E, R>): Effect.Effect<boolean, never, R> =>
+  matchEager(self, {
+    onFailure: () => true,
+    onSuccess: () => false
+  })
+
+export const isSuccess = <A, E, R>(self: Effect.Effect<A, E, R>): Effect.Effect<boolean, never, R> =>
+  matchEager(self, {
+    onFailure: () => false,
+    onSuccess: () => true
+  })
+
+// ----------------------------------------------------------------------------
 // delays & timeouts
 // ----------------------------------------------------------------------------
 

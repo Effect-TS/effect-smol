@@ -87,12 +87,12 @@ export declare namespace RpcClient {
       Current in Rpcs as Current["_tag"] extends `${Prefix}.${infer Method}` ? Method
         : Current["_tag"]
     ]: <
-      const AsMailbox extends boolean = false,
+      const AsQueue extends boolean = false,
       const Discard = false
     >(
       input: Rpc.PayloadConstructor<Current>,
       options?: Rpc.Success<Current> extends Stream.Stream<infer _A, infer _E, infer _R> ? {
-          readonly asMailbox?: AsMailbox | undefined
+          readonly asQueue?: AsQueue | undefined
           readonly streamBufferSize?: number | undefined
           readonly headers?: Headers.Input | undefined
           readonly context?: ServiceMap.ServiceMap<never> | undefined
@@ -109,7 +109,7 @@ export declare namespace RpcClient {
       infer _Error,
       infer _Middleware,
       infer _Requires
-    > ? [_Success] extends [RpcSchema.Stream<infer _A, infer _E>] ? AsMailbox extends true ? Effect.Effect<
+    > ? [_Success] extends [RpcSchema.Stream<infer _A, infer _E>] ? AsQueue extends true ? Effect.Effect<
             Queue.Dequeue<_A["Type"], _E["Type"] | _Error["Type"] | E | _Middleware["error"]["Type"] | Queue.Done>,
             never,
             | Scope.Scope
@@ -143,13 +143,13 @@ export declare namespace RpcClient {
    */
   export type Flat<Rpcs extends Rpc.Any, E = never> = <
     const Tag extends Rpcs["_tag"],
-    const AsMailbox extends boolean = false,
+    const AsQueue extends boolean = false,
     const Discard = false
   >(
     tag: Tag,
     payload: Rpc.PayloadConstructor<Rpc.ExtractTag<Rpcs, Tag>>,
     options?: Rpc.Success<Rpc.ExtractTag<Rpcs, Tag>> extends Stream.Stream<infer _A, infer _E, infer _R> ? {
-        readonly asMailbox?: AsMailbox | undefined
+        readonly asQueue?: AsQueue | undefined
         readonly streamBufferSize?: number | undefined
         readonly headers?: Headers.Input | undefined
         readonly context?: ServiceMap.ServiceMap<never> | undefined
@@ -166,7 +166,7 @@ export declare namespace RpcClient {
     infer _Error,
     infer _Middleware,
     infer _Requires
-  > ? [_Success] extends [RpcSchema.Stream<infer _A, infer _E>] ? AsMailbox extends true ? Effect.Effect<
+  > ? [_Success] extends [RpcSchema.Stream<infer _A, infer _E>] ? AsQueue extends true ? Effect.Effect<
           Queue.Dequeue<_A["Type"], _E["Type"] | _Error["Type"] | E | _Middleware["error"]["Type"]>,
           never,
           | Scope.Scope
@@ -294,7 +294,7 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any, E, const Flatten extend
     const isStream = RpcSchema.isStreamSchema(rpc.successSchema)
     const middleware = getRpcClientMiddleware(rpc)
     return (payload: any, opts?: {
-      readonly asMailbox?: boolean | undefined
+      readonly asQueue?: boolean | undefined
       readonly streamBufferSize?: number | undefined
       readonly headers?: Headers.Input | undefined
       readonly context?: ServiceMap.ServiceMap<never> | undefined
@@ -327,7 +327,7 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any, E, const Flatten extend
         opts?.streamBufferSize ?? 16,
         context
       )
-      if (opts?.asMailbox) return queue
+      if (opts?.asQueue) return queue
       return Stream.unwrap(Effect.map(queue, Stream.fromQueue))
     }
   }

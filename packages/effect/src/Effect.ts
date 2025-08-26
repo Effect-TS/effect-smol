@@ -4293,6 +4293,60 @@ export const matchEffect: {
 } = internal.matchEffect
 
 // -----------------------------------------------------------------------------
+// Condition checking
+// -----------------------------------------------------------------------------
+
+/**
+ * Checks if an effect has failed.
+ *
+ * **Details**
+ *
+ * This function evaluates whether an effect has resulted in a failure. It
+ * returns a boolean value wrapped in an effect, with `true` indicating the
+ * effect failed and `false` otherwise.
+ *
+ * The resulting effect cannot fail (`never` in the error channel) but retains
+ * the context of the original effect.
+ *
+ * **Example**
+ *
+ * ```ts
+ * import { Effect } from "effect"
+ *
+ * const failure = Effect.fail("Uh oh!")
+ *
+ * console.log(Effect.runSync(Effect.isFailure(failure)))
+ * // Output: true
+ *
+ * const defect = Effect.die("BOOM!")
+ *
+ * Effect.runSync(Effect.isFailure(defect))
+ * // throws: BOOM!
+ * ```
+ *
+ * @since 2.0.0
+ * @category Condition Checking
+ */
+export const isFailure: <A, E, R>(self: Effect<A, E, R>) => Effect<boolean, never, R> = internal.isFailure
+
+/**
+ * Checks if an effect has succeeded.
+ *
+ * **Details**
+ *
+ * This function evaluates whether an effect has resulted in a success. It
+ * returns a boolean value wrapped in an effect, with `true` indicating the
+ * effect succeeded and `false` otherwise.
+ *
+ * The resulting effect cannot fail (`never` in the error channel) but retains
+ * the context of the original effect.
+ *
+ * @since 2.0.0
+ * @category Condition Checking
+ */
+export const isSuccess: <A, E, R>(self: Effect<A, E, R>) => Effect<boolean, never, R> = internal.isSuccess
+
+// -----------------------------------------------------------------------------
 // Environment
 // -----------------------------------------------------------------------------
 

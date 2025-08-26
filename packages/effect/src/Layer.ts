@@ -1374,6 +1374,36 @@ export const catchCause: {
   ))
 
 /**
+ * Updates a service in the context with a new implementation.
+ *
+ * **Details**
+ *
+ * This function modifies the existing implementation of a service in the
+ * context. It retrieves the current service, applies the provided
+ * transformation function `f`, and replaces the old service with the
+ * transformed one.
+ *
+ * **When to Use**
+ *
+ * This is useful for adapting or extending a service's behavior during the
+ * creation of a layer.
+ *
+ * @since 3.13.0
+ * @category utils
+ */
+export const updateService: {
+  <I, A>(key: ServiceMap.Key<I, A>, f: (a: A) => A): <A1, E1, R1>(layer: Layer<A1, E1, R1>) => Layer<A1, E1, I | R1>
+  <A1, E1, R1, I, A>(layer: Layer<A1, E1, R1>, key: ServiceMap.Key<I, A>, f: (a: A) => A): Layer<A1, E1, I | R1>
+} = dual(
+  3,
+  <A1, E1, R1, I, A>(layer: Layer<A1, E1, R1>, key: ServiceMap.Key<I, A>, f: (a: A) => A): Layer<A1, E1, I | R1> =>
+    provide(
+      layer,
+      effect(key)(internalEffect.map(key.asEffect(), f))
+    )
+)
+
+/**
  * Creates a fresh version of this layer that will not be shared.
  *
  * @example

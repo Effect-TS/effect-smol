@@ -2782,11 +2782,11 @@ export const update: {
 } = dual<
   <Input>(input: Input) => <State>(self: Metric<Input, State>) => Effect<void>,
   <Input, State>(self: Metric<Input, State>, input: Input) => Effect<void>
->(2, (self, input) =>
-  InternalEffect.flatMap(
-    InternalEffect.services(),
-    (context) => InternalEffect.sync(() => self.unsafeUpdate(input, context))
-  ))
+>(
+  2,
+  (self, input) =>
+    InternalEffect.servicesWith((services) => InternalEffect.sync(() => self.unsafeUpdate(input, services)))
+)
 
 /**
  * Returns a new metric that is powered by this one, but which accepts updates

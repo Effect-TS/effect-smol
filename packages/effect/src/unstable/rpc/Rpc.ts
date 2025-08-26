@@ -322,7 +322,7 @@ export type Payload<R> = R extends Rpc<
  * @since 4.0.0
  * @category models
  */
-export type ServicesServer<R> = R extends Rpc<
+export type Services<R> = R extends Rpc<
   infer _Tag,
   infer _Payload,
   infer _Success,
@@ -331,8 +331,12 @@ export type ServicesServer<R> = R extends Rpc<
   infer _Requires
 > ?
     | _Payload["DecodingServices"]
+    | _Payload["EncodingServices"]
+    | _Success["DecodingServices"]
     | _Success["EncodingServices"]
+    | _Error["DecodingServices"]
     | _Error["EncodingServices"]
+    | _Middleware["error"]["DecodingServices"]
     | _Middleware["error"]["EncodingServices"]
   : never
 
@@ -352,6 +356,24 @@ export type ServicesClient<R> = R extends Rpc<
     | _Success["DecodingServices"]
     | _Error["DecodingServices"]
     | _Middleware["error"]["DecodingServices"]
+  : never
+
+/**
+ * @since 4.0.0
+ * @category models
+ */
+export type ServicesServer<R> = R extends Rpc<
+  infer _Tag,
+  infer _Payload,
+  infer _Success,
+  infer _Error,
+  infer _Middleware,
+  infer _Requires
+> ?
+    | _Payload["DecodingServices"]
+    | _Success["EncodingServices"]
+    | _Error["EncodingServices"]
+    | _Middleware["error"]["EncodingServices"]
   : never
 
 /**

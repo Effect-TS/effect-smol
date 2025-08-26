@@ -45,7 +45,7 @@ import * as OpenApi from "./OpenApi.ts"
 /**
  * Register an `HttpApi` with a `HttpRouter`.
  *
- * @since 1.0.0
+ * @since 4.0.0
  * @category constructors
  */
 export const layer = <Id extends string, Groups extends HttpApiGroup.Any>(
@@ -202,12 +202,12 @@ export interface Handlers<
 }
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category handlers
  */
 export declare namespace Handlers {
   /**
-   * @since 1.0.0
+   * @since 4.0.0
    * @category handlers
    */
   export interface Any {
@@ -215,7 +215,7 @@ export declare namespace Handlers {
   }
 
   /**
-   * @since 1.0.0
+   * @since 4.0.0
    * @category handlers
    */
   export type Item<R> = {
@@ -226,7 +226,7 @@ export declare namespace Handlers {
   }
 
   /**
-   * @since 1.0.0
+   * @since 4.0.0
    * @category handlers
    */
   export type FromGroup<Group extends HttpApiGroup.Any> = Handlers<
@@ -235,7 +235,7 @@ export declare namespace Handlers {
   >
 
   /**
-   * @since 1.0.0
+   * @since 4.0.0
    * @category handlers
    */
   export type ValidateReturn<A> = A extends (
@@ -256,7 +256,7 @@ export declare namespace Handlers {
     `Must return the implemented handlers`
 
   /**
-   * @since 1.0.0
+   * @since 4.0.0
    * @category handlers
    */
   export type Error<A> = A extends Effect.Effect<
@@ -270,7 +270,7 @@ export declare namespace Handlers {
     never
 
   /**
-   * @since 1.0.0
+   * @since 4.0.0
    * @category handlers
    */
   export type Context<A> = A extends Handlers<
@@ -289,7 +289,7 @@ export declare namespace Handlers {
 }
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category security
  */
 export const securityDecode = <Security extends HttpApiSecurity.HttpApiSecurity>(

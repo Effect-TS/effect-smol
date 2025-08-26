@@ -4,25 +4,25 @@
 import * as Data from "../data/Data.ts"
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category type id
  */
 export const TypeId: TypeId = "~effect/PlatformError"
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category type id
  */
 export type TypeId = "~effect/PlatformError"
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category Models
  */
 export type Module = "Clipboard" | "Command" | "FileSystem" | "KeyValueStore" | "Path" | "Stream" | "Terminal"
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category Models
  * @example
  * ```ts
@@ -55,12 +55,12 @@ export class BadArgument extends Data.TaggedError("BadArgument")<{
   cause?: unknown
 }> {
   /**
-   * @since 1.0.0
+   * @since 4.0.0
    */
   readonly [TypeId]: typeof TypeId = TypeId
 
   /**
-   * @since 1.0.0
+   * @since 4.0.0
    */
   override get message(): string {
     return `${this.module}.${this.method}${this.description ? `: ${this.description}` : ""}`
@@ -68,7 +68,7 @@ export class BadArgument extends Data.TaggedError("BadArgument")<{
 }
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category Model
  * @example
  * ```ts
@@ -145,7 +145,7 @@ export type SystemErrorReason =
  * })
  * ```
  *
- * @since 1.0.0
+ * @since 4.0.0
  * @category models
  */
 export class SystemError extends Data.TaggedError("SystemError")<{
@@ -158,12 +158,12 @@ export class SystemError extends Data.TaggedError("SystemError")<{
   cause?: unknown
 }> {
   /**
-   * @since 1.0.0
+   * @since 4.0.0
    */
   readonly [TypeId]: typeof TypeId = TypeId
 
   /**
-   * @since 1.0.0
+   * @since 4.0.0
    */
   override get message(): string {
     return `${this.reason}: ${this.module}.${this.method}${
@@ -173,7 +173,7 @@ export class SystemError extends Data.TaggedError("SystemError")<{
 }
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category Models
  * @example
  * ```ts

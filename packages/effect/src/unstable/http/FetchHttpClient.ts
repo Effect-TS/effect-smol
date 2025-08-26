@@ -1,5 +1,5 @@
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 import * as Effect from "../../Effect.ts"
 import type * as Layer from "../../Layer.ts"
@@ -11,7 +11,7 @@ import { RequestError } from "./HttpClientError.ts"
 import * as HttpClientResponse from "./HttpClientResponse.ts"
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category tags
  */
 export const Fetch = ServiceMap.Reference<typeof globalThis.fetch>("effect/http/FetchHttpClient/Fetch", {
@@ -19,7 +19,7 @@ export const Fetch = ServiceMap.Reference<typeof globalThis.fetch>("effect/http/
 })
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category tags
  */
 export class RequestInit
@@ -64,7 +64,7 @@ const fetch: HttpClient.HttpClient = HttpClient.make((request, url, signal, fibe
 })
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category layers
  */
 export const layer: Layer.Layer<HttpClient.HttpClient> = HttpClient.layerMergedServices(Effect.succeed(fetch))

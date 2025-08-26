@@ -1,0 +1,68 @@
+/**
+ * @since 4.0.0
+ */
+import * as Equal from "../../interfaces/Equal.ts"
+import * as Hash from "../../interfaces/Hash.ts"
+import { NodeInspectSymbol } from "../../interfaces/Inspectable.ts"
+import * as Schema from "../../schema/Schema.ts"
+
+/**
+ * @since 4.0.0
+ * @category type ids
+ */
+export const TypeId: TypeId = "~effect/cluster/RunnerAddress"
+
+/**
+ * @since 4.0.0
+ * @category type ids
+ */
+export type TypeId = "~effect/cluster/RunnerAddress"
+
+/**
+ * @since 4.0.0
+ * @category models
+ */
+export class RunnerAddress extends Schema.Class<RunnerAddress>(TypeId)({
+  host: Schema.String,
+  port: Schema.Number
+}) {
+  /**
+   * @since 4.0.0
+   */
+  readonly [TypeId] = TypeId;
+
+  /**
+   * @since 4.0.0
+   */
+  [Equal.symbol](that: RunnerAddress): boolean {
+    return this.host === that.host && this.port === that.port
+  }
+
+  /**
+   * @since 4.0.0
+   */
+  [Hash.symbol]() {
+    return Hash.cached(this, () => Hash.string(this.toString()))
+  }
+
+  /**
+   * @since 4.0.0
+   */
+  override toString(): string {
+    return `RunnerAddress(${this.host}:${this.port})`
+  }
+
+  /**
+   * @since 4.0.0
+   */
+  [NodeInspectSymbol](): string {
+    return this.toString()
+  }
+}
+
+/**
+ * @since 4.0.0
+ * @category constructors
+ */
+export const make = (host: string, port: number): RunnerAddress =>
+  new RunnerAddress({ host, port }, { disableValidation: true })

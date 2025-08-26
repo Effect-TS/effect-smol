@@ -544,6 +544,22 @@ export const invalidate: {
 )
 
 /**
+ * @since 3.17.7
+ * @category combinators
+ */
+export const has: {
+  <K>(key: K): <A, E>(self: RcMap<K, A, E>) => Effect.Effect<boolean>
+  <K, A, E>(self: RcMap<K, A, E>, key: K): Effect.Effect<boolean>
+} = dual(
+  2,
+  <K, A, E>(self: RcMap<K, A, E>, key: K) =>
+    Effect.sync(() => {
+      if (self.state._tag === "Closed") return false
+      return MutableHashMap.has(self.state.map, key)
+    })
+)
+
+/**
  * Extends the idle time for a resource in the RcMap. If the RcMap has an
  * `idleTimeToLive` configured, calling `touch` will reset the expiration
  * timer for the specified key.

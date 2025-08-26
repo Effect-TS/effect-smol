@@ -679,3 +679,18 @@ export const clear = <K, V>(self: MutableHashMap<K, V>) => {
  * @category elements
  */
 export const size = <K, V>(self: MutableHashMap<K, V>): number => self.backing.size
+
+/**
+ * @since 2.0.0
+ */
+export const isEmpty = <K, V>(self: MutableHashMap<K, V>): boolean => self.backing.size === 0
+
+/**
+ * @since 2.0.0
+ */
+export const forEach: {
+  <K, V>(f: (value: V, key: K) => void): (self: MutableHashMap<K, V>) => void
+  <K, V>(self: MutableHashMap<K, V>, f: (value: V, key: K) => void): void
+} = dual(2, <K, V>(self: MutableHashMap<K, V>, f: (value: V, key: K) => void) => {
+  self.backing.forEach(f)
+})

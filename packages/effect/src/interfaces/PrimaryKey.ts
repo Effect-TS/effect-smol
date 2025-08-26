@@ -10,6 +10,8 @@
  * @since 2.0.0
  */
 
+import { hasProperty } from "../data/Predicate.ts"
+
 /**
  * The unique symbol used to identify objects that implement the `PrimaryKey` interface.
  *
@@ -62,6 +64,12 @@ export const symbol: "~effect/PrimaryKey" = "~effect/PrimaryKey" as const
 export interface PrimaryKey {
   [symbol](): string
 }
+
+/**
+ * @category models
+ * @since 2.0.0
+ */
+export const isPrimaryKey = (u: unknown): u is PrimaryKey => hasProperty(u, symbol)
 
 /**
  * Extracts the string value from a `PrimaryKey`.

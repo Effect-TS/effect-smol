@@ -1,25 +1,25 @@
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 import * as Effect from "../../Effect.ts"
 import * as Schema from "../../schema/Schema.ts"
 import * as HttpApiSchema from "./HttpApiSchema.ts"
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category type ids
  */
 export const TypeId: TypeId = "~effect/httpapi/HttpApiError"
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category type ids
  */
 export type TypeId = "~effect/httpapi/HttpApiError"
 
 // TODO: Add schema for structured issues
 // /**
-//  * @since 1.0.0
+//  * @since 4.0.0
 //  * @category schemas
 //  */
 // export class Issue extends Schema.ArrayFormatterIssue.annotations({
@@ -28,7 +28,7 @@ export type TypeId = "~effect/httpapi/HttpApiError"
 // }) {}
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category errors
  */
 export class HttpApiSchemaError extends Schema.ErrorClass<HttpApiSchemaError>("effect/HttpApiSchemaError")({
@@ -40,13 +40,13 @@ export class HttpApiSchemaError extends Schema.ErrorClass<HttpApiSchemaError>("e
   description: "The request or response did not match the expected schema"
 }) {
   /**
-   * @since 1.0.0
+   * @since 4.0.0
    */
   static fromSchemaError(error: Schema.SchemaError): HttpApiSchemaError {
     return new HttpApiSchemaError({ message: error.message })
   }
   /**
-   * @since 1.0.0
+   * @since 4.0.0
    */
   static refailSchemaError(error: Schema.SchemaError): Effect.Effect<never, HttpApiSchemaError> {
     return Effect.fail(HttpApiSchemaError.fromSchemaError(error))
@@ -54,7 +54,7 @@ export class HttpApiSchemaError extends Schema.ErrorClass<HttpApiSchemaError>("e
 }
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category empty errors
  */
 export class BadRequest extends HttpApiSchema.EmptyError<BadRequest>()({
@@ -63,7 +63,7 @@ export class BadRequest extends HttpApiSchema.EmptyError<BadRequest>()({
 }) {}
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category empty errors
  */
 export class Unauthorized extends HttpApiSchema.EmptyError<Unauthorized>()({
@@ -72,7 +72,7 @@ export class Unauthorized extends HttpApiSchema.EmptyError<Unauthorized>()({
 }) {}
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category empty errors
  */
 export class Forbidden extends HttpApiSchema.EmptyError<Forbidden>()({
@@ -81,7 +81,7 @@ export class Forbidden extends HttpApiSchema.EmptyError<Forbidden>()({
 }) {}
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category empty errors
  */
 export class NotFound extends HttpApiSchema.EmptyError<NotFound>()({
@@ -90,7 +90,7 @@ export class NotFound extends HttpApiSchema.EmptyError<NotFound>()({
 }) {}
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category empty errors
  */
 export class MethodNotAllowed extends HttpApiSchema.EmptyError<MethodNotAllowed>()({
@@ -99,7 +99,7 @@ export class MethodNotAllowed extends HttpApiSchema.EmptyError<MethodNotAllowed>
 }) {}
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category empty errors
  */
 export class NotAcceptable extends HttpApiSchema.EmptyError<NotAcceptable>()({
@@ -108,7 +108,7 @@ export class NotAcceptable extends HttpApiSchema.EmptyError<NotAcceptable>()({
 }) {}
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category empty errors
  */
 export class RequestTimeout extends HttpApiSchema.EmptyError<RequestTimeout>()({
@@ -117,7 +117,7 @@ export class RequestTimeout extends HttpApiSchema.EmptyError<RequestTimeout>()({
 }) {}
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category empty errors
  */
 export class Conflict extends HttpApiSchema.EmptyError<Conflict>()({
@@ -126,7 +126,7 @@ export class Conflict extends HttpApiSchema.EmptyError<Conflict>()({
 }) {}
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category empty errors
  */
 export class Gone extends HttpApiSchema.EmptyError<Gone>()({
@@ -135,7 +135,7 @@ export class Gone extends HttpApiSchema.EmptyError<Gone>()({
 }) {}
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category empty errors
  */
 export class InternalServerError extends HttpApiSchema.EmptyError<InternalServerError>()({
@@ -144,7 +144,7 @@ export class InternalServerError extends HttpApiSchema.EmptyError<InternalServer
 }) {}
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category empty errors
  */
 export class NotImplemented extends HttpApiSchema.EmptyError<NotImplemented>()({
@@ -153,7 +153,7 @@ export class NotImplemented extends HttpApiSchema.EmptyError<NotImplemented>()({
 }) {}
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category empty errors
  */
 export class ServiceUnavailable extends HttpApiSchema.EmptyError<ServiceUnavailable>()({

@@ -23,7 +23,7 @@ export * as HttpApiClient from "./HttpApiClient.ts"
 export * as HttpApiEndpoint from "./HttpApiEndpoint.ts"
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 export * as HttpApiError from "./HttpApiError.ts"
 

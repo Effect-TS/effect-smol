@@ -1,0 +1,244 @@
+/**
+ * @since 4.0.0
+ */
+import * as Config from "../../config/Config.ts"
+import * as ConfigProvider from "../../config/ConfigProvider.ts"
+import * as Option from "../../data/Option.ts"
+import * as Effect from "../../Effect.ts"
+import * as Layer from "../../Layer.ts"
+import * as Schema from "../../schema/Schema.ts"
+import * as ServiceMap from "../../ServiceMap.ts"
+import type { DurationInput } from "../../time/Duration.ts"
+import * as Duration from "../../time/Duration.ts"
+import { RunnerAddress } from "./RunnerAddress.ts"
+
+/**
+ * Represents the configuration for the `Sharding` service on a given runner.
+ *
+ * @since 4.0.0
+ * @category models
+ */
+export class ShardingConfig extends ServiceMap.Key<ShardingConfig, {
+  /**
+   * The address for the current runner that other runners can use to
+   * communicate with it.
+   *
+   * If `None`, the runner is not part of the cluster and will be in a client-only
+   * mode.
+   */
+  readonly runnerAddress: Option.Option<RunnerAddress>
+  /**
+   * The listen address for the current runner.
+   *
+   * Defaults to the `runnerAddress`.
+   */
+  readonly runnerListenAddress: Option.Option<RunnerAddress>
+  /**
+   * The version of the current runner.
+   */
+  readonly serverVersion: number
+  /**
+   * The shard groups that are assigned to this runner.
+   *
+   * Defaults to `["default"]`.
+   */
+  readonly shardGroups: ReadonlyArray<string>
+  /**
+   * The number of shards to allocate per shard group.
+   *
+   * **Note**: this value should be consistent across all runners.
+   */
+  readonly shardsPerGroup: number
+  /**
+   * The address of the shard manager.
+   */
+  readonly shardManagerAddress: RunnerAddress
+  /**
+   * If the shard manager is unavailable for this duration, all the shard
+   * assignments will be reset.
+   */
+  readonly shardManagerUnavailableTimeout: DurationInput
+  /**
+   * The default capacity of the mailbox for entities.
+   */
+  readonly entityMailboxCapacity: number | "unbounded"
+  /**
+   * The maximum duration of inactivity (i.e. without receiving a message)
+   * after which an entity will be interrupted.
+   */
+  readonly entityMaxIdleTime: DurationInput
+  /**
+   * The maximum duration of time to wait for an entity to terminate.
+   *
+   * By default this is set to 15 seconds to stay within kubernetes defaults.
+   */
+  readonly entityTerminationTimeout: DurationInput
+  /**
+   * The interval at which to poll for unprocessed messages from storage.
+   */
+  readonly entityMessagePollInterval: DurationInput
+  /**
+   * The interval at which to poll for client replies from storage.
+   */
+  readonly entityReplyPollInterval: DurationInput
+  readonly refreshAssignmentsInterval: DurationInput
+  /**
+   * The interval to retry a send if EntityNotAssignedToRunner is returned.
+   */
+  readonly sendRetryInterval: DurationInput
+  // readonly unhealthyRunnerReportInterval: Duration.Duration
+  /**
+   * Simulate serialization and deserialization to remote runners for local
+   * entities.
+   */
+  readonly simulateRemoteSerialization: boolean
+}>()("effect/cluster/ShardingConfig") {}
+
+const defaultRunnerAddress = RunnerAddress.makeSync({ host: "localhost", port: 34431 })
+
+/**
+ * @since 4.0.0
+ * @category defaults
+ */
+export const defaults: ShardingConfig["Service"] = {
+  runnerAddress: Option.some(defaultRunnerAddress),
+  runnerListenAddress: Option.none(),
+  serverVersion: 1,
+  shardsPerGroup: 300,
+  shardManagerAddress: RunnerAddress.makeSync({ host: "localhost", port: 8080 }),
+  shardManagerUnavailableTimeout: Duration.minutes(10),
+  shardGroups: ["default"],
+  entityMailboxCapacity: 4096,
+  entityMaxIdleTime: Duration.minutes(1),
+  entityTerminationTimeout: Duration.seconds(15),
+  entityMessagePollInterval: Duration.seconds(10),
+  entityReplyPollInterval: Duration.millis(200),
+  sendRetryInterval: Duration.millis(100),
+  refreshAssignmentsInterval: Duration.minutes(5),
+  simulateRemoteSerialization: true
+}
+
+/**
+ * @since 4.0.0
+ * @category Layers
+ */
+export const layer = (options?: Partial<ShardingConfig["Service"]>): Layer.Layer<ShardingConfig> =>
+  Layer.succeed(ShardingConfig)({ ...defaults, ...options })
+
+/**
+ * @since 4.0.0
+ * @category defaults
+ */
+export const layerDefaults: Layer.Layer<ShardingConfig> = layer()
+
+/**
+ * @since 4.0.0
+ * @category Config
+ */
+export const config: Config.Config<ShardingConfig["Service"]> = Config.all({
+  runnerAddress: Config.all({
+    host: Config.string("host").pipe(
+      Config.withDefault(() => defaultRunnerAddress.host)
+      // Config.withDescription("The hostname or IP address of the runner.")
+    ),
+    port: Config.int("port").pipe(
+      Config.withDefault(() => defaultRunnerAddress.port)
+      // Config.withDescription("The port used for inter-runner communication.")
+    )
+  }).pipe(Config.map((options) => RunnerAddress.makeSync(options)), Config.option),
+  runnerListenAddress: Config.all({
+    host: Config.string("listenHost"),
+    // Config.withDescription("The host to listen on.")
+    port: Config.int("listenPort").pipe(
+      Config.withDefault(() => defaultRunnerAddress.port)
+      // Config.withDescription("The port to listen on.")
+    )
+  }).pipe(Config.map((options) => RunnerAddress.makeSync(options)), Config.option),
+  serverVersion: Config.int("serverVersion").pipe(
+    Config.withDefault(() => defaults.serverVersion)
+    // Config.withDescription("The version of the current runner.")
+  ),
+  shardGroups: Config.schema(Schema.Array(Schema.String), "shardGroups").pipe(
+    Config.withDefault(() => ["default"])
+    // Config.withDescription("The shard groups that are assigned to this runner.")
+  ),
+  shardsPerGroup: Config.int("shardsPerGroup").pipe(
+    Config.withDefault(() => defaults.shardsPerGroup)
+    // Config.withDescription("The number of shards to allocate per shard group.")
+  ),
+  shardManagerAddress: Config.all({
+    host: Config.string("shardManagerHost").pipe(
+      Config.withDefault(() => defaults.shardManagerAddress.host)
+      // Config.withDescription("The host of the shard manager.")
+    ),
+    port: Config.int("shardManagerPort").pipe(
+      Config.withDefault(() => defaults.shardManagerAddress.port)
+      // Config.withDescription("The port of the shard manager.")
+    )
+  }).pipe(Config.map((options) => RunnerAddress.makeSync(options))),
+  shardManagerUnavailableTimeout: Config.duration("shardManagerUnavailableTimeout").pipe(
+    Config.withDefault(() => defaults.shardManagerUnavailableTimeout)
+    // Config.withDescription(
+    //   "If the shard is unavilable for this duration, all the shard assignments will be reset."
+    // )
+  ),
+  entityMailboxCapacity: Config.int("entityMailboxCapacity").pipe(
+    Config.withDefault(() => defaults.entityMailboxCapacity)
+    // Config.withDescription("The default capacity of the mailbox for entities.")
+  ),
+  entityMaxIdleTime: Config.duration("entityMaxIdleTime").pipe(
+    Config.withDefault(() => defaults.entityMaxIdleTime)
+    // Config.withDescription(
+    //   "The maximum duration of inactivity (i.e. without receiving a message) after which an entity will be interrupted."
+    // )
+  ),
+  entityTerminationTimeout: Config.duration("entityTerminationTimeout").pipe(
+    Config.withDefault(() => defaults.entityTerminationTimeout)
+    // Config.withDescription("The maximum duration of time to wait for an entity to terminate.")
+  ),
+  entityMessagePollInterval: Config.duration("entityMessagePollInterval").pipe(
+    Config.withDefault(() => defaults.entityMessagePollInterval)
+    // Config.withDescription("The interval at which to poll for unprocessed messages from storage.")
+  ),
+  entityReplyPollInterval: Config.duration("entityReplyPollInterval").pipe(
+    Config.withDefault(() => defaults.entityReplyPollInterval)
+    // Config.withDescription("The interval at which to poll for client replies from storage.")
+  ),
+  sendRetryInterval: Config.duration("sendRetryInterval").pipe(
+    Config.withDefault(() => defaults.sendRetryInterval)
+    // Config.withDescription("The interval to retry a send if EntityNotManagedByRunner is returned.")
+  ),
+  refreshAssignmentsInterval: Config.duration("refreshAssignmentsInterval").pipe(
+    Config.withDefault(() => defaults.refreshAssignmentsInterval)
+    // Config.withDescription("The interval at which to refresh shard assignments.")
+  ),
+  simulateRemoteSerialization: Config.boolean("simulateRemoteSerialization").pipe(
+    Config.withDefault(() => defaults.simulateRemoteSerialization)
+    // Config.withDescription("Simulate serialization and deserialization to remote runners for local entities.")
+  )
+})
+
+/**
+ * @since 4.0.0
+ * @category Config
+ */
+export const configFromEnv = config.asEffect().pipe(
+  Effect.provideService(
+    ConfigProvider.ConfigProvider,
+    ConfigProvider.fromEnv().pipe(
+      ConfigProvider.constantCase
+    )
+  )
+)
+
+/**
+ * @since 4.0.0
+ * @category Layers
+ */
+export const layerFromEnv = (options?: Partial<ShardingConfig["Service"]> | undefined): Layer.Layer<
+  ShardingConfig,
+  Config.ConfigError
+> =>
+  Layer.effect(ShardingConfig)(
+    options ? Effect.map(configFromEnv, (config) => ({ ...config, ...options })) : configFromEnv
+  )

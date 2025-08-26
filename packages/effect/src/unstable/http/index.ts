@@ -13,7 +13,7 @@ export * as Cookies from "./Cookies.ts"
 export * as Etag from "./Etag.ts"
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 export * as FetchHttpClient from "./FetchHttpClient.ts"
 
