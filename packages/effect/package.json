@@ -52,6 +52,7 @@
     "./time": "./src/time/index.ts",
     "./transactions": "./src/transactions/index.ts",
     "./types": "./src/types/index.ts",
+    "./unstable/cluster": "./src/unstable/cluster/index.ts",
     "./unstable/http": "./src/unstable/http/index.ts",
     "./unstable/httpapi": "./src/unstable/httpapi/index.ts",
     "./unstable/rpc": "./src/unstable/rpc/index.ts",
@@ -59,6 +60,7 @@
     "./unstable/observability": "./src/unstable/observability/index.ts",
     "./*": "./src/*.ts",
     "./internal/*": null,
+    "./unstable/cluster/internal/*": null,
     "./*/index": null
   },
   "files": [

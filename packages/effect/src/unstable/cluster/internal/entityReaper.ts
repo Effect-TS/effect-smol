@@ -1,4 +1,7 @@
-import * as Effect from "../../Effect.ts"
+import * as Effect from "../../../Effect.ts"
+import * as Layer from "../../../Layer.ts"
+import * as ServiceMap from "../../../ServiceMap.ts"
+import { Clock } from "../../../time/Clock.ts"
 import type { EntityNotAssignedToRunner } from "../ClusterError.ts"
 import type { EntityAddress } from "../EntityAddress.ts"
 import type { EntityId } from "../EntityId.ts"
@@ -6,8 +9,8 @@ import type { EntityState } from "./entityManager.ts"
 import type { ResourceMap } from "./resourceMap.ts"
 
 /** @internal */
-export class EntityReaper extends Effect.Service<EntityReaper>()("@effect/cluster/EntityReaper", {
-  scoped: Effect.gen(function*() {
+export class EntityReaper extends ServiceMap.Key<EntityReaper>()("effect/cluster/EntityReaper", {
+  make: Effect.gen(function*() {
     let currentResolution = 30_000
     const registered: Array<{
       readonly maxIdleTime: number
@@ -27,7 +30,7 @@ export class EntityReaper extends Effect.Service<EntityReaper>()("@effect/cluste
         return latch.open
       })
 
-    const clock = yield* Effect.clock
+    const clock = yield* Clock
     yield* Effect.gen(function*() {
       while (true) {
         yield* Effect.sleep(currentResolution)
@@ -50,4 +53,6 @@ export class EntityReaper extends Effect.Service<EntityReaper>()("@effect/cluste
 
     return { register } as const
   })
-}) {}
+}) {
+  static readonly layer: Layer.Layer<EntityReaper> = Layer.effect(this)(this.make)
+}

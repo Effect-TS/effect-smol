@@ -6,6 +6,7 @@ import type { ReadonlyRecord } from "../../data/Record.ts"
 import * as PrimaryKey from "../../interfaces/PrimaryKey.ts"
 import * as Schema from "../../schema/Schema.ts"
 import * as Serializer from "../../schema/Serializer.ts"
+import * as Transformation from "../../schema/Transformation.ts"
 import * as Headers from "../http/Headers.ts"
 import type * as Rpc from "../rpc/Rpc.ts"
 import { EntityAddress } from "./EntityAddress.ts"
@@ -288,6 +289,18 @@ export const Request: Schema.Codec<Request.Any> = Schema.declare(
   (u): u is Request.Any => isEnvelope(u) && u._tag === "Request",
   { identifier: "Request" }
 )
+
+/**
+ * @since 4.0.0
+ * @category serialization / deserialization
+ */
+export const RequestTransform: Transformation.Transformation<
+  Request.Any,
+  any
+> = Transformation.transform({
+  decode: (u: any) => makeRequest(u),
+  encode: (u) => u as any
+})
 
 /**
  * @since 4.0.0

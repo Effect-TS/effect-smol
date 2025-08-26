@@ -51,3 +51,12 @@ export class EntityAddress extends Schema.Class<EntityAddress>(TypeId)({
     return Hash.cached(this, () => Hash.string(`${this.entityType}:${this.entityId}:${this.shardId.toString()}`))
   }
 }
+/**
+ * @since 4.0.0
+ * @category constructors
+ */
+export const make = (options: {
+  readonly shardId: ShardId
+  readonly entityType: EntityType
+  readonly entityId: EntityId
+}): EntityAddress => new EntityAddress(options, { disableValidation: true })

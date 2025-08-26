@@ -1,11 +1,11 @@
 /**
  * @since 4.0.0
  */
-import { SocketServer } from "@effect/platform/SocketServer"
-import type * as RpcSerialization from "../rpc/RpcSerialization.ts"
-import * as RpcServer from "../rpc/RpcServer.ts"
 import * as Effect from "../../Effect.ts"
 import * as Layer from "../../Layer.ts"
+import type * as RpcSerialization from "../rpc/RpcSerialization.ts"
+import * as RpcServer from "../rpc/RpcServer.ts"
+import { SocketServer } from "../socket/SocketServer.ts"
 import type { MessageStorage } from "./MessageStorage.ts"
 import type * as Runners from "./Runners.ts"
 import * as RunnerServer from "./RunnerServer.ts"

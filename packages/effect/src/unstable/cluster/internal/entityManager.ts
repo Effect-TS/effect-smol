@@ -9,6 +9,7 @@ import * as Metric from "../../../observability/Metric.ts"
 import { CurrentLogAnnotations } from "../../../References.ts"
 import * as Schedule from "../../../Schedule.ts"
 import * as Schema from "../../../schema/Schema.ts"
+import * as Serializer from "../../../schema/Serializer.ts"
 import * as Scope from "../../../Scope.ts"
 import * as ServiceMap from "../../../ServiceMap.ts"
 import { Clock } from "../../../time/Clock.ts"
@@ -292,9 +293,9 @@ export const make = Effect.fnUntraced(function*<
     // If the termination timeout is reached, let the server clean itself up
     yield* Scope.addFinalizer(
       scope,
-      Effect.withFiberRuntime((fiber) => {
+      Effect.withFiber((fiber) => {
         activeServers.delete(address.entityId)
-        internalInterruptors.add(fiber.id())
+        internalInterruptors.add(fiber.id)
         return state.write(0, { _tag: "Eof" }).pipe(
           Effect.andThen(Effect.interruptible(endLatch.await)),
           Effect.timeoutOption(config.entityTerminationTimeout)
@@ -304,7 +305,7 @@ export const make = Effect.fnUntraced(function*<
     activeServers.set(address.entityId, state)
 
     return state
-  }, Effect.locally(FiberRef.currentLogAnnotations, HashMap.empty())))
+  }, Effect.provideService(CurrentLogAnnotations, {})))
 
   const reaper = yield* EntityReaper
   const maxIdleTime = Duration.toMillis(options.maxIdleTime ?? config.entityMaxIdleTime)
@@ -317,9 +318,9 @@ export const make = Effect.fnUntraced(function*<
   }
 
   // update metrics for active servers
-  const gauge = ClusterMetrics.entities.pipe(Metric.tagged("type", entity.type))
+  const typeAttributes = Metric.CurrentMetricAttributes.serviceMap({ type: entity.type })
   yield* Effect.sync(() => {
-    gauge.unsafeUpdate(BigInt(activeServers.size), [])
+    ClusterMetrics.entities.unsafeUpdate(BigInt(activeServers.size), typeAttributes)
   }).pipe(
     Effect.andThen(Effect.sleep(1000)),
     Effect.forever,
@@ -329,7 +330,7 @@ export const make = Effect.fnUntraced(function*<
   function sendLocal<R extends Rpc.Any>(
     message: Message.IncomingLocal<R>
   ): Effect.Effect<void, EntityNotAssignedToRunner | MailboxFull | AlreadyProcessingMessage> {
-    return Effect.locally(
+    return Effect.provideService(
       Effect.flatMap(
         entities.get(message.envelope.address),
         (server): Effect.Effect<void, EntityNotAssignedToRunner | MailboxFull | AlreadyProcessingMessage> => {
@@ -350,7 +351,7 @@ export const make = Effect.fnUntraced(function*<
 
               const rpc = entity.protocol.requests.get(message.envelope.tag)! as any as Rpc.AnyWithProps
               if (!storageEnabled && ServiceMap.get(rpc.annotations, Persisted)) {
-                return Effect.dieMessage(
+                return Effect.die(
                   "EntityManager.sendLocal: Cannot process a persisted message without MessageStorage"
                 )
               }
@@ -400,8 +401,8 @@ export const make = Effect.fnUntraced(function*<
           }
         }
       ),
-      FiberRef.currentLogAnnotations,
-      HashMap.empty()
+      CurrentLogAnnotations,
+      {}
     )
   }
 
@@ -425,7 +426,7 @@ export const make = Effect.fnUntraced(function*<
       )
     })
 
-  const decodeMessage = Schema.decode(makeMessageSchema(entity))
+  const decodeMessage = Schema.decodeEffect(makeMessageSchema(entity))
 
   return identity<EntityManager>({
     interruptShard,
@@ -456,7 +457,7 @@ export const make = Effect.fnUntraced(function*<
                   exit: Exit.die(new MalformedMessage({ cause }))
                 }),
                 rpc: entity.protocol.requests.get(message.envelope.tag)!,
-                context: services
+                services: services as any
               })
             ))
           },
@@ -477,7 +478,7 @@ export const make = Effect.fnUntraced(function*<
                     new Reply.ReplyWithContext({
                       reply,
                       rpc,
-                      services
+                      services: services as any
                     })
                   )
               })
@@ -494,7 +495,7 @@ const defaultRetryPolicy = Schedule.exponential(500, 1.5).pipe(
   Schedule.either(Schedule.spaced("10 seconds"))
 )
 
-const makeMessageSchema = <Type extends string, Rpcs extends Rpc.Any>(entity: Entity<Type, Rpcs>): Schema.Schema<
+const makeMessageSchema = <Type extends string, Rpcs extends Rpc.Any>(entity: Entity<Type, Rpcs>): Schema.Codec<
   {
     readonly _tag: "IncomingRequest"
     readonly envelope: Envelope.Request.Any
@@ -504,31 +505,27 @@ const makeMessageSchema = <Type extends string, Rpcs extends Rpc.Any>(entity: En
     readonly envelope: Envelope.AckChunk | Envelope.Interrupt
   },
   Message.Incoming<Rpcs>,
-  Rpc.Context<Rpcs>
+  Rpc.ServicesServer<Rpcs>,
+  Rpc.ServicesClient<Rpcs>
 > => {
-  const requests = Arr.empty<Schema.Schema.Any>()
+  const requests = Arr.empty<Schema.Top>()
 
   for (const rpc of entity.protocol.requests.values()) {
     requests.push(
       Schema.TaggedStruct("IncomingRequest", {
-        envelope: Schema.transform(
-          Schema.Struct({
-            ...Envelope.PartialEncodedRequestFromSelf.fields,
-            tag: Schema.Literal(rpc._tag),
-            payload: (rpc as any as Rpc.AnyWithProps).payloadSchema
-          }),
-          Envelope.RequestFromSelf,
-          {
-            decode: (encoded) => Envelope.makeRequest(encoded),
-            encode: identity
-          }
+        envelope: Schema.Struct({
+          ...Envelope.PartialRequest.fields,
+          tag: Schema.Literal(rpc._tag),
+          payload: (rpc as any as Rpc.AnyWithProps).payloadSchema
+        }).pipe(
+          Schema.decodeTo(Envelope.Request, Envelope.RequestTransform)
         ),
         lastSentReply: Schema.Option(Reply.Reply(rpc))
       })
     )
   }
 
-  return Schema.Union([
+  return Serializer.json(Schema.Union([
     ...requests,
     Schema.TaggedStruct("IncomingEnvelope", {
       envelope: Schema.Union([
@@ -536,7 +533,7 @@ const makeMessageSchema = <Type extends string, Rpcs extends Rpc.Any>(entity: En
         Schema.typeCodec(Envelope.Interrupt)
       ])
     })
-  ]) as any
+  ])) as any
 }
 
 const retryRespond = <A, E, R>(times: number, effect: Effect.Effect<A, E, R>): Effect.Effect<A, E, R> =>

@@ -51,8 +51,7 @@ export const layerClientProtocolWebsocket = (options: {
   never,
   RpcSerialization.RpcSerialization | Socket.WebSocketConstructor
 > =>
-  Layer.effect(
-    RpcClientProtocol,
+  Layer.effect(RpcClientProtocol)(
     Effect.gen(function*() {
       const serialization = yield* RpcSerialization.RpcSerialization
       const https = options.https ?? false

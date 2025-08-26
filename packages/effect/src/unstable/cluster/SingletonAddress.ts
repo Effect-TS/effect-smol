@@ -1,8 +1,8 @@
 /**
  * @since 4.0.0
  */
-import * as Equal from "../../Equal.ts"
-import * as Hash from "../../Hash.ts"
+import * as Equal from "../../interfaces/Equal.ts"
+import * as Hash from "../../interfaces/Hash.ts"
 import * as Schema from "../../schema/Schema.ts"
 import { ShardId } from "./ShardId.ts"
 
@@ -10,13 +10,13 @@ import { ShardId } from "./ShardId.ts"
  * @since 4.0.0
  * @category Address
  */
-export const TypeId: unique symbol = Symbol.for("@effect/cluster/SingletonAddress")
+export const TypeId: TypeId = "~effect/cluster/SingletonAddress"
 
 /**
  * @since 4.0.0
  * @category Address
  */
-export type TypeId = typeof TypeId
+export type TypeId = "~effect/cluster/SingletonAddress"
 
 /**
  * Represents the unique address of an singleton within the cluster.
@@ -24,9 +24,9 @@ export type TypeId = typeof TypeId
  * @since 4.0.0
  * @category Address
  */
-export class SingletonAddress extends Schema.Class<SingletonAddress>("@effect/cluster/SingletonAddress")({
+export class SingletonAddress extends Schema.Class<SingletonAddress>(TypeId)({
   shardId: ShardId,
-  name: Schema.NonEmptyTrimmedString
+  name: Schema.String
 }) {
   /**
    * @since 4.0.0
@@ -36,7 +36,7 @@ export class SingletonAddress extends Schema.Class<SingletonAddress>("@effect/cl
    * @since 4.0.0
    */
   [Hash.symbol]() {
-    return Hash.cached(this)(Hash.string(`${this.name}:${this.shardId.toString()}`))
+    return Hash.cached(this, () => Hash.string(`${this.name}:${this.shardId.toString()}`))
   }
   /**
    * @since 4.0.0

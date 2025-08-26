@@ -1,17 +1,17 @@
 /**
  * @since 4.0.0
  */
-import type * as HttpApp from "@effect/platform/HttpApp"
-import type * as HttpClient from "@effect/platform/HttpClient"
-import * as HttpRouter from "@effect/platform/HttpRouter"
-import * as HttpServer from "@effect/platform/HttpServer"
-import type * as Socket from "@effect/platform/Socket"
-import type * as RpcSerialization from "../rpc/RpcSerialization.ts"
-import * as RpcServer from "../rpc/RpcServer.ts"
 import * as Effect from "../../Effect.ts"
-import { identity } from "../../Function.ts"
 import * as Layer from "../../Layer.ts"
 import type { Scope } from "../../Scope.ts"
+import type * as HttpClient from "../http/HttpClient.ts"
+import * as HttpRouter from "../http/HttpRouter.js"
+import type * as HttpServer from "../http/HttpServer.ts"
+import type { HttpServerRequest } from "../http/HttpServerRequest.ts"
+import type { HttpServerResponse } from "../http/HttpServerResponse.ts"
+import type * as RpcSerialization from "../rpc/RpcSerialization.ts"
+import * as RpcServer from "../rpc/RpcServer.ts"
+import type * as Socket from "../socket/Socket.ts"
 import { layerClientProtocolHttp, layerClientProtocolWebsocket } from "./HttpCommon.ts"
 import * as MessageStorage from "./MessageStorage.ts"
 import * as RunnerHealth from "./RunnerHealth.ts"
@@ -24,14 +24,14 @@ import type { ShardStorage } from "./ShardStorage.ts"
  * @since 4.0.0
  * @category Http App
  */
-export const toHttpApp: Effect.Effect<
-  HttpApp.Default<never, Scope>,
+export const toHttpEffect: Effect.Effect<
+  Effect.Effect<HttpServerResponse, never, Scope | HttpServerRequest>,
   never,
   Scope | RpcSerialization.RpcSerialization | ShardManager.ShardManager
 > = Effect.gen(function*() {
   const handlers = yield* Layer.build(ShardManager.layerServerHandlers)
-  return yield* RpcServer.toHttpApp(ShardManager.Rpcs).pipe(
-    Effect.provide(handlers)
+  return yield* RpcServer.toHttpEffect(ShardManager.Rpcs).pipe(
+    Effect.provideServices(handlers)
   )
 })
 
@@ -40,13 +40,13 @@ export const toHttpApp: Effect.Effect<
  * @category Http App
  */
 export const toHttpAppWebsocket: Effect.Effect<
-  HttpApp.Default<never, Scope>,
+  Effect.Effect<HttpServerResponse, never, Scope | HttpServerRequest>,
   never,
   Scope | RpcSerialization.RpcSerialization | ShardManager.ShardManager
 > = Effect.gen(function*() {
   const handlers = yield* Layer.build(ShardManager.layerServerHandlers)
-  return yield* RpcServer.toHttpAppWebsocket(ShardManager.Rpcs).pipe(
-    Effect.provide(handlers)
+  return yield* RpcServer.toHttpEffectWebsocket(ShardManager.Rpcs).pipe(
+    Effect.provideServices(handlers)
   )
 })
 
@@ -55,7 +55,7 @@ export const toHttpAppWebsocket: Effect.Effect<
  *
  * It only provides the `Runners` rpc client.
  *
- * You can use this with the `toHttpApp` and `toHttpAppWebsocket` apis
+ * You can use this with the `toHttpEffect` and `toHttpEffectWebsocket` apis
  * to run a complete `ShardManager` server.
  *
  * @since 4.0.0
@@ -93,7 +93,7 @@ export const layerNoServerHttp = (
  *
  * It only provides the `Runners` rpc client.
  *
- * You can use this with the `toHttpApp` and `toHttpAppWebsocket` apis
+ * You can use this with the `toHttpEffect` and `toHttpEffectWebsocket` apis
  * to run a complete `ShardManager` server.
  *
  * @since 4.0.0
@@ -128,20 +128,16 @@ export const layerNoServerWebsocket = (
 
 /**
  * A HTTP layer for the `ShardManager` server, that adds a route to the provided
- * `HttpRouter.Tag`.
- *
- * By default, it uses the `HttpRouter.Default` tag.
+ * `HttpRouter`.
  *
  * @since 4.0.0
  * @category Layers
  */
-export const layerHttpOptions = <I = HttpRouter.Default>(
+export const layerHttpOptions = (
   options: {
     readonly path: HttpRouter.PathInput
-    readonly routerTag?: HttpRouter.HttpRouter.TagClass<I, string, any, any>
     readonly runnerPath: string
     readonly runnerHttps?: boolean | undefined
-    readonly logAddress?: boolean | undefined
   }
 ): Layer.Layer<
   ShardManager.ShardManager,
@@ -150,18 +146,14 @@ export const layerHttpOptions = <I = HttpRouter.Default>(
   | ShardStorage
   | RunnerHealth.RunnerHealth
   | HttpClient.HttpClient
-  | HttpServer.HttpServer
   | ShardManager.Config
   | ShardingConfig
-> => {
-  const routerTag = options.routerTag ?? HttpRouter.Default
-  return routerTag.serve().pipe(
-    options.logAddress ? withLogAddress : identity,
-    Layer.merge(ShardManager.layerServer),
+  | HttpRouter.HttpRouter
+> =>
+  ShardManager.layerServer.pipe(
     Layer.provide(RpcServer.layerProtocolHttp(options)),
     Layer.provideMerge(layerNoServerHttp(options))
   )
-}
 
 /**
  * A WebSocket layer for the `ShardManager` server, that adds a route to the provided
@@ -172,43 +164,27 @@ export const layerHttpOptions = <I = HttpRouter.Default>(
  * @since 4.0.0
  * @category Layers
  */
-export const layerWebsocketOptions = <I = HttpRouter.Default>(
+export const layerWebsocketOptions = (
   options: {
     readonly path: HttpRouter.PathInput
-    readonly routerTag?: HttpRouter.HttpRouter.TagClass<I, string, any, any>
     readonly runnerPath: string
     readonly runnerHttps?: boolean | undefined
-    readonly logAddress?: boolean | undefined
   }
 ): Layer.Layer<
   ShardManager.ShardManager,
   never,
   | RpcSerialization.RpcSerialization
+  | HttpRouter.HttpRouter
   | ShardStorage
   | RunnerHealth.RunnerHealth
-  | HttpServer.HttpServer
   | Socket.WebSocketConstructor
   | ShardManager.Config
   | ShardingConfig
-> => {
-  const routerTag = options.routerTag ?? HttpRouter.Default
-  return routerTag.serve().pipe(
-    options.logAddress ? withLogAddress : identity,
-    Layer.merge(ShardManager.layerServer),
+> =>
+  ShardManager.layerServer.pipe(
     Layer.provide(RpcServer.layerProtocolWebsocket(options)),
     Layer.provideMerge(layerNoServerWebsocket(options))
   )
-}
-
-const withLogAddress = <A, E, R>(layer: Layer.Layer<A, E, R>): Layer.Layer<A, E, R | HttpServer.HttpServer> =>
-  Layer.effectDiscard(
-    HttpServer.addressFormattedWith((address) =>
-      Effect.annotateLogs(Effect.logInfo(`Listening on: ${address}`), {
-        package: "@effect/cluster",
-        service: "ShardManager"
-      })
-    )
-  ).pipe(Layer.provideMerge(layer))
 
 /**
  * A HTTP layer for the `ShardManager` server, that adds a route to the provided
@@ -229,7 +205,7 @@ export const layerHttp: Layer.Layer<
   | HttpServer.HttpServer
   | ShardManager.Config
   | ShardingConfig
-> = layerHttpOptions({ path: "/", runnerPath: "/" })
+> = HttpRouter.serve(layerHttpOptions({ path: "/", runnerPath: "/" }))
 
 /**
  * A Websocket layer for the `ShardManager` server, that adds a route to the provided
@@ -250,7 +226,7 @@ export const layerWebsocket: Layer.Layer<
   | HttpServer.HttpServer
   | ShardManager.Config
   | ShardingConfig
-> = layerWebsocketOptions({ path: "/", runnerPath: "/" })
+> = HttpRouter.serve(layerWebsocketOptions({ path: "/", runnerPath: "/" }))
 
 /**
  * @since 4.0.0

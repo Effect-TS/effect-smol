@@ -2940,6 +2940,15 @@ export const timeoutOption: {
   ): Effect.Effect<Option.Option<A>, E, R> => raceFirst(asSome(self), as(interruptible(sleep(duration)), Option.none()))
 )
 
+/** @internal */
+export const timed = <A, E, R>(
+  self: Effect.Effect<A, E, R>
+): Effect.Effect<[duration: Duration.Duration, result: A], E, R> =>
+  clockWith((clock) => {
+    const start = clock.unsafeCurrentTimeNanos()
+    return map(self, (a) => [Duration.nanos(clock.unsafeCurrentTimeNanos() - start), a])
+  })
+
 // ----------------------------------------------------------------------------
 // resources & finalization
 // ----------------------------------------------------------------------------

@@ -1,16 +1,17 @@
 /**
  * @since 4.0.0
  */
-import type * as HttpApp from "@effect/platform/HttpApp"
-import type * as HttpClient from "@effect/platform/HttpClient"
-import * as HttpRouter from "@effect/platform/HttpRouter"
-import * as HttpServer from "@effect/platform/HttpServer"
-import type * as Socket from "@effect/platform/Socket"
-import type * as RpcSerialization from "../rpc/RpcSerialization.ts"
-import * as RpcServer from "../rpc/RpcServer.ts"
 import * as Effect from "../../Effect.ts"
 import * as Layer from "../../Layer.ts"
 import type { Scope } from "../../Scope.ts"
+import type * as HttpClient from "../http/HttpClient.ts"
+import * as HttpRouter from "../http/HttpRouter.ts"
+import type * as HttpServer from "../http/HttpServer.ts"
+import type { HttpServerRequest } from "../http/HttpServerRequest.ts"
+import type { HttpServerResponse } from "../http/HttpServerResponse.ts"
+import type * as RpcSerialization from "../rpc/RpcSerialization.ts"
+import * as RpcServer from "../rpc/RpcServer.ts"
+import type * as Socket from "../socket/Socket.ts"
 import { layerClientProtocolHttp, layerClientProtocolWebsocket } from "./HttpCommon.ts"
 import type { MessageStorage } from "./MessageStorage.ts"
 import * as Runners from "./Runners.ts"
@@ -25,34 +26,32 @@ import * as SynchronizedClock from "./SynchronizedClock.ts"
  * @since 4.0.0
  * @category Http App
  */
-export const toHttpApp: Effect.Effect<
-  HttpApp.Default<never, Scope>,
+export const toHttpEffect: Effect.Effect<
+  Effect.Effect<HttpServerResponse, never, Scope | HttpServerRequest>,
   never,
-  Scope | Sharding.Sharding | RpcSerialization.RpcSerialization | MessageStorage
+  Scope | RpcSerialization.RpcSerialization | Sharding.Sharding | MessageStorage
 > = Effect.gen(function*() {
   const handlers = yield* Layer.build(RunnerServer.layerHandlers)
-  return yield* RpcServer.toHttpApp(Runners.Rpcs, {
+  return yield* RpcServer.toHttpEffect(Runners.Rpcs, {
     spanPrefix: "RunnerServer",
     disableTracing: true
-  }).pipe(Effect.provide(handlers))
+  }).pipe(Effect.provideServices(handlers))
 })
 
 /**
  * @since 4.0.0
  * @category Http App
  */
-export const toHttpAppWebsocket: Effect.Effect<
-  HttpApp.Default<never, Scope>,
+export const toHttpEffectWebsocket: Effect.Effect<
+  Effect.Effect<HttpServerResponse, never, Scope | HttpServerRequest>,
   never,
-  Scope | Sharding.Sharding | RpcSerialization.RpcSerialization | MessageStorage
+  Scope | RpcSerialization.RpcSerialization | Sharding.Sharding | MessageStorage
 > = Effect.gen(function*() {
   const handlers = yield* Layer.build(RunnerServer.layerHandlers)
-  return yield* RpcServer.toHttpAppWebsocket(Runners.Rpcs, {
+  return yield* RpcServer.toHttpEffectWebsocket(Runners.Rpcs, {
     spanPrefix: "RunnerServer",
     disableTracing: true
-  }).pipe(
-    Effect.provide(handlers)
-  )
+  }).pipe(Effect.provideServices(handlers))
 })
 
 /**
@@ -71,66 +70,46 @@ export const layerClient: Layer.Layer<
 
 /**
  * A HTTP layer for the `Runners` services, that adds a route to the provided
- * `HttpRouter.Tag`.
- *
- * By default, it uses the `HttpRouter.Default` tag.
+ * `HttpRouter`.
  *
  * @since 4.0.0
  * @category Layers
  */
-export const layer = <I = HttpRouter.Default>(options: {
+export const layerHttpOptions = (options: {
   readonly path: HttpRouter.PathInput
-  readonly routerTag?: HttpRouter.HttpRouter.TagClass<I, string, any, any>
-  readonly logAddress?: boolean | undefined
 }): Layer.Layer<
   Sharding.Sharding | Runners.Runners,
   never,
+  | ShardStorage
   | RpcSerialization.RpcSerialization
+  | MessageStorage
   | ShardingConfig.ShardingConfig
   | Runners.RpcClientProtocol
-  | HttpServer.HttpServer
-  | MessageStorage
-  | ShardStorage
-> => {
-  const layer = RunnerServer.layerWithClients.pipe(
+  | HttpRouter.HttpRouter
+> =>
+  RunnerServer.layerWithClients.pipe(
     Layer.provide(RpcServer.layerProtocolHttp(options))
   )
-  return options.logAddress ? withLogAddress(layer) : layer
-}
 
 /**
  * @since 4.0.0
  * @category Layers
  */
-export const layerWebsocketOptions = <I = HttpRouter.Default>(options: {
+export const layerWebsocketOptions = (options: {
   readonly path: HttpRouter.PathInput
-  readonly routerTag?: HttpRouter.HttpRouter.TagClass<I, string, any, any>
-  readonly logAddress?: boolean | undefined
 }): Layer.Layer<
   Sharding.Sharding | Runners.Runners,
   never,
-  | RpcSerialization.RpcSerialization
   | ShardingConfig.ShardingConfig
   | Runners.RpcClientProtocol
-  | HttpServer.HttpServer
   | MessageStorage
   | ShardStorage
-> => {
-  const layer = RunnerServer.layerWithClients.pipe(
+  | RpcSerialization.RpcSerialization
+  | HttpRouter.HttpRouter
+> =>
+  RunnerServer.layerWithClients.pipe(
     Layer.provide(RpcServer.layerProtocolWebsocket(options))
   )
-  return options.logAddress ? withLogAddress(layer) : layer
-}
-
-const withLogAddress = <A, E, R>(layer: Layer.Layer<A, E, R>): Layer.Layer<A, E, R | HttpServer.HttpServer> =>
-  Layer.effectDiscard(
-    HttpServer.addressFormattedWith((address) =>
-      Effect.annotateLogs(Effect.logInfo(`Listening on: ${address}`), {
-        package: "@effect/cluster",
-        service: "Runner"
-      })
-    )
-  ).pipe(Layer.provideMerge(layer))
 
 /**
  * @since 4.0.0
@@ -145,8 +124,7 @@ export const layerHttp: Layer.Layer<
   | HttpServer.HttpServer
   | MessageStorage
   | ShardStorage
-> = HttpRouter.Default.serve().pipe(
-  Layer.provideMerge(layer({ path: "/", logAddress: true })),
+> = HttpRouter.serve(layerHttpOptions({ path: "/" })).pipe(
   Layer.provide(layerClientProtocolHttp({ path: "/" }))
 )
 
@@ -178,8 +156,7 @@ export const layerWebsocket: Layer.Layer<
   | HttpServer.HttpServer
   | MessageStorage
   | ShardStorage
-> = HttpRouter.Default.serve().pipe(
-  Layer.provideMerge(layerWebsocketOptions({ path: "/", logAddress: true })),
+> = HttpRouter.serve(layerWebsocketOptions({ path: "/" })).pipe(
   Layer.provide(layerClientProtocolWebsocket({ path: "/" }))
 )
 

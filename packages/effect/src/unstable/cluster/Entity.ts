@@ -3,7 +3,6 @@
  */
 import type * as Cause from "../../Cause.ts"
 import * as Arr from "../../collections/Array.ts"
-import type { Brand } from "../../data/Brand.ts"
 import * as Data from "../../data/Data.ts"
 import * as Option from "../../data/Option.ts"
 import * as Predicate from "../../data/Predicate.ts"
@@ -67,7 +66,7 @@ export interface Entity<
   /**
    * The name of the entity type.
    */
-  readonly type: Type & Brand<"EntityType">
+  readonly type: EntityType
 
   /**
    * A RpcGroup definition for messages which represents the messaging protocol

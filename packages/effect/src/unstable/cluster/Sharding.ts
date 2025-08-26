@@ -8,7 +8,6 @@ import * as MutableHashMap from "../../collections/MutableHashMap.ts"
 import * as MutableHashSet from "../../collections/MutableHashSet.ts"
 import * as Filter from "../../data/Filter.ts"
 import * as Option from "../../data/Option.ts"
-import * as Predicate from "../../data/Predicate.ts"
 import * as Deferred from "../../Deferred.ts"
 import * as Effect from "../../Effect.ts"
 import * as Exit from "../../Exit.ts"
@@ -31,16 +30,12 @@ import type * as Rpc from "../rpc/Rpc.ts"
 import * as RpcClient from "../rpc/RpcClient.ts"
 import { type FromServer, RequestId } from "../rpc/RpcMessage.ts"
 import type { MailboxFull, PersistenceError } from "./ClusterError.ts"
-import {
-  AlreadyProcessingMessage,
-  EntityNotAssignedToRunner,
-  EntityNotManagedByRunner,
-  RunnerUnavailable
-} from "./ClusterError.ts"
+import { AlreadyProcessingMessage, EntityNotAssignedToRunner, EntityNotManagedByRunner } from "./ClusterError.ts"
 import { Persisted, Uninterruptible } from "./ClusterSchema.ts"
 import * as ClusterSchema from "./ClusterSchema.ts"
 import type { CurrentAddress, CurrentRunnerAddress, Entity, HandlersFrom } from "./Entity.ts"
 import type { EntityAddress } from "./EntityAddress.ts"
+import { make as makeEntityAddress } from "./EntityAddress.ts"
 import type { EntityId } from "./EntityId.ts"
 import { make as makeEntityId } from "./EntityId.ts"
 import * as Envelope from "./Envelope.ts"
@@ -755,7 +750,6 @@ const make = Effect.gen(function*() {
       }
     )
 
-  const isTransientError = Predicate.or(RunnerUnavailable.is, EntityNotAssignedToRunner.is)
   function sendOutgoing(
     message: Message.Outgoing<any>,
     discard: boolean,
@@ -784,7 +778,8 @@ const make = Effect.gen(function*() {
           ? sendLocal(message)
           : runners.send({ address: maybeRunner.value, message })
       }),
-      Filter.fromPredicate(isTransientError),
+      (error) =>
+        error._tag === "EntityNotAssignedToRunner" || error._tag === "RunnerUnavailable" ? error : Filter.fail(error),
       (error) => {
         if (retries === 0) {
           return Effect.die(error)

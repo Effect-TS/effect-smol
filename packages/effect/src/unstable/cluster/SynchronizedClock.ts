@@ -1,12 +1,12 @@
 /**
  * @since 4.0.0
  */
-import * as Clock from "../../Clock.ts"
-import * as Duration from "../../Duration.ts"
 import * as Effect from "../../Effect.ts"
 import * as Layer from "../../Layer.ts"
 import * as Schedule from "../../Schedule.ts"
 import type { Scope } from "../../Scope.ts"
+import * as Clock from "../../time/Clock.ts"
+import * as Duration from "../../time/Duration.ts"
 import { ShardManagerClient } from "./ShardManager.ts"
 
 /**
@@ -18,7 +18,7 @@ export const make: (getRemoteTime: Effect.Effect<number, never, never>) => Effec
   never,
   Scope
 > = Effect.fnUntraced(function*(getRemoteTime) {
-  const clock = yield* Effect.clock
+  const clock = yield* Clock.Clock
 
   let driftMillis = 0
   let driftNanos = BigInt(0)
@@ -58,7 +58,6 @@ export const make: (getRemoteTime: Effect.Effect<number, never, never>) => Effec
   }
 
   return Clock.Clock.of({
-    [Clock.ClockTypeId]: Clock.ClockTypeId,
     sleep: clock.sleep,
     unsafeCurrentTimeMillis,
     unsafeCurrentTimeNanos,
@@ -75,8 +74,9 @@ export const layer: Layer.Layer<
   never,
   never,
   ShardManagerClient
-> = Layer.unwrapScoped(Effect.gen(function*() {
-  const shardManager = yield* ShardManagerClient
-  const clock = yield* make(shardManager.getTime)
-  return Layer.setClock(clock)
-}))
+> = Layer.effect(Clock.Clock)(
+  Effect.gen(function*() {
+    const shardManager = yield* ShardManagerClient
+    return yield* make(shardManager.getTime)
+  })
+)

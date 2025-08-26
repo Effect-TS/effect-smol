@@ -106,7 +106,7 @@ export const make = <E, R>(options: {
               Effect.retry(retryPolicy)
             )
           }).pipe(
-            Effect.catchAllCause(Effect.logWarning),
+            Effect.catchCause(Effect.logWarning),
             Effect.annotateLogs({
               module: "ClusterCron",
               name: options.name,
@@ -122,7 +122,7 @@ export const make = <E, R>(options: {
 }
 
 const retryPolicy = Schedule.exponential(200, 1.5).pipe(
-  Schedule.union(Schedule.spaced("1 minute"))
+  Schedule.either(Schedule.spaced("1 minute"))
 )
 
 class CronPayload extends Schema.Class<CronPayload>("@effect/cluster/ClusterCron/CronPayload")({
