@@ -21,21 +21,19 @@ import { ResultLengthMismatch } from "./SqlError.ts"
  * @since 1.0.0
  * @category requests
  */
-export interface SqlRequest<In extends Schema.Top, A extends Schema.Top, E>
-  extends Request.Request<A["Type"], E | Schema.SchemaError, A["DecodingServices"] | In["EncodingServices"]>
-{
-  readonly payload: In["Type"]
+export interface SqlRequest<In, A, E, R> extends Request.Request<A, E | Schema.SchemaError, R> {
+  readonly payload: In
 }
 
 const SqlRequestProto = {
   ...Request.Class.prototype,
   [Equal.symbol](
-    this: SqlRequest<Schema.Any, Schema.Any, unknown>,
-    that: SqlRequest<Schema.Any, Schema.Any, unknown>
+    this: SqlRequest<any, any, any, any>,
+    that: SqlRequest<any, any, any, any>
   ): boolean {
     return Equal.equals(this.payload, that.payload)
   },
-  [Hash.symbol](this: SqlRequest<Schema.Any, Schema.Any, unknown>): number {
+  [Hash.symbol](this: SqlRequest<any, any, any, any>): number {
     return Hash.cached(this, () => Hash.hash(this.payload))
   }
 }
@@ -44,46 +42,44 @@ const SqlRequestProto = {
  * @since 1.0.0
  * @category requests
  */
-export const SqlRequest = <In extends Schema.Top, A, E>(options: {
-  readonly request: In["Type"]
-  readonly encoded: In["Encoded"]
-}): SqlRequest<In, A, E> => {
+export const request = <In, A, E, R>(
+  resolver: RequestResolver.RequestResolver<SqlRequest<In, A, E, R>>
+) =>
+(payload: In): Effect.Effect<A, E | Schema.SchemaError, R> =>
+  Effect.request(makeRequest<In, A, E, R>(payload), resolver)
+
+const makeRequest = <In, A, E, R>(payload: In): SqlRequest<In, A, E, R> => {
   const self = Object.create(SqlRequestProto)
-  self.request = options.request
-  self.encoded = options.encoded
+  self.payload = payload
   return self
 }
 
-const partitionRequests = <In extends Schema.Top, A, E>(
-  requests: ReadonlyArray<Request.Entry<SqlRequest<In, A, E>>>
+const partitionRequests = <In, A, E, R>(
+  requests: ReadonlyArray<Request.Entry<SqlRequest<In, A, E, R>>>
 ) => {
   const len = requests.length
-  const inputs: Array<unknown> = new Array(len)
-  const spanLinks: Array<Tracer.SpanLink> = new Array(len)
+  const inputs: Array<In> = new Array(len)
 
   for (let i = 0; i < len; i++) {
     const request = requests[i]
-    inputs[i] = request.encoded
-    spanLinks[i] = request.spanLink
+    inputs[i] = request.request.payload
   }
 
-  return [inputs, spanLinks] as const
+  return inputs
 }
 
-const partitionRequestsById = <I, II>() => <T extends string, A, E>(requests: ReadonlyArray<SqlRequest<T, A, E>>) => {
+const partitionRequestsById = <In, A, E, R>(requests: ReadonlyArray<Request.Entry<SqlRequest<In, A, E, R>>>) => {
   const len = requests.length
-  const inputs: Array<II> = new Array(len)
-  const spanLinks: Array<Tracer.SpanLink> = new Array(len)
-  const byIdMap = MutableHashMap.empty<I, SqlRequest<T, A, E>>()
+  const inputs: Array<In> = new Array(len)
+  const byIdMap = MutableHashMap.empty<In, Request.Entry<SqlRequest<In, A, E, R>>>()
 
   for (let i = 0; i < len; i++) {
     const request = requests[i]
-    inputs[i] = request.encoded as II
-    spanLinks[i] = request.spanLink
-    MutableHashMap.set(byIdMap, request.input as I, request)
+    inputs[i] = request.request.payload
+    MutableHashMap.set(byIdMap, request.request.payload, request)
   }
 
-  return [inputs, spanLinks, byIdMap] as const
+  return [inputs, byIdMap] as const
 }
 
 /**
