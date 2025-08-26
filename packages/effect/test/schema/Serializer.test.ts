@@ -306,7 +306,7 @@ describe("Serializer", () => {
         await assertions.deserialization.json.typeCodec.fail(
           schema,
           "-",
-          `Expected "a" | 1 | "2" | true, got "-"`
+          `Expected "a" | 1 | 2 | true, got "-"`
         )
       })
 
@@ -1087,7 +1087,7 @@ describe("Serializer", () => {
         await assertions.deserialization.stringLeafJson.typeCodec.fail(
           schema,
           "-",
-          `Expected "a" | "1" | "2" | "true", got "-"`
+          `Expected "a" | 1 | 2 | true, got "-"`
         )
       })
 
