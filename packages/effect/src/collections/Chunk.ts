@@ -400,7 +400,7 @@ export const empty: <A = never>() => Chunk<A> = () => _empty
  * @category constructors
  * @since 2.0.0
  */
-export const make = <As extends readonly [any, ...ReadonlyArray<any>]>(...as: As): NonEmptyChunk<As[number]> =>
+export const make = <As extends readonly [any, ...Array<any>]>(...as: As): NonEmptyChunk<As[number]> =>
   unsafeFromNonEmptyArray(as)
 
 /**

@@ -24,8 +24,12 @@ const config: ViteUserConfig = {
       exclude: [
         "node_modules/",
         "dist/",
+        "benchmark/",
+        "bundle/",
+        "dtslint/",
         "build/",
         "coverage/",
+        "test/utils/",
         "**/*.d.ts",
         "**/*.config.*",
         "**/vitest.setup.*",

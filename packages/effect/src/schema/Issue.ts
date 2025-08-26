@@ -249,7 +249,7 @@ export class Composite extends Base {
   /**
    * The issues that occurred.
    */
-  readonly issues: readonly [Issue, ...ReadonlyArray<Issue>]
+  readonly issues: readonly [Issue, ...Array<Issue>]
 
   constructor(
     /**
@@ -263,7 +263,7 @@ export class Composite extends Base {
     /**
      * The issues that occurred.
      */
-    issues: readonly [Issue, ...ReadonlyArray<Issue>]
+    issues: readonly [Issue, ...Array<Issue>]
   ) {
     super()
     this.ast = ast

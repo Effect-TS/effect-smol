@@ -140,7 +140,7 @@ export interface Bottom<
   check(
     ...checks: readonly [
       Check.Check<this["Type"]>,
-      ...ReadonlyArray<Check.Check<this["Type"]>>
+      ...Array<Check.Check<this["Type"]>>
     ]
   ): this["~rebuild.out"]
 }
@@ -275,7 +275,7 @@ export abstract class Bottom$<
   check(
     ...checks: readonly [
       Check.Check<this["Type"]>,
-      ...ReadonlyArray<Check.Check<this["Type"]>>
+      ...Array<Check.Check<this["Type"]>>
     ]
   ): this["~rebuild.out"] {
     return this.rebuild(AST.appendChecks(this.ast, checks))
@@ -2004,7 +2004,7 @@ export declare namespace TupleWithRest {
   /**
    * @since 4.0.0
    */
-  export type Rest = readonly [Top, ...ReadonlyArray<Top>]
+  export type Rest = readonly [Top, ...Array<Top>]
 
   /**
    * @since 4.0.0
@@ -2012,7 +2012,7 @@ export declare namespace TupleWithRest {
   export type Type<T extends ReadonlyArray<unknown>, Rest extends TupleWithRest.Rest> = Rest extends
     readonly [infer Head extends Top, ...infer Tail extends ReadonlyArray<Top>] ? Readonly<[
       ...T,
-      ...ReadonlyArray<Head["Type"]>,
+      ...Array<Head["Type"]>,
       ...{ readonly [K in keyof Tail]: Tail[K]["Type"] }
     ]> :
     T
@@ -2492,7 +2492,7 @@ export function suspend<S extends Top>(f: () => S): suspend<S> {
 export function check<S extends Top>(
   ...checks: readonly [
     Check.Check<S["Type"]>,
-    ...ReadonlyArray<Check.Check<S["Type"]>>
+    ...Array<Check.Check<S["Type"]>>
   ]
 ) {
   return (self: S): S["~rebuild.out"] => self.check(...checks)
@@ -4264,7 +4264,7 @@ function makeClass<
     static check(
       ...checks: readonly [
         Check.Check<Self>,
-        ...ReadonlyArray<Check.Check<Self>>
+        ...Array<Check.Check<Self>>
       ]
     ): Class<Self, S, Self> {
       return this.rebuild(AST.appendChecks(this.ast, checks))

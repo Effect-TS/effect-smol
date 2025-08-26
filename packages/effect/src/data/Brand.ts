@@ -101,7 +101,7 @@ export interface Constructor<in out A extends Brand<any>> {
    *
    * @internal
    */
-  checks: readonly [Check.Check<Brand.Unbranded<A>>, ...ReadonlyArray<Check.Check<Brand.Unbranded<A>>>]
+  checks: readonly [Check.Check<Brand.Unbranded<A>>, ...Array<Check.Check<Brand.Unbranded<A>>>]
 }
 
 /**
@@ -224,7 +224,7 @@ export function make<A extends Brand<any>>(
 export function check<A extends Brand<any>>(
   ...checks: readonly [
     Check.Check<Brand.Unbranded<A>>,
-    ...ReadonlyArray<Check.Check<Brand.Unbranded<A>>>
+    ...Array<Check.Check<Brand.Unbranded<A>>>
   ]
 ): Constructor<A> {
   const result = (input: Brand.Unbranded<A>): Result.Result<A, BrandError> => {

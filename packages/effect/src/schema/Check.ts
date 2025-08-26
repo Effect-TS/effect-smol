@@ -56,11 +56,11 @@ export class Filter<in E> extends PipeableClass implements Annotations.Annotated
  */
 export class FilterGroup<in E> extends PipeableClass implements Annotations.Annotated {
   readonly _tag = "FilterGroup"
-  readonly checks: readonly [Check<E>, Check<E>, ...ReadonlyArray<Check<E>>]
+  readonly checks: readonly [Check<E>, Check<E>, ...Array<Check<E>>]
   readonly annotations: Annotations.Filter | undefined
 
   constructor(
-    checks: readonly [Check<E>, Check<E>, ...ReadonlyArray<Check<E>>],
+    checks: readonly [Check<E>, Check<E>, ...Array<Check<E>>],
     annotations: Annotations.Filter | undefined = undefined
   ) {
     super()
@@ -198,7 +198,7 @@ export function make<T>(
  * @since 4.0.0
  */
 export function makeGroup<T>(
-  checks: readonly [Check<T>, Check<T>, ...ReadonlyArray<Check<T>>],
+  checks: readonly [Check<T>, Check<T>, ...Array<Check<T>>],
   annotations: Annotations.Filter | undefined = undefined
 ): FilterGroup<T> {
   return new FilterGroup(checks, annotations)

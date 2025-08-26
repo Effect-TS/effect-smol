@@ -202,7 +202,7 @@ export class Link {
  * @category model
  * @since 4.0.0
  */
-export type Encoding = readonly [Link, ...ReadonlyArray<Link>]
+export type Encoding = readonly [Link, ...Array<Link>]
 
 /**
  * @category model
@@ -295,7 +295,7 @@ export class Context {
  * @category model
  * @since 4.0.0
  */
-export type Checks = readonly [Check.Check<any>, ...ReadonlyArray<Check.Check<any>>]
+export type Checks = readonly [Check.Check<any>, ...Array<Check.Check<any>>]
 
 /**
  * @category model
