@@ -1137,10 +1137,18 @@ const unsafeFromIterator: (
   op: "Iterator",
   single: false,
   [contA](value, fiber) {
-    const state = this[args][0].next(value)
+    const iter = this[args][0]
+    const state = iter.next(value)
     if (state.done) return succeed(state.value)
+    let eff = state.value.asEffect()
+    while (effectIsExit(eff)) {
+      if (eff._tag === "Failure") return eff
+      const next = iter.next(eff.value)
+      if (next.done) return succeed(next.value)
+      eff = next.value.asEffect()
+    }
     fiber._stack.push(this)
-    return state.value.asEffect()
+    return eff
   },
   [evaluate](this: any, fiber: FiberImpl) {
     return this[contA](this[args][1], fiber)
