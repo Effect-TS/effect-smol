@@ -138,14 +138,14 @@ export function getBrand<T>(check: Check<T>): string | symbol | undefined {
   if (Predicate.isString(brand) || Predicate.isSymbol(brand)) return brand
 }
 
-const baseBrand = makeGuard((u): u is any => true)
+const brand_ = makeGuard((_u): _u is any => true)
 
 /** @internal */
 export function makeBrand<B extends string | symbol, T>(
   brand: B,
   annotations?: Annotations.Filter
 ): Refinement<T & Brand<B>, T> {
-  return baseBrand.annotate(Annotations.merge({ [BRAND_KEY]: brand }, annotations))
+  return brand_.annotate(Annotations.merge({ [BRAND_KEY]: brand }, annotations))
 }
 
 /**
@@ -169,32 +169,6 @@ export function brand<B extends string | symbol>(brand: B, annotations?: Annotat
   }
 }
 
-/** @internal */
-export function makeIssue(
-  input: unknown,
-  out: undefined | boolean | string | Issue.Issue | {
-    readonly path: ReadonlyArray<PropertyKey>
-    readonly message: string
-  }
-) {
-  if (Issue.isIssue(out)) {
-    return out
-  }
-  if (out === undefined) {
-    return undefined
-  }
-  if (Predicate.isBoolean(out)) {
-    return out ? undefined : new Issue.InvalidValue(Option.some(input))
-  }
-  if (Predicate.isString(out)) {
-    return new Issue.InvalidValue(Option.some(input), { message: out })
-  }
-  return new Issue.Pointer(
-    out.path,
-    new Issue.InvalidValue(Option.some(input), { message: out.message })
-  )
-}
-
 /**
  * @category Constructors
  * @since 4.0.0
@@ -212,7 +186,7 @@ export function make<T>(
   abort: boolean = false
 ): Filter<T> {
   return new Filter(
-    (input, ast, options) => makeIssue(input, filter(input, ast, options)),
+    (input, ast, options) => Issue.make(input, filter(input, ast, options)),
     annotations,
     abort
   )

@@ -8,7 +8,6 @@ import { PipeableClass } from "../internal/schema/util.ts"
 import * as Str from "../primitives/String.ts"
 import type * as Annotations from "./Annotations.ts"
 import type * as AST from "./AST.ts"
-import * as Check from "./Check.ts"
 import * as Issue from "./Issue.ts"
 
 /**
@@ -151,7 +150,7 @@ export function checkEffect<T, R = never>(
 ): Getter<T, T, R> {
   return onSome((t, options) => {
     return f(t, options).pipe(Effect.flatMapEager((out) => {
-      const issue = Check.makeIssue(t, out)
+      const issue = Issue.make(t, out)
       return issue ?
         Effect.fail(issue) :
         Effect.succeed(Option.some(t))

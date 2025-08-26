@@ -3,6 +3,7 @@
  */
 import * as Option from "../data/Option.ts"
 import { hasProperty } from "../data/Predicate.ts"
+import * as Predicate from "../data/Predicate.ts"
 import type * as Annotations from "./Annotations.ts"
 import type * as AST from "./AST.ts"
 import type * as Check from "./Check.ts"
@@ -479,4 +480,30 @@ export function getActual(issue: Issue): Option.Option<unknown> {
     case "Filter":
       return Option.some(issue.actual)
   }
+}
+
+/** @internal */
+export function make(
+  input: unknown,
+  out: undefined | boolean | string | Issue | {
+    readonly path: ReadonlyArray<PropertyKey>
+    readonly message: string
+  }
+) {
+  if (isIssue(out)) {
+    return out
+  }
+  if (out === undefined) {
+    return undefined
+  }
+  if (Predicate.isBoolean(out)) {
+    return out ? undefined : new InvalidValue(Option.some(input))
+  }
+  if (Predicate.isString(out)) {
+    return new InvalidValue(Option.some(input), { message: out })
+  }
+  return new Pointer(
+    out.path,
+    new InvalidValue(Option.some(input), { message: out.message })
+  )
 }

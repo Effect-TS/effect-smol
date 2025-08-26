@@ -186,6 +186,8 @@ export declare namespace Brand {
  */
 export type Branded<A, K extends string | symbol> = A & Brand<K>
 
+const nominal_ = make<any>(() => undefined)
+
 /**
  * This function returns a `Brand.Constructor` that **does not apply any runtime
  * checks**, it just returns the provided value. It can be used to create
@@ -199,7 +201,7 @@ export type Branded<A, K extends string | symbol> = A & Brand<K>
  * @since 2.0.0
  */
 export function nominal<A extends Brand<any>>(): Brand.Constructor<A> {
-  return make(() => undefined)
+  return nominal_
 }
 
 /**
