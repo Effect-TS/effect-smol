@@ -1322,6 +1322,7 @@ export interface Boolean
 {}
 
 /**
+ * @category Boolean
  * @since 4.0.0
  */
 export const Boolean: Boolean = make<Boolean>(AST.booleanKeyword)
@@ -4498,6 +4499,22 @@ export const StandardSchemaV1FailureResult = Struct({
     path: optional(Array(Union([PropertyKey, Struct({ key: PropertyKey })])))
   }))
 })
+
+/**
+ * A boolean parsed from 0 or 1.
+ *
+ * @category Boolean
+ * @since 4.0.0
+ */
+export const BooleanFromBit = Literals([0, 1]).pipe(
+  decodeTo(
+    Boolean,
+    Transformation.transform({
+      decode: (bit) => bit === 1,
+      encode: (bool) => bool ? 1 : 0
+    })
+  )
+)
 
 /**
  * @since 4.0.0
