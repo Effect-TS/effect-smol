@@ -567,7 +567,7 @@ export const asserts = ToParser.asserts
 export function decodeUnknownEffect<T, E, RD, RE>(codec: Codec<T, E, RD, RE>) {
   const parser = ToParser.decodeUnknownEffect(codec)
   return (input: unknown, options?: AST.ParseOptions): Effect.Effect<T, SchemaError, RD> => {
-    return Effect.mapError(parser(input, options), (issue) => new SchemaError({ issue }))
+    return Effect.mapErrorEager(parser(input, options), (issue) => new SchemaError({ issue }))
   }
 }
 
@@ -641,7 +641,7 @@ export const decodeSync = ToParser.decodeSync
 export function encodeUnknownEffect<T, E, RD, RE>(codec: Codec<T, E, RD, RE>) {
   const parser = ToParser.encodeUnknownEffect(codec)
   return (input: unknown, options?: AST.ParseOptions): Effect.Effect<E, SchemaError, RE> => {
-    return Effect.mapError(parser(input, options), (issue) => new SchemaError({ issue }))
+    return Effect.mapErrorEager(parser(input, options), (issue) => new SchemaError({ issue }))
   }
 }
 

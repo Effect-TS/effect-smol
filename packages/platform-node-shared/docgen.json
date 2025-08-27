@@ -28,7 +28,7 @@
       "@effect/rpc": ["../../../rpc/src/index.js"],
       "@effect/rpc/*": ["../../../rpc/src/*.js"],
       "@effect/sql": ["../../../sql/src/index.js"],
-      "@effect/sql/*": ["../../../sql/src/*.js"]
+      "effect/unstable/sql/*": ["../../../sql/src/*.js"]
     }
   }
 }

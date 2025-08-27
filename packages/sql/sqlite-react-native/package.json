@@ -1,0 +1,58 @@
+{
+  "name": "@effect/sql-sqlite-react-native",
+  "version": "0.47.1",
+  "type": "module",
+  "license": "MIT",
+  "description": "A SQLite toolkit for Effect",
+  "homepage": "https://effect.website",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Effect-TS/effect.git",
+    "directory": "packages/sql/sqlite-react-native"
+  },
+  "bugs": {
+    "url": "https://github.com/Effect-TS/effect/issues"
+  },
+  "tags": [
+    "typescript",
+    "sql",
+    "database"
+  ],
+  "keywords": [
+    "typescript",
+    "sql",
+    "database"
+  ],
+  "files": [
+    "src/**/*.ts",
+    "dist/**/*.js",
+    "dist/**/*.js.map",
+    "dist/**/*.d.ts",
+    "dist/**/*.d.ts.map"
+  ],
+  "publishConfig": {
+    "provenance": true,
+    "exports": {
+      "./package.json": "./package.json",
+      ".": "./dist/index.js",
+      "./*": "./dist/*.js",
+      "./internal/*": null,
+      "./*/index": null
+    }
+  },
+  "scripts": {
+    "codegen": "build-utils prepare-v4",
+    "build": "tsc -b tsconfig.build.json && babel dist --plugins annotate-pure-calls --out-dir dist --source-maps",
+    "check": "tsc -b tsconfig.json",
+    "test": "vitest",
+    "coverage": "vitest --coverage"
+  },
+  "devDependencies": {
+    "@op-engineering/op-sqlite": "15.0.1",
+    "effect": "workspace:^"
+  },
+  "peerDependencies": {
+    "@op-engineering/op-sqlite": "7.1.0",
+    "effect": "workspace:^"
+  }
+}

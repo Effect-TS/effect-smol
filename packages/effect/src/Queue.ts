@@ -1336,6 +1336,12 @@ import * as Option from "effect/data/Option"
 export const size = <A, E>(self: Dequeue<A, E>): Effect<number> => internalEffect.sync(() => unsafeSize(self))
 
 /**
+ * @category size
+ * @since 4.0.0
+ */
+export const isFull = <A, E>(self: Dequeue<A, E>): Effect<boolean> => internalEffect.sync(() => unsafeIsFull(self))
+
+/**
  * Check the size of the queue synchronously.
  *
  * If the queue is complete, it will return `None`.
@@ -1377,6 +1383,12 @@ import * as Option from "effect/data/Option"
  * @since 4.0.0
  */
 export const unsafeSize = <A, E>(self: Dequeue<A, E>): number => self.state._tag === "Done" ? 0 : self.messages.length
+
+/**
+ * @category size
+ * @since 4.0.0
+ */
+export const unsafeIsFull = <A, E>(self: Dequeue<A, E>): boolean => unsafeSize(self) === self.capacity
 
 /**
  * Convert a Queue to a Dequeue, allowing only read operations.

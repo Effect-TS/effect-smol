@@ -102,7 +102,7 @@ export const isFragment = (u: unknown): u is Fragment => hasProperty(u, Fragment
 export const isCustom = <A extends Custom<any, any, any, any>>(
   kind: A["kind"]
 ) =>
-(u: Segment): u is A => u._tag === "Custom" && u.kind === kind
+(u: unknown): u is A => hasProperty(u, "_tag") && u._tag === "Custom" && (u as any).kind === kind
 
 /**
  * @category model
@@ -116,7 +116,7 @@ export type Segment =
   | RecordInsertHelper
   | RecordUpdateHelper
   | RecordUpdateHelperSingle
-  | Custom
+  | Custom<any, any, any, any>
 
 /**
  * @category model
@@ -725,8 +725,8 @@ interface CompilerImpl extends Compiler {
   ): readonly [sql: string, binds: ReadonlyArray<Primitive>]
 }
 
-const statementCacheSymbol = Symbol.for("@effect/sql/Statement/statementCache")
-const statementCacheNoTransformSymbol = Symbol.for("@effect/sql/Statement/statementCacheNoTransform")
+const statementCacheSymbol = Symbol.for("effect/unstable/sql/Statement/statementCache")
+const statementCacheNoTransformSymbol = Symbol.for("effect/unstable/sql/Statement/statementCacheNoTransform")
 
 const CompilerProto = {
   compile(

@@ -168,7 +168,7 @@ export const grouped = <Req extends Schema.Top, Res extends Schema.Top, K, Row, 
         const key = options.RequestGroupKey(entry.request.payload)
         const result = MutableHashMap.get(resultMap, key)
         entry.unsafeComplete(
-          result._tag === "None" ? Exit.fail(new Cause.NoSuchElementError()) : Exit.succeed(result.value)
+          result._tag === "None" ? constNoSuchElement : Exit.succeed(result.value)
         )
       }
     })
@@ -232,7 +232,7 @@ export const findById = <Id extends Schema.Top, Res extends Schema.Top, Row, E, 
         return
       }
       MutableHashMap.forEach(idMap, (request) => {
-        request.unsafeComplete(Exit.fail(new Cause.NoSuchElementError()))
+        request.unsafeComplete(constNoSuchElement)
       })
     })
   })
@@ -283,6 +283,8 @@ export {
    */
   void_ as void
 }
+
+const constNoSuchElement = Exit.fail(new Cause.NoSuchElementError())
 
 const partitionRequests = function*<In, A, E, R, InE>(
   requests: Arr.NonEmptyArray<Request.Entry<SqlRequest<In, A, E, R>>>,

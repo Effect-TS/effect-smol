@@ -618,6 +618,12 @@ export const failSync = <E>(evaluate: LazyArg<E>): Stream<never, E> => fromChann
 export const failCause = <E>(cause: Cause.Cause<E>): Stream<never, E> => fromChannel(Channel.failCause(cause))
 
 /**
+ * @since 2.0.0
+ * @category constructors
+ */
+export const die = (defect: unknown): Stream<never> => fromChannel(Channel.die(defect))
+
+/**
  * The stream that always fails with the specified lazily evaluated `Cause`.
  *
  * @example

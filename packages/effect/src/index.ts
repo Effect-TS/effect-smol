@@ -392,6 +392,11 @@ export * as ManagedRuntime from "./ManagedRuntime.ts"
 export * as MutableRef from "./MutableRef.ts"
 
 /**
+ * @since 2.0.0
+ */
+export * as Pool from "./Pool.ts"
+
+/**
  * This module provides utilities for working with publish-subscribe (PubSub) systems.
  *
  * A PubSub is an asynchronous message hub where publishers can publish messages and subscribers

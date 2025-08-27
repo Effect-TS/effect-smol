@@ -1138,17 +1138,18 @@ const unsafeFromIterator: (
   single: false,
   [contA](value, fiber) {
     const iter = this[args][0]
-    const state = iter.next(value)
-    if (state.done) return succeed(state.value)
-    let eff = state.value.asEffect()
-    while (effectIsExit(eff)) {
-      if (eff._tag === "Failure") return eff
-      const next = iter.next(eff.value)
-      if (next.done) return succeed(next.value)
-      eff = next.value.asEffect()
+    while (true) {
+      const state = iter.next(value)
+      if (state.done) return succeed(state.value)
+      const eff = state.value.asEffect()
+      if (!effectIsExit(eff)) {
+        fiber._stack.push(this)
+        return eff
+      } else if (eff._tag === "Failure") {
+        return eff
+      }
+      value = eff.value
     }
-    fiber._stack.push(this)
-    return eff
   },
   [evaluate](this: any, fiber: FiberImpl) {
     return this[contA](this[args][1], fiber)
@@ -1928,7 +1929,10 @@ export const provideServices: {
   <A, E, R, XR>(
     self: Effect.Effect<A, E, R>,
     services: ServiceMap.ServiceMap<XR>
-  ): Effect.Effect<A, E, Exclude<R, XR>> => updateServices(self, ServiceMap.merge(services)) as any
+  ): Effect.Effect<A, E, Exclude<R, XR>> => {
+    if (effectIsExit(self)) return self as any
+    return updateServices(self, ServiceMap.merge(services)) as any
+  }
 )
 
 /** @internal */
@@ -1962,8 +1966,9 @@ const provideServiceImpl = <A, E, R, I, S>(
   self: Effect.Effect<A, E, R>,
   key: ServiceMap.Key<I, S>,
   service: S
-): Effect.Effect<A, E, Exclude<R, I>> =>
-  withFiber((fiber) => {
+): Effect.Effect<A, E, Exclude<R, I>> => {
+  if (effectIsExit(self)) return self as any
+  return withFiber((fiber) => {
     const prev = ServiceMap.getOption(fiber.services, key)
     fiber.setServices(ServiceMap.add(fiber.services, key, service))
     return onExit(self, () => {
@@ -1975,6 +1980,7 @@ const provideServiceImpl = <A, E, R, I, S>(
       return void_
     })
   }) as any
+}
 
 /** @internal */
 export const provideServiceEffect: {
