@@ -8,14 +8,9 @@ import * as Reducer from "./Reducer.ts"
 /**
  * @since 4.0.0
  */
-export type UndefinedOr<A> = A | undefined
-
-/**
- * @since 4.0.0
- */
 export const map: {
-  <A, B>(f: (a: A) => B): (self: UndefinedOr<A>) => UndefinedOr<B>
-  <A, B>(self: UndefinedOr<A>, f: (a: A) => B): UndefinedOr<B>
+  <A, B>(f: (a: A) => B): (self: A | undefined) => B | undefined
+  <A, B>(self: A | undefined, f: (a: A) => B): B | undefined
 } = dual(2, (self, f) => (self === undefined ? undefined : f(self)))
 
 /**
@@ -37,12 +32,12 @@ export const map: {
  *
  * @since 4.0.0
  */
-export function getReducer<A>(combiner: Combiner.Combiner<A>): Reducer.Reducer<UndefinedOr<A>> {
+export function getReducer<A>(combiner: Combiner.Combiner<A>): Reducer.Reducer<A | undefined> {
   return Reducer.make((self, that) => {
     if (self === undefined) return that
     if (that === undefined) return self
     return combiner.combine(self, that)
-  }, undefined as UndefinedOr<A>)
+  }, undefined as A | undefined)
 }
 
 /**
@@ -66,7 +61,7 @@ export function getReducer<A>(combiner: Combiner.Combiner<A>): Reducer.Reducer<U
  *
  * @since 4.0.0
  */
-export function getCombinerFailFast<A>(combiner: Combiner.Combiner<A>): Combiner.Combiner<UndefinedOr<A>> {
+export function getCombinerFailFast<A>(combiner: Combiner.Combiner<A>): Combiner.Combiner<A | undefined> {
   return Combiner.make((self, that) => {
     if (self === undefined || that === undefined) return undefined
     return combiner.combine(self, that)
@@ -93,9 +88,9 @@ export function getCombinerFailFast<A>(combiner: Combiner.Combiner<A>): Combiner
  *
  * @since 4.0.0
  */
-export function getReducerFailFast<A>(reducer: Reducer.Reducer<A>): Reducer.Reducer<UndefinedOr<A>> {
+export function getReducerFailFast<A>(reducer: Reducer.Reducer<A>): Reducer.Reducer<A | undefined> {
   const combine = getCombinerFailFast(reducer).combine
-  const initialValue = reducer.initialValue as UndefinedOr<A>
+  const initialValue = reducer.initialValue as A | undefined
   return Reducer.make(combine, initialValue, (collection) => {
     let out = initialValue
     for (const value of collection) {
