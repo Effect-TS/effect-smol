@@ -491,7 +491,7 @@ export interface Overrideable<S extends Schema.Top> extends
     S["Type"] & Brand<"Override">,
     S["~type.mutability"],
     S["~type.optionality"],
-    S["~type.constructor.default"],
+    "with-default",
     S["~encoded.mutability"],
     S["~encoded.optionality"]
   >
