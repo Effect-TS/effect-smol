@@ -1,9 +1,9 @@
 /**
  * @since 1.0.0
  */
-export * as PgClient from "./PgClient.js"
+export * as PgClient from "./PgClient.ts"
 
 /**
  * @since 1.0.0
  */
-export * as PgMigrator from "./PgMigrator.js"
+export * as PgMigrator from "./PgMigrator.ts"

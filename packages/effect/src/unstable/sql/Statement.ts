@@ -7,10 +7,12 @@ import type * as Fiber from "../../Fiber.ts"
 import { constUndefined } from "../../Function.ts"
 import type { Inspectable } from "../../interfaces/Inspectable.ts"
 import type { Pipeable } from "../../interfaces/Pipeable.ts"
-import { PipeInspectableProto, YieldableProto } from "../../internal/core.ts"
+import * as core from "../../internal/core.ts"
+import * as internalEffect from "../../internal/effect.ts"
 import type * as Tracer from "../../observability/Tracer.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import * as Stream from "../../stream/Stream.ts"
+import { Clock } from "../../time/Clock.ts"
 import type { Acquirer, Connection, Row } from "./SqlConnection.ts"
 import type { SqlError } from "./SqlError.ts"
 
@@ -56,9 +58,7 @@ export type Dialect = "sqlite" | "pg" | "mysql" | "mssql" | "clickhouse"
  * @category model
  * @since 4.0.0
  */
-export interface Statement<A>
-  extends Fragment, Effect.Yieldable<Statement<A>, ReadonlyArray<A>, SqlError>, Pipeable, Inspectable
-{
+export interface Statement<A> extends Fragment, Effect.Effect<ReadonlyArray<A>, SqlError>, Pipeable, Inspectable {
   readonly raw: Effect.Effect<unknown, SqlError>
   readonly withoutTransform: Effect.Effect<ReadonlyArray<A>, SqlError>
   readonly stream: Stream.Stream<A, SqlError>
@@ -207,7 +207,7 @@ export interface RecordInsertHelper {
 const RecordInsertHelperProto = {
   _tag: "RecordInsertHelper" as const,
   returning(this: RecordInsertHelper, sql: string | Identifier | Fragment) {
-    const self = Object.create(RecordInsertHelperProto)
+    const self = Object.create(Object.getPrototypeOf(this))
     Object.assign(self, this, {
       returningIdentifier: sql
     })
@@ -282,12 +282,12 @@ const RecordUpdateHelperSingleProto = {
  * @since 4.0.0
  */
 export const recordUpdateHelperSingle = (
-  value: ReadonlyArray<Record<string, Primitive | Fragment | undefined>>,
-  alias: string
+  value: Record<string, Primitive | Fragment | undefined>,
+  omit: ReadonlyArray<string>
 ): RecordUpdateHelperSingle =>
   Object.assign(Object.create(RecordUpdateHelperSingleProto), {
     value,
-    alias,
+    omit,
     returningIdentifier: undefined
   })
 
@@ -561,10 +561,9 @@ export const statement = <A = Row>(
     const arg = args[i]
 
     if (isFragment(arg)) {
-      for (const segment of arg.segments) {
-        segments.push(segment)
-      }
-    } else if (isHelper(arg)) {
+      // eslint-disable-next-line no-restricted-syntax
+      segments.push(...arg.segments)
+    } else if (isSegment(arg)) {
       segments.push(arg)
     } else {
       segments.push(parameter(arg))
@@ -1118,6 +1117,16 @@ interface StatementImpl<A> extends Statement<A> {
     ) => Effect.Effect<XA, E>,
     withoutTransform?: boolean | undefined
   ): Effect.Effect<XA, E | SqlError>
+  withConnectionSpan<XA, E>(
+    operation: string,
+    f: (
+      connection: Connection,
+      sql: string,
+      params: ReadonlyArray<Primitive>
+    ) => Effect.Effect<XA, E>,
+    withoutTransform: boolean,
+    span: Tracer.Span
+  ): Effect.Effect<XA, E | SqlError>
 }
 
 const unsafeMake = <A = Row>(
@@ -1140,8 +1149,8 @@ const StatementProto: Omit<
   StatementImpl<any>,
   "segments" | "acquirer" | "compiler" | "spanAttributes" | "transformRows"
 > = {
-  ...PipeInspectableProto,
-  ...YieldableProto,
+  ...core.EffectProto,
+  [core.identifier as any]: "Statement",
   [FragmentTypeId]: FragmentTypeId,
   withConnection<XA, E>(
     this: StatementImpl<any>,
@@ -1157,16 +1166,34 @@ const StatementProto: Omit<
       "sql.execute",
       { kind: "client", captureStackTrace: false },
       (span) =>
-        withStatement(this, span, (statement) => {
-          const [sql, params] = statement.compile(withoutTransform)
-          for (const [key, value] of this.spanAttributes) {
-            span.attribute(key, value)
-          }
-          span.attribute(ATTR_DB_OPERATION_NAME, operation)
-          span.attribute(ATTR_DB_QUERY_TEXT, sql)
-          return Effect.scoped(Effect.flatMap(this.acquirer, (_) => f(_, sql, params)))
-        })
+        this.withConnectionSpan(
+          operation,
+          f,
+          withoutTransform,
+          span
+        )
     )
+  },
+  withConnectionSpan<XA, E>(
+    this: StatementImpl<any>,
+    operation: string,
+    f: (
+      connection: Connection,
+      sql: string,
+      params: ReadonlyArray<Primitive>
+    ) => Effect.Effect<XA, E>,
+    withoutTransform: boolean,
+    span: Tracer.Span
+  ): Effect.Effect<XA, E | SqlError> {
+    return withStatement(this, span, (statement) => {
+      const [sql, params] = statement.compile(withoutTransform)
+      for (const [key, value] of this.spanAttributes) {
+        span.attribute(key, value)
+      }
+      span.attribute(ATTR_DB_OPERATION_NAME, operation)
+      span.attribute(ATTR_DB_QUERY_TEXT, sql)
+      return Effect.scoped(Effect.flatMap(this.acquirer, (_) => f(_, sql, params)))
+    })
   },
 
   get withoutTransform(): Effect.Effect<ReadonlyArray<any>, SqlError> {
@@ -1223,10 +1250,20 @@ const StatementProto: Omit<
   ) {
     return this.compiler.compile(this, withoutTransform ?? false)
   },
-  asEffect(this: StatementImpl<any>): Effect.Effect<ReadonlyArray<any>, SqlError> {
-    return this.withConnection(
-      "execute",
-      (connection, sql, params) => connection.execute(sql, params, this.transformRows)
+  [core.evaluate as any](
+    this: StatementImpl<any>,
+    fiber: Fiber.Fiber<any, any>
+  ): Effect.Effect<ReadonlyArray<any>, SqlError> {
+    const span = internalEffect.unsafeMakeSpan(fiber, "sql.execute", { kind: "client", captureStackTrace: false })
+    const clock = fiber.getRef(Clock)
+    return Effect.onExit(
+      this.withConnectionSpan(
+        "execute",
+        (connection, sql, params) => connection.execute(sql, params, this.transformRows),
+        false,
+        span
+      ),
+      (exit) => internalEffect.endSpan(span, exit, clock)
     )
   },
   toJSON(this: StatementImpl<any>) {
@@ -1261,13 +1298,24 @@ const withStatement = <A, X, E, R>(
     )
   })
 
-const isHelper = (u: unknown): u is Helper =>
-  hasProperty(u, "_tag") && (
-    u._tag === "ArrayHelper" ||
-    u._tag === "RecordInsertHelper" ||
-    u._tag === "RecordUpdateHelper" ||
-    u._tag === "RecordUpdateHelperSingle"
-  )
+const isSegment = (u: unknown): u is Segment => {
+  if (!hasProperty(u, "_tag")) {
+    return false
+  }
+  switch (u._tag) {
+    case "Literal":
+    case "Parameter":
+    case "ArrayHelper":
+    case "RecordInsertHelper":
+    case "RecordUpdateHelper":
+    case "RecordUpdateHelperSingle":
+    case "Identifier":
+    case "Custom":
+      return true
+    default:
+      return false
+  }
+}
 
 function convertLiteralOrFragment(clause: string | Fragment): Array<Segment> {
   if (typeof clause === "string") {

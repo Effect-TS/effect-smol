@@ -1226,6 +1226,23 @@ export const map: {
   )))
 
 /**
+ * @since 2.0.0
+ * @category mapping
+ */
+export const mapArray: {
+  <A, B>(
+    f: (a: Arr.NonEmptyReadonlyArray<A>) => Arr.NonEmptyReadonlyArray<B>
+  ): <E, R>(self: Stream<A, E, R>) => Stream<B, E, R>
+  <A, E, R, B>(
+    self: Stream<A, E, R>,
+    f: (a: Arr.NonEmptyReadonlyArray<A>) => Arr.NonEmptyReadonlyArray<B>
+  ): Stream<B, E, R>
+} = dual(2, <A, E, R, B>(
+  self: Stream<A, E, R>,
+  f: (a: Arr.NonEmptyReadonlyArray<A>) => Arr.NonEmptyReadonlyArray<B>
+): Stream<B, E, R> => fromChannel(Channel.map(self.channel, f)))
+
+/**
  * Maps over elements of the stream with the specified effectful function.
  *
  * @example

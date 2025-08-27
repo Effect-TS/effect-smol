@@ -1,5 +1,5 @@
 import * as DevTools from "@effect/experimental/DevTools"
-import { SqlClient, SqlResolver } from "@effect/sql"
+import { SqlClient, SqlResolver } from "effect/unstable/sql"
 import { PgClient } from "@effect/sql-pg"
 import { Effect, Layer, String } from "effect"
 import * as Schema from "effect/Schema"

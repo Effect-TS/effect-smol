@@ -1,18 +1,19 @@
 import { MysqlClient } from "@effect/sql-mysql2"
 import type { StartedMySqlContainer } from "@testcontainers/mysql"
 import { MySqlContainer } from "@testcontainers/mysql"
-import { Context, Data, Effect, Layer, Redacted, String } from "effect"
+import { Effect, Layer, ServiceMap } from "effect"
+import { Data, Redacted } from "effect/data"
+import { String } from "effect/primitives"
 
 export class ContainerError extends Data.TaggedError("ContainerError")<{
   cause: unknown
 }> {}
 
-export class MysqlContainer extends Context.Tag("test/MysqlContainer")<
+export class MysqlContainer extends ServiceMap.Key<
   MysqlContainer,
   StartedMySqlContainer
->() {
-  static Live = Layer.scoped(
-    this,
+>()("test/MysqlContainer") {
+  static layer = Layer.effect(this)(
     Effect.acquireRelease(
       Effect.tryPromise({
         try: () => new MySqlContainer("mysql:lts").start(),
@@ -22,16 +23,16 @@ export class MysqlContainer extends Context.Tag("test/MysqlContainer")<
     )
   )
 
-  static ClientLive = Layer.unwrapEffect(
+  static layerClient = Layer.unwrap(
     Effect.gen(function*() {
       const container = yield* MysqlContainer
       return MysqlClient.layer({
         url: Redacted.make(container.getConnectionUri())
       })
     })
-  ).pipe(Layer.provide(this.Live))
+  ).pipe(Layer.provide(this.layer))
 
-  static ClientWithTransformsLive = Layer.unwrapEffect(
+  static layerClientWithTransforms = Layer.unwrap(
     Effect.gen(function*() {
       const container = yield* MysqlContainer
       return MysqlClient.layer({
@@ -40,5 +41,5 @@ export class MysqlContainer extends Context.Tag("test/MysqlContainer")<
         transformResultNames: String.snakeToCamel
       })
     })
-  ).pipe(Layer.provide(this.Live))
+  ).pipe(Layer.provide(this.layer))
 }

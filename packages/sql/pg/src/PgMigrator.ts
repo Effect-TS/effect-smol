@@ -12,7 +12,7 @@ import * as Effect from "effect/Effect"
 import { pipe } from "effect/Function"
 import * as Layer from "effect/Layer"
 import * as Redacted from "effect/Redacted"
-import { PgClient } from "./PgClient.js"
+import { PgClient } from "./PgClient.ts"
 
 /**
  * @since 1.0.0

@@ -2,7 +2,7 @@ import { PgClient } from "@effect/sql-pg"
 import * as Statement from "effect/unstable/sql/Statement"
 import { assert, expect, it } from "@effect/vitest"
 import { Effect, String } from "effect"
-import { PgContainer } from "./utils.js"
+import { PgContainer } from "./utils.ts"
 
 const compilerTransform = PgClient.makeCompiler(String.camelToSnake)
 const transformsNested = Statement.defaultTransforms(String.snakeToCamel)

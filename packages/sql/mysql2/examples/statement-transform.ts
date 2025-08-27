@@ -1,5 +1,5 @@
 import * as DevTools from "@effect/experimental/DevTools"
-import { SqlClient, Statement } from "@effect/sql"
+import { SqlClient, Statement } from "effect/unstable/sql"
 import { MysqlClient } from "@effect/sql-mysql2"
 import { Effect, FiberRef, FiberRefs, Layer, Option, pipe, Redacted, String } from "effect"
 

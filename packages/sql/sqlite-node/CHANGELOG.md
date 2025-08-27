@@ -2594,7 +2594,7 @@
   You can now use the `@effect/sql` package to access the client apis:
 
   ```ts
-  import * as Sql from "@effect/sql"
+  import * as Sql from "effect/unstable/sql"
   import { Effect } from "effect"
 
   Effect.gen(function* () {
@@ -2619,7 +2619,7 @@
   If you need to run a different query depending on the dialect, you can use the `sql.onDialect` api:
 
   ```ts
-  import * as Sql from "@effect/sql"
+  import * as Sql from "effect/unstable/sql"
   import { Effect } from "effect"
 
   Effect.gen(function* () {

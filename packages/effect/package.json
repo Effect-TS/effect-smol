@@ -57,7 +57,9 @@
     "./unstable/httpapi": "./src/unstable/httpapi/index.ts",
     "./unstable/reactivity": "./src/unstable/reactivity/index.ts",
     "./unstable/rpc": "./src/unstable/rpc/index.ts",
+    "./unstable/schema": "./src/unstable/schema/index.ts",
     "./unstable/socket": "./src/unstable/socket/index.ts",
+    "./unstable/sql": "./src/unstable/sql/index.ts",
     "./unstable/observability": "./src/unstable/observability/index.ts",
     "./*": "./src/*.ts",
     "./internal/*": null,
@@ -99,10 +101,14 @@
       "./time": "./dist/time/index.js",
       "./transactions": "./dist/transactions/index.js",
       "./types": "./dist/types/index.js",
+      "./unstable/cluster": "./dist/unstable/cluster/index.js",
       "./unstable/http": "./dist/unstable/http/index.js",
       "./unstable/httpapi": "./dist/unstable/httpapi/index.js",
+      "./unstable/reactivity": "./dist/unstable/reactivity/index.js",
       "./unstable/rpc": "./dist/unstable/rpc/index.js",
+      "./unstable/schema": "./dist/unstable/schema/index.js",
       "./unstable/socket": "./dist/unstable/socket/index.js",
+      "./unstable/sql": "./dist/unstable/sql/index.js",
       "./unstable/observability": "./dist/unstable/observability/index.js",
       "./*": "./dist/*.js",
       "./internal/*": null,
@@ -131,6 +137,7 @@
     "fast-check": "^4.2.0",
     "find-my-way-ts": "^0.1.6",
     "msgpackr": "^1.11.5",
-    "multipasta": "^0.2.7"
+    "multipasta": "^0.2.7",
+    "uuid": "^11.1.0"
   }
 }

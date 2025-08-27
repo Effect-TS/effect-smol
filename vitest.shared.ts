@@ -1,7 +1,9 @@
 import * as path from "node:path"
+import viteTsconfigPaths from "vite-tsconfig-paths"
 import type { ViteUserConfig } from "vitest/config"
 
 const config: ViteUserConfig = {
+  plugins: [viteTsconfigPaths()],
   esbuild: {
     target: "es2020"
   },

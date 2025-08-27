@@ -1,7 +1,7 @@
 import { Reactivity } from "@effect/experimental"
 import { FileSystem } from "@effect/platform"
 import { NodeFileSystem } from "@effect/platform-node"
-import { SqlError, SqlResolver } from "@effect/sql"
+import { SqlError, SqlResolver } from "effect/unstable/sql"
 import { SqliteClient } from "@effect/sql-sqlite-node"
 import { assert, describe, it } from "@effect/vitest"
 import { Array, Effect, Option } from "effect"

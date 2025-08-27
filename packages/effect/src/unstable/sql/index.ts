@@ -23,6 +23,12 @@ export * as SqlConnection from "./SqlConnection.ts"
 export * as SqlError from "./SqlError.ts"
 
 /**
+ * @since 1.0.0
+ * @category models
+ */
+export * as SqlModel from "./SqlModel.ts"
+
+/**
  * @since 4.0.0
  */
 export * as SqlResolver from "./SqlResolver.ts"

@@ -7,7 +7,7 @@ import * as WaSqlite from "@effect/wa-sqlite"
 import SQLiteESMFactory from "@effect/wa-sqlite/dist/wa-sqlite.mjs"
 import { AccessHandlePoolVFS } from "@effect/wa-sqlite/src/examples/AccessHandlePoolVFS.js"
 import * as Effect from "effect/Effect"
-import type { OpfsWorkerMessage } from "./internal/opfsWorker.js"
+import type { OpfsWorkerMessage } from "./internal/opfsWorker.ts"
 
 /**
  * @category models

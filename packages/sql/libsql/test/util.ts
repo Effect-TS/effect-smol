@@ -1,13 +1,12 @@
 import { LibsqlClient } from "@effect/sql-libsql"
-import { Context, Effect, Layer } from "effect"
+import { Effect, Layer, ServiceMap } from "effect"
 import { GenericContainer, type StartedTestContainer } from "testcontainers"
 
-export class LibsqlContainer extends Context.Tag("test/LibsqlContainer")<
+export class LibsqlContainer extends ServiceMap.Key<
   LibsqlContainer,
   StartedTestContainer
->() {
-  static Live = Layer.scoped(
-    this,
+>()("test/LibsqlContainer") {
+  static layer = Layer.effect(this)(
     Effect.acquireRelease(
       Effect.promise(() =>
         new GenericContainer("ghcr.io/tursodatabase/libsql-server:main")
@@ -19,12 +18,12 @@ export class LibsqlContainer extends Context.Tag("test/LibsqlContainer")<
     )
   )
 
-  static ClientLive = Layer.unwrapEffect(
+  static layerClient = Layer.unwrap(
     Effect.gen(function*() {
       const container = yield* LibsqlContainer
       return LibsqlClient.layer({
         url: `http://localhost:${container.getMappedPort(8080)}`
       })
     })
-  ).pipe(Layer.provide(this.Live))
+  ).pipe(Layer.provide(this.layer))
 }

@@ -1,18 +1,18 @@
 import type { D1Database } from "@cloudflare/workers-types"
 import { D1Client } from "@effect/sql-d1"
-import { Context, Data, Effect, Layer } from "effect"
+import { Effect, Layer, ServiceMap } from "effect"
+import { Data } from "effect/data"
 import { Miniflare } from "miniflare"
 
 export class MiniflareError extends Data.TaggedError("MiniflareError")<{
   cause: unknown
 }> {}
 
-export class D1Miniflare extends Context.Tag("test/D1Miniflare")<
+export class D1Miniflare extends ServiceMap.Key<
   D1Miniflare,
   Miniflare
->() {
-  static Live = Layer.scoped(
-    this,
+>()("test/D1Miniflare") {
+  static layer = Layer.effect(this)(
     Effect.acquireRelease(
       Effect.try({
         try: () =>
@@ -29,11 +29,11 @@ export class D1Miniflare extends Context.Tag("test/D1Miniflare")<
     )
   )
 
-  static ClientLive = Layer.unwrapEffect(
+  static layerClient = Layer.unwrap(
     Effect.gen(function*() {
       const miniflare = yield* D1Miniflare
       const db: D1Database = yield* Effect.tryPromise(() => miniflare.getD1Database("DB"))
       return D1Client.layer({ db })
     })
-  ).pipe(Layer.provide(this.Live))
+  ).pipe(Layer.provide(this.layer))
 }

@@ -27,7 +27,7 @@
       "@effect/platform-node-shared/*": ["../../../platform-node-shared/src/*.js"],
       "@effect/rpc": ["../../../rpc/src/index.js"],
       "@effect/rpc/*": ["../../../rpc/src/*.js"],
-      "@effect/sql": ["../../../sql/src/index.js"],
+      "effect/unstable/sql": ["../../../sql/src/index.js"],
       "effect/unstable/sql/*": ["../../../sql/src/*.js"]
     }
   }

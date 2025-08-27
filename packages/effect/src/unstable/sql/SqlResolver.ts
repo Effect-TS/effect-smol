@@ -40,10 +40,21 @@ const SqlRequestProto = {
  * @since 4.0.0
  * @category requests
  */
-export const request = <In, A, E, R>(
-  resolver: RequestResolver.RequestResolver<SqlRequest<In, A, E, R>>
-) =>
-(payload: In): Effect.Effect<A, E | Schema.SchemaError, R> => Effect.request(SqlRequest<In, A, E, R>(payload), resolver)
+export const request: {
+  <In, A, E, R>(
+    resolver: RequestResolver.RequestResolver<SqlRequest<In, A, E, R>>
+  ): (payload: In) => Effect.Effect<A, E | Schema.SchemaError, R>
+  <In, A, E, R>(
+    payload: In,
+    resolver: RequestResolver.RequestResolver<SqlRequest<In, A, E, R>>
+  ): Effect.Effect<A, E | Schema.SchemaError, R>
+} = function() {
+  if (arguments.length === 1) {
+    const resolver = arguments[0]
+    return (payload: any) => Effect.request(SqlRequest(payload), resolver)
+  }
+  return Effect.request(SqlRequest(arguments[0]), arguments[1])
+} as any
 
 /**
  * @since 4.0.0

@@ -1,24 +1,25 @@
 import { LibsqlClient } from "@effect/sql-libsql"
 import { assert, describe, layer } from "@effect/vitest"
 import { Effect, Layer } from "effect"
-import { LibsqlContainer } from "./util.js"
+import { LibsqlContainer } from "./util.ts"
 
-const Migrations = Layer.scopedDiscard(LibsqlClient.LibsqlClient.pipe(
-  Effect.andThen((sql) =>
-    Effect.acquireRelease(
-      sql`CREATE TABLE test (id INTEGER PRIMARY KEY, name TEXT)`,
-      () => sql`DROP TABLE test;`.pipe(Effect.ignore)
+const Migrations = Layer.effectDiscard(
+  LibsqlClient.LibsqlClient.asEffect().pipe(
+    Effect.andThen((sql) =>
+      Effect.acquireRelease(
+        sql`CREATE TABLE test (id INTEGER PRIMARY KEY, name TEXT)`,
+        () => sql`DROP TABLE test;`.pipe(Effect.ignore)
+      )
     )
   )
-))
+)
 
 describe("Client", () => {
-  layer(LibsqlContainer.ClientLive, { timeout: "30 seconds" })((it) => {
-    it.scoped("should work", () =>
+  layer(LibsqlContainer.layerClient, { timeout: "30 seconds" })((it) => {
+    it.effect("should work", () =>
       Effect.gen(function*() {
         const sql = yield* LibsqlClient.LibsqlClient
-        let response
-        response = yield* sql`INSERT INTO test (name) VALUES ('hello')`
+        let response = yield* sql`INSERT INTO test (name) VALUES ('hello')`
         assert.deepStrictEqual(response, [])
         response = yield* sql`SELECT * FROM test`
         assert.deepStrictEqual(response, [{ id: 1, name: "hello" }])
@@ -28,7 +29,7 @@ describe("Client", () => {
         ])
       }).pipe(Effect.provide(Migrations)))
 
-    it.scoped("should work with raw", () =>
+    it.effect("should work with raw", () =>
       Effect.gen(function*() {
         const sql = yield* LibsqlClient.LibsqlClient
         let response: any
@@ -59,7 +60,7 @@ describe("Client", () => {
         })
       }).pipe(Effect.provide(Migrations)))
 
-    it.scoped("withTransaction", () =>
+    it.effect("withTransaction", () =>
       Effect.gen(function*() {
         const sql = yield* LibsqlClient.LibsqlClient
         yield* sql.withTransaction(sql`INSERT INTO test (name) VALUES ('hello')`)
@@ -67,7 +68,7 @@ describe("Client", () => {
         assert.deepStrictEqual(rows, [{ id: 1, name: "hello" }])
       }).pipe(Effect.provide(Migrations)))
 
-    it.scoped("withTransaction rollback", () =>
+    it.effect("withTransaction rollback", () =>
       Effect.gen(function*() {
         const sql = yield* LibsqlClient.LibsqlClient
         yield* sql`INSERT INTO test (name) VALUES ('hello')`.pipe(
@@ -79,7 +80,7 @@ describe("Client", () => {
         assert.deepStrictEqual(rows, [])
       }).pipe(Effect.provide(Migrations)))
 
-    it.scoped("withTransaction nested", () =>
+    it.effect("withTransaction nested", () =>
       Effect.gen(function*() {
         const sql = yield* LibsqlClient.LibsqlClient
         const stmt = sql`INSERT INTO test (name) VALUES ('hello')`
@@ -89,7 +90,7 @@ describe("Client", () => {
         assert.deepStrictEqual(rows.at(0)?.total_rows, 2)
       }).pipe(Effect.provide(Migrations)))
 
-    it.scoped("withTransaction nested rollback", () =>
+    it.effect("withTransaction nested rollback", () =>
       Effect.gen(function*() {
         const sql = yield* LibsqlClient.LibsqlClient
         const stmt = sql`INSERT INTO test (name) VALUES ('hello')`

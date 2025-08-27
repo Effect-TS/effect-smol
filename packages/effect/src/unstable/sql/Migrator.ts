@@ -9,8 +9,8 @@ import * as Order from "../../data/Order.ts"
 import * as Effect from "../../Effect.ts"
 import { pipe } from "../../Function.ts"
 import { FileSystem } from "../../platform/FileSystem.ts"
-import * as Client from "./SqlClient.js"
-import type { SqlError } from "./SqlError.js"
+import * as Client from "./SqlClient.ts"
+import type { SqlError } from "./SqlError.ts"
 
 /**
  * @category model
