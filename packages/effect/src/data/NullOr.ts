@@ -8,14 +8,9 @@ import * as Reducer from "./Reducer.ts"
 /**
  * @since 4.0.0
  */
-export type NullOr<A> = A | null
-
-/**
- * @since 4.0.0
- */
 export const map: {
-  <A, B>(f: (a: A) => B): (self: NullOr<A>) => NullOr<B>
-  <A, B>(self: NullOr<A>, f: (a: A) => B): NullOr<B>
+  <A, B>(f: (a: A) => B): (self: A | null) => B | null
+  <A, B>(self: A | null, f: (a: A) => B): B | null
 } = dual(2, (self, f) => (self === null ? null : f(self)))
 
 /**
@@ -37,12 +32,12 @@ export const map: {
  *
  * @since 4.0.0
  */
-export function getReducer<A>(combiner: Combiner.Combiner<A>): Reducer.Reducer<NullOr<A>> {
+export function getReducer<A>(combiner: Combiner.Combiner<A>): Reducer.Reducer<A | null> {
   return Reducer.make((self, that) => {
     if (self === null) return that
     if (that === null) return self
     return combiner.combine(self, that)
-  }, null as NullOr<A>)
+  }, null as A | null)
 }
 
 /**
@@ -66,7 +61,7 @@ export function getReducer<A>(combiner: Combiner.Combiner<A>): Reducer.Reducer<N
  *
  * @since 4.0.0
  */
-export function getCombinerFailFast<A>(combiner: Combiner.Combiner<A>): Combiner.Combiner<NullOr<A>> {
+export function getCombinerFailFast<A>(combiner: Combiner.Combiner<A>): Combiner.Combiner<A | null> {
   return Combiner.make((self, that) => {
     if (self === null || that === null) return null
     return combiner.combine(self, that)
@@ -93,9 +88,9 @@ export function getCombinerFailFast<A>(combiner: Combiner.Combiner<A>): Combiner
  *
  * @since 4.0.0
  */
-export function getReducerFailFast<A>(reducer: Reducer.Reducer<A>): Reducer.Reducer<NullOr<A>> {
+export function getReducerFailFast<A>(reducer: Reducer.Reducer<A>): Reducer.Reducer<A | null> {
   const combine = getCombinerFailFast(reducer).combine
-  const initialValue = reducer.initialValue as NullOr<A>
+  const initialValue = reducer.initialValue as A | null
   return Reducer.make(combine, initialValue, (collection) => {
     let out = initialValue
     for (const value of collection) {
