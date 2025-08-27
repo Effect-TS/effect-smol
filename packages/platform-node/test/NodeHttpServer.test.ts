@@ -45,8 +45,8 @@ describe("HttpServer", () => {
           ({ id }) => todoResponse({ id, title: "test" })
         )
       ).pipe(
-        HttpRouter.toHttpEffect,
-        Effect.flatMap(HttpServer.serveEffect())
+        HttpRouter.serve,
+        Layer.build
       )
       const todo = yield* HttpClient.get("/todos/1").pipe(
         Effect.flatMap(HttpClientResponse.schemaBodyJson(Todo))
@@ -71,8 +71,8 @@ describe("HttpServer", () => {
           return yield* HttpServerResponse.json({ ok: "file" in formData })
         })
       ).pipe(
-        HttpRouter.toHttpEffect,
-        Effect.flatMap(HttpServer.serveEffect())
+        HttpRouter.serve,
+        Layer.build
       )
       const client = yield* HttpClient.HttpClient
       const formData = new FormData()
@@ -98,8 +98,8 @@ describe("HttpServer", () => {
           return HttpServerResponse.empty()
         })
       ).pipe(
-        HttpRouter.toHttpEffect,
-        Effect.flatMap(HttpServer.serveEffect())
+        HttpRouter.serve,
+        Layer.build
       )
       const client = yield* HttpClient.HttpClient
       const formData = new FormData()
@@ -125,8 +125,8 @@ describe("HttpServer", () => {
               Effect.fail(error))
         )
       ).pipe(
-        HttpRouter.toHttpEffect,
-        Effect.flatMap(HttpServer.serveEffect()),
+        HttpRouter.serve,
+        Layer.build,
         Effect.provideService(Multipart.MaxFileSize, Option.some(100))
       )
       const client = yield* HttpClient.HttpClient
@@ -153,8 +153,8 @@ describe("HttpServer", () => {
               Effect.fail(error))
         )
       ).pipe(
-        HttpRouter.toHttpEffect,
-        Effect.flatMap(HttpServer.serveEffect()),
+        HttpRouter.serve,
+        Layer.build,
         Effect.provideService(Multipart.MaxFieldSize, 100)
       )
       const client = yield* HttpClient.HttpClient
@@ -169,8 +169,8 @@ describe("HttpServer", () => {
     Effect.gen(function*() {
       const child = Effect.map(HttpServerRequest.HttpServerRequest.asEffect(), (_) => HttpServerResponse.text(_.url))
       yield* HttpRouter.use((router) => router.prefixed("/child").add("*", "*", child)).pipe(
-        HttpRouter.toHttpEffect,
-        Effect.flatMap(HttpServer.serveEffect())
+        HttpRouter.serve,
+        Layer.build
       )
       const client = yield* HttpClient.HttpClient
       const todo = yield* client.get("/child/1").pipe(Effect.flatMap((_) => _.text))
@@ -263,8 +263,8 @@ describe("HttpServer", () => {
           ({ id, title }) => todoResponse({ id, title })
         )
       ).pipe(
-        HttpRouter.toHttpEffect,
-        Effect.flatMap(HttpServer.serveEffect())
+        HttpRouter.serve,
+        Layer.build
       )
       const todo = yield* HttpClientRequest.post("/todos").pipe(
         HttpClientRequest.bodyUrlParams({ id: "1", title: "test" }),
@@ -290,8 +290,8 @@ describe("HttpServer", () => {
             Effect.succeed(HttpServerResponse.unsafeJson({ error }, { status: 400 })))
         )
       ).pipe(
-        HttpRouter.toHttpEffect,
-        Effect.flatMap(HttpServer.serveEffect())
+        HttpRouter.serve,
+        Layer.build
       )
       const client = yield* HttpClient.HttpClient
       const response = yield* client.get("/todos")
@@ -311,8 +311,8 @@ describe("HttpServer", () => {
           return HttpServerResponse.empty()
         })
       ).pipe(
-        HttpRouter.toHttpEffect,
-        Effect.flatMap(HttpServer.serveEffect())
+        HttpRouter.serve,
+        Layer.build
       )
       const client = yield* HttpClient.HttpClient
       const formData = new FormData()
@@ -335,8 +335,8 @@ describe("HttpServer", () => {
           return HttpServerResponse.empty()
         })
       ).pipe(
-        HttpRouter.toHttpEffect,
-        Effect.flatMap(HttpServer.serveEffect())
+        HttpRouter.serve,
+        Layer.build
       )
       const client = yield* HttpClient.HttpClient
       const formData = new FormData()
@@ -362,8 +362,8 @@ describe("HttpServer", () => {
           return HttpServerResponse.empty()
         })
       ).pipe(
-        HttpRouter.toHttpEffect,
-        Effect.flatMap(HttpServer.serveEffect())
+        HttpRouter.serve,
+        Layer.build
       )
       const client = yield* HttpClient.HttpClient
       const response = yield* client.post("/upload", {
@@ -384,8 +384,8 @@ describe("HttpServer", () => {
           (_) => HttpServerResponse.json({ spanId: _.spanId, parent: _.parent })
         )
       ).pipe(
-        HttpRouter.toHttpEffect,
-        Effect.flatMap(HttpServer.serveEffect())
+        HttpRouter.serve,
+        Layer.build
       )
       const client = yield* HttpClient.HttpClient
       const requestSpan = yield* Effect.makeSpan("client request")
@@ -424,8 +424,8 @@ describe("HttpServer", () => {
           HttpServerResponse.htmlStream`<html>${Stream.make("<body />", 123, "hello")}</html>`
         )
       ]).pipe(
-        HttpRouter.toHttpEffect,
-        Effect.flatMap(HttpServer.serveEffect())
+        HttpRouter.serve,
+        Layer.build
       )
       const client = yield* HttpClient.HttpClient
       const home = yield* client.get("/home").pipe(Effect.flatMap((r) => r.text))
@@ -455,8 +455,8 @@ describe("HttpServer", () => {
           })
         )
       ).pipe(
-        HttpRouter.toHttpEffect,
-        Effect.flatMap(HttpServer.serveEffect())
+        HttpRouter.serve,
+        Layer.build
       )
       const client = yield* HttpClient.HttpClient
       const res = yield* client.get("/home")
@@ -491,8 +491,8 @@ describe("HttpServer", () => {
         }),
         { uninterruptible: true }
       ).pipe(
-        HttpRouter.toHttpEffect,
-        Effect.flatMap(HttpServer.serveEffect())
+        HttpRouter.serve,
+        Layer.build
       )
       const client = yield* HttpClient.HttpClient
       const res = yield* client.get("/home")
@@ -515,8 +515,8 @@ describe("HttpServer", () => {
           "/home",
           new CustomError({ name: "test" }).asEffect()
         ).pipe(
-          HttpRouter.toHttpEffect,
-          Effect.flatMap(HttpServer.serveEffect())
+          HttpRouter.serve,
+          Layer.build
         )
         const client = yield* HttpClient.HttpClient
         const res = yield* client.get("/home")
@@ -533,8 +533,8 @@ describe("HttpServer", () => {
         "/:param",
         Effect.succeed(HttpServerResponse.empty())
       ).pipe(
-        HttpRouter.toHttpEffect,
-        Effect.flatMap(HttpServer.serveEffect())
+        HttpRouter.serve,
+        Layer.build
       )
       let res = yield* HttpClient.get("/123456")
       assert.strictEqual(res.status, 404)
@@ -549,7 +549,7 @@ describe("HttpServer", () => {
 
   it.effect("HttpRouter prefixed", () =>
     Effect.gen(function*() {
-      const handler = yield* HttpRouter.toHttpEffect(HttpRouter.use(Effect.fnUntraced(function*(router_) {
+      const handler = HttpRouter.serve(HttpRouter.use(Effect.fnUntraced(function*(router_) {
         const router = router_.prefixed("/todos")
         yield* router.add(
           "GET",
@@ -564,7 +564,7 @@ describe("HttpServer", () => {
         ])
       })))
 
-      yield* HttpServer.serveEffect(handler)
+      yield* Layer.build(handler)
 
       const todo = yield* HttpClient.get("/todos/1").pipe(
         Effect.flatMap(HttpClientResponse.schemaBodyJson(Todo))
