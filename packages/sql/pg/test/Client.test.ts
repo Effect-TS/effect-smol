@@ -1,14 +1,15 @@
 import { PgClient } from "@effect/sql-pg"
-import * as Statement from "effect/unstable/sql/Statement"
 import { assert, expect, it } from "@effect/vitest"
-import { Effect, String } from "effect"
+import { Effect } from "effect"
+import { String } from "effect/primitives"
+import * as Statement from "effect/unstable/sql/Statement"
 import { PgContainer } from "./utils.ts"
 
 const compilerTransform = PgClient.makeCompiler(String.camelToSnake)
 const transformsNested = Statement.defaultTransforms(String.snakeToCamel)
 const transforms = Statement.defaultTransforms(String.snakeToCamel, false)
 
-it.layer(PgContainer.ClientLive, { timeout: "30 seconds" })("PgClient", (it) => {
+it.layer(PgContainer.layerClient, { timeout: "30 seconds" })("PgClient", (it) => {
   it.effect("insert helper", () =>
     Effect.gen(function*() {
       const sql = yield* PgClient.PgClient
@@ -106,7 +107,7 @@ it.layer(PgContainer.ClientLive, { timeout: "30 seconds" })("PgClient", (it) => 
       const sql = yield* PgClient.PgClient
       const [query, params] = sql`SELECT ${sql.json({ a: 1 })}`.compile()
       expect(query).toEqual(`SELECT $1`)
-      expect((params[0] as any).type).toEqual(3802)
+      expect(params.length).toEqual(1)
     }))
 
   it.effect("json transform", () =>
@@ -117,15 +118,7 @@ it.layer(PgContainer.ClientLive, { timeout: "30 seconds" })("PgClient", (it) => 
         false
       )
       expect(query).toEqual(`SELECT $1`)
-      assert.deepEqual((params[0] as any).value, { a_key: 1 })
-    }))
-
-  it.effect("array", () =>
-    Effect.gen(function*() {
-      const sql = yield* PgClient.PgClient
-      const [query, params] = sql`SELECT ${sql.array([1, 2, 3])}`.compile()
-      expect(query).toEqual(`SELECT $1`)
-      expect((params[0] as any).value).toEqual([1, 2, 3])
+      expect(params).toEqual([{ a_key: 1 }])
     }))
 
   it("transform nested", () => {
@@ -204,25 +197,6 @@ it.layer(PgContainer.ClientLive, { timeout: "30 seconds" })("PgClient", (it) => 
         "INSERT INTO people (\"name\",\"age\",\"json\") VALUES ($1,$2,$3)"
       )
       assert.lengthOf(params, 3)
-      expect((params[2] as any).type).toEqual(3802)
-    }))
-
-  it.effect("insert array", () =>
-    Effect.gen(function*() {
-      const sql = yield* PgClient.PgClient
-      const [query, params] = sql`INSERT INTO people ${
-        sql.insert({
-          name: "Tim",
-          age: 10,
-          array: sql.array([1, 2, 3])
-        })
-      }`.compile()
-      assert.strictEqual(
-        query,
-        "INSERT INTO people (\"name\",\"age\",\"array\") VALUES ($1,$2,$3)"
-      )
-      assert.lengthOf(params, 3)
-      expect((params[2] as any).type).toEqual(1022)
     }))
 
   it.effect("update fragments", () =>
@@ -240,8 +214,6 @@ it.layer(PgContainer.ClientLive, { timeout: "30 seconds" })("PgClient", (it) => 
         `UPDATE people SET json = data.json FROM (values ($1),($2)) AS data("json") WHERE created_at > $3`
       )
       assert.lengthOf(params, 3)
-      expect((params[0] as any).type).toEqual(3802)
-      expect((params[1] as any).type).toEqual(3802)
     }))
 
   it.effect("onDialect", () =>
@@ -277,13 +249,17 @@ it.layer(PgContainer.ClientLive, { timeout: "30 seconds" })("PgClient", (it) => 
     }))
 })
 
-it.layer(PgContainer.ClientTransformLive, { timeout: "30 seconds" })("PgClient transforms", (it) => {
+it.layer(PgContainer.layerClientWithTransforms, { timeout: "30 seconds" })("PgClient transforms", (it) => {
   it.effect("insert helper", () =>
     Effect.gen(function*() {
       const sql = yield* PgClient.PgClient
-      const [query, params] = sql`INSERT INTO people ${sql.insert({ firstName: "Tim", age: 10 })}`.compile()
-      expect(query).toEqual(`INSERT INTO people ("first_name","age") VALUES ($1,$2)`)
-      expect(params).toEqual(["Tim", 10])
+      yield* sql`CREATE TABLE people (first_name TEXT, age INT)`
+      yield* sql`INSERT INTO people ${sql.insert({ firstName: "Tim", age: 10 })}`
+      const people = yield* sql<{
+        firstName: string
+        age: number
+      }>`SELECT * FROM people`
+      expect(people).toEqual([{ firstName: "Tim", age: 10 }])
     }))
 
   it.effect("insert helper withoutTransforms", () =>

@@ -8,12 +8,12 @@
 export * as Migrator from "./Migrator.ts"
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 export * as SqlClient from "./SqlClient.ts"
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 export * as SqlConnection from "./SqlConnection.ts"
 
@@ -23,7 +23,7 @@ export * as SqlConnection from "./SqlConnection.ts"
 export * as SqlError from "./SqlError.ts"
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category models
  */
 export * as SqlModel from "./SqlModel.ts"

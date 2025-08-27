@@ -1,5 +1,5 @@
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 import type { Effect } from "../../Effect.ts"
 import type { Scope } from "../../Scope.ts"
@@ -10,7 +10,7 @@ import type { Primitive } from "./Statement.ts"
 
 /**
  * @category model
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface Connection {
   readonly execute: (
@@ -48,18 +48,18 @@ export interface Connection {
 
 /**
  * @category model
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type Acquirer = Effect<Connection, SqlError, Scope>
 
 /**
  * @category tag
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const Connection = ServiceMap.Key<Connection>("effect/sql/SqlConnection")
 
 /**
  * @category model
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type Row = { readonly [column: string]: Primitive }

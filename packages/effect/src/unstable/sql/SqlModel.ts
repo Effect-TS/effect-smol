@@ -1,5 +1,5 @@
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category models
  */
 import * as RequestResolver from "../../batching/RequestResolver.ts"
@@ -18,7 +18,7 @@ import * as SqlSchema from "./SqlSchema.ts"
 /**
  * Create a simple CRUD repository from a model.
  *
- * @since 1.0.0
+ * @since 4.0.0
  * @category repository
  */
 export const makeRepository = <
@@ -198,7 +198,7 @@ select * from ${sql(options.tableName)} where ${sql(idColumn)} = ${request[idCol
 /**
  * Create some simple data loaders from a model.
  *
- * @since 1.0.0
+ * @since 4.0.0
  * @category repository
  */
 export const makeDataLoaders = <

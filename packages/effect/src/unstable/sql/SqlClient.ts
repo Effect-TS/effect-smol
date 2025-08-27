@@ -1,5 +1,5 @@
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 import * as Option from "../../data/Option.ts"
 import type { ReadonlyRecord } from "../../data/Record.ts"
@@ -20,19 +20,19 @@ import * as Statement from "./Statement.ts"
 
 /**
  * @category type ids
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const TypeId: TypeId = "~effect/sql/SqlClient"
 
 /**
  * @category type ids
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type TypeId = "~effect/sql/SqlClient"
 
 /**
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface SqlClient extends Constructor {
   readonly [TypeId]: TypeId
@@ -77,18 +77,18 @@ export interface SqlClient extends Constructor {
 
 /**
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const SqlClient = ServiceMap.Key<SqlClient>("effect/sql/SqlClient")
 
 /**
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export namespace SqlClient {
   /**
    * @category models
-   * @since 1.0.0
+   * @since 4.0.0
    */
   export interface MakeOptions {
     readonly acquirer: Connection.Acquirer
@@ -110,7 +110,7 @@ export namespace SqlClient {
 
 /**
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const make = Effect.fnUntraced(function*(options: SqlClient.MakeOptions) {
   const getConnection = Effect.flatMap(
@@ -186,7 +186,7 @@ export const make = Effect.fnUntraced(function*(options: SqlClient.MakeOptions) 
 })
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category transactions
  */
 export const makeWithTransaction = <I, S>(options: {
@@ -259,7 +259,7 @@ export const makeWithTransaction = <I, S>(options: {
   )
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class TransactionConnection
   extends ServiceMap.Key<TransactionConnection, readonly [conn: Connection.Connection, depth: number]>()(
@@ -268,7 +268,7 @@ export class TransactionConnection
 {}
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const SafeIntegers = ServiceMap.Reference<boolean>("effect/sql/SqlClient/SafeIntegers", {
   defaultValue: () => false

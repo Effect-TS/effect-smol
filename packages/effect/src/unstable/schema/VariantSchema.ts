@@ -1,5 +1,5 @@
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 import type { Brand } from "../../data/Brand.ts"
 import * as Predicate from "../../data/Predicate.ts"
@@ -12,13 +12,13 @@ import type * as AST from "../../schema/AST.ts"
 import * as Schema from "../../schema/Schema.ts"
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category type ids
  */
 export const TypeId: TypeId = "~effect/unstable/schema/VariantSchema"
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category type ids
  */
 export type TypeId = "~effect/unstable/schema/VariantSchema"
@@ -26,7 +26,7 @@ export type TypeId = "~effect/unstable/schema/VariantSchema"
 const cacheSymbol = Symbol.for(`${TypeId}/cache`)
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category models
  */
 export interface Struct<in out A extends Field.Fields> extends Pipeable {
@@ -36,24 +36,24 @@ export interface Struct<in out A extends Field.Fields> extends Pipeable {
 }
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category guards
  */
 export const isStruct = (u: unknown): u is Struct<any> => Predicate.hasProperty(u, TypeId)
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category models
  */
 export declare namespace Struct {
   /**
-   * @since 1.0.0
+   * @since 4.0.0
    * @category models
    */
   export type Any = { readonly [TypeId]: any }
 
   /**
-   * @since 1.0.0
+   * @since 4.0.0
    * @category models
    */
   export type Fields = {
@@ -65,7 +65,7 @@ export declare namespace Struct {
   }
 
   /**
-   * @since 1.0.0
+   * @since 4.0.0
    * @category models
    */
   export type Validate<A, Variant extends string> = {
@@ -76,19 +76,19 @@ export declare namespace Struct {
 }
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category type ids
  */
 export const FieldTypeId: FieldTypeId = "~effect/unstable/schema/VariantSchema/Field"
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category type ids
  */
 export type FieldTypeId = "~effect/unstable/schema/VariantSchema/Field"
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category models
  */
 export interface Field<in out A extends Field.Config> extends Pipeable {
@@ -97,24 +97,24 @@ export interface Field<in out A extends Field.Config> extends Pipeable {
 }
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category guards
  */
 export const isField = (u: unknown): u is Field<any> => Predicate.hasProperty(u, FieldTypeId)
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category models
  */
 export declare namespace Field {
   /**
-   * @since 1.0.0
+   * @since 4.0.0
    * @category models
    */
   export type Any = { readonly [FieldTypeId]: FieldTypeId }
 
   /**
-   * @since 1.0.0
+   * @since 4.0.0
    * @category models
    */
   export type Config = {
@@ -122,7 +122,7 @@ export declare namespace Field {
   }
 
   /**
-   * @since 1.0.0
+   * @since 4.0.0
    * @category models
    */
   export type ConfigWithKeys<K extends string> = {
@@ -130,7 +130,7 @@ export declare namespace Field {
   }
 
   /**
-   * @since 1.0.0
+   * @since 4.0.0
    * @category models
    */
   export type Fields = {
@@ -143,7 +143,7 @@ export declare namespace Field {
 }
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category extractors
  */
 export type ExtractFields<V extends string, Fields extends Struct.Fields, IsDefault = false> = {
@@ -159,7 +159,7 @@ export type ExtractFields<V extends string, Fields extends Struct.Fields, IsDefa
 }
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category extractors
  */
 export type Extract<V extends string, A extends Struct<any>, IsDefault = false> = [A] extends [
@@ -215,12 +215,12 @@ const extract: {
 
 /**
  * @category accessors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const fields = <A extends Struct<any>>(self: A): A[TypeId] => self[TypeId]
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category models
  */
 export interface Class<
@@ -267,7 +267,7 @@ type MissingSelfGeneric<Params extends string = ""> =
   `Missing \`Self\` generic - use \`class Self extends Class<Self>()(${Params}{ ... })\``
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category models
  */
 export interface Union<Members extends ReadonlyArray<Struct<any>>> extends
@@ -279,12 +279,12 @@ export interface Union<Members extends ReadonlyArray<Struct<any>>> extends
 {}
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category models
  */
 export declare namespace Union {
   /**
-   * @since 1.0.0
+   * @since 4.0.0
    * @category models
    */
   export type Variants<Members extends ReadonlyArray<Struct<any>>, Variants extends string> = {
@@ -297,7 +297,7 @@ export declare namespace Union {
 }
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category constructors
  */
 export const make = <
@@ -469,13 +469,13 @@ export const make = <
 }
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category overrideable
  */
 export const Override = <A>(value: A): A & Brand<"Override"> => value as any
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category overrideable
  */
 export interface Overrideable<S extends Schema.Top> extends
@@ -498,7 +498,7 @@ export interface Overrideable<S extends Schema.Top> extends
 {}
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category overrideable
  */
 export const Overrideable = <S extends Schema.Top>(schema: S, options: {

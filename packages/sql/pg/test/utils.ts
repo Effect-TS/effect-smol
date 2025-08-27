@@ -1,13 +1,15 @@
 import { PgClient } from "@effect/sql-pg"
 import { PostgreSqlContainer } from "@testcontainers/postgresql"
-import { Data, Effect, Layer, Redacted, String } from "effect"
+import { Effect, Layer, ServiceMap } from "effect"
+import { Data, Redacted } from "effect/data"
+import { String } from "effect/primitives"
 
 export class ContainerError extends Data.TaggedError("ContainerError")<{
   cause: unknown
 }> {}
 
-export class PgContainer extends Effect.Service<PgContainer>()("test/PgContainer", {
-  scoped: Effect.acquireRelease(
+export class PgContainer extends ServiceMap.Key<PgContainer>()("test/PgContainer", {
+  make: Effect.acquireRelease(
     Effect.tryPromise({
       try: () => new PostgreSqlContainer("postgres:alpine").start(),
       catch: (cause) => new ContainerError({ cause })
@@ -15,16 +17,18 @@ export class PgContainer extends Effect.Service<PgContainer>()("test/PgContainer
     (container) => Effect.promise(() => container.stop())
   )
 }) {
-  static ClientLive = Layer.unwrapEffect(
+  static layer = Layer.effect(this)(this.make)
+
+  static layerClient = Layer.unwrap(
     Effect.gen(function*() {
       const container = yield* PgContainer
       return PgClient.layer({
         url: Redacted.make(container.getConnectionUri())
       })
     })
-  ).pipe(Layer.provide(this.Default))
+  ).pipe(Layer.provide(this.layer))
 
-  static ClientTransformLive = Layer.unwrapEffect(
+  static layerClientWithTransforms = Layer.unwrap(
     Effect.gen(function*() {
       const container = yield* PgContainer
       return PgClient.layer({
@@ -33,5 +37,5 @@ export class PgContainer extends Effect.Service<PgContainer>()("test/PgContainer
         transformQueryNames: String.camelToSnake
       })
     })
-  ).pipe(Layer.provide(this.Default))
+  ).pipe(Layer.provide(this.layer))
 }
