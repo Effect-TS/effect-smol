@@ -73,7 +73,7 @@ export const Equivalence: Equivalence_<Headers> = Record.getEquivalence(String.E
  * @since 4.0.0
  * @category schemas
  */
-export interface schema extends Schema.declareRefinement<Headers> {}
+export interface schema extends Schema.declare<Headers> {}
 
 /**
  * @since 4.0.0

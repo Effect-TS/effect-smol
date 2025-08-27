@@ -157,7 +157,7 @@ const arrayEquivalence = Arr.getEquivalence(Tuple.getEquivalence([String$.Equiva
  * @since 4.0.0
  * @category schemas
  */
-export interface schema extends Schema.declareRefinement<UrlParams> {}
+export interface schema extends Schema.declare<UrlParams> {}
 
 /**
  * @since 4.0.0

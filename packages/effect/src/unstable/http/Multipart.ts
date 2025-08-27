@@ -161,7 +161,7 @@ export class MultipartError extends Schema.ErrorClass<MultipartError>(ErrorTypeI
  * @since 4.0.0
  * @category Schemas
  */
-export interface FileSchema extends Schema.declareRefinement<PersistedFile> {}
+export interface FileSchema extends Schema.declare<PersistedFile> {}
 
 /**
  * @since 4.0.0

@@ -1037,21 +1037,6 @@ export function flip<S extends Top>(schema: S): flip<S> {
 /**
  * @since 4.0.0
  */
-export interface declare<T, E, TypeParameters extends ReadonlyArray<Top>> extends
-  Bottom<
-    T,
-    E,
-    TypeParameters[number]["DecodingServices"],
-    TypeParameters[number]["EncodingServices"],
-    AST.Declaration,
-    declare<T, E, TypeParameters>,
-    Annotations.Declaration<T, TypeParameters>
-  >
-{}
-
-/**
- * @since 4.0.0
- */
 export interface Literal<L extends AST.Literal>
   extends Bottom<L, L, never, never, AST.LiteralType, Literal<L>, Annotations.Annotations>
 {
@@ -3178,7 +3163,9 @@ export function TaggedUnion<const CasesByTag extends Record<string, Struct.Field
 /**
  * @since 4.0.0
  */
-export interface Option<S extends Top> extends declare<O.Option<S["Type"]>, O.Option<S["Encoded"]>, readonly [S]> {
+export interface Option<S extends Top>
+  extends declareConstructor<O.Option<S["Type"]>, O.Option<S["Encoded"]>, readonly [S]>
+{
   readonly "~rebuild.out": Option<S>
 }
 
@@ -3242,7 +3229,7 @@ export function Option<S extends Top>(value: S): Option<S> {
  * @since 4.0.0
  */
 export interface Redacted<S extends Top>
-  extends declare<Redacted_.Redacted<S["Type"]>, Redacted_.Redacted<S["Encoded"]>, readonly [S]>
+  extends declareConstructor<Redacted_.Redacted<S["Type"]>, Redacted_.Redacted<S["Encoded"]>, readonly [S]>
 {
   readonly "~rebuild.out": Redacted<S>
 }
@@ -3306,7 +3293,7 @@ export function Redacted<S extends Top>(value: S): Redacted<S> {
  * @since 4.0.0
  */
 export interface CauseFailure<E extends Top, D extends Top>
-  extends declare<Cause_.Failure<E["Type"]>, Cause_.Failure<E["Encoded"]>, readonly [E, D]>
+  extends declareConstructor<Cause_.Failure<E["Type"]>, Cause_.Failure<E["Encoded"]>, readonly [E, D]>
 {
   readonly "~rebuild.out": CauseFailure<E, D>
 }
@@ -3410,7 +3397,7 @@ export function CauseFailure<E extends Top, D extends Top>(error: E, defect: D):
  * @since 4.0.0
  */
 export interface Cause<E extends Top, D extends Top>
-  extends declare<Cause_.Cause<E["Type"]>, Cause_.Cause<E["Encoded"]>, readonly [CauseFailure<E, D>]>
+  extends declareConstructor<Cause_.Cause<E["Type"]>, Cause_.Cause<E["Encoded"]>, readonly [CauseFailure<E, D>]>
 {
   readonly "~rebuild.out": Cause<E, D>
 }
@@ -3552,8 +3539,12 @@ export const Defect: Defect = Union([
 /**
  * @since 4.0.0
  */
-export interface Exit<A extends Top, E extends Top, D extends Top>
-  extends declare<Exit_.Exit<A["Type"], E["Type"]>, Exit_.Exit<A["Encoded"], E["Encoded"]>, readonly [A, Cause<E, D>]>
+export interface Exit<A extends Top, E extends Top, D extends Top> extends
+  declareConstructor<
+    Exit_.Exit<A["Type"], E["Type"]>,
+    Exit_.Exit<A["Encoded"], E["Encoded"]>,
+    readonly [A, Cause<E, D>]
+  >
 {
   readonly "~rebuild.out": Exit<A, E, D>
 }
@@ -3657,7 +3648,7 @@ export const Char = String.check(Check.length(1))
  * @since 4.0.0
  */
 export interface Map$<Key extends Top, Value extends Top> extends
-  declare<
+  declareConstructor<
     globalThis.Map<Key["Type"], Value["Type"]>,
     globalThis.Map<Key["Encoded"], Value["Encoded"]>,
     readonly [Key, Value]
@@ -3772,7 +3763,7 @@ export function Opaque<Self>() {
 /**
  * @since 4.0.0
  */
-export interface instanceOf<T> extends declare<T, T, readonly []> {
+export interface instanceOf<T> extends declareConstructor<T, T, readonly []> {
   readonly "~rebuild.out": instanceOf<T>
 }
 
@@ -4487,28 +4478,19 @@ export const StandardSchemaV1FailureResult = Struct({
 })
 
 /**
- * @category Constructors
  * @since 4.0.0
  */
-export interface declareRefinement<T> extends declare<T, T, readonly []> {
-  readonly "~rebuild.out": declareRefinement<T>
-}
-
-/**
- * @since 4.0.0
- */
-export function declare<T>(
-  is: (u: unknown) => u is T,
-  annotations?: Annotations.Declaration<T, readonly []> | undefined
-): declareRefinement<T> {
-  return declareConstructor([])<T>()(
-    () => (input, ast) =>
-      is(input) ?
-        Effect.succeed(input) :
-        Effect.fail(new Issue.InvalidType(ast, O.some(input))),
-    annotations
-  )
-}
+export interface declareConstructor<T, E, TypeParameters extends ReadonlyArray<Top>> extends
+  Bottom<
+    T,
+    E,
+    TypeParameters[number]["DecodingServices"],
+    TypeParameters[number]["EncodingServices"],
+    AST.Declaration,
+    declareConstructor<T, E, TypeParameters>,
+    Annotations.Declaration<T, TypeParameters>
+  >
+{}
 
 /**
  * @category Constructors
@@ -4523,8 +4505,8 @@ export function declareConstructor<const TypeParameters extends ReadonlyArray<To
       }
     ) => (u: unknown, self: AST.Declaration, options: AST.ParseOptions) => Effect.Effect<T, Issue.Issue>,
     annotations?: Annotations.Declaration<T, TypeParameters>
-  ): declare<T, E, TypeParameters> => {
-    return make<declare<T, E, TypeParameters>>(
+  ): declareConstructor<T, E, TypeParameters> => {
+    return make<declareConstructor<T, E, TypeParameters>>(
       new AST.Declaration(
         typeParameters.map(AST.getAST),
         (typeParameters) => run(typeParameters.map(make) as any),
@@ -4532,4 +4514,28 @@ export function declareConstructor<const TypeParameters extends ReadonlyArray<To
       )
     )
   }
+}
+
+/**
+ * @category Constructors
+ * @since 4.0.0
+ */
+export interface declare<T> extends declareConstructor<T, T, readonly []> {
+  readonly "~rebuild.out": declare<T>
+}
+
+/**
+ * @since 4.0.0
+ */
+export function declare<T>(
+  is: (u: unknown) => u is T,
+  annotations?: Annotations.Declaration<T, readonly []> | undefined
+): declare<T> {
+  return declareConstructor([])<T>()(
+    () => (input, ast) =>
+      is(input) ?
+        Effect.succeed(input) :
+        Effect.fail(new Issue.InvalidType(ast, O.some(input))),
+    annotations
+  )
 }
