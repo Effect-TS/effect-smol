@@ -1,21 +1,22 @@
 /**
  * @since 1.0.0
  */
+import Sqlite from "better-sqlite3"
+import * as Cache from "effect/caching/Cache"
+import * as Config from "effect/config/Config"
+import * as Effect from "effect/Effect"
+import * as Fiber from "effect/Fiber"
+import { identity } from "effect/Function"
+import * as Layer from "effect/Layer"
+import * as Scope from "effect/Scope"
+import * as ServiceMap from "effect/ServiceMap"
+import * as Stream from "effect/stream/Stream"
+import * as Duration from "effect/time/Duration"
 import * as Reactivity from "effect/unstable/reactivity/Reactivity"
 import * as Client from "effect/unstable/sql/SqlClient"
 import type { Connection } from "effect/unstable/sql/SqlConnection"
 import { SqlError } from "effect/unstable/sql/SqlError"
 import * as Statement from "effect/unstable/sql/Statement"
-import Sqlite from "better-sqlite3"
-import * as Cache from "effect/Cache"
-import * as Config from "effect/Config"
-import type { ConfigError } from "effect/ConfigError"
-import * as Context from "effect/Context"
-import * as Duration from "effect/Duration"
-import * as Effect from "effect/Effect"
-import { identity } from "effect/Function"
-import * as Layer from "effect/Layer"
-import * as Scope from "effect/Scope"
 
 const ATTR_DB_SYSTEM_NAME = "db.system.name"
 
@@ -23,13 +24,13 @@ const ATTR_DB_SYSTEM_NAME = "db.system.name"
  * @category type ids
  * @since 1.0.0
  */
-export const TypeId: unique symbol = Symbol.for("@effect/sql-sqlite-node/SqliteClient")
+export const TypeId: TypeId = "~@effect/sql-sqlite-node/SqliteClient"
 
 /**
  * @category type ids
  * @since 1.0.0
  */
-export type TypeId = typeof TypeId
+export type TypeId = "~@effect/sql-sqlite-node/SqliteClient"
 
 /**
  * @category models
@@ -59,7 +60,7 @@ export interface BackupMetadata {
  * @category tags
  * @since 1.0.0
  */
-export const SqliteClient = Context.GenericTag<SqliteClient>("@effect/sql-sqlite-node/SqliteClient")
+export const SqliteClient = ServiceMap.Key<SqliteClient>("@effect/sql-sqlite-node/SqliteClient")
 
 /**
  * @category models
@@ -124,8 +125,8 @@ export const make = (
         params: ReadonlyArray<Statement.Primitive>,
         raw: boolean
       ) =>
-        Effect.withFiberRuntime<ReadonlyArray<any>, SqlError>((fiber) => {
-          if (Context.get(fiber.currentContext, Client.SafeIntegers)) {
+        Effect.withFiber<ReadonlyArray<any>, SqlError>((fiber) => {
+          if (ServiceMap.get(fiber.services, Client.SafeIntegers)) {
             statement.safeIntegers(true)
           }
           try {
@@ -145,7 +146,7 @@ export const make = (
         raw = false
       ) =>
         Effect.flatMap(
-          prepareCache.get(sql),
+          Cache.get(prepareCache, sql),
           (s) => runStatement(s, params, raw)
         )
 
@@ -154,7 +155,7 @@ export const make = (
         params: ReadonlyArray<Statement.Primitive>
       ) =>
         Effect.acquireUseRelease(
-          prepareCache.get(sql),
+          Cache.get(prepareCache, sql),
           (statement) =>
             Effect.try({
               try: () => {
@@ -189,7 +190,7 @@ export const make = (
           return transformRows ? Effect.map(effect, transformRows) : effect
         },
         executeStream(_sql, _params) {
-          return Effect.dieMessage("executeStream not implemented")
+          return Stream.die("executeStream not implemented")
         },
         export: Effect.try({
           try: () => db.serialize(),
@@ -214,18 +215,17 @@ export const make = (
     const connection = yield* makeConnection
 
     const acquirer = semaphore.withPermits(1)(Effect.succeed(connection))
-    const transactionAcquirer = Effect.uninterruptibleMask((restore) =>
-      Effect.as(
-        Effect.zipRight(
+    const transactionAcquirer = Effect.uninterruptibleMask((restore) => {
+      const fiber = Fiber.getCurrent()!
+      const scope = ServiceMap.unsafeGet(fiber.services, Scope.Scope)
+      return Effect.as(
+        Effect.tap(
           restore(semaphore.take(1)),
-          Effect.tap(
-            Effect.scope,
-            (scope) => Scope.addFinalizer(scope, semaphore.release(1))
-          )
+          () => Scope.addFinalizer(scope, semaphore.release(1))
         ),
         connection
       )
-    )
+    })
 
     return Object.assign(
       (yield* Client.make({
@@ -253,14 +253,14 @@ export const make = (
  * @since 1.0.0
  */
 export const layerConfig = (
-  config: Config.Config.Wrap<SqliteClientConfig>
-): Layer.Layer<SqliteClient | Client.SqlClient, ConfigError> =>
-  Layer.scopedContext(
-    Config.unwrap(config).pipe(
+  config: Config.Wrap<SqliteClientConfig>
+): Layer.Layer<SqliteClient | Client.SqlClient, Config.ConfigError> =>
+  Layer.effectServices(
+    Config.unwrap(config).asEffect().pipe(
       Effect.flatMap(make),
       Effect.map((client) =>
-        Context.make(SqliteClient, client).pipe(
-          Context.add(Client.SqlClient, client)
+        ServiceMap.make(SqliteClient, client).pipe(
+          ServiceMap.add(Client.SqlClient, client)
         )
       )
     )
@@ -272,10 +272,10 @@ export const layerConfig = (
  */
 export const layer = (
   config: SqliteClientConfig
-): Layer.Layer<SqliteClient | Client.SqlClient, ConfigError> =>
-  Layer.scopedContext(
+): Layer.Layer<SqliteClient | Client.SqlClient> =>
+  Layer.effectServices(
     Effect.map(make(config), (client) =>
-      Context.make(SqliteClient, client).pipe(
-        Context.add(Client.SqlClient, client)
+      ServiceMap.make(SqliteClient, client).pipe(
+        ServiceMap.add(Client.SqlClient, client)
       ))
   ).pipe(Layer.provide(Reactivity.layer))

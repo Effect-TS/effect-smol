@@ -12,8 +12,8 @@
     "resolveJsonModule": true,
     "baseUrl": ".",
     "paths": {
-      "@effect/sql-do": ["src/index.ts"],
-      "@effect/sql-do/*": ["src/*/index.ts", "src/*.ts"]
+      "@effect/sql-sqlite-node": ["src/index.ts"],
+      "@effect/sql-sqlite-node/*": ["src/*/index.ts", "src/*.ts"]
     },
     "plugins": [
       {

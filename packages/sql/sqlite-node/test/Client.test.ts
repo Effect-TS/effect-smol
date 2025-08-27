@@ -1,9 +1,9 @@
-import { Reactivity } from "@effect/experimental"
-import { FileSystem } from "@effect/platform"
 import { NodeFileSystem } from "@effect/platform-node"
 import { SqliteClient } from "@effect/sql-sqlite-node"
 import { assert, describe, it } from "@effect/vitest"
 import { Effect } from "effect"
+import { FileSystem } from "effect/platform"
+import { Reactivity } from "effect/unstable/reactivity"
 
 const makeClient = Effect.gen(function*() {
   const fs = yield* FileSystem.FileSystem
@@ -14,7 +14,7 @@ const makeClient = Effect.gen(function*() {
 }).pipe(Effect.provide([NodeFileSystem.layer, Reactivity.layer]))
 
 describe("Client", () => {
-  it.scoped("should work", () =>
+  it.effect("should work", () =>
     Effect.gen(function*() {
       const sql = yield* makeClient
       let response
@@ -33,7 +33,7 @@ describe("Client", () => {
       ])
     }))
 
-  it.scoped("should work with raw", () =>
+  it.effect("should work with raw", () =>
     Effect.gen(function*() {
       const sql = yield* makeClient
       let response
@@ -52,7 +52,7 @@ describe("Client", () => {
       ])
     }))
 
-  it.scoped("withTransaction", () =>
+  it.effect("withTransaction", () =>
     Effect.gen(function*() {
       const sql = yield* makeClient
       yield* sql`CREATE TABLE test (id INTEGER PRIMARY KEY, name TEXT)`
@@ -61,7 +61,7 @@ describe("Client", () => {
       assert.deepStrictEqual(rows, [{ id: 1, name: "hello" }])
     }))
 
-  it.scoped("withTransaction rollback", () =>
+  it.effect("withTransaction rollback", () =>
     Effect.gen(function*() {
       const sql = yield* makeClient
       yield* sql`CREATE TABLE test (id INTEGER PRIMARY KEY, name TEXT)`

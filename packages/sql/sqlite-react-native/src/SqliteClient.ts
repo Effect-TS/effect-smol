@@ -1,11 +1,6 @@
 /**
  * @since 1.0.0
  */
-import * as Reactivity from "effect/unstable/reactivity/Reactivity"
-import * as Client from "effect/unstable/sql/SqlClient"
-import type { Connection } from "effect/unstable/sql/SqlConnection"
-import { SqlError } from "effect/unstable/sql/SqlError"
-import * as Statement from "effect/unstable/sql/Statement"
 import * as Sqlite from "@op-engineering/op-sqlite"
 import * as Config from "effect/Config"
 import type { ConfigError } from "effect/ConfigError"
@@ -16,6 +11,11 @@ import { identity } from "effect/Function"
 import { globalValue } from "effect/GlobalValue"
 import * as Layer from "effect/Layer"
 import * as Scope from "effect/Scope"
+import * as Reactivity from "effect/unstable/reactivity/Reactivity"
+import * as Client from "effect/unstable/sql/SqlClient"
+import type { Connection } from "effect/unstable/sql/SqlConnection"
+import { SqlError } from "effect/unstable/sql/SqlError"
+import * as Statement from "effect/unstable/sql/Statement"
 
 const ATTR_DB_SYSTEM_NAME = "db.system.name"
 
