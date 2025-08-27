@@ -3170,7 +3170,7 @@ export interface Option<S extends Top>
 }
 
 /**
- * @category Constructors
+ * @category Option
  * @since 4.0.0
  */
 export function Option<S extends Top>(value: S): Option<S> {
@@ -3223,6 +3223,32 @@ export function Option<S extends Top>(value: S): Option<S> {
       }
     }
   )
+}
+
+/**
+ * @since 4.0.0
+ */
+export interface OptionFromNullOr<S extends Top> extends decodeTo<Option<typeCodec<S>>, NullOr<S>> {}
+
+/**
+ * Decodes a nullable, required value `T` to a required `Option<T>` value.
+ *
+ * Decoding:
+ * - `null` is decoded as `None`
+ * - other values are decoded as `Some`
+ *
+ * Encoding:
+ * - `None` is encoded as `null`
+ * - `Some` is encoded as the value
+ *
+ * @category Option
+ * @since 4.0.0
+ */
+export function OptionFromNullOr<S extends Top>(schema: S): OptionFromNullOr<S> {
+  return NullOr(schema).pipe(decodeTo(
+    Option(typeCodec(schema)),
+    Transformation.optionFromNullOr<any>() // TODO: fix this
+  ))
 }
 
 /**

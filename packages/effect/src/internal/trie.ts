@@ -398,7 +398,7 @@ export const get = dual<
         }
       } else {
         if (cIndex === key.length - 1) {
-          return Option.fromNullable(n.value)
+          return Option.fromUndefinedOr(n.value)
         } else {
           if (n.mid === undefined) {
             return Option.none()
@@ -714,7 +714,7 @@ export const longestPrefixOf = dual<
       }
     }
 
-    return Option.fromNullable(longestPrefixNode)
+    return Option.fromUndefinedOr(longestPrefixNode)
   }
 )
 

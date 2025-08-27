@@ -609,7 +609,7 @@ export const unsafeIsDone = <A, E>(self: Deferred<A, E>): boolean => self.effect
  */
 export const poll = <A, E>(
   self: Deferred<A, E>
-): Effect<Option.Option<Effect<A, E>>> => internalEffect.sync(() => Option.fromNullable(self.effect))
+): Effect<Option.Option<Effect<A, E>>> => internalEffect.sync(() => Option.fromUndefinedOr(self.effect))
 
 /**
  * Completes the `Deferred` with the specified value.

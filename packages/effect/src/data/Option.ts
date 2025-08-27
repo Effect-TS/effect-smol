@@ -64,50 +64,18 @@ import * as Reducer from "./Reducer.ts"
 export type Option<A> = None<A> | Some<A>
 
 /**
- * @example
- * ```ts
- * import { Option } from "effect/data"
- *
- * console.log(Option.TypeId)
- * // Output: "~effect/Option"
- * ```
- *
  * @category Symbols
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const TypeId: TypeId = "~effect/Option"
 
 /**
- * @example
- * ```ts
- * import { Option } from "effect/data"
- *
- * // Using TypeId for type checking
- * const checkTypeId = (value: unknown): value is Option.Option<any> => {
- *   return typeof value === "object" && value !== null &&
- *     Option.TypeId in value
- * }
- * ```
- *
  * @category Symbols
- * @since 2.0.0
+ * @since 4.0.0
  */
 export type TypeId = "~effect/Option"
 
 /**
- * @example
- * ```ts
- * import { Option } from "effect/data"
- *
- * const noneValue = Option.none()
- *
- * // Type checking for None
- * if (Option.isNone(noneValue)) {
- *   console.log("This is a None value")
- *   console.log(noneValue._tag) // "None"
- * }
- * ```
- *
  * @category Models
  * @since 2.0.0
  */
@@ -123,20 +91,6 @@ export interface None<out A> extends Pipeable, Inspectable, Yieldable<Option<A>,
 }
 
 /**
- * @example
- * ```ts
- * import { Option } from "effect/data"
- *
- * const someValue = Option.some(42)
- *
- * // Type checking for Some
- * if (Option.isSome(someValue)) {
- *   console.log("This is a Some value")
- *   console.log(someValue._tag) // "Some"
- *   console.log(someValue.value) // 42
- * }
- * ```
- *
  * @category Models
  * @since 2.0.0
  */
@@ -795,22 +749,38 @@ export const firstSomeOf = <T, C extends Iterable<Option<T>> = Iterable<Option<T
  * ```ts
  * import { Option } from "effect/data"
  *
- * console.log(Option.fromNullable(undefined))
+ * console.log(Option.fromNullish(undefined))
  * // Output: { _id: 'Option', _tag: 'None' }
  *
- * console.log(Option.fromNullable(null))
+ * console.log(Option.fromNullish(null))
  * // Output: { _id: 'Option', _tag: 'None' }
  *
- * console.log(Option.fromNullable(1))
+ * console.log(Option.fromNullish(1))
  * // Output: { _id: 'Option', _tag: 'Some', value: 1 }
  * ```
  *
  * @category Conversions
  * @since 2.0.0
  */
-export const fromNullable = <A>(
-  nullableValue: A
-): Option<NonNullable<A>> => (nullableValue == null ? none() : some(nullableValue as NonNullable<A>))
+export const fromNullish = <A>(
+  a: A
+): Option<NonNullable<A>> => (a == null ? none() : some(a as NonNullable<A>))
+
+/**
+ * @category Conversions
+ * @since 4.0.0
+ */
+export const fromUndefinedOr = <A>(
+  a: A
+): Option<Exclude<A, undefined>> => (a === undefined ? none() : some(a as Exclude<A, undefined>))
+
+/**
+ * @category Conversions
+ * @since 4.0.0
+ */
+export const fromNullOr = <A>(
+  a: A
+): Option<Exclude<A, null>> => (a === null ? none() : some(a as Exclude<A, null>))
 
 /**
  * Lifts a function that returns `null` or `undefined` into the `Option`
@@ -845,10 +815,10 @@ export const fromNullable = <A>(
  * @category Conversions
  * @since 2.0.0
  */
-export const liftNullable = <A extends ReadonlyArray<unknown>, B>(
-  f: (...a: A) => B | null | undefined
+export const liftNullish = <A extends ReadonlyArray<unknown>, B>(
+  f: (...a: A) => B
 ): (...a: A) => Option<NonNullable<B>> =>
-(...a) => fromNullable(f(...a))
+(...a) => fromNullish(f(...a))
 
 /**
  * Returns the value contained in the `Option` if it is `Some`; otherwise,
@@ -1324,13 +1294,12 @@ export const andThen: {
  * @category Sequencing
  * @since 2.0.0
  */
-export const flatMapNullable: {
-  <A, B>(f: (a: A) => B | null | undefined): (self: Option<A>) => Option<NonNullable<B>>
-  <A, B>(self: Option<A>, f: (a: A) => B | null | undefined): Option<NonNullable<B>>
+export const flatMapNullish: {
+  <A, B>(f: (a: A) => B): (self: Option<A>) => Option<NonNullable<B>>
+  <A, B>(self: Option<A>, f: (a: A) => B): Option<NonNullable<B>>
 } = dual(
   2,
-  <A, B>(self: Option<A>, f: (a: A) => B | null | undefined): Option<NonNullable<B>> =>
-    isNone(self) ? none() : fromNullable(f(self.value))
+  <A, B>(self: Option<A>, f: (a: A) => B): Option<NonNullable<B>> => isNone(self) ? none() : fromNullish(f(self.value))
 )
 
 /**

@@ -2,7 +2,7 @@
  * @since 4.0.0
  */
 
-import type * as Option from "../data/Option.ts"
+import * as Option from "../data/Option.ts"
 import * as Predicate from "../data/Predicate.ts"
 import type * as Effect from "../Effect.ts"
 import type * as AST from "./AST.ts"
@@ -298,5 +298,15 @@ export function error(): Transformation<Error, {
         // no stack because of security reasons
       }
     }
+  })
+}
+
+/**
+ * @since 4.0.0
+ */
+export function optionFromNullOr<T>(): Transformation<Option.Option<Exclude<T, null>>, T | null> {
+  return transform({
+    decode: Option.fromNullOr,
+    encode: Option.getOrNull
   })
 }

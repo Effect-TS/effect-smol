@@ -366,7 +366,7 @@ const extractPayloads = (topAst: AST.AST): ReadonlyMap<string, {
 
 const getDescriptionOrIdentifier = (ast: AST.AST): Option.Option<string> => {
   const annotations: Record<string, string> = ast.annotations ?? {} as any
-  return Option.fromNullable(annotations.description ?? annotations.identfier)
+  return Option.fromUndefinedOr(annotations.description ?? annotations.identfier)
 }
 
 /**

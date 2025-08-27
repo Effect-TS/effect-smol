@@ -551,7 +551,7 @@ export const substring = (start: number, end?: number) => (self: string): string
 export const at: {
   (index: number): (self: string) => Option.Option<string>
   (self: string, index: number): Option.Option<string>
-} = dual(2, (self: string, index: number): Option.Option<string> => Option.fromNullable(self.at(index)))
+} = dual(2, (self: string, index: number): Option.Option<string> => Option.fromUndefinedOr(self.at(index)))
 
 /**
  * Returns the character at the specified index, or `None` if the index is out of bounds.
@@ -598,7 +598,7 @@ export const charAt: {
 export const codePointAt: {
   (index: number): (self: string) => Option.Option<number>
   (self: string, index: number): Option.Option<number>
-} = dual(2, (self: string, index: number): Option.Option<number> => Option.fromNullable(self.codePointAt(index)))
+} = dual(2, (self: string, index: number): Option.Option<number> => Option.fromUndefinedOr(self.codePointAt(index)))
 
 /**
  * Returns the index of the first occurrence of a substring, or `None` if not found.
@@ -679,7 +679,7 @@ export const localeCompare =
  * @since 2.0.0
  */
 export const match = (regexp: RegExp | string) => (self: string): Option.Option<RegExpMatchArray> =>
-  Option.fromNullable(self.match(regexp))
+  Option.fromNullOr(self.match(regexp))
 
 /**
  * It is the `pipe`-able version of the native `matchAll` method.

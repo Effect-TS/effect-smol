@@ -243,7 +243,7 @@ export const make = (values: {
   o.days = new Set(Arr.sort(values.days, N.Order))
   o.months = new Set(Arr.sort(values.months, N.Order))
   o.weekdays = new Set(Arr.sort(values.weekdays, N.Order))
-  o.tz = Option.fromNullable(values.tz)
+  o.tz = Option.fromUndefinedOr(values.tz)
 
   const seconds = Array.from(o.seconds)
   const minutes = Array.from(o.minutes)

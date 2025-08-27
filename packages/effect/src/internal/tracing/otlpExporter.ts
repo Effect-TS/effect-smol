@@ -19,7 +19,7 @@ const policy = Schedule.forever.pipe(
       && error._tag === "ResponseError"
       && error.response.status === 429
     ) {
-      const retryAfter = Option.fromNullable(error.response.headers["retry-after"]).pipe(
+      const retryAfter = Option.fromUndefinedOr(error.response.headers["retry-after"]).pipe(
         Option.flatMap(Num.parse),
         Option.getOrElse(() => 5)
       )

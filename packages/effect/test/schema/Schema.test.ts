@@ -1975,6 +1975,16 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     })
   })
 
+  it("OptionFromNullOr", async () => {
+    const schema = Schema.OptionFromNullOr(Schema.FiniteFromString)
+    await assertions.decoding.succeed(schema, null, { expected: Option.none() })
+    await assertions.decoding.succeed(schema, "1", { expected: Option.some(1) })
+    await assertions.decoding.fail(schema, "a", `Expected a finite number, got NaN`)
+
+    await assertions.encoding.succeed(schema, Option.none(), { expected: null })
+    await assertions.encoding.succeed(schema, Option.some(1), { expected: "1" })
+  })
+
   describe("Defect", () => {
     const noPrototypeObject = Object.create(null)
     noPrototypeObject.message = "a"

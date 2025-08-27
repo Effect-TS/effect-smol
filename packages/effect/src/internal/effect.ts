@@ -4216,7 +4216,7 @@ export const unsafeMakeSpan = <XA, XE>(
     ? Option.some(options.parent)
     : options.root
     ? Option.none()
-    : filterDisablePropagation(Option.fromNullable(fiber.currentSpan))
+    : filterDisablePropagation(Option.fromUndefinedOr(fiber.currentSpan))
 
   let span: Tracer.Span
 

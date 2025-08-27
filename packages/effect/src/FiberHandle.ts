@@ -406,7 +406,7 @@ export const set: {
  * ```
  */
 export const unsafeGet = <A, E>(self: FiberHandle<A, E>): Option.Option<Fiber.Fiber<A, E>> =>
-  self.state._tag === "Closed" ? Option.none() : Option.fromNullable(self.state.fiber)
+  self.state._tag === "Closed" ? Option.none() : Option.fromUndefinedOr(self.state.fiber)
 
 /**
  * Retrieve the fiber from the FiberHandle.

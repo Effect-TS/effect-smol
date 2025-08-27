@@ -443,7 +443,7 @@ const handlerToRoute = (
     Option.getOrElse(constFalse)
   )
   const multipartLimits = endpoint.payloadSchema.pipe(
-    Option.flatMapNullable(({ ast }) => ast.annotations?.httpApiMultipartStream ?? ast.annotations?.httpApiMultipart)
+    Option.flatMapNullish(({ ast }) => ast.annotations?.httpApiMultipartStream ?? ast.annotations?.httpApiMultipart)
   )
   const decodePath = Option.map(endpoint.pathSchema, Schema.decodeUnknownEffect)
   const decodePayload = handler.withFullRequest || isMultipartStream
