@@ -883,6 +883,12 @@ describe("Serializer", () => {
         ]
       }, failureResult)
     })
+
+    it("Uint8Array", async () => {
+      const schema = Schema.Uint8Array
+      await assertions.serialization.json.codec.succeed(schema, new Uint8Array([1, 2, 3]), "AQID")
+      await assertions.deserialization.json.codec.succeed(schema, "AQID", new Uint8Array([1, 2, 3]))
+    })
   })
 
   describe("stringLeafJson", () => {

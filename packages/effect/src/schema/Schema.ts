@@ -4517,6 +4517,21 @@ export const BooleanFromBit = Literals([0, 1]).pipe(
 )
 
 /**
+ * @category Uint8Array
+ * @since 4.0.0
+ */
+export const Uint8Array = instanceOf(globalThis.Uint8Array, {
+  defaultJsonSerializer: () =>
+    link<globalThis.Uint8Array>()(
+      String.annotate({ description: "Base64 encoded Uint8Array" }),
+      Transformation.transform({
+        decode: (b64) => new globalThis.Uint8Array(Buffer.from(b64, "base64")),
+        encode: (u8) => Buffer.from(u8).toString("base64")
+      })
+    )
+})
+
+/**
  * @since 4.0.0
  */
 export interface declareConstructor<T, E, TypeParameters extends ReadonlyArray<Top>> extends
