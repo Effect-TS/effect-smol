@@ -291,7 +291,7 @@ export const getSuccess: {
           getOptionImpl(self, key, fiber),
           (o) =>
             o.pipe(
-              Option.flatMapNullish((entry) => entry.deferred.effect as Exit.Exit<A, E>),
+              Option.flatMapNullishOr((entry) => entry.deferred.effect as Exit.Exit<A, E>),
               Option.flatMap((exit) => effect.exitIsSuccess(exit) ? Option.some(exit.value) : Option.none())
             )
         )

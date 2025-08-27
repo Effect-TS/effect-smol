@@ -749,20 +749,20 @@ export const firstSomeOf = <T, C extends Iterable<Option<T>> = Iterable<Option<T
  * ```ts
  * import { Option } from "effect/data"
  *
- * console.log(Option.fromNullish(undefined))
+ * console.log(Option.fromNullishOr(undefined))
  * // Output: { _id: 'Option', _tag: 'None' }
  *
- * console.log(Option.fromNullish(null))
+ * console.log(Option.fromNullishOr(null))
  * // Output: { _id: 'Option', _tag: 'None' }
  *
- * console.log(Option.fromNullish(1))
+ * console.log(Option.fromNullishOr(1))
  * // Output: { _id: 'Option', _tag: 'Some', value: 1 }
  * ```
  *
  * @category Conversions
  * @since 2.0.0
  */
-export const fromNullish = <A>(
+export const fromNullishOr = <A>(
   a: A
 ): Option<NonNullable<A>> => (a == null ? none() : some(a as NonNullable<A>))
 
@@ -803,7 +803,7 @@ export const fromNullOr = <A>(
  *   return isNaN(n) ? undefined : n
  * }
  *
- * const parseOption = Option.liftNullable(parse)
+ * const parseOption = Option.liftNullishOr(parse)
  *
  * console.log(parseOption("1"))
  * // Output: { _id: 'Option', _tag: 'Some', value: 1 }
@@ -815,10 +815,10 @@ export const fromNullOr = <A>(
  * @category Conversions
  * @since 2.0.0
  */
-export const liftNullish = <A extends ReadonlyArray<unknown>, B>(
+export const liftNullishOr = <A extends ReadonlyArray<unknown>, B>(
   f: (...a: A) => B
 ): (...a: A) => Option<NonNullable<B>> =>
-(...a) => fromNullish(f(...a))
+(...a) => fromNullishOr(f(...a))
 
 /**
  * Returns the value contained in the `Option` if it is `Some`; otherwise,
@@ -1243,7 +1243,7 @@ export const andThen: {
 )
 
 /**
- * Combines `flatMap` and `fromNullable`, transforming the value inside a `Some`
+ * Combines `flatMap` and `fromNullish`, transforming the value inside a `Some`
  * using a function that may return `null` or `undefined`.
  *
  * **Details**
@@ -1277,7 +1277,7 @@ export const andThen: {
  * // Extracting a deeply nested property
  * console.log(
  *   Option.some(employee1)
- *     .pipe(Option.flatMapNullable((employee) => employee.company?.address?.street?.name))
+ *     .pipe(Option.flatMapNullishOr((employee) => employee.company?.address?.street?.name))
  * )
  * // Output: { _id: 'Option', _tag: 'Some', value: 'high street' }
  *
@@ -1286,7 +1286,7 @@ export const andThen: {
  * // Property does not exist
  * console.log(
  *   Option.some(employee2)
- *     .pipe(Option.flatMapNullable((employee) => employee.company?.address?.street?.name))
+ *     .pipe(Option.flatMapNullishOr((employee) => employee.company?.address?.street?.name))
  * )
  * // Output: { _id: 'Option', _tag: 'None' }
  * ```
@@ -1294,12 +1294,13 @@ export const andThen: {
  * @category Sequencing
  * @since 2.0.0
  */
-export const flatMapNullish: {
+export const flatMapNullishOr: {
   <A, B>(f: (a: A) => B): (self: Option<A>) => Option<NonNullable<B>>
   <A, B>(self: Option<A>, f: (a: A) => B): Option<NonNullable<B>>
 } = dual(
   2,
-  <A, B>(self: Option<A>, f: (a: A) => B): Option<NonNullable<B>> => isNone(self) ? none() : fromNullish(f(self.value))
+  <A, B>(self: Option<A>, f: (a: A) => B): Option<NonNullable<B>> =>
+    isNone(self) ? none() : fromNullishOr(f(self.value))
 )
 
 /**

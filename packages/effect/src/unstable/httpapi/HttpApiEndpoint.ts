@@ -1081,16 +1081,16 @@ export const make = <Method extends HttpMethod>(method: Method) =>
     name,
     path,
     method,
-    pathSchema: Option.fromNullish(options?.path).pipe(
+    pathSchema: Option.fromNullishOr(options?.path).pipe(
       Option.map(structToSchema)
     ),
-    urlParamsSchema: Option.fromNullish(options?.urlParams).pipe(
+    urlParamsSchema: Option.fromNullishOr(options?.urlParams).pipe(
       Option.map(structToSchema)
     ),
-    payloadSchema: Option.fromNullish(options?.payload).pipe(
+    payloadSchema: Option.fromNullishOr(options?.payload).pipe(
       Option.map(structToSchema)
     ),
-    headersSchema: Option.fromNullish(options?.headers).pipe(
+    headersSchema: Option.fromNullishOr(options?.headers).pipe(
       Option.map(structToSchema)
     ),
     successSchema: options?.success ? structToSchema(options.success) : HttpApiSchema.NoContent as any,

@@ -1729,7 +1729,7 @@ export const filter: {
  *
  * // Extract valid elements from nullable function results
  * const data = ["1", "2", "invalid", "4"]
- * const parsed = Iterable.flatMapNullable(data, s => {
+ * const parsed = Iterable.flatMapNullishOr(data, s => {
  *   const num = parseInt(s)
  *   return isNaN(num) ? null : num * 2
  * })
@@ -1742,7 +1742,7 @@ export const filter: {
  *   { nested: { value: 20 } },
  *   {}
  * ]
- * const values = Iterable.flatMapNullable(objects, obj => obj.nested?.value)
+ * const values = Iterable.flatMapNullishOr(objects, obj => obj.nested?.value)
  * console.log(Array.from(values)) // [10, 20]
  *
  * // Working with Map.get (returns undefined for missing keys)
@@ -1752,19 +1752,19 @@ export const filter: {
  *   ["c", 3]
  * ])
  * const keys = ["a", "x", "b", "y", "c"]
- * const foundValues = Iterable.flatMapNullable(keys, key => map.get(key))
+ * const foundValues = Iterable.flatMapNullishOr(keys, key => map.get(key))
  * console.log(Array.from(foundValues)) // [1, 2, 3]
  * ```
  *
  * @category sequencing
  * @since 2.0.0
  */
-export const flatMapNullable: {
-  <A, B>(f: (a: A) => B | null | undefined): (self: Iterable<A>) => Iterable<NonNullable<B>>
-  <A, B>(self: Iterable<A>, f: (a: A) => B | null | undefined): Iterable<NonNullable<B>>
+export const flatMapNullishOr: {
+  <A, B>(f: (a: A) => B): (self: Iterable<A>) => Iterable<NonNullable<B>>
+  <A, B>(self: Iterable<A>, f: (a: A) => B): Iterable<NonNullable<B>>
 } = dual(
   2,
-  <A, B>(self: Iterable<A>, f: (a: A) => B | null | undefined): Iterable<NonNullable<B>> =>
+  <A, B>(self: Iterable<A>, f: (a: A) => B): Iterable<NonNullable<B>> =>
     filterMap(self, (a) => {
       const b = f(a)
       return b == null ? O.none() : O.some(b)

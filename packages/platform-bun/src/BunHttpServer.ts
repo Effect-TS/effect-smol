@@ -330,7 +330,7 @@ class BunServerRequest extends Inspectable.Class implements ServerRequest.HttpSe
   get remoteAddress(): Option.Option<string> {
     return this.remoteAddressOverride
       ? Option.some(this.remoteAddressOverride)
-      : Option.fromNullable(this.bunServer.requestIP(this.source)?.address)
+      : Option.fromUndefinedOr(this.bunServer.requestIP(this.source)?.address)
   }
   get headers(): Headers.Headers {
     this.headersOverride ??= Headers.fromInput(this.source.headers)

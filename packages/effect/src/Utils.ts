@@ -1,7 +1,7 @@
 /**
  * @since 2.0.0
  */
-import { isNullable, isObject } from "./data/Predicate.ts"
+import { isNullish, isObject } from "./data/Predicate.ts"
 import { identity } from "./Function.ts"
 import type { Kind, TypeLambda } from "./types/HKT.ts"
 import type * as Types from "./types/Types.ts"
@@ -367,17 +367,17 @@ export class PCGRandom {
     incHi?: OptionalNumber,
     incLo?: OptionalNumber
   ) {
-    if (isNullable(seedLo) && isNullable(seedHi)) {
+    if (isNullish(seedLo) && isNullish(seedHi)) {
       seedLo = (Math.random() * 0xffffffff) >>> 0
       seedHi = 0
-    } else if (isNullable(seedLo)) {
+    } else if (isNullish(seedLo)) {
       seedLo = seedHi
       seedHi = 0
     }
-    if (isNullable(incLo) && isNullable(incHi)) {
+    if (isNullish(incLo) && isNullish(incHi)) {
       incLo = this._state ? this._state[3] : defaultIncLo
       incHi = this._state ? this._state[2] : defaultIncHi
-    } else if (isNullable(incLo)) {
+    } else if (isNullish(incLo)) {
       incLo = incHi as number
       incHi = 0
     }

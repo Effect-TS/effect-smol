@@ -471,19 +471,19 @@ const makeFileInfo = (stat: NFS.Stats): FileSystem.File.Info => ({
     stat.isSocket() ?
     "Socket" :
     "Unknown",
-  mtime: Option.fromNullable(stat.mtime),
-  atime: Option.fromNullable(stat.atime),
-  birthtime: Option.fromNullable(stat.birthtime),
+  mtime: Option.fromNullishOr(stat.mtime), // TODO: why Option.fromNullishOr?
+  atime: Option.fromNullishOr(stat.atime),
+  birthtime: Option.fromNullishOr(stat.birthtime),
   dev: stat.dev,
-  rdev: Option.fromNullable(stat.rdev),
-  ino: Option.fromNullable(stat.ino),
+  rdev: Option.fromNullishOr(stat.rdev),
+  ino: Option.fromNullishOr(stat.ino),
   mode: stat.mode,
-  nlink: Option.fromNullable(stat.nlink),
-  uid: Option.fromNullable(stat.uid),
-  gid: Option.fromNullable(stat.gid),
+  nlink: Option.fromNullishOr(stat.nlink),
+  uid: Option.fromNullishOr(stat.uid),
+  gid: Option.fromNullishOr(stat.gid),
   size: FileSystem.Size(stat.size),
-  blksize: Option.fromNullable(FileSystem.Size(stat.blksize)),
-  blocks: Option.fromNullable(stat.blocks)
+  blksize: Option.fromNullishOr(FileSystem.Size(stat.blksize)),
+  blocks: Option.fromNullishOr(stat.blocks)
 })
 const stat = (() => {
   const nodeStat = effectify(

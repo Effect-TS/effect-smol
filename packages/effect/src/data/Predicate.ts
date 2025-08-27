@@ -600,7 +600,7 @@ export const isNullish = (input: unknown): input is null | undefined => input ==
  * @category guards
  * @since 2.0.0
  */
-export const isNotNullish = <A>(input: A): input is Exclude<A, null | undefined> => input != null
+export const isNotNullish = <A>(input: A): input is NonNullable<A> => input != null
 
 /**
  * A guard that always fails.
@@ -738,46 +738,6 @@ export const isTagged: {
   2,
   <K extends string>(self: unknown, tag: K): self is { _tag: K } => hasProperty(self, "_tag") && self["_tag"] === tag
 )
-
-/**
- * A guard that succeeds when the input is `null` or `undefined`.
- *
- * @example
- * ```ts
- * import * as assert from "node:assert"
- * import { isNullable } from "effect/data/Predicate"
- *
- * assert.deepStrictEqual(isNullable(null), true)
- * assert.deepStrictEqual(isNullable(undefined), true)
- *
- * assert.deepStrictEqual(isNullable({}), false)
- * assert.deepStrictEqual(isNullable([]), false)
- * ```
- *
- * @category guards
- * @since 2.0.0
- */
-export const isNullable = <A>(input: A): input is Extract<A, null | undefined> => input === null || input === undefined
-
-/**
- * A guard that succeeds when the input is not `null` or `undefined`.
- *
- * @example
- * ```ts
- * import * as assert from "node:assert"
- * import { isNotNullable } from "effect/data/Predicate"
- *
- * assert.deepStrictEqual(isNotNullable({}), true)
- * assert.deepStrictEqual(isNotNullable([]), true)
- *
- * assert.deepStrictEqual(isNotNullable(null), false)
- * assert.deepStrictEqual(isNotNullable(undefined), false)
- * ```
- *
- * @category guards
- * @since 2.0.0
- */
-export const isNotNullable = <A>(input: A): input is NonNullable<A> => input !== null && input !== undefined
 
 /**
  * A guard that succeeds when the input is an `Error`.

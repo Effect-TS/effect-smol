@@ -46,9 +46,9 @@ describe("Result", () => {
     })
 
     it("fromNullable", () => {
-      deepStrictEqual(Result.fromNullable(null, () => "fallback"), Result.fail("fallback"))
-      deepStrictEqual(Result.fromNullable(undefined, () => "fallback"), Result.fail("fallback"))
-      deepStrictEqual(Result.fromNullable(1, () => "fallback"), Result.succeed(1))
+      deepStrictEqual(Result.fromNullishOr(null, () => "fallback"), Result.fail("fallback"))
+      deepStrictEqual(Result.fromNullishOr(undefined, () => "fallback"), Result.fail("fallback"))
+      deepStrictEqual(Result.fromNullishOr(1, () => "fallback"), Result.succeed(1))
     })
 
     it("fromOption", () => {

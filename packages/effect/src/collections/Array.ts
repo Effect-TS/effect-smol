@@ -3128,15 +3128,15 @@ export const liftOption = <A extends Array<unknown>, B>(
  * ```ts
  * import { Array } from "effect/collections"
  *
- * console.log(Array.fromNullable(1)) // [1]
- * console.log(Array.fromNullable(null)) // []
- * console.log(Array.fromNullable(undefined)) // []
+ * console.log(Array.fromNullishOr(1)) // [1]
+ * console.log(Array.fromNullishOr(null)) // []
+ * console.log(Array.fromNullishOr(undefined)) // []
  * ```
  *
  * @category conversions
  * @since 2.0.0
  */
-export const fromNullable = <A>(a: A): Array<NonNullable<A>> => a == null ? empty() : [a as NonNullable<A>]
+export const fromNullishOr = <A>(a: A): Array<NonNullable<A>> => a == null ? empty() : [a as NonNullable<A>]
 
 /**
  * Lifts a function that returns a nullable value into the Array context.
@@ -3145,7 +3145,7 @@ export const fromNullable = <A>(a: A): Array<NonNullable<A>> => a == null ? empt
  * ```ts
  * import { Array } from "effect/collections"
  *
- * const parseNumber = Array.liftNullable((s: string) => {
+ * const parseNumber = Array.liftNullishOr((s: string) => {
  *   const n = Number(s)
  *   return isNaN(n) ? null : n
  * })
@@ -3157,10 +3157,10 @@ export const fromNullable = <A>(a: A): Array<NonNullable<A>> => a == null ? empt
  * @category lifting
  * @since 2.0.0
  */
-export const liftNullable = <A extends Array<unknown>, B>(
-  f: (...a: A) => B | null | undefined
+export const liftNullishOr = <A extends Array<unknown>, B>(
+  f: (...a: A) => B
 ): (...a: A) => Array<NonNullable<B>> =>
-(...a) => fromNullable(f(...a))
+(...a) => fromNullishOr(f(...a))
 
 /**
  * Maps over an array and flattens the result, removing null and undefined values.
@@ -3170,7 +3170,7 @@ export const liftNullable = <A extends Array<unknown>, B>(
  * ```ts
  * import { Array } from "effect/collections"
  *
- * const result = Array.flatMapNullable([1, 2, 3], n => (n % 2 === 0 ? null : n))
+ * const result = Array.flatMapNullishOr([1, 2, 3], n => (n % 2 === 0 ? null : n))
  * console.log(result) // [1, 3]
  *
  * // Explanation:
@@ -3182,13 +3182,12 @@ export const liftNullable = <A extends Array<unknown>, B>(
  * @category sequencing
  * @since 2.0.0
  */
-export const flatMapNullable: {
-  <A, B>(f: (a: A) => B | null | undefined): (self: ReadonlyArray<A>) => Array<NonNullable<B>>
-  <A, B>(self: ReadonlyArray<A>, f: (a: A) => B | null | undefined): Array<NonNullable<B>>
+export const flatMapNullishOr: {
+  <A, B>(f: (a: A) => B): (self: ReadonlyArray<A>) => Array<NonNullable<B>>
+  <A, B>(self: ReadonlyArray<A>, f: (a: A) => B): Array<NonNullable<B>>
 } = dual(
   2,
-  <A, B>(self: ReadonlyArray<A>, f: (a: A) => B | null | undefined): Array<NonNullable<B>> =>
-    flatMap(self, (a) => fromNullable(f(a)))
+  <A, B>(self: ReadonlyArray<A>, f: (a: A) => B): Array<NonNullable<B>> => flatMap(self, (a) => fromNullishOr(f(a)))
 )
 
 /**

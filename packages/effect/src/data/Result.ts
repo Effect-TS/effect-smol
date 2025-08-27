@@ -304,7 +304,7 @@ export {
 }
 
 /**
- * Takes a lazy default and a nullable value, if the value is not nully (`null`
+ * Takes a lazy default and a nullish value, if the value is not nully (`null`
  * or `undefined`), turn it into a `Success`, if the value is nully use the
  * provided default as a `Failure`.
  *
@@ -313,20 +313,20 @@ export {
  * import * as assert from "node:assert"
  * import { Result } from "effect/data"
  *
- * assert.deepStrictEqual(Result.fromNullable(1, () => 'fallback'), Result.succeed(1))
- * assert.deepStrictEqual(Result.fromNullable(null, () => 'fallback'), Result.fail('fallback'))
+ * assert.deepStrictEqual(Result.fromNullishOr(1, () => 'fallback'), Result.succeed(1))
+ * assert.deepStrictEqual(Result.fromNullishOr(null, () => 'fallback'), Result.fail('fallback'))
  * ```
  *
  * @category Constructors
  * @since 4.0.0
  */
-export const fromNullable: {
-  <A, E>(onNullable: (a: A) => E): (self: A) => Result<NonNullable<A>, E>
-  <A, E>(self: A, onNullable: (a: A) => E): Result<NonNullable<A>, E>
+export const fromNullishOr: {
+  <A, E>(onNullish: (a: A) => E): (self: A) => Result<NonNullable<A>, E>
+  <A, E>(self: A, onNullish: (a: A) => E): Result<NonNullable<A>, E>
 } = dual(
   2,
-  <A, E>(self: A, onNullable: (a: A) => E): Result<NonNullable<A>, E> =>
-    self == null ? fail(onNullable(self)) : succeed(self)
+  <A, E>(self: A, onNullish: (a: A) => E): Result<NonNullable<A>, E> =>
+    self == null ? fail(onNullish(self)) : succeed(self)
 )
 
 /**

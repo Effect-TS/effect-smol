@@ -38,10 +38,10 @@ describe("Option", () => {
     ).type.toBe<Option.Option<number>>()
   })
 
-  it("fromNullish", () => {
-    expect(Option.fromNullish(nullish)).type.toBe<Option.Option<number>>()
-    expect(Option.fromNullish(nullOr)).type.toBe<Option.Option<number>>()
-    expect(Option.fromNullish(undefinedOr)).type.toBe<Option.Option<number>>()
+  it("fromNullishOr", () => {
+    expect(Option.fromNullishOr(nullish)).type.toBe<Option.Option<number>>()
+    expect(Option.fromNullishOr(nullOr)).type.toBe<Option.Option<number>>()
+    expect(Option.fromNullishOr(undefinedOr)).type.toBe<Option.Option<number>>()
   })
 
   it("fromUndefinedOr", () => {

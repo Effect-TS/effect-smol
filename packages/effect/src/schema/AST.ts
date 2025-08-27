@@ -1270,7 +1270,7 @@ export class TypeLiteral extends Base {
     // handle empty struct
     // ---------------------------------------------
     if (ast.propertySignatures.length === 0 && ast.indexSignatures.length === 0) {
-      return fromRefinement(ast, Predicate.isNotNullable)
+      return fromRefinement(ast, Predicate.isNotNullish)
     }
     return Effect.fnUntracedEager(function*(oinput, options) {
       if (Option.isNone(oinput)) {

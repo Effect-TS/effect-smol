@@ -1702,13 +1702,13 @@ export const fromOption: <A>(
 ) => Effect<A, Cause.NoSuchElementError> = internal.fromOption
 
 /**
- * Converts a nullable value to an `Effect`, failing with a `NoSuchElementError`
+ * Converts a nullish value to an `Effect`, failing with a `NoSuchElementError`
  * if the value is `null` or `undefined`.
  *
  * @since 4.0.0
  * @category Conversions
  */
-export const fromNullable: <A>(value: A) => Effect<NonNullable<A>, Cause.NoSuchElementError> = internal.fromNullable
+export const fromNullishOr: <A>(value: A) => Effect<NonNullable<A>, Cause.NoSuchElementError> = internal.fromNullishOr
 
 /**
  * Converts a yieldable value to an Effect.
