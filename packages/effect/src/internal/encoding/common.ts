@@ -1,4 +1,4 @@
-import { hasProperty, isString } from "../../data/Predicate.ts"
+import { hasProperty } from "../../data/Predicate.ts"
 import type * as Encoding from "../../encoding/Encoding.ts"
 import type { Mutable } from "../../types/Types.ts"
 
@@ -8,14 +8,12 @@ export const DecodeExceptionTypeId: Encoding.DecodeExceptionTypeId = Symbol.for(
 ) as Encoding.DecodeExceptionTypeId
 
 /** @internal */
-export const DecodeException = (input: string, message?: string): Encoding.DecodeException => {
+export const DecodeException = (input: string, message: string): Encoding.DecodeException => {
   const out: Mutable<Encoding.DecodeException> = {
     _tag: "DecodeException",
     [DecodeExceptionTypeId]: DecodeExceptionTypeId,
-    input
-  }
-  if (isString(message)) {
-    out.message = message
+    input,
+    message
   }
   return out
 }

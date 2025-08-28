@@ -3966,7 +3966,27 @@ export const Duration: Duration = declare(
   Duration_.isDuration,
   {
     title: "Duration",
-    // TODO: add defaultJsonSerializer
+    defaultJsonSerializer: () =>
+      link<Duration_.Duration>()(
+        Union([Number, BigInt, Literal("Infinity")]),
+        Transformation.transform({
+          decode: (value) => {
+            if (value === "Infinity") return Duration_.infinity
+            if (Predicate.isBigInt(value)) return Duration_.nanos(value)
+            return Duration_.millis(value)
+          },
+          encode: (duration) => {
+            switch (duration.value._tag) {
+              case "Infinity":
+                return "Infinity"
+              case "Nanos":
+                return duration.value.nanos
+              case "Millis":
+                return duration.value.millis
+            }
+          }
+        })
+      ),
     // TODO: test arbitrary, pretty and equivalence annotations
     arbitrary: {
       _tag: "Declaration",
@@ -4547,7 +4567,7 @@ export const BooleanFromBit: BooleanFromBit = Literals([0, 1]).pipe(
 /**
  * @since 4.0.0
  */
-export interface Uint8Array extends instanceOf<globalThis.Uint8Array> {
+export interface Uint8Array extends instanceOf<globalThis.Uint8Array<ArrayBufferLike>> {
   readonly "~rebuild.out": Uint8Array
 }
 
@@ -4559,14 +4579,14 @@ export interface Uint8Array extends instanceOf<globalThis.Uint8Array> {
  * @category Uint8Array
  * @since 4.0.0
  */
-export const Uint8Array: Uint8Array = instanceOf(globalThis.Uint8Array, {
+export const Uint8Array: Uint8Array = instanceOf(globalThis.Uint8Array<ArrayBufferLike>, {
   defaultJsonSerializer: () =>
-    link<globalThis.Uint8Array>()(
+    link<globalThis.Uint8Array<ArrayBufferLike>>()(
       String.annotate({ description: "Base64 encoded Uint8Array" }),
-      Transformation.transform({
-        decode: (b64) => new globalThis.Uint8Array(Buffer.from(b64, "base64")),
-        encode: (u8) => Buffer.from(u8).toString("base64")
-      })
+      new Transformation.Transformation(
+        Getter.decodeBase64(),
+        Getter.encodeBase64()
+      )
     )
 })
 

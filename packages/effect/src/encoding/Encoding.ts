@@ -192,14 +192,6 @@ export const decodeHexString = (str: string) => Result.map(decodeHex(str), (_) =
 /**
  * Unique symbol used to identify `DecodeException` instances.
  *
- * @example
- * ```ts
- * import { Encoding } from "effect/encoding"
- *
- * const error = Encoding.DecodeException("invalid input")
- * console.log(error[Encoding.DecodeExceptionTypeId]) // Symbol present
- * ```
- *
  * @category symbols
  * @since 2.0.0
  */
@@ -207,15 +199,6 @@ export const DecodeExceptionTypeId: unique symbol = Common.DecodeExceptionTypeId
 
 /**
  * Type representing the unique identifier for `DecodeException`.
- *
- * @example
- * ```ts
- * import { Encoding } from "effect/encoding"
- *
- * type ExceptionType = Encoding.DecodeExceptionTypeId
- * const error = Encoding.DecodeException("invalid input")
- * const typeId: ExceptionType = error[Encoding.DecodeExceptionTypeId]
- * ```
  *
  * @category symbols
  * @since 2.0.0
@@ -246,7 +229,7 @@ export interface DecodeException {
   readonly _tag: "DecodeException"
   readonly [DecodeExceptionTypeId]: DecodeExceptionTypeId
   readonly input: string
-  readonly message?: string
+  readonly message: string
 }
 
 /**
@@ -265,19 +248,10 @@ export interface DecodeException {
  * @category constructors
  * @since 2.0.0
  */
-export const DecodeException: (input: string, message?: string) => DecodeException = Common.DecodeException
+export const DecodeException: (input: string, message: string) => DecodeException = Common.DecodeException
 
 /**
  * Returns `true` if the specified value is an `DecodeException`, `false` otherwise.
- *
- * @example
- * ```ts
- * import { Encoding } from "effect/encoding"
- *
- * const error = Encoding.DecodeException("invalid input")
- * console.log(Encoding.isDecodeException(error)) // true
- * console.log(Encoding.isDecodeException(new Error())) // false
- * ```
  *
  * @category guards
  * @since 2.0.0

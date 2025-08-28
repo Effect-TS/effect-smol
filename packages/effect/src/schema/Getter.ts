@@ -3,7 +3,9 @@
  */
 import * as Option from "../data/Option.ts"
 import * as Predicate from "../data/Predicate.ts"
+import * as Result from "../data/Result.ts"
 import * as Effect from "../Effect.ts"
+import * as Encoding from "../encoding/Encoding.ts"
 import { PipeableClass } from "../internal/schema/util.ts"
 import * as Str from "../primitives/String.ts"
 import * as DateTime from "../time/DateTime.ts"
@@ -435,4 +437,23 @@ export function split<E extends string>(options?: {
 }): Getter<ReadonlyArray<string>, E> {
   const separator = options?.separator ?? ","
   return map((input) => input === "" ? [] : input.split(separator))
+}
+
+/**
+ * @since 4.0.0
+ */
+export function encodeBase64<E extends Uint8Array | string>(): Getter<string, E> {
+  return map(Encoding.encodeBase64)
+}
+
+/**
+ * @since 4.0.0
+ */
+export function decodeBase64<E extends string>(): Getter<Uint8Array, E> {
+  return mapOrFail((input) =>
+    Result.match(Encoding.decodeBase64(input), {
+      onFailure: (e) => Effect.fail(new Issue.InvalidValue(Option.some(input), { message: e.message })),
+      onSuccess: Effect.succeed
+    })
+  )
 }

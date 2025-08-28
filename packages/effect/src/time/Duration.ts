@@ -122,6 +122,7 @@ export interface Duration extends Equal.Equal, Pipeable, Inspectable.Inspectable
   readonly [TypeId]: TypeId
   readonly value: DurationValue
 }
+
 /**
  * The internal representation of a Duration value.
  *
@@ -410,15 +411,12 @@ export const isFinite = (self: Duration): boolean => self.value._tag !== "Infini
  */
 export const isZero = (self: Duration): boolean => {
   switch (self.value._tag) {
-    case "Millis": {
+    case "Millis":
       return self.value.millis === 0
-    }
-    case "Nanos": {
+    case "Nanos":
       return self.value.nanos === bigint0
-    }
-    case "Infinity": {
+    case "Infinity":
       return false
-    }
   }
 }
 
@@ -703,40 +701,6 @@ export const toWeeks = (self: DurationInput): number =>
 /**
  * Get the duration in nanoseconds as a bigint.
  *
- * If the duration is infinite, returns `Option.none()`
- *
- * @example
- * ```ts
- * import { Duration } from "effect/time"
- * import { Option } from "effect/data"
- *
- * const duration = Duration.seconds(1)
- * const nanos = Duration.toNanos(duration)
- * console.log(Option.getOrNull(nanos)) // 1000000000n
- *
- * const infinite = Duration.infinity
- * const infiniteNanos = Duration.toNanos(infinite)
- * console.log(Option.isNone(infiniteNanos)) // true
- * ```
- *
- * @since 2.0.0
- * @category getters
- */
-export const toNanos = (self: DurationInput): Option.Option<bigint> => {
-  const _self = decode(self)
-  switch (_self.value._tag) {
-    case "Infinity":
-      return Option.none()
-    case "Nanos":
-      return Option.some(_self.value.nanos)
-    case "Millis":
-      return Option.some(BigInt(Math.round(_self.value.millis * 1_000_000)))
-  }
-}
-
-/**
- * Get the duration in nanoseconds as a bigint.
- *
  * If the duration is infinite, it throws an error.
  *
  * @example
@@ -769,6 +733,30 @@ export const unsafeToNanos = (self: DurationInput): bigint => {
       return BigInt(Math.round(_self.value.millis * 1_000_000))
   }
 }
+
+/**
+ * Get the duration in nanoseconds as a bigint.
+ *
+ * If the duration is infinite, returns `Option.none()`
+ *
+ * @example
+ * ```ts
+ * import { Duration } from "effect/time"
+ * import { Option } from "effect/data"
+ *
+ * const duration = Duration.seconds(1)
+ * const nanos = Duration.toNanos(duration)
+ * console.log(Option.getOrNull(nanos)) // 1000000000n
+ *
+ * const infinite = Duration.infinity
+ * const infiniteNanos = Duration.toNanos(infinite)
+ * console.log(Option.isNone(infiniteNanos)) // true
+ * ```
+ *
+ * @since 2.0.0
+ * @category getters
+ */
+export const toNanos: (self: DurationInput) => Option.Option<bigint> = Option.liftThrowable(unsafeToNanos)
 
 /**
  * Converts a Duration to high-resolution time format [seconds, nanoseconds].

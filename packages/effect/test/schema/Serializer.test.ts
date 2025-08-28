@@ -1,6 +1,7 @@
 import { Cause } from "effect"
 import { Option, Redacted } from "effect/data"
 import { Check, Formatter, Schema, Serializer, ToParser, Transformation } from "effect/schema"
+import { Duration } from "effect/time"
 import { describe, it } from "vitest"
 import { assertTrue, strictEqual } from "../utils/assert.ts"
 import { assertions } from "../utils/schema.ts"
@@ -692,6 +693,28 @@ describe("Serializer", () => {
         )
       })
 
+      it("Uint8Array", async () => {
+        const schema = Schema.Uint8Array
+        await assertions.serialization.json.typeCodec.succeed(schema, new Uint8Array([1, 2, 3]), "AQID")
+        await assertions.deserialization.json.typeCodec.succeed(schema, "AQID", new Uint8Array([1, 2, 3]))
+        await assertions.deserialization.json.typeCodec.fail(
+          schema,
+          "not a base64 string",
+          "Length must be a multiple of 4, but is 19"
+        )
+      })
+
+      it("Duration", async () => {
+        const schema = Schema.Duration
+        await assertions.serialization.json.typeCodec.succeed(schema, Duration.infinity, "Infinity")
+        await assertions.serialization.json.typeCodec.succeed(schema, Duration.nanos(1000n), "1000")
+        await assertions.serialization.json.typeCodec.succeed(schema, Duration.millis(1), 1)
+        await assertions.serialization.json.typeCodec.succeed(schema, Duration.zero, 0)
+        await assertions.deserialization.json.typeCodec.succeed(schema, "Infinity", Duration.infinity)
+        await assertions.deserialization.json.typeCodec.succeed(schema, 1, Duration.millis(1))
+        await assertions.deserialization.json.typeCodec.succeed(schema, "1000", Duration.nanos(1000n))
+      })
+
       it("Option(Date)", async () => {
         const schema = Schema.Option(Schema.Date)
 
@@ -882,12 +905,6 @@ describe("Serializer", () => {
           { path: ["Symbol(b)"], message: "Missing key" }
         ]
       }, failureResult)
-    })
-
-    it("Uint8Array", async () => {
-      const schema = Schema.Uint8Array
-      await assertions.serialization.json.codec.succeed(schema, new Uint8Array([1, 2, 3]), "AQID")
-      await assertions.deserialization.json.codec.succeed(schema, "AQID", new Uint8Array([1, 2, 3]))
     })
   })
 
