@@ -21,8 +21,8 @@ const clientErrors = [
  * Derives an `RpcGroup` from an `Entity`.
  *
  * ```ts
- * import { ClusterSchema, Entity, EntityProxy, EntityProxyServer } from "@effect/cluster"
- * import { Rpc, RpcServer } from "@effect/rpc"
+ * import { ClusterSchema, Entity, EntityProxy, EntityProxyServer } from "effect/unstable/cluster"
+ * import { Rpc, RpcServer } from "effect/unstable/rpc"
  * import { Layer, Schema } from "effect"
  *
  * export const Counter = Entity.make("Counter", [
@@ -155,7 +155,7 @@ const entityIdPath = Schema.Struct({
  *
  * // Use EntityProxyServer.layerHttpApi to create a layer that implements
  * // the handlers for the HttpApiGroup
- * const ApiLayer = HttpApiBuilder.api(MyApi).pipe(
+ * const ApiLayer = HttpApiBuilder.layer(MyApi).pipe(
  *   Layer.provide(EntityProxyServer.layerHttpApi(MyApi, "counter", Counter))
  * )
  * ```

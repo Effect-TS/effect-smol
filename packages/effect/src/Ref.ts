@@ -39,15 +39,6 @@ import type { Invariant } from "./types/Types.ts"
 /**
  * The type identifier for Ref values.
  *
- * @example
- * ```ts
- * import { Ref } from "effect"
- *
- * // Check if a value is a Ref by using the TypeId
- * const myRef = Ref.unsafeMake(42)
- * console.log(myRef[Ref.TypeId]) // { _A: [Function: identity] }
- * ```
- *
  * @since 2.0.0
  * @category symbols
  */
@@ -55,16 +46,6 @@ export const TypeId: TypeId = "~effect/Ref"
 
 /**
  * The type-level identifier for Ref values.
- *
- * @example
- * ```ts
- * import { Ref } from "effect"
- *
- * // The TypeId is used internally for type checking
- * const checkTypeId = (id: Ref.TypeId) => {
- *   console.log(id) // "~effect/Ref"
- * }
- * ```
  *
  * @since 2.0.0
  * @category symbols
@@ -506,10 +487,9 @@ import * as Option from "effect/data/Option"
  *   // Only modify if value is greater than 3
  *   const result1 = yield* Ref.modifySome(
  *     counter,
- *     "no change", // fallback value
  *     n => n > 3
- *       ? Option.some([`incremented ${n}`, n + 10])
- *       : Option.none()
+ *       ? [`incremented ${n}`, Option.some(n + 10)]
+ *       : ["no change", Option.none()]
  *   )
  *
  *   console.log(result1) // "incremented 5"
@@ -520,10 +500,9 @@ import * as Option from "effect/data/Option"
  *   // Try to modify with a condition that fails
  *   const result2 = yield* Ref.modifySome(
  *     counter,
- *     "no change",
  *     n => n < 10
- *       ? Option.some([`decremented ${n}`, n - 5])
- *       : Option.none()
+ *       ? [`decremented ${n}`, Option.some(n - 5)]
+ *       : ["no change", Option.none()]
  *   )
  *
  *   console.log(result2) // "no change"
