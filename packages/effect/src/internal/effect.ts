@@ -1966,9 +1966,8 @@ const provideServiceImpl = <A, E, R, I, S>(
   self: Effect.Effect<A, E, R>,
   key: ServiceMap.Key<I, S>,
   service: S
-): Effect.Effect<A, E, Exclude<R, I>> => {
-  if (effectIsExit(self)) return self as any
-  return withFiber((fiber) => {
+): Effect.Effect<A, E, Exclude<R, I>> =>
+  withFiber((fiber) => {
     const prev = ServiceMap.getOption(fiber.services, key)
     fiber.setServices(ServiceMap.add(fiber.services, key, service))
     return onExit(self, () => {
@@ -1980,7 +1979,6 @@ const provideServiceImpl = <A, E, R, I, S>(
       return void_
     })
   }) as any
-}
 
 /** @internal */
 export const provideServiceEffect: {

@@ -1,13 +1,8 @@
 {
   "$schema": "https://raw.githubusercontent.com/denoland/deno/refs/heads/main/cli/schemas/config-file.v1.json",
   "nodeModulesDir": "manual",
-  "unstable": [
-    "bare-node-builtins",
-    "node-globals"
-  ],
-  "workspace": [
-    "./packages/*"
-  ],
+  "unstable": ["bare-node-builtins", "node-globals"],
+  "workspace": ["./packages/*"],
   "exclude": [
     "**/*.mjs",
     "**/*.cjs",
@@ -24,6 +19,8 @@
     "packages/*/benchmark/",
     "packages/platform-bun/",
     "packages/platform-node/",
-    "packages/platform-node-shared/"
+    "packages/platform-node-shared/",
+    "packages/sql/d1/",
+    "packages/sql/sqlite-node/"
   ]
 }
