@@ -7,6 +7,7 @@ import * as MutableRef from "../../../MutableRef.ts"
 import * as Scope from "../../../Scope.ts"
 import * as ServiceMap from "../../../ServiceMap.ts"
 
+/** @internal */
 export class ResourceMap<K, A, E> {
   readonly lookup: (key: K, scope: Scope.Scope) => Effect.Effect<A, E>
   readonly entries: MutableHashMap.MutableHashMap<K, {

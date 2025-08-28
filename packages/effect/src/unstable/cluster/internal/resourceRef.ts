@@ -5,6 +5,7 @@ import * as MutableRef from "../../../MutableRef.ts"
 import * as Scope from "../../../Scope.ts"
 import { internalInterruptors } from "./interruptors.ts"
 
+/** @internal */
 export type State<A> = {
   readonly _tag: "Closed"
 } | {
@@ -16,6 +17,7 @@ export type State<A> = {
   readonly value: A
 }
 
+/** @internal */
 export class ResourceRef<A, E = never> {
   static from = Effect.fnUntraced(function*<A, E>(
     parentScope: Scope.Scope,
