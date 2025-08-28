@@ -3,7 +3,7 @@ import * as ToArbitrary from "#dist/effect/schema/ToArbitrary"
 
 const schema = Schema.Struct({
   a: Schema.String,
-  b: Schema.optional(Schema.Number),
+  b: Schema.optional(Schema.FiniteFromString),
   c: Schema.Array(Schema.String)
 })
 
