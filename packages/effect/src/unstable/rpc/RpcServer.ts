@@ -95,7 +95,7 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any>(
   const disableFatalDefects = options.disableFatalDefects ?? false
   const services = yield* Effect.services<Rpc.ToHandler<Rpcs> | Scope.Scope>()
   const scope = ServiceMap.get(services, Scope.Scope)
-  const fiberScope = yield* Scope.fork(scope, "parallel")
+  const trackFiber = Fiber.runIn(Scope.unsafeFork(scope, "parallel"))
   const concurrencySemaphore = concurrency === "unbounded"
     ? undefined
     : yield* Effect.makeSemaphore(concurrency)
@@ -117,10 +117,7 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any>(
       for (const client of clients.values()) {
         client.ended = true
         if (client.fibers.size === 0) {
-          Fiber.runIn(
-            Effect.runForkWith(services)(endClient(client)),
-            fiberScope
-          )
+          trackFiber(Effect.runForkWith(services)(endClient(client)))
           continue
         }
         for (const fiber of client.fibers.values()) {
@@ -230,11 +227,14 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any>(
       return Effect.andThen(write, endClient(client))
     }
     const isStream = RpcSchema.isStreamSchema(rpc.successSchema)
-    const result = entry.handler(request.payload, {
+    const metadata = {
+      rpc,
       clientId: client.id,
       requestId: request.id,
-      headers: request.headers
-    })
+      headers: request.headers,
+      payload: request.payload
+    }
+    const result = entry.handler(request.payload, metadata)
 
     // if the handler requested forking, then we skip the concurrency control
     const isFork = Rpc.isFork(result)
@@ -245,17 +245,7 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any>(
       : streamOrEffect as Effect.Effect<any>
 
     const withMiddleware = rpc.middlewares.size > 0 ?
-      applyMiddleware(
-        services,
-        handler,
-        {
-          rpc,
-          clientId: client.id,
-          requestId: request.id,
-          headers: request.headers,
-          payload: request.payload
-        }
-      ) :
+      applyMiddleware(services, handler, metadata) :
       handler
     let responded = false
     let effect = Effect.uninterruptible(Effect.matchCauseEffect(
@@ -310,24 +300,21 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any>(
       effect = concurrencySemaphore.withPermits(1)(effect)
     }
     const runFork = Effect.runForkWith(ServiceMap.merge(entry.services, requestFiber.services))
-    const fiber = Fiber.runIn(runFork(effect), fiberScope)
+    const fiber = trackFiber(runFork(effect))
     client.fibers.set(request.id, fiber)
     fiber.addObserver((exit) => {
       if (!responded && exit._tag === "Failure") {
-        Fiber.runIn(
-          runFork(options.onFromServer({
-            _tag: "Exit",
-            clientId: client.id,
-            requestId: request.id,
-            exit: Exit.interrupt()
-          })),
-          fiberScope
-        )
+        trackFiber(runFork(options.onFromServer({
+          _tag: "Exit",
+          clientId: client.id,
+          requestId: request.id,
+          exit: Exit.interrupt()
+        })))
       }
       client.fibers.delete(request.id)
       client.latches.delete(request.id)
       if (client.ended && client.fibers.size === 0) {
-        Fiber.runIn(runFork(endClient(client)), fiberScope)
+        trackFiber(runFork(endClient(client)))
       }
     })
     return Effect.void

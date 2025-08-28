@@ -128,7 +128,7 @@ export const group = <
       : result
     const routes: Array<HttpRouter.Route<any, any>> = []
     for (const item of handlers.handlers) {
-      routes.push(handlerToRoute(item, services))
+      routes.push(handlerToRoute(group as any, item, services))
     }
     return ServiceMap.unsafeMake(new Map([[group.key, routes]]))
   })) as any
@@ -434,6 +434,7 @@ const makeHandlers = <R, Endpoints extends HttpApiEndpoint.Any>(
 }
 
 const handlerToRoute = (
+  group: HttpApiGroup.AnyWithProps,
   handler: Handlers.Item<any>,
   services: ServiceMap.ServiceMap<any>
 ): HttpRouter.Route<any, any> => {
@@ -455,6 +456,7 @@ const handlerToRoute = (
     endpoint.method,
     endpoint.path as HttpRouter.PathInput,
     applyMiddleware(
+      group,
       endpoint,
       services,
       Effect.gen(function*() {
@@ -463,7 +465,11 @@ const handlerToRoute = (
         const httpRequest = ServiceMap.unsafeGet(services, HttpServerRequest)
         const routeContext = ServiceMap.unsafeGet(services, HttpRouter.RouteContext)
         const urlParams = ServiceMap.unsafeGet(services, Request.ParsedSearchParams)
-        const request: any = { request: httpRequest }
+        const request: any = {
+          request: httpRequest,
+          endpoint,
+          group
+        }
         if (decodePath._tag === "Some") {
           request.path = yield* decodePath.value(routeContext.params)
         }
@@ -532,30 +538,32 @@ const requestPayload = (
 }
 
 const applyMiddleware = <A extends Effect.Effect<any, any, any>>(
+  group: HttpApiGroup.AnyWithProps,
   endpoint: HttpApiEndpoint.AnyWithProps,
   services: ServiceMap.ServiceMap<never>,
   handler: A
 ) => {
+  const options = { group, endpoint }
   for (const key_ of endpoint.middlewares) {
     const key = key_ as any as HttpApiMiddleware.AnyKey
     const service = services.unsafeMap.get(key_.key) as HttpApiMiddleware.HttpApiMiddleware<any, any, any>
     const apply = HttpApiMiddleware.SecurityTypeId in key
       ? makeSecurityMiddleware(key as any, service as any)
       : service
-    handler = apply(handler) as A
+    handler = apply(handler, options) as A
   }
   return handler
 }
 
 const securityMiddlewareCache = new WeakMap<
   any,
-  (effect: Effect.Effect<any, any, any>) => Effect.Effect<any, any, any>
+  (effect: Effect.Effect<any, any, any>, options: any) => Effect.Effect<any, any, any>
 >()
 
 const makeSecurityMiddleware = (
   key: HttpApiMiddleware.AnyKeySecurity,
   service: HttpApiMiddleware.HttpApiMiddlewareSecurity<any, any, any, any>
-): (effect: Effect.Effect<any, any, any>) => Effect.Effect<any, any, any> => {
+): (effect: Effect.Effect<any, any, any>, options: any) => Effect.Effect<any, any, any> => {
   if (securityMiddlewareCache.has(key)) {
     return securityMiddlewareCache.get(key)!
   }
@@ -568,11 +576,19 @@ const makeSecurityMiddleware = (
     return identity
   }
 
-  const middleware = Effect.fnUntraced(function*(handler: Effect.Effect<any, any, any>) {
+  const middleware = Effect.fnUntraced(function*(handler: Effect.Effect<any, any, any>, options: {
+    readonly group: HttpApiGroup.AnyWithProps
+    readonly endpoint: HttpApiEndpoint.AnyWithProps
+  }) {
     let lastResult: Result.Result<any, any> | undefined
     for (let i = 0; i < entries.length; i++) {
       const { decode, middleware } = entries[i]
-      const result = yield* Effect.result(Effect.flatMap(decode, (payload) => middleware(handler, payload)))
+      const result = yield* Effect.result(Effect.flatMap(decode, (credential) =>
+        middleware(handler, {
+          credential,
+          endpoint: options.endpoint,
+          group: options.group
+        })))
       if (Result.isFailure(result)) {
         lastResult = result
         continue

@@ -583,13 +583,13 @@ class UserRepo extends ServiceMap.Key<UserRepo, {
 const AuthorizationLive = Layer.succeed(
   Authorization
 )({
-  cookie: (effect, token) =>
+  cookie: (effect, opts) =>
     Effect.provideService(
       effect,
       CurrentUser,
       new User({
         id: 1,
-        name: Redacted.value(token),
+        name: Redacted.value(opts.credential),
         createdAt: DateTime.unsafeNow()
       })
     )

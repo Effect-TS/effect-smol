@@ -18,6 +18,7 @@ import type { HttpServerRequest } from "../http/HttpServerRequest.ts"
 import type { HttpServerResponse } from "../http/HttpServerResponse.ts"
 import type * as Multipart from "../http/Multipart.ts"
 import { HttpApiSchemaError } from "./HttpApiError.ts"
+import type * as HttpApiGroup from "./HttpApiGroup.ts"
 import type * as HttpApiMiddleware from "./HttpApiMiddleware.ts"
 import * as HttpApiSchema from "./HttpApiSchema.ts"
 
@@ -531,7 +532,11 @@ export type Request<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
         { readonly payload: Stream.Stream<Multipart.Part, Multipart.MultipartError> }
       : { readonly payload: _Payload["Type"] })
     & ([_Headers] extends [never] ? {} : { readonly headers: _Headers["Type"] })
-    & { readonly request: HttpServerRequest }
+    & {
+      readonly request: HttpServerRequest
+      readonly endpoint: Endpoint
+      readonly group: HttpApiGroup.AnyWithProps
+    }
   : {}
 
 /**
@@ -554,7 +559,11 @@ export type RequestRaw<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
     & ([_PathSchema["Type"]] extends [never] ? {} : { readonly path: _PathSchema["Type"] })
     & ([_UrlParams["Type"]] extends [never] ? {} : { readonly urlParams: _UrlParams["Type"] })
     & ([_Headers["Type"]] extends [never] ? {} : { readonly headers: _Headers["Type"] })
-    & { readonly request: HttpServerRequest }
+    & {
+      readonly request: HttpServerRequest
+      readonly endpoint: Endpoint
+      readonly group: HttpApiGroup.AnyWithProps
+    }
   : {}
 
 /**
