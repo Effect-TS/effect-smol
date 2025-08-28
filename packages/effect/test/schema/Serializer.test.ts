@@ -1,7 +1,7 @@
 import { Cause } from "effect"
 import { Option, Redacted } from "effect/data"
 import { Check, Formatter, Schema, Serializer, ToParser, Transformation } from "effect/schema"
-import { Duration } from "effect/time"
+import { DateTime, Duration } from "effect/time"
 import { describe, it } from "vitest"
 import { assertTrue, strictEqual } from "../utils/assert.ts"
 import { assertions } from "../utils/schema.ts"
@@ -715,6 +715,20 @@ describe("Serializer", () => {
         await assertions.deserialization.json.typeCodec.succeed(schema, "1000", Duration.nanos(1000n))
       })
 
+      it("DateTimeUtc", async () => {
+        const schema = Schema.DateTimeUtc
+        await assertions.serialization.json.typeCodec.succeed(
+          schema,
+          DateTime.unsafeMake("2021-01-01T00:00:00.000Z"),
+          "2021-01-01T00:00:00.000Z"
+        )
+        await assertions.deserialization.json.typeCodec.succeed(
+          schema,
+          "2021-01-01T00:00:00.000Z",
+          DateTime.unsafeMake("2021-01-01T00:00:00.000Z")
+        )
+      })
+
       it("Option(Date)", async () => {
         const schema = Schema.Option(Schema.Date)
 
@@ -872,6 +886,20 @@ describe("Serializer", () => {
           _tag: "Interrupt",
           fiberId: null
         }])
+      })
+
+      it("DateTimeUtcFromValidDate", async () => {
+        const schema = Schema.DateTimeUtcFromValidDate
+        await assertions.serialization.json.codec.succeed(
+          schema,
+          DateTime.unsafeMake("2021-01-01T00:00:00.000Z"),
+          "2021-01-01T00:00:00.000Z"
+        )
+        await assertions.deserialization.json.codec.succeed(
+          schema,
+          "2021-01-01T00:00:00.000Z",
+          DateTime.unsafeMake("2021-01-01T00:00:00.000Z")
+        )
       })
     })
 

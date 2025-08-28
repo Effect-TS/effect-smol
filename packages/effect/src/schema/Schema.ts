@@ -3295,10 +3295,10 @@ export function Redacted<S extends Top>(value: S): Redacted<S> {
       defaultJsonSerializer: ([value]) =>
         link<Redacted_.Redacted<S["Encoded"]>>()(
           value,
-          new Transformation.Transformation(
-            Getter.map(Redacted_.make),
-            Getter.forbidden("Cannot serialize Redacted")
-          )
+          {
+            decode: Getter.map(Redacted_.make),
+            encode: Getter.forbidden("Cannot serialize Redacted")
+          }
         ),
       arbitrary: {
         _tag: "Declaration",
@@ -3813,9 +3813,12 @@ export function instanceOf<C extends abstract new(...args: any) => any>(
 export function link<T>() { // TODO: better name
   return <To extends Top>(
     encodeTo: To,
-    transformation: Transformation.Transformation<T, To["Type"], never, never>
+    transformation: {
+      readonly decode: Getter.Getter<T, NoInfer<To["Type"]>>
+      readonly encode: Getter.Getter<NoInfer<To["Type"]>, T>
+    }
   ): AST.Link => {
-    return new AST.Link(encodeTo.ast, transformation)
+    return new AST.Link(encodeTo.ast, Transformation.make(transformation))
   }
 }
 
@@ -3910,47 +3913,6 @@ export interface ValidDate extends Date {
  * @since 4.0.0
  */
 export const ValidDate = Date.check(Check.validDate())
-
-/**
- * @since 4.0.0
- */
-export interface DateTimeUtc extends declare<DateTime.Utc> {
-  readonly "~rebuild.out": DateTimeUtc
-}
-
-/**
- * @since 4.0.0
- */
-export const DateTimeUtc: DateTimeUtc = declare(
-  (u) => DateTime.isDateTime(u) && DateTime.isUtc(u),
-  {
-    title: "DateTimeUtc",
-    defaultJsonSerializer: () =>
-      link<DateTime.Utc>()(
-        String,
-        new Transformation.Transformation(
-          Getter.DateTimeUtc(),
-          Getter.map(DateTime.formatIso)
-        )
-      ),
-    // TODO: test arbitrary, pretty and equivalence annotations
-    arbitrary: {
-      _tag: "Declaration",
-      declaration: () => (fc, ctx) =>
-        fc.date({ noInvalidDate: true, ...ctx?.constraints?.DateConstraints }).map((date) =>
-          DateTime.unsafeFromDate(date)
-        )
-    },
-    pretty: {
-      _tag: "Declaration",
-      declaration: () => (utc) => utc.toString()
-    },
-    equivalence: {
-      _tag: "Declaration",
-      declaration: () => DateTime.Equivalence
-    }
-  }
-)
 
 /**
  * @since 4.0.0
@@ -4583,12 +4545,108 @@ export const Uint8Array: Uint8Array = instanceOf(globalThis.Uint8Array<ArrayBuff
   defaultJsonSerializer: () =>
     link<globalThis.Uint8Array<ArrayBufferLike>>()(
       String.annotate({ description: "Base64 encoded Uint8Array" }),
-      new Transformation.Transformation(
-        Getter.decodeBase64(),
-        Getter.encodeBase64()
-      )
+      {
+        decode: Getter.decodeBase64(),
+        encode: Getter.encodeBase64()
+      }
     )
 })
+
+/**
+ * @since 4.0.0
+ */
+export interface DateTimeUtc extends declare<DateTime.Utc> {
+  readonly "~rebuild.out": DateTimeUtc
+}
+
+/**
+ * A schema for `DateTime.Utc` objects.
+ *
+ * The default JSON serializer encodes to a UTC ISO string.
+ *
+ * @category DateTime
+ * @since 4.0.0
+ */
+export const DateTimeUtc: DateTimeUtc = declare(
+  (u) => DateTime.isDateTime(u) && DateTime.isUtc(u),
+  {
+    title: "DateTimeUtc",
+    defaultJsonSerializer: () =>
+      link<DateTime.Utc>()(
+        String,
+        new Transformation.Transformation(
+          Getter.dateTimeUtcFromInput(),
+          Getter.map(DateTime.formatIso)
+        )
+      ),
+    // TODO: test arbitrary, pretty and equivalence annotations
+    arbitrary: {
+      _tag: "Declaration",
+      declaration: () => (fc, ctx) =>
+        fc.date({ noInvalidDate: true, ...ctx?.constraints?.DateConstraints }).map((date) =>
+          DateTime.unsafeFromDate(date)
+        )
+    },
+    pretty: {
+      _tag: "Declaration",
+      declaration: () => (utc) => utc.toString()
+    },
+    equivalence: {
+      _tag: "Declaration",
+      declaration: () => DateTime.Equivalence
+    }
+  }
+)
+
+/**
+ * @since 4.0.0
+ */
+export interface DateTimeUtcFromValidDate extends decodeTo<DateTimeUtc, Date> {
+  readonly "~rebuild.out": DateTimeUtcFromValidDate
+}
+
+/**
+ * Decoding:
+ * - A `Date` is decoded as a `DateTime.Utc`
+ *
+ * Encoding:
+ * - A `DateTime.Utc` is encoded as a `Date`
+ *
+ * @category DateTime
+ * @since 4.0.0
+ */
+export const DateTimeUtcFromValidDate: DateTimeUtcFromValidDate = ValidDate.pipe(
+  decodeTo(DateTimeUtc, {
+    decode: Getter.dateTimeUtcFromInput(),
+    encode: Getter.map(DateTime.toDateUtc)
+  })
+)
+
+/**
+ * @since 4.0.0
+ */
+export interface DateTimeUtcFromString extends decodeTo<DateTimeUtc, String> {
+  readonly "~rebuild.out": DateTimeUtcFromString
+}
+
+/**
+ * Decoding:
+ * - A `string` that can be parsed by `Date.parse` is decoded as a `DateTime.Utc`
+ *
+ * Encoding:
+ * - A `DateTime.Utc` is encoded as a `string` in ISO 8601 format
+ *
+ * @category DateTime
+ * @since 4.0.0
+ */
+export const DateTimeUtcFromString: DateTimeUtcFromString = String.annotate({
+  description: "a string that will be decoded as a DateTime.Utc"
+}).pipe(
+  decodeTo(DateTimeUtc, {
+    decode: Getter.dateTimeUtcFromInput(),
+    encode: Getter.map(DateTime.formatIso)
+  })
+)
 
 /**
  * @since 4.0.0

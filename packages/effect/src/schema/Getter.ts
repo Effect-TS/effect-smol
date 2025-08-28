@@ -261,19 +261,6 @@ export function Date<E extends string | number | Date>(): Getter<Date, E> {
 }
 
 /**
- * @category Coercions
- * @since 4.0.0
- */
-export function DateTimeUtc<E extends DateTime.DateTime.Input>(): Getter<DateTime.Utc, E> {
-  return onSome((u) =>
-    Effect.try({
-      try: () => Option.some(DateTime.toUtc(DateTime.unsafeMake(u))),
-      catch: (e) => new Issue.InvalidValue(Option.some(u), { message: globalThis.String(e) })
-    })
-  )
-}
-
-/**
  * @category String transformations
  * @since 4.0.0
  */
@@ -456,4 +443,17 @@ export function decodeBase64<E extends string>(): Getter<Uint8Array, E> {
       onSuccess: Effect.succeed
     })
   )
+}
+
+/**
+ * @category DateTime
+ * @since 4.0.0
+ */
+export function dateTimeUtcFromInput<E extends DateTime.DateTime.Input>(): Getter<DateTime.Utc, E> {
+  return mapOrFail((input) => {
+    const o = DateTime.make(input)
+    return Option.isSome(o)
+      ? Effect.succeed(DateTime.toUtc(o.value))
+      : Effect.fail(new Issue.InvalidValue(Option.some(input), { message: "Invalid DateTime input" }))
+  })
 }
