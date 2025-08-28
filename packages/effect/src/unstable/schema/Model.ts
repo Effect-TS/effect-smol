@@ -626,7 +626,9 @@ export interface UuidV4Insert<B extends string | symbol> extends
  * @since 4.0.0
  * @category Uint8Array
  */
-export const Uint8ArrayFromSelf: Schema.instanceOf<Uint8Array<ArrayBuffer>> = Schema.instanceOf(Uint8Array)
+export const Uint8Array: Schema.instanceOf<Uint8Array<ArrayBuffer>> = Schema.Uint8Array as Schema.instanceOf<
+  globalThis.Uint8Array<ArrayBuffer>
+>
 
 /**
  * @since 4.0.0
@@ -636,7 +638,7 @@ export const UuidV4WithGenerate = <B extends string | symbol>(
   schema: brand<Schema.instanceOf<Uint8Array<ArrayBuffer>>, B>
 ): VariantSchema.Overrideable<brand<Schema.instanceOf<Uint8Array<ArrayBuffer>>, B>> =>
   VariantSchema.Overrideable(schema, {
-    defaultValue: Effect.sync(() => Uuid.v4({}, new Uint8Array(16)))
+    defaultValue: Effect.sync(() => Uuid.v4({}, new globalThis.Uint8Array(16)))
   })
 
 /**

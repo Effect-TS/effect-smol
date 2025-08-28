@@ -396,23 +396,23 @@ const defaultContentType = (encoding: Encoding["kind"]) => {
  * @category encoding
  */
 export const withEncoding: {
-  <A extends Schema.Top, Kind extends Encoding["kind"]>(
+  <S extends Schema.Top, Kind extends Encoding["kind"]>(
     options: {
       readonly kind: Kind
       readonly contentType?: string | undefined
-    } & Encoding.Validate<A, Kind>
-  ): (self: A) => A["~rebuild.out"]
-  <A extends Schema.Top, Kind extends Encoding["kind"]>(
-    self: A,
+    } & Encoding.Validate<S, Kind>
+  ): (self: S) => S["~rebuild.out"]
+  <S extends Schema.Top, Kind extends Encoding["kind"]>(
+    self: S,
     options: {
       readonly kind: Kind
       readonly contentType?: string | undefined
-    } & Encoding.Validate<A, Kind>
-  ): A["~rebuild.out"]
-} = dual(2, <A extends Schema.Top>(self: A, options: {
+    } & Encoding.Validate<S, Kind>
+  ): S["~rebuild.out"]
+} = dual(2, <S extends Schema.Top>(self: S, options: {
   readonly kind: Encoding["kind"]
   readonly contentType?: string | undefined
-}): A["~rebuild.out"] =>
+}): S["~rebuild.out"] =>
   self.annotate({
     httpApiEncoding: {
       kind: options.kind,
@@ -457,8 +457,7 @@ export const Text = (options?: {
  */
 export const Uint8Array = (options?: {
   readonly contentType?: string
-}): Schema.instanceOf<Uint8Array<ArrayBuffer>> =>
-  withEncoding(Schema.instanceOf(globalThis.Uint8Array), { kind: "Uint8Array", ...options })
+}): Schema.Uint8Array => withEncoding(Schema.Uint8Array, { kind: "Uint8Array", ...options })
 
 const astCache = new WeakMap<AST.AST, Schema.Top>()
 

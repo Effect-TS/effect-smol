@@ -301,13 +301,11 @@ export const transformation: Transformation.Transformation<
   }
 })
 
-const Uint8ArraySchema = Schema.instanceOf(Uint8Array) as Schema.instanceOf<Uint8Array<ArrayBuffer>>
-
 /**
  * @since 4.0.0
  * @category schemas
  */
 export const schema = <S extends Schema.Top>(schema: S): schema<S> =>
-  Uint8ArraySchema.pipe(
+  (Schema.Uint8Array as Schema.instanceOf<Uint8Array<ArrayBuffer>>).pipe(
     Schema.decodeTo(schema, transformation)
   )

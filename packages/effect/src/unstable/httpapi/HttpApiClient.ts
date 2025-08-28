@@ -402,11 +402,12 @@ const schemaToResponse = (
   return (response) => Effect.flatMap(response.arrayBuffer, decode)
 }
 
+// TODO: can this be more precise?
 const SchemaArrayBuffer = Schema.Unknown as any as Schema.instanceOf<ArrayBuffer>
 
 const Uint8ArrayFromArrayBuffer = SchemaArrayBuffer.pipe(
   Schema.decodeTo(
-    Schema.instanceOf(Uint8Array),
+    Schema.Uint8Array as Schema.instanceOf<Uint8Array<ArrayBuffer>>,
     Transformation.transform({
       decode(fromA) {
         return new Uint8Array(fromA)
