@@ -6,7 +6,7 @@
   "compilerOptions": {
     "tsBuildInfoFile": ".tsbuildinfo/examples.tsbuildinfo",
     "outDir": ".tsbuildinfo/examples",
-    "rootDir": "test",
+    "rootDir": "examples",
     "noEmit": true,
     "erasableSyntaxOnly": false,
     "resolveJsonModule": true,
