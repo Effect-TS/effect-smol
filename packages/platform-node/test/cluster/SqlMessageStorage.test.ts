@@ -3,6 +3,11 @@ import { SqliteClient } from "@effect/sql-sqlite-node"
 import { describe, expect, it } from "@effect/vitest"
 import { Effect, Fiber, Layer } from "effect"
 import { FileSystem } from "effect/platform"
+import { TestClock } from "effect/testing"
+import { Message, MessageStorage, ShardingConfig, Snowflake, SqlMessageStorage } from "effect/unstable/cluster"
+import { SqlClient } from "effect/unstable/sql"
+import { MysqlContainer } from "../fixtures/mysql2-utils.ts"
+import { PgContainer } from "../fixtures/pg-utils.ts"
 import {
   makeAckChunk,
   makeChunkReply,
@@ -10,12 +15,7 @@ import {
   makeRequest,
   PrimaryKeyTest,
   StreamRpc
-} from "effect/test/cluster/MessageStorage.test"
-import { TestClock } from "effect/testing"
-import { Message, MessageStorage, ShardingConfig, Snowflake, SqlMessageStorage } from "effect/unstable/cluster"
-import { SqlClient } from "effect/unstable/sql"
-import { MysqlContainer } from "../fixtures/mysql2-utils.ts"
-import { PgContainer } from "../fixtures/pg-utils.ts"
+} from "./MessageStorageTest.ts"
 
 const StorageLive = SqlMessageStorage.layer.pipe(
   Layer.provideMerge(Snowflake.layerGenerator),

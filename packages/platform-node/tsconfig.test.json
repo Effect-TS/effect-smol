@@ -4,7 +4,6 @@
   "include": ["test/**/*.ts", "test/**/*.json"],
   "references": [
     { "path": "tsconfig.src.json" },
-    { "path": "../effect/tsconfig.test.json" },
     { "path": "../sql/pg/tsconfig.src.json" },
     { "path": "../sql/mysql2/tsconfig.src.json" },
     { "path": "../sql/sqlite-node/tsconfig.src.json" }
@@ -20,7 +19,6 @@
     "paths": {
       "@effect/platform-node": ["src/index.ts"],
       "@effect/platform-node/*": ["src/*/index.ts", "src/*.ts"],
-      "effect/test/*": ["../effect/test/*.ts"],
       "@effect/sql-mysql2": ["../sql/mysql2/src/index.ts"],
       "@effect/sql-mysql2/*": ["../sql/mysql2/src/*.ts"],
       "@effect/sql-pg": ["../sql/pg/src/index.ts"],
