@@ -76,7 +76,7 @@ function isPassthrough<T, E, R>(getter: Getter<T, E, R>): getter is typeof passt
 }
 
 /**
- * Keep the value as is.
+ * Returns a getter that keeps the value as is.
  *
  * @category constructors
  * @since 4.0.0
@@ -88,6 +88,9 @@ export function passthrough<T>(): Getter<T, T> {
 }
 
 /**
+ * Returns a getter that keeps the value as is.
+ *
+ * @category constructors
  * @since 4.0.0
  */
 export function passthroughSupertype<T extends E, E>(): Getter<T, E>
@@ -96,6 +99,9 @@ export function passthroughSupertype<T>(): Getter<T, T> {
 }
 
 /**
+ * Returns a getter that keeps the value as is.
+ *
+ * @category constructors
  * @since 4.0.0
  */
 export function passthroughSubtype<T, E extends T>(): Getter<T, E>
@@ -104,7 +110,8 @@ export function passthroughSubtype<T>(): Getter<T, T> {
 }
 
 /**
- * Handle missing encoded values.
+ * Returns a getter that handles missing encoded values, i.e. when the input is
+ * `Option.None`.
  *
  * @category constructors
  * @since 4.0.0
@@ -116,7 +123,7 @@ export function onNone<T, R = never>(
 }
 
 /**
- * Require a value to be defined.
+ * Returns a getter that fails if the input is `Option.None`.
  *
  * @category constructors
  * @since 4.0.0
@@ -126,7 +133,7 @@ export function required<T>(annotations?: Annotations.Key<T>): Getter<T, T> {
 }
 
 /**
- * Handle defined encoded values.
+ * Returns a getter that handles defined encoded values.
  *
  * @category constructors
  * @since 4.0.0
@@ -138,6 +145,9 @@ export function onSome<T, E, R = never>(
 }
 
 /**
+ * Returns a getter that effectfully checks a value and returns an issue if the
+ * check fails.
+ *
  * @category constructors
  * @since 4.0.0
  */
@@ -162,39 +172,40 @@ export function checkEffect<T, R = never>(
 }
 
 /**
- * Map a defined value to a value.
+ * Returns a getter that maps a defined value to a value.
  *
  * @category constructors
  * @since 4.0.0
  */
-export function map<T, E>(f: (e: E) => T): Getter<T, E> {
-  return mapOptional(Option.map(f))
+export function transform<T, E>(f: (e: E) => T): Getter<T, E> {
+  return transformOptional(Option.map(f))
 }
 
 /**
- * Map a defined value to a value or a failure.
+ * Returns a getter that maps a defined value to a value or a failure.
  *
  * @category constructors
  * @since 4.0.0
  */
-export function mapOrFail<T, E, R = never>(
+export function transformOrFail<T, E, R = never>(
   f: (e: E, options: AST.ParseOptions) => Effect.Effect<T, Issue.Issue, R>
 ): Getter<T, E, R> {
   return onSome((e, options) => f(e, options).pipe(Effect.mapEager(Option.some)))
 }
 
 /**
- * Map a missing or a defined value to a missing or a defined value.
+ * Returns a getter that maps a missing or a defined value to a missing or a
+ * defined value.
  *
  * @category constructors
  * @since 4.0.0
  */
-export function mapOptional<T, E>(f: (oe: Option.Option<E>) => Option.Option<T>): Getter<T, E> {
+export function transformOptional<T, E>(f: (oe: Option.Option<E>) => Option.Option<T>): Getter<T, E> {
   return new Getter((oe) => Effect.succeed(f(oe)))
 }
 
 /**
- * Omit a value in the output.
+ * Returns a getter that omits a value in the output.
  *
  * @category constructors
  * @since 4.0.0
@@ -204,13 +215,14 @@ export function omit<T>(): Getter<never, T> {
 }
 
 /**
- * Provide a default value when the input is `Option<undefined>`.
+ * Returns a getter that provides a default value when the input is
+ * `Option<undefined>`.
  *
  * @category constructors
  * @since 4.0.0
  */
 export function withDefault<T>(defaultValue: () => T): Getter<T, T | undefined> {
-  return mapOptional((oe) => oe.pipe(Option.filter(Predicate.isNotUndefined), Option.orElseSome(defaultValue)))
+  return transformOptional((oe) => oe.pipe(Option.filter(Predicate.isNotUndefined), Option.orElseSome(defaultValue)))
 }
 
 /**
@@ -218,7 +230,7 @@ export function withDefault<T>(defaultValue: () => T): Getter<T, T | undefined> 
  * @since 4.0.0
  */
 export function String<E>(): Getter<string, E> {
-  return map(globalThis.String)
+  return transform(globalThis.String)
 }
 
 /**
@@ -226,14 +238,14 @@ export function String<E>(): Getter<string, E> {
  * @since 4.0.0
  */
 export function Number<E>(): Getter<number, E> {
-  return map(globalThis.Number)
+  return transform(globalThis.Number)
 }
 
 /**
  * @since 4.0.0
  */
 export function parseFloat<E extends string>(): Getter<number, E> {
-  return map(globalThis.parseFloat)
+  return transform(globalThis.parseFloat)
 }
 
 /**
@@ -241,7 +253,7 @@ export function parseFloat<E extends string>(): Getter<number, E> {
  * @since 4.0.0
  */
 export function Boolean<E>(): Getter<boolean, E> {
-  return map(globalThis.Boolean)
+  return transform(globalThis.Boolean)
 }
 
 /**
@@ -249,7 +261,7 @@ export function Boolean<E>(): Getter<boolean, E> {
  * @since 4.0.0
  */
 export function BigInt<E extends string | number | bigint | boolean>(): Getter<bigint, E> {
-  return map(globalThis.BigInt)
+  return transform(globalThis.BigInt)
 }
 
 /**
@@ -257,7 +269,7 @@ export function BigInt<E extends string | number | bigint | boolean>(): Getter<b
  * @since 4.0.0
  */
 export function Date<E extends string | number | Date>(): Getter<Date, E> {
-  return map((u) => new globalThis.Date(u))
+  return transform((u) => new globalThis.Date(u))
 }
 
 /**
@@ -265,7 +277,7 @@ export function Date<E extends string | number | Date>(): Getter<Date, E> {
  * @since 4.0.0
  */
 export function trim<E extends string>(): Getter<string, E> {
-  return map(Str.trim)
+  return transform(Str.trim)
 }
 
 /**
@@ -273,7 +285,7 @@ export function trim<E extends string>(): Getter<string, E> {
  * @since 4.0.0
  */
 export function capitalize<E extends string>(): Getter<string, E> {
-  return map(Str.capitalize)
+  return transform(Str.capitalize)
 }
 
 /**
@@ -281,7 +293,7 @@ export function capitalize<E extends string>(): Getter<string, E> {
  * @since 4.0.0
  */
 export function uncapitalize<E extends string>(): Getter<string, E> {
-  return map(Str.uncapitalize)
+  return transform(Str.uncapitalize)
 }
 
 /**
@@ -289,7 +301,7 @@ export function uncapitalize<E extends string>(): Getter<string, E> {
  * @since 4.0.0
  */
 export function snakeToCamel<E extends string>(): Getter<string, E> {
-  return map(Str.snakeToCamel)
+  return transform(Str.snakeToCamel)
 }
 
 /**
@@ -297,7 +309,7 @@ export function snakeToCamel<E extends string>(): Getter<string, E> {
  * @since 4.0.0
  */
 export function camelToSnake<E extends string>(): Getter<string, E> {
-  return map(Str.camelToSnake)
+  return transform(Str.camelToSnake)
 }
 
 /**
@@ -305,7 +317,7 @@ export function camelToSnake<E extends string>(): Getter<string, E> {
  * @since 4.0.0
  */
 export function toLowerCase<E extends string>(): Getter<string, E> {
-  return map(Str.toLowerCase)
+  return transform(Str.toLowerCase)
 }
 
 /**
@@ -313,7 +325,7 @@ export function toLowerCase<E extends string>(): Getter<string, E> {
  * @since 4.0.0
  */
 export function toUpperCase<E extends string>(): Getter<string, E> {
-  return map(Str.toUpperCase)
+  return transform(Str.toUpperCase)
 }
 
 /**
@@ -378,7 +390,7 @@ export function splitKeyValue<E extends string>(options?: {
 }): Getter<Record<string, string>, E> {
   const separator = options?.separator ?? ","
   const keyValueSeparator = options?.keyValueSeparator ?? "="
-  return map((input) =>
+  return transform((input) =>
     input.split(separator).reduce((acc, pair) => {
       const [key, value] = pair.split(keyValueSeparator)
       if (key && value) {
@@ -406,7 +418,7 @@ export function joinKeyValue<E extends Record<PropertyKey, string>>(options?: {
 }): Getter<string, E> {
   const separator = options?.separator ?? ","
   const keyValueSeparator = options?.keyValueSeparator ?? "="
-  return map((input) =>
+  return transform((input) =>
     Object.entries(input).map(([key, value]) => `${key}${keyValueSeparator}${value}`).join(separator)
   )
 }
@@ -423,21 +435,21 @@ export function split<E extends string>(options?: {
   readonly separator?: string | undefined
 }): Getter<ReadonlyArray<string>, E> {
   const separator = options?.separator ?? ","
-  return map((input) => input === "" ? [] : input.split(separator))
+  return transform((input) => input === "" ? [] : input.split(separator))
 }
 
 /**
  * @since 4.0.0
  */
 export function encodeBase64<E extends Uint8Array | string>(): Getter<string, E> {
-  return map(Encoding.encodeBase64)
+  return transform(Encoding.encodeBase64)
 }
 
 /**
  * @since 4.0.0
  */
 export function decodeBase64<E extends string>(): Getter<Uint8Array, E> {
-  return mapOrFail((input) =>
+  return transformOrFail((input) =>
     Result.match(Encoding.decodeBase64(input), {
       onFailure: (e) => Effect.fail(new Issue.InvalidValue(Option.some(input), { message: e.message })),
       onSuccess: Effect.succeed
@@ -450,7 +462,7 @@ export function decodeBase64<E extends string>(): Getter<Uint8Array, E> {
  * @since 4.0.0
  */
 export function dateTimeUtcFromInput<E extends DateTime.DateTime.Input>(): Getter<DateTime.Utc, E> {
-  return mapOrFail((input) => {
+  return transformOrFail((input) => {
     const o = DateTime.make(input)
     return Option.isSome(o)
       ? Effect.succeed(DateTime.toUtc(o.value))

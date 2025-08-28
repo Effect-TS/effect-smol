@@ -598,7 +598,7 @@ export class Enums extends AbstractParser {
       const enumLink = new Link(
         new UnionType(Object.keys(coercions).map((k) => new LiteralType(k)), "anyOf"),
         new Transformation.Transformation(
-          Getter.map((s) => coercions[s]),
+          Getter.transform((s) => coercions[s]),
           Getter.String()
         )
       )
@@ -701,14 +701,14 @@ export class TemplateLiteral extends AbstractParser {
       stringKeyword,
       tuple,
       new Transformation.Transformation(
-        Getter.map((s: string) => {
+        Getter.transform((s: string) => {
           const match = regex.exec(s)
           if (match) {
             return match.slice(1, this.parts.length + 1)
           }
           return []
         }),
-        Getter.map((parts) => parts.join(""))
+        Getter.transform((parts) => parts.join(""))
       )
     )
   }
@@ -758,8 +758,8 @@ function coerceLiteral(ast: LiteralType): LiteralType {
     new Link(
       new LiteralType(s),
       new Transformation.Transformation(
-        Getter.map(() => ast.literal),
-        Getter.map(() => s)
+        Getter.transform(() => ast.literal),
+        Getter.transform(() => s)
       )
     )
   ])
@@ -2354,8 +2354,8 @@ export function getReducer<A>(alg: ReducerAlg<A>) {
 const nullLink = new Link(
   undefinedKeyword,
   new Transformation.Transformation(
-    Getter.map(() => null),
-    Getter.map(() => undefined)
+    Getter.transform(() => null),
+    Getter.transform(() => undefined)
   )
 )
 
@@ -2371,7 +2371,7 @@ const numberLink = new Link(
 const booleanLink = new Link(
   new UnionType([new LiteralType("true"), new LiteralType("false")], "anyOf"),
   new Transformation.Transformation(
-    Getter.map((s) => s === "true"),
+    Getter.transform((s) => s === "true"),
     Getter.String()
   )
 )
@@ -2383,7 +2383,7 @@ const bigintKeywordPattern = appendChecks(stringKeyword, [
 const bigIntLink = new Link(
   bigintKeywordPattern,
   new Transformation.Transformation(
-    Getter.map(BigInt),
+    Getter.transform(BigInt),
     Getter.String()
   )
 )
@@ -2431,8 +2431,8 @@ const SYMBOL_PATTERN = /^Symbol\((.*)\)$/
 const symbolLink = new Link(
   appendChecks(stringKeyword, [Check.regex(SYMBOL_PATTERN, { title: "a string representing a symbol" })]),
   new Transformation.Transformation(
-    Getter.map((description) => Symbol.for(SYMBOL_PATTERN.exec(description)![1])),
-    Getter.mapOrFail((sym: symbol) => {
+    Getter.transform((description) => Symbol.for(SYMBOL_PATTERN.exec(description)![1])),
+    Getter.transformOrFail((sym: symbol) => {
       const description = sym.description
       if (description !== undefined) {
         if (Symbol.for(description) === sym) {
@@ -2456,8 +2456,8 @@ function coerceSymbol<A extends SymbolKeyword | UniqueSymbol>(ast: A): A {
 const undefinedLink = new Link(
   nullKeyword,
   new Transformation.Transformation(
-    Getter.map(() => undefined),
-    Getter.map(() => null)
+    Getter.transform(() => undefined),
+    Getter.transform(() => null)
   )
 )
 

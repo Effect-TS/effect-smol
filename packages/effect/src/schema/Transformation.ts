@@ -90,8 +90,8 @@ export function transformOrFail<T, E, RD = never, RE = never>(options: {
   readonly encode: (t: T, options: AST.ParseOptions) => Effect.Effect<E, Issue.Issue, RE>
 }): Transformation<T, E, RD, RE> {
   return new Transformation(
-    Getter.mapOrFail(options.decode),
-    Getter.mapOrFail(options.encode)
+    Getter.transformOrFail(options.decode),
+    Getter.transformOrFail(options.encode)
   )
 }
 
@@ -103,8 +103,8 @@ export function transform<T, E>(options: {
   readonly encode: (input: T) => E
 }): Transformation<T, E> {
   return new Transformation(
-    Getter.map(options.decode),
-    Getter.map(options.encode)
+    Getter.transform(options.decode),
+    Getter.transform(options.encode)
   )
 }
 
@@ -116,8 +116,8 @@ export function transformOptional<T, E>(options: {
   readonly encode: (input: Option.Option<T>) => Option.Option<E>
 }): Transformation<T, E> {
   return new Transformation(
-    Getter.mapOptional(options.decode),
-    Getter.mapOptional(options.encode)
+    Getter.transformOptional(options.decode),
+    Getter.transformOptional(options.encode)
   )
 }
 

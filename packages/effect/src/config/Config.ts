@@ -428,7 +428,7 @@ export const Boolean = Schema.Literals(["true", "yes", "on", "1", "false", "no",
 export const Duration = Schema.String.annotate({
   description: "a string that will be parsed as a duration"
 }).pipe(Schema.decodeTo(Schema.Duration, {
-  decode: Getter.mapOrFail((value) => {
+  decode: Getter.transformOrFail((value) => {
     const od = Duration_.decodeUnknown(value)
     if (Option.isSome(od)) {
       return Effect.succeed(od.value)

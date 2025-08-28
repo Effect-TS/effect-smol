@@ -4299,7 +4299,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     it("Optional Property to Exact Optional Property", async () => {
       const schema = Schema.Struct({
         a: Schema.optional(Schema.FiniteFromString).pipe(Schema.decodeTo(Schema.optionalKey(Schema.Number), {
-          decode: Getter.mapOptional(Option.filter(Predicate.isNotUndefined)),
+          decode: Getter.transformOptional(Option.filter(Predicate.isNotUndefined)),
           encode: Getter.passthrough()
         }))
       })
@@ -4316,7 +4316,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       const schema = Schema.Struct({
         a: Schema.optional(Schema.NullOr(Schema.FiniteFromString)).pipe(
           Schema.decodeTo(Schema.optional(Schema.Number), {
-            decode: Getter.mapOptional(Option.filter(Predicate.isNotNull)),
+            decode: Getter.transformOptional(Option.filter(Predicate.isNotNull)),
             encode: Getter.passthrough()
           })
         )

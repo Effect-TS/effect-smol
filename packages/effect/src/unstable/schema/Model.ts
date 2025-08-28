@@ -7,7 +7,6 @@ import * as Option from "../../data/Option.ts"
 import * as Predicate from "../../data/Predicate.ts"
 import * as Effect from "../../Effect.ts"
 import * as Getter from "../../schema/Getter.ts"
-import * as Issue from "../../schema/Issue.ts"
 import * as Schema from "../../schema/Schema.ts"
 import * as Transformation from "../../schema/Transformation.ts"
 import * as DateTime from "../../time/DateTime.ts"
@@ -305,53 +304,19 @@ export const FieldOption: <Field extends VariantSchema.Field<any> | Schema.Top>(
  * @since 4.0.0
  * @category date & time
  */
-export const DateTimeFromInput = Getter.onSome<DateTime.Utc, DateTime.DateTime.Input>((input) => {
-  try {
-    return Effect.succeedSome(DateTime.unsafeMake(input) as DateTime.Utc)
-  } catch {
-    return Effect.fail(
-      new Issue.InvalidValue(Option.some(input), {
-        description: "Invalid DateTime input"
-      })
-    )
-  }
-})
+export interface DateTimeFromDate extends Schema.DateTimeUtcFromValidDate {}
 
 /**
  * @since 4.0.0
  * @category date & time
  */
-export interface DateTimeFromDate extends Schema.decodeTo<Schema.instanceOf<DateTime.Utc>, Schema.ValidDate> {}
+export const DateTimeFromDate: DateTimeFromDate = Schema.DateTimeUtcFromValidDate
 
 /**
  * @since 4.0.0
  * @category date & time
  */
-export const DateTimeFromDate: DateTimeFromDate = Schema.ValidDate.pipe(
-  Schema.decodeTo(Schema.DateTimeUtc, {
-    decode: DateTimeFromInput,
-    encode: Getter.map(DateTime.toDateUtc)
-  })
-)
-
-/**
- * @since 4.0.0
- * @category date & time
- */
-export const DateFromInput = DateTimeFromInput.compose(
-  Getter.map(DateTime.removeTime)
-)
-
-/**
- * @since 4.0.0
- * @category date & time
- */
-export interface Date extends
-  Schema.decodeTo<
-    Schema.instanceOf<DateTime.Utc>,
-    Schema.String
-  >
-{}
+export interface Date extends Schema.decodeTo<Schema.instanceOf<DateTime.Utc>, Schema.String> {}
 
 /**
  * A schema for a `DateTime.Utc` that is serialized as a date string in the
@@ -362,8 +327,10 @@ export interface Date extends
  */
 export const Date: Date = Schema.String.pipe(
   Schema.decodeTo(Schema.DateTimeUtc, {
-    decode: DateFromInput,
-    encode: Getter.map(DateTime.formatIsoDate)
+    decode: Getter.dateTimeUtcFromInput().compose(
+      Getter.transform(DateTime.removeTime)
+    ),
+    encode: Getter.transform(DateTime.formatIsoDate)
   })
 )
 
@@ -379,18 +346,25 @@ export const DateWithNow = VariantSchema.Overrideable(Date, {
  * @since 4.0.0
  * @category date & time
  */
-export interface DateTimeFromString extends Schema.decodeTo<Schema.instanceOf<DateTime.Utc>, Schema.String> {}
+export interface DateTimeFromString extends Schema.DateTimeUtcFromString {}
 
 /**
  * @since 4.0.0
  * @category date & time
  */
-export const DateTimeFromString: DateTimeFromString = Schema.String.pipe(
-  Schema.decodeTo(Schema.DateTimeUtc, {
-    decode: DateTimeFromInput,
-    encode: Getter.map(DateTime.formatIso)
-  })
-)
+export const DateTimeFromString: DateTimeFromString = Schema.DateTimeUtcFromString
+
+/**
+ * @since 4.0.0
+ * @category date & time
+ */
+export interface DateTimeFromNumber extends Schema.DateTimeUtcFromNumber {}
+
+/**
+ * @since 4.0.0
+ * @category date & time
+ */
+export const DateTimeFromNumber: DateTimeFromNumber = Schema.DateTimeUtcFromNumber
 
 /**
  * @since 4.0.0
@@ -407,23 +381,6 @@ export const DateTimeWithNow = VariantSchema.Overrideable(DateTimeFromString, {
 export const DateTimeFromDateWithNow = VariantSchema.Overrideable(DateTimeFromDate, {
   defaultValue: DateTime.now
 })
-
-/**
- * @since 4.0.0
- * @category date & time
- */
-export interface DateTimeFromNumber extends Schema.decodeTo<Schema.instanceOf<DateTime.Utc>, Schema.Number> {}
-
-/**
- * @since 4.0.0
- * @category date & time
- */
-export const DateTimeFromNumber: DateTimeFromNumber = Schema.Number.pipe(
-  Schema.decodeTo(Schema.DateTimeUtc, {
-    decode: DateTimeFromInput,
-    encode: Getter.map(DateTime.toEpochMillis)
-  })
-)
 
 /**
  * @since 4.0.0

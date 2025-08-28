@@ -3296,7 +3296,7 @@ export function Redacted<S extends Top>(value: S): Redacted<S> {
         link<Redacted_.Redacted<S["Encoded"]>>()(
           value,
           {
-            decode: Getter.map(Redacted_.make),
+            decode: Getter.transform(Redacted_.make),
             encode: Getter.forbidden("Cannot serialize Redacted")
           }
         ),
@@ -3555,7 +3555,7 @@ export const Defect: Defect = Union([
     Unknown,
     {
       decode: Getter.passthrough(),
-      encode: Getter.map((a) => {
+      encode: Getter.transform((a) => {
         if (Predicate.isRecord(a)) return InternalEffect.causePrettyMessage(a)
         return stringifyCircular(a)
       })
@@ -4310,8 +4310,8 @@ const makeGetLink = (self: new(...args: ReadonlyArray<any>) => any) => (ast: AST
   new AST.Link(
     ast,
     new Transformation.Transformation(
-      Getter.map((input) => new self(input)),
-      Getter.mapOrFail((input) => {
+      Getter.transform((input) => new self(input)),
+      Getter.transformOrFail((input) => {
         if (!(input instanceof self)) {
           return Effect.fail(new Issue.InvalidType(ast, input))
         }
@@ -4576,7 +4576,7 @@ export const DateTimeUtc: DateTimeUtc = declare(
         String,
         {
           decode: Getter.dateTimeUtcFromInput(),
-          encode: Getter.map(DateTime.formatIso)
+          encode: Getter.transform(DateTime.formatIso)
         }
       ),
     // TODO: test arbitrary, pretty and equivalence annotations
@@ -4618,7 +4618,7 @@ export interface DateTimeUtcFromValidDate extends decodeTo<DateTimeUtc, Date> {
 export const DateTimeUtcFromValidDate: DateTimeUtcFromValidDate = ValidDate.pipe(
   decodeTo(DateTimeUtc, {
     decode: Getter.dateTimeUtcFromInput(),
-    encode: Getter.map(DateTime.toDateUtc)
+    encode: Getter.transform(DateTime.toDateUtc)
   })
 )
 
@@ -4644,7 +4644,23 @@ export const DateTimeUtcFromString: DateTimeUtcFromString = String.annotate({
 }).pipe(
   decodeTo(DateTimeUtc, {
     decode: Getter.dateTimeUtcFromInput(),
-    encode: Getter.map(DateTime.formatIso)
+    encode: Getter.transform(DateTime.formatIso)
+  })
+)
+
+/**
+ * @since 4.0.0
+ */
+export interface DateTimeUtcFromNumber extends decodeTo<instanceOf<DateTime.Utc>, Number> {}
+
+/**
+ * @category DateTime
+ * @since 4.0.0
+ */
+export const DateTimeUtcFromNumber: DateTimeUtcFromNumber = Number.pipe(
+  decodeTo(DateTimeUtc, {
+    decode: Getter.dateTimeUtcFromInput(),
+    encode: Getter.transform(DateTime.toEpochMillis)
   })
 )
 
