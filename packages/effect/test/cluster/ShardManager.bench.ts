@@ -136,7 +136,7 @@ const handleEvent = SimulationEvent.$match({
 })
 
 function simulate(events: ReadonlyArray<SimulationEvent>) {
-  return Effect.forEach(events, e => handleEvent(e), { discard: true })
+  return Effect.forEach(events, handleEvent, { discard: true })
 }
 
 const makeDefaultState = (

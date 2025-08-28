@@ -52,7 +52,7 @@ export type Encoded = WithExitEncoded | ChunkEncoded
  * @since 4.0.0
  * @category models
  */
-export const Encoded: Schema.Codec<Encoded> = Schema.Object as any
+export const Encoded: Schema.Codec<Encoded> = Schema.Any as any
 
 /**
  * @since 4.0.0
