@@ -5,7 +5,7 @@ import type { Brand } from "../../data/Brand.ts"
 import * as Predicate from "../../data/Predicate.ts"
 import * as Struct_ from "../../data/Struct.ts"
 import * as Effect from "../../Effect.ts"
-import { dual } from "../../Function.ts"
+import { constant, dual } from "../../Function.ts"
 import { type Pipeable, pipeArguments } from "../../interfaces/Pipeable.ts"
 import type * as Annotations from "../../schema/Annotations.ts"
 import type * as AST from "../../schema/AST.ts"
@@ -505,7 +505,7 @@ export const Overrideable = <S extends Schema.Top>(schema: S, options: {
   readonly defaultValue: Effect.Effect<S["~type.make.in"]>
 }): Overrideable<S> =>
   (schema as any).pipe(
-    Schema.withConstructorDefault(() => Effect.asSome(options.defaultValue))
+    Schema.withConstructorDefault(constant(Effect.asSome(options.defaultValue)))
   )
 
 const StructProto = {
