@@ -91,6 +91,7 @@ export const make = <RD = never>({
 > =>
   Effect.gen(function*() {
     const sql = yield* Client.SqlClient
+
     const ensureMigrationsTable = sql.onDialectOrElse({
       mssql: () =>
         sql`IF OBJECT_ID(N'${sql.literal(table)}', N'U') IS NULL
@@ -108,7 +109,7 @@ export const make = <RD = never>({
 )`,
       pg: () =>
         Effect.catch(
-          sql`select ${table}::regclass`.asEffect(),
+          sql`select ${table}::regclass`,
           () =>
             sql`CREATE TABLE ${sql(table)} (
   migration_id integer primary key,
@@ -122,7 +123,7 @@ export const make = <RD = never>({
   created_at datetime NOT NULL DEFAULT current_timestamp,
   name VARCHAR(255) NOT NULL
 )`
-    }).asEffect()
+    })
 
     const insertMigrations = (
       rows: ReadonlyArray<[id: number, name: string]>
@@ -251,7 +252,8 @@ export const make = <RD = never>({
           Effect.logDebug(`Running migration`).pipe(
             Effect.flatMap(() => runMigration(id, name, effect)),
             Effect.annotateLogs("migration_id", String(id)),
-            Effect.annotateLogs("migration_name", name)
+            Effect.annotateLogs("migration_name", name),
+            Effect.withSpan(`Migrator ${id}_${name}`)
           ),
         { discard: true }
       )

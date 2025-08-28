@@ -26,7 +26,7 @@ const runPromise: <E, A>(
   const exit = yield* Effect.exit(effect)
   if (Exit.isFailure(exit)) {
     const errors = Cause.prettyErrors(exit.cause)
-    for (let i = 1; i < errors.length; i++) {
+    for (let i = 0; i < errors.length; i++) {
       yield* Effect.logError(errors[i])
     }
   }

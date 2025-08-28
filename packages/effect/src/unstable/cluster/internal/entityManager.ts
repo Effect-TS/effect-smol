@@ -174,6 +174,7 @@ export const make = Effect.fnUntraced(function*<
                 ) {
                   return Effect.void
                 }
+
                 return retryRespond(
                   4,
                   Effect.suspend(() =>
@@ -516,7 +517,7 @@ const makeMessageSchema = <Type extends string, Rpcs extends Rpc.Any>(entity: En
         envelope: Schema.Struct({
           ...Envelope.PartialRequest.fields,
           tag: Schema.Literal(rpc._tag),
-          payload: (rpc as any as Rpc.AnyWithProps).payloadSchema
+          payload: Serializer.json((rpc as any as Rpc.AnyWithProps).payloadSchema)
         }).pipe(
           Schema.decodeTo(Envelope.Request, Envelope.RequestTransform)
         ),
@@ -525,7 +526,7 @@ const makeMessageSchema = <Type extends string, Rpcs extends Rpc.Any>(entity: En
     )
   }
 
-  return Serializer.json(Schema.Union([
+  return Schema.Union([
     ...requests,
     Schema.TaggedStruct("IncomingEnvelope", {
       envelope: Schema.Union([
@@ -533,7 +534,7 @@ const makeMessageSchema = <Type extends string, Rpcs extends Rpc.Any>(entity: En
         Schema.typeCodec(Envelope.Interrupt)
       ])
     })
-  ])) as any
+  ]) as any
 }
 
 const retryRespond = <A, E, R>(times: number, effect: Effect.Effect<A, E, R>): Effect.Effect<A, E, R> =>

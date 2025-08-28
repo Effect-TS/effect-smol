@@ -624,7 +624,8 @@ export const make = Effect.gen(function*() {
           MutableHashMap.remove(assignments, address)
           MutableHashMap.remove(unassignments, address)
           return Effect.void
-        })
+        }),
+        { startImmediately: true }
       )
     }
     yield* FiberSet.awaitEmpty(rebalanceFibers)
@@ -647,7 +648,8 @@ export const make = Effect.gen(function*() {
             onSuccess: () =>
               PubSub.publish(events, ShardingEvent.ShardsUnassigned({ address, shards: Array.from(shards) }))
           })
-        )
+        ),
+        { startImmediately: true }
       )
     }
     yield* FiberSet.awaitEmpty(rebalanceFibers)
@@ -675,7 +677,8 @@ export const make = Effect.gen(function*() {
             onSuccess: () =>
               PubSub.publish(events, ShardingEvent.ShardsAssigned({ address, shards: Array.from(shards) }))
           })
-        )
+        ),
+        { startImmediately: true }
       )
     }
     yield* FiberSet.awaitEmpty(rebalanceFibers)

@@ -2901,13 +2901,7 @@ export const timeoutOrElse: {
   ): Effect.Effect<A | A2, E | E2, R | R2> =>
     raceFirst(
       self,
-      flatMap(interruptible(sleep(options.duration)), options.onTimeout),
-      {
-        onWinner: ({ fiber, index, parentFiber }) => {
-          if (index !== 0) return
-          ;(parentFiber as FiberImpl).setServices(fiber.services)
-        }
-      }
+      flatMap(interruptible(sleep(options.duration)), options.onTimeout)
     )
 )
 
@@ -2992,7 +2986,9 @@ const ScopeProto = {
     }
     let exits: Array<Exit.Exit<any, never>> = []
     const fibers: Array<Fiber.Fiber<any, never>> = []
-    for (const finalizer of Array.from(finalizers.values()).reverse()) {
+    const arr = Array.from(finalizers.values())
+    for (let i = arr.length - 1; i >= 0; i--) {
+      const finalizer = arr[i]
       if (this.strategy === "sequential") {
         exits.push(yield* exit(finalizer(exit_)))
       } else {

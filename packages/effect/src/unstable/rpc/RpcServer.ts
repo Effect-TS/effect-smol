@@ -95,6 +95,7 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any>(
   const disableFatalDefects = options.disableFatalDefects ?? false
   const services = yield* Effect.services<Rpc.ToHandler<Rpcs> | Scope.Scope>()
   const scope = ServiceMap.get(services, Scope.Scope)
+  const fiberScope = yield* Scope.fork(scope, "parallel")
   const concurrencySemaphore = concurrency === "unbounded"
     ? undefined
     : yield* Effect.makeSemaphore(concurrency)
@@ -118,7 +119,7 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any>(
         if (client.fibers.size === 0) {
           Fiber.runIn(
             Effect.runForkWith(services)(endClient(client)),
-            scope
+            fiberScope
           )
           continue
         }
@@ -171,12 +172,14 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any>(
           }
           case "Interrupt": {
             const fiber = client.fibers.get(message.requestId)
-            return fiber ? Effect.forkDaemon(Fiber.interrupt(fiber)) : options.onFromServer({
-              _tag: "Exit",
-              clientId,
-              requestId: message.requestId,
-              exit: Exit.interrupt()
-            })
+            return fiber ?
+              Effect.forkDaemon(Fiber.interrupt(fiber), { startImmediately: true }) :
+              options.onFromServer({
+                _tag: "Exit",
+                clientId,
+                requestId: message.requestId,
+                exit: Exit.interrupt()
+              })
           }
           case "Eof": {
             client.ended = true
@@ -307,7 +310,7 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any>(
       effect = concurrencySemaphore.withPermits(1)(effect)
     }
     const runFork = Effect.runForkWith(ServiceMap.merge(entry.services, requestFiber.services))
-    const fiber = Fiber.runIn(runFork(effect), scope)
+    const fiber = Fiber.runIn(runFork(effect), fiberScope)
     client.fibers.set(request.id, fiber)
     fiber.addObserver((exit) => {
       if (!responded && exit._tag === "Failure") {
@@ -318,13 +321,13 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any>(
             requestId: request.id,
             exit: Exit.interrupt()
           })),
-          scope
+          fiberScope
         )
       }
       client.fibers.delete(request.id)
       client.latches.delete(request.id)
       if (client.ended && client.fibers.size === 0) {
-        Fiber.runIn(runFork(endClient(client)), scope)
+        Fiber.runIn(runFork(endClient(client)), fiberScope)
       }
     })
     return Effect.void
@@ -1091,7 +1094,7 @@ export const makeProtocolStdio = Effect.fnUntraced(function*<EIn, EOut, RIn, ROu
       Effect.sandbox,
       Effect.tapError(Effect.logError),
       Effect.retry(Schedule.spaced(500)),
-      Effect.ensuring(Effect.forkDaemon(Fiber.interrupt(fiber))),
+      Effect.ensuring(Effect.forkDaemon(Fiber.interrupt(fiber), { startImmediately: true })),
       Effect.forkScoped,
       Effect.interruptible
     )

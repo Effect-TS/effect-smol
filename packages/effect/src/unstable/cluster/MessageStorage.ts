@@ -820,14 +820,15 @@ export const layerMemory: Layer.Layer<
 
 const EnvelopeWithReply: Schema.Struct<
   {
-    readonly envelope: Schema.Union<
-      readonly [typeof Envelope.PartialRequest, typeof Envelope.AckChunk, typeof Envelope.Interrupt]
+    readonly envelope: Schema.Codec<
+      Envelope.PartialRequest | Envelope.AckChunk | Envelope.Interrupt,
+      unknown
     >
-    readonly lastSentReply: Schema.Option<Schema.Codec<Reply.Encoded>>
+    readonly lastSentReply: Schema.Option<Schema.Codec<Reply.Encoded, unknown, never, never>>
   }
 > = Schema.Struct({
-  envelope: Envelope.Partial,
-  lastSentReply: Schema.Option(Reply.Encoded)
+  envelope: Serializer.json(Envelope.Partial),
+  lastSentReply: Schema.Option(Serializer.json(Reply.Encoded))
 })
 
-const decodeEnvelopeWithReply = Schema.decodeEffect(Serializer.json(EnvelopeWithReply))
+const decodeEnvelopeWithReply = Schema.decodeEffect(EnvelopeWithReply)

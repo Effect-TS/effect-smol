@@ -475,7 +475,7 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any, E, const Flatten extend
       span ? Effect.withParentSpan(span) : identity,
       Effect.catchCause((error) => Queue.failCause(queue, error)),
       Effect.interruptible,
-      Effect.forkIn(scope)
+      Effect.forkIn(scope, { startImmediately: true })
     )
 
     return queue

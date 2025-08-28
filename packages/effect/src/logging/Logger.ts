@@ -1193,9 +1193,9 @@ export const layer = <
   options?: { mergeWithExisting: boolean }
 ): Layer.Layer<
   never,
-  Loggers[number] extends Effect.Effect<infer _A, infer _E, infer _R> ? _E : never,
+  Loggers extends readonly [] ? never : Effect.Error<Loggers[number]>,
   Exclude<
-    Loggers[number] extends Effect.Effect<infer _A, infer _E, infer _R> ? _R : never,
+    Loggers extends readonly [] ? never : Effect.Services<Loggers[number]>,
     Scope.Scope
   >
 > =>

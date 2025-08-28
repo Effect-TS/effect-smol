@@ -178,6 +178,16 @@ export * as SocketRunner from "./SocketRunner.ts"
 export * as SocketShardManager from "./SocketShardManager.ts"
 
 /**
+ * @since 1.0.0
+ */
+export * as SqlMessageStorage from "./SqlMessageStorage.ts"
+
+/**
+ * @since 1.0.0
+ */
+export * as SqlShardStorage from "./SqlShardStorage.ts"
+
+/**
  * @since 4.0.0
  */
 export * as SynchronizedClock from "./SynchronizedClock.ts"

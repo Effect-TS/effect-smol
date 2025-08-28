@@ -124,6 +124,8 @@
     "coverage": "vitest --coverage"
   },
   "devDependencies": {
+    "@testcontainers/mysql": "^11.5.1",
+    "@testcontainers/postgresql": "^11.5.1",
     "@types/node": "^24.3.0",
     "ajv": "^8.17.1",
     "arktype": "^2.1.20",

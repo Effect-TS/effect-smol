@@ -408,7 +408,7 @@ const make = Effect.gen(function*() {
   // --- Storage inbox ---
 
   const storageReadLatch = yield* Effect.makeLatch(true)
-  const openStorageReadLatch = constant(storageReadLatch.open)
+  const openStorageReadLatch = constant(Effect.asVoid(storageReadLatch.open))
 
   const storageReadLock = Effect.unsafeMakeSemaphore(1)
   const withStorageReadLock = storageReadLock.withPermits(1)
@@ -871,7 +871,7 @@ const make = Effect.gen(function*() {
       }
     }).pipe(
       Deferred.into(startedLatch),
-      Effect.forkScoped
+      Effect.forkScoped({ startImmediately: true })
     )
 
     // Wait for the stream to be established
@@ -881,7 +881,7 @@ const make = Effect.gen(function*() {
     const syncFiber = yield* syncAssignments.pipe(
       Effect.andThen(Effect.sleep(config.refreshAssignmentsInterval)),
       Effect.forever,
-      Effect.forkScoped
+      Effect.forkScoped({ startImmediately: true })
     )
 
     yield* Fiber.awaitAll([eventsFiber, syncFiber]).pipe(
