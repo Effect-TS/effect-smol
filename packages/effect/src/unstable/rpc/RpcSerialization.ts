@@ -202,9 +202,13 @@ function decodeJsonRpcMessage(decoded: JsonRpcMessage): RpcMessage.FromClientEnc
       tag: decoded.method,
       payload: decoded.params,
       headers: decoded.headers ?? [],
-      traceId: decoded.traceId,
-      spanId: decoded.spanId,
-      sampled: decoded.sampled
+      ...(decoded.spanId ?
+        {
+          traceId: decoded.traceId,
+          spanId: decoded.spanId!,
+          sampled: decoded.sampled!
+        } :
+        {})
     }
   } else if (decoded.error && decoded.error._tag === "Defect") {
     return {
