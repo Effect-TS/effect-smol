@@ -278,7 +278,7 @@ export class WithExit<R extends Rpc.Any> extends Data.TaggedClass("WithExit")<{
   static schema<R extends Rpc.Any>(
     rpc: R
   ): Schema.decodeTo<
-    Schema.declareRefinement<WithExit<R>>,
+    Schema.declare<WithExit<R>>,
     Schema.Struct<
       {
         readonly _tag: Schema.Literal<"WithExit">

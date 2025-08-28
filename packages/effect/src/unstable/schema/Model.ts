@@ -234,29 +234,6 @@ export const Sensitive = <S extends Schema.Top>(schema: S): Sensitive<S> =>
  * @since 4.0.0
  * @category optional
  */
-export interface OptionFromNullOr<S extends Schema.Top>
-  extends Schema.decodeTo<Schema.Option<Schema.typeCodec<S>>, Schema.NullOr<S>>
-{}
-
-/**
- * @since 4.0.0
- * @category optional
- */
-export const OptionFromNullOr = <S extends Schema.Top>(schema: S): OptionFromNullOr<S> =>
-  Schema.NullOr(schema).pipe(
-    Schema.decodeTo(
-      Schema.Option(Schema.typeCodec(schema)),
-      Transformation.transform<Option.Option<S["Type"]>, S["Type"] | null>({
-        decode: Option.fromNullable,
-        encode: Option.getOrNull
-      }) as any
-    )
-  )
-
-/**
- * @since 4.0.0
- * @category optional
- */
 export interface optionalOption<S extends Schema.Top>
   extends Schema.decodeTo<Schema.Option<Schema.typeCodec<S>>, Schema.optionalKey<Schema.NullOr<S>>>
 {}
@@ -287,9 +264,9 @@ export const optionalOption = <S extends Schema.Top>(schema: S): optionalOption<
  */
 export interface FieldOption<S extends Schema.Top> extends
   VariantSchema.Field<{
-    readonly select: OptionFromNullOr<S>
-    readonly insert: OptionFromNullOr<S>
-    readonly update: OptionFromNullOr<S>
+    readonly select: Schema.OptionFromNullOr<S>
+    readonly insert: Schema.OptionFromNullOr<S>
+    readonly update: Schema.OptionFromNullOr<S>
     readonly json: optionalOption<S>
     readonly jsonCreate: optionalOption<S>
     readonly jsonUpdate: optionalOption<S>
@@ -310,15 +287,15 @@ export const FieldOption: <Field extends VariantSchema.Field<any> | Schema.Top>(
 ) => Field extends Schema.Top ? FieldOption<Field>
   : Field extends VariantSchema.Field<infer S> ? VariantSchema.Field<
       {
-        readonly [K in keyof S]: S[K] extends Schema.Top ? K extends VariantsDatabase ? OptionFromNullOr<S[K]> :
+        readonly [K in keyof S]: S[K] extends Schema.Top ? K extends VariantsDatabase ? Schema.OptionFromNullOr<S[K]> :
           optionalOption<S[K]>
           : never
       }
     > :
   never = fieldEvolve({
-    select: OptionFromNullOr,
-    insert: OptionFromNullOr,
-    update: OptionFromNullOr,
+    select: Schema.OptionFromNullOr,
+    insert: Schema.OptionFromNullOr,
+    update: Schema.OptionFromNullOr,
     json: optionalOption,
     jsonCreate: optionalOption,
     jsonUpdate: optionalOption
@@ -720,32 +697,3 @@ export const UuidV4Insert = <const B extends string | symbol>(
     update: schema,
     json: schema
   })
-
-/**
- * A boolean parsed from 0 or 1
- *
- * @since 4.0.0
- * @category boolean
- */
-export interface BooleanFromNumber extends
-  Schema.decodeTo<
-    Schema.Boolean,
-    Schema.Literals<readonly [0, 1]>
-  >
-{}
-
-/**
- * A boolean parsed from 0 or 1
- *
- * @since 4.0.0
- * @category boolean
- */
-export const BooleanFromNumber: BooleanFromNumber = Schema.Literals([0, 1]).pipe(
-  Schema.decodeTo(
-    Schema.Boolean,
-    Transformation.transform({
-      decode: (n) => n === 1,
-      encode: (b) => b ? 1 : 0
-    })
-  )
-)

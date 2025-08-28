@@ -620,7 +620,7 @@ export class MemoryDriver extends ServiceMap.Key<MemoryDriver>()("effect/cluster
           }
           messages.push({
             envelope,
-            lastSentReply: Option.fromNullable(entry?.replies[entry.replies.length - 1])
+            lastSentReply: Option.fromNullishOr(entry?.replies[entry.replies.length - 1])
           })
         } else {
           messages.push({
@@ -712,7 +712,7 @@ export class MemoryDriver extends ServiceMap.Key<MemoryDriver>()("effect/cluster
       requestIdForPrimaryKey: (primaryKey) =>
         Effect.sync(() => {
           const entry = requestsByPrimaryKey.get(primaryKey)
-          return Option.fromNullable(entry?.envelope.requestId).pipe(Option.map(Snowflake.Snowflake))
+          return Option.fromNullishOr(entry?.envelope.requestId).pipe(Option.map(Snowflake.Snowflake))
         }),
       repliesFor: (requestIds) => Effect.sync(() => repliesFor(requestIds)),
       repliesForUnfiltered: (requestIds) =>

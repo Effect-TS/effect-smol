@@ -75,7 +75,7 @@ export const make = <E, R>(options: {
     { shardGroup: options.shardGroup }
   )
 
-  const skipIfOlderThan = Option.fromNullable(options.skipIfOlderThan).pipe(
+  const skipIfOlderThan = Option.fromNullishOr(options.skipIfOlderThan).pipe(
     Option.map(Duration.decode),
     Option.getOrElse(() => Duration.days(1))
   )

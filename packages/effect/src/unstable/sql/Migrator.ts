@@ -139,7 +139,7 @@ export const make = <RD = never>({
       } ORDER BY migration_id DESC`.withoutTransform,
       (_) =>
         Option.map(
-          Option.fromNullable(_[0] as any),
+          Option.fromNullishOr(_[0] as any),
           ({ created_at, migration_id, name }): Migration => ({
             id: migration_id,
             name,
@@ -303,7 +303,7 @@ export const fromGlob = (
 ): Loader =>
   pipe(
     Object.keys(migrations),
-    Arr.filterMap((_) => Option.fromNullable(_.match(/^(?:.*\/)?(\d+)_([^.]+)\.(js|ts)$/))),
+    Arr.filterMap((_) => Option.fromNullishOr(_.match(/^(?:.*\/)?(\d+)_([^.]+)\.(js|ts)$/))),
     Arr.map(
       ([key, id, name]): ResolvedMigration => [
         Number(id),
@@ -322,7 +322,7 @@ export const fromGlob = (
 export const fromBabelGlob = (migrations: Record<string, any>): Loader =>
   pipe(
     Object.keys(migrations),
-    Arr.filterMap((_) => Option.fromNullable(_.match(/^_(\d+)_([^.]+?)(Js|Ts)?$/))),
+    Arr.filterMap((_) => Option.fromNullishOr(_.match(/^_(\d+)_([^.]+?)(Js|Ts)?$/))),
     Arr.map(
       ([key, id, name]): ResolvedMigration => [
         Number(id),
@@ -341,7 +341,7 @@ export const fromBabelGlob = (migrations: Record<string, any>): Loader =>
 export const fromRecord = (migrations: Record<string, Effect.Effect<void, unknown, Client.SqlClient>>): Loader =>
   pipe(
     Object.keys(migrations),
-    Arr.filterMap((_) => Option.fromNullable(_.match(/^(\d+)_(.+)$/))),
+    Arr.filterMap((_) => Option.fromNullishOr(_.match(/^(\d+)_(.+)$/))),
     Arr.map(
       ([key, id, name]): ResolvedMigration => [
         Number(id),
@@ -369,7 +369,7 @@ export const fromFileSystem: (directory: string) => Loader<FileSystem> = Effect.
       })
   )
   return files
-    .map((file) => Option.fromNullable(file.match(/^(?:.*\/)?(\d+)_([^.]+)\.(js|ts)$/)))
+    .map((file) => Option.fromNullishOr(file.match(/^(?:.*\/)?(\d+)_([^.]+)\.(js|ts)$/)))
     .flatMap(
       Option.match({
         onNone: () => [],
