@@ -10,7 +10,6 @@ export default defineConfig({
       "packages/sql/*/vitest.config.ts",
       ...(isDeno ?
         [
-          "!packages/effect/test/cluster",
           "!packages/platform-bun",
           "!packages/platform-node",
           "!packages/platform-node-shared",

@@ -69,6 +69,8 @@
     "effect": "workspace:^"
   },
   "devDependencies": {
+    "@testcontainers/mysql": "^11.5.1",
+    "@testcontainers/postgresql": "^11.5.1",
     "@types/node": "^24.3.0",
     "effect": "workspace:^"
   }

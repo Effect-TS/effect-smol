@@ -262,6 +262,12 @@ importers:
         specifier: ^7.15.0
         version: 7.15.0
     devDependencies:
+      '@testcontainers/mysql':
+        specifier: ^11.5.1
+        version: 11.5.1
+      '@testcontainers/postgresql':
+        specifier: ^11.5.1
+        version: 11.5.1
       '@types/node':
         specifier: ^24.3.0
         version: 24.3.0

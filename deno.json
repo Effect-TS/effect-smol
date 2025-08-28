@@ -17,7 +17,6 @@
     "scratchpad/",
     "packages/*/dtslint/",
     "packages/*/benchmark/",
-    "packages/effect/test/cluster/",
     "packages/platform-bun/",
     "packages/platform-node/",
     "packages/platform-node-shared/",

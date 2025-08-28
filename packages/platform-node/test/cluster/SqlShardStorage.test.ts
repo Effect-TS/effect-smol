@@ -7,8 +7,8 @@ import { Option } from "effect/data"
 import { Equal } from "effect/interfaces"
 import { FileSystem } from "effect/platform"
 import { Runner, RunnerAddress, ShardId, ShardStorage, SqlShardStorage } from "effect/unstable/cluster"
-import { MysqlContainer } from "./fixtures/mysql2-utils.ts"
-import { PgContainer } from "./fixtures/pg-utils.ts"
+import { MysqlContainer } from "../fixtures/mysql2-utils.ts"
+import { PgContainer } from "../fixtures/pg-utils.ts"
 
 const StorageLive = SqlShardStorage.layer
 
