@@ -35,7 +35,6 @@ import { dual, identity } from "./Function.ts"
 import { PipeInspectableProto } from "./internal/core.ts"
 import * as MutableRef from "./MutableRef.ts"
 import type { Invariant } from "./types/Types.ts"
-import type * as Unify from "./types/Unify.ts"
 
 /**
  * The type identifier for Ref values.
@@ -106,61 +105,6 @@ export type TypeId = "~effect/Ref"
  */
 export interface Ref<in out A> extends Ref.Variance<A> {
   readonly ref: MutableRef.MutableRef<A>
-  readonly [Unify.typeSymbol]?: unknown
-  readonly [Unify.unifySymbol]?: RefUnify<this>
-  readonly [Unify.ignoreSymbol]?: RefUnifyIgnore
-}
-
-/**
- * Unification interface for Ref types, used internally by the type system.
- *
- * @example
- * ```ts
- * import { Effect } from "effect"
- * import { Ref } from "effect"
- *
- * // This interface is used internally for type unification
- * // Users typically don't need to interact with it directly
- * const program = Effect.gen(function*() {
- *   const ref = yield* Ref.make(42)
- *
- *   // The unification system automatically handles type inference
- *   const value = yield* Ref.get(ref) // TypeScript infers number
- *   console.log(value)
- * })
- * ```
- *
- * @category models
- * @since 3.8.0
- */
-export interface RefUnify<A extends { [Unify.typeSymbol]?: any }> extends Effect.EffectUnify<A> {
-  Ref?: () => Extract<A[Unify.typeSymbol], Ref<any>>
-}
-
-/**
- * Unification ignore interface for Ref types, used internally by the type system.
- *
- * @example
- * ```ts
- * import { Effect } from "effect"
- * import { Ref } from "effect"
- *
- * // This interface is used internally to control type unification
- * // Users typically don't need to interact with it directly
- * const program = Effect.gen(function*() {
- *   const ref = yield* Ref.make("hello")
- *
- *   // Type system ignores certain unification patterns automatically
- *   const result = yield* Ref.get(ref)
- *   console.log(result) // "hello"
- * })
- * ```
- *
- * @category models
- * @since 3.8.0
- */
-export interface RefUnifyIgnore extends Effect.EffectUnifyIgnore {
-  Effect?: true
 }
 
 /**
@@ -592,20 +536,21 @@ import * as Option from "effect/data/Option"
  * @since 2.0.0
  * @category setters
  */
-export const modifySome = dual<
+export const modifySome: {
+  <B, A>(pf: (a: A) => readonly [B, Option.Option<A>]): (self: Ref<A>) => Effect.Effect<B>
+  <A, B>(self: Ref<A>, pf: (a: A) => readonly [B, Option.Option<A>]): Effect.Effect<B>
+} = dual<
   <B, A>(
-    fallback: B,
-    pf: (a: A) => Option.Option<readonly [B, A]>
+    pf: (a: A) => readonly [B, Option.Option<A>]
   ) => (self: Ref<A>) => Effect.Effect<B>,
   <A, B>(
     self: Ref<A>,
-    fallback: B,
-    pf: (a: A) => Option.Option<readonly [B, A]>
+    pf: (a: A) => readonly [B, Option.Option<A>]
   ) => Effect.Effect<B>
->(3, (self, fallback, pf) =>
+>(2, (self, pf) =>
   modify(self, (value) => {
-    const option = pf(value)
-    return option._tag === "None" ? [fallback, value] : option.value
+    const [b, option] = pf(value)
+    return [b, option._tag === "None" ? value : option.value]
   }))
 
 /**

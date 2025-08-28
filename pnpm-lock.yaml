@@ -23,6 +23,9 @@ patchedDependencies:
   '@changesets/get-github-info@0.6.0':
     hash: 1387c42d40315dc7805094fb3085da092ec802de277560db46fb53567ba583ec
     path: patches/@changesets__get-github-info@0.6.0.patch
+  '@op-engineering/op-sqlite':
+    hash: 633e2e7df06e7cfe942bfed907d736ce3b18b45b33a40e3170d3d8be7c605c32
+    path: patches/@op-engineering__op-sqlite.patch
 
 importers:
 
@@ -404,7 +407,7 @@ importers:
     devDependencies:
       '@op-engineering/op-sqlite':
         specifier: 15.0.1
-        version: 15.0.1(react-native@0.81.0(@babel/core@7.28.3)(@react-native/metro-config@0.81.0(@babel/core@7.28.3))(@types/react@19.1.11)(react@19.1.1))(react@19.1.1)
+        version: 15.0.1(patch_hash=633e2e7df06e7cfe942bfed907d736ce3b18b45b33a40e3170d3d8be7c605c32)(react-native@0.81.0(@babel/core@7.28.3)(@react-native/metro-config@0.81.0(@babel/core@7.28.3))(@types/react@19.1.11)(react@19.1.1))(react@19.1.1)
       effect:
         specifier: workspace:^
         version: link:../../effect
@@ -7272,7 +7275,7 @@ snapshots:
       '@nodelib/fs.scandir': 2.1.5
       fastq: 1.19.1
 
-  '@op-engineering/op-sqlite@15.0.1(react-native@0.81.0(@babel/core@7.28.3)(@react-native/metro-config@0.81.0(@babel/core@7.28.3))(@types/react@19.1.11)(react@19.1.1))(react@19.1.1)':
+  '@op-engineering/op-sqlite@15.0.1(patch_hash=633e2e7df06e7cfe942bfed907d736ce3b18b45b33a40e3170d3d8be7c605c32)(react-native@0.81.0(@babel/core@7.28.3)(@react-native/metro-config@0.81.0(@babel/core@7.28.3))(@types/react@19.1.11)(react@19.1.1))(react@19.1.1)':
     dependencies:
       react: 19.1.1
       react-native: 0.81.0(@babel/core@7.28.3)(@react-native/metro-config@0.81.0(@babel/core@7.28.3))(@types/react@19.1.11)(react@19.1.1)
@@ -7446,7 +7449,9 @@ snapshots:
       metro-runtime: 0.83.1
     transitivePeerDependencies:
       - '@babel/core'
+      - bufferutil
       - supports-color
+      - utf-8-validate
 
   '@react-native/normalize-colors@0.81.0': {}
 

@@ -161,26 +161,27 @@ describe("Ref", () => {
   it.effect("modifySome - once", () =>
     Effect.gen(function*() {
       const ref = yield* Ref.make<State>(Active)
-      const result = yield* Ref.modifySome(ref, "state does not change", (state) =>
+      const result = yield* Ref.modifySome(ref, (state) =>
         isClosed(state) ?
-          Option.some(["active", Active]) :
-          Option.none())
+          ["active", Option.some(Active)] :
+          ["state does not change", Option.none()])
       assert.strictEqual(result, "state does not change")
     }))
 
   it.effect("modifySome - twice", () =>
     Effect.gen(function*() {
       const ref = yield* Ref.make<State>(Active)
-      const result1 = yield* Ref.modifySome(ref, "state does not change", (state) =>
+      const result1 = yield* Ref.modifySome(ref, (state) =>
         isActive(state) ?
-          Option.some(["changed", Changed]) :
-          Option.none())
-      const result2 = yield* Ref.modifySome(ref, "state does not change", (state) =>
+          ["changed", Option.some(Changed)] :
+          ["state does not change", Option.none()])
+
+      const result2 = yield* Ref.modifySome(ref, (state) =>
         isActive(state) ?
-          Option.some(["changed", Changed]) :
+          ["changed", Option.some(Changed)] :
           isChanged(state) ?
-          Option.some(["closed", Closed]) :
-          Option.none())
+          ["closed", Option.some(Closed)] :
+          ["state does not change", Option.none()])
       assert.strictEqual(result1, "changed")
       assert.strictEqual(result2, "closed")
     }))

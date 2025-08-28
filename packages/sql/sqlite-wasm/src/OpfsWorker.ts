@@ -2,11 +2,11 @@
  * @since 1.0.0
  */
 /// <reference lib="webworker" />
-import { SqlError } from "effect/unstable/sql/SqlError"
 import * as WaSqlite from "@effect/wa-sqlite"
 import SQLiteESMFactory from "@effect/wa-sqlite/dist/wa-sqlite.mjs"
 import { AccessHandlePoolVFS } from "@effect/wa-sqlite/src/examples/AccessHandlePoolVFS.js"
 import * as Effect from "effect/Effect"
+import { SqlError } from "effect/unstable/sql/SqlError"
 import type { OpfsWorkerMessage } from "./internal/opfsWorker.ts"
 
 /**
@@ -38,7 +38,7 @@ export const run = (
       (db) => Effect.sync(() => sqlite3.close(db))
     )
 
-    return yield* Effect.async<void>((resume) => {
+    return yield* Effect.callback<void>((resume) => {
       const onMessage = (event: any) => {
         let messageId: number
         const message = event.data as OpfsWorkerMessage

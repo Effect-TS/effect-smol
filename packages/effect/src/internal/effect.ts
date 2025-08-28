@@ -4098,6 +4098,8 @@ class Semaphore {
       flatMap(restore(this.take(n)), (permits) => ensuring(restore(self), this.release(permits)))
     )
 
+  readonly withPermit = this.withPermits(1)
+
   readonly withPermitsIfAvailable = (n: number) => <A, E, R>(self: Effect.Effect<A, E, R>) =>
     uninterruptibleMask((restore) =>
       suspend(() => {

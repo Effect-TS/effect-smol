@@ -1,0 +1,22 @@
+diff --git a/lib/typescript/src/functions.d.ts b/lib/typescript/src/functions.d.ts
+index 16719484f3bd013d318317b91269f6920fcc2be8..6c658a8c25699e84cd46ee4c6592d6fe6b7ac83b 100644
+--- a/lib/typescript/src/functions.d.ts
++++ b/lib/typescript/src/functions.d.ts
+@@ -1,4 +1,4 @@
+-import { type DB, type OPSQLiteProxy } from './index';
++import { type DB, type OPSQLiteProxy } from './index.ts';
+ declare global {
+     var __OPSQLiteProxy: object | undefined;
+ }
+diff --git a/lib/typescript/src/index.d.ts b/lib/typescript/src/index.d.ts
+index 157a5ab559f37ca7ec63556a96e697b1f7cfd687..7eaf1fea35951291472840a88f029c8f3ebccfd6 100644
+--- a/lib/typescript/src/index.d.ts
++++ b/lib/typescript/src/index.d.ts
+@@ -1,5 +1,5 @@
+-export { Storage } from './Storage';
+-export * from './functions';
++export { Storage } from './Storage.ts';
++export * from './functions.ts';
+ export type Scalar = string | number | boolean | null | ArrayBuffer | ArrayBufferView;
+ /**
+  * Object returned by SQL Query executions {

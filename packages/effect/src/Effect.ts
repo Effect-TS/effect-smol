@@ -5752,6 +5752,8 @@ export const interruptibleMask: <A, E, R>(
  * ```
  */
 export interface Semaphore {
+  /** when a permit is available, run the effect and release the permits when finished */
+  withPermit<A, E, R>(self: Effect<A, E, R>): Effect<A, E, R>
   /** when the given amount of permits are available, run the effect and release the permits when finished */
   withPermits(
     permits: number

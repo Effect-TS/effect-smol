@@ -1,11 +1,11 @@
 /**
  * @since 1.0.0
  */
+import type * as Effect from "effect/Effect"
+import * as Layer from "effect/Layer"
 import * as Migrator from "effect/unstable/sql/Migrator"
 import type * as Client from "effect/unstable/sql/SqlClient"
 import type { SqlError } from "effect/unstable/sql/SqlError"
-import type * as Effect from "effect/Effect"
-import * as Layer from "effect/Layer"
 
 /**
  * @since 1.0.0

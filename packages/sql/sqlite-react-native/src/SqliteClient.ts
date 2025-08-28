@@ -2,15 +2,14 @@
  * @since 1.0.0
  */
 import * as Sqlite from "@op-engineering/op-sqlite"
-import * as Config from "effect/Config"
-import type { ConfigError } from "effect/ConfigError"
-import * as Context from "effect/Context"
+import * as Config from "effect/config/Config"
 import * as Effect from "effect/Effect"
-import * as FiberRef from "effect/FiberRef"
-import { identity } from "effect/Function"
-import { globalValue } from "effect/GlobalValue"
+import * as Fiber from "effect/Fiber"
+import { constFalse, identity } from "effect/Function"
 import * as Layer from "effect/Layer"
 import * as Scope from "effect/Scope"
+import * as ServiceMap from "effect/ServiceMap"
+import * as Stream from "effect/stream/Stream"
 import * as Reactivity from "effect/unstable/reactivity/Reactivity"
 import * as Client from "effect/unstable/sql/SqlClient"
 import type { Connection } from "effect/unstable/sql/SqlConnection"
@@ -23,13 +22,13 @@ const ATTR_DB_SYSTEM_NAME = "db.system.name"
  * @category type ids
  * @since 1.0.0
  */
-export const TypeId: unique symbol = Symbol.for("@effect/sql-sqlite-react-native/SqliteClient")
+export const TypeId: TypeId = "~@effect/sql-sqlite-react-native/SqliteClient"
 
 /**
  * @category type ids
  * @since 1.0.0
  */
-export type TypeId = typeof TypeId
+export type TypeId = "~@effect/sql-sqlite-react-native/SqliteClient"
 
 /**
  * @category models
@@ -47,7 +46,7 @@ export interface SqliteClient extends Client.SqlClient {
  * @category tags
  * @since 1.0.0
  */
-export const SqliteClient = Context.GenericTag<SqliteClient>("@effect/sql-sqlite-react-native/SqliteClient")
+export const SqliteClient = ServiceMap.Key<SqliteClient>("@effect/sql-sqlite-react-native/SqliteClient")
 
 /**
  * @category models
@@ -66,16 +65,17 @@ export interface SqliteClientConfig {
  * @category fiber refs
  * @since 1.0.0
  */
-export const asyncQuery: FiberRef.FiberRef<boolean> = globalValue(
+export const AsyncQuery = ServiceMap.Reference<boolean>(
   "@effect/sql-sqlite-react-native/Client/asyncQuery",
-  () => FiberRef.unsafeMake(false)
+  { defaultValue: constFalse }
 )
 
 /**
  * @category fiber refs
  * @since 1.0.0
  */
-export const withAsyncQuery = <R, E, A>(effect: Effect.Effect<A, E, R>) => Effect.locally(effect, asyncQuery, true)
+export const withAsyncQuery = <R, E, A>(effect: Effect.Effect<A, E, R>) =>
+  Effect.provideService(effect, AsyncQuery, true)
 
 interface SqliteConnection extends Connection {}
 
@@ -108,20 +108,24 @@ export const make = (
 
       const run = (
         sql: string,
-        params: ReadonlyArray<Statement.Primitive> = []
+        params: ReadonlyArray<Statement.Primitive> = [],
+        values = false
       ) =>
-        Effect.withFiberRuntime<Array<any>, SqlError>((fiber) => {
-          if (fiber.getFiberRef(asyncQuery)) {
+        Effect.withFiber<Array<any>, SqlError>((fiber) => {
+          if (fiber.getRef(AsyncQuery)) {
             return Effect.map(
               Effect.tryPromise({
-                try: () => db.executeAsync(sql, params as Array<any>),
+                try: () => db.execute(sql, params as Array<any>),
                 catch: (cause) => new SqlError({ cause, message: "Failed to execute statement (async)" })
               }),
-              (result) => result.rows?._array ?? []
+              (result) => values ? result.rawRows ?? [] : result.rows
             )
           }
           return Effect.try({
-            try: () => db.execute(sql, params as Array<any>).rows?._array ?? [],
+            try: () => {
+              const result = db.executeSync(sql, params as Array<any>)
+              return values ? result.rawRows ?? [] : result.rows
+            },
             catch: (cause) => new SqlError({ cause, message: "Failed to execute statement" })
           })
         })
@@ -136,19 +140,13 @@ export const make = (
           return run(sql, params)
         },
         executeValues(sql, params) {
-          return Effect.map(run(sql, params), (results) => {
-            if (results.length === 0) {
-              return []
-            }
-            const columns = Object.keys(results[0])
-            return results.map((row) => columns.map((column) => row[column]))
-          })
+          return run(sql, params, true)
         },
         executeUnprepared(sql, params, transformRows) {
           return this.execute(sql, params, transformRows)
         },
         executeStream() {
-          return Effect.dieMessage("executeStream not implemented")
+          return Stream.die("executeStream not implemented")
         }
       })
     })
@@ -157,18 +155,17 @@ export const make = (
     const connection = yield* makeConnection
 
     const acquirer = semaphore.withPermits(1)(Effect.succeed(connection))
-    const transactionAcquirer = Effect.uninterruptibleMask((restore) =>
-      Effect.as(
-        Effect.zipRight(
+    const transactionAcquirer = Effect.uninterruptibleMask((restore) => {
+      const fiber = Fiber.getCurrent()!
+      const scope = ServiceMap.unsafeGet(fiber.services, Scope.Scope)
+      return Effect.as(
+        Effect.tap(
           restore(semaphore.take(1)),
-          Effect.tap(
-            Effect.scope,
-            (scope) => Scope.addFinalizer(scope, semaphore.release(1))
-          )
+          () => Scope.addFinalizer(scope, semaphore.release(1))
         ),
         connection
       )
-    )
+    })
 
     return Object.assign(
       (yield* Client.make({
@@ -193,14 +190,14 @@ export const make = (
  * @since 1.0.0
  */
 export const layerConfig = (
-  config: Config.Config.Wrap<SqliteClientConfig>
-): Layer.Layer<SqliteClient | Client.SqlClient, ConfigError> =>
-  Layer.scopedContext(
-    Config.unwrap(config).pipe(
+  config: Config.Wrap<SqliteClientConfig>
+): Layer.Layer<SqliteClient | Client.SqlClient, Config.ConfigError> =>
+  Layer.effectServices(
+    Config.unwrap(config).asEffect().pipe(
       Effect.flatMap(make),
       Effect.map((client) =>
-        Context.make(SqliteClient, client).pipe(
-          Context.add(Client.SqlClient, client)
+        ServiceMap.make(SqliteClient, client).pipe(
+          ServiceMap.add(Client.SqlClient, client)
         )
       )
     )
@@ -212,10 +209,10 @@ export const layerConfig = (
  */
 export const layer = (
   config: SqliteClientConfig
-): Layer.Layer<SqliteClient | Client.SqlClient, ConfigError> =>
-  Layer.scopedContext(
+): Layer.Layer<SqliteClient | Client.SqlClient> =>
+  Layer.effectServices(
     Effect.map(make(config), (client) =>
-      Context.make(SqliteClient, client).pipe(
-        Context.add(Client.SqlClient, client)
+      ServiceMap.make(SqliteClient, client).pipe(
+        ServiceMap.add(Client.SqlClient, client)
       ))
   ).pipe(Layer.provide(Reactivity.layer))

@@ -614,6 +614,11 @@ export * as Scheduler from "./Scheduler.ts"
 export * as Scope from "./Scope.ts"
 
 /**
+ * @since 2.0.0
+ */
+export * as ScopedRef from "./ScopedRef.ts"
+
+/**
  * This module provides a data structure called `ServiceMap` that can be used for dependency injection in effectful
  * programs. It is essentially a table mapping `Keys`s to their implementations (called `Service`s), and can be used to
  * manage dependencies in a type-safe way. The `ServiceMap` data structure is essentially a way of providing access to a set
@@ -623,6 +628,11 @@ export * as Scope from "./Scope.ts"
  * @since 4.0.0
  */
 export * as ServiceMap from "./ServiceMap.ts"
+
+/**
+ * @since 2.0.0
+ */
+export * as SynchronizedRef from "./SynchronizedRef.ts"
 
 /**
  * @since 2.0.0
