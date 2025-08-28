@@ -69,7 +69,7 @@ export {
    *
    * export class Group extends Model.Class<Group>("Group")({
    *   id: Model.Generated(GroupId),
-   *   name: Schema.NonEmptyTrimmedString,
+   *   name: Schema.String,
    *   createdAt: Model.DateTimeInsertFromDate,
    *   updatedAt: Model.DateTimeUpdateFromDate
    * }) {}

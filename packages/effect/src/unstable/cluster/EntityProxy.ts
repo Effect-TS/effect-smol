@@ -23,7 +23,8 @@ const clientErrors = [
  * ```ts
  * import { ClusterSchema, Entity, EntityProxy, EntityProxyServer } from "effect/unstable/cluster"
  * import { Rpc, RpcServer } from "effect/unstable/rpc"
- * import { Layer, Schema } from "effect"
+ * import { Schema } from "effect/schema"
+ * import { Layer } from "effect"
  *
  * export const Counter = Entity.make("Counter", [
  *   Rpc.make("Increment", {
