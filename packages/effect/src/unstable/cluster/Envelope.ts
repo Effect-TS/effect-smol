@@ -73,7 +73,7 @@ export class PartialRequest extends Schema.Opaque<PartialRequest>()(Schema.Struc
   requestId: SnowflakeFromBigInt,
   address: EntityAddress,
   tag: Schema.String,
-  payload: Schema.Unknown,
+  payload: Schema.Any,
   headers: Headers.schema,
   traceId: Schema.optional(Schema.String),
   spanId: Schema.optional(Schema.String),

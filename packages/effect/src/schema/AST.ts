@@ -534,10 +534,6 @@ export class UnknownKeyword extends AbstractParser {
     return fromRefinement(this, Predicate.isUnknown)
   }
   /** @internal */
-  goJson() {
-    return this
-  }
-  /** @internal */
   getExpected(): string {
     return "unknown"
   }

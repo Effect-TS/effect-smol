@@ -4574,10 +4574,10 @@ export const DateTimeUtc: DateTimeUtc = declare(
     defaultJsonSerializer: () =>
       link<DateTime.Utc>()(
         String,
-        new Transformation.Transformation(
-          Getter.dateTimeUtcFromInput(),
-          Getter.map(DateTime.formatIso)
-        )
+        {
+          decode: Getter.dateTimeUtcFromInput(),
+          encode: Getter.map(DateTime.formatIso)
+        }
       ),
     // TODO: test arbitrary, pretty and equivalence annotations
     arbitrary: {

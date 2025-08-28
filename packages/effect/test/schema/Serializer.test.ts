@@ -32,6 +32,14 @@ describe("Serializer", () => {
           )
         })
 
+        it("Unknown", async () => {
+          await assertions.serialization.json.typeCodec.fail(
+            Schema.Unknown,
+            "a",
+            `cannot serialize to JSON, required \`defaultJsonSerializer\` annotation for UnknownKeyword`
+          )
+        })
+
         it("Object", async () => {
           await assertions.serialization.json.typeCodec.fail(
             Schema.Object,
@@ -184,15 +192,8 @@ describe("Serializer", () => {
       it("Any", async () => {
         const schema = Schema.Any
 
-        await assertions.serialization.json.typeCodec.succeed(schema, {})
-        await assertions.deserialization.json.typeCodec.succeed(schema, {})
-      })
-
-      it("Unknown", async () => {
-        const schema = Schema.Unknown
-
-        await assertions.serialization.json.typeCodec.succeed(schema, {})
-        await assertions.deserialization.json.typeCodec.succeed(schema, {})
+        await assertions.serialization.json.typeCodec.succeed(schema, () => {})
+        await assertions.deserialization.json.typeCodec.succeed(schema, () => {})
       })
 
       it("Undefined", async () => {
@@ -983,6 +984,14 @@ describe("Serializer", () => {
           )
         })
 
+        it("Unknown", async () => {
+          await assertions.serialization.stringLeafJson.typeCodec.fail(
+            Schema.Unknown,
+            "a",
+            `cannot serialize to JSON, required \`defaultJsonSerializer\` annotation for UnknownKeyword`
+          )
+        })
+
         it("Object", async () => {
           await assertions.serialization.stringLeafJson.typeCodec.fail(
             Schema.Object,
@@ -1008,15 +1017,8 @@ describe("Serializer", () => {
       it("Any", async () => {
         const schema = Schema.Any
 
-        await assertions.serialization.stringLeafJson.typeCodec.succeed(schema, "a")
-        await assertions.deserialization.stringLeafJson.typeCodec.succeed(schema, "a")
-      })
-
-      it("Unknown", async () => {
-        const schema = Schema.Unknown
-
-        await assertions.serialization.stringLeafJson.typeCodec.succeed(schema, "a")
-        await assertions.deserialization.stringLeafJson.typeCodec.succeed(schema, "a")
+        await assertions.serialization.stringLeafJson.typeCodec.succeed(schema, (() => {}) as any)
+        await assertions.deserialization.stringLeafJson.typeCodec.succeed(schema, (() => {}) as any)
       })
 
       it("Undefined", async () => {
