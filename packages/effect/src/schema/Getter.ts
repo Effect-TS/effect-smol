@@ -32,6 +32,9 @@ export class Getter<out T, in E, R = never> extends PipeableClass {
     super()
     this.run = run
   }
+  map<T2>(f: (t: T) => T2): Getter<T2, E, R> {
+    return new Getter((oe, options) => this.run(oe, options).pipe(Effect.mapEager(Option.map(f))))
+  }
   compose<T2, R2>(other: Getter<T2, T, R2>): Getter<T2, E, R | R2> {
     if (isPassthrough(this)) {
       return other as any
@@ -44,7 +47,7 @@ export class Getter<out T, in E, R = never> extends PipeableClass {
 }
 
 /**
- * @category constructors
+ * @category Constructors
  * @since 4.0.0
  */
 export function succeed<const T, E>(t: T): Getter<T, E> {
@@ -54,7 +57,7 @@ export function succeed<const T, E>(t: T): Getter<T, E> {
 /**
  * Fail with an issue.
  *
- * @category constructors
+ * @category Constructors
  * @since 4.0.0
  */
 export function fail<T, E>(f: (oe: Option.Option<E>) => Issue.Issue): Getter<T, E> {
@@ -62,7 +65,7 @@ export function fail<T, E>(f: (oe: Option.Option<E>) => Issue.Issue): Getter<T, 
 }
 
 /**
- * @category constructors
+ * @category Constructors
  * @since 4.0.0
  */
 export function forbidden<T, E>(message: string): Getter<T, E> {
@@ -78,7 +81,7 @@ function isPassthrough<T, E, R>(getter: Getter<T, E, R>): getter is typeof passt
 /**
  * Returns a getter that keeps the value as is.
  *
- * @category constructors
+ * @category Constructors
  * @since 4.0.0
  */
 export function passthrough<T, E>(options: { readonly strict: false }): Getter<T, E>
@@ -90,7 +93,7 @@ export function passthrough<T>(): Getter<T, T> {
 /**
  * Returns a getter that keeps the value as is.
  *
- * @category constructors
+ * @category Constructors
  * @since 4.0.0
  */
 export function passthroughSupertype<T extends E, E>(): Getter<T, E>
@@ -101,7 +104,7 @@ export function passthroughSupertype<T>(): Getter<T, T> {
 /**
  * Returns a getter that keeps the value as is.
  *
- * @category constructors
+ * @category Constructors
  * @since 4.0.0
  */
 export function passthroughSubtype<T, E extends T>(): Getter<T, E>
@@ -113,7 +116,7 @@ export function passthroughSubtype<T>(): Getter<T, T> {
  * Returns a getter that handles missing encoded values, i.e. when the input is
  * `Option.None`.
  *
- * @category constructors
+ * @category Constructors
  * @since 4.0.0
  */
 export function onNone<T, R = never>(
@@ -125,7 +128,7 @@ export function onNone<T, R = never>(
 /**
  * Returns a getter that fails if the input is `Option.None`.
  *
- * @category constructors
+ * @category Constructors
  * @since 4.0.0
  */
 export function required<T>(annotations?: Annotations.Key<T>): Getter<T, T> {
@@ -135,7 +138,7 @@ export function required<T>(annotations?: Annotations.Key<T>): Getter<T, T> {
 /**
  * Returns a getter that handles defined encoded values.
  *
- * @category constructors
+ * @category Constructors
  * @since 4.0.0
  */
 export function onSome<T, E, R = never>(
@@ -148,7 +151,7 @@ export function onSome<T, E, R = never>(
  * Returns a getter that effectfully checks a value and returns an issue if the
  * check fails.
  *
- * @category constructors
+ * @category Constructors
  * @since 4.0.0
  */
 export function checkEffect<T, R = never>(
@@ -174,7 +177,7 @@ export function checkEffect<T, R = never>(
 /**
  * Returns a getter that maps a defined value to a value.
  *
- * @category constructors
+ * @category Constructors
  * @since 4.0.0
  */
 export function transform<T, E>(f: (e: E) => T): Getter<T, E> {
@@ -184,7 +187,7 @@ export function transform<T, E>(f: (e: E) => T): Getter<T, E> {
 /**
  * Returns a getter that maps a defined value to a value or a failure.
  *
- * @category constructors
+ * @category Constructors
  * @since 4.0.0
  */
 export function transformOrFail<T, E, R = never>(
@@ -197,7 +200,7 @@ export function transformOrFail<T, E, R = never>(
  * Returns a getter that maps a missing or a defined value to a missing or a
  * defined value.
  *
- * @category constructors
+ * @category Constructors
  * @since 4.0.0
  */
 export function transformOptional<T, E>(f: (oe: Option.Option<E>) => Option.Option<T>): Getter<T, E> {
@@ -207,7 +210,7 @@ export function transformOptional<T, E>(f: (oe: Option.Option<E>) => Option.Opti
 /**
  * Returns a getter that omits a value in the output.
  *
- * @category constructors
+ * @category Constructors
  * @since 4.0.0
  */
 export function omit<T>(): Getter<never, T> {
@@ -218,7 +221,7 @@ export function omit<T>(): Getter<never, T> {
  * Returns a getter that provides a default value when the input is
  * `Option<undefined>`.
  *
- * @category constructors
+ * @category Constructors
  * @since 4.0.0
  */
 export function withDefault<T>(defaultValue: () => T): Getter<T, T | undefined> {
@@ -273,7 +276,7 @@ export function Date<E extends string | number | Date>(): Getter<Date, E> {
 }
 
 /**
- * @category String transformations
+ * @category string
  * @since 4.0.0
  */
 export function trim<E extends string>(): Getter<string, E> {
@@ -281,7 +284,7 @@ export function trim<E extends string>(): Getter<string, E> {
 }
 
 /**
- * @category String transformations
+ * @category string
  * @since 4.0.0
  */
 export function capitalize<E extends string>(): Getter<string, E> {
@@ -289,7 +292,7 @@ export function capitalize<E extends string>(): Getter<string, E> {
 }
 
 /**
- * @category String transformations
+ * @category string
  * @since 4.0.0
  */
 export function uncapitalize<E extends string>(): Getter<string, E> {
@@ -297,7 +300,7 @@ export function uncapitalize<E extends string>(): Getter<string, E> {
 }
 
 /**
- * @category String transformations
+ * @category string
  * @since 4.0.0
  */
 export function snakeToCamel<E extends string>(): Getter<string, E> {
@@ -305,7 +308,7 @@ export function snakeToCamel<E extends string>(): Getter<string, E> {
 }
 
 /**
- * @category String transformations
+ * @category string
  * @since 4.0.0
  */
 export function camelToSnake<E extends string>(): Getter<string, E> {
@@ -313,7 +316,7 @@ export function camelToSnake<E extends string>(): Getter<string, E> {
 }
 
 /**
- * @category String transformations
+ * @category string
  * @since 4.0.0
  */
 export function toLowerCase<E extends string>(): Getter<string, E> {
@@ -321,7 +324,7 @@ export function toLowerCase<E extends string>(): Getter<string, E> {
 }
 
 /**
- * @category String transformations
+ * @category string
  * @since 4.0.0
  */
 export function toUpperCase<E extends string>(): Getter<string, E> {
@@ -336,7 +339,7 @@ export interface ParseJsonOptions {
 }
 
 /**
- * @category String transformations
+ * @category string
  * @since 4.0.0
  */
 export function parseJson<E extends string>(options?: {
@@ -359,7 +362,7 @@ export interface StringifyJsonOptions {
 }
 
 /**
- * @category String transformations
+ * @category string
  * @since 4.0.0
  */
 export function stringifyJson(options?: {
@@ -381,7 +384,7 @@ export function stringifyJson(options?: {
  * - `separator`: The separator between key-value pairs. Defaults to `,`.
  * - `keyValueSeparator`: The separator between key and value. Defaults to `=`.
  *
- * @category String transformations
+ * @category string
  * @since 4.0.0
  */
 export function splitKeyValue<E extends string>(options?: {
@@ -409,7 +412,7 @@ export function splitKeyValue<E extends string>(options?: {
  * - `separator`: The separator between key-value pairs. Defaults to `,`.
  * - `keyValueSeparator`: The separator between key and value. Defaults to `=`.
  *
- * @category String transformations
+ * @category string
  * @since 4.0.0
  */
 export function joinKeyValue<E extends Record<PropertyKey, string>>(options?: {
@@ -428,7 +431,7 @@ export function joinKeyValue<E extends Record<PropertyKey, string>>(options?: {
  *
  * An empty string is parsed as an empty array.
  *
- * @category String transformations
+ * @category string
  * @since 4.0.0
  */
 export function split<E extends string>(options?: {
@@ -439,6 +442,7 @@ export function split<E extends string>(options?: {
 }
 
 /**
+ * @category Base64
  * @since 4.0.0
  */
 export function encodeBase64<E extends Uint8Array | string>(): Getter<string, E> {
@@ -446,6 +450,7 @@ export function encodeBase64<E extends Uint8Array | string>(): Getter<string, E>
 }
 
 /**
+ * @category Base64
  * @since 4.0.0
  */
 export function decodeBase64<E extends string>(): Getter<Uint8Array, E> {

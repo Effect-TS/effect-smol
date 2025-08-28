@@ -327,9 +327,7 @@ export interface Date extends Schema.decodeTo<Schema.instanceOf<DateTime.Utc>, S
  */
 export const Date: Date = Schema.String.pipe(
   Schema.decodeTo(Schema.DateTimeUtc, {
-    decode: Getter.dateTimeUtcFromInput().compose(
-      Getter.transform(DateTime.removeTime)
-    ),
+    decode: Getter.dateTimeUtcFromInput().map(DateTime.removeTime),
     encode: Getter.transform(DateTime.formatIsoDate)
   })
 )
