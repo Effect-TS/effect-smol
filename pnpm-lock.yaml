@@ -447,6 +447,39 @@ importers:
       '@effect/platform-node':
         specifier: workspace:*
         version: link:../packages/platform-node
+      '@effect/sql-clickhouse':
+        specifier: workspace:*
+        version: link:../packages/sql/clickhouse
+      '@effect/sql-d1':
+        specifier: workspace:*
+        version: link:../packages/sql/d1
+      '@effect/sql-libsql':
+        specifier: workspace:*
+        version: link:../packages/sql/libsql
+      '@effect/sql-mssql':
+        specifier: workspace:*
+        version: link:../packages/sql/mssql
+      '@effect/sql-mysql2':
+        specifier: workspace:*
+        version: link:../packages/sql/mysql2
+      '@effect/sql-pg':
+        specifier: workspace:*
+        version: link:../packages/sql/pg
+      '@effect/sql-sqlite-bun':
+        specifier: workspace:*
+        version: link:../packages/sql/sqlite-bun
+      '@effect/sql-sqlite-do':
+        specifier: workspace:*
+        version: link:../packages/sql/sqlite-do
+      '@effect/sql-sqlite-node':
+        specifier: workspace:*
+        version: link:../packages/sql/sqlite-node
+      '@effect/sql-sqlite-react-native':
+        specifier: workspace:*
+        version: link:../packages/sql/sqlite-react-native
+      '@effect/sql-sqlite-wasm':
+        specifier: workspace:*
+        version: link:../packages/sql/sqlite-wasm
       effect:
         specifier: workspace:*
         version: link:../packages/effect

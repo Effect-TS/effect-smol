@@ -361,9 +361,13 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any, E, const Flatten extend
           id,
           tag: rpc._tag as Rpc.Tag<Rpcs>,
           payload,
-          traceId: span?.traceId,
-          spanId: span?.spanId,
-          sampled: span?.sampled,
+          ...(span ?
+            {
+              traceId: span.traceId,
+              spanId: span.spanId,
+              sampled: span.sampled
+            } :
+            {}),
           headers: Headers.merge(parentFiber.getRef(CurrentHeaders), headers)
         }
       )
@@ -465,10 +469,14 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any, E, const Flatten extend
         _tag: "Request",
         id,
         tag: rpc._tag as Rpc.Tag<Rpcs>,
-        traceId: span?.traceId,
         payload,
-        spanId: span?.spanId,
-        sampled: span?.sampled,
+        ...(span ?
+          {
+            traceId: span.traceId,
+            spanId: span.spanId,
+            sampled: span.sampled
+          } :
+          {}),
         headers: Headers.merge(fiber.getRef(CurrentHeaders), headers)
       }
     ).pipe(

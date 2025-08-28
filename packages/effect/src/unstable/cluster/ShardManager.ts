@@ -588,6 +588,9 @@ export const make = Effect.gen(function*() {
     if (state.shards.size === 0) {
       yield* Effect.logDebug("No shards to rebalance")
       return
+    } else if (MutableHashMap.size(state.allRunners) === 0) {
+      yield* Effect.logDebug("No runners to rebalance")
+      return
     }
 
     // Determine which shards to assign and unassign

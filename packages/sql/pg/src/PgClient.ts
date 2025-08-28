@@ -127,6 +127,9 @@ export const make = (
       types: options.types
     })
 
+    pool.on("error", (_err) => {
+    })
+
     yield* Effect.acquireRelease(
       Effect.tryPromise({
         try: () => pool.query("SELECT 1"),

@@ -43,9 +43,9 @@ export interface RequestEncoded {
   readonly tag: string
   readonly payload: unknown
   readonly headers: ReadonlyArray<[string, string]>
-  readonly traceId?: string | undefined
-  readonly spanId?: string | undefined
-  readonly sampled?: boolean | undefined
+  readonly traceId?: string
+  readonly spanId?: string
+  readonly sampled?: boolean
 }
 
 /**
@@ -58,9 +58,9 @@ export interface Request<A extends Rpc.Any> {
   readonly tag: Rpc.Tag<A>
   readonly payload: Rpc.Payload<A>
   readonly headers: Headers
-  readonly traceId?: string | undefined
-  readonly spanId?: string | undefined
-  readonly sampled?: boolean | undefined
+  readonly traceId?: string
+  readonly spanId?: string
+  readonly sampled?: boolean
 }
 
 /**

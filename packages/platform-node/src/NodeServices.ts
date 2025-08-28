@@ -9,6 +9,12 @@ import * as NodePath from "./NodePath.ts"
 
 /**
  * @since 1.0.0
+ * @category Models
+ */
+export type NodeServices = FileSystem | Path
+
+/**
+ * @since 1.0.0
  * @category layer
  */
 export const layer: Layer.Layer<FileSystem | Path> = Layer.mergeAll(

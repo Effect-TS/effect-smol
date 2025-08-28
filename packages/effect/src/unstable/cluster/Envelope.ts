@@ -59,9 +59,9 @@ export interface Request<in out Rpc extends Rpc.Any> {
   readonly tag: Rpc.Tag<Rpc>
   readonly payload: Rpc.Payload<Rpc>
   readonly headers: Headers.Headers
-  readonly traceId?: string | undefined
-  readonly spanId?: string | undefined
-  readonly sampled?: boolean | undefined
+  readonly traceId?: string
+  readonly spanId?: string
+  readonly sampled?: boolean
 }
 
 /**
@@ -98,9 +98,9 @@ export interface PartialRequestEncoded {
   readonly tag: string
   readonly payload: unknown
   readonly headers: ReadonlyRecord<string, string>
-  readonly traceId?: string | undefined
-  readonly spanId?: string | undefined
-  readonly sampled?: boolean | undefined
+  readonly traceId?: string
+  readonly spanId?: string
+  readonly sampled?: boolean
 }
 
 /**
@@ -268,9 +268,13 @@ export const makeRequest = <Rpc extends Rpc.Any>(
   address: options.address,
   payload: options.payload,
   headers: options.headers,
-  traceId: options.traceId,
-  spanId: options.spanId,
-  sampled: options.sampled
+  ...(options.traceId !== undefined ?
+    {
+      traceId: options.traceId!,
+      spanId: options.spanId!,
+      sampled: options.sampled!
+    } :
+    {})
 })
 
 /**

@@ -3912,14 +3912,10 @@ export const DateTimeUtc = declare(
     defaultJsonSerializer: () =>
       link<DateTime.Utc>()(
         String,
-        Transformation.transformOrFail({
-          decode: (s) =>
-            Effect.try({
-              try: () => DateTime.unsafeMake(s),
-              catch: (e) => new Issue.InvalidValue(O.some(s), { message: globalThis.String(e) })
-            }),
-          encode: (utc) => Effect.succeed(utc.toString())
-        })
+        new Transformation.Transformation(
+          Getter.DateTimeUtc(),
+          Getter.map(DateTime.formatIso)
+        )
       ),
     // TODO: test arbitrary, pretty and equivalence annotations
     arbitrary: {

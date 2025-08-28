@@ -23,6 +23,14 @@
     "sql",
     "database"
   ],
+  "sideEffects": [],
+  "exports": {
+    "./package.json": "./package.json",
+    ".": "./src/index.ts",
+    "./*": "./src/*.ts",
+    "./internal/*": null,
+    "./*/index": null
+  },
   "files": [
     "src/**/*.ts",
     "dist/**/*.js",

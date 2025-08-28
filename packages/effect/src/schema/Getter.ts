@@ -6,6 +6,7 @@ import * as Predicate from "../data/Predicate.ts"
 import * as Effect from "../Effect.ts"
 import { PipeableClass } from "../internal/schema/util.ts"
 import * as Str from "../primitives/String.ts"
+import * as DateTime from "../time/DateTime.ts"
 import type * as Annotations from "./Annotations.ts"
 import type * as AST from "./AST.ts"
 import * as Issue from "./Issue.ts"
@@ -255,6 +256,19 @@ export function BigInt<E extends string | number | bigint | boolean>(): Getter<b
  */
 export function Date<E extends string | number | Date>(): Getter<Date, E> {
   return map((u) => new globalThis.Date(u))
+}
+
+/**
+ * @category Coercions
+ * @since 4.0.0
+ */
+export function DateTimeUtc<E extends DateTime.DateTime.Input>(): Getter<DateTime.Utc, E> {
+  return onSome((u) =>
+    Effect.try({
+      try: () => Option.some(DateTime.toUtc(DateTime.unsafeMake(u))),
+      catch: (e) => new Issue.InvalidValue(Option.some(u), { message: globalThis.String(e) })
+    })
+  )
 }
 
 /**

@@ -149,9 +149,13 @@ export const make = Effect.fnUntraced(function*(options: {
             tag: row.tag!,
             payload: JSON.parse(row.payload!),
             headers: JSON.parse(row.headers!),
-            traceId: row.trace_id ?? undefined,
-            spanId: row.span_id ?? undefined,
-            sampled: !!row.sampled
+            ...(row.trace_id ?
+              {
+                traceId: row.trace_id,
+                spanId: row.span_id!,
+                sampled: !!row.sampled
+              } :
+              {})
           },
           lastSentReply: row.reply_reply_id ?
             Option.some({
