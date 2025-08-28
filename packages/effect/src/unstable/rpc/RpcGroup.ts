@@ -131,7 +131,6 @@ export interface RpcGroup<in out R extends Rpc.Any> extends Pipeable {
         readonly clientId: number
         readonly requestId: RequestId
         readonly headers: Headers
-        readonly rpc: Extract<R, { readonly _tag: Tag }>
       }
     ) => Rpc.ResultFrom<Extract<R, { readonly _tag: Tag }>, never>,
     never,
@@ -311,6 +310,7 @@ const RpcGroupProto = {
       const rpc = this.requests.get(tag)!
       const { handler, services } = parentServices.unsafeMap.get(rpc.key) as Rpc.Handler<any>
       return Effect.succeed((payload: Rpc.Payload<any>, options: any) => {
+        options.rpc = rpc
         const result = handler(payload, options)
         const effectOrStream = Rpc.isFork(result) ? result.value : result
         return Effect.isEffect(effectOrStream)
