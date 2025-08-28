@@ -509,6 +509,10 @@ export class AnyKeyword extends AbstractParser {
     return fromRefinement(this, Predicate.isUnknown)
   }
   /** @internal */
+  goJson() {
+    return this
+  }
+  /** @internal */
   getExpected(): string {
     return "any"
   }
@@ -528,6 +532,10 @@ export class UnknownKeyword extends AbstractParser {
   /** @internal */
   parser() {
     return fromRefinement(this, Predicate.isUnknown)
+  }
+  /** @internal */
+  goJson() {
+    return this
   }
   /** @internal */
   getExpected(): string {

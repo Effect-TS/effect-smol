@@ -142,7 +142,7 @@ export type ErrorTypeId = "~effect/http/Multipart/MultipartError"
 export class MultipartError extends Schema.ErrorClass<MultipartError>(ErrorTypeId)({
   _tag: Schema.tag("MultipartError"),
   reason: Schema.Literals(["FileTooLarge", "FieldTooLarge", "BodyTooLarge", "TooManyParts", "InternalError", "Parse"]),
-  cause: Schema.Unknown
+  cause: Schema.Defect
 }) {
   /**
    * @since 4.0.0

@@ -31,22 +31,6 @@ describe("Serializer", () => {
           )
         })
 
-        it("Any", async () => {
-          await assertions.serialization.json.typeCodec.fail(
-            Schema.Any,
-            "a",
-            `cannot serialize to JSON, required \`defaultJsonSerializer\` annotation for AnyKeyword`
-          )
-        })
-
-        it("Unknown", async () => {
-          await assertions.serialization.json.typeCodec.fail(
-            Schema.Unknown,
-            "a",
-            `cannot serialize to JSON, required \`defaultJsonSerializer\` annotation for UnknownKeyword`
-          )
-        })
-
         it("Object", async () => {
           await assertions.serialization.json.typeCodec.fail(
             Schema.Object,
@@ -194,6 +178,20 @@ describe("Serializer", () => {
             new MyError({ message: "a", cause: "b" })
           )
         })
+      })
+
+      it("Any", async () => {
+        const schema = Schema.Any
+
+        await assertions.serialization.json.typeCodec.succeed(schema, {})
+        await assertions.deserialization.json.typeCodec.succeed(schema, {})
+      })
+
+      it("Unknown", async () => {
+        const schema = Schema.Unknown
+
+        await assertions.serialization.json.typeCodec.succeed(schema, {})
+        await assertions.deserialization.json.typeCodec.succeed(schema, {})
       })
 
       it("Undefined", async () => {
@@ -934,22 +932,6 @@ describe("Serializer", () => {
           )
         })
 
-        it("Any", async () => {
-          await assertions.serialization.stringLeafJson.typeCodec.fail(
-            Schema.Any,
-            "a",
-            `cannot serialize to JSON, required \`defaultJsonSerializer\` annotation for AnyKeyword`
-          )
-        })
-
-        it("Unknown", async () => {
-          await assertions.serialization.stringLeafJson.typeCodec.fail(
-            Schema.Unknown,
-            "a",
-            `cannot serialize to JSON, required \`defaultJsonSerializer\` annotation for UnknownKeyword`
-          )
-        })
-
         it("Object", async () => {
           await assertions.serialization.stringLeafJson.typeCodec.fail(
             Schema.Object,
@@ -970,6 +952,20 @@ describe("Serializer", () => {
             "cannot serialize to JSON, property names must be strings"
           )
         })
+      })
+
+      it("Any", async () => {
+        const schema = Schema.Any
+
+        await assertions.serialization.stringLeafJson.typeCodec.succeed(schema, "a")
+        await assertions.deserialization.stringLeafJson.typeCodec.succeed(schema, "a")
+      })
+
+      it("Unknown", async () => {
+        const schema = Schema.Unknown
+
+        await assertions.serialization.stringLeafJson.typeCodec.succeed(schema, "a")
+        await assertions.deserialization.stringLeafJson.typeCodec.succeed(schema, "a")
       })
 
       it("Undefined", async () => {
