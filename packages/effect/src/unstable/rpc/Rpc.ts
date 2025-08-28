@@ -167,9 +167,6 @@ export interface Any extends Pipeable {
   readonly [TypeId]: TypeId
   readonly _tag: string
   readonly key: string
-  readonly payloadSchema: Schema.Top
-  readonly successSchema: Schema.Top
-  readonly errorSchema: Schema.Top
 }
 
 /**

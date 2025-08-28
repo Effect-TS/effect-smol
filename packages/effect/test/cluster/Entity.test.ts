@@ -1,7 +1,7 @@
 import { assert, describe, it } from "@effect/vitest"
 import { Effect } from "effect"
 import { Entity, ShardingConfig } from "effect/unstable/cluster"
-import { TestEntity, TestEntityLayer, User } from "./TestEntity.js"
+import { TestEntity, TestEntityLayer, User } from "./TestEntity.ts"
 
 describe.concurrent("Entity", () => {
   describe("makeTestClient", () => {

@@ -87,7 +87,7 @@ export const TestEntityNoState = TestEntity.toLayer(
         Queue.unsafeOffer(state.interrupts, envelope)
         return Effect.void
       }))
-    return {
+    return TestEntity.of({
       GetUser: (envelope) =>
         Effect.sync(() => {
           Queue.unsafeOffer(state.envelopes, envelope)
@@ -124,7 +124,7 @@ export const TestEntityNoState = TestEntity.toLayer(
           Stream.rechunk(1)
         )
       }
-    }
+    })
   }),
   { defectRetryPolicy: Schedule.forever }
 )
