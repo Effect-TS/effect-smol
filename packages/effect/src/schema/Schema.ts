@@ -3820,16 +3820,25 @@ export function link<T>() { // TODO: better name
 }
 
 /**
+ * @since 4.0.0
+ */
+export interface URL extends instanceOf<globalThis.URL> {
+  readonly "~rebuild.out": URL
+}
+
+/**
  * A schema for JavaScript `URL` objects.
+ *
+ * The default JSON serializer encodes URL as a string.
  *
  * @since 4.0.0
  */
-export const URL = instanceOf(
+export const URL: URL = instanceOf(
   globalThis.URL,
   {
     title: "URL",
     defaultJsonSerializer: () =>
-      link<URL>()(
+      link<globalThis.URL>()(
         String,
         Transformation.transformOrFail({
           decode: (s) =>
@@ -3902,14 +3911,20 @@ export interface ValidDate extends Date {
  */
 export const ValidDate = Date.check(Check.validDate())
 
-// TODO: add API interface
 /**
  * @since 4.0.0
  */
-export const DateTimeUtc = declare(
+export interface DateTimeUtc extends declare<DateTime.Utc> {
+  readonly "~rebuild.out": DateTimeUtc
+}
+
+/**
+ * @since 4.0.0
+ */
+export const DateTimeUtc: DateTimeUtc = declare(
   (u) => DateTime.isDateTime(u) && DateTime.isUtc(u),
   {
-    title: "Date",
+    title: "DateTimeUtc",
     defaultJsonSerializer: () =>
       link<DateTime.Utc>()(
         String,
@@ -3937,11 +3952,17 @@ export const DateTimeUtc = declare(
   }
 )
 
-// TODO: add API interface
 /**
  * @since 4.0.0
  */
-export const Duration = declare(
+export interface Duration extends declare<Duration_.Duration> {
+  readonly "~rebuild.out": Duration
+}
+
+/**
+ * @since 4.0.0
+ */
+export const Duration: Duration = declare(
   Duration_.isDuration,
   {
     title: "Duration",
@@ -4501,12 +4522,19 @@ export const StandardSchemaV1FailureResult = Struct({
 })
 
 /**
+ * @since 4.0.0
+ */
+export interface BooleanFromBit extends decodeTo<Boolean, Literals<readonly [0, 1]>> {
+  readonly "~rebuild.out": BooleanFromBit
+}
+
+/**
  * A boolean parsed from 0 or 1.
  *
  * @category Boolean
  * @since 4.0.0
  */
-export const BooleanFromBit = Literals([0, 1]).pipe(
+export const BooleanFromBit: BooleanFromBit = Literals([0, 1]).pipe(
   decodeTo(
     Boolean,
     Transformation.transform({
@@ -4517,10 +4545,21 @@ export const BooleanFromBit = Literals([0, 1]).pipe(
 )
 
 /**
+ * @since 4.0.0
+ */
+export interface Uint8Array extends instanceOf<globalThis.Uint8Array> {
+  readonly "~rebuild.out": Uint8Array
+}
+
+/**
+ * A schema for JavaScript `Uint8Array` objects.
+ *
+ * The default JSON serializer encodes Uint8Array as a Base64 encoded string.
+ *
  * @category Uint8Array
  * @since 4.0.0
  */
-export const Uint8Array = instanceOf(globalThis.Uint8Array, {
+export const Uint8Array: Uint8Array = instanceOf(globalThis.Uint8Array, {
   defaultJsonSerializer: () =>
     link<globalThis.Uint8Array>()(
       String.annotate({ description: "Base64 encoded Uint8Array" }),
