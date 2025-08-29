@@ -287,19 +287,19 @@ const makeFile = (() => {
         const position = this.position
         return Effect.map(
           nodeReadAlloc(this.fd, { buffer, position }),
-          (bytesRead): Option.Option<Buffer> => {
+          (bytesRead): Buffer | undefined => {
             if (bytesRead === 0) {
-              return Option.none()
+              return undefined
             }
 
             this.position = position + BigInt(bytesRead)
             if (bytesRead === sizeNumber) {
-              return Option.some(buffer)
+              return buffer
             }
 
             const dst = Buffer.allocUnsafeSlow(bytesRead)
             buffer.copy(dst, 0, 0, bytesRead)
-            return Option.some(dst)
+            return dst
           }
         )
       })
@@ -471,19 +471,19 @@ const makeFileInfo = (stat: NFS.Stats): FileSystem.File.Info => ({
     stat.isSocket() ?
     "Socket" :
     "Unknown",
-  mtime: Option.fromNullishOr(stat.mtime), // TODO: why Option.fromNullishOr?
-  atime: Option.fromNullishOr(stat.atime),
-  birthtime: Option.fromNullishOr(stat.birthtime),
+  mtime: stat.mtime,
+  atime: stat.atime,
+  birthtime: stat.birthtime,
   dev: stat.dev,
-  rdev: Option.fromNullishOr(stat.rdev),
-  ino: Option.fromNullishOr(stat.ino),
+  rdev: stat.rdev,
+  ino: stat.ino,
   mode: stat.mode,
-  nlink: Option.fromNullishOr(stat.nlink),
-  uid: Option.fromNullishOr(stat.uid),
-  gid: Option.fromNullishOr(stat.gid),
+  nlink: stat.nlink,
+  uid: stat.uid,
+  gid: stat.gid,
   size: FileSystem.Size(stat.size),
-  blksize: Option.fromNullishOr(FileSystem.Size(stat.blksize)),
-  blocks: Option.fromNullishOr(stat.blocks)
+  blksize: FileSystem.Size(stat.blksize),
+  blocks: stat.blocks
 })
 const stat = (() => {
   const nodeStat = effectify(
@@ -573,14 +573,15 @@ const watchNode = (path: string) =>
     )
   )
 
-const watch = (backend: Option.Option<FileSystem.WatchBackend["Service"]>, path: string) =>
+const watch = (backend: FileSystem.WatchBackend["Service"] | undefined, path: string) =>
   stat(path).pipe(
-    Effect.map((stat) =>
-      backend.pipe(
-        Option.flatMap((_) => _.register(path, stat)),
-        Option.getOrElse(() => watchNode(path))
-      )
-    ),
+    Effect.map((stat) => {
+      if (backend) {
+        const stream = backend.register(path, stat)
+        if (stream) return stream
+      }
+      return watchNode(path)
+    }),
     Stream.unwrap
   )
 
@@ -630,7 +631,7 @@ const makeFileSystem = Effect.map(Effect.serviceOption(FileSystem.WatchBackend),
     truncate,
     utimes,
     watch(path) {
-      return watch(backend, path)
+      return watch(Option.getOrUndefined(backend), path)
     },
     writeFile
   }))

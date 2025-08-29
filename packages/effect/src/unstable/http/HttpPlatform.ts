@@ -80,8 +80,8 @@ export const make: (impl: {
         "etag",
         Etag.toString(etag)
       )
-      if (info.mtime._tag === "Some") {
-        ;(headers as any)["last-modified"] = info.mtime.value.toUTCString()
+      if (info.mtime) {
+        ;(headers as any)["last-modified"] = info.mtime.toUTCString()
       }
       const contentLength = end !== undefined ? end - start : Number(info.size) - start
       return impl.fileResponse(

@@ -1,6 +1,7 @@
 import * as NodeFileSystem from "@effect/platform-node-shared/NodeFileSystem"
 import { assert, describe, expect, it } from "@effect/vitest"
 import { Array } from "effect/collections"
+import { Option } from "effect/data"
 import * as Effect from "effect/Effect"
 import * as Fs from "effect/platform/FileSystem"
 import * as Stream from "effect/stream/Stream"
@@ -73,28 +74,28 @@ describe("FileSystem", () => {
         const file = yield* fs.open(`${__dirname}/fixtures/text.txt`)
 
         text = yield* file.readAlloc(Fs.Size(5)).pipe(
-          Effect.flatMap((_) => _.asEffect()),
+          Effect.flatMap((_) => Option.fromUndefinedOr(_).asEffect()),
           Effect.map((_) => new TextDecoder().decode(_))
         )
         expect(text).toBe("lorem")
 
         yield* file.seek(Fs.Size(7), "current")
         text = yield* file.readAlloc(Fs.Size(5)).pipe(
-          Effect.flatMap((_) => _.asEffect()),
+          Effect.flatMap((_) => Option.fromUndefinedOr(_).asEffect()),
           Effect.map((_) => new TextDecoder().decode(_))
         )
         expect(text).toBe("dolar")
 
         yield* file.seek(Fs.Size(1), "current")
         text = yield* file.readAlloc(Fs.Size(8)).pipe(
-          Effect.flatMap((_) => _.asEffect()),
+          Effect.flatMap((_) => Option.fromUndefinedOr(_).asEffect()),
           Effect.map((_) => new TextDecoder().decode(_))
         )
         expect(text).toBe("sit amet")
 
         yield* file.seek(Fs.Size(0), "start")
         text = yield* file.readAlloc(Fs.Size(11)).pipe(
-          Effect.flatMap((_) => _.asEffect()),
+          Effect.flatMap((_) => Option.fromUndefinedOr(_).asEffect()),
           Effect.map((_) => new TextDecoder().decode(_))
         )
         expect(text).toBe("lorem ipsum")
@@ -156,7 +157,7 @@ describe("FileSystem", () => {
         expect(text).toBe("foobar")
 
         text = yield* file.readAlloc(Fs.Size(3)).pipe(
-          Effect.flatMap((_) => _.asEffect()),
+          Effect.flatMap((_) => Option.fromUndefinedOr(_).asEffect()),
           Effect.map((_) => new TextDecoder().decode(_))
         )
         expect(text).toBe("foo")
@@ -166,7 +167,7 @@ describe("FileSystem", () => {
         expect(text).toBe("foobarbaz")
 
         text = yield* file.readAlloc(Fs.Size(6)).pipe(
-          Effect.flatMap((_) => _.asEffect()),
+          Effect.flatMap((_) => Option.fromUndefinedOr(_).asEffect()),
           Effect.map((_) => new TextDecoder().decode(_))
         )
         expect(text).toBe("barbaz")
