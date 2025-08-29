@@ -118,7 +118,7 @@ export const layerRpcHandlers = <
         handler: (payload: any) => workflow.resume(payload.executionId) as any
       } as any)
     }
-    return ServiceMap.unsafeMake(handlers)
+    return ServiceMap.makeUnsafe(handlers)
   }))
 
 /**

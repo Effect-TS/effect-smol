@@ -147,7 +147,7 @@ export class WorkflowInstance extends ServiceMap.Key<
       cause: undefined,
       activityState: {
         count: 0,
-        latch: Effect.unsafeMakeLatch()
+        latch: Effect.makeLatchUnsafe()
       }
     })
   }

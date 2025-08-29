@@ -571,7 +571,7 @@ export const wrapActivityResult = <A, E, R>(
         ) :
         Effect.interrupt
     }
-    if (state.count === 0) state.latch.unsafeClose()
+    if (state.count === 0) state.latch.closeUnsafe()
     state.count++
     return Effect.onExit(effect, (exit) => {
       state.count--

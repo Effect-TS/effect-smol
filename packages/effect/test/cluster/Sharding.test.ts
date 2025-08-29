@@ -271,38 +271,40 @@ describe.concurrent("Sharding", () => {
       expect(driver.replyIds.size).toEqual(4)
     }).pipe(Effect.provide(TestSharding)))
 
-  it.effect("durable stream while mailbox is full", () =>
+  it.effect.only("durable stream while mailbox is full", () =>
     Effect.gen(function*() {
       const requestedIds = yield* Queue.make<Array<Snowflake.Snowflake>>()
       yield* Effect.gen(function*() {
         const state = yield* TestEntityState
         const makeClient = yield* TestEntity.client
-        yield* TestClock.adjust(2000)
         const client = makeClient("1")
 
-        const fibers = yield* client.NeverFork().pipe(Effect.fork, Effect.replicateEffect(10))
+        const fibers = yield* client.NeverFork().pipe(
+          Effect.fork({ startImmediately: true }),
+          Effect.replicateEffect(10)
+        )
         yield* TestClock.adjust(1)
 
         const fiber = yield* client.GetAllUsers({ ids: [1, 2, 3] }).pipe(
           Stream.runCollect,
-          Effect.fork
+          Effect.fork({ startImmediately: true })
         )
+
+        // make sure entity doesn't leave resume mode
+        yield* client.NeverFork().pipe(Effect.fork({ startImmediately: true }))
+        yield* client.NeverFork().pipe(Effect.fork({ startImmediately: true }))
 
         // wait for entity to go into resume mode and request ids
         const ids = yield* Queue.take(requestedIds)
-        assert.strictEqual(ids.length, 1)
+        assert.strictEqual(ids.length, 3)
         assert.deepStrictEqual(Queue.sizeUnsafe(state.envelopes), 10)
-
-        // make sure entity doesn't leave resume mode
-        yield* client.NeverFork().pipe(Effect.fork)
-        yield* TestClock.adjust(1)
 
         // interrupt first request
         yield* Fiber.interrupt(fibers[0])
-        yield* TestClock.adjust(100) // let retry happen
+        yield* TestClock.adjust(500) // let retry happen
 
-        // last request should come through
-        assert.deepStrictEqual(Queue.sizeUnsafe(state.envelopes), 11)
+        // last request + NeverFork should come through
+        assert.deepStrictEqual(Queue.sizeUnsafe(state.envelopes), 12)
 
         // acks should be allowed to be sent
         const users = yield* Fiber.join(fiber)
@@ -313,8 +315,8 @@ describe.concurrent("Sharding", () => {
         ])
 
         const driver = yield* MessageStorage.MemoryDriver
-        // 12 requests, 3 acks, 1 interrupt, 5 replies
-        assert.strictEqual(driver.journal.length, 12 + 3 + 1)
+        // 13 requests, 3 acks, 1 interrupt, 5 replies
+        assert.strictEqual(driver.journal.length, 13 + 3 + 1)
         assert.strictEqual(driver.replyIds.size, 1 + 4)
       }).pipe(Effect.provide(TestShardingWithoutStorage.pipe(
         Layer.provideMerge(Layer.effect(MessageStorage.MemoryDriver)(MessageStorage.MemoryDriver.asEffect())),

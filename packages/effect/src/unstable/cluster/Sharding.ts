@@ -339,7 +339,7 @@ const make = Effect.gen(function*() {
 
   const clearSelfShards = Effect.sync(() => {
     MutableHashSet.clear(selfShards)
-    activeShardsLatch.unsafeOpen()
+    activeShardsLatch.openUnsafe()
   })
 
   // --- Singletons ---
@@ -408,7 +408,7 @@ const make = Effect.gen(function*() {
 
   const storageReadLatch = yield* Effect.makeLatch(true)
   const openStorageReadLatch = constant(Effect.sync(() => {
-    storageReadLatch.unsafeOpen()
+    storageReadLatch.openUnsafe()
   }))
 
   const storageReadLock = Effect.makeSemaphoreUnsafe(1)
@@ -851,7 +851,7 @@ const make = Effect.gen(function*() {
                   if (MutableHashSet.has(selfShards, shardId)) continue
                   MutableHashSet.add(selfShards, shardId)
                 }
-                activeShardsLatch.unsafeOpen()
+                activeShardsLatch.openUnsafe()
               }
               break
             }
@@ -863,7 +863,7 @@ const make = Effect.gen(function*() {
                 for (const shard of event.shards) {
                   MutableHashSet.remove(selfShards, shard)
                 }
-                activeShardsLatch.unsafeOpen()
+                activeShardsLatch.openUnsafe()
               }
               break
             }
@@ -930,7 +930,7 @@ const make = Effect.gen(function*() {
       MutableHashSet.add(selfShards, shardId)
     }
 
-    activeShardsLatch.unsafeOpen()
+    activeShardsLatch.openUnsafe()
   })
 
   // --- Clients ---

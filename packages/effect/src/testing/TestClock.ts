@@ -7,7 +7,6 @@ import * as Order from "../data/Order.ts"
 import * as Effect from "../Effect.ts"
 import * as Fiber from "../Fiber.ts"
 import * as Layer from "../Layer.ts"
-import { Scheduler } from "../Scheduler.ts"
 import * as Clock from "../time/Clock.ts"
 import * as Duration from "../time/Duration.ts"
 

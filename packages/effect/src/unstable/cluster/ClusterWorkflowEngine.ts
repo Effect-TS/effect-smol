@@ -265,12 +265,12 @@ export const make = Effect.gen(function*() {
                 const activityId = `${executionId}/${payload.name}`
                 let entry = activities.get(activityId)
                 while (!entry) {
-                  const latch = Effect.unsafeMakeLatch()
+                  const latch = Effect.makeLatchUnsafe()
                   activityLatches.set(activityId, latch)
                   yield* latch.await
                   entry = activities.get(activityId)
                 }
-                const serviceMap = new Map(entry.services.unsafeMap)
+                const serviceMap = new Map(entry.services.mapUnsafe)
                 serviceMap.set(Activity.CurrentAttempt.key, payload.attempt)
                 serviceMap.set(
                   WorkflowInstance.key,
@@ -278,7 +278,7 @@ export const make = Effect.gen(function*() {
                 )
                 return yield* entry.activity.executeEncoded.pipe(
                   Workflow.intoResult,
-                  Effect.provideServices(ServiceMap.unsafeMake(serviceMap)),
+                  Effect.provideServices(ServiceMap.makeUnsafe(serviceMap)),
                   Effect.ensuring(Effect.sync(() => {
                     activities.delete(activityId)
                   }))
@@ -549,7 +549,7 @@ const activityPrimaryKey = (activity: string, attempt: number) => `${activity}/$
 class ClockPayload extends Schema.Class<ClockPayload>(`Workflow/DurableClock/Run`)({
   name: Schema.String,
   workflowName: Schema.String,
-  wakeUp: Schema.DateTimeUtcFromNumber
+  wakeUp: Schema.DateTimeUtcFromMillis
 }) {
   [PrimaryKey.symbol]() {
     return this.name
