@@ -540,8 +540,8 @@ const strategyUsageTTL = Effect.fnUntraced(function*<A, E>(ttl: Duration.Duratio
 const reportUnhandledError = <E>(cause: Cause.Cause<E>) =>
   Effect.withFiber<void>((fiber) => {
     const unhandledLogLevel = fiber.getRef(UnhandledLogLevel)
-    if (unhandledLogLevel._tag === "Some") {
-      return Effect.logWithLevel(unhandledLogLevel.value)(
+    if (unhandledLogLevel) {
+      return Effect.logWithLevel(unhandledLogLevel)(
         "Unhandled error in pool finalizer",
         cause
       )
