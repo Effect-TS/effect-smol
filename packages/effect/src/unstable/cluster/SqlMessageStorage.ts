@@ -1,5 +1,5 @@
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 import * as Arr from "../../collections/Array.ts"
 import * as Option from "../../data/Option.ts"
@@ -22,7 +22,7 @@ import * as Snowflake from "./Snowflake.ts"
 const withTracerDisabled = Effect.withTracerEnabled(false)
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category Constructors
  */
 export const make = Effect.fnUntraced(function*(options: {
@@ -576,7 +576,7 @@ export const make = Effect.fnUntraced(function*(options: {
 }, withTracerDisabled)
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category Layers
  */
 export const layer: Layer.Layer<
@@ -588,7 +588,7 @@ export const layer: Layer.Layer<
 )
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category Layers
  */
 export const layerWith = (options: {

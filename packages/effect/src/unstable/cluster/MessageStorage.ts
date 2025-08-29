@@ -414,7 +414,11 @@ export const makeEncoded: (encoded: Encoded) => Effect.Effect<
         ),
         Effect.asVoid
       ),
-    saveReply: (reply) => Effect.flatMap(Reply.serialize(reply), encoded.saveReply),
+    saveReply: (reply) =>
+      Effect.flatMap(
+        Reply.serialize(reply),
+        encoded.saveReply
+      ),
     clearReplies: encoded.clearReplies,
     repliesFor: Effect.fnUntraced(function*(messages) {
       const requestIds = Arr.empty<string>()
@@ -824,11 +828,11 @@ const EnvelopeWithReply: Schema.Struct<
       Envelope.PartialRequest | Envelope.AckChunk | Envelope.Interrupt,
       unknown
     >
-    readonly lastSentReply: Schema.Option<Schema.Codec<Reply.Encoded, unknown, never, never>>
+    readonly lastSentReply: Schema.Option<Schema.Codec<Reply.Encoded>>
   }
 > = Schema.Struct({
   envelope: Serializer.json(Envelope.Partial),
-  lastSentReply: Schema.Option(Serializer.json(Reply.Encoded))
+  lastSentReply: Schema.Option(Reply.Encoded)
 })
 
 const decodeEnvelopeWithReply = Schema.decodeEffect(EnvelopeWithReply)

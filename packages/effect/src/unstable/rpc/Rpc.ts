@@ -10,7 +10,6 @@ import { type Pipeable, pipeArguments } from "../../interfaces/Pipeable.ts"
 import * as PrimaryKey from "../../interfaces/PrimaryKey.ts"
 import type * as Queue from "../../Queue.ts"
 import * as Schema from "../../schema/Schema.ts"
-import * as Serializer from "../../schema/Serializer.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import type { Stream } from "../../stream/Stream.ts"
 import type { Headers } from "../http/Headers.ts"
@@ -776,11 +775,11 @@ export const exitSchema = <R extends Any>(
   for (const middleware of rpc.middlewares) {
     failures.add(middleware.error)
   }
-  const schema = Serializer.json(Schema.Exit(
+  const schema = Schema.Exit(
     Option.isSome(streamSchemas) ? Schema.Void : rpc.successSchema,
     Schema.Union([...failures]),
     Schema.Defect
-  ))
+  )
   exitSchemaCache.set(self, schema as any)
   return schema as any
 }

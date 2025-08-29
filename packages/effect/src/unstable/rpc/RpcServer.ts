@@ -507,7 +507,7 @@ export const make: <Rpcs extends Rpc.Any>(
         encodeChunk: Schema.encodeUnknownEffect(
           Serializer.json(Schema.Array(Option.isSome(streamSchemas) ? streamSchemas.value.success : Schema.Any))
         ) as any,
-        encodeExit: Schema.encodeUnknownEffect(Rpc.exitSchema(rpc as any)) as any,
+        encodeExit: Schema.encodeUnknownEffect(Serializer.json(Rpc.exitSchema(rpc as any))) as any,
         services: entry.services
       }
       schemasCache.set(rpc, schemas)

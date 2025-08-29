@@ -1,5 +1,4 @@
 import * as Cause from "../../../Cause.ts"
-import * as Arr from "../../../collections/Array.ts"
 import * as Option from "../../../data/Option.ts"
 import * as Effect from "../../../Effect.ts"
 import * as Exit from "../../../Exit.ts"
@@ -8,6 +7,7 @@ import * as Equal from "../../../interfaces/Equal.ts"
 import * as Metric from "../../../observability/Metric.ts"
 import { CurrentLogAnnotations } from "../../../References.ts"
 import * as Schedule from "../../../Schedule.ts"
+import * as Issue from "../../../schema/Issue.ts"
 import * as Schema from "../../../schema/Schema.ts"
 import * as Serializer from "../../../schema/Serializer.ts"
 import * as Scope from "../../../Scope.ts"
@@ -25,7 +25,7 @@ import type { Entity, HandlersFrom } from "../Entity.ts"
 import { CurrentAddress, CurrentRunnerAddress, Request } from "../Entity.ts"
 import type { EntityAddress } from "../EntityAddress.ts"
 import type { EntityId } from "../EntityId.ts"
-import * as Envelope from "../Envelope.ts"
+import type * as Envelope from "../Envelope.ts"
 import * as Message from "../Message.ts"
 import * as MessageStorage from "../MessageStorage.ts"
 import * as Reply from "../Reply.ts"
@@ -427,7 +427,7 @@ export const make = Effect.fnUntraced(function*<
       )
     })
 
-  const decodeMessage = Schema.decodeEffect(makeMessageSchema(entity))
+  const decodeMessage = makeMessageDecode(entity)
 
   return identity<EntityManager>({
     interruptShard,
@@ -496,45 +496,60 @@ const defaultRetryPolicy = Schedule.exponential(500, 1.5).pipe(
   Schedule.either(Schedule.spaced("10 seconds"))
 )
 
-const makeMessageSchema = <Type extends string, Rpcs extends Rpc.Any>(entity: Entity<Type, Rpcs>): Schema.Codec<
-  {
-    readonly _tag: "IncomingRequest"
-    readonly envelope: Envelope.Request.Any
-    readonly lastSentReply: Option.Option<Reply.Reply<Rpcs>>
-  } | {
-    readonly _tag: "IncomingEnvelope"
-    readonly envelope: Envelope.AckChunk | Envelope.Interrupt
-  },
-  Message.Incoming<Rpcs>,
-  Rpc.ServicesServer<Rpcs>,
-  Rpc.ServicesClient<Rpcs>
-> => {
-  const requests = Arr.empty<Schema.Top>()
+const makeMessageDecode = <Type extends string, Rpcs extends Rpc.Any>(entity: Entity<Type, Rpcs>) => {
+  const decodeRequest = Effect.fnUntracedEager(function*(
+    message: Message.IncomingRequest<Rpcs>,
+    rpc: Rpc.AnyWithProps
+  ) {
+    const payload = yield* Schema.decodeEffect(Serializer.json(rpc.payloadSchema))(message.envelope.payload)
+    const lastSentReply = Option.isSome(message.lastSentReply)
+      ? Option.some(yield* Schema.decodeEffect(Reply.Reply(rpc))(message.lastSentReply.value))
+      : Option.none()
+    return {
+      _tag: "IncomingRequest",
+      envelope: {
+        ...message.envelope,
+        payload
+      } as Envelope.Request.Any,
+      lastSentReply
+    } as const
+  })
 
-  for (const rpc of entity.protocol.requests.values()) {
-    requests.push(
-      Schema.TaggedStruct("IncomingRequest", {
-        envelope: Schema.Struct({
-          ...Envelope.PartialRequest.fields,
-          tag: Schema.Literal(rpc._tag),
-          payload: Serializer.json((rpc as any as Rpc.AnyWithProps).payloadSchema)
-        }).pipe(
-          Schema.decodeTo(Envelope.Request, Envelope.RequestTransform)
-        ),
-        lastSentReply: Schema.Option(Reply.Reply(rpc))
-      })
-    )
+  return (message: Message.Incoming<Rpcs>): Effect.Effect<
+    {
+      readonly _tag: "IncomingRequest"
+      readonly envelope: Envelope.Request.Any
+      readonly lastSentReply: Option.Option<Reply.Reply<Rpcs>>
+    } | {
+      readonly _tag: "IncomingEnvelope"
+      readonly envelope: Envelope.AckChunk | Envelope.Interrupt
+    },
+    Schema.SchemaError,
+    Rpc.ServicesServer<Rpcs>
+  > => {
+    if (message._tag === "IncomingEnvelope") {
+      return Effect.succeed(message)
+    }
+    const rpc = entity.protocol.requests.get(message.envelope.tag) as any as Rpc.AnyWithProps
+    if (!rpc) {
+      return Effect.fail(
+        new Schema.SchemaError({
+          issue: new Issue.InvalidValue(Option.some(message), {
+            description: `Unknown tag ${message.envelope.tag} for entity type ${entity.type}`
+          })
+        })
+      )
+    }
+    return decodeRequest(message, rpc) as Effect.Effect<
+      {
+        readonly _tag: "IncomingRequest"
+        readonly envelope: Envelope.Request.Any
+        readonly lastSentReply: Option.Option<Reply.Reply<Rpcs>>
+      },
+      Schema.SchemaError,
+      Rpc.ServicesServer<Rpcs>
+    >
   }
-
-  return Schema.Union([
-    ...requests,
-    Schema.TaggedStruct("IncomingEnvelope", {
-      envelope: Schema.Union([
-        Schema.typeCodec(Envelope.AckChunk),
-        Schema.typeCodec(Envelope.Interrupt)
-      ])
-    })
-  ]) as any
 }
 
 const retryRespond = <A, E, R>(times: number, effect: Effect.Effect<A, E, R>): Effect.Effect<A, E, R> =>

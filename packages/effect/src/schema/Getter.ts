@@ -453,12 +453,59 @@ export function encodeBase64<E extends Uint8Array | string>(): Getter<string, E>
  * @category Base64
  * @since 4.0.0
  */
+export function encodeBase64Url<E extends Uint8Array | string>(): Getter<string, E> {
+  return transform(Encoding.encodeBase64Url)
+}
+
+/**
+ * @category Base64
+ * @since 4.0.0
+ */
 export function decodeBase64<E extends string>(): Getter<Uint8Array, E> {
   return transformOrFail((input) =>
     Result.mapError(
       Encoding.decodeBase64(input),
       (e) => new Issue.InvalidValue(Option.some(input), { message: e.message })
     ).asEffect()
+  )
+}
+
+/**
+ * @category Base64
+ * @since 4.0.0
+ */
+export function decodeBase64String<E extends string>(): Getter<string, E> {
+  return transformOrFail((input) =>
+    Result.match(Encoding.decodeBase64String(input), {
+      onFailure: (e) => Effect.fail(new Issue.InvalidValue(Option.some(input), { message: e.message })),
+      onSuccess: Effect.succeed
+    })
+  )
+}
+
+/**
+ * @category Base64
+ * @since 4.0.0
+ */
+export function decodeBase64Url<E extends string>(): Getter<Uint8Array, E> {
+  return transformOrFail((input) =>
+    Result.match(Encoding.decodeBase64Url(input), {
+      onFailure: (e) => Effect.fail(new Issue.InvalidValue(Option.some(input), { message: e.message })),
+      onSuccess: Effect.succeed
+    })
+  )
+}
+
+/**
+ * @category Base64
+ * @since 4.0.0
+ */
+export function decodeBase64UrlString<E extends string>(): Getter<string, E> {
+  return transformOrFail((input) =>
+    Result.match(Encoding.decodeBase64UrlString(input), {
+      onFailure: (e) => Effect.fail(new Issue.InvalidValue(Option.some(input), { message: e.message })),
+      onSuccess: Effect.succeed
+    })
   )
 }
 

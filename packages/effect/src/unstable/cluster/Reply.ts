@@ -3,12 +3,14 @@
  */
 import type { NonEmptyReadonlyArray } from "../../collections/Array.ts"
 import * as Data from "../../data/Data.ts"
-import type * as Option from "../../data/Option.ts"
+import * as Option from "../../data/Option.ts"
 import { hasProperty } from "../../data/Predicate.ts"
 import * as Effect from "../../Effect.ts"
 import * as Exit from "../../Exit.ts"
+import * as Issue from "../../schema/Issue.ts"
 import * as Schema from "../../schema/Schema.ts"
 import * as Serializer from "../../schema/Serializer.ts"
+import * as ToParser from "../../schema/ToParser.ts"
 import * as Transformation from "../../schema/Transformation.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import * as Rpc from "../rpc/Rpc.ts"
@@ -110,11 +112,11 @@ const neverRpc = Rpc.make("Never", {
  * @since 4.0.0
  * @category models
  */
-export interface WithExitEncoded {
+export interface WithExitEncoded<A = unknown, E = unknown> {
   readonly _tag: "WithExit"
   readonly requestId: string
   readonly id: string
-  readonly exit: RpcMessage.ResponseExitEncoded["exit"]
+  readonly exit: RpcMessage.ExitEncoded<A, E>
 }
 
 /**
@@ -130,26 +132,6 @@ export interface ChunkEncoded {
 }
 
 const schemaCache = new WeakMap<Rpc.Any, Schema.Top>()
-
-/**
- * @since 4.0.0
- * @category schemas
- */
-export const Reply = <R extends Rpc.Any>(
-  rpc: R
-): Schema.Codec<
-  WithExit<R> | Chunk<R>,
-  Encoded,
-  Rpc.ServicesServer<R>,
-  Rpc.ServicesClient<R>
-> => {
-  if (schemaCache.has(rpc)) {
-    return schemaCache.get(rpc) as any
-  }
-  const schema = Serializer.json(Schema.Union([WithExit.schema(rpc), Chunk.schema(rpc)]))
-  schemaCache.set(rpc, schema)
-  return schema as any
-}
 
 /**
  * @since 4.0.0
@@ -198,31 +180,45 @@ export class Chunk<R extends Rpc.Any> extends Data.TaggedClass("Chunk")<{
    */
   static schema<R extends Rpc.Any>(
     rpc: R
-  ): Schema.decodeTo<
-    Schema.Schema<Chunk<R>>,
-    Schema.Struct<
-      {
-        readonly _tag: Schema.tag<"Chunk">
-        readonly requestId: Schema.Codec<Snowflake, bigint>
-        readonly id: Schema.Codec<Snowflake, bigint>
-        readonly sequence: Schema.Number
-        readonly values: Schema.NonEmptyArray<Rpc.SuccessExitSchema<R>>
-      }
-    >
-  > {
+  ): Schema.declareConstructor<Chunk<R>, Chunk<R>, readonly [Rpc.SuccessExitSchema<R>]> {
     const successSchema = ((rpc as any as Rpc.AnyWithProps).successSchema as RpcSchema.Stream<any, any>).success
     if (!successSchema) {
       return Schema.Never as any
     }
-    return Schema.Struct({
-      _tag: Schema.tag("Chunk"),
-      requestId: SnowflakeFromBigInt,
-      id: SnowflakeFromBigInt,
-      sequence: Schema.Number,
-      values: Schema.NonEmptyArray(successSchema)
-    }).pipe(
-      Schema.decodeTo(Chunk.Any, Chunk.transform)
-    )
+    return this.schemaFrom(successSchema) as any
+  }
+
+  /**
+   * @since 4.0.0
+   */
+  static schemaFrom<Success extends Schema.Top>(
+    success: Success
+  ): Schema.declareConstructor<Chunk<Rpc.Any>, Chunk<Rpc.Any>, readonly [Success]> {
+    return Schema.declareConstructor([success])<Chunk<Rpc.Any>>()(([success]) => (input, ast, options) => {
+      if (!isReply(input) || input._tag !== "Chunk") {
+        return Effect.fail(new Issue.InvalidType(ast, Option.some(input)))
+      }
+      return Effect.mapBothEager(ToParser.decodeEffect(Schema.NonEmptyArray(success))(input.values, options), {
+        onFailure: (issue) => new Issue.Composite(ast, Option.some(input), [new Issue.Pointer(["values"], issue)]),
+        onSuccess: (values) => new Chunk({ ...input, values } as any)
+      })
+    }, {
+      title: "Chunk",
+      defaultJsonSerializer: ([success]) =>
+        Schema.link<Chunk<Rpc.Any>>()(
+          Schema.Struct({
+            _tag: Schema.Literal("Chunk"),
+            requestId: SnowflakeFromBigInt,
+            id: SnowflakeFromBigInt,
+            sequence: Schema.Number,
+            values: Schema.NonEmptyArray(success)
+          }),
+          Transformation.transform({
+            decode: (encoded) => new Chunk(encoded as any),
+            encode: (result) => ({ ...result } as const)
+          })
+        )
+    })
   }
 
   /**
@@ -260,42 +256,50 @@ export class WithExit<R extends Rpc.Any> extends Data.TaggedClass("WithExit")<{
   /**
    * @since 4.0.0
    */
-  static readonly Any = Schema.declare(WithExit.is, {
-    id: "WithExit"
-  })
-
-  /**
-   * @since 4.0.0
-   */
-  static readonly transform = Transformation.transform({
-    decode: (a: any) => new WithExit(a),
-    encode: (a) => a as any
-  })
-
-  /**
-   * @since 4.0.0
-   */
   static schema<R extends Rpc.Any>(
     rpc: R
-  ): Schema.decodeTo<
-    Schema.declare<WithExit<R>>,
-    Schema.Struct<
-      {
-        readonly _tag: Schema.Literal<"WithExit">
-        readonly requestId: Schema.Codec<Snowflake, bigint>
-        readonly id: Schema.Codec<Snowflake, bigint>
-        readonly exit: Schema.Exit<Rpc.SuccessExitSchema<R>, Rpc.ErrorExitSchema<R>, Schema.Defect>
-      }
-    >
+  ): Schema.declareConstructor<
+    WithExit<R>,
+    WithExit<R>,
+    readonly [Schema.Exit<Rpc.SuccessExitSchema<R>, Rpc.ErrorExitSchema<R>, Schema.Defect>]
   > {
-    return Schema.Struct({
-      _tag: Schema.Literal("WithExit"),
-      requestId: SnowflakeFromBigInt,
-      id: SnowflakeFromBigInt,
-      exit: Rpc.exitSchema(rpc)
-    }).pipe(
-      Schema.decodeTo(WithExit.Any, WithExit.transform)
-    )
+    return this.schemaFrom(Rpc.exitSchema(rpc))
+  }
+
+  /**
+   * @since 4.0.0
+   */
+  static schemaFrom<Success extends Schema.Top, Error extends Schema.Top, Defect extends Schema.Top>(
+    exitSchema: Schema.Exit<Success, Error, Defect>
+  ): Schema.declareConstructor<
+    WithExit<Rpc.Any>,
+    WithExit<Rpc.Any>,
+    readonly [Schema.Exit<Success, Error, Defect>]
+  > {
+    return Schema.declareConstructor([exitSchema])<WithExit<Rpc.Any>>()(([exit]) => (input, ast, options) => {
+      if (!isReply(input) || input._tag !== "WithExit") {
+        return Effect.fail(new Issue.InvalidType(ast, Option.some(input)))
+      }
+      return Effect.mapBothEager(ToParser.decodeEffect(exit)(input.exit, options), {
+        onFailure: (issue) => new Issue.Composite(ast, Option.some(input), [new Issue.Pointer(["exit"], issue)]),
+        onSuccess: (exit) => new WithExit({ ...input, exit: exit as any })
+      })
+    }, {
+      title: "WithExit",
+      defaultJsonSerializer: ([exit]) =>
+        Schema.link<WithExit<Rpc.Any>>()(
+          Schema.Struct({
+            _tag: Schema.Literal("WithExit"),
+            requestId: SnowflakeFromBigInt,
+            id: SnowflakeFromBigInt,
+            exit
+          }),
+          Transformation.transform({
+            decode: (encoded) => new WithExit(encoded as any),
+            encode: (result) => ({ ...result } as const)
+          })
+        )
+    })
   }
 
   /**
@@ -311,6 +315,26 @@ export class WithExit<R extends Rpc.Any> extends Data.TaggedClass("WithExit")<{
 
 /**
  * @since 4.0.0
+ * @category schemas
+ */
+export const Reply = <R extends Rpc.Any>(
+  rpc: R
+): Schema.Codec<
+  WithExit<R> | Chunk<R>,
+  Encoded,
+  Rpc.ServicesServer<R>,
+  Rpc.ServicesClient<R>
+> => {
+  if (schemaCache.has(rpc)) {
+    return schemaCache.get(rpc) as any
+  }
+  const schema = Serializer.json(Schema.Union([WithExit.schema(rpc), Chunk.schema(rpc)]))
+  schemaCache.set(rpc, schema)
+  return schema as any
+}
+
+/**
+ * @since 4.0.0
  * @category serialization / deserialization
  */
 export const serialize = <R extends Rpc.Any>(
@@ -318,7 +342,10 @@ export const serialize = <R extends Rpc.Any>(
 ): Effect.Effect<Encoded, MalformedMessage> => {
   const schema = Reply(self.rpc)
   return MalformedMessage.refail(
-    Effect.provideServices(Schema.encodeEffect(schema)(self.reply), self.services)
+    Effect.provideServices(
+      Schema.encodeEffect(schema)(self.reply),
+      self.services
+    )
   )
 }
 

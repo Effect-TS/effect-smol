@@ -192,24 +192,33 @@ export interface ResponseChunk<A extends Rpc.Any> {
  * @since 4.0.0
  * @category response
  */
+export type ExitEncoded<A, E> = {
+  readonly _tag: "Success"
+  readonly value: A
+} | {
+  readonly _tag: "Failure"
+  readonly cause: ReadonlyArray<
+    {
+      readonly _tag: "Fail"
+      readonly error: E
+    } | {
+      readonly _tag: "Die"
+      readonly defect: unknown
+    } | {
+      readonly _tag: "Interrupt"
+      readonly fiberId: number | undefined
+    }
+  >
+}
+
+/**
+ * @since 4.0.0
+ * @category response
+ */
 export interface ResponseExitEncoded {
   readonly _tag: "Exit"
   readonly requestId: string
-  readonly exit: {
-    readonly _tag: "Success"
-    readonly value: unknown
-  } | {
-    readonly _tag: "Failure"
-    readonly cause: ReadonlyArray<
-      {
-        readonly _tag: "Fail"
-        readonly error: unknown
-      } | {
-        readonly _tag: "Die"
-        readonly defect: unknown
-      }
-    >
-  }
+  readonly exit: ExitEncoded<unknown, unknown>
 }
 
 /**

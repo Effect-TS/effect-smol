@@ -262,7 +262,6 @@ const make = Effect.gen(function*() {
           yield* storageReadLatch.open
           yield* Effect.forkIn(syncSingletons, shardingScope)
         }
-        yield* Effect.sleep(1000)
       }
     }).pipe(
       Effect.catchCause((cause) => Effect.logWarning("Could not acquire/release shards", cause)),
@@ -338,9 +337,9 @@ const make = Effect.gen(function*() {
     )
   }
 
-  const clearSelfShards = Effect.suspend(() => {
+  const clearSelfShards = Effect.sync(() => {
     MutableHashSet.clear(selfShards)
-    return activeShardsLatch.open
+    activeShardsLatch.unsafeOpen()
   })
 
   // --- Singletons ---
@@ -408,7 +407,9 @@ const make = Effect.gen(function*() {
   // --- Storage inbox ---
 
   const storageReadLatch = yield* Effect.makeLatch(true)
-  const openStorageReadLatch = constant(Effect.asVoid(storageReadLatch.open))
+  const openStorageReadLatch = constant(Effect.sync(() => {
+    storageReadLatch.unsafeOpen()
+  }))
 
   const storageReadLock = Effect.makeSemaphoreUnsafe(1)
   const withStorageReadLock = storageReadLock.withPermits(1)
@@ -850,7 +851,7 @@ const make = Effect.gen(function*() {
                   if (MutableHashSet.has(selfShards, shardId)) continue
                   MutableHashSet.add(selfShards, shardId)
                 }
-                yield* activeShardsLatch.open
+                activeShardsLatch.unsafeOpen()
               }
               break
             }
@@ -862,7 +863,7 @@ const make = Effect.gen(function*() {
                 for (const shard of event.shards) {
                   MutableHashSet.remove(selfShards, shard)
                 }
-                yield* activeShardsLatch.open
+                activeShardsLatch.unsafeOpen()
               }
               break
             }
@@ -929,7 +930,7 @@ const make = Effect.gen(function*() {
       MutableHashSet.add(selfShards, shardId)
     }
 
-    yield* activeShardsLatch.open
+    activeShardsLatch.unsafeOpen()
   })
 
   // --- Clients ---

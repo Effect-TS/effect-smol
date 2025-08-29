@@ -25,6 +25,11 @@ export * as ClusterSchema from "./ClusterSchema.ts"
 /**
  * @since 4.0.0
  */
+export * as ClusterWorkflowEngine from "./ClusterWorkflowEngine.ts"
+
+/**
+ * @since 4.0.0
+ */
 export * as DeliverAt from "./DeliverAt.ts"
 
 /**
@@ -178,12 +183,12 @@ export * as SocketRunner from "./SocketRunner.ts"
 export * as SocketShardManager from "./SocketShardManager.ts"
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 export * as SqlMessageStorage from "./SqlMessageStorage.ts"
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 export * as SqlShardStorage from "./SqlShardStorage.ts"
 

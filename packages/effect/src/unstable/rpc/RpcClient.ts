@@ -779,7 +779,7 @@ const rpcSchemas = (rpc: Rpc.AnyWithProps) => {
       Schema.decodeUnknownEffect(Serializer.json(Schema.NonEmptyArray(streamSchemas.value.success))) :
       undefined,
     encodePayload: Schema.encodeEffect(Serializer.json(rpc.payloadSchema)),
-    decodeExit: Schema.decodeUnknownEffect(Rpc.exitSchema(rpc as any))
+    decodeExit: Schema.decodeUnknownEffect(Serializer.json(Rpc.exitSchema(rpc as any)))
   }
   rpcSchemasCache.set(rpc, entry)
   return entry
