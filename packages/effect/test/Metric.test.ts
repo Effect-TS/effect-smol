@@ -1,6 +1,5 @@
 import { assert, describe, it } from "@effect/vitest"
 import { Fiber } from "effect"
-import { Option } from "effect/data"
 import * as Effect from "effect/Effect"
 import { Metric } from "effect/observability"
 import { String } from "effect/primitives"
@@ -380,7 +379,7 @@ describe("Metric", () => {
         yield* Effect.trackSuccesses(Effect.succeed(3), summary)
         const result = yield* Metric.value(summary)
         assert.deepStrictEqual(result, {
-          quantiles: [[0, Option.some(1)], [0.1, Option.some(1)], [0.9, Option.some(3)]],
+          quantiles: [[0, 1], [0.1, 1], [0.9, 3]],
           count: 2,
           sum: 4,
           min: 1,
@@ -404,7 +403,7 @@ describe("Metric", () => {
         yield* Effect.trackSuccesses(Effect.succeed(3), summary)
         const result = yield* Metric.value(summary)
         assert.deepStrictEqual(result, {
-          quantiles: [[0, Option.some(1)], [0.1, Option.some(1)], [0.9, Option.some(1)]],
+          quantiles: [[0, 1], [0.1, 1], [0.9, 1]],
           count: 2,
           sum: 2,
           min: 1,
@@ -424,7 +423,7 @@ describe("Metric", () => {
         yield* Effect.forEach(samples, (sample) => Metric.update(summary, sample))
         const result = yield* Metric.value(summary)
         assert.deepStrictEqual(result, {
-          quantiles: [[0.5, Option.some(10)]],
+          quantiles: [[0.5, 10]],
           count: 10,
           min: 10,
           max: 50,
