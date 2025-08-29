@@ -233,7 +233,7 @@ export const make = (
             cursor.read(128, (err, rows) => {
               if (err) {
                 resume(Effect.fail(new SqlError({ cause: err, message: "Failed to execute statement" })))
-              } else if (Arr.isNonEmptyArray(rows)) {
+              } else if (Arr.isArrayNonEmpty(rows)) {
                 resume(Effect.succeed(transformRows ? transformRows(rows) as any : rows))
               } else {
                 resume(Pull.haltVoid)

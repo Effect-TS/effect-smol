@@ -1,7 +1,7 @@
 import { assert, describe, it } from "@effect/vitest"
 import { Effect, Exit, Fiber, Queue } from "effect"
 import { Array } from "effect/collections"
-import { isNonEmptyReadonlyArray, type NonEmptyArray } from "effect/collections/Array"
+import { isReadonlyArrayNonEmpty, type NonEmptyArray } from "effect/collections/Array"
 import { Filter, Option } from "effect/data"
 import { Stream } from "effect/stream"
 import * as fc from "effect/testing/FastCheck"
@@ -317,7 +317,7 @@ describe("Stream", () => {
     },
     Effect.fnUntraced(function*({ chunks, size }) {
       const actual = yield* Stream.fromArray(chunks).pipe(
-        Stream.filter((a) => isNonEmptyReadonlyArray(a) ? a : Filter.fail(a)),
+        Stream.filter((a) => isReadonlyArrayNonEmpty(a) ? a : Filter.fail(a)),
         Stream.flattenArray,
         Stream.rechunk(size),
         Stream.chunks,

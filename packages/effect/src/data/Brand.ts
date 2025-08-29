@@ -230,7 +230,7 @@ export function check<A extends Brand<any>>(
   const result = (input: Brand.Unbranded<A>): Result.Result<A, BrandError> => {
     const issues: Array<Issue.Issue> = []
     ToParser.runChecks(checks, input, issues, AST.unknownKeyword, { errors: "all" })
-    if (Arr.isNonEmptyArray(issues)) {
+    if (Arr.isArrayNonEmpty(issues)) {
       const issue = new Issue.Composite(AST.unknownKeyword, Option.some(input), issues)
       return Result.fail(new BrandError({ issue }))
     }
@@ -268,7 +268,7 @@ export function all<Brands extends readonly [Constructor<any>, ...Array<Construc
     infer X extends Brand<any> ? X : Brand<any>
 > {
   const checks = brands.flatMap((brand) => brand.checks)
-  return Arr.isNonEmptyArray(checks) ?
+  return Arr.isArrayNonEmpty(checks) ?
     check(...checks) :
     nominal()
 }

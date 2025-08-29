@@ -727,7 +727,7 @@ export const fromIterableEffect = <A, E, R>(iterable: Effect.Effect<Iterable<A>,
  * @category constructors
  */
 export const fromArray = <A>(array: ReadonlyArray<A>): Stream<A> =>
-  Arr.isNonEmptyReadonlyArray(array) ? fromChannel(Channel.succeed(array)) : empty
+  Arr.isReadonlyArrayNonEmpty(array) ? fromChannel(Channel.succeed(array)) : empty
 
 /**
  * Creates a stream from an effect that produces an array of values.
@@ -1072,7 +1072,7 @@ export const paginateArrayEffect = <S, A, E, R>(
         } else {
           state = s.value
         }
-        if (!Arr.isNonEmptyReadonlyArray(a)) return loop()
+        if (!Arr.isReadonlyArrayNonEmpty(a)) return loop()
         return Effect.succeed(a)
       })
     })
@@ -1757,7 +1757,7 @@ export const takeUntil: {
             if (index >= 0) {
               done = true
               const arr = chunk.slice(0, options?.excludeLast ? index : index + 1)
-              return Arr.isNonEmptyReadonlyArray(arr) ? Effect.succeed(arr) : Pull.haltVoid
+              return Arr.isReadonlyArrayNonEmpty(arr) ? Effect.succeed(arr) : Pull.haltVoid
             }
             return Effect.succeed(chunk)
           }
@@ -1818,7 +1818,7 @@ export const takeUntilEffect: {
           if (yield* predicate(chunk[j], i++)) {
             done = true
             const arr = chunk.slice(0, options?.excludeLast ? j : j + 1)
-            return Arr.isNonEmptyReadonlyArray(arr) ? arr : yield* Pull.haltVoid
+            return Arr.isReadonlyArrayNonEmpty(arr) ? arr : yield* Pull.haltVoid
           }
         }
         return chunk
@@ -2035,7 +2035,7 @@ export const mapAccum: {
       // eslint-disable-next-line no-restricted-syntax
       acc.push(...values)
     }
-    return [state, Arr.isNonEmptyArray(acc) ? Arr.of(acc) : Arr.empty<Arr.NonEmptyReadonlyArray<B>>()]
+    return [state, Arr.isArrayNonEmpty(acc) ? Arr.of(acc) : Arr.empty<Arr.NonEmptyReadonlyArray<B>>()]
   })))
 
 /**
@@ -2064,7 +2064,7 @@ export const mapAccumEffect: {
         f(state, a),
         ([state, values]) => [
           state,
-          Arr.isNonEmptyReadonlyArray(values) ? Arr.of(values) : Arr.empty<Arr.NonEmptyReadonlyArray<B>>()
+          Arr.isReadonlyArrayNonEmpty(values) ? Arr.of(values) : Arr.empty<Arr.NonEmptyReadonlyArray<B>>()
         ]
       )),
     fromChannel

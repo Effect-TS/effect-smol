@@ -35,7 +35,7 @@ export const findMany = <Req extends Schema.Top, Res extends Schema.Top, E, R>(
         Schema.SchemaError | Cause.NoSuchElementError,
         Req["EncodingServices"] | Res["DecodingServices"]
       > =>
-        Arr.isNonEmptyReadonlyArray(results)
+        Arr.isReadonlyArrayNonEmpty(results)
           ? decode(results) as Effect.Effect<Arr.NonEmptyArray<Res["Type"]>, Schema.SchemaError>
           : Effect.fail(new Cause.NoSuchElementError())
     )
@@ -91,6 +91,6 @@ export const findOne = <Req extends Schema.Top, Res extends Schema.Top, E, R>(
         Res["Type"],
         Schema.SchemaError | Cause.NoSuchElementError,
         Req["EncodingServices"] | Res["DecodingServices"]
-      > => Arr.isNonEmptyReadonlyArray(arr) ? decode(arr[0]) : Effect.fail(new Cause.NoSuchElementError())
+      > => Arr.isReadonlyArrayNonEmpty(arr) ? decode(arr[0]) : Effect.fail(new Cause.NoSuchElementError())
     )
 }

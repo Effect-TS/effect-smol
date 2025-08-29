@@ -425,7 +425,7 @@ export const split: {
   (self: string, separator: string | RegExp): NonEmptyArray<string>
 } = dual(2, (self: string, separator: string | RegExp): NonEmptyArray<string> => {
   const out = self.split(separator)
-  return readonlyArray.isNonEmptyArray(out) ? out : [self]
+  return readonlyArray.isArrayNonEmpty(out) ? out : [self]
 })
 
 /**

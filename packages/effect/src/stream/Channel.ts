@@ -2508,7 +2508,7 @@ export const filterArray: {
 ): Channel<Arr.NonEmptyReadonlyArray<B>, OutErr, OutDone, InElem, InErr, InDone, Env> =>
   filter(self, (arr) => {
     const [passes] = Arr.partitionFilter(arr, filter_)
-    return Arr.isNonEmptyReadonlyArray(passes) ? passes : Filter.fail(arr)
+    return Arr.isReadonlyArrayNonEmpty(passes) ? passes : Filter.fail(arr)
   }))
 
 /**
@@ -3627,7 +3627,7 @@ export const splitLines = <Err, Done>(): Channel<
             }
           }
         }
-        return Arr.isNonEmptyReadonlyArray(chunkBuilder) ? chunkBuilder : null
+        return Arr.isReadonlyArrayNonEmpty(chunkBuilder) ? chunkBuilder : null
       }
 
       return Effect.flatMap(

@@ -1107,7 +1107,7 @@ export class TupleType extends Base {
       // handle rest element
       // ---------------------------------------------
       const len = input.length
-      if (Arr.isNonEmptyReadonlyArray(ast.rest)) {
+      if (Arr.isReadonlyArrayNonEmpty(ast.rest)) {
         const [head, ...tail] = ast.rest
         const parser = go(head)
         const keyAnnotations = head.context?.annotations
@@ -1177,7 +1177,7 @@ export class TupleType extends Base {
           }
         }
       }
-      if (Arr.isNonEmptyArray(issues)) {
+      if (Arr.isArrayNonEmpty(issues)) {
         return yield* Effect.fail(new Issue.Composite(ast, oinput, issues))
       }
       return Option.some(output)
@@ -1411,7 +1411,7 @@ export class TypeLiteral extends Base {
         }
       }
 
-      if (Arr.isNonEmptyArray(issues)) {
+      if (Arr.isArrayNonEmpty(issues)) {
         return yield* Effect.fail(new Issue.Composite(ast, oinput, issues))
       }
       if (options?.propertyOrder === "original") {

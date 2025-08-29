@@ -136,7 +136,7 @@ export const decode = <IE = never, Done = unknown>(): Channel.Channel<
               }
             }
           }
-          return Arr.isNonEmptyReadonlyArray(out) ? Effect.succeed(out) : Effect.flatMap(upstream, loop)
+          return Arr.isReadonlyArrayNonEmpty(out) ? Effect.succeed(out) : Effect.flatMap(upstream, loop)
         }
       )
     })

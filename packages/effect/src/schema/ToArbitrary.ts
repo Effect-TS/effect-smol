@@ -354,7 +354,7 @@ const go = AST.memoize((ast: AST.AST): LazyArbitrary<any> => {
         // ---------------------------------------------
         // handle rest element
         // ---------------------------------------------
-        if (Array.isNonEmptyReadonlyArray(ast.rest)) {
+        if (Array.isReadonlyArrayNonEmpty(ast.rest)) {
           const len = ast.elements.length
           const [head, ...tail] = ast.rest.map((ast) => go(ast)(fc, reset))
 

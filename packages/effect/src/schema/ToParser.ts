@@ -370,7 +370,7 @@ const go = AST.memoize(
             Effect.catchEager((issue) => {
               const issues: Array<Issue.Issue> = []
               runChecks(checks.filter((check) => check.annotations?.["~structural"]), ou.value, issues, ast, options)
-              const out: Issue.Issue = Arr.isNonEmptyArray(issues)
+              const out: Issue.Issue = Arr.isArrayNonEmpty(issues)
                 ? issue._tag === "Composite" && issue.ast === ast
                   ? new Issue.Composite(ast, issue.actual, [...issue.issues, ...issues])
                   : new Issue.Composite(ast, ou, [issue, ...issues])
@@ -386,7 +386,7 @@ const go = AST.memoize(
 
             runChecks(checks, value, issues, ast, options)
 
-            if (Arr.isNonEmptyArray(issues)) {
+            if (Arr.isArrayNonEmpty(issues)) {
               return Effect.fail(new Issue.Composite(ast, oa, issues))
             }
           }

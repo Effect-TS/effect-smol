@@ -309,7 +309,7 @@ export const make = Effect.fnUntraced(function*(
   const run = Effect.fnUntraced(function*(step: (currentTimestamp: number) => number) {
     yield* Effect.yieldNow
     const endTimestamp = step(currentTimestamp)
-    while (Arr.isNonEmptyArray(sleeps)) {
+    while (Arr.isArrayNonEmpty(sleeps)) {
       if (Arr.lastNonEmpty(sleeps).timestamp > endTimestamp) break
       const entry = sleeps.pop()!
       currentTimestamp = entry.timestamp

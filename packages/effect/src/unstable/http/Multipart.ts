@@ -285,7 +285,7 @@ export const makeChannel = <IE>(headers: Record<string, string>): Channel.Channe
           let finished = false
           const pullChunks = Channel.fromPull(
             Effect.succeed(Effect.suspend(function loop(): Pull.Pull<Arr.NonEmptyReadonlyArray<Uint8Array>> {
-              if (!Arr.isNonEmptyReadonlyArray(chunks)) {
+              if (!Arr.isReadonlyArrayNonEmpty(chunks)) {
                 return finished ? Pull.haltVoid : Effect.flatMap(pump, loop)
               }
               const chunk = chunks
@@ -329,7 +329,7 @@ export const makeChannel = <IE>(headers: Record<string, string>): Channel.Channe
 
       return pump.pipe(
         Effect.flatMap(function loop(): Pull.Pull<Arr.NonEmptyReadonlyArray<Part>, IE | MultipartError> {
-          if (!Arr.isNonEmptyReadonlyArray(partsBuffer)) {
+          if (!Arr.isReadonlyArrayNonEmpty(partsBuffer)) {
             if (Option.isSome(exit)) {
               return exit.value
             }

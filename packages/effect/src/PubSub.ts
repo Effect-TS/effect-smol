@@ -1127,7 +1127,7 @@ export const takeAll = <A>(self: Subscription<A>): Effect.Effect<Arr.NonEmptyArr
     self.strategy.onPubSubEmptySpaceUnsafe(self.pubsub, self.subscribers)
     if (self.replayWindow.remaining > 0) {
       return Effect.succeed(self.replayWindow.takeAll().concat(as) as Arr.NonEmptyArray<A>)
-    } else if (!Arr.isNonEmptyArray(as)) {
+    } else if (!Arr.isArrayNonEmpty(as)) {
       return Effect.flatMap(pollForItem(self), (item) => loop([item]))
     }
     return Effect.succeed(as)

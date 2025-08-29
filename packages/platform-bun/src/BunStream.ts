@@ -49,7 +49,7 @@ export const fromReadableStream = <A, E>(
       ): Pull.Pull<Arr.NonEmptyReadonlyArray<A>, E> {
         if (done) {
           return Pull.haltVoid
-        } else if (!Arr.isNonEmptyReadonlyArray(value)) {
+        } else if (!Arr.isReadonlyArrayNonEmpty(value)) {
           return Effect.flatMap(readMany, loop)
         }
         return Effect.succeed(value)
