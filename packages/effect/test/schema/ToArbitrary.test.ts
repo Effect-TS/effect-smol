@@ -496,6 +496,14 @@ describe("ToArbitrary", () => {
     assertions.arbitrary.satisfy(Schema.URL)
   })
 
+  it("Duration", () => {
+    assertions.arbitrary.satisfy(Schema.Duration)
+  })
+
+  it("DateTimeUtc", () => {
+    assertions.arbitrary.satisfy(Schema.DateTimeUtc)
+  })
+
   it("UnknownFromJsonString", () => {
     assertions.arbitrary.satisfy(Schema.UnknownFromJsonString)
   })

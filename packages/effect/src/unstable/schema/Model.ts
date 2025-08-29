@@ -340,7 +340,7 @@ export const DateTimeWithNow = VariantSchema.Overrideable(Schema.DateTimeUtcFrom
  * @since 4.0.0
  * @category date & time
  */
-export const DateTimeFromDateWithNow = VariantSchema.Overrideable(Schema.DateTimeUtcFromValidDate, {
+export const DateTimeFromDateWithNow = VariantSchema.Overrideable(Schema.DateTimeUtcFromDate, {
   defaultValue: DateTime.now
 })
 
@@ -348,7 +348,7 @@ export const DateTimeFromDateWithNow = VariantSchema.Overrideable(Schema.DateTim
  * @since 4.0.0
  * @category date & time
  */
-export const DateTimeFromNumberWithNow = VariantSchema.Overrideable(Schema.DateTimeUtcFromNumber, {
+export const DateTimeFromNumberWithNow = VariantSchema.Overrideable(Schema.DateTimeUtcFromMillis, {
   defaultValue: DateTime.now
 })
 
@@ -385,8 +385,8 @@ export const DateTimeInsert: DateTimeInsert = Field({
  */
 export interface DateTimeInsertFromDate extends
   VariantSchema.Field<{
-    readonly select: Schema.DateTimeUtcFromValidDate
-    readonly insert: VariantSchema.Overrideable<Schema.DateTimeUtcFromValidDate>
+    readonly select: Schema.DateTimeUtcFromDate
+    readonly insert: VariantSchema.Overrideable<Schema.DateTimeUtcFromDate>
     readonly json: Schema.DateTimeUtcFromString
   }>
 {}
@@ -401,7 +401,7 @@ export interface DateTimeInsertFromDate extends
  * @category date & time
  */
 export const DateTimeInsertFromDate: DateTimeInsertFromDate = Field({
-  select: Schema.DateTimeUtcFromValidDate,
+  select: Schema.DateTimeUtcFromDate,
   insert: DateTimeFromDateWithNow,
   json: Schema.DateTimeUtcFromString
 })
@@ -412,9 +412,9 @@ export const DateTimeInsertFromDate: DateTimeInsertFromDate = Field({
  */
 export interface DateTimeInsertFromNumber extends
   VariantSchema.Field<{
-    readonly select: Schema.DateTimeUtcFromNumber
-    readonly insert: VariantSchema.Overrideable<Schema.DateTimeUtcFromNumber>
-    readonly json: Schema.DateTimeUtcFromNumber
+    readonly select: Schema.DateTimeUtcFromMillis
+    readonly insert: VariantSchema.Overrideable<Schema.DateTimeUtcFromMillis>
+    readonly json: Schema.DateTimeUtcFromMillis
   }>
 {}
 
@@ -428,9 +428,9 @@ export interface DateTimeInsertFromNumber extends
  * @category date & time
  */
 export const DateTimeInsertFromNumber: DateTimeInsertFromNumber = Field({
-  select: Schema.DateTimeUtcFromNumber,
+  select: Schema.DateTimeUtcFromMillis,
   insert: DateTimeFromNumberWithNow,
-  json: Schema.DateTimeUtcFromNumber
+  json: Schema.DateTimeUtcFromMillis
 })
 
 /**
@@ -469,9 +469,9 @@ export const DateTimeUpdate: DateTimeUpdate = Field({
  */
 export interface DateTimeUpdateFromDate extends
   VariantSchema.Field<{
-    readonly select: Schema.DateTimeUtcFromValidDate
-    readonly insert: VariantSchema.Overrideable<Schema.DateTimeUtcFromValidDate>
-    readonly update: VariantSchema.Overrideable<Schema.DateTimeUtcFromValidDate>
+    readonly select: Schema.DateTimeUtcFromDate
+    readonly insert: VariantSchema.Overrideable<Schema.DateTimeUtcFromDate>
+    readonly update: VariantSchema.Overrideable<Schema.DateTimeUtcFromDate>
     readonly json: Schema.DateTimeUtcFromString
   }>
 {}
@@ -487,7 +487,7 @@ export interface DateTimeUpdateFromDate extends
  * @category date & time
  */
 export const DateTimeUpdateFromDate: DateTimeUpdateFromDate = Field({
-  select: Schema.DateTimeUtcFromValidDate,
+  select: Schema.DateTimeUtcFromDate,
   insert: DateTimeFromDateWithNow,
   update: DateTimeFromDateWithNow,
   json: Schema.DateTimeUtcFromString
@@ -499,10 +499,10 @@ export const DateTimeUpdateFromDate: DateTimeUpdateFromDate = Field({
  */
 export interface DateTimeUpdateFromNumber extends
   VariantSchema.Field<{
-    readonly select: Schema.DateTimeUtcFromNumber
-    readonly insert: VariantSchema.Overrideable<Schema.DateTimeUtcFromNumber>
-    readonly update: VariantSchema.Overrideable<Schema.DateTimeUtcFromNumber>
-    readonly json: Schema.DateTimeUtcFromNumber
+    readonly select: Schema.DateTimeUtcFromMillis
+    readonly insert: VariantSchema.Overrideable<Schema.DateTimeUtcFromMillis>
+    readonly update: VariantSchema.Overrideable<Schema.DateTimeUtcFromMillis>
+    readonly json: Schema.DateTimeUtcFromMillis
   }>
 {}
 
@@ -517,10 +517,10 @@ export interface DateTimeUpdateFromNumber extends
  * @category date & time
  */
 export const DateTimeUpdateFromNumber: DateTimeUpdateFromNumber = Field({
-  select: Schema.DateTimeUtcFromNumber,
+  select: Schema.DateTimeUtcFromMillis,
   insert: DateTimeFromNumberWithNow,
   update: DateTimeFromNumberWithNow,
-  json: Schema.DateTimeUtcFromNumber
+  json: Schema.DateTimeUtcFromMillis
 })
 
 /**

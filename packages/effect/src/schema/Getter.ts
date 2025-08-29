@@ -455,10 +455,10 @@ export function encodeBase64<E extends Uint8Array | string>(): Getter<string, E>
  */
 export function decodeBase64<E extends string>(): Getter<Uint8Array, E> {
   return transformOrFail((input) =>
-    Result.match(Encoding.decodeBase64(input), {
-      onFailure: (e) => Effect.fail(new Issue.InvalidValue(Option.some(input), { message: e.message })),
-      onSuccess: Effect.succeed
-    })
+    Result.mapError(
+      Encoding.decodeBase64(input),
+      (e) => new Issue.InvalidValue(Option.some(input), { message: e.message })
+    ).asEffect()
   )
 }
 

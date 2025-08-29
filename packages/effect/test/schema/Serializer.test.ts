@@ -890,7 +890,7 @@ describe("Serializer", () => {
       })
 
       it("DateTimeUtcFromValidDate", async () => {
-        const schema = Schema.DateTimeUtcFromValidDate
+        const schema = Schema.DateTimeUtcFromDate
         await assertions.serialization.json.codec.succeed(
           schema,
           DateTime.unsafeMake("2021-01-01T00:00:00.000Z"),

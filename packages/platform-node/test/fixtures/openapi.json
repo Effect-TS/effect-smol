@@ -12,12 +12,12 @@
         "operationId": "groups.findById",
         "parameters": [
           {
-            "description": "a string that will be parsed as a finite number",
+            "description": "a string that will be decoded as a finite number",
             "name": "id",
             "in": "path",
             "schema": {
               "type": "string",
-              "description": "a string that will be parsed as a finite number"
+              "description": "a string that will be decoded as a finite number"
             },
             "required": true
           }
@@ -134,12 +134,12 @@
         "operationId": "groups.handle",
         "parameters": [
           {
-            "description": "a string that will be parsed as a finite number",
+            "description": "a string that will be decoded as a finite number",
             "name": "id",
             "in": "path",
             "schema": {
               "type": "string",
-              "description": "a string that will be parsed as a finite number"
+              "description": "a string that will be decoded as a finite number"
             },
             "required": true
           }
@@ -205,12 +205,12 @@
         "operationId": "groups.handleRaw",
         "parameters": [
           {
-            "description": "a string that will be parsed as a finite number",
+            "description": "a string that will be decoded as a finite number",
             "name": "id",
             "in": "path",
             "schema": {
               "type": "string",
-              "description": "a string that will be parsed as a finite number"
+              "description": "a string that will be decoded as a finite number"
             },
             "required": true
           }
@@ -276,12 +276,12 @@
         "operationId": "users.findById",
         "parameters": [
           {
-            "description": "a string that will be parsed as a finite number",
+            "description": "a string that will be decoded as a finite number",
             "name": "id",
             "in": "path",
             "schema": {
               "type": "string",
-              "description": "a string that will be parsed as a finite number"
+              "description": "a string that will be decoded as a finite number"
             },
             "required": true
           }
@@ -330,12 +330,12 @@
         "operationId": "users.create",
         "parameters": [
           {
-            "description": "a string that will be parsed as a finite number",
+            "description": "a string that will be decoded as a finite number",
             "name": "id",
             "in": "query",
             "schema": {
               "type": "string",
-              "description": "a string that will be parsed as a finite number"
+              "description": "a string that will be decoded as a finite number"
             },
             "required": true
           }
@@ -403,12 +403,12 @@
         "operationId": "listUsers",
         "parameters": [
           {
-            "description": "a string that will be parsed as a finite number",
+            "description": "a string that will be decoded as a finite number",
             "name": "page",
             "in": "header",
             "schema": {
               "type": "string",
-              "description": "a string that will be parsed as a finite number"
+              "description": "a string that will be decoded as a finite number"
             },
             "required": false
           },

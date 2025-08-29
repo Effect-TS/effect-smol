@@ -1296,6 +1296,8 @@ export interface String
 {}
 
 /**
+ * A schema for all strings.
+ *
  * @since 4.0.0
  */
 export const String: String = make<String>(AST.stringKeyword)
@@ -1308,7 +1310,7 @@ export interface Number
 {}
 
 /**
- * All numbers, including `NaN`, `Infinity`, and `-Infinity`.
+ * A schema for all numbers, including `NaN`, `Infinity`, and `-Infinity`.
  *
  * @since 4.0.0
  */
@@ -1322,6 +1324,8 @@ export interface Boolean
 {}
 
 /**
+ * A schema for all booleans.
+ *
  * @category Boolean
  * @since 4.0.0
  */
@@ -1335,6 +1339,8 @@ export interface Symbol
 {}
 
 /**
+ * A schema for all symbols.
+ *
  * @since 4.0.0
  */
 export const Symbol: Symbol = make<Symbol>(AST.symbolKeyword)
@@ -1347,6 +1353,8 @@ export interface BigInt
 {}
 
 /**
+ * A schema for all bigints.
+ *
  * @since 4.0.0
  */
 export const BigInt: BigInt = make<BigInt>(AST.bigIntKeyword)
@@ -1357,6 +1365,8 @@ export const BigInt: BigInt = make<BigInt>(AST.bigIntKeyword)
 export interface Void extends Bottom<void, void, never, never, AST.VoidKeyword, Void, Annotations.Bottom<void>> {}
 
 /**
+ * A schema for the `void` type.
+ *
  * @since 4.0.0
  */
 export const Void: Void = make<Void>(AST.voidKeyword)
@@ -1372,9 +1382,10 @@ const Object_: Object$ = make<Object$>(AST.objectKeyword)
 
 export {
   /**
+   * A schema for the `object` type.
+   *
    * @since 4.0.0
    */
-
   Object_ as Object
 }
 
@@ -1386,6 +1397,15 @@ export interface UniqueSymbol<sym extends symbol>
 {}
 
 /**
+ * A schema for unique symbols.
+ *
+ * **Example**
+ *
+ * ```ts
+ * import { Schema } from "effect/schema"
+ * const a = Symbol.for("a")
+ * const schema = Schema.UniqueSymbol(a)
+ * ```
  * @since 4.0.0
  */
 export function UniqueSymbol<const sym extends symbol>(symbol: sym): UniqueSymbol<sym> {
@@ -1399,12 +1419,7 @@ export declare namespace Struct {
   /**
    * @since 4.0.0
    */
-  export type Field = Top
-
-  /**
-   * @since 4.0.0
-   */
-  export type Fields = { readonly [x: PropertyKey]: Field }
+  export type Fields = { readonly [x: PropertyKey]: Top }
 
   type TypeOptionalKeys<Fields extends Struct.Fields> = {
     [K in keyof Fields]: Fields[K] extends { readonly "~type.optionality": "optional" } ? K
@@ -1849,12 +1864,7 @@ export declare namespace Tuple {
   /**
    * @since 4.0.0
    */
-  export type Element = Top
-
-  /**
-   * @since 4.0.0
-   */
-  export type Elements = ReadonlyArray<Element>
+  export type Elements = ReadonlyArray<Top>
 
   type Type_<
     Elements,
@@ -3797,6 +3807,8 @@ export interface instanceOf<T> extends declareConstructor<T, T, readonly []> {
 /**
  * Creates a schema that validates an instance of a specific class constructor.
  *
+ * It is recommended to add the `defaultJsonSerializer` annotation to the schema.
+ *
  * @category Constructors
  * @since 4.0.0
  */
@@ -3809,6 +3821,7 @@ export function instanceOf<C extends abstract new(...args: any) => any>(
 
 /**
  * @since 4.0.0
+ * @experimental
  */
 export function link<T>() { // TODO: better name
   return <To extends Top>(
@@ -3832,7 +3845,8 @@ export interface URL extends instanceOf<globalThis.URL> {
 /**
  * A schema for JavaScript `URL` objects.
  *
- * The default JSON serializer encodes URL as a string.
+ * **Default JSON serializer**
+ * - encodes `URL` as a `string`.
  *
  * @since 4.0.0
  */
@@ -3905,7 +3919,7 @@ export interface ValidDate extends Date {
 }
 
 /**
- * A schema for JavaScript `Date` objects that validates only valid dates.
+ * A schema for **valid** JavaScript `Date` objects.
  *
  * This schema accepts `Date` instances but rejects invalid dates (such as `new
  * Date("invalid")`).
@@ -3922,6 +3936,11 @@ export interface Duration extends declare<Duration_.Duration> {
 }
 
 /**
+ * A schema for `Duration` values.
+ *
+ * **Default JSON serializer**
+ * - encodes `Duration` as a `string`
+ *
  * @since 4.0.0
  */
 export const Duration: Duration = declare(
@@ -3949,14 +3968,13 @@ export const Duration: Duration = declare(
           }
         })
       ),
-    // TODO: test arbitrary, pretty and equivalence annotations
     arbitrary: {
       _tag: "Declaration",
       declaration: () => (fc) =>
         fc.oneof(
           fc.constant(Duration_.infinity),
-          fc.bigInt({ min: 0n }).map((_) => Duration_.nanos(_)),
-          fc.maxSafeNat().map((_) => Duration_.millis(_))
+          fc.bigInt({ min: 0n }).map(Duration_.nanos),
+          fc.maxSafeNat().map(Duration_.millis)
         )
     },
     pretty: {
@@ -3978,14 +3996,15 @@ export interface UnknownFromJsonString extends decodeTo<Unknown, String> {
 }
 
 /**
- * A schema that decodes a JSON-encoded string into an `unknown` value.
+ * A transformation schema that decodes a JSON-encoded string into an `unknown` value.
  *
- * This schema takes a `string` as input and attempts to parse it as JSON during decoding.
- * If parsing succeeds, the result is passed along as an `unknown` value.
- * If the string is not valid JSON, decoding fails.
+ * Decoding:
+ * - A `string` is decoded as an `unknown` value.
+ * - If the string is not valid JSON, decoding fails.
  *
- * When encoding, any value is converted back into a JSON string using `JSON.stringify`.
- * If the value is not a valid JSON value, encoding fails.
+ * Encoding:
+ * - Any value is encoded as a JSON string using `JSON.stringify`.
+ * - If the value is not a valid JSON value, encoding fails.
  *
  * **Example**
  *
@@ -4104,16 +4123,14 @@ export interface Finite extends Number {
 }
 
 /**
- * A schema for finite numbers that validates and ensures the value is a finite number,
- * excluding `NaN`, `Infinity`, and `-Infinity`.
+ * A schema for finite numbers, rejecting `NaN`, `Infinity`, and `-Infinity`.
  *
  * @since 4.0.0
  */
 export const Finite = Number.check(Check.finite())
 
 /**
- * A schema for integers that validates and ensures the value is an integer,
- * excluding `NaN`, `Infinity`, and `-Infinity`.
+ * A schema for integers, rejecting `NaN`, `Infinity`, and `-Infinity`.
  *
  * @since 4.0.0
  */
@@ -4127,13 +4144,19 @@ export interface FiniteFromString extends decodeTo<Number, String> {
 }
 
 /**
- * A transformation schema that parses a string into a finite number, rejecting
- * `NaN`, `Infinity`, and `-Infinity` values.
+ * A transformation schema that parses a string into a finite number.
+ *
+ * Decoding:
+ * - A `string` is decoded as a finite number, rejecting `NaN`, `Infinity`, and
+ *   `-Infinity` values.
+ *
+ * Encoding:
+ * - A finite number is encoded as a `string`.
  *
  * @since 4.0.0
  */
 export const FiniteFromString: FiniteFromString = String.annotate({
-  description: "a string that will be parsed as a finite number"
+  description: "a string that will be decoded as a finite number"
 }).pipe(
   decodeTo(
     Finite,
@@ -4142,15 +4165,20 @@ export const FiniteFromString: FiniteFromString = String.annotate({
 )
 
 /**
- * Verifies that a string contains no leading or trailing whitespaces.
+ * A schema for strings that contains no leading or trailing whitespaces.
  *
  * @since 4.0.0
  */
 export const Trimmed = String.check(Check.trimmed())
 
 /**
- * A schema that trims whitespace from a string while decoding.
- * While encoding, the string is passed through unchanged.
+ * A transformation schema that trims whitespace from a string.
+ *
+ * Decoding:
+ * - A `string` is decoded as a string with no leading or trailing whitespaces.
+ *
+ * Encoding:
+ * - The trimmed string is encoded as is.
  *
  * @since 4.0.0
  */
@@ -4560,9 +4588,10 @@ export interface DateTimeUtc extends declare<DateTime.Utc> {
 }
 
 /**
- * A schema for `DateTime.Utc` objects.
+ * A schema for `DateTime.Utc` values.
  *
- * The default JSON serializer encodes to a UTC ISO string.
+ * **Default JSON serializer**
+ * - encodes `DateTime.Utc` as a UTC ISO string
  *
  * @category DateTime
  * @since 4.0.0
@@ -4579,7 +4608,6 @@ export const DateTimeUtc: DateTimeUtc = declare(
           encode: Getter.transform(DateTime.formatIso)
         }
       ),
-    // TODO: test arbitrary, pretty and equivalence annotations
     arbitrary: {
       _tag: "Declaration",
       declaration: () => (fc, ctx) =>
@@ -4601,13 +4629,15 @@ export const DateTimeUtc: DateTimeUtc = declare(
 /**
  * @since 4.0.0
  */
-export interface DateTimeUtcFromValidDate extends decodeTo<DateTimeUtc, Date> {
-  readonly "~rebuild.out": DateTimeUtcFromValidDate
+export interface DateTimeUtcFromDate extends decodeTo<DateTimeUtc, Date> {
+  readonly "~rebuild.out": DateTimeUtcFromDate
 }
 
 /**
+ * A transformation schema that decodes a `Date` into a `DateTime.Utc`.
+ *
  * Decoding:
- * - A `Date` is decoded as a `DateTime.Utc`
+ * - A **valid** `Date` is decoded as a `DateTime.Utc`
  *
  * Encoding:
  * - A `DateTime.Utc` is encoded as a `Date`
@@ -4615,7 +4645,7 @@ export interface DateTimeUtcFromValidDate extends decodeTo<DateTimeUtc, Date> {
  * @category DateTime
  * @since 4.0.0
  */
-export const DateTimeUtcFromValidDate: DateTimeUtcFromValidDate = ValidDate.pipe(
+export const DateTimeUtcFromDate: DateTimeUtcFromDate = ValidDate.pipe(
   decodeTo(DateTimeUtc, {
     decode: Getter.dateTimeUtcFromInput(),
     encode: Getter.transform(DateTime.toDateUtc)
@@ -4630,11 +4660,15 @@ export interface DateTimeUtcFromString extends decodeTo<DateTimeUtc, String> {
 }
 
 /**
+ * A transformation schema that decodes a string into a `DateTime.Utc`.
+ *
  * Decoding:
- * - A `string` that can be parsed by `Date.parse` is decoded as a `DateTime.Utc`
+ * - A `string` that can be parsed by `Date.parse` is decoded as a
+ *   `DateTime.Utc`
  *
  * Encoding:
- * - A `DateTime.Utc` is encoded as a `string` in ISO 8601 format
+ * - A `DateTime.Utc` is encoded as a `string` in ISO 8601 format, ignoring any
+ *   time zone.
  *
  * @category DateTime
  * @since 4.0.0
@@ -4651,13 +4685,23 @@ export const DateTimeUtcFromString: DateTimeUtcFromString = String.annotate({
 /**
  * @since 4.0.0
  */
-export interface DateTimeUtcFromNumber extends decodeTo<instanceOf<DateTime.Utc>, Number> {}
+export interface DateTimeUtcFromMillis extends decodeTo<instanceOf<DateTime.Utc>, Number> {}
 
 /**
+ * A transformation schema that decodes a number into a `DateTime.Utc`.
+ *
+ * Decoding:
+ * - A number of milliseconds since the Unix epoch is decoded as a `DateTime.Utc`
+ *
+ * Encoding:
+ * - A `DateTime.Utc` is encoded as a number of milliseconds since the Unix epoch.
+ *
  * @category DateTime
  * @since 4.0.0
  */
-export const DateTimeUtcFromNumber: DateTimeUtcFromNumber = Number.pipe(
+export const DateTimeUtcFromMillis: DateTimeUtcFromMillis = Number.annotate({
+  description: "a number that will be decoded as a DateTime.Utc"
+}).pipe(
   decodeTo(DateTimeUtc, {
     decode: Getter.dateTimeUtcFromInput(),
     encode: Getter.transform(DateTime.toEpochMillis)
@@ -4680,6 +4724,12 @@ export interface declareConstructor<T, E, TypeParameters extends ReadonlyArray<T
 {}
 
 /**
+ * An API for creating schemas for parametric types.
+ *
+ * It is recommended to add the `defaultJsonSerializer` annotation to the schema.
+ *
+ * @see {@link declare} for creating schemas for non parametric types.
+ *
  * @category Constructors
  * @since 4.0.0
  */
@@ -4712,6 +4762,12 @@ export interface declare<T> extends declareConstructor<T, T, readonly []> {
 }
 
 /**
+ * An API for creating schemas for non parametric types.
+ *
+ * It is recommended to add the `defaultJsonSerializer` annotation to the schema.
+ *
+ * @see {@link declareConstructor} for creating schemas for parametric types.
+ *
  * @since 4.0.0
  */
 export function declare<T>(

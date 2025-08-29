@@ -2898,7 +2898,7 @@ describe("ToJsonSchema", () => {
           "contentMediaType": "application/json",
           "contentSchema": {
             "type": "string",
-            "description": "a string that will be parsed as a finite number"
+            "description": "a string that will be decoded as a finite number"
           }
         })
       })
@@ -2920,7 +2920,7 @@ describe("ToJsonSchema", () => {
                 "contentMediaType": "application/json",
                 "contentSchema": {
                   "type": "string",
-                  "description": "a string that will be parsed as a finite number"
+                  "description": "a string that will be decoded as a finite number"
                 }
               }
             },

@@ -54,7 +54,7 @@ import * as Reducer from "../data/Reducer.ts"
 import { dual } from "../Function.ts"
 import * as Equal from "../interfaces/Equal.ts"
 import * as Hash from "../interfaces/Hash.ts"
-import * as Inspectable from "../interfaces/Inspectable.ts"
+import type * as Inspectable from "../interfaces/Inspectable.ts"
 import { NodeInspectSymbol } from "../interfaces/Inspectable.ts"
 import type { Pipeable } from "../interfaces/Pipeable.ts"
 import { pipeArguments } from "../interfaces/Pipeable.ts"
@@ -323,14 +323,21 @@ const DurationProto: Omit<Duration, "value"> = {
     return isDuration(that) && equals(this, that)
   },
   toString(this: Duration) {
-    return Inspectable.format(this.toJSON())
+    switch (this.value._tag) {
+      case "Infinity":
+        return "Infinity"
+      case "Nanos":
+        return `${this.value.nanos} nanos`
+      case "Millis":
+        return `${this.value.millis} millis`
+    }
   },
   toJSON(this: Duration) {
     switch (this.value._tag) {
       case "Millis":
         return { _id: "Duration", _tag: "Millis", millis: this.value.millis }
       case "Nanos":
-        return { _id: "Duration", _tag: "Nanos", hrtime: toHrTime(this) }
+        return { _id: "Duration", _tag: "Nanos", nanos: String(this.value.nanos) }
       case "Infinity":
         return { _id: "Duration", _tag: "Infinity" }
     }

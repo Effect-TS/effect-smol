@@ -2823,7 +2823,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
   })
 
   it("DateTimeUtcFromValidDate", async () => {
-    const schema = Schema.DateTimeUtcFromValidDate
+    const schema = Schema.DateTimeUtcFromDate
     await assertions.decoding.succeed(schema, new Date("2021-01-01T00:00:00.000Z"), {
       expected: DateTime.unsafeMake("2021-01-01T00:00:00.000Z")
     })

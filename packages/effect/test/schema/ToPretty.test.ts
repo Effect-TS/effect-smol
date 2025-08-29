@@ -1,5 +1,6 @@
 import { Option, Redacted } from "effect/data"
 import { Check, Schema, ToPretty } from "effect/schema"
+import { DateTime, Duration } from "effect/time"
 import { describe, it } from "vitest"
 import { strictEqual, throws } from "../utils/assert.ts"
 
@@ -417,6 +418,18 @@ describe("ToPretty", () => {
   it("Redacted(String)", () => {
     const pretty = ToPretty.make(Schema.Redacted(Schema.String))
     strictEqual(pretty(Redacted.make("a")), `<redacted>`)
+  })
+
+  it("Duration", () => {
+    const pretty = ToPretty.make(Schema.Duration)
+    strictEqual(pretty(Duration.millis(100)), `100 millis`)
+    strictEqual(pretty(Duration.nanos(1000n)), `1000 nanos`)
+    strictEqual(pretty(Duration.infinity), "Infinity")
+  })
+
+  it("DateTimeUtc", () => {
+    const pretty = ToPretty.make(Schema.DateTimeUtc)
+    strictEqual(pretty(DateTime.unsafeMake("2021-01-01T00:00:00.000Z")), "DateTime.Utc(2021-01-01T00:00:00.000Z)")
   })
 
   describe("Annotations", () => {

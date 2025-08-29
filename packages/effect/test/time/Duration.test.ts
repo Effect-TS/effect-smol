@@ -233,6 +233,9 @@ describe("Duration", () => {
     deepStrictEqual(Duration.sum(Duration.nanos(30n), Duration.nanos(30n)), Duration.nanos(60n))
     deepStrictEqual(Duration.sum(Duration.seconds(Infinity), Duration.seconds(30)), Duration.seconds(Infinity))
     deepStrictEqual(Duration.sum(Duration.seconds(30), Duration.seconds(Infinity)), Duration.seconds(Infinity))
+    deepStrictEqual(Duration.sum(Duration.seconds(1), Duration.infinity), Duration.infinity)
+    deepStrictEqual(Duration.sum(Duration.infinity, Duration.seconds(1)), Duration.infinity)
+    deepStrictEqual(Duration.sum(Duration.infinity, Duration.infinity), Duration.infinity)
 
     deepStrictEqual(Duration.sum("30 seconds", "30 seconds"), Duration.minutes(1))
   })
@@ -262,9 +265,7 @@ describe("Duration", () => {
     assertFalse(Duration.greaterThan("2 seconds", "2 seconds"))
     assertTrue(Duration.greaterThan("3 seconds", "2 seconds"))
     assertFalse(Duration.greaterThan("2 seconds", "3 seconds"))
-  })
 
-  it("greaterThan - Infinity", () => {
     assertTrue(pipe(Duration.infinity, Duration.greaterThan(Duration.seconds(20))))
     assertFalse(pipe(Duration.seconds(-Infinity), Duration.greaterThan(Duration.infinity)))
     assertFalse(pipe(Duration.nanos(1n), Duration.greaterThan(Duration.infinity)))
@@ -314,60 +315,13 @@ describe("Duration", () => {
     assertTrue(Duration.lessThanOrEqualTo("2 seconds", "3 seconds"))
   })
 
-  it("String()", () => {
-    strictEqual(
-      String(Duration.infinity),
-      `{
-  "_id": "Duration",
-  "_tag": "Infinity"
-}`
-    )
-    strictEqual(
-      String(Duration.nanos(10n)),
-      `{
-  "_id": "Duration",
-  "_tag": "Nanos",
-  "hrtime": [
-    0,
-    10
-  ]
-}`
-    )
-    strictEqual(
-      String(Duration.millis(2)),
-      `{
-  "_id": "Duration",
-  "_tag": "Millis",
-  "millis": 2
-}`
-    )
-    strictEqual(
-      String(Duration.millis(2.125)),
-      `{
-  "_id": "Duration",
-  "_tag": "Nanos",
-  "hrtime": [
-    0,
-    2125000
-  ]
-}`
-    )
-    strictEqual(
-      String(Duration.seconds(2)),
-      `{
-  "_id": "Duration",
-  "_tag": "Millis",
-  "millis": 2000
-}`
-    )
-    strictEqual(
-      String(Duration.seconds(2.5)),
-      `{
-  "_id": "Duration",
-  "_tag": "Millis",
-  "millis": 2500
-}`
-    )
+  it("toString()", () => {
+    strictEqual(String(Duration.infinity), `Infinity`)
+    strictEqual(String(Duration.nanos(10n)), `10 nanos`)
+    strictEqual(String(Duration.millis(2)), `2 millis`)
+    strictEqual(String(Duration.millis(2.125)), `2125000 nanos`)
+    strictEqual(String(Duration.seconds(2)), `2000 millis`)
+    strictEqual(String(Duration.seconds(2.5)), `2500 millis`)
   })
 
   it("format", () => {
@@ -382,7 +336,7 @@ describe("Duration", () => {
     strictEqual(Duration.format(Duration.zero), `0`)
   })
 
-  it("format", () => {
+  it("parts", () => {
     deepStrictEqual(Duration.parts(Duration.infinity), {
       days: Infinity,
       hours: Infinity,
@@ -413,17 +367,8 @@ describe("Duration", () => {
 
   it("toJSON", () => {
     deepStrictEqual(Duration.seconds(2).toJSON(), { _id: "Duration", _tag: "Millis", millis: 2000 })
-  })
-
-  it("toJSON/ non-integer millis", () => {
-    deepStrictEqual(Duration.millis(1.5).toJSON(), { _id: "Duration", _tag: "Nanos", hrtime: [0, 1_500_000] })
-  })
-
-  it("toJSON/ nanos", () => {
-    deepStrictEqual(Duration.nanos(5n).toJSON(), { _id: "Duration", _tag: "Nanos", hrtime: [0, 5] })
-  })
-
-  it("toJSON/ infinity", () => {
+    deepStrictEqual(Duration.nanos(5n).toJSON(), { _id: "Duration", _tag: "Nanos", nanos: "5" })
+    deepStrictEqual(Duration.millis(1.5).toJSON(), { _id: "Duration", _tag: "Nanos", nanos: "1500000" })
     deepStrictEqual(Duration.infinity.toJSON(), { _id: "Duration", _tag: "Infinity" })
   })
 
@@ -433,10 +378,6 @@ describe("Duration", () => {
       const { inspect } = require("node:util")
       deepStrictEqual(inspect(Duration.millis(1000)), inspect({ _id: "Duration", _tag: "Millis", millis: 1000 }))
     }
-  })
-
-  it("sum/ Infinity", () => {
-    deepStrictEqual(Duration.sum(Duration.seconds(1), Duration.infinity), Duration.infinity)
   })
 
   it(".pipe()", () => {
@@ -449,11 +390,7 @@ describe("Duration", () => {
   })
 
   it("zero", () => {
-    deepStrictEqual(Duration.zero.value, { _tag: "Millis", millis: 0 })
-  })
-
-  it("infinity", () => {
-    deepStrictEqual(Duration.infinity.value, { _tag: "Infinity" })
+    deepStrictEqual(Duration.sum(Duration.seconds(1), Duration.zero), Duration.seconds(1))
   })
 
   it("weeks", () => {

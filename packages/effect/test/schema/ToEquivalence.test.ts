@@ -1,5 +1,6 @@
 import { Equivalence, Option, Redacted } from "effect/data"
 import { Check, Schema, ToEquivalence } from "effect/schema"
+import { DateTime, Duration } from "effect/time"
 import { describe, it } from "vitest"
 import { assertFalse, assertTrue, throws } from "../utils/assert.ts"
 
@@ -339,6 +340,28 @@ describe("ToEquivalence", () => {
     assertFalse(equivalence(new Map([["a", 1]]), new Map([["a", 2]])))
     assertFalse(equivalence(new Map([["a", 1]]), new Map([["a", 1], ["b", 2]])))
     assertFalse(equivalence(new Map([["a", 1], ["b", 2]]), new Map([["a", 1]])))
+  })
+
+  it("Duration", () => {
+    const schema = Schema.Duration
+    const equivalence = ToEquivalence.make(schema)
+    assertTrue(equivalence(Duration.millis(1), Duration.millis(1)))
+    assertFalse(equivalence(Duration.millis(1), Duration.millis(2)))
+    assertTrue(equivalence(Duration.nanos(1n), Duration.nanos(1n)))
+    assertFalse(equivalence(Duration.nanos(1n), Duration.nanos(2n)))
+    assertTrue(equivalence(Duration.infinity, Duration.infinity))
+    assertFalse(equivalence(Duration.infinity, Duration.millis(1)))
+  })
+
+  it("DateTimeUtc", () => {
+    const schema = Schema.DateTimeUtc
+    const equivalence = ToEquivalence.make(schema)
+    assertTrue(
+      equivalence(DateTime.unsafeMake("2021-01-01T00:00:00.000Z"), DateTime.unsafeMake("2021-01-01T00:00:00.000Z"))
+    )
+    assertFalse(
+      equivalence(DateTime.unsafeMake("2021-01-01T00:00:00.000Z"), DateTime.unsafeMake("2021-01-01T00:00:00.001Z"))
+    )
   })
 
   describe("Annotations", () => {
