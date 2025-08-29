@@ -35,7 +35,7 @@ export const layerHandlers = Runners.Rpcs.toLayer(Effect.gen(function*() {
           ? new Message.IncomingRequest({
             envelope,
             respond: constVoid,
-            lastSentReply: Option.none()
+            lastSentReply: undefined
           })
           : new Message.IncomingEnvelope({ envelope })
       ),
@@ -44,7 +44,7 @@ export const layerHandlers = Runners.Rpcs.toLayer(Effect.gen(function*() {
       let replyEncoded: Reply.Encoded | undefined
       const message = new Message.IncomingRequest({
         envelope: request,
-        lastSentReply: Option.none(),
+        lastSentReply: undefined,
         respond(reply) {
           return Effect.flatMap(Reply.serialize(reply), (reply) => {
             if (resume) {
@@ -79,7 +79,7 @@ export const layerHandlers = Runners.Rpcs.toLayer(Effect.gen(function*() {
         (queue) => {
           const message = new Message.IncomingRequest({
             envelope: request,
-            lastSentReply: Option.none(),
+            lastSentReply: undefined,
             respond(reply) {
               return Effect.flatMap(Reply.serialize(reply), (reply) => Queue.offer(queue, reply))
             }

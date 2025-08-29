@@ -1,6 +1,7 @@
 /**
  * @since 4.0.0
  */
+import type { LazyArg } from "../Function.ts"
 import { dual } from "../Function.ts"
 import * as Combiner from "./Combiner.ts"
 import * as Reducer from "./Reducer.ts"
@@ -12,6 +13,26 @@ export const map: {
   <A, B>(f: (a: A) => B): (self: A | undefined) => B | undefined
   <A, B>(self: A | undefined, f: (a: A) => B): B | undefined
 } = dual(2, (self, f) => (self === undefined ? undefined : f(self)))
+
+/**
+ * @since 4.0.0
+ */
+export const match: {
+  <B, A, C = B>(options: {
+    readonly onUndefined: LazyArg<B>
+    readonly onDefined: (a: A) => C
+  }): (self: A | undefined) => B | C
+  <A, B, C = B>(self: A | undefined, options: {
+    readonly onUndefined: LazyArg<B>
+    readonly onDefined: (a: A) => C
+  }): B | C
+} = dual(
+  2,
+  <A, B, C = B>(self: A | undefined, { onDefined, onUndefined }: {
+    readonly onUndefined: LazyArg<B>
+    readonly onDefined: (a: A) => C
+  }): B | C => self === undefined ? onUndefined() : onDefined(self)
+)
 
 /**
  * Creates a `Reducer` for `UndefinedOr<A>` that prioritizes the first non-`undefined`

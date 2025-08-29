@@ -1,6 +1,5 @@
 import { describe, expect, it } from "@effect/vitest"
 import { Effect, Exit, Layer, ServiceMap } from "effect"
-import { Option } from "effect/data"
 import { Schema } from "effect/schema"
 import {
   EntityAddress,
@@ -120,7 +119,7 @@ export const makeRequest = Effect.fnUntraced(function*(options?: {
     }),
     services: ServiceMap.empty() as any,
     rpc,
-    lastReceivedReply: Option.none(),
+    lastReceivedReply: undefined,
     respond() {
       return Effect.void
     }

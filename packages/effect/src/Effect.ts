@@ -1216,13 +1216,22 @@ export const suspend: <A, E, R>(
  */
 export const sync: <A>(thunk: LazyArg<A>) => Effect<A> = internal.sync
 
-const _void: Effect<void> = internal.void
+const void_: Effect<void> = internal.void
 export {
   /**
    * @since 2.0.0
    * @category Creating Effects
    */
-  _void as void
+  void_ as void
+}
+
+const undefined_: Effect<undefined> = succeed(undefined)
+export {
+  /**
+   * @since 4.0.0
+   * @category Creating Effects
+   */
+  undefined_ as undefined
 }
 
 /**
@@ -10925,7 +10934,7 @@ export const transactionWith = <A, E, R>(
             restore(suspend(() => f(state))).pipe(
               provideService(Transaction, state),
               tapCause(() => {
-                if (!state.retry) return _void
+                if (!state.retry) return void_
                 return restore(awaitPendingTransaction(state))
               }),
               exit
@@ -10969,7 +10978,7 @@ const awaitPendingTransaction = (state: Transaction["Service"]) =>
     return callback<void>((resume) => {
       const onCall = () => {
         clearPending()
-        resume(_void)
+        resume(void_)
       }
       for (const ref of refs) {
         ref.pending.set(key, onCall)

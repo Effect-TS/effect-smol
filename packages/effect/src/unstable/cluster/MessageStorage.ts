@@ -5,6 +5,7 @@ import * as Arr from "../../collections/Array.ts"
 import * as Data from "../../data/Data.ts"
 import * as Option from "../../data/Option.ts"
 import type { Predicate } from "../../data/Predicate.ts"
+import * as UndefinedOr from "../../data/UndefinedOr.ts"
 import * as Effect from "../../Effect.ts"
 import * as Exit from "../../Exit.ts"
 import * as Layer from "../../Layer.ts"
@@ -81,7 +82,7 @@ export class MessageStorage extends ServiceMap.Key<MessageStorage, {
       readonly tag: string
       readonly id: string
     }
-  ) => Effect.Effect<Option.Option<Snowflake.Snowflake>, PersistenceError>
+  ) => Effect.Effect<Snowflake.Snowflake | undefined, PersistenceError>
 
   /**
    * For locally sent messages, register a handler to process the replies.
@@ -177,7 +178,7 @@ export declare namespace SaveResult {
   export interface Duplicate<R extends Rpc.Any> {
     readonly _tag: "Duplicate"
     readonly originalId: Snowflake.Snowflake
-    readonly lastReceivedReply: Option.Option<Reply.Reply<R>>
+    readonly lastReceivedReply: Reply.Reply<R> | undefined
   }
 
   /**
@@ -187,7 +188,7 @@ export declare namespace SaveResult {
   export interface DuplicateEncoded {
     readonly _tag: "Duplicate"
     readonly originalId: Snowflake.Snowflake
-    readonly lastReceivedReply: Option.Option<Reply.Encoded>
+    readonly lastReceivedReply: Reply.Encoded | undefined
   }
 
   /**
@@ -230,7 +231,7 @@ export type Encoded = {
    */
   readonly requestIdForPrimaryKey: (
     primaryKey: string
-  ) => Effect.Effect<Option.Option<Snowflake.Snowflake>, PersistenceError>
+  ) => Effect.Effect<Snowflake.Snowflake | undefined, PersistenceError>
 
   /**
    * Retrieves the replies for the specified requests.
@@ -267,7 +268,7 @@ export type Encoded = {
   ) => Effect.Effect<
     Array<{
       readonly envelope: Envelope.Encoded
-      readonly lastSentReply: Option.Option<Reply.Encoded>
+      readonly lastSentReply: Reply.Encoded | undefined
     }>,
     PersistenceError
   >
@@ -281,7 +282,7 @@ export type Encoded = {
   ) => Effect.Effect<
     Array<{
       readonly envelope: Envelope.Encoded
-      readonly lastSentReply: Option.Option<Reply.Encoded>
+      readonly lastSentReply: Reply.Encoded | undefined
     }>,
     PersistenceError
   >
@@ -386,18 +387,18 @@ export const makeEncoded: (encoded: Encoded) => Effect.Effect<
           })
         ),
         Effect.flatMap((result) => {
-          if (result._tag === "Success" || result.lastReceivedReply._tag === "None") {
+          if (result._tag === "Success" || result.lastReceivedReply === undefined) {
             return Effect.succeed(result as SaveResult<any>)
           }
           const duplicate = result
           const schema = Reply.Reply(message.rpc)
-          return Schema.decodeEffect(schema)(result.lastReceivedReply.value).pipe(
+          return Schema.decodeEffect(schema)(result.lastReceivedReply).pipe(
             Effect.provideServices(message.services),
             MalformedMessage.refail,
-            Effect.map((reply) =>
+            Effect.map((lastReceivedReply) =>
               SaveResult.Duplicate({
                 originalId: duplicate.originalId,
-                lastReceivedReply: Option.some(reply)
+                lastReceivedReply
               })
             )
           )
@@ -459,7 +460,7 @@ export const makeEncoded: (encoded: Encoded) => Effect.Effect<
   const decodeMessages = (
     envelopes: Array<{
       readonly envelope: Envelope.Encoded
-      readonly lastSentReply: Option.Option<Reply.Encoded>
+      readonly lastSentReply: Reply.Encoded | undefined
     }>
   ) => {
     const messages: Array<Message.Incoming<any>> = []
@@ -470,7 +471,7 @@ export const makeEncoded: (encoded: Encoded) => Effect.Effect<
     const decodeMessage = Effect.catch(
       Effect.suspend(() => {
         const envelope = envelopes[index]
-        if (!envelope) return Effect.succeed(undefined)
+        if (!envelope) return Effect.undefined
         return decodeEnvelopeWithReply(envelope)
       }),
       (error) => {
@@ -568,7 +569,7 @@ export const noop: MessageStorage["Service"] = Effect.runSync(make({
   clearReplies: () => Effect.void,
   repliesFor: () => Effect.succeed([]),
   repliesForUnfiltered: () => Effect.succeed([]),
-  requestIdForPrimaryKey: () => Effect.succeedNone,
+  requestIdForPrimaryKey: () => Effect.undefined,
   unprocessedMessages: () => Effect.succeed([]),
   unprocessedMessagesById: () => Effect.succeed([]),
   resetAddress: () => Effect.void,
@@ -582,7 +583,7 @@ export const noop: MessageStorage["Service"] = Effect.runSync(make({
  */
 export type MemoryEntry = {
   readonly envelope: Envelope.Encoded
-  lastReceivedChunk: Option.Option<Reply.ChunkEncoded>
+  lastReceivedChunk: Reply.ChunkEncoded | undefined
   replies: Array<Reply.Encoded>
   deliverAt: number | null
 }
@@ -606,7 +607,7 @@ export class MemoryDriver extends ServiceMap.Key<MemoryDriver>()("effect/cluster
     const unprocessedWith = (predicate: Predicate<Envelope.Encoded>) => {
       const messages: Array<{
         readonly envelope: Envelope.Encoded
-        readonly lastSentReply: Option.Option<Reply.Encoded>
+        readonly lastSentReply: Reply.Encoded | undefined
       }> = []
       const now = clock.currentTimeMillisUnsafe()
       for (const envelope of unprocessed) {
@@ -620,12 +621,12 @@ export class MemoryDriver extends ServiceMap.Key<MemoryDriver>()("effect/cluster
           }
           messages.push({
             envelope,
-            lastSentReply: Option.fromNullishOr(entry?.replies[entry.replies.length - 1])
+            lastSentReply: entry?.replies.at(-1)
           })
         } else {
           messages.push({
             envelope,
-            lastSentReply: Option.none()
+            lastSentReply: undefined
           })
         }
       }
@@ -639,12 +640,12 @@ export class MemoryDriver extends ServiceMap.Key<MemoryDriver>()("effect/cluster
       for (const requestId of requestIds) {
         const request = requests.get(requestId)
         if (!request) continue
-        else if (Option.isNone(request.lastReceivedChunk)) {
+        else if (request.lastReceivedChunk === undefined) {
           // eslint-disable-next-line no-restricted-syntax
           replies.push(...request.replies)
           continue
         }
-        const sequence = request.lastReceivedChunk.value.sequence
+        const sequence = request.lastReceivedChunk.sequence
         for (const reply of request.replies) {
           if (reply._tag === "Chunk" && reply.sequence <= sequence) {
             continue
@@ -666,12 +667,12 @@ export class MemoryDriver extends ServiceMap.Key<MemoryDriver>()("effect/cluster
             return SaveResultEncoded.Duplicate({
               originalId: Snowflake.Snowflake(existing.envelope.requestId),
               lastReceivedReply: existing.replies.length === 1 && existing.replies[0]._tag === "WithExit"
-                ? Option.some(existing.replies[0])
+                ? existing.replies[0]
                 : existing.lastReceivedChunk
             })
           }
           if (envelope._tag === "Request") {
-            const entry: MemoryEntry = { envelope, replies: [], lastReceivedChunk: Option.none(), deliverAt }
+            const entry: MemoryEntry = { envelope, replies: [], lastReceivedChunk: undefined, deliverAt }
             requests.set(envelope.requestId, entry)
             if (primaryKey) {
               requestsByPrimaryKey.set(primaryKey, entry)
@@ -682,7 +683,7 @@ export class MemoryDriver extends ServiceMap.Key<MemoryDriver>()("effect/cluster
               entry.lastReceivedChunk = Arr.findFirst(
                 entry.replies,
                 (r): r is Reply.ChunkEncoded => r._tag === "Chunk" && r.id === envelope.replyId
-              ).pipe(Option.orElse(() => entry.lastReceivedChunk))
+              ).pipe(Option.getOrUndefined) ?? entry.lastReceivedChunk
             }
           }
           unprocessed.add(envelope)
@@ -706,13 +707,13 @@ export class MemoryDriver extends ServiceMap.Key<MemoryDriver>()("effect/cluster
           const entry = requests.get(String(id))
           if (!entry) return
           entry.replies = []
-          entry.lastReceivedChunk = Option.none()
+          entry.lastReceivedChunk = undefined
           unprocessed.add(entry.envelope)
         }),
       requestIdForPrimaryKey: (primaryKey) =>
         Effect.sync(() => {
           const entry = requestsByPrimaryKey.get(primaryKey)
-          return Option.fromNullishOr(entry?.envelope.requestId).pipe(Option.map(Snowflake.Snowflake))
+          return UndefinedOr.map(entry?.envelope.requestId, Snowflake.Snowflake)
         }),
       repliesFor: (requestIds) => Effect.sync(() => repliesFor(requestIds)),
       repliesForUnfiltered: (requestIds) =>
@@ -723,7 +724,7 @@ export class MemoryDriver extends ServiceMap.Key<MemoryDriver>()("effect/cluster
           const now = clock.currentTimeMillisUnsafe()
           const messages = Arr.empty<{
             envelope: Envelope.Encoded
-            lastSentReply: Option.Option<Reply.Encoded>
+            lastSentReply: Reply.Encoded | undefined
           }>()
           for (let index = 0; index < journal.length; index++) {
             const envelope = journal[index]
@@ -738,12 +739,12 @@ export class MemoryDriver extends ServiceMap.Key<MemoryDriver>()("effect/cluster
               }
               messages.push({
                 envelope,
-                lastSentReply: Arr.last(entry.replies)
+                lastSentReply: entry.replies.at(-1)
               })
             } else {
               messages.push({
                 envelope,
-                lastSentReply: Option.none()
+                lastSentReply: undefined
               })
               unprocessed.delete(envelope)
             }
@@ -824,11 +825,11 @@ const EnvelopeWithReply: Schema.Struct<
       Envelope.PartialRequest | Envelope.AckChunk | Envelope.Interrupt,
       unknown
     >
-    readonly lastSentReply: Schema.Option<Schema.Codec<Reply.Encoded, unknown, never, never>>
+    readonly lastSentReply: Schema.UndefinedOr<Schema.Codec<Reply.Encoded, unknown, never, never>>
   }
 > = Schema.Struct({
   envelope: Serializer.json(Envelope.Partial),
-  lastSentReply: Schema.Option(Serializer.json(Reply.Encoded))
+  lastSentReply: Schema.UndefinedOr(Serializer.json(Reply.Encoded))
 })
 
 const decodeEnvelopeWithReply = Schema.decodeEffect(EnvelopeWithReply)

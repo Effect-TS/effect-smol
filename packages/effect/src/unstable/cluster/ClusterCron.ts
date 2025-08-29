@@ -1,7 +1,7 @@
 /**
  * @since 4.0.0
  */
-import * as Option from "../../data/Option.ts"
+import * as UndefinedOr from "../../data/UndefinedOr.ts"
 import * as Effect from "../../Effect.ts"
 import * as PrimaryKey from "../../interfaces/PrimaryKey.ts"
 import * as Layer from "../../Layer.ts"
@@ -75,10 +75,7 @@ export const make = <E, R>(options: {
     { shardGroup: options.shardGroup }
   )
 
-  const skipIfOlderThan = Option.fromNullishOr(options.skipIfOlderThan).pipe(
-    Option.map(Duration.decode),
-    Option.getOrElse(() => Duration.days(1))
-  )
+  const skipIfOlderThan = UndefinedOr.map(options.skipIfOlderThan, Duration.decode) ?? Duration.days(1)
 
   const effect = Effect.fnUntraced(function*(dateTime: DateTime.Utc) {
     const now = yield* DateTime.now

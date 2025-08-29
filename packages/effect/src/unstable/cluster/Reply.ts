@@ -3,7 +3,6 @@
  */
 import type { NonEmptyReadonlyArray } from "../../collections/Array.ts"
 import * as Data from "../../data/Data.ts"
-import type * as Option from "../../data/Option.ts"
 import { hasProperty } from "../../data/Predicate.ts"
 import * as Effect from "../../Effect.ts"
 import * as Exit from "../../Exit.ts"
@@ -328,12 +327,12 @@ export const serialize = <R extends Rpc.Any>(
  */
 export const serializeLastReceived = <R extends Rpc.Any>(
   self: OutgoingRequest<R>
-): Effect.Effect<Option.Option<Encoded>, MalformedMessage> => {
-  if (self.lastReceivedReply._tag === "None") {
-    return Effect.succeedNone
+): Effect.Effect<Encoded | undefined, MalformedMessage> => {
+  if (self.lastReceivedReply === undefined) {
+    return Effect.undefined
   }
   const schema = Reply(self.rpc)
-  return Effect.asSome(MalformedMessage.refail(
-    Effect.provideServices(Schema.encodeEffect(schema)(self.lastReceivedReply.value), self.services)
-  ))
+  return MalformedMessage.refail(
+    Effect.provideServices(Schema.encodeEffect(schema)(self.lastReceivedReply), self.services)
+  )
 }

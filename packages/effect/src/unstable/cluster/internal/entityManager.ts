@@ -1,6 +1,7 @@
 import * as Cause from "../../../Cause.ts"
 import * as Arr from "../../../collections/Array.ts"
 import * as Option from "../../../data/Option.ts"
+import * as UndefinedOr from "../../../data/UndefinedOr.ts"
 import * as Effect from "../../../Effect.ts"
 import * as Exit from "../../../Exit.ts"
 import { identity } from "../../../Function.ts"
@@ -366,9 +367,9 @@ export const make = Effect.fnUntraced(function*<
                 message,
                 sentReply: false,
                 lastSentChunk: message.lastSentReply as any,
-                sequence: Option.match(message.lastSentReply, {
-                  onNone: () => 0,
-                  onSome: (reply) => reply._tag === "Chunk" ? reply.sequence + 1 : 0
+                sequence: UndefinedOr.match(message.lastSentReply, {
+                  onUndefined: () => 0,
+                  onDefined: (reply) => reply._tag === "Chunk" ? reply.sequence + 1 : 0
                 })
               }
               server.activeRequests.set(message.envelope.requestId, entry)
@@ -500,7 +501,7 @@ const makeMessageSchema = <Type extends string, Rpcs extends Rpc.Any>(entity: En
   {
     readonly _tag: "IncomingRequest"
     readonly envelope: Envelope.Request.Any
-    readonly lastSentReply: Option.Option<Reply.Reply<Rpcs>>
+    readonly lastSentReply: Reply.Reply<Rpcs> | undefined
   } | {
     readonly _tag: "IncomingEnvelope"
     readonly envelope: Envelope.AckChunk | Envelope.Interrupt
