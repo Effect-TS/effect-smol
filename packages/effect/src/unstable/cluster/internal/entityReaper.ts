@@ -34,7 +34,7 @@ export class EntityReaper extends ServiceMap.Key<EntityReaper>()("effect/cluster
     yield* Effect.gen(function*() {
       while (true) {
         yield* Effect.sleep(currentResolution)
-        const now = clock.unsafeCurrentTimeMillis()
+        const now = clock.currentTimeMillisUnsafe()
         for (const { entities, maxIdleTime, servers } of registered) {
           for (const state of servers.values()) {
             const duration = now - state.lastActiveCheck

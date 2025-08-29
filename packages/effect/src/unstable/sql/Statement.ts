@@ -497,7 +497,7 @@ export const make = (
         sql: string,
         params?: ReadonlyArray<Primitive>
       ) {
-        return unsafeMake<A>(
+        return makeUnsafe<A>(
           [literal(sql, params)],
           acquirer,
           compiler,
@@ -574,7 +574,7 @@ export const statement = <A = Row>(
     }
   }
 
-  return unsafeMake(segments, acquirer, compiler, spanAttributes, transformRows)
+  return makeUnsafe(segments, acquirer, compiler, spanAttributes, transformRows)
 }
 
 /**
@@ -1129,7 +1129,7 @@ interface StatementImpl<A> extends Statement<A> {
   ): Effect.Effect<XA, E | SqlError>
 }
 
-const unsafeMake = <A = Row>(
+const makeUnsafe = <A = Row>(
   segments: ReadonlyArray<Segment>,
   acquirer: Acquirer,
   compiler: Compiler,
@@ -1254,7 +1254,7 @@ const StatementProto: Omit<
     this: StatementImpl<any>,
     fiber: Fiber.Fiber<any, any>
   ): Effect.Effect<ReadonlyArray<any>, SqlError> {
-    const span = internalEffect.unsafeMakeSpan(fiber, "sql.execute", { kind: "client", captureStackTrace: false })
+    const span = internalEffect.makeSpanUnsafe(fiber, "sql.execute", { kind: "client", captureStackTrace: false })
     const clock = fiber.getRef(Clock)
     return Effect.onExit(
       this.withConnectionSpan(

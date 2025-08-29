@@ -269,7 +269,7 @@ const QueueProto = {
     return {
       _id: "effect/Queue",
       state: this.state._tag,
-      size: unsafeSize(this)
+      size: sizeUnsafe(this)
     }
   }
 }
@@ -542,12 +542,12 @@ export const offer = <A, E>(self: Queue<A, E>, message: A): Effect<boolean> =>
  *   const queue = yield* Queue.bounded<number>(3)
  *
  *   // Add messages synchronously using unsafe API
- *   const success1 = Queue.unsafeOffer(queue, 1)
- *   const success2 = Queue.unsafeOffer(queue, 2)
+ *   const success1 = Queue.offerUnsafe(queue, 1)
+ *   const success2 = Queue.offerUnsafe(queue, 2)
  *   console.log(success1, success2) // true, true
  *
  *   // Check current size
- *   const size = Queue.unsafeSize(queue)
+ *   const size = Queue.sizeUnsafe(queue)
  *   console.log(size) // 2
  * })
  * ```
@@ -555,7 +555,7 @@ export const offer = <A, E>(self: Queue<A, E>, message: A): Effect<boolean> =>
  * @category offering
  * @since 4.0.0
  */
-export const unsafeOffer = <A, E>(self: Queue<A, E>, message: A): boolean => {
+export const offerUnsafe = <A, E>(self: Queue<A, E>, message: A): boolean => {
   if (self.state._tag !== "Open") {
     return false
   } else if (self.messages.length >= self.capacity) {
@@ -613,7 +613,7 @@ export const offerAll = <A, E>(self: Queue<A, E>, messages: Iterable<A>): Effect
     if (self.state._tag !== "Open") {
       return internalEffect.succeed(Arr.fromIterable(messages))
     }
-    const remaining = unsafeOfferAll(self, messages)
+    const remaining = offerAllUnsafe(self, messages)
     if (remaining.length === 0) {
       return core.exitSucceed([])
     } else if (self.strategy === "dropping") {
@@ -638,11 +638,11 @@ export const offerAll = <A, E>(self: Queue<A, E>, messages: Iterable<A>): Effect
  *   const queue = yield* Queue.bounded<number>(3)
  *
  *   // Try to add 5 messages to capacity-3 queue using unsafe API
- *   const remaining = Queue.unsafeOfferAll(queue, [1, 2, 3, 4, 5])
+ *   const remaining = Queue.offerAllUnsafe(queue, [1, 2, 3, 4, 5])
  *   console.log(remaining) // [4, 5] - couldn't fit the last 2
  *
  *   // Check what's in the queue
- *   const size = Queue.unsafeSize(queue)
+ *   const size = Queue.sizeUnsafe(queue)
  *   console.log(size) // 3
  * })
  * ```
@@ -650,7 +650,7 @@ export const offerAll = <A, E>(self: Queue<A, E>, messages: Iterable<A>): Effect
  * @category offering
  * @since 4.0.0
  */
-export const unsafeOfferAll = <A, E>(self: Queue<A, E>, messages: Iterable<A>): Array<A> => {
+export const offerAllUnsafe = <A, E>(self: Queue<A, E>, messages: Iterable<A>): Array<A> => {
   if (self.state._tag !== "Open") {
     return Arr.fromIterable(messages)
   } else if (
@@ -794,11 +794,11 @@ export const end = <A, E>(self: Queue<A, E | Done>): Effect<boolean> => done(sel
  *   const queue = yield* Queue.bounded<number, Queue.Done>(10)
  *
  *   // Add some messages
- *   Queue.unsafeOffer(queue, 1)
- *   Queue.unsafeOffer(queue, 2)
+ *   Queue.offerUnsafe(queue, 1)
+ *   Queue.offerUnsafe(queue, 2)
  *
  *   // End the queue synchronously
- *   const ended = Queue.unsafeEnd(queue)
+ *   const ended = Queue.endUnsafe(queue)
  *   console.log(ended) // true
  *
  *   // The queue is now done
@@ -809,7 +809,7 @@ export const end = <A, E>(self: Queue<A, E | Done>): Effect<boolean> => done(sel
  * @category completion
  * @since 4.0.0
  */
-export const unsafeEnd = <A, E>(self: Queue<A, E | Done>) => unsafeDone(self, internalEffect.exitVoid)
+export const endUnsafe = <A, E>(self: Queue<A, E | Done>) => doneUnsafe(self, internalEffect.exitVoid)
 
 /**
  * Signal that the queue is done with a specific exit value. If the queue is already done, `false` is
@@ -844,7 +844,7 @@ export const unsafeEnd = <A, E>(self: Queue<A, E | Done>) => unsafeDone(self, in
  * @since 4.0.0
  */
 export const done = <A, E>(self: Queue<A, E>, exit: Exit<Done extends E ? unknown : never, E>): Effect<boolean> =>
-  internalEffect.sync(() => unsafeDone(self, exit))
+  internalEffect.sync(() => doneUnsafe(self, exit))
 
 /**
  * Signal that the queue is done synchronously with a specific exit value. If the queue is already done, `false` is
@@ -862,12 +862,12 @@ export const done = <A, E>(self: Queue<A, E>, exit: Exit<Done extends E ? unknow
  *   const queue = yield* Queue.bounded<number, Queue.Done>(10)
  *
  *   // Add some messages
- *   Queue.unsafeOffer(queue, 1)
- *   Queue.unsafeOffer(queue, 2)
+ *   Queue.offerUnsafe(queue, 1)
+ *   Queue.offerUnsafe(queue, 2)
  *
  *   // Mark as done with success exit
  *   const successExit = Exit.succeed(undefined)
- *   const isDone = Queue.unsafeDone(queue, successExit)
+ *   const isDone = Queue.doneUnsafe(queue, successExit)
  *   console.log(isDone) // true
  *   console.log(queue.state._tag) // "Done"
  * })
@@ -876,7 +876,7 @@ export const done = <A, E>(self: Queue<A, E>, exit: Exit<Done extends E ? unknow
  * @category completion
  * @since 4.0.0
  */
-export const unsafeDone = <A, E>(self: Queue<A, E>, exit: Exit<Done extends E ? unknown : never, E>): boolean => {
+export const doneUnsafe = <A, E>(self: Queue<A, E>, exit: Exit<Done extends E ? unknown : never, E>): boolean => {
   if (self.state._tag !== "Open") {
     return false
   }
@@ -985,7 +985,7 @@ export const clear = <A, E>(self: Dequeue<A, E>): Effect<Array<A>, E> =>
       }
       return self.state.exit
     }
-    const messages = unsafeTakeAll(self)
+    const messages = takeAllUnsafe(self)
     releaseCapacity(self)
     return internalEffect.succeed(messages)
   })
@@ -1165,7 +1165,7 @@ export const takeBetween = <A, E>(
   max: number
 ): Effect<Array<A>, E> =>
   internalEffect.suspend(() =>
-    unsafeTakeBetween(self, min, max) ?? internalEffect.andThen(awaitTake(self), takeBetween(self, 1, max))
+    takeBetweenUnsafe(self, min, max) ?? internalEffect.andThen(awaitTake(self), takeBetween(self, 1, max))
   )
 
 /**
@@ -1209,7 +1209,7 @@ export const takeBetween = <A, E>(
  */
 export const take = <A, E>(self: Dequeue<A, E>): Effect<A, E> =>
   internalEffect.suspend(
-    () => unsafeTake(self) ?? internalEffect.andThen(awaitTake(self), take(self))
+    () => takeUnsafe(self) ?? internalEffect.andThen(awaitTake(self), take(self))
   )
 
 /**
@@ -1232,18 +1232,18 @@ export const take = <A, E>(self: Dequeue<A, E>): Effect<A, E> =>
  *   const queue = yield* Queue.bounded<number>(10)
  *
  *   // Add some messages
- *   Queue.unsafeOffer(queue, 1)
- *   Queue.unsafeOffer(queue, 2)
+ *   Queue.offerUnsafe(queue, 1)
+ *   Queue.offerUnsafe(queue, 2)
  *
  *   // Take a message synchronously
- *   const result1 = Queue.unsafeTake(queue)
+ *   const result1 = Queue.takeUnsafe(queue)
  *   console.log(result1) // Success(1) or Exit containing value 1
  *
- *   const result2 = Queue.unsafeTake(queue)
+ *   const result2 = Queue.takeUnsafe(queue)
  *   console.log(result2) // Success(2)
  *
  *   // No more messages - returns undefined
- *   const result3 = Queue.unsafeTake(queue)
+ *   const result3 = Queue.takeUnsafe(queue)
  *   console.log(result3) // undefined
  * })
  * ```
@@ -1251,7 +1251,7 @@ export const take = <A, E>(self: Dequeue<A, E>): Effect<A, E> =>
  * @category taking
  * @since 4.0.0
  */
-export const unsafeTake = <A, E>(self: Dequeue<A, E>): Exit<A, E> | undefined => {
+export const takeUnsafe = <A, E>(self: Dequeue<A, E>): Exit<A, E> | undefined => {
   if (self.state._tag === "Done") {
     return self.state.exit
   }
@@ -1333,13 +1333,13 @@ import * as Option from "effect/data/Option"
  * @category size
  * @since 4.0.0
  */
-export const size = <A, E>(self: Dequeue<A, E>): Effect<number> => internalEffect.sync(() => unsafeSize(self))
+export const size = <A, E>(self: Dequeue<A, E>): Effect<number> => internalEffect.sync(() => sizeUnsafe(self))
 
 /**
  * @category size
  * @since 4.0.0
  */
-export const isFull = <A, E>(self: Dequeue<A, E>): Effect<boolean> => internalEffect.sync(() => unsafeIsFull(self))
+export const isFull = <A, E>(self: Dequeue<A, E>): Effect<boolean> => internalEffect.sync(() => isFullUnsafe(self))
 
 /**
  * Check the size of the queue synchronously.
@@ -1358,23 +1358,23 @@ import * as Option from "effect/data/Option"
  *   const queue = yield* Queue.bounded<number, Queue.Done>(10)
  *
  *   // Check size of empty queue
- *   const size1 = Queue.unsafeSize(queue)
+ *   const size1 = Queue.sizeUnsafe(queue)
  *   console.log(size1) // 0
  *
  *   // Add some messages
- *   Queue.unsafeOffer(queue, 1)
- *   Queue.unsafeOffer(queue, 2)
- *   Queue.unsafeOffer(queue, 3)
+ *   Queue.offerUnsafe(queue, 1)
+ *   Queue.offerUnsafe(queue, 2)
+ *   Queue.offerUnsafe(queue, 3)
  *
  *   // Check size after adding messages
- *   const size2 = Queue.unsafeSize(queue)
+ *   const size2 = Queue.sizeUnsafe(queue)
  *   console.log(size2) // 3
  *
  *   // End the queue
- *   Queue.unsafeEnd(queue)
+ *   Queue.endUnsafe(queue)
  *
  *   // Size of ended queue is 0
- *   const size3 = Queue.unsafeSize(queue)
+ *   const size3 = Queue.sizeUnsafe(queue)
  *   console.log(size3) // 0
  * })
  * ```
@@ -1382,13 +1382,13 @@ import * as Option from "effect/data/Option"
  * @category size
  * @since 4.0.0
  */
-export const unsafeSize = <A, E>(self: Dequeue<A, E>): number => self.state._tag === "Done" ? 0 : self.messages.length
+export const sizeUnsafe = <A, E>(self: Dequeue<A, E>): number => self.state._tag === "Done" ? 0 : self.messages.length
 
 /**
  * @category size
  * @since 4.0.0
  */
-export const unsafeIsFull = <A, E>(self: Dequeue<A, E>): boolean => unsafeSize(self) === self.capacity
+export const isFullUnsafe = <A, E>(self: Dequeue<A, E>): boolean => sizeUnsafe(self) === self.capacity
 
 /**
  * Convert a Queue to a Dequeue, allowing only read operations.
@@ -1543,7 +1543,7 @@ const releaseTaker = <A, E>(self: Queue<A, E>) => {
   if (self.state._tag === "Done" || self.state.takers.size === 0) {
     return
   }
-  const taker = Iterable.unsafeHead(self.state.takers)
+  const taker = Iterable.headUnsafe(self.state.takers)
   self.state.takers.delete(taker)
   taker(internalEffect.exitVoid)
 }
@@ -1556,7 +1556,7 @@ const scheduleReleaseTaker = <A, E>(self: Queue<A, E>) => {
   self.scheduler.scheduleTask(() => releaseTaker(self), 0)
 }
 
-const unsafeTakeBetween = <A, E>(
+const takeBetweenUnsafe = <A, E>(
   self: Dequeue<A, E>,
   min: number,
   max: number
@@ -1663,7 +1663,7 @@ const awaitTake = <A, E>(self: Dequeue<A, E>) =>
     })
   })
 
-const unsafeTakeAll = <A, E>(self: Dequeue<A, E>) => {
+const takeAllUnsafe = <A, E>(self: Dequeue<A, E>) => {
   if (self.messages.length > 0) {
     const messages = MutableList.takeAll(self.messages)
     releaseCapacity(self)

@@ -142,7 +142,7 @@ const TxChunkProto = {
  * ```
  */
 export const make = <A>(initial: Chunk.Chunk<A>): Effect.Effect<TxChunk<A>> =>
-  Effect.map(TxRef.make(initial), (ref) => unsafeMake(ref))
+  Effect.map(TxRef.make(initial), (ref) => makeUnsafe(ref))
 
 /**
  * Creates a new empty `TxChunk`.
@@ -174,7 +174,7 @@ export const make = <A>(initial: Chunk.Chunk<A>): Effect.Effect<TxChunk<A>> =>
  * ```
  */
 export const empty = <A = never>(): Effect.Effect<TxChunk<A>> =>
-  Effect.map(TxRef.make(Chunk.empty<A>()), (ref) => unsafeMake(ref))
+  Effect.map(TxRef.make(Chunk.empty<A>()), (ref) => makeUnsafe(ref))
 
 /**
  * Creates a new `TxChunk` from an iterable.
@@ -212,7 +212,7 @@ export const empty = <A = never>(): Effect.Effect<TxChunk<A>> =>
  * ```
  */
 export const fromIterable = <A>(iterable: Iterable<A>): Effect.Effect<TxChunk<A>> =>
-  Effect.map(TxRef.make(Chunk.fromIterable(iterable)), (ref) => unsafeMake(ref))
+  Effect.map(TxRef.make(Chunk.fromIterable(iterable)), (ref) => makeUnsafe(ref))
 
 /**
  * Creates a new `TxChunk` with the specified TxRef.
@@ -226,8 +226,8 @@ export const fromIterable = <A>(iterable: Iterable<A>): Effect.Effect<TxChunk<A>
  * import { TxChunk, TxRef } from "effect/transactions"
  *
  * // Create a TxChunk from an existing TxRef (advanced usage)
- * const ref = TxRef.unsafeMake(Chunk.fromIterable([1, 2, 3]))
- * const txChunk = TxChunk.unsafeMake(ref)
+ * const ref = TxRef.makeUnsafe(Chunk.fromIterable([1, 2, 3]))
+ * const txChunk = TxChunk.makeUnsafe(ref)
  *
  * // Note: Use TxChunk.make() or TxChunk.fromIterable() in most cases
  * console.log(txChunk[TxChunk.TypeId]) // "~effect/TxChunk"
@@ -236,7 +236,7 @@ export const fromIterable = <A>(iterable: Iterable<A>): Effect.Effect<TxChunk<A>
  * @since 4.0.0
  * @category constructors
  */
-export const unsafeMake = <A>(ref: TxRef.TxRef<Chunk.Chunk<A>>): TxChunk<A> => {
+export const makeUnsafe = <A>(ref: TxRef.TxRef<Chunk.Chunk<A>>): TxChunk<A> => {
   const txChunk = Object.create(TxChunkProto)
   txChunk[TypeId] = TypeId
   txChunk.ref = ref

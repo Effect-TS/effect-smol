@@ -255,7 +255,7 @@ export const make = (
       transactionTag: LibsqlTransaction,
       spanAttributes,
       acquireConnection: Effect.uninterruptibleMask(Effect.fnUntraced(function*(restore) {
-        const scope = Scope.unsafeMake()
+        const scope = Scope.makeUnsafe()
         yield* restore(semaphore.take(1))
         yield* Scope.addFinalizer(scope, semaphore.release(1))
         const conn = yield* connection.beginTransaction

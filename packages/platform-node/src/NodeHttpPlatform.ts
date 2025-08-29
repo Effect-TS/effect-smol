@@ -33,7 +33,7 @@ export const make = Platform.make({
     return ServerResponse.raw(Readable.fromWeb(file.stream() as any), {
       headers: Headers.merge(
         headers,
-        Headers.unsafeFromRecord({
+        Headers.fromRecordUnsafe({
           "content-type": headers["content-type"] ?? Mime.getType(file.name) ?? "application/octet-stream",
           "content-length": file.size.toString()
         })

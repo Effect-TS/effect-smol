@@ -199,7 +199,7 @@ export const failureIsInterrupt = <E>(
 /** @internal */
 export const failureAnnotations = <E>(
   self: Cause.Failure<E>
-): ServiceMap.ServiceMap<never> => ServiceMap.unsafeMake(self.annotations)
+): ServiceMap.ServiceMap<never> => ServiceMap.makeUnsafe(self.annotations)
 
 /** @internal */
 export const causeAnnotations = <E>(
@@ -213,7 +213,7 @@ export const causeAnnotations = <E>(
       }
     }
   }
-  return ServiceMap.unsafeMake(map)
+  return ServiceMap.makeUnsafe(map)
 }
 
 /** @internal */
@@ -523,7 +523,7 @@ export class FiberImpl<A = any, E = any> implements Fiber.Fiber<A, E> {
   maxOpsBeforeYield!: number
 
   getRef<X>(ref: ServiceMap.Reference<X>): X {
-    return ServiceMap.unsafeGetReference(this.services, ref)
+    return ServiceMap.getReferenceUnsafe(this.services, ref)
   }
   addObserver(cb: (exit: Exit.Exit<A, E>) => void): () => void {
     if (this._exit) {
@@ -538,7 +538,7 @@ export class FiberImpl<A = any, E = any> implements Fiber.Fiber<A, E> {
       }
     }
   }
-  unsafeInterrupt(fiberId?: number | undefined, span?: Tracer.Span | undefined): void {
+  interruptUnsafe(fiberId?: number | undefined, span?: Tracer.Span | undefined): void {
     if (this._exit) {
       return
     }
@@ -556,7 +556,7 @@ export class FiberImpl<A = any, E = any> implements Fiber.Fiber<A, E> {
       this.evaluate(failCause(this._interruptedCause) as any)
     }
   }
-  unsafePoll(): Exit.Exit<A, E> | undefined {
+  pollUnsafe(): Exit.Exit<A, E> | undefined {
     return this._exit
   }
   evaluate(effect: Primitive): void {
@@ -654,10 +654,10 @@ export class FiberImpl<A = any, E = any> implements Fiber.Fiber<A, E> {
   setServices(services: ServiceMap.ServiceMap<never>): void {
     this.services = services
     this.currentScheduler = this.getRef(Scheduler.Scheduler)
-    this.currentSpan = services.unsafeMap.get(Tracer.ParentSpanKey)
+    this.currentSpan = services.mapUnsafe.get(Tracer.ParentSpanKey)
     this.maxOpsBeforeYield = this.getRef(Scheduler.MaxOpsBeforeYield)
-    this.runtimeMetrics = services.unsafeMap.get(InternalMetric.FiberRuntimeMetricsKey)
-    const currentTracer = services.unsafeMap.get(Tracer.TracerKey)
+    this.runtimeMetrics = services.mapUnsafe.get(InternalMetric.FiberRuntimeMetricsKey)
+    const currentTracer = services.mapUnsafe.get(Tracer.TracerKey)
     this.currentTracerContext = currentTracer ? currentTracer["context"] : undefined
   }
   get currentSpanLocal(): Tracer.Span | undefined {
@@ -736,7 +736,7 @@ export const fiberInterruptAs: {
   <A, E>(self: Fiber.Fiber<A, E>, fiberId: number): Effect.Effect<void>
 } = dual(2, <A, E>(self: Fiber.Fiber<A, E>, fiberId: number): Effect.Effect<void> =>
   withFiber((parent) => {
-    self.unsafeInterrupt(fiberId, parent.currentSpanLocal)
+    self.interruptUnsafe(fiberId, parent.currentSpanLocal)
     return asVoid(fiberAwait(self))
   }))
 
@@ -747,7 +747,7 @@ export const fiberInterruptAll = <A extends Iterable<Fiber.Fiber<any, any>>>(
   withFiber((parent) => {
     const span = parent.currentSpanLocal
     for (const fiber of fibers) {
-      fiber.unsafeInterrupt(parent.id, span)
+      fiber.interruptUnsafe(parent.id, span)
     }
     return asVoid(fiberAwaitAll(fibers))
   })
@@ -762,7 +762,7 @@ export const fiberInterruptAllAs: {
 ): Effect.Effect<void> =>
   withFiber((parent) => {
     const span = parent.currentSpanLocal
-    for (const fiber of fibers) fiber.unsafeInterrupt(fiberId, span)
+    for (const fiber of fibers) fiber.interruptUnsafe(fiberId, span)
     return asVoid(fiberAwaitAll(fibers))
   }))
 
@@ -1003,7 +1003,7 @@ export const gen = <
     : never
 > =>
   suspend(() =>
-    unsafeFromIterator(
+    fromIteratorUnsafe(
       args.length === 1 ? args[0]() : (args[1].call(args[0]) as any)
     )
   )
@@ -1015,10 +1015,10 @@ export const fnUntraced: Effect.fn.Gen = (
 ) => {
   return pipeables.length === 0
     ? function(this: any, ...args: Array<any>) {
-      return suspend(() => unsafeFromIterator(body.apply(this, args)))
+      return suspend(() => fromIteratorUnsafe(body.apply(this, args)))
     }
     : function(this: any, ...args: Array<any>) {
-      let effect = suspend(() => unsafeFromIterator(body.apply(this, args)))
+      let effect = suspend(() => fromIteratorUnsafe(body.apply(this, args)))
       for (const pipeable of pipeables) {
         effect = pipeable(effect, ...args)
       }
@@ -1039,7 +1039,7 @@ export const fn: Effect.fn.Gen & Effect.fn.NonGen = (
   return function(this: any, ...args: Array<any>) {
     let result = suspend(() => {
       const iter = body.apply(this, args)
-      return isEffect(iter) ? iter : unsafeFromIterator(iter)
+      return isEffect(iter) ? iter : fromIteratorUnsafe(iter)
     })
     for (let i = 0; i < pipeables.length; i++) {
       result = pipeables[i](result, ...args)
@@ -1077,10 +1077,10 @@ export const fnUntracedEager: Effect.fn.Gen = (
 ) => {
   return pipeables.length === 0
     ? function(this: any, ...args: Array<any>) {
-      return unsafeFromIteratorEager(() => body.apply(this, args))
+      return fromIteratorEagerUnsafe(() => body.apply(this, args))
     }
     : function(this: any, ...args: Array<any>) {
-      let effect = unsafeFromIteratorEager(() => body.apply(this, args))
+      let effect = fromIteratorEagerUnsafe(() => body.apply(this, args))
       for (const pipeable of pipeables) {
         effect = pipeable(effect)
       }
@@ -1088,7 +1088,7 @@ export const fnUntracedEager: Effect.fn.Gen = (
     }
 }
 
-const unsafeFromIteratorEager = (
+const fromIteratorEagerUnsafe = (
   createIterator: () => Iterator<Effect.Yieldable<any, any, any, any>>
 ): Effect.Effect<any, any, any> => {
   try {
@@ -1118,9 +1118,9 @@ const unsafeFromIteratorEager = (
         return suspend(() => {
           if (isFirstExecution) {
             isFirstExecution = false
-            return flatMap(effect, (value) => unsafeFromIterator(iterator, value))
+            return flatMap(effect, (value) => fromIteratorUnsafe(iterator, value))
           } else {
-            return suspend(() => unsafeFromIterator(createIterator()))
+            return suspend(() => fromIteratorUnsafe(createIterator()))
           }
         })
       }
@@ -1130,7 +1130,7 @@ const unsafeFromIteratorEager = (
   }
 }
 
-const unsafeFromIterator: (
+const fromIteratorUnsafe: (
   iterator: Iterator<Effect.Yieldable<any, any, any, any>>,
   initial?: undefined
 ) => Effect.Effect<any, any, any> = makePrimitive({
@@ -1330,7 +1330,7 @@ export const raceAll = <Eff extends Effect.Effect<any, any, any>>(
 
       for (let i = 0; i < len; i++) {
         if (done) break
-        const fiber = unsafeFork(parent, interruptible(effects[i]), true, true, "inherit")
+        const fiber = forkUnsafe(parent, interruptible(effects[i]), true, true, "inherit")
         fibers.add(fiber)
         fiber.addObserver((exit) => {
           fibers.delete(fiber)
@@ -1374,7 +1374,7 @@ export const raceAllFirst = <Eff extends Effect.Effect<any, any, any>>(
       for (const effect of all) {
         if (done) break
         const index = i++
-        const fiber = unsafeFork(parent, interruptible(effect), true, true, "inherit")
+        const fiber = forkUnsafe(parent, interruptible(effect), true, true, "inherit")
         fibers.add(fiber)
         fiber.addObserver((exit) => {
           fibers.delete(fiber)
@@ -1831,8 +1831,8 @@ export const serviceOptional = <I, S>(
   key: ServiceMap.Key<I, S>
 ): Effect.Effect<S, Cause.NoSuchElementError> =>
   withFiber((fiber) =>
-    fiber.services.unsafeMap.has(key.key)
-      ? succeed(ServiceMap.unsafeGet(fiber.services, key))
+    fiber.services.mapUnsafe.has(key.key)
+      ? succeed(ServiceMap.getUnsafe(fiber.services, key))
       : fail(new NoSuchElementError())
   )
 
@@ -1855,22 +1855,22 @@ export const updateServices: {
       const prev = fiber.services as ServiceMap.ServiceMap<R2>
       fiber.setServices(f(prev))
       const newServices = new Map<string, unknown>()
-      for (const [key, value] of fiber.services.unsafeMap) {
-        if (!prev.unsafeMap.has(key) || value !== prev.unsafeMap.get(key)) {
+      for (const [key, value] of fiber.services.mapUnsafe) {
+        if (!prev.mapUnsafe.has(key) || value !== prev.mapUnsafe.get(key)) {
           newServices.set(key, value)
         }
       }
       return onExit(self as any, () => {
-        const map = new Map(fiber.services.unsafeMap)
+        const map = new Map(fiber.services.mapUnsafe)
         for (const [key, value] of newServices) {
           if (value !== map.get(key)) continue
-          if (prev.unsafeMap.has(key)) {
-            map.set(key, prev.unsafeMap.get(key))
+          if (prev.mapUnsafe.has(key)) {
+            map.set(key, prev.mapUnsafe.get(key))
           } else {
             map.delete(key)
           }
         }
-        fiber.setServices(ServiceMap.unsafeMake(map))
+        fiber.setServices(ServiceMap.makeUnsafe(map))
         return void_
       })
     })
@@ -1895,7 +1895,7 @@ export const updateService: {
     f: (value: A) => A
   ): Effect.Effect<XA, E, R | I> =>
     withFiber((fiber) => {
-      const prev = ServiceMap.unsafeGet(fiber.services, key)
+      const prev = ServiceMap.getUnsafe(fiber.services, key)
       fiber.setServices(ServiceMap.add(fiber.services, key, f(prev)))
       return onExit(self, () => {
         fiber.setServices(ServiceMap.add(fiber.services, key, prev))
@@ -2952,8 +2952,8 @@ export const timed = <A, E, R>(
   self: Effect.Effect<A, E, R>
 ): Effect.Effect<[duration: Duration.Duration, result: A], E, R> =>
   clockWith((clock) => {
-    const start = clock.unsafeCurrentTimeNanos()
-    return map(self, (a) => [Duration.nanos(clock.unsafeCurrentTimeNanos() - start), a])
+    const start = clock.currentTimeNanosUnsafe()
+    return map(self, (a) => [Duration.nanos(clock.currentTimeNanosUnsafe() - start), a])
   })
 
 // ----------------------------------------------------------------------------
@@ -2992,7 +2992,7 @@ const ScopeProto = {
       if (this.strategy === "sequential") {
         exits.push(yield* exit(finalizer(exit_)))
       } else {
-        fibers.push(unsafeFork(getCurrentFiber() as any, finalizer(exit_), true, true, "inherit"))
+        fibers.push(forkUnsafe(getCurrentFiber() as any, finalizer(exit_), true, true, "inherit"))
       }
     }
     if (fibers.length > 0) {
@@ -3004,18 +3004,18 @@ const ScopeProto = {
 
 /** @internal */
 export const scopeFork = (scope: Scope.Scope, finalizerStrategy?: "sequential" | "parallel") =>
-  sync(() => scopeUnsafeFork(scope, finalizerStrategy))
+  sync(() => scopeForkUnsafe(scope, finalizerStrategy))
 
 /** @internal */
-export const scopeUnsafeFork = (scope: Scope.Scope, finalizerStrategy?: "sequential" | "parallel") => {
-  const newScope = scopeUnsafeMake(finalizerStrategy)
+export const scopeForkUnsafe = (scope: Scope.Scope, finalizerStrategy?: "sequential" | "parallel") => {
+  const newScope = scopeMakeUnsafe(finalizerStrategy)
   if (scope.state._tag === "Closed") {
     newScope.state = scope.state
     return newScope
   }
   const key = {}
-  scopeUnsafeAddFinalizer(scope, key, (exit) => newScope.close(exit))
-  scopeUnsafeAddFinalizer(newScope, key, (_) => sync(() => scopeUnsafeRemoveFinalizer(scope, key)))
+  scopeAddFinalizerUnsafe(scope, key, (exit) => newScope.close(exit))
+  scopeAddFinalizerUnsafe(newScope, key, (_) => sync(() => scopeRemoveFinalizerUnsafe(scope, key)))
   return newScope
 }
 
@@ -3028,7 +3028,7 @@ export const scopeAddFinalizerExit = (
     if (scope.state._tag === "Closed") {
       return finalizer(scope.state.exit)
     }
-    scopeUnsafeAddFinalizer(scope, {}, finalizer)
+    scopeAddFinalizerUnsafe(scope, {}, finalizer)
     return void_
   })
 }
@@ -3040,7 +3040,7 @@ export const scopeAddFinalizer = (
 ): Effect.Effect<void> => scopeAddFinalizerExit(scope, constant(finalizer))
 
 /** @internal */
-export const scopeUnsafeAddFinalizer = (
+export const scopeAddFinalizerUnsafe = (
   scope: Scope.Scope,
   key: {},
   finalizer: (exit: Exit.Exit<any, any>) => Effect.Effect<unknown>
@@ -3053,7 +3053,7 @@ export const scopeUnsafeAddFinalizer = (
 }
 
 /** @internal */
-export const scopeUnsafeRemoveFinalizer = (
+export const scopeRemoveFinalizerUnsafe = (
   scope: Scope.Scope,
   key: {}
 ): void => {
@@ -3063,7 +3063,7 @@ export const scopeUnsafeRemoveFinalizer = (
 }
 
 /** @internal */
-export const scopeUnsafeMake = (finalizerStrategy: "sequential" | "parallel" = "sequential"): Scope.Scope.Closeable => {
+export const scopeMakeUnsafe = (finalizerStrategy: "sequential" | "parallel" = "sequential"): Scope.Scope.Closeable => {
   const self = Object.create(ScopeProto)
   self.strategy = finalizerStrategy
   return self
@@ -3071,7 +3071,7 @@ export const scopeUnsafeMake = (finalizerStrategy: "sequential" | "parallel" = "
 
 /** @internal */
 export const scopeMake = (finalizerStrategy?: "sequential" | "parallel"): Effect.Effect<Scope.Scope.Closeable> =>
-  sync(() => scopeUnsafeMake(finalizerStrategy))
+  sync(() => scopeMakeUnsafe(finalizerStrategy))
 
 /** @internal */
 export const scope: Effect.Effect<Scope.Scope, never, Scope.Scope> = scopeTag.asEffect()
@@ -3103,7 +3103,7 @@ export const scopedWith = <A, E, R>(
   f: (scope: Scope.Scope) => Effect.Effect<A, E, R>
 ): Effect.Effect<A, E, R> =>
   suspend(() => {
-    const scope = scopeUnsafeMake()
+    const scope = scopeMakeUnsafe()
     return onExit(f(scope), (exit) => scope.close(exit))
   })
 
@@ -3302,17 +3302,17 @@ export const cachedInvalidateWithTTL: {
   sync(() => {
     const ttlMillis = Duration.toMillis(ttl)
     const isFinite = Number.isFinite(ttlMillis)
-    const latch = unsafeMakeLatch(false)
+    const latch = makeLatchUnsafe(false)
     let expiresAt = 0
     let running = false
     let exit: Exit.Exit<A, E> | undefined
     const wait = flatMap(latch.await, () => exit!)
     return [
       withFiber((fiber) => {
-        const now = isFinite ? fiber.getRef(ClockRef).unsafeCurrentTimeMillis() : 0
+        const now = isFinite ? fiber.getRef(ClockRef).currentTimeMillisUnsafe() : 0
         if (running || now < expiresAt) return exit ?? wait
         running = true
-        latch.unsafeClose()
+        latch.closeUnsafe()
         exit = undefined
         return onExit(self, (exit_) => {
           running = false
@@ -3323,7 +3323,7 @@ export const cachedInvalidateWithTTL: {
       }),
       sync(() => {
         expiresAt = 0
-        latch.unsafeClose()
+        latch.closeUnsafe()
         exit = undefined
       })
     ]
@@ -3567,7 +3567,7 @@ export const forEach: {
           index++
           inProgress++
           try {
-            const child = unsafeFork(parent, f(item, currentIndex), true, true, "inherit")
+            const child = forkUnsafe(parent, f(item, currentIndex), true, true, "inherit")
             fibers.add(child)
             child.addObserver((exit) => {
               if (interrupted) {
@@ -3580,8 +3580,8 @@ export const forEach: {
                   length = index
                   // eslint-disable-next-line no-restricted-syntax
                   failures.push(...exit.cause.failures)
-                  fibers.forEach((fiber) => fiber.unsafeInterrupt())
-                  fibers.forEach((fiber) => fiber.unsafeInterrupt(parent.id, span))
+                  fibers.forEach((fiber) => fiber.interruptUnsafe())
+                  fibers.forEach((fiber) => fiber.interruptUnsafe(parent.id, span))
                 } else {
                   for (const f of exit.cause.failures) {
                     if (f._tag === "Interrupt") continue
@@ -3603,7 +3603,7 @@ export const forEach: {
             failed = true
             length = index
             failures.push(new Die(err))
-            fibers.forEach((fiber) => fiber.unsafeInterrupt(parent.id, span))
+            fibers.forEach((fiber) => fiber.interruptUnsafe(parent.id, span))
           }
         }
         pumping = false
@@ -3777,7 +3777,7 @@ export const fork: {
 ): Effect.Effect<Fiber.Fiber<A, E>, never, R> =>
   withFiber((fiber) => {
     interruptChildrenPatch()
-    return succeed(unsafeFork(
+    return succeed(forkUnsafe(
       fiber,
       self,
       options?.startImmediately,
@@ -3787,7 +3787,7 @@ export const fork: {
   }))
 
 /** @internal */
-export const unsafeFork = <FA, FE, A, E, R>(
+export const forkUnsafe = <FA, FE, A, E, R>(
   parent: FiberImpl<FA, FE>,
   effect: Effect.Effect<A, E, R>,
   immediate = false,
@@ -3830,7 +3830,7 @@ export const forkDaemon: {
     readonly uninterruptible?: boolean | "inherit" | undefined
   }
 ): Effect.Effect<Fiber.Fiber<A, E>, never, R> =>
-  withFiber((fiber) => succeed(unsafeFork(fiber, self, options?.startImmediately, true, options?.uninterruptible))))
+  withFiber((fiber) => succeed(forkUnsafe(fiber, self, options?.startImmediately, true, options?.uninterruptible))))
 
 /** @internal */
 export const forkIn: {
@@ -3862,15 +3862,15 @@ export const forkIn: {
     }
   ): Effect.Effect<Fiber.Fiber<A, E>, never, R> =>
     withFiber((parent) => {
-      const fiber = unsafeFork(parent, self, options?.startImmediately, true, options?.uninterruptible)
+      const fiber = forkUnsafe(parent, self, options?.startImmediately, true, options?.uninterruptible)
       if (!(fiber as FiberImpl<any, any>)._exit) {
         if (scope.state._tag !== "Closed") {
           const key = {}
           const finalizer = () => withFiberId((interruptor) => interruptor === fiber.id ? void_ : fiberInterrupt(fiber))
-          scopeUnsafeAddFinalizer(scope, key, finalizer)
-          fiber.addObserver(() => scopeUnsafeRemoveFinalizer(scope, key))
+          scopeAddFinalizerUnsafe(scope, key, finalizer)
+          fiber.addObserver(() => scopeRemoveFinalizerUnsafe(scope, key))
         } else {
-          fiber.unsafeInterrupt(parent.id, parent.currentSpanLocal)
+          fiber.interruptUnsafe(parent.id, parent.currentSpanLocal)
         }
       }
       return succeed(fiber)
@@ -3910,17 +3910,17 @@ export const runForkWith = <R>(services: ServiceMap.ServiceMap<R>) =>
   effect: Effect.Effect<A, E, R>,
   options?: Effect.RunOptions | undefined
 ): Fiber.Fiber<A, E> => {
-  const serviceMap = new Map(services.unsafeMap)
+  const serviceMap = new Map(services.mapUnsafe)
   serviceMap.set(Scheduler.Scheduler.key, options?.scheduler ?? new Scheduler.MixedScheduler())
-  const fiber = new FiberImpl<A, E>(ServiceMap.unsafeMake(serviceMap))
+  const fiber = new FiberImpl<A, E>(ServiceMap.makeUnsafe(serviceMap))
   fiber.evaluate(effect as any)
   if (fiber._exit) return fiber
 
   if (options?.signal) {
     if (options.signal.aborted) {
-      fiber.unsafeInterrupt()
+      fiber.interruptUnsafe()
     } else {
-      const abort = () => fiber.unsafeInterrupt()
+      const abort = () => fiber.interruptUnsafe()
       options.signal.addEventListener("abort", abort, { once: true })
       fiber.addObserver(() => options.signal!.removeEventListener("abort", abort))
     }
@@ -3942,12 +3942,12 @@ export const fiberRunIn: {
   if (self._exit) {
     return self
   } else if (scope.state._tag === "Closed") {
-    self.unsafeInterrupt(self.id)
+    self.interruptUnsafe(self.id)
     return self
   }
   const key = {}
-  scopeUnsafeAddFinalizer(scope, key, () => fiberInterrupt(self))
-  self.addObserver(() => scopeUnsafeRemoveFinalizer(scope, key))
+  scopeAddFinalizerUnsafe(scope, key, () => fiberInterrupt(self))
+  self.addObserver(() => scopeRemoveFinalizerUnsafe(scope, key))
   return self
 })
 
@@ -4107,10 +4107,10 @@ class Semaphore {
 }
 
 /** @internal */
-export const unsafeMakeSemaphore = (permits: number): Semaphore => new Semaphore(permits)
+export const makeSemaphoreUnsafe = (permits: number): Semaphore => new Semaphore(permits)
 
 /** @internal */
-export const makeSemaphore = (permits: number) => sync(() => unsafeMakeSemaphore(permits))
+export const makeSemaphore = (permits: number) => sync(() => makeSemaphoreUnsafe(permits))
 
 const succeedTrue = succeed(true)
 const succeedFalse = succeed(false)
@@ -4124,7 +4124,7 @@ class Latch implements Effect.Latch {
     this.isOpen = isOpen
   }
 
-  private unsafeSchedule(fiber: Fiber.Fiber<unknown, unknown>) {
+  private scheduleUnsafe(fiber: Fiber.Fiber<unknown, unknown>) {
     if (this.scheduled || this.waiters.length === 0) {
       return succeedTrue
     }
@@ -4144,10 +4144,10 @@ class Latch implements Effect.Latch {
   open = withFiber<boolean>((fiber) => {
     if (this.isOpen) return succeedFalse
     this.isOpen = true
-    return this.unsafeSchedule(fiber)
+    return this.scheduleUnsafe(fiber)
   })
-  release = withFiber<boolean>((fiber) => this.open ? succeedFalse : this.unsafeSchedule(fiber))
-  unsafeOpen() {
+  release = withFiber<boolean>((fiber) => this.open ? succeedFalse : this.scheduleUnsafe(fiber))
+  openUnsafe() {
     if (this.isOpen) return false
     this.isOpen = true
     this.flushWaiters()
@@ -4165,20 +4165,20 @@ class Latch implements Effect.Latch {
       }
     })
   })
-  unsafeClose() {
+  closeUnsafe() {
     if (!this.isOpen) return false
     this.isOpen = false
     return true
   }
-  close = sync(() => this.unsafeClose())
+  close = sync(() => this.closeUnsafe())
   whenOpen = <A, E, R>(self: Effect.Effect<A, E, R>): Effect.Effect<A, E, R> => andThen(this.await, self)
 }
 
 /** @internal */
-export const unsafeMakeLatch = (open?: boolean | undefined): Effect.Latch => new Latch(open ?? false)
+export const makeLatchUnsafe = (open?: boolean | undefined): Effect.Latch => new Latch(open ?? false)
 
 /** @internal */
-export const makeLatch = (open?: boolean | undefined) => sync(() => unsafeMakeLatch(open))
+export const makeLatch = (open?: boolean | undefined) => sync(() => makeLatchUnsafe(open))
 
 // ----------------------------------------------------------------------------
 // Tracer
@@ -4242,7 +4242,7 @@ const filterDisablePropagation: (self: Option.Option<Tracer.AnySpan>) => Option.
 export const spanToTrace = new WeakMap<Tracer.Span, LazyArg<string | undefined>>()
 
 /** @internal */
-export const unsafeMakeSpan = <XA, XE>(
+export const makeSpanUnsafe = <XA, XE>(
   fiber: Fiber.Fiber<XA, XE>,
   name: string,
   options: Tracer.SpanOptions
@@ -4282,7 +4282,7 @@ export const unsafeMakeSpan = <XA, XE>(
       parent,
       options.context ?? ServiceMap.empty(),
       links,
-      clock.unsafeCurrentTimeNanos(),
+      clock.currentTimeNanosUnsafe(),
       options.kind ?? "internal"
     )
 
@@ -4309,7 +4309,7 @@ export const makeSpan = (
   options?: Tracer.SpanOptions
 ): Effect.Effect<Tracer.Span> => {
   options = addSpanStackTrace(options)
-  return withFiber((fiber) => succeed(unsafeMakeSpan(fiber, name, options)))
+  return withFiber((fiber) => succeed(makeSpanUnsafe(fiber, name, options)))
 }
 
 /** @internal */
@@ -4320,8 +4320,8 @@ export const makeSpanScoped = (
   options = addSpanStackTrace(options)
   return uninterruptible(
     withFiber((fiber) => {
-      const scope = ServiceMap.unsafeGet(fiber.services, scopeTag)
-      const span = unsafeMakeSpan(fiber, name, options)
+      const scope = ServiceMap.getUnsafe(fiber.services, scopeTag)
+      const span = makeSpanUnsafe(fiber, name, options)
       const clock = fiber.getRef(ClockRef)
       return as(
         scopeAddFinalizerExit(scope, (exit) => endSpan(span, exit, clock)),
@@ -4391,7 +4391,7 @@ export const linkSpans: {
 export const endSpan = <A, E>(span: Tracer.Span, exit: Exit.Exit<A, E>, clock: Clock.Clock) =>
   sync(() => {
     if (span.status._tag === "Ended") return
-    span.end(clock.unsafeCurrentTimeNanos(), exit)
+    span.end(clock.currentTimeNanosUnsafe(), exit)
   })
 
 /** @internal */
@@ -4412,7 +4412,7 @@ export const useSpan: {
   const options = addSpanStackTrace(args.length === 1 ? undefined : args[0])
   const evaluate: (span: Tracer.Span) => Effect.Effect<A, E, R> = args[args.length - 1]
   return withFiber((fiber) => {
-    const span = unsafeMakeSpan(fiber, name, options)
+    const span = makeSpanUnsafe(fiber, name, options)
     const clock = fiber.getRef(ClockRef)
     return onExit(internalCall(() => evaluate(span)), (exit) => endSpan(span, exit, clock))
   })
@@ -4519,14 +4519,14 @@ export const ClockRef = ServiceMap.Reference<Clock.Clock>("effect/Clock", {
 const MAX_TIMER_MILLIS = 2 ** 31 - 1
 
 class ClockImpl implements Clock.Clock {
-  unsafeCurrentTimeMillis(): number {
+  currentTimeMillisUnsafe(): number {
     return Date.now()
   }
-  readonly currentTimeMillis: Effect.Effect<number> = sync(() => this.unsafeCurrentTimeMillis())
-  unsafeCurrentTimeNanos(): bigint {
+  readonly currentTimeMillis: Effect.Effect<number> = sync(() => this.currentTimeMillisUnsafe())
+  currentTimeNanosUnsafe(): bigint {
     return processOrPerformanceNow()
   }
-  readonly currentTimeNanos: Effect.Effect<bigint> = sync(() => this.unsafeCurrentTimeNanos())
+  readonly currentTimeNanos: Effect.Effect<bigint> = sync(() => this.currentTimeNanosUnsafe())
   sleep(duration: Duration.Duration): Effect.Effect<void> {
     const millis = Duration.toMillis(duration)
     return callback((resume) => {
@@ -4775,7 +4775,7 @@ export const logWithLevel = (level?: LogLevel.LogLevel) =>
     const clock = fiber.getRef(ClockRef)
     const loggers = fiber.getRef(CurrentLoggers)
     if (loggers.size > 0) {
-      const date = new Date(clock.unsafeCurrentTimeMillis())
+      const date = new Date(clock.currentTimeMillisUnsafe())
       for (const logger of loggers) {
         logger.log({
           cause,

@@ -81,16 +81,16 @@ export const TestEntityNoState = TestEntity.toLayer(
 
     const never = (envelope: any) =>
       Effect.suspend(() => {
-        Queue.unsafeOffer(state.envelopes, envelope)
+        Queue.offerUnsafe(state.envelopes, envelope)
         return Effect.never
       }).pipe(Effect.onInterrupt(() => {
-        Queue.unsafeOffer(state.interrupts, envelope)
+        Queue.offerUnsafe(state.interrupts, envelope)
         return Effect.void
       }))
     return TestEntity.of({
       GetUser: (envelope) =>
         Effect.sync(() => {
-          Queue.unsafeOffer(state.envelopes, envelope)
+          Queue.offerUnsafe(state.envelopes, envelope)
           if (state.defectTrigger.current) {
             MutableRef.set(state.defectTrigger, false)
             throw new Error("User not found")
@@ -99,14 +99,14 @@ export const TestEntityNoState = TestEntity.toLayer(
         }),
       GetUserVolatile: (envelope) =>
         Effect.sync(() => {
-          Queue.unsafeOffer(state.envelopes, envelope)
+          Queue.offerUnsafe(state.envelopes, envelope)
           return new User({ id: envelope.payload.id, name: `User ${envelope.payload.id}` })
         }),
       Never: never,
       NeverFork: (envelope) => Rpc.fork(never(envelope)),
       NeverVolatile: never,
       RequestWithKey: (envelope) => {
-        Queue.unsafeOffer(state.envelopes, envelope)
+        Queue.offerUnsafe(state.envelopes, envelope)
         return Queue.take(state.messages)
       },
       StreamWithKey: (envelope) => {
@@ -119,7 +119,7 @@ export const TestEntityNoState = TestEntity.toLayer(
         )
       },
       GetAllUsers: (envelope) => {
-        Queue.unsafeOffer(state.envelopes, envelope)
+        Queue.offerUnsafe(state.envelopes, envelope)
         return Stream.fromIterable(envelope.payload.ids.map((id) => new User({ id, name: `User ${id}` }))).pipe(
           Stream.rechunk(1)
         )

@@ -42,7 +42,7 @@ class RcRefImpl<A, E> implements RcRef.RcRef<A, E> {
   readonly [TypeId]: RcRef.RcRef.Variance<A, E> = variance
 
   state: State<A> = stateEmpty
-  readonly semaphore = Effect.unsafeMakeSemaphore(1)
+  readonly semaphore = Effect.makeSemaphoreUnsafe(1)
   readonly acquire: Effect.Effect<A, E>
   readonly services: ServiceMap.ServiceMap<never>
   readonly scope: Scope.Scope
@@ -100,7 +100,7 @@ const getState = <A, E>(self: RcRefImpl<A, E>) =>
           : Effect.succeed(self.state)
       }
       case "Empty": {
-        const scope = Scope.unsafeMake()
+        const scope = Scope.makeUnsafe()
         return self.semaphore.withPermits(1)(
           restore(Effect.provideServices(
             self.acquire as Effect.Effect<A, E>,

@@ -87,7 +87,7 @@ export const makeWith = <
   ("lookup" extends ServiceMode ? never : R) | Scope.Scope
 > =>
   effect.servicesWith((services: ServiceMap.ServiceMap<any>) => {
-    const scope = ServiceMap.unsafeGet(services, Scope.Scope)
+    const scope = ServiceMap.getUnsafe(services, Scope.Scope)
     const self = Object.create(Proto)
     self.lookup = (key: Key): Effect.Effect<A, E> =>
       effect.updateServices(
@@ -176,8 +176,8 @@ export const get: {
           MutableHashMap.set(state.map, key, oentry.value)
           return restore(Deferred.await(oentry.value.deferred))
         }
-        const scope = Scope.unsafeMake()
-        const deferred = Deferred.unsafeMake<A, E>()
+        const scope = Scope.makeUnsafe()
+        const deferred = Deferred.makeUnsafe<A, E>()
         const entry: Entry<A, E> = {
           expiresAt: undefined,
           deferred,
@@ -188,10 +188,10 @@ export const get: {
           Option.isSome(oentry) ? effect.flatMap(() => oentry.value.scope.close(effect.exitVoid)) : identity,
           effect.flatMap(() => Scope.provide(restore(self.lookup(key)), scope)),
           effect.onExit((exit) => {
-            Deferred.unsafeDone(deferred, exit)
+            Deferred.doneUnsafe(deferred, exit)
             const ttl = self.timeToLive(exit, key)
             if (Duration.isFinite(ttl)) {
-              entry.expiresAt = fiber.getRef(effect.ClockRef).unsafeCurrentTimeMillis() + Duration.toMillis(ttl)
+              entry.expiresAt = fiber.getRef(effect.ClockRef).currentTimeMillisUnsafe() + Duration.toMillis(ttl)
             }
             return effect.void
           })
@@ -204,7 +204,7 @@ const hasExpired = <A, E>(entry: Entry<A, E>, fiber: Fiber.Fiber<unknown, unknow
   if (entry.expiresAt === undefined) {
     return false
   }
-  return fiber.getRef(effect.ClockRef).unsafeCurrentTimeMillis() >= entry.expiresAt
+  return fiber.getRef(effect.ClockRef).currentTimeMillisUnsafe() >= entry.expiresAt
 }
 
 const checkCapacity = <K, A, E>(
@@ -218,7 +218,7 @@ const checkCapacity = <K, A, E>(
   const fibers = Arr.empty<Fiber.Fiber<unknown, unknown>>()
   for (const [key, entry] of map) {
     MutableHashMap.remove(map, key)
-    fibers.push(effect.unsafeFork(parent as any, entry.scope.close(effect.exitVoid), true))
+    fibers.push(effect.forkUnsafe(parent as any, entry.scope.close(effect.exitVoid), true))
     diff--
     if (diff === 0) break
   }
@@ -320,14 +320,14 @@ export const set: {
         const oentry = MutableHashMap.get(self.state.map, key)
         const state = self.state
         const exit = core.exitSucceed(value)
-        const deferred = Deferred.unsafeMake<A, E>()
-        Deferred.unsafeDone(deferred, exit)
+        const deferred = Deferred.makeUnsafe<A, E>()
+        Deferred.doneUnsafe(deferred, exit)
         const ttl = self.timeToLive(exit, key)
         MutableHashMap.set(state.map, key, {
-          scope: Scope.unsafeMake(),
+          scope: Scope.makeUnsafe(),
           deferred,
           expiresAt: Duration.isFinite(ttl)
-            ? fiber.getRef(effect.ClockRef).unsafeCurrentTimeMillis() + Duration.toMillis(ttl)
+            ? fiber.getRef(effect.ClockRef).currentTimeMillisUnsafe() + Duration.toMillis(ttl)
             : undefined
         })
         const check = checkCapacity(fiber, state.map, self.capacity)
@@ -431,8 +431,8 @@ export const refresh: {
     effect.uninterruptibleMask(effect.fnUntraced(function*(restore) {
       if (self.state._tag === "Closed") return yield* effect.interrupt
       const fiber = Fiber.getCurrent()!
-      const scope = Scope.unsafeMake()
-      const deferred = Deferred.unsafeMake<A, E>()
+      const scope = Scope.makeUnsafe()
+      const deferred = Deferred.makeUnsafe<A, E>()
       const entry: Entry<A, E> = {
         scope,
         expiresAt: undefined,
@@ -444,7 +444,7 @@ export const refresh: {
         yield* checkCapacity(fiber, self.state.map, self.capacity)
       }
       const exit = yield* effect.exit(restore(Scope.provide(self.lookup(key), scope)))
-      Deferred.unsafeDone(deferred, exit)
+      Deferred.doneUnsafe(deferred, exit)
       // @ts-ignore async gap
       if (self.state._tag === "Closed") {
         if (!newEntry) {
@@ -454,7 +454,7 @@ export const refresh: {
       }
       const ttl = self.timeToLive(exit, key)
       entry.expiresAt = Duration.isFinite(ttl)
-        ? fiber.getRef(effect.ClockRef).unsafeCurrentTimeMillis() + Duration.toMillis(ttl)
+        ? fiber.getRef(effect.ClockRef).currentTimeMillisUnsafe() + Duration.toMillis(ttl)
         : undefined
       if (!newEntry) {
         const oentry = MutableHashMap.get(self.state.map, key)
@@ -487,7 +487,7 @@ const invalidateAllImpl = <Key, A, E>(
 ): Effect.Effect<void> => {
   const fibers = Arr.empty<Fiber.Fiber<unknown, unknown>>()
   for (const [, entry] of map) {
-    fibers.push(effect.unsafeFork(parent as any, entry.scope.close(effect.exitVoid), true, true))
+    fibers.push(effect.forkUnsafe(parent as any, entry.scope.close(effect.exitVoid), true, true))
   }
   MutableHashMap.clear(map)
   return effect.fiberAwaitAll(fibers)
@@ -516,14 +516,14 @@ export const keys = <Key, A, E, R>(self: ScopedCache<Key, A, E, R>): Effect.Effe
   core.withFiber((fiber) => {
     if (self.state._tag === "Closed") return effect.succeed([])
     const state = self.state
-    const now = fiber.getRef(effect.ClockRef).unsafeCurrentTimeMillis()
+    const now = fiber.getRef(effect.ClockRef).currentTimeMillisUnsafe()
     const fibers = Arr.empty<Fiber.Fiber<unknown, unknown>>()
     const keys = Arr.filterMap(state.map, ([key, entry]) => {
       if (entry.expiresAt === undefined || entry.expiresAt > now) {
         return Option.some(key)
       }
       MutableHashMap.remove(state.map, key)
-      fibers.push(effect.unsafeFork(fiber, entry.scope.close(effect.exitVoid), true, true))
+      fibers.push(effect.forkUnsafe(fiber, entry.scope.close(effect.exitVoid), true, true))
       return Option.none()
     })
     return fibers.length === 0 ? effect.succeed(keys) : effect.as(effect.fiberAwaitAll(fibers), keys)
@@ -551,7 +551,7 @@ export const entries = <Key, A, E, R>(self: ScopedCache<Key, A, E, R>): Effect.E
   core.withFiber((fiber) => {
     if (self.state._tag === "Closed") return effect.succeed([])
     const state = self.state
-    const now = fiber.getRef(effect.ClockRef).unsafeCurrentTimeMillis()
+    const now = fiber.getRef(effect.ClockRef).currentTimeMillisUnsafe()
     const fibers = Arr.empty<Fiber.Fiber<unknown, unknown>>()
     const arr = Arr.filterMap(state.map, ([key, entry]) => {
       if (entry.expiresAt === undefined || entry.expiresAt > now) {
@@ -561,7 +561,7 @@ export const entries = <Key, A, E, R>(self: ScopedCache<Key, A, E, R>): Effect.E
           : Option.some([key, exit.value as A] as [Key, A])
       }
       MutableHashMap.remove(state.map, key)
-      fibers.push(effect.unsafeFork(fiber, entry.scope.close(effect.exitVoid), true, true))
+      fibers.push(effect.forkUnsafe(fiber, entry.scope.close(effect.exitVoid), true, true))
       return Option.none()
     })
     return fibers.length === 0

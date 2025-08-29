@@ -383,9 +383,9 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any, E, const Flatten extend
             context,
             resume(exit) {
               resume(exit)
-              if (fiber && !fiber.unsafePoll()) {
+              if (fiber && !fiber.pollUnsafe()) {
                 parentFiber.currentScheduler.scheduleTask(() => {
-                  fiber.unsafeInterrupt(parentFiber.id)
+                  fiber.interruptUnsafe(parentFiber.id)
                 }, 0)
               }
             }
@@ -433,7 +433,7 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any, E, const Flatten extend
     const fiber = Fiber.getCurrent()!
     const id = generateRequestId()
 
-    const scope = ServiceMap.unsafeGet(fiber.services, Scope.Scope)
+    const scope = ServiceMap.getUnsafe(fiber.services, Scope.Scope)
     yield* Scope.addFinalizerExit(
       scope,
       (exit) => {
@@ -497,7 +497,7 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any, E, const Flatten extend
   ) => Effect.Effect<any, E> => {
     const middlewares: Array<RpcMiddleware.RpcMiddlewareClient> = []
     for (const tag of rpc.middlewares.values()) {
-      const middleware = services.unsafeMap.get(`${tag.key}/Client`)
+      const middleware = services.mapUnsafe.get(`${tag.key}/Client`)
       if (!middleware) continue
       middlewares.push(middleware)
     }
@@ -654,7 +654,7 @@ export const make: <Rpcs extends Rpc.Any, const Flatten extends boolean = false>
       switch (message._tag) {
         case "Request": {
           const rpc = group.requests.get(message.tag)! as any as Rpc.AnyWithProps
-          // const collector = supportsTransferables ? Transferable.unsafeMakeCollector() : undefined
+          // const collector = supportsTransferables ? Transferable.makeCollectorUnsafe() : undefined
 
           const fiber = Fiber.getCurrent()!
 
@@ -845,7 +845,7 @@ export const makeProtocolHttp = (client: HttpClient.HttpClient): Effect.Effect<
         return Effect.void
       }
 
-      const parser = serialization.unsafeMake()
+      const parser = serialization.makeUnsafe()
 
       const encoded = parser.encode(request)!
       const body = typeof encoded === "string" ?
@@ -942,12 +942,12 @@ export const makeProtocolSocket = (options?: {
 
     const write = yield* socket.writer
 
-    let parser = serialization.unsafeMake()
+    let parser = serialization.makeUnsafe()
 
     const pinger = yield* makePinger(write(parser.encode(constPing)!))
 
     yield* Effect.suspend(() => {
-      parser = serialization.unsafeMake()
+      parser = serialization.makeUnsafe()
       pinger.reset()
       return socket.runRaw((message) => {
         try {
@@ -1030,10 +1030,10 @@ export const makeProtocolSocket = (options?: {
 
 const makePinger = Effect.fnUntraced(function*<A, E, R>(writePing: Effect.Effect<A, E, R>) {
   let recievedPong = true
-  const latch = Effect.unsafeMakeLatch()
+  const latch = Effect.makeLatchUnsafe()
   const reset = () => {
     recievedPong = true
-    latch.unsafeClose()
+    latch.closeUnsafe()
   }
   const onPong = () => {
     recievedPong = true

@@ -157,7 +157,7 @@ export const make = (
     const acquirer = semaphore.withPermits(1)(Effect.succeed(connection))
     const transactionAcquirer = Effect.uninterruptibleMask((restore) => {
       const fiber = Fiber.getCurrent()!
-      const scope = ServiceMap.unsafeGet(fiber.services, Scope.Scope)
+      const scope = ServiceMap.getUnsafe(fiber.services, Scope.Scope)
       return Effect.as(
         Effect.tap(
           restore(semaphore.take(1)),

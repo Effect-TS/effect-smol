@@ -88,7 +88,7 @@ export interface Clock {
   /**
    * Unsafely returns the current time in milliseconds.
    */
-  unsafeCurrentTimeMillis(): number
+  currentTimeMillisUnsafe(): number
   /**
    * Returns the current time in milliseconds.
    */
@@ -96,7 +96,7 @@ export interface Clock {
   /**
    * Unsafely returns the current time in nanoseconds.
    */
-  unsafeCurrentTimeNanos(): bigint
+  currentTimeNanosUnsafe(): bigint
   /**
    * Returns the current time in nanoseconds.
    */
@@ -117,7 +117,7 @@ export interface Clock {
  *
  * const program = Effect.gen(function* () {
  *   const clock = yield* Clock.Clock
- *   return clock.unsafeCurrentTimeMillis()
+ *   return clock.currentTimeMillisUnsafe()
  * })
  * ```
  *
@@ -136,7 +136,7 @@ export const Clock: ServiceMap.Reference<Clock> = effect.ClockRef
  *
  * const program = Clock.clockWith((clock) =>
  *   Effect.sync(() => {
- *     const currentTime = clock.unsafeCurrentTimeMillis()
+ *     const currentTime = clock.currentTimeMillisUnsafe()
  *     console.log(`Current time: ${currentTime}`)
  *     return currentTime
  *   })

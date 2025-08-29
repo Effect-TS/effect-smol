@@ -41,7 +41,7 @@ export const fromReadableChannel = <A = Uint8Array, E = Cause.UnknownError>(opti
   readonly closeOnDone?: boolean | undefined
 }): Channel.Channel<Arr.NonEmptyReadonlyArray<A>, E> =>
   Channel.fromTransform((_, scope) =>
-    unsafeReadableToPull({
+    readableToPullUnsafe({
       scope,
       readable: options.evaluate(),
       onError: options.onError ?? defaultOnError as any,
@@ -82,7 +82,7 @@ export const fromDuplex = <IE, I = Uint8Array, O = Uint8Array, E = Cause.Unknown
       }),
       Effect.forkIn(scope),
       Effect.flatMap(() =>
-        unsafeReadableToPull({
+        readableToPullUnsafe({
           scope,
           exit,
           readable: duplex,
@@ -290,7 +290,7 @@ export const stdin: Stream.Stream<Uint8Array> = Stream.orDie(fromReadable({
 // internal
 // ----------------------------------------------------------------------------
 
-const unsafeReadableToPull = <A, E>(options: {
+const readableToPullUnsafe = <A, E>(options: {
   readonly scope: Scope.Scope
   readonly exit?: MutableRef.MutableRef<Exit.Exit<never, E | Pull.Halt<void>> | undefined> | undefined
   readonly readable: Readable | NodeJS.ReadableStream
@@ -300,17 +300,17 @@ const unsafeReadableToPull = <A, E>(options: {
 }) => {
   const closeOnDone = options.closeOnDone ?? true
   const exit = options.exit ?? MutableRef.make(undefined)
-  const latch = Effect.unsafeMakeLatch(false)
+  const latch = Effect.makeLatchUnsafe(false)
   function onReadable() {
-    latch.unsafeOpen()
+    latch.openUnsafe()
   }
   function onError(error: unknown) {
     exit.current = Exit.fail(options.onError(error))
-    latch.unsafeOpen()
+    latch.openUnsafe()
   }
   function onEnd() {
     exit.current = Exit.fail(new Pull.Halt(void 0))
-    latch.unsafeOpen()
+    latch.openUnsafe()
   }
   options.readable.on("readable", onReadable)
   options.readable.once("error", onError)
@@ -322,7 +322,7 @@ const unsafeReadableToPull = <A, E>(options: {
       if (exit.current) {
         return exit.current
       }
-      latch.unsafeClose()
+      latch.closeUnsafe()
       return Effect.flatMap(latch.await, loop)
     }
     const chunk = Arr.of(item as A)
@@ -359,10 +359,10 @@ class StreamAdapter<E, R> extends Readable {
     stream: Stream.Stream<Uint8Array | string, E, R>
   ) {
     super({})
-    this.readLatch = Effect.unsafeMakeLatch(false)
+    this.readLatch = Effect.makeLatchUnsafe(false)
     this.fiber = Stream.runForEachArray(stream, (chunk) =>
       this.readLatch.whenOpen(Effect.sync(() => {
-        this.readLatch.unsafeClose()
+        this.readLatch.closeUnsafe()
         for (let i = 0; i < chunk.length; i++) {
           const item = chunk[i]
           if (typeof item === "string") {
@@ -387,7 +387,7 @@ class StreamAdapter<E, R> extends Readable {
   }
 
   override _read(_size: number): void {
-    this.readLatch.unsafeOpen()
+    this.readLatch.openUnsafe()
   }
 
   override _destroy(error: Error | null, callback: (error?: Error | null | undefined) => void): void {

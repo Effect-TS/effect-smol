@@ -33,7 +33,7 @@ export const toHandled = <E, R, EH, RH>(
 ): Effect.Effect<void, never, Exclude<R | RH | HttpServerRequest, Scope.Scope>> => {
   const responded = Effect.flatMap(self, (response) => {
     const fiber = Fiber.getCurrent()!
-    const request = ServiceMap.unsafeGet(fiber.services, HttpServerRequest)
+    const request = ServiceMap.getUnsafe(fiber.services, HttpServerRequest)
     const handler = fiber.getRef(PreResponseHandlers)
     if (handler._tag === "None") {
       ;(request as any)[handledSymbol] = true
@@ -50,7 +50,7 @@ export const toHandled = <E, R, EH, RH>(
     (cause) =>
       Effect.flatMap(causeResponse(cause), ([response, cause]) => {
         const fiber = Fiber.getCurrent()!
-        const request = ServiceMap.unsafeGet(fiber.services, HttpServerRequest)
+        const request = ServiceMap.getUnsafe(fiber.services, HttpServerRequest)
         const handler = fiber.getRef(PreResponseHandlers)
         if (handler._tag === "None") {
           ;(request as any)[handledSymbol] = true
@@ -75,7 +75,7 @@ export const toHandled = <E, R, EH, RH>(
     Effect.matchCauseEffect(middleware(tracer(withErrorHandling)), {
       onFailure: (cause): Effect.Effect<void, EH, RH> => {
         const fiber = Fiber.getCurrent()!
-        const request = ServiceMap.unsafeGet(fiber.services, HttpServerRequest)
+        const request = ServiceMap.getUnsafe(fiber.services, HttpServerRequest)
         if (handledSymbol in request) {
           return Effect.void
         }
@@ -86,7 +86,7 @@ export const toHandled = <E, R, EH, RH>(
       },
       onSuccess: (response): Effect.Effect<void, EH, RH> => {
         const fiber = Fiber.getCurrent()!
-        const request = ServiceMap.unsafeGet(fiber.services, Request.HttpServerRequest)
+        const request = ServiceMap.getUnsafe(fiber.services, Request.HttpServerRequest)
         return handledSymbol in request ? Effect.void : handleResponse(request, response)
       }
     })
@@ -118,7 +118,7 @@ export const scopeTransferToStream = (
     return response
   }
   const fiber = Fiber.getCurrent()!
-  const scope = ServiceMap.unsafeGet(fiber.services, Scope.Scope) as Scope.Scope.Closeable
+  const scope = ServiceMap.getUnsafe(fiber.services, Scope.Scope) as Scope.Scope.Closeable
   scopeDisableClose(scope)
   return Response.setBody(
     response,
@@ -223,18 +223,18 @@ export const toWebHandlerWith = <Provided, R, ReqR = Exclude<R, Provided | Scope
   }, middleware)
   return (request: Request, reqServices?: ServiceMap.ServiceMap<never> | undefined): Promise<globalThis.Response> =>
     new Promise((resolve) => {
-      const contextMap = new Map<string, any>(services.unsafeMap)
+      const contextMap = new Map<string, any>(services.mapUnsafe)
       if (ServiceMap.isServiceMap(reqServices)) {
-        for (const [key, value] of reqServices.unsafeMap) {
+        for (const [key, value] of reqServices.mapUnsafe) {
           contextMap.set(key, value)
         }
       }
       const httpServerRequest = Request.fromWeb(request)
       contextMap.set(HttpServerRequest.key, httpServerRequest)
       ;(httpServerRequest as any)[resolveSymbol] = resolve
-      const fiber = Effect.runForkWith(ServiceMap.unsafeMake(contextMap))(httpApp as any)
+      const fiber = Effect.runForkWith(ServiceMap.makeUnsafe(contextMap))(httpApp as any)
       request.signal?.addEventListener("abort", () => {
-        fiber.unsafeInterrupt(clientAbortFiberId)
+        fiber.interruptUnsafe(clientAbortFiberId)
       }, { once: true })
     })
 }
@@ -279,7 +279,7 @@ export const toWebHandlerLayerWith = <
       services: ServiceMap.ServiceMap<ReqR>
     ) => Promise<globalThis.Response>
 } => {
-  const scope = Scope.unsafeMake()
+  const scope = Scope.makeUnsafe()
   const dispose = () => Effect.runPromise(Scope.close(scope, Exit.void))
 
   let handlerCache:

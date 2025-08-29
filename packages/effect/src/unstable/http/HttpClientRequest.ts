@@ -588,10 +588,10 @@ export const bodyJson: {
  * @since 4.0.0
  * @category combinators
  */
-export const bodyUnsafeJson: {
+export const bodyJsonUnsafe: {
   (body: unknown): (self: HttpClientRequest) => HttpClientRequest
   (self: HttpClientRequest, body: unknown): HttpClientRequest
-} = dual(2, (self: HttpClientRequest, body: unknown): HttpClientRequest => setBody(self, HttpBody.unsafeJson(body)))
+} = dual(2, (self: HttpClientRequest, body: unknown): HttpClientRequest => setBody(self, HttpBody.jsonUnsafe(body)))
 
 /**
  * @since 4.0.0

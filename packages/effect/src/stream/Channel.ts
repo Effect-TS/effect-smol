@@ -1779,7 +1779,7 @@ const mapEffectConcurrent = <
       yield* Scope.addFinalizer(forkedScope, Queue.shutdown(queue))
 
       if (options.unordered) {
-        const semaphore = Effect.unsafeMakeSemaphore(concurrencyN)
+        const semaphore = Effect.makeSemaphoreUnsafe(concurrencyN)
         const handle = Effect.matchCauseEffect({
           onFailure: (cause: Cause.Cause<EX>) => Effect.andThen(Queue.failCause(queue, cause), semaphore.release(1)),
           onSuccess: (value: OutElem2) => Effect.andThen(Queue.offer(queue, value), semaphore.release(1))
@@ -3310,7 +3310,7 @@ export const mergeAll: {
         const concurrencyN = concurrency === "unbounded"
           ? Number.MAX_SAFE_INTEGER
           : Math.max(1, concurrency)
-        const semaphore = switch_ ? undefined : Effect.unsafeMakeSemaphore(concurrencyN)
+        const semaphore = switch_ ? undefined : Effect.makeSemaphoreUnsafe(concurrencyN)
         const doneLatch = yield* Effect.makeLatch(true)
         const fibers = new Set<Fiber.Fiber<any, any>>()
 
@@ -3329,7 +3329,7 @@ export const mergeAll: {
             const childPull = yield* toTransform(channel)(upstream, childScope)
 
             while (fibers.size >= concurrencyN) {
-              const fiber = Iterable.unsafeHead(fibers)
+              const fiber = Iterable.headUnsafe(fibers)
               fibers.delete(fiber)
               if (fibers.size === 0) yield* doneLatch.open
               yield* Fiber.interrupt(fiber)
@@ -3354,7 +3354,7 @@ export const mergeAll: {
               Effect.fork
             )
 
-            doneLatch.unsafeClose()
+            doneLatch.closeUnsafe()
             fibers.add(fiber)
           }
         }).pipe(
@@ -4002,7 +4002,7 @@ const runWith = <
   onHalt?: (leftover: OutDone) => Effect.Effect<AH, EH, RH>
 ): Effect.Effect<AH, Pull.ExcludeHalt<EX> | EH, Env | RX | RH> =>
   Effect.suspend(() => {
-    const scope = Scope.unsafeMake()
+    const scope = Scope.makeUnsafe()
     const makePull = toTransform(self)(Pull.haltVoid, scope)
     return Pull.catchHalt(Effect.flatMap(makePull, f), onHalt ? onHalt : Effect.succeed as any).pipe(
       Effect.onExit((exit) => Scope.close(scope, exit))
@@ -4525,7 +4525,7 @@ export const toPull: <OutElem, OutErr, OutDone, Env>(
   function*<OutElem, OutErr, OutDone, Env>(
     self: Channel<OutElem, OutErr, OutDone, unknown, unknown, unknown, Env>
   ) {
-    const semaphore = Effect.unsafeMakeSemaphore(1)
+    const semaphore = Effect.makeSemaphoreUnsafe(1)
     const context = yield* Effect.services<Env | Scope.Scope>()
     const scope = ServiceMap.get(context, Scope.Scope)
     const pull = yield* toTransform(self)(Pull.haltVoid, scope)

@@ -429,7 +429,7 @@ describe("ToPretty", () => {
 
   it("DateTimeUtc", () => {
     const pretty = ToPretty.make(Schema.DateTimeUtc)
-    strictEqual(pretty(DateTime.unsafeMake("2021-01-01T00:00:00.000Z")), "DateTime.Utc(2021-01-01T00:00:00.000Z)")
+    strictEqual(pretty(DateTime.makeUnsafe("2021-01-01T00:00:00.000Z")), "DateTime.Utc(2021-01-01T00:00:00.000Z)")
   })
 
   describe("Annotations", () => {

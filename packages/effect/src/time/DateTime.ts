@@ -37,10 +37,10 @@ export type TypeId = "~effect/time/DateTime"
  * import { DateTime } from "effect/time"
  *
  * // Create a UTC DateTime
- * const utc: DateTime.DateTime = DateTime.unsafeNow()
+ * const utc: DateTime.DateTime = DateTime.nowUnsafe()
  *
  * // Create a zoned DateTime
- * const zoned: DateTime.DateTime = DateTime.unsafeMakeZoned(new Date(), {
+ * const zoned: DateTime.DateTime = DateTime.makeZonedUnsafe(new Date(), {
  *   timeZone: "Europe/London"
  * })
  * ```
@@ -55,7 +55,7 @@ export type DateTime = Utc | Zoned
  * ```ts
  * import { DateTime } from "effect/time"
  *
- * const utc = DateTime.unsafeNow()
+ * const utc = DateTime.nowUnsafe()
  *
  * if (DateTime.isUtc(utc)) {
  *   console.log(utc._tag) // "Utc"
@@ -77,7 +77,7 @@ export interface Utc extends DateTime.Proto {
  * ```ts
  * import { DateTime } from "effect/time"
  *
- * const zoned = DateTime.unsafeMakeZoned(new Date(), {
+ * const zoned = DateTime.makeZonedUnsafe(new Date(), {
  *   timeZone: "Europe/London"
  * })
  *
@@ -115,14 +115,14 @@ export declare namespace DateTime {
    * const stringDate = "2024-01-01"
    * const epochMillis = 1704067200000
    * const partsObj = { year: 2024, month: 1, day: 1 }
-   * const existing = DateTime.unsafeNow()
+   * const existing = DateTime.nowUnsafe()
    *
    * // All these can be used as DateTime.Input
-   * const dt1 = DateTime.unsafeMake(date)
-   * const dt2 = DateTime.unsafeMake(stringDate)
-   * const dt3 = DateTime.unsafeMake(epochMillis)
-   * const dt4 = DateTime.unsafeMake(partsObj)
-   * const dt5 = DateTime.unsafeMake(existing)
+   * const dt1 = DateTime.makeUnsafe(date)
+   * const dt2 = DateTime.makeUnsafe(stringDate)
+   * const dt3 = DateTime.makeUnsafe(epochMillis)
+   * const dt4 = DateTime.makeUnsafe(partsObj)
+   * const dt5 = DateTime.makeUnsafe(existing)
    * ```
    *
    * @since 3.6.0
@@ -298,7 +298,7 @@ export declare namespace TimeZone {
  *
  * // Fall-back example: 01:30 on Nov 2, 2025 in New York happens twice
  * const ambiguousTime = { year: 2025, month: 11, day: 2, hours: 1, minutes: 30 }
- * const timeZone = DateTime.zoneUnsafeMakeNamed("America/New_York")
+ * const timeZone = DateTime.zoneMakeNamedUnsafe("America/New_York")
  *
  * DateTime.makeZoned(ambiguousTime, { timeZone, adjustForTimeZone: true, disambiguation: "earlier" })
  * // Earlier occurrence (DST time): 2025-11-02T05:30:00.000Z
@@ -385,8 +385,8 @@ export const isZoned: (self: DateTime) => self is Zoned = Internal.isZoned
  * ```ts
  * import { DateTime } from "effect/time"
  *
- * const utc = DateTime.unsafeMake("2024-01-01T12:00:00Z")
- * const zoned = DateTime.unsafeMakeZoned("2024-01-01T12:00:00Z", {
+ * const utc = DateTime.makeUnsafe("2024-01-01T12:00:00Z")
+ * const zoned = DateTime.makeZonedUnsafe("2024-01-01T12:00:00Z", {
  *   timeZone: "Europe/London"
  * })
  *
@@ -410,9 +410,9 @@ export const Equivalence: equivalence.Equivalence<DateTime> = Internal.Equivalen
  * import { Array } from "effect/collections"
  *
  * const dates = [
- *   DateTime.unsafeMake("2024-03-01"),
- *   DateTime.unsafeMake("2024-01-01"),
- *   DateTime.unsafeMake("2024-02-01")
+ *   DateTime.makeUnsafe("2024-03-01"),
+ *   DateTime.makeUnsafe("2024-01-01"),
+ *   DateTime.makeUnsafe("2024-02-01")
  * ]
  *
  * const sorted = Array.sort(dates, DateTime.Order)
@@ -435,9 +435,9 @@ export const Order: order.Order<DateTime> = Internal.Order
  * ```ts
  * import { DateTime } from "effect/time"
  *
- * const min = DateTime.unsafeMake("2024-01-01")
- * const max = DateTime.unsafeMake("2024-12-31")
- * const date = DateTime.unsafeMake("2025-06-15")
+ * const min = DateTime.makeUnsafe("2024-01-01")
+ * const max = DateTime.makeUnsafe("2024-12-31")
+ * const date = DateTime.makeUnsafe("2025-06-15")
  *
  * const clamped = DateTime.clamp(date, { minimum: min, maximum: max })
  * // clamped equals max (2024-12-31)
@@ -470,7 +470,7 @@ export const clamp: {
  * import { DateTime } from "effect/time"
  *
  * const date = new Date("2024-01-01T12:00:00Z")
- * const dateTime = DateTime.unsafeFromDate(date)
+ * const dateTime = DateTime.fromDateUnsafe(date)
  *
  * console.log(DateTime.formatIso(dateTime)) // "2024-01-01T12:00:00.000Z"
  * ```
@@ -478,7 +478,7 @@ export const clamp: {
  * @category constructors
  * @since 3.6.0
  */
-export const unsafeFromDate: (date: Date) => Utc = Internal.unsafeFromDate
+export const fromDateUnsafe: (date: Date) => Utc = Internal.fromDateUnsafe
 
 /**
  * Create a `DateTime` from one of the following:
@@ -496,19 +496,19 @@ export const unsafeFromDate: (date: Date) => Utc = Internal.unsafeFromDate
  * import { DateTime } from "effect/time"
  *
  * // from Date
- * DateTime.unsafeMake(new Date())
+ * DateTime.makeUnsafe(new Date())
  *
  * // from parts
- * DateTime.unsafeMake({ year: 2024 })
+ * DateTime.makeUnsafe({ year: 2024 })
  *
  * // from string
- * DateTime.unsafeMake("2024-01-01")
+ * DateTime.makeUnsafe("2024-01-01")
  * ```
  */
-export const unsafeMake: <A extends DateTime.Input>(input: A) => DateTime.PreserveZone<A> = Internal.unsafeMake
+export const makeUnsafe: <A extends DateTime.Input>(input: A) => DateTime.PreserveZone<A> = Internal.makeUnsafe
 
 /**
- * Create a `DateTime.Zoned` using `DateTime.unsafeMake` and a time zone.
+ * Create a `DateTime.Zoned` using `DateTime.makeUnsafe` and a time zone.
  *
  * The input is treated as UTC and then the time zone is attached, unless
  * `adjustForTimeZone` is set to `true`. In that case, the input is treated as
@@ -527,14 +527,14 @@ export const unsafeMake: <A extends DateTime.Input>(input: A) => DateTime.Preser
  * ```ts
  * import { DateTime } from "effect/time"
  *
- * DateTime.unsafeMakeZoned(new Date(), { timeZone: "Europe/London" })
+ * DateTime.makeZonedUnsafe(new Date(), { timeZone: "Europe/London" })
  * ```
  */
-export const unsafeMakeZoned: (input: DateTime.Input, options?: {
+export const makeZonedUnsafe: (input: DateTime.Input, options?: {
   readonly timeZone?: number | string | TimeZone | undefined
   readonly adjustForTimeZone?: boolean | undefined
   readonly disambiguation?: Disambiguation | undefined
-}) => Zoned = Internal.unsafeMakeZoned
+}) => Zoned = Internal.makeZonedUnsafe
 
 /**
  * Create a `DateTime.Zoned` using `DateTime.make` and a time zone.
@@ -668,14 +668,14 @@ export const nowAsDate: Effect.Effect<Date> = Internal.nowAsDate
  * ```ts
  * import { DateTime } from "effect/time"
  *
- * const now = DateTime.unsafeNow()
+ * const now = DateTime.nowUnsafe()
  * console.log(DateTime.formatIso(now))
  * ```
  *
  * @category constructors
  * @since 3.6.0
  */
-export const unsafeNow: LazyArg<Utc> = Internal.unsafeNow
+export const nowUnsafe: LazyArg<Utc> = Internal.nowUnsafe
 
 // =============================================================================
 // time zones
@@ -690,7 +690,7 @@ export const unsafeNow: LazyArg<Utc> = Internal.unsafeNow
  * ```ts
  * import { DateTime } from "effect/time"
  *
- * const now = DateTime.unsafeMakeZoned({ year: 2024 }, { timeZone: "Europe/London" })
+ * const now = DateTime.makeZonedUnsafe({ year: 2024 }, { timeZone: "Europe/London" })
  *
  * // set as UTC
  * const utc: DateTime.Utc = DateTime.toUtc(now)
@@ -710,7 +710,7 @@ export const toUtc: (self: DateTime) => Utc = Internal.toUtc
  *
  * Effect.gen(function* () {
  *   const now = yield* DateTime.now
- *   const zone = DateTime.zoneUnsafeMakeNamed("Europe/London")
+ *   const zone = DateTime.zoneMakeNamedUnsafe("Europe/London")
  *
  *   // set the time zone
  *   const zoned: DateTime.Zoned = DateTime.setZone(now, zone)
@@ -768,20 +768,20 @@ export const setZoneOffset: {
  * ```ts
  * import { DateTime } from "effect/time"
  *
- * const londonZone = DateTime.zoneUnsafeMakeNamed("Europe/London")
+ * const londonZone = DateTime.zoneMakeNamedUnsafe("Europe/London")
  * console.log(DateTime.zoneToString(londonZone)) // "Europe/London"
  *
- * const tokyoZone = DateTime.zoneUnsafeMakeNamed("Asia/Tokyo")
+ * const tokyoZone = DateTime.zoneMakeNamedUnsafe("Asia/Tokyo")
  * console.log(DateTime.zoneToString(tokyoZone)) // "Asia/Tokyo"
  *
  * // This would throw an IllegalArgumentError:
- * // DateTime.zoneUnsafeMakeNamed("Invalid/Zone")
+ * // DateTime.zoneMakeNamedUnsafe("Invalid/Zone")
  * ```
  *
  * @since 3.6.0
  * @category time zones
  */
-export const zoneUnsafeMakeNamed: (zoneId: string) => TimeZone.Named = Internal.zoneUnsafeMakeNamed
+export const zoneMakeNamedUnsafe: (zoneId: string) => TimeZone.Named = Internal.zoneMakeNamedUnsafe
 
 /**
  * Create a fixed offset time zone.
@@ -796,7 +796,7 @@ export const zoneUnsafeMakeNamed: (zoneId: string) => TimeZone.Named = Internal.
  * // Create a time zone with +3 hours offset
  * const zone = DateTime.zoneMakeOffset(3 * 60 * 60 * 1000)
  *
- * const dt = DateTime.unsafeMakeZoned("2024-01-01T12:00:00Z", {
+ * const dt = DateTime.makeZonedUnsafe("2024-01-01T12:00:00Z", {
  *   timeZone: zone
  * })
  * ```
@@ -862,7 +862,7 @@ export const zoneMakeNamedEffect: (zoneId: string) => Effect.Effect<TimeZone.Nam
  * import { DateTime } from "effect/time"
  *
  * const localZone = DateTime.zoneMakeLocal()
- * const now = DateTime.unsafeNow()
+ * const now = DateTime.nowUnsafe()
  * const localTime = DateTime.setZone(now, localZone)
  *
  * console.log(DateTime.formatIsoZoned(localTime))
@@ -911,7 +911,7 @@ export const zoneFromString: (zone: string) => Option.Option<TimeZone> = Interna
  * DateTime.zoneToString(DateTime.zoneMakeOffset(3 * 60 * 60 * 1000))
  *
  * // Outputs "Europe/London"
- * DateTime.zoneToString(DateTime.zoneUnsafeMakeNamed("Europe/London"))
+ * DateTime.zoneToString(DateTime.zoneMakeNamedUnsafe("Europe/London"))
  * ```
  */
 export const zoneToString: (self: TimeZone) => string = Internal.zoneToString
@@ -959,11 +959,11 @@ export const setZoneNamed: {
  * Effect.gen(function* () {
  *   const now = yield* DateTime.now
  *   // set the time zone
- *   DateTime.unsafeSetZoneNamed(now, "Europe/London")
+ *   DateTime.setZoneNamedUnsafe(now, "Europe/London")
  * })
  * ```
  */
-export const unsafeSetZoneNamed: {
+export const setZoneNamedUnsafe: {
   (zoneId: string, options?: {
     readonly adjustForTimeZone?: boolean | undefined
     readonly disambiguation?: Disambiguation | undefined
@@ -972,7 +972,7 @@ export const unsafeSetZoneNamed: {
     readonly adjustForTimeZone?: boolean | undefined
     readonly disambiguation?: Disambiguation | undefined
   }): Zoned
-} = Internal.unsafeSetZoneNamed
+} = Internal.setZoneNamedUnsafe
 
 // =============================================================================
 // comparisons
@@ -1069,8 +1069,8 @@ export const distanceDuration: {
  * ```ts
  * import { DateTime } from "effect/time"
  *
- * const date1 = DateTime.unsafeMake("2024-01-01")
- * const date2 = DateTime.unsafeMake("2024-02-01")
+ * const date1 = DateTime.makeUnsafe("2024-01-01")
+ * const date2 = DateTime.makeUnsafe("2024-02-01")
  *
  * const earlier = DateTime.min(date1, date2)
  * // earlier equals date1 (2024-01-01)
@@ -1091,8 +1091,8 @@ export const min: {
  * ```ts
  * import { DateTime } from "effect/time"
  *
- * const date1 = DateTime.unsafeMake("2024-01-01")
- * const date2 = DateTime.unsafeMake("2024-02-01")
+ * const date1 = DateTime.makeUnsafe("2024-01-01")
+ * const date2 = DateTime.makeUnsafe("2024-02-01")
  *
  * const later = DateTime.max(date1, date2)
  * // later equals date2 (2024-02-01)
@@ -1113,8 +1113,8 @@ export const max: {
  * ```ts
  * import { DateTime } from "effect/time"
  *
- * const date1 = DateTime.unsafeMake("2024-02-01")
- * const date2 = DateTime.unsafeMake("2024-01-01")
+ * const date1 = DateTime.makeUnsafe("2024-02-01")
+ * const date2 = DateTime.makeUnsafe("2024-01-01")
  *
  * console.log(DateTime.greaterThan(date1, date2)) // true
  * console.log(DateTime.greaterThan(date2, date1)) // false
@@ -1135,9 +1135,9 @@ export const greaterThan: {
  * ```ts
  * import { DateTime } from "effect/time"
  *
- * const date1 = DateTime.unsafeMake("2024-01-01")
- * const date2 = DateTime.unsafeMake("2024-01-01")
- * const date3 = DateTime.unsafeMake("2024-02-01")
+ * const date1 = DateTime.makeUnsafe("2024-01-01")
+ * const date2 = DateTime.makeUnsafe("2024-01-01")
+ * const date3 = DateTime.makeUnsafe("2024-02-01")
  *
  * console.log(DateTime.greaterThanOrEqualTo(date1, date2)) // true
  * console.log(DateTime.greaterThanOrEqualTo(date3, date1)) // true
@@ -1159,8 +1159,8 @@ export const greaterThanOrEqualTo: {
  * ```ts
  * import { DateTime } from "effect/time"
  *
- * const date1 = DateTime.unsafeMake("2024-01-01")
- * const date2 = DateTime.unsafeMake("2024-02-01")
+ * const date1 = DateTime.makeUnsafe("2024-01-01")
+ * const date2 = DateTime.makeUnsafe("2024-02-01")
  *
  * console.log(DateTime.lessThan(date1, date2)) // true
  * console.log(DateTime.lessThan(date2, date1)) // false
@@ -1181,9 +1181,9 @@ export const lessThan: {
  * ```ts
  * import { DateTime } from "effect/time"
  *
- * const date1 = DateTime.unsafeMake("2024-01-01")
- * const date2 = DateTime.unsafeMake("2024-01-01")
- * const date3 = DateTime.unsafeMake("2024-02-01")
+ * const date1 = DateTime.makeUnsafe("2024-01-01")
+ * const date2 = DateTime.makeUnsafe("2024-01-01")
+ * const date3 = DateTime.makeUnsafe("2024-02-01")
  *
  * console.log(DateTime.lessThanOrEqualTo(date1, date2)) // true
  * console.log(DateTime.lessThanOrEqualTo(date1, date3)) // true
@@ -1205,9 +1205,9 @@ export const lessThanOrEqualTo: {
  * ```ts
  * import { DateTime } from "effect/time"
  *
- * const min = DateTime.unsafeMake("2024-01-01")
- * const max = DateTime.unsafeMake("2024-12-31")
- * const date = DateTime.unsafeMake("2024-06-15")
+ * const min = DateTime.makeUnsafe("2024-01-01")
+ * const max = DateTime.makeUnsafe("2024-12-31")
+ * const date = DateTime.makeUnsafe("2024-06-15")
  *
  * console.log(DateTime.between(date, { minimum: min, maximum: max })) // true
  * ```
@@ -1251,17 +1251,17 @@ export const isFuture: (self: DateTime) => Effect.Effect<boolean> = Internal.isF
  * ```ts
  * import { DateTime } from "effect/time"
  *
- * const now = DateTime.unsafeNow()
+ * const now = DateTime.nowUnsafe()
  * const futureDate = DateTime.add(now, { hours: 1 })
  *
- * console.log(DateTime.unsafeIsFuture(futureDate)) // true
- * console.log(DateTime.unsafeIsFuture(now)) // false
+ * console.log(DateTime.isFutureUnsafe(futureDate)) // true
+ * console.log(DateTime.isFutureUnsafe(now)) // false
  * ```
  *
  * @category comparisons
  * @since 3.6.0
  */
-export const unsafeIsFuture: (self: DateTime) => boolean = Internal.unsafeIsFuture
+export const isFutureUnsafe: (self: DateTime) => boolean = Internal.isFutureUnsafe
 
 /**
  * Checks if a `DateTime` is in the past compared to the current time.
@@ -1294,17 +1294,17 @@ export const isPast: (self: DateTime) => Effect.Effect<boolean> = Internal.isPas
  * ```ts
  * import { DateTime } from "effect/time"
  *
- * const now = DateTime.unsafeNow()
+ * const now = DateTime.nowUnsafe()
  * const pastDate = DateTime.subtract(now, { hours: 1 })
  *
- * console.log(DateTime.unsafeIsPast(pastDate)) // true
- * console.log(DateTime.unsafeIsPast(now)) // false
+ * console.log(DateTime.isPastUnsafe(pastDate)) // true
+ * console.log(DateTime.isPastUnsafe(now)) // false
  * ```
  *
  * @category comparisons
  * @since 3.6.0
  */
-export const unsafeIsPast: (self: DateTime) => boolean = Internal.unsafeIsPast
+export const isPastUnsafe: (self: DateTime) => boolean = Internal.isPastUnsafe
 
 // =============================================================================
 // conversions
@@ -1319,7 +1319,7 @@ export const unsafeIsPast: (self: DateTime) => boolean = Internal.unsafeIsPast
  * ```ts
  * import { DateTime } from "effect/time"
  *
- * const dt = DateTime.unsafeMakeZoned("2024-01-01T12:00:00Z", {
+ * const dt = DateTime.makeZonedUnsafe("2024-01-01T12:00:00Z", {
  *   timeZone: "Europe/London"
  * })
  *
@@ -1342,8 +1342,8 @@ export const toDateUtc: (self: DateTime) => Date = Internal.toDateUtc
  * ```ts
  * import { DateTime } from "effect/time"
  *
- * const utc = DateTime.unsafeMake("2024-01-01T12:00:00Z")
- * const zoned = DateTime.unsafeMakeZoned("2024-01-01T12:00:00Z", {
+ * const utc = DateTime.makeUnsafe("2024-01-01T12:00:00Z")
+ * const zoned = DateTime.makeZonedUnsafe("2024-01-01T12:00:00Z", {
  *   timeZone: "Europe/London"
  * })
  *
@@ -1366,7 +1366,7 @@ export const toDate: (self: DateTime) => Date = Internal.toDate
  * ```ts
  * import { DateTime } from "effect/time"
  *
- * const zoned = DateTime.unsafeMakeZoned("2024-01-01T12:00:00Z", {
+ * const zoned = DateTime.makeZonedUnsafe("2024-01-01T12:00:00Z", {
  *   timeZone: "Europe/London"
  * })
  *
@@ -1388,7 +1388,7 @@ export const zonedOffset: (self: Zoned) => number = Internal.zonedOffset
  * ```ts
  * import { DateTime } from "effect/time"
  *
- * const zoned = DateTime.unsafeMakeZoned("2024-01-01T12:00:00Z", {
+ * const zoned = DateTime.makeZonedUnsafe("2024-01-01T12:00:00Z", {
  *   timeZone: DateTime.zoneMakeOffset(3 * 60 * 60 * 1000) // +3 hours
  * })
  *
@@ -1410,7 +1410,7 @@ export const zonedOffsetIso: (self: Zoned) => string = Internal.zonedOffsetIso
  * ```ts
  * import { DateTime } from "effect/time"
  *
- * const dt = DateTime.unsafeMake("2024-01-01T00:00:00Z")
+ * const dt = DateTime.makeUnsafe("2024-01-01T00:00:00Z")
  * const epochMillis = DateTime.toEpochMillis(dt)
  *
  * console.log(epochMillis) // 1704067200000
@@ -1433,7 +1433,7 @@ export const toEpochMillis: (self: DateTime) => number = Internal.toEpochMillis
  * import { DateTime } from "effect/time"
  *
  * // returns "2024-01-01T00:00:00Z"
- * DateTime.unsafeMakeZoned("2024-01-01T05:00:00Z", {
+ * DateTime.makeZonedUnsafe("2024-01-01T05:00:00Z", {
  *   timeZone: "Pacific/Auckland",
  *   adjustForTimeZone: true
  * }).pipe(
@@ -1457,7 +1457,7 @@ export const removeTime: (self: DateTime) => Utc = Internal.removeTime
  * ```ts
  * import { DateTime } from "effect/time"
  *
- * const dt = DateTime.unsafeMake("2024-01-01T12:30:45.123Z")
+ * const dt = DateTime.makeUnsafe("2024-01-01T12:30:45.123Z")
  * const parts = DateTime.toParts(dt)
  *
  * console.log(parts)
@@ -1487,7 +1487,7 @@ export const toParts: (self: DateTime) => DateTime.PartsWithWeekday = Internal.t
  * ```ts
  * import { DateTime } from "effect/time"
  *
- * const zoned = DateTime.unsafeMakeZoned("2024-01-01T12:30:45.123Z", {
+ * const zoned = DateTime.makeZonedUnsafe("2024-01-01T12:30:45.123Z", {
  *   timeZone: "Europe/London"
  * })
  * const parts = DateTime.toPartsUtc(zoned)
@@ -1513,7 +1513,7 @@ export const toPartsUtc: (self: DateTime) => DateTime.PartsWithWeekday = Interna
  * import * as assert from "node:assert"
  * import { DateTime } from "effect/time"
  *
- * const now = DateTime.unsafeMake({ year: 2024 })
+ * const now = DateTime.makeUnsafe({ year: 2024 })
  * const year = DateTime.getPartUtc(now, "year")
  * assert.strictEqual(year, 2024)
  * ```
@@ -1535,7 +1535,7 @@ export const getPartUtc: {
  * import * as assert from "node:assert"
  * import { DateTime } from "effect/time"
  *
- * const now = DateTime.unsafeMakeZoned({ year: 2024 }, { timeZone: "Europe/London" })
+ * const now = DateTime.makeZonedUnsafe({ year: 2024 }, { timeZone: "Europe/London" })
  * const year = DateTime.getPart(now, "year")
  * assert.strictEqual(year, 2024)
  * ```
@@ -1554,7 +1554,7 @@ export const getPart: {
  * ```ts
  * import { DateTime } from "effect/time"
  *
- * const dt = DateTime.unsafeMake("2024-01-01T12:00:00Z")
+ * const dt = DateTime.makeUnsafe("2024-01-01T12:00:00Z")
  * const updated = DateTime.setParts(dt, {
  *   year: 2025,
  *   month: 6,
@@ -1581,7 +1581,7 @@ export const setParts: {
  * ```ts
  * import { DateTime } from "effect/time"
  *
- * const dt = DateTime.unsafeMake("2024-01-01T12:00:00Z")
+ * const dt = DateTime.makeUnsafe("2024-01-01T12:00:00Z")
  * const updated = DateTime.setPartsUtc(dt, {
  *   year: 2025,
  *   hours: 18
@@ -1656,7 +1656,7 @@ export const setZoneCurrent = (self: DateTime): Effect.Effect<Zoned, never, Curr
  * import { DateTime } from "effect/time"
  * import { Effect } from "effect"
  *
- * const zone = DateTime.zoneUnsafeMakeNamed("Europe/London")
+ * const zone = DateTime.zoneMakeNamedUnsafe("Europe/London")
  *
  * Effect.gen(function* () {
  *   const now = yield* DateTime.nowInCurrentZone
@@ -1787,7 +1787,7 @@ export const nowInCurrentZone: Effect.Effect<Zoned, never, CurrentTimeZone> = Ef
  * ```ts
  * import { DateTime } from "effect/time"
  *
- * const dt = DateTime.unsafeMake("2024-01-01T12:00:00Z")
+ * const dt = DateTime.makeUnsafe("2024-01-01T12:00:00Z")
  *
  * const modified = DateTime.mutate(dt, (date) => {
  *   date.setHours(15) // Set to 3 PM
@@ -1823,7 +1823,7 @@ export const mutate: {
  * ```ts
  * import { DateTime } from "effect/time"
  *
- * const dt = DateTime.unsafeMakeZoned("2024-01-01T12:00:00Z", {
+ * const dt = DateTime.makeZonedUnsafe("2024-01-01T12:00:00Z", {
  *   timeZone: "Europe/London"
  * })
  *
@@ -1853,7 +1853,7 @@ export const mutateUtc: {
  * import { DateTime } from "effect/time"
  *
  * // add 10 milliseconds
- * DateTime.unsafeMake(0).pipe(
+ * DateTime.makeUnsafe(0).pipe(
  *   DateTime.mapEpochMillis((millis) => millis + 10)
  * )
  * ```
@@ -1874,7 +1874,7 @@ export const mapEpochMillis: {
  * import { DateTime } from "effect/time"
  *
  * // get the time zone adjusted date in milliseconds
- * DateTime.unsafeMakeZoned(0, { timeZone: "Europe/London" }).pipe(
+ * DateTime.makeZonedUnsafe(0, { timeZone: "Europe/London" }).pipe(
  *   DateTime.withDate((date) => date.getTime())
  * )
  * ```
@@ -1895,7 +1895,7 @@ export const withDate: {
  * import { DateTime } from "effect/time"
  *
  * // get the date in milliseconds
- * DateTime.unsafeMake(0).pipe(
+ * DateTime.makeUnsafe(0).pipe(
  *   DateTime.withDateUtc((date) => date.getTime())
  * )
  * ```
@@ -1912,8 +1912,8 @@ export const withDateUtc: {
  * ```ts
  * import { DateTime } from "effect/time"
  *
- * const dt1 = DateTime.unsafeNow() // Utc
- * const dt2 = DateTime.unsafeMakeZoned(new Date(), { timeZone: "Europe/London" }) // Zoned
+ * const dt1 = DateTime.nowUnsafe() // Utc
+ * const dt2 = DateTime.makeZonedUnsafe(new Date(), { timeZone: "Europe/London" }) // Zoned
  *
  * const result1 = DateTime.match(dt1, {
  *   onUtc: (utc) => `UTC: ${DateTime.formatIso(utc)}`,
@@ -1954,7 +1954,7 @@ export const match: {
  * import { DateTime } from "effect/time"
  *
  * // add 5 minutes
- * DateTime.unsafeMake(0).pipe(
+ * DateTime.makeUnsafe(0).pipe(
  *   DateTime.addDuration("5 minutes")
  * )
  * ```
@@ -1974,7 +1974,7 @@ export const addDuration: {
  * import { DateTime } from "effect/time"
  *
  * // subtract 5 minutes
- * DateTime.unsafeMake(0).pipe(
+ * DateTime.makeUnsafe(0).pipe(
  *   DateTime.subtractDuration("5 minutes")
  * )
  * ```
@@ -1997,7 +1997,7 @@ export const subtractDuration: {
  * import { DateTime } from "effect/time"
  *
  * // add 5 minutes
- * DateTime.unsafeMake(0).pipe(
+ * DateTime.makeUnsafe(0).pipe(
  *   DateTime.add({ minutes: 5 })
  * )
  * ```
@@ -2017,7 +2017,7 @@ export const add: {
  * import { DateTime } from "effect/time"
  *
  * // subtract 5 minutes
- * DateTime.unsafeMake(0).pipe(
+ * DateTime.makeUnsafe(0).pipe(
  *   DateTime.subtract({ minutes: 5 })
  * )
  * ```
@@ -2040,7 +2040,7 @@ export const subtract: {
  * import { DateTime } from "effect/time"
  *
  * // returns "2024-01-01T00:00:00Z"
- * DateTime.unsafeMake("2024-01-01T12:00:00Z").pipe(
+ * DateTime.makeUnsafe("2024-01-01T12:00:00Z").pipe(
  *   DateTime.startOf("day"),
  *   DateTime.formatIso
  * )
@@ -2071,7 +2071,7 @@ export const startOf: {
  * import { DateTime } from "effect/time"
  *
  * // returns "2024-01-01T23:59:59.999Z"
- * DateTime.unsafeMake("2024-01-01T12:00:00Z").pipe(
+ * DateTime.makeUnsafe("2024-01-01T12:00:00Z").pipe(
  *   DateTime.endOf("day"),
  *   DateTime.formatIso
  * )
@@ -2102,7 +2102,7 @@ export const endOf: {
  * import { DateTime } from "effect/time"
  *
  * // returns "2024-01-02T00:00:00Z"
- * DateTime.unsafeMake("2024-01-01T12:01:00Z").pipe(
+ * DateTime.makeUnsafe("2024-01-01T12:01:00Z").pipe(
  *   DateTime.nearest("day"),
  *   DateTime.formatIso
  * )
@@ -2136,7 +2136,7 @@ export const nearest: {
  * ```ts
  * import { DateTime } from "effect/time"
  *
- * const dt = DateTime.unsafeMakeZoned("2024-06-15T14:30:00Z", {
+ * const dt = DateTime.makeZonedUnsafe("2024-06-15T14:30:00Z", {
  *   timeZone: "Europe/London"
  * })
  *
@@ -2179,7 +2179,7 @@ export const format: {
  * ```ts
  * import { DateTime } from "effect/time"
  *
- * const dt = DateTime.unsafeMake("2024-06-15T14:30:00Z")
+ * const dt = DateTime.makeUnsafe("2024-06-15T14:30:00Z")
  *
  * // Uses system local time zone and locale
  * const local = DateTime.formatLocal(dt, {
@@ -2223,7 +2223,7 @@ export const formatLocal: {
  * ```ts
  * import { DateTime } from "effect/time"
  *
- * const dt = DateTime.unsafeMakeZoned("2024-06-15T14:30:00Z", {
+ * const dt = DateTime.makeZonedUnsafe("2024-06-15T14:30:00Z", {
  *   timeZone: "Europe/London"
  * })
  *
@@ -2268,7 +2268,7 @@ export const formatUtc: {
  * ```ts
  * import { DateTime } from "effect/time"
  *
- * const dt = DateTime.unsafeMake("2024-06-15T14:30:00Z")
+ * const dt = DateTime.makeUnsafe("2024-06-15T14:30:00Z")
  *
  * // Create a custom formatter
  * const formatter = new Intl.DateTimeFormat("de-DE", {
@@ -2301,10 +2301,10 @@ export const formatIntl: {
  * ```ts
  * import { DateTime } from "effect/time"
  *
- * const dt = DateTime.unsafeMake("2024-01-01T12:30:45.123Z")
+ * const dt = DateTime.makeUnsafe("2024-01-01T12:30:45.123Z")
  * console.log(DateTime.formatIso(dt)) // "2024-01-01T12:30:45.123Z"
  *
- * const zoned = DateTime.unsafeMakeZoned("2024-01-01T12:30:45.123Z", {
+ * const zoned = DateTime.makeZonedUnsafe("2024-01-01T12:30:45.123Z", {
  *   timeZone: "Europe/London"
  * })
  * console.log(DateTime.formatIso(zoned)) // "2024-01-01T12:30:45.123Z"
@@ -2324,10 +2324,10 @@ export const formatIso: (self: DateTime) => string = Internal.formatIso
  * ```ts
  * import { DateTime } from "effect/time"
  *
- * const dt = DateTime.unsafeMake("2024-01-01T23:30:00Z")
+ * const dt = DateTime.makeUnsafe("2024-01-01T23:30:00Z")
  * console.log(DateTime.formatIsoDate(dt)) // "2024-01-01"
  *
- * const zoned = DateTime.unsafeMakeZoned("2024-01-01T23:30:00Z", {
+ * const zoned = DateTime.makeZonedUnsafe("2024-01-01T23:30:00Z", {
  *   timeZone: "Pacific/Auckland" // UTC+12/13
  * })
  * console.log(DateTime.formatIsoDate(zoned)) // "2024-01-02" (next day in Auckland)
@@ -2347,10 +2347,10 @@ export const formatIsoDate: (self: DateTime) => string = Internal.formatIsoDate
  * ```ts
  * import { DateTime } from "effect/time"
  *
- * const dt = DateTime.unsafeMake("2024-01-01T23:30:00Z")
+ * const dt = DateTime.makeUnsafe("2024-01-01T23:30:00Z")
  * console.log(DateTime.formatIsoDateUtc(dt)) // "2024-01-01"
  *
- * const zoned = DateTime.unsafeMakeZoned("2024-01-01T23:30:00Z", {
+ * const zoned = DateTime.makeZonedUnsafe("2024-01-01T23:30:00Z", {
  *   timeZone: "Pacific/Auckland"
  * })
  * console.log(DateTime.formatIsoDateUtc(zoned)) // "2024-01-01" (always UTC)
@@ -2371,10 +2371,10 @@ export const formatIsoDateUtc: (self: DateTime) => string = Internal.formatIsoDa
  * ```ts
  * import { DateTime } from "effect/time"
  *
- * const utc = DateTime.unsafeMake("2024-01-01T12:00:00Z")
+ * const utc = DateTime.makeUnsafe("2024-01-01T12:00:00Z")
  * console.log(DateTime.formatIsoOffset(utc)) // "2024-01-01T12:00:00.000Z"
  *
- * const zoned = DateTime.unsafeMakeZoned("2024-01-01T12:00:00Z", {
+ * const zoned = DateTime.makeZonedUnsafe("2024-01-01T12:00:00Z", {
  *   timeZone: DateTime.zoneMakeOffset(3 * 60 * 60 * 1000)
  * })
  * console.log(DateTime.formatIsoOffset(zoned)) // "2024-01-01T15:00:00.000+03:00"
@@ -2394,14 +2394,14 @@ export const formatIsoOffset: (self: DateTime) => string = Internal.formatIsoOff
  * ```ts
  * import { DateTime } from "effect/time"
  *
- * const zoned = DateTime.unsafeMakeZoned("2024-06-15T14:30:45.123Z", {
+ * const zoned = DateTime.makeZonedUnsafe("2024-06-15T14:30:45.123Z", {
  *   timeZone: "Europe/London"
  * })
  *
  * const formatted = DateTime.formatIsoZoned(zoned)
  * console.log(formatted) // "2024-06-15T15:30:45.123+01:00[Europe/London]"
  *
- * const offsetZone = DateTime.unsafeMakeZoned("2024-06-15T14:30:45.123Z", {
+ * const offsetZone = DateTime.makeZonedUnsafe("2024-06-15T14:30:45.123Z", {
  *   timeZone: DateTime.zoneMakeOffset(3 * 60 * 60 * 1000)
  * })
  *
@@ -2425,7 +2425,7 @@ export const formatIsoZoned: (self: Zoned) => string = Internal.formatIsoZoned
  * import { Effect } from "effect"
  * import { Layer } from "effect"
  *
- * const zone = DateTime.zoneUnsafeMakeNamed("Europe/London")
+ * const zone = DateTime.zoneMakeNamedUnsafe("Europe/London")
  * const layer = DateTime.layerCurrentZone(zone)
  *
  * const program = Effect.gen(function* () {

@@ -75,7 +75,7 @@ export const layer = <Id extends string, Groups extends HttpApiGroup.Any>(
     >()
     const routes: Array<HttpRouter.Route<any, any>> = []
     for (const group of Object.values(api.groups)) {
-      const groupRoutes = services.unsafeMap.get(group.key) as Array<HttpRouter.Route<any, any>>
+      const groupRoutes = services.mapUnsafe.get(group.key) as Array<HttpRouter.Route<any, any>>
       if (groupRoutes === undefined) {
         return yield* Effect.die(`HttpApiGroup "${group.key}" not found`)
       }
@@ -85,7 +85,7 @@ export const layer = <Id extends string, Groups extends HttpApiGroup.Any>(
     yield* (router.addAll(routes) as Effect.Effect<void>)
     if (options?.openapiPath) {
       const spec = OpenApi.fromApi(api)
-      yield* router.add("GET", options.openapiPath, Effect.succeed(Response.unsafeJson(spec)))
+      yield* router.add("GET", options.openapiPath, Effect.succeed(Response.jsonUnsafe(spec)))
     }
   })).pipe(
     Layer.provide(ApiErrorHandler)
@@ -130,7 +130,7 @@ export const group = <
     for (const item of handlers.handlers) {
       routes.push(handlerToRoute(group as any, item, services))
     }
-    return ServiceMap.unsafeMake(new Map([[group.key, routes]]))
+    return ServiceMap.makeUnsafe(new Map([[group.key, routes]]))
   })) as any
 
 /**
@@ -462,9 +462,9 @@ const handlerToRoute = (
       Effect.gen(function*() {
         const fiber = Fiber.getCurrent()!
         const services = fiber.services
-        const httpRequest = ServiceMap.unsafeGet(services, HttpServerRequest)
-        const routeContext = ServiceMap.unsafeGet(services, HttpRouter.RouteContext)
-        const urlParams = ServiceMap.unsafeGet(services, Request.ParsedSearchParams)
+        const httpRequest = ServiceMap.getUnsafe(services, HttpServerRequest)
+        const routeContext = ServiceMap.getUnsafe(services, HttpRouter.RouteContext)
+        const urlParams = ServiceMap.getUnsafe(services, Request.ParsedSearchParams)
         const request: any = {
           request: httpRequest,
           endpoint,
@@ -546,7 +546,7 @@ const applyMiddleware = <A extends Effect.Effect<any, any, any>>(
   const options = { group, endpoint }
   for (const key_ of endpoint.middlewares) {
     const key = key_ as any as HttpApiMiddleware.AnyKey
-    const service = services.unsafeMap.get(key_.key) as HttpApiMiddleware.HttpApiMiddleware<any, any, any>
+    const service = services.mapUnsafe.get(key_.key) as HttpApiMiddleware.HttpApiMiddleware<any, any, any>
     const apply = HttpApiMiddleware.SecurityTypeId in key
       ? makeSecurityMiddleware(key as any, service as any)
       : service

@@ -99,7 +99,7 @@ export const logger: <E, R>(
 ) => Effect.Effect<HttpServerResponse, E, HttpServerRequest | R> = make((httpApp) => {
   let counter = 0
   return Effect.withFiber((fiber) => {
-    const request = ServiceMap.unsafeGet(fiber.services, HttpServerRequest)
+    const request = ServiceMap.getUnsafe(fiber.services, HttpServerRequest)
     return Effect.withLogSpan(
       Effect.flatMap(Effect.exit(httpApp), (exit) => {
         if (fiber.getRef(LoggerDisabled)) {
@@ -137,19 +137,19 @@ export const tracer: <E, R>(
   httpApp: Effect.Effect<HttpServerResponse, E, HttpServerRequest | R>
 ) => Effect.Effect<HttpServerResponse, E, HttpServerRequest | R> = make((httpApp) =>
   Effect.withFiber((fiber) => {
-    const request = ServiceMap.unsafeGet(fiber.services, HttpServerRequest)
+    const request = ServiceMap.getUnsafe(fiber.services, HttpServerRequest)
     const disabled = !fiber.getRef(TracerEnabled) || fiber.getRef(TracerDisabledWhen)(request)
     if (disabled) {
       return httpApp
     }
     const nameGenerator = fiber.getRef(SpanNameGenerator)
-    const span = internalEffect.unsafeMakeSpan(fiber, nameGenerator(request), {
+    const span = internalEffect.makeSpanUnsafe(fiber, nameGenerator(request), {
       parent: Option.getOrUndefined(TraceContext.fromHeaders(request.headers)),
       kind: "server",
       captureStackTrace: false
     })
     return Effect.onExitInterruptible(Effect.withParentSpan(httpApp, span), (exit) => {
-      const endTime = fiber.getRef(Clock).unsafeCurrentTimeNanos()
+      const endTime = fiber.getRef(Clock).currentTimeNanosUnsafe()
       return Effect.flatMap(Effect.yieldNow, () => {
         const url = Option.getOrUndefined(Request.toURL(request))
         if (url !== undefined && (url.username !== "" || url.password !== "")) {
@@ -217,7 +217,7 @@ export const searchParamsParser = <E, R>(
 ): Effect.Effect<Response.HttpServerResponse, E, HttpServerRequest | Exclude<R, Request.ParsedSearchParams>> =>
   Effect.withFiber((fiber) => {
     const services = fiber.services
-    const request = ServiceMap.unsafeGet(services, HttpServerRequest)
+    const request = ServiceMap.getUnsafe(services, HttpServerRequest)
     const params = Request.searchParamsFromURL(new URL(request.originalUrl))
     return Effect.provideService(
       httpApp,
@@ -310,7 +310,7 @@ export const cors = (options?: {
 
   const headersFromRequest = (request: HttpServerRequest) => {
     const origin = request.headers["origin"]
-    return Headers.unsafeFromRecord({
+    return Headers.fromRecordUnsafe({
       ...allowOrigin(origin),
       ...allowCredentials,
       ...exposeHeaders
@@ -320,7 +320,7 @@ export const cors = (options?: {
   const headersFromRequestOptions = (request: HttpServerRequest) => {
     const origin = request.headers["origin"]
     const accessControlRequestHeaders = request.headers["access-control-request-headers"]
-    return Headers.unsafeFromRecord({
+    return Headers.fromRecordUnsafe({
       ...allowOrigin(origin),
       ...allowCredentials,
       ...exposeHeaders,
@@ -337,7 +337,7 @@ export const cors = (options?: {
     httpApp: Effect.Effect<HttpServerResponse, E, R>
   ): Effect.Effect<HttpServerResponse, E, R | HttpServerRequest> =>
     Effect.withFiber((fiber) => {
-      const request = ServiceMap.unsafeGet(fiber.services, HttpServerRequest)
+      const request = ServiceMap.getUnsafe(fiber.services, HttpServerRequest)
       if (request.method === "OPTIONS") {
         return Effect.succeed(Response.empty({
           status: 204,

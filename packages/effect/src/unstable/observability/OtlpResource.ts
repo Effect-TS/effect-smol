@@ -89,7 +89,7 @@ export const fromConfig: (
  * @since 4.0.0
  * @category Attributes
  */
-export const unsafeServiceName = (resource: Resource): string => {
+export const serviceNameUnsafe = (resource: Resource): string => {
   const serviceNameAttribute = resource.attributes.find(
     (attr) => attr.key === "service.name"
   )

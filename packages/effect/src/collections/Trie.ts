@@ -530,7 +530,7 @@ export const isEmpty: <V>(self: Trie<V>) => boolean = TR.isEmpty
 /**
  * Unsafely lookup the value for the specified key in the `Trie`.
  *
- * `unsafeGet` will throw if the key is not found. Use `get` instead to safely
+ * `getUnsafe` will throw if the key is not found. Use `get` instead to safely
  * get a value from the `Trie`.
  *
  * @example
@@ -543,16 +543,16 @@ export const isEmpty: <V>(self: Trie<V>) => boolean = TR.isEmpty
  *   Trie.insert("me", 1)
  * )
  *
- * assert.throws(() => Trie.unsafeGet(trie, "mae"))
+ * assert.throws(() => Trie.getUnsafe(trie, "mae"))
  * ```
  *
  * @since 2.0.0
  * @category unsafe
  */
-export const unsafeGet: {
+export const getUnsafe: {
   (key: string): <V>(self: Trie<V>) => V
   <V>(self: Trie<V>, key: string): V
-} = TR.unsafeGet
+} = TR.getUnsafe
 
 /**
  * Remove the entry for the specified key in the `Trie`.

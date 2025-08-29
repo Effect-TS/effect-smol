@@ -36,7 +36,7 @@ export const asyncPauseResume = <A, E = never, R = never>(
       let paused = false
       const offer = (arr: ReadonlyArray<A>) => {
         if (arr.length === 0) return
-        const isFull = Queue.unsafeIsFull(queue)
+        const isFull = Queue.isFullUnsafe(queue)
         if (!isFull || (isFull && paused)) {
           return Effect.runFork(Queue.offerAll(queue, arr))
         }
@@ -55,8 +55,8 @@ export const asyncPauseResume = <A, E = never, R = never>(
         register({
           single: (item) => offer([item]),
           array: (chunk) => offer(chunk),
-          fail: (error) => Queue.unsafeDone(queue, Exit.fail(error)),
-          end: () => Queue.unsafeDone(queue, Exit.void)
+          fail: (error) => Queue.doneUnsafe(queue, Exit.fail(error)),
+          end: () => Queue.doneUnsafe(queue, Exit.void)
         }),
         (_) => {
           cbs = _

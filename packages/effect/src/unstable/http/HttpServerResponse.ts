@@ -96,7 +96,7 @@ export const empty = (options?: Options.WithContent | undefined): HttpServerResp
  * @category constructors
  */
 export const redirect = (location: string | URL, options?: Options.WithContentType | undefined): HttpServerResponse => {
-  const headers = Headers.unsafeFromRecord({ location: location.toString() })
+  const headers = Headers.fromRecordUnsafe({ location: location.toString() })
   return makeResponse({
     status: options?.status ?? 302,
     statusText: options?.statusText,
@@ -250,7 +250,7 @@ export const schemaJson = <A, I, RD, RE>(
  * @since 4.0.0
  * @category constructors
  */
-export const unsafeJson = (
+export const jsonUnsafe = (
   body: unknown,
   options?: Options.WithContent | undefined
 ): HttpServerResponse =>
@@ -259,7 +259,7 @@ export const unsafeJson = (
     statusText: options?.statusText,
     headers: options?.headers && Headers.fromInput(options.headers),
     cookies: options?.cookies,
-    body: Body.unsafeJson(body)
+    body: Body.jsonUnsafe(body)
   })
 
 /**
@@ -450,7 +450,7 @@ export const setCookie: {
  * @since 4.0.0
  * @category combinators
  */
-export const unsafeSetCookie: {
+export const setCookieUnsafe: {
   (
     name: string,
     value: string,
@@ -467,7 +467,7 @@ export const unsafeSetCookie: {
   (self: HttpServerResponse, name: string, value: string, options?: Cookies.Cookie["options"]): HttpServerResponse =>
     makeResponse({
       ...self,
-      cookies: Cookies.unsafeSet(self.cookies, name, value, options)
+      cookies: Cookies.setUnsafe(self.cookies, name, value, options)
     })
 )
 
@@ -544,7 +544,7 @@ export const setCookies: {
  * @since 4.0.0
  * @category combinators
  */
-export const unsafeSetCookies: {
+export const setCookiesUnsafe: {
   (
     cookies: Iterable<
       readonly [
@@ -576,7 +576,7 @@ export const unsafeSetCookies: {
 ): HttpServerResponse =>
   makeResponse({
     ...self,
-    cookies: Cookies.unsafeSetAll(self.cookies, cookies)
+    cookies: Cookies.setAllUnsafe(self.cookies, cookies)
   }))
 
 /**
@@ -695,7 +695,7 @@ const makeResponse = (options: {
   self.cookies = options.cookies ?? Cookies.empty
   self.body = options.body ?? Body.empty
   if (self.body._tag !== "Empty" && (self.body.contentType || self.body.contentLength)) {
-    const newHeaders = Headers.unsafeFromRecord({ ...options.headers }) as any
+    const newHeaders = Headers.fromRecordUnsafe({ ...options.headers }) as any
     if (self.body.contentType) {
       newHeaders["content-type"] = self.body.contentType
     }

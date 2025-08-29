@@ -516,7 +516,7 @@ export const toStepWithSleep = <Output, Input, Error, Env>(
       toStep(schedule),
       (step) => (input) =>
         effect.flatMap(
-          effect.suspend(() => step(clock.unsafeCurrentTimeMillis(), input)),
+          effect.suspend(() => step(clock.currentTimeMillisUnsafe(), input)),
           ([output, duration]) =>
             Duration.isZero(duration) ? effect.succeed(output) : effect.as(effect.sleep(duration), output)
         )

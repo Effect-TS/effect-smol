@@ -367,7 +367,7 @@ export const make = (
       transactionTag: TransactionConnection,
       spanAttributes,
       acquireConnection: Effect.gen(function*() {
-        const scope = Scope.unsafeMake()
+        const scope = Scope.makeUnsafe()
         const conn = yield* Scope.provide(Pool.get(pool), scope)
         return [scope, conn] as const
       }),

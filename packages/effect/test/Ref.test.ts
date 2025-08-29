@@ -30,7 +30,7 @@ const isClosed = (self: State): boolean => self._tag === "Closed"
 describe("Ref", () => {
   it.effect("get", () =>
     Effect.gen(function*() {
-      const result = yield* Ref.get(Ref.unsafeMake(current))
+      const result = yield* Ref.get(Ref.makeUnsafe(current))
       assert.strictEqual(result, current)
     }))
 

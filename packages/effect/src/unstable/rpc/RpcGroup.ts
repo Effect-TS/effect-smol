@@ -235,20 +235,20 @@ const RpcGroupProto = {
   },
   merge(this: RpcGroup<any>, ...groups: ReadonlyArray<RpcGroup<any>>) {
     const requests = new Map(this.requests)
-    const annotations = new Map(this.annotations.unsafeMap)
+    const annotations = new Map(this.annotations.mapUnsafe)
 
     for (const group of groups) {
       for (const [tag, rpc] of group.requests) {
         requests.set(tag, rpc)
       }
-      for (const [key, value] of group.annotations.unsafeMap) {
+      for (const [key, value] of group.annotations.mapUnsafe) {
         annotations.set(key, value)
       }
     }
 
     return makeProto({
       requests,
-      annotations: ServiceMap.unsafeMake(annotations)
+      annotations: ServiceMap.makeUnsafe(annotations)
     })
   },
   middleware(this: RpcGroup<any>, middleware: RpcMiddleware.AnyKey) {
@@ -274,7 +274,7 @@ const RpcGroupProto = {
           services
         })
       }
-      return ServiceMap.unsafeMake(contextMap)
+      return ServiceMap.makeUnsafe(contextMap)
     })
   },
   prefix<const Prefix extends string>(this: RpcGroup<any>, prefix: Prefix) {
@@ -302,13 +302,13 @@ const RpcGroupProto = {
         handler,
         services
       })
-      return ServiceMap.unsafeMake(contextMap)
+      return ServiceMap.makeUnsafe(contextMap)
     }))
   },
   accessHandler(this: RpcGroup<any>, tag: string) {
     return Effect.servicesWith((parentServices: ServiceMap.ServiceMap<any>) => {
       const rpc = this.requests.get(tag)!
-      const { handler, services } = parentServices.unsafeMap.get(rpc.key) as Rpc.Handler<any>
+      const { handler, services } = parentServices.mapUnsafe.get(rpc.key) as Rpc.Handler<any>
       return Effect.succeed((payload: Rpc.Payload<any>, options: any) => {
         options.rpc = rpc
         const result = handler(payload, options)

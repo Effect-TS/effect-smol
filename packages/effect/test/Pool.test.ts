@@ -101,7 +101,7 @@ describe("Pool", () => {
         Effect.fork({ startImmediately: true })
       )
       yield* Effect.sleep(10)
-      assert.isUndefined(result.unsafePoll())
+      assert.isUndefined(result.pollUnsafe())
     }))
 
   it.effect("reuse released items", () =>
@@ -386,7 +386,7 @@ describe("Pool", () => {
       yield* Effect.repeat(Pool.get(pool), { times: 9 })
       const fiber = yield* Effect.fork(Pool.get(pool))
       yield* Fiber.interrupt(fiber)
-      deepStrictEqual(fiber.unsafePoll(), Exit.interrupt(fiberId))
+      deepStrictEqual(fiber.pollUnsafe(), Exit.interrupt(fiberId))
     }))
 
   it.effect("get is interruptible with dynamic size", () =>

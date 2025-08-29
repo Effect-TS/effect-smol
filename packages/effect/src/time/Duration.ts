@@ -715,12 +715,12 @@ export const toWeeks = (self: DurationInput): number =>
  * import { Duration } from "effect/time"
  *
  * const duration = Duration.seconds(2)
- * const nanos = Duration.unsafeToNanos(duration)
+ * const nanos = Duration.toNanosUnsafe(duration)
  * console.log(nanos) // 2000000000n
  *
  * // This will throw an error
  * try {
- *   Duration.unsafeToNanos(Duration.infinity)
+ *   Duration.toNanosUnsafe(Duration.infinity)
  * } catch (error) {
  *   console.log((error as Error).message) // "Cannot convert infinite duration to nanos"
  * }
@@ -729,7 +729,7 @@ export const toWeeks = (self: DurationInput): number =>
  * @since 2.0.0
  * @category getters
  */
-export const unsafeToNanos = (self: DurationInput): bigint => {
+export const toNanosUnsafe = (self: DurationInput): bigint => {
   const _self = decode(self)
   switch (_self.value._tag) {
     case "Infinity":
@@ -763,7 +763,7 @@ export const unsafeToNanos = (self: DurationInput): bigint => {
  * @since 2.0.0
  * @category getters
  */
-export const toNanos: (self: DurationInput) => Option.Option<bigint> = Option.liftThrowable(unsafeToNanos)
+export const toNanos: (self: DurationInput) => Option.Option<bigint> = Option.liftThrowable(toNanosUnsafe)
 
 /**
  * Converts a Duration to high-resolution time format [seconds, nanoseconds].
@@ -1114,17 +1114,17 @@ export const divide: {
  * ```ts
  * import { Duration } from "effect/time"
  *
- * const half = Duration.unsafeDivide(Duration.seconds(10), 2)
+ * const half = Duration.divideUnsafe(Duration.seconds(10), 2)
  * console.log(Duration.toSeconds(half)) // 5
  *
- * const infinite = Duration.unsafeDivide(Duration.seconds(10), 0)
+ * const infinite = Duration.divideUnsafe(Duration.seconds(10), 0)
  * console.log(Duration.toMillis(infinite)) // Infinity
  * ```
  *
  * @since 2.4.19
  * @category math
  */
-export const unsafeDivide: {
+export const divideUnsafe: {
   (by: number): (self: DurationInput) => Duration
   (self: DurationInput, by: number): Duration
 } = dual(
@@ -1406,7 +1406,7 @@ export const parts = (self: DurationInput): {
     }
   }
 
-  const nanos = unsafeToNanos(duration)
+  const nanos = toNanosUnsafe(duration)
   const ms = nanos / bigint1e6
   const sec = ms / bigint1e3
   const min = sec / bigint60

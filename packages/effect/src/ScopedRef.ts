@@ -47,12 +47,12 @@ const Proto = {
   }
 }
 
-const unsafeMake = <A>(
+const makeUnsafe = <A>(
   scope: Scope.Scope.Closeable,
   value: A
 ): ScopedRef<A> => {
   const self = Object.create(Proto)
-  self.backing = Synchronized.unsafeMake([scope, value] as const)
+  self.backing = Synchronized.makeUnsafe([scope, value] as const)
   return self
 }
 
@@ -68,12 +68,12 @@ export const fromAcquire: <A, E, R>(
 ) => Effect.Effect<ScopedRef<A>, E, Scope.Scope | R> = Effect.fnUntraced(function*<A, E, R>(
   acquire: Effect.Effect<A, E, R>
 ) {
-  const scope = Scope.unsafeMake()
+  const scope = Scope.makeUnsafe()
   const value = yield* acquire.pipe(
     Scope.provide(scope),
     Effect.tapCause((cause) => scope.close(Exit.failCause(cause)))
   )
-  const self = unsafeMake(scope, value)
+  const self = makeUnsafe(scope, value)
   yield* Effect.addFinalizer((exit) => self.backing.backing.ref.current[0].close(exit))
   return self
 }, Effect.uninterruptible)
@@ -84,7 +84,7 @@ export const fromAcquire: <A, E, R>(
  * @since 4.0.0
  * @category getters
  */
-export const unsafeGet = <A>(self: ScopedRef<A>): A => self.backing.backing.ref.current[1]
+export const getUnsafe = <A>(self: ScopedRef<A>): A => self.backing.backing.ref.current[1]
 
 /**
  * Retrieves the current value of the scoped reference.
@@ -92,7 +92,7 @@ export const unsafeGet = <A>(self: ScopedRef<A>): A => self.backing.backing.ref.
  * @since 2.0.0
  * @category getters
  */
-export const get = <A>(self: ScopedRef<A>): Effect.Effect<A> => Effect.sync(() => unsafeGet(self))
+export const get = <A>(self: ScopedRef<A>): Effect.Effect<A> => Effect.sync(() => getUnsafe(self))
 
 /**
  * Creates a new `ScopedRef` from the specified value. This method should
@@ -103,9 +103,9 @@ export const get = <A>(self: ScopedRef<A>): Effect.Effect<A> => Effect.sync(() =
  */
 export const make = <A>(evaluate: LazyArg<A>): Effect.Effect<ScopedRef<A>, never, Scope.Scope> =>
   Effect.suspend(() => {
-    const scope = Scope.unsafeMake()
+    const scope = Scope.makeUnsafe()
     const value = evaluate()
-    const self = unsafeMake(scope, value)
+    const self = makeUnsafe(scope, value)
     return Effect.as(Effect.addFinalizer((exit) => self.backing.backing.ref.current[0].close(exit)), self)
   })
 
@@ -131,7 +131,7 @@ export const set: {
       acquire: Effect.Effect<A, E, R>
     ) {
       yield* self.backing.backing.ref.current[0].close(Exit.void)
-      const scope = Scope.unsafeMake()
+      const scope = Scope.makeUnsafe()
       const value = yield* acquire.pipe(
         Scope.provide(scope),
         Effect.tapCause((cause) => scope.close(Exit.failCause(cause)))

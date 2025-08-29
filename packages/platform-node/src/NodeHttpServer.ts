@@ -156,12 +156,12 @@ export const makeHandler = <
       nodeRequest: Http.IncomingMessage,
       nodeResponse: Http.ServerResponse
     ) {
-      const map = new Map(services.unsafeMap)
+      const map = new Map(services.mapUnsafe)
       map.set(HttpServerRequest.key, new ServerRequestImpl(nodeRequest, nodeResponse))
-      const fiber = Fiber.runIn(Effect.runForkWith(ServiceMap.unsafeMake<any>(map))(handled), options.scope)
+      const fiber = Fiber.runIn(Effect.runForkWith(ServiceMap.makeUnsafe<any>(map))(handled), options.scope)
       nodeResponse.on("close", () => {
         if (!nodeResponse.writableEnded) {
-          fiber.unsafeInterrupt(clientAbortFiberId)
+          fiber.interruptUnsafe(clientAbortFiberId)
         }
       })
     }
@@ -218,12 +218,12 @@ export const makeUpgradeHandler = <
             (ws) => Effect.sync(() => ws.close())
           )
       ))
-      const map = new Map(services.unsafeMap)
+      const map = new Map(services.mapUnsafe)
       map.set(HttpServerRequest.key, new ServerRequestImpl(nodeRequest, nodeResponse, upgradeEffect))
-      const fiber = Fiber.runIn(Effect.runForkWith(ServiceMap.unsafeMake<any>(map))(handledApp), options.scope)
+      const fiber = Fiber.runIn(Effect.runForkWith(ServiceMap.makeUnsafe<any>(map))(handledApp), options.scope)
       socket.on("close", () => {
         if (!socket.writableEnded) {
-          fiber.unsafeInterrupt(clientAbortFiberId)
+          fiber.interruptUnsafe(clientAbortFiberId)
         }
       })
     })

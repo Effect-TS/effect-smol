@@ -440,31 +440,31 @@ export const head = <A>(self: Iterable<A>): Option<A> => {
  * import { Iterable } from "effect/collections"
  *
  * const numbers = [1, 2, 3]
- * console.log(Iterable.unsafeHead(numbers)) // 1
+ * console.log(Iterable.headUnsafe(numbers)) // 1
  *
  * const letters = "hello"
- * console.log(Iterable.unsafeHead(letters)) // "h"
+ * console.log(Iterable.headUnsafe(letters)) // "h"
  *
  * // This will throw an error!
  * try {
  *   const empty = Iterable.empty<number>()
- *   Iterable.unsafeHead(empty) // throws Error: "unsafeHead: empty iterable"
+ *   Iterable.headUnsafe(empty) // throws Error: "headUnsafe: empty iterable"
  * } catch (error) {
- *   console.log((error as Error).message) // "unsafeHead: empty iterable"
+ *   console.log((error as Error).message) // "headUnsafe: empty iterable"
  * }
  *
  * // Use only when you're certain the iterable is non-empty
  * const nonEmpty = Iterable.range(1, 10)
- * console.log(Iterable.unsafeHead(nonEmpty)) // 1
+ * console.log(Iterable.headUnsafe(nonEmpty)) // 1
  * ```
  *
  * @category getters
  * @since 3.3.0
  */
-export const unsafeHead = <A>(self: Iterable<A>): A => {
+export const headUnsafe = <A>(self: Iterable<A>): A => {
   const iterator = self[Symbol.iterator]()
   const result = iterator.next()
-  if (result.done) throw new Error("unsafeHead: empty iterable")
+  if (result.done) throw new Error("headUnsafe: empty iterable")
   return result.value
 }
 

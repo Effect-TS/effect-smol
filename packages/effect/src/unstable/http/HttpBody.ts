@@ -234,7 +234,7 @@ export const text = (body: string, contentType?: string): Uint8Array =>
  * @since 4.0.0
  * @category constructors
  */
-export const unsafeJson = (body: unknown): Uint8Array => text(JSON.stringify(body), "application/json")
+export const jsonUnsafe = (body: unknown): Uint8Array => text(JSON.stringify(body), "application/json")
 
 /**
  * @since 4.0.0

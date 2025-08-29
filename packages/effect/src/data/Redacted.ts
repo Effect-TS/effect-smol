@@ -220,7 +220,7 @@ export const value = <T>(self: Redacted<T>): T => {
  *
  * assert.equal(Redacted.value(API_KEY), "1234567890")
  *
- * Redacted.unsafeWipe(API_KEY)
+ * Redacted.wipeUnsafe(API_KEY)
  *
  * assert.throws(() => Redacted.value(API_KEY), new Error("Unable to get redacted value"))
  * ```
@@ -228,7 +228,7 @@ export const value = <T>(self: Redacted<T>): T => {
  * @since 3.3.0
  * @category unsafe
  */
-export const unsafeWipe = <T>(self: Redacted<T>): boolean => redactedRegistry.delete(self)
+export const wipeUnsafe = <T>(self: Redacted<T>): boolean => redactedRegistry.delete(self)
 
 /**
  * Generates an equivalence relation for `Redacted<A>` values based on an

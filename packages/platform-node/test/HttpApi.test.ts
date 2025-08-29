@@ -36,7 +36,7 @@ describe("HttpApi", () => {
         const expected = new User({
           id: 123,
           name: "Joe",
-          createdAt: DateTime.unsafeMake(0)
+          createdAt: DateTime.makeUnsafe(0)
         })
         const client = yield* HttpApiClient.make(Api)
         const clientUsersGroup = yield* HttpApiClient.group(Api, {
@@ -114,7 +114,7 @@ describe("HttpApi", () => {
           new User({
             id: 1,
             name: "page 1",
-            createdAt: DateTime.unsafeMake(0)
+            createdAt: DateTime.makeUnsafe(0)
           })
         )
       }).pipe(Effect.provide(HttpLive)))
@@ -155,7 +155,7 @@ describe("HttpApi", () => {
       Effect.gen(function*() {
         const response = yield* HttpClientRequest.post("/users").pipe(
           HttpClientRequest.setUrlParams({ id: "0" }),
-          HttpClientRequest.bodyUnsafeJson({ name: "boom" }),
+          HttpClientRequest.bodyJsonUnsafe({ name: "boom" }),
           HttpClient.execute
         )
         assert.strictEqual(response.status, 400)
@@ -179,7 +179,7 @@ describe("HttpApi", () => {
       const users = yield* client.users.list({ headers: { page: 1 }, urlParams: {} })
       const user = users[0]
       assert.strictEqual(user.name, "page 1")
-      assert.deepStrictEqual(user.createdAt, DateTime.unsafeMake(0))
+      assert.deepStrictEqual(user.createdAt, DateTime.makeUnsafe(0))
     }).pipe(Effect.provide(HttpLive)))
 
   it.effect("custom client context", () =>
@@ -199,7 +199,7 @@ describe("HttpApi", () => {
           new User({
             id: 1,
             name: "foo",
-            createdAt: DateTime.unsafeMake(0)
+            createdAt: DateTime.makeUnsafe(0)
           })
         )
       )
@@ -212,7 +212,7 @@ describe("HttpApi", () => {
     it.effect("security middleware sets current user", () =>
       Effect.gen(function*() {
         const ref = yield* Ref.make(Cookies.empty.pipe(
-          Cookies.unsafeSet("token", "foo")
+          Cookies.setUnsafe("token", "foo")
         ))
         const client = yield* HttpApiClient.makeWith(Api, {
           httpClient: HttpClient.withCookiesRef(yield* HttpClient.HttpClient, ref)
@@ -382,7 +382,7 @@ const DateTimeFromString = Schema.String.pipe(
   Schema.decodeTo(
     DateTimeFromSelf,
     Transformation.transform({
-      decode: DateTime.unsafeMake,
+      decode: DateTime.makeUnsafe,
       encode: DateTime.formatIso
     })
   )
@@ -590,7 +590,7 @@ const AuthorizationLive = Layer.succeed(
       new User({
         id: 1,
         name: Redacted.value(opts.credential),
-        createdAt: DateTime.unsafeNow()
+        createdAt: DateTime.nowUnsafe()
       })
     )
 })
@@ -677,7 +677,7 @@ const HttpGroupsLive = HttpApiBuilder.group(
       .handle(
         "handle",
         Effect.fnUntraced(function*({ path, payload }) {
-          return HttpServerResponse.unsafeJson({
+          return HttpServerResponse.jsonUnsafe({
             id: path.id,
             name: payload.name
           })
@@ -687,7 +687,7 @@ const HttpGroupsLive = HttpApiBuilder.group(
         "handleRaw",
         Effect.fnUntraced(function*({ path, request }) {
           const body = (yield* Effect.orDie(request.json)) as { name: string }
-          return HttpServerResponse.unsafeJson({
+          return HttpServerResponse.jsonUnsafe({
             id: path.id,
             name: body.name
           })

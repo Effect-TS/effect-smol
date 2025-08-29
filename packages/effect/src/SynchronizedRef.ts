@@ -44,10 +44,10 @@ const Proto = {
  * @since 4.0.0
  * @category constructors
  */
-export const unsafeMake = <A>(value: A): SynchronizedRef<A> => {
+export const makeUnsafe = <A>(value: A): SynchronizedRef<A> => {
   const self = Object.create(Proto)
-  self.semaphore = Effect.unsafeMakeSemaphore(1)
-  self.backing = Ref.unsafeMake(value)
+  self.semaphore = Effect.makeSemaphoreUnsafe(1)
+  self.backing = Ref.makeUnsafe(value)
   return self
 }
 
@@ -55,19 +55,19 @@ export const unsafeMake = <A>(value: A): SynchronizedRef<A> => {
  * @since 2.0.0
  * @category constructors
  */
-export const make = <A>(value: A): Effect.Effect<SynchronizedRef<A>> => Effect.sync(() => unsafeMake(value))
+export const make = <A>(value: A): Effect.Effect<SynchronizedRef<A>> => Effect.sync(() => makeUnsafe(value))
 
 /**
  * @since 2.0.0
  * @category getters
  */
-export const unsafeGet = <A>(self: SynchronizedRef<A>): A => self.backing.ref.current
+export const getUnsafe = <A>(self: SynchronizedRef<A>): A => self.backing.ref.current
 
 /**
  * @since 2.0.0
  * @category getters
  */
-export const get = <A>(self: SynchronizedRef<A>): Effect.Effect<A> => Effect.sync(() => unsafeGet(self))
+export const get = <A>(self: SynchronizedRef<A>): Effect.Effect<A> => Effect.sync(() => getUnsafe(self))
 
 /**
  * @since 2.0.0
@@ -106,7 +106,7 @@ export const getAndUpdateEffect: {
   2,
   <A, R, E>(self: SynchronizedRef<A>, f: (a: A) => Effect.Effect<A, E, R>): Effect.Effect<A, E, R> =>
     self.semaphore.withPermit(Effect.suspend(() => {
-      const value = unsafeGet(self)
+      const value = getUnsafe(self)
       return Effect.map(f(value), (newValue) => {
         self.backing.ref.current = newValue
         return value
@@ -138,7 +138,7 @@ export const getAndUpdateSomeEffect: {
   2,
   <A, R, E>(self: SynchronizedRef<A>, pf: (a: A) => Effect.Effect<Option.Option<A>, E, R>): Effect.Effect<A, E, R> =>
     self.semaphore.withPermit(Effect.suspend(() => {
-      const value = unsafeGet(self)
+      const value = getUnsafe(self)
       return Effect.flatMap(pf(value), (option) => {
         if (Option.isNone(option)) {
           return Effect.succeed(value)
@@ -173,7 +173,7 @@ export const modifyEffect: {
   2,
   <A, B, E, R>(self: SynchronizedRef<A>, f: (a: A) => Effect.Effect<readonly [B, A], E, R>): Effect.Effect<B, E, R> =>
     self.semaphore.withPermit(Effect.suspend(() => {
-      const value = unsafeGet(self)
+      const value = getUnsafe(self)
       return Effect.map(f(value), ([b, a]) => {
         self.backing.ref.current = a
         return b
@@ -221,7 +221,7 @@ export const modifySomeEffect: {
     pf: (a: A) => Effect.Effect<readonly [B, Option.Option<A>], E, R>
   ): Effect.Effect<B, E, R> =>
     self.semaphore.withPermit(Effect.suspend(() => {
-      const value = unsafeGet(self)
+      const value = getUnsafe(self)
       return Effect.flatMap(pf(value), ([b, maybeA]) => {
         if (Option.isNone(maybeA)) {
           return Effect.succeed(b)
@@ -282,7 +282,7 @@ export const updateEffect: {
   2,
   <A, R, E>(self: SynchronizedRef<A>, f: (a: A) => Effect.Effect<A, E, R>): Effect.Effect<void, E, R> =>
     self.semaphore.withPermit(Effect.suspend(() => {
-      const value = unsafeGet(self)
+      const value = getUnsafe(self)
       return Effect.map(f(value), (newValue) => {
         self.backing.ref.current = newValue
       })
@@ -313,7 +313,7 @@ export const updateAndGetEffect: {
   2,
   <A, R, E>(self: SynchronizedRef<A>, f: (a: A) => Effect.Effect<A, E, R>): Effect.Effect<A, E, R> =>
     self.semaphore.withPermit(Effect.suspend(() => {
-      const value = unsafeGet(self)
+      const value = getUnsafe(self)
       return Effect.map(f(value), (newValue) => {
         self.backing.ref.current = newValue
         return newValue
@@ -347,7 +347,7 @@ export const updateSomeEffect: {
   2,
   <A, R, E>(self: SynchronizedRef<A>, pf: (a: A) => Effect.Effect<Option.Option<A>, E, R>): Effect.Effect<void, E, R> =>
     self.semaphore.withPermit(Effect.suspend(() => {
-      const value = unsafeGet(self)
+      const value = getUnsafe(self)
       return Effect.map(pf(value), (option) => {
         if (Option.isNone(option)) {
           return
@@ -381,7 +381,7 @@ export const updateSomeAndGetEffect: {
   2,
   <A, R, E>(self: SynchronizedRef<A>, pf: (a: A) => Effect.Effect<Option.Option<A>, E, R>): Effect.Effect<A, E, R> =>
     self.semaphore.withPermit(Effect.suspend(() => {
-      const value = unsafeGet(self)
+      const value = getUnsafe(self)
       return Effect.flatMap(pf(value), (option) => {
         if (Option.isNone(option)) {
           return Effect.succeed(value)

@@ -13,7 +13,7 @@ describe("Stream", () => {
         const array = [1, 2, 3, 4, 5]
         const result = yield* Stream.callback<number>((mb) => {
           array.forEach((n) => {
-            Queue.unsafeOffer(mb, n)
+            Queue.offerUnsafe(mb, n)
           })
         }).pipe(
           Stream.take(array.length),
@@ -46,7 +46,7 @@ describe("Stream", () => {
     it.effect("signals the end of the stream", () =>
       Effect.gen(function*() {
         const result = yield* Stream.callback<number>((mb) => {
-          Queue.unsafeDone(mb, Exit.void)
+          Queue.doneUnsafe(mb, Exit.void)
           return Effect.void
         }).pipe(Stream.runCollect)
         assert.isTrue(result.length === 0)
@@ -56,7 +56,7 @@ describe("Stream", () => {
       Effect.gen(function*() {
         const error = new Error("boom")
         const result = yield* Stream.callback<number, Error>((mb) => {
-          Queue.unsafeDone(mb, Exit.fail(error))
+          Queue.doneUnsafe(mb, Exit.fail(error))
           return Effect.void
         }).pipe(
           Stream.runCollect,

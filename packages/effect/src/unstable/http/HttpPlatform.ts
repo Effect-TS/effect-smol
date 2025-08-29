@@ -98,7 +98,7 @@ export const make: (impl: {
       return Effect.map(etagGen.fromFileWeb(file), (etag) => {
         const headers = Headers.merge(
           options?.headers ? Headers.fromInput(options.headers) : Headers.empty,
-          Headers.unsafeFromRecord({
+          Headers.fromRecordUnsafe({
             etag: Etag.toString(etag),
             "last-modified": new Date(file.lastModified).toUTCString()
           })

@@ -228,7 +228,7 @@ describe.sequential("Request", () => {
         count++
         requestsCount += entries.length
         for (const entry of entries) {
-          entry.unsafeComplete(Exit.succeed(userNames.get(entry.request.id)!))
+          entry.completeUnsafe(Exit.succeed(userNames.get(entry.request.id)!))
         }
       })).pipe(
         Resolver.batchN(5),

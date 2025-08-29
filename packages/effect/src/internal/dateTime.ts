@@ -206,7 +206,7 @@ const makeUtc = (epochMillis: number): DateTime.Utc => {
 }
 
 /** @internal */
-export const unsafeFromDate = (date: Date): DateTime.Utc => {
+export const fromDateUnsafe = (date: Date): DateTime.Utc => {
   const epochMillis = date.getTime()
   if (Number.isNaN(epochMillis)) {
     throw new IllegalArgumentError("Invalid date")
@@ -215,19 +215,19 @@ export const unsafeFromDate = (date: Date): DateTime.Utc => {
 }
 
 /** @internal */
-export const unsafeMake = <A extends DateTime.DateTime.Input>(input: A): DateTime.DateTime.PreserveZone<A> => {
+export const makeUnsafe = <A extends DateTime.DateTime.Input>(input: A): DateTime.DateTime.PreserveZone<A> => {
   if (isDateTime(input)) {
     return input as DateTime.DateTime.PreserveZone<A>
   } else if (input instanceof Date) {
-    return unsafeFromDate(input) as DateTime.DateTime.PreserveZone<A>
+    return fromDateUnsafe(input) as DateTime.DateTime.PreserveZone<A>
   } else if (typeof input === "object") {
     const date = new Date(0)
     setPartsDate(date, input)
-    return unsafeFromDate(date) as DateTime.DateTime.PreserveZone<A>
+    return fromDateUnsafe(date) as DateTime.DateTime.PreserveZone<A>
   } else if (typeof input === "string" && !hasZone(input)) {
-    return unsafeFromDate(new Date(input + "Z")) as DateTime.DateTime.PreserveZone<A>
+    return fromDateUnsafe(new Date(input + "Z")) as DateTime.DateTime.PreserveZone<A>
   }
-  return unsafeFromDate(new Date(input)) as DateTime.DateTime.PreserveZone<A>
+  return fromDateUnsafe(new Date(input)) as DateTime.DateTime.PreserveZone<A>
 }
 
 const hasZone = (input: string): boolean => /Z|[+-]\d{2}$|[+-]\d{2}:?\d{2}$|\]$/.test(input)
@@ -236,7 +236,7 @@ const minEpochMillis = -8640000000000000 + (12 * 60 * 60 * 1000)
 const maxEpochMillis = 8640000000000000 - (14 * 60 * 60 * 1000)
 
 /** @internal */
-export const unsafeMakeZoned = (input: DateTime.DateTime.Input, options?: {
+export const makeZonedUnsafe = (input: DateTime.DateTime.Input, options?: {
   readonly timeZone?: number | string | DateTime.TimeZone | undefined
   readonly adjustForTimeZone?: boolean | undefined
   readonly disambiguation?: DateTime.Disambiguation | undefined
@@ -244,7 +244,7 @@ export const unsafeMakeZoned = (input: DateTime.DateTime.Input, options?: {
   if (options?.timeZone === undefined && isDateTime(input) && isZoned(input)) {
     return input
   }
-  const self = unsafeMake(input)
+  const self = makeUnsafe(input)
   if (self.epochMillis < minEpochMillis || self.epochMillis > maxEpochMillis) {
     throw new RangeError(`Epoch millis out of range: ${self.epochMillis}`)
   }
@@ -277,11 +277,11 @@ export const makeZoned: (
     readonly adjustForTimeZone?: boolean | undefined
     readonly disambiguation?: DateTime.Disambiguation | undefined
   }
-) => Option.Option<DateTime.Zoned> = Option.liftThrowable(unsafeMakeZoned)
+) => Option.Option<DateTime.Zoned> = Option.liftThrowable(makeZonedUnsafe)
 
 /** @internal */
 export const make: <A extends DateTime.DateTime.Input>(input: A) => Option.Option<DateTime.DateTime.PreserveZone<A>> =
-  Option.liftThrowable(unsafeMake)
+  Option.liftThrowable(makeUnsafe)
 
 const zonedStringRegex = /^(.{17,35})\[(.+)\]$/
 
@@ -303,7 +303,7 @@ export const now: Effect.Effect<DateTime.Utc> = effect.map(Clock.currentTimeMill
 export const nowAsDate: Effect.Effect<Date> = effect.map(Clock.currentTimeMillis, (millis) => new Date(millis))
 
 /** @internal */
-export const unsafeNow: LazyArg<DateTime.Utc> = () => makeUtc(Date.now())
+export const nowUnsafe: LazyArg<DateTime.Utc> = () => makeUtc(Date.now())
 
 // =============================================================================
 // time zones
@@ -372,7 +372,7 @@ const zoneMakeIntl = (format: Intl.DateTimeFormat): DateTime.TimeZone.Named => {
 }
 
 /** @internal */
-export const zoneUnsafeMakeNamed = (zoneId: string): DateTime.TimeZone.Named => {
+export const zoneMakeNamedUnsafe = (zoneId: string): DateTime.TimeZone.Named => {
   if (validZoneCache.has(zoneId)) {
     return validZoneCache.get(zoneId)!
   }
@@ -397,13 +397,13 @@ export const zoneMakeOffset = (offset: number): DateTime.TimeZone.Offset => {
 
 /** @internal */
 export const zoneMakeNamed: (zoneId: string) => Option.Option<DateTime.TimeZone.Named> = Option.liftThrowable(
-  zoneUnsafeMakeNamed
+  zoneMakeNamedUnsafe
 )
 
 /** @internal */
 export const zoneMakeNamedEffect = (zoneId: string): Effect.Effect<DateTime.TimeZone.Named, IllegalArgumentError> =>
   effect.try({
-    try: () => zoneUnsafeMakeNamed(zoneId),
+    try: () => zoneMakeNamedUnsafe(zoneId),
     catch: (e) => e as IllegalArgumentError
   })
 
@@ -449,7 +449,7 @@ export const setZoneNamed: {
 )
 
 /** @internal */
-export const unsafeSetZoneNamed: {
+export const setZoneNamedUnsafe: {
   (zoneId: string, options?: {
     readonly adjustForTimeZone?: boolean | undefined
     readonly disambiguation?: DateTime.Disambiguation | undefined
@@ -461,7 +461,7 @@ export const unsafeSetZoneNamed: {
 } = dual(isDateTimeArgs, (self: DateTime.DateTime, zoneId: string, options?: {
   readonly adjustForTimeZone?: boolean | undefined
   readonly disambiguation?: DateTime.Disambiguation | undefined
-}): DateTime.Zoned => setZone(self, zoneUnsafeMakeNamed(zoneId), options))
+}): DateTime.Zoned => setZone(self, zoneMakeNamedUnsafe(zoneId), options))
 
 // =============================================================================
 // comparisons
@@ -543,13 +543,13 @@ export const between: {
 export const isFuture = (self: DateTime.DateTime): Effect.Effect<boolean> => effect.map(now, lessThan(self))
 
 /** @internal */
-export const unsafeIsFuture = (self: DateTime.DateTime): boolean => lessThan(unsafeNow(), self)
+export const isFutureUnsafe = (self: DateTime.DateTime): boolean => lessThan(nowUnsafe(), self)
 
 /** @internal */
 export const isPast = (self: DateTime.DateTime): Effect.Effect<boolean> => effect.map(now, greaterThan(self))
 
 /** @internal */
-export const unsafeIsPast = (self: DateTime.DateTime): boolean => greaterThan(unsafeNow(), self)
+export const isPastUnsafe = (self: DateTime.DateTime): boolean => greaterThan(nowUnsafe(), self)
 
 // =============================================================================
 // conversions

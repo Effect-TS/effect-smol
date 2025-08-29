@@ -13,7 +13,7 @@ import type * as RpcMessage from "./RpcMessage.ts"
  * @category serialization
  */
 export class RpcSerialization extends ServiceMap.Key<RpcSerialization, {
-  unsafeMake(): Parser
+  makeUnsafe(): Parser
   readonly contentType: string
   readonly includesFraming: boolean
 }>()("effect/rpc/RpcSerialization") {}
@@ -34,7 +34,7 @@ export interface Parser {
 export const json: RpcSerialization["Service"] = RpcSerialization.of({
   contentType: "application/json",
   includesFraming: false,
-  unsafeMake: () => {
+  makeUnsafe: () => {
     const decoder = new TextDecoder()
     return {
       decode: (bytes) => [JSON.parse(typeof bytes === "string" ? bytes : decoder.decode(bytes))],
@@ -50,7 +50,7 @@ export const json: RpcSerialization["Service"] = RpcSerialization.of({
 export const ndjson: RpcSerialization["Service"] = RpcSerialization.of({
   contentType: "application/ndjson",
   includesFraming: true,
-  unsafeMake: () => {
+  makeUnsafe: () => {
     const decoder = new TextDecoder()
     let buffer = ""
     return ({
@@ -93,7 +93,7 @@ export const jsonRpc = (options?: {
   RpcSerialization.of({
     contentType: options?.contentType ?? "application/json",
     includesFraming: false,
-    unsafeMake: () => {
+    makeUnsafe: () => {
       const decoder = new TextDecoder()
       const batches = new Map<string, {
         readonly size: number
@@ -128,8 +128,8 @@ export const ndJsonRpc = (options?: {
   RpcSerialization.of({
     contentType: options?.contentType ?? "application/json-rpc",
     includesFraming: true,
-    unsafeMake: () => {
-      const parser = ndjson.unsafeMake()
+    makeUnsafe: () => {
+      const parser = ndjson.makeUnsafe()
       const batches = new Map<string, {
         readonly size: number
         readonly responses: Map<string, RpcMessage.FromServerEncoded>
@@ -369,7 +369,7 @@ type JsonRpcMessage = JsonRpcRequest | JsonRpcResponse
 export const msgPack: RpcSerialization["Service"] = RpcSerialization.of({
   contentType: "application/msgpack",
   includesFraming: true,
-  unsafeMake: () => {
+  makeUnsafe: () => {
     const unpackr = new Msgpackr.Unpackr()
     const packr = new Msgpackr.Packr()
     const encoder = new TextEncoder()

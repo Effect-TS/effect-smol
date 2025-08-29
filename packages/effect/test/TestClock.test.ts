@@ -22,9 +22,9 @@ describe("TestClock", () => {
         elapsed = true
       }).pipe(Effect.delay("10 hours"), Effect.fork)
       yield* TestClock.adjust("9 hours")
-      assert.isUndefined(fiber.unsafePoll())
+      assert.isUndefined(fiber.pollUnsafe())
       yield* TestClock.adjust("11 hours")
-      assert.deepStrictEqual(fiber.unsafePoll(), Exit.void)
+      assert.deepStrictEqual(fiber.pollUnsafe(), Exit.void)
       assert.isTrue(elapsed)
     }))
 

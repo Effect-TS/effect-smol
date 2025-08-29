@@ -113,7 +113,7 @@ const Proto = {
   }
 }
 
-const unsafeMake = <A, E>(
+const makeUnsafe = <A, E>(
   backing: Set<Fiber.Fiber<A, E>>,
   deferred: Deferred.Deferred<void, unknown>
 ): FiberSet<A, E> => {
@@ -153,7 +153,7 @@ const unsafeMake = <A, E>(
  */
 export const make = <A = unknown, E = unknown>(): Effect.Effect<FiberSet<A, E>, never, Scope.Scope> =>
   Effect.acquireRelease(
-    Effect.sync(() => unsafeMake(new Set(), Deferred.unsafeMake())),
+    Effect.sync(() => makeUnsafe(new Set(), Deferred.makeUnsafe())),
     (set) =>
       Effect.suspend(() => {
         const state = set.state
@@ -264,14 +264,14 @@ const isInternalInterruption = Filter.toPredicate(Filter.compose(
  *   const fiber = yield* Effect.fork(Effect.succeed("hello"))
  *
  *   // Unsafe add - doesn't return an Effect
- *   FiberSet.unsafeAdd(set, fiber)
+ *   FiberSet.addUnsafe(set, fiber)
  *
  *   // The fiber is now managed by the set
  *   console.log(yield* FiberSet.size(set)) // 1
  * })
  * ```
  */
-export const unsafeAdd: {
+export const addUnsafe: {
   <A, E, XE extends E, XA extends A>(
     fiber: Fiber.Fiber<XA, XE>,
     options?: {
@@ -293,7 +293,7 @@ export const unsafeAdd: {
   } | undefined
 ): void => {
   if (self.state._tag === "Closed") {
-    fiber.unsafeInterrupt(internalFiberId)
+    fiber.interruptUnsafe(internalFiberId)
     return
   } else if (self.state.backing.has(fiber)) {
     return
@@ -312,7 +312,7 @@ export const unsafeAdd: {
           !Cause.isInterruptedOnly(exit.cause)
       )
     ) {
-      Deferred.unsafeDone(self.deferred, exit as any)
+      Deferred.doneUnsafe(self.deferred, exit as any)
     }
   })
 })
@@ -361,7 +361,7 @@ export const add: {
     options?: {
       readonly propagateInterruption?: boolean | undefined
     } | undefined
-  ): Effect.Effect<void> => Effect.sync(() => unsafeAdd(self, fiber, options))
+  ): Effect.Effect<void> => Effect.sync(() => addUnsafe(self, fiber, options))
 )
 
 /**
@@ -476,7 +476,7 @@ const runImpl = <A, E, R, XE extends E, XA extends A>(
     }
     return Effect.tap(
       Effect.forkDaemon(effect, options),
-      (fiber) => unsafeAdd(self, fiber, options)
+      (fiber) => addUnsafe(self, fiber, options)
     )
   })
 
@@ -536,7 +536,7 @@ export const runtime: <A, E>(
           return constInterruptedFiber()
         }
         const fiber = runFork(effect, options)
-        unsafeAdd(self, fiber)
+        addUnsafe(self, fiber)
         return fiber
       }
     }
@@ -676,6 +676,6 @@ export const join = <A, E>(self: FiberSet<A, E>): Effect.Effect<void, E> =>
 export const awaitEmpty = <A, E>(self: FiberSet<A, E>): Effect.Effect<void> =>
   Effect.whileLoop({
     while: () => self.state._tag === "Open" && self.state.backing.size > 0,
-    body: () => Fiber.await(Iterable.unsafeHead(self)),
+    body: () => Fiber.await(Iterable.headUnsafe(self)),
     step: constVoid
   })

@@ -287,7 +287,7 @@ describe("HttpServer", () => {
           ({ id, title }) => todoResponse({ id, title })
         ).pipe(
           Effect.catchTag("SchemaError", (error) =>
-            Effect.succeed(HttpServerResponse.unsafeJson({ error }, { status: 400 })))
+            Effect.succeed(HttpServerResponse.jsonUnsafe({ error }, { status: 400 })))
         )
       ).pipe(
         HttpRouter.serve,
@@ -442,8 +442,8 @@ describe("HttpServer", () => {
         "GET",
         "/home",
         HttpServerResponse.empty().pipe(
-          HttpServerResponse.unsafeSetCookie("test", "value"),
-          HttpServerResponse.unsafeSetCookie("test2", "value2", {
+          HttpServerResponse.setCookieUnsafe("test", "value"),
+          HttpServerResponse.setCookieUnsafe("test2", "value2", {
             httpOnly: true,
             secure: true,
             sameSite: "lax",
@@ -463,8 +463,8 @@ describe("HttpServer", () => {
       assert.deepStrictEqual(
         res.cookies.toJSON(),
         Cookies.fromReadonlyRecord({
-          test: Cookies.unsafeMakeCookie("test", "value"),
-          test2: Cookies.unsafeMakeCookie("test2", "value2", {
+          test: Cookies.makeCookieUnsafe("test", "value"),
+          test2: Cookies.makeCookieUnsafe("test2", "value2", {
             httpOnly: true,
             secure: true,
             sameSite: "lax",
@@ -485,7 +485,7 @@ describe("HttpServer", () => {
         "/home",
         Effect.gen(function*() {
           const fiber = Fiber.getCurrent()!
-          setTimeout(() => fiber.unsafeInterrupt(fiber.id), 10)
+          setTimeout(() => fiber.interruptUnsafe(fiber.id), 10)
           yield* Effect.sleep(50)
           return HttpServerResponse.empty()
         }),

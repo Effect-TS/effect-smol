@@ -157,8 +157,8 @@ export interface Fiber<out A, out E = never> extends Pipeable {
   readonly currentSpan?: AnySpan | undefined
   readonly maxOpsBeforeYield: number
   readonly addObserver: (cb: (exit: Exit<A, E>) => void) => () => void
-  readonly unsafeInterrupt: (fiberId?: number | undefined, span?: Span | undefined) => void
-  readonly unsafePoll: () => Exit<A, E> | undefined
+  readonly interruptUnsafe: (fiberId?: number | undefined, span?: Span | undefined) => void
+  readonly pollUnsafe: () => Exit<A, E> | undefined
 }
 
 /**

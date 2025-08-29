@@ -9,7 +9,7 @@ describe("Layer", () => {
   it.effect("layers can be acquired in parallel", () =>
     Effect.gen(function*() {
       const BoolTag = ServiceMap.Key<boolean>("boolean")
-      const latch = Effect.unsafeMakeLatch()
+      const latch = Effect.makeLatchUnsafe()
       const layer1 = Layer.effectServices<never, never, never>(Effect.never)
       const layer2 = Layer.effectServices(
         Effect.acquireRelease(
@@ -263,7 +263,7 @@ describe("Layer", () => {
         const layer2 = makeLayer2(arr).pipe(
           Layer.provide(layer1)
         )
-        const memoMap = Layer.unsafeMakeMemoMap()
+        const memoMap = Layer.makeMemoMapUnsafe()
         const scope1 = yield* Scope.make()
         const scope2 = yield* Scope.make()
 
@@ -283,7 +283,7 @@ describe("Layer", () => {
         const layer2 = makeLayer2(arr).pipe(
           Layer.provide(layer1)
         )
-        const memoMap = Layer.unsafeMakeMemoMap()
+        const memoMap = Layer.makeMemoMapUnsafe()
         const scope1 = yield* Scope.make()
         const scope2 = yield* Scope.make()
 

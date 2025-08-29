@@ -105,7 +105,7 @@ export const makeRequest = Effect.fnUntraced(function*(options?: {
   const rpc = options?.rpc ?? GetUserRpc
   return new Message.OutgoingRequest({
     envelope: Envelope.makeRequest<any>({
-      requestId: snowflake.unsafeNext(),
+      requestId: snowflake.nextUnsafe(),
       address: EntityAddress.make({
         shardId: ShardId.make("default", 1),
         entityType: EntityType.make("test"),
@@ -149,7 +149,7 @@ export const makeReply = Effect.fnUntraced(function*(request: Message.OutgoingRe
   const snowflake = yield* Snowflake.Generator
   return new Reply.ReplyWithContext({
     reply: new Reply.WithExit({
-      id: snowflake.unsafeNext(),
+      id: snowflake.nextUnsafe(),
       requestId: request.envelope.requestId,
       exit: Exit.void as any
     }),
@@ -165,7 +165,7 @@ export const makeAckChunk = Effect.fnUntraced(function*(
   const snowflake = yield* Snowflake.Generator
   return new Message.OutgoingEnvelope({
     envelope: new Envelope.AckChunk({
-      id: snowflake.unsafeNext(),
+      id: snowflake.nextUnsafe(),
       address: request.envelope.address,
       requestId: chunk.reply.requestId,
       replyId: chunk.reply.id
@@ -178,7 +178,7 @@ export const makeChunkReply = Effect.fnUntraced(function*(request: Message.Outgo
   const snowflake = yield* Snowflake.Generator
   return new Reply.ReplyWithContext({
     reply: new Reply.Chunk({
-      id: snowflake.unsafeNext(),
+      id: snowflake.nextUnsafe(),
       requestId: request.envelope.requestId,
       sequence,
       values: [undefined]

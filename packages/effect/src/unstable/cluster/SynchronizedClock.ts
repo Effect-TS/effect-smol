@@ -26,9 +26,9 @@ export const make: (getRemoteTime: Effect.Effect<number, never, never>) => Effec
   yield* getRemoteTime.pipe(
     Effect.timed,
     Effect.map(([duration, shardManagerTime]) => {
-      const halfTrip = Duration.unsafeDivide(duration, 2)
+      const halfTrip = Duration.divideUnsafe(duration, 2)
       shardManagerTime = shardManagerTime + Duration.toMillis(halfTrip) + 1
-      const selfTime = clock.unsafeCurrentTimeMillis()
+      const selfTime = clock.currentTimeMillisUnsafe()
       return shardManagerTime - selfTime
     }),
     Effect.replicateEffect(5),
@@ -50,19 +50,19 @@ export const make: (getRemoteTime: Effect.Effect<number, never, never>) => Effec
     Effect.forkScoped
   )
 
-  function unsafeCurrentTimeMillis() {
-    return clock.unsafeCurrentTimeMillis() + driftMillis
+  function currentTimeMillisUnsafe() {
+    return clock.currentTimeMillisUnsafe() + driftMillis
   }
-  function unsafeCurrentTimeNanos() {
-    return clock.unsafeCurrentTimeNanos() + driftNanos
+  function currentTimeNanosUnsafe() {
+    return clock.currentTimeNanosUnsafe() + driftNanos
   }
 
   return Clock.Clock.of({
     sleep: clock.sleep,
-    unsafeCurrentTimeMillis,
-    unsafeCurrentTimeNanos,
-    currentTimeMillis: Effect.sync(unsafeCurrentTimeMillis),
-    currentTimeNanos: Effect.sync(unsafeCurrentTimeNanos)
+    currentTimeMillisUnsafe,
+    currentTimeNanosUnsafe,
+    currentTimeMillis: Effect.sync(currentTimeMillisUnsafe),
+    currentTimeNanos: Effect.sync(currentTimeNanosUnsafe)
   })
 })
 

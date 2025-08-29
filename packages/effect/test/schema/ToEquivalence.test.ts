@@ -357,10 +357,10 @@ describe("ToEquivalence", () => {
     const schema = Schema.DateTimeUtc
     const equivalence = ToEquivalence.make(schema)
     assertTrue(
-      equivalence(DateTime.unsafeMake("2021-01-01T00:00:00.000Z"), DateTime.unsafeMake("2021-01-01T00:00:00.000Z"))
+      equivalence(DateTime.makeUnsafe("2021-01-01T00:00:00.000Z"), DateTime.makeUnsafe("2021-01-01T00:00:00.000Z"))
     )
     assertFalse(
-      equivalence(DateTime.unsafeMake("2021-01-01T00:00:00.000Z"), DateTime.unsafeMake("2021-01-01T00:00:00.001Z"))
+      equivalence(DateTime.makeUnsafe("2021-01-01T00:00:00.000Z"), DateTime.makeUnsafe("2021-01-01T00:00:00.001Z"))
     )
   })
 

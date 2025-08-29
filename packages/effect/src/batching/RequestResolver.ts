@@ -63,7 +63,7 @@ export type TypeId = "~effect/RequestResolver"
  * const resolver = RequestResolver.make<GetUserRequest>((entries) =>
  *   Effect.sync(() => {
  *     for (const entry of entries) {
- *       entry.unsafeComplete(Exit.succeed(`User ${entry.request.id}`))
+ *       entry.completeUnsafe(Exit.succeed(`User ${entry.request.id}`))
  *     }
  *   })
  * )
@@ -163,7 +163,7 @@ const defaultKey = (_request: unknown): unknown => defaultKeyObject
  *   Effect.sync(() => {
  *     for (const entry of entries) {
  *       // Complete each request with a result
- *       entry.unsafeComplete(Exit.succeed(`User ${entry.request.id}`))
+ *       entry.completeUnsafe(Exit.succeed(`User ${entry.request.id}`))
  *     }
  *   })
  * )
@@ -209,7 +209,7 @@ export const make = <A extends Request.Any>(
  *     Effect.sync(() => {
  *       console.log(`Processing ${entries.length} requests for role: ${role}`)
  *       for (const entry of entries) {
- *         entry.unsafeComplete(Exit.succeed(`User ${entry.request.id} with role ${role}`))
+ *         entry.completeUnsafe(Exit.succeed(`User ${entry.request.id} with role ${role}`))
  *       }
  *     })
  * })
@@ -277,7 +277,7 @@ export const fromFunction = <A extends Request.Any>(
       effect.sync(() => {
         for (let i = 0; i < entries.length; i++) {
           const entry = entries[i]
-          entry.unsafeComplete(exitSucceed(f(entry)))
+          entry.completeUnsafe(exitSucceed(f(entry)))
         }
       })
   )
@@ -322,7 +322,7 @@ export const fromFunctionBatched = <A extends Request.Any>(
         let i = 0
         for (const result of f(entries)) {
           const entry = entries[i++]
-          entry.unsafeComplete(exitSucceed(result))
+          entry.completeUnsafe(exitSucceed(result))
         }
       })
   )
@@ -369,9 +369,9 @@ export const fromEffect = <A extends Request.Any>(
       let done = 0
       for (let i = 0; i < entries.length; i++) {
         const entry = entries[i]
-        const fiber = effect.unsafeFork(parent as any, f(entry), true)
+        const fiber = effect.forkUnsafe(parent as any, f(entry), true)
         fiber.addObserver((exit) => {
-          entry.unsafeComplete(exit)
+          entry.completeUnsafe(exit)
           done++
           if (done === entries.length) {
             resume(effect.void)
@@ -447,13 +447,13 @@ export const fromEffectTagged = <A extends Request.Any & { readonly _tag: string
             onFailure: (cause) => {
               for (let i = 0; i < requests.length; i++) {
                 const entry = requests[i]
-                entry.unsafeComplete(exitFail(cause) as any)
+                entry.completeUnsafe(exitFail(cause) as any)
               }
             },
             onSuccess: (res) => {
               for (let i = 0; i < res.length; i++) {
                 const entry = requests[i]
-                entry.unsafeComplete(exitSucceed(res[i]) as any)
+                entry.completeUnsafe(exitSucceed(res[i]) as any)
               }
             }
           }),
@@ -478,7 +478,7 @@ export const fromEffectTagged = <A extends Request.Any & { readonly _tag: string
  * const resolver = RequestResolver.make<GetDataRequest>((entries) =>
  *   Effect.sync(() => {
  *     for (const entry of entries) {
- *       entry.unsafeComplete(Exit.succeed("data"))
+ *       entry.completeUnsafe(Exit.succeed("data"))
  *     }
  *   })
  * )
@@ -521,7 +521,7 @@ export const setDelayEffect: {
  * const resolver = RequestResolver.make<GetDataRequest>((entries) =>
  *   Effect.sync(() => {
  *     for (const entry of entries) {
- *       entry.unsafeComplete(Exit.succeed("data"))
+ *       entry.completeUnsafe(Exit.succeed("data"))
  *     }
  *   })
  * )
@@ -565,7 +565,7 @@ export const setDelay: {
  * const resolver = RequestResolver.make<GetDataRequest>((entries) =>
  *   Effect.sync(() => {
  *     for (const entry of entries) {
- *       entry.unsafeComplete(Exit.succeed("data"))
+ *       entry.completeUnsafe(Exit.succeed("data"))
  *     }
  *   })
  * )
@@ -659,7 +659,7 @@ export const never: RequestResolver<never> = make(() => effect.never)
  *   Effect.sync(() => {
  *     console.log(`Processing batch of ${entries.length} requests`)
  *     for (const entry of entries) {
- *       entry.unsafeComplete(Exit.succeed(`data-${entry.request.id}`))
+ *       entry.completeUnsafe(Exit.succeed(`data-${entry.request.id}`))
  *     }
  *   })
  * )
@@ -705,7 +705,7 @@ export const batchN: {
  *   Effect.sync(() => {
  *     console.log(`Processing ${entries.length} users`)
  *     for (const entry of entries) {
- *       entry.unsafeComplete(Exit.succeed(`User ${entry.request.userId}`))
+ *       entry.completeUnsafe(Exit.succeed(`User ${entry.request.userId}`))
  *     }
  *   })
  * )
@@ -762,7 +762,7 @@ export const grouped: {
  *   Effect.gen(function* () {
  *     yield* Effect.sleep("10 millis")
  *     for (const entry of entries) {
- *       entry.unsafeComplete(Exit.succeed(`fast-${entry.request.id}`))
+ *       entry.completeUnsafe(Exit.succeed(`fast-${entry.request.id}`))
  *     }
  *   })
  * )
@@ -772,7 +772,7 @@ export const grouped: {
  *   Effect.gen(function* () {
  *     yield* Effect.sleep("100 millis")
  *     for (const entry of entries) {
- *       entry.unsafeComplete(Exit.succeed(`slow-${entry.request.id}`))
+ *       entry.completeUnsafe(Exit.succeed(`slow-${entry.request.id}`))
  *     }
  *   })
  * )
@@ -818,7 +818,7 @@ export const race: {
  * const resolver = RequestResolver.make<GetDataRequest>((entries) =>
  *   Effect.sync(() => {
  *     for (const entry of entries) {
- *       entry.unsafeComplete(Exit.succeed(`data-${entry.request.id}`))
+ *       entry.completeUnsafe(Exit.succeed(`data-${entry.request.id}`))
  *     }
  *   })
  * )

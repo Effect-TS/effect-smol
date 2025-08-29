@@ -573,7 +573,7 @@ export const limitsServices = (options: {
   if (options.fieldMimeTypes !== undefined) {
     map.set(FieldMimeTypes.key, options.fieldMimeTypes)
   }
-  return ServiceMap.unsafeMake(map)
+  return ServiceMap.makeUnsafe(map)
 }
 
 /**

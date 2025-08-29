@@ -53,23 +53,23 @@ export class ResourceRef<A, E = never> {
     this.acquire = acquire
   }
 
-  latch = Effect.unsafeMakeLatch(true)
+  latch = Effect.makeLatchUnsafe(true)
 
-  unsafeGet(): Option.Option<A> {
+  getUnsafe(): Option.Option<A> {
     if (this.state.current._tag === "Acquired") {
       return Option.some(this.state.current.value)
     }
     return Option.none()
   }
 
-  unsafeRebuild(): Effect.Effect<void, E> {
+  rebuildUnsafe(): Effect.Effect<void, E> {
     const s = this.state.current
     if (s._tag === "Closed") {
       return Effect.interrupt
     }
     const prevScope = s.scope
     const scope = Effect.runSync(Scope.make())
-    this.latch.unsafeClose()
+    this.latch.closeUnsafe()
     MutableRef.set(this.state, { _tag: "Acquiring", scope })
     return Effect.withFiber((fiber) => {
       internalInterruptors.add(fiber.id)

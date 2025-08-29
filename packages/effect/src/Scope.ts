@@ -26,7 +26,7 @@ import type * as ServiceMap from "./ServiceMap.ts"
  * ```ts
  * import { Scope } from "effect"
  *
- * const scope = Scope.unsafeMake()
+ * const scope = Scope.makeUnsafe()
  * console.log(scope[Scope.TypeId] === Scope.TypeId)
  * // Output: true
  * ```
@@ -154,7 +154,7 @@ export declare namespace Scope {
      * import { Effect, Exit } from "effect"
      * import { Scope } from "effect"
      *
-     * const scope = Scope.unsafeMake()
+     * const scope = Scope.makeUnsafe()
      *
      * // When scope is open, you can check its state
      * if (scope.state._tag === "Open") {
@@ -178,7 +178,7 @@ export declare namespace Scope {
      * import { Effect, Exit } from "effect"
      * import { Scope } from "effect"
      *
-     * const scope = Scope.unsafeMake()
+     * const scope = Scope.makeUnsafe()
      *
      * // When scope is open, you can check its state
      * if (scope.state._tag === "Open") {
@@ -321,7 +321,7 @@ export const make: (finalizerStrategy?: "sequential" | "parallel") => Effect<Sco
  * import { Scope } from "effect"
  *
  * // Create a scope immediately
- * const scope = Scope.unsafeMake("sequential")
+ * const scope = Scope.makeUnsafe("sequential")
  *
  * // Use it in an Effect program
  * const program = Effect.gen(function* () {
@@ -333,7 +333,7 @@ export const make: (finalizerStrategy?: "sequential" | "parallel") => Effect<Sco
  * @since 4.0.0
  * @category constructors
  */
-export const unsafeMake: (finalizerStrategy?: "sequential" | "parallel") => Scope.Closeable = effect.scopeUnsafeMake
+export const makeUnsafe: (finalizerStrategy?: "sequential" | "parallel") => Scope.Closeable = effect.scopeMakeUnsafe
 
 /**
  * Provides a `Scope` to an `Effect`, removing the `Scope` requirement from its context.
@@ -478,8 +478,8 @@ export const fork: (
  * import { Scope } from "effect"
  *
  * const program = Effect.gen(function* () {
- *   const parentScope = Scope.unsafeMake("sequential")
- *   const childScope = Scope.unsafeFork(parentScope, "parallel")
+ *   const parentScope = Scope.makeUnsafe("sequential")
+ *   const childScope = Scope.forkUnsafe(parentScope, "parallel")
  *
  *   // Add finalizers to both scopes
  *   yield* Scope.addFinalizer(parentScope, Console.log("Parent cleanup"))
@@ -494,8 +494,8 @@ export const fork: (
  * @since 4.0.0
  * @category combinators
  */
-export const unsafeFork: (scope: Scope, finalizerStrategy?: "sequential" | "parallel") => Scope.Closeable =
-  effect.scopeUnsafeFork
+export const forkUnsafe: (scope: Scope, finalizerStrategy?: "sequential" | "parallel") => Scope.Closeable =
+  effect.scopeForkUnsafe
 
 /**
  * Closes a scope, running all registered finalizers in the appropriate order.

@@ -64,7 +64,7 @@ export abstract class NodeHttpIncomingMessage<E> extends Inspectable.Class
     return this.textEffect
   }
 
-  get unsafeText(): string {
+  get textUnsafe(): string {
     return Effect.runSync(this.text)
   }
 
@@ -76,7 +76,7 @@ export abstract class NodeHttpIncomingMessage<E> extends Inspectable.Class
       }))
   }
 
-  get unsafeJson(): unknown {
+  get jsonUnsafe(): unknown {
     return Effect.runSync(this.json)
   }
 

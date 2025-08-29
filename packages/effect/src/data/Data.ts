@@ -158,7 +158,7 @@ export const struct: <A extends Record<string, any>>(
  * import { Data } from "effect/data"
  *
  * const obj = { name: "Alice", age: 30 }
- * const person = Data.unsafeStruct(obj)
+ * const person = Data.structUnsafe(obj)
  *
  * // obj and person reference the same object
  * console.log(obj === person) // true
@@ -168,7 +168,7 @@ export const struct: <A extends Record<string, any>>(
  * @category constructors
  * @since 2.0.0
  */
-export const unsafeStruct = <A extends Record<string, any>>(
+export const structUnsafe = <A extends Record<string, any>>(
   as: A
 ): { readonly [P in keyof A]: A[P] } => Object.setPrototypeOf(as, StructuralPrototype)
 
@@ -197,7 +197,7 @@ export const unsafeStruct = <A extends Record<string, any>>(
  * @category constructors
  * @since 2.0.0
  */
-export const tuple = <As extends ReadonlyArray<any>>(...as: As): Readonly<As> => unsafeArray(as)
+export const tuple = <As extends ReadonlyArray<any>>(...as: As): Readonly<As> => arrayUnsafe(as)
 
 /**
  * Create a `Data` array with structural equality from the provided array.
@@ -231,7 +231,7 @@ export const tuple = <As extends ReadonlyArray<any>>(...as: As): Readonly<As> =>
  * @category constructors
  * @since 2.0.0
  */
-export const array = <As extends ReadonlyArray<any>>(as: As): Readonly<As> => unsafeArray(as.slice(0) as unknown as As)
+export const array = <As extends ReadonlyArray<any>>(as: As): Readonly<As> => arrayUnsafe(as.slice(0) as unknown as As)
 
 /**
  * Create a `Data` array from an array without copying it.
@@ -246,7 +246,7 @@ export const array = <As extends ReadonlyArray<any>>(as: As): Readonly<As> => un
  * import { Data } from "effect/data"
  *
  * const originalArray = [1, 2, 3]
- * const dataArray = Data.unsafeArray(originalArray)
+ * const dataArray = Data.arrayUnsafe(originalArray)
  *
  * // originalArray and dataArray reference the same array
  * console.log(originalArray === dataArray) // true
@@ -256,7 +256,7 @@ export const array = <As extends ReadonlyArray<any>>(as: As): Readonly<As> => un
  * @category constructors
  * @since 2.0.0
  */
-export const unsafeArray = <As extends ReadonlyArray<any>>(
+export const arrayUnsafe = <As extends ReadonlyArray<any>>(
   as: As
 ): Readonly<As> => Object.setPrototypeOf(as, internal.ArrayProto)
 

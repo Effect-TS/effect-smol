@@ -246,7 +246,7 @@ export const make = (
 
     const reserveRaw = Effect.callback<Pg.PoolClient, SqlError, Scope.Scope>((resume) => {
       const fiber = Fiber.getCurrent()!
-      const scope = ServiceMap.unsafeGet(fiber.services, Scope.Scope)
+      const scope = ServiceMap.getUnsafe(fiber.services, Scope.Scope)
       pool.connect((err, client, release) => {
         if (err) {
           resume(Effect.fail(new SqlError({ cause: err, message: "Failed to acquire connection for transaction" })))
@@ -291,7 +291,7 @@ export const make = (
             const client = yield* RcRef.get(listenClient)
             function onNotification(msg: Pg.Notification) {
               if (msg.channel === channel && msg.payload) {
-                Queue.unsafeOffer(queue, msg.payload)
+                Queue.offerUnsafe(queue, msg.payload)
               }
             }
             yield* Effect.addFinalizer(() =>

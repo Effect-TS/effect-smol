@@ -171,7 +171,7 @@ export const make = Effect.gen(function*() {
       }),
     asHttpEffect() {
       let handler = Effect.withFiber<HttpServerResponse.HttpServerResponse, unknown>((fiber) => {
-        const contextMap = new Map(fiber.services.unsafeMap)
+        const contextMap = new Map(fiber.services.mapUnsafe)
         const request = contextMap.get(HttpServerRequest.HttpServerRequest.key) as HttpServerRequest.HttpServerRequest
         let result = router.find(request.method, request.url)
         if (result === undefined && request.method === "HEAD") {
@@ -201,7 +201,7 @@ export const make = Effect.gen(function*() {
               HttpServerResponse.HttpServerResponse,
               unknown
             >,
-          ServiceMap.unsafeMake(contextMap)
+          ServiceMap.makeUnsafe(contextMap)
         )
       })
       if (middleware.size === 0) return handler
@@ -818,8 +818,8 @@ const makeMiddleware = (middleware: any, options?: {
     }))
     : new MiddlewareImpl(
       Effect.isEffect(middleware) ?
-        Layer.effectServices(Effect.map(middleware, (fn) => ServiceMap.unsafeMake(new Map([[fnContextKey, fn]])))) :
-        Layer.succeedServices(ServiceMap.unsafeMake(new Map([[fnContextKey, middleware]]))) as any
+        Layer.effectServices(Effect.map(middleware, (fn) => ServiceMap.makeUnsafe(new Map([[fnContextKey, fn]])))) :
+        Layer.succeedServices(ServiceMap.makeUnsafe(new Map([[fnContextKey, middleware]]))) as any
     )
 
 let middlewareId = 0
@@ -849,7 +849,7 @@ class MiddlewareImpl<
     const contextKey = `effect/http/HttpRouter/Middleware-${++middlewareId}` as const
     this.layer = Layer.effectServices(Effect.gen(this, function*() {
       const context = yield* Effect.services<Scope.Scope>()
-      const stack = [context.unsafeMap.get(fnContextKey)]
+      const stack = [context.mapUnsafe.get(fnContextKey)]
       if (this.dependencies) {
         const memoMap = yield* Layer.CurrentMemoMap
         const scope = ServiceMap.get(context, Scope.Scope)
@@ -857,7 +857,7 @@ class MiddlewareImpl<
         // eslint-disable-next-line no-restricted-syntax
         stack.push(...getMiddleware(depsContext))
       }
-      return ServiceMap.unsafeMake<never>(new Map([[contextKey, stack]]))
+      return ServiceMap.makeUnsafe<never>(new Map([[contextKey, stack]]))
     })).pipe(Layer.provide(this.layerFn))
   }
 
@@ -886,7 +886,7 @@ const getMiddleware = (context: ServiceMap.ServiceMap<never>): Array<middleware.
   if (arr) return arr
   const topLevel = Arr.empty<Array<middleware.Fn>>()
   let maxLength = 0
-  for (const [key, value] of context.unsafeMap) {
+  for (const [key, value] of context.mapUnsafe) {
     if (key.startsWith("effect/http/HttpRouter/Middleware-")) {
       topLevel.push(value)
       if (value.length > maxLength) {

@@ -203,14 +203,14 @@ export const make: (options: Omit<Runners["Service"], "sendLocal" | "notifyLocal
   const replyFromStorage = Effect.fnUntraced(
     function*(message: Message.OutgoingRequest<any>) {
       const entry: StorageRequestEntry = {
-        latch: Effect.unsafeMakeLatch(false),
+        latch: Effect.makeLatchUnsafe(false),
         replies: []
       }
       storageRequests.set(message.envelope.requestId, entry)
 
       while (true) {
         // wait for the storage loop to notify us
-        entry.latch.unsafeClose()
+        entry.latch.closeUnsafe()
         waitingStorageRequests.set(message.envelope.requestId, message)
         yield* storageLatch.open
         yield* entry.latch.await
@@ -222,7 +222,7 @@ export const make: (options: Omit<Runners["Service"], "sendLocal" | "notifyLocal
             return yield* message.respond(reply)
           }
 
-          entry.latch.unsafeClose()
+          entry.latch.closeUnsafe()
           yield* message.respond(reply)
           yield* entry.latch.await
         }
@@ -239,12 +239,12 @@ export const make: (options: Omit<Runners["Service"], "sendLocal" | "notifyLocal
       )
   )
 
-  const storageLatch = Effect.unsafeMakeLatch(false)
+  const storageLatch = Effect.makeLatchUnsafe(false)
   if (storage !== MessageStorage.noop) {
     yield* Effect.gen(function*() {
       while (true) {
         yield* storageLatch.await
-        storageLatch.unsafeClose()
+        storageLatch.closeUnsafe()
 
         const replies = yield* storage.repliesFor(waitingStorageRequests.values()).pipe(
           Effect.catchCause((cause) =>
@@ -271,7 +271,7 @@ export const make: (options: Omit<Runners["Service"], "sendLocal" | "notifyLocal
         }
 
         for (const entry of foundRequests) {
-          entry.latch.unsafeOpen()
+          entry.latch.openUnsafe()
         }
       }
     }).pipe(
@@ -308,7 +308,7 @@ export const make: (options: Omit<Runners["Service"], "sendLocal" | "notifyLocal
           }
           return message.respond(
             new Reply.WithExit({
-              id: snowflakeGen.unsafeNext(),
+              id: snowflakeGen.nextUnsafe(),
               requestId: message.envelope.requestId,
               exit: Exit.die(error)
             })
@@ -524,7 +524,7 @@ export const makeRpc: Effect.Effect<
           onFailure: (error) =>
             message.respond(
               new Reply.WithExit({
-                id: snowflakeGen.unsafeNext(),
+                id: snowflakeGen.nextUnsafe(),
                 requestId: message.envelope.requestId,
                 exit: Exit.die(error)
               })
@@ -557,7 +557,7 @@ export const makeRpc: Effect.Effect<
         onFailure: (error) =>
           message.respond(
             new Reply.WithExit({
-              id: snowflakeGen.unsafeNext(),
+              id: snowflakeGen.nextUnsafe(),
               requestId: message.envelope.requestId,
               exit: Exit.die(error)
             })

@@ -969,7 +969,7 @@ export const fromEventListener = <A = unknown>(
 ): Stream<A> =>
   callback<A>((queue) => {
     function emit(event: A) {
-      Queue.unsafeOffer(queue, event)
+      Queue.offerUnsafe(queue, event)
     }
     return Effect.acquireRelease(
       Effect.sync(() => target.addEventListener(type, emit, options)),
@@ -2793,7 +2793,7 @@ export const runCount = <A, E, R>(self: Stream<A, E, R>): Effect.Effect<number, 
  * @category destructors
  */
 export const runHead = <A, E, R>(self: Stream<A, E, R>): Effect.Effect<Option.Option<A>, E, R> =>
-  Effect.map(Channel.runHead(self.channel), Option.map(Arr.unsafeGet(0)))
+  Effect.map(Channel.runHead(self.channel), Option.map(Arr.getUnsafe(0)))
 
 /**
  * @since 2.0.0
@@ -2994,14 +2994,14 @@ export const toReadableStreamWith = dual<
   ): ReadableStream<A> => {
     let currentResolve: (() => void) | undefined = undefined
     let fiber: Fiber.Fiber<void, E> | undefined = undefined
-    const latch = Effect.unsafeMakeLatch(false)
+    const latch = Effect.makeLatchUnsafe(false)
 
     return new ReadableStream<A>({
       start(controller) {
         fiber = Effect.runFork(Effect.provideServices(
           runForEachArray(self, (chunk) =>
             latch.whenOpen(Effect.sync(() => {
-              latch.unsafeClose()
+              latch.closeUnsafe()
               for (let i = 0; i < chunk.length; i++) {
                 controller.enqueue(chunk[i])
               }
@@ -3021,7 +3021,7 @@ export const toReadableStreamWith = dual<
       pull() {
         return new Promise<void>((resolve) => {
           currentResolve = resolve
-          latch.unsafeOpen()
+          latch.openUnsafe()
         })
       },
       cancel() {
@@ -3130,7 +3130,7 @@ export const toAsyncIterableWith: {
     [Symbol.asyncIterator]() {
       const runPromise = Effect.runPromiseWith(services)
       const runPromiseExit = Effect.runPromiseExitWith(services)
-      const scope = Scope.unsafeMake()
+      const scope = Scope.makeUnsafe()
       let pull: Pull.Pull<Arr.NonEmptyReadonlyArray<A>, E, void, R> | undefined
       let currentIter: Iterator<A> | undefined
       return {

@@ -172,8 +172,8 @@ export const make = <R, ER>(
     readonly memoMap?: Layer.MemoMap | undefined
   } | undefined
 ): ManagedRuntime<R, ER> => {
-  const memoMap = options?.memoMap ?? Layer.unsafeMakeMemoMap()
-  const scope = Scope.unsafeMake()
+  const memoMap = options?.memoMap ?? Layer.makeMemoMapUnsafe()
+  const scope = Scope.makeUnsafe()
   let buildFiber: Fiber.Fiber<ServiceMap.ServiceMap<R>, ER> | undefined
   const servicesEffect = Effect.withFiber<ServiceMap.ServiceMap<R>, ER>((fiber) => {
     if (!buildFiber) {

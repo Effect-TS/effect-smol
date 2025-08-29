@@ -29,7 +29,7 @@ describe("Sink", () => {
                 callback()
               },
               destroy(_error, callback) {
-                destroyLatch.unsafeOpen()
+                destroyLatch.openUnsafe()
                 callback(null)
               }
             }),
@@ -141,10 +141,10 @@ const entries = <R, E>(
 
     return Stream.callback<Tar.ReadEntry, TarError>((queue) => {
       parser.on("entry", (entry) => {
-        Queue.unsafeOffer(queue, entry)
+        Queue.offerUnsafe(queue, entry)
       })
       parser.on("close", () => {
-        Queue.unsafeEnd(queue)
+        Queue.endUnsafe(queue)
       })
     })
   }).pipe(Stream.unwrap)

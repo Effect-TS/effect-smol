@@ -478,7 +478,7 @@ export const standardSchemaV1 = <S extends Top>(
           { scheduler }
         )
         scheduler.flush()
-        const exit = fiber.unsafePoll()
+        const exit = fiber.pollUnsafe()
         if (exit) {
           return makeStandardResult(exit)
         }
@@ -4612,7 +4612,7 @@ export const DateTimeUtc: DateTimeUtc = declare(
       _tag: "Declaration",
       declaration: () => (fc, ctx) =>
         fc.date({ noInvalidDate: true, ...ctx?.constraints?.DateConstraints }).map((date) =>
-          DateTime.unsafeFromDate(date)
+          DateTime.fromDateUnsafe(date)
         )
     },
     pretty: {

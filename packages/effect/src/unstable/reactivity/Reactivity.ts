@@ -20,8 +20,8 @@ import * as Stream from "../../stream/Stream.ts"
 export class Reactivity extends ServiceMap.Key<
   Reactivity,
   {
-    readonly unsafeInvalidate: (keys: ReadonlyArray<unknown> | ReadonlyRecord<string, ReadonlyArray<unknown>>) => void
-    readonly unsafeRegister: (
+    readonly invalidateUnsafe: (keys: ReadonlyArray<unknown> | ReadonlyRecord<string, ReadonlyArray<unknown>>) => void
+    readonly registerUnsafe: (
       keys: ReadonlyArray<unknown> | ReadonlyRecord<string, ReadonlyArray<unknown>>,
       handler: () => void
     ) => () => void
@@ -50,7 +50,7 @@ export class Reactivity extends ServiceMap.Key<
 export const make = Effect.sync(() => {
   const handlers = new Map<number | string, Set<() => void>>()
 
-  const unsafeInvalidate = (keys: ReadonlyArray<unknown> | ReadonlyRecord<string, ReadonlyArray<unknown>>): void => {
+  const invalidateUnsafe = (keys: ReadonlyArray<unknown> | ReadonlyRecord<string, ReadonlyArray<unknown>>): void => {
     if (Array.isArray(keys)) {
       for (let i = 0; i < keys.length; i++) {
         const set = handlers.get(stringOrHash(keys[i]))
@@ -77,14 +77,14 @@ export const make = Effect.sync(() => {
 
   const invalidate = (
     keys: ReadonlyArray<unknown> | ReadonlyRecord<string, ReadonlyArray<unknown>>
-  ): Effect.Effect<void> => Effect.sync(() => unsafeInvalidate(keys))
+  ): Effect.Effect<void> => Effect.sync(() => invalidateUnsafe(keys))
 
   const mutation = <A, E, R>(
     keys: ReadonlyArray<unknown> | ReadonlyRecord<string, ReadonlyArray<unknown>>,
     effect: Effect.Effect<A, E, R>
   ): Effect.Effect<A, E, R> => Effect.tap(effect, invalidate(keys))
 
-  const unsafeRegister = (
+  const registerUnsafe = (
     keys: ReadonlyArray<unknown> | ReadonlyRecord<string, ReadonlyArray<unknown>>,
     handler: () => void
   ): () => void => {
@@ -121,9 +121,9 @@ export const make = Effect.sync(() => {
       let pending = false
       const handleExit = (exit: Exit.Exit<A, E>) => {
         if (exit._tag === "Failure") {
-          Queue.unsafeDone(results, Exit.failCause(exit.cause))
+          Queue.doneUnsafe(results, Exit.failCause(exit.cause))
         } else {
-          Queue.unsafeOffer(results, exit.value)
+          Queue.offerUnsafe(results, exit.value)
         }
         if (pending) {
           pending = false
@@ -142,7 +142,7 @@ export const make = Effect.sync(() => {
         runFork(effect).addObserver(handleExit)
       }
 
-      const cancel = unsafeRegister(keys, run)
+      const cancel = registerUnsafe(keys, run)
       yield* Scope.addFinalizer(scope, Effect.sync(cancel))
       run()
 
@@ -158,7 +158,14 @@ export const make = Effect.sync(() => {
       Stream.unwrap
     )
 
-  return Reactivity.of({ mutation, query, stream, unsafeInvalidate, invalidate, unsafeRegister })
+  return Reactivity.of({
+    mutation,
+    query,
+    stream,
+    invalidateUnsafe,
+    invalidate,
+    registerUnsafe
+  })
 })
 
 /**

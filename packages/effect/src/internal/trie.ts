@@ -420,7 +420,7 @@ export const has = dual<
 >(2, (self, key) => Option.isSome(get(self, key)))
 
 /** @internal */
-export const unsafeGet = dual<
+export const getUnsafe = dual<
   (key: string) => <V>(self: TR.Trie<V>) => V,
   <V>(self: TR.Trie<V>, key: string) => V
 >(2, (self, key) => {

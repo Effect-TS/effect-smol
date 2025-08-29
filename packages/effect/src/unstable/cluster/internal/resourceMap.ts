@@ -66,7 +66,7 @@ export class ResourceMap<K, A, E> {
         return Deferred.await(existing.value.deferred)
       }
       const scope = Effect.runSync(Scope.make())
-      const deferred = Deferred.unsafeMake<A, E>()
+      const deferred = Deferred.makeUnsafe<A, E>()
       MutableHashMap.set(this.entries, key, { scope, deferred })
       return Effect.onExit(this.lookup(key, scope), (exit) => {
         if (exit._tag === "Success") {

@@ -45,8 +45,8 @@ describe("FiberHandle", () => {
   it.effect("join", () =>
     Effect.gen(function*() {
       const handle = yield* FiberHandle.make()
-      FiberHandle.unsafeSet(handle, Effect.runFork(Effect.void))
-      FiberHandle.unsafeSet(handle, Effect.runFork(Effect.fail("fail")))
+      FiberHandle.setUnsafe(handle, Effect.runFork(Effect.void))
+      FiberHandle.setUnsafe(handle, Effect.runFork(Effect.fail("fail")))
       const result = yield* Effect.flip(FiberHandle.join(handle))
       strictEqual(result, "fail")
     }))
@@ -60,7 +60,7 @@ describe("FiberHandle", () => {
       yield* Effect.yieldNow
       assertTrue(Exit.hasInterrupt(yield* Fiber.await(fiberB)))
       assertTrue(Exit.hasInterrupt(yield* Fiber.await(fiberC)))
-      strictEqual(fiberA.unsafePoll(), undefined)
+      strictEqual(fiberA.pollUnsafe(), undefined)
     }))
 
   it.effect("runtime onlyIfMissing", () =>
@@ -72,7 +72,7 @@ describe("FiberHandle", () => {
       yield* Effect.yieldNow
       assertTrue(Exit.hasInterrupt(yield* Fiber.await(fiberB)))
       assertTrue(Exit.hasInterrupt(yield* Fiber.await(fiberC)))
-      strictEqual(fiberA.unsafePoll(), undefined)
+      strictEqual(fiberA.pollUnsafe(), undefined)
     }))
 
   it.effect("propagateInterruption: false", () =>
@@ -108,9 +108,9 @@ describe("FiberHandle", () => {
 
       const fiber = yield* Effect.fork(FiberHandle.awaitEmpty(handle))
       yield* TestClock.adjust(500)
-      assert.isUndefined(fiber.unsafePoll())
+      assert.isUndefined(fiber.pollUnsafe())
       yield* TestClock.adjust(500)
-      assert.isDefined(fiber.unsafePoll())
+      assert.isDefined(fiber.pollUnsafe())
     }))
 
   it.effect("makeRuntimePromise", () =>

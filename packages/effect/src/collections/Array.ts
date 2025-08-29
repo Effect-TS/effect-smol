@@ -686,17 +686,17 @@ export const get: {
  * ```ts
  * import { Array } from "effect/collections"
  *
- * const result = Array.unsafeGet([1, 2, 3], 1)
+ * const result = Array.getUnsafe([1, 2, 3], 1)
  * console.log(result) // 2
  *
  * // This will throw an error
- * // Array.unsafeGet([1, 2, 3], 10)
+ * // Array.getUnsafe([1, 2, 3], 10)
  * ```
  *
  * @since 2.0.0
  * @category unsafe
  */
-export const unsafeGet: {
+export const getUnsafe: {
   (index: number): <A>(self: ReadonlyArray<A>) => A
   <A>(self: ReadonlyArray<A>, index: number): A
 } = dual(2, <A>(self: ReadonlyArray<A>, index: number): A => {
@@ -779,7 +779,7 @@ export const head: <A>(self: ReadonlyArray<A>) => Option.Option<A> = get(0)
  * @category getters
  * @since 2.0.0
  */
-export const headNonEmpty: <A>(self: NonEmptyReadonlyArray<A>) => A = unsafeGet(0)
+export const headNonEmpty: <A>(self: NonEmptyReadonlyArray<A>) => A = getUnsafe(0)
 
 /**
  * Get the last element in a `ReadonlyArray`, or `None` if the `ReadonlyArray` is empty.

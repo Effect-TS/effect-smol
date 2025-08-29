@@ -152,16 +152,16 @@ export const divide: {
  * @example
  * ```ts
  * import * as assert from "node:assert"
- * import { unsafeDivide } from "effect/primitives/BigInt"
+ * import { divideUnsafe } from "effect/primitives/BigInt"
  *
- * assert.deepStrictEqual(unsafeDivide(6n, 3n), 2n)
- * assert.deepStrictEqual(unsafeDivide(6n, 4n), 1n)
+ * assert.deepStrictEqual(divideUnsafe(6n, 3n), 2n)
+ * assert.deepStrictEqual(divideUnsafe(6n, 4n), 1n)
  * ```
  *
  * @category math
  * @since 2.0.0
  */
-export const unsafeDivide: {
+export const divideUnsafe: {
   (that: bigint): (self: bigint) => bigint
   (self: bigint, that: bigint): bigint
 } = dual(2, (self: bigint, that: bigint): bigint => self / that)
@@ -514,17 +514,17 @@ export const lcm: {
  * @example
  * ```ts
  * import * as assert from "node:assert"
- * import { unsafeSqrt } from "effect/primitives/BigInt"
+ * import { sqrtUnsafe } from "effect/primitives/BigInt"
  *
- * assert.deepStrictEqual(unsafeSqrt(4n), 2n)
- * assert.deepStrictEqual(unsafeSqrt(9n), 3n)
- * assert.deepStrictEqual(unsafeSqrt(16n), 4n)
+ * assert.deepStrictEqual(sqrtUnsafe(4n), 2n)
+ * assert.deepStrictEqual(sqrtUnsafe(9n), 3n)
+ * assert.deepStrictEqual(sqrtUnsafe(16n), 4n)
  * ```
  *
  * @category math
  * @since 2.0.0
  */
-export const unsafeSqrt = (n: bigint): bigint => {
+export const sqrtUnsafe = (n: bigint): bigint => {
   if (n < bigint0) {
     throw new RangeError("Cannot take the square root of a negative number")
   }
@@ -557,7 +557,7 @@ export const unsafeSqrt = (n: bigint): bigint => {
  * @since 2.0.0
  */
 export const sqrt = (n: bigint): Option.Option<bigint> =>
-  greaterThanOrEqualTo(n, bigint0) ? Option.some(unsafeSqrt(n)) : Option.none<bigint>()
+  greaterThanOrEqualTo(n, bigint0) ? Option.some(sqrtUnsafe(n)) : Option.none<bigint>()
 
 /**
  * Takes an `Iterable` of `bigint`s and returns their sum as a single `bigint

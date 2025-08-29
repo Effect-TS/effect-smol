@@ -53,7 +53,7 @@ describe.concurrent("Sharding", () => {
       yield* TestClock.adjust(2000)
       expect(driver.journal.length).toEqual(2)
       expect(driver.replyIds.size).toEqual(1)
-      expect(Queue.unsafeSize(state.interrupts)).toEqual(1)
+      expect(Queue.sizeUnsafe(state.interrupts)).toEqual(1)
     }).pipe(Effect.provide(TestSharding)))
 
   it.effect("interrupts aren't sent for durable messages on shutdown", () =>
@@ -88,7 +88,7 @@ describe.concurrent("Sharding", () => {
         const config = yield* ShardingConfig.ShardingConfig
         ;(config as any).runnerAddress = Option.some(RunnerAddress.make("localhost", 1234))
         setTimeout(() => {
-          fiber.unsafeInterrupt()
+          fiber.interruptUnsafe()
           Effect.runFork(testClock.adjust(30000))
         }, 0)
       }).pipe(
@@ -150,7 +150,7 @@ describe.concurrent("Sharding", () => {
       // wait for storage to poll
       yield* TestClock.adjust(5000)
 
-      const exit = fiber.unsafePoll()
+      const exit = fiber.pollUnsafe()
       assert(exit && Exit.isFailure(exit) && Cause.hasDie(exit.cause))
 
       // malformed message should be left in the database
@@ -191,14 +191,14 @@ describe.concurrent("Sharding", () => {
         assert.strictEqual(ids.length, 1)
 
         // test entity should still only have 10 requests
-        assert.deepStrictEqual(Queue.unsafeSize(state.envelopes), 10)
+        assert.deepStrictEqual(Queue.sizeUnsafe(state.envelopes), 10)
 
         // interrupt first request
         yield* Fiber.interrupt(fibers[0])
         yield* TestClock.adjust(100) // let retry happen
 
         // last request should come through
-        assert.deepStrictEqual(Queue.unsafeSize(state.envelopes), 11)
+        assert.deepStrictEqual(Queue.sizeUnsafe(state.envelopes), 11)
 
         // interrupt second request, now the entity should be back in the main storage loop
         yield* Fiber.interrupt(fibers[1])
@@ -210,12 +210,12 @@ describe.concurrent("Sharding", () => {
         yield* TestClock.adjust(100)
 
         // no more ids should have been requested from entity catch up
-        assert.deepStrictEqual(Queue.unsafeSize(requestedIds), 0)
+        assert.deepStrictEqual(Queue.sizeUnsafe(requestedIds), 0)
       }).pipe(Effect.provide(TestShardingWithoutStorage.pipe(
         Layer.updateService(MessageStorage.MessageStorage, (storage) => ({
           ...storage,
           unprocessedMessagesById(messageIds) {
-            Queue.unsafeOffer(requestedIds, Array.fromIterable(messageIds))
+            Queue.offerUnsafe(requestedIds, Array.fromIterable(messageIds))
             return storage.unprocessedMessagesById(messageIds)
           }
         })),
@@ -237,7 +237,7 @@ describe.concurrent("Sharding", () => {
       )
       yield* TestClock.adjust(1)
 
-      assert.deepStrictEqual(Queue.unsafeSize(state.envelopes), 10)
+      assert.deepStrictEqual(Queue.sizeUnsafe(state.envelopes), 10)
 
       // interrupt 11th request
       yield* Fiber.interrupt(fibers[10])
@@ -246,9 +246,9 @@ describe.concurrent("Sharding", () => {
       yield* Fiber.interrupt(fibers[0])
       yield* TestClock.adjust(100) // let retry happen
 
-      assert.deepStrictEqual(Queue.unsafeSize(state.envelopes), 12)
+      assert.deepStrictEqual(Queue.sizeUnsafe(state.envelopes), 12)
       // second interrupt should be sent
-      assert.deepStrictEqual(Queue.unsafeSize(state.interrupts), 2)
+      assert.deepStrictEqual(Queue.sizeUnsafe(state.interrupts), 2)
     }).pipe(Effect.provide(TestSharding)))
 
   it.effect("delivers a durable stream", () =>
@@ -291,7 +291,7 @@ describe.concurrent("Sharding", () => {
         // wait for entity to go into resume mode and request ids
         const ids = yield* Queue.take(requestedIds)
         assert.strictEqual(ids.length, 1)
-        assert.deepStrictEqual(Queue.unsafeSize(state.envelopes), 10)
+        assert.deepStrictEqual(Queue.sizeUnsafe(state.envelopes), 10)
 
         // make sure entity doesn't leave resume mode
         yield* client.NeverFork().pipe(Effect.fork)
@@ -302,7 +302,7 @@ describe.concurrent("Sharding", () => {
         yield* TestClock.adjust(100) // let retry happen
 
         // last request should come through
-        assert.deepStrictEqual(Queue.unsafeSize(state.envelopes), 11)
+        assert.deepStrictEqual(Queue.sizeUnsafe(state.envelopes), 11)
 
         // acks should be allowed to be sent
         const users = yield* Fiber.join(fiber)
@@ -321,7 +321,7 @@ describe.concurrent("Sharding", () => {
         Layer.updateService(MessageStorage.MessageStorage, (storage) => ({
           ...storage,
           unprocessedMessagesById(messageIds) {
-            Queue.unsafeOffer(requestedIds, Array.fromIterable(messageIds))
+            Queue.offerUnsafe(requestedIds, Array.fromIterable(messageIds))
             return storage.unprocessedMessagesById(messageIds)
           }
         })),

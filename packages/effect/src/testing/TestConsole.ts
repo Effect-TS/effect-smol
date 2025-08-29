@@ -135,7 +135,7 @@ export declare namespace TestConsole {
 export const make = Effect.gen(function*() {
   const entries: Array<TestConsole.Entry> = []
 
-  function unsafeCreateEntry(method: TestConsole.Method) {
+  function createEntryUnsafe(method: TestConsole.Method) {
     return (...parameters: ReadonlyArray<any>): void => {
       entries.push({ method, parameters })
     }
@@ -156,25 +156,25 @@ export const make = Effect.gen(function*() {
   }).pipe(Effect.map(Array.flatten))
 
   return {
-    assert: unsafeCreateEntry("assert"),
-    clear: unsafeCreateEntry("clear"),
-    count: unsafeCreateEntry("count"),
-    countReset: unsafeCreateEntry("countReset"),
-    debug: unsafeCreateEntry("debug"),
-    dir: unsafeCreateEntry("dir"),
-    dirxml: unsafeCreateEntry("dirxml"),
-    error: unsafeCreateEntry("error"),
-    group: unsafeCreateEntry("group"),
-    groupCollapsed: unsafeCreateEntry("groupCollapsed"),
-    groupEnd: unsafeCreateEntry("groupEnd"),
-    info: unsafeCreateEntry("info"),
-    log: unsafeCreateEntry("log"),
-    table: unsafeCreateEntry("table"),
-    time: unsafeCreateEntry("time"),
-    timeEnd: unsafeCreateEntry("timeEnd"),
-    timeLog: unsafeCreateEntry("timeLog"),
-    trace: unsafeCreateEntry("trace"),
-    warn: unsafeCreateEntry("warn"),
+    assert: createEntryUnsafe("assert"),
+    clear: createEntryUnsafe("clear"),
+    count: createEntryUnsafe("count"),
+    countReset: createEntryUnsafe("countReset"),
+    debug: createEntryUnsafe("debug"),
+    dir: createEntryUnsafe("dir"),
+    dirxml: createEntryUnsafe("dirxml"),
+    error: createEntryUnsafe("error"),
+    group: createEntryUnsafe("group"),
+    groupCollapsed: createEntryUnsafe("groupCollapsed"),
+    groupEnd: createEntryUnsafe("groupEnd"),
+    info: createEntryUnsafe("info"),
+    log: createEntryUnsafe("log"),
+    table: createEntryUnsafe("table"),
+    time: createEntryUnsafe("time"),
+    timeEnd: createEntryUnsafe("timeEnd"),
+    timeLog: createEntryUnsafe("timeLog"),
+    trace: createEntryUnsafe("trace"),
+    warn: createEntryUnsafe("warn"),
     logLines,
     errorLines
   } as TestConsole

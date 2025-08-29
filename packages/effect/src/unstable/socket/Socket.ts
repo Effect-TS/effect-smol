@@ -223,7 +223,7 @@ export const toChannelMap = <IE, A>(
     )
 
     yield* self.runRaw((data) => {
-      Queue.unsafeOffer(queue, f(data))
+      Queue.offerUnsafe(queue, f(data))
     }).pipe(
       Queue.into(queue),
       Effect.forkIn(scope)
@@ -374,7 +374,7 @@ export const fromWebSocket = <RO>(
 ): Effect.Effect<Socket, never, Exclude<RO, Scope.Scope>> =>
   Effect.withFiber((fiber) => {
     let currentWS: globalThis.WebSocket | undefined
-    const latch = Effect.unsafeMakeLatch(false)
+    const latch = Effect.makeLatchUnsafe(false)
     const acquireContext = fiber.services as ServiceMap.ServiceMap<RO>
     const closeCodeIsError = options?.closeCodeIsError ?? defaultCloseCodeIsError
 
@@ -402,7 +402,7 @@ export const fromWebSocket = <RO>(
         function onError(cause: Event) {
           ws.removeEventListener("message", onMessage)
           ws.removeEventListener("close", onClose)
-          Deferred.unsafeDone(
+          Deferred.doneUnsafe(
             fiberSet.deferred,
             Effect.fail(new SocketGenericError({ reason: open ? "Read" : "Open", cause }))
           )
@@ -410,7 +410,7 @@ export const fromWebSocket = <RO>(
         function onClose(event: globalThis.CloseEvent) {
           ws.removeEventListener("message", onMessage)
           ws.removeEventListener("error", onError)
-          Deferred.unsafeDone(
+          Deferred.doneUnsafe(
             fiberSet.deferred,
             Effect.fail(
               new SocketCloseError({
@@ -426,10 +426,10 @@ export const fromWebSocket = <RO>(
         ws.addEventListener("message", onMessage)
 
         if (ws.readyState !== 1) {
-          const openDeferred = Deferred.unsafeMake<void>()
+          const openDeferred = Deferred.makeUnsafe<void>()
           ws.addEventListener("open", () => {
             open = true
-            Deferred.unsafeDone(openDeferred, Effect.void)
+            Deferred.doneUnsafe(openDeferred, Effect.void)
           }, { once: true })
           yield* Deferred.await(openDeferred).pipe(
             Effect.timeoutOrElse({
@@ -452,7 +452,7 @@ export const fromWebSocket = <RO>(
       })).pipe(
         Effect.updateServices((input: ServiceMap.ServiceMap<R>) => ServiceMap.merge(acquireContext, input)),
         Effect.ensuring(Effect.sync(() => {
-          latch.unsafeClose()
+          latch.closeUnsafe()
           currentWS = undefined
         }))
       )
@@ -546,7 +546,7 @@ export const fromTransformStream = <R>(acquire: Effect.Effect<InputTransformStre
   readonly closeCodeIsError?: (code: number) => boolean
 }): Effect.Effect<Socket, never, Exclude<R, Scope.Scope>> =>
   Effect.withFiber((fiber) => {
-    const latch = Effect.unsafeMakeLatch(false)
+    const latch = Effect.makeLatchUnsafe(false)
     let currentStream: {
       readonly stream: InputTransformStream
       readonly fiberSet: FiberSet.FiberSet<any, any>
@@ -594,7 +594,7 @@ export const fromTransformStream = <R>(acquire: Effect.Effect<InputTransformStre
         (_) => _,
         Effect.updateServices((input: ServiceMap.ServiceMap<R>) => ServiceMap.merge(acquireServices, input)),
         Effect.ensuring(Effect.sync(() => {
-          latch.unsafeClose()
+          latch.closeUnsafe()
           currentStream = undefined
         }))
       )

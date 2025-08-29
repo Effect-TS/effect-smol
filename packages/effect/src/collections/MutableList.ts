@@ -382,7 +382,7 @@ export const prepend = <A>(self: MutableList<A>, message: A): void => {
  * @category mutations
  */
 export const prependAll = <A>(self: MutableList<A>, messages: Iterable<A>): void =>
-  unsafePrependAll(self, Arr.fromIterable(messages), !Array.isArray(messages))
+  prependAllUnsafe(self, Arr.fromIterable(messages), !Array.isArray(messages))
 
 /**
  * Prepends all elements from a ReadonlyArray to the beginning of the MutableList.
@@ -400,12 +400,12 @@ export const prependAll = <A>(self: MutableList<A>, messages: Iterable<A>): void
  *
  * // Safe usage (default mutable=false)
  * const items = [1, 2, 3]
- * MutableList.unsafePrependAll(list, items)
+ * MutableList.prependAllUnsafe(list, items)
  * console.log(items) // [1, 2, 3] - unchanged
  *
  * // Unsafe but efficient usage (mutable=true)
  * const mutableItems = [10, 20, 30]
- * MutableList.unsafePrependAll(list, mutableItems, true)
+ * MutableList.prependAllUnsafe(list, mutableItems, true)
  * // mutableItems may be modified internally for efficiency
  *
  * console.log(MutableList.takeAll(list)) // [10, 20, 30, 1, 2, 3, 4]
@@ -414,7 +414,7 @@ export const prependAll = <A>(self: MutableList<A>, messages: Iterable<A>): void
  * @since 4.0.0
  * @category mutations
  */
-export const unsafePrependAll = <A>(self: MutableList<A>, messages: ReadonlyArray<A>, mutable = false): void => {
+export const prependAllUnsafe = <A>(self: MutableList<A>, messages: ReadonlyArray<A>, mutable = false): void => {
   self.head = {
     array: messages as Array<A>,
     mutable,
@@ -459,7 +459,7 @@ export const unsafePrependAll = <A>(self: MutableList<A>, messages: ReadonlyArra
  * @category mutations
  */
 export const appendAll = <A>(self: MutableList<A>, messages: Iterable<A>): number =>
-  unsafeAppendAll(self, Arr.fromIterable(messages), !Array.isArray(messages))
+  appendAllUnsafe(self, Arr.fromIterable(messages), !Array.isArray(messages))
 
 /**
  * Appends all elements from a ReadonlyArray to the end of the MutableList.
@@ -478,26 +478,26 @@ export const appendAll = <A>(self: MutableList<A>, messages: Iterable<A>): numbe
  *
  * // Safe usage (default mutable=false)
  * const items = [2, 3, 4]
- * const added = MutableList.unsafeAppendAll(list, items)
+ * const added = MutableList.appendAllUnsafe(list, items)
  * console.log(added) // 3
  * console.log(items) // [2, 3, 4] - unchanged
  *
  * // Unsafe but efficient usage (mutable=true)
  * const mutableItems = [5, 6, 7]
- * MutableList.unsafeAppendAll(list, mutableItems, true)
+ * MutableList.appendAllUnsafe(list, mutableItems, true)
  * // mutableItems may be modified internally for efficiency
  *
  * console.log(MutableList.takeAll(list)) // [1, 2, 3, 4, 5, 6, 7]
  *
  * // High-performance bulk operations
  * const bigArray = new Array(10000).fill(0).map((_, i) => i)
- * MutableList.unsafeAppendAll(list, bigArray, true) // Very efficient
+ * MutableList.appendAllUnsafe(list, bigArray, true) // Very efficient
  * ```
  *
  * @since 4.0.0
  * @category mutations
  */
-export const unsafeAppendAll = <A>(self: MutableList<A>, messages: ReadonlyArray<A>, mutable = false): number => {
+export const appendAllUnsafe = <A>(self: MutableList<A>, messages: ReadonlyArray<A>, mutable = false): number => {
   const chunk: MutableList.Bucket<A> = {
     array: messages as Array<A>,
     mutable,

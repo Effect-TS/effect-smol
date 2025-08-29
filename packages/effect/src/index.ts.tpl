@@ -26,5 +26,5 @@ export {
   /**
    * @since 2.0.0
    */
-  unsafeCoerce
+  coerceUnsafe
 } from "./Function.ts"

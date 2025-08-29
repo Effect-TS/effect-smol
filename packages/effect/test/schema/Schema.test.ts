@@ -2818,17 +2818,17 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
   it("DateTimeUtc", async () => {
     const schema = Schema.DateTimeUtc
-    await assertions.decoding.succeed(schema, DateTime.unsafeMake("2021-01-01T00:00:00.000Z"))
-    await assertions.encoding.succeed(schema, DateTime.unsafeMake("2021-01-01T00:00:00.000Z"))
+    await assertions.decoding.succeed(schema, DateTime.makeUnsafe("2021-01-01T00:00:00.000Z"))
+    await assertions.encoding.succeed(schema, DateTime.makeUnsafe("2021-01-01T00:00:00.000Z"))
   })
 
   it("DateTimeUtcFromValidDate", async () => {
     const schema = Schema.DateTimeUtcFromDate
     await assertions.decoding.succeed(schema, new Date("2021-01-01T00:00:00.000Z"), {
-      expected: DateTime.unsafeMake("2021-01-01T00:00:00.000Z")
+      expected: DateTime.makeUnsafe("2021-01-01T00:00:00.000Z")
     })
     await assertions.decoding.fail(schema, new Date("invalid date"), `Expected a valid date, got Invalid Date`)
-    await assertions.encoding.succeed(schema, DateTime.unsafeMake("2021-01-01T00:00:00.000Z"), {
+    await assertions.encoding.succeed(schema, DateTime.makeUnsafe("2021-01-01T00:00:00.000Z"), {
       expected: new Date("2021-01-01T00:00:00.000Z")
     })
   })
@@ -2836,10 +2836,10 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
   it("DateTimeUtcFromString", async () => {
     const schema = Schema.DateTimeUtcFromString
     await assertions.decoding.succeed(schema, "2021-01-01T00:00:00.000Z", {
-      expected: DateTime.unsafeMake("2021-01-01T00:00:00.000Z")
+      expected: DateTime.makeUnsafe("2021-01-01T00:00:00.000Z")
     })
     await assertions.decoding.fail(schema, null, `Expected string, got null`)
-    await assertions.encoding.succeed(schema, DateTime.unsafeMake("2021-01-01T00:00:00.000Z"), {
+    await assertions.encoding.succeed(schema, DateTime.makeUnsafe("2021-01-01T00:00:00.000Z"), {
       expected: "2021-01-01T00:00:00.000Z"
     })
   })

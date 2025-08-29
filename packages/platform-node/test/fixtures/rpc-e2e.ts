@@ -94,7 +94,7 @@ export const e2eSuite = <E>(
           Effect.fork
         )
         yield* Effect.sleep(500)
-        assert.isUndefined(fiber.unsafePoll())
+        assert.isUndefined(fiber.pollUnsafe())
 
         yield* Fiber.interrupt(fiber)
         yield* Effect.sleep(100)

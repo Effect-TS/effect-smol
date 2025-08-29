@@ -52,9 +52,9 @@ describe("FiberSet", () => {
   it.effect("join", () =>
     Effect.gen(function*() {
       const set = yield* FiberSet.make()
-      FiberSet.unsafeAdd(set, Effect.runFork(Effect.void))
-      FiberSet.unsafeAdd(set, Effect.runFork(Effect.void))
-      FiberSet.unsafeAdd(set, Effect.runFork(Effect.fail("fail")))
+      FiberSet.addUnsafe(set, Effect.runFork(Effect.void))
+      FiberSet.addUnsafe(set, Effect.runFork(Effect.void))
+      FiberSet.addUnsafe(set, Effect.runFork(Effect.fail("fail")))
       const result = yield* pipe(FiberSet.join(set), Effect.flip)
       strictEqual(result, "fail")
     }))
@@ -63,8 +63,8 @@ describe("FiberSet", () => {
     Effect.gen(function*() {
       const scope = yield* Scope.make()
       const set = yield* pipe(FiberSet.make(), Scope.provide(scope))
-      FiberSet.unsafeAdd(set, Effect.runFork(Effect.never))
-      FiberSet.unsafeAdd(set, Effect.runFork(Effect.never))
+      FiberSet.addUnsafe(set, Effect.runFork(Effect.never))
+      FiberSet.addUnsafe(set, Effect.runFork(Effect.never))
       strictEqual(yield* FiberSet.size(set), 2)
       yield* Scope.close(scope, Exit.void)
       strictEqual(yield* FiberSet.size(set), 0)
@@ -106,9 +106,9 @@ describe("FiberSet", () => {
 
       const fiber = yield* Effect.fork(FiberSet.awaitEmpty(set))
       yield* TestClock.adjust(500)
-      assert.isUndefined(fiber.unsafePoll())
+      assert.isUndefined(fiber.pollUnsafe())
       yield* TestClock.adjust(500)
-      assert.isDefined(fiber.unsafePoll())
+      assert.isDefined(fiber.pollUnsafe())
     }))
 
   it.effect("makeRuntimePromise", () =>

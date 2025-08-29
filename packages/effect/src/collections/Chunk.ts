@@ -256,7 +256,7 @@ import * as Equivalence from "effect/data/Equivalence"
  */
 export const getEquivalence = <A>(isEquivalent: Equivalence.Equivalence<A>): Equivalence.Equivalence<Chunk<A>> =>
   Equivalence.make((self, that) =>
-    self.length === that.length && toReadonlyArray(self).every((value, i) => isEquivalent(value, unsafeGet(that, i)))
+    self.length === that.length && toReadonlyArray(self).every((value, i) => isEquivalent(value, getUnsafe(that, i)))
   )
 
 const _equivalence = getEquivalence(Equal.equals)
@@ -401,7 +401,7 @@ export const empty: <A = never>() => Chunk<A> = () => _empty
  * @since 2.0.0
  */
 export const make = <As extends readonly [any, ...Array<any>]>(...as: As): NonEmptyChunk<As[number]> =>
-  unsafeFromNonEmptyArray(as)
+  fromNonEmptyArrayUnsafe(as)
 
 /**
  * Builds a `NonEmptyChunk` from a single element.
@@ -436,7 +436,7 @@ export const of = <A>(a: A): NonEmptyChunk<A> => makeChunk({ _tag: "ISingleton",
  * @since 2.0.0
  */
 export const fromIterable = <A>(self: Iterable<A>): Chunk<A> =>
-  isChunk(self) ? self : unsafeFromArray(RA.fromIterable(self))
+  isChunk(self) ? self : fromArrayUnsafe(RA.fromIterable(self))
 
 const copyToArray = <A>(self: Chunk<A>, array: Array<any>, initial: number): void => {
   switch (self.backing._tag) {
@@ -457,7 +457,7 @@ const copyToArray = <A>(self: Chunk<A>, array: Array<any>, initial: number): voi
       let i = 0
       let j = initial
       while (i < self.length) {
-        array[j] = unsafeGet(self, i)
+        array[j] = getUnsafe(self, i)
         i += 1
         j += 1
       }
@@ -558,7 +558,7 @@ const reverseChunk = <A>(self: Chunk<A>): Chunk<A> => {
       return makeChunk({ _tag: "IConcat", left: reverse(self.backing.right), right: reverse(self.backing.left) })
     }
     case "ISlice":
-      return unsafeFromArray(RA.reverse(toReadonlyArray(self)))
+      return fromArrayUnsafe(RA.reverse(toReadonlyArray(self)))
   }
 }
 
@@ -611,7 +611,7 @@ export const get: {
 } = dual(
   2,
   <A>(self: Chunk<A>, index: number): Option<A> =>
-    index < 0 || index >= self.length ? O.none() : O.some(unsafeGet(self, index))
+    index < 0 || index >= self.length ? O.none() : O.some(getUnsafe(self, index))
 )
 
 /**
@@ -622,7 +622,7 @@ export const get: {
  * import { Chunk } from "effect/collections"
  *
  * const array = [1, 2, 3, 4, 5]
- * const chunk = Chunk.unsafeFromArray(array)
+ * const chunk = Chunk.fromArrayUnsafe(array)
  * console.log(Chunk.toArray(chunk)) // [1, 2, 3, 4, 5]
  *
  * // Warning: Since this doesn't copy the array, mutations affect the chunk
@@ -633,7 +633,7 @@ export const get: {
  * @since 2.0.0
  * @category unsafe
  */
-export const unsafeFromArray = <A>(self: ReadonlyArray<A>): Chunk<A> =>
+export const fromArrayUnsafe = <A>(self: ReadonlyArray<A>): Chunk<A> =>
   self.length === 0 ? empty() : self.length === 1 ? of(self[0]) : makeChunk({ _tag: "IArray", array: self })
 
 /**
@@ -645,7 +645,7 @@ export const unsafeFromArray = <A>(self: ReadonlyArray<A>): Chunk<A> =>
 import * as Array from "effect/collections/Array"
  *
  * const nonEmptyArray = Array.make(1, 2, 3, 4, 5)
- * const chunk = Chunk.unsafeFromNonEmptyArray(nonEmptyArray)
+ * const chunk = Chunk.fromNonEmptyArrayUnsafe(nonEmptyArray)
  * console.log(Chunk.toArray(chunk)) // [1, 2, 3, 4, 5]
  *
  * // The result is guaranteed to be non-empty
@@ -655,8 +655,8 @@ import * as Array from "effect/collections/Array"
  * @since 2.0.0
  * @category unsafe
  */
-export const unsafeFromNonEmptyArray = <A>(self: NonEmptyReadonlyArray<A>): NonEmptyChunk<A> =>
-  unsafeFromArray(self) as any
+export const fromNonEmptyArrayUnsafe = <A>(self: NonEmptyReadonlyArray<A>): NonEmptyChunk<A> =>
+  fromArrayUnsafe(self) as any
 
 /**
  * Gets an element unsafely, will throw on out of bounds
@@ -667,12 +667,12 @@ export const unsafeFromNonEmptyArray = <A>(self: NonEmptyReadonlyArray<A>): NonE
  *
  * const chunk = Chunk.make("a", "b", "c", "d")
  *
- * console.log(Chunk.unsafeGet(chunk, 1)) // "b"
- * console.log(Chunk.unsafeGet(chunk, 3)) // "d"
+ * console.log(Chunk.getUnsafe(chunk, 1)) // "b"
+ * console.log(Chunk.getUnsafe(chunk, 3)) // "d"
  *
  * // Warning: This will throw an error for invalid indices
  * try {
- *   Chunk.unsafeGet(chunk, 10) // throws "Index out of bounds"
+ *   Chunk.getUnsafe(chunk, 10) // throws "Index out of bounds"
  * } catch (error) {
  *   console.log((error as Error).message) // "Index out of bounds"
  * }
@@ -681,7 +681,7 @@ export const unsafeFromNonEmptyArray = <A>(self: NonEmptyReadonlyArray<A>): NonE
  * @since 2.0.0
  * @category unsafe
  */
-export const unsafeGet: {
+export const getUnsafe: {
   (index: number): <A>(self: Chunk<A>) => A
   <A>(self: Chunk<A>, index: number): A
 } = dual(2, <A>(self: Chunk<A>, index: number): A => {
@@ -703,11 +703,11 @@ export const unsafeGet: {
     }
     case "IConcat": {
       return index < self.left.length
-        ? unsafeGet(self.left, index)
-        : unsafeGet(self.right, index - self.left.length)
+        ? getUnsafe(self.left, index)
+        : getUnsafe(self.right, index - self.left.length)
     }
     case "ISlice": {
-      return unsafeGet(self.backing.chunk, index + self.backing.offset)
+      return getUnsafe(self.backing.chunk, index + self.backing.offset)
     }
   }
 })
@@ -1049,7 +1049,7 @@ export const filterMap: {
   <A, B>(self: Chunk<A>, f: (a: A, i: number) => Option<B>): Chunk<B>
 } = dual(
   2,
-  <A, B>(self: Chunk<A>, f: (a: A, i: number) => Option<B>): Chunk<B> => unsafeFromArray(RA.filterMap(self, f))
+  <A, B>(self: Chunk<A>, f: (a: A, i: number) => Option<B>): Chunk<B> => fromArrayUnsafe(RA.filterMap(self, f))
 )
 
 /**
@@ -1079,7 +1079,7 @@ export const filter: {
   <A>(self: Chunk<A>, predicate: Predicate<A>): Chunk<A>
 } = dual(
   2,
-  <A>(self: Chunk<A>, predicate: Predicate<A>): Chunk<A> => unsafeFromArray(RA.filter(self, predicate))
+  <A>(self: Chunk<A>, predicate: Predicate<A>): Chunk<A> => fromArrayUnsafe(RA.filter(self, predicate))
 )
 
 /**
@@ -1112,7 +1112,7 @@ import * as Option from "effect/data/Option"
 export const filterMapWhile: {
   <A, B>(f: (a: A) => Option<B>): (self: Chunk<A>) => Chunk<B>
   <A, B>(self: Chunk<A>, f: (a: A) => Option<B>): Chunk<B>
-} = dual(2, <A, B>(self: Chunk<A>, f: (a: A) => Option<B>) => unsafeFromArray(RA.filterMapWhile(self, f)))
+} = dual(2, <A, B>(self: Chunk<A>, f: (a: A) => Option<B>) => fromArrayUnsafe(RA.filterMapWhile(self, f)))
 
 /**
  * Filter out optional values
@@ -1277,14 +1277,14 @@ export const chunksOf: {
   toReadonlyArray(self).forEach((a) => {
     current.push(a)
     if (current.length >= n) {
-      gr.push(unsafeFromArray(current))
+      gr.push(fromArrayUnsafe(current))
       current = []
     }
   })
   if (current.length > 0) {
-    gr.push(unsafeFromArray(current))
+    gr.push(fromArrayUnsafe(current))
   }
-  return unsafeFromArray(gr)
+  return fromArrayUnsafe(gr)
 })
 
 /**
@@ -1321,7 +1321,7 @@ export const intersection: {
 } = dual(
   2,
   <A, B>(self: Chunk<A>, that: Chunk<B>): Chunk<A & B> =>
-    unsafeFromArray(RA.intersection(toReadonlyArray(self), toReadonlyArray(that)))
+    fromArrayUnsafe(RA.intersection(toReadonlyArray(self), toReadonlyArray(that)))
 )
 
 /**
@@ -1383,14 +1383,14 @@ export const head: <A>(self: Chunk<A>) => Option<A> = get(0)
  * import { Chunk } from "effect/collections"
  *
  * const chunk = Chunk.make(1, 2, 3, 4)
- * console.log(Chunk.unsafeHead(chunk)) // 1
+ * console.log(Chunk.headUnsafe(chunk)) // 1
  *
  * const singleElement = Chunk.make("hello")
- * console.log(Chunk.unsafeHead(singleElement)) // "hello"
+ * console.log(Chunk.headUnsafe(singleElement)) // "hello"
  *
  * // Warning: This will throw for empty chunks
  * try {
- *   Chunk.unsafeHead(Chunk.empty())
+ *   Chunk.headUnsafe(Chunk.empty())
  * } catch (error) {
  *   console.log((error as Error).message) // "Index out of bounds"
  * }
@@ -1399,7 +1399,7 @@ export const head: <A>(self: Chunk<A>) => Option<A> = get(0)
  * @since 2.0.0
  * @category unsafe
  */
-export const unsafeHead = <A>(self: Chunk<A>): A => unsafeGet(self, 0)
+export const headUnsafe = <A>(self: Chunk<A>): A => getUnsafe(self, 0)
 
 /**
  * Returns the first element of this non empty chunk.
@@ -1421,7 +1421,7 @@ export const unsafeHead = <A>(self: Chunk<A>): A => unsafeGet(self, 0)
  * @since 2.0.0
  * @category elements
  */
-export const headNonEmpty: <A>(self: NonEmptyChunk<A>) => A = unsafeHead
+export const headNonEmpty: <A>(self: NonEmptyChunk<A>) => A = headUnsafe
 
 /**
  * Returns the last element of this chunk if it exists.
@@ -1450,14 +1450,14 @@ export const last = <A>(self: Chunk<A>): Option<A> => get(self, self.length - 1)
  * import { Chunk } from "effect/collections"
  *
  * const chunk = Chunk.make(1, 2, 3, 4)
- * console.log(Chunk.unsafeLast(chunk)) // 4
+ * console.log(Chunk.lastUnsafe(chunk)) // 4
  *
  * const singleElement = Chunk.make("hello")
- * console.log(Chunk.unsafeLast(singleElement)) // "hello"
+ * console.log(Chunk.lastUnsafe(singleElement)) // "hello"
  *
  * // Warning: This will throw for empty chunks
  * try {
- *   Chunk.unsafeLast(Chunk.empty())
+ *   Chunk.lastUnsafe(Chunk.empty())
  * } catch (error) {
  *   console.log((error as Error).message) // "Index out of bounds"
  * }
@@ -1466,7 +1466,7 @@ export const last = <A>(self: Chunk<A>): Option<A> => get(self, self.length - 1)
  * @since 2.0.0
  * @category unsafe
  */
-export const unsafeLast = <A>(self: Chunk<A>): A => unsafeGet(self, self.length - 1)
+export const lastUnsafe = <A>(self: Chunk<A>): A => getUnsafe(self, self.length - 1)
 
 /**
  * Returns the last element of this non empty chunk.
@@ -1488,7 +1488,7 @@ export const unsafeLast = <A>(self: Chunk<A>): A => unsafeGet(self, self.length 
  * @since 3.4.0
  * @category elements
  */
-export const lastNonEmpty: <A>(self: NonEmptyChunk<A>) => A = unsafeLast
+export const lastNonEmpty: <A>(self: NonEmptyChunk<A>) => A = lastUnsafe
 
 /**
  * A namespace containing utility types for Chunk operations.
@@ -1641,7 +1641,7 @@ export const map: {
 } = dual(2, <A, B>(self: Chunk<A>, f: (a: A, i: number) => B): Chunk<B> =>
   self.backing._tag === "ISingleton" ?
     of(f(self.backing.a, 0)) :
-    unsafeFromArray(pipe(toReadonlyArray(self), RA.map((a, i) => f(a, i)))))
+    fromArrayUnsafe(pipe(toReadonlyArray(self), RA.map((a, i) => f(a, i)))))
 
 /**
  * Statefully maps over the chunk, producing new elements of type `B`.
@@ -1677,7 +1677,7 @@ export const mapAccum: {
   <S, A, B>(self: Chunk<A>, s: S, f: (s: S, a: A) => readonly [S, B]): [S, Chunk<B>]
 } = dual(3, <S, A, B>(self: Chunk<A>, s: S, f: (s: S, a: A) => readonly [S, B]): [S, Chunk<B>] => {
   const [s1, as] = RA.mapAccum(self, s, f)
-  return [s1, unsafeFromArray(as)]
+  return [s1, fromArrayUnsafe(as)]
 })
 
 /**
@@ -1725,7 +1725,7 @@ export const partition: {
   <A>(self: Chunk<A>, predicate: (a: A, i: number) => boolean): [excluded: Chunk<A>, satisfying: Chunk<A>] =>
     pipe(
       RA.partition(toReadonlyArray(self), predicate),
-      ([l, r]) => [unsafeFromArray(l), unsafeFromArray(r)]
+      ([l, r]) => [fromArrayUnsafe(l), fromArrayUnsafe(r)]
     )
 )
 
@@ -1766,7 +1766,7 @@ export const partitionMap: {
 } = dual(2, <A, B, C>(self: Chunk<A>, f: (a: A) => Result<C, B>): [left: Chunk<B>, right: Chunk<C>] =>
   pipe(
     RA.partitionMap(toReadonlyArray(self), f),
-    ([l, r]) => [unsafeFromArray(l), unsafeFromArray(r)]
+    ([l, r]) => [fromArrayUnsafe(l), fromArrayUnsafe(r)]
   ))
 
 /**
@@ -1802,7 +1802,7 @@ import * as Result from "effect/data/Result"
 export const separate = <A, B>(self: Chunk<Result<B, A>>): [Chunk<A>, Chunk<B>] =>
   pipe(
     RA.separate(toReadonlyArray(self)),
-    ([l, r]) => [unsafeFromArray(l), unsafeFromArray(r)]
+    ([l, r]) => [fromArrayUnsafe(l), fromArrayUnsafe(r)]
   )
 
 /**
@@ -1851,7 +1851,7 @@ export const sort: {
   <A extends B, B>(self: Chunk<A>, O: Order.Order<B>): Chunk<A>
 } = dual(
   2,
-  <A extends B, B>(self: Chunk<A>, O: Order.Order<B>): Chunk<A> => unsafeFromArray(RA.sort(toReadonlyArray(self), O))
+  <A extends B, B>(self: Chunk<A>, O: Order.Order<B>): Chunk<A> => fromArrayUnsafe(RA.sort(toReadonlyArray(self), O))
 )
 
 /**
@@ -2148,7 +2148,7 @@ export const takeWhile: {
       break
     }
   }
-  return unsafeFromArray(out)
+  return fromArrayUnsafe(out)
 })
 
 /**
@@ -2178,7 +2178,7 @@ export const union: {
   <A, B>(self: Chunk<A>, that: Chunk<B>): Chunk<A | B>
 } = dual(
   2,
-  <A, B>(self: Chunk<A>, that: Chunk<B>) => unsafeFromArray(RA.union(toReadonlyArray(self), toReadonlyArray(that)))
+  <A, B>(self: Chunk<A>, that: Chunk<B>) => fromArrayUnsafe(RA.union(toReadonlyArray(self), toReadonlyArray(that)))
 )
 
 /**
@@ -2206,7 +2206,7 @@ export const union: {
  * @since 2.0.0
  * @category elements
  */
-export const dedupe = <A>(self: Chunk<A>): Chunk<A> => unsafeFromArray(RA.dedupe(toReadonlyArray(self)))
+export const dedupe = <A>(self: Chunk<A>): Chunk<A> => fromArrayUnsafe(RA.dedupe(toReadonlyArray(self)))
 
 /**
  * Deduplicates adjacent elements that are identical.
@@ -2228,7 +2228,7 @@ export const dedupe = <A>(self: Chunk<A>): Chunk<A> => unsafeFromArray(RA.dedupe
  * @since 2.0.0
  * @category filtering
  */
-export const dedupeAdjacent = <A>(self: Chunk<A>): Chunk<A> => unsafeFromArray(RA.dedupeAdjacent(self))
+export const dedupeAdjacent = <A>(self: Chunk<A>): Chunk<A> => fromArrayUnsafe(RA.dedupeAdjacent(self))
 
 /**
  * Takes a `Chunk` of pairs and return two corresponding `Chunk`s.
@@ -2256,7 +2256,7 @@ export const dedupeAdjacent = <A>(self: Chunk<A>): Chunk<A> => unsafeFromArray(R
  */
 export const unzip = <A, B>(self: Chunk<readonly [A, B]>): [Chunk<A>, Chunk<B>] => {
   const [left, right] = RA.unzip(self)
-  return [unsafeFromArray(left), unsafeFromArray(right)]
+  return [fromArrayUnsafe(left), fromArrayUnsafe(right)]
 }
 
 /**
@@ -2287,7 +2287,7 @@ export const zipWith: {
 } = dual(
   3,
   <A, B, C>(self: Chunk<A>, that: Chunk<B>, f: (a: A, b: B) => C): Chunk<C> =>
-    unsafeFromArray(RA.zipWith(self, that, f))
+    fromArrayUnsafe(RA.zipWith(self, that, f))
 )
 
 /**
@@ -2348,7 +2348,7 @@ export const remove: {
   <A>(self: Chunk<A>, i: number): Chunk<A>
 } = dual(
   2,
-  <A>(self: Chunk<A>, i: number): Chunk<A> => unsafeFromArray(RA.remove(toReadonlyArray(self), i))
+  <A>(self: Chunk<A>, i: number): Chunk<A> => fromArrayUnsafe(RA.remove(toReadonlyArray(self), i))
 )
 
 /**
@@ -2383,7 +2383,7 @@ export const modifyOption: {
 } = dual(
   3,
   <A, B>(self: Chunk<A>, i: number, f: (a: A) => B): Option<Chunk<A | B>> =>
-    O.map(RA.modifyOption(toReadonlyArray(self), i, f), unsafeFromArray)
+    O.map(RA.modifyOption(toReadonlyArray(self), i, f), fromArrayUnsafe)
 )
 
 /**
@@ -2899,7 +2899,7 @@ export const differenceWith = <A>(isEquivalent: (self: A, that: A) => boolean): 
 } => {
   return dual(
     2,
-    (self: Chunk<A>, that: Chunk<A>): Chunk<A> => unsafeFromArray(RA.differenceWith(isEquivalent)(that, self))
+    (self: Chunk<A>, that: Chunk<A>): Chunk<A> => fromArrayUnsafe(RA.differenceWith(isEquivalent)(that, self))
   )
 }
 
@@ -2936,5 +2936,5 @@ export const difference: {
   <A>(self: Chunk<A>, that: Chunk<A>): Chunk<A>
 } = dual(
   2,
-  <A>(self: Chunk<A>, that: Chunk<A>): Chunk<A> => unsafeFromArray(RA.difference(that, self))
+  <A>(self: Chunk<A>, that: Chunk<A>): Chunk<A> => fromArrayUnsafe(RA.difference(that, self))
 )

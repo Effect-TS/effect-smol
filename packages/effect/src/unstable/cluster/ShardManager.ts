@@ -393,7 +393,7 @@ export const makeClientRpc: Effect.Effect<
             const events = yield* client.ShardingEvents({ address }, { asQueue: true })
             const take = Effect.orDie(Queue.takeAll(events))
             while (true) {
-              Queue.unsafeOfferAll(queue, yield* take)
+              Queue.offerAllUnsafe(queue, yield* take)
             }
           },
           (effect, queue) => Queue.into(effect, queue as any),
@@ -450,18 +450,18 @@ export const make = Effect.gen(function*() {
   const events = yield* PubSub.unbounded<ShardingEvent>()
 
   function updateRunnerMetrics() {
-    ClusterMetrics.runners.unsafeUpdate(MutableHashMap.size(state.allRunners), ServiceMap.empty())
+    ClusterMetrics.runners.updateUnsafe(MutableHashMap.size(state.allRunners), ServiceMap.empty())
   }
 
   function updateShardMetrics() {
     const stats = state.shardStats
     for (const [address, shardCount] of stats.perRunner) {
-      ClusterMetrics.assignedShards.unsafeUpdate(
+      ClusterMetrics.assignedShards.updateUnsafe(
         shardCount,
         Metric.CurrentMetricAttributes.serviceMap({ address })
       )
     }
-    ClusterMetrics.unassignedShards.unsafeUpdate(stats.unassigned, ServiceMap.empty())
+    ClusterMetrics.unassignedShards.updateUnsafe(stats.unassigned, ServiceMap.empty())
   }
   updateShardMetrics()
 
@@ -475,7 +475,7 @@ export const make = Effect.gen(function*() {
     )
   }
 
-  const persistRunners = Effect.unsafeMakeSemaphore(1).withPermits(1)(withRetry(
+  const persistRunners = Effect.makeSemaphoreUnsafe(1).withPermits(1)(withRetry(
     Effect.suspend(() =>
       storage.saveRunners(
         Iterable.map(state.allRunners, ([address, runner]) => [address, runner.runner])
@@ -483,7 +483,7 @@ export const make = Effect.gen(function*() {
     )
   ))
 
-  const persistAssignments = Effect.unsafeMakeSemaphore(1).withPermits(1)(withRetry(
+  const persistAssignments = Effect.makeSemaphoreUnsafe(1).withPermits(1)(withRetry(
     Effect.suspend(() => storage.saveAssignments(state.assignments))
   ))
 
@@ -522,7 +522,7 @@ export const make = Effect.gen(function*() {
       return MachineId.make(++machineId)
     }
 
-    state.addRunner(runner, clock.unsafeCurrentTimeMillis())
+    state.addRunner(runner, clock.currentTimeMillisUnsafe())
     updateRunnerMetrics()
     yield* PubSub.publish(events, ShardingEvent.RunnerRegistered({ address: runner.address }))
     yield* Effect.forkIn(persistRunners, scope)
@@ -562,7 +562,7 @@ export const make = Effect.gen(function*() {
       return rebalanceLoop
     }
     if (!rebalanceDeferred) {
-      rebalanceDeferred = Deferred.unsafeMake()
+      rebalanceDeferred = Deferred.makeUnsafe()
     }
     return Deferred.await(rebalanceDeferred)
   })

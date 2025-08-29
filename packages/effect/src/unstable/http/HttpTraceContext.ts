@@ -18,7 +18,7 @@ export interface FromHeaders {
  * @category encoding
  */
 export const toHeaders = (span: Tracer.Span): Headers.Headers =>
-  Headers.unsafeFromRecord({
+  Headers.fromRecordUnsafe({
     b3: `${span.traceId}-${span.spanId}-${span.sampled ? "1" : "0"}${
       span.parent._tag === "Some" ? `-${span.parent.value.spanId}` : ""
     }`,

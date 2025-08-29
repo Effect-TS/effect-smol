@@ -44,7 +44,7 @@ export const runMain: {
     receivedSignal = true
     process.removeListener("SIGINT", onSigint)
     process.removeListener("SIGTERM", onSigint)
-    fiber.unsafeInterrupt(fiber.id)
+    fiber.interruptUnsafe(fiber.id)
   }
 
   process.on("SIGINT", onSigint)

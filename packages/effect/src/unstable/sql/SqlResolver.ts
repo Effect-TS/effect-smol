@@ -98,7 +98,7 @@ export const ordered = <Req extends Schema.Top, Res extends Schema.Top, _, E, R>
     >,
     SqlClient.TransactionConnection["Service"] | undefined
   >({
-    key: (entry) => entry.services.unsafeMap.get(SqlClient.TransactionConnection.key),
+    key: (entry) => entry.services.mapUnsafe.get(SqlClient.TransactionConnection.key),
     resolver: Effect.fnUntraced(function*(entries) {
       const inputs = yield* partitionRequests(entries, options.Request)
       const results = yield* options.execute(inputs as any).pipe(
@@ -111,7 +111,7 @@ export const ordered = <Req extends Schema.Top, Res extends Schema.Top, _, E, R>
         Effect.provideServices(entries[0].services)
       )
       for (let i = 0; i < entries.length; i++) {
-        entries[i].unsafeComplete(Exit.succeed(decodedResults[i]))
+        entries[i].completeUnsafe(Exit.succeed(decodedResults[i]))
       }
     })
   })
@@ -154,7 +154,7 @@ export const grouped = <Req extends Schema.Top, Res extends Schema.Top, K, Row, 
     >,
     SqlClient.TransactionConnection["Service"] | undefined
   >({
-    key: (entry) => entry.services.unsafeMap.get(SqlClient.TransactionConnection.key),
+    key: (entry) => entry.services.mapUnsafe.get(SqlClient.TransactionConnection.key),
     resolver: Effect.fnUntraced(function*(entries) {
       const inputs = yield* partitionRequests(entries, options.Request)
       const resultMap = MutableHashMap.empty<K, Arr.NonEmptyArray<Res["Type"]>>()
@@ -178,7 +178,7 @@ export const grouped = <Req extends Schema.Top, Res extends Schema.Top, K, Row, 
         const entry = entries[i]
         const key = options.RequestGroupKey(entry.request.payload)
         const result = MutableHashMap.get(resultMap, key)
-        entry.unsafeComplete(
+        entry.completeUnsafe(
           result._tag === "None" ? constNoSuchElement : Exit.succeed(result.value)
         )
       }
@@ -220,7 +220,7 @@ export const findById = <Id extends Schema.Top, Res extends Schema.Top, Row, E, 
     >,
     SqlClient.TransactionConnection["Service"] | undefined
   >({
-    key: (entry) => entry.services.unsafeMap.get(SqlClient.TransactionConnection.key),
+    key: (entry) => entry.services.mapUnsafe.get(SqlClient.TransactionConnection.key),
     resolver: Effect.fnUntraced(function*(entries) {
       const [inputs, idMap] = yield* partitionRequestsById(entries, options.Id)
       const results = yield* options.execute(inputs as any).pipe(
@@ -237,13 +237,13 @@ export const findById = <Id extends Schema.Top, Res extends Schema.Top, Row, E, 
           continue
         }
         MutableHashMap.remove(idMap, id)
-        request.value.unsafeComplete(Exit.succeed(result))
+        request.value.completeUnsafe(Exit.succeed(result))
       }
       if (MutableHashMap.isEmpty(idMap)) {
         return
       }
       MutableHashMap.forEach(idMap, (request) => {
-        request.unsafeComplete(constNoSuchElement)
+        request.completeUnsafe(constNoSuchElement)
       })
     })
   })
@@ -273,14 +273,14 @@ const void_ = <Req extends Schema.Top, _, E, R>(
     >,
     SqlClient.TransactionConnection["Service"] | undefined
   >({
-    key: (entry) => entry.services.unsafeMap.get(SqlClient.TransactionConnection.key),
+    key: (entry) => entry.services.mapUnsafe.get(SqlClient.TransactionConnection.key),
     resolver: Effect.fnUntraced(function*(entries) {
       const inputs = yield* partitionRequests(entries, options.Request)
       yield* options.execute(inputs as any).pipe(
         Effect.provideServices(entries[0].services)
       )
       for (let i = 0; i < entries.length; i++) {
-        entries[i].unsafeComplete(Exit.void)
+        entries[i].completeUnsafe(Exit.void)
       }
     })
   })
@@ -307,7 +307,7 @@ const partitionRequests = function*<In, A, E, R, InE>(
   const encode = Schema.encodeEffect(schema)
   const handle = Effect.matchCauseEager({
     onFailure(cause: Cause.Cause<Schema.SchemaError>) {
-      entry.unsafeComplete(Exit.failCause(cause))
+      entry.completeUnsafe(Exit.failCause(cause))
     },
     onSuccess(value: InE) {
       inputs.push(value)
@@ -333,7 +333,7 @@ const partitionRequestsById = function*<In, A, E, R, InE>(
   const encode = Schema.encodeEffect(schema)
   const handle = Effect.matchCauseEager({
     onFailure(cause: Cause.Cause<Schema.SchemaError>) {
-      entry.unsafeComplete(Exit.failCause(cause))
+      entry.completeUnsafe(Exit.failCause(cause))
     },
     onSuccess(value: InE) {
       inputs.push(value)

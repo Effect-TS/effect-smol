@@ -199,25 +199,25 @@ describe("Duration", () => {
     assertSome(Duration.divide("1 minute", 2), Duration.seconds(30))
   })
 
-  it("unsafeDivide", () => {
-    deepStrictEqual(Duration.unsafeDivide(Duration.minutes(1), 2), Duration.seconds(30))
-    deepStrictEqual(Duration.unsafeDivide(Duration.seconds(1), 3), Duration.nanos(333333333n))
-    deepStrictEqual(Duration.unsafeDivide(Duration.nanos(2n), 2), Duration.nanos(1n))
-    deepStrictEqual(Duration.unsafeDivide(Duration.nanos(1n), 3), Duration.zero)
-    deepStrictEqual(Duration.unsafeDivide(Duration.infinity, 2), Duration.infinity)
-    deepStrictEqual(Duration.unsafeDivide(Duration.zero, 2), Duration.zero)
-    deepStrictEqual(Duration.unsafeDivide(Duration.minutes(1), 0), Duration.infinity)
-    deepStrictEqual(Duration.unsafeDivide(Duration.minutes(1), -0), Duration.zero)
-    deepStrictEqual(Duration.unsafeDivide(Duration.nanos(1n), 0), Duration.infinity)
-    deepStrictEqual(Duration.unsafeDivide(Duration.nanos(1n), -0), Duration.zero)
-    deepStrictEqual(Duration.unsafeDivide(Duration.minutes(1), 0.5), Duration.minutes(2))
-    deepStrictEqual(Duration.unsafeDivide(Duration.minutes(1), 1.5), Duration.seconds(40))
-    deepStrictEqual(Duration.unsafeDivide(Duration.minutes(1), NaN), Duration.zero)
-    throws(() => Duration.unsafeDivide(Duration.nanos(1n), 0.5))
-    throws(() => Duration.unsafeDivide(Duration.nanos(1n), 1.5))
-    deepStrictEqual(Duration.unsafeDivide(Duration.nanos(1n), NaN), Duration.zero)
+  it("divideUnsafe", () => {
+    deepStrictEqual(Duration.divideUnsafe(Duration.minutes(1), 2), Duration.seconds(30))
+    deepStrictEqual(Duration.divideUnsafe(Duration.seconds(1), 3), Duration.nanos(333333333n))
+    deepStrictEqual(Duration.divideUnsafe(Duration.nanos(2n), 2), Duration.nanos(1n))
+    deepStrictEqual(Duration.divideUnsafe(Duration.nanos(1n), 3), Duration.zero)
+    deepStrictEqual(Duration.divideUnsafe(Duration.infinity, 2), Duration.infinity)
+    deepStrictEqual(Duration.divideUnsafe(Duration.zero, 2), Duration.zero)
+    deepStrictEqual(Duration.divideUnsafe(Duration.minutes(1), 0), Duration.infinity)
+    deepStrictEqual(Duration.divideUnsafe(Duration.minutes(1), -0), Duration.zero)
+    deepStrictEqual(Duration.divideUnsafe(Duration.nanos(1n), 0), Duration.infinity)
+    deepStrictEqual(Duration.divideUnsafe(Duration.nanos(1n), -0), Duration.zero)
+    deepStrictEqual(Duration.divideUnsafe(Duration.minutes(1), 0.5), Duration.minutes(2))
+    deepStrictEqual(Duration.divideUnsafe(Duration.minutes(1), 1.5), Duration.seconds(40))
+    deepStrictEqual(Duration.divideUnsafe(Duration.minutes(1), NaN), Duration.zero)
+    throws(() => Duration.divideUnsafe(Duration.nanos(1n), 0.5))
+    throws(() => Duration.divideUnsafe(Duration.nanos(1n), 1.5))
+    deepStrictEqual(Duration.divideUnsafe(Duration.nanos(1n), NaN), Duration.zero)
 
-    deepStrictEqual(Duration.unsafeDivide("1 minute", 2), Duration.seconds(30))
+    deepStrictEqual(Duration.divideUnsafe("1 minute", 2), Duration.seconds(30))
   })
 
   it("times", () => {
@@ -425,13 +425,13 @@ describe("Duration", () => {
     assertSome(Duration.toNanos("1 nanos"), 1n)
   })
 
-  it("unsafeToNanos", () => {
-    strictEqual(Duration.nanos(1n).pipe(Duration.unsafeToNanos), 1n)
-    throws(() => Duration.infinity.pipe(Duration.unsafeToNanos))
-    strictEqual(Duration.millis(1.0005).pipe(Duration.unsafeToNanos), 1_000_500n)
-    strictEqual(Duration.millis(100).pipe(Duration.unsafeToNanos), 100_000_000n)
+  it("toNanosUnsafe", () => {
+    strictEqual(Duration.nanos(1n).pipe(Duration.toNanosUnsafe), 1n)
+    throws(() => Duration.infinity.pipe(Duration.toNanosUnsafe))
+    strictEqual(Duration.millis(1.0005).pipe(Duration.toNanosUnsafe), 1_000_500n)
+    strictEqual(Duration.millis(100).pipe(Duration.toNanosUnsafe), 100_000_000n)
 
-    strictEqual(Duration.unsafeToNanos("1 nanos"), 1n)
+    strictEqual(Duration.toNanosUnsafe("1 nanos"), 1n)
   })
 
   it("toHrTime", () => {

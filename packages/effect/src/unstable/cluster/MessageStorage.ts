@@ -438,7 +438,7 @@ export const makeEncoded: (encoded: Encoded) => Effect.Effect<
       if (shards.length === 0) return Effect.succeed([])
       return Effect.flatMap(
         Effect.suspend(() =>
-          encoded.unprocessedMessages(shards.map((id) => id.toString()), clock.unsafeCurrentTimeMillis())
+          encoded.unprocessedMessages(shards.map((id) => id.toString()), clock.currentTimeMillisUnsafe())
         ),
         decodeMessages
       )
@@ -447,7 +447,7 @@ export const makeEncoded: (encoded: Encoded) => Effect.Effect<
       const ids = Array.from(messageIds)
       if (ids.length === 0) return Effect.succeed([])
       return Effect.flatMap(
-        Effect.suspend(() => encoded.unprocessedMessagesById(ids, clock.unsafeCurrentTimeMillis())),
+        Effect.suspend(() => encoded.unprocessedMessagesById(ids, clock.currentTimeMillisUnsafe())),
         decodeMessages
       )
     },
@@ -476,7 +476,7 @@ export const makeEncoded: (encoded: Encoded) => Effect.Effect<
       (error) => {
         const envelope = envelopes[index]
         return storage.saveReply(Reply.ReplyWithContext.fromDefect({
-          id: snowflakeGen.unsafeNext(),
+          id: snowflakeGen.nextUnsafe(),
           requestId: Snowflake.Snowflake(envelope.envelope.requestId),
           defect: error.toString()
         })).pipe(
@@ -533,7 +533,7 @@ export const makeEncoded: (encoded: Encoded) => Effect.Effect<
         ignoredRequests.add(reply.requestId)
         return Effect.succeed(
           new Reply.WithExit({
-            id: snowflakeGen.unsafeNext(),
+            id: snowflakeGen.nextUnsafe(),
             requestId: Snowflake.Snowflake(reply.requestId),
             exit: Exit.die(error)
           })
@@ -608,7 +608,7 @@ export class MemoryDriver extends ServiceMap.Key<MemoryDriver>()("effect/cluster
         readonly envelope: Envelope.Encoded
         readonly lastSentReply: Option.Option<Reply.Encoded>
       }> = []
-      const now = clock.unsafeCurrentTimeMillis()
+      const now = clock.currentTimeMillisUnsafe()
       for (const envelope of unprocessed) {
         if (!predicate(envelope)) {
           continue
@@ -699,7 +699,7 @@ export class MemoryDriver extends ServiceMap.Key<MemoryDriver>()("effect/cluster
           }
           entry.replies.push(reply)
           replyIds.add(reply.id)
-          replyLatch.unsafeOpen()
+          replyLatch.openUnsafe()
         }),
       clearReplies: (id) =>
         Effect.sync(() => {
@@ -720,7 +720,7 @@ export class MemoryDriver extends ServiceMap.Key<MemoryDriver>()("effect/cluster
       unprocessedMessages: (shardIds) =>
         Effect.sync(() => {
           if (unprocessed.size === 0) return []
-          const now = clock.unsafeCurrentTimeMillis()
+          const now = clock.currentTimeMillisUnsafe()
           const messages = Arr.empty<{
             envelope: Envelope.Encoded
             lastSentReply: Option.Option<Reply.Encoded>

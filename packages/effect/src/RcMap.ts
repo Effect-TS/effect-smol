@@ -238,7 +238,7 @@ export declare namespace State {
   }
 }
 
-const unsafeMake = <K, A, E>(options: {
+const makeUnsafe = <K, A, E>(options: {
   readonly lookup: (key: K) => Effect.Effect<A, E, Scope.Scope>
   readonly services: ServiceMap.ServiceMap<never>
   readonly scope: Scope.Scope
@@ -316,7 +316,7 @@ export const make: {
   Effect.withFiber<RcMap<K, A, E>, never, R | Scope.Scope>((fiber) => {
     const services = fiber.services as ServiceMap.ServiceMap<R | Scope.Scope>
     const scope = ServiceMap.get(services, Scope.Scope)
-    const self = unsafeMake<K, A, E>({
+    const self = makeUnsafe<K, A, E>({
       lookup: options.lookup as any,
       services,
       scope,
@@ -393,8 +393,8 @@ export const get: {
         ) as Effect.Effect<never>
       } else {
         entry = {
-          deferred: Deferred.unsafeMake(),
-          scope: Scope.unsafeMake(),
+          deferred: Deferred.makeUnsafe(),
+          scope: Scope.makeUnsafe(),
           finalizer: undefined as any,
           fiber: undefined,
           expiresAt: 0,
@@ -402,21 +402,21 @@ export const get: {
         }
         ;(entry as any).finalizer = release(self, key, entry)
         MutableHashMap.set(state.map, key, entry)
-        const services = new Map(self.services.unsafeMap)
-        parent.services.unsafeMap.forEach((value, key) => {
+        const services = new Map(self.services.mapUnsafe)
+        parent.services.mapUnsafe.forEach((value, key) => {
           services.set(key, value)
         })
         services.set(Scope.Scope.key, entry.scope)
         self.lookup(key).pipe(
-          Effect.runForkWith(ServiceMap.unsafeMake(services)),
+          Effect.runForkWith(ServiceMap.makeUnsafe(services)),
           Fiber.runIn(entry.scope)
-        ).addObserver((exit) => Deferred.unsafeDone(entry.deferred, exit))
+        ).addObserver((exit) => Deferred.doneUnsafe(entry.deferred, exit))
       }
       if (self.idleTimeToLive && !Duration.isFinite(self.idleTimeToLive)) {
         entry.refCount--
         return restore(Deferred.await(entry.deferred))
       }
-      const scope = ServiceMap.unsafeGet(parent.services, Scope.Scope)
+      const scope = ServiceMap.getUnsafe(parent.services, Scope.Scope)
       return Scope.addFinalizer(scope, entry.finalizer).pipe(
         Effect.andThen(restore(Deferred.await(entry.deferred)))
       )
@@ -440,11 +440,11 @@ const release = <K, A, E>(self: RcMap<K, A, E>, key: K, entry: State.Entry<A, E>
     }
 
     const clock = fiber.getRef(Clock)
-    entry.expiresAt = clock.unsafeCurrentTimeMillis() + Duration.toMillis(self.idleTimeToLive)
+    entry.expiresAt = clock.currentTimeMillisUnsafe() + Duration.toMillis(self.idleTimeToLive)
     if (entry.fiber) return Effect.void
 
     entry.fiber = Effect.interruptibleMask(function loop(restore): Effect.Effect<void> {
-      const now = clock.unsafeCurrentTimeMillis()
+      const now = clock.currentTimeMillisUnsafe()
       const remaining = entry.expiresAt - now
       if (remaining <= 0) {
         if (self.state._tag === "Closed" || entry.refCount > 0) return Effect.void
@@ -607,7 +607,7 @@ export const touch: {
       }
       const o = MutableHashMap.get(self.state.map, key)
       if (o._tag === "None") return Effect.void
-      o.value.expiresAt = clock.unsafeCurrentTimeMillis() + Duration.toMillis(self.idleTimeToLive)
+      o.value.expiresAt = clock.currentTimeMillisUnsafe() + Duration.toMillis(self.idleTimeToLive)
       return Effect.void
     })
 )

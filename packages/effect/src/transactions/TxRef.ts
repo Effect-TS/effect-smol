@@ -106,7 +106,7 @@ export interface TxRef<in out A> {
  * })
  * ```
  */
-export const make = <A>(initial: A) => Effect.sync(() => unsafeMake(initial))
+export const make = <A>(initial: A) => Effect.sync(() => makeUnsafe(initial))
 
 /**
  * Creates a new `TxRef` with the specified initial value.
@@ -118,15 +118,15 @@ export const make = <A>(initial: A) => Effect.sync(() => unsafeMake(initial))
  * import { TxRef } from "effect/transactions"
  *
  * // Create a TxRef synchronously (unsafe - use make instead in Effect contexts)
- * const counter = TxRef.unsafeMake(0)
- * const config = TxRef.unsafeMake({ timeout: 5000, retries: 3 })
+ * const counter = TxRef.makeUnsafe(0)
+ * const config = TxRef.makeUnsafe({ timeout: 5000, retries: 3 })
  *
  * // These are now ready to use in transactions
  * console.log(counter.value) // 0
  * console.log(config.value) // { timeout: 5000, retries: 3 }
  * ```
  */
-export const unsafeMake = <A>(initial: A): TxRef<A> => ({
+export const makeUnsafe = <A>(initial: A): TxRef<A> => ({
   [TypeId]: TypeId,
   pending: new Map(),
   version: 0,

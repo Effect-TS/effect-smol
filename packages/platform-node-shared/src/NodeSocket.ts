@@ -71,7 +71,7 @@ export const fromDuplex = <RO>(
 ): Effect.Effect<Socket.Socket, never, Exclude<RO, Scope.Scope>> =>
   Effect.withFiber<Socket.Socket, never, Exclude<RO, Scope.Scope>>((fiber) => {
     let currentSocket: Duplex | undefined
-    const latch = Effect.unsafeMakeLatch(false)
+    const latch = Effect.makeLatchUnsafe(false)
     const openServices = fiber.services as ServiceMap.ServiceMap<RO>
     const run = <R, E, _>(handler: (_: Uint8Array) => Effect.Effect<_, E, R> | void) =>
       Effect.scopedWith(Effect.fnUntraced(function*(scope) {
@@ -88,16 +88,16 @@ export const fromDuplex = <RO>(
           }
         }
         function onEnd() {
-          Deferred.unsafeDone(fiberSet.deferred, Effect.void)
+          Deferred.doneUnsafe(fiberSet.deferred, Effect.void)
         }
         function onError(cause: Error) {
-          Deferred.unsafeDone(
+          Deferred.doneUnsafe(
             fiberSet.deferred,
             Effect.fail(new Socket.SocketGenericError({ reason: "Read", cause }))
           )
         }
         function onClose(hadError: boolean) {
-          Deferred.unsafeDone(
+          Deferred.doneUnsafe(
             fiberSet.deferred,
             Effect.fail(new Socket.SocketCloseError({ code: hadError ? 1006 : 1000 }))
           )
@@ -123,7 +123,7 @@ export const fromDuplex = <RO>(
       })).pipe(
         Effect.updateServices((input: ServiceMap.ServiceMap<R>) => ServiceMap.merge(openServices, input)),
         Effect.ensuring(Effect.sync(() => {
-          latch.unsafeClose()
+          latch.closeUnsafe()
           currentSocket = undefined
         }))
       )

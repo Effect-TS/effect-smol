@@ -99,7 +99,7 @@ export interface Ref<in out A> extends Ref.Variance<A> {
  * console.log(Ref.TypeId) // "~effect/Ref"
  *
  * // Check if a value has the Ref TypeId
- * const myRef = Ref.unsafeMake(42)
+ * const myRef = Ref.makeUnsafe(42)
  * const hasRefId = Ref.TypeId in myRef
  * console.log(hasRefId) // true
  * ```
@@ -161,10 +161,10 @@ const RefProto = {
  * import { Ref } from "effect"
  *
  * // Create a ref directly without Effect
- * const counter = Ref.unsafeMake(0)
+ * const counter = Ref.makeUnsafe(0)
  *
  * // Get the current value
- * const value = Ref.unsafeGet(counter)
+ * const value = Ref.getUnsafe(counter)
  * console.log(value) // 0
  *
  * // Note: This is unsafe and should be used carefully
@@ -174,7 +174,7 @@ const RefProto = {
  * @since 4.0.0
  * @category constructors
  */
-export const unsafeMake = <A>(value: A): Ref<A> => {
+export const makeUnsafe = <A>(value: A): Ref<A> => {
   const self = Object.create(RefProto)
   self.ref = MutableRef.make(value)
   return self
@@ -201,7 +201,7 @@ export const unsafeMake = <A>(value: A): Ref<A> => {
  * @since 2.0.0
  * @category constructors
  */
-export const make = <A>(value: A): Effect.Effect<Ref<A>> => Effect.sync(() => unsafeMake(value))
+export const make = <A>(value: A): Effect.Effect<Ref<A>> => Effect.sync(() => makeUnsafe(value))
 
 /**
  * Gets the current value of the Ref.
@@ -703,10 +703,10 @@ export const updateSomeAndGet = dual<
  * import { Ref } from "effect"
  *
  * // Create a ref directly
- * const counter = Ref.unsafeMake(42)
+ * const counter = Ref.makeUnsafe(42)
  *
  * // Get the value synchronously
- * const value = Ref.unsafeGet(counter)
+ * const value = Ref.getUnsafe(counter)
  * console.log(value) // 42
  *
  * // Note: This is unsafe and should be used carefully
@@ -716,4 +716,4 @@ export const updateSomeAndGet = dual<
  * @since 2.0.0
  * @category getters
  */
-export const unsafeGet = <A>(self: Ref<A>): A => self.ref.current
+export const getUnsafe = <A>(self: Ref<A>): A => self.ref.current

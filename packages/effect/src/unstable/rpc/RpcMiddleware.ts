@@ -255,7 +255,7 @@ export const layerClient = <Id, S, R, EX = never, RX = never>(
       ServiceMap.omit(Scope)
     ) as ServiceMap.ServiceMap<R>
     const middleware = Effect.isEffect(service) ? yield* service : service
-    return ServiceMap.unsafeMake(
+    return ServiceMap.makeUnsafe(
       new Map([[
         `${tag.key}/Client`,
         (options: any) =>

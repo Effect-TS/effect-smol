@@ -310,7 +310,7 @@ const Proto = {
       // create the rpc handlers for the entity
       const handler = (envelope: any) => {
         return Effect.callback<any, any>((resume) => {
-          Queue.unsafeOffer(queue, envelope)
+          Queue.offerUnsafe(queue, envelope)
           resumes.set(envelope, resume)
         })
       }
@@ -572,7 +572,7 @@ export const makeTestClient: <Type extends string, Rpcs extends Rpc.Any, LA, LE,
 
     client = yield* RpcClient.makeNoSerialization(entity.protocol, {
       supportsAck: true,
-      generateRequestId: () => snowflakeGen.unsafeNext() as any,
+      generateRequestId: () => snowflakeGen.nextUnsafe() as any,
       onFromClient({ message }) {
         if (message._tag === "Request") {
           return server.write(0, {

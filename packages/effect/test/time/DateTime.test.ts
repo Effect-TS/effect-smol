@@ -53,11 +53,11 @@ describe("DateTime", () => {
       }))
 
     it("to month with less days", () => {
-      const jan = DateTime.unsafeMake({ year: 2023, month: 1, day: 31 })
+      const jan = DateTime.makeUnsafe({ year: 2023, month: 1, day: 31 })
       let feb = DateTime.add(jan, { months: 1 })
       strictEqual(feb.toJSON(), "2023-02-28T00:00:00.000Z")
 
-      const mar = DateTime.unsafeMake({ year: 2023, month: 3, day: 31 })
+      const mar = DateTime.makeUnsafe({ year: 2023, month: 3, day: 31 })
       feb = DateTime.subtract(mar, { months: 1 })
       strictEqual(feb.toJSON(), "2023-02-28T00:00:00.000Z")
     })
@@ -90,32 +90,32 @@ describe("DateTime", () => {
 
   describe("endOf", () => {
     it("month", () => {
-      const mar = DateTime.unsafeMake("2024-03-15T12:00:00.000Z")
+      const mar = DateTime.makeUnsafe("2024-03-15T12:00:00.000Z")
       const end = DateTime.endOf(mar, "month")
       strictEqual(end.toJSON(), "2024-03-31T23:59:59.999Z")
     })
 
     it("feb leap year", () => {
-      const feb = DateTime.unsafeMake("2024-02-15T12:00:00.000Z")
+      const feb = DateTime.makeUnsafe("2024-02-15T12:00:00.000Z")
       const end = DateTime.endOf(feb, "month")
       strictEqual(end.toJSON(), "2024-02-29T23:59:59.999Z")
     })
 
     it("week", () => {
-      const start = DateTime.unsafeMake("2024-03-15T12:00:00.000Z")
+      const start = DateTime.makeUnsafe("2024-03-15T12:00:00.000Z")
       const end = DateTime.endOf(start, "week")
       strictEqual(end.toJSON(), "2024-03-16T23:59:59.999Z")
       strictEqual(DateTime.getPartUtc(end, "weekDay"), 6)
     })
 
     it("week last day", () => {
-      const start = DateTime.unsafeMake("2024-03-16T12:00:00.000Z")
+      const start = DateTime.makeUnsafe("2024-03-16T12:00:00.000Z")
       const end = DateTime.endOf(start, "week")
       strictEqual(end.toJSON(), "2024-03-16T23:59:59.999Z")
     })
 
     it("week with options", () => {
-      const start = DateTime.unsafeMake("2024-03-15T12:00:00.000Z")
+      const start = DateTime.makeUnsafe("2024-03-15T12:00:00.000Z")
       const end = DateTime.endOf(start, "week", {
         weekStartsOn: 1
       })
@@ -136,13 +136,13 @@ describe("DateTime", () => {
 
   describe("startOf", () => {
     it("month", () => {
-      const mar = DateTime.unsafeMake("2024-03-15T12:00:00.000Z")
+      const mar = DateTime.makeUnsafe("2024-03-15T12:00:00.000Z")
       const end = DateTime.startOf(mar, "month")
       strictEqual(end.toJSON(), "2024-03-01T00:00:00.000Z")
     })
 
     it("month duplicated", () => {
-      const mar = DateTime.unsafeMake("2024-03-15T12:00:00.000Z")
+      const mar = DateTime.makeUnsafe("2024-03-15T12:00:00.000Z")
       const end = DateTime.startOf(mar, "month").pipe(
         DateTime.startOf("month")
       )
@@ -150,26 +150,26 @@ describe("DateTime", () => {
     })
 
     it("feb leap year", () => {
-      const feb = DateTime.unsafeMake("2024-02-15T12:00:00.000Z")
+      const feb = DateTime.makeUnsafe("2024-02-15T12:00:00.000Z")
       const end = DateTime.startOf(feb, "month")
       strictEqual(end.toJSON(), "2024-02-01T00:00:00.000Z")
     })
 
     it("week", () => {
-      const start = DateTime.unsafeMake("2024-03-15T12:00:00.000Z")
+      const start = DateTime.makeUnsafe("2024-03-15T12:00:00.000Z")
       const end = DateTime.startOf(start, "week")
       strictEqual(end.toJSON(), "2024-03-10T00:00:00.000Z")
       strictEqual(DateTime.getPartUtc(end, "weekDay"), 0)
     })
 
     it("week first day", () => {
-      const start = DateTime.unsafeMake("2024-03-10T12:00:00.000Z")
+      const start = DateTime.makeUnsafe("2024-03-10T12:00:00.000Z")
       const end = DateTime.startOf(start, "week")
       strictEqual(end.toJSON(), "2024-03-10T00:00:00.000Z")
     })
 
     it("week with options", () => {
-      const start = DateTime.unsafeMake("2024-03-15T12:00:00.000Z")
+      const start = DateTime.makeUnsafe("2024-03-15T12:00:00.000Z")
       const end = DateTime.startOf(start, "week", {
         weekStartsOn: 1
       })
@@ -179,25 +179,25 @@ describe("DateTime", () => {
 
   describe("nearest", () => {
     it("month up", () => {
-      const mar = DateTime.unsafeMake("2024-03-16T12:00:00.000Z")
+      const mar = DateTime.makeUnsafe("2024-03-16T12:00:00.000Z")
       const end = DateTime.nearest(mar, "month")
       strictEqual(end.toJSON(), "2024-04-01T00:00:00.000Z")
     })
 
     it("month down", () => {
-      const mar = DateTime.unsafeMake("2024-03-16T11:00:00.000Z")
+      const mar = DateTime.makeUnsafe("2024-03-16T11:00:00.000Z")
       const end = DateTime.nearest(mar, "month")
       strictEqual(end.toJSON(), "2024-03-01T00:00:00.000Z")
     })
 
     it("second up", () => {
-      const mar = DateTime.unsafeMake("2024-03-20T12:00:00.500Z")
+      const mar = DateTime.makeUnsafe("2024-03-20T12:00:00.500Z")
       const end = DateTime.nearest(mar, "second")
       strictEqual(end.toJSON(), "2024-03-20T12:00:01.000Z")
     })
 
     it("second down", () => {
-      const mar = DateTime.unsafeMake("2024-03-20T12:00:00.400Z")
+      const mar = DateTime.makeUnsafe("2024-03-20T12:00:00.400Z")
       const end = DateTime.nearest(mar, "second")
       strictEqual(end.toJSON(), "2024-03-20T12:00:00.000Z")
     })
@@ -266,7 +266,7 @@ describe("DateTime", () => {
 
   describe("fromParts", () => {
     it("partial", () => {
-      const date = DateTime.unsafeMake({
+      const date = DateTime.makeUnsafe({
         year: 2024,
         month: 12,
         day: 25
@@ -275,14 +275,14 @@ describe("DateTime", () => {
     })
 
     it("month is set correctly", () => {
-      const date = DateTime.unsafeMake({ year: 2024 })
+      const date = DateTime.makeUnsafe({ year: 2024 })
       strictEqual(date.toJSON(), "2024-01-01T00:00:00.000Z")
     })
   })
 
   describe("setPartsUtc", () => {
     it("partial", () => {
-      const date = DateTime.unsafeMake({
+      const date = DateTime.makeUnsafe({
         year: 2024,
         month: 12,
         day: 25
@@ -297,11 +297,11 @@ describe("DateTime", () => {
     })
 
     it("ignores time zones", () => {
-      const date = DateTime.unsafeMake({
+      const date = DateTime.makeUnsafe({
         year: 2024,
         month: 12,
         day: 25
-      }).pipe(DateTime.unsafeSetZoneNamed("Pacific/Auckland"))
+      }).pipe(DateTime.setZoneNamedUnsafe("Pacific/Auckland"))
       strictEqual(date.toJSON(), "2024-12-25T00:00:00.000Z")
 
       const updated = DateTime.setPartsUtc(date, {
@@ -314,7 +314,7 @@ describe("DateTime", () => {
 
   describe("setParts", () => {
     it("partial", () => {
-      const date = DateTime.unsafeMake({
+      const date = DateTime.makeUnsafe({
         year: 2024,
         month: 12,
         day: 25
@@ -329,11 +329,11 @@ describe("DateTime", () => {
     })
 
     it("accounts for time zone", () => {
-      const date = DateTime.unsafeMake({
+      const date = DateTime.makeUnsafe({
         year: 2024,
         month: 12,
         day: 25
-      }).pipe(DateTime.unsafeSetZoneNamed("Pacific/Auckland"))
+      }).pipe(DateTime.setZoneNamedUnsafe("Pacific/Auckland"))
       strictEqual(date.toJSON(), "2024-12-25T00:00:00.000Z")
 
       const updated = DateTime.setParts(date, {
@@ -347,7 +347,7 @@ describe("DateTime", () => {
 
   describe("formatIso", () => {
     it("full", () => {
-      const now = DateTime.unsafeMake("2024-03-15T12:00:00.000Z")
+      const now = DateTime.makeUnsafe("2024-03-15T12:00:00.000Z")
       strictEqual(DateTime.formatIso(now), "2024-03-15T12:00:00.000Z")
     })
   })
@@ -374,7 +374,7 @@ describe("DateTime", () => {
 
   describe("removeTime", () => {
     it("removes time", () => {
-      const dt = DateTime.unsafeMakeZoned("2024-01-01T01:00:00Z", {
+      const dt = DateTime.makeZonedUnsafe("2024-01-01T01:00:00Z", {
         timeZone: "Pacific/Auckland",
         adjustForTimeZone: true
       }).pipe(DateTime.removeTime)
@@ -409,37 +409,37 @@ describe("DateTime", () => {
           Option.map(DateTime.formatIsoZoned),
           Option.flatMap(DateTime.makeZonedFromString)
         )
-        deepStrictEqual(dt.zone, DateTime.zoneUnsafeMakeNamed("Pacific/Auckland"))
+        deepStrictEqual(dt.zone, DateTime.zoneMakeNamedUnsafe("Pacific/Auckland"))
         strictEqual(dt.toJSON(), "2024-07-21T08:12:34.112Z")
       }))
   })
 
   it("parts equality", () => {
-    const d1 = DateTime.unsafeMake("2025-01-01")
-    const d2 = DateTime.unsafeMake("2025-01-01")
+    const d1 = DateTime.makeUnsafe("2025-01-01")
+    const d2 = DateTime.makeUnsafe("2025-01-01")
     deepStrictEqual(d1, d2)
     DateTime.toPartsUtc(d2)
     deepStrictEqual(d1, d2)
   })
 
   // doesnt work in CI
-  it.skip("unsafeMakeZoned no options", () => {
+  it.skip("makeZonedUnsafe no options", () => {
     const date = new Date("2024-07-21T20:12:34.112Z")
     ;(date as any).getTimezoneOffset = () => -60
-    const dt = DateTime.unsafeMakeZoned(date)
+    const dt = DateTime.makeZonedUnsafe(date)
     deepStrictEqual(dt.zone, DateTime.zoneMakeOffset(60 * 60 * 1000))
   })
 
   describe("toUtc", () => {
     it.effect("with a Utc", () =>
       Effect.gen(function*() {
-        const dt = DateTime.unsafeMake("2024-01-01T01:00:00Z")
+        const dt = DateTime.makeUnsafe("2024-01-01T01:00:00Z")
         strictEqual(dt.toJSON(), "2024-01-01T01:00:00.000Z")
       }))
 
     it.effect("with a Zoned", () =>
       Effect.gen(function*() {
-        const dt = DateTime.unsafeMakeZoned("2024-01-01T01:00:00Z", {
+        const dt = DateTime.makeZonedUnsafe("2024-01-01T01:00:00Z", {
           timeZone: "Pacific/Auckland",
           adjustForTimeZone: true
         })
@@ -456,12 +456,12 @@ describe("DateTime", () => {
       }))
   })
 
-  describe("unsafeMake", () => {
+  describe("makeUnsafe", () => {
     it("treats strings without zone info as UTC", () => {
-      let dt = DateTime.unsafeMake("2024-01-01 01:00:00")
+      let dt = DateTime.makeUnsafe("2024-01-01 01:00:00")
       strictEqual(dt.toJSON(), "2024-01-01T01:00:00.000Z")
 
-      dt = DateTime.unsafeMake("2020-02-01T11:17:00+1100")
+      dt = DateTime.makeUnsafe("2020-02-01T11:17:00+1100")
       strictEqual(dt.toJSON(), "2020-02-01T00:17:00.000Z")
     })
   })

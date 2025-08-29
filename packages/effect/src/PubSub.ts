@@ -191,7 +191,7 @@ export namespace PubSub {
      * Describes how subscribers should signal to publishers waiting for space
      * to become available in the `PubSub` that space may be available.
      */
-    unsafeOnPubSubEmptySpace(
+    onPubSubEmptySpaceUnsafe(
       pubsub: Atomic<A>,
       subscribers: Subscribers<A>
     ): void
@@ -201,7 +201,7 @@ export namespace PubSub {
      * should take those values and signal to publishers that they are no
      * longer waiting for additional values.
      */
-    unsafeCompletePollers(
+    completePollersUnsafe(
       pubsub: Atomic<A>,
       subscribers: Subscribers<A>,
       subscription: BackingSubscription<A>,
@@ -212,7 +212,7 @@ export namespace PubSub {
      * Describes how publishers should signal to subscribers waiting for
      * additional values from the `PubSub` that new values are available.
      */
-    unsafeCompleteSubscribers(
+    completeSubscribersUnsafe(
       pubsub: Atomic<A>,
       subscribers: Subscribers<A>
     ): void
@@ -307,11 +307,11 @@ export const make = <A>(
   }
 ): Effect.Effect<PubSub<A>> =>
   Effect.sync(() =>
-    unsafeMakePubSub(
+    makePubSubUnsafe(
       options.atomicPubSub(),
       new Map(),
-      Scope.unsafeMake(),
-      Effect.unsafeMakeLatch(false),
+      Scope.makeUnsafe(),
+      Effect.makeLatchUnsafe(false),
       MutableRef.make(false),
       options.strategy()
     )
@@ -580,7 +580,7 @@ export const capacity = <A>(self: PubSub<A>): number => self.pubsub.capacity
  * @since 2.0.0
  * @category getters
  */
-export const size = <A>(self: PubSub<A>): Effect.Effect<number> => Effect.sync(() => unsafeSize(self))
+export const size = <A>(self: PubSub<A>): Effect.Effect<number> => Effect.sync(() => sizeUnsafe(self))
 /**
  * Retrieves the size of the queue, which is equal to the number of elements
  * in the queue. This may be negative if fibers are suspended waiting for
@@ -594,14 +594,14 @@ export const size = <A>(self: PubSub<A>): Effect.Effect<number> => Effect.sync((
  * // Unsafe synchronous size check
  * declare const pubsub: PubSub.PubSub<string>
  *
- * const size = PubSub.unsafeSize(pubsub)
+ * const size = PubSub.sizeUnsafe(pubsub)
  * console.log("Current size:", size)
  * ```
  *
  * @since 2.0.0
  * @category getters
  */
-export const unsafeSize = <A>(self: PubSub<A>): number => {
+export const sizeUnsafe = <A>(self: PubSub<A>): number => {
   if (MutableRef.get(self.shutdownFlag)) {
     return 0
   }
@@ -736,7 +736,7 @@ import * as PubSub from "effect/PubSub"
  * @since 2.0.0
  * @category predicates
  */
-export const isShutdown = <A>(self: PubSub<A>): Effect.Effect<boolean> => Effect.sync(() => unsafeIsShutdown(self))
+export const isShutdown = <A>(self: PubSub<A>): Effect.Effect<boolean> => Effect.sync(() => isShutdownUnsafe(self))
 
 /**
  * Returns `true` if `shutdown` has been called, otherwise returns `false`.
@@ -748,7 +748,7 @@ export const isShutdown = <A>(self: PubSub<A>): Effect.Effect<boolean> => Effect
  * declare const pubsub: PubSub.PubSub<string>
  *
  * // Unsafe synchronous shutdown check
- * const isDown = PubSub.unsafeIsShutdown(pubsub)
+ * const isDown = PubSub.isShutdownUnsafe(pubsub)
  * if (isDown) {
  *   console.log("PubSub is shutdown, cannot publish")
  * } else {
@@ -759,7 +759,7 @@ export const isShutdown = <A>(self: PubSub<A>): Effect.Effect<boolean> => Effect
  * @since 4.0.0
  * @category predicates
  */
-export const unsafeIsShutdown = <A>(self: PubSub<A>): boolean => self.shutdownFlag.current
+export const isShutdownUnsafe = <A>(self: PubSub<A>): boolean => self.shutdownFlag.current
 
 /**
  * Waits until the queue is shutdown. The `Effect` returned by this method will
@@ -845,7 +845,7 @@ export const publish: {
     }
 
     if (self.pubsub.publish(value)) {
-      self.strategy.unsafeCompleteSubscribers(self.pubsub, self.subscribers)
+      self.strategy.completeSubscribersUnsafe(self.pubsub, self.subscribers)
       return Effect.succeed(true)
     }
 
@@ -868,7 +868,7 @@ export const publish: {
  * declare const pubsub: PubSub.PubSub<string>
  *
  * // Unsafe synchronous publish (non-blocking)
- * const published = PubSub.unsafePublish(pubsub, "Hello")
+ * const published = PubSub.publishUnsafe(pubsub, "Hello")
  * if (published) {
  *   console.log("Message published successfully")
  * } else {
@@ -878,7 +878,7 @@ export const publish: {
  * // Useful for scenarios where you don't want to suspend
  * const messages = ["msg1", "msg2", "msg3"]
  * const publishedCount = messages.filter(msg =>
- *   PubSub.unsafePublish(pubsub, msg)
+ *   PubSub.publishUnsafe(pubsub, msg)
  * ).length
  * console.log(`Published ${publishedCount} out of ${messages.length} messages`)
  * ```
@@ -886,13 +886,13 @@ export const publish: {
  * @since 4.0.0
  * @category publishing
  */
-export const unsafePublish: {
+export const publishUnsafe: {
   <A>(value: A): (self: PubSub<A>) => boolean
   <A>(self: PubSub<A>, value: A): boolean
 } = dual(2, <A>(self: PubSub<A>, value: A): boolean => {
   if (self.shutdownFlag.current) return false
   if (self.pubsub.publish(value)) {
-    self.strategy.unsafeCompleteSubscribers(self.pubsub, self.subscribers)
+    self.strategy.completeSubscribersUnsafe(self.pubsub, self.subscribers)
     return true
   }
   return false
@@ -944,7 +944,7 @@ export const publishAll: {
       return Effect.interrupt
     }
     const surplus = self.pubsub.publishAll(elements)
-    self.strategy.unsafeCompleteSubscribers(self.pubsub, self.subscribers)
+    self.strategy.completeSubscribersUnsafe(self.pubsub, self.subscribers)
     if (surplus.length === 0) {
       return Effect.succeed(true)
     }
@@ -1007,7 +1007,7 @@ export const publishAll: {
  */
 export const subscribe = <A>(self: PubSub<A>): Effect.Effect<Subscription<A>, never, Scope.Scope> =>
   Effect.acquireRelease(
-    Effect.sync(() => unsafeMakeSubscription(self.pubsub, self.subscribers, self.strategy)),
+    Effect.sync(() => makeSubscriptionUnsafe(self.pubsub, self.subscribers, self.strategy)),
     unsubscribe
   )
 
@@ -1023,7 +1023,7 @@ const unsubscribe = <A>(self: Subscription<A>): Effect.Effect<void> =>
         Effect.tap(() => {
           self.subscribers.delete(self.subscription)
           self.subscription.unsubscribe()
-          self.strategy.unsafeOnPubSubEmptySpace(self.pubsub, self.subscribers)
+          self.strategy.onPubSubEmptySpaceUnsafe(self.pubsub, self.subscribers)
         }),
         Effect.when(self.shutdownHook.open),
         Effect.asVoid
@@ -1080,7 +1080,7 @@ export const take = <A>(self: Subscription<A>): Effect.Effect<A> =>
     if (message === MutableList.Empty) {
       return pollForItem(self)
     } else {
-      self.strategy.unsafeOnPubSubEmptySpace(self.pubsub, self.subscribers)
+      self.strategy.onPubSubEmptySpaceUnsafe(self.pubsub, self.subscribers)
       return Effect.succeed(message)
     }
   })
@@ -1124,7 +1124,7 @@ export const takeAll = <A>(self: Subscription<A>): Effect.Effect<Arr.NonEmptyArr
     if (value) {
       as = value.concat(as)
     }
-    self.strategy.unsafeOnPubSubEmptySpace(self.pubsub, self.subscribers)
+    self.strategy.onPubSubEmptySpaceUnsafe(self.pubsub, self.subscribers)
     if (self.replayWindow.remaining > 0) {
       return Effect.succeed(self.replayWindow.takeAll().concat(as) as Arr.NonEmptyArray<A>)
     } else if (!Arr.isNonEmptyArray(as)) {
@@ -1134,7 +1134,7 @@ export const takeAll = <A>(self: Subscription<A>): Effect.Effect<Arr.NonEmptyArr
   })
 
 const pollForItem = <A>(self: Subscription<A>) => {
-  const deferred = Deferred.unsafeMake<A>()
+  const deferred = Deferred.makeUnsafe<A>()
   let set = self.subscribers.get(self.subscription)
   if (!set) {
     set = new Set()
@@ -1142,7 +1142,7 @@ const pollForItem = <A>(self: Subscription<A>) => {
   }
   set.add(self.pollers)
   MutableList.append(self.pollers, deferred)
-  self.strategy.unsafeCompletePollers(
+  self.strategy.completePollersUnsafe(
     self.pubsub,
     self.subscribers,
     self.subscription,
@@ -1208,7 +1208,7 @@ export const takeUpTo: {
     const as = self.pollers.length === 0
       ? self.subscription.pollUpTo(max)
       : []
-    self.strategy.unsafeOnPubSubEmptySpace(self.pubsub, self.subscribers)
+    self.strategy.onPubSubEmptySpaceUnsafe(self.pubsub, self.subscribers)
     return replay ? Effect.succeed(replay.concat(as)) : Effect.succeed(as)
   }))
 
@@ -1340,7 +1340,7 @@ import * as Option from "effect/data/Option"
  * declare const subscription: PubSub.Subscription<string>
  *
  * // Unsafe synchronous check for remaining messages
- * const remainingOption = PubSub.unsafeRemaining(subscription)
+ * const remainingOption = PubSub.remainingUnsafe(subscription)
  * if (Option.isSome(remainingOption)) {
  *   console.log("Messages available:", remainingOption.value)
  * } else {
@@ -1356,7 +1356,7 @@ import * as Option from "effect/data/Option"
  * @since 4.0.0
  * @category getters
  */
-export const unsafeRemaining = <A>(self: Subscription<A>): Option.Option<number> => {
+export const remainingUnsafe = <A>(self: Subscription<A>): Option.Option<number> => {
   if (self.shutdownFlag.current) {
     return Option.none()
   }
@@ -1397,7 +1397,7 @@ const removeSubscribers = <A>(
   }
 }
 
-const unsafeMakeSubscription = <A>(
+const makeSubscriptionUnsafe = <A>(
   pubsub: PubSub.Atomic<A>,
   subscribers: PubSub.Subscribers<A>,
   strategy: PubSub.Strategy<A>
@@ -1407,7 +1407,7 @@ const unsafeMakeSubscription = <A>(
     subscribers,
     pubsub.subscribe(),
     MutableList.make<Deferred.Deferred<A>>(),
-    Effect.unsafeMakeLatch(false),
+    Effect.makeLatchUnsafe(false),
     MutableRef.make(false),
     strategy,
     pubsub.replayWindow()
@@ -2215,7 +2215,7 @@ class PubSubImpl<in out A> implements PubSub<A> {
   }
 }
 
-const unsafeMakePubSub = <A>(
+const makePubSubUnsafe = <A>(
   pubsub: PubSub.Atomic<A>,
   subscribers: PubSub.Subscribers<A>,
   scope: Scope.Scope.Closeable,
@@ -2266,20 +2266,20 @@ export class BackPressureStrategy<in out A> implements PubSub.Strategy<A> {
     isShutdown: MutableRef.MutableRef<boolean>
   ): Effect.Effect<boolean> {
     return Effect.suspend(() => {
-      const deferred = Deferred.unsafeMake<boolean>()
-      this.unsafeOffer(elements, deferred)
-      this.unsafeOnPubSubEmptySpace(pubsub, subscribers)
-      this.unsafeCompleteSubscribers(pubsub, subscribers)
+      const deferred = Deferred.makeUnsafe<boolean>()
+      this.offerUnsafe(elements, deferred)
+      this.onPubSubEmptySpaceUnsafe(pubsub, subscribers)
+      this.completeSubscribersUnsafe(pubsub, subscribers)
       return (MutableRef.get(isShutdown) ? Effect.interrupt : Deferred.await(deferred)).pipe(
         Effect.onInterrupt(() => {
-          this.unsafeRemove(deferred)
+          this.removeUnsafe(deferred)
           return Effect.void
         })
       )
     })
   }
 
-  unsafeOnPubSubEmptySpace(
+  onPubSubEmptySpaceUnsafe(
     pubsub: PubSub.Atomic<A>,
     subscribers: PubSub.Subscribers<A>
   ): void {
@@ -2292,29 +2292,29 @@ export class BackPressureStrategy<in out A> implements PubSub.Strategy<A> {
         const [value, deferred] = publisher
         const published = pubsub.publish(value)
         if (published && publisher[2]) {
-          Deferred.unsafeDone(deferred, Exit.succeed(true))
+          Deferred.doneUnsafe(deferred, Exit.succeed(true))
         } else if (!published) {
           MutableList.prepend(this.publishers, publisher)
         }
-        this.unsafeCompleteSubscribers(pubsub, subscribers)
+        this.completeSubscribersUnsafe(pubsub, subscribers)
       }
     }
   }
 
-  unsafeCompletePollers(
+  completePollersUnsafe(
     pubsub: PubSub.Atomic<A>,
     subscribers: PubSub.Subscribers<A>,
     subscription: PubSub.BackingSubscription<A>,
     pollers: MutableList.MutableList<Deferred.Deferred<A>>
   ): void {
-    return unsafeStrategyCompletePollers(this, pubsub, subscribers, subscription, pollers)
+    return strategyCompletePollersUnsafe(this, pubsub, subscribers, subscription, pollers)
   }
 
-  unsafeCompleteSubscribers(pubsub: PubSub.Atomic<A>, subscribers: PubSub.Subscribers<A>): void {
-    return unsafeStrategyCompleteSubscribers(this, pubsub, subscribers)
+  completeSubscribersUnsafe(pubsub: PubSub.Atomic<A>, subscribers: PubSub.Subscribers<A>): void {
+    return strategyCompleteSubscribersUnsafe(this, pubsub, subscribers)
   }
 
-  private unsafeOffer(elements: Iterable<A>, deferred: Deferred.Deferred<boolean>): void {
+  private offerUnsafe(elements: Iterable<A>, deferred: Deferred.Deferred<boolean>): void {
     const iterator = elements[Symbol.iterator]()
     let next: IteratorResult<A> = iterator.next()
     if (!next.done) {
@@ -2331,7 +2331,7 @@ export class BackPressureStrategy<in out A> implements PubSub.Strategy<A> {
     }
   }
 
-  unsafeRemove(deferred: Deferred.Deferred<boolean>): void {
+  removeUnsafe(deferred: Deferred.Deferred<boolean>): void {
     MutableList.filter(this.publishers, ([_, d]) => d !== deferred)
   }
 }
@@ -2392,24 +2392,24 @@ export class DroppingStrategy<in out A> implements PubSub.Strategy<A> {
     return Effect.succeed(false)
   }
 
-  unsafeOnPubSubEmptySpace(
+  onPubSubEmptySpaceUnsafe(
     _pubsub: PubSub.Atomic<A>,
     _subscribers: PubSub.Subscribers<A>
   ): void {
     //
   }
 
-  unsafeCompletePollers(
+  completePollersUnsafe(
     pubsub: PubSub.Atomic<A>,
     subscribers: PubSub.Subscribers<A>,
     subscription: PubSub.BackingSubscription<A>,
     pollers: MutableList.MutableList<Deferred.Deferred<A>>
   ): void {
-    return unsafeStrategyCompletePollers(this, pubsub, subscribers, subscription, pollers)
+    return strategyCompletePollersUnsafe(this, pubsub, subscribers, subscription, pollers)
   }
 
-  unsafeCompleteSubscribers(pubsub: PubSub.Atomic<A>, subscribers: PubSub.Subscribers<A>): void {
-    return unsafeStrategyCompleteSubscribers(this, pubsub, subscribers)
+  completeSubscribersUnsafe(pubsub: PubSub.Atomic<A>, subscribers: PubSub.Subscribers<A>): void {
+    return strategyCompleteSubscribersUnsafe(this, pubsub, subscribers)
   }
 }
 
@@ -2465,33 +2465,33 @@ export class SlidingStrategy<in out A> implements PubSub.Strategy<A> {
     _isShutdown: MutableRef.MutableRef<boolean>
   ): Effect.Effect<boolean> {
     return Effect.sync(() => {
-      this.unsafeSlidingPublish(pubsub, elements)
-      this.unsafeCompleteSubscribers(pubsub, subscribers)
+      this.slidingPublishUnsafe(pubsub, elements)
+      this.completeSubscribersUnsafe(pubsub, subscribers)
       return true
     })
   }
 
-  unsafeOnPubSubEmptySpace(
+  onPubSubEmptySpaceUnsafe(
     _pubsub: PubSub.Atomic<A>,
     _subscribers: PubSub.Subscribers<A>
   ): void {
     //
   }
 
-  unsafeCompletePollers(
+  completePollersUnsafe(
     pubsub: PubSub.Atomic<A>,
     subscribers: PubSub.Subscribers<A>,
     subscription: PubSub.BackingSubscription<A>,
     pollers: MutableList.MutableList<Deferred.Deferred<A>>
   ): void {
-    return unsafeStrategyCompletePollers(this, pubsub, subscribers, subscription, pollers)
+    return strategyCompletePollersUnsafe(this, pubsub, subscribers, subscription, pollers)
   }
 
-  unsafeCompleteSubscribers(pubsub: PubSub.Atomic<A>, subscribers: PubSub.Subscribers<A>): void {
-    return unsafeStrategyCompleteSubscribers(this, pubsub, subscribers)
+  completeSubscribersUnsafe(pubsub: PubSub.Atomic<A>, subscribers: PubSub.Subscribers<A>): void {
+    return strategyCompleteSubscribersUnsafe(this, pubsub, subscribers)
   }
 
-  unsafeSlidingPublish(pubsub: PubSub.Atomic<A>, elements: Iterable<A>): void {
+  slidingPublishUnsafe(pubsub: PubSub.Atomic<A>, elements: Iterable<A>): void {
     const it = elements[Symbol.iterator]()
     let next = it.next()
     if (!next.done && pubsub.capacity > 0) {
@@ -2510,7 +2510,7 @@ export class SlidingStrategy<in out A> implements PubSub.Strategy<A> {
   }
 }
 
-const unsafeStrategyCompletePollers = <A>(
+const strategyCompletePollersUnsafe = <A>(
   strategy: PubSub.Strategy<A>,
   pubsub: PubSub.Atomic<A>,
   subscribers: PubSub.Subscribers<A>,
@@ -2532,14 +2532,14 @@ const unsafeStrategyCompletePollers = <A>(
       if (pollResult === MutableList.Empty) {
         MutableList.prepend(pollers, poller)
       } else {
-        Deferred.unsafeDone(poller, Exit.succeed(pollResult))
-        strategy.unsafeOnPubSubEmptySpace(pubsub, subscribers)
+        Deferred.doneUnsafe(poller, Exit.succeed(pollResult))
+        strategy.onPubSubEmptySpaceUnsafe(pubsub, subscribers)
       }
     }
   }
 }
 
-const unsafeStrategyCompleteSubscribers = <A>(
+const strategyCompleteSubscribersUnsafe = <A>(
   strategy: PubSub.Strategy<A>,
   pubsub: PubSub.Atomic<A>,
   subscribers: PubSub.Subscribers<A>
@@ -2548,7 +2548,7 @@ const unsafeStrategyCompleteSubscribers = <A>(
     const [subscription, pollersSet] of subscribers
   ) {
     for (const pollers of pollersSet) {
-      strategy.unsafeCompletePollers(pubsub, subscribers, subscription, pollers)
+      strategy.completePollersUnsafe(pubsub, subscribers, subscription, pollers)
     }
   }
 }

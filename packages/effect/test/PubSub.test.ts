@@ -389,14 +389,14 @@ describe("PubSub", () => {
       const pubsub = yield* PubSub.dropping<number>(2)
       yield* PubSub.publish(pubsub, 1)
       yield* PubSub.publish(pubsub, 2)
-      assert.deepStrictEqual(PubSub.unsafeSize(pubsub), 0)
+      assert.deepStrictEqual(PubSub.sizeUnsafe(pubsub), 0)
     }))
 
   it.effect("publishAll does not increase size while no subscribers", () =>
     Effect.gen(function*() {
       const pubsub = yield* PubSub.dropping<number>(2)
       yield* PubSub.publishAll(pubsub, [1, 2])
-      assert.deepStrictEqual(PubSub.unsafeSize(pubsub), 0)
+      assert.deepStrictEqual(PubSub.sizeUnsafe(pubsub), 0)
     }))
 
   describe("replay", () => {

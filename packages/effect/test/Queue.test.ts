@@ -10,19 +10,19 @@ describe("Queue", () => {
         Effect.fork
       )
       yield* Effect.yieldNow
-      assert.isUndefined(fiber.unsafePoll())
+      assert.isUndefined(fiber.pollUnsafe())
 
       let result = yield* Queue.takeAll(queue)
       assert.deepStrictEqual(result, [1, 2])
 
       yield* Effect.yieldNow
-      assert.isDefined(fiber.unsafePoll())
+      assert.isDefined(fiber.pollUnsafe())
 
       result = yield* Queue.takeAll(queue)
       assert.deepStrictEqual(result, [3, 4])
 
       yield* Effect.yieldNow
-      assert.deepStrictEqual(fiber.unsafePoll(), Exit.succeed([]))
+      assert.deepStrictEqual(fiber.pollUnsafe(), Exit.succeed([]))
     }))
 
   it.effect("takeN", () =>
@@ -169,12 +169,12 @@ describe("Queue", () => {
       yield* Queue.end(queue)
 
       yield* Effect.yieldNow
-      assert.isUndefined(fiber.unsafePoll())
+      assert.isUndefined(fiber.pollUnsafe())
       const result = yield* Queue.takeAll(queue)
       assert.deepStrictEqual(result, [1])
       yield* Effect.flip(Queue.takeAll(queue))
       yield* Effect.yieldNow
-      assert.isNotNull(fiber.unsafePoll())
+      assert.isNotNull(fiber.pollUnsafe())
     }))
 
   it.effect("bounded 0 capacity", () =>

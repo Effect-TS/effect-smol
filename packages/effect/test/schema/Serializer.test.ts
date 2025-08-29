@@ -720,13 +720,13 @@ describe("Serializer", () => {
         const schema = Schema.DateTimeUtc
         await assertions.serialization.json.typeCodec.succeed(
           schema,
-          DateTime.unsafeMake("2021-01-01T00:00:00.000Z"),
+          DateTime.makeUnsafe("2021-01-01T00:00:00.000Z"),
           "2021-01-01T00:00:00.000Z"
         )
         await assertions.deserialization.json.typeCodec.succeed(
           schema,
           "2021-01-01T00:00:00.000Z",
-          DateTime.unsafeMake("2021-01-01T00:00:00.000Z")
+          DateTime.makeUnsafe("2021-01-01T00:00:00.000Z")
         )
       })
 
@@ -893,13 +893,13 @@ describe("Serializer", () => {
         const schema = Schema.DateTimeUtcFromDate
         await assertions.serialization.json.codec.succeed(
           schema,
-          DateTime.unsafeMake("2021-01-01T00:00:00.000Z"),
+          DateTime.makeUnsafe("2021-01-01T00:00:00.000Z"),
           "2021-01-01T00:00:00.000Z"
         )
         await assertions.deserialization.json.codec.succeed(
           schema,
           "2021-01-01T00:00:00.000Z",
-          DateTime.unsafeMake("2021-01-01T00:00:00.000Z")
+          DateTime.makeUnsafe("2021-01-01T00:00:00.000Z")
         )
       })
     })

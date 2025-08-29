@@ -69,7 +69,7 @@ export const make = <E, R>(options: {
       const now = yield* DateTime.now
       const next = Cron.next(options.cron, now)
       yield* client.run({
-        dateTime: DateTime.unsafeFromDate(next)
+        dateTime: DateTime.fromDateUnsafe(next)
       }, { discard: true })
     }),
     { shardGroup: options.shardGroup }
@@ -96,7 +96,7 @@ export const make = <E, R>(options: {
           effect(request.payload.dateTime),
           Effect.gen(function*() {
             const now = yield* DateTime.now
-            const next = DateTime.unsafeFromDate(Cron.next(
+            const next = DateTime.fromDateUnsafe(Cron.next(
               options.cron,
               options.calculateNextRunFromPrevious ? request.payload.dateTime : now
             ))

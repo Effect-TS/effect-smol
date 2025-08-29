@@ -55,10 +55,10 @@ describe("FiberMap", () => {
   it.effect("join", () =>
     Effect.gen(function*() {
       const map = yield* FiberMap.make<string>()
-      FiberMap.unsafeSet(map, "a", Effect.runFork(Effect.void))
-      FiberMap.unsafeSet(map, "b", Effect.runFork(Effect.void))
-      FiberMap.unsafeSet(map, "c", Effect.runFork(Effect.fail("fail")))
-      FiberMap.unsafeSet(map, "d", Effect.runFork(Effect.fail("ignored")))
+      FiberMap.setUnsafe(map, "a", Effect.runFork(Effect.void))
+      FiberMap.setUnsafe(map, "b", Effect.runFork(Effect.void))
+      FiberMap.setUnsafe(map, "c", Effect.runFork(Effect.fail("fail")))
+      FiberMap.setUnsafe(map, "d", Effect.runFork(Effect.fail("ignored")))
       const result = yield* pipe(FiberMap.join(map), Effect.flip)
       strictEqual(result, "fail")
     }))
@@ -67,8 +67,8 @@ describe("FiberMap", () => {
     Effect.gen(function*() {
       const scope = yield* Scope.make()
       const set = yield* pipe(FiberMap.make<string>(), Scope.provide(scope))
-      FiberMap.unsafeSet(set, "a", Effect.runFork(Effect.never))
-      FiberMap.unsafeSet(set, "b", Effect.runFork(Effect.never))
+      FiberMap.setUnsafe(set, "a", Effect.runFork(Effect.never))
+      FiberMap.setUnsafe(set, "b", Effect.runFork(Effect.never))
       strictEqual(yield* FiberMap.size(set), 2)
       yield* Scope.close(scope, Exit.void)
       strictEqual(yield* FiberMap.size(set), 0)
@@ -83,7 +83,7 @@ describe("FiberMap", () => {
       yield* Effect.yieldNow
       assertTrue(Exit.hasInterrupt(yield* Fiber.await(fiberB)))
       assertTrue(Exit.hasInterrupt(yield* Fiber.await(fiberC)))
-      strictEqual(fiberA.unsafePoll(), undefined)
+      strictEqual(fiberA.pollUnsafe(), undefined)
     }))
 
   it.effect("runtime onlyIfMissing", () =>
@@ -95,7 +95,7 @@ describe("FiberMap", () => {
       yield* Effect.yieldNow
       assertTrue(Exit.hasInterrupt(yield* Fiber.await(fiberB)))
       assertTrue(Exit.hasInterrupt(yield* Fiber.await(fiberC)))
-      strictEqual(fiberA.unsafePoll(), undefined)
+      strictEqual(fiberA.pollUnsafe(), undefined)
     }))
 
   it.effect("propagateInterruption false", () =>
@@ -134,9 +134,9 @@ describe("FiberMap", () => {
 
       const fiber = yield* Effect.fork(FiberMap.awaitEmpty(map))
       yield* TestClock.adjust(500)
-      assert.isUndefined(fiber.unsafePoll())
+      assert.isUndefined(fiber.pollUnsafe())
       yield* TestClock.adjust(500)
-      assert.isDefined(fiber.unsafePoll())
+      assert.isDefined(fiber.pollUnsafe())
     }))
 
   it.effect("makeRuntimePromise", () =>

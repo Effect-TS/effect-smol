@@ -222,11 +222,11 @@ export const makeWithStrategy = <A, E, R>(options: {
     const state: State<A, E> = {
       scope,
       isShuttingDown: false,
-      semaphore: Effect.unsafeMakeSemaphore(concurrency * options.max),
-      resizeSemaphore: Effect.unsafeMakeSemaphore(1),
+      semaphore: Effect.makeSemaphoreUnsafe(concurrency * options.max),
+      resizeSemaphore: Effect.makeSemaphoreUnsafe(1),
       items: new Set(),
       available: new Set(),
-      availableLatch: Effect.unsafeMakeLatch(false),
+      availableLatch: Effect.makeLatchUnsafe(false),
       invalidated: new Set(),
       waiters: 0
     }
@@ -254,7 +254,7 @@ const shutdown = Effect.fnUntraced(function*<A, E>(self: Pool<A, E>) {
   if (self.state.isShuttingDown) return
   self.state.isShuttingDown = true
   const size = self.state.items.size
-  const semaphore = Effect.unsafeMakeSemaphore(size)
+  const semaphore = Effect.makeSemaphoreUnsafe(size)
   for (const item of self.state.items) {
     if (item.refCount > 0) {
       item.finalizer = Effect.tap(item.finalizer, semaphore.release(1))
@@ -268,7 +268,7 @@ const shutdown = Effect.fnUntraced(function*<A, E>(self: Pool<A, E>) {
     }
   }
   yield* semaphore.releaseAll
-  self.state.availableLatch.unsafeOpen()
+  self.state.availableLatch.openUnsafe()
   yield* semaphore.take(size)
 })
 
@@ -340,13 +340,13 @@ const getPoolItemInner = Effect.fnUntraced(function*<A, E>(
       if (self.state.isShuttingDown) {
         return yield* Effect.interrupt
       } else if (self.state.available.size > 0) {
-        return Iterable.unsafeHead(self.state.available)
+        return Iterable.headUnsafe(self.state.available)
       }
-      self.state.availableLatch.unsafeClose()
+      self.state.availableLatch.closeUnsafe()
       yield* self.state.availableLatch.await
     }
   }
-  return Iterable.unsafeHead(self.state.available)
+  return Iterable.headUnsafe(self.state.available)
 })
 
 /**
@@ -477,7 +477,7 @@ const strategyCreationTTL = Effect.fnUntraced(function*<A, E>(ttl: Duration.Dura
           if (!pool.state.items.has(item) || pool.state.invalidated.has(item)) {
             return Effect.void
           }
-          const now = clock.unsafeCurrentTimeMillis()
+          const now = clock.currentTimeMillisUnsafe()
           const created = creationTimes.get(item)!
           const remaining = ttlMillis - (now - created)
           return remaining > 0
@@ -491,7 +491,7 @@ const strategyCreationTTL = Effect.fnUntraced(function*<A, E>(ttl: Duration.Dura
     },
     onAcquire: (item) =>
       Effect.suspend(() => {
-        creationTimes.set(item, clock.unsafeCurrentTimeMillis())
+        creationTimes.set(item, clock.currentTimeMillisUnsafe())
         return Queue.offer(queue, item)
       }),
     reclaim: (_) => Effect.succeed(undefined)

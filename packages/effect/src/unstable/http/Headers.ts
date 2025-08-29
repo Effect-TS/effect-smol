@@ -141,7 +141,7 @@ export const fromInput: (input?: Input) => Headers = (input) => {
  * @since 4.0.0
  * @category constructors
  */
-export const unsafeFromRecord = (input: Record.ReadonlyRecord<string, string>): Headers =>
+export const fromRecordUnsafe = (input: Record.ReadonlyRecord<string, string>): Headers =>
   Object.setPrototypeOf(input, Proto) as Headers
 
 /**

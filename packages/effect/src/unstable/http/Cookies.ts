@@ -400,7 +400,7 @@ export function makeCookie(
  * @since 4.0.0
  * @category constructors
  */
-export const unsafeMakeCookie = (
+export const makeCookieUnsafe = (
   name: string,
   value: string,
   options?: Cookie["options"] | undefined
@@ -542,7 +542,7 @@ export const set: {
  * @since 4.0.0
  * @category combinators
  */
-export const unsafeSet: {
+export const setUnsafe: {
   (
     name: string,
     value: string,
@@ -560,7 +560,7 @@ export const unsafeSet: {
     fromReadonlyRecord(Record.set(
       self.cookies,
       name,
-      unsafeMakeCookie(name, value, options)
+      makeCookieUnsafe(name, value, options)
     ))
 )
 
@@ -602,7 +602,7 @@ export const setAll: {
  * @since 4.0.0
  * @category combinators
  */
-export const unsafeSetAll: {
+export const setAllUnsafe: {
   (
     cookies: Iterable<readonly [name: string, value: string, options?: Cookie["options"]]>
   ): (self: Cookies) => Cookies
@@ -731,7 +731,7 @@ export const schemaRecord: Schema.Codec<
     Schema.Record(Schema.String, Schema.String),
     Transformation.transform({
       decode: toRecord,
-      encode: (self) => fromIterable(Object.entries(self).map(([name, value]) => unsafeMakeCookie(name, value)))
+      encode: (self) => fromIterable(Object.entries(self).map(([name, value]) => makeCookieUnsafe(name, value)))
     })
   )
 )

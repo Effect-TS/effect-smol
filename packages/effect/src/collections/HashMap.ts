@@ -406,7 +406,7 @@ import * as Option from "effect/data/Option"
  * )
  *
  * // Safe: use when you're certain the key exists
- * const apiUrl = HashMap.unsafeGet(config, "api_url") // "https://api.example.com"
+ * const apiUrl = HashMap.getUnsafe(config, "api_url") // "https://api.example.com"
  * console.log(`Connecting to: ${apiUrl}`)
  *
  * // Preferred: use get() for uncertain keys
@@ -415,17 +415,17 @@ import * as Option from "effect/data/Option"
  *   console.log(`Database: ${dbUrl.value}`)
  * }
  *
- * // This would throw: HashMap.unsafeGet(config, "db_url")
- * // Error: "HashMap.unsafeGet: key not found"
+ * // This would throw: HashMap.getUnsafe(config, "db_url")
+ * // Error: "HashMap.getUnsafe: key not found"
  * ```
  *
  * @since 2.0.0
  * @category unsafe
  */
-export const unsafeGet: {
+export const getUnsafe: {
   <K1 extends K, K>(key: K1): <V>(self: HashMap<K, V>) => V
   <K1 extends K, K, V>(self: HashMap<K, V>, key: K1): V
-} = internal.unsafeGet
+} = internal.getUnsafe
 
 /**
  * Checks if the specified key has an entry in the `HashMap`.

@@ -545,13 +545,13 @@ const watchNode = (path: string) =>
               return
             }
             case "change": {
-              Queue.unsafeOffer(queue, FileSystem.WatchEventUpdate({ path }))
+              Queue.offerUnsafe(queue, FileSystem.WatchEventUpdate({ path }))
               return
             }
           }
         })
         watcher.on("error", (error) => {
-          Queue.unsafeDone(
+          Queue.doneUnsafe(
             queue,
             Exit.fail(
               new Error.SystemError({
@@ -565,7 +565,7 @@ const watchNode = (path: string) =>
           )
         })
         watcher.on("close", () => {
-          Queue.unsafeEnd(queue)
+          Queue.endUnsafe(queue)
         })
         return watcher
       }),

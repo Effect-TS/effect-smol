@@ -177,14 +177,14 @@ const DeferredProto = {
  * ```ts
  * import { Deferred } from "effect"
  *
- * const deferred = Deferred.unsafeMake<number>()
+ * const deferred = Deferred.makeUnsafe<number>()
  * console.log(deferred)
  * ```
  *
  * @since 2.0.0
  * @category unsafe
  */
-export const unsafeMake = <A, E = never>(): Deferred<A, E> => {
+export const makeUnsafe = <A, E = never>(): Deferred<A, E> => {
   const self = Object.create(DeferredProto)
   self.resumes = undefined
   self.effect = undefined
@@ -210,7 +210,7 @@ export const unsafeMake = <A, E = never>(): Deferred<A, E> => {
  * @since 2.0.0
  * @category constructors
  */
-export const make = <A, E = never>(): Effect<Deferred<A, E>> => internalEffect.sync(() => unsafeMake())
+export const make = <A, E = never>(): Effect<Deferred<A, E>> => internalEffect.sync(() => makeUnsafe())
 
 const _await = <A, E>(self: Deferred<A, E>): Effect<A, E> =>
   internalEffect.callback<A, E>((resume) => {
@@ -310,7 +310,7 @@ export const completeWith: {
 } = dual(
   2,
   <A, E>(self: Deferred<A, E>, effect: Effect<A, E>): Effect<boolean> =>
-    internalEffect.sync(() => unsafeDone(self, effect))
+    internalEffect.sync(() => doneUnsafe(self, effect))
 )
 
 /**
@@ -572,7 +572,7 @@ export const interruptWith: {
  * @since 2.0.0
  * @category getters
  */
-export const isDone = <A, E>(self: Deferred<A, E>): Effect<boolean> => internalEffect.sync(() => unsafeIsDone(self))
+export const isDone = <A, E>(self: Deferred<A, E>): Effect<boolean> => internalEffect.sync(() => isDoneUnsafe(self))
 
 /**
  * Returns `true` if this `Deferred` has already been completed with a value or
@@ -581,7 +581,7 @@ export const isDone = <A, E>(self: Deferred<A, E>): Effect<boolean> => internalE
  * @since 2.0.0
  * @category getters
  */
-export const unsafeIsDone = <A, E>(self: Deferred<A, E>): boolean => self.effect !== undefined
+export const isDoneUnsafe = <A, E>(self: Deferred<A, E>): boolean => self.effect !== undefined
 
 /**
  * Returns a `Some<Effect<A, E, R>>` from the `Deferred` if this `Deferred` has
@@ -674,15 +674,15 @@ export const sync: {
  * import { Effect } from "effect"
  * import { Deferred } from "effect"
  *
- * const deferred = Deferred.unsafeMake<number>()
- * const success = Deferred.unsafeDone(deferred, Effect.succeed(42))
+ * const deferred = Deferred.makeUnsafe<number>()
+ * const success = Deferred.doneUnsafe(deferred, Effect.succeed(42))
  * console.log(success) // true
  * ```
  *
  * @since 2.0.0
  * @category unsafe
  */
-export const unsafeDone = <A, E>(self: Deferred<A, E>, effect: Effect<A, E>): boolean => {
+export const doneUnsafe = <A, E>(self: Deferred<A, E>, effect: Effect<A, E>): boolean => {
   if (self.effect) return false
   self.effect = effect
   if (self.resumes) {

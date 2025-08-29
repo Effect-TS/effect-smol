@@ -57,7 +57,7 @@ export declare namespace Snowflake {
    * @category Models
    */
   export interface Generator {
-    readonly unsafeNext: () => Snowflake
+    readonly nextUnsafe: () => Snowflake
     readonly setMachineId: (machineId: MachineId) => Effect.Effect<void>
   }
 }
@@ -113,7 +113,7 @@ export const timestamp = (snowflake: Snowflake): number => Number(snowflake >> c
  * @since 4.0.0
  * @category Parts
  */
-export const dateTime = (snowflake: Snowflake): DateTime.Utc => DateTime.unsafeMake(timestamp(snowflake))
+export const dateTime = (snowflake: Snowflake): DateTime.Utc => DateTime.makeUnsafe(timestamp(snowflake))
 
 /**
  * @since 4.0.0
@@ -147,15 +147,15 @@ export const makeGenerator: Effect.Effect<Snowflake.Generator> = Effect.gen(func
   const clock = yield* Clock
 
   let sequence = 0
-  let sequenceAt = Math.floor(clock.unsafeCurrentTimeMillis())
+  let sequenceAt = Math.floor(clock.currentTimeMillisUnsafe())
 
   return identity<Snowflake.Generator>({
     setMachineId: (newMachineId) =>
       Effect.sync(() => {
         machineId = newMachineId
       }),
-    unsafeNext() {
-      let now = Math.floor(clock.unsafeCurrentTimeMillis())
+    nextUnsafe() {
+      let now = Math.floor(clock.currentTimeMillisUnsafe())
 
       // account for clock drift, only allow time to move forward
       if (now < sequenceAt) {

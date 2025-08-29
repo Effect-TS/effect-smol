@@ -34,17 +34,17 @@ export const make: (options: {
   HttpClient.HttpClient | Scope.Scope
 > = Effect.fnUntraced(function*(options) {
   const clock = yield* Clock
-  const startTime = String(clock.unsafeCurrentTimeNanos())
+  const startTime = String(clock.currentTimeNanosUnsafe())
 
   const resource = yield* OtlpResource.fromConfig(options.resource)
   const metricsScope: IInstrumentationScope = {
-    name: OtlpResource.unsafeServiceName(resource)
+    name: OtlpResource.serviceNameUnsafe(resource)
   }
 
   const services = yield* Effect.services<never>()
   const snapshot = (): IExportMetricsServiceRequest => {
-    const snapshot = Metric.unsafeSnapshot(services)
-    const nowNanos = clock.unsafeCurrentTimeNanos()
+    const snapshot = Metric.snapshotUnsafe(services)
+    const nowNanos = clock.currentTimeNanosUnsafe()
     const nowTime = String(nowNanos)
     const metricData: Array<IMetric> = []
     const metricDataByName = new Map<string, IMetric>()

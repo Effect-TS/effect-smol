@@ -402,7 +402,7 @@ export const get: {
         MutableHashMap.set(self.map, key, oentry.value)
         return Deferred.await(oentry.value.deferred)
       }
-      const deferred = Deferred.unsafeMake<A, E>()
+      const deferred = Deferred.makeUnsafe<A, E>()
       const entry: Entry<A, E> = {
         expiresAt: undefined,
         deferred
@@ -410,10 +410,10 @@ export const get: {
       MutableHashMap.set(self.map, key, entry)
       checkCapacity(self)
       return effect.onExit(self.lookup(key), (exit) => {
-        Deferred.unsafeDone(deferred, exit)
+        Deferred.doneUnsafe(deferred, exit)
         const ttl = self.timeToLive(exit, key)
         if (Duration.isFinite(ttl)) {
-          entry.expiresAt = fiber.getRef(effect.ClockRef).unsafeCurrentTimeMillis() + Duration.toMillis(ttl)
+          entry.expiresAt = fiber.getRef(effect.ClockRef).currentTimeMillisUnsafe() + Duration.toMillis(ttl)
         } else if (Duration.isZero(ttl)) {
           MutableHashMap.remove(self.map, key)
         }
@@ -426,7 +426,7 @@ const hasExpired = <A, E>(entry: Entry<A, E>, fiber: Fiber.Fiber<unknown, unknow
   if (entry.expiresAt === undefined) {
     return false
   }
-  return fiber.getRef(effect.ClockRef).unsafeCurrentTimeMillis() >= entry.expiresAt
+  return fiber.getRef(effect.ClockRef).currentTimeMillisUnsafe() >= entry.expiresAt
 }
 
 const checkCapacity = <K, A, E, R>(self: Cache<K, A, E, R>) => {
@@ -699,8 +699,8 @@ export const set: {
   <Key, A, E, R>(self: Cache<Key, A, E, R>, key: Key, value: A): Effect.Effect<void> =>
     core.withFiber((fiber) => {
       const exit = core.exitSucceed(value)
-      const deferred = Deferred.unsafeMake<A, E>()
-      Deferred.unsafeDone(deferred, exit)
+      const deferred = Deferred.makeUnsafe<A, E>()
+      Deferred.doneUnsafe(deferred, exit)
       const ttl = self.timeToLive(exit, key)
       if (Duration.isZero(ttl)) {
         MutableHashMap.remove(self.map, key)
@@ -709,7 +709,7 @@ export const set: {
       MutableHashMap.set(self.map, key, {
         deferred,
         expiresAt: Duration.isFinite(ttl)
-          ? fiber.getRef(effect.ClockRef).unsafeCurrentTimeMillis() + Duration.toMillis(ttl)
+          ? fiber.getRef(effect.ClockRef).currentTimeMillisUnsafe() + Duration.toMillis(ttl)
           : undefined
       })
       checkCapacity(self)
@@ -1032,7 +1032,7 @@ export const refresh: {
   2,
   <Key, A, E, R>(self: Cache<Key, A, E, R>, key: Key): Effect.Effect<A, E, R> =>
     core.withFiber((fiber) => {
-      const deferred = Deferred.unsafeMake<A, E>()
+      const deferred = Deferred.makeUnsafe<A, E>()
       const entry: Entry<A, E> = {
         expiresAt: undefined,
         deferred
@@ -1043,14 +1043,14 @@ export const refresh: {
         checkCapacity(self)
       }
       return effect.onExit(self.lookup(key), (exit) => {
-        Deferred.unsafeDone(deferred, exit)
+        Deferred.doneUnsafe(deferred, exit)
         const ttl = self.timeToLive(exit, key)
         if (Duration.isZero(ttl)) {
           MutableHashMap.remove(self.map, key)
           return effect.void
         }
         entry.expiresAt = Duration.isFinite(ttl)
-          ? fiber.getRef(effect.ClockRef).unsafeCurrentTimeMillis() + Duration.toMillis(ttl)
+          ? fiber.getRef(effect.ClockRef).currentTimeMillisUnsafe() + Duration.toMillis(ttl)
           : undefined
         if (existing) {
           MutableHashMap.set(self.map, key, entry)
@@ -1175,7 +1175,7 @@ export const size = <Key, A, E, R>(self: Cache<Key, A, E, R>): Effect.Effect<num
  */
 export const keys = <Key, A, E, R>(self: Cache<Key, A, E, R>): Effect.Effect<Iterable<Key>> =>
   core.withFiber((fiber) => {
-    const now = fiber.getRef(effect.ClockRef).unsafeCurrentTimeMillis()
+    const now = fiber.getRef(effect.ClockRef).currentTimeMillisUnsafe()
     return effect.succeed(Iterable.filterMap(self.map, ([key, entry]) => {
       if (entry.expiresAt === undefined || entry.expiresAt > now) {
         return Option.some(key)
@@ -1229,7 +1229,7 @@ export const values = <Key, A, E, R>(self: Cache<Key, A, E, R>): Effect.Effect<I
  */
 export const entries = <Key, A, E, R>(self: Cache<Key, A, E, R>): Effect.Effect<Iterable<[Key, A]>> =>
   core.withFiber((fiber) => {
-    const now = fiber.getRef(effect.ClockRef).unsafeCurrentTimeMillis()
+    const now = fiber.getRef(effect.ClockRef).currentTimeMillisUnsafe()
     return effect.succeed(Iterable.filterMap(self.map, ([key, entry]) => {
       if (entry.expiresAt === undefined || entry.expiresAt > now) {
         const exit = entry.deferred.effect

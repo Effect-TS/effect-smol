@@ -52,7 +52,7 @@ export const request: {
 )
 
 /** @internal */
-export const unsafeRequest = <A extends Request.Any>(
+export const requestUnsafe = <A extends Request.Any>(
   self: A,
   options: {
     readonly resolver: RequestResolver<A>
@@ -64,7 +64,7 @@ export const unsafeRequest = <A extends Request.Any>(
     services: options.services,
     currentScheduler: ServiceMap.get(options.services, Scheduler)
   })
-  return () => unsafeRemoveEntry(options.resolver, entry)
+  return () => removeEntryUnsafe(options.resolver, entry)
 }
 
 interface Batch {
@@ -96,7 +96,7 @@ const addEntry = <A extends Request.Any>(
   const entry = makeEntry({
     request,
     services: fiber.services as any,
-    unsafeComplete(effect) {
+    completeUnsafe(effect) {
       resume(effect)
       batch!.entrySet.delete(entry)
     }
@@ -121,13 +121,13 @@ const addEntry = <A extends Request.Any>(
   batch.entries.add(entry)
   if (batch.resolver.collectWhile(batch.entries)) return entry
 
-  batch.delayFiber!.unsafeInterrupt(fiber.id)
+  batch.delayFiber!.interruptUnsafe(fiber.id)
   batch.delayFiber = undefined
   effect.runFork(runBatch(batchMap, batch), { scheduler: fiber.currentScheduler })
   return entry
 }
 
-const unsafeRemoveEntry = <A extends Request.Any>(
+const removeEntryUnsafe = <A extends Request.Any>(
   resolver: RequestResolver<A>,
   entry: Request.Entry<A>
 ) => {
@@ -143,7 +143,7 @@ const unsafeRemoveEntry = <A extends Request.Any>(
   if (batch.entries.size === 0) {
     pendingBatches.delete(resolver)
     if (batch.delayFiber) {
-      batch.delayFiber.unsafeInterrupt()
+      batch.delayFiber.interruptUnsafe()
     }
   }
 }
@@ -151,7 +151,7 @@ const unsafeRemoveEntry = <A extends Request.Any>(
 const maybeRemoveEntry = <A extends Request.Any>(
   resolver: RequestResolver<A>,
   entry: Request.Entry<A>
-) => effect.sync(() => unsafeRemoveEntry(resolver, entry))
+) => effect.sync(() => removeEntryUnsafe(resolver, entry))
 
 const runBatch = (
   batchMap: Map<unknown, Batch>,
@@ -164,7 +164,7 @@ const runBatch = (
       resolver.runAll(Array.from(entries) as NonEmptyArray<Request.Entry<any>>, key),
       (exit) => {
         for (const entry of entrySet) {
-          entry.unsafeComplete(
+          entry.completeUnsafe(
             exit._tag === "Success"
               ? exitDie(
                 new Error("Effect.request: RequestResolver did not complete request", { cause: entry.request })

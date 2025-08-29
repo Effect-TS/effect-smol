@@ -124,7 +124,7 @@ const Proto = {
   }
 }
 
-const unsafeMake = <K, A = unknown, E = unknown>(
+const makeUnsafe = <K, A = unknown, E = unknown>(
   backing: MutableHashMap.MutableHashMap<K, Fiber.Fiber<A, E>>,
   deferred: Deferred.Deferred<void, E>
 ): FiberMap<K, A, E> => {
@@ -166,9 +166,9 @@ const unsafeMake = <K, A = unknown, E = unknown>(
 export const make = <K, A = unknown, E = unknown>(): Effect.Effect<FiberMap<K, A, E>, never, Scope.Scope> =>
   Effect.acquireRelease(
     Effect.sync(() =>
-      unsafeMake<K, A, E>(
+      makeUnsafe<K, A, E>(
         MutableHashMap.empty(),
-        Deferred.unsafeMake()
+        Deferred.makeUnsafe()
       )
     ),
     (map) =>
@@ -297,7 +297,7 @@ const isInternalInterruption = Filter.toPredicate(Filter.compose(
  *
  *   // Create a fiber and add it to the map
  *   const fiber = yield* Effect.fork(Effect.succeed("Hello"))
- *   FiberMap.unsafeSet(map, "greeting", fiber)
+ *   FiberMap.setUnsafe(map, "greeting", fiber)
  *
  *   // The fiber will be automatically removed when it completes
  *   const result = yield* Fiber.await(fiber)
@@ -305,7 +305,7 @@ const isInternalInterruption = Filter.toPredicate(Filter.compose(
  * })
  * ```
  */
-export const unsafeSet: {
+export const setUnsafe: {
   <K, A, E, XE extends E, XA extends A>(
     key: K,
     fiber: Fiber.Fiber<XA, XE>,
@@ -333,19 +333,19 @@ export const unsafeSet: {
   } | undefined
 ): void => {
   if (self.state._tag === "Closed") {
-    fiber.unsafeInterrupt(internalFiberId)
+    fiber.interruptUnsafe(internalFiberId)
     return
   }
 
   const previous = MutableHashMap.get(self.state.backing, key)
   if (previous._tag === "Some") {
     if (options?.onlyIfMissing === true) {
-      fiber.unsafeInterrupt(internalFiberId)
+      fiber.interruptUnsafe(internalFiberId)
       return
     } else if (previous.value === fiber) {
       return
     }
-    previous.value.unsafeInterrupt(internalFiberId)
+    previous.value.interruptUnsafe(internalFiberId)
   }
 
   MutableHashMap.set(self.state.backing, key, fiber)
@@ -365,7 +365,7 @@ export const unsafeSet: {
           !Cause.isInterruptedOnly(exit.cause)
       )
     ) {
-      Deferred.unsafeDone(self.deferred, exit as any)
+      Deferred.doneUnsafe(self.deferred, exit as any)
     }
   })
 })
@@ -373,7 +373,7 @@ export const unsafeSet: {
 /**
  * Add a fiber to the FiberMap. When the fiber completes, it will be removed from the FiberMap.
  * If the key already exists in the FiberMap, the previous fiber will be interrupted.
- * This is the Effect-wrapped version of `unsafeSet`.
+ * This is the Effect-wrapped version of `setUnsafe`.
  *
  * @since 2.0.0
  * @category combinators
@@ -422,7 +422,7 @@ export const set: {
     readonly onlyIfMissing?: boolean | undefined
     readonly propagateInterruption?: boolean | undefined
   } | undefined
-): Effect.Effect<void> => Effect.sync(() => unsafeSet(self, key, fiber, options)))
+): Effect.Effect<void> => Effect.sync(() => setUnsafe(self, key, fiber, options)))
 
 /**
  * Retrieve a fiber from the FiberMap.
@@ -441,10 +441,10 @@ export const set: {
  *
  *   // Add a fiber to the map
  *   const fiber = yield* Effect.fork(Effect.succeed("Hello"))
- *   FiberMap.unsafeSet(map, "greeting", fiber)
+ *   FiberMap.setUnsafe(map, "greeting", fiber)
  *
  *   // Retrieve the fiber
- *   const retrieved = FiberMap.unsafeGet(map, "greeting")
+ *   const retrieved = FiberMap.getUnsafe(map, "greeting")
  *   if (Option.isSome(retrieved)) {
  *     const result = yield* Fiber.await(retrieved.value)
  *     console.log(result) // "Hello"
@@ -452,7 +452,7 @@ export const set: {
  * })
  * ```
  */
-export const unsafeGet: {
+export const getUnsafe: {
   <K>(key: K): <A, E>(self: FiberMap<K, A, E>) => Option.Option<Fiber.Fiber<A, E>>
   <K, A, E>(self: FiberMap<K, A, E>, key: K): Option.Option<Fiber.Fiber<A, E>>
 } = dual<
@@ -502,7 +502,7 @@ export const get: {
     self: FiberMap<K, A, E>,
     key: K
   ) => Effect.Effect<Fiber.Fiber<A, E>, NoSuchElementError>
->(2, (self, key) => Effect.suspend(() => unsafeGet(self, key).asEffect()))
+>(2, (self, key) => Effect.suspend(() => getUnsafe(self, key).asEffect()))
 
 /**
  * Check if a key exists in the FiberMap.
@@ -522,12 +522,12 @@ export const get: {
  *   yield* FiberMap.run(map, "task1", Effect.succeed("Hello"))
  *
  *   // Check if keys exist
- *   console.log(FiberMap.unsafeHas(map, "task1")) // true
- *   console.log(FiberMap.unsafeHas(map, "task2")) // false
+ *   console.log(FiberMap.hasUnsafe(map, "task1")) // true
+ *   console.log(FiberMap.hasUnsafe(map, "task2")) // false
  * })
  * ```
  */
-export const unsafeHas: {
+export const hasUnsafe: {
   <K>(key: K): <A, E>(self: FiberMap<K, A, E>) => boolean
   <K, A, E>(self: FiberMap<K, A, E>, key: K): boolean
 } = dual(
@@ -538,7 +538,7 @@ export const unsafeHas: {
 
 /**
  * Check if a key exists in the FiberMap.
- * This is the Effect-wrapped version of `unsafeHas`.
+ * This is the Effect-wrapped version of `hasUnsafe`.
  *
  * @since 2.0.0
  * @category combinators
@@ -568,7 +568,7 @@ export const has: {
   <K, A, E>(self: FiberMap<K, A, E>, key: K): Effect.Effect<boolean>
 } = dual(
   2,
-  <K, A, E>(self: FiberMap<K, A, E>, key: K): Effect.Effect<boolean> => Effect.sync(() => unsafeHas(self, key))
+  <K, A, E>(self: FiberMap<K, A, E>, key: K): Effect.Effect<boolean> => Effect.sync(() => hasUnsafe(self, key))
 )
 
 /**
@@ -740,12 +740,12 @@ const runImpl = <K, A, E, R, XE extends E, XA extends A>(
   Effect.suspend(() => {
     if (self.state._tag === "Closed") {
       return Effect.interrupt
-    } else if (options?.onlyIfMissing === true && unsafeHas(self, key)) {
+    } else if (options?.onlyIfMissing === true && hasUnsafe(self, key)) {
       return Effect.sync(constInterruptedFiber)
     }
     return Effect.tap(
       Effect.forkDaemon(effect, options),
-      (fiber) => unsafeSet(self, key, fiber, options)
+      (fiber) => setUnsafe(self, key, fiber, options)
     )
   })
 
@@ -812,11 +812,11 @@ export const runtime: <K, A, E>(
       ) => {
         if (self.state._tag === "Closed") {
           return constInterruptedFiber()
-        } else if (options?.onlyIfMissing === true && unsafeHas(self, key)) {
+        } else if (options?.onlyIfMissing === true && hasUnsafe(self, key)) {
           return constInterruptedFiber()
         }
         const fiber = runFork(effect, options)
-        unsafeSet(self, key, fiber, options)
+        setUnsafe(self, key, fiber, options)
         return fiber
       }
     }
@@ -969,6 +969,6 @@ export const join = <K, A, E>(self: FiberMap<K, A, E>): Effect.Effect<void, E> =
 export const awaitEmpty = <K, A, E>(self: FiberMap<K, A, E>): Effect.Effect<void, E> =>
   Effect.whileLoop({
     while: () => self.state._tag === "Open" && MutableHashMap.size(self.state.backing) > 0,
-    body: () => Fiber.await(Iterable.unsafeHead(self)[1]),
+    body: () => Fiber.await(Iterable.headUnsafe(self)[1]),
     step: constVoid
   })

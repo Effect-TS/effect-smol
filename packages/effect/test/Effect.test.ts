@@ -28,7 +28,7 @@ describe("Effect", () => {
           Effect.flip
         )
         const annotations = Cause.annotations(cause)
-        const span = ServiceMap.unsafeGet(annotations, Cause.CurrentSpan)
+        const span = ServiceMap.getUnsafe(annotations, Cause.CurrentSpan)
         assert.strictEqual(span.name, "test span")
       }))
   })
@@ -72,7 +72,7 @@ describe("Effect", () => {
           release = true
         })
     ).pipe(Effect.runFork)
-    fiber.unsafeInterrupt()
+    fiber.interruptUnsafe()
     const result = await Effect.runPromise(Fiber.await(fiber))
     assert.deepStrictEqual(result, Exit.failCause(Cause.interrupt()))
     assert.isTrue(acquire)
@@ -100,7 +100,7 @@ describe("Effect", () => {
           release = true
         })
     ).pipe(Effect.uninterruptible, Effect.runFork)
-    fiber.unsafeInterrupt()
+    fiber.interruptUnsafe()
     const result = await Effect.runPromise(Fiber.await(fiber))
     assert.deepStrictEqual(result, Exit.failCause(Cause.interrupt()))
     assert.isTrue(acquire)
@@ -212,7 +212,7 @@ describe("Effect", () => {
           Effect.fork
         )
         yield* TestClock.adjust(90)
-        assert.deepStrictEqual(handle.unsafePoll(), Exit.succeed([1, 2, 3]))
+        assert.deepStrictEqual(handle.pollUnsafe(), Exit.succeed([1, 2, 3]))
       }))
 
     it.effect("sequential interrupt", () =>
@@ -368,7 +368,7 @@ describe("Effect", () => {
           Effect.scoped,
           Effect.fork({ startImmediately: true })
         )
-        fiber.unsafeInterrupt()
+        fiber.interruptUnsafe()
         yield* Fiber.await(fiber)
         assert.strictEqual(release, true)
       }).pipe(Effect.runPromise))
@@ -770,14 +770,14 @@ describe("Effect", () => {
       Effect.gen(function*() {
         const fiber = yield* pipe(Effect.succeed(1), Effect.forever, Effect.fork)
         yield* Fiber.interrupt(fiber)
-        assert(Exit.hasInterrupt(fiber.unsafePoll()!))
+        assert(Exit.hasInterrupt(fiber.pollUnsafe()!))
       }))
 
     it.effect("interrupt of never is interrupted with cause", () =>
       Effect.gen(function*() {
         const fiber = yield* Effect.fork(Effect.never)
         yield* Fiber.interrupt(fiber)
-        assert(Exit.hasInterrupt(fiber.unsafePoll()!))
+        assert(Exit.hasInterrupt(fiber.pollUnsafe()!))
       }))
 
     it.effect("catch + ensuring + interrupt", () =>
@@ -885,7 +885,7 @@ describe("Effect", () => {
           Effect.fork({ startImmediately: true })
         )
         yield* Fiber.interrupt(fiber)
-        assert.isTrue(Exit.hasInterrupt(fiber.unsafePoll()!))
+        assert.isTrue(Exit.hasInterrupt(fiber.pollUnsafe()!))
       }))
 
     it.live("closing scope is uninterruptible", () =>

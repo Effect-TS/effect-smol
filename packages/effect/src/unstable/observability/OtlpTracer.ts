@@ -43,7 +43,7 @@ export const make: (
 > = Effect.fnUntraced(function*(options) {
   const otelResource = yield* OtlpResource.fromConfig(options.resource)
   const scope: Scope = {
-    name: OtlpResource.unsafeServiceName(otelResource)
+    name: OtlpResource.serviceNameUnsafe(otelResource)
   }
 
   const exporter = yield* Exporter.make({

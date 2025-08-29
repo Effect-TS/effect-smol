@@ -132,7 +132,7 @@ export const makeMemory = (
         sqlite3.update_hook(db, (_op, _db, table, rowid) => {
           if (!table) return
           const id = String(Number(rowid))
-          reactivity.unsafeInvalidate({ [table]: [id] })
+          reactivity.invalidateUnsafe({ [table]: [id] })
         })
       }
 
@@ -223,7 +223,7 @@ export const makeMemory = (
     const acquirer = semaphore.withPermits(1)(Effect.succeed(connection))
     const transactionAcquirer = Effect.uninterruptibleMask((restore) => {
       const fiber = Fiber.getCurrent()!
-      const scope = ServiceMap.unsafeGet(fiber.services, Scope.Scope)
+      const scope = ServiceMap.getUnsafe(fiber.services, Scope.Scope)
       return Effect.as(
         Effect.tap(
           restore(semaphore.take(1)),
@@ -285,10 +285,10 @@ export const make = (
       const onMessage = (event: any) => {
         const [id, error, results] = event.data
         if (id === "ready") {
-          Deferred.unsafeDone(readyDeferred, Exit.void)
+          Deferred.doneUnsafe(readyDeferred, Exit.void)
           return
         } else if (id === "update_hook") {
-          reactivity.unsafeInvalidate({ [error]: [results] })
+          reactivity.invalidateUnsafe({ [error]: [results] })
           return
         } else {
           const resume = pending.get(id)
@@ -381,7 +381,7 @@ export const make = (
     const acquirer = semaphore.withPermits(1)(ScopedRef.get(connectionRef))
     const transactionAcquirer = Effect.uninterruptibleMask(Effect.fnUntraced(function*(restore) {
       const fiber = Fiber.getCurrent()!
-      const scope = ServiceMap.unsafeGet(fiber.services, Scope.Scope)
+      const scope = ServiceMap.getUnsafe(fiber.services, Scope.Scope)
       yield* restore(semaphore.take(1))
       yield* Scope.addFinalizer(scope, semaphore.release(1))
       return yield* ScopedRef.get(connectionRef)

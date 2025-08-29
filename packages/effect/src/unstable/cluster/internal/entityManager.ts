@@ -117,7 +117,7 @@ export const make = Effect.fnUntraced(function*<
     }
 
     const scope = yield* Effect.scope
-    const endLatch = Effect.unsafeMakeLatch()
+    const endLatch = Effect.makeLatchUnsafe()
 
     // on shutdown, reset the storage for the entity
     yield* Scope.addFinalizer(
@@ -181,7 +181,7 @@ export const make = Effect.fnUntraced(function*<
                     request.message.respond(
                       new Reply.WithExit({
                         requestId: Snowflake.Snowflake(response.requestId),
-                        id: snowflakeGen.unsafeNext(),
+                        id: snowflakeGen.nextUnsafe(),
                         exit: response.exit
                       })
                     )
@@ -193,7 +193,7 @@ export const make = Effect.fnUntraced(function*<
                     // ensure that the reaper does not remove the entity as we haven't
                     // been "idle" yet
                     if (activeRequests.size === 0) {
-                      state.lastActiveCheck = clock.unsafeCurrentTimeMillis()
+                      state.lastActiveCheck = clock.currentTimeMillisUnsafe()
                     }
 
                     return Effect.void
@@ -214,7 +214,7 @@ export const make = Effect.fnUntraced(function*<
                   Effect.suspend(() => {
                     const reply = new Reply.Chunk({
                       requestId: Snowflake.Snowflake(response.requestId),
-                      id: snowflakeGen.unsafeNext(),
+                      id: snowflakeGen.nextUnsafe(),
                       sequence,
                       values: response.values
                     })
@@ -262,7 +262,7 @@ export const make = Effect.fnUntraced(function*<
     )
 
     function onDefect(cause: Cause.Cause<never>): Effect.Effect<void> {
-      const effect = writeRef.unsafeRebuild()
+      const effect = writeRef.rebuildUnsafe()
       defectRequestIds = Array.from(activeRequests.keys())
       return Effect.logError("Defect in entity, restarting", cause).pipe(
         Effect.andThen(Effect.ignore(retryDriver(void 0))),
@@ -285,7 +285,7 @@ export const make = Effect.fnUntraced(function*<
         return writeRef.state.current.value(clientId, message)
       },
       activeRequests,
-      lastActiveCheck: clock.unsafeCurrentTimeMillis()
+      lastActiveCheck: clock.currentTimeMillisUnsafe()
     }
 
     // During shutdown, signal that no more messages will be processed
@@ -321,7 +321,7 @@ export const make = Effect.fnUntraced(function*<
   // update metrics for active servers
   const typeAttributes = Metric.CurrentMetricAttributes.serviceMap({ type: entity.type })
   yield* Effect.sync(() => {
-    ClusterMetrics.entities.unsafeUpdate(BigInt(activeServers.size), typeAttributes)
+    ClusterMetrics.entities.updateUnsafe(BigInt(activeServers.size), typeAttributes)
   }).pipe(
     Effect.andThen(Effect.sleep(1000)),
     Effect.forever,
@@ -453,7 +453,7 @@ export const make = Effect.fnUntraced(function*<
             return Effect.orDie(message.respond(
               new Reply.ReplyWithContext({
                 reply: new Reply.WithExit({
-                  id: snowflakeGen.unsafeNext(),
+                  id: snowflakeGen.nextUnsafe(),
                   requestId: message.envelope.requestId,
                   exit: Exit.die(new MalformedMessage({ cause }))
                 }),

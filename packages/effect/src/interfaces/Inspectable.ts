@@ -572,7 +572,7 @@ export const redact = (u: unknown): unknown => {
 
 const emptyServiceMap: ServiceMap.ServiceMap<never> = {
   "~effect/ServiceMap": {} as any,
-  unsafeMap: new Map(),
+  mapUnsafe: new Map(),
   pipe() {
     return pipeArguments(this, arguments)
   }

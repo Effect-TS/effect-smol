@@ -139,15 +139,15 @@ export const divide: {
  * @example
  * ```ts
  * import * as assert from "node:assert"
- * import { unsafeDivide } from "effect/primitives/Number"
+ * import { divideUnsafe } from "effect/primitives/Number"
  *
- * assert.deepStrictEqual(unsafeDivide(6, 3), 2)
+ * assert.deepStrictEqual(divideUnsafe(6, 3), 2)
  * ```
  *
  * @category math
  * @since 2.0.0
  */
-export const unsafeDivide: {
+export const divideUnsafe: {
   (that: number): (self: number) => number
   (self: number, that: number): number
 } = dual(2, (self: number, that: number): number => self / that)

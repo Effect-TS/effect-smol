@@ -95,7 +95,7 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any>(
   const disableFatalDefects = options.disableFatalDefects ?? false
   const services = yield* Effect.services<Rpc.ToHandler<Rpcs> | Scope.Scope>()
   const scope = ServiceMap.get(services, Scope.Scope)
-  const trackFiber = Fiber.runIn(Scope.unsafeFork(scope, "parallel"))
+  const trackFiber = Fiber.runIn(Scope.forkUnsafe(scope, "parallel"))
   const concurrencySemaphore = concurrency === "unbounded"
     ? undefined
     : yield* Effect.makeSemaphore(concurrency)
@@ -109,7 +109,7 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any>(
 
   const clients = new Map<number, Client>()
   let isShutdown = false
-  const shutdownLatch = Effect.unsafeMakeLatch(false)
+  const shutdownLatch = Effect.makeLatchUnsafe(false)
   yield* Scope.addFinalizer(
     scope,
     Effect.withFiber((parent) => {
@@ -121,7 +121,7 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any>(
           continue
         }
         for (const fiber of client.fibers.values()) {
-          fiber.unsafeInterrupt(parent.id)
+          fiber.interruptUnsafe(parent.id)
         }
       }
       if (clients.size === 0) {
@@ -136,7 +136,7 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any>(
       const client = clients.get(clientId)
       if (!client) return Effect.void
       for (const fiber of client.fibers.values()) {
-        fiber.unsafeInterrupt(parent.id)
+        fiber.interruptUnsafe(parent.id)
       }
       clients.delete(clientId)
       return Effect.void
@@ -212,7 +212,7 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any>(
       return Effect.interrupt
     }
     const rpc = group.requests.get(request.tag) as any as Rpc.AnyWithProps
-    const entry = services.unsafeMap.get(rpc?.key) as Rpc.Handler<Rpcs["_tag"]>
+    const entry = services.mapUnsafe.get(rpc?.key) as Rpc.Handler<Rpcs["_tag"]>
     if (!rpc || !entry) {
       const write = Effect.catchDefect(
         options.onFromServer({
@@ -275,7 +275,7 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any>(
       }
     ))
     if (enableTracing) {
-      const parentSpan = requestFiber.services.unsafeMap.get(Tracer.ParentSpan.key) as Tracer.AnySpan | undefined
+      const parentSpan = requestFiber.services.mapUnsafe.get(Tracer.ParentSpan.key) as Tracer.AnySpan | undefined
       effect = Effect.withSpan(effect, `${spanPrefix}.${request.tag}`, {
         captureStackTrace: false,
         attributes: options.spanAttributes,
@@ -327,7 +327,7 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any>(
   ) => {
     let latch = client.latches.get(request.id)
     if (supportsAck && !latch) {
-      latch = Effect.unsafeMakeLatch(false)
+      latch = Effect.makeLatchUnsafe(false)
       client.latches.set(request.id, latch)
     }
     if (Effect.isEffect(stream)) {
@@ -343,7 +343,7 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any>(
                 values
               })
               if (!latch) return write
-              latch.unsafeClose()
+              latch.closeUnsafe()
               return Effect.flatMap(write, () => latch.await)
             })),
             step: constVoid
@@ -361,7 +361,7 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any>(
         values
       })
       if (!latch) return write
-      latch.unsafeClose()
+      latch.closeUnsafe()
       return Effect.andThen(write, latch.await)
     })
   }
@@ -396,7 +396,7 @@ const applyMiddleware = <A, E, R>(
   }
 ) => {
   for (const tag of options.rpc.middlewares) {
-    const middleware = ServiceMap.unsafeGet(context, tag)
+    const middleware = ServiceMap.getUnsafe(context, tag)
     handler = middleware(handler as any, options) as any
   }
 
@@ -500,7 +500,7 @@ export const make: <Rpcs extends Rpc.Any>(
   const getSchemas = (rpc: Rpc.AnyWithProps) => {
     let schemas = schemasCache.get(rpc)
     if (!schemas) {
-      const entry = services.unsafeMap.get(rpc.key) as Rpc.Handler<Rpcs["_tag"]>
+      const entry = services.mapUnsafe.get(rpc.key) as Rpc.Handler<Rpcs["_tag"]>
       const streamSchemas = RpcSchema.getStreamSchemas(rpc.successSchema.ast)
       schemas = {
         decode: Schema.decodeUnknownEffect(Serializer.json(rpc.payloadSchema as any)),
@@ -855,7 +855,7 @@ export const makeProtocolWithHttpEffect: Effect.Effect<
     const data = yield* Effect.orDie(request.arrayBuffer)
     const id = clientId++
     const queue = yield* Queue.make<Uint8Array | FromServerEncoded, Queue.Done>()
-    const parser = serialization.unsafeMake()
+    const parser = serialization.makeUnsafe()
     const encoder = new TextEncoder()
 
     const offer = (data: Uint8Array | string) =>
@@ -900,7 +900,7 @@ export const makeProtocolWithHttpEffect: Effect.Effect<
       let done = false
       yield* Effect.addFinalizer(() => {
         clients.delete(id)
-        Queue.unsafeOffer(disconnects, id)
+        Queue.offerUnsafe(disconnects, id)
         if (done) return Effect.void
         return Effect.forEach(
           requestIds,
@@ -916,7 +916,7 @@ export const makeProtocolWithHttpEffect: Effect.Effect<
     return HttpServerResponse.stream(
       Stream.onExit(Stream.fromQueue(queue as Queue.Dequeue<Uint8Array, Queue.Done>), (exit) => {
         clients.delete(id)
-        Queue.unsafeOffer(disconnects, id)
+        Queue.offerUnsafe(disconnects, id)
         if (!Exit.hasInterrupt(exit)) return Effect.void
         return Effect.forEach(
           requestIds,
@@ -1065,7 +1065,7 @@ export const makeProtocolStdio = Effect.fnUntraced(function*<EIn, EOut, RIn, ROu
 
   return yield* Protocol.make(Effect.fnUntraced(function*(writeRequest) {
     const queue = yield* Queue.make<Uint8Array | string, Queue.Done>()
-    const parser = serialization.unsafeMake()
+    const parser = serialization.makeUnsafe()
 
     yield* options.stdin.pipe(
       Stream.runForEach((data) => {
@@ -1161,7 +1161,7 @@ const makeSocketProtocol: Effect.Effect<
 
   const onSocket = function*(socket: Socket.Socket, headers?: ReadonlyArray<[string, string]>) {
     const scope = yield* Effect.scope
-    const parser = serialization.unsafeMake()
+    const parser = serialization.makeUnsafe()
     const id = clientId++
     yield* Scope.addFinalizerExit(scope, () => {
       clients.delete(id)

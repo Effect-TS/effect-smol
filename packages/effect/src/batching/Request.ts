@@ -368,7 +368,7 @@ export const complete: {
 } = dual(
   2,
   <A extends Any>(self: Entry<A>, result: Result<A>): Effect.Effect<void> =>
-    internalEffect.sync(() => self.unsafeComplete(result))
+    internalEffect.sync(() => self.completeUnsafe(result))
 )
 
 /**
@@ -434,7 +434,7 @@ export interface Entry<out R> {
   readonly services: ServiceMap.ServiceMap<
     [R] extends [Request<infer _A, infer _E, infer _R>] ? _R : never
   >
-  readonly unsafeComplete: (
+  readonly completeUnsafe: (
     exit: Exit.Exit<
       [R] extends [Request<infer _A, infer _E, infer _R>] ? _A : never,
       [R] extends [Request<infer _A, infer _E, infer _R>] ? _E : never
@@ -451,7 +451,7 @@ export const makeEntry = <R>(options: {
   readonly services: ServiceMap.ServiceMap<
     [R] extends [Request<infer _A, infer _E, infer _R>] ? _R : never
   >
-  readonly unsafeComplete: (
+  readonly completeUnsafe: (
     exit: Exit.Exit<
       [R] extends [Request<infer _A, infer _E, infer _R>] ? _A : never,
       [R] extends [Request<infer _A, infer _E, infer _R>] ? _E : never

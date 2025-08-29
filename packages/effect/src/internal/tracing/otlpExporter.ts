@@ -54,7 +54,7 @@ export const make: (
     HttpClient.retryTransient({ schedule: policy, times: 3 })
   )
 
-  let headers = Headers.unsafeFromRecord({
+  let headers = Headers.fromRecordUnsafe({
     "user-agent": `effect-opentelemetry-${options.label}/0.0.0`
   })
   if (options.headers) {
@@ -64,7 +64,7 @@ export const make: (
   const request = HttpClientRequest.post(options.url, { headers })
   let buffer: Array<any> = []
   const runExport = Effect.suspend(() => {
-    if (disabledUntil !== undefined && clock.unsafeCurrentTimeMillis() < disabledUntil) {
+    if (disabledUntil !== undefined && clock.currentTimeMillisUnsafe() < disabledUntil) {
       return Effect.void
     } else if (disabledUntil !== undefined) {
       disabledUntil = undefined
@@ -77,7 +77,7 @@ export const make: (
       buffer = []
     }
     return client.execute(
-      HttpClientRequest.bodyUnsafeJson(request, options.body(items))
+      HttpClientRequest.bodyJsonUnsafe(request, options.body(items))
     ).pipe(
       Effect.asVoid,
       Effect.withTracerEnabled(false)
@@ -85,7 +85,7 @@ export const make: (
   }).pipe(
     Effect.catchCause((cause) => {
       if (disabledUntil !== undefined) return Effect.void
-      disabledUntil = clock.unsafeCurrentTimeMillis() + Duration.toMillis("60 seconds")
+      disabledUntil = clock.currentTimeMillisUnsafe() + Duration.toMillis("60 seconds")
       buffer = []
       return Effect.logDebug("Disabling exporter for 60 seconds", cause)
     }),

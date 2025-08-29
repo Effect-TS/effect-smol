@@ -92,15 +92,15 @@ describe("HashMap", () => {
       expect(HashMap.size(map2)).toBe(2)
     })
 
-    it("unsafeGet - existing key", () => {
+    it("getUnsafe - existing key", () => {
       const map = HashMap.make(["a", 1], ["b", 2])
-      expect(HashMap.unsafeGet(map, "a")).toBe(1)
-      expect(HashMap.unsafeGet(map, "b")).toBe(2)
+      expect(HashMap.getUnsafe(map, "a")).toBe(1)
+      expect(HashMap.getUnsafe(map, "b")).toBe(2)
     })
 
-    it("unsafeGet - non-existing key", () => {
+    it("getUnsafe - non-existing key", () => {
       const map = HashMap.make(["a", 1])
-      expect(() => HashMap.unsafeGet(map, "b")).toThrow("HashMap.unsafeGet: key not found")
+      expect(() => HashMap.getUnsafe(map, "b")).toThrow("HashMap.getUnsafe: key not found")
     })
   })
 

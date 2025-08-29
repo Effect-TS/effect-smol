@@ -471,19 +471,19 @@ export const parse = (cron: string, tz?: DateTime.TimeZone | string): Result.Res
  * import { Cron } from "effect/time"
  *
  * // At 04:00 on every day-of-month from 8 through 14
- * const cron = Cron.unsafeParse("0 0 4 8-14 * *")
+ * const cron = Cron.parseUnsafe("0 0 4 8-14 * *")
  *
  * // With timezone
- * const cronWithTz = Cron.unsafeParse("0 0 9 * * *", "America/New_York")
+ * const cronWithTz = Cron.parseUnsafe("0 0 9 * * *", "America/New_York")
  *
  * // This would throw an error
- * // const invalid = Cron.unsafeParse("invalid expression")
+ * // const invalid = Cron.parseUnsafe("invalid expression")
  * ```
  *
  * @since 2.0.0
  * @category constructors
  */
-export const unsafeParse = (cron: string, tz?: DateTime.TimeZone | string): Cron => Result.getOrThrow(parse(cron, tz))
+export const parseUnsafe = (cron: string, tz?: DateTime.TimeZone | string): Cron => Result.getOrThrow(parse(cron, tz))
 
 /**
  * Checks if a given date/time falls within an active Cron time window.
@@ -514,7 +514,7 @@ export const unsafeParse = (cron: string, tz?: DateTime.TimeZone | string): Cron
  * @category utils
  */
 export const match = (cron: Cron, date: DateTime.DateTime.Input): boolean => {
-  const parts = dateTime.unsafeMakeZoned(date, {
+  const parts = dateTime.makeZonedUnsafe(date, {
     timeZone: Option.getOrUndefined(cron.tz)
   }).pipe(dateTime.toParts)
 
@@ -581,13 +581,13 @@ const daysInMonth = (date: Date): number =>
  */
 export const next = (cron: Cron, now?: DateTime.DateTime.Input): Date => {
   const tz = Option.getOrUndefined(cron.tz)
-  const zoned = dateTime.unsafeMakeZoned(now ?? new Date(), {
+  const zoned = dateTime.makeZonedUnsafe(now ?? new Date(), {
     timeZone: tz
   })
 
   const utc = tz !== undefined && dateTime.isTimeZoneNamed(tz) && tz.id === "UTC"
   const adjustDst = utc ? constVoid : (current: Date) => {
-    const adjusted = dateTime.unsafeMakeZoned(current, {
+    const adjusted = dateTime.makeZonedUnsafe(current, {
       timeZone: zoned.zone,
       adjustForTimeZone: true
     }).pipe(dateTime.toDate)

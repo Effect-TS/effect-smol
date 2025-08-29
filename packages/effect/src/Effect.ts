@@ -5777,7 +5777,7 @@ export interface Semaphore {
  * ```ts
  * import { Effect } from "effect"
  *
- * const semaphore = Effect.unsafeMakeSemaphore(3)
+ * const semaphore = Effect.makeSemaphoreUnsafe(3)
  *
  * const task = (id: number) =>
  *   semaphore.withPermits(1)(
@@ -5797,7 +5797,7 @@ export interface Semaphore {
  * @since 2.0.0
  * @category Semaphore
  */
-export const unsafeMakeSemaphore: (permits: number) => Semaphore = internal.unsafeMakeSemaphore
+export const makeSemaphoreUnsafe: (permits: number) => Semaphore = internal.makeSemaphoreUnsafe
 
 /**
  * Creates a new Semaphore.
@@ -5854,7 +5854,7 @@ export interface Latch {
   /** open the latch, releasing all fibers waiting on it */
   readonly open: Effect<boolean>
   /** open the latch, releasing all fibers waiting on it */
-  readonly unsafeOpen: () => boolean
+  readonly openUnsafe: () => boolean
   /** release all fibers waiting on the latch, without opening it */
   readonly release: Effect<boolean>
   /** wait for the latch to be opened */
@@ -5862,7 +5862,7 @@ export interface Latch {
   /** close the latch */
   readonly close: Effect<boolean>
   /** close the latch */
-  readonly unsafeClose: () => boolean
+  readonly closeUnsafe: () => boolean
   /** only run the given effect when the latch is open */
   readonly whenOpen: <A, E, R>(self: Effect<A, E, R>) => Effect<A, E, R>
 }
@@ -5874,7 +5874,7 @@ export interface Latch {
  * ```ts
  * import { Effect } from "effect"
  *
- * const latch = Effect.unsafeMakeLatch(false)
+ * const latch = Effect.makeLatchUnsafe(false)
  *
  * const waiter = Effect.gen(function* () {
  *   yield* Effect.log("Waiting for latch to open...")
@@ -5894,7 +5894,7 @@ export interface Latch {
  * @category Latch
  * @since 3.8.0
  */
-export const unsafeMakeLatch: (open?: boolean | undefined) => Latch = internal.unsafeMakeLatch
+export const makeLatchUnsafe: (open?: boolean | undefined) => Latch = internal.makeLatchUnsafe
 
 /**
  * Creates a new Latch.
@@ -6869,14 +6869,14 @@ export const request: {
  * @since 4.0.0
  * @category requests & batching
  */
-export const unsafeRequest: <A extends Request.Any>(
+export const requestUnsafe: <A extends Request.Any>(
   self: A,
   options: {
     readonly resolver: RequestResolver<A>
     readonly onExit: (exit: Exit.Exit<Request.Success<A>, Request.Error<A>>) => void
     readonly services: ServiceMap.ServiceMap<never>
   }
-) => () => void = internalRequest.unsafeRequest
+) => () => void = internalRequest.requestUnsafe
 
 // -----------------------------------------------------------------------------
 // Supervision & Fiber's
@@ -10682,9 +10682,9 @@ export const trackDuration: {
     f: ((duration: Duration.Duration) => Input) | undefined
   ): Effect<A, E, R> =>
     clockWith((clock) => {
-      const startTime = clock.unsafeCurrentTimeNanos()
+      const startTime = clock.currentTimeNanosUnsafe()
       return onExit(self, () => {
-        const endTime = clock.unsafeCurrentTimeNanos()
+        const endTime = clock.currentTimeNanosUnsafe()
         const duration = Duration.subtract(endTime, startTime)
         const input = f === undefined ? duration : internalCall(() => f(duration))
         return Metric.update(metric, input as any)
@@ -10806,8 +10806,8 @@ export const atomicWith = <A, E, R>(
 ): Effect<A, E, Exclude<R, Transaction>> =>
   withFiber((fiber) => {
     // Check if transaction already exists and reuse it (composing behavior)
-    if (fiber.services.unsafeMap.has(Transaction.key)) {
-      return internalCall(() => f(ServiceMap.unsafeGet(fiber.services, Transaction))) as Effect<
+    if (fiber.services.mapUnsafe.has(Transaction.key)) {
+      return internalCall(() => f(ServiceMap.getUnsafe(fiber.services, Transaction))) as Effect<
         A,
         E,
         Exclude<R, Transaction>

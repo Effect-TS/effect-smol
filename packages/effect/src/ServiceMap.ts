@@ -199,7 +199,7 @@ const KeyProto: any = {
     }
   },
   asEffect(this: any) {
-    const fn = this.asEffect = constant(withFiber((fiber) => exitSucceed(unsafeGet(fiber.services, this))))
+    const fn = this.asEffect = constant(withFiber((fiber) => exitSucceed(getUnsafe(fiber.services, this))))
     return fn()
   },
   of<Service>(self: Service): Service {
@@ -387,7 +387,7 @@ export interface ServiceMap<in Services> extends Equal.Equal, Pipeable, Inspecta
   readonly [TypeId]: {
     readonly _Services: Types.Contravariant<Services>
   }
-  readonly unsafeMap: ReadonlyMap<string, any>
+  readonly mapUnsafe: ReadonlyMap<string, any>
 }
 
 /**
@@ -403,16 +403,16 @@ export interface ServiceMap<in Services> extends Equal.Equal, Pipeable, Inspecta
  *   { log: (msg: string) => console.log(msg) }
  * ]])
  *
- * const services = ServiceMap.unsafeMake(map)
+ * const services = ServiceMap.makeUnsafe(map)
  * ```
  */
-export const unsafeMake = <Services = never>(unsafeMap: ReadonlyMap<string, any>): ServiceMap<Services> => {
+export const makeUnsafe = <Services = never>(mapUnsafe: ReadonlyMap<string, any>): ServiceMap<Services> => {
   const self = Object.create(Proto)
-  self.unsafeMap = unsafeMap
+  self.mapUnsafe = mapUnsafe
   return self
 }
 
-const Proto: Omit<ServiceMap<never>, "unsafeMap"> = {
+const Proto: Omit<ServiceMap<never>, "mapUnsafe"> = {
   ...PipeInspectableProto,
   [TypeId]: {
     _Services: (_: never) => _
@@ -420,18 +420,18 @@ const Proto: Omit<ServiceMap<never>, "unsafeMap"> = {
   toJSON(this: ServiceMap<never>) {
     return {
       _id: "ServiceMap",
-      services: Array.from(this.unsafeMap).map(([key, value]) => ({ key, value }))
+      services: Array.from(this.mapUnsafe).map(([key, value]) => ({ key, value }))
     }
   },
   [Equal.symbol]<A>(this: ServiceMap<A>, that: unknown): boolean {
     if (
       !isServiceMap(that)
-      || this.unsafeMap.size !== that.unsafeMap.size
+      || this.mapUnsafe.size !== that.mapUnsafe.size
     ) return false
-    for (const k of this.unsafeMap.keys()) {
+    for (const k of this.mapUnsafe.keys()) {
       if (
-        !that.unsafeMap.has(k) ||
-        !Equal.equals(this.unsafeMap.get(k), that.unsafeMap.get(k))
+        !that.mapUnsafe.has(k) ||
+        !Equal.equals(this.mapUnsafe.get(k), that.mapUnsafe.get(k))
       ) {
         return false
       }
@@ -439,7 +439,7 @@ const Proto: Omit<ServiceMap<never>, "unsafeMap"> = {
     return true
   },
   [Hash.symbol]<A>(this: ServiceMap<A>): number {
-    return Hash.cached(this, () => Hash.number(this.unsafeMap.size))
+    return Hash.cached(this, () => Hash.number(this.mapUnsafe.size))
   }
 }
 
@@ -513,7 +513,7 @@ export const isReference = (u: unknown): u is Reference<any> => hasProperty(u, R
  * @category Constructors
  */
 export const empty = (): ServiceMap<never> => emptyServiceMap
-const emptyServiceMap = unsafeMake(new Map())
+const emptyServiceMap = makeUnsafe(new Map())
 
 /**
  * Creates a new `ServiceMap` with a single service associated to the key.
@@ -536,7 +536,7 @@ const emptyServiceMap = unsafeMake(new Map())
 export const make = <I, S>(
   key: Key<I, S>,
   service: Types.NoInfer<S>
-): ServiceMap<I> => unsafeMake(new Map([[key.key, service]]))
+): ServiceMap<I> => makeUnsafe(new Map([[key.key, service]]))
 
 /**
  * Adds a service to a given `ServiceMap`.
@@ -579,9 +579,9 @@ export const add: {
   key: Key<I, S>,
   service: Types.NoInfer<S>
 ): ServiceMap<Services | I> => {
-  const map = new Map(self.unsafeMap)
+  const map = new Map(self.mapUnsafe)
   map.set(key.key, service)
-  return unsafeMake(map)
+  return makeUnsafe(map)
 })
 
 /**
@@ -612,8 +612,8 @@ export const getOrElse: {
   <S, I, B>(key: Key<I, S>, orElse: LazyArg<B>): <Services>(self: ServiceMap<Services>) => S | B
   <Services, S, I, B>(self: ServiceMap<Services>, key: Key<I, S>, orElse: LazyArg<B>): S | B
 } = dual(3, <Services, S, I, B>(self: ServiceMap<Services>, key: Key<I, S>, orElse: LazyArg<B>): S | B => {
-  if (self.unsafeMap.has(key.key)) {
-    return self.unsafeMap.get(key.key)! as any
+  if (self.mapUnsafe.has(key.key)) {
+    return self.mapUnsafe.get(key.key)! as any
   }
   return isReference(key) ? getDefaultValue(key) : orElse()
 })
@@ -637,24 +637,24 @@ export const getOrElse: {
  *
  * const Services = ServiceMap.make(Port, { PORT: 8080 })
  *
- * assert.deepStrictEqual(ServiceMap.unsafeGet(Services, Port), { PORT: 8080 })
- * assert.throws(() => ServiceMap.unsafeGet(Services, Timeout))
+ * assert.deepStrictEqual(ServiceMap.getUnsafe(Services, Port), { PORT: 8080 })
+ * assert.throws(() => ServiceMap.getUnsafe(Services, Timeout))
  * ```
  *
  * @since 4.0.0
  * @category unsafe
  */
-export const unsafeGet: {
+export const getUnsafe: {
   <S, I>(key: Key<I, S>): <Services>(self: ServiceMap<Services>) => S
   <Services, S, I>(self: ServiceMap<Services>, key: Key<I, S>): S
 } = dual(
   2,
   <Services, I extends Services, S>(self: ServiceMap<Services>, key: Key<I, S>): S => {
-    if (!self.unsafeMap.has(key.key)) {
+    if (!self.mapUnsafe.has(key.key)) {
       if (ReferenceTypeId in key) return getDefaultValue(key as any)
       throw serviceNotFoundError(key)
     }
-    return self.unsafeMap.get(key.key)! as any
+    return self.mapUnsafe.get(key.key)! as any
   }
 )
 
@@ -669,7 +669,7 @@ export const unsafeGet: {
  * })
  *
  * const services = ServiceMap.empty()
- * const logger = ServiceMap.unsafeGetReference(services, LoggerRef)
+ * const logger = ServiceMap.getReferenceUnsafe(services, LoggerRef)
  *
  * assert.deepStrictEqual(logger, { log: (msg: string) => console.log(msg) })
  * ```
@@ -677,11 +677,11 @@ export const unsafeGet: {
  * @since 4.0.0
  * @category unsafe
  */
-export const unsafeGetReference = <Services, S>(self: ServiceMap<Services>, key: Reference<S>): S => {
-  if (!self.unsafeMap.has(key.key)) {
+export const getReferenceUnsafe = <Services, S>(self: ServiceMap<Services>, key: Reference<S>): S => {
+  if (!self.mapUnsafe.has(key.key)) {
     return getDefaultValue(key as any)
   }
-  return self.unsafeMap.get(key.key)! as any
+  return self.mapUnsafe.get(key.key)! as any
 }
 
 const defaultValueCacheKey = "~effect/ServiceMap/defaultValue"
@@ -742,7 +742,7 @@ const serviceNotFoundError = (key: Key<any, any>) => {
 export const get: {
   <Services, I extends Services, S>(key: Key<I, S>): (self: ServiceMap<Services>) => S
   <Services, I extends Services, S>(self: ServiceMap<Services>, key: Key<I, S>): S
-} = unsafeGet
+} = getUnsafe
 
 /**
  * Get the value associated with the specified key from the context wrapped in an `Option` object. If the key is not
@@ -773,8 +773,8 @@ export const getOption: {
   <S, I>(key: Key<I, S>): <Services>(self: ServiceMap<Services>) => Option.Option<S>
   <Services, S, I>(self: ServiceMap<Services>, key: Key<I, S>): Option.Option<S>
 } = dual(2, <Services, I extends Services, S>(self: ServiceMap<Services>, key: Key<I, S>): Option.Option<S> => {
-  if (self.unsafeMap.has(key.key)) {
-    return Option.some(self.unsafeMap.get(key.key)! as any)
+  if (self.mapUnsafe.has(key.key)) {
+    return Option.some(self.mapUnsafe.get(key.key)! as any)
   }
   return isReference(key) ? Option.some(getDefaultValue(key as any)) : Option.none()
 })
@@ -809,13 +809,13 @@ export const merge: {
   <R1>(that: ServiceMap<R1>): <Services>(self: ServiceMap<Services>) => ServiceMap<R1 | Services>
   <Services, R1>(self: ServiceMap<Services>, that: ServiceMap<R1>): ServiceMap<Services | R1>
 } = dual(2, <Services, R1>(self: ServiceMap<Services>, that: ServiceMap<R1>): ServiceMap<Services | R1> => {
-  if (self.unsafeMap.size === 0) return that as any
-  if (that.unsafeMap.size === 0) return self as any
-  const map = new Map(self.unsafeMap)
-  for (const [key, value] of that.unsafeMap) {
+  if (self.mapUnsafe.size === 0) return that as any
+  if (that.mapUnsafe.size === 0) return self as any
+  const map = new Map(self.mapUnsafe)
+  for (const [key, value] of that.mapUnsafe) {
     map.set(key, value)
   }
-  return unsafeMake(map)
+  return makeUnsafe(map)
 })
 
 /**
@@ -854,12 +854,12 @@ export const pick = <Keys extends ReadonlyArray<Key<any, any>>>(
 <Services>(self: ServiceMap<Services>): ServiceMap<Services & Key.Identifier<Keys[number]>> => {
   const map = new Map<string, any>()
   const keySet = new Set(keys.map((key) => key.key))
-  for (const [key, value] of self.unsafeMap) {
+  for (const [key, value] of self.mapUnsafe) {
     if (keySet.has(key)) {
       map.set(key, value)
     }
   }
-  return unsafeMake(map)
+  return makeUnsafe(map)
 }
 
 /**
@@ -891,11 +891,11 @@ export const omit = <Keys extends ReadonlyArray<Key<any, any>>>(
   ...keys: Keys
 ) =>
 <Services>(self: ServiceMap<Services>): ServiceMap<Exclude<Services, Key.Identifier<Keys[number]>>> => {
-  const map = new Map(self.unsafeMap)
+  const map = new Map(self.mapUnsafe)
   for (const key of keys) {
     map.delete(key.key)
   }
-  return unsafeMake(map)
+  return makeUnsafe(map)
 }
 
 /**

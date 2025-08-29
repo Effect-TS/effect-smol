@@ -313,7 +313,7 @@ const make = Effect.gen(function*() {
       Effect.forkIn(shardingScope)
     )
 
-    const releaseShardsLock = Effect.unsafeMakeSemaphore(1).withPermits(1)
+    const releaseShardsLock = Effect.makeSemaphoreUnsafe(1).withPermits(1)
     const releaseShards = releaseShardsLock(
       Effect.suspend(() =>
         Effect.forEach(
@@ -347,7 +347,7 @@ const make = Effect.gen(function*() {
 
   const singletons = new Map<ShardId, MutableHashMap.MutableHashMap<SingletonAddress, Effect.Effect<void>>>()
   const singletonFibers = yield* FiberMap.make<SingletonAddress>()
-  const withSingletonLock = Effect.unsafeMakeSemaphore(1).withPermits(1)
+  const withSingletonLock = Effect.makeSemaphoreUnsafe(1).withPermits(1)
 
   const registerSingleton: Sharding["Service"]["registerSingleton"] = Effect.fnUntraced(
     function*(name, run, options) {
@@ -391,7 +391,7 @@ const make = Effect.gen(function*() {
   const syncSingletons = withSingletonLock(Effect.gen(function*() {
     for (const [shardId, map] of singletons) {
       for (const [address, run] of map) {
-        const running = FiberMap.unsafeHas(singletonFibers, address)
+        const running = FiberMap.hasUnsafe(singletonFibers, address)
         const shouldBeRunning = MutableHashSet.has(acquiredShards, shardId)
         if (running && !shouldBeRunning) {
           yield* Effect.logDebug("Stopping singleton", address)
@@ -410,7 +410,7 @@ const make = Effect.gen(function*() {
   const storageReadLatch = yield* Effect.makeLatch(true)
   const openStorageReadLatch = constant(Effect.asVoid(storageReadLatch.open))
 
-  const storageReadLock = Effect.unsafeMakeSemaphore(1)
+  const storageReadLock = Effect.makeSemaphoreUnsafe(1)
   const withStorageReadLock = storageReadLock.withPermits(1)
 
   let storageAlreadyProcessed = (_message: Message.IncomingRequest<any>) => true
@@ -445,7 +445,7 @@ const make = Effect.gen(function*() {
 
         // if we get notified of a change, ensure we start a read immediately
         // next iteration
-        storageReadLatch.unsafeClose()
+        storageReadLatch.closeUnsafe()
 
         // the lock is used to ensure resuming entities have a garantee that no
         // more items are added to the unprocessed set while the semaphore is
@@ -474,7 +474,7 @@ const make = Effect.gen(function*() {
             if (!state) {
               if (message._tag === "IncomingRequest") {
                 return Effect.orDie(message.respond(Reply.ReplyWithContext.fromDefect({
-                  id: snowflakeGen.unsafeNext(),
+                  id: snowflakeGen.nextUnsafe(),
                   requestId: message.envelope.requestId,
                   defect: new EntityNotManagedByRunner({ address })
                 })))
@@ -510,7 +510,7 @@ const make = Effect.gen(function*() {
             // if we get a defect, then update storage
             if (Filter.isFail(error)) {
               return storage.saveReply(Reply.ReplyWithContext.fromDefect({
-                id: snowflakeGen.unsafeNext(),
+                id: snowflakeGen.nextUnsafe(),
                 requestId: message.envelope.requestId,
                 defect: Cause.squash(cause)
               }))
@@ -534,7 +534,7 @@ const make = Effect.gen(function*() {
         yield* storageReadLock.release(1)
 
         while (sentRequestIdSets.size > 30) {
-          const oldest = Iterable.unsafeHead(sentRequestIdSets)
+          const oldest = Iterable.headUnsafe(sentRequestIdSets)
           sentRequestIdSets.delete(oldest)
           for (const id of oldest) {
             sentRequestIds.delete(id)
@@ -953,13 +953,13 @@ const make = Effect.gen(function*() {
       spanPrefix: `${entity.type}.client`,
       disableTracing: !ServiceMap.get(entity.protocol.annotations, ClusterSchema.ClientTracingEnabled),
       supportsAck: true,
-      generateRequestId: () => RequestId(snowflakeGen.unsafeNext()),
+      generateRequestId: () => RequestId(snowflakeGen.nextUnsafe()),
       flatten: true,
       onFromClient(options): Effect.Effect<
         void,
         MailboxFull | AlreadyProcessingMessage | EntityNotManagedByRunner | PersistenceError
       > {
-        const address = ServiceMap.unsafeGet(options.context, ClientAddressTag)
+        const address = ServiceMap.getUnsafe(options.context, ClientAddressTag)
         switch (options.message._tag) {
           case "Request": {
             const fiber = Fiber.getCurrent()!
@@ -1003,7 +1003,7 @@ const make = Effect.gen(function*() {
             return sendOutgoing(
               new Message.OutgoingEnvelope({
                 envelope: new Envelope.AckChunk({
-                  id: snowflakeGen.unsafeNext(),
+                  id: snowflakeGen.nextUnsafe(),
                   address,
                   requestId,
                   replyId: entry.lastChunkId!
@@ -1031,7 +1031,7 @@ const make = Effect.gen(function*() {
             return Effect.ignore(sendOutgoing(
               new Message.OutgoingEnvelope({
                 envelope: new Envelope.Interrupt({
-                  id: snowflakeGen.unsafeNext(),
+                  id: snowflakeGen.nextUnsafe(),
                   address,
                   requestId
                 }),

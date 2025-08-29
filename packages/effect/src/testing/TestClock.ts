@@ -107,7 +107,7 @@ export interface TestClock extends Clock.Clock {
  *   })
  *
  *   // Access the current state
- *   const currentTime = testClock.unsafeCurrentTimeMillis()
+ *   const currentTime = testClock.currentTimeMillisUnsafe()
  *   console.log(currentTime) // 0 (starts at epoch)
  * })
  * ```
@@ -154,7 +154,7 @@ export declare namespace TestClock {
    *   const testClock = yield* TestClock.make()
    *
    *   // The state represents the current timestamp and scheduled sleeps
-   *   const timestamp = testClock.unsafeCurrentTimeMillis()
+   *   const timestamp = testClock.currentTimeMillisUnsafe()
    *   console.log(timestamp) // Current test time
    *
    *   // Internal state structure: { timestamp: number, sleeps: Array<[number, Effect.Latch]> }
@@ -206,7 +206,7 @@ const SleepOrder = Order.reverse(Order.struct({
  *
  *   // Use the TestClock to control time in tests
  *   yield* testClock.adjust("1 hour")
- *   const currentTime = testClock.unsafeCurrentTimeMillis()
+ *   const currentTime = testClock.currentTimeMillisUnsafe()
  *   console.log(currentTime) // Time advanced by 1 hour
  * })
  * ```
@@ -230,16 +230,16 @@ export const make = Effect.fnUntraced(function*(
   let currentTimestamp: number = new Date(0).getTime()
   let warningState: WarningState = WarningState.Start()
 
-  function unsafeCurrentTimeMillis(): number {
+  function currentTimeMillisUnsafe(): number {
     return currentTimestamp
   }
 
-  function unsafeCurrentTimeNanos(): bigint {
+  function currentTimeNanosUnsafe(): bigint {
     return BigInt(currentTimestamp * 1000000)
   }
 
-  const currentTimeMillis = Effect.sync(unsafeCurrentTimeMillis)
-  const currentTimeNanos = Effect.sync(unsafeCurrentTimeNanos)
+  const currentTimeMillis = Effect.sync(currentTimeMillisUnsafe)
+  const currentTimeNanos = Effect.sync(currentTimeNanosUnsafe)
 
   function withLive<A, E, R>(effect: Effect.Effect<A, E, R>) {
     return Effect.provideService(effect, Clock.Clock, liveClock)
@@ -294,7 +294,7 @@ export const make = Effect.fnUntraced(function*(
     const millis = Duration.toMillis(duration)
     const end = currentTimestamp + millis
     if (end <= currentTimestamp) return
-    const latch = Effect.unsafeMakeLatch()
+    const latch = Effect.makeLatchUnsafe()
     sleeps.push({
       sequence: sequence++,
       timestamp: end,
@@ -331,8 +331,8 @@ export const make = Effect.fnUntraced(function*(
   yield* Effect.addFinalizer(() => warningDone)
 
   return {
-    unsafeCurrentTimeMillis,
-    unsafeCurrentTimeNanos,
+    currentTimeMillisUnsafe,
+    currentTimeNanosUnsafe,
     currentTimeMillis,
     currentTimeNanos,
     adjust,
@@ -382,7 +382,7 @@ export const layer: (options?: TestClock.Options) => Layer.Layer<TestClock> = La
  * const program = Effect.gen(function*() {
  *   // Use testClockWith to access the TestClock instance
  *   const currentTime = yield* TestClock.testClockWith((testClock) =>
- *     Effect.succeed(testClock.unsafeCurrentTimeMillis())
+ *     Effect.succeed(testClock.currentTimeMillisUnsafe())
  *   )
  *
  *   // Adjust time using the TestClock instance

@@ -697,7 +697,7 @@ export const getHash = dual<
 })
 
 /** @internal */
-export const unsafeGet = dual<
+export const getUnsafe = dual<
   <K1 extends K, K>(key: K1) => <V>(self: HashMap<K, V>) => V,
   <K1 extends K, K, V>(self: HashMap<K, V>, key: K1) => V
 >(2, <K, V>(self: HashMap<K, V>, key: K): V => {
@@ -705,7 +705,7 @@ export const unsafeGet = dual<
   if (Option.isSome(result)) {
     return result.value
   }
-  throw new Error("HashMap.unsafeGet: key not found")
+  throw new Error("HashMap.getUnsafe: key not found")
 })
 
 /** @internal */

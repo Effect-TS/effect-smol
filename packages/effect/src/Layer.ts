@@ -309,8 +309,8 @@ class MemoMapImpl implements MemoMap {
         entry.effect
       )
     }
-    const layerScope = Scope.unsafeMake()
-    const deferred = Deferred.unsafeMake<ServiceMap.ServiceMap<ROut>, E>()
+    const layerScope = Scope.makeUnsafe()
+    const deferred = Deferred.makeUnsafe<ServiceMap.ServiceMap<ROut>, E>()
     const entry = {
       observers: 1,
       effect: Deferred.await(deferred),
@@ -348,7 +348,7 @@ class MemoMapImpl implements MemoMap {
  *
  * // Create a memo map for manual layer building
  * const program = Effect.gen(function* () {
- *   const memoMap = Layer.unsafeMakeMemoMap()
+ *   const memoMap = Layer.makeMemoMapUnsafe()
  *   const scope = yield* Effect.scope
  *
  *   const dbLayer = Layer.succeed(Database)({ query: (sql: string) => Effect.succeed("result") })
@@ -361,7 +361,7 @@ class MemoMapImpl implements MemoMap {
  * @since 4.0.0
  * @category memo map
  */
-export const unsafeMakeMemoMap = (): MemoMap => new MemoMapImpl()
+export const makeMemoMapUnsafe = (): MemoMap => new MemoMapImpl()
 
 /**
  * Constructs a `MemoMap` that can be used to build additional layers.
@@ -389,7 +389,7 @@ export const unsafeMakeMemoMap = (): MemoMap => new MemoMapImpl()
  * @since 2.0.0
  * @category memo map
  */
-export const makeMemoMap: Effect<MemoMap> = internalEffect.sync(unsafeMakeMemoMap)
+export const makeMemoMap: Effect<MemoMap> = internalEffect.sync(makeMemoMapUnsafe)
 
 /**
  * A service reference for the current `MemoMap` used in layer construction.
@@ -410,7 +410,7 @@ export const makeMemoMap: Effect<MemoMap> = internalEffect.sync(unsafeMakeMemoMa
  * @category models
  */
 export const CurrentMemoMap = ServiceMap.Reference<MemoMap>("effect/Layer/CurrentMemoMap", {
-  defaultValue: unsafeMakeMemoMap
+  defaultValue: makeMemoMapUnsafe
 })
 
 /**
@@ -502,7 +502,7 @@ export const buildWithMemoMap: {
 export const build = <RIn, E, ROut>(
   self: Layer<ROut, E, RIn>
 ): Effect<ServiceMap.ServiceMap<ROut>, E, RIn | Scope.Scope> =>
-  internalEffect.flatMap(internalEffect.scope, (scope) => self.build(unsafeMakeMemoMap(), scope))
+  internalEffect.flatMap(internalEffect.scope, (scope) => self.build(makeMemoMapUnsafe(), scope))
 
 /**
  * Builds a layer into an `Effect` value. Any resources associated with this
@@ -548,7 +548,7 @@ export const buildWithScope: {
 } = dual(2, <RIn, E, ROut>(
   self: Layer<ROut, E, RIn>,
   scope: Scope.Scope
-): Effect<ServiceMap.ServiceMap<ROut>, E, RIn> => internalEffect.suspend(() => self.build(unsafeMakeMemoMap(), scope)))
+): Effect<ServiceMap.ServiceMap<ROut>, E, RIn> => internalEffect.suspend(() => self.build(makeMemoMapUnsafe(), scope)))
 
 /**
  * Constructs a layer from the specified value.
@@ -835,11 +835,11 @@ const mergeAllEffect = <Layers extends [Layer<never, any, any>, ...Array<Layer<n
     internalEffect.map((contexts) => {
       const map = new Map<string, any>()
       for (const context of contexts) {
-        for (const [key, value] of context.unsafeMap) {
+        for (const [key, value] of context.mapUnsafe) {
           map.set(key, value)
         }
       }
-      return ServiceMap.unsafeMake(map)
+      return ServiceMap.makeUnsafe(map)
     })
   )
 
@@ -1453,7 +1453,7 @@ export const updateService: {
  * @category utils
  */
 export const fresh = <A, E, R>(self: Layer<A, E, R>): Layer<A, E, R> =>
-  fromBuildUnsafe((_, scope) => self.build(unsafeMakeMemoMap(), scope))
+  fromBuildUnsafe((_, scope) => self.build(makeMemoMapUnsafe(), scope))
 
 /**
  * Builds this layer and uses it until it is interrupted. This is useful when

@@ -70,13 +70,13 @@ export const make = Effect.fnUntraced(
       fetch: handlerStack[0],
       websocket: {
         open(ws) {
-          Deferred.unsafeDone(ws.data.deferred, Exit.succeed(ws))
+          Deferred.doneUnsafe(ws.data.deferred, Exit.succeed(ws))
         },
         message(ws, message) {
           ws.data.run(message)
         },
         close(ws, code, closeReason) {
-          Deferred.unsafeDone(
+          Deferred.doneUnsafe(
             ws.data.closeDeferred,
             Socket.defaultCloseCodeIsError(code)
               ? Exit.fail(new Socket.SocketCloseError({ code, closeReason }))
@@ -100,14 +100,14 @@ export const make = Effect.fnUntraced(
 
         function handler(request: Request, server: BunServer) {
           return new Promise<Response>((resolve, _reject) => {
-            const map = new Map(services.unsafeMap)
+            const map = new Map(services.mapUnsafe)
             map.set(
               ServerRequest.HttpServerRequest.key,
               new BunServerRequest(request, resolve, removeHost(request.url), server)
             )
-            const fiber = Fiber.runIn(Effect.runForkWith(ServiceMap.unsafeMake<any>(map))(httpEffect), scope)
+            const fiber = Fiber.runIn(Effect.runForkWith(ServiceMap.makeUnsafe<any>(map))(httpEffect), scope)
             request.signal.addEventListener("abort", () => {
-              fiber.unsafeInterrupt(Error.clientAbortFiberId)
+              fiber.interruptUnsafe(Error.clientAbortFiberId)
             }, { once: true })
           })
         }
@@ -456,9 +456,9 @@ class BunServerRequest extends Inspectable.Class implements ServerRequest.HttpSe
 
   get upgrade(): Effect.Effect<Socket.Socket, Error.RequestError> {
     return Effect.callback<Socket.Socket, Error.RequestError>((resume) => {
-      const deferred = Deferred.unsafeMake<ServerWebSocket<WebSocketContext>>()
-      const closeDeferred = Deferred.unsafeMake<void, Socket.SocketError>()
-      const semaphore = Effect.unsafeMakeSemaphore(1)
+      const deferred = Deferred.makeUnsafe<ServerWebSocket<WebSocketContext>>()
+      const closeDeferred = Deferred.makeUnsafe<void, Socket.SocketError>()
+      const semaphore = Effect.makeSemaphoreUnsafe(1)
 
       const success = this.bunServer.upgrade<WebSocketContext>(this.source, {
         data: {

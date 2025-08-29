@@ -101,7 +101,7 @@ export const layerRpcHandlers = <
           (client(entityId) as any)[parentRpc._tag](payload, { discard: true }) as any
       } as any)
     }
-    return ServiceMap.unsafeMake(handlers)
+    return ServiceMap.makeUnsafe(handlers)
   }))
 
 /**

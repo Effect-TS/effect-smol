@@ -83,7 +83,7 @@ describe("SqlMessageStorage", () => {
           // duplicate WithExit
           const fiber = yield* storage.saveReply(yield* makeReply(request)).pipe(Effect.fork)
           yield* TestClock.adjust(1)
-          while (!fiber.unsafePoll()) {
+          while (!fiber.pollUnsafe()) {
             yield* sql`SELECT 1`
             yield* TestClock.adjust(1000)
           }
