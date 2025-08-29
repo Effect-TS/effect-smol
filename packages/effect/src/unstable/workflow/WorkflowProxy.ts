@@ -113,7 +113,7 @@ export type ConvertRpcs<Workflows extends Workflow.Any, Prefix extends string> =
  *
  * // Use WorkflowProxyServer.layerHttpApi to create a layer that implements the
  * // workflows HttpApiGroup
- * const ApiLayer = HttpApiBuilder.api(MyApi).pipe(
+ * const ApiLayer = HttpApiBuilder.layer(MyApi).pipe(
  *   Layer.provide(WorkflowProxyServer.layerHttpApi(MyApi, "workflows", myWorkflows))
  * )
  * ```
