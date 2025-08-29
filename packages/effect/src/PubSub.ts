@@ -32,7 +32,6 @@
  */
 import * as Arr from "./collections/Array.ts"
 import * as MutableList from "./collections/MutableList.ts"
-import * as Option from "./data/Option.ts"
 import * as Deferred from "./Deferred.ts"
 import * as Effect from "./Effect.ts"
 import * as Exit from "./Exit.ts"
@@ -1356,11 +1355,11 @@ import * as Option from "effect/data/Option"
  * @since 4.0.0
  * @category getters
  */
-export const remainingUnsafe = <A>(self: Subscription<A>): Option.Option<number> => {
+export const remainingUnsafe = <A>(self: Subscription<A>): number | undefined => {
   if (self.shutdownFlag.current) {
-    return Option.none()
+    return undefined
   }
-  return Option.some(self.subscription.size() + self.replayWindow.remaining)
+  return self.subscription.size() + self.replayWindow.remaining
 }
 
 // -----------------------------------------------------------------------------
