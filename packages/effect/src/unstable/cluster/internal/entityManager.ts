@@ -357,11 +357,6 @@ export const make = Effect.fnUntraced(function*<
                 )
               }
 
-              console.log("Checking mailbox capacity", {
-                message,
-                mailboxCapacity,
-                current: server.activeRequests.size
-              })
               if (mailboxCapacity !== "unbounded" && server.activeRequests.size >= mailboxCapacity) {
                 return Effect.fail(new MailboxFull({ address: message.envelope.address }))
               }
