@@ -91,7 +91,7 @@ export interface Proto<out N, out E> extends Iterable<readonly [NodeIndex, N]>, 
   readonly reverseAdjacency: Map<NodeIndex, Array<EdgeIndex>>
   nextNodeIndex: NodeIndex
   nextEdgeIndex: EdgeIndex
-  isAcyclic: Option.Option<boolean>
+  isAcyclic: boolean | undefined
 }
 
 /**
@@ -259,7 +259,7 @@ export const directed = <N, E>(mutate?: (mutable: MutableDirectedGraph<N, E>) =>
   graph.reverseAdjacency = new Map()
   graph.nextNodeIndex = 0
   graph.nextEdgeIndex = 0
-  graph.isAcyclic = Option.some(true)
+  graph.isAcyclic = true
   graph.mutable = false
 
   if (mutate) {
@@ -300,7 +300,7 @@ export const undirected = <N, E>(mutate?: (mutable: MutableUndirectedGraph<N, E>
   graph.reverseAdjacency = new Map()
   graph.nextNodeIndex = 0
   graph.nextEdgeIndex = 0
-  graph.isAcyclic = Option.some(true)
+  graph.isAcyclic = true
   graph.mutable = false
 
   if (mutate) {
@@ -893,7 +893,7 @@ export const reverse = <N, E, T extends Kind = "directed">(
   }
 
   // Invalidate cycle flag since edge directions changed
-  mutable.isAcyclic = Option.none()
+  mutable.isAcyclic = undefined
 }
 
 /**
@@ -1103,8 +1103,8 @@ const invalidateCycleFlagOnRemoval = <N, E, T extends Kind = "directed">(
 ): void => {
   // Only invalidate if the graph had cycles (removing edges/nodes cannot introduce cycles in acyclic graphs)
   // If already unknown (null) or acyclic (true), no need to change
-  if (Option.isSome(mutable.isAcyclic) && mutable.isAcyclic.value === false) {
-    mutable.isAcyclic = Option.none()
+  if (mutable.isAcyclic === false) {
+    mutable.isAcyclic = undefined
   }
 }
 
@@ -1114,8 +1114,8 @@ const invalidateCycleFlagOnAddition = <N, E, T extends Kind = "directed">(
 ): void => {
   // Only invalidate if the graph was acyclic (adding edges cannot remove cycles from cyclic graphs)
   // If already unknown (null) or cyclic (false), no need to change
-  if (Option.isSome(mutable.isAcyclic) && mutable.isAcyclic.value === true) {
-    mutable.isAcyclic = Option.none()
+  if (mutable.isAcyclic === true) {
+    mutable.isAcyclic = undefined
   }
 }
 
@@ -1709,8 +1709,8 @@ export const isAcyclic = <N, E, T extends Kind = "directed">(
   graph: Graph<N, E, T> | MutableGraph<N, E, T>
 ): boolean => {
   // Use existing cycle flag if available
-  if (Option.isSome(graph.isAcyclic)) {
-    return graph.isAcyclic.value
+  if (graph.isAcyclic !== undefined) {
+    return graph.isAcyclic
   }
 
   // Stack-safe DFS cycle detection using iterative approach
@@ -1736,7 +1736,7 @@ export const isAcyclic = <N, E, T extends Kind = "directed">(
       if (isFirstVisit) {
         if (recursionStack.has(node)) {
           // Back edge found - cycle detected
-          graph.isAcyclic = Option.some(false)
+          graph.isAcyclic = false
           return false
         }
 
@@ -1761,7 +1761,7 @@ export const isAcyclic = <N, E, T extends Kind = "directed">(
 
         if (recursionStack.has(neighbor)) {
           // Back edge found - cycle detected
-          graph.isAcyclic = Option.some(false)
+          graph.isAcyclic = false
           return false
         }
 
@@ -1777,7 +1777,7 @@ export const isAcyclic = <N, E, T extends Kind = "directed">(
   }
 
   // Cache the result
-  graph.isAcyclic = Option.some(true)
+  graph.isAcyclic = true
   return true
 }
 
