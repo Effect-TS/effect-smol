@@ -422,7 +422,7 @@ const pushSpanStack = (out: Array<string>, span: Tracer.Span) => {
     } else {
       out.push(`    at ${current.name}`)
     }
-    current = Option.getOrUndefined(current.parent)
+    current = current.parent
     i++
   }
 }
@@ -4229,16 +4229,17 @@ const NoopSpanProto: Omit<Tracer.Span, "parent" | "name" | "context"> = {
 /** @internal */
 export const noopSpan = (options: {
   readonly name: string
-  readonly parent: Option.Option<Tracer.AnySpan>
+  readonly parent: Tracer.AnySpan | undefined
   readonly context: ServiceMap.ServiceMap<never>
 }): Tracer.Span => Object.assign(Object.create(NoopSpanProto), options)
 
-const filterDisablePropagation: (self: Option.Option<Tracer.AnySpan>) => Option.Option<Tracer.AnySpan> = Option.flatMap(
-  (span) =>
-    ServiceMap.get(span.context, Tracer.DisablePropagation)
-      ? span._tag === "Span" ? filterDisablePropagation(span.parent) : Option.none()
-      : Option.some(span)
-)
+const filterDisablePropagation = (span: Tracer.AnySpan | undefined): Tracer.AnySpan | undefined => {
+  if (span) {
+    return ServiceMap.get(span.context, Tracer.DisablePropagation)
+      ? span._tag === "Span" ? filterDisablePropagation(span.parent) : undefined
+      : span
+  }
+}
 
 /** @internal */
 export const spanToTrace = new WeakMap<Tracer.Span, LazyArg<string | undefined>>()
@@ -4251,11 +4252,7 @@ export const makeSpanUnsafe = <XA, XE>(
 ) => {
   const disablePropagation = !fiber.getRef(TracerEnabled) ||
     (options.context && ServiceMap.get(options.context, Tracer.DisablePropagation))
-  const parent = options.parent
-    ? Option.some(options.parent)
-    : options.root
-    ? Option.none()
-    : filterDisablePropagation(Option.fromUndefinedOr(fiber.currentSpan))
+  const parent = options.parent ?? (options.root ? undefined : filterDisablePropagation(fiber.currentSpan))
 
   let span: Tracer.Span
 

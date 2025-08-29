@@ -150,7 +150,7 @@ const SpanProto = {
 
 const makeSpan = (options: {
   readonly name: string
-  readonly parent: Option.Option<Tracer.AnySpan>
+  readonly parent: Tracer.AnySpan | undefined
   readonly context: ServiceMap.ServiceMap<never>
   readonly status: Tracer.SpanStatus
   readonly attributes: ReadonlyMap<string, unknown>
@@ -246,7 +246,7 @@ const makeOtlpSpan = (self: SpanImpl): OtlpSpan => {
   return {
     traceId: self.traceId,
     spanId: self.spanId,
-    parentSpanId: Option.isSome(self.parent) ? self.parent.value.spanId : undefined,
+    parentSpanId: self.parent ? self.parent.spanId : undefined,
     name: self.name,
     kind: SpanKind[self.kind],
     startTimeUnixNano: String(status.startTime),
