@@ -90,8 +90,8 @@ export type ConvertRpcs<Workflows extends Workflow.Any, Prefix extends string> =
  * Derives an `HttpApiGroup` from a list of workflows.
  *
  * ```ts
- * import { HttpApi, HttpApiBuilder } from "@effect/platform"
- * import { Workflow, WorkflowProxy, WorkflowProxyServer } from "@effect/workflow"
+ * import { HttpApi, HttpApiBuilder } from "effect/unstable/httpapi"
+ * import { Workflow, WorkflowProxy, WorkflowProxyServer } from "effect/unstable/workflow"
  * import { Layer, Schema } from "effect"
  *
  * const EmailWorkflow = Workflow.make({

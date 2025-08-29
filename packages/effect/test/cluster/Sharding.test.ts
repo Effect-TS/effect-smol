@@ -271,7 +271,7 @@ describe.concurrent("Sharding", () => {
       expect(driver.replyIds.size).toEqual(4)
     }).pipe(Effect.provide(TestSharding)))
 
-  it.effect.only("durable stream while mailbox is full", () =>
+  it.effect("durable stream while mailbox is full", () =>
     Effect.gen(function*() {
       const requestedIds = yield* Queue.make<Array<Snowflake.Snowflake>>()
       yield* Effect.gen(function*() {
