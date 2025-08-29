@@ -462,7 +462,7 @@ const activeSize = <A, E>(self: Pool<A, E>) => {
 const strategyNoop = <A, E>(): Strategy<A, E> => ({
   run: (_) => Effect.void,
   onAcquire: (_) => Effect.void,
-  reclaim: (_) => Effect.succeed(undefined)
+  reclaim: (_) => Effect.undefined
 })
 
 const strategyCreationTTL = Effect.fnUntraced(function*<A, E>(ttl: Duration.DurationInput) {
@@ -494,7 +494,7 @@ const strategyCreationTTL = Effect.fnUntraced(function*<A, E>(ttl: Duration.Dura
         creationTimes.set(item, clock.currentTimeMillisUnsafe())
         return Queue.offer(queue, item)
       }),
-    reclaim: (_) => Effect.succeed(undefined)
+    reclaim: (_) => Effect.undefined
   })
 })
 
@@ -519,13 +519,13 @@ const strategyUsageTTL = Effect.fnUntraced(function*<A, E>(ttl: Duration.Duratio
     reclaim(pool) {
       return Effect.suspend((): Effect.Effect<PoolItem<A, E> | undefined> => {
         if (pool.state.invalidated.size === 0) {
-          return Effect.succeed(undefined)
+          return Effect.undefined
         }
         const item = Iterable.head(
           Iterable.filter(pool.state.invalidated, (item) => !item.disableReclaim)
         )
         if (item._tag === "None") {
-          return Effect.succeed(undefined)
+          return Effect.undefined
         }
         pool.state.invalidated.delete(item.value)
         if (item.value.refCount < pool.config.concurrency) {

@@ -12,6 +12,11 @@ describe("UndefinedOr", () => {
     strictEqual(UndefinedOr.map(undefined, f), undefined)
   })
 
+  it("match", () => {
+    strictEqual(UndefinedOr.match(1, { onDefined: (a) => a, onUndefined: () => 0 }), 1)
+    strictEqual(UndefinedOr.match(undefined, { onDefined: (a) => a, onUndefined: () => 0 }), 0)
+  })
+
   it("getReducer", () => {
     const R = UndefinedOr.getReducer(Number.ReducerSum)
 

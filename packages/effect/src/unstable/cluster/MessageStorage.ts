@@ -470,7 +470,7 @@ export const makeEncoded: (encoded: Encoded) => Effect.Effect<
     const decodeMessage = Effect.catch(
       Effect.suspend(() => {
         const envelope = envelopes[index]
-        if (!envelope) return Effect.succeed(undefined)
+        if (!envelope) return Effect.undefined
         return decodeEnvelopeWithReply(envelope)
       }),
       (error) => {
