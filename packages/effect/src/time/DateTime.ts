@@ -3,7 +3,6 @@
  */
 import type { IllegalArgumentError } from "../Cause.ts"
 import type * as equivalence from "../data/Equivalence.ts"
-import type * as Option from "../data/Option.ts"
 import type * as order from "../data/Order.ts"
 import type * as Result from "../data/Result.ts"
 import * as Effect from "../Effect.ts"
@@ -568,7 +567,7 @@ export const makeZoned: (
     readonly adjustForTimeZone?: boolean | undefined
     readonly disambiguation?: Disambiguation | undefined
   }
-) => Option.Option<Zoned> = Internal.makeZoned
+) => Zoned | undefined = Internal.makeZoned
 
 /**
  * Create a `DateTime` from one of the following:
@@ -597,7 +596,7 @@ export const makeZoned: (
  * DateTime.make("2024-01-01")
  * ```
  */
-export const make: <A extends DateTime.Input>(input: A) => Option.Option<DateTime.PreserveZone<A>> = Internal.make
+export const make: <A extends DateTime.Input>(input: A) => DateTime.PreserveZone<A> | undefined = Internal.make
 
 /**
  * Create a `DateTime.Zoned` from a string.
@@ -607,22 +606,21 @@ export const make: <A extends DateTime.Input>(input: A) => Option.Option<DateTim
  * @example
  * ```ts
  * import { DateTime } from "effect/time"
- * import { Option } from "effect/data"
  *
  * const result1 = DateTime.makeZonedFromString("2024-01-01T12:00:00+02:00[Europe/Berlin]")
- * console.log(Option.isSome(result1)) // true
+ * console.log(result1 !== undefined) // true
  *
  * const result2 = DateTime.makeZonedFromString("2024-01-01T12:00:00Z")
- * console.log(Option.isSome(result2)) // true
+ * console.log(result2 !== undefined) // true
  *
  * const invalid = DateTime.makeZonedFromString("invalid")
- * console.log(Option.isNone(invalid)) // true
+ * console.log(invalid === undefined) // true
  * ```
  *
  * @since 3.6.0
  * @category constructors
  */
-export const makeZonedFromString: (input: string) => Option.Option<Zoned> = Internal.makeZonedFromString
+export const makeZonedFromString: (input: string) => Zoned | undefined = Internal.makeZonedFromString
 
 /**
  * Get the current time using the `Clock` service and convert it to a `DateTime`.
@@ -814,19 +812,18 @@ export const zoneMakeOffset: (offset: number) => TimeZone.Offset = Internal.zone
  * @example
  * ```ts
  * import { DateTime } from "effect/time"
- * import { Option } from "effect/data"
  *
  * const validZone = DateTime.zoneMakeNamed("Europe/London")
- * console.log(Option.isSome(validZone)) // true
+ * console.log(validZone !== undefined) // true
  *
  * const invalidZone = DateTime.zoneMakeNamed("Invalid/Zone")
- * console.log(Option.isNone(invalidZone)) // true
+ * console.log(invalidZone === undefined) // true
  * ```
  *
  * @category time zones
  * @since 3.6.0
  */
-export const zoneMakeNamed: (zoneId: string) => Option.Option<TimeZone.Named> = Internal.zoneMakeNamed
+export const zoneMakeNamed: (zoneId: string) => TimeZone.Named | undefined = Internal.zoneMakeNamed
 
 /**
  * Create a named time zone from a IANA time zone identifier.
@@ -881,21 +878,20 @@ export const zoneMakeLocal: () => TimeZone.Named = Internal.zoneMakeLocal
  * @example
  * ```ts
  * import { DateTime } from "effect/time"
- * import { Option } from "effect/data"
  *
  * const namedZone = DateTime.zoneFromString("Europe/London")
  * const offsetZone = DateTime.zoneFromString("+03:00")
  * const invalid = DateTime.zoneFromString("invalid")
  *
- * console.log(Option.isSome(namedZone)) // true
- * console.log(Option.isSome(offsetZone)) // true
- * console.log(Option.isNone(invalid)) // true
+ * console.log(namedZone !== undefined) // true
+ * console.log(offsetZone !== undefined) // true
+ * console.log(invalid === undefined) // true
  * ```
  *
  * @category time zones
  * @since 3.6.0
  */
-export const zoneFromString: (zone: string) => Option.Option<TimeZone> = Internal.zoneFromString
+export const zoneFromString: (zone: string) => TimeZone | undefined = Internal.zoneFromString
 
 /**
  * Format a `TimeZone` as a string.
@@ -938,11 +934,11 @@ export const setZoneNamed: {
   (zoneId: string, options?: {
     readonly adjustForTimeZone?: boolean | undefined
     readonly disambiguation?: Disambiguation | undefined
-  }): (self: DateTime) => Option.Option<Zoned>
+  }): (self: DateTime) => Zoned | undefined
   (self: DateTime, zoneId: string, options?: {
     readonly adjustForTimeZone?: boolean | undefined
     readonly disambiguation?: Disambiguation | undefined
-  }): Option.Option<Zoned>
+  }): Zoned | undefined
 } = Internal.setZoneNamed
 
 /**

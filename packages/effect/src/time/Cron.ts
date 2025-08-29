@@ -6,6 +6,7 @@ import * as equivalence from "../data/Equivalence.ts"
 import * as Option from "../data/Option.ts"
 import { hasProperty } from "../data/Predicate.ts"
 import * as Result from "../data/Result.ts"
+import * as UndefinedOr from "../data/UndefinedOr.ts"
 import { constVoid, dual, pipe } from "../Function.ts"
 import * as Equal from "../interfaces/Equal.ts"
 import * as Hash from "../interfaces/Hash.ts"
@@ -446,7 +447,10 @@ export const parse = (cron: string, tz?: DateTime.TimeZone | string): Result.Res
   const [seconds, minutes, hours, days, months, weekdays] = segments
   const zone = tz === undefined || dateTime.isTimeZone(tz) ?
     Result.succeed(tz) :
-    Result.fromOption(dateTime.zoneFromString(tz), () => CronParseError(`Invalid time zone in cron expression`, tz))
+    UndefinedOr.match(dateTime.zoneFromString(tz), {
+      onUndefined: () => Result.fail(CronParseError(`Invalid time zone in cron expression`, tz)),
+      onDefined: (zone) => Result.succeed(zone)
+    })
 
   return Result.all({
     tz: zone,

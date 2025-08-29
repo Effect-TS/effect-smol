@@ -1340,14 +1340,14 @@ import * as Option from "effect/data/Option"
  *
  * // Unsafe synchronous check for remaining messages
  * const remainingOption = PubSub.remainingUnsafe(subscription)
- * if (Option.isSome(remainingOption)) {
- *   console.log("Messages available:", remainingOption.value)
+ * if (remainingOption) {
+ *   console.log("Messages available:", remainingOption)
  * } else {
  *   console.log("Subscription is shutdown")
  * }
  *
  * // Useful for polling or batching scenarios
- * if (Option.isSome(remainingOption) && remainingOption.value > 10) {
+ * if (remainingOption && remainingOption > 10) {
  *   // Process messages in batch
  * }
  * ```

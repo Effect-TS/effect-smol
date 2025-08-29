@@ -1,5 +1,5 @@
 /**
- * @since 0.21.0
+ * @since 4.0.0
  */
 import type * as Cause from "effect/Cause"
 import * as Option from "effect/data/Option"
@@ -17,7 +17,7 @@ import { assert as vassert } from "vitest"
 /**
  * Throws an `AssertionError` with the provided error message.
  *
- * @since 0.21.0
+ * @since 4.0.0
  */
 export function fail(message: string) {
   assert.fail(message)
@@ -26,7 +26,7 @@ export function fail(message: string) {
 /**
  * Asserts that `actual` is equal to `expected` using the `Equal.equals` trait.
  *
- * @since 0.21.0
+ * @since 4.0.0
  */
 export function deepStrictEqual<A>(actual: A, expected: A, message?: string, ..._: Array<never>) {
   assert.deepStrictEqual(actual, expected, message)
@@ -35,7 +35,7 @@ export function deepStrictEqual<A>(actual: A, expected: A, message?: string, ...
 /**
  * Asserts that `actual` is not equal to `expected` using the `Equal.equals` trait.
  *
- * @since 0.21.0
+ * @since 4.0.0
  */
 export function notDeepStrictEqual<A>(actual: A, expected: A, message?: string, ..._: Array<never>) {
   assert.notDeepStrictEqual(actual, expected, message)
@@ -44,7 +44,7 @@ export function notDeepStrictEqual<A>(actual: A, expected: A, message?: string, 
 /**
  * Asserts that `actual` is equal to `expected` using the `Equal.equals` trait.
  *
- * @since 0.21.0
+ * @since 4.0.0
  */
 export function strictEqual<A>(actual: A, expected: A, message?: string, ..._: Array<never>) {
   assert.strictEqual(actual, expected, message)
@@ -53,7 +53,7 @@ export function strictEqual<A>(actual: A, expected: A, message?: string, ..._: A
 /**
  * Asserts that `actual` is equal to `expected` using the `Equal.equals` trait.
  *
- * @since 0.21.0
+ * @since 4.0.0
  */
 export function assertEquals<A>(actual: A, expected: A, message?: string, ..._: Array<never>) {
   if (!Equal.equals(actual, expected)) {
@@ -65,7 +65,7 @@ export function assertEquals<A>(actual: A, expected: A, message?: string, ..._: 
 /**
  * Asserts that `thunk` does not throw an error.
  *
- * @since 0.21.0
+ * @since 4.0.0
  */
 export function doesNotThrow(thunk: () => void, message?: string, ..._: Array<never>) {
   assert.doesNotThrow(thunk, message)
@@ -78,7 +78,7 @@ export function doesNotThrow(thunk: () => void, message?: string, ..._: Array<ne
 /**
  * Asserts that `value` is an instance of `constructor`.
  *
- * @since 0.21.0
+ * @since 4.0.0
  */
 export function assertInstanceOf<C extends abstract new(...args: any) => any>(
   value: unknown,
@@ -92,7 +92,7 @@ export function assertInstanceOf<C extends abstract new(...args: any) => any>(
 /**
  * Asserts that `self` is `true`.
  *
- * @since 0.21.0
+ * @since 4.0.0
  */
 export function assertTrue(self: unknown, message?: string, ..._: Array<never>): asserts self {
   strictEqual(self, true, message)
@@ -101,7 +101,7 @@ export function assertTrue(self: unknown, message?: string, ..._: Array<never>):
 /**
  * Asserts that `self` is `false`.
  *
- * @since 0.21.0
+ * @since 4.0.0
  */
 export function assertFalse(self: boolean, message?: string, ..._: Array<never>) {
   strictEqual(self, false, message)
@@ -110,7 +110,7 @@ export function assertFalse(self: boolean, message?: string, ..._: Array<never>)
 /**
  * Asserts that `actual` includes `expected`.
  *
- * @since 0.21.0
+ * @since 4.0.0
  */
 export function assertInclude(actual: string | undefined, expected: string, ..._: Array<never>) {
   if (Predicate.isString(expected)) {
@@ -123,7 +123,7 @@ export function assertInclude(actual: string | undefined, expected: string, ..._
 /**
  * Asserts that `actual` matches `regexp`.
  *
- * @since 0.21.0
+ * @since 4.0.0
  */
 export function assertMatch(actual: string, regexp: RegExp, ..._: Array<never>) {
   if (!regexp.test(actual)) {
@@ -134,7 +134,7 @@ export function assertMatch(actual: string, regexp: RegExp, ..._: Array<never>) 
 /**
  * Asserts that `thunk` throws an error.
  *
- * @since 0.21.0
+ * @since 4.0.0
  */
 export function throws(thunk: () => void, error?: Error | ((u: unknown) => undefined), ..._: Array<never>) {
   try {
@@ -154,7 +154,7 @@ export function throws(thunk: () => void, error?: Error | ((u: unknown) => undef
 /**
  * Asserts that `thunk` throws an error.
  *
- * @since 0.21.0
+ * @since 4.0.0
  */
 export async function throwsAsync(
   thunk: () => Promise<void>,
@@ -182,16 +182,30 @@ export async function throwsAsync(
 /**
  * Asserts that `option` is `None`.
  *
- * @since 0.21.0
+ * @since 4.0.0
  */
 export function assertNone<A>(option: Option.Option<A>, ..._: Array<never>): asserts option is Option.None<never> {
   deepStrictEqual(option, Option.none())
 }
 
 /**
+ * Asserts that `a` is not `undefined`.
+ *
+ * @since 4.0.0
+ */
+export function assertDefined<A>(
+  a: A | undefined,
+  ..._: Array<never>
+): asserts a is Exclude<A, undefined> {
+  if (a === undefined) {
+    fail("Expected value to be defined")
+  }
+}
+
+/**
  * Asserts that `option` is `Some`.
  *
- * @since 0.21.0
+ * @since 4.0.0
  */
 export function assertSome<A>(
   option: Option.Option<A>,
@@ -208,7 +222,7 @@ export function assertSome<A>(
 /**
  * Asserts that `result` is `Err`.
  *
- * @since 0.21.0
+ * @since 4.0.0
  */
 export function assertOk<A, E>(
   result: Result.Result<A, E>,
@@ -221,7 +235,7 @@ export function assertOk<A, E>(
 /**
  * Asserts that `result` is `Err`.
  *
- * @since 0.21.0
+ * @since 4.0.0
  */
 export function assertErr<A, E>(
   result: Result.Result<A, E>,
@@ -238,7 +252,7 @@ export function assertErr<A, E>(
 /**
  * Asserts that `exit` is a failure.
  *
- * @since 0.21.0
+ * @since 4.0.0
  */
 export function assertFailure<A, E>(
   exit: Exit.Exit<A, E>,
@@ -251,7 +265,7 @@ export function assertFailure<A, E>(
 /**
  * Asserts that `exit` is a success.
  *
- * @since 0.21.0
+ * @since 4.0.0
  */
 export function assertSuccess<A, E>(
   exit: Exit.Exit<A, E>,

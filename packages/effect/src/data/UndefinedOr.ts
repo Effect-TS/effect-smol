@@ -35,6 +35,20 @@ export const match: {
 )
 
 /**
+ * @since 4.0.0
+ */
+export const liftThrowable = <A extends ReadonlyArray<unknown>, B>(
+  f: (...a: A) => B
+): (...a: A) => B | undefined =>
+(...a) => {
+  try {
+    return f(...a)
+  } catch {
+    return undefined
+  }
+}
+
+/**
  * Creates a `Reducer` for `UndefinedOr<A>` that prioritizes the first non-`undefined`
  * value and combines values when both operands are present.
  *
