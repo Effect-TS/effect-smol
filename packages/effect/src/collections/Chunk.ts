@@ -2589,7 +2589,7 @@ export const containsWith: <A>(
  * @example
  * ```ts
  * import { Chunk } from "effect/collections"
-import * as Option from "effect/data/Option"
+ * import * as Option from "effect/data/Option"
  *
  * const chunk = Chunk.make(1, 2, 3, 4, 5)
  * const result = Chunk.findFirst(chunk, (n) => n > 3)
@@ -2622,28 +2622,26 @@ export const findFirst: {
  * @example
  * ```ts
  * import { Chunk } from "effect/collections"
-import * as Option from "effect/data/Option"
  *
  * const chunk = Chunk.make(1, 2, 3, 4, 5)
  * const result = Chunk.findFirstIndex(chunk, (n) => n > 3)
- * console.log(Option.isSome(result)) // true
- * console.log(Option.getOrElse(result, () => -1)) // 3
+ * console.log(result) // 3
  *
  * // No match found
  * const notFound = Chunk.findFirstIndex(chunk, (n) => n > 10)
- * console.log(Option.isNone(notFound)) // true
+ * console.log(notFound) // undefined
  *
  * // Find first even number
  * const firstEven = Chunk.findFirstIndex(chunk, (n) => n % 2 === 0)
- * console.log(Option.getOrElse(firstEven, () => -1)) // 1
+ * console.log(firstEven) // 1
  * ```
  *
  * @category elements
  * @since 2.0.0
  */
 export const findFirstIndex: {
-  <A>(predicate: Predicate<A>): (self: Chunk<A>) => Option<number>
-  <A>(self: Chunk<A>, predicate: Predicate<A>): Option<number>
+  <A>(predicate: Predicate<A>): (self: Chunk<A>) => number | undefined
+  <A>(self: Chunk<A>, predicate: Predicate<A>): number | undefined
 } = RA.findFirstIndex
 
 /**
@@ -2684,28 +2682,26 @@ export const findLast: {
  * @example
  * ```ts
  * import { Chunk } from "effect/collections"
-import * as Option from "effect/data/Option"
  *
  * const chunk = Chunk.make(1, 2, 3, 4, 5)
  * const result = Chunk.findLastIndex(chunk, (n) => n < 4)
- * console.log(Option.isSome(result)) // true
- * console.log(Option.getOrElse(result, () => -1)) // 2
+ * console.log(result) // 2
  *
  * // No match found
  * const notFound = Chunk.findLastIndex(chunk, (n) => n > 10)
- * console.log(Option.isNone(notFound)) // true
+ * console.log(notFound) // undefined
  *
  * // Find last even number index
  * const lastEven = Chunk.findLastIndex(chunk, (n) => n % 2 === 0)
- * console.log(Option.getOrElse(lastEven, () => -1)) // 3
+ * console.log(lastEven) // 3
  * ```
  *
  * @category elements
  * @since 2.0.0
  */
 export const findLastIndex: {
-  <A>(predicate: Predicate<A>): (self: Chunk<A>) => Option<number>
-  <A>(self: Chunk<A>, predicate: Predicate<A>): Option<number>
+  <A>(predicate: Predicate<A>): (self: Chunk<A>) => number | undefined
+  <A>(self: Chunk<A>, predicate: Predicate<A>): number | undefined
 } = RA.findLastIndex
 
 /**

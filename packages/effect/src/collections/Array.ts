@@ -1113,24 +1113,23 @@ export const dropWhile: {
  * import { Array } from "effect/collections"
  *
  * const result = Array.findFirstIndex([5, 3, 8, 9], x => x > 5)
- * console.log(result) // Option.some(2)
+ * console.log(result) // 2
  * ```
  *
  * @category elements
  * @since 2.0.0
  */
 export const findFirstIndex: {
-  <A>(predicate: (a: NoInfer<A>, i: number) => boolean): (self: Iterable<A>) => Option.Option<number>
-  <A>(self: Iterable<A>, predicate: (a: A, i: number) => boolean): Option.Option<number>
-} = dual(2, <A>(self: Iterable<A>, predicate: (a: A, i: number) => boolean): Option.Option<number> => {
+  <A>(predicate: (a: NoInfer<A>, i: number) => boolean): (self: Iterable<A>) => number | undefined
+  <A>(self: Iterable<A>, predicate: (a: A, i: number) => boolean): number | undefined
+} = dual(2, <A>(self: Iterable<A>, predicate: (a: A, i: number) => boolean): number | undefined => {
   let i = 0
   for (const a of self) {
     if (predicate(a, i)) {
-      return Option.some(i)
+      return i
     }
     i++
   }
-  return Option.none()
 })
 
 /**
@@ -1142,23 +1141,22 @@ export const findFirstIndex: {
  * import { Array } from "effect/collections"
  *
  * const result = Array.findLastIndex([1, 3, 8, 9], x => x < 5)
- * console.log(result) // Option.some(1)
+ * console.log(result) // 1
  * ```
  *
  * @category elements
  * @since 2.0.0
  */
 export const findLastIndex: {
-  <A>(predicate: (a: NoInfer<A>, i: number) => boolean): (self: Iterable<A>) => Option.Option<number>
-  <A>(self: Iterable<A>, predicate: (a: A, i: number) => boolean): Option.Option<number>
-} = dual(2, <A>(self: Iterable<A>, predicate: (a: A, i: number) => boolean): Option.Option<number> => {
+  <A>(predicate: (a: NoInfer<A>, i: number) => boolean): (self: Iterable<A>) => number | undefined
+  <A>(self: Iterable<A>, predicate: (a: A, i: number) => boolean): number | undefined
+} = dual(2, <A>(self: Iterable<A>, predicate: (a: A, i: number) => boolean): number | undefined => {
   const input = fromIterable(self)
   for (let i = input.length - 1; i >= 0; i--) {
     if (predicate(input[i], i)) {
-      return Option.some(i)
+      return i
     }
   }
-  return Option.none()
 })
 
 /**
