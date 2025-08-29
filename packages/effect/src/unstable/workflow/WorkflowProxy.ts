@@ -92,7 +92,8 @@ export type ConvertRpcs<Workflows extends Workflow.Any, Prefix extends string> =
  * ```ts
  * import { HttpApi, HttpApiBuilder } from "effect/unstable/httpapi"
  * import { Workflow, WorkflowProxy, WorkflowProxyServer } from "effect/unstable/workflow"
- * import { Layer, Schema } from "effect"
+ * import { Schema } from "effect/schema"
+ * import { Layer } from "effect"
  *
  * const EmailWorkflow = Workflow.make({
  *   name: "EmailWorkflow",
