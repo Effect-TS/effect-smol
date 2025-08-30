@@ -1,7 +1,7 @@
 import { assert, describe, it } from "@effect/vitest"
 import { Deferred } from "effect"
 import * as Cause from "effect/Cause"
-import { Option } from "effect/data"
+import { UndefinedOr } from "effect/data"
 import * as Effect from "effect/Effect"
 import * as Exit from "effect/Exit"
 
@@ -105,7 +105,7 @@ describe("Deferred", () => {
       Effect.gen(function*() {
         const deferred = yield* Deferred.make<number>()
         const result = yield* Deferred.poll(deferred)
-        assert.deepStrictEqual(result, Option.none())
+        assert.deepStrictEqual(result, undefined)
       }))
 
     it.effect("poll - should return Option.some when the deferred was completed", () =>
@@ -113,7 +113,7 @@ describe("Deferred", () => {
         const deferred = yield* Deferred.make<number>()
         yield* Deferred.succeed(deferred, 1)
         const result = yield* Deferred.poll(deferred).pipe(
-          Effect.flatMap(Option.getOrThrow)
+          Effect.flatMap(UndefinedOr.getOrThrow)
         )
         assert.deepStrictEqual(result, 1)
       }))
@@ -123,7 +123,7 @@ describe("Deferred", () => {
         const deferred = yield* Deferred.make<number, string>()
         yield* Deferred.fail(deferred, "boom")
         const result = yield* Deferred.poll(deferred).pipe(
-          Effect.flatMap(Option.getOrThrow),
+          Effect.flatMap(UndefinedOr.getOrThrow),
           Effect.exit
         )
         assert.deepStrictEqual(result, Exit.fail("boom"))
@@ -134,7 +134,7 @@ describe("Deferred", () => {
         const deferred = yield* Deferred.make<number, string>()
         yield* Deferred.interruptWith(deferred, -1)
         const result = yield* Deferred.poll(deferred).pipe(
-          Effect.flatMap(Option.getOrThrow),
+          Effect.flatMap(UndefinedOr.getOrThrow),
           Effect.exit
         )
         assert.deepStrictEqual(result, Exit.failCause(Cause.interrupt(-1)))
