@@ -7,8 +7,8 @@ import { FastCheck as fc } from "effect/testing"
 const $ = BigDecimal.fromStringUnsafe
 
 const assertDivide = (x: string, y: string, z: string) => {
-  assertEquals(BigDecimal.divide($(x), $(y)), $(z), `Expected ${x} / ${y} to be ${z}`)
-  assertEquals(BigDecimal.divideUnsafe($(x), $(y)), $(z), `Expected ${x} / ${y} to be ${z}`)
+  assertEquals(BigDecimal.divide($(x), $(y)), $(z))
+  assertEquals(BigDecimal.divideUnsafe($(x), $(y)), $(z))
 }
 
 describe("BigDecimal", () => {
