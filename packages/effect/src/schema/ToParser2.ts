@@ -136,7 +136,7 @@ const go = AST.memoize((ast: AST.AST): Parser => {
           } else if (eff._tag === "Failure") {
             const issue = Cause.filterError(eff.cause)
             if (Filter.isFail(issue)) {
-              return Effect.failCause(issue.fail)
+              return eff
             }
             // TODO: collect all issues
             return Effect.fail(new Issue.Composite(ast, optionFromInput(input), [issue]))
