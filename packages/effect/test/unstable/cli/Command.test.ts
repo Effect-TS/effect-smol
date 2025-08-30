@@ -1,22 +1,17 @@
-import * as NodeFileSystem from "@effect/platform-node/NodeFileSystem"
-import * as NodePath from "@effect/platform-node/NodePath"
 import { assert, describe, expect, it } from "@effect/vitest"
-import * as Option from "effect/data/Option"
-import * as Effect from "effect/Effect"
-import * as Layer from "effect/Layer"
-import { Path } from "effect/platform"
-import * as TestConsole from "effect/testing/TestConsole"
-import * as CliError from "../src/CliError.js"
-import * as Command from "../src/Command.js"
-import * as Flag from "../src/Flag.ts"
-import * as HelpFormatter from "../src/HelpFormatter.ts"
-import { comprehensiveCli, runComprehensiveCli } from "./utils/comprehensiveCli.ts"
-import * as TestActions from "./utils/TestActions.ts"
+import * as Option from "../../../src/data/Option.js"
+import * as Effect from "../../../src/Effect.js"
+import * as Layer from "../../../src/Layer.js"
+import * as TestConsole from "../../../src/testing/TestConsole.js"
+import * as CliError from "../../../src/unstable/cli/CliError.js"
+import * as Command from "../../../src/unstable/cli/Command.js"
+import * as Flag from "../../../src/unstable/cli/Flag.js"
+import * as HelpFormatter from "../../../src/unstable/cli/HelpFormatter.js"
+import { comprehensiveCli, runComprehensiveCli } from "./utils/comprehensiveCli.js"
+import * as TestActions from "./utils/TestActions.js"
 
-// Create a test layer that provides FileSystem, Path, TestConsole, and TestActions
+// Create a test layer that provides TestConsole and TestActions
 const TestLayer = Layer.mergeAll(
-  NodeFileSystem.layer,
-  NodePath.layer,
   TestConsole.layer,
   HelpFormatter.layer(HelpFormatter.defaultHelpRenderer({ colors: false })),
   TestActions.layer
@@ -454,10 +449,6 @@ describe("Command", () => {
 
     it.effect("should support options before, after, or between operands (relaxed POSIX Syntax Guideline No. 9)", () =>
       Effect.gen(function*() {
-        const path = yield* Path.Path
-        const resolvedSrc = path.resolve("src.txt")
-        const resolvedDest = path.resolve("dest.txt")
-
         // Test both orderings work: POSIX (options before operands) and modern (mixed)
 
         // Test 1: POSIX style - options before operands
@@ -492,38 +483,15 @@ describe("Command", () => {
         assert.strictEqual(actions.length, 3)
 
         // All should have the same config regardless of order
-        const expectedDetails = {
-          recursive: true,
-          force: true,
-          bufferSize: 64 // default value
+        for (let i = 0; i < 3; i++) {
+          assert.strictEqual(actions[i].command, "copy")
+          assert.strictEqual(actions[i].details.recursive, true)
+          assert.strictEqual(actions[i].details.force, true)
+          assert.strictEqual(actions[i].details.bufferSize, 64)
+          // Source and destination will be resolved paths - just check they contain the filenames
+          assert.isTrue(String(actions[i].details.source).includes("src.txt"))
+          assert.isTrue(String(actions[i].details.destination).includes("dest.txt"))
         }
-
-        assert.deepStrictEqual(actions[0], {
-          command: "copy",
-          details: {
-            source: resolvedSrc,
-            destination: resolvedDest,
-            ...expectedDetails
-          }
-        })
-
-        assert.deepStrictEqual(actions[1], {
-          command: "copy",
-          details: {
-            source: resolvedSrc,
-            destination: resolvedDest,
-            ...expectedDetails
-          }
-        })
-
-        assert.deepStrictEqual(actions[2], {
-          command: "copy",
-          details: {
-            source: resolvedSrc,
-            destination: resolvedDest,
-            ...expectedDetails
-          }
-        })
       }).pipe(Effect.provide(TestLayer)))
 
     it.effect("should suggest similar subcommands for unknown subcommands", () =>

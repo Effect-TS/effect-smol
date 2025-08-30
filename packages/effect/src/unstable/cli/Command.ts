@@ -1,12 +1,12 @@
-import { Effect } from "effect"
-import * as Option from "effect/data/Option"
-import { dual } from "effect/Function"
-import { type Pipeable, pipeArguments } from "effect/interfaces/Pipeable"
-import * as Console from "effect/logging/Console"
-import type * as FileSystem from "effect/platform/FileSystem"
-import type * as Path from "effect/platform/Path"
-import * as References from "effect/References"
-import * as ServiceMap from "effect/ServiceMap"
+import * as Option from "../../data/Option.ts"
+import * as Effect from "../../Effect.ts"
+import { dual } from "../../Function.ts"
+import { type Pipeable, pipeArguments } from "../../interfaces/Pipeable.ts"
+import * as Console from "../../logging/Console.ts"
+import type * as FileSystem from "../../platform/FileSystem.ts"
+import type * as Path from "../../platform/Path.ts"
+import * as References from "../../References.ts"
+import * as ServiceMap from "../../ServiceMap.ts"
 import * as CliError from "./CliError.ts"
 import type { ArgDoc, FlagDoc, HelpDoc, SubcommandDoc } from "./HelpDoc.ts"
 import * as HelpFormatter from "./HelpFormatter.ts"
@@ -189,7 +189,8 @@ const makeCore = <Name extends string, Input, E, R>(
  * ```ts
  * import * as Command from "effect/cli/Command"
  * import * as Param from "effect/cli/Param"
- * import { Effect, Console } from "effect"
+ * import * as Effect from "effect/Effect"
+ * import * as Console from "effect/Console"
  *
  * // Name only
  * const bareCommand = Command.make("init")
@@ -254,7 +255,8 @@ export const make: {
  * ```ts
  * import * as Command from "effect/cli/Command"
  * import * as Param from "effect/cli/Param"
- * import { Effect, Console } from "effect"
+ * import * as Effect from "effect/Effect"
+ * import * as Console from "effect/Console"
  *
  * const git = Command.make("git", {
  *   verbose: Flag.boolean("verbose")
@@ -299,7 +301,8 @@ export const withHandler: {
  * ```ts
  * import * as Command from "effect/cli/Command"
  * import * as Param from "effect/cli/Param"
- * import { Effect, Console } from "effect"
+ * import * as Effect from "effect/Effect"
+ * import * as Console from "effect/Console"
  *
  * const clone = Command.make("clone", {
  *   repository: Flag.string("repository")
@@ -475,7 +478,8 @@ type ExtractSubcommandInputs<T extends ReadonlyArray<unknown>> = T extends reado
  * ```ts
  * import * as Command from "effect/cli/Command"
  * import * as Param from "effect/cli/Param"
- * import { Effect, Console } from "effect"
+ * import * as Effect from "effect/Effect"
+ * import * as Console from "effect/Console"
  *
  * const deploy = Command.make("deploy", {
  *   environment: Flag.string("env")
@@ -622,7 +626,8 @@ const getHelpForCommandPath = <Name extends string, Input, E, R>(
  * ```ts
  * import * as Command from "effect/cli/Command"
  * import * as Param from "effect/cli/Param"
- * import { Effect, Console } from "effect"
+ * import * as Effect from "effect/Effect"
+ * import * as Console from "effect/Console"
  *
  * const greetCommand = Command.make("greet", {
  *   name: Flag.string("name")
