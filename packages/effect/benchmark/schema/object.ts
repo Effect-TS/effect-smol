@@ -1,5 +1,5 @@
 import { type } from "arktype"
-import { Schema, ToParser } from "effect/schema"
+import { Schema, ToParser, ToParser2 } from "effect/schema"
 import { Bench } from "tinybench"
 import * as v from "valibot"
 import { z } from "zod/v4-mini"
@@ -40,7 +40,8 @@ const zod = z.object({
 const good = { a: "a" }
 const bad = { a: 1 }
 
-const decodeUnknownResult = ToParser.decodeUnknownResult(schema)
+const decodeUnknownExit = ToParser.decodeUnknownExit(schema)
+const decodeUnknownExit2 = ToParser2.decodeUnknownEffect(schema)
 
 // console.log(decodeUnknownResult(good))
 // console.log(decodeUnknownResult(bad))
@@ -53,10 +54,16 @@ const decodeUnknownResult = ToParser.decodeUnknownResult(schema)
 
 bench
   .add("Schema (good)", function() {
-    decodeUnknownResult(good)
+    decodeUnknownExit(good)
   })
   .add("Schema (bad)", function() {
-    decodeUnknownResult(bad)
+    decodeUnknownExit(bad)
+  })
+  .add("Schema 2 (good)", function() {
+    decodeUnknownExit2(good)
+  })
+  .add("Schema 2 (bad)", function() {
+    decodeUnknownExit2(bad)
   })
   .add("Valibot (good)", function() {
     v.safeParse(valibot, good)

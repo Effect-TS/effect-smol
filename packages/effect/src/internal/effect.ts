@@ -1499,7 +1499,8 @@ const OnSuccessProto = makePrimitiveProto({
   }
 })
 
-const effectIsExit = <A, E, R>(effect: Effect.Effect<A, E, R>): effect is Exit.Exit<A, E> => ExitTypeId in effect
+/** @internal */
+export const effectIsExit = <A, E, R>(effect: Effect.Effect<A, E, R>): effect is Exit.Exit<A, E> => ExitTypeId in effect
 
 /** @internal */
 export const flatMapEager: {
@@ -1810,6 +1811,20 @@ export const exitAsVoidAll = <I extends Iterable<Exit.Exit<any, any>>>(
     }
   }
   return failures.length === 0 ? exitVoid : exitFailCause(causeFromFailures(failures))
+}
+
+/** @internal */
+export const exitGetSuccess = <A, E>(self: Exit.Exit<A, E>): Option.Option<A> =>
+  exitIsSuccess(self) ? Option.some(self.value) : Option.none()
+
+/** @internal */
+export const exitGetCause = <A, E>(self: Exit.Exit<A, E>): Option.Option<Cause.Cause<E>> =>
+  exitIsFailure(self) ? Option.some(self.cause) : Option.none()
+
+/** @internal */
+export const exitGetError = <A, E>(self: Exit.Exit<A, E>): Option.Option<E> => {
+  const error = exitFilterError(self)
+  return Filter.isFail(error) ? Option.none() : Option.some(error)
 }
 
 // ----------------------------------------------------------------------------
