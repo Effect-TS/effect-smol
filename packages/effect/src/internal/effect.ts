@@ -3910,9 +3910,11 @@ export const runForkWith = <R>(services: ServiceMap.ServiceMap<R>) =>
   effect: Effect.Effect<A, E, R>,
   options?: Effect.RunOptions | undefined
 ): Fiber.Fiber<A, E> => {
-  const serviceMap = new Map(services.mapUnsafe)
-  serviceMap.set(Scheduler.Scheduler.key, options?.scheduler ?? new Scheduler.MixedScheduler())
-  const fiber = new FiberImpl<A, E>(ServiceMap.makeUnsafe(serviceMap))
+  const scheduler = options?.scheduler ||
+    (!services.mapUnsafe.has(Scheduler.Scheduler.key) && new Scheduler.MixedScheduler())
+  const fiber = new FiberImpl<A, E>(
+    scheduler ? ServiceMap.add(services, Scheduler.Scheduler, scheduler) : services
+  )
   fiber.evaluate(effect as any)
   if (fiber._exit) return fiber
 
