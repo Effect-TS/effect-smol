@@ -3,9 +3,9 @@ import * as NodePath from "@effect/platform-node/NodePath"
 import { assert, describe, it } from "@effect/vitest"
 import { Redacted } from "effect/data"
 import * as Effect from "effect/Effect"
+import * as Layer from "effect/Layer"
 import * as Fs from "effect/platform/FileSystem"
 import * as Path from "effect/platform/Path"
-import * as Layer from "effect/services/Layer"
 import * as Primitive from "../src/Primitive.js"
 
 // Create a test layer that provides FileSystem and Path
