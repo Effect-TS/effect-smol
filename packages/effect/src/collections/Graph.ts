@@ -556,7 +556,6 @@ export const nodeCount = <N, E, T extends Kind = "directed">(
  * @example
  * ```ts
  * import { Graph } from "effect/collections"
-import * as Option from "effect/data/Option"
  *
  * const graph = Graph.mutate(Graph.directed<string, number>(), (mutable) => {
  *   Graph.addNode(mutable, "Node A")
@@ -565,10 +564,10 @@ import * as Option from "effect/data/Option"
  * })
  *
  * const result = Graph.findNode(graph, (data) => data.startsWith("Node B"))
- * console.log(result) // Option.some(1)
+ * console.log(result) // 1
  *
  * const notFound = Graph.findNode(graph, (data) => data === "Node D")
- * console.log(notFound) // Option.none()
+ * console.log(notFound) // undefined
  * ```
  *
  * @since 4.0.0
@@ -577,13 +576,12 @@ import * as Option from "effect/data/Option"
 export const findNode = <N, E, T extends Kind = "directed">(
   graph: Graph<N, E, T> | MutableGraph<N, E, T>,
   predicate: (data: N) => boolean
-): Option.Option<NodeIndex> => {
+): NodeIndex | undefined => {
   for (const [index, data] of graph.nodes) {
     if (predicate(data)) {
-      return Option.some(index)
+      return index
     }
   }
-  return Option.none()
 }
 
 /**
@@ -628,7 +626,6 @@ export const findNodes = <N, E, T extends Kind = "directed">(
  * @example
  * ```ts
  * import { Graph } from "effect/collections"
-import * as Option from "effect/data/Option"
  *
  * const graph = Graph.mutate(Graph.directed<string, number>(), (mutable) => {
  *   const nodeA = Graph.addNode(mutable, "Node A")
@@ -639,10 +636,10 @@ import * as Option from "effect/data/Option"
  * })
  *
  * const result = Graph.findEdge(graph, (data) => data > 15)
- * console.log(result) // Option.some(1)
+ * console.log(result) // 1
  *
  * const notFound = Graph.findEdge(graph, (data) => data > 100)
- * console.log(notFound) // Option.none()
+ * console.log(notFound) // undefined
  * ```
  *
  * @since 4.0.0
@@ -651,13 +648,12 @@ import * as Option from "effect/data/Option"
 export const findEdge = <N, E, T extends Kind = "directed">(
   graph: Graph<N, E, T> | MutableGraph<N, E, T>,
   predicate: (data: E, source: NodeIndex, target: NodeIndex) => boolean
-): Option.Option<EdgeIndex> => {
+): EdgeIndex | undefined => {
   for (const [edgeIndex, edgeData] of graph.edges) {
     if (predicate(edgeData.data, edgeData.source, edgeData.target)) {
-      return Option.some(edgeIndex)
+      return edgeIndex
     }
   }
-  return Option.none()
 }
 
 /**
@@ -748,7 +744,7 @@ export const updateNode = <N, E, T extends Kind = "directed">(
  * })
  *
  * const edgeData = Graph.getEdge(result, 0)
- * console.log(edgeData) // Option.some({ source: 0, target: 1, data: 20 })
+ * console.log(edgeData) // new Graph.Edge({ source: 0, target: 1, data: 20 })
  * ```
  *
  * @since 4.0.0
@@ -765,10 +761,7 @@ export const updateEdge = <N, E, T extends Kind = "directed">(
 
   const currentEdge = mutable.edges.get(edgeIndex)!
   const newData = f(currentEdge.data)
-  mutable.edges.set(edgeIndex, {
-    ...currentEdge,
-    data: newData
-  })
+  mutable.edges.set(edgeIndex, new Edge({ ...currentEdge, data: newData }))
 }
 
 /**
@@ -786,7 +779,7 @@ export const updateEdge = <N, E, T extends Kind = "directed">(
  * })
  *
  * const nodeData = Graph.getNode(graph, 0)
- * console.log(nodeData) // Option.some("NODE A")
+ * console.log(nodeData) // new Graph.Node("NODE A")
  * ```
  *
  * @since 4.0.0
@@ -820,7 +813,7 @@ export const mapNodes = <N, E, T extends Kind = "directed">(
  * })
  *
  * const edgeData = Graph.getEdge(graph, 0)
- * console.log(edgeData) // Option.some({ source: 0, target: 1, data: 20 })
+ * console.log(edgeData) // new Graph.Edge({ source: 0, target: 1, data: 20 })
  * ```
  *
  * @since 4.0.0
@@ -857,7 +850,7 @@ export const mapEdges = <N, E, T extends Kind = "directed">(
  * })
  *
  * const edge0 = Graph.getEdge(graph, 0)
- * console.log(edge0) // Option.some({ source: 1, target: 0, data: 1 }) - B -> A
+ * console.log(edge0) // new Graph.Edge({ source: 1, target: 0, data: 1 }) - B -> A
  * ```
  *
  * @since 4.0.0
@@ -1356,7 +1349,6 @@ const removeEdgeInternal = <N, E, T extends Kind = "directed">(
  * @example
  * ```ts
  * import { Graph } from "effect/collections"
-import * as Option from "effect/data/Option"
  *
  * const graph = Graph.mutate(Graph.directed<string, number>(), (mutable) => {
  *   const nodeA = Graph.addNode(mutable, "Node A")
@@ -1367,10 +1359,10 @@ import * as Option from "effect/data/Option"
  * const edgeIndex = 0
  * const edgeData = Graph.getEdge(graph, edgeIndex)
  *
- * if (Option.isSome(edgeData)) {
- *   console.log(edgeData.value.data) // 42
- *   console.log(edgeData.value.source) // NodeIndex(0)
- *   console.log(edgeData.value.target) // NodeIndex(1)
+ * if (edgeData !== undefined) {
+ *   console.log(edgeData.data) // 42
+ *   console.log(edgeData.source) // NodeIndex(0)
+ *   console.log(edgeData.target) // NodeIndex(1)
  * }
  * ```
  *
@@ -1380,7 +1372,7 @@ import * as Option from "effect/data/Option"
 export const getEdge = <N, E, T extends Kind = "directed">(
   graph: Graph<N, E, T> | MutableGraph<N, E, T>,
   edgeIndex: EdgeIndex
-): Option.Option<Edge<E>> => getMapSafe(graph.edges, edgeIndex)
+): Edge<E> | undefined => Option.getOrUndefined(getMapSafe(graph.edges, edgeIndex))
 
 /**
  * Checks if an edge exists between two nodes in the graph.
@@ -2105,9 +2097,9 @@ import * as Option from "effect/data/Option"
  * })
  *
  * const result = Graph.dijkstra(graph, 0, 2, (edgeData) => edgeData)
- * if (Option.isSome(result)) {
- *   console.log(result.value.path) // [0, 1, 2] - shortest path A->B->C
- *   console.log(result.value.distance) // 7 - total distance
+ * if (result !== undefined) {
+ *   console.log(result.path) // [0, 1, 2] - shortest path A->B->C
+ *   console.log(result.distance) // 7 - total distance
  * }
  * ```
  *
@@ -2119,7 +2111,7 @@ export const dijkstra = <N, E, T extends Kind = "directed">(
   source: NodeIndex,
   target: NodeIndex,
   edgeWeight: (edgeData: E) => number
-): Option.Option<PathResult<E>> => {
+): PathResult<E> | undefined => {
   // Validate that source and target nodes exist
   if (!graph.nodes.has(source)) {
     throw new Error(`Source node ${source} does not exist`)
@@ -2130,11 +2122,11 @@ export const dijkstra = <N, E, T extends Kind = "directed">(
 
   // Early return if source equals target
   if (source === target) {
-    return Option.some({
+    return {
       path: [source],
       distance: 0,
       edgeWeights: []
-    })
+    }
   }
 
   // Distance tracking and priority queue simulation
@@ -2216,7 +2208,7 @@ export const dijkstra = <N, E, T extends Kind = "directed">(
   // Check if target is reachable
   const targetDistance = distances.get(target)!
   if (targetDistance === Infinity) {
-    return Option.none() // No path exists
+    return undefined // No path exists
   }
 
   // Reconstruct path
@@ -2235,11 +2227,11 @@ export const dijkstra = <N, E, T extends Kind = "directed">(
     }
   }
 
-  return Option.some({
+  return {
     path,
     distance: targetDistance,
     edgeWeights
-  })
+  }
 }
 
 /**
@@ -2402,7 +2394,6 @@ export const floydWarshall = <N, E, T extends Kind = "directed">(
  * @example
  * ```ts
  * import { Graph } from "effect/collections"
-import * as Option from "effect/data/Option"
  *
  * const graph = Graph.directed<{x: number, y: number}, number>((mutable) => {
  *   const a = Graph.addNode(mutable, {x: 0, y: 0})
@@ -2417,9 +2408,9 @@ import * as Option from "effect/data/Option"
  *   Math.abs(nodeData.x - targetData.x) + Math.abs(nodeData.y - targetData.y)
  *
  * const result = Graph.astar(graph, 0, 2, (edgeData) => edgeData, heuristic)
- * if (Option.isSome(result)) {
- *   console.log(result.value.path) // [0, 1, 2] - shortest path
- *   console.log(result.value.distance) // 2 - total distance
+ * if (result !== undefined) {
+ *   console.log(result.path) // [0, 1, 2] - shortest path
+ *   console.log(result.distance) // 2 - total distance
  * }
  * ```
  *
@@ -2432,7 +2423,7 @@ export const astar = <N, E, T extends Kind = "directed">(
   target: NodeIndex,
   edgeWeight: (edgeData: E) => number,
   heuristic: (sourceNodeData: N, targetNodeData: N) => number
-): Option.Option<PathResult<E>> => {
+): PathResult<E> | undefined => {
   // Validate that source and target nodes exist
   if (!graph.nodes.has(source)) {
     throw new Error(`Source node ${source} does not exist`)
@@ -2443,11 +2434,11 @@ export const astar = <N, E, T extends Kind = "directed">(
 
   // Early return if source equals target
   if (source === target) {
-    return Option.some({
+    return {
       path: [source],
       distance: 0,
       edgeWeights: []
-    })
+    }
   }
 
   // Get target node data for heuristic calculations
@@ -2553,7 +2544,7 @@ export const astar = <N, E, T extends Kind = "directed">(
   // Check if target is reachable
   const targetGScore = gScore.get(target)!
   if (targetGScore === Infinity) {
-    return Option.none() // No path exists
+    return undefined // No path exists
   }
 
   // Reconstruct path
@@ -2572,11 +2563,11 @@ export const astar = <N, E, T extends Kind = "directed">(
     }
   }
 
-  return Option.some({
+  return {
     path,
     distance: targetGScore,
     edgeWeights
-  })
+  }
 }
 
 /**
@@ -2589,7 +2580,6 @@ export const astar = <N, E, T extends Kind = "directed">(
  * @example
  * ```ts
  * import { Graph } from "effect/collections"
-import * as Option from "effect/data/Option"
  *
  * const graph = Graph.directed<string, number>((mutable) => {
  *   const a = Graph.addNode(mutable, "A")
@@ -2601,9 +2591,9 @@ import * as Option from "effect/data/Option"
  * })
  *
  * const result = Graph.bellmanFord(graph, 0, 2, (edgeData) => edgeData)
- * if (Option.isSome(result)) {
- *   console.log(result.value.path) // [0, 1, 2] - shortest path A->B->C
- *   console.log(result.value.distance) // 2 - total distance
+ * if (result !== undefined) {
+ *   console.log(result.path) // [0, 1, 2] - shortest path A->B->C
+ *   console.log(result.distance) // 2 - total distance
  * }
  * ```
  *
@@ -2615,7 +2605,7 @@ export const bellmanFord = <N, E, T extends Kind = "directed">(
   source: NodeIndex,
   target: NodeIndex,
   edgeWeight: (edgeData: E) => number
-): Option.Option<PathResult<E>> => {
+): PathResult<E> | undefined => {
   // Validate that source and target nodes exist
   if (!graph.nodes.has(source)) {
     throw new Error(`Source node ${source} does not exist`)
@@ -2626,11 +2616,11 @@ export const bellmanFord = <N, E, T extends Kind = "directed">(
 
   // Early return if source equals target
   if (source === target) {
-    return Option.some({
+    return {
       path: [source],
       distance: 0,
       edgeWeights: []
-    })
+    }
   }
 
   // Initialize distances and predecessors
@@ -2707,7 +2697,7 @@ export const bellmanFord = <N, E, T extends Kind = "directed">(
 
       // If target is affected by negative cycle, return null
       if (affectedNodes.has(target)) {
-        return Option.none()
+        return undefined
       }
     }
   }
@@ -2715,7 +2705,7 @@ export const bellmanFord = <N, E, T extends Kind = "directed">(
   // Check if target is reachable
   const targetDistance = distances.get(target)!
   if (targetDistance === Infinity) {
-    return Option.none() // No path exists
+    return undefined // No path exists
   }
 
   // Reconstruct path
@@ -2734,11 +2724,11 @@ export const bellmanFord = <N, E, T extends Kind = "directed">(
     }
   }
 
-  return Option.some({
+  return {
     path,
     distance: targetDistance,
     edgeWeights
-  })
+  }
 }
 
 /**
