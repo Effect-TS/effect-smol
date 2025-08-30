@@ -19,9 +19,7 @@ export interface FromHeaders {
  */
 export const toHeaders = (span: Tracer.Span): Headers.Headers =>
   Headers.fromRecordUnsafe({
-    b3: `${span.traceId}-${span.spanId}-${span.sampled ? "1" : "0"}${
-      span.parent._tag === "Some" ? `-${span.parent.value.spanId}` : ""
-    }`,
+    b3: `${span.traceId}-${span.spanId}-${span.sampled ? "1" : "0"}${span.parent ? `-${span.parent.spanId}` : ""}`,
     traceparent: `00-${span.traceId}-${span.spanId}-${span.sampled ? "01" : "00"}`
   })
 

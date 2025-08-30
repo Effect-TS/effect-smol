@@ -1,7 +1,6 @@
 /**
  * @since 2.0.0
  */
-import type * as Option from "../data/Option.ts"
 import type * as Exit from "../Exit.ts"
 import type { Fiber } from "../Fiber.ts"
 import { constFalse, type LazyArg } from "../Function.ts"
@@ -14,11 +13,10 @@ import * as ServiceMap from "../ServiceMap.ts"
  * ```ts
  * import { Tracer } from "effect/observability"
  * import { ServiceMap } from "effect"
- * import { Option } from "effect/data"
  *
  * // Create a custom tracer implementation
  * const customTracer: Tracer.Tracer = {
- *   span: (name: string, parent: Option.Option<Tracer.AnySpan>, context: ServiceMap.ServiceMap<never>, links: ReadonlyArray<Tracer.SpanLink>, startTime: bigint, kind: Tracer.SpanKind) => {
+ *   span: (name: string, parent: Tracer.AnySpan | undefined, context: ServiceMap.ServiceMap<never>, links: ReadonlyArray<Tracer.SpanLink>, startTime: bigint, kind: Tracer.SpanKind) => {
  *     console.log(`Creating span: ${name}`)
  *     return new Tracer.NativeSpan(name, parent, context, links, startTime, kind)
  *   },
@@ -32,7 +30,7 @@ import * as ServiceMap from "../ServiceMap.ts"
 export interface Tracer {
   readonly span: (
     name: string,
-    parent: Option.Option<AnySpan>,
+    parent: AnySpan | undefined,
     context: ServiceMap.ServiceMap<never>,
     links: ReadonlyArray<SpanLink>,
     startTime: bigint,
@@ -249,7 +247,7 @@ export interface Span {
   readonly name: string
   readonly spanId: string
   readonly traceId: string
-  readonly parent: Option.Option<AnySpan>
+  readonly parent: AnySpan | undefined
   readonly context: ServiceMap.ServiceMap<never>
   readonly status: SpanStatus
   readonly attributes: ReadonlyMap<string, unknown>
@@ -425,7 +423,7 @@ export const Tracer: ServiceMap.Reference<Tracer> = ServiceMap.Reference<Tracer>
  * // Create a native span directly
  * const span = new Tracer.NativeSpan(
  *   "my-operation",
- *   Option.none(),
+ *   undefined,
  *   ServiceMap.empty(),
  *   [],
  *   BigInt(Date.now() * 1000000),
@@ -444,7 +442,7 @@ export class NativeSpan implements Span {
   readonly sampled = true
 
   readonly name: string
-  readonly parent: Option.Option<AnySpan>
+  readonly parent: AnySpan | undefined
   readonly context: ServiceMap.ServiceMap<never>
   readonly links: ReadonlyArray<SpanLink>
   readonly startTime: bigint
@@ -456,7 +454,7 @@ export class NativeSpan implements Span {
 
   constructor(
     name: string,
-    parent: Option.Option<AnySpan>,
+    parent: AnySpan | undefined,
     context: ServiceMap.ServiceMap<never>,
     links: ReadonlyArray<SpanLink>,
     startTime: bigint,
@@ -473,7 +471,7 @@ export class NativeSpan implements Span {
       startTime
     }
     this.attributes = new Map()
-    this.traceId = parent._tag === "Some" ? parent.value.traceId : randomHexString(32)
+    this.traceId = parent ? parent.traceId : randomHexString(32)
     this.spanId = randomHexString(16)
   }
 

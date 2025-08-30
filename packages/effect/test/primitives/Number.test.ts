@@ -1,4 +1,4 @@
-import * as Number from "effect/primitives/Number"
+import { Number } from "effect/primitives"
 import { describe, it } from "vitest"
 import { strictEqual } from "../utils/assert.ts"
 

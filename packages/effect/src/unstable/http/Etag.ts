@@ -54,8 +54,8 @@ export class Generator extends ServiceMap.Key<Generator, {
 }>()("effect/http/Etag/Generator") {}
 
 const fromFileInfo = (info: FileSystem.File.Info) => {
-  const mtime = info.mtime._tag === "Some"
-    ? info.mtime.value.getTime().toString(16)
+  const mtime = info.mtime
+    ? info.mtime.getTime().toString(16)
     : "0"
   return `${info.size.toString(16)}-${mtime}`
 }

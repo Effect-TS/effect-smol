@@ -241,7 +241,7 @@ export const makeConfig = (
   headers: Record<string, string>
 ): Effect.Effect<MP.BaseConfig> =>
   Effect.withFiber((fiber) => {
-    const mimeTypes = ServiceMap.get(fiber.services, FieldMimeTypes)
+    const mimeTypes = ServiceMap.getUnsafe(fiber.services, FieldMimeTypes)
     return Effect.succeed<MP.BaseConfig>({
       headers,
       maxParts: Option.getOrUndefined(fiber.getRef(MaxParts)),

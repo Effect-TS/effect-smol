@@ -278,9 +278,9 @@ export const schemaJson = <
         HttpServerRequest.HttpServerRequest | HttpServerRequest.ParsedSearchParams | RouteContext
       >
     ) => {
-      const request = ServiceMap.get(services, HttpServerRequest.HttpServerRequest)
-      const searchParams = ServiceMap.get(services, HttpServerRequest.ParsedSearchParams)
-      const routeContext = ServiceMap.get(services, RouteContext)
+      const request = ServiceMap.getUnsafe(services, HttpServerRequest.HttpServerRequest)
+      const searchParams = ServiceMap.getUnsafe(services, HttpServerRequest.ParsedSearchParams)
+      const routeContext = ServiceMap.getUnsafe(services, RouteContext)
       return Effect.flatMap(request.json, (body) =>
         parse({
           method: request.method,
@@ -326,9 +326,9 @@ export const schemaNoBody = <
         HttpServerRequest.HttpServerRequest | HttpServerRequest.ParsedSearchParams | RouteContext
       >
     ) => {
-      const request = ServiceMap.get(services, HttpServerRequest.HttpServerRequest)
-      const searchParams = ServiceMap.get(services, HttpServerRequest.ParsedSearchParams)
-      const routeContext = ServiceMap.get(services, RouteContext)
+      const request = ServiceMap.getUnsafe(services, HttpServerRequest.HttpServerRequest)
+      const searchParams = ServiceMap.getUnsafe(services, HttpServerRequest.ParsedSearchParams)
+      const routeContext = ServiceMap.getUnsafe(services, RouteContext)
       return parse({
         method: request.method,
         url: request.url,
@@ -351,8 +351,8 @@ export const schemaParams = <A, I extends Readonly<Record<string, string | Reado
 ): Effect.Effect<A, Schema.SchemaError, HttpServerRequest.ParsedSearchParams | RouteContext | RD> => {
   const parse = Schema.decodeUnknownEffect(schema)
   return Effect.servicesWith((services: ServiceMap.ServiceMap<HttpServerRequest.ParsedSearchParams | RouteContext>) => {
-    const searchParams = ServiceMap.get(services, HttpServerRequest.ParsedSearchParams)
-    const routeContext = ServiceMap.get(services, RouteContext)
+    const searchParams = ServiceMap.getUnsafe(services, HttpServerRequest.ParsedSearchParams)
+    const routeContext = ServiceMap.getUnsafe(services, RouteContext)
     return parse({ ...searchParams, ...routeContext.params }, options)
   })
 }
@@ -486,7 +486,7 @@ export const toHttpEffect = <A, E, R>(
       memoMap,
       scope
     )
-    const router = ServiceMap.get(context, HttpRouter)
+    const router = ServiceMap.getUnsafe(context, HttpRouter)
     return router.asHttpEffect()
   }) as any
 
@@ -852,7 +852,7 @@ class MiddlewareImpl<
       const stack = [context.mapUnsafe.get(fnContextKey)]
       if (this.dependencies) {
         const memoMap = yield* Layer.CurrentMemoMap
-        const scope = ServiceMap.get(context, Scope.Scope)
+        const scope = ServiceMap.getUnsafe(context, Scope.Scope)
         const depsContext = yield* Layer.buildWithMemoMap(this.dependencies, memoMap, scope)
         // eslint-disable-next-line no-restricted-syntax
         stack.push(...getMiddleware(depsContext))
@@ -1186,7 +1186,7 @@ export const toWebHandler = <
     ? Layer.provide(layer, Layer.succeed(RouterConfig)(options.routerConfig))
     : layer
   return HttpEffect.toWebHandlerLayerWith(Layer.provideMerge(appLayer, RouterLayer) as Layer.Layer<A | HttpRouter, E>, {
-    toHandler: (s) => Effect.succeed(ServiceMap.get(s, HttpRouter).asHttpEffect()),
+    toHandler: (s) => Effect.succeed(ServiceMap.getUnsafe(s, HttpRouter).asHttpEffect()),
     middleware,
     memoMap: options?.memoMap
   })

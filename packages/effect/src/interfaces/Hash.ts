@@ -8,7 +8,7 @@
  * @since 2.0.0
  */
 import { hasProperty } from "../data/Predicate.ts"
-import { pipe } from "../Function.ts"
+import { dual, pipe } from "../Function.ts"
 
 /** @internal */
 const randomHashCache = new WeakMap<object, number>()
@@ -172,7 +172,10 @@ export const random: <A extends object>(self: A) => number = (self) => {
  * @category hashing
  * @since 2.0.0
  */
-export const combine: (b: number) => (self: number) => number = (b) => (self) => (self * 53) ^ b
+export const combine: {
+  (b: number): (self: number) => number
+  (self: number, b: number): number
+} = dual(2, (self: number, b: number): number => (self * 53) ^ b)
 
 /**
  * Optimizes a hash value by applying bit manipulation techniques.

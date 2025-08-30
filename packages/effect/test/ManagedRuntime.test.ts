@@ -43,7 +43,7 @@ describe("ManagedRuntime", () => {
     const layer = Layer.succeed(tag)("test")
     const managedRuntime = ManagedRuntime.make(layer)
     const services = Effect.runSync(managedRuntime.servicesEffect)
-    const result = ServiceMap.get(services, tag)
+    const result = ServiceMap.getUnsafe(services, tag)
     strictEqual(result, "test")
   })
 })

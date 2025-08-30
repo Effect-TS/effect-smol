@@ -41,7 +41,7 @@ export const make = (options: {
 }): DurableClock => ({
   [TypeId]: TypeId,
   name: options.name,
-  duration: Duration.decode(options.duration),
+  duration: Duration.decodeUnsafe(options.duration),
   deferred: DurableDeferred.make(`DurableClock/${options.name}`)
 })
 

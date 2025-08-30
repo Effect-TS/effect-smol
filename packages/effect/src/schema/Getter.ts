@@ -515,9 +515,9 @@ export function decodeBase64UrlString<E extends string>(): Getter<string, E> {
  */
 export function dateTimeUtcFromInput<E extends DateTime.DateTime.Input>(): Getter<DateTime.Utc, E> {
   return transformOrFail((input) => {
-    const o = DateTime.make(input)
-    return Option.isSome(o)
-      ? Effect.succeed(DateTime.toUtc(o.value))
+    const dt = DateTime.make(input)
+    return dt
+      ? Effect.succeed(DateTime.toUtc(dt))
       : Effect.fail(new Issue.InvalidValue(Option.some(input), { message: "Invalid DateTime input" }))
   })
 }

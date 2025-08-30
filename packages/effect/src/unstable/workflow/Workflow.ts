@@ -344,7 +344,7 @@ export const make = <
     toLayer: (execute) =>
       Layer.effectServices(Effect.gen(function*() {
         const context = yield* Effect.services<WorkflowEngine>()
-        const engine = ServiceMap.get(context, EngineTag)
+        const engine = ServiceMap.getUnsafe(context, EngineTag)
         yield* engine.register(self, (payload, executionId) =>
           execute(payload, executionId).pipe(
             Effect.updateServices((input) => ServiceMap.merge(context, input))
@@ -524,9 +524,9 @@ export const intoResult = <A, E, R>(
   effect: Effect.Effect<A, E, R>
 ): Effect.Effect<Result<A, E>, never, Exclude<R, Scope.Scope> | WorkflowInstance> =>
   Effect.servicesWith((services: ServiceMap.ServiceMap<WorkflowInstance>) => {
-    const instance = ServiceMap.get(services, InstanceTag)
-    const captureDefects = ServiceMap.get(instance.workflow.annotations, CaptureDefects)
-    const suspendOnFailure = ServiceMap.get(instance.workflow.annotations, SuspendOnFailure)
+    const instance = ServiceMap.getUnsafe(services, InstanceTag)
+    const captureDefects = ServiceMap.getUnsafe(instance.workflow.annotations, CaptureDefects)
+    const suspendOnFailure = ServiceMap.getUnsafe(instance.workflow.annotations, SuspendOnFailure)
     return Effect.uninterruptibleMask((restore) =>
       restore(effect).pipe(
         suspendOnFailure ?
@@ -561,7 +561,7 @@ export const wrapActivityResult = <A, E, R>(
   isSuspend: (value: A) => boolean
 ): Effect.Effect<A, E, R | WorkflowInstance> =>
   Effect.servicesWith((services: ServiceMap.ServiceMap<WorkflowInstance>) => {
-    const instance = ServiceMap.get(services, InstanceTag)
+    const instance = ServiceMap.getUnsafe(services, InstanceTag)
     const state = instance.activityState
     if (instance.suspended) {
       return state.count > 0 ?
@@ -614,7 +614,7 @@ export const withCompensation: {
       (value) =>
         Effect.servicesWith((services: ServiceMap.ServiceMap<WorkflowInstance>) =>
           Effect.addFinalizer((exit) =>
-            Exit.isSuccess(exit) || ServiceMap.get(services, InstanceTag).suspended
+            Exit.isSuccess(exit) || ServiceMap.getUnsafe(services, InstanceTag).suspended
               ? Effect.void
               : compensation(value, exit.cause)
           )

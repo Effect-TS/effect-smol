@@ -1,4 +1,4 @@
-import * as Option from "../../data/Option.ts"
+import * as UndefinedOr from "../../data/UndefinedOr.ts"
 import * as Effect from "../../Effect.ts"
 import * as Fiber from "../../Fiber.ts"
 import * as Num from "../../primitives/Number.ts"
@@ -19,10 +19,7 @@ const policy = Schedule.forever.pipe(
       && error._tag === "ResponseError"
       && error.response.status === 429
     ) {
-      const retryAfter = Option.fromUndefinedOr(error.response.headers["retry-after"]).pipe(
-        Option.flatMap(Num.parse),
-        Option.getOrElse(() => 5)
-      )
+      const retryAfter = UndefinedOr.map(error.response.headers["retry-after"], Num.parse) ?? 5
       return Duration.seconds(retryAfter)
     }
     return Duration.seconds(1)
@@ -47,7 +44,7 @@ export const make: (
 > = Effect.fnUntraced(function*(options) {
   const clock = yield* Clock
   const scope = yield* Effect.scope
-  const exportInterval = Duration.decode(options.exportInterval)
+  const exportInterval = Duration.decodeUnsafe(options.exportInterval)
   let disabledUntil: number | undefined = undefined
 
   const client = HttpClient.filterStatusOk(yield* HttpClient.HttpClient).pipe(

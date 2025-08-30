@@ -69,7 +69,6 @@
  * @since 2.0.0
  */
 import type * as Cause from "./Cause.ts"
-import * as Option from "./data/Option.ts"
 import type { Effect } from "./Effect.ts"
 import type * as Exit from "./Exit.ts"
 import { dual, identity, type LazyArg } from "./Function.ts"
@@ -584,32 +583,31 @@ export const isDone = <A, E>(self: Deferred<A, E>): Effect<boolean> => internalE
 export const isDoneUnsafe = <A, E>(self: Deferred<A, E>): boolean => self.effect !== undefined
 
 /**
- * Returns a `Some<Effect<A, E, R>>` from the `Deferred` if this `Deferred` has
- * already been completed, `None` otherwise.
+ * Returns a `Effect<A, E, R>` from the `Deferred` if this `Deferred` has
+ * already been completed, `undefined` otherwise.
  *
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Option } from "effect/data"
  * import { Deferred } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const deferred = yield* Deferred.make<number>()
  *   const beforeCompletion = yield* Deferred.poll(deferred)
- *   console.log(Option.isNone(beforeCompletion)) // true
+ *   console.log(beforeCompletion === undefined) // true
  *
  *   yield* Deferred.succeed(deferred, 42)
  *   const afterCompletion = yield* Deferred.poll(deferred)
- *   console.log(Option.isSome(afterCompletion)) // true
+ *   console.log(afterCompletion !== undefined) // true
  * })
  * ```
  *
  * @since 2.0.0
  * @category getters
  */
-export const poll = <A, E>(
-  self: Deferred<A, E>
-): Effect<Option.Option<Effect<A, E>>> => internalEffect.sync(() => Option.fromUndefinedOr(self.effect))
+export function poll<A, E>(self: Deferred<A, E>): Effect<Effect<A, E> | undefined> {
+  return internalEffect.sync(() => self.effect)
+}
 
 /**
  * Completes the `Deferred` with the specified value.

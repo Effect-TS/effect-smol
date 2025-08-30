@@ -193,7 +193,7 @@ export const make: (options: {
               attributes: [...attributes, { key: "quantile", value: { stringValue: quantile.toString() } }],
               startTimeUnixNano: startTime,
               timeUnixNano: nowTime,
-              asDouble: value._tag === "Some" ? value.value : 0
+              asDouble: value ?? 0
             })
           }
           dataPoints.push({

@@ -397,8 +397,8 @@ describe("HttpServer", () => {
             span(name, parent, _, __, ___, kind) {
               assert.strictEqual(name, "http.client GET")
               assert.strictEqual(kind, "client")
-              assert(parent._tag === "Some" && parent.value._tag === "Span")
-              assert.strictEqual(parent.value.name, "request parent")
+              assert(parent && parent._tag === "Span")
+              assert.strictEqual(parent.name, "request parent")
               return requestSpan
             }
           })
@@ -406,7 +406,7 @@ describe("HttpServer", () => {
         Effect.withSpan("request parent"),
         Effect.repeat({ times: 2 })
       )
-      expect((body as any).parent.value.spanId).toEqual(requestSpan.spanId)
+      expect((body as any).parent.spanId).toEqual(requestSpan.spanId)
     }).pipe(Effect.provide(NodeHttpServer.layerTest)))
 
   it.effect("html", () =>

@@ -254,7 +254,7 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any, E, const Flatten extend
   const generateRequestId = options?.generateRequestId ?? (() => requestIdCounter++ as RequestId)
 
   const services = yield* Effect.services<Rpc.MiddlewareClient<Rpcs> | Scope.Scope>()
-  const scope = ServiceMap.get(services, Scope.Scope)
+  const scope = ServiceMap.getUnsafe(services, Scope.Scope)
 
   type ClientEntry = {
     readonly _tag: "Effect"

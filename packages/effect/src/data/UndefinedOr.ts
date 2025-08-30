@@ -35,6 +35,40 @@ export const match: {
 )
 
 /**
+ * @since 4.0.0
+ */
+export const getOrThrowWith: {
+  (onUndefined: () => unknown): <A>(self: A | undefined) => A
+  <A>(self: A | undefined, onUndefined: () => unknown): A
+} = dual(2, <A>(self: A | undefined, onUndefined: () => unknown): A => {
+  if (self !== undefined) {
+    return self
+  }
+  throw onUndefined()
+})
+
+/**
+ * @since 4.0.0
+ */
+export const getOrThrow: <A>(self: A | undefined) => A = getOrThrowWith(() =>
+  new Error("getOrThrow called on a undefined")
+)
+
+/**
+ * @since 4.0.0
+ */
+export const liftThrowable = <A extends ReadonlyArray<unknown>, B>(
+  f: (...a: A) => B
+): (...a: A) => B | undefined =>
+(...a) => {
+  try {
+    return f(...a)
+  } catch {
+    return undefined
+  }
+}
+
+/**
  * Creates a `Reducer` for `UndefinedOr<A>` that prioritizes the first non-`undefined`
  * value and combines values when both operands are present.
  *

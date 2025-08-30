@@ -131,7 +131,7 @@ export const make: (options: Omit<Runners["Service"], "sendLocal" | "notifyLocal
     afterPersist: (message: Message.Outgoing<any>, isDuplicate: boolean) => Effect.Effect<void, E>
   ): Effect.Effect<void, E | PersistenceError> {
     const rpc = message.rpc as any as Rpc.AnyWithProps
-    const persisted = ServiceMap.get(rpc.annotations, Persisted)
+    const persisted = ServiceMap.getUnsafe(rpc.annotations, Persisted)
     if (!persisted) {
       return Effect.die("Runners.notify only supports persisted messages")
     }
@@ -485,7 +485,7 @@ export const makeRpc: Effect.Effect<
     },
     send({ address, message }) {
       const rpc = message.rpc as any as Rpc.AnyWithProps
-      const isPersisted = ServiceMap.get(rpc.annotations, Persisted)
+      const isPersisted = ServiceMap.getUnsafe(rpc.annotations, Persisted)
       if (message._tag === "OutgoingEnvelope") {
         return RcMap.get(clients, address).pipe(
           Effect.flatMap((client) =>

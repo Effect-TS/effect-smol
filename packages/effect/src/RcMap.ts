@@ -315,12 +315,12 @@ export const make: {
 }) =>
   Effect.withFiber<RcMap<K, A, E>, never, R | Scope.Scope>((fiber) => {
     const services = fiber.services as ServiceMap.ServiceMap<R | Scope.Scope>
-    const scope = ServiceMap.get(services, Scope.Scope)
+    const scope = ServiceMap.getUnsafe(services, Scope.Scope)
     const self = makeUnsafe<K, A, E>({
       lookup: options.lookup as any,
       services,
       scope,
-      idleTimeToLive: options.idleTimeToLive ? Duration.decode(options.idleTimeToLive) : undefined,
+      idleTimeToLive: options.idleTimeToLive ? Duration.decodeUnsafe(options.idleTimeToLive) : undefined,
       capacity: Math.max(options.capacity ?? Number.POSITIVE_INFINITY, 0)
     })
     return Effect.as(

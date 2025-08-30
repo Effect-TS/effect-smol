@@ -6,13 +6,11 @@
  * @since 2.0.0
  */
 import * as equivalence from "../data/Equivalence.ts"
-import type { Option } from "../data/Option.ts"
 import * as order from "../data/Order.ts"
 import type { Ordering } from "../data/Ordering.ts"
 import * as predicate from "../data/Predicate.ts"
 import * as Reducer from "../data/Reducer.ts"
 import { dual } from "../Function.ts"
-import * as option from "../internal/option.ts"
 
 /**
  * The global `Number` constructor.
@@ -110,47 +108,27 @@ export const subtract: {
 /**
  * Provides a division operation on `number`s.
  *
- * @example
- * ```ts
- * import * as assert from "node:assert"
- * import { Option } from "effect/data"
- * import { divide } from "effect/primitives/Number"
+ * Returns `undefined` if the divisor is `0`.
  *
- * assert.deepStrictEqual(divide(6, 3), Option.some(2))
- * assert.deepStrictEqual(divide(6, 0), Option.none())
+ * **Example**
+ *
+ * ```ts
+ * import { Number } from "effect/primitives"
+ *
+ * Number.divide(6, 3) // 2
+ * Number.divide(6, 0) // undefined
  * ```
  *
  * @category math
  * @since 2.0.0
  */
 export const divide: {
-  (that: number): (self: number) => Option<number>
-  (self: number, that: number): Option<number>
+  (that: number): (self: number) => number | undefined
+  (self: number, that: number): number | undefined
 } = dual(
   2,
-  (self: number, that: number): Option<number> => that === 0 ? option.none : option.some(self / that)
+  (self: number, that: number): number | undefined => that === 0 ? undefined : self / that
 )
-
-/**
- * Provides a division operation on `number`s.
- *
- * Throws a `RangeError` if the divisor is `0`.
- *
- * @example
- * ```ts
- * import * as assert from "node:assert"
- * import { divideUnsafe } from "effect/primitives/Number"
- *
- * assert.deepStrictEqual(divideUnsafe(6, 3), 2)
- * ```
- *
- * @category math
- * @since 2.0.0
- */
-export const divideUnsafe: {
-  (that: number): (self: number) => number
-  (self: number, that: number): number
-} = dual(2, (self: number, that: number): number => self / that)
 
 /**
  * Returns the result of adding `1` to a given number.
@@ -521,40 +499,39 @@ export const nextPow2 = (n: number): number => {
  * Tries to parse a `number` from a `string` using the `Number()` function.
  * The following special string values are supported: "NaN", "Infinity", "-Infinity".
  *
- * @example
- * ```ts
- * import * as assert from "node:assert"
- * import { Option } from "effect/data"
- * import * as Number from "effect/primitives/Number"
+ * **Example**
  *
- * assert.deepStrictEqual(Number.parse("42"), Option.some(42))
- * assert.deepStrictEqual(Number.parse("3.14"), Option.some(3.14))
- * assert.deepStrictEqual(Number.parse("NaN"), Option.some(NaN))
- * assert.deepStrictEqual(Number.parse("Infinity"), Option.some(Infinity))
- * assert.deepStrictEqual(Number.parse("-Infinity"), Option.some(-Infinity))
- * assert.deepStrictEqual(Number.parse("not a number"), Option.none())
+ * ```ts
+ * import { Number } from "effect/primitives"
+ *
+ * Number.parse("42") // 42
+ * Number.parse("3.14") // 3.14
+ * Number.parse("NaN") // NaN
+ * Number.parse("Infinity") // Infinity
+ * Number.parse("-Infinity") // -Infinity
+ * Number.parse("not a number") // undefined
  * ```
  *
  * @category constructors
  * @since 2.0.0
  */
-export const parse = (s: string): Option<number> => {
+export const parse = (s: string): number | undefined => {
   if (s === "NaN") {
-    return option.some(NaN)
+    return NaN
   }
   if (s === "Infinity") {
-    return option.some(Infinity)
+    return Infinity
   }
   if (s === "-Infinity") {
-    return option.some(-Infinity)
+    return -Infinity
   }
   if (s.trim() === "") {
-    return option.none
+    return undefined
   }
   const n = Number(s)
-  return Number.isNaN(n)
-    ? option.none
-    : option.some(n)
+  return Number.isNaN(n) ?
+    undefined
+    : n
 }
 
 /**

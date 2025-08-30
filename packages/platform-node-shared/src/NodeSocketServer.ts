@@ -216,8 +216,8 @@ export const layerWebSocket: (
 const reportUnhandledError = <E>(cause: Cause<E>) =>
   Effect.withFiber<void>((fiber) => {
     const unhandledLogLevel = fiber.getRef(References.UnhandledLogLevel)
-    if (unhandledLogLevel._tag === "Some") {
-      return Effect.logWithLevel(unhandledLogLevel.value)(cause, "Unhandled error in SocketServer")
+    if (unhandledLogLevel) {
+      return Effect.logWithLevel(unhandledLogLevel)(cause, "Unhandled error in SocketServer")
     }
     return Effect.void
   })

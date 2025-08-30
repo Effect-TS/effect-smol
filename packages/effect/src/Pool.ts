@@ -204,7 +204,7 @@ export const makeWithStrategy = <A, E, R>(options: {
 }): Effect.Effect<Pool<A, E>, never, Scope.Scope | R> =>
   Effect.uninterruptibleMask(Effect.fnUntraced(function*(restore) {
     const services = yield* Effect.services<R | Scope.Scope>()
-    const scope = ServiceMap.get(services, Scope.Scope)
+    const scope = ServiceMap.getUnsafe(services, Scope.Scope)
     const acquire = Effect.updateServices(
       options.acquire,
       (input) => ServiceMap.merge(services, input)
@@ -540,8 +540,8 @@ const strategyUsageTTL = Effect.fnUntraced(function*<A, E>(ttl: Duration.Duratio
 const reportUnhandledError = <E>(cause: Cause.Cause<E>) =>
   Effect.withFiber<void>((fiber) => {
     const unhandledLogLevel = fiber.getRef(UnhandledLogLevel)
-    if (unhandledLogLevel._tag === "Some") {
-      return Effect.logWithLevel(unhandledLogLevel.value)(
+    if (unhandledLogLevel) {
+      return Effect.logWithLevel(unhandledLogLevel)(
         "Unhandled error in pool finalizer",
         cause
       )

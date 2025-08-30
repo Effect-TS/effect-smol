@@ -4527,7 +4527,7 @@ export const toPull: <OutElem, OutErr, OutDone, Env>(
   ) {
     const semaphore = Effect.makeSemaphoreUnsafe(1)
     const context = yield* Effect.services<Env | Scope.Scope>()
-    const scope = ServiceMap.get(context, Scope.Scope)
+    const scope = ServiceMap.getUnsafe(context, Scope.Scope)
     const pull = yield* toTransform(self)(Pull.haltVoid, scope)
     return pull.pipe(
       Effect.provideServices(context),

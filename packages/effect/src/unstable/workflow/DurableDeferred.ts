@@ -170,8 +170,8 @@ export const into: {
   R | WorkflowEngine | WorkflowInstance | Success["DecodingServices"] | Error["DecodingServices"]
 > =>
   Effect.servicesWith((services: ServiceMap.ServiceMap<WorkflowEngine | WorkflowInstance>) => {
-    const engine = ServiceMap.get(services, EngineTag)
-    const instance = ServiceMap.get(services, InstanceTag)
+    const engine = ServiceMap.getUnsafe(services, EngineTag)
+    const instance = ServiceMap.getUnsafe(services, InstanceTag)
     return Effect.onExit(
       effect,
       Effect.fnUntraced(function*(exit) {

@@ -252,7 +252,7 @@ export type ReferenceTypeId = "~effect/ServiceMap/Reference"
  *
  * // The reference can be used without explicit provision
  * const serviceMap = ServiceMap.empty()
- * const logger = ServiceMap.get(serviceMap, LoggerRef) // Uses default value
+ * const logger = ServiceMap.getUnsafe(serviceMap, LoggerRef) // Uses default value
  * ```
  */
 export interface Reference<in out Service> extends Key<never, Service> {
@@ -527,7 +527,7 @@ const emptyServiceMap = makeUnsafe(new Map())
  *
  * const Services = ServiceMap.make(Port, { PORT: 8080 })
  *
- * assert.deepStrictEqual(ServiceMap.get(Services, Port), { PORT: 8080 })
+ * assert.deepStrictEqual(ServiceMap.getUnsafe(Services, Port), { PORT: 8080 })
  * ```
  *
  * @since 4.0.0
@@ -557,8 +557,8 @@ export const make = <I, S>(
  *   ServiceMap.add(Timeout, { TIMEOUT: 5000 })
  * )
  *
- * assert.deepStrictEqual(ServiceMap.get(Services, Port), { PORT: 8080 })
- * assert.deepStrictEqual(ServiceMap.get(Services, Timeout), { TIMEOUT: 5000 })
+ * assert.deepStrictEqual(ServiceMap.getUnsafe(Services, Port), { PORT: 8080 })
+ * assert.deepStrictEqual(ServiceMap.getUnsafe(Services, Timeout), { TIMEOUT: 5000 })
  * ```
  *
  * @since 4.0.0
@@ -714,37 +714,6 @@ const serviceNotFoundError = (key: Key<any, any>) => {
 }
 
 /**
- * Get a service from the context that corresponds to the given key.
- *
- * @param self - The `ServiceMap` to search for the service.
- * @param key - The `Key` of the service to retrieve.
- *
- * @example
- * ```ts
- * import * as assert from "node:assert"
- * import { pipe } from "effect"
- * import { ServiceMap } from "effect"
- *
- * const Port = ServiceMap.Key<{ PORT: number }>("Port")
- * const Timeout = ServiceMap.Key<{ TIMEOUT: number }>("Timeout")
- *
- * const Services = pipe(
- *   ServiceMap.make(Port, { PORT: 8080 }),
- *   ServiceMap.add(Timeout, { TIMEOUT: 5000 })
- * )
- *
- * assert.deepStrictEqual(ServiceMap.get(Services, Timeout), { TIMEOUT: 5000 })
- * ```
- *
- * @since 4.0.0
- * @category Getters
- */
-export const get: {
-  <Services, I extends Services, S>(key: Key<I, S>): (self: ServiceMap<Services>) => S
-  <Services, I extends Services, S>(self: ServiceMap<Services>, key: Key<I, S>): S
-} = getUnsafe
-
-/**
  * Get the value associated with the specified key from the context wrapped in an `Option` object. If the key is not
  * found, the `Option` object will be `None`.
  *
@@ -798,8 +767,8 @@ export const getOption: {
  *
  * const Services = ServiceMap.merge(firstServiceMap, secondServiceMap)
  *
- * assert.deepStrictEqual(ServiceMap.get(Services, Port), { PORT: 8080 })
- * assert.deepStrictEqual(ServiceMap.get(Services, Timeout), { TIMEOUT: 5000 })
+ * assert.deepStrictEqual(ServiceMap.getUnsafe(Services, Port), { PORT: 8080 })
+ * assert.deepStrictEqual(ServiceMap.getUnsafe(Services, Timeout), { TIMEOUT: 5000 })
  * ```
  *
  * @since 4.0.0
@@ -920,11 +889,11 @@ export const omit = <Keys extends ReadonlyArray<Key<any, any>>>(
  *
  * // The reference provides the default value when accessed from an empty context
  * const services = ServiceMap.empty()
- * const logger = ServiceMap.get(services, LoggerRef)
+ * const logger = ServiceMap.getUnsafe(services, LoggerRef)
  *
  * // You can also override the default value
  * const customServices = ServiceMap.make(LoggerRef, { log: (msg) => `Custom: ${msg}` })
- * const customLogger = ServiceMap.get(customServices, LoggerRef)
+ * const customLogger = ServiceMap.getUnsafe(customServices, LoggerRef)
  * ```
  *
  * @since 4.0.0

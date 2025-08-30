@@ -142,7 +142,6 @@
  */
 
 import * as Arr from "../collections/Array.ts"
-import * as Option from "../data/Option.ts"
 import * as Order from "../data/Order.ts"
 import * as Predicate from "../data/Predicate.ts"
 import type { Effect } from "../Effect.ts"
@@ -812,7 +811,7 @@ export interface HistogramState {
  * ```ts
  * import { Effect } from "effect"
  * import { Metric } from "effect/observability"
- * import { Data, Option } from "effect/data"
+ * import { Data } from "effect/data"
  *
  * class SummaryInterfaceError extends Data.TaggedError("SummaryInterfaceError")<{
  *   readonly operation: string
@@ -857,12 +856,12 @@ export interface HistogramState {
  *   // - sum: sum of all observed values in window
  *
  *   // Extract quantile values safely
- *   const getQuantileValue = (quantiles: ReadonlyArray<readonly [number, Option.Option<number>]>, q: number) =>
+ *   const getQuantileValue = (quantiles: ReadonlyArray<readonly [number, number | undefined]>, q: number) =>
  *     quantiles.find(([quantile]) => quantile === q)?.[1]
  *
- *   const median = getQuantileValue(responseTimeState.quantiles, 0.5) ?? Option.none()
- *   const p95 = getQuantileValue(responseTimeState.quantiles, 0.95) ?? Option.none()
- *   const p99 = getQuantileValue(responseTimeState.quantiles, 0.99) ?? Option.none()
+ *   const median = getQuantileValue(responseTimeState.quantiles, 0.5)
+ *   const p95 = getQuantileValue(responseTimeState.quantiles, 0.95)
+ *   const p99 = getQuantileValue(responseTimeState.quantiles, 0.99)
  *
  *   return {
  *     responseTime: {
@@ -871,9 +870,9 @@ export interface HistogramState {
  *       slowestResponse: responseTimeState.max,        // 890
  *       totalTime: responseTimeState.sum,              // 1461
  *       averageTime: responseTimeState.sum / responseTimeState.count, // 292.2
- *       medianTime: Option.isSome(median) ? median.value : null,       // ~156
- *       p95Time: Option.isSome(p95) ? p95.value : null,               // ~890
- *       p99Time: Option.isSome(p99) ? p99.value : null                // ~890
+ *       medianTime: median ?? null,       // ~156
+ *       p95Time: p95 ?? null,               // ~890
+ *       p99Time: p99 ?? null                // ~890
  *     },
  *     requestSize: {
  *       totalRequests: requestSizeState.count,         // 3
@@ -895,7 +894,7 @@ export interface Summary<Input> extends Metric<Input, SummaryState> {}
  * ```ts
  * import { Effect } from "effect"
  * import { Metric } from "effect/observability"
- * import { Data, Option } from "effect/data"
+ * import { Data } from "effect/data"
  *
  * class SummaryStateError extends Data.TaggedError("SummaryStateError")<{
  *   readonly operation: string
@@ -930,11 +929,11 @@ export interface Summary<Input> extends Metric<Input, SummaryState> {}
  *   // - sum: sum of all observed values in window
  *
  *   // Extract quantile information safely
- *   const extractQuantiles = (quantiles: ReadonlyArray<readonly [number, Option.Option<number>]>) => {
+ *   const extractQuantiles = (quantiles: ReadonlyArray<readonly [number, number | undefined]>) => {
  *     const result: Record<string, number | null> = {}
  *     for (const [quantile, valueOption] of quantiles) {
  *       const percentile = Math.round(quantile * 100)
- *       result[`p${percentile}`] = Option.isSome(valueOption) ? valueOption.value : null
+ *       result[`p${percentile}`] = valueOption ?? null
  *     }
  *     return result
  *   }
@@ -964,7 +963,7 @@ export interface Summary<Input> extends Metric<Input, SummaryState> {}
  * @category Metrics
  */
 export interface SummaryState {
-  readonly quantiles: ReadonlyArray<readonly [number, Option.Option<number>]>
+  readonly quantiles: ReadonlyArray<readonly [number, number | undefined]>
   readonly count: number
   readonly min: number
   readonly max: number
@@ -1769,7 +1768,7 @@ abstract class Metric$<in Input, out State> implements Metric<Input, State> {
   abstract createHooks(): Metric.Hooks<Input, State>
 
   hook(context: ServiceMap.ServiceMap<never>): Metric.Hooks<Input, State> {
-    const extraAttributes = ServiceMap.get(context, CurrentMetricAttributes)
+    const extraAttributes = ServiceMap.getUnsafe(context, CurrentMetricAttributes)
     if (Object.keys(extraAttributes).length === 0) {
       if (Predicate.isNotUndefined(this.#metadata)) {
         return this.#metadata.hooks
@@ -1792,7 +1791,7 @@ abstract class Metric$<in Input, out State> implements Metric<Input, State> {
     attributes: Metric.Attributes | undefined
   ): Metric.Metadata<Input, State> {
     const key = makeKey(this, attributes)
-    const registry = ServiceMap.get(context, MetricRegistry)
+    const registry = ServiceMap.getUnsafe(context, MetricRegistry)
     if (registry.has(key)) {
       return registry.get(key)!
     }
@@ -2010,7 +2009,7 @@ class SummaryMetric extends Metric$<readonly [value: number, timestamp: number],
     let min = Number.MAX_VALUE
     let max = Number.MIN_VALUE
 
-    const snapshot = (now: number): ReadonlyArray<[number, Option.Option<number>]> => {
+    const snapshot = (now: number): ReadonlyArray<[number, number | undefined]> => {
       const builder: Array<number> = []
       let i = 0
       while (i < this.#maxSize) {
@@ -2027,16 +2026,16 @@ class SummaryMetric extends Metric$<readonly [value: number, timestamp: number],
       const samples = Arr.sort(builder, Order.number)
       const sampleSize = samples.length
       if (sampleSize === 0) {
-        return sortedQuantiles.map((q) => [q, Option.none()])
+        return sortedQuantiles.map((q) => [q, undefined])
       }
       // Compute the value of the quantile in terms of rank:
       // > For a given quantile `q`, return the maximum value `v` such that at
       // > most `q * n` values are less than or equal to `v`.
       return sortedQuantiles.map((q) => {
-        if (q <= 0) return [q, Option.some(samples[0])]
-        if (q >= 1) return [q, Option.some(samples[sampleSize - 1])]
+        if (q <= 0) return [q, samples[0]]
+        if (q >= 1) return [q, samples[sampleSize - 1]]
         const index = Math.ceil(q * sampleSize) - 1
-        return [q, Option.some(samples[index])]
+        return [q, samples[index]]
       })
     }
 
@@ -2057,7 +2056,7 @@ class SummaryMetric extends Metric$<readonly [value: number, timestamp: number],
     }
 
     const get = (context: ServiceMap.ServiceMap<never>) => {
-      const clock = ServiceMap.get(context, InternalEffect.ClockRef)
+      const clock = ServiceMap.getUnsafe(context, InternalEffect.ClockRef)
       const quantiles = snapshot(clock.currentTimeMillisUnsafe())
       return { quantiles, count, min, max, sum }
     }
@@ -2527,7 +2526,7 @@ export const summary = (name: string, options: {
   mapInput(summaryWithTimestamp(name, options), (input, context) =>
     [
       input,
-      ServiceMap.get(context, InternalEffect.ClockRef).currentTimeMillisUnsafe()
+      ServiceMap.getUnsafe(context, InternalEffect.ClockRef).currentTimeMillisUnsafe()
     ] as [number, number])
 
 /**
@@ -3188,7 +3187,7 @@ export const dump: Effect<string> = InternalEffect.flatMap(InternalEffect.servic
  * @category Snapshotting
  */
 export const snapshotUnsafe = (services: ServiceMap.ServiceMap<never>): ReadonlyArray<Metric.Snapshot> => {
-  const registry = ServiceMap.get(services, MetricRegistry)
+  const registry = ServiceMap.getUnsafe(services, MetricRegistry)
   return Array.from(registry.values()).map(({ hooks, ...meta }) => ({
     ...meta,
     state: hooks.get(services)
@@ -3234,9 +3233,7 @@ const renderState = (metric: Metric.Snapshot): string => {
     }
     case "Summary": {
       const state = metric.state as SummaryState
-      const printableQuantiles = state.quantiles.map(([key, value]) =>
-        [key, Option.getOrElse(value, () => 0)] as [number, number]
-      )
+      const printableQuantiles = state.quantiles.map(([key, value]) => [key, value ?? 0] as [number, number])
       const quantiles = `quantiles: [${renderKeyValues(printableQuantiles)}]`
       const count = `count: [${state.count}]`
       const min = `min: [${state.min}]`
@@ -4015,7 +4012,7 @@ function addAttributesToServiceMap(
   context: ServiceMap.ServiceMap<never>,
   attributes: Metric.Attributes
 ): ServiceMap.ServiceMap<never> {
-  const current = ServiceMap.get(context, CurrentMetricAttributes)
+  const current = ServiceMap.getUnsafe(context, CurrentMetricAttributes)
   const updated = mergeAttributes(current, attributes)
   return ServiceMap.add(context, CurrentMetricAttributes, updated)
 }

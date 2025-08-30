@@ -1,7 +1,6 @@
 /**
  * @since 2.0.0
  */
-import type { NoSuchElementError } from "./Cause.ts"
 import * as Cause from "./Cause.ts"
 import * as Iterable from "./collections/Iterable.ts"
 import * as MutableHashMap from "./collections/MutableHashMap.ts"
@@ -432,7 +431,6 @@ export const set: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Option } from "effect/data"
  * import { FiberMap } from "effect"
  * import { Fiber } from "effect"
  *
@@ -445,25 +443,22 @@ export const set: {
  *
  *   // Retrieve the fiber
  *   const retrieved = FiberMap.getUnsafe(map, "greeting")
- *   if (Option.isSome(retrieved)) {
- *     const result = yield* Fiber.await(retrieved.value)
+ *   if (retrieved) {
+ *     const result = yield* Fiber.await(retrieved)
  *     console.log(result) // "Hello"
  *   }
  * })
  * ```
  */
 export const getUnsafe: {
-  <K>(key: K): <A, E>(self: FiberMap<K, A, E>) => Option.Option<Fiber.Fiber<A, E>>
-  <K, A, E>(self: FiberMap<K, A, E>, key: K): Option.Option<Fiber.Fiber<A, E>>
-} = dual<
-  <K>(
-    key: K
-  ) => <A, E>(self: FiberMap<K, A, E>) => Option.Option<Fiber.Fiber<A, E>>,
-  <K, A, E>(
-    self: FiberMap<K, A, E>,
-    key: K
-  ) => Option.Option<Fiber.Fiber<A, E>>
->(2, (self, key) => self.state._tag === "Closed" ? Option.none() : MutableHashMap.get(self.state.backing, key))
+  <K>(key: K): <A, E>(self: FiberMap<K, A, E>) => Fiber.Fiber<A, E> | undefined
+  <K, A, E>(self: FiberMap<K, A, E>, key: K): Fiber.Fiber<A, E> | undefined
+} = dual(
+  2,
+  <K, A, E>(self: FiberMap<K, A, E>, key: K): Fiber.Fiber<A, E> | undefined => {
+    return self.state._tag === "Closed" ? undefined : Option.getOrUndefined(MutableHashMap.get(self.state.backing, key))
+  }
+)
 
 /**
  * Retrieve a fiber from the FiberMap.
@@ -486,23 +481,21 @@ export const getUnsafe: {
  *
  *   // Retrieve the fiber with error handling
  *   const retrieved = yield* FiberMap.get(map, "greeting")
- *   const result = yield* Fiber.await(retrieved)
- *   console.log(result) // "Hello"
+ *   if (retrieved) {
+ *     const result = yield* Fiber.await(retrieved)
+ *     console.log(result) // "Hello"
+ *   }
  * })
  * ```
  */
 export const get: {
-  <K>(key: K): <A, E>(self: FiberMap<K, A, E>) => Effect.Effect<Fiber.Fiber<A, E>, NoSuchElementError>
-  <K, A, E>(self: FiberMap<K, A, E>, key: K): Effect.Effect<Fiber.Fiber<A, E>, NoSuchElementError>
-} = dual<
-  <K>(
-    key: K
-  ) => <A, E>(self: FiberMap<K, A, E>) => Effect.Effect<Fiber.Fiber<A, E>, NoSuchElementError>,
-  <K, A, E>(
-    self: FiberMap<K, A, E>,
-    key: K
-  ) => Effect.Effect<Fiber.Fiber<A, E>, NoSuchElementError>
->(2, (self, key) => Effect.suspend(() => getUnsafe(self, key).asEffect()))
+  <K>(key: K): <A, E>(self: FiberMap<K, A, E>) => Effect.Effect<Fiber.Fiber<A, E> | undefined>
+  <K, A, E>(self: FiberMap<K, A, E>, key: K): Effect.Effect<Fiber.Fiber<A, E> | undefined>
+} = dual(
+  2,
+  <K, A, E>(self: FiberMap<K, A, E>, key: K): Effect.Effect<Fiber.Fiber<A, E> | undefined> =>
+    Effect.suspend(() => Effect.succeed(getUnsafe(self, key)))
+)
 
 /**
  * Check if a key exists in the FiberMap.

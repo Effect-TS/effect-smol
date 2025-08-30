@@ -426,14 +426,11 @@ export const Boolean = Schema.Literals(["true", "yes", "on", "1", "false", "no",
  * @since 4.0.0
  */
 export const Duration = Schema.String.annotate({
-  description: "a string that will be parsed as a duration"
+  description: "a string that will be parsed as a Duration"
 }).pipe(Schema.decodeTo(Schema.Duration, {
-  decode: Getter.transformOrFail((value) => {
-    const od = Duration_.decodeUnknown(value)
-    if (Option.isSome(od)) {
-      return Effect.succeed(od.value)
-    }
-    return Effect.fail(new Issue.InvalidValue(Option.some(value)))
+  decode: Getter.transformOrFail((s) => {
+    const d = Duration_.decode(s)
+    return d ? Effect.succeed(d) : Effect.fail(new Issue.InvalidValue(Option.some(s)))
   }),
   encode: Getter.forbidden("Encoding Duration is not supported")
 }))

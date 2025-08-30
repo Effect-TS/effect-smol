@@ -40,7 +40,7 @@
 import * as Arr from "../collections/Array.ts"
 import * as Brand from "../data/Brand.ts"
 import * as Data from "../data/Data.ts"
-import * as Option from "../data/Option.ts"
+import * as UndefinedOr from "../data/UndefinedOr.ts"
 import * as Effect from "../Effect.ts"
 import { pipe } from "../Function.ts"
 import * as Layer from "../Layer.ts"
@@ -913,7 +913,7 @@ export const make = (
       const chunkSize = Size(options?.chunkSize ?? 64 * 1024)
       return Stream.fromPull(Effect.succeed(
         Effect.flatMap(
-          Effect.suspend((): Pull.Pull<Option.Option<Uint8Array>, PlatformError> => {
+          Effect.suspend((): Pull.Pull<Uint8Array | undefined, PlatformError> => {
             if (bytesToRead !== undefined && bytesToRead <= totalBytesRead) {
               return Pull.haltVoid
             }
@@ -922,9 +922,9 @@ export const make = (
               : chunkSize
             return file.readAlloc(toRead)
           }),
-          Option.match({
-            onNone: () => Pull.haltVoid,
-            onSome: (buf) => {
+          UndefinedOr.match({
+            onUndefined: () => Pull.haltVoid,
+            onDefined: (buf) => {
               totalBytesRead += BigInt(buf.length)
               return Effect.succeed(Arr.of(buf))
             }
@@ -1218,7 +1218,7 @@ export interface File {
   readonly seek: (offset: SizeInput, from: SeekMode) => Effect.Effect<void>
   readonly sync: Effect.Effect<void, PlatformError>
   readonly read: (buffer: Uint8Array) => Effect.Effect<Size, PlatformError>
-  readonly readAlloc: (size: SizeInput) => Effect.Effect<Option.Option<Uint8Array>, PlatformError>
+  readonly readAlloc: (size: SizeInput) => Effect.Effect<Uint8Array | undefined, PlatformError>
   readonly truncate: (length?: SizeInput) => Effect.Effect<void, PlatformError>
   readonly write: (buffer: Uint8Array) => Effect.Effect<Size, PlatformError>
   readonly writeAll: (buffer: Uint8Array) => Effect.Effect<void, PlatformError>
@@ -1270,7 +1270,6 @@ export declare namespace File {
    * ```ts
    * import { Effect } from "effect"
    * import { Console } from "effect/logging"
-   * import { Option } from "effect/data"
    * import { FileSystem } from "effect/platform"
    *
    * const program = Effect.gen(function* () {
@@ -1283,7 +1282,7 @@ export declare namespace File {
    *   yield* Console.log(`Mode: ${info.mode.toString(8)}`) // Octal permissions
    *
    *   // Handle optional timestamps
-   *   const mtime = Option.getOrElse(info.mtime, () => new Date(0))
+   *   const mtime = info.mtime ?? new Date(0)
    *   yield* Console.log(`Modified: ${mtime.toISOString()}`)
    *
    *   // Check if it's a regular file
@@ -1298,19 +1297,19 @@ export declare namespace File {
    */
   export interface Info {
     readonly type: Type
-    readonly mtime: Option.Option<Date>
-    readonly atime: Option.Option<Date>
-    readonly birthtime: Option.Option<Date>
+    readonly mtime: Date | undefined
+    readonly atime: Date | undefined
+    readonly birthtime: Date | undefined
     readonly dev: number
-    readonly ino: Option.Option<number>
+    readonly ino: number | undefined
     readonly mode: number
-    readonly nlink: Option.Option<number>
-    readonly uid: Option.Option<number>
-    readonly gid: Option.Option<number>
-    readonly rdev: Option.Option<number>
+    readonly nlink: number | undefined
+    readonly uid: number | undefined
+    readonly gid: number | undefined
+    readonly rdev: number | undefined
     readonly size: Size
-    readonly blksize: Option.Option<Size>
-    readonly blocks: Option.Option<number>
+    readonly blksize: Size | undefined
+    readonly blocks: number | undefined
   }
 }
 
@@ -1433,16 +1432,13 @@ export const WatchEventRemove: Data.Case.Constructor<WatchEvent.Remove, "_tag"> 
  * ```ts
  * import { Effect } from "effect"
  * import { Stream } from "effect/stream"
- * import { Option } from "effect/data"
  * import { FileSystem } from "effect/platform"
  *
  * // Custom watch backend implementation
  * const customWatchBackend = {
  *   register: (path: string, stat: FileSystem.File.Info) => {
  *     // Implementation would depend on platform
- *     return Option.some(
- *       Stream.empty // Placeholder implementation
- *     )
+ *     return Stream.empty // Placeholder implementation
  *   }
  * }
  *
@@ -1465,5 +1461,5 @@ export const WatchEventRemove: Data.Case.Constructor<WatchEvent.Remove, "_tag"> 
  * @category file watcher
  */
 export class WatchBackend extends ServiceMap.Key<WatchBackend, {
-  readonly register: (path: string, stat: File.Info) => Option.Option<Stream.Stream<WatchEvent, PlatformError>>
+  readonly register: (path: string, stat: File.Info) => Stream.Stream<WatchEvent, PlatformError> | undefined
 }>()("effect/platform/FileSystem/WatchBackend") {}

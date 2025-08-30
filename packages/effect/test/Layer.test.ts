@@ -41,7 +41,7 @@ describe("Layer", () => {
       const layer = Layer.succeed(Service1Tag)(service1)
       const env = layer.pipe(Layer.merge(layer), Layer.merge(layer), Layer.build)
       const result = yield* env.pipe(
-        Effect.map((context) => ServiceMap.get(context, Service1Tag))
+        Effect.map((context) => ServiceMap.getUnsafe(context, Service1Tag))
       )
       assert.strictEqual(result, service1)
     }))

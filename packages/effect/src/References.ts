@@ -10,7 +10,6 @@
  *
  * @since 4.0.0
  */
-import * as Option from "./data/Option.ts"
 import type { ReadonlyRecord } from "./data/Record.ts"
 import { constTrue } from "./Function.ts"
 import type { LogLevel } from "./logging/LogLevel.ts"
@@ -402,9 +401,9 @@ export const CurrentLogLevel: ServiceMap.Reference<LogLevel> = ServiceMap.Refere
  * @category references
  * @since 4.0.0
  */
-export const UnhandledLogLevel: ServiceMap.Reference<Option.Option<LogLevel>> = ServiceMap.Reference(
+export const UnhandledLogLevel: ServiceMap.Reference<LogLevel | undefined> = ServiceMap.Reference(
   "effect/References/UnhandledLogLevel",
-  { defaultValue: () => Option.some<LogLevel>("Error") }
+  { defaultValue: (): LogLevel | undefined => "Error" }
 )
 
 /**
