@@ -2,6 +2,7 @@
  * @since 2.0.0
  */
 import * as Arr from "../collections/Array.ts"
+import * as Data from "../data/Data.ts"
 import * as equivalence from "../data/Equivalence.ts"
 import * as Option from "../data/Option.ts"
 import { hasProperty } from "../data/Predicate.ts"
@@ -298,18 +299,6 @@ const nextLookupTable = (values: ReadonlyArray<number>, size: number): Array<num
  * This symbol is used for nominal typing to distinguish CronParseError
  * instances from other error types.
  *
- * @example
- * ```ts
- * import { Cron } from "effect/time"
- * import { Result } from "effect/data"
- *
- * const result = Cron.parse("invalid cron")
- * if (Result.isFailure(result)) {
- *   const error = result.failure
- *   console.log(error[Cron.CronParseErrorTypeId]) // Symbol(effect/Cron/errors/CronParseError)
- * }
- * ```
- *
  * @since 2.0.0
  * @category symbols
  */
@@ -320,18 +309,6 @@ export const CronParseErrorTypeId: CronParseErrorTypeId = "~effect/Cron/CronPars
  *
  * This type is used in the CronParseError interface to provide nominal typing
  * and ensure type safety when working with cron parsing errors.
- *
- * @example
- * ```ts
- * import { Cron } from "effect/time"
- * import { Result } from "effect/data"
- *
- * const parseResult = Cron.parse("0 0 25 1 *") // Invalid hour (25 hours)
- * if (Result.isFailure(parseResult)) {
- *   const error: Cron.CronParseError = parseResult.failure
- *   console.log(error._tag) // "CronParseError"
- * }
- * ```
  *
  * @since 2.0.0
  * @category symbols
@@ -358,28 +335,18 @@ export type CronParseErrorTypeId = "~effect/Cron/CronParseError"
  * }
  * ```
  *
- * @since 2.0.0
+ * @since 4.0.0
  * @category models
  */
-export interface CronParseError {
-  readonly _tag: "CronParseError"
-  readonly [CronParseErrorTypeId]: CronParseErrorTypeId
+/**
+ * @category Models
+ * @since 4.0.0
+ */
+export class CronParseError extends Data.TaggedError("CronParseError")<{
   readonly message: string
   readonly input?: string
-}
-
-const ParseErrorProto = {
-  _tag: "CronParseError",
-  [CronParseErrorTypeId]: CronParseErrorTypeId
-}
-
-const CronParseError = (message: string, input?: string): CronParseError => {
-  const o: Mutable<CronParseError> = Object.create(ParseErrorProto)
-  o.message = message
-  if (input !== undefined) {
-    o.input = input
-  }
-  return o
+}> {
+  readonly [CronParseErrorTypeId] = CronParseErrorTypeId
 }
 
 /**
@@ -437,7 +404,7 @@ export const isCronParseError = (u: unknown): u is CronParseError => hasProperty
 export const parse = (cron: string, tz?: DateTime.TimeZone | string): Result.Result<Cron, CronParseError> => {
   const segments = cron.split(" ").filter(String.isNonEmpty)
   if (segments.length !== 5 && segments.length !== 6) {
-    return Result.fail(CronParseError(`Invalid number of segments in cron expression`, cron))
+    return Result.fail(new CronParseError({ message: `Invalid number of segments in cron expression`, input: cron }))
   }
 
   if (segments.length === 5) {
@@ -448,7 +415,8 @@ export const parse = (cron: string, tz?: DateTime.TimeZone | string): Result.Res
   const zone = tz === undefined || dateTime.isTimeZone(tz) ?
     Result.succeed(tz) :
     UndefinedOr.match(dateTime.zoneFromString(tz), {
-      onUndefined: () => Result.fail(CronParseError(`Invalid time zone in cron expression`, tz)),
+      onUndefined: () =>
+        Result.fail(new CronParseError({ message: `Invalid time zone in cron expression`, input: tz })),
       onDefined: (zone) => Result.succeed(zone)
     })
 
@@ -896,13 +864,13 @@ const parseSegment = (
 
     if (step !== undefined) {
       if (!Number.isInteger(step)) {
-        return Result.fail(CronParseError(`Expected step value to be a positive integer`, input))
+        return Result.fail(new CronParseError({ message: `Expected step value to be a positive integer`, input }))
       }
       if (step < 1) {
-        return Result.fail(CronParseError(`Expected step value to be greater than 0`, input))
+        return Result.fail(new CronParseError({ message: `Expected step value to be greater than 0`, input }))
       }
       if (step > options.max) {
-        return Result.fail(CronParseError(`Expected step value to be less than ${options.max}`, input))
+        return Result.fail(new CronParseError({ message: `Expected step value to be less than ${options.max}`, input }))
       }
     }
 
@@ -913,23 +881,27 @@ const parseSegment = (
     } else {
       const [left, right] = splitRange(raw, options.aliases)
       if (!Number.isInteger(left)) {
-        return Result.fail(CronParseError(`Expected a positive integer`, input))
+        return Result.fail(new CronParseError({ message: `Expected a positive integer`, input }))
       }
       if (left < options.min || left > options.max) {
-        return Result.fail(CronParseError(`Expected a value between ${options.min} and ${options.max}`, input))
+        return Result.fail(
+          new CronParseError({ message: `Expected a value between ${options.min} and ${options.max}`, input })
+        )
       }
 
       if (right === undefined) {
         values.add(left)
       } else {
         if (!Number.isInteger(right)) {
-          return Result.fail(CronParseError(`Expected a positive integer`, input))
+          return Result.fail(new CronParseError({ message: `Expected a positive integer`, input }))
         }
         if (right < options.min || right > options.max) {
-          return Result.fail(CronParseError(`Expected a value between ${options.min} and ${options.max}`, input))
+          return Result.fail(
+            new CronParseError({ message: `Expected a value between ${options.min} and ${options.max}`, input })
+          )
         }
         if (left > right) {
-          return Result.fail(CronParseError(`Invalid value range`, input))
+          return Result.fail(new CronParseError({ message: `Invalid value range`, input }))
         }
 
         for (let i = left; i <= right; i += step ?? 1) {
