@@ -189,10 +189,6 @@ importers:
         version: 4.1.9
 
   packages/cli:
-    dependencies:
-      effect:
-        specifier: workspace:^
-        version: link:../effect
     devDependencies:
       '@effect/platform-node':
         specifier: workspace:^
@@ -200,6 +196,9 @@ importers:
       '@types/node':
         specifier: ^24.0.14
         version: 24.1.0
+      effect:
+        specifier: workspace:^
+        version: link:../effect
 
   packages/effect:
     dependencies:
