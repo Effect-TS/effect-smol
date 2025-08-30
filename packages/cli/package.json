@@ -44,9 +44,6 @@
     "test": "vitest",
     "coverage": "vitest --coverage"
   },
-  "dependencies": {
-    "effect": "workspace:^"
-  },
   "peerDependencies": {
     "effect": "workspace:^"
   },
