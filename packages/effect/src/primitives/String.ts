@@ -8,7 +8,6 @@
 
 import type { NonEmptyArray } from "../collections/Array.ts"
 import * as equivalence from "../data/Equivalence.ts"
-import * as Option from "../data/Option.ts"
 import * as order from "../data/Order.ts"
 import type * as Ordering from "../data/Ordering.ts"
 import type { Refinement } from "../data/Predicate.ts"
@@ -487,29 +486,29 @@ export const endsWith = (searchString: string, position?: number) => (self: stri
   self.endsWith(searchString, position)
 
 /**
- * Returns the character code at the specified index, or `None` if the index is out of bounds.
+ * Returns the character code at the specified index, or `undefined` if the index is out of bounds.
  *
- * @example
+ * **Example**
+ *
  * ```ts
- * import * as assert from "node:assert"
- * import { pipe } from "effect"
- * import { Option } from "effect/data"
  * import { String } from "effect/primitives"
  *
- * assert.deepStrictEqual(pipe("abc", String.charCodeAt(1)), Option.some(98))
- * assert.deepStrictEqual(pipe("abc", String.charCodeAt(4)), Option.none())
+ * String.charCodeAt("abc", 1) // 98
+ * String.charCodeAt("abc", 4) // undefined
  * ```
  *
  * @category elements
  * @since 2.0.0
  */
 export const charCodeAt: {
-  (index: number): (self: string) => Option.Option<number>
-  (self: string, index: number): Option.Option<number>
+  (index: number): (self: string) => number | undefined
+  (self: string, index: number): number | undefined
 } = dual(
   2,
-  (self: string, index: number): Option.Option<number> =>
-    Option.filter(Option.some(self.charCodeAt(index)), (charCode) => !isNaN(charCode))
+  (self: string, index: number): number | undefined => {
+    const out = self.charCodeAt(index)
+    return isNaN(out) ? undefined : out
+  }
 )
 
 /**
@@ -532,113 +531,113 @@ export const charCodeAt: {
 export const substring = (start: number, end?: number) => (self: string): string => self.substring(start, end)
 
 /**
- * Returns the character at the specified index, or `None` if the index is out of bounds.
+ * A `pipe`-able version of the native `charAt` method.
  *
- * @example
+ * **Example**
+ *
  * ```ts
- * import * as assert from "node:assert"
  * import { pipe } from "effect"
- * import { Option } from "effect/data"
  * import { String } from "effect/primitives"
  *
- * assert.deepStrictEqual(pipe("abc", String.at(1)), Option.some("b"))
- * assert.deepStrictEqual(pipe("abc", String.at(4)), Option.none())
+ * pipe("abc", String.at(1)) // "b"
+ * pipe("abc", String.at(4)) // undefined
  * ```
  *
  * @category elements
  * @since 2.0.0
  */
-export const at: {
-  (index: number): (self: string) => Option.Option<string>
-  (self: string, index: number): Option.Option<string>
-} = dual(2, (self: string, index: number): Option.Option<string> => Option.fromUndefinedOr(self.at(index)))
+export const at = (index: number) => (self: string): string | undefined => {
+  return self.charAt(index)
+}
 
 /**
  * Returns the character at the specified index, or `None` if the index is out of bounds.
  *
- * @example
+ * **Example**
+ *
  * ```ts
- * import * as assert from "node:assert"
  * import { pipe } from "effect"
- * import { Option } from "effect/data"
  * import { String } from "effect/primitives"
  *
- * assert.deepStrictEqual(pipe("abc", String.charAt(1)), Option.some("b"))
- * assert.deepStrictEqual(pipe("abc", String.charAt(4)), Option.none())
+ * pipe("abc", String.charAt(1)) // "b"
+ * pipe("abc", String.charAt(4)) // undefined
  * ```
  *
  * @category elements
  * @since 2.0.0
  */
 export const charAt: {
-  (index: number): (self: string) => Option.Option<string>
-  (self: string, index: number): Option.Option<string>
+  (index: number): (self: string) => string | undefined
+  (self: string, index: number): string | undefined
 } = dual(
   2,
-  (self: string, index: number): Option.Option<string> => Option.filter(Option.some(self.charAt(index)), isNonEmpty)
+  (self: string, index: number): string | undefined => {
+    const out = self.charAt(index)
+    return isNonEmpty(out) ? out : undefined
+  }
 )
 
 /**
- * Returns the Unicode code point at the specified index, or `None` if the index is out of bounds.
+ * A `pipe`-able version of the native `codePointAt` method.
  *
- * @example
+ * **Example**
+ *
  * ```ts
- * import * as assert from "node:assert"
  * import { pipe } from "effect"
- * import { Option } from "effect/data"
  * import { String } from "effect/primitives"
  *
- * assert.deepStrictEqual(pipe("abc", String.codePointAt(1)), Option.some(98))
- * assert.deepStrictEqual(pipe("abc", String.codePointAt(10)), Option.none())
+ * pipe("abc", String.codePointAt(1)) // 98
+ * pipe("abc", String.codePointAt(10)) // undefined
  * ```
  *
  * @category elements
  * @since 2.0.0
  */
-export const codePointAt: {
-  (index: number): (self: string) => Option.Option<number>
-  (self: string, index: number): Option.Option<number>
-} = dual(2, (self: string, index: number): Option.Option<number> => Option.fromUndefinedOr(self.codePointAt(index)))
+export const codePointAt = (index: number) => (self: string): number | undefined => {
+  return self.codePointAt(index)
+}
 
 /**
  * Returns the index of the first occurrence of a substring, or `None` if not found.
  *
- * @example
+ * **Example**
+ *
  * ```ts
- * import * as assert from "node:assert"
  * import { pipe } from "effect"
- * import { Option } from "effect/data"
  * import { String } from "effect/primitives"
  *
- * assert.deepStrictEqual(pipe("abbbc", String.indexOf("b")), Option.some(1))
- * assert.deepStrictEqual(pipe("abbbc", String.indexOf("z")), Option.none())
+ * pipe("abbbc", String.indexOf("b")) // 1
+ * pipe("abbbc", String.indexOf("z")) // undefined
  * ```
  *
  * @category searching
  * @since 2.0.0
  */
-export const indexOf = (searchString: string) => (self: string): Option.Option<number> =>
-  Option.filter(Option.some(self.indexOf(searchString)), number.greaterThanOrEqualTo(0))
+export const indexOf = (searchString: string) => (self: string): number | undefined => {
+  const out = self.indexOf(searchString)
+  return out >= 0 ? out : undefined
+}
 
 /**
  * Returns the index of the last occurrence of a substring, or `None` if not found.
  *
- * @example
+ * **Example**
+ *
  * ```ts
- * import * as assert from "node:assert"
  * import { pipe } from "effect"
- * import { Option } from "effect/data"
  * import { String } from "effect/primitives"
  *
- * assert.deepStrictEqual(pipe("abbbc", String.lastIndexOf("b")), Option.some(3))
- * assert.deepStrictEqual(pipe("abbbc", String.lastIndexOf("d")), Option.none())
+ * pipe("abbbc", String.lastIndexOf("b")) // 3
+ * pipe("abbbc", String.lastIndexOf("d")) // undefined
  * ```
  *
  * @category searching
  * @since 2.0.0
  */
-export const lastIndexOf = (searchString: string) => (self: string): Option.Option<number> =>
-  Option.filter(Option.some(self.lastIndexOf(searchString)), number.greaterThanOrEqualTo(0))
+export const lastIndexOf = (searchString: string) => (self: string): number | undefined => {
+  const out = self.lastIndexOf(searchString)
+  return out >= 0 ? out : undefined
+}
 
 /**
  * Compares two strings according to the current locale.
@@ -662,24 +661,22 @@ export const localeCompare =
     number.sign(self.localeCompare(that, locales, options))
 
 /**
- * It is the `pipe`-able version of the native `match` method.
+ * A `pipe`-able version of the native `match` method.
  *
- * @example
+ * **Example**
+ *
  * ```ts
- * import * as assert from "node:assert"
  * import { pipe } from "effect"
- * import { Option } from "effect/data"
  * import { String } from "effect/primitives"
  *
- * assert.deepStrictEqual(pipe("hello", String.match(/l+/)), Option.some(["ll"]))
- * assert.deepStrictEqual(pipe("hello", String.match(/x/)), Option.none())
+ * pipe("hello", String.match(/l+/)) // ["ll"]
+ * pipe("hello", String.match(/x/)) // null
  * ```
  *
  * @category searching
  * @since 2.0.0
  */
-export const match = (regexp: RegExp | string) => (self: string): Option.Option<RegExpMatchArray> =>
-  Option.fromNullOr(self.match(regexp))
+export const match = (regexp: RegExp | string) => (self: string): RegExpMatchArray | null => self.match(regexp)
 
 /**
  * It is the `pipe`-able version of the native `matchAll` method.
@@ -798,28 +795,28 @@ export const replaceAll = (searchValue: string | RegExp, replaceValue: string) =
 /**
  * Searches for a match between a regular expression and the string.
  *
- * @example
+ * **Example**
+ *
  * ```ts
- * import * as assert from "node:assert"
- * import { pipe } from "effect"
- * import { Option } from "effect/data"
  * import { String } from "effect/primitives"
  *
- * assert.deepStrictEqual(pipe("ababb", String.search("b")), Option.some(1))
- * assert.deepStrictEqual(pipe("ababb", String.search(/abb/)), Option.some(2))
- * assert.deepStrictEqual(pipe("ababb", String.search("d")), Option.none())
+ * String.search("ababb","b") // 1
+ * String.search("ababb","/abb/") // 2
+ * String.search("ababb","d") // undefined
  * ```
  *
  * @category searching
  * @since 2.0.0
  */
 export const search: {
-  (regexp: RegExp | string): (self: string) => Option.Option<number>
-  (self: string, regexp: RegExp | string): Option.Option<number>
+  (regexp: RegExp | string): (self: string) => number | undefined
+  (self: string, regexp: RegExp | string): number | undefined
 } = dual(
   2,
-  (self: string, regexp: RegExp | string): Option.Option<number> =>
-    Option.filter(Option.some(self.search(regexp)), number.greaterThanOrEqualTo(0))
+  (self: string, regexp: RegExp | string): number | undefined => {
+    const out = self.search(regexp)
+    return out >= 0 ? out : undefined
+  }
 )
 
 /**
