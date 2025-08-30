@@ -65,24 +65,24 @@ bench
   .add("Schema 2 (bad)", function() {
     decodeUnknownExit2(bad)
   })
-// .add("Valibot (good)", function() {
-//   v.safeParse(valibot, good)
-// })
-// .add("Valibot (bad)", function() {
-//   v.safeParse(valibot, bad)
-// })
-// .add("Arktype (good)", function() {
-//   arktype(good)
-// })
-// .add("Arktype (bad)", function() {
-//   arktype(bad)
-// })
-// .add("Zod (good)", function() {
-//   zod.safeParse(good)
-// })
-// .add("Zod (bad)", function() {
-//   zod.safeParse(bad)
-// })
+  .add("Valibot (good)", function() {
+    v.safeParse(valibot, good)
+  })
+  .add("Valibot (bad)", function() {
+    v.safeParse(valibot, bad)
+  })
+  .add("Arktype (good)", function() {
+    arktype(good)
+  })
+  .add("Arktype (bad)", function() {
+    arktype(bad)
+  })
+  .add("Zod (good)", function() {
+    zod.safeParse(good)
+  })
+  .add("Zod (bad)", function() {
+    zod.safeParse(bad)
+  })
 
 await bench.run()
 
