@@ -432,8 +432,9 @@ export function getUnsafe<A, E>(self: FiberHandle<A, E>): Fiber.Fiber<A, E> | un
  * })
  * ```
  */
-export const get = <A, E>(self: FiberHandle<A, E>): Effect.Effect<Fiber.Fiber<A, E> | undefined> =>
-  Effect.suspend(() => Effect.succeed(getUnsafe(self)))
+export function get<A, E>(self: FiberHandle<A, E>): Effect.Effect<Fiber.Fiber<A, E> | undefined> {
+  return Effect.suspend(() => Effect.succeed(getUnsafe(self)))
+}
 
 /**
  * @since 2.0.0
