@@ -36,7 +36,7 @@ export function encodeUnknownEffect<T, E, RD, RE>(
 function run<T, R>(ast: AST.AST) {
   const parser = go(ast)
   return (input: unknown, options?: AST.ParseOptions): Effect.Effect<T, Issue.Issue, R> =>
-    handleResult(parser(input, options ?? defaultParseOptions))
+    handleResult(parser(input as any, options ?? defaultParseOptions))
 }
 
 export const missing: unique symbol = Symbol.for("effect/schema/ToParser2/missing")
@@ -117,7 +117,7 @@ const go = AST.memoize((ast: AST.AST): Parser => {
         let effects: Array<Effect.Effect<any, Issue.Issue, any>> | undefined
         for (let i = 0; i < propertyLen; i++) {
           const p = properties[i]
-          const value = Object.hasOwn(input, p.name) ? input[p.name] : missing
+          const value = Object.hasOwn(input, p.name) ? input[p.name] as {} : missing
           const eff = p.parser(value, options)
           if (!internalEffect.effectIsExit(eff)) {
             effects ??= []
@@ -250,10 +250,10 @@ const neverParser: Parser = (input, _options) =>
 const anyParser: Parser = (input, _options) =>
   input === missing
     ? succeedMissing
-    : Effect.succeed(input)
+    : Effect.succeed(input as {})
 
 const constParser = <const A>(ast: AST.AST, value: A): Parser => {
-  const succeed = Effect.succeed(value)
+  const succeed = Effect.succeed(value as {})
   return (input, _options) =>
     input === missing
       ? succeedMissing
@@ -266,7 +266,7 @@ const refinementParser = <A>(ast: AST.AST, refinement: (u: unknown) => u is A): 
   input === missing
     ? succeedMissing
     : refinement(input)
-    ? Effect.succeed(input)
+    ? Effect.succeed(input as {})
     : Effect.fail(new Issue.InvalidType(ast, optionFromInput(input)))
 
 const voidParser = constParser(AST.voidKeyword, undefined)
