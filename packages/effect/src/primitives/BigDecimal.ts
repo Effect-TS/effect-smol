@@ -418,7 +418,7 @@ export const roundTerminal = (n: bigint): bigint => {
  * If the dividend is not a multiple of the divisor the result will be a `BigDecimal` value
  * which represents the integer division rounded down to the nearest integer.
  *
- * If the divisor is `0`, the result will be `None`.
+ * If the divisor is `0`, the result will be `undefined`.
  *
  * @example
  * ```ts
@@ -774,7 +774,7 @@ export const negate = (n: BigDecimal): BigDecimal => make(-n.value, n.scale)
 /**
  * Returns the remainder left over when one operand is divided by a second operand.
  *
- * If the divisor is `0`, the result will be `None`.
+ * If the divisor is `0`, the result will be `undefined`.
  *
  * @example
  * ```ts
@@ -935,7 +935,7 @@ export const fromNumberUnsafe = (n: number): BigDecimal => {
  * It is not recommended to convert a floating point number to a decimal directly,
  * as the floating point representation may be unexpected.
  *
- * Returns `None` if the number is not finite (`NaN`, `+Infinity` or `-Infinity`).
+ * Returns `undefined` for `NaN`, `+Infinity` or `-Infinity`.
  *
  * @example
  * ```ts

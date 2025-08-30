@@ -8,7 +8,6 @@
 
 import * as Combiner from "../data/Combiner.ts"
 import * as equivalence from "../data/Equivalence.ts"
-import * as Option from "../data/Option.ts"
 import * as order from "../data/Order.ts"
 import type { Ordering } from "../data/Ordering.ts"
 import * as predicate from "../data/Predicate.ts"
@@ -118,27 +117,26 @@ export const subtract: {
  * If the dividend is not a multiple of the divisor the result will be a `bigint` value
  * which represents the integer division rounded down to the nearest integer.
  *
- * Returns `None` if the divisor is `0n`.
+ * Returns `undefined` if the divisor is `0n`.
  *
  * @example
  * ```ts
  * import * as assert from "node:assert"
- * import { Option } from "effect/data"
  * import { divide } from "effect/primitives/BigInt"
  *
- * assert.deepStrictEqual(divide(6n, 3n), Option.some(2n))
- * assert.deepStrictEqual(divide(6n, 0n), Option.none())
+ * assert.deepStrictEqual(divide(6n, 3n), 2n)
+ * assert.deepStrictEqual(divide(6n, 0n), undefined)
  * ```
  *
  * @category math
  * @since 2.0.0
  */
 export const divide: {
-  (that: bigint): (self: bigint) => Option.Option<bigint>
-  (self: bigint, that: bigint): Option.Option<bigint>
+  (that: bigint): (self: bigint) => bigint | undefined
+  (self: bigint, that: bigint): bigint | undefined
 } = dual(
   2,
-  (self: bigint, that: bigint): Option.Option<bigint> => that === bigint0 ? Option.none() : Option.some(self / that)
+  (self: bigint, that: bigint): bigint | undefined => that === bigint0 ? undefined : self / that
 )
 
 /**
@@ -539,25 +537,24 @@ export const sqrtUnsafe = (n: bigint): bigint => {
 }
 
 /**
- * Determines the square root of a given `bigint` safely. Returns `none` if the given `bigint` is negative.
+ * Determines the square root of a given `bigint` safely. Returns `undefined` if
+ * the given `bigint` is negative.
  *
- * @example
+ * **Example**
+ *
  * ```ts
- * import * as assert from "node:assert"
- * import { Option } from "effect/data"
- * import * as BigInt from "effect/primitives/BigInt"
+ * import { BigInt } from "effect/primitives"
  *
- * assert.deepStrictEqual(BigInt.sqrt(4n), Option.some(2n))
- * assert.deepStrictEqual(BigInt.sqrt(9n), Option.some(3n))
- * assert.deepStrictEqual(BigInt.sqrt(16n), Option.some(4n))
- * assert.deepStrictEqual(BigInt.sqrt(-1n), Option.none())
+ * BigInt.sqrt(4n) // 2n
+ * BigInt.sqrt(9n) // 3n
+ * BigInt.sqrt(16n) // 4n
+ * BigInt.sqrt(-1n) // undefined
  * ```
  *
  * @category math
  * @since 2.0.0
  */
-export const sqrt = (n: bigint): Option.Option<bigint> =>
-  greaterThanOrEqualTo(n, bigint0) ? Option.some(sqrtUnsafe(n)) : Option.none<bigint>()
+export const sqrt = (n: bigint): bigint | undefined => greaterThanOrEqualTo(n, bigint0) ? sqrtUnsafe(n) : undefined
 
 /**
  * Takes an `Iterable` of `bigint`s and returns their sum as a single `bigint
@@ -607,93 +604,87 @@ export const multiplyAll = (collection: Iterable<bigint>): bigint => {
 }
 
 /**
- * Takes a `bigint` and returns an `Option` of `number`.
+ * Converts a `bigint` to a `number`.
  *
  * If the `bigint` is outside the safe integer range for JavaScript (`Number.MAX_SAFE_INTEGER`
- * and `Number.MIN_SAFE_INTEGER`), it returns `Option.none()`. Otherwise, it converts the `bigint`
- * to a number and returns `Option.some(number)`.
+ * and `Number.MIN_SAFE_INTEGER`), it returns `undefined`
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
- * import { Option } from "effect/data"
- * import * as BI from "effect/primitives/BigInt"
+ * import { BigInt as BI } from "effect/primitives"
  *
- * assert.deepStrictEqual(BI.toNumber(BigInt(42)), Option.some(42))
- * assert.deepStrictEqual(BI.toNumber(BigInt(Number.MAX_SAFE_INTEGER) + BigInt(1)), Option.none())
- * assert.deepStrictEqual(BI.toNumber(BigInt(Number.MIN_SAFE_INTEGER) - BigInt(1)), Option.none())
+ * BI.toNumber(42n) // 42
+ * BI.toNumber(BigInt(Number.MAX_SAFE_INTEGER) + 1n) // undefined
+ * BI.toNumber(BigInt(Number.MIN_SAFE_INTEGER) - 1n) // undefined
  * ```
  *
  * @category conversions
  * @since 2.0.0
  */
-export const toNumber = (b: bigint): Option.Option<number> => {
+export const toNumber = (b: bigint): number | undefined => {
   if (b > BigInt(Number.MAX_SAFE_INTEGER) || b < BigInt(Number.MIN_SAFE_INTEGER)) {
-    return Option.none()
+    return undefined
   }
-  return Option.some(Number(b))
+  return Number(b)
 }
 
 /**
- * Takes a string and returns an `Option` of `bigint`.
+ * Converts a string to a `bigint`.
  *
- * If the string is empty or contains characters that cannot be converted into a `bigint`,
- * it returns `Option.none()`, otherwise, it returns `Option.some(bigint)`.
+ * If the string is empty or contains characters that cannot be converted into a
+ * `bigint`, it returns `undefined`.
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
- * import { Option } from "effect/data"
- * import * as BI from "effect/primitives/BigInt"
+ * import { BigInt } from "effect/primitives"
  *
- * assert.deepStrictEqual(BI.fromString("42"), Option.some(BigInt(42)))
- * assert.deepStrictEqual(BI.fromString(" "), Option.none())
- * assert.deepStrictEqual(BI.fromString("a"), Option.none())
+ * BigInt.fromString("42") // 42n
+ * BigInt.fromString(" ") // undefined
+ * BigInt.fromString("a") // undefined
  * ```
  *
  * @category conversions
  * @since 2.4.12
  */
-export const fromString = (s: string): Option.Option<bigint> => {
+export const fromString = (s: string): bigint | undefined => {
   try {
     return s.trim() === ""
-      ? Option.none()
-      : Option.some(BigInt(s))
+      ? undefined
+      : BigInt(s)
   } catch {
-    return Option.none()
+    return undefined
   }
 }
 
 /**
- * Takes a number and returns an `Option` of `bigint`.
+ * Converts a number to a `bigint`.
  *
- * If the number is outside the safe integer range for JavaScript (`Number.MAX_SAFE_INTEGER`
- * and `Number.MIN_SAFE_INTEGER`), it returns `Option.none()`. Otherwise, it attempts to
- * convert the number to a `bigint` and returns `Option.some(bigint)`.
+ * If the number is outside the safe integer range for JavaScript
+ * (`Number.MAX_SAFE_INTEGER` and `Number.MIN_SAFE_INTEGER`) or if the number is
+ * not a valid `bigint`, it returns `undefined`.
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
- * import { Option } from "effect/data"
- * import * as BI from "effect/primitives/BigInt"
+ * import { BigInt } from "effect/primitives"
  *
- * assert.deepStrictEqual(BI.fromNumber(42), Option.some(BigInt(42)))
- * assert.deepStrictEqual(BI.fromNumber(Number.MAX_SAFE_INTEGER + 1), Option.none())
- * assert.deepStrictEqual(BI.fromNumber(Number.MIN_SAFE_INTEGER - 1), Option.none())
+ * BigInt.fromNumber(42) // 42n
+ *
+ * BigInt.fromNumber(Number.MAX_SAFE_INTEGER + 1) // undefined
+ * BigInt.fromNumber(Number.MIN_SAFE_INTEGER - 1) // undefined
  * ```
  *
  * @category conversions
  * @since 2.4.12
  */
-export const fromNumber = (n: number): Option.Option<bigint> => {
+export function fromNumber(n: number): bigint | undefined {
   if (n > Number.MAX_SAFE_INTEGER || n < Number.MIN_SAFE_INTEGER) {
-    return Option.none()
+    return undefined
   }
 
   try {
-    return Option.some(BigInt(n))
+    return BigInt(n)
   } catch {
-    return Option.none()
+    return undefined
   }
 }
 
@@ -702,13 +693,11 @@ export const fromNumber = (n: number): Option.Option<bigint> => {
  *
  * @example
  * ```ts
- * import * as BigInt from "effect/primitives/BigInt"
+ * import { BigInt } from "effect/primitives"
  *
- * const result = BigInt.remainder(10n, 3n)
- * console.log(result) // 1n
+ * BigInt.remainder(10n, 3n) // 1n
  *
- * const result2 = BigInt.remainder(15n, 4n)
- * console.log(result2) // 3n
+ * BigInt.remainder(15n, 4n) // 3n
  * ```
  *
  * @category math
