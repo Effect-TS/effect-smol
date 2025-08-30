@@ -13,6 +13,20 @@ concurrency:
 permissions: {}
 
 jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        uses: ./.github/actions/setup
+        with:
+          node-version: latest
+      - run: pnpm lint
+
   types:
     name: Types
     runs-on: ubuntu-latest
