@@ -4,7 +4,6 @@
 import * as Arr from "../collections/Array.ts"
 import * as Data from "../data/Data.ts"
 import * as equivalence from "../data/Equivalence.ts"
-import * as Option from "../data/Option.ts"
 import { hasProperty } from "../data/Predicate.ts"
 import * as Result from "../data/Result.ts"
 import * as UndefinedOr from "../data/UndefinedOr.ts"
@@ -100,7 +99,7 @@ export type TypeId = "~effect/Cron"
  */
 export interface Cron extends Pipeable, Equal.Equal, Inspectable {
   readonly [TypeId]: TypeId
-  readonly tz: Option.Option<DateTime.TimeZone>
+  readonly tz: DateTime.TimeZone | undefined
   readonly seconds: ReadonlySet<number>
   readonly minutes: ReadonlySet<number>
   readonly hours: ReadonlySet<number>
@@ -245,7 +244,7 @@ export const make = (values: {
   o.days = new Set(Arr.sort(values.days, N.Order))
   o.months = new Set(Arr.sort(values.months, N.Order))
   o.weekdays = new Set(Arr.sort(values.weekdays, N.Order))
-  o.tz = Option.fromUndefinedOr(values.tz)
+  o.tz = values.tz
 
   const seconds = Array.from(o.seconds)
   const minutes = Array.from(o.minutes)
@@ -487,7 +486,7 @@ export const parseUnsafe = (cron: string, tz?: DateTime.TimeZone | string): Cron
  */
 export const match = (cron: Cron, date: DateTime.DateTime.Input): boolean => {
   const parts = dateTime.makeZonedUnsafe(date, {
-    timeZone: Option.getOrUndefined(cron.tz)
+    timeZone: cron.tz
   }).pipe(dateTime.toParts)
 
   if (cron.seconds.size !== 0 && !cron.seconds.has(parts.seconds)) {
@@ -552,7 +551,7 @@ const daysInMonth = (date: Date): number =>
  * @category utils
  */
 export const next = (cron: Cron, now?: DateTime.DateTime.Input): Date => {
-  const tz = Option.getOrUndefined(cron.tz)
+  const tz = cron.tz
   const zoned = dateTime.makeZonedUnsafe(now ?? new Date(), {
     timeZone: tz
   })
