@@ -4,8 +4,8 @@
  * @internal
  */
 
-import * as Option from "effect/data/Option"
-import type { LogLevel } from "effect/logging/LogLevel"
+import * as Option from "../../../data/Option.ts"
+import type { LogLevel } from "../../../logging/LogLevel.ts"
 import * as Flag from "./flag.ts"
 
 /**
@@ -67,7 +67,7 @@ export const versionFlag: Flag.Flag<boolean> = Flag
  * @since 4.0.0
  * @internal
  */
-export const completionsFlag: Flag.Flag<Option.Option<"bash" | "zsh" | "fish" | "sh">> = Flag
+export const completionsFlag: Flag.Flag<Option.Option<"bash" | "zsh" | "fish">> = Flag
   .choice("completions", ["bash", "zsh", "fish", "sh"] as const)
   .pipe(
     Flag.optional,
