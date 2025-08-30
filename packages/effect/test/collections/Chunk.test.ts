@@ -5,6 +5,7 @@ import {
   assertNone,
   assertSome,
   assertTrue,
+  assertUndefined,
   deepStrictEqual,
   doesNotThrow,
   strictEqual,
@@ -82,27 +83,17 @@ describe("Chunk", () => {
     }
   })
 
-  it("modifyOption", () => {
-    assertNone(pipe(Chunk.empty(), Chunk.modifyOption(0, (n: number) => n * 2)))
-    assertSome(
-      pipe(Chunk.make(1, 2, 3), Chunk.modifyOption(0, (n: number) => n * 2)),
+  it("modify", () => {
+    assertUndefined(pipe(Chunk.empty(), Chunk.modify(0, (n: number) => n * 2)))
+    deepStrictEqual(
+      pipe(Chunk.make(1, 2, 3), Chunk.modify(0, (n: number) => n * 2)),
       Chunk.make(2, 2, 3)
     )
   })
 
-  it("modify", () => {
-    assertEquals(pipe(Chunk.empty(), Chunk.modify(0, (n: number) => n * 2)), Chunk.empty())
-    assertEquals(pipe(Chunk.make(1, 2, 3), Chunk.modify(0, (n: number) => n * 2)), Chunk.make(2, 2, 3))
-  })
-
-  it("replaceOption", () => {
-    assertNone(pipe(Chunk.empty(), Chunk.replaceOption(0, 2)))
-    assertSome(pipe(Chunk.make(1, 2, 3), Chunk.replaceOption(0, 2)), Chunk.make(2, 2, 3))
-  })
-
   it("replace", () => {
-    assertEquals(pipe(Chunk.empty(), Chunk.replace(0, 2)), Chunk.empty())
-    assertEquals(pipe(Chunk.make(1, 2, 3), Chunk.replace(0, 2)), Chunk.make(2, 2, 3))
+    assertUndefined(pipe(Chunk.empty(), Chunk.replace(0, 2)))
+    deepStrictEqual(pipe(Chunk.make(1, 2, 3), Chunk.replace(0, 2)), Chunk.make(2, 2, 3))
   })
 
   it("remove", () => {
@@ -707,9 +698,8 @@ describe("Chunk", () => {
   })
 
   it("tail", () => {
-    assertNone(Chunk.tail(Chunk.empty()))
-    // TODO: use assertSome?
-    assertEquals(Chunk.tail(Chunk.make(1, 2, 3)), Option.some(Chunk.make(2, 3)))
+    assertUndefined(Chunk.tail(Chunk.empty()))
+    assertEquals(Chunk.tail(Chunk.make(1, 2, 3)), Chunk.make(2, 3))
   })
 
   it("filter", () => {

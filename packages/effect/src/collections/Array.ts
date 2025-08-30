@@ -825,19 +825,16 @@ export const lastNonEmpty = <A>(self: NonEmptyReadonlyArray<A>): A => self[self.
  * ```ts
  * import { Array } from "effect/collections"
  *
- * const result = Array.tail([1, 2, 3, 4])
- * console.log(result) // Some([2, 3, 4])
- *
- * const empty = Array.tail([])
- * console.log(empty) // None
+ * Array.tail([1, 2, 3, 4]) // [2, 3, 4]
+ * Array.tail([]) // undefined
  * ```
  *
  * @category getters
  * @since 2.0.0
  */
-export const tail = <A>(self: Iterable<A>): Option.Option<Array<A>> => {
-  const input = fromIterable(self)
-  return isReadonlyArrayNonEmpty(input) ? Option.some(tailNonEmpty(input)) : Option.none()
+export function tail<A>(self: Iterable<A>): Array<A> | undefined {
+  const as = fromIterable(self)
+  return isReadonlyArrayNonEmpty(as) ? tailNonEmpty(as) : undefined
 }
 
 /**
@@ -864,19 +861,16 @@ export const tailNonEmpty = <A>(self: NonEmptyReadonlyArray<A>): Array<A> => sel
  * ```ts
  * import { Array } from "effect/collections"
  *
- * const result = Array.init([1, 2, 3, 4])
- * console.log(result) // Some([1, 2, 3])
- *
- * const empty = Array.init([])
- * console.log(empty) // None
+ * Array.init([1, 2, 3, 4]) // [1, 2, 3]
+ * Array.init([]) // undefined
  * ```
  *
  * @category getters
  * @since 2.0.0
  */
-export const init = <A>(self: Iterable<A>): Option.Option<Array<A>> => {
-  const input = fromIterable(self)
-  return isReadonlyArrayNonEmpty(input) ? Option.some(initNonEmpty(input)) : Option.none()
+export function init<A>(self: Iterable<A>): Array<A> | undefined {
+  const as = fromIterable(self)
+  return isReadonlyArrayNonEmpty(as) ? initNonEmpty(as) : undefined
 }
 
 /**
@@ -1189,6 +1183,51 @@ export const findFirst: {
 } = moduleIterable.findFirst
 
 /**
+ * Returns a tuple of the first element that satisfies the specified
+ * predicate and its index, or `None` if no such element exists.
+ *
+ * **Example**
+ *
+ * ```ts
+ * import { Array } from "effect/collections"
+ *
+ * Array.findFirstWithIndex([1, 2, 3, 4, 5], x => x > 3) // [4, 3]
+ * ```
+ *
+ * @category elements
+ * @since 3.17.0
+ */
+export const findFirstWithIndex: {
+  <A, B>(f: (a: NoInfer<A>, i: number) => Option.Option<B>): (self: Iterable<A>) => [B, number] | undefined
+  <A, B extends A>(refinement: (a: NoInfer<A>, i: number) => a is B): (self: Iterable<A>) => [B, number] | undefined
+  <A>(predicate: (a: NoInfer<A>, i: number) => boolean): (self: Iterable<A>) => [A, number] | undefined
+  <A, B>(self: Iterable<A>, f: (a: A, i: number) => Option.Option<B>): [B, number] | undefined
+  <A, B extends A>(self: Iterable<A>, refinement: (a: A, i: number) => a is B): [B, number] | undefined
+  <A>(self: Iterable<A>, predicate: (a: A, i: number) => boolean): [A, number] | undefined
+} = dual(
+  2,
+  <A>(
+    self: Iterable<A>,
+    f: ((a: A, i: number) => boolean) | ((a: A, i: number) => Option.Option<A>)
+  ): [A, number] | undefined => {
+    let i = 0
+    for (const a of self) {
+      const o = f(a, i)
+      if (Predicate.isBoolean(o)) {
+        if (o) {
+          return [a, i]
+        }
+      } else {
+        if (Option.isSome(o)) {
+          return [o.value, i]
+        }
+      }
+      i++
+    }
+  }
+)
+
+/**
  * Finds the last element in an iterable collection that satisfies the given predicate or refinement.
  * Returns an `Option` containing the found element, or `Option.none` if no element matches.
  *
@@ -1244,99 +1283,68 @@ export const findLast: {
  * ```ts
  * import { Array } from "effect/collections"
  *
- * const result = Array.insertAt(['a', 'b', 'c', 'e'], 3, 'd')
- * console.log(result) // Option.some(['a', 'b', 'c', 'd', 'e'])
+ * Array.insertAt(['a', 'b', 'c', 'e'], 3, 'd') // ['a', 'b', 'c', 'd', 'e']
  * ```
  *
  * @category elements
  * @since 2.0.0
  */
 export const insertAt: {
-  <B>(i: number, b: B): <A>(self: Iterable<A>) => Option.Option<NonEmptyArray<A | B>>
-  <A, B>(self: Iterable<A>, i: number, b: B): Option.Option<NonEmptyArray<A | B>>
-} = dual(3, <A, B>(self: Iterable<A>, i: number, b: B): Option.Option<NonEmptyArray<A | B>> => {
-  const out: Array<A | B> = Array.from(self)
-  //             v--- `= self.length` is ok, it means inserting in last position
+  <B>(i: number, b: B): <A>(self: Iterable<A>) => NonEmptyArray<A | B> | undefined
+  <A, B>(self: Iterable<A>, i: number, b: B): NonEmptyArray<A | B> | undefined
+} = dual(3, <A, B>(self: Iterable<A>, i: number, b: B): NonEmptyArray<A | B> | undefined => {
+  const out: Array<A | B> = Array.from(self) // copy because `splice` mutates the array
   if (i < 0 || i > out.length) {
-    return Option.none()
+    return undefined
   }
   out.splice(i, 0, b)
-  return Option.some(out) as any
+  return out as any
 })
 
 /**
- * Change the element at the specified index, creating a new `Array`,
- * or return a copy of the input if the index is out of bounds.
+ * Replaces an element in an array with the given value, returning an updated array.
  *
  * @example
  *
  * ```ts
  * import { Array } from "effect/collections"
  *
- * const result = Array.replace(['a', 'b', 'c', 'd'], 1, 'z')
- * console.log(result) // ['a', 'z', 'c', 'd']
+ * const result = Array.replace([1, 2, 3], 1, 4)
+ * console.log(result) // [1, 4, 3]
  * ```
  *
  * @category elements
  * @since 2.0.0
  */
 export const replace: {
-  <B>(
-    i: number,
-    b: B
-  ): <A, S extends Iterable<A> = Iterable<A>>(
+  <B>(i: number, b: B): <A, S extends Iterable<A> = Iterable<A>>(
     self: S
-  ) => ReadonlyArray.With<S, ReadonlyArray.Infer<S> | B>
+  ) => ReadonlyArray.With<S, ReadonlyArray.Infer<S> | B> | undefined
   <A, B, S extends Iterable<A> = Iterable<A>>(
     self: S,
     i: number,
     b: B
-  ): ReadonlyArray.With<S, ReadonlyArray.Infer<S> | B>
-} = dual(3, <A, B>(self: Iterable<A>, i: number, b: B): Array<A | B> => modify(self, i, () => b))
-
-/**
- * Replaces an element in an array with the given value, returning an option of the updated array.
- *
- * @example
- *
- * ```ts
- * import { Array } from "effect/collections"
- *
- * const result = Array.replaceOption([1, 2, 3], 1, 4)
- * console.log(result) // Option.some([1, 4, 3])
- * ```
- *
- * @category elements
- * @since 2.0.0
- */
-export const replaceOption: {
-  <B>(
-    i: number,
-    b: B
-  ): <A, S extends Iterable<A> = Iterable<A>>(
-    self: S
-  ) => Option.Option<ReadonlyArray.With<S, ReadonlyArray.Infer<S> | B>>
-  <A, B, S extends Iterable<A> = Iterable<A>>(
-    self: S,
-    i: number,
-    b: B
-  ): Option.Option<ReadonlyArray.With<S, ReadonlyArray.Infer<S> | B>>
+  ): ReadonlyArray.With<S, ReadonlyArray.Infer<S> | B> | undefined
 } = dual(
   3,
-  <A, B>(self: Iterable<A>, i: number, b: B): Option.Option<Array<A | B>> => modifyOption(self, i, () => b)
+  <A, B>(self: Iterable<A>, i: number, b: B): Array<A | B> | undefined => modify(self, i, () => b)
 )
 
 /**
  * Apply a function to the element at the specified index, creating a new `Array`,
- * or return a copy of the input if the index is out of bounds.
+ * or return `undefined` if the index is out of bounds.
  *
  * @example
  *
  * ```ts
  * import { Array } from "effect/collections"
  *
- * const result = Array.modify([1, 2, 3, 4], 2, (n) => n * 2)
+ * const input = [1, 2, 3, 4]
+ * const result = Array.modify(input, 2, (n) => n * 2)
  * console.log(result) // [1, 2, 6, 4]
+ *
+ * const outOfBoundsResult = Array.modify(input, 5, (n) => n * 2)
+ * console.log(outOfBoundsResult) // undefined
  * ```
  *
  * @category elements
@@ -1346,57 +1354,21 @@ export const modify: {
   <A, B, S extends Iterable<A> = Iterable<A>>(
     i: number,
     f: (a: ReadonlyArray.Infer<S>) => B
-  ): (self: S) => ReadonlyArray.With<S, ReadonlyArray.Infer<S> | B>
+  ): (self: S) => ReadonlyArray.With<S, ReadonlyArray.Infer<S> | B> | undefined
   <A, B, S extends Iterable<A> = Iterable<A>>(
     self: S,
     i: number,
     f: (a: ReadonlyArray.Infer<S>) => B
-  ): ReadonlyArray.With<S, ReadonlyArray.Infer<S> | B>
-} = dual(
-  3,
-  <A, B>(self: Iterable<A>, i: number, f: (a: A) => B): Array<A | B> =>
-    Option.getOrElse(modifyOption(self, i, f), () => Array.from(self))
-)
-
-/**
- * Apply a function to the element at the specified index, creating a new `Array`,
- * or return `None` if the index is out of bounds.
- *
- * @example
- *
- * ```ts
- * import { Array } from "effect/collections"
- *
- * const input = [1, 2, 3, 4]
- * const result = Array.modifyOption(input, 2, (n) => n * 2)
- * console.log(result) // Option.some([1, 2, 6, 4])
- *
- * const outOfBoundsResult = Array.modifyOption(input, 5, (n) => n * 2)
- * console.log(outOfBoundsResult) // Option.none()
- * ```
- *
- * @category elements
- * @since 2.0.0
- */
-export const modifyOption: {
-  <A, B, S extends Iterable<A> = Iterable<A>>(
-    i: number,
-    f: (a: ReadonlyArray.Infer<S>) => B
-  ): (self: S) => Option.Option<ReadonlyArray.With<S, ReadonlyArray.Infer<S> | B>>
-  <A, B, S extends Iterable<A> = Iterable<A>>(
-    self: S,
-    i: number,
-    f: (a: ReadonlyArray.Infer<S>) => B
-  ): Option.Option<ReadonlyArray.With<S, ReadonlyArray.Infer<S> | B>>
-} = dual(3, <A, B>(self: Iterable<A>, i: number, f: (a: A) => B): Option.Option<Array<A | B>> => {
+  ): ReadonlyArray.With<S, ReadonlyArray.Infer<S> | B> | undefined
+} = dual(3, <A, B>(self: Iterable<A>, i: number, f: (a: A) => B): Array<A | B> | undefined => {
   const arr = Array.from(self)
   if (isOutOfBounds(i, arr)) {
-    return Option.none()
+    return undefined
   }
   const out: Array<A | B> = arr
   const b = f(arr[i])
   out[i] = b
-  return Option.some(out)
+  return out
 })
 
 /**
@@ -3366,21 +3338,20 @@ export const max: {
  * @example
  * ```ts
  * import { Array } from "effect/collections"
-import * as Option from "effect/data/Option"
  *
- * const result = Array.unfold(1, n => n <= 5 ? Option.some([n, n + 1]) : Option.none())
+ * const result = Array.unfold(1, n => n <= 5 ? [n, n + 1] : undefined)
  * console.log(result) // [1, 2, 3, 4, 5]
  * ```
  *
  * @category constructors
  * @since 2.0.0
  */
-export const unfold = <B, A>(b: B, f: (b: B) => Option.Option<readonly [A, B]>): Array<A> => {
+export const unfold = <B, A>(b: B, f: (b: B) => readonly [A, B] | undefined): Array<A> => {
   const out: Array<A> = []
   let next: B = b
-  let o: Option.Option<readonly [A, B]>
-  while (Option.isSome(o = f(next))) {
-    const [a, b] = o.value
+  let o: readonly [A, B] | undefined
+  while ((o = f(next))) {
+    const [a, b] = o
     out.push(a)
     next = b
   }
@@ -3914,3 +3885,39 @@ export function getReadonlyReducerConcat<A>(): Reducer.Reducer<ReadonlyArray<A>>
 export function getReducerConcat<A>(): Reducer.Reducer<Array<A>> {
   return reducer
 }
+
+/**
+ * Counts all the element of the given array that pass the given predicate
+ *
+ * **Example**
+ *
+ * ```ts
+ * import { Array } from "effect/collections"
+ *
+ * const result = Array.countBy([1, 2, 3, 4, 5], n => n % 2 === 0)
+ * console.log(result) // 2
+ * ```
+ *
+ * @category folding
+ * @since 3.16.0
+ */
+export const countBy: {
+  <A>(predicate: (a: NoInfer<A>, i: number) => boolean): (self: Iterable<A>) => number
+  <A>(self: Iterable<A>, predicate: (a: A, i: number) => boolean): number
+} = dual(
+  2,
+  <A>(
+    self: Iterable<A>,
+    f: (a: A, i: number) => boolean
+  ): number => {
+    let count = 0
+    const as = fromIterable(self)
+    for (let i = 0; i < as.length; i++) {
+      const a = as[i]
+      if (f(a, i)) {
+        count++
+      }
+    }
+    return count
+  }
+)

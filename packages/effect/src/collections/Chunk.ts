@@ -78,6 +78,7 @@ import * as O from "../data/Option.ts"
 import * as Order from "../data/Order.ts"
 import { hasProperty, type Predicate, type Refinement } from "../data/Predicate.ts"
 import type { Result } from "../data/Result.ts"
+import * as UndefinedOr from "../data/UndefinedOr.ts"
 import { dual, identity, pipe } from "../Function.ts"
 import * as Equal from "../interfaces/Equal.ts"
 import * as Hash from "../interfaces/Hash.ts"
@@ -2056,7 +2057,7 @@ import * as Option from "effect/data/Option"
  * @since 2.0.0
  * @category elements
  */
-export const tail = <A>(self: Chunk<A>): Option<Chunk<A>> => self.length > 0 ? O.some(drop(self, 1)) : O.none()
+export const tail = <A>(self: Chunk<A>): Chunk<A> | undefined => self.length > 0 ? drop(self, 1) : undefined
 
 /**
  * Returns every elements after the first.
@@ -2358,94 +2359,31 @@ export const remove: {
  * @example
  * ```ts
  * import { Chunk } from "effect/collections"
-import * as Option from "effect/data/Option"
- *
- * const chunk = Chunk.make(1, 2, 3, 4)
- * const result = Chunk.modifyOption(chunk, 1, (n) => n * 10)
- * console.log(Option.isSome(result)) // true
- * console.log(Chunk.toArray(Option.getOrElse(result, () => Chunk.empty()))) // [1, 20, 3, 4]
- *
- * // Index out of bounds returns None
- * const outOfBounds = Chunk.modifyOption(chunk, 10, (n) => n * 10)
- * console.log(Option.isNone(outOfBounds)) // true
- *
- * // Negative index returns None
- * const negative = Chunk.modifyOption(chunk, -1, (n) => n * 10)
- * console.log(Option.isNone(negative)) // true
- * ```
- *
- * @category elements
- * @since 2.0.0
- */
-export const modifyOption: {
-  <A, B>(i: number, f: (a: A) => B): (self: Chunk<A>) => Option<Chunk<A | B>>
-  <A, B>(self: Chunk<A>, i: number, f: (a: A) => B): Option<Chunk<A | B>>
-} = dual(
-  3,
-  <A, B>(self: Chunk<A>, i: number, f: (a: A) => B): Option<Chunk<A | B>> =>
-    O.map(RA.modifyOption(toReadonlyArray(self), i, f), fromArrayUnsafe)
-)
-
-/**
- * Apply a function to the element at the specified index, creating a new `Chunk`,
- * or returning the input if the index is out of bounds.
- *
- * @example
- * ```ts
- * import { Chunk } from "effect/collections"
  *
  * const chunk = Chunk.make(1, 2, 3, 4)
  * const result = Chunk.modify(chunk, 1, (n) => n * 10)
- * console.log(Chunk.toArray(result)) // [1, 20, 3, 4]
+ * console.log(result) // { _id: 'Chunk', values: [ 1, 20, 3, 4 ] }
  *
- * // Index out of bounds returns original chunk
- * const outOfBounds = Chunk.modify(chunk, 10, (n) => n * 10)
- * console.log(Chunk.toArray(outOfBounds)) // [1, 2, 3, 4]
+ * // Index out of bounds returns None
+ * const outOfBounds = chunk?.pipe(Chunk.modify(10, (n) => n * 10))
+ * console.log(outOfBounds === undefined) // true
  *
- * // Modify first element
- * const first = Chunk.modify(chunk, 0, (n) => n + 100)
- * console.log(Chunk.toArray(first)) // [101, 2, 3, 4]
+ * // Negative index returns None
+ * const negative = chunk?.pipe(Chunk.modify(-1, (n) => n * 10))
+ * console.log(negative === undefined) // true
  * ```
  *
  * @category elements
  * @since 2.0.0
  */
 export const modify: {
-  <A, B>(i: number, f: (a: A) => B): (self: Chunk<A>) => Chunk<A | B>
-  <A, B>(self: Chunk<A>, i: number, f: (a: A) => B): Chunk<A | B>
+  <A, B>(i: number, f: (a: A) => B): (self: Chunk<A>) => Chunk<A | B> | undefined
+  <A, B>(self: Chunk<A>, i: number, f: (a: A) => B): Chunk<A | B> | undefined
 } = dual(
   3,
-  <A, B>(self: Chunk<A>, i: number, f: (a: A) => B): Chunk<A | B> => O.getOrElse(modifyOption(self, i, f), () => self)
+  <A, B>(self: Chunk<A>, i: number, f: (a: A) => B): Chunk<A | B> | undefined =>
+    UndefinedOr.map(RA.modify(toReadonlyArray(self), i, f), fromArrayUnsafe)
 )
-
-/**
- * Change the element at the specified index, creating a new `Chunk`,
- * or returning the input if the index is out of bounds.
- *
- * @example
- * ```ts
- * import { Chunk } from "effect/collections"
- *
- * const chunk = Chunk.make("a", "b", "c", "d")
- * const result = Chunk.replace(chunk, 1, "X")
- * console.log(Chunk.toArray(result)) // ["a", "X", "c", "d"]
- *
- * // Index out of bounds returns original chunk
- * const outOfBounds = Chunk.replace(chunk, 10, "Y")
- * console.log(Chunk.toArray(outOfBounds)) // ["a", "b", "c", "d"]
- *
- * // Replace first element
- * const first = Chunk.replace(chunk, 0, "Z")
- * console.log(Chunk.toArray(first)) // ["Z", "b", "c", "d"]
- * ```
- *
- * @category elements
- * @since 2.0.0
- */
-export const replace: {
-  <B>(i: number, b: B): <A>(self: Chunk<A>) => Chunk<B | A>
-  <A, B>(self: Chunk<A>, i: number, b: B): Chunk<B | A>
-} = dual(3, <A, B>(self: Chunk<A>, i: number, b: B): Chunk<B | A> => modify(self, i, () => b))
 
 /**
  * Change the element at the specified index, creating a new `Chunk`,
@@ -2454,29 +2392,27 @@ export const replace: {
  * @example
  * ```ts
  * import { Chunk } from "effect/collections"
-import * as Option from "effect/data/Option"
  *
  * const chunk = Chunk.make("a", "b", "c", "d")
- * const result = Chunk.replaceOption(chunk, 1, "X")
- * console.log(Option.isSome(result)) // true
- * console.log(Chunk.toArray(Option.getOrElse(result, () => Chunk.empty()))) // ["a", "X", "c", "d"]
+ * const result = Chunk.replace(chunk, 1, "X")
+ * console.log(result) // { _id: 'Chunk', values: [ 'a', 'X', 'c', 'd' ] }
  *
  * // Index out of bounds returns None
- * const outOfBounds = Chunk.replaceOption(chunk, 10, "Y")
- * console.log(Option.isNone(outOfBounds)) // true
+ * const outOfBounds = chunk?.pipe(Chunk.replace(10, "Y"))
+ * console.log(outOfBounds === undefined) // true
  *
  * // Negative index returns None
- * const negative = Chunk.replaceOption(chunk, -1, "Z")
- * console.log(Option.isNone(negative)) // true
+ * const negative = chunk?.pipe(Chunk.replace(-1, "Z"))
+ * console.log(negative === undefined) // true
  * ```
  *
  * @category elements
  * @since 2.0.0
  */
-export const replaceOption: {
-  <B>(i: number, b: B): <A>(self: Chunk<A>) => Option<Chunk<B | A>>
-  <A, B>(self: Chunk<A>, i: number, b: B): Option<Chunk<B | A>>
-} = dual(3, <A, B>(self: Chunk<A>, i: number, b: B): Option<Chunk<B | A>> => modifyOption(self, i, () => b))
+export const replace: {
+  <B>(i: number, b: B): <A>(self: Chunk<A>) => Chunk<B | A> | undefined
+  <A, B>(self: Chunk<A>, i: number, b: B): Chunk<B | A> | undefined
+} = dual(3, <A, B>(self: Chunk<A>, i: number, b: B): Chunk<B | A> | undefined => modify(self, i, () => b))
 
 /**
  * Return a Chunk of length n with element i initialized with f(i).
