@@ -315,7 +315,7 @@ export const make: {
 }) =>
   Effect.withFiber<RcMap<K, A, E>, never, R | Scope.Scope>((fiber) => {
     const services = fiber.services as ServiceMap.ServiceMap<R | Scope.Scope>
-    const scope = ServiceMap.get(services, Scope.Scope)
+    const scope = ServiceMap.getUnsafe(services, Scope.Scope)
     const self = makeUnsafe<K, A, E>({
       lookup: options.lookup as any,
       services,

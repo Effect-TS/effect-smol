@@ -68,7 +68,7 @@ export const make = <A, E, R>(options: {
 }) =>
   Effect.withFiber<RcRef.RcRef<A, E>, never, R | Scope.Scope>((fiber) => {
     const services = fiber.services as ServiceMap.ServiceMap<R | Scope.Scope>
-    const scope = ServiceMap.get(services, Scope.Scope)
+    const scope = ServiceMap.getUnsafe(services, Scope.Scope)
     const ref = new RcRefImpl<A, E>(
       options.acquire as Effect.Effect<A, E>,
       services,

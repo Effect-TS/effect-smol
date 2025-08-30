@@ -1768,7 +1768,7 @@ abstract class Metric$<in Input, out State> implements Metric<Input, State> {
   abstract createHooks(): Metric.Hooks<Input, State>
 
   hook(context: ServiceMap.ServiceMap<never>): Metric.Hooks<Input, State> {
-    const extraAttributes = ServiceMap.get(context, CurrentMetricAttributes)
+    const extraAttributes = ServiceMap.getUnsafe(context, CurrentMetricAttributes)
     if (Object.keys(extraAttributes).length === 0) {
       if (Predicate.isNotUndefined(this.#metadata)) {
         return this.#metadata.hooks
@@ -1791,7 +1791,7 @@ abstract class Metric$<in Input, out State> implements Metric<Input, State> {
     attributes: Metric.Attributes | undefined
   ): Metric.Metadata<Input, State> {
     const key = makeKey(this, attributes)
-    const registry = ServiceMap.get(context, MetricRegistry)
+    const registry = ServiceMap.getUnsafe(context, MetricRegistry)
     if (registry.has(key)) {
       return registry.get(key)!
     }
@@ -2056,7 +2056,7 @@ class SummaryMetric extends Metric$<readonly [value: number, timestamp: number],
     }
 
     const get = (context: ServiceMap.ServiceMap<never>) => {
-      const clock = ServiceMap.get(context, InternalEffect.ClockRef)
+      const clock = ServiceMap.getUnsafe(context, InternalEffect.ClockRef)
       const quantiles = snapshot(clock.currentTimeMillisUnsafe())
       return { quantiles, count, min, max, sum }
     }
@@ -2526,7 +2526,7 @@ export const summary = (name: string, options: {
   mapInput(summaryWithTimestamp(name, options), (input, context) =>
     [
       input,
-      ServiceMap.get(context, InternalEffect.ClockRef).currentTimeMillisUnsafe()
+      ServiceMap.getUnsafe(context, InternalEffect.ClockRef).currentTimeMillisUnsafe()
     ] as [number, number])
 
 /**
@@ -3187,7 +3187,7 @@ export const dump: Effect<string> = InternalEffect.flatMap(InternalEffect.servic
  * @category Snapshotting
  */
 export const snapshotUnsafe = (services: ServiceMap.ServiceMap<never>): ReadonlyArray<Metric.Snapshot> => {
-  const registry = ServiceMap.get(services, MetricRegistry)
+  const registry = ServiceMap.getUnsafe(services, MetricRegistry)
   return Array.from(registry.values()).map(({ hooks, ...meta }) => ({
     ...meta,
     state: hooks.get(services)
@@ -4012,7 +4012,7 @@ function addAttributesToServiceMap(
   context: ServiceMap.ServiceMap<never>,
   attributes: Metric.Attributes
 ): ServiceMap.ServiceMap<never> {
-  const current = ServiceMap.get(context, CurrentMetricAttributes)
+  const current = ServiceMap.getUnsafe(context, CurrentMetricAttributes)
   const updated = mergeAttributes(current, attributes)
   return ServiceMap.add(context, CurrentMetricAttributes, updated)
 }

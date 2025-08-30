@@ -4235,7 +4235,7 @@ export const noopSpan = (options: {
 
 const filterDisablePropagation = (span: Tracer.AnySpan | undefined): Tracer.AnySpan | undefined => {
   if (span) {
-    return ServiceMap.get(span.context, Tracer.DisablePropagation)
+    return ServiceMap.getUnsafe(span.context, Tracer.DisablePropagation)
       ? span._tag === "Span" ? filterDisablePropagation(span.parent) : undefined
       : span
   }
@@ -4251,7 +4251,7 @@ export const makeSpanUnsafe = <XA, XE>(
   options: Tracer.SpanOptions
 ) => {
   const disablePropagation = !fiber.getRef(TracerEnabled) ||
-    (options.context && ServiceMap.get(options.context, Tracer.DisablePropagation))
+    (options.context && ServiceMap.getUnsafe(options.context, Tracer.DisablePropagation))
   const parent = options.parent ?? (options.root ? undefined : filterDisablePropagation(fiber.currentSpan))
 
   let span: Tracer.Span
