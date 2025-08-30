@@ -2,8 +2,8 @@
  * @since 4.0.0
  */
 
-import * as Layer from "effect/Layer"
-import * as ServiceMap from "effect/ServiceMap"
+import * as Layer from "../../Layer.ts"
+import * as ServiceMap from "../../ServiceMap.ts"
 import type * as CliError from "./CliError.ts"
 import type { HelpDoc } from "./HelpDoc.ts"
 

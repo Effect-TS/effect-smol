@@ -1,8 +1,8 @@
 /**
  * @since 4.0.0
  */
-import * as Data from "effect/data/Data"
-import { hasProperty } from "effect/data/Predicate"
+import * as Data from "../../data/Data.ts"
+import { hasProperty } from "../../data/Predicate.ts"
 
 /**
  * @since 4.0.0

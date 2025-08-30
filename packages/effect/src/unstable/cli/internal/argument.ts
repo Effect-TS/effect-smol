@@ -6,13 +6,13 @@
  * @since 4.0.0
  */
 
-import type { Effect } from "effect"
-import type { Redacted } from "effect/data"
-import * as Option from "effect/data/Option"
-import { dual } from "effect/Function"
-import type * as FileSystem from "effect/platform/FileSystem"
-import type * as Path from "effect/platform/Path"
-import type { Schema } from "effect/schema"
+import * as Option from "../../../data/Option.ts"
+import type * as Redacted from "../../../data/Redacted.ts"
+import type * as Effect from "../../../Effect.ts"
+import { dual } from "../../../Function.ts"
+import type * as FileSystem from "../../../platform/FileSystem.ts"
+import type * as Path from "../../../platform/Path.ts"
+import type * as Schema from "../../../schema/Schema.ts"
 import type * as CliError from "../CliError.ts"
 import type { Environment } from "../Command.ts"
 import * as Param from "./param.ts"

@@ -1,5 +1,5 @@
-import { Array } from "effect/collections"
-import type { Simplify } from "effect/types/Types"
+import * as Array from "../../../collections/Array.ts"
+import type { Simplify } from "../../../types/Types.ts"
 import type { Param } from "./param.ts"
 import { isParam } from "./param.ts"
 

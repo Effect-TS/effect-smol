@@ -1,17 +1,13 @@
-import * as NodeFileSystem from "@effect/platform-node/NodeFileSystem"
-import * as NodePath from "@effect/platform-node/NodePath"
 import { describe, expect, it } from "@effect/vitest"
-import * as Effect from "effect/Effect"
-import * as Layer from "effect/Layer"
-import * as TestConsole from "effect/testing/TestConsole"
-import * as Command from "../src/Command.ts"
-import * as HelpFormatter from "../src/HelpFormatter.ts"
-import { comprehensiveCli } from "./utils/comprehensiveCli.ts"
-import * as TestActions from "./utils/TestActions.ts"
+import * as Effect from "../../../src/Effect.js"
+import * as Layer from "../../../src/Layer.js"
+import * as TestConsole from "../../../src/testing/TestConsole.js"
+import * as Command from "../../../src/unstable/cli/Command.js"
+import * as HelpFormatter from "../../../src/unstable/cli/HelpFormatter.js"
+import { comprehensiveCli } from "./utils/comprehensiveCli.js"
+import * as TestActions from "./utils/TestActions.js"
 
 const TestLayer = Layer.mergeAll(
-  NodeFileSystem.layer,
-  NodePath.layer,
   TestConsole.layer,
   HelpFormatter.layer(HelpFormatter.defaultHelpRenderer({ colors: false })),
   TestActions.layer

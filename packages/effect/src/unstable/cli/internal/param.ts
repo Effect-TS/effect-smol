@@ -2,14 +2,14 @@
  * @since 4.0.0
  */
 
-import { Effect } from "effect"
-import { Option } from "effect/data"
-import * as Result from "effect/data/Result"
-import { dual } from "effect/Function"
-import { type Pipeable, pipeArguments } from "effect/interfaces/Pipeable"
-import type * as FileSystem from "effect/platform/FileSystem"
-import type * as Path from "effect/platform/Path"
-import { Schema } from "effect/schema"
+import * as Option from "../../../data/Option.ts"
+import * as Result from "../../../data/Result.ts"
+import * as Effect from "../../../Effect.ts"
+import { dual } from "../../../Function.ts"
+import { type Pipeable, pipeArguments } from "../../../interfaces/Pipeable.ts"
+import type * as FileSystem from "../../../platform/FileSystem.ts"
+import type * as Path from "../../../platform/Path.ts"
+import * as Schema from "../../../schema/Schema.ts"
 import * as CliError from "../CliError.ts"
 import type { Environment } from "../Command.ts"
 import * as Primitive from "../Primitive.ts"

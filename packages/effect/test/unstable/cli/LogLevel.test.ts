@@ -1,12 +1,10 @@
-import * as NodeFileSystem from "@effect/platform-node/NodeFileSystem"
-import * as NodePath from "@effect/platform-node/NodePath"
 import { assert, describe, it } from "@effect/vitest"
-import * as Effect from "effect/Effect"
-import * as Layer from "effect/Layer"
-import * as Logger from "effect/logging/Logger"
-import * as Command from "../src/Command.js"
-import * as Flag from "../src/Flag.ts"
-import * as HelpFormatter from "../src/HelpFormatter.ts"
+import * as Effect from "../../../src/Effect.js"
+import * as Layer from "../../../src/Layer.js"
+import * as Logger from "../../../src/logging/Logger.js"
+import * as Command from "../../../src/unstable/cli/Command.js"
+import * as Flag from "../../../src/unstable/cli/Flag.js"
+import * as HelpFormatter from "../../../src/unstable/cli/HelpFormatter.js"
 
 // Create a test logger that captures log messages
 const makeTestLogger = () => {
@@ -35,8 +33,6 @@ const makeTestLogger = () => {
 // Create a test layer with the test logger
 const makeTestLayer = (testLogger: Logger.Logger<unknown, void>) =>
   Layer.mergeAll(
-    NodeFileSystem.layer,
-    NodePath.layer,
     HelpFormatter.layer(HelpFormatter.defaultHelpRenderer({ colors: false })),
     Logger.layer([testLogger])
   )

@@ -1,7 +1,7 @@
-import { Effect } from "effect"
-import { Ref } from "effect/concurrency"
-import * as Layer from "effect/services/Layer"
-import * as ServiceMap from "effect/services/ServiceMap"
+import * as Effect from "../../../../src/Effect.js"
+import * as Layer from "../../../../src/Layer.js"
+import * as Ref from "../../../../src/Ref.js"
+import * as ServiceMap from "../../../../src/ServiceMap.js"
 
 /**
  * Represents an action that a command would take
