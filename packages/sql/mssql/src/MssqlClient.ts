@@ -150,7 +150,7 @@ export const make = (
           database: options.database,
           trustServerCertificate: options.trustServer ?? true,
           connectTimeout: options.connectTimeout
-            ? Duration.toMillis(Duration.decode(options.connectTimeout))
+            ? Duration.toMillis(Duration.decodeUnsafe(options.connectTimeout))
             : undefined,
           rowCollectionOnRequestCompletion: true,
           useColumnNames: false,

@@ -211,7 +211,7 @@ export const makeWith = <
     self.map = MutableHashMap.make()
     self.capacity = options.capacity
     self.timeToLive = options.timeToLive
-      ? (exit: Exit.Exit<A, E>, key: Key) => Duration.decode(options.timeToLive!(exit, key))
+      ? (exit: Exit.Exit<A, E>, key: Key) => Duration.decodeUnsafe(options.timeToLive!(exit, key))
       : defaultTimeToLive
     return effect.succeed(self as Cache<Key, A, E>)
   })

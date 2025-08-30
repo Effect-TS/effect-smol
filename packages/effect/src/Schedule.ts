@@ -2371,8 +2371,8 @@ export const modifyDelay: {
       ([output, delay]) => {
         const duration = f(output, delay)
         return isEffect(duration)
-          ? effect.map(duration, (delay) => [output, Duration.decode(delay)])
-          : effect.succeed([output, Duration.decode(duration)])
+          ? effect.map(duration, (delay) => [output, Duration.decodeUnsafe(delay)])
+          : effect.succeed([output, Duration.decodeUnsafe(duration)])
       }
     ))))
 
@@ -2677,7 +2677,7 @@ export const reduce: {
  * @category constructors
  */
 export const spaced = (duration: Duration.DurationInput): Schedule<number> => {
-  const decoded = Duration.decode(duration)
+  const decoded = Duration.decodeUnsafe(duration)
   return fromStepWithMetadata(effect.succeed((meta) => effect.succeed([meta.recurrence, decoded])))
 }
 

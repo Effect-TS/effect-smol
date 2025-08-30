@@ -44,7 +44,7 @@ export const make: (
 > = Effect.fnUntraced(function*(options) {
   const clock = yield* Clock
   const scope = yield* Effect.scope
-  const exportInterval = Duration.decode(options.exportInterval)
+  const exportInterval = Duration.decodeUnsafe(options.exportInterval)
   let disabledUntil: number | undefined = undefined
 
   const client = HttpClient.filterStatusOk(yield* HttpClient.HttpClient).pipe(

@@ -320,7 +320,7 @@ export const make: {
       lookup: options.lookup as any,
       services,
       scope,
-      idleTimeToLive: options.idleTimeToLive ? Duration.decode(options.idleTimeToLive) : undefined,
+      idleTimeToLive: options.idleTimeToLive ? Duration.decodeUnsafe(options.idleTimeToLive) : undefined,
       capacity: Math.max(options.capacity ?? Number.POSITIVE_INFINITY, 0)
     })
     return Effect.as(

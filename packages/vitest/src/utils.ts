@@ -203,6 +203,20 @@ export function assertDefined<A>(
 }
 
 /**
+ * Asserts that `a` is `undefined`.
+ *
+ * @since 4.0.0
+ */
+export function assertUndefined<A>(
+  a: A | undefined,
+  ..._: Array<never>
+): asserts a is undefined {
+  if (a !== undefined) {
+    fail("Expected value to be undefined")
+  }
+}
+
+/**
  * Asserts that `option` is `Some`.
  *
  * @since 4.0.0

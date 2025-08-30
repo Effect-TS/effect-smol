@@ -1,5 +1,13 @@
 import { describe, it } from "@effect/vitest"
-import { assertEquals, assertFalse, assertTrue, deepStrictEqual, strictEqual, throws } from "@effect/vitest/utils"
+import {
+  assertEquals,
+  assertFalse,
+  assertTrue,
+  assertUndefined,
+  deepStrictEqual,
+  strictEqual,
+  throws
+} from "@effect/vitest/utils"
 import { Equal } from "effect/interfaces"
 import { BigDecimal } from "effect/primitives"
 import { FastCheck as fc } from "effect/testing"
@@ -127,7 +135,7 @@ describe("BigDecimal", () => {
       "355.8714617763535752237966114591019517738921035021887792661748076460636467881768727839301952739175132"
     )
 
-    assertTrue(BigDecimal.divide($("5"), $("0")) === undefined)
+    assertUndefined(BigDecimal.divide($("5"), $("0")))
     throws(() => BigDecimal.divideUnsafe($("5"), $("0")), new RangeError("Division by zero"))
   })
 
@@ -226,7 +234,7 @@ describe("BigDecimal", () => {
     assertEquals(BigDecimal.remainder($("5"), $("2")), $("1"))
     assertEquals(BigDecimal.remainder($("4"), $("2")), $("0"))
     assertEquals(BigDecimal.remainder($("123.456"), $("0.2")), $("0.056"))
-    assertTrue(BigDecimal.remainder($("5"), $("0")) === undefined)
+    assertUndefined(BigDecimal.remainder($("5"), $("0")))
   })
 
   it("unsafeRemainder", () => {
@@ -267,8 +275,8 @@ describe("BigDecimal", () => {
     deepStrictEqual(BigDecimal.fromString("15e-3"), BigDecimal.make(15n, 3))
     deepStrictEqual(BigDecimal.fromString("0.00002e5"), BigDecimal.make(2n, 0))
     deepStrictEqual(BigDecimal.fromString("0.00002e-5"), BigDecimal.make(2n, 10))
-    assertTrue(BigDecimal.fromString("0.0000e2e1") === undefined)
-    assertTrue(BigDecimal.fromString("0.1.2") === undefined)
+    assertUndefined(BigDecimal.fromString("0.0000e2e1"))
+    assertUndefined(BigDecimal.fromString("0.1.2"))
   })
 
   it("format", () => {
