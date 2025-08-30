@@ -1107,13 +1107,15 @@ export const dropWhile: {
 /**
  * Return the first index for which a predicate holds.
  *
- * @example
+ * **Example**
  *
  * ```ts
  * import { Array } from "effect/collections"
  *
- * const result = Array.findFirstIndex([5, 3, 8, 9], x => x > 5)
- * console.log(result) // 2
+ * Array.findFirstIndex(
+ *   [5, 3, 8, 9],
+ *   x => x > 5
+ * ) // 2
  * ```
  *
  * @category elements
@@ -1135,13 +1137,15 @@ export const findFirstIndex: {
 /**
  * Return the last index for which a predicate holds.
  *
- * @example
+ * **Example**
  *
  * ```ts
  * import { Array } from "effect/collections"
  *
- * const result = Array.findLastIndex([1, 3, 8, 9], x => x < 5)
- * console.log(result) // 1
+ * Array.findLastIndex(
+ *   [1, 3, 8, 9],
+ *   x => x < 5
+ * ) // 1
  * ```
  *
  * @category elements

@@ -18,7 +18,7 @@ import * as equivalence from "../data/Equivalence.ts"
 import * as order from "../data/Order.ts"
 import type { Ordering } from "../data/Ordering.ts"
 import { hasProperty } from "../data/Predicate.ts"
-import { dual, pipe } from "../Function.ts"
+import { dual } from "../Function.ts"
 import * as Equal from "../interfaces/Equal.ts"
 import * as Hash from "../interfaces/Hash.ts"
 import { type Inspectable, NodeInspectSymbol } from "../interfaces/Inspectable.ts"
@@ -50,9 +50,10 @@ export type TypeId = "~effect/BigDecimal"
  * ```ts
  * import { BigDecimal } from "effect/primitives"
  *
- * const decimal: BigDecimal.BigDecimal = BigDecimal.fromNumberUnsafe(123.45)
- * console.log(decimal.value) // 12345n
- * console.log(decimal.scale) // 2
+ * const d = BigDecimal.fromNumberUnsafe(123.45)
+ *
+ * d.value // 12345n
+ * d.scale // 2
  * ```
  *
  * @category models
@@ -71,10 +72,7 @@ const BigDecimalProto: Omit<BigDecimal, "value" | "scale" | "normalized"> = {
   [Hash.symbol](this: BigDecimal): number {
     return Hash.cached(this, () => {
       const normalized = normalize(this)
-      return pipe(
-        Hash.hash(normalized.value),
-        Hash.combine(Hash.number(normalized.scale))
-      )
+      return Hash.combine(Hash.hash(normalized.value), Hash.number(normalized.scale))
     })
   },
   [Equal.symbol](this: BigDecimal, that: unknown): boolean {
