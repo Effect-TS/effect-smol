@@ -190,7 +190,7 @@ export class CauseImpl<E> implements Cause.Cause<E> {
   }
 }
 
-const annotationsSymbol = Symbol.for("~effect/Cause/annotations")
+const annotationsMap = new WeakMap<object, ReadonlyMap<string, unknown>>()
 
 /** @internal */
 export abstract class FailureBase<Tag extends string> implements Cause.Cause.FailureProto<Tag> {
@@ -205,14 +205,18 @@ export abstract class FailureBase<Tag extends string> implements Cause.Cause.Fai
   ) {
     this[CauseFailureTypeId] = CauseFailureTypeId
     this._tag = _tag
-    if (typeof originalError === "object" && originalError !== null) {
-      if (annotationsSymbol in originalError) {
+    if (
+      annotations !== constEmptyAnnotations && typeof originalError === "object" && originalError !== null &&
+      annotations.size > 0
+    ) {
+      const prevAnnotations = annotationsMap.get(originalError)
+      if (prevAnnotations) {
         annotations = new Map([
-          ...originalError[annotationsSymbol] as any,
+          ...prevAnnotations,
           ...annotations
         ])
       }
-      ;(originalError as any)[annotationsSymbol] = annotations
+      annotationsMap.set(originalError, annotations)
     }
     this.annotations = annotations
   }
