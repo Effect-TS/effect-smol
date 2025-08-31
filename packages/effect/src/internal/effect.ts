@@ -1075,10 +1075,10 @@ export const fnUntracedEager: Effect.fn.Gen = (
 ) => {
   return pipeables.length === 0
     ? function(this: any, ...args: Array<any>) {
-      return fromIteratorEagerUnsafe(() => body.apply(this, args))
+      return fromIteratorEagerUnsafe(body.apply(this, args))
     }
     : function(this: any, ...args: Array<any>) {
-      let effect = fromIteratorEagerUnsafe(() => body.apply(this, args))
+      let effect = fromIteratorEagerUnsafe(body.apply(this, args))
       for (const pipeable of pipeables) {
         effect = pipeable(effect)
       }
@@ -1087,10 +1087,9 @@ export const fnUntracedEager: Effect.fn.Gen = (
 }
 
 const fromIteratorEagerUnsafe = (
-  createIterator: () => Iterator<Effect.Yieldable<any, any, any, any>>
+  iterator: Iterator<Effect.Yieldable<any, any, any, any>>
 ): Effect.Effect<any, any, any> => {
   try {
-    const iterator = createIterator()
     let value: any = undefined
 
     // Try to resolve synchronously in a loop
@@ -1118,7 +1117,7 @@ const fromIteratorEagerUnsafe = (
             isFirstExecution = false
             return flatMap(effect, (value) => fromIteratorUnsafe(iterator, value))
           } else {
-            return suspend(() => fromIteratorUnsafe(createIterator()))
+            return suspend(() => fromIteratorUnsafe(iterator))
           }
         })
       }

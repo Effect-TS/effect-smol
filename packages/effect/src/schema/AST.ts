@@ -2,12 +2,15 @@
  * @since 4.0.0
  */
 
+import * as Cause from "../Cause.ts"
 import * as Arr from "../collections/Array.ts"
 import type * as Combiner from "../data/Combiner.ts"
+import * as Filter from "../data/Filter.ts"
 import * as Option from "../data/Option.ts"
 import * as Predicate from "../data/Predicate.ts"
 import * as Result from "../data/Result.ts"
 import * as Effect from "../Effect.ts"
+import { effectIsExit } from "../internal/effect.ts"
 import * as internalRecord from "../internal/record.ts"
 import { memoizeThunk } from "../internal/schema/util.ts"
 import * as RegEx from "../primitives/RegExp.ts"
@@ -1266,9 +1269,11 @@ export class TypeLiteral extends Base {
     const ast = this
     const expectedKeys: Array<PropertyKey> = []
     const expectedKeysMap: Record<PropertyKey, null> = {}
+    const parsers: Array<ToParser.Parser> = []
     for (const ps of ast.propertySignatures) {
       expectedKeys.push(ps.name)
       expectedKeysMap[ps.name] = null
+      parsers.push(go(ps.type))
     }
     // ---------------------------------------------
     // handle empty struct
@@ -1321,18 +1326,19 @@ export class TypeLiteral extends Base {
       // ---------------------------------------------
       // handle property signatures
       // ---------------------------------------------
-      for (const ps of ast.propertySignatures) {
+      for (let i = 0; i < ast.propertySignatures.length; i++) {
+        const ps = ast.propertySignatures[i]
         const name = ps.name
         const type = ps.type
-        let value: Option.Option<unknown> = Option.none()
-        if (Object.hasOwn(input, name)) {
-          value = Option.some(input[name])
-        }
-        const parser = go(type)
+        const value: Option.Option<unknown> = Object.hasOwn(input, name) ? Option.some(input[name]) : Option.none()
         const keyAnnotations = type.context?.annotations
-        const r = yield* Effect.result(parser(value, options))
-        if (Result.isFailure(r)) {
-          const issue = new Issue.Pointer([name], r.failure)
+        const eff = parsers[i](value, options)
+        const exit = effectIsExit(eff) ? eff : yield* Effect.exit(eff)
+        if (exit._tag === "Failure") {
+          const issue = Cause.filterError(exit.cause)
+          if (Filter.isFail(issue)) {
+            return yield* exit
+          }
           if (errorsAllOption) {
             issues.push(issue)
             continue
@@ -1342,8 +1348,8 @@ export class TypeLiteral extends Base {
             )
           }
         } else {
-          if (Option.isSome(r.success)) {
-            internalRecord.set(out, name, r.success.value)
+          if (Option.isSome(exit.value)) {
+            internalRecord.set(out, name, exit.value.value)
           } else {
             if (!isOptional(ps.type)) {
               const issue = new Issue.Pointer([name], new Issue.MissingKey(keyAnnotations))

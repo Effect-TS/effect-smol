@@ -95,73 +95,8 @@ const go = AST.memoize((ast: AST.AST): Parser => {
       return refinementParser(ast, (u): u is any => values.has(u as any))
     }
     case "TypeLiteral": {
-      const properties = ast.propertySignatures.map((ps) => {
-        return {
-          ps,
-          name: ps.name,
-          keyAnnotations: ps.type.context?.annotations,
-          parser: go(ps.type),
-          isOptional: AST.isOptional(ps.type),
-          issueMissing: new Issue.Pointer([ps.name], new Issue.MissingKey(ps.type.context?.annotations))
-        } as const
-      })
-      const propertyLen = properties.length
-      return (input, options) => {
-        if (input === missing) {
-          return succeedMissing
-        } else if (!Predicate.isRecord(input)) {
-          return Effect.fail(new Issue.InvalidType(ast, optionFromInput(input)))
-        }
-
-        const out: Record<PropertyKey, unknown> = {}
-        let effects: Array<Effect.Effect<any, Issue.Issue, any>> | undefined
-        for (let i = 0; i < propertyLen; i++) {
-          const p = properties[i]
-          const value = Object.hasOwn(input, p.name) ? input[p.name] as {} : missing
-          const eff = p.parser(value, options)
-          if (!internalEffect.effectIsExit(eff)) {
-            effects ??= []
-            effects.push(Effect.matchEffect(eff, {
-              onFailure: (issue) => Effect.fail(new Issue.Composite(ast, optionFromInput(input), [issue])),
-              onSuccess: (value) => {
-                if (value !== missing) {
-                  out[p.name] = value
-                  return Effect.void
-                } else if (!p.isOptional) {
-                  return Effect.fail(new Issue.Composite(ast, optionFromInput(input), [p.issueMissing]))
-                }
-                return Effect.void
-              }
-            }))
-          } else if (eff._tag === "Failure") {
-            const issue = Cause.filterError(eff.cause)
-            if (Filter.isFail(issue)) {
-              return eff
-            }
-            // TODO: collect all issues
-            return Effect.fail(new Issue.Composite(ast, optionFromInput(input), [issue]))
-          } else if (eff.value !== missing) {
-            out[p.name] = eff.value
-          } else if (!p.isOptional) {
-            return Effect.fail(new Issue.Composite(ast, optionFromInput(input), [p.issueMissing]))
-          }
-        }
-
-        if (effects === undefined) {
-          return Effect.succeed(out)
-        }
-
-        let i = 0
-        const len = effects.length
-        return Effect.as(
-          Effect.whileLoop({
-            while: () => i < len,
-            body: () => effects[i++],
-            step: constVoid
-          }),
-          out
-        )
-      }
+      const properties = typeLiteralProps(ast)
+      return (input, options) => typeLiteralParser(ast, properties, input, options)
     }
     case "UnionType":
       return (input, options) => {
@@ -278,3 +213,48 @@ const booleanParser = refinementParser(AST.booleanKeyword, Predicate.isBoolean)
 const bigintParser = refinementParser(AST.bigIntKeyword, Predicate.isBigInt)
 const symbolParser = refinementParser(AST.symbolKeyword, Predicate.isSymbol)
 const objectParser = refinementParser(AST.objectKeyword, Predicate.isObject)
+
+const typeLiteralProps = (ast: AST.TypeLiteral) =>
+  ast.propertySignatures.map((ps) => ({
+    ps,
+    name: ps.name,
+    keyAnnotations: ps.type.context?.annotations,
+    parser: go(ps.type),
+    isOptional: AST.isOptional(ps.type),
+    issueMissing: new Issue.Pointer([ps.name], new Issue.MissingKey(ps.type.context?.annotations))
+  } as const))
+
+const typeLiteralParser = Effect.fnUntracedEager(function*(
+  ast: AST.TypeLiteral,
+  props: ReturnType<typeof typeLiteralProps>,
+  input: unknown | missing,
+  options: AST.ParseOptions
+) {
+  if (input === missing) {
+    return succeedMissing
+  } else if (!Predicate.isRecord(input)) {
+    return Effect.fail(new Issue.InvalidType(ast, optionFromInput(input)))
+  }
+
+  const out: Record<PropertyKey, unknown> = {}
+  for (let i = 0; i < props.length; i++) {
+    const p = props[i]
+    const value = Object.hasOwn(input, p.name) ? input[p.name] as {} : missing
+    const eff = p.parser(value, options)
+    const exit = internalEffect.effectIsExit(eff) ? eff : yield* Effect.exit(eff)
+    if (exit._tag === "Failure") {
+      const issue = Cause.filterError(exit.cause)
+      if (Filter.isFail(issue)) {
+        return exit
+      }
+      // TODO: collect all issues
+      return Effect.fail(new Issue.Composite(ast, optionFromInput(input), [issue]))
+    } else if (exit.value !== missing) {
+      out[p.name] = exit.value
+    } else if (!p.isOptional) {
+      return Effect.fail(new Issue.Composite(ast, optionFromInput(input), [p.issueMissing]))
+    }
+  }
+
+  return out
+})

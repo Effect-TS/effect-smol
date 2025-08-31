@@ -343,7 +343,7 @@ const go = AST.memoize(
         }
       }
 
-      let srou: Effect.Effect<Option.Option<unknown>, Issue.Issue, unknown> = Effect.succeed(ou)
+      let srou: Effect.Effect<Option.Option<unknown>, Issue.Issue, unknown> | undefined
       if (encoding) {
         const links = encoding
         const len = links.length
@@ -351,7 +351,7 @@ const go = AST.memoize(
           const link = links[i]
           const to = link.to
           const parser = go(to)
-          srou = Effect.flatMapEager(srou, (ou) => parser(ou, options))
+          srou = srou ? Effect.flatMapEager(srou, (ou) => parser(ou, options)) : parser(ou, options)
           if (link.transformation._tag === "Transformation") {
             const getter = link.transformation.decode
             srou = Effect.flatMapEager(srou, (ou) => getter.run(ou, options))
@@ -359,11 +359,11 @@ const go = AST.memoize(
             srou = link.transformation.decode(srou, options)
           }
         }
-        srou = Effect.mapErrorEager(srou, (issue) => new Issue.Encoding(ast, ou, issue))
+        srou = Effect.mapErrorEager(srou!, (issue) => new Issue.Encoding(ast, ou, issue))
       }
 
       parser ??= ast.parser(go)
-      let sroa = Effect.flatMapEager(srou, (ou) => parser(ou, options))
+      let sroa = srou ? Effect.flatMapEager(srou, (ou) => parser(ou, options)) : parser(ou, options)
 
       if (ast.checks) {
         const checks = ast.checks
