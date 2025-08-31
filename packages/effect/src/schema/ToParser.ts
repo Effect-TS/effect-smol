@@ -258,16 +258,13 @@ export const encodeSync: <T, E, RD>(
 
 function run<T, R>(ast: AST.AST) {
   const parser = go(ast)
-  return (input: unknown, options?: AST.ParseOptions): Effect.Effect<T, Issue.Issue, R> => {
-    const oinput = Option.some(input)
-    const oa = parser(oinput, options ?? defaultParseOptions)
-    return oa.pipe(Effect.flatMapEager((oa) => {
-      if (Option.isNone(oa)) {
+  return (input: unknown, options?: AST.ParseOptions): Effect.Effect<T, Issue.Issue, R> =>
+    Effect.flatMapEager(parser(Option.some(input), options ?? defaultParseOptions), (oa) => {
+      if (oa._tag === "None") {
         return Effect.fail(new Issue.InvalidValue(oa))
       }
       return Effect.succeed(oa.value as T)
-    }))
-  }
+    })
 }
 
 function asPromise<T, E>(
@@ -301,6 +298,30 @@ function asSync<T, E, R>(
     )
 }
 
+/**
+ * @category Symbols
+ * @since 4.0.0
+ */
+export const missing: unique symbol = Symbol.for("effect/schema/ToParser/missing")
+
+/**
+ * @category Symbols
+ * @since 4.0.0
+ */
+export type missing = typeof missing
+
+/**
+ * @category Symbols
+ * @since 4.0.0
+ */
+export const unset: unique symbol = Symbol.for("effect/schema/ToParser/unset")
+
+/**
+ * @category Symbols
+ * @since 4.0.0
+ */
+export type unset = typeof unset
+
 /** @internal */
 export interface Parser {
   (input: Option.Option<unknown>, options: AST.ParseOptions): Effect.Effect<Option.Option<unknown>, Issue.Issue, any>
@@ -314,7 +335,8 @@ export function runChecks<T>(
   ast: AST.AST,
   options: AST.ParseOptions
 ) {
-  for (const check of checks) {
+  for (let i = 0; i < checks.length; i++) {
+    const check = checks[i]
     if (check._tag === "FilterGroup") {
       runChecks(check.checks, value, issues, ast, options)
     } else {
@@ -331,7 +353,12 @@ export function runChecks<T>(
 
 const go = AST.memoize(
   (ast: AST.AST): Parser => {
+    if (!ast.context && !ast.encoding && !ast.checks) {
+      return ast.parser(go)
+    }
     let parser: Parser
+    const isStructural = AST.isTupleType(ast) || AST.isTypeLiteral(ast) ||
+      (AST.isDeclaration(ast) && ast.typeParameters.length > 0)
     return (ou, options) => {
       let encoding = ast.encoding
       if (options["~variant"] === "make" && ast.context) {
@@ -367,8 +394,6 @@ const go = AST.memoize(
 
       if (ast.checks) {
         const checks = ast.checks
-        const isStructural = AST.isTupleType(ast) || AST.isTypeLiteral(ast) ||
-          (AST.isDeclaration(ast) && ast.typeParameters.length > 0)
         if (options?.errors === "all" && isStructural && Option.isSome(ou)) {
           sroa = Effect.catchEager(sroa, (issue) => {
             const issues: Array<Issue.Issue> = []

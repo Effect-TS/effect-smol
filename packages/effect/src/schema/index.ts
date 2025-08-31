@@ -70,11 +70,6 @@ export * as ToParser from "./ToParser.ts"
 /**
  * @since 4.0.0
  */
-export * as ToParser2 from "./ToParser2.ts"
-
-/**
- * @since 4.0.0
- */
 export * as Transformation from "./Transformation.ts"
 
 /**
