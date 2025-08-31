@@ -184,7 +184,7 @@ export const fromIterable = <K, V>(entries: Iterable<readonly [K, V]>): MutableH
  * @example
  * ```ts
  * import * as MutableHashMap from "effect/collections/MutableHashMap"
-import * as Option from "effect/data/Option"
+ * import * as Option from "effect/data/Option"
  *
  * const map = MutableHashMap.make(["key1", 42], ["key2", 100])
  *
@@ -472,7 +472,7 @@ export const modify: {
  * @example
  * ```ts
  * import * as MutableHashMap from "effect/collections/MutableHashMap"
-import * as Option from "effect/data/Option"
+ * import * as Option from "effect/data/Option"
  *
  * const map = MutableHashMap.make(["count", 5])
  *

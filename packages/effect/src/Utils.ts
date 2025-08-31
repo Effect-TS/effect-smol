@@ -25,7 +25,7 @@ const GenKindTypeId = "~effect/Utils/GenKind"
  * @example
  * ```ts
  * import { Utils } from "effect"
-import * as Option from "effect/data/Option"
+ * import * as Option from "effect/data/Option"
  *
  * // A GenKind wraps types to make them generator-compatible
  * declare const genKind: Utils.GenKind<Option.OptionTypeLambda, never, never, never, number>
@@ -188,7 +188,7 @@ export const makeGenKind = <F extends TypeLambda, R, O, E, A>(
  * @example
  * ```ts
  * import { Utils } from "effect"
-import * as Option from "effect/data/Option"
+ * import * as Option from "effect/data/Option"
  *
  * // Variance defines the type parameter relationships
  * declare const variance: Utils.Variance<Option.OptionTypeLambda, never, never, never>

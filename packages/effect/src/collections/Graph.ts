@@ -460,7 +460,7 @@ export const addNode = <N, E, T extends Kind = "directed">(
  * @example
  * ```ts
  * import { Graph } from "effect/collections"
-import * as Option from "effect/data/Option"
+ * import * as Option from "effect/data/Option"
  *
  * const graph = Graph.mutate(Graph.directed<string, number>(), (mutable) => {
  *   Graph.addNode(mutable, "Node A")
@@ -882,7 +882,7 @@ export const reverse = <N, E, T extends Kind = "directed">(
  * @example
  * ```ts
  * import { Graph } from "effect/collections"
-import * as Option from "effect/data/Option"
+ * import * as Option from "effect/data/Option"
  *
  * const graph = Graph.directed<string, number>((mutable) => {
  *   const a = Graph.addNode(mutable, "active")
@@ -934,7 +934,7 @@ export const filterMapNodes = <N, E, T extends Kind = "directed">(
  * @example
  * ```ts
  * import { Graph } from "effect/collections"
-import * as Option from "effect/data/Option"
+ * import * as Option from "effect/data/Option"
  *
  * const graph = Graph.directed<string, number>((mutable) => {
  *   const a = Graph.addNode(mutable, "A")
@@ -2071,7 +2071,7 @@ export interface PathResult<E> {
  * @example
  * ```ts
  * import { Graph } from "effect/collections"
-import * as Option from "effect/data/Option"
+ * import * as Option from "effect/data/Option"
  *
  * const graph = Graph.directed<string, number>((mutable) => {
  *   const a = Graph.addNode(mutable, "A")

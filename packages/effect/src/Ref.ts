@@ -309,7 +309,7 @@ export const getAndUpdate = dual<
  * ```ts
  * import { Effect } from "effect"
  * import { Ref } from "effect"
-import * as Option from "effect/data/Option"
+ * import * as Option from "effect/data/Option"
  *
  * const program = Effect.gen(function*() {
  *   const counter = yield* Ref.make(5)
@@ -452,7 +452,7 @@ export const modify = dual<
  * ```ts
  * import { Effect } from "effect"
  * import { Ref } from "effect"
-import * as Option from "effect/data/Option"
+ * import * as Option from "effect/data/Option"
  *
  * const program = Effect.gen(function*() {
  *   const counter = yield* Ref.make(5)
@@ -582,7 +582,7 @@ export const updateAndGet = dual<
  * ```ts
  * import { Effect } from "effect"
  * import { Ref } from "effect"
-import * as Option from "effect/data/Option"
+ * import * as Option from "effect/data/Option"
  *
  * const program = Effect.gen(function*() {
  *   const counter = yield* Ref.make(5)
@@ -631,7 +631,7 @@ export const updateSome = dual<
  * ```ts
  * import { Effect } from "effect"
  * import { Ref } from "effect"
-import * as Option from "effect/data/Option"
+ * import * as Option from "effect/data/Option"
  *
  * const program = Effect.gen(function*() {
  *   const counter = yield* Ref.make(10)

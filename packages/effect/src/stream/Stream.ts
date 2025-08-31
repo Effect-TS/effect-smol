@@ -972,7 +972,7 @@ export const fromEventListener = <A = unknown>(
  * ```ts
  * import { Stream } from "effect/stream"
  * import { Effect } from "effect"
-import * as Option from "effect/data/Option"
+ * import * as Option from "effect/data/Option"
  *
  * const stream = Stream.paginate(0, (n) => [
  *   n,
@@ -1001,7 +1001,7 @@ export const paginate = <S, A>(s: S, f: (s: S) => readonly [A, Option.Option<S>]
  * ```ts
  * import { Stream } from "effect/stream"
  * import { Effect } from "effect"
-import * as Option from "effect/data/Option"
+ * import * as Option from "effect/data/Option"
  *
  * const stream = Stream.paginateArray(0, (n) => [
  *   [n], // emit single element as chunk
@@ -1028,7 +1028,7 @@ export const paginateArray = <S, A>(
  * ```ts
  * import { Stream } from "effect/stream"
  * import { Effect } from "effect"
-import * as Option from "effect/data/Option"
+ * import * as Option from "effect/data/Option"
  *
  * const stream = Stream.paginateArrayEffect(0, (n: number) =>
  *   Effect.succeed([
@@ -1073,7 +1073,7 @@ export const paginateArrayEffect = <S, A, E, R>(
  * ```ts
  * import { Stream } from "effect/stream"
  * import { Effect } from "effect"
-import * as Option from "effect/data/Option"
+ * import * as Option from "effect/data/Option"
  *
  * const stream = Stream.paginateEffect(0, (n: number) =>
  *   Effect.succeed([

@@ -27,7 +27,7 @@ const TypeId = TR.TrieTypeId
 /**
  * @example
  * ```ts
-import * as Option from "effect/data/Option"
+ * import * as Option from "effect/data/Option"
  * import * as Trie from "effect/collections/Trie"
  *
  * // Create a trie with string-to-number mappings
@@ -75,7 +75,7 @@ export interface Trie<in out Value> extends Iterable<[string, Value]>, Equal, Pi
  * ```ts
  * import * as assert from "node:assert"
  * import * as Trie from "effect/collections/Trie"
-import * as Equal from "effect/interfaces/Equal"
+ * import * as Equal from "effect/interfaces/Equal"
  *
  * const trie = Trie.empty<string>()
  *
@@ -95,7 +95,7 @@ export const empty: <V = never>() => Trie<V> = TR.empty
  * ```ts
  * import * as assert from "node:assert"
  * import * as Trie from "effect/collections/Trie"
-import * as Equal from "effect/interfaces/Equal"
+ * import * as Equal from "effect/interfaces/Equal"
  *
  * const iterable: Array<readonly [string, number]> = [["call", 0], ["me", 1], ["mind", 2], ["mid", 3]]
  * const trie = Trie.fromIterable(iterable)
@@ -117,7 +117,7 @@ export const fromIterable: <V>(entries: Iterable<readonly [string, V]>) => Trie<
  * ```ts
  * import * as assert from "node:assert"
  * import * as Trie from "effect/collections/Trie"
-import * as Equal from "effect/interfaces/Equal"
+ * import * as Equal from "effect/interfaces/Equal"
  *
  * const trie = Trie.make(["ca", 0], ["me", 1])
  *
@@ -429,7 +429,7 @@ export const size: <V>(self: Trie<V>) => number = TR.size
  * @example
  * ```ts
  * import * as assert from "node:assert"
-import * as Option from "effect/data/Option"
+ * import * as Option from "effect/data/Option"
  * import * as Trie from "effect/collections/Trie"
  *
  * const trie = Trie.empty<number>().pipe(
@@ -543,7 +543,7 @@ export const getUnsafe: {
  * @example
  * ```ts
  * import * as assert from "node:assert"
-import * as Option from "effect/data/Option"
+ * import * as Option from "effect/data/Option"
  * import * as Trie from "effect/collections/Trie"
  *
  * const trie = Trie.empty<number>().pipe(
@@ -618,7 +618,7 @@ export const reduce: {
  * ```ts
  * import * as assert from "node:assert"
  * import * as Trie from "effect/collections/Trie"
-import * as Equal from "effect/interfaces/Equal"
+ * import * as Equal from "effect/interfaces/Equal"
  *
  * const trie = Trie.empty<number>().pipe(
  *   Trie.insert("shells", 0),
@@ -657,7 +657,7 @@ export const map: {
  * ```ts
  * import * as assert from "node:assert"
  * import * as Trie from "effect/collections/Trie"
-import * as Equal from "effect/interfaces/Equal"
+ * import * as Equal from "effect/interfaces/Equal"
  *
  * const trie = Trie.empty<number>().pipe(
  *   Trie.insert("shells", 0),
@@ -696,8 +696,8 @@ export const filter: {
  * ```ts
  * import * as assert from "node:assert"
  * import * as Trie from "effect/collections/Trie"
-import * as Equal from "effect/interfaces/Equal"
-import * as Option from "effect/data/Option"
+ * import * as Equal from "effect/interfaces/Equal"
+ * import * as Option from "effect/data/Option"
  *
  * const trie = Trie.empty<number>().pipe(
  *   Trie.insert("shells", 0),
@@ -736,8 +736,8 @@ export const filterMap: {
  * ```ts
  * import * as assert from "node:assert"
  * import * as Trie from "effect/collections/Trie"
-import * as Equal from "effect/interfaces/Equal"
-import * as Option from "effect/data/Option"
+ * import * as Equal from "effect/interfaces/Equal"
+ * import * as Option from "effect/data/Option"
  *
  * const trie = Trie.empty<Option.Option<number>>().pipe(
  *   Trie.insert("shells", Option.some(0)),
@@ -795,8 +795,8 @@ export const forEach: {
  * ```ts
  * import * as assert from "node:assert"
  * import * as Trie from "effect/collections/Trie"
-import * as Equal from "effect/interfaces/Equal"
-import * as Option from "effect/data/Option"
+ * import * as Equal from "effect/interfaces/Equal"
+ * import * as Option from "effect/data/Option"
  *
  * const trie = Trie.empty<number>().pipe(
  *   Trie.insert("shells", 0),
@@ -824,7 +824,7 @@ export const modify: {
  * ```ts
  * import * as assert from "node:assert"
  * import * as Trie from "effect/collections/Trie"
-import * as Equal from "effect/interfaces/Equal"
+ * import * as Equal from "effect/interfaces/Equal"
  *
  * const trie = Trie.empty<number>().pipe(
  *   Trie.insert("shells", 0),
@@ -853,7 +853,7 @@ export const removeMany: {
  * ```ts
  * import * as assert from "node:assert"
  * import * as Trie from "effect/collections/Trie"
-import * as Equal from "effect/interfaces/Equal"
+ * import * as Equal from "effect/interfaces/Equal"
  *
  * const trie = Trie.empty<number>().pipe(
  *   Trie.insert("shells", 0),

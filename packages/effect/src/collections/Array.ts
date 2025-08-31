@@ -247,7 +247,7 @@ export const fromRecord: <K extends string, A>(self: Readonly<Record<K, A>>) => 
  * @example
  * ```ts
  * import { Array } from "effect/collections"
-import * as Option from "effect/data/Option"
+ * import * as Option from "effect/data/Option"
  *
  * console.log(Array.fromOption(Option.some(1))) // [1]
  * console.log(Array.fromOption(Option.none())) // []
@@ -2682,7 +2682,7 @@ export const flatten: <S extends ReadonlyArray<ReadonlyArray<any>>>(self: S) => 
  *
  * ```ts
  * import { Array } from "effect/collections"
-import * as Option from "effect/data/Option"
+ * import * as Option from "effect/data/Option"
  *
  * const evenSquares = (x: number) => x % 2 === 0 ? Option.some(x * x) : Option.none()
  *
@@ -2720,7 +2720,7 @@ export const filterMap: {
  *
  * ```ts
  * import { Array } from "effect/collections"
-import * as Option from "effect/data/Option"
+ * import * as Option from "effect/data/Option"
  *
  * const toSquareTillOdd = (x: number) => x % 2 === 0 ? Option.some(x * x) : Option.none()
  *
@@ -2827,7 +2827,7 @@ export const partitionFilter: {
  *
  * ```ts
  * import { Array } from "effect/collections"
-import * as Option from "effect/data/Option"
+ * import * as Option from "effect/data/Option"
  *
  * const result = Array.getSomes([Option.some(1), Option.none(), Option.some(2)])
  * console.log(result) // [1, 2]
@@ -3076,7 +3076,7 @@ export const liftPredicate: { // Note: I intentionally avoid using the NoInfer p
  * @example
  * ```ts
  * import { Array } from "effect/collections"
-import * as Option from "effect/data/Option"
+ * import * as Option from "effect/data/Option"
  *
  * const parseNumber = Array.liftOption((s: string) => {
  *   const n = Number(s)

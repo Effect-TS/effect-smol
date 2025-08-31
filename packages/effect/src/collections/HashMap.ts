@@ -19,7 +19,7 @@ const TypeId = internal.HashMapTypeId
  * @example
  * ```ts
  * import * as HashMap from "effect/collections/HashMap"
-import * as Option from "effect/data/Option"
+ * import * as Option from "effect/data/Option"
  *
  * // Create a HashMap
  * const map = HashMap.make(["a", 1], ["b", 2], ["c", 3])
@@ -50,7 +50,7 @@ export interface HashMap<out Key, out Value> extends Iterable<[Key, Value]>, Equ
  * @example
  * ```ts
  * import * as HashMap from "effect/collections/HashMap"
-import * as Option from "effect/data/Option"
+ * import * as Option from "effect/data/Option"
  *
  * // Create a concrete HashMap for type extraction
  * const inventory = HashMap.make(
@@ -87,7 +87,7 @@ export declare namespace HashMap {
    * @example
    * ```ts
    * import * as HashMap from "effect/collections/HashMap"
-  import * as Option from "effect/data/Option"
+   * import * as Option from "effect/data/Option"
    *
    * const map = HashMap.make(["a", 1], ["b", 2])
    *
@@ -295,7 +295,7 @@ export const isEmpty: <K, V>(self: HashMap<K, V>) => boolean = internal.isEmpty
  * @example
  * ```ts
  * import * as HashMap from "effect/collections/HashMap"
-import * as Option from "effect/data/Option"
+ * import * as Option from "effect/data/Option"
  *
  * const map = HashMap.make(["a", 1], ["b", 2])
  *
@@ -322,7 +322,7 @@ export const get: {
  * ```ts
  * import * as HashMap from "effect/collections/HashMap"
 import { Hash } from "effect/interfaces"
-import * as Option from "effect/data/Option"
+ * import * as Option from "effect/data/Option"
  *
  * // Useful when implementing custom equality for complex keys
  * const userMap = HashMap.make(
@@ -361,7 +361,7 @@ export const getHash: {
  * @example
  * ```ts
  * import * as HashMap from "effect/collections/HashMap"
-import * as Option from "effect/data/Option"
+ * import * as Option from "effect/data/Option"
  *
  * const config = HashMap.make(
  *   ["api_url", "https://api.example.com"],
@@ -738,7 +738,7 @@ export const mutate: {
  * @example
  * ```ts
  * import * as HashMap from "effect/collections/HashMap"
-import * as Option from "effect/data/Option"
+ * import * as Option from "effect/data/Option"
  *
  * const map = HashMap.make(["a", 1], ["b", 2])
  *
@@ -772,7 +772,7 @@ export const modifyAt: {
  * ```ts
  * import * as HashMap from "effect/collections/HashMap"
 import { Hash } from "effect/interfaces"
-import * as Option from "effect/data/Option"
+ * import * as Option from "effect/data/Option"
  *
  * // Useful when working with precomputed hashes for performance
  * const counters = HashMap.make(["downloads", 100], ["views", 250])
@@ -1045,7 +1045,7 @@ export const filter: {
  * @example
  * ```ts
  * import * as HashMap from "effect/collections/HashMap"
-import * as Option from "effect/data/Option"
+ * import * as Option from "effect/data/Option"
  *
  * const map1 = HashMap.make(
  *   ["a", Option.some(1)],
@@ -1071,7 +1071,7 @@ export const compact: <K, A>(self: HashMap<K, Option<A>>) => HashMap<K, A> = int
  * @example
  * ```ts
  * import * as HashMap from "effect/collections/HashMap"
-import * as Option from "effect/data/Option"
+ * import * as Option from "effect/data/Option"
  *
  * const map1 = HashMap.make(["a", 1], ["b", 2], ["c", 3], ["d", 4])
  * const map2 = HashMap.filterMap(map1, (value) =>

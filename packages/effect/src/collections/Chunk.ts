@@ -561,7 +561,7 @@ export const reverse: <S extends Chunk<any>>(self: S) => Chunk.With<S, Chunk.Inf
  * @example
  * ```ts
  * import { Chunk } from "effect/collections"
-import * as Option from "effect/data/Option"
+ * import * as Option from "effect/data/Option"
  *
  * const chunk = Chunk.make("a", "b", "c", "d")
  *
@@ -996,7 +996,7 @@ export const appendAll: {
  * @example
  * ```ts
  * import { Chunk } from "effect/collections"
-import * as Option from "effect/data/Option"
+ * import * as Option from "effect/data/Option"
  *
  * const chunk = Chunk.make("1", "2", "hello", "3", "world")
  * const numbers = Chunk.filterMap(chunk, (str) => {
@@ -1060,7 +1060,7 @@ export const filter: {
  * @example
  * ```ts
  * import { Chunk } from "effect/collections"
-import * as Option from "effect/data/Option"
+ * import * as Option from "effect/data/Option"
  *
  * const chunk = Chunk.make("1", "2", "hello", "3", "4")
  * const result = Chunk.filterMapWhile(chunk, (s) => {
@@ -1092,7 +1092,7 @@ export const filterMapWhile: {
  * @example
  * ```ts
  * import { Chunk } from "effect/collections"
-import * as Option from "effect/data/Option"
+ * import * as Option from "effect/data/Option"
  *
  * const chunk = Chunk.make(Option.some(1), Option.none(), Option.some(3))
  * const result = Chunk.compact(chunk)
@@ -1334,7 +1334,7 @@ export const isNonEmpty = <A>(self: Chunk<A>): self is NonEmptyChunk<A> => self.
  * @example
  * ```ts
  * import { Chunk } from "effect/collections"
-import * as Option from "effect/data/Option"
+ * import * as Option from "effect/data/Option"
  *
  * console.log(Chunk.head(Chunk.empty())) // { _tag: "None" }
  * console.log(Chunk.head(Chunk.make(1, 2, 3))) // { _tag: "Some", value: 1 }
@@ -1401,7 +1401,7 @@ export const headNonEmpty: <A>(self: NonEmptyChunk<A>) => A = headUnsafe
  * @example
  * ```ts
  * import { Chunk } from "effect/collections"
-import * as Option from "effect/data/Option"
+ * import * as Option from "effect/data/Option"
  *
  * console.log(Chunk.last(Chunk.empty())) // { _tag: "None" }
  * console.log(Chunk.last(Chunk.make(1, 2, 3))) // { _tag: "Some", value: 3 }
@@ -1707,7 +1707,7 @@ export const partition: {
  * @example
  * ```ts
  * import { Chunk } from "effect/collections"
-import * as Result from "effect/data/Result"
+ * import * as Result from "effect/data/Result"
  *
  * const chunk = Chunk.make("1", "hello", "2", "world", "3")
  * const [errors, numbers] = Chunk.partitionMap(chunk, (str) => {
@@ -1747,7 +1747,7 @@ export const partitionMap: {
  * @example
  * ```ts
  * import { Chunk } from "effect/collections"
-import * as Result from "effect/data/Result"
+ * import * as Result from "effect/data/Result"
  *
  * const chunk = Chunk.make(
  *   Result.succeed(1),
@@ -2013,7 +2013,7 @@ export const splitWhere: {
  * @example
  * ```ts
  * import { Chunk } from "effect/collections"
-import * as Option from "effect/data/Option"
+ * import * as Option from "effect/data/Option"
  *
  * const chunk = Chunk.make(1, 2, 3, 4)
  * console.log(Chunk.tail(chunk)) // Option.some(Chunk.make(2, 3, 4))
@@ -2557,7 +2557,7 @@ export const findFirstIndex: {
  * @example
  * ```ts
  * import { Chunk } from "effect/collections"
-import * as Option from "effect/data/Option"
+ * import * as Option from "effect/data/Option"
  *
  * const chunk = Chunk.make(1, 2, 3, 4, 5)
  * const result = Chunk.findLast(chunk, (n) => n < 4)

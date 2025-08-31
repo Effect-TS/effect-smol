@@ -1696,7 +1696,7 @@ export const fromNullishOr: <A>(value: A) => Effect<NonNullable<A>, Cause.NoSuch
  * @example
  * ```ts
  * import { Effect } from "effect"
-import * as Option from "effect/data/Option"
+ * import * as Option from "effect/data/Option"
  *
  * // Option is yieldable in Effect
  * const program = Effect.gen(function* () {
@@ -2188,7 +2188,7 @@ export const as: {
  * @example
  * ```ts
  * import { Effect } from "effect"
-import * as Option from "effect/data/Option"
+ * import * as Option from "effect/data/Option"
  *
  * const program = Effect.asSome(Effect.succeed(42))
  *
@@ -3912,7 +3912,7 @@ export const filterOrFail: {
  * @example
  * ```ts
  * import { Effect } from "effect"
-import * as Option from "effect/data/Option"
+ * import * as Option from "effect/data/Option"
  * import { Console } from "effect/logging"
  *
  * const shouldLog = true
@@ -4362,7 +4362,7 @@ export const isSuccess: <A, E, R>(self: Effect<A, E, R>) => Effect<boolean, neve
  * @example
  * ```ts
  * import { Effect } from "effect"
-import * as Option from "effect/data/Option"
+ * import * as Option from "effect/data/Option"
  * import { Console } from "effect/logging"
  * import { ServiceMap } from "effect"
  *
@@ -4401,7 +4401,7 @@ export const services: <R>() => Effect<ServiceMap.ServiceMap<R>, never, R> = int
  * @example
  * ```ts
  * import { Effect } from "effect"
-import * as Option from "effect/data/Option"
+ * import * as Option from "effect/data/Option"
  * import { Console } from "effect/logging"
  * import { ServiceMap } from "effect"
  *
@@ -4592,7 +4592,7 @@ export const service: <I, S>(key: ServiceMap.Key<I, S>) => Effect<S, never, I> =
  * ```ts
  * import { Effect } from "effect"
  * import { ServiceMap } from "effect"
-import * as Option from "effect/data/Option"
+ * import * as Option from "effect/data/Option"
  *
  * // Define a service key
  * const Logger = ServiceMap.Key<{ log: (msg: string) => void }>("Logger")
@@ -6127,7 +6127,7 @@ export const repeat: {
  * ```ts
  * import { Effect } from "effect"
  * import { Schedule } from "effect"
-import * as Option from "effect/data/Option"
+ * import * as Option from "effect/data/Option"
  * import { Console } from "effect/logging"
  *
  * let attempt = 0

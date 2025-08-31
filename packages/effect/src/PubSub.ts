@@ -1306,7 +1306,7 @@ export const remaining = <A>(self: Subscription<A>): Effect.Effect<number> =>
  * @example
  * ```ts
  * import { PubSub } from "effect"
-import * as Option from "effect/data/Option"
+ * import * as Option from "effect/data/Option"
  *
  * declare const subscription: PubSub.Subscription<string>
  *

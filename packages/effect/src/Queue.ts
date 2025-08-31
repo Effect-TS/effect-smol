@@ -1276,7 +1276,7 @@ export {
  * ```ts
  * import { Effect } from "effect"
  * import { Queue } from "effect"
-import * as Option from "effect/data/Option"
+ * import * as Option from "effect/data/Option"
  *
  * const program = Effect.gen(function*() {
  *   const queue = yield* Queue.bounded<number, Queue.Done>(10)
@@ -1322,7 +1322,7 @@ export const isFull = <A, E>(self: Dequeue<A, E>): Effect<boolean> => internalEf
  * ```ts
  * import { Effect } from "effect"
  * import { Queue } from "effect"
-import * as Option from "effect/data/Option"
+ * import * as Option from "effect/data/Option"
  *
  * // Create a queue and use unsafe operations
  * const program = Effect.gen(function*() {
