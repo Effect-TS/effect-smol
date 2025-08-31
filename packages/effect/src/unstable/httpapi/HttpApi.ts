@@ -2,9 +2,9 @@
  * @since 4.0.0
  */
 import type { NonEmptyReadonlyArray } from "../../collections/Array.ts"
-import * as Option from "../../data/Option.ts"
 import * as Predicate from "../../data/Predicate.ts"
 import * as Record from "../../data/Record.ts"
+import * as UndefinedOr from "../../data/UndefinedOr.ts"
 import { type Pipeable, pipeArguments } from "../../interfaces/Pipeable.ts"
 import * as AST from "../../schema/AST.ts"
 import type * as Schema from "../../schema/Schema.ts"
@@ -234,12 +234,12 @@ export const reflect = <Id extends string, Groups extends HttpApiGroup.Any>(
         readonly ast: AST.AST
       }>
       readonly successes: ReadonlyMap<number, {
-        readonly ast: Option.Option<AST.AST>
-        readonly description: Option.Option<string>
+        readonly ast: AST.AST | undefined
+        readonly description: string | undefined
       }>
       readonly errors: ReadonlyMap<number, {
-        readonly ast: Option.Option<AST.AST>
-        readonly description: Option.Option<string>
+        readonly ast: AST.AST | undefined
+        readonly description: string | undefined
       }>
     }) => void
   }
@@ -282,12 +282,12 @@ const extractMembers = (
   ast: AST.AST,
   getStatus: (ast: AST.AST) => number
 ): ReadonlyMap<number, {
-  readonly ast: Option.Option<AST.AST>
-  readonly description: Option.Option<string>
+  readonly ast: AST.AST | undefined
+  readonly description: string | undefined
 }> => {
   const members = new Map<number, {
-    readonly ast: Option.Option<AST.AST>
-    readonly description: Option.Option<string>
+    readonly ast: AST.AST | undefined
+    readonly description: string | undefined
   }>()
   function process(type: AST.AST) {
     if (AST.isNeverKeyword(type)) {
@@ -308,14 +308,9 @@ const extractMembers = (
     members.set(
       status,
       {
-        description: (current ? current.description : Option.none()).pipe(
-          Option.orElse(() => getDescriptionOrIdentifier(type))
-        ),
-        ast: (current ? current.ast : Option.none()).pipe(
-          // Deduplicate the ASTs
-          Option.map((current) => HttpApiSchema.UnionUnifyAST(current, type)),
-          Option.orElse(() => !isEmpty && HttpApiSchema.isVoid(type) ? Option.none() : Option.some(type))
-        )
+        description: current?.description ?? getDescriptionOrIdentifier(type),
+        ast: UndefinedOr.map(current?.ast, (ast) => HttpApiSchema.UnionUnifyAST(ast, type)) ??
+          (!isEmpty && HttpApiSchema.isVoid(type) ? undefined : type)
       }
     )
   }
@@ -364,9 +359,9 @@ const extractPayloads = (topAst: AST.AST): ReadonlyMap<string, {
   return members
 }
 
-const getDescriptionOrIdentifier = (ast: AST.AST): Option.Option<string> => {
+const getDescriptionOrIdentifier = (ast: AST.AST): string | undefined => {
   const annotations: Record<string, string> = ast.annotations ?? {} as any
-  return Option.fromUndefinedOr(annotations.description ?? annotations.identfier)
+  return annotations.description ?? annotations.identfier
 }
 
 /**

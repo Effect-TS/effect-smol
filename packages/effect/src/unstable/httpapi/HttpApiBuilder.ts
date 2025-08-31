@@ -7,6 +7,7 @@ import * as Option from "../../data/Option.ts"
 import type { ReadonlyRecord } from "../../data/Record.ts"
 import * as Redacted from "../../data/Redacted.ts"
 import * as Result from "../../data/Result.ts"
+import * as UndefinedOr from "../../data/UndefinedOr.ts"
 import * as Effect from "../../Effect.ts"
 import * as Encoding from "../../encoding/Encoding.ts"
 import * as Fiber from "../../Fiber.ts"
@@ -443,8 +444,8 @@ const handlerToRoute = (
     Option.map(({ ast }) => ast.annotations?.httpApiMultipartStream !== undefined),
     Option.getOrElse(constFalse)
   )
-  const multipartLimits = endpoint.payloadSchema.pipe(
-    Option.flatMapNullishOr(({ ast }) => ast.annotations?.httpApiMultipartStream ?? ast.annotations?.httpApiMultipart)
+  const multipartLimits = Option.getOrUndefined(endpoint.payloadSchema)?.pipe(
+    ({ ast }) => ast.annotations?.httpApiMultipartStream ?? ast.annotations?.httpApiMultipart
   )
   const decodePath = Option.map(endpoint.pathSchema, Schema.decodeUnknownEffect)
   const decodePayload = handler.withFullRequest || isMultipartStream
@@ -479,9 +480,9 @@ const handlerToRoute = (
             decodePayload.value
           )
         } else if (isMultipartStream) {
-          request.payload = Option.match(multipartLimits, {
-            onNone: () => httpRequest.multipartStream,
-            onSome: (limits) => Stream.provideServices(httpRequest.multipartStream, Multipart.limitsServices(limits))
+          request.payload = UndefinedOr.match(multipartLimits, {
+            onUndefined: () => httpRequest.multipartStream,
+            onDefined: (limits) => Stream.provideServices(httpRequest.multipartStream, Multipart.limitsServices(limits))
           })
         }
         if (decodeHeaders._tag === "Some") {
@@ -508,7 +509,7 @@ const filterIsSchemaError = Filter.instanceOf(Schema.SchemaError)
 const requestPayload = (
   request: HttpServerRequest,
   urlParams: ReadonlyRecord<string, string | Array<string>>,
-  multipartLimits: Option.Option<Multipart.withLimits.Options>
+  multipartLimits: Multipart.withLimits.Options | undefined
 ): Effect.Effect<
   unknown,
   never,
@@ -525,9 +526,9 @@ const requestPayload = (
   if (contentType.includes("application/json")) {
     return Effect.orDie(request.json)
   } else if (contentType.includes("multipart/form-data")) {
-    return Effect.orDie(Option.match(multipartLimits, {
-      onNone: () => request.multipart,
-      onSome: (limits) => Effect.provideServices(request.multipart, Multipart.limitsServices(limits))
+    return Effect.orDie(UndefinedOr.match(multipartLimits, {
+      onUndefined: () => request.multipart,
+      onDefined: (limits) => Effect.provideServices(request.multipart, Multipart.limitsServices(limits))
     }))
   } else if (contentType.includes("x-www-form-urlencoded")) {
     return Effect.map(Effect.orDie(request.urlParamsBody), UrlParams.toRecord)

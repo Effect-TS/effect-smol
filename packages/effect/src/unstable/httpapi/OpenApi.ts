@@ -313,33 +313,30 @@ export const fromApi = <Id extends string, Groups extends HttpApiGroup.Any>(
 
       function processResponseMap(
         map: ReadonlyMap<number, {
-          readonly ast: Option.Option<AST.AST>
-          readonly description: Option.Option<string>
+          readonly ast: AST.AST | undefined
+          readonly description: string | undefined
         }>,
         defaultDescription: () => string
       ) {
         for (const [status, { ast, description }] of map) {
           if (op.responses[status]) continue
           op.responses[status] = {
-            description: Option.getOrElse(description, defaultDescription)
+            description: description ?? defaultDescription()
           }
-          ast.pipe(
-            Option.filter((ast) => !ast.annotations?.httpApiIsEmpty),
-            Option.map((ast) => {
-              const encoding = HttpApiSchema.getEncoding(ast)
-              op.responses[status].content = {
-                [encoding.contentType]: {
-                  schema: processAST(ast)
-                }
+          if (ast && !ast.annotations?.httpApiIsEmpty) {
+            const encoding = HttpApiSchema.getEncoding(ast)
+            op.responses[status].content = {
+              [encoding.contentType]: {
+                schema: processAST(ast)
               }
-            })
-          )
+            }
+          }
         }
       }
 
-      function processParameters(schema: Option.Option<Schema.Schema<any>>, i: OpenAPISpecParameter["in"]) {
-        if (Option.isSome(schema)) {
-          const jsonSchema = processAST(schema.value.ast) as any
+      function processParameters(schema: Schema.Schema<any> | undefined, i: OpenAPISpecParameter["in"]) {
+        if (schema) {
+          const jsonSchema = processAST(schema.ast) as any
           if ("properties" in jsonSchema) {
             Object.entries(jsonSchema.properties as Record<string, any>).forEach(([name, psJsonSchema]) => {
               op.parameters.push({
@@ -387,12 +384,12 @@ export const fromApi = <Id extends string, Groups extends HttpApiGroup.Any>(
         op.requestBody = { content, required: true }
       }
 
-      processParameters(endpoint.pathSchema, "path")
+      processParameters(Option.getOrUndefined(endpoint.pathSchema), "path")
       if (!hasBody) {
-        processParameters(endpoint.payloadSchema, "query")
+        processParameters(Option.getOrUndefined(endpoint.payloadSchema), "query")
       }
-      processParameters(endpoint.headersSchema, "header")
-      processParameters(endpoint.urlParamsSchema, "query")
+      processParameters(Option.getOrUndefined(endpoint.headersSchema), "header")
+      processParameters(Option.getOrUndefined(endpoint.urlParamsSchema), "query")
 
       processResponseMap(successes, () => "Success")
       processResponseMap(errors, () => "Error")

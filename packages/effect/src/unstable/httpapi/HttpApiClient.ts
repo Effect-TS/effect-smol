@@ -123,12 +123,12 @@ const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any, E, R>
       readonly mergedAnnotations: ServiceMap.ServiceMap<never>
       readonly middleware: ReadonlySet<HttpApiMiddleware.AnyKey>
       readonly successes: ReadonlyMap<number, {
-        readonly ast: Option.Option<AST.AST>
-        readonly description: Option.Option<string>
+        readonly ast: AST.AST | undefined
+        readonly description: string | undefined
       }>
       readonly errors: ReadonlyMap<number, {
-        readonly ast: Option.Option<AST.AST>
-        readonly description: Option.Option<string>
+        readonly ast: AST.AST | undefined
+        readonly description: string | undefined
       }>
       readonly endpointFn: Function
     }) => void
@@ -160,11 +160,11 @@ const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any, E, R>
         > = { orElse: statusOrElse }
         const decodeResponse = HttpClientResponse.matchStatus(decodeMap)
         errors.forEach(({ ast }, status) => {
-          if (ast._tag === "None") {
+          if (ast === undefined) {
             decodeMap[status] = statusCodeError
             return
           }
-          const decode = schemaToResponse(ast.value)
+          const decode = schemaToResponse(ast)
           decodeMap[status] = (response) =>
             Effect.flatMap(
               Effect.catchCause(decode(response), (cause) =>
@@ -182,7 +182,7 @@ const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any, E, R>
             )
         })
         successes.forEach(({ ast }, status) => {
-          decodeMap[status] = ast._tag === "None" ? responseAsVoid : schemaToResponse(ast.value)
+          decodeMap[status] = ast === undefined ? responseAsVoid : schemaToResponse(ast)
         })
         const encodePath = endpoint.pathSchema.pipe(
           Option.map(Schema.encodeUnknownEffect)
