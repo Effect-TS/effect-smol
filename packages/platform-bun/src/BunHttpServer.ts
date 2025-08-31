@@ -4,7 +4,6 @@
 import type { Server as BunServer, ServerWebSocket } from "bun"
 import * as Config from "effect/config/Config"
 import type { ConfigError } from "effect/config/Config"
-import * as Option from "effect/data/Option"
 import type * as Record from "effect/data/Record"
 import * as Deferred from "effect/Deferred"
 import * as Effect from "effect/Effect"
@@ -327,10 +326,8 @@ class BunServerRequest extends Inspectable.Class implements ServerRequest.HttpSe
   get originalUrl() {
     return this.source.url
   }
-  get remoteAddress(): Option.Option<string> {
-    return this.remoteAddressOverride
-      ? Option.some(this.remoteAddressOverride)
-      : Option.fromUndefinedOr(this.bunServer.requestIP(this.source)?.address)
+  get remoteAddress(): string | undefined {
+    return this.remoteAddressOverride ?? this.bunServer.requestIP(this.source)?.address
   }
   get headers(): Headers.Headers {
     this.headersOverride ??= Headers.fromInput(this.source.headers)

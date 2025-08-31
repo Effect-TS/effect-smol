@@ -174,8 +174,8 @@ export const tracer: <E, R>(
         for (const name in requestHeaders) {
           span.attribute(`http.request.header.${name}`, String(requestHeaders[name]))
         }
-        if (request.remoteAddress._tag === "Some") {
-          span.attribute("client.address", request.remoteAddress.value)
+        if (request.remoteAddress !== undefined) {
+          span.attribute("client.address", request.remoteAddress)
         }
         const response = exitResponse(exit)
         span.attribute("http.response.status_code", response.status)

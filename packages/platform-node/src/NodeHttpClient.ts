@@ -1,7 +1,6 @@
 /**
  * @since 1.0.0
  */
-import * as Option from "effect/data/Option"
 import * as Effect from "effect/Effect"
 import * as Inspectable from "effect/interfaces/Inspectable"
 import * as Layer from "effect/Layer"
@@ -188,8 +187,8 @@ class UndiciResponse extends Inspectable.Class implements HttpClientResponse {
     return this.cachedCookies = header ? Cookies.fromSetCookie(header) : Cookies.empty
   }
 
-  get remoteAddress(): Option.Option<string> {
-    return Option.none()
+  get remoteAddress(): string | undefined {
+    return undefined
   }
 
   get stream(): Stream.Stream<Uint8Array, Error.ResponseError> {

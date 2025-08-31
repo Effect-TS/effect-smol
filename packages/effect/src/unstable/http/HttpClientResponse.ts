@@ -1,7 +1,6 @@
 /**
  * @since 4.0.0
  */
-import * as Option from "../../data/Option.ts"
 import * as Effect from "../../Effect.ts"
 import { dual } from "../../Function.ts"
 import * as Inspectable from "../../interfaces/Inspectable.ts"
@@ -259,8 +258,8 @@ class WebHttpClientResponse extends Inspectable.Class implements HttpClientRespo
     return this.cachedCookies = Cookies.fromSetCookie(this.source.headers.getSetCookie())
   }
 
-  get remoteAddress(): Option.Option<string> {
-    return Option.none()
+  get remoteAddress(): string | undefined {
+    return undefined
   }
 
   get stream(): Stream.Stream<Uint8Array, Error.ResponseError> {
