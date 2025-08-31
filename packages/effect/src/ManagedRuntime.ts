@@ -10,17 +10,7 @@ import * as Scope from "./Scope.ts"
 import type * as ServiceMap from "./ServiceMap.ts"
 import type { Mutable } from "./types/Types.ts"
 
-/**
- * @since 3.9.0
- * @category symbol
- */
-export const TypeId: TypeId = "~effect/ManagedRuntime"
-
-/**
- * @since 3.9.0
- * @category symbol
- */
-export type TypeId = "~effect/ManagedRuntime"
+const TypeId = "~effect/ManagedRuntime"
 
 /**
  * Checks if the provided argument is a `ManagedRuntime`.
@@ -53,7 +43,7 @@ export declare namespace ManagedRuntime {
  * @category models
  */
 export interface ManagedRuntime<in R, out ER> {
-  readonly [TypeId]: TypeId
+  readonly [TypeId]: typeof TypeId
   readonly memoMap: Layer.MemoMap
   readonly servicesEffect: Effect.Effect<ServiceMap.ServiceMap<R>, ER>
   readonly services: () => Promise<ServiceMap.ServiceMap<R>>

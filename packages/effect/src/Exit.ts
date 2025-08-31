@@ -14,37 +14,9 @@ import type * as Filter from "./data/Filter.ts"
 import type * as Effect from "./Effect.ts"
 import * as core from "./internal/core.ts"
 import * as effect from "./internal/effect.ts"
-import type { version } from "./internal/version.ts"
 import type { NoInfer } from "./types/Types.ts"
 
-/**
- * @example
- * ```ts
- * import { Exit } from "effect"
- *
- * const exit = Exit.succeed(42)
- * console.log(exit[Exit.TypeId]) // "~effect/Exit/..."
- * ```
- *
- * @since 2.0.0
- * @category type ids
- */
-export const TypeId: TypeId = core.ExitTypeId
-
-/**
- * @example
- * ```ts
- * import { Exit } from "effect"
- *
- * type ExitTypeId = Exit.TypeId
- * const exit = Exit.succeed(42)
- * console.log(exit[Exit.TypeId]) // "~effect/Exit/..."
- * ```
- *
- * @since 2.0.0
- * @category type ids
- */
-export type TypeId = `~effect/Exit/${version}`
+const TypeId = core.ExitTypeId
 
 /**
  * The `Exit` type is used to represent the result of a `Effect` computation. It
@@ -74,38 +46,16 @@ export type TypeId = `~effect/Exit/${version}`
 export type Exit<A, E = never> = Success<A, E> | Failure<A, E>
 
 /**
- * @example
- * ```ts
- * import { Exit } from "effect"
- *
- * // Access nested types and utilities
- * type ExitProto<A, E> = Exit.Exit.Proto<A, E>
- *
- * const exit = Exit.succeed(42)
- * console.log(exit[Exit.TypeId]) // "~effect/Exit/..."
- * ```
- *
  * @since 2.0.0
  * @category models
  */
 export declare namespace Exit {
   /**
-   * @example
-   * ```ts
-   * import { Exit } from "effect"
-   *
-   * // Proto is the base interface for all Exit types
-   * type MyExit = Exit.Exit.Proto<number, string>
-   *
-   * const exit = Exit.succeed(42)
-   * console.log(exit[Exit.TypeId]) // "~effect/Exit/..."
-   * ```
-   *
    * @since 4.0.0
    * @category models
    */
   export interface Proto<out A, out E = never> extends Effect.Effect<A, E> {
-    readonly [TypeId]: TypeId
+    readonly [TypeId]: typeof TypeId
   }
 }
 

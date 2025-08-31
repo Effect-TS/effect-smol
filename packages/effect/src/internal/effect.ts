@@ -12,7 +12,7 @@ import type { LazyArg } from "../Function.ts"
 import { constant, constTrue, constVoid, dual, identity } from "../Function.ts"
 import * as Equal from "../interfaces/Equal.ts"
 import * as Hash from "../interfaces/Hash.ts"
-import { redact, stringifyCircular, toJSON } from "../interfaces/Inspectable.ts"
+import { currentFiberTypeId, redact, stringifyCircular, toJSON } from "../interfaces/Inspectable.ts"
 import { pipeArguments } from "../interfaces/Pipeable.ts"
 import type * as Console from "../logging/Console.ts"
 import type * as Logger from "../logging/Logger.ts"
@@ -450,7 +450,7 @@ const renderErrorCause = (cause: Error, prefix: string) => {
 // ----------------------------------------------------------------------------
 
 /** @internal */
-export const FiberTypeId: Fiber.TypeId = `~effect/Fiber/${version}` as const
+export const FiberTypeId = `~effect/Fiber/${version}` as const
 
 const fiberVariance = {
   _A: identity,
@@ -459,10 +459,8 @@ const fiberVariance = {
 
 const fiberIdStore = { id: 0 }
 
-const currentFiberUri = "effect/Fiber/currentFiber"
-
 /** @internal */
-export const getCurrentFiber = (): Fiber.Fiber<any, any> | undefined => (globalThis as any)[currentFiberUri]
+export const getCurrentFiber = (): Fiber.Fiber<any, any> | undefined => (globalThis as any)[currentFiberTypeId]
 
 const keepAlive = (() => {
   let count = 0
@@ -588,8 +586,8 @@ export class FiberImpl<A = any, E = any> implements Fiber.Fiber<A, E> {
     this._observers.length = 0
   }
   runLoop(effect: Primitive): Exit.Exit<A, E> | Yield {
-    const prevFiber = (globalThis as any)[currentFiberUri]
-    ;(globalThis as any)[currentFiberUri] = this
+    const prevFiber = (globalThis as any)[currentFiberTypeId]
+    ;(globalThis as any)[currentFiberTypeId] = this
     let yielding = false
     let current: Primitive | Yield = effect
     this.currentOpCount = 0
@@ -626,7 +624,7 @@ export class FiberImpl<A = any, E = any> implements Fiber.Fiber<A, E> {
       }
       return this.runLoop(exitDie(error) as any)
     } finally {
-      ;(globalThis as any)[currentFiberUri] = prevFiber
+      ;(globalThis as any)[currentFiberTypeId] = prevFiber
     }
   }
   getCont<S extends contA | contE>(symbol: S):
@@ -2961,7 +2959,7 @@ export const timed = <A, E, R>(
 // ----------------------------------------------------------------------------
 
 /** @internal */
-export const ScopeTypeId: Scope.TypeId = "~effect/Scope"
+export const ScopeTypeId = "~effect/Scope"
 
 /** @internal */
 export const scopeTag: ServiceMap.Key<Scope.Scope, Scope.Scope> = ServiceMap.Key<Scope.Scope>("effect/Scope")
@@ -4577,21 +4575,21 @@ export const currentTimeNanos: Effect.Effect<bigint> = clockWith((clock) => cloc
 // ----------------------------------------------------------------------------
 
 /** @internal */
-export const TimeoutErrorTypeId: Cause.TimeoutErrorTypeId = "~effect/Cause/TimeoutError"
+export const TimeoutErrorTypeId = "~effect/Cause/TimeoutError"
 
 /** @internal */
 export const isTimeoutError = (u: unknown): u is Cause.TimeoutError => hasProperty(u, TimeoutErrorTypeId)
 
 /** @internal */
 export class TimeoutError extends TaggedError("TimeoutError") {
-  readonly [TimeoutErrorTypeId]: Cause.TimeoutErrorTypeId = TimeoutErrorTypeId
+  readonly [TimeoutErrorTypeId] = TimeoutErrorTypeId
   constructor(message?: string) {
     super({ message } as any)
   }
 }
 
 /** @internal */
-export const IllegalArgumentErrorTypeId: Cause.IllegalArgumentErrorTypeId = "~effect/Cause/IllegalArgumentError"
+export const IllegalArgumentErrorTypeId = "~effect/Cause/IllegalArgumentError"
 
 /** @internal */
 export const isIllegalArgumentError = (
@@ -4600,14 +4598,14 @@ export const isIllegalArgumentError = (
 
 /** @internal */
 export class IllegalArgumentError extends TaggedError("IllegalArgumentError") {
-  readonly [IllegalArgumentErrorTypeId]: Cause.IllegalArgumentErrorTypeId = IllegalArgumentErrorTypeId
+  readonly [IllegalArgumentErrorTypeId] = IllegalArgumentErrorTypeId
   constructor(message?: string) {
     super({ message } as any)
   }
 }
 
 /** @internal */
-export const ExceededCapacityErrorTypeId: Cause.ExceededCapacityErrorTypeId = "~effect/Cause/ExceededCapacityError"
+export const ExceededCapacityErrorTypeId = "~effect/Cause/ExceededCapacityError"
 
 /** @internal */
 export const isExceededCapacityError = (
@@ -4616,14 +4614,14 @@ export const isExceededCapacityError = (
 
 /** @internal */
 export class ExceededCapacityError extends TaggedError("ExceededCapacityError") {
-  readonly [ExceededCapacityErrorTypeId]: Cause.ExceededCapacityErrorTypeId = ExceededCapacityErrorTypeId
+  readonly [ExceededCapacityErrorTypeId] = ExceededCapacityErrorTypeId
   constructor(message?: string) {
     super({ message } as any)
   }
 }
 
 /** @internal */
-export const UnknownErrorTypeId: Cause.UnknownErrorTypeId = "~effect/Cause/UnknownError"
+export const UnknownErrorTypeId = "~effect/Cause/UnknownError"
 
 /** @internal */
 export const isUnknownError = (
@@ -4632,7 +4630,7 @@ export const isUnknownError = (
 
 /** @internal */
 export class UnknownError extends TaggedError("UnknownError") {
-  readonly [UnknownErrorTypeId]: Cause.UnknownErrorTypeId = UnknownErrorTypeId
+  readonly [UnknownErrorTypeId] = UnknownErrorTypeId
   constructor(cause: unknown, message?: string) {
     super({ message, cause } as any)
   }
@@ -4691,7 +4689,7 @@ export const CurrentLoggers = ServiceMap.Reference<
 })
 
 /** @internal */
-export const LoggerTypeId: Logger.TypeId = "~effect/Logger"
+export const LoggerTypeId = "~effect/logging/Logger"
 
 const LoggerProto = {
   [LoggerTypeId]: {

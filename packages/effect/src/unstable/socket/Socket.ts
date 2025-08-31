@@ -18,17 +18,8 @@ import * as Channel from "../../stream/Channel.ts"
 import * as Pull from "../../stream/Pull.ts"
 import type { DurationInput } from "../../time/Duration.ts"
 
-/**
- * @since 4.0.0
- * @category type ids
- */
-export const TypeId: TypeId = "~effect/socket/Socket"
-
-/**
- * @since 4.0.0
- * @category type ids
- */
-export type TypeId = "~effect/socket/Socket"
+/** @internal */
+export const TypeId = "~effect/socket/Socket"
 
 /**
  * @since 4.0.0
@@ -47,7 +38,7 @@ export const Socket: ServiceMap.Key<Socket, Socket> = ServiceMap.Key<Socket>("ef
  * @category models
  */
 export interface Socket {
-  readonly [TypeId]: TypeId
+  readonly [TypeId]: typeof TypeId
   readonly run: <_, E = never, R = never>(
     handler: (_: Uint8Array) => Effect.Effect<_, E, R> | void
   ) => Effect.Effect<void, SocketError | E, R>
@@ -61,17 +52,7 @@ export interface Socket {
   >
 }
 
-/**
- * @since 4.0.0
- * @category type ids
- */
-export const CloseEventTypeId: CloseEventTypeId = "~effect/socket/Socket/CloseEvent"
-
-/**
- * @since 4.0.0
- * @category type ids
- */
-export type CloseEventTypeId = "~effect/socket/Socket/CloseEvent"
+const CloseEventTypeId = "~effect/socket/Socket/CloseEvent"
 
 /**
  * @since 4.0.0
@@ -81,7 +62,7 @@ export class CloseEvent {
   /**
    * @since 4.0.0
    */
-  readonly [CloseEventTypeId]: CloseEventTypeId
+  readonly [CloseEventTypeId]: typeof CloseEventTypeId
   readonly code: number
   readonly reason?: string | undefined
 

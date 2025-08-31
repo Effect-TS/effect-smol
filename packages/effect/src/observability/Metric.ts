@@ -226,7 +226,7 @@ import type { Contravariant, Covariant } from "../types/Types.ts"
  * @category Models
  */
 export interface Metric<in Input, out State> extends Pipeable {
-  readonly "~effect/Metric": "~effect/Metric"
+  readonly [TypeId]: typeof TypeId
   readonly Input: Contravariant<Input>
   readonly State: Covariant<State>
   readonly id: string
@@ -1709,13 +1709,7 @@ export const CurrentMetricAttributes = ServiceMap.Reference<Metric.AttributeSet>
   defaultValue: () => ({})
 })
 
-/**
- * Service key for the current metric registry context.
- *
- * @since 4.0.0
- * @category References
- */
-export const MetricRegistryKey = "effect/Metric/CurrentMetricRegistry" as const
+const MetricRegistryKey = "~effect/observability/Metric/MetricRegistryKey"
 
 /**
  * Service class for accessing the current metric registry.
@@ -1728,8 +1722,10 @@ export const MetricRegistry = ServiceMap.Reference<Map<string, Metric.Metadata<a
   { defaultValue: () => new Map() }
 )
 
+const TypeId = "~effect/observability/Metric"
+
 abstract class Metric$<in Input, out State> implements Metric<Input, State> {
-  readonly "~effect/Metric" = "~effect/Metric"
+  readonly [TypeId] = TypeId
 
   abstract readonly type: Metric.Type
 

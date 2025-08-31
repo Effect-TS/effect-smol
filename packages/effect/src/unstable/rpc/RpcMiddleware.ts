@@ -11,17 +11,7 @@ import type { Headers } from "../http/Headers.ts"
 import type * as Rpc from "./Rpc.ts"
 import type { Request, RequestId } from "./RpcMessage.ts"
 
-/**
- * @since 4.0.0
- * @category type ids
- */
-export const TypeId: TypeId = "~effect/rpc/RpcMiddleware"
-
-/**
- * @since 4.0.0
- * @category type ids
- */
-export type TypeId = "~effect/rpc/RpcMiddleware"
+const TypeId = "~effect/rpc/RpcMiddleware"
 
 /**
  * @since 4.0.0
@@ -118,7 +108,7 @@ export interface KeyClass<
       readonly requires: Requires
     }
   }
-  readonly [TypeId]: TypeId
+  readonly [TypeId]: typeof TypeId
   readonly error: E
   readonly requiredForClient: boolean
 }
@@ -172,7 +162,7 @@ export type ErrorServicesDecode<A> = ErrorSchema<A>["DecodingServices"]
  * @category models
  */
 export interface AnyKey extends ServiceMap.Key<any, any> {
-  readonly [TypeId]: TypeId
+  readonly [TypeId]: typeof TypeId
   readonly error: Schema.Top
   readonly requiredForClient: boolean
 }
@@ -182,7 +172,7 @@ export interface AnyKey extends ServiceMap.Key<any, any> {
  * @category models
  */
 export interface AnyKeyWithProps extends ServiceMap.Key<any, RpcMiddleware<any, any, any>> {
-  readonly [TypeId]: TypeId
+  readonly [TypeId]: typeof TypeId
   readonly error: Schema.Top
   readonly requiredForClient: boolean
 }

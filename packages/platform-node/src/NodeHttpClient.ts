@@ -149,8 +149,8 @@ function convertBody(
 function noopErrorHandler(_: any) {}
 
 class UndiciResponse extends Inspectable.Class implements HttpClientResponse {
-  readonly [IncomingMessage.TypeId]: IncomingMessage.TypeId
-  readonly [Response.TypeId]: Response.TypeId
+  readonly [IncomingMessage.TypeId]: typeof IncomingMessage.TypeId
+  readonly [Response.TypeId]: typeof Response.TypeId
   readonly request: HttpClientRequest
   readonly source: Undici.Dispatcher.ResponseData
 
@@ -478,7 +478,7 @@ const waitForFinish = (nodeRequest: Http.ClientRequest, request: HttpClientReque
   })
 
 class NodeHttpResponse extends NodeHttpIncomingMessage<Error.ResponseError> implements HttpClientResponse {
-  readonly [Response.TypeId]: Response.TypeId
+  readonly [Response.TypeId]: typeof Response.TypeId
   readonly request: HttpClientRequest
 
   constructor(

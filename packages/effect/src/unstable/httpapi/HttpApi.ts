@@ -16,17 +16,7 @@ import type * as HttpApiGroup from "./HttpApiGroup.ts"
 import type * as HttpApiMiddleware from "./HttpApiMiddleware.ts"
 import * as HttpApiSchema from "./HttpApiSchema.ts"
 
-/**
- * @since 4.0.0
- * @category type ids
- */
-export const TypeId: TypeId = "~effect/httpapi/HttpApi"
-
-/**
- * @since 4.0.0
- * @category type ids
- */
-export type TypeId = "~effect/httpapi/HttpApi"
+const TypeId = "~effect/httpapi/HttpApi"
 
 /**
  * @since 4.0.0
@@ -48,7 +38,7 @@ export interface HttpApi<
   out Groups extends HttpApiGroup.Any = never
 > extends Pipeable {
   new(_: never): {}
-  readonly [TypeId]: TypeId
+  readonly [TypeId]: typeof TypeId
   readonly identifier: Id
   readonly groups: Record.ReadonlyRecord<string, Groups>
   readonly annotations: ServiceMap.ServiceMap<never>
@@ -97,7 +87,7 @@ export interface HttpApi<
  * @category models
  */
 export interface Any {
-  readonly [TypeId]: TypeId
+  readonly [TypeId]: typeof TypeId
 }
 
 /**

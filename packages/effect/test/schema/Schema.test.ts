@@ -926,7 +926,7 @@ Expected a string including "c", got "ab"`,
         it("single brand", () => {
           const schema = Schema.Number.pipe(Schema.brand("MyBrand"))
 
-          deepStrictEqual(schema.ast.checks?.[0]?.annotations?.["~brand.type"], "MyBrand")
+          deepStrictEqual(schema.ast.checks?.[0]?.annotations?.["~effect/schema/Check/brand"], "MyBrand")
         })
 
         it("double brand", () => {
@@ -935,8 +935,8 @@ Expected a string including "c", got "ab"`,
             Schema.brand("MyBrand2")
           )
 
-          deepStrictEqual(schema.ast.checks?.[0]?.annotations?.["~brand.type"], "MyBrand")
-          deepStrictEqual(schema.ast.checks?.[1]?.annotations?.["~brand.type"], "MyBrand2")
+          deepStrictEqual(schema.ast.checks?.[0]?.annotations?.["~effect/schema/Check/brand"], "MyBrand")
+          deepStrictEqual(schema.ast.checks?.[1]?.annotations?.["~effect/schema/Check/brand"], "MyBrand2")
         })
 
         it("annotate should support getters", () => {

@@ -21,17 +21,7 @@ import type { ExitEncoded } from "../rpc/RpcMessage.ts"
 import { makeHashDigest } from "./internal/crypto.ts"
 import type { WorkflowEngine, WorkflowInstance } from "./WorkflowEngine.ts"
 
-/**
- * @since 4.0.0
- * @category Symbols
- */
-export const TypeId: TypeId = "~effect/workflow/Workflow"
-
-/**
- * @since 4.0.0
- * @category Symbols
- */
-export type TypeId = "~effect/workflow/Workflow"
+const TypeId = "~effect/workflow/Workflow"
 
 /**
  * @since 4.0.0
@@ -43,7 +33,7 @@ export interface Workflow<
   Success extends Schema.Top,
   Error extends Schema.Top
 > {
-  readonly [TypeId]: TypeId
+  readonly [TypeId]: typeof TypeId
   readonly name: Name
   readonly payloadSchema: Payload
   readonly successSchema: Success
@@ -163,7 +153,7 @@ export interface Execution<Name extends string> {
  * @category Models
  */
 export interface Any {
-  readonly [TypeId]: TypeId
+  readonly [TypeId]: typeof TypeId
   readonly name: string
   readonly annotations: ServiceMap.ServiceMap<never>
   readonly executionId: (payload: any) => Effect.Effect<string>
@@ -378,17 +368,7 @@ const defaultRetrySchedule = Schedule.exponential(200, 1.5).pipe(
 //     suspendedRetrySchedule: options?.suspendedRetrySchedule
 //   })
 
-/**
- * @since 4.0.0
- * @category Result
- */
-export const ResultTypeId: ResultTypeId = "~effect/workflow/Workflow/Result"
-
-/**
- * @since 4.0.0
- * @category Result
- */
-export type ResultTypeId = "~effect/workflow/Workflow/Result"
+const ResultTypeId = "~effect/workflow/Workflow/Result"
 
 /**
  * @since 4.0.0
@@ -428,7 +408,7 @@ export class Complete<A, E> extends Data.TaggedClass("Complete")<{
   /**
    * @since 4.0.0
    */
-  readonly [ResultTypeId]: ResultTypeId = ResultTypeId
+  readonly [ResultTypeId] = ResultTypeId
 
   /**
    * @since 4.0.0
@@ -482,7 +462,7 @@ export class Suspended extends Schema.Class<Suspended>("effect/workflow/Workflow
   /**
    * @since 4.0.0
    */
-  readonly [ResultTypeId]: ResultTypeId = ResultTypeId
+  readonly [ResultTypeId] = ResultTypeId
 }
 
 /**

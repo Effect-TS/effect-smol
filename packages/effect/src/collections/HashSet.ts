@@ -10,43 +10,7 @@ import type { Pipeable } from "../interfaces/Pipeable.ts"
 import * as internal from "../internal/hashSet.ts"
 import type { NoInfer } from "../types/Types.ts"
 
-/**
- * Unique identifier for HashSet instances.
- *
- * @example
- * ```ts
- * import * as HashSet from "effect/collections/HashSet"
- *
- * // The TypeId constant can be used for runtime identification
- * console.log(HashSet.TypeId) // "~effect/HashSet"
- *
- * // Or for creating type guards (see TypeId type example)
- * const set = HashSet.make("a", "b", "c")
- * console.log(HashSet.TypeId in set) // true
- * ```
- *
- * @since 2.0.0
- * @category symbol
- */
-export const TypeId: "~effect/HashSet" = internal.HashSetTypeId
-
-/**
- * Type identifier for HashSet instances.
- *
- * @example
- * ```ts
- * import * as HashSet from "effect/collections/HashSet"
- *
- * // Use TypeId for type guards
- * const isHashSet = (value: unknown): value is HashSet.HashSet<any> => {
- *   return typeof value === "object" && value !== null && HashSet.TypeId in value
- * }
- * ```
- *
- * @since 2.0.0
- * @category symbol
- */
-export type TypeId = typeof TypeId
+const TypeId = internal.HashSetTypeId
 
 /**
  * A HashSet is an immutable set data structure that provides efficient storage
@@ -76,7 +40,7 @@ export type TypeId = typeof TypeId
  * @category models
  */
 export interface HashSet<out Value> extends Iterable<Value>, Equal, Pipeable, Inspectable {
-  readonly [TypeId]: TypeId
+  readonly [TypeId]: typeof TypeId
 }
 
 /**

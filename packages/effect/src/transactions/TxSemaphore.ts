@@ -10,34 +10,7 @@ import { pipeArguments } from "../interfaces/Pipeable.ts"
 import type * as Scope from "../Scope.ts"
 import * as TxRef from "../transactions/TxRef.ts"
 
-/**
- * Unique identifier for TxSemaphore instances.
- *
- * @example
- * ```ts
- * import { TxSemaphore } from "effect/transactions"
- *
- * // The TypeId constant can be used for runtime identification
- * console.log(TxSemaphore.TypeId) // "~effect/TxSemaphore"
- *
- * // Or for creating type guards
- * const isTxSemaphore = (value: unknown): value is TxSemaphore.TxSemaphore => {
- *   return typeof value === "object" && value !== null && TxSemaphore.TypeId in value
- * }
- * ```
- *
- * @since 4.0.0
- * @category symbols
- */
-export const TypeId: "~effect/TxSemaphore" = "~effect/TxSemaphore" as const
-
-/**
- * Type identifier for TxSemaphore instances.
- *
- * @since 4.0.0
- * @category symbols
- */
-export type TypeId = typeof TypeId
+const TypeId = "~effect/transactions/TxSemaphore"
 
 /**
  * A transactional semaphore that manages permits using Software Transactional Memory (STM) semantics.
@@ -70,7 +43,7 @@ export type TypeId = typeof TypeId
  * @category models
  */
 export interface TxSemaphore extends Inspectable, Pipeable {
-  readonly [TypeId]: TypeId
+  readonly [TypeId]: typeof TypeId
   readonly permitsRef: TxRef.TxRef<number>
   readonly capacity: number
 }

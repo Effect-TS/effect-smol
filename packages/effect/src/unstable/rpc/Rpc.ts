@@ -16,17 +16,7 @@ import type { RequestId } from "./RpcMessage.ts"
 import type * as RpcMiddleware from "./RpcMiddleware.ts"
 import * as RpcSchema from "./RpcSchema.ts"
 
-/**
- * @since 4.0.0
- * @category type ids
- */
-export const TypeId: TypeId = "~effect/rpc/Rpc"
-
-/**
- * @since 4.0.0
- * @category type ids
- */
-export type TypeId = "~effect/rpc/Rpc"
+const TypeId = "~effect/rpc/Rpc"
 
 /**
  * @since 4.0.0
@@ -51,7 +41,7 @@ export interface Rpc<
 > extends Pipeable {
   new(_: never): {}
 
-  readonly [TypeId]: TypeId
+  readonly [TypeId]: typeof TypeId
   readonly _tag: Tag
   readonly key: string
   readonly payloadSchema: Payload
@@ -162,7 +152,7 @@ export interface Handler<Tag extends string> {
  * @category models
  */
 export interface Any extends Pipeable {
-  readonly [TypeId]: TypeId
+  readonly [TypeId]: typeof TypeId
   readonly _tag: string
   readonly key: string
 }
@@ -172,7 +162,7 @@ export interface Any extends Pipeable {
  * @category models
  */
 export interface AnyWithProps extends Pipeable {
-  readonly [TypeId]: TypeId
+  readonly [TypeId]: typeof TypeId
   readonly _tag: string
   readonly key: string
   readonly payloadSchema: Schema.Top
@@ -783,24 +773,14 @@ export const exitSchema = <R extends Any>(
   return schema as any
 }
 
-/**
- * @since 4.0.0
- * @category Fork
- */
-export const ForkTypeId: ForkTypeId = "~effect/rpc/Rpc/Fork"
-
-/**
- * @since 4.0.0
- * @category Fork
- */
-export type ForkTypeId = "~effect/rpc/Rpc/Fork"
+const ForkTypeId = "~effect/rpc/Rpc/Fork"
 
 /**
  * @since 4.0.0
  * @category Fork
  */
 export interface Fork<A> {
-  readonly [ForkTypeId]: ForkTypeId
+  readonly [ForkTypeId]: typeof ForkTypeId
   readonly value: A
 }
 

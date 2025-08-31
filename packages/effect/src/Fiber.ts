@@ -86,38 +86,7 @@ import type { Scope } from "./Scope.ts"
 import type * as ServiceMap from "./ServiceMap.ts"
 import type { Covariant } from "./types/Types.ts"
 
-/**
- * A unique identifier used to brand Fiber types.
- *
- * @example
- * ```ts
- * import { Effect } from "effect"
- * import { Fiber } from "effect"
- *
- * // TypeId is used internally for type branding
- * const fiber = Effect.runFork(Effect.succeed(42))
- * console.log(fiber[Fiber.TypeId] !== undefined) // true
- * ```
- *
- * @since 2.0.0
- * @category type ids
- */
-export const TypeId: TypeId = `~effect/Fiber/${version}`
-
-/**
- * The type-level identifier for the Fiber type.
- *
- * @example
- * ```ts
- * import { Fiber } from "effect"
- *
- * type FiberTypeId = Fiber.TypeId
- * ```
- *
- * @since 2.0.0
- * @category type ids
- */
-export type TypeId = `~effect/Fiber/${version}`
+const TypeId = `~effect/Fiber/${version}`
 
 /**
  * A runtime fiber is a lightweight thread that executes Effects. Fibers are

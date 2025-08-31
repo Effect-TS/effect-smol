@@ -20,7 +20,7 @@ export abstract class NodeHttpIncomingMessage<E> extends Inspectable.Class
   /**
    * @since 1.0.0
    */
-  readonly [IncomingMessage.TypeId]: IncomingMessage.TypeId
+  readonly [IncomingMessage.TypeId]: typeof IncomingMessage.TypeId
   readonly source: Http.IncomingMessage
   readonly onError: (error: unknown) => E
   readonly remoteAddressOverride?: string | undefined

@@ -78,17 +78,7 @@ import * as core from "./internal/core.ts"
 import * as internalEffect from "./internal/effect.ts"
 import type * as Types from "./types/Types.ts"
 
-/**
- * @since 2.0.0
- * @category symbols
- */
-export const TypeId: TypeId = "~effect/Deferred"
-
-/**
- * @since 2.0.0
- * @category symbols
- */
-export type TypeId = "~effect/Deferred"
+const TypeId = "~effect/Deferred"
 
 /**
  * A `Deferred` represents an asynchronous variable that can be set exactly

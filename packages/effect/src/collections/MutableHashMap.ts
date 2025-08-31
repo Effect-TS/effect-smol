@@ -33,31 +33,7 @@ import { format, type Inspectable, NodeInspectSymbol, toJSON } from "../interfac
 import type { Pipeable } from "../interfaces/Pipeable.ts"
 import { pipeArguments } from "../interfaces/Pipeable.ts"
 
-const TypeId: TypeId = "~effect/MutableHashMap"
-
-/**
- * @example
- * ```ts
- * import * as MutableHashMap from "effect/collections/MutableHashMap"
- *
- * const map = MutableHashMap.empty<string, number>()
- *
- * // TypeId is used internally for nominal typing
- * type MyMapType = MutableHashMap.MutableHashMap<string, number>
- *
- * // The type system can distinguish different map types
- * declare const stringMap: MutableHashMap.MutableHashMap<string, number>
- * declare const numberMap: MutableHashMap.MutableHashMap<number, string>
- *
- * // These are different types due to the TypeId
- * console.log(typeof stringMap) // object
- * console.log(typeof numberMap) // object
- * ```
- *
- * @since 2.0.0
- * @category symbol
- */
-export type TypeId = "~effect/MutableHashMap"
+const TypeId = "~effect/collections/MutableHashMap"
 
 /**
  * @example
@@ -88,7 +64,7 @@ export type TypeId = "~effect/MutableHashMap"
  * @category models
  */
 export interface MutableHashMap<out K, out V> extends Iterable<[K, V]>, Pipeable, Inspectable {
-  readonly [TypeId]: TypeId
+  readonly [TypeId]: typeof TypeId
   readonly backing: Map<K, V>
   readonly buckets: Map<number, NonEmptyArray<K & Equal.Equal>>
 }

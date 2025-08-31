@@ -8,24 +8,14 @@ import * as Duration from "../../time/Duration.ts"
 import * as DurableDeferred from "./DurableDeferred.ts"
 import type { WorkflowEngine, WorkflowInstance } from "./WorkflowEngine.ts"
 
-/**
- * @since 4.0.0
- * @category Symbols
- */
-export const TypeId: TypeId = "~effect/workflow/DurableClock"
-
-/**
- * @since 4.0.0
- * @category Symbols
- */
-export type TypeId = "~effect/workflow/DurableClock"
+const TypeId = "~effect/workflow/DurableClock"
 
 /**
  * @since 4.0.0
  * @category Models
  */
 export interface DurableClock {
-  readonly [TypeId]: TypeId
+  readonly [TypeId]: typeof TypeId
   readonly name: string
   readonly duration: Duration.Duration
   readonly deferred: DurableDeferred.DurableDeferred<typeof Schema.Void>

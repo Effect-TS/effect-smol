@@ -84,7 +84,6 @@ import * as internal from "./internal/effect.ts"
 import * as internalLayer from "./internal/layer.ts"
 import * as internalRequest from "./internal/request.ts"
 import * as internalSchedule from "./internal/schedule.ts"
-import type { version } from "./internal/version.ts"
 import type * as Layer from "./Layer.ts"
 import type { Logger } from "./logging/Logger.ts"
 import type { LogLevel } from "./logging/LogLevel.ts"
@@ -121,35 +120,7 @@ import type {
 import type * as Unify from "./types/Unify.ts"
 import { internalCall, SingleShotGen } from "./Utils.ts"
 
-/**
- * A unique identifier used to brand Effect types.
- *
- * @example
- * ```ts
- * import { Effect } from "effect"
- *
- * // TypeId is used internally for type branding
- * const effect = Effect.succeed(42)
- * console.log(effect[Effect.TypeId] !== undefined) // true
- * ```
- *
- * @since 4.0.0
- * @category Symbols
- */
-export const TypeId: TypeId = core.TypeId
-
-/**
- * @since 4.0.0
- * @category Symbols
- * @example
- * ```ts
- * import { Effect } from "effect"
- *
- * const effect = Effect.succeed(42)
- * const typeId: Effect.TypeId = Effect.TypeId
- * ```
- */
-export type TypeId = `~effect/Effect/${version}`
+const TypeId = core.EffectTypeId
 
 /**
  * The `Effect` interface defines a value that lazily describes a workflow or

@@ -7,24 +7,14 @@ import { dual } from "./Function.ts"
 import { PipeInspectableProto } from "./internal/core.ts"
 import * as Ref from "./Ref.ts"
 
-/**
- * @since 2.0.0
- * @category symbols
- */
-export const TypeId: TypeId = "~effect/SynchronizedRef"
-
-/**
- * @since 2.0.0
- * @category symbols
- */
-export type TypeId = "~effect/SynchronizedRef"
+const TypeId = "~effect/SynchronizedRef"
 
 /**
  * @since 2.0.0
  * @category models
  */
 export interface SynchronizedRef<in out A> extends Ref.Ref<A> {
-  readonly [TypeId]: TypeId
+  readonly [TypeId]: typeof TypeId
   readonly backing: Ref.Ref<A>
   readonly semaphore: Effect.Semaphore
 }

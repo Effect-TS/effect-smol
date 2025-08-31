@@ -3,17 +3,7 @@
  */
 import * as Schema from "../../schema/Schema.ts"
 
-/**
- * @since 4.0.0
- * @category Symbols
- */
-export const TypeId: TypeId = "~effect/rpc/RpcClientError"
-
-/**
- * @since 4.0.0
- * @category Symbols
- */
-export type TypeId = "~effect/rpc/RpcClientError"
+const TypeId = "~effect/rpc/RpcClientError"
 
 /**
  * @since 4.0.0
@@ -28,5 +18,5 @@ export class RpcClientError extends Schema.ErrorClass<RpcClientError>(TypeId)({
   /**
    * @since 4.0.0
    */
-  readonly [TypeId]: TypeId = TypeId
+  readonly [TypeId] = TypeId
 }

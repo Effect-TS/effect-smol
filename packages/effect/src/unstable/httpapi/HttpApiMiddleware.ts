@@ -13,29 +13,10 @@ import type * as HttpApiEndpoint from "./HttpApiEndpoint.ts"
 import type * as HttpApiGroup from "./HttpApiGroup.ts"
 import type * as HttpApiSecurity from "./HttpApiSecurity.ts"
 
-/**
- * @since 4.0.0
- * @category type ids
- */
-export const TypeId: TypeId = "~effect/httpapi/HttpApiMiddleware"
+const TypeId = "~effect/httpapi/HttpApiMiddleware"
 
-/**
- * @since 4.0.0
- * @category type ids
- */
-export type TypeId = "~effect/httpapi/HttpApiMiddleware"
-
-/**
- * @since 4.0.0
- * @category type ids
- */
-export const SecurityTypeId: SecurityTypeId = "~effect/httpapi/HttpApiMiddleware/Security"
-
-/**
- * @since 4.0.0
- * @category type ids
- */
-export type SecurityTypeId = "~effect/httpapi/HttpApiMiddleware/Security"
+/** @internal */
+export const SecurityTypeId = "~effect/httpapi/HttpApiMiddleware/Security"
 
 /**
  * @since 4.0.0
@@ -80,7 +61,7 @@ export type HttpApiMiddlewareSecurity<
  * @category models
  */
 export interface AnyKey extends ServiceMap.Key<any, any> {
-  readonly [TypeId]: TypeId
+  readonly [TypeId]: typeof TypeId
   readonly provides: any
   readonly error: Schema.Top
 }
@@ -90,7 +71,7 @@ export interface AnyKey extends ServiceMap.Key<any, any> {
  * @category models
  */
 export interface AnyKeySecurity extends AnyKey {
-  readonly [SecurityTypeId]: SecurityTypeId
+  readonly [SecurityTypeId]: typeof SecurityTypeId
   readonly security: Record<string, HttpApiSecurity.HttpApiSecurity>
 }
 
@@ -177,11 +158,11 @@ export type KeyClass<
         readonly provides: Config["provides"]
       }
     }
-    readonly [TypeId]: TypeId
+    readonly [TypeId]: typeof TypeId
     readonly error: Config["error"]
   }
   & ([keyof Config["security"]] extends [never] ? {} : {
-    readonly [SecurityTypeId]: SecurityTypeId
+    readonly [SecurityTypeId]: typeof SecurityTypeId
     readonly security: Config["security"]
   })
 

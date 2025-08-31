@@ -8,17 +8,7 @@ import type * as Annotations from "./Annotations.ts"
 import type * as AST from "./AST.ts"
 import type * as Check from "./Check.ts"
 
-/**
- * @since 4.0.0
- * @category Symbols
- */
-export const TypeId: TypeId = "~effect/schema/Issue"
-
-/**
- * @since 4.0.0
- * @category Symbols
- */
-export type TypeId = "~effect/schema/Issue"
+const TypeId = "~effect/schema/Issue"
 
 /**
  * @since 4.0.0

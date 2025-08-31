@@ -15,17 +15,8 @@ import * as Layer from "../Layer.ts"
 import * as ServiceMap from "../ServiceMap.ts"
 import type * as Duration from "../time/Duration.ts"
 
-/**
- * @since 3.6.0
- * @category type ids
- */
-export const TypeId: TypeId = Internal.TypeId
-
-/**
- * @since 3.6.0
- * @category type ids
- */
-export type TypeId = "~effect/time/DateTime"
+const TypeId = Internal.TypeId
+const TimeZoneTypeId = Internal.TimeZoneTypeId
 
 /**
  * A `DateTime` represents a point in time. It can optionally have a time zone
@@ -218,21 +209,9 @@ export declare namespace DateTime {
    * @category models
    */
   export interface Proto extends Pipeable, Inspectable {
-    readonly [TypeId]: TypeId
+    readonly [TypeId]: typeof TypeId
   }
 }
-
-/**
- * @since 3.6.0
- * @category type ids
- */
-export const TimeZoneTypeId: TimeZoneTypeId = "~effect/time/DateTime/TimeZone"
-
-/**
- * @since 3.6.0
- * @category type ids
- */
-export type TimeZoneTypeId = "~effect/time/DateTime/TimeZone"
 
 /**
  * @since 3.6.0
@@ -250,7 +229,7 @@ export declare namespace TimeZone {
    * @category models
    */
   export interface Proto extends Inspectable {
-    readonly [TimeZoneTypeId]: TimeZoneTypeId
+    readonly [TimeZoneTypeId]: typeof TimeZoneTypeId
   }
 
   /**

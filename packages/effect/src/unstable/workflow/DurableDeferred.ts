@@ -17,17 +17,7 @@ import type * as Activity from "./Activity.ts"
 import * as Workflow from "./Workflow.ts"
 import type { WorkflowEngine, WorkflowInstance } from "./WorkflowEngine.ts"
 
-/**
- * @since 4.0.0
- * @category Symbols
- */
-export const TypeId: TypeId = "~effect/workflow/DurableDeferred"
-
-/**
- * @since 4.0.0
- * @category Symbols
- */
-export type TypeId = "~effect/workflow/DurableDeferred"
+const TypeId = "~effect/workflow/DurableDeferred"
 
 /**
  * @since 4.0.0
@@ -37,7 +27,7 @@ export interface DurableDeferred<
   Success extends Schema.Top,
   Error extends Schema.Top = Schema.Never
 > {
-  readonly [TypeId]: TypeId
+  readonly [TypeId]: typeof TypeId
   readonly name: string
   readonly successSchema: Success
   readonly errorSchema: Error
@@ -50,7 +40,7 @@ export interface DurableDeferred<
  * @category Models
  */
 export interface Any {
-  readonly [TypeId]: TypeId
+  readonly [TypeId]: typeof TypeId
   readonly name: string
 }
 
@@ -59,7 +49,7 @@ export interface Any {
  * @category Models
  */
 export interface AnyWithProps {
-  readonly [TypeId]: TypeId
+  readonly [TypeId]: typeof TypeId
   readonly name: string
   readonly successSchema: Schema.Top
   readonly errorSchema: Schema.Top
@@ -80,7 +70,7 @@ export const make = <
   const successSchema = options?.success ?? Schema.Void as any as Success
   const errorSchema = options?.error ?? Schema.Never as any as Error
   return ({
-    [TypeId]: TypeId,
+    [TypeId]: TypeId as typeof TypeId,
     name,
     successSchema,
     errorSchema,
@@ -227,23 +217,13 @@ export const raceAll = <
   })
 }
 
-/**
- * @since 4.0.0
- * @category Token
- */
-export const TokenTypeId: TokenTypeId = "~effect/workflow/DurableDeferred/Token"
+const TokenTypeId = "~effect/workflow/DurableDeferred/Token"
 
 /**
  * @since 4.0.0
  * @category Token
  */
-export type TokenTypeId = "~effect/workflow/DurableDeferred/Token"
-
-/**
- * @since 4.0.0
- * @category Token
- */
-export type Token = Brand.Branded<string, TokenTypeId>
+export type Token = Brand.Branded<string, typeof TokenTypeId>
 
 /**
  * @since 4.0.0

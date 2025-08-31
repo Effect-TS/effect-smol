@@ -15,30 +15,7 @@ import { type Pipeable } from "./interfaces/Pipeable.ts"
 import { PipeInspectableProto } from "./internal/core.ts"
 import type * as Scope from "./Scope.ts"
 
-/**
- * @since 2.0.0
- * @category type ids
- * @example
- * ```ts
- * import { FiberSet } from "effect"
- *
- * console.log(FiberSet.TypeId === "~effect/FiberSet") // true
- * ```
- */
-export const TypeId: TypeId = "~effect/FiberSet"
-
-/**
- * @since 2.0.0
- * @category type ids
- * @example
- * ```ts
- * import { FiberSet } from "effect"
- *
- * // TypeId is the unique identifier for FiberSet
- * type Id = FiberSet.TypeId
- * ```
- */
-export type TypeId = "~effect/FiberSet"
+const TypeId = "~effect/FiberSet"
 
 /**
  * A FiberSet is a collection of fibers that can be managed together.
@@ -66,7 +43,7 @@ export type TypeId = "~effect/FiberSet"
 export interface FiberSet<out A = unknown, out E = unknown>
   extends Pipeable, Inspectable.Inspectable, Iterable<Fiber.Fiber<A, E>>
 {
-  readonly [TypeId]: TypeId
+  readonly [TypeId]: typeof TypeId
   readonly deferred: Deferred.Deferred<void, unknown>
   state: {
     readonly _tag: "Open"

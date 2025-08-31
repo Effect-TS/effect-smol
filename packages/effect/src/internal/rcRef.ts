@@ -7,8 +7,7 @@ import * as Scope from "../Scope.ts"
 import * as ServiceMap from "../ServiceMap.ts"
 import * as Duration from "../time/Duration.ts"
 
-/** @internal */
-export const TypeId: RcRef.TypeId = "~effect/RcRef"
+const TypeId = "~effect/RcRef"
 
 type State<A> = State.Empty | State.Acquired<A> | State.Closed
 

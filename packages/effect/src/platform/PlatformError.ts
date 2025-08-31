@@ -3,17 +3,7 @@
  */
 import * as Data from "../data/Data.ts"
 
-/**
- * @since 4.0.0
- * @category type id
- */
-export const TypeId: TypeId = "~effect/PlatformError"
-
-/**
- * @since 4.0.0
- * @category type id
- */
-export type TypeId = "~effect/PlatformError"
+const TypeId = "~effect/platform/PlatformError"
 
 /**
  * @since 4.0.0

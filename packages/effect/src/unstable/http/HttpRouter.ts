@@ -22,24 +22,14 @@ import * as HttpServerError from "./HttpServerError.ts"
 import * as HttpServerRequest from "./HttpServerRequest.ts"
 import * as HttpServerResponse from "./HttpServerResponse.ts"
 
-/**
- * @since 4.0.0
- * @category HttpRouter
- */
-export const TypeId: TypeId = "~effect/http/HttpRouter"
-
-/**
- * @since 4.0.0
- * @category HttpRouter
- */
-export type TypeId = "~effect/http/HttpRouter"
+const TypeId = "~effect/http/HttpRouter"
 
 /**
  * @since 4.0.0
  * @category HttpRouter
  */
 export interface HttpRouter {
-  readonly [TypeId]: TypeId
+  readonly [TypeId]: typeof TypeId
 
   readonly prefixed: (prefix: string) => HttpRouter
 
@@ -490,24 +480,14 @@ export const toHttpEffect = <A, E, R>(
     return router.asHttpEffect()
   }) as any
 
-/**
- * @since 4.0.0
- * @category Route
- */
-export const RouteTypeId: RouteTypeId = "~effect/http/HttpRouter/Route"
-
-/**
- * @since 4.0.0
- * @category Route
- */
-export type RouteTypeId = "~effect/http/HttpRouter/Route"
+const RouteTypeId = "~effect/http/HttpRouter/Route"
 
 /**
  * @since 4.0.0
  * @category Route
  */
 export interface Route<E = never, R = never> {
-  readonly [RouteTypeId]: RouteTypeId
+  readonly [RouteTypeId]: typeof RouteTypeId
   readonly method: HttpMethod.HttpMethod | "*"
   readonly path: PathInput
   readonly handler: Effect.Effect<HttpServerResponse.HttpServerResponse, E, R>
@@ -675,17 +655,7 @@ export type GlobalProvided =
   | HttpServerRequest.HttpServerRequest
   | Scope.Scope
 
-/**
- * @since 4.0.0
- * @category Middleware
- */
-export const MiddlewareTypeId: MiddlewareTypeId = "~effect/http/HttpRouter/Middleware"
-
-/**
- * @since 4.0.0
- * @category Middleware
- */
-export type MiddlewareTypeId = "~effect/http/HttpRouter/Middleware"
+const MiddlewareTypeId = "~effect/http/HttpRouter/Middleware"
 
 /**
  * @since 4.0.0

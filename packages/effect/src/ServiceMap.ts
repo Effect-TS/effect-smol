@@ -19,31 +19,7 @@ import { exitSucceed, PipeInspectableProto, withFiber, YieldableProto } from "./
 import type { ErrorWithStackTraceLimit } from "./internal/tracer.ts"
 import type * as Types from "./types/Types.ts"
 
-/**
- * @since 4.0.0
- * @category Symbols
- * @example
- * ```ts
- * import { ServiceMap } from "effect"
- *
- * console.log(ServiceMap.KeyTypeId)
- * // Output: "~effect/ServiceMap/Key"
- * ```
- */
-export const KeyTypeId: KeyTypeId = "~effect/ServiceMap/Key"
-
-/**
- * @since 4.0.0
- * @category Symbols
- * @example
- * ```ts
- * import { ServiceMap } from "effect"
- *
- * // KeyTypeId is a type representing the unique identifier for ServiceMap keys
- * type MyKeyTypeId = ServiceMap.KeyTypeId
- * ```
- */
-export type KeyTypeId = "~effect/ServiceMap/Key"
+const KeyTypeId = "~effect/ServiceMap/Key"
 
 /**
  * @since 4.0.0
@@ -94,7 +70,7 @@ export declare namespace KeyClass {
    * @category Models
    */
   export interface Shape<Id extends string, Service> {
-    readonly [KeyTypeId]: KeyTypeId
+    readonly [KeyTypeId]: typeof KeyTypeId
     readonly key: Id
     readonly Service: Service
   }
@@ -213,31 +189,7 @@ const KeyProto: any = {
   }
 }
 
-/**
- * @since 4.0.0
- * @category Symbols
- * @example
- * ```ts
- * import { ServiceMap } from "effect"
- *
- * console.log(ServiceMap.ReferenceTypeId)
- * // Output: "~effect/ServiceMap/Reference"
- * ```
- */
-export const ReferenceTypeId: ReferenceTypeId = "~effect/ServiceMap/Reference"
-
-/**
- * @since 4.0.0
- * @category Symbols
- * @example
- * ```ts
- * import { ServiceMap } from "effect"
- *
- * // ReferenceTypeId is a type representing the unique identifier for ServiceMap references
- * type MyReferenceTypeId = ServiceMap.ReferenceTypeId
- * ```
- */
-export type ReferenceTypeId = "~effect/ServiceMap/Reference"
+const ReferenceTypeId = "~effect/ServiceMap/Reference"
 
 /**
  * @since 4.0.0
@@ -256,7 +208,7 @@ export type ReferenceTypeId = "~effect/ServiceMap/Reference"
  * ```
  */
 export interface Reference<in out Service> extends Key<never, Service> {
-  readonly [ReferenceTypeId]: ReferenceTypeId
+  readonly [ReferenceTypeId]: typeof ReferenceTypeId
   readonly defaultValue: () => Service
   [Symbol.iterator](): EffectIterator<Reference<Service>>
 }
@@ -342,31 +294,7 @@ export declare namespace Key {
   export type Identifier<T> = T extends Variance<infer I, infer _S> ? I : never
 }
 
-/**
- * @since 4.0.0
- * @category Symbols
- * @example
- * ```ts
- * import { ServiceMap } from "effect"
- *
- * console.log(ServiceMap.TypeId)
- * // Output: "~effect/ServiceMap"
- * ```
- */
-export const TypeId: TypeId = "~effect/ServiceMap"
-
-/**
- * @since 4.0.0
- * @category Symbols
- * @example
- * ```ts
- * import { ServiceMap } from "effect"
- *
- * // TypeId is a type representing the unique identifier for ServiceMap
- * type MyTypeId = ServiceMap.TypeId
- * ```
- */
-export type TypeId = "~effect/ServiceMap"
+const TypeId = "~effect/ServiceMap"
 
 /**
  * @since 4.0.0
@@ -716,6 +644,7 @@ export const getReferenceUnsafe = <Services, S>(self: ServiceMap<Services>, key:
 }
 
 const defaultValueCacheKey = "~effect/ServiceMap/defaultValue"
+
 const getDefaultValue = (ref: Reference<any>) => {
   if (defaultValueCacheKey in ref) {
     return ref[defaultValueCacheKey] as any

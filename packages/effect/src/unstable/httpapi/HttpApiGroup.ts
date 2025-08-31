@@ -10,17 +10,7 @@ import type { PathInput } from "../http/HttpRouter.ts"
 import type * as HttpApiEndpoint from "./HttpApiEndpoint.ts"
 import type * as HttpApiMiddleware from "./HttpApiMiddleware.ts"
 
-/**
- * @since 4.0.0
- * @category type ids
- */
-export const TypeId: TypeId = "~effect/httpapi/HttpApiGroup"
-
-/**
- * @since 4.0.0
- * @category type ids
- */
-export type TypeId = "~effect/httpapi/HttpApiGroup"
+const TypeId = "~effect/httpapi/HttpApiGroup"
 
 /**
  * @since 4.0.0
@@ -43,7 +33,7 @@ export interface HttpApiGroup<
   out TopLevel extends boolean = false
 > extends Pipeable {
   new(_: never): {}
-  readonly [TypeId]: TypeId
+  readonly [TypeId]: typeof TypeId
   readonly identifier: Id
   readonly key: string
   readonly topLevel: TopLevel
@@ -119,7 +109,7 @@ export interface ApiGroup<ApiId extends string, Name extends string> {
  * @category models
  */
 export interface Any {
-  readonly [TypeId]: TypeId
+  readonly [TypeId]: typeof TypeId
   readonly identifier: string
   readonly key: string
 }

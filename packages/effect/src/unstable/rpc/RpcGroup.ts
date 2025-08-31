@@ -15,17 +15,7 @@ import * as Rpc from "./Rpc.ts"
 import type { RequestId } from "./RpcMessage.ts"
 import type * as RpcMiddleware from "./RpcMiddleware.ts"
 
-/**
- * @since 4.0.0
- * @category type ids
- */
-export const TypeId: TypeId = "~effect/rpc/RpcGroup"
-
-/**
- * @since 4.0.0
- * @category type ids
- */
-export type TypeId = "~effect/rpc/RpcGroup"
+const TypeId = "~effect/rpc/RpcGroup"
 
 /**
  * @since 4.0.0
@@ -34,7 +24,7 @@ export type TypeId = "~effect/rpc/RpcGroup"
 export interface RpcGroup<in out R extends Rpc.Any> extends Pipeable {
   new(_: never): {}
 
-  readonly [TypeId]: TypeId
+  readonly [TypeId]: typeof TypeId
   readonly requests: ReadonlyMap<string, R>
   readonly annotations: ServiceMap.ServiceMap<never>
 
@@ -163,7 +153,7 @@ export interface RpcGroup<in out R extends Rpc.Any> extends Pipeable {
  * @category groups
  */
 export interface Any {
-  readonly [TypeId]: TypeId
+  readonly [TypeId]: typeof TypeId
 }
 
 /**

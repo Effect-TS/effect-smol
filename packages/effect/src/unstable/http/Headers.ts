@@ -16,11 +16,12 @@ import * as ServiceMap from "../../ServiceMap.ts"
 import type { Mutable } from "../../types/Types.ts"
 
 /**
+ * This is a symbol to allow direct access of keys without conflicts.
+ *
  * @since 4.0.0
  * @category type ids
  */
-// note: this is a symbol to allow direct access of keys without conflicts
-export const TypeId: unique symbol = Symbol.for("effect/http/Headers")
+export const TypeId: unique symbol = Symbol.for("~effect/http/Headers")
 
 /**
  * @since 4.0.0

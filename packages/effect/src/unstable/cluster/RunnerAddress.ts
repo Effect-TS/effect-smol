@@ -6,17 +6,7 @@ import * as Hash from "../../interfaces/Hash.ts"
 import { NodeInspectSymbol } from "../../interfaces/Inspectable.ts"
 import * as Schema from "../../schema/Schema.ts"
 
-/**
- * @since 4.0.0
- * @category type ids
- */
-export const TypeId: TypeId = "~effect/cluster/RunnerAddress"
-
-/**
- * @since 4.0.0
- * @category type ids
- */
-export type TypeId = "~effect/cluster/RunnerAddress"
+const TypeId = "~effect/cluster/RunnerAddress"
 
 /**
  * @since 4.0.0

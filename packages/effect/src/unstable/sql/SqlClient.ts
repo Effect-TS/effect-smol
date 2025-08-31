@@ -18,24 +18,14 @@ import type { SqlError } from "./SqlError.ts"
 import type { Compiler, Constructor } from "./Statement.ts"
 import * as Statement from "./Statement.ts"
 
-/**
- * @category type ids
- * @since 4.0.0
- */
-export const TypeId: TypeId = "~effect/sql/SqlClient"
-
-/**
- * @category type ids
- * @since 4.0.0
- */
-export type TypeId = "~effect/sql/SqlClient"
+const TypeId = "~effect/sql/SqlClient"
 
 /**
  * @category models
  * @since 4.0.0
  */
 export interface SqlClient extends Constructor {
-  readonly [TypeId]: TypeId
+  readonly [TypeId]: typeof TypeId
 
   /**
    * Copy of the client for safeql etc.
@@ -145,7 +135,7 @@ export const make = Effect.fnUntraced(function*(options: SqlClient.MakeOptions) 
   const client: SqlClient = Object.assign(
     Statement.make(getConnection, options.compiler, options.spanAttributes, options.transformRows),
     {
-      [TypeId]: TypeId,
+      [TypeId]: TypeId as typeof TypeId,
       safe: undefined as any,
       withTransaction,
       reserve: transactionAcquirer,

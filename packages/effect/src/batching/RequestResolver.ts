@@ -17,17 +17,7 @@ import * as Duration from "../time/Duration.ts"
 import type * as Types from "../types/Types.ts"
 import type * as Request from "./Request.ts"
 
-/**
- * @since 2.0.0
- * @category symbols
- */
-export const TypeId: TypeId = "~effect/RequestResolver"
-
-/**
- * @since 2.0.0
- * @category symbols
- */
-export type TypeId = "~effect/RequestResolver"
+const TypeId = "~effect/batching/RequestResolver"
 
 /**
  * The `RequestResolver<A, R>` interface requires an environment `R` and handles

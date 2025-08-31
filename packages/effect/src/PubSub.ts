@@ -43,21 +43,7 @@ import { nextPow2 } from "./primitives/Number.ts"
 import * as Scope from "./Scope.ts"
 import type { Covariant, Invariant } from "./types/Types.ts"
 
-/**
- * The type identifier for PubSub instances.
- *
- * @since 4.0.0
- * @category symbols
- */
-export const TypeId: TypeId = "~effect/PubSub"
-
-/**
- * The type identifier type for PubSub instances.
- *
- * @since 4.0.0
- * @category symbols
- */
-export type TypeId = "~effect/PubSub"
+const TypeId = "~effect/PubSub"
 
 /**
  * A `PubSub<A>` is an asynchronous message hub into which publishers can publish
@@ -218,21 +204,7 @@ export namespace PubSub {
   }
 }
 
-/**
- * The type identifier for Subscription instances.
- *
- * @since 4.0.0
- * @category symbols
- */
-export const SubscriptionTypeId: SubscriptionTypeId = "~effect/PubSub/Subscription"
-
-/**
- * The type identifier type for Subscription instances.
- *
- * @since 4.0.0
- * @category symbols
- */
-export type SubscriptionTypeId = "~effect/PubSub/Subscription"
+const SubscriptionTypeId = "~effect/PubSub/Subscription"
 
 /**
  * A subscription represents a consumer's connection to a PubSub, allowing them to take messages.

@@ -7,32 +7,7 @@ import type { Scope } from "./Scope.ts"
 import type * as Duration from "./time/Duration.ts"
 import type * as Types from "./types/Types.ts"
 
-/**
- * @since 3.5.0
- * @category type ids
- * @example
- * ```ts
- * import { RcRef } from "effect"
- *
- * // Check if a value has the RcRef type ID
- * const hasRcRefTypeId = (value: unknown): value is RcRef.RcRef<unknown> =>
- *   typeof value === "object" && value !== null && RcRef.TypeId in value
- * ```
- */
-export const TypeId: TypeId = "~effect/RcRef"
-
-/**
- * @since 3.5.0
- * @category type ids
- * @example
- * ```ts
- * import type { RcRef } from "effect"
- *
- * // Use TypeId in type constraints
- * type HasRcRefTypeId<T> = T extends { readonly [RcRef.TypeId]: any } ? T : never
- * ```
- */
-export type TypeId = "~effect/RcRef"
+const TypeId = "~effect/RcRef"
 
 /**
  * A reference counted reference that manages resource lifecycle.

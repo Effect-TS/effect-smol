@@ -9,43 +9,7 @@ import type { Pipeable } from "../interfaces/Pipeable.ts"
 import * as internal from "../internal/hashMap.ts"
 import type { NoInfer } from "../types/Types.ts"
 
-/**
- * Unique identifier for HashMap instances.
- *
- * @example
- * ```ts
- * import * as HashMap from "effect/collections/HashMap"
- *
- * // The TypeId constant can be used for runtime identification
- * console.log(HashMap.TypeId) // "~effect/HashMap"
- *
- * // Or for creating type guards (see TypeId type example)
- * const map = HashMap.make(["key", "value"])
- * console.log(HashMap.TypeId in map) // true
- * ```
- *
- * @since 2.0.0
- * @category symbol
- */
-export const TypeId: "~effect/HashMap" = internal.HashMapTypeId
-
-/**
- * Type identifier for HashMap instances.
- *
- * @example
- * ```ts
- * import * as HashMap from "effect/collections/HashMap"
- *
- * // Use TypeId for type guards
- * const isHashMap = (value: unknown): value is HashMap.HashMap<any, any> => {
- *   return typeof value === "object" && value !== null && HashMap.TypeId in value
- * }
- * ```
- *
- * @since 2.0.0
- * @category symbol
- */
-export type TypeId = typeof TypeId
+const TypeId = internal.HashMapTypeId
 
 /**
  * A HashMap is an immutable key-value data structure that provides efficient lookup,
@@ -76,7 +40,7 @@ import * as Option from "effect/data/Option"
  * @category models
  */
 export interface HashMap<out Key, out Value> extends Iterable<[Key, Value]>, Equal, Pipeable, Inspectable {
-  readonly [TypeId]: TypeId
+  readonly [TypeId]: typeof TypeId
 }
 
 /**

@@ -12,39 +12,7 @@ import * as Channel from "../stream/Channel.ts"
 import type * as Types from "../types/Types.ts"
 import type * as Unify from "../types/Unify.ts"
 
-/**
- * The type identifier for Sink.
- *
- * @example
- * ```ts
- * import * as Sink from "effect/stream/Sink"
- *
- * declare const sink: Sink.Sink<number>
- *
- * // TypeId is used internally for type safety
- * const hasTypeId = Sink.TypeId in sink
- * ```
- *
- * @since 2.0.0
- * @category symbols
- */
-export const TypeId: TypeId = "~effect/Sink"
-
-/**
- * The type-level identifier for the Sink type.
- *
- * @example
- * ```ts
- * import type * as Sink from "effect/stream/Sink"
- *
- * // Used for type-level programming
- * type SinkTypeId = Sink.TypeId
- * ```
- *
- * @since 2.0.0
- * @category symbols
- */
-export type TypeId = "~effect/Sink"
+const TypeId = "~effect/stream/Sink"
 
 /**
  * A `Sink<A, In, L, E, R>` is used to consume elements produced by a `Stream`.

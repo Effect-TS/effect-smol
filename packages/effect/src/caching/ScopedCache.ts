@@ -18,24 +18,14 @@ import * as Scope from "../Scope.ts"
 import * as ServiceMap from "../ServiceMap.ts"
 import * as Duration from "../time/Duration.ts"
 
-/**
- * @since 4.0.0
- * @category Type Identifiers
- */
-export const TypeId: TypeId = "~effect/caching/ScopedCache"
-
-/**
- * @since 4.0.0
- * @category Type Identifiers
- */
-export type TypeId = "~effect/caching/ScopedCache"
+const TypeId = "~effect/caching/ScopedCache"
 
 /**
  * @since 4.0.0
  * @category Models
  */
 export interface ScopedCache<in out Key, in out A, in out E = never, out R = never> extends Pipeable {
-  readonly [TypeId]: TypeId
+  readonly [TypeId]: typeof TypeId
   state: State<Key, A, E>
   readonly capacity: number
   readonly lookup: (key: Key) => Effect.Effect<A, E, R | Scope.Scope>

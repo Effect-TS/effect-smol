@@ -29,21 +29,7 @@ import type { TypeLambda } from "../types/HKT.ts"
 import type { Covariant } from "../types/Types.ts"
 import type * as Unify from "../types/Unify.ts"
 
-/**
- * The type identifier for Stream.
- *
- * @since 2.0.0
- * @category symbols
- */
-export const TypeId: TypeId = "~effect/Stream"
-
-/**
- * The type-level identifier for the Stream type.
- *
- * @since 2.0.0
- * @category symbols
- */
-export type TypeId = "~effect/Stream"
+const TypeId = "~effect/stream/Stream"
 
 /**
  * A `Stream<A, E, R>` is a description of a program that, when evaluated, may

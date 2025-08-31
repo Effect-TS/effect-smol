@@ -8,7 +8,7 @@ import type { DateTime } from "../../time/DateTime.ts"
  * @since 4.0.0
  * @category symbols
  */
-export const symbol: "~effect/cluster/DeliverAt" = "~effect/cluster/DeliverAt" as const
+export const symbol = "~effect/cluster/DeliverAt"
 
 /**
  * @since 4.0.0

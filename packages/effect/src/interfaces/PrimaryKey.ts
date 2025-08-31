@@ -13,28 +13,11 @@
 import { hasProperty } from "../data/Predicate.ts"
 
 /**
- * The unique symbol used to identify objects that implement the `PrimaryKey` interface.
+ * The unique identifier used to identify objects that implement the `PrimaryKey` interface.
  *
- * @example
- * ```ts
- * import { PrimaryKey } from "effect/interfaces"
- *
- * class UserId implements PrimaryKey.PrimaryKey {
- *   constructor(private id: string) {}
- *
- *   [PrimaryKey.symbol](): string {
- *     return `user:${this.id}`
- *   }
- * }
- *
- * const userId = new UserId("123")
- * console.log(userId[PrimaryKey.symbol]()) // "user:123"
- * ```
- *
- * @category symbols
  * @since 2.0.0
  */
-export const symbol: "~effect/PrimaryKey" = "~effect/PrimaryKey" as const
+export const symbol = "~effect/interfaces/PrimaryKey"
 
 /**
  * An interface for objects that can provide a string-based primary key.

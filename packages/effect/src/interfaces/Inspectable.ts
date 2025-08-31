@@ -470,33 +470,13 @@ export interface Redactable {
 /**
  * Symbol used to identify objects that implement redaction capabilities.
  *
- * Objects that have a method with this symbol can provide alternative
- * representations of themselves based on the current execution context.
- * This is particularly useful for hiding sensitive information in logs.
- *
- * @example
- * ```ts
- * import { Inspectable } from "effect/interfaces"
- *
- * class APIKey {
- *   constructor(private key: string) {}
- *
- *   [Inspectable.symbolRedactable]() {
- *     return { key: "[REDACTED]" }
- *   }
- * }
- *
- * const apiKey = new APIKey("secret-key-123")
- * console.log(Inspectable.redact(apiKey)) // { key: "[REDACTED]" }
- * ```
- *
- * @since 3.10.0
- * @category redactable
+ * @since 4.0.0
+ * @category symbol
  */
-export const symbolRedactable: unique symbol = Symbol.for("effect/Inspectable/redactable")
+export const symbolRedactable: unique symbol = Symbol.for("~effect/Inspectable/redactable")
 
 /**
- * Checks if a value implements the Redactable interface.
+ * Checks if a value implements the `Redactable` interface.
  *
  * This function determines whether a given value has redaction capabilities,
  * meaning it can provide alternative representations based on context.
@@ -527,7 +507,8 @@ export const symbolRedactable: unique symbol = Symbol.for("effect/Inspectable/re
 export const isRedactable = (u: unknown): u is Redactable =>
   typeof u === "object" && u !== null && symbolRedactable in u
 
-const currentFiberUri = "effect/Fiber/currentFiber"
+/** @internal */
+export const currentFiberTypeId = "~effect/Fiber/currentFiber"
 
 /**
  * Applies redaction to a value if it implements the Redactable interface.
@@ -565,7 +546,7 @@ const currentFiberUri = "effect/Fiber/currentFiber"
  */
 export const redact = (u: unknown): unknown => {
   if (isRedactable(u)) {
-    return u[symbolRedactable]((globalThis as any)[currentFiberUri]?.services ?? emptyServiceMap)
+    return u[symbolRedactable]((globalThis as any)[currentFiberTypeId]?.services ?? emptyServiceMap)
   }
   return u
 }

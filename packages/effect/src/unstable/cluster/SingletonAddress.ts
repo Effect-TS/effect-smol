@@ -6,17 +6,7 @@ import * as Hash from "../../interfaces/Hash.ts"
 import * as Schema from "../../schema/Schema.ts"
 import { ShardId } from "./ShardId.ts"
 
-/**
- * @since 4.0.0
- * @category Address
- */
-export const TypeId: TypeId = "~effect/cluster/SingletonAddress"
-
-/**
- * @since 4.0.0
- * @category Address
- */
-export type TypeId = "~effect/cluster/SingletonAddress"
+const TypeId = "~effect/cluster/SingletonAddress"
 
 /**
  * Represents the unique address of an singleton within the cluster.

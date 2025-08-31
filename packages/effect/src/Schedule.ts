@@ -45,45 +45,8 @@ import type * as DateTime from "./time/DateTime.ts"
 import * as Duration from "./time/Duration.ts"
 import type { Contravariant, Covariant } from "./types/Types.ts"
 
-/**
- * Unique identifier for Schedule types, used for type branding and runtime identification.
- *
- * @example
- * ```ts
- * import { Schedule } from "effect"
- *
- * console.log(Schedule.TypeId) // "~effect/Schedule"
- *
- * // Used internally for type identification
- * const schedule = Schedule.exponential("100 millis")
- * // TypeId is used for runtime type checking
- * ```
- *
- * @since 2.0.0
- * @category Symbols
- */
-export const TypeId: TypeId = "~effect/Schedule"
-
-/**
- * Type alias for the Schedule type identifier literal.
- *
- * @example
- * ```ts
- * import { Schedule } from "effect"
- *
- * // Type-level usage
- * type MyTypeId = Schedule.TypeId // "~effect/Schedule"
- *
- * // Used in type guards and runtime checks
- * const isScheduleType = (value: unknown): value is { [Schedule.TypeId]: any } => {
- *   return typeof value === "object" && value !== null && Schedule.TypeId in value
- * }
- * ```
- *
- * @since 2.0.0
- * @category Symbols
- */
-export type TypeId = "~effect/Schedule"
+/** @internal */
+export const TypeId = "~effect/Schedule"
 
 /**
  * A Schedule defines a strategy for repeating or retrying effects based on some policy.

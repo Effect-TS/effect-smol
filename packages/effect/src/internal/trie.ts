@@ -10,7 +10,7 @@ import { pipeArguments } from "../interfaces/Pipeable.ts"
 import type { NoInfer } from "../types/Types.ts"
 
 /** @internal */
-export const TrieTypeId: TR.TypeId = "~effect/Trie"
+export const TrieTypeId = "~effect/collections/Trie"
 
 type TraversalMap<K, V, A> = (k: K, v: V) => A
 

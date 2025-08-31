@@ -69,7 +69,7 @@ const convertPart = (part: MP.Part): Multipart.Part =>
   part._tag === "Field" ? new FieldImpl(part.info, part.value) : new FileImpl(part)
 
 abstract class PartBase extends Inspectable.Class {
-  readonly [Multipart.TypeId]: Multipart.TypeId
+  readonly [Multipart.TypeId]: typeof Multipart.TypeId
   constructor() {
     super()
     this[Multipart.TypeId] = Multipart.TypeId

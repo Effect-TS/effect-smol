@@ -6,17 +6,7 @@ import { hasProperty } from "../../data/Predicate.ts"
 import type * as HttpClientRequest from "./HttpClientRequest.ts"
 import type * as ClientResponse from "./HttpClientResponse.ts"
 
-/**
- * @since 4.0.0
- * @category type id
- */
-export const TypeId: TypeId = "~effect/http/HttpClientError"
-
-/**
- * @since 4.0.0
- * @category type id
- */
-export type TypeId = "~effect/http/HttpClientError"
+const TypeId = "~effect/http/HttpClientError"
 
 /**
  * @since 4.0.0

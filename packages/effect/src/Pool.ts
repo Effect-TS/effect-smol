@@ -16,17 +16,7 @@ import * as ServiceMap from "./ServiceMap.ts"
 import { Clock } from "./time/Clock.ts"
 import * as Duration from "./time/Duration.ts"
 
-/**
- * @since 2.0.0
- * @category symbols
- */
-export const TypeId: TypeId = "~effect/Pool"
-
-/**
- * @since 2.0.0
- * @category symbols
- */
-export type TypeId = "~effect/Pool"
+const TypeId = "~effect/Pool"
 
 /**
  * A `Pool<A, E>` is a pool of items of type `A`, each of which may be
@@ -37,7 +27,7 @@ export type TypeId = "~effect/Pool"
  * @category models
  */
 export interface Pool<in out A, in out E = never> extends Pipeable {
-  readonly [TypeId]: TypeId
+  readonly [TypeId]: typeof TypeId
   readonly config: Config<A, E>
   readonly state: State<A, E>
 }

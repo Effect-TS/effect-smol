@@ -12,50 +12,7 @@ import type { Pipeable } from "../interfaces/Pipeable.ts"
 import { pipeArguments } from "../interfaces/Pipeable.ts"
 import * as TxRef from "../transactions/TxRef.ts"
 
-/**
- * Unique identifier for TxHashMap instances.
- *
- * @example
- * ```ts
- * import { TxHashMap } from "effect/transactions"
- *
- * // The TypeId constant can be used for runtime identification
- * console.log(TxHashMap.TypeId) // "~effect/TxHashMap"
- *
- * // Or for creating type guards
- * const isTxHashMap = (value: unknown): value is TxHashMap.TxHashMap<any, any> => {
- *   return typeof value === "object" && value !== null && TxHashMap.TypeId in value
- * }
- * ```
- *
- * @since 2.0.0
- * @category symbols
- */
-export const TypeId: "~effect/TxHashMap" = "~effect/TxHashMap" as const
-
-/**
- * Type identifier for TxHashMap instances.
- *
- * @example
- * ```ts
- * import { Effect } from "effect"
- * import { TxHashMap } from "effect/transactions"
- *
- * // Use TypeId for type guards in runtime checks
- * const validateTxHashMap = <K, V>(value: unknown): value is TxHashMap.TxHashMap<K, V> => {
- *   return typeof value === "object" && value !== null && TxHashMap.TypeId in value
- * }
- *
- * const program = Effect.gen(function* () {
- *   const txMap = yield* TxHashMap.make(["key", "value"])
- *   console.log(validateTxHashMap(txMap)) // true
- * })
- * ```
- *
- * @since 2.0.0
- * @category symbols
- */
-export type TypeId = typeof TypeId
+const TypeId = "~effect/transactions/TxHashMap"
 
 const TxHashMapProto = {
   [TypeId]: TypeId,
@@ -116,7 +73,7 @@ const TxHashMapProto = {
  * @category models
  */
 export interface TxHashMap<in out K, in out V> extends Inspectable, Pipeable {
-  readonly [TypeId]: TypeId
+  readonly [TypeId]: typeof TypeId
   readonly ref: TxRef.TxRef<HashMap.HashMap<K, V>>
 }
 

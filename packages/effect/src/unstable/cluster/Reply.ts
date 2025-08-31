@@ -20,17 +20,7 @@ import { MalformedMessage } from "./ClusterError.ts"
 import type { OutgoingRequest } from "./Message.ts"
 import { Snowflake, SnowflakeFromBigInt } from "./Snowflake.ts"
 
-/**
- * @since 4.0.0
- * @category type ids
- */
-export const TypeId: TypeId = "~effect/cluster/Reply"
-
-/**
- * @since 4.0.0
- * @category type ids
- */
-export type TypeId = "~effect/cluster/Reply"
+const TypeId = "~effect/cluster/Reply"
 
 /**
  * @since 4.0.0

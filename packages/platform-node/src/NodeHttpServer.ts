@@ -230,7 +230,7 @@ export const makeUpgradeHandler = <
 }
 
 class ServerRequestImpl extends NodeHttpIncomingMessage<HttpServerError> implements HttpServerRequest {
-  readonly [Request.TypeId]: Request.TypeId
+  readonly [Request.TypeId]: typeof Request.TypeId
   readonly response: Http.ServerResponse | LazyArg<Http.ServerResponse>
   private upgradeEffect?: Effect.Effect<Socket.Socket, HttpServerError> | undefined
   readonly url: string

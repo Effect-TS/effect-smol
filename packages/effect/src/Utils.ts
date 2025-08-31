@@ -19,31 +19,7 @@ import type * as Types from "./types/Types.ts"
  * @since 2.0.0
  */
 
-/**
- * @example
- * ```ts
- * import { Utils } from "effect"
- *
- * console.log(Utils.GenKindTypeId) // "~effect/Utils/GenKind"
- * ```
- *
- * @category symbols
- * @since 2.0.0
- */
-export const GenKindTypeId: GenKindTypeId = "~effect/Utils/GenKind"
-
-/**
- * @example
- * ```ts
- * import { Utils } from "effect"
- *
- * type MyId = Utils.GenKindTypeId // "~effect/Utils/GenKind"
- * ```
- *
- * @category symbols
- * @since 2.0.0
- */
-export type GenKindTypeId = "~effect/Utils/GenKind"
+const GenKindTypeId = "~effect/Utils/GenKind"
 
 /**
  * @example
@@ -222,7 +198,7 @@ import * as Option from "effect/data/Option"
  * @since 2.0.0
  */
 export interface Variance<in out F extends TypeLambda, in R, out O, out E> {
-  readonly [GenKindTypeId]: GenKindTypeId
+  readonly [GenKindTypeId]: typeof GenKindTypeId
   readonly _F: Types.Invariant<F>
   readonly _R: Types.Contravariant<R>
   readonly _O: Types.Covariant<O>
@@ -514,15 +490,16 @@ function add64(
   out[1] = lo
 }
 
+const InternalTypeId = "~effect/Effect/internal"
+
 const standard = {
-  "~effect/Effect/internal": <A>(body: () => A) => {
+  [InternalTypeId]: <A>(body: () => A) => {
     return body()
   }
 }
 
-const internal = "~effect/Effect/internal"
 const forced = {
-  [internal]: <A>(body: () => A) => {
+  [InternalTypeId]: <A>(body: () => A) => {
     try {
       return body()
     } finally {
@@ -531,14 +508,14 @@ const forced = {
   }
 }
 
-const isNotOptimizedAway = standard[internal](() => new Error().stack)?.includes(internal) === true
+const isNotOptimizedAway = standard[InternalTypeId](() => new Error().stack)?.includes(InternalTypeId) === true
 
 /**
  * @since 3.2.2
  * @status experimental
  * @category tracing
  */
-export const internalCall = isNotOptimizedAway ? standard[internal] : forced[internal]
+export const internalCall = isNotOptimizedAway ? standard[InternalTypeId] : forced[InternalTypeId]
 
 const genConstructor = (function*() {}).constructor
 

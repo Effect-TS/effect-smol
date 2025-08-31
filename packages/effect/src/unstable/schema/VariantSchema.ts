@@ -11,17 +11,8 @@ import type * as Annotations from "../../schema/Annotations.ts"
 import type * as AST from "../../schema/AST.ts"
 import * as Schema from "../../schema/Schema.ts"
 
-/**
- * @since 4.0.0
- * @category type ids
- */
-export const TypeId: TypeId = "~effect/unstable/schema/VariantSchema"
-
-/**
- * @since 4.0.0
- * @category type ids
- */
-export type TypeId = "~effect/unstable/schema/VariantSchema"
+/** @internal */
+export const TypeId = "~effect/unstable/schema/VariantSchema"
 
 const cacheSymbol = Symbol.for(`${TypeId}/cache`)
 
@@ -75,24 +66,14 @@ export declare namespace Struct {
   }
 }
 
-/**
- * @since 4.0.0
- * @category type ids
- */
-export const FieldTypeId: FieldTypeId = "~effect/unstable/schema/VariantSchema/Field"
-
-/**
- * @since 4.0.0
- * @category type ids
- */
-export type FieldTypeId = "~effect/unstable/schema/VariantSchema/Field"
+const FieldTypeId = "~effect/unstable/schema/VariantSchema/Field"
 
 /**
  * @since 4.0.0
  * @category models
  */
 export interface Field<in out A extends Field.Config> extends Pipeable {
-  readonly [FieldTypeId]: FieldTypeId
+  readonly [FieldTypeId]: typeof FieldTypeId
   readonly schemas: A
 }
 
@@ -111,7 +92,7 @@ export declare namespace Field {
    * @since 4.0.0
    * @category models
    */
-  export type Any = { readonly [FieldTypeId]: FieldTypeId }
+  export type Any = { readonly [FieldTypeId]: typeof FieldTypeId }
 
   /**
    * @since 4.0.0
@@ -217,7 +198,7 @@ const extract: {
  * @category accessors
  * @since 4.0.0
  */
-export const fields = <A extends Struct<any>>(self: A): A[TypeId] => self[TypeId]
+export const fields = <A extends Struct<any>>(self: A): A[typeof TypeId] => self[TypeId]
 
 /**
  * @since 4.0.0

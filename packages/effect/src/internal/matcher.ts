@@ -3,21 +3,11 @@ import type * as Predicate from "../data/Predicate.ts"
 import * as Result from "../data/Result.ts"
 import { dual, identity } from "../Function.ts"
 import { pipeArguments } from "../interfaces/Pipeable.ts"
-import type {
-  Case,
-  Matcher,
-  MatcherTypeId,
-  Not,
-  SafeRefinement,
-  TypeMatcher,
-  Types,
-  ValueMatcher,
-  When
-} from "../match/Match.ts"
+import type { Case, Matcher, Not, SafeRefinement, TypeMatcher, Types, ValueMatcher, When } from "../match/Match.ts"
 import type { Unify } from "../types/Unify.ts"
 
 /** @internal */
-export const TypeId: MatcherTypeId = "~effect/Match/Matcher"
+export const TypeId = "~effect/match/Match/Matcher"
 
 const TypeMatcherProto: Omit<TypeMatcher<any, any, any, any>, "cases"> = {
   [TypeId]: {
@@ -617,7 +607,7 @@ export const option: <I, F, R, A, Pr, Ret>(
       })
   }) as any
 
-const getExhaustiveAbsurdErrorMessage = "effect/Match/exhaustive: absurd"
+const getExhaustiveAbsurdErrorMessage = "effect/match/Match/exhaustive: absurd"
 
 /** @internal */
 export const exhaustive: <I, F, A, Pr, Ret>(

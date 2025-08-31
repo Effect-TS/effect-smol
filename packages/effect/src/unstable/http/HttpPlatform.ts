@@ -15,18 +15,6 @@ import * as Response from "./HttpServerResponse.ts"
 
 /**
  * @since 4.0.0
- * @category type ids
- */
-export const TypeId: TypeId = "~effect/http/HttpPlatform"
-
-/**
- * @since 4.0.0
- * @category type ids
- */
-export type TypeId = "~effect/http/HttpPlatform"
-
-/**
- * @since 4.0.0
  * @category tags
  */
 export class HttpPlatform extends ServiceMap.Key<HttpPlatform, {

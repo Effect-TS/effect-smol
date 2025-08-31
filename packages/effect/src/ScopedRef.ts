@@ -9,17 +9,7 @@ import { PipeInspectableProto } from "./internal/core.ts"
 import * as Scope from "./Scope.ts"
 import * as Synchronized from "./SynchronizedRef.ts"
 
-/**
- * @since 2.0.0
- * @category symbols
- */
-export const TypeId: TypeId = "~effect/ScopedRef"
-
-/**
- * @since 2.0.0
- * @category symbols
- */
-export type TypeId = "~effect/ScopedRef"
+const TypeId = "~effect/ScopedRef"
 
 /**
  * A `ScopedRef` is a reference whose value is associated with resources,
@@ -32,7 +22,7 @@ export type TypeId = "~effect/ScopedRef"
  * @category models
  */
 export interface ScopedRef<in out A> extends Pipeable {
-  readonly [TypeId]: TypeId
+  readonly [TypeId]: typeof TypeId
   readonly backing: Synchronized.SynchronizedRef<readonly [Scope.Scope.Closeable, A]>
 }
 

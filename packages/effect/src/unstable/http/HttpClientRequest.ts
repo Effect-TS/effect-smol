@@ -18,17 +18,7 @@ import * as HttpBody from "./HttpBody.ts"
 import type { HttpMethod } from "./HttpMethod.ts"
 import * as UrlParams from "./UrlParams.ts"
 
-/**
- * @since 4.0.0
- * @category type ids
- */
-export const TypeId: TypeId = "~effect/http/HttpClientRequest"
-
-/**
- * @since 4.0.0
- * @category type ids
- */
-export type TypeId = "~effect/http/HttpClientRequest"
+const TypeId = "~effect/http/HttpClientRequest"
 
 /**
  * @since 4.0.0
@@ -41,7 +31,7 @@ export const isHttpClientRequest = (u: unknown): u is HttpClientRequest => hasPr
  * @category models
  */
 export interface HttpClientRequest extends Inspectable.Inspectable, Pipeable {
-  readonly [TypeId]: TypeId
+  readonly [TypeId]: typeof TypeId
   readonly method: HttpMethod
   readonly url: string
   readonly urlParams: UrlParams.UrlParams

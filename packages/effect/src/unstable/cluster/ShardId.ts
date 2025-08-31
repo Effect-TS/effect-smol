@@ -5,17 +5,7 @@ import * as Equal from "../../interfaces/Equal.ts"
 import * as Hash from "../../interfaces/Hash.ts"
 import * as S from "../../schema/Schema.ts"
 
-/**
- * @since 4.0.0
- * @category Symbols
- */
-export const TypeId: TypeId = "~effect/cluster/ShardId"
-
-/**
- * @since 4.0.0
- * @category Symbols
- */
-export type TypeId = "~effect/cluster/ShardId"
+const TypeId = "~effect/cluster/ShardId"
 
 const constDisableValidation = { disableValidation: true }
 
@@ -36,7 +26,7 @@ export class ShardId extends S.Class<ShardId>(TypeId)({
   /**
    * @since 4.0.0
    */
-  readonly [TypeId]: TypeId = TypeId;
+  readonly [TypeId] = TypeId;
 
   /**
    * @since 4.0.0

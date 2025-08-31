@@ -15,17 +15,7 @@ import { makeHashDigest } from "./internal/crypto.ts"
 import * as Workflow from "./Workflow.ts"
 import type { WorkflowEngine, WorkflowInstance } from "./WorkflowEngine.ts"
 
-/**
- * @since 4.0.0
- * @category Symbols
- */
-export const TypeId: TypeId = "~effect/workflow/Activity"
-
-/**
- * @since 4.0.0
- * @category Symbols
- */
-export type TypeId = "~effect/workflow/Activity"
+const TypeId = "~effect/workflow/Activity"
 
 /**
  * @since 4.0.0
@@ -43,7 +33,7 @@ export interface Activity<
     Success["DecodingServices"] | Error["DecodingServices"] | R | WorkflowEngine | WorkflowInstance
   >
 {
-  readonly [TypeId]: TypeId
+  readonly [TypeId]: typeof TypeId
   readonly name: string
   readonly successSchema: Success
   readonly errorSchema: Error
@@ -79,7 +69,7 @@ export interface Activity<
  * @category Models
  */
 export interface Any {
-  readonly [TypeId]: TypeId
+  readonly [TypeId]: typeof TypeId
   readonly name: string
   readonly executeEncoded: Effect.Effect<any, any, any>
 }
@@ -89,7 +79,7 @@ export interface Any {
  * @category Models
  */
 export interface AnyWithProps {
-  readonly [TypeId]: TypeId
+  readonly [TypeId]: typeof TypeId
   readonly name: string
   readonly successSchema: Schema.Top
   readonly errorSchema: Schema.Top

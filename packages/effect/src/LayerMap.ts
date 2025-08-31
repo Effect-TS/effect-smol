@@ -10,17 +10,7 @@ import * as ServiceMap from "./ServiceMap.ts"
 import type * as Duration from "./time/Duration.ts"
 import type { Mutable } from "./types/Types.ts"
 
-/**
- * @since 3.14.0
- * @category Symbols
- */
-export const TypeId: TypeId = "~effect/LayerMap"
-
-/**
- * @since 3.14.0
- * @category Symbols
- */
-export type TypeId = "~effect/LayerMap"
+const TypeId = "~effect/LayerMap"
 
 /**
  * @since 3.14.0
@@ -60,7 +50,7 @@ export type TypeId = "~effect/LayerMap"
  * ```
  */
 export interface LayerMap<in out K, in out I, in out E = never> {
-  readonly [TypeId]: TypeId
+  readonly [TypeId]: typeof TypeId
 
   /**
    * The internal RcMap that stores the resources.

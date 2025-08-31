@@ -16,24 +16,14 @@ import { Clock } from "../../time/Clock.ts"
 import type { Acquirer, Connection, Row } from "./SqlConnection.ts"
 import type { SqlError } from "./SqlError.ts"
 
-/**
- * @category type id
- * @since 4.0.0
- */
-export const FragmentTypeId: FragmentTypeId = "~effect/sql/Fragment"
-
-/**
- * @category type id
- * @since 4.0.0
- */
-export type FragmentTypeId = "~effect/sql/Fragment"
+const FragmentTypeId = "~effect/sql/Fragment"
 
 /**
  * @category model
  * @since 4.0.0
  */
 export interface Fragment {
-  readonly [FragmentTypeId]: FragmentTypeId
+  readonly [FragmentTypeId]: typeof FragmentTypeId
   readonly segments: ReadonlyArray<Segment>
 }
 

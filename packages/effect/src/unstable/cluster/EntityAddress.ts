@@ -8,17 +8,7 @@ import { EntityId } from "./EntityId.ts"
 import { EntityType } from "./EntityType.ts"
 import { ShardId } from "./ShardId.ts"
 
-/**
- * @since 4.0.0
- * @category type ids
- */
-export const TypeId: TypeId = "~effect/cluster/EntityAddress"
-
-/**
- * @since 4.0.0
- * @category type ids
- */
-export type TypeId = "~effect/cluster/EntityAddress"
+const TypeId = "~effect/cluster/EntityAddress"
 
 /**
  * Represents the unique address of an entity within the cluster.

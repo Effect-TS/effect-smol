@@ -15,17 +15,7 @@ import * as ToParser from "../../schema/ToParser.ts"
 import type * as Stream_ from "../../stream/Stream.ts"
 import * as UrlParams from "./UrlParams.ts"
 
-/**
- * @since 4.0.0
- * @category type ids
- */
-export const TypeId: TypeId = "~effect/http/HttpBody"
-
-/**
- * @since 4.0.0
- * @category type ids
- */
-export type TypeId = "~effect/http/HttpBody"
+const TypeId = "~effect/http/HttpBody"
 
 /**
  * @since 4.0.0
@@ -48,7 +38,7 @@ export declare namespace HttpBody {
    * @category models
    */
   export interface Proto extends Inspectable.Inspectable {
-    readonly [TypeId]: TypeId
+    readonly [TypeId]: typeof TypeId
     readonly _tag: string
     readonly contentType?: string | undefined
     readonly contentLength?: number | undefined
@@ -67,17 +57,7 @@ export declare namespace HttpBody {
   }
 }
 
-/**
- * @since 4.0.0
- * @category type ids
- */
-export const ErrorTypeId: ErrorTypeId = "~effect/http/HttpBody/HttpBodyError"
-
-/**
- * @since 4.0.0
- * @category type ids
- */
-export type ErrorTypeId = "~effect/http/HttpBody/HttpBodyError"
+const HttpBodyErrorTypeId = "~effect/http/HttpBody/HttpBodyError"
 
 /**
  * @since 4.0.0
@@ -90,7 +70,7 @@ export class HttpBodyError extends Data.TaggedError("HttpBodyError")<{
   /**
    * @since 4.0.0
    */
-  readonly [ErrorTypeId]: ErrorTypeId = ErrorTypeId
+  readonly [HttpBodyErrorTypeId] = HttpBodyErrorTypeId
 }
 
 /**
@@ -105,7 +85,7 @@ export type ErrorReason = {
 }
 
 abstract class Proto implements HttpBody.Proto {
-  readonly [TypeId]: TypeId
+  readonly [TypeId]: typeof TypeId
   abstract readonly _tag: string
   constructor() {
     this[TypeId] = TypeId

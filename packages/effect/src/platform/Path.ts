@@ -7,25 +7,8 @@ import * as Layer from "../Layer.ts"
 import * as ServiceMap from "../ServiceMap.ts"
 import { BadArgument } from "./PlatformError.ts"
 
-/**
- * @since 4.0.0
- * @category type ids
- */
-export const TypeId: TypeId = "~effect/Path"
-
-/**
- * @since 4.0.0
- * @category type ids
- * @example
- * ```ts
- * import { Path } from "effect/platform"
- *
- * // Use the TypeId type for type-level operations
- * const isPathTypeId = (value: unknown): value is Path.TypeId =>
- *   typeof value === "string" && value === "~effect/Path"
- * ```
- */
-export type TypeId = "~effect/Path"
+/** @internal */
+export const TypeId = "~effect/platform/Path"
 
 /**
  * @since 4.0.0
@@ -64,7 +47,7 @@ export type TypeId = "~effect/Path"
  * ```
  */
 export interface Path {
-  readonly [TypeId]: TypeId
+  readonly [TypeId]: typeof TypeId
   readonly sep: string
   readonly basename: (path: string, suffix?: string) => string
   readonly dirname: (path: string) => string

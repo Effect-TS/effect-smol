@@ -505,7 +505,7 @@ describe("HttpServer", () => {
           _tag: Schema.tag("CustomError"),
           name: Schema.String
         }) {
-          [HttpServerRespondable.symbol]() {
+          [HttpServerRespondable.TypeId]() {
             return HttpServerResponse.schemaJson(CustomError)(this, { status: 599 })
           }
         }

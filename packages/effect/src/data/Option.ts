@@ -23,6 +23,8 @@ import * as Gen from "../Utils.ts"
 import * as Combiner from "./Combiner.ts"
 import * as Reducer from "./Reducer.ts"
 
+const TypeId = "~effect/data/Option"
+
 /**
  * The `Option` data type represents optional values. An `Option<A>` can either
  * be `Some<A>`, containing a value of type `A`, or `None`, representing the
@@ -62,18 +64,6 @@ import * as Reducer from "./Reducer.ts"
  * @since 2.0.0
  */
 export type Option<A> = None<A> | Some<A>
-
-/**
- * @category Symbols
- * @since 4.0.0
- */
-export const TypeId: TypeId = "~effect/Option"
-
-/**
- * @category Symbols
- * @since 4.0.0
- */
-export type TypeId = "~effect/Option"
 
 /**
  * @category Models

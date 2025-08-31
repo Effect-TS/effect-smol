@@ -19,6 +19,8 @@ import type { Covariant, NoInfer, NotFunction } from "../types/Types.ts"
 import type * as Unify from "../types/Unify.ts"
 import * as Gen from "../Utils.ts"
 
+const TypeId = "~effect/data/Result"
+
 /**
  * Represents a computation that can either succeed with a value of type `A` or fail with an error of type `E`.
  *
@@ -43,38 +45,6 @@ import * as Gen from "../Utils.ts"
  * @since 4.0.0
  */
 export type Result<A, E = never> = Success<A, E> | Failure<A, E>
-
-/**
- * Unique identifier for the Result type.
- *
- * @example
- * ```ts
- * import { Result } from "effect/data"
- *
- * const result = Result.succeed(42)
- * console.log(result[Result.TypeId]) // Access the type identifier
- * ```
- *
- * @category Symbols
- * @since 4.0.0
- */
-export const TypeId: TypeId = "~effect/Result"
-
-/**
- * Type-level identifier for the Result type.
- *
- * @example
- * ```ts
- * import { Result } from "effect/data"
- *
- * type MyResultType = Result.TypeId
- * // This type equals "~effect/Result"
- * ```
- *
- * @category Symbols
- * @since 4.0.0
- */
-export type TypeId = "~effect/Result"
 
 /**
  * Represents a failed computation with an error of type `E`.

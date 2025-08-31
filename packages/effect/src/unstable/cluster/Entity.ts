@@ -42,17 +42,7 @@ import type { Sharding } from "./Sharding.ts"
 import { ShardingConfig } from "./ShardingConfig.ts"
 import * as Snowflake from "./Snowflake.ts"
 
-/**
- * @since 4.0.0
- * @category type ids
- */
-export const TypeId: TypeId = "~effect/cluster/Entity"
-
-/**
- * @since 4.0.0
- * @category type ids
- */
-export type TypeId = "~effect/cluster/Entity"
+const TypeId = "~effect/cluster/Entity"
 
 /**
  * @since 4.0.0
@@ -62,7 +52,7 @@ export interface Entity<
   in out Type extends string,
   in out Rpcs extends Rpc.Any
 > extends Equal.Equal {
-  readonly [TypeId]: TypeId
+  readonly [TypeId]: typeof TypeId
   /**
    * The name of the entity type.
    */

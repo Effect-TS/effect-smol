@@ -19,40 +19,7 @@ import { pipeArguments } from "../interfaces/Pipeable.ts"
 import * as TxRef from "../transactions/TxRef.ts"
 import type { NoInfer } from "../types/Types.ts"
 
-/**
- * Unique identifier for TxChunk instances.
- *
- * @example
- * ```ts
- * import { TxChunk } from "effect/transactions"
- *
- * // Access the TypeId for runtime type checking
- * declare const txChunk: TxChunk.TxChunk<number>
- * console.log(txChunk[TxChunk.TypeId]) // "~effect/TxChunk"
- * ```
- *
- * @since 4.0.0
- * @category symbols
- */
-export const TypeId: TypeId = "~effect/TxChunk"
-
-/**
- * Type identifier for TxChunk instances.
- *
- * @example
- * ```ts
- * import { TxChunk } from "effect/transactions"
- *
- * // Use TypeId for type guards
- * const isTxChunk = (value: unknown): value is TxChunk.TxChunk<any> => {
- *   return typeof value === "object" && value !== null && TxChunk.TypeId in value
- * }
- * ```
- *
- * @since 4.0.0
- * @category symbols
- */
-export type TypeId = "~effect/TxChunk"
+const TypeId = "~effect/transactions/TxChunk"
 
 /**
  * TxChunk is a transactional chunk data structure that provides Software Transactional Memory (STM)
@@ -94,7 +61,7 @@ export type TypeId = "~effect/TxChunk"
  * @category models
  */
 export interface TxChunk<in out A> extends Inspectable, Pipeable {
-  readonly [TypeId]: TypeId
+  readonly [TypeId]: typeof TypeId
   readonly ref: TxRef.TxRef<Chunk.Chunk<A>>
 }
 
@@ -228,9 +195,6 @@ export const fromIterable = <A>(iterable: Iterable<A>): Effect.Effect<TxChunk<A>
  * // Create a TxChunk from an existing TxRef (advanced usage)
  * const ref = TxRef.makeUnsafe(Chunk.fromIterable([1, 2, 3]))
  * const txChunk = TxChunk.makeUnsafe(ref)
- *
- * // Note: Use TxChunk.make() or TxChunk.fromIterable() in most cases
- * console.log(txChunk[TxChunk.TypeId]) // "~effect/TxChunk"
  * ```
  *
  * @since 4.0.0

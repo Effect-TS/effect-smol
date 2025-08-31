@@ -84,17 +84,7 @@ import * as Pull from "../stream/Pull.ts"
 import type * as Types from "../types/Types.ts"
 import type * as Unify from "../types/Unify.ts"
 
-/**
- * @since 4.0.0
- * @category symbols
- */
-export const TypeId: TypeId = "~effect/Channel"
-
-/**
- * @since 4.0.0
- * @category symbols
- */
-export type TypeId = "~effect/Channel"
+const TypeId = "~effect/Channel"
 
 /**
  * Tests if a value is a `Channel`.

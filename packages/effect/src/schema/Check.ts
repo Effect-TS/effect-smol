@@ -143,7 +143,7 @@ export function refine<T extends E, E>(
 
 const brand_ = makeRefine((_u): _u is any => true)
 
-const BRAND_KEY = "~brand.type"
+const BRAND_KEY = "~effect/schema/Check/brand"
 
 /** @internal */
 export function makeBrand<B extends string | symbol, T>(

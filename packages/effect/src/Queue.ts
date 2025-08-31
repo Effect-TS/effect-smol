@@ -50,37 +50,8 @@ import type { Scheduler } from "./Scheduler.ts"
 import * as Pull from "./stream/Pull.ts"
 import type * as Types from "./types/Types.ts"
 
-/**
- * The type identifier for Queue values.
- *
- * @since 3.8.0
- * @category type ids
- */
-export const TypeId: TypeId = "~effect/Queue"
-
-/**
- * The type-level identifier for Queue values.
- *
- * @since 3.8.0
- * @category type ids
- */
-export type TypeId = "~effect/Queue"
-
-/**
- * The type identifier for Dequeue values.
- *
- * @since 3.8.0
- * @category type ids
- */
-export const DequeueTypeId: DequeueTypeId = "~effect/Queue/Dequeue"
-
-/**
- * The type-level identifier for Dequeue values.
- *
- * @since 3.8.0
- * @category type ids
- */
-export type DequeueTypeId = "~effect/Queue/Dequeue"
+const TypeId = "~effect/Queue"
+const DequeueTypeId = "~effect/Queue/Dequeue"
 
 /**
  * Type guard to check if a value is a Queue.

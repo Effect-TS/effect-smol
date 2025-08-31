@@ -13,50 +13,7 @@ import { pipeArguments } from "../interfaces/Pipeable.ts"
 import * as TxRef from "../transactions/TxRef.ts"
 import type { NoInfer } from "../types/Types.ts"
 
-/**
- * Unique identifier for TxHashSet instances.
- *
- * @example
- * ```ts
- * import { TxHashSet } from "effect/transactions"
- *
- * // The TypeId constant can be used for runtime identification
- * console.log(TxHashSet.TypeId) // "~effect/TxHashSet"
- *
- * // Or for creating type guards
- * const isTxHashSet = (value: unknown): value is TxHashSet.TxHashSet<any> => {
- *   return typeof value === "object" && value !== null && TxHashSet.TypeId in value
- * }
- * ```
- *
- * @since 2.0.0
- * @category symbols
- */
-export const TypeId: "~effect/TxHashSet" = "~effect/TxHashSet" as const
-
-/**
- * Type identifier for TxHashSet instances.
- *
- * @example
- * ```ts
- * import { Effect } from "effect"
- * import { TxHashSet } from "effect/transactions"
- *
- * // Use TypeId for type guards in runtime checks
- * const validateTxHashSet = <V>(value: unknown): value is TxHashSet.TxHashSet<V> => {
- *   return typeof value === "object" && value !== null && TxHashSet.TypeId in value
- * }
- *
- * const program = Effect.gen(function* () {
- *   const txSet = yield* TxHashSet.make("apple", "banana")
- *   console.log(validateTxHashSet(txSet)) // true
- * })
- * ```
- *
- * @since 2.0.0
- * @category symbols
- */
-export type TypeId = typeof TypeId
+const TypeId = "~effect/transactions/TxHashSet"
 
 const TxHashSetProto = {
   [TypeId]: TypeId,
@@ -128,7 +85,7 @@ const TxHashSetProto = {
  * @category models
  */
 export interface TxHashSet<in out V> extends Inspectable, Pipeable {
-  readonly [TypeId]: TypeId
+  readonly [TypeId]: typeof TypeId
   readonly ref: TxRef.TxRef<HashSet.HashSet<V>>
 }
 

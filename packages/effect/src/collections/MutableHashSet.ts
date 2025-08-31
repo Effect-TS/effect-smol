@@ -30,23 +30,7 @@ import { format, type Inspectable, NodeInspectSymbol, toJSON } from "../interfac
 import type { Pipeable } from "../interfaces/Pipeable.ts"
 import { pipeArguments } from "../interfaces/Pipeable.ts"
 
-const TypeId: TypeId = "~effect/MutableHashSet"
-
-/**
- * @example
- * ```ts
- * import { MutableHashSet } from "effect/collections"
- *
- * type MyTypeId = MutableHashSet.TypeId
- * const set = MutableHashSet.make("apple", "banana")
- * // The TypeId type represents the unique identifier for MutableHashSet
- * const value: MyTypeId = "~effect/MutableHashSet"
- * ```
- *
- * @since 2.0.0
- * @category symbol
- */
-export type TypeId = "~effect/MutableHashSet"
+const TypeId = "~effect/collections/MutableHashSet"
 
 /**
  * @example
@@ -76,7 +60,7 @@ export type TypeId = "~effect/MutableHashSet"
  * @category models
  */
 export interface MutableHashSet<out V> extends Iterable<V>, Pipeable, Inspectable {
-  readonly [TypeId]: TypeId
+  readonly [TypeId]: typeof TypeId
 
   /** @internal */
   readonly keyMap: MutableHashMap.MutableHashMap<V, boolean>

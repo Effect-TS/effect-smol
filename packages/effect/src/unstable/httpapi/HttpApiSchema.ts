@@ -258,11 +258,8 @@ export interface NoContent extends Schema.Void {
  */
 export const NoContent: NoContent = Empty(204) as any
 
-/**
- * @since 4.0.0
- * @category multipart
- */
-export type MultipartId = "~effect/httpapi/HttpApiSchema/MultipartId"
+/** @internal */
+export type MultipartTypeId = "~effect/httpapi/HttpApiSchema/Multipart"
 
 /**
  * @since 4.0.0
@@ -270,7 +267,7 @@ export type MultipartId = "~effect/httpapi/HttpApiSchema/MultipartId"
  */
 export interface Multipart<S extends Schema.Top> extends
   Schema.Bottom<
-    S["Type"] & Brand<MultipartId>,
+    S["Type"] & Brand<MultipartTypeId>,
     S["Encoded"],
     S["DecodingServices"],
     S["EncodingServices"],
@@ -302,11 +299,8 @@ export const Multipart = <S extends Schema.Top>(self: S, options?: {
     httpApiMultipart: options ?? {}
   }) as Multipart<S>
 
-/**
- * @since 4.0.0
- * @category multipart
- */
-export type MultipartStreamId = "~effect/httpapi/HttpApiSchema/MultipartStreamId"
+/** @internal */
+export type MultipartStreamTypeId = "~effect/httpapi/HttpApiSchema/MultipartStream"
 
 /**
  * @since 4.0.0
@@ -314,7 +308,7 @@ export type MultipartStreamId = "~effect/httpapi/HttpApiSchema/MultipartStreamId
  */
 export interface MultipartStream<S extends Schema.Top> extends
   Schema.Bottom<
-    S["Type"] & Brand<MultipartStreamId>,
+    S["Type"] & Brand<MultipartStreamTypeId>,
     S["Encoded"],
     S["DecodingServices"],
     S["EncodingServices"],

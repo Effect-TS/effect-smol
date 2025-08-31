@@ -64,24 +64,14 @@ export interface FilterEffect<in Input, out Pass, out Fail, out E = never, out R
   (input: Input): Effect<Pass | fail<Fail>, E, R>
 }
 
-/**
- * @since 4.0.0
- * @category fail
- */
-export const FailTypeId: FailTypeId = "~effect/Filter/fail"
-
-/**
- * @since 4.0.0
- * @category fail
- */
-export type FailTypeId = "~effect/Filter/fail"
+const FailTypeId = "~effect/data/Filter/fail"
 
 /**
  * @since 4.0.0
  * @category fail
  */
 export interface fail<out Fail> {
-  readonly [FailTypeId]: FailTypeId
+  readonly [FailTypeId]: typeof FailTypeId
   readonly fail: Fail
 }
 

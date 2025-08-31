@@ -66,20 +66,7 @@ export interface MakeOptions {
   readonly disableValidation?: boolean | undefined
 }
 
-/**
- * The unique identifier for Schema values.
- *
- * @since 4.0.0
- */
-export const TypeId: TypeId = "~effect/schema/Schema"
-
-/**
- * The unique identifier type for Schema values.
- *
- * @since 4.0.0
- * @category symbols
- */
-export type TypeId = "~effect/schema/Schema"
+const TypeId = "~effect/schema/Schema"
 
 /**
  * The base interface for all schemas in the Effect Schema library, exposing all
@@ -110,7 +97,7 @@ export interface Bottom<
   EncodedMutability extends Mutability = "readonly",
   EncodedOptionality extends Optionality = "required"
 > extends Pipeable {
-  readonly [TypeId]: TypeId
+  readonly [TypeId]: typeof TypeId
 
   readonly ast: Ast
   readonly "~rebuild.out": RebuildOut
@@ -236,7 +223,7 @@ export abstract class Bottom$<
     EncodedOptionality
   >
 {
-  readonly [TypeId]: TypeId = TypeId
+  readonly [TypeId] = TypeId
 
   declare readonly "Type": T
   declare readonly "Encoded": E
@@ -1013,14 +1000,14 @@ export interface flip<S extends Top> extends
   readonly schema: S
 }
 
-const FLIP_ID = "~effect/flip$"
+const FlipTypeId = "~effect/schema/Schema/flip$"
 
 class flip$<S extends Top> extends makeWithSchema$<S, flip<S>> implements flip<S> {
-  readonly [FLIP_ID] = FLIP_ID
+  readonly [FlipTypeId] = FlipTypeId
 }
 
 function isFlip$(schema: Top): schema is flip<any> {
-  return Predicate.hasProperty(schema, FLIP_ID) && schema[FLIP_ID] === FLIP_ID
+  return Predicate.hasProperty(schema, FlipTypeId) && schema[FlipTypeId] === FlipTypeId
 }
 
 /**
@@ -4260,7 +4247,7 @@ function makeClass<
       }
     }
 
-    static readonly [TypeId]: TypeId = TypeId
+    static readonly [TypeId] = TypeId
     static readonly [immerable] = true
 
     declare static readonly "Type": Self

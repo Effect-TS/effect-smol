@@ -15,10 +15,10 @@ import type { FiberImpl } from "./effect.ts"
 import { version } from "./version.ts"
 
 /** @internal */
-export const TypeId: Effect.TypeId = `~effect/Effect/${version}` as const
+export const EffectTypeId = `~effect/Effect/${version}` as const
 
 /** @internal */
-export const ExitTypeId: Exit.TypeId = `~effect/Exit/${version}` as const
+export const ExitTypeId = `~effect/Exit/${version}` as const
 
 const effectVariance = {
   _A: identity,
@@ -27,32 +27,32 @@ const effectVariance = {
 }
 
 /** @internal */
-export const identifier = `${TypeId}/identifier` as const
+export const identifier = `${EffectTypeId}/identifier` as const
 /** @internal */
 export type identifier = typeof identifier
 
 /** @internal */
-export const args = `${TypeId}/args` as const
+export const args = `${EffectTypeId}/args` as const
 /** @internal */
 export type args = typeof args
 
 /** @internal */
-export const evaluate = `${TypeId}/evaluate` as const
+export const evaluate = `${EffectTypeId}/evaluate` as const
 /** @internal */
 export type evaluate = typeof evaluate
 
 /** @internal */
-export const contA = `${TypeId}/successCont` as const
+export const contA = `${EffectTypeId}/successCont` as const
 /** @internal */
 export type contA = typeof contA
 
 /** @internal */
-export const contE = `${TypeId}/failureCont` as const
+export const contE = `${EffectTypeId}/failureCont` as const
 /** @internal */
 export type contE = typeof contE
 
 /** @internal */
-export const contAll = `${TypeId}/ensureCont` as const
+export const contAll = `${EffectTypeId}/ensureCont` as const
 /** @internal */
 export type contAll = typeof contAll
 
@@ -86,7 +86,7 @@ export const YieldableProto = {
 
 /** @internal */
 export const EffectProto = {
-  [TypeId]: effectVariance,
+  [EffectTypeId]: effectVariance,
   ...PipeInspectableProto,
   [Symbol.iterator]() {
     return new SingleShotGen(this) as any
@@ -128,7 +128,7 @@ export const StructuralPrototype: Equal.Equal = {
   }
 }
 /** @internal */
-export const isEffect = (u: unknown): u is Effect.Effect<any, any, any> => hasProperty(u, TypeId)
+export const isEffect = (u: unknown): u is Effect.Effect<any, any, any> => hasProperty(u, EffectTypeId)
 
 /** @internal */
 export const isExit = (u: unknown): u is Exit.Exit<unknown, unknown> => hasProperty(u, ExitTypeId)
@@ -138,10 +138,10 @@ export const isExit = (u: unknown): u is Exit.Exit<unknown, unknown> => hasPrope
 // ----------------------------------------------------------------------------
 
 /** @internal */
-export const CauseTypeId: Cause.TypeId = "~effect/Cause"
+export const CauseTypeId = "~effect/Cause"
 
 /** @internal */
-export const CauseFailureTypeId: Cause.FailureTypeId = "~effect/Cause/Failure"
+export const CauseFailureTypeId = "~effect/Cause/Failure"
 
 /** @internal */
 export const isCause = (self: unknown): self is Cause.Cause<unknown> => hasProperty(self, CauseTypeId)
@@ -151,7 +151,7 @@ export const isCauseFailure = (self: unknown): self is Cause.Failure<unknown> =>
 
 /** @internal */
 export class CauseImpl<E> implements Cause.Cause<E> {
-  readonly [CauseTypeId]: Cause.TypeId
+  readonly [CauseTypeId]: typeof CauseTypeId
   readonly failures: ReadonlyArray<
     Cause.Fail<E> | Cause.Die | Cause.Interrupt
   >
@@ -194,7 +194,7 @@ const errorAnnotations = new WeakMap<object, ReadonlyMap<string, unknown>>()
 
 /** @internal */
 export abstract class FailureBase<Tag extends string> implements Cause.Cause.FailureProto<Tag> {
-  readonly [CauseFailureTypeId]: Cause.FailureTypeId
+  readonly [CauseFailureTypeId]: typeof CauseFailureTypeId
   readonly annotations: ReadonlyMap<string, unknown>
   readonly _tag: Tag
 
@@ -620,7 +620,7 @@ export const TaggedError = <Tag extends string>(
 }
 
 /** @internal */
-export const NoSuchElementErrorTypeId: Cause.NoSuchElementErrorTypeId = "~effect/Cause/NoSuchElementError"
+export const NoSuchElementErrorTypeId = "~effect/Cause/NoSuchElementError"
 
 /** @internal */
 export const isNoSuchElementError = (
@@ -629,7 +629,7 @@ export const isNoSuchElementError = (
 
 /** @internal */
 export class NoSuchElementError extends TaggedError("NoSuchElementError") {
-  readonly [NoSuchElementErrorTypeId]: Cause.NoSuchElementErrorTypeId = NoSuchElementErrorTypeId
+  readonly [NoSuchElementErrorTypeId] = NoSuchElementErrorTypeId
   constructor(message?: string) {
     super({ message } as any)
   }

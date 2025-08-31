@@ -19,38 +19,7 @@ import type { Exit } from "./Exit.ts"
 import * as effect from "./internal/effect.ts"
 import type * as ServiceMap from "./ServiceMap.ts"
 
-/**
- * The unique identifier for the `Scope` type.
- *
- * @example
- * ```ts
- * import { Scope } from "effect"
- *
- * const scope = Scope.makeUnsafe()
- * console.log(scope[Scope.TypeId] === Scope.TypeId)
- * // Output: true
- * ```
- *
- * @since 2.0.0
- * @category type ids
- */
-export const TypeId: TypeId = effect.ScopeTypeId
-
-/**
- * The type identifier for the `Scope` type.
- *
- * @example
- * ```ts
- * import { Scope } from "effect"
- *
- * // The TypeId is used internally for type checking
- * type ScopeTypeId = Scope.TypeId
- * ```
- *
- * @since 2.0.0
- * @category type ids
- */
-export type TypeId = "~effect/Scope"
+const TypeId = effect.ScopeTypeId
 
 /**
  * A `Scope` represents a context where resources can be acquired and
@@ -80,7 +49,7 @@ export type TypeId = "~effect/Scope"
  * @category models
  */
 export interface Scope {
-  readonly [TypeId]: TypeId
+  readonly [TypeId]: typeof TypeId
   readonly strategy: "sequential" | "parallel"
   state: Scope.State.Open | Scope.State.Closed | Scope.State.Empty
 }

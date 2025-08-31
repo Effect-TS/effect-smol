@@ -10,17 +10,7 @@ import type * as Schema from "../../schema/Schema.ts"
 import * as Channel from "../../stream/Channel.ts"
 import * as ChannelSchema from "../../stream/ChannelSchema.ts"
 
-/**
- * @since 4.0.0
- * @category type ids
- */
-export const ErrorTypeId: ErrorTypeId = "~effect/encoding/Ndjson/NdjsonError"
-
-/**
- * @since 4.0.0
- * @category type ids
- */
-export type ErrorTypeId = "~effect/encoding/Ndjson/NdjsonError"
+const NdjsonErrorTypeId = "~effect/encoding/Ndjson/NdjsonError"
 
 const encoder = new TextEncoder()
 
@@ -35,7 +25,7 @@ export class NdjsonError extends Data.TaggedError("NdjsonError")<{
   /**
    * @since 4.0.0
    */
-  readonly [ErrorTypeId]: ErrorTypeId = ErrorTypeId
+  readonly [NdjsonErrorTypeId] = NdjsonErrorTypeId
 
   /**
    * @since 4.0.0

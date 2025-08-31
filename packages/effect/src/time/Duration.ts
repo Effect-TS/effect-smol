@@ -27,21 +27,7 @@ import { NodeInspectSymbol } from "../interfaces/Inspectable.ts"
 import type { Pipeable } from "../interfaces/Pipeable.ts"
 import { pipeArguments } from "../interfaces/Pipeable.ts"
 
-/**
- * The unique type identifier for Duration values.
- *
- * @example
- * ```ts
- * import { Duration } from "effect/time"
- *
- * const duration = Duration.seconds(5)
- * console.log(duration[Duration.TypeId]) // Symbol(effect/Duration)
- * ```
- *
- * @category symbols
- * @since 2.0.0
- */
-export const TypeId: unique symbol = Symbol.for("effect/Duration")
+const TypeId = "~effect/time/Duration"
 
 const bigint0 = BigInt(0)
 const bigint24 = BigInt(24)
@@ -49,23 +35,6 @@ const bigint60 = BigInt(60)
 const bigint1e3 = BigInt(1_000)
 const bigint1e6 = BigInt(1_000_000)
 const bigint1e9 = BigInt(1_000_000_000)
-
-/**
- * The unique type identifier for Duration values.
- *
- * @example
- * ```ts
- * import { Duration } from "effect/time"
- *
- * type IdType = Duration.TypeId // unique symbol
- * const duration = Duration.seconds(5)
- * console.log(duration[Duration.TypeId] === Duration.TypeId) // true
- * ```
- *
- * @category symbols
- * @since 2.0.0
- */
-export type TypeId = typeof TypeId
 
 /**
  * Represents a span of time with high precision, supporting operations from nanoseconds to weeks.
@@ -87,7 +56,7 @@ export type TypeId = typeof TypeId
  * @category models
  */
 export interface Duration extends Equal.Equal, Pipeable, Inspectable.Inspectable {
-  readonly [TypeId]: TypeId
+  readonly [TypeId]: typeof TypeId
   readonly value: DurationValue
 }
 

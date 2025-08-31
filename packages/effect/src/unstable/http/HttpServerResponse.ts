@@ -21,24 +21,14 @@ import type { HttpPlatform } from "./HttpPlatform.ts"
 import * as Template from "./Template.ts"
 import * as UrlParams from "./UrlParams.ts"
 
-/**
- * @since 4.0.0
- * @category type ids
- */
-export const TypeId: TypeId = "~effect/http/HttpServerResponse"
-
-/**
- * @since 4.0.0
- * @category type ids
- */
-export type TypeId = "~effect/http/HttpServerResponse"
+const TypeId = "~effect/http/HttpServerResponse"
 
 /**
  * @since 4.0.0
  * @category models
  */
 export interface HttpServerResponse extends Inspectable.Inspectable, Pipeable {
-  readonly [TypeId]: TypeId
+  readonly [TypeId]: typeof TypeId
   readonly status: number
   readonly statusText?: string | undefined
   readonly headers: Headers.Headers

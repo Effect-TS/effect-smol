@@ -13,17 +13,7 @@ import * as Transformation from "../../schema/Transformation.ts"
 import * as Duration from "../../time/Duration.ts"
 import type * as Types from "../../types/Types.ts"
 
-/**
- * @since 4.0.0
- * @category type ids
- */
-export const TypeId: TypeId = "~effect/http/Cookies"
-
-/**
- * @since 4.0.0
- * @category type ids
- */
-export type TypeId = "~effect/http/Cookies"
+const TypeId = "~effect/http/Cookies"
 
 /**
  * @since 4.0.0
@@ -36,7 +26,7 @@ export const isCookies = (u: unknown): u is Cookies => Predicate.hasProperty(u, 
  * @category models
  */
 export interface Cookies extends Pipeable, Inspectable.Inspectable {
-  readonly [TypeId]: TypeId
+  readonly [TypeId]: typeof TypeId
   readonly cookies: Record.ReadonlyRecord<string, Cookie>
 }
 
@@ -59,24 +49,14 @@ export const schema: Schema.Codec<Cookies> = Schema.declare(
   }
 )
 
-/**
- * @since 4.0.0
- * @category type ids
- */
-export const CookieTypeId: CookieTypeId = "~effect/http/Cookies/Cookie"
-
-/**
- * @since 4.0.0
- * @category type ids
- */
-export type CookieTypeId = "~effect/http/Cookies/Cookie"
+const CookieTypeId = "~effect/http/Cookies/Cookie"
 
 /**
  * @since 4.0.0
  * @category cookie
  */
 export interface Cookie extends Inspectable.Inspectable {
-  readonly [CookieTypeId]: CookieTypeId
+  readonly [CookieTypeId]: typeof CookieTypeId
   readonly name: string
   readonly value: string
   readonly valueEncoded: string
@@ -99,17 +79,7 @@ export interface Cookie extends Inspectable.Inspectable {
  */
 export const isCookie = (u: unknown): u is Cookie => Predicate.hasProperty(u, CookieTypeId)
 
-/**
- * @since 4.0.0
- * @category type ids
- */
-export const ErrorTypeId: ErrorTypeId = "~effect/http/Cookies/CookieError"
-
-/**
- * @since 4.0.0
- * @category type ids
- */
-export type ErrorTypeId = "~effect/http/Cookies/CookieError"
+const CookieErrorTypeId = "~effect/http/Cookies/CookieError"
 
 /**
  * @since 4.0.0
@@ -122,7 +92,7 @@ export class CookiesError extends Data.TaggedError("CookieError")<{
   /**
    * @since 4.0.0
    */
-  readonly [ErrorTypeId]: ErrorTypeId = ErrorTypeId
+  readonly [CookieErrorTypeId] = CookieErrorTypeId
 
   /**
    * @since 4.0.0

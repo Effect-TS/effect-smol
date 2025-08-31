@@ -34,51 +34,7 @@ import * as internal from "../internal/matcher.ts"
 import type * as T from "../types/Types.ts"
 import type { Unify } from "../types/Unify.ts"
 
-/**
- * Unique identifier for `Matcher` instances.
- *
- * This symbol serves as a type brand to distinguish `Matcher` objects from other values
- * and enables TypeScript to provide better type checking and IntelliSense support.
- *
- * @example
- * ```ts
- * import { Match } from "effect/match"
- *
- * // The MatcherTypeId is used internally for type checking
- * const matcher = Match.type<string | number>()
- *
- * // TypeScript can detect if something is a Matcher using this symbol
- * console.log(Match.MatcherTypeId in matcher) // true
- * ```
- *
- * @category symbols
- * @since 4.0.0
- */
-export const MatcherTypeId: MatcherTypeId = internal.TypeId
-
-/**
- * Type-level identifier for `Matcher` instances.
- *
- * This type represents the unique symbol used to brand `Matcher` objects,
- * ensuring type safety and proper discrimination from other Effect types.
- *
- * @example
- * ```ts
- * import { Match } from "effect/match"
- *
- * // MatcherTypeId is used in the internal type structure
- * type MyMatcher = {
- *   readonly [Match.MatcherTypeId]: {
- *     readonly _input: unknown
- *     readonly _result: string
- *   }
- * }
- * ```
- *
- * @category symbols
- * @since 4.0.0
- */
-export type MatcherTypeId = "~effect/Match/Matcher"
+const TypeId = internal.TypeId
 
 /**
  * Pattern matching follows a structured process:
@@ -150,7 +106,7 @@ export type Matcher<Input, Filters, RemainingApplied, Result, Provided, Return =
  */
 export interface TypeMatcher<in Input, out Filters, out Remaining, out Result, out Return = any> extends Pipeable {
   readonly _tag: "TypeMatcher"
-  readonly [MatcherTypeId]: {
+  readonly [TypeId]: {
     readonly _input: T.Contravariant<Input>
     readonly _filters: T.Covariant<Filters>
     readonly _remaining: T.Covariant<Remaining>
@@ -191,7 +147,7 @@ export interface ValueMatcher<in Input, Filters, out Remaining, out Result, Prov
   extends Pipeable
 {
   readonly _tag: "ValueMatcher"
-  readonly [MatcherTypeId]: {
+  readonly [TypeId]: {
     readonly _input: T.Contravariant<Input>
     readonly _filters: T.Covariant<Filters>
     readonly _result: T.Covariant<Result>
@@ -1828,51 +1784,7 @@ export const exhaustive: <I, F, A, Pr, Ret>(
   self: Matcher<I, F, never, A, Pr, Ret>
 ) => [Pr] extends [never] ? (u: I) => Unify<A> : Unify<A> = internal.exhaustive
 
-/**
- * Unique identifier for `SafeRefinement` instances.
- *
- * This symbol serves as a type brand to distinguish `SafeRefinement` objects
- * from other predicates and functions, enabling better type checking and
- * runtime identification.
- *
- * @example
- * ```ts
- * import { Match } from "effect/match"
- *
- * // SafeRefinement predicates carry this identifier
- * const customPredicate = Match.string
- *
- * // Can be used to identify SafeRefinement instances
- * if (Match.SafeRefinementId in customPredicate) {
- *   console.log("This is a SafeRefinement")
- * }
- * ```
- *
- * @category symbols
- * @since 4.0.0
- */
-export const SafeRefinementId: SafeRefinementId = "~effect/SafeRefinement"
-
-/**
- * Type-level identifier for `SafeRefinement` instances.
- *
- * This type represents the unique symbol used to brand `SafeRefinement` objects,
- * ensuring type safety and proper discrimination from regular predicates.
- *
- * @example
- * ```ts
- * import { Match } from "effect/match"
- *
- * // SafeRefinementId is used in the type structure
- * type MySafeRefinement = {
- *   readonly [Match.SafeRefinementId]: (a: unknown) => string
- * }
- * ```
- *
- * @category symbols
- * @since 4.0.0
- */
-export type SafeRefinementId = "~effect/SafeRefinement"
+const SafeRefinementId = "~effect/match/Match/SafeRefinement"
 
 /**
  * A safe refinement that narrows types without runtime errors.

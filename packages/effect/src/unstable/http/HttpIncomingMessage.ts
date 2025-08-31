@@ -13,17 +13,8 @@ import type * as Stream from "../../stream/Stream.ts"
 import type * as Headers from "./Headers.ts"
 import * as UrlParams from "./UrlParams.ts"
 
-/**
- * @since 4.0.0
- * @category type ids
- */
-export const TypeId: TypeId = "~effect/http/HttpIncomingMessage"
-
-/**
- * @since 4.0.0
- * @category type ids
- */
-export type TypeId = "~effect/http/HttpIncomingMessage"
+/** @internal */
+export const TypeId = "~effect/http/HttpIncomingMessage"
 
 /**
  * @since 4.0.0
@@ -36,7 +27,7 @@ export const isHttpIncomingMessage = (u: unknown): u is HttpIncomingMessage => h
  * @category models
  */
 export interface HttpIncomingMessage<E = unknown> extends Inspectable.Inspectable {
-  readonly [TypeId]: TypeId
+  readonly [TypeId]: typeof TypeId
   readonly headers: Headers.Headers
   readonly remoteAddress: string | undefined
   readonly json: Effect.Effect<unknown, E>

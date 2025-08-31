@@ -11,17 +11,7 @@ import type * as Request from "./HttpServerRequest.ts"
 import * as Respondable from "./HttpServerRespondable.ts"
 import * as Response from "./HttpServerResponse.ts"
 
-/**
- * @since 4.0.0
- * @category type id
- */
-export const TypeId: TypeId = "~effect/http/HttpServerError"
-
-/**
- * @since 4.0.0
- * @category type id
- */
-export type TypeId = "~effect/http/HttpServerError"
+const TypeId = "~effect/http/HttpServerError"
 
 /**
  * @since 4.0.0
@@ -42,7 +32,7 @@ export class RequestError extends Data.TaggedError("HttpServerError")<{
   /**
    * @since 4.0.0
    */
-  readonly [TypeId]: TypeId = TypeId
+  readonly [TypeId] = TypeId
 
   /**
    * @since 4.0.0
@@ -52,7 +42,7 @@ export class RequestError extends Data.TaggedError("HttpServerError")<{
   /**
    * @since 4.0.0
    */
-  [Respondable.symbol]() {
+  [Respondable.TypeId]() {
     return Effect.succeed(Response.empty({ status: this.reason === "RouteNotFound" ? 404 : 400 }))
   }
 
@@ -85,7 +75,7 @@ export class ResponseError extends Data.TaggedError("HttpServerError")<{
   /**
    * @since 4.0.0
    */
-  readonly [TypeId]: TypeId = TypeId
+  readonly [TypeId] = TypeId
   /**
    * @since 4.0.0
    */
@@ -99,7 +89,7 @@ export class ResponseError extends Data.TaggedError("HttpServerError")<{
   /**
    * @since 4.0.0
    */
-  [Respondable.symbol]() {
+  [Respondable.TypeId]() {
     return Effect.succeed(Response.empty({ status: 500 }))
   }
 
@@ -123,7 +113,7 @@ export class ServeError extends Data.TaggedError("ServeError")<{
   /**
    * @since 4.0.0
    */
-  readonly [TypeId]: TypeId = TypeId
+  readonly [TypeId] = TypeId
 }
 
 /**

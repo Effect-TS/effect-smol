@@ -230,7 +230,7 @@ const makeFile = (() => {
   const nodeWriteAll = nodeWriteFactory("writeAll")
 
   class FileImpl implements FileSystem.File {
-    readonly [FileSystem.FileTypeId]: FileSystem.FileTypeId
+    readonly [FileSystem.FileTypeId]: typeof FileSystem.FileTypeId
     readonly fd: FileSystem.File.Descriptor
     private readonly append: boolean
 

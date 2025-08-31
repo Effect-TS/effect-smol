@@ -10,14 +10,14 @@ import * as Stream_ from "../../stream/Stream.ts"
  * @since 4.0.0
  * @category Stream
  */
-export const StreamSchemaId: "~effect/rpc/RpcSchema/Stream" = "~effect/rpc/RpcSchema/Stream" as const
+export const StreamSchemaTypeId = "~effect/rpc/RpcSchema/StreamSchema"
 
 /**
  * @since 4.0.0
  * @category Stream
  */
 export const isStreamSchema = (schema: Schema.Top): schema is Stream<any, any> =>
-  schema.ast.annotations !== undefined && StreamSchemaId in schema.ast.annotations
+  schema.ast.annotations !== undefined && StreamSchemaTypeId in schema.ast.annotations
 
 /**
  * @since 4.0.0
@@ -29,7 +29,7 @@ export function getStreamSchemas(
   readonly success: Schema.Top
   readonly error: Schema.Top
 } | undefined {
-  return ast.annotations?.[StreamSchemaId] as any
+  return ast.annotations?.[StreamSchemaTypeId] as any
 }
 
 /**
@@ -63,7 +63,7 @@ export const Stream = <A extends Schema.Top, E extends Schema.Top>(
 ): Stream<A, E> => {
   const schema = Schema.declare(Stream_.isStream)
   return Object.assign(
-    schema.annotate({ [StreamSchemaId]: options }),
+    schema.annotate({ [StreamSchemaTypeId]: options }),
     options
   ) as any as Stream<A, E>
 }

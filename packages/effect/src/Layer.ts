@@ -32,21 +32,7 @@ import * as Scope from "./Scope.ts"
 import * as ServiceMap from "./ServiceMap.ts"
 import type * as Types from "./types/Types.ts"
 
-/**
- * The unique type identifier for Layer.
- *
- * @since 2.0.0
- * @category symbols
- */
-export const TypeId: TypeId = "~effect/Layer"
-
-/**
- * The TypeId type alias for Layer.
- *
- * @since 2.0.0
- * @category symbols
- */
-export type TypeId = "~effect/Layer"
+const TypeId = "~effect/Layer"
 
 /**
  * A Layer describes how to build one or more services for dependency injection.
@@ -117,21 +103,7 @@ export type Error<T extends Any> = T extends Layer<infer _ROut, infer _E, infer 
  */
 export type Success<T extends Any> = T extends Layer<infer _ROut, infer _E, infer _RIn> ? _ROut : never
 
-/**
- * The unique type identifier for MemoMap.
- *
- * @since 2.0.0
- * @category symbols
- */
-export const MemoMapTypeId: MemoMapTypeId = "~effect/Layer/MemoMap"
-
-/**
- * The TypeId type alias for MemoMap.
- *
- * @since 2.0.0
- * @category symbols
- */
-export type MemoMapTypeId = "~effect/Layer/MemoMap"
+const MemoMapTypeId = "~effect/Layer/MemoMap"
 
 /**
  * A MemoMap is used to memoize layer construction and ensure sharing of layers.
@@ -163,7 +135,7 @@ export type MemoMapTypeId = "~effect/Layer/MemoMap"
  * @category models
  */
 export interface MemoMap {
-  readonly [MemoMapTypeId]: MemoMapTypeId
+  readonly [MemoMapTypeId]: typeof MemoMapTypeId
   readonly getOrElseMemoize: <RIn, E, ROut>(
     layer: Layer<ROut, E, RIn>,
     scope: Scope.Scope,

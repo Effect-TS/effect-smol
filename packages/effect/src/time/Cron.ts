@@ -18,56 +18,7 @@ import * as String from "../primitives/String.ts"
 import type * as DateTime from "../time/DateTime.ts"
 import type { Mutable } from "../types/Types.ts"
 
-/**
- * Unique identifier for the Cron type.
- *
- * This symbol is used for nominal typing to distinguish Cron instances
- * from other objects with similar structure.
- *
- * @example
- * ```ts
- * import { Cron } from "effect/time"
- *
- * const cronInstance = Cron.make({
- *   minutes: [0],
- *   hours: [9],
- *   days: [1, 15],
- *   months: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
- *   weekdays: [1, 2, 3, 4, 5]
- * })
- *
- * console.log(cronInstance[Cron.TypeId]) // Symbol(effect/Cron)
- * ```
- *
- * @since 2.0.0
- * @category symbols
- */
-export const TypeId: TypeId = "~effect/Cron"
-
-/**
- * Type representing the unique identifier for Cron.
- *
- * This type is used in the Cron interface to provide nominal typing
- * and ensure type safety when working with Cron instances.
- *
- * @example
- * ```ts
- * import { Cron } from "effect/time"
- *
- * // The TypeId is part of the Cron interface
- * const cron: Cron.Cron = Cron.make({
- *   minutes: [0],
- *   hours: [12],
- *   days: [1, 15],
- *   months: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
- *   weekdays: [1, 2, 3, 4, 5]
- * })
- * ```
- *
- * @since 2.0.0
- * @category symbols
- */
-export type TypeId = "~effect/Cron"
+const TypeId = "~effect/time/Cron"
 
 /**
  * Represents a cron schedule with time constraints and timezone information.
@@ -98,7 +49,7 @@ export type TypeId = "~effect/Cron"
  * @category models
  */
 export interface Cron extends Pipeable, Equal.Equal, Inspectable {
-  readonly [TypeId]: TypeId
+  readonly [TypeId]: typeof TypeId
   readonly tz: DateTime.TimeZone | undefined
   readonly seconds: ReadonlySet<number>
   readonly minutes: ReadonlySet<number>
@@ -292,27 +243,7 @@ const nextLookupTable = (values: ReadonlyArray<number>, size: number): Array<num
   return result
 }
 
-/**
- * Unique identifier for CronParseError.
- *
- * This symbol is used for nominal typing to distinguish CronParseError
- * instances from other error types.
- *
- * @since 2.0.0
- * @category symbols
- */
-export const CronParseErrorTypeId: CronParseErrorTypeId = "~effect/Cron/CronParseError"
-
-/**
- * Type representing the unique identifier for CronParseError.
- *
- * This type is used in the CronParseError interface to provide nominal typing
- * and ensure type safety when working with cron parsing errors.
- *
- * @since 2.0.0
- * @category symbols
- */
-export type CronParseErrorTypeId = "~effect/Cron/CronParseError"
+const CronParseErrorTypeId = "~effect/time/Cron/CronParseError"
 
 /**
  * Represents an error that occurs when parsing a cron expression fails.

@@ -36,21 +36,7 @@ import { PipeInspectableProto } from "./internal/core.ts"
 import * as MutableRef from "./MutableRef.ts"
 import type { Invariant } from "./types/Types.ts"
 
-/**
- * The type identifier for Ref values.
- *
- * @since 2.0.0
- * @category symbols
- */
-export const TypeId: TypeId = "~effect/Ref"
-
-/**
- * The type-level identifier for Ref values.
- *
- * @since 2.0.0
- * @category symbols
- */
-export type TypeId = "~effect/Ref"
+const TypeId = "~effect/Ref"
 
 /**
  * A mutable reference that provides atomic read, write, and update operations.
@@ -90,19 +76,6 @@ export interface Ref<in out A> extends Ref.Variance<A> {
 
 /**
  * The Ref namespace containing type definitions and utilities.
- *
- * @example
- * ```ts
- * import { Ref } from "effect"
- *
- * // Access the TypeId constant
- * console.log(Ref.TypeId) // "~effect/Ref"
- *
- * // Check if a value has the Ref TypeId
- * const myRef = Ref.makeUnsafe(42)
- * const hasRefId = Ref.TypeId in myRef
- * console.log(hasRefId) // true
- * ```
  *
  * @since 2.0.0
  * @category models

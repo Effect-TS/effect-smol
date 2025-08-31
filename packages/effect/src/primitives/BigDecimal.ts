@@ -27,21 +27,7 @@ import { type Pipeable, pipeArguments } from "../interfaces/Pipeable.ts"
 const DEFAULT_PRECISION = 100
 const FINITE_INT_REGEX = /^[+-]?\d+$/
 
-/**
- * The type identifier symbol for BigDecimal.
- *
- * @category symbols
- * @since 2.0.0
- */
-export const TypeId: TypeId = "~effect/BigDecimal"
-
-/**
- * Type representing the BigDecimal type identifier.
- *
- * @category symbols
- * @since 2.0.0
- */
-export type TypeId = "~effect/BigDecimal"
+const TypeId = "~effect/primitives/BigDecimal"
 
 /**
  * Represents an arbitrary precision decimal number.
@@ -60,7 +46,7 @@ export type TypeId = "~effect/BigDecimal"
  * @since 2.0.0
  */
 export interface BigDecimal extends Equal.Equal, Pipeable, Inspectable {
-  readonly [TypeId]: TypeId
+  readonly [TypeId]: typeof TypeId
   readonly value: bigint
   readonly scale: number
   /** @internal */

@@ -270,8 +270,8 @@ function wsDefaultRun(this: WebSocketContext, _: Uint8Array | string) {
 }
 
 class BunServerRequest extends Inspectable.Class implements ServerRequest.HttpServerRequest {
-  readonly [ServerRequest.TypeId]: ServerRequest.TypeId
-  readonly [IncomingMessage.TypeId]: IncomingMessage.TypeId
+  readonly [ServerRequest.TypeId]: typeof ServerRequest.TypeId
+  readonly [IncomingMessage.TypeId]: typeof IncomingMessage.TypeId
   readonly source: Request
   public resolve: (response: Response) => void
   readonly url: string
@@ -520,7 +520,7 @@ class BunServerRequest extends Inspectable.Class implements ServerRequest.HttpSe
           runRaw((data) => typeof data === "string" ? handler(encoder.encode(data)) : handler(data))
 
         return Socket.Socket.of({
-          [Socket.TypeId]: Socket.TypeId,
+          [Socket.TypeId]: Socket.TypeId as typeof Socket.TypeId,
           run,
           runRaw,
           writer

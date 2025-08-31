@@ -8,7 +8,7 @@ import * as Hash from "../interfaces/Hash.ts"
 import { toJSON } from "../interfaces/Inspectable.ts"
 import { exitFail, exitSucceed, NoSuchElementError, PipeInspectableProto, YieldableProto } from "./core.ts"
 
-const TypeId: Option.TypeId = "~effect/Option"
+const TypeId = "~effect/data/Option"
 
 const CommonProto = {
   [TypeId]: {

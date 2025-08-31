@@ -130,35 +130,8 @@ export type ExcludeHalt<E> = Exclude<E, Halt<any>>
 // Halt
 // -----------------------------------------------------------------------------
 
-/**
- * The type identifier for Halt errors.
- *
- * @example
- * ```ts
- * import { Pull } from "effect/stream"
- *
- * console.log(Pull.HaltTypeId) // "~effect/Pull/Halt"
- * ```
- *
- * @since 4.0.0
- * @category Halt
- */
-export const HaltTypeId: HaltTypeId = "~effect/Pull/Halt"
-
-/**
- * The type identifier for Halt errors.
- *
- * @example
- * ```ts
- * import { Pull } from "effect/stream"
- *
- * type Id = Pull.HaltTypeId // "~effect/Pull/Halt"
- * ```
- *
- * @since 4.0.0
- * @category Halt
- */
-export type HaltTypeId = "~effect/Pull/Halt"
+/** @internal */
+export const HaltTypeId = "~effect/stream/Pull/Halt"
 
 /**
  * Represents a halt error that carries a leftover value.
@@ -171,7 +144,7 @@ export class Halt<out L> {
   /**
    * @since 4.0.0
    */
-  readonly [HaltTypeId]: HaltTypeId = HaltTypeId
+  readonly [HaltTypeId] = HaltTypeId
 
   readonly leftover: L
 

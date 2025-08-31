@@ -546,7 +546,7 @@ const ResumeRpc = Rpc.make("resume")
   .annotate(ClusterSchema.Persisted, true)
   .annotate(ClusterSchema.Uninterruptible, true)
 
-const payloadParentKey = "~@effect/workflow/parent" as const
+const payloadParentKey = "~effect/cluster/ClusterWorkflowEngine/payloadParentKey"
 
 const makeWorkflowEntity = (workflow: Workflow.AnyWithProps) =>
   Entity.make(`Workflow/${workflow.name}`, [

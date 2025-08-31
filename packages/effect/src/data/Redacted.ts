@@ -15,34 +15,7 @@ import { PipeInspectableProto } from "../internal/core.ts"
 import { redactedRegistry } from "../internal/redacted.ts"
 import type { Covariant } from "../types/Types.ts"
 
-/**
- * @example
- * ```ts
- * import { Redacted } from "effect/data"
- *
- * // The TypeId is used internally for type identification
- * const secret = Redacted.make("my-secret")
- * console.log(Redacted.TypeId) // "~effect/Redacted"
- * ```
- *
- * @since 3.3.0
- * @category symbols
- */
-export const TypeId: TypeId = "~effect/Redacted"
-
-/**
- * @example
- * ```ts
- * import { Redacted } from "effect/data"
- *
- * // TypeId type represents the unique identifier for Redacted instances
- * type RedactedTypeId = Redacted.TypeId // "~effect/Redacted"
- * ```
- *
- * @since 3.3.0
- * @category symbols
- */
-export type TypeId = "~effect/Redacted"
+const TypeId = "~effect/data/Redacted"
 
 /**
  * @example

@@ -137,7 +137,8 @@ export {
  * @since 4.0.0
  * @category fields
  */
-export const fields: <A extends VariantSchema.Struct<any>>(self: A) => A[VariantSchema.TypeId] = VariantSchema.fields
+export const fields: <A extends VariantSchema.Struct<any>>(self: A) => A[typeof VariantSchema.TypeId] =
+  VariantSchema.fields
 
 /**
  * @since 4.0.0

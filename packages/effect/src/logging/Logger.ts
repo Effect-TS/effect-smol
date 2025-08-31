@@ -123,33 +123,7 @@ import * as ServiceMap from "../ServiceMap.ts"
 import type * as Duration from "../time/Duration.ts"
 import type * as Types from "../types/Types.ts"
 
-/**
- * @example
- * ```ts
- * import { Logger } from "effect/logging"
- *
- * console.log(Logger.TypeId) // "~effect/Logger"
- * ```
- *
- * @since 4.0.0
- * @category symbols
- */
-export const TypeId: TypeId = "~effect/Logger"
-
-/**
- * @example
- * ```ts
- * import { Logger } from "effect/logging"
- *
- * // TypeId is used for type checking and identification
- * const logger = Logger.make(() => {})
- * console.log(logger[Logger.TypeId]) // VarianceStruct
- * ```
- *
- * @since 4.0.0
- * @category symbols
- */
-export type TypeId = "~effect/Logger"
+const TypeId = "~effect/Logger"
 
 /**
  * @example

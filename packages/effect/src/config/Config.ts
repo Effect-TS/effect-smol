@@ -21,17 +21,7 @@ import * as Duration_ from "../time/Duration.ts"
 import type { Path, SourceError } from "./ConfigProvider.ts"
 import * as ConfigProvider from "./ConfigProvider.ts"
 
-/**
- * @since 4.0.0
- * @category symbols
- */
-export const TypeId: TypeId = "~effect/config/Config"
-
-/**
- * @since 4.0.0
- * @category symbols
- */
-export type TypeId = "~effect/config/Config"
+const TypeId = "~effect/config/Config"
 
 /**
  * A type guard that checks if a value is a Config instance.
@@ -54,7 +44,7 @@ export type ConfigError = SourceError | Schema.SchemaError
  * @since 4.0.0
  */
 export interface Config<out T> extends Pipeable, Effect.Yieldable<Config<T>, T, ConfigError> {
-  readonly [TypeId]: TypeId
+  readonly [TypeId]: typeof TypeId
   readonly parse: (provider: ConfigProvider.ConfigProvider) => Effect.Effect<T, ConfigError>
 }
 

@@ -17,17 +17,7 @@ import * as effect from "../internal/effect.ts"
 import * as ServiceMap from "../ServiceMap.ts"
 import * as Duration from "../time/Duration.ts"
 
-/**
- * @since 4.0.0
- * @category Type Identifiers
- */
-export const TypeId: TypeId = "~effect/caching/Cache"
-
-/**
- * @since 4.0.0
- * @category Type Identifiers
- */
-export type TypeId = "~effect/caching/Cache"
+const TypeId = "~effect/caching/Cache"
 
 /**
  * A cache interface that provides a mutable key-value store with automatic TTL management,
@@ -108,7 +98,7 @@ export type TypeId = "~effect/caching/Cache"
  * @category Models
  */
 export interface Cache<in out Key, in out A, in out E = never, out R = never> extends Pipeable {
-  readonly [TypeId]: TypeId
+  readonly [TypeId]: typeof TypeId
   readonly map: MutableHashMap.MutableHashMap<Key, Entry<A, E>>
   readonly capacity: number
   readonly lookup: (key: Key) => Effect.Effect<A, E, R>

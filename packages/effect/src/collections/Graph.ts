@@ -25,21 +25,7 @@ const getMapSafe = <K, V>(map: Map<K, V>, key: K): Option.Option<V> => {
   return Option.none()
 }
 
-/**
- * Unique identifier for Graph instances.
- *
- * @since 4.0.0
- * @category symbol
- */
-export const TypeId: "~effect/Graph" = "~effect/Graph" as const
-
-/**
- * Type identifier for Graph instances.
- *
- * @since 4.0.0
- * @category symbol
- */
-export type TypeId = typeof TypeId
+const TypeId = "~effect/collections/Graph"
 
 /**
  * Node index for node identification using plain numbers.
@@ -84,7 +70,7 @@ export type Kind = "directed" | "undirected"
  * @category models
  */
 export interface Proto<out N, out E> extends Iterable<readonly [NodeIndex, N]>, Equal.Equal, Pipeable, Inspectable {
-  readonly [TypeId]: TypeId
+  readonly [TypeId]: typeof TypeId
   readonly nodes: Map<NodeIndex, N>
   readonly edges: Map<EdgeIndex, Edge<E>>
   readonly adjacency: Map<NodeIndex, Array<EdgeIndex>>

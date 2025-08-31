@@ -16,17 +16,7 @@ import type * as Pull from "../../stream/Pull.ts"
 import { Packr, Unpackr } from "./Msgpackr.ts"
 import * as Msgpackr from "./Msgpackr.ts"
 
-/**
- * @since 4.0.0
- * @category errors
- */
-export const ErrorTypeId: ErrorTypeId = "~effect/encoding/MsgPack/MsgPackError"
-
-/**
- * @since 4.0.0
- * @category errors
- */
-export type ErrorTypeId = "~effect/encoding/MsgPack/MsgPackError"
+const MsgPackErrorTypeId = "~effect/encoding/MsgPack/MsgPackError"
 
 /**
  * @since 4.0.0
@@ -39,7 +29,7 @@ export class MsgPackError extends Data.TaggedError("MsgPackError")<{
   /**
    * @since 4.0.0
    */
-  readonly [ErrorTypeId]: ErrorTypeId = ErrorTypeId
+  readonly [MsgPackErrorTypeId] = MsgPackErrorTypeId
 
   /**
    * @since 4.0.0

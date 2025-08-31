@@ -5,18 +5,6 @@ import * as Effect from "../../Effect.ts"
 import * as Schema from "../../schema/Schema.ts"
 import * as HttpApiSchema from "./HttpApiSchema.ts"
 
-/**
- * @since 4.0.0
- * @category type ids
- */
-export const TypeId: TypeId = "~effect/httpapi/HttpApiError"
-
-/**
- * @since 4.0.0
- * @category type ids
- */
-export type TypeId = "~effect/httpapi/HttpApiError"
-
 // TODO: Add schema for structured issues
 // /**
 //  * @since 4.0.0

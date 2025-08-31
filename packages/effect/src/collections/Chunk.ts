@@ -88,36 +88,7 @@ import { pipeArguments } from "../interfaces/Pipeable.ts"
 import type { TypeLambda } from "../types/HKT.ts"
 import type { Covariant, NoInfer } from "../types/Types.ts"
 
-/**
- * @example
- * ```ts
- * import { Chunk } from "effect/collections"
- *
- * console.log(Chunk.TypeId) // "~effect/Chunk"
- * ```
- *
- * @category symbol
- * @since 2.0.0
- */
-export const TypeId: TypeId = "~effect/Chunk"
-
-/**
- * The type identifier for Chunk.
- *
- * @example
- * ```ts
- * import { Chunk } from "effect/collections"
- *
- * declare const chunk: Chunk.Chunk<number>
- *
- * // TypeId is used internally for type safety
- * const hasTypeId = Chunk.TypeId in chunk
- * ```
- *
- * @category symbol
- * @since 2.0.0
- */
-export type TypeId = "~effect/Chunk"
+const TypeId = "~effect/collections/Chunk"
 
 /**
  * A Chunk is an immutable, ordered collection optimized for efficient concatenation and access patterns.

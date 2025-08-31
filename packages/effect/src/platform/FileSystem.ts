@@ -52,27 +52,7 @@ import * as Stream from "../stream/Stream.ts"
 import type { PlatformError } from "./PlatformError.ts"
 import { BadArgument, SystemError } from "./PlatformError.ts"
 
-/**
- * The type identifier for the FileSystem service.
- *
- * This constant is used internally for nominal typing and to distinguish
- * FileSystem instances from other objects at runtime.
- *
- * @since 4.0.0
- * @category TypeId
- */
-export const TypeId: TypeId = "~effect/platform/FileSystem"
-
-/**
- * Type-level identifier for the FileSystem service.
- *
- * This type represents the unique string literal used to identify the FileSystem
- * service type. It enables nominal typing for FileSystem implementations.
- *
- * @since 4.0.0
- * @category TypeId
- */
-export type TypeId = "~effect/platform/FileSystem"
+const TypeId = "~effect/platform/FileSystem"
 
 /**
  * Core interface for file system operations in Effect.
@@ -113,7 +93,7 @@ export type TypeId = "~effect/platform/FileSystem"
  * @category model
  */
 export interface FileSystem {
-  readonly [TypeId]: TypeId
+  readonly [TypeId]: typeof TypeId
 
   /**
    * Check if a file can be accessed.
@@ -880,7 +860,7 @@ export const FileSystem: ServiceMap.Key<FileSystem, FileSystem> = ServiceMap.Key
  * @category constructor
  */
 export const make = (
-  impl: Omit<FileSystem, TypeId | "exists" | "readFileString" | "stream" | "sink" | "writeFileString">
+  impl: Omit<FileSystem, typeof TypeId | "exists" | "readFileString" | "stream" | "sink" | "writeFileString">
 ): FileSystem =>
   FileSystem.of({
     ...impl,
@@ -1135,27 +1115,8 @@ export const makeNoop = (fileSystem: Partial<FileSystem>): FileSystem =>
 export const layerNoop = (fileSystem: Partial<FileSystem>): Layer.Layer<FileSystem> =>
   Layer.succeed(FileSystem)(makeNoop(fileSystem))
 
-/**
- * Unique symbol identifier for the File type.
- *
- * This symbol is used for nominal typing to distinguish File instances
- * from other objects and enable type-safe operations.
- *
- * @since 4.0.0
- * @category type id
- */
-export const FileTypeId: FileTypeId = "~effect/platform/FileSystem/File"
-
-/**
- * Type representing the File type identifier.
- *
- * This type is used in the File interface to provide nominal typing
- * and ensure type safety when working with File instances.
- *
- * @since 4.0.0
- * @category type id
- */
-export type FileTypeId = "~effect/platform/FileSystem/File"
+/** @internal */
+export const FileTypeId = "~effect/platform/FileSystem/File"
 
 /**
  * Type guard to check if a value is a File instance.
@@ -1212,7 +1173,7 @@ export const isFile = (u: unknown): u is File => typeof u === "object" && u !== 
  * @category model
  */
 export interface File {
-  readonly [FileTypeId]: FileTypeId
+  readonly [FileTypeId]: typeof FileTypeId
   readonly fd: File.Descriptor
   readonly stat: Effect.Effect<File.Info, PlatformError>
   readonly seek: (offset: SizeInput, from: SeekMode) => Effect.Effect<void>

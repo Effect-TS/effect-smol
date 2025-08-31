@@ -17,33 +17,7 @@ import { type Pipeable } from "./interfaces/Pipeable.ts"
 import { PipeInspectableProto } from "./internal/core.ts"
 import type * as Scope from "./Scope.ts"
 
-/**
- * @since 2.0.0
- * @category type ids
- * @example
- * ```ts
- * import { FiberMap } from "effect"
- *
- * declare const fiberMap: FiberMap.FiberMap<string>
- *
- * // Check if a value has the FiberMap type id
- * const hasTypeId = FiberMap.TypeId in fiberMap
- * ```
- */
-export const TypeId: unique symbol = Symbol.for("effect/FiberMap")
-
-/**
- * @since 2.0.0
- * @category type ids
- * @example
- * ```ts
- * import { FiberMap } from "effect"
- *
- * // TypeId is the type of the FiberMap type identifier
- * type Id = FiberMap.TypeId
- * ```
- */
-export type TypeId = typeof TypeId
+const TypeId = "~effect/FiberMap"
 
 /**
  * A FiberMap is a collection of fibers, indexed by a key. When the associated
@@ -75,7 +49,7 @@ export type TypeId = typeof TypeId
 export interface FiberMap<in out K, out A = unknown, out E = unknown>
   extends Pipeable, Inspectable.Inspectable, Iterable<[K, Fiber.Fiber<A, E>]>
 {
-  readonly [TypeId]: TypeId
+  readonly [TypeId]: typeof TypeId
   readonly deferred: Deferred.Deferred<void, unknown>
   /** @internal */
   state: {

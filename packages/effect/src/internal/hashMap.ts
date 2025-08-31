@@ -14,7 +14,7 @@ import { pipeArguments } from "../interfaces/Pipeable.ts"
 import type { NoInfer } from "../types/Types.ts"
 
 /** @internal */
-export const HashMapTypeId: "~effect/HashMap" = "~effect/HashMap" as const
+export const HashMapTypeId = "~effect/collections/HashMap"
 
 /** @internal */
 export type HashMapTypeId = typeof HashMapTypeId

@@ -34,24 +34,15 @@ export {
   schemaHeaders
 } from "./HttpIncomingMessage.ts"
 
-/**
- * @since 4.0.0
- * @category type ids
- */
-export const TypeId: TypeId = "~effect/http/HttpClientResponse"
-
-/**
- * @since 4.0.0
- * @category type ids
- */
-export type TypeId = "~effect/http/HttpClientResponse"
+/** @internal */
+export const TypeId = "~effect/http/HttpClientResponse"
 
 /**
  * @since 4.0.0
  * @category models
  */
 export interface HttpClientResponse extends HttpIncomingMessage.HttpIncomingMessage<Error.ResponseError> {
-  readonly [TypeId]: TypeId
+  readonly [TypeId]: typeof TypeId
   readonly request: HttpClientRequest.HttpClientRequest
   readonly status: number
   readonly cookies: Cookies.Cookies
@@ -217,8 +208,8 @@ export const filterStatusOk = (self: HttpClientResponse): Effect.Effect<HttpClie
 // -----------------------------------------------------------------------------
 
 class WebHttpClientResponse extends Inspectable.Class implements HttpClientResponse {
-  readonly [HttpIncomingMessage.TypeId]: HttpIncomingMessage.TypeId
-  readonly [TypeId]: TypeId
+  readonly [HttpIncomingMessage.TypeId]: typeof HttpIncomingMessage.TypeId
+  readonly [TypeId]: typeof TypeId
 
   readonly request: HttpClientRequest.HttpClientRequest
   private readonly source: globalThis.Response

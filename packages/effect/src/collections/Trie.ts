@@ -22,23 +22,7 @@ import type { Pipeable } from "../interfaces/Pipeable.ts"
 import * as TR from "../internal/trie.ts"
 import type { Covariant, NoInfer } from "../types/Types.ts"
 
-const TypeId: TypeId = "~effect/Trie"
-
-/**
- * @example
- * ```ts
- * import * as Trie from "effect/collections/Trie"
- *
- * type TrieTypeId = Trie.TypeId
- * const trie = Trie.make(["apple", 1], ["banana", 2])
- * // The TypeId type represents the unique identifier for Trie
- * const value: TrieTypeId = "~effect/Trie"
- * ```
- *
- * @since 2.0.0
- * @category symbol
- */
-export type TypeId = "~effect/Trie"
+const TypeId = TR.TrieTypeId
 
 /**
  * @example

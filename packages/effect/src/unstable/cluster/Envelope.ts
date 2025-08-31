@@ -12,17 +12,8 @@ import type * as Rpc from "../rpc/Rpc.ts"
 import { EntityAddress } from "./EntityAddress.ts"
 import { type Snowflake, SnowflakeFromBigInt } from "./Snowflake.ts"
 
-/**
- * @since 4.0.0
- * @category type ids
- */
-export const TypeId: TypeId = "~effect/cluster/Envelope"
-
-/**
- * @since 4.0.0
- * @category type ids
- */
-export type TypeId = "~effect/cluster/Envelope"
+/** @internal */
+export const TypeId = "~effect/cluster/Envelope"
 
 /**
  * @since 4.0.0
@@ -52,7 +43,7 @@ export declare namespace Envelope {
  * @category models
  */
 export interface Request<in out Rpc extends Rpc.Any> {
-  readonly [TypeId]: TypeId
+  readonly [TypeId]: typeof TypeId
   readonly _tag: "Request"
   readonly requestId: Snowflake
   readonly address: EntityAddress
@@ -117,7 +108,7 @@ export class AckChunk extends Schema.Class<AckChunk>("effect/cluster/Envelope/Ac
   /**
    * @since 4.0.0
    */
-  readonly [TypeId]: TypeId = TypeId
+  readonly [TypeId] = TypeId
 
   /**
    * @since 4.0.0
@@ -162,7 +153,7 @@ export class Interrupt extends Schema.Class<Interrupt>("effect/cluster/Envelope/
   /**
    * @since 4.0.0
    */
-  readonly [TypeId]: TypeId = TypeId
+  readonly [TypeId] = TypeId
 
   /**
    * @since 4.0.0

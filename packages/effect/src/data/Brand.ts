@@ -34,17 +34,7 @@ import * as Data from "./Data.ts"
 import * as Option from "./Option.ts"
 import * as Result from "./Result.ts"
 
-/**
- * @category symbols
- * @since 2.0.0
- */
-export const TypeId: TypeId = "~effect/Brand"
-
-/**
- * @category symbols
- * @since 2.0.0
- */
-export type TypeId = "~effect/Brand"
+const TypeId = "~effect/data/Brand"
 
 /**
  * A generic interface that defines a branded type.
@@ -148,9 +138,9 @@ export declare namespace Brand {
    */
   export type Brands<P> = P extends Brand<any> ? Types.UnionToIntersection<
       {
-        [k in keyof P[TypeId]]: k extends string | symbol ? Brand<k>
+        [k in keyof P[typeof TypeId]]: k extends string | symbol ? Brand<k>
           : never
-      }[keyof P[TypeId]]
+      }[keyof P[typeof TypeId]]
     >
     : never
 

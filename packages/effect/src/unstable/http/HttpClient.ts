@@ -30,17 +30,7 @@ import * as HttpMethod from "./HttpMethod.ts"
 import * as TraceContext from "./HttpTraceContext.ts"
 import * as UrlParams from "./UrlParams.ts"
 
-/**
- * @since 4.0.0
- * @category type ids
- */
-export const TypeId: TypeId = "~effect/http/HttpClient"
-
-/**
- * @since 4.0.0
- * @category type ids
- */
-export type TypeId = "~effect/http/HttpClient"
+const TypeId = "~effect/http/HttpClient"
 
 /**
  * @since 4.0.0
@@ -63,7 +53,7 @@ export declare namespace HttpClient {
    * @category models
    */
   export interface With<E, R = never> extends Pipeable, Inspectable.Inspectable {
-    readonly [TypeId]: TypeId
+    readonly [TypeId]: typeof TypeId
     readonly preprocess: Preprocess<E, R>
     readonly postprocess: Postprocess<E, R>
     readonly execute: (
@@ -1041,8 +1031,8 @@ class InterruptibleResponse implements HttpClientResponse.HttpClientResponse {
     this.controller = controller
   }
 
-  readonly [HttpClientResponse.TypeId]: HttpClientResponse.TypeId = HttpClientResponse.TypeId
-  readonly [HttpIncomingMessage.TypeId]: HttpIncomingMessage.TypeId = HttpIncomingMessage.TypeId
+  readonly [HttpClientResponse.TypeId] = HttpClientResponse.TypeId
+  readonly [HttpIncomingMessage.TypeId] = HttpIncomingMessage.TypeId
 
   private applyInterrupt<A, E, R>(effect: Effect.Effect<A, E, R>) {
     return Effect.suspend(() => {

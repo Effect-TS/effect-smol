@@ -8,17 +8,7 @@ import * as Schema from "../../schema/Schema.ts"
 import * as ToPretty from "../../schema/ToPretty.ts"
 import { RunnerAddress } from "./RunnerAddress.ts"
 
-/**
- * @since 4.0.0
- * @category type ids
- */
-export const TypeId: TypeId = "~effect/cluster/Runner"
-
-/**
- * @since 4.0.0
- * @category type ids
- */
-export type TypeId = "~effect/cluster/Runner"
+const TypeId = "~effect/cluster/Runner"
 
 /**
  * A `Runner` represents a physical application server that is capable of running

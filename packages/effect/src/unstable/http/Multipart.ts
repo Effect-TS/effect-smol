@@ -23,17 +23,8 @@ import * as Stream from "../../stream/Stream.ts"
 import * as IncomingMessage from "./HttpIncomingMessage.ts"
 import * as MP from "./Multipasta.ts"
 
-/**
- * @since 4.0.0
- * @category type ids
- */
-export const TypeId: TypeId = "~effect/http/Multipart"
-
-/**
- * @since 4.0.0
- * @category type ids
- */
-export type TypeId = "~effect/http/Multipart"
+/** @internal */
+export const TypeId = "~effect/http/Multipart"
 
 /**
  * @since 4.0.0
@@ -50,7 +41,7 @@ export declare namespace Part {
    * @category models
    */
   export interface Proto extends Inspectable.Inspectable {
-    readonly [TypeId]: TypeId
+    readonly [TypeId]: typeof TypeId
     readonly _tag: string
   }
 }
@@ -124,23 +115,13 @@ export interface Persisted {
   readonly [key: string]: ReadonlyArray<PersistedFile> | ReadonlyArray<string> | string
 }
 
-/**
- * @since 4.0.0
- * @category Errors
- */
-export const ErrorTypeId: ErrorTypeId = "~effect/http/Multipart/MultipartError"
+const MultipartErrorTypeId = "~effect/http/Multipart/MultipartError"
 
 /**
  * @since 4.0.0
  * @category Errors
  */
-export type ErrorTypeId = "~effect/http/Multipart/MultipartError"
-
-/**
- * @since 4.0.0
- * @category Errors
- */
-export class MultipartError extends Schema.ErrorClass<MultipartError>(ErrorTypeId)({
+export class MultipartError extends Schema.ErrorClass<MultipartError>(MultipartErrorTypeId)({
   _tag: Schema.tag("MultipartError"),
   reason: Schema.Literals(["FileTooLarge", "FieldTooLarge", "BodyTooLarge", "TooManyParts", "InternalError", "Parse"]),
   cause: Schema.Defect
@@ -148,7 +129,7 @@ export class MultipartError extends Schema.ErrorClass<MultipartError>(ErrorTypeI
   /**
    * @since 4.0.0
    */
-  readonly [ErrorTypeId]: ErrorTypeId = ErrorTypeId
+  readonly [MultipartErrorTypeId] = MultipartErrorTypeId
 
   /**
    * @since 4.0.0
@@ -366,7 +347,7 @@ function convertError(cause: MP.MultipartError): MultipartError {
 }
 
 abstract class PartBase extends Inspectable.Class {
-  readonly [TypeId]: TypeId
+  readonly [TypeId]: typeof TypeId
   constructor() {
     super()
     this[TypeId] = TypeId

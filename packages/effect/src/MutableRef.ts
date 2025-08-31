@@ -36,23 +36,7 @@ import { type Inspectable, toJSON } from "./interfaces/Inspectable.ts"
 import type { Pipeable } from "./interfaces/Pipeable.ts"
 import { PipeInspectableProto } from "./internal/core.ts"
 
-const TypeId: TypeId = "~effect/MutableRef"
-
-/**
- * @example
- * ```ts
- * import { MutableRef } from "effect"
- *
- * type RefTypeId = MutableRef.TypeId
- * const ref = MutableRef.make(42)
- * // The TypeId type represents the unique identifier for MutableRef
- * const value: RefTypeId = "~effect/MutableRef"
- * ```
- *
- * @since 2.0.0
- * @category symbol
- */
-export type TypeId = "~effect/MutableRef"
+const TypeId = "~effect/MutableRef"
 
 /**
  * @example
@@ -90,7 +74,7 @@ export type TypeId = "~effect/MutableRef"
  * @category models
  */
 export interface MutableRef<out T> extends Pipeable, Inspectable {
-  readonly [TypeId]: TypeId
+  readonly [TypeId]: typeof TypeId
   current: T
 }
 

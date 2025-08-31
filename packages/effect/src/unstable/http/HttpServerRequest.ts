@@ -30,24 +30,15 @@ export {
   MaxBodySize
 } from "./HttpIncomingMessage.ts"
 
-/**
- * @since 4.0.0
- * @category type ids
- */
-export const TypeId: TypeId = "~effect/http/HttpServerRequest"
-
-/**
- * @since 4.0.0
- * @category type ids
- */
-export type TypeId = "~effect/http/HttpServerRequest"
+/** @internal */
+export const TypeId = "~effect/http/HttpServerRequest"
 
 /**
  * @since 4.0.0
  * @category models
  */
 export interface HttpServerRequest extends HttpIncomingMessage.HttpIncomingMessage<HttpServerError> {
-  readonly [TypeId]: TypeId
+  readonly [TypeId]: typeof TypeId
   readonly source: unknown
   readonly url: string
   readonly originalUrl: string
@@ -298,8 +289,8 @@ const removeHost = (url: string) => {
 }
 
 class ServerRequestImpl extends Inspectable.Class implements HttpServerRequest {
-  readonly [TypeId]: TypeId
-  readonly [HttpIncomingMessage.TypeId]: HttpIncomingMessage.TypeId
+  readonly [TypeId]: typeof TypeId
+  readonly [HttpIncomingMessage.TypeId]: typeof HttpIncomingMessage.TypeId
   readonly source: Request
   readonly url: string
   public headersOverride?: Headers.Headers | undefined

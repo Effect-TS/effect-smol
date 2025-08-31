@@ -15,31 +15,7 @@ import { PipeInspectableProto } from "./internal/core.ts"
 import type { Scheduler } from "./Scheduler.ts"
 import type * as Scope from "./Scope.ts"
 
-/**
- * @since 2.0.0
- * @category type ids
- * @example
- * ```ts
- * import { FiberHandle } from "effect"
- *
- * const typeId = FiberHandle.TypeId
- * console.log(typeId) // "~effect/FiberHandle"
- * ```
- */
-export const TypeId: TypeId = "~effect/FiberHandle"
-
-/**
- * @since 2.0.0
- * @category type ids
- * @example
- * ```ts
- * import type { FiberHandle } from "effect"
- *
- * // TypeId is used to identify FiberHandle instances
- * type MyTypeId = FiberHandle.TypeId
- * ```
- */
-export type TypeId = "~effect/FiberHandle"
+const TypeId = "~effect/FiberHandle"
 
 /**
  * @since 2.0.0
@@ -62,7 +38,7 @@ export type TypeId = "~effect/FiberHandle"
  * ```
  */
 export interface FiberHandle<out A = unknown, out E = unknown> extends Pipeable, Inspectable.Inspectable {
-  readonly [TypeId]: TypeId
+  readonly [TypeId]: typeof TypeId
   readonly deferred: Deferred.Deferred<void, unknown>
   state: {
     readonly _tag: "Open"

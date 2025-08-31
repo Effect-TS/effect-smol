@@ -15,47 +15,7 @@ import * as ServiceMap from "./ServiceMap.ts"
 import { Clock } from "./time/Clock.ts"
 import * as Duration from "./time/Duration.ts"
 
-/**
- * The unique identifier for the RcMap type.
- *
- * @since 3.5.0
- * @category type ids
- * @example
- * ```ts
- * import { RcMap } from "effect"
- *
- * // TypeId is used internally for type identification
- * console.log(RcMap.TypeId) // "~effect/RcMap"
- *
- * // Check if an object is an RcMap
- * declare const value: unknown
- * const isRcMap = typeof value === "object" &&
- *   value !== null &&
- *   RcMap.TypeId in value
- * ```
- */
-export const TypeId: TypeId = "~effect/RcMap"
-
-/**
- * The type representing the unique identifier for RcMap.
- *
- * @since 3.5.0
- * @category type ids
- * @example
- * ```ts
- * import { RcMap } from "effect"
- *
- * // TypeId type represents the literal string identifier
- * type Id = RcMap.TypeId // "~effect/RcMap"
- *
- * // Used in type-level operations and pattern matching
- * declare const id: RcMap.TypeId
- * if (id === "~effect/RcMap") {
- *   console.log("This is an RcMap type identifier")
- * }
- * ```
- */
-export type TypeId = "~effect/RcMap"
+const TypeId = "~effect/RcMap"
 
 /**
  * An `RcMap` is a reference-counted map data structure that manages the lifecycle
@@ -92,7 +52,7 @@ export type TypeId = "~effect/RcMap"
  * ```
  */
 export interface RcMap<in out K, in out A, in out E = never> extends Pipeable {
-  readonly [TypeId]: TypeId
+  readonly [TypeId]: typeof TypeId
   readonly lookup: (key: K) => Effect.Effect<A, E, Scope.Scope>
   readonly services: ServiceMap.ServiceMap<never>
   readonly scope: Scope.Scope

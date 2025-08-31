@@ -14,19 +14,11 @@ import { dual, pipe } from "../Function.ts"
 const randomHashCache = new WeakMap<object, number>()
 
 /**
- * The unique symbol used to identify objects that implement the Hash interface.
+ * The unique identifier used to identify objects that implement the Hash interface.
  *
- * @example
- * ```ts
- * import { Hash } from "effect/interfaces"
- *
- * console.log(Hash.symbol) // "~effect/Hash"
- * ```
- *
- * @category symbols
  * @since 2.0.0
  */
-export const symbol: "~effect/Hash" = "~effect/Hash" as const
+export const symbol = "~effect/interfaces/Hash"
 
 /**
  * A type that represents an object that can be hashed.

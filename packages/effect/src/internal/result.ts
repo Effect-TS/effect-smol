@@ -8,10 +8,7 @@ import { toJSON } from "../interfaces/Inspectable.ts"
 import { exitFail, exitSucceed, PipeInspectableProto, YieldableProto } from "./core.ts"
 import * as option from "./option.ts"
 
-/**
- * @internal
- */
-export const TypeId: Result.TypeId = "~effect/Result"
+const TypeId = "~effect/data/Result"
 
 const CommonProto = {
   [TypeId]: {

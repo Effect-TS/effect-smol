@@ -9,17 +9,7 @@ import { EntityAddress } from "./EntityAddress.ts"
 import { RunnerAddress } from "./RunnerAddress.ts"
 import { SnowflakeFromString } from "./Snowflake.ts"
 
-/**
- * @since 4.0.0
- * @category Symbols
- */
-export const TypeId: TypeId = "~effect/cluster/ClusterError"
-
-/**
- * @since 4.0.0
- * @category Symbols
- */
-export type TypeId = "~effect/cluster/ClusterError"
+const TypeId = "~effect/cluster/ClusterError"
 
 /**
  * Represents an error that occurs when a Runner receives a message for an entity

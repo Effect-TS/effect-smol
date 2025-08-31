@@ -24,24 +24,14 @@ import * as Issue from "../../schema/Issue.ts"
 import * as Schema from "../../schema/Schema.ts"
 import * as Transformation from "../../schema/Transformation.ts"
 
-/**
- * @since 4.0.0
- * @category models
- */
-export const TypeId: TypeId = "~effect/http/UrlParams"
-
-/**
- * @since 4.0.0
- * @category models
- */
-export type TypeId = "~effect/http/UrlParams"
+const TypeId = "~effect/http/UrlParams"
 
 /**
  * @since 4.0.0
  * @category models
  */
 export interface UrlParams extends Pipeable, Inspectable, Iterable<readonly [string, string]> {
-  readonly [TypeId]: TypeId
+  readonly [TypeId]: typeof TypeId
   readonly params: ReadonlyArray<readonly [string, string]>
 }
 

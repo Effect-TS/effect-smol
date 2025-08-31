@@ -10,31 +10,11 @@ import { hasProperty } from "../data/Predicate.ts"
 import * as Hash from "../interfaces/Hash.ts"
 
 /**
- * The unique symbol used to identify objects that implement the `Equal` interface.
+ * The unique identifier used to identify objects that implement the `Equal` interface.
  *
- * @example
- * ```ts
- * import { Equal, Hash } from "effect/interfaces"
- *
- * class Person implements Equal.Equal {
- *   constructor(private name: string, private age: number) {}
- *
- *   [Equal.symbol](that: Equal.Equal): boolean {
- *     return that instanceof Person &&
- *            this.name === that.name &&
- *            this.age === that.age
- *   }
- *
- *   [Hash.symbol](): number {
- *     return Hash.string(this.name) + this.age
- *   }
- * }
- * ```
- *
- * @category symbols
  * @since 2.0.0
  */
-export const symbol: "~effect/Equal" = "~effect/Equal" as const
+export const symbol = "~effect/interfaces/Equal"
 
 /**
  * An interface defining objects that can determine equality with other `Equal` objects.

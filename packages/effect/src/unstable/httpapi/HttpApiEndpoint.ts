@@ -22,17 +22,7 @@ import type * as HttpApiGroup from "./HttpApiGroup.ts"
 import type * as HttpApiMiddleware from "./HttpApiMiddleware.ts"
 import * as HttpApiSchema from "./HttpApiSchema.ts"
 
-/**
- * @since 4.0.0
- * @category type ids
- */
-export const TypeId: TypeId = "~effect/httpapi/HttpApiEndpoint"
-
-/**
- * @since 4.0.0
- * @category type ids
- */
-export type TypeId = "~effect/httpapi/HttpApiEndpoint"
+const TypeId = "~effect/httpapi/HttpApiEndpoint"
 
 /**
  * @since 4.0.0
@@ -528,7 +518,7 @@ export type Request<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
     & ([_PathSchema["Type"]] extends [never] ? {} : { readonly path: _PathSchema["Type"] })
     & ([_UrlParams["Type"]] extends [never] ? {} : { readonly urlParams: _UrlParams["Type"] })
     & ([_Payload["Type"]] extends [never] ? {}
-      : _Payload["Type"] extends Brand<HttpApiSchema.MultipartStreamId> ?
+      : _Payload["Type"] extends Brand<HttpApiSchema.MultipartStreamTypeId> ?
         { readonly payload: Stream.Stream<Multipart.Part, Multipart.MultipartError> }
       : { readonly payload: _Payload["Type"] })
     & ([_Headers] extends [never] ? {} : { readonly headers: _Headers["Type"] })
@@ -582,7 +572,7 @@ export type ClientRequest<
   & ([Headers["Type"]] extends [never] ? {} : { readonly headers: Headers["Type"] })
   & ([Payload["Type"]] extends [never] ? {}
     : Payload["Type"] extends infer P ?
-      P extends Brand<HttpApiSchema.MultipartId> | Brand<HttpApiSchema.MultipartStreamId>
+      P extends Brand<HttpApiSchema.MultipartTypeId> | Brand<HttpApiSchema.MultipartStreamTypeId>
         ? { readonly payload: FormData }
       : { readonly payload: Schema.Schema.Type<Payload> }
     : { readonly payload: Payload })

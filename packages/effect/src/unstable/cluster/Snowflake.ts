@@ -12,23 +12,13 @@ import { Clock } from "../../time/Clock.ts"
 import * as DateTime from "../../time/DateTime.ts"
 import type { MachineId } from "./MachineId.ts"
 
-/**
- * @since 4.0.0
- * @category Symbols
- */
-export const TypeId: TypeId = "~effect/cluster/Snowflake"
-
-/**
- * @since 4.0.0
- * @category Symbols
- */
-export type TypeId = "~effect/cluster/Snowflake"
+const TypeId = "~effect/cluster/Snowflake"
 
 /**
  * @since 4.0.0
  * @category Models
  */
-export type Snowflake = Brand.Branded<bigint, TypeId>
+export type Snowflake = Brand.Branded<bigint, typeof TypeId>
 
 /**
  * @since 4.0.0

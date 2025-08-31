@@ -12,35 +12,7 @@ import * as Effect from "../Effect.ts"
 import { dual } from "../Function.ts"
 import type { NoInfer } from "../types/Types.ts"
 
-/**
- * @since 4.0.0
- * @category Symbols
- * @example
- * ```ts
- * import { TxRef } from "effect/transactions"
- *
- * declare const ref: TxRef.TxRef<number>
- *
- * // Access the TypeId
- * console.log(ref[TxRef.TypeId])
- * ```
- */
-export const TypeId: TypeId = "~effect/TxRef"
-
-/**
- * @since 4.0.0
- * @category Symbols
- * @example
- * ```ts
- * import { TxRef } from "effect/transactions"
- *
- * // Use TypeId for type guards or branding
- * const checkTxRef = (value: unknown): value is TxRef.TxRef<any> => {
- *   return typeof value === "object" && value !== null && TxRef.TypeId in value
- * }
- * ```
- */
-export type TypeId = "~effect/TxRef"
+const TypeId = "~effect/transactions/TxRef"
 
 /**
  * TxRef is a transactional value, it can be read and modified within the body of a transaction.
@@ -73,7 +45,7 @@ export type TypeId = "~effect/TxRef"
  * ```
  */
 export interface TxRef<in out A> {
-  readonly [TypeId]: TypeId
+  readonly [TypeId]: typeof TypeId
 
   version: number
   pending: Map<unknown, () => void>
