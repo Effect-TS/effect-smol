@@ -339,7 +339,8 @@ const causePrettyError = (
     if (typeof original.stack === "string") {
       error.stack = cleanErrorStack(original.stack, error, annotations)
     } else {
-      error.stack = `${error.name}: ${error.message}`
+      const stack = `${error.name}: ${error.message}`
+      error.stack = annotations ? addStackAnnotations(stack, annotations) : stack
     }
     for (const key of Object.keys(original)) {
       if (!(key in error)) {
@@ -388,15 +389,25 @@ const cleanErrorStack = (
     }
     out.push(lines[i])
   }
-  const span = annotations?.get(CurrentSpanKey.key) as Tracer.Span | undefined
-  const defStack = (annotations?.get(defErrorKey.key) as Error | undefined)?.stack
+  return annotations ? addStackAnnotations(out.join("\n"), annotations) : out.join("\n")
+}
+
+const addStackAnnotations = (stack: string, annotations: ReadonlyMap<string, unknown>) => {
   const callsiteStack = (annotations?.get(callsiteErrorKey.key) as Error | undefined)?.stack
+  if (callsiteStack) {
+    stack = `${stack}\n${callsiteStack.split("\n")[2]}`
+  }
 
-  if (callsiteStack) out.push(callsiteStack.split("\n")[2])
-  if (defStack) out.push(defStack.split("\n")[2])
-  if (span) pushSpanStack(out, span)
+  const defStack = (annotations?.get(defErrorKey.key) as Error | undefined)?.stack
+  if (defStack) {
+    stack = `${stack}\n${defStack.split("\n")[2]}`
+  }
 
-  return out.join("\n")
+  const span = annotations?.get(CurrentSpanKey.key) as Tracer.Span | undefined
+  if (span) {
+    stack = `${stack}\n${currentSpanStack(span)}`
+  }
+  return stack
 }
 
 const interruptCauseStack = (error: Error, interrupts: Array<Cause.Interrupt>): string => {
@@ -405,12 +416,13 @@ const interruptCauseStack = (error: Error, interrupts: Array<Cause.Interrupt>): 
     const fiberId = current.fiberId !== undefined ? `#${current.fiberId}` : "unknown"
     const span = current.annotations.get(InterruptorSpanKey.key) as Tracer.Span | undefined
     out.push(`    at fiber (${fiberId})`)
-    if (span) pushSpanStack(out, span)
+    if (span) out.push(currentSpanStack(span))
   }
   return out.join("\n")
 }
 
-const pushSpanStack = (out: Array<string>, span: Tracer.Span) => {
+const currentSpanStack = (span: Tracer.Span): string => {
+  const out: Array<string> = []
   let current: Tracer.AnySpan | undefined = span
   let i = 0
   while (current && current._tag === "Span" && i < 10) {
@@ -431,6 +443,7 @@ const pushSpanStack = (out: Array<string>, span: Tracer.Span) => {
     current = current.parent
     i++
   }
+  return out.join("\n")
 }
 
 /** @internal */

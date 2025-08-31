@@ -370,6 +370,10 @@ export class SchemaError {
   /**
    * @since 4.0.0
    */
+  readonly name: string = "SchemaError"
+  /**
+   * @since 4.0.0
+   */
   readonly issue: Issue.Issue
   /**
    * @since 4.0.0
