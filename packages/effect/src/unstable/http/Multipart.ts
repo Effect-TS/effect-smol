@@ -4,6 +4,7 @@
 import * as Arr from "../../collections/Array.ts"
 import * as Option from "../../data/Option.ts"
 import * as Predicate from "../../data/Predicate.ts"
+import * as UndefinedOr from "../../data/UndefinedOr.ts"
 import * as Effect from "../../Effect.ts"
 import * as Exit from "../../Exit.ts"
 import { constant, dual } from "../../Function.ts"
@@ -244,13 +245,10 @@ export const makeConfig = (
     const mimeTypes = ServiceMap.get(fiber.services, FieldMimeTypes)
     return Effect.succeed<MP.BaseConfig>({
       headers,
-      maxParts: Option.getOrUndefined(fiber.getRef(MaxParts)),
+      maxParts: fiber.getRef(MaxParts),
       maxFieldSize: Number(fiber.getRef(MaxFieldSize)),
-      maxPartSize: fiber.getRef(MaxFileSize).pipe(Option.map(Number), Option.getOrUndefined),
-      maxTotalSize: fiber.getRef(IncomingMessage.MaxBodySize).pipe(
-        Option.map(Number),
-        Option.getOrUndefined
-      ),
+      maxPartSize: UndefinedOr.map(fiber.getRef(MaxFileSize), Number),
+      maxTotalSize: UndefinedOr.map(fiber.getRef(IncomingMessage.MaxBodySize), Number),
       isFile: mimeTypes.length === 0 ? undefined : (info: MP.PartInfo): boolean =>
         !mimeTypes.some(
           (_) => info.contentType.includes(_)
@@ -551,10 +549,10 @@ class PersistedFileImpl extends PartBase implements PersistedFile {
  * @category References
  */
 export const limitsServices = (options: {
-  readonly maxParts?: Option.Option<number> | undefined
+  readonly maxParts?: number | undefined
   readonly maxFieldSize?: FileSystem.SizeInput | undefined
-  readonly maxFileSize?: Option.Option<FileSystem.SizeInput> | undefined
-  readonly maxTotalSize?: Option.Option<FileSystem.SizeInput> | undefined
+  readonly maxFileSize?: FileSystem.SizeInput | undefined
+  readonly maxTotalSize?: FileSystem.SizeInput | undefined
   readonly fieldMimeTypes?: ReadonlyArray<string> | undefined
 }): ServiceMap.ServiceMap<never> => {
   const map = new Map<string, unknown>()
@@ -565,10 +563,10 @@ export const limitsServices = (options: {
     map.set(MaxFieldSize.key, FileSystem.Size(options.maxFieldSize))
   }
   if (options.maxFileSize !== undefined) {
-    map.set(MaxFileSize.key, Option.map(options.maxFileSize, FileSystem.Size))
+    map.set(MaxFileSize.key, UndefinedOr.map(options.maxFileSize, FileSystem.Size))
   }
   if (options.maxTotalSize !== undefined) {
-    map.set(IncomingMessage.MaxBodySize.key, Option.map(options.maxTotalSize, FileSystem.Size))
+    map.set(IncomingMessage.MaxBodySize.key, UndefinedOr.map(options.maxTotalSize, FileSystem.Size))
   }
   if (options.fieldMimeTypes !== undefined) {
     map.set(FieldMimeTypes.key, options.fieldMimeTypes)
@@ -586,10 +584,10 @@ export declare namespace withLimits {
    * @category fiber refs
    */
   export type Options = {
-    readonly maxParts?: Option.Option<number> | undefined
+    readonly maxParts?: number | undefined
     readonly maxFieldSize?: FileSystem.SizeInput | undefined
-    readonly maxFileSize?: Option.Option<FileSystem.SizeInput> | undefined
-    readonly maxTotalSize?: Option.Option<FileSystem.SizeInput> | undefined
+    readonly maxFileSize?: FileSystem.SizeInput | undefined
+    readonly maxTotalSize?: FileSystem.SizeInput | undefined
     readonly fieldMimeTypes?: ReadonlyArray<string> | undefined
   }
 }
@@ -598,8 +596,8 @@ export declare namespace withLimits {
  * @since 4.0.0
  * @category References
  */
-export const MaxParts = ServiceMap.Reference<Option.Option<number>>("effect/http/Multipart/MaxParts", {
-  defaultValue: Option.none<number>
+export const MaxParts = ServiceMap.Reference<number | undefined>("effect/http/Multipart/MaxParts", {
+  defaultValue: () => undefined
 })
 
 /**
@@ -614,9 +612,9 @@ export const MaxFieldSize = ServiceMap.Reference<FileSystem.SizeInput>("effect/h
  * @since 4.0.0
  * @category References
  */
-export const MaxFileSize = ServiceMap.Reference<Option.Option<FileSystem.SizeInput>>(
+export const MaxFileSize = ServiceMap.Reference<FileSystem.SizeInput | undefined>(
   "effect/http/Multipart/MaxFileSize",
-  { defaultValue: Option.none<FileSystem.SizeInput> }
+  { defaultValue: () => undefined }
 )
 
 /**

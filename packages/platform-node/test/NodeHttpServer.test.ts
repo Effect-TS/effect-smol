@@ -1,7 +1,6 @@
 import { NodeHttpServer } from "@effect/platform-node"
 import { assert, describe, expect, it } from "@effect/vitest"
 import { Effect } from "effect"
-import * as Option from "effect/data/Option"
 import * as Fiber from "effect/Fiber"
 import * as Layer from "effect/Layer"
 import * as Tracer from "effect/observability/Tracer"
@@ -127,7 +126,7 @@ describe("HttpServer", () => {
       ).pipe(
         HttpRouter.serve,
         Layer.build,
-        Effect.provideService(Multipart.MaxFileSize, Option.some(100))
+        Effect.provideService(Multipart.MaxFileSize, 100)
       )
       const client = yield* HttpClient.HttpClient
       const formData = new FormData()

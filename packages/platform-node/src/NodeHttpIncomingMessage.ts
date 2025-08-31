@@ -1,7 +1,6 @@
 /**
  * @since 1.0.0
  */
-import * as Option from "effect/data/Option"
 import * as Effect from "effect/Effect"
 import * as Inspectable from "effect/interfaces/Inspectable"
 import type * as Stream from "effect/stream/Stream"
@@ -57,7 +56,7 @@ export abstract class NodeHttpIncomingMessage<E> extends Inspectable.Class
         (maxBodySize) =>
           NodeStream.toString(() => this.source, {
             onError: this.onError,
-            maxBytes: Option.getOrUndefined(maxBodySize)
+            maxBytes: maxBodySize
           })
       )
     ))
@@ -99,7 +98,7 @@ export abstract class NodeHttpIncomingMessage<E> extends Inspectable.Class
     return Effect.withFiber((fiber) =>
       NodeStream.toArrayBuffer(() => this.source, {
         onError: this.onError,
-        maxBytes: Option.getOrUndefined(fiber.getRef(IncomingMessage.MaxBodySize))
+        maxBytes: fiber.getRef(IncomingMessage.MaxBodySize)
       })
     )
   }

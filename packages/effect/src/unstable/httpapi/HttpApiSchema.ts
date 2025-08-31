@@ -3,7 +3,6 @@
  */
 import type { YieldableError } from "../../Cause.ts"
 import type { Brand } from "../../data/Brand.ts"
-import type * as Option from "../../data/Option.ts"
 import { constant, constVoid, dual, type LazyArg } from "../../Function.ts"
 import type * as FileSystem from "../../platform/FileSystem.ts"
 import type * as Annotations from "../../schema/Annotations.ts"
@@ -293,10 +292,10 @@ export interface Multipart<S extends Schema.Top> extends
  * @category multipart
  */
 export const Multipart = <S extends Schema.Top>(self: S, options?: {
-  readonly maxParts?: Option.Option<number> | undefined
+  readonly maxParts?: number | undefined
   readonly maxFieldSize?: FileSystem.SizeInput | undefined
-  readonly maxFileSize?: Option.Option<FileSystem.SizeInput> | undefined
-  readonly maxTotalSize?: Option.Option<FileSystem.SizeInput> | undefined
+  readonly maxFileSize?: FileSystem.SizeInput | undefined
+  readonly maxTotalSize?: FileSystem.SizeInput | undefined
   readonly fieldMimeTypes?: ReadonlyArray<string> | undefined
 }): Multipart<S> =>
   self.annotate({
@@ -337,10 +336,10 @@ export interface MultipartStream<S extends Schema.Top> extends
  * @category multipart
  */
 export const MultipartStream = <S extends Schema.Top>(self: S, options?: {
-  readonly maxParts?: Option.Option<number> | undefined
+  readonly maxParts?: number | undefined
   readonly maxFieldSize?: FileSystem.SizeInput | undefined
-  readonly maxFileSize?: Option.Option<FileSystem.SizeInput> | undefined
-  readonly maxTotalSize?: Option.Option<FileSystem.SizeInput> | undefined
+  readonly maxFileSize?: FileSystem.SizeInput | undefined
+  readonly maxTotalSize?: FileSystem.SizeInput | undefined
   readonly fieldMimeTypes?: ReadonlyArray<string> | undefined
 }): MultipartStream<S> =>
   self.annotate({

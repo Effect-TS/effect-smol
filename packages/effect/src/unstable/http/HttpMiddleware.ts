@@ -4,6 +4,7 @@
 import * as Option from "../../data/Option.ts"
 import type { Predicate } from "../../data/Predicate.ts"
 import type { ReadonlyRecord } from "../../data/Record.ts"
+import * as UndefinedOr from "../../data/UndefinedOr.ts"
 import * as Effect from "../../Effect.ts"
 import { constFalse } from "../../Function.ts"
 import * as internalEffect from "../../internal/effect.ts"
@@ -344,19 +345,17 @@ export const cors = (options?: {
           headers: headersFromRequestOptions(request)
         }))
       }
-      const o = Option.match(fiber.getRef(PreResponseHandlers), {
-        onNone: () => Option.some(preResponseHandler),
-        onSome: (prev) =>
-          Option.some<PreResponseHandler>((request, response) =>
-            Effect.flatMap(prev(request, response), (response) => preResponseHandler(request, response))
-          )
+      const next = UndefinedOr.match(fiber.getRef(PreResponseHandlers), {
+        onUndefined: () => preResponseHandler,
+        onDefined: (prev) => (request, response) =>
+          Effect.flatMap(prev(request, response), (response) => preResponseHandler(request, response))
       })
-      fiber.setServices(ServiceMap.add(fiber.services, PreResponseHandlers, o))
+      fiber.setServices(ServiceMap.add(fiber.services, PreResponseHandlers, next))
       return httpApp
     })
 }
 
-const PreResponseHandlers = ServiceMap.Reference<Option.Option<PreResponseHandler>>(
+const PreResponseHandlers = ServiceMap.Reference<PreResponseHandler | undefined>(
   "effect/http/HttpEffect/PreResponseHandlers",
-  { defaultValue: Option.none }
+  { defaultValue: () => undefined }
 )

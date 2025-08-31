@@ -1,7 +1,6 @@
 /**
  * @since 4.0.0
  */
-import * as Option from "../../data/Option.ts"
 import { hasProperty } from "../../data/Predicate.ts"
 import * as Effect from "../../Effect.ts"
 import * as Inspectable from "../../interfaces/Inspectable.ts"
@@ -96,9 +95,9 @@ export const schemaHeaders = <A, I extends Readonly<Record<string, string | unde
  * @since 4.0.0
  * @category References
  */
-export const MaxBodySize = ServiceMap.Reference<Option.Option<FileSystem.Size>>(
+export const MaxBodySize = ServiceMap.Reference<FileSystem.Size | undefined>(
   "effect/http/HttpIncomingMessage/MaxBodySize",
-  { defaultValue: Option.none }
+  { defaultValue: () => undefined }
 )
 
 /**
