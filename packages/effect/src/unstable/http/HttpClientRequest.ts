@@ -1,7 +1,6 @@
 /**
  * @since 4.0.0
  */
-import * as Option from "../../data/Option.ts"
 import { hasProperty } from "../../data/Predicate.ts"
 import * as Redacted from "../../data/Redacted.ts"
 import * as Result from "../../data/Result.ts"
@@ -46,7 +45,7 @@ export interface HttpClientRequest extends Inspectable.Inspectable, Pipeable {
   readonly method: HttpMethod
   readonly url: string
   readonly urlParams: UrlParams.UrlParams
-  readonly hash: Option.Option<string>
+  readonly hash: string | undefined
   readonly headers: Headers.Headers
   readonly body: HttpBody.HttpBody
 }
@@ -106,7 +105,7 @@ function makeProto(
   method: HttpMethod,
   url: string,
   urlParams: UrlParams.UrlParams,
-  hash: Option.Option<string>,
+  hash: string | undefined,
   headers: Headers.Headers,
   body: HttpBody.HttpBody
 ): HttpClientRequest {
@@ -128,7 +127,7 @@ export const empty: HttpClientRequest = makeProto(
   "GET",
   "",
   UrlParams.empty,
-  Option.none(),
+  undefined,
   Headers.empty,
   HttpBody.empty
 )
@@ -349,7 +348,7 @@ export const setUrl: {
   }
   const clone = new URL(url.toString())
   const urlParams = UrlParams.fromInput(clone.searchParams)
-  const hash = clone.hash ? Option.some(clone.hash.slice(1)) : Option.none()
+  const hash = clone.hash ? clone.hash.slice(1) : undefined
   clone.search = ""
   clone.hash = ""
   return makeProto(
@@ -497,7 +496,7 @@ export const setHash: {
     self.method,
     self.url,
     self.urlParams,
-    Option.some(hash),
+    hash,
     self.headers,
     self.body
   ))
@@ -511,7 +510,7 @@ export const removeHash = (self: HttpClientRequest): HttpClientRequest =>
     self.method,
     self.url,
     self.urlParams,
-    Option.none(),
+    undefined,
     self.headers,
     self.body
   )
@@ -702,8 +701,12 @@ export const bodyFile: {
  * @since 4.0.0
  * @category combinators
  */
-export const toUrl = (self: HttpClientRequest): Option.Option<URL> =>
-  Result.getSuccess(UrlParams.makeUrl(self.url, self.urlParams, self.hash))
+export function toUrl(self: HttpClientRequest): URL | undefined {
+  const r = UrlParams.makeUrl(self.url, self.urlParams, self.hash)
+  if (Result.isSuccess(r)) {
+    return r.success
+  }
+}
 
 // ----------------------------------------------------------------------------
 // internal

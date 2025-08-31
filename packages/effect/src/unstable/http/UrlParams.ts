@@ -321,7 +321,7 @@ export class UrlParamsError extends Data.TaggedError("UrlParamsError")<{
 export const makeUrl = (
   url: string,
   params: UrlParams,
-  hash: Option.Option<string>
+  hash: string | undefined
 ): Result.Result<URL, UrlParamsError> => {
   try {
     const urlInstance = new URL(url, baseUrl())
@@ -331,8 +331,8 @@ export const makeUrl = (
         urlInstance.searchParams.append(key, value)
       }
     }
-    if (hash._tag === "Some") {
-      urlInstance.hash = hash.value
+    if (hash !== undefined) {
+      urlInstance.hash = hash
     }
     return Result.succeed(urlInstance)
   } catch (e) {
