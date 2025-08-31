@@ -126,7 +126,7 @@ export const make = (
         raw: boolean
       ) =>
         Effect.withFiber<ReadonlyArray<any>, SqlError>((fiber) => {
-          if (ServiceMap.getUnsafe(fiber.services, Client.SafeIntegers)) {
+          if (ServiceMap.get(fiber.services, Client.SafeIntegers)) {
             statement.safeIntegers(true)
           }
           try {

@@ -87,7 +87,7 @@ export const makeWith = <
   ("lookup" extends ServiceMode ? never : R) | Scope.Scope
 > =>
   effect.servicesWith((services: ServiceMap.ServiceMap<any>) => {
-    const scope = ServiceMap.getUnsafe(services, Scope.Scope)
+    const scope = ServiceMap.get(services, Scope.Scope)
     const self = Object.create(Proto)
     self.lookup = (key: Key): Effect.Effect<A, E> =>
       effect.updateServices(

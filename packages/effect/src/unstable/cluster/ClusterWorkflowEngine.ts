@@ -132,7 +132,7 @@ export const make = Effect.gen(function*() {
     readonly tag: string
     readonly id: string
   }) {
-    const shardGroup = ServiceMap.getUnsafe(options.workflow.annotations, ClusterSchema.ShardGroup)(
+    const shardGroup = ServiceMap.get(options.workflow.annotations, ClusterSchema.ShardGroup)(
       options.executionId as EntityId.EntityId
     )
     const entityId = EntityId.make(options.executionId)
@@ -203,7 +203,7 @@ export const make = Effect.gen(function*() {
     readonly workflow: Workflow.Any
     readonly executionId: string
   }) {
-    const shardGroup = ServiceMap.getUnsafe(options.workflow.annotations, ClusterSchema.ShardGroup)(
+    const shardGroup = ServiceMap.get(options.workflow.annotations, ClusterSchema.ShardGroup)(
       options.executionId as EntityId.EntityId
     )
     const entityId = EntityId.make(options.executionId)
@@ -397,7 +397,7 @@ export const make = Effect.gen(function*() {
     activityExecute: Effect.fnUntraced(
       function*({ activity, attempt }) {
         const services = yield* Effect.services<WorkflowInstance>()
-        const instance = ServiceMap.getUnsafe(services, WorkflowInstance)
+        const instance = ServiceMap.get(services, WorkflowInstance)
         yield* Effect.annotateCurrentSpan("executionId", instance.executionId)
         const activityId = `${instance.executionId}/${activity.name}`
         activities.set(activityId, { activity, services })

@@ -274,7 +274,7 @@ export const fromApi = <Id extends string, Groups extends HttpApiGroup.Any>(
 
   HttpApi.reflect(api, {
     onGroup({ group }) {
-      if (ServiceMap.getUnsafe(group.annotations, Exclude)) {
+      if (ServiceMap.get(group.annotations, Exclude)) {
         return
       }
       let tag: OpenAPISpecTag = {
@@ -296,7 +296,7 @@ export const fromApi = <Id extends string, Groups extends HttpApiGroup.Any>(
       spec.tags.push(tag)
     },
     onEndpoint({ endpoint, errors, group, mergedAnnotations, middleware, payloads, successes }) {
-      if (ServiceMap.getUnsafe(mergedAnnotations, Exclude)) {
+      if (ServiceMap.get(mergedAnnotations, Exclude)) {
         return
       }
       let op: OpenAPISpecOperation = {

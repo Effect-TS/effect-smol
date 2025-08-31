@@ -763,7 +763,7 @@ const make = Effect.gen(function*() {
       Effect.suspend(() => {
         const address = message.envelope.address
         const maybeRunner = MutableHashMap.get(shardAssignments, address.shardId)
-        const isPersisted = ServiceMap.getUnsafe(message.rpc.annotations, Persisted)
+        const isPersisted = ServiceMap.get(message.rpc.annotations, Persisted)
         if (isPersisted && !storageEnabled) {
           return Effect.die("Sharding.sendOutgoing: Persisted messages require MessageStorage")
         }
@@ -952,7 +952,7 @@ const make = Effect.gen(function*() {
   > = yield* ResourceMap.make(Effect.fnUntraced(function*(entity: Entity<string, any>) {
     const client = yield* RpcClient.makeNoSerialization(entity.protocol, {
       spanPrefix: `${entity.type}.client`,
-      disableTracing: !ServiceMap.getUnsafe(entity.protocol.annotations, ClusterSchema.ClientTracingEnabled),
+      disableTracing: !ServiceMap.get(entity.protocol.annotations, ClusterSchema.ClientTracingEnabled),
       supportsAck: true,
       generateRequestId: () => RequestId(snowflakeGen.nextUnsafe()),
       flatten: true,
@@ -1019,14 +1019,14 @@ const make = Effect.gen(function*() {
             const entry = clientRequests.get(requestId)!
             if (!entry) return Effect.void
             clientRequests.delete(requestId)
-            if (ServiceMap.getUnsafe(entry.rpc.annotations, Uninterruptible)) {
+            if (ServiceMap.get(entry.rpc.annotations, Uninterruptible)) {
               return Effect.void
             }
             // for durable messages, we ignore interrupts on shutdown or as a
             // result of a shard being resassigned
             const isTransientInterrupt = MutableRef.get(isShutdown) ||
               options.message.interruptors.some((id) => internalInterruptors.has(id))
-            if (isTransientInterrupt && ServiceMap.getUnsafe(entry.rpc.annotations, Persisted)) {
+            if (isTransientInterrupt && ServiceMap.get(entry.rpc.annotations, Persisted)) {
               return Effect.void
             }
             return Effect.ignore(sendOutgoing(

@@ -94,7 +94,7 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any>(
   const concurrency = options.concurrency ?? "unbounded"
   const disableFatalDefects = options.disableFatalDefects ?? false
   const services = yield* Effect.services<Rpc.ToHandler<Rpcs> | Scope.Scope>()
-  const scope = ServiceMap.getUnsafe(services, Scope.Scope)
+  const scope = ServiceMap.get(services, Scope.Scope)
   const trackFiber = Fiber.runIn(Scope.forkUnsafe(scope, "parallel"))
   const concurrencySemaphore = concurrency === "unbounded"
     ? undefined

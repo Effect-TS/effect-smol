@@ -155,7 +155,7 @@ export type MemoMapTypeId = "~effect/Layer/MemoMap"
  *   const dbLayer = Layer.succeed(Database)({ query: (sql: string) => Effect.succeed("result") })
  *   const services = yield* Layer.buildWithMemoMap(dbLayer, memoMap, scope)
  *
- *   return ServiceMap.getUnsafe(services, Database)
+ *   return ServiceMap.get(services, Database)
  * })
  * ```
  *
@@ -354,7 +354,7 @@ class MemoMapImpl implements MemoMap {
  *   const dbLayer = Layer.succeed(Database)({ query: (sql: string) => Effect.succeed("result") })
  *   const services = yield* Layer.buildWithMemoMap(dbLayer, memoMap, scope)
  *
- *   return ServiceMap.getUnsafe(services, Database)
+ *   return ServiceMap.get(services, Database)
  * })
  * ```
  *
@@ -382,7 +382,7 @@ export const makeMemoMapUnsafe = (): MemoMap => new MemoMapImpl()
  *   const dbLayer = Layer.succeed(Database)({ query: (sql: string) => Effect.succeed("result") })
  *   const services = yield* Layer.buildWithMemoMap(dbLayer, memoMap, scope)
  *
- *   return ServiceMap.getUnsafe(services, Database)
+ *   return ServiceMap.get(services, Database)
  * })
  * ```
  *
@@ -403,7 +403,7 @@ export const makeMemoMap: Effect<MemoMap> = internalEffect.sync(makeMemoMapUnsaf
  * import { Layer } from "effect"
  * import { ServiceMap } from "effect"
  *
- * const getMemoMap = ServiceMap.getUnsafe(Layer.CurrentMemoMap)
+ * const getMemoMap = ServiceMap.get(Layer.CurrentMemoMap)
  * ```
  *
  * @since 3.13.0
@@ -441,8 +441,8 @@ export const CurrentMemoMap = ServiceMap.Reference<MemoMap>("effect/Layer/Curren
  *   const loggerServices = yield* Layer.buildWithMemoMap(loggerLayer, memoMap, scope)
  *
  *   return {
- *     database: ServiceMap.getUnsafe(dbServices, Database),
- *     logger: ServiceMap.getUnsafe(loggerServices, Logger)
+ *     database: ServiceMap.get(dbServices, Database),
+ *     logger: ServiceMap.get(loggerServices, Logger)
  *   }
  * })
  * ```
@@ -490,7 +490,7 @@ export const buildWithMemoMap: {
  *   const services = yield* Layer.build(dbLayer)
  *
  *   // Extract the specific service from the built layer
- *   const database = ServiceMap.getUnsafe(services, Database)
+ *   const database = ServiceMap.get(services, Database)
  *
  *   return yield* database.query("SELECT * FROM users")
  * })
@@ -532,7 +532,7 @@ export const build = <RIn, E, ROut>(
  *
  *   // Build with specific scope - resources tied to this scope
  *   const services = yield* Layer.buildWithScope(dbLayer, scope)
- *   const database = ServiceMap.getUnsafe(services, Database)
+ *   const database = ServiceMap.get(services, Database)
  *
  *   return yield* database.query("SELECT * FROM users")
  *   // Database will be closed when scope is closed
@@ -819,7 +819,7 @@ export const unwrap = <A, E1, R1, E, R>(
   self: Effect<Layer<A, E1, R1>, E, R>
 ): Layer<A, E | E1, R1 | Exclude<R, Scope.Scope>> => {
   const key = ServiceMap.Key<Layer<A, E1, R1>>("effect/Layer/unwrap")
-  return flatMap(effect(key)(self), ServiceMap.getUnsafe(key))
+  return flatMap(effect(key)(self), ServiceMap.get(key))
 }
 
 const mergeAllEffect = <Layers extends [Layer<never, any, any>, ...Array<Layer<never, any, any>>]>(
@@ -1167,7 +1167,7 @@ export const provideMerge: {
  * // Dynamically create services based on config
  * const dynamicServiceLayer = configLayer.pipe(
  *   Layer.flatMap((services) => {
- *     const config = ServiceMap.getUnsafe(services, Config)
+ *     const config = ServiceMap.get(services, Config)
  *
  *     // Create database layer based on config
  *     const dbLayer = Layer.succeed(Database)({

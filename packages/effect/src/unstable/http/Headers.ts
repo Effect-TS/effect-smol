@@ -50,7 +50,7 @@ const Proto = Object.assign(Object.create(null), {
     this: Headers,
     context: ServiceMap.ServiceMap<never>
   ): Record<string, string | Redacted.Redacted<string>> {
-    return redact(this, ServiceMap.getUnsafe(context, CurrentRedactedNames))
+    return redact(this, ServiceMap.get(context, CurrentRedactedNames))
   },
   [Equal.symbol](this: Headers, that: Headers): boolean {
     return Equivalence(this, that)

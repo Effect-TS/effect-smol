@@ -168,9 +168,9 @@ export const make = Effect.fnUntraced(function*<
                 // interrupt.
                 if (
                   storageEnabled &&
-                  ServiceMap.getUnsafe(request.rpc.annotations, Persisted) &&
+                  ServiceMap.get(request.rpc.annotations, Persisted) &&
                   Exit.hasInterrupt(response.exit) &&
-                  (isShuttingDown || ServiceMap.getUnsafe(request.rpc.annotations, Uninterruptible))
+                  (isShuttingDown || ServiceMap.get(request.rpc.annotations, Uninterruptible))
                 ) {
                   return Effect.void
                 }
@@ -351,7 +351,7 @@ export const make = Effect.fnUntraced(function*<
               }
 
               const rpc = entity.protocol.requests.get(message.envelope.tag)! as any as Rpc.AnyWithProps
-              if (!storageEnabled && ServiceMap.getUnsafe(rpc.annotations, Persisted)) {
+              if (!storageEnabled && ServiceMap.get(rpc.annotations, Persisted)) {
                 return Effect.die(
                   "EntityManager.sendLocal: Cannot process a persisted message without MessageStorage"
                 )

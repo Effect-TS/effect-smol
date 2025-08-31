@@ -62,7 +62,7 @@ export const requestUnsafe = <A extends Request.Any>(
 ): () => void => {
   const entry = addEntry(options.resolver, self, options.onExit, {
     services: options.services,
-    currentScheduler: ServiceMap.getUnsafe(options.services, Scheduler)
+    currentScheduler: ServiceMap.get(options.services, Scheduler)
   })
   return () => removeEntryUnsafe(options.resolver, entry)
 }

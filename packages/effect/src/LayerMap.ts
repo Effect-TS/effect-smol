@@ -149,12 +149,12 @@ export const make: <
   } | undefined
 ) {
   const services = yield* Effect.services<never>()
-  const memoMap = ServiceMap.getUnsafe(services, Layer.CurrentMemoMap)
+  const memoMap = ServiceMap.get(services, Layer.CurrentMemoMap)
 
   const rcMap = yield* RcMap.make({
     lookup: (key: K) =>
       Effect.servicesWith((_: ServiceMap.ServiceMap<Scope.Scope>) =>
-        Layer.buildWithMemoMap(lookup(key), memoMap, ServiceMap.getUnsafe(_, Scope.Scope))
+        Layer.buildWithMemoMap(lookup(key), memoMap, ServiceMap.get(_, Scope.Scope))
       ),
     idleTimeToLive: options?.idleTimeToLive
   })
