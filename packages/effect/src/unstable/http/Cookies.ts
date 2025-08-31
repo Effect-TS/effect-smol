@@ -2,7 +2,6 @@
  * @since 4.0.0
  */
 import * as Data from "../../data/Data.ts"
-import * as Option from "../../data/Option.ts"
 import * as Predicate from "../../data/Predicate.ts"
 import * as Record from "../../data/Record.ts"
 import * as Result from "../../data/Result.ts"
@@ -184,38 +183,38 @@ export const fromSetCookie = (headers: Iterable<string> | string): Cookies => {
   const cookies: Array<Cookie> = []
   for (const header of arrayHeaders) {
     const cookie = parseSetCookie(header.trim())
-    if (Option.isSome(cookie)) {
-      cookies.push(cookie.value)
+    if (cookie) {
+      cookies.push(cookie)
     }
   }
 
   return fromIterable(cookies)
 }
 
-function parseSetCookie(header: string): Option.Option<Cookie> {
+function parseSetCookie(header: string): Cookie | undefined {
   const parts = header.split(";").map((_) => _.trim()).filter((_) => _ !== "")
   if (parts.length === 0) {
-    return Option.none()
+    return undefined
   }
 
   const firstEqual = parts[0].indexOf("=")
   if (firstEqual === -1) {
-    return Option.none()
+    return undefined
   }
   const name = parts[0].slice(0, firstEqual)
   if (!fieldContentRegExp.test(name)) {
-    return Option.none()
+    return undefined
   }
 
   const valueEncoded = parts[0].slice(firstEqual + 1)
   const value = tryDecodeURIComponent(valueEncoded)
 
   if (parts.length === 1) {
-    return Option.some(Object.assign(Object.create(CookieProto), {
+    return Object.assign(Object.create(CookieProto), {
       name,
       value,
       valueEncoded
-    }))
+    })
   }
 
   const options: Types.Mutable<Cookie["options"]> = {}
@@ -315,12 +314,12 @@ function parseSetCookie(header: string): Option.Option<Cookie> {
     }
   }
 
-  return Option.some(Object.assign(Object.create(CookieProto), {
+  return Object.assign(Object.create(CookieProto), {
     name,
     value,
     valueEncoded,
     options: Object.keys(options).length > 0 ? options : undefined
-  }))
+  })
 }
 
 /**
@@ -487,11 +486,11 @@ export const remove: {
  * @category combinators
  */
 export const get: {
-  (name: string): (self: Cookies) => Option.Option<Cookie>
-  (self: Cookies, name: string): Option.Option<Cookie>
+  (name: string): (self: Cookies) => Cookie | undefined
+  (self: Cookies, name: string): Cookie | undefined
 } = dual(
   (args) => isCookies(args[0]),
-  (self: Cookies, name: string): Option.Option<Cookie> => Record.get(self.cookies, name)
+  (self: Cookies, name: string): Cookie | undefined => self.cookies[name]
 )
 
 /**
@@ -501,12 +500,13 @@ export const get: {
  * @category combinators
  */
 export const getValue: {
-  (name: string): (self: Cookies) => Option.Option<string>
-  (self: Cookies, name: string): Option.Option<string>
+  (name: string): (self: Cookies) => string | undefined
+  (self: Cookies, name: string): string | undefined
 } = dual(
   (args) => isCookies(args[0]),
-  (self: Cookies, name: string): Option.Option<string> =>
-    Option.map(Record.get(self.cookies, name), (cookie) => cookie.value)
+  (self: Cookies, name: string): string | undefined => {
+    return self.cookies[name]?.value
+  }
 )
 
 /**
