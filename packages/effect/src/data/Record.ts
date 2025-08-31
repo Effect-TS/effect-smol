@@ -411,24 +411,19 @@ export const get: {
 )
 
 /**
- * Apply a function to the element at the specified key, creating a new record.
- * If the key does not exist, the record is returned unchanged.
+ * Apply a function to the element at the specified key, creating a new record,
+ * or return `undefined` if the key doesn't exist.
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
- * import { Record as R } from "effect/data"
+ * import { Record } from "effect/data"
  *
  * const f = (x: number) => x * 2
  *
- * assert.deepStrictEqual(
- *  R.modify({ a: 3 }, 'a', f),
- *  { a: 6 }
- * )
- * assert.deepStrictEqual(
- *  R.modify({ a: 3 } as Record<string, number>, 'b', f),
- *  { a: 3 }
- * )
+ * const input: Record<string, number> = { a: 3 }
+ *
+ * Record.modify(input, "a", f) // { a: 6 }
+ * Record.modify(input, "b", f) // undefined
  * ```
  *
  * @category utils
@@ -438,64 +433,21 @@ export const modify: {
   <K extends string | symbol, A, B>(
     key: NoInfer<K>,
     f: (a: A) => B
-  ): (self: ReadonlyRecord<K, A>) => Record<K, A | B>
-  <K extends string | symbol, A, B>(self: ReadonlyRecord<K, A>, key: NoInfer<K>, f: (a: A) => B): Record<K, A | B>
+  ): (self: ReadonlyRecord<K, A>) => Record<K, A | B> | undefined
+  <K extends string | symbol, A, B>(
+    self: ReadonlyRecord<K, A>,
+    key: NoInfer<K>,
+    f: (a: A) => B
+  ): Record<K, A | B> | undefined
 } = dual(
   3,
-  <K extends string | symbol, A, B>(self: ReadonlyRecord<K, A>, key: NoInfer<K>, f: (a: A) => B): Record<K, A | B> => {
-    if (!has(self, key)) {
-      return { ...self }
-    }
+  <K extends string | symbol, A, B>(
+    self: ReadonlyRecord<K, A>,
+    key: NoInfer<K>,
+    f: (a: A) => B
+  ): Record<K, A | B> | undefined => {
+    if (!has(self, key)) return undefined
     return { ...self, [key]: f(self[key]) }
-  }
-)
-
-/**
- * Apply a function to the element at the specified key, creating a new record,
- * or return `None` if the key doesn't exist.
- *
- * @example
- * ```ts
- * import * as assert from "node:assert"
- * import { Record as R } from "effect/data"
- * import { Option } from "effect/data"
- *
- * const f = (x: number) => x * 2
- *
- * assert.deepStrictEqual(
- *  R.modifyOption({ a: 3 }, 'a', f),
- *  Option.some({ a: 6 })
- * )
- * assert.deepStrictEqual(
- *  R.modifyOption({ a: 3 } as Record<string, number>, 'b', f),
- *  Option.none()
- * )
- * ```
- *
- * @category utils
- * @since 2.0.0
- */
-export const modifyOption: {
-  <K extends string | symbol, A, B>(
-    key: NoInfer<K>,
-    f: (a: A) => B
-  ): (self: ReadonlyRecord<K, A>) => Option.Option<Record<K, A | B>>
-  <K extends string | symbol, A, B>(
-    self: ReadonlyRecord<K, A>,
-    key: NoInfer<K>,
-    f: (a: A) => B
-  ): Option.Option<Record<K, A | B>>
-} = dual(
-  3,
-  <K extends string | symbol, A, B>(
-    self: ReadonlyRecord<K, A>,
-    key: NoInfer<K>,
-    f: (a: A) => B
-  ): Option.Option<Record<K, A | B>> => {
-    if (!has(self, key)) {
-      return Option.none()
-    }
-    return Option.some({ ...self, [key]: f(self[key]) })
   }
 )
 
@@ -504,42 +456,37 @@ export const modifyOption: {
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
  * import { Record } from "effect/data"
- * import { Option } from "effect/data"
  *
- * assert.deepStrictEqual(
- *   Record.replaceOption({ a: 1, b: 2, c: 3 }, 'a', 10),
- *   Option.some({ a: 10, b: 2, c: 3 })
- * )
- * assert.deepStrictEqual(Record.replaceOption(Record.empty<string>(), 'a', 10), Option.none())
+ * Record.replace({ a: 1, b: 2, c: 3 }, 'a', 10) // { a: 10, b: 2, c: 3 }
+ * Record.replace(Record.empty<string>(), 'a', 10) // undefined
  * ```
  *
  * @category utils
  * @since 2.0.0
  */
-export const replaceOption: {
+export const replace: {
   <K extends string | symbol, B>(
     key: NoInfer<K>,
     b: B
-  ): <A>(self: ReadonlyRecord<K, A>) => Option.Option<Record<K, A | B>>
+  ): <A>(self: ReadonlyRecord<K, A>) => Record<K, A | B> | undefined
   <K extends string | symbol, A, B>(
     self: ReadonlyRecord<K, A>,
     key: NoInfer<K>,
     b: B
-  ): Option.Option<Record<K, A | B>>
+  ): Record<K, A | B> | undefined
 } = dual(
   3,
   <K extends string | symbol, A, B>(
     self: ReadonlyRecord<K, A>,
     key: NoInfer<K>,
     b: B
-  ): Option.Option<Record<K, A | B>> => modifyOption(self, key, () => b)
+  ): Record<K, A | B> | undefined => modify(self, key, () => b)
 )
 
 /**
  * If the given key exists in the record, returns a new record with the key removed,
- * otherwise returns a copy of the original record.
+ * otherwise returns `undefined`.
  *
  * @example
  * ```ts
@@ -570,16 +517,16 @@ export const remove: {
 /**
  * Retrieves the value of the property with the given `key` from a record and returns an `Option`
  * of a tuple with the value and the record with the removed property.
- * If the key is not present, returns `O.none`.
+ * If the key is not present, returns `undefined`.
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
- * import { Record as R } from "effect/data"
- * import { Option } from "effect/data"
+ * import { Record } from "effect/data"
  *
- * assert.deepStrictEqual(R.pop({ a: 1, b: 2 }, "a"), Option.some([1, { b: 2 }]))
- * assert.deepStrictEqual(R.pop({ a: 1, b: 2 } as Record<string, number>, "c"), Option.none())
+ * const input: Record<string, number> = { a: 1, b: 2 }
+ *
+ * Record.pop(input, "a") // [1, { b: 2 }]
+ * Record.pop(input, "c") // undefined
  * ```
  *
  * @category utils
@@ -588,16 +535,15 @@ export const remove: {
 export const pop: {
   <K extends string | symbol, X extends K>(
     key: X
-  ): <A>(self: ReadonlyRecord<K, A>) => Option.Option<[A, Record<Exclude<K, X>, A>]>
+  ): <A>(self: ReadonlyRecord<K, A>) => [A, Record<Exclude<K, X>, A>] | undefined
   <K extends string | symbol, A, X extends K>(
     self: ReadonlyRecord<K, A>,
     key: X
-  ): Option.Option<[A, Record<Exclude<K, X>, A>]>
+  ): [A, Record<Exclude<K, X>, A>] | undefined
 } = dual(2, <K extends string | symbol, A, X extends K>(
   self: ReadonlyRecord<K, A>,
   key: X
-): Option.Option<[A, Record<Exclude<K, X>, A>]> =>
-  has(self, key) ? Option.some([self[key], remove(self, key)]) : Option.none())
+): [A, Record<Exclude<K, X>, A>] | undefined => has(self, key) ? [self[key], remove(self, key)] : undefined)
 
 /**
  * Maps a record into another record by applying a transformation function to each of its values.
@@ -1083,35 +1029,6 @@ export const set: {
 )
 
 /**
- * Replace a key's value in a record and return the updated record.
- * If the key does not exist in the record, a copy of the original record is returned.
- *
- * @example
- * ```ts
- * import * as assert from "node:assert"
- * import { Record } from "effect/data"
- *
- * assert.deepStrictEqual(Record.replace("a", 3)({ a: 1, b: 2 }), { a: 3, b: 2 });
- * assert.deepStrictEqual(Record.replace("c", 3)({ a: 1, b: 2 }), { a: 1, b: 2 });
- * ```
- *
- * @category utils
- * @since 2.0.0
- */
-export const replace: {
-  <K extends string | symbol, B>(key: NoInfer<K>, value: B): <A>(self: ReadonlyRecord<K, A>) => Record<K, A | B>
-  <K extends string | symbol, A, B>(self: ReadonlyRecord<K, A>, key: NoInfer<K>, value: B): Record<K, A | B>
-} = dual(
-  3,
-  <K extends string | symbol, A, B>(self: ReadonlyRecord<K, A>, key: NoInfer<K>, value: B): Record<K, A | B> => {
-    if (has(self, key)) {
-      return { ...self, [key]: value }
-    }
-    return { ...self }
-  }
-)
-
-/**
  * Check if all the keys and values in one record are also found in another record.
  * Uses the provided equivalence function to compare values.
  *
@@ -1501,3 +1418,47 @@ export function getReducerIntersection<K extends string, A>(
     {} as Record<K, A>
   )
 }
+
+/**
+ * Returns the first entry that satisfies the specified
+ * predicate, or `None` if no such entry exists.
+ *
+ * @example
+ * ```ts
+ * import { Record, Option } from "effect/data"
+ *
+ * const record = { a: 1, b: 2, c: 3 }
+ * const result = Record.findFirst(record, (value, key) => value > 1 && key !== "b")
+ * console.log(result) // Option.Some(["c", 3])
+ * ```
+ *
+ * @category elements
+ * @since 3.14.0
+ */
+export const findFirst: {
+  <K extends string | symbol, V, V2 extends V>(
+    refinement: (value: NoInfer<V>, key: NoInfer<K>) => value is V2
+  ): (self: ReadonlyRecord<K, V>) => [K, V2] | undefined
+  <K extends string | symbol, V>(
+    predicate: (value: NoInfer<V>, key: NoInfer<K>) => boolean
+  ): (self: ReadonlyRecord<K, V>) => [K, V] | undefined
+  <K extends string | symbol, V, V2 extends V>(
+    self: ReadonlyRecord<K, V>,
+    refinement: (value: NoInfer<V>, key: NoInfer<K>) => value is V2
+  ): [K, V2] | undefined
+  <K extends string | symbol, V>(
+    self: ReadonlyRecord<K, V>,
+    predicate: (value: NoInfer<V>, key: NoInfer<K>) => boolean
+  ): [K, V] | undefined
+} = dual(
+  2,
+  <K extends string | symbol, V>(self: ReadonlyRecord<K, V>, f: (value: V, key: K) => boolean): [K, V] | undefined => {
+    const k = keys(self)
+    for (let i = 0; i < k.length; i++) {
+      const key = k[i]
+      if (f(self[key], key)) {
+        return [key, self[key]]
+      }
+    }
+  }
+)
