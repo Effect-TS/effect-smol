@@ -265,16 +265,13 @@ describe("HashMap", () => {
     it("findFirst", () => {
       const map = HashMap.make(["a", 1], ["b", 2], ["c", 3])
       const result = HashMap.findFirst(map, (value) => value > 1)
-      expect(Option.isSome(result)).toBe(true)
-      if (Option.isSome(result)) {
-        expect(result.value[1]).toBeGreaterThan(1)
-      }
+      expect(result).toEqual(["c", 3])
     })
 
     it("findFirst - not found", () => {
       const map = HashMap.make(["a", 1], ["b", 2])
       const result = HashMap.findFirst(map, (value) => value > 5)
-      expect(result).toEqual(Option.none())
+      expect(result).toEqual(undefined)
     })
 
     it("some", () => {

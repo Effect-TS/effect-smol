@@ -1633,11 +1633,11 @@ export const hasBy: {
  * @category combinators
  */
 export const findFirst: {
-  <K, V>(predicate: (value: V, key: K) => boolean): (self: TxHashMap<K, V>) => Effect.Effect<Option.Option<[K, V]>>
-  <K, V>(self: TxHashMap<K, V>, predicate: (value: V, key: K) => boolean): Effect.Effect<Option.Option<[K, V]>>
+  <K, V>(predicate: (value: V, key: K) => boolean): (self: TxHashMap<K, V>) => Effect.Effect<[K, V] | undefined>
+  <K, V>(self: TxHashMap<K, V>, predicate: (value: V, key: K) => boolean): Effect.Effect<[K, V] | undefined>
 } = dual(
   2,
-  <K, V>(self: TxHashMap<K, V>, predicate: (value: V, key: K) => boolean): Effect.Effect<Option.Option<[K, V]>> =>
+  <K, V>(self: TxHashMap<K, V>, predicate: (value: V, key: K) => boolean): Effect.Effect<[K, V] | undefined> =>
     TxRef.get(self.ref).pipe(Effect.map((map) => HashMap.findFirst(map, predicate)))
 )
 

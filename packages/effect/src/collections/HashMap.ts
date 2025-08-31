@@ -1149,8 +1149,8 @@ import * as Option from "effect/data/Option"
  * @since 2.0.0
  */
 export const findFirst: {
-  <K, A>(predicate: (a: NoInfer<A>, k: K) => boolean): (self: HashMap<K, A>) => Option<[K, A]>
-  <K, A>(self: HashMap<K, A>, predicate: (a: A, k: K) => boolean): Option<[K, A]>
+  <K, A>(predicate: (a: NoInfer<A>, k: K) => boolean): (self: HashMap<K, A>) => [K, A] | undefined
+  <K, A>(self: HashMap<K, A>, predicate: (a: A, k: K) => boolean): [K, A] | undefined
 } = internal.findFirst
 
 /**

@@ -1006,15 +1006,14 @@ export const filterMap = dual<
 
 /** @internal */
 export const findFirst = dual<
-  <K, A>(predicate: (a: NoInfer<A>, k: K) => boolean) => (self: HashMap<K, A>) => Option.Option<[K, A]>,
-  <K, A>(self: HashMap<K, A>, predicate: (a: A, k: K) => boolean) => Option.Option<[K, A]>
+  <K, A>(predicate: (a: NoInfer<A>, k: K) => boolean) => (self: HashMap<K, A>) => [K, A] | undefined,
+  <K, A>(self: HashMap<K, A>, predicate: (a: A, k: K) => boolean) => [K, A] | undefined
 >(2, <K, A>(self: HashMap<K, A>, predicate: (a: A, k: K) => boolean) => {
   for (const [key, value] of self) {
     if (predicate(value, key)) {
-      return Option.some([key, value])
+      return [key, value]
     }
   }
-  return Option.none()
 })
 
 /** @internal */
