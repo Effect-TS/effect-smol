@@ -4,7 +4,7 @@
 import * as Cause from "../../Cause.ts"
 import type { NonEmptyReadonlyArray } from "../../collections/Array.ts"
 import * as Filter from "../../data/Filter.ts"
-import * as Option from "../../data/Option.ts"
+import type * as Option from "../../data/Option.ts"
 import * as Predicate from "../../data/Predicate.ts"
 import * as Effect from "../../Effect.ts"
 import * as Exit from "../../Exit.ts"
@@ -505,7 +505,7 @@ export const make: <Rpcs extends Rpc.Any>(
       schemas = {
         decode: Schema.decodeUnknownEffect(Serializer.json(rpc.payloadSchema as any)),
         encodeChunk: Schema.encodeUnknownEffect(
-          Serializer.json(Schema.Array(Option.isSome(streamSchemas) ? streamSchemas.value.success : Schema.Any))
+          Serializer.json(Schema.Array(streamSchemas ? streamSchemas.success : Schema.Any))
         ) as any,
         encodeExit: Schema.encodeUnknownEffect(Serializer.json(Rpc.exitSchema(rpc as any))) as any,
         services: entry.services

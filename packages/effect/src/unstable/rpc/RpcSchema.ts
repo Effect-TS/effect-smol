@@ -1,7 +1,6 @@
 /**
  * @since 4.0.0
  */
-import * as Option from "../../data/Option.ts"
 import type { Annotations } from "../../schema/Annotations.ts"
 import type * as AST from "../../schema/AST.ts"
 import * as Schema from "../../schema/Schema.ts"
@@ -24,12 +23,14 @@ export const isStreamSchema = (schema: Schema.Top): schema is Stream<any, any> =
  * @since 4.0.0
  * @category Stream
  */
-export const getStreamSchemas = (
+export function getStreamSchemas(
   ast: AST.AST
-): Option.Option<{
+): {
   readonly success: Schema.Top
   readonly error: Schema.Top
-}> => ast.annotations?.[StreamSchemaId] ? Option.some(ast.annotations[StreamSchemaId] as any) : Option.none()
+} | undefined {
+  return ast.annotations?.[StreamSchemaId] as any
+}
 
 /**
  * @since 4.0.0

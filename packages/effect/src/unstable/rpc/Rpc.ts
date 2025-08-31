@@ -1,7 +1,6 @@
 /**
  * @since 4.0.0
  */
-import * as Option from "../../data/Option.ts"
 import * as Predicate from "../../data/Predicate.ts"
 import type * as Struct from "../../data/Struct.ts"
 import type { Effect } from "../../Effect.ts"
@@ -769,14 +768,14 @@ export const exitSchema = <R extends Any>(
   const rpc = self as any as AnyWithProps
   const failures = new Set<Schema.Top>([rpc.errorSchema])
   const streamSchemas = RpcSchema.getStreamSchemas(rpc.successSchema.ast)
-  if (Option.isSome(streamSchemas)) {
-    failures.add(streamSchemas.value.error)
+  if (streamSchemas) {
+    failures.add(streamSchemas.error)
   }
   for (const middleware of rpc.middlewares) {
     failures.add(middleware.error)
   }
   const schema = Schema.Exit(
-    Option.isSome(streamSchemas) ? Schema.Void : rpc.successSchema,
+    streamSchemas ? Schema.Void : rpc.successSchema,
     Schema.Union([...failures]),
     Schema.Defect
   )

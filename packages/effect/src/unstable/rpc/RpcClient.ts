@@ -4,7 +4,6 @@
 import * as Cause from "../../Cause.ts"
 import type { NonEmptyReadonlyArray } from "../../collections/Array.ts"
 import * as Filter from "../../data/Filter.ts"
-import * as Option from "../../data/Option.ts"
 import type * as Struct from "../../data/Struct.ts"
 import * as Effect from "../../Effect.ts"
 import * as Exit from "../../Exit.ts"
@@ -775,8 +774,8 @@ const rpcSchemas = (rpc: Rpc.AnyWithProps) => {
   }
   const streamSchemas = RpcSchema.getStreamSchemas(rpc.successSchema.ast)
   const entry: RpcSchemas = {
-    decodeChunk: Option.isSome(streamSchemas) ?
-      Schema.decodeUnknownEffect(Serializer.json(Schema.NonEmptyArray(streamSchemas.value.success))) :
+    decodeChunk: streamSchemas ?
+      Schema.decodeUnknownEffect(Serializer.json(Schema.NonEmptyArray(streamSchemas.success))) :
       undefined,
     encodePayload: Schema.encodeEffect(Serializer.json(rpc.payloadSchema)),
     decodeExit: Schema.decodeUnknownEffect(Serializer.json(Rpc.exitSchema(rpc as any)))

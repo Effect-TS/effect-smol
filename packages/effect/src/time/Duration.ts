@@ -718,7 +718,6 @@ export const toNanosUnsafe = (self: DurationInput): bigint => {
  *
  * ```ts
  * import { Duration } from "effect/time"
- * import { Option } from "effect/data"
  *
  * Duration.toNanos("1 second") // 1000000000n
  *

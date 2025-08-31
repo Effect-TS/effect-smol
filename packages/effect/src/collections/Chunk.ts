@@ -2525,7 +2525,7 @@ export const containsWith: <A>(
  * @example
  * ```ts
  * import { Chunk } from "effect/collections"
- * import * as Option from "effect/data/Option"
+ * import { Option } from "effect/data"
  *
  * const chunk = Chunk.make(1, 2, 3, 4, 5)
  * const result = Chunk.findFirst(chunk, (n) => n > 3)

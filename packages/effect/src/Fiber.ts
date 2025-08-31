@@ -476,7 +476,6 @@ export const isFiber = (
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Option } from "effect/data"
  * import { Fiber } from "effect"
  *
  * const program = Effect.gen(function* () {

@@ -514,15 +514,14 @@ export const charCodeAt: {
 /**
  * Extracts characters from a string between two specified indices.
  *
- * @example
+ * **Example**
+ *
  * ```ts
- * import * as assert from "node:assert"
  * import { pipe } from "effect"
- * import { Option } from "effect/data"
  * import { String } from "effect/primitives"
  *
- * assert.deepStrictEqual(pipe("abcd", String.substring(1)), "bcd")
- * assert.deepStrictEqual(pipe("abcd", String.substring(1, 3)), "bc")
+ * pipe("abcd", String.substring(1)) // "bcd"
+ * pipe("abcd", String.substring(1, 3)) // "bc"
  * ```
  *
  * @category transforming

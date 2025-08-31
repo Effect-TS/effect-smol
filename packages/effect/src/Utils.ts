@@ -233,7 +233,7 @@ export interface Variance<in out F extends TypeLambda, in R, out O, out E> {
  * @example
  * ```ts
  * import { Utils } from "effect"
- * import * as Option from "effect/data/Option"
+ * import { Option } from "effect/data"
  *
  * // Gen enables generator-based syntax for any TypeLambda
  * declare const gen: Utils.Gen<Option.OptionTypeLambda>
