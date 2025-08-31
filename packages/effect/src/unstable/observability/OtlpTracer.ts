@@ -2,7 +2,6 @@
  * @since 4.0.0
  */
 import * as Cause from "../../Cause.ts"
-import * as Option from "../../data/Option.ts"
 import * as Effect from "../../Effect.ts"
 import type * as Exit from "../../Exit.ts"
 import * as Exporter from "../../internal/tracing/otlpExporter.ts"
@@ -160,7 +159,7 @@ const makeSpan = (options: {
   readonly export: (span: SpanImpl) => void
 }): SpanImpl => {
   const self = Object.assign(Object.create(SpanProto), options)
-  if (Option.isSome(self.parent)) {
+  if (self.parent) {
     self.traceId = self.parent.value.traceId
   } else {
     self.traceId = generateId(32)
