@@ -139,8 +139,13 @@ export const causeFilterFail = <E>(self: Cause.Cause<E>): Cause.Fail<E> | Filter
 
 /** @internal */
 export const causeFilterError = <E>(self: Cause.Cause<E>): E | Filter.fail<Cause.Cause<never>> => {
-  const failure = self.failures.find(failureIsFail)
-  return failure ? failure.error : Filter.fail(self as Cause.Cause<never>)
+  for (let i = 0; i < self.failures.length; i++) {
+    const failure = self.failures[i]
+    if (failure._tag === "Fail") {
+      return failure.error
+    }
+  }
+  return Filter.fail(self as Cause.Cause<never>)
 }
 
 /** @internal */
