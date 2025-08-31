@@ -1612,19 +1612,19 @@ export const hasBy: {
  *     (task) => task.priority >= 2 && !task.completed
  *   )
  *
- *   if (Option.isSome(highPriorityTask)) {
- *     const [taskId, task] = highPriorityTask.value
+ *   if (highPriorityTask) {
+ *     const [taskId, task] = highPriorityTask
  *     console.log(`Found task: ${taskId}, priority: ${task.priority}`)
  *     // "Found task: task3, priority: 2"
  *   }
  *
  *   // Find first task assigned to specific user
  *   const aliceTask = yield* tasks.pipe(
- *     TxHashMap.findFirst((task, taskId) => task.assignee === "alice")
+ *     TxHashMap.findFirst((task) => task.assignee === "alice")
  *   )
  *
- *   if (Option.isSome(aliceTask)) {
- *     console.log(`Alice's task: ${aliceTask.value[0]}`)
+ *   if (aliceTask) {
+ *     console.log(`Alice's task: ${aliceTask[0]}`)
  *   }
  * })
  * ```

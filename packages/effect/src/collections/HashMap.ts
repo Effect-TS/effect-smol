@@ -1134,15 +1134,10 @@ export const filterMap: {
  * @example
  * ```ts
  * import * as HashMap from "effect/collections/HashMap"
-import * as Option from "effect/data/Option"
  *
  * const map = HashMap.make(["a", 1], ["b", 2], ["c", 3])
  * const result = HashMap.findFirst(map, (value) => value > 1)
- *
- * console.log(Option.isSome(result)) // true
- * if (Option.isSome(result)) {
- *   console.log(result.value[1] > 1) // true
- * }
+ * console.log(result) // [ 'c', 3 ]
  * ```
  *
  * @category elements

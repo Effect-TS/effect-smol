@@ -13,7 +13,6 @@
  * @example
  * ```ts
  * import { Iterable } from "effect/collections"
-import * as Option from "effect/data/Option"
  *
  * // Create iterables
  * const numbers = Iterable.range(1, 5)
@@ -23,7 +22,7 @@ import * as Option from "effect/data/Option"
  * console.log(Array.from(filtered)) // [6, 8, 10]
  *
  * // Infinite iterables
- * const fibonacci = Iterable.unfold([0, 1], ([a, b]) => Option.some([a, [b, a + b]]))
+ * const fibonacci = Iterable.unfold([0, 1], ([a, b]) => [a, [b, a + b]])
  * const first10 = Iterable.take(fibonacci, 10)
  * console.log(Array.from(first10)) // [0, 1, 1, 2, 3, 5, 8, 13, 21, 34]
  * ```
@@ -1825,40 +1824,41 @@ export const some: {
 )
 
 /**
- * Generates an iterable by repeatedly applying a function that produces the next element and state.
+ * Generates an iterable by repeatedly applying a function that produces the
+ * next element and state.
  *
- * This is useful for creating iterables from a generating function that maintains state.
- * The function should return Option.some([value, nextState]) to continue or Option.none() to stop.
+ * This is useful for creating iterables from a generating function that
+ * maintains state. The function should return `[value, nextState]` to continue
+ * or `undefined` to stop.
  *
  * @example
  * ```ts
  * import { Iterable } from "effect/collections"
-import * as Option from "effect/data/Option"
  *
  * // Generate Fibonacci sequence
  * const fibonacci = Iterable.unfold([0, 1], ([a, b]) =>
- *   Option.some([a, [b, a + b]])
+ *   [a, [b, a + b]]
  * )
  * const first10Fib = Iterable.take(fibonacci, 10)
  * console.log(Array.from(first10Fib)) // [0, 1, 1, 2, 3, 5, 8, 13, 21, 34]
  *
  * // Generate powers of 2 up to a limit
  * const powersOf2 = Iterable.unfold(1, n =>
- *   n <= 1000 ? Option.some([n, n * 2]) : Option.none()
+ *   n <= 1000 ? [n, n * 2] : undefined
  * )
  * console.log(Array.from(powersOf2)) // [1, 2, 4, 8, 16, 32, 64, 128, 256, 512]
  *
  * // Generate countdown
  * const countdown = Iterable.unfold(5, n =>
- *   n > 0 ? Option.some([n, n - 1]) : Option.none()
+ *   n > 0 ? [n, n - 1] : undefined
  * )
  * console.log(Array.from(countdown)) // [5, 4, 3, 2, 1]
  *
  * // Generate collatz sequence
  * const collatz = Iterable.unfold(7, n => {
- *   if (n === 1) return Option.none()
+ *   if (n === 1) return undefined
  *   const next = n % 2 === 0 ? n / 2 : n * 3 + 1
- *   return Option.some([n, next])
+ *   return [n, next]
  * })
  * console.log(Array.from(collatz)) // [7, 22, 11, 34, 17, 52, 26, 13, 40, 20, 10, 5, 16, 8, 4, 2]
  * ```
@@ -1866,16 +1866,16 @@ import * as Option from "effect/data/Option"
  * @category constructors
  * @since 2.0.0
  */
-export const unfold = <B, A>(b: B, f: (b: B) => Option<readonly [A, B]>): Iterable<A> => ({
+export const unfold = <B, A>(b: B, f: (b: B) => readonly [A, B] | undefined): Iterable<A> => ({
   [Symbol.iterator]() {
     let next = b
     return {
       next() {
-        const o = f(next)
-        if (O.isNone(o)) {
+        const ab = f(next)
+        if (ab === undefined) {
           return { done: true, value: undefined }
         }
-        const [a, b] = o.value
+        const [a, b] = ab
         next = b
         return { done: false, value: a }
       }
@@ -2191,4 +2191,40 @@ export const cartesian: {
 } = dual(
   2,
   <A, B>(self: Iterable<A>, that: Iterable<B>): Iterable<[A, B]> => cartesianWith(self, that, (a, b) => [a, b])
+)
+
+/**
+ * Counts all the element of the given iterable that pass the given predicate
+ *
+ * **Example**
+ *
+ * ```ts
+ * import { Iterable } from "effect/collections"
+ *
+ * const result = Iterable.countBy([1, 2, 3, 4, 5], n => n % 2 === 0)
+ * console.log(result) // 2
+ * ```
+ *
+ * @category folding
+ * @since 3.16.0
+ */
+export const countBy: {
+  <A>(predicate: (a: NoInfer<A>, i: number) => boolean): (self: Iterable<A>) => number
+  <A>(self: Iterable<A>, predicate: (a: A, i: number) => boolean): number
+} = dual(
+  2,
+  <A>(
+    self: Iterable<A>,
+    f: (a: A, i: number) => boolean
+  ): number => {
+    let count = 0
+    let i = 0
+    for (const a of self) {
+      if (f(a, i)) {
+        count++
+      }
+      i++
+    }
+    return count
+  }
 )
