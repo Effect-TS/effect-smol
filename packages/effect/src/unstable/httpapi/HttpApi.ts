@@ -266,7 +266,7 @@ export const reflect = <Id extends string, Groups extends HttpApiGroup.Any>(
         endpoint,
         middleware: endpoint.middlewares as any,
         mergedAnnotations: ServiceMap.merge(groupAnnotations, endpoint.annotations),
-        payloads: endpoint.payloadSchema._tag === "Some" ? extractPayloads(endpoint.payloadSchema.value.ast) : emptyMap,
+        payloads: endpoint.payloadSchema ? extractPayloads(endpoint.payloadSchema.ast) : emptyMap,
         successes: extractMembers(endpoint.successSchema.ast, HttpApiSchema.getStatusSuccess),
         errors
       })

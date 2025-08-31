@@ -2,10 +2,10 @@
  * @since 4.0.0
  */
 import type { Brand } from "../../data/Brand.ts"
-import * as Option from "../../data/Option.ts"
 import * as Predicate from "../../data/Predicate.ts"
 import type { ReadonlyRecord } from "../../data/Record.ts"
 import type { Simplify } from "../../data/Struct.ts"
+import * as UndefinedOr from "../../data/UndefinedOr.ts"
 import type { Effect } from "../../Effect.ts"
 import { type Pipeable, pipeArguments } from "../../interfaces/Pipeable.ts"
 import * as Schema from "../../schema/Schema.ts"
@@ -66,10 +66,10 @@ export interface HttpApiEndpoint<
   readonly name: Name
   readonly path: Path
   readonly method: Method
-  readonly pathSchema: Option.Option<PathSchema>
-  readonly urlParamsSchema: Option.Option<UrlParams>
-  readonly payloadSchema: Option.Option<Payload>
-  readonly headersSchema: Option.Option<Headers>
+  readonly pathSchema: PathSchema | undefined
+  readonly urlParamsSchema: UrlParams | undefined
+  readonly payloadSchema: Payload | undefined
+  readonly headersSchema: Headers | undefined
   readonly successSchema: Success
   readonly errorSchema: Error
   readonly annotations: ServiceMap.ServiceMap<never>
@@ -955,25 +955,25 @@ const Proto = {
   setPayload(this: AnyWithProps, schema: Schema.Top) {
     return makeProto({
       ...this,
-      payloadSchema: Option.some(schema)
+      payloadSchema: schema
     })
   },
   setPath(this: AnyWithProps, schema: Schema.Top) {
     return makeProto({
       ...this,
-      pathSchema: Option.some(schema)
+      pathSchema: schema
     })
   },
   setUrlParams(this: AnyWithProps, schema: Schema.Top) {
     return makeProto({
       ...this,
-      urlParamsSchema: Option.some(schema)
+      urlParamsSchema: schema
     })
   },
   setHeaders(this: AnyWithProps, schema: Schema.Top) {
     return makeProto({
       ...this,
-      headersSchema: Option.some(schema)
+      headersSchema: schema
     })
   },
   prefix(this: AnyWithProps, prefix: HttpRouter.PathInput) {
@@ -1018,10 +1018,10 @@ const makeProto = <
   readonly name: Name
   readonly path: Path
   readonly method: Method
-  readonly pathSchema: Option.Option<PathSchema>
-  readonly urlParamsSchema: Option.Option<UrlParams>
-  readonly payloadSchema: Option.Option<Payload>
-  readonly headersSchema: Option.Option<Headers>
+  readonly pathSchema: PathSchema | undefined
+  readonly urlParamsSchema: UrlParams | undefined
+  readonly payloadSchema: Payload | undefined
+  readonly headersSchema: Headers | undefined
   readonly successSchema: Success
   readonly errorSchema: Error
   readonly annotations: ServiceMap.ServiceMap<never>
@@ -1090,18 +1090,10 @@ export const make = <Method extends HttpMethod>(method: Method) =>
     name,
     path,
     method,
-    pathSchema: Option.fromNullishOr(options?.path).pipe(
-      Option.map(structToSchema)
-    ),
-    urlParamsSchema: Option.fromNullishOr(options?.urlParams).pipe(
-      Option.map(structToSchema)
-    ),
-    payloadSchema: Option.fromNullishOr(options?.payload).pipe(
-      Option.map(structToSchema)
-    ),
-    headersSchema: Option.fromNullishOr(options?.headers).pipe(
-      Option.map(structToSchema)
-    ),
+    pathSchema: UndefinedOr.map(options?.path, structToSchema),
+    urlParamsSchema: UndefinedOr.map(options?.urlParams, structToSchema),
+    payloadSchema: UndefinedOr.map(options?.payload, structToSchema),
+    headersSchema: UndefinedOr.map(options?.headers, structToSchema),
     successSchema: options?.success ? structToSchema(options.success) : HttpApiSchema.NoContent as any,
     errorSchema: options?.error ?
       HttpApiSchema.UnionUnify(

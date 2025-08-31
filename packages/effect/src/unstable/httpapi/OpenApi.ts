@@ -384,12 +384,12 @@ export const fromApi = <Id extends string, Groups extends HttpApiGroup.Any>(
         op.requestBody = { content, required: true }
       }
 
-      processParameters(Option.getOrUndefined(endpoint.pathSchema), "path")
+      processParameters(endpoint.pathSchema, "path")
       if (!hasBody) {
-        processParameters(Option.getOrUndefined(endpoint.payloadSchema), "query")
+        processParameters(endpoint.payloadSchema, "query")
       }
-      processParameters(Option.getOrUndefined(endpoint.headersSchema), "header")
-      processParameters(Option.getOrUndefined(endpoint.urlParamsSchema), "query")
+      processParameters(endpoint.headersSchema, "header")
+      processParameters(endpoint.urlParamsSchema, "query")
 
       processResponseMap(successes, () => "Success")
       processResponseMap(errors, () => "Error")

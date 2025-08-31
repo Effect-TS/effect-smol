@@ -184,22 +184,22 @@ const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any, E, R>
         successes.forEach(({ ast }, status) => {
           decodeMap[status] = ast === undefined ? responseAsVoid : schemaToResponse(ast)
         })
-        const encodePath = endpoint.pathSchema.pipe(
-          Option.map(Schema.encodeUnknownEffect)
+        const encodePath = endpoint.pathSchema?.pipe(
+          Schema.encodeUnknownEffect
         )
-        const encodePayloadBody = endpoint.payloadSchema.pipe(
-          Option.map((schema) => {
+        const encodePayloadBody = endpoint.payloadSchema?.pipe(
+          (schema) => {
             if (HttpMethod.hasBody(endpoint.method)) {
               return Schema.encodeUnknownEffect(payloadSchemaBody(schema as any))
             }
             return Schema.encodeUnknownEffect(schema)
-          })
+          }
         )
-        const encodeHeaders = endpoint.headersSchema.pipe(
-          Option.map(Schema.encodeUnknownEffect)
+        const encodeHeaders = endpoint.headersSchema?.pipe(
+          Schema.encodeUnknownEffect
         )
-        const encodeUrlParams = endpoint.urlParamsSchema.pipe(
-          Option.map(Schema.encodeUnknownEffect)
+        const encodeUrlParams = endpoint.urlParamsSchema?.pipe(
+          Schema.encodeUnknownEffect
         )
         const endpointFn = Effect.fnUntraced(function*(request: {
           readonly path: any
@@ -210,32 +210,32 @@ const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any, E, R>
         }) {
           let httpRequest = HttpClientRequest.make(endpoint.method)(endpoint.path)
           if (request && request.path) {
-            const encodedPathParams = encodePath._tag === "Some"
-              ? yield* encodePath.value(request.path)
+            const encodedPathParams = encodePath
+              ? yield* encodePath(request.path)
               : request.path
             httpRequest = HttpClientRequest.setUrl(httpRequest, makeUrl(encodedPathParams))
           }
           if (request && request.payload instanceof FormData) {
             httpRequest = HttpClientRequest.bodyFormData(httpRequest, request.payload)
-          } else if (encodePayloadBody._tag === "Some") {
+          } else if (encodePayloadBody) {
             if (HttpMethod.hasBody(endpoint.method)) {
-              const body = (yield* encodePayloadBody.value(request.payload)) as HttpBody.HttpBody
+              const body = (yield* encodePayloadBody(request.payload)) as HttpBody.HttpBody
               httpRequest = HttpClientRequest.setBody(httpRequest, body)
             } else {
-              const urlParams = (yield* encodePayloadBody.value(request.payload)) as Record<string, string>
+              const urlParams = (yield* encodePayloadBody(request.payload)) as Record<string, string>
               httpRequest = HttpClientRequest.setUrlParams(httpRequest, urlParams)
             }
           }
-          if (encodeHeaders._tag === "Some") {
+          if (encodeHeaders) {
             httpRequest = HttpClientRequest.setHeaders(
               httpRequest,
-              (yield* encodeHeaders.value(request.headers)) as any
+              (yield* encodeHeaders(request.headers)) as any
             )
           }
-          if (encodeUrlParams._tag === "Some") {
+          if (encodeUrlParams) {
             httpRequest = HttpClientRequest.appendUrlParams(
               httpRequest,
-              (yield* encodeUrlParams.value(request.urlParams)) as any
+              (yield* encodeUrlParams(request.urlParams)) as any
             )
           }
           const response = yield* httpClient.execute(httpRequest)

@@ -440,18 +440,17 @@ const handlerToRoute = (
   services: ServiceMap.ServiceMap<any>
 ): HttpRouter.Route<any, any> => {
   const endpoint = handler.endpoint
-  const isMultipartStream = endpoint.payloadSchema.pipe(
-    Option.map(({ ast }) => ast.annotations?.httpApiMultipartStream !== undefined),
-    Option.getOrElse(constFalse)
-  )
-  const multipartLimits = Option.getOrUndefined(endpoint.payloadSchema)?.pipe(
+  const isMultipartStream = endpoint.payloadSchema?.pipe(
+    ({ ast }) => ast.annotations?.httpApiMultipartStream !== undefined
+  ) ?? constFalse
+  const multipartLimits = endpoint.payloadSchema?.pipe(
     ({ ast }) => ast.annotations?.httpApiMultipartStream ?? ast.annotations?.httpApiMultipart
   )
-  const decodePath = Option.map(endpoint.pathSchema, Schema.decodeUnknownEffect)
+  const decodePath = UndefinedOr.map(endpoint.pathSchema, Schema.decodeUnknownEffect)
   const decodePayload = handler.withFullRequest || isMultipartStream
-    ? Option.none()
-    : Option.map(endpoint.payloadSchema, Schema.decodeUnknownEffect)
-  const decodeHeaders = Option.map(endpoint.headersSchema, Schema.decodeUnknownEffect)
+    ? undefined
+    : UndefinedOr.map(endpoint.payloadSchema, Schema.decodeUnknownEffect)
+  const decodeHeaders = UndefinedOr.map(endpoint.headersSchema, Schema.decodeUnknownEffect)
   const encodeSuccess = Schema.encodeEffect(makeSuccessSchema(endpoint.successSchema))
   return HttpRouter.route(
     endpoint.method,
@@ -471,13 +470,13 @@ const handlerToRoute = (
           endpoint,
           group
         }
-        if (decodePath._tag === "Some") {
-          request.path = yield* decodePath.value(routeContext.params)
+        if (decodePath) {
+          request.path = yield* decodePath(routeContext.params)
         }
-        if (decodePayload._tag === "Some") {
+        if (decodePayload) {
           request.payload = yield* Effect.flatMap(
             requestPayload(httpRequest, urlParams, multipartLimits),
-            decodePayload.value
+            decodePayload
           )
         } else if (isMultipartStream) {
           request.payload = UndefinedOr.match(multipartLimits, {
@@ -485,11 +484,11 @@ const handlerToRoute = (
             onDefined: (limits) => Stream.provideServices(httpRequest.multipartStream, Multipart.limitsServices(limits))
           })
         }
-        if (decodeHeaders._tag === "Some") {
-          request.headers = yield* decodeHeaders.value(httpRequest.headers)
+        if (decodeHeaders) {
+          request.headers = yield* decodeHeaders(httpRequest.headers)
         }
-        if (endpoint.urlParamsSchema._tag === "Some") {
-          const schema = endpoint.urlParamsSchema.value
+        if (endpoint.urlParamsSchema) {
+          const schema = endpoint.urlParamsSchema
           request.urlParams = yield* Schema.decodeUnknownEffect(schema)(normalizeUrlParams(urlParams, schema.ast))
         }
         const response = yield* handler.handler(request)
