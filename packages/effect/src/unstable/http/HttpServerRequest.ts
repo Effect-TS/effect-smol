@@ -2,7 +2,6 @@
  * @since 4.0.0
  */
 import type * as Arr from "../../collections/Array.ts"
-import * as Option from "../../data/Option.ts"
 import type { ReadonlyRecord } from "../../data/Record.ts"
 import * as Effect from "../../Effect.ts"
 import * as Inspectable from "../../interfaces/Inspectable.ts"
@@ -490,12 +489,12 @@ class ServerRequestImpl extends Inspectable.Class implements HttpServerRequest {
  * @since 4.0.0
  * @category conversions
  */
-export const toURL = (self: HttpServerRequest): Option.Option<URL> => {
+export const toURL = (self: HttpServerRequest): URL | undefined => {
   const host = self.headers.host ?? "localhost"
   const protocol = self.headers["x-forwarded-proto"] === "https" ? "https" : "http"
   try {
-    return Option.some(new URL(self.url, `${protocol}://${host}`))
+    return new URL(self.url, `${protocol}://${host}`)
   } catch {
-    return Option.none()
+    return undefined
   }
 }

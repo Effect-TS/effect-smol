@@ -4,7 +4,6 @@
 import * as Cause from "../../Cause.ts"
 import * as Arr from "../../collections/Array.ts"
 import * as Data from "../../data/Data.ts"
-import * as Option from "../../data/Option.ts"
 import { hasProperty } from "../../data/Predicate.ts"
 import * as Effect from "../../Effect.ts"
 import type * as Exit from "../../Exit.ts"
@@ -173,7 +172,7 @@ export const causeResponse = <E>(
  */
 export const causeResponseStripped = <E>(
   cause: Cause.Cause<E>
-): readonly [response: Response.HttpServerResponse, cause: Option.Option<Cause.Cause<E>>] => {
+): readonly [response: Response.HttpServerResponse, cause: Cause.Cause<E> | undefined] => {
   let response: Response.HttpServerResponse | undefined
   const failures = cause.failures.filter((f) => {
     if (f._tag === "Die" && Response.isHttpServerResponse(f.defect)) {
@@ -184,7 +183,7 @@ export const causeResponseStripped = <E>(
   })
   return [
     response ?? internalServerError,
-    failures.length > 0 ? Option.some(Cause.fromFailures(failures)) : Option.none()
+    failures.length > 0 ? Cause.fromFailures(failures) : undefined
   ]
 }
 
