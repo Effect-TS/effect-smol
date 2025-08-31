@@ -5011,3 +5011,10 @@ export const defaultLogger = loggerMake<unknown, void>(({ cause, date, fiber, lo
 export function interruptChildrenPatch() {
   fiberMiddleware.interruptChildren ??= fiberInterruptChildren
 }
+
+const undefined_ = succeed(undefined)
+
+export {
+  /** @internal */
+  undefined_ as undefined
+}

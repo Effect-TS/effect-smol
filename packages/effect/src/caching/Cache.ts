@@ -547,28 +547,28 @@ export const getOption: {
   2,
   <Key, A, E, R>(self: Cache<Key, A, E, R>, key: Key): Effect.Effect<Option.Option<A>, E> =>
     core.withFiber((fiber) => {
-      const oentry = getOptionImpl(self, key, fiber)
-      return Option.isSome(oentry) ? effect.asSome(Deferred.await(oentry.value.deferred)) : effect.succeedNone
+      const entry = getImpl(self, key, fiber)
+      return entry ? effect.asSome(Deferred.await(entry.deferred)) : effect.succeedNone
     })
 )
 
-const getOptionImpl = <Key, A, E, R>(
+const getImpl = <Key, A, E, R>(
   self: Cache<Key, A, E, R>,
   key: Key,
   fiber: Fiber.Fiber<any, any>,
   isRead = true
-): Option.Option<Entry<A, E>> => {
+): Entry<A, E> | undefined => {
   const oentry = MutableHashMap.get(self.map, key)
   if (Option.isNone(oentry)) {
-    return oentry
+    return undefined
   } else if (hasExpired(oentry.value, fiber)) {
     MutableHashMap.remove(self.map, key)
-    return Option.none()
+    return undefined
   } else if (isRead) {
     MutableHashMap.remove(self.map, key)
     MutableHashMap.set(self.map, key, oentry.value)
   }
-  return Option.some(oentry.value)
+  return oentry.value
 }
 
 /**
@@ -584,14 +584,13 @@ export const getSuccess: {
 } = dual(
   2,
   <Key, A, E, R>(self: Cache<Key, A, E, R>, key: Key): Effect.Effect<Option.Option<A>> =>
-    core.withFiber((fiber) =>
-      effect.succeed(
-        getOptionImpl(self, key, fiber).pipe(
-          Option.flatMapNullishOr((entry) => entry.deferred.effect as Exit.Exit<A, E>),
-          Option.flatMap((exit) => effect.exitIsSuccess(exit) ? Option.some(exit.value) : Option.none())
-        )
-      )
-    )
+    core.withFiber((fiber) => {
+      const exit = getImpl(self, key, fiber)?.deferred.effect as Exit.Exit<A, E> | undefined
+      if (exit && effect.exitIsSuccess(exit)) {
+        return effect.succeedSome(exit.value)
+      }
+      return effect.succeedNone
+    })
 )
 
 /**
@@ -808,8 +807,8 @@ export const has: {
   2,
   <Key, A, E>(self: Cache<Key, A, E>, key: Key): Effect.Effect<boolean> =>
     core.withFiber((fiber) => {
-      const oentry = getOptionImpl(self, key, fiber, false)
-      return effect.succeed(Option.isSome(oentry))
+      const oentry = getImpl(self, key, fiber, false)
+      return effect.succeed(oentry !== undefined)
     })
 )
 
@@ -917,11 +916,11 @@ export const invalidateWhen: {
   3,
   <Key, A, E, R>(self: Cache<Key, A, E, R>, key: Key, f: Predicate<A>): Effect.Effect<boolean> =>
     core.withFiber((fiber) => {
-      const oentry = getOptionImpl(self, key, fiber, false)
-      if (Option.isNone(oentry)) {
+      const oentry = getImpl(self, key, fiber, false)
+      if (oentry === undefined) {
         return effect.succeed(false)
       }
-      return Deferred.await(oentry.value.deferred).pipe(
+      return Deferred.await(oentry.deferred).pipe(
         effect.map((value) => {
           if (f(value)) {
             MutableHashMap.remove(self.map, key)
@@ -1037,7 +1036,7 @@ export const refresh: {
         expiresAt: undefined,
         deferred
       }
-      const existing = Option.isSome(getOptionImpl(self, key, fiber, false))
+      const existing = getImpl(self, key, fiber, false) !== undefined
       if (!existing) {
         MutableHashMap.set(self.map, key, entry)
         checkCapacity(self)

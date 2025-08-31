@@ -4,7 +4,7 @@
 import * as Arr from "../collections/Array.ts"
 import * as MutableHashMap from "../collections/MutableHashMap.ts"
 import * as Option from "../data/Option.ts"
-import type { Predicate } from "../data/Predicate.ts"
+import * as Predicate from "../data/Predicate.ts"
 import * as Deferred from "../Deferred.ts"
 import type * as Effect from "../Effect.ts"
 import type * as Exit from "../Exit.ts"
@@ -238,38 +238,37 @@ export const getOption: {
     effect.uninterruptibleMask((restore) =>
       core.withFiber((fiber) =>
         effect.flatMap(
-          getOptionImpl(self, key, fiber),
-          (oentry) =>
-            Option.isSome(oentry) ? effect.asSome(restore(Deferred.await(oentry.value.deferred))) : effect.succeedNone
+          getImpl(self, key, fiber),
+          (entry) => entry ? effect.asSome(restore(Deferred.await(entry.deferred))) : effect.succeedNone
         )
       )
     )
 )
 
-const getOptionImpl = <Key, A, E, R>(
+const getImpl = <Key, A, E, R>(
   self: ScopedCache<Key, A, E, R>,
   key: Key,
   fiber: Fiber.Fiber<any, any>,
   isRead = true
-): Effect.Effect<Option.Option<Entry<A, E>>> => {
+): Effect.Effect<Entry<A, E> | undefined> => {
   if (self.state._tag === "Closed") {
     return effect.interrupt
   }
   const state = self.state
   const oentry = MutableHashMap.get(state.map, key)
   if (Option.isNone(oentry)) {
-    return effect.succeedNone
+    return effect.undefined
   } else if (hasExpired(oentry.value, fiber)) {
     MutableHashMap.remove(state.map, key)
     return effect.as(
       oentry.value.scope.close(effect.exitVoid),
-      Option.none()
+      undefined
     )
   } else if (isRead) {
     MutableHashMap.remove(state.map, key)
     MutableHashMap.set(state.map, key, oentry.value)
   }
-  return effect.succeedSome(oentry.value)
+  return effect.succeed(oentry.value)
 }
 
 /**
@@ -288,12 +287,14 @@ export const getSuccess: {
     effect.uninterruptible(
       core.withFiber((fiber) =>
         effect.map(
-          getOptionImpl(self, key, fiber),
-          (o) =>
-            o.pipe(
-              Option.flatMapNullishOr((entry) => entry.deferred.effect as Exit.Exit<A, E>),
-              Option.flatMap((exit) => effect.exitIsSuccess(exit) ? Option.some(exit.value) : Option.none())
-            )
+          getImpl(self, key, fiber),
+          (entry) => {
+            const exit = entry?.deferred.effect as Exit.Exit<A, E> | undefined
+            if (exit && effect.exitIsSuccess(exit)) {
+              return Option.some(exit.value)
+            }
+            return Option.none()
+          }
         )
       )
     )
@@ -349,7 +350,7 @@ export const has: {
   2,
   <Key, A, E>(self: ScopedCache<Key, A, E>, key: Key): Effect.Effect<boolean> =>
     effect.uninterruptible(
-      core.withFiber((fiber) => effect.map(getOptionImpl(self, key, fiber, false), Option.isSome))
+      core.withFiber((fiber) => effect.map(getImpl(self, key, fiber, false), Predicate.isNotUndefined))
     )
 )
 
@@ -385,24 +386,24 @@ export const invalidate: {
  * @category Combinators
  */
 export const invalidateWhen: {
-  <Key, A>(key: Key, f: Predicate<A>): <E, R>(self: ScopedCache<Key, A, E, R>) => Effect.Effect<boolean>
-  <Key, A, E, R>(self: ScopedCache<Key, A, E, R>, key: Key, f: Predicate<A>): Effect.Effect<boolean>
+  <Key, A>(key: Key, f: Predicate.Predicate<A>): <E, R>(self: ScopedCache<Key, A, E, R>) => Effect.Effect<boolean>
+  <Key, A, E, R>(self: ScopedCache<Key, A, E, R>, key: Key, f: Predicate.Predicate<A>): Effect.Effect<boolean>
 } = dual(
   3,
-  <Key, A, E, R>(self: ScopedCache<Key, A, E, R>, key: Key, f: Predicate<A>): Effect.Effect<boolean> =>
+  <Key, A, E, R>(self: ScopedCache<Key, A, E, R>, key: Key, f: Predicate.Predicate<A>): Effect.Effect<boolean> =>
     effect.uninterruptibleMask((restore) =>
       core.withFiber((fiber) =>
-        effect.flatMap(getOptionImpl(self, key, fiber, false), (oentry) => {
-          if (Option.isNone(oentry)) {
+        effect.flatMap(getImpl(self, key, fiber, false), (entry) => {
+          if (entry === undefined) {
             return effect.succeed(false)
           }
-          return restore(Deferred.await(oentry.value.deferred)).pipe(
+          return restore(Deferred.await(entry.deferred)).pipe(
             effect.flatMap((value) => {
               if (self.state._tag === "Closed") {
                 return effect.succeed(false)
               } else if (f(value)) {
                 MutableHashMap.remove(self.state.map, key)
-                return effect.as(oentry.value.scope.close(effect.exitVoid), true)
+                return effect.as(entry.scope.close(effect.exitVoid), true)
               }
               return effect.succeed(false)
             }),

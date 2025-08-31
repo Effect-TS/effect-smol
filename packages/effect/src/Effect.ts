@@ -1225,7 +1225,7 @@ export {
   void_ as void
 }
 
-const undefined_: Effect<undefined> = succeed(undefined)
+const undefined_: Effect<undefined> = internal.undefined
 export {
   /**
    * @since 4.0.0
