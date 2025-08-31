@@ -396,7 +396,6 @@ export const toEntriesWithPrefix: {
  * @example
  * ```ts
  * import * as assert from "node:assert"
-import * as Option from "effect/data/Option"
  * import * as Trie from "effect/collections/Trie"
  *
  * const trie = Trie.empty<number>().pipe(
@@ -405,18 +404,18 @@ import * as Option from "effect/data/Option"
  *   Trie.insert("she", 2)
  * )
  *
- * assert.deepStrictEqual(Trie.longestPrefixOf(trie, "sell"), Option.none())
- * assert.deepStrictEqual(Trie.longestPrefixOf(trie, "sells"), Option.some(["sells", 1]))
- * assert.deepStrictEqual(Trie.longestPrefixOf(trie, "shell"), Option.some(["she", 2]))
- * assert.deepStrictEqual(Trie.longestPrefixOf(trie, "shellsort"), Option.some(["shells", 0]))
+ * assert.deepStrictEqual(Trie.longestPrefixOf(trie, "sell"), undefined)
+ * assert.deepStrictEqual(Trie.longestPrefixOf(trie, "sells"), ["sells", 1])
+ * assert.deepStrictEqual(Trie.longestPrefixOf(trie, "shell"), ["she", 2])
+ * assert.deepStrictEqual(Trie.longestPrefixOf(trie, "shellsort"), ["shells", 0])
  * ```
  *
  * @since 2.0.0
  * @category getters
  */
 export const longestPrefixOf: {
-  (key: string): <V>(self: Trie<V>) => Option<[string, V]>
-  <V>(self: Trie<V>, key: string): Option<[string, V]>
+  (key: string): <V>(self: Trie<V>) => [string, V] | undefined
+  <V>(self: Trie<V>, key: string): [string, V] | undefined
 } = TR.longestPrefixOf
 
 /**
