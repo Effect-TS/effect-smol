@@ -13,18 +13,6 @@ import type { Pipeable } from "../interfaces/Pipeable.ts"
 import { pipeArguments } from "../interfaces/Pipeable.ts"
 import type { Mutable } from "../types/Types.ts"
 
-/**
- * Safely get a value from a Map, returning an Option.
- * Uses explicit key presence check with map.has() for better safety.
- * @internal
- */
-const getMapSafe = <K, V>(map: Map<K, V>, key: K): Option.Option<V> => {
-  if (map.has(key)) {
-    return Option.some(map.get(key)!)
-  }
-  return Option.none()
-}
-
 const TypeId = "~effect/collections/Graph"
 
 /**
@@ -208,6 +196,23 @@ const ProtoGraph = {
     return pipeArguments(this, arguments)
   }
 }
+
+// =============================================================================
+// Errors
+// =============================================================================
+
+// TODO: Do we need safe variants for these?
+
+/**
+ * @since 4.0.0
+ * @category errors
+ */
+export class GraphError extends Data.TaggedError("GraphError")<{
+  readonly message: string
+}> {}
+
+/** @internal */
+const missingNode = (node: number) => new GraphError({ message: `Node ${node} does not exist` })
 
 // =============================================================================
 // Constructors
@@ -480,7 +485,7 @@ export const addNode = <N, E, T extends Kind = "directed">(
 export const getNode = <N, E, T extends Kind = "directed">(
   graph: Graph<N, E, T> | MutableGraph<N, E, T>,
   nodeIndex: NodeIndex
-): Option.Option<N> => getMapSafe(graph.nodes, nodeIndex)
+): Option.Option<N> => graph.nodes.has(nodeIndex) ? Option.some(graph.nodes.get(nodeIndex)!) : Option.none()
 
 /**
  * Checks if a node with the given index exists in the graph.
@@ -1128,10 +1133,10 @@ export const addEdge = <N, E, T extends Kind = "directed">(
 ): EdgeIndex => {
   // Validate that both nodes exist
   if (!mutable.nodes.has(source)) {
-    throw new Error(`Source node ${source} does not exist`)
+    throw missingNode(source)
   }
   if (!mutable.nodes.has(target)) {
-    throw new Error(`Target node ${target} does not exist`)
+    throw missingNode(target)
   }
 
   const edgeIndex = mutable.nextEdgeIndex
@@ -1141,26 +1146,26 @@ export const addEdge = <N, E, T extends Kind = "directed">(
   mutable.edges.set(edgeIndex, edgeData)
 
   // Update adjacency lists
-  const sourceAdjacency = getMapSafe(mutable.adjacency, source)
-  if (Option.isSome(sourceAdjacency)) {
-    sourceAdjacency.value.push(edgeIndex)
+  const sourceAdjacency = mutable.adjacency.get(source)
+  if (sourceAdjacency !== undefined) {
+    sourceAdjacency.push(edgeIndex)
   }
 
-  const targetReverseAdjacency = getMapSafe(mutable.reverseAdjacency, target)
-  if (Option.isSome(targetReverseAdjacency)) {
-    targetReverseAdjacency.value.push(edgeIndex)
+  const targetReverseAdjacency = mutable.reverseAdjacency.get(target)
+  if (targetReverseAdjacency !== undefined) {
+    targetReverseAdjacency.push(edgeIndex)
   }
 
   // For undirected graphs, add reverse connections
   if (mutable.type === "undirected") {
-    const targetAdjacency = getMapSafe(mutable.adjacency, target)
-    if (Option.isSome(targetAdjacency)) {
-      targetAdjacency.value.push(edgeIndex)
+    const targetAdjacency = mutable.adjacency.get(target)
+    if (targetAdjacency !== undefined) {
+      targetAdjacency.push(edgeIndex)
     }
 
-    const sourceReverseAdjacency = getMapSafe(mutable.reverseAdjacency, source)
-    if (Option.isSome(sourceReverseAdjacency)) {
-      sourceReverseAdjacency.value.push(edgeIndex)
+    const sourceReverseAdjacency = mutable.reverseAdjacency.get(source)
+    if (sourceReverseAdjacency !== undefined) {
+      sourceReverseAdjacency.push(edgeIndex)
     }
   }
 
@@ -1207,17 +1212,17 @@ export const removeNode = <N, E, T extends Kind = "directed">(
   const edgesToRemove: Array<EdgeIndex> = []
 
   // Get outgoing edges
-  const outgoingEdges = getMapSafe(mutable.adjacency, nodeIndex)
-  if (Option.isSome(outgoingEdges)) {
-    for (const edge of outgoingEdges.value) {
+  const outgoingEdges = mutable.adjacency.get(nodeIndex)
+  if (outgoingEdges !== undefined) {
+    for (const edge of outgoingEdges) {
       edgesToRemove.push(edge)
     }
   }
 
   // Get incoming edges
-  const incomingEdges = getMapSafe(mutable.reverseAdjacency, nodeIndex)
-  if (Option.isSome(incomingEdges)) {
-    for (const edge of incomingEdges.value) {
+  const incomingEdges = mutable.reverseAdjacency.get(nodeIndex)
+  if (incomingEdges !== undefined) {
+    for (const edge of incomingEdges) {
       edgesToRemove.push(edge)
     }
   }
@@ -1276,45 +1281,45 @@ const removeEdgeInternal = <N, E, T extends Kind = "directed">(
   edgeIndex: EdgeIndex
 ): boolean => {
   // Get edge data
-  const edge = getMapSafe(mutable.edges, edgeIndex)
-  if (Option.isNone(edge)) {
+  const edge = mutable.edges.get(edgeIndex)
+  if (edge === undefined) {
     return false // Edge doesn't exist, no mutation occurred
   }
 
-  const { source, target } = edge.value
+  const { source, target } = edge
 
   // Remove from adjacency lists
-  const sourceAdjacency = getMapSafe(mutable.adjacency, source)
-  if (Option.isSome(sourceAdjacency)) {
-    const index = sourceAdjacency.value.indexOf(edgeIndex)
+  const sourceAdjacency = mutable.adjacency.get(source)
+  if (sourceAdjacency !== undefined) {
+    const index = sourceAdjacency.indexOf(edgeIndex)
     if (index !== -1) {
-      sourceAdjacency.value.splice(index, 1)
+      sourceAdjacency.splice(index, 1)
     }
   }
 
-  const targetReverseAdjacency = getMapSafe(mutable.reverseAdjacency, target)
-  if (Option.isSome(targetReverseAdjacency)) {
-    const index = targetReverseAdjacency.value.indexOf(edgeIndex)
+  const targetReverseAdjacency = mutable.reverseAdjacency.get(target)
+  if (targetReverseAdjacency !== undefined) {
+    const index = targetReverseAdjacency.indexOf(edgeIndex)
     if (index !== -1) {
-      targetReverseAdjacency.value.splice(index, 1)
+      targetReverseAdjacency.splice(index, 1)
     }
   }
 
   // For undirected graphs, remove reverse connections
   if (mutable.type === "undirected") {
-    const targetAdjacency = getMapSafe(mutable.adjacency, target)
-    if (Option.isSome(targetAdjacency)) {
-      const index = targetAdjacency.value.indexOf(edgeIndex)
+    const targetAdjacency = mutable.adjacency.get(target)
+    if (targetAdjacency !== undefined) {
+      const index = targetAdjacency.indexOf(edgeIndex)
       if (index !== -1) {
-        targetAdjacency.value.splice(index, 1)
+        targetAdjacency.splice(index, 1)
       }
     }
 
-    const sourceReverseAdjacency = getMapSafe(mutable.reverseAdjacency, source)
-    if (Option.isSome(sourceReverseAdjacency)) {
-      const index = sourceReverseAdjacency.value.indexOf(edgeIndex)
+    const sourceReverseAdjacency = mutable.reverseAdjacency.get(source)
+    if (sourceReverseAdjacency !== undefined) {
+      const index = sourceReverseAdjacency.indexOf(edgeIndex)
       if (index !== -1) {
-        sourceReverseAdjacency.value.splice(index, 1)
+        sourceReverseAdjacency.splice(index, 1)
       }
     }
   }
@@ -1358,7 +1363,7 @@ const removeEdgeInternal = <N, E, T extends Kind = "directed">(
 export const getEdge = <N, E, T extends Kind = "directed">(
   graph: Graph<N, E, T> | MutableGraph<N, E, T>,
   edgeIndex: EdgeIndex
-): Edge<E> | undefined => Option.getOrUndefined(getMapSafe(graph.edges, edgeIndex))
+): Edge<E> | undefined => graph.edges.get(edgeIndex)
 
 /**
  * Checks if an edge exists between two nodes in the graph.
@@ -1393,15 +1398,15 @@ export const hasEdge = <N, E, T extends Kind = "directed">(
   source: NodeIndex,
   target: NodeIndex
 ): boolean => {
-  const adjacencyList = getMapSafe(graph.adjacency, source)
-  if (Option.isNone(adjacencyList)) {
+  const adjacencyList = graph.adjacency.get(source)
+  if (adjacencyList === undefined) {
     return false
   }
 
   // Check if any edge in the adjacency list connects to the target
-  for (const edgeIndex of adjacencyList.value) {
-    const edge = getMapSafe(graph.edges, edgeIndex)
-    if (Option.isSome(edge) && edge.value.target === target) {
+  for (const edgeIndex of adjacencyList) {
+    const edge = graph.edges.get(edgeIndex)
+    if (edge !== undefined && edge.target === target) {
       return true
     }
   }
@@ -1471,16 +1476,16 @@ export const neighbors = <N, E, T extends Kind = "directed">(
   graph: Graph<N, E, T> | MutableGraph<N, E, T>,
   nodeIndex: NodeIndex
 ): Array<NodeIndex> => {
-  const adjacencyList = getMapSafe(graph.adjacency, nodeIndex)
-  if (Option.isNone(adjacencyList)) {
+  const adjacencyList = graph.adjacency.get(nodeIndex)
+  if (adjacencyList === undefined) {
     return []
   }
 
   const result: Array<NodeIndex> = []
-  for (const edgeIndex of adjacencyList.value) {
-    const edge = getMapSafe(graph.edges, edgeIndex)
-    if (Option.isSome(edge)) {
-      result.push(edge.value.target)
+  for (const edgeIndex of adjacencyList) {
+    const edge = graph.edges.get(edgeIndex)
+    if (edge !== undefined) {
+      result.push(edge.target)
     }
   }
 
@@ -1522,19 +1527,19 @@ export const neighborsDirected = <N, E, T extends Kind = "directed">(
     ? graph.reverseAdjacency
     : graph.adjacency
 
-  const adjacencyList = getMapSafe(adjacencyMap, nodeIndex)
-  if (Option.isNone(adjacencyList)) {
+  const adjacencyList = adjacencyMap.get(nodeIndex)
+  if (adjacencyList === undefined) {
     return []
   }
 
   const result: Array<NodeIndex> = []
-  for (const edgeIndex of adjacencyList.value) {
-    const edge = getMapSafe(graph.edges, edgeIndex)
-    if (Option.isSome(edge)) {
+  for (const edgeIndex of adjacencyList) {
+    const edge = graph.edges.get(edgeIndex)
+    if (edge !== undefined) {
       // For incoming direction, we want the source node instead of target
       const neighborNode = direction === "incoming"
-        ? edge.value.source
-        : edge.value.target
+        ? edge.source
+        : edge.target
       result.push(neighborNode)
     }
   }
@@ -1644,9 +1649,7 @@ export const toGraphViz = <N, E, T extends Kind = "directed">(
 export type Direction = "outgoing" | "incoming"
 
 // =============================================================================
-
-// =============================================================================
-// Graph Structure Analysis Algorithms (Phase 5A)
+// Graph Structure Analysis Algorithms
 // =============================================================================
 
 /**
@@ -1856,13 +1859,13 @@ const getUndirectedNeighbors = <N, E>(
   const neighbors = new Set<NodeIndex>()
 
   // Check edges where this node is the source
-  const adjacencyList = getMapSafe(graph.adjacency, nodeIndex)
-  if (Option.isSome(adjacencyList)) {
-    for (const edgeIndex of adjacencyList.value) {
-      const edge = getMapSafe(graph.edges, edgeIndex)
-      if (Option.isSome(edge)) {
+  const adjacencyList = graph.adjacency.get(nodeIndex)
+  if (adjacencyList !== undefined) {
+    for (const edgeIndex of adjacencyList) {
+      const edge = graph.edges.get(edgeIndex)
+      if (edge !== undefined) {
         // For undirected graphs, the neighbor is the other endpoint
-        const otherNode = edge.value.source === nodeIndex ? edge.value.target : edge.value.source
+        const otherNode = edge.source === nodeIndex ? edge.target : edge.source
         neighbors.add(otherNode)
       }
     }
@@ -2026,12 +2029,12 @@ export const stronglyConnectedComponents = <N, E, T extends Kind = "directed">(
       scc.push(node)
 
       // Use reverse adjacency (transpose graph)
-      const reverseAdjacency = getMapSafe(graph.reverseAdjacency, node)
-      if (Option.isSome(reverseAdjacency)) {
-        for (const edgeIndex of reverseAdjacency.value) {
-          const edge = getMapSafe(graph.edges, edgeIndex)
-          if (Option.isSome(edge)) {
-            const predecessor = edge.value.source
+      const reverseAdjacency = graph.reverseAdjacency.get(node)
+      if (reverseAdjacency !== undefined) {
+        for (const edgeIndex of reverseAdjacency) {
+          const edge = graph.edges.get(edgeIndex)
+          if (edge !== undefined) {
+            const predecessor = edge.source
             if (!visited.has(predecessor)) {
               stack.push(predecessor)
             }
@@ -2047,7 +2050,7 @@ export const stronglyConnectedComponents = <N, E, T extends Kind = "directed">(
 }
 
 // =============================================================================
-// Path Finding Algorithms (Phase 5B)
+// Path Finding Algorithms
 // =============================================================================
 
 /**
@@ -2100,10 +2103,10 @@ export const dijkstra = <N, E, T extends Kind = "directed">(
 ): PathResult<E> | undefined => {
   // Validate that source and target nodes exist
   if (!graph.nodes.has(source)) {
-    throw new Error(`Source node ${source} does not exist`)
+    throw missingNode(source)
   }
   if (!graph.nodes.has(target)) {
-    throw new Error(`Target node ${target} does not exist`)
+    throw missingNode(target)
   }
 
   // Early return if source equals target
@@ -2160,17 +2163,17 @@ export const dijkstra = <N, E, T extends Kind = "directed">(
     const currentDistance = distances.get(currentNode)!
 
     // Examine all outgoing edges
-    const adjacencyList = getMapSafe(graph.adjacency, currentNode)
-    if (Option.isSome(adjacencyList)) {
-      for (const edgeIndex of adjacencyList.value) {
-        const edge = getMapSafe(graph.edges, edgeIndex)
-        if (Option.isSome(edge)) {
-          const neighbor = edge.value.target
-          const weight = edgeWeight(edge.value.data)
+    const adjacencyList = graph.adjacency.get(currentNode)
+    if (adjacencyList !== undefined) {
+      for (const edgeIndex of adjacencyList) {
+        const edge = graph.edges.get(edgeIndex)
+        if (edge !== undefined) {
+          const neighbor = edge.target
+          const weight = edgeWeight(edge.data)
 
           // Validate non-negative weights
           if (weight < 0) {
-            throw new Error(`Dijkstra's algorithm requires non-negative edge weights, found ${weight}`)
+            throw new GraphError({ message: "Dijkstra's algorithm requires non-negative edge weights" })
           }
 
           const newDistance = currentDistance + weight
@@ -2179,7 +2182,7 @@ export const dijkstra = <N, E, T extends Kind = "directed">(
           // Relaxation step
           if (newDistance < neighborDistance) {
             distances.set(neighbor, newDistance)
-            previous.set(neighbor, { node: currentNode, edgeData: edge.value.data })
+            previous.set(neighbor, { node: currentNode, edgeData: edge.data })
 
             // Add to priority queue if not visited
             if (!visited.has(neighbor)) {
@@ -2237,6 +2240,8 @@ export interface AllPairsResult<E> {
  *
  * Floyd-Warshall algorithm computes shortest paths between all pairs of nodes in O(V³) time.
  * It can handle negative edge weights and detect negative cycles.
+ *
+ * Throws if a negative cycle is detected that affects the path to target.
  *
  * @example
  * ```ts
@@ -2318,7 +2323,7 @@ export const floydWarshall = <N, E, T extends Kind = "directed">(
   // Check for negative cycles
   for (const i of allNodes) {
     if (dist.get(i)!.get(i)! < 0) {
-      throw new Error(`Negative cycle detected involving node ${i}`)
+      throw new GraphError({ message: `Negative cycle detected involving node ${i}` })
     }
   }
 
@@ -2412,10 +2417,10 @@ export const astar = <N, E, T extends Kind = "directed">(
 ): PathResult<E> | undefined => {
   // Validate that source and target nodes exist
   if (!graph.nodes.has(source)) {
-    throw new Error(`Source node ${source} does not exist`)
+    throw missingNode(source)
   }
   if (!graph.nodes.has(target)) {
-    throw new Error(`Target node ${target} does not exist`)
+    throw missingNode(target)
   }
 
   // Early return if source equals target
@@ -2428,9 +2433,9 @@ export const astar = <N, E, T extends Kind = "directed">(
   }
 
   // Get target node data for heuristic calculations
-  const targetNodeData = getMapSafe(graph.nodes, target)
+  const targetNodeData = getNode(graph, target)
   if (Option.isNone(targetNodeData)) {
-    throw new Error(`Target node ${target} data not found`)
+    throw new GraphError({ message: `Missing node data for target node ${target}` })
   }
 
   // Distance tracking (g-score) and f-score (g + h)
@@ -2448,7 +2453,7 @@ export const astar = <N, E, T extends Kind = "directed">(
   }
 
   // Calculate initial f-score for source
-  const sourceNodeData = getMapSafe(graph.nodes, source)
+  const sourceNodeData = getNode(graph, source)
   if (Option.isSome(sourceNodeData)) {
     const h = heuristic(sourceNodeData.value, targetNodeData.value)
     fScore.set(source, h)
@@ -2487,17 +2492,17 @@ export const astar = <N, E, T extends Kind = "directed">(
     const currentGScore = gScore.get(currentNode)!
 
     // Examine all outgoing edges
-    const adjacencyList = getMapSafe(graph.adjacency, currentNode)
-    if (Option.isSome(adjacencyList)) {
-      for (const edgeIndex of adjacencyList.value) {
-        const edge = getMapSafe(graph.edges, edgeIndex)
-        if (Option.isSome(edge)) {
-          const neighbor = edge.value.target
-          const weight = edgeWeight(edge.value.data)
+    const adjacencyList = graph.adjacency.get(currentNode)
+    if (adjacencyList !== undefined) {
+      for (const edgeIndex of adjacencyList) {
+        const edge = graph.edges.get(edgeIndex)
+        if (edge !== undefined) {
+          const neighbor = edge.target
+          const weight = edgeWeight(edge.data)
 
           // Validate non-negative weights
           if (weight < 0) {
-            throw new Error(`A* algorithm requires non-negative edge weights, found ${weight}`)
+            throw new GraphError({ message: "A* algorithm requires non-negative edge weights" })
           }
 
           const tentativeGScore = currentGScore + weight
@@ -2507,10 +2512,10 @@ export const astar = <N, E, T extends Kind = "directed">(
           if (tentativeGScore < neighborGScore) {
             // Update g-score and previous
             gScore.set(neighbor, tentativeGScore)
-            previous.set(neighbor, { node: currentNode, edgeData: edge.value.data })
+            previous.set(neighbor, { node: currentNode, edgeData: edge.data })
 
             // Calculate f-score using heuristic
-            const neighborNodeData = getMapSafe(graph.nodes, neighbor)
+            const neighborNodeData = getNode(graph, neighbor)
             if (Option.isSome(neighborNodeData)) {
               const h = heuristic(neighborNodeData.value, targetNodeData.value)
               const f = tentativeGScore + h
@@ -2594,10 +2599,10 @@ export const bellmanFord = <N, E, T extends Kind = "directed">(
 ): PathResult<E> | undefined => {
   // Validate that source and target nodes exist
   if (!graph.nodes.has(source)) {
-    throw new Error(`Source node ${source} does not exist`)
+    throw missingNode(source)
   }
   if (!graph.nodes.has(target)) {
-    throw new Error(`Target node ${target} does not exist`)
+    throw missingNode(target)
   }
 
   // Early return if source equals target
@@ -2670,12 +2675,12 @@ export const bellmanFord = <N, E, T extends Kind = "directed">(
         affectedNodes.add(node)
 
         // Add all nodes reachable from this node
-        const adjacencyList = getMapSafe(graph.adjacency, node)
-        if (Option.isSome(adjacencyList)) {
-          for (const edgeIndex of adjacencyList.value) {
-            const edge = getMapSafe(graph.edges, edgeIndex)
-            if (Option.isSome(edge)) {
-              queue.push(edge.value.target)
+        const adjacencyList = graph.adjacency.get(node)
+        if (adjacencyList !== undefined) {
+          for (const edgeIndex of adjacencyList) {
+            const edge = graph.edges.get(edgeIndex)
+            if (edge !== undefined) {
+              queue.push(edge.target)
             }
           }
         }
@@ -2968,7 +2973,7 @@ export const dfs = <N, E, T extends Kind = "directed">(
   // Validate that all start nodes exist
   for (const nodeIndex of startNodes) {
     if (!hasNode(graph, nodeIndex)) {
-      throw new Error(`Start node ${nodeIndex} does not exist`)
+      throw missingNode(nodeIndex)
     }
   }
 
@@ -2987,7 +2992,7 @@ export const dfs = <N, E, T extends Kind = "directed">(
 
           discovered.add(current)
 
-          const nodeDataOption = getMapSafe(graph.nodes, current)
+          const nodeDataOption = getNode(graph, current)
           if (Option.isNone(nodeDataOption)) {
             continue
           }
@@ -3064,7 +3069,7 @@ export const bfs = <N, E, T extends Kind = "directed">(
   // Validate that all start nodes exist
   for (const nodeIndex of startNodes) {
     if (!hasNode(graph, nodeIndex)) {
-      throw new Error(`Start node ${nodeIndex} does not exist`)
+      throw missingNode(nodeIndex)
     }
   }
 
@@ -3164,7 +3169,7 @@ export const topo = <N, E, T extends Kind = "directed">(
 ): NodeWalker<N> => {
   // Check if graph is acyclic first
   if (!isAcyclic(graph)) {
-    throw new Error("Cannot perform topological sort on cyclic graph")
+    throw new GraphError({ message: "Cannot perform topological sort on cyclic graph" })
   }
 
   const initials = config.initials ?? []
@@ -3172,7 +3177,7 @@ export const topo = <N, E, T extends Kind = "directed">(
   // Validate that all initial nodes exist
   for (const nodeIndex of initials) {
     if (!hasNode(graph, nodeIndex)) {
-      throw new Error(`Initial node ${nodeIndex} does not exist`)
+      throw missingNode(nodeIndex)
     }
   }
 
@@ -3291,7 +3296,7 @@ export const dfsPostOrder = <N, E, T extends Kind = "directed">(
   // Validate that all start nodes exist
   for (const nodeIndex of startNodes) {
     if (!hasNode(graph, nodeIndex)) {
-      throw new Error(`Start node ${nodeIndex} does not exist`)
+      throw missingNode(nodeIndex)
     }
   }
 
@@ -3501,10 +3506,10 @@ export const externals = <N, E, T extends Kind = "directed">(
         let current = nodeIterator.next()
         while (!current.done) {
           const [nodeIndex, nodeData] = current.value
-          const adjacencyList = getMapSafe(adjacencyMap, nodeIndex)
+          const adjacencyList = adjacencyMap.get(nodeIndex)
 
           // Node is external if it has no edges in the specified direction
-          if (Option.isNone(adjacencyList) || adjacencyList.value.length === 0) {
+          if (adjacencyList === undefined || adjacencyList.length === 0) {
             return { done: false, value: f(nodeIndex, nodeData) }
           }
           current = nodeIterator.next()

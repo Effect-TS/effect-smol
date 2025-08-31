@@ -1196,7 +1196,7 @@ describe("Graph", () => {
           const nonExistentNode = 999
           Graph.addEdge(mutable, nonExistentNode, nodeB, 42)
         })
-      }).toThrow("Source node 999 does not exist")
+      }).toThrow("Node 999 does not exist")
     })
 
     it("should throw error when target node doesn't exist", () => {
@@ -1206,7 +1206,7 @@ describe("Graph", () => {
           const nonExistentNode = 999
           Graph.addEdge(mutable, nodeA, nonExistentNode, 42)
         })
-      }).toThrow("Target node 999 does not exist")
+      }).toThrow("Node 999 does not exist")
     })
   })
 
@@ -1963,7 +1963,7 @@ describe("Graph", () => {
         const graph = Graph.directed<string, number>()
 
         expect(() => Graph.dijkstra(graph, 0, 1, (edge) => edge)).toThrow(
-          "Source node 0 does not exist"
+          "Node 0 does not exist"
         )
       })
     })
@@ -2437,7 +2437,7 @@ describe("Graph", () => {
         })
 
         expect(() => Graph.dfsPostOrder(graph, { startNodes: [99] }))
-          .toThrow("Start node 99 does not exist")
+          .toThrow("Node 99 does not exist")
       })
 
       it("should be iterable multiple times with fresh state", () => {
