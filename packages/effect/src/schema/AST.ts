@@ -1365,10 +1365,11 @@ export class TypeLiteral extends Base {
         const eff = p.parser(value, options)
         const exit = effectIsExit(eff) ? eff : yield* Effect.exit(eff)
         if (exit._tag === "Failure") {
-          const issue = Cause.filterError(exit.cause)
-          if (Filter.isFail(issue)) {
+          const issueProp = Cause.filterError(exit.cause)
+          if (Filter.isFail(issueProp)) {
             return yield* exit
           }
+          const issue = new Issue.Pointer([p.name], issueProp)
           if (errorsAllOption) {
             if (issues) issues.push(issue)
             else issues = [issue]

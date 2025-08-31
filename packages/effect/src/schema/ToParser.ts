@@ -298,30 +298,6 @@ function asSync<T, E, R>(
     )
 }
 
-/**
- * @category Symbols
- * @since 4.0.0
- */
-export const missing: unique symbol = Symbol.for("effect/schema/ToParser/missing")
-
-/**
- * @category Symbols
- * @since 4.0.0
- */
-export type missing = typeof missing
-
-/**
- * @category Symbols
- * @since 4.0.0
- */
-export const unset: unique symbol = Symbol.for("effect/schema/ToParser/unset")
-
-/**
- * @category Symbols
- * @since 4.0.0
- */
-export type unset = typeof unset
-
 /** @internal */
 export interface Parser {
   (input: Option.Option<unknown>, options: AST.ParseOptions): Effect.Effect<Option.Option<unknown>, Issue.Issue, any>
@@ -354,6 +330,13 @@ export function runChecks<T>(
 const go = AST.memoize(
   (ast: AST.AST): Parser => {
     if (!ast.context && !ast.encoding && !ast.checks) {
+      if (ast._tag === "Suspend") {
+        let parser: Parser
+        return (ou, options) => {
+          parser ??= ast.parser(go)
+          return parser(ou, options)
+        }
+      }
       return ast.parser(go)
     }
     let parser: Parser
