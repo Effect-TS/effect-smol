@@ -2,7 +2,6 @@
  * @since 4.0.0
  */
 import type { Equivalence as Equivalence_ } from "../../data/Equivalence.ts"
-import type * as Option from "../../data/Option.ts"
 import * as Predicate from "../../data/Predicate.ts"
 import * as Record from "../../data/Record.ts"
 import * as Redacted from "../../data/Redacted.ts"
@@ -161,12 +160,12 @@ export const has: {
  * @category combinators
  */
 export const get: {
-  (key: string): (self: Headers) => Option.Option<string>
-  (self: Headers, key: string): Option.Option<string>
+  (key: string): (self: Headers) => string | undefined
+  (self: Headers, key: string): string | undefined
 } = dual<
-  (key: string) => (self: Headers) => Option.Option<string>,
-  (self: Headers, key: string) => Option.Option<string>
->(2, (self, key) => Record.get(self as Record<string, string>, key.toLowerCase()))
+  (key: string) => (self: Headers) => string | undefined,
+  (self: Headers, key: string) => string | undefined
+>(2, (self, key) => self[key.toLowerCase()])
 
 /**
  * @since 4.0.0
