@@ -1,5 +1,5 @@
 import type * as Cause from "../Cause.ts"
-import { hasProperty, isObject } from "../data/Predicate.ts"
+import { hasProperty } from "../data/Predicate.ts"
 import type * as Effect from "../Effect.ts"
 import type * as Exit from "../Exit.ts"
 import { dual, identity } from "../Function.ts"
@@ -190,7 +190,7 @@ export class CauseImpl<E> implements Cause.Cause<E> {
   }
 }
 
-const errorAnnotations = new WeakMap<object, ReadonlyMap<string, unknown>>()
+const annotationsSymbol = Symbol.for("~effect/Cause/annotations")
 
 /** @internal */
 export abstract class FailureBase<Tag extends string> implements Cause.Cause.FailureProto<Tag> {
@@ -205,14 +205,14 @@ export abstract class FailureBase<Tag extends string> implements Cause.Cause.Fai
   ) {
     this[CauseFailureTypeId] = CauseFailureTypeId
     this._tag = _tag
-    if (isObject(originalError)) {
-      if (errorAnnotations.has(originalError)) {
+    if (typeof originalError === "object" && originalError !== null) {
+      if (annotationsSymbol in originalError) {
         annotations = new Map([
-          ...errorAnnotations.get(originalError)!,
+          ...originalError[annotationsSymbol] as any,
           ...annotations
         ])
       }
-      errorAnnotations.set(originalError, annotations)
+      ;(originalError as any)[annotationsSymbol] = annotations
     }
     this.annotations = annotations
   }
@@ -237,11 +237,14 @@ export abstract class FailureBase<Tag extends string> implements Cause.Cause.Fai
 }
 
 /** @internal */
+export const constEmptyAnnotations = new Map<string, unknown>()
+
+/** @internal */
 export class Fail<E> extends FailureBase<"Fail"> implements Cause.Fail<E> {
   readonly error: E
   constructor(
     error: E,
-    annotations = new Map<string, unknown>()
+    annotations = constEmptyAnnotations
   ) {
     super("Fail", annotations, error)
     this.error = error
@@ -294,7 +297,7 @@ export class Die extends FailureBase<"Die"> implements Cause.Die {
   readonly defect: unknown
   constructor(
     defect: unknown,
-    annotations = new Map<string, unknown>()
+    annotations = constEmptyAnnotations
   ) {
     super("Die", annotations, defect)
     this.defect = defect

@@ -44,6 +44,7 @@ import {
   causeFail,
   causeFromFailures,
   CauseImpl,
+  constEmptyAnnotations,
   contA,
   contAll,
   contE,
@@ -83,7 +84,7 @@ export class Interrupt extends FailureBase<"Interrupt"> implements Cause.Interru
   readonly fiberId: number | undefined
   constructor(
     fiberId: number | undefined,
-    annotations = new Map<string, unknown>()
+    annotations = constEmptyAnnotations
   ) {
     super("Interrupt", annotations, "Interrupted")
     this.fiberId = fiberId
@@ -1017,13 +1018,13 @@ export const fnUntraced: Effect.fn.Gen = (
   ...pipeables: Array<any>
 ) => {
   return pipeables.length === 0
-    ? function(this: any, ...args: Array<any>) {
-      return suspend(() => fromIteratorUnsafe(body.apply(this, args)))
+    ? function(this: any) {
+      return suspend(() => fromIteratorUnsafe(body.apply(this, arguments)))
     }
-    : function(this: any, ...args: Array<any>) {
-      let effect = suspend(() => fromIteratorUnsafe(body.apply(this, args)))
+    : function(this: any) {
+      let effect = suspend(() => fromIteratorUnsafe(body.apply(this, arguments)))
       for (const pipeable of pipeables) {
-        effect = pipeable(effect, ...args)
+        effect = pipeable(effect, ...arguments)
       }
       return effect
     }
@@ -1039,9 +1040,9 @@ export const fn: Effect.fn.Gen & Effect.fn.NonGen = (
   const defError = new globalThis.Error()
   globalThis.Error.stackTraceLimit = prevLimit
 
-  return function(this: any, ...args: Array<any>) {
+  return function(this: any) {
     let result = suspend(() => {
-      const iter = body.apply(this, args)
+      const iter = body.apply(this, arguments)
       return isEffect(iter) ? iter : fromIteratorUnsafe(iter)
     })
     for (let i = 0; i < pipeables.length; i++) {
@@ -1077,25 +1078,24 @@ const callsiteErrorKey = ServiceMap.Key<Error>(
 export const fnUntracedEager: Effect.fn.Gen = (
   body: Function,
   ...pipeables: Array<any>
-) => {
-  return pipeables.length === 0
-    ? function(this: any, ...args: Array<any>) {
-      return fromIteratorEagerUnsafe(() => body.apply(this, args))
+) =>
+  pipeables.length === 0
+    ? function(this: any) {
+      return fromIteratorEagerUnsafe(() => body.apply(this, arguments))
     }
-    : function(this: any, ...args: Array<any>) {
-      let effect = fromIteratorEagerUnsafe(() => body.apply(this, args))
+    : function(this: any) {
+      let effect = fromIteratorEagerUnsafe(() => body.apply(this, arguments))
       for (const pipeable of pipeables) {
         effect = pipeable(effect)
       }
       return effect
     }
-}
 
 const fromIteratorEagerUnsafe = (
-  createIterator: () => Iterator<Effect.Yieldable<any, any, any, any>>
+  evaluate: () => Iterator<Effect.Yieldable<any, any, any, any>>
 ): Effect.Effect<any, any, any> => {
   try {
-    const iterator = createIterator()
+    const iterator = evaluate()
     let value: any = undefined
 
     // Try to resolve synchronously in a loop
@@ -1123,7 +1123,7 @@ const fromIteratorEagerUnsafe = (
             isFirstExecution = false
             return flatMap(effect, (value) => fromIteratorUnsafe(iterator, value))
           } else {
-            return suspend(() => fromIteratorUnsafe(createIterator()))
+            return suspend(() => fromIteratorUnsafe(evaluate()))
           }
         })
       }

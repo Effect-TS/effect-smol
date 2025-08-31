@@ -1313,10 +1313,10 @@ export class TypeLiteral extends Base {
       if (oinput._tag === "None") {
         return oinput
       }
-      const input = oinput.value
+      const input = oinput.value as Record<PropertyKey, unknown>
 
       // If the input is not a record, return early with an error
-      if (!Predicate.isRecord(input)) {
+      if (!(typeof input === "object" && input !== null && !Array.isArray(input))) {
         return yield* Effect.fail(new Issue.InvalidType(ast, oinput))
       }
 

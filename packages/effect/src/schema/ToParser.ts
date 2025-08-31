@@ -35,8 +35,9 @@ export function makeSync<S extends Schema.Top>(schema: S) {
   const parser = makeEffect(schema)
   return (input: S["~type.make.in"], options?: Schema.MakeOptions): S["Type"] => {
     return Effect.runSync(
-      parser(input, options).pipe(
-        Effect.mapErrorEager((issue) => new Error(Formatter.makeDefault().format(issue), { cause: issue }))
+      Effect.mapErrorEager(
+        parser(input, options),
+        (issue) => new Error(Formatter.makeDefault().format(issue), { cause: issue })
       )
     )
   }
