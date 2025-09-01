@@ -417,7 +417,7 @@ function makeStandardResult<A>(exit: Exit_.Exit<StandardSchemaV1.Result<A>>): St
  *   age: Schema.Number.pipe(Schema.check(Check.between(0, 150)))
  * })
  *
- * const standardSchema = Schema.standardSchemaV1(PersonSchema, {
+ * const standardSchema = Schema.asStandardSchemaV1(PersonSchema, {
  *   leafHook
  * })
  *
@@ -437,7 +437,7 @@ function makeStandardResult<A>(exit: Exit_.Exit<StandardSchemaV1.Result<A>>): St
  *
  * @since 4.0.0
  */
-export const standardSchemaV1 = <S extends Top>(
+export const asStandardSchemaV1 = <S extends Top>(
   self: S,
   options?: {
     readonly leafHook?: Formatter.LeafHook | undefined

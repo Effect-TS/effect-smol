@@ -4449,7 +4449,7 @@ const equivalence = ToEquivalence.make(schema)
 
 ### StandardSchemaV1 formatter
 
-The StandardSchemaV1 formatter is is used by `Schema.standardSchemaV1` and will return a `StandardSchemaV1.FailureResult` object:
+The StandardSchemaV1 formatter is is used by `Schema.asStandardSchemaV1` and will return a `StandardSchemaV1.FailureResult` object:
 
 ```ts
 export interface FailureResult {
