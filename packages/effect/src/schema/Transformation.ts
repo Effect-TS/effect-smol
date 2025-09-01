@@ -320,3 +320,13 @@ export function optionFromOptionalKey<T>(): Transformation<Option.Option<T>, T> 
     encode: Option.flatten
   })
 }
+
+/**
+ * @since 4.0.0
+ */
+export function optionFromOptional<T>(): Transformation<Option.Option<T>, T | undefined> {
+  return transformOptional<Option.Option<T>, T | undefined>({
+    decode: (ot) => ot.pipe(Option.filter(Predicate.isNotUndefined), Option.some),
+    encode: Option.flatten
+  })
+}

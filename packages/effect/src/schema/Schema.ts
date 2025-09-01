@@ -3282,6 +3282,36 @@ export function OptionFromOptionalKey<S extends Top>(schema: S): OptionFromOptio
 /**
  * @since 4.0.0
  */
+export interface OptionFromOptional<S extends Top> extends decodeTo<Option<typeCodec<S>>, optional<S>> {
+  readonly "~rebuild.out": OptionFromOptional<S>
+}
+
+/**
+ * Decodes an optional or `undefined` value `A` to an required `Option<A>`
+ * value.
+ *
+ * Decoding:
+ * - a missing key is decoded as `None`
+ * - a present key with an `undefined` value is decoded as `None`
+ * - all other values are decoded as `Some`
+ *
+ * Encoding:
+ * - `None` is encoded as missing key
+ * - `Some` is encoded as the value
+ *
+ * @category Option
+ * @since 4.0.0
+ */
+export function OptionFromOptional<S extends Top>(schema: S): OptionFromOptional<S> {
+  return optional(schema).pipe(decodeTo(
+    Option(typeCodec(schema)),
+    Transformation.optionFromOptional<any>()
+  ))
+}
+
+/**
+ * @since 4.0.0
+ */
 export interface Redacted<S extends Top>
   extends declareConstructor<Redacted_.Redacted<S["Type"]>, Redacted_.Redacted<S["Encoded"]>, readonly [S]>
 {

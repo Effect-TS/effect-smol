@@ -1538,7 +1538,7 @@ console.log(Schema.decodeUnknownSync(schema)({ a: "2" }))
 
 ```ts
 import { Option } from "effect/data"
-import { Schema, Transformation } from "effect/schema"
+import { Schema } from "effect/schema"
 
 const Product = Schema.Struct({
   quantity: Schema.OptionFromOptionalKey(Schema.FiniteFromString)
@@ -1571,19 +1571,11 @@ console.log(Schema.encodeSync(Product)({ quantity: Option.none() }))
 #### Optional Property
 
 ```ts
-import { Option, Predicate } from "effect/data"
-import { Schema, Transformation } from "effect/schema"
+import { Option } from "effect/data"
+import { Schema } from "effect/schema"
 
 const Product = Schema.Struct({
-  quantity: Schema.optional(Schema.FiniteFromString).pipe(
-    Schema.decodeTo(
-      Schema.Option(Schema.Number),
-      Transformation.transformOptional({
-        decode: (oe) => oe.pipe(Option.filter(Predicate.isNotUndefined), Option.some),
-        encode: Option.flatten
-      })
-    )
-  )
+  quantity: Schema.OptionFromOptional(Schema.FiniteFromString)
 })
 
 //     ┌─── { readonly quantity?: string; }
