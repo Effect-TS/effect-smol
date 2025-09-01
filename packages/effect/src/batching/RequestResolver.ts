@@ -13,7 +13,7 @@ import * as effect from "../internal/effect.ts"
 import * as internal from "../internal/request.ts"
 import * as Tracer from "../observability/Tracer.ts"
 import * as ServiceMap from "../ServiceMap.ts"
-import * as Duration from "../time/Duration.ts"
+import type * as Duration from "../time/Duration.ts"
 import type * as Types from "../types/Types.ts"
 import type * as Request from "./Request.ts"
 
@@ -534,7 +534,7 @@ export const setDelay: {
   <A extends Request.Any>(self: RequestResolver<A>, duration: Duration.DurationInput): RequestResolver<A> =>
     makeProto({
       ...self,
-      delay: effect.sleep(Duration.toMillis(duration))
+      delay: effect.sleep(duration)
     })
 )
 

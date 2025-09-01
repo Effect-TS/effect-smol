@@ -230,11 +230,11 @@ export const layer = <R, E>(
   if (args.length === 1) {
     V.beforeAll(
       () => runPromise(Effect.asVoid(contextEffect)),
-      options?.timeout ? Duration.toMillis(options.timeout) : undefined
+      options?.timeout ? Duration.toMillis(Duration.fromDurationInputUnsafe(options.timeout)) : undefined
     )
     V.afterAll(
       () => runPromise(Scope.close(scope, Exit.void)),
-      options?.timeout ? Duration.toMillis(options.timeout) : undefined
+      options?.timeout ? Duration.toMillis(Duration.fromDurationInputUnsafe(options.timeout)) : undefined
     )
     return args[0](makeIt(V.it))
   }
@@ -242,11 +242,11 @@ export const layer = <R, E>(
   return V.describe(args[0], () => {
     V.beforeAll(
       () => runPromise(Effect.asVoid(contextEffect)),
-      options?.timeout ? Duration.toMillis(options.timeout) : undefined
+      options?.timeout ? Duration.toMillis(Duration.fromDurationInputUnsafe(options.timeout)) : undefined
     )
     V.afterAll(
       () => runPromise(Scope.close(scope, Exit.void)),
-      options?.timeout ? Duration.toMillis(options.timeout) : undefined
+      options?.timeout ? Duration.toMillis(Duration.fromDurationInputUnsafe(options.timeout)) : undefined
     )
     return args[1](makeIt(V.it))
   })

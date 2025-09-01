@@ -3298,7 +3298,7 @@ export const cachedInvalidateWithTTL: {
   ttl: Duration.DurationInput
 ): Effect.Effect<[Effect.Effect<A, E, R>, Effect.Effect<void>]> =>
   sync(() => {
-    const ttlMillis = Duration.toMillis(ttl)
+    const ttlMillis = Duration.toMillis(Duration.fromDurationInputUnsafe(ttl))
     const isFinite = Number.isFinite(ttlMillis)
     const latch = makeLatchUnsafe(false)
     let expiresAt = 0

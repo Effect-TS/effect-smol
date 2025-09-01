@@ -172,7 +172,7 @@ export const make = (
         supportBigNumbers: true,
         connectionLimit: options.maxConnections!,
         idleTimeout: options.connectionTTL
-          ? Duration.toMillis(options.connectionTTL)
+          ? Duration.toMillis(Duration.fromDurationInputUnsafe(options.connectionTTL))
           : undefined as any
       })
       : Mysql.createPool({
@@ -188,7 +188,7 @@ export const make = (
         supportBigNumbers: true,
         connectionLimit: options.maxConnections,
         idleTimeout: options.connectionTTL
-          ? Duration.toMillis(options.connectionTTL)
+          ? Duration.toMillis(Duration.fromDurationInputUnsafe(options.connectionTTL))
           : undefined
       } as Mysql.PoolOptions)
 

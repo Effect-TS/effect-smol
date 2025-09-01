@@ -37,20 +37,8 @@ const bigint1e6 = BigInt(1_000_000)
 const bigint1e9 = BigInt(1_000_000_000)
 
 /**
- * Represents a span of time with high precision, supporting operations from nanoseconds to weeks.
- *
- * @example
- * ```ts
- * import { Duration } from "effect/time"
- * import * as Equal from "effect/interfaces/Equal"
- *
- * const duration: Duration.Duration = Duration.seconds(5)
- * console.log(Duration.toMillis(duration)) // 5000
- *
- * // Duration implements Equal, so you can compare durations
- * const another = Duration.millis(5000)
- * console.log(Equal.equals(duration, another)) // true
- * ```
+ * Represents a span of time with high precision, supporting operations from
+ * nanoseconds to weeks.
  *
  * @since 2.0.0
  * @category models
@@ -61,21 +49,7 @@ export interface Duration extends Equal.Equal, Pipeable, Inspectable.Inspectable
 }
 
 /**
- * The internal representation of a Duration value.
- *
- * @example
- * ```ts
- * import { Duration } from "effect/time"
- *
- * const milliDuration = Duration.millis(1000)
- * const nanoDuration = Duration.nanos(BigInt(1000000000))
- * const infiniteDuration = Duration.infinity
- *
- * // Access internal value (usually not needed in user code)
- * console.log(milliDuration.value._tag) // "Millis"
- * console.log(nanoDuration.value._tag) // "Nanos"
- * console.log(infiniteDuration.value._tag) // "Infinity"
- * ```
+ * The internal representation of a `Duration` value.
  *
  * @since 2.0.0
  * @category models
@@ -87,23 +61,6 @@ export type DurationValue =
 
 /**
  * Valid time units that can be used in duration string representations.
- *
- * @example
- * ```ts
- * import { Duration } from "effect/time"
- *
- * // All supported units (singular and plural forms)
- * const units: Duration.Unit[] = [
- *   "nano", "nanos", "micro", "micros", "milli", "millis",
- *   "second", "seconds", "minute", "minutes", "hour", "hours",
- *   "day", "days", "week", "weeks"
- * ]
- *
- * // Used in string-based duration creation
- * const duration1 = Duration.fromDurationInput("5 seconds")
- * const duration2 = Duration.fromDurationInput("1 hour")
- * const duration3 = Duration.fromDurationInput("2 days")
- * ```
  *
  * @since 2.0.0
  * @category models
@@ -128,25 +85,6 @@ export type Unit =
 
 /**
  * Valid input types that can be converted to a Duration.
- *
- * @example
- * ```ts
- * import { Duration } from "effect/time"
- *
- * // Different ways to create durations
- * const duration1: Duration.DurationInput = Duration.seconds(5)
- * const duration2: Duration.DurationInput = 5000 // milliseconds
- * const duration3: Duration.DurationInput = BigInt(5000000000) // nanoseconds
- * const duration4: Duration.DurationInput = [5, 500000000] // [seconds, nanos]
- * const duration5: Duration.DurationInput = "5 seconds"
- *
- * // All can be decoded to Duration
- * const decoded1 = Duration.fromDurationInput(duration1)
- * const decoded2 = Duration.fromDurationInput(duration2)
- * const decoded3 = Duration.fromDurationInput(duration3)
- * const decoded4 = Duration.fromDurationInput(duration4)
- * const decoded5 = Duration.fromDurationInput(duration5)
- * ```
  *
  * @since 2.0.0
  * @category models
@@ -537,7 +475,7 @@ export const weeks = (weeks: number): Duration => make(weeks * 604_800_000)
  * @since 2.0.0
  * @category getters
  */
-export const toMillis = (self: DurationInput): number =>
+export const toMillis = (self: Duration): number =>
   match(self, {
     onMillis: identity,
     onNanos: (nanos) => Number(nanos) / 1_000_000,
@@ -558,7 +496,7 @@ export const toMillis = (self: DurationInput): number =>
  * @since 2.0.0
  * @category getters
  */
-export const toSeconds = (self: DurationInput): number =>
+export const toSeconds = (self: Duration): number =>
   match(self, {
     onMillis: (millis) => millis / 1_000,
     onNanos: (nanos) => Number(nanos) / 1_000_000_000,
@@ -579,7 +517,7 @@ export const toSeconds = (self: DurationInput): number =>
  * @since 3.8.0
  * @category getters
  */
-export const toMinutes = (self: DurationInput): number =>
+export const toMinutes = (self: Duration): number =>
   match(self, {
     onMillis: (millis) => millis / 60_000,
     onNanos: (nanos) => Number(nanos) / 60_000_000_000,
@@ -600,7 +538,7 @@ export const toMinutes = (self: DurationInput): number =>
  * @since 3.8.0
  * @category getters
  */
-export const toHours = (self: DurationInput): number =>
+export const toHours = (self: Duration): number =>
   match(self, {
     onMillis: (millis) => millis / 3_600_000,
     onNanos: (nanos) => Number(nanos) / 3_600_000_000_000,
@@ -621,7 +559,7 @@ export const toHours = (self: DurationInput): number =>
  * @since 3.8.0
  * @category getters
  */
-export const toDays = (self: DurationInput): number =>
+export const toDays = (self: Duration): number =>
   match(self, {
     onMillis: (millis) => millis / 86_400_000,
     onNanos: (nanos) => Number(nanos) / 86_400_000_000_000,
@@ -642,7 +580,7 @@ export const toDays = (self: DurationInput): number =>
  * @since 3.8.0
  * @category getters
  */
-export const toWeeks = (self: DurationInput): number =>
+export const toWeeks = (self: Duration): number =>
   match(self, {
     onMillis: (millis) => millis / 604_800_000,
     onNanos: (nanos) => Number(nanos) / 604_800_000_000_000,
@@ -673,15 +611,14 @@ export const toWeeks = (self: DurationInput): number =>
  * @since 2.0.0
  * @category getters
  */
-export const toNanosUnsafe = (self: DurationInput): bigint => {
-  const _self = fromDurationInputUnsafe(self)
-  switch (_self.value._tag) {
+export const toNanosUnsafe = (self: Duration): bigint => {
+  switch (self.value._tag) {
     case "Infinity":
       throw new Error("Cannot convert infinite duration to nanos")
     case "Nanos":
-      return _self.value.nanos
+      return self.value.nanos
     case "Millis":
-      return BigInt(Math.round(_self.value.millis * 1_000_000))
+      return BigInt(Math.round(self.value.millis * 1_000_000))
   }
 }
 
@@ -695,7 +632,7 @@ export const toNanosUnsafe = (self: DurationInput): bigint => {
  * ```ts
  * import { Duration } from "effect/time"
  *
- * Duration.toNanos("1 second") // 1000000000n
+ * Duration.toNanos(Duration.seconds(1)) // 1000000000n
  *
  * Duration.toNanos(Duration.infinity) // undefined
  * ```
@@ -703,7 +640,7 @@ export const toNanosUnsafe = (self: DurationInput): bigint => {
  * @category getters
  * @since 4.0.0
  */
-export const toNanos: (self: DurationInput) => bigint | undefined = UndefinedOr.liftThrowable(toNanosUnsafe)
+export const toNanos: (self: Duration) => bigint | undefined = UndefinedOr.liftThrowable(toNanosUnsafe)
 
 /**
  * Converts a Duration to high-resolution time format [seconds, nanoseconds].
@@ -720,20 +657,19 @@ export const toNanos: (self: DurationInput) => bigint | undefined = UndefinedOr.
  * @since 2.0.0
  * @category getters
  */
-export const toHrTime = (self: DurationInput): [seconds: number, nanos: number] => {
-  const _self = fromDurationInputUnsafe(self)
-  switch (_self.value._tag) {
+export const toHrTime = (self: Duration): [seconds: number, nanos: number] => {
+  switch (self.value._tag) {
     case "Infinity":
       return [Infinity, 0]
     case "Nanos":
       return [
-        Number(_self.value.nanos / bigint1e9),
-        Number(_self.value.nanos % bigint1e9)
+        Number(self.value.nanos / bigint1e9),
+        Number(self.value.nanos % bigint1e9)
       ]
     case "Millis":
       return [
-        Math.floor(_self.value.millis / 1000),
-        Math.round((_self.value.millis % 1000) * 1_000_000)
+        Math.floor(self.value.millis / 1000),
+        Math.round((self.value.millis % 1000) * 1_000_000)
       ]
   }
 }
@@ -763,9 +699,9 @@ export const match: {
       readonly onNanos: (nanos: bigint) => B
       readonly onInfinity: () => C
     }
-  ): (self: DurationInput) => A | B | C
+  ): (self: Duration) => A | B | C
   <A, B, C>(
-    self: DurationInput,
+    self: Duration,
     options: {
       readonly onMillis: (millis: number) => A
       readonly onNanos: (nanos: bigint) => B
@@ -773,14 +709,13 @@ export const match: {
     }
   ): A | B | C
 } = dual(2, <A, B, C>(
-  self: DurationInput,
+  self: Duration,
   options: {
     readonly onMillis: (millis: number) => A
     readonly onNanos: (nanos: bigint) => B
     readonly onInfinity: () => C
   }
 ): A | B | C => {
-  self = fromDurationInputUnsafe(self)
   switch (self.value._tag) {
     case "Millis":
       return options.onMillis(self.value.millis)
@@ -811,16 +746,16 @@ export const match: {
  */
 export const matchPair: {
   <A, B, C>(
-    that: DurationInput,
+    that: Duration,
     options: {
       readonly onMillis: (self: number, that: number) => A
       readonly onNanos: (self: bigint, that: bigint) => B
       readonly onInfinity: (self: Duration, that: Duration) => C
     }
-  ): (self: DurationInput) => A | B | C
+  ): (self: Duration) => A | B | C
   <A, B, C>(
-    self: DurationInput,
-    that: DurationInput,
+    self: Duration,
+    that: Duration,
     options: {
       readonly onMillis: (self: number, that: number) => A
       readonly onNanos: (self: bigint, that: bigint) => B
@@ -828,24 +763,21 @@ export const matchPair: {
     }
   ): A | B | C
 } = dual(3, <A, B, C>(
-  self: DurationInput,
-  that: DurationInput,
+  self: Duration,
+  that: Duration,
   options: {
     readonly onMillis: (self: number, that: number) => A
     readonly onNanos: (self: bigint, that: bigint) => B
     readonly onInfinity: (self: Duration, that: Duration) => C
   }
 ): A | B | C => {
-  self = fromDurationInputUnsafe(self)
-  that = fromDurationInputUnsafe(that)
-  if (that.value._tag === "Infinity") return options.onInfinity(self, that)
-  switch (self.value._tag) {
-    case "Millis":
-      return options.onMillis(self.value.millis, toMillis(that))
-    case "Nanos":
-      return options.onNanos(self.value.nanos, toNanosUnsafe(that))
-    case "Infinity":
-      return options.onInfinity(self, that)
+  if (self.value._tag === "Infinity" || that.value._tag === "Infinity") return options.onInfinity(self, that)
+  if (self.value._tag === "Millis") {
+    return that.value._tag === "Millis"
+      ? options.onMillis(self.value.millis, that.value.millis)
+      : options.onNanos(toNanosUnsafe(self), that.value.nanos)
+  } else {
+    return options.onNanos(self.value.nanos, toNanosUnsafe(that))
   }
 })
 
@@ -900,15 +832,9 @@ export const Order: order.Order<Duration> = order.make((self, that) =>
  * @since 2.0.0
  */
 export const between: {
-  (options: {
-    minimum: DurationInput
-    maximum: DurationInput
-  }): (self: DurationInput) => boolean
-  (self: DurationInput, options: {
-    minimum: DurationInput
-    maximum: DurationInput
-  }): boolean
-} = order.between(order.mapInput(Order, fromDurationInputUnsafe))
+  (options: { minimum: Duration; maximum: Duration }): (self: Duration) => boolean
+  (self: Duration, options: { minimum: Duration; maximum: Duration }): boolean
+} = order.between(Order)
 
 /**
  * Equivalence instance for `Duration`, allowing equality comparisons.
@@ -933,8 +859,6 @@ export const Equivalence: equivalence.Equivalence<Duration> = (self, that) =>
     onInfinity: (self, that) => self.value._tag === that.value._tag
   })
 
-const _min = order.min(Order)
-
 /**
  * Returns the smaller of two Durations.
  *
@@ -950,15 +874,9 @@ const _min = order.min(Order)
  * @category order
  */
 export const min: {
-  (that: DurationInput): (self: DurationInput) => Duration
-  (self: DurationInput, that: DurationInput): Duration
-} = dual(
-  2,
-  (self: DurationInput, that: DurationInput): Duration =>
-    _min(fromDurationInputUnsafe(self), fromDurationInputUnsafe(that))
-)
-
-const _max = order.max(Order)
+  (that: Duration): (self: Duration) => Duration
+  (self: Duration, that: Duration): Duration
+} = order.min(Order)
 
 /**
  * Returns the larger of two Durations.
@@ -975,15 +893,9 @@ const _max = order.max(Order)
  * @category order
  */
 export const max: {
-  (that: DurationInput): (self: DurationInput) => Duration
-  (self: DurationInput, that: DurationInput): Duration
-} = dual(
-  2,
-  (self: DurationInput, that: DurationInput): Duration =>
-    _max(fromDurationInputUnsafe(self), fromDurationInputUnsafe(that))
-)
-
-const _clamp = order.clamp(Order)
+  (that: Duration): (self: Duration) => Duration
+  (self: Duration, that: Duration): Duration
+} = order.max(Order)
 
 /**
  * Clamps a Duration between a minimum and maximum value.
@@ -1003,25 +915,9 @@ const _clamp = order.clamp(Order)
  * @category order
  */
 export const clamp: {
-  (options: {
-    minimum: DurationInput
-    maximum: DurationInput
-  }): (self: DurationInput) => Duration
-  (self: DurationInput, options: {
-    minimum: DurationInput
-    maximum: DurationInput
-  }): Duration
-} = dual(
-  2,
-  (self: DurationInput, options: {
-    minimum: DurationInput
-    maximum: DurationInput
-  }): Duration =>
-    _clamp(fromDurationInputUnsafe(self), {
-      minimum: fromDurationInputUnsafe(options.minimum),
-      maximum: fromDurationInputUnsafe(options.maximum)
-    })
-)
+  (options: { minimum: Duration; maximum: Duration }): (self: Duration) => Duration
+  (self: Duration, options: { minimum: Duration; maximum: Duration }): Duration
+} = order.clamp(Order)
 
 /**
  * Divides a Duration by a number, returning `undefined` if division is invalid.
@@ -1041,11 +937,11 @@ export const clamp: {
  * @category math
  */
 export const divide: {
-  (by: number): (self: DurationInput) => Duration | undefined
-  (self: DurationInput, by: number): Duration | undefined
+  (by: number): (self: Duration) => Duration | undefined
+  (self: Duration, by: number): Duration | undefined
 } = dual(
   2,
-  (self: DurationInput, by: number): Duration | undefined => {
+  (self: Duration, by: number): Duration | undefined => {
     if (!Number.isFinite(by)) return undefined
     return match(self, {
       onMillis: (millis) => {
@@ -1083,11 +979,11 @@ export const divide: {
  * @category math
  */
 export const divideUnsafe: {
-  (by: number): (self: DurationInput) => Duration
-  (self: DurationInput, by: number): Duration
+  (by: number): (self: Duration) => Duration
+  (self: Duration, by: number): Duration
 } = dual(
   2,
-  (self: DurationInput, by: number): Duration => {
+  (self: Duration, by: number): Duration => {
     if (!Number.isFinite(by)) return zero
     return match(self, {
       onMillis: (millis) => make(millis / by),
@@ -1116,11 +1012,11 @@ export const divideUnsafe: {
  * @category math
  */
 export const times: {
-  (times: number): (self: DurationInput) => Duration
-  (self: DurationInput, times: number): Duration
+  (times: number): (self: Duration) => Duration
+  (self: Duration, times: number): Duration
 } = dual(
   2,
-  (self: DurationInput, times: number): Duration =>
+  (self: Duration, times: number): Duration =>
     match(self, {
       onMillis: (millis) => make(millis * times),
       onNanos: (nanos) => make(nanos * BigInt(times)),
@@ -1150,11 +1046,11 @@ export const times: {
  * @category math
  */
 export const subtract: {
-  (that: DurationInput): (self: DurationInput) => Duration
-  (self: DurationInput, that: DurationInput): Duration
+  (that: Duration): (self: Duration) => Duration
+  (self: Duration, that: Duration): Duration
 } = dual(
   2,
-  (self: DurationInput, that: DurationInput): Duration =>
+  (self: Duration, that: Duration): Duration =>
     matchPair(self, that, {
       onMillis: (self, that) => make(self - that),
       onNanos: (self, that) => make(self - that),
@@ -1189,11 +1085,11 @@ export const subtract: {
  * @category math
  */
 export const sum: {
-  (that: DurationInput): (self: DurationInput) => Duration
-  (self: DurationInput, that: DurationInput): Duration
+  (that: Duration): (self: Duration) => Duration
+  (self: Duration, that: Duration): Duration
 } = dual(
   2,
-  (self: DurationInput, that: DurationInput): Duration =>
+  (self: Duration, that: Duration): Duration =>
     matchPair(self, that, {
       onMillis: (self, that) => make(self + that),
       onNanos: (self, that) => make(self + that),
@@ -1292,13 +1188,9 @@ export const greaterThanOrEqualTo: {
  * @category predicates
  */
 export const equals: {
-  (that: DurationInput): (self: DurationInput) => boolean
-  (self: DurationInput, that: DurationInput): boolean
-} = dual(
-  2,
-  (self: DurationInput, that: DurationInput): boolean =>
-    Equivalence(fromDurationInputUnsafe(self), fromDurationInputUnsafe(that))
-)
+  (that: Duration): (self: Duration) => boolean
+  (self: Duration, that: Duration): boolean
+} = dual(2, (self: Duration, that: Duration): boolean => Equivalence(self, that))
 
 /**
  * Converts a `Duration` to its parts.
@@ -1342,7 +1234,7 @@ export const equals: {
  * @since 3.8.0
  * @category conversions
  */
-export const parts = (self: DurationInput): {
+export const parts = (self: Duration): {
   days: number
   hours: number
   minutes: number
@@ -1350,8 +1242,7 @@ export const parts = (self: DurationInput): {
   millis: number
   nanos: number
 } => {
-  const duration = fromDurationInputUnsafe(self)
-  if (duration.value._tag === "Infinity") {
+  if (self.value._tag === "Infinity") {
     return {
       days: Infinity,
       hours: Infinity,
@@ -1362,7 +1253,7 @@ export const parts = (self: DurationInput): {
     }
   }
 
-  const nanos = toNanosUnsafe(duration)
+  const nanos = toNanosUnsafe(self)
   const ms = nanos / bigint1e6
   const sec = ms / bigint1e3
   const min = sec / bigint60
@@ -1392,16 +1283,15 @@ export const parts = (self: DurationInput): {
  * Duration.format(Duration.millis(1001)) // "1s 1ms"
  * ```
  */
-export const format = (self: DurationInput): string => {
-  const duration = fromDurationInputUnsafe(self)
-  if (duration.value._tag === "Infinity") {
+export const format = (self: Duration): string => {
+  if (self.value._tag === "Infinity") {
     return "Infinity"
   }
-  if (isZero(duration)) {
+  if (isZero(self)) {
     return "0"
   }
 
-  const fragments = parts(duration)
+  const fragments = parts(self)
   const pieces = []
   if (fragments.days !== 0) {
     pieces.push(`${fragments.days}d`)

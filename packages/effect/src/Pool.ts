@@ -458,7 +458,7 @@ const strategyNoop = <A, E>(): Strategy<A, E> => ({
 const strategyCreationTTL = Effect.fnUntraced(function*<A, E>(ttl: Duration.DurationInput) {
   const clock = yield* Clock
   const queue = yield* Queue.unbounded<PoolItem<A, E>>()
-  const ttlMillis = Duration.toMillis(ttl)
+  const ttlMillis = Duration.toMillis(Duration.fromDurationInputUnsafe(ttl))
   const creationTimes = new WeakMap<PoolItem<A, E>, number>()
   return identity<Strategy<A, E>>({
     run: (pool) => {

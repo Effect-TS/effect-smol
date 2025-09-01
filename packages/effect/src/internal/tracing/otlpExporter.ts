@@ -82,7 +82,7 @@ export const make: (
   }).pipe(
     Effect.catchCause((cause) => {
       if (disabledUntil !== undefined) return Effect.void
-      disabledUntil = clock.currentTimeMillisUnsafe() + Duration.toMillis("60 seconds")
+      disabledUntil = clock.currentTimeMillisUnsafe() + 60_000
       buffer = []
       return Effect.logDebug("Disabling exporter for 60 seconds", cause)
     }),

@@ -290,7 +290,7 @@ export const make = Effect.fnUntraced(function*(
     })
   )
 
-  const sleep = Effect.fnUntraced(function*(duration: Duration.DurationInput) {
+  const sleep = Effect.fnUntraced(function*(duration: Duration.Duration) {
     const millis = Duration.toMillis(duration)
     const end = currentTimestamp + millis
     if (end <= currentTimestamp) return
@@ -320,7 +320,7 @@ export const make = Effect.fnUntraced(function*(
   }, runSemaphore.withPermits(1))
 
   function adjust(duration: Duration.DurationInput) {
-    const millis = Duration.toMillis(duration)
+    const millis = Duration.toMillis(Duration.fromDurationInputUnsafe(duration))
     return warningDone.pipe(Effect.andThen(run((timestamp) => timestamp + millis)))
   }
 
@@ -454,7 +454,7 @@ export const adjust = (duration: Duration.DurationInput): Effect.Effect<void> =>
  *   }).pipe(Effect.fork)
  *
  *   // Set the clock to a specific timestamp (2 hours from epoch)
- *   const targetTime = Duration.toMillis("2 hours")
+ *   const targetTime = Duration.toMillis(Duration.hours(2))
  *   yield* TestClock.setTime(targetTime)
  *
  *   // The effect should now be executed

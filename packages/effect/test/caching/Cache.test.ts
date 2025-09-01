@@ -106,7 +106,7 @@ describe("Cache", () => {
         // Success with short TTL
         yield* Cache.get(cache, "short")
         assert.isTrue(yield* Cache.has(cache, "short"))
-        yield* TestClock.adjust(Duration.sum("1 minute", "1 second"))
+        yield* TestClock.adjust(Duration.sum(Duration.minutes(1), Duration.seconds(1)))
         assert.isFalse(yield* Cache.has(cache, "short"))
         assert.isTrue(yield* Cache.has(cache, "long"))
 

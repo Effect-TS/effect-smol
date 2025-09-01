@@ -599,9 +599,9 @@ describe("Metric", () => {
         yield* Fiber.join(fiber)
         const result = yield* Metric.value(timer)
         assert.strictEqual(result.count, 1)
-        assert.strictEqual(result.min, Duration.toMillis("1 hour"))
-        assert.strictEqual(result.max, Duration.toMillis("1 hour"))
-        assert.strictEqual(result.sum, Duration.toMillis("1 hour"))
+        assert.strictEqual(result.min, Duration.toMillis(Duration.hours(1)))
+        assert.strictEqual(result.max, Duration.toMillis(Duration.hours(1)))
+        assert.strictEqual(result.sum, Duration.toMillis(Duration.hours(1)))
       }))
   })
 

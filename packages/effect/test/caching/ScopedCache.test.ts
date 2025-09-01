@@ -106,7 +106,7 @@ describe("ScopedCache", () => {
           // Success with short TTL
           yield* ScopedCache.get(cache, "short")
           assert.isTrue(yield* ScopedCache.has(cache, "short"))
-          yield* TestClock.adjust(Duration.sum("1 minute", "1 second"))
+          yield* TestClock.adjust(Duration.sum(Duration.minutes(1), Duration.seconds(1)))
           assert.isFalse(yield* ScopedCache.has(cache, "short"))
           assert.isTrue(yield* ScopedCache.has(cache, "long"))
 
@@ -1435,7 +1435,7 @@ describe("ScopedCache", () => {
           yield* TestClock.adjust("1 hour")
           assert.isTrue(yield* ScopedCache.has(cache, "test"))
 
-          yield* TestClock.adjust(Duration.sum("1 hour", "1 second"))
+          yield* TestClock.adjust(Duration.sum(Duration.hours(1), Duration.seconds(1)))
           assert.isFalse(yield* ScopedCache.has(cache, "test"))
         }))
 

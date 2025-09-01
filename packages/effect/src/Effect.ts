@@ -10665,7 +10665,10 @@ export const trackDuration: {
       const startTime = clock.currentTimeNanosUnsafe()
       return onExit(self, () => {
         const endTime = clock.currentTimeNanosUnsafe()
-        const duration = Duration.subtract(endTime, startTime)
+        const duration = Duration.subtract(
+          Duration.fromDurationInputUnsafe(endTime),
+          Duration.fromDurationInputUnsafe(startTime)
+        )
         const input = f === undefined ? duration : internalCall(() => f(duration))
         return Metric.update(metric, input as any)
       })

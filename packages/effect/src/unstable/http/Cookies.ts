@@ -605,7 +605,7 @@ export function serializeCookie(self: Cookie): string {
   const options = self.options
 
   if (options.maxAge !== undefined) {
-    const maxAge = Duration.toSeconds(options.maxAge)
+    const maxAge = Duration.toSeconds(Duration.fromDurationInputUnsafe(options.maxAge))
     str += "; Max-Age=" + Math.trunc(maxAge)
   }
 

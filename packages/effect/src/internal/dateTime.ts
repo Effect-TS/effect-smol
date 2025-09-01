@@ -918,7 +918,7 @@ export const addDuration: {
 } = dual(
   2,
   (self: DateTime.DateTime, duration: Duration.DurationInput): DateTime.DateTime =>
-    mapEpochMillis(self, (millis) => millis + Duration.toMillis(duration))
+    mapEpochMillis(self, (millis) => millis + Duration.toMillis(Duration.fromDurationInputUnsafe(duration)))
 )
 
 /** @internal */
@@ -928,7 +928,7 @@ export const subtractDuration: {
 } = dual(
   2,
   (self: DateTime.DateTime, duration: Duration.DurationInput): DateTime.DateTime =>
-    mapEpochMillis(self, (millis) => millis - Duration.toMillis(duration))
+    mapEpochMillis(self, (millis) => millis - Duration.toMillis(Duration.fromDurationInputUnsafe(duration)))
 )
 
 const addMillis = (date: Date, amount: number): void => {

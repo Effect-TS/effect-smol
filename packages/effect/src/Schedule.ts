@@ -633,8 +633,9 @@ export const addDelay: {
   modifyDelay(self, (output, delay) => {
     const addDelay = f(output)
     return isEffect(addDelay)
-      ? effect.map(addDelay, Duration.sum(delay))
-      : Duration.sum(addDelay, delay)
+      ? effect.map(addDelay, (d) =>
+        Duration.sum(Duration.fromDurationInputUnsafe(d), Duration.fromDurationInputUnsafe(delay)))
+      : Duration.sum(Duration.fromDurationInputUnsafe(addDelay), Duration.fromDurationInputUnsafe(delay))
   }))
 
 /**
@@ -2012,7 +2013,7 @@ export const exponential = (
   base: Duration.DurationInput,
   factor: number = 2
 ): Schedule<Duration.Duration> => {
-  const baseMillis = Duration.toMillis(base)
+  const baseMillis = Duration.toMillis(Duration.fromDurationInputUnsafe(base))
   return fromStepWithMetadata(effect.succeed((meta) => {
     const duration = Duration.millis(baseMillis * Math.pow(factor, meta.recurrence))
     return effect.succeed([duration, duration])
@@ -2088,7 +2089,7 @@ export const exponential = (
  * @category constructors
  */
 export const fibonacci = (one: Duration.DurationInput): Schedule<Duration.Duration> => {
-  const oneMillis = Duration.toMillis(one)
+  const oneMillis = Duration.toMillis(Duration.fromDurationInputUnsafe(one))
   return fromStep(effect.sync(() => {
     let a = 0
     let b = oneMillis
@@ -2167,7 +2168,7 @@ export const fibonacci = (one: Duration.DurationInput): Schedule<Duration.Durati
  * @category constructors
  */
 export const fixed = (interval: Duration.DurationInput): Schedule<number> => {
-  const window = Duration.toMillis(interval)
+  const window = Duration.toMillis(Duration.fromDurationInputUnsafe(interval))
   return fromStepWithMetadata(effect.succeed((meta) =>
     effect.succeed([
       meta.recurrence,
@@ -3167,7 +3168,7 @@ export {
  * @category constructors
  */
 export const windowed = (interval: Duration.DurationInput): Schedule<number> => {
-  const window = Duration.toMillis(interval)
+  const window = Duration.toMillis(Duration.fromDurationInputUnsafe(interval))
   return fromStepWithMetadata(effect.succeed((meta) =>
     effect.sync(() => [
       meta.recurrence,

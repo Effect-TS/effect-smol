@@ -118,11 +118,17 @@ export const make = (
       password: options.password ? Redacted.value(options.password) : undefined,
       ssl: options.ssl,
       port: options.port,
-      connectionTimeoutMillis: options.connectTimeout ? Duration.toMillis(options.connectTimeout) : undefined,
-      idleTimeoutMillis: options.idleTimeout ? Duration.toMillis(options.idleTimeout) : undefined,
+      connectionTimeoutMillis: options.connectTimeout
+        ? Duration.toMillis(Duration.fromDurationInputUnsafe(options.connectTimeout))
+        : undefined,
+      idleTimeoutMillis: options.idleTimeout
+        ? Duration.toMillis(Duration.fromDurationInputUnsafe(options.idleTimeout))
+        : undefined,
       max: options.maxConnections,
       min: options.minConnections,
-      maxLifetimeSeconds: options.connectionTTL ? Duration.toSeconds(options.connectionTTL) : undefined,
+      maxLifetimeSeconds: options.connectionTTL
+        ? Duration.toSeconds(Duration.fromDurationInputUnsafe(options.connectionTTL))
+        : undefined,
       application_name: options.applicationName ?? "@effect/sql-pg",
       types: options.types
     })

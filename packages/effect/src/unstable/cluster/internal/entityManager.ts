@@ -309,7 +309,9 @@ export const make = Effect.fnUntraced(function*<
   }, Effect.provideService(CurrentLogAnnotations, {})))
 
   const reaper = yield* EntityReaper
-  const maxIdleTime = Duration.toMillis(options.maxIdleTime ?? config.entityMaxIdleTime)
+  const maxIdleTime = Duration.toMillis(
+    Duration.fromDurationInputUnsafe(options.maxIdleTime ?? config.entityMaxIdleTime)
+  )
   if (Number.isFinite(maxIdleTime)) {
     yield* reaper.register({
       maxIdleTime,
