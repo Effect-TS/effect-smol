@@ -88,23 +88,45 @@ describe("Duration", () => {
   })
 
   it("Order", () => {
+    // millis
     deepStrictEqual(Duration.Order(Duration.millis(1), Duration.millis(2)), -1)
     deepStrictEqual(Duration.Order(Duration.millis(2), Duration.millis(1)), 1)
     deepStrictEqual(Duration.Order(Duration.millis(2), Duration.millis(2)), 0)
+    deepStrictEqual(Duration.Order(Duration.millis(1), Duration.nanos(2_000_000n)), -1)
 
+    // nanos
     deepStrictEqual(Duration.Order(Duration.nanos(1n), Duration.nanos(2n)), -1)
     deepStrictEqual(Duration.Order(Duration.nanos(2n), Duration.nanos(1n)), 1)
     deepStrictEqual(Duration.Order(Duration.nanos(2n), Duration.nanos(2n)), 0)
+    deepStrictEqual(Duration.Order(Duration.nanos(2_000_000n), Duration.millis(1)), 1)
+
+    // infinity
+    deepStrictEqual(Duration.Order(Duration.infinity, Duration.infinity), 0)
+    deepStrictEqual(Duration.Order(Duration.infinity, Duration.millis(1)), 1)
+    deepStrictEqual(Duration.Order(Duration.infinity, Duration.nanos(1n)), 1)
+    deepStrictEqual(Duration.Order(Duration.millis(1), Duration.infinity), -1)
+    deepStrictEqual(Duration.Order(Duration.nanos(1n), Duration.infinity), -1)
   })
 
   it("Equivalence", () => {
-    deepStrictEqual(Duration.Equivalence(Duration.millis(1), Duration.millis(1)), true)
-    deepStrictEqual(Duration.Equivalence(Duration.millis(1), Duration.millis(2)), false)
-    deepStrictEqual(Duration.Equivalence(Duration.millis(1), Duration.millis(2)), false)
+    // millis
+    assertTrue(Duration.Equivalence(Duration.millis(1), Duration.millis(1)))
+    assertTrue(Duration.Equivalence(Duration.millis(1), Duration.nanos(1_000_000n)))
+    assertFalse(Duration.Equivalence(Duration.millis(1), Duration.millis(2)))
+    assertFalse(Duration.Equivalence(Duration.millis(1), Duration.millis(2)))
 
-    deepStrictEqual(Duration.Equivalence(Duration.nanos(1n), Duration.nanos(1n)), true)
-    deepStrictEqual(Duration.Equivalence(Duration.nanos(1n), Duration.nanos(2n)), false)
-    deepStrictEqual(Duration.Equivalence(Duration.nanos(1n), Duration.nanos(2n)), false)
+    // nanos
+    assertTrue(Duration.Equivalence(Duration.nanos(1n), Duration.nanos(1n)))
+    assertTrue(Duration.Equivalence(Duration.nanos(1_000_000n), Duration.millis(1)))
+    assertFalse(Duration.Equivalence(Duration.nanos(1n), Duration.nanos(2n)))
+    assertFalse(Duration.Equivalence(Duration.nanos(1n), Duration.nanos(2n)))
+
+    // infinity
+    assertTrue(Duration.Equivalence(Duration.infinity, Duration.infinity))
+    assertFalse(Duration.Equivalence(Duration.infinity, Duration.millis(1)))
+    assertFalse(Duration.Equivalence(Duration.infinity, Duration.nanos(1n)))
+    assertFalse(Duration.Equivalence(Duration.millis(1), Duration.infinity))
+    assertFalse(Duration.Equivalence(Duration.nanos(1n), Duration.infinity))
   })
 
   it("max", () => {
@@ -171,74 +193,123 @@ describe("Duration", () => {
   })
 
   it("divide", () => {
+    // millis
     deepStrictEqual(Duration.divide(Duration.minutes(1), 2), Duration.seconds(30))
     deepStrictEqual(Duration.divide(Duration.seconds(1), 3), Duration.nanos(333333333n))
-    deepStrictEqual(Duration.divide(Duration.nanos(2n), 2), Duration.nanos(1n))
-    deepStrictEqual(Duration.divide(Duration.nanos(1n), 3), Duration.zero)
-    deepStrictEqual(Duration.divide(Duration.infinity, 2), Duration.infinity)
     deepStrictEqual(Duration.divide(Duration.zero, 2), Duration.zero)
-    assertUndefined(Duration.divide(Duration.minutes(1), 0))
-    assertUndefined(Duration.divide(Duration.minutes(1), -0))
-    assertUndefined(Duration.divide(Duration.nanos(1n), 0))
-    assertUndefined(Duration.divide(Duration.nanos(1n), -0))
     deepStrictEqual(Duration.divide(Duration.minutes(1), 0.5), Duration.minutes(2))
     deepStrictEqual(Duration.divide(Duration.minutes(1), 1.5), Duration.seconds(40))
-    assertUndefined(Duration.divide(Duration.minutes(1), NaN))
-    assertUndefined(Duration.divide(Duration.nanos(1n), 0.5))
-    assertUndefined(Duration.divide(Duration.nanos(1n), 1.5))
-    assertUndefined(Duration.divide(Duration.nanos(1n), NaN))
+
+    // nanos
+    deepStrictEqual(Duration.divide(Duration.nanos(2n), 2), Duration.nanos(1n))
+    deepStrictEqual(Duration.divide(Duration.nanos(1n), 3), Duration.zero)
+    throws(() => Duration.divide(Duration.nanos(1n), 0.5))
+    throws(() => Duration.divide(Duration.nanos(1n), 1.5))
+
+    // infinity
+    deepStrictEqual(Duration.divide(Duration.infinity, 2), Duration.infinity)
+
+    // divide by zero
+    deepStrictEqual(Duration.divide(Duration.minutes(1), 0), undefined)
+    deepStrictEqual(Duration.divide(Duration.minutes(1), -0), undefined)
+    deepStrictEqual(Duration.divide(Duration.nanos(1n), 0), undefined)
+    deepStrictEqual(Duration.divide(Duration.nanos(1n), -0), undefined)
+
+    // bad by
+    deepStrictEqual(Duration.divide(Duration.minutes(1), NaN), undefined)
+    deepStrictEqual(Duration.divide(Duration.nanos(1n), NaN), undefined)
+    deepStrictEqual(Duration.divide(Duration.infinity, NaN), undefined)
+
+    deepStrictEqual(Duration.divide(Duration.minutes(1), Infinity), undefined)
+    deepStrictEqual(Duration.divide(Duration.nanos(1n), Infinity), undefined)
+    deepStrictEqual(Duration.divide(Duration.infinity, Infinity), undefined)
+
+    deepStrictEqual(Duration.divide(Duration.minutes(1), -Infinity), undefined)
+    deepStrictEqual(Duration.divide(Duration.nanos(1n), -Infinity), undefined)
+    deepStrictEqual(Duration.divide(Duration.infinity, -Infinity), undefined)
 
     deepStrictEqual(Duration.divide("1 minute", 2), Duration.seconds(30))
   })
 
   it("divideUnsafe", () => {
+    // millis
     deepStrictEqual(Duration.divideUnsafe(Duration.minutes(1), 2), Duration.seconds(30))
     deepStrictEqual(Duration.divideUnsafe(Duration.seconds(1), 3), Duration.nanos(333333333n))
+    deepStrictEqual(Duration.divideUnsafe(Duration.zero, 2), Duration.zero)
+    deepStrictEqual(Duration.divideUnsafe(Duration.minutes(1), 0.5), Duration.minutes(2))
+    deepStrictEqual(Duration.divideUnsafe(Duration.minutes(1), 1.5), Duration.seconds(40))
+
+    // nanos
     deepStrictEqual(Duration.divideUnsafe(Duration.nanos(2n), 2), Duration.nanos(1n))
     deepStrictEqual(Duration.divideUnsafe(Duration.nanos(1n), 3), Duration.zero)
+    throws(() => Duration.divideUnsafe(Duration.nanos(1n), 0.5))
+    throws(() => Duration.divideUnsafe(Duration.nanos(1n), 1.5))
+
+    // infinity
     deepStrictEqual(Duration.divideUnsafe(Duration.infinity, 2), Duration.infinity)
-    deepStrictEqual(Duration.divideUnsafe(Duration.zero, 2), Duration.zero)
+
+    // divide by zero
     deepStrictEqual(Duration.divideUnsafe(Duration.minutes(1), 0), Duration.infinity)
     deepStrictEqual(Duration.divideUnsafe(Duration.minutes(1), -0), Duration.zero)
     deepStrictEqual(Duration.divideUnsafe(Duration.nanos(1n), 0), Duration.infinity)
     deepStrictEqual(Duration.divideUnsafe(Duration.nanos(1n), -0), Duration.zero)
-    deepStrictEqual(Duration.divideUnsafe(Duration.minutes(1), 0.5), Duration.minutes(2))
-    deepStrictEqual(Duration.divideUnsafe(Duration.minutes(1), 1.5), Duration.seconds(40))
+
+    // bad by
     deepStrictEqual(Duration.divideUnsafe(Duration.minutes(1), NaN), Duration.zero)
-    throws(() => Duration.divideUnsafe(Duration.nanos(1n), 0.5))
-    throws(() => Duration.divideUnsafe(Duration.nanos(1n), 1.5))
     deepStrictEqual(Duration.divideUnsafe(Duration.nanos(1n), NaN), Duration.zero)
+    deepStrictEqual(Duration.divideUnsafe(Duration.infinity, NaN), Duration.zero)
+
+    deepStrictEqual(Duration.divideUnsafe(Duration.minutes(1), Infinity), Duration.zero)
+    deepStrictEqual(Duration.divideUnsafe(Duration.nanos(1n), Infinity), Duration.zero)
+    deepStrictEqual(Duration.divideUnsafe(Duration.infinity, Infinity), Duration.zero)
+
+    deepStrictEqual(Duration.divideUnsafe(Duration.minutes(1), -Infinity), Duration.zero)
+    deepStrictEqual(Duration.divideUnsafe(Duration.nanos(1n), -Infinity), Duration.zero)
+    deepStrictEqual(Duration.divideUnsafe(Duration.infinity, -Infinity), Duration.zero)
 
     deepStrictEqual(Duration.divideUnsafe("1 minute", 2), Duration.seconds(30))
   })
 
   it("times", () => {
-    deepStrictEqual(Duration.times(Duration.seconds(1), 60), Duration.minutes(1))
+    deepStrictEqual(Duration.times("1 second", 60), Duration.minutes(1))
     deepStrictEqual(Duration.times(Duration.nanos(2n), 10), Duration.nanos(20n))
-    deepStrictEqual(Duration.times(Duration.seconds(Infinity), 60), Duration.seconds(Infinity))
-
-    deepStrictEqual(Duration.times("1 seconds", 60), Duration.minutes(1))
+    deepStrictEqual(Duration.times(Duration.infinity, 60), Duration.infinity)
   })
 
   it("sum", () => {
+    // millis
     deepStrictEqual(Duration.sum(Duration.seconds(30), Duration.seconds(30)), Duration.minutes(1))
+
+    // nanos
     deepStrictEqual(Duration.sum(Duration.nanos(30n), Duration.nanos(30n)), Duration.nanos(60n))
-    deepStrictEqual(Duration.sum(Duration.seconds(Infinity), Duration.seconds(30)), Duration.seconds(Infinity))
-    deepStrictEqual(Duration.sum(Duration.seconds(30), Duration.seconds(Infinity)), Duration.seconds(Infinity))
-    deepStrictEqual(Duration.sum(Duration.seconds(1), Duration.infinity), Duration.infinity)
-    deepStrictEqual(Duration.sum(Duration.infinity, Duration.seconds(1)), Duration.infinity)
+
+    // infinity
+    deepStrictEqual(Duration.sum(Duration.infinity, Duration.seconds(30)), Duration.infinity)
+    deepStrictEqual(Duration.sum(Duration.seconds(30), Duration.infinity), Duration.infinity)
+    deepStrictEqual(Duration.sum(Duration.infinity, Duration.nanos(1n)), Duration.infinity)
+    deepStrictEqual(Duration.sum(Duration.nanos(1n), Duration.infinity), Duration.infinity)
     deepStrictEqual(Duration.sum(Duration.infinity, Duration.infinity), Duration.infinity)
 
     deepStrictEqual(Duration.sum("30 seconds", "30 seconds"), Duration.minutes(1))
   })
 
   it("subtract", () => {
+    // millis
     deepStrictEqual(Duration.subtract(Duration.seconds(30), Duration.seconds(10)), Duration.seconds(20))
     deepStrictEqual(Duration.subtract(Duration.seconds(30), Duration.seconds(30)), Duration.zero)
+    deepStrictEqual(Duration.subtract(Duration.seconds(30), Duration.seconds(40)), Duration.zero)
+
+    // nanos
     deepStrictEqual(Duration.subtract(Duration.nanos(30n), Duration.nanos(10n)), Duration.nanos(20n))
     deepStrictEqual(Duration.subtract(Duration.nanos(30n), Duration.nanos(30n)), Duration.zero)
-    deepStrictEqual(Duration.subtract(Duration.seconds(Infinity), Duration.seconds(30)), Duration.seconds(Infinity))
-    deepStrictEqual(Duration.subtract(Duration.seconds(30), Duration.seconds(Infinity)), Duration.zero)
+    deepStrictEqual(Duration.subtract(Duration.nanos(30n), Duration.nanos(40n)), Duration.zero)
+
+    // infinity
+    deepStrictEqual(Duration.subtract(Duration.infinity, Duration.seconds(30)), Duration.infinity)
+    deepStrictEqual(Duration.subtract(Duration.infinity, Duration.nanos(30n)), Duration.infinity)
+    deepStrictEqual(Duration.subtract(Duration.seconds(30), Duration.infinity), Duration.zero)
+    deepStrictEqual(Duration.subtract(Duration.nanos(30n), Duration.infinity), Duration.zero)
+    deepStrictEqual(Duration.subtract(Duration.infinity, Duration.infinity), Duration.zero)
 
     deepStrictEqual(Duration.subtract("30 seconds", "10 seconds"), Duration.seconds(20))
   })
@@ -443,14 +514,13 @@ describe("Duration", () => {
 
   it("match", () => {
     const match = Duration.match({
-      onMillis: () => "millis",
-      onNanos: () => "nanos"
+      onMillis: (millis) => `millis: ${millis}`,
+      onNanos: (nanos) => `nanos: ${nanos}`,
+      onInfinity: () => "infinity"
     })
-    strictEqual(match(Duration.decodeUnsafe("100 millis")), "millis")
-    strictEqual(match(Duration.decodeUnsafe("10 nanos")), "nanos")
-    strictEqual(match(Duration.decodeUnsafe(Infinity)), "millis")
-
-    strictEqual(match("100 millis"), "millis")
+    strictEqual(match("100 millis"), "millis: 100")
+    strictEqual(match("10 nanos"), "nanos: 10")
+    strictEqual(match(Infinity), "infinity")
   })
 
   it("isFinite", () => {
