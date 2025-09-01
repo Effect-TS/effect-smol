@@ -88,7 +88,7 @@ export const makeWith = <
     self.state = { _tag: "Open", map }
     self.capacity = options.capacity
     self.timeToLive = options.timeToLive
-      ? (exit: Exit.Exit<A, E>, key: Key) => Duration.decodeUnsafe(options.timeToLive!(exit, key))
+      ? (exit: Exit.Exit<A, E>, key: Key) => Duration.fromDurationInputUnsafe(options.timeToLive!(exit, key))
       : defaultTimeToLive
     return effect.as(
       Scope.addFinalizer(

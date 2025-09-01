@@ -419,7 +419,7 @@ export const Duration = Schema.String.annotate({
   description: "a string that will be parsed as a Duration"
 }).pipe(Schema.decodeTo(Schema.Duration, {
   decode: Getter.transformOrFail((s) => {
-    const d = Duration_.decode(s)
+    const d = Duration_.fromDurationInput(s as any)
     return d ? Effect.succeed(d) : Effect.fail(new Issue.InvalidValue(Option.some(s)))
   }),
   encode: Getter.forbidden("Encoding Duration is not supported")

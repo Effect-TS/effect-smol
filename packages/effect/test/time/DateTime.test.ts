@@ -21,7 +21,7 @@ describe("DateTime", () => {
           date.setUTCDate(date.getUTCDate() + 1)
         })
         const diff = DateTime.distanceDurationResult(now, tomorrow)
-        assertSuccess(diff, Duration.decodeUnsafe("1 day"))
+        assertSuccess(diff, Duration.fromDurationInputUnsafe("1 day"))
       }))
 
     it.effect("correctly preserves the time zone", () =>
@@ -49,7 +49,7 @@ describe("DateTime", () => {
         const now = yield* DateTime.now
         const tomorrow = DateTime.add(now, { days: 1 })
         const diff = DateTime.distanceDurationResult(now, tomorrow)
-        assertSuccess(diff, Duration.decodeUnsafe("1 day"))
+        assertSuccess(diff, Duration.fromDurationInputUnsafe("1 day"))
       }))
 
     it("to month with less days", () => {

@@ -1644,7 +1644,7 @@ export const delays = <Out, In, E, R>(self: Schedule<Out, In, E, R>): Schedule<D
  * @category constructors
  */
 export const during = (duration: Duration.DurationInput): Schedule<Duration.Duration> =>
-  while_(elapsed, ({ output }) => Duration.lessThanOrEqualTo(output, Duration.decodeUnsafe(duration)))
+  while_(elapsed, ({ output }) => Duration.lessThanOrEqualTo(output, Duration.fromDurationInputUnsafe(duration)))
 
 /**
  * Combines two `Schedule`s by recurring if either of the two schedules wants
@@ -2334,8 +2334,8 @@ export const modifyDelay: {
       ([output, delay]) => {
         const duration = f(output, delay)
         return isEffect(duration)
-          ? effect.map(duration, (delay) => [output, Duration.decodeUnsafe(delay)])
-          : effect.succeed([output, Duration.decodeUnsafe(duration)])
+          ? effect.map(duration, (delay) => [output, Duration.fromDurationInputUnsafe(delay)])
+          : effect.succeed([output, Duration.fromDurationInputUnsafe(duration)])
       }
     ))))
 
@@ -2640,7 +2640,7 @@ export const reduce: {
  * @category constructors
  */
 export const spaced = (duration: Duration.DurationInput): Schedule<number> => {
-  const decoded = Duration.decodeUnsafe(duration)
+  const decoded = Duration.fromDurationInputUnsafe(duration)
   return fromStepWithMetadata(effect.succeed((meta) => effect.succeed([meta.recurrence, decoded])))
 }
 

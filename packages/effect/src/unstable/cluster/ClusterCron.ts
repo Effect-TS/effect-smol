@@ -76,7 +76,7 @@ export const make = <E, R>(options: {
   )
 
   const skipIfOlderThan = Option.fromNullishOr(options.skipIfOlderThan).pipe(
-    Option.map(Duration.decodeUnsafe),
+    Option.map(Duration.fromDurationInputUnsafe),
     Option.getOrElse(() => Duration.days(1))
   )
 

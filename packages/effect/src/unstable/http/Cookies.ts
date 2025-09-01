@@ -350,7 +350,7 @@ export function makeCookie(
       return Result.fail(new CookiesError({ reason: "InvalidPath" }))
     }
 
-    if (options.maxAge !== undefined && !Duration.isFinite(Duration.decodeUnsafe(options.maxAge))) {
+    if (options.maxAge !== undefined && !Duration.isFinite(Duration.fromDurationInputUnsafe(options.maxAge))) {
       return Result.fail(new CookiesError({ reason: "InfinityMaxAge" }))
     }
   }

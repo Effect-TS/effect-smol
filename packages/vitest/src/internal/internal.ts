@@ -264,7 +264,12 @@ export const flakyTest = <A, E, R>(
     Effect.retry(
       pipe(
         Schedule.recurs(10),
-        Schedule.while((_) => Duration.lessThanOrEqualTo(_.elapsed, timeout))
+        Schedule.while((_) =>
+          Duration.lessThanOrEqualTo(
+            Duration.fromDurationInputUnsafe(_.elapsed),
+            Duration.fromDurationInputUnsafe(timeout)
+          )
+        )
       )
     ),
     Effect.orDie

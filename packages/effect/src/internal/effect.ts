@@ -4562,7 +4562,7 @@ export const clockWith = <A, E, R>(f: (clock: Clock.Clock) => Effect.Effect<A, E
 
 /** @internal */
 export const sleep = (duration: Duration.DurationInput): Effect.Effect<void> =>
-  clockWith((clock) => clock.sleep(Duration.decodeUnsafe(duration)))
+  clockWith((clock) => clock.sleep(Duration.fromDurationInputUnsafe(duration)))
 
 /** @internal */
 export const currentTimeMillis: Effect.Effect<number> = clockWith((clock) => clock.currentTimeMillis)

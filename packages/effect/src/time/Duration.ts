@@ -100,9 +100,9 @@ export type DurationValue =
  * ]
  *
  * // Used in string-based duration creation
- * const duration1 = Duration.decode("5 seconds")
- * const duration2 = Duration.decode("1 hour")
- * const duration3 = Duration.decode("2 days")
+ * const duration1 = Duration.fromDurationInput("5 seconds")
+ * const duration2 = Duration.fromDurationInput("1 hour")
+ * const duration3 = Duration.fromDurationInput("2 days")
  * ```
  *
  * @since 2.0.0
@@ -141,11 +141,11 @@ export type Unit =
  * const duration5: Duration.DurationInput = "5 seconds"
  *
  * // All can be decoded to Duration
- * const decoded1 = Duration.decode(duration1)
- * const decoded2 = Duration.decode(duration2)
- * const decoded3 = Duration.decode(duration3)
- * const decoded4 = Duration.decode(duration4)
- * const decoded5 = Duration.decode(duration5)
+ * const decoded1 = Duration.fromDurationInput(duration1)
+ * const decoded2 = Duration.fromDurationInput(duration2)
+ * const decoded3 = Duration.fromDurationInput(duration3)
+ * const decoded4 = Duration.fromDurationInput(duration4)
+ * const decoded5 = Duration.fromDurationInput(duration5)
  * ```
  *
  * @since 2.0.0
@@ -169,22 +169,19 @@ const DURATION_REGEX = /^(-?\d+(?:\.\d+)?)\s+(nanos?|micros?|millis?|seconds?|mi
  * ```ts
  * import { Duration } from "effect/time"
  *
- * const duration1 = Duration.decodeUnsafe(1000) // 1000 milliseconds
- * const duration2 = Duration.decodeUnsafe("5 seconds")
- * const duration3 = Duration.decodeUnsafe([2, 500_000_000]) // 2 seconds and 500ms
+ * const duration1 = Duration.fromDurationInputUnsafe(1000) // 1000 milliseconds
+ * const duration2 = Duration.fromDurationInputUnsafe("5 seconds")
+ * const duration3 = Duration.fromDurationInputUnsafe([2, 500_000_000]) // 2 seconds and 500ms
  * ```
  *
  * @since 2.0.0
  * @category constructors
  */
-export const decodeUnsafe = (input: unknown): Duration => {
-  if (isDuration(input)) {
-    return input
-  } else if (isNumber(input)) {
-    return millis(input)
-  } else if (isBigInt(input)) {
-    return nanos(input)
-  } else if (Array.isArray(input) && input.length === 2 && input.every(isNumber)) {
+export const fromDurationInputUnsafe = (input: DurationInput): Duration => {
+  if (isDuration(input)) return input
+  if (isNumber(input)) return millis(input)
+  if (isBigInt(input)) return nanos(input)
+  if (Array.isArray(input) && input.length === 2 && input.every(isNumber)) {
     if (input[0] === -Infinity || input[1] === -Infinity || Number.isNaN(input[0]) || Number.isNaN(input[1])) {
       return zero
     }
@@ -194,7 +191,8 @@ export const decodeUnsafe = (input: unknown): Duration => {
     }
 
     return nanos(BigInt(Math.round(input[0] * 1_000_000_000)) + BigInt(Math.round(input[1])))
-  } else if (isString(input)) {
+  }
+  if (isString(input)) {
     const match = DURATION_REGEX.exec(input)
     if (match) {
       const [_, valueStr, unit] = match
@@ -231,22 +229,25 @@ export const decodeUnsafe = (input: unknown): Duration => {
 }
 
 /**
- * Safely decodes an unknown value into a `Duration`, returning `undefined` if decoding fails.
+ * Safely decodes a `DurationInput` value into a `Duration`, returning
+ * `undefined` if decoding fails.
  *
  * **Example**
  *
  * ```ts
  * import { Duration } from "effect/time"
  *
- * Duration.decode(1000)?.pipe(Duration.toSeconds) // 1
+ * Duration.fromDurationInput(1000)?.pipe(Duration.toSeconds) // 1
  *
- * Duration.decode("invalid") // undefined
+ * Duration.fromDurationInput("invalid" as any) // undefined
  * ```
  *
  * @category constructors
  * @since 4.0.0
  */
-export const decode: (u: unknown) => Duration | undefined = UndefinedOr.liftThrowable(decodeUnsafe)
+export const fromDurationInput: (u: DurationInput) => Duration | undefined = UndefinedOr.liftThrowable(
+  fromDurationInputUnsafe
+)
 
 const zeroDurationValue: DurationValue = { _tag: "Millis", millis: 0 }
 const infinityDurationValue: DurationValue = { _tag: "Infinity" }
@@ -673,7 +674,7 @@ export const toWeeks = (self: DurationInput): number =>
  * @category getters
  */
 export const toNanosUnsafe = (self: DurationInput): bigint => {
-  const _self = decodeUnsafe(self)
+  const _self = fromDurationInputUnsafe(self)
   switch (_self.value._tag) {
     case "Infinity":
       throw new Error("Cannot convert infinite duration to nanos")
@@ -720,7 +721,7 @@ export const toNanos: (self: DurationInput) => bigint | undefined = UndefinedOr.
  * @category getters
  */
 export const toHrTime = (self: DurationInput): [seconds: number, nanos: number] => {
-  const _self = decodeUnsafe(self)
+  const _self = fromDurationInputUnsafe(self)
   switch (_self.value._tag) {
     case "Infinity":
       return [Infinity, 0]
@@ -779,7 +780,7 @@ export const match: {
     readonly onInfinity: () => C
   }
 ): A | B | C => {
-  self = decodeUnsafe(self)
+  self = fromDurationInputUnsafe(self)
   switch (self.value._tag) {
     case "Millis":
       return options.onMillis(self.value.millis)
@@ -835,8 +836,8 @@ export const matchPair: {
     readonly onInfinity: (self: Duration, that: Duration) => C
   }
 ): A | B | C => {
-  self = decodeUnsafe(self)
-  that = decodeUnsafe(that)
+  self = fromDurationInputUnsafe(self)
+  that = fromDurationInputUnsafe(that)
   if (that.value._tag === "Infinity") return options.onInfinity(self, that)
   switch (self.value._tag) {
     case "Millis":
@@ -907,7 +908,7 @@ export const between: {
     minimum: DurationInput
     maximum: DurationInput
   }): boolean
-} = order.between(order.mapInput(Order, decodeUnsafe))
+} = order.between(order.mapInput(Order, fromDurationInputUnsafe))
 
 /**
  * Equivalence instance for `Duration`, allowing equality comparisons.
@@ -951,7 +952,11 @@ const _min = order.min(Order)
 export const min: {
   (that: DurationInput): (self: DurationInput) => Duration
   (self: DurationInput, that: DurationInput): Duration
-} = dual(2, (self: DurationInput, that: DurationInput): Duration => _min(decodeUnsafe(self), decodeUnsafe(that)))
+} = dual(
+  2,
+  (self: DurationInput, that: DurationInput): Duration =>
+    _min(fromDurationInputUnsafe(self), fromDurationInputUnsafe(that))
+)
 
 const _max = order.max(Order)
 
@@ -972,7 +977,11 @@ const _max = order.max(Order)
 export const max: {
   (that: DurationInput): (self: DurationInput) => Duration
   (self: DurationInput, that: DurationInput): Duration
-} = dual(2, (self: DurationInput, that: DurationInput): Duration => _max(decodeUnsafe(self), decodeUnsafe(that)))
+} = dual(
+  2,
+  (self: DurationInput, that: DurationInput): Duration =>
+    _max(fromDurationInputUnsafe(self), fromDurationInputUnsafe(that))
+)
 
 const _clamp = order.clamp(Order)
 
@@ -1008,9 +1017,9 @@ export const clamp: {
     minimum: DurationInput
     maximum: DurationInput
   }): Duration =>
-    _clamp(decodeUnsafe(self), {
-      minimum: decodeUnsafe(options.minimum),
-      maximum: decodeUnsafe(options.maximum)
+    _clamp(fromDurationInputUnsafe(self), {
+      minimum: fromDurationInputUnsafe(options.minimum),
+      maximum: fromDurationInputUnsafe(options.maximum)
     })
 )
 
@@ -1285,7 +1294,11 @@ export const greaterThanOrEqualTo: {
 export const equals: {
   (that: DurationInput): (self: DurationInput) => boolean
   (self: DurationInput, that: DurationInput): boolean
-} = dual(2, (self: DurationInput, that: DurationInput): boolean => Equivalence(decodeUnsafe(self), decodeUnsafe(that)))
+} = dual(
+  2,
+  (self: DurationInput, that: DurationInput): boolean =>
+    Equivalence(fromDurationInputUnsafe(self), fromDurationInputUnsafe(that))
+)
 
 /**
  * Converts a `Duration` to its parts.
@@ -1337,7 +1350,7 @@ export const parts = (self: DurationInput): {
   millis: number
   nanos: number
 } => {
-  const duration = decodeUnsafe(self)
+  const duration = fromDurationInputUnsafe(self)
   if (duration.value._tag === "Infinity") {
     return {
       days: Infinity,
@@ -1380,7 +1393,7 @@ export const parts = (self: DurationInput): {
  * ```
  */
 export const format = (self: DurationInput): string => {
-  const duration = decodeUnsafe(self)
+  const duration = fromDurationInputUnsafe(self)
   if (duration.value._tag === "Infinity") {
     return "Infinity"
   }
