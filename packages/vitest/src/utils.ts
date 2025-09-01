@@ -234,11 +234,11 @@ export function assertSome<A>(
 // ----------------------------
 
 /**
- * Asserts that `result` is `Err`.
+ * Asserts that `result` is `Success`.
  *
  * @since 4.0.0
  */
-export function assertOk<A, E>(
+export function assertSuccess<A, E>(
   result: Result.Result<A, E>,
   expected: A,
   ..._: Array<never>
@@ -247,11 +247,11 @@ export function assertOk<A, E>(
 }
 
 /**
- * Asserts that `result` is `Err`.
+ * Asserts that `result` is `Failure`.
  *
  * @since 4.0.0
  */
-export function assertErr<A, E>(
+export function assertFailure<A, E>(
   result: Result.Result<A, E>,
   expected: E,
   ..._: Array<never>
@@ -268,7 +268,7 @@ export function assertErr<A, E>(
  *
  * @since 4.0.0
  */
-export function assertFailure<A, E>(
+export function assertExitFailure<A, E>(
   exit: Exit.Exit<A, E>,
   expected: Cause.Cause<E>,
   ..._: Array<never>
@@ -281,7 +281,7 @@ export function assertFailure<A, E>(
  *
  * @since 4.0.0
  */
-export function assertSuccess<A, E>(
+export function assertExitSuccess<A, E>(
   exit: Exit.Exit<A, E>,
   expected: A,
   ..._: Array<never>

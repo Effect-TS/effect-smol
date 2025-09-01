@@ -1,5 +1,5 @@
 import { describe, it } from "@effect/vitest"
-import { assertDefined, assertOk, deepStrictEqual, strictEqual } from "@effect/vitest/utils"
+import { assertDefined, assertSuccess, deepStrictEqual, strictEqual } from "@effect/vitest/utils"
 import { Effect } from "effect"
 import { UndefinedOr } from "effect/data"
 import { TestClock } from "effect/testing"
@@ -21,7 +21,7 @@ describe("DateTime", () => {
           date.setUTCDate(date.getUTCDate() + 1)
         })
         const diff = DateTime.distanceDurationResult(now, tomorrow)
-        assertOk(diff, Duration.decodeUnsafe("1 day"))
+        assertSuccess(diff, Duration.decodeUnsafe("1 day"))
       }))
 
     it.effect("correctly preserves the time zone", () =>
@@ -49,7 +49,7 @@ describe("DateTime", () => {
         const now = yield* DateTime.now
         const tomorrow = DateTime.add(now, { days: 1 })
         const diff = DateTime.distanceDurationResult(now, tomorrow)
-        assertOk(diff, Duration.decodeUnsafe("1 day"))
+        assertSuccess(diff, Duration.decodeUnsafe("1 day"))
       }))
 
     it("to month with less days", () => {

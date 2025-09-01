@@ -1,10 +1,10 @@
 import { describe, it } from "@effect/vitest"
 import {
-  assertErr,
+  assertFailure as vassertFailure,
   assertFalse,
   assertNone,
-  assertOk,
   assertSome,
+  assertSuccess as vassertSuccess,
   assertTrue,
   strictEqual,
   throws
@@ -13,7 +13,7 @@ import { Brand, Result } from "effect/data"
 import { Check } from "effect/schema"
 
 function assertSuccess<T extends Brand.Brand<any>>(ctor: Brand.Constructor<T>, value: Brand.Brand.Unbranded<T>) {
-  assertOk(ctor.result(value), value as T)
+  vassertSuccess(ctor.result(value), value as T)
 }
 
 function assertFailure<T extends Brand.Brand<any>>(
@@ -21,7 +21,7 @@ function assertFailure<T extends Brand.Brand<any>>(
   value: Brand.Brand.Unbranded<T>,
   message: string
 ) {
-  assertErr(ctor.result(value).pipe(Result.mapError((e) => e.message)), message)
+  vassertFailure(ctor.result(value).pipe(Result.mapError((e) => e.message)), message)
 }
 
 describe("Brand", () => {
