@@ -3226,7 +3226,9 @@ export function Option<S extends Top>(value: S): Option<S> {
 /**
  * @since 4.0.0
  */
-export interface OptionFromNullOr<S extends Top> extends decodeTo<Option<typeCodec<S>>, NullOr<S>> {}
+export interface OptionFromNullOr<S extends Top> extends decodeTo<Option<typeCodec<S>>, NullOr<S>> {
+  readonly "~rebuild.out": OptionFromNullOr<S>
+}
 
 /**
  * Decodes a nullable, required value `T` to a required `Option<T>` value.
@@ -3245,7 +3247,35 @@ export interface OptionFromNullOr<S extends Top> extends decodeTo<Option<typeCod
 export function OptionFromNullOr<S extends Top>(schema: S): OptionFromNullOr<S> {
   return NullOr(schema).pipe(decodeTo(
     Option(typeCodec(schema)),
-    Transformation.optionFromNullOr<any>() // TODO: fix this
+    Transformation.optionFromNullOr<any>()
+  ))
+}
+
+/**
+ * @since 4.0.0
+ */
+export interface OptionFromOptionalKey<S extends Top> extends decodeTo<Option<typeCodec<S>>, optionalKey<S>> {
+  readonly "~rebuild.out": OptionFromOptionalKey<S>
+}
+
+/**
+ * Decodes an optional value `A` to a required `Option<A>` value.
+ *
+ * Decoding:
+ * - a missing key is decoded as `None`
+ * - a present value is decoded as `Some`
+ *
+ * Encoding:
+ * - `None` is encoded as missing key
+ * - `Some` is encoded as the value
+ *
+ * @category Option
+ * @since 4.0.0
+ */
+export function OptionFromOptionalKey<S extends Top>(schema: S): OptionFromOptionalKey<S> {
+  return optionalKey(schema).pipe(decodeTo(
+    Option(typeCodec(schema)),
+    Transformation.optionFromOptionalKey()
   ))
 }
 
@@ -4144,12 +4174,10 @@ export interface FiniteFromString extends decodeTo<Number, String> {
  */
 export const FiniteFromString: FiniteFromString = String.annotate({
   description: "a string that will be decoded as a finite number"
-}).pipe(
-  decodeTo(
-    Finite,
-    Transformation.numberFromString
-  )
-)
+}).pipe(decodeTo(
+  Finite,
+  Transformation.numberFromString
+))
 
 /**
  * A schema for strings that contains no leading or trailing whitespaces.

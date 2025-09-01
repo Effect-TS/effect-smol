@@ -1541,15 +1541,7 @@ import { Option } from "effect/data"
 import { Schema, Transformation } from "effect/schema"
 
 const Product = Schema.Struct({
-  quantity: Schema.optionalKey(Schema.FiniteFromString).pipe(
-    Schema.decodeTo(
-      Schema.Option(Schema.Number),
-      Transformation.transformOptional({
-        decode: Option.some,
-        encode: Option.flatten
-      })
-    )
-  )
+  quantity: Schema.OptionFromOptionalKey(Schema.FiniteFromString)
 })
 
 //     ┌─── { readonly quantity?: string; }
