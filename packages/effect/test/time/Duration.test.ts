@@ -325,10 +325,6 @@ describe("Duration", () => {
 
     assertTrue(pipe(Duration.millis(1), Duration.greaterThan(Duration.nanos(1n))))
 
-    assertFalse(Duration.greaterThan("2 seconds", "2 seconds"))
-    assertTrue(Duration.greaterThan("3 seconds", "2 seconds"))
-    assertFalse(Duration.greaterThan("2 seconds", "3 seconds"))
-
     assertTrue(pipe(Duration.infinity, Duration.greaterThan(Duration.seconds(20))))
     assertFalse(pipe(Duration.seconds(-Infinity), Duration.greaterThan(Duration.infinity)))
     assertFalse(pipe(Duration.nanos(1n), Duration.greaterThan(Duration.infinity)))
@@ -342,10 +338,6 @@ describe("Duration", () => {
     assertTrue(pipe(Duration.nanos(30n), Duration.greaterThanOrEqualTo(Duration.nanos(20n))))
     assertTrue(pipe(Duration.nanos(30n), Duration.greaterThanOrEqualTo(Duration.nanos(30n))))
     assertFalse(pipe(Duration.nanos(30n), Duration.greaterThanOrEqualTo(Duration.nanos(60n))))
-
-    assertTrue(Duration.greaterThanOrEqualTo("2 seconds", "2 seconds"))
-    assertTrue(Duration.greaterThanOrEqualTo("3 seconds", "2 seconds"))
-    assertFalse(Duration.greaterThanOrEqualTo("2 seconds", "3 seconds"))
   })
 
   it("lessThan", () => {
@@ -358,10 +350,6 @@ describe("Duration", () => {
     assertFalse(pipe(Duration.nanos(60n), Duration.lessThan(Duration.nanos(30n))))
 
     assertTrue(pipe(Duration.nanos(1n), Duration.lessThan(Duration.millis(1))))
-
-    assertFalse(Duration.lessThan("2 seconds", "2 seconds"))
-    assertFalse(Duration.lessThan("3 seconds", "2 seconds"))
-    assertTrue(Duration.lessThan("2 seconds", "3 seconds"))
   })
 
   it("lessThanOrEqualTo", () => {
@@ -372,10 +360,6 @@ describe("Duration", () => {
     assertTrue(pipe(Duration.nanos(20n), Duration.lessThanOrEqualTo(Duration.nanos(30n))))
     assertTrue(pipe(Duration.nanos(30n), Duration.lessThanOrEqualTo(Duration.nanos(30n))))
     assertFalse(pipe(Duration.nanos(60n), Duration.lessThanOrEqualTo(Duration.nanos(30n))))
-
-    assertTrue(Duration.lessThanOrEqualTo("2 seconds", "2 seconds"))
-    assertFalse(Duration.lessThanOrEqualTo("3 seconds", "2 seconds"))
-    assertTrue(Duration.lessThanOrEqualTo("2 seconds", "3 seconds"))
   })
 
   it("toString()", () => {

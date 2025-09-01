@@ -1644,7 +1644,7 @@ export const delays = <Out, In, E, R>(self: Schedule<Out, In, E, R>): Schedule<D
  * @category constructors
  */
 export const during = (duration: Duration.DurationInput): Schedule<Duration.Duration> =>
-  while_(elapsed, ({ output }) => Duration.lessThanOrEqualTo(output, duration))
+  while_(elapsed, ({ output }) => Duration.lessThanOrEqualTo(output, Duration.decodeUnsafe(duration)))
 
 /**
  * Combines two `Schedule`s by recurring if either of the two schedules wants

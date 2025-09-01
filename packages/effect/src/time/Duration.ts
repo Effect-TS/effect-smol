@@ -881,8 +881,6 @@ export const Order: order.Order<Duration> = order.make((self, that) =>
   })
 )
 
-const OrderInput: order.Order<DurationInput> = order.mapInput(Order, decodeUnsafe)
-
 /**
  * Checks if a `Duration` is between a `minimum` and `maximum` value.
  *
@@ -1209,9 +1207,9 @@ export const sum: {
  * @category predicates
  */
 export const lessThan: {
-  (that: DurationInput): (self: DurationInput) => boolean
-  (self: DurationInput, that: DurationInput): boolean
-} = order.lessThan(OrderInput)
+  (that: Duration): (self: Duration) => boolean
+  (self: Duration, that: Duration): boolean
+} = order.lessThan(Order)
 
 /**
  * Checks if the first Duration is less than or equal to the second.
@@ -1228,9 +1226,9 @@ export const lessThan: {
  * @category predicates
  */
 export const lessThanOrEqualTo: {
-  (that: DurationInput): (self: DurationInput) => boolean
-  (self: DurationInput, that: DurationInput): boolean
-} = order.lessThanOrEqualTo(OrderInput)
+  (that: Duration): (self: Duration) => boolean
+  (self: Duration, that: Duration): boolean
+} = order.lessThanOrEqualTo(Order)
 
 /**
  * Checks if the first Duration is greater than the second.
@@ -1247,9 +1245,9 @@ export const lessThanOrEqualTo: {
  * @category predicates
  */
 export const greaterThan: {
-  (that: DurationInput): (self: DurationInput) => boolean
-  (self: DurationInput, that: DurationInput): boolean
-} = order.greaterThan(OrderInput)
+  (that: Duration): (self: Duration) => boolean
+  (self: Duration, that: Duration): boolean
+} = order.greaterThan(Order)
 
 /**
  * Checks if the first Duration is greater than or equal to the second.
@@ -1266,9 +1264,9 @@ export const greaterThan: {
  * @category predicates
  */
 export const greaterThanOrEqualTo: {
-  (that: DurationInput): (self: DurationInput) => boolean
-  (self: DurationInput, that: DurationInput): boolean
-} = order.greaterThanOrEqualTo(OrderInput)
+  (that: Duration): (self: Duration) => boolean
+  (self: Duration, that: Duration): boolean
+} = order.greaterThanOrEqualTo(Order)
 
 /**
  * Checks if two Durations are equal.
