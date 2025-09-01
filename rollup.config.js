@@ -25,8 +25,8 @@ export default {
     }),
     terser({
       format: { comments: false },
-      compress: false,
-      mangle: false
+      compress: true,
+      mangle: process.env.VISUALIZE !== "true"
     }),
     ...(process.env.VISUALIZE === "true" ?
       [visualizer({
