@@ -41,10 +41,10 @@ export class State {
     const assignedShards = MutableHashMap.empty<ShardId, RunnerAddress>()
     const invalidAssignments = Arr.empty<[ShardId, RunnerAddress]>()
     for (const [shard, address] of storedAssignments) {
-      if (Option.isSome(address) && MutableHashMap.has(aliveRunners, address.value)) {
-        MutableHashMap.set(assignedShards, shard, address.value)
-      } else if (Option.isSome(address)) {
-        invalidAssignments.push([shard, address.value])
+      if (address && MutableHashMap.has(aliveRunners, address)) {
+        MutableHashMap.set(assignedShards, shard, address)
+      } else if (address) {
+        invalidAssignments.push([shard, address])
       }
     }
     if (invalidAssignments.length > 0) {
@@ -71,13 +71,13 @@ export class State {
       }
     }
 
-    const shardState = new Map<string, Map<number, Option.Option<RunnerAddress>>>()
+    const shardState = new Map<string, Map<number, RunnerAddress | undefined>>()
     for (const group of runnerState.keys()) {
-      const groupMap = new Map<number, Option.Option<RunnerAddress>>()
+      const groupMap = new Map<number, RunnerAddress | undefined>()
       shardState.set(group, groupMap)
       for (let n = 1; n <= shardsPerGroup; n++) {
         const shardId = new ShardId({ group, id: n })
-        groupMap.set(n, MutableHashMap.get(assignedShards, shardId))
+        groupMap.set(n, Option.getOrUndefined(MutableHashMap.get(assignedShards, shardId)))
       }
     }
 
@@ -86,20 +86,20 @@ export class State {
 
   readonly allRunners: MutableHashMap.MutableHashMap<RunnerAddress, RunnerWithMetadata>
   readonly runners: Map<string, MutableHashMap.MutableHashMap<RunnerAddress, RunnerWithMetadata>>
-  readonly shards: Map<string, Map<number, Option.Option<RunnerAddress>>>
+  readonly shards: Map<string, Map<number, RunnerAddress | undefined>>
   readonly shardsPerGroup: number
 
   constructor(
     allRunners: MutableHashMap.MutableHashMap<RunnerAddress, RunnerWithMetadata>,
     runners: Map<string, MutableHashMap.MutableHashMap<RunnerAddress, RunnerWithMetadata>>,
-    shards: Map<string, Map<number, Option.Option<RunnerAddress>>>,
+    shards: Map<string, Map<number, RunnerAddress | undefined>>,
     shardsPerGroup: number
   ) {
     this.allRunners = allRunners
     this.runners = runners
     this.shards = shards
     this.shardsPerGroup = shardsPerGroup
-    this.assignments = MutableHashMap.empty<ShardId, Option.Option<RunnerAddress>>()
+    this.assignments = MutableHashMap.empty<ShardId, RunnerAddress | undefined>()
     this.perRunner = new Map<string, MutableHashMap.MutableHashMap<RunnerAddress, Set<number>>>()
 
     for (const [address, meta] of this.allRunners) {
@@ -116,25 +116,25 @@ export class State {
     for (const [group, groupMap] of this.shards) {
       const perRunnerMap = this.perRunner.get(group)!
       for (const [id, address_] of groupMap) {
-        const address = Option.filter(address_, (addr) => MutableHashMap.has(this.allRunners, addr))
+        const address = address_ && MutableHashMap.has(this.allRunners, address_) ? address_ : undefined
         MutableHashMap.set(this.assignments, new ShardId({ group, id }), address)
-        if (Option.isSome(address)) {
-          Option.getOrUndefined(MutableHashMap.get(perRunnerMap, address.value))?.add(id)
+        if (address !== undefined) {
+          Option.getOrUndefined(MutableHashMap.get(perRunnerMap, address))?.add(id)
         }
       }
     }
   }
 
-  readonly assignments: MutableHashMap.MutableHashMap<ShardId, Option.Option<RunnerAddress>>
+  readonly assignments: MutableHashMap.MutableHashMap<ShardId, RunnerAddress | undefined>
   readonly perRunner: Map<string, MutableHashMap.MutableHashMap<RunnerAddress, Set<number>>>
 
   addGroup(group: string): void {
     this.runners.set(group, MutableHashMap.empty<RunnerAddress, RunnerWithMetadata>())
-    const shardMap = new Map<number, Option.Option<RunnerAddress>>()
+    const shardMap = new Map<number, RunnerAddress | undefined>()
     this.shards.set(group, shardMap)
     for (let n = 1; n <= this.shardsPerGroup; n++) {
-      shardMap.set(n, Option.none())
-      MutableHashMap.set(this.assignments, new ShardId({ group, id: n }), Option.none())
+      shardMap.set(n, undefined)
+      MutableHashMap.set(this.assignments, new ShardId({ group, id: n }), undefined)
     }
 
     const perRunnerMap = MutableHashMap.empty<RunnerAddress, Set<number>>()
@@ -146,19 +146,19 @@ export class State {
 
   addAssignments(
     shards: Iterable<ShardId>,
-    address: Option.Option<RunnerAddress>
+    address: RunnerAddress | undefined
   ) {
     for (const shardId of shards) {
-      const currentAddress = Option.flatten(MutableHashMap.get(this.assignments, shardId))
+      const currentAddress = Option.getOrUndefined(MutableHashMap.get(this.assignments, shardId))
       MutableHashMap.set(this.assignments, shardId, address)
       this.shards.get(shardId.group)?.set(shardId.id, address)
 
       const perRunner = this.perRunner.get(shardId.group)!
-      if (Option.isSome(currentAddress)) {
-        Option.getOrUndefined(MutableHashMap.get(perRunner, currentAddress.value))?.delete(shardId.id)
+      if (currentAddress !== undefined) {
+        Option.getOrUndefined(MutableHashMap.get(perRunner, currentAddress))?.delete(shardId.id)
       }
-      if (Option.isSome(address)) {
-        Option.getOrUndefined(MutableHashMap.get(perRunner, address.value))?.add(shardId.id)
+      if (address !== undefined) {
+        Option.getOrUndefined(MutableHashMap.get(perRunner, address))?.add(shardId.id)
       }
     }
   }
@@ -211,11 +211,11 @@ export class State {
     const perRunner = new Map<string, number>()
     let unassigned = 0
     for (const [, address] of this.assignments) {
-      if (Option.isNone(address)) {
+      if (address === undefined) {
         unassigned++
         continue
       }
-      const runner = address.value.toString()
+      const runner = address.toString()
       const count = perRunner.get(runner) ?? 0
       perRunner.set(runner, count + 1)
     }
@@ -244,7 +244,7 @@ export class State {
   get allUnassignedShards(): Array<ShardId> {
     const unassigned: Array<ShardId> = []
     for (const [shardId, address] of this.assignments) {
-      if (Option.isNone(address)) {
+      if (address === undefined) {
         unassigned.push(shardId)
       }
     }
@@ -255,7 +255,7 @@ export class State {
     const shardIds: Array<number> = []
     const assignments = this.shards.get(group)!
     for (const [shard, address] of assignments) {
-      if (Option.isNone(address)) {
+      if (address === undefined) {
         shardIds.push(shard)
       }
     }
@@ -351,7 +351,7 @@ function pickNewRunners(
     if (!candidate || !candidateShards) break
 
     // If the old runner is the same as the new runner, do nothing
-    const oldRunner = Option.getOrUndefined(shardsGroup.get(shardId) ?? Option.none())
+    const oldRunner = shardsGroup.get(shardId)
     if (oldRunner && oldRunner.toString() === candidate.toString()) {
       continue
     }

@@ -1,7 +1,7 @@
 import { bench, describe, expect } from "@effect/vitest"
 import { Effect, Layer } from "effect"
 import { Array, MutableHashMap } from "effect/collections"
-import { Data, Option } from "effect/data"
+import { Data, Predicate } from "effect/data"
 import { Logger } from "effect/logging"
 import { TestClock, TestConsole } from "effect/testing"
 import {
@@ -19,7 +19,7 @@ import { decideAssignmentsForShards, RunnerWithMetadata, State } from "effect/un
 describe("ShardManager", () => {
   const shards300 = Array.makeBy(
     300,
-    (i) => [i + 1, Option.none<RunnerAddress.RunnerAddress>()] as const
+    (i) => [i + 1, undefined] as const
   )
   const state30 = makeDefaultState(
     MutableHashMap.fromIterable(Array.makeBy(30, (i) => {
@@ -35,7 +35,7 @@ describe("ShardManager", () => {
 
   const shards1000 = Array.makeBy(
     1000,
-    (i) => [i + 1, Option.none<RunnerAddress.RunnerAddress>()] as const
+    (i) => [i + 1, undefined] as const
   )
   const state100 = makeDefaultState(
     MutableHashMap.fromIterable(Array.makeBy(100, (i) => {
@@ -88,7 +88,7 @@ describe("ShardManager", () => {
 
       const assignments = yield* manager.getAssignments
       const values = globalThis.Array.from(assignments, ([, address]) => address)
-      const allRunnersAssigned = Array.every(values, Option.isSome)
+      const allRunnersAssigned = Array.every(values, Predicate.isNotUndefined)
       expect(allRunnersAssigned).toBe(true)
 
       yield* simulate(Array.range(1, 50).map(unregisterRunner))
@@ -96,7 +96,7 @@ describe("ShardManager", () => {
 
       const assignments2 = yield* manager.getAssignments
       const values2 = globalThis.Array.from(assignments2, ([, address]) => address)
-      const allRunnersUnassigned = Array.every(values2, Option.isNone)
+      const allRunnersUnassigned = Array.every(values2, Predicate.isUndefined)
       expect(allRunnersUnassigned).toBe(true)
     }).pipe(
       Effect.provide(TestLive),
@@ -141,7 +141,7 @@ function simulate(events: ReadonlyArray<SimulationEvent>) {
 
 const makeDefaultState = (
   runners: MutableHashMap.MutableHashMap<RunnerAddress.RunnerAddress, RunnerWithMetadata>,
-  shards: Map<number, Option.Option<RunnerAddress.RunnerAddress>>
+  shards: Map<number, RunnerAddress.RunnerAddress | undefined>
 ) =>
   new State(
     runners,

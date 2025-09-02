@@ -50,13 +50,13 @@ export class ShardManager extends ServiceMap.Key<ShardManager, {
    * Get all shard assignments.
    */
   readonly getAssignments: Effect.Effect<
-    Iterable<readonly [ShardId, Option.Option<RunnerAddress>]>
+    Iterable<readonly [ShardId, RunnerAddress | undefined]>
   >
   /**
    * Get a stream of sharding events emit by the shard manager.
    */
   readonly shardingEvents: (
-    address: Option.Option<RunnerAddress>
+    address: RunnerAddress | undefined
   ) => Effect.Effect<PubSub.Subscription<ShardingEvent>, never, Scope>
   /**
    * Register a new runner with the cluster.
@@ -236,13 +236,13 @@ export class ShardManagerClient extends ServiceMap.Key<ShardManagerClient, {
    * Get all shard assignments.
    */
   readonly getAssignments: Effect.Effect<
-    Iterable<readonly [ShardId, Option.Option<RunnerAddress>]>
+    Iterable<readonly [ShardId, RunnerAddress | undefined]>
   >
   /**
    * Get a stream of sharding events emit by the shard manager.
    */
   readonly shardingEvents: (
-    address: Option.Option<RunnerAddress>
+    address: RunnerAddress | undefined
   ) => Effect.Effect<Queue.Dequeue<ShardingEvent>, never, Scope>
   /**
    * Get the current time on the shard manager.
@@ -290,10 +290,10 @@ export class Rpcs extends RpcGroup.make(
     payload: { address: RunnerAddress }
   }),
   Rpc.make("GetAssignments", {
-    success: Schema.Array(Schema.Tuple([ShardId, Schema.Option(RunnerAddress)]))
+    success: Schema.Array(Schema.Tuple([ShardId, Schema.UndefinedOr(RunnerAddress)]))
   }),
   Rpc.make("ShardingEvents", {
-    payload: { address: Schema.Option(RunnerAddress) },
+    payload: { address: Schema.UndefinedOr(RunnerAddress) },
     success: ShardingEventSchema,
     stream: true
   }),
@@ -335,7 +335,7 @@ export const makeClientLocal = Effect.gen(function*() {
   const clock = yield* Clock.Clock
 
   const groups = new Set<string>()
-  const shards = MutableHashMap.empty<ShardId, Option.Option<RunnerAddress>>()
+  const shards = MutableHashMap.empty<ShardId, RunnerAddress | undefined>()
 
   let machineId = 0
 
@@ -346,7 +346,7 @@ export const makeClientLocal = Effect.gen(function*() {
           if (groups.has(group)) continue
           groups.add(group)
           for (let n = 1; n <= config.shardsPerGroup; n++) {
-            MutableHashMap.set(shards, makeShardId(group, n), Option.fromUndefinedOr(config.runnerAddress))
+            MutableHashMap.set(shards, makeShardId(group, n), config.runnerAddress)
           }
         }
         return MachineId.make(++machineId)
@@ -498,11 +498,11 @@ export const make = Effect.gen(function*() {
 
   function updateShardsState(
     shards: Iterable<ShardId>,
-    address: Option.Option<RunnerAddress>
+    address: RunnerAddress | undefined
   ): Effect.Effect<void, RunnerNotRegistered> {
     return Effect.suspend(() => {
-      if (Option.isSome(address) && !MutableHashMap.has(state.allRunners, address.value)) {
-        return Effect.fail(new RunnerNotRegistered({ address: address.value }))
+      if (address && !MutableHashMap.has(state.allRunners, address)) {
+        return Effect.fail(new RunnerNotRegistered({ address }))
       }
       state.addAssignments(shards, address)
       return Effect.void
@@ -536,11 +536,11 @@ export const make = Effect.gen(function*() {
     yield* Effect.logInfo("Unregistering runner at address:", address)
     const unassignments = Arr.empty<ShardId>()
     for (const [shard, runner] of state.assignments) {
-      if (Option.isSome(runner) && Equal.equals(runner.value, address)) {
+      if (runner && Equal.equals(runner, address)) {
         unassignments.push(shard)
       }
     }
-    state.addAssignments(unassignments, Option.none())
+    state.addAssignments(unassignments, undefined)
     state.removeRunner(address)
     updateRunnerMetrics()
 
@@ -637,7 +637,7 @@ export const make = Effect.gen(function*() {
     for (const [address, shards] of unassignments) {
       yield* FiberSet.run(
         rebalanceFibers,
-        updateShardsState(shards, Option.none()).pipe(
+        updateShardsState(shards, undefined).pipe(
           Effect.matchEffect({
             onFailure: () => {
               MutableHashSet.add(failedRunners, address)
@@ -671,7 +671,7 @@ export const make = Effect.gen(function*() {
     for (const [address, shards] of assignments) {
       yield* FiberSet.run(
         rebalanceFibers,
-        updateShardsState(shards, Option.some(address)).pipe(
+        updateShardsState(shards, address).pipe(
           Effect.matchEffect({
             onFailure: () => {
               MutableHashSet.add(failedRunners, address)
@@ -754,7 +754,7 @@ export const make = Effect.gen(function*() {
     getAssignments,
     shardingEvents: (address) =>
       Effect.flatMap(
-        Option.isSome(address) ? runnerHealthApi.onConnection(address.value) : Effect.void,
+        address ? runnerHealthApi.onConnection(address) : Effect.void,
         () => PubSub.subscribe(events)
       ),
     register,

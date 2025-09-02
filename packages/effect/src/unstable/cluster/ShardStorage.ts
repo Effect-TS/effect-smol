@@ -3,7 +3,6 @@
  */
 import * as Arr from "../../collections/Array.ts"
 import * as MutableHashMap from "../../collections/MutableHashMap.ts"
-import * as Option from "../../data/Option.ts"
 import * as Effect from "../../Effect.ts"
 import * as Layer from "../../Layer.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
@@ -24,7 +23,7 @@ export class ShardStorage extends ServiceMap.Key<ShardStorage, {
    * Get the current assignments of shards to runners.
    */
   readonly getAssignments: Effect.Effect<
-    Array<[ShardId, Option.Option<RunnerAddress>]>,
+    Array<[ShardId, RunnerAddress | undefined]>,
     PersistenceError
   >
 
@@ -32,7 +31,7 @@ export class ShardStorage extends ServiceMap.Key<ShardStorage, {
    * Save the current state of shards assignments to runners.
    */
   readonly saveAssignments: (
-    assignments: Iterable<readonly [ShardId, Option.Option<RunnerAddress>]>
+    assignments: Iterable<readonly [ShardId, RunnerAddress | undefined]>
   ) => Effect.Effect<void, PersistenceError>
 
   /**
@@ -156,11 +155,11 @@ export interface Encoded {
 export const makeEncoded = (encoded: Encoded) =>
   ShardStorage.of({
     getAssignments: Effect.map(encoded.getAssignments, (assignments) => {
-      const arr = Arr.empty<[ShardId, Option.Option<RunnerAddress>]>()
+      const arr = Arr.empty<[ShardId, RunnerAddress | undefined]>()
       for (const [shardId, runnerAddress] of assignments) {
         arr.push([
           ShardId.fromString(shardId),
-          runnerAddress === null ? Option.none() : Option.some(decodeRunnerAddress(runnerAddress))
+          runnerAddress === null ? undefined : decodeRunnerAddress(runnerAddress)
         ])
       }
       return arr
@@ -170,7 +169,7 @@ export const makeEncoded = (encoded: Encoded) =>
       for (const [shardId, runnerAddress] of assignments) {
         arr.push([
           shardId.toString(),
-          Option.isNone(runnerAddress) ? null : encodeRunnerAddress(runnerAddress.value)
+          runnerAddress === undefined ? null : encodeRunnerAddress(runnerAddress)
         ])
       }
       return encoded.saveAssignments(arr)
@@ -242,10 +241,10 @@ export const layerNoop: Layer.Layer<ShardStorage> = Layer.sync(ShardStorage)(
  * @category constructors
  */
 export const makeMemory = Effect.gen(function*() {
-  const assignments = MutableHashMap.empty<ShardId, Option.Option<RunnerAddress>>()
+  const assignments = MutableHashMap.empty<ShardId, RunnerAddress | undefined>()
   const runners = MutableHashMap.empty<RunnerAddress, Runner>()
 
-  function saveAssignments(value: Iterable<readonly [ShardId, Option.Option<RunnerAddress>]>) {
+  function saveAssignments(value: Iterable<readonly [ShardId, RunnerAddress | undefined]>) {
     return Effect.sync(() => {
       for (const [shardId, runnerAddress] of value) {
         MutableHashMap.set(assignments, shardId, runnerAddress)

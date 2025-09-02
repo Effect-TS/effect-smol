@@ -827,7 +827,7 @@ const make = Effect.gen(function*() {
     yield* stopShardManagerTimeout
 
     yield* Effect.logDebug("Subscribing to sharding events")
-    const queue = yield* shardManager.shardingEvents(Option.fromUndefinedOr(config.runnerAddress))
+    const queue = yield* shardManager.shardingEvents(config.runnerAddress)
     const startedLatch = yield* Deferred.make<void>()
 
     const eventsFiber = yield* Effect.gen(function*() {
@@ -911,15 +911,15 @@ const make = Effect.gen(function*() {
     yield* Effect.logDebug("Received shard assignments", assignments)
 
     for (const [shardId, runner] of assignments) {
-      if (Option.isNone(runner)) {
+      if (runner === undefined) {
         MutableHashMap.remove(shardAssignments, shardId)
         MutableHashSet.remove(selfShards, shardId)
         continue
       }
 
-      MutableHashMap.set(shardAssignments, shardId, runner.value)
+      MutableHashMap.set(shardAssignments, shardId, runner)
 
-      if (!isLocalRunner(runner.value)) {
+      if (!isLocalRunner(runner)) {
         MutableHashSet.remove(selfShards, shardId)
         continue
       }
