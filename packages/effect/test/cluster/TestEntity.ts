@@ -1,5 +1,4 @@
 import { Effect, Layer, MutableRef, Queue, Schedule, ServiceMap } from "effect"
-import { Option } from "effect/data"
 import { Schema } from "effect/schema"
 import { Stream } from "effect/stream"
 import type { Envelope } from "effect/unstable/cluster"
@@ -110,10 +109,7 @@ export const TestEntityNoState = TestEntity.toLayer(
         return Queue.take(state.messages)
       },
       StreamWithKey: (envelope) => {
-        let sequence = envelope.lastSentChunkValue.pipe(
-          Option.map((value) => value + 1),
-          Option.getOrElse(() => 0)
-        )
+        let sequence = envelope.lastSentChunkValue ? envelope.lastSentChunkValue + 1 : 0
         return Stream.fromQueue(state.streamMessages).pipe(
           Stream.map(() => sequence++)
         )

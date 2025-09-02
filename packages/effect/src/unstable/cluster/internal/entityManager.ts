@@ -367,7 +367,7 @@ export const make = Effect.fnUntraced(function*<
                 rpc,
                 message,
                 sentReply: false,
-                lastSentChunk: message.lastSentReply as any,
+                lastSentChunk: Option.getOrUndefined(message.lastSentReply) as Reply.Chunk<Rpc.Any> | undefined,
                 sequence: Option.match(message.lastSentReply, {
                   onNone: () => 0,
                   onSome: (reply) => reply._tag === "Chunk" ? reply.sequence + 1 : 0
@@ -379,7 +379,7 @@ export const make = Effect.fnUntraced(function*<
                 id: RequestId(message.envelope.requestId),
                 payload: new Request({
                   ...message.envelope,
-                  lastSentChunk: message.lastSentReply as any
+                  lastSentChunk: Option.getOrUndefined(message.lastSentReply) as Reply.Chunk<R> | undefined
                 })
               })
             }

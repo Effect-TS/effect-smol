@@ -4,8 +4,8 @@
 import type * as Cause from "../../Cause.ts"
 import * as Arr from "../../collections/Array.ts"
 import * as Data from "../../data/Data.ts"
-import * as Option from "../../data/Option.ts"
 import * as Predicate from "../../data/Predicate.ts"
+import * as UndefinedOr from "../../data/UndefinedOr.ts"
 import * as Effect from "../../Effect.ts"
 import * as Exit from "../../Exit.ts"
 import { identity } from "../../Function.ts"
@@ -461,24 +461,24 @@ export declare namespace Replier {
  */
 export class Request<Rpc extends Rpc.Any> extends Data.Class<
   Envelope.Request<Rpc> & {
-    readonly lastSentChunk: Option.Option<Reply.Chunk<Rpc>>
+    readonly lastSentChunk: Reply.Chunk<Rpc> | undefined
   }
 > {
   /**
    * @since 4.0.0
    */
-  get lastSentChunkValue(): Option.Option<Rpc.SuccessChunk<Rpc>> {
-    return this.lastSentChunk.pipe(Option.map((chunk) => Arr.lastNonEmpty(chunk.values)))
+  get lastSentChunkValue(): Rpc.SuccessChunk<Rpc> | undefined {
+    return UndefinedOr.map(this.lastSentChunk, (chunk) => Arr.lastNonEmpty(chunk.values))
   }
 
   /**
    * @since 4.0.0
    */
   get nextSequence(): number {
-    if (Option.isNone(this.lastSentChunk)) {
+    if (this.lastSentChunk === undefined) {
       return 0
     }
-    return this.lastSentChunk.value.sequence + 1
+    return this.lastSentChunk.sequence + 1
   }
 }
 
@@ -572,7 +572,7 @@ export const makeTestClient: <Type extends string, Rpcs extends Rpc.Any, LA, LE,
               [Envelope.TypeId]: Envelope.TypeId,
               address,
               requestId: Snowflake.Snowflake(message.id),
-              lastSentChunk: Option.none()
+              lastSentChunk: undefined
             }) as any
           })
         }
