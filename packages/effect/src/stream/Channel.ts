@@ -765,6 +765,15 @@ export const succeed = <A>(value: A): Channel<A> => fromEffect(Effect.succeed(va
 export const end = <A>(value: A): Channel<never, never, A> => fromPull(Effect.succeed(Pull.halt(value)))
 
 /**
+ * Creates a `Channel` that immediately ends with the lazily evaluated value.
+ *
+ * @category constructors
+ * @since 4.0.0
+ */
+export const endSync = <A>(evaluate: LazyArg<A>): Channel<never, never, A> =>
+  fromPull(Effect.sync(() => Pull.halt(evaluate())))
+
+/**
  * Creates a `Channel` that emits a single value computed by a lazy evaluation.
  *
  * @example
@@ -1636,6 +1645,59 @@ export const map: {
     f: (o: OutElem) => OutElem2
   ): Channel<OutElem2, OutErr, OutDone, InElem, InErr, InDone, Env> =>
     transformPull(self, (pull) => Effect.succeed(Effect.map(pull, f)))
+)
+
+/**
+ * Maps the done value of this channel using the specified function.
+ *
+ * @since 2.0.0
+ * @category mapping
+ */
+export const mapDone: {
+  <OutDone, OutDone2>(
+    f: (o: OutDone) => OutDone2
+  ): <OutElem, OutErr, InElem, InErr, InDone, Env>(
+    self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>
+  ) => Channel<OutElem, OutErr, OutDone2, InElem, InErr, InDone, Env>
+  <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, OutDone2>(
+    self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
+    f: (o: OutDone) => OutDone2
+  ): Channel<OutElem, OutErr, OutDone2, InElem, InErr, InDone, Env>
+} = dual(
+  2,
+  <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, OutDone2>(
+    self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
+    f: (o: OutDone) => OutDone2
+  ): Channel<OutElem, OutErr, OutDone2, InElem, InErr, InDone, Env> => mapDoneEffect(self, (o) => Effect.succeed(f(o)))
+)
+
+/**
+ * Maps the done value of this channel using the specified effectful function.
+ *
+ * @since 2.0.0
+ * @category mapping
+ */
+export const mapDoneEffect: {
+  <OutDone, OutDone2, E, R>(
+    f: (o: OutDone) => Effect.Effect<OutDone2, E, R>
+  ): <OutElem, OutErr, InElem, InErr, InDone, Env>(
+    self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>
+  ) => Channel<OutElem, OutErr | E, OutDone2, InElem, InErr, InDone, Env | R>
+  <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, OutDone2, E, R>(
+    self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
+    f: (o: OutDone) => Effect.Effect<OutDone2, E, R>
+  ): Channel<OutElem, OutErr | E, OutDone2, InElem, InErr, InDone, Env | R>
+} = dual(
+  2,
+  <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, OutDone2, E, R>(
+    self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
+    f: (o: OutDone) => Effect.Effect<OutDone2, E, R>
+  ): Channel<OutElem, OutErr | E, OutDone2, InElem, InErr, InDone, Env | R> =>
+    transformPull(self, (pull) =>
+      Effect.succeed(Pull.catchHalt(
+        pull,
+        (done) => Effect.flatMap(f(done as OutDone), Pull.halt)
+      )))
 )
 
 const concurrencyIsSequential = (

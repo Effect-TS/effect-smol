@@ -3,8 +3,10 @@ import { Effect, Exit, Fiber, Queue } from "effect"
 import { Array } from "effect/collections"
 import { isReadonlyArrayNonEmpty, type NonEmptyArray } from "effect/collections/Array"
 import { Filter, Option } from "effect/data"
-import { Stream } from "effect/stream"
+import { constTrue } from "effect/Function"
+import { Sink, Stream } from "effect/stream"
 import * as fc from "effect/testing/FastCheck"
+import { assertFailure } from "./utils/assert.ts"
 
 describe("Stream", () => {
   describe("callback", () => {
@@ -327,6 +329,36 @@ describe("Stream", () => {
       assert.deepStrictEqual(actual, grouped(expected, size))
     })
   )
+
+  describe("transduce", () => {
+    it.effect("no remainder", () =>
+      Effect.gen(function*() {
+        const result = yield* Stream.make(1, 2, 3, 4).pipe(
+          Stream.transduce(Sink.fold(() => 100, (n) => n % 2 === 0, (acc, n) => acc + n)),
+          Stream.runCollect
+        )
+        assert.deepStrictEqual(result, [101, 105, 104])
+      }))
+
+    it.effect("with a sink that always signals more", () =>
+      Effect.gen(function*() {
+        const result = yield* Stream.make(1, 2, 3).pipe(
+          Stream.transduce(Sink.fold(() => 0, constTrue, (acc, n) => acc + n)),
+          Stream.runCollect
+        )
+        assert.deepStrictEqual(result, [6])
+      }))
+
+    it.effect("propagates scope error", () =>
+      Effect.gen(function*() {
+        const result = yield* Stream.make(1, 2, 3).pipe(
+          Stream.transduce(Sink.fail("Woops")),
+          Stream.runCollect,
+          Effect.result
+        )
+        assertFailure(result, "Woops")
+      }))
+  })
 })
 
 const grouped = <A>(arr: Array<A>, size: number): Array<NonEmptyArray<A>> => {

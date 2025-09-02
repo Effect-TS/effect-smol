@@ -329,7 +329,7 @@ export const fromPull = <A, E, R, EX, RX>(
  */
 export const transformPull = <A, E, R, B, E2, R2, EX, RX>(
   self: Stream<A, E, R>,
-  f: (pull: Pull.Pull<Arr.NonEmptyReadonlyArray<A>, E, void, R>, scope: Scope.Scope) => Effect.Effect<
+  f: (pull: Pull.Pull<Arr.NonEmptyReadonlyArray<A>, E, void>, scope: Scope.Scope) => Effect.Effect<
     Pull.Pull<Arr.NonEmptyReadonlyArray<B>, E2, void, R2>,
     EX,
     RX
@@ -337,7 +337,7 @@ export const transformPull = <A, E, R, B, E2, R2, EX, RX>(
 ): Stream<B, EX | Pull.ExcludeHalt<E2>, R | R2 | RX> =>
   fromChannel(
     Channel.fromTransform((_, scope) =>
-      Effect.flatMap(Channel.toPullScoped(self.channel, scope), (pull) => f(pull, scope))
+      Effect.flatMap(Channel.toPullScoped(self.channel, scope), (pull) => f(pull as any, scope))
     )
   )
 
@@ -2162,6 +2162,61 @@ export const groupBy: {
   ))
 
 /**
+ * Applies the Sink transducer to the stream and emits its outputs.
+ *
+ * @since 2.0.0
+ * @category utils
+ */
+export const transduce = dual<
+  <A2, A, E2, R2>(
+    sink: Sink.Sink<A2, A, A, E2, R2>
+  ) => <E, R>(self: Stream<A, E, R>) => Stream<A2, E2 | E, R2 | R>,
+  <A, E, R, A2, E2, R2>(
+    self: Stream<A, E, R>,
+    sink: Sink.Sink<A2, A, A, E2, R2>
+  ) => Stream<A2, E2 | E, R2 | R>
+>(
+  2,
+  <A, E, R, A2, E2, R2>(
+    self: Stream<A, E, R>,
+    sink: Sink.Sink<A2, A, A, E2, R2>
+  ): Stream<A2, E2 | E, R2 | R> =>
+    transformPull(self, (upstream, scope) =>
+      Effect.sync(() => {
+        let done: Exit.Exit<never, Pull.Halt<void> | E> | undefined
+        let leftover: Arr.NonEmptyReadonlyArray<A> | undefined
+        const upstreamWithLeftover = Effect.suspend(() => {
+          if (leftover !== undefined) {
+            const chunk = leftover
+            leftover = undefined
+            return Effect.succeed(chunk)
+          }
+          return upstream
+        }).pipe(
+          Effect.catch((error) => {
+            done = Exit.fail(error)
+            return Pull.haltVoid
+          })
+        )
+        const pull = Effect.flatMap(
+          Effect.suspend(() => Channel.toTransform(sink.channel)(upstreamWithLeftover, scope)),
+          (pull) =>
+            Pull.catchHalt(pull, (end_) => {
+              const [value, leftover_] = end_ as Sink.End<A2, A>
+              leftover = leftover_
+              return Effect.succeed(Arr.of(value))
+            })
+        )
+        return Effect.suspend((): Pull.Pull<
+          Arr.NonEmptyReadonlyArray<A2>,
+          E | E2,
+          void,
+          R2
+        > => done ? done : pull)
+      }))
+)
+
+/**
  * @since 2.0.0
  * @category Grouping
  */
@@ -2718,7 +2773,8 @@ export const run: {
 ): Effect.Effect<A2, E | E2, R | R2> =>
   self.channel.pipe(
     Channel.pipeToOrFail(sink.channel),
-    Channel.runDrain
+    Channel.runDrain,
+    Effect.map(([a]) => a)
   ))
 
 /**
@@ -2773,6 +2829,34 @@ export const runCollect = <A, E, R>(self: Stream<A, E, R>): Effect.Effect<Array<
  */
 export const runCount = <A, E, R>(self: Stream<A, E, R>): Effect.Effect<number, E, R> =>
   Channel.runFold(self.channel, () => 0, (acc, chunk) => acc + chunk.length)
+
+/**
+ * @since 2.0.0
+ * @category destructors
+ */
+export const runFold: {
+  <Z, A>(
+    initial: LazyArg<Z>,
+    f: (acc: Z, a: A) => Z
+  ): <E, R>(
+    self: Stream<A, E, R>
+  ) => Effect.Effect<Z, E, R>
+  <A, E, R, Z>(
+    self: Stream<A, E, R>,
+    initial: LazyArg<Z>,
+    f: (acc: Z, a: A) => Z
+  ): Effect.Effect<Z, E, R>
+} = dual(3, <A, E, R, Z>(
+  self: Stream<A, E, R>,
+  initial: LazyArg<Z>,
+  f: (acc: Z, a: A) => Z
+): Effect.Effect<Z, E, R> =>
+  Channel.runFold(self.channel, initial, (acc, arr) => {
+    for (let i = 0; i < arr.length; i++) {
+      acc = f(acc, arr[i])
+    }
+    return acc
+  }))
 
 /**
  * @since 2.0.0

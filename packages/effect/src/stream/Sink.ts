@@ -3,14 +3,20 @@
  */
 import type * as Cause from "../Cause.ts"
 import type { NonEmptyReadonlyArray } from "../collections/Array.ts"
+import * as Arr from "../collections/Array.ts"
+import * as Chunk from "../collections/Chunk.ts"
+import * as Filter from "../data/Filter.ts"
+import * as Option from "../data/Option.ts"
+import type { Predicate } from "../data/Predicate.ts"
 import * as Effect from "../Effect.ts"
 import type { LazyArg } from "../Function.ts"
-import { identity } from "../Function.ts"
+import { constant, constTrue, constVoid, dual, identity } from "../Function.ts"
 import { type Pipeable, pipeArguments } from "../interfaces/Pipeable.ts"
 import type * as Scope from "../Scope.ts"
 import * as Channel from "../stream/Channel.ts"
 import type * as Types from "../types/Types.ts"
 import type * as Unify from "../types/Unify.ts"
+import * as Pull from "./Pull.ts"
 
 const TypeId = "~effect/stream/Sink"
 
@@ -44,8 +50,24 @@ const TypeId = "~effect/stream/Sink"
 export interface Sink<out A, in In = unknown, out L = never, out E = never, out R = never>
   extends Sink.Variance<A, In, L, E, R>, Pipeable
 {
-  readonly channel: Channel.Channel<NonEmptyReadonlyArray<L>, E, A, NonEmptyReadonlyArray<In>, never, void, R>
+  readonly channel: Channel.Channel<
+    never,
+    E,
+    End<A, L>,
+    NonEmptyReadonlyArray<In>,
+    never,
+    void,
+    R
+  >
 }
+
+/**
+ * @since 2.0.0
+ * @category models
+ */
+export type End<A, L> = readonly [value: A, leftover?: NonEmptyReadonlyArray<L> | undefined]
+
+const endVoid = Pull.halt([void 0] as End<void, never>)
 
 /**
  * Interface for Sink unification, used internally by the Effect type system
@@ -192,12 +214,33 @@ const SinkProto = {
  * @category constructors
  */
 export const fromChannel = <L, In, E, A, R>(
-  channel: Channel.Channel<NonEmptyReadonlyArray<L>, E, A, NonEmptyReadonlyArray<In>, never, void, R>
+  channel: Channel.Channel<
+    never,
+    E,
+    End<A, L>,
+    NonEmptyReadonlyArray<In>,
+    never,
+    void,
+    R
+  >
 ): Sink<A, In, L, E, R> => {
   const self = Object.create(SinkProto)
   self.channel = channel
   return self
 }
+
+/**
+ * Creates a sink from a `Channel`.
+ *
+ * @since 4.0.0
+ * @category constructors
+ */
+export const fromTransform = <L, In, E, A, R, EX, RX>(
+  transform: (
+    upstream: Pull.Pull<NonEmptyReadonlyArray<In>, never, void>,
+    scope: Scope.Scope
+  ) => Effect.Effect<Pull.Pull<never, E, End<A, L>, R>, EX, RX>
+): Sink<A, In, L, Pull.ExcludeHalt<E> | EX, R | RX> => fromChannel(Channel.fromTransform(transform))
 
 /**
  * Creates a `Channel` from a Sink.
@@ -217,7 +260,7 @@ export const fromChannel = <L, In, E, A, R>(
  */
 export const toChannel = <A, In, L, E, R>(
   self: Sink<A, In, L, E, R>
-): Channel.Channel<NonEmptyReadonlyArray<L>, E, A, NonEmptyReadonlyArray<In>, never, void, R> => self.channel
+): Channel.Channel<never, E, End<A, L>, NonEmptyReadonlyArray<In>, never, void, R> => self.channel
 
 /**
  * A sink that immediately ends with the specified value.
@@ -242,7 +285,25 @@ export const toChannel = <A, In, L, E, R>(
  * @since 2.0.0
  * @category constructors
  */
-export const succeed = <A>(a: A): Sink<A> => fromChannel(Channel.end(a))
+export const succeed = <A, L = never>(a: A, leftovers?: NonEmptyReadonlyArray<L> | undefined): Sink<A, unknown, L> =>
+  fromChannel(Channel.end([a, leftovers]))
+
+/**
+ * A sink that immediately ends with the specified lazily evaluated value.
+ *
+ * @since 2.0.0
+ * @category constructors
+ */
+export const sync = <A>(a: LazyArg<A>): Sink<A, unknown, never> => fromChannel(Channel.endSync(() => [a()]))
+
+/**
+ * A sink that is created from a lazily evaluated sink.
+ *
+ * @since 2.0.0
+ * @category constructors
+ */
+export const suspend = <A, In, L, E, R>(evaluate: LazyArg<Sink<A, In, L, E, R>>): Sink<A, In, L, E, R> =>
+  fromChannel(Channel.suspend(() => evaluate().channel))
 
 /**
  * A sink that always fails with the specified error.
@@ -375,6 +436,453 @@ export const failCauseSync = <E>(evaluate: LazyArg<Cause.Cause<E>>): Sink<never,
 export const die = (defect: unknown): Sink<never> => fromChannel(Channel.die(defect))
 
 /**
+ * A sink that never completes.
+ *
+ * @since 2.0.0
+ * @category constructors
+ */
+export const never = fromChannel(Channel.never)
+
+/**
+ * Drains the remaining elements from the stream after the sink finishes
+ *
+ * @since 2.0.0
+ * @category utils
+ */
+export const ignoreLeftover = <A, In, L, E, R>(self: Sink<A, In, L, E, R>): Sink<A, In, never, E, R> =>
+  fromChannel(Channel.mapDone(self.channel, ([a]) => [a]))
+
+/**
+ * Transforms this sink's result.
+ *
+ * @since 2.0.0
+ * @category mapping
+ */
+export const map: {
+  <A, A2>(f: (a: A) => A2): <In, L, E, R>(self: Sink<A, In, L, E, R>) => Sink<A2, In, L, E, R>
+  <A, In, L, E, R, A2>(self: Sink<A, In, L, E, R>, f: (a: A) => A2): Sink<A2, In, L, E, R>
+} = dual(
+  2,
+  <A, In, L, E, R, A2>(self: Sink<A, In, L, E, R>, f: (a: A) => A2): Sink<A2, In, L, E, R> =>
+    fromChannel(Channel.mapDone(self.channel, ([a, l]) => [f(a), l]))
+)
+
+/**
+ * Effectfully transforms this sink's result.
+ *
+ * @since 2.0.0
+ * @category mapping
+ */
+export const mapEffect: {
+  <A, A2, E2, R2>(
+    f: (a: A) => Effect.Effect<A2, E2, R2>
+  ): <In, L, E, R>(self: Sink<A, In, L, E, R>) => Sink<A2, In, L, E2 | E, R2 | R>
+  <A, In, L, E, R, A2, E2, R2>(
+    self: Sink<A, In, L, E, R>,
+    f: (a: A) => Effect.Effect<A2, E2, R2>
+  ): Sink<A2, In, L, E | E2, R | R2>
+} = dual(2, <A, In, L, E, R, A2, E2, R2>(
+  self: Sink<A, In, L, E, R>,
+  f: (a: A) => Effect.Effect<A2, E2, R2>
+): Sink<A2, In, L, E | E2, R | R2> =>
+  fromChannel(Channel.mapDoneEffect(
+    self.channel,
+    ([a, l]) => Effect.map(f(a), (a2) => [a2, l])
+  )))
+
+/**
+ * Transforms the errors emitted by this sink using `f`.
+ *
+ * @since 2.0.0
+ * @category mapping
+ */
+export const mapError: {
+  <E, E2>(f: (error: E) => E2): <A, In, L, R>(self: Sink<A, In, L, E, R>) => Sink<A, In, L, E2, R>
+  <A, In, L, E, R, E2>(self: Sink<A, In, L, E, R>, f: (error: E) => E2): Sink<A, In, L, E2, R>
+} = dual(2, <A, In, L, E, R, E2>(
+  self: Sink<A, In, L, E, R>,
+  f: (error: E) => E2
+): Sink<A, In, L, E2, R> => fromChannel(Channel.mapError(self.channel, f)))
+
+/**
+ * Transforms the leftovers emitted by this sink using `f`.
+ *
+ * @since 2.0.0
+ * @category mapping
+ */
+export const mapLeftover: {
+  <L, L2>(f: (leftover: L) => L2): <A, In, E, R>(self: Sink<A, In, L, E, R>) => Sink<A, In, L2, E, R>
+  <A, In, L, E, R, L2>(self: Sink<A, In, L, E, R>, f: (leftover: L) => L2): Sink<A, In, L2, E, R>
+} = dual(2, <A, In, L, E, R, L2>(
+  self: Sink<A, In, L, E, R>,
+  f: (leftover: L) => L2
+): Sink<A, In, L2, E, R> => fromChannel(Channel.mapDone(self.channel, ([a, l]) => l ? [a, Arr.map(l, f)] : [a])))
+
+/**
+ * @since 2.0.0
+ * @category collecting
+ */
+export const take = <In>(n: number): Sink<Array<In>, In, In> =>
+  fromTransform((upstream) =>
+    Effect.sync(() => {
+      const taken: Array<In> = []
+      if (n <= 0) {
+        return Pull.halt([taken])
+      }
+      let leftover: NonEmptyReadonlyArray<In> | undefined = undefined
+      return upstream.pipe(
+        Effect.flatMap((arr) => {
+          if (taken.length + arr.length <= n) {
+            // eslint-disable-next-line no-restricted-syntax
+            taken.push(...arr)
+            if (taken.length === n) {
+              return Pull.haltVoid
+            }
+            return Effect.void
+          }
+          for (let i = 0; i < arr.length; i++) {
+            taken.push(arr[i])
+            if (taken.length === n) {
+              if ((i + 1) < arr.length) {
+                leftover = arr.slice(i + 1) as any
+              }
+              return Pull.haltVoid
+            }
+          }
+          return Effect.void
+        }),
+        Effect.forever({ autoYield: false }),
+        Pull.catchHalt(() => Pull.halt([taken, leftover]))
+      )
+    })
+  )
+
+/**
+ * A sink that folds its inputs with the provided function, termination
+ * predicate and initial state.
+ *
+ * @since 2.0.0
+ * @category folding
+ */
+export const fold = <S, In>(initial: LazyArg<S>, contFn: Predicate<S>, f: (s: S, input: In) => S): Sink<S, In, In> =>
+  fromTransform((upstream) =>
+    Effect.sync(() => {
+      let state = initial()
+      let leftover: NonEmptyReadonlyArray<In> | undefined = undefined
+      if (!contFn(state)) {
+        return Pull.halt([state])
+      }
+      return upstream.pipe(
+        Effect.flatMap((arr) => {
+          for (let i = 0; i < arr.length; i++) {
+            state = f(state, arr[i])
+            if (!contFn(state)) {
+              if ((i + 1) < arr.length) {
+                leftover = arr.slice(i + 1) as any
+              }
+              return Pull.haltVoid
+            }
+          }
+          return Effect.void
+        }),
+        Effect.forever({ autoYield: false }),
+        Pull.catchHalt(() => Pull.halt([state, leftover]))
+      )
+    })
+  )
+
+/**
+ * A sink that folds its inputs with the provided effectful function, termination
+ * predicate and initial state.
+ *
+ * @since 2.0.0
+ * @category folding
+ */
+export const foldEffect = <S, In, E, R>(
+  initial: LazyArg<S>,
+  contFn: Predicate<S>,
+  f: (s: S, input: In) => Effect.Effect<S, E, R>
+): Sink<S, In, In, E, R> =>
+  fromTransform((upstream) =>
+    Effect.sync(() => {
+      let state = initial()
+      let leftover: NonEmptyReadonlyArray<In> | undefined = undefined
+      if (!contFn(state)) {
+        return Pull.halt([state])
+      }
+      return upstream.pipe(
+        Effect.flatMap((arr) => {
+          let i = 0
+          return Effect.whileLoop({
+            while: () => i < arr.length,
+            body: constant(Effect.flatMap(Effect.suspend(() => f(state, arr[i++])), (s) => {
+              state = s
+              if (!contFn(state)) {
+                if (i < arr.length) {
+                  leftover = arr.slice(i) as any
+                }
+                return Pull.haltVoid
+              }
+              return Effect.void
+            })),
+            step: constVoid
+          })
+        }),
+        Effect.forever({ autoYield: false }),
+        Pull.catchHalt(() => Pull.halt([state, leftover]))
+      )
+    })
+  )
+
+/**
+ * A sink that folds its inputs with the provided function, termination
+ * predicate and initial state.
+ *
+ * @since 2.0.0
+ * @category folding
+ */
+export const foldArray = <S, In>(
+  initial: LazyArg<S>,
+  contFn: Predicate<S>,
+  f: (s: S, input: NonEmptyReadonlyArray<In>) => S
+): Sink<S, In> =>
+  fromTransform((upstream) =>
+    Effect.sync(() => {
+      let state = initial()
+      if (!contFn(state)) {
+        return Pull.halt([state])
+      }
+      return upstream.pipe(
+        Effect.flatMap((arr) => {
+          for (let i = 0; i < arr.length; i++) {
+            state = f(state, arr)
+            if (!contFn(state)) {
+              return Pull.haltVoid
+            }
+          }
+          return Effect.void
+        }),
+        Effect.forever({ autoYield: false }),
+        Pull.catchHalt(() => Pull.halt([state]))
+      )
+    })
+  )
+
+/**
+ * A sink that folds its inputs with the effectful provided function, termination
+ * predicate and initial state.
+ *
+ * @since 2.0.0
+ * @category folding
+ */
+export const foldArrayEffect = <S, In, E, R>(
+  initial: LazyArg<S>,
+  contFn: Predicate<S>,
+  f: (s: S, input: NonEmptyReadonlyArray<In>) => Effect.Effect<S, E, R>
+): Sink<S, In, never, E, R> =>
+  fromTransform((upstream) =>
+    Effect.sync(() => {
+      let state = initial()
+      if (!contFn(state)) {
+        return Pull.halt([state])
+      }
+      return upstream.pipe(
+        Effect.flatMap((arr) => f(state, arr)),
+        Effect.flatMap((s) => {
+          state = s
+          if (!contFn(state)) {
+            return Pull.haltVoid
+          }
+          return Effect.void
+        }),
+        Effect.forever({ autoYield: false }),
+        Pull.catchHalt(() => Pull.halt([state]))
+      )
+    })
+  )
+
+/**
+ * A sink that folds its inputs with the provided function and initial state.
+ *
+ * @since 2.0.0
+ * @category folding
+ */
+export const foldLeft = <S, In>(initial: LazyArg<S>, f: (s: S, input: In) => S): Sink<S, In> =>
+  foldLeftArray(initial, (s, arr) => {
+    for (let i = 0; i < arr.length; i++) {
+      s = f(s, arr[i])
+    }
+    return s
+  })
+
+/**
+ * A sink that folds its inputs with the provided function and initial state.
+ *
+ * @since 2.0.0
+ * @category folding
+ */
+export const foldLeftArray = <S, In>(
+  initial: LazyArg<S>,
+  f: (s: S, input: NonEmptyReadonlyArray<In>) => S
+): Sink<S, In> =>
+  fromTransform((upstream) =>
+    Effect.sync(() => {
+      let state = initial()
+      return upstream.pipe(
+        Effect.flatMap((arr) => {
+          state = f(state, arr)
+          return Effect.void
+        }),
+        Effect.forever({ autoYield: false }),
+        Pull.catchHalt(() => Pull.halt([state]))
+      )
+    })
+  )
+
+/**
+ * A sink that folds its inputs with the provided function and initial state.
+ *
+ * @since 2.0.0
+ * @category folding
+ */
+export const foldLeftEffect = <S, In, E, R>(
+  initial: LazyArg<S>,
+  f: (s: S, input: In) => Effect.Effect<S, E, R>
+): Sink<S, In, never, E, R> => foldEffect(initial, constTrue, f) as any
+
+const head_ = fold(Option.none<unknown>, Option.isNone, (_, in_) => Option.some(in_))
+
+/**
+ * Creates a sink containing the first value.
+ *
+ * @since 2.0.0
+ * @category constructors
+ */
+export const head: <In>() => Sink<Option.Option<In>, In, In> = head_ as any
+
+const last_ = foldLeftArray(Option.none<unknown>, (_, arr) => Arr.last(arr))
+
+/**
+ * Creates a sink containing the last value.
+ *
+ * @since 2.0.0
+ * @category constructors
+ */
+export const last: <In>() => Sink<Option.Option<In>, In> = last_ as any
+
+/**
+ * Creates a sink which transforms it's inputs into a string.
+ *
+ * @since 2.0.0
+ * @category constructors
+ */
+export const mkString: Sink<string, string> = foldLeftArray(() => "", (s, arr) => s + arr.join(""))
+
+/**
+ * Creates a sink which sums up its inputs.
+ *
+ * @since 2.0.0
+ * @category constructors
+ */
+export const sum: Sink<number, number> = foldLeftArray(() => 0, (s, arr) => {
+  for (let i = 0; i < arr.length; i++) {
+    s += arr[i]
+  }
+  return s
+})
+
+const collectAll_ = foldLeftArray(Chunk.empty<unknown>, (s, arr) => Chunk.appendAll(s, Chunk.fromArrayUnsafe(arr)))
+
+/**
+ * Accumulates incoming elements into a Chunk. It return a Chunk to reduce
+ * copying.
+ *
+ * @since 4.0.0
+ * @category constructors
+ */
+export const collectAllChunk = <In>(): Sink<Chunk.Chunk<In>, In> => collectAll_ as any
+
+/**
+ * Accumulates incoming elements into an array.
+ *
+ * @since 2.0.0
+ * @category constructors
+ */
+export const collectAll = <In>(): Sink<Array<In>, In> =>
+  foldLeftArray(Arr.empty<In>, (s, arr) => {
+    // eslint-disable-next-line no-restricted-syntax
+    s.push(...arr)
+    return s
+  })
+
+/**
+ * Accumulates incoming elements into an array as long as they verify predicate
+ * `p`.
+ *
+ * @since 2.0.0
+ * @category constructors
+ */
+export const collectAllFilter = <In, Out, X>(filter: Filter.Filter<In, Out, X>): Sink<Array<Out>, In, In> =>
+  fromTransform((upstream) =>
+    Effect.sync(() => {
+      const out = Arr.empty<Out>()
+      return upstream.pipe(
+        Effect.flatMap((arr) => {
+          for (let i = 0; i < arr.length; i++) {
+            const result = filter(arr[i])
+            if (Filter.isFail(result)) {
+              const leftover: Arr.NonEmptyReadonlyArray<In> | undefined = (i + 1) < arr.length
+                ? arr.slice(i + 1) as any
+                : undefined
+              return Pull.halt([out, leftover] as const)
+            }
+            out.push(result)
+          }
+          return Effect.void
+        }),
+        Effect.forever({ autoYield: false })
+      )
+    })
+  )
+
+/**
+ * Accumulates incoming elements into an array as long as they verify effectful
+ *
+ * @since 2.0.0
+ * @category constructors
+ */
+export const collectAllFilterEffect = <In, Out, X, E, R>(
+  filter: Filter.FilterEffect<In, Out, X, E, R>
+): Sink<Array<Out>, In, In, E, R> =>
+  fromTransform((upstream) =>
+    Effect.sync(() => {
+      const out = Arr.empty<Out>()
+      let leftover: Arr.NonEmptyReadonlyArray<In> | undefined = undefined
+      return upstream.pipe(
+        Effect.flatMap((arr) => {
+          let i = 0
+          return Effect.whileLoop({
+            while: () => i < arr.length,
+            body: constant(Effect.flatMap(Effect.suspend(() => filter(arr[i++])), (result) => {
+              if (Filter.isFail(result)) {
+                if (i < arr.length) {
+                  leftover = arr.slice(i) as any
+                }
+                return Pull.haltVoid
+              }
+              out.push(result)
+              return Effect.void
+            })),
+            step: constVoid
+          })
+        }),
+        Effect.forever({ autoYield: false }),
+        Pull.catchHalt(() => Pull.halt([out, leftover] as const))
+      )
+    })
+  )
+
+/**
  * A sink that executes the provided effectful function for every item fed
  * to it.
  *
@@ -403,7 +911,7 @@ export const die = (defect: unknown): Sink<never> => fromChannel(Channel.die(def
  */
 export const forEach = <In, X, E, R>(
   f: (input: In) => Effect.Effect<X, E, R>
-): Sink<void, In, never, E, R> => forEachChunk(Effect.forEach((_) => f(_), { discard: true }))
+): Sink<void, In, never, E, R> => forEachArray(Effect.forEach((_) => f(_), { discard: true }))
 
 /**
  * A sink that executes the provided effectful function for every Chunk fed
@@ -431,12 +939,16 @@ export const forEach = <In, X, E, R>(
  * @since 2.0.0
  * @category constructors
  */
-export const forEachChunk = <In, X, E, R>(
+export const forEachArray = <In, X, E, R>(
   f: (input: NonEmptyReadonlyArray<In>) => Effect.Effect<X, E, R>
 ): Sink<void, In, never, E, R> =>
-  fromChannel(
-    Channel.fromTransform((upstream) =>
-      Effect.succeed(Effect.forever(Effect.flatMap(upstream, f), { autoYield: false }))
+  fromTransform((upstream) =>
+    Effect.sync(() =>
+      upstream.pipe(
+        Effect.flatMap(f),
+        Effect.forever({ autoYield: false }),
+        Pull.catchHalt(() => endVoid)
+      )
     )
   )
 
