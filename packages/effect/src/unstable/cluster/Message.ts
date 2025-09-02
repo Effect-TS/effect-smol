@@ -2,7 +2,6 @@
  * @since 4.0.0
  */
 import * as Data from "../../data/Data.ts"
-import * as Option from "../../data/Option.ts"
 import * as Effect from "../../Effect.ts"
 import * as Schema from "../../schema/Schema.ts"
 import * as Serializer from "../../schema/Serializer.ts"
@@ -38,7 +37,7 @@ export const incomingLocalFromOutgoing = <R extends Rpc.Any>(self: Outgoing<R>):
   return new IncomingRequestLocal({
     envelope: self.envelope,
     respond: self.respond,
-    lastSentReply: Option.none()
+    lastSentReply: undefined
   })
 }
 
@@ -58,7 +57,7 @@ export class IncomingRequest<R extends Rpc.Any> extends Data.TaggedClass("Incomi
  */
 export class IncomingRequestLocal<R extends Rpc.Any> extends Data.TaggedClass("IncomingRequestLocal")<{
   readonly envelope: Envelope.Request<R>
-  readonly lastSentReply: Option.Option<Reply.Reply<R>>
+  readonly lastSentReply: Reply.Reply<R> | undefined
   readonly respond: (reply: Reply.Reply<R>) => Effect.Effect<void, MalformedMessage | PersistenceError>
 }> {}
 
@@ -198,7 +197,7 @@ export const deserializeLocal = <Rpc extends Rpc.Any>(
           ...encoded,
           payload
         } as any),
-        lastSentReply: Option.none(),
+        lastSentReply: undefined,
         respond: self.respond
       })
     )

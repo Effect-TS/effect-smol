@@ -3,7 +3,6 @@ import * as MutableHashMap from "../../../collections/MutableHashMap.ts"
 import * as MutableHashSet from "../../../collections/MutableHashSet.ts"
 import * as Option from "../../../data/Option.ts"
 import * as Effect from "../../../Effect.ts"
-import { constFalse } from "../../../Function.ts"
 import * as Clock from "../../../time/Clock.ts"
 import type { Runner } from "../Runner.ts"
 import type { RunnerAddress } from "../RunnerAddress.ts"
@@ -189,22 +188,20 @@ export class State {
     }
   }
 
-  get maxVersion(): Option.Option<number> {
-    if (MutableHashMap.size(this.allRunners) === 0) return Option.none()
+  get maxVersion(): number | undefined {
+    if (MutableHashMap.size(this.allRunners) === 0) return undefined
     let version: number | undefined = undefined
     for (const [, meta] of this.allRunners) {
       if (version === undefined || meta.runner.version > version) {
         version = meta.runner.version
       }
     }
-    return Option.some(version!)
+    return version
   }
 
-  allRunnersHaveVersion(version: Option.Option<number>): boolean {
-    return version.pipe(
-      Option.map((max) => Arr.every(this.runnerVersions, (version) => version === max)),
-      Option.getOrElse(constFalse)
-    )
+  allRunnersHaveVersion(max: number | undefined): boolean {
+    if (max === undefined) return false
+    return Arr.every(this.runnerVersions, (version) => version === max)
   }
 
   get shardStats(): {
@@ -323,10 +320,10 @@ function pickNewRunners(
   const unassignments = MutableHashMap.empty<RunnerAddress, Set<number>>()
   const changes = MutableHashSet.empty<RunnerAddress>()
 
-  if (Option.isNone(maybeMaxVersion)) {
+  if (maybeMaxVersion === undefined) {
     return [addressAssignments, unassignments, changes]
   }
-  const maxVersion = maybeMaxVersion.value
+  const maxVersion = maybeMaxVersion
 
   const runnerGroup = state.runners.get(group)!
   const shardsGroup = state.shards.get(group)!
