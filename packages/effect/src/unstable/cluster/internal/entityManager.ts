@@ -66,7 +66,7 @@ export type EntityState = {
     readonly rpc: Rpc.AnyWithProps
     readonly message: Message.IncomingRequestLocal<any>
     sentReply: boolean
-    lastSentChunk: Option.Option<Reply.Chunk<Rpc.Any>>
+    lastSentChunk: Reply.Chunk<Rpc.Any> | undefined
     sequence: number
   }>
   lastActiveCheck: number
@@ -218,7 +218,7 @@ export const make = Effect.fnUntraced(function*<
                       sequence,
                       values: response.values
                     })
-                    request.lastSentChunk = Option.some(reply)
+                    request.lastSentChunk = reply
                     return request.message.respond(reply)
                   })
                 ))
@@ -389,8 +389,8 @@ export const make = Effect.fnUntraced(function*<
                 return Effect.void
               } else if (
                 message.envelope._tag === "AckChunk" &&
-                Option.isSome(entry.lastSentChunk) &&
-                message.envelope.replyId !== entry.lastSentChunk.value.id
+                entry.lastSentChunk !== undefined &&
+                message.envelope.replyId !== entry.lastSentChunk.id
               ) {
                 return Effect.void
               }
@@ -504,8 +504,8 @@ const makeMessageDecode = <Type extends string, Rpcs extends Rpc.Any>(entity: En
     rpc: Rpc.AnyWithProps
   ) {
     const payload = yield* Schema.decodeEffect(Serializer.json(rpc.payloadSchema))(message.envelope.payload)
-    const lastSentReply = Option.isSome(message.lastSentReply)
-      ? Option.some(yield* Schema.decodeEffect(Reply.Reply(rpc))(message.lastSentReply.value))
+    const lastSentReply = message.lastSentReply !== undefined
+      ? Option.some(yield* Schema.decodeEffect(Reply.Reply(rpc))(message.lastSentReply))
       : Option.none()
     return {
       _tag: "IncomingRequest",

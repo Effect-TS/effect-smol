@@ -48,7 +48,7 @@ export const incomingLocalFromOutgoing = <R extends Rpc.Any>(self: Outgoing<R>):
  */
 export class IncomingRequest<R extends Rpc.Any> extends Data.TaggedClass("IncomingRequest")<{
   readonly envelope: Envelope.PartialRequest
-  readonly lastSentReply: Option.Option<Reply.Encoded>
+  readonly lastSentReply: Reply.Encoded | undefined
   readonly respond: (reply: Reply.ReplyWithContext<R>) => Effect.Effect<void, MalformedMessage | PersistenceError>
 }> {}
 

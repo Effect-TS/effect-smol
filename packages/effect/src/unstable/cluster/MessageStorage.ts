@@ -3,7 +3,7 @@
  */
 import * as Arr from "../../collections/Array.ts"
 import * as Data from "../../data/Data.ts"
-import * as Option from "../../data/Option.ts"
+import type * as Option from "../../data/Option.ts"
 import type { Predicate } from "../../data/Predicate.ts"
 import * as UndefinedOr from "../../data/UndefinedOr.ts"
 import * as Effect from "../../Effect.ts"
@@ -501,7 +501,7 @@ export const makeEncoded: (encoded: Encoded) => Effect.Effect<
             message.envelope._tag === "Request"
               ? new Message.IncomingRequest({
                 envelope: message.envelope,
-                lastSentReply: Option.fromUndefinedOr(envelope.lastSentReply),
+                lastSentReply: envelope.lastSentReply,
                 respond: storage.saveReply
               })
               : new Message.IncomingEnvelope({
