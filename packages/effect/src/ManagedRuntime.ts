@@ -49,7 +49,7 @@ export interface ManagedRuntime<in R, out ER> {
   readonly services: () => Promise<ServiceMap.ServiceMap<R>>
 
   // internal
-  readonly scope: Scope.Scope.Closeable
+  readonly scope: Scope.Closeable
   // internal
   cachedServices: ServiceMap.ServiceMap<R> | undefined
 

@@ -190,7 +190,7 @@ export declare namespace State {
    */
   export interface Entry<A, E> {
     readonly deferred: Deferred.Deferred<A, E>
-    readonly scope: Scope.Scope.Closeable
+    readonly scope: Scope.Closeable
     readonly finalizer: Effect.Effect<void>
     fiber: Fiber.Fiber<void> | undefined
     expiresAt: number

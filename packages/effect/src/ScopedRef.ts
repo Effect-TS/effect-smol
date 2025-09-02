@@ -23,7 +23,7 @@ const TypeId = "~effect/ScopedRef"
  */
 export interface ScopedRef<in out A> extends Pipeable {
   readonly [TypeId]: typeof TypeId
-  readonly backing: Synchronized.SynchronizedRef<readonly [Scope.Scope.Closeable, A]>
+  readonly backing: Synchronized.SynchronizedRef<readonly [Scope.Closeable, A]>
 }
 
 const Proto = {
@@ -38,7 +38,7 @@ const Proto = {
 }
 
 const makeUnsafe = <A>(
-  scope: Scope.Scope.Closeable,
+  scope: Scope.Closeable,
   value: A
 ): ScopedRef<A> => {
   const self = Object.create(Proto)
@@ -61,10 +61,10 @@ export const fromAcquire: <A, E, R>(
   const scope = Scope.makeUnsafe()
   const value = yield* acquire.pipe(
     Scope.provide(scope),
-    Effect.tapCause((cause) => scope.close(Exit.failCause(cause)))
+    Effect.tapCause((cause) => Scope.close(scope, Exit.failCause(cause)))
   )
   const self = makeUnsafe(scope, value)
-  yield* Effect.addFinalizer((exit) => self.backing.backing.ref.current[0].close(exit))
+  yield* Effect.addFinalizer((exit) => Scope.close(self.backing.backing.ref.current[0], exit))
   return self
 }, Effect.uninterruptible)
 
@@ -96,7 +96,7 @@ export const make = <A>(evaluate: LazyArg<A>): Effect.Effect<ScopedRef<A>, never
     const scope = Scope.makeUnsafe()
     const value = evaluate()
     const self = makeUnsafe(scope, value)
-    return Effect.as(Effect.addFinalizer((exit) => self.backing.backing.ref.current[0].close(exit)), self)
+    return Effect.as(Effect.addFinalizer((exit) => Scope.close(self.backing.backing.ref.current[0], exit)), self)
   })
 
 /**
@@ -120,11 +120,11 @@ export const set: {
       self: ScopedRef<A>,
       acquire: Effect.Effect<A, E, R>
     ) {
-      yield* self.backing.backing.ref.current[0].close(Exit.void)
+      yield* Scope.close(self.backing.backing.ref.current[0], Exit.void)
       const scope = Scope.makeUnsafe()
       const value = yield* acquire.pipe(
         Scope.provide(scope),
-        Effect.tapCause((cause) => scope.close(Exit.failCause(cause)))
+        Effect.tapCause((cause) => Scope.close(scope, Exit.failCause(cause)))
       )
       self.backing.backing.ref.current = [scope, value]
     },

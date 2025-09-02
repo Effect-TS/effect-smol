@@ -175,7 +175,7 @@ export class Sharding extends ServiceMap.Key<Sharding, {
 
 interface EntityManagerState {
   readonly entity: Entity<any, any>
-  readonly scope: Scope.Scope.Closeable
+  readonly scope: Scope.Closeable
   readonly manager: EntityManager.EntityManager
 }
 

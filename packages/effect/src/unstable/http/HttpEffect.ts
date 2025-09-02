@@ -118,7 +118,7 @@ export const scopeTransferToStream = (
     return response
   }
   const fiber = Fiber.getCurrent()!
-  const scope = ServiceMap.getUnsafe(fiber.services, Scope.Scope) as Scope.Scope.Closeable
+  const scope = ServiceMap.getUnsafe(fiber.services, Scope.Scope) as Scope.Closeable
   scopeDisableClose(scope)
   return Response.setBody(
     response,

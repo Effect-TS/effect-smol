@@ -53,7 +53,7 @@ export type State<K, A, E> = {
 export interface Entry<A, E> {
   expiresAt: number | undefined
   readonly deferred: Deferred.Deferred<A, E>
-  readonly scope: Scope.Scope.Closeable
+  readonly scope: Scope.Closeable
 }
 
 /**
@@ -175,7 +175,7 @@ export const get: {
         }
         MutableHashMap.set(state.map, key, entry)
         return checkCapacity(fiber, state.map, self.capacity).pipe(
-          Option.isSome(oentry) ? effect.flatMap(() => oentry.value.scope.close(effect.exitVoid)) : identity,
+          Option.isSome(oentry) ? effect.flatMap(() => Scope.close(oentry.value.scope, effect.exitVoid)) : identity,
           effect.flatMap(() => Scope.provide(restore(self.lookup(key)), scope)),
           effect.onExit((exit) => {
             Deferred.doneUnsafe(deferred, exit)
@@ -208,7 +208,7 @@ const checkCapacity = <K, A, E>(
   const fibers = Arr.empty<Fiber.Fiber<unknown, unknown>>()
   for (const [key, entry] of map) {
     MutableHashMap.remove(map, key)
-    fibers.push(effect.forkUnsafe(parent as any, entry.scope.close(effect.exitVoid), true))
+    fibers.push(effect.forkUnsafe(parent as any, Scope.close(entry.scope, effect.exitVoid), true))
     diff--
     if (diff === 0) break
   }
@@ -251,7 +251,7 @@ const getImpl = <Key, A, E, R>(
   } else if (hasExpired(oentry.value, fiber)) {
     MutableHashMap.remove(state.map, key)
     return effect.as(
-      oentry.value.scope.close(effect.exitVoid),
+      Scope.close(oentry.value.scope, effect.exitVoid),
       undefined
     )
   } else if (isRead) {
@@ -322,7 +322,9 @@ export const set: {
             : undefined
         })
         const check = checkCapacity(fiber, state.map, self.capacity)
-        return Option.isSome(oentry) ? effect.flatMap(oentry.value.scope.close(effect.exitVoid), () => check) : check
+        return Option.isSome(oentry)
+          ? effect.flatMap(Scope.close(oentry.value.scope, effect.exitVoid), () => check)
+          : check
       })
     )
 )
@@ -364,7 +366,7 @@ export const invalidate: {
         return effect.void
       }
       MutableHashMap.remove(self.state.map, key)
-      return oentry.value.scope.close(effect.exitVoid)
+      return Scope.close(oentry.value.scope, effect.exitVoid)
     })
   ))
 
@@ -393,7 +395,7 @@ export const invalidateWhen: {
                 return effect.succeed(false)
               } else if (f(value)) {
                 MutableHashMap.remove(self.state.map, key)
-                return effect.as(entry.scope.close(effect.exitVoid), true)
+                return effect.as(Scope.close(entry.scope, effect.exitVoid), true)
               }
               return effect.succeed(false)
             }),
@@ -439,7 +441,7 @@ export const refresh: {
       // @ts-ignore async gap
       if (self.state._tag === "Closed") {
         if (!newEntry) {
-          yield* scope.close(effect.exitVoid)
+          yield* Scope.close(scope, effect.exitVoid)
         }
         return yield* effect.interrupt
       }
@@ -451,7 +453,7 @@ export const refresh: {
         const oentry = MutableHashMap.get(self.state.map, key)
         MutableHashMap.set(self.state.map, key, entry)
         if (Option.isSome(oentry)) {
-          yield* oentry.value.scope.close(effect.exitVoid)
+          yield* Scope.close(oentry.value.scope, effect.exitVoid)
         }
       }
       return yield* exit
@@ -478,7 +480,7 @@ const invalidateAllImpl = <Key, A, E>(
 ): Effect.Effect<void> => {
   const fibers = Arr.empty<Fiber.Fiber<unknown, unknown>>()
   for (const [, entry] of map) {
-    fibers.push(effect.forkUnsafe(parent as any, entry.scope.close(effect.exitVoid), true, true))
+    fibers.push(effect.forkUnsafe(parent as any, Scope.close(entry.scope, effect.exitVoid), true, true))
   }
   MutableHashMap.clear(map)
   return effect.fiberAwaitAll(fibers)
@@ -514,7 +516,7 @@ export const keys = <Key, A, E, R>(self: ScopedCache<Key, A, E, R>): Effect.Effe
         return Option.some(key)
       }
       MutableHashMap.remove(state.map, key)
-      fibers.push(effect.forkUnsafe(fiber, entry.scope.close(effect.exitVoid), true, true))
+      fibers.push(effect.forkUnsafe(fiber, Scope.close(entry.scope, effect.exitVoid), true, true))
       return Option.none()
     })
     return fibers.length === 0 ? effect.succeed(keys) : effect.as(effect.fiberAwaitAll(fibers), keys)
@@ -552,7 +554,7 @@ export const entries = <Key, A, E, R>(self: ScopedCache<Key, A, E, R>): Effect.E
           : Option.some([key, exit.value as A] as [Key, A])
       }
       MutableHashMap.remove(state.map, key)
-      fibers.push(effect.forkUnsafe(fiber, entry.scope.close(effect.exitVoid), true, true))
+      fibers.push(effect.forkUnsafe(fiber, Scope.close(entry.scope, effect.exitVoid), true, true))
       return Option.none()
     })
     return fibers.length === 0

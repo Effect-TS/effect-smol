@@ -11,14 +11,14 @@ import * as ServiceMap from "../../../ServiceMap.ts"
 export class ResourceMap<K, A, E> {
   readonly lookup: (key: K, scope: Scope.Scope) => Effect.Effect<A, E>
   readonly entries: MutableHashMap.MutableHashMap<K, {
-    readonly scope: Scope.Scope.Closeable
+    readonly scope: Scope.Closeable
     readonly deferred: Deferred.Deferred<A, E>
   }>
   readonly isClosed: MutableRef.MutableRef<boolean>
   constructor(
     lookup: (key: K, scope: Scope.Scope) => Effect.Effect<A, E>,
     entries: MutableHashMap.MutableHashMap<K, {
-      readonly scope: Scope.Scope.Closeable
+      readonly scope: Scope.Closeable
       readonly deferred: Deferred.Deferred<A, E>
     }>,
     isClosed: MutableRef.MutableRef<boolean>
@@ -34,7 +34,7 @@ export class ResourceMap<K, A, E> {
     const isClosed = MutableRef.make(false)
 
     const entries = MutableHashMap.empty<K, {
-      scope: Scope.Scope.Closeable
+      scope: Scope.Closeable
       deferred: Deferred.Deferred<A, E>
     }>()
 

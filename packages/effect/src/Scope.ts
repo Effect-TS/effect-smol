@@ -20,6 +20,7 @@ import * as effect from "./internal/effect.ts"
 import type * as ServiceMap from "./ServiceMap.ts"
 
 const TypeId = effect.ScopeTypeId
+const CloseableTypeId = effect.ScopeCloseableTypeId
 
 /**
  * A `Scope` represents a context where resources can be acquired and
@@ -51,28 +52,59 @@ const TypeId = effect.ScopeTypeId
 export interface Scope {
   readonly [TypeId]: typeof TypeId
   readonly strategy: "sequential" | "parallel"
-  state: Scope.State.Open | Scope.State.Closed | Scope.State.Empty
+  state: State.Open | State.Closed | State.Empty
+}
+/**
+ * A `Closeable` scope extends the base `Scope` interface with the ability
+ * to be closed, executing all registered finalizers.
+ *
+ * @example
+ * ```ts
+ * import { Effect, Exit } from "effect"
+ * import { Console } from "effect/logging"
+ * import { Scope } from "effect"
+ *
+ * const program = Effect.gen(function* () {
+ *   const scope = yield* Scope.make()
+ *
+ *   // Add a finalizer
+ *   yield* Scope.addFinalizer(scope, Console.log("Cleanup!"))
+ *
+ *   // Closeable scope can be closed directly
+ *   yield* scope.close(Exit.void)
+ *   // Or using the close function
+ *   yield* Scope.close(scope, Exit.void)
+ * })
+ * ```
+ *
+ * @since 2.0.0
+ * @category models
+ */
+export interface Closeable extends Scope {
+  readonly [CloseableTypeId]: typeof CloseableTypeId
 }
 
 /**
- * The `Scope` namespace contains types and interfaces related to scope management.
+ * The `State` namespace contains types representing the different states
+ * a scope can be in: Open (accepting new finalizers) or Closed (no longer accepting finalizers).
  *
  * @example
  * ```ts
  * import { Effect, Exit } from "effect"
  * import { Scope } from "effect"
  *
+ * // Example of checking scope states
  * const program = Effect.gen(function* () {
  *   const scope = yield* Scope.make()
  *
- *   // The Scope namespace contains types for scope management
- *   // Check the scope's state
+ *   // When open, the scope accepts finalizers
  *   if (scope.state._tag === "Open") {
  *     console.log("Scope is open")
  *   }
  *
  *   yield* Scope.close(scope, Exit.void)
  *
+ *   // When closed, the scope no longer accepts finalizers
  *   if (scope.state._tag === "Closed") {
  *     console.log("Scope is closed")
  *   }
@@ -82,146 +114,85 @@ export interface Scope {
  * @since 2.0.0
  * @category models
  */
-export declare namespace Scope {
+export namespace State {
   /**
-   * The `State` namespace contains types representing the different states
-   * a scope can be in: Open (accepting new finalizers) or Closed (no longer accepting finalizers).
+   * Represents an open scope state where finalizers can be added and
+   * the scope is still accepting new resources.
    *
    * @example
    * ```ts
    * import { Effect, Exit } from "effect"
    * import { Scope } from "effect"
    *
-   * // Example of checking scope states
-   * const program = Effect.gen(function* () {
-   *   const scope = yield* Scope.make()
+   * const scope = Scope.makeUnsafe()
    *
-   *   // When open, the scope accepts finalizers
-   *   if (scope.state._tag === "Open") {
-   *     console.log("Scope is open")
-   *   }
-   *
-   *   yield* Scope.close(scope, Exit.void)
-   *
-   *   // When closed, the scope no longer accepts finalizers
-   *   if (scope.state._tag === "Closed") {
-   *     console.log("Scope is closed")
-   *   }
-   * })
+   * // When scope is open, you can check its state
+   * if (scope.state._tag === "Open") {
+   *   console.log("Scope is open and accepting finalizers")
+   *   console.log(scope.state.finalizers.size) // Number of registered finalizers
+   * }
    * ```
    *
    * @since 2.0.0
    * @category models
    */
-  export namespace State {
-    /**
-     * Represents an open scope state where finalizers can be added and
-     * the scope is still accepting new resources.
-     *
-     * @example
-     * ```ts
-     * import { Effect, Exit } from "effect"
-     * import { Scope } from "effect"
-     *
-     * const scope = Scope.makeUnsafe()
-     *
-     * // When scope is open, you can check its state
-     * if (scope.state._tag === "Open") {
-     *   console.log("Scope is open and accepting finalizers")
-     *   console.log(scope.state.finalizers.size) // Number of registered finalizers
-     * }
-     * ```
-     *
-     * @since 2.0.0
-     * @category models
-     */
-    export type Empty = {
-      readonly _tag: "Empty"
-    }
-    /**
-     * Represents an open scope state where finalizers can be added and
-     * the scope is still accepting new resources.
-     *
-     * @example
-     * ```ts
-     * import { Effect, Exit } from "effect"
-     * import { Scope } from "effect"
-     *
-     * const scope = Scope.makeUnsafe()
-     *
-     * // When scope is open, you can check its state
-     * if (scope.state._tag === "Open") {
-     *   console.log("Scope is open and accepting finalizers")
-     *   console.log(scope.state.finalizers.size) // Number of registered finalizers
-     * }
-     * ```
-     *
-     * @since 2.0.0
-     * @category models
-     */
-    export type Open = {
-      readonly _tag: "Open"
-      readonly finalizers: Map<{}, (exit: Exit<any, any>) => Effect<void>>
-    }
-    /**
-     * Represents a closed scope state where finalizers have been executed
-     * and the scope is no longer accepting new resources.
-     *
-     * @example
-     * ```ts
-     * import { Effect, Exit } from "effect"
-     * import { Scope } from "effect"
-     *
-     * const program = Effect.gen(function* () {
-     *   const scope = yield* Scope.make()
-     *
-     *   // Close the scope
-     *   yield* Scope.close(scope, Exit.succeed("Done"))
-     *
-     *   // Check if scope is closed
-     *   if (scope.state._tag === "Closed") {
-     *     console.log("Scope is closed")
-     *     console.log(scope.state.exit) // The exit value used to close the scope
-     *   }
-     * })
-     * ```
-     *
-     * @since 2.0.0
-     * @category models
-     */
-    export type Closed = {
-      readonly _tag: "Closed"
-      readonly exit: Exit<any, any>
-    }
+  export type Empty = {
+    readonly _tag: "Empty"
   }
   /**
-   * A `Closeable` scope extends the base `Scope` interface with the ability
-   * to be closed, executing all registered finalizers.
+   * Represents an open scope state where finalizers can be added and
+   * the scope is still accepting new resources.
    *
    * @example
    * ```ts
    * import { Effect, Exit } from "effect"
-   * import { Console } from "effect/logging"
+   * import { Scope } from "effect"
+   *
+   * const scope = Scope.makeUnsafe()
+   *
+   * // When scope is open, you can check its state
+   * if (scope.state._tag === "Open") {
+   *   console.log("Scope is open and accepting finalizers")
+   *   console.log(scope.state.finalizers.size) // Number of registered finalizers
+   * }
+   * ```
+   *
+   * @since 2.0.0
+   * @category models
+   */
+  export type Open = {
+    readonly _tag: "Open"
+    readonly finalizers: Map<{}, (exit: Exit<any, any>) => Effect<void>>
+  }
+  /**
+   * Represents a closed scope state where finalizers have been executed
+   * and the scope is no longer accepting new resources.
+   *
+   * @example
+   * ```ts
+   * import { Effect, Exit } from "effect"
    * import { Scope } from "effect"
    *
    * const program = Effect.gen(function* () {
    *   const scope = yield* Scope.make()
    *
-   *   // Add a finalizer
-   *   yield* Scope.addFinalizer(scope, Console.log("Cleanup!"))
+   *   // Close the scope
+   *   yield* Scope.close(scope, Exit.succeed("Done"))
    *
-   *   // Closeable scope can be closed directly
-   *   yield* scope.close(Exit.void)
-   *   // Or using the close function
-   *   yield* Scope.close(scope, Exit.void)
+   *   // Check if scope is closed
+   *   if (scope.state._tag === "Closed") {
+   *     console.log("Scope is closed")
+   *     console.log(scope.state.exit) // The exit value used to close the scope
+   *   }
    * })
    * ```
    *
    * @since 2.0.0
    * @category models
    */
-  export interface Closeable extends Scope {
-    readonly close: (exit: Exit<any, any>) => Effect<void>
+  export type Closed = {
+    readonly _tag: "Closed"
+    readonly exit: Exit<any, any>
   }
 }
 
@@ -276,7 +247,7 @@ export const Scope: ServiceMap.Key<Scope, Scope> = effect.scopeTag
  * @category constructors
  * @since 2.0.0
  */
-export const make: (finalizerStrategy?: "sequential" | "parallel") => Effect<Scope.Closeable> = effect.scopeMake
+export const make: (finalizerStrategy?: "sequential" | "parallel") => Effect<Closeable> = effect.scopeMake
 
 /**
  * Creates a new `Scope` synchronously without wrapping it in an `Effect`.
@@ -302,7 +273,7 @@ export const make: (finalizerStrategy?: "sequential" | "parallel") => Effect<Sco
  * @since 4.0.0
  * @category constructors
  */
-export const makeUnsafe: (finalizerStrategy?: "sequential" | "parallel") => Scope.Closeable = effect.scopeMakeUnsafe
+export const makeUnsafe: (finalizerStrategy?: "sequential" | "parallel") => Closeable = effect.scopeMakeUnsafe
 
 /**
  * Provides a `Scope` to an `Effect`, removing the `Scope` requirement from its context.
@@ -434,7 +405,7 @@ export const addFinalizer: (scope: Scope, finalizer: Effect<unknown>) => Effect<
 export const fork: (
   scope: Scope,
   finalizerStrategy?: "sequential" | "parallel"
-) => Effect<Scope.Closeable> = effect.scopeFork
+) => Effect<Closeable> = effect.scopeFork
 
 /**
  * Creates a child scope from a parent scope synchronously without wrapping it in an `Effect`.
@@ -463,7 +434,7 @@ export const fork: (
  * @since 4.0.0
  * @category combinators
  */
-export const forkUnsafe: (scope: Scope, finalizerStrategy?: "sequential" | "parallel") => Scope.Closeable =
+export const forkUnsafe: (scope: Scope, finalizerStrategy?: "sequential" | "parallel") => Closeable =
   effect.scopeForkUnsafe
 
 /**
@@ -496,13 +467,13 @@ export const forkUnsafe: (scope: Scope, finalizerStrategy?: "sequential" | "para
  * @category combinators
  * @since 4.0.0
  */
-export const close = <A, E>(self: Scope.Closeable, exit: Exit<A, E>): Effect<void> => self.close(exit)
+export const close: <A, E>(self: Scope, exit: Exit<A, E>) => Effect<void> = effect.scopeClose
 
 /**
  * @category combinators
  * @since 4.0.0
  */
 export const use: {
-  (scope: Scope.Closeable): <A, E, R>(self: Effect<A, E, R>) => Effect<A, E, Exclude<R, Scope>>
-  <A, E, R>(self: Effect<A, E, R>, scope: Scope.Closeable): Effect<A, E, Exclude<R, Scope>>
+  (scope: Closeable): <A, E, R>(self: Effect<A, E, R>) => Effect<A, E, Exclude<R, Scope>>
+  <A, E, R>(self: Effect<A, E, R>, scope: Closeable): Effect<A, E, Exclude<R, Scope>>
 } = effect.scopeUse

@@ -82,7 +82,7 @@ export interface PubSub<in out A> extends Pipeable {
   }
   readonly pubsub: PubSub.Atomic<A>
   readonly subscribers: PubSub.Subscribers<A>
-  readonly scope: Scope.Scope.Closeable
+  readonly scope: Scope.Closeable
   readonly shutdownHook: Effect.Latch
   readonly shutdownFlag: MutableRef.MutableRef<boolean>
   readonly strategy: PubSub.Strategy<A>
@@ -2160,7 +2160,7 @@ class PubSubImpl<in out A> implements PubSub<A> {
 
   readonly pubsub: PubSub.Atomic<A>
   readonly subscribers: PubSub.Subscribers<A>
-  readonly scope: Scope.Scope.Closeable
+  readonly scope: Scope.Closeable
   readonly shutdownHook: Effect.Latch
   readonly shutdownFlag: MutableRef.MutableRef<boolean>
   readonly strategy: PubSub.Strategy<A>
@@ -2168,7 +2168,7 @@ class PubSubImpl<in out A> implements PubSub<A> {
   constructor(
     pubsub: PubSub.Atomic<A>,
     subscribers: PubSub.Subscribers<A>,
-    scope: Scope.Scope.Closeable,
+    scope: Scope.Closeable,
     shutdownHook: Effect.Latch,
     shutdownFlag: MutableRef.MutableRef<boolean>,
     strategy: PubSub.Strategy<A>
@@ -2189,7 +2189,7 @@ class PubSubImpl<in out A> implements PubSub<A> {
 const makePubSubUnsafe = <A>(
   pubsub: PubSub.Atomic<A>,
   subscribers: PubSub.Subscribers<A>,
-  scope: Scope.Scope.Closeable,
+  scope: Scope.Closeable,
   shutdownHook: Effect.Latch,
   shutdownFlag: MutableRef.MutableRef<boolean>,
   strategy: PubSub.Strategy<A>

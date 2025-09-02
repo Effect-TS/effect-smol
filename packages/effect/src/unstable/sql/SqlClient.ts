@@ -182,7 +182,7 @@ export const make = Effect.fnUntraced(function*(options: SqlClient.MakeOptions) 
 export const makeWithTransaction = <I, S>(options: {
   readonly transactionTag: ServiceMap.Key<I, readonly [conn: S, counter: number]>
   readonly spanAttributes: ReadonlyArray<readonly [string, unknown]>
-  readonly acquireConnection: Effect.Effect<readonly [Scope.Scope.Closeable | undefined, S], SqlError>
+  readonly acquireConnection: Effect.Effect<readonly [Scope.Closeable | undefined, S], SqlError>
   readonly begin: (conn: NoInfer<S>) => Effect.Effect<void, SqlError>
   readonly savepoint: (conn: NoInfer<S>, id: number) => Effect.Effect<void, SqlError>
   readonly commit: (conn: NoInfer<S>) => Effect.Effect<void, SqlError>

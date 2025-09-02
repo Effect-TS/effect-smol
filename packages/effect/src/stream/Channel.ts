@@ -3582,7 +3582,7 @@ export const merge: {
         InDone & InDone1,
         Env | Env1
       >,
-      scope: Scope.Scope.Closeable
+      scope: Scope.Closeable
     ) =>
       toTransform(channel)(upstream, scope).pipe(
         Effect.flatMap((pull) =>

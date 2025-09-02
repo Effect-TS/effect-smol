@@ -409,7 +409,7 @@ const allocate = <A, E>(self: Pool<A, E>): Effect.Effect<PoolItem<A, E>> =>
         Effect.flatMap((exit) => {
           const item: PoolItem<A, E> = {
             exit,
-            finalizer: Effect.catchCause(scope.close(exit), reportUnhandledError),
+            finalizer: Effect.catchCause(Scope.close(scope, exit), reportUnhandledError),
             refCount: 0,
             disableReclaim: false
           }
@@ -423,7 +423,7 @@ const allocate = <A, E>(self: Pool<A, E>): Effect.Effect<PoolItem<A, E>> =>
           )
         })
       ),
-    (scope, exit) => exit._tag === "Failure" ? scope.close(exit) : Effect.void
+    (scope, exit) => exit._tag === "Failure" ? Scope.close(scope, exit) : Effect.void
   )
 
 const currentUsage = <A, E>(self: Pool<A, E>) => {

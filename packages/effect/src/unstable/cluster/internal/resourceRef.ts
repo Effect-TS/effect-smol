@@ -10,10 +10,10 @@ export type State<A> = {
   readonly _tag: "Closed"
 } | {
   readonly _tag: "Acquiring"
-  readonly scope: Scope.Scope.Closeable
+  readonly scope: Scope.Closeable
 } | {
   readonly _tag: "Acquired"
-  readonly scope: Scope.Scope.Closeable
+  readonly scope: Scope.Closeable
   readonly value: A
 }
 

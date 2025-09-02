@@ -19,7 +19,7 @@ declare namespace State {
   interface Acquired<A> {
     readonly _tag: "Acquired"
     readonly value: A
-    readonly scope: Scope.Scope.Closeable
+    readonly scope: Scope.Closeable
     fiber: Fiber.Fiber<void, never> | undefined
     refCount: number
   }
