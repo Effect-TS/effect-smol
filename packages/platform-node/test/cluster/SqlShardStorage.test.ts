@@ -3,7 +3,6 @@ import { SqliteClient } from "@effect/sql-sqlite-node"
 import { describe, expect, it } from "@effect/vitest"
 import { Effect, Layer } from "effect"
 import { MutableHashSet } from "effect/collections"
-import { Option } from "effect/data"
 import { Equal } from "effect/interfaces"
 import { FileSystem } from "effect/platform"
 import { Runner, RunnerAddress, ShardId, ShardStorage, SqlShardStorage } from "effect/unstable/cluster"
@@ -48,14 +47,14 @@ describe("SqlMessageStorage", () => {
           const storage = yield* ShardStorage.ShardStorage
 
           yield* storage.saveAssignments([
-            [ShardId.make("default", 1), Option.some(runnerAddress1)],
-            [ShardId.make("default", 2), Option.none()]
+            [ShardId.make("default", 1), runnerAddress1],
+            [ShardId.make("default", 2), undefined]
           ])
           expect(Equal.equals(
             yield* storage.getAssignments,
             MutableHashSet.fromIterable([
-              [ShardId.make("default", 1), Option.some(runnerAddress1)],
-              [ShardId.make("default", 2), Option.none()]
+              [ShardId.make("default", 1), runnerAddress1],
+              [ShardId.make("default", 2), undefined]
             ])
           ))
         }).pipe(Effect.repeat({ times: 2 })))
