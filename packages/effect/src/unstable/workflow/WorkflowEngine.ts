@@ -2,7 +2,6 @@
  * @since 4.0.0
  */
 import type * as Cause from "../../Cause.ts"
-import type * as Option from "../../data/Option.ts"
 import * as Effect from "../../Effect.ts"
 import type * as Exit from "../../Exit.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
@@ -73,7 +72,7 @@ export class WorkflowEngine extends ServiceMap.Key<
      */
     readonly deferredResult: (
       deferred: DurableDeferred.Any
-    ) => Effect.Effect<Option.Option<Exit.Exit<unknown, unknown>>, never, WorkflowInstance>
+    ) => Effect.Effect<Exit.Exit<unknown, unknown> | undefined, never, WorkflowInstance>
 
     /**
      * Set the result of a DurableDeferred, and then resume any waiting

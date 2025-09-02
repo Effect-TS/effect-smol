@@ -4,7 +4,7 @@
 import type * as Cause from "../../Cause.ts"
 import type { NonEmptyReadonlyArray } from "../../collections/Array.ts"
 import type * as Brand from "../../data/Brand.ts"
-import * as Option from "../../data/Option.ts"
+import * as Predicate from "../../data/Predicate.ts"
 import * as Effect from "../../Effect.ts"
 import * as Encoding from "../../encoding/Encoding.ts"
 import * as Exit from "../../Exit.ts"
@@ -113,13 +113,13 @@ const await_: <Success extends Schema.Top, Error extends Schema.Top>(
 ) {
   const engine = yield* EngineTag
   const instance = yield* InstanceTag
-  const oexit = yield* Workflow.wrapActivityResult(engine.deferredResult(self), Option.isNone)
-  if (Option.isNone(oexit)) {
+  const oexit = yield* Workflow.wrapActivityResult(engine.deferredResult(self), Predicate.isUndefined)
+  if (oexit === undefined) {
     instance.suspended = true
     return yield* Effect.interrupt
   }
   return yield* Effect.flatten(Effect.orDie(
-    Schema.decodeEffect(self.exitSchema)(toJsonExit(oexit.value))
+    Schema.decodeEffect(self.exitSchema)(toJsonExit(oexit))
   ))
 })
 
@@ -207,10 +207,10 @@ export const raceAll = <
   })
   return Effect.gen(function*() {
     const engine = yield* EngineTag
-    const oexit = yield* Workflow.wrapActivityResult(engine.deferredResult(deferred), Option.isNone)
-    if (Option.isSome(oexit)) {
+    const oexit = yield* Workflow.wrapActivityResult(engine.deferredResult(deferred), Predicate.isUndefined)
+    if (oexit !== undefined) {
       return yield* (Effect.flatten(Effect.orDie(
-        Schema.decodeEffect(deferred.exitSchema)(toJsonExit(oexit.value))
+        Schema.decodeEffect(deferred.exitSchema)(toJsonExit(oexit))
       )) as Effect.Effect<any, any, any>)
     }
     return yield* into(Effect.raceAll(options.effects), deferred)

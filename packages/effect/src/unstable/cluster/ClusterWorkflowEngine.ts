@@ -1,7 +1,6 @@
 /**
  * @since 4.0.0
  */
-import * as Option from "../../data/Option.ts"
 import * as Record from "../../data/Record.ts"
 import * as Effect from "../../Effect.ts"
 import * as Exit from "../../Exit.ts"
@@ -271,7 +270,7 @@ export const make = Effect.gen(function*() {
                     }
                     return engine.deferredResult(InterruptSignal).pipe(
                       Effect.flatMap((maybeResult) => {
-                        if (Option.isNone(maybeResult)) {
+                        if (maybeResult === undefined) {
                           return Effect.void
                         }
                         instance.suspended = false
@@ -450,14 +449,12 @@ export const make = Effect.gen(function*() {
         ),
         Effect.map((reply) => {
           if (reply === undefined) {
-            return Option.none()
+            return undefined
           }
           const decoded = decodeDeferredWithExit(reply)
-          return Option.some(
-            decoded.exit._tag === "Success"
-              ? decoded.exit.value
-              : decoded.exit
-          )
+          return decoded.exit._tag === "Success"
+            ? decoded.exit.value
+            : decoded.exit
         }),
         Effect.retry({
           while: (e) => e._tag === "PersistenceError",
