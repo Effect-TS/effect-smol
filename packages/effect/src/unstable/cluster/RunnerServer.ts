@@ -1,7 +1,6 @@
 /**
  * @since 4.0.0
  */
-import * as Option from "../../data/Option.ts"
 import * as Effect from "../../Effect.ts"
 import { constant } from "../../Function.ts"
 import * as Layer from "../../Layer.ts"
@@ -160,6 +159,6 @@ export const layerClientOnly: Layer.Layer<
   Layer.provide(ShardStorage.layerNoop),
   Layer.updateService(ShardingConfig, (config) => ({
     ...config,
-    runnerAddress: Option.none()
+    runnerAddress: undefined
   }))
 )

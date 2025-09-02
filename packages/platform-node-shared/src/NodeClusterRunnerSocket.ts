@@ -2,7 +2,6 @@
  * @since 1.0.0
  */
 import type * as Config from "effect/config/Config"
-import * as Option from "effect/data/Option"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as MessageStorage from "effect/unstable/cluster/MessageStorage"
@@ -30,13 +29,11 @@ export const layerSocketServer: Layer.Layer<
   ShardingConfig.ShardingConfig
 > = Effect.gen(function*() {
   const config = yield* ShardingConfig.ShardingConfig
-  const listenAddress = config.runnerListenAddress.pipe(
-    Option.orElse(() => config.runnerAddress)
-  )
-  if (Option.isNone(listenAddress)) {
+  const listenAddress = config.runnerListenAddress ?? config.runnerAddress
+  if (listenAddress === undefined) {
     return yield* Effect.die("layerSocketServer: ShardingConfig.runnerListenAddress is None")
   }
-  return NodeSocketServer.layer(listenAddress.value)
+  return NodeSocketServer.layer(listenAddress)
 }).pipe(Layer.unwrap)
 
 /**

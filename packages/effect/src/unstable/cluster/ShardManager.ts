@@ -346,7 +346,7 @@ export const makeClientLocal = Effect.gen(function*() {
           if (groups.has(group)) continue
           groups.add(group)
           for (let n = 1; n <= config.shardsPerGroup; n++) {
-            MutableHashMap.set(shards, makeShardId(group, n), config.runnerAddress)
+            MutableHashMap.set(shards, makeShardId(group, n), Option.fromUndefinedOr(config.runnerAddress))
           }
         }
         return MachineId.make(++machineId)

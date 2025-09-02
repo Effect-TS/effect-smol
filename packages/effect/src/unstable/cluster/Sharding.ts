@@ -204,8 +204,7 @@ const make = Effect.gen(function*() {
   const events = yield* PubSub.unbounded<ShardingRegistrationEvent>()
   const getRegistrationEvents: Stream.Stream<ShardingRegistrationEvent> = Stream.fromPubSub(events)
 
-  const isLocalRunner = (address: RunnerAddress) =>
-    Option.isSome(config.runnerAddress) && Equal.equals(address, config.runnerAddress.value)
+  const isLocalRunner = (address: RunnerAddress) => config.runnerAddress && Equal.equals(address, config.runnerAddress)
 
   function getShardId(entityId: EntityId, group: string): ShardId {
     const id = Math.abs(hashString(entityId) % config.shardsPerGroup) + 1
@@ -218,8 +217,8 @@ const make = Effect.gen(function*() {
 
   // --- Shard acquisition ---
 
-  if (Option.isSome(config.runnerAddress)) {
-    const selfAddress = config.runnerAddress.value
+  if (config.runnerAddress) {
+    const selfAddress = config.runnerAddress
     yield* Scope.addFinalizerExit(shardingScope, () => {
       // the locks expire over time, so if this fails we ignore it
       return Effect.ignore(shardStorage.releaseAll(selfAddress))
@@ -421,8 +420,8 @@ const make = Effect.gen(function*() {
   const sentRequestIds = new Set<Snowflake.Snowflake>()
   const sentRequestIdSets = new Set<Set<Snowflake.Snowflake>>()
 
-  if (storageEnabled && Option.isSome(config.runnerAddress)) {
-    const selfAddress = config.runnerAddress.value
+  if (storageEnabled && config.runnerAddress) {
+    const selfAddress = config.runnerAddress
 
     yield* Effect.gen(function*() {
       yield* Effect.logDebug("Starting")
@@ -820,15 +819,15 @@ const make = Effect.gen(function*() {
   // and re-subscribe to sharding events
   yield* Effect.gen(function*() {
     yield* Effect.logDebug("Registering with shard manager")
-    if (Option.isSome(config.runnerAddress)) {
-      const machineId = yield* shardManager.register(config.runnerAddress.value, config.shardGroups)
+    if (config.runnerAddress) {
+      const machineId = yield* shardManager.register(config.runnerAddress, config.shardGroups)
       yield* snowflakeGen.setMachineId(machineId)
     }
 
     yield* stopShardManagerTimeout
 
     yield* Effect.logDebug("Subscribing to sharding events")
-    const queue = yield* shardManager.shardingEvents(config.runnerAddress)
+    const queue = yield* shardManager.shardingEvents(Option.fromUndefinedOr(config.runnerAddress))
     const startedLatch = yield* Deferred.make<void>()
 
     const eventsFiber = yield* Effect.gen(function*() {
@@ -1129,12 +1128,12 @@ const make = Effect.gen(function*() {
   const reaper = yield* EntityReaper
   const registerEntity: Sharding["Service"]["registerEntity"] = Effect.fnUntraced(
     function*(entity, build, options) {
-      if (Option.isNone(config.runnerAddress) || entityManagers.has(entity.type)) return
+      if (config.runnerAddress === undefined || entityManagers.has(entity.type)) return
       const scope = yield* Scope.make()
       const manager = yield* EntityManager.make(entity, build, {
         ...options,
         storage,
-        runnerAddress: config.runnerAddress.value,
+        runnerAddress: config.runnerAddress,
         sharding
       }).pipe(
         Effect.provideServices(services.pipe(
@@ -1170,8 +1169,8 @@ const make = Effect.gen(function*() {
 
   // --- Finalization ---
 
-  if (Option.isSome(config.runnerAddress)) {
-    const selfAddress = config.runnerAddress.value
+  if (config.runnerAddress) {
+    const selfAddress = config.runnerAddress
     // Unregister runner from shard manager when scope is closed
     yield* Scope.addFinalizer(
       shardingScope,

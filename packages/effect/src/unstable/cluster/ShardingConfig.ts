@@ -26,13 +26,13 @@ export class ShardingConfig extends ServiceMap.Key<ShardingConfig, {
    * If `None`, the runner is not part of the cluster and will be in a client-only
    * mode.
    */
-  readonly runnerAddress: Option.Option<RunnerAddress>
+  readonly runnerAddress: RunnerAddress | undefined
   /**
    * The listen address for the current runner.
    *
    * Defaults to the `runnerAddress`.
    */
-  readonly runnerListenAddress: Option.Option<RunnerAddress>
+  readonly runnerListenAddress: RunnerAddress | undefined
   /**
    * The version of the current runner.
    */
@@ -101,8 +101,8 @@ const defaultRunnerAddress = RunnerAddress.makeSync({ host: "localhost", port: 3
  * @category defaults
  */
 export const defaults: ShardingConfig["Service"] = {
-  runnerAddress: Option.some(defaultRunnerAddress),
-  runnerListenAddress: Option.none(),
+  runnerAddress: defaultRunnerAddress,
+  runnerListenAddress: undefined,
   serverVersion: 1,
   shardsPerGroup: 300,
   shardManagerAddress: RunnerAddress.makeSync({ host: "localhost", port: 8080 }),
@@ -145,7 +145,7 @@ export const config: Config.Config<ShardingConfig["Service"]> = Config.all({
       Config.withDefault(() => defaultRunnerAddress.port)
       // Config.withDescription("The port used for inter-runner communication.")
     )
-  }).pipe(Config.map((options) => RunnerAddress.makeSync(options)), Config.option),
+  }).pipe(Config.map((options) => RunnerAddress.makeSync(options)), Config.option, Config.map(Option.getOrUndefined)),
   runnerListenAddress: Config.all({
     host: Config.string("listenHost"),
     // Config.withDescription("The host to listen on.")
@@ -153,7 +153,7 @@ export const config: Config.Config<ShardingConfig["Service"]> = Config.all({
       Config.withDefault(() => defaultRunnerAddress.port)
       // Config.withDescription("The port to listen on.")
     )
-  }).pipe(Config.map((options) => RunnerAddress.makeSync(options)), Config.option),
+  }).pipe(Config.map((options) => RunnerAddress.makeSync(options)), Config.option, Config.map(Option.getOrUndefined)),
   serverVersion: Config.int("serverVersion").pipe(
     Config.withDefault(() => defaults.serverVersion)
     // Config.withDescription("The version of the current runner.")
