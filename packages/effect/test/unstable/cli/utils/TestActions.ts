@@ -1,7 +1,4 @@
-import * as Effect from "../../../../src/Effect.js"
-import * as Layer from "../../../../src/Layer.js"
-import * as Ref from "../../../../src/Ref.js"
-import * as ServiceMap from "../../../../src/ServiceMap.js"
+import { Effect, Layer, Ref, ServiceMap } from "effect"
 
 /**
  * Represents an action that a command would take

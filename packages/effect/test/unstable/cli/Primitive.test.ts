@@ -1,11 +1,11 @@
+import { NodeFileSystem, NodePath } from "@effect/platform-node"
 import { assert, describe, it } from "@effect/vitest"
-import { Redacted } from "../../../src/data/index.js"
-import * as Effect from "../../../src/Effect.js"
-import * as Layer from "../../../src/Layer.js"
-import * as Primitive from "../../../src/unstable/cli/Primitive.js"
+import { Effect, Layer } from "effect"
+import { Redacted } from "effect/data"
+import { Primitive } from "effect/unstable/cli"
 
 // Create a test layer
-const TestLayer = Layer.empty
+const TestLayer = Layer.merge(NodeFileSystem.layer, NodePath.layer)
 
 // Helper functions to reduce repetition
 const expectValidValues = <A>(

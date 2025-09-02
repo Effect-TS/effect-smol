@@ -131,6 +131,7 @@
     "coverage": "vitest --coverage"
   },
   "devDependencies": {
+    "@effect/platform-node": "workspace:^",
     "@types/node": "^24.3.0",
     "ajv": "^8.17.1",
     "arktype": "^2.1.20",

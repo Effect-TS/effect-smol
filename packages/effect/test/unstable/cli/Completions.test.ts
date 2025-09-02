@@ -1,11 +1,10 @@
-import { describe, expect, it } from "vitest"
-import * as Command from "../../../src/unstable/cli/Command.js"
-import * as Flag from "../../../src/unstable/cli/Flag.js"
+import { Command, Flag } from "effect/unstable/cli"
 import {
   generateBashCompletions,
   generateFishCompletions,
   generateZshCompletions
-} from "../../../src/unstable/cli/internal/completions.js"
+} from "effect/unstable/cli/internal/completions"
+import { describe, expect, it } from "vitest"
 
 const buildSampleCli = () => {
   const build = Command.make("build", {
