@@ -924,7 +924,7 @@ export const forEach = <In, X, E, R>(
  * import { Sink, Stream } from "effect/stream"
  *
  * // Create a sink that processes chunks
- * const sink = Sink.forEachChunk((chunk: readonly number[]) =>
+ * const sink = Sink.forEachArray((chunk: readonly number[]) =>
  *   Console.log(`Processing chunk of ${chunk.length} items: [${chunk.join(", ")}]`)
  * )
  *
