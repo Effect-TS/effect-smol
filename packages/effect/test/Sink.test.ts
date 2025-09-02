@@ -1,5 +1,5 @@
 import { describe, it } from "@effect/vitest"
-import { assertFailure, assertSuccess, deepStrictEqual, strictEqual } from "@effect/vitest/utils"
+import { assertExitFailure, assertExitSuccess, deepStrictEqual, strictEqual } from "@effect/vitest/utils"
 import { Cause, Effect, Ref } from "effect"
 import { Array } from "effect/collections"
 import { constTrue } from "effect/Function"
@@ -70,10 +70,10 @@ describe("Sink", () => {
         const result2 = yield* run(single)
         const result3 = yield* run(double)
         const result4 = yield* run(failed)
-        assertSuccess(result1, [[0], []])
-        assertSuccess(result2, [[30], [1]])
-        assertSuccess(result3, [[30], [1, 2]])
-        assertFailure(result4, Cause.fail("Ouch"))
+        assertExitSuccess(result1, [[0], []])
+        assertExitSuccess(result2, [[30], [1]])
+        assertExitSuccess(result3, [[30], [1, 2]])
+        assertExitFailure(result4, Cause.fail("Ouch"))
       }))
   })
 

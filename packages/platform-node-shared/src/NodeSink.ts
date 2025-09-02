@@ -22,7 +22,8 @@ export const fromWritable = <E, A = Uint8Array | string>(
     readonly endOnDone?: boolean | undefined
     readonly encoding?: BufferEncoding | undefined
   }
-): Sink.Sink<void, A, never, E> => Sink.fromChannel(fromWritableChannel<never, E, A>(options))
+): Sink.Sink<void, A, never, E> =>
+  Sink.fromChannel(Channel.mapDone(fromWritableChannel<never, E, A>(options), (_) => [_]))
 
 /**
  * @category constructors
@@ -35,7 +36,7 @@ export const fromWritableChannel = <IE, E, A = Uint8Array | string>(
     readonly endOnDone?: boolean | undefined
     readonly encoding?: BufferEncoding | undefined
   }
-): Channel.Channel<NonEmptyReadonlyArray<never>, IE | E, void, NonEmptyReadonlyArray<A>, IE> =>
+): Channel.Channel<never, IE | E, void, NonEmptyReadonlyArray<A>, IE> =>
   Channel.fromTransform((pull: Pull.Pull<NonEmptyReadonlyArray<A>, IE, unknown>) => {
     const writable = options.evaluate() as Writable
     return Effect.succeed(pullIntoWritable({ ...options, writable, pull }))

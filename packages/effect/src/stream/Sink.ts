@@ -65,7 +65,7 @@ export interface Sink<out A, in In = unknown, out L = never, out E = never, out 
  * @since 2.0.0
  * @category models
  */
-export type End<A, L> = readonly [value: A, leftover?: NonEmptyReadonlyArray<L> | undefined]
+export type End<A, L = never> = readonly [value: A, leftover?: NonEmptyReadonlyArray<L> | undefined]
 
 const endVoid = Pull.halt([void 0] as End<void, never>)
 
