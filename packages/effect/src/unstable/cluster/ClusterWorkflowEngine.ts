@@ -1,7 +1,6 @@
 /**
  * @since 4.0.0
  */
-import * as Arr from "../../collections/Array.ts"
 import * as Option from "../../data/Option.ts"
 import * as Record from "../../data/Record.ts"
 import * as Effect from "../../Effect.ts"
@@ -146,10 +145,10 @@ export const make = Effect.gen(function*() {
 
   const replyForRequestId = Effect.fnUntraced(function*(requestId: Snowflake.Snowflake) {
     const replies = yield* storage.repliesForUnfiltered([requestId])
-    return Arr.last(replies).pipe(
-      Option.filter((reply) => reply._tag === "WithExit"),
-      Option.map((reply) => reply as WithExitEncoded<Workflow.ResultEncoded<any, any>>)
-    )
+    const last = replies.at(-1)
+    if (last && last._tag === "WithExit") {
+      return last as WithExitEncoded<Workflow.ResultEncoded<any, any>>
+    }
   })
 
   const requestReply = Effect.fnUntraced(function*(options: {
@@ -161,7 +160,7 @@ export const make = Effect.gen(function*() {
   }) {
     const requestId = yield* requestIdFor(options)
     if (requestId === undefined) {
-      return Option.none()
+      return undefined
     }
     return yield* replyForRequestId(requestId)
   })
@@ -224,12 +223,14 @@ export const make = Effect.gen(function*() {
       tag: "run",
       id: ""
     })
-    const maybeSuspended = Option.filter(
-      maybeReply,
-      (reply) => reply.exit._tag === "Success" && reply.exit.value._tag === "Suspended"
-    )
-    if (Option.isNone(maybeSuspended)) return
-    yield* sharding.reset(Snowflake.Snowflake(maybeSuspended.value.requestId))
+
+    const maybeSuspended =
+      maybeReply && maybeReply.exit._tag === "Success" && maybeReply.exit.value._tag === "Suspended"
+        ? maybeReply
+        : undefined
+
+    if (maybeSuspended === undefined) return
+    yield* sharding.reset(Snowflake.Snowflake(maybeSuspended.requestId))
     yield* sharding.pollStorage
   })
 
@@ -354,13 +355,13 @@ export const make = Effect.gen(function*() {
           tag: "run",
           id: ""
         })
-        const nonSuspendedReply = reply.pipe(
-          Option.filter((reply) => reply.exit._tag !== "Success" || reply.exit.value._tag !== "Suspended")
-        )
-        if (Option.isSome(nonSuspendedReply)) {
+
+        const nonSuspendedReply = reply && (reply.exit._tag !== "Success" || reply.exit.value._tag !== "Suspended")
+          ? reply
+          : undefined
+        if (nonSuspendedReply !== undefined) {
           return
         }
-
         yield* this.deferredDone({
           workflowName: workflow.name,
           executionId,
@@ -447,12 +448,17 @@ export const make = Effect.gen(function*() {
             id: deferred.name
           })
         ),
-        Effect.map(Option.map((reply) => {
+        Effect.map((reply) => {
+          if (reply === undefined) {
+            return Option.none()
+          }
           const decoded = decodeDeferredWithExit(reply)
-          return decoded.exit._tag === "Success"
-            ? decoded.exit.value
-            : decoded.exit
-        })),
+          return Option.some(
+            decoded.exit._tag === "Success"
+              ? decoded.exit.value
+              : decoded.exit
+          )
+        }),
         Effect.retry({
           while: (e) => e._tag === "PersistenceError",
           times: 3,
