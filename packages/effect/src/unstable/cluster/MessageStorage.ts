@@ -5,6 +5,7 @@ import * as Arr from "../../collections/Array.ts"
 import * as Data from "../../data/Data.ts"
 import * as Option from "../../data/Option.ts"
 import type { Predicate } from "../../data/Predicate.ts"
+import * as UndefinedOr from "../../data/UndefinedOr.ts"
 import * as Effect from "../../Effect.ts"
 import * as Exit from "../../Exit.ts"
 import * as Layer from "../../Layer.ts"
@@ -81,7 +82,7 @@ export class MessageStorage extends ServiceMap.Key<MessageStorage, {
       readonly tag: string
       readonly id: string
     }
-  ) => Effect.Effect<Option.Option<Snowflake.Snowflake>, PersistenceError>
+  ) => Effect.Effect<Snowflake.Snowflake | undefined, PersistenceError>
 
   /**
    * For locally sent messages, register a handler to process the replies.
@@ -230,7 +231,7 @@ export type Encoded = {
    */
   readonly requestIdForPrimaryKey: (
     primaryKey: string
-  ) => Effect.Effect<Option.Option<Snowflake.Snowflake>, PersistenceError>
+  ) => Effect.Effect<Snowflake.Snowflake | undefined, PersistenceError>
 
   /**
    * Retrieves the replies for the specified requests.
@@ -572,7 +573,7 @@ export const noop: MessageStorage["Service"] = Effect.runSync(make({
   clearReplies: () => Effect.void,
   repliesFor: () => Effect.succeed([]),
   repliesForUnfiltered: () => Effect.succeed([]),
-  requestIdForPrimaryKey: () => Effect.succeedNone,
+  requestIdForPrimaryKey: () => Effect.undefined,
   unprocessedMessages: () => Effect.succeed([]),
   unprocessedMessagesById: () => Effect.succeed([]),
   resetAddress: () => Effect.void,
@@ -716,7 +717,7 @@ export class MemoryDriver extends ServiceMap.Key<MemoryDriver>()("effect/cluster
       requestIdForPrimaryKey: (primaryKey) =>
         Effect.sync(() => {
           const entry = requestsByPrimaryKey.get(primaryKey)
-          return Option.fromNullishOr(entry?.envelope.requestId).pipe(Option.map(Snowflake.Snowflake))
+          return UndefinedOr.map(entry?.envelope.requestId, Snowflake.Snowflake)
         }),
       repliesFor: (requestIds) => Effect.sync(() => repliesFor(requestIds)),
       repliesForUnfiltered: (requestIds) =>

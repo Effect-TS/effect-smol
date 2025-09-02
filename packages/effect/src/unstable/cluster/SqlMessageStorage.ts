@@ -3,6 +3,7 @@
  */
 import * as Arr from "../../collections/Array.ts"
 import * as Option from "../../data/Option.ts"
+import * as UndefinedOr from "../../data/UndefinedOr.ts"
 import * as Effect from "../../Effect.ts"
 import * as Layer from "../../Layer.ts"
 import * as Schedule from "../../Schedule.ts"
@@ -434,11 +435,7 @@ export const make = Effect.fnUntraced(function*(options: {
 
     requestIdForPrimaryKey: (primaryKey) =>
       sql<{ id: string | bigint }>`SELECT id FROM ${messagesTableSql} WHERE message_id = ${primaryKey}`.pipe(
-        Effect.map((rows) =>
-          Option.fromUndefinedOr(rows[0]?.id).pipe(
-            Option.map(Snowflake.Snowflake)
-          )
-        ),
+        Effect.map((rows) => UndefinedOr.map(rows[0]?.id, Snowflake.Snowflake)),
         Effect.provideService(SqlClient.SafeIntegers, true),
         PersistenceError.refail
       ),
@@ -732,7 +729,7 @@ const migrations = (options?: {
         mssql: () =>
           sql`
             IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = ${shardLookupIndex})
-            CREATE INDEX ${sql(shardLookupIndex)} 
+            CREATE INDEX ${sql(shardLookupIndex)}
             ON ${messagesTableSql} (shard_id, processed, last_read, deliver_at);
 
             IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = ${requestIdLookupIndex})

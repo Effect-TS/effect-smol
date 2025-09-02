@@ -160,10 +160,10 @@ export const make = Effect.gen(function*() {
     readonly id: string
   }) {
     const requestId = yield* requestIdFor(options)
-    if (Option.isNone(requestId)) {
+    if (requestId === undefined) {
       return Option.none()
     }
-    return yield* replyForRequestId(requestId.value)
+    return yield* replyForRequestId(requestId)
   })
 
   const resetActivityAttempt = Effect.fnUntraced(
@@ -180,8 +180,8 @@ export const make = Effect.gen(function*() {
         tag: "activity",
         id: activityPrimaryKey(options.activity.name, options.attempt)
       })
-      if (Option.isNone(requestId)) return
-      yield* sharding.reset(requestId.value)
+      if (requestId === undefined) return
+      yield* sharding.reset(requestId)
     },
     Effect.retry({
       times: 3,
