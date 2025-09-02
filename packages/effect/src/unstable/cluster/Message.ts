@@ -84,7 +84,7 @@ export type Outgoing<R extends Rpc.Any> = OutgoingRequest<R> | OutgoingEnvelope
 export class OutgoingRequest<R extends Rpc.Any> extends Data.TaggedClass("OutgoingRequest")<{
   readonly envelope: Envelope.Request<R>
   readonly services: ServiceMap<Rpc.Services<R>>
-  readonly lastReceivedReply: Option.Option<Reply.Reply<R>>
+  readonly lastReceivedReply: Reply.Reply<R> | undefined
   readonly rpc: R
   readonly respond: (reply: Reply.Reply<R>) => Effect.Effect<void>
 }> {

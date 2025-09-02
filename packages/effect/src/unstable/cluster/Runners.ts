@@ -168,8 +168,8 @@ export const make: (options: Omit<Runners["Service"], "sendLocal" | "notifyLocal
         Duplicate: ({ lastReceivedReply, originalId }) => {
           // If the last received reply is an exit, we can just return it
           // as the response.
-          if (Option.isSome(lastReceivedReply) && lastReceivedReply.value._tag === "WithExit") {
-            return message.respond(lastReceivedReply.value.withRequestId(message.envelope.requestId))
+          if (lastReceivedReply && lastReceivedReply._tag === "WithExit") {
+            return message.respond(lastReceivedReply.withRequestId(message.envelope.requestId))
           }
           requestIdRewrites.set(message.envelope.requestId, originalId)
           return afterPersist(

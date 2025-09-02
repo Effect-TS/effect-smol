@@ -2,7 +2,6 @@
  * @since 4.0.0
  */
 import * as Arr from "../../collections/Array.ts"
-import * as Option from "../../data/Option.ts"
 import * as UndefinedOr from "../../data/UndefinedOr.ts"
 import * as Effect from "../../Effect.ts"
 import * as Layer from "../../Layer.ts"
@@ -134,7 +133,7 @@ export const make = Effect.fnUntraced(function*(options: {
 
   const messageFromRow = (row: MessageRow & ReplyJoinRow): {
     readonly envelope: Envelope.Encoded
-    readonly lastSentReply: Option.Option<Reply.Encoded>
+    readonly lastSentReply: Reply.Encoded | undefined
   } => {
     switch (Number(row.kind) as 0 | 1 | 2) {
       case 0:
@@ -159,14 +158,14 @@ export const make = Effect.fnUntraced(function*(options: {
               {})
           },
           lastSentReply: row.reply_reply_id ?
-            Option.some({
+            {
               _tag: "Chunk",
               id: String(row.reply_reply_id),
               requestId: String(row.request_id),
               sequence: Number(row.reply_sequence!),
               values: JSON.parse(row.reply_payload!)
-            } as any) :
-            Option.none()
+            } :
+            undefined
         }
       case 1:
         return {
@@ -181,7 +180,7 @@ export const make = Effect.fnUntraced(function*(options: {
               entityId: row.entity_id
             }
           },
-          lastSentReply: Option.none()
+          lastSentReply: undefined
         }
       case 2:
         return {
@@ -195,7 +194,7 @@ export const make = Effect.fnUntraced(function*(options: {
               entityId: row.entity_id
             }
           },
-          lastSentReply: Option.none()
+          lastSentReply: undefined
         }
     }
   }
@@ -387,7 +386,7 @@ export const make = Effect.fnUntraced(function*(options: {
             return SaveResultEncoded.Duplicate({
               originalId: Snowflake.Snowflake(row.id as any),
               lastReceivedReply: row.reply_id ?
-                Option.some({
+                {
                   id: String(row.reply_id),
                   requestId: String(row.id),
                   _tag: row.reply_kind === replyKind.WithExit ? "WithExit" : "Chunk",
@@ -397,8 +396,8 @@ export const make = Effect.fnUntraced(function*(options: {
                       sequence: Number(row.reply_sequence),
                       values: JSON.parse(row.reply_payload as string)
                     })
-                } as any) :
-                Option.none()
+                } as any :
+                undefined
             })
           })
         )
@@ -485,7 +484,7 @@ export const make = Effect.fnUntraced(function*(options: {
         }
         const messages: Array<{
           readonly envelope: Envelope.Encoded
-          readonly lastSentReply: Option.Option<Reply.Encoded>
+          readonly lastSentReply: Reply.Encoded | undefined
         }> = new Array(rows.length)
         const ids = new Array<string>(rows.length)
         for (let i = 0; i < rows.length; i++) {

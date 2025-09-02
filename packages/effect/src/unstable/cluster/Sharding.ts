@@ -989,7 +989,7 @@ const make = Effect.gen(function*() {
                   spanId: options.message.spanId,
                   sampled: options.message.sampled
                 }),
-                lastReceivedReply: Option.none(),
+                lastReceivedReply: undefined,
                 rpc,
                 services: fiber.services as ServiceMap.ServiceMap<any>,
                 respond

@@ -346,11 +346,11 @@ export const serialize = <R extends Rpc.Any>(
 export const serializeLastReceived = <R extends Rpc.Any>(
   self: OutgoingRequest<R>
 ): Effect.Effect<Encoded | undefined, MalformedMessage> => {
-  if (self.lastReceivedReply._tag === "None") {
+  if (self.lastReceivedReply === undefined) {
     return Effect.undefined
   }
   const schema = Reply(self.rpc)
   return MalformedMessage.refail(
-    Effect.provideServices(Schema.encodeEffect(schema)(self.lastReceivedReply.value), self.services)
+    Effect.provideServices(Schema.encodeEffect(schema)(self.lastReceivedReply), self.services)
   )
 }
