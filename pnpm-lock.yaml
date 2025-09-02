@@ -209,6 +209,9 @@ importers:
         specifier: ^11.1.0
         version: 11.1.0
     devDependencies:
+      '@effect/platform-node':
+        specifier: workspace:^
+        version: link:../platform-node
       '@types/node':
         specifier: ^24.3.0
         version: 24.3.0
@@ -7502,9 +7505,7 @@ snapshots:
       metro-runtime: 0.83.1
     transitivePeerDependencies:
       - '@babel/core'
-      - bufferutil
       - supports-color
-      - utf-8-validate
 
   '@react-native/normalize-colors@0.81.0': {}
 

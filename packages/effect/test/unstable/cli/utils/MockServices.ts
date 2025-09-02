@@ -1,52 +1,46 @@
-import * as Effect from "../../../../src/Effect.js"
-import * as Layer from "../../../../src/Layer.js"
-import * as FileSystem from "../../../../src/platform/FileSystem.js"
-import * as Path from "../../../../src/platform/Path.js"
+import { Effect, Layer } from "effect"
+import { FileSystem, Path } from "effect/platform"
+import { Stream } from "effect/stream"
 
 // Create mock implementations for testing CLI commands
-export const MockFileSystem = Layer.succeed(FileSystem.FileSystem, FileSystem.make({
-  access: () => Effect.succeed(),
-  copy: () => Effect.succeed(),
-  copyFile: () => Effect.succeed(),
-  chmod: () => Effect.succeed(),
-  chown: () => Effect.succeed(),
-  exists: () => Effect.succeed(true),
-  link: () => Effect.succeed(),
-  makeDirectory: () => Effect.succeed(),
+export const MockFileSystem = Layer.mock(FileSystem.FileSystem)(FileSystem.make({
+  access: () => Effect.succeed(void 0),
+  copy: () => Effect.die("Not implemented"),
+  copyFile: () => Effect.die("Not implemented"),
+  chmod: () => Effect.die("Not implemented"),
+  chown: () => Effect.die("Not implemented"),
+  link: () => Effect.die("Not implemented"),
+  makeDirectory: () => Effect.die("Not implemented"),
   makeTempDirectory: () => Effect.succeed("/tmp/test"),
   makeTempDirectoryScoped: () => Effect.succeed("/tmp/test"),
   makeTempFile: () => Effect.succeed("/tmp/test.txt"),
   makeTempFileScoped: () => Effect.succeed("/tmp/test.txt"),
-  open: () => Effect.succeed({} as any),
+  open: () => Effect.die("Not implemented"),
   readDirectory: () => Effect.succeed([]),
   readFile: () => Effect.succeed(new Uint8Array()),
-  readFileString: () => Effect.succeed(""),
   readLink: () => Effect.succeed(""),
   realPath: (path: string) => Effect.succeed(path),
-  remove: () => Effect.succeed(),
-  rename: () => Effect.succeed(),
-  sink: () => Effect.succeed({} as any),
-  stat: () => Effect.succeed({} as any),
-  stream: () => Effect.succeed({} as any),
-  symlink: () => Effect.succeed(),
-  truncate: () => Effect.succeed(),
-  utimes: () => Effect.succeed(),
-  watch: () => Effect.succeed({} as any),
-  writeFile: () => Effect.succeed(),
-  writeFileString: () => Effect.succeed()
+  remove: () => Effect.die("Not implemented"),
+  rename: () => Effect.die("Not implemented"),
+  stat: (path) => Effect.succeed({ type: path.match(/\.[a-z]+$/) ? "File" : "Directory" } as FileSystem.File.Info),
+  symlink: () => Effect.die("Not implemented"),
+  truncate: () => Effect.die("Not implemented"),
+  utimes: () => Effect.die("Not implemented"),
+  writeFile: () => Effect.die("Not implemented"),
+  watch: () => Stream.die("Not implemented")
 }))
 
-export const MockPath = Layer.succeed(Path.Path, Path.make({
+export const MockPath = Layer.mock(Path.Path)({
   basename: (path: string) => path.split("/").pop() || "",
   dirname: (path: string) => path.split("/").slice(0, -1).join("/") || "/",
   extname: (path: string) => {
     const parts = path.split(".")
     return parts.length > 1 ? `.${parts[parts.length - 1]}` : ""
   },
-  format: ({ dir, name, ext }) => `${dir}/${name}${ext || ""}`,
-  fromFileUrl: (url: URL) => url.pathname,
+  format: ({ dir, ext, name }) => `${dir}/${name}${ext || ""}`,
+  fromFileUrl: (url: URL) => Effect.succeed(url.pathname),
   isAbsolute: (path: string) => path.startsWith("/"),
-  join: (...paths: string[]) => paths.join("/"),
+  join: (...paths: Array<string>) => paths.join("/"),
   normalize: (path: string) => path,
   parse: (path: string) => ({
     dir: path.split("/").slice(0, -1).join("/") || "/",
@@ -56,9 +50,9 @@ export const MockPath = Layer.succeed(Path.Path, Path.make({
     root: "/"
   }),
   relative: (from: string, to: string) => to,
-  resolve: (...paths: string[]) => paths.join("/"),
+  resolve: (...paths: Array<string>) => paths.join("/"),
   sep: "/",
-  toFileUrl: (path: string) => new URL(`file://${path}`)
-}))
+  toFileUrl: (path: string) => Effect.succeed(new URL(`file://${path}`))
+} as any as Path.Path)
 
-export const MockEnvironmentLayer = Layer.mergeAll(MockFileSystem, MockPath)
+export const MockEnvironmentLayer = Layer.mergeAll(MockFileSystem, Path.layer)
