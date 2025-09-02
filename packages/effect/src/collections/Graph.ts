@@ -1552,6 +1552,53 @@ export const neighborsDirected = <N, E, T extends Kind = "directed">(
 // =============================================================================
 
 /**
+ * Configuration options for GraphViz DOT format generation from graphs.
+ *
+ * Provides customization for node labels, edge labels, and graph naming
+ * in DOT format compatible with GraphViz tools.
+ *
+ * @example
+ * ```ts
+ * import * as Graph from "effect/collections/Graph"
+ *
+ * // Basic options with custom labels
+ * const basicOptions: Graph.GraphVizOptions<string, number> = {
+ *   nodeLabel: (data) => `Node: ${data}`,
+ *   edgeLabel: (data) => `Weight: ${data}`
+ * }
+ *
+ * // Complete options with graph naming
+ * const namedOptions: Graph.GraphVizOptions<string, string> = {
+ *   nodeLabel: (data) => data.toUpperCase(),
+ *   edgeLabel: (data) => data,
+ *   graphName: "MyDependencyGraph"
+ * }
+ * ```
+ *
+ * @since 4.0.0
+ * @category models
+ */
+export interface GraphVizOptions<N, E> {
+  /**
+   * Function to generate custom labels for nodes.
+   * Defaults to String(data) if not provided.
+   */
+  readonly nodeLabel?: (data: N) => string
+
+  /**
+   * Function to generate custom labels for edges.
+   * Defaults to String(data) if not provided.
+   */
+  readonly edgeLabel?: (data: E) => string
+
+  /**
+   * Name for the DOT graph.
+   * Defaults to "G" if not provided.
+   */
+  readonly graphName?: string
+}
+
+/**
  * Exports a graph to GraphViz DOT format for visualization.
  *
  * @example
@@ -1584,11 +1631,7 @@ export const neighborsDirected = <N, E, T extends Kind = "directed">(
  */
 export const toGraphViz = <N, E, T extends Kind = "directed">(
   graph: Graph<N, E, T> | MutableGraph<N, E, T>,
-  options?: {
-    readonly nodeLabel?: (data: N) => string
-    readonly edgeLabel?: (data: E) => string
-    readonly graphName?: string
-  }
+  options?: GraphVizOptions<N, E>
 ): string => {
   const {
     edgeLabel = (data: E) => String(data),
@@ -1616,6 +1659,430 @@ export const toGraphViz = <N, E, T extends Kind = "directed">(
   }
 
   lines.push("}")
+  return lines.join("\n")
+}
+
+// =============================================================================
+// Mermaid Export
+// =============================================================================
+
+/**
+ * Mermaid node shape types for diagram visualization.
+ *
+ * Each shape produces different visual representations in Mermaid diagrams:
+ * - `rectangle`: Standard rectangular nodes `A["label"]`
+ * - `rounded`: Rounded rectangular nodes `A("label")`
+ * - `circle`: Circular nodes `A(("label"))`
+ * - `diamond`: Diamond-shaped nodes `A{"label"}`
+ * - `hexagon`: Hexagonal nodes `A{{"label"}}`
+ * - `stadium`: Stadium-shaped nodes `A(["label"])`
+ * - `subroutine`: Subroutine-style nodes `A[["label"]]`
+ * - `cylindrical`: Cylindrical database-style nodes `A[("label")]`
+ *
+ * @example
+ * ```ts
+ * import * as Graph from "effect/collections/Graph"
+ *
+ * // Shape selector function for different node types
+ * const shapeSelector = (nodeData: string): Graph.MermaidNodeShape => {
+ *   if (nodeData.includes("start") || nodeData.includes("end")) return "circle"
+ *   if (nodeData.includes("decision")) return "diamond"
+ *   if (nodeData.includes("process")) return "rectangle"
+ *   if (nodeData.includes("data")) return "cylindrical"
+ *   return "rounded"
+ * }
+ *
+ * const options: Graph.MermaidOptions<string, string> = {
+ *   nodeShape: shapeSelector
+ * }
+ * ```
+ *
+ * @since 4.0.0
+ * @category models
+ */
+export type MermaidNodeShape =
+  | "rectangle" // A["label"]
+  | "rounded" // A("label")
+  | "circle" // A(("label"))
+  | "diamond" // A{"label"}
+  | "hexagon" // A{{"label"}}
+  | "stadium" // A(["label"])
+  | "subroutine" // A[["label"]]
+  | "cylindrical" // A[("label")]
+
+/**
+ * Mermaid diagram direction types for controlling layout orientation.
+ *
+ * Determines the flow direction of nodes and edges in the diagram:
+ * - `TB`/`TD`: Top to Bottom (vertical layout, default)
+ * - `BT`: Bottom to Top (reverse vertical)
+ * - `LR`: Left to Right (horizontal layout)
+ * - `RL`: Right to Left (reverse horizontal)
+ *
+ * @example
+ * ```ts
+ * import * as Graph from "effect/collections/Graph"
+ *
+ * // Horizontal workflow diagram
+ * const horizontalOptions: Graph.MermaidOptions<string, string> = {
+ *   direction: "LR"
+ * }
+ *
+ * // Vertical hierarchy (default)
+ * const verticalOptions: Graph.MermaidOptions<string, string> = {
+ *   direction: "TB"
+ * }
+ *
+ * // Bottom-up flow
+ * const bottomUpOptions: Graph.MermaidOptions<string, string> = {
+ *   direction: "BT"
+ * }
+ * ```
+ *
+ * @since 4.0.0
+ * @category models
+ */
+export type MermaidDirection =
+  | "TB" // Top to Bottom (default)
+  | "TD" // Top Down (same as TB)
+  | "BT" // Bottom to Top
+  | "RL" // Right to Left
+  | "LR" // Left to Right
+
+/**
+ * Mermaid diagram types for different visualization formats.
+ *
+ * Specifies the Mermaid diagram syntax to use:
+ * - `flowchart`: For directed graphs with arrows (`A --> B`)
+ * - `graph`: For undirected graphs with lines (`A --- B`)
+ *
+ * When not specified, automatically selects based on graph type:
+ * directed graphs use "flowchart", undirected graphs use "graph".
+ *
+ * @example
+ * ```ts
+ * import * as Graph from "effect/collections/Graph"
+ *
+ * // Force flowchart format (even for undirected graphs)
+ * const flowchartOptions: Graph.MermaidOptions<string, string> = {
+ *   diagramType: "flowchart"
+ * }
+ *
+ * // Force graph format (shows undirected connections)
+ * const graphOptions: Graph.MermaidOptions<string, string> = {
+ *   diagramType: "graph"
+ * }
+ *
+ * // Auto-detection (recommended, default behavior)
+ * const autoOptions: Graph.MermaidOptions<string, string> = {}
+ * ```
+ *
+ * @since 4.0.0
+ * @category models
+ */
+export type MermaidDiagramType =
+  | "flowchart" // For directed graphs
+  | "graph" // For undirected graphs
+
+/**
+ * Configuration options for Mermaid diagram generation, following GraphViz pattern.
+ *
+ * @since 4.0.0
+ * @category models
+ */
+/**
+ * Configuration options for Mermaid diagram generation from graphs.
+ *
+ * Provides customization for node labels, edge labels, diagram type,
+ * layout direction, node shapes, and graph naming in Mermaid format.
+ *
+ * @example
+ * ```ts
+ * import * as Graph from "effect/collections/Graph"
+ *
+ * // Basic options with custom labels
+ * const basicOptions: Graph.MermaidOptions<string, number> = {
+ *   nodeLabel: (data) => `Node: ${data}`,
+ *   edgeLabel: (data) => `Weight: ${data}`
+ * }
+ *
+ * // Advanced options with all features
+ * const advancedOptions: Graph.MermaidOptions<string, string> = {
+ *   nodeLabel: (data) => data.toUpperCase(),
+ *   edgeLabel: (data) => data,
+ *   diagramType: "flowchart",
+ *   direction: "LR",
+ *   nodeShape: (data) => data.includes("start") ? "circle" : "rectangle"
+ * }
+ * ```
+ *
+ * @since 4.0.0
+ * @category models
+ */
+export interface MermaidOptions<N, E> {
+  /**
+   * Function to generate custom labels for nodes.
+   * Defaults to String(data) if not provided.
+   */
+  readonly nodeLabel?: (data: N) => string
+
+  /**
+   * Function to generate custom labels for edges.
+   * Defaults to String(data) if not provided.
+   */
+  readonly edgeLabel?: (data: E) => string
+
+  /**
+   * Diagram type override. If not specified, automatically detects:
+   * - "flowchart" for directed graphs
+   * - "graph" for undirected graphs
+   */
+  readonly diagramType?: MermaidDiagramType
+
+  /**
+   * Direction for diagram layout.
+   * Defaults to "TD" (Top Down) if not provided.
+   */
+  readonly direction?: MermaidDirection
+
+  /**
+   * Function to determine node shape for each node.
+   * Defaults to "rectangle" for all nodes if not provided.
+   */
+  readonly nodeShape?: (data: N) => MermaidNodeShape
+}
+
+/**
+ * Escapes special characters in labels for Mermaid syntax compatibility.
+ */
+const escapeMermaidLabel = (label: string): string => {
+  return label
+    .replace(/\\/g, "\\\\") // Escape backslashes first
+    .replace(/"/g, "\\\"") // Escape quotes
+    .replace(/\[/g, "\\[") // Escape square brackets
+    .replace(/\]/g, "\\]") // Escape square brackets
+    .replace(/\|/g, "\\|") // Escape pipes
+    .replace(/\n/g, "<br/>") // Convert newlines to HTML breaks
+}
+
+/**
+ * Formats a Mermaid node with the specified shape and label.
+ */
+const formatMermaidNode = (
+  nodeId: string,
+  label: string,
+  shape: MermaidNodeShape
+): string => {
+  switch (shape) {
+    case "rectangle":
+      return `${nodeId}["${label}"]`
+    case "rounded":
+      return `${nodeId}("${label}")`
+    case "circle":
+      return `${nodeId}(("${label}"))`
+    case "diamond":
+      return `${nodeId}{"${label}"}`
+    case "hexagon":
+      return `${nodeId}{{"${label}"}}`
+    case "stadium":
+      return `${nodeId}(["${label}"])`
+    case "subroutine":
+      return `${nodeId}[["${label}"]]`
+    case "cylindrical":
+      return `${nodeId}[("${label}")]`
+    default:
+      return `${nodeId}["${label}"]` // Default rectangle
+  }
+}
+
+/**
+ * Exports a graph to Mermaid diagram format for visualization.
+ *
+ * Mermaid is a popular diagram-as-code tool that generates flowcharts and other
+ * visualizations from text-based definitions. This function converts Effect Graph
+ * structures to valid Mermaid syntax for use in documentation, web applications,
+ * and visualization tools.
+ *
+ * @example
+ * ```ts
+ * import * as Graph from "effect/collections/Graph"
+ *
+ * // Basic directed graph export
+ * const graph = Graph.directed<string, number>((mutable) => {
+ *   const app = Graph.addNode(mutable, "App")
+ *   const db = Graph.addNode(mutable, "Database")
+ *   const cache = Graph.addNode(mutable, "Cache")
+ *   Graph.addEdge(mutable, app, db, 1)
+ *   Graph.addEdge(mutable, app, cache, 2)
+ * })
+ *
+ * const mermaid = Graph.toMermaid(graph)
+ * console.log(mermaid)
+ * // flowchart TD
+ * //   0["App"]
+ * //   1["Database"]
+ * //   2["Cache"]
+ * //   0 -->|"1"| 1
+ * //   0 -->|"2"| 2
+ * ```
+ *
+ * @example
+ * ```ts
+ * import * as Graph from "effect/collections/Graph"
+ *
+ * // Undirected graph with custom labels and direction
+ * const socialGraph = Graph.undirected<{name: string}, string>((mutable) => {
+ *   const alice = Graph.addNode(mutable, { name: "Alice" })
+ *   const bob = Graph.addNode(mutable, { name: "Bob" })
+ *   const charlie = Graph.addNode(mutable, { name: "Charlie" })
+ *   Graph.addEdge(mutable, alice, bob, "friends")
+ *   Graph.addEdge(mutable, bob, charlie, "colleagues")
+ * })
+ *
+ * const mermaid = Graph.toMermaid(socialGraph, {
+ *   nodeLabel: (person) => person.name,
+ *   edgeLabel: (relationship) => relationship,
+ *   direction: "LR"
+ * })
+ * console.log(mermaid)
+ * // graph LR
+ * //   0["Alice"]
+ * //   1["Bob"]
+ * //   2["Charlie"]
+ * //   0 ---|"friends"| 1
+ * //   1 ---|"colleagues"| 2
+ * ```
+ *
+ * @example
+ * ```ts
+ * import * as Graph from "effect/collections/Graph"
+ *
+ * // Advanced styling with node shapes for flowchart
+ * const workflow = Graph.directed<{type: string, name: string}, string>((mutable) => {
+ *   const start = Graph.addNode(mutable, { type: "start", name: "Begin" })
+ *   const process = Graph.addNode(mutable, { type: "process", name: "Process Data" })
+ *   const decision = Graph.addNode(mutable, { type: "decision", name: "Valid?" })
+ *   const end = Graph.addNode(mutable, { type: "end", name: "Complete" })
+ *   Graph.addEdge(mutable, start, process, "")
+ *   Graph.addEdge(mutable, process, decision, "")
+ *   Graph.addEdge(mutable, decision, end, "yes")
+ * })
+ *
+ * const mermaid = Graph.toMermaid(workflow, {
+ *   nodeLabel: (node) => node.name,
+ *   nodeShape: (node) => {
+ *     switch (node.type) {
+ *       case "start": return "stadium"
+ *       case "process": return "rectangle"
+ *       case "decision": return "diamond"
+ *       case "end": return "stadium"
+ *       default: return "rectangle"
+ *     }
+ *   }
+ * })
+ * console.log(mermaid)
+ * // flowchart TD
+ * //   0(["Begin"])
+ * //   1["Process Data"]
+ * //   2{"Valid?"}
+ * //   3(["Complete"])
+ * //   0 --> 1
+ * //   1 --> 2
+ * //   2 --> 3
+ * ```
+ *
+ * @example
+ * ```ts
+ * import * as Graph from "effect/collections/Graph"
+ *
+ * // Real-world example: Software dependency graph
+ * interface Dependency {
+ *   name: string
+ *   version: string
+ *   type: "library" | "framework" | "tool"
+ * }
+ *
+ * const dependencyGraph = Graph.directed<Dependency, string>((mutable) => {
+ *   const app = Graph.addNode(mutable, { name: "MyApp", version: "1.0.0", type: "library" })
+ *   const react = Graph.addNode(mutable, { name: "React", version: "18.0.0", type: "framework" })
+ *   const lodash = Graph.addNode(mutable, { name: "Lodash", version: "4.17.0", type: "library" })
+ *   const webpack = Graph.addNode(mutable, { name: "Webpack", version: "5.0.0", type: "tool" })
+ *
+ *   Graph.addEdge(mutable, app, react, "depends on")
+ *   Graph.addEdge(mutable, app, lodash, "depends on")
+ *   Graph.addEdge(mutable, app, webpack, "builds with")
+ * })
+ *
+ * const dependencyDiagram = Graph.toMermaid(dependencyGraph, {
+ *   nodeLabel: (dep) => `${dep.name}\\nv${dep.version}`,
+ *   edgeLabel: (edge) => edge,
+ *   nodeShape: (dep) => dep.type === "framework" ? "hexagon" :
+ *                      dep.type === "tool" ? "diamond" : "rectangle",
+ *   direction: "TB"
+ * })
+ *
+ * console.log(dependencyDiagram)
+ * // flowchart TB
+ * //   0["MyApp\nv1.0.0"]
+ * //   1{{"React\nv18.0.0"}}
+ * //   2["Lodash\nv4.17.0"]
+ * //   3{"Webpack\nv5.0.0"}
+ * //   0 -->|"depends on"| 1
+ * //   0 -->|"depends on"| 2
+ * //   0 -->|"builds with"| 3
+ * ```
+ *
+ * @param graph - The graph to export (directed or undirected)
+ * @param options - Optional configuration for the Mermaid output
+ * @returns Mermaid diagram syntax as a string
+ *
+ * @since 4.0.0
+ * @category utils
+ */
+export const toMermaid = <N, E, T extends Kind = "directed">(
+  graph: Graph<N, E, T> | MutableGraph<N, E, T>,
+  options?: MermaidOptions<N, E>
+): string => {
+  // Extract and validate options with defaults
+  const {
+    diagramType,
+    direction = "TD",
+    edgeLabel = (data: E) => String(data),
+    nodeLabel = (data: N) => String(data),
+    nodeShape = () => "rectangle" as const
+  } = options ?? {}
+
+  // Auto-detect diagram type if not specified
+  const finalDiagramType = diagramType ??
+    (graph.type === "directed" ? "flowchart" : "graph")
+
+  // Generate diagram header
+  const lines: Array<string> = []
+  lines.push(`${finalDiagramType} ${direction}`)
+
+  // Add nodes
+  for (const [nodeIndex, nodeData] of graph.nodes) {
+    const nodeId = String(nodeIndex)
+    const label = escapeMermaidLabel(nodeLabel(nodeData))
+    const shape = nodeShape(nodeData)
+    const formattedNode = formatMermaidNode(nodeId, label, shape)
+    lines.push(`  ${formattedNode}`)
+  }
+
+  // Add edges
+  const edgeOperator = finalDiagramType === "flowchart" ? "-->" : "---"
+  for (const [, edgeData] of graph.edges) {
+    const sourceId = String(edgeData.source)
+    const targetId = String(edgeData.target)
+    const label = escapeMermaidLabel(edgeLabel(edgeData.data))
+
+    if (label) {
+      lines.push(`  ${sourceId} ${edgeOperator}|"${label}"| ${targetId}`)
+    } else {
+      lines.push(`  ${sourceId} ${edgeOperator} ${targetId}`)
+    }
+  }
+
   return lines.join("\n")
 }
 

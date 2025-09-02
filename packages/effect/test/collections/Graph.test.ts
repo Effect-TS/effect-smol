@@ -1614,6 +1614,328 @@ describe("Graph", () => {
     })
   })
 
+  describe("toMermaid", () => {
+    it("should export empty directed graph", () => {
+      const graph = Graph.directed<string, number>()
+      const mermaid = Graph.toMermaid(graph)
+      expect(mermaid).toBe("flowchart TD")
+    })
+
+    it("should export empty undirected graph", () => {
+      const graph = Graph.undirected<string, number>()
+      const mermaid = Graph.toMermaid(graph)
+      expect(mermaid).toBe("graph TD")
+    })
+
+    it("should export directed graph with nodes", () => {
+      const graph = Graph.directed<string, number>((mutable) => {
+        Graph.addNode(mutable, "Node A")
+        Graph.addNode(mutable, "Node B")
+        Graph.addNode(mutable, "Node C")
+      })
+
+      const mermaid = Graph.toMermaid(graph)
+      expect(mermaid).toContain("flowchart TD")
+      expect(mermaid).toContain("0[\"Node A\"]")
+      expect(mermaid).toContain("1[\"Node B\"]")
+      expect(mermaid).toContain("2[\"Node C\"]")
+    })
+
+    it("should export undirected graph with nodes", () => {
+      const graph = Graph.undirected<string, number>((mutable) => {
+        Graph.addNode(mutable, "Alice")
+        Graph.addNode(mutable, "Bob")
+      })
+
+      const mermaid = Graph.toMermaid(graph)
+      expect(mermaid).toContain("graph TD")
+      expect(mermaid).toContain("0[\"Alice\"]")
+      expect(mermaid).toContain("1[\"Bob\"]")
+    })
+
+    it("should support all node shapes", () => {
+      const shapes: Array<[string, any]> = [
+        ["rectangle", "rectangle"],
+        ["rounded", "rounded"],
+        ["circle", "circle"],
+        ["diamond", "diamond"],
+        ["hexagon", "hexagon"],
+        ["stadium", "stadium"],
+        ["subroutine", "subroutine"],
+        ["cylindrical", "cylindrical"]
+      ]
+
+      shapes.forEach(([shapeName, shapeValue]) => {
+        const graph = Graph.directed<string, number>((mutable) => {
+          Graph.addNode(mutable, "Test")
+        })
+
+        const mermaid = Graph.toMermaid(graph, {
+          nodeShape: () => shapeValue
+        })
+
+        expect(mermaid).toContain("flowchart TD")
+
+        // Test expected shape format
+        switch (shapeName) {
+          case "rectangle":
+            expect(mermaid).toContain("0[\"Test\"]")
+            break
+          case "rounded":
+            expect(mermaid).toContain("0(\"Test\")")
+            break
+          case "circle":
+            expect(mermaid).toContain("0((\"Test\"))")
+            break
+          case "diamond":
+            expect(mermaid).toContain("0{\"Test\"}")
+            break
+          case "hexagon":
+            expect(mermaid).toContain("0{{\"Test\"}}")
+            break
+          case "stadium":
+            expect(mermaid).toContain("0([\"Test\"])")
+            break
+          case "subroutine":
+            expect(mermaid).toContain("0[[\"Test\"]]")
+            break
+          case "cylindrical":
+            expect(mermaid).toContain("0[(\"Test\")]")
+            break
+        }
+      })
+    })
+
+    it("should escape special characters in labels", () => {
+      const graph = Graph.directed<string, number>((mutable) => {
+        Graph.addNode(mutable, "Node with \"quotes\"")
+        Graph.addNode(mutable, "Node with [brackets]")
+        Graph.addNode(mutable, "Node with | pipe")
+        Graph.addNode(mutable, "Node with \\ backslash")
+        Graph.addNode(mutable, "Node with \n newline")
+      })
+
+      const mermaid = Graph.toMermaid(graph)
+
+      expect(mermaid).toContain("0[\"Node with \\\"quotes\\\"\"]")
+      expect(mermaid).toContain("1[\"Node with \\[brackets\\]\"]")
+      expect(mermaid).toContain("2[\"Node with \\| pipe\"]")
+      expect(mermaid).toContain("3[\"Node with \\\\ backslash\"]")
+      expect(mermaid).toContain("4[\"Node with <br/> newline\"]")
+    })
+
+    it("should export directed graph with edges", () => {
+      const graph = Graph.directed<string, number>((mutable) => {
+        const nodeA = Graph.addNode(mutable, "Node A")
+        const nodeB = Graph.addNode(mutable, "Node B")
+        const nodeC = Graph.addNode(mutable, "Node C")
+        Graph.addEdge(mutable, nodeA, nodeB, 1)
+        Graph.addEdge(mutable, nodeB, nodeC, 2)
+        Graph.addEdge(mutable, nodeC, nodeA, 3)
+      })
+
+      const mermaid = Graph.toMermaid(graph)
+      expect(mermaid).toContain("flowchart TD")
+      expect(mermaid).toContain("0[\"Node A\"]")
+      expect(mermaid).toContain("1[\"Node B\"]")
+      expect(mermaid).toContain("2[\"Node C\"]")
+      expect(mermaid).toContain("0 -->|\"1\"| 1")
+      expect(mermaid).toContain("1 -->|\"2\"| 2")
+      expect(mermaid).toContain("2 -->|\"3\"| 0")
+    })
+
+    it("should export undirected graph with edges", () => {
+      const graph = Graph.undirected<string, string>((mutable) => {
+        const alice = Graph.addNode(mutable, "Alice")
+        const bob = Graph.addNode(mutable, "Bob")
+        const charlie = Graph.addNode(mutable, "Charlie")
+        Graph.addEdge(mutable, alice, bob, "friends")
+        Graph.addEdge(mutable, bob, charlie, "colleagues")
+      })
+
+      const mermaid = Graph.toMermaid(graph)
+      expect(mermaid).toContain("graph TD")
+      expect(mermaid).toContain("0[\"Alice\"]")
+      expect(mermaid).toContain("1[\"Bob\"]")
+      expect(mermaid).toContain("2[\"Charlie\"]")
+      expect(mermaid).toContain("0 ---|\"friends\"| 1")
+      expect(mermaid).toContain("1 ---|\"colleagues\"| 2")
+    })
+
+    it("should handle empty edge labels", () => {
+      const graph = Graph.directed<string, string>((mutable) => {
+        const nodeA = Graph.addNode(mutable, "A")
+        const nodeB = Graph.addNode(mutable, "B")
+        Graph.addEdge(mutable, nodeA, nodeB, "")
+      })
+
+      const mermaid = Graph.toMermaid(graph)
+      expect(mermaid).toContain("0 --> 1")
+    })
+
+    it("should support all diagram directions", () => {
+      const directions = ["TB", "TD", "BT", "RL", "LR"] as const
+
+      directions.forEach((dir) => {
+        const graph = Graph.directed<string, number>((mutable) => {
+          Graph.addNode(mutable, "A")
+          Graph.addNode(mutable, "B")
+        })
+
+        const mermaid = Graph.toMermaid(graph, { direction: dir })
+        expect(mermaid).toContain(`flowchart ${dir}`)
+        expect(mermaid).toContain("0[\"A\"]")
+        expect(mermaid).toContain("1[\"B\"]")
+      })
+    })
+
+    it("should auto-detect diagram type based on graph type", () => {
+      // Directed graph should auto-detect as flowchart
+      const directedGraph = Graph.directed<string, number>((mutable) => {
+        Graph.addNode(mutable, "A")
+      })
+      const directedMermaid = Graph.toMermaid(directedGraph)
+      expect(directedMermaid).toContain("flowchart TD")
+
+      // Undirected graph should auto-detect as graph
+      const undirectedGraph = Graph.undirected<string, number>((mutable) => {
+        Graph.addNode(mutable, "A")
+      })
+      const undirectedMermaid = Graph.toMermaid(undirectedGraph)
+      expect(undirectedMermaid).toContain("graph TD")
+    })
+
+    it("should allow manual diagram type override", () => {
+      // Override directed graph to use 'graph' type
+      const directedGraph = Graph.directed<string, number>((mutable) => {
+        Graph.addNode(mutable, "A")
+      })
+      const overriddenMermaid = Graph.toMermaid(directedGraph, {
+        diagramType: "graph"
+      })
+      expect(overriddenMermaid).toContain("graph TD")
+
+      // Override undirected graph to use 'flowchart' type
+      const undirectedGraph = Graph.undirected<string, number>((mutable) => {
+        Graph.addNode(mutable, "B")
+      })
+      const overriddenFlowchart = Graph.toMermaid(undirectedGraph, {
+        diagramType: "flowchart"
+      })
+      expect(overriddenFlowchart).toContain("flowchart TD")
+    })
+
+    it("should combine direction and diagram type options", () => {
+      const graph = Graph.directed<string, number>((mutable) => {
+        Graph.addNode(mutable, "Test")
+      })
+
+      const mermaid = Graph.toMermaid(graph, {
+        direction: "LR",
+        diagramType: "graph"
+      })
+
+      expect(mermaid).toContain("graph LR")
+      expect(mermaid).toContain("0[\"Test\"]")
+    })
+
+    it("should handle self-loops correctly", () => {
+      const graph = Graph.directed<string, string>((mutable) => {
+        const nodeA = Graph.addNode(mutable, "A")
+        Graph.addEdge(mutable, nodeA, nodeA, "self")
+      })
+
+      const mermaid = Graph.toMermaid(graph)
+      expect(mermaid).toContain("flowchart TD")
+      expect(mermaid).toContain("0[\"A\"]")
+      expect(mermaid).toContain("0 -->|\"self\"| 0")
+    })
+
+    it("should handle multi-edges correctly", () => {
+      const graph = Graph.directed<string, number>((mutable) => {
+        const nodeA = Graph.addNode(mutable, "A")
+        const nodeB = Graph.addNode(mutable, "B")
+        Graph.addEdge(mutable, nodeA, nodeB, 1)
+        Graph.addEdge(mutable, nodeA, nodeB, 2)
+        Graph.addEdge(mutable, nodeA, nodeB, 3)
+      })
+
+      const mermaid = Graph.toMermaid(graph)
+      expect(mermaid).toContain("flowchart TD")
+      expect(mermaid).toContain("0[\"A\"]")
+      expect(mermaid).toContain("1[\"B\"]")
+      // Should contain all three edges
+      expect(mermaid).toContain("0 -->|\"1\"| 1")
+      expect(mermaid).toContain("0 -->|\"2\"| 1")
+      expect(mermaid).toContain("0 -->|\"3\"| 1")
+    })
+
+    it("should handle disconnected components", () => {
+      const graph = Graph.directed<string, string>((mutable) => {
+        // Component 1: A -> B
+        const nodeA = Graph.addNode(mutable, "A")
+        const nodeB = Graph.addNode(mutable, "B")
+        Graph.addEdge(mutable, nodeA, nodeB, "A->B")
+
+        // Component 2: C -> D (disconnected)
+        const nodeC = Graph.addNode(mutable, "C")
+        const nodeD = Graph.addNode(mutable, "D")
+        Graph.addEdge(mutable, nodeC, nodeD, "C->D")
+
+        // Isolated node E
+        Graph.addNode(mutable, "E")
+      })
+
+      const mermaid = Graph.toMermaid(graph)
+      expect(mermaid).toContain("flowchart TD")
+      expect(mermaid).toContain("0[\"A\"]")
+      expect(mermaid).toContain("1[\"B\"]")
+      expect(mermaid).toContain("2[\"C\"]")
+      expect(mermaid).toContain("3[\"D\"]")
+      expect(mermaid).toContain("4[\"E\"]")
+      expect(mermaid).toContain("0 -->|\"A->B\"| 1")
+      expect(mermaid).toContain("2 -->|\"C->D\"| 3")
+    })
+
+    it("should handle custom labels with complex data", () => {
+      interface NodeData {
+        id: string
+        value: number
+        metadata: { type: string }
+      }
+
+      interface EdgeData {
+        weight: number
+        type: string
+      }
+
+      const graph = Graph.directed<NodeData, EdgeData>((mutable) => {
+        const node1 = Graph.addNode(mutable, {
+          id: "node1",
+          value: 42,
+          metadata: { type: "input" }
+        })
+        const node2 = Graph.addNode(mutable, {
+          id: "node2",
+          value: 84,
+          metadata: { type: "processing" }
+        })
+        Graph.addEdge(mutable, node1, node2, { weight: 1.5, type: "data" })
+      })
+
+      const mermaid = Graph.toMermaid(graph, {
+        nodeLabel: (data) => `${data.id}:${data.value}`,
+        edgeLabel: (data) => `${data.type}(${data.weight})`,
+        direction: "LR"
+      })
+
+      expect(mermaid).toContain("flowchart LR")
+      expect(mermaid).toContain("0[\"node1:42\"]")
+      expect(mermaid).toContain("1[\"node2:84\"]")
+      expect(mermaid).toContain("0 -->|\"data(1.5)\"| 1")
+    })
+  })
+
   describe("isAcyclic", () => {
     it("should detect acyclic directed graphs (DAGs)", () => {
       const dag = Graph.directed<string, string>((mutable) => {
