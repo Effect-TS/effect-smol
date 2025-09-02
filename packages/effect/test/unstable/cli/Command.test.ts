@@ -1,20 +1,20 @@
+import { NodeFileSystem, NodePath } from "@effect/platform-node"
 import { assert, describe, expect, it } from "@effect/vitest"
-import * as Option from "../../../src/data/Option.js"
-import * as Effect from "../../../src/Effect.js"
-import * as Layer from "../../../src/Layer.js"
-import * as TestConsole from "../../../src/testing/TestConsole.js"
-import * as CliError from "../../../src/unstable/cli/CliError.js"
-import * as Command from "../../../src/unstable/cli/Command.js"
-import * as Flag from "../../../src/unstable/cli/Flag.js"
-import * as HelpFormatter from "../../../src/unstable/cli/HelpFormatter.js"
-import { comprehensiveCli, runComprehensiveCli } from "./utils/comprehensiveCli.js"
-import * as TestActions from "./utils/TestActions.js"
+import { Effect, Layer } from "effect"
+import { Option } from "effect/data"
+import { Path } from "effect/platform"
+import { TestConsole } from "effect/testing"
+import { CliError, Command, Flag, HelpFormatter } from "effect/unstable/cli"
+import { comprehensiveCli, runComprehensiveCli } from "./utils/comprehensiveCli.ts"
+import * as TestActions from "./utils/TestActions.ts"
 
 // Create a test layer that provides TestConsole and TestActions
 const TestLayer = Layer.mergeAll(
   TestConsole.layer,
   HelpFormatter.layer(HelpFormatter.defaultHelpRenderer({ colors: false })),
-  TestActions.layer
+  TestActions.layer,
+  NodeFileSystem.layer,
+  NodePath.layer
 )
 
 describe("Command", () => {

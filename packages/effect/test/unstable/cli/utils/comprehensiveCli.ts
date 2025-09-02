@@ -1,10 +1,8 @@
-import * as Option from "../../../../src/data/Option.js"
-import * as Effect from "../../../../src/Effect.js"
-import * as Argument from "../../../../src/unstable/cli/Argument.js"
-import * as Command from "../../../../src/unstable/cli/Command.js"
-import * as Flag from "../../../../src/unstable/cli/Flag.js"
-import type { TestActions } from "./TestActions.js"
-import { logAction } from "./TestActions.js"
+import { Effect } from "effect"
+import { Option } from "effect/data"
+import { Argument, Command, Flag } from "effect/unstable/cli"
+import type { TestActions } from "./TestActions.ts"
+import { logAction } from "./TestActions.ts"
 
 /**
  * A comprehensive CLI tool demonstrating all features.
