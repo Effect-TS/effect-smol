@@ -200,16 +200,6 @@ const SinkProto = {
 /**
  * Creates a sink from a `Channel`.
  *
- * @example
- * ```ts
- * import { Sink } from "effect/stream"
- * import { Channel } from "effect/stream"
- *
- * // Create a sink from a channel that ends immediately
- * const channel = Channel.end(42)
- * const sink = Sink.fromChannel(channel)
- * ```
- *
  * @since 2.0.0
  * @category constructors
  */
