@@ -1,7 +1,6 @@
 /**
  * @since 4.0.0
  */
-import * as Option from "../../data/Option.ts"
 import * as Effect from "../../Effect.ts"
 import * as Exit from "../../Exit.ts"
 import * as Layer from "../../Layer.ts"
@@ -87,7 +86,7 @@ export class Runners extends ServiceMap.Key<Runners, {
    */
   readonly notify: <R extends Rpc.Any>(
     options: {
-      readonly address: Option.Option<RunnerAddress>
+      readonly address: RunnerAddress | undefined
       readonly message: Message.Outgoing<R>
       readonly discard: boolean
     }
@@ -321,10 +320,10 @@ export const make: (options: Omit<Runners["Service"], "sendLocal" | "notifyLocal
       return notifyWith(message, (message, duplicate) => {
         if (discard || message._tag === "OutgoingEnvelope") {
           return options.notify(options_)
-        } else if (!duplicate && options_.address._tag === "Some") {
+        } else if (!duplicate && options_.address) {
           return Effect.catch(
             options.send({
-              address: options_.address.value,
+              address: options_.address,
               message
             }),
             (error) => {
@@ -565,11 +564,11 @@ export const makeRpc: Effect.Effect<
       })
     },
     notify({ address, message }) {
-      if (Option.isNone(address)) {
+      if (address === undefined) {
         return Effect.void
       }
       const envelope = message.envelope
-      return RcMap.get(clients, address.value).pipe(
+      return RcMap.get(clients, address).pipe(
         Effect.flatMap((client) => client.Notify({ envelope })),
         Effect.scoped,
         Effect.catch((error) => {

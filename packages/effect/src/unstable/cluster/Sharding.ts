@@ -762,22 +762,22 @@ const make = Effect.gen(function*() {
     return Effect.catchFilter(
       Effect.suspend(() => {
         const address = message.envelope.address
-        const maybeRunner = MutableHashMap.get(shardAssignments, address.shardId)
         const isPersisted = ServiceMap.get(message.rpc.annotations, Persisted)
         if (isPersisted && !storageEnabled) {
           return Effect.die("Sharding.sendOutgoing: Persisted messages require MessageStorage")
         }
-        const runnerIsLocal = Option.isSome(maybeRunner) && isLocalRunner(maybeRunner.value)
+        const maybeRunner = Option.getOrUndefined(MutableHashMap.get(shardAssignments, address.shardId))
+        const runnerIsLocal = maybeRunner !== undefined && isLocalRunner(maybeRunner)
         if (isPersisted) {
           return runnerIsLocal
             ? notifyLocal(message, discard)
             : runners.notify({ address: maybeRunner, message, discard })
-        } else if (Option.isNone(maybeRunner)) {
+        } else if (maybeRunner === undefined) {
           return Effect.fail(new EntityNotAssignedToRunner({ address }))
         }
         return runnerIsLocal
           ? sendLocal(message)
-          : runners.send({ address: maybeRunner.value, message })
+          : runners.send({ address: maybeRunner, message })
       }),
       (error) =>
         error._tag === "EntityNotAssignedToRunner" || error._tag === "RunnerUnavailable" ? error : Filter.fail(error),
