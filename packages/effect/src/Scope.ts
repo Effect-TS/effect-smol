@@ -70,9 +70,7 @@ export interface Scope {
  *   // Add a finalizer
  *   yield* Scope.addFinalizer(scope, Console.log("Cleanup!"))
  *
- *   // Closeable scope can be closed directly
- *   yield* scope.close(Exit.void)
- *   // Or using the close function
+ *   // Scope can be closed
  *   yield* Scope.close(scope, Exit.void)
  * })
  * ```
