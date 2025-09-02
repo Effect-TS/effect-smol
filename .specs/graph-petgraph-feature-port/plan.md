@@ -884,12 +884,12 @@ This scoring system ensures our documentation remains accurate, practical, and m
 
 ### **6. API Design Philosophy**
 - **Unified Configuration**: Single functions with optional configuration objects
-  - `Graph.dfs(graph, { startNodes: [0], direction: "outgoing" })`
-  - `Graph.bfs(graph, { startNodes: [0] })`
+  - `Graph.dfs(graph, { start: [0], direction: "outgoing" })`
+  - `Graph.bfs(graph, { start: [0] })`
   - `Graph.topo(graph, { initials: [0] })`
 - **Native JavaScript Patterns**: Iterators implement `Iterable<NodeIndex>`
-  - `for (const node of Graph.dfs(graph, { startNodes: [0] }))`
-  - `Array.from(Graph.bfs(graph, { startNodes: [0] }))`
+  - `for (const node of Graph.dfs(graph, { start: [0] }))`
+  - `Array.from(Graph.bfs(graph, { start: [0] }))`
 - **No Function Variants**: Instead of `dfsNew`, `dfsEmpty`, use single `dfs` function
 - **Clean Separation**: Remove old callback-based traversal functions
 

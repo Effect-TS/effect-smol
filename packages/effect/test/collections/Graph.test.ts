@@ -2541,7 +2541,7 @@ describe("Graph", () => {
         Graph.addEdge(mutable, b, c, 2)
       })
 
-      const dfsIterator = Graph.dfs(graph, { startNodes: [0] })
+      const dfsIterator = Graph.dfs(graph, { start: [0] })
       const values = Array.from(Graph.values(dfsIterator))
 
       expect(values).toEqual(["A", "B", "C"])
@@ -2556,7 +2556,7 @@ describe("Graph", () => {
         Graph.addEdge(mutable, b, c, 2)
       })
 
-      const dfsIterator = Graph.dfs(graph, { startNodes: [0] })
+      const dfsIterator = Graph.dfs(graph, { start: [0] })
       const entries = Array.from(Graph.entries(dfsIterator))
 
       expect(entries).toEqual([[0, "A"], [1, "B"], [2, "C"]])
@@ -2571,7 +2571,7 @@ describe("Graph", () => {
         Graph.addEdge(mutable, a, c, 2)
       })
 
-      const bfsIterator = Graph.bfs(graph, { startNodes: [0] })
+      const bfsIterator = Graph.bfs(graph, { start: [0] })
       const values = Array.from(Graph.values(bfsIterator))
 
       expect(values).toEqual(["A", "B", "C"])
@@ -2586,7 +2586,7 @@ describe("Graph", () => {
         Graph.addEdge(mutable, a, c, 2)
       })
 
-      const bfsIterator = Graph.bfs(graph, { startNodes: [0] })
+      const bfsIterator = Graph.bfs(graph, { start: [0] })
       const entries = Array.from(Graph.entries(bfsIterator))
 
       expect(entries).toEqual([[0, "A"], [1, "B"], [2, "C"]])
@@ -2674,7 +2674,7 @@ describe("Graph", () => {
         Graph.addEdge(mutable, b, c, 2)
       })
 
-      const dfsPostIterator = Graph.dfsPostOrder(graph, { startNodes: [0] })
+      const dfsPostIterator = Graph.dfsPostOrder(graph, { start: [0] })
       const values = Array.from(Graph.values(dfsPostIterator))
 
       expect(values).toEqual(["C", "B", "A"]) // Postorder: children before parents
@@ -2689,7 +2689,7 @@ describe("Graph", () => {
         Graph.addEdge(mutable, b, c, 2)
       })
 
-      const dfsPostIterator = Graph.dfsPostOrder(graph, { startNodes: [0] })
+      const dfsPostIterator = Graph.dfsPostOrder(graph, { start: [0] })
       const entries = Array.from(Graph.entries(dfsPostIterator))
 
       expect(entries).toEqual([[2, "C"], [1, "B"], [0, "A"]]) // Postorder: children before parents
@@ -2706,7 +2706,7 @@ describe("Graph", () => {
         Graph.addEdge(mutable, b, c, 2)
       })
 
-      const postOrder = Array.from(Graph.indices(Graph.dfsPostOrder(graph, { startNodes: [0] })))
+      const postOrder = Array.from(Graph.indices(Graph.dfsPostOrder(graph, { start: [0] })))
       expect(postOrder).toEqual([2, 1, 0]) // Children before parents
     })
 
@@ -2724,7 +2724,7 @@ describe("Graph", () => {
         Graph.addEdge(mutable, right, leaf2, 4)
       })
 
-      const postOrder = Array.from(Graph.indices(Graph.dfsPostOrder(graph, { startNodes: [0] })))
+      const postOrder = Array.from(Graph.indices(Graph.dfsPostOrder(graph, { start: [0] })))
       // Should visit leaves first, then parents
       expect(postOrder).toEqual([3, 1, 4, 2, 0])
     })
@@ -2734,7 +2734,7 @@ describe("Graph", () => {
         Graph.addNode(mutable, "A")
       })
 
-      const postOrder = Array.from(Graph.dfsPostOrder(graph, { startNodes: [] }))
+      const postOrder = Array.from(Graph.dfsPostOrder(graph, { start: [] }))
       expect(postOrder).toEqual([])
     })
 
@@ -2750,7 +2750,7 @@ describe("Graph", () => {
         // No connection between (A,B) and (C,D)
       })
 
-      const postOrder = Array.from(Graph.indices(Graph.dfsPostOrder(graph, { startNodes: [0, 2] })))
+      const postOrder = Array.from(Graph.indices(Graph.dfsPostOrder(graph, { start: [0, 2] })))
       expect(postOrder).toEqual([1, 0, 3, 2]) // Each component in postorder
     })
 
@@ -2766,7 +2766,7 @@ describe("Graph", () => {
       // Starting from C, going backwards
       const postOrder = Array.from(
         Graph.indices(Graph.dfsPostOrder(graph, {
-          startNodes: [2],
+          start: [2],
           direction: "incoming"
         }))
       )
@@ -2783,7 +2783,7 @@ describe("Graph", () => {
         Graph.addEdge(mutable, c, a, 3) // Creates cycle
       })
 
-      const postOrder = Array.from(Graph.indices(Graph.dfsPostOrder(graph, { startNodes: [0] })))
+      const postOrder = Array.from(Graph.indices(Graph.dfsPostOrder(graph, { start: [0] })))
       // Should handle cycle without infinite loop, visiting each node once
       expect(postOrder.length).toBe(3)
       expect(new Set(postOrder)).toEqual(new Set([0, 1, 2]))
@@ -2794,7 +2794,7 @@ describe("Graph", () => {
         Graph.addNode(mutable, "A")
       })
 
-      expect(() => Graph.dfsPostOrder(graph, { startNodes: [99] }))
+      expect(() => Graph.dfsPostOrder(graph, { start: [99] }))
         .toThrow("Node 99 does not exist")
     })
 
@@ -2805,7 +2805,7 @@ describe("Graph", () => {
         Graph.addEdge(mutable, a, b, 1)
       })
 
-      const iterator = Graph.dfsPostOrder(graph, { startNodes: [0] })
+      const iterator = Graph.dfsPostOrder(graph, { start: [0] })
 
       const firstRun = Array.from(Graph.indices(iterator))
       const secondRun = Array.from(Graph.indices(iterator))
@@ -2837,7 +2837,7 @@ describe("Graph", () => {
         return originalGetNode.call(this, key)
       }
 
-      const iterator = Graph.dfsPostOrder(graph, { startNodes: [0] })
+      const iterator = Graph.dfsPostOrder(graph, { start: [0] })
       const results = Array.from(iterator)
 
       // Restore original method
@@ -3016,7 +3016,7 @@ describe("Graph", () => {
       })
 
       // Should work with different iterator types
-      const dfsIterable = Graph.dfs(graph, { startNodes: [0] })
+      const dfsIterable = Graph.dfs(graph, { start: [0] })
       const nodesIterable = Graph.nodes(graph)
       const externalsIterable = Graph.externals(graph)
 
@@ -3045,7 +3045,7 @@ describe("Graph", () => {
       }
 
       // Both traversal and element iterators implement NodeWalker
-      const dfsNodes = Graph.dfs(graph, { startNodes: [0] })
+      const dfsNodes = Graph.dfs(graph, { start: [0] })
       const allNodes = Graph.nodes(graph)
       const externalNodes = Graph.externals(graph, { direction: "outgoing" })
 
@@ -3064,7 +3064,7 @@ describe("Graph", () => {
 
       const nodeIterable: Graph.NodeWalker<string> = Graph.nodes(graph)
       const traversalIterable: Graph.NodeWalker<string> = Graph.dfs(graph, {
-        startNodes: [0]
+        start: [0]
       })
 
       expect(Array.from(Graph.indices(nodeIterable))).toEqual([0, 1])
@@ -3083,7 +3083,7 @@ describe("Graph", () => {
       })
 
       // Test with traversal iterators
-      const dfsIterable = Graph.dfs(graph, { startNodes: [0] })
+      const dfsIterable = Graph.dfs(graph, { start: [0] })
       const dfsValues = Array.from(Graph.values(dfsIterable))
       expect(dfsValues).toEqual(["A", "B", "C"])
 
@@ -3106,7 +3106,7 @@ describe("Graph", () => {
       })
 
       // Test with traversal iterator
-      const dfsIterable = Graph.dfs(graph, { startNodes: [0] })
+      const dfsIterable = Graph.dfs(graph, { start: [0] })
       const dfsEntries = Array.from(Graph.entries(dfsIterable))
       expect(dfsEntries).toEqual([[0, "A"], [1, "B"]])
 
@@ -3128,7 +3128,7 @@ describe("Graph", () => {
         Graph.addEdge(mutable, a, b, 1)
       })
 
-      const dfs = Graph.dfs(graph, { startNodes: [0] })
+      const dfs = Graph.dfs(graph, { start: [0] })
 
       // Instance methods should work
       const instanceValues = Array.from(Graph.values(dfs))
@@ -3145,7 +3145,7 @@ describe("Graph", () => {
         Graph.addEdge(mutable, a, b, 1)
       })
 
-      const dfs = Graph.dfs(graph, { startNodes: [0] })
+      const dfs = Graph.dfs(graph, { start: [0] })
 
       // Test mapEntry with custom mapping
       const custom = Array.from(dfs.visit((index, data) => ({ id: index, name: data })))

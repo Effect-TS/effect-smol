@@ -2104,10 +2104,10 @@ export const toMermaid = <N, E, T extends Kind = "directed">(
  * })
  *
  * // Follow outgoing edges (normal direction)
- * const outgoingNodes = Array.from(Graph.indices(Graph.dfs(graph, { startNodes: [0], direction: "outgoing" })))
+ * const outgoingNodes = Array.from(Graph.indices(Graph.dfs(graph, { start: [0], direction: "outgoing" })))
  *
  * // Follow incoming edges (reverse direction)
- * const incomingNodes = Array.from(Graph.indices(Graph.dfs(graph, { startNodes: [1], direction: "incoming" })))
+ * const incomingNodes = Array.from(Graph.indices(Graph.dfs(graph, { start: [1], direction: "incoming" })))
  * ```
  *
  * @since 4.0.0
@@ -3253,7 +3253,7 @@ export const bellmanFord = <N, E, T extends Kind = "directed">(
  * })
  *
  * // Both traversal and element iterators return NodeWalker
- * const dfsNodes: Graph.NodeWalker<string> = Graph.dfs(graph, { startNodes: [0] })
+ * const dfsNodes: Graph.NodeWalker<string> = Graph.dfs(graph, { start: [0] })
  * const allNodes: Graph.NodeWalker<string> = Graph.nodes(graph)
  *
  * // Common interface for working with node iterables
@@ -3290,7 +3290,7 @@ export class Walker<T, N> implements Iterable<[T, N]> {
    *   Graph.addEdge(mutable, a, b, 1)
    * })
    *
-   * const dfs = Graph.dfs(graph, { startNodes: [0] })
+   * const dfs = Graph.dfs(graph, { start: [0] })
    *
    * // Map to just the node data
    * const values = Array.from(dfs.visit((index, data) => data))
@@ -3324,7 +3324,7 @@ export class Walker<T, N> implements Iterable<[T, N]> {
      *   Graph.addEdge(mutable, a, b, 1)
      * })
      *
-     * const dfs = Graph.dfs(graph, { startNodes: [0] })
+     * const dfs = Graph.dfs(graph, { start: [0] })
      *
      * // Map to just the node data
      * const values = Array.from(dfs.visit((index, data) => data))
@@ -3376,7 +3376,7 @@ export type EdgeWalker<E> = Walker<EdgeIndex, Edge<E>>
  *   Graph.addEdge(mutable, a, b, 1)
  * })
  *
- * const dfs = Graph.dfs(graph, { startNodes: [0] })
+ * const dfs = Graph.dfs(graph, { start: [0] })
  * const indices = Array.from(Graph.indices(dfs))
  * console.log(indices) // [0, 1]
  * ```
@@ -3399,7 +3399,7 @@ export const indices = <T, N>(walker: Walker<T, N>): Iterable<T> => walker.visit
  *   Graph.addEdge(mutable, a, b, 1)
  * })
  *
- * const dfs = Graph.dfs(graph, { startNodes: [0] })
+ * const dfs = Graph.dfs(graph, { start: [0] })
  * const values = Array.from(Graph.values(dfs))
  * console.log(values) // ["A", "B"]
  * ```
@@ -3422,7 +3422,7 @@ export const values = <T, N>(walker: Walker<T, N>): Iterable<N> => walker.visit(
  *   Graph.addEdge(mutable, a, b, 1)
  * })
  *
- * const dfs = Graph.dfs(graph, { startNodes: [0] })
+ * const dfs = Graph.dfs(graph, { start: [0] })
  * const entries = Array.from(Graph.entries(dfs))
  * console.log(entries) // [[0, "A"], [1, "B"]]
  * ```
@@ -3434,13 +3434,13 @@ export const entries = <T, N>(walker: Walker<T, N>): Iterable<[T, N]> =>
   walker.visit((index, data) => [index, data] as [T, N])
 
 /**
- * Configuration options for DFS iterator.
+ * Configuration options for search iterators.
  *
  * @since 4.0.0
  * @category models
  */
-export interface DfsConfig {
-  readonly startNodes?: Array<NodeIndex>
+export interface SearchConfig {
+  readonly start?: Array<NodeIndex>
   readonly direction?: Direction
 }
 
@@ -3463,7 +3463,7 @@ export interface DfsConfig {
  * })
  *
  * // Start from a specific node
- * const dfs1 = Graph.dfs(graph, { startNodes: [0] })
+ * const dfs1 = Graph.dfs(graph, { start: [0] })
  * for (const nodeIndex of Graph.indices(dfs1)) {
  *   console.log(nodeIndex) // Traverses in DFS order: 0, 1, 2
  * }
@@ -3478,13 +3478,13 @@ export interface DfsConfig {
  */
 export const dfs = <N, E, T extends Kind = "directed">(
   graph: Graph<N, E, T> | MutableGraph<N, E, T>,
-  config: DfsConfig = {}
+  config: SearchConfig = {}
 ): NodeWalker<N> => {
-  const startNodes = config.startNodes ?? []
+  const start = config.start ?? []
   const direction = config.direction ?? "outgoing"
 
   // Validate that all start nodes exist
-  for (const nodeIndex of startNodes) {
+  for (const nodeIndex of start) {
     if (!hasNode(graph, nodeIndex)) {
       throw missingNode(nodeIndex)
     }
@@ -3492,7 +3492,7 @@ export const dfs = <N, E, T extends Kind = "directed">(
 
   return new Walker((f) => ({
     [Symbol.iterator]: () => {
-      const stack = [...startNodes]
+      const stack = [...start]
       const discovered = new Set<NodeIndex>()
 
       const nextMapped = () => {
@@ -3530,17 +3530,6 @@ export const dfs = <N, E, T extends Kind = "directed">(
 }
 
 /**
- * Configuration options for BFS iterator.
- *
- * @since 4.0.0
- * @category models
- */
-export interface BfsConfig {
-  readonly startNodes?: Array<NodeIndex>
-  readonly direction?: Direction
-}
-
-/**
  * Creates a new BFS iterator with optional configuration.
  *
  * The iterator maintains a queue of nodes to visit and tracks discovered nodes.
@@ -3559,7 +3548,7 @@ export interface BfsConfig {
  * })
  *
  * // Start from a specific node
- * const bfs1 = Graph.bfs(graph, { startNodes: [0] })
+ * const bfs1 = Graph.bfs(graph, { start: [0] })
  * for (const nodeIndex of Graph.indices(bfs1)) {
  *   console.log(nodeIndex) // Traverses in BFS order: 0, 1, 2
  * }
@@ -3574,13 +3563,13 @@ export interface BfsConfig {
  */
 export const bfs = <N, E, T extends Kind = "directed">(
   graph: Graph<N, E, T> | MutableGraph<N, E, T>,
-  config: BfsConfig = {}
+  config: SearchConfig = {}
 ): NodeWalker<N> => {
-  const startNodes = config.startNodes ?? []
+  const start = config.start ?? []
   const direction = config.direction ?? "outgoing"
 
   // Validate that all start nodes exist
-  for (const nodeIndex of startNodes) {
+  for (const nodeIndex of start) {
     if (!hasNode(graph, nodeIndex)) {
       throw missingNode(nodeIndex)
     }
@@ -3588,7 +3577,7 @@ export const bfs = <N, E, T extends Kind = "directed">(
 
   return new Walker((f) => ({
     [Symbol.iterator]: () => {
-      const queue = [...startNodes]
+      const queue = [...start]
       const discovered = new Set<NodeIndex>()
 
       const nextMapped = () => {
@@ -3760,17 +3749,6 @@ export const topo = <N, E, T extends Kind = "directed">(
 }
 
 /**
- * Configuration options for DFS postorder iterator.
- *
- * @since 4.0.0
- * @category models
- */
-export interface DfsPostOrderConfig {
-  readonly startNodes?: Array<NodeIndex>
-  readonly direction?: Direction
-}
-
-/**
  * Creates a new DFS postorder iterator with optional configuration.
  *
  * The iterator maintains a stack with visit state tracking and emits nodes
@@ -3790,7 +3768,7 @@ export interface DfsPostOrderConfig {
  * })
  *
  * // Postorder: children before parents
- * const postOrder = Graph.dfsPostOrder(graph, { startNodes: [0] })
+ * const postOrder = Graph.dfsPostOrder(graph, { start: [0] })
  * for (const node of postOrder) {
  *   console.log(node) // 1, 2, 0
  * }
@@ -3801,13 +3779,13 @@ export interface DfsPostOrderConfig {
  */
 export const dfsPostOrder = <N, E, T extends Kind = "directed">(
   graph: Graph<N, E, T> | MutableGraph<N, E, T>,
-  config: DfsPostOrderConfig = {}
+  config: SearchConfig = {}
 ): NodeWalker<N> => {
-  const startNodes = config.startNodes ?? []
+  const start = config.start ?? []
   const direction = config.direction ?? "outgoing"
 
   // Validate that all start nodes exist
-  for (const nodeIndex of startNodes) {
+  for (const nodeIndex of start) {
     if (!hasNode(graph, nodeIndex)) {
       throw missingNode(nodeIndex)
     }
@@ -3820,8 +3798,8 @@ export const dfsPostOrder = <N, E, T extends Kind = "directed">(
       const finished = new Set<NodeIndex>()
 
       // Initialize stack with start nodes
-      for (let i = startNodes.length - 1; i >= 0; i--) {
-        stack.push({ node: startNodes[i], visitedChildren: false })
+      for (let i = start.length - 1; i >= 0; i--) {
+        stack.push({ node: start[i], visitedChildren: false })
       }
 
       const nextMapped = () => {
