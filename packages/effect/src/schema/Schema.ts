@@ -2895,7 +2895,9 @@ export function withDecodingDefault<S extends Top>(
 /**
  * @since 4.0.0
  */
-export interface tag<Tag extends AST.Literal> extends withConstructorDefault<Literal<Tag>> {}
+export interface tag<Tag extends AST.Literal> extends withConstructorDefault<Literal<Tag>> {
+  readonly "~rebuild.out": tag<Tag>
+}
 
 /**
  * Creates a schema for a literal value that automatically provides itself as a
