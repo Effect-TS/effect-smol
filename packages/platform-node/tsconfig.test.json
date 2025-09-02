@@ -26,6 +26,7 @@
       "@effect/sql-sqlite-node": ["../sql/sqlite-node/src/index.ts"],
       "@effect/sql-sqlite-node/*": ["../sql/sqlite-node/src/*.ts"]
     },
+    "types": ["node"],
     "plugins": [
       {
         "name": "@effect/language-service",
