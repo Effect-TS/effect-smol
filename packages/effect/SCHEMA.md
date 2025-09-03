@@ -2387,6 +2387,63 @@ type Encoded = {
 export type Encoded = (typeof Operation)["Encoded"]
 ```
 
+### Branded Opaque Structs
+
+You can brand an opaque struct using the `Brand` generic parameter.
+
+**Example** (Branded Opaque Struct)
+
+```ts
+import { Schema } from "effect/schema"
+
+class A extends Schema.Opaque<A, { readonly brand: unique symbol }>()(
+  Schema.Struct({
+    a: Schema.String
+  })
+) {}
+class B extends Schema.Opaque<B, { readonly brand: unique symbol }>()(
+  Schema.Struct({
+    a: Schema.String
+  })
+) {}
+
+const f = (a: A) => a
+const g = (b: B) => b
+
+f(A.makeSync({ a: "a" })) // ok
+g(B.makeSync({ a: "a" })) // ok
+
+f(B.makeSync({ a: "a" })) // error: Argument of type 'B' is not assignable to parameter of type 'A'.
+g(A.makeSync({ a: "a" })) // error: Argument of type 'A' is not assignable to parameter of type 'B'.
+```
+
+Like with branded classes, you can use the `Brand` module to create branded opaque structs.
+
+```ts
+import type { Brand } from "effect/data"
+import { Schema } from "effect/schema"
+
+class A extends Schema.Opaque<A, Brand.Brand<"A">>()(
+  Schema.Struct({
+    a: Schema.String
+  })
+) {}
+class B extends Schema.Opaque<B, Brand.Brand<"B">>()(
+  Schema.Struct({
+    a: Schema.String
+  })
+) {}
+
+const f = (a: A) => a
+const g = (b: B) => b
+
+f(A.makeSync({ a: "a" })) // ok
+g(B.makeSync({ a: "a" })) // ok
+
+f(B.makeSync({ a: "a" })) // error: Argument of type 'B' is not assignable to parameter of type 'A'.
+g(A.makeSync({ a: "a" })) // error: Argument of type 'A' is not assignable to parameter of type 'B'.
+```
+
 ## Records
 
 ### Key Transformations

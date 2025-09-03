@@ -3813,7 +3813,7 @@ export function Map<Key extends Top, Value extends Top>(key: Key, value: Value):
 /**
  * @since 4.0.0
  */
-export interface Opaque<Self, S extends Top> extends
+export interface Opaque<Self, S extends Top, Brand> extends
   Bottom<
     Self,
     S["Encoded"],
@@ -3831,14 +3831,14 @@ export interface Opaque<Self, S extends Top> extends
     S["~encoded.optionality"]
   >
 {
-  new(_: never): S["Type"]
+  new(_: never): S["Type"] & Brand
 }
 
 /**
  * @since 4.0.0
  */
-export function Opaque<Self>() {
-  return <S extends Top>(schema: S): Opaque<Self, S> & Omit<S, "Type" | "Encoded"> => {
+export function Opaque<Self, Brand = {}>() {
+  return <S extends Top>(schema: S): Opaque<Self, S, Brand> & Omit<S, "Type" | "Encoded"> => {
     // eslint-disable-next-line @typescript-eslint/no-extraneous-class
     class Opaque {}
     Object.setPrototypeOf(Opaque, schema)

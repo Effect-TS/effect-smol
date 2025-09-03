@@ -985,6 +985,56 @@ describe("Schema", () => {
       expect(schema).type.toBe<Schema.Struct<{ readonly a: typeof A }>>()
       expect(schema.annotate({})).type.toBe<Schema.Struct<{ readonly a: typeof A }>>()
     })
+
+    it("branded (unique symbol)", () => {
+      class A extends Schema.Opaque<A>()(Schema.Struct({
+        a: Schema.String
+      })) {}
+      class B extends Schema.Opaque<B>()(Schema.Struct({
+        a: Schema.String
+      })) {}
+
+      const f = (a: A) => a
+
+      f(A.makeSync({ a: "a" }))
+      f(B.makeSync({ a: "a" }))
+
+      class ABranded extends Schema.Opaque<ABranded, { readonly brand: unique symbol }>()(Schema.Struct({
+        a: Schema.String
+      })) {}
+      class BBranded extends Schema.Opaque<BBranded, { readonly brand: unique symbol }>()(Schema.Struct({
+        a: Schema.String
+      })) {}
+
+      const fABranded = (a: ABranded) => a
+
+      fABranded(ABranded.makeSync({ a: "a" }))
+      when(fABranded).isCalledWith(expect(BBranded.makeSync).type.not.toBeCallableWith({ a: "a" }))
+
+      const fBBranded = (a: BBranded) => a
+
+      fBBranded(BBranded.makeSync({ a: "a" }))
+      when(fBBranded).isCalledWith(expect(ABranded.makeSync).type.not.toBeCallableWith({ a: "a" }))
+    })
+
+    it("branded (Brand module)", () => {
+      class ABranded extends Schema.Opaque<ABranded, Brand.Brand<"A">>()(Schema.Struct({
+        a: Schema.String
+      })) {}
+      class BBranded extends Schema.Opaque<BBranded, Brand.Brand<"B">>()(Schema.Struct({
+        a: Schema.String
+      })) {}
+
+      const fABranded = (a: ABranded) => a
+
+      fABranded(ABranded.makeSync({ a: "a" }))
+      when(fABranded).isCalledWith(expect(BBranded.makeSync).type.not.toBeCallableWith({ a: "a" }))
+
+      const fBBranded = (a: BBranded) => a
+
+      fBBranded(BBranded.makeSync({ a: "a" }))
+      when(fBBranded).isCalledWith(expect(ABranded.makeSync).type.not.toBeCallableWith({ a: "a" }))
+    })
   })
 
   it("instanceOf", () => {
@@ -1223,7 +1273,7 @@ describe("Schema", () => {
       expect(Schema.revealCodec(A)).type.toBe<Schema.Codec<A, { a: string }>>()
     })
 
-    it("branded", () => {
+    it("branded (unique symbol)", () => {
       class A extends Schema.Class<A>("A")({
         a: Schema.String
       }) {}
@@ -1240,6 +1290,25 @@ describe("Schema", () => {
         a: Schema.String
       }) {}
       class BBranded extends Schema.Class<BBranded, { readonly brand: unique symbol }>("BBranded")({
+        a: Schema.String
+      }) {}
+
+      const fABranded = (a: ABranded) => a
+
+      fABranded(ABranded.makeSync({ a: "a" }))
+      when(fABranded).isCalledWith(expect(BBranded.makeSync).type.not.toBeCallableWith({ a: "a" }))
+
+      const fBBranded = (a: BBranded) => a
+
+      fBBranded(BBranded.makeSync({ a: "a" }))
+      when(fBBranded).isCalledWith(expect(ABranded.makeSync).type.not.toBeCallableWith({ a: "a" }))
+    })
+
+    it("branded (Brand module)", () => {
+      class ABranded extends Schema.Class<ABranded, Brand.Brand<"A">>("ABranded")({
+        a: Schema.String
+      }) {}
+      class BBranded extends Schema.Class<BBranded, Brand.Brand<"B">>("BBranded")({
         a: Schema.String
       }) {}
 
