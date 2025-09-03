@@ -3464,7 +3464,7 @@ export const all = <
   arg: Arg,
   options?: O
 ): Effect.All.Return<Arg, O> => {
-  if (Array.isArray(arg) || isIterable(arg)) {
+  if (isIterable(arg)) {
     return (forEach as any)(arg, identity, options)
   } else if (options?.discard) {
     return (forEach as any)(Object.values(arg), identity, options)

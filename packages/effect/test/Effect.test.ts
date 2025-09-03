@@ -281,6 +281,11 @@ describe("Effect", () => {
         const results = yield* Effect.forEach([], (_) => Effect.succeed(_))
         assert.deepStrictEqual(results, [])
       }).pipe(Effect.runPromise))
+    it("string", () =>
+      Effect.gen(function*() {
+        const results = yield* Effect.forEach("abc", (_) => Effect.succeed(_))
+        assert.deepStrictEqual(results, ["a", "b", "c"])
+      }).pipe(Effect.runPromise))
   })
 
   describe("all", () => {

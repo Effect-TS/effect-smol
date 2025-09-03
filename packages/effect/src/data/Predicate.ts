@@ -814,7 +814,9 @@ export const isDate = (input: unknown): input is Date => input instanceof Date
  * @category guards
  * @since 2.0.0
  */
-export const isIterable = (input: unknown): input is Iterable<unknown> => hasProperty(input, Symbol.iterator)
+export function isIterable(input: unknown): input is Iterable<unknown> {
+  return hasProperty(input, Symbol.iterator) || isString(input)
+}
 
 /**
  * A guard that succeeds when the input is a record.
