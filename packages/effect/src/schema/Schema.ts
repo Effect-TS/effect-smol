@@ -4247,7 +4247,7 @@ export interface Class<Self, S extends Top & { readonly fields: Struct.Fields },
     S["DecodingServices"],
     S["EncodingServices"],
     AST.Declaration,
-    Class<Self, S, Self>,
+    decodeTo<declareConstructor<Self, S["Encoded"], readonly [S]>, S>,
     Annotations.Declaration<Self, readonly [S]>,
     S["~type.make.in"],
     Self,
@@ -4271,7 +4271,6 @@ export interface Class<Self, S extends Top & { readonly fields: Struct.Fields },
 export interface ExtendableClass<Self, S extends Top & { readonly fields: Struct.Fields }, Inherited>
   extends Class<Self, S, Inherited>
 {
-  readonly "~rebuild.out": ExtendableClass<Self, S, Self>
   extend<Extended>(
     id: string
   ): <NewFields extends Struct.Fields>(
@@ -4295,7 +4294,7 @@ function makeClass<
   schema: S,
   annotations?: Annotations.Declaration<Self, readonly [S]>
 ): any {
-  const computeAST = getComputeAST(schema.ast, Annotations.merge(annotations, { id }))
+  const getClassSchema = getClassSchemaFactory(schema, Annotations.merge(annotations, { id }))
 
   return class extends Inherited {
     constructor(...[input, options]: ReadonlyArray<any>) {
@@ -4331,34 +4330,24 @@ function makeClass<
     static readonly fields = schema.fields
 
     static get ast(): AST.Declaration {
-      return computeAST(this)
+      return getClassSchema(this).ast
     }
     static pipe() {
       return pipeArguments(this, arguments)
     }
-    static rebuild(ast: AST.Declaration): Class<Self, S, Self> {
-      const computeAST = getComputeAST(this.ast, ast.annotations, ast.checks, ast.context)
-      return class extends this {
-        static override get ast() {
-          return computeAST(this)
-        }
-      }
+    static rebuild(ast: AST.Declaration) {
+      return getClassSchema(this).rebuild(ast)
     }
     static makeSync(input: S["~type.make.in"], options?: MakeOptions): Self {
       return new this(input, options)
     }
-    static annotate(annotations: Annotations.Declaration<Self, readonly [S]>): Class<Self, S, Self> {
+    static annotate(annotations: Annotations.Declaration<Self, readonly [S]>) {
       return this.rebuild(AST.annotate(this.ast, annotations))
     }
-    static annotateKey(annotations: Annotations.Key<Self>): Class<Self, S, Self> {
+    static annotateKey(annotations: Annotations.Key<Self>) {
       return this.rebuild(AST.annotateKey(this.ast, annotations))
     }
-    static check(
-      ...checks: readonly [
-        Check.Check<Self>,
-        ...Array<Check.Check<Self>>
-      ]
-    ): Class<Self, S, Self> {
+    static check(...checks: readonly [Check.Check<Self>, ...Array<Check.Check<Self>>]) {
       return this.rebuild(AST.appendChecks(this.ast, checks))
     }
     static extend<Extended>(
@@ -4370,49 +4359,37 @@ function makeClass<
       return (newFields, annotations) => {
         const fields = { ...schema.fields, ...newFields }
         const struct: any = new Struct$(AST.struct(fields, schema.ast.checks), fields)
-        return makeClass(
-          this,
-          id,
-          struct,
-          annotations
-        )
+        return makeClass(this, id, struct, annotations)
       }
     }
   }
 }
 
-const makeGetLink = (self: new(...args: ReadonlyArray<any>) => any) => (ast: AST.AST) =>
-  new AST.Link(
-    ast,
-    new Transformation.Transformation(
-      Getter.transform((input) => new self(input)),
-      Getter.transformOrFail((input) => {
-        if (!(input instanceof self)) {
-          return Effect.fail(new Issue.InvalidType(ast, input))
-        }
-        return Effect.succeed(input)
-      })
-    )
+function getClassTransformation(self: new(...args: ReadonlyArray<any>) => any) {
+  return new Transformation.Transformation<any, any, never, never>(
+    Getter.transform((input) => new self(input)),
+    Getter.passthrough()
   )
+}
 
-function getComputeAST(
-  from: AST.AST,
-  annotations: Annotations.Declaration<any, readonly [Schema<any>]> | undefined,
-  checks: AST.Checks | undefined = undefined,
-  context: AST.Context | undefined = undefined
+const makeClassLink = (self: new(...args: ReadonlyArray<any>) => any) => (ast: AST.AST) =>
+  new AST.Link(ast, getClassTransformation(self))
+
+function getClassSchemaFactory<S extends Top>(
+  from: S,
+  annotations: Annotations.Declaration<any, readonly [S]> | undefined
 ) {
-  let memo: AST.Declaration | undefined
-  return (self: any) => {
-    if (memo === undefined) {
-      const getLink = makeGetLink(self)
-      const contextLink = getLink(AST.unknownKeyword)
-      memo = new AST.Declaration(
-        [from],
+  return <Self extends (new(...args: ReadonlyArray<any>) => any) & { readonly id: string }>(
+    self: Self
+  ): decodeTo<declareConstructor<Self, S["Encoded"], readonly [S]>, S> => {
+    const getLink = makeClassLink(self)
+    const to = make<declareConstructor<Self, S["Encoded"], readonly [S]>>(
+      new AST.Declaration(
+        [from.ast],
         () => (input, ast) => {
-          if (input instanceof self) {
-            return Effect.succeed(input)
-          }
-          return Effect.fail(new Issue.InvalidType(ast, O.some(input)))
+          return input instanceof self ?
+            Effect.succeed(input) :
+            Effect.fail(new Issue.InvalidType(ast, O.some(input)))
         },
         Annotations.merge({
           defaultJsonSerializer: ([from]: [any]) => getLink(from.ast),
@@ -4424,21 +4401,15 @@ function getComputeAST(
             _tag: "Declaration",
             declaration: ([from]: [any]) => (t: any) => `${self.id}(${from(t)})`
           }
-        }, annotations),
-        checks,
-        [getLink(from)],
-        context ?
-          new AST.Context(
-            context.isOptional,
-            context.isMutable,
-            context.defaultValue,
-            context.make ? [...context.make, contextLink] : [contextLink],
-            context.annotations
-          ) :
-          new AST.Context(false, false, undefined, [contextLink])
+        }, annotations)
       )
-    }
-    return memo
+    )
+    return from.pipe(
+      decodeTo(
+        to,
+        getClassTransformation(self)
+      )
+    )
   }
 }
 
@@ -4463,13 +4434,7 @@ export const Class: {
   annotations?: Annotations.Declaration<Self, readonly [Struct<Struct.Fields>]>
 ): ExtendableClass<Self, Struct<Struct.Fields>, Brand> => {
   const struct = isSchema(schema) ? schema : Struct(schema)
-
-  return makeClass(
-    Data.Class,
-    id,
-    struct,
-    annotations
-  )
+  return makeClass(Data.Class, id, struct, annotations)
 }
 
 /**
@@ -4477,9 +4442,7 @@ export const Class: {
  */
 export interface ErrorClass<Self, S extends Top & { readonly fields: Struct.Fields }, Inherited>
   extends ExtendableClass<Self, S, Inherited>
-{
-  readonly "~rebuild.out": ErrorClass<Self, S, Self>
-}
+{}
 
 /**
  * @category Constructors
@@ -4502,13 +4465,7 @@ export const ErrorClass: {
   annotations?: Annotations.Declaration<Self, readonly [Struct<Struct.Fields>]>
 ): ErrorClass<Self, Struct<Struct.Fields>, Cause_.YieldableError & Brand> => {
   const struct = isSchema(schema) ? schema : Struct(schema)
-
-  return makeClass(
-    core.Error,
-    id,
-    struct,
-    annotations
-  )
+  return makeClass(core.Error, id, struct, annotations)
 }
 
 /**
@@ -4521,7 +4478,6 @@ export interface RequestClass<
   Error extends Top,
   Inherited
 > extends Class<Self, Payload, Inherited> {
-  readonly "~rebuild.out": RequestClass<Self, Payload, Success, Error, Self>
   readonly payload: Payload
   readonly success: Success
   readonly error: Error
@@ -4551,12 +4507,7 @@ export const RequestClass =
       Success["DecodingServices"] | Success["EncodingServices"] | Error["DecodingServices"] | Error["EncodingServices"]
     > & Brand
   > => {
-    return class RequestClass extends makeClass(
-      Request.Class,
-      id,
-      options.payload,
-      options.annotations
-    ) {
+    return class RequestClass extends makeClass(Request.Class, id, options.payload, options.annotations) {
       static readonly payload = options.payload
       static readonly success = options.success
       static readonly error = options.error

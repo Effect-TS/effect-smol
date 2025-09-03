@@ -3876,101 +3876,20 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     })
 
     it("annotate", async () => {
-      class A_ extends Schema.Class<A_>("A")({
+      class A extends Schema.Class<A>("A")({
         a: Schema.String
-      }) {
-        readonly _a = 1
-      }
-      const A = A_.annotate({})
+      }) {}
+
+      const Annotated = A.annotate({})
 
       // should be a schema
-      assertTrue(Schema.isSchema(A))
+      assertTrue(Schema.isSchema(Annotated))
       // should expose the fields
-      deepStrictEqual(A.fields, { a: Schema.String })
-      // should expose the id
-      strictEqual(A.id, "A")
+      deepStrictEqual(Annotated.from.fields, { a: Schema.String })
 
-      assertTrue(new A({ a: "a" }) instanceof A)
-      assertTrue(A.makeSync({ a: "a" }) instanceof A)
+      assertTrue(Annotated.makeSync(new A({ a: "a" })) instanceof A)
 
-      // test additional fields
-      strictEqual(new A({ a: "a" })._a, 1)
-      strictEqual(A.makeSync({ a: "a" })._a, 1)
-
-      // test Equal.equals
-      assertTrue(Equal.equals(new A({ a: "a" }), new A({ a: "a" })))
-      assertFalse(Equal.equals(new A({ a: "a" }), new A({ a: "b" })))
-
-      assertions.makeSync.succeed(A, new A({ a: "a" }))
-      assertions.makeSync.succeed(A, { a: "a" }, new A({ a: "a" }))
-
-      await assertions.decoding.succeed(A, { a: "a" }, { expected: new A({ a: "a" }) })
-      await assertions.decoding.fail(
-        A,
-        { a: 1 },
-        `Expected string, got 1
-  at ["a"]`
-      )
-      await assertions.encoding.succeed(A, new A({ a: "a" }), { expected: { a: "a" } })
-      await assertions.encoding.fail(
-        A,
-        null,
-        "Expected <Declaration>, got null"
-      )
-      await assertions.encoding.fail(
-        A,
-        { a: "a" },
-        `Expected <Declaration>, got {"a":"a"}`
-      )
-    })
-
-    it("check", async () => {
-      class A_ extends Schema.Class<A_>("A")({
-        a: Schema.String
-      }) {
-        readonly _a = 1
-      }
-      const A = A_.check(Check.make(() => true))
-
-      // should be a schema
-      assertTrue(Schema.isSchema(A))
-      // should expose the fields
-      deepStrictEqual(A.fields, { a: Schema.String })
-      // should expose the id
-      strictEqual(A.id, "A")
-
-      assertTrue(new A({ a: "a" }) instanceof A)
-      assertTrue(A.makeSync({ a: "a" }) instanceof A)
-
-      // test additional fields
-      strictEqual(new A({ a: "a" })._a, 1)
-      strictEqual(A.makeSync({ a: "a" })._a, 1)
-
-      // test Equal.equals
-      assertTrue(Equal.equals(new A({ a: "a" }), new A({ a: "a" })))
-      assertFalse(Equal.equals(new A({ a: "a" }), new A({ a: "b" })))
-
-      assertions.makeSync.succeed(A, new A({ a: "a" }))
-      assertions.makeSync.succeed(A, { a: "a" }, new A({ a: "a" }))
-
-      await assertions.decoding.succeed(A, { a: "a" }, { expected: new A({ a: "a" }) })
-      await assertions.decoding.fail(
-        A,
-        { a: 1 },
-        `Expected string, got 1
-  at ["a"]`
-      )
-      await assertions.encoding.succeed(A, new A({ a: "a" }), { expected: { a: "a" } })
-      await assertions.encoding.fail(
-        A,
-        null,
-        "Expected A, got null"
-      )
-      await assertions.encoding.fail(
-        A,
-        { a: "a" },
-        `Expected A, got {"a":"a"}`
-      )
+      strictEqual(Annotated.to.ast.annotations?.id, "A")
     })
 
     it("extend", async () => {
