@@ -2,19 +2,12 @@
  * @since 4.0.0
  */
 import * as Option from "../data/Option.ts"
+import type { Show } from "../data/Show.ts"
 import { formatPropertyKey, formatUnknown, memoizeThunk } from "../internal/schema/util.ts"
 import type * as Annotations from "./Annotations.ts"
 import * as AST from "./AST.ts"
 import type * as Schema from "./Schema.ts"
 import * as ToParser from "./ToParser.ts"
-
-/**
- * @category model
- * @since 3.10.0
- */
-export interface Pretty<T> {
-  (t: T): string
-}
 
 /**
  * @since 4.0.0
@@ -26,8 +19,8 @@ export declare namespace Annotation {
   export type Declaration<T, TypeParameters extends ReadonlyArray<Schema.Top>> = {
     readonly _tag: "Declaration"
     readonly declaration: (
-      typeParameters: { readonly [K in keyof TypeParameters]: Pretty<TypeParameters[K]["Type"]> }
-    ) => Pretty<T>
+      typeParameters: { readonly [K in keyof TypeParameters]: Show<TypeParameters[K]["Type"]> }
+    ) => Show<T>
   }
 
   /**
@@ -35,23 +28,23 @@ export declare namespace Annotation {
    */
   export type Override<T> = {
     readonly _tag: "Override"
-    readonly override: () => Pretty<T>
+    readonly override: () => Show<T>
   }
 }
 
 /**
  * @since 4.0.0
  */
-export function override<S extends Schema.Top>(override: () => Pretty<S["Type"]>) {
+export function override<S extends Schema.Top>(override: () => Show<S["Type"]>) {
   return (self: S): S["~rebuild.out"] => {
-    return self.annotate({ pretty: { _tag: "Override", override } })
+    return self.annotate({ show: { _tag: "Override", override } })
   }
 }
 
 function getPrettyAnnotation(
   annotations: Annotations.Annotations | undefined
 ): Annotation.Declaration<any, ReadonlyArray<any>> | Annotation.Override<any> | undefined {
-  return annotations?.pretty as any
+  return annotations?.show as any
 }
 
 const getAnnotation = AST.getAnnotation(getPrettyAnnotation)
@@ -62,7 +55,7 @@ const defaultFormat = () => formatUnknown
  * @category Reducer
  * @since 4.0.0
  */
-export const defaultReducerAlg: AST.ReducerAlg<Pretty<any>> = {
+export const defaultReducerAlg: AST.ReducerAlg<Show<any>> = {
   onEnter: (ast, reduce) => {
     // ---------------------------------------------
     // handle annotations
@@ -85,7 +78,7 @@ export const defaultReducerAlg: AST.ReducerAlg<Pretty<any>> = {
   Declaration: defaultFormat,
   NullKeyword: defaultFormat,
   UndefinedKeyword: defaultFormat,
-  VoidKeyword: () => () => "void(0)",
+  VoidKeyword: () => () => "void",
   NeverKeyword: (ast) => {
     throw new Error("cannot generate Pretty, no annotation found for never", { cause: ast })
   },
@@ -198,9 +191,9 @@ export const defaultReducerAlg: AST.ReducerAlg<Pretty<any>> = {
  * @category Reducer
  * @since 4.0.0
  */
-export function getReducer(alg: AST.ReducerAlg<Pretty<any>>) {
-  const reducer = AST.memoize(AST.getReducer<Pretty<any>>(alg))
-  return <T>(schema: Schema.Schema<T>): Pretty<T> => {
+export function getReducer(alg: AST.ReducerAlg<Show<any>>) {
+  const reducer = AST.memoize(AST.getReducer<Show<any>>(alg))
+  return <T>(schema: Schema.Schema<T>): Show<T> => {
     return reducer(schema.ast)
   }
 }

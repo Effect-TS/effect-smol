@@ -65,7 +65,7 @@ export * as ToParser from "./ToParser.ts"
 /**
  * @since 4.0.0
  */
-export * as ToPretty from "./ToPretty.ts"
+export * as ToShow from "./ToShow.ts"
 
 /**
  * @since 4.0.0
