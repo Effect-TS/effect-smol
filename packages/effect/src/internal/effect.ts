@@ -5,7 +5,7 @@ import * as Option from "../data/Option.ts"
 import * as Order from "../data/Order.ts"
 import { hasProperty, isIterable, isString, isTagged } from "../data/Predicate.ts"
 import * as Result from "../data/Result.ts"
-import * as Effect from "../Effect.js"
+import type * as Effect from "../Effect.ts"
 import type * as Exit from "../Exit.ts"
 import type * as Fiber from "../Fiber.ts"
 import type { LazyArg } from "../Function.ts"
@@ -2968,16 +2968,16 @@ export const scopeTag: ServiceMap.Key<Scope.Scope, Scope.Scope> = ServiceMap.Key
 /** @internal */
 export const scopeClose = <A, E>(self: Scope.Scope, exit_: Exit.Exit<A, E>) =>
   suspend(() => {
-    if (self.state._tag === "Closed") return Effect.void
+    if (self.state._tag === "Closed") return void_
     const closed: Scope.State.Closed = { _tag: "Closed", exit: exit_ }
     if (self.state._tag === "Empty") {
       self.state = closed
-      return Effect.void
+      return void_
     }
     const { finalizers } = self.state
     self.state = closed
     if (finalizers.size === 0) {
-      return Effect.void
+      return void_
     } else if (finalizers.size === 1) {
       return finalizers.values().next().value!(exit_)
     }
