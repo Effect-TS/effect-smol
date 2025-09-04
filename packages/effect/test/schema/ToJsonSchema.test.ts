@@ -2714,18 +2714,18 @@ describe("ToJsonSchema", () => {
         })
       })
 
-      it("Union with same member", async () => {
-        const Member = Schema.String.annotate({ id: "ID" })
+      it("using the same annotated schema twice", async () => {
+        const Member = Schema.String.annotate({ id: "ID/a" })
         const schema = Schema.Union([Member, Member])
         await assertDraft7(schema, {
           "$defs": {
-            "ID": {
+            "ID/a": {
               "type": "string"
             }
           },
           "anyOf": [
-            { "$ref": "#/$defs/ID" },
-            { "$ref": "#/$defs/ID" }
+            { "$ref": "#/$defs/ID~1a" },
+            { "$ref": "#/$defs/ID~1a" }
           ]
         })
       })
