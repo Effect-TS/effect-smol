@@ -4379,37 +4379,41 @@ function getClassSchemaFactory<S extends Top>(
   from: S,
   annotations: Annotations.Declaration<any, readonly [S]> | undefined
 ) {
+  let memo: decodeTo<declareConstructor<any, S["Encoded"], readonly [S]>, S> | undefined
   return <Self extends (new(...args: ReadonlyArray<any>) => any) & { readonly id: string }>(
     self: Self
   ): decodeTo<declareConstructor<Self, S["Encoded"], readonly [S]>, S> => {
-    const getLink = makeClassLink(self)
-    const to = make<declareConstructor<Self, S["Encoded"], readonly [S]>>(
-      new AST.Declaration(
-        [from.ast],
-        () => (input, ast) => {
-          return input instanceof self ?
-            Effect.succeed(input) :
-            Effect.fail(new Issue.InvalidType(ast, O.some(input)))
-        },
-        Annotations.merge({
-          defaultJsonSerializer: ([from]: [any]) => getLink(from.ast),
-          arbitrary: {
-            _tag: "Declaration",
-            declaration: ([from]: [any]) => () => from.map((args: any) => new self(args))
+    if (memo === undefined) {
+      const getLink = makeClassLink(self)
+      const to = make<declareConstructor<Self, S["Encoded"], readonly [S]>>(
+        new AST.Declaration(
+          [from.ast],
+          () => (input, ast) => {
+            return input instanceof self ?
+              Effect.succeed(input) :
+              Effect.fail(new Issue.InvalidType(ast, O.some(input)))
           },
-          show: {
-            _tag: "Declaration",
-            declaration: ([from]: [any]) => (t: any) => `${self.id}(${from(t)})`
-          }
-        }, annotations)
+          Annotations.merge({
+            defaultJsonSerializer: ([from]: [any]) => getLink(from.ast),
+            arbitrary: {
+              _tag: "Declaration",
+              declaration: ([from]: [any]) => () => from.map((args: any) => new self(args))
+            },
+            show: {
+              _tag: "Declaration",
+              declaration: ([from]: [any]) => (t: any) => `${self.id}(${from(t)})`
+            }
+          }, annotations)
+        )
       )
-    )
-    return from.pipe(
-      decodeTo(
-        to,
-        getClassTransformation(self)
+      memo = from.pipe(
+        decodeTo(
+          to,
+          getClassTransformation(self)
+        )
       )
-    )
+    }
+    return memo
   }
 }
 

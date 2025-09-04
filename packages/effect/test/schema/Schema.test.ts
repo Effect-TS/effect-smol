@@ -3695,6 +3695,13 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       await assertions.decoding.succeed(A, new A({ a: "a" }))
     })
 
+    it("should memoize the ast", () => {
+      class A extends Schema.Class<A>("A")({
+        a: Schema.String
+      }) {}
+      assertTrue(A.ast === A.ast)
+    })
+
     describe("should be compatible with `immer`", () => {
       it("`[immerable]`", () => {
         class A extends Schema.Class<A>("A")({

@@ -1810,6 +1810,21 @@ describe("ToJsonSchema", () => {
           }
         })
       })
+
+      it("Class & annotate", async () => {
+        class A extends Schema.Class<A>("A")({
+          a: Schema.String
+        }) {}
+        const schema = A.annotate({})
+        await assertDraft7(schema, {
+          type: "object",
+          properties: {
+            a: { type: "string" }
+          },
+          required: ["a"],
+          additionalProperties: false
+        })
+      })
     })
 
     describe("Checks", () => {
