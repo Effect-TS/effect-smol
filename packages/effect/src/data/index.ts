@@ -219,6 +219,11 @@ export * as Reducer from "./Reducer.ts"
 export * as Result from "./Result.ts"
 
 /**
+ * @since 4.0.0
+ */
+export * as Show from "./Show.ts"
+
+/**
  * This module provides utility functions for working with structs in TypeScript.
  *
  * @since 2.0.0
