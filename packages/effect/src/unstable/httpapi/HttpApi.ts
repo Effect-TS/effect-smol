@@ -250,14 +250,14 @@ export const reflect = <Id extends string, Groups extends HttpApiGroup.Any>(
         } as any)
       ) continue
 
-      const errors = extractMembers(endpoint.errorSchema.ast, HttpApiSchema.getStatusError)
+      const errors = extractMembers(endpoint.errorSchema, HttpApiSchema.getStatusError)
       options.onEndpoint({
         group,
         endpoint,
         middleware: endpoint.middlewares as any,
         mergedAnnotations: ServiceMap.merge(groupAnnotations, endpoint.annotations),
         payloads: endpoint.payloadSchema ? extractPayloads(endpoint.payloadSchema.ast) : emptyMap,
-        successes: extractMembers(endpoint.successSchema.ast, HttpApiSchema.getStatusSuccess),
+        successes: extractMembers(endpoint.successSchema, HttpApiSchema.getStatusSuccess),
         errors
       })
     }
@@ -269,7 +269,7 @@ export const reflect = <Id extends string, Groups extends HttpApiGroup.Any>(
 const emptyMap = new Map<never, never>()
 
 const extractMembers = (
-  ast: AST.AST,
+  schema: Schema.Top,
   getStatus: (ast: AST.AST) => number
 ): ReadonlyMap<number, {
   readonly ast: AST.AST | undefined
@@ -279,33 +279,21 @@ const extractMembers = (
     readonly ast: AST.AST | undefined
     readonly description: string | undefined
   }>()
-  function process(type: AST.AST) {
-    if (AST.isNeverKeyword(type)) {
-      return
-    }
-    const annotations = HttpApiSchema.getHttpApiAnnotations(ast.annotations)
-    // Avoid changing the reference unless necessary
-    // Otherwise, deduplication of the ASTs below will not be possible
-    if (!Record.isEmptyRecord(annotations)) {
-      type = AST.annotate(type, {
-        ...annotations,
-        ...type.annotations
-      })
-    }
-    const status = getStatus(type)
-    const isEmpty = type.annotations?.httpApiIsEmpty
+  function process(type: Schema.Top) {
+    const status = getStatus(type.ast)
+    const isEmpty = type.ast.annotations?.httpApiIsEmpty
     const current = members.get(status)
     members.set(
       status,
       {
-        description: current?.description ?? getDescriptionOrIdentifier(type),
-        ast: UndefinedOr.map(current?.ast, (ast) => HttpApiSchema.UnionUnifyAST(ast, type)) ??
-          (!isEmpty && HttpApiSchema.isVoid(type) ? undefined : type)
+        description: current?.description ?? getDescriptionOrIdentifier(type.ast),
+        ast: UndefinedOr.map(current?.ast, (ast) => HttpApiSchema.UnionUnifyAST(ast, type.ast)) ??
+          (!isEmpty && HttpApiSchema.isVoid(type.ast) ? undefined : type.ast)
       }
     )
   }
 
-  HttpApiSchema.extractUnionTypes(ast).forEach(process)
+  HttpApiSchema.forEachMember(schema, process)
   return members
 }
 

@@ -2,6 +2,7 @@
  * @since 4.0.0
  */
 import type { YieldableError } from "../../Cause.ts"
+import * as Iterable from "../../collections/Iterable.ts"
 import type { Brand } from "../../data/Brand.ts"
 import { constant, constVoid, dual, type LazyArg } from "../../Function.ts"
 import type * as FileSystem from "../../platform/FileSystem.ts"
@@ -75,9 +76,27 @@ export const getHttpApiAnnotations = (self: Annotations.Annotations | undefined)
 
 /**
  * @since 4.0.0
- * @category reflection
  */
-export const extractUnionTypes = (ast: AST.AST): ReadonlyArray<AST.AST> => {
+export const UnionUnifyAST = (self: AST.AST, that: AST.AST): AST.AST => {
+  const asts = new Set<AST.AST>([...extractUnionTypes(self), ...extractUnionTypes(that)])
+  if (asts.size === 1) {
+    return Iterable.headUnsafe(asts)
+  }
+  return new AST.UnionType(
+    Array.from(asts),
+    "anyOf",
+    {
+      ...(AST.isUnionType(self) ? self.annotations : {}),
+      ...(AST.isUnionType(that) ? that.annotations : {})
+    }
+  )
+}
+
+const extractUnionTypes = (ast: AST.AST): ReadonlyArray<AST.AST> => {
+  const out: Array<AST.AST> = []
+  process(ast)
+  return out
+
   function process(ast: AST.AST): void {
     if (AST.isUnionType(ast)) {
       for (const type of ast.types) {
@@ -87,19 +106,7 @@ export const extractUnionTypes = (ast: AST.AST): ReadonlyArray<AST.AST> => {
       out.push(ast)
     }
   }
-  const out: Array<AST.AST> = []
-  process(ast)
-  return out
 }
-
-/**
- * @since 4.0.0
- */
-export const UnionUnifyAST = (self: AST.AST, that: AST.AST): AST.AST =>
-  new AST.UnionType(
-    Array.from(new Set<AST.AST>([...extractUnionTypes(self), ...extractUnionTypes(that)])),
-    "anyOf"
-  )
 
 /**
  * @since 4.0.0
@@ -107,7 +114,7 @@ export const UnionUnifyAST = (self: AST.AST, that: AST.AST): AST.AST =>
 export const UnionUnify = <
   A extends Schema.Top,
   B extends Schema.Top
->(self: A, that: B): Schema.Union<[A, B]> => Schema.make(UnionUnifyAST(self.ast, that.ast)) as any
+>(self: A, that: B): Schema.Top => Schema.make(UnionUnifyAST(self.ast, that.ast))
 
 /**
  * @since 4.0.0
@@ -452,38 +459,46 @@ export const Uint8Array = (options?: {
   readonly contentType?: string
 }): Schema.Uint8Array => withEncoding(Schema.Uint8Array, { kind: "Uint8Array", ...options })
 
-const astCache = new WeakMap<AST.AST, Schema.Top>()
-
 /**
  * @since 4.0.0
  */
-export const deunionize = (
-  schemas: Set<Schema.Top>,
-  schema: Schema.Top
+export const forEachMember = (
+  schema: Schema.Top,
+  f: (member: Schema.Top) => void
 ): void => {
   if (astCache.has(schema.ast)) {
-    schemas.add(astCache.get(schema.ast)!)
+    f(astCache.get(schema.ast)!)
     return
   }
   const ast = schema.ast
   if (ast._tag === "UnionType") {
+    let unionCache = unionCaches.get(ast)
+    if (!unionCache) {
+      unionCache = new WeakMap<AST.AST, Schema.Top>()
+      unionCaches.set(ast, unionCache)
+    }
     for (const astType of ast.types) {
-      if (astCache.has(astType)) {
-        schemas.add(astCache.get(astType)!)
+      if (unionCache.has(astType)) {
+        f(unionCache.get(astType)!)
+        continue
+      } else if (astType._tag === "NeverKeyword") {
         continue
       }
       const memberSchema = Schema.make(astType).annotate({
-        ...ast.annotations,
+        ...getHttpApiAnnotations(ast.annotations),
         ...astType.annotations
       })
-      astCache.set(astType, memberSchema)
-      schemas.add(memberSchema)
+      unionCache.set(astType, memberSchema)
+      f(memberSchema)
     }
-  } else {
+  } else if (ast._tag !== "NeverKeyword") {
     astCache.set(ast, schema)
-    schemas.add(schema)
+    f(schema)
   }
 }
+
+const astCache = new WeakMap<AST.AST, Schema.Top>()
+const unionCaches = new WeakMap<AST.AST, WeakMap<AST.AST, Schema.Top>>()
 
 /**
  * @since 4.0.0

@@ -521,10 +521,10 @@ const responseAsVoid = (_response: HttpClientResponse.HttpClientResponse) => Eff
 
 const HttpBodyFromSelf = Schema.declare(HttpBody.isHttpBody)
 
-const payloadSchemaBody = (schema: Schema.Top): Schema.decodeTo<typeof HttpBodyFromSelf, Schema.Any> => {
-  const members = schema.ast._tag === "UnionType" ? schema.ast.types : [schema.ast]
-  return Schema.Union(members.map(bodyFromPayload)) as any
-}
+const payloadSchemaBody = (schema: Schema.Top): Schema.decodeTo<typeof HttpBodyFromSelf, Schema.Any> =>
+  schema.ast._tag === "UnionType"
+    ? Schema.Union(schema.ast.types.map(bodyFromPayload)) as any
+    : bodyFromPayload(schema.ast) as any
 
 const bodyFromPayloadCache = new WeakMap<AST.AST, Schema.Top>()
 
@@ -543,11 +543,12 @@ const bodyFromPayload = (ast: AST.AST) => {
       encode(toI: any) {
         switch (encoding.kind) {
           case "Json": {
-            return HttpBody.json(toI).pipe(
-              Effect.mapError((error) =>
-                new Issue.InvalidValue(Option.some(toI), { message: `Could not encode as JSON: ${error}` })
-              )
-            )
+            try {
+              const body = JSON.stringify(toI)
+              return Effect.succeed(HttpBody.text(body, encoding.contentType))
+            } catch {
+              return Effect.fail(new Issue.InvalidValue(Option.some(toI), { message: "Could not encode as JSON" }))
+            }
           }
           case "Text": {
             if (typeof toI !== "string") {
@@ -555,7 +556,7 @@ const bodyFromPayload = (ast: AST.AST) => {
                 new Issue.InvalidValue(Option.some(toI), { message: "Expected a string" })
               )
             }
-            return Effect.succeed(HttpBody.text(toI))
+            return Effect.succeed(HttpBody.text(toI, encoding.contentType))
           }
           case "UrlParams": {
             return Effect.succeed(HttpBody.urlParams(UrlParams.fromInput(toI as any)))
@@ -566,7 +567,7 @@ const bodyFromPayload = (ast: AST.AST) => {
                 new Issue.InvalidValue(Option.some(toI), { message: "Expected a Uint8Array" })
               )
             }
-            return Effect.succeed(HttpBody.uint8Array(toI))
+            return Effect.succeed(HttpBody.uint8Array(toI, encoding.contentType))
           }
         }
       }

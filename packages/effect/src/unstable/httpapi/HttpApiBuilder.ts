@@ -605,10 +605,10 @@ const makeSecurityMiddleware = (
 const responseSchema = Schema.declare(Response.isHttpServerResponse)
 
 const makeSuccessSchema = (
-  schema: Schema.Schema<any>
+  schema: Schema.Top
 ): Schema.Codec<unknown, HttpServerResponse> => {
   const schemas = new Set<Schema.Schema<any>>()
-  HttpApiSchema.deunionize(schemas, schema)
+  HttpApiSchema.forEachMember(schema, (_) => schemas.add(_))
   return Schema.Union(Array.from(schemas, toResponseSuccess)) as any
 }
 
@@ -618,10 +618,10 @@ const makeErrorSchema = (
   const schemas = new Set<Schema.Schema<any>>([HttpApiSchemaError])
   for (const group of Object.values(api.groups)) {
     for (const endpoint of Object.values(group.endpoints)) {
-      HttpApiSchema.deunionize(schemas, endpoint.errorSchema)
+      HttpApiSchema.forEachMember(endpoint.errorSchema, (_) => schemas.add(_))
       for (const middleware of endpoint.middlewares) {
         const key = middleware as any as HttpApiMiddleware.AnyKey
-        HttpApiSchema.deunionize(schemas, key.error)
+        HttpApiSchema.forEachMember(key.error, (_) => schemas.add(_))
       }
     }
   }
