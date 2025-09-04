@@ -456,7 +456,7 @@ describe("ToFormat", () => {
   describe("Annotations", () => {
     it("should throw on non-declaration ASTs", () => {
       const schema = Schema.String.annotate({
-        show: { _tag: "Declaration", declaration: () => (s: string) => s.toUpperCase() }
+        format: { _tag: "Declaration", declaration: () => (s: string) => s.toUpperCase() }
       })
       throws(() => ToFormat.make(schema), new Error("Declaration annotation found on non-declaration AST"))
     })

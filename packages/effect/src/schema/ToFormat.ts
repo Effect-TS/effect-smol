@@ -41,13 +41,13 @@ export function override<S extends Schema.Top>(override: () => Format<S["Type"]>
   }
 }
 
-function getPrettyAnnotation(
+function getFormatAnnotation(
   annotations: Annotations.Annotations | undefined
 ): Annotation.Declaration<any, ReadonlyArray<any>> | Annotation.Override<any> | undefined {
-  return annotations?.Format as any
+  return annotations?.format as any
 }
 
-const getAnnotation = AST.getAnnotation(getPrettyAnnotation)
+const getAnnotation = AST.getAnnotation(getFormatAnnotation)
 
 const defaultFormat = () => formatUnknown
 
