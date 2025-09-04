@@ -513,7 +513,7 @@ export const make = Effect.gen(function*() {
 
   let machineId = 0
   const register = Effect.fnUntraced(function*(runner: Runner) {
-    yield* Effect.logInfo(`Registering runner ${Runner.show(runner)}`)
+    yield* Effect.logInfo(`Registering runner ${Runner.format(runner)}`)
 
     const current = MutableHashMap.get(state.allRunners, runner.address).pipe(
       Option.filter((r) => r.runner.version === runner.version)

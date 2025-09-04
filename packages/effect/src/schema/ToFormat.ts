@@ -1,8 +1,8 @@
 /**
  * @since 4.0.0
  */
+import type { Format } from "../data/Format.ts"
 import * as Option from "../data/Option.ts"
-import type { Show } from "../data/Show.ts"
 import { formatPropertyKey, formatUnknown, memoizeThunk } from "../internal/schema/util.ts"
 import type * as Annotations from "./Annotations.ts"
 import * as AST from "./AST.ts"
@@ -19,8 +19,8 @@ export declare namespace Annotation {
   export type Declaration<T, TypeParameters extends ReadonlyArray<Schema.Top>> = {
     readonly _tag: "Declaration"
     readonly declaration: (
-      typeParameters: { readonly [K in keyof TypeParameters]: Show<TypeParameters[K]["Type"]> }
-    ) => Show<T>
+      typeParameters: { readonly [K in keyof TypeParameters]: Format<TypeParameters[K]["Type"]> }
+    ) => Format<T>
   }
 
   /**
@@ -28,23 +28,23 @@ export declare namespace Annotation {
    */
   export type Override<T> = {
     readonly _tag: "Override"
-    readonly override: () => Show<T>
+    readonly override: () => Format<T>
   }
 }
 
 /**
  * @since 4.0.0
  */
-export function override<S extends Schema.Top>(override: () => Show<S["Type"]>) {
+export function override<S extends Schema.Top>(override: () => Format<S["Type"]>) {
   return (self: S): S["~rebuild.out"] => {
-    return self.annotate({ show: { _tag: "Override", override } })
+    return self.annotate({ format: { _tag: "Override", override } })
   }
 }
 
 function getPrettyAnnotation(
   annotations: Annotations.Annotations | undefined
 ): Annotation.Declaration<any, ReadonlyArray<any>> | Annotation.Override<any> | undefined {
-  return annotations?.show as any
+  return annotations?.Format as any
 }
 
 const getAnnotation = AST.getAnnotation(getPrettyAnnotation)
@@ -55,7 +55,7 @@ const defaultFormat = () => formatUnknown
  * @category Reducer
  * @since 4.0.0
  */
-export const defaultReducerAlg: AST.ReducerAlg<Show<any>> = {
+export const defaultReducerAlg: AST.ReducerAlg<Format<any>> = {
   onEnter: (ast, reduce) => {
     // ---------------------------------------------
     // handle annotations
@@ -191,9 +191,9 @@ export const defaultReducerAlg: AST.ReducerAlg<Show<any>> = {
  * @category Reducer
  * @since 4.0.0
  */
-export function getReducer(alg: AST.ReducerAlg<Show<any>>) {
-  const reducer = AST.memoize(AST.getReducer<Show<any>>(alg))
-  return <T>(schema: Schema.Schema<T>): Show<T> => {
+export function getReducer(alg: AST.ReducerAlg<Format<any>>) {
+  const reducer = AST.memoize(AST.getReducer<Format<any>>(alg))
+  return <T>(schema: Schema.Schema<T>): Format<T> => {
     return reducer(schema.ast)
   }
 }

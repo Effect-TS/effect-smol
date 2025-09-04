@@ -3208,7 +3208,7 @@ export function Option<S extends Top>(value: S): Option<S> {
         _tag: "Declaration",
         declaration: ([value]) => O.getEquivalence(value)
       },
-      show: {
+      format: {
         _tag: "Declaration",
         declaration: ([value]) =>
           O.match({
@@ -3358,7 +3358,7 @@ export function Redacted<S extends Top>(value: S): Redacted<S> {
         _tag: "Declaration",
         declaration: ([value]) => () => value.map(Redacted_.make)
       },
-      show: {
+      format: {
         _tag: "Declaration",
         declaration: () => globalThis.String
       },
@@ -3457,7 +3457,7 @@ export function CauseFailure<E extends Top, D extends Top>(error: E, defect: D):
           }
         }
       },
-      show: {
+      format: {
         _tag: "Declaration",
         declaration: ([error, defect]) => (t) => {
           switch (t._tag) {
@@ -3519,7 +3519,7 @@ export function Cause<E extends Top, D extends Top>(error: E, defect: D): Cause<
         _tag: "Declaration",
         declaration: ([failure]) => (a, b) => Arr.getEquivalence(failure)(a.failures, b.failures)
       },
-      show: {
+      format: {
         _tag: "Declaration",
         declaration: ([failure]) => (t) => {
           return `Cause([${t.failures.map((f) => failure(f)).join(", ")}])`
@@ -3695,7 +3695,7 @@ export function Exit<A extends Top, E extends Top, D extends Top>(value: A, erro
           }
         }
       },
-      show: {
+      format: {
         _tag: "Declaration",
         declaration: ([value, cause]) => (t) => {
           switch (t._tag) {
@@ -3790,7 +3790,7 @@ export function Map<Key extends Top, Value extends Top>(key: Key, value: Value):
           )
         }
       },
-      show: {
+      format: {
         _tag: "Declaration",
         declaration: ([key, value]) => (t) => {
           const size = t.size
@@ -4021,7 +4021,7 @@ export const Duration: Duration = declare(
           fc.maxSafeNat().map(Duration_.millis)
         )
     },
-    show: {
+    format: {
       _tag: "Declaration",
       declaration: () => globalThis.String
     },
@@ -4395,7 +4395,7 @@ function getClassSchemaFactory<S extends Top>(
               _tag: "Declaration",
               declaration: ([from]: [any]) => () => from.map((args: any) => new self(args))
             },
-            show: {
+            format: {
               _tag: "Declaration",
               declaration: ([from]: [any]) => (t: any) => `${self.id}(${from(t)})`
             }
@@ -4613,7 +4613,7 @@ export const DateTimeUtc: DateTimeUtc = declare(
           DateTime.fromDateUnsafe(date)
         )
     },
-    show: {
+    format: {
       _tag: "Declaration",
       declaration: () => (utc) => utc.toString()
     },

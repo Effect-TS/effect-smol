@@ -5,7 +5,7 @@ import * as Equal from "../../interfaces/Equal.ts"
 import * as Hash from "../../interfaces/Hash.ts"
 import { NodeInspectSymbol } from "../../interfaces/Inspectable.ts"
 import * as Schema from "../../schema/Schema.ts"
-import * as ToShow from "../../schema/ToShow.ts"
+import * as ToFormat from "../../schema/ToFormat.ts"
 import { RunnerAddress } from "./RunnerAddress.ts"
 
 const TypeId = "~effect/cluster/Runner"
@@ -31,7 +31,7 @@ export class Runner extends Schema.Class<Runner>(TypeId)({
   /**
    * @since 4.0.0
    */
-  static show = ToShow.make(this)
+  static format = ToFormat.make(this)
 
   /**
    * @since 4.0.0

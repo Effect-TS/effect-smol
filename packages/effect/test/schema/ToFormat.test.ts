@@ -1,12 +1,12 @@
 import { Option, Redacted } from "effect/data"
-import { Check, Schema, ToShow } from "effect/schema"
+import { Check, Schema, ToFormat } from "effect/schema"
 import { DateTime, Duration } from "effect/time"
 import { describe, it } from "vitest"
 import { strictEqual, throws } from "../utils/assert.ts"
 
-describe("ToShow", () => {
+describe("ToFormat", () => {
   it("Any", () => {
-    const show = ToShow.make(Schema.Any)
+    const show = ToFormat.make(Schema.Any)
     strictEqual(show(1), "1")
     strictEqual(show("a"), `"a"`)
     strictEqual(show(true), "true")
@@ -18,7 +18,7 @@ describe("ToShow", () => {
   })
 
   it("Unknown", () => {
-    const show = ToShow.make(Schema.Unknown)
+    const show = ToFormat.make(Schema.Unknown)
     strictEqual(show(1), "1")
     strictEqual(show("a"), `"a"`)
     strictEqual(show(true), "true")
@@ -30,48 +30,48 @@ describe("ToShow", () => {
   })
 
   it("Void", () => {
-    const show = ToShow.make(Schema.Void)
+    const show = ToFormat.make(Schema.Void)
     strictEqual(show(undefined), "void")
   })
 
   it("Null", () => {
-    const show = ToShow.make(Schema.Null)
+    const show = ToFormat.make(Schema.Null)
     strictEqual(show(null), "null")
   })
 
   it("String", () => {
-    const show = ToShow.make(Schema.String)
+    const show = ToFormat.make(Schema.String)
     strictEqual(show("a"), `"a"`)
   })
 
   it("Number", () => {
-    const show = ToShow.make(Schema.Number)
+    const show = ToFormat.make(Schema.Number)
     strictEqual(show(1), "1")
   })
 
   it("Boolean", () => {
-    const show = ToShow.make(Schema.Boolean)
+    const show = ToFormat.make(Schema.Boolean)
     strictEqual(show(true), "true")
     strictEqual(show(false), "false")
   })
 
   it("BigInt", () => {
-    const show = ToShow.make(Schema.BigInt)
+    const show = ToFormat.make(Schema.BigInt)
     strictEqual(show(1n), "1n")
   })
 
   it("Symbol", () => {
-    const show = ToShow.make(Schema.Symbol)
+    const show = ToFormat.make(Schema.Symbol)
     strictEqual(show(Symbol.for("a")), "Symbol(a)")
   })
 
   it("UniqueSymbol", () => {
-    const show = ToShow.make(Schema.UniqueSymbol(Symbol.for("a")))
+    const show = ToFormat.make(Schema.UniqueSymbol(Symbol.for("a")))
     strictEqual(show(Symbol.for("a")), "Symbol(a)")
   })
 
   it("Object", () => {
-    const show = ToShow.make(Schema.Object)
+    const show = ToFormat.make(Schema.Object)
     strictEqual(show({}), "{}")
     strictEqual(show({ a: 1 }), `{"a":1}`)
     strictEqual(show([1, 2, 3]), `[1,2,3]`)
@@ -79,35 +79,35 @@ describe("ToShow", () => {
 
   describe("Literal", () => {
     it("string", () => {
-      const show = ToShow.make(Schema.Literal("a"))
+      const show = ToFormat.make(Schema.Literal("a"))
       strictEqual(show("a"), `"a"`)
     })
 
     it("number", () => {
-      const show = ToShow.make(Schema.Literal(1))
+      const show = ToFormat.make(Schema.Literal(1))
       strictEqual(show(1), "1")
     })
 
     it("boolean", () => {
-      const show = ToShow.make(Schema.Literal(true))
+      const show = ToFormat.make(Schema.Literal(true))
       strictEqual(show(true), "true")
     })
 
     it("bigint", () => {
-      const show = ToShow.make(Schema.Literal(1n))
+      const show = ToFormat.make(Schema.Literal(1n))
       strictEqual(show(1n), "1n")
     })
   })
 
   it("Literals", () => {
-    const show = ToShow.make(Schema.Literals(["a", "b", "c"]))
+    const show = ToFormat.make(Schema.Literals(["a", "b", "c"]))
     strictEqual(show("a"), `"a"`)
     strictEqual(show("b"), `"b"`)
     strictEqual(show("c"), `"c"`)
   })
 
   it("TemplateLiteral", () => {
-    const show = ToShow.make(Schema.TemplateLiteral([Schema.Literal("a"), Schema.String]))
+    const show = ToFormat.make(Schema.TemplateLiteral([Schema.Literal("a"), Schema.String]))
     strictEqual(show("a"), `"a"`)
     strictEqual(show("ab"), `"ab"`)
   })
@@ -118,7 +118,7 @@ describe("ToShow", () => {
         Apple,
         Banana
       }
-      const show = ToShow.make(Schema.Enums(Fruits))
+      const show = ToFormat.make(Schema.Enums(Fruits))
       strictEqual(show(Fruits.Apple), "0")
     })
 
@@ -128,7 +128,7 @@ describe("ToShow", () => {
         Banana = "banana",
         Cantaloupe = 0
       }
-      const show = ToShow.make(Schema.Enums(Fruits))
+      const show = ToFormat.make(Schema.Enums(Fruits))
       strictEqual(show(Fruits.Apple), `"apple"`)
     })
 
@@ -138,38 +138,38 @@ describe("ToShow", () => {
         Banana: "banana",
         Cantaloupe: 3
       } as const
-      const show = ToShow.make(Schema.Enums(Fruits))
+      const show = ToFormat.make(Schema.Enums(Fruits))
       strictEqual(show(Fruits.Apple), `"apple"`)
     })
   })
 
   it("Union", () => {
-    const show = ToShow.make(Schema.Union([Schema.String, Schema.Number]))
+    const show = ToFormat.make(Schema.Union([Schema.String, Schema.Number]))
     strictEqual(show("a"), `"a"`)
     strictEqual(show(1), "1")
   })
 
   describe("Tuple", () => {
     it("empty", () => {
-      const show = ToShow.make(Schema.Tuple([]))
+      const show = ToFormat.make(Schema.Tuple([]))
       strictEqual(show([]), "[]")
     })
 
     it("elements", () => {
-      const show = ToShow.make(Schema.Tuple([Schema.Option(Schema.String)]))
+      const show = ToFormat.make(Schema.Tuple([Schema.Option(Schema.String)]))
       strictEqual(show([Option.some("a")]), `[some("a")]`)
       strictEqual(show([Option.none()]), `[none()]`)
     })
   })
 
   it("Array", () => {
-    const show = ToShow.make(Schema.Array(Schema.Option(Schema.String)))
+    const show = ToFormat.make(Schema.Array(Schema.Option(Schema.String)))
     strictEqual(show([Option.some("a")]), `[some("a")]`)
     strictEqual(show([Option.none()]), `[none()]`)
   })
 
   it("TupleWithRest", () => {
-    const show = ToShow.make(
+    const show = ToFormat.make(
       Schema.TupleWithRest(Schema.Tuple([Schema.Option(Schema.Boolean)]), [
         Schema.Option(Schema.Number),
         Schema.Option(Schema.String)
@@ -181,7 +181,7 @@ describe("ToShow", () => {
 
   describe("Struct", () => {
     it("empty", () => {
-      const show = ToShow.make(Schema.Struct({}))
+      const show = ToFormat.make(Schema.Struct({}))
       strictEqual(show({}), "{}")
       strictEqual(show(1), "1")
       strictEqual(show("a"), `"a"`)
@@ -192,7 +192,7 @@ describe("ToShow", () => {
     })
 
     it("required fields", () => {
-      const show = ToShow.make(Schema.Struct({
+      const show = ToFormat.make(Schema.Struct({
         a: Schema.Option(Schema.String)
       }))
       strictEqual(show({ a: Option.some("a") }), `{ "a": some("a") }`)
@@ -200,7 +200,7 @@ describe("ToShow", () => {
     })
 
     it("required field with undefined", () => {
-      const show = ToShow.make(Schema.Struct({
+      const show = ToFormat.make(Schema.Struct({
         a: Schema.Option(Schema.UndefinedOr(Schema.String))
       }))
       strictEqual(show({ a: Option.some("a") }), `{ "a": some("a") }`)
@@ -209,7 +209,7 @@ describe("ToShow", () => {
     })
 
     it("optionalKey field", () => {
-      const show = ToShow.make(Schema.Struct({
+      const show = ToFormat.make(Schema.Struct({
         a: Schema.optionalKey(Schema.Option(Schema.String))
       }))
       strictEqual(show({ a: Option.some("a") }), `{ "a": some("a") }`)
@@ -218,7 +218,7 @@ describe("ToShow", () => {
     })
 
     it("optional field", () => {
-      const show = ToShow.make(Schema.Struct({
+      const show = ToFormat.make(Schema.Struct({
         a: Schema.optional(Schema.Option(Schema.String))
       }))
       strictEqual(show({ a: Option.some("a") }), `{ "a": some("a") }`)
@@ -230,20 +230,20 @@ describe("ToShow", () => {
 
   describe("Record", () => {
     it("Record(String, Option(Number))", () => {
-      const show = ToShow.make(Schema.Record(Schema.String, Schema.Option(Schema.Number)))
+      const show = ToFormat.make(Schema.Record(Schema.String, Schema.Option(Schema.Number)))
       strictEqual(show({ a: Option.some(1) }), `{ "a": some(1) }`)
       strictEqual(show({ a: Option.none() }), `{ "a": none() }`)
     })
 
     it("Record(Symbol, Option(Number))", () => {
-      const show = ToShow.make(Schema.Record(Schema.Symbol, Schema.Option(Schema.Number)))
+      const show = ToFormat.make(Schema.Record(Schema.Symbol, Schema.Option(Schema.Number)))
       strictEqual(show({ [Symbol.for("a")]: Option.some(1) }), `{ Symbol(a): some(1) }`)
       strictEqual(show({ [Symbol.for("a")]: Option.none() }), `{ Symbol(a): none() }`)
     })
   })
 
   it("StructWithRest", () => {
-    const show = ToShow.make(Schema.StructWithRest(
+    const show = ToFormat.make(Schema.StructWithRest(
       Schema.Struct({ a: Schema.Number }),
       [Schema.Record(Schema.String, Schema.Number)]
     ))
@@ -254,7 +254,7 @@ describe("ToShow", () => {
     class A extends Schema.Class<A>("A")({
       a: Schema.Option(Schema.String)
     }) {}
-    const show = ToShow.make(A)
+    const show = ToFormat.make(A)
     strictEqual(show({ a: Option.some("a") }), `A({ "a": some("a") })`)
     strictEqual(show({ a: Option.none() }), `A({ "a": none() })`)
   })
@@ -266,7 +266,7 @@ describe("ToShow", () => {
         Schema.Number,
         Schema.NullOr(Rec)
       ])
-      const show = ToShow.make(schema)
+      const show = ToFormat.make(schema)
       strictEqual(show([1, null]), `[1, null]`)
       strictEqual(show([1, [2, null]]), `[1, [2, null]]`)
     })
@@ -274,7 +274,7 @@ describe("ToShow", () => {
     it("Array", () => {
       const Rec = Schema.suspend((): Schema.Codec<any> => schema)
       const schema: any = Schema.Array(Schema.Union([Schema.String, Rec]))
-      const show = ToShow.make(schema)
+      const show = ToFormat.make(schema)
       strictEqual(show(["a"]), `["a"]`)
     })
 
@@ -284,7 +284,7 @@ describe("ToShow", () => {
         a: Schema.String,
         as: Schema.Array(Rec)
       })
-      const show = ToShow.make(schema)
+      const show = ToFormat.make(schema)
       strictEqual(
         show({ a: "a", as: [{ a: "b", as: [] }, { a: "c", as: [] }] }),
         `{ "a": "a", "as": [{ "a": "b", "as": [] }, { "a": "c", "as": [] }] }`
@@ -294,7 +294,7 @@ describe("ToShow", () => {
     it("Record", () => {
       const Rec = Schema.suspend((): Schema.Codec<any> => schema)
       const schema = Schema.Record(Schema.String, Rec)
-      const show = ToShow.make(schema)
+      const show = ToFormat.make(schema)
       strictEqual(show({ a: { a: { a: {} } } }), `{ "a": { "a": { "a": {} } } }`)
     })
 
@@ -303,7 +303,7 @@ describe("ToShow", () => {
       const schema: any = Schema.Struct({
         a: Schema.optional(Rec)
       })
-      const show = ToShow.make(schema)
+      const show = ToFormat.make(schema)
       strictEqual(show({ a: "a" }), `{ "a": "a" }`)
     })
 
@@ -313,7 +313,7 @@ describe("ToShow", () => {
         a: Schema.Array(Rec),
         b: Schema.Array(Rec)
       })
-      const show = ToShow.make(schema)
+      const show = ToFormat.make(schema)
       strictEqual(
         show({
           a: [{ a: [{ a: [], b: [] }], b: [] }],
@@ -329,7 +329,7 @@ describe("ToShow", () => {
         a: Schema.optional(Rec),
         b: Schema.Array(Rec)
       })
-      const show = ToShow.make(schema)
+      const show = ToFormat.make(schema)
       strictEqual(show({ a: "a", b: [{ a: "b", b: [] }] }), `{ "a": "a", "b": [{ "a": "b", "b": [] }] }`)
     })
 
@@ -357,7 +357,7 @@ describe("ToShow", () => {
         left: Expression,
         right: Expression
       })
-      const show = ToShow.make(Operation)
+      const show = ToFormat.make(Operation)
       strictEqual(
         show({
           type: "operation",
@@ -375,7 +375,7 @@ describe("ToShow", () => {
         a: Schema.String,
         as: Schema.Option(Rec)
       })
-      const show = ToShow.make(schema)
+      const show = ToFormat.make(schema)
       strictEqual(
         show({ a: "a", as: Option.some({ a: "b", as: Option.none() }) }),
         `{ "a": "a", "as": some({ "a": "b", "as": none() }) }`
@@ -385,7 +385,7 @@ describe("ToShow", () => {
     it("Map", () => {
       const Rec = Schema.suspend((): Schema.Codec<any> => schema)
       const schema = Schema.Map(Schema.String, Rec)
-      const show = ToShow.make(schema)
+      const show = ToFormat.make(schema)
       strictEqual(
         show(new Map([["a", new Map([["b", new Map()]])]])),
         `Map(1) { "a" => Map(1) { "b" => Map(0) {} } }`
@@ -394,41 +394,41 @@ describe("ToShow", () => {
   })
 
   it("Date", () => {
-    const show = ToShow.make(Schema.Date)
+    const show = ToFormat.make(Schema.Date)
     strictEqual(show(new Date(0)), "1970-01-01T00:00:00.000Z")
   })
 
   it("URL", () => {
-    const show = ToShow.make(Schema.URL)
+    const show = ToFormat.make(Schema.URL)
     strictEqual(show(new URL("https://www.example.com")), "https://www.example.com/")
   })
 
   it("Option(String)", () => {
-    const show = ToShow.make(Schema.Option(Schema.String))
+    const show = ToFormat.make(Schema.Option(Schema.String))
     strictEqual(show(Option.some("a")), `some("a")`)
     strictEqual(show(Option.none()), "none()")
   })
 
   it("Map(String, Number)", () => {
-    const show = ToShow.make(Schema.Map(Schema.String, Schema.Option(Schema.Number)))
+    const show = ToFormat.make(Schema.Map(Schema.String, Schema.Option(Schema.Number)))
     strictEqual(show(new Map([["a", Option.some(1)]])), `Map(1) { "a" => some(1) }`)
     strictEqual(show(new Map([["a", Option.none()]])), `Map(1) { "a" => none() }`)
   })
 
   it("Redacted(String)", () => {
-    const show = ToShow.make(Schema.Redacted(Schema.String))
+    const show = ToFormat.make(Schema.Redacted(Schema.String))
     strictEqual(show(Redacted.make("a")), `<redacted>`)
   })
 
   it("Duration", () => {
-    const show = ToShow.make(Schema.Duration)
+    const show = ToFormat.make(Schema.Duration)
     strictEqual(show(Duration.millis(100)), `100 millis`)
     strictEqual(show(Duration.nanos(1000n)), `1000 nanos`)
     strictEqual(show(Duration.infinity), "Infinity")
   })
 
   it("DateTimeUtc", () => {
-    const show = ToShow.make(Schema.DateTimeUtc)
+    const show = ToFormat.make(Schema.DateTimeUtc)
     strictEqual(show(DateTime.makeUnsafe("2021-01-01T00:00:00.000Z")), "DateTime.Utc(2021-01-01T00:00:00.000Z)")
   })
 
@@ -437,7 +437,7 @@ describe("ToShow", () => {
       constructor(readonly a: string) {}
     }
     const schema = Schema.instanceOf(A)
-    const show = ToShow.make(schema)
+    const show = ToFormat.make(schema)
     strictEqual(show(new A("a")), `A({"a":"a"})`)
   })
 
@@ -449,7 +449,7 @@ describe("ToShow", () => {
       }
     }
     const schema = Schema.instanceOf(A)
-    const show = ToShow.make(schema)
+    const show = ToFormat.make(schema)
     strictEqual(show(new A("a")), `A(a)`)
   })
 
@@ -458,19 +458,19 @@ describe("ToShow", () => {
       const schema = Schema.String.annotate({
         show: { _tag: "Declaration", declaration: () => (s: string) => s.toUpperCase() }
       })
-      throws(() => ToShow.make(schema), new Error("Declaration annotation found on non-declaration AST"))
+      throws(() => ToFormat.make(schema), new Error("Declaration annotation found on non-declaration AST"))
     })
 
     describe("Override annotation", () => {
       it("String", () => {
-        const schema = Schema.String.pipe(ToShow.override(() => (s) => s.toUpperCase()))
-        const show = ToShow.make(schema)
+        const schema = Schema.String.pipe(ToFormat.override(() => (s) => s.toUpperCase()))
+        const show = ToFormat.make(schema)
         strictEqual(show("a"), "A")
       })
 
       it("String & minLength(1)", () => {
-        const schema = Schema.String.check(Check.minLength(1)).pipe(ToShow.override(() => (s) => s.toUpperCase()))
-        const show = ToShow.make(schema)
+        const schema = Schema.String.check(Check.minLength(1)).pipe(ToFormat.override(() => (s) => s.toUpperCase()))
+        const show = ToFormat.make(schema)
         strictEqual(show("a"), "A")
       })
     })
@@ -478,10 +478,10 @@ describe("ToShow", () => {
 
   it("should allow for custom compilers", () => {
     const alg = {
-      ...ToShow.defaultReducerAlg,
+      ...ToFormat.defaultReducerAlg,
       "BooleanKeyword": () => (b: boolean) => b ? "True" : "False"
     }
-    const make = ToShow.getReducer(alg)
+    const make = ToFormat.getReducer(alg)
     strictEqual(make(Schema.Boolean)(true), `True`)
     const schema = Schema.Tuple([Schema.String, Schema.Boolean])
     strictEqual(make(schema)(["a", true]), `["a", True]`)

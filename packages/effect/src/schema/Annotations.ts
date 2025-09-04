@@ -6,8 +6,8 @@ import type * as AST from "./AST.ts"
 import type * as Schema from "./Schema.ts"
 import type * as ToArbitrary from "./ToArbitrary.ts"
 import type * as ToEquivalence from "./ToEquivalence.ts"
+import type * as ToFormat from "./ToFormat.ts"
 import type * as ToJsonSchema from "./ToJsonSchema.ts"
-import type * as ToShow from "./ToShow.ts"
 
 /**
  * @category Model
@@ -90,7 +90,7 @@ export interface Declaration<T, TypeParameters extends ReadonlyArray<Schema.Top>
     | undefined
   readonly arbitrary?: ToArbitrary.Annotation.Declaration<T, TypeParameters> | undefined
   readonly equivalence?: ToEquivalence.Annotation.Declaration<T, TypeParameters> | undefined
-  readonly show?: ToShow.Annotation.Declaration<T, TypeParameters> | undefined
+  readonly format?: ToFormat.Annotation.Declaration<T, TypeParameters> | undefined
   /** @internal */
   readonly "~sentinels"?: ReadonlyArray<AST.Sentinel> | undefined
 }
