@@ -314,9 +314,127 @@ describe("HttpApi", () => {
       })
     }).pipe(Effect.provide(HttpLive)))
 
-  it("OpenAPI spec", () => {
-    const spec = OpenApi.fromApi(Api)
-    assert.deepStrictEqual(spec, OpenApiFixture as any)
+  describe("OpenAPI spec", () => {
+    describe("error", () => {
+      it("check & & httpApiStatus annotation", () => {
+        class Group extends HttpApiGroup.make("users")
+          .add(HttpApiEndpoint.post("create", "/", {
+            payload: Schema.String,
+            success: Schema.String,
+            error: Schema.Int.annotate({ httpApiStatus: 400 })
+          }))
+        {}
+
+        class Api extends HttpApi.make("api").add(Group) {}
+        const spec = OpenApi.fromApi(Api)
+        assert.deepStrictEqual(spec.paths["/"].post?.responses["400"], {
+          "description": "The request or response did not match the expected schema",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "anyOf": [
+                  { "$ref": "#/components/schemas/effect~1HttpApiSchemaError" },
+                  {
+                    "type": "integer",
+                    "title": "int",
+                    "description": "an integer"
+                  }
+                ]
+              }
+            }
+          }
+        })
+      })
+
+      it("union & httpApiStatus annotation", () => {
+        class Group extends HttpApiGroup.make("users")
+          .add(HttpApiEndpoint.post("create", "/", {
+            payload: Schema.String,
+            success: Schema.String,
+            error: Schema.Union([Schema.String, Schema.Number]).annotate({ httpApiStatus: 400 })
+          }))
+        {}
+
+        class Api extends HttpApi.make("api").add(Group) {}
+        const spec = OpenApi.fromApi(Api)
+        assert.deepStrictEqual(spec.paths["/"].post?.responses["400"], {
+          "description": "The request or response did not match the expected schema",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "anyOf": [
+                  { "$ref": "#/components/schemas/effect~1HttpApiSchemaError" },
+                  { "type": "string" },
+                  { "type": "number" }
+                ]
+              }
+            }
+          }
+        })
+      })
+
+      it("union & id annotation", () => {
+        class Group extends HttpApiGroup.make("users")
+          .add(HttpApiEndpoint.post("create", "/", {
+            payload: Schema.String,
+            success: Schema.String,
+            error: Schema.Union([Schema.String, Schema.Number]).annotate({ id: "ID" })
+          }))
+        {}
+
+        class Api extends HttpApi.make("api").add(Group) {}
+        const spec = OpenApi.fromApi(Api)
+        assert.deepStrictEqual(spec.paths["/"].post?.responses["500"], {
+          "description": "Error",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "$ref": "#/components/schemas/ID"
+              }
+            }
+          }
+        })
+      })
+
+      it("union & jsonSchema annotation", () => {
+        class Group extends HttpApiGroup.make("users")
+          .add(HttpApiEndpoint.post("create", "/", {
+            payload: Schema.String,
+            success: Schema.String,
+            error: Schema.Union([Schema.String, Schema.Number]).annotate({
+              jsonSchema: {
+                _tag: "Override",
+                override: () => ({
+                  type: "string"
+                })
+              }
+            })
+          }))
+        {}
+
+        class Api extends HttpApi.make("api").add(Group) {}
+        const spec = OpenApi.fromApi(Api)
+        assert.deepStrictEqual(spec.paths["/"].post?.responses["500"], {
+          "description": "Error",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "string"
+              }
+            }
+          }
+        })
+      })
+    })
+
+    it("fixture", () => {
+      const spec = OpenApi.fromApi(Api)
+      assert.deepStrictEqual(spec, OpenApiFixture as any)
+    })
   })
 
   it.effect("error from plain text", () => {
