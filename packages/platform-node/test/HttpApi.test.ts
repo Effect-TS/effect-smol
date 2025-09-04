@@ -316,7 +316,7 @@ describe("HttpApi", () => {
 
   describe("OpenAPI spec", () => {
     describe("error", () => {
-      it("check & & httpApiStatus annotation", () => {
+      it("check & httpApiStatus annotation", () => {
         class Group extends HttpApiGroup.make("users")
           .add(HttpApiEndpoint.post("create", "/", {
             payload: Schema.String,

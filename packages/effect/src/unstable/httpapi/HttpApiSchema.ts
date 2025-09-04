@@ -105,7 +105,7 @@ const extractUnionTypes = (ast: AST.AST): ReadonlyArray<AST.AST> => {
   return out
 
   function process(ast: AST.AST): void {
-    if (AST.isUnionType(ast)) {
+    if (AST.isUnionType(ast) && shouldExtractUnion(ast)) {
       for (const type of ast.types) {
         process(type)
       }
@@ -114,6 +114,13 @@ const extractUnionTypes = (ast: AST.AST): ReadonlyArray<AST.AST> => {
     }
   }
 }
+
+const shouldExtractUnion = (ast: AST.UnionType): boolean =>
+  ast.annotations === undefined
+  || Object.keys(ast.annotations).every((key) => key.startsWith("httpApi"))
+  || ast.types.some((type) =>
+    type.annotations && Object.keys(type.annotations).some((key) => key.startsWith("httpApi"))
+  )
 
 /**
  * @since 4.0.0
