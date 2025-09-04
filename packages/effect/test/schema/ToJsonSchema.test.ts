@@ -2713,6 +2713,22 @@ describe("ToJsonSchema", () => {
           "minLength": 1
         })
       })
+
+      it("Union with same member", async () => {
+        const Member = Schema.String.annotate({ id: "ID" })
+        const schema = Schema.Union([Member, Member])
+        await assertDraft7(schema, {
+          "$defs": {
+            "ID": {
+              "type": "string"
+            }
+          },
+          "anyOf": [
+            { "$ref": "#/$defs/ID" },
+            { "$ref": "#/$defs/ID" }
+          ]
+        })
+      })
     })
 
     describe("jsonSchema annotation", () => {

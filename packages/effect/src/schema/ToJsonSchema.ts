@@ -407,14 +407,14 @@ function go(
   if (!ignoreId) {
     const id = getId(ast)
     if (id !== undefined) {
+      const escapedId = id.replace(/~/ig, "~0").replace(/\//ig, "~1")
+      const $ref = { $ref: options.getRef(escapedId) }
       if (Object.hasOwn(options.definitions, id)) {
-        return options.definitions[id]
+        return $ref
       } else {
-        const escapedId = id.replace(/~/ig, "~0").replace(/\//ig, "~1")
-        const out = { $ref: options.getRef(escapedId) }
-        options.definitions[id] = out
+        options.definitions[id] = $ref
         options.definitions[id] = go(ast, path, options, true)
-        return out
+        return $ref
       }
     }
   }
