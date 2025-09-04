@@ -399,6 +399,44 @@ describe("HttpApi", () => {
         })
       })
 
+      it("union & id annotation with httpApiStatus", () => {
+        class Group extends HttpApiGroup.make("users")
+          .add(HttpApiEndpoint.post("create", "/", {
+            payload: Schema.String,
+            success: Schema.String,
+            error: Schema.Union([Schema.String.annotate({ httpApiStatus: 400 }), Schema.Number]).annotate({ id: "ID" })
+          }))
+        {}
+
+        class Api extends HttpApi.make("api").add(Group) {}
+        const spec = OpenApi.fromApi(Api)
+        assert.deepStrictEqual(spec.paths["/"].post?.responses["400"], {
+          "description": "The request or response did not match the expected schema",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "anyOf": [
+                  { "$ref": "#/components/schemas/effect~1HttpApiSchemaError" },
+                  { "type": "string" }
+                ]
+              }
+            }
+          }
+        })
+        assert.deepStrictEqual(spec.paths["/"].post?.responses["500"], {
+          "description": "Error",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "number"
+              }
+            }
+          }
+        })
+      })
+
       it("union & jsonSchema annotation", () => {
         class Group extends HttpApiGroup.make("users")
           .add(HttpApiEndpoint.post("create", "/", {
