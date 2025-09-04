@@ -299,9 +299,17 @@ const getUUIDRegex = (version?: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8): RegExp => {
  * @since 4.0.0
  */
 export function uuid(version?: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8) {
-  return regex(getUUIDRegex(version), {
+  const re = getUUIDRegex(version)
+  return regex(re, {
     title: version ? `uuid-v${version}` : "uuid",
-    description: version ? `a UUID v${version}` : "a UUID"
+    description: version ? `a UUID v${version}` : "a UUID",
+    jsonSchema: {
+      _tag: "Constraint",
+      constraint: () => ({
+        pattern: re.source,
+        format: "uuid"
+      })
+    }
   })
 }
 
