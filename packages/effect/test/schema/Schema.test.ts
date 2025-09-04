@@ -3895,8 +3895,6 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       deepStrictEqual(Annotated.from.fields, { a: Schema.String })
 
       assertTrue(Annotated.makeSync(new A({ a: "a" })) instanceof A)
-
-      strictEqual(Annotated.to.ast.annotations?.id, "A")
     })
 
     it("extend", async () => {

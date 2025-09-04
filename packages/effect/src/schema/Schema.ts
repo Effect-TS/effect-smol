@@ -2472,12 +2472,7 @@ export function suspend<S extends Top>(f: () => S): suspend<S> {
  * @category Filtering
  * @since 4.0.0
  */
-export function check<S extends Top>(
-  ...checks: readonly [
-    Check.Check<S["Type"]>,
-    ...Array<Check.Check<S["Type"]>>
-  ]
-) {
+export function check<S extends Top>(...checks: readonly [Check.Check<S["Type"]>, ...Array<Check.Check<S["Type"]>>]) {
   return (self: S): S["~rebuild.out"] => self.check(...checks)
 }
 
@@ -4294,7 +4289,7 @@ function makeClass<
   schema: S,
   annotations?: Annotations.Declaration<Self, readonly [S]>
 ): any {
-  const getClassSchema = getClassSchemaFactory(schema, Annotations.merge(annotations, { id }))
+  const getClassSchema = getClassSchemaFactory(schema, id, annotations)
 
   return class extends Inherited {
     constructor(...[input, options]: ReadonlyArray<any>) {
@@ -4377,6 +4372,7 @@ const makeClassLink = (self: new(...args: ReadonlyArray<any>) => any) => (ast: A
 
 function getClassSchemaFactory<S extends Top>(
   from: S,
+  id: string,
   annotations: Annotations.Declaration<any, readonly [S]> | undefined
 ) {
   let memo: decodeTo<declareConstructor<any, S["Encoded"], readonly [S]>, S> | undefined
@@ -4411,7 +4407,7 @@ function getClassSchemaFactory<S extends Top>(
           to,
           getClassTransformation(self)
         )
-      )
+      ).annotate({ id })
     }
     return memo
   }

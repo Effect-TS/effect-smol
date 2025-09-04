@@ -211,9 +211,6 @@ function getJsonSchemaAnnotations(
         out.examples = examples
       }
     }
-    if (Predicate.isString(annotations.format)) {
-      out.format = annotations.format
-    }
     if (isContentEncodingSupported(target)) {
       if (Predicate.isString(annotations.contentEncoding)) {
         out.contentEncoding = annotations.contentEncoding

@@ -1831,7 +1831,6 @@ describe("ToJsonSchema", () => {
       it("uuid", async () => {
         await assertDraft7(Schema.String.check(Check.uuid()), {
           "description": "a UUID",
-          "format": "uuid",
           "pattern":
             "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$",
           "title": "uuid",
@@ -1839,7 +1838,6 @@ describe("ToJsonSchema", () => {
         })
         await assertDraft7(Schema.String.check(Check.uuid(4)), {
           "description": "a UUID v4",
-          "format": "uuid",
           "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$",
           "title": "uuid-v4",
           "type": "string"

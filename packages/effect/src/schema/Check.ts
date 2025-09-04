@@ -301,8 +301,7 @@ const getUUIDRegex = (version?: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8): RegExp => {
 export function uuid(version?: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8) {
   return regex(getUUIDRegex(version), {
     title: version ? `uuid-v${version}` : "uuid",
-    description: version ? `a UUID v${version}` : "a UUID",
-    format: "uuid"
+    description: version ? `a UUID v${version}` : "a UUID"
   })
 }
 

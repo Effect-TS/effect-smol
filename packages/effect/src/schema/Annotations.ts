@@ -33,7 +33,6 @@ export interface Documentation extends Annotations {
   readonly title?: string | undefined
   readonly description?: string | undefined
   readonly documentation?: string | undefined
-  readonly format?: string | undefined
   readonly contentEncoding?: string | undefined
 }
 
