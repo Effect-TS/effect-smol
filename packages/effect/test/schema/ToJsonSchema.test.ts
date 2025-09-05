@@ -1,7 +1,7 @@
 import type { Options as AjvOptions } from "ajv"
 // eslint-disable-next-line import-x/no-named-as-default
 import Ajv from "ajv"
-import { Check, Schema, ToJsonSchema } from "effect/schema"
+import { Check, Getter, Schema, ToJsonSchema } from "effect/schema"
 import { describe, it } from "vitest"
 import { assertFalse, assertTrue, deepStrictEqual, strictEqual, throws } from "../utils/assert.ts"
 
@@ -2741,6 +2741,31 @@ describe("ToJsonSchema", () => {
           "anyOf": [
             { "$ref": "#/$defs/ID~1a" },
             { "$ref": "#/$defs/ID~1a" }
+          ]
+        })
+      })
+
+      it("using a schema with two different encodings", async () => {
+        const To = Schema.String.annotate({ id: "ID/a" })
+        const schema1 = To.pipe(Schema.encodeTo(Schema.Literal(1), {
+          decode: Getter.succeed("a"),
+          encode: Getter.succeed(1)
+        }))
+        const schema2 = To.pipe(Schema.encodeTo(Schema.Literal(2), {
+          decode: Getter.succeed("b"),
+          encode: Getter.succeed(2)
+        }))
+        const schema = Schema.Union([schema1, schema2])
+        await assertDraft7(schema, {
+          "$defs": {
+            "ID/a": {
+              "type": "number",
+              "enum": [1]
+            }
+          },
+          "anyOf": [
+            { "$ref": "#/$defs/ID~1a" },
+            { "type": "number", "enum": [2] }
           ]
         })
       })

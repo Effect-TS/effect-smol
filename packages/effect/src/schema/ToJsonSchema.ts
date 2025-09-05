@@ -366,6 +366,8 @@ function compactLiterals(members: Array<JsonSchema>) {
   return out
 }
 
+const cacheEncodedAST = new Map<AST.AST, string>()
+
 function go(
   ast: AST.AST,
   path: ReadonlyArray<PropertyKey>,
@@ -406,10 +408,14 @@ function go(
     if (id !== undefined) {
       const escapedId = id.replace(/~/ig, "~0").replace(/\//ig, "~1")
       const $ref = { $ref: options.getRef(escapedId) }
+      const encodedAST = AST.encodedAST(ast)
       if (Object.hasOwn(options.definitions, id)) {
-        return $ref
+        if (AST.isSuspend(ast) || cacheEncodedAST.has(encodedAST)) {
+          return $ref
+        }
       } else {
         options.definitions[id] = $ref
+        cacheEncodedAST.set(encodedAST, id)
         options.definitions[id] = go(ast, path, options, true)
         return $ref
       }
