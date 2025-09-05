@@ -454,7 +454,7 @@ export const layer = (options: {
  * import { Schema } from "effect/schema"
  * import { Effect, Layer } from "effect"
  *
- * const idParam = McpSchema.param("id", Schema.NumberFromString)
+ * const idParam = McpSchema.param("id", Schema.Number)
  *
  * // Define a resource template for a README file
  * const ReadmeTemplate = McpServer.resource`file://readme/${idParam}`({

@@ -2037,17 +2037,13 @@ export type ServerResultEncoded = ServerSuccessEncoded | ServerFailureEncoded
  * @category Protocol
  */
 export type FromClientEncoded = ClientRequestEncoded | ClientNotificationEncoded
+
 /**
  * @since 4.0.0
  * @category Protocol
  */
 export type FromServerEncoded = ServerResultEncoded | ServerNotificationEncoded
 
-declare module "../../schema/Annotations.ts" {
-  interface Annotations {
-    readonly mcpServerParam?: string
-  }
-}
 /**
  * @since 4.0.0
  * @category Parameters
