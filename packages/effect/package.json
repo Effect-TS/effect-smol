@@ -40,6 +40,7 @@
     "./logging": "./src/logging/index.ts",
     "./match": "./src/match/index.ts",
     "./observability": "./src/observability/index.ts",
+    "./optic": "./src/optic/index.ts",
     "./platform": "./src/platform/index.ts",
     "./primitives": "./src/primitives/index.ts",
     "./resources": "./src/resources/index.ts",
