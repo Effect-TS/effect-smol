@@ -331,8 +331,7 @@ function getId(ast: AST.AST): string | undefined {
 function getBottomJsonSchemaAnnotation(ast: AST.AST): Annotation.Override | Annotation.Constraint | undefined {
   if (ast.checks) {
     for (let i = ast.checks.length - 1; i >= 0; i--) {
-      const check = ast.checks[i]
-      const annotation = getAnnotation(check.annotations)
+      const annotation = getAnnotation(ast.checks[i].annotations)
       if (annotation && annotation._tag === "Override") {
         return annotation
       }
@@ -352,7 +351,7 @@ function compactLiterals(members: Array<JsonSchema>) {
   const out: Array<JsonSchema> = []
   for (const m of members) {
     if (isCompactableLiteral(m) && out.length > 0) {
-      const last = out[out.length - 1]
+      const last = out.at(-1)
       if (isCompactableLiteral(last) && last.type === m.type) {
         out[out.length - 1] = {
           ...last,
@@ -425,7 +424,7 @@ function go(
   // handle encoding
   // ---------------------------------------------
   if (ast.encoding) {
-    return go(ast.encoding[ast.encoding.length - 1].to, path, options, ignoreId)
+    return go(ast.encoding.at(-1)!.to, path, options, ignoreId)
   }
   // ---------------------------------------------
   // handle base cases

@@ -26,7 +26,7 @@ export function json<T, E, RD, RE>(
 const goJson = AST.memoize((ast: AST.AST): AST.AST => {
   if (ast.encoding) {
     const links = ast.encoding
-    const last = links[links.length - 1]
+    const last = links.at(-1)!
     const to = goJson(last.to)
     if (to === last.to) {
       return ast
@@ -74,7 +74,7 @@ export function ensureArray<T, RD, RE>(
 export const goEnsureArray = AST.memoize((ast: AST.AST): AST.AST => {
   if (ast.encoding) {
     const links = ast.encoding
-    const last = links[links.length - 1]
+    const last = links.at(-1)!
     const to = goEnsureArray(last.to)
     if (to === last.to) {
       return ast
