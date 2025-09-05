@@ -49,8 +49,7 @@ import {
   ServerNotificationRpcs,
   ServerRequestRpcs,
   TextContent,
-  Tool,
-  ToolAnnotations
+  Tool
 } from "./McpSchema.ts"
 import type {
   Annotations,
