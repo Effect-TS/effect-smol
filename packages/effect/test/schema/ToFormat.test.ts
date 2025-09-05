@@ -415,9 +415,16 @@ describe("ToFormat", () => {
     strictEqual(show(new Map([["a", Option.none()]])), `Map(1) { "a" => none() }`)
   })
 
-  it("Redacted(String)", () => {
-    const show = ToFormat.make(Schema.Redacted(Schema.String))
-    strictEqual(show(Redacted.make("a")), `<redacted>`)
+  describe("Redacted", () => {
+    it("Redacted(String)", () => {
+      const show = ToFormat.make(Schema.Redacted(Schema.String))
+      strictEqual(show(Redacted.make("a")), `<redacted>`)
+    })
+
+    it("with label", () => {
+      const show = ToFormat.make(Schema.Redacted(Schema.String, { label: "password" }))
+      strictEqual(show(Redacted.make("a", { label: "password" })), `<redacted:password>`)
+    })
   })
 
   it("Duration", () => {

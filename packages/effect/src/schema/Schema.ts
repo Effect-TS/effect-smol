@@ -3316,14 +3316,24 @@ export interface Redacted<S extends Top>
 }
 
 /**
- * Creates a schema for the Redacted type that provides secure handling of
+ * Creates a schema for the `Redacted` type, providing secure handling of
  * sensitive information.
  *
- * In case of failure of the wrapped schema, the issue will be redacted to prevent
- * the actual value and the associated schema from being exposed.
+ * If the wrapped schema fails, the issue will be redacted to prevent both
+ * the actual value and the schema details from being exposed.
  *
- * The default JSON serializer will fail to serialize a Redacted value, but it
- * will deserialize a value to a Redacted instance.
+ * **Options**
+ *
+ * - `label`: When provided, the schema will behave as follows:
+ *   - Values will be validated against the label in addition to the wrapped schema
+ *   - The default JSON serializer will deserialize into a `Redacted` instance with the label
+ *   - The arbitrary generator will produce a `Redacted` instance with the label
+ *   - The formatter will return the label
+ *
+ * **Default JSON serializer**
+ *
+ * The default JSON serializer will fail when attempting to serialize a `Redacted` value,
+ * but it will deserialize a value into a `Redacted` instance.
  *
  * @category Constructors
  * @since 4.0.0
