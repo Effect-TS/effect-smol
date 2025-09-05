@@ -1488,7 +1488,8 @@ const OnSuccessProto = makePrimitiveProto({
   }
 })
 
-const effectIsExit = <A, E, R>(effect: Effect.Effect<A, E, R>): effect is Exit.Exit<A, E> => ExitTypeId in effect
+/** @internal */
+export const effectIsExit = <A, E, R>(effect: Effect.Effect<A, E, R>): effect is Exit.Exit<A, E> => ExitTypeId in effect
 
 /** @internal */
 export const flatMapEager: {

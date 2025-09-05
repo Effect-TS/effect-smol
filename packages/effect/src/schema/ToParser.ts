@@ -332,7 +332,7 @@ export function runChecks<T>(
 const go = AST.memoize(
   (ast: AST.AST): Parser => {
     let parser: Parser
-    return Effect.fnUntracedEager(function*(ou, options) {
+    return (ou, options) => {
       let encoding = ast.encoding
       if (options["~variant"] === "make" && ast.context) {
         if (ast.context.defaultValue) {
@@ -351,39 +351,37 @@ const go = AST.memoize(
           const link = links[i]
           const to = link.to
           const parser = go(to)
-          srou = srou.pipe(Effect.flatMapEager((ou) => parser(ou, options)))
+          srou = Effect.flatMapEager(srou, (ou) => parser(ou, options))
           if (link.transformation._tag === "Transformation") {
             const getter = link.transformation.decode
-            srou = srou.pipe(Effect.flatMapEager((ou) => getter.run(ou, options)))
+            srou = Effect.flatMapEager(srou, (ou) => getter.run(ou, options))
           } else {
             srou = link.transformation.decode(srou, options)
           }
         }
-        srou = srou.pipe(Effect.mapErrorEager((issue) => new Issue.Encoding(ast, ou, issue)))
+        srou = Effect.mapErrorEager(srou, (issue) => new Issue.Encoding(ast, ou, issue))
       }
 
       parser ??= ast.parser(go)
-      let sroa = srou.pipe(Effect.flatMapEager((ou) => parser(ou, options)))
+      let sroa = Effect.flatMapEager(srou, (ou) => parser(ou, options))
 
       if (ast.checks) {
         const checks = ast.checks
         const isStructural = AST.isTupleType(ast) || AST.isTypeLiteral(ast) ||
           (AST.isDeclaration(ast) && ast.typeParameters.length > 0)
         if (options?.errors === "all" && isStructural && Option.isSome(ou)) {
-          sroa = sroa.pipe(
-            Effect.catchEager((issue) => {
-              const issues: Array<Issue.Issue> = []
-              runChecks(checks.filter((check) => check.annotations?.["~structural"]), ou.value, issues, ast, options)
-              const out: Issue.Issue = Arr.isArrayNonEmpty(issues)
-                ? issue._tag === "Composite" && issue.ast === ast
-                  ? new Issue.Composite(ast, issue.actual, [...issue.issues, ...issues])
-                  : new Issue.Composite(ast, ou, [issue, ...issues])
-                : issue
-              return Effect.fail(out)
-            })
-          )
+          sroa = Effect.catchEager(sroa, (issue) => {
+            const issues: Array<Issue.Issue> = []
+            runChecks(checks.filter((check) => check.annotations?.["~structural"]), ou.value, issues, ast, options)
+            const out: Issue.Issue = Arr.isArrayNonEmpty(issues)
+              ? issue._tag === "Composite" && issue.ast === ast
+                ? new Issue.Composite(ast, issue.actual, [...issue.issues, ...issues])
+                : new Issue.Composite(ast, ou, [issue, ...issues])
+              : issue
+            return Effect.fail(out)
+          })
         }
-        sroa = sroa.pipe(Effect.flatMapEager((oa) => {
+        sroa = Effect.flatMapEager(sroa, (oa) => {
           if (Option.isSome(oa)) {
             const value = oa.value
             const issues: Array<Issue.Issue> = []
@@ -395,10 +393,10 @@ const go = AST.memoize(
             }
           }
           return Effect.succeed(oa)
-        }))
+        })
       }
 
-      return yield* sroa
-    })
+      return sroa
+    }
   }
 )
