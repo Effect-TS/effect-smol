@@ -716,7 +716,7 @@ export class Protocol extends ServiceMap.Key<Protocol, {
     transferables?: ReadonlyArray<globalThis.Transferable>
   ) => Effect.Effect<void>
   readonly end: (clientId: number) => Effect.Effect<void>
-  readonly clientIds: Effect.Effect<Iterable<number>>
+  readonly clientIds: Effect.Effect<ReadonlySet<number>>
   readonly initialMessage: Effect.Effect<Option.Option<unknown>>
   readonly supportsAck: boolean
   readonly supportsTransferables: boolean
@@ -844,6 +844,7 @@ export const makeProtocolWithHttpEffect: Effect.Effect<
     readonly write: (bytes: FromServerEncoded) => Effect.Effect<void>
     readonly end: Effect.Effect<void>
   }>()
+  const clientIds = new Set<number>()
 
   const httpEffect: Effect.Effect<
     HttpServerResponse.HttpServerResponse,
@@ -876,6 +877,7 @@ export const makeProtocolWithHttpEffect: Effect.Effect<
       },
       end: Queue.end(queue)
     })
+    clientIds.add(id)
 
     const requestIds: Array<RequestId> = []
 
@@ -900,6 +902,7 @@ export const makeProtocolWithHttpEffect: Effect.Effect<
       let done = false
       yield* Effect.addFinalizer(() => {
         clients.delete(id)
+        clientIds.delete(id)
         Queue.offerUnsafe(disconnects, id)
         if (done) return Effect.void
         return Effect.forEach(
@@ -916,6 +919,7 @@ export const makeProtocolWithHttpEffect: Effect.Effect<
     return HttpServerResponse.stream(
       Stream.onExit(Stream.fromQueue(queue as Queue.Dequeue<Uint8Array, Queue.Done>), (exit) => {
         clients.delete(id)
+        clientIds.delete(id)
         Queue.offerUnsafe(disconnects, id)
         if (!Exit.hasInterrupt(exit)) return Effect.void
         return Effect.forEach(
@@ -942,7 +946,7 @@ export const makeProtocolWithHttpEffect: Effect.Effect<
         if (!client) return Effect.void
         return client.end
       },
-      clientIds: Effect.sync(() => clients.keys()),
+      clientIds: Effect.sync(() => clientIds),
       initialMessage: Effect.succeedNone,
       supportsAck: false,
       supportsTransferables: false,
@@ -1105,7 +1109,7 @@ export const makeProtocolStdio = Effect.fnUntraced(function*<EIn, EOut, RIn, ROu
       end(_clientId) {
         return Queue.end(queue)
       },
-      clientIds: Effect.succeed([0]),
+      clientIds: Effect.succeed(new Set([0])),
       initialMessage: Effect.succeedNone,
       supportsAck: true,
       supportsTransferables: false,
@@ -1156,6 +1160,7 @@ const makeSocketProtocol: Effect.Effect<
   const clients = new Map<number, {
     readonly write: (bytes: FromServerEncoded) => Effect.Effect<void>
   }>()
+  const clientIds = new Set<number>()
 
   let writeRequest!: (clientId: number, message: FromClientEncoded) => Effect.Effect<void>
 
@@ -1165,6 +1170,7 @@ const makeSocketProtocol: Effect.Effect<
     const id = clientId++
     yield* Scope.addFinalizerExit(scope, () => {
       clients.delete(id)
+      clientIds.delete(id)
       return Queue.offer(disconnects, id)
     })
 
@@ -1183,6 +1189,7 @@ const makeSocketProtocol: Effect.Effect<
       }
     }
     clients.set(id, { write })
+    clientIds.add(id)
 
     yield* socket.runRaw((data) => {
       try {
@@ -1222,7 +1229,7 @@ const makeSocketProtocol: Effect.Effect<
       end(_clientId) {
         return Effect.void
       },
-      clientIds: Effect.sync(() => clients.keys()),
+      clientIds: Effect.sync(() => clientIds),
       initialMessage: Effect.succeedNone,
       supportsAck: true,
       supportsTransferables: false,

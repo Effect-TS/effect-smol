@@ -9,7 +9,7 @@ import type * as Effect from "../Effect.ts"
 import type * as Exit from "../Exit.ts"
 import type * as Fiber from "../Fiber.ts"
 import type { LazyArg } from "../Function.ts"
-import { constant, constTrue, constVoid, dual, identity } from "../Function.ts"
+import { constant, constFalse, constTrue, constVoid, dual, identity } from "../Function.ts"
 import * as Equal from "../interfaces/Equal.ts"
 import * as Hash from "../interfaces/Hash.ts"
 import { currentFiberTypeId, redact, stringifyCircular, toJSON } from "../interfaces/Inspectable.ts"
@@ -4718,6 +4718,11 @@ export const CurrentLoggers = ServiceMap.Reference<
 })
 
 /** @internal */
+export const LogToStderr = ServiceMap.Reference<boolean>("effect/logging/Logger/LogToStderr", {
+  defaultValue: constFalse
+})
+
+/** @internal */
 export const LoggerTypeId = "~effect/logging/Logger"
 
 const LoggerProto = {
@@ -4874,7 +4879,6 @@ const hasProcessStdoutOrDeno = hasProcessStdout || "Deno" in globalThis
 /** @internal */
 export const consolePretty = (options?: {
   readonly colors?: "auto" | boolean | undefined
-  readonly stderr?: boolean | undefined
   readonly formatDate?: ((date: Date) => string) | undefined
   readonly mode?: "browser" | "tty" | "auto" | undefined
 }) => {
@@ -4885,12 +4889,11 @@ export const consolePretty = (options?: {
   const formatDate = options?.formatDate ?? defaultDateFormat
   return isBrowser
     ? prettyLoggerBrowser({ colors: showColors, formatDate })
-    : prettyLoggerTty({ colors: showColors, formatDate, stderr: options?.stderr === true })
+    : prettyLoggerTty({ colors: showColors, formatDate })
 }
 
 const prettyLoggerTty = (options: {
   readonly colors: boolean
-  readonly stderr: boolean
   readonly formatDate: (date: Date) => string
 }) => {
   const processIsBun = typeof process === "object" && "isBun" in process && process.isBun === true
@@ -4898,8 +4901,7 @@ const prettyLoggerTty = (options: {
   return loggerMake<unknown, void>(
     ({ cause, date, fiber, logLevel, message: message_ }) => {
       const console = fiber.getRef(ConsoleRef)
-
-      const log = options.stderr === true ? console.error : console.log
+      const log = fiber.getRef(LogToStderr) ? console.error : console.log
 
       const message = Array.isArray(message_) ? message_.slice() : [message_]
 
@@ -5031,7 +5033,8 @@ export const defaultLogger = loggerMake<unknown, void>(({ cause, date, fiber, lo
     message_.push(annotations)
   }
   const console = fiber.getRef(ConsoleRef)
-  console.log(`[${defaultDateFormat(date)}] ${logLevel.toUpperCase()} (#${fiber.id})${spanString}:`, ...message_)
+  const log = fiber.getRef(LogToStderr) ? console.error : console.log
+  log(`[${defaultDateFormat(date)}] ${logLevel.toUpperCase()} (#${fiber.id})${spanString}:`, ...message_)
 })
 
 /** @internal */
