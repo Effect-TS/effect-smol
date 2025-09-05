@@ -1855,6 +1855,11 @@ export function replaceEncoding<A extends AST>(ast: A, encoding: Encoding | unde
   })
 }
 
+/** @internal */
+export function replaceLastLink(encoding: Encoding, link: Link): Encoding {
+  return Arr.append(encoding.slice(0, encoding.length - 1), link)
+}
+
 function replaceContext<A extends AST>(ast: A, context: Context | undefined): A {
   if (ast.context === context) {
     return ast
@@ -1883,16 +1888,9 @@ function applyEncoded<A extends AST>(ast: A, f: (ast: AST) => AST): A {
   if (ast.encoding) {
     const links = ast.encoding
     const last = links.at(-1)!
-    return replaceEncoding(
-      ast,
-      Arr.append(
-        links.slice(0, links.length - 1),
-        new Link(f(last.to), last.transformation)
-      )
-    )
-  } else {
-    return ast
+    return replaceEncoding(ast, replaceLastLink(links, new Link(f(last.to), last.transformation)))
   }
+  return ast
 }
 
 /** @internal */
@@ -2402,7 +2400,7 @@ export const goStringLeafJson = memoize((ast: AST): AST => {
     if (to === last.to) {
       return ast
     }
-    return replaceEncoding(ast, Arr.append(links.slice(0, links.length - 1), new Link(to, last.transformation)))
+    return replaceEncoding(ast, replaceLastLink(links, new Link(to, last.transformation)))
   }
   const out = (ast as any).goStringLeafJson?.() ?? (ast as any).go?.(goStringLeafJson) ?? ast
   return isOptional(ast) ? optionalKey(out) : out

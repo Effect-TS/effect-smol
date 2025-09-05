@@ -2,7 +2,6 @@
  * @since 4.0.0
  */
 
-import * as Arr from "../collections/Array.ts"
 import * as Predicate from "../data/Predicate.ts"
 import * as AST from "./AST.ts"
 import * as Getter from "./Getter.ts"
@@ -31,7 +30,7 @@ const goJson = AST.memoize((ast: AST.AST): AST.AST => {
     if (to === last.to) {
       return ast
     }
-    return AST.replaceEncoding(ast, Arr.append(links.slice(0, links.length - 1), new AST.Link(to, last.transformation)))
+    return AST.replaceEncoding(ast, AST.replaceLastLink(links, new AST.Link(to, last.transformation)))
   }
   if (AST.isTypeLiteral(ast) && ast.propertySignatures.some((ps) => !Predicate.isString(ps.name))) {
     return AST.forbidden(ast, "cannot serialize to JSON, property names must be strings")
@@ -79,7 +78,7 @@ export const goEnsureArray = AST.memoize((ast: AST.AST): AST.AST => {
     if (to === last.to) {
       return ast
     }
-    return AST.replaceEncoding(ast, Arr.append(links.slice(0, links.length - 1), new AST.Link(to, last.transformation)))
+    return AST.replaceEncoding(ast, AST.replaceLastLink(links, new AST.Link(to, last.transformation)))
   }
   if (AST.isUnionType(ast) && ast.annotations?.["~effect/schema/AST/ensureArray"]) {
     return ast
