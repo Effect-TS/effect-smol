@@ -1,17 +1,23 @@
 /**
  * @since 4.0.0
  */
-import type * as Option from "../data/Option.ts"
+import * as Arr from "../collections/Array.ts"
+import * as Option from "../data/Option.ts"
 import * as Result from "../data/Result.ts"
 import { identity } from "../Function.ts"
+import * as AST from "../schema/AST.ts"
+import type * as Check from "../schema/Check.ts"
+import * as Formatter from "../schema/Formatter.ts"
+import * as Issue from "../schema/Issue.ts"
+import * as ToParser from "../schema/ToParser.ts"
 
 /**
  * @category Model
  * @since 4.0.0
  */
 export interface Optic<in S, out T, out A, in B, out GE, out SE, in SS> {
-  readonly getOptic: (S: S) => Result.Result<A, readonly [GE, T]>
-  readonly setOptic: (B: B, SS: SS) => Result.Result<T, readonly [SE, T]>
+  readonly getOptic: (s: S) => Result.Result<A, readonly [GE, T]>
+  readonly setOptic: (b: B, ss: SS) => Result.Result<T, readonly [SE, T]>
 
   /**
    * @since 4.0.0
@@ -24,6 +30,49 @@ export interface Optic<in S, out T, out A, in B, out GE, out SE, in SS> {
   compose<S, T, A, B, C, D>(this: PolyPrism<S, T, A, B>, that: PolyPrism<A, B, C, D>): PolyPrism<S, T, C, D>
   compose<S, A, B>(this: Optional<S, A>, that: Optional<A, B>): Optional<S, B>
   compose<S, T, A, B, C, D>(this: PolyOptional<S, T, A, B>, that: PolyOptional<A, B, C, D>): PolyOptional<S, T, C, D>
+
+  /**
+   * An optic that accesses the specified key of a struct or a tuple.
+   *
+   * @since 4.0.0
+   */
+  at<S, A, Key extends keyof A>(this: Lens<S, A>, key: Key): Lens<S, A[Key]>
+  at<S, T, A, B, Key extends keyof A & keyof B>(
+    this: PolyLens<S, T, A, B>,
+    key: Key
+  ): PolyLens<S, T, A[Key], B[Key]>
+  at<S, A, Key extends keyof A>(
+    this: Optional<S, A>,
+    key: Key
+  ): Optional<S, A[Key]>
+  at<S, T, A, B, Key extends keyof A & keyof B>(
+    this: PolyOptional<S, T, A, B>,
+    key: Key
+  ): PolyOptional<S, T, A[Key], B[Key]>
+
+  /**
+   * @since 4.0.0
+   */
+  check<S, A>(
+    this: Prism<S, A>, // works for prisms
+    ...checks: readonly [Check.Check<A>, ...Array<Check.Check<A>>]
+  ): Prism<S, A>
+  check<S, A>(
+    this: Optional<S, A>, // works for isos, lenses, and optionals
+    ...checks: readonly [Check.Check<A>, ...Array<Check.Check<A>>]
+  ): Optional<S, A>
+
+  /**
+   * @since 4.0.0
+   */
+  refine<S, A, B extends A>(
+    this: Prism<S, A>, // works for prisms
+    refine: Check.Refine<B, A>
+  ): Prism<S, B>
+  refine<S, A, B extends A>(
+    this: Optional<S, A>, // works for isos, lenses, and optionals
+    refine: Check.Refine<B, A>
+  ): Optional<S, B>
 }
 
 /**
@@ -43,24 +92,27 @@ const prismComposition = <S extends SS, T, A, B, GE extends GE1, SE extends SE1,
   new Bottom(
     "prism",
     (s) =>
-      Result.flatMap(
+      Result.flatMap<A, readonly [GE, T], A1, [GE1, T]>(
         self.getOptic(s),
         (a) =>
           Result.orElse(that.getOptic(a), ([ge1, b]) =>
             Result.match(self.setOptic(b, s), {
-              onFailure: ([_, T]) => Result.fail([ge1, T]),
-              onSuccess: (T) => Result.fail([ge1, T])
+              onFailure: ([_, t]) => Result.fail([ge1, t]),
+              onSuccess: (t) => Result.fail([ge1, t])
             }))
       ),
     (b1, ss) =>
-      Result.match(that.setOptic(b1, undefined), {
-        onFailure: ([se1, b]) =>
-          Result.match(self.setOptic(b, ss), {
-            onFailure: ([_, T]) => Result.fail([se1, T]),
-            onSuccess: (T) => Result.fail([se1, T])
-          }),
-        onSuccess: (b) => self.setOptic(b, ss)
-      })
+      Result.match(
+        that.setOptic(b1, undefined),
+        {
+          onFailure: ([se1, b]) =>
+            Result.match(self.setOptic(b, ss), {
+              onFailure: ([_, T]) => Result.fail([se1, T]),
+              onSuccess: (T) => Result.fail([se1, T])
+            }),
+          onSuccess: (b) => self.setOptic(b, ss)
+        }
+      )
   )
 
 /**
@@ -87,7 +139,7 @@ const lensComposition = <
   new Bottom(
     "lens",
     (s) =>
-      Result.flatMap(
+      Result.flatMap<A, readonly [GE, T], A1, [GE1, T]>(
         self.getOptic(s),
         (a) =>
           Result.orElse(that.getOptic(a), ([ge1, b]) =>
@@ -101,7 +153,7 @@ const lensComposition = <
         Result.match(that.setOptic(b1, a), {
           onFailure: ([se1, b]) =>
             Result.match(self.setOptic(b, s), {
-              onFailure: ([_, t]) => Result.fail([se1, t]),
+              onFailure: ([_, t]) => Result.fail([se1, t] as const),
               onSuccess: (t) => Result.fail([se1, t] as const)
             }),
           onSuccess: (b) => self.setOptic(b, s)
@@ -127,6 +179,18 @@ class Bottom<in S, out T, out A, in B, out GE, out SE, in SS> implements Optic<S
       lensComposition(this as any, that) :
       prismComposition(this as any, that)
   }
+
+  at(key: PropertyKey) {
+    return this.compose(fromAt<any, any>(key))
+  }
+
+  check(...checks: readonly [Check.Check<A>, ...Array<Check.Check<A>>]) {
+    return this.compose(fromCheck(...checks))
+  }
+
+  refine<B extends A>(refine: Check.Refine<B, A>) {
+    return this.compose(fromRefine(refine))
+  }
 }
 
 /**
@@ -148,17 +212,6 @@ export const makeIso: {
   <S, T, A, B>(get: (s: S) => A, set: (b: B) => T): PolyIso<S, T, A, B>
 } = <S, A>(get: (s: S) => A, set: (a: A) => S): Iso<S, A> =>
   new Bottom("prism", (s) => Result.succeed(get(s)), (a) => Result.succeed(set(a)))
-
-/**
- * The identity optic.
- *
- * @category Constructors
- * @since 4.0.0
- */
-export const id: {
-  <S>(): Iso<S, S>
-  <S, T>(): PolyIso<S, T, S, T>
-} = () => makeIso(identity, identity)
 
 /**
  * @since 4.0.0
@@ -263,27 +316,45 @@ export interface Setter<in out S, in A> extends PolySetter<S, S, A> {}
 export interface Getter<in S, out A> extends Optic<S, unknown, A, never, Error, unknown, never> {}
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 export function getOption<S, A>(optic: Getter<S, A>) {
   return (s: S): Option.Option<A> => Result.getSuccess(optic.getOptic(s))
 }
 
 /**
- * @since 1.0.0
+ * Replaces a value using the optic's setter operation.
+ *
+ * When the optic's `setOptic` operation fails, this function returns the
+ * original structure as a fallback, ensuring it always returns a value.
+ *
+ * This is different from {@link replaceOption} which returns `None` when
+ * `setOptic` fails.
+ *
+ * @since 4.0.0
  */
 export function replace<S, T, A>(optic: PolySetter<S, T, A>) {
   return (s: S, a: A): T => Result.getOrElse(optic.setOptic(a, s), ([_, t]) => t)
 }
 
 /**
- * @since 1.0.0
+ * Replaces a value using the optic's setter operation, returning an `Option`.
+ *
+ * When the optic's `setOptic` operation succeeds, returns `Some` with the
+ * result. When the optic's `setOptic` operation fails, returns `None`.
+ *
+ * This is different from {@link replace} which returns the original structure
+ * as a fallback when `setOptic` fails.
+ *
+ * @since 4.0.0
  */
 export function replaceOption<S, T, A>(optic: PolySetter<S, T, A>) {
   return (s: S, a: A): Option.Option<T> => Result.getSuccess(optic.setOptic(a, s))
 }
 
 /**
+ * Modifies a value using both the optic's getter and setter operations.
+ *
  * @since 4.0.0
  */
 export function modify<S, T, A, B>(optic: PolyOptional<S, T, A, B>, f: (a: A) => B) {
@@ -292,4 +363,57 @@ export function modify<S, T, A, B>(optic: PolyOptional<S, T, A, B>, f: (a: A) =>
       Result.flatMap((a) => optic.setOptic(f(a), s)),
       Result.getOrElse(([_, t]) => t)
     )
+}
+
+/**
+ * The identity optic.
+ *
+ * @category Isos
+ * @since 4.0.0
+ */
+export const id: {
+  <S>(): Iso<S, S>
+  <S, T>(): PolyIso<S, T, S, T>
+} = () => makeIso(identity, identity)
+
+/**
+ * @category Lenses
+ * @since 4.0.0
+ */
+export function fromAt<S, Key extends keyof S & (string | symbol)>(key: Key): Lens<S, S[Key]> {
+  return makeLens((s) => s[key], (b, s) => {
+    if (Array.isArray(s)) {
+      const out: any = s.slice()
+      out[key] = b
+      return out
+    }
+    return { ...s, [key]: b }
+  })
+}
+
+/**
+ * @category Prisms
+ * @since 4.0.0
+ */
+export function fromCheck<T>(...checks: readonly [Check.Check<T>, ...Array<Check.Check<T>>]): Prism<T, T> {
+  return makePrism(
+    (s) => {
+      const issues: Array<Issue.Issue> = []
+      ToParser.runChecks(checks, s, issues, AST.unknownKeyword, { errors: "all" })
+      if (Arr.isArrayNonEmpty(issues)) {
+        const issue = new Issue.Composite(AST.unknownKeyword, Option.some(s), issues)
+        return Result.fail(new Error(Formatter.makeDefault().format(issue)))
+      }
+      return Result.succeed(s)
+    },
+    identity
+  )
+}
+
+/**
+ * @category Prisms
+ * @since 4.0.0
+ */
+export function fromRefine<T extends E, E>(refine: Check.Refine<T, E>): Prism<E, T> {
+  return fromCheck(refine) as any
 }
