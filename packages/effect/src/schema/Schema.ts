@@ -3328,7 +3328,9 @@ export interface Redacted<S extends Top>
  * @category Constructors
  * @since 4.0.0
  */
-export function Redacted<S extends Top>(value: S): Redacted<S> {
+export function Redacted<S extends Top>(value: S, options?: {
+  readonly label?: string | undefined
+}): Redacted<S> {
   return declareConstructor([value])<Redacted_.Redacted<S["Encoded"]>>()(
     ([value]) => (input, ast, options) => {
       if (Redacted_.isRedacted(input)) {
@@ -3350,13 +3352,15 @@ export function Redacted<S extends Top>(value: S): Redacted<S> {
         link<Redacted_.Redacted<S["Encoded"]>>()(
           value,
           {
-            decode: Getter.transform(Redacted_.make),
-            encode: Getter.forbidden("Cannot serialize Redacted")
+            decode: Getter.transform((e) => Redacted_.make(e, { label: options?.label })),
+            encode: Getter.forbidden(
+              "Cannot serialize Redacted" + (options?.label ? ` with label: "${options.label}"` : "")
+            )
           }
         ),
       arbitrary: {
         _tag: "Declaration",
-        declaration: ([value]) => () => value.map(Redacted_.make)
+        declaration: ([value]) => () => value.map((a) => Redacted_.make(a, { label: options?.label }))
       },
       format: {
         _tag: "Declaration",
