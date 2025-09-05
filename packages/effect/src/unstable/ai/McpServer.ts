@@ -450,7 +450,7 @@ export const layer = (options: {
  * ```ts
  * import { McpSchema, McpServer } from "effect/unstable/ai"
  * import { NodeRuntime, NodeSink, NodeStream } from "@effect/platform-node"
- * import { Logger } from "effect/observability"
+ * import { Logger } from "effect/logging"
  * import { Schema } from "effect/schema"
  * import { Effect, Layer } from "effect"
  *
@@ -472,9 +472,9 @@ export const layer = (options: {
  * const TestPrompt = McpServer.prompt({
  *   name: "Test Prompt",
  *   description: "A test prompt to demonstrate MCP server capabilities",
- *   parameters: Schema.Struct({
+ *   parameters: {
  *     flightNumber: Schema.String
- *   }),
+ *   },
  *   completion: {
  *     flightNumber: () => Effect.succeed(["FL123", "FL456", "FL789"])
  *   },
