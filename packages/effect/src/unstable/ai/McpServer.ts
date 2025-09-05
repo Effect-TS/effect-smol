@@ -448,9 +448,11 @@ export const layer = (options: {
  * Run the McpServer, using stdio for input and output.
  *
  * ```ts
- * import { McpSchema, McpServer } from "@effect/ai"
+ * import { McpSchema, McpServer } from "effect/unstable/ai"
  * import { NodeRuntime, NodeSink, NodeStream } from "@effect/platform-node"
- * import { Effect, Layer, Logger, Schema } from "effect"
+ * import { Logger } from "effect/observability"
+ * import { Schema } from "effect/schema"
+ * import { Effect, Layer } from "effect"
  *
  * const idParam = McpSchema.param("id", Schema.NumberFromString)
  *
@@ -491,6 +493,7 @@ export const layer = (options: {
  *     stdin: NodeStream.stdin,
  *     stdout: NodeSink.stdout
  *   })),
+ *   Layer.provide(Layer.succeed(Logger.LogToStderr)(true))
  * )
  *
  * Layer.launch(ServerLayer).pipe(NodeRuntime.runMain)
