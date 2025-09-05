@@ -422,7 +422,7 @@ export const Duration = Schema.String.annotate({
     const d = Duration_.fromDurationInput(s as any)
     return d ? Effect.succeed(d) : Effect.fail(new Issue.InvalidValue(Option.some(s)))
   }),
-  encode: Getter.forbidden("Encoding Duration is not supported")
+  encode: Getter.forbidden(() => "Encoding Duration is not supported")
 }))
 
 /**

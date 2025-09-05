@@ -3328,19 +3328,33 @@ export interface Redacted<S extends Top>
  * @category Constructors
  * @since 4.0.0
  */
-export function Redacted<S extends Top>(value: S): Redacted<S> {
+export function Redacted<S extends Top>(value: S, options?: {
+  readonly label?: string | undefined
+}): Redacted<S> {
   return declareConstructor([value])<Redacted_.Redacted<S["Encoded"]>>()(
-    ([value]) => (input, ast, options) => {
+    ([value]) => (input, ast, poptions) => {
       if (Redacted_.isRedacted(input)) {
-        return ToParser.decodeUnknownEffect(value)(Redacted_.value(input), options).pipe(Effect.mapBothEager(
-          {
-            onSuccess: () => input,
-            onFailure: (/** ignore the actual issue because of security reasons */) => {
-              const oinput = O.some(input)
-              return new Issue.Composite(ast, oinput, [new Issue.Pointer(["value"], new Issue.InvalidValue(oinput))])
-            }
-          }
-        ))
+        const label: Effect.Effect<void, Issue.Issue, never> = Predicate.isString(options?.label)
+          ? Effect.mapErrorEager(
+            ToParser.decodeUnknownEffect(Literal(options.label))(input.label, poptions),
+            (issue) => new Issue.Pointer(["label"], issue)
+          )
+          : Effect.void
+        return Effect.flatMapEager(
+          label,
+          () =>
+            ToParser.decodeUnknownEffect(value)(Redacted_.value(input), poptions).pipe(Effect.mapBothEager(
+              {
+                onSuccess: () => input,
+                onFailure: (/** ignore the actual issue because of security reasons */) => {
+                  const oinput = O.some(input)
+                  return new Issue.Composite(ast, oinput, [
+                    new Issue.Pointer(["value"], new Issue.InvalidValue(oinput))
+                  ])
+                }
+              }
+            ))
+        )
       }
       return Effect.fail(new Issue.InvalidType(ast, O.some(input)))
     },
@@ -3350,13 +3364,16 @@ export function Redacted<S extends Top>(value: S): Redacted<S> {
         link<Redacted_.Redacted<S["Encoded"]>>()(
           value,
           {
-            decode: Getter.transform(Redacted_.make),
-            encode: Getter.forbidden("Cannot serialize Redacted")
+            decode: Getter.transform((e) => Redacted_.make(e, { label: options?.label })),
+            encode: Getter.forbidden((oe) =>
+              "Cannot serialize Redacted" +
+              (O.isSome(oe) && Predicate.isString(oe.value.label) ? ` with label: "${oe.value.label}"` : "")
+            )
           }
         ),
       arbitrary: {
         _tag: "Declaration",
-        declaration: ([value]) => () => value.map(Redacted_.make)
+        declaration: ([value]) => () => value.map((a) => Redacted_.make(a, { label: options?.label }))
       },
       format: {
         _tag: "Declaration",

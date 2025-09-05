@@ -739,21 +739,37 @@ describe("Serializer", () => {
         await assertions.serialization.json.typeCodec.succeed(schema, Option.none(), [])
       })
 
-      it("Redacted(Option(String))", async () => {
-        const schema = Schema.Redacted(Schema.Option(Schema.String))
+      describe("Redacted", () => {
+        it("Redacted(Option(String))", async () => {
+          const schema = Schema.Redacted(Schema.Option(Schema.String))
 
-        await assertions.serialization.json.typeCodec.fail(
-          schema,
-          Redacted.make(Option.none()),
-          `Cannot serialize Redacted`
-        )
-        await assertions.serialization.json.typeCodec.fail(
-          schema,
-          Redacted.make(Option.some("a")),
-          `Cannot serialize Redacted`
-        )
-        await assertions.deserialization.json.typeCodec.succeed(schema, [], Redacted.make(Option.none()))
-        await assertions.deserialization.json.typeCodec.succeed(schema, ["a"], Redacted.make(Option.some("a")))
+          await assertions.serialization.json.typeCodec.fail(
+            schema,
+            Redacted.make(Option.none()),
+            `Cannot serialize Redacted`
+          )
+          await assertions.serialization.json.typeCodec.fail(
+            schema,
+            Redacted.make(Option.some("a")),
+            `Cannot serialize Redacted`
+          )
+          await assertions.deserialization.json.typeCodec.succeed(schema, [], Redacted.make(Option.none()))
+          await assertions.deserialization.json.typeCodec.succeed(schema, ["a"], Redacted.make(Option.some("a")))
+        })
+
+        it("encoding a Redacted with a label", async () => {
+          await assertions.serialization.json.typeCodec.fail(
+            Schema.Redacted(Schema.String),
+            Redacted.make("a", { label: "API key" }),
+            `Cannot serialize Redacted with label: "API key"`
+          )
+          await assertions.serialization.json.typeCodec.fail(
+            Schema.Redacted(Schema.String, { label: "password" }),
+            Redacted.make("a", { label: "API key" }),
+            `Expected "password", got "API key"
+  at ["label"]`
+          )
+        })
       })
 
       it("Map", async () => {

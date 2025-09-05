@@ -2412,7 +2412,7 @@ export function forbidden<A extends AST>(ast: A, message: string): A {
     neverKeyword,
     new Transformation.Transformation(
       Getter.passthrough(),
-      Getter.forbidden(message)
+      Getter.forbidden(() => message)
     )
   )
   return replaceEncoding(ast, [link])

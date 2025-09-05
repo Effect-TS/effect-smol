@@ -1948,6 +1948,29 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
   at ["value"]`
       )
     })
+
+    it("with label", async () => {
+      const schema = Schema.Redacted(Schema.String, { label: "password" })
+      await assertions.decoding.succeed(schema, Redacted.make("a", { label: "password" }))
+      await assertions.decoding.fail(
+        schema,
+        Redacted.make("a", { label: "API key" }),
+        `Expected "password", got "API key"
+  at ["label"]`
+      )
+      await assertions.decoding.fail(
+        schema,
+        Redacted.make(1, { label: "API key" }),
+        `Expected "password", got "API key"
+  at ["label"]`
+      )
+      await assertions.decoding.fail(
+        schema,
+        Redacted.make(1, { label: "password" }),
+        `Invalid data <redacted:password>
+  at ["value"]`
+      )
+    })
   })
 
   describe("Option", () => {

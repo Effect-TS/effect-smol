@@ -7,7 +7,7 @@
  * @since 3.3.0
  */
 import * as Equivalence from "../data/Equivalence.ts"
-import { hasProperty } from "../data/Predicate.ts"
+import { hasProperty, isString } from "../data/Predicate.ts"
 import * as Equal from "../interfaces/Equal.ts"
 import * as Hash from "../interfaces/Hash.ts"
 import type { Pipeable } from "../interfaces/Pipeable.ts"
@@ -138,10 +138,10 @@ const Proto = {
   label: undefined,
   ...PipeInspectableProto,
   toJSON() {
-    return `<${this.label ?? "redacted"}>`
+    return this.toString()
   },
   toString() {
-    return `<${this.label ?? "redacted"}>`
+    return `<redacted${isString(this.label) ? ":" + this.label : ""}>`
   },
   [Hash.symbol]<T>(this: Redacted<T>): number {
     return Hash.cached(this, () => Hash.hash(redactedRegistry.get(this)))

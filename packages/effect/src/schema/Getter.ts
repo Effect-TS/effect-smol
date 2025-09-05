@@ -68,8 +68,8 @@ export function fail<T, E>(f: (oe: Option.Option<E>) => Issue.Issue): Getter<T, 
  * @category Constructors
  * @since 4.0.0
  */
-export function forbidden<T, E>(message: string): Getter<T, E> {
-  return fail<T, E>((oe) => new Issue.Forbidden(oe, { message }))
+export function forbidden<T, E>(message: (oe: Option.Option<E>) => string): Getter<T, E> {
+  return fail<T, E>((oe) => new Issue.Forbidden(oe, { message: message(oe) }))
 }
 
 const passthrough_ = new Getter<any, any>(Effect.succeed)
