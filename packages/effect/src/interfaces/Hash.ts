@@ -335,7 +335,7 @@ export const string = (str: string) => {
 export const structureKeys = <A extends object>(o: A, keys: ReadonlyArray<keyof A>) => {
   let h = 12289
   for (let i = 0; i < keys.length; i++) {
-    h ^= pipe(string(keys[i]! as string), combine(hash((o as any)[keys[i]!])))
+    h ^= pipe(hash(keys[i]!), combine(hash((o as any)[keys[i]!])))
   }
   return optimize(h)
 }
@@ -367,7 +367,7 @@ export const structureKeys = <A extends object>(o: A, keys: ReadonlyArray<keyof 
  * @since 2.0.0
  */
 export const structure = <A extends object>(o: A) =>
-  structureKeys(o, Object.keys(o) as unknown as ReadonlyArray<keyof A>)
+  structureKeys(o, Reflect.ownKeys(o) as unknown as ReadonlyArray<keyof A>)
 
 /**
  * Computes a hash value for an array by hashing all of its elements.
