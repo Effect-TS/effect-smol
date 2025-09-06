@@ -349,7 +349,165 @@ describe("Equal - Structural Equality Behavior", () => {
     })
   })
 
-  describe("useInstanceEquality", () => {
+  describe("JavaScript Map", () => {
+    it("should return true for structurally identical maps", () => {
+      const map1 = new Map([["a", 1], ["b", 2]])
+      const map2 = new Map([["a", 1], ["b", 2]])
+      expect(Equal.equals(map1, map2)).toBe(true)
+    })
+
+    it("should return true for same reference", () => {
+      const map = new Map([["a", 1]])
+      expect(Equal.equals(map, map)).toBe(true)
+    })
+
+    it("should return true for empty maps", () => {
+      expect(Equal.equals(new Map(), new Map())).toBe(true)
+    })
+
+    it("should return false for maps with different values", () => {
+      const map1 = new Map([["a", 1], ["b", 2]])
+      const map2 = new Map([["a", 1], ["b", 3]])
+      expect(Equal.equals(map1, map2)).toBe(false)
+    })
+
+    it("should return false for maps with different keys", () => {
+      const map1 = new Map([["a", 1], ["b", 2]])
+      const map2 = new Map([["a", 1], ["c", 2]])
+      expect(Equal.equals(map1, map2)).toBe(false)
+    })
+
+    it("should return false for maps with different sizes", () => {
+      const map1 = new Map([["a", 1], ["b", 2]])
+      const map2 = new Map([["a", 1]])
+      expect(Equal.equals(map1, map2)).toBe(false)
+    })
+
+    it("should handle maps with object keys", () => {
+      const key1 = { id: 1 }
+      const key2 = { id: 1 }
+      const map1 = new Map()
+      map1.set(key1, "value1")
+      map1.set({ nested: { x: 1 } }, "value2")
+
+      const map2 = new Map()
+      map2.set(key2, "value1")
+      map2.set({ nested: { x: 1 } }, "value2")
+
+      expect(Equal.equals(map1, map2)).toBe(true)
+    })
+
+    it("should handle maps with object values", () => {
+      const map1 = new Map([["a", { x: 1 }], ["b", { y: [1, 2] }]])
+      const map2 = new Map([["a", { x: 1 }], ["b", { y: [1, 2] }]])
+      expect(Equal.equals(map1, map2)).toBe(true)
+    })
+
+    it("should handle nested maps", () => {
+      const inner1 = new Map([["x", 1]])
+      const inner2 = new Map([["x", 1]])
+      const map1 = new Map([["nested", inner1]])
+      const map2 = new Map([["nested", inner2]])
+      expect(Equal.equals(map1, map2)).toBe(true)
+    })
+
+    it("should handle maps with special values", () => {
+      const map1 = new Map([[NaN, "nan"], [Infinity, "inf"], [-Infinity, "neginf"]])
+      const map2 = new Map([[NaN, "nan"], [Infinity, "inf"], [-Infinity, "neginf"]])
+      expect(Equal.equals(map1, map2)).toBe(true)
+    })
+  })
+
+  describe("JavaScript Set", () => {
+    it("should return true for structurally identical sets", () => {
+      const set1 = new Set([1, 2, 3])
+      const set2 = new Set([1, 2, 3])
+      expect(Equal.equals(set1, set2)).toBe(true)
+    })
+
+    it("should return true for same reference", () => {
+      const set = new Set([1, 2, 3])
+      expect(Equal.equals(set, set)).toBe(true)
+    })
+
+    it("should return true for empty sets", () => {
+      expect(Equal.equals(new Set(), new Set())).toBe(true)
+    })
+
+    it("should return false for sets with different elements", () => {
+      const set1 = new Set([1, 2, 3])
+      const set2 = new Set([1, 2, 4])
+      expect(Equal.equals(set1, set2)).toBe(false)
+    })
+
+    it("should return false for sets with different sizes", () => {
+      const set1 = new Set([1, 2, 3])
+      const set2 = new Set([1, 2])
+      expect(Equal.equals(set1, set2)).toBe(false)
+    })
+
+    it("should return true for sets with same elements in different insertion order", () => {
+      const set1 = new Set([1, 2, 3])
+      const set2 = new Set([3, 1, 2])
+      expect(Equal.equals(set1, set2)).toBe(true)
+    })
+
+    it("should handle sets with object elements", () => {
+      const set1 = new Set([{ x: 1 }, { y: 2 }])
+      const set2 = new Set([{ x: 1 }, { y: 2 }])
+      expect(Equal.equals(set1, set2)).toBe(true)
+    })
+
+    it("should handle nested sets", () => {
+      const inner1 = new Set([1, 2])
+      const inner2 = new Set([1, 2])
+      const set1 = new Set([inner1, "other"])
+      const set2 = new Set([inner2, "other"])
+      expect(Equal.equals(set1, set2)).toBe(true)
+    })
+
+    it("should handle sets with special values", () => {
+      const set1 = new Set([NaN, Infinity, -Infinity])
+      const set2 = new Set([NaN, Infinity, -Infinity])
+      expect(Equal.equals(set1, set2)).toBe(true)
+    })
+
+    it("should handle sets with array elements", () => {
+      const set1 = new Set([[1, 2], [3, 4]])
+      const set2 = new Set([[1, 2], [3, 4]])
+      expect(Equal.equals(set1, set2)).toBe(true)
+    })
+  })
+
+  describe("Map and Set mixed", () => {
+    it("should handle objects containing maps and sets", () => {
+      const obj1 = {
+        map: new Map([["a", 1], ["b", 2]]),
+        set: new Set([1, 2, 3]),
+        array: [new Map([["x", 1]]), new Set([4, 5])]
+      }
+      const obj2 = {
+        map: new Map([["a", 1], ["b", 2]]),
+        set: new Set([1, 2, 3]),
+        array: [new Map([["x", 1]]), new Set([4, 5])]
+      }
+      expect(Equal.equals(obj1, obj2)).toBe(true)
+    })
+
+    it("should return false when Map/Set differ in nested structures", () => {
+      const obj1 = {
+        map: new Map([["a", 1], ["b", 2]]),
+        set: new Set([1, 2, 3])
+      }
+      const obj2 = {
+        map: new Map([["a", 1], ["b", 3]]), // different value
+        set: new Set([1, 2, 3])
+      }
+      expect(Equal.equals(obj1, obj2)).toBe(false)
+    })
+  })
+
+  describe("byReference", () => {
     it("should allow objects to opt out of structural equality", () => {
       const obj1 = { a: 1, b: 2 }
       const obj2 = { a: 1, b: 2 }
@@ -357,10 +515,10 @@ describe("Equal - Structural Equality Behavior", () => {
       // Normal structural equality
       expect(Equal.equals(obj1, obj2)).toBe(true)
 
-      // Mark obj1 for instance equality
-      Equal.useInstanceEquality(obj1)
-      expect(Equal.equals(obj1, obj2)).toBe(false)
-      expect(Equal.equals(obj1, obj1)).toBe(true)
+      // Create instance equality version of obj1
+      const obj1Instance = Equal.byReference(obj1)
+      expect(Equal.equals(obj1Instance, obj2)).toBe(false)
+      expect(Equal.equals(obj1Instance, obj1Instance)).toBe(true)
     })
 
     it("should work with arrays", () => {
@@ -370,26 +528,60 @@ describe("Equal - Structural Equality Behavior", () => {
       // Normal structural equality
       expect(Equal.equals(arr1, arr2)).toBe(true)
 
-      // Mark arr1 for instance equality
-      Equal.useInstanceEquality(arr1)
-      expect(Equal.equals(arr1, arr2)).toBe(false)
-      expect(Equal.equals(arr1, arr1)).toBe(true)
+      // Create instance equality version of arr1
+      const arr1Instance = Equal.byReference(arr1)
+      expect(Equal.equals(arr1Instance, arr2)).toBe(false)
+      expect(Equal.equals(arr1Instance, arr1Instance)).toBe(true)
     })
 
-    it("should return the same object for chaining", () => {
+    it("should work with Maps", () => {
+      const map1 = new Map([["a", 1]])
+      const map2 = new Map([["a", 1]])
+
+      // Normal structural equality
+      expect(Equal.equals(map1, map2)).toBe(true)
+
+      // Create instance equality version of map1
+      const map1Instance = Equal.byReference(map1)
+      expect(Equal.equals(map1Instance, map2)).toBe(false)
+      expect(Equal.equals(map1Instance, map1Instance)).toBe(true)
+    })
+
+    it("should work with Sets", () => {
+      const set1 = new Set([1, 2])
+      const set2 = new Set([1, 2])
+
+      // Normal structural equality
+      expect(Equal.equals(set1, set2)).toBe(true)
+
+      // Create instance equality version of set1
+      const set1Instance = Equal.byReference(set1)
+      expect(Equal.equals(set1Instance, set2)).toBe(false)
+      expect(Equal.equals(set1Instance, set1Instance)).toBe(true)
+    })
+
+    it("should return a proxy that behaves like the original object", () => {
       const obj = { a: 1 }
-      const result = Equal.useInstanceEquality(obj)
-      expect(result).toBe(obj)
+      const result = Equal.byReference(obj)
+
+      // The result should not be the same reference (it's a proxy)
+      expect(result).not.toBe(obj)
+
+      // But it should behave the same way
+      expect(result.a).toBe(1)
+
+      // And should support property access
+      expect(result.a).toBe(obj.a)
     })
 
     it("should work when either object is marked for instance equality", () => {
       const obj1 = { a: 1, b: 2 }
       const obj2 = { a: 1, b: 2 }
 
-      // Mark obj2 for instance equality
-      Equal.useInstanceEquality(obj2)
-      expect(Equal.equals(obj1, obj2)).toBe(false)
-      expect(Equal.equals(obj2, obj1)).toBe(false)
+      // Create instance equality version of obj2
+      const obj2Instance = Equal.byReference(obj2)
+      expect(Equal.equals(obj1, obj2Instance)).toBe(false)
+      expect(Equal.equals(obj2Instance, obj1)).toBe(false)
     })
 
     it("should work with nested structures", () => {
@@ -399,9 +591,119 @@ describe("Equal - Structural Equality Behavior", () => {
       // Normal structural equality
       expect(Equal.equals(obj1, obj2)).toBe(true)
 
-      // Mark obj1 for instance equality
-      Equal.useInstanceEquality(obj1)
+      // Create instance equality version of obj1
+      const obj1Instance = Equal.byReference(obj1)
+      expect(Equal.equals(obj1Instance, obj2)).toBe(false)
+    })
+  })
+
+  describe("byReferenceUnsafe", () => {
+    it("should mutate objects to use reference equality", () => {
+      const obj1 = { a: 1, b: 2 }
+      const obj2 = { a: 1, b: 2 }
+
+      // Normal structural equality
+      expect(Equal.equals(obj1, obj2)).toBe(true)
+
+      // Mutate obj1 to use reference equality
+      const result = Equal.byReferenceUnsafe(obj1)
+      expect(result).toBe(obj1) // Same reference returned
+      expect(Equal.equals(obj1, obj2)).toBe(false) // obj1 now uses reference equality
+      expect(Equal.equals(obj1, obj1)).toBe(true) // Same reference
+    })
+
+    it("should work with arrays", () => {
+      const arr1 = [1, 2, 3]
+      const arr2 = [1, 2, 3]
+
+      // Normal structural equality
+      expect(Equal.equals(arr1, arr2)).toBe(true)
+
+      // Mutate arr1 to use reference equality
+      const result = Equal.byReferenceUnsafe(arr1)
+      expect(result).toBe(arr1) // Same reference returned
+      expect(Equal.equals(arr1, arr2)).toBe(false) // arr1 now uses reference equality
+      expect(Equal.equals(arr1, arr1)).toBe(true) // Same reference
+    })
+
+    it("should work with Maps", () => {
+      const map1 = new Map([["a", 1]])
+      const map2 = new Map([["a", 1]])
+
+      // Normal structural equality
+      expect(Equal.equals(map1, map2)).toBe(true)
+
+      // Mutate map1 to use reference equality
+      const result = Equal.byReferenceUnsafe(map1)
+      expect(result).toBe(map1) // Same reference returned
+      expect(Equal.equals(map1, map2)).toBe(false) // map1 now uses reference equality
+      expect(Equal.equals(map1, map1)).toBe(true) // Same reference
+    })
+
+    it("should work with Sets", () => {
+      const set1 = new Set([1, 2])
+      const set2 = new Set([1, 2])
+
+      // Normal structural equality
+      expect(Equal.equals(set1, set2)).toBe(true)
+
+      // Mutate set1 to use reference equality
+      const result = Equal.byReferenceUnsafe(set1)
+      expect(result).toBe(set1) // Same reference returned
+      expect(Equal.equals(set1, set2)).toBe(false) // set1 now uses reference equality
+      expect(Equal.equals(set1, set1)).toBe(true) // Same reference
+    })
+
+    it("should permanently change object behavior", () => {
+      const obj1 = { a: 1, b: 2 }
+      const obj2 = { a: 1, b: 2 }
+      const obj3 = { a: 1, b: 2 }
+
+      // Normal structural equality
+      expect(Equal.equals(obj1, obj2)).toBe(true)
+      expect(Equal.equals(obj1, obj3)).toBe(true)
+
+      // Mutate obj1 behavior
+      Equal.byReferenceUnsafe(obj1)
+
+      // obj1 now permanently uses reference equality
       expect(Equal.equals(obj1, obj2)).toBe(false)
+      expect(Equal.equals(obj1, obj3)).toBe(false)
+      expect(Equal.equals(obj1, obj1)).toBe(true)
+
+      // obj2 and obj3 still use structural equality
+      expect(Equal.equals(obj2, obj3)).toBe(true)
+    })
+
+    it("should differ from byReference in mutation behavior", () => {
+      const obj1 = { a: 1, b: 2 }
+      const obj2 = { a: 1, b: 2 }
+      const obj3 = { a: 1, b: 2 }
+      const obj4 = { a: 1, b: 2 }
+
+      // Test byReferenceUnsafe (mutates original)
+      const unsafeResult = Equal.byReferenceUnsafe(obj1)
+      expect(unsafeResult).toBe(obj1) // Same reference
+      expect(Equal.equals(obj1, obj2)).toBe(false) // Original obj1 mutated
+
+      // Test byReference (creates proxy)
+      const safeResult = Equal.byReference(obj3)
+      expect(safeResult).not.toBe(obj3) // Different reference (proxy)
+      expect(Equal.equals(obj3, obj4)).toBe(true) // Original obj3 unchanged
+      expect(Equal.equals(safeResult, obj4)).toBe(false) // Proxy uses reference equality
+    })
+
+    it("should work when either object is mutated", () => {
+      const obj1 = { a: 1, b: 2 }
+      const obj2 = { a: 1, b: 2 }
+
+      // Normal structural equality
+      expect(Equal.equals(obj1, obj2)).toBe(true)
+
+      // Mutate obj2 behavior
+      Equal.byReferenceUnsafe(obj2)
+      expect(Equal.equals(obj1, obj2)).toBe(false)
+      expect(Equal.equals(obj2, obj1)).toBe(false)
     })
   })
 })
