@@ -355,9 +355,9 @@ export const mapInput: {
  * @category combinators
  * @since 2.0.0
  */
-export const tuple = <Elements extends ReadonlyArray<Equivalence<any>>>(
+export function tuple<const Elements extends ReadonlyArray<Equivalence<any>>>(
   elements: Elements
-): Equivalence<Readonly<{ [I in keyof Elements]: [Elements[I]] extends [Equivalence<infer A>] ? A : never }>> => {
+): Equivalence<{ readonly [I in keyof Elements]: [Elements[I]] extends [Equivalence<infer A>] ? A : never }> {
   return make((self, that) => {
     if (self.length !== that.length) {
       return false
@@ -404,24 +404,21 @@ export const tuple = <Elements extends ReadonlyArray<Equivalence<any>>>(
  * @category combinators
  * @since 2.0.0
  */
-export const array = <A>(item: Equivalence<A>): Equivalence<ReadonlyArray<A>> =>
-  make((self, that) => {
-    if (self.length !== that.length) {
-      return false
-    }
+export function array<A>(item: Equivalence<A>): Equivalence<ReadonlyArray<A>> {
+  return make((self, that) => {
+    if (self.length !== that.length) return false
 
     for (let i = 0; i < self.length; i++) {
-      const isEq = item(self[i], that[i])
-      if (!isEq) {
-        return false
-      }
+      if (!item(self[i], that[i])) return false
     }
 
     return true
   })
+}
 
 /**
- * Creates an equivalence for objects by comparing their properties using provided equivalences.
+ * Creates an equivalence for objects by comparing their properties using
+ * provided equivalences.
  *
  * Given a struct of `Equivalence`s, returns a new `Equivalence` that compares objects
  * by applying each `Equivalence` to the corresponding property of the object.
@@ -464,16 +461,40 @@ export const array = <A>(item: Equivalence<A>): Equivalence<ReadonlyArray<A>> =>
  * @category combinators
  * @since 2.0.0
  */
-export const struct = <R extends Record<string, Equivalence<any>>>(
+export function struct<R extends Record<string, Equivalence<any>>>(
   fields: R
-): Equivalence<{ readonly [K in keyof R]: [R[K]] extends [Equivalence<infer A>] ? A : never }> => {
-  const keys = Object.keys(fields)
+): Equivalence<{ readonly [K in keyof R]: [R[K]] extends [Equivalence<infer A>] ? A : never }> {
+  const keys: Array<any> = Reflect.ownKeys(fields)
   return make((self, that) => {
     for (const key of keys) {
-      if (!fields[key](self[key], that[key])) {
+      if (!fields[key](self[key], that[key])) return false
+    }
+    return true
+  })
+}
+
+/**
+ * Creates an equivalence for objects by comparing their properties using
+ * provided equivalence.
+ *
+ * Both string and symbol keys are supported.
+ *
+ * @category combinators
+ * @since 2.0.0
+ */
+export function record<A>(value: Equivalence<A>): Equivalence<Record<PropertyKey, A>> {
+  return make((self, that) => {
+    const selfKeys = Reflect.ownKeys(self)
+    const thatKeys = Reflect.ownKeys(that)
+
+    if (selfKeys.length !== thatKeys.length) return false
+
+    for (const key of selfKeys) {
+      if (!Object.hasOwn(that, key) || !value(self[key], that[key])) {
         return false
       }
     }
+
     return true
   })
 }
