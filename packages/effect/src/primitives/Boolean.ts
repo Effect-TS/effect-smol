@@ -5,7 +5,6 @@
  *
  * @since 2.0.0
  */
-import * as equivalence from "../data/Equivalence.ts"
 import * as order from "../data/Order.ts"
 import * as predicate from "../data/Predicate.ts"
 import * as Reducer from "../data/Reducer.ts"
@@ -79,23 +78,6 @@ export const match: {
   readonly onFalse: LazyArg<A>
   readonly onTrue: LazyArg<B>
 }): A | B => value ? options.onTrue() : options.onFalse())
-
-/**
- * Provides an `Equivalence` instance for `boolean` that determines equality between boolean values.
- *
- * @example
- * ```ts
- * import * as Boolean from "effect/primitives/Boolean"
- *
- * console.log(Boolean.Equivalence(true, true)) // true
- * console.log(Boolean.Equivalence(false, false)) // true
- * console.log(Boolean.Equivalence(true, false)) // false
- * ```
- *
- * @category instances
- * @since 2.0.0
- */
-export const Equivalence: equivalence.Equivalence<boolean> = equivalence.boolean
 
 /**
  * Provides an `Order` instance for `boolean` that allows comparing and sorting boolean values.

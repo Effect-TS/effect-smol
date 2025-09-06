@@ -365,12 +365,10 @@ export const mapOmit: {
  *
  * @example
  * ```ts
- * import { Tuple } from "effect/data"
- * import * as S from "effect/primitives/String"
- * import * as N from "effect/primitives/Number"
+ * import { Tuple, Equivalence } from "effect/data"
  *
  * // Creates an equivalence for tuples with string and number elements
- * const equivalence = Tuple.getEquivalence([S.Equivalence, N.Equivalence])
+ * const equivalence = Tuple.getEquivalence([Equivalence.strict<string>(), Equivalence.strict<number>()])
  * ```
  *
  * @category Equivalence

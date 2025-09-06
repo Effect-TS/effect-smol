@@ -1,7 +1,7 @@
 /**
  * @since 4.0.0
  */
-import type { Equivalence as Equivalence_ } from "../../data/Equivalence.ts"
+import * as Equivalence_ from "../../data/Equivalence.ts"
 import * as Predicate from "../../data/Predicate.ts"
 import * as Record from "../../data/Record.ts"
 import * as Redacted from "../../data/Redacted.ts"
@@ -9,7 +9,6 @@ import { dual } from "../../Function.ts"
 import * as Equal from "../../interfaces/Equal.ts"
 import * as Hash from "../../interfaces/Hash.ts"
 import { type Redactable, symbolRedactable } from "../../interfaces/Inspectable.ts"
-import * as String from "../../primitives/String.ts"
 import * as Schema from "../../schema/Schema.ts"
 import * as Transformation from "../../schema/Transformation.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
@@ -67,7 +66,7 @@ const make = (input: Record.ReadonlyRecord<string, string>): Mutable<Headers> =>
  * @since 4.0.0
  * @category Equivalence
  */
-export const Equivalence: Equivalence_<Headers> = Record.getEquivalence(String.Equivalence)
+export const Equivalence: Equivalence_.Equivalence<Headers> = Record.getEquivalence(Equivalence_.strict<string>())
 
 /**
  * @since 4.0.0

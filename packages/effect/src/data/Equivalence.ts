@@ -31,7 +31,7 @@
  *
  * const personEquivalence = Equivalence.struct({
  *   name: caseInsensitive,
- *   age: Equivalence.number
+ *   age: Equivalence.strict<number>()
  * })
  * ```
  *
@@ -166,128 +166,6 @@ const isStrictEquivalent = (x: unknown, y: unknown) => x === y
 export const strict: <A>() => Equivalence<A> = () => isStrictEquivalent
 
 /**
- * An equivalence relation for strings using strict equality.
- *
- * Compares strings using the `===` operator, making it case-sensitive
- * and sensitive to all character differences.
- *
- * @example
- * ```ts
- * import { Equivalence } from "effect/data"
- *
- * console.log(Equivalence.string("hello", "hello")) // true
- * console.log(Equivalence.string("hello", "Hello")) // false
- * console.log(Equivalence.string("hello", "world")) // false
- *
- * // Use with data structures
- * import { Array } from "effect/collections"
- * const words = ["apple", "banana", "apple", "cherry"]
- * const unique = Array.dedupeWith(words, Equivalence.string)
- * console.log(unique) // ["apple", "banana", "cherry"]
- * ```
- *
- * @category instances
- * @since 2.0.0
- */
-export const string: Equivalence<string> = strict()
-
-/**
- * An equivalence relation for numbers using strict equality.
- *
- * Compares numbers using the `===` operator. Note that `NaN` is not equal to itself
- * according to JavaScript semantics, so `NaN !== NaN` will be `true`.
- *
- * @example
- * ```ts
- * import { Equivalence } from "effect/data"
- *
- * console.log(Equivalence.number(42, 42)) // true
- * console.log(Equivalence.number(42, 43)) // false
- * console.log(Equivalence.number(0, -0)) // true (0 === -0)
- * console.log(Equivalence.number(NaN, NaN)) // false (NaN !== NaN)
- *
- * // Use with floating point
- * console.log(Equivalence.number(0.1 + 0.2, 0.3)) // false (floating point precision)
- * ```
- *
- * @category instances
- * @since 2.0.0
- */
-export const number: Equivalence<number> = strict()
-
-/**
- * An equivalence relation for booleans using strict equality.
- *
- * Compares boolean values using the `===` operator.
- *
- * @example
- * ```ts
- * import { Equivalence } from "effect/data"
- *
- * console.log(Equivalence.boolean(true, true)) // true
- * console.log(Equivalence.boolean(false, false)) // true
- * console.log(Equivalence.boolean(true, false)) // false
- *
- * // Type safety
- * console.log(Equivalence.boolean(true, 1 as any)) // false
- * console.log(Equivalence.boolean(false, 0 as any)) // false
- * ```
- *
- * @category instances
- * @since 2.0.0
- */
-export const boolean: Equivalence<boolean> = strict()
-
-/**
- * An equivalence relation for bigints using strict equality.
- *
- * Compares bigint values using the `===` operator.
- *
- * @example
- * ```ts
- * import { Equivalence } from "effect/data"
- *
- * console.log(Equivalence.bigint(123n, 123n)) // true
- * console.log(Equivalence.bigint(123n, 456n)) // false
- * console.log(Equivalence.bigint(0n, -0n)) // true
- *
- * // BigInt precision is exact
- * const large1 = 9007199254740991n
- * const large2 = 9007199254740991n
- * console.log(Equivalence.bigint(large1, large2)) // true
- * ```
- *
- * @category instances
- * @since 2.0.0
- */
-export const bigint: Equivalence<bigint> = strict()
-
-/**
- * An equivalence relation for symbols using strict equality.
- *
- * Compares symbol values using the `===` operator. Each symbol is unique,
- * except for symbols created with `Symbol.for()` which share the same key.
- *
- * @example
- * ```ts
- * import { Equivalence } from "effect/data"
- *
- * const sym1 = Symbol("test")
- * const sym2 = Symbol("test")
- * const sym3 = Symbol.for("global")
- * const sym4 = Symbol.for("global")
- *
- * console.log(Equivalence.symbol(sym1, sym1)) // true (same reference)
- * console.log(Equivalence.symbol(sym1, sym2)) // false (different symbols)
- * console.log(Equivalence.symbol(sym3, sym4)) // true (same global symbol)
- * ```
- *
- * @category instances
- * @since 2.0.0
- */
-export const symbol: Equivalence<symbol> = strict()
-
-/**
  * Combines two equivalence relations using logical AND.
  *
  * The resulting equivalence considers two values equivalent only if both
@@ -303,12 +181,12 @@ export const symbol: Equivalence<symbol> = strict()
  * }
  *
  * const nameEquivalence = Equivalence.mapInput(
- *   Equivalence.string,
+ *   Equivalence.strict<string>(),
  *   (p: Person) => p.name
  * )
  *
  * const ageEquivalence = Equivalence.mapInput(
- *   Equivalence.number,
+ *   Equivalence.strict<number>(),
  *   (p: Person) => p.age
  * )
  *
@@ -347,9 +225,9 @@ export const combine: {
  *   z: number
  * }
  *
- * const xEq = Equivalence.mapInput(Equivalence.number, (p: Point3D) => p.x)
- * const yEq = Equivalence.mapInput(Equivalence.number, (p: Point3D) => p.y)
- * const zEq = Equivalence.mapInput(Equivalence.number, (p: Point3D) => p.z)
+ * const xEq = Equivalence.mapInput(Equivalence.strict<number>(), (p: Point3D) => p.x)
+ * const yEq = Equivalence.mapInput(Equivalence.strict<number>(), (p: Point3D) => p.y)
+ * const zEq = Equivalence.mapInput(Equivalence.strict<number>(), (p: Point3D) => p.z)
  *
  * const point3DEq = Equivalence.combineAll([xEq, yEq, zEq])
  *
@@ -398,7 +276,7 @@ export const combineAll = <A>(collection: Iterable<Equivalence<A>>): Equivalence
  *
  * // Create equivalence based on user ID only
  * const userByIdEq = Equivalence.mapInput(
- *   Equivalence.number,
+ *   Equivalence.strict<number>(),
  *   (user: User) => user.id
  * )
  *
@@ -411,7 +289,7 @@ export const combineAll = <A>(collection: Iterable<Equivalence<A>>): Equivalence
  *
  * // Case-insensitive string equivalence
  * const caseInsensitiveEq = Equivalence.mapInput(
- *   Equivalence.string,
+ *   Equivalence.strict<string>(),
  *   (s: string) => s.toLowerCase()
  * )
  *
@@ -431,168 +309,6 @@ export const mapInput: {
 )
 
 /**
- * An equivalence relation for `Date` objects based on their timestamp.
- *
- * Compares dates by converting them to milliseconds since epoch using `getTime()`.
- * This means dates representing the same moment in time are considered equivalent,
- * regardless of timezone or other display properties.
- *
- * @example
- * ```ts
- * import { Equivalence } from "effect/data"
- *
- * const date1 = new Date("2023-01-01T00:00:00Z")
- * const date2 = new Date("2023-01-01T00:00:00Z")
- * const date3 = new Date("2023-01-01T01:00:00Z")
- *
- * console.log(Equivalence.Date(date1, date2)) // true (same timestamp)
- * console.log(Equivalence.Date(date1, date3)) // false (different timestamp)
- *
- * // Works with different Date objects representing the same time
- * const date4 = new Date(2023, 0, 1) // January 1, 2023 in local time
- * const date5 = new Date("2023-01-01T00:00:00") // Same moment, different creation
- * // Note: Result depends on local timezone
- * ```
- *
- * @category instances
- * @since 2.0.0
- */
-export const Date: Equivalence<Date> = mapInput(number, (date) => date.getTime())
-
-/**
- * Creates an equivalence for tuples by combining two equivalence relations.
- *
- * The resulting equivalence compares tuples element-wise, requiring both
- * the first elements to be equivalent (according to the first equivalence)
- * and the second elements to be equivalent (according to the second equivalence).
- *
- * @example
- * ```ts
- * import { Equivalence } from "effect/data"
- *
- * const numberStringEq = Equivalence.product(
- *   Equivalence.number,
- *   Equivalence.string
- * )
- *
- * console.log(numberStringEq([1, "hello"], [1, "hello"])) // true
- * console.log(numberStringEq([1, "hello"], [2, "hello"])) // false (different numbers)
- * console.log(numberStringEq([1, "hello"], [1, "world"])) // false (different strings)
- *
- * // Useful for comparing coordinate pairs
- * type Point = readonly [number, number]
- * const pointEq = Equivalence.product(Equivalence.number, Equivalence.number)
- *
- * const point1: Point = [1, 2]
- * const point2: Point = [1, 2]
- * const point3: Point = [1, 3]
- *
- * console.log(pointEq(point1, point2)) // true
- * console.log(pointEq(point1, point3)) // false
- * ```
- *
- * @category combining
- * @since 2.0.0
- */
-export const product: {
-  <B>(that: Equivalence<B>): <A>(self: Equivalence<A>) => Equivalence<readonly [A, B]> // readonly because invariant
-  <A, B>(self: Equivalence<A>, that: Equivalence<B>): Equivalence<readonly [A, B]> // readonly because invariant
-} = dual(
-  2,
-  <A, B>(self: Equivalence<A>, that: Equivalence<B>): Equivalence<readonly [A, B]> =>
-    make(([xa, xb], [ya, yb]) => self(xa, ya) && that(xb, yb))
-)
-
-/**
- * Creates an equivalence for arrays by applying a sequence of equivalences element-wise.
- *
- * Each equivalence in the collection is applied to the corresponding position in the arrays.
- * The arrays are considered equivalent if all corresponding elements are equivalent according
- * to their respective equivalences. If there are more equivalences than elements, the extra
- * equivalences are ignored. If there are more elements than equivalences, the extra elements
- * are ignored.
- *
- * @example
- * ```ts
- * import { Equivalence } from "effect/data"
- *
- * // String array equivalence using case-insensitive comparison
- * const caseInsensitive = Equivalence.mapInput(
- *   Equivalence.string,
- *   (s: string) => s.toLowerCase()
- * )
- *
- * const stringArrayEq = Equivalence.all([caseInsensitive, caseInsensitive, caseInsensitive])
- * console.log(stringArrayEq(["Hello", "World", "Test"], ["HELLO", "WORLD", "TEST"])) // true
- * console.log(stringArrayEq(["Hello", "World"], ["HELLO", "WORLD", "TEST"])) // true (extra element ignored)
- *
- * // Number array equivalence
- * const numberArrayEq = Equivalence.all([Equivalence.number, Equivalence.number])
- * console.log(numberArrayEq([1, 2], [1, 2])) // true
- * console.log(numberArrayEq([1, 2], [1, 3])) // false
- * ```
- *
- * @category combining
- * @since 2.0.0
- */
-export const all = <A>(collection: Iterable<Equivalence<A>>): Equivalence<ReadonlyArray<A>> => {
-  return make((x, y) => {
-    const len = Math.min(x.length, y.length)
-
-    let collectionLength = 0
-    for (const equivalence of collection) {
-      if (collectionLength >= len) {
-        break
-      }
-      if (!equivalence(x[collectionLength], y[collectionLength])) {
-        return false
-      }
-      collectionLength++
-    }
-    return true
-  })
-}
-
-/**
- * Creates an equivalence for non-empty tuples with a head element and remaining elements.
- *
- * The first element is compared using the provided equivalence, and the remaining elements
- * are compared using the equivalences from the collection in order.
- *
- * @example
- * ```ts
- * import { Equivalence } from "effect/data"
- *
- * // First element is a number, rest are strings
- * const stringTupleEq = Equivalence.productMany(
- *   Equivalence.string,
- *   [Equivalence.string, Equivalence.string]
- * )
- *
- * type StringTuple = readonly [string, string, string]
- *
- * const tuple1: StringTuple = ["hello", "world", "test"]
- * const tuple2: StringTuple = ["hello", "world", "test"]
- * const tuple3: StringTuple = ["hello", "world", "different"]
- * const tuple4: StringTuple = ["hi", "world", "test"]
- *
- * console.log(stringTupleEq(tuple1, tuple2)) // true
- * console.log(stringTupleEq(tuple1, tuple3)) // false (different third element)
- * console.log(stringTupleEq(tuple1, tuple4)) // false (different first element)
- * ```
- *
- * @category combining
- * @since 2.0.0
- */
-export const productMany = <A>(
-  self: Equivalence<A>,
-  collection: Iterable<Equivalence<A>>
-): Equivalence<readonly [A, ...Array<A>]> /* readonly because invariant */ => {
-  const equivalence = all(collection)
-  return make((x, y) => !self(x[0], y[0]) ? false : equivalence(x.slice(1), y.slice(1)))
-}
-
-/**
  * Creates an equivalence for tuples with heterogeneous element types.
  *
  * Similar to `Promise.all` but operates on `Equivalence`s. Given a tuple of `Equivalence`s,
@@ -609,9 +325,9 @@ export const productMany = <A>(
  *
  * // Create equivalence for string tuples
  * const stringTupleEq = Equivalence.tuple([
- *   Equivalence.string,
- *   Equivalence.string,
- *   Equivalence.string
+ *   Equivalence.strict<string>(),
+ *   Equivalence.strict<string>(),
+ *   Equivalence.strict<string>()
  * ])
  *
  * const tuple1 = ["hello", "world", "test"] as const
@@ -623,7 +339,7 @@ export const productMany = <A>(
  *
  * // Custom equivalences for each position
  * const caseInsensitive = Equivalence.mapInput(
- *   Equivalence.string,
+ *   Equivalence.strict<string>(),
  *   (s: string) => s.toLowerCase()
  * )
  *
@@ -641,8 +357,19 @@ export const productMany = <A>(
  */
 export const tuple = <Elements extends ReadonlyArray<Equivalence<any>>>(
   elements: Elements
-): Equivalence<Readonly<{ [I in keyof Elements]: [Elements[I]] extends [Equivalence<infer A>] ? A : never }>> =>
-  all(elements) as any
+): Equivalence<Readonly<{ [I in keyof Elements]: [Elements[I]] extends [Equivalence<infer A>] ? A : never }>> => {
+  return make((self, that) => {
+    if (self.length !== that.length) {
+      return false
+    }
+    for (let i = 0; i < self.length; i++) {
+      if (!elements[i](self[i], that[i])) {
+        return false
+      }
+    }
+    return true
+  })
+}
 
 /**
  * Creates an equivalence for arrays where all elements are compared using the same equivalence.
@@ -654,7 +381,7 @@ export const tuple = <Elements extends ReadonlyArray<Equivalence<any>>>(
  * ```ts
  * import { Equivalence } from "effect/data"
  *
- * const numberArrayEq = Equivalence.array(Equivalence.number)
+ * const numberArrayEq = Equivalence.array(Equivalence.strict<number>())
  *
  * console.log(numberArrayEq([1, 2, 3], [1, 2, 3])) // true
  * console.log(numberArrayEq([1, 2, 3], [1, 2, 4])) // false
@@ -662,7 +389,7 @@ export const tuple = <Elements extends ReadonlyArray<Equivalence<any>>>(
  *
  * // Case-insensitive string array
  * const caseInsensitive = Equivalence.mapInput(
- *   Equivalence.string,
+ *   Equivalence.strict<string>(),
  *   (s: string) => s.toLowerCase()
  * )
  * const stringArrayEq = Equivalence.array(caseInsensitive)
@@ -710,13 +437,13 @@ export const array = <A>(item: Equivalence<A>): Equivalence<ReadonlyArray<A>> =>
  * }
  *
  * const caseInsensitive = Equivalence.mapInput(
- *   Equivalence.string,
+ *   Equivalence.strict<string>(),
  *   (s: string) => s.toLowerCase()
  * )
  *
  * const personEq = Equivalence.struct({
  *   name: caseInsensitive,     // Case-insensitive name comparison
- *   age: Equivalence.number,   // Exact age comparison
+ *   age: Equivalence.strict<number>(),   // Exact age comparison
  *   email: caseInsensitive     // Case-insensitive email comparison
  * })
  *
@@ -729,8 +456,8 @@ export const array = <A>(item: Equivalence<A>): Equivalence<ReadonlyArray<A>> =>
  *
  * // Partial equivalence for specific fields
  * const nameAgeEq = Equivalence.struct({
- *   name: Equivalence.string,
- *   age: Equivalence.number
+ *   name: Equivalence.strict<string>(),
+ *   age: Equivalence.strict<number>()
  * })
  * ```
  *
