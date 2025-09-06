@@ -7,7 +7,6 @@
  */
 
 import * as Combiner from "../data/Combiner.ts"
-import * as equivalence from "../data/Equivalence.ts"
 import * as order from "../data/Order.ts"
 import type { Ordering } from "../data/Ordering.ts"
 import * as predicate from "../data/Predicate.ts"
@@ -195,26 +194,6 @@ export const increment = (n: bigint): bigint => n + bigint1
  * @since 2.0.0
  */
 export const decrement = (n: bigint): bigint => n - bigint1
-
-/**
- * Provides an `Equivalence` instance for `bigint` that determines equality between BigInt values.
- *
- * @example
- * ```ts
- * import * as BigInt from "effect/primitives/BigInt"
- *
- * const a = 123n
- * const b = 123n
- * const c = 456n
- *
- * console.log(BigInt.Equivalence(a, b)) // true
- * console.log(BigInt.Equivalence(a, c)) // false
- * ```
- *
- * @category instances
- * @since 2.0.0
- */
-export const Equivalence: equivalence.Equivalence<bigint> = equivalence.bigint
 
 /**
  * Provides an `Order` instance for `bigint` that allows comparing and sorting BigInt values.

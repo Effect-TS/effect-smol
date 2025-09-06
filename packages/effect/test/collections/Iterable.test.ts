@@ -1,10 +1,9 @@
 import { describe, it } from "@effect/vitest"
 import { assertFalse, assertNone, assertSome, assertTrue, deepStrictEqual, strictEqual } from "@effect/vitest/utils"
 import { Iterable as Iter } from "effect/collections"
-import { Option } from "effect/data"
+import { Equivalence, Option } from "effect/data"
 import type { Predicate } from "effect/data/Predicate"
 import { pipe } from "effect/Function"
-import { Number } from "effect/primitives"
 
 const symA = Symbol.for("a")
 const symB = Symbol.for("b")
@@ -234,7 +233,7 @@ describe("Iterable", () => {
     })
 
     it("containsWith", () => {
-      const contains = Iter.containsWith(Number.Equivalence)
+      const contains = Iter.containsWith(Equivalence.strict<number>())
       assertTrue(pipe([1, 2, 3], contains(2)))
       assertFalse(pipe([1, 2, 3], contains(0)))
 
@@ -252,7 +251,7 @@ describe("Iterable", () => {
     })
 
     it("dedupeAdjacentWith", () => {
-      const dedupeAdjacent = Iter.dedupeAdjacentWith(Number.Equivalence)
+      const dedupeAdjacent = Iter.dedupeAdjacentWith(Equivalence.strict<number>())
       deepStrictEqual(toArray(dedupeAdjacent([])), [])
       deepStrictEqual(toArray(dedupeAdjacent([1, 2, 3])), [1, 2, 3])
       deepStrictEqual(toArray(dedupeAdjacent([1, 2, 2, 3, 3])), [1, 2, 3])
@@ -375,7 +374,7 @@ describe("Iterable", () => {
   })
 
   it("groupWith", () => {
-    const groupWith = Iter.groupWith(Number.Equivalence)
+    const groupWith = Iter.groupWith(Equivalence.strict<number>())
     deepStrictEqual(toArray(groupWith([1, 2, 1, 1])), [[1], [2], [1, 1]])
     deepStrictEqual(toArray(groupWith([1, 2, 1, 1, 3])), [[1], [2], [1, 1], [3]])
   })
