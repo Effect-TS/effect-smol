@@ -896,4 +896,103 @@ describe("Equal - Structural Equality Behavior", () => {
       expect(Equal.equals(obj2, obj1)).toBe(false)
     })
   })
+
+  describe("recursive objects", () => {
+    it("should handle objects with circular references without infinite recursion", () => {
+      // Create objects that reference themselves
+      const obj1: any = { a: 1, b: 2 }
+      obj1.self = obj1
+
+      const obj2: any = { a: 1, b: 2 }
+      obj2.self = obj2
+
+      // This should not throw due to stack overflow
+      expect(() => Equal.equals(obj1, obj2)).not.toThrow()
+      expect(Equal.equals(obj1, obj2)).toBe(true)
+    })
+
+    it("should handle arrays with circular references without infinite recursion", () => {
+      // Create arrays that reference themselves
+      const arr1: any = [1, 2, 3]
+      arr1.push(arr1)
+
+      const arr2: any = [1, 2, 3]
+      arr2.push(arr2)
+
+      // This should not throw due to stack overflow
+      expect(() => Equal.equals(arr1, arr2)).not.toThrow()
+      expect(Equal.equals(arr1, arr2)).toBe(true)
+    })
+
+    it("should handle mixed circular references between objects and arrays", () => {
+      // Create complex circular structure
+      const obj1: any = { type: "object", items: [] }
+      const arr1: any = [1, 2, obj1]
+      obj1.items = arr1
+
+      const obj2: any = { type: "object", items: [] }
+      const arr2: any = [1, 2, obj2]
+      obj2.items = arr2
+
+      // This should not throw due to stack overflow
+      expect(() => Equal.equals(obj1, obj2)).not.toThrow()
+      expect(Equal.equals(obj1, obj2)).toBe(true)
+    })
+
+    it("should handle hashing objects with circular references without infinite recursion", () => {
+      // Create object that references itself
+      const obj: any = { a: 1, b: 2 }
+      obj.self = obj
+
+      // This should not throw due to stack overflow
+      expect(() => Hash.hash(obj)).not.toThrow()
+
+      // Hash should be consistent
+      const hash1 = Hash.hash(obj)
+      const hash2 = Hash.hash(obj)
+      expect(hash1).toBe(hash2)
+    })
+
+    it("should handle hashing arrays with circular references without infinite recursion", () => {
+      // Create array that references itself
+      const arr: any = [1, 2, 3]
+      arr.push(arr)
+
+      // This should not throw due to stack overflow
+      expect(() => Hash.hash(arr)).not.toThrow()
+
+      // Hash should be consistent
+      const hash1 = Hash.hash(arr)
+      const hash2 = Hash.hash(arr)
+      expect(hash1).toBe(hash2)
+    })
+
+    it("should produce different hashes for objects with different circular structures", () => {
+      const obj1: any = { a: 1, b: 2 }
+      obj1.self = obj1
+
+      const obj2: any = { a: 1, b: 3 } // Different value
+      obj2.self = obj2
+
+      // Should not throw and should produce different hashes
+      expect(() => Hash.hash(obj1)).not.toThrow()
+      expect(() => Hash.hash(obj2)).not.toThrow()
+      expect(Hash.hash(obj1)).not.toBe(Hash.hash(obj2))
+    })
+
+    it("should return false for objects with different circular reference patterns", () => {
+      // Object that references itself
+      const obj1: any = { a: 1, b: 2 }
+      obj1.self = obj1
+
+      // Object that references a different object
+      const obj2: any = { a: 1, b: 2 }
+      const obj3: any = { a: 1, b: 2 }
+      obj2.self = obj3
+
+      // These should be considered different
+      expect(() => Equal.equals(obj1, obj2)).not.toThrow()
+      expect(Equal.equals(obj1, obj2)).toBe(false)
+    })
+  })
 })
