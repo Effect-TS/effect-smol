@@ -323,7 +323,7 @@ describe("Equal - Structural Equality Behavior", () => {
             { value: Infinity, meta: { type: "negative-infinite" } }
           ]
         }
-        
+
         expect(Equal.equals(obj1, obj2)).toBe(true)
         expect(Equal.equals(obj1, obj3)).toBe(false)
       })
