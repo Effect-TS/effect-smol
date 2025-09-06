@@ -3,18 +3,25 @@
  */
 import * as Cache from "../caching/Cache.ts"
 import type { NonEmptyArray } from "../collections/Array.ts"
+import * as Arr from "../collections/Array.ts"
+import * as Iterable from "../collections/Iterable.ts"
 import * as MutableHashMap from "../collections/MutableHashMap.ts"
 import { hasProperty } from "../data/Predicate.ts"
-import type { Effect } from "../Effect.ts"
+import * as Effect from "../Effect.ts"
+import * as Exit from "../Exit.ts"
 import { constTrue, dual, identity } from "../Function.ts"
 import { type Pipeable, pipeArguments } from "../interfaces/Pipeable.ts"
 import { exitFail, exitSucceed } from "../internal/core.ts"
 import * as effect from "../internal/effect.ts"
 import * as internal from "../internal/request.ts"
 import * as Tracer from "../observability/Tracer.ts"
+import type * as Schema from "../schema/Schema.ts"
+import type { Scope } from "../Scope.ts"
 import * as ServiceMap from "../ServiceMap.ts"
 import type * as Duration from "../time/Duration.ts"
 import type * as Types from "../types/Types.ts"
+import type * as Persistable from "../unstable/persistence/Persistable.ts"
+import * as Persistence from "../unstable/persistence/Persistence.ts"
 import type * as Request from "./Request.ts"
 
 const TypeId = "~effect/batching/RequestResolver"
@@ -63,12 +70,19 @@ const TypeId = "~effect/batching/RequestResolver"
  * @category models
  */
 export interface RequestResolver<in A extends Request.Any> extends RequestResolver.Variance<A>, Pipeable {
-  readonly delay: Effect<void>
+  readonly delay: Effect.Effect<void>
 
   /**
    * Get a batch key for the given request.
    */
   batchKey(entry: Request.Entry<A>): unknown
+
+  /**
+   * An optional pre-check function that can be used to filter requests before
+   * they are added to a batch. If the function returns `false`, the request
+   * will not be processed.
+   */
+  readonly preCheck: ((entry: Request.Entry<A>) => boolean) | undefined
 
   /**
    * Should the resolver continue collecting requests? Otherwise, it will
@@ -79,7 +93,7 @@ export interface RequestResolver<in A extends Request.Any> extends RequestResolv
   /**
    * Execute a collection of requests.
    */
-  runAll(entries: NonEmptyArray<Request.Entry<A>>, key: unknown): Effect<void, Request.Error<A>>
+  runAll(entries: NonEmptyArray<Request.Entry<A>>, key: unknown): Effect.Effect<void, Request.Error<A>>
 }
 
 /**
@@ -116,14 +130,23 @@ const RequestResolverProto = {
  */
 export const isRequestResolver = (u: unknown): u is RequestResolver<any> => hasProperty(u, TypeId)
 
-const makeProto = <A extends Request.Any>(options: {
+/**
+ * Low-level constructor for creating a request resolver with fine-grained
+ * control over its behavior.
+ *
+ * @since 4.0.0
+ * @category constructors
+ */
+export const makeWith = <A extends Request.Any>(options: {
   readonly batchKey: (request: Request.Entry<A>) => unknown
-  readonly delay: Effect<void>
+  readonly preCheck?: ((entry: Request.Entry<A>) => boolean) | undefined
+  readonly delay: Effect.Effect<void>
   readonly collectWhile: (requests: ReadonlySet<Request.Entry<A>>) => boolean
-  readonly runAll: (entries: NonEmptyArray<Request.Entry<A>>, key: unknown) => Effect<void, Request.Error<A>>
+  readonly runAll: (entries: NonEmptyArray<Request.Entry<A>>, key: unknown) => Effect.Effect<void, Request.Error<A>>
 }): RequestResolver<A> => {
   const self = Object.create(RequestResolverProto)
   self.batchKey = options.batchKey
+  self.preCheck = options.preCheck
   self.delay = options.delay
   self.collectWhile = options.collectWhile
   self.runAll = options.runAll
@@ -166,11 +189,11 @@ const defaultKey = (_request: unknown): unknown => defaultKeyObject
  * @category constructors
  */
 export const make = <A extends Request.Any>(
-  runAll: (entries: NonEmptyArray<Request.Entry<A>>, key: unknown) => Effect<void, Request.Error<A>>
+  runAll: (entries: NonEmptyArray<Request.Entry<A>>, key: unknown) => Effect.Effect<void, Request.Error<A>>
 ): RequestResolver<A> =>
-  makeProto({
+  makeWith({
     batchKey: defaultKey,
-    delay: effect.yieldNow,
+    delay: Effect.yieldNow,
     collectWhile: constTrue,
     runAll
   })
@@ -210,11 +233,11 @@ export const make = <A extends Request.Any>(
  */
 export const makeGrouped = <A extends Request.Any, K>(options: {
   readonly key: (entry: Request.Entry<A>) => K
-  readonly resolver: (entries: NonEmptyArray<Request.Entry<A>>, key: K) => Effect<void, Request.Error<A>>
+  readonly resolver: (entries: NonEmptyArray<Request.Entry<A>>, key: K) => Effect.Effect<void, Request.Error<A>>
 }): RequestResolver<A> =>
-  makeProto({
+  makeWith({
     batchKey: hashGroupKey(options.key),
-    delay: effect.yieldNow,
+    delay: Effect.yieldNow,
     collectWhile: constTrue,
     runAll: options.resolver as any
   })
@@ -264,7 +287,7 @@ export const fromFunction = <A extends Request.Any>(
 ): RequestResolver<A> =>
   make(
     (entries) =>
-      effect.sync(() => {
+      Effect.sync(() => {
         for (let i = 0; i < entries.length; i++) {
           const entry = entries[i]
           entry.completeUnsafe(exitSucceed(f(entry)))
@@ -308,7 +331,7 @@ export const fromFunctionBatched = <A extends Request.Any>(
 ): RequestResolver<A> =>
   make(
     (entries) =>
-      effect.sync(() => {
+      Effect.sync(() => {
         let i = 0
         for (const result of f(entries)) {
           const entry = entries[i++]
@@ -350,11 +373,11 @@ export const fromFunctionBatched = <A extends Request.Any>(
  * @category constructors
  */
 export const fromEffect = <A extends Request.Any>(
-  f: (entry: Request.Entry<A>) => Effect<Request.Success<A>, Request.Error<A>>
+  f: (entry: Request.Entry<A>) => Effect.Effect<Request.Success<A>, Request.Error<A>>
 ): RequestResolver<A> => {
   effect.interruptChildrenPatch() // ensure middleware is registered
   return make((entries) =>
-    effect.callback<void>((resume) => {
+    Effect.callback<void>((resume) => {
       const parent = effect.getCurrentFiber()!
       let done = 0
       for (let i = 0; i < entries.length; i++) {
@@ -412,7 +435,7 @@ export const fromEffectTagged = <A extends Request.Any & { readonly _tag: string
   Fns extends {
     readonly [Tag in A["_tag"]]: [Extract<A, { readonly _tag: Tag }>] extends [infer Req]
       ? Req extends Request.Request<infer ReqA, infer ReqE, infer _ReqR> ?
-        (requests: Array<Request.Entry<Req>>) => Effect<Iterable<ReqA>, ReqE>
+        (requests: Array<Request.Entry<Req>>) => Effect.Effect<Iterable<ReqA>, ReqE>
       : never
       : never
   }
@@ -420,7 +443,7 @@ export const fromEffectTagged = <A extends Request.Any & { readonly _tag: string
   fns: Fns
 ): RequestResolver<A> =>
   make<A>(
-    (entries): Effect<void> => {
+    (entries): Effect.Effect<void> => {
       const grouped = new Map<A["_tag"], Array<Request.Entry<A>>>()
       for (let i = 0, len = entries.length; i < len; i++) {
         const group = grouped.get(entries[i].request._tag)
@@ -430,10 +453,10 @@ export const fromEffectTagged = <A extends Request.Any & { readonly _tag: string
           grouped.set(entries[i].request._tag, [entries[i]])
         }
       }
-      return effect.forEach(
+      return Effect.forEach(
         grouped,
         ([tag, requests]) =>
-          effect.matchCause((fns[tag] as any)(requests) as Effect<Array<any>, unknown, unknown>, {
+          Effect.matchCause((fns[tag] as any)(requests) as Effect.Effect<Array<any>, unknown, unknown>, {
             onFailure: (cause) => {
               for (let i = 0; i < requests.length; i++) {
                 const entry = requests[i]
@@ -448,7 +471,7 @@ export const fromEffectTagged = <A extends Request.Any & { readonly _tag: string
             }
           }),
         { concurrency: "unbounded", discard: true }
-      ) as Effect<void>
+      ) as Effect.Effect<void>
     }
   ) as any
 
@@ -487,13 +510,16 @@ export const fromEffectTagged = <A extends Request.Any & { readonly _tag: string
  * @category delay
  */
 export const setDelayEffect: {
-  (delay: Effect<void>): <A extends Request.Any>(self: RequestResolver<A>) => RequestResolver<A>
-  <A extends Request.Any>(self: RequestResolver<A>, delay: Effect<void>): RequestResolver<A>
-} = dual(2, <A extends Request.Any>(self: RequestResolver<A>, delay: Effect<void>): RequestResolver<A> =>
-  makeProto({
-    ...self,
-    delay
-  }))
+  (delay: Effect.Effect<void>): <A extends Request.Any>(self: RequestResolver<A>) => RequestResolver<A>
+  <A extends Request.Any>(self: RequestResolver<A>, delay: Effect.Effect<void>): RequestResolver<A>
+} = dual(
+  2,
+  <A extends Request.Any>(self: RequestResolver<A>, delay: Effect.Effect<void>): RequestResolver<A> =>
+    makeWith({
+      ...self,
+      delay
+    })
+)
 
 /**
  * Sets the batch delay window for this request resolver to the specified duration.
@@ -532,9 +558,9 @@ export const setDelay: {
 } = dual(
   2,
   <A extends Request.Any>(self: RequestResolver<A>, duration: Duration.DurationInput): RequestResolver<A> =>
-    makeProto({
+    makeWith({
       ...self,
-      delay: effect.sleep(duration)
+      delay: Effect.sleep(duration)
     })
 )
 
@@ -579,23 +605,23 @@ export const setDelay: {
  */
 export const around: {
   <A extends Request.Any, A2, X>(
-    before: (entries: NonEmptyArray<Request.Entry<NoInfer<A>>>) => Effect<A2, Request.Error<A>>,
-    after: (entries: NonEmptyArray<Request.Entry<NoInfer<A>>>, a: A2) => Effect<X, Request.Error<A>>
+    before: (entries: NonEmptyArray<Request.Entry<NoInfer<A>>>) => Effect.Effect<A2, Request.Error<A>>,
+    after: (entries: NonEmptyArray<Request.Entry<NoInfer<A>>>, a: A2) => Effect.Effect<X, Request.Error<A>>
   ): (self: RequestResolver<A>) => RequestResolver<A>
   <A extends Request.Any, A2, X>(
     self: RequestResolver<A>,
-    before: (entries: NonEmptyArray<Request.Entry<NoInfer<A>>>) => Effect<A2, Request.Error<A>>,
-    after: (entries: NonEmptyArray<Request.Entry<NoInfer<A>>>, a: A2) => Effect<X, Request.Error<A>>
+    before: (entries: NonEmptyArray<Request.Entry<NoInfer<A>>>) => Effect.Effect<A2, Request.Error<A>>,
+    after: (entries: NonEmptyArray<Request.Entry<NoInfer<A>>>, a: A2) => Effect.Effect<X, Request.Error<A>>
   ): RequestResolver<A>
 } = dual(3, <A extends Request.Any, A2, X>(
   self: RequestResolver<A>,
-  before: (entries: NonEmptyArray<Request.Entry<NoInfer<A>>>) => Effect<A2, Request.Error<A>>,
-  after: (entries: NonEmptyArray<Request.Entry<NoInfer<A>>>, a: A2) => Effect<X, Request.Error<A>>
+  before: (entries: NonEmptyArray<Request.Entry<NoInfer<A>>>) => Effect.Effect<A2, Request.Error<A>>,
+  after: (entries: NonEmptyArray<Request.Entry<NoInfer<A>>>, a: A2) => Effect.Effect<X, Request.Error<A>>
 ): RequestResolver<A> =>
-  makeProto({
+  makeWith({
     ...self,
     runAll: (entries, key) =>
-      effect.acquireUseRelease(
+      Effect.acquireUseRelease(
         before(entries),
         () => self.runAll(entries, key),
         (a) => after(entries, a)
@@ -629,7 +655,7 @@ export const around: {
  * @since 2.0.0
  * @category constructors
  */
-export const never: RequestResolver<never> = make(() => effect.never)
+export const never: RequestResolver<never> = make(() => Effect.never)
 
 /**
  * Returns a request resolver that executes at most `n` requests in parallel.
@@ -670,7 +696,7 @@ export const batchN: {
   (n: number): <A extends Request.Any>(self: RequestResolver<A>) => RequestResolver<A>
   <A extends Request.Any>(self: RequestResolver<A>, n: number): RequestResolver<A>
 } = dual(2, <A extends Request.Any>(self: RequestResolver<A>, n: number): RequestResolver<A> =>
-  makeProto({
+  makeWith({
     ...self,
     collectWhile: (requests) => requests.size < n
   }))
@@ -723,7 +749,7 @@ export const grouped: {
 } = dual(
   2,
   <A extends Request.Any, K>(self: RequestResolver<A>, f: (entry: Request.Entry<A>) => K): RequestResolver<A> =>
-    makeProto({
+    makeWith({
       ...self,
       batchKey: hashGroupKey(f)
     })
@@ -847,10 +873,10 @@ export const withSpan: {
   name: string,
   options?: Tracer.SpanOptions | ((entries: NonEmptyArray<Request.Entry<A>>) => Tracer.SpanOptions) | undefined
 ): RequestResolver<A> =>
-  makeProto({
+  makeWith({
     ...self,
     runAll: (entries, key) =>
-      effect.suspend(() => {
+      Effect.suspend(() => {
         const opts = typeof options === "function" ? options(entries) : options
         const links = opts?.links ? opts.links.slice() : []
         const seen = new Set<Tracer.AnySpan>()
@@ -860,7 +886,7 @@ export const withSpan: {
           seen.add(span.value)
           links.push({ span: span.value, attributes: {} })
         }
-        return effect.withSpan(self.runAll(entries, key), name, {
+        return Effect.withSpan(self.runAll(entries, key), name, {
           ...options,
           links,
           attributes: {
@@ -886,7 +912,7 @@ export const asCache: {
     readonly capacity: number
     readonly timeToLive?: ((exit: Request.Result<A>, request: A) => Duration.DurationInput) | undefined
     readonly requireServicesAt?: ServiceMode | undefined
-  }): (self: RequestResolver<A>) => Effect<
+  }): (self: RequestResolver<A>) => Effect.Effect<
     Cache.Cache<
       A,
       Request.Success<A>,
@@ -903,7 +929,7 @@ export const asCache: {
     readonly capacity: number
     readonly timeToLive?: ((exit: Request.Result<A>, request: A) => Duration.DurationInput) | undefined
     readonly requireServicesAt?: ServiceMode | undefined
-  }): Effect<
+  }): Effect.Effect<
     Cache.Cache<
       A,
       Request.Success<A>,
@@ -920,7 +946,7 @@ export const asCache: {
   readonly capacity: number
   readonly timeToLive?: ((exit: Request.Result<A>, request: A) => Duration.DurationInput) | undefined
   readonly requireServicesAt?: ServiceMode | undefined
-}): Effect<
+}): Effect.Effect<
   Cache.Cache<
     A,
     Request.Success<A>,
@@ -939,7 +965,7 @@ export const asCache: {
 
 /**
  * Adds caching capabilities to a request resolver, allowing it to cache
- * results up to a specified capacity and optional time-to-live.
+ * results up to a specified capacity.
  *
  * @since 4.0.0
  * @category Caching
@@ -947,17 +973,159 @@ export const asCache: {
 export const withCache: {
   <A extends Request.Any>(options: {
     readonly capacity: number
-    readonly timeToLive?: ((exit: Request.Result<A>, request: A) => Duration.DurationInput) | undefined
-  }): (self: RequestResolver<A>) => Effect<RequestResolver<A>>
+    readonly strategy?: "lru" | "fifo" | undefined
+  }): (self: RequestResolver<A>) => Effect.Effect<RequestResolver<A>>
   <A extends Request.Any>(self: RequestResolver<A>, options: {
     readonly capacity: number
-    readonly timeToLive?: ((exit: Request.Result<A>, request: A) => Duration.DurationInput) | undefined
-  }): Effect<RequestResolver<A>>
+    readonly strategy?: "lru" | "fifo" | undefined
+  }): Effect.Effect<RequestResolver<A>>
 } = dual(2, <A extends Request.Any>(self: RequestResolver<A>, options: {
   readonly capacity: number
-  readonly timeToLive?: ((exit: Request.Result<A>, request: A) => Duration.DurationInput) | undefined
-}): Effect<RequestResolver<A>> =>
-  effect.map(
-    asCache(self, options),
-    (cache) => fromEffect<A>((entry) => effect.provideServices(Cache.get(cache, entry.request), entry.services))
-  ))
+  readonly strategy?: "lru" | "fifo" | undefined
+}): Effect.Effect<RequestResolver<A>> => Effect.sync(() => withCacheUnsafe(self, options)))
+
+/**
+ * Adds caching capabilities to a request resolver, allowing it to cache
+ * results up to a specified capacity.
+ *
+ * @since 4.0.0
+ * @category Caching
+ */
+export const withCacheUnsafe: {
+  <A extends Request.Any>(options: {
+    readonly capacity: number
+    readonly strategy?: "lru" | "fifo" | undefined
+  }): (self: RequestResolver<A>) => RequestResolver<A>
+  <A extends Request.Any>(self: RequestResolver<A>, options: {
+    readonly capacity: number
+    readonly strategy?: "lru" | "fifo" | undefined
+  }): RequestResolver<A>
+} = dual(2, <A extends Request.Any>(self: RequestResolver<A>, options: {
+  readonly capacity: number
+  readonly strategy?: "lru" | "fifo" | undefined
+}): RequestResolver<A> => {
+  const strategy = options.strategy ?? "lru"
+  const cache = MutableHashMap.empty<A, {
+    readonly entry: Request.Entry<A>
+    exit: Request.Result<A> | undefined
+  }>()
+  return makeWith({
+    ...self,
+    runAll(entries, key) {
+      return Effect.onExit(self.runAll(entries, key), () => {
+        let toRemove = MutableHashMap.size(cache) - options.capacity
+        if (toRemove <= 0) return Effect.void
+        for (const k of MutableHashMap.keys(cache)) {
+          MutableHashMap.remove(cache, k)
+          toRemove--
+          if (toRemove <= 0) break
+        }
+        return Effect.void
+      })
+    },
+    preCheck(entry) {
+      const ocached = MutableHashMap.get(cache, entry.request)
+      if (ocached._tag === "None") {
+        const cached = { entry, exit: undefined as Request.Result<A> | undefined }
+        MutableHashMap.set(cache, entry.request, cached)
+        const prevComplete = entry.completeUnsafe
+        entry.completeUnsafe = function(exit) {
+          cached.exit = exit as any
+          prevComplete(exit)
+        }
+        return true
+      }
+      const cached = ocached.value
+      if (cached.exit) {
+        if (strategy === "lru") {
+          MutableHashMap.remove(cache, cached.entry.request)
+          MutableHashMap.set(cache, cached.entry.request, cached)
+        }
+        entry.completeUnsafe(cached.exit as any)
+      } else {
+        cached.entry.uninterruptible = true
+        const prevComplete = cached.entry.completeUnsafe
+        cached.entry.completeUnsafe = function(exit) {
+          prevComplete(exit)
+          entry.completeUnsafe(exit)
+        }
+      }
+      return false
+    }
+  })
+})
+
+/**
+ * @since 4.0.0
+ * @category Persistence
+ */
+export const persisted: <
+  A extends Request.Request<any, Persistence.PersistenceError | Schema.SchemaError, any> & Persistable.Any
+>(
+  self: RequestResolver<A>,
+  options: {
+    readonly storeId: string
+    readonly timeToLive?: ((exit: Request.Result<A>, request: A) => Duration.DurationInput) | undefined
+    readonly inMemoryCapacity?: number | undefined
+  }
+) => Effect.Effect<
+  RequestResolver<A>,
+  never,
+  Persistence.Persistence | Scope
+> = Effect.fnUntraced(function*<
+  A extends Request.Request<any, Persistence.PersistenceError | Schema.SchemaError, any> & Persistable.Any
+>(
+  self: RequestResolver<A>,
+  options: {
+    readonly storeId: string
+    readonly timeToLive?: ((exit: Request.Result<A>, request: A) => Duration.DurationInput) | undefined
+    readonly inMemoryCapacity?: number | undefined
+  }
+) {
+  const store = yield* (yield* Persistence.Persistence).make(options as any)
+  const resolver = makeWith<A>({
+    ...self,
+    runAll: Effect.fnUntraced(function*(entries, key) {
+      const results = yield* (store.getMany(Iterable.map(entries, (_) => _.request)).pipe(
+        Effect.provideServices(entries[0].services)
+      ) as Effect.Effect<
+        Array<Exit.Exit<unknown, unknown> | undefined>,
+        Request.Error<A>
+      >)
+      const leftover: Array<Request.Entry<A>> = []
+      const toPersist = new Map<A, Request.Result<A>>()
+      for (let i = 0; i < results.length; i++) {
+        const entry = entries[i]
+        const exit = results[i]
+        if (exit === undefined) {
+          const prevComplete = entry.completeUnsafe
+          entry.completeUnsafe = function(exit) {
+            toPersist.set(entry.request, exit as any)
+            prevComplete(exit)
+          }
+          leftover.push(entry)
+          continue
+        }
+        entry.completeUnsafe(exit as any)
+      }
+      if (!Arr.isArrayNonEmpty(leftover)) {
+        return
+      }
+      yield* Effect.catchCause(self.runAll(leftover, key), (cause) => {
+        for (let i = 0; i < leftover.length; i++) {
+          const entry = leftover[i]
+          if (!toPersist.has(entry.request)) continue
+          entry.completeUnsafe(Exit.failCause(cause) as any)
+        }
+        return Effect.void
+      })
+      yield* (store.setMany(toPersist).pipe(
+        Effect.provideServices(entries[0].services)
+      ) as Effect.Effect<void, Request.Error<A>>)
+    })
+  })
+  return withCacheUnsafe(resolver, {
+    capacity: options.inMemoryCapacity ?? 4096,
+    strategy: "fifo"
+  })
+})

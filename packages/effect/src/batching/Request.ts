@@ -174,7 +174,10 @@ const requestVariance = {
   _R: (_: never) => _
 }
 
-const RequestPrototype = {
+/**
+ * @since 4.0.0
+ */
+export const RequestPrototype: Request<any, any, any> = {
   ...StructuralPrototype,
   [TypeId]: requestVariance
 }
@@ -424,12 +427,13 @@ export interface Entry<out R> {
   readonly services: ServiceMap.ServiceMap<
     [R] extends [Request<infer _A, infer _E, infer _R>] ? _R : never
   >
-  readonly completeUnsafe: (
+  uninterruptible: boolean
+  completeUnsafe(
     exit: Exit.Exit<
       [R] extends [Request<infer _A, infer _E, infer _R>] ? _A : never,
       [R] extends [Request<infer _A, infer _E, infer _R>] ? _E : never
     >
-  ) => void
+  ): void
 }
 
 /**
@@ -441,6 +445,7 @@ export const makeEntry = <R>(options: {
   readonly services: ServiceMap.ServiceMap<
     [R] extends [Request<infer _A, infer _E, infer _R>] ? _R : never
   >
+  readonly uninterruptible: boolean
   readonly completeUnsafe: (
     exit: Exit.Exit<
       [R] extends [Request<infer _A, infer _E, infer _R>] ? _A : never,
