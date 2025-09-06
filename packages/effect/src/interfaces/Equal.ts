@@ -10,6 +10,12 @@ import { hasProperty } from "../data/Predicate.ts"
 import * as Hash from "../interfaces/Hash.ts"
 import { instanceEqualityRegistry, isPlainObject } from "../internal/equal.ts"
 
+/** @internal */
+const visitedLeft = new WeakSet<object>()
+
+/** @internal */
+const visitedRight = new WeakSet<object>()
+
 /**
  * The unique identifier used to identify objects that implement the `Equal` interface.
  *
@@ -111,37 +117,56 @@ function compareBoth(self: unknown, that: unknown): boolean {
       ) {
         return false // Use reference equality (self === that already checked above)
       }
+
+      // Check for circular references
+      if (visitedLeft.has(self as object) && visitedRight.has(that as object)) {
+        return true // Both are circular at the same level
+      }
+      if (visitedLeft.has(self as object) || visitedRight.has(that as object)) {
+        return false // Only one is circular
+      }
+
       if (isEqual(self) && isEqual(that)) {
         return self[symbol](that)
       } else if (self instanceof Date && that instanceof Date) {
         return self.toISOString() === that.toISOString()
       } else if (Array.isArray(self) && Array.isArray(that)) {
-        return compareArrays(self, that)
+        return compareArraysWithVisited(self, that)
       } else if (self instanceof Map && that instanceof Map) {
-        return compareMaps(self, that)
+        return compareMapsWithVisited(self, that)
       } else if (self instanceof Set && that instanceof Set) {
-        return compareSets(self, that)
+        return compareSetsWithVisited(self, that)
       } else if (isPlainObject(self) && isPlainObject(that)) {
-        return compareObjects(self, that)
+        return compareObjectsWithVisited(self, that)
       }
     }
   }
   return false
 }
 
-function compareArrays(self: Array<unknown>, that: Array<unknown>): boolean {
+function compareArraysWithVisited(self: Array<unknown>, that: Array<unknown>): boolean {
   if (self.length !== that.length) {
     return false
   }
+
+  visitedLeft.add(self)
+  visitedRight.add(that)
+
+  let result = true
   for (let i = 0; i < self.length; i++) {
     if (!compareBoth(self[i], that[i])) {
-      return false
+      result = false
+      break
     }
   }
-  return true
+
+  visitedLeft.delete(self)
+  visitedRight.delete(that)
+
+  return result
 }
 
-function compareObjects(self: Record<PropertyKey, unknown>, that: Record<PropertyKey, unknown>): boolean {
+function compareObjectsWithVisited(self: Record<PropertyKey, unknown>, that: Record<PropertyKey, unknown>): boolean {
   const selfKeys = Reflect.ownKeys(self)
   const thatKeys = Reflect.ownKeys(that)
 
@@ -149,23 +174,36 @@ function compareObjects(self: Record<PropertyKey, unknown>, that: Record<Propert
     return false
   }
 
+  visitedLeft.add(self)
+  visitedRight.add(that)
+
+  let result = true
   for (const key of selfKeys) {
     if (!Object.prototype.hasOwnProperty.call(that, key)) {
-      return false
+      result = false
+      break
     }
     if (!compareBoth(self[key], that[key])) {
-      return false
+      result = false
+      break
     }
   }
 
-  return true
+  visitedLeft.delete(self)
+  visitedRight.delete(that)
+
+  return result
 }
 
-function compareMaps(self: Map<unknown, unknown>, that: Map<unknown, unknown>): boolean {
+function compareMapsWithVisited(self: Map<unknown, unknown>, that: Map<unknown, unknown>): boolean {
   if (self.size !== that.size) {
     return false
   }
 
+  visitedLeft.add(self)
+  visitedRight.add(that)
+
+  let result = true
   for (const [selfKey, selfValue] of self) {
     let found = false
     for (const [thatKey, thatValue] of that) {
@@ -175,18 +213,26 @@ function compareMaps(self: Map<unknown, unknown>, that: Map<unknown, unknown>): 
       }
     }
     if (!found) {
-      return false
+      result = false
+      break
     }
   }
 
-  return true
+  visitedLeft.delete(self)
+  visitedRight.delete(that)
+
+  return result
 }
 
-function compareSets(self: Set<unknown>, that: Set<unknown>): boolean {
+function compareSetsWithVisited(self: Set<unknown>, that: Set<unknown>): boolean {
   if (self.size !== that.size) {
     return false
   }
 
+  visitedLeft.add(self)
+  visitedRight.add(that)
+
+  let result = true
   for (const selfValue of self) {
     let found = false
     for (const thatValue of that) {
@@ -196,11 +242,15 @@ function compareSets(self: Set<unknown>, that: Set<unknown>): boolean {
       }
     }
     if (!found) {
-      return false
+      result = false
+      break
     }
   }
 
-  return true
+  visitedLeft.delete(self)
+  visitedRight.delete(that)
+
+  return result
 }
 
 /**
