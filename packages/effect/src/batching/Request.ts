@@ -174,7 +174,10 @@ const requestVariance = {
   _R: (_: never) => _
 }
 
-const RequestPrototype = {
+/**
+ * @since 4.0.0
+ */
+export const RequestPrototype: Request<any, any, any> = {
   ...StructuralPrototype,
   [TypeId]: requestVariance
 }

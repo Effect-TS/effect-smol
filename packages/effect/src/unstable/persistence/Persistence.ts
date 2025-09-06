@@ -2,7 +2,7 @@
  * @since 4.0.0
  */
 import * as Arr from "../../collections/Array.ts"
-import type * as Effect from "../../Effect.ts"
+import * as Effect from "../../Effect.ts"
 import * as Exit from "../../Exit.ts"
 import { identity } from "../../Function.ts"
 import * as PrimaryKey from "../../interfaces/PrimaryKey.ts"
@@ -38,7 +38,7 @@ export class PersistenceError extends Schema.ErrorClass(ErrorTypeId)({
 export class Persistence extends ServiceMap.Key<Persistence, {
   readonly make: (options: {
     readonly storeId: string
-    readonly timeToLive?: (key: Persistable.Any, exit: Exit.Exit<unknown, unknown>) => Duration.DurationInput
+    readonly timeToLive?: (exit: Exit.Exit<unknown, unknown>, key: Persistable.Any) => Duration.DurationInput
   }) => Effect.Effect<PersistenceStore, never, Scope.Scope>
 }>()("effect/persistence/Persistence") {}
 
@@ -172,7 +172,7 @@ export const layer = Layer.effect(Persistence)(Effect.gen(function*() {
           return out
         }),
         set(key, value) {
-          const ttl = Duration.fromDurationInputUnsafe(timeToLive(key, value))
+          const ttl = Duration.fromDurationInputUnsafe(timeToLive(value, key))
           if (Duration.isZero(ttl)) return Effect.void
           return Persistable.serializeExit(key, value).pipe(
             Effect.flatMap((encoded) =>
@@ -183,7 +183,7 @@ export const layer = Layer.effect(Persistence)(Effect.gen(function*() {
         setMany: Effect.fnUntraced(function*(entries) {
           const encodedEntries = Arr.empty<readonly [string, object, Duration.Duration | undefined]>()
           for (const [key, value] of entries) {
-            const ttl = Duration.fromDurationInputUnsafe(timeToLive(key, value))
+            const ttl = Duration.fromDurationInputUnsafe(timeToLive(value, key))
             if (Duration.isZero(ttl)) continue
             const encoded = Persistable.serializeExit(key, value)
             const exit = Exit.isExit(encoded)
