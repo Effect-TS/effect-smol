@@ -2480,6 +2480,12 @@ export const getIdentifierAnnotation = getAnnotation((annotations) => {
 })
 
 /** @internal */
+export const getDescriptionAnnotation = getAnnotation((annotations) => {
+  const description = annotations?.description
+  if (Predicate.isString(description)) return description
+})
+
+/** @internal */
 export const getExpected = memoize((ast: AST): string => {
   return getIdentifierAnnotation(ast) ?? ast.getExpected(getExpected)
 })

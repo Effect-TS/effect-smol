@@ -268,6 +268,10 @@ export const reflect = <Id extends string, Groups extends HttpApiGroup.Any>(
 
 const emptyMap = new Map<never, never>()
 
+function getDescriptionOrIdentifier(ast: AST.AST): string | undefined {
+  return AST.getDescriptionAnnotation(ast) ?? AST.getIdentifierAnnotation(ast)
+}
+
 const extractMembers = (
   schema: Schema.Top,
   getStatus: (ast: AST.AST) => number
@@ -335,11 +339,6 @@ const extractPayloads = (topAst: AST.AST): ReadonlyMap<string, {
     process(topAst)
   }
   return members
-}
-
-const getDescriptionOrIdentifier = (ast: AST.AST): string | undefined => {
-  const annotations: Record<string, string> = ast.annotations ?? {} as any
-  return annotations.description ?? annotations.identfier
 }
 
 /**

@@ -25,7 +25,7 @@
         "security": [],
         "responses": {
           "200": {
-            "description": "Success",
+            "description": "Group",
             "content": {
               "application/json": {
                 "schema": {
@@ -60,7 +60,7 @@
         "security": [],
         "responses": {
           "200": {
-            "description": "Success",
+            "description": "Group",
             "content": {
               "application/json": {
                 "schema": {
@@ -455,7 +455,7 @@
             }
           },
           "500": {
-            "description": "Error",
+            "description": "NoStatusError",
             "content": {
               "application/json": {
                 "schema": {

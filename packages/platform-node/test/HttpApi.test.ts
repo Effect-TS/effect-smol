@@ -387,7 +387,7 @@ describe("HttpApi", () => {
         class Api extends HttpApi.make("api").add(Group) {}
         const spec = OpenApi.fromApi(Api)
         assert.deepStrictEqual(spec.paths["/"].post?.responses["500"], {
-          "description": "Error",
+          "description": "ID",
           "content": {
             "application/json": {
               "schema": {
