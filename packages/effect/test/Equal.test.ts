@@ -1,7 +1,8 @@
-import { HashMap } from "effect/collections"
-import { Option } from "effect/data"
-import { Equal, Hash } from "effect/interfaces"
 import { describe, expect, it } from "vitest"
+import * as HashMap from "effect/collections/HashMap"
+import * as Option from "effect/data/Option"
+import * as Equal from "effect/interfaces/Equal"
+import * as Hash from "effect/interfaces/Hash"
 
 describe("Equal - Current Behavior", () => {
   describe("plain objects", () => {
