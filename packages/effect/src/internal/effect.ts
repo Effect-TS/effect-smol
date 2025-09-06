@@ -44,6 +44,7 @@ import {
   causeFail,
   causeFromFailures,
   CauseImpl,
+  constEmptyAnnotations,
   contA,
   contAll,
   contE,
@@ -83,7 +84,7 @@ export class Interrupt extends FailureBase<"Interrupt"> implements Cause.Interru
   readonly fiberId: number | undefined
   constructor(
     fiberId: number | undefined,
-    annotations = new Map<string, unknown>()
+    annotations = constEmptyAnnotations
   ) {
     super("Interrupt", annotations, "Interrupted")
     this.fiberId = fiberId
@@ -139,8 +140,13 @@ export const causeFilterFail = <E>(self: Cause.Cause<E>): Cause.Fail<E> | Filter
 
 /** @internal */
 export const causeFilterError = <E>(self: Cause.Cause<E>): E | Filter.fail<Cause.Cause<never>> => {
-  const failure = self.failures.find(failureIsFail)
-  return failure ? failure.error : Filter.fail(self as Cause.Cause<never>)
+  for (let i = 0; i < self.failures.length; i++) {
+    const failure = self.failures[i]
+    if (failure._tag === "Fail") {
+      return failure.error
+    }
+  }
+  return Filter.fail(self as Cause.Cause<never>)
 }
 
 /** @internal */
@@ -333,7 +339,8 @@ const causePrettyError = (
     if (typeof original.stack === "string") {
       error.stack = cleanErrorStack(original.stack, error, annotations)
     } else {
-      error.stack = `${error.name}: ${error.message}`
+      const stack = `${error.name}: ${error.message}`
+      error.stack = annotations ? addStackAnnotations(stack, annotations) : stack
     }
     for (const key of Object.keys(original)) {
       if (!(key in error)) {
@@ -382,15 +389,25 @@ const cleanErrorStack = (
     }
     out.push(lines[i])
   }
-  const span = annotations?.get(CurrentSpanKey.key) as Tracer.Span | undefined
-  const defStack = (annotations?.get(defErrorKey.key) as Error | undefined)?.stack
+  return annotations ? addStackAnnotations(out.join("\n"), annotations) : out.join("\n")
+}
+
+const addStackAnnotations = (stack: string, annotations: ReadonlyMap<string, unknown>) => {
   const callsiteStack = (annotations?.get(callsiteErrorKey.key) as Error | undefined)?.stack
+  if (callsiteStack) {
+    stack = `${stack}\n${callsiteStack.split("\n")[2]}`
+  }
 
-  if (callsiteStack) out.push(callsiteStack.split("\n")[2])
-  if (defStack) out.push(defStack.split("\n")[2])
-  if (span) pushSpanStack(out, span)
+  const defStack = (annotations?.get(defErrorKey.key) as Error | undefined)?.stack
+  if (defStack) {
+    stack = `${stack}\n${defStack.split("\n")[2]}`
+  }
 
-  return out.join("\n")
+  const span = annotations?.get(CurrentSpanKey.key) as Tracer.Span | undefined
+  if (span) {
+    stack = `${stack}\n${currentSpanStack(span)}`
+  }
+  return stack
 }
 
 const interruptCauseStack = (error: Error, interrupts: Array<Cause.Interrupt>): string => {
@@ -399,12 +416,13 @@ const interruptCauseStack = (error: Error, interrupts: Array<Cause.Interrupt>): 
     const fiberId = current.fiberId !== undefined ? `#${current.fiberId}` : "unknown"
     const span = current.annotations.get(InterruptorSpanKey.key) as Tracer.Span | undefined
     out.push(`    at fiber (${fiberId})`)
-    if (span) pushSpanStack(out, span)
+    if (span) out.push(currentSpanStack(span))
   }
   return out.join("\n")
 }
 
-const pushSpanStack = (out: Array<string>, span: Tracer.Span) => {
+const currentSpanStack = (span: Tracer.Span): string => {
+  const out: Array<string> = []
   let current: Tracer.AnySpan | undefined = span
   let i = 0
   while (current && current._tag === "Span" && i < 10) {
@@ -425,6 +443,7 @@ const pushSpanStack = (out: Array<string>, span: Tracer.Span) => {
     current = current.parent
     i++
   }
+  return out.join("\n")
 }
 
 /** @internal */
@@ -1012,13 +1031,13 @@ export const fnUntraced: Effect.fn.Gen = (
   ...pipeables: Array<any>
 ) => {
   return pipeables.length === 0
-    ? function(this: any, ...args: Array<any>) {
-      return suspend(() => fromIteratorUnsafe(body.apply(this, args)))
+    ? function(this: any) {
+      return suspend(() => fromIteratorUnsafe(body.apply(this, arguments)))
     }
-    : function(this: any, ...args: Array<any>) {
-      let effect = suspend(() => fromIteratorUnsafe(body.apply(this, args)))
+    : function(this: any) {
+      let effect = suspend(() => fromIteratorUnsafe(body.apply(this, arguments)))
       for (const pipeable of pipeables) {
-        effect = pipeable(effect, ...args)
+        effect = pipeable(effect, ...arguments)
       }
       return effect
     }
@@ -1034,9 +1053,9 @@ export const fn: Effect.fn.Gen & Effect.fn.NonGen = (
   const defError = new globalThis.Error()
   globalThis.Error.stackTraceLimit = prevLimit
 
-  return function(this: any, ...args: Array<any>) {
+  return function(this: any) {
     let result = suspend(() => {
-      const iter = body.apply(this, args)
+      const iter = body.apply(this, arguments)
       return isEffect(iter) ? iter : fromIteratorUnsafe(iter)
     })
     for (let i = 0; i < pipeables.length; i++) {
@@ -1072,25 +1091,24 @@ const callsiteErrorKey = ServiceMap.Key<Error>(
 export const fnUntracedEager: Effect.fn.Gen = (
   body: Function,
   ...pipeables: Array<any>
-) => {
-  return pipeables.length === 0
-    ? function(this: any, ...args: Array<any>) {
-      return fromIteratorEagerUnsafe(() => body.apply(this, args))
+) =>
+  pipeables.length === 0
+    ? function(this: any) {
+      return fromIteratorEagerUnsafe(() => body.apply(this, arguments))
     }
-    : function(this: any, ...args: Array<any>) {
-      let effect = fromIteratorEagerUnsafe(() => body.apply(this, args))
+    : function(this: any) {
+      let effect = fromIteratorEagerUnsafe(() => body.apply(this, arguments))
       for (const pipeable of pipeables) {
         effect = pipeable(effect)
       }
       return effect
     }
-}
 
 const fromIteratorEagerUnsafe = (
-  createIterator: () => Iterator<Effect.Yieldable<any, any, any, any>>
+  evaluate: () => Iterator<Effect.Yieldable<any, any, any, any>>
 ): Effect.Effect<any, any, any> => {
   try {
-    const iterator = createIterator()
+    const iterator = evaluate()
     let value: any = undefined
 
     // Try to resolve synchronously in a loop
@@ -1118,7 +1136,7 @@ const fromIteratorEagerUnsafe = (
             isFirstExecution = false
             return flatMap(effect, (value) => fromIteratorUnsafe(iterator, value))
           } else {
-            return suspend(() => fromIteratorUnsafe(createIterator()))
+            return suspend(() => fromIteratorUnsafe(evaluate()))
           }
         })
       }
@@ -1488,7 +1506,8 @@ const OnSuccessProto = makePrimitiveProto({
   }
 })
 
-const effectIsExit = <A, E, R>(effect: Effect.Effect<A, E, R>): effect is Exit.Exit<A, E> => ExitTypeId in effect
+/** @internal */
+export const effectIsExit = <A, E, R>(effect: Effect.Effect<A, E, R>): effect is Exit.Exit<A, E> => ExitTypeId in effect
 
 /** @internal */
 export const flatMapEager: {
@@ -1799,6 +1818,20 @@ export const exitAsVoidAll = <I extends Iterable<Exit.Exit<any, any>>>(
     }
   }
   return failures.length === 0 ? exitVoid : exitFailCause(causeFromFailures(failures))
+}
+
+/** @internal */
+export const exitGetSuccess = <A, E>(self: Exit.Exit<A, E>): Option.Option<A> =>
+  exitIsSuccess(self) ? Option.some(self.value) : Option.none()
+
+/** @internal */
+export const exitGetCause = <A, E>(self: Exit.Exit<A, E>): Option.Option<Cause.Cause<E>> =>
+  exitIsFailure(self) ? Option.some(self.cause) : Option.none()
+
+/** @internal */
+export const exitGetError = <A, E>(self: Exit.Exit<A, E>): Option.Option<E> => {
+  const error = exitFilterError(self)
+  return Filter.isFail(error) ? Option.none() : Option.some(error)
 }
 
 // ----------------------------------------------------------------------------

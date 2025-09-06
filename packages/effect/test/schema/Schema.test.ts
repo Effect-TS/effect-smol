@@ -4524,7 +4524,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     })
   })
 
-  describe("decodeUnknownResult", () => {
+  describe("decodeUnknownExit", () => {
     it("should throw on async decoding", () => {
       const AsyncString = Schema.String.pipe(Schema.decode({
         decode: new Getter.Getter((os: Option.Option<string>) =>
@@ -4537,10 +4537,10 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       }))
       const schema = AsyncString
 
-      throws(() => ToParser.decodeUnknownResult(schema)("1"))
+      throws(() => ToParser.decodeUnknownExit(schema)("1"))
     })
 
-    it("should throw on missing dependency", () => {
+    it("should die on missing dependency", () => {
       class MagicNumber extends ServiceMap.Key<MagicNumber, number>()("MagicNumber") {}
       const DepString = Schema.Number.pipe(Schema.decode({
         decode: Getter.onSome((n) =>
@@ -4552,8 +4552,8 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
         encode: Getter.passthrough()
       }))
       const schema = DepString
-
-      throws(() => ToParser.decodeUnknownResult(schema as any)(1))
+      const exit = ToParser.decodeUnknownExit(schema as any)(1)
+      assertTrue(Exit.hasDie(exit))
     })
   })
 
