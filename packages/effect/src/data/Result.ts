@@ -467,8 +467,8 @@ export const getFailure: <A, E>(self: Result<A, E>) => Option<E> = result.getFai
  * import { Result } from "effect/data"
  * import { Equivalence } from "effect/data"
  *
- * const stringEquivalence = Equivalence.string
- * const numberEquivalence = Equivalence.number
+ * const stringEquivalence = Equivalence.strict<string>()
+ * const numberEquivalence = Equivalence.strict<number>()
  *
  * const resultEquivalence = Result.getEquivalence({
  *   success: numberEquivalence,

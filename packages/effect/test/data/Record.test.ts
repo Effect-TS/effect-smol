@@ -1,5 +1,5 @@
 import { assertFalse, assertNone, assertSome, assertTrue, assertUndefined, deepStrictEqual } from "@effect/vitest/utils"
-import { Option, Record, Result } from "effect/data"
+import { Equivalence, Option, Record, Result } from "effect/data"
 import { pipe } from "effect/Function"
 import { Number as Num } from "effect/primitives"
 import { describe, it } from "vitest"
@@ -355,12 +355,12 @@ describe("Record", () => {
     })
 
     it("getEquivalence", () => {
-      deepStrictEqual(Record.getEquivalence(Num.Equivalence)({ a: 1 }, { a: 1 }), true)
-      deepStrictEqual(Record.getEquivalence(Num.Equivalence)({ a: 1 }, stringRecord), true)
-      deepStrictEqual(Record.getEquivalence(Num.Equivalence)({ a: 1 }, { a: 2 }), false)
-      deepStrictEqual(Record.getEquivalence(Num.Equivalence)({ a: 1 }, { b: 1 }), false)
+      deepStrictEqual(Record.getEquivalence(Equivalence.strict<number>())({ a: 1 }, { a: 1 }), true)
+      deepStrictEqual(Record.getEquivalence(Equivalence.strict<number>())({ a: 1 }, stringRecord), true)
+      deepStrictEqual(Record.getEquivalence(Equivalence.strict<number>())({ a: 1 }, { a: 2 }), false)
+      deepStrictEqual(Record.getEquivalence(Equivalence.strict<number>())({ a: 1 }, { b: 1 }), false)
       const noPrototype = Object.create(null)
-      deepStrictEqual(Record.getEquivalence(Num.Equivalence)(noPrototype, { b: 1 }), false)
+      deepStrictEqual(Record.getEquivalence(Equivalence.strict<number>())(noPrototype, { b: 1 }), false)
     })
 
     it("mapKeys", () => {

@@ -1934,10 +1934,9 @@ export const filter: {
  *
  * @example
  * ```ts
- * import { Option } from "effect/data"
- * import * as N from "effect/primitives/Number"
+ * import { Option, Equivalence } from "effect/data"
  *
- * const isEquivalent = Option.getEquivalence(N.Equivalence)
+ * const isEquivalent = Option.getEquivalence(Equivalence.strict<number>())
  *
  * console.log(isEquivalent(Option.none(), Option.none()))
  * // Output: true
@@ -2104,10 +2103,9 @@ export const liftPredicate: { // Note: I intentionally avoid using the NoInfer p
  *
  * @example
  * ```ts
- * import { Option } from "effect/data"
- * import * as N from "effect/primitives/Number"
+ * import { Option, Equivalence } from "effect/data"
  *
- * const contains = Option.containsWith(N.Equivalence)
+ * const contains = Option.containsWith(Equivalence.strict<number>())
  *
  * console.log(Option.some(2).pipe(contains(2)))
  * // Output: true

@@ -1,7 +1,7 @@
 import { describe, it } from "@effect/vitest"
 import { assertNone, assertSome, assertUndefined, deepStrictEqual, strictEqual, throws } from "@effect/vitest/utils"
 import { Array as Arr } from "effect/collections"
-import type { Predicate } from "effect/data"
+import { Equivalence, type Predicate } from "effect/data"
 import { Option, Order, Result } from "effect/data"
 import { identity, pipe } from "effect/Function"
 import { Number as Num, String as Str } from "effect/primitives"
@@ -566,7 +566,7 @@ describe("Array", () => {
     })
 
     it("containsWith", () => {
-      const contains = Arr.containsWith(Num.Equivalence)
+      const contains = Arr.containsWith(Equivalence.strict<number>())
       deepStrictEqual(pipe([1, 2, 3], contains(2)), true)
       deepStrictEqual(pipe([1, 2, 3], contains(0)), false)
 
@@ -584,7 +584,7 @@ describe("Array", () => {
     })
 
     it("dedupeWith", () => {
-      const dedupe = Arr.dedupeWith(Num.Equivalence)
+      const dedupe = Arr.dedupeWith(Equivalence.strict<number>())
       deepStrictEqual(dedupe([]), [])
       deepStrictEqual(dedupe([-0, -0]), [-0])
       deepStrictEqual(dedupe([0, -0]), [0])
@@ -597,7 +597,7 @@ describe("Array", () => {
     })
 
     it("dedupeAdjacentWith", () => {
-      const dedupeAdjacent = Arr.dedupeAdjacentWith(Num.Equivalence)
+      const dedupeAdjacent = Arr.dedupeAdjacentWith(Equivalence.strict<number>())
       deepStrictEqual(dedupeAdjacent([]), [])
       deepStrictEqual(dedupeAdjacent([1, 2, 3]), [1, 2, 3])
       deepStrictEqual(dedupeAdjacent([1, 2, 2, 3, 3]), [1, 2, 3])
@@ -995,7 +995,7 @@ describe("Array", () => {
   })
 
   it("groupWith", () => {
-    const groupWith = Arr.groupWith(Num.Equivalence)
+    const groupWith = Arr.groupWith(Equivalence.strict<number>())
     deepStrictEqual(groupWith([1, 2, 1, 1]), [[1], [2], [1, 1]])
     deepStrictEqual(groupWith([1, 2, 1, 1, 3]), [[1], [2], [1, 1], [3]])
   })
@@ -1201,26 +1201,26 @@ describe("Array", () => {
 
   it("unionWith", () => {
     const two: ReadonlyArray<number> = [1, 2]
-    deepStrictEqual(pipe(two, Arr.unionWith([3, 4], Num.Equivalence)), [1, 2, 3, 4])
-    deepStrictEqual(pipe(two, Arr.unionWith([2, 3], Num.Equivalence)), [1, 2, 3])
-    deepStrictEqual(pipe(two, Arr.unionWith([1, 2], Num.Equivalence)), [1, 2])
-    deepStrictEqual(pipe(two, Arr.unionWith(Arr.empty(), Num.Equivalence)), two)
-    deepStrictEqual(pipe(Arr.empty(), Arr.unionWith(two, Num.Equivalence)), two)
+    deepStrictEqual(pipe(two, Arr.unionWith([3, 4], Equivalence.strict<number>())), [1, 2, 3, 4])
+    deepStrictEqual(pipe(two, Arr.unionWith([2, 3], Equivalence.strict<number>())), [1, 2, 3])
+    deepStrictEqual(pipe(two, Arr.unionWith([1, 2], Equivalence.strict<number>())), [1, 2])
+    deepStrictEqual(pipe(two, Arr.unionWith(Arr.empty(), Equivalence.strict<number>())), two)
+    deepStrictEqual(pipe(Arr.empty(), Arr.unionWith(two, Equivalence.strict<number>())), two)
     deepStrictEqual(
-      pipe(Arr.empty(), Arr.unionWith(Arr.empty(), Num.Equivalence)),
+      pipe(Arr.empty(), Arr.unionWith(Arr.empty(), Equivalence.strict<number>())),
       Arr.empty()
     )
   })
 
   it("intersectionWith", () => {
-    const intersectionWith = Arr.intersectionWith(Num.Equivalence)
+    const intersectionWith = Arr.intersectionWith(Equivalence.strict<number>())
     deepStrictEqual(pipe([1, 2], intersectionWith([3, 4])), [])
     deepStrictEqual(pipe([1, 2], intersectionWith([2, 3])), [2])
     deepStrictEqual(pipe([1, 2], intersectionWith([1, 2])), [1, 2])
   })
 
   it("differenceWith", () => {
-    const differenceWith = Arr.differenceWith(Num.Equivalence)
+    const differenceWith = Arr.differenceWith(Equivalence.strict<number>())
     deepStrictEqual(pipe([1, 2], differenceWith([3, 4])), [1, 2])
     deepStrictEqual(pipe([1, 2], differenceWith([2, 3])), [1])
     deepStrictEqual(pipe([1, 2], differenceWith([1, 2])), [])

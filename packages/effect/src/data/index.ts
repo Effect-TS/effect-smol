@@ -114,7 +114,7 @@ export * as Data from "./Data.ts"
  *
  * const personEquivalence = Equivalence.struct({
  *   name: caseInsensitive,
- *   age: Equivalence.number
+ *   age: Equivalence.strict<number>()
  * })
  * ```
  *
