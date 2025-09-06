@@ -9,9 +9,13 @@
  */
 import { hasProperty } from "../data/Predicate.ts"
 import { dual, pipe } from "../Function.ts"
+import { instanceEqualityRegistry, isPlainObject } from "../internal/equal.ts"
 
 /** @internal */
 const randomHashCache = new WeakMap<object, number>()
+
+/** @internal */
+const visitedObjects = new WeakSet<object>()
 
 /**
  * The unique identifier used to identify objects that implement the Hash interface.
@@ -92,10 +96,23 @@ export const hash: <A>(self: A) => number = <A>(self: A) => {
     case "object": {
       if (self === null) {
         return string("null")
+      } else if ((typeof self === "object" || typeof self === "function") && instanceEqualityRegistry.has(self)) {
+        return random(self)
+      } else if (visitedObjects.has(self)) {
+        // Circular reference detected - return a consistent hash for cycles
+        return string("[Circular]")
       } else if (self instanceof Date) {
         return hash(self.toISOString())
       } else if (isHash(self)) {
         return self[symbol]()
+      } else if (Array.isArray(self)) {
+        return arrayWithVisited(self)
+      } else if (self instanceof Map) {
+        return mapHashWithVisited(self)
+      } else if (self instanceof Set) {
+        return setHashWithVisited(self)
+      } else if (isPlainObject(self)) {
+        return structureWithVisited(self)
       } else {
         return random(self)
       }
@@ -223,7 +240,7 @@ export const isHash = (u: unknown): u is Hash => hasProperty(u, symbol)
  * Computes a hash value for a number.
  *
  * This function creates a hash value for numeric inputs, handling special cases
- * like NaN and Infinity. It uses bitwise operations to ensure good distribution
+ * like NaN, Infinity, and -Infinity with distinct hash values. It uses bitwise operations to ensure good distribution
  * of hash values across different numeric inputs.
  *
  * @example
@@ -232,7 +249,7 @@ export const isHash = (u: unknown): u is Hash => hasProperty(u, symbol)
  *
  * console.log(Hash.number(42)) // hash of 42
  * console.log(Hash.number(3.14)) // hash of 3.14
- * console.log(Hash.number(NaN)) // 0 (special case)
+ * console.log(Hash.number(NaN)) // hash of "NaN"
  * console.log(Hash.number(Infinity)) // 0 (special case)
  *
  * // Same numbers produce the same hash
@@ -243,8 +260,14 @@ export const isHash = (u: unknown): u is Hash => hasProperty(u, symbol)
  * @since 2.0.0
  */
 export const number = (n: number) => {
-  if (n !== n || n === Infinity) {
-    return 0
+  if (n !== n) {
+    return string("NaN")
+  }
+  if (n === Infinity) {
+    return string("Infinity")
+  }
+  if (n === -Infinity) {
+    return string("-Infinity")
   }
   let h = n | 0
   if (h !== n) {
@@ -318,9 +341,24 @@ export const string = (str: string) => {
 export const structureKeys = <A extends object>(o: A, keys: ReadonlyArray<keyof A>) => {
   let h = 12289
   for (let i = 0; i < keys.length; i++) {
-    h ^= pipe(string(keys[i]! as string), combine(hash((o as any)[keys[i]!])))
+    h ^= pipe(hash(keys[i]!), combine(hash((o as any)[keys[i]!])))
   }
   return optimize(h)
+}
+
+const structureKeysWithVisited = <A extends object>(o: A, keys: ReadonlyArray<keyof A>) => {
+  let h = 12289
+  for (let i = 0; i < keys.length; i++) {
+    h ^= pipe(hash(keys[i]!), combine(hash((o as any)[keys[i]!])))
+  }
+  return optimize(h)
+}
+
+const structureWithVisited = <A extends object>(o: A) => {
+  visitedObjects.add(o)
+  const result = structureKeysWithVisited(o, Reflect.ownKeys(o) as unknown as ReadonlyArray<keyof A>)
+  visitedObjects.delete(o)
+  return result
 }
 
 /**
@@ -350,7 +388,7 @@ export const structureKeys = <A extends object>(o: A, keys: ReadonlyArray<keyof 
  * @since 2.0.0
  */
 export const structure = <A extends object>(o: A) =>
-  structureKeys(o, Object.keys(o) as unknown as ReadonlyArray<keyof A>)
+  structureKeys(o, Reflect.ownKeys(o) as unknown as ReadonlyArray<keyof A>)
 
 /**
  * Computes a hash value for an array by hashing all of its elements.
@@ -387,7 +425,37 @@ export const array = <A>(arr: ReadonlyArray<A>) => {
   return optimize(h)
 }
 
+const arrayWithVisited = <A>(arr: ReadonlyArray<A>) => {
+  visitedObjects.add(arr as any)
+  let h = 6151
+  for (let i = 0; i < arr.length; i++) {
+    h = pipe(h, combine(hash(arr[i])))
+  }
+  visitedObjects.delete(arr as any)
+  return optimize(h)
+}
+
 const hashCache = new WeakMap<object, number>()
+
+const mapHashWithVisited = <K, V>(map: Map<K, V>) => {
+  visitedObjects.add(map)
+  let h = string("Map")
+  for (const [key, value] of map) {
+    h ^= combine(hash(key), hash(value))
+  }
+  visitedObjects.delete(map)
+  return optimize(h)
+}
+
+const setHashWithVisited = <V>(set: Set<V>) => {
+  visitedObjects.add(set)
+  let h = string("Set")
+  for (const value of set) {
+    h ^= hash(value)
+  }
+  visitedObjects.delete(set)
+  return optimize(h)
+}
 
 /**
  * Caches the result of a hash computation for an object.

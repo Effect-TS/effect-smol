@@ -8,6 +8,13 @@
 import type { Equivalence } from "../data/Equivalence.ts"
 import { hasProperty } from "../data/Predicate.ts"
 import * as Hash from "../interfaces/Hash.ts"
+import { instanceEqualityRegistry, isPlainObject } from "../internal/equal.ts"
+
+/** @internal */
+const visitedLeft = new WeakSet<object>()
+
+/** @internal */
+const visitedRight = new WeakSet<object>()
 
 /**
  * The unique identifier used to identify objects that implement the `Equal` interface.
@@ -88,20 +95,162 @@ function compareBoth(self: unknown, that: unknown): boolean {
   if (self === that) {
     return true
   }
+  // Special case for NaN: NaN should be considered equal to NaN
+  if (typeof self === "number" && typeof that === "number" && self !== self && that !== that) {
+    return true
+  }
   const selfType = typeof self
   if (selfType !== typeof that) {
     return false
   }
+  const selfHash = Hash.hash(self)
+  const thatHash = Hash.hash(that)
+  if (selfHash !== thatHash) {
+    return false
+  }
   if (selfType === "object" || selfType === "function") {
     if (self !== null && that !== null) {
+      // Check if either object is marked for instance equality
+      if (
+        ((typeof self === "object" || typeof self === "function") && instanceEqualityRegistry.has(self)) ||
+        ((typeof that === "object" || typeof that === "function") && instanceEqualityRegistry.has(that))
+      ) {
+        return false // Use reference equality (self === that already checked above)
+      }
+
+      // Check for circular references
+      if (visitedLeft.has(self as object) && visitedRight.has(that as object)) {
+        return true // Both are circular at the same level
+      }
+      if (visitedLeft.has(self as object) || visitedRight.has(that as object)) {
+        return false // Only one is circular
+      }
+
       if (isEqual(self) && isEqual(that)) {
-        return Hash.hash(self) === Hash.hash(that) && self[symbol](that)
+        return self[symbol](that)
       } else if (self instanceof Date && that instanceof Date) {
         return self.toISOString() === that.toISOString()
+      } else if (Array.isArray(self) && Array.isArray(that)) {
+        return compareArraysWithVisited(self, that)
+      } else if (self instanceof Map && that instanceof Map) {
+        return compareMapsWithVisited(self, that)
+      } else if (self instanceof Set && that instanceof Set) {
+        return compareSetsWithVisited(self, that)
+      } else if (isPlainObject(self) && isPlainObject(that)) {
+        return compareObjectsWithVisited(self, that)
       }
     }
   }
   return false
+}
+
+function compareArraysWithVisited(self: Array<unknown>, that: Array<unknown>): boolean {
+  if (self.length !== that.length) {
+    return false
+  }
+
+  visitedLeft.add(self)
+  visitedRight.add(that)
+
+  let result = true
+  for (let i = 0; i < self.length; i++) {
+    if (!compareBoth(self[i], that[i])) {
+      result = false
+      break
+    }
+  }
+
+  visitedLeft.delete(self)
+  visitedRight.delete(that)
+
+  return result
+}
+
+function compareObjectsWithVisited(self: Record<PropertyKey, unknown>, that: Record<PropertyKey, unknown>): boolean {
+  const selfKeys = Reflect.ownKeys(self)
+  const thatKeys = Reflect.ownKeys(that)
+
+  if (selfKeys.length !== thatKeys.length) {
+    return false
+  }
+
+  visitedLeft.add(self)
+  visitedRight.add(that)
+
+  let result = true
+  for (const key of selfKeys) {
+    if (!Object.prototype.hasOwnProperty.call(that, key)) {
+      result = false
+      break
+    }
+    if (!compareBoth(self[key], that[key])) {
+      result = false
+      break
+    }
+  }
+
+  visitedLeft.delete(self)
+  visitedRight.delete(that)
+
+  return result
+}
+
+function compareMapsWithVisited(self: Map<unknown, unknown>, that: Map<unknown, unknown>): boolean {
+  if (self.size !== that.size) {
+    return false
+  }
+
+  visitedLeft.add(self)
+  visitedRight.add(that)
+
+  let result = true
+  for (const [selfKey, selfValue] of self) {
+    let found = false
+    for (const [thatKey, thatValue] of that) {
+      if (compareBoth(selfKey, thatKey) && compareBoth(selfValue, thatValue)) {
+        found = true
+        break
+      }
+    }
+    if (!found) {
+      result = false
+      break
+    }
+  }
+
+  visitedLeft.delete(self)
+  visitedRight.delete(that)
+
+  return result
+}
+
+function compareSetsWithVisited(self: Set<unknown>, that: Set<unknown>): boolean {
+  if (self.size !== that.size) {
+    return false
+  }
+
+  visitedLeft.add(self)
+  visitedRight.add(that)
+
+  let result = true
+  for (const selfValue of self) {
+    let found = false
+    for (const thatValue of that) {
+      if (compareBoth(selfValue, thatValue)) {
+        found = true
+        break
+      }
+    }
+    if (!found) {
+      result = false
+      break
+    }
+  }
+
+  visitedLeft.delete(self)
+  visitedRight.delete(that)
+
+  return result
 }
 
 /**
@@ -149,3 +298,91 @@ export const isEqual = (u: unknown): u is Equal => hasProperty(u, symbol)
  * @since 2.0.0
  */
 export const equivalence: <A>() => Equivalence<A> = () => equals
+
+/**
+ * Creates a proxy of an object that uses reference equality instead of structural equality.
+ *
+ * By default, plain objects and arrays use structural equality. This function creates
+ * a proxy that behaves exactly like the original object but uses reference equality
+ * for comparison purposes.
+ *
+ * @example
+ * ```ts
+ * import { Equal } from "effect/interfaces"
+ *
+ * const obj1 = { a: 1, b: 2 }
+ * const obj2 = { a: 1, b: 2 }
+ *
+ * // Normal structural equality
+ * console.log(Equal.equals(obj1, obj2)) // true
+ *
+ * // Create reference equality version
+ * const obj1ByRef = Equal.byReference(obj1)
+ * console.log(Equal.equals(obj1ByRef, obj2)) // false (uses reference equality)
+ * console.log(Equal.equals(obj1ByRef, obj1ByRef)) // true (same reference)
+ *
+ * // Each call creates a new proxy instance
+ * const obj1ByRef2 = Equal.byReference(obj1)
+ * console.log(Equal.equals(obj1ByRef, obj1ByRef2)) // false (different instances)
+ *
+ * // Proxy behaves like the original
+ * console.log(obj1ByRef.a) // 1
+ * ```
+ *
+ * @category utility
+ * @since 2.0.0
+ */
+export const byReference = <T extends object>(obj: T): T => {
+  // Create a fresh proxy that behaves exactly like the original object
+  const proxy = new Proxy(obj, {})
+
+  // Register the proxy for instance equality
+  instanceEqualityRegistry.set(proxy, true)
+
+  return proxy as T
+}
+
+/**
+ * Marks an object to use reference equality instead of structural equality by mutating its behavior.
+ *
+ * **⚠️ WARNING: This function is "unsafe" because it mutates the original object's equality behavior.**
+ * Once an object is marked with this function, it will always use reference equality, even when
+ * referenced by its original variable. Use `byReference` if you want to avoid mutation.
+ *
+ * By default, plain objects and arrays use structural equality. This function changes the original
+ * object's behavior to use reference equality instead.
+ *
+ * @example
+ * ```ts
+ * import { Equal } from "effect/interfaces"
+ *
+ * const obj1 = { a: 1, b: 2 }
+ * const obj2 = { a: 1, b: 2 }
+ *
+ * // Normal structural equality
+ * console.log(Equal.equals(obj1, obj2)) // true
+ *
+ * // Mutate obj1 to use reference equality
+ * const result = Equal.byReferenceUnsafe(obj1)
+ * console.log(result === obj1) // true (same reference returned)
+ * console.log(Equal.equals(obj1, obj2)) // false (obj1 now uses reference equality)
+ * console.log(Equal.equals(obj1, obj1)) // true (same reference)
+ *
+ * // Compare with safe version
+ * const obj3 = { a: 1, b: 2 }
+ * const obj3Proxy = Equal.byReference(obj3)
+ * console.log(obj3Proxy === obj3) // false (different reference)
+ * console.log(Equal.equals(obj3, obj2)) // true (obj3 still uses structural equality)
+ * console.log(Equal.equals(obj3Proxy, obj2)) // false (proxy uses reference equality)
+ * ```
+ *
+ * @category utility
+ * @since 2.0.0
+ */
+export const byReferenceUnsafe = <T extends object>(obj: T): T => {
+  // Mark the original object for instance equality (this mutates its behavior)
+  instanceEqualityRegistry.set(obj, true)
+
+  // Return the same object
+  return obj
+}
