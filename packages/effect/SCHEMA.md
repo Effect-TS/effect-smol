@@ -2277,7 +2277,7 @@ import { Schema } from "effect/schema"
 class Person extends Schema.Opaque<Person>()(
   Schema.Struct({
     name: Schema.String
-  }).annotate({ id: "Person" })
+  }).annotate({ identifier: "Person" })
 ) {}
 
 console.log(Schema.decodeUnknownResult(Person)(null).pipe(Result.merge))
