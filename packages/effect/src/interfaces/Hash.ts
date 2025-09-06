@@ -9,7 +9,7 @@
  */
 import { hasProperty } from "../data/Predicate.ts"
 import { dual, pipe } from "../Function.ts"
-import { isPlainObject } from "../internal/data.ts"
+import { instanceEqualityRegistry, isPlainObject } from "../internal/equal.ts"
 
 /** @internal */
 const randomHashCache = new WeakMap<object, number>()
@@ -93,6 +93,8 @@ export const hash: <A>(self: A) => number = <A>(self: A) => {
     case "object": {
       if (self === null) {
         return string("null")
+      } else if ((typeof self === "object" || typeof self === "function") && instanceEqualityRegistry.has(self)) {
+        return random(self)
       } else if (self instanceof Date) {
         return hash(self.toISOString())
       } else if (isHash(self)) {
@@ -228,7 +230,7 @@ export const isHash = (u: unknown): u is Hash => hasProperty(u, symbol)
  * Computes a hash value for a number.
  *
  * This function creates a hash value for numeric inputs, handling special cases
- * like NaN and Infinity. It uses bitwise operations to ensure good distribution
+ * like NaN, Infinity, and -Infinity with distinct hash values. It uses bitwise operations to ensure good distribution
  * of hash values across different numeric inputs.
  *
  * @example
@@ -237,7 +239,7 @@ export const isHash = (u: unknown): u is Hash => hasProperty(u, symbol)
  *
  * console.log(Hash.number(42)) // hash of 42
  * console.log(Hash.number(3.14)) // hash of 3.14
- * console.log(Hash.number(NaN)) // 0 (special case)
+ * console.log(Hash.number(NaN)) // hash of "NaN"
  * console.log(Hash.number(Infinity)) // 0 (special case)
  *
  * // Same numbers produce the same hash
@@ -248,8 +250,14 @@ export const isHash = (u: unknown): u is Hash => hasProperty(u, symbol)
  * @since 2.0.0
  */
 export const number = (n: number) => {
-  if (n !== n || n === Infinity) {
-    return 0
+  if (n !== n) {
+    return string("NaN")
+  }
+  if (n === Infinity) {
+    return string("Infinity")
+  }
+  if (n === -Infinity) {
+    return string("-Infinity")
   }
   let h = n | 0
   if (h !== n) {

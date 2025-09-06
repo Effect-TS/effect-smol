@@ -8,7 +8,7 @@
 import type { Equivalence } from "../data/Equivalence.ts"
 import { hasProperty } from "../data/Predicate.ts"
 import * as Hash from "../interfaces/Hash.ts"
-import { isPlainObject } from "../internal/data.ts"
+import { instanceEqualityRegistry, isPlainObject } from "../internal/equal.ts"
 
 /**
  * The unique identifier used to identify objects that implement the `Equal` interface.
@@ -89,14 +89,30 @@ function compareBoth(self: unknown, that: unknown): boolean {
   if (self === that) {
     return true
   }
+  // Special case for NaN: NaN should be considered equal to NaN
+  if (typeof self === "number" && typeof that === "number" && self !== self && that !== that) {
+    return true
+  }
   const selfType = typeof self
   if (selfType !== typeof that) {
     return false
   }
+  const selfHash = Hash.hash(self)
+  const thatHash = Hash.hash(that)
+  if (selfHash !== thatHash) {
+    return false
+  }
   if (selfType === "object" || selfType === "function") {
     if (self !== null && that !== null) {
+      // Check if either object is marked for instance equality
+      if (
+        ((typeof self === "object" || typeof self === "function") && instanceEqualityRegistry.has(self)) ||
+        ((typeof that === "object" || typeof that === "function") && instanceEqualityRegistry.has(that))
+      ) {
+        return false // Use reference equality (self === that already checked above)
+      }
       if (isEqual(self) && isEqual(that)) {
-        return Hash.hash(self) === Hash.hash(that) && self[symbol](that)
+        return self[symbol](that)
       } else if (self instanceof Date && that instanceof Date) {
         return self.toISOString() === that.toISOString()
       } else if (Array.isArray(self) && Array.isArray(that)) {
@@ -186,3 +202,40 @@ export const isEqual = (u: unknown): u is Equal => hasProperty(u, symbol)
  * @since 2.0.0
  */
 export const equivalence: <A>() => Equivalence<A> = () => equals
+
+/**
+ * Marks an object or function to use instance (reference) equality instead of structural equality.
+ *
+ * By default, plain objects and arrays use structural equality. This function allows
+ * you to opt specific objects or functions back to reference equality for performance or semantic reasons.
+ *
+ * @example
+ * ```ts
+ * import { Equal } from "effect/interfaces"
+ *
+ * const obj1 = { a: 1, b: 2 }
+ * const obj2 = { a: 1, b: 2 }
+ *
+ * // Normal structural equality
+ * console.log(Equal.equals(obj1, obj2)) // true
+ *
+ * // Mark obj1 for instance equality
+ * Equal.useInstanceEquality(obj1)
+ * console.log(Equal.equals(obj1, obj2)) // false (now uses reference equality)
+ * console.log(Equal.equals(obj1, obj1)) // true (same reference)
+ *
+ * // Works with functions too
+ * const fn1 = () => 42
+ * const fn2 = () => 42
+ * Equal.useInstanceEquality(fn1)
+ * console.log(Equal.equals(fn1, fn2)) // false (reference equality)
+ * console.log(Equal.equals(fn1, fn1)) // true (same reference)
+ * ```
+ *
+ * @category utility
+ * @since 2.0.0
+ */
+export const useInstanceEquality = <T extends object>(obj: T): T => {
+  instanceEqualityRegistry.set(obj, true)
+  return obj
+}
