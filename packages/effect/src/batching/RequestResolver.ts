@@ -71,6 +71,13 @@ export interface RequestResolver<in A extends Request.Any> extends RequestResolv
   batchKey(entry: Request.Entry<A>): unknown
 
   /**
+   * An optional pre-check function that can be used to filter requests before
+   * they are added to a batch. If the function returns `false`, the request
+   * will not be processed.
+   */
+  readonly preCheck: ((entry: Request.Entry<A>) => boolean) | undefined
+
+  /**
    * Should the resolver continue collecting requests? Otherwise, it will
    * immediately execute the collected requests cutting the delay short.
    */
@@ -116,14 +123,23 @@ const RequestResolverProto = {
  */
 export const isRequestResolver = (u: unknown): u is RequestResolver<any> => hasProperty(u, TypeId)
 
-const makeProto = <A extends Request.Any>(options: {
+/**
+ * Low-level constructor for creating a request resolver with fine-grained
+ * control over its behavior.
+ *
+ * @since 4.0.0
+ * @category constructors
+ */
+export const makeWith = <A extends Request.Any>(options: {
   readonly batchKey: (request: Request.Entry<A>) => unknown
+  readonly preCheck?: ((entry: Request.Entry<A>) => boolean) | undefined
   readonly delay: Effect<void>
   readonly collectWhile: (requests: ReadonlySet<Request.Entry<A>>) => boolean
   readonly runAll: (entries: NonEmptyArray<Request.Entry<A>>, key: unknown) => Effect<void, Request.Error<A>>
 }): RequestResolver<A> => {
   const self = Object.create(RequestResolverProto)
   self.batchKey = options.batchKey
+  self.preCheck = options.preCheck
   self.delay = options.delay
   self.collectWhile = options.collectWhile
   self.runAll = options.runAll
@@ -168,7 +184,7 @@ const defaultKey = (_request: unknown): unknown => defaultKeyObject
 export const make = <A extends Request.Any>(
   runAll: (entries: NonEmptyArray<Request.Entry<A>>, key: unknown) => Effect<void, Request.Error<A>>
 ): RequestResolver<A> =>
-  makeProto({
+  makeWith({
     batchKey: defaultKey,
     delay: effect.yieldNow,
     collectWhile: constTrue,
@@ -212,7 +228,7 @@ export const makeGrouped = <A extends Request.Any, K>(options: {
   readonly key: (entry: Request.Entry<A>) => K
   readonly resolver: (entries: NonEmptyArray<Request.Entry<A>>, key: K) => Effect<void, Request.Error<A>>
 }): RequestResolver<A> =>
-  makeProto({
+  makeWith({
     batchKey: hashGroupKey(options.key),
     delay: effect.yieldNow,
     collectWhile: constTrue,
@@ -490,7 +506,7 @@ export const setDelayEffect: {
   (delay: Effect<void>): <A extends Request.Any>(self: RequestResolver<A>) => RequestResolver<A>
   <A extends Request.Any>(self: RequestResolver<A>, delay: Effect<void>): RequestResolver<A>
 } = dual(2, <A extends Request.Any>(self: RequestResolver<A>, delay: Effect<void>): RequestResolver<A> =>
-  makeProto({
+  makeWith({
     ...self,
     delay
   }))
@@ -532,7 +548,7 @@ export const setDelay: {
 } = dual(
   2,
   <A extends Request.Any>(self: RequestResolver<A>, duration: Duration.DurationInput): RequestResolver<A> =>
-    makeProto({
+    makeWith({
       ...self,
       delay: effect.sleep(duration)
     })
@@ -592,7 +608,7 @@ export const around: {
   before: (entries: NonEmptyArray<Request.Entry<NoInfer<A>>>) => Effect<A2, Request.Error<A>>,
   after: (entries: NonEmptyArray<Request.Entry<NoInfer<A>>>, a: A2) => Effect<X, Request.Error<A>>
 ): RequestResolver<A> =>
-  makeProto({
+  makeWith({
     ...self,
     runAll: (entries, key) =>
       effect.acquireUseRelease(
@@ -670,7 +686,7 @@ export const batchN: {
   (n: number): <A extends Request.Any>(self: RequestResolver<A>) => RequestResolver<A>
   <A extends Request.Any>(self: RequestResolver<A>, n: number): RequestResolver<A>
 } = dual(2, <A extends Request.Any>(self: RequestResolver<A>, n: number): RequestResolver<A> =>
-  makeProto({
+  makeWith({
     ...self,
     collectWhile: (requests) => requests.size < n
   }))
@@ -723,7 +739,7 @@ export const grouped: {
 } = dual(
   2,
   <A extends Request.Any, K>(self: RequestResolver<A>, f: (entry: Request.Entry<A>) => K): RequestResolver<A> =>
-    makeProto({
+    makeWith({
       ...self,
       batchKey: hashGroupKey(f)
     })
@@ -847,7 +863,7 @@ export const withSpan: {
   name: string,
   options?: Tracer.SpanOptions | ((entries: NonEmptyArray<Request.Entry<A>>) => Tracer.SpanOptions) | undefined
 ): RequestResolver<A> =>
-  makeProto({
+  makeWith({
     ...self,
     runAll: (entries, key) =>
       effect.suspend(() => {
@@ -939,7 +955,7 @@ export const asCache: {
 
 /**
  * Adds caching capabilities to a request resolver, allowing it to cache
- * results up to a specified capacity and optional time-to-live.
+ * results up to a specified capacity.
  *
  * @since 4.0.0
  * @category Caching
@@ -947,17 +963,84 @@ export const asCache: {
 export const withCache: {
   <A extends Request.Any>(options: {
     readonly capacity: number
-    readonly timeToLive?: ((exit: Request.Result<A>, request: A) => Duration.DurationInput) | undefined
+    readonly strategy?: "lru" | "fifo" | undefined
   }): (self: RequestResolver<A>) => Effect<RequestResolver<A>>
   <A extends Request.Any>(self: RequestResolver<A>, options: {
     readonly capacity: number
-    readonly timeToLive?: ((exit: Request.Result<A>, request: A) => Duration.DurationInput) | undefined
+    readonly strategy?: "lru" | "fifo" | undefined
   }): Effect<RequestResolver<A>>
 } = dual(2, <A extends Request.Any>(self: RequestResolver<A>, options: {
   readonly capacity: number
-  readonly timeToLive?: ((exit: Request.Result<A>, request: A) => Duration.DurationInput) | undefined
-}): Effect<RequestResolver<A>> =>
-  effect.map(
-    asCache(self, options),
-    (cache) => fromEffect<A>((entry) => effect.provideServices(Cache.get(cache, entry.request), entry.services))
-  ))
+  readonly strategy?: "lru" | "fifo" | undefined
+}): Effect<RequestResolver<A>> => effect.sync(() => withCacheUnsafe(self, options)))
+
+/**
+ * Adds caching capabilities to a request resolver, allowing it to cache
+ * results up to a specified capacity.
+ *
+ * @since 4.0.0
+ * @category Caching
+ */
+export const withCacheUnsafe: {
+  <A extends Request.Any>(options: {
+    readonly capacity: number
+    readonly strategy?: "lru" | "fifo" | undefined
+  }): (self: RequestResolver<A>) => RequestResolver<A>
+  <A extends Request.Any>(self: RequestResolver<A>, options: {
+    readonly capacity: number
+    readonly strategy?: "lru" | "fifo" | undefined
+  }): RequestResolver<A>
+} = dual(2, <A extends Request.Any>(self: RequestResolver<A>, options: {
+  readonly capacity: number
+  readonly strategy?: "lru" | "fifo" | undefined
+}): RequestResolver<A> => {
+  const strategy = options.strategy ?? "lru"
+  const cache = MutableHashMap.empty<A, {
+    readonly entry: Request.Entry<A>
+    exit: Request.Result<A> | undefined
+  }>()
+  return makeWith({
+    ...self,
+    runAll(entries, key) {
+      return effect.onExit(self.runAll(entries, key), () => {
+        let toRemove = MutableHashMap.size(cache) - options.capacity
+        if (toRemove <= 0) return effect.void
+        for (const k of MutableHashMap.keys(cache)) {
+          MutableHashMap.remove(cache, k)
+          toRemove--
+          if (toRemove <= 0) break
+        }
+        return effect.void
+      })
+    },
+    preCheck(entry) {
+      const ocached = MutableHashMap.get(cache, entry.request)
+      if (ocached._tag === "None") {
+        const cached = { entry, exit: undefined as Request.Result<A> | undefined }
+        MutableHashMap.set(cache, entry.request, cached)
+        const prevComplete = entry.completeUnsafe
+        entry.completeUnsafe = function(exit) {
+          cached.exit = exit as any
+          prevComplete(exit)
+        }
+        return true
+      }
+      const cached = ocached.value
+      if (cached.exit) {
+        if (strategy === "lru") {
+          MutableHashMap.remove(cache, cached.entry.request)
+          MutableHashMap.set(cache, cached.entry.request, cached)
+        }
+        entry.completeUnsafe(cached.exit as any)
+      } else {
+        cached.entry.uninterruptible = true
+        const prevComplete = cached.entry.completeUnsafe
+        cached.entry.completeUnsafe = function(exit) {
+          prevComplete(exit)
+          entry.completeUnsafe(exit)
+        }
+      }
+      return false
+    }
+  })
+})

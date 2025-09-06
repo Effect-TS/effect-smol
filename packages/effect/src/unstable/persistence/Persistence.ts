@@ -2,8 +2,7 @@
  * @since 4.0.0
  */
 import * as Arr from "../../collections/Array.ts"
-import * as Option from "../../data/Option.ts"
-import * as Effect from "../../Effect.ts"
+import type * as Effect from "../../Effect.ts"
 import * as Exit from "../../Exit.ts"
 import { identity } from "../../Function.ts"
 import * as PrimaryKey from "../../interfaces/PrimaryKey.ts"
@@ -96,15 +95,15 @@ export class BackingPersistence extends ServiceMap.Key<BackingPersistence, {
  * @category BackingPersistence
  */
 export interface BackingPersistenceStore {
-  readonly get: (key: string) => Effect.Effect<Option.Option<unknown>, PersistenceError>
-  readonly getMany: (key: Array<string>) => Effect.Effect<Array<Option.Option<unknown>>, PersistenceError>
+  readonly get: (key: string) => Effect.Effect<object | undefined, PersistenceError>
+  readonly getMany: (key: Array<string>) => Effect.Effect<Array<object | undefined>, PersistenceError>
   readonly set: (
     key: string,
-    value: unknown,
+    value: object,
     ttl: Duration.Duration | undefined
   ) => Effect.Effect<void, PersistenceError>
   readonly setMany: (
-    entries: ReadonlyArray<readonly [key: string, value: unknown, ttl: Duration.Duration | undefined]>
+    entries: ReadonlyArray<readonly [key: string, value: object, ttl: Duration.Duration | undefined]>
   ) => Effect.Effect<void, PersistenceError>
   readonly remove: (key: string) => Effect.Effect<void, PersistenceError>
   readonly clear: Effect.Effect<void, PersistenceError>
@@ -126,10 +125,7 @@ export const layer = Layer.effect(Persistence)(Effect.gen(function*() {
         get: (key) =>
           Effect.flatMap(
             storage.get(PrimaryKey.value(key)),
-            Option.match({
-              onNone: () => Effect.undefined,
-              onSome: (_) => Persistable.deserializeExit(key, _)
-            })
+            (result) => result ? Persistable.deserializeExit(key, result) : Effect.undefined
           ),
         getMany: Effect.fnUntraced(function*(keys) {
           const primaryKeys = Arr.empty<string>()
@@ -147,28 +143,31 @@ export const layer = Layer.effect(Persistence)(Effect.gen(function*() {
               })
             )
           }
-          const out = Arr.empty<Exit.Exit<unknown, unknown> | undefined>()
-          const toRemove = Arr.empty<string>()
+          const out = new Array<Exit.Exit<unknown, unknown> | undefined>(primaryKeys.length)
+          let toRemove: Array<string> | undefined
           for (let i = 0; i < results.length; i++) {
             const key = persistables[i]
             const result = results[i]
-            if (result._tag === "None") {
-              out.push(undefined)
+            if (result === undefined) {
+              out[i] = undefined
               continue
             }
-            const eff = Persistable.deserializeExit(key, result.value)
+            const eff = Persistable.deserializeExit(key, result)
             const exit = Exit.isExit(eff)
               ? eff as Exit.Exit<Exit.Exit<any, any>, Schema.SchemaError>
               : yield* Effect.exit(eff)
             if (Exit.isFailure(exit)) {
+              toRemove ??= []
               toRemove.push(PrimaryKey.value(key))
-              out.push(undefined)
+              out[i] = undefined
               continue
             }
-            out.push(exit.value)
+            out[i] = exit.value
           }
-          for (let i = 0; i < toRemove.length; i++) {
-            yield* Effect.forkIn(storage.remove(toRemove[i]), scope)
+          if (toRemove) {
+            for (let i = 0; i < toRemove.length; i++) {
+              yield* Effect.forkIn(storage.remove(toRemove[i]), scope)
+            }
           }
           return out
         }),
@@ -177,12 +176,12 @@ export const layer = Layer.effect(Persistence)(Effect.gen(function*() {
           if (Duration.isZero(ttl)) return Effect.void
           return Persistable.serializeExit(key, value).pipe(
             Effect.flatMap((encoded) =>
-              storage.set(PrimaryKey.value(key), encoded, Duration.isFinite(ttl) ? ttl : undefined)
+              storage.set(PrimaryKey.value(key), encoded as object, Duration.isFinite(ttl) ? ttl : undefined)
             )
           )
         },
         setMany: Effect.fnUntraced(function*(entries) {
-          const encodedEntries = Arr.empty<readonly [string, unknown, Duration.Duration | undefined]>()
+          const encodedEntries = Arr.empty<readonly [string, object, Duration.Duration | undefined]>()
           for (const [key, value] of entries) {
             const ttl = Duration.fromDurationInputUnsafe(timeToLive(key, value))
             if (Duration.isZero(ttl)) continue
@@ -193,7 +192,7 @@ export const layer = Layer.effect(Persistence)(Effect.gen(function*() {
             if (Exit.isFailure(exit)) {
               return yield* exit
             }
-            encodedEntries.push([PrimaryKey.value(key), exit.value, Duration.isFinite(ttl) ? ttl : undefined])
+            encodedEntries.push([PrimaryKey.value(key), exit.value as object, Duration.isFinite(ttl) ? ttl : undefined])
           }
           if (encodedEntries.length === 0) return
           return yield* storage.setMany(encodedEntries)
@@ -211,11 +210,11 @@ export const layer = Layer.effect(Persistence)(Effect.gen(function*() {
  */
 export const layerBackingMemory: Layer.Layer<BackingPersistence> = Layer.sync(BackingPersistence)(
   () => {
-    const stores = new Map<string, Map<string, readonly [unknown, expires: number | null]>>()
+    const stores = new Map<string, Map<string, readonly [object, expires: number | null]>>()
     const getStore = (storeId: string) => {
       let store = stores.get(storeId)
       if (store === undefined) {
-        store = new Map<string, readonly [unknown, expires: number | null]>()
+        store = new Map<string, readonly [object, expires: number | null]>()
         stores.set(storeId, store)
       }
       return store
@@ -224,15 +223,15 @@ export const layerBackingMemory: Layer.Layer<BackingPersistence> = Layer.sync(Ba
       make: (storeId) =>
         Effect.clockWith((clock) => {
           const map = getStore(storeId)
-          const unsafeGet = (key: string): Option.Option<unknown> => {
+          const unsafeGet = (key: string): object | undefined => {
             const value = map.get(key)
             if (value === undefined) {
-              return Option.none()
+              return undefined
             } else if (value[1] !== null && value[1] <= clock.currentTimeMillisUnsafe()) {
               map.delete(key)
-              return Option.none()
+              return undefined
             }
-            return Option.some(value[0])
+            return value[0]
           }
           return Effect.succeed<BackingPersistenceStore>({
             get: (key) => Effect.sync(() => unsafeGet(key)),

@@ -96,11 +96,15 @@ const addEntry = <A extends Request.Any>(
   const entry = makeEntry({
     request,
     services: fiber.services as any,
+    uninterruptible: false,
     completeUnsafe(effect) {
       resume(effect)
-      batch!.entrySet.delete(entry)
+      batch?.entrySet.delete(entry)
     }
   })
+  if (resolver.preCheck !== undefined && !resolver.preCheck(entry)) {
+    return entry
+  }
   const key = resolver.batchKey(entry)
   batch = batchMap.get(key)
   if (!batch) {
@@ -131,6 +135,7 @@ const removeEntryUnsafe = <A extends Request.Any>(
   resolver: RequestResolver<A>,
   entry: Request.Entry<A>
 ) => {
+  if (entry.uninterruptible) return
   const batchMap = pendingBatches.get(resolver)
   if (!batchMap) return
   const key = resolver.batchKey(entry.request as any)
