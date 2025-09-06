@@ -8,6 +8,7 @@
 import type { Equivalence } from "../data/Equivalence.ts"
 import { hasProperty } from "../data/Predicate.ts"
 import * as Hash from "../interfaces/Hash.ts"
+import { isPlainObject } from "../internal/data.ts"
 
 /**
  * The unique identifier used to identify objects that implement the `Equal` interface.
@@ -106,15 +107,6 @@ function compareBoth(self: unknown, that: unknown): boolean {
     }
   }
   return false
-}
-
-function isPlainObject(obj: unknown): obj is Record<string, unknown> {
-  if (obj === null || typeof obj !== "object") {
-    return false
-  }
-  // Check if it's a plain object (constructor is Object or no constructor)
-  const proto = Object.getPrototypeOf(obj)
-  return proto === Object.prototype || proto === null
 }
 
 function compareArrays(self: Array<unknown>, that: Array<unknown>): boolean {
