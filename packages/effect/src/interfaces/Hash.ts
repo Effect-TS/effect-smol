@@ -101,6 +101,10 @@ export const hash: <A>(self: A) => number = <A>(self: A) => {
         return self[symbol]()
       } else if (Array.isArray(self)) {
         return array(self)
+      } else if (self instanceof Map) {
+        return mapHash(self)
+      } else if (self instanceof Set) {
+        return setHash(self)
       } else if (isPlainObject(self)) {
         return structure(self)
       } else {
@@ -401,6 +405,36 @@ export const array = <A>(arr: ReadonlyArray<A>) => {
 }
 
 const hashCache = new WeakMap<object, number>()
+
+/**
+ * Computes a hash value for a Map by hashing all of its key-value pairs.
+ *
+ * This function creates a hash value based on all key-value pairs in the Map.
+ * The order of pairs doesn't matter for the hash calculation, making it suitable
+ * for structural equality comparison.
+ */
+const mapHash = <K, V>(map: Map<K, V>) => {
+  let h = string("Map")
+  for (const [key, value] of map) {
+    h ^= combine(hash(key), hash(value))
+  }
+  return optimize(h)
+}
+
+/**
+ * Computes a hash value for a Set by hashing all of its values.
+ *
+ * This function creates a hash value based on all values in the Set.
+ * The order of values doesn't matter for the hash calculation, making it suitable
+ * for structural equality comparison.
+ */
+const setHash = <V>(set: Set<V>) => {
+  let h = string("Set")
+  for (const value of set) {
+    h ^= hash(value)
+  }
+  return optimize(h)
+}
 
 /**
  * Caches the result of a hash computation for an object.
