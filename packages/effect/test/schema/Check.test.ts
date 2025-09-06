@@ -43,12 +43,12 @@ describe("Check", () => {
       })
     })
 
-    it("should remove any existing id annotation", () => {
+    it("should remove any existing identifier annotation", () => {
       const filter = Check.nonEmpty().annotate({
-        id: "a"
+        identifier: "a"
       })
-      strictEqual(filter.annotations?.id, "a")
-      strictEqual(filter.annotate({}).annotations?.id, undefined)
+      strictEqual(filter.annotations?.identifier, "a")
+      strictEqual(filter.annotate({}).annotations?.identifier, undefined)
     })
   })
 
@@ -91,12 +91,12 @@ describe("Check", () => {
         assertGetter(annotations, "d", "d")
       })
 
-      it("should remove any existing id annotation", () => {
+      it("should remove any existing identifier annotation", () => {
         const filter = Check.int32().annotate({
-          id: "a"
+          identifier: "a"
         })
-        strictEqual(filter.annotations?.id, "a")
-        strictEqual(filter.annotate({}).annotations?.id, undefined)
+        strictEqual(filter.annotations?.identifier, "a")
+        strictEqual(filter.annotate({}).annotations?.identifier, undefined)
       })
     })
   })

@@ -55,7 +55,7 @@ export interface Key<T> extends Documentation {
  * @since 4.0.0
  */
 export interface Bottom<T> extends Documentation {
-  readonly id?: string | undefined
+  readonly identifier?: string | undefined
   readonly default?: T | undefined
   readonly examples?: ReadonlyArray<T> | undefined
   readonly jsonSchema?: ToJsonSchema.Annotation.Override | ToJsonSchema.Annotation.Constraint | undefined
@@ -148,7 +148,7 @@ export function merge(existing: Annotations | undefined, incoming: Annotations |
   const out = {}
   // Apply existing descriptors first
   for (const [key, descriptor] of Object.entries(Object.getOwnPropertyDescriptors(existing))) {
-    if (key === "id") continue
+    if (key === "identifier") continue
     Object.defineProperty(out, key, descriptor)
   }
   // Apply incoming descriptors (this will override existing ones)

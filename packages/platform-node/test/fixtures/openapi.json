@@ -640,6 +640,24 @@
   },
   "components": {
     "schemas": {
+      "ComponentsSchema": {
+         "additionalProperties": false,
+         "properties": {
+           "contentType": {
+             "type": "string"
+           },
+           "length": {
+             "description": "an integer",
+             "title": "int",
+             "type": "integer"
+           }
+         },
+         "required": [
+           "contentType",
+           "length"
+         ],
+         "type": "object"
+      },
       "Group": {
         "type": "object",
         "properties": {
@@ -668,6 +686,10 @@
         },
         "required": ["_tag", "message"],
         "additionalProperties": false
+      },
+      "PersistedFile": {
+        "format": "binary",
+        "type": "string"
       },
       "User": {
         "type": "object",

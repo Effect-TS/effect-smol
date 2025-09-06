@@ -392,7 +392,7 @@ export class Declaration extends Base {
   }
   /** @internal */
   getExpected(): string {
-    const expected = this.annotations?.id ?? this.annotations?.title
+    const expected = this.annotations?.identifier ?? this.annotations?.title
     if (Predicate.isString(expected)) return expected
     return "<Declaration>"
   }
@@ -2464,27 +2464,22 @@ function coerceUndefined<A extends UndefinedKeyword | VoidKeyword>(ast: A): A {
 }
 
 /** @internal */
-export const getExpected = memoize((ast: AST): string => {
-  return getIdAnnotation(ast) ?? ast.getExpected(getExpected)
-})
-
-/** @internal */
-export function getAnnotation<A>(
-  f: (annotations: Annotations.Annotations | undefined) => A | undefined
-) {
-  return (ast: AST): A | undefined => {
-    if (ast.checks) {
-      const last = ast.checks.at(-1)!
-      const annotation = f(last.annotations)
-      if (annotation !== undefined) return annotation
-    } else {
-      return f(ast.annotations)
-    }
-  }
+export function getAnnotations(ast: AST): Annotations.Annotations | undefined {
+  return ast.checks ? ast.checks.at(-1)!.annotations : ast.annotations
 }
 
 /** @internal */
-export const getIdAnnotation = getAnnotation((annotations) => {
-  const id = annotations?.id
-  if (Predicate.isString(id)) return id
+export function getAnnotation<A>(f: (annotations: Annotations.Annotations | undefined) => A | undefined) {
+  return (ast: AST): A | undefined => f(getAnnotations(ast))
+}
+
+/** @internal */
+export const getIdentifierAnnotation = getAnnotation((annotations) => {
+  const identifier = annotations?.identifier
+  if (Predicate.isString(identifier)) return identifier
+})
+
+/** @internal */
+export const getExpected = memoize((ast: AST): string => {
+  return getIdentifierAnnotation(ast) ?? ast.getExpected(getExpected)
 })

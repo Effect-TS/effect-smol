@@ -375,12 +375,12 @@ describe("HttpApi", () => {
         })
       })
 
-      it("union & id annotation", () => {
+      it("union & identifier annotation", () => {
         class Group extends HttpApiGroup.make("users")
           .add(HttpApiEndpoint.post("create", "/", {
             payload: Schema.String,
             success: Schema.String,
-            error: Schema.Union([Schema.String, Schema.Number]).annotate({ id: "ID" })
+            error: Schema.Union([Schema.String, Schema.Number]).annotate({ identifier: "ID" })
           }))
         {}
 
@@ -399,7 +399,7 @@ describe("HttpApi", () => {
         })
       })
 
-      it("union & id annotation with httpApiStatus", () => {
+      it("union & identifier annotation with httpApiStatus", () => {
         class Group extends HttpApiGroup.make("users")
           .add(HttpApiEndpoint.post("create", "/", {
             payload: Schema.String,

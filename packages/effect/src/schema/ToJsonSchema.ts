@@ -316,7 +316,7 @@ type GoOptions = {
 }
 
 function getId(ast: AST.AST): string | undefined {
-  const id = AST.getIdAnnotation(ast)
+  const id = AST.getIdentifierAnnotation(ast)
   if (id !== undefined) return id
   if (AST.isSuspend(ast)) {
     return getId(ast.thunk())
@@ -371,7 +371,7 @@ function go(
   ast: AST.AST,
   path: ReadonlyArray<PropertyKey>,
   options: GoOptions,
-  ignoreId: boolean = false,
+  ignoreIdentifier: boolean = false,
   ignoreAnnotation: boolean = false,
   ignoreErrors: boolean = false
 ): JsonSchema {
@@ -386,11 +386,11 @@ function go(
         case "Override":
           return annotation.override({
             target,
-            jsonSchema: go(ast, path, options, ignoreId, true, true),
-            make: (ast) => go(ast, path, options, ignoreId)
+            jsonSchema: go(ast, path, options, ignoreIdentifier, true, true),
+            make: (ast) => go(ast, path, options, ignoreIdentifier)
           })
         case "Constraint": {
-          const jsonSchema = go(ast, path, options, ignoreId, true)
+          const jsonSchema = go(ast, path, options, ignoreIdentifier, true)
           return {
             ...jsonSchema,
             ...annotation.constraint({ target, type: jsonSchema.type })
@@ -402,20 +402,20 @@ function go(
   // ---------------------------------------------
   // handle id annotation
   // ---------------------------------------------
-  if (!ignoreId) {
-    const id = getId(ast)
-    if (id !== undefined) {
-      const escapedId = id.replace(/~/ig, "~0").replace(/\//ig, "~1")
-      const $ref = { $ref: options.getRef(escapedId) }
+  if (!ignoreIdentifier) {
+    const identifier = getId(ast)
+    if (identifier !== undefined) {
+      const escapedIdentifier = identifier.replace(/~/ig, "~0").replace(/\//ig, "~1")
+      const $ref = { $ref: options.getRef(escapedIdentifier) }
       const encodedAST = AST.encodedAST(ast)
-      if (Object.hasOwn(options.definitions, id)) {
+      if (Object.hasOwn(options.definitions, identifier)) {
         if (AST.isSuspend(ast) || cacheEncodedAST.has(encodedAST)) {
           return $ref
         }
       } else {
-        options.definitions[id] = $ref
-        cacheEncodedAST.set(encodedAST, id)
-        options.definitions[id] = go(ast, path, options, true)
+        options.definitions[identifier] = $ref
+        cacheEncodedAST.set(encodedAST, identifier)
+        options.definitions[identifier] = go(ast, path, options, true)
         return $ref
       }
     }
@@ -424,7 +424,7 @@ function go(
   // handle encoding
   // ---------------------------------------------
   if (ast.encoding) {
-    return go(ast.encoding.at(-1)!.to, path, options, ignoreId)
+    return go(ast.encoding.at(-1)!.to, path, options, ignoreIdentifier)
   }
   // ---------------------------------------------
   // handle base cases

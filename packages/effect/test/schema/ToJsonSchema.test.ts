@@ -106,7 +106,7 @@ function expectError(schema: Schema.Top, message: string) {
 describe("ToJsonSchema", () => {
   describe("options", () => {
     it("definitionsPath", async () => {
-      const schema = Schema.String.annotate({ id: "ID" })
+      const schema = Schema.String.annotate({ identifier: "ID" })
       const definitions = {}
       await assertDraft7(schema, {
         "$schema": "http://json-schema.org/draft-07/schema",
@@ -129,7 +129,7 @@ describe("ToJsonSchema", () => {
 
     describe("topLevelReferenceStrategy", () => {
       it(`"skip"`, async () => {
-        const schema = Schema.String.annotate({ id: "ID" })
+        const schema = Schema.String.annotate({ identifier: "ID" })
         const definitions = {}
         await assertDraft7(schema, {
           "$schema": "http://json-schema.org/draft-07/schema",
@@ -1604,7 +1604,7 @@ describe("ToJsonSchema", () => {
         }
         const schema = Schema.Struct({
           a: Schema.String,
-          as: Schema.Array(Schema.suspend((): Schema.Codec<A> => schema.annotate({ id: "A" })))
+          as: Schema.Array(Schema.suspend((): Schema.Codec<A> => schema.annotate({ identifier: "A" })))
         })
         await assertDraft7(schema, {
           "$defs": {
@@ -1655,7 +1655,7 @@ describe("ToJsonSchema", () => {
         }
         const schema = Schema.Struct({
           a: Schema.String,
-          as: Schema.Array(Schema.suspend((): Schema.Codec<A> => schema).annotate({ id: "A" }))
+          as: Schema.Array(Schema.suspend((): Schema.Codec<A> => schema).annotate({ identifier: "A" }))
         })
         await assertDraft7(schema, {
           "$defs": {
@@ -1707,7 +1707,7 @@ describe("ToJsonSchema", () => {
         const schema = Schema.Struct({
           a: Schema.String,
           as: Schema.Array(Schema.suspend((): Schema.Codec<A> => schema))
-        }).annotate({ id: "A" })
+        }).annotate({ identifier: "A" })
         await assertDraft7(schema, {
           "$ref": "#/$defs/A",
           "$defs": {
@@ -1742,7 +1742,7 @@ describe("ToJsonSchema", () => {
         const schema = Schema.Struct({
           a: Schema.String,
           as: Schema.Array(Schema.suspend((): Schema.Codec<A> => schema))
-        }).annotate({ id: "A" })
+        }).annotate({ identifier: "A" })
         await assertDraft7(schema, {
           "type": "object",
           "properties": {
@@ -2671,9 +2671,9 @@ describe("ToJsonSchema", () => {
       })
     })
 
-    describe("id annotation", () => {
+    describe("identifier annotation", () => {
       it(`String & annotation`, async () => {
-        const schema = Schema.String.annotate({ id: "A" })
+        const schema = Schema.String.annotate({ identifier: "A" })
         await assertDraft7(schema, {
           "$ref": "#/$defs/A",
           "$defs": {
@@ -2685,7 +2685,7 @@ describe("ToJsonSchema", () => {
       })
 
       it(`String & annotation & check`, async () => {
-        const schema = Schema.String.annotate({ id: "A" }).check(Check.nonEmpty())
+        const schema = Schema.String.annotate({ identifier: "A" }).check(Check.nonEmpty())
         await assertDraft7(schema, {
           "type": "string",
           "description": "a value with a length of at least 1",
@@ -2695,7 +2695,7 @@ describe("ToJsonSchema", () => {
       })
 
       it(`String & annotation & check & annotation`, async () => {
-        const schema = Schema.String.annotate({ id: "A" }).check(Check.nonEmpty({ id: "B" }))
+        const schema = Schema.String.annotate({ identifier: "A" }).check(Check.nonEmpty({ identifier: "B" }))
         await assertDraft7(schema, {
           "$ref": "#/$defs/B",
           "$defs": {
@@ -2710,8 +2710,8 @@ describe("ToJsonSchema", () => {
       })
 
       it(`String & annotation & check & annotation & check`, async () => {
-        const schema = Schema.String.annotate({ id: "A" }).check(
-          Check.nonEmpty({ id: "B" }),
+        const schema = Schema.String.annotate({ identifier: "A" }).check(
+          Check.nonEmpty({ identifier: "B" }),
           Check.maxLength(2)
         )
         await assertDraft7(schema, {
@@ -2730,7 +2730,7 @@ describe("ToJsonSchema", () => {
       })
 
       it("using the same annotated schema twice", async () => {
-        const Member = Schema.String.annotate({ id: "ID/a" })
+        const Member = Schema.String.annotate({ identifier: "ID/a" })
         const schema = Schema.Union([Member, Member])
         await assertDraft7(schema, {
           "$defs": {
@@ -2746,7 +2746,7 @@ describe("ToJsonSchema", () => {
       })
 
       it("using a schema with two different encodings", async () => {
-        const To = Schema.String.annotate({ id: "ID/a" })
+        const To = Schema.String.annotate({ identifier: "ID/a" })
         const schema1 = To.pipe(Schema.encodeTo(Schema.Literal(1), {
           decode: Getter.succeed("a"),
           encode: Getter.succeed(1)

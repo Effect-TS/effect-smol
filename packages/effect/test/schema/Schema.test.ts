@@ -41,9 +41,9 @@ describe("Schema", () => {
 
   describe("annotate", () => {
     it("should remove any existing id annotation", () => {
-      const schema = Schema.String.annotate({ id: "a" })
-      strictEqual(schema.ast.annotations?.id, "a")
-      strictEqual(schema.annotate({}).ast.annotations?.id, undefined)
+      const schema = Schema.String.annotate({ identifier: "a" })
+      strictEqual(schema.ast.annotations?.identifier, "a")
+      strictEqual(schema.annotate({}).ast.annotations?.identifier, undefined)
     })
   })
 
@@ -3816,8 +3816,8 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       assertTrue(Schema.isSchema(A))
       // should expose the fields
       deepStrictEqual(A.fields, { a: Schema.String })
-      // should expose the id
-      strictEqual(A.id, "A")
+      // should expose the identifier
+      strictEqual(A.identifier, "A")
 
       strictEqual(A.name, "A")
 
@@ -3866,8 +3866,8 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       assertTrue(Schema.isSchema(A))
       // should expose the fields
       deepStrictEqual(A.fields, { a: Schema.String })
-      // should expose the id
-      strictEqual(A.id, "A")
+      // should expose the identifier
+      strictEqual(A.identifier, "A")
 
       strictEqual(A.name, "A")
 

@@ -4281,7 +4281,7 @@ export interface Class<Self, S extends Top & { readonly fields: Struct.Fields },
   >
 {
   new(props: S["~type.make.in"], options?: MakeOptions): S["Type"] & Inherited
-  readonly id: string
+  readonly identifier: string
   readonly fields: S["fields"]
 }
 
@@ -4294,7 +4294,7 @@ export interface ExtendableClass<Self, S extends Top & { readonly fields: Struct
   extends Class<Self, S, Inherited>
 {
   extend<Extended>(
-    id: string
+    identifier: string
   ): <NewFields extends Struct.Fields>(
     fields: NewFields,
     annotations?: Annotations.Declaration<Extended, readonly [Struct<Simplify<Merge<S["fields"], NewFields>>>]>
@@ -4312,11 +4312,11 @@ function makeClass<
   Inherited extends new(...args: ReadonlyArray<any>) => any
 >(
   Inherited: Inherited,
-  id: string,
+  identifier: string,
   schema: S,
   annotations?: Annotations.Declaration<Self, readonly [S]>
 ): any {
-  const getClassSchema = getClassSchemaFactory(schema, id, annotations)
+  const getClassSchema = getClassSchemaFactory(schema, identifier, annotations)
 
   return class extends Inherited {
     constructor(...[input, options]: ReadonlyArray<any>) {
@@ -4348,7 +4348,7 @@ function makeClass<
     declare static readonly "~encoded.mutability": S["~encoded.mutability"]
     declare static readonly "~encoded.optionality": S["~encoded.optionality"]
 
-    static readonly id = id
+    static readonly identifier = identifier
     static readonly fields = schema.fields
 
     static get ast(): AST.Declaration {
@@ -4373,7 +4373,7 @@ function makeClass<
       return this.rebuild(AST.appendChecks(this.ast, checks))
     }
     static extend<Extended>(
-      id: string
+      identifier: string
     ): <NewFields extends Struct.Fields>(
       fields: NewFields,
       annotations?: Annotations.Declaration<Extended, readonly [Struct<Simplify<Merge<S["fields"], NewFields>>>]>
@@ -4381,7 +4381,7 @@ function makeClass<
       return (newFields, annotations) => {
         const fields = { ...schema.fields, ...newFields }
         const struct: any = new Struct$(AST.struct(fields, schema.ast.checks), fields)
-        return makeClass(this, id, struct, annotations)
+        return makeClass(this, identifier, struct, annotations)
       }
     }
   }
@@ -4399,11 +4399,11 @@ const makeClassLink = (self: new(...args: ReadonlyArray<any>) => any) => (ast: A
 
 function getClassSchemaFactory<S extends Top>(
   from: S,
-  id: string,
+  identifier: string,
   annotations: Annotations.Declaration<any, readonly [S]> | undefined
 ) {
   let memo: decodeTo<declareConstructor<any, S["Encoded"], readonly [S]>, S> | undefined
-  return <Self extends (new(...args: ReadonlyArray<any>) => any) & { readonly id: string }>(
+  return <Self extends (new(...args: ReadonlyArray<any>) => any) & { readonly identifier: string }>(
     self: Self
   ): decodeTo<declareConstructor<Self, S["Encoded"], readonly [S]>, S> => {
     if (memo === undefined) {
@@ -4424,7 +4424,7 @@ function getClassSchemaFactory<S extends Top>(
             },
             format: {
               _tag: "Declaration",
-              declaration: ([from]: [any]) => (t: any) => `${self.id}(${from(t)})`
+              declaration: ([from]: [any]) => (t: any) => `${self.identifier}(${from(t)})`
             }
           }, annotations)
         )
@@ -4434,7 +4434,7 @@ function getClassSchemaFactory<S extends Top>(
           to,
           getClassTransformation(self)
         )
-      ).annotate({ id })
+      ).annotate({ identifier })
     }
     return memo
   }
