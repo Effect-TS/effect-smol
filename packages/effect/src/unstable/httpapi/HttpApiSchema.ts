@@ -65,6 +65,10 @@ export const getStatusSuccess = (self: AST.AST): number =>
  */
 export const getStatusError = (self: AST.AST): number => getHttpApiStatusAnnotation(self) ?? 500
 
+function isHttpApiAnnotationKey(key: string): boolean {
+  return key.startsWith("httpApi")
+}
+
 /**
  * @since 4.0.0
  * @category reflection
@@ -74,7 +78,7 @@ export const getHttpApiAnnotations = (self: Annotations.Annotations | undefined)
   if (!self) return out
 
   for (const [key, value] of Object.entries(self)) {
-    if (key.startsWith("httpApi")) {
+    if (isHttpApiAnnotationKey(key)) {
       out[key] = value
     }
   }
@@ -115,12 +119,18 @@ const extractUnionTypes = (ast: AST.AST): ReadonlyArray<AST.AST> => {
   }
 }
 
-const shouldExtractUnion = (ast: AST.UnionType): boolean =>
-  ast.annotations === undefined
-  || Object.keys(ast.annotations).every((key) => key.startsWith("httpApi"))
-  || ast.types.some((type) =>
-    type.annotations && Object.keys(type.annotations).some((key) => key.startsWith("httpApi"))
-  )
+function shouldExtractUnion(ast: AST.UnionType): boolean {
+  if (ast.encoding) return false
+  if (
+    ast.types.some((ast) => {
+      const annotations = AST.getAnnotations(ast)
+      return annotations && Object.keys(annotations).some(isHttpApiAnnotationKey)
+    })
+  ) {
+    return true
+  }
+  return AST.getAnnotations(ast) === undefined
+}
 
 /**
  * @since 4.0.0
