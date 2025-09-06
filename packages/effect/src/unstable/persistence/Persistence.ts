@@ -14,7 +14,7 @@ import type * as Clock from "../../time/Clock.ts"
 import * as Duration from "../../time/Duration.ts"
 import * as Persistable from "./Persistable.ts"
 
-export const ErrorTypeId = "~effect/persistence/Persistence/PersistenceError" as const
+const ErrorTypeId = "~effect/persistence/Persistence/PersistenceError" as const
 
 /**
  * @since 4.0.0
