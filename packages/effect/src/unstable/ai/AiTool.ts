@@ -1,5 +1,5 @@
 /**
- * @since 1.0.0
+ * @sincle 4.0.0
  */
 import * as Predicate from "../../data/Predicate.ts"
 import type * as Effect from "../../Effect.ts"
@@ -17,7 +17,7 @@ const TypeId = "~effect/ai/AiTool" as const
  * your application. The results of a tool call can be returned back to the
  * large language model to be incorporated into its next response.
  *
- * @since 1.0.0
+ * @sincle 4.0.0
  * @category Models
  */
 export interface AiTool<
@@ -133,13 +133,13 @@ export interface AiTool<
 }
 
 /**
- * @since 1.0.0
+ * @sincle 4.0.0
  * @category Guards
  */
 export const isAiTool = (u: unknown): u is AiTool<any, any, any, any, any> => Predicate.hasProperty(u, TypeId)
 
 /**
- * @since 1.0.0
+ * @sincle 4.0.0
  * @category Models
  */
 export interface Any extends AiTool<any, AnyStructSchema, Schema.Top, Schema.Top, any> {}
@@ -147,7 +147,7 @@ export interface Any extends AiTool<any, AnyStructSchema, Schema.Top, Schema.Top
 /**
  * Represents an `AiTool` that has been implemented within the application.
  *
- * @since 1.0.0
+ * @sincle 4.0.0
  * @category Models
  */
 export interface Handler<Name extends string> {
@@ -161,7 +161,7 @@ export interface Handler<Name extends string> {
  * A utility type which returns the type of the `Effect` that will be used to
  * resolve a tool call.
  *
- * @since 1.0.0
+ * @sincle 4.0.0
  * @category Utility Types
  */
 export type HandlerEffect<Tool extends Any> = [Tool] extends [
@@ -182,7 +182,7 @@ export type HandlerEffect<Tool extends Any> = [Tool] extends [
 /**
  * Represents the result of calling the handler for a particular tool.
  *
- * @since 1.0.0
+ * @sincle 4.0.0
  * @category Models
  */
 export interface HandlerResult<Tool extends Any> {
@@ -201,7 +201,7 @@ export interface HandlerResult<Tool extends Any> {
 /**
  * A utility mapped type which associates tool names with tools.
  *
- * @since 1.0.0
+ * @sincle 4.0.0
  * @category Utility Types
  */
 export type ByName<Tools extends Any> = {
@@ -211,7 +211,7 @@ export type ByName<Tools extends Any> = {
 /**
  * A utility type to extract the `Name` type from an `AiTool`.
  *
- * @since 1.0.0
+ * @sincle 4.0.0
  * @category Utility Types
  */
 export type Name<Tool> = Tool extends AiTool<
@@ -227,7 +227,7 @@ export type Name<Tool> = Tool extends AiTool<
  * A utility type to extract the type of the parameters which an `AiTool` must
  * be called with.
  *
- * @since 1.0.0
+ * @sincle 4.0.0
  * @category Utility Types
  */
 export type Parameters<Tool> = Tool extends AiTool<
@@ -243,7 +243,7 @@ export type Parameters<Tool> = Tool extends AiTool<
  * A utility type to extract the schema type of the parameters which an `AiTool`
  * must be called with.
  *
- * @since 1.0.0
+ * @sincle 4.0.0
  * @category Utility Types
  */
 export type ParametersSchema<Tool> = Tool extends AiTool<
@@ -259,7 +259,7 @@ export type ParametersSchema<Tool> = Tool extends AiTool<
  * A utility type to extract the type of the response that an `AiTool` returns
  * from its handler if successful.
  *
- * @since 1.0.0
+ * @sincle 4.0.0
  * @category Utility Types
  */
 export type Success<Tool> = Tool extends AiTool<
@@ -275,7 +275,7 @@ export type Success<Tool> = Tool extends AiTool<
  * A utility type to extract the schema type of the response that an `AiTool`
  * returns from its handler if successful.
  *
- * @since 1.0.0
+ * @sincle 4.0.0
  * @category Utility Types
  */
 export type SuccessSchema<Tool> = Tool extends AiTool<
@@ -291,7 +291,7 @@ export type SuccessSchema<Tool> = Tool extends AiTool<
  * A utility type to extract the type of the response that an `AiTool` returns
  * from its handler if it fails.
  *
- * @since 1.0.0
+ * @sincle 4.0.0
  * @category Utility Types
  */
 export type Failure<Tool> = Tool extends AiTool<
@@ -307,7 +307,7 @@ export type Failure<Tool> = Tool extends AiTool<
  * A utility type to extract the schema type of the response that an `AiTool`
  * returns from its handler if it fails.
  *
- * @since 1.0.0
+ * @sincle 4.0.0
  * @category Utility Types
  */
 export type FailureSchema<Tool> = Tool extends AiTool<
@@ -322,7 +322,7 @@ export type FailureSchema<Tool> = Tool extends AiTool<
 /**
  * A utility type to the `Context` type from an `AiTool`.
  *
- * @since 1.0.0
+ * @sincle 4.0.0
  * @category Utility Types
  */
 export type Services<Tool> = Tool extends AiTool<
@@ -335,7 +335,7 @@ export type Services<Tool> = Tool extends AiTool<
   never
 
 /**
- * @since 1.0.0
+ * @sincle 4.0.0
  * @category Utility Types
  */
 export interface AnyStructSchema extends Schema.Top {
@@ -345,7 +345,7 @@ export interface AnyStructSchema extends Schema.Top {
 /**
  * A utility type which returns the handler type for an `AiTool`.
  *
- * @since 1.0.0
+ * @sincle 4.0.0
  * @category Utility Types
  */
 export type ToHandler<Tool extends Any> = Tool extends AiTool<
@@ -423,7 +423,7 @@ const constEmptyStruct = Schema.Struct({})
  * Constructs an `AiTool` from a name and, optionally, a specification for the
  * tool call's protocol.
  *
- * @since 1.0.0
+ * @sincle 4.0.0
  * @category constructors
  */
 export const make = <
@@ -467,13 +467,13 @@ export const make = <
 }
 
 /**
- * @since 1.0.0
+ * @sincle 4.0.0
  * @category Annotations
  */
 export class Title extends ServiceMap.Key<Title, string>()("effect/ai/AiTool/Title") {}
 
 /**
- * @since 1.0.0
+ * @sincle 4.0.0
  * @category Annotations
  */
 export const Readonly = ServiceMap.Reference<boolean>("effect/ai/AiTool/Readonly", {
@@ -481,7 +481,7 @@ export const Readonly = ServiceMap.Reference<boolean>("effect/ai/AiTool/Readonly
 })
 
 /**
- * @since 1.0.0
+ * @sincle 4.0.0
  * @category Annotations
  */
 export const Destructive = ServiceMap.Reference<boolean>("effect/ai/AiTool/Destructive", {
@@ -489,7 +489,7 @@ export const Destructive = ServiceMap.Reference<boolean>("effect/ai/AiTool/Destr
 })
 
 /**
- * @since 1.0.0
+ * @sincle 4.0.0
  * @category Annotations
  */
 export const Idempotent = ServiceMap.Reference<boolean>("effect/ai/AiTool/Idempotent", {
@@ -497,7 +497,7 @@ export const Idempotent = ServiceMap.Reference<boolean>("effect/ai/AiTool/Idempo
 })
 
 /**
- * @since 1.0.0
+ * @sincle 4.0.0
  * @category Annotations
  */
 export const OpenWorld = ServiceMap.Reference<boolean>("effect/ai/AiTool/OpenWorld", {

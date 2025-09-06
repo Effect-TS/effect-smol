@@ -6,7 +6,7 @@ import type * as Effect from "../../Effect.ts"
 import type * as Exit from "../../Exit.ts"
 import * as PrimaryKey from "../../interfaces/PrimaryKey.ts"
 import * as Schema from "../../schema/Schema.ts"
-import * as Serializer from "../../schema/Serializer.js"
+import * as Serializer from "../../schema/Serializer.ts"
 import type * as Types from "../../types/Types.ts"
 import type { PersistenceError } from "./Persistence.ts"
 

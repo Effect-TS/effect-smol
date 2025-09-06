@@ -8,7 +8,7 @@
 export * as AiError from "./AiError.ts"
 
 /**
- * @since 1.0.0
+ * @sincle 4.0.0
  */
 export * as AiTool from "./AiTool.ts"
 
