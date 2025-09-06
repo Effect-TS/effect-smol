@@ -171,14 +171,12 @@ const go = AST.memoize((ast: AST.AST): Equivalence.Equivalence<any> => {
           const is = ast.indexSignatures[i]
           const aKeys = AST.getIndexSignatureKeys(a, is)
           const bKeys = AST.getIndexSignatureKeys(b, is)
-          if (aKeys.length !== bKeys.length) {
-            return false
-          }
+
+          if (aKeys.length !== bKeys.length) return false
+
           for (let j = 0; j < aKeys.length; j++) {
             const key = aKeys[j]
-            if (
-              !Object.hasOwn(b, key) || !indexSignatures[i](a[key], b[key])
-            ) {
+            if (!Object.hasOwn(b, key) || !indexSignatures[i](a[key], b[key])) {
               return false
             }
           }
