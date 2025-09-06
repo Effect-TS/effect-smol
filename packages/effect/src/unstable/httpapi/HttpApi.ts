@@ -310,7 +310,7 @@ const extractPayloads = (topAst: AST.AST): ReadonlyMap<string, {
     ast: AST.AST
   }>()
   function process(ast: AST.AST) {
-    if (ast._tag === "NeverKeyword") {
+    if (AST.isNeverKeyword(ast)) {
       return
     }
     ast = AST.annotate(ast, {
@@ -331,7 +331,7 @@ const extractPayloads = (topAst: AST.AST): ReadonlyMap<string, {
       current.ast = new AST.UnionType([current.ast, ast], "anyOf")
     }
   }
-  if (topAst._tag === "UnionType") {
+  if (AST.isUnionType(topAst)) {
     for (const type of topAst.types) {
       process(type)
     }

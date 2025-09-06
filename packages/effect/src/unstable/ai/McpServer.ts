@@ -9,6 +9,7 @@ import * as Exit from "../../Exit.ts"
 import * as Layer from "../../Layer.ts"
 import * as Queue from "../../Queue.ts"
 import * as RcMap from "../../RcMap.ts"
+import * as AST from "../../schema/AST.ts"
 import * as Schema from "../../schema/Schema.ts"
 import * as Serializer from "../../schema/Serializer.ts"
 import * as JsonSchema from "../../schema/ToJsonSchema.ts"
@@ -1103,7 +1104,7 @@ const layerHandlers = (serverInfo: {
   )
 
 const makeJsonSchema = (schema: Schema.Top): JsonSchema.JsonSchema => {
-  const props = schema.ast._tag === "TypeLiteral" ? schema.ast.propertySignatures : []
+  const props = AST.isTypeLiteral(schema.ast) ? schema.ast.propertySignatures : []
   if (props.length === 0) {
     return {
       type: "object",

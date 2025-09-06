@@ -485,7 +485,7 @@ export const forEachMember = (
     return
   }
   const ast = schema.ast
-  if (ast._tag === "UnionType") {
+  if (AST.isUnionType(ast)) {
     let unionCache = unionCaches.get(ast)
     if (!unionCache) {
       unionCache = new WeakMap<AST.AST, Schema.Top>()

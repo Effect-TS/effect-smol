@@ -6,7 +6,7 @@ import * as Option from "../../data/Option.ts"
 import type * as Predicate from "../../data/Predicate.ts"
 import * as Effect from "../../Effect.ts"
 import { identity } from "../../Function.ts"
-import type * as AST from "../../schema/AST.ts"
+import * as AST from "../../schema/AST.ts"
 import * as Issue from "../../schema/Issue.ts"
 import * as Schema from "../../schema/Schema.ts"
 import * as Transformation from "../../schema/Transformation.ts"
@@ -472,7 +472,7 @@ const schemaFromArrayBuffer = (
   ast: AST.AST,
   encoding: HttpApiSchema.Encoding
 ): Schema.decodeTo<Schema.Any, Schema.instanceOf<ArrayBuffer>> => {
-  if (ast._tag === "UnionType") {
+  if (AST.isUnionType(ast)) {
     return Schema.Union(
       ast.types.map((ast) => schemaFromArrayBuffer(ast, HttpApiSchema.getEncoding(ast, encoding)))
     ) as any
@@ -522,7 +522,7 @@ const responseAsVoid = (_response: HttpClientResponse.HttpClientResponse) => Eff
 const HttpBodyFromSelf = Schema.declare(HttpBody.isHttpBody)
 
 const payloadSchemaBody = (schema: Schema.Top): Schema.decodeTo<typeof HttpBodyFromSelf, Schema.Any> =>
-  schema.ast._tag === "UnionType"
+  AST.isUnionType(schema.ast)
     ? Schema.Union(schema.ast.types.map(bodyFromPayload)) as any
     : bodyFromPayload(schema.ast) as any
 
