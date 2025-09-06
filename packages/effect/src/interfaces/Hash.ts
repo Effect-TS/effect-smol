@@ -96,6 +96,10 @@ export const hash: <A>(self: A) => number = <A>(self: A) => {
         return hash(self.toISOString())
       } else if (isHash(self)) {
         return self[symbol]()
+      } else if (Array.isArray(self)) {
+        return array(self)
+      } else if (isPlainObject(self)) {
+        return structure(self)
       } else {
         return random(self)
       }
@@ -105,6 +109,15 @@ export const hash: <A>(self: A) => number = <A>(self: A) => {
         `BUG: unhandled typeof ${typeof self} - please report an issue at https://github.com/Effect-TS/effect/issues`
       )
   }
+}
+
+function isPlainObject(obj: unknown): obj is Record<string, unknown> {
+  if (obj === null || typeof obj !== "object") {
+    return false
+  }
+  // Check if it's a plain object (constructor is Object or no constructor)
+  const proto = Object.getPrototypeOf(obj)
+  return proto === Object.prototype || proto === null
 }
 
 /**

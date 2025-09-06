@@ -98,10 +98,55 @@ function compareBoth(self: unknown, that: unknown): boolean {
         return Hash.hash(self) === Hash.hash(that) && self[symbol](that)
       } else if (self instanceof Date && that instanceof Date) {
         return self.toISOString() === that.toISOString()
+      } else if (Array.isArray(self) && Array.isArray(that)) {
+        return compareArrays(self, that)
+      } else if (isPlainObject(self) && isPlainObject(that)) {
+        return compareObjects(self, that)
       }
     }
   }
   return false
+}
+
+function isPlainObject(obj: unknown): obj is Record<string, unknown> {
+  if (obj === null || typeof obj !== "object") {
+    return false
+  }
+  // Check if it's a plain object (constructor is Object or no constructor)
+  const proto = Object.getPrototypeOf(obj)
+  return proto === Object.prototype || proto === null
+}
+
+function compareArrays(self: Array<unknown>, that: Array<unknown>): boolean {
+  if (self.length !== that.length) {
+    return false
+  }
+  for (let i = 0; i < self.length; i++) {
+    if (!compareBoth(self[i], that[i])) {
+      return false
+    }
+  }
+  return true
+}
+
+function compareObjects(self: Record<string, unknown>, that: Record<string, unknown>): boolean {
+  const selfKeys = Object.keys(self)
+  const thatKeys = Object.keys(that)
+
+  if (selfKeys.length !== thatKeys.length) {
+    return false
+  }
+
+  for (const key of selfKeys) {
+    if (!Object.prototype.hasOwnProperty.call(that, key)) {
+      return false
+    }
+    if (!compareBoth(self[key], that[key])) {
+      return false
+    }
+  }
+
+  return true
 }
 
 /**

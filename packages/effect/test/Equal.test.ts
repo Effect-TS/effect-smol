@@ -1,15 +1,15 @@
-import { describe, expect, it } from "vitest"
 import * as HashMap from "effect/collections/HashMap"
 import * as Option from "effect/data/Option"
 import * as Equal from "effect/interfaces/Equal"
 import * as Hash from "effect/interfaces/Hash"
+import { describe, expect, it } from "vitest"
 
-describe("Equal - Current Behavior", () => {
+describe("Equal - Structural Equality Behavior", () => {
   describe("plain objects", () => {
-    it("should return false for structurally identical objects (reference equality only)", () => {
+    it("should return true for structurally identical objects (structural equality)", () => {
       const obj1 = { a: 1, b: 2 }
       const obj2 = { a: 1, b: 2 }
-      expect(Equal.equals(obj1, obj2)).toBe(false)
+      expect(Equal.equals(obj1, obj2)).toBe(true)
     })
 
     it("should return true for same reference", () => {
@@ -17,16 +17,28 @@ describe("Equal - Current Behavior", () => {
       expect(Equal.equals(obj, obj)).toBe(true)
     })
 
-    it("should return false for empty objects", () => {
-      expect(Equal.equals({}, {})).toBe(false)
+    it("should return true for empty objects", () => {
+      expect(Equal.equals({}, {})).toBe(true)
+    })
+
+    it("should return false for objects with different values", () => {
+      const obj1 = { a: 1, b: 2 }
+      const obj2 = { a: 1, b: 3 }
+      expect(Equal.equals(obj1, obj2)).toBe(false)
+    })
+
+    it("should return false for objects with different keys", () => {
+      const obj1 = { a: 1, b: 2 }
+      const obj2 = { a: 1, c: 2 }
+      expect(Equal.equals(obj1, obj2)).toBe(false)
     })
   })
 
   describe("plain arrays", () => {
-    it("should return false for structurally identical arrays (reference equality only)", () => {
+    it("should return true for structurally identical arrays (structural equality)", () => {
       const arr1 = [1, 2, 3]
       const arr2 = [1, 2, 3]
-      expect(Equal.equals(arr1, arr2)).toBe(false)
+      expect(Equal.equals(arr1, arr2)).toBe(true)
     })
 
     it("should return true for same reference", () => {
@@ -34,8 +46,20 @@ describe("Equal - Current Behavior", () => {
       expect(Equal.equals(arr, arr)).toBe(true)
     })
 
-    it("should return false for empty arrays", () => {
-      expect(Equal.equals([], [])).toBe(false)
+    it("should return true for empty arrays", () => {
+      expect(Equal.equals([], [])).toBe(true)
+    })
+
+    it("should return false for arrays with different elements", () => {
+      const arr1 = [1, 2, 3]
+      const arr2 = [1, 2, 4]
+      expect(Equal.equals(arr1, arr2)).toBe(false)
+    })
+
+    it("should return false for arrays with different lengths", () => {
+      const arr1 = [1, 2, 3]
+      const arr2 = [1, 2]
+      expect(Equal.equals(arr1, arr2)).toBe(false)
     })
   })
 
@@ -120,15 +144,27 @@ describe("Equal - Current Behavior", () => {
   })
 
   describe("nested structures", () => {
-    it("should return false for nested objects (no deep equality)", () => {
+    it("should return true for nested objects (deep structural equality)", () => {
       const obj1 = { a: { b: 1 }, c: [1, 2] }
       const obj2 = { a: { b: 1 }, c: [1, 2] }
+      expect(Equal.equals(obj1, obj2)).toBe(true)
+    })
+
+    it("should return true for nested arrays (deep structural equality)", () => {
+      const arr1 = [[1, 2], [3, 4]]
+      const arr2 = [[1, 2], [3, 4]]
+      expect(Equal.equals(arr1, arr2)).toBe(true)
+    })
+
+    it("should return false for nested objects with different values", () => {
+      const obj1 = { a: { b: 1 }, c: [1, 2] }
+      const obj2 = { a: { b: 2 }, c: [1, 2] }
       expect(Equal.equals(obj1, obj2)).toBe(false)
     })
 
-    it("should return false for nested arrays (no deep equality)", () => {
+    it("should return false for nested arrays with different values", () => {
       const arr1 = [[1, 2], [3, 4]]
-      const arr2 = [[1, 2], [3, 4]]
+      const arr2 = [[1, 3], [3, 4]]
       expect(Equal.equals(arr1, arr2)).toBe(false)
     })
   })
