@@ -14,6 +14,9 @@ import { instanceEqualityRegistry, isPlainObject } from "../internal/equal.ts"
 /** @internal */
 const randomHashCache = new WeakMap<object, number>()
 
+/** @internal */
+const visitedObjects = new WeakSet<object>()
+
 /**
  * The unique identifier used to identify objects that implement the Hash interface.
  *
@@ -95,18 +98,21 @@ export const hash: <A>(self: A) => number = <A>(self: A) => {
         return string("null")
       } else if ((typeof self === "object" || typeof self === "function") && instanceEqualityRegistry.has(self)) {
         return random(self)
+      } else if (visitedObjects.has(self)) {
+        // Circular reference detected - return a consistent hash for cycles
+        return string("[Circular]")
       } else if (self instanceof Date) {
         return hash(self.toISOString())
       } else if (isHash(self)) {
         return self[symbol]()
       } else if (Array.isArray(self)) {
-        return array(self)
+        return arrayWithVisited(self)
       } else if (self instanceof Map) {
-        return mapHash(self)
+        return mapHashWithVisited(self)
       } else if (self instanceof Set) {
-        return setHash(self)
+        return setHashWithVisited(self)
       } else if (isPlainObject(self)) {
-        return structure(self)
+        return structureWithVisited(self)
       } else {
         return random(self)
       }
@@ -340,6 +346,21 @@ export const structureKeys = <A extends object>(o: A, keys: ReadonlyArray<keyof 
   return optimize(h)
 }
 
+const structureKeysWithVisited = <A extends object>(o: A, keys: ReadonlyArray<keyof A>) => {
+  let h = 12289
+  for (let i = 0; i < keys.length; i++) {
+    h ^= pipe(hash(keys[i]!), combine(hash((o as any)[keys[i]!])))
+  }
+  return optimize(h)
+}
+
+const structureWithVisited = <A extends object>(o: A) => {
+  visitedObjects.add(o)
+  const result = structureKeysWithVisited(o, Reflect.ownKeys(o) as unknown as ReadonlyArray<keyof A>)
+  visitedObjects.delete(o)
+  return result
+}
+
 /**
  * Computes a hash value for an object using all of its enumerable keys.
  *
@@ -404,35 +425,35 @@ export const array = <A>(arr: ReadonlyArray<A>) => {
   return optimize(h)
 }
 
+const arrayWithVisited = <A>(arr: ReadonlyArray<A>) => {
+  visitedObjects.add(arr as any)
+  let h = 6151
+  for (let i = 0; i < arr.length; i++) {
+    h = pipe(h, combine(hash(arr[i])))
+  }
+  visitedObjects.delete(arr as any)
+  return optimize(h)
+}
+
 const hashCache = new WeakMap<object, number>()
 
-/**
- * Computes a hash value for a Map by hashing all of its key-value pairs.
- *
- * This function creates a hash value based on all key-value pairs in the Map.
- * The order of pairs doesn't matter for the hash calculation, making it suitable
- * for structural equality comparison.
- */
-const mapHash = <K, V>(map: Map<K, V>) => {
+const mapHashWithVisited = <K, V>(map: Map<K, V>) => {
+  visitedObjects.add(map)
   let h = string("Map")
   for (const [key, value] of map) {
     h ^= combine(hash(key), hash(value))
   }
+  visitedObjects.delete(map)
   return optimize(h)
 }
 
-/**
- * Computes a hash value for a Set by hashing all of its values.
- *
- * This function creates a hash value based on all values in the Set.
- * The order of values doesn't matter for the hash calculation, making it suitable
- * for structural equality comparison.
- */
-const setHash = <V>(set: Set<V>) => {
+const setHashWithVisited = <V>(set: Set<V>) => {
+  visitedObjects.add(set)
   let h = string("Set")
   for (const value of set) {
     h ^= hash(value)
   }
+  visitedObjects.delete(set)
   return optimize(h)
 }
 
