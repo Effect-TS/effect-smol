@@ -32,6 +32,196 @@ describe("Equal - Structural Equality Behavior", () => {
       const obj2 = { a: 1, c: 2 }
       expect(Equal.equals(obj1, obj2)).toBe(false)
     })
+
+    describe("symbol properties", () => {
+      it("should return true for objects with identical symbol keys and values", () => {
+        const sym1 = Symbol("test")
+        const sym2 = Symbol("other")
+        const obj1 = { [sym1]: 1, [sym2]: 2 }
+        const obj2 = { [sym1]: 1, [sym2]: 2 }
+        expect(Equal.equals(obj1, obj2)).toBe(true)
+      })
+
+      it("should return false for objects with different symbol keys", () => {
+        const sym1 = Symbol("test")
+        const sym2 = Symbol("test") // Different symbol with same description
+        const obj1 = { [sym1]: 1 }
+        const obj2 = { [sym2]: 1 }
+        expect(Equal.equals(obj1, obj2)).toBe(false)
+      })
+
+      it("should return false for objects with different symbol values", () => {
+        const sym = Symbol("test")
+        const obj1 = { [sym]: 1 }
+        const obj2 = { [sym]: 2 }
+        expect(Equal.equals(obj1, obj2)).toBe(false)
+      })
+
+      it("should return true for objects with mixed string and symbol keys", () => {
+        const sym = Symbol("test")
+        const obj1 = { a: 1, [sym]: 2 }
+        const obj2 = { a: 1, [sym]: 2 }
+        expect(Equal.equals(obj1, obj2)).toBe(true)
+      })
+
+      it("should return false when one object has symbol keys and the other doesn't", () => {
+        const sym = Symbol("test")
+        const obj1 = { a: 1, [sym]: 2 }
+        const obj2 = { a: 1 }
+        expect(Equal.equals(obj1, obj2)).toBe(false)
+      })
+
+      it("should consider non-enumerable symbol properties", () => {
+        const sym1 = Symbol("enumerable")
+        const sym2 = Symbol("non-enumerable")
+        const obj1: any = { a: 1 }
+        const obj2: any = { a: 1 }
+
+        // Add enumerable symbol property
+        obj1[sym1] = "visible"
+        obj2[sym1] = "visible"
+
+        // Add non-enumerable symbol property with same value
+        Object.defineProperty(obj1, sym2, { value: "hidden", enumerable: false })
+        Object.defineProperty(obj2, sym2, { value: "hidden", enumerable: false })
+
+        expect(Equal.equals(obj1, obj2)).toBe(true)
+      })
+
+      it("should consider non-enumerable symbol properties even when they differ", () => {
+        const sym1 = Symbol("enumerable")
+        const sym2 = Symbol("non-enumerable")
+        const obj1: any = { a: 1 }
+        const obj2: any = { a: 1 }
+
+        // Add same enumerable symbol property
+        obj1[sym1] = "visible"
+        obj2[sym1] = "visible"
+
+        // Add non-enumerable symbol properties with different values
+        Object.defineProperty(obj1, sym2, { value: "hidden1", enumerable: false })
+        Object.defineProperty(obj2, sym2, { value: "hidden2", enumerable: false })
+
+        expect(Equal.equals(obj1, obj2)).toBe(false)
+      })
+
+      it("should consider enumerable symbol properties even when string properties are the same", () => {
+        const sym = Symbol("test")
+        const obj1: any = { a: 1, b: 2 }
+        const obj2: any = { a: 1, b: 2 }
+
+        obj1[sym] = "different"
+        obj2[sym] = "values"
+
+        expect(Equal.equals(obj1, obj2)).toBe(false)
+      })
+    })
+
+    describe("non-enumerable properties", () => {
+      it("should handle non-enumerable string properties correctly", () => {
+        const obj1 = { a: 1 }
+        const obj2 = { a: 1 }
+
+        Object.defineProperty(obj1, "hidden", { value: "secret", enumerable: false })
+        Object.defineProperty(obj2, "hidden", { value: "secret", enumerable: false })
+
+        expect(Equal.equals(obj1, obj2)).toBe(true)
+      })
+
+      it("should consider non-enumerable string properties even when they differ", () => {
+        const obj1 = { a: 1 }
+        const obj2 = { a: 1 }
+
+        Object.defineProperty(obj1, "hidden", { value: "secret1", enumerable: false })
+        Object.defineProperty(obj2, "hidden", { value: "secret2", enumerable: false })
+
+        expect(Equal.equals(obj1, obj2)).toBe(false)
+      })
+
+      it("should consider enumerable properties and non-enumerable ones", () => {
+        const obj1: any = { a: 1 }
+        const obj2: any = { a: 1 }
+
+        // Add same enumerable property
+        obj1.b = 2
+        obj2.b = 2
+
+        // Add different non-enumerable properties (should be considered)
+        Object.defineProperty(obj1, "hidden", { value: "secret1", enumerable: false })
+        Object.defineProperty(obj2, "hidden", { value: "secret2", enumerable: false })
+
+        expect(Equal.equals(obj1, obj2)).toBe(false)
+      })
+    })
+
+    describe("hash consistency with symbol properties", () => {
+      it("should produce same hash for objects with identical symbol keys and values", () => {
+        const sym1 = Symbol("test")
+        const sym2 = Symbol("other")
+        const obj1 = { [sym1]: 1, [sym2]: 2 }
+        const obj2 = { [sym1]: 1, [sym2]: 2 }
+
+        expect(Hash.hash(obj1)).toBe(Hash.hash(obj2))
+        expect(Equal.equals(obj1, obj2)).toBe(true)
+      })
+
+      it("should return false for equality even if symbols have same hash", () => {
+        const sym1 = Symbol("test")
+        const sym2 = Symbol("test") // Different symbol with same description
+        const obj1 = { [sym1]: 1 }
+        const obj2 = { [sym2]: 1 }
+
+        // Note: symbols with same description may have same hash (acceptable hash collision)
+        // but equality should still work correctly
+        expect(Equal.equals(obj1, obj2)).toBe(false)
+      })
+
+      it("should produce different hash for symbols with different descriptions", () => {
+        const sym1 = Symbol("first")
+        const sym2 = Symbol("second")
+        const obj1 = { [sym1]: 1 }
+        const obj2 = { [sym2]: 1 }
+
+        expect(Hash.hash(obj1)).not.toBe(Hash.hash(obj2))
+        expect(Equal.equals(obj1, obj2)).toBe(false)
+      })
+
+      it("should produce different hash for objects with different symbol values", () => {
+        const sym = Symbol("test")
+        const obj1 = { [sym]: 1 }
+        const obj2 = { [sym]: 2 }
+
+        expect(Hash.hash(obj1)).not.toBe(Hash.hash(obj2))
+        expect(Equal.equals(obj1, obj2)).toBe(false)
+      })
+
+      it("should produce same hash for objects with mixed string and symbol keys", () => {
+        const sym = Symbol("test")
+        const obj1 = { a: 1, [sym]: 2 }
+        const obj2 = { a: 1, [sym]: 2 }
+
+        expect(Hash.hash(obj1)).toBe(Hash.hash(obj2))
+        expect(Equal.equals(obj1, obj2)).toBe(true)
+      })
+
+      it("should consider non-enumerable symbol properties in hash calculation", () => {
+        const sym1 = Symbol("enumerable")
+        const sym2 = Symbol("non-enumerable")
+        const obj1: any = { a: 1 }
+        const obj2: any = { a: 1 }
+
+        // Add same enumerable symbol property
+        obj1[sym1] = "visible"
+        obj2[sym1] = "visible"
+
+        // Add different non-enumerable symbol properties
+        Object.defineProperty(obj1, sym2, { value: "hidden1", enumerable: false })
+        Object.defineProperty(obj2, sym2, { value: "hidden2", enumerable: false })
+
+        expect(Hash.hash(obj1)).not.toBe(Hash.hash(obj2))
+        expect(Equal.equals(obj1, obj2)).toBe(false)
+      })
+    })
   })
 
   describe("plain arrays", () => {

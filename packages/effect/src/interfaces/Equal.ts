@@ -141,9 +141,9 @@ function compareArrays(self: Array<unknown>, that: Array<unknown>): boolean {
   return true
 }
 
-function compareObjects(self: Record<string, unknown>, that: Record<string, unknown>): boolean {
-  const selfKeys = Object.keys(self)
-  const thatKeys = Object.keys(that)
+function compareObjects(self: Record<PropertyKey, unknown>, that: Record<PropertyKey, unknown>): boolean {
+  const selfKeys = Reflect.ownKeys(self)
+  const thatKeys = Reflect.ownKeys(that)
 
   if (selfKeys.length !== thatKeys.length) {
     return false
