@@ -8,7 +8,7 @@
 import type { Equivalence } from "../data/Equivalence.ts"
 import { hasProperty } from "../data/Predicate.ts"
 import * as Hash from "../interfaces/Hash.ts"
-import { instanceEqualityRegistry, isPlainObject } from "../internal/equal.ts"
+import { getAllObjectKeys, instanceEqualityRegistry, isStructurallyComparable } from "../internal/equal.ts"
 
 /** @internal */
 const visitedLeft = new WeakSet<object>()
@@ -22,6 +22,30 @@ const visitedRight = new WeakSet<object>()
  * @since 2.0.0
  */
 export const symbol = "~effect/interfaces/Equal"
+
+/**
+ * Access to the left-side visited set used for circular reference detection.
+ * Most custom Equal implementations should not need to use this directly,
+ * as circular reference detection is handled automatically.
+ *
+ * This is primarily exposed for advanced use cases where custom implementations
+ * need to integrate with the existing tracking system.
+ *
+ * @since 4.0.0
+ */
+export const trackedLeft: WeakSet<object> = visitedLeft
+
+/**
+ * Access to the right-side visited set used for circular reference detection.
+ * Most custom Equal implementations should not need to use this directly,
+ * as circular reference detection is handled automatically.
+ *
+ * This is primarily exposed for advanced use cases where custom implementations
+ * need to integrate with the existing tracking system.
+ *
+ * @since 4.0.0
+ */
+export const trackedRight: WeakSet<object> = visitedRight
 
 /**
  * An interface defining objects that can determine equality with other `Equal` objects.
@@ -127,24 +151,34 @@ function compareBoth(self: unknown, that: unknown): boolean {
       }
 
       if (isEqual(self) && isEqual(that)) {
-        return self[symbol](that)
+        // Add to visited sets before calling custom Equal implementation
+        // to prevent infinite recursion if the implementation calls back into equals()
+        visitedLeft.add(self as object)
+        visitedRight.add(that as object)
+
+        const result = self[symbol](that)
+
+        visitedLeft.delete(self as object)
+        visitedRight.delete(that as object)
+
+        return result
       } else if (self instanceof Date && that instanceof Date) {
         return self.toISOString() === that.toISOString()
       } else if (Array.isArray(self) && Array.isArray(that)) {
-        return compareArraysWithVisited(self, that)
+        return compareArrays(self, that)
       } else if (self instanceof Map && that instanceof Map) {
-        return compareMapsWithVisited(self, that)
+        return compareMaps(self, that)
       } else if (self instanceof Set && that instanceof Set) {
-        return compareSetsWithVisited(self, that)
-      } else if (isPlainObject(self) && isPlainObject(that)) {
-        return compareObjectsWithVisited(self, that)
+        return compareSets(self, that)
+      } else if (isStructurallyComparable(self) && isStructurallyComparable(that)) {
+        return compareObjects(self, that)
       }
     }
   }
   return false
 }
 
-function compareArraysWithVisited(self: Array<unknown>, that: Array<unknown>): boolean {
+function compareArrays(self: Array<unknown>, that: Array<unknown>): boolean {
   if (self.length !== that.length) {
     return false
   }
@@ -166,9 +200,9 @@ function compareArraysWithVisited(self: Array<unknown>, that: Array<unknown>): b
   return result
 }
 
-function compareObjectsWithVisited(self: Record<PropertyKey, unknown>, that: Record<PropertyKey, unknown>): boolean {
-  const selfKeys = Reflect.ownKeys(self)
-  const thatKeys = Reflect.ownKeys(that)
+function compareObjects(self: Record<PropertyKey, unknown>, that: Record<PropertyKey, unknown>): boolean {
+  const selfKeys = getAllObjectKeys(self)
+  const thatKeys = getAllObjectKeys(that)
 
   if (selfKeys.length !== thatKeys.length) {
     return false
@@ -179,7 +213,8 @@ function compareObjectsWithVisited(self: Record<PropertyKey, unknown>, that: Rec
 
   let result = true
   for (const key of selfKeys) {
-    if (!Object.prototype.hasOwnProperty.call(that, key)) {
+    // Check if the property exists anywhere in the prototype chain (consistent with getAllObjectKeys)
+    if (!(key in that)) {
       result = false
       break
     }
@@ -195,7 +230,7 @@ function compareObjectsWithVisited(self: Record<PropertyKey, unknown>, that: Rec
   return result
 }
 
-function compareMapsWithVisited(self: Map<unknown, unknown>, that: Map<unknown, unknown>): boolean {
+function compareMaps(self: Map<unknown, unknown>, that: Map<unknown, unknown>): boolean {
   if (self.size !== that.size) {
     return false
   }
@@ -224,7 +259,7 @@ function compareMapsWithVisited(self: Map<unknown, unknown>, that: Map<unknown, 
   return result
 }
 
-function compareSetsWithVisited(self: Set<unknown>, that: Set<unknown>): boolean {
+function compareSets(self: Set<unknown>, that: Set<unknown>): boolean {
   if (self.size !== that.size) {
     return false
   }

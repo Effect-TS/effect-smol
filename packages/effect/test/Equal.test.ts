@@ -897,7 +897,291 @@ describe("Equal - Structural Equality Behavior", () => {
     })
   })
 
+  describe("Error objects", () => {
+    it("should return true for Error objects with same message and additional properties", () => {
+      const error1 = new Error("test message")
+      ;(error1 as any).code = "TEST_CODE"
+      ;(error1 as any).details = { info: "additional details" }
+
+      const error2 = new Error("test message")
+      ;(error2 as any).code = "TEST_CODE"
+      ;(error2 as any).details = { info: "additional details" }
+
+      // Error objects are now structurally comparable (stack is excluded)
+      expect(Equal.equals(error1, error2)).toBe(true)
+    })
+
+    it("should return false for Error objects with different messages", () => {
+      const error1 = new Error("message 1")
+      ;(error1 as any).code = "TEST_CODE"
+
+      const error2 = new Error("message 2")
+      ;(error2 as any).code = "TEST_CODE"
+
+      expect(Equal.equals(error1, error2)).toBe(false)
+    })
+
+    it("should work with custom Error classes", () => {
+      class CustomError extends Error {
+        readonly code: string
+        constructor(message: string, code: string) {
+          super(message)
+          this.name = "CustomError"
+          this.code = code
+        }
+      }
+
+      const error1 = new CustomError("test", "CUSTOM")
+      const error2 = new CustomError("test", "CUSTOM")
+
+      // Custom Error objects are now structurally comparable (stack is excluded)
+      expect(Equal.equals(error1, error2)).toBe(true)
+    })
+
+    it("should ignore stack traces when comparing Error objects", () => {
+      function createErrorAtDifferentLocation1() {
+        return new Error("same message")
+      }
+
+      function createErrorAtDifferentLocation2() {
+        return new Error("same message")
+      }
+
+      const error1 = createErrorAtDifferentLocation1()
+      const error2 = createErrorAtDifferentLocation2()
+
+      // Even though stack traces are different, errors should be equal
+      expect(error1.stack).not.toBe(error2.stack)
+      expect(Equal.equals(error1, error2)).toBe(true)
+    })
+  })
+
+  describe("objects with different constructors", () => {
+    it("should return true for objects with different constructors but same shape", () => {
+      class CustomClass {
+        readonly a: number
+        readonly b: number
+        constructor() {
+          this.a = 1
+          this.b = 2
+        }
+      }
+
+      const plainObject = { a: 1, b: 2 }
+      const customObject = new CustomClass()
+      expect(Equal.equals(plainObject, customObject)).toBe(true)
+    })
+
+    it("should return true for objects with null prototype", () => {
+      const nullProtoObject: any = Object.create(null)
+      nullProtoObject.a = 1
+      nullProtoObject.b = 2
+
+      const plainObject = { a: 1, b: 2 }
+      expect(Equal.equals(nullProtoObject, plainObject)).toBe(true)
+    })
+
+    it("should return true for objects with different function constructors", () => {
+      function Constructor1(this: any) {
+        this.a = 1
+        this.b = 2
+      }
+
+      function Constructor2(this: any) {
+        this.a = 1
+        this.b = 2
+      }
+
+      const obj1 = new (Constructor1 as any)()
+      const obj2 = new (Constructor2 as any)()
+      expect(Equal.equals(obj1, obj2)).toBe(true)
+    })
+
+    it("should return false when properties differ regardless of constructor", () => {
+      class CustomClass1 {
+        readonly a: number
+        readonly b: number
+        constructor() {
+          this.a = 1
+          this.b = 2
+        }
+      }
+
+      class CustomClass2 {
+        readonly a: number
+        readonly b: number
+        constructor() {
+          this.a = 1
+          this.b = 3 // Different value
+        }
+      }
+
+      const obj1 = new CustomClass1()
+      const obj2 = new CustomClass2()
+      expect(Equal.equals(obj1, obj2)).toBe(false)
+    })
+
+    it("should handle mixed constructor types in nested structures", () => {
+      class CustomClass {
+        readonly inner: { x: number }
+        constructor() {
+          this.inner = { x: 1 }
+        }
+      }
+
+      const obj1 = { data: new CustomClass() }
+      const obj2 = { data: { inner: { x: 1 } } }
+      expect(Equal.equals(obj1, obj2)).toBe(true)
+    })
+
+    it("should include constructor property when it has a meaningful user-defined value", () => {
+      const obj1 = { constructor: 10, a: 1 }
+      const obj2 = { constructor: 10, a: 1 }
+      const obj3 = { constructor: 20, a: 1 }
+
+      // Objects with same constructor value should be equal
+      expect(Equal.equals(obj1, obj2)).toBe(true)
+
+      // Objects with different constructor values should not be equal
+      expect(Equal.equals(obj1, obj3)).toBe(false)
+      expect(Equal.equals(obj2, obj3)).toBe(false)
+    })
+
+    it("should still ignore default constructor property", () => {
+      const obj1 = { a: 1, b: 2 }
+      const obj2 = { a: 1, b: 2 }
+
+      // Normal objects should still be equal (constructor property ignored when it's the default)
+      expect(Equal.equals(obj1, obj2)).toBe(true)
+
+      // Verify that obj1.constructor and obj2.constructor are the default Object constructor
+      expect(obj1.constructor).toBe(Object)
+      expect(obj2.constructor).toBe(Object)
+    })
+  })
+
   describe("recursive objects", () => {
+    it("should handle circular references in Equal implementations without infinite recursion", () => {
+      class CircularEqualTest implements Equal.Equal {
+        constructor(readonly value: string, public child: CircularEqualTest | null = null) {}
+
+        [Equal.symbol](that: Equal.Equal): boolean {
+          if (!(that instanceof CircularEqualTest)) {
+            return false
+          }
+
+          // Circular references are handled automatically by the system
+          // This implementation can safely call Equal.equals without manual tracking
+          return this.value === that.value && Equal.equals(this.child, that.child)
+        }
+
+        [Hash.symbol](): number {
+          return Hash.string(this.value)
+        }
+      }
+
+      // Test case 1: Self-referencing objects
+      const obj1 = new CircularEqualTest("test")
+      obj1.child = obj1
+
+      const obj2 = new CircularEqualTest("test")
+      obj2.child = obj2
+
+      // This should not cause infinite recursion
+      expect(Equal.equals(obj1, obj2)).toBe(true)
+
+      // Test case 2: Different values should not be equal even with same structure
+      const obj3 = new CircularEqualTest("different")
+      obj3.child = obj3
+
+      expect(Equal.equals(obj1, obj3)).toBe(false)
+    })
+
+    it("should handle complex circular references in Equal implementations", () => {
+      class ComplexEqualTest implements Equal.Equal {
+        constructor(readonly id: number, public ref: ComplexEqualTest | null = null) {}
+
+        [Equal.symbol](that: Equal.Equal): boolean {
+          if (!(that instanceof ComplexEqualTest)) {
+            return false
+          }
+
+          // Circular references are handled automatically by the system
+          return this.id === that.id && Equal.equals(this.ref, that.ref)
+        }
+
+        [Hash.symbol](): number {
+          return Hash.number(this.id)
+        }
+      }
+
+      // Create cycle: obj1 -> obj2 -> obj1
+      const obj1 = new ComplexEqualTest(1)
+      const obj2 = new ComplexEqualTest(2)
+      obj1.ref = obj2
+      obj2.ref = obj1
+
+      // Create identical cycle: obj3 -> obj4 -> obj3
+      const obj3 = new ComplexEqualTest(1)
+      const obj4 = new ComplexEqualTest(2)
+      obj3.ref = obj4
+      obj4.ref = obj3
+
+      // Should not cause infinite recursion and should be equal
+      expect(Equal.equals(obj1, obj3)).toBe(true)
+      expect(Equal.equals(obj2, obj4)).toBe(true)
+    })
+
+    it("should expose visited sets for advanced use cases", () => {
+      // Most implementations don't need manual tracking, but the sets are exposed
+      // for advanced scenarios where integration with the tracking system is needed
+
+      class SimpleContainer implements Equal.Equal {
+        constructor(readonly name: string, readonly items: Array<SimpleContainer> = []) {}
+
+        [Equal.symbol](that: Equal.Equal): boolean {
+          if (!(that instanceof SimpleContainer)) {
+            return false
+          }
+
+          // Simple implementation - no manual tracking needed
+          // Circular references are handled automatically
+          return this.name === that.name &&
+            this.items.length === that.items.length &&
+            this.items.every((item, i) => Equal.equals(item, that.items[i]))
+        }
+
+        [Hash.symbol](): number {
+          // Simple hash implementation - circular references are handled automatically
+          let result = Hash.string(this.name)
+          for (const item of this.items) {
+            result = Hash.combine(result, Hash.hash(item))
+          }
+          return result
+        }
+      }
+
+      // Test that automatic circular reference handling works
+      const container1 = new SimpleContainer("A")
+      container1.items.push(container1) // Self-reference
+
+      const container2 = new SimpleContainer("A")
+      container2.items.push(container2) // Self-reference
+
+      // Should not cause infinite recursion due to automatic tracking
+      expect(Equal.equals(container1, container2)).toBe(true)
+
+      // Verify that the visited sets are accessible (for advanced use cases)
+      expect(Equal.trackedLeft).toBeDefined()
+      expect(Equal.trackedRight).toBeDefined()
+      expect(Hash.tracked).toBeDefined()
+
+      // These should be WeakSet instances
+      expect(Equal.trackedLeft).toBeInstanceOf(WeakSet)
+      expect(Equal.trackedRight).toBeInstanceOf(WeakSet)
+      expect(Hash.tracked).toBeInstanceOf(WeakSet)
+    })
+
     it("should handle objects with circular references without infinite recursion", () => {
       // Create objects that reference themselves
       const obj1: any = { a: 1, b: 2 }
