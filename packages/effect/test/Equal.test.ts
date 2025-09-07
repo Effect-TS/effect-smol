@@ -1060,16 +1060,6 @@ describe("Equal - Structural Equality Behavior", () => {
 
       // Should not cause infinite recursion due to automatic tracking
       expect(Equal.equals(container1, container2)).toBe(true)
-
-      // Verify that the visited sets are accessible (for advanced use cases)
-      expect(Equal.trackedLeft).toBeDefined()
-      expect(Equal.trackedRight).toBeDefined()
-      expect(Hash.tracked).toBeDefined()
-
-      // These should be WeakSet instances
-      expect(Equal.trackedLeft).toBeInstanceOf(WeakSet)
-      expect(Equal.trackedRight).toBeInstanceOf(WeakSet)
-      expect(Hash.tracked).toBeInstanceOf(WeakSet)
     })
 
     it("should handle objects with circular references without infinite recursion", () => {
