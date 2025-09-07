@@ -261,7 +261,7 @@ export const layerBackingSql: Layer.Layer<
   return BackingPersistence.of({
     make: Effect.fnUntraced(function*(storeId) {
       const clock = yield* Clock.Clock
-      const table = sql(storeId)
+      const table = sql(`effect_persistence_${storeId}`)
       yield* sql.onDialectOrElse({
         mysql: () =>
           sql`
