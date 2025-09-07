@@ -9,7 +9,7 @@ import type * as Schema from "../../schema/Schema.ts"
 import type * as Scope from "../../Scope.ts"
 import * as Duration from "../../time/Duration.ts"
 import type * as Persistable from "./Persistable.ts"
-import * as Persistence from "./Persistence.js"
+import * as Persistence from "./Persistence.ts"
 
 const TypeId = "~effect/persistence/PersistedCache" as const
 
