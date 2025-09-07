@@ -982,78 +982,58 @@ export const withCache: {
 } = dual(2, <A extends Request.Any>(self: RequestResolver<A>, options: {
   readonly capacity: number
   readonly strategy?: "lru" | "fifo" | undefined
-}): Effect.Effect<RequestResolver<A>> => Effect.sync(() => withCacheUnsafe(self, options)))
-
-/**
- * Adds caching capabilities to a request resolver, allowing it to cache
- * results up to a specified capacity.
- *
- * @since 4.0.0
- * @category Caching
- */
-export const withCacheUnsafe: {
-  <A extends Request.Any>(options: {
-    readonly capacity: number
-    readonly strategy?: "lru" | "fifo" | undefined
-  }): (self: RequestResolver<A>) => RequestResolver<A>
-  <A extends Request.Any>(self: RequestResolver<A>, options: {
-    readonly capacity: number
-    readonly strategy?: "lru" | "fifo" | undefined
-  }): RequestResolver<A>
-} = dual(2, <A extends Request.Any>(self: RequestResolver<A>, options: {
-  readonly capacity: number
-  readonly strategy?: "lru" | "fifo" | undefined
-}): RequestResolver<A> => {
-  const strategy = options.strategy ?? "lru"
-  const cache = MutableHashMap.empty<A, {
-    readonly entry: Request.Entry<A>
-    exit: Request.Result<A> | undefined
-  }>()
-  return makeWith({
-    ...self,
-    runAll(entries, key) {
-      return Effect.onExit(self.runAll(entries, key), () => {
-        let toRemove = MutableHashMap.size(cache) - options.capacity
-        if (toRemove <= 0) return Effect.void
-        for (const k of MutableHashMap.keys(cache)) {
-          MutableHashMap.remove(cache, k)
-          toRemove--
-          if (toRemove <= 0) break
+}): Effect.Effect<RequestResolver<A>> =>
+  Effect.sync(() => {
+    const strategy = options.strategy ?? "lru"
+    const cache = MutableHashMap.empty<A, {
+      readonly entry: Request.Entry<A>
+      exit: Request.Result<A> | undefined
+    }>()
+    return makeWith({
+      ...self,
+      runAll(entries, key) {
+        return Effect.onExit(self.runAll(entries, key), () => {
+          let toRemove = MutableHashMap.size(cache) - options.capacity
+          if (toRemove <= 0) return Effect.void
+          for (const k of MutableHashMap.keys(cache)) {
+            MutableHashMap.remove(cache, k)
+            toRemove--
+            if (toRemove <= 0) break
+          }
+          return Effect.void
+        })
+      },
+      preCheck(entry) {
+        const ocached = MutableHashMap.get(cache, entry.request)
+        if (ocached._tag === "None") {
+          const cached = { entry, exit: undefined as Request.Result<A> | undefined }
+          MutableHashMap.set(cache, entry.request, cached)
+          const prevComplete = entry.completeUnsafe
+          entry.completeUnsafe = function(exit) {
+            cached.exit = exit as any
+            prevComplete(exit)
+          }
+          return true
         }
-        return Effect.void
-      })
-    },
-    preCheck(entry) {
-      const ocached = MutableHashMap.get(cache, entry.request)
-      if (ocached._tag === "None") {
-        const cached = { entry, exit: undefined as Request.Result<A> | undefined }
-        MutableHashMap.set(cache, entry.request, cached)
-        const prevComplete = entry.completeUnsafe
-        entry.completeUnsafe = function(exit) {
-          cached.exit = exit as any
-          prevComplete(exit)
+        const cached = ocached.value
+        if (cached.exit) {
+          if (strategy === "lru") {
+            MutableHashMap.remove(cache, cached.entry.request)
+            MutableHashMap.set(cache, cached.entry.request, cached)
+          }
+          entry.completeUnsafe(cached.exit as any)
+        } else {
+          cached.entry.uninterruptible = true
+          const prevComplete = cached.entry.completeUnsafe
+          cached.entry.completeUnsafe = function(exit) {
+            prevComplete(exit)
+            entry.completeUnsafe(exit)
+          }
         }
-        return true
+        return false
       }
-      const cached = ocached.value
-      if (cached.exit) {
-        if (strategy === "lru") {
-          MutableHashMap.remove(cache, cached.entry.request)
-          MutableHashMap.set(cache, cached.entry.request, cached)
-        }
-        entry.completeUnsafe(cached.exit as any)
-      } else {
-        cached.entry.uninterruptible = true
-        const prevComplete = cached.entry.completeUnsafe
-        cached.entry.completeUnsafe = function(exit) {
-          prevComplete(exit)
-          entry.completeUnsafe(exit)
-        }
-      }
-      return false
-    }
-  })
-})
+    })
+  }))
 
 /**
  * @since 4.0.0
@@ -1064,6 +1044,7 @@ export const persisted: {
     options: {
       readonly storeId: string
       readonly timeToLive?: ((exit: Request.Result<A>, request: A) => Duration.DurationInput) | undefined
+      readonly staleWhileRevalidate?: ((exit: Request.Result<A>, request: A) => boolean) | undefined
     }
   ): (self: RequestResolver<A>) => Effect.Effect<
     RequestResolver<A>,
@@ -1077,6 +1058,7 @@ export const persisted: {
     options: {
       readonly storeId: string
       readonly timeToLive?: ((exit: Request.Result<A>, request: A) => Duration.DurationInput) | undefined
+      readonly staleWhileRevalidate?: ((exit: Request.Result<A>, request: A) => boolean) | undefined
     }
   ): Effect.Effect<
     RequestResolver<A>,
@@ -1092,6 +1074,7 @@ export const persisted: {
     options: {
       readonly storeId: string
       readonly timeToLive?: ((exit: Request.Result<A>, request: A) => Duration.DurationInput) | undefined
+      readonly staleWhileRevalidate?: ((exit: Request.Result<A>, request: A) => boolean) | undefined
     }
   ) {
     const store = yield* (yield* Persistence.Persistence).make(options as any)
@@ -1109,14 +1092,17 @@ export const persisted: {
         for (let i = 0; i < results.length; i++) {
           const entry = entries[i]
           const exit = results[i]
-          if (exit === undefined) {
+          if (
+            exit === undefined ||
+            (options.staleWhileRevalidate && options.staleWhileRevalidate(exit as any, entry.request))
+          ) {
             const prevComplete = entry.completeUnsafe
             entry.completeUnsafe = function(exit) {
               toPersist.set(entry.request, exit as any)
               prevComplete(exit)
             }
             leftover.push(entry)
-            continue
+            if (exit === undefined) continue
           }
           entry.completeUnsafe(exit as any)
         }

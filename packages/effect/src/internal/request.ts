@@ -93,11 +93,14 @@ const addEntry = <A extends Request.Any>(
     pendingBatches.set(resolver, batchMap)
   }
   let batch: Batch | undefined
+  let completed = false
   const entry = makeEntry({
     request,
     services: fiber.services as any,
     uninterruptible: false,
     completeUnsafe(effect) {
+      if (completed) return
+      completed = true
       resume(effect)
       batch?.entrySet.delete(entry)
     }
