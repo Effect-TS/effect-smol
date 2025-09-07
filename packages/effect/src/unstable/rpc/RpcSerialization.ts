@@ -200,7 +200,7 @@ function decodeJsonRpcMessage(decoded: JsonRpcMessage): RpcMessage.FromClientEnc
       _tag: "Request",
       id: decoded.id ? String(decoded.id) : "",
       tag: decoded.method,
-      payload: decoded.params,
+      payload: decoded.params ?? null,
       headers: decoded.headers ?? [],
       ...(decoded.spanId ?
         {
