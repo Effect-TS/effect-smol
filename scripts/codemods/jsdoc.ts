@@ -5,7 +5,7 @@ import type * as cs from "jscodeshift"
 // this is needed to resolve a bug in jscodeshift that
 // forgets to traverse type parameters in call expressions
 //
-declare module "ast-types/gen/namedTypes.ts" {
+declare module "ast-types/gen/namedTypes.js" {
   namespace namedTypes {
     interface CallExpression extends TSHasOptionalTypeParameterInstantiation {}
   }
