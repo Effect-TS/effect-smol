@@ -13,6 +13,7 @@ import * as ServiceMap from "../../ServiceMap.ts"
 import * as Clock from "../../time/Clock.js"
 import * as Duration from "../../time/Duration.ts"
 import * as SqlClient from "../sql/SqlClient.ts"
+import type { SqlError } from "../sql/SqlError.ts"
 import * as Persistable from "./Persistable.ts"
 
 const ErrorTypeId = "~effect/persistence/Persistence/PersistenceError" as const
@@ -97,14 +98,16 @@ export class BackingPersistence extends ServiceMap.Key<BackingPersistence, {
  */
 export interface BackingPersistenceStore {
   readonly get: (key: string) => Effect.Effect<object | undefined, PersistenceError>
-  readonly getMany: (key: Array<string>) => Effect.Effect<Array<object | undefined>, PersistenceError>
+  readonly getMany: (
+    keys: Arr.NonEmptyArray<string>
+  ) => Effect.Effect<Arr.NonEmptyArray<object | undefined>, PersistenceError>
   readonly set: (
     key: string,
     value: object,
     ttl: Duration.Duration | undefined
   ) => Effect.Effect<void, PersistenceError>
   readonly setMany: (
-    entries: ReadonlyArray<readonly [key: string, value: object, ttl: Duration.Duration | undefined]>
+    entries: Arr.NonEmptyArray<readonly [key: string, value: object, ttl: Duration.Duration | undefined]>
   ) => Effect.Effect<void, PersistenceError>
   readonly remove: (key: string) => Effect.Effect<void, PersistenceError>
   readonly clear: Effect.Effect<void, PersistenceError>
@@ -135,6 +138,7 @@ export const layer = Layer.effect(Persistence)(Effect.gen(function*() {
             primaryKeys.push(PrimaryKey.value(key))
             persistables.push(key)
           }
+          if (!Arr.isArrayNonEmpty(primaryKeys)) return []
 
           const results = yield* storage.getMany(primaryKeys)
           if (results.length !== primaryKeys.length) {
@@ -195,7 +199,7 @@ export const layer = Layer.effect(Persistence)(Effect.gen(function*() {
             }
             encodedEntries.push([PrimaryKey.value(key), exit.value as object, Duration.isFinite(ttl) ? ttl : undefined])
           }
-          if (encodedEntries.length === 0) return
+          if (!Arr.isArrayNonEmpty(encodedEntries)) return
           return yield* storage.setMany(encodedEntries)
         }),
         remove: (key) => storage.remove(PrimaryKey.value(key)),
@@ -236,7 +240,7 @@ export const layerBackingMemory: Layer.Layer<BackingPersistence> = Layer.sync(Ba
           }
           return Effect.succeed<BackingPersistenceStore>({
             get: (key) => Effect.sync(() => unsafeGet(key)),
-            getMany: (keys) => Effect.sync(() => keys.map(unsafeGet)),
+            getMany: (keys) => Effect.sync(() => Arr.map(keys, unsafeGet)),
             set: (key, value, ttl) => Effect.sync(() => map.set(key, [value, unsafeTtlToExpires(clock, ttl)])),
             setMany: (entries) =>
               Effect.sync(() => {
@@ -308,11 +312,39 @@ export const layerBackingSql: Layer.Layer<
         sql`DELETE FROM ${table} WHERE expires IS NOT NULL AND expires <= ${clock.currentTimeMillisUnsafe()}`
       )
 
+      type UpsertFn = (
+        entries: Array<{ id: string; value: string; expires: number | null }>
+      ) => Effect.Effect<unknown, SqlError>
+
+      const upsert = sql.onDialectOrElse({
+        pg: (): UpsertFn => (entries) =>
+          sql`
+            INSERT INTO ${table} ${sql.insert(entries)}
+            ON CONFLICT (id) DO UPDATE SET value=EXCLUDED.value, expires=EXCLUDED.expires
+          `.unprepared,
+        mysql: (): UpsertFn => (entries) =>
+          sql`
+            INSERT INTO ${table} ${sql.insert(entries)}
+            ON DUPLICATE KEY UPDATE value=VALUES(value), expires=VALUES(expires)
+          `.unprepared,
+        // sqlite
+        orElse: (): UpsertFn => (entries) =>
+          sql`
+            INSERT INTO ${table} ${sql.insert(entries)}
+            ON CONFLICT(id) DO UPDATE SET value=excluded.value, expires=excluded.expires
+          `.unprepared
+      })
+
+      const wrapString = sql.onDialectOrElse({
+        mssql: () => (s: string) => `N'${s}'`,
+        orElse: () => (s: string) => `'${s}'`
+      })
+
       return identity<BackingPersistenceStore>({
         get: (key) =>
           sql<
             { value: string }
-          >`SELECT value FROM ${table} WHERE key = ${key} AND (expires IS NULL OR expires > ${clock.currentTimeMillisUnsafe()})`
+          >`SELECT value FROM ${table} WHERE id = ${key} AND (expires IS NULL OR expires > ${clock.currentTimeMillisUnsafe()})`
             .pipe(
               Effect.mapError((cause) =>
                 new PersistenceError({
@@ -337,9 +369,9 @@ export const layerBackingSql: Layer.Layer<
               })
             ),
         getMany: (keys) =>
-          sql<{ id: string; value: string }>`SELECT id, value FROM ${table} WHERE key IN (${
-            sql.csv(keys)
-          }) AND (expires IS NULL OR expires > ${clock.currentTimeMillisUnsafe()})`.pipe(
+          sql<{ id: string; value: string }>`SELECT id, value FROM ${table} WHERE id IN (${
+            sql.literal(keys.map(wrapString).join(", "))
+          }) AND (expires IS NULL OR expires > ${clock.currentTimeMillisUnsafe()})`.unprepared.pipe(
             Effect.mapError((cause) =>
               new PersistenceError({
                 message: `Failed to getMany from backing store`,
@@ -351,22 +383,20 @@ export const layerBackingSql: Layer.Layer<
               for (let i = 0; i < rows.length; i++) {
                 const row = rows[i]
                 const index = keys.indexOf(row.id)
-                if (index !== -1) continue
+                if (index === -1) continue
                 try {
                   out[index] = JSON.parse(row.value)
                 } catch {
                   // ignore
                 }
               }
-              return Effect.succeed(out)
+              return Effect.succeed(out as Arr.NonEmptyArray<object | undefined>)
             })
           ),
         set: (key, value, ttl) =>
           Effect.suspend(() => {
             try {
-              const encoded = JSON.stringify(value)
-              const expires = unsafeTtlToExpires(clock, ttl)
-              return sql`INSERT INTO ${table} (id, value, expires) VALUES (${key}, ${encoded}, ${expires})`.pipe(
+              return upsert([{ id: key, value: JSON.stringify(value), expires: unsafeTtlToExpires(clock, ttl) }]).pipe(
                 Effect.mapError((cause) =>
                   new PersistenceError({
                     message: `Failed to set key ${key} in backing store`,
@@ -392,7 +422,7 @@ export const layerBackingSql: Layer.Layer<
                 value: JSON.stringify(value),
                 expires: unsafeTtlToExpires(clock, ttl)
               }))
-              return sql`INSERT INTO ${table} ${sql.insert(encoded)}`.unprepared.pipe(
+              return upsert(encoded).pipe(
                 Effect.mapError((cause) =>
                   new PersistenceError({
                     message: `Failed to setMany in backing store`,

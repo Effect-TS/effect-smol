@@ -1,6 +1,7 @@
 /**
  * @since 1.0.0
  */
+import type { NonEmptyArray } from "effect/collections/Array"
 import * as Config from "effect/config/Config"
 import * as Effect from "effect/Effect"
 import { identity } from "effect/Function"
@@ -76,7 +77,7 @@ export const makeRedis: (
                   })
               }),
               (values) => {
-                const out = new Array<object | undefined>(keys.length)
+                const out = new Array<object | undefined>(keys.length) as NonEmptyArray<object | undefined>
                 for (let i = 0; i < keys.length; i++) {
                   const value = values[i]
                   try {
