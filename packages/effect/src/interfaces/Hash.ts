@@ -17,20 +17,22 @@ const randomHashCache = new WeakMap<object, number>()
 /** @internal */
 const visitedObjects = new WeakSet<object>()
 
+function withVisitedTracking<T>(obj: object, fn: () => T): T {
+  if (visitedObjects.has(obj)) {
+    return string("[Circular]") as T
+  }
+  visitedObjects.add(obj)
+  const result = fn()
+  visitedObjects.delete(obj)
+  return result
+}
+
 /**
  * The unique identifier used to identify objects that implement the Hash interface.
  *
  * @since 2.0.0
  */
 export const symbol = "~effect/interfaces/Hash"
-
-/**
- * Access to the visited objects set used for circular reference detection during hashing.
- * Custom Hash implementations can use this to participate in the circular reference detection system.
- *
- * @since 4.0.0
- */
-export const tracked: WeakSet<object> = visitedObjects
 
 /**
  * A type that represents an object that can be hashed.
@@ -104,31 +106,24 @@ export const hash: <A>(self: A) => number = <A>(self: A) => {
     case "object": {
       if (self === null) {
         return string("null")
-      } else if (visitedObjects.has(self)) {
-        // Circular reference detected - return a consistent hash for cycles
-        return string("[Circular]")
       } else if (self instanceof Date) {
         return hash(self.toISOString())
-      } else if (isHash(self)) {
-        // Add to visited set before calling custom Hash implementation
-        // to prevent infinite recursion if the implementation calls back into hash()
-        visitedObjects.add(self)
-
-        const result = self[symbol]()
-
-        visitedObjects.delete(self)
-
-        return result
-      } else if (Array.isArray(self)) {
-        return hashArray(self)
-      } else if (self instanceof Map) {
-        return hashMap(self)
-      } else if (self instanceof Set) {
-        return hashSet(self)
-      } else if (isStructurallyComparable(self)) {
-        return hashStructure(self)
       } else {
-        return random(self)
+        return withVisitedTracking(self, () => {
+          if (isHash(self)) {
+            return self[symbol]()
+          } else if (Array.isArray(self)) {
+            return hashArray(self)
+          } else if (self instanceof Map) {
+            return hashMap(self)
+          } else if (self instanceof Set) {
+            return hashSet(self)
+          } else if (isStructurallyComparable(self)) {
+            return hashStructure(self)
+          } else {
+            return random(self)
+          }
+        })
       }
     }
     default:
@@ -360,19 +355,12 @@ export const structureKeys = <A extends object>(o: A, keys: ReadonlyArray<keyof 
   return optimize(h)
 }
 
-const structureKeysWithVisited = <A extends object>(o: A, keys: ReadonlyArray<keyof A>) => {
+const hashStructure = <A extends object>(o: A) => {
   let h = 12289
-  for (let i = 0; i < keys.length; i++) {
-    h ^= pipe(hash(keys[i]!), combine(hash((o as any)[keys[i]!])))
+  for (const key of getAllObjectKeys(o)) {
+    h ^= pipe(hash(key), combine(hash((o as any)[key])))
   }
   return optimize(h)
-}
-
-const hashStructure = <A extends object>(o: A) => {
-  visitedObjects.add(o)
-  const result = structureKeysWithVisited(o, getAllObjectKeys(o) as unknown as ReadonlyArray<keyof A>)
-  visitedObjects.delete(o)
-  return result
 }
 
 /**
@@ -440,34 +428,24 @@ export const array = <A>(arr: ReadonlyArray<A>) => {
 }
 
 const hashArray = <A>(arr: ReadonlyArray<A>) => {
-  visitedObjects.add(arr as any)
-  let h = 6151
-  for (let i = 0; i < arr.length; i++) {
-    h = pipe(h, combine(hash(arr[i])))
-  }
-  visitedObjects.delete(arr as any)
-  return optimize(h)
+  return array(arr)
 }
 
 const hashCache = new WeakMap<object, number>()
 
 const hashMap = <K, V>(map: Map<K, V>) => {
-  visitedObjects.add(map)
   let h = string("Map")
   for (const [key, value] of map) {
     h ^= combine(hash(key), hash(value))
   }
-  visitedObjects.delete(map)
   return optimize(h)
 }
 
 const hashSet = <V>(set: Set<V>) => {
-  visitedObjects.add(set)
   let h = string("Set")
   for (const value of set) {
     h ^= hash(value)
   }
-  visitedObjects.delete(set)
   return optimize(h)
 }
 

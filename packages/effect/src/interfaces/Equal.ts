@@ -24,30 +24,6 @@ const visitedRight = new WeakSet<object>()
 export const symbol = "~effect/interfaces/Equal"
 
 /**
- * Access to the left-side visited set used for circular reference detection.
- * Most custom Equal implementations should not need to use this directly,
- * as circular reference detection is handled automatically.
- *
- * This is primarily exposed for advanced use cases where custom implementations
- * need to integrate with the existing tracking system.
- *
- * @since 4.0.0
- */
-export const trackedLeft: WeakSet<object> = visitedLeft
-
-/**
- * Access to the right-side visited set used for circular reference detection.
- * Most custom Equal implementations should not need to use this directly,
- * as circular reference detection is handled automatically.
- *
- * This is primarily exposed for advanced use cases where custom implementations
- * need to integrate with the existing tracking system.
- *
- * @since 4.0.0
- */
-export const trackedRight: WeakSet<object> = visitedRight
-
-/**
  * An interface defining objects that can determine equality with other `Equal` objects.
  * Objects implementing this interface must also implement `Hash` for consistency.
  *
@@ -115,6 +91,27 @@ export function equals(): any {
   return compareBoth(arguments[0], arguments[1])
 }
 
+/** Helper to run comparison with proper visited tracking */
+function withVisitedTracking(
+  self: object,
+  that: object,
+  fn: () => boolean
+): boolean {
+  // Check for circular references before adding
+  if (visitedLeft.has(self) && visitedRight.has(that)) {
+    return true // Both are circular at the same level
+  }
+  if (visitedLeft.has(self) || visitedRight.has(that)) {
+    return false // Only one is circular
+  }
+  visitedLeft.add(self)
+  visitedRight.add(that)
+  const result = fn()
+  visitedLeft.delete(self)
+  visitedRight.delete(that)
+  return result
+}
+
 function compareBoth(self: unknown, that: unknown): boolean {
   if (self === that) {
     return true
@@ -134,59 +131,25 @@ function compareBoth(self: unknown, that: unknown): boolean {
   }
   if (selfType === "object" || selfType === "function") {
     if (self !== null && that !== null) {
-      // Check for circular references
-      if (visitedLeft.has(self as object) && visitedRight.has(that as object)) {
-        return true // Both are circular at the same level
-      }
-      if (visitedLeft.has(self as object) || visitedRight.has(that as object)) {
-        return false // Only one is circular
-      }
-
-      if (isEqual(self) && isEqual(that)) {
-        // Add to visited sets before calling custom Equal implementation
-        // to prevent infinite recursion if the implementation calls back into equals()
-        visitedLeft.add(self as object)
-        visitedRight.add(that as object)
-
-        const result = self[symbol](that)
-
-        visitedLeft.delete(self as object)
-        visitedRight.delete(that as object)
-
-        return result
-      } else if (isEqual(self)) {
-        // If only the left object implements Equal, use its equality logic
-        visitedLeft.add(self as object)
-        visitedRight.add(that as object)
-
-        const result = self[symbol](that as Equal)
-
-        visitedLeft.delete(self as object)
-        visitedRight.delete(that as object)
-
-        return result
-      } else if (isEqual(that)) {
-        // If only the right object implements Equal, use its equality logic
-        visitedLeft.add(self as object)
-        visitedRight.add(that as object)
-
-        const result = that[symbol](self as Equal)
-
-        visitedLeft.delete(self as object)
-        visitedRight.delete(that as object)
-
-        return result
-      } else if (self instanceof Date && that instanceof Date) {
-        return self.toISOString() === that.toISOString()
-      } else if (Array.isArray(self) && Array.isArray(that)) {
-        return compareArrays(self, that)
-      } else if (self instanceof Map && that instanceof Map) {
-        return compareMaps(self, that)
-      } else if (self instanceof Set && that instanceof Set) {
-        return compareSets(self, that)
-      } else if (isStructurallyComparable(self) && isStructurallyComparable(that)) {
-        return compareObjects(self, that)
-      }
+      return withVisitedTracking(self as object, that as object, () => {
+        if (isEqual(self) && isEqual(that)) {
+          return self[symbol](that)
+        } else if (isEqual(self) || isEqual(that)) {
+          return false
+        } else if (self instanceof Date && that instanceof Date) {
+          return self.toISOString() === that.toISOString()
+        } else if (Array.isArray(self) && Array.isArray(that)) {
+          return compareArrays(self, that)
+        } else if (self instanceof Map && that instanceof Map) {
+          return compareMaps(self, that)
+        } else if (self instanceof Set && that instanceof Set) {
+          return compareSets(self, that)
+        } else if (isStructurallyComparable(self) && isStructurallyComparable(that)) {
+          return compareObjects(self, that)
+        } else {
+          return false
+        }
+      })
     }
   }
   return false
@@ -197,21 +160,13 @@ function compareArrays(self: Array<unknown>, that: Array<unknown>): boolean {
     return false
   }
 
-  visitedLeft.add(self)
-  visitedRight.add(that)
-
-  let result = true
   for (let i = 0; i < self.length; i++) {
     if (!compareBoth(self[i], that[i])) {
-      result = false
-      break
+      return false
     }
   }
 
-  visitedLeft.delete(self)
-  visitedRight.delete(that)
-
-  return result
+  return true
 }
 
 function compareObjects(self: Record<PropertyKey, unknown>, that: Record<PropertyKey, unknown>): boolean {
@@ -222,26 +177,13 @@ function compareObjects(self: Record<PropertyKey, unknown>, that: Record<Propert
     return false
   }
 
-  visitedLeft.add(self)
-  visitedRight.add(that)
-
-  let result = true
   for (const key of selfKeys) {
-    // Check if the property exists anywhere in the prototype chain (consistent with getAllObjectKeys)
-    if (!(key in that)) {
-      result = false
-      break
-    }
-    if (!compareBoth(self[key], that[key])) {
-      result = false
-      break
+    if (!(key in that) || !compareBoth(self[key], that[key])) {
+      return false
     }
   }
 
-  visitedLeft.delete(self)
-  visitedRight.delete(that)
-
-  return result
+  return true
 }
 
 function compareMaps(self: Map<unknown, unknown>, that: Map<unknown, unknown>): boolean {
@@ -249,10 +191,6 @@ function compareMaps(self: Map<unknown, unknown>, that: Map<unknown, unknown>): 
     return false
   }
 
-  visitedLeft.add(self)
-  visitedRight.add(that)
-
-  let result = true
   for (const [selfKey, selfValue] of self) {
     let found = false
     for (const [thatKey, thatValue] of that) {
@@ -262,15 +200,11 @@ function compareMaps(self: Map<unknown, unknown>, that: Map<unknown, unknown>): 
       }
     }
     if (!found) {
-      result = false
-      break
+      return false
     }
   }
 
-  visitedLeft.delete(self)
-  visitedRight.delete(that)
-
-  return result
+  return true
 }
 
 function compareSets(self: Set<unknown>, that: Set<unknown>): boolean {
@@ -278,10 +212,6 @@ function compareSets(self: Set<unknown>, that: Set<unknown>): boolean {
     return false
   }
 
-  visitedLeft.add(self)
-  visitedRight.add(that)
-
-  let result = true
   for (const selfValue of self) {
     let found = false
     for (const thatValue of that) {
@@ -291,15 +221,11 @@ function compareSets(self: Set<unknown>, that: Set<unknown>): boolean {
       }
     }
     if (!found) {
-      result = false
-      break
+      return false
     }
   }
 
-  visitedLeft.delete(self)
-  visitedRight.delete(that)
-
-  return result
+  return true
 }
 
 /**
@@ -382,27 +308,16 @@ export const equivalence: <A>() => Equivalence<A> = () => equals
  * @since 2.0.0
  */
 export const byReference = <T extends object>(obj: T): T => {
-  const randomHash = Hash.random({})
-
-  const proxy = new Proxy(obj, {
+  const h = Hash.random({})
+  const p = new Proxy(obj, {
     get(target, prop, receiver) {
-      if (prop === symbol) {
-        return (that: Equal) => receiver === that
-      }
-      if (prop === Hash.symbol) {
-        return () => randomHash
-      }
+      if (prop === symbol) return (that: Equal) => receiver === that
+      if (prop === Hash.symbol) return () => h
       const value = Reflect.get(target, prop, target)
-      if (typeof value === "function") {
-        return value.bind(target)
-      }
-      return value
+      return typeof value === "function" ? value.bind(target) : value
     },
     has(target, prop) {
-      if (prop === symbol || prop === Hash.symbol) {
-        return true
-      }
-      return Reflect.has(target, prop)
+      return prop === symbol || prop === Hash.symbol || Reflect.has(target, prop)
     },
     ownKeys(target) {
       const keys = Reflect.ownKeys(target)
@@ -415,25 +330,12 @@ export const byReference = <T extends object>(obj: T): T => {
       return keys
     },
     getOwnPropertyDescriptor(target, prop) {
-      if (prop === symbol) {
-        return {
-          value: (that: Equal) => proxy === that,
-          writable: false,
-          enumerable: false,
-          configurable: true
-        }
-      }
-      if (prop === Hash.symbol) {
-        return {
-          value: () => randomHash,
-          writable: false,
-          enumerable: false,
-          configurable: true
-        }
-      }
-      return Reflect.getOwnPropertyDescriptor(target, prop)
+      return prop === symbol ?
+        { value: (that: Equal) => p === that, configurable: true }
+        : prop === Hash.symbol ?
+        { value: () => h, configurable: true }
+        : Reflect.getOwnPropertyDescriptor(target, prop)
     }
   })
-
-  return proxy as T
+  return p as T
 }
