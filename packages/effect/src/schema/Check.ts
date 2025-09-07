@@ -41,7 +41,7 @@ export class Filter<in E> extends PipeableClass implements Annotations.Annotated
     this.abort = abort
   }
   annotate(annotations: Annotations.Filter): Filter<E> {
-    return new Filter(this.run, Annotations.merge(this.annotations, annotations), this.abort)
+    return new Filter(this.run, Annotations.combine(this.annotations, annotations), this.abort)
   }
   and<T extends E>(other: Refine<T, E>, annotations?: Annotations.Filter): RefinementGroup<T, E>
   and(other: Check<E>, annotations?: Annotations.Filter): FilterGroup<E>
@@ -68,7 +68,7 @@ export class FilterGroup<in E> extends PipeableClass implements Annotations.Anno
     this.annotations = annotations
   }
   annotate(annotations: Annotations.Filter): FilterGroup<E> {
-    return new FilterGroup(this.checks, Annotations.merge(this.annotations, annotations))
+    return new FilterGroup(this.checks, Annotations.combine(this.annotations, annotations))
   }
   and<T extends E>(other: Refine<T, E>, annotations?: Annotations.Filter): RefinementGroup<T, E>
   and(other: Check<E>, annotations?: Annotations.Filter): FilterGroup<E>
@@ -150,7 +150,7 @@ export function makeBrand<B extends string | symbol, T>(
   brand: B,
   annotations?: Annotations.Filter
 ): Refinement<T & Brand<B>, T> {
-  return brand_.annotate(Annotations.merge({ [BRAND_KEY]: brand }, annotations))
+  return brand_.annotate(Annotations.combine({ [BRAND_KEY]: brand }, annotations))
 }
 
 /** @internal */
@@ -220,7 +220,7 @@ const TRIMMED_PATTERN = "^\\S[\\s\\S]*\\S$|^\\S$|^$"
 export function trimmed(annotations?: Annotations.Filter) {
   return make(
     (s: string) => s.trim() === s,
-    Annotations.merge({
+    Annotations.combine({
       title: "trimmed",
       description: "a string with no leading or trailing whitespace",
       jsonSchema: {
@@ -254,7 +254,7 @@ export function regex(regex: RegExp, annotations?: Annotations.Filter) {
   const source = regex.source
   return make(
     (s: string) => regex.test(s),
-    Annotations.merge({
+    Annotations.combine({
       title: `regex(${source})`,
       description: `a string matching the regex ${source}`,
       jsonSchema: {
@@ -320,7 +320,7 @@ export function uuid(version?: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8) {
 export function ulid(annotations?: Annotations.Filter) {
   return regex(
     /^[0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{26}$/,
-    Annotations.merge({ title: "ulid" }, annotations)
+    Annotations.combine({ title: "ulid" }, annotations)
   )
 }
 
@@ -331,7 +331,7 @@ export function ulid(annotations?: Annotations.Filter) {
 export function base64(annotations?: Annotations.Filter) {
   return regex(
     /^([0-9a-zA-Z+/]{4})*(([0-9a-zA-Z+/]{2}==)|([0-9a-zA-Z+/]{3}=))?$/,
-    Annotations.merge({
+    Annotations.combine({
       title: "base64",
       description: "a base64 encoded string",
       contentEncoding: "base64"
@@ -346,7 +346,7 @@ export function base64(annotations?: Annotations.Filter) {
 export function base64url(annotations?: Annotations.Filter) {
   return regex(
     /^([0-9a-zA-Z-_]{4})*(([0-9a-zA-Z-_]{2}(==)?)|([0-9a-zA-Z-_]{3}(=)?))?$/,
-    Annotations.merge({
+    Annotations.combine({
       title: "base64url",
       description: "a base64url encoded string",
       contentEncoding: "base64"
@@ -362,7 +362,7 @@ export function startsWith(startsWith: string, annotations?: Annotations.Filter)
   const formatted = JSON.stringify(startsWith)
   return make(
     (s: string) => s.startsWith(startsWith),
-    Annotations.merge({
+    Annotations.combine({
       title: `startsWith(${formatted})`,
       description: `a string starting with ${formatted}`,
       jsonSchema: {
@@ -392,7 +392,7 @@ export function endsWith(endsWith: string, annotations?: Annotations.Filter) {
   const formatted = JSON.stringify(endsWith)
   return make(
     (s: string) => s.endsWith(endsWith),
-    Annotations.merge({
+    Annotations.combine({
       title: `endsWith(${formatted})`,
       description: `a string ending with ${formatted}`,
       jsonSchema: {
@@ -422,7 +422,7 @@ export function includes(includes: string, annotations?: Annotations.Filter) {
   const formatted = JSON.stringify(includes)
   return make(
     (s: string) => s.includes(includes),
-    Annotations.merge({
+    Annotations.combine({
       title: `includes(${formatted})`,
       description: `a string including ${formatted}`,
       jsonSchema: {
@@ -453,7 +453,7 @@ const UPPERCASED_PATTERN = "^[^a-z]*$"
 export function uppercased(annotations?: Annotations.Filter) {
   return make(
     (s: string) => s.toUpperCase() === s,
-    Annotations.merge({
+    Annotations.combine({
       title: "uppercased",
       description: "a string with all characters in uppercase",
       jsonSchema: {
@@ -483,7 +483,7 @@ const LOWERCASED_PATTERN = "^[^A-Z]*$"
 export function lowercased(annotations?: Annotations.Filter) {
   return make(
     (s: string) => s.toLowerCase() === s,
-    Annotations.merge({
+    Annotations.combine({
       title: "lowercased",
       description: "a string with all characters in lowercase",
       jsonSchema: {
@@ -515,7 +515,7 @@ const CAPITALIZED_PATTERN = "^[^a-z]?.*$"
 export function capitalized(annotations?: Annotations.Filter) {
   return make(
     (s: string) => s.charAt(0).toUpperCase() === s.charAt(0),
-    Annotations.merge({
+    Annotations.combine({
       title: "capitalized",
       description: "a string with the first character in uppercase",
       jsonSchema: {
@@ -547,7 +547,7 @@ const UNCAPITALIZED_PATTERN = "^[^A-Z]?.*$"
 export function uncapitalized(annotations?: Annotations.Filter) {
   return make(
     (s: string) => s.charAt(0).toLowerCase() === s.charAt(0),
-    Annotations.merge({
+    Annotations.combine({
       title: "uncapitalized",
       description: "a string with the first character in lowercase",
       jsonSchema: {
@@ -575,7 +575,7 @@ export function uncapitalized(annotations?: Annotations.Filter) {
 export function finite(annotations?: Annotations.Filter) {
   return make(
     (n: number) => Number.isFinite(n),
-    Annotations.merge({
+    Annotations.combine({
       title: "finite",
       description: "a finite number",
       meta: {
@@ -607,7 +607,7 @@ export function deriveGreaterThan<T>(options: {
   return (exclusiveMinimum: T, annotations?: Annotations.Filter) => {
     return make<T>(
       (input) => greaterThan(input, exclusiveMinimum),
-      Annotations.merge({
+      Annotations.combine({
         title: `greaterThan(${format(exclusiveMinimum)})`,
         description: `a value greater than ${format(exclusiveMinimum)}`,
         ...options.annotate?.(exclusiveMinimum)
@@ -630,7 +630,7 @@ export function deriveGreaterThanOrEqualTo<T>(options: {
   return (minimum: T, annotations?: Annotations.Filter) => {
     return make<T>(
       (input) => greaterThanOrEqualTo(input, minimum),
-      Annotations.merge({
+      Annotations.combine({
         title: `greaterThanOrEqualTo(${format(minimum)})`,
         description: `a value greater than or equal to ${format(minimum)}`,
         ...options.annotate?.(minimum)
@@ -653,7 +653,7 @@ export function deriveLessThan<T>(options: {
   return (exclusiveMaximum: T, annotations?: Annotations.Filter) => {
     return make<T>(
       (input) => lessThan(input, exclusiveMaximum),
-      Annotations.merge({
+      Annotations.combine({
         title: `lessThan(${format(exclusiveMaximum)})`,
         description: `a value less than ${format(exclusiveMaximum)}`,
         ...options.annotate?.(exclusiveMaximum)
@@ -676,7 +676,7 @@ export function deriveLessThanOrEqualTo<T>(options: {
   return (maximum: T, annotations?: Annotations.Filter) => {
     return make<T>(
       (input) => lessThanOrEqualTo(input, maximum),
-      Annotations.merge({
+      Annotations.combine({
         title: `lessThanOrEqualTo(${format(maximum)})`,
         description: `a value less than or equal to ${format(maximum)}`,
         ...options.annotate?.(maximum)
@@ -700,7 +700,7 @@ export function deriveBetween<T>(options: {
   return (minimum: T, maximum: T, annotations?: Annotations.Filter) => {
     return make<T>(
       (input) => greaterThanOrEqualTo(input, minimum) && lessThanOrEqualTo(input, maximum),
-      Annotations.merge({
+      Annotations.combine({
         title: `between(${format(minimum)}, ${format(maximum)})`,
         description: `a value between ${format(minimum)} and ${format(maximum)}`,
         ...options.annotate?.(minimum, maximum)
@@ -723,7 +723,7 @@ export function deriveMultipleOf<T>(options: {
     const format = options.format ?? formatUnknown
     return make<T>(
       (input) => options.remainder(input, divisor) === options.zero,
-      Annotations.merge({
+      Annotations.combine({
         title: `multipleOf(${format(divisor)})`,
         description: `a value that is a multiple of ${format(divisor)}`,
         ...options.annotate?.(divisor)
@@ -919,7 +919,7 @@ export const multipleOf = deriveMultipleOf({
 export function int(annotations?: Annotations.Filter) {
   return make(
     (n: number) => Number.isSafeInteger(n),
-    Annotations.merge({
+    Annotations.combine({
       title: "int",
       description: "an integer",
       jsonSchema: {
@@ -950,7 +950,7 @@ export function int32(annotations?: Annotations.Filter) {
       int(annotations),
       between(-2147483648, 2147483647)
     ],
-    Annotations.merge({
+    Annotations.combine({
       title: "int32",
       description: "a 32-bit integer",
       jsonSchema: {
@@ -977,7 +977,7 @@ export function uint32(annotations?: Annotations.Filter) {
       int(),
       between(0, 4294967295)
     ],
-    Annotations.merge({
+    Annotations.combine({
       title: "uint32",
       description: "a 32-bit unsigned integer",
       jsonSchema: {
@@ -1001,7 +1001,7 @@ export function uint32(annotations?: Annotations.Filter) {
 export function validDate(annotations?: Annotations.Filter) {
   return make<Date>(
     (date) => !isNaN(date.getTime()),
-    Annotations.merge({
+    Annotations.combine({
       title: "validDate",
       description: "a valid date",
       meta: {
@@ -1156,7 +1156,7 @@ export function minLength(minLength: number, annotations?: Annotations.Filter) {
   minLength = Math.max(0, Math.floor(minLength))
   return make<{ readonly length: number }>(
     (input) => input.length >= minLength,
-    Annotations.merge({
+    Annotations.combine({
       title: `minLength(${minLength})`,
       description: `a value with a length of at least ${minLength}`,
       jsonSchema: {
@@ -1209,7 +1209,7 @@ export function maxLength(maxLength: number, annotations?: Annotations.Filter) {
   maxLength = Math.max(0, Math.floor(maxLength))
   return make<{ readonly length: number }>(
     (input) => input.length <= maxLength,
-    Annotations.merge({
+    Annotations.combine({
       title: `maxLength(${maxLength})`,
       description: `a value with a length of at most ${maxLength}`,
       jsonSchema: {
@@ -1253,7 +1253,7 @@ export function length(length: number, annotations?: Annotations.Filter) {
   length = Math.max(0, Math.floor(length))
   return make<{ readonly length: number }>(
     (input) => input.length === length,
-    Annotations.merge({
+    Annotations.combine({
       title: `length(${length})`,
       description: `a value with a length of ${length}`,
       jsonSchema: {
@@ -1299,7 +1299,7 @@ export function minSize(minSize: number, annotations?: Annotations.Filter) {
   minSize = Math.max(0, Math.floor(minSize))
   return make<{ readonly size: number }>(
     (input) => input.size >= minSize,
-    Annotations.merge({
+    Annotations.combine({
       title: `minSize(${minSize})`,
       description: `a value with a size of at least ${minSize}`,
       meta: {
@@ -1328,7 +1328,7 @@ export function maxSize(maxSize: number, annotations?: Annotations.Filter) {
   maxSize = Math.max(0, Math.floor(maxSize))
   return make<{ readonly size: number }>(
     (input) => input.size <= maxSize,
-    Annotations.merge({
+    Annotations.combine({
       title: `maxSize(${maxSize})`,
       description: `a value with a size of at most ${maxSize}`,
       meta: {
@@ -1357,7 +1357,7 @@ export function size(size: number, annotations?: Annotations.Filter) {
   size = Math.max(0, Math.floor(size))
   return make<{ readonly size: number }>(
     (input) => input.size === size,
-    Annotations.merge({
+    Annotations.combine({
       title: `size(${size})`,
       description: `a value with a size of ${size}`,
       meta: {
@@ -1387,7 +1387,7 @@ export function minEntries(minEntries: number, annotations?: Annotations.Filter)
   minEntries = Math.max(0, Math.floor(minEntries))
   return make<object>(
     (input) => Object.entries(input).length >= minEntries,
-    Annotations.merge({
+    Annotations.combine({
       title: `minEntries(${minEntries})`,
       description: `an object with at least ${minEntries} entries`,
       jsonSchema: {
@@ -1420,7 +1420,7 @@ export function maxEntries(maxEntries: number, annotations?: Annotations.Filter)
   maxEntries = Math.max(0, Math.floor(maxEntries))
   return make<object>(
     (input) => Object.entries(input).length <= maxEntries,
-    Annotations.merge({
+    Annotations.combine({
       title: `maxEntries(${maxEntries})`,
       description: `an object with at most ${maxEntries} entries`,
       jsonSchema: {
@@ -1453,7 +1453,7 @@ export function entries(entries: number, annotations?: Annotations.Filter) {
   entries = Math.max(0, Math.floor(entries))
   return make<object>(
     (input) => Object.entries(input).length === entries,
-    Annotations.merge({
+    Annotations.combine({
       title: `entries(${entries})`,
       description: `an object with exactly ${entries} entries`,
       jsonSchema: {
@@ -1485,7 +1485,7 @@ export function entries(entries: number, annotations?: Annotations.Filter) {
 export function unique<T>(equivalence: Equivalence.Equivalence<T>, annotations?: Annotations.Filter) {
   return make<ReadonlyArray<T>>(
     (input) => Arr.dedupeWith(input, equivalence).length === input.length,
-    Annotations.merge({
+    Annotations.combine({
       title: "unique",
       jsonSchema: {
         _tag: "Constraint",

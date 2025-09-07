@@ -135,17 +135,18 @@ export interface Filter extends Documentation { // This annotation group is not 
 /**
  * Merges annotations while preserving getters from both objects.
  *
- * **Warning**. Any existing `id` annotation will be removed.
+ * **Warning**. Any existing `identifier` annotation will be removed.
  *
  * @internal
  */
-export function merge(existing: Filter, incoming: Annotations | undefined): Filter
-export function merge(existing: Annotations | undefined, incoming: Annotations | undefined): Annotations | undefined
-export function merge(existing: Annotations | undefined, incoming: Annotations | undefined): Annotations | undefined {
+export function combine<A extends Annotations>(existing: A, incoming: A | undefined): A
+export function combine<A extends Annotations>(existing: A | undefined, incoming: A): A
+export function combine<A extends Annotations>(existing: A | undefined, incoming: A | undefined): A | undefined
+export function combine<A extends Annotations>(existing: A | undefined, incoming: A | undefined): A | undefined {
   if (!existing) return incoming
   if (!incoming) return existing
 
-  const out = {}
+  const out: any = {}
   // Apply existing descriptors first
   for (const [key, descriptor] of Object.entries(Object.getOwnPropertyDescriptors(existing))) {
     if (key === "identifier") continue

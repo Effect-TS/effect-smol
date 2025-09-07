@@ -4416,15 +4416,15 @@ function getClassSchemaFactory<S extends Top>(
               Effect.succeed(input) :
               Effect.fail(new Issue.InvalidType(ast, O.some(input)))
           },
-          Annotations.merge({
-            defaultJsonSerializer: ([from]: [any]) => getLink(from.ast),
+          Annotations.combine({
+            defaultJsonSerializer: ([from]: readonly [any]) => getLink(from.ast),
             arbitrary: {
               _tag: "Declaration",
-              declaration: ([from]: [any]) => () => from.map((args: any) => new self(args))
+              declaration: ([from]: readonly [any]) => () => from.map((args: any) => new self(args))
             },
             format: {
               _tag: "Declaration",
-              declaration: ([from]: [any]) => (t: any) => `${self.identifier}(${from(t)})`
+              declaration: ([from]: readonly [any]) => (t: any) => `${self.identifier}(${from(t)})`
             }
           }, annotations)
         )

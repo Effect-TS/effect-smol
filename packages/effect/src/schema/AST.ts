@@ -1961,7 +1961,7 @@ export function annotate<A extends AST>(ast: A, annotations: Annotations.Annotat
     return replaceChecks(ast, Arr.append(ast.checks.slice(0, -1), last.annotate(annotations)))
   }
   return modifyOwnPropertyDescriptors(ast, (d) => {
-    d.annotations.value = Annotations.merge(d.annotations.value, annotations)
+    d.annotations.value = Annotations.combine(d.annotations.value, annotations)
   })
 }
 
@@ -1973,7 +1973,7 @@ export function annotateKey<A extends AST>(ast: A, annotations: Annotations.Docu
       ast.context.isMutable,
       ast.context.defaultValue,
       ast.context.make,
-      Annotations.merge(ast.context.annotations, annotations)
+      Annotations.combine(ast.context.annotations, annotations)
     ) :
     new Context(false, false, undefined, undefined, annotations)
   return replaceContext(ast, context)
