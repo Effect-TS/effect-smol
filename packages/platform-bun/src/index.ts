@@ -60,6 +60,11 @@ export * as BunPath from "./BunPath.ts"
 /**
  * @since 1.0.0
  */
+export * as BunPersistence from "./BunPersistence.ts"
+
+/**
+ * @since 1.0.0
+ */
 export * as BunRuntime from "./BunRuntime.ts"
 
 /**

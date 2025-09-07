@@ -70,6 +70,11 @@ export * as NodePath from "./NodePath.ts"
 /**
  * @since 1.0.0
  */
+export * as NodePersistence from "./NodePersistence.ts"
+
+/**
+ * @since 1.0.0
+ */
 export * as NodeRuntime from "./NodeRuntime.ts"
 
 /**
