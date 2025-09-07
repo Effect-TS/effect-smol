@@ -7,6 +7,7 @@ import type * as Exit from "../../Exit.ts"
 import * as PrimaryKey from "../../interfaces/PrimaryKey.ts"
 import * as Schema from "../../schema/Schema.ts"
 import * as Serializer from "../../schema/Serializer.ts"
+import type { DurationInput } from "../../time/Duration.ts"
 import type * as Types from "../../types/Types.ts"
 import type { PersistenceError } from "./Persistence.ts"
 
@@ -32,6 +33,62 @@ export interface Persistable<A extends Schema.Top, E extends Schema.Top> extends
  * @category Models
  */
 export type Any = Persistable<Schema.Top, Schema.Top>
+
+/**
+ * @since 4.0.0
+ * @category Models
+ */
+export type SuccessSchema<A extends Any> = A["~effect/persistence/Persistable"]["success"]
+
+/**
+ * @since 4.0.0
+ * @category Models
+ */
+export type Success<A extends Any> = A["~effect/persistence/Persistable"]["success"]["Type"]
+
+/**
+ * @since 4.0.0
+ * @category Models
+ */
+export type ErrorSchema<A extends Any> = A["~effect/persistence/Persistable"]["error"]
+
+/**
+ * @since 4.0.0
+ * @category Models
+ */
+export type Error<A extends Any> = A["~effect/persistence/Persistable"]["error"]["Type"]
+
+/**
+ * @since 4.0.0
+ * @category Models
+ */
+export type DecodingServices<A extends Any> =
+  | A["~effect/persistence/Persistable"]["success"]["DecodingServices"]
+  | A["~effect/persistence/Persistable"]["error"]["DecodingServices"]
+
+/**
+ * @since 4.0.0
+ * @category Models
+ */
+export type EncodingServices<A extends Any> =
+  | A["~effect/persistence/Persistable"]["success"]["EncodingServices"]
+  | A["~effect/persistence/Persistable"]["error"]["EncodingServices"]
+
+/**
+ * @since 4.0.0
+ * @category Models
+ */
+export type Services<A extends Any> =
+  | A["~effect/persistence/Persistable"]["success"]["DecodingServices"]
+  | A["~effect/persistence/Persistable"]["success"]["EncodingServices"]
+  | A["~effect/persistence/Persistable"]["error"]["DecodingServices"]
+  | A["~effect/persistence/Persistable"]["error"]["EncodingServices"]
+
+/**
+ * @since 4.0.0
+ * @category Models
+ */
+export type TimeToLiveFn<K extends Any> = (exit: Exit.Exit<Success<K>, Error<K>>, request: K) => DurationInput
 
 /**
  * @since 4.0.0

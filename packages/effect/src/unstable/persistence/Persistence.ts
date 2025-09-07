@@ -78,14 +78,6 @@ export interface PersistenceStore {
 
 /**
  * @since 4.0.0
- * @category models
- */
-export type TimeToLiveArgs<K extends Persistable.Any> = K extends Persistable.Persistable<infer _A, infer _E> ?
-  [exit: Exit.Exit<_A["Type"], _E["Type"]>, request: K]
-  : never
-
-/**
- * @since 4.0.0
  * @category BackingPersistence
  */
 export class BackingPersistence extends ServiceMap.Key<BackingPersistence, {
