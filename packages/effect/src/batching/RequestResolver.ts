@@ -1059,73 +1059,82 @@ export const withCacheUnsafe: {
  * @since 4.0.0
  * @category Persistence
  */
-export const persisted: <
-  A extends Request.Request<any, Persistence.PersistenceError | Schema.SchemaError, any> & Persistable.Any
->(
-  self: RequestResolver<A>,
-  options: {
-    readonly storeId: string
-    readonly timeToLive?: ((exit: Request.Result<A>, request: A) => Duration.DurationInput) | undefined
-    readonly inMemoryCapacity?: number | undefined
-  }
-) => Effect.Effect<
-  RequestResolver<A>,
-  never,
-  Persistence.Persistence | Scope
-> = Effect.fnUntraced(function*<
-  A extends Request.Request<any, Persistence.PersistenceError | Schema.SchemaError, any> & Persistable.Any
->(
-  self: RequestResolver<A>,
-  options: {
-    readonly storeId: string
-    readonly timeToLive?: ((exit: Request.Result<A>, request: A) => Duration.DurationInput) | undefined
-    readonly inMemoryCapacity?: number | undefined
-  }
-) {
-  const store = yield* (yield* Persistence.Persistence).make(options as any)
-  const resolver = makeWith<A>({
-    ...self,
-    runAll: Effect.fnUntraced(function*(entries, key) {
-      const results = yield* (store.getMany(Iterable.map(entries, (_) => _.request)).pipe(
-        Effect.provideServices(entries[0].services)
-      ) as Effect.Effect<
-        Array<Exit.Exit<unknown, unknown> | undefined>,
-        Request.Error<A>
-      >)
-      const leftover: Array<Request.Entry<A>> = []
-      const toPersist = new Map<A, Request.Result<A>>()
-      for (let i = 0; i < results.length; i++) {
-        const entry = entries[i]
-        const exit = results[i]
-        if (exit === undefined) {
-          const prevComplete = entry.completeUnsafe
-          entry.completeUnsafe = function(exit) {
-            toPersist.set(entry.request, exit as any)
-            prevComplete(exit)
+export const persisted: {
+  <A extends Request.Request<any, Persistence.PersistenceError | Schema.SchemaError, any> & Persistable.Any>(
+    options: {
+      readonly storeId: string
+      readonly timeToLive?: ((exit: Request.Result<A>, request: A) => Duration.DurationInput) | undefined
+    }
+  ): (self: RequestResolver<A>) => Effect.Effect<
+    RequestResolver<A>,
+    never,
+    Persistence.Persistence | Scope
+  >
+  <
+    A extends Request.Request<any, Persistence.PersistenceError | Schema.SchemaError, any> & Persistable.Any
+  >(
+    self: RequestResolver<A>,
+    options: {
+      readonly storeId: string
+      readonly timeToLive?: ((exit: Request.Result<A>, request: A) => Duration.DurationInput) | undefined
+    }
+  ): Effect.Effect<
+    RequestResolver<A>,
+    never,
+    Persistence.Persistence | Scope
+  >
+} = dual(
+  2,
+  Effect.fnUntraced(function*<
+    A extends Request.Request<any, Persistence.PersistenceError | Schema.SchemaError, any> & Persistable.Any
+  >(
+    self: RequestResolver<A>,
+    options: {
+      readonly storeId: string
+      readonly timeToLive?: ((exit: Request.Result<A>, request: A) => Duration.DurationInput) | undefined
+    }
+  ) {
+    const store = yield* (yield* Persistence.Persistence).make(options as any)
+    return makeWith<A>({
+      ...self,
+      runAll: Effect.fnUntraced(function*(entries, key) {
+        const results = yield* (store.getMany(Iterable.map(entries, (_) => _.request)).pipe(
+          Effect.provideServices(entries[0].services)
+        ) as Effect.Effect<
+          Array<Exit.Exit<unknown, unknown> | undefined>,
+          Request.Error<A>
+        >)
+        const leftover: Array<Request.Entry<A>> = []
+        const toPersist = new Map<A, Request.Result<A>>()
+        for (let i = 0; i < results.length; i++) {
+          const entry = entries[i]
+          const exit = results[i]
+          if (exit === undefined) {
+            const prevComplete = entry.completeUnsafe
+            entry.completeUnsafe = function(exit) {
+              toPersist.set(entry.request, exit as any)
+              prevComplete(exit)
+            }
+            leftover.push(entry)
+            continue
           }
-          leftover.push(entry)
-          continue
+          entry.completeUnsafe(exit as any)
         }
-        entry.completeUnsafe(exit as any)
-      }
-      if (!Arr.isArrayNonEmpty(leftover)) {
-        return
-      }
-      yield* Effect.catchCause(self.runAll(leftover, key), (cause) => {
-        for (let i = 0; i < leftover.length; i++) {
-          const entry = leftover[i]
-          if (!toPersist.has(entry.request)) continue
-          entry.completeUnsafe(Exit.failCause(cause) as any)
+        if (!Arr.isArrayNonEmpty(leftover)) {
+          return
         }
-        return Effect.void
+        yield* Effect.catchCause(self.runAll(leftover, key), (cause) => {
+          for (let i = 0; i < leftover.length; i++) {
+            const entry = leftover[i]
+            if (!toPersist.has(entry.request)) continue
+            entry.completeUnsafe(Exit.failCause(cause) as any)
+          }
+          return Effect.void
+        })
+        yield* (store.setMany(toPersist).pipe(
+          Effect.provideServices(entries[0].services)
+        ) as Effect.Effect<void, Request.Error<A>>)
       })
-      yield* (store.setMany(toPersist).pipe(
-        Effect.provideServices(entries[0].services)
-      ) as Effect.Effect<void, Request.Error<A>>)
     })
   })
-  return withCacheUnsafe(resolver, {
-    capacity: options.inMemoryCapacity ?? 4096,
-    strategy: "fifo"
-  })
-})
+)
