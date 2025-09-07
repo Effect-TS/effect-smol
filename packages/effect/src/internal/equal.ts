@@ -74,6 +74,3 @@ export const isStructurallyComparable = (obj: unknown): obj is Record<PropertyKe
   // Include all other objects for structural comparison
   return true
 }
-
-/** @internal */
-export const instanceEqualityRegistry = new WeakMap<object | Function, true>()

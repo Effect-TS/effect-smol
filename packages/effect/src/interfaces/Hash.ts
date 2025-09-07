@@ -9,7 +9,7 @@
  */
 import { hasProperty } from "../data/Predicate.ts"
 import { dual, pipe } from "../Function.ts"
-import { getAllObjectKeys, instanceEqualityRegistry, isStructurallyComparable } from "../internal/equal.ts"
+import { getAllObjectKeys, isStructurallyComparable } from "../internal/equal.ts"
 
 /** @internal */
 const randomHashCache = new WeakMap<object, number>()
@@ -104,8 +104,6 @@ export const hash: <A>(self: A) => number = <A>(self: A) => {
     case "object": {
       if (self === null) {
         return string("null")
-      } else if ((typeof self === "object" || typeof self === "function") && instanceEqualityRegistry.has(self)) {
-        return random(self)
       } else if (visitedObjects.has(self)) {
         // Circular reference detected - return a consistent hash for cycles
         return string("[Circular]")
