@@ -15,7 +15,7 @@ import {
   ShardStorage,
   Snowflake
 } from "effect/unstable/cluster"
-import { TestEntity, TestEntityNoState, TestEntityState, User } from "./TestEntity.js"
+import { TestEntity, TestEntityNoState, TestEntityState, User } from "./TestEntity.ts"
 
 describe.concurrent("Sharding", () => {
   it.effect("delivers a message", () =>

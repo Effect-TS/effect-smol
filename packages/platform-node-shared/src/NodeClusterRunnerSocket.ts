@@ -16,8 +16,8 @@ import * as RpcSerialization from "effect/unstable/rpc/RpcSerialization"
 import type * as SocketServer from "effect/unstable/socket/SocketServer"
 import type { SqlClient } from "effect/unstable/sql/SqlClient"
 import type { SqlError } from "effect/unstable/sql/SqlError"
-import { layerClientProtocol } from "./NodeClusterSocketCommon.js"
-import * as NodeSocketServer from "./NodeSocketServer.js"
+import { layerClientProtocol } from "./NodeClusterSocketCommon.ts"
+import * as NodeSocketServer from "./NodeSocketServer.ts"
 
 /**
  * @since 1.0.0

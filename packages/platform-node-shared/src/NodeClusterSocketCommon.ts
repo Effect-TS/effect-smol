@@ -7,7 +7,7 @@ import * as Runners from "effect/unstable/cluster/Runners"
 import * as RpcClient from "effect/unstable/rpc/RpcClient"
 import * as RpcSerialization from "effect/unstable/rpc/RpcSerialization"
 import { Socket } from "effect/unstable/socket/Socket"
-import * as NodeSocket from "./NodeSocket.js"
+import * as NodeSocket from "./NodeSocket.ts"
 
 /**
  * @since 1.0.0
