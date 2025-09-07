@@ -101,6 +101,7 @@ export interface Bottom<
 
   readonly ast: Ast
   readonly "~rebuild.out": RebuildOut
+  readonly "~iso": any
   readonly "~annotate.in": AnnotateIn
 
   readonly "Type": T
@@ -231,6 +232,7 @@ export abstract class Bottom$<
   declare readonly "EncodingServices": RE
 
   declare readonly "~rebuild.out": RebuildOut
+  declare readonly "~iso": any
   declare readonly "~annotate.in": AnnotateIn
 
   declare readonly "~type.make.in": TypeMakeIn
@@ -1280,7 +1282,9 @@ export const Undefined: Undefined = make<Undefined>(AST.undefinedKeyword)
  */
 export interface String
   extends Bottom<string, string, never, never, AST.StringKeyword, String, Annotations.Bottom<string>>
-{}
+{
+  readonly "~iso": string
+}
 
 /**
  * A schema for all strings.
@@ -1501,6 +1505,7 @@ export interface Struct<Fields extends Struct.Fields> extends
     Simplify<Struct.MakeIn<Fields>>
   >
 {
+  readonly "~iso": { readonly [K in keyof Fields]: Fields[K]["~iso"] }
   readonly fields: Fields
   /**
    * Returns a new struct with the fields modified by the provided function.
@@ -2088,6 +2093,7 @@ export interface Array$<S extends Top> extends
     ReadonlyArray<S["~type.make"]>
   >
 {
+  readonly "~iso": ReadonlyArray<S["~iso"]>
   readonly schema: S
 }
 
@@ -3911,6 +3917,7 @@ export function link<T>() { // TODO: better name
  */
 export interface URL extends instanceOf<globalThis.URL> {
   readonly "~rebuild.out": URL
+  readonly "~iso": string
 }
 
 /**
@@ -4280,6 +4287,7 @@ export interface Class<Self, S extends Top & { readonly fields: Struct.Fields },
     S["~encoded.optionality"]
   >
 {
+  readonly "~iso": S["~iso"]
   new(props: S["~type.make.in"], options?: MakeOptions): S["Type"] & Inherited
   readonly identifier: string
   readonly fields: S["fields"]
@@ -4337,6 +4345,7 @@ function makeClass<
     declare static readonly "EncodingServices": S["EncodingServices"]
 
     declare static readonly "~rebuild.out": Class<Self, S, Self>
+    declare static readonly "~iso": S["~iso"]
     declare static readonly "~annotate.in": Annotations.Declaration<Self, readonly [S]>
     declare static readonly "~type.make.in": S["~type.make.in"]
     declare static readonly "~type.make": Self
