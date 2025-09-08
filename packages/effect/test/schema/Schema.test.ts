@@ -1499,7 +1499,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
         await assertions.decoding.fail(
           schema,
           [{ a: "a", b: "b" }, { a: "a", b: "b" }],
-          `Expected unique, got [{"a":"a","b":"b"},{"a":"a","b":"b"}]`
+          `Expected an array with unique items, got [{"a":"a","b":"b"},{"a":"a","b":"b"}]`
         )
       })
     })

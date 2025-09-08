@@ -4,7 +4,7 @@
 
 import * as Effect from "../Effect.ts"
 import type { Inspectable } from "../interfaces/Inspectable.ts"
-import { NodeInspectSymbol, toJSON } from "../interfaces/Inspectable.ts"
+import { NodeInspectSymbol, toJson } from "../interfaces/Inspectable.ts"
 import type { Pipeable } from "../interfaces/Pipeable.ts"
 import { pipeArguments } from "../interfaces/Pipeable.ts"
 import type * as Scope from "../Scope.ts"
@@ -50,7 +50,7 @@ export interface TxSemaphore extends Inspectable, Pipeable {
 
 const TxSemaphoreProto: Omit<TxSemaphore, typeof TypeId | "permitsRef" | "capacity"> = {
   [NodeInspectSymbol](this: TxSemaphore) {
-    return toJSON(this)
+    return toJson(this)
   },
   toJSON(this: TxSemaphore) {
     return {

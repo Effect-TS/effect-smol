@@ -26,7 +26,7 @@
  */
 import * as MutableHashMap from "../collections/MutableHashMap.ts"
 import * as Dual from "../Function.ts"
-import { format, type Inspectable, NodeInspectSymbol, toJSON } from "../interfaces/Inspectable.ts"
+import { format, type Inspectable, NodeInspectSymbol, toJson } from "../interfaces/Inspectable.ts"
 import type { Pipeable } from "../interfaces/Pipeable.ts"
 import { pipeArguments } from "../interfaces/Pipeable.ts"
 
@@ -77,7 +77,7 @@ const MutableHashSetProto: Omit<MutableHashSet<unknown>, "keyMap"> = {
   toJSON() {
     return {
       _id: "MutableHashSet",
-      values: Array.from(this).map(toJSON)
+      values: toJson(Array.from(this))
     }
   },
   [NodeInspectSymbol]() {

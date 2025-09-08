@@ -8,7 +8,7 @@ import { dual, pipe } from "../Function.ts"
 import * as Equal_ from "../interfaces/Equal.ts"
 import * as Hash from "../interfaces/Hash.ts"
 import type { Inspectable } from "../interfaces/Inspectable.ts"
-import { format, NodeInspectSymbol, toJSON } from "../interfaces/Inspectable.ts"
+import { format, NodeInspectSymbol, toJson } from "../interfaces/Inspectable.ts"
 import type { Pipeable } from "../interfaces/Pipeable.ts"
 import { pipeArguments } from "../interfaces/Pipeable.ts"
 import type { NoInfer } from "../types/Types.ts"
@@ -613,7 +613,7 @@ class HashMapImpl<K, V> implements HashMap<K, V> {
     return hash
   }
   [NodeInspectSymbol](): unknown {
-    return toJSON(this)
+    return toJson(this)
   }
   toString(): string {
     return `HashMap(${format(Array.from(this))})`
@@ -621,7 +621,7 @@ class HashMapImpl<K, V> implements HashMap<K, V> {
   toJSON(): unknown {
     return {
       _id: "HashMap",
-      values: Array.from(this).map(([k, v]) => [toJSON(k), toJSON(v)])
+      values: Array.from(this).map(([k, v]) => [toJson(k), toJson(v)])
     }
   }
   pipe() {

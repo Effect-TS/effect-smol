@@ -7,7 +7,7 @@ import type { Predicate, Refinement } from "../data/Predicate.ts"
 import * as Effect from "../Effect.ts"
 import { dual } from "../Function.ts"
 import type { Inspectable } from "../interfaces/Inspectable.ts"
-import { format, NodeInspectSymbol, toJSON } from "../interfaces/Inspectable.ts"
+import { format, NodeInspectSymbol, toJson } from "../interfaces/Inspectable.ts"
 import type { Pipeable } from "../interfaces/Pipeable.ts"
 import { pipeArguments } from "../interfaces/Pipeable.ts"
 import * as TxRef from "../transactions/TxRef.ts"
@@ -18,15 +18,15 @@ const TypeId = "~effect/transactions/TxHashSet"
 const TxHashSetProto = {
   [TypeId]: TypeId,
   [NodeInspectSymbol](this: TxHashSet<unknown>) {
-    return toJSON(this)
+    return toJson(this)
   },
   toString(this: TxHashSet<unknown>) {
-    return `TxHashSet(${format(toJSON((this).ref))})`
+    return `TxHashSet(${format(toJson((this).ref))})`
   },
   toJSON(this: TxHashSet<unknown>) {
     return {
       _id: "TxHashSet",
-      ref: toJSON((this).ref)
+      ref: toJson((this).ref)
     }
   },
   pipe(this: TxHashSet<unknown>) {

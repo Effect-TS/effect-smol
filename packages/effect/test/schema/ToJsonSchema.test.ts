@@ -1196,10 +1196,11 @@ describe("ToJsonSchema", () => {
       it("UniqueArray", async () => {
         const schema = Schema.UniqueArray(Schema.String)
         await assertDraft7(schema, {
-          type: "array",
-          items: { type: "string" },
-          title: "unique",
-          uniqueItems: true
+          "type": "array",
+          "items": { "type": "string" },
+          "title": "unique",
+          "description": "an array with unique items",
+          "uniqueItems": true
         })
       })
     })

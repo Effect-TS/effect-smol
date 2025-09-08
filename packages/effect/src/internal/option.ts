@@ -5,7 +5,7 @@ import type * as Option from "../data/Option.ts"
 import { hasProperty } from "../data/Predicate.ts"
 import * as Equal from "../interfaces/Equal.ts"
 import * as Hash from "../interfaces/Hash.ts"
-import { format, toJSON } from "../interfaces/Inspectable.ts"
+import { format, toJson } from "../interfaces/Inspectable.ts"
 import { exitFail, exitSucceed, NoSuchElementError, PipeInspectableProto, YieldableProto } from "./core.ts"
 
 const TypeId = "~effect/data/Option"
@@ -36,7 +36,7 @@ const SomeProto = Object.assign(Object.create(CommonProto), {
     return {
       _id: "Option",
       _tag: this._tag,
-      value: toJSON(this.value)
+      value: toJson(this.value)
     }
   },
   asEffect(this: Option.Some<unknown>) {

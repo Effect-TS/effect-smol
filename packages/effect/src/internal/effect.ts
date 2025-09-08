@@ -12,7 +12,7 @@ import type { LazyArg } from "../Function.ts"
 import { constant, constFalse, constTrue, constVoid, dual, identity } from "../Function.ts"
 import * as Equal from "../interfaces/Equal.ts"
 import * as Hash from "../interfaces/Hash.ts"
-import { currentFiberTypeId, formatJson, redact, toJSON } from "../interfaces/Inspectable.ts"
+import { currentFiberTypeId, formatJson, redact, toJson } from "../interfaces/Inspectable.ts"
 import { pipeArguments } from "../interfaces/Pipeable.ts"
 import type * as Console from "../logging/Console.ts"
 import type * as Logger from "../logging/Logger.ts"
@@ -4771,7 +4771,7 @@ export const structuredMessage = (u: unknown): unknown => {
       return String(u)
     }
     default: {
-      return toJSON(u)
+      return toJson(u)
     }
   }
 }

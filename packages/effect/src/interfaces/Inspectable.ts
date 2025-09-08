@@ -161,33 +161,33 @@ export interface Inspectable {
  * }
  *
  * const person = new Person("Alice", 30)
- * const data = Inspectable.toJSON(person)
+ * const data = Inspectable.toJson(person)
  * console.log(data) // { name: "Alice", age: 30 }
  *
  * // Works with arrays
  * const people = [person, new Person("Bob", 25)]
- * const array = Inspectable.toJSON(people)
+ * const array = Inspectable.toJson(people)
  * console.log(array) // [{ name: "Alice", age: 30 }, { name: "Bob", age: 25 }]
  * ```
  *
  * @since 2.0.0
  * @category conversions
  */
-export const toJSON = (x: unknown): unknown => {
+export const toJson = (input: unknown): unknown => {
   try {
     if (
-      Predicate.hasProperty(x, "toJSON") &&
-      Predicate.isFunction(x["toJSON"]) &&
-      x["toJSON"].length === 0
+      Predicate.hasProperty(input, "toJSON") &&
+      Predicate.isFunction(input["toJSON"]) &&
+      input["toJSON"].length === 0
     ) {
-      return x.toJSON()
-    } else if (Array.isArray(x)) {
-      return x.map(toJSON)
+      return input.toJSON()
+    } else if (Array.isArray(input)) {
+      return input.map(toJson)
     }
   } catch {
-    return {}
+    return "[toJSON threw]"
   }
-  return redact(x)
+  return redact(input)
 }
 
 /**
@@ -244,6 +244,15 @@ function formatDate(date: Date): string {
   }
 }
 
+function safeToString(input: any): string {
+  try {
+    const s = input.toString()
+    return typeof s === "string" ? s : String(s)
+  } catch {
+    return "[toString threw]"
+  }
+}
+
 /**
  * Converts any JavaScript value into a human-readable string.
  *
@@ -283,15 +292,6 @@ export function format(
   const seen = new WeakSet<object>()
   const gap = !space ? "" : (Predicate.isNumber(space) ? " ".repeat(space) : space)
   const ind = (d: number) => gap.repeat(d)
-
-  const safeToString = (x: any): string => {
-    try {
-      const s = x.toString()
-      return typeof s === "string" ? s : String(s)
-    } catch {
-      return "[toString threw]"
-    }
-  }
 
   const wrap = (v: unknown, body: string): string => {
     const ctor = (v as any)?.constructor
@@ -391,7 +391,7 @@ export function format(
  * // {"name":"test"} (circular reference omitted)
  *
  * // With formatting
- * console.log(Inspectable.formatJson(simple, 2))
+ * console.log(Inspectable.formatJson(simple, { space: 2 }))
  * // {
  * //   "name": "Alice",
  * //   "age": 30
@@ -453,7 +453,7 @@ export const formatJson = (
  */
 export const BaseProto: Inspectable = {
   toJSON() {
-    return toJSON(this)
+    return toJson(this)
   },
   [NodeInspectSymbol]() {
     return this.toJSON()

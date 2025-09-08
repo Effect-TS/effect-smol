@@ -32,7 +32,7 @@
  */
 import * as Dual from "./Function.ts"
 import * as Equal from "./interfaces/Equal.ts"
-import { type Inspectable, toJSON } from "./interfaces/Inspectable.ts"
+import { type Inspectable, toJson } from "./interfaces/Inspectable.ts"
 import type { Pipeable } from "./interfaces/Pipeable.ts"
 import { PipeInspectableProto } from "./internal/core.ts"
 
@@ -84,7 +84,7 @@ const MutableRefProto: Omit<MutableRef<unknown>, "current"> = {
   toJSON<A>(this: MutableRef<A>) {
     return {
       _id: "MutableRef",
-      current: toJSON(this.current)
+      current: toJson(this.current)
     }
   }
 }

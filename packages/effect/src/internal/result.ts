@@ -4,7 +4,7 @@ import type * as Result from "../data/Result.ts"
 import { dual } from "../Function.ts"
 import * as Equal from "../interfaces/Equal.ts"
 import * as Hash from "../interfaces/Hash.ts"
-import { format, toJSON } from "../interfaces/Inspectable.ts"
+import { format, toJson } from "../interfaces/Inspectable.ts"
 import { exitFail, exitSucceed, PipeInspectableProto, YieldableProto } from "./core.ts"
 import * as option from "./option.ts"
 
@@ -38,7 +38,7 @@ const SuccessProto = Object.assign(Object.create(CommonProto), {
     return {
       _id: "Result",
       _tag: this._tag,
-      value: toJSON(this.success)
+      value: toJson(this.success)
     }
   },
   asEffect<L, R>(this: Result.Success<L, R>) {
@@ -62,7 +62,7 @@ const FailureProto = Object.assign(Object.create(CommonProto), {
     return {
       _id: "Result",
       _tag: this._tag,
-      failure: toJSON(this.failure)
+      failure: toJson(this.failure)
     }
   },
   asEffect<A, E>(this: Result.Failure<A, E>) {

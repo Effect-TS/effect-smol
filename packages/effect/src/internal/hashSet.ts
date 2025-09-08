@@ -6,7 +6,7 @@ import { hasProperty } from "../data/Predicate.ts"
 import * as Equal from "../interfaces/Equal.ts"
 import * as Hash from "../interfaces/Hash.ts"
 import type { Inspectable } from "../interfaces/Inspectable.ts"
-import { format, NodeInspectSymbol, toJSON } from "../interfaces/Inspectable.ts"
+import { format, NodeInspectSymbol, toJson } from "../interfaces/Inspectable.ts"
 import type { Pipeable } from "../interfaces/Pipeable.ts"
 import { pipeArguments } from "../interfaces/Pipeable.ts"
 import * as HashMap from "./hashMap.ts"
@@ -38,7 +38,7 @@ const HashSetProto: Omit<HashSet<unknown>, HashSetTypeId> = {
   toJSON() {
     return {
       _id: "HashSet",
-      values: Array.from(this).map(toJSON)
+      values: toJson(Array.from(this))
     }
   },
   [NodeInspectSymbol]() {

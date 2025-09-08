@@ -1488,6 +1488,7 @@ export function unique<T>(equivalence: Equivalence.Equivalence<T>, annotations?:
     (input) => Arr.dedupeWith(input, equivalence).length === input.length,
     Annotations.combine({
       title: "unique",
+      description: "an array with unique items",
       jsonSchema: {
         _tag: "Constraint",
         constraint: () => ({ uniqueItems: true })
