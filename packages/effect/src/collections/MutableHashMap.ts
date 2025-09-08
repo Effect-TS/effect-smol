@@ -66,7 +66,7 @@ const TypeId = "~effect/collections/MutableHashMap"
 export interface MutableHashMap<out K, out V> extends Iterable<[K, V]>, Pipeable, Inspectable {
   readonly [TypeId]: typeof TypeId
   readonly backing: Map<K, V>
-  readonly buckets: Map<number, NonEmptyArray<K & Equal.Equal>>
+  readonly buckets: Map<number, NonEmptyArray<K>>
 }
 
 const MutableHashMapProto: Omit<MutableHashMap<unknown, unknown>, "backing" | "buckets" | "bucketsSize"> = {
@@ -208,14 +208,14 @@ export const get: {
 >(2, <K, V>(self: MutableHashMap<K, V>, key: K): Option.Option<V> => {
   if (self.backing.has(key)) {
     return Option.some(self.backing.get(key)!)
-  } else if (Equal.isEqual(key) === false) {
+  } else if (isSimpleKey(key)) {
     return Option.none()
   }
   const refKey = referentialKeysCache.get(self)
   if (refKey !== undefined) {
     return self.backing.has(refKey) ? Option.some(self.backing.get(refKey)!) : Option.none()
   }
-  const hash = key[Hash.symbol]()
+  const hash = Hash.hash(key)
   const bucket = self.buckets.get(hash)
   if (bucket === undefined) {
     return Option.none()
@@ -224,6 +224,7 @@ export const get: {
 })
 
 const referentialKeysCache = new WeakMap<any, any>()
+const isSimpleKey = (u: unknown): boolean => typeof u !== "object" && typeof u !== "function"
 
 /**
  * Extracts all keys from the MutableHashMap into an array.
@@ -282,11 +283,11 @@ export const values = <K, V>(self: MutableHashMap<K, V>): Iterable<V> => self.ba
 
 const getFromBucket = <K, V>(
   self: MutableHashMap<K, V>,
-  bucket: NonEmptyArray<K & Equal.Equal>,
-  key: K & Equal.Equal
+  bucket: NonEmptyArray<K>,
+  key: K
 ): Option.Option<V> => {
   for (let i = 0, len = bucket.length; i < len; i++) {
-    if (key[Equal.symbol](bucket[i])) {
+    if (Equal.equals(key, bucket[i])) {
       const refKey = bucket[i]
       referentialKeysCache.set(key, refKey)
       return Option.some(self.backing.get(refKey)!)
@@ -360,7 +361,7 @@ export const set: {
   <K, V>(key: K, value: V) => (self: MutableHashMap<K, V>) => MutableHashMap<K, V>,
   <K, V>(self: MutableHashMap<K, V>, key: K, value: V) => MutableHashMap<K, V>
 >(3, <K, V>(self: MutableHashMap<K, V>, key: K, value: V) => {
-  if (self.backing.has(key) || Equal.isEqual(key) === false) {
+  if (self.backing.has(key) || isSimpleKey(key)) {
     self.backing.set(key, value)
     return self
   }
@@ -370,7 +371,7 @@ export const set: {
     return self
   }
 
-  const hash = key[Hash.symbol]()
+  const hash = Hash.hash(key)
   const bucket = self.buckets.get(hash)
   if (bucket === undefined) {
     self.buckets.set(hash, [key])
@@ -388,11 +389,11 @@ export const set: {
 })
 
 const getRefKey = <K>(
-  bucket: NonEmptyArray<K & Equal.Equal>,
-  key: K & Equal.Equal
+  bucket: NonEmptyArray<K>,
+  key: K
 ) => {
   for (let i = 0, len = bucket.length; i < len; i++) {
-    if (key[Equal.symbol](bucket[i])) {
+    if (Equal.equals(key, bucket[i])) {
       referentialKeysCache.set(key, bucket[i])
       return bucket[i]
     }
@@ -437,7 +438,7 @@ export const modify: {
   <K, V>(self: MutableHashMap<K, V>, key: K, f: (v: V) => V) => MutableHashMap<K, V>
 >(3, <K, V>(self: MutableHashMap<K, V>, key: K, f: (v: V) => V) => {
   const hasKey = self.backing.has(key)
-  if (hasKey || Equal.isEqual(key) === false) {
+  if (hasKey || isSimpleKey(key)) {
     if (hasKey) {
       self.backing.set(key, f(self.backing.get(key)!))
     }
@@ -449,7 +450,7 @@ export const modify: {
     return self
   }
 
-  const hash = key[Hash.symbol]()
+  const hash = Hash.hash(key)
   const bucket = self.buckets.get(hash)
   if (bucket === undefined) {
     return self
@@ -569,20 +570,20 @@ export const remove: {
   <K>(key: K) => <V>(self: MutableHashMap<K, V>) => MutableHashMap<K, V>,
   <K, V>(self: MutableHashMap<K, V>, key: K) => MutableHashMap<K, V>
 >(2, <K, V>(self: MutableHashMap<K, V>, key_: K) => {
-  if (Equal.isEqual(key_) === false) {
+  if (isSimpleKey(key_)) {
     self.backing.delete(key_)
     return self
   }
 
   const key = referentialKeysCache.get(self) ?? key_
-  const hash = key[Hash.symbol]()
+  const hash = Hash.hash(key)
   const bucket = self.buckets.get(hash)
   if (bucket === undefined) {
     return self
   }
   for (let i = 0, len = bucket.length; i < len; i++) {
     const bkey = bucket[i]
-    if (bkey === key || key[Equal.symbol](bkey)) {
+    if (bkey === key || Equal.equals(key, bkey)) {
       self.backing.delete(bkey)
       bucket.splice(i, 1)
       break
