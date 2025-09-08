@@ -1509,3 +1509,15 @@ export function unique<T>(equivalence: Equivalence.Equivalence<T>, annotations?:
     }, annotations)
   )
 }
+
+/**
+ * A check that ensures the value is a Some value.
+ *
+ * @since 4.0.0
+ */
+export function some<A>(annotations?: Annotations.Filter) {
+  return makeRefine<Option.Some<A>, Option.Option<A>>(
+    Option.isSome,
+    Annotations.combine({ title: "some", description: "a Some value" }, annotations)
+  )
+}

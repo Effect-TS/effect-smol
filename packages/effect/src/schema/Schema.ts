@@ -1931,6 +1931,7 @@ export interface Tuple<Elements extends Tuple.Elements> extends
     Tuple.MakeIn<Elements>
   >
 {
+  readonly "~iso": { readonly [K in keyof Elements]: Elements[K]["~iso"] }
   readonly elements: Elements
   /**
    * Returns a new tuple with the elements modified by the provided function.
@@ -3168,6 +3169,7 @@ export interface Option<S extends Top>
   extends declareConstructor<O.Option<S["Type"]>, O.Option<S["Encoded"]>, readonly [S]>
 {
   readonly "~rebuild.out": Option<S>
+  readonly "~iso": readonly [] | readonly [S["~iso"]]
 }
 
 /**
