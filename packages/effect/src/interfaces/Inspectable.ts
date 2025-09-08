@@ -262,7 +262,7 @@ function formatDate(date: Date): string {
  * - Circular references are replaced with the literal `"[Circular]"`.
  *
  * **Options**:
- * - `whitespace`: Indentation used when pretty-printing:
+ * - `space`: Indentation used when pretty-printing:
  *   - If a number, that many spaces will be used.
  *   - If a string, the string is used as the indentation unit (e.g. `"\t"`).
  *   - If `0`, empty string, or `undefined`, output is compact (no indentation).
@@ -275,13 +275,13 @@ function formatDate(date: Date): string {
 export function format(
   input: unknown,
   options?: {
-    readonly whitespace?: number | string | undefined
-    readonly ignoreToString?: boolean
+    readonly space?: number | string | undefined
+    readonly ignoreToString?: boolean | undefined
   }
 ): string {
-  const whitespace = options?.whitespace ?? 0
+  const space = options?.space ?? 0
   const seen = new WeakSet<object>()
-  const gap = !whitespace ? "" : (Predicate.isNumber(whitespace) ? " ".repeat(whitespace) : whitespace)
+  const gap = !space ? "" : (Predicate.isNumber(space) ? " ".repeat(space) : space)
   const ind = (d: number) => gap.repeat(d)
 
   const safeToString = (x: any): string => {
@@ -359,6 +359,67 @@ export function format(
   }
 
   return go(input, 0)
+}
+
+/**
+ * Safely stringifies objects that may contain circular references.
+ *
+ * This function performs JSON.stringify with circular reference detection and handling.
+ * It also applies redaction to sensitive values and provides a safe fallback for
+ * any objects that can't be serialized normally.
+ *
+ * **Options**:
+ * - `space`: Indentation used when pretty-printing:
+ *   - If a number, that many spaces will be used.
+ *   - If a string, the string is used as the indentation unit (e.g. `"\t"`).
+ *   - If `0`, empty string, or `undefined`, output is compact (no indentation).
+ *   Defaults to `0`.
+ *
+ * @example
+ * ```ts
+ * import { Inspectable } from "effect/interfaces"
+ *
+ * // Normal object
+ * const simple = { name: "Alice", age: 30 }
+ * console.log(Inspectable.formatJson(simple))
+ * // {"name":"Alice","age":30}
+ *
+ * // Object with circular reference
+ * const circular: any = { name: "test" }
+ * circular.self = circular
+ * console.log(Inspectable.formatJson(circular))
+ * // {"name":"test"} (circular reference omitted)
+ *
+ * // With formatting
+ * console.log(Inspectable.formatJson(simple, 2))
+ * // {
+ * //   "name": "Alice",
+ * //   "age": 30
+ * // }
+ * ```
+ *
+ * @since 2.0.0
+ * @category conversions
+ */
+export const formatJson = (
+  obj: unknown,
+  options?: {
+    readonly space?: number | string | undefined
+  }
+): string => {
+  let cache: Array<unknown> = []
+  const retVal = JSON.stringify(
+    obj,
+    (_key, value) =>
+      typeof value === "object" && value !== null
+        ? cache.includes(value)
+          ? undefined // circular reference
+          : cache.push(value) && (isRedactable(value) ? redact(value) : value)
+        : value,
+    options?.space
+  )
+  ;(cache as any) = undefined
+  return retVal
 }
 
 /**
@@ -466,61 +527,6 @@ export abstract class Class {
   toString() {
     return format(this.toJSON())
   }
-}
-
-/**
- * Safely stringifies objects that may contain circular references.
- *
- * This function performs JSON.stringify with circular reference detection and handling.
- * It also applies redaction to sensitive values and provides a safe fallback for
- * any objects that can't be serialized normally.
- *
- * @param obj - The object to stringify
- * @param whitespace - Number of spaces or string to use for indentation
- *
- * @example
- * ```ts
- * import { Inspectable } from "effect/interfaces"
- *
- * // Normal object
- * const simple = { name: "Alice", age: 30 }
- * console.log(Inspectable.stringifyCircular(simple))
- * // {"name":"Alice","age":30}
- *
- * // Object with circular reference
- * const circular: any = { name: "test" }
- * circular.self = circular
- * console.log(Inspectable.stringifyCircular(circular))
- * // {"name":"test"} (circular reference omitted)
- *
- * // With formatting
- * console.log(Inspectable.stringifyCircular(simple, 2))
- * // {
- * //   "name": "Alice",
- * //   "age": 30
- * // }
- * ```
- *
- * @since 2.0.0
- * @category conversions
- */
-export const stringifyCircular = (
-  obj: unknown,
-  whitespace?: number | string | undefined
-): string => {
-  let cache: Array<unknown> = []
-  const retVal = JSON.stringify(
-    obj,
-    (_key, value) =>
-      typeof value === "object" && value !== null
-        ? cache.includes(value)
-          ? undefined // circular reference
-          : cache.push(value) && (isRedactable(value) ? redact(value) : value)
-        : value,
-    whitespace
-  )
-  ;(cache as any) = undefined
-  return retVal
 }
 
 /**

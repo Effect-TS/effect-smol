@@ -512,7 +512,7 @@ const formatFiberId = (fiberId: number) => `#${fiberId}`
  */
 const format = (
   quoteValue: (s: string) => string,
-  whitespace?: number | string | undefined
+  space?: number | string | undefined
 ) =>
 ({ cause, date, fiber, logLevel, message }: Logger.Options<unknown>): string => {
   const formatValue = (value: string): string => value.match(textOnly) ? value : quoteValue(value)
@@ -525,7 +525,7 @@ const format = (
 
   const messages = Array.ensure(message)
   for (let i = 0; i < messages.length; i++) {
-    out += append("message", Inspectable.format(messages[i], { whitespace }))
+    out += append("message", Inspectable.format(messages[i], { space }))
   }
 
   if (cause.failures.length > 0) {
@@ -540,7 +540,7 @@ const format = (
 
   const annotations = fiber.getRef(CurrentLogAnnotations)
   for (const [label, value] of Object.entries(annotations)) {
-    out += append(label, Inspectable.format(value, { whitespace }))
+    out += append(label, Inspectable.format(value, { space }))
   }
 
   return out
@@ -818,7 +818,7 @@ export const formatStructured: Logger<unknown, {
  * @since 4.0.0
  * @category constructors
  */
-export const formatJson = map(formatStructured, Inspectable.stringifyCircular)
+export const formatJson = map(formatStructured, Inspectable.formatJson)
 
 /**
  * Returns a new `Logger` which will aggregate logs output by the specified

@@ -12,7 +12,7 @@ import type { LazyArg } from "../Function.ts"
 import { constant, constFalse, constTrue, constVoid, dual, identity } from "../Function.ts"
 import * as Equal from "../interfaces/Equal.ts"
 import * as Hash from "../interfaces/Hash.ts"
-import { currentFiberTypeId, redact, stringifyCircular, toJSON } from "../interfaces/Inspectable.ts"
+import { currentFiberTypeId, formatJson, redact, toJSON } from "../interfaces/Inspectable.ts"
 import { pipeArguments } from "../interfaces/Pipeable.ts"
 import type * as Console from "../logging/Console.ts"
 import type * as Logger from "../logging/Logger.ts"
@@ -342,7 +342,7 @@ const causePrettyError = (
     }
   } else {
     error = new globalThis.Error(
-      !original ? `Unknown error: ${original}` : kind === "string" ? original as any : stringifyCircular(original)
+      !original ? `Unknown error: ${original}` : kind === "string" ? original as any : formatJson(original)
     )
   }
   return error
@@ -363,7 +363,7 @@ export const causePrettyMessage = (u: Record<string, unknown> | Error): string =
       // something's off, rollback to json
     }
   }
-  return stringifyCircular(u)
+  return formatJson(u)
 }
 
 const locationRegex = /\((.*)\)/g

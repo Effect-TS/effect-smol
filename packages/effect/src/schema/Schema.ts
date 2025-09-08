@@ -21,7 +21,7 @@ import * as Effect from "../Effect.ts"
 import * as Exit_ from "../Exit.ts"
 import { identity } from "../Function.ts"
 import * as Equal from "../interfaces/Equal.ts"
-import { stringifyCircular } from "../interfaces/Inspectable.ts"
+import { formatJson } from "../interfaces/Inspectable.ts"
 import type { Pipeable } from "../interfaces/Pipeable.ts"
 import { pipeArguments } from "../interfaces/Pipeable.ts"
 import * as core from "../internal/core.ts"
@@ -3638,7 +3638,7 @@ export const Defect: Defect = Union([
       decode: Getter.passthrough(),
       encode: Getter.transform((a) => {
         if (Predicate.isRecord(a)) return InternalEffect.causePrettyMessage(a)
-        return stringifyCircular(a)
+        return formatJson(a)
       })
     }
   ))

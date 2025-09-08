@@ -132,16 +132,16 @@ describe("Inspectable", () => {
 
     describe("whitespace", () => {
       it("object", () => {
-        strictEqual(format({ a: 1 }, { whitespace: 2 }), `{"a":1}`)
+        strictEqual(format({ a: 1 }, { space: 2 }), `{"a":1}`)
         strictEqual(
-          format({ a: 1, b: 2 }, { whitespace: 2 }),
+          format({ a: 1, b: 2 }, { space: 2 }),
           `{
   "a": 1,
   "b": 2
 }`
         )
         strictEqual(
-          format({ a: 1, b: [1, 2, 3n] }, { whitespace: 2 }),
+          format({ a: 1, b: [1, 2, 3n] }, { space: 2 }),
           `{
   "a": 1,
   "b": [
@@ -151,14 +151,14 @@ describe("Inspectable", () => {
   ]
 }`
         )
-        strictEqual(format({ [Symbol.for("a")]: 1 }, { whitespace: 2 }), `{Symbol(a):1}`)
+        strictEqual(format({ [Symbol.for("a")]: 1 }, { space: 2 }), `{Symbol(a):1}`)
       })
 
       it("circular object", () => {
         const obj: any = { a: 1 }
         obj.b = obj
         strictEqual(
-          format(obj, { whitespace: 2 }),
+          format(obj, { space: 2 }),
           `{
   "a": 1,
   "b": [Circular]
@@ -167,9 +167,9 @@ describe("Inspectable", () => {
       })
 
       it("object with null prototype", () => {
-        strictEqual(format(Object.create(null), { whitespace: 2 }), `{}`)
+        strictEqual(format(Object.create(null), { space: 2 }), `{}`)
         strictEqual(
-          format(Object.create(null, { a: { value: 1 } }), { whitespace: 2 }),
+          format(Object.create(null, { a: { value: 1 } }), { space: 2 }),
           `{"a":1}`
         )
       })
