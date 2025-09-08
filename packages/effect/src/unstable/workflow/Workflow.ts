@@ -336,8 +336,9 @@ export const make = <
         const context = yield* Effect.services<WorkflowEngine>()
         const engine = ServiceMap.get(context, EngineTag)
         yield* engine.register(self, (payload, executionId) =>
-          execute(payload, executionId).pipe(
-            Effect.updateServices((input) => ServiceMap.merge(context, input))
+          Effect.updateServices(
+            Effect.suspend(() => execute(payload, executionId)),
+            (input) => ServiceMap.merge(context, input)
           ) as any)
         return EngineTag.serviceMap(engine)
       })) as any,

@@ -103,16 +103,17 @@ export const make = <E, R>(options: {
             const client = makeClient(DateTime.formatIso(next))
             return yield* client.run({ dateTime: next }, { discard: true }).pipe(
               Effect.sandbox,
-              Effect.retry(retryPolicy)
+              Effect.retry(retryPolicy),
+              Effect.orDie
             )
-          }).pipe(
-            Effect.catchCause(Effect.logWarning),
-            Effect.annotateLogs({
-              module: "ClusterCron",
-              name: options.name,
-              dateTime: request.payload.dateTime
-            })
-          )
+          })
+        ).pipe(
+          Effect.catchCause(Effect.logWarning),
+          Effect.annotateLogs({
+            module: "ClusterCron",
+            name: options.name,
+            dateTime: request.payload.dateTime
+          })
         )
       }
     }
