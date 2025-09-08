@@ -33,7 +33,7 @@ const HashSetProto: Omit<HashSet<unknown>, HashSetTypeId> = {
     return HashMap.keys(keyMap(this))
   },
   toString() {
-    return format(this.toJSON())
+    return `HashSet(${format(Array.from(this))})`
   },
   toJSON() {
     return {

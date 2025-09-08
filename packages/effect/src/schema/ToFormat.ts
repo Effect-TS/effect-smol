@@ -3,7 +3,8 @@
  */
 import type { Format } from "../data/Format.ts"
 import * as Option from "../data/Option.ts"
-import { formatPropertyKey, formatUnknown, memoizeThunk } from "../internal/schema/util.ts"
+import { format, formatPropertyKey } from "../interfaces/Inspectable.ts"
+import { memoizeThunk } from "../internal/schema/util.ts"
 import type * as Annotations from "./Annotations.ts"
 import * as AST from "./AST.ts"
 import type * as Schema from "./Schema.ts"
@@ -49,7 +50,7 @@ function getFormatAnnotation(
 
 const getAnnotation = AST.getAnnotation(getFormatAnnotation)
 
-const defaultFormat = () => formatUnknown
+const defaultFormat = () => format
 
 /**
  * @category Reducer
@@ -134,7 +135,7 @@ export const defaultReducerAlg: AST.ReducerAlg<Format<any>> = {
     const propertySignatures = ast.propertySignatures.map((ps) => reduce(ps.type))
     const indexSignatures = ast.indexSignatures.map((is) => reduce(is.type))
     if (ast.propertySignatures.length === 0 && ast.indexSignatures.length === 0) {
-      return formatUnknown
+      return format
     }
     return (t) => {
       const out: Array<string> = []
@@ -179,7 +180,7 @@ export const defaultReducerAlg: AST.ReducerAlg<Format<any>> = {
         return reduce(candidates[i])(t)
       }
     }
-    return formatUnknown(t)
+    return format(t)
   },
   Suspend: (ast, reduce) => {
     const get = memoizeThunk(() => reduce(ast.thunk()))

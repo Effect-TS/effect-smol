@@ -906,19 +906,12 @@ Expected a string including "c", got "ab"`,
         await assertions.decoding.fail(
           schema,
           Option.some(""),
-          `Expected length > 0, got {
-  "_id": "Option",
-  "_tag": "Some",
-  "value": ""
-}`
+          `Expected length > 0, got some("")`
         )
         await assertions.decoding.fail(
           schema,
           Option.none(),
-          `Expected Option, got {
-  "_id": "Option",
-  "_tag": "None"
-}`
+          `Expected isSome, got none()`
         )
       })
 

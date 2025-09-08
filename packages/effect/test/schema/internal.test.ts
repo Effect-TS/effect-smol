@@ -1,14 +1,11 @@
 import { Option, Redacted } from "effect/data"
-import { toStringUnknown } from "effect/interfaces/Inspectable"
+import { format, toStringUnknown } from "effect/interfaces/Inspectable"
 import { Schema } from "effect/schema"
-import { formatUnknown } from "effect/schema/Formatter"
 import { describe, it } from "vitest"
 import { strictEqual } from "../utils/assert.ts"
 
-describe("internal", () => {
-  describe("formatUnknown", () => {
-    const format = formatUnknown
-
+describe("Inspectable", () => {
+  describe("format", () => {
     it("null", () => {
       strictEqual(format(null), `null`)
     })
@@ -111,18 +108,11 @@ describe("internal", () => {
     it("Option", () => {
       strictEqual(
         format(Option.some(1)),
-        `{
-  "_id": "Option",
-  "_tag": "Some",
-  "value": 1
-}`
+        `some(1)`
       )
       strictEqual(
         format(Option.none()),
-        `{
-  "_id": "Option",
-  "_tag": "None"
-}`
+        `none()`
       )
     })
 
@@ -142,16 +132,16 @@ describe("internal", () => {
 
     describe("whitespace", () => {
       it("object", () => {
-        strictEqual(format({ a: 1 }, 2), `{"a":1}`)
+        strictEqual(format({ a: 1 }, { whitespace: 2 }), `{"a":1}`)
         strictEqual(
-          format({ a: 1, b: 2 }, 2),
+          format({ a: 1, b: 2 }, { whitespace: 2 }),
           `{
   "a": 1,
   "b": 2
 }`
         )
         strictEqual(
-          format({ a: 1, b: [1, 2, 3n] }, 2),
+          format({ a: 1, b: [1, 2, 3n] }, { whitespace: 2 }),
           `{
   "a": 1,
   "b": [
@@ -161,14 +151,14 @@ describe("internal", () => {
   ]
 }`
         )
-        strictEqual(format({ [Symbol.for("a")]: 1 }, 2), `{Symbol(a):1}`)
+        strictEqual(format({ [Symbol.for("a")]: 1 }, { whitespace: 2 }), `{Symbol(a):1}`)
       })
 
       it("circular object", () => {
         const obj: any = { a: 1 }
         obj.b = obj
         strictEqual(
-          format(obj, 2),
+          format(obj, { whitespace: 2 }),
           `{
   "a": 1,
   "b": [Circular]
@@ -177,9 +167,9 @@ describe("internal", () => {
       })
 
       it("object with null prototype", () => {
-        strictEqual(format(Object.create(null), 2), `{}`)
+        strictEqual(format(Object.create(null), { whitespace: 2 }), `{}`)
         strictEqual(
-          format(Object.create(null, { a: { value: 1 } }), 2),
+          format(Object.create(null, { a: { value: 1 } }), { whitespace: 2 }),
           `{"a":1}`
         )
       })

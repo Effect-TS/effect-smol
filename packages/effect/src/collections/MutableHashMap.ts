@@ -75,7 +75,7 @@ const MutableHashMapProto: Omit<MutableHashMap<unknown, unknown>, "backing" | "b
     return this.backing[Symbol.iterator]()
   },
   toString() {
-    return format(this.toJSON())
+    return `MutableHashMap(${format(Array.from(this))})`
   },
   toJSON() {
     return {

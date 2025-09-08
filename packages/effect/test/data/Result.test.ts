@@ -61,49 +61,27 @@ describe("Result", () => {
     it("toString", () => {
       strictEqual(
         String(Result.succeed(1)),
-        `{
-  "_id": "Result",
-  "_tag": "Success",
-  "value": 1
-}`
+        `success(1)`
       )
       strictEqual(
         String(Result.fail("e")),
-        `{
-  "_id": "Result",
-  "_tag": "Failure",
-  "failure": "e"
-}`
+        `failure("e")`
       )
       strictEqual(
         String(Result.succeed(Chunk.make(1, 2, 3))),
-        `{
-  "_id": "Result",
-  "_tag": "Success",
-  "value": {
-    "_id": "Chunk",
-    "values": [
-      1,
-      2,
-      3
-    ]
-  }
-}`
+        `success(Chunk([1,2,3]))`
       )
       strictEqual(
         String(Result.fail(Chunk.make(1, 2, 3))),
-        `{
-  "_id": "Result",
-  "_tag": "Failure",
-  "failure": {
-    "_id": "Chunk",
-    "values": [
-      1,
-      2,
-      3
-    ]
-  }
-}`
+        `failure(Chunk([1,2,3]))`
+      )
+      strictEqual(
+        String(Result.succeed(Option.some(1))),
+        `success(some(1))`
+      )
+      strictEqual(
+        String(Result.fail(Option.none())),
+        `failure(none())`
       )
     })
 

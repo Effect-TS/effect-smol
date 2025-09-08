@@ -583,15 +583,12 @@ class HashMapImpl<K, V> implements HashMap<K, V> {
     this.root = root
     this._size = _size
   }
-
   get size(): number {
     return this._size
   }
-
   [Symbol.iterator](): Iterator<[K, V]> {
     return this.root.iterator()
   }
-
   [Equal_.symbol](that: Equal_.Equal): boolean {
     if (isHashMap(that)) {
       const thatImpl = that as HashMapImpl<K, V>
@@ -608,7 +605,6 @@ class HashMapImpl<K, V> implements HashMap<K, V> {
     }
     return false
   }
-
   [Hash.symbol](): number {
     let hash = Hash.string("HashMap")
     for (const [key, value] of this) {
@@ -616,22 +612,18 @@ class HashMapImpl<K, V> implements HashMap<K, V> {
     }
     return hash
   }
-
   [NodeInspectSymbol](): unknown {
     return toJSON(this)
   }
-
+  toString(): string {
+    return `HashMap(${format(Array.from(this))})`
+  }
   toJSON(): unknown {
     return {
       _id: "HashMap",
       values: Array.from(this).map(([k, v]) => [toJSON(k), toJSON(v)])
     }
   }
-
-  toString(): string {
-    return format(this)
-  }
-
   pipe() {
     return pipeArguments(this, arguments)
   }

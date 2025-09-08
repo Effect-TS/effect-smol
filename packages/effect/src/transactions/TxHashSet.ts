@@ -20,14 +20,14 @@ const TxHashSetProto = {
   [NodeInspectSymbol](this: TxHashSet<unknown>) {
     return toJSON(this)
   },
+  toString(this: TxHashSet<unknown>) {
+    return `TxHashSet(${format(toJSON((this).ref))})`
+  },
   toJSON(this: TxHashSet<unknown>) {
     return {
       _id: "TxHashSet",
-      ref: toJSON((this as any).ref)
+      ref: toJSON((this).ref)
     }
-  },
-  toString(this: TxHashSet<unknown>) {
-    return format(this.toJSON())
   },
   pipe(this: TxHashSet<unknown>) {
     return pipeArguments(this, arguments)

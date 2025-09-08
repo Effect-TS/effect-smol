@@ -72,7 +72,7 @@ const MutableHashSetProto: Omit<MutableHashSet<unknown>, "keyMap"> = {
     return Array.from(this.keyMap).map(([_]) => _)[Symbol.iterator]()
   },
   toString() {
-    return format(this.toJSON())
+    return `MutableHashSet(${format(Array.from(this))})`
   },
   toJSON() {
     return {

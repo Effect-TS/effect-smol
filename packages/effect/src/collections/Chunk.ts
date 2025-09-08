@@ -238,7 +238,7 @@ const ChunkProto: Omit<Chunk<unknown>, "backing" | "depth" | "left" | "length" |
     _A: (_: never) => _
   },
   toString<A>(this: Chunk<A>) {
-    return format(this.toJSON())
+    return `Chunk(${format(toReadonlyArray(this))})`
   },
   toJSON<A>(this: Chunk<A>) {
     return {

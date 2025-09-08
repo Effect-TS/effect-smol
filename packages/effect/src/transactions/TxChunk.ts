@@ -69,14 +69,14 @@ const TxChunkProto = {
   [NodeInspectSymbol](this: TxChunk<unknown>) {
     return this.toJSON()
   },
+  toString(this: TxChunk<unknown>) {
+    return `TxChunk(${format(toJSON((this).ref))})`
+  },
   toJSON(this: TxChunk<unknown>) {
     return {
       _id: "TxChunk",
-      ref: toJSON((this as any).ref)
+      ref: toJSON((this).ref)
     }
-  },
-  toString(this: TxChunk<unknown>) {
-    return format(this.toJSON())
   },
   pipe(this: TxChunk<unknown>) {
     return pipeArguments(this, arguments)

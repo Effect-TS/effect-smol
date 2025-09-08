@@ -95,7 +95,7 @@ abstract class Proto implements HttpBody.Proto {
     return this.toJSON()
   }
   toString(): string {
-    return Inspectable.format(this)
+    return Inspectable.format(this, { ignoreToString: true })
   }
 }
 

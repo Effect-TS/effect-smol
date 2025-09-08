@@ -5,7 +5,7 @@ import type * as Option from "../data/Option.ts"
 import { hasProperty } from "../data/Predicate.ts"
 import * as Equal from "../interfaces/Equal.ts"
 import * as Hash from "../interfaces/Hash.ts"
-import { toJSON } from "../interfaces/Inspectable.ts"
+import { format, toJSON } from "../interfaces/Inspectable.ts"
 import { exitFail, exitSucceed, NoSuchElementError, PipeInspectableProto, YieldableProto } from "./core.ts"
 
 const TypeId = "~effect/data/Option"
@@ -29,6 +29,9 @@ const SomeProto = Object.assign(Object.create(CommonProto), {
   [Hash.symbol]<A>(this: Option.Some<A>) {
     return Hash.cached(this, () => Hash.combine(Hash.hash(this._tag))(Hash.hash(this.value)))
   },
+  toString<A>(this: Option.Some<A>) {
+    return `some(${format(this.value)})`
+  },
   toJSON<A>(this: Option.Some<A>) {
     return {
       _id: "Option",
@@ -50,6 +53,9 @@ const NoneProto = Object.assign(Object.create(CommonProto), {
   },
   [Hash.symbol]<A>(this: Option.None<A>) {
     return NoneHash
+  },
+  toString<A>(this: Option.None<A>) {
+    return `none()`
   },
   toJSON<A>(this: Option.None<A>) {
     return {

@@ -4,7 +4,7 @@
 import type { StandardSchemaV1 } from "@standard-schema/spec"
 import * as Option from "../data/Option.ts"
 import * as Predicate from "../data/Predicate.ts"
-import * as util from "../internal/schema/util.ts"
+import { format, formatPath } from "../interfaces/Inspectable.ts"
 import type * as Annotations from "./Annotations.ts"
 import * as AST from "./AST.ts"
 import * as Check from "./Check.ts"
@@ -17,9 +17,6 @@ import type * as Issue from "./Issue.ts"
 export interface Formatter<Out> {
   readonly format: (issue: Issue.Issue) => Out
 }
-
-/** @internal */
-export const formatUnknown = util.formatUnknown // TODO: make this public?
 
 /**
  * @category Model
@@ -36,9 +33,9 @@ export const defaultLeafHook: LeafHook = (issue): string => {
   if (message !== undefined) return message
   switch (issue._tag) {
     case "InvalidType":
-      return getExpectedMessage(AST.getExpected(issue.ast), formatUnknownOption(issue.actual))
+      return getExpectedMessage(AST.getExpected(issue.ast), formatOption(issue.actual))
     case "InvalidValue":
-      return `Invalid data ${formatUnknownOption(issue.actual)}`
+      return `Invalid data ${formatOption(issue.actual)}`
     case "MissingKey":
       return "Missing key"
     case "UnexpectedKey":
@@ -46,7 +43,7 @@ export const defaultLeafHook: LeafHook = (issue): string => {
     case "Forbidden":
       return "Forbidden operation"
     case "OneOf":
-      return `Expected exactly one member to match the input ${formatUnknown(issue.actual)}`
+      return `Expected exactly one member to match the input ${format(issue.actual)}`
   }
 }
 
@@ -109,7 +106,7 @@ function toDefaultIssues(
         case "InvalidValue":
           return [{
             path,
-            message: getExpectedMessage(formatCheck(issue.filter), formatUnknown(issue.actual))
+            message: getExpectedMessage(formatCheck(issue.filter), format(issue.actual))
           }]
         default:
           return toDefaultIssues(issue.issue, path, leafHook, checkHook)
@@ -126,7 +123,7 @@ function toDefaultIssues(
         return [{
           path,
           message: findMessage(issue) ??
-            getExpectedMessage(AST.getExpected(issue.ast), formatUnknownOption(issue.actual))
+            getExpectedMessage(AST.getExpected(issue.ast), formatOption(issue.actual))
         }]
       }
       return issue.issues.flatMap((issue) => toDefaultIssues(issue, path, leafHook, checkHook))
@@ -174,7 +171,7 @@ export function makeDefault(): Formatter<string> {
 function formatDefaultIssue(issue: DefaultIssue): string {
   let out = issue.message
   if (issue.path && issue.path.length > 0) {
-    const path = util.formatPath(issue.path as ReadonlyArray<PropertyKey>)
+    const path = formatPath(issue.path as ReadonlyArray<PropertyKey>)
     out += `\n  at ${path}`
   }
   return out
@@ -209,7 +206,7 @@ function getMessageAnnotation(
   if (Predicate.isString(message)) return message
 }
 
-function formatUnknownOption(actual: Option.Option<unknown>): string {
+function formatOption(actual: Option.Option<unknown>): string {
   if (Option.isNone(actual)) return "no value provided"
-  return formatUnknown(actual.value)
+  return format(actual.value)
 }

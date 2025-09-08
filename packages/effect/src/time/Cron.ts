@@ -77,6 +77,18 @@ export interface Cron extends Pipeable, Equal.Equal, Inspectable {
   }
 }
 
+function toPojo(cron: Cron): Record<string, unknown> {
+  return {
+    tz: cron.tz,
+    seconds: Arr.fromIterable(cron.seconds),
+    minutes: Arr.fromIterable(cron.minutes),
+    hours: Arr.fromIterable(cron.hours),
+    days: Arr.fromIterable(cron.days),
+    months: Arr.fromIterable(cron.months),
+    weekdays: Arr.fromIterable(cron.weekdays)
+  }
+}
+
 const CronProto = {
   [TypeId]: TypeId,
   [Equal.symbol](this: Cron, that: unknown) {
@@ -94,12 +106,8 @@ const CronProto = {
         Hash.combine(Hash.array(Arr.fromIterable(this.weekdays)))
       ))
   },
-  toString(this: Cron) {
-    return format(this.toJSON())
-  },
-  toJSON(this: Cron) {
+  toObject(this: Cron) {
     return {
-      _id: "Cron",
       tz: this.tz,
       seconds: Arr.fromIterable(this.seconds),
       minutes: Arr.fromIterable(this.minutes),
@@ -108,6 +116,14 @@ const CronProto = {
       months: Arr.fromIterable(this.months),
       weekdays: Arr.fromIterable(this.weekdays)
     }
+  },
+  toString(this: Cron) {
+    return `Cron(${format(toPojo(this))})`
+  },
+  toJSON(this: Cron) {
+    const out = toPojo(this)
+    out["_id"] = "Cron"
+    return out
   },
   [NodeInspectSymbol](this: Cron) {
     return this.toJSON()

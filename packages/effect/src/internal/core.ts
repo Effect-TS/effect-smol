@@ -70,7 +70,7 @@ export const PipeInspectableProto = {
     return { ...this }
   },
   toString() {
-    return format(this)
+    return format(this, { ignoreToString: true })
   },
   [NodeInspectSymbol]() {
     return this.toJSON()

@@ -46,19 +46,7 @@ describe("MutableHashMap", () => {
 
     strictEqual(
       String(map),
-      `{
-  "_id": "MutableHashMap",
-  "values": [
-    [
-      0,
-      "a"
-    ],
-    [
-      1,
-      "b"
-    ]
-  ]
-}`
+      `MutableHashMap([[0,"a"],[1,"b"]])`
     )
   })
 

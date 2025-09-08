@@ -15,19 +15,7 @@ describe("Trie", () => {
 
     strictEqual(
       String(trie),
-      `{
-  "_id": "Trie",
-  "values": [
-    [
-      "a",
-      0
-    ],
-    [
-      "b",
-      1
-    ]
-  ]
-}`
+      `Trie([["a",0],["b",1]])`
     )
   })
 

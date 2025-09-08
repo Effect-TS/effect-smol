@@ -1,4 +1,11 @@
-import { assertDefined, assertNone, assertSome, assertUndefined, deepStrictEqual } from "@effect/vitest/utils"
+import {
+  assertDefined,
+  assertNone,
+  assertSome,
+  assertUndefined,
+  deepStrictEqual,
+  strictEqual
+} from "@effect/vitest/utils"
 import { Graph } from "effect/collections"
 import { Option } from "effect/data"
 import { Equal, Hash } from "effect/interfaces"
@@ -21,6 +28,15 @@ describe("Graph", () => {
       expect(Graph.nodeCount(graph)).toBe(0)
       expect(Graph.edgeCount(graph)).toBe(0)
     })
+  })
+
+  it("toString", () => {
+    const graph = Graph.directed<undefined, number>((mutable) => {
+      const nodeA = Graph.addNode(mutable, undefined)
+      const nodeB = Graph.addNode(mutable, undefined)
+      Graph.addEdge(mutable, nodeA, nodeB, 1)
+    })
+    strictEqual(String(graph), "Graph(directed, 2, 1)")
   })
 
   describe("isGraph", () => {

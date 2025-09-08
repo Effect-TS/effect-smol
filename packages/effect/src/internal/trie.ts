@@ -52,7 +52,7 @@ const TrieProto: TR.Trie<unknown> = {
     return false
   },
   toString() {
-    return format(this.toJSON())
+    return `Trie(${format(Array.from(this))})`
   },
   toJSON() {
     return {

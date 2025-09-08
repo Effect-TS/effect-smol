@@ -8,7 +8,8 @@ import type * as Equivalence from "../data/Equivalence.ts"
 import * as Option from "../data/Option.ts"
 import * as Order from "../data/Order.ts"
 import * as Predicate from "../data/Predicate.ts"
-import { formatUnknown, PipeableClass } from "../internal/schema/util.ts"
+import { format } from "../interfaces/Inspectable.ts"
+import { PipeableClass } from "../internal/schema/util.ts"
 import * as Num from "../primitives/Number.ts"
 import * as Annotations from "./Annotations.ts"
 import type * as AST from "./AST.ts"
@@ -123,7 +124,7 @@ export function makeRefine<T extends E, E>(
   annotations?: Annotations.Filter
 ): Refinement<T, E> {
   return new Filter(
-    (input: E, ast) => is(input) ? undefined : new Issue.InvalidType(ast, Option.some(input)),
+    (input: E) => is(input) ? undefined : new Issue.InvalidValue(Option.some(input)),
     annotations,
     true // after a guard, we always want to abort
   ) as any
@@ -603,13 +604,13 @@ export function deriveGreaterThan<T>(options: {
   readonly format?: (value: T) => string | undefined
 }) {
   const greaterThan = Order.greaterThan(options.order)
-  const format = options.format ?? formatUnknown
+  const fmt = options.format ?? format
   return (exclusiveMinimum: T, annotations?: Annotations.Filter) => {
     return make<T>(
       (input) => greaterThan(input, exclusiveMinimum),
       Annotations.combine({
-        title: `greaterThan(${format(exclusiveMinimum)})`,
-        description: `a value greater than ${format(exclusiveMinimum)}`,
+        title: `greaterThan(${fmt(exclusiveMinimum)})`,
+        description: `a value greater than ${fmt(exclusiveMinimum)}`,
         ...options.annotate?.(exclusiveMinimum)
       }, annotations)
     )
@@ -626,13 +627,13 @@ export function deriveGreaterThanOrEqualTo<T>(options: {
   readonly format?: (value: T) => string | undefined
 }) {
   const greaterThanOrEqualTo = Order.greaterThanOrEqualTo(options.order)
-  const format = options.format ?? formatUnknown
+  const fmt = options.format ?? format
   return (minimum: T, annotations?: Annotations.Filter) => {
     return make<T>(
       (input) => greaterThanOrEqualTo(input, minimum),
       Annotations.combine({
-        title: `greaterThanOrEqualTo(${format(minimum)})`,
-        description: `a value greater than or equal to ${format(minimum)}`,
+        title: `greaterThanOrEqualTo(${fmt(minimum)})`,
+        description: `a value greater than or equal to ${fmt(minimum)}`,
         ...options.annotate?.(minimum)
       }, annotations)
     )
@@ -649,13 +650,13 @@ export function deriveLessThan<T>(options: {
   readonly format?: (value: T) => string | undefined
 }) {
   const lessThan = Order.lessThan(options.order)
-  const format = options.format ?? formatUnknown
+  const fmt = options.format ?? format
   return (exclusiveMaximum: T, annotations?: Annotations.Filter) => {
     return make<T>(
       (input) => lessThan(input, exclusiveMaximum),
       Annotations.combine({
-        title: `lessThan(${format(exclusiveMaximum)})`,
-        description: `a value less than ${format(exclusiveMaximum)}`,
+        title: `lessThan(${fmt(exclusiveMaximum)})`,
+        description: `a value less than ${fmt(exclusiveMaximum)}`,
         ...options.annotate?.(exclusiveMaximum)
       }, annotations)
     )
@@ -672,13 +673,13 @@ export function deriveLessThanOrEqualTo<T>(options: {
   readonly format?: (value: T) => string | undefined
 }) {
   const lessThanOrEqualTo = Order.lessThanOrEqualTo(options.order)
-  const format = options.format ?? formatUnknown
+  const fmt = options.format ?? format
   return (maximum: T, annotations?: Annotations.Filter) => {
     return make<T>(
       (input) => lessThanOrEqualTo(input, maximum),
       Annotations.combine({
-        title: `lessThanOrEqualTo(${format(maximum)})`,
-        description: `a value less than or equal to ${format(maximum)}`,
+        title: `lessThanOrEqualTo(${fmt(maximum)})`,
+        description: `a value less than or equal to ${fmt(maximum)}`,
         ...options.annotate?.(maximum)
       }, annotations)
     )
@@ -696,13 +697,13 @@ export function deriveBetween<T>(options: {
 }) {
   const greaterThanOrEqualTo = Order.greaterThanOrEqualTo(options.order)
   const lessThanOrEqualTo = Order.lessThanOrEqualTo(options.order)
-  const format = options.format ?? formatUnknown
+  const fmt = options.format ?? format
   return (minimum: T, maximum: T, annotations?: Annotations.Filter) => {
     return make<T>(
       (input) => greaterThanOrEqualTo(input, minimum) && lessThanOrEqualTo(input, maximum),
       Annotations.combine({
-        title: `between(${format(minimum)}, ${format(maximum)})`,
-        description: `a value between ${format(minimum)} and ${format(maximum)}`,
+        title: `between(${fmt(minimum)}, ${fmt(maximum)})`,
+        description: `a value between ${fmt(minimum)} and ${fmt(maximum)}`,
         ...options.annotate?.(minimum, maximum)
       }, annotations)
     )
@@ -720,12 +721,12 @@ export function deriveMultipleOf<T>(options: {
   readonly format?: (value: T) => string | undefined
 }) {
   return (divisor: T, annotations?: Annotations.Filter) => {
-    const format = options.format ?? formatUnknown
+    const fmt = options.format ?? format
     return make<T>(
       (input) => options.remainder(input, divisor) === options.zero,
       Annotations.combine({
-        title: `multipleOf(${format(divisor)})`,
-        description: `a value that is a multiple of ${format(divisor)}`,
+        title: `multipleOf(${fmt(divisor)})`,
+        description: `a value that is a multiple of ${fmt(divisor)}`,
         ...options.annotate?.(divisor)
       }, annotations)
     )

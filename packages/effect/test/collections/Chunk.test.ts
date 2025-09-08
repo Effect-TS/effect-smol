@@ -40,30 +40,11 @@ describe("Chunk", () => {
   it("toString", () => {
     strictEqual(
       String(Chunk.make(0, 1, 2)),
-      `{
-  "_id": "Chunk",
-  "values": [
-    0,
-    1,
-    2
-  ]
-}`
+      `Chunk([0,1,2])`
     )
     strictEqual(
       String(Chunk.make(Chunk.make(1, 2, 3))),
-      `{
-  "_id": "Chunk",
-  "values": [
-    {
-      "_id": "Chunk",
-      "values": [
-        1,
-        2,
-        3
-      ]
-    }
-  ]
-}`
+      `Chunk([Chunk([1,2,3])])`
     )
   })
 

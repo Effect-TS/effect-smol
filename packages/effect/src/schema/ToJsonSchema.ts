@@ -3,7 +3,7 @@
  */
 import * as Predicate from "../data/Predicate.ts"
 import type * as Record from "../data/Record.ts"
-import { formatPath } from "../internal/schema/util.ts"
+import { formatPath } from "../interfaces/Inspectable.ts"
 import type * as Annotations from "./Annotations.ts"
 import * as AST from "./AST.ts"
 import type * as Check from "./Check.ts"

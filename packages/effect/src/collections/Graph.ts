@@ -8,7 +8,7 @@ import { dual } from "../Function.ts"
 import * as Equal from "../interfaces/Equal.ts"
 import * as Hash from "../interfaces/Hash.ts"
 import type { Inspectable } from "../interfaces/Inspectable.ts"
-import { format, NodeInspectSymbol } from "../interfaces/Inspectable.ts"
+import { NodeInspectSymbol } from "../interfaces/Inspectable.ts"
 import type { Pipeable } from "../interfaces/Pipeable.ts"
 import { pipeArguments } from "../interfaces/Pipeable.ts"
 import type { Mutable } from "../types/Types.ts"
@@ -190,7 +190,7 @@ const ProtoGraph = {
     }
   },
   toString(this: Graph<any, any>) {
-    return format(this)
+    return `Graph(${this.type}, ${this.nodes.size}, ${this.edges.size})`
   },
   pipe() {
     return pipeArguments(this, arguments)

@@ -19,14 +19,14 @@ const TxHashMapProto = {
   [NodeInspectSymbol](this: TxHashMap<unknown, unknown>) {
     return toJSON(this)
   },
+  toString(this: TxHashMap<unknown, unknown>) {
+    return `TxHashMap(${format(toJSON((this).ref))})`
+  },
   toJSON(this: TxHashMap<unknown, unknown>) {
     return {
       _id: "TxHashMap",
-      ref: toJSON((this as any).ref)
+      ref: toJSON((this).ref)
     }
-  },
-  toString(this: TxHashMap<unknown, unknown>) {
-    return format(this.toJSON())
   },
   pipe(this: TxHashMap<unknown, unknown>) {
     return pipeArguments(this, arguments)
