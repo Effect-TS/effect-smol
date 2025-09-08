@@ -149,7 +149,7 @@ export const unknownToAttributeValue = (value: unknown): AnyValue => {
       }
     default:
       return {
-        stringValue: Inspectable.toStringUnknown(value)
+        stringValue: Inspectable.format(value)
       }
   }
 }

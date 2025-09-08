@@ -525,7 +525,7 @@ const format = (
 
   const messages = Array.ensure(message)
   for (let i = 0; i < messages.length; i++) {
-    out += append("message", Inspectable.toStringUnknown(messages[i], whitespace))
+    out += append("message", Inspectable.format(messages[i], { whitespace }))
   }
 
   if (cause.failures.length > 0) {
@@ -540,7 +540,7 @@ const format = (
 
   const annotations = fiber.getRef(CurrentLogAnnotations)
   for (const [label, value] of Object.entries(annotations)) {
-    out += append(label, Inspectable.toStringUnknown(value, whitespace))
+    out += append(label, Inspectable.format(value, { whitespace }))
   }
 
   return out

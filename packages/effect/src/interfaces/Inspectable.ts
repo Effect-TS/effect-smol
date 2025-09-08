@@ -469,53 +469,6 @@ export abstract class Class {
 }
 
 /**
- * Safely converts any unknown value to a string representation.
- *
- * This function handles various types of values and provides safe string conversion
- * even for complex objects with circular references. It's designed to never throw
- * errors and always return a meaningful string representation.
- *
- * @param u - The value to convert to string
- * @param whitespace - Number of spaces or string to use for indentation (default: 2)
- *
- * @example
- * ```ts
- * import { Inspectable } from "effect/interfaces"
- *
- * // Simple values
- * console.log(Inspectable.toStringUnknown("hello"))    // "hello"
- * console.log(Inspectable.toStringUnknown(42))         // "42"
- * console.log(Inspectable.toStringUnknown(true))       // "true"
- *
- * // Objects with custom formatting
- * const obj = { name: "Alice", age: 30 }
- * console.log(Inspectable.toStringUnknown(obj))        // Pretty printed JSON
- * console.log(Inspectable.toStringUnknown(obj, 4))     // With 4-space indentation
- *
- * // Handles circular references safely
- * const circular: any = { name: "test" }
- * circular.self = circular
- * console.log(Inspectable.toStringUnknown(circular))   // Safe string representation
- * ```
- *
- * @since 2.0.0
- * @category conversions
- */
-export const toStringUnknown = (
-  u: unknown,
-  whitespace: number | string | undefined = 2
-): string => {
-  if (typeof u === "string") {
-    return u
-  }
-  try {
-    return typeof u === "object" ? stringifyCircular(u, whitespace) : String(u)
-  } catch {
-    return String(u)
-  }
-}
-
-/**
  * Safely stringifies objects that may contain circular references.
  *
  * This function performs JSON.stringify with circular reference detection and handling.
