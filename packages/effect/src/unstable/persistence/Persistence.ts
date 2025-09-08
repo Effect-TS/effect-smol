@@ -14,6 +14,7 @@ import * as Clock from "../../time/Clock.ts"
 import * as Duration from "../../time/Duration.ts"
 import * as SqlClient from "../sql/SqlClient.ts"
 import type { SqlError } from "../sql/SqlError.ts"
+import * as KeyValueStore from "./KeyValueStore.ts"
 import * as Persistable from "./Persistable.ts"
 
 const ErrorTypeId = "~effect/persistence/Persistence/PersistenceError" as const
@@ -456,79 +457,109 @@ export const layerBackingSql: Layer.Layer<
   })
 }))
 
-// /**
-//  * @since 4.0.0
-//  * @category layers
-//  */
-// export const layerKeyValueStore: Layer.Layer<BackingPersistence, never, KeyValueStore.KeyValueStore> = Layer.effect(
-//   BackingPersistence,
-//   Effect.gen(function*() {
-//     const backing = yield* KeyValueStore.KeyValueStore
-//     return BackingPersistence.of({
-//       [BackingPersistenceTypeId]: BackingPersistenceTypeId,
-//       make: (storeId) =>
-//         Effect.map(Effect.clock, (clock) => {
-//           const store = KeyValueStore.prefix(backing, storeId)
-//           const get = (method: string, key: string) =>
-//             Effect.flatMap(
-//               Effect.mapError(
-//                 store.get(key),
-//                 (error) => PersistenceBackingError.make(method, error)
-//               ),
-//               Option.match({
-//                 onNone: () => Effect.succeedNone,
-//                 onSome: (s) =>
-//                   Effect.flatMap(
-//                     Effect.try({
-//                       try: () => JSON.parse(s),
-//                       catch: (error) => PersistenceBackingError.make(method, error)
-//                     }),
-//                     (_) => {
-//                       if (!Array.isArray(_)) return Effect.succeedNone
-//                       const [value, expires] = _ as [unknown, number | null]
-//                       if (expires !== null && expires <= clock.unsafeCurrentTimeMillis()) {
-//                         return Effect.as(Effect.ignore(store.remove(key)), Option.none())
-//                       }
-//                       return Effect.succeed(Option.some(value))
-//                     }
-//                   )
-//               })
-//             )
-//           return identity<BackingPersistenceStore>({
-//             get: (key) => get("get", key),
-//             getMany: (keys) => Effect.forEach(keys, (key) => get("getMany", key), { concurrency: "unbounded" }),
-//             set: (key, value, ttl) =>
-//               Effect.flatMap(
-//                 Effect.try({
-//                   try: () => JSON.stringify([value, unsafeTtlToExpires(clock, ttl)]),
-//                   catch: (error) => PersistenceBackingError.make("set", error)
-//                 }),
-//                 (u) =>
-//                   Effect.mapError(
-//                     store.set(key, u),
-//                     (error) => PersistenceBackingError.make("set", error)
-//                   )
-//               ),
-//             setMany: (entries) =>
-//               Effect.forEach(entries, ([key, value, ttl]) => {
-//                 const expires = unsafeTtlToExpires(clock, ttl)
-//                 if (expires === null) return Effect.void
-//                 const encoded = JSON.stringify([value, expires])
-//                 return store.set(key, encoded)
-//               }, { concurrency: "unbounded", discard: true }).pipe(
-//                 Effect.mapError((error) => PersistenceBackingError.make("setMany", error))
-//               ),
-//             remove: (key) =>
-//               Effect.mapError(
-//                 store.remove(key),
-//                 (error) => PersistenceBackingError.make("remove", error)
-//               ),
-//             clear: Effect.mapError(store.clear, (error) => PersistenceBackingError.make("clear", error))
-//           })
-//         })
-//     })
-//   })
-// )
+/**
+ * @since 4.0.0
+ * @category layers
+ */
+export const layerBackingKvs: Layer.Layer<
+  BackingPersistence,
+  never,
+  KeyValueStore.KeyValueStore
+> = Layer.effect(BackingPersistence)(Effect.gen(function*() {
+  const backing = yield* KeyValueStore.KeyValueStore
+  const clock = yield* Clock.Clock
+  return BackingPersistence.of({
+    make: (storeId) =>
+      Effect.sync(() => {
+        const store = KeyValueStore.prefix(backing, storeId)
+        const get = (key: string) =>
+          Effect.flatMap(
+            Effect.mapError(
+              store.get(key),
+              (error) =>
+                new PersistenceError({
+                  message: `Failed to get key ${key} from backing store`,
+                  cause: error
+                })
+            ),
+            (str) => {
+              if (str === undefined) {
+                return Effect.undefined
+              }
+              try {
+                const parsed = JSON.parse(str)
+                if (!Array.isArray(parsed)) return Effect.undefined
+                const [value, expires] = parsed as [object, number | null]
+                if (expires !== null && expires <= clock.currentTimeMillisUnsafe()) {
+                  return Effect.as(Effect.ignore(store.remove(key)), undefined)
+                }
+                return Effect.succeed(value)
+              } catch (cause) {
+                return Effect.fail(
+                  new PersistenceError({
+                    message: `Failed to parse value for key ${key} from backing store`,
+                    cause
+                  })
+                )
+              }
+            }
+          )
+        return identity<BackingPersistenceStore>({
+          get,
+          getMany: (keys) => Effect.forEach(keys, get, { concurrency: "unbounded" }),
+          set: (key, value, ttl) =>
+            Effect.suspend(() => {
+              try {
+                return Effect.mapError(
+                  store.set(key, JSON.stringify([value, unsafeTtlToExpires(clock, ttl)])),
+                  (cause) =>
+                    new PersistenceError({
+                      message: `Failed to set key ${key} in backing store`,
+                      cause
+                    })
+                )
+              } catch (cause) {
+                return Effect.fail(
+                  new PersistenceError({
+                    message: `Failed to serialize value for key ${key} to backing store`,
+                    cause
+                  })
+                )
+              }
+            }),
+          setMany: (entries) =>
+            Effect.forEach(entries, ([key, value, ttl]) => {
+              const expires = unsafeTtlToExpires(clock, ttl)
+              if (expires === null) return Effect.void
+              const encoded = JSON.stringify([value, expires])
+              return store.set(key, encoded)
+            }, { concurrency: "unbounded", discard: true }).pipe(
+              Effect.mapError((cause) =>
+                new PersistenceError({
+                  message: `Failed to setMany in backing store`,
+                  cause
+                })
+              )
+            ),
+          remove: (key) =>
+            Effect.mapError(
+              store.remove(key),
+              (cause) => new PersistenceError({ message: `Failed to remove key ${key} from backing store`, cause })
+            ),
+          clear: Effect.mapError(store.clear, (cause) =>
+            new PersistenceError({ message: `Failed to clear backing store`, cause }))
+        })
+      })
+  })
+}))
+
+/**
+ * @since 4.0.0
+ * @category layers
+ */
+export const layerKvs: Layer.Layer<Persistence, never, KeyValueStore.KeyValueStore> = layer.pipe(
+  Layer.provide(layerBackingKvs)
+)
 
 /**
  * @since 4.0.0

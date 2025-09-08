@@ -3,6 +3,11 @@
  */
 
 /**
+ * @since 1.0.0
+ */
+export * as KeyValueStore from "./KeyValueStore.ts"
+
+/**
  * @since 4.0.0
  */
 export * as Persistable from "./Persistable.ts"

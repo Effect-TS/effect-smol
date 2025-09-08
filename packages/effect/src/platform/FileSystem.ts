@@ -869,7 +869,7 @@ export const make = (
       pipe(
         impl.access(path),
         Effect.as(true),
-        Effect.catchTag("SystemError", (e) => e.reason === "NotFound" ? Effect.succeed(false) : Effect.fail(e))
+        Effect.catchTag("PlatformError", (e) => e.reason === "NotFound" ? Effect.succeed(false) : Effect.fail(e))
       ),
     readFileString: (path, encoding) =>
       Effect.flatMap(impl.readFile(path), (_) =>
