@@ -14,7 +14,7 @@ import * as FileSystem from "../../platform/FileSystem.ts"
 import * as Path from "../../platform/Path.ts"
 import type { PlatformError } from "../../platform/PlatformError.ts"
 import * as Schema from "../../schema/Schema.ts"
-import * as ServiceMap from "../../ServiceMap.js"
+import * as ServiceMap from "../../ServiceMap.ts"
 
 const TypeId = "~effect/persistence/KeyValueStore" as const
 
