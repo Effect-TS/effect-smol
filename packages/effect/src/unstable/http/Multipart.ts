@@ -487,10 +487,7 @@ export const toPersisted = (
     })
     return persisted
   }).pipe(
-    Effect.catchTags({
-      SystemError: (cause) => Effect.fail(new MultipartError({ reason: "InternalError", cause })),
-      BadArgument: (cause) => Effect.fail(new MultipartError({ reason: "InternalError", cause }))
-    })
+    Effect.catchTag("PlatformError", (cause) => Effect.fail(new MultipartError({ reason: "InternalError", cause })))
   )
 
 class PersistedFileImpl extends PartBase implements PersistedFile {
