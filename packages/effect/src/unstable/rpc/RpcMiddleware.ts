@@ -27,7 +27,7 @@ export interface RpcMiddleware<Provides, E, Requires> {
       readonly payload: unknown
       readonly headers: Headers
     }
-  ): Effect.Effect<SuccessValue, unhandled | E, Requires>
+  ): Effect.Effect<SuccessValue, unhandled | E, Requires | Scope>
 }
 
 /**

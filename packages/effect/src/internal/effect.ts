@@ -508,6 +508,7 @@ export class FiberImpl<A = any, E = any> implements Fiber.Fiber<A, E> {
   readonly _stack: Array<Primitive>
   readonly _observers: Array<(exit: Exit.Exit<A, E>) => void>
   _exit: Exit.Exit<A, E> | undefined
+  _currentExit: Exit.Exit<A, E> | undefined
   _children: Set<FiberImpl<any, any>> | undefined
   _interruptedCause: Cause.Cause<never> | undefined
   _yielded: Exit.Exit<any, any> | (() => void) | undefined
@@ -960,7 +961,7 @@ const asyncFinalizer: (
   [contAll](fiber) {
     if (fiber.interruptible) {
       fiber.interruptible = false
-      fiber._stack.push(setInterruptible(true))
+      fiber._stack.push(setInterruptibleTrue)
     }
   },
   [contE](cause, _fiber) {
@@ -1960,11 +1961,7 @@ const provideServiceImpl = <A, E, R, I, S>(
     const prev = ServiceMap.getOption(fiber.services, key)
     fiber.setServices(ServiceMap.add(fiber.services, key, service))
     return onExit(self, () => {
-      if (prev._tag === "Some") {
-        fiber.setServices(ServiceMap.add(fiber.services, key, prev.value))
-      } else {
-        fiber.setServices(ServiceMap.omit(key)(fiber.services))
-      }
+      fiber.setServices(ServiceMap.addOrOmit(fiber.services, key, prev))
       return void_
     })
   }) as any
@@ -2967,22 +2964,25 @@ export const scopeTag: ServiceMap.Key<Scope.Scope, Scope.Scope> = ServiceMap.Key
 
 /** @internal */
 export const scopeClose = <A, E>(self: Scope.Scope, exit_: Exit.Exit<A, E>) =>
-  suspend(() => {
-    if (self.state._tag === "Closed") return void_
-    const closed: Scope.State.Closed = { _tag: "Closed", exit: exit_ }
-    if (self.state._tag === "Empty") {
-      self.state = closed
-      return void_
-    }
-    const { finalizers } = self.state
+  suspend(() => scopeCloseUnsafe(self, exit_) ?? void_)
+
+/** @internal */
+export const scopeCloseUnsafe = <A, E>(self: Scope.Scope, exit_: Exit.Exit<A, E>) => {
+  if (self.state._tag === "Closed") return
+  const closed: Scope.State.Closed = { _tag: "Closed", exit: exit_ }
+  if (self.state._tag === "Empty") {
     self.state = closed
-    if (finalizers.size === 0) {
-      return void_
-    } else if (finalizers.size === 1) {
-      return finalizers.values().next().value!(exit_)
-    }
-    return scopeCloseFinalizers(self, finalizers, exit_)
-  })
+    return
+  }
+  const { finalizers } = self.state
+  self.state = closed
+  if (finalizers.size === 0) {
+    return
+  } else if (finalizers.size === 1) {
+    return finalizers.values().next().value!(exit_)
+  }
+  return scopeCloseFinalizers(self, finalizers, exit_)
+}
 
 const scopeCloseFinalizers = fnUntraced(function*<A, E>(
   self: Scope.Scope,
@@ -3091,7 +3091,15 @@ export const provideScope: {
 
 /** @internal */
 export const scoped = <A, E, R>(self: Effect.Effect<A, E, R>): Effect.Effect<A, E, Exclude<R, Scope.Scope>> =>
-  scopedWith((scope) => provideScope(self, scope))
+  withFiber((fiber) => {
+    const prev = ServiceMap.getOption(fiber.services, scopeTag)
+    const scope = scopeMakeUnsafe()
+    fiber.setServices(ServiceMap.add(fiber.services, scopeTag, scope))
+    return onExit(self, (exit) => {
+      fiber.setServices(ServiceMap.addOrOmit(fiber.services, scopeTag, prev))
+      return scopeCloseUnsafe(scope, exit)
+    })
+  }) as any
 
 /** @internal */
 export const scopeUse: {
@@ -3102,7 +3110,7 @@ export const scopeUse: {
 } = dual(
   2,
   <A, E, R>(self: Effect.Effect<A, E, R>, scope: Scope.Closeable): Effect.Effect<A, E, Exclude<R, Scope.Scope>> =>
-    onExit(provideScope(self, scope), (exit) => scopeClose(scope, exit))
+    onExit(provideScope(self, scope), (exit) => scopeCloseUnsafe(scope, exit))
 )
 
 /** @internal */
@@ -3111,7 +3119,7 @@ export const scopedWith = <A, E, R>(
 ): Effect.Effect<A, E, R> =>
   suspend(() => {
     const scope = scopeMakeUnsafe()
-    return onExit(f(scope), (exit) => scopeClose(scope, exit))
+    return onExit(f(scope), (exit) => scopeCloseUnsafe(scope, exit) ?? void_)
   })
 
 /** @internal */
@@ -3136,9 +3144,10 @@ export const addFinalizer = <R>(
       )
   )
 
-const onExitPrimitive: <A, E, R, XE, XR>(
+const onExitPrimitive: <A, E, R, XE = never, XR = never>(
   self: Effect.Effect<A, E, R>,
-  f: (exit: Exit.Exit<A, E>) => Effect.Effect<void, XE, XR>
+  f: (exit: Exit.Exit<A, E>) => Effect.Effect<void, XE, XR> | void,
+  interruptible?: boolean
 ) => Effect.Effect<A, E | XE, R | XR> = makePrimitive({
   op: "OnExit",
   single: false,
@@ -3147,57 +3156,49 @@ const onExitPrimitive: <A, E, R, XE, XR>(
     return this[args][0]
   },
   [contAll](fiber) {
-    if (fiber.interruptible) {
-      fiber._stack.push(setInterruptible(true))
+    if (fiber.interruptible && this[args][2] !== true) {
+      fiber._stack.push(setInterruptibleTrue)
       fiber.interruptible = false
     }
   },
-  [contA](value) {
-    const exit = exitSucceed(value)
-    return flatMap(this[args][1](exit), (_) => exit)
+  [contA](value, _, exit) {
+    exit ??= exitSucceed(value)
+    const eff = this[args][1](exit)
+    return eff ? flatMap(eff, (_) => exit) : exit
   },
-  [contE](cause) {
-    const exit = exitFailCause(cause)
-    return flatMap(this[args][1](exit), (_) => exit)
+  [contE](cause, _, exit) {
+    exit ??= exitFailCause(cause)
+    const eff = this[args][1](exit)
+    return eff ? flatMap(eff, (_) => exit) : exit
   }
 })
 
 /** @internal */
 export const onExit: {
-  <A, E, XE, XR>(
-    f: (exit: Exit.Exit<A, E>) => Effect.Effect<void, XE, XR>
+  <A, E, XE = never, XR = never>(
+    f: (exit: Exit.Exit<A, E>) => Effect.Effect<void, XE, XR> | void
   ): <R>(self: Effect.Effect<A, E, R>) => Effect.Effect<A, E | XE, R | XR>
-  <A, E, R, XE, XR>(
+  <A, E, R, XE = never, XR = never>(
     self: Effect.Effect<A, E, R>,
-    f: (exit: Exit.Exit<A, E>) => Effect.Effect<void, XE, XR>
+    f: (exit: Exit.Exit<A, E>) => Effect.Effect<void, XE, XR> | void
   ): Effect.Effect<A, E | XE, R | XR>
 } = dual(2, onExitPrimitive)
 
 /** @internal */
 export const onExitInterruptible: {
-  <A, E, XE, XR>(
-    f: (exit: Exit.Exit<A, E>) => Effect.Effect<void, XE, XR>
+  <A, E, XE = never, XR = never>(
+    f: (exit: Exit.Exit<A, E>) => Effect.Effect<void, XE, XR> | void
   ): <R>(self: Effect.Effect<A, E, R>) => Effect.Effect<A, E | XE, R | XR>
-  <A, E, R, XE, XR>(
+  <A, E, R, XE = never, XR = never>(
     self: Effect.Effect<A, E, R>,
-    f: (exit: Exit.Exit<A, E>) => Effect.Effect<void, XE, XR>
+    f: (exit: Exit.Exit<A, E>) => Effect.Effect<void, XE, XR> | void
   ): Effect.Effect<A, E | XE, R | XR>
 } = dual(
   2,
-  <A, E, R, XE, XR>(
+  <A, E, R, XE = never, XR = never>(
     self: Effect.Effect<A, E, R>,
-    f: (exit: Exit.Exit<A, E>) => Effect.Effect<void, XE, XR>
-  ): Effect.Effect<A, E | XE, R | XR> =>
-    matchCauseEffect(self, {
-      onFailure(cause) {
-        const exit = exitFailCause(cause)
-        return flatMap(f(exit), (_) => exit)
-      },
-      onSuccess(a) {
-        const exit = exitSucceed(a)
-        return flatMap(f(exit), (_) => exit)
-      }
-    })
+    f: (exit: Exit.Exit<A, E>) => Effect.Effect<void, XE, XR> | void
+  ): Effect.Effect<A, E | XE, R | XR> => onExitPrimitive(self, f, true)
 )
 
 /** @internal */
@@ -3391,7 +3392,7 @@ export const uninterruptible = <A, E, R>(
   withFiber((fiber) => {
     if (!fiber.interruptible) return self
     fiber.interruptible = false
-    fiber._stack.push(setInterruptible(true))
+    fiber._stack.push(setInterruptibleTrue)
     return self
   })
 
@@ -3404,6 +3405,8 @@ const setInterruptible: (interruptible: boolean) => Primitive = makePrimitive({
     }
   }
 })
+const setInterruptibleTrue = setInterruptible(true)
+const setInterruptibleFalse = setInterruptible(false)
 
 /** @internal */
 export const interruptible = <A, E, R>(
@@ -3412,7 +3415,7 @@ export const interruptible = <A, E, R>(
   withFiber((fiber) => {
     if (fiber.interruptible) return self
     fiber.interruptible = true
-    fiber._stack.push(setInterruptible(false))
+    fiber._stack.push(setInterruptibleFalse)
     if (fiber._interruptedCause) return failCause(fiber._interruptedCause)
     return self
   })
@@ -3428,7 +3431,7 @@ export const uninterruptibleMask = <A, E, R>(
   withFiber((fiber) => {
     if (!fiber.interruptible) return f(identity)
     fiber.interruptible = false
-    fiber._stack.push(setInterruptible(true))
+    fiber._stack.push(setInterruptibleTrue)
     return f(interruptible)
   })
 
@@ -3443,7 +3446,7 @@ export const interruptibleMask = <A, E, R>(
   withFiber((fiber) => {
     if (fiber.interruptible) return f(identity)
     fiber.interruptible = true
-    fiber._stack.push(setInterruptible(false))
+    fiber._stack.push(setInterruptibleFalse)
     return f(uninterruptible)
   })
 

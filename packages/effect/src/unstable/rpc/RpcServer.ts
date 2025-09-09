@@ -248,32 +248,20 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any>(
       applyMiddleware(services, handler, metadata) :
       handler
     let responded = false
-    let effect = Effect.uninterruptible(Effect.matchCauseEffect(
-      Effect.interruptible(withMiddleware),
-      {
-        onSuccess: (value) => {
-          responded = true
-          return options.onFromServer({
-            _tag: "Exit",
-            clientId: client.id,
-            requestId: request.id,
-            exit: Exit.succeed(value as any)
-          })
-        },
-        onFailure: (cause) => {
-          responded = true
-          if (!disableFatalDefects && Cause.hasDie(cause)) {
-            return sendDefect(client, Cause.squash(cause))
-          }
-          return options.onFromServer({
-            _tag: "Exit",
-            clientId: client.id,
-            requestId: request.id,
-            exit: Exit.failCause(cause) as any
-          })
-        }
-      }
-    ))
+    const scope = Scope.makeUnsafe()
+    let effect = Effect.onExit(withMiddleware, (exit) => {
+      responded = true
+      const close = Scope.closeUnsafe(scope, exit)
+      const write = exit._tag === "Failure" && !disableFatalDefects && Cause.hasDie(exit.cause) ?
+        sendDefect(client, Cause.squash(exit.cause)) :
+        options.onFromServer({
+          _tag: "Exit",
+          clientId: client.id,
+          requestId: request.id,
+          exit
+        })
+      return close ? Effect.ensuring(write, close) : write
+    })
     if (enableTracing) {
       const parentSpan = requestFiber.services.mapUnsafe.get(Tracer.ParentSpan.key) as Tracer.AnySpan | undefined
       effect = Effect.withSpan(effect, `${spanPrefix}.${request.tag}`, {
@@ -299,7 +287,10 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any>(
     if (!isFork && concurrencySemaphore) {
       effect = concurrencySemaphore.withPermits(1)(effect)
     }
-    const runFork = Effect.runForkWith(ServiceMap.merge(entry.services, requestFiber.services))
+    const serviceMap = new Map(entry.services.mapUnsafe)
+    serviceMap.forEach((value, key) => serviceMap.set(key, value))
+    serviceMap.set(Scope.Scope.key, scope)
+    const runFork = Effect.runForkWith(ServiceMap.makeUnsafe(serviceMap))
     const fiber = trackFiber(runFork(effect))
     client.fibers.set(request.id, fiber)
     fiber.addObserver((exit) => {

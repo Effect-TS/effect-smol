@@ -513,6 +513,34 @@ export const add: {
 })
 
 /**
+ * @since 4.0.0
+ * @category Adders
+ */
+export const addOrOmit: {
+  <I, S>(
+    key: Key<I, S>,
+    service: Option.Option<Types.NoInfer<S>>
+  ): <Services>(self: ServiceMap<Services>) => ServiceMap<Services | I>
+  <Services, I, S>(
+    self: ServiceMap<Services>,
+    key: Key<I, S>,
+    service: Option.Option<Types.NoInfer<S>>
+  ): ServiceMap<Services | I>
+} = dual(3, <Services, I, S>(
+  self: ServiceMap<Services>,
+  key: Key<I, S>,
+  service: Option.Option<Types.NoInfer<S>>
+): ServiceMap<Services | I> => {
+  const map = new Map(self.mapUnsafe)
+  if (service._tag === "None") {
+    map.delete(key.key)
+  } else {
+    map.set(key.key, service.value)
+  }
+  return makeUnsafe(map)
+})
+
+/**
  * Get a service from the context that corresponds to the given key, or
  * use the fallback value.
  *
@@ -545,6 +573,15 @@ export const getOrElse: {
   }
   return isReference(key) ? getDefaultValue(key) : orElse()
 })
+
+/**
+ * @since 4.0.0
+ * @category Getters
+ */
+export const getOrUndefined: {
+  <S, I>(key: Key<I, S>): <Services>(self: ServiceMap<Services>) => S | undefined
+  <Services, S, I>(self: ServiceMap<Services>, key: Key<I, S>): S | undefined
+} = dual(2, <Services, S, I>(self: ServiceMap<Services>, key: Key<I, S>): S | undefined => self.mapUnsafe.get(key.key))
 
 /**
  * Get a service from the context that corresponds to the given key.
@@ -741,9 +778,7 @@ export const merge: {
   if (self.mapUnsafe.size === 0) return that as any
   if (that.mapUnsafe.size === 0) return self as any
   const map = new Map(self.mapUnsafe)
-  for (const [key, value] of that.mapUnsafe) {
-    map.set(key, value)
-  }
+  that.mapUnsafe.forEach((value, key) => map.set(key, value))
   return makeUnsafe(map)
 })
 
@@ -783,11 +818,11 @@ export const pick = <Keys extends ReadonlyArray<Key<any, any>>>(
 <Services>(self: ServiceMap<Services>): ServiceMap<Services & Key.Identifier<Keys[number]>> => {
   const map = new Map<string, any>()
   const keySet = new Set(keys.map((key) => key.key))
-  for (const [key, value] of self.mapUnsafe) {
+  self.mapUnsafe.forEach((value, key) => {
     if (keySet.has(key)) {
       map.set(key, value)
     }
-  }
+  })
   return makeUnsafe(map)
 }
 
@@ -821,8 +856,8 @@ export const omit = <Keys extends ReadonlyArray<Key<any, any>>>(
 ) =>
 <Services>(self: ServiceMap<Services>): ServiceMap<Exclude<Services, Key.Identifier<Keys[number]>>> => {
   const map = new Map(self.mapUnsafe)
-  for (const key of keys) {
-    map.delete(key.key)
+  for (let i = 0; i < keys.length; i++) {
+    map.delete(keys[i].key)
   }
   return makeUnsafe(map)
 }

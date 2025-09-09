@@ -378,10 +378,10 @@ export const failureIsInterrupt = <E>(self: Cause.Failure<E>): self is Cause.Int
 export interface Primitive {
   readonly [identifier]: string
   readonly [contA]:
-    | ((value: unknown, fiber: FiberImpl) => Primitive | Yield)
+    | ((value: unknown, fiber: FiberImpl, exit?: Exit.Exit<any, any>) => Primitive | Yield)
     | undefined
   readonly [contE]:
-    | ((cause: Cause.Cause<unknown>, fiber: FiberImpl) => Primitive | Yield)
+    | ((cause: Cause.Cause<unknown>, fiber: FiberImpl, exit?: Exit.Exit<any, any>) => Primitive | Yield)
     | undefined
   readonly [contAll]:
     | ((
@@ -445,14 +445,16 @@ export const makePrimitive = <
       readonly [args]: Single extends true ? Parameters<Fn>[0] : Parameters<Fn>
     },
     value: any,
-    fiber: FiberImpl
+    fiber: FiberImpl,
+    exit?: Exit.Exit<any, any>
   ) => Primitive | Effect.Effect<any, any, any> | Yield
   readonly [contE]?: (
     this: Primitive & {
       readonly [args]: Single extends true ? Parameters<Fn>[0] : Parameters<Fn>
     },
     cause: Cause.Cause<any>,
-    fiber: FiberImpl
+    fiber: FiberImpl,
+    exit?: Exit.Exit<any, any>
   ) => Primitive | Effect.Effect<any, any, any> | Yield
   readonly [contAll]?: (
     this: Primitive & {
@@ -522,7 +524,7 @@ export const exitSucceed: <A>(a: A) => Exit.Exit<A> = makeExit({
   prop: "value",
   [evaluate](fiber) {
     const cont = fiber.getCont(contA)
-    return cont ? cont[contA](this[args], fiber) : fiber.yieldWith(this)
+    return cont ? cont[contA](this[args], fiber, this) : fiber.yieldWith(this)
   }
 })
 
@@ -542,14 +544,18 @@ export const exitFailCause: <E>(cause: Cause.Cause<E>) => Exit.Exit<never, E> = 
   prop: "cause",
   [evaluate](fiber) {
     let cause = this[args]
+    let annotated = false
     if (fiber.currentSpan && fiber.currentSpan._tag === "Span") {
       cause = causeAnnotate(cause, CurrentSpanKey, fiber.currentSpan)
+      annotated = true
     }
     let cont = fiber.getCont(contE)
     while (fiber.interruptible && fiber._interruptedCause && cont) {
       cont = fiber.getCont(contE)
     }
-    return cont ? cont[contE](cause, fiber) : fiber.yieldWith(this[args] === cause ? this : exitFailCause(cause))
+    return cont
+      ? cont[contE](cause, fiber, annotated ? undefined : this)
+      : fiber.yieldWith(annotated ? this : exitFailCause(cause))
   }
 })
 
