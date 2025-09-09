@@ -3194,15 +3194,7 @@ export function Option<S extends Top>(value: S): Option<S> {
     },
     {
       title: "Option",
-      optic: ([value]) =>
-        link<O.Option<S["Encoded"]>>()(
-          Union([Struct({ _tag: Literal("Some"), value }), Struct({ _tag: Literal("None") })]),
-          Transformation.transform({
-            decode: (input) => input._tag === "None" ? O.none() : O.some(input.value),
-            encode: (o) => (O.isSome(o) ? { _tag: "Some", value: o.value } as const : { _tag: "None" } as const)
-          })
-        ),
-      defaultJsonSerializer: ([value]) =>
+      defaultIsoSerializer: ([value]) =>
         link<O.Option<S["Encoded"]>>()(
           Union([Struct({ _tag: Literal("Some"), value }), Struct({ _tag: Literal("None") })]),
           Transformation.transform({
@@ -3386,7 +3378,7 @@ export function Redacted<S extends Top>(value: S, options?: {
     },
     {
       title: "Redacted",
-      defaultJsonSerializer: ([value]) =>
+      defaultIsoSerializer: ([value]) =>
         link<Redacted_.Redacted<S["Encoded"]>>()(
           value,
           {
@@ -3453,7 +3445,7 @@ export function CauseFailure<E extends Top, D extends Top>(error: E, defect: D):
     },
     {
       title: "Cause.Failure",
-      defaultJsonSerializer: ([error, defect]) =>
+      defaultIsoSerializer: ([error, defect]) =>
         link<Cause_.Failure<E["Encoded"]>>()(
           Union([
             TaggedStruct("Fail", { error }),
@@ -3545,7 +3537,7 @@ export function Cause<E extends Top, D extends Top>(error: E, defect: D): Cause<
     },
     {
       title: "Cause",
-      defaultJsonSerializer: ([failure]) =>
+      defaultIsoSerializer: ([failure]) =>
         link<Cause_.Cause<E["Encoded"]>>()(
           Array(failure),
           Transformation.transform({
@@ -3595,7 +3587,7 @@ const ErrorEncoded = Struct({
  * @since 4.0.0
  */
 export const Error: Error = instanceOf(globalThis.Error, {
-  defaultJsonSerializer: () =>
+  defaultIsoSerializer: () =>
     link<globalThis.Error>()(
       ErrorEncoded,
       Transformation.error()
@@ -3702,7 +3694,7 @@ export function Exit<A extends Top, E extends Top, D extends Top>(value: A, erro
     },
     {
       title: "Exit",
-      defaultJsonSerializer: ([value, cause]) =>
+      defaultIsoSerializer: ([value, cause]) =>
         link<Exit_.Exit<A["Encoded"], E["Encoded"]>>()(
           Union([
             TaggedStruct("Success", { value }),
@@ -3804,7 +3796,7 @@ export function Map<Key extends Top, Value extends Top>(key: Key, value: Value):
     },
     {
       title: "Map",
-      defaultJsonSerializer: ([key, value]) =>
+      defaultIsoSerializer: ([key, value]) =>
         link<globalThis.Map<Key["Encoded"], Value["Encoded"]>>()(
           Array(Tuple([key, value])),
           Transformation.transform({
@@ -4437,8 +4429,7 @@ function getClassSchemaFactory<S extends Top>(
               Effect.fail(new Issue.InvalidType(ast, O.some(input)))
           },
           Annotations.combine({
-            defaultJsonSerializer: ([from]: readonly [any]) => getLink(from.ast),
-            optic: ([from]: readonly [any]) => getLink(from.ast),
+            defaultIsoSerializer: ([from]: readonly [any]) => getLink(from.ast),
             arbitrary: {
               _tag: "Declaration",
               declaration: ([from]: readonly [any]) => () => from.map((args: any) => new self(args))
@@ -4772,7 +4763,7 @@ export interface declareConstructor<T, E, TypeParameters extends ReadonlyArray<T
 /**
  * An API for creating schemas for parametric types.
  *
- * It is recommended to add the `defaultJsonSerializer` annotation to the schema.
+ * It is recommended to add the `defaultIsoSerializer` annotation to the schema.
  *
  * @see {@link declare} for creating schemas for non parametric types.
  *

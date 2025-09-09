@@ -2966,7 +2966,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
         MyError,
         {
           title: "MyError",
-          defaultJsonSerializer: () =>
+          defaultIsoSerializer: () =>
             Schema.link<MyError>()(
               Schema.String,
               Transformation.transform({

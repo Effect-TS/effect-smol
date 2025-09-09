@@ -38,7 +38,7 @@ export const schema: Schema.Codec<Cookies> = Schema.declare(
   isCookies,
   {
     identifier: "Cookies",
-    defaultJsonSerializer: () =>
+    defaultIsoSerializer: () =>
       Schema.link<Cookies>()(
         Schema.Array(Schema.String),
         Transformation.transform({
