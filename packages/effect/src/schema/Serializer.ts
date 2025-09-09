@@ -27,10 +27,9 @@ const goJson = AST.memoize((ast: AST.AST): AST.AST => {
     const links = ast.encoding
     const last = links.at(-1)!
     const to = goJson(last.to)
-    if (to === last.to) {
-      return ast
-    }
-    return AST.replaceEncoding(ast, AST.replaceLastLink(links, new AST.Link(to, last.transformation)))
+    return to === last.to
+      ? ast
+      : AST.replaceEncoding(ast, AST.replaceLastLink(links, new AST.Link(to, last.transformation)))
   }
   if (AST.isTypeLiteral(ast) && ast.propertySignatures.some((ps) => !Predicate.isString(ps.name))) {
     return AST.forbidden(ast, "cannot serialize to JSON, property names must be strings")

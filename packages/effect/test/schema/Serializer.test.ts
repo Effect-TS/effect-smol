@@ -733,10 +733,11 @@ describe("Serializer", () => {
       it("Option(Date)", async () => {
         const schema = Schema.Option(Schema.Date)
 
-        await assertions.serialization.json.typeCodec.succeed(schema, Option.some(new Date("2021-01-01")), [
-          "2021-01-01T00:00:00.000Z"
-        ])
-        await assertions.serialization.json.typeCodec.succeed(schema, Option.none(), [])
+        await assertions.serialization.json.typeCodec.succeed(schema, Option.some(new Date("2021-01-01")), {
+          _tag: "Some",
+          value: "2021-01-01T00:00:00.000Z"
+        })
+        await assertions.serialization.json.typeCodec.succeed(schema, Option.none(), { _tag: "None" })
       })
 
       describe("Redacted", () => {
@@ -753,8 +754,16 @@ describe("Serializer", () => {
             Redacted.make(Option.some("a")),
             `Cannot serialize Redacted`
           )
-          await assertions.deserialization.json.typeCodec.succeed(schema, [], Redacted.make(Option.none()))
-          await assertions.deserialization.json.typeCodec.succeed(schema, ["a"], Redacted.make(Option.some("a")))
+          await assertions.deserialization.json.typeCodec.succeed(
+            schema,
+            { _tag: "None" },
+            Redacted.make(Option.none())
+          )
+          await assertions.deserialization.json.typeCodec.succeed(
+            schema,
+            { _tag: "Some", value: "a" },
+            Redacted.make(Option.some("a"))
+          )
         })
 
         it("encoding a Redacted with a label", async () => {
@@ -779,13 +788,13 @@ describe("Serializer", () => {
           schema,
           new Map([[Option.some(new Date("2021-01-01")), 0]]),
           [[
-            ["2021-01-01T00:00:00.000Z"],
+            { _tag: "Some", value: "2021-01-01T00:00:00.000Z" },
             0
           ]]
         )
         await assertions.deserialization.json.typeCodec.succeed(
           schema,
-          [[["2021-01-01T00:00:00.000Z"], 0]],
+          [[{ _tag: "Some", value: "2021-01-01T00:00:00.000Z" }, 0]],
           new Map([[Option.some(new Date("2021-01-01")), 0]])
         )
       })
@@ -855,9 +864,13 @@ describe("Serializer", () => {
       it("Option(Option(FiniteFromDate))", async () => {
         const schema = Schema.Option(Schema.Option(FiniteFromDate))
 
-        await assertions.serialization.json.codec.succeed(schema, Option.some(Option.some(0)), [[
-          "1970-01-01T00:00:00.000Z"
-        ]])
+        await assertions.serialization.json.codec.succeed(schema, Option.some(Option.some(0)), {
+          _tag: "Some",
+          value: {
+            _tag: "Some",
+            value: "1970-01-01T00:00:00.000Z"
+          }
+        })
       })
 
       it("Map(Option(Symbol), Date)", async () => {
@@ -867,13 +880,13 @@ describe("Serializer", () => {
           schema,
           new Map([[Option.some(Symbol.for("a")), new Date("2021-01-01")]]),
           [[
-            ["Symbol(a)"],
+            { _tag: "Some", value: "Symbol(a)" },
             "2021-01-01T00:00:00.000Z"
           ]]
         )
         await assertions.deserialization.json.codec.succeed(
           schema,
-          [[["Symbol(a)"], "2021-01-01T00:00:00.000Z"]],
+          [[{ _tag: "Some", value: "Symbol(a)" }, "2021-01-01T00:00:00.000Z"]],
           new Map([[Option.some(Symbol.for("a")), new Date("2021-01-01")]])
         )
       })
@@ -889,11 +902,11 @@ describe("Serializer", () => {
         const schema = Schema.Cause(Schema.Option(Schema.Finite), Schema.Option(Schema.String))
         await assertions.serialization.json.codec.succeed(schema, Cause.fail(Option.some(1)), [{
           _tag: "Fail",
-          error: [1]
+          error: { _tag: "Some", value: 1 }
         }])
         await assertions.serialization.json.codec.succeed(schema, Cause.die(Option.some("a")), [{
           _tag: "Die",
-          defect: ["a"]
+          defect: { _tag: "Some", value: "a" }
         }])
         await assertions.serialization.json.codec.succeed(schema, Cause.interrupt(1), [{
           _tag: "Interrupt",
@@ -1544,10 +1557,11 @@ describe("Serializer", () => {
       it("Option(Date)", async () => {
         const schema = Schema.Option(Schema.Date)
 
-        await assertions.serialization.stringLeafJson.typeCodec.succeed(schema, Option.some(new Date("2021-01-01")), [
-          "2021-01-01T00:00:00.000Z"
-        ])
-        await assertions.serialization.stringLeafJson.typeCodec.succeed(schema, Option.none(), [])
+        await assertions.serialization.stringLeafJson.typeCodec.succeed(schema, Option.some(new Date("2021-01-01")), {
+          _tag: "Some",
+          value: "2021-01-01T00:00:00.000Z"
+        })
+        await assertions.serialization.stringLeafJson.typeCodec.succeed(schema, Option.none(), { _tag: "None" })
       })
 
       it("Redacted(Option(String))", async () => {
@@ -1563,10 +1577,14 @@ describe("Serializer", () => {
           Redacted.make(Option.some("a")),
           `Cannot serialize Redacted`
         )
-        await assertions.deserialization.stringLeafJson.typeCodec.succeed(schema, [], Redacted.make(Option.none()))
         await assertions.deserialization.stringLeafJson.typeCodec.succeed(
           schema,
-          ["a"],
+          { _tag: "None" },
+          Redacted.make(Option.none())
+        )
+        await assertions.deserialization.stringLeafJson.typeCodec.succeed(
+          schema,
+          { _tag: "Some", value: "a" },
           Redacted.make(Option.some("a"))
         )
       })
@@ -1578,13 +1596,13 @@ describe("Serializer", () => {
           schema,
           new Map([[Option.some(new Date("2021-01-01")), 0]]),
           [[
-            ["2021-01-01T00:00:00.000Z"],
+            { _tag: "Some", value: "2021-01-01T00:00:00.000Z" },
             "0"
           ]]
         )
         await assertions.deserialization.stringLeafJson.typeCodec.succeed(
           schema,
-          [[["2021-01-01T00:00:00.000Z"], "0"]],
+          [[{ _tag: "Some", value: "2021-01-01T00:00:00.000Z" }, "0"]],
           new Map([[Option.some(new Date("2021-01-01")), 0]])
         )
       })

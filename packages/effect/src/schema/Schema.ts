@@ -3169,7 +3169,7 @@ export interface Option<S extends Top>
   extends declareConstructor<O.Option<S["Type"]>, O.Option<S["Encoded"]>, readonly [S]>
 {
   readonly "~rebuild.out": Option<S>
-  readonly "~iso": readonly [] | readonly [S["~iso"]]
+  readonly "~iso": { readonly _tag: "None" } | { readonly _tag: "Some"; readonly value: S["~iso"] }
 }
 
 /**
@@ -3194,12 +3194,20 @@ export function Option<S extends Top>(value: S): Option<S> {
     },
     {
       title: "Option",
+      optic: ([value]) =>
+        link<O.Option<S["Encoded"]>>()(
+          Union([Struct({ _tag: Literal("Some"), value }), Struct({ _tag: Literal("None") })]),
+          Transformation.transform({
+            decode: (input) => input._tag === "None" ? O.none() : O.some(input.value),
+            encode: (o) => (O.isSome(o) ? { _tag: "Some", value: o.value } as const : { _tag: "None" } as const)
+          })
+        ),
       defaultJsonSerializer: ([value]) =>
         link<O.Option<S["Encoded"]>>()(
-          Union([Tuple([value]), Tuple([])]),
+          Union([Struct({ _tag: Literal("Some"), value }), Struct({ _tag: Literal("None") })]),
           Transformation.transform({
-            decode: Arr.head,
-            encode: (o) => (O.isSome(o) ? [o.value] as const : [] as const)
+            decode: (input) => input._tag === "None" ? O.none() : O.some(input.value),
+            encode: (o) => (O.isSome(o) ? { _tag: "Some", value: o.value } as const : { _tag: "None" } as const)
           })
         ),
       arbitrary: {
@@ -3962,6 +3970,7 @@ export const URL: URL = instanceOf(
  */
 export interface Date extends instanceOf<globalThis.Date> {
   readonly "~rebuild.out": Date
+  readonly "~iso": globalThis.Date
 }
 
 /**
@@ -4429,6 +4438,7 @@ function getClassSchemaFactory<S extends Top>(
           },
           Annotations.combine({
             defaultJsonSerializer: ([from]: readonly [any]) => getLink(from.ast),
+            optic: ([from]: readonly [any]) => getLink(from.ast),
             arbitrary: {
               _tag: "Declaration",
               declaration: ([from]: readonly [any]) => () => from.map((args: any) => new self(args))

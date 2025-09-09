@@ -29,12 +29,22 @@ describe("Optic", () => {
       deepStrictEqual(optic.replace(2, { a: 1 }), { a: 2 })
     })
 
-    it("key", () => {
-      type S = { readonly a: number }
-      const optic = Optic.id<S>().key("a")
+    describe("key", () => {
+      it("Struct", () => {
+        type S = { readonly a: number }
+        const optic = Optic.id<S>().key("a")
 
-      assertSuccess(optic.getOptic({ a: 1 }), 1)
-      assertSuccess(optic.setOptic(2, { a: 1 }), { a: 2 })
+        assertSuccess(optic.getOptic({ a: 1 }), 1)
+        assertSuccess(optic.setOptic(2, { a: 1 }), { a: 2 })
+      })
+
+      it("Tuple", () => {
+        type S = [number]
+        const optic = Optic.id<S>().key(0)
+
+        assertSuccess(optic.getOptic([1]), 1)
+        assertSuccess(optic.setOptic(2, [1]), [2])
+      })
     })
   })
 
@@ -105,5 +115,13 @@ describe("Optic", () => {
 
     assertSuccess(optic.getOptic(Option.some(1)), Option.some(1))
     assertFailure(optic.getOptic(Option.none()), ["Expected a Some value, got none()", Option.none()])
+  })
+
+  it("tag", () => {
+    type S = { readonly _tag: "a"; readonly a: string } | { readonly _tag: "b"; readonly b: number }
+    const optic = Optic.id<S>().tag("a").key("a")
+
+    assertSuccess(optic.getOptic({ _tag: "a", a: "value" }), "value")
+    assertFailure(optic.getOptic({ _tag: "b", b: 1 }), [`Expected "a" tag, got "b"`, { _tag: "b", b: 1 }])
   })
 })
