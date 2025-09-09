@@ -42,6 +42,16 @@ export class WorkflowEngine extends ServiceMap.Key<
     ) => Effect.Effect<Discard extends true ? void : Workflow.Result<unknown, unknown>>
 
     /**
+     * Execute a registered workflow.
+     */
+    readonly poll: (
+      options: {
+        readonly workflow: Workflow.Any
+        readonly executionId: string
+      }
+    ) => Effect.Effect<Workflow.Result<unknown, unknown> | undefined>
+
+    /**
      * Interrupt a registered workflow.
      */
     readonly interrupt: (

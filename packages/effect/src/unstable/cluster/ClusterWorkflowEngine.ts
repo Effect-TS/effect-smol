@@ -8,8 +8,8 @@ import * as PrimaryKey from "../../interfaces/PrimaryKey.ts"
 import * as Layer from "../../Layer.ts"
 import * as RcMap from "../../RcMap.ts"
 import * as Schedule from "../../Schedule.ts"
-import { Serializer } from "../../schema/index.ts"
 import * as Schema from "../../schema/Schema.ts"
+import * as Serializer from "../../schema/Serializer.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import * as DateTime from "../../time/DateTime.ts"
 import * as Duration from "../../time/Duration.ts"
@@ -344,6 +344,25 @@ export const make = Effect.gen(function*() {
         Effect.scoped
       )
     },
+
+    poll: Effect.fnUntraced(function*({ executionId, workflow }) {
+      const entity = ensureEntity(workflow)
+      const exitSchema = Serializer.json(
+        Rpc.exitSchema(entity.protocol.requests.get("run")!)
+      )
+      const reply = yield* requestReply({
+        workflow,
+        entityType: `Workflow/${workflow.name}`,
+        executionId,
+        tag: "run",
+        id: ""
+      })
+      if (!reply) return undefined
+      const exit = yield* (Schema.decodeEffect(exitSchema)(reply.exit) as Effect.Effect<
+        Exit.Exit<Workflow.Result<unknown, unknown>>
+      >)
+      return yield* exit
+    }, Effect.orDie),
 
     interrupt: Effect.fnUntraced(
       function*(this: WorkflowEngine["Service"], workflow, executionId) {

@@ -75,6 +75,15 @@ export interface Workflow<
   >
 
   /**
+   * Execute the workflow with the given payload.
+   */
+  readonly poll: (executionId: string) => Effect.Effect<
+    Result<Success["Type"], Error["Type"]> | undefined,
+    never,
+    WorkflowEngine | Success["DecodingServices"] | Error["DecodingServices"]
+  >
+
+  /**
    * Interrupt a workflow execution for the given execution ID.
    */
   readonly interrupt: (executionId: string) => Effect.Effect<void, never, WorkflowEngine>
@@ -309,6 +318,17 @@ export const make = <
       },
       Effect.withSpan(`${options.name}.execute`, {}, { captureStackTrace: false })
     ) as any,
+    poll: Effect.fnUntraced(
+      function*(executionId: string) {
+        const engine = yield* EngineTag
+        return yield* engine.poll({ workflow: self, executionId })
+      },
+      (effect, executionId) =>
+        Effect.withSpan(effect, `${options.name}.poll`, {
+          captureStackTrace: false,
+          attributes: { executionId }
+        })
+    ),
     interrupt: Effect.fnUntraced(
       function*(executionId: string) {
         const engine = yield* EngineTag
