@@ -19,7 +19,6 @@ import type * as Effect from "../Effect.ts"
 import type * as Exit from "../Exit.ts"
 import { dual } from "../Function.ts"
 import * as core from "../internal/core.ts"
-import { StructuralPrototype } from "../internal/core.ts"
 import * as internalEffect from "../internal/effect.ts"
 import type * as ServiceMap from "../ServiceMap.ts"
 import type * as Types from "../types/Types.ts"
@@ -175,7 +174,6 @@ const requestVariance = {
 }
 
 const RequestPrototype = {
-  ...StructuralPrototype,
   [TypeId]: requestVariance
 }
 

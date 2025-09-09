@@ -108,14 +108,14 @@ export class Interrupt extends FailureBase<"Interrupt"> implements Cause.Interru
   [Equal.symbol](that: any): boolean {
     return (
       failureIsInterrupt(that) &&
-      Equal.equals(this.fiberId, that.fiberId) &&
-      Equal.equals(this.annotations, that.annotations)
+      this.fiberId === that.fiberId &&
+      this.annotations === that.annotations
     )
   }
   [Hash.symbol](): number {
     return Hash.cached(this, () =>
-      Hash.combine(Hash.string(this._tag))(
-        Hash.combine(Hash.hash(this.fiberId))(Hash.hash(this.annotations))
+      Hash.combine(Hash.string(`${this._tag}:${this.fiberId}`))(
+        Hash.random(this.annotations)
       ))
   }
 }

@@ -104,30 +104,6 @@ export const EffectProto = {
 }
 
 /** @internal */
-export const StructuralPrototype: Equal.Equal = {
-  [Hash.symbol]() {
-    return Hash.cached(this, () => Hash.structure(this))
-  },
-  [Equal.symbol](this: Equal.Equal, that: Equal.Equal) {
-    const selfKeys = Object.keys(this)
-    const thatKeys = Object.keys(that as object)
-    if (selfKeys.length !== thatKeys.length) {
-      return false
-    }
-    for (const key of selfKeys) {
-      if (
-        !(
-          key in (that as object) &&
-          Equal.equals((this as any)[key], (that as any)[key])
-        )
-      ) {
-        return false
-      }
-    }
-    return true
-  }
-}
-/** @internal */
 export const isEffect = (u: unknown): u is Effect.Effect<any, any, any> => hasProperty(u, EffectTypeId)
 
 /** @internal */
@@ -182,7 +158,7 @@ export class CauseImpl<E> implements Cause.Cause<E> {
     return (
       isCause(that) &&
       this.failures.length === that.failures.length &&
-      this.failures.every((e, i) => Equal.equals(e, that.failures[i]))
+      this.failures.every((e, i) => e[Equal.symbol](that.failures[i]))
     )
   }
   [Hash.symbol](): number {
@@ -498,7 +474,7 @@ export const makeExit = <
     [Equal.symbol](this: any, that: any): boolean {
       return (
         isExit(that) &&
-        that._tag === options.op &&
+        that._tag === this._tag &&
         Equal.equals(this[args], (that as any)[args])
       )
     },
@@ -579,7 +555,7 @@ export const YieldableError: new(
       return exitFail(this)
     }
   }
-  Object.assign(YieldableError.prototype, StructuralPrototype, YieldableProto)
+  Object.assign(YieldableError.prototype, YieldableProto)
   return YieldableError as any
 })()
 
