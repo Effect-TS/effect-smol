@@ -46,6 +46,30 @@ describe("Optic", () => {
         assertSuccess(optic.setOptic(2, [1]), [2])
       })
     })
+
+    describe("optionalKey", () => {
+      it("Struct", () => {
+        type S = { readonly a?: number }
+        const optic = Optic.id<S>().optionalKey("a")
+
+        assertSuccess(optic.getOptic({ a: 1 }), 1)
+        assertSuccess(optic.getOptic({}), undefined)
+        assertSuccess(optic.setOptic(2, { a: 1 }), { a: 2 })
+        assertSuccess(optic.setOptic(2, {}), { a: 2 })
+        assertSuccess(optic.setOptic(undefined, { a: 1 }), {})
+      })
+
+      it("Tuple", () => {
+        type S = readonly [number?]
+        const optic = Optic.id<S>().optionalKey(0)
+
+        assertSuccess(optic.getOptic([1]), 1)
+        assertSuccess(optic.getOptic([]), undefined)
+        assertSuccess(optic.setOptic(2, [1]), [2])
+        assertSuccess(optic.setOptic(2, []), [2])
+        assertSuccess(optic.setOptic(undefined, [1]), [])
+      })
+    })
   })
 
   describe("Prism", () => {
