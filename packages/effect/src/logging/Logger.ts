@@ -1280,22 +1280,22 @@ export const layer = <
 export const toFile = dual<
   (
     path: string,
-    options?:
-      | FileSystem.OpenFileOptions & {
-        readonly batchWindow?: Duration.DurationInput | undefined
-      }
-      | undefined
+    options?: {
+      readonly flag?: FileSystem.OpenFlag | undefined
+      readonly mode?: number | undefined
+      readonly batchWindow?: Duration.DurationInput | undefined
+    } | undefined
   ) => <Message>(
     self: Logger<Message, string>
   ) => Effect.Effect<Logger<Message, void>, PlatformError, Scope.Scope | FileSystem.FileSystem>,
   <Message>(
     self: Logger<Message, string>,
     path: string,
-    options?:
-      | FileSystem.OpenFileOptions & {
-        readonly batchWindow?: Duration.DurationInput | undefined
-      }
-      | undefined
+    options?: {
+      readonly flag?: FileSystem.OpenFlag | undefined
+      readonly mode?: number | undefined
+      readonly batchWindow?: Duration.DurationInput | undefined
+    } | undefined
   ) => Effect.Effect<Logger<Message, void>, PlatformError, Scope.Scope | FileSystem.FileSystem>
 >(
   (args) => isLogger(args[0]),

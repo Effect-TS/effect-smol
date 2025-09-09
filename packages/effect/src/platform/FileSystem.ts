@@ -101,7 +101,11 @@ export interface FileSystem {
    */
   readonly access: (
     path: string,
-    options?: AccessFileOptions
+    options?: {
+      readonly ok?: boolean | undefined
+      readonly readable?: boolean | undefined
+      readonly writable?: boolean | undefined
+    }
   ) => Effect.Effect<void, PlatformError>
   /**
    * Copy a file or directory from `fromPath` to `toPath`.
@@ -111,7 +115,10 @@ export interface FileSystem {
   readonly copy: (
     fromPath: string,
     toPath: string,
-    options?: CopyOptions
+    options?: {
+      readonly overwrite?: boolean | undefined
+      readonly preserveTimestamps?: boolean | undefined
+    }
   ) => Effect.Effect<void, PlatformError>
   /**
    * Copy a file from `fromPath` to `toPath`.
@@ -154,7 +161,10 @@ export interface FileSystem {
    */
   readonly makeDirectory: (
     path: string,
-    options?: MakeDirectoryOptions
+    options?: {
+      readonly recursive?: boolean | undefined
+      readonly mode?: number | undefined
+    }
   ) => Effect.Effect<void, PlatformError>
   /**
    * Create a temporary directory.
@@ -166,35 +176,41 @@ export interface FileSystem {
    * You can also specify a prefix for the directory name by setting the
    * `prefix` option.
    */
-  readonly makeTempDirectory: (
-    options?: MakeTempDirectoryOptions
-  ) => Effect.Effect<string, PlatformError>
+  readonly makeTempDirectory: (options?: {
+    readonly directory?: string | undefined
+    readonly prefix?: string | undefined
+  }) => Effect.Effect<string, PlatformError>
   /**
    * Create a temporary directory inside a scope.
    *
    * Functionally equivalent to `makeTempDirectory`, but the directory will be
    * automatically deleted when the scope is closed.
    */
-  readonly makeTempDirectoryScoped: (
-    options?: MakeTempDirectoryOptions
-  ) => Effect.Effect<string, PlatformError, Scope>
+  readonly makeTempDirectoryScoped: (options?: {
+    readonly directory?: string | undefined
+    readonly prefix?: string | undefined
+  }) => Effect.Effect<string, PlatformError, Scope>
   /**
    * Create a temporary file.
    * The directory creation is functionally equivalent to `makeTempDirectory`.
    * The file name will be a randomly generated string.
    */
-  readonly makeTempFile: (
-    options?: MakeTempFileOptions
-  ) => Effect.Effect<string, PlatformError>
+  readonly makeTempFile: (options?: {
+    readonly directory?: string | undefined
+    readonly prefix?: string | undefined
+    readonly suffix?: string | undefined
+  }) => Effect.Effect<string, PlatformError>
   /**
    * Create a temporary file inside a scope.
    *
    * Functionally equivalent to `makeTempFile`, but the file will be
    * automatically deleted when the scope is closed.
    */
-  readonly makeTempFileScoped: (
-    options?: MakeTempFileOptions
-  ) => Effect.Effect<string, PlatformError, Scope>
+  readonly makeTempFileScoped: (options?: {
+    readonly directory?: string | undefined
+    readonly prefix?: string | undefined
+    readonly suffix?: string | undefined
+  }) => Effect.Effect<string, PlatformError, Scope>
   /**
    * Open a file at `path` with the specified `options`.
    *
@@ -202,7 +218,10 @@ export interface FileSystem {
    */
   readonly open: (
     path: string,
-    options?: OpenFileOptions
+    options?: {
+      readonly flag?: OpenFlag | undefined
+      readonly mode?: number | undefined
+    }
   ) => Effect.Effect<File, PlatformError, Scope>
   /**
    * List the contents of a directory.
@@ -212,7 +231,9 @@ export interface FileSystem {
    */
   readonly readDirectory: (
     path: string,
-    options?: ReadDirectoryOptions
+    options?: {
+      readonly recursive?: boolean | undefined
+    }
   ) => Effect.Effect<Array<string>, PlatformError>
   /**
    * Read the contents of a file.
@@ -244,7 +265,16 @@ export interface FileSystem {
    */
   readonly remove: (
     path: string,
-    options?: RemoveOptions
+    options?: {
+      /**
+       * When `true`, you can recursively remove nested directories.
+       */
+      readonly recursive?: boolean | undefined
+      /**
+       * When `true`, exceptions will be ignored if `path` does not exist.
+       */
+      readonly force?: boolean | undefined
+    }
   ) => Effect.Effect<void, PlatformError>
   /**
    * Rename a file or directory.
@@ -258,7 +288,10 @@ export interface FileSystem {
    */
   readonly sink: (
     path: string,
-    options?: SinkOptions
+    options?: {
+      readonly flag?: OpenFlag | undefined
+      readonly mode?: number | undefined
+    }
   ) => Sink.Sink<void, Uint8Array, never, PlatformError>
   /**
    * Get information about a file at `path`.
@@ -280,7 +313,11 @@ export interface FileSystem {
    */
   readonly stream: (
     path: string,
-    options?: StreamOptions
+    options?: {
+      readonly bytesToRead?: SizeInput | undefined
+      readonly chunkSize?: SizeInput | undefined
+      readonly offset?: SizeInput | undefined
+    }
   ) => Stream.Stream<Uint8Array, PlatformError>
   /**
    * Create a symbolic link from `fromPath` to `toPath`.
@@ -315,7 +352,10 @@ export interface FileSystem {
   readonly writeFile: (
     path: string,
     data: Uint8Array,
-    options?: WriteFileOptions
+    options?: {
+      readonly flag?: OpenFlag | undefined
+      readonly mode?: number | undefined
+    }
   ) => Effect.Effect<void, PlatformError>
   /**
    * Write a string to a file at `path`.
@@ -323,7 +363,10 @@ export interface FileSystem {
   readonly writeFileString: (
     path: string,
     data: string,
-    options?: WriteFileStringOptions
+    options?: {
+      readonly flag?: OpenFlag | undefined
+      readonly mode?: number | undefined
+    }
   ) => Effect.Effect<void, PlatformError>
 }
 
@@ -645,175 +688,6 @@ export type OpenFlag =
   | "ax"
   | "a+"
   | "ax+"
-
-/**
- * Options for checking file accessibility.
- *
- * These options control what level of access to test when using the `access` method.
- * By default, the method tests if the file exists and is readable.
- *
- * @example
- * ```ts
- * import { Effect } from "effect"
- * import { FileSystem  } from "effect/platform"
- *
- * const program = Effect.gen(function* () {
- *   const fs = yield* FileSystem.FileSystem
- *
- *   // Check if file exists
- *   yield* fs.access("./config.json")
- *
- *   // Check if file is readable
- *   yield* fs.access("./data.txt", { readable: true })
- *
- *   // Check if file is writable
- *   yield* fs.access("./output.log", { writable: true })
- *
- *   // Check multiple permissions
- *   yield* fs.access("./script.sh", {
- *     readable: true,
- *     writable: true
- *   })
- * })
- * ```
- *
- * @since 4.0.0
- * @category options
- */
-export interface AccessFileOptions {
-  readonly ok?: boolean
-  readonly readable?: boolean
-  readonly writable?: boolean
-}
-
-/**
- * Options for creating directories.
- *
- * Controls the behavior when creating new directories, including permission modes
- * and whether to create parent directories if they don't exist.
- *
- * @example
- * ```ts
- * import { Effect } from "effect"
- * import { FileSystem  } from "effect/platform"
- *
- * const program = Effect.gen(function* () {
- *   const fs = yield* FileSystem.FileSystem
- *
- *   // Create a single directory
- *   yield* fs.makeDirectory("./temp")
- *
- *   // Create nested directories recursively
- *   yield* fs.makeDirectory("./data/logs/app", { recursive: true })
- *
- *   // Create directory with specific permissions
- *   yield* fs.makeDirectory("./secure", {
- *     mode: 0o700, // Owner read/write/execute only
- *     recursive: false
- *   })
- * })
- * ```
- *
- * @since 4.0.0
- * @category options
- */
-export interface MakeDirectoryOptions {
-  readonly recursive?: boolean
-  readonly mode?: number
-}
-
-/**
- * @since 4.0.0
- * @category options
- */
-export interface CopyOptions {
-  readonly overwrite?: boolean
-  readonly preserveTimestamps?: boolean
-}
-
-/**
- * @since 4.0.0
- * @category options
- */
-export interface MakeTempDirectoryOptions {
-  readonly directory?: string
-  readonly prefix?: string
-}
-
-/**
- * @since 4.0.0
- * @category options
- */
-export interface MakeTempFileOptions {
-  readonly directory?: string
-  readonly prefix?: string
-}
-
-/**
- * @since 4.0.0
- * @category options
- */
-export interface OpenFileOptions {
-  readonly flag?: OpenFlag
-  readonly mode?: number
-}
-
-/**
- * @since 4.0.0
- * @category options
- */
-export interface ReadDirectoryOptions {
-  readonly recursive?: boolean
-}
-
-/**
- * @since 4.0.0
- * @category options
- */
-export interface RemoveOptions {
-  /**
-   * When `true`, you can recursively remove nested directories.
-   */
-  readonly recursive?: boolean
-  /**
-   * When `true`, exceptions will be ignored if `path` does not exist.
-   */
-  readonly force?: boolean
-}
-
-/**
- * @since 4.0.0
- * @category options
- */
-export interface SinkOptions extends OpenFileOptions {}
-
-/**
- * @since 4.0.0
- * @category options
- */
-export interface StreamOptions {
-  readonly bytesToRead?: SizeInput | undefined
-  readonly chunkSize?: SizeInput | undefined
-  readonly offset?: SizeInput | undefined
-}
-
-/**
- * @since 4.0.0
- * @category options
- */
-export interface WriteFileOptions {
-  readonly flag?: OpenFlag
-  readonly mode?: number
-}
-
-/**
- * @since 4.0.0
- * @category options
- */
-export interface WriteFileStringOptions {
-  readonly flag?: OpenFlag
-  readonly mode?: number
-}
 
 /**
  * The service identifier for the FileSystem service.

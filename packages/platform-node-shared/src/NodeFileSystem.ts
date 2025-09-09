@@ -26,13 +26,13 @@ const handleBadArgument = (method: string) => (err: unknown) =>
 
 // == access
 
-const access = (() => {
+const access = ((): FileSystem.FileSystem["access"] => {
   const nodeAccess = effectify(
     NFS.access,
     handleErrnoException("FileSystem", "access"),
     handleBadArgument("access")
   )
-  return (path: string, options?: FileSystem.AccessFileOptions) => {
+  return (path, options) => {
     let mode = NFS.constants.F_OK
     if (options?.readable) {
       mode |= NFS.constants.R_OK
@@ -46,13 +46,13 @@ const access = (() => {
 
 // == copy
 
-const copy = (() => {
+const copy = ((): FileSystem.FileSystem["copy"] => {
   const nodeCp = effectify(
     NFS.cp,
     handleErrnoException("FileSystem", "copy"),
     handleBadArgument("copy")
   )
-  return (fromPath: string, toPath: string, options?: FileSystem.CopyOptions) =>
+  return (fromPath, toPath, options) =>
     nodeCp(fromPath, toPath, {
       force: options?.overwrite ?? false,
       preserveTimestamps: options?.preserveTimestamps ?? false,
@@ -106,13 +106,13 @@ const link = (() => {
 
 // == makeDirectory
 
-const makeDirectory = (() => {
+const makeDirectory = ((): FileSystem.FileSystem["makeDirectory"] => {
   const nodeMkdir = effectify(
     NFS.mkdir,
     handleErrnoException("FileSystem", "makeDirectory"),
     handleBadArgument("makeDirectory")
   )
-  return (path: string, options?: FileSystem.MakeDirectoryOptions) =>
+  return (path, options) =>
     nodeMkdir(path, {
       recursive: options?.recursive ?? false,
       mode: options?.mode
@@ -121,13 +121,13 @@ const makeDirectory = (() => {
 
 // == makeTempDirectory
 
-const makeTempDirectoryFactory = (method: string) => {
+const makeTempDirectoryFactory = (method: string): FileSystem.FileSystem["makeTempDirectory"] => {
   const nodeMkdtemp = effectify(
     NFS.mkdtemp,
     handleErrnoException("FileSystem", method),
     handleBadArgument(method)
   )
-  return (options?: FileSystem.MakeTempDirectoryOptions) =>
+  return (options) =>
     Effect.suspend(() => {
       const prefix = options?.prefix ?? ""
       const directory = typeof options?.directory === "string"
@@ -141,13 +141,13 @@ const makeTempDirectory = makeTempDirectoryFactory("makeTempDirectory")
 
 // == remove
 
-const removeFactory = (method: string) => {
+const removeFactory = (method: string): FileSystem.FileSystem["remove"] => {
   const nodeRm = effectify(
     NFS.rm,
     handleErrnoException("FileSystem", method),
     handleBadArgument(method)
   )
-  return (path: string, options?: FileSystem.RemoveOptions) =>
+  return (path, options) =>
     nodeRm(
       path,
       { recursive: options?.recursive ?? false, force: options?.force ?? false }
@@ -157,12 +157,10 @@ const remove = removeFactory("remove")
 
 // == makeTempDirectoryScoped
 
-const makeTempDirectoryScoped = (() => {
+const makeTempDirectoryScoped = ((): FileSystem.FileSystem["makeTempDirectoryScoped"] => {
   const makeDirectory = makeTempDirectoryFactory("makeTempDirectoryScoped")
   const removeDirectory = removeFactory("makeTempDirectoryScoped")
-  return (
-    options?: FileSystem.MakeTempDirectoryOptions
-  ) =>
+  return (options) =>
     Effect.acquireRelease(
       makeDirectory(options),
       (directory) => Effect.orDie(removeDirectory(directory, { recursive: true }))
@@ -171,7 +169,7 @@ const makeTempDirectoryScoped = (() => {
 
 // == open
 
-const openFactory = (method: string) => {
+const openFactory = (method: string): FileSystem.FileSystem["open"] => {
   const nodeOpen = effectify(
     NFS.open,
     handleErrnoException("FileSystem", method),
@@ -183,7 +181,7 @@ const openFactory = (method: string) => {
     handleBadArgument(method)
   )
 
-  return (path: string, options?: FileSystem.OpenFileOptions) =>
+  return (path, options) =>
     pipe(
       Effect.acquireRelease(
         nodeOpen(path, options?.flag ?? "r", options?.mode),
@@ -370,11 +368,11 @@ const makeFile = (() => {
 
 // == makeTempFile
 
-const makeTempFileFactory = (method: string) => {
+const makeTempFileFactory = (method: string): FileSystem.FileSystem["makeTempFile"] => {
   const makeDirectory = makeTempDirectoryFactory(method)
   const open = openFactory(method)
   const randomHexString = (bytes: number) => Effect.sync(() => Crypto.randomBytes(bytes).toString("hex"))
-  return (options?: FileSystem.MakeTempFileOptions) =>
+  return (options) =>
     pipe(
       Effect.zip(makeDirectory(options), randomHexString(6)),
       Effect.map(([directory, random]) => Path.join(directory, random)),
@@ -385,10 +383,10 @@ const makeTempFile = makeTempFileFactory("makeTempFile")
 
 // == makeTempFileScoped
 
-const makeTempFileScoped = (() => {
+const makeTempFileScoped = ((): FileSystem.FileSystem["makeTempFileScoped"] => {
   const makeFile = makeTempFileFactory("makeTempFileScoped")
   const removeDirectory = removeFactory("makeTempFileScoped")
-  return (options?: FileSystem.MakeTempFileOptions) =>
+  return (options) =>
     Effect.acquireRelease(
       makeFile(options),
       (file) => Effect.orDie(removeDirectory(Path.dirname(file), { recursive: true }))
@@ -397,7 +395,7 @@ const makeTempFileScoped = (() => {
 
 // == readDirectory
 
-const readDirectory = (path: string, options?: FileSystem.ReadDirectoryOptions) =>
+const readDirectory: FileSystem.FileSystem["readDirectory"] = (path, options) =>
   Effect.tryPromise({
     try: () => NFS.promises.readdir(path, options),
     catch: (err) => handleErrnoException("FileSystem", "readDirectory")(err as any, [path])
@@ -587,7 +585,7 @@ const watch = (backend: FileSystem.WatchBackend["Service"] | undefined, path: st
 
 // == writeFile
 
-const writeFile = (path: string, data: Uint8Array, options?: FileSystem.WriteFileOptions) =>
+const writeFile: FileSystem.FileSystem["writeFile"] = (path, data, options) =>
   Effect.callback<void, Error.PlatformError>((resume, signal) => {
     try {
       NFS.writeFile(path, data, {

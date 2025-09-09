@@ -667,19 +667,34 @@ export const bodyStream: {
 export const bodyFile: {
   (
     path: string,
-    options?: FileSystem.StreamOptions & { readonly contentType?: string }
+    options?: {
+      readonly bytesToRead?: FileSystem.SizeInput | undefined
+      readonly chunkSize?: FileSystem.SizeInput | undefined
+      readonly offset?: FileSystem.SizeInput | undefined
+      readonly contentType?: string
+    }
   ): (self: HttpClientRequest) => Effect.Effect<HttpClientRequest, PlatformError.PlatformError, FileSystem.FileSystem>
   (
     self: HttpClientRequest,
     path: string,
-    options?: FileSystem.StreamOptions & { readonly contentType?: string }
+    options?: {
+      readonly bytesToRead?: FileSystem.SizeInput | undefined
+      readonly chunkSize?: FileSystem.SizeInput | undefined
+      readonly offset?: FileSystem.SizeInput | undefined
+      readonly contentType?: string
+    }
   ): Effect.Effect<HttpClientRequest, PlatformError.PlatformError, FileSystem.FileSystem>
 } = dual(
   (args) => isHttpClientRequest(args[0]),
   (
     self: HttpClientRequest,
     path: string,
-    options?: FileSystem.StreamOptions & { readonly contentType?: string }
+    options?: {
+      readonly bytesToRead?: FileSystem.SizeInput | undefined
+      readonly chunkSize?: FileSystem.SizeInput | undefined
+      readonly offset?: FileSystem.SizeInput | undefined
+      readonly contentType?: string
+    }
   ): Effect.Effect<HttpClientRequest, PlatformError.PlatformError, FileSystem.FileSystem> =>
     Effect.map(
       HttpBody.file(path, options),

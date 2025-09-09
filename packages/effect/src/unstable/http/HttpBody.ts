@@ -326,7 +326,12 @@ export const stream = (
  */
 export const file = (
   path: string,
-  options?: FileSystem.StreamOptions & { readonly contentType?: string }
+  options?: {
+    readonly bytesToRead?: FileSystem.SizeInput | undefined
+    readonly chunkSize?: FileSystem.SizeInput | undefined
+    readonly offset?: FileSystem.SizeInput | undefined
+    readonly contentType?: string | undefined
+  }
 ): Effect.Effect<Stream, PlatformError.PlatformError, FileSystem.FileSystem> =>
   Effect.flatMap(
     FileSystem.FileSystem.asEffect(),
@@ -346,7 +351,12 @@ export const file = (
 export const fileFromInfo = (
   path: string,
   info: FileSystem.File.Info,
-  options?: FileSystem.StreamOptions & { readonly contentType?: string }
+  options?: {
+    readonly bytesToRead?: FileSystem.SizeInput | undefined
+    readonly chunkSize?: FileSystem.SizeInput | undefined
+    readonly offset?: FileSystem.SizeInput | undefined
+    readonly contentType?: string | undefined
+  }
 ): Effect.Effect<Stream, PlatformError.PlatformError, FileSystem.FileSystem> =>
   Effect.map(
     FileSystem.FileSystem.asEffect(),

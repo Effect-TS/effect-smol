@@ -328,7 +328,13 @@ const HttpPlatformKey = ServiceMap.Key<HttpPlatform, HttpPlatform["Service"]>(
  */
 export const file = (
   path: string,
-  options?: (Options & FileSystem.StreamOptions) | undefined
+  options?:
+    | (Options & {
+      readonly bytesToRead?: FileSystem.SizeInput | undefined
+      readonly chunkSize?: FileSystem.SizeInput | undefined
+      readonly offset?: FileSystem.SizeInput | undefined
+    })
+    | undefined
 ): Effect.Effect<HttpServerResponse, PlatformError, HttpPlatform> =>
   Effect.flatMap(
     HttpPlatformKey.asEffect(),
@@ -341,7 +347,13 @@ export const file = (
  */
 export const fileWeb = (
   file: Body.HttpBody.FileLike,
-  options?: (Options.WithContent & FileSystem.StreamOptions) | undefined
+  options?:
+    | (Options.WithContent & {
+      readonly bytesToRead?: FileSystem.SizeInput | undefined
+      readonly chunkSize?: FileSystem.SizeInput | undefined
+      readonly offset?: FileSystem.SizeInput | undefined
+    })
+    | undefined
 ): Effect.Effect<HttpServerResponse, never, HttpPlatform> =>
   Effect.flatMap(
     HttpPlatformKey.asEffect(),

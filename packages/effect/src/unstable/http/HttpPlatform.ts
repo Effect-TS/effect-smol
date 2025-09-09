@@ -20,11 +20,19 @@ import * as Response from "./HttpServerResponse.ts"
 export class HttpPlatform extends ServiceMap.Key<HttpPlatform, {
   readonly fileResponse: (
     path: string,
-    options?: Response.Options.WithContent & FileSystem.StreamOptions
+    options?: Response.Options.WithContent & {
+      readonly bytesToRead?: FileSystem.SizeInput | undefined
+      readonly chunkSize?: FileSystem.SizeInput | undefined
+      readonly offset?: FileSystem.SizeInput | undefined
+    }
   ) => Effect.Effect<Response.HttpServerResponse, PlatformError>
   readonly fileWebResponse: (
     file: Body.HttpBody.FileLike,
-    options?: Response.Options.WithContent & FileSystem.StreamOptions
+    options?: Response.Options.WithContent & {
+      readonly bytesToRead?: FileSystem.SizeInput | undefined
+      readonly chunkSize?: FileSystem.SizeInput | undefined
+      readonly offset?: FileSystem.SizeInput | undefined
+    }
   ) => Effect.Effect<Response.HttpServerResponse>
 }>()("effect/http/HttpPlatform") {}
 
@@ -47,7 +55,11 @@ export const make: (impl: {
     status: number,
     statusText: string | undefined,
     headers: Headers.Headers,
-    options?: FileSystem.StreamOptions
+    options?: {
+      readonly bytesToRead?: FileSystem.SizeInput | undefined
+      readonly chunkSize?: FileSystem.SizeInput | undefined
+      readonly offset?: FileSystem.SizeInput | undefined
+    }
   ) => Response.HttpServerResponse
 }) => Effect.Effect<
   HttpPlatform["Service"],
