@@ -42,11 +42,11 @@ export interface Optic<in S, out T, out A, in B> {
   /**
    * @since 4.0.0
    */
-  tag<S, A extends { readonly _tag: string }, Tag extends A["_tag"]>(
+  tag<S, A extends { readonly _tag: AST.Literal }, Tag extends A["_tag"]>(
     this: Prism<S, A>, // works for prisms
     tag: Tag
   ): Prism<S, Extract<A, { readonly _tag: Tag }>>
-  tag<S, A extends { readonly _tag: string }, Tag extends A["_tag"]>(
+  tag<S, A extends { readonly _tag: AST.Literal }, Tag extends A["_tag"]>(
     this: Optional<S, A>, // works for isos, lenses, and optionals
     tag: Tag
   ): Optional<S, Extract<A, { readonly _tag: Tag }>>
@@ -57,18 +57,20 @@ export interface Optic<in S, out T, out A, in B> {
    * @since 4.0.0
    */
   key<S, A, Key extends keyof A>(this: Lens<S, A>, key: Key): Lens<S, A[Key]>
-  key<S, T, A, B, Key extends keyof A & keyof B>(
+  key<S, T, A, B, Key extends keyof A & keyof B>(this: PolyLens<S, T, A, B>, key: Key): PolyLens<S, T, A[Key], B[Key]>
+  key<S, A, Key extends keyof A>(this: Optional<S, A>, key: Key): Optional<S, A[Key]>
+
+  /**
+   * An optic that accesses the specified key of a struct or a tuple.
+   *
+   * @since 4.0.0
+   */
+  optionalKey<S, A, Key extends keyof A>(this: Lens<S, A>, key: Key): Lens<S, A[Key] | undefined>
+  optionalKey<S, T, A, B, Key extends keyof A & keyof B>(
     this: PolyLens<S, T, A, B>,
     key: Key
-  ): PolyLens<S, T, A[Key], B[Key]>
-  key<S, A, Key extends keyof A>(
-    this: Optional<S, A>,
-    key: Key
-  ): Optional<S, A[Key]>
-  key<S, T, A, B, Key extends keyof A & keyof B>(
-    this: Optic<S, T, A, B>,
-    key: Key
-  ): Optic<S, T, A[Key], B[Key]>
+  ): PolyLens<S, T, A[Key] | undefined, B[Key] | undefined>
+  optionalKey<S, A, Key extends keyof A>(this: Optional<S, A>, key: Key): Optional<S, A[Key] | undefined>
 
   /**
    * @since 4.0.0
@@ -194,6 +196,10 @@ class OpticBuilder<in S, out T, out A, in B> implements Optic<S, T, A, B> {
 
   key(key: PropertyKey) {
     return this.compose(fromKey<any, any>(key))
+  }
+
+  optionalKey(key: PropertyKey) {
+    return this.compose(fromOptionalKey<any, any>(key))
   }
 
   check(...checks: readonly [Check.Check<A>, ...Array<Check.Check<A>>]) {
@@ -335,7 +341,7 @@ export const id: {
  * @category Lens
  * @since 4.0.0
  */
-export function fromKey<S, Key extends keyof S & (string | symbol)>(key: Key): Lens<S, S[Key]> {
+export function fromKey<S, Key extends keyof S>(key: Key): Lens<S, S[Key]> {
   return makeLens((s) => s[key], (b, s) => {
     if (Array.isArray(s)) {
       const out: any = s.slice()
@@ -343,6 +349,34 @@ export function fromKey<S, Key extends keyof S & (string | symbol)>(key: Key): L
       return out
     }
     return { ...s, [key]: b }
+  })
+}
+
+/**
+ * @category Lens
+ * @since 4.0.0
+ */
+export function fromOptionalKey<S extends object, Key extends keyof S>(
+  key: Key
+): Lens<S, S[Key] | undefined> {
+  return makeLens<S, S[Key] | undefined>((s) => s[key], (b, s) => {
+    if (b !== undefined) {
+      if (Array.isArray(s)) {
+        const out: any = s.slice()
+        out[key] = b
+        return out
+      }
+      return { ...s, [key]: b }
+    } else {
+      if (Array.isArray(s)) {
+        const out = s.slice()
+        out.splice(key as number, 1)
+        return out
+      }
+      const out = { ...s }
+      delete out[key]
+      return out
+    }
   })
 }
 
@@ -377,7 +411,7 @@ export function fromRefine<T extends E, E>(refine: Check.Refine<T, E>): Prism<E,
  * @category Prism
  * @since 4.0.0
  */
-export function fromTag<S extends { readonly _tag: string }, Tag extends S["_tag"]>(
+export function fromTag<S extends { readonly _tag: AST.Literal }, Tag extends S["_tag"]>(
   tag: Tag
 ): Prism<S, Extract<S, { readonly _tag: Tag }>> {
   return makePrism(
