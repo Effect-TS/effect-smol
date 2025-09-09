@@ -113,29 +113,29 @@ function withVisitedTracking(
 }
 
 function compareBoth(self: unknown, that: unknown): boolean {
-  if (self === that) {
-    return true
-  }
-  // Special case for NaN: NaN should be considered equal to NaN
-  if (typeof self === "number" && typeof that === "number" && self !== self && that !== that) {
-    return true
-  }
+  if (self === that) return true
+  if (self == null || that == null) return false
   const selfType = typeof self
   if (selfType !== typeof that) {
     return false
   }
-  const selfHash = Hash.hash(self)
-  const thatHash = Hash.hash(that)
-  if (selfHash !== thatHash) {
+  // Special case for NaN: NaN should be considered equal to NaN
+  if (selfType === "number" && self !== self && that !== that) {
+    return true
+  }
+  const selfIsEqual = isEqual(self)
+  const thatIsEqual = isEqual(that)
+  if (selfIsEqual !== thatIsEqual) {
     return false
   }
   if (selfType === "object" || selfType === "function") {
     if (self !== null && that !== null) {
       return withVisitedTracking(self as object, that as object, () => {
-        if (isEqual(self) && isEqual(that)) {
+        if (selfIsEqual && thatIsEqual) {
+          if (self[Hash.symbol]() !== that[Hash.symbol]()) {
+            return false
+          }
           return self[symbol](that)
-        } else if (isEqual(self) || isEqual(that)) {
-          return false
         } else if (self instanceof Date && that instanceof Date) {
           return self.toISOString() === that.toISOString()
         } else if (Array.isArray(self) && Array.isArray(that)) {
