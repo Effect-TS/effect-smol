@@ -163,11 +163,11 @@ class OpticBuilder<in S, out T, out A, in B> implements Optic<S, T, A, B> {
   }
 
   get(s: S): A {
-    return Result.getOrThrow(this.getOptic(s))
+    return Result.getOrThrowWith(this.getOptic(s), (s) => new Error(s[0]))
   }
 
   set(b: B): T {
-    return Result.getOrThrow(this.setOptic(b, undefined as any))
+    return Result.getOrThrowWith(this.setOptic(b, undefined as any), (s) => new Error(s[0]))
   }
 
   replace(b: B, s: S): T {
@@ -342,42 +342,37 @@ export const id: {
  * @since 4.0.0
  */
 export function fromKey<S, Key extends keyof S>(key: Key): Lens<S, S[Key]> {
-  return makeLens((s) => s[key], (b, s) => {
-    if (Array.isArray(s)) {
-      const out: any = s.slice()
-      out[key] = b
-      return out
-    }
-    return { ...s, [key]: b }
-  })
+  return makeLens((s) => s[key], (b, s) => replace(key, b, s))
+}
+
+function replace<S, Key extends keyof S>(key: Key, b: S[Key], s: S): S {
+  if (Array.isArray(s)) {
+    const out: any = s.slice()
+    out[key] = b
+    return out
+  }
+  return { ...s, [key]: b }
 }
 
 /**
  * @category Lens
  * @since 4.0.0
  */
-export function fromOptionalKey<S extends object, Key extends keyof S>(
+export function fromOptionalKey<S, Key extends keyof S>(
   key: Key
 ): Lens<S, S[Key] | undefined> {
-  return makeLens<S, S[Key] | undefined>((s) => s[key], (b, s) => {
-    if (b !== undefined) {
-      if (Array.isArray(s)) {
-        const out: any = s.slice()
-        out[key] = b
-        return out
-      }
-      return { ...s, [key]: b }
-    } else {
-      if (Array.isArray(s)) {
-        const out = s.slice()
-        out.splice(key as number, 1)
-        return out
-      }
-      const out = { ...s }
-      delete out[key]
-      return out
-    }
-  })
+  return makeLens<S, S[Key] | undefined>((s) => s[key], (b, s) => b !== undefined ? replace(key, b, s) : remove(key, s))
+}
+
+function remove<S, Key extends keyof S>(key: Key, s: S): S {
+  if (Array.isArray(s)) {
+    const out = s.slice()
+    out.splice(key as number, 1)
+    return out as S
+  }
+  const out = { ...s }
+  delete out[key]
+  return out
 }
 
 /**

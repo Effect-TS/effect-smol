@@ -22,7 +22,7 @@ export function getNativeClassSchema<C extends new(...args: any) => any, S exten
     encode: identity
   })
   return Schema.instanceOf(constructor, {
-    defaultJsonSerializer: () => Schema.link<InstanceType<C>>()(options.encoding, transformation),
+    defaultIsoSerializer: () => Schema.link<InstanceType<C>>()(options.encoding, transformation),
     ...options.annotations
   }).pipe(Schema.encodeTo(options.encoding, transformation))
 }

@@ -162,7 +162,7 @@ export const schema: schema = Schema.declare(
       _tag: "Declaration",
       declaration: () => Equivalence
     },
-    defaultJsonSerializer: () =>
+    defaultIsoSerializer: () =>
       Schema.link<UrlParams>()(
         Schema.Array(Schema.Tuple([Schema.String, Schema.String])),
         Transformation.transform({

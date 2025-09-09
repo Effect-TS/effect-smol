@@ -83,11 +83,11 @@ export interface Declaration<T, TP extends ReadonlyArray<Schema.Top>> extends Do
   readonly default?: T | undefined
   readonly examples?: ReadonlyArray<T> | undefined
   readonly jsonSchema?: ToJsonSchema.Annotation.Override | undefined
+  readonly defaultIsoSerializer?:
+    | ((typeParameters: { readonly [K in keyof TP]: Schema.Schema<TP[K]["Type"]> }) => AST.Link)
+    | undefined
   readonly defaultJsonSerializer?:
     | ((typeParameters: { readonly [K in keyof TP]: Schema.Schema<TP[K]["Encoded"]> }) => AST.Link)
-    | undefined
-  readonly optic?:
-    | ((typeParameters: { readonly [K in keyof TP]: Schema.Schema<TP[K]["Type"]> }) => AST.Link)
     | undefined
   readonly arbitrary?: ToArbitrary.Annotation.Declaration<T, TP> | undefined
   readonly equivalence?: ToEquivalence.Annotation.Declaration<T, TP> | undefined
