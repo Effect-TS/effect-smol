@@ -5,6 +5,7 @@ import * as Arr from "../collections/Array.ts"
 import * as Option from "../data/Option.ts"
 import * as Result from "../data/Result.ts"
 import { identity } from "../Function.ts"
+import { format } from "../interfaces/Inspectable.ts"
 import * as AST from "../schema/AST.ts"
 import type * as Check from "../schema/Check.ts"
 import * as Formatter from "../schema/Formatter.ts"
@@ -37,6 +38,18 @@ export interface Optic<in S, out T, out A, in B> {
    * @since 4.0.0
    */
   modify(f: (a: A) => B): (s: S) => T
+
+  /**
+   * @since 4.0.0
+   */
+  tag<S, A extends { readonly _tag: string }, Tag extends A["_tag"]>(
+    this: Prism<S, A>, // works for prisms
+    tag: Tag
+  ): Prism<S, Extract<A, { readonly _tag: Tag }>>
+  tag<S, A extends { readonly _tag: string }, Tag extends A["_tag"]>(
+    this: Optional<S, A>, // works for isos, lenses, and optionals
+    tag: Tag
+  ): Optional<S, Extract<A, { readonly _tag: Tag }>>
 
   /**
    * An optic that accesses the specified key of a struct or a tuple.
@@ -147,18 +160,6 @@ class OpticBuilder<in S, out T, out A, in B> implements Optic<S, T, A, B> {
     this.setOptic = setOptic
   }
 
-  modify(f: (a: A) => B): (s: S) => T {
-    return (s: S): T =>
-      this.getOptic(s).pipe(
-        Result.flatMap((a) => this.setOptic(f(a), s)),
-        Result.getOrElse(([_, t]) => t)
-      )
-  }
-
-  compose(that: any): any {
-    return compose(this, that)
-  }
-
   get(s: S): A {
     return Result.getOrThrow(this.getOptic(s))
   }
@@ -173,6 +174,22 @@ class OpticBuilder<in S, out T, out A, in B> implements Optic<S, T, A, B> {
 
   getOption(s: S): Option.Option<A> {
     return Result.getSuccess(this.getOptic(s))
+  }
+
+  compose(that: any): any {
+    return compose(this, that)
+  }
+
+  modify(f: (a: A) => B): (s: S) => T {
+    return (s: S): T =>
+      this.getOptic(s).pipe(
+        Result.flatMap((a) => this.setOptic(f(a), s)),
+        Result.getOrElse(([_, t]) => t)
+      )
+  }
+
+  tag(tag: string) {
+    return this.compose(fromTag(tag))
   }
 
   key(key: PropertyKey) {
@@ -354,4 +371,18 @@ export function fromCheck<T>(...checks: readonly [Check.Check<T>, ...Array<Check
  */
 export function fromRefine<T extends E, E>(refine: Check.Refine<T, E>): Prism<E, T> {
   return fromCheck(refine) as any
+}
+
+/**
+ * @category Prism
+ * @since 4.0.0
+ */
+export function fromTag<S extends { readonly _tag: string }, Tag extends S["_tag"]>(
+  tag: Tag
+): Prism<S, Extract<S, { readonly _tag: Tag }>> {
+  return makePrism(
+    (s: S) =>
+      s._tag === tag ? Result.succeed(s as any) : Result.fail(`Expected ${format(tag)} tag, got ${format(s._tag)}`),
+    identity
+  )
 }

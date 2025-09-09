@@ -381,11 +381,7 @@ export class Declaration extends Base {
     if (Predicate.isFunction(defaultJsonSerializer)) {
       const link = defaultJsonSerializer(ast.typeParameters.map((tp) => make(goJson(encodedAST(tp)))))
       const to = goJson(link.to)
-      if (to === link.to) {
-        return replaceEncoding(ast, [link])
-      } else {
-        return replaceEncoding(ast, [new Link(to, link.transformation)])
-      }
+      return replaceEncoding(ast, to === link.to ? [link] : [new Link(to, link.transformation)])
     } else {
       return requiredDefaultJsonSerializerAnnotation(ast)
     }
