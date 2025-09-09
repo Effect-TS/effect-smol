@@ -370,14 +370,13 @@ const makeFile = (() => {
 
 const makeTempFileFactory = (method: string): FileSystem.FileSystem["makeTempFile"] => {
   const makeDirectory = makeTempDirectoryFactory(method)
-  const open = openFactory(method)
-  const randomHexString = (bytes: number) => Effect.sync(() => Crypto.randomBytes(bytes).toString("hex"))
-  return (options) =>
-    pipe(
-      Effect.zip(makeDirectory(options), randomHexString(6)),
-      Effect.map(([directory, random]) => Path.join(directory, random)),
-      Effect.tap((path) => Effect.scoped(open(path, { flag: "w+" })))
-    )
+  return Effect.fnUntraced(function*(options) {
+    const directory = yield* makeDirectory(options)
+    const random = Crypto.randomBytes(6).toString("hex")
+    const name = Path.join(directory, options?.suffix ? `${random}${options.suffix}` : random)
+    yield* writeFile(name, new Uint8Array(0))
+    return name
+  })
 }
 const makeTempFile = makeTempFileFactory("makeTempFile")
 
