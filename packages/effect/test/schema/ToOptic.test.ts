@@ -303,12 +303,9 @@ describe("ToOptic", () => {
     it("Error", () => {
       const schema = Schema.Error
       const optic = ToOptic.makeIso(schema)
-      const err = ToOptic.getFocusIso(schema).key("message")
-      const modify = optic.modify(err.modify((s) => s + "!"))
+      const modify = optic.modify((e) => new Error(e.message + "!"))
 
-      const e = new Error("a!", { cause: { message: "a!", name: "Error" } })
-      e.name = "Error"
-      deepStrictEqual(modify(new Error("a")), e)
+      deepStrictEqual(modify(new Error("a")), new Error("a!"))
     })
   })
 })
