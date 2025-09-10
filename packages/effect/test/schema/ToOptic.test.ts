@@ -15,6 +15,11 @@ function addOne(date: Date): Date {
   return new Date(time + 1)
 }
 
+function addTwo(date: Date): Date {
+  const time = date.getTime()
+  return new Date(time + 2)
+}
+
 describe("ToOptic", () => {
   describe("makeIso", () => {
     it("Class", () => {
@@ -71,10 +76,34 @@ describe("ToOptic", () => {
     it("Array", () => {
       const schema = Schema.Array(Value)
       const optic = ToOptic.makeIso(schema)
-      const item = ToOptic.getFocus(Value).key("a")
+      const item = ToOptic.getFocusIso(Value).key("a")
       const modify = optic.modify((as) => as.map(item.modify(addOne)))
 
       deepStrictEqual(modify([Value.makeSync({ a: new Date(0) })]), [Value.makeSync({ a: new Date(1) })])
+    })
+
+    it("TupleWithRest", () => {
+      const schema = Schema.TupleWithRest(Schema.Tuple([Value]), [Value])
+      const optic = ToOptic.makeIso(schema)
+      const item = ToOptic.getFocusIso(Value).key("a")
+      const modify = optic.modify((
+        [value, ...rest]
+      ) => [item.modify(addOne)(value), ...rest.map((r) => item.modify(addTwo)(r))])
+
+      deepStrictEqual(
+        modify([
+          Value.makeSync({ a: new Date(0) }),
+          Value.makeSync({ a: new Date(1) }),
+          Value.makeSync({ a: new Date(2) }),
+          Value.makeSync({ a: new Date(3) })
+        ]),
+        [
+          Value.makeSync({ a: new Date(1) }),
+          Value.makeSync({ a: new Date(3) }),
+          Value.makeSync({ a: new Date(4) }),
+          Value.makeSync({ a: new Date(5) })
+        ]
+      )
     })
 
     it("Struct", () => {

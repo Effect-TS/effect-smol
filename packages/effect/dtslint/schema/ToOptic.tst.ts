@@ -58,6 +58,18 @@ describe("ToOptic", () => {
       expect(optic).type.toBe<Optic.Iso<ReadonlyArray<Value>, ReadonlyArray<{ readonly a: Date }>>>()
     })
 
+    it("TupleWithRest", () => {
+      const schema = Schema.TupleWithRest(Schema.Tuple([Value]), [Value, Value])
+      const optic = ToOptic.makeIso(schema)
+
+      expect(optic).type.toBe<
+        Optic.Iso<
+          readonly [Value, ...Array<Value>, Value],
+          readonly [{ readonly a: Date }, ...Array<{ readonly a: Date }>, { readonly a: Date }]
+        >
+      >()
+    })
+
     it("Struct", () => {
       const schema = Schema.Struct({
         a: Value,

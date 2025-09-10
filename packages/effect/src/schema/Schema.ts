@@ -154,7 +154,7 @@ abstract class BottomBuilder<
   RebuildOut extends Top,
   AnnotateIn extends Annotations.Annotations,
   TypeMakeIn = T,
-  TypeIso = T,
+  Iso = T,
   TypeMake = TypeMakeIn,
   TypeMutability extends Mutability = "readonly",
   TypeOptionality extends Optionality = "required",
@@ -171,7 +171,7 @@ abstract class BottomBuilder<
     RebuildOut,
     AnnotateIn,
     TypeMakeIn,
-    TypeIso,
+    Iso,
     TypeMake,
     TypeMutability,
     TypeOptionality,
@@ -193,7 +193,7 @@ abstract class BottomBuilder<
   declare readonly "~type.make.in": TypeMakeIn
   declare readonly "~type.make": TypeMake
   declare readonly "~type.constructor.default": TypeConstructorDefault
-  declare readonly "Iso": TypeIso
+  declare readonly "Iso": Iso
 
   declare readonly "~type.mutability": TypeMutability
   declare readonly "~type.optionality": TypeOptionality
@@ -1453,7 +1453,7 @@ export declare namespace Struct {
    */
   export type Type<F extends Fields> = Type_<F>
 
-  type TypeIso_<
+  type Iso_<
     F extends Fields,
     O extends keyof F = TypeOptionalKeys<F>,
     M extends keyof F = TypeMutableKeys<F>
@@ -1466,7 +1466,7 @@ export declare namespace Struct {
   /**
    * @since 4.0.0
    */
-  export type TypeIso<F extends Fields> = TypeIso_<F>
+  export type Iso<F extends Fields> = Iso_<F>
 
   type EncodedOptionalKeys<Fields extends Struct.Fields> = {
     [K in keyof Fields]: Fields[K] extends { readonly "~encoded.optionality": "optional" } ? K
@@ -1534,7 +1534,7 @@ export interface Struct<Fields extends Struct.Fields> extends
     Struct<Fields>,
     Annotations.Struct<Simplify<Struct.Type<Fields>>>,
     Simplify<Struct.MakeIn<Fields>>,
-    Simplify<Struct.TypeIso<Fields>>
+    Simplify<Struct.Iso<Fields>>
   >
 {
   readonly fields: Fields
@@ -1694,7 +1694,7 @@ export declare namespace Record {
   /**
    * @since 4.0.0
    */
-  export type TypeIso<Key extends Record.Key, Value extends Top> = Value extends
+  export type Iso<Key extends Record.Key, Value extends Top> = Value extends
     { readonly "~type.optionality": "optional" } ?
     Value extends { readonly "~type.mutability": "mutable" } ? { [P in Key["Iso"]]?: Value["Iso"] }
     : { readonly [P in Key["Iso"]]?: Value["Iso"] }
@@ -1749,7 +1749,7 @@ export interface Record$<Key extends Record.Key, Value extends Top> extends
     Record$<Key, Value>,
     Annotations.Bottom<Record.Type<Key, Value>>,
     Simplify<Record.MakeIn<Key, Value>>,
-    Record.TypeIso<Key, Value>
+    Record.Iso<Key, Value>
   >
 {
   readonly key: Key
@@ -1816,7 +1816,7 @@ export declare namespace StructWithRest {
   /**
    * @since 4.0.0
    */
-  export type TypeIso<S extends TypeLiteral, Records extends StructWithRest.Records> =
+  export type Iso<S extends TypeLiteral, Records extends StructWithRest.Records> =
     & S["Iso"]
     & MergeTuple<{ readonly [K in keyof Records]: Records[K]["Iso"] }>
 
@@ -1865,7 +1865,7 @@ export interface StructWithRest<
     StructWithRest<S, Records>,
     Annotations.Bottom<Simplify<StructWithRest.Type<S, Records>>>,
     Simplify<StructWithRest.MakeIn<S, Records>>,
-    Simplify<StructWithRest.TypeIso<S, Records>>
+    Simplify<StructWithRest.Iso<S, Records>>
   >
 {
   readonly schema: S
@@ -1924,20 +1924,20 @@ export declare namespace Tuple {
    */
   export type Type<E extends Elements> = Type_<E>
 
-  type TypeIso_<
+  type Iso_<
     Elements,
     Out extends ReadonlyArray<any> = readonly []
   > = Elements extends readonly [infer Head, ...infer Tail] ?
     Head extends { readonly "Iso": infer T } ?
-      Head extends { readonly "~type.optionality": "optional" } ? TypeIso_<Tail, readonly [...Out, T?]>
-      : TypeIso_<Tail, readonly [...Out, T]>
+      Head extends { readonly "~type.optionality": "optional" } ? Iso_<Tail, readonly [...Out, T?]>
+      : Iso_<Tail, readonly [...Out, T]>
     : Out
     : Out
 
   /**
    * @since 4.0.0
    */
-  export type TypeIso<E extends Elements> = TypeIso_<E>
+  export type Iso<E extends Elements> = Iso_<E>
 
   type Encoded_<
     Elements,
@@ -1995,7 +1995,7 @@ export interface Tuple<Elements extends Tuple.Elements> extends
     Tuple<Elements>,
     Annotations.Bottom<Tuple.Type<Elements>>,
     Tuple.MakeIn<Elements>,
-    Tuple.TypeIso<Elements>
+    Tuple.Iso<Elements>
   >
 {
   readonly elements: Elements
@@ -2054,6 +2054,7 @@ export declare namespace TupleWithRest {
     readonly Encoded: ReadonlyArray<unknown>
     readonly ast: AST.TupleType
     readonly "~type.make": ReadonlyArray<unknown>
+    readonly "Iso": ReadonlyArray<unknown>
   }
 
   /**
@@ -2069,6 +2070,17 @@ export declare namespace TupleWithRest {
       ...T,
       ...Array<Head["Type"]>,
       ...{ readonly [K in keyof Tail]: Tail[K]["Type"] }
+    ]> :
+    T
+
+  /**
+   * @since 4.0.0
+   */
+  export type Iso<T extends ReadonlyArray<unknown>, Rest extends TupleWithRest.Rest> = Rest extends
+    readonly [infer Head extends Top, ...infer Tail extends ReadonlyArray<Top>] ? Readonly<[
+      ...T,
+      ...Array<Head["Iso"]>,
+      ...{ readonly [K in keyof Tail]: Tail[K]["Iso"] }
     ]> :
     T
 
@@ -2110,7 +2122,8 @@ export interface TupleWithRest<
     AST.TupleType,
     TupleWithRest<S, Rest>,
     Annotations.Bottom<TupleWithRest.Type<S["Type"], Rest>>,
-    TupleWithRest.MakeIn<S["~type.make"], Rest>
+    TupleWithRest.MakeIn<S["~type.make"], Rest>,
+    TupleWithRest.Iso<S["Iso"], Rest>
   >
 {
   readonly schema: S
@@ -3960,8 +3973,8 @@ export function Opaque<Self, Brand = {}>() {
 /**
  * @since 4.0.0
  */
-export interface instanceOf<T, TypeIso = T> extends declareConstructor<T, T, readonly [], TypeIso> {
-  readonly "~rebuild.out": instanceOf<T, TypeIso>
+export interface instanceOf<T, Iso = T> extends declareConstructor<T, T, readonly [], Iso> {
+  readonly "~rebuild.out": instanceOf<T, Iso>
 }
 
 /**
@@ -4827,20 +4840,18 @@ export const DateTimeUtcFromMillis: DateTimeUtcFromMillis = Number.annotate({
 /**
  * @since 4.0.0
  */
-export interface declareConstructor<T, E, TypeParameters extends ReadonlyArray<Top>, TypeIso = T, EncodedIso = E>
-  extends
-    Bottom<
-      T,
-      E,
-      TypeParameters[number]["DecodingServices"],
-      TypeParameters[number]["EncodingServices"],
-      AST.Declaration,
-      declareConstructor<T, E, TypeParameters, TypeIso, EncodedIso>,
-      Annotations.Declaration<T, TypeParameters>,
-      T,
-      TypeIso,
-      EncodedIso
-    >
+export interface declareConstructor<T, E, TypeParameters extends ReadonlyArray<Top>, Iso = T> extends
+  Bottom<
+    T,
+    E,
+    TypeParameters[number]["DecodingServices"],
+    TypeParameters[number]["EncodingServices"],
+    AST.Declaration,
+    declareConstructor<T, E, TypeParameters, Iso>,
+    Annotations.Declaration<T, TypeParameters>,
+    T,
+    Iso
+  >
 {}
 
 /**
@@ -4877,8 +4888,8 @@ export function declareConstructor<const TypeParameters extends ReadonlyArray<To
  * @category Constructors
  * @since 4.0.0
  */
-export interface declare<T, TypeIso = T> extends declareConstructor<T, T, readonly [], TypeIso> {
-  readonly "~rebuild.out": declare<T, TypeIso>
+export interface declare<T, Iso = T> extends declareConstructor<T, T, readonly [], Iso> {
+  readonly "~rebuild.out": declare<T, Iso>
 }
 
 /**
