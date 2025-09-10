@@ -56,9 +56,12 @@ export interface Optic<in S, out T, out A, in B> {
    *
    * @since 4.0.0
    */
-  key<S, A, Key extends keyof A>(this: Lens<S, A>, key: Key): Lens<S, A[Key]>
-  key<S, T, A, B, Key extends keyof A & keyof B>(this: PolyLens<S, T, A, B>, key: Key): PolyLens<S, T, A[Key], B[Key]>
-  key<S, A, Key extends keyof A>(this: Optional<S, A>, key: Key): Optional<S, A[Key]>
+  key<S, A extends object, Key extends keyof A>(this: Lens<S, A>, key: Key): Lens<S, A[Key]>
+  key<S, T, A extends object, B extends object, Key extends keyof A & keyof B>(
+    this: PolyLens<S, T, A, B>,
+    key: Key
+  ): PolyLens<S, T, A[Key], B[Key]>
+  key<S, A extends object, Key extends keyof A>(this: Optional<S, A>, key: Key): Optional<S, A[Key]>
 
   /**
    * An optic that accesses the specified key of a struct or a tuple.
@@ -352,8 +355,18 @@ export const id: {
  * @category Lens
  * @since 4.0.0
  */
-export function fromKey<S, Key extends keyof S>(key: Key): Lens<S, S[Key]> {
-  return makeLens((s) => s[key], (b, s) => replaceUnsafe(key, b, s) ?? s)
+export function fromKey<S extends object, Key extends keyof S>(key: Key): Lens<S, S[Key]> {
+  return makeLens((s) => {
+    if (Object.hasOwn(s, key)) {
+      return s[key]
+    }
+    throw new Error(`Key ${format(key)} not found`)
+  }, (b, s) => {
+    if (Object.hasOwn(s, key)) {
+      return replaceUnsafe(key, b, s)
+    }
+    throw new Error(`Key ${format(key)} not found`)
+  })
 }
 
 function replaceUnsafe<S, Key extends keyof S>(key: Key, b: S[Key], s: S): S {

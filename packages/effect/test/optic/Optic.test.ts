@@ -2,7 +2,15 @@ import { Option } from "effect/data"
 import { Optic } from "effect/optic"
 import { Check } from "effect/schema"
 import { describe, it } from "vitest"
-import { assertFailure, assertNone, assertSome, assertSuccess, deepStrictEqual, strictEqual } from "../utils/assert.ts"
+import {
+  assertFailure,
+  assertNone,
+  assertSome,
+  assertSuccess,
+  deepStrictEqual,
+  strictEqual,
+  throws
+} from "../utils/assert.ts"
 
 describe("Optic", () => {
   describe("Iso", () => {
@@ -44,6 +52,14 @@ describe("Optic", () => {
 
         assertSuccess(optic.getOptic([1]), 1)
         assertSuccess(optic.setOptic(2, [1]), [2])
+      })
+
+      it("should throw if the key is not found", () => {
+        type S = { a: string; [x: string]: number | string }
+        const optic = Optic.id<S>().key("b")
+
+        throws(() => optic.getOptic({ a: "a" }), `Key "b" not found`)
+        throws(() => optic.setOptic(2, { a: "a" }), `Key "b" not found`)
       })
     })
 
