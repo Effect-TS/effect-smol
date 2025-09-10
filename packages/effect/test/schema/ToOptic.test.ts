@@ -1,3 +1,4 @@
+import { Cause } from "effect"
 import { Option, Predicate, Record } from "effect/data"
 import { Check, Schema, ToOptic } from "effect/schema"
 import { describe, it } from "vitest"
@@ -247,6 +248,17 @@ describe("ToOptic", () => {
         Value.makeSync({ a: new Date(1) })
       )
       assertNone(modify(Option.none()))
+    })
+
+    it("CauseFailure", () => {
+      const schema = Schema.CauseFailure(Value, Schema.Defect)
+      const optic = ToOptic.makeIso(schema).tag("Fail").key("error").key("a")
+      const modify = optic.modify(addOne)
+
+      deepStrictEqual(
+        modify(Cause.failureFail(Value.makeSync({ a: new Date(0) }))),
+        Cause.failureFail(Value.makeSync({ a: new Date(1) }))
+      )
     })
   })
 })
