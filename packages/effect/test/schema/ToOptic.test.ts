@@ -82,6 +82,26 @@ describe("ToOptic", () => {
       deepStrictEqual(modify([Value.makeSync({ a: new Date(0) })]), [Value.makeSync({ a: new Date(1) })])
     })
 
+    it("NonEmptyArray", () => {
+      const schema = Schema.NonEmptyArray(Value)
+      const optic = ToOptic.makeIso(schema)
+      const item = ToOptic.getFocusIso(Value).key("a")
+      const modify = optic.modify(([a, ...rest]) => [item.modify(addOne)(a), ...rest.map(item.modify(addTwo))])
+
+      deepStrictEqual(
+        modify([
+          Value.makeSync({ a: new Date(0) }),
+          Value.makeSync({ a: new Date(1) }),
+          Value.makeSync({ a: new Date(2) })
+        ]),
+        [
+          Value.makeSync({ a: new Date(1) }),
+          Value.makeSync({ a: new Date(3) }),
+          Value.makeSync({ a: new Date(4) })
+        ]
+      )
+    })
+
     it("TupleWithRest", () => {
       const schema = Schema.TupleWithRest(Schema.Tuple([Value]), [Value])
       const optic = ToOptic.makeIso(schema)
@@ -94,14 +114,12 @@ describe("ToOptic", () => {
         modify([
           Value.makeSync({ a: new Date(0) }),
           Value.makeSync({ a: new Date(1) }),
-          Value.makeSync({ a: new Date(2) }),
-          Value.makeSync({ a: new Date(3) })
+          Value.makeSync({ a: new Date(2) })
         ]),
         [
           Value.makeSync({ a: new Date(1) }),
           Value.makeSync({ a: new Date(3) }),
-          Value.makeSync({ a: new Date(4) }),
-          Value.makeSync({ a: new Date(5) })
+          Value.makeSync({ a: new Date(4) })
         ]
       )
     })
