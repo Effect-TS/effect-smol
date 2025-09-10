@@ -1018,7 +1018,7 @@ export interface flip<S extends Top> extends
     flip<S>,
     Annotations.Bottom<S["Encoded"]>,
     S["Encoded"],
-    S["Iso"],
+    S["Encoded"],
     S["Encoded"],
     S["~encoded.mutability"],
     S["~encoded.optionality"],
@@ -3788,7 +3788,7 @@ export interface Exit<A extends Top, E extends Top, D extends Top> extends
     Exit_.Exit<A["Type"], E["Type"]>,
     Exit_.Exit<A["Encoded"], E["Encoded"]>,
     readonly [A, Cause<E, D>]
-  >
+  > // TODO
 {
   readonly "~rebuild.out": Exit<A, E, D>
 }
@@ -3896,7 +3896,7 @@ export interface Map$<Key extends Top, Value extends Top> extends
     globalThis.Map<Key["Type"], Value["Type"]>,
     globalThis.Map<Key["Encoded"], Value["Encoded"]>,
     readonly [Key, Value]
-  >
+  > // TODO
 {
   readonly "~rebuild.out": Map$<Key, Value>
 }
@@ -4406,7 +4406,7 @@ export interface Class<Self, S extends Top & { readonly fields: Struct.Fields },
     S["DecodingServices"],
     S["EncodingServices"],
     AST.Declaration,
-    decodeTo<declareConstructor<Self, S["Encoded"], readonly [S]>, S>,
+    decodeTo<declareConstructor<Self, S["Encoded"], readonly [S], S["Iso"]>, S>,
     Annotations.Declaration<Self, readonly [S]>,
     S["~type.make.in"],
     S["Iso"],
