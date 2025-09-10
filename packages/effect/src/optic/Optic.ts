@@ -45,6 +45,8 @@ export interface Optic<in S, out T, out A, in B> {
    */
   modify(f: (a: A) => B): (s: S) => T
 
+  modifyResult(f: (a: A) => B): (s: S) => Result.Result<T, OpticError<T>>
+
   /**
    * @since 4.0.0
    */
@@ -164,7 +166,8 @@ function compose<S, T, A, B, C, D>(
   )
 }
 
-class OpticBuilder<in S, out T, out A, in B> implements Optic<S, T, A, B> {
+/** @internal */
+export class OpticBuilder<in S, out T, out A, in B> implements Optic<S, T, A, B> {
   readonly setterIgnoresSource: boolean
   readonly getOptic: (s: S) => Result.Result<A, OpticError<T>>
   readonly setOptic: (b: B, s: S) => Result.Result<T, OpticError<T>>
@@ -179,11 +182,11 @@ class OpticBuilder<in S, out T, out A, in B> implements Optic<S, T, A, B> {
   }
 
   get(s: S): A {
-    return Result.getOrThrowWith(this.getOptic(s), (s) => new Error(s[0]))
+    return Result.getOrThrowWith(this.getOptic(s), ([message]) => new Error(message))
   }
 
   set(b: B): T {
-    return Result.getOrThrowWith(this.setOptic(b, undefined as any), (s) => new Error(s[0]))
+    return Result.getOrThrowWith(this.setOptic(b, undefined as any), ([message]) => new Error(message))
   }
 
   replace(b: B, s: S): T {
@@ -199,10 +202,14 @@ class OpticBuilder<in S, out T, out A, in B> implements Optic<S, T, A, B> {
   }
 
   modify(f: (a: A) => B): (s: S) => T {
-    return (s: S): T =>
+    const modifyResult = this.modifyResult(f)
+    return (s: S): T => Result.getOrElse(modifyResult(s), ([_, t]) => t)
+  }
+
+  modifyResult(f: (a: A) => B): (s: S) => Result.Result<T, OpticError<T>> {
+    return (s) =>
       this.getOptic(s).pipe(
-        Result.flatMap((a) => this.setOptic(f(a), s)),
-        Result.getOrElse(([_, t]) => t)
+        Result.flatMap((a) => this.setOptic(f(a), s))
       )
   }
 

@@ -3694,7 +3694,7 @@ export function Cause<E extends Top, D extends Top>(error: E, defect: D): Cause<
 /**
  * @since 4.0.0
  */
-export interface Error extends instanceOf<globalThis.Error> {
+export interface Error extends instanceOf<globalThis.Error, typeof ErrorJsonEncoded["Type"]> {
   readonly "~rebuild.out": Error
 }
 
@@ -3714,7 +3714,8 @@ const ErrorJsonEncoded = Struct({
  * @since 4.0.0
  */
 export const Error: Error = instanceOf(globalThis.Error, {
-  defaultJsonSerializer: () =>
+  title: "Error",
+  defaultIsoSerializer: () =>
     link<globalThis.Error>()(
       ErrorJsonEncoded,
       Transformation.error()

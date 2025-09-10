@@ -253,4 +253,17 @@ describe("ToOptic", () => {
       Optic.Iso<Cause.Cause<Value>, ReadonlyArray<Schema.CauseFailureIso<typeof Value, typeof Value>>>
     >()
   })
+
+  it("Error", () => {
+    const schema = Schema.Error
+    const optic = ToOptic.makeIso(schema)
+
+    expect(optic).type.toBe<
+      Optic.Iso<Error, {
+        readonly message: string
+        readonly name?: string
+        readonly stack?: string
+      }>
+    >()
+  })
 })
