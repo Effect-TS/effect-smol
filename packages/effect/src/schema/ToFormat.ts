@@ -4,7 +4,7 @@
 import type { Format } from "../data/Format.ts"
 import * as Option from "../data/Option.ts"
 import { format, formatPropertyKey } from "../interfaces/Inspectable.ts"
-import { memoizeThunk } from "../internal/schema/util.ts"
+import { memoizeThunk } from "../internal/schema.ts"
 import type * as Annotations from "./Annotations.ts"
 import * as AST from "./AST.ts"
 import type * as Schema from "./Schema.ts"
