@@ -8,8 +8,7 @@ import * as Option from "../data/Option.ts"
 import * as Predicate from "../data/Predicate.ts"
 import * as Result from "../data/Result.ts"
 import * as Effect from "../Effect.ts"
-import * as internalRecord from "../internal/record.ts"
-import { memoizeThunk } from "../internal/schema.ts"
+import * as InternalRecord from "../internal/record.ts"
 import * as RegEx from "../primitives/RegExp.ts"
 import type { Annotated } from "./Annotations.ts"
 import * as Annotations from "./Annotations.ts"
@@ -260,6 +259,9 @@ export interface ParseOptions {
   /** @internal */
   readonly "~variant"?: "make" | undefined
 }
+
+/** @internal */
+export const defaultParseOptions: ParseOptions = {}
 
 /**
  * @category model
@@ -1197,7 +1199,7 @@ export class TypeLiteral extends Base {
               }
             } else {
               // preserve key
-              internalRecord.set(out, key, input[key])
+              InternalRecord.set(out, key, input[key])
             }
           }
         }
@@ -1228,7 +1230,7 @@ export class TypeLiteral extends Base {
           }
         } else {
           if (Option.isSome(r.success)) {
-            internalRecord.set(out, name, r.success.value)
+            InternalRecord.set(out, name, r.success.value)
           } else {
             if (!isOptional(ps.type)) {
               const issue = new Issue.Pointer([name], new Issue.MissingKey(keyAnnotations))
@@ -1287,9 +1289,9 @@ export class TypeLiteral extends Base {
               const v2 = rValue.success.value
               if (is.merge && is.merge.decode && Object.hasOwn(out, k2)) {
                 const [k, v] = is.merge.decode.combine([k2, out[k2]], [k2, v2])
-                internalRecord.set(out, k, v)
+                InternalRecord.set(out, k, v)
               } else {
-                internalRecord.set(out, k2, v2)
+                InternalRecord.set(out, k2, v2)
               }
             }
           }
@@ -1305,7 +1307,7 @@ export class TypeLiteral extends Base {
         const preserved: Record<PropertyKey, unknown> = {}
         for (const key of keys) {
           if (Object.hasOwn(out, key)) {
-            internalRecord.set(preserved, key, out[key])
+            InternalRecord.set(preserved, key, out[key])
           }
         }
         return Option.some(preserved)
@@ -1682,6 +1684,20 @@ export class UnionType<A extends AST = AST> extends Base {
   getExpected(getExpected: (ast: AST) => string): string {
     if (this.types.length === 0) return "never"
     return Array.from(new Set(this.types.map(getExpected))).join(" | ")
+  }
+}
+
+/** @internal */
+export function memoizeThunk<A>(f: () => A): () => A {
+  let done = false
+  let a: A
+  return () => {
+    if (done) {
+      return a
+    }
+    a = f()
+    done = true
+    return a
   }
 }
 

@@ -4,7 +4,6 @@
 import * as Equivalence from "../data/Equivalence.ts"
 import * as Predicate from "../data/Predicate.ts"
 import * as Equal from "../interfaces/Equal.ts"
-import { memoizeThunk } from "../internal/schema.ts"
 import type * as Annotations from "./Annotations.ts"
 import * as AST from "./AST.ts"
 import type * as Schema from "./Schema.ts"
@@ -197,7 +196,7 @@ const go = AST.memoize((ast: AST.AST): Equivalence.Equivalence<any> => {
         return false
       })
     case "Suspend": {
-      const get = memoizeThunk(() => go(ast.thunk()))
+      const get = AST.memoizeThunk(() => go(ast.thunk()))
       return Equivalence.make((a, b) => get()(a, b))
     }
   }

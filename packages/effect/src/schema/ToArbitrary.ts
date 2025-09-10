@@ -7,7 +7,6 @@ import * as Option from "../data/Option.ts"
 import * as Predicate from "../data/Predicate.ts"
 import * as Struct from "../data/Struct.ts"
 import * as UndefinedOr from "../data/UndefinedOr.ts"
-import { defaultParseOptions, memoizeThunk } from "../internal/schema.ts"
 import * as Boolean from "../primitives/Boolean.ts"
 import * as Number from "../primitives/Number.ts"
 import * as FastCheck from "../testing/FastCheck.ts"
@@ -166,7 +165,7 @@ function applyChecks(
   filters: Array<Check.Filter<any>>,
   arbitrary: FastCheck.Arbitrary<any>
 ) {
-  return filters.map((filter) => (a: any) => filter.run(a, ast, defaultParseOptions) === undefined).reduce(
+  return filters.map((filter) => (a: any) => filter.run(a, ast, AST.defaultParseOptions) === undefined).reduce(
     (acc, filter) => acc.filter(filter),
     arbitrary
   )
@@ -419,7 +418,7 @@ const go = AST.memoize((ast: AST.AST): LazyArbitrary<any> => {
       if (memo) {
         return memo
       }
-      const get = memoizeThunk(() => go(ast.thunk()))
+      const get = AST.memoizeThunk(() => go(ast.thunk()))
       const out: LazyArbitrary<any> = (fc, ctx) => fc.constant(null).chain(() => get()(fc, { ...ctx, isSuspend: true }))
       arbitraryMemoMap.set(ast, out)
       return out
