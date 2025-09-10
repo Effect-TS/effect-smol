@@ -14,7 +14,6 @@ import * as O from "../data/Option.ts"
 import * as Predicate from "../data/Predicate.ts"
 import * as R from "../data/Record.ts"
 import * as Redacted_ from "../data/Redacted.ts"
-import * as Result from "../data/Result.ts"
 import type { Lambda, Merge, Mutable, Simplify } from "../data/Struct.ts"
 import { lambda, renameKeys } from "../data/Struct.ts"
 import * as Effect from "../Effect.ts"
@@ -360,13 +359,26 @@ export function revealCodec<T, E, RD, RE>(codec: Codec<T, E, RD, RE>) {
  *
  * @since 4.0.0
  */
-export class SchemaError extends Data.TaggedError("SchemaError")<{
-  readonly issue: Issue.Issue
-}> {
+export class SchemaError {
+  constructor(issue: Issue.Issue) {
+    this.issue = issue
+  }
   /**
    * @since 4.0.0
    */
-  override get message() {
+  readonly _tag: "SchemaError" = "SchemaError" as const
+  /**
+   * @since 4.0.0
+   */
+  readonly name: string = "SchemaError"
+  /**
+   * @since 4.0.0
+   */
+  readonly issue: Issue.Issue
+  /**
+   * @since 4.0.0
+   */
+  get message() {
     return Formatter.makeDefault().format(this.issue)
   }
 }
@@ -554,7 +566,7 @@ export const asserts = ToParser.asserts
 export function decodeUnknownEffect<T, E, RD, RE>(codec: Codec<T, E, RD, RE>) {
   const parser = ToParser.decodeUnknownEffect(codec)
   return (input: unknown, options?: AST.ParseOptions): Effect.Effect<T, SchemaError, RD> => {
-    return Effect.mapErrorEager(parser(input, options), (issue) => new SchemaError({ issue }))
+    return Effect.mapErrorEager(parser(input, options), (issue) => new SchemaError(issue))
   }
 }
 
@@ -570,10 +582,10 @@ export const decodeEffect: <T, E, RD, RE>(
  * @category Decoding
  * @since 4.0.0
  */
-export function decodeUnknownResult<T, E, RE>(codec: Codec<T, E, never, RE>) {
-  const parser = ToParser.decodeUnknownResult(codec)
-  return (input: unknown, options?: AST.ParseOptions): Result.Result<T, SchemaError> => {
-    return Result.mapError(parser(input, options), (issue) => new SchemaError({ issue }))
+export function decodeUnknownExit<T, E, RE>(codec: Codec<T, E, never, RE>) {
+  const parser = ToParser.decodeUnknownExit(codec)
+  return (input: unknown, options?: AST.ParseOptions): Exit_.Exit<T, SchemaError> => {
+    return Exit_.mapError(parser(input, options), (issue) => new SchemaError(issue))
   }
 }
 
@@ -581,9 +593,9 @@ export function decodeUnknownResult<T, E, RE>(codec: Codec<T, E, never, RE>) {
  * @category Decoding
  * @since 4.0.0
  */
-export const decodeResult: <T, E, RE>(
+export const decodeExit: <T, E, RE>(
   codec: Codec<T, E, never, RE>
-) => (input: E, options?: AST.ParseOptions) => Result.Result<T, SchemaError> = decodeUnknownResult
+) => (input: E, options?: AST.ParseOptions) => Exit_.Exit<T, SchemaError> = decodeUnknownExit
 
 /**
  * @category Decoding
@@ -628,7 +640,7 @@ export const decodeSync = ToParser.decodeSync
 export function encodeUnknownEffect<T, E, RD, RE>(codec: Codec<T, E, RD, RE>) {
   const parser = ToParser.encodeUnknownEffect(codec)
   return (input: unknown, options?: AST.ParseOptions): Effect.Effect<E, SchemaError, RE> => {
-    return Effect.mapErrorEager(parser(input, options), (issue) => new SchemaError({ issue }))
+    return Effect.mapErrorEager(parser(input, options), (issue) => new SchemaError(issue))
   }
 }
 
@@ -644,10 +656,10 @@ export const encodeEffect: <T, E, RD, RE>(
  * @category Encoding
  * @since 4.0.0
  */
-export function encodeUnknownResult<T, E, RD>(codec: Codec<T, E, RD, never>) {
-  const parser = ToParser.encodeUnknownResult(codec)
-  return (input: unknown, options?: AST.ParseOptions): Result.Result<E, SchemaError> => {
-    return Result.mapError(parser(input, options), (issue) => new SchemaError({ issue }))
+export function encodeUnknownExit<T, E, RD>(codec: Codec<T, E, RD, never>) {
+  const parser = ToParser.encodeUnknownExit(codec)
+  return (input: unknown, options?: AST.ParseOptions): Exit_.Exit<E, SchemaError> => {
+    return Exit_.mapError(parser(input, options), (issue) => new SchemaError(issue))
   }
 }
 
@@ -655,9 +667,9 @@ export function encodeUnknownResult<T, E, RD>(codec: Codec<T, E, RD, never>) {
  * @category Encoding
  * @since 4.0.0
  */
-export const encodeResult: <T, E, RD>(
+export const encodeExit: <T, E, RD>(
   codec: Codec<T, E, RD, never>
-) => (input: T, options?: AST.ParseOptions) => Result.Result<E, SchemaError> = encodeUnknownResult
+) => (input: T, options?: AST.ParseOptions) => Exit_.Exit<E, SchemaError> = encodeUnknownExit
 
 /**
  * @category Encoding

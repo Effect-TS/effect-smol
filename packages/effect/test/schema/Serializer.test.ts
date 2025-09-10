@@ -1,4 +1,4 @@
-import { Cause } from "effect"
+import { Cause, Exit } from "effect"
 import { Option, Redacted } from "effect/data"
 import { Check, Formatter, Schema, Serializer, ToParser, Transformation } from "effect/schema"
 import { DateTime, Duration } from "effect/time"
@@ -929,13 +929,15 @@ describe("Serializer", () => {
         c: Schema.Tuple([Schema.String])
       })
 
-      const r = ToParser.decodeUnknownResult(schema)({ a: "", c: [] }, { errors: "all" })
+      const r = ToParser.decodeUnknownExit(schema)({ a: "", c: [] }, { errors: "all" }).pipe(
+        Exit.getError
+      )
 
-      assertTrue(r._tag === "Failure")
+      assertTrue(r._tag === "Some")
 
       const failureResult = Formatter.makeStandardSchemaV1({
         leafHook: Formatter.defaultLeafHook
-      }).format(r.failure)
+      }).format(r.value)
       await assertions.serialization.json.codec.succeed(Schema.StandardSchemaV1FailureResult, failureResult, {
         issues: [
           { path: ["a"], message: `Expected a value with a length of at least 1, got ""` },
