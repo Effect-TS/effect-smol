@@ -78,20 +78,22 @@ export interface Struct<T> extends Bottom<T> {
  * @category Model
  * @since 4.0.0
  */
-export interface Declaration<T, TP extends ReadonlyArray<Schema.Top>> extends Documentation {
+export interface Declaration<T, TypeParameters extends ReadonlyArray<Schema.Top>> extends Documentation {
   readonly id?: string | undefined
   readonly default?: T | undefined
   readonly examples?: ReadonlyArray<T> | undefined
   readonly jsonSchema?: ToJsonSchema.Annotation.Override | undefined
   readonly defaultIsoSerializer?:
-    | ((typeParameters: { readonly [K in keyof TP]: Schema.Schema<TP[K]["Type"]> }) => AST.Link)
+    | ((typeParameters: { readonly [K in keyof TypeParameters]: Schema.Schema<TypeParameters[K]["Type"]> }) => AST.Link)
     | undefined
   readonly defaultJsonSerializer?:
-    | ((typeParameters: { readonly [K in keyof TP]: Schema.Schema<TP[K]["Encoded"]> }) => AST.Link)
+    | ((
+      typeParameters: { readonly [K in keyof TypeParameters]: Schema.Schema<TypeParameters[K]["Encoded"]> }
+    ) => AST.Link)
     | undefined
-  readonly arbitrary?: ToArbitrary.Annotation.Declaration<T, TP> | undefined
-  readonly equivalence?: ToEquivalence.Annotation.Declaration<T, TP> | undefined
-  readonly format?: ToFormat.Annotation.Declaration<T, TP> | undefined
+  readonly arbitrary?: ToArbitrary.Annotation.Declaration<T, TypeParameters> | undefined
+  readonly equivalence?: ToEquivalence.Annotation.Declaration<T, TypeParameters> | undefined
+  readonly format?: ToFormat.Annotation.Declaration<T, TypeParameters> | undefined
   /** @internal */
   readonly "~sentinels"?: ReadonlyArray<AST.Sentinel> | undefined
 }
