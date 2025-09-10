@@ -1,3 +1,4 @@
+import type { Cause } from "effect"
 import type { Brand, Option } from "effect/data"
 import type { Optic } from "effect/optic"
 import { Check, Schema, ToOptic } from "effect/schema"
@@ -213,6 +214,31 @@ describe("ToOptic", () => {
             readonly value: {
               readonly a: Date
             }
+          }
+        >
+      >()
+    })
+
+    it("CauseFailure", () => {
+      const schema = Schema.CauseFailure(Value, Value)
+      const optic = ToOptic.makeIso(schema)
+
+      expect(optic).type.toBe<
+        Optic.Iso<
+          Cause.Failure<Value>,
+          {
+            readonly _tag: "Fail"
+            readonly error: {
+              readonly a: Date
+            }
+          } | {
+            readonly _tag: "Die"
+            readonly error: {
+              readonly a: Date
+            }
+          } | {
+            readonly _tag: "Interrupt"
+            readonly fiberId: number | undefined
           }
         >
       >()

@@ -3511,8 +3511,15 @@ export function Redacted<S extends Top>(value: S, options?: {
 /**
  * @since 4.0.0
  */
-export interface CauseFailure<E extends Top, D extends Top>
-  extends declareConstructor<Cause_.Failure<E["Type"]>, Cause_.Failure<E["Encoded"]>, readonly [E, D]>
+export interface CauseFailure<E extends Top, D extends Top> extends
+  declareConstructor<
+    Cause_.Failure<E["Type"]>,
+    Cause_.Failure<E["Encoded"]>,
+    readonly [E, D],
+    | { readonly _tag: "Fail"; readonly error: E["Iso"] }
+    | { readonly _tag: "Die"; readonly error: D["Iso"] }
+    | { readonly _tag: "Interrupt"; readonly fiberId: number | undefined }
+  >
 {
   readonly "~rebuild.out": CauseFailure<E, D>
 }
@@ -4876,15 +4883,15 @@ export interface declareConstructor<T, E, TypeParameters extends ReadonlyArray<T
  */
 export function declareConstructor<const TypeParameters extends ReadonlyArray<Top>>(typeParameters: TypeParameters) {
   return <E>() =>
-  <T>(
+  <T, Iso = T>(
     run: (
       typeParameters: {
         readonly [K in keyof TypeParameters]: Codec<TypeParameters[K]["Type"], TypeParameters[K]["Encoded"]>
       }
     ) => (u: unknown, self: AST.Declaration, options: AST.ParseOptions) => Effect.Effect<T, Issue.Issue>,
     annotations?: Annotations.Declaration<T, TypeParameters>
-  ): declareConstructor<T, E, TypeParameters> => {
-    return make<declareConstructor<T, E, TypeParameters>>(
+  ): declareConstructor<T, E, TypeParameters, Iso> => {
+    return make<declareConstructor<T, E, TypeParameters, Iso>>(
       new AST.Declaration(
         typeParameters.map(AST.getAST),
         (typeParameters) => run(typeParameters.map(make) as any),
