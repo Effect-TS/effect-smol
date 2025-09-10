@@ -2,16 +2,27 @@
  * @since 4.0.0
  */
 
+import * as Result from "../data/Result.ts"
 import * as Optic from "../optic/Optic.ts"
-import * as Schema from "./Schema.ts"
+import * as Formatter from "./Formatter.ts"
+import type * as Schema from "./Schema.ts"
 import * as Serializer from "./Serializer.ts"
+import * as ToParser from "./ToParser.ts"
+
+const formatter = Formatter.makeDefault()
 
 /**
  * @since 4.0.0
  */
 export function makeIso<T, Iso>(codec: Schema.Optic<T, Iso>): Optic.Iso<T, Iso> {
   const serializer = Serializer.iso(codec)
-  return Optic.makeIso(Schema.encodeSync(serializer), Schema.decodeSync(serializer))
+  const encodeResult = ToParser.encodeResult(serializer)
+  const decodeResult = ToParser.decodeResult(serializer)
+  return new Optic.OpticBuilder(
+    true,
+    (s) => Result.mapError(encodeResult(s), (issue) => [formatter.format(issue), s]),
+    (b, t) => Result.mapError(decodeResult(b), (issue) => [formatter.format(issue), t])
+  )
 }
 
 /**

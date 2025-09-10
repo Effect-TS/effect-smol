@@ -2,7 +2,15 @@ import { Cause } from "effect"
 import { Option, Predicate, Record } from "effect/data"
 import { Check, Schema, ToOptic } from "effect/schema"
 import { describe, it } from "vitest"
-import { assertNone, assertSome, deepStrictEqual, strictEqual, throws } from "../utils/assert.ts"
+import {
+  assertFailure,
+  assertNone,
+  assertSome,
+  assertSuccess,
+  deepStrictEqual,
+  strictEqual,
+  throws
+} from "../utils/assert.ts"
 
 class Value extends Schema.Class<Value, { readonly brand: unique symbol }>("Value")({
   a: Schema.ValidDate
@@ -26,13 +34,16 @@ describe("ToOptic", () => {
     it("Class", () => {
       const schema = Value
       const optic = ToOptic.makeIso(schema).key("a")
-      const modify = optic.modify(addOne)
+      const modifyResult = optic.modifyResult(addOne)
 
-      deepStrictEqual(modify(Value.makeSync({ a: new Date(0) })), Value.makeSync({ a: new Date(1) }))
-      throws(
-        () => modify(Value.makeSync({ a: new Date(-1) })),
-        `Expected a valid date, got Invalid Date
-  at ["a"]`
+      assertSuccess(modifyResult(Value.makeSync({ a: new Date(0) })), Value.makeSync({ a: new Date(1) }))
+      assertFailure(
+        modifyResult(Value.makeSync({ a: new Date(-1) })),
+        [
+          `Expected a valid date, got Invalid Date
+  at ["a"]`,
+          Value.makeSync({ a: new Date(-1) })
+        ]
       )
     })
 
@@ -271,6 +282,17 @@ describe("ToOptic", () => {
         modify(Cause.fail(Value.makeSync({ a: new Date(0) }))),
         Cause.fail(Value.makeSync({ a: new Date(1) }))
       )
+    })
+
+    it("Error", () => {
+      const schema = Schema.Error
+      const optic = ToOptic.makeIso(schema)
+      const err = ToOptic.getFocusIso(schema).key("message")
+      const modify = optic.modify(err.modify((s) => s + "!"))
+
+      const e = new Error("a!", { cause: { message: "a!", name: "Error" } })
+      e.name = "Error"
+      deepStrictEqual(modify(new Error("a")), e)
     })
   })
 })
