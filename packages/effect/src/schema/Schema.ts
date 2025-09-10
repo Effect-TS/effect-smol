@@ -26,6 +26,7 @@ import type { Pipeable } from "../interfaces/Pipeable.ts"
 import { pipeArguments } from "../interfaces/Pipeable.ts"
 import * as core from "../internal/core.ts"
 import * as InternalEffect from "../internal/effect.ts"
+import { PipeableClass } from "../internal/schema.ts"
 import * as Scheduler from "../Scheduler.ts"
 import * as DateTime from "../time/DateTime.ts"
 import * as Duration_ from "../time/Duration.ts"
@@ -193,7 +194,7 @@ export function annotateKey<S extends Top>(annotations: Annotations.Key<S["Type"
 /**
  * @since 4.0.0
  */
-export abstract class Bottom$<
+export abstract class BottomBuilder<
   T,
   E,
   RD,
@@ -209,7 +210,7 @@ export abstract class Bottom$<
   TypeConstructorDefault extends ConstructorDefault = "no-default",
   EncodedMutability extends Mutability = "readonly",
   EncodedOptionality extends Optionality = "required"
-> implements
+> extends PipeableClass implements
   Bottom<
     T,
     E,
@@ -252,13 +253,11 @@ export abstract class Bottom$<
   readonly makeSync: (input: this["~type.make.in"], options?: MakeOptions) => this["Type"]
 
   constructor(ast: Ast) {
+    super()
     this.ast = ast
     this.makeSync = ToParser.makeSync(this)
   }
   abstract rebuild(ast: this["ast"]): this["~rebuild.out"]
-  pipe() {
-    return pipeArguments(this, arguments)
-  }
   annotate(annotations: this["~annotate.in"]): this["~rebuild.out"] {
     return this.rebuild(AST.annotate(this.ast, annotations))
   }
@@ -702,7 +701,7 @@ export const encodeUnknownSync = ToParser.encodeUnknownSync
  */
 export const encodeSync = ToParser.encodeSync
 
-class make$<S extends Top> extends Bottom$<
+class make$<S extends Top> extends BottomBuilder<
   S["Type"],
   S["Encoded"],
   S["DecodingServices"],
