@@ -9,7 +9,7 @@ import * as Option from "../data/Option.ts"
 import * as Order from "../data/Order.ts"
 import * as Predicate from "../data/Predicate.ts"
 import { format } from "../interfaces/Inspectable.ts"
-import { PipeableClass } from "../internal/schema.ts"
+import { Class } from "../interfaces/Pipeable.ts"
 import * as Num from "../primitives/Number.ts"
 import * as Annotations from "./Annotations.ts"
 import type * as AST from "./AST.ts"
@@ -19,7 +19,7 @@ import * as Issue from "./Issue.ts"
  * @category model
  * @since 4.0.0
  */
-export class Filter<in E> extends PipeableClass implements Annotations.Annotated {
+export class Filter<in E> extends Class implements Annotations.Annotated {
   readonly _tag = "Filter"
   readonly run: (input: E, self: AST.AST, options: AST.ParseOptions) => Issue.Issue | undefined
   readonly annotations: Annotations.Filter | undefined
@@ -55,7 +55,7 @@ export class Filter<in E> extends PipeableClass implements Annotations.Annotated
  * @category model
  * @since 4.0.0
  */
-export class FilterGroup<in E> extends PipeableClass implements Annotations.Annotated {
+export class FilterGroup<in E> extends Class implements Annotations.Annotated {
   readonly _tag = "FilterGroup"
   readonly checks: readonly [Check<E>, Check<E>, ...Array<Check<E>>]
   readonly annotations: Annotations.Filter | undefined

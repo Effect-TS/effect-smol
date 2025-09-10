@@ -6,7 +6,6 @@ import * as Arr from "../collections/Array.ts"
 import * as Option from "../data/Option.ts"
 import * as Result from "../data/Result.ts"
 import * as Effect from "../Effect.ts"
-import { defaultParseOptions } from "../internal/schema.ts"
 import * as AST from "./AST.ts"
 import type * as Check from "./Check.ts"
 import * as Formatter from "./Formatter.ts"
@@ -52,7 +51,7 @@ export function is<T, E, RE>(codec: Schema.Codec<T, E, never, RE>): <I>(input: I
 export function refinement<T>(ast: AST.AST) {
   const parser = asResult(run<T, never>(AST.typeAST(ast)))
   return <I>(input: I): input is I & T => {
-    return Result.isSuccess(parser(input, defaultParseOptions))
+    return Result.isSuccess(parser(input, AST.defaultParseOptions))
   }
 }
 
@@ -63,7 +62,7 @@ export function refinement<T>(ast: AST.AST) {
 export function asserts<T, E, RE>(codec: Schema.Codec<T, E, never, RE>) {
   const parser = asResult(run<T, never>(AST.typeAST(codec.ast)))
   return <I>(input: I): asserts input is I & T => {
-    const result = parser(input, defaultParseOptions)
+    const result = parser(input, AST.defaultParseOptions)
     if (Result.isFailure(result)) {
       throw new Error(Formatter.makeDefault().format(result.failure), { cause: result.failure })
     }
@@ -254,7 +253,7 @@ function run<T, R>(ast: AST.AST) {
   const parser = go(ast)
   return (input: unknown, options?: AST.ParseOptions): Effect.Effect<T, Issue.Issue, R> => {
     const oinput = Option.some(input)
-    const oa = parser(oinput, options ?? defaultParseOptions)
+    const oa = parser(oinput, options ?? AST.defaultParseOptions)
     return oa.pipe(Effect.flatMapEager((oa) => {
       if (Option.isNone(oa)) {
         return Effect.fail(new Issue.InvalidValue(oa))
