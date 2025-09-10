@@ -260,5 +260,17 @@ describe("ToOptic", () => {
         Cause.failureFail(Value.makeSync({ a: new Date(1) }))
       )
     })
+
+    it("Cause", () => {
+      const schema = Schema.Cause(Value, Value)
+      const optic = ToOptic.makeIso(schema)
+      const failure = ToOptic.getFocusIso(Schema.CauseFailure(Value, Value)).tag("Fail").key("error").key("a")
+      const modify = optic.modify((failures) => failures.map(failure.modify(addOne)))
+
+      deepStrictEqual(
+        modify(Cause.fail(Value.makeSync({ a: new Date(0) }))),
+        Cause.fail(Value.makeSync({ a: new Date(1) }))
+      )
+    })
   })
 })
