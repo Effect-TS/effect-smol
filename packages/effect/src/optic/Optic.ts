@@ -347,23 +347,6 @@ export function makeOptional<S, A>(
 }
 
 /**
- * A PolyTraversal can focus on zero or more elements in a data structure.
- * It's defined as a PolyOptional that focuses on arrays of elements.
- *
- * @category Traversal
- * @since 4.0.0
- */
-export interface PolyTraversal<in S, out T, out A, in B>
-  extends PolyOptional<S, T, ReadonlyArray<A>, ReadonlyArray<B>>
-{}
-
-/**
- * @category Traversal
- * @since 4.0.0
- */
-export interface Traversal<in out S, in out A> extends PolyTraversal<S, S, A, A> {}
-
-/**
  * The identity optic.
  *
  * @category Iso

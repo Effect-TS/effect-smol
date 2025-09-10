@@ -90,7 +90,7 @@ export interface Bottom<
   RebuildOut extends Top,
   AnnotateIn extends Annotations.Annotations,
   TypeMakeIn = T,
-  TypeIso = T,
+  Iso = T,
   TypeMake = TypeMakeIn,
   TypeMutability extends Mutability = "readonly",
   TypeOptionality extends Optionality = "required",
@@ -112,7 +112,7 @@ export interface Bottom<
   readonly "~type.make.in": TypeMakeIn
   readonly "~type.make": TypeMake
   readonly "~type.constructor.default": TypeConstructorDefault
-  readonly "~type.iso": TypeIso
+  readonly "Iso": Iso
 
   readonly "~type.mutability": TypeMutability
   readonly "~type.optionality": TypeOptionality
@@ -151,7 +151,7 @@ export function revealBottom<S extends Top>(
   S["~rebuild.out"],
   S["~annotate.in"],
   S["~type.make.in"],
-  S["~type.iso"],
+  S["Iso"],
   S["~type.make"],
   S["~type.mutability"],
   S["~type.optionality"],
@@ -241,7 +241,7 @@ export abstract class Bottom$<
   declare readonly "~type.make.in": TypeMakeIn
   declare readonly "~type.make": TypeMake
   declare readonly "~type.constructor.default": TypeConstructorDefault
-  declare readonly "~type.iso": TypeIso
+  declare readonly "Iso": TypeIso
 
   declare readonly "~type.mutability": TypeMutability
   declare readonly "~type.optionality": TypeOptionality
@@ -711,7 +711,7 @@ class make$<S extends Top> extends Bottom$<
   S["~rebuild.out"],
   S["~annotate.in"],
   S["~type.make.in"],
-  S["~type.iso"],
+  S["Iso"],
   S["~type.make"],
   S["~type.mutability"],
   S["~type.optionality"],
@@ -763,7 +763,7 @@ export function make<S extends Top>(ast: S["ast"]): Bottom<
   S["~rebuild.out"],
   S["~annotate.in"],
   S["~type.make.in"],
-  S["~type.iso"],
+  S["Iso"],
   S["~type.make"],
   S["~type.mutability"],
   S["~type.optionality"],
@@ -798,7 +798,7 @@ export interface optionalKey<S extends Top> extends
     optionalKey<S>,
     S["~annotate.in"],
     S["~type.make.in"],
-    S["~type.iso"],
+    S["Iso"],
     S["~type.make"],
     S["~type.mutability"],
     "optional",
@@ -895,7 +895,7 @@ export interface mutableKey<S extends Top> extends
     mutableKey<S>,
     S["~annotate.in"],
     S["~type.make.in"],
-    S["~type.iso"],
+    S["Iso"],
     S["~type.make"],
     "mutable",
     S["~type.optionality"],
@@ -932,7 +932,7 @@ export interface typeCodec<S extends Top> extends
     typeCodec<S>,
     S["~annotate.in"],
     S["~type.make.in"],
-    S["~type.iso"],
+    S["Iso"],
     S["~type.make"],
     S["~type.mutability"],
     S["~type.optionality"],
@@ -1002,7 +1002,7 @@ export interface flip<S extends Top> extends
     flip<S>,
     Annotations.Bottom<S["Encoded"]>,
     S["Encoded"],
-    S["~type.iso"],
+    S["Iso"],
     S["Encoded"],
     S["~encoded.mutability"],
     S["~encoded.optionality"],
@@ -1452,10 +1452,10 @@ export declare namespace Struct {
     O extends keyof F = TypeOptionalKeys<F>,
     M extends keyof F = TypeMutableKeys<F>
   > =
-    & { readonly [K in Exclude<keyof F, M | O>]: F[K]["~type.iso"] }
-    & { readonly [K in Exclude<O, M>]?: F[K]["~type.iso"] }
-    & { [K in Exclude<M, O>]: F[K]["~type.iso"] }
-    & { [K in M & O]?: F[K]["~type.iso"] }
+    & { readonly [K in Exclude<keyof F, M | O>]: F[K]["Iso"] }
+    & { readonly [K in Exclude<O, M>]?: F[K]["Iso"] }
+    & { [K in Exclude<M, O>]: F[K]["Iso"] }
+    & { [K in M & O]?: F[K]["Iso"] }
 
   /**
    * @since 4.0.0
@@ -1663,7 +1663,7 @@ export declare namespace Record {
    */
   export interface Key extends Codec<PropertyKey, PropertyKey, unknown, unknown> {
     readonly "~type.make": PropertyKey
-    readonly "~type.iso": PropertyKey
+    readonly "Iso": PropertyKey
   }
 
   /**
@@ -1690,10 +1690,10 @@ export declare namespace Record {
    */
   export type TypeIso<Key extends Record.Key, Value extends Top> = Value extends
     { readonly "~type.optionality": "optional" } ?
-    Value extends { readonly "~type.mutability": "mutable" } ? { [P in Key["~type.iso"]]?: Value["~type.iso"] }
-    : { readonly [P in Key["~type.iso"]]?: Value["~type.iso"] }
-    : Value extends { readonly "~type.mutability": "mutable" } ? { [P in Key["~type.iso"]]: Value["~type.iso"] }
-    : { readonly [P in Key["~type.iso"]]: Value["~type.iso"] }
+    Value extends { readonly "~type.mutability": "mutable" } ? { [P in Key["Iso"]]?: Value["Iso"] }
+    : { readonly [P in Key["Iso"]]?: Value["Iso"] }
+    : Value extends { readonly "~type.mutability": "mutable" } ? { [P in Key["Iso"]]: Value["Iso"] }
+    : { readonly [P in Key["Iso"]]: Value["Iso"] }
 
   /**
    * @since 4.0.0
@@ -1811,8 +1811,8 @@ export declare namespace StructWithRest {
    * @since 4.0.0
    */
   export type TypeIso<S extends TypeLiteral, Records extends StructWithRest.Records> =
-    & S["~type.iso"]
-    & MergeTuple<{ readonly [K in keyof Records]: Records[K]["~type.iso"] }>
+    & S["Iso"]
+    & MergeTuple<{ readonly [K in keyof Records]: Records[K]["Iso"] }>
 
   /**
    * @since 4.0.0
@@ -1922,7 +1922,7 @@ export declare namespace Tuple {
     Elements,
     Out extends ReadonlyArray<any> = readonly []
   > = Elements extends readonly [infer Head, ...infer Tail] ?
-    Head extends { readonly "~type.iso": infer T } ?
+    Head extends { readonly "Iso": infer T } ?
       Head extends { readonly "~type.optionality": "optional" } ? TypeIso_<Tail, readonly [...Out, T?]>
       : TypeIso_<Tail, readonly [...Out, T]>
     : Out
@@ -2152,7 +2152,7 @@ export interface Array$<S extends Top> extends
     Array$<S>,
     Annotations.Bottom<ReadonlyArray<S["Type"]>>,
     ReadonlyArray<S["~type.make"]>,
-    ReadonlyArray<S["~type.iso"]>
+    ReadonlyArray<S["Iso"]>
   >
 {
   readonly schema: S
@@ -2187,7 +2187,7 @@ export interface NonEmptyArray<S extends Top> extends
     NonEmptyArray<S>,
     Annotations.Bottom<readonly [S["Type"], ...Array<S["Type"]>]>,
     readonly [S["~type.make"], ...Array<S["~type.make"]>],
-    readonly [S["~type.iso"], ...Array<S["~type.iso"]>]
+    readonly [S["Iso"], ...Array<S["Iso"]>]
   >
 {
   readonly schema: S
@@ -2245,7 +2245,7 @@ export interface mutable<S extends Top> extends
     // we keep "~annotate.in", "~type.make" and "~type.make.in" as they are because they are contravariant
     S["~annotate.in"],
     S["~type.make.in"],
-    S["~type.iso"],
+    S["Iso"],
     S["~type.make"],
     S["~type.mutability"],
     S["~type.optionality"],
@@ -2283,7 +2283,7 @@ export interface readonly$<S extends Top> extends
     // we keep "~annotate.in", "~type.make" and "~type.make.in" as they are because they are contravariant
     S["~annotate.in"],
     S["~type.make.in"],
-    S["~type.iso"],
+    S["Iso"],
     S["~type.make"],
     S["~type.mutability"],
     S["~type.optionality"],
@@ -2320,7 +2320,7 @@ export interface Union<Members extends ReadonlyArray<Top>> extends
     Union<Members>,
     Annotations.Bottom<Members[number]["Type"]>,
     Members[number]["~type.make"],
-    Members[number]["~type.iso"]
+    Members[number]["Iso"]
   >
 {
   readonly members: Members
@@ -2518,7 +2518,7 @@ export interface suspend<S extends Top> extends
     suspend<S>,
     S["~annotate.in"],
     S["~type.make.in"],
-    S["~type.iso"],
+    S["Iso"],
     S["~type.make"],
     S["~type.mutability"],
     S["~type.optionality"],
@@ -2618,7 +2618,7 @@ export interface decodingMiddleware<S extends Top, RD> extends
     decodingMiddleware<S, RD>,
     S["~annotate.in"],
     S["~type.make.in"],
-    S["~type.iso"],
+    S["Iso"],
     S["~type.make"],
     S["~type.mutability"],
     S["~type.optionality"],
@@ -2660,7 +2660,7 @@ export interface encodingMiddleware<S extends Top, RE> extends
     encodingMiddleware<S, RE>,
     S["~annotate.in"],
     S["~type.make.in"],
-    S["~type.iso"],
+    S["Iso"],
     S["~type.make"],
     S["~type.mutability"],
     S["~type.optionality"],
@@ -2742,7 +2742,7 @@ export interface decodeTo<To extends Top, From extends Top, RD = never, RE = nev
     decodeTo<To, From, RD, RE>,
     To["~annotate.in"],
     To["~type.make.in"],
-    To["~type.iso"],
+    To["Iso"],
     To["~type.make"],
     To["~type.mutability"],
     To["~type.optionality"],
@@ -2872,7 +2872,7 @@ export interface withConstructorDefault<S extends Top> extends
     withConstructorDefault<S>,
     S["~annotate.in"],
     S["~type.make.in"],
-    S["~type.iso"],
+    S["Iso"],
     S["~type.make"],
     S["~type.mutability"],
     S["~type.optionality"],
@@ -3240,7 +3240,7 @@ export interface Option<S extends Top> extends
     O.Option<S["Type"]>,
     O.Option<S["Encoded"]>,
     readonly [S],
-    { readonly _tag: "None" } | { readonly _tag: "Some"; readonly value: S["~type.iso"] }
+    { readonly _tag: "None" } | { readonly _tag: "Some"; readonly value: S["Iso"] }
   >
 {
   readonly "~rebuild.out": Option<S>
@@ -3927,7 +3927,7 @@ export interface Opaque<Self, S extends Top, Brand> extends
     S["~rebuild.out"],
     S["~annotate.in"],
     S["~type.make.in"],
-    S["~type.iso"],
+    S["Iso"],
     S["~type.make"],
     S["~type.mutability"],
     S["~type.optionality"],
@@ -4355,7 +4355,7 @@ export interface Class<Self, S extends Top & { readonly fields: Struct.Fields },
     decodeTo<declareConstructor<Self, S["Encoded"], readonly [S]>, S>,
     Annotations.Declaration<Self, readonly [S]>,
     S["~type.make.in"],
-    S["~type.iso"],
+    S["Iso"],
     Self,
     S["~type.mutability"],
     S["~type.optionality"],
@@ -4426,7 +4426,7 @@ function makeClass<
     declare static readonly "~type.make.in": S["~type.make.in"]
     declare static readonly "~type.make": Self
     declare static readonly "~type.constructor.default": S["~type.constructor.default"]
-    declare static readonly "~type.iso": S["~type.iso"]
+    declare static readonly "Iso": S["Iso"]
 
     declare static readonly "~type.mutability": S["~type.mutability"]
     declare static readonly "~type.optionality": S["~type.optionality"]
