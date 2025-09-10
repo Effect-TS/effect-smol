@@ -22,11 +22,9 @@ import * as Exit_ from "../Exit.ts"
 import { identity } from "../Function.ts"
 import * as Equal from "../interfaces/Equal.ts"
 import { formatJson } from "../interfaces/Inspectable.ts"
-import type { Pipeable } from "../interfaces/Pipeable.ts"
-import { pipeArguments } from "../interfaces/Pipeable.ts"
+import * as Pipeable from "../interfaces/Pipeable.ts"
 import * as core from "../internal/core.ts"
 import * as InternalEffect from "../internal/effect.ts"
-import * as InternalSchema from "../internal/schema.ts"
 import * as Scheduler from "../Scheduler.ts"
 import * as DateTime from "../time/DateTime.ts"
 import * as Duration_ from "../time/Duration.ts"
@@ -79,8 +77,6 @@ export interface MakeOptions {
   readonly disableValidation?: boolean | undefined
 }
 
-const TypeId = "~effect/schema/Schema"
-
 /**
  * The base interface for all schemas in the Effect Schema library, exposing all
  * 14 type parameters that control schema behavior and type inference. Bottom
@@ -110,7 +106,7 @@ export interface Bottom<
   TypeConstructorDefault extends ConstructorDefault = "no-default",
   EncodedMutability extends Mutability = "readonly",
   EncodedOptionality extends Optionality = "required"
-> extends Pipeable {
+> extends Pipeable.Pipeable {
   readonly [TypeId]: typeof TypeId
 
   readonly ast: Ast
@@ -145,6 +141,88 @@ export interface Bottom<
       ...Array<Check.Check<this["Type"]>>
     ]
   ): this["~rebuild.out"]
+}
+
+const TypeId = "~effect/schema/Schema"
+
+export abstract class BottomBuilder<
+  T,
+  E,
+  RD,
+  RE,
+  Ast extends AST.AST,
+  RebuildOut extends Top,
+  AnnotateIn extends Annotations.Annotations,
+  TypeMakeIn = T,
+  TypeIso = T,
+  TypeMake = TypeMakeIn,
+  TypeMutability extends Mutability = "readonly",
+  TypeOptionality extends Optionality = "required",
+  TypeConstructorDefault extends ConstructorDefault = "no-default",
+  EncodedMutability extends Mutability = "readonly",
+  EncodedOptionality extends Optionality = "required"
+> extends Pipeable.Class implements
+  Bottom<
+    T,
+    E,
+    RD,
+    RE,
+    Ast,
+    RebuildOut,
+    AnnotateIn,
+    TypeMakeIn,
+    TypeIso,
+    TypeMake,
+    TypeMutability,
+    TypeOptionality,
+    TypeConstructorDefault,
+    EncodedMutability,
+    EncodedOptionality
+  >
+{
+  readonly [TypeId] = TypeId
+
+  declare readonly "Type": T
+  declare readonly "Encoded": E
+  declare readonly "DecodingServices": RD
+  declare readonly "EncodingServices": RE
+
+  declare readonly "~rebuild.out": RebuildOut
+  declare readonly "~annotate.in": AnnotateIn
+
+  declare readonly "~type.make.in": TypeMakeIn
+  declare readonly "~type.make": TypeMake
+  declare readonly "~type.constructor.default": TypeConstructorDefault
+  declare readonly "Iso": TypeIso
+
+  declare readonly "~type.mutability": TypeMutability
+  declare readonly "~type.optionality": TypeOptionality
+  declare readonly "~encoded.mutability": EncodedMutability
+  declare readonly "~encoded.optionality": EncodedOptionality
+
+  readonly ast: Ast
+  readonly makeSync: (input: this["~type.make.in"], options?: MakeOptions) => this["Type"]
+
+  constructor(ast: Ast) {
+    super()
+    this.ast = ast
+    this.makeSync = ToParser.makeSync(this)
+  }
+  abstract rebuild(ast: this["ast"]): this["~rebuild.out"]
+  annotate(annotations: this["~annotate.in"]): this["~rebuild.out"] {
+    return this.rebuild(AST.annotate(this.ast, annotations))
+  }
+  annotateKey(annotations: Annotations.Key<this["Type"]>): this["~rebuild.out"] {
+    return this.rebuild(AST.annotateKey(this.ast, annotations))
+  }
+  check(
+    ...checks: readonly [
+      Check.Check<this["Type"]>,
+      ...Array<Check.Check<this["Type"]>>
+    ]
+  ): this["~rebuild.out"] {
+    return this.rebuild(AST.appendChecks(this.ast, checks))
+  }
 }
 
 /**
@@ -630,12 +708,31 @@ export const encodeUnknownSync = ToParser.encodeUnknownSync
  */
 export const encodeSync = ToParser.encodeSync
 
-class makeWithSchema$<S extends Top, Result extends Top> extends InternalSchema.make$<Result> {
-  readonly schema: S
+export class make$<S extends Top> extends BottomBuilder<
+  S["Type"],
+  S["Encoded"],
+  S["DecodingServices"],
+  S["EncodingServices"],
+  S["ast"],
+  S["~rebuild.out"],
+  S["~annotate.in"],
+  S["~type.make.in"],
+  S["Iso"],
+  S["~type.make"],
+  S["~type.mutability"],
+  S["~type.optionality"],
+  S["~type.constructor.default"],
+  S["~encoded.mutability"],
+  S["~encoded.optionality"]
+> {
+  readonly rebuild: (ast: S["ast"]) => S["~rebuild.out"]
 
-  constructor(ast: AST.AST, schema: S) {
-    super(ast, (ast) => new makeWithSchema$(ast, schema))
-    this.schema = schema
+  constructor(
+    ast: S["ast"],
+    rebuild: (ast: S["ast"]) => S["~rebuild.out"]
+  ) {
+    super(ast)
+    this.rebuild = rebuild
   }
 }
 
@@ -654,7 +751,26 @@ class makeWithSchema$<S extends Top, Result extends Top> extends InternalSchema.
  * @category Constructors
  * @since 4.0.0
  */
-export const make = InternalSchema.make
+export function make<S extends Top>(ast: S["ast"]): Bottom<
+  S["Type"],
+  S["Encoded"],
+  S["DecodingServices"],
+  S["EncodingServices"],
+  S["ast"],
+  S["~rebuild.out"],
+  S["~annotate.in"],
+  S["~type.make.in"],
+  S["Iso"],
+  S["~type.make"],
+  S["~type.mutability"],
+  S["~type.optionality"],
+  S["~type.constructor.default"],
+  S["~encoded.mutability"],
+  S["~encoded.optionality"]
+> {
+  const rebuild = (ast: AST.AST) => new make$<S>(ast, rebuild)
+  return rebuild(ast)
+}
 
 /**
  * Tests if a value is a `Schema`.
@@ -694,6 +810,15 @@ export interface optionalKey<S extends Top> extends
 interface optionalKeyLambda extends Lambda {
   <S extends Top>(self: S): optionalKey<S>
   readonly "~lambda.out": this["~lambda.in"] extends Top ? optionalKey<this["~lambda.in"]> : never
+}
+
+class makeWithSchema$<S extends Top, Result extends Top> extends make$<Result> {
+  readonly schema: S
+
+  constructor(ast: AST.AST, schema: S) {
+    super(ast, (ast) => new makeWithSchema$(ast, schema))
+    this.schema = schema
+  }
 }
 
 /**
@@ -925,7 +1050,7 @@ export interface Literal<L extends AST.Literal>
   readonly literal: L
 }
 
-class Literal$<L extends AST.Literal> extends InternalSchema.make$<Literal<L>> implements Literal<L> {
+class Literal$<L extends AST.Literal> extends make$<Literal<L>> implements Literal<L> {
   readonly literal: L
 
   constructor(ast: AST.LiteralType, literal: L) {
@@ -1001,7 +1126,7 @@ export interface TemplateLiteral<Parts extends TemplateLiteral.Parts> extends
   readonly parts: Parts
 }
 
-class TemplateLiteral$<Parts extends TemplateLiteral.Parts> extends InternalSchema.make$<TemplateLiteral<Parts>>
+class TemplateLiteral$<Parts extends TemplateLiteral.Parts> extends make$<TemplateLiteral<Parts>>
   implements TemplateLiteral<Parts>
 {
   readonly parts: Parts
@@ -1056,8 +1181,7 @@ export interface TemplateLiteralParser<Parts extends TemplateLiteral.Parts> exte
   readonly parts: Parts
 }
 
-class TemplateLiteralParser$<Parts extends TemplateLiteral.Parts>
-  extends InternalSchema.make$<TemplateLiteralParser<Parts>>
+class TemplateLiteralParser$<Parts extends TemplateLiteral.Parts> extends make$<TemplateLiteralParser<Parts>>
   implements TemplateLiteralParser<Parts>
 {
   readonly parts: Parts
@@ -1086,7 +1210,7 @@ export interface Enums<A extends { [x: string]: string | number }>
   readonly enums: A
 }
 
-class Enums$<A extends { [x: string]: string | number }> extends InternalSchema.make$<Enums<A>> implements Enums<A> {
+class Enums$<A extends { [x: string]: string | number }> extends make$<Enums<A>> implements Enums<A> {
   readonly enums: A
 
   constructor(ast: AST.Enums, enums: A) {
@@ -1430,7 +1554,7 @@ export interface Struct<Fields extends Struct.Fields> extends
   ): Struct<Simplify<Readonly<To>>>
 }
 
-class Struct$<Fields extends Struct.Fields> extends InternalSchema.make$<Struct<Fields>> implements Struct<Fields> {
+class Struct$<Fields extends Struct.Fields> extends make$<Struct<Fields>> implements Struct<Fields> {
   readonly fields: Fields
   constructor(ast: AST.TypeLiteral, fields: Fields) {
     super(ast, (ast) => new Struct$(ast, fields))
@@ -1632,7 +1756,7 @@ export interface Record$<Key extends Record.Key, Value extends Top> extends
   readonly value: Value
 }
 
-class Record$$<Key extends Record.Key, Value extends Top> extends InternalSchema.make$<Record$<Key, Value>>
+class Record$$<Key extends Record.Key, Value extends Top> extends make$<Record$<Key, Value>>
   implements Record$<Key, Value>
 {
   readonly key: Key
@@ -1749,7 +1873,7 @@ export interface StructWithRest<
 }
 
 class StructWithRest$$<S extends StructWithRest.TypeLiteral, Records extends StructWithRest.Records>
-  extends InternalSchema.make$<StructWithRest<S, Records>>
+  extends make$<StructWithRest<S, Records>>
   implements StructWithRest<S, Records>
 {
   readonly schema: S
@@ -1891,7 +2015,7 @@ export interface Tuple<Elements extends Tuple.Elements> extends
   ): Tuple<Simplify<Readonly<To>>>
 }
 
-class Tuple$<Elements extends Tuple.Elements> extends InternalSchema.make$<Tuple<Elements>> implements Tuple<Elements> {
+class Tuple$<Elements extends Tuple.Elements> extends make$<Tuple<Elements>> implements Tuple<Elements> {
   readonly elements: Elements
   constructor(ast: AST.TupleType, elements: Elements) {
     super(ast, (ast) => new Tuple$(ast, elements))
@@ -1994,7 +2118,7 @@ export interface TupleWithRest<
 }
 
 class TupleWithRest$<S extends Tuple<Tuple.Elements> | mutable<Tuple<Tuple.Elements>>, Rest extends TupleWithRest.Rest>
-  extends InternalSchema.make$<TupleWithRest<S, Rest>>
+  extends make$<TupleWithRest<S, Rest>>
 {
   readonly schema: S
   readonly rest: Rest
@@ -2222,9 +2346,7 @@ export interface Union<Members extends ReadonlyArray<Top>> extends
   ): Union<Simplify<Readonly<To>>>
 }
 
-class Union$<Members extends ReadonlyArray<Top>> extends InternalSchema.make$<Union<Members>>
-  implements Union<Members>
-{
+class Union$<Members extends ReadonlyArray<Top>> extends make$<Union<Members>> implements Union<Members> {
   override readonly ast: AST.UnionType<Members[number]["ast"]>
   readonly members: Members
 
@@ -2290,7 +2412,7 @@ export interface Literals<L extends ReadonlyArray<AST.Literal>> extends
   pick<const L2 extends ReadonlyArray<L[number]>>(literals: L2): Literals<L2>
 }
 
-class Literals$<L extends ReadonlyArray<AST.Literal>> extends InternalSchema.make$<Literals<L>> implements Literals<L> {
+class Literals$<L extends ReadonlyArray<AST.Literal>> extends make$<Literals<L>> implements Literals<L> {
   readonly literals: L
   readonly members: { readonly [K in keyof L]: Literal<L[K]> }
 
@@ -2644,7 +2766,7 @@ export interface decodeTo<To extends Top, From extends Top, RD = never, RE = nev
  */
 export interface compose<To extends Top, From extends Top> extends decodeTo<To, From> {}
 
-class decodeTo$<To extends Top, From extends Top, RD, RE> extends InternalSchema.make$<decodeTo<To, From, RD, RE>>
+class decodeTo$<To extends Top, From extends Top, RD, RE> extends make$<decodeTo<To, From, RD, RE>>
   implements decodeTo<To, From, RD, RE>
 {
   override readonly ast: From["ast"]
@@ -3056,9 +3178,7 @@ export interface TaggedUnion<Cases extends Record<string, Top>> extends
   }
 }
 
-class TaggedUnion$<Cases extends Record<string, Top>> extends InternalSchema.make$<TaggedUnion<Cases>>
-  implements TaggedUnion<Cases>
-{
+class TaggedUnion$<Cases extends Record<string, Top>> extends make$<TaggedUnion<Cases>> implements TaggedUnion<Cases> {
   override readonly ast: AST.UnionType<AST.TypeLiteral>
   readonly cases: Cases
   readonly isAnyOf: <const Keys>(
@@ -4326,7 +4446,7 @@ function makeClass<
       return getClassSchema(this).ast
     }
     static pipe() {
-      return pipeArguments(this, arguments)
+      return Pipeable.pipeArguments(this, arguments)
     }
     static rebuild(ast: AST.Declaration) {
       return getClassSchema(this).rebuild(ast)
