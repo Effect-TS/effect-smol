@@ -8,6 +8,7 @@ import * as Effect from "../../Effect.ts"
 import { constFalse } from "../../Function.ts"
 import * as internalEffect from "../../internal/effect.ts"
 import * as Layer from "../../Layer.ts"
+import { ParentSpan } from "../../observability/Tracer.ts"
 import { TracerEnabled } from "../../References.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import { Clock } from "../../time/Clock.ts"
@@ -148,9 +149,12 @@ export const tracer: <E, R>(
       kind: "server",
       captureStackTrace: false
     })
-    return Effect.onExitInterruptible(Effect.withParentSpan(httpApp, span), (exit) => {
+    const prevSpan = ServiceMap.getOption(fiber.services, ParentSpan)
+    fiber.setServices(ServiceMap.add(fiber.services, ParentSpan, span))
+    return Effect.onExitInterruptible(httpApp, (exit) => {
+      fiber.setServices(ServiceMap.addOrOmit(fiber.services, ParentSpan, prevSpan))
       const endTime = fiber.getRef(Clock).currentTimeNanosUnsafe()
-      return Effect.flatMap(Effect.yieldNow, () => {
+      fiber.currentScheduler.scheduleTask(() => {
         const url = Request.toURL(request)
         if (url !== undefined && (url.username !== "" || url.password !== "")) {
           url.username = "REDACTED"
@@ -184,8 +188,7 @@ export const tracer: <E, R>(
           span.attribute(`http.response.header.${name}`, String(responseHeaders[name]))
         }
         span.end(endTime, exit)
-        return Effect.void
-      })
+      }, 0)
     })
   })
 )
