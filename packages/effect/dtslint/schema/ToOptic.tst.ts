@@ -272,12 +272,6 @@ describe("ToOptic", () => {
     const schema = Schema.Error
     const optic = ToOptic.makeIso(schema)
 
-    expect(optic).type.toBe<
-      Optic.Iso<Error, {
-        readonly message: string
-        readonly name?: string
-        readonly stack?: string
-      }>
-    >()
+    expect(optic).type.toBe<Optic.Iso<Error, Error>>()
   })
 })
