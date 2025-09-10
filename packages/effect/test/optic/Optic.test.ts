@@ -76,7 +76,7 @@ describe("Optic", () => {
       })
 
       it("Tuple", () => {
-        type S = readonly [number?]
+        type S = readonly [number?, number?]
         const optic = Optic.id<S>().optionalKey(0)
 
         assertSuccess(optic.getOptic([1]), 1)
@@ -84,6 +84,7 @@ describe("Optic", () => {
         assertSuccess(optic.setOptic(2, [1]), [2])
         assertSuccess(optic.setOptic(2, []), [2])
         assertSuccess(optic.setOptic(undefined, [1]), [])
+        throws(() => optic.setOptic(undefined, [1, 2]), `Cannot remove element at index 0`)
       })
     })
 
@@ -94,7 +95,7 @@ describe("Optic", () => {
 
         assertSuccess(optic.getOptic({ a: 1, b: 2 }), 1)
         assertFailure(optic.getOptic({ b: 2 }), [`Key "a" not found`, { b: 2 }])
-        assertSuccess(optic.setOptic(2, { b: 2 }), { a: 2, b: 2 })
+        assertSuccess(optic.setOptic(2, { b: 2 }), { b: 2 })
         assertSuccess(optic.setOptic(2, { a: 1, b: 2 }), { a: 2, b: 2 })
       })
 
@@ -104,7 +105,7 @@ describe("Optic", () => {
 
         assertSuccess(optic.getOptic([1, 2]), 1)
         assertFailure(optic.getOptic([]), [`Key 0 not found`, []])
-        assertSuccess(optic.setOptic(2, []), [2])
+        assertSuccess(optic.setOptic(2, []), [])
         assertSuccess(optic.setOptic(3, [1, 2]), [3, 2])
       })
     })
