@@ -5286,13 +5286,13 @@ export const onErrorFilter: {
  * @category Resource management & finalization
  */
 export const onExit: {
-  <A, E, X, R2>(
-    cleanup: (exit: Exit.Exit<A, E>) => Effect<X, never, R2>
-  ): <R>(self: Effect<A, E, R>) => Effect<A, E, R2 | R>
-  <A, E, R, X, R2>(
+  <A, E, XE = never, XR = never>(
+    f: (exit: Exit.Exit<A, E>) => Effect<void, XE, XR> | void
+  ): <R>(self: Effect<A, E, R>) => Effect<A, E | XE, R | XR>
+  <A, E, R, XE = never, XR = never>(
     self: Effect<A, E, R>,
-    cleanup: (exit: Exit.Exit<A, E>) => Effect<X, never, R2>
-  ): Effect<A, E, R | R2>
+    f: (exit: Exit.Exit<A, E>) => Effect<void, XE, XR> | void
+  ): Effect<A, E | XE, R | XR>
 } = internal.onExit
 
 /**
@@ -5300,14 +5300,30 @@ export const onExit: {
  * @category Resource management & finalization
  */
 export const onExitInterruptible: {
-  <A, E, X, R2>(
-    cleanup: (exit: Exit.Exit<A, E>) => Effect<X, never, R2>
-  ): <R>(self: Effect<A, E, R>) => Effect<A, E, R2 | R>
-  <A, E, R, X, R2>(
+  <A, E, XE = never, XR = never>(
+    f: (exit: Exit.Exit<A, E>) => Effect<void, XE, XR> | void
+  ): <R>(self: Effect<A, E, R>) => Effect<A, E | XE, R | XR>
+  <A, E, R, XE = never, XR = never>(
     self: Effect<A, E, R>,
-    cleanup: (exit: Exit.Exit<A, E>) => Effect<X, never, R2>
-  ): Effect<A, E, R | R2>
+    f: (exit: Exit.Exit<A, E>) => Effect<void, XE, XR> | void
+  ): Effect<A, E | XE, R | XR>
 } = internal.onExitInterruptible
+
+/**
+ * @since 4.0.0
+ * @category Resource management & finalization
+ */
+export const onExitFilter: {
+  <A, E, XE, XR, B, X>(
+    filter: Filter.Filter<Exit.Exit<NoInfer<A>, NoInfer<E>>, B, X>,
+    f: (b: B, exit: Exit.Exit<NoInfer<A>, NoInfer<E>>) => Effect<void, XE, XR>
+  ): <R>(self: Effect<A, E, R>) => Effect<A, E | XE, R | XR>
+  <A, E, R, XE, XR, B, X>(
+    self: Effect<A, E, R>,
+    filter: Filter.Filter<Exit.Exit<NoInfer<A>, NoInfer<E>>, B, X>,
+    f: (b: B, exit: Exit.Exit<NoInfer<A>, NoInfer<E>>) => Effect<void, XE, XR>
+  ): Effect<A, E | XE, R | XR>
+} = internal.onExitFilter
 
 // -----------------------------------------------------------------------------
 // Caching

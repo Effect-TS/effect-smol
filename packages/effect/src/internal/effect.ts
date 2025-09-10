@@ -780,9 +780,7 @@ export const sync: <A>(thunk: LazyArg<A>) => Effect.Effect<A> = makePrimitive({
   [evaluate](fiber): Primitive | Yield {
     const value = this[args]()
     const cont = fiber.getCont(contA)
-    return cont
-      ? cont[contA](value, fiber)
-      : fiber.yieldWith(exitSucceed(value))
+    return cont ? cont[contA](value, fiber) : fiber.yieldWith(exitSucceed(value))
   }
 })
 
@@ -1861,7 +1859,6 @@ export const updateServices: {
           }
         }
         fiber.setServices(ServiceMap.makeUnsafe(map))
-        return void_
       })
     })
 )
@@ -1887,10 +1884,7 @@ export const updateService: {
     withFiber((fiber) => {
       const prev = ServiceMap.getUnsafe(fiber.services, key)
       fiber.setServices(ServiceMap.add(fiber.services, key, f(prev)))
-      return onExit(self, () => {
-        fiber.setServices(ServiceMap.add(fiber.services, key, prev))
-        return void_
-      })
+      return onExit(self, () => fiber.setServices(ServiceMap.add(fiber.services, key, prev)))
     })
 )
 
@@ -1960,10 +1954,7 @@ const provideServiceImpl = <A, E, R, I, S>(
   withFiber((fiber) => {
     const prev = ServiceMap.getOption(fiber.services, key)
     fiber.setServices(ServiceMap.add(fiber.services, key, service))
-    return onExit(self, () => {
-      fiber.setServices(ServiceMap.addOrOmit(fiber.services, key, prev))
-      return void_
-    })
+    return onExit(self, () => fiber.setServices(ServiceMap.addOrOmit(fiber.services, key, prev)))
   }) as any
 
 /** @internal */
@@ -2823,10 +2814,22 @@ export const matchCauseEager: {
 )
 
 /** @internal */
-export const exit: <A, E, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<Exit.Exit<A, E>, never, R> =
-  matchCauseEager({
-    onFailure: exitFailCause,
-    onSuccess: exitSucceed
+export const exit = <A, E, R>(self: Effect.Effect<A, E, R>): Effect.Effect<Exit.Exit<A, E>, never, R> =>
+  effectIsExit(self) ? exitSucceed(self) : exitPrimitive(self)
+
+const exitPrimitive: <A, E, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<Exit.Exit<A, E>, never, R> =
+  makePrimitive({
+    op: "Exit",
+    [evaluate](fiber): Primitive {
+      fiber._stack.push(this)
+      return this[args] as any
+    },
+    [contA](value, _, exit) {
+      return succeed(exit ?? exitSucceed(value))
+    },
+    [contE](cause, _, exit) {
+      return succeed(exit ?? exitFailCause(cause))
+    }
   })
 
 // ----------------------------------------------------------------------------
@@ -2834,18 +2837,16 @@ export const exit: <A, E, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<Exit
 // ----------------------------------------------------------------------------
 
 /** @internal */
-export const isFailure = <A, E, R>(self: Effect.Effect<A, E, R>): Effect.Effect<boolean, never, R> =>
-  matchEager(self, {
-    onFailure: () => true,
-    onSuccess: () => false
-  })
+export const isFailure: <A, E, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<boolean, never, R> = matchEager({
+  onFailure: () => true,
+  onSuccess: () => false
+})
 
 /** @internal */
-export const isSuccess = <A, E, R>(self: Effect.Effect<A, E, R>): Effect.Effect<boolean, never, R> =>
-  matchEager(self, {
-    onFailure: () => false,
-    onSuccess: () => true
-  })
+export const isSuccess: <A, E, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<boolean, never, R> = matchEager({
+  onFailure: () => false,
+  onSuccess: () => true
+})
 
 // ----------------------------------------------------------------------------
 // delays & timeouts
@@ -2937,7 +2938,11 @@ export const timeoutOption: {
   <A, E, R>(
     self: Effect.Effect<A, E, R>,
     duration: Duration.DurationInput
-  ): Effect.Effect<Option.Option<A>, E, R> => raceFirst(asSome(self), as(interruptible(sleep(duration)), Option.none()))
+  ): Effect.Effect<Option.Option<A>, E, R> =>
+    raceFirst(
+      asSome(self),
+      as(interruptible(sleep(duration)), Option.none())
+    )
 )
 
 /** @internal */
@@ -3119,7 +3124,7 @@ export const scopedWith = <A, E, R>(
 ): Effect.Effect<A, E, R> =>
   suspend(() => {
     const scope = scopeMakeUnsafe()
-    return onExit(f(scope), (exit) => scopeCloseUnsafe(scope, exit) ?? void_)
+    return onExit(f(scope), (exit) => scopeCloseUnsafe(scope, exit))
   })
 
 /** @internal */
@@ -3164,12 +3169,12 @@ const onExitPrimitive: <A, E, R, XE = never, XR = never>(
   [contA](value, _, exit) {
     exit ??= exitSucceed(value)
     const eff = this[args][1](exit)
-    return eff ? flatMap(eff, (_) => exit) : exit
+    return isEffect(eff) ? flatMap(eff, (_) => exit) : exit
   },
   [contE](cause, _, exit) {
     exit ??= exitFailCause(cause)
     const eff = this[args][1](exit)
-    return eff ? flatMap(eff, (_) => exit) : exit
+    return isEffect(eff) ? flatMap(eff, (_) => exit) : exit
   }
 })
 
@@ -3222,23 +3227,23 @@ export const ensuring: {
 export const onExitFilter: {
   <A, E, XE, XR, B, X>(
     filter: Filter.Filter<Exit.Exit<NoInfer<A>, NoInfer<E>>, B, X>,
-    f: (b: B) => Effect.Effect<void, XE, XR>
+    f: (b: B, exit: Exit.Exit<NoInfer<A>, NoInfer<E>>) => Effect.Effect<void, XE, XR>
   ): <R>(self: Effect.Effect<A, E, R>) => Effect.Effect<A, E | XE, R | XR>
-  <A, E, R, XE, XR, B extends Exit.Exit<A, E>, X>(
+  <A, E, R, XE, XR, B, X>(
     self: Effect.Effect<A, E, R>,
     filter: Filter.Filter<Exit.Exit<NoInfer<A>, NoInfer<E>>, B, X>,
-    f: (b: B) => Effect.Effect<void, XE, XR>
+    f: (b: B, exit: Exit.Exit<NoInfer<A>, NoInfer<E>>) => Effect.Effect<void, XE, XR>
   ): Effect.Effect<A, E | XE, R | XR>
 } = dual(
   3,
-  <A, E, R, XE, XR, B extends Exit.Exit<A, E>, X>(
+  <A, E, R, XE, XR, B, X>(
     self: Effect.Effect<A, E, R>,
     filter: Filter.Filter<Exit.Exit<NoInfer<A>, NoInfer<E>>, B, X>,
-    f: (b: B) => Effect.Effect<void, XE, XR>
+    f: (b: B, exit: Exit.Exit<NoInfer<A>, NoInfer<E>>) => Effect.Effect<void, XE, XR>
   ): Effect.Effect<A, E | XE, R | XR> =>
     onExit(self, (exit) => {
       const b = filter(exit)
-      return Filter.isFail(b) ? exitVoid : f(b)
+      return Filter.isFail(b) ? undefined : f(b, exit)
     })
 )
 
@@ -3256,7 +3261,7 @@ export const onError: {
   <A, E, R, XE, XR>(
     self: Effect.Effect<A, E, R>,
     f: (cause: Cause.Cause<NoInfer<E>>) => Effect.Effect<void, XE, XR>
-  ): Effect.Effect<A, E | XE, R | XR> => uninterruptibleMask((restore) => tapCause(restore(self), f))
+  ): Effect.Effect<A, E | XE, R | XR> => onExitFilter(self, exitFilterCause, f)
 )
 
 /** @internal */
@@ -3276,7 +3281,12 @@ export const onErrorFilter: {
     self: Effect.Effect<A, E, R>,
     filter: Filter.Filter<Cause.Cause<E>, EB, X>,
     f: (failure: EB, cause: Cause.Cause<E>) => Effect.Effect<void, XE, XR>
-  ): Effect.Effect<A, E | XE, R | XR> => uninterruptibleMask((restore) => tapCauseFilter(restore(self), filter, f))
+  ): Effect.Effect<A, E | XE, R | XR> =>
+    onExitFilter(
+      self,
+      Filter.compose(exitFilterCause, filter),
+      (eb, exit) => f(eb, (exit as Exit.Failure<any, any>).cause)
+    )
 )
 
 /** @internal */
@@ -3301,13 +3311,14 @@ export const onInterrupt: {
 export const acquireUseRelease = <Resource, E, R, A, E2, R2, E3, R3>(
   acquire: Effect.Effect<Resource, E, R>,
   use: (a: Resource) => Effect.Effect<A, E2, R2>,
-  release: (a: Resource, exit: Exit.Exit<A, E2>) => Effect.Effect<void, E3, R3>
+  release: (a: Resource, exit: Exit.Exit<A, E2>) => Effect.Effect<void, E3, R3> | void
 ): Effect.Effect<A, E | E2 | E3, R | R2 | R3> =>
   uninterruptibleMask((restore) =>
-    flatMap(
-      acquire,
-      (a) => flatMap(exit(restore(use(a))), (exit) => flatMap(internalCall(() => release(a, exit)), () => exit))
-    )
+    flatMap(acquire, (a) =>
+      onExitInterruptible(
+        restore(use(a)),
+        (exit) => release(a, exit)
+      ))
   )
 
 // ----------------------------------------------------------------------------
@@ -3346,7 +3357,7 @@ export const cachedInvalidateWithTTL: {
           running = false
           expiresAt = now + ttlMillis
           exit = exit_
-          return latch.open
+          latch.openUnsafe()
         })
       }),
       sync(() => {
@@ -4443,7 +4454,10 @@ export const useSpan: {
   return withFiber((fiber) => {
     const span = makeSpanUnsafe(fiber, name, options)
     const clock = fiber.getRef(ClockRef)
-    return onExit(internalCall(() => evaluate(span)), (exit) => endSpan(span, exit, clock))
+    return onExit(internalCall(() => evaluate(span)), (exit) => {
+      if (span.status._tag === "Ended") return
+      span.end(clock.currentTimeNanosUnsafe(), exit)
+    })
   })
 }
 
