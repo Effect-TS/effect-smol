@@ -150,23 +150,27 @@ export function iso<T, E, RD, RE>(
 }
 
 const goIso = AST.memoize((ast: AST.AST): AST.AST => {
-  switch (ast._tag) {
-    case "Declaration": {
-      const getLink = ast.annotations?.defaultIsoSerializer
-      if (Predicate.isFunction(getLink)) {
-        const link = getLink(ast.typeParameters.map((tp) => Schema.make(goIso(AST.encodedAST(tp)))))
-        const to = goIso(link.to)
-        return AST.replaceEncoding(ast, to === link.to ? [link] : [new AST.Link(to, link.transformation)])
+  function go(ast: AST.AST): AST.AST {
+    switch (ast._tag) {
+      case "Declaration": {
+        const getLink = ast.annotations?.defaultIsoSerializer
+        if (Predicate.isFunction(getLink)) {
+          const link = getLink(ast.typeParameters.map((tp) => Schema.make(goIso(AST.encodedAST(tp)))))
+          const to = goIso(link.to)
+          return AST.replaceEncoding(ast, to === link.to ? [link] : [new AST.Link(to, link.transformation)])
+        }
+        return ast
       }
-      return ast
+      case "TupleType":
+      case "TypeLiteral":
+      case "UnionType":
+      case "Suspend":
+        return ast.go(goIso)
     }
-    case "TupleType":
-    case "TypeLiteral":
-    case "UnionType":
-    case "Suspend":
-      return ast.go(goIso)
+    return ast
   }
-  return ast
+  const out = go(ast)
+  return AST.isOptional(ast) ? AST.optionalKey(out) : out
 })
 
 /**

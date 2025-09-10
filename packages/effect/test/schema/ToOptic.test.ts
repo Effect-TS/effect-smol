@@ -1,45 +1,143 @@
-import { Option } from "effect/data"
-import { Schema, ToOptic } from "effect/schema"
+import { Option, Record } from "effect/data"
+import { Check, Schema, ToOptic } from "effect/schema"
 import { describe, it } from "vitest"
-import { deepStrictEqual } from "../utils/assert.ts"
+import { assertNone, assertSome, deepStrictEqual, strictEqual, throws } from "../utils/assert.ts"
 
-class D extends Schema.Class<D>("D")({
-  a: Schema.Date
+class Value extends Schema.Class<Value, { readonly brand: unique symbol }>("Value")({
+  a: Schema.ValidDate
 }) {}
 
+function addOne(date: Date): Date {
+  const time = date.getTime()
+  if (time === -1) {
+    return new Date("")
+  }
+  return new Date(time + 1)
+}
+
 describe("ToOptic", () => {
+  it("Class", () => {
+    const schema = Value
+    const optic = ToOptic.make(schema).key("a")
+    const modify = optic.modify(addOne)
+
+    deepStrictEqual(modify(Value.makeSync({ a: new Date(0) })), Value.makeSync({ a: new Date(1) }))
+    throws(
+      () => modify(Value.makeSync({ a: new Date(-1) })),
+      `Expected a valid date, got Invalid Date
+  at ["a"]`
+    )
+  })
+
+  it("typeCodec(Class)", () => {
+    const schema = Schema.typeCodec(Value)
+    const optic = ToOptic.make(schema).key("a")
+    const modify = optic.modify(addOne)
+
+    deepStrictEqual(modify(Value.makeSync({ a: new Date(0) })), Value.makeSync({ a: new Date(1) }))
+  })
+
+  it("encodedCodec(Class)", () => {
+    const schema = Schema.encodedCodec(Value)
+    const optic = ToOptic.make(schema).key("a")
+    const modify = optic.modify(addOne)
+
+    deepStrictEqual(modify({ a: new Date(0) }), { a: new Date(1) })
+  })
+
+  describe("brand", () => {
+    it("Number & positive", () => {
+      const schema = Schema.Number.check(Check.positive()).pipe(Schema.brand("positive"))
+      const optic = ToOptic.make(schema)
+      const modify = optic.modify((n) => schema.makeSync(n - 1))
+
+      strictEqual(modify(schema.makeSync(2)), 1)
+      throws(() => modify(schema.makeSync(1)), "Expected a value greater than 0, got 0")
+    })
+  })
+
   it("Tuple", () => {
-    const schema = Schema.Tuple([D])
-    const optic = ToOptic.make(schema).key(0).key("a")
-    const modify = optic.modify((date) => new Date(date.getTime() + 1))
+    const schema = Schema.Tuple([Value, Schema.optionalKey(Value)])
+    const optic = ToOptic.make(schema).key("0").key("a")
+    const modify = optic.modify(addOne)
 
     deepStrictEqual(
-      modify([D.makeSync({ a: new Date(0) })]),
-      [D.makeSync({ a: new Date(1) })]
+      modify([Value.makeSync({ a: new Date(0) })]),
+      [Value.makeSync({ a: new Date(1) })]
     )
+  })
+
+  it("Array", () => {
+    const schema = Schema.Array(Value)
+    const optic = ToOptic.make(schema)
+    const modify = optic.modify((as) => as.map((x) => ({ ...x, a: addOne(x.a) })))
+
+    deepStrictEqual(modify([Value.makeSync({ a: new Date(0) })]), [Value.makeSync({ a: new Date(1) })])
   })
 
   it("Struct", () => {
     const schema = Schema.Struct({
-      d: D
+      value: Value,
+      optionalValue: Schema.optionalKey(Value)
     })
-    const optic = ToOptic.make(schema).key("d").key("a")
-    const modify = optic.modify((date) => new Date(date.getTime() + 1))
+    const optic = ToOptic.make(schema).key("value").key("a")
+    const modify = optic.modify(addOne)
 
     deepStrictEqual(
-      modify({ d: D.makeSync({ a: new Date(0) }) }),
-      { d: D.makeSync({ a: new Date(1) }) }
+      modify({
+        value: Value.makeSync({ a: new Date(0) })
+      }),
+      {
+        value: Value.makeSync({ a: new Date(1) })
+      }
+    )
+    deepStrictEqual(
+      modify({
+        value: Value.makeSync({ a: new Date(0) }),
+        optionalValue: Value.makeSync({ a: new Date(2) })
+      }),
+      {
+        value: Value.makeSync({ a: new Date(1) }),
+        optionalValue: Value.makeSync({ a: new Date(2) })
+      }
     )
   })
 
-  it("Option", () => {
-    const schema = Schema.Option(D)
-    const optic = ToOptic.make(schema).tag("Some").key("value").key("a")
-    const modify = optic.modify((date) => new Date(date.getTime() + 1))
+  it("Record", () => {
+    const schema = Schema.Record(Schema.String, Value)
+    const optic = ToOptic.make(schema)
+    const modify = optic.modify((rec) => Record.map(rec, (x) => ({ ...x, a: addOne(x.a) })))
 
     deepStrictEqual(
-      modify(Option.some(D.makeSync({ a: new Date(0) }))),
-      Option.some(D.makeSync({ a: new Date(1) }))
+      modify({
+        a: Value.makeSync({ a: new Date(0) }),
+        b: Value.makeSync({ a: new Date(1) })
+      }),
+      {
+        a: Value.makeSync({ a: new Date(1) }),
+        b: Value.makeSync({ a: new Date(2) })
+      }
     )
+  })
+
+  it("Opaque", () => {
+    class S extends Schema.Opaque<S>()(Schema.Struct({ a: Schema.Date })) {}
+    const schema = S
+    const optic = ToOptic.make(schema).key("a")
+    const modify = optic.modify(addOne)
+
+    deepStrictEqual(modify({ a: new Date(0) }), { a: new Date(1) })
+  })
+
+  it("Option", () => {
+    const schema = Schema.Option(Value)
+    const optic = ToOptic.make(schema).tag("Some").key("value").key("a")
+    const modify = optic.modify(addOne)
+
+    assertSome(
+      modify(Option.some(Value.makeSync({ a: new Date(0) }))),
+      Value.makeSync({ a: new Date(1) })
+    )
+    assertNone(modify(Option.none()))
   })
 })
