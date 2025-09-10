@@ -85,7 +85,9 @@ describe("ToOptic", () => {
     const schema = Schema.Record(Schema.String, Value)
     const optic = ToOptic.make(schema)
 
-    expect(optic).type.toBe<Optic.Iso<Record<string, Value>, Record<string, { readonly a: Date }>>>()
+    expect(optic).type.toBe<
+      Optic.Iso<{ readonly [x: string]: Value }, { readonly [x: string]: { readonly a: Date } }>
+    >()
   })
 
   it("Opaque", () => {

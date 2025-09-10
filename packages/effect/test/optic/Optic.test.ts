@@ -70,6 +70,28 @@ describe("Optic", () => {
         assertSuccess(optic.setOptic(undefined, [1]), [])
       })
     })
+
+    describe("at", () => {
+      it("Record", () => {
+        type S = { [x: string]: number }
+        const optic = Optic.id<S>().at("a")
+
+        assertSuccess(optic.getOptic({ a: 1, b: 2 }), 1)
+        assertFailure(optic.getOptic({ b: 2 }), [`Key "a" not found`, { b: 2 }])
+        assertSuccess(optic.setOptic(2, { b: 2 }), { a: 2, b: 2 })
+        assertSuccess(optic.setOptic(2, { a: 1, b: 2 }), { a: 2, b: 2 })
+      })
+
+      it("Array", () => {
+        type S = ReadonlyArray<number>
+        const optic = Optic.id<S>().at(0)
+
+        assertSuccess(optic.getOptic([1, 2]), 1)
+        assertFailure(optic.getOptic([]), [`Key 0 not found`, []])
+        assertSuccess(optic.setOptic(2, []), [2])
+        assertSuccess(optic.setOptic(3, [1, 2]), [3, 2])
+      })
+    })
   })
 
   describe("Prism", () => {

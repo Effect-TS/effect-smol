@@ -650,7 +650,10 @@ export const isReadonlyArrayNonEmpty: <A>(self: ReadonlyArray<A>) => self is Non
  */
 export const length = <A>(self: ReadonlyArray<A>): number => self.length
 
-const isOutOfBounds = <A>(i: number, as: ReadonlyArray<A>): boolean => i < 0 || i >= as.length
+/** @internal */
+export function isOutOfBounds<A>(i: number, as: ReadonlyArray<A>): boolean {
+  return i < 0 || i >= as.length
+}
 
 const clamp = <A>(i: number, as: ReadonlyArray<A>): number => Math.floor(Math.min(Math.max(0, i), as.length))
 
