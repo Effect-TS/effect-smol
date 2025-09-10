@@ -240,6 +240,22 @@ describe("ToOptic", () => {
       )
     })
 
+    it("flip(schema)", () => {
+      const schema = Schema.flip(Value)
+      const optic = ToOptic.makeIso(schema).key("a")
+      const modify = optic.modify(addOne)
+
+      deepStrictEqual(modify(Value.makeSync({ a: new Date(0) })), { a: new Date(1) })
+    })
+
+    it("flip(flip(schema))", () => {
+      const schema = Schema.flip(Schema.flip(Value))
+      const optic = ToOptic.makeIso(schema).key("a")
+      const modify = optic.modify(addOne)
+
+      deepStrictEqual(modify(Value.makeSync({ a: new Date(0) })), Value.makeSync({ a: new Date(1) }))
+    })
+
     it("Opaque", () => {
       class S extends Schema.Opaque<S>()(Schema.Struct({ a: Schema.Date })) {}
       const schema = S

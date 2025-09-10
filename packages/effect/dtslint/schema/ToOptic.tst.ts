@@ -192,6 +192,20 @@ describe("ToOptic", () => {
       >()
     })
 
+    it("flip(schema)", () => {
+      const schema = Schema.flip(Value)
+      const optic = ToOptic.makeIso(schema)
+
+      expect(optic).type.toBe<Optic.Iso<{ readonly a: Date }, { readonly a: Date }>>()
+    })
+
+    it("flip(flip(schema))", () => {
+      const schema = Schema.flip(Schema.flip(Value))
+      const optic = ToOptic.makeIso(schema)
+
+      expect(optic).type.toBe<Optic.Iso<Value, { readonly a: Date }>>()
+    })
+
     it("Opaque", () => {
       class Value extends Schema.Opaque<Value>()(Schema.Struct({ a: Schema.Date })) {}
       const schema = Value
