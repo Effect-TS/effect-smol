@@ -9,7 +9,7 @@ import * as Serializer from "./Serializer.ts"
 /**
  * @since 4.0.0
  */
-export function makeIso<S extends Schema.Codec<unknown, unknown>>(codec: S): Optic.Iso<S["Type"], S["Iso"]> {
+export function makeIso<T, Iso>(codec: Schema.Optic<T, Iso>): Optic.Iso<T, Iso> {
   const serializer = Serializer.iso(codec)
   return Optic.makeIso(Schema.encodeSync(serializer), Schema.decodeSync(serializer))
 }
