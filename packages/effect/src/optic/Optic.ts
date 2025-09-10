@@ -417,9 +417,14 @@ export function fromOptionalKey<S, Key extends keyof S>(
 
 function removeUnsafe<S, Key extends keyof S>(key: Key, s: S): S {
   if (Array.isArray(s)) {
-    const out = s.slice()
-    out.splice(key as number, 1)
-    return out as S
+    const k = key as number
+    if (k === s.length - 1) {
+      const out: any = s.slice()
+      out.splice(k, 1)
+      return out
+    } else {
+      throw new Error(`Cannot remove element at index ${format(key)}`)
+    }
   } else {
     const out = { ...s }
     delete out[key]
@@ -475,6 +480,6 @@ export function fromTag<S extends { readonly _tag: AST.Literal }, Tag extends S[
 export function fromAt<S extends object, Key extends keyof S>(key: Key): Optional<S, S[Key]> {
   return makeOptional(
     (s) => Object.hasOwn(s, key) ? Result.succeed(s[key]) : Result.fail(`Key ${format(key)} not found`),
-    (b, s) => replaceUnsafe(key, b, s)
+    (b, s) => Object.hasOwn(s, key) ? replaceUnsafe(key, b, s) : s
   )
 }
