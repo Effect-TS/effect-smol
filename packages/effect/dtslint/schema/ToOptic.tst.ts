@@ -156,6 +156,13 @@ describe("ToOptic", () => {
       >()
     })
 
+    it("Union", () => {
+      const schema = Schema.Union([Schema.String, Value])
+      const optic = ToOptic.makeIso(schema)
+
+      expect(optic).type.toBe<Optic.Iso<string | Value, string | { readonly a: Date }>>()
+    })
+
     it("Opaque", () => {
       class Value extends Schema.Opaque<Value>()(Schema.Struct({ a: Schema.Date })) {}
       const schema = Value

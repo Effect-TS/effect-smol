@@ -1,4 +1,4 @@
-import { Option, Record } from "effect/data"
+import { Option, Predicate, Record } from "effect/data"
 import { Check, Schema, ToOptic } from "effect/schema"
 import { describe, it } from "vitest"
 import { assertNone, assertSome, deepStrictEqual, strictEqual, throws } from "../utils/assert.ts"
@@ -186,6 +186,16 @@ describe("ToOptic", () => {
         modify({ a: Value.makeSync({ a: new Date(0) }), b: Value.makeSync({ a: new Date(1) }) }),
         { a: Value.makeSync({ a: new Date(1) }), b: Value.makeSync({ a: new Date(3) }) }
       )
+    })
+
+    it("Union", () => {
+      const schema = Schema.Union([Schema.String, Value])
+      const optic = ToOptic.makeIso(schema)
+      const item = ToOptic.getFocusIso(Value).key("a")
+      const modify = optic.modify((x) => Predicate.isString(x) ? x : item.modify(addOne)(x))
+
+      deepStrictEqual(modify("a"), "a")
+      deepStrictEqual(modify(Value.makeSync({ a: new Date(0) })), Value.makeSync({ a: new Date(1) }))
     })
 
     it("Opaque", () => {
