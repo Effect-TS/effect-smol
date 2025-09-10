@@ -3516,12 +3516,24 @@ export interface CauseFailure<E extends Top, D extends Top> extends
     Cause_.Failure<E["Type"]>,
     Cause_.Failure<E["Encoded"]>,
     readonly [E, D],
-    | { readonly _tag: "Fail"; readonly error: E["Iso"] }
-    | { readonly _tag: "Die"; readonly error: D["Iso"] }
-    | { readonly _tag: "Interrupt"; readonly fiberId: number | undefined }
+    CauseFailureIso<E, D>
   >
 {
   readonly "~rebuild.out": CauseFailure<E, D>
+}
+
+/**
+ * @since 4.0.0
+ */
+export type CauseFailureIso<E extends Top, D extends Top> = {
+  readonly _tag: "Fail"
+  readonly error: E["Iso"]
+} | {
+  readonly _tag: "Die"
+  readonly error: D["Iso"]
+} | {
+  readonly _tag: "Interrupt"
+  readonly fiberId: number | undefined
 }
 
 /**
@@ -3622,8 +3634,13 @@ export function CauseFailure<E extends Top, D extends Top>(error: E, defect: D):
 /**
  * @since 4.0.0
  */
-export interface Cause<E extends Top, D extends Top>
-  extends declareConstructor<Cause_.Cause<E["Type"]>, Cause_.Cause<E["Encoded"]>, readonly [CauseFailure<E, D>]>
+export interface Cause<E extends Top, D extends Top> extends
+  declareConstructor<
+    Cause_.Cause<E["Type"]>,
+    Cause_.Cause<E["Encoded"]>,
+    readonly [CauseFailure<E, D>],
+    ReadonlyArray<CauseFailureIso<E, D>>
+  >
 {
   readonly "~rebuild.out": Cause<E, D>
 }
@@ -3681,7 +3698,7 @@ export interface Error extends instanceOf<globalThis.Error> {
   readonly "~rebuild.out": Error
 }
 
-const ErrorEncoded = Struct({
+const ErrorJsonEncoded = Struct({
   message: String,
   name: optionalKey(String),
   stack: optionalKey(String)
@@ -3699,7 +3716,7 @@ const ErrorEncoded = Struct({
 export const Error: Error = instanceOf(globalThis.Error, {
   defaultJsonSerializer: () =>
     link<globalThis.Error>()(
-      ErrorEncoded,
+      ErrorJsonEncoded,
       Transformation.error()
     )
 })
@@ -3748,7 +3765,7 @@ export interface Defect extends
 export const Defect: Defect = Union([
   String,
   // error from struct
-  ErrorEncoded.pipe(decodeTo(Error, Transformation.error())),
+  ErrorJsonEncoded.pipe(decodeTo(Error, Transformation.error())),
   // unknown from string
   String.pipe(decodeTo(
     Unknown,
