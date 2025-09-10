@@ -163,6 +163,34 @@ describe("ToOptic", () => {
       expect(optic).type.toBe<Optic.Iso<string | Value, string | { readonly a: Date }>>()
     })
 
+    it("suspend", () => {
+      interface A {
+        readonly a: Value
+        readonly as: ReadonlyArray<A>
+      }
+      interface AIso {
+        readonly a: typeof Value["Iso"]
+        readonly as: ReadonlyArray<AIso>
+      }
+      const schema = Schema.Struct({
+        a: Value,
+        as: Schema.Array(Schema.suspend((): Schema.Optic<A, AIso> => schema))
+      })
+      const optic = ToOptic.makeIso(schema)
+
+      expect(optic).type.toBe<
+        Optic.Iso<{
+          readonly a: Value
+          readonly as: ReadonlyArray<A>
+        }, {
+          readonly a: {
+            readonly a: Date
+          }
+          readonly as: ReadonlyArray<AIso>
+        }>
+      >()
+    })
+
     it("Opaque", () => {
       class Value extends Schema.Opaque<Value>()(Schema.Struct({ a: Schema.Date })) {}
       const schema = Value

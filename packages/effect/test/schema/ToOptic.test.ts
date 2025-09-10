@@ -198,6 +198,36 @@ describe("ToOptic", () => {
       deepStrictEqual(modify(Value.makeSync({ a: new Date(0) })), Value.makeSync({ a: new Date(1) }))
     })
 
+    it("suspend", () => {
+      interface A {
+        readonly a: Value
+        readonly as: ReadonlyArray<A>
+      }
+      interface AIso {
+        readonly a: typeof Value["Iso"]
+        readonly as: ReadonlyArray<AIso>
+      }
+      const schema = Schema.Struct({
+        a: Value,
+        as: Schema.Array(Schema.suspend((): Schema.Optic<A, AIso> => schema))
+      })
+      const optic = ToOptic.makeIso(schema)
+      const item = ToOptic.getFocusIso(Value).key("a")
+      const f = ({ a, as }: AIso): AIso => ({
+        a: item.modify(addOne)(a),
+        as: as.map(f)
+      })
+      const modify = optic.modify(f)
+
+      deepStrictEqual(
+        modify({ a: Value.makeSync({ a: new Date(0) }), as: [{ a: Value.makeSync({ a: new Date(1) }), as: [] }] }),
+        {
+          a: Value.makeSync({ a: new Date(1) }),
+          as: [{ a: Value.makeSync({ a: new Date(2) }), as: [] }]
+        }
+      )
+    })
+
     it("Opaque", () => {
       class S extends Schema.Opaque<S>()(Schema.Struct({ a: Schema.Date })) {}
       const schema = S

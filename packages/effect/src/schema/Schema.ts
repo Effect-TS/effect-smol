@@ -349,6 +349,16 @@ export declare namespace Codec {
 /**
  * @since 4.0.0
  */
+export interface Optic<out T, out Iso> extends Schema<T> {
+  readonly "Iso": Iso
+  readonly "DecodingServices": never
+  readonly "EncodingServices": never
+  readonly "~rebuild.out": Optic<T, Iso>
+}
+
+/**
+ * @since 4.0.0
+ */
 export interface Codec<out T, out E = T, out RD = never, out RE = never> extends Schema<T> {
   readonly "Encoded": E
   readonly "DecodingServices": RD
