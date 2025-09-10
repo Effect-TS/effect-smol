@@ -145,7 +145,7 @@ export interface Bottom<
 
 const TypeId = "~effect/schema/Schema"
 
-export abstract class BottomBuilder<
+abstract class BottomBuilder<
   T,
   E,
   RD,
@@ -708,7 +708,7 @@ export const encodeUnknownSync = ToParser.encodeUnknownSync
  */
 export const encodeSync = ToParser.encodeSync
 
-export class make$<S extends Top> extends BottomBuilder<
+class make$<S extends Top> extends BottomBuilder<
   S["Type"],
   S["Encoded"],
   S["DecodingServices"],
