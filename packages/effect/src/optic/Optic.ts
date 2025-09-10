@@ -118,7 +118,7 @@ function compose<S, T, A, B, C, D>(
   that: OpticBuilder<A, B, C, D>
 ): Optic<S, T, C, D> {
   return new OpticBuilder(
-    "lens",
+    false,
     (s) =>
       Result.flatMap<A, OpticError<T>, C, OpticError<T>>(
         self.getOptic(s),
@@ -129,7 +129,24 @@ function compose<S, T, A, B, C, D>(
               onSuccess: (t) => Result.fail([err, t])
             }))
       ),
-    self._tag === "lens" || that._tag === "lens" ?
+    self.hasPrismComposition && that.hasPrismComposition ?
+      /**
+       * Compose two optics when the piece of the whole returned by the get
+       * operator of the first optic is not needed by the set operator of the
+       * second optic (see the `as any` cast).
+       */
+      (d, s) =>
+        Result.match(
+          that.setOptic(d, undefined as any),
+          {
+            onFailure: ([err, b]) =>
+              Result.match(self.setOptic(b, undefined as any), {
+                onFailure: ([_, t]) => Result.fail([err, t]),
+                onSuccess: (t) => Result.fail([err, t])
+              }),
+            onSuccess: (b) => self.setOptic(b, s)
+          }
+        ) :
       /**
        * Compose two optics when the piece of the whole returned by the first
        * optic is needed by the set operator of the second optic
@@ -143,37 +160,20 @@ function compose<S, T, A, B, C, D>(
                 onSuccess: (t) => Result.fail([err, t])
               }),
             onSuccess: (b) => self.setOptic(b, s)
-          })) :
-      /**
-       * Compose two optics when the piece of the whole returned by the get
-       * operator of the first optic is not needed by the set operator of the
-       * second optic (see the `as any` cast).
-       */
-      (d, s) =>
-        Result.match(
-          that.setOptic(d, undefined as any),
-          {
-            onFailure: ([err, b]) =>
-              Result.match(self.setOptic(b, s), {
-                onFailure: ([_, t]) => Result.fail([err, t]),
-                onSuccess: (t) => Result.fail([err, t])
-              }),
-            onSuccess: (b) => self.setOptic(b, s)
-          }
-        )
+          }))
   )
 }
 
 class OpticBuilder<in S, out T, out A, in B> implements Optic<S, T, A, B> {
-  readonly _tag: "lens" | "prism"
+  readonly hasPrismComposition: boolean
   readonly getOptic: (s: S) => Result.Result<A, OpticError<T>>
   readonly setOptic: (b: B, s: S) => Result.Result<T, OpticError<T>>
   constructor(
-    _tag: "lens" | "prism",
+    hasPrismComposition: boolean,
     getOptic: (s: S) => Result.Result<A, OpticError<T>>,
     setOptic: (b: B, s: S) => Result.Result<T, OpticError<T>>
   ) {
-    this._tag = _tag
+    this.hasPrismComposition = hasPrismComposition
     this.getOptic = getOptic
     this.setOptic = setOptic
   }
@@ -250,7 +250,7 @@ export const makeIso: {
   <S, A>(get: (s: S) => A, set: (a: A) => S): Iso<S, A>
   <S, T, A, B>(get: (s: S) => A, set: (b: B) => T): PolyIso<S, T, A, B>
 } = <S, A>(get: (s: S) => A, set: (a: A) => S): Iso<S, A> =>
-  new OpticBuilder("prism", (s) => Result.succeed(get(s)), (a) => Result.succeed(set(a)))
+  new OpticBuilder(true, (s) => Result.succeed(get(s)), (a) => Result.succeed(set(a)))
 
 /**
  * @category Lens
@@ -274,7 +274,7 @@ export const makeLens: {
   <S, A>(get: (s: S) => A, replace: (a: A, s: S) => S): Lens<S, A>
   <S, T, A, B>(get: (s: S) => A, replace: (b: B, s: S) => T): PolyLens<S, T, A, B>
 } = <S, A>(get: (s: S) => A, replace: (a: A, s: S) => S): Lens<S, A> =>
-  new OpticBuilder("lens", (s) => Result.succeed(get(s)), (b, s) => Result.succeed(replace(b, s)))
+  new OpticBuilder(false, (s) => Result.succeed(get(s)), (b, s) => Result.succeed(replace(b, s)))
 
 /**
  * @since 4.0.0
@@ -291,7 +291,7 @@ export function makePolyPrism<S, T, A, B>(
   getOptic: (s: S) => Result.Result<A, OpticError<T>>,
   set: (b: B) => T
 ): PolyPrism<S, T, A, B> {
-  return new OpticBuilder("prism", getOptic, (b) => Result.succeed(set(b)))
+  return new OpticBuilder(true, getOptic, (b) => Result.succeed(set(b)))
 }
 
 /**
@@ -326,7 +326,7 @@ export function makePolyOptional<S, T, A, B>(
   getOptic: (s: S) => Result.Result<A, OpticError<T>>,
   replace: (b: B, s: S) => T
 ): PolyOptional<S, T, A, B> {
-  return new OpticBuilder("lens", getOptic, (b, s) => Result.succeed(replace(b, s)))
+  return new OpticBuilder(false, getOptic, (b, s) => Result.succeed(replace(b, s)))
 }
 
 /**
