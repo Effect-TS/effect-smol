@@ -129,7 +129,7 @@ function compose<S, T, A, B, C, D>(
               onSuccess: (t) => Result.fail([err, t])
             }))
       ),
-    self.hasPrismComposition && that.hasPrismComposition ?
+    self.setterIgnoresSource && that.setterIgnoresSource ?
       /**
        * Compose two optics when the piece of the whole returned by the get
        * operator of the first optic is not needed by the set operator of the
@@ -137,10 +137,10 @@ function compose<S, T, A, B, C, D>(
        */
       (d, s) =>
         Result.match(
-          that.setOptic(d, undefined as any),
+          that.setOptic(d, s as any),
           {
             onFailure: ([err, b]) =>
-              Result.match(self.setOptic(b, undefined as any), {
+              Result.match(self.setOptic(b, s), {
                 onFailure: ([_, t]) => Result.fail([err, t]),
                 onSuccess: (t) => Result.fail([err, t])
               }),
@@ -165,15 +165,15 @@ function compose<S, T, A, B, C, D>(
 }
 
 class OpticBuilder<in S, out T, out A, in B> implements Optic<S, T, A, B> {
-  readonly hasPrismComposition: boolean
+  readonly setterIgnoresSource: boolean
   readonly getOptic: (s: S) => Result.Result<A, OpticError<T>>
   readonly setOptic: (b: B, s: S) => Result.Result<T, OpticError<T>>
   constructor(
-    hasPrismComposition: boolean,
+    setterIgnoresSource: boolean,
     getOptic: (s: S) => Result.Result<A, OpticError<T>>,
     setOptic: (b: B, s: S) => Result.Result<T, OpticError<T>>
   ) {
-    this.hasPrismComposition = hasPrismComposition
+    this.setterIgnoresSource = setterIgnoresSource
     this.getOptic = getOptic
     this.setOptic = setOptic
   }
@@ -386,13 +386,13 @@ export function fromKey<S extends object, Key extends keyof S>(key: Key): Lens<S
     throw new Error(`Key ${format(key)} not found`)
   }, (b, s) => {
     if (Object.hasOwn(s, key)) {
-      return replaceUnsafe(key, b, s)
+      return replace(key, b, s)
     }
     throw new Error(`Key ${format(key)} not found`)
   })
 }
 
-function replaceUnsafe<S, Key extends keyof S>(key: Key, b: S[Key], s: S): S {
+function replace<S, Key extends keyof S>(key: Key, b: S[Key], s: S): S {
   if (Array.isArray(s)) {
     const out: any = s.slice()
     out[key] = b
@@ -411,11 +411,11 @@ export function fromOptionalKey<S, Key extends keyof S>(
 ): Lens<S, S[Key] | undefined> {
   return makeLens<S, S[Key] | undefined>(
     (s) => s[key],
-    (b, s) => (b === undefined ? removeUnsafe(key, s) : replaceUnsafe(key, b, s))
+    (b, s) => (b === undefined ? remove(key, s) : replace(key, b, s))
   )
 }
 
-function removeUnsafe<S, Key extends keyof S>(key: Key, s: S): S {
+function remove<S, Key extends keyof S>(key: Key, s: S): S {
   if (Array.isArray(s)) {
     const k = key as number
     if (k === s.length - 1) {
@@ -456,7 +456,7 @@ export function fromCheck<T>(...checks: readonly [Check.Check<T>, ...Array<Check
  * @since 4.0.0
  */
 export function fromRefine<T extends E, E>(refine: Check.Refine<T, E>): Prism<E, T> {
-  return fromCheck(refine) as any
+  return fromCheck(refine) as unknown as Prism<E, T>
 }
 
 /**
@@ -480,6 +480,6 @@ export function fromTag<S extends { readonly _tag: AST.Literal }, Tag extends S[
 export function fromAt<S extends object, Key extends keyof S>(key: Key): Optional<S, S[Key]> {
   return makeOptional(
     (s) => Object.hasOwn(s, key) ? Result.succeed(s[key]) : Result.fail(`Key ${format(key)} not found`),
-    (b, s) => Object.hasOwn(s, key) ? replaceUnsafe(key, b, s) : s
+    (b, s) => Object.hasOwn(s, key) ? replace(key, b, s) : s
   )
 }
