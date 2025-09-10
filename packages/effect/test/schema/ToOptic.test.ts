@@ -137,7 +137,8 @@ describe("ToOptic", () => {
     it("Record", () => {
       const schema = Schema.Record(Schema.String, Value)
       const optic = ToOptic.makeIso(schema)
-      const modify = optic.modify((rec) => Record.map(rec, (x) => ({ ...x, a: addOne(x.a) })))
+      const item = ToOptic.getFocusIso(Value).key("a")
+      const modify = optic.modify((rec) => Record.map(rec, item.modify(addOne)))
 
       deepStrictEqual(
         modify({
@@ -148,6 +149,24 @@ describe("ToOptic", () => {
           a: Value.makeSync({ a: new Date(1) }),
           b: Value.makeSync({ a: new Date(2) })
         }
+      )
+    })
+
+    it("StructWithRest", () => {
+      const schema = Schema.StructWithRest(
+        Schema.Struct({ a: Value }),
+        [Schema.Record(Schema.String, Value)]
+      )
+      const optic = ToOptic.makeIso(schema)
+      const item = ToOptic.getFocusIso(Value).key("a")
+      const modify = optic.modify(({ a, ...rest }) => ({
+        a: item.modify(addOne)(a),
+        ...Record.map(rest, item.modify(addTwo))
+      }))
+
+      deepStrictEqual(
+        modify({ a: Value.makeSync({ a: new Date(0) }), b: Value.makeSync({ a: new Date(1) }) }),
+        { a: Value.makeSync({ a: new Date(1) }), b: Value.makeSync({ a: new Date(3) }) }
       )
     })
 
