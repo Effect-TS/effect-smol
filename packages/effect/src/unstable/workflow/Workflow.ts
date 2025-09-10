@@ -69,7 +69,7 @@ export interface Workflow<
       readonly discard?: Discard
     }
   ) => Effect.Effect<
-    Discard extends true ? void : Success["Type"],
+    Discard extends true ? string : Success["Type"],
     Discard extends true ? never : Error["Type"],
     WorkflowEngine | Payload["EncodingServices"] | Success["DecodingServices"] | Error["DecodingServices"]
   >
@@ -280,12 +280,13 @@ export const make = <
         const executionId = yield* makeExecutionId(payload)
         yield* Effect.annotateCurrentSpan({ executionId })
         if (opts?.discard) {
-          return yield* engine.execute({
+          yield* engine.execute({
             workflow: self,
             executionId,
             payload,
             discard: true
           })
+          return executionId
         }
         const parentInstance = yield* Effect.serviceOption(InstanceTag)
         const run = engine.execute({
