@@ -393,6 +393,9 @@ export class NullKeyword extends AbstractParser {
   parser() {
     return fromRefinement(this, Predicate.isNull)
   }
+  goStringPojo(): AST {
+    return replaceEncoding(this, [nullLink])
+  }
   /** @internal */
   getExpected(): string {
     return "null"
@@ -550,6 +553,20 @@ export class Enums extends AbstractParser {
       (input): input is typeof this.enums[number][1] => this.enums.some(([_, value]) => value === input)
     )
   }
+  goStringPojo(): AST {
+    if (this.enums.some(([_, v]) => Predicate.isNumber(v))) {
+      const coercions = Object.fromEntries(this.enums.map(([_, v]) => [String(v), v]))
+      const enumLink = new Link(
+        new UnionType(Object.keys(coercions).map((k) => new LiteralType(k)), "anyOf"),
+        new Transformation.Transformation(
+          Getter.transform((s) => coercions[s]),
+          Getter.String()
+        )
+      )
+      return replaceEncoding(this, [enumLink])
+    }
+    return this
+  }
   /** @internal */
   getExpected(): string {
     return this.enums.map(([_, value]) => JSON.stringify(value)).join(" | ")
@@ -631,7 +648,7 @@ export class TemplateLiteral extends AbstractParser {
   }
   /** @internal */
   asTemplateLiteralParser(): TupleType {
-    const tuple = goStringLeafJson(new TupleType(false, this.parts, [])) as TupleType
+    const tuple = goTemplateLiteral(new TupleType(false, this.parts, [])) as TupleType
     const regex = getTemplateLiteralRegExp(this)
     return decodeTo(
       stringKeyword,
@@ -725,6 +742,9 @@ export class LiteralType extends AbstractParser {
   parser() {
     return fromRefinement(this, (input): input is typeof this.literal => input === this.literal)
   }
+  goStringPojo(): AST {
+    return Predicate.isString(this.literal) ? this : coerceLiteral(this)
+  }
   /** @internal */
   getExpected(): string {
     return Predicate.isString(this.literal) ? JSON.stringify(this.literal) : String(this.literal)
@@ -762,6 +782,9 @@ export class NumberKeyword extends AbstractParser {
   parser() {
     return fromRefinement(this, Predicate.isNumber)
   }
+  goStringPojo(): AST {
+    return replaceEncoding(this, [numberLink])
+  }
   /** @internal */
   getExpected(): string {
     return "number"
@@ -782,6 +805,9 @@ export class BooleanKeyword extends AbstractParser {
   /** @internal */
   parser() {
     return fromRefinement(this, Predicate.isBoolean)
+  }
+  goStringPojo(): AST {
+    return replaceEncoding(this, [booleanLink])
   }
   /** @internal */
   getExpected(): string {
@@ -824,6 +850,9 @@ export class BigIntKeyword extends AbstractParser {
   /** @internal */
   parser() {
     return fromRefinement(this, Predicate.isBigInt)
+  }
+  goStringPojo(): AST {
+    return replaceEncoding(this, [bigIntLink])
   }
   /** @internal */
   getExpected(): string {
@@ -2256,51 +2285,29 @@ export function coerceBigInt(ast: BigIntKeyword): BigIntKeyword {
 }
 
 /** @internal */
-export const goStringLeafJson = memoize((ast: AST): AST => {
+export const goTemplateLiteral = memoize((ast: AST): AST => {
   if (ast.encoding) {
     const links = ast.encoding
     const last = links.at(-1)!
-    const to = goStringLeafJson(last.to)
+    const to = goTemplateLiteral(last.to)
     return to === last.to ?
       ast :
       replaceEncoding(ast, replaceLastLink(links, new Link(to, last.transformation)))
   }
-  function go(ast: AST): AST {
-    switch (ast._tag) {
-      case "NullKeyword":
-        return replaceEncoding(ast, [nullLink])
-      case "NumberKeyword":
-        return replaceEncoding(ast, [numberLink])
-      case "BooleanKeyword":
-        return replaceEncoding(ast, [booleanLink])
-      case "BigIntKeyword":
-        return replaceEncoding(ast, [bigIntLink])
-      case "LiteralType":
-        return Predicate.isString(ast.literal) ? ast : coerceLiteral(ast)
-      case "Enums": {
-        if (ast.enums.some(([_, v]) => Predicate.isNumber(v))) {
-          const coercions = Object.fromEntries(ast.enums.map(([_, v]) => [String(v), v]))
-          const enumLink = new Link(
-            new UnionType(Object.keys(coercions).map((k) => new LiteralType(k)), "anyOf"),
-            new Transformation.Transformation(
-              Getter.transform((s) => coercions[s]),
-              Getter.String()
-            )
-          )
-          return replaceEncoding(ast, [enumLink])
-        }
-        return ast
-      }
-      case "TupleType":
-      case "TypeLiteral":
-      case "UnionType":
-      case "Suspend":
-        return ast.go(goStringLeafJson)
-    }
-    return ast
+  switch (ast._tag) {
+    case "StringKeyword":
+    case "TemplateLiteral":
+      return ast
+    case "NumberKeyword":
+    case "BigIntKeyword":
+    case "LiteralType":
+      return ast.goStringPojo()
+    case "TupleType":
+    case "UnionType":
+    case "Suspend":
+      return ast.go(goTemplateLiteral)
   }
-  const out = go(ast)
-  return isOptional(ast) ? optionalKey(out) : out
+  throw new Error(`Unsupported template literal part tag: ${ast._tag}`)
 })
 
 const nullLink = new Link(

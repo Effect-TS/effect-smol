@@ -42,12 +42,12 @@ describe("Config", () => {
 
     await assertSuccess(
       Config.map(config, (value) => value.toUpperCase()),
-      ConfigProvider.fromStringLeafJson("value"),
+      ConfigProvider.fromStringPojo("value"),
       "VALUE"
     )
     await assertSuccess(
       pipe(config, Config.map((value) => value.toUpperCase())),
-      ConfigProvider.fromStringLeafJson("value"),
+      ConfigProvider.fromStringPojo("value"),
       "VALUE"
     )
   })
@@ -61,12 +61,12 @@ describe("Config", () => {
 
     await assertSuccess(
       Config.mapOrFail(config, f),
-      ConfigProvider.fromStringLeafJson("value"),
+      ConfigProvider.fromStringPojo("value"),
       "VALUE"
     )
     await assertFailure(
       Config.mapOrFail(config, f),
-      ConfigProvider.fromStringLeafJson(""),
+      ConfigProvider.fromStringPojo(""),
       `empty`
     )
   })
@@ -76,12 +76,12 @@ describe("Config", () => {
 
     await assertSuccess(
       config,
-      ConfigProvider.fromStringLeafJson({ a: "value" }),
+      ConfigProvider.fromStringPojo({ a: "value" }),
       "value"
     )
     await assertSuccess(
       config,
-      ConfigProvider.fromStringLeafJson({ b: "1" }),
+      ConfigProvider.fromStringPojo({ b: "1" }),
       1
     )
   })
@@ -90,16 +90,16 @@ describe("Config", () => {
     it("tuple", async () => {
       const config = Config.all([Config.nonEmptyString("a"), Config.finite("b")])
 
-      await assertSuccess(config, ConfigProvider.fromStringLeafJson({ a: "a", b: "1" }), ["a", 1])
+      await assertSuccess(config, ConfigProvider.fromStringPojo({ a: "a", b: "1" }), ["a", 1])
       await assertFailure(
         config,
-        ConfigProvider.fromStringLeafJson({ a: "", b: "1" }),
+        ConfigProvider.fromStringPojo({ a: "", b: "1" }),
         `Expected a value with a length of at least 1, got ""
   at ["a"]`
       )
       await assertFailure(
         config,
-        ConfigProvider.fromStringLeafJson({ a: "a", b: "b" }),
+        ConfigProvider.fromStringPojo({ a: "a", b: "b" }),
         `Expected a string matching the regex [+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?, got "b"
   at ["b"]`
       )
@@ -108,16 +108,16 @@ describe("Config", () => {
     it("iterable", async () => {
       const config = Config.all(new Set([Config.nonEmptyString("a"), Config.finite("b")]))
 
-      await assertSuccess(config, ConfigProvider.fromStringLeafJson({ a: "a", b: "1" }), ["a", 1])
+      await assertSuccess(config, ConfigProvider.fromStringPojo({ a: "a", b: "1" }), ["a", 1])
       await assertFailure(
         config,
-        ConfigProvider.fromStringLeafJson({ a: "", b: "1" }),
+        ConfigProvider.fromStringPojo({ a: "", b: "1" }),
         `Expected a value with a length of at least 1, got ""
   at ["a"]`
       )
       await assertFailure(
         config,
-        ConfigProvider.fromStringLeafJson({ a: "a", b: "b" }),
+        ConfigProvider.fromStringPojo({ a: "a", b: "b" }),
         `Expected a string matching the regex [+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?, got "b"
   at ["b"]`
       )
@@ -126,16 +126,16 @@ describe("Config", () => {
     it("struct", async () => {
       const config = Config.all({ a: Config.nonEmptyString("b"), c: Config.finite("d") })
 
-      await assertSuccess(config, ConfigProvider.fromStringLeafJson({ b: "b", d: "1" }), { a: "b", c: 1 })
+      await assertSuccess(config, ConfigProvider.fromStringPojo({ b: "b", d: "1" }), { a: "b", c: 1 })
       await assertFailure(
         config,
-        ConfigProvider.fromStringLeafJson({ b: "", d: "1" }),
+        ConfigProvider.fromStringPojo({ b: "", d: "1" }),
         `Expected a value with a length of at least 1, got ""
   at ["b"]`
       )
       await assertFailure(
         config,
-        ConfigProvider.fromStringLeafJson({ b: "b", d: "b" }),
+        ConfigProvider.fromStringPojo({ b: "b", d: "b" }),
         `Expected a string matching the regex [+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?, got "b"
   at ["d"]`
       )
@@ -147,11 +147,11 @@ describe("Config", () => {
       const defaultValue = 0
       const config = Config.finite("a").pipe(Config.withDefault(() => defaultValue))
 
-      await assertSuccess(config, ConfigProvider.fromStringLeafJson({ a: "1" }), 1)
-      await assertSuccess(config, ConfigProvider.fromStringLeafJson({}), defaultValue)
+      await assertSuccess(config, ConfigProvider.fromStringPojo({ a: "1" }), 1)
+      await assertSuccess(config, ConfigProvider.fromStringPojo({}), defaultValue)
       await assertFailure(
         config,
-        ConfigProvider.fromStringLeafJson({ a: "value" }),
+        ConfigProvider.fromStringPojo({ a: "value" }),
         `Expected a string matching the regex [+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?, got "value"
   at ["a"]`
       )
@@ -163,13 +163,13 @@ describe("Config", () => {
         Config.withDefault(() => defaultValue)
       )
 
-      await assertSuccess(config, ConfigProvider.fromStringLeafJson({ b: "b", d: "1" }), { a: "b", c: 1 })
-      await assertSuccess(config, ConfigProvider.fromStringLeafJson({ b: "b" }), defaultValue)
-      await assertSuccess(config, ConfigProvider.fromStringLeafJson({ d: "1" }), defaultValue)
+      await assertSuccess(config, ConfigProvider.fromStringPojo({ b: "b", d: "1" }), { a: "b", c: 1 })
+      await assertSuccess(config, ConfigProvider.fromStringPojo({ b: "b" }), defaultValue)
+      await assertSuccess(config, ConfigProvider.fromStringPojo({ d: "1" }), defaultValue)
 
       await assertFailure(
         config,
-        ConfigProvider.fromStringLeafJson({ b: "", d: "1" }),
+        ConfigProvider.fromStringPojo({ b: "", d: "1" }),
         `Expected a value with a length of at least 1, got ""
   at ["b"]`
       )
@@ -180,11 +180,11 @@ describe("Config", () => {
     it("value", async () => {
       const config = Config.finite("a").pipe(Config.option)
 
-      await assertSuccess(config, ConfigProvider.fromStringLeafJson({ a: "1" }), Option.some(1))
-      await assertSuccess(config, ConfigProvider.fromStringLeafJson({}), Option.none())
+      await assertSuccess(config, ConfigProvider.fromStringPojo({ a: "1" }), Option.some(1))
+      await assertSuccess(config, ConfigProvider.fromStringPojo({}), Option.none())
       await assertFailure(
         config,
-        ConfigProvider.fromStringLeafJson({ a: "value" }),
+        ConfigProvider.fromStringPojo({ a: "value" }),
         `Expected a string matching the regex [+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?, got "value"
   at ["a"]`
       )
@@ -195,13 +195,13 @@ describe("Config", () => {
         Config.option
       )
 
-      await assertSuccess(config, ConfigProvider.fromStringLeafJson({ b: "b", d: "1" }), Option.some({ a: "b", c: 1 }))
-      await assertSuccess(config, ConfigProvider.fromStringLeafJson({ b: "b" }), Option.none())
-      await assertSuccess(config, ConfigProvider.fromStringLeafJson({ d: "1" }), Option.none())
+      await assertSuccess(config, ConfigProvider.fromStringPojo({ b: "b", d: "1" }), Option.some({ a: "b", c: 1 }))
+      await assertSuccess(config, ConfigProvider.fromStringPojo({ b: "b" }), Option.none())
+      await assertSuccess(config, ConfigProvider.fromStringPojo({ d: "1" }), Option.none())
 
       await assertFailure(
         config,
-        ConfigProvider.fromStringLeafJson({ b: "", d: "1" }),
+        ConfigProvider.fromStringPojo({ b: "", d: "1" }),
         `Expected a value with a length of at least 1, got ""
   at ["b"]`
       )
@@ -214,7 +214,7 @@ describe("Config", () => {
         a: Config.schema(Schema.String, "a2")
       })
 
-      await assertSuccess(config, ConfigProvider.fromStringLeafJson({ a2: "value" }), { a: "value" })
+      await assertSuccess(config, ConfigProvider.fromStringPojo({ a2: "value" }), { a: "value" })
     })
 
     it("nested", async () => {
@@ -226,7 +226,7 @@ describe("Config", () => {
 
       await assertSuccess(
         config,
-        ConfigProvider.fromStringLeafJson({ b2: "value" }),
+        ConfigProvider.fromStringPojo({ b2: "value" }),
         { a: { b: "value" } }
       )
     })
@@ -488,17 +488,17 @@ describe("Config", () => {
     it("path argument", async () => {
       await assertSuccess(
         Config.schema(Schema.String, []),
-        ConfigProvider.fromStringLeafJson("value"),
+        ConfigProvider.fromStringPojo("value"),
         "value"
       )
       await assertSuccess(
         Config.schema(Schema.String, "a"),
-        ConfigProvider.fromStringLeafJson({ a: "value" }),
+        ConfigProvider.fromStringPojo({ a: "value" }),
         "value"
       )
       await assertSuccess(
         Config.schema(Schema.String, ["a", "b"]),
-        ConfigProvider.fromStringLeafJson({ a: { b: "value" } }),
+        ConfigProvider.fromStringPojo({ a: { b: "value" } }),
         "value"
       )
     })
@@ -507,8 +507,8 @@ describe("Config", () => {
       const schema = Schema.String
       const config = Config.schema(schema)
 
-      await assertSuccess(config, ConfigProvider.fromStringLeafJson("value"), "value")
-      await assertFailure(config, ConfigProvider.fromStringLeafJson({}), `Expected string, got undefined`)
+      await assertSuccess(config, ConfigProvider.fromStringPojo("value"), "value")
+      await assertFailure(config, ConfigProvider.fromStringPojo({}), `Expected string, got undefined`)
     })
 
     describe("Struct", () => {
@@ -516,16 +516,16 @@ describe("Config", () => {
         const schema = Schema.Struct({ a: Schema.Finite })
         const config = Config.schema(schema)
 
-        await assertSuccess(config, ConfigProvider.fromStringLeafJson({ a: "1" }), { a: 1 })
+        await assertSuccess(config, ConfigProvider.fromStringPojo({ a: "1" }), { a: 1 })
         await assertFailure(
           config,
-          ConfigProvider.fromStringLeafJson({}),
+          ConfigProvider.fromStringPojo({}),
           `Missing key
   at ["a"]`
         )
         await assertFailure(
           config,
-          ConfigProvider.fromStringLeafJson({ a: "value" }),
+          ConfigProvider.fromStringPojo({ a: "value" }),
           `Expected a string matching the regex [+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?, got "value"
   at ["a"]`
         )
@@ -535,8 +535,8 @@ describe("Config", () => {
         const schema = Schema.Struct({ a: Schema.optionalKey(Schema.Finite) })
         const config = Config.schema(schema)
 
-        await assertSuccess(config, ConfigProvider.fromStringLeafJson({ a: "1" }), { a: 1 })
-        await assertSuccess(config, ConfigProvider.fromStringLeafJson({}), {})
+        await assertSuccess(config, ConfigProvider.fromStringPojo({ a: "1" }), { a: 1 })
+        await assertSuccess(config, ConfigProvider.fromStringPojo({}), {})
       })
 
       it("optional properties", async () => {
@@ -544,16 +544,16 @@ describe("Config", () => {
           Schema.Struct({ a: Schema.optional(Schema.Finite) })
         )
 
-        await assertSuccess(config, ConfigProvider.fromStringLeafJson({ a: "1" }), { a: 1 })
-        await assertSuccess(config, ConfigProvider.fromStringLeafJson({}), {})
+        await assertSuccess(config, ConfigProvider.fromStringPojo({ a: "1" }), { a: 1 })
+        await assertSuccess(config, ConfigProvider.fromStringPojo({}), {})
       })
 
       it("Literals", async () => {
         const schema = Schema.Struct({ a: Schema.Literals(["b", "c"]) })
         const config = Config.schema(schema)
 
-        await assertSuccess(config, ConfigProvider.fromStringLeafJson({ a: "b" }), { a: "b" })
-        await assertSuccess(config, ConfigProvider.fromStringLeafJson({ a: "c" }), { a: "c" })
+        await assertSuccess(config, ConfigProvider.fromStringPojo({ a: "b" }), { a: "b" })
+        await assertSuccess(config, ConfigProvider.fromStringPojo({ a: "c" }), { a: "c" })
       })
     })
 
@@ -561,11 +561,11 @@ describe("Config", () => {
       const schema = Schema.Record(Schema.String, Schema.Finite)
       const config = Config.schema(schema)
 
-      await assertSuccess(config, ConfigProvider.fromStringLeafJson({ a: "1" }), { a: 1 })
-      await assertSuccess(config, ConfigProvider.fromStringLeafJson({ a: "1", b: "2" }), { a: 1, b: 2 })
+      await assertSuccess(config, ConfigProvider.fromStringPojo({ a: "1" }), { a: 1 })
+      await assertSuccess(config, ConfigProvider.fromStringPojo({ a: "1", b: "2" }), { a: 1, b: 2 })
       await assertFailure(
         config,
-        ConfigProvider.fromStringLeafJson({ a: "1", b: "value" }),
+        ConfigProvider.fromStringPojo({ a: "1", b: "value" }),
         `Expected a string matching the regex [+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?, got "value"
   at ["b"]`
       )
@@ -576,24 +576,24 @@ describe("Config", () => {
         const schema = Schema.Tuple([Schema.Finite])
         const config = Config.schema(schema)
 
-        await assertSuccess(config, ConfigProvider.fromStringLeafJson(["1"]), [1])
-        await assertSuccess(config, ConfigProvider.fromStringLeafJson("1"), [1])
+        await assertSuccess(config, ConfigProvider.fromStringPojo(["1"]), [1])
+        await assertSuccess(config, ConfigProvider.fromStringPojo("1"), [1])
       })
 
       it("required elements", async () => {
         const schema = Schema.Tuple([Schema.String, Schema.Finite])
         const config = Config.schema(schema)
 
-        await assertSuccess(config, ConfigProvider.fromStringLeafJson(["a", "2"]), ["a", 2])
+        await assertSuccess(config, ConfigProvider.fromStringPojo(["a", "2"]), ["a", 2])
         await assertFailure(
           config,
-          ConfigProvider.fromStringLeafJson(["a"]),
+          ConfigProvider.fromStringPojo(["a"]),
           `Missing key
   at [1]`
         )
         await assertFailure(
           config,
-          ConfigProvider.fromStringLeafJson(["a", "value"]),
+          ConfigProvider.fromStringPojo(["a", "value"]),
           `Expected a string matching the regex [+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?, got "value"
   at [1]`
         )
@@ -604,13 +604,13 @@ describe("Config", () => {
       const schema = Schema.Array(Schema.Finite)
       const config = Config.schema(schema)
 
-      await assertSuccess(config, ConfigProvider.fromStringLeafJson(["1"]), [1])
+      await assertSuccess(config, ConfigProvider.fromStringPojo(["1"]), [1])
       // ensure array
-      await assertSuccess(config, ConfigProvider.fromStringLeafJson("1"), [1])
-      await assertSuccess(config, ConfigProvider.fromStringLeafJson(["1", "2"]), [1, 2])
+      await assertSuccess(config, ConfigProvider.fromStringPojo("1"), [1])
+      await assertSuccess(config, ConfigProvider.fromStringPojo(["1", "2"]), [1, 2])
       await assertFailure(
         config,
-        ConfigProvider.fromStringLeafJson(["1", "value"]),
+        ConfigProvider.fromStringPojo(["1", "value"]),
         `Expected a string matching the regex [+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?, got "value"
   at [1]`
       )
@@ -622,8 +622,8 @@ describe("Config", () => {
           const schema = Schema.Literals(["a", "b"])
           const config = Config.schema(schema)
 
-          await assertSuccess(config, ConfigProvider.fromStringLeafJson("a"), "a")
-          await assertSuccess(config, ConfigProvider.fromStringLeafJson("b"), "b")
+          await assertSuccess(config, ConfigProvider.fromStringPojo("a"), "a")
+          await assertSuccess(config, ConfigProvider.fromStringPojo("b"), "b")
         })
       })
     })
@@ -639,8 +639,8 @@ describe("Config", () => {
       })
       const config = Config.schema(schema)
 
-      await assertSuccess(config, ConfigProvider.fromStringLeafJson({ a: "1", as: [] }), { a: "1", as: [] })
-      await assertSuccess(config, ConfigProvider.fromStringLeafJson({ a: "1", as: [{ a: "2", as: [] }] }), {
+      await assertSuccess(config, ConfigProvider.fromStringPojo({ a: "1", as: [] }), { a: "1", as: [] })
+      await assertSuccess(config, ConfigProvider.fromStringPojo({ a: "1", as: [{ a: "2", as: [] }] }), {
         a: "1",
         as: [{ a: "2", as: [] }]
       })
@@ -652,7 +652,7 @@ describe("Config", () => {
 
       await assertSuccess(
         config,
-        ConfigProvider.fromStringLeafJson({ url: "https://example.com" }),
+        ConfigProvider.fromStringPojo({ url: "https://example.com" }),
         { url: new URL("https://example.com") }
       )
     })
@@ -664,18 +664,18 @@ describe("Config", () => {
         Config.fail(
           new Schema.SchemaError({ issue: new Issue.Forbidden(Option.none(), { message: "failure message" }) })
         ),
-        ConfigProvider.fromStringLeafJson({}),
+        ConfigProvider.fromStringPojo({}),
         `failure message`
       )
     })
 
     it("succeed", async () => {
-      const provider = ConfigProvider.fromStringLeafJson({})
+      const provider = ConfigProvider.fromStringPojo({})
       await assertSuccess(Config.succeed(1), provider, 1)
     })
 
     it("string", async () => {
-      const provider = ConfigProvider.fromStringLeafJson({ a: "value" })
+      const provider = ConfigProvider.fromStringPojo({ a: "value" })
       await assertSuccess(Config.string("a"), provider, "value")
       await assertFailure(
         Config.string("b"),
@@ -686,7 +686,7 @@ describe("Config", () => {
     })
 
     it("nonEmptyString", async () => {
-      const provider = ConfigProvider.fromStringLeafJson({ a: "value", b: "" })
+      const provider = ConfigProvider.fromStringPojo({ a: "value", b: "" })
       await assertSuccess(Config.nonEmptyString("a"), provider, "value")
       await assertFailure(
         Config.nonEmptyString("b"),
@@ -697,7 +697,7 @@ describe("Config", () => {
     })
 
     it("number", async () => {
-      const provider = ConfigProvider.fromStringLeafJson({ a: "1" })
+      const provider = ConfigProvider.fromStringPojo({ a: "1" })
       await assertSuccess(Config.number("a"), provider, 1)
       await assertFailure(
         Config.number("b"),
@@ -708,7 +708,7 @@ describe("Config", () => {
     })
 
     it("finite", async () => {
-      const provider = ConfigProvider.fromStringLeafJson({ a: "1", b: "a" })
+      const provider = ConfigProvider.fromStringPojo({ a: "1", b: "a" })
       await assertSuccess(Config.finite("a"), provider, 1)
       await assertFailure(
         Config.finite("b"),
@@ -719,7 +719,7 @@ describe("Config", () => {
     })
 
     it("int", async () => {
-      const provider = ConfigProvider.fromStringLeafJson({ a: "1", b: "1.2" })
+      const provider = ConfigProvider.fromStringPojo({ a: "1", b: "1.2" })
       await assertSuccess(Config.int("a"), provider, 1)
       await assertFailure(
         Config.int("b"),
@@ -730,7 +730,7 @@ describe("Config", () => {
     })
 
     it("literal", async () => {
-      const provider = ConfigProvider.fromStringLeafJson({ a: "L" })
+      const provider = ConfigProvider.fromStringPojo({ a: "L" })
       await assertSuccess(Config.literal("L", "a"), provider, "L")
       await assertFailure(
         Config.literal("-", "a"),
@@ -741,7 +741,7 @@ describe("Config", () => {
     })
 
     it("date", async () => {
-      const provider = ConfigProvider.fromStringLeafJson({ a: "2021-01-01", b: "invalid" })
+      const provider = ConfigProvider.fromStringPojo({ a: "2021-01-01", b: "invalid" })
       await assertSuccess(Config.date("a"), provider, new Date("2021-01-01"))
       await assertFailure(
         Config.date("b"),
@@ -754,7 +754,7 @@ describe("Config", () => {
 
   describe("schemas", () => {
     it("Boolean / boolean", async () => {
-      const provider = ConfigProvider.fromStringLeafJson({
+      const provider = ConfigProvider.fromStringPojo({
         a: "true",
         b: "false",
         c: "yes",
@@ -783,7 +783,7 @@ describe("Config", () => {
     })
 
     it("Duration / duration", async () => {
-      const provider = ConfigProvider.fromStringLeafJson({
+      const provider = ConfigProvider.fromStringPojo({
         a: "1000 millis",
         b: "1 second",
         failure: "value"
@@ -800,7 +800,7 @@ describe("Config", () => {
     })
 
     it("Port / port", async () => {
-      const provider = ConfigProvider.fromStringLeafJson({
+      const provider = ConfigProvider.fromStringPojo({
         a: "8080",
         failure: "-1"
       })
@@ -815,7 +815,7 @@ describe("Config", () => {
     })
 
     it("LogLevel / logLevel", async () => {
-      const provider = ConfigProvider.fromStringLeafJson({
+      const provider = ConfigProvider.fromStringPojo({
         a: "Info",
         failure_1: "info",
         failure_2: "value"
@@ -837,7 +837,7 @@ describe("Config", () => {
     })
 
     it("redacted", async () => {
-      const provider = ConfigProvider.fromStringLeafJson({
+      const provider = ConfigProvider.fromStringPojo({
         a: "value"
       })
 
@@ -851,7 +851,7 @@ describe("Config", () => {
     })
 
     it("url", async () => {
-      const provider = ConfigProvider.fromStringLeafJson({
+      const provider = ConfigProvider.fromStringPojo({
         a: "https://example.com"
       })
 
@@ -871,7 +871,7 @@ describe("Config", () => {
 
         await assertSuccess(
           config,
-          ConfigProvider.fromStringLeafJson({
+          ConfigProvider.fromStringPojo({
             OTEL_RESOURCE_ATTRIBUTES: {
               "service.name": "my-service",
               "service.version": "1.0.0",

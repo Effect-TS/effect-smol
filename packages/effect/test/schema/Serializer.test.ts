@@ -57,7 +57,7 @@ describe("Serializer", () => {
           await assertions.serialization.json.typeCodec.fail(
             schema,
             { [a]: "b" },
-            "cannot serialize to JSON, property names must be strings"
+            "cannot serialize to JSON, TypeLiteral property names must be strings"
           )
         })
       })
@@ -970,7 +970,7 @@ describe("Serializer", () => {
     describe("should return the same reference if nothing changed", () => {
       it("String", async () => {
         const schema = Schema.String
-        const serializer = Serializer.stringLeafJson(schema)
+        const serializer = Serializer.stringPojo(schema)
         strictEqual(serializer.ast, schema.ast)
       })
 
@@ -978,7 +978,7 @@ describe("Serializer", () => {
         const schema = Schema.Struct({
           a: Schema.String
         })
-        const serializer = Serializer.stringLeafJson(schema)
+        const serializer = Serializer.stringPojo(schema)
         strictEqual(serializer.ast, schema.ast)
       })
     })
@@ -988,14 +988,14 @@ describe("Serializer", () => {
         const schema = Schema.Struct({
           a: Schema.Finite
         })
-        const serializer = Serializer.stringLeafJson(schema)
-        strictEqual(serializer.ast, Serializer.stringLeafJson(serializer).ast)
+        const serializer = Serializer.stringPojo(schema)
+        strictEqual(serializer.ast, Serializer.stringPojo(serializer).ast)
       })
 
       it("Array", async () => {
         const schema = Schema.Array(Schema.Finite)
-        const serializer = Serializer.stringLeafJson(schema)
-        strictEqual(serializer.ast, Serializer.stringLeafJson(serializer).ast)
+        const serializer = Serializer.stringPojo(schema)
+        strictEqual(serializer.ast, Serializer.stringPojo(serializer).ast)
       })
     })
 
@@ -1615,14 +1615,14 @@ describe("Serializer", () => {
         const schema = Schema.Struct({
           a: Schema.Finite
         })
-        const serializer = Serializer.ensureArray(Serializer.stringLeafJson(schema))
-        strictEqual(serializer.ast, Serializer.ensureArray(Serializer.stringLeafJson(serializer)).ast)
+        const serializer = Serializer.ensureArray(Serializer.stringPojo(schema))
+        strictEqual(serializer.ast, Serializer.ensureArray(Serializer.stringPojo(serializer)).ast)
       })
 
       it("Array", async () => {
         const schema = Schema.Array(Schema.Finite)
-        const serializer = Serializer.ensureArray(Serializer.stringLeafJson(schema))
-        strictEqual(serializer.ast, Serializer.ensureArray(Serializer.stringLeafJson(serializer)).ast)
+        const serializer = Serializer.ensureArray(Serializer.stringPojo(schema))
+        strictEqual(serializer.ast, Serializer.ensureArray(Serializer.stringPojo(serializer)).ast)
       })
     })
 
@@ -1630,7 +1630,7 @@ describe("Serializer", () => {
       const schema = Schema.Struct({
         a: Schema.optionalKey(Schema.NonEmptyArray(Schema.String))
       })
-      const serializer = Serializer.ensureArray(Serializer.stringLeafJson(schema))
+      const serializer = Serializer.ensureArray(Serializer.stringPojo(schema))
 
       await assertions.decoding.succeed(serializer, {})
       await assertions.decoding.succeed(serializer, { a: ["a"] })

@@ -31,8 +31,8 @@ const goJson = AST.memoize((ast: AST.AST): AST.AST => {
     const links = ast.encoding
     const last = links.at(-1)!
     const to = goJson(last.to)
-    return to === last.to ?
-      ast
+    return to === last.to
+      ? ast
       : AST.replaceEncoding(ast, AST.replaceLastLink(links, new AST.Link(to, last.transformation)))
   }
   function go(ast: AST.AST): AST.AST {
@@ -49,10 +49,10 @@ const goJson = AST.memoize((ast: AST.AST): AST.AST => {
       }
       case "VoidKeyword":
       case "UndefinedKeyword":
-        return coerceUndefined(ast)
+        return AST.replaceEncoding(ast, [undefinedLink])
       case "SymbolKeyword":
       case "UniqueSymbol":
-        return coerceSymbol(ast)
+        return AST.replaceEncoding(ast, [symbolLink])
       case "BigIntKeyword":
         return AST.coerceBigInt(ast)
       case "LiteralType": {
@@ -63,7 +63,7 @@ const goJson = AST.memoize((ast: AST.AST): AST.AST => {
       }
       case "TypeLiteral": {
         if (ast.propertySignatures.some((ps) => !Predicate.isString(ps.name))) {
-          return forbidden(ast, "cannot serialize to JSON, property names must be strings")
+          return forbidden(ast, "cannot serialize to JSON, TypeLiteral property names must be strings")
         }
         return ast.go(goJson)
       }
@@ -108,10 +108,6 @@ const undefinedLink = new AST.Link(
   )
 )
 
-function coerceUndefined<A extends AST.UndefinedKeyword | AST.VoidKeyword>(ast: A): A {
-  return AST.replaceEncoding(ast, [undefinedLink])
-}
-
 const SYMBOL_PATTERN = /^Symbol\((.*)\)$/
 
 // to distinguish between Symbol and String, we need to add a check to the string keyword
@@ -136,17 +132,13 @@ const symbolLink = new AST.Link(
   )
 )
 
-function coerceSymbol<A extends AST.SymbolKeyword | AST.UniqueSymbol>(ast: A): A {
-  return AST.replaceEncoding(ast, [symbolLink])
-}
-
 /**
  * @since 4.0.0
  */
-export function iso<T, E, RD, RE>(
-  codec: Schema.Codec<T, E, RD, RE>
-): Schema.Codec<T, unknown, RD, RE> {
-  return Schema.make<Schema.Codec<T, unknown, RD, RE>>(goIso(codec.ast))
+export function iso<S extends Schema.Codec<unknown, unknown>>(
+  codec: S
+): Schema.Codec<S["Type"], S["Iso"]> {
+  return Schema.make<Schema.Codec<S["Type"], S["Iso"]>>(goIso(AST.typeAST(codec.ast)))
 }
 
 const goIso = AST.memoize((ast: AST.AST): AST.AST => {
@@ -176,24 +168,64 @@ const goIso = AST.memoize((ast: AST.AST): AST.AST => {
 /**
  * @since 4.0.0
  */
-export type StringLeafJson = string | undefined | { [x: string]: StringLeafJson } | Array<StringLeafJson>
+export type StringPojo = string | undefined | { [x: string]: StringPojo } | Array<StringPojo>
 
 /**
  * @since 4.0.0
  */
-export function stringLeafJson<T, E, RD, RE>(
+export function stringPojo<T, E, RD, RE>(
   codec: Schema.Codec<T, E, RD, RE>
-): Schema.Codec<T, StringLeafJson, RD, RE> {
-  return Schema.make<Schema.Codec<T, StringLeafJson, RD, RE>>(AST.goStringLeafJson(goJson(codec.ast)))
+): Schema.Codec<T, StringPojo, RD, RE> {
+  return Schema.make<Schema.Codec<T, StringPojo, RD, RE>>(goStringPojo(codec.ast))
 }
+
+/** @internal */
+export const goStringPojo = AST.memoize((ast: AST.AST): AST.AST => {
+  if (ast.encoding) {
+    const links = ast.encoding
+    const last = links.at(-1)!
+    const to = goStringPojo(last.to)
+    return to === last.to ?
+      ast :
+      AST.replaceEncoding(ast, AST.replaceLastLink(links, new AST.Link(to, last.transformation)))
+  }
+  function go(ast: AST.AST): AST.AST {
+    switch (ast._tag) {
+      case "Declaration": {
+        const getLink = ast.annotations?.defaultIsoSerializer ?? ast.annotations?.defaultJsonSerializer
+        if (Predicate.isFunction(getLink)) {
+          const link = getLink(ast.typeParameters.map((tp) => Schema.make(goIso(AST.encodedAST(tp)))))
+          const to = goStringPojo(link.to)
+          return AST.replaceEncoding(ast, to === link.to ? [link] : [new AST.Link(to, link.transformation)])
+        }
+        return ast
+      }
+      case "NullKeyword":
+      case "NumberKeyword":
+      case "BooleanKeyword":
+      case "BigIntKeyword":
+      case "LiteralType":
+      case "Enums":
+        return ast.goStringPojo()
+      case "TupleType":
+      case "TypeLiteral":
+      case "UnionType":
+      case "Suspend":
+        return ast.go(goStringPojo)
+    }
+    return ast
+  }
+  const out = go(ast)
+  return AST.isOptional(ast) ? AST.optionalKey(out) : out
+})
 
 /**
  * @since 4.0.0
  */
 export function ensureArray<T, RD, RE>(
-  codec: Schema.Codec<T, StringLeafJson, RD, RE>
-): Schema.Codec<T, StringLeafJson, RD, RE> {
-  return Schema.make<Schema.Codec<T, StringLeafJson, RD, RE>>(goEnsureArray(codec.ast))
+  codec: Schema.Codec<T, StringPojo, RD, RE>
+): Schema.Codec<T, StringPojo, RD, RE> {
+  return Schema.make<Schema.Codec<T, StringPojo, RD, RE>>(goEnsureArray(codec.ast))
 }
 
 const ENSURE_ARRAY_FLAG = "~effect/schema/Serializer/ensureArray"
