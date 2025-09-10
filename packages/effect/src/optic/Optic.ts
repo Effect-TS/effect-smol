@@ -95,6 +95,13 @@ export interface Optic<in S, out T, out A, in B> {
     this: Optional<S, A>, // works for isos, lenses, and optionals
     refine: Check.Refine<B, A>
   ): Optional<S, B>
+
+  /**
+   * An optic that accesses the specified key of a record or an array.
+   *
+   * @since 4.0.0
+   */
+  at<S, A extends object, Key extends keyof A>(this: Optional<S, A>, key: Key): Optional<S, A[Key]>
 }
 
 function compose<S, T, A, B, C, D>(
@@ -208,6 +215,10 @@ class OpticBuilder<in S, out T, out A, in B> implements Optic<S, T, A, B> {
 
   refine<B extends A>(refine: Check.Refine<B, A>) {
     return this.compose(fromRefine(refine))
+  }
+
+  at(key: PropertyKey) {
+    return this.compose(fromAt<any, any>(key))
   }
 }
 
@@ -342,16 +353,17 @@ export const id: {
  * @since 4.0.0
  */
 export function fromKey<S, Key extends keyof S>(key: Key): Lens<S, S[Key]> {
-  return makeLens((s) => s[key], (b, s) => replace(key, b, s))
+  return makeLens((s) => s[key], (b, s) => replaceUnsafe(key, b, s) ?? s)
 }
 
-function replace<S, Key extends keyof S>(key: Key, b: S[Key], s: S): S {
+function replaceUnsafe<S, Key extends keyof S>(key: Key, b: S[Key], s: S): S {
   if (Array.isArray(s)) {
     const out: any = s.slice()
     out[key] = b
     return out
+  } else {
+    return { ...s, [key]: b }
   }
-  return { ...s, [key]: b }
 }
 
 /**
@@ -361,18 +373,22 @@ function replace<S, Key extends keyof S>(key: Key, b: S[Key], s: S): S {
 export function fromOptionalKey<S, Key extends keyof S>(
   key: Key
 ): Lens<S, S[Key] | undefined> {
-  return makeLens<S, S[Key] | undefined>((s) => s[key], (b, s) => b !== undefined ? replace(key, b, s) : remove(key, s))
+  return makeLens<S, S[Key] | undefined>(
+    (s) => s[key],
+    (b, s) => (b === undefined ? removeUnsafe(key, s) : replaceUnsafe(key, b, s))
+  )
 }
 
-function remove<S, Key extends keyof S>(key: Key, s: S): S {
+function removeUnsafe<S, Key extends keyof S>(key: Key, s: S): S {
   if (Array.isArray(s)) {
     const out = s.slice()
     out.splice(key as number, 1)
     return out as S
+  } else {
+    const out = { ...s }
+    delete out[key]
+    return out
   }
-  const out = { ...s }
-  delete out[key]
-  return out
 }
 
 /**
@@ -413,5 +429,16 @@ export function fromTag<S extends { readonly _tag: AST.Literal }, Tag extends S[
     (s: S) =>
       s._tag === tag ? Result.succeed(s as any) : Result.fail(`Expected ${format(tag)} tag, got ${format(s._tag)}`),
     identity
+  )
+}
+
+/**
+ * @category Optional
+ * @since 4.0.0
+ */
+export function fromAt<S extends object, Key extends keyof S>(key: Key): Optional<S, S[Key]> {
+  return makeOptional(
+    (s) => Object.hasOwn(s, key) ? Result.succeed(s[key]) : Result.fail(`Key ${format(key)} not found`),
+    (b, s) => replaceUnsafe(key, b, s)
   )
 }
