@@ -17,13 +17,13 @@ export function makeIso<S extends Schema.Codec<unknown, unknown>>(codec: S): Opt
 /**
  * @since 4.0.0
  */
-export function getSource<S extends Schema.Top>(_: S): Optic.Iso<S["Type"], S["Type"]> {
+export function getSourceIso<S extends Schema.Top>(_: S): Optic.Iso<S["Type"], S["Type"]> {
   return Optic.id()
 }
 
 /**
  * @since 4.0.0
  */
-export function getFocus<S extends Schema.Top>(_: S): Optic.Iso<S["Iso"], S["Iso"]> {
+export function getFocusIso<S extends Schema.Top>(_: S): Optic.Iso<S["Iso"], S["Iso"]> {
   return Optic.id()
 }

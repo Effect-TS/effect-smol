@@ -2304,7 +2304,6 @@ export const goTemplateLiteral = memoize((ast: AST): AST => {
       return ast.goStringPojo()
     case "TupleType":
     case "UnionType":
-    case "Suspend":
       return ast.go(goTemplateLiteral)
   }
   throw new Error(`Unsupported template literal part tag: ${ast._tag}`)
