@@ -16,9 +16,15 @@ import * as ToParser from "../schema/ToParser.ts"
  * @category Model
  * @since 4.0.0
  */
+export type OpticError<T> = [message: string, recovered: T]
+
+/**
+ * @category Model
+ * @since 4.0.0
+ */
 export interface Optic<in S, out T, out A, in B> {
-  readonly getOptic: (s: S) => Result.Result<A, [string, T]>
-  readonly setOptic: (b: B, s: S) => Result.Result<T, [string, T]>
+  readonly getOptic: (s: S) => Result.Result<A, OpticError<T>>
+  readonly setOptic: (b: B, s: S) => Result.Result<T, OpticError<T>>
 
   /**
    * @since 4.0.0
@@ -114,7 +120,7 @@ function compose<S, T, A, B, C, D>(
   return new OpticBuilder(
     "lens",
     (s) =>
-      Result.flatMap<A, [string, T], C, [string, T]>(
+      Result.flatMap<A, OpticError<T>, C, OpticError<T>>(
         self.getOptic(s),
         (a) =>
           Result.orElse(that.getOptic(a), ([err, b]) =>
@@ -160,12 +166,12 @@ function compose<S, T, A, B, C, D>(
 
 class OpticBuilder<in S, out T, out A, in B> implements Optic<S, T, A, B> {
   readonly _tag: "lens" | "prism"
-  readonly getOptic: (s: S) => Result.Result<A, [string, T]>
-  readonly setOptic: (b: B, s: S) => Result.Result<T, [string, T]>
+  readonly getOptic: (s: S) => Result.Result<A, OpticError<T>>
+  readonly setOptic: (b: B, s: S) => Result.Result<T, OpticError<T>>
   constructor(
     _tag: "lens" | "prism",
-    getOptic: (s: S) => Result.Result<A, [string, T]>,
-    setOptic: (b: B, s: S) => Result.Result<T, [string, T]>
+    getOptic: (s: S) => Result.Result<A, OpticError<T>>,
+    setOptic: (b: B, s: S) => Result.Result<T, OpticError<T>>
   ) {
     this._tag = _tag
     this.getOptic = getOptic
@@ -282,7 +288,7 @@ export interface PolyPrism<in S, out T, out A, in B> extends PolyOptional<S, T, 
  * @since 4.0.0
  */
 export function makePolyPrism<S, T, A, B>(
-  getOptic: (s: S) => Result.Result<A, [string, T]>,
+  getOptic: (s: S) => Result.Result<A, OpticError<T>>,
   set: (b: B) => T
 ): PolyPrism<S, T, A, B> {
   return new OpticBuilder("prism", getOptic, (b) => Result.succeed(set(b)))
@@ -317,7 +323,7 @@ export interface PolyOptional<in S, out T, out A, in B> extends Optic<S, T, A, B
  * @since 4.0.0
  */
 export function makePolyOptional<S, T, A, B>(
-  getOptic: (s: S) => Result.Result<A, [string, T]>,
+  getOptic: (s: S) => Result.Result<A, OpticError<T>>,
   replace: (b: B, s: S) => T
 ): PolyOptional<S, T, A, B> {
   return new OpticBuilder("lens", getOptic, (b, s) => Result.succeed(replace(b, s)))
@@ -339,6 +345,23 @@ export function makeOptional<S, A>(
 ): Optional<S, A> {
   return makePolyOptional((s) => Result.mapError(getResult(s), (e) => [e, s]), set)
 }
+
+/**
+ * A PolyTraversal can focus on zero or more elements in a data structure.
+ * It's defined as a PolyOptional that focuses on arrays of elements.
+ *
+ * @category Traversal
+ * @since 4.0.0
+ */
+export interface PolyTraversal<in S, out T, out A, in B>
+  extends PolyOptional<S, T, ReadonlyArray<A>, ReadonlyArray<B>>
+{}
+
+/**
+ * @category Traversal
+ * @since 4.0.0
+ */
+export interface Traversal<in out S, in out A> extends PolyTraversal<S, S, A, A> {}
 
 /**
  * The identity optic.
