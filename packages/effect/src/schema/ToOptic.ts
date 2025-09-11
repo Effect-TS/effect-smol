@@ -20,8 +20,8 @@ export function makeIso<T, Iso>(codec: Schema.Optic<T, Iso>): Optic.Iso<T, Iso> 
   const decodeResult = ToParser.decodeResult(serializer)
   return new Optic.OpticBuilder(
     true,
-    (s) => Result.mapError(encodeResult(s), (issue) => [formatter.format(issue), s]),
-    (b, t) => Result.mapError(decodeResult(b), (issue) => [formatter.format(issue), t])
+    (s) => Result.mapError(encodeResult(s), (issue) => formatter.format(issue)),
+    (b) => Result.mapError(decodeResult(b), (issue) => formatter.format(issue))
   )
 }
 

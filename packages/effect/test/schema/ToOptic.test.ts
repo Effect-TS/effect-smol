@@ -39,11 +39,8 @@ describe("ToOptic", () => {
       assertSuccess(modifyResult(Value.makeSync({ a: new Date(0) })), Value.makeSync({ a: new Date(1) }))
       assertFailure(
         modifyResult(Value.makeSync({ a: new Date(-1) })),
-        [
-          `Expected a valid date, got Invalid Date
-  at ["a"]`,
-          Value.makeSync({ a: new Date(-1) })
-        ]
+        `Expected a valid date, got Invalid Date
+  at ["a"]`
       )
     })
 

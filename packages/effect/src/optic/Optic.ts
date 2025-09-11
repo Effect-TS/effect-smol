@@ -16,36 +16,26 @@ import * as ToParser from "../schema/ToParser.ts"
  * @category Model
  * @since 4.0.0
  */
-export type OpticError<T> = [message: string, recovered: T]
-
-/**
- * @category Model
- * @since 4.0.0
- */
-export interface Optic<in S, out T, out A, in B> {
-  readonly getOptic: (s: S) => Result.Result<A, OpticError<T>>
-  readonly setOptic: (b: B, s: S) => Result.Result<T, OpticError<T>>
+export interface Optic<in out S, in out A> {
+  readonly getOptic: (s: S) => Result.Result<A, string>
+  readonly setOptic: (a: A, s: S) => Result.Result<S, string>
 
   /**
    * @since 4.0.0
    */
   compose<S, A, B>(this: Iso<S, A>, that: Iso<A, B>): Iso<S, B>
-  compose<S, T, A, B, C, D>(this: PolyIso<S, T, A, B>, that: PolyIso<A, B, C, D>): PolyIso<S, T, C, D>
   compose<S, A, B>(this: Lens<S, A>, that: Lens<A, B>): Lens<S, B>
-  compose<S, T, A, B, C, D>(this: PolyLens<S, T, A, B>, that: PolyLens<A, B, C, D>): PolyLens<S, T, C, D>
   compose<S, A, B>(this: Prism<S, A>, that: Prism<A, B>): Prism<S, B>
-  compose<S, T, A, B, C, D>(this: PolyPrism<S, T, A, B>, that: PolyPrism<A, B, C, D>): PolyPrism<S, T, C, D>
   compose<S, A, B>(this: Optional<S, A>, that: Optional<A, B>): Optional<S, B>
-  compose<S, T, A, B, C, D>(this: Optic<S, T, A, B>, that: Optic<A, B, C, D>): Optic<S, T, C, D>
 
   /**
    * Modifies a value using both the optic's getter and setter operations.
    *
    * @since 4.0.0
    */
-  modify(f: (a: A) => B): (s: S) => T
+  modify(f: (a: A) => A): (s: S) => S
 
-  modifyResult(f: (a: A) => B): (s: S) => Result.Result<T, OpticError<T>>
+  modifyResult(f: (a: A) => A): (s: S) => Result.Result<S, string>
 
   /**
    * @since 4.0.0
@@ -65,10 +55,6 @@ export interface Optic<in S, out T, out A, in B> {
    * @since 4.0.0
    */
   key<S, A extends object, Key extends keyof A>(this: Lens<S, A>, key: Key): Lens<S, A[Key]>
-  key<S, T, A extends object, B extends object, Key extends keyof A & keyof B>(
-    this: PolyLens<S, T, A, B>,
-    key: Key
-  ): PolyLens<S, T, A[Key], B[Key]>
   key<S, A extends object, Key extends keyof A>(this: Optional<S, A>, key: Key): Optional<S, A[Key]>
 
   /**
@@ -77,10 +63,6 @@ export interface Optic<in S, out T, out A, in B> {
    * @since 4.0.0
    */
   optionalKey<S, A, Key extends keyof A>(this: Lens<S, A>, key: Key): Lens<S, A[Key] | undefined>
-  optionalKey<S, T, A, B, Key extends keyof A & keyof B>(
-    this: PolyLens<S, T, A, B>,
-    key: Key
-  ): PolyLens<S, T, A[Key] | undefined, B[Key] | undefined>
   optionalKey<S, A, Key extends keyof A>(this: Optional<S, A>, key: Key): Optional<S, A[Key] | undefined>
 
   /**
@@ -115,66 +97,54 @@ export interface Optic<in S, out T, out A, in B> {
   at<S, A extends object, Key extends keyof A>(this: Optional<S, A>, key: Key): Optional<S, A[Key]>
 }
 
-function compose<S, T, A, B, C, D>(
-  self: OpticBuilder<S, T, A, B>,
-  that: OpticBuilder<A, B, C, D>
-): Optic<S, T, C, D> {
+function compose<S, A, B>(
+  self: OpticBuilder<S, A>,
+  that: OpticBuilder<A, B>
+): Optic<S, B> {
+  const setterIgnoresSource = self.setterIgnoresSource && that.setterIgnoresSource
   return new OpticBuilder(
-    false,
+    setterIgnoresSource,
     (s) =>
-      Result.flatMap<A, OpticError<T>, C, OpticError<T>>(
+      Result.flatMap(
         self.getOptic(s),
-        (a) =>
-          Result.orElse(that.getOptic(a), ([err, b]) =>
-            Result.match(self.setOptic(b, s), {
-              onFailure: ([_, t]) => Result.fail([err, t]),
-              onSuccess: (t) => Result.fail([err, t])
-            }))
+        (a) => that.getOptic(a)
       ),
-    self.setterIgnoresSource && that.setterIgnoresSource ?
+    setterIgnoresSource ?
       /**
        * Compose two optics when the piece of the whole returned by the get
        * operator of the first optic is not needed by the set operator of the
        * second optic (see the `as any` cast).
        */
-      (d, s) =>
-        Result.match(
-          that.setOptic(d, s as any),
-          {
-            onFailure: ([err, b]) =>
-              Result.match(self.setOptic(b, s), {
-                onFailure: ([_, t]) => Result.fail([err, t]),
-                onSuccess: (t) => Result.fail([err, t])
-              }),
-            onSuccess: (b) => self.setOptic(b, s)
-          }
+      (b, s) =>
+        Result.flatMap(
+          that.setOptic(b, s as any),
+          (a) => self.setOptic(a, s)
         ) :
       /**
        * Compose two optics when the piece of the whole returned by the first
        * optic is needed by the set operator of the second optic
        */
-      (d, s) =>
-        Result.flatMap(self.getOptic(s), (a) =>
-          Result.match(that.setOptic(d, a), {
-            onFailure: ([err, b]) =>
-              Result.match(self.setOptic(b, s), {
-                onFailure: ([_, t]) => Result.fail([err, t]),
-                onSuccess: (t) => Result.fail([err, t])
-              }),
-            onSuccess: (b) => self.setOptic(b, s)
-          }))
+      (b, s) =>
+        Result.flatMap(
+          self.getOptic(s),
+          (a) =>
+            Result.flatMap(
+              that.setOptic(b, a),
+              (a) => self.setOptic(a, s)
+            )
+        )
   )
 }
 
 /** @internal */
-export class OpticBuilder<in S, out T, out A, in B> implements Optic<S, T, A, B> {
+export class OpticBuilder<in out S, in out A> implements Optic<S, A> {
   readonly setterIgnoresSource: boolean
-  readonly getOptic: (s: S) => Result.Result<A, OpticError<T>>
-  readonly setOptic: (b: B, s: S) => Result.Result<T, OpticError<T>>
+  readonly getOptic: (s: S) => Result.Result<A, string>
+  readonly setOptic: (a: A, s: S) => Result.Result<S, string>
   constructor(
     setterIgnoresSource: boolean,
-    getOptic: (s: S) => Result.Result<A, OpticError<T>>,
-    setOptic: (b: B, s: S) => Result.Result<T, OpticError<T>>
+    getOptic: (s: S) => Result.Result<A, string>,
+    setOptic: (a: A, s: S) => Result.Result<S, string>
   ) {
     this.setterIgnoresSource = setterIgnoresSource
     this.getOptic = getOptic
@@ -182,15 +152,15 @@ export class OpticBuilder<in S, out T, out A, in B> implements Optic<S, T, A, B>
   }
 
   get(s: S): A {
-    return Result.getOrThrowWith(this.getOptic(s), ([message]) => new Error(message))
+    return Result.getOrThrowWith(this.getOptic(s), (message) => new Error(message))
   }
 
-  set(b: B): T {
-    return Result.getOrThrowWith(this.setOptic(b, undefined as any), ([message]) => new Error(message))
+  set(a: A): S {
+    return Result.getOrThrowWith(this.setOptic(a, undefined as any), (message) => new Error(message))
   }
 
-  replace(b: B, s: S): T {
-    return Result.getOrElse(this.setOptic(b, s), ([_, t]) => t)
+  replace(a: A, s: S): S {
+    return Result.getOrElse(this.setOptic(a, s), () => s)
   }
 
   getOption(s: S): Option.Option<A> {
@@ -201,12 +171,12 @@ export class OpticBuilder<in S, out T, out A, in B> implements Optic<S, T, A, B>
     return compose(this, that)
   }
 
-  modify(f: (a: A) => B): (s: S) => T {
+  modify(f: (a: A) => A): (s: S) => S {
     const modifyResult = this.modifyResult(f)
-    return (s: S): T => Result.getOrElse(modifyResult(s), ([_, t]) => t)
+    return (s: S): S => Result.getOrElse(modifyResult(s), () => s)
   }
 
-  modifyResult(f: (a: A) => B): (s: S) => Result.Result<T, OpticError<T>> {
+  modifyResult(f: (a: A) => A): (s: S) => Result.Result<S, string> {
     return (s) =>
       this.getOptic(s).pipe(
         Result.flatMap((a) => this.setOptic(f(a), s))
@@ -242,28 +212,21 @@ export class OpticBuilder<in S, out T, out A, in B> implements Optic<S, T, A, B>
  * @category Iso
  * @since 4.0.0
  */
-export interface PolyIso<in S, out T, out A, in B> extends PolyLens<S, T, A, B>, PolyPrism<S, T, A, B> {}
-
-/**
- * @since 4.0.0
- */
-export interface Iso<in out S, in out A> extends PolyIso<S, S, A, A> {}
+export interface Iso<in out S, in out A> extends Lens<S, A>, Prism<S, A> {}
 
 /**
  * @category Iso
  * @since 4.0.0
  */
-export const makeIso: {
-  <S, A>(get: (s: S) => A, set: (a: A) => S): Iso<S, A>
-  <S, T, A, B>(get: (s: S) => A, set: (b: B) => T): PolyIso<S, T, A, B>
-} = <S, A>(get: (s: S) => A, set: (a: A) => S): Iso<S, A> =>
-  new OpticBuilder(true, (s) => Result.succeed(get(s)), (a) => Result.succeed(set(a)))
+export function makeIso<S, A>(get: (s: S) => A, set: (a: A) => S): Iso<S, A> {
+  return new OpticBuilder(true, (s) => Result.succeed(get(s)), (a) => Result.succeed(set(a)))
+}
 
 /**
  * @category Lens
  * @since 4.0.0
  */
-export interface PolyLens<in S, out T, out A, in B> extends PolyOptional<S, T, A, B> {
+export interface Lens<in out S, in out A> extends Optional<S, A> {
   readonly get: (s: S) => A
 }
 
@@ -271,41 +234,17 @@ export interface PolyLens<in S, out T, out A, in B> extends PolyOptional<S, T, A
  * @category Lens
  * @since 4.0.0
  */
-export interface Lens<in out S, in out A> extends PolyLens<S, S, A, A> {}
-
-/**
- * @category Lens
- * @since 4.0.0
- */
-export const makeLens: {
-  <S, A>(get: (s: S) => A, replace: (a: A, s: S) => S): Lens<S, A>
-  <S, T, A, B>(get: (s: S) => A, replace: (b: B, s: S) => T): PolyLens<S, T, A, B>
-} = <S, A>(get: (s: S) => A, replace: (a: A, s: S) => S): Lens<S, A> =>
-  new OpticBuilder(false, (s) => Result.succeed(get(s)), (b, s) => Result.succeed(replace(b, s)))
-
-/**
- * @since 4.0.0
- */
-export interface PolyPrism<in S, out T, out A, in B> extends PolyOptional<S, T, A, B> {
-  readonly set: (b: B) => T
+export function makeLens<S, A>(get: (s: S) => A, replace: (a: A, s: S) => S): Lens<S, A> {
+  return new OpticBuilder(false, (s) => Result.succeed(get(s)), (b, s) => Result.succeed(replace(b, s)))
 }
 
 /**
  * @category Prism
  * @since 4.0.0
  */
-export function makePolyPrism<S, T, A, B>(
-  getOptic: (s: S) => Result.Result<A, OpticError<T>>,
-  set: (b: B) => T
-): PolyPrism<S, T, A, B> {
-  return new OpticBuilder(true, getOptic, (b) => Result.succeed(set(b)))
+export interface Prism<in out S, in out A> extends Optional<S, A> {
+  readonly set: (a: A) => S
 }
-
-/**
- * @category Prism
- * @since 4.0.0
- */
-export interface Prism<in out S, in out A> extends PolyPrism<S, S, A, A> {}
 
 /**
  * @category Prism
@@ -315,32 +254,17 @@ export function makePrism<S, A>(
   getResult: (s: S) => Result.Result<A, string>,
   set: (a: A) => S
 ): Prism<S, A> {
-  return makePolyPrism((s) => Result.mapError(getResult(s), (e) => [e, s]), set)
-}
-
-/**
- * @since 4.0.0
- */
-export interface PolyOptional<in S, out T, out A, in B> extends Optic<S, T, A, B> {
-  readonly getOption: (s: S) => Option.Option<A>
-  readonly replace: (b: B, s: S) => T
-}
-
-/**
- * @since 4.0.0
- */
-export function makePolyOptional<S, T, A, B>(
-  getOptic: (s: S) => Result.Result<A, OpticError<T>>,
-  replace: (b: B, s: S) => Result.Result<T, OpticError<T>>
-): PolyOptional<S, T, A, B> {
-  return new OpticBuilder(false, getOptic, (b, s) => replace(b, s))
+  return new OpticBuilder(true, getResult, (b) => Result.succeed(set(b)))
 }
 
 /**
  * @category Optional
  * @since 4.0.0
  */
-export interface Optional<in out S, in out A> extends PolyOptional<S, S, A, A> {}
+export interface Optional<in out S, in out A> extends Optic<S, A> {
+  readonly getOption: (s: S) => Option.Option<A>
+  readonly replace: (a: A, s: S) => S
+}
 
 /**
  * @category Optional
@@ -350,10 +274,7 @@ export function makeOptional<S, A>(
   getResult: (s: S) => Result.Result<A, string>,
   setResult: (a: A, s: S) => Result.Result<S, string>
 ): Optional<S, A> {
-  return makePolyOptional(
-    (s) => Result.mapError(getResult(s), (e) => [e, s]),
-    (a, s) => Result.mapError(setResult(a, s), (e) => [e, s])
-  )
+  return new OpticBuilder(false, getResult, setResult)
 }
 
 /**
@@ -362,10 +283,9 @@ export function makeOptional<S, A>(
  * @category Iso
  * @since 4.0.0
  */
-export const id: {
-  <S>(): Iso<S, S>
-  <S, T>(): PolyIso<S, T, S, T>
-} = () => makeIso(identity, identity)
+export function id<S>(): Iso<S, S> {
+  return makeIso(identity, identity)
+}
 
 /**
  * An optic that accesses the specified key of a struct or a tuple.
@@ -379,21 +299,21 @@ export function fromKey<S extends object, Key extends keyof S>(key: Key): Lens<S
       return s[key]
     }
     throw new Error(`Key ${format(key)} not found`)
-  }, (b, s) => {
+  }, (a, s) => {
     if (Object.hasOwn(s, key)) {
-      return replace(key, b, s)
+      return replace(key, a, s)
     }
     throw new Error(`Key ${format(key)} not found`)
   })
 }
 
-function replace<S, Key extends keyof S>(key: Key, b: S[Key], s: S): S {
+function replace<S, Key extends keyof S>(key: Key, a: S[Key], s: S): S {
   if (Array.isArray(s)) {
     const out: any = s.slice()
-    out[key] = b
+    out[key] = a
     return out
   } else {
-    return { ...s, [key]: b }
+    return { ...s, [key]: a }
   }
 }
 
@@ -408,7 +328,7 @@ export function fromOptionalKey<S, Key extends keyof S>(
 ): Lens<S, S[Key] | undefined> {
   return makeLens<S, S[Key] | undefined>(
     (s) => s[key],
-    (b, s) => (b === undefined ? remove(key, s) : replace(key, b, s))
+    (a, s) => (a === undefined ? remove(key, s) : replace(key, a, s))
   )
 }
 
