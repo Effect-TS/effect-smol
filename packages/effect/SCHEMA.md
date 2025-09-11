@@ -4486,6 +4486,63 @@ const schema = Schema.Struct({
 const equivalence = ToEquivalence.make(schema)
 ```
 
+## Generating an Optic from a Schema
+
+### Problem
+
+The `Optic` module only works with plain JavaScript objects and collections (structs, records, tuples, and arrays).
+This can feel restrictive when working with custom types.
+
+To work around this, you can define an `Iso` between your custom type and a plain JavaScript object.
+
+**Example** (Defining an `Iso` manually between a custom type and a plain JavaScript object)
+
+```ts
+import { Optic } from "effect/optic"
+import { Schema } from "effect/schema"
+
+// Define custom schema-based classes
+class A extends Schema.Class<A>("A")({ s: Schema.String }) {}
+class B extends Schema.Class<B>("B")({ a: A }) {}
+
+// Create an Iso that converts between B and a plain object
+const iso = Optic.makeIso<B, { readonly a: { readonly s: string } }>(
+  (s) => ({ a: { s: s.a.s } }), // forward transformation
+  (a) => new B({ a: new A({ s: a.a.s }) }) // backward transformation
+)
+
+// Build an optic that drills down to the "s" field inside "a"
+const _a = iso.key("a").key("s")
+
+console.log(_a.replace("b", new B({ a: new A({ s: "a" }) })))
+// B { a: A { s: 'b' } }
+```
+
+### Solution
+
+Manually creating `Iso` instances is repetitive and error-prone.
+To simplify this, the library provides a helper function that generates an `Iso` directly from a schema.
+
+This allows you to keep working with plain JavaScript objects and collections while still benefiting from schema definitions.
+
+**Example** (Generating an `Iso` automatically from a schema)
+
+```ts
+import { Schema, ToOptic } from "effect/schema"
+
+class A extends Schema.Class<A>("A")({ s: Schema.String }) {}
+class B extends Schema.Class<B>("B")({ a: A }) {}
+
+// Automatically generate an Iso from the schema of B
+// const iso: Iso<B, { readonly a: { readonly s: string } }>
+const iso = ToOptic.makeIso(B)
+
+const _a = iso.key("a").key("s")
+
+console.log(_a.replace("b", new B({ a: new A({ s: "a" }) })))
+// B { a: A { s: 'b' } }
+```
+
 ## Formatters
 
 ### StandardSchemaV1 formatter
