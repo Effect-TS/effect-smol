@@ -4038,10 +4038,10 @@ export interface instanceOf<T, Iso = T> extends declareConstructor<T, T, readonl
  * @category Constructors
  * @since 4.0.0
  */
-export function instanceOf<C extends abstract new(...args: any) => any>(
+export function instanceOf<C extends abstract new(...args: any) => any, Iso = InstanceType<C>>(
   constructor: C,
   annotations?: Annotations.Declaration<InstanceType<C>, readonly []> | undefined
-): instanceOf<InstanceType<C>> {
+): instanceOf<InstanceType<C>, Iso> {
   return declare((u): u is InstanceType<C> => u instanceof constructor, annotations)
 }
 
@@ -4954,10 +4954,10 @@ export interface declare<T, Iso = T> extends declareConstructor<T, T, readonly [
  *
  * @since 4.0.0
  */
-export function declare<T>(
+export function declare<T, Iso = T>(
   is: (u: unknown) => u is T,
   annotations?: Annotations.Declaration<T, readonly []> | undefined
-): declare<T> {
+): declare<T, Iso> {
   return declareConstructor([])<T>()(
     () => (input, ast) =>
       is(input) ?
