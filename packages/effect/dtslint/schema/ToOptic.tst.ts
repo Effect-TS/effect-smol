@@ -1,7 +1,8 @@
 import type { Cause, Exit } from "effect"
 import type { Brand, Option } from "effect/data"
+import { Data } from "effect/data"
 import type { Optic } from "effect/optic"
-import { Check, Schema, ToOptic } from "effect/schema"
+import { Check, Schema, ToOptic, Util } from "effect/schema"
 import { describe, expect, it } from "tstyche"
 
 class Value extends Schema.Class<Value, { readonly brand: unique symbol }>("Value")({
@@ -290,6 +291,23 @@ describe("ToOptic", () => {
 
     expect(optic).type.toBe<
       Optic.Iso<Map<string, Value>, ReadonlyArray<readonly [string, { readonly a: Date }]>>
+    >()
+  })
+
+  it("getNativeClassSchema", () => {
+    const Props = Schema.Struct({
+      message: Schema.String
+    })
+    class Err extends Data.Error<typeof Props.Type> {
+      constructor(props: typeof Props.Type) {
+        super(Props.makeSync(props))
+      }
+    }
+    const schema = Util.getNativeClassSchema(Err, { encoding: Props })
+    const optic = ToOptic.makeIso(schema)
+
+    expect(optic).type.toBe<
+      Optic.Iso<Err, { readonly message: string }>
     >()
   })
 })

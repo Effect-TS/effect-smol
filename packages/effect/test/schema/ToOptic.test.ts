@@ -1,6 +1,6 @@
 import { Cause, Exit } from "effect"
-import { Option, Predicate, Record } from "effect/data"
-import { Check, Schema, ToOptic } from "effect/schema"
+import { Data, Option, Predicate, Record } from "effect/data"
+import { Check, Schema, ToOptic, Util } from "effect/schema"
 import { describe, it } from "vitest"
 import {
   assertFailure,
@@ -329,6 +329,22 @@ describe("ToOptic", () => {
         modify(new Map([["a", Value.makeSync({ a: new Date(0) })]])),
         new Map([["a", Value.makeSync({ a: new Date(1) })]])
       )
+    })
+
+    it("getNativeClassSchema", () => {
+      const Props = Schema.Struct({
+        message: Schema.String
+      })
+      class Err extends Data.Error<typeof Props.Type> {
+        constructor(props: typeof Props.Type) {
+          super(Props.makeSync(props))
+        }
+      }
+      const schema = Util.getNativeClassSchema(Err, { encoding: Props })
+      const optic = ToOptic.makeIso(schema)
+      const modify = optic.modify((e) => new Err({ message: e.message + "!" }))
+
+      deepStrictEqual(modify(new Err({ message: "a" })), new Err({ message: "a!" }))
     })
   })
 })
