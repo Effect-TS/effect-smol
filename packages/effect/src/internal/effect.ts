@@ -1487,7 +1487,40 @@ const OnSuccessProto = makePrimitiveProto({
   }
 })
 
-const effectIsExit = <A, E, R>(effect: Effect.Effect<A, E, R>): effect is Exit.Exit<A, E> => ExitTypeId in effect
+export const matchCauseEffectEager: {
+  <E, A2, E2, R2, A, A3, E3, R3>(options: {
+    readonly onFailure: (cause: Cause.Cause<E>) => Effect.Effect<A2, E2, R2>
+    readonly onSuccess: (a: A) => Effect.Effect<A3, E3, R3>
+  }): <R>(
+    self: Effect.Effect<A, E, R>
+  ) => Effect.Effect<A2 | A3, E2 | E3, R2 | R3 | R>
+  <A, E, R, A2, E2, R2, A3, E3, R3>(
+    self: Effect.Effect<A, E, R>,
+    options: {
+      readonly onFailure: (cause: Cause.Cause<E>) => Effect.Effect<A2, E2, R2>
+      readonly onSuccess: (a: A) => Effect.Effect<A3, E3, R3>
+    }
+  ): Effect.Effect<A2 | A3, E2 | E3, R2 | R3 | R>
+} = dual(
+  2,
+  <A, E, R, A2, E2, R2, A3, E3, R3>(
+    self: Effect.Effect<A, E, R>,
+    options: {
+      readonly onFailure: (cause: Cause.Cause<E>) => Effect.Effect<A2, E2, R2>
+      readonly onSuccess: (a: A) => Effect.Effect<A3, E3, R3>
+    }
+  ): Effect.Effect<A2 | A3, E2 | E3, R2 | R3 | R> => {
+    if (effectIsExit(self)) {
+      return self._tag === "Success"
+        ? options.onSuccess(self.value)
+        : options.onFailure(self.cause)
+    }
+    return matchCauseEffect(self, options)
+  }
+)
+
+/** @internal */
+export const effectIsExit = <A, E, R>(effect: Effect.Effect<A, E, R>): effect is Exit.Exit<A, E> => ExitTypeId in effect
 
 /** @internal */
 export const flatMapEager: {

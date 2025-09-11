@@ -4155,6 +4155,26 @@ export const matchCauseEager: {
 } = internal.matchCauseEager
 
 /**
+ * @since 4.0.0
+ * @category Pattern matching
+ */
+export const matchCauseEffectEager: {
+  <E, A2, E2, R2, A, A3, E3, R3>(
+    options: {
+      readonly onFailure: (cause: Cause.Cause<E>) => Effect<A2, E2, R2>
+      readonly onSuccess: (a: A) => Effect<A3, E3, R3>
+    }
+  ): <R>(self: Effect<A, E, R>) => Effect<A2 | A3, E2 | E3, R2 | R3 | R>
+  <A, E, R, A2, E2, R2, A3, E3, R3>(
+    self: Effect<A, E, R>,
+    options: {
+      readonly onFailure: (cause: Cause.Cause<E>) => Effect<A2, E2, R2>
+      readonly onSuccess: (a: A) => Effect<A3, E3, R3>
+    }
+  ): Effect<A2 | A3, E2 | E3, R2 | R3 | R>
+} = internal.matchCauseEffectEager
+
+/**
  * Handles failures with access to the cause and allows performing side effects.
  *
  * **Details**
