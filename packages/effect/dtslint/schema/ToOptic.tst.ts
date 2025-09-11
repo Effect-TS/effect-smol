@@ -280,7 +280,16 @@ describe("ToOptic", () => {
     const optic = ToOptic.makeIso(schema)
 
     expect(optic).type.toBe<
-      Optic.Iso<Exit.Exit<Value, Value>, Schema.ExitIso<typeof Value, Schema.Error, Schema.Defect>>
+      Optic.Iso<Exit.Exit<Value, Error>, Schema.ExitIso<typeof Value, Schema.Error, Schema.Defect>>
+    >()
+  })
+
+  it("Map", () => {
+    const schema = Schema.Map(Schema.String, Value)
+    const optic = ToOptic.makeIso(schema)
+
+    expect(optic).type.toBe<
+      Optic.Iso<Map<string, Value>, ReadonlyArray<readonly [string, { readonly a: Date }]>>
     >()
   })
 })

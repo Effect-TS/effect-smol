@@ -318,5 +318,17 @@ describe("ToOptic", () => {
         Exit.succeed(Value.makeSync({ a: new Date(1) }))
       )
     })
+
+    it("Map", () => {
+      const schema = Schema.Map(Schema.String, Value)
+      const optic = ToOptic.makeIso(schema)
+      const entry = ToOptic.getFocusIso(Schema.Tuple([Schema.String, Value])).key("1").key("a")
+      const modify = optic.modify((entries) => entries.map(([key, value]) => entry.modify(addOne)([key, value])))
+
+      deepStrictEqual(
+        modify(new Map([["a", Value.makeSync({ a: new Date(0) })]])),
+        new Map([["a", Value.makeSync({ a: new Date(1) })]])
+      )
+    })
   })
 })
