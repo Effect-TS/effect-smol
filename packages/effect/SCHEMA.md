@@ -4512,9 +4512,9 @@ const iso = Optic.makeIso<B, { readonly a: { readonly s: string } }>(
 )
 
 // Build an optic that drills down to the "s" field inside "a"
-const _a = iso.key("a").key("s")
+const _s = iso.key("a").key("s")
 
-console.log(_a.replace("b", new B({ a: new A({ s: "a" }) })))
+console.log(_s.replace("b", new B({ a: new A({ s: "a" }) })))
 // B { a: A { s: 'b' } }
 ```
 
@@ -4537,9 +4537,9 @@ class B extends Schema.Class<B>("B")({ a: A }) {}
 // const iso: Iso<B, { readonly a: { readonly s: string } }>
 const iso = ToOptic.makeIso(B)
 
-const _a = iso.key("a").key("s")
+const _s = iso.key("a").key("s")
 
-console.log(_a.replace("b", new B({ a: new A({ s: "a" }) })))
+console.log(_s.replace("b", new B({ a: new A({ s: "a" }) })))
 // B { a: A { s: 'b' } }
 ```
 
