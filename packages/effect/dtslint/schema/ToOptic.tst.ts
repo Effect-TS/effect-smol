@@ -1,4 +1,4 @@
-import type { Cause } from "effect"
+import type { Cause, Exit } from "effect"
 import type { Brand, Option } from "effect/data"
 import type { Optic } from "effect/optic"
 import { Check, Schema, ToOptic } from "effect/schema"
@@ -273,5 +273,14 @@ describe("ToOptic", () => {
     const optic = ToOptic.makeIso(schema)
 
     expect(optic).type.toBe<Optic.Iso<Error, Error>>()
+  })
+
+  it("Exit", () => {
+    const schema = Schema.Exit(Value, Schema.Error, Schema.Defect)
+    const optic = ToOptic.makeIso(schema)
+
+    expect(optic).type.toBe<
+      Optic.Iso<Exit.Exit<Value, Value>, Schema.ExitIso<typeof Value, Schema.Error, Schema.Defect>>
+    >()
   })
 })

@@ -3639,11 +3639,16 @@ export interface Cause<E extends Top, D extends Top> extends
     Cause_.Cause<E["Type"]>,
     Cause_.Cause<E["Encoded"]>,
     readonly [CauseFailure<E, D>],
-    ReadonlyArray<CauseFailureIso<E, D>>
+    CauseIso<E, D>
   >
 {
   readonly "~rebuild.out": Cause<E, D>
 }
+
+/**
+ * @since 4.0.0
+ */
+export type CauseIso<E extends Top, D extends Top> = ReadonlyArray<CauseFailureIso<E, D>>
 
 /**
  * @category Constructors
@@ -3787,10 +3792,22 @@ export interface Exit<A extends Top, E extends Top, D extends Top> extends
   declareConstructor<
     Exit_.Exit<A["Type"], E["Type"]>,
     Exit_.Exit<A["Encoded"], E["Encoded"]>,
-    readonly [A, Cause<E, D>]
-  > // TODO
+    readonly [A, Cause<E, D>],
+    ExitIso<A, E, D>
+  >
 {
   readonly "~rebuild.out": Exit<A, E, D>
+}
+
+/**
+ * @since 4.0.0
+ */
+export type ExitIso<A extends Top, E extends Top, D extends Top> = {
+  readonly _tag: "Success"
+  readonly value: A["Iso"]
+} | {
+  readonly _tag: "Failure"
+  readonly cause: CauseIso<E, D>
 }
 
 /**
