@@ -331,9 +331,9 @@ export interface PolyOptional<in S, out T, out A, in B> extends Optic<S, T, A, B
  */
 export function makePolyOptional<S, T, A, B>(
   getOptic: (s: S) => Result.Result<A, OpticError<T>>,
-  replace: (b: B, s: S) => T
+  replace: (b: B, s: S) => Result.Result<T, OpticError<T>>
 ): PolyOptional<S, T, A, B> {
-  return new OpticBuilder(false, getOptic, (b, s) => Result.succeed(replace(b, s)))
+  return new OpticBuilder(false, getOptic, (b, s) => replace(b, s))
 }
 
 /**
@@ -348,9 +348,12 @@ export interface Optional<in out S, in out A> extends PolyOptional<S, S, A, A> {
  */
 export function makeOptional<S, A>(
   getResult: (s: S) => Result.Result<A, string>,
-  set: (a: A, s: S) => S
+  setResult: (a: A, s: S) => Result.Result<S, string>
 ): Optional<S, A> {
-  return makePolyOptional((s) => Result.mapError(getResult(s), (e) => [e, s]), set)
+  return makePolyOptional(
+    (s) => Result.mapError(getResult(s), (e) => [e, s]),
+    (a, s) => Result.mapError(setResult(a, s), (e) => [e, s])
+  )
 }
 
 /**
@@ -365,6 +368,8 @@ export const id: {
 } = () => makeIso(identity, identity)
 
 /**
+ * An optic that accesses the specified key of a struct or a tuple.
+ *
  * @category Lens
  * @since 4.0.0
  */
@@ -393,6 +398,8 @@ function replace<S, Key extends keyof S>(key: Key, b: S[Key], s: S): S {
 }
 
 /**
+ * An optic that accesses the specified optional key of a struct or a tuple.
+ *
  * @category Lens
  * @since 4.0.0
  */
@@ -423,6 +430,8 @@ function remove<S, Key extends keyof S>(key: Key, s: S): S {
 }
 
 /**
+ * An optic that checks the specified checks of a value.
+ *
  * @category Prism
  * @since 4.0.0
  */
@@ -442,6 +451,8 @@ export function fromCheck<T>(...checks: readonly [Check.Check<T>, ...Array<Check
 }
 
 /**
+ * An optic that refines the specified refine of a value.
+ *
  * @category Prism
  * @since 4.0.0
  */
@@ -450,6 +461,8 @@ export function fromRefine<T extends E, E>(refine: Check.Refine<T, E>): Prism<E,
 }
 
 /**
+ * An optic that accesses the specified tag of a tagged union.
+ *
  * @category Prism
  * @since 4.0.0
  */
@@ -464,12 +477,50 @@ export function fromTag<S extends { readonly _tag: AST.Literal }, Tag extends S[
 }
 
 /**
+ * An optic that accesses the specified key of a record or an array.
+ *
  * @category Optional
  * @since 4.0.0
  */
 export function fromAt<S extends object, Key extends keyof S>(key: Key): Optional<S, S[Key]> {
   return makeOptional(
     (s) => Object.hasOwn(s, key) ? Result.succeed(s[key]) : Result.fail(`Key ${format(key)} not found`),
-    (b, s) => Object.hasOwn(s, key) ? replace(key, b, s) : s
+    (b, s) => Object.hasOwn(s, key) ? Result.succeed(replace(key, b, s)) : Result.fail(`Key ${format(key)} not found`)
+  )
+}
+
+/**
+ * An optic that accesses the value of a `Some` value.
+ *
+ * @category Prism
+ * @since 4.0.0
+ */
+export function some<A>(): Prism<Option.Option<A>, A> {
+  return makePrism(Result.fromOption(() => "Expected a Some value, got none()"), Option.some)
+}
+
+/**
+ * An optic that accesses the specified index of a `string`.
+ *
+ * @category Optional
+ * @since 4.0.0
+ */
+export function charAt(i: number): Optional<string, string> {
+  return makeOptional(
+    (s) => {
+      if (i < 0 || i >= s.length) {
+        return Result.fail(`Missing character at index ${i}`)
+      }
+      return Result.succeed(s.charAt(i))
+    },
+    (char, s) => {
+      if (char.length !== 1) {
+        return Result.fail(`Expected a single character, got ${format(char)}`)
+      }
+      if (i >= 0 && i < s.length) {
+        return Result.succeed(s.substring(0, i) + char.charAt(0) + s.substring(i + 1))
+      }
+      return Result.fail(`Missing character at index ${i}`)
+    }
   )
 }
