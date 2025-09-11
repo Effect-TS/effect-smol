@@ -4551,8 +4551,8 @@ function getClassTransformation(self: new(...args: ReadonlyArray<any>) => any) {
   )
 }
 
-const makeClassLink = (self: new(...args: ReadonlyArray<any>) => any) => (ast: AST.AST) =>
-  new AST.Link(ast, getClassTransformation(self))
+const makeClassLink = (self: new(...args: ReadonlyArray<any>) => any) => (from: AST.AST) =>
+  new AST.Link(from, getClassTransformation(self))
 
 function getClassSchemaFactory<S extends Top>(
   from: S,
