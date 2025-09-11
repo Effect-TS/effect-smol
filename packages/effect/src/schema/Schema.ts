@@ -3912,8 +3912,9 @@ export interface Map$<Key extends Top, Value extends Top> extends
   declareConstructor<
     globalThis.Map<Key["Type"], Value["Type"]>,
     globalThis.Map<Key["Encoded"], Value["Encoded"]>,
-    readonly [Key, Value]
-  > // TODO
+    readonly [Key, Value],
+    ReadonlyArray<readonly [Key["Iso"], Value["Iso"]]>
+  >
 {
   readonly "~rebuild.out": Map$<Key, Value>
 }
