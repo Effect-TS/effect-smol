@@ -18,19 +18,22 @@ export const Declaration = Schema.instanceOf(
   }
 )
 
+// TODO: do this for all of the other schemas
+const NullKeywordIso = Schema.Struct({
+  _tag: Schema.tag("NullKeyword")
+})
+
 /**
  * @since 4.0.0
  */
-export const NullKeyword = Schema.instanceOf(
+export const NullKeyword = Schema.instanceOf<typeof ast.NullKeyword, typeof NullKeywordIso["Iso"]>(
   ast.NullKeyword,
   {
     identifier: "NullKeyword",
     "~sentinels": [{ key: "_tag", literal: "NullKeyword" }],
     defaultIsoSerializer: () =>
       Schema.link<ast.NullKeyword>()(
-        Schema.Struct({
-          _tag: Schema.tag("NullKeyword")
-        }),
+        NullKeywordIso,
         Transformation.transform({
           decode: () => ast.nullKeyword,
           encode: () => ({ _tag: "NullKeyword" }) as const
