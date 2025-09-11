@@ -9,7 +9,7 @@
  */
 import { hasProperty } from "../data/Predicate.ts"
 import { dual, pipe } from "../Function.ts"
-import { getAllObjectKeys, isStructurallyComparable } from "../internal/equal.ts"
+import { getAllObjectKeys } from "../internal/equal.ts"
 
 /** @internal */
 const randomHashCache = new WeakMap<object, number>()
@@ -107,8 +107,10 @@ export const hash: <A>(self: A) => number = <A>(self: A) => {
       if (self === null) {
         return string("null")
       } else if (self instanceof Date) {
-        return hash(self.toISOString())
-      } else {
+        return string(self.toISOString())
+      } else if (self instanceof RegExp) {
+        return string(self.toString())
+      } else if (typeof self === "object") {
         return withVisitedTracking(self, () => {
           if (isHash(self)) {
             return self[symbol]()
@@ -118,13 +120,11 @@ export const hash: <A>(self: A) => number = <A>(self: A) => {
             return hashMap(self)
           } else if (self instanceof Set) {
             return hashSet(self)
-          } else if (isStructurallyComparable(self)) {
-            return hashStructure(self)
-          } else {
-            return random(self)
           }
+          return hashStructure(self)
         })
       }
+      return random(self)
     }
     default:
       throw new Error(

@@ -8,7 +8,7 @@
 import type { Equivalence } from "../data/Equivalence.ts"
 import { hasProperty } from "../data/Predicate.ts"
 import * as Hash from "../interfaces/Hash.ts"
-import { getAllObjectKeys, isStructurallyComparable } from "../internal/equal.ts"
+import { getAllObjectKeys } from "../internal/equal.ts"
 
 /** @internal */
 const visitedLeft = new WeakSet<object>()
@@ -97,11 +97,13 @@ function withVisitedTracking(
   that: object,
   fn: () => boolean
 ): boolean {
+  const hasLeft = visitedLeft.has(self)
+  const hasRight = visitedRight.has(that)
   // Check for circular references before adding
-  if (visitedLeft.has(self) && visitedRight.has(that)) {
+  if (hasLeft && hasRight) {
     return true // Both are circular at the same level
   }
-  if (visitedLeft.has(self) || visitedRight.has(that)) {
+  if (hasLeft || hasRight) {
     return false // Only one is circular
   }
   visitedLeft.add(self)
@@ -123,43 +125,52 @@ function compareBoth(self: unknown, that: unknown): boolean {
   if (selfType === "number" && self !== self && that !== that) {
     return true
   }
+  if (selfType !== "object" && selfType !== "function") {
+    return false
+  }
+  if (self instanceof Date) {
+    if (!(that instanceof Date)) return false
+    return self.toISOString() === that.toISOString()
+  } else if (self instanceof RegExp) {
+    if (!(that instanceof RegExp)) return false
+    return self.toString() === that.toString()
+  }
   const selfIsEqual = isEqual(self)
   const thatIsEqual = isEqual(that)
   if (selfIsEqual !== thatIsEqual) {
     return false
   }
-  if (selfType === "object" || selfType === "function") {
-    if (self !== null && that !== null) {
-      return withVisitedTracking(self as object, that as object, () => {
-        if (selfIsEqual && thatIsEqual) {
-          if (self[Hash.symbol]() !== that[Hash.symbol]()) {
-            return false
-          }
-          return self[symbol](that)
-        } else if (self instanceof Date && that instanceof Date) {
-          return self.toISOString() === that.toISOString()
-        } else if (Array.isArray(self) && Array.isArray(that)) {
-          return compareArrays(self, that)
-        } else if (self instanceof Map && that instanceof Map) {
-          return compareMaps(self, that)
-        } else if (self instanceof Set && that instanceof Set) {
-          return compareSets(self, that)
-        } else if (isStructurallyComparable(self) && isStructurallyComparable(that)) {
-          return compareObjects(self, that)
-        } else {
-          return false
-        }
-      })
-    }
+  if (!selfIsEqual && selfType !== "object") {
+    return false
   }
-  return false
+  const bothEqual = selfIsEqual && thatIsEqual
+  if (bothEqual && (self[Hash.symbol]() !== that[Hash.symbol]())) {
+    return false
+  }
+  return withVisitedTracking(self as object, that as object, () => {
+    if (bothEqual) {
+      return self[symbol](that)
+    } else if (Array.isArray(self)) {
+      if (!Array.isArray(that) || self.length !== that.length) {
+        return false
+      }
+      return compareArrays(self, that)
+    } else if (self instanceof Map) {
+      if (!(that instanceof Map) || self.size !== that.size) {
+        return false
+      }
+      return compareMaps(self, that)
+    } else if (self instanceof Set) {
+      if (!(that instanceof Set) || self.size !== that.size) {
+        return false
+      }
+      return compareSets(self, that)
+    }
+    return compareObjects(self as any, that as any)
+  })
 }
 
 function compareArrays(self: Array<unknown>, that: Array<unknown>): boolean {
-  if (self.length !== that.length) {
-    return false
-  }
-
   for (let i = 0; i < self.length; i++) {
     if (!compareBoth(self[i], that[i])) {
       return false
@@ -177,7 +188,8 @@ function compareObjects(self: Record<PropertyKey, unknown>, that: Record<Propert
     return false
   }
 
-  for (const key of selfKeys) {
+  for (let i = 0; i < selfKeys.length; i++) {
+    const key = selfKeys[i]
     if (!(key in that) || !compareBoth(self[key], that[key])) {
       return false
     }
@@ -187,10 +199,6 @@ function compareObjects(self: Record<PropertyKey, unknown>, that: Record<Propert
 }
 
 function compareMaps(self: Map<unknown, unknown>, that: Map<unknown, unknown>): boolean {
-  if (self.size !== that.size) {
-    return false
-  }
-
   for (const [selfKey, selfValue] of self) {
     let found = false
     for (const [thatKey, thatValue] of that) {
@@ -208,10 +216,6 @@ function compareMaps(self: Map<unknown, unknown>, that: Map<unknown, unknown>): 
 }
 
 function compareSets(self: Set<unknown>, that: Set<unknown>): boolean {
-  if (self.size !== that.size) {
-    return false
-  }
-
   for (const selfValue of self) {
     let found = false
     for (const thatValue of that) {
