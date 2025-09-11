@@ -1,4 +1,4 @@
-import { Cause } from "effect"
+import { Cause, Exit } from "effect"
 import { Option, Predicate, Record } from "effect/data"
 import { Check, Schema, ToOptic } from "effect/schema"
 import { describe, it } from "vitest"
@@ -306,6 +306,17 @@ describe("ToOptic", () => {
       const modify = optic.modify((e) => new Error(e.message + "!"))
 
       deepStrictEqual(modify(new Error("a")), new Error("a!"))
+    })
+
+    it("Exit", () => {
+      const schema = Schema.Exit(Value, Schema.Error, Schema.Defect)
+      const optic = ToOptic.makeIso(schema).tag("Success").key("value").key("a")
+      const modify = optic.modify(addOne)
+
+      deepStrictEqual(
+        modify(Exit.succeed(Value.makeSync({ a: new Date(0) }))),
+        Exit.succeed(Value.makeSync({ a: new Date(1) }))
+      )
     })
   })
 })
