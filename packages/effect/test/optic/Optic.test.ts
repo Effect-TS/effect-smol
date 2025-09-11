@@ -95,7 +95,7 @@ describe("Optic", () => {
 
         assertSuccess(optic.getOptic({ a: 1, b: 2 }), 1)
         assertFailure(optic.getOptic({ b: 2 }), [`Key "a" not found`, { b: 2 }])
-        assertSuccess(optic.setOptic(2, { b: 2 }), { b: 2 })
+        assertFailure(optic.setOptic(2, { b: 2 }), [`Key "a" not found`, { b: 2 }])
         assertSuccess(optic.setOptic(2, { a: 1, b: 2 }), { a: 2, b: 2 })
       })
 
@@ -105,7 +105,7 @@ describe("Optic", () => {
 
         assertSuccess(optic.getOptic([1, 2]), 1)
         assertFailure(optic.getOptic([]), [`Key 0 not found`, []])
-        assertSuccess(optic.setOptic(2, []), [])
+        assertFailure(optic.setOptic(2, []), [`Key 0 not found`, []])
         assertSuccess(optic.setOptic(3, [1, 2]), [3, 2])
       })
     })
@@ -186,5 +186,26 @@ describe("Optic", () => {
 
     assertSuccess(optic.getOptic({ _tag: "a", a: "value" }), "value")
     assertFailure(optic.getOptic({ _tag: "b", b: 1 }), [`Expected "a" tag, got "b"`, { _tag: "b", b: 1 }])
+  })
+
+  it("some", () => {
+    const optic = Optic.id<Option.Option<number>>().compose(Optic.some())
+
+    assertSuccess(optic.getOptic(Option.some(1)), 1)
+    assertFailure(optic.getOptic(Option.none()), ["Expected a Some value, got none()", Option.none()])
+
+    assertSuccess(optic.setOptic(2, Option.some(1)), Option.some(2))
+    assertSuccess(optic.setOptic(2, Option.none()), Option.some(2))
+  })
+
+  it("charAt", () => {
+    const optic = Optic.id<string>().compose(Optic.charAt(0))
+
+    assertSuccess(optic.getOptic("abc"), "a")
+    assertFailure(optic.getOptic(""), ["Missing character at index 0", ""])
+    assertSuccess(optic.setOptic("d", "abc"), "dbc")
+    assertFailure(optic.setOptic("", "abc"), [`Expected a single character, got ""`, "abc"])
+    assertFailure(optic.setOptic("de", "abc"), [`Expected a single character, got "de"`, "abc"])
+    assertFailure(optic.setOptic("d", ""), ["Missing character at index 0", ""])
   })
 })
