@@ -140,15 +140,8 @@ function compareBoth(self: unknown, that: unknown): boolean {
   if (selfIsEqual !== thatIsEqual) {
     return false
   }
-  if (!selfIsEqual && selfType !== "object") {
-    return false
-  }
-  const bothEqual = selfIsEqual && thatIsEqual
-  if (bothEqual && (self[Hash.symbol]() !== that[Hash.symbol]())) {
-    return false
-  }
   return withVisitedTracking(self as object, that as object, () => {
-    if (bothEqual) {
+    if (selfIsEqual && thatIsEqual) {
       return self[symbol](that)
     } else if (Array.isArray(self)) {
       if (!Array.isArray(that) || self.length !== that.length) {
