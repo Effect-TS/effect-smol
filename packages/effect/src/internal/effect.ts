@@ -225,7 +225,7 @@ export const causeMerge: {
     const newCause = new CauseImpl<E | E2>(
       Arr.union(self.failures, that.failures)
     )
-    return self[Equal.symbol](newCause) ? self : newCause
+    return Equal.equals(self, newCause) ? self : newCause
   }
 )
 

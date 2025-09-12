@@ -31,7 +31,7 @@ export class EntityAddress extends Schema.Class<EntityAddress>(TypeId)({
    */
   [Equal.symbol](that: EntityAddress): boolean {
     return this.entityType === that.entityType && this.entityId === that.entityId &&
-      this.shardId[Equal.symbol](that.shardId)
+      Equal.equals(this.shardId, that.shardId)
   }
 
   /**

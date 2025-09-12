@@ -158,7 +158,7 @@ export class CauseImpl<E> implements Cause.Cause<E> {
     return (
       isCause(that) &&
       this.failures.length === that.failures.length &&
-      this.failures.every((e, i) => e[Equal.symbol](that.failures[i]))
+      this.failures.every((e, i) => Equal.equals(e, that.failures[i]))
     )
   }
   [Hash.symbol](): number {

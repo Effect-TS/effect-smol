@@ -284,7 +284,7 @@ const make = Effect.gen(function*() {
     ).pipe(
       Effect.flatMap((acquired) => {
         for (const shardId of acquiredShards) {
-          if (!acquired.some((_) => _[Equal.symbol](shardId))) {
+          if (!acquired.some((_) => Equal.equals(_, shardId))) {
             MutableHashSet.remove(acquiredShards, shardId)
             MutableHashSet.add(releasingShards, shardId)
           }

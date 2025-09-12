@@ -59,7 +59,7 @@ export class Runner extends Schema.Class<Runner>(TypeId)({
    * @since 4.0.0
    */
   [Equal.symbol](that: Runner): boolean {
-    return this.address[Equal.symbol](that.address) && this.version === that.version
+    return Equal.equals(this.address, that.address) && this.version === that.version
   }
 
   /**
