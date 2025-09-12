@@ -12,7 +12,7 @@ import { dual, pipe } from "../Function.ts"
 import { getAllObjectKeys } from "../internal/equal.ts"
 
 /** @internal */
-const randomHashCache = new WeakMap<object, number>()
+const randomHashCache = new WeakMap<any, number>()
 
 /** @internal */
 const visitedObjects = new WeakSet<object>()
@@ -70,10 +70,8 @@ export interface Hash {
  * objects, arrays, and other complex data structures. It automatically handles
  * different types and provides a consistent hash value for equivalent inputs.
  *
- * IMPORTANT: Once a hash is computed the object is frozen, it is unsafe to mutate
- * the object once the hash is known, for example if you were to add the object as
- * the key of a HashMap an then change the object the hash would also change and the
- * object would forever be a orphaned key
+ * IMPORTANT: Once a hash is computed the object it is cached, meaning if you then
+ * mutate the object the hash will not change.
  *
  * @example
  * ```ts
@@ -115,13 +113,15 @@ export const hash: <A>(self: A) => number = <A>(self: A) => {
         return string(self.toISOString())
       } else if (self instanceof RegExp) {
         return string(self.toString())
-      } else if (typeof self === "object") {
+      } else {
         if (randomHashCache.has(self)) {
           return randomHashCache.get(self)!
         }
         const h = withVisitedTracking(self, () => {
           if (isHash(self)) {
             return self[symbol]()
+          } else if (typeof self === "function") {
+            return random(self)
           } else if (Array.isArray(self)) {
             return hashArray(self)
           } else if (self instanceof Map) {
@@ -131,16 +131,27 @@ export const hash: <A>(self: A) => number = <A>(self: A) => {
           }
           return hashStructure(self)
         })
-        if (!Object.isFrozen(self)) Object.freeze(self)
         randomHashCache.set(self, h)
         return h
       }
-      return random(self)
     }
     default:
       throw new Error(
         `BUG: unhandled typeof ${typeof self} - please report an issue at https://github.com/Effect-TS/effect/issues`
       )
+  }
+}
+
+/**
+ * Clears the cache of a specific object allowing the hash to be re-computed
+ *
+ * @category hashing
+ * @since 4.0.0
+ */
+export const clearCache = <A>(obj: A) => {
+  const objType = typeof obj
+  if (objType === "object" || objType === "function") {
+    randomHashCache.delete(obj)
   }
 }
 
