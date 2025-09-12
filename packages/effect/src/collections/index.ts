@@ -93,6 +93,11 @@ export * as Graph from "./Graph.ts"
 export * as HashMap from "./HashMap.ts"
 
 /**
+ * @since 4.0.0
+ */
+export * as HashRing from "./HashRing.ts"
+
+/**
  * @since 2.0.0
  */
 export * as HashSet from "./HashSet.ts"
