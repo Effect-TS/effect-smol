@@ -364,3 +364,12 @@ export * as NonEmptyIterable from "./NonEmptyIterable.ts"
  * @since 2.0.0
  */
 export * as Trie from "./Trie.ts"
+
+/**
+ * This module provides a POSIX-compliant virtual filesystem implementation that operates entirely in memory.
+ * It offers a mutable, tree-shakable API following Effect library patterns for file and directory operations
+ * without requiring native filesystem dependencies.
+ *
+ * @since 4.0.0
+ */
+export * as MemoryFileSystem from "./MemoryFileSystem.ts"
