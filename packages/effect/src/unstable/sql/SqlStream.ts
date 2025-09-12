@@ -1,8 +1,8 @@
 /**
  * @since 4.0.0
  */
+import * as Exit from "../../data/Exit.ts"
 import * as Effect from "../../Effect.ts"
-import * as Exit from "../../Exit.ts"
 import * as Queue from "../../Queue.ts"
 import type * as Scope from "../../Scope.ts"
 import * as Stream from "../../stream/Stream.ts"

@@ -3,14 +3,12 @@
  */
 
 import * as Data from "../data/Data.ts"
+import { dual } from "../data/Function.ts"
 import * as Option from "../data/Option.ts"
-import { dual } from "../Function.ts"
 import * as Equal from "../interfaces/Equal.ts"
 import * as Hash from "../interfaces/Hash.ts"
-import type { Inspectable } from "../interfaces/Inspectable.ts"
-import { NodeInspectSymbol } from "../interfaces/Inspectable.ts"
-import type { Pipeable } from "../interfaces/Pipeable.ts"
-import { pipeArguments } from "../interfaces/Pipeable.ts"
+import { type Inspectable, NodeInspectSymbol } from "../interfaces/Inspectable.ts"
+import { type Pipeable, pipeArguments } from "../interfaces/Pipeable.ts"
 import type { Mutable } from "../types/Types.ts"
 
 const TypeId = "~effect/collections/Graph"
@@ -465,7 +463,7 @@ export const addNode = <N, E, T extends Kind = "directed">(
  * @example
  * ```ts
  * import { Graph } from "effect/collections"
- * import * as Option from "effect/data/Option"
+ * import { Option } from "effect/data"
  *
  * const graph = Graph.mutate(Graph.directed<string, number>(), (mutable) => {
  *   Graph.addNode(mutable, "Node A")
@@ -887,7 +885,7 @@ export const reverse = <N, E, T extends Kind = "directed">(
  * @example
  * ```ts
  * import { Graph } from "effect/collections"
- * import * as Option from "effect/data/Option"
+ * import { Option } from "effect/data"
  *
  * const graph = Graph.directed<string, number>((mutable) => {
  *   const a = Graph.addNode(mutable, "active")
@@ -939,7 +937,7 @@ export const filterMapNodes = <N, E, T extends Kind = "directed">(
  * @example
  * ```ts
  * import { Graph } from "effect/collections"
- * import * as Option from "effect/data/Option"
+ * import { Option } from "effect/data"
  *
  * const graph = Graph.directed<string, number>((mutable) => {
  *   const a = Graph.addNode(mutable, "A")
@@ -1559,7 +1557,7 @@ export const neighborsDirected = <N, E, T extends Kind = "directed">(
  *
  * @example
  * ```ts
- * import * as Graph from "effect/collections/Graph"
+ * import { Graph } from "effect/collections"
  *
  * // Basic options with custom labels
  * const basicOptions: Graph.GraphVizOptions<string, number> = {
@@ -1681,7 +1679,7 @@ export const toGraphViz = <N, E, T extends Kind = "directed">(
  *
  * @example
  * ```ts
- * import * as Graph from "effect/collections/Graph"
+ * import { Graph } from "effect/collections"
  *
  * // Shape selector function for different node types
  * const shapeSelector = (nodeData: string): Graph.MermaidNodeShape => {
@@ -1721,7 +1719,7 @@ export type MermaidNodeShape =
  *
  * @example
  * ```ts
- * import * as Graph from "effect/collections/Graph"
+ * import { Graph } from "effect/collections"
  *
  * // Horizontal workflow diagram
  * const horizontalOptions: Graph.MermaidOptions<string, string> = {
@@ -1761,7 +1759,7 @@ export type MermaidDirection =
  *
  * @example
  * ```ts
- * import * as Graph from "effect/collections/Graph"
+ * import { Graph } from "effect/collections"
  *
  * // Force flowchart format (even for undirected graphs)
  * const flowchartOptions: Graph.MermaidOptions<string, string> = {
@@ -1798,7 +1796,7 @@ export type MermaidDiagramType =
  *
  * @example
  * ```ts
- * import * as Graph from "effect/collections/Graph"
+ * import { Graph } from "effect/collections"
  *
  * // Basic options with custom labels
  * const basicOptions: Graph.MermaidOptions<string, number> = {
@@ -1905,7 +1903,7 @@ const formatMermaidNode = (
  *
  * @example
  * ```ts
- * import * as Graph from "effect/collections/Graph"
+ * import { Graph } from "effect/collections"
  *
  * // Basic directed graph export
  * const graph = Graph.directed<string, number>((mutable) => {
@@ -1928,7 +1926,7 @@ const formatMermaidNode = (
  *
  * @example
  * ```ts
- * import * as Graph from "effect/collections/Graph"
+ * import { Graph } from "effect/collections"
  *
  * // Undirected graph with custom labels and direction
  * const socialGraph = Graph.undirected<{name: string}, string>((mutable) => {
@@ -1955,7 +1953,7 @@ const formatMermaidNode = (
  *
  * @example
  * ```ts
- * import * as Graph from "effect/collections/Graph"
+ * import { Graph } from "effect/collections"
  *
  * // Advanced styling with node shapes for flowchart
  * const workflow = Graph.directed<{type: string, name: string}, string>((mutable) => {
@@ -1993,7 +1991,7 @@ const formatMermaidNode = (
  *
  * @example
  * ```ts
- * import * as Graph from "effect/collections/Graph"
+ * import { Graph } from "effect/collections"
  *
  * // Real-world example: Software dependency graph
  * interface Dependency {
@@ -2553,7 +2551,7 @@ export interface DijkstraConfig<E> {
  * @example
  * ```ts
  * import { Graph } from "effect/collections"
- * import * as Option from "effect/data/Option"
+ * import { Option } from "effect/data"
  *
  * const graph = Graph.directed<string, number>((mutable) => {
  *   const a = Graph.addNode(mutable, "A")

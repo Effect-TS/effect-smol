@@ -1,9 +1,9 @@
 /**
  * @since 2.0.0
  */
+import { dual } from "./data/Function.ts"
 import * as Option from "./data/Option.ts"
 import * as Effect from "./Effect.ts"
-import { dual } from "./Function.ts"
 import { PipeInspectableProto } from "./internal/core.ts"
 import * as Ref from "./Ref.ts"
 

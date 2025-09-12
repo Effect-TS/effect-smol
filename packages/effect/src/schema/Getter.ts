@@ -1,14 +1,14 @@
 /**
  * @since 4.0.0
  */
+import * as DateTime from "../data/DateTime.ts"
 import * as Option from "../data/Option.ts"
 import * as Predicate from "../data/Predicate.ts"
 import * as Result from "../data/Result.ts"
+import * as Str from "../data/String.ts"
 import * as Effect from "../Effect.ts"
 import * as Encoding from "../encoding/Encoding.ts"
 import { PipeableClass } from "../internal/schema/util.ts"
-import * as Str from "../primitives/String.ts"
-import * as DateTime from "../time/DateTime.ts"
 import type * as Annotations from "./Annotations.ts"
 import type * as AST from "./AST.ts"
 import * as Issue from "./Issue.ts"

@@ -2,7 +2,7 @@
  * @since 1.0.0
  */
 import * as Libsql from "@libsql/client"
-import * as Config from "effect/config/Config"
+import * as Config from "effect/Config"
 import * as Option from "effect/data/Option"
 import * as Redacted from "effect/data/Redacted"
 import * as Effect from "effect/Effect"

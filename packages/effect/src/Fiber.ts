@@ -18,9 +18,8 @@
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
+ * import { Effect, Fiber } from "effect"
  * import { Console } from "effect/logging"
- * import { Fiber } from "effect"
  *
  * // Basic fiber operations
  * const basicExample = Effect.gen(function* () {
@@ -74,16 +73,16 @@
  *
  * @since 2.0.0
  */
+import type { Exit } from "./data/Exit.ts"
 import { hasProperty } from "./data/Predicate.ts"
 import type { Effect } from "./Effect.ts"
-import type { Exit } from "./Exit.ts"
 import type { Pipeable } from "./interfaces/Pipeable.ts"
 import * as effect from "./internal/effect.ts"
 import { version } from "./internal/version.ts"
-import type { AnySpan, Span } from "./observability/Tracer.ts"
 import type { Scheduler } from "./Scheduler.ts"
 import type { Scope } from "./Scope.ts"
 import type * as ServiceMap from "./ServiceMap.ts"
+import type { AnySpan, Span } from "./Tracer.ts"
 import type { Covariant } from "./types/Types.ts"
 
 const TypeId = `~effect/Fiber/${version}`
@@ -96,8 +95,7 @@ const TypeId = `~effect/Fiber/${version}`
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Fiber } from "effect"
+ * import { Effect, Fiber } from "effect"
  *
  * const program = Effect.gen(function* () {
  *   // Fork an effect to run in a new fiber
@@ -136,8 +134,7 @@ export interface Fiber<out A, out E = never> extends Pipeable {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Fiber } from "effect"
+ * import { Effect, Fiber } from "effect"
  *
  * const program = Effect.gen(function* () {
  *   // Create a fiber
@@ -188,8 +185,7 @@ export {
    *
    * @example
    * ```ts
-   * import { Effect } from "effect"
-   * import { Fiber } from "effect"
+   * import { Effect, Fiber } from "effect"
    *
    * const program = Effect.gen(function* () {
    *   const fiber = yield* Effect.fork(Effect.succeed(42))
@@ -209,8 +205,7 @@ export {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Fiber } from "effect"
+ * import { Effect, Fiber } from "effect"
  *
  * const program = Effect.gen(function* () {
  *   const fiber1 = yield* Effect.fork(Effect.succeed(1))
@@ -240,8 +235,7 @@ export const awaitAll: <A extends Fiber<any, any>>(
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Fiber } from "effect"
+ * import { Effect, Fiber } from "effect"
  *
  * const program = Effect.gen(function* () {
  *   const fiber = yield* Effect.fork(Effect.succeed(42))
@@ -261,8 +255,7 @@ export const join: <A, E>(self: Fiber<A, E>) => Effect<A, E> = effect.fiberJoin
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Fiber } from "effect"
+ * import { Effect, Fiber } from "effect"
  *
  * const program = Effect.gen(function* () {
  *   const fiber = yield* Effect.fork(Effect.delay("1 second")(Effect.succeed(42)))
@@ -282,8 +275,7 @@ export const interrupt: <A, E>(self: Fiber<A, E>) => Effect<void> = effect.fiber
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Fiber } from "effect"
+ * import { Effect, Fiber } from "effect"
  *
  * const program = Effect.gen(function* () {
  *   const targetFiber = yield* Effect.fork(
@@ -310,9 +302,8 @@ export const interruptAs: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
+ * import { Effect, Fiber } from "effect"
  * import { Console } from "effect/logging"
- * import { Fiber } from "effect"
  *
  * const program = Effect.gen(function* () {
  *   // Create multiple long-running fibers
@@ -362,9 +353,8 @@ export const interruptAll: <A extends Iterable<Fiber<any, any>>>(
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
+ * import { Effect, Fiber } from "effect"
  * import { Console } from "effect/logging"
- * import { Fiber } from "effect"
  *
  * const program = Effect.gen(function* () {
  *   // Create a controlling fiber
@@ -409,8 +399,7 @@ export const interruptAllAs: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Fiber } from "effect"
+ * import { Effect, Fiber } from "effect"
  *
  * const program = Effect.gen(function* () {
  *   // Create a fiber
@@ -444,8 +433,7 @@ export const isFiber = (
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Fiber } from "effect"
+ * import { Effect, Fiber } from "effect"
  *
  * const program = Effect.gen(function* () {
  *   const current = Fiber.getCurrent()

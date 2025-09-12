@@ -1,16 +1,16 @@
 /**
  * @since 1.0.0
  */
-import * as Config from "effect/config/Config"
+import * as Config from "effect/Config"
+import { Duration } from "effect/data"
+import { identity } from "effect/data/Function"
 import * as Redacted from "effect/data/Redacted"
 import * as Effect from "effect/Effect"
-import { identity } from "effect/Function"
 import * as Layer from "effect/Layer"
 import * as Pool from "effect/Pool"
 import * as Scope from "effect/Scope"
 import * as ServiceMap from "effect/ServiceMap"
 import * as Stream from "effect/stream/Stream"
-import * as Duration from "effect/time/Duration"
 import * as Reactivity from "effect/unstable/reactivity/Reactivity"
 import * as Client from "effect/unstable/sql/SqlClient"
 import type { Connection } from "effect/unstable/sql/SqlConnection"

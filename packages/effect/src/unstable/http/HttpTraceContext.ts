@@ -1,7 +1,7 @@
 /**
  * @since 4.0.0
  */
-import * as Tracer from "../../observability/Tracer.ts"
+import * as Tracer from "../../Tracer.ts"
 import * as Headers from "./Headers.ts"
 
 /**

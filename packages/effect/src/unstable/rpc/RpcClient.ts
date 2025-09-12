@@ -1,16 +1,15 @@
 /**
  * @since 4.0.0
  */
-import * as Cause from "../../Cause.ts"
 import type { NonEmptyReadonlyArray } from "../../collections/Array.ts"
+import * as Cause from "../../data/Cause.ts"
+import * as Exit from "../../data/Exit.ts"
 import * as Filter from "../../data/Filter.ts"
+import { constVoid, dual, identity } from "../../data/Function.ts"
 import type * as Struct from "../../data/Struct.ts"
 import * as Effect from "../../Effect.ts"
-import * as Exit from "../../Exit.ts"
 import * as Fiber from "../../Fiber.ts"
-import { constVoid, dual, identity } from "../../Function.ts"
 import * as Layer from "../../Layer.ts"
-import type { Span } from "../../observability/Tracer.ts"
 import * as Queue from "../../Queue.ts"
 import * as Schedule from "../../Schedule.ts"
 import * as Schema from "../../schema/Schema.ts"
@@ -18,6 +17,7 @@ import * as Serializer from "../../schema/Serializer.ts"
 import * as Scope from "../../Scope.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import * as Stream from "../../stream/Stream.ts"
+import type { Span } from "../../Tracer.ts"
 import type { Mutable } from "../../types/Types.ts"
 import * as Headers from "../http/Headers.ts"
 import * as HttpBody from "../http/HttpBody.ts"
@@ -27,8 +27,15 @@ import * as Socket from "../socket/Socket.ts"
 import * as Rpc from "./Rpc.ts"
 import { RpcClientError } from "./RpcClientError.ts"
 import type * as RpcGroup from "./RpcGroup.ts"
-import type { FromClient, FromClientEncoded, FromServer, FromServerEncoded, Request } from "./RpcMessage.ts"
-import { constPing, RequestId } from "./RpcMessage.ts"
+import {
+  constPing,
+  type FromClient,
+  type FromClientEncoded,
+  type FromServer,
+  type FromServerEncoded,
+  type Request,
+  RequestId
+} from "./RpcMessage.ts"
 import type * as RpcMiddleware from "./RpcMiddleware.ts"
 import * as RpcSchema from "./RpcSchema.ts"
 import * as RpcSerialization from "./RpcSerialization.ts"

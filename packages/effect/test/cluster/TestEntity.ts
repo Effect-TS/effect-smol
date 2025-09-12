@@ -1,10 +1,8 @@
 import { Effect, Layer, MutableRef, Queue, Schedule, ServiceMap } from "effect"
 import { Schema } from "effect/schema"
 import { Stream } from "effect/stream"
-import type { Envelope } from "effect/unstable/cluster"
-import { ClusterSchema, Entity } from "effect/unstable/cluster"
-import type { RpcGroup } from "effect/unstable/rpc"
-import { Rpc, RpcSchema } from "effect/unstable/rpc"
+import { ClusterSchema, Entity, type Envelope } from "effect/unstable/cluster"
+import { Rpc, type RpcGroup, RpcSchema } from "effect/unstable/rpc"
 
 export class User extends Schema.Class<User>("User")({
   id: Schema.Number,

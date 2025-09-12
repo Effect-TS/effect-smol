@@ -1,9 +1,9 @@
 /**
  * @since 4.0.0
  */
-import type * as Cause from "../../Cause.ts"
+import type * as Cause from "../../data/Cause.ts"
+import type * as Exit from "../../data/Exit.ts"
 import * as Effect from "../../Effect.ts"
-import type * as Exit from "../../Exit.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import type * as Activity from "./Activity.ts"
 import type { DurableClock } from "./DurableClock.ts"

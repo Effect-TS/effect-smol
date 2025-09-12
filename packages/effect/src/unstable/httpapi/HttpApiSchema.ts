@@ -1,11 +1,11 @@
 /**
  * @since 4.0.0
  */
-import type { YieldableError } from "../../Cause.ts"
 import * as Iterable from "../../collections/Iterable.ts"
 import type { Brand } from "../../data/Brand.ts"
+import type { YieldableError } from "../../data/Cause.ts"
+import { constant, constVoid, dual, type LazyArg } from "../../data/Function.ts"
 import * as Predicate from "../../data/Predicate.ts"
-import { constant, constVoid, dual, type LazyArg } from "../../Function.ts"
 import type * as FileSystem from "../../platform/FileSystem.ts"
 import type * as Annotations from "../../schema/Annotations.ts"
 import * as AST from "../../schema/AST.ts"

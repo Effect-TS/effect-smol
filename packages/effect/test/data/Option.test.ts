@@ -1,5 +1,4 @@
-import { Option } from "effect/data"
-import { Number } from "effect/primitives"
+import { Number, Option } from "effect/data"
 import { describe, it } from "vitest"
 import { deepStrictEqual } from "../utils/assert.ts"
 

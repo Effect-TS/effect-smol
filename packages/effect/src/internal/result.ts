@@ -1,7 +1,7 @@
+import { dual } from "../data/Function.ts"
 import type { Option } from "../data/Option.ts"
 import { hasProperty } from "../data/Predicate.ts"
 import type * as Result from "../data/Result.ts"
-import { dual } from "../Function.ts"
 import * as Equal from "../interfaces/Equal.ts"
 import * as Hash from "../interfaces/Hash.ts"
 import { format, toJson } from "../interfaces/Inspectable.ts"

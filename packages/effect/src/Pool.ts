@@ -1,20 +1,20 @@
 /**
  * @since 2.0.0
  */
-import type * as Cause from "./Cause.ts"
+import { Clock } from "./Clock.ts"
 import * as Iterable from "./collections/Iterable.ts"
+import type * as Cause from "./data/Cause.ts"
+import * as Duration from "./data/Duration.ts"
+import type * as Exit from "./data/Exit.ts"
+import { dual, identity } from "./data/Function.ts"
 import { hasProperty } from "./data/Predicate.ts"
 import * as Effect from "./Effect.ts"
-import type * as Exit from "./Exit.ts"
 import * as Fiber from "./Fiber.ts"
-import { dual, identity } from "./Function.ts"
 import { type Pipeable, pipeArguments } from "./interfaces/Pipeable.ts"
 import * as Queue from "./Queue.ts"
 import { UnhandledLogLevel } from "./References.ts"
 import * as Scope from "./Scope.ts"
 import * as ServiceMap from "./ServiceMap.ts"
-import { Clock } from "./time/Clock.ts"
-import * as Duration from "./time/Duration.ts"
 
 const TypeId = "~effect/Pool"
 
@@ -143,7 +143,8 @@ export const make = <A, E, R>(options: {
  *
  * ```ts skip-type-checking
  * import { createConnection } from "mysql2";
- * import { Duration, Effect, Pool } from "effect"
+ * import { Effect, Pool } from "effect"
+ * import { Duration } from "effect/data"
  *
  * const acquireDBConnection = Effect.acquireRelease(
  *   Effect.sync(() => createConnection('mysql://...')),

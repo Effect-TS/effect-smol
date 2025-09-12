@@ -1,9 +1,9 @@
 /**
  * @since 2.0.0
  */
+import * as Exit from "./data/Exit.ts"
 import { hasProperty } from "./data/Predicate.ts"
 import * as Effect from "./Effect.ts"
-import * as Exit from "./Exit.ts"
 import * as Fiber from "./Fiber.ts"
 import * as Layer from "./Layer.ts"
 import * as Scope from "./Scope.ts"
@@ -135,11 +135,8 @@ export interface ManagedRuntime<in R, out ER> {
  * @category runtime class
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Layer } from "effect"
+ * import { Effect, Layer, ManagedRuntime, ServiceMap } from "effect"
  * import { Console } from "effect/logging"
- * import { ServiceMap } from "effect"
- * import { ManagedRuntime } from "effect"
  *
  * class Notifications extends ServiceMap.Key<
  *   Notifications,

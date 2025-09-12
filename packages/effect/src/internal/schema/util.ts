@@ -1,5 +1,4 @@
-import type { Pipeable } from "../../interfaces/Pipeable.ts"
-import { pipeArguments } from "../../interfaces/Pipeable.ts"
+import { type Pipeable, pipeArguments } from "../../interfaces/Pipeable.ts"
 import type * as AST from "../../schema/AST.ts"
 
 /** @internal */

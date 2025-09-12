@@ -2,15 +2,15 @@
  * @since 4.0.0
  */
 import * as Data from "../../data/Data.ts"
+import * as Duration from "../../data/Duration.ts"
+import { dual, identity } from "../../data/Function.ts"
 import * as Predicate from "../../data/Predicate.ts"
 import * as Record from "../../data/Record.ts"
 import * as Result from "../../data/Result.ts"
-import { dual, identity } from "../../Function.ts"
 import * as Inspectable from "../../interfaces/Inspectable.ts"
 import { type Pipeable, pipeArguments } from "../../interfaces/Pipeable.ts"
 import * as Schema from "../../schema/Schema.ts"
 import * as Transformation from "../../schema/Transformation.ts"
-import * as Duration from "../../time/Duration.ts"
 import type * as Types from "../../types/Types.ts"
 
 const TypeId = "~effect/http/Cookies"

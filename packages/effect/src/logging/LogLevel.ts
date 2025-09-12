@@ -215,8 +215,7 @@ export const greaterThan: {
  *
  * @example
  * ```ts
- * import { LogLevel } from "effect/logging"
- * import { Logger } from "effect/logging"
+ * import { LogLevel, Logger } from "effect/logging"
  *
  * // Check if level meets minimum threshold
  * console.log(LogLevel.greaterThanOrEqualTo("Error", "Error")) // true
@@ -294,8 +293,7 @@ export const lessThan: {
  *
  * @example
  * ```ts
- * import { LogLevel } from "effect/logging"
- * import { Logger } from "effect/logging"
+ * import { LogLevel, Logger } from "effect/logging"
  *
  * // Check if level is at or below threshold
  * console.log(LogLevel.lessThanOrEqualTo("Info", "Info")) // true

@@ -2,10 +2,10 @@
  * @since 4.0.0
  */
 import type { Brand } from "../../data/Brand.ts"
+import { constant, dual } from "../../data/Function.ts"
 import * as Predicate from "../../data/Predicate.ts"
 import * as Struct_ from "../../data/Struct.ts"
 import * as Effect from "../../Effect.ts"
-import { constant, dual } from "../../Function.ts"
 import { type Pipeable, pipeArguments } from "../../interfaces/Pipeable.ts"
 import type * as Annotations from "../../schema/Annotations.ts"
 import type * as AST from "../../schema/AST.ts"

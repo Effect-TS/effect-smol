@@ -1,7 +1,7 @@
 /**
  * @since 4.0.0
  */
-import * as Config from "../../config/Config.ts"
+import * as Config from "../../Config.ts"
 import * as Effect from "../../Effect.ts"
 import * as Inspectable from "../../interfaces/Inspectable.ts"
 import * as Schema from "../../schema/Schema.ts"

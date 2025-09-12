@@ -1,9 +1,9 @@
 /**
  * @since 4.0.0
  */
+import { identity } from "../../data/Function.ts"
 import type * as Record from "../../data/Record.ts"
 import * as Effect from "../../Effect.ts"
-import { identity } from "../../Function.ts"
 import { type Pipeable } from "../../interfaces/Pipeable.ts"
 import * as Layer from "../../Layer.ts"
 import type * as Queue from "../../Queue.ts"

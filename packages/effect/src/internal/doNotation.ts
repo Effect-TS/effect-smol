@@ -1,4 +1,4 @@
-import { dual } from "../Function.ts"
+import { dual } from "../data/Function.ts"
 import type { Kind, TypeLambda } from "../types/HKT.ts"
 import type { NoInfer } from "../types/Types.ts"
 

@@ -6,6 +6,7 @@
 import * as moduleIterable from "../collections/Iterable.ts"
 import * as Equivalence from "../data/Equivalence.ts"
 import * as Filter from "../data/Filter.ts"
+import { dual, identity, type LazyArg } from "../data/Function.ts"
 import * as Option from "../data/Option.ts"
 import * as Order from "../data/Order.ts"
 import * as Predicate from "../data/Predicate.ts"
@@ -13,8 +14,6 @@ import * as Record from "../data/Record.ts"
 import * as Reducer from "../data/Reducer.ts"
 import * as Result from "../data/Result.ts"
 import * as Tuple from "../data/Tuple.ts"
-import type { LazyArg } from "../Function.ts"
-import { dual, identity } from "../Function.ts"
 import * as Equal from "../interfaces/Equal.ts"
 import * as internalArray from "../internal/array.ts"
 import * as internalDoNotation from "../internal/doNotation.ts"
@@ -247,7 +246,7 @@ export const fromRecord: <K extends string, A>(self: Readonly<Record<K, A>>) => 
  * @example
  * ```ts
  * import { Array } from "effect/collections"
- * import * as Option from "effect/data/Option"
+ * import { Option } from "effect/data"
  *
  * console.log(Array.fromOption(Option.some(1))) // [1]
  * console.log(Array.fromOption(Option.none())) // []
@@ -2682,7 +2681,7 @@ export const flatten: <S extends ReadonlyArray<ReadonlyArray<any>>>(self: S) => 
  *
  * ```ts
  * import { Array } from "effect/collections"
- * import * as Option from "effect/data/Option"
+ * import { Option } from "effect/data"
  *
  * const evenSquares = (x: number) => x % 2 === 0 ? Option.some(x * x) : Option.none()
  *
@@ -2720,7 +2719,7 @@ export const filterMap: {
  *
  * ```ts
  * import { Array } from "effect/collections"
- * import * as Option from "effect/data/Option"
+ * import { Option } from "effect/data"
  *
  * const toSquareTillOdd = (x: number) => x % 2 === 0 ? Option.some(x * x) : Option.none()
  *
@@ -2827,7 +2826,7 @@ export const partitionFilter: {
  *
  * ```ts
  * import { Array } from "effect/collections"
- * import * as Option from "effect/data/Option"
+ * import { Option } from "effect/data"
  *
  * const result = Array.getSomes([Option.some(1), Option.none(), Option.some(2)])
  * console.log(result) // [1, 2]
@@ -3076,7 +3075,7 @@ export const liftPredicate: { // Note: I intentionally avoid using the NoInfer p
  * @example
  * ```ts
  * import { Array } from "effect/collections"
- * import * as Option from "effect/data/Option"
+ * import { Option } from "effect/data"
  *
  * const parseNumber = Array.liftOption((s: string) => {
  *   const n = Number(s)

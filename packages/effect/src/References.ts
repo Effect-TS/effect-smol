@@ -10,12 +10,12 @@
  *
  * @since 4.0.0
  */
+import { constTrue } from "./data/Function.ts"
 import type { ReadonlyRecord } from "./data/Record.ts"
-import { constTrue } from "./Function.ts"
 import type { LogLevel } from "./logging/LogLevel.ts"
-import { DisablePropagation, type SpanLink, Tracer } from "./observability/Tracer.ts"
 import { MaxOpsBeforeYield } from "./Scheduler.ts"
 import * as ServiceMap from "./ServiceMap.ts"
+import { DisablePropagation, type SpanLink, Tracer } from "./Tracer.ts"
 
 export {
   /**
@@ -41,8 +41,7 @@ export {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { References } from "effect"
+ * import { Effect, References } from "effect"
  *
  * const limitConcurrency = Effect.gen(function* () {
  *   // Get current setting
@@ -85,9 +84,8 @@ export {
    *
    * @example
    * ```ts
-   * import { Effect } from "effect"
-   * import { References } from "effect"
-   * import { Scheduler } from "effect"
+   * import { Effect, References, Scheduler } from "effect"
+
    *
    * const customScheduling = Effect.gen(function* () {
    *   // Get current scheduler (default is MixedScheduler)
@@ -121,8 +119,7 @@ export {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { References } from "effect"
+ * import { Effect, References } from "effect"
  *
  * const tracingControl = Effect.gen(function* () {
  *   // Check if tracing is enabled (default is true)
@@ -170,8 +167,7 @@ export const TracerEnabled = ServiceMap.Reference<boolean>("effect/References/Tr
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { References } from "effect"
+ * import { Effect, References } from "effect"
  *
  * const spanAnnotationExample = Effect.gen(function* () {
  *   // Get current annotations (empty by default)
@@ -226,9 +222,7 @@ export const TracerSpanAnnotations = ServiceMap.Reference<ReadonlyRecord<string,
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { References } from "effect"
- * import { Tracer } from "effect/observability"
+ * import { Effect, References, Tracer } from "effect"
  *
  * const spanLinksExample = Effect.gen(function* () {
  *   // Get current links (empty by default)
@@ -292,8 +286,8 @@ export const TracerSpanLinks = ServiceMap.Reference<ReadonlyArray<SpanLink>>("ef
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { References } from "effect"
+ * import { Effect, References } from "effect"
+
  * import { Console } from "effect/logging"
  *
  * const logAnnotationExample = Effect.gen(function* () {
@@ -352,8 +346,8 @@ export const CurrentLogAnnotations = ServiceMap.Reference<ReadonlyRecord<string,
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { References } from "effect"
+ * import { Effect, References } from "effect"
+
  * import { Console } from "effect/logging"
  *
  * const dynamicLogging = Effect.gen(function* () {
@@ -412,8 +406,8 @@ export const UnhandledLogLevel: ServiceMap.Reference<LogLevel | undefined> = Ser
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { References } from "effect"
+ * import { Effect, References } from "effect"
+
  * import { Console } from "effect/logging"
  *
  * const logSpanExample = Effect.gen(function* () {
@@ -476,8 +470,8 @@ export const CurrentLogSpans = ServiceMap.Reference<
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { References } from "effect"
+ * import { Effect, References } from "effect"
+
  * import { Console } from "effect/logging"
  *
  * const configureMinimumLogging = Effect.gen(function* () {

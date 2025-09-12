@@ -1,8 +1,8 @@
 /**
  * @since 4.0.0
  */
+import { dual } from "../../data/Function.ts"
 import * as Effect from "../../Effect.ts"
-import { dual } from "../../Function.ts"
 import * as Inspectable from "../../interfaces/Inspectable.ts"
 import type { ParseOptions } from "../../schema/AST.ts"
 import * as Schema from "../../schema/Schema.ts"

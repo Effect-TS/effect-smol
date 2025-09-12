@@ -1,9 +1,9 @@
 /**
  * @since 4.0.0
  */
+import { identity } from "../../data/Function.ts"
 import * as Predicate from "../../data/Predicate.ts"
 import * as Effect from "../../Effect.ts"
-import { identity } from "../../Function.ts"
 import type { Inspectable } from "../../interfaces/Inspectable.ts"
 import type { Pipeable } from "../../interfaces/Pipeable.ts"
 import { PipeInspectableProto, YieldableProto } from "../../internal/core.ts"

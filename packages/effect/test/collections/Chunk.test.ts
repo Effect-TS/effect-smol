@@ -12,12 +12,11 @@ import {
   throws
 } from "@effect/vitest/utils"
 import { Array as Arr, Chunk } from "effect/collections"
-import type { Predicate } from "effect/data"
-import { Option, Order, Result } from "effect/data"
-import { identity, pipe } from "effect/Function"
+import { Function, Number as Num, Option, Order, type Predicate, Result } from "effect/data"
 import { Equal } from "effect/interfaces"
-import { Number as Num } from "effect/primitives"
 import { FastCheck as fc } from "effect/testing"
+
+const { identity, pipe } = Function
 
 const assertTuple = <A, B>(
   actual: [Chunk.Chunk<A>, Chunk.Chunk<B>],

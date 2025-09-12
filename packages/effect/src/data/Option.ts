@@ -1,15 +1,12 @@
 /**
  * @since 2.0.0
  */
-import type { NoSuchElementError } from "../Cause.ts"
 import * as Equivalence from "../data/Equivalence.ts"
 import type { Order } from "../data/Order.ts"
 import * as order from "../data/Order.ts"
 import type { Predicate, Refinement } from "../data/Predicate.ts"
 import type { Result } from "../data/Result.ts"
 import type { EffectIterator, Yieldable } from "../Effect.ts"
-import type { LazyArg } from "../Function.ts"
-import { constNull, constUndefined, dual, identity, isFunction } from "../Function.ts"
 import * as Equal from "../interfaces/Equal.ts"
 import type { Inspectable } from "../interfaces/Inspectable.ts"
 import type { Pipeable } from "../interfaces/Pipeable.ts"
@@ -20,7 +17,9 @@ import type { TypeLambda } from "../types/HKT.ts"
 import type { Covariant, NoInfer, NotFunction } from "../types/Types.ts"
 import type * as Unify from "../types/Unify.ts"
 import * as Gen from "../Utils.ts"
+import type { NoSuchElementError } from "./Cause.ts"
 import * as Combiner from "./Combiner.ts"
+import { constNull, constUndefined, dual, identity, isFunction, type LazyArg } from "./Function.ts"
 import * as Reducer from "./Reducer.ts"
 
 const TypeId = "~effect/data/Option"
@@ -101,7 +100,7 @@ export interface Some<out A> extends Pipeable, Inspectable, Yieldable<Option<A>,
  * @example
  * ```ts
  * import { Option } from "effect/data"
- * import * as Unify from "effect/types/Unify"
+ * import { Unify } from "effect/types"
  *
  * // Internal unification interface used by the Effect library
  * // for type-level operations with Option types
@@ -463,8 +462,7 @@ export const fromIterable = <A>(collection: Iterable<A>): Option<A> => {
  *
  * @example
  * ```ts
- * import { Result } from "effect/data"
- * import { Option } from "effect/data"
+ * import { Result, Option } from "effect/data"
  *
  * console.log(Option.getSuccess(Result.succeed("ok")))
  * // Output: { _id: 'Option', _tag: 'Some', value: 'ok' }
@@ -498,8 +496,7 @@ export const getSuccess: <A, E>(self: Result<A, E>) => Option<A> = result.getSuc
  *
  * @example
  * ```ts
- * import { Result } from "effect/data"
- * import { Option } from "effect/data"
+ * import { Result, Option } from "effect/data"
  *
  * console.log(Option.getFailure(Result.succeed("ok")))
  * // Output: { _id: 'Option', _tag: 'None' }
@@ -659,8 +656,7 @@ export const orElseSome: {
  *
  * @example
  * ```ts
- * import { Result } from "effect/data"
- * import { Option } from "effect/data"
+ * import { Result, Option } from "effect/data"
  *
  * const primary = Option.some("primary")
  * const fallback = () => Option.some("fallback")
@@ -1808,8 +1804,7 @@ export const toArray = <A>(self: Option<A>): Array<A> => isNone(self) ? [] : [se
  *
  * @example
  * ```ts
- * import { Result } from "effect/data"
- * import { Option } from "effect/data"
+ * import { Result, Option } from "effect/data"
  *
  * const parseNumber = (s: string): Result.Result<number, string> => {
  *   const n = Number(s)
@@ -1934,10 +1929,9 @@ export const filter: {
  *
  * @example
  * ```ts
- * import { Option } from "effect/data"
- * import * as N from "effect/primitives/Number"
+ * import { Number, Option } from "effect/data"
  *
- * const isEquivalent = Option.getEquivalence(N.Equivalence)
+ * const isEquivalent = Option.getEquivalence(Number.Equivalence)
  *
  * console.log(isEquivalent(Option.none(), Option.none()))
  * // Output: true
@@ -1976,10 +1970,9 @@ export const getEquivalence = <A>(isEquivalent: Equivalence.Equivalence<A>): Equ
  *
  * @example
  * ```ts
- * import { Option } from "effect/data"
- * import * as N from "effect/primitives/Number"
+ * import { Number, Option } from "effect/data"
  *
- * const order = Option.getOrder(N.Order)
+ * const order = Option.getOrder(Number.Order)
  *
  * console.log(order(Option.none(), Option.none()))
  * // Output: 0
@@ -2104,10 +2097,9 @@ export const liftPredicate: { // Note: I intentionally avoid using the NoInfer p
  *
  * @example
  * ```ts
- * import { Option } from "effect/data"
- * import * as N from "effect/primitives/Number"
+ * import { Number, Option } from "effect/data"
  *
- * const contains = Option.containsWith(N.Equivalence)
+ * const contains = Option.containsWith(Number.Equivalence)
  *
  * console.log(Option.some(2).pipe(contains(2)))
  * // Output: true

@@ -2,10 +2,10 @@
  * @since 1.0.0
  */
 import { NodeWS as WS } from "@effect/platform-node-shared/NodeSocket"
+import type { Duration } from "effect/data"
+import { flow } from "effect/data/Function"
 import type * as Effect from "effect/Effect"
-import { flow } from "effect/Function"
 import * as Layer from "effect/Layer"
-import type * as Duration from "effect/time/Duration"
 import * as Socket from "effect/unstable/socket/Socket"
 
 /**

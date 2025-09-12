@@ -1,11 +1,11 @@
 import { assert, describe, it } from "@effect/vitest"
-import { Effect, Exit, Fiber, Queue } from "effect"
+import { Effect, Fiber, Queue } from "effect"
 import { Array } from "effect/collections"
 import { isReadonlyArrayNonEmpty, type NonEmptyArray } from "effect/collections/Array"
-import { Filter, Option } from "effect/data"
-import { constTrue } from "effect/Function"
+import { Exit, Filter, Option } from "effect/data"
+import { constTrue } from "effect/data/Function"
 import { Sink, Stream } from "effect/stream"
-import * as fc from "effect/testing/FastCheck"
+import { FastCheck } from "effect/testing"
 import { assertFailure } from "./utils/assert.ts"
 
 describe("Stream", () => {
@@ -314,8 +314,8 @@ describe("Stream", () => {
   it.effect.prop(
     "rechunk",
     {
-      chunks: fc.array(fc.array(fc.integer()), { minLength: 1 }),
-      size: fc.integer({ min: 1, max: 100 })
+      chunks: FastCheck.array(FastCheck.array(FastCheck.integer()), { minLength: 1 }),
+      size: FastCheck.integer({ min: 1, max: 100 })
     },
     Effect.fnUntraced(function*({ chunks, size }) {
       const actual = yield* Stream.fromArray(chunks).pipe(

@@ -1,8 +1,8 @@
 /**
  * @since 4.0.0
  */
+import { dual } from "../../data/Function.ts"
 import * as Effect from "../../Effect.ts"
-import { dual } from "../../Function.ts"
 import * as Layer from "../../Layer.ts"
 import * as FileSystem from "../../platform/FileSystem.ts"
 import * as Path from "../../platform/Path.ts"

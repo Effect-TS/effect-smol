@@ -1,7 +1,7 @@
 /**
  * @since 1.0.0
  */
-import { pipe } from "effect/Function"
+import { pipe } from "effect/data/Function"
 import * as Layer from "effect/Layer"
 import * as EtagImpl from "effect/unstable/http/Etag"
 import * as Headers from "effect/unstable/http/Headers"

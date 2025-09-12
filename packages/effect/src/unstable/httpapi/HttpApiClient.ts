@@ -1,11 +1,11 @@
 /**
  * @since 4.0.0
  */
-import * as Cause from "../../Cause.ts"
+import * as Cause from "../../data/Cause.ts"
+import { identity } from "../../data/Function.ts"
 import * as Option from "../../data/Option.ts"
 import type * as Predicate from "../../data/Predicate.ts"
 import * as Effect from "../../Effect.ts"
-import { identity } from "../../Function.ts"
 import * as AST from "../../schema/AST.ts"
 import * as Issue from "../../schema/Issue.ts"
 import * as Schema from "../../schema/Schema.ts"

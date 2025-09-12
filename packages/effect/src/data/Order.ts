@@ -16,8 +16,8 @@
  *
  * @since 2.0.0
  */
-import { dual } from "../Function.ts"
 import type { TypeLambda } from "../types/HKT.ts"
+import { dual } from "./Function.ts"
 import type { Ordering } from "./Ordering.ts"
 import * as Reducer from "./Reducer.ts"
 
@@ -674,8 +674,7 @@ export const max = <A>(O: Order<A>): {
  * @example
  * ```ts
  * import * as assert from "node:assert"
- * import { Order } from "effect/data"
- * import * as N from "effect/primitives/Number"
+ * import { Number as N, Order } from "effect/data"
  *
  * const clamp = Order.clamp(N.Order)({ minimum: 1, maximum: 5 })
  *

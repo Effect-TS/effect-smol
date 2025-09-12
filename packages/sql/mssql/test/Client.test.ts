@@ -1,7 +1,7 @@
 import { MssqlClient } from "@effect/sql-mssql"
 import { describe, expect, it } from "@effect/vitest"
 import { Effect } from "effect"
-import * as Statement from "effect/unstable/sql/Statement"
+import { Statement } from "effect/unstable/sql"
 
 const sql = Statement.make(Effect.void as any, MssqlClient.makeCompiler(), [], undefined)
 

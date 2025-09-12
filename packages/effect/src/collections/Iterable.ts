@@ -31,6 +31,7 @@
  */
 
 import type { NonEmptyArray } from "../collections/Array.ts"
+import { dual, identity } from "../data/Function.ts"
 import type { Option } from "../data/Option.ts"
 import * as O from "../data/Option.ts"
 import { isBoolean } from "../data/Predicate.ts"
@@ -38,7 +39,6 @@ import type * as Record from "../data/Record.ts"
 import type { Result } from "../data/Result.ts"
 import * as R from "../data/Result.ts"
 import * as Tuple from "../data/Tuple.ts"
-import { dual, identity } from "../Function.ts"
 import * as Equal from "../interfaces/Equal.ts"
 import type { NoInfer } from "../types/Types.ts"
 
@@ -405,7 +405,7 @@ export const size = <A>(self: Iterable<A>): number => {
  * @example
  * ```ts
  * import { Iterable } from "effect/collections"
- * import * as Option from "effect/data/Option"
+ * import { Option } from "effect/data"
  *
  * const numbers = [1, 2, 3]
  * console.log(Iterable.head(numbers)) // Option.some(1)
@@ -625,7 +625,7 @@ export const drop: {
  * @example
  * ```ts
  * import { Iterable } from "effect/collections"
- * import * as Option from "effect/data/Option"
+ * import { Option } from "effect/data"
  *
  * const numbers = [1, 3, 4, 6, 8]
  * const firstEven = Iterable.findFirst(numbers, x => x % 2 === 0)
@@ -689,7 +689,7 @@ export const findFirst: {
  * @example
  * ```ts
  * import { Iterable } from "effect/collections"
- * import * as Option from "effect/data/Option"
+ * import { Option } from "effect/data"
  *
  * const numbers = [1, 3, 4, 6, 8, 2]
  * const lastEven = Iterable.findLast(numbers, x => x % 2 === 0)
@@ -1473,7 +1473,7 @@ export const flatten = <A>(self: Iterable<Iterable<A>>): Iterable<A> => ({
  * @example
  * ```ts
  * import { Iterable } from "effect/collections"
- * import * as Option from "effect/data/Option"
+ * import { Option } from "effect/data"
  *
  * // Parse strings to numbers, keeping only valid ones
  * const strings = ["1", "2", "invalid", "4", "not-a-number"]
@@ -1538,7 +1538,7 @@ export const filterMap: {
  * @example
  * ```ts
  * import { Iterable } from "effect/collections"
- * import * as Option from "effect/data/Option"
+ * import { Option } from "effect/data"
  *
  * // Parse numbers until we hit an invalid one
  * const strings = ["1", "2", "3", "invalid", "4", "5"]
@@ -1596,7 +1596,7 @@ export const filterMapWhile: {
  * ```ts
  * import * as assert from "node:assert"
  * import { Iterable } from "effect/collections"
- * import * as Option from "effect/data/Option"
+ * import { Option } from "effect/data"
  *
  * assert.deepStrictEqual(
  *   Array.from(Iterable.getSomes([Option.some(1), Option.none(), Option.some(2)])),
@@ -1616,7 +1616,7 @@ export const getSomes: <A>(self: Iterable<Option<A>>) => Iterable<A> = filterMap
  * ```ts
  * import * as assert from "node:assert"
  * import { Iterable } from "effect/collections"
- * import * as Result from "effect/data/Result"
+ * import { Result } from "effect/data"
  *
  * assert.deepStrictEqual(
  *   Array.from(Iterable.getFailures([Result.succeed(1), Result.fail("err"), Result.succeed(2)])),
@@ -1636,7 +1636,7 @@ export const getFailures = <R, L>(self: Iterable<Result<R, L>>): Iterable<L> => 
  * ```ts
  * import * as assert from "node:assert"
  * import { Iterable } from "effect/collections"
- * import * as Result from "effect/data/Result"
+ * import { Result } from "effect/data"
  *
  * assert.deepStrictEqual(
  *   Array.from(Iterable.getSuccesses([Result.succeed(1), Result.fail("err"), Result.succeed(2)])),

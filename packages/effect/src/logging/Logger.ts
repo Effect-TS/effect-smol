@@ -60,8 +60,7 @@
  * ## Multiple Loggers
  *
  * ```ts
- * import { Effect } from "effect"
- * import { Layer } from "effect"
+ * import { Effect, Layer } from "effect"
  * import { Logger } from "effect/logging"
  *
  * // Combine multiple loggers
@@ -80,7 +79,7 @@
  * ```ts
  * import { Logger } from "effect/logging"
  * import { Effect } from "effect"
- * import { Duration } from "effect/time"
+ * import { Duration } from "effect/data"
  *
  * const batchedLogger = Logger.batched(Logger.formatJson, {
  *   window: Duration.seconds(5),
@@ -103,12 +102,13 @@
  * })
  * ```
  */
-import type * as Cause from "../Cause.ts"
 import * as Array from "../collections/Array.ts"
+import type * as Cause from "../data/Cause.ts"
+import type * as Duration from "../data/Duration.ts"
+import { dual } from "../data/Function.ts"
 import * as Predicate from "../data/Predicate.ts"
 import type * as Effect from "../Effect.ts"
 import type * as Fiber from "../Fiber.ts"
-import { dual } from "../Function.ts"
 import * as Inspectable from "../interfaces/Inspectable.ts"
 import type { Pipeable } from "../interfaces/Pipeable.ts"
 import { isEffect, withFiber } from "../internal/core.ts"
@@ -120,7 +120,6 @@ import type { PlatformError } from "../platform/PlatformError.ts"
 import { CurrentLogAnnotations, CurrentLogSpans } from "../References.ts"
 import type * as Scope from "../Scope.ts"
 import * as ServiceMap from "../ServiceMap.ts"
-import type * as Duration from "../time/Duration.ts"
 import type * as Types from "../types/Types.ts"
 
 const TypeId = "~effect/Logger"
@@ -226,8 +225,8 @@ export declare namespace Logger {
    * @example
    * ```ts
    * import { Effect } from "effect"
-   * import { Logger } from "effect/logging"
-   * import { LogLevel } from "effect/logging"
+   * import { LogLevel, Logger } from "effect/logging"
+
    *
    * // Options interface provides all logging context
    * const detailedLogger = Logger.make((options) => {
@@ -833,7 +832,7 @@ export const formatJson = map(formatStructured, Inspectable.formatJson)
  * ```ts
  * import { Logger } from "effect/logging"
  * import { Effect } from "effect"
- * import { Duration } from "effect/time"
+ * import { Duration } from "effect/data"
  *
  * // Create a batched logger that flushes every 5 seconds
  * const batchedLogger = Logger.batched(Logger.formatJson, {
@@ -1132,8 +1131,7 @@ export const consoleJson: Logger<unknown, void> = withConsoleLog(formatJson)
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Layer } from "effect"
+ * import { Effect, Layer } from "effect"
  * import { Logger } from "effect/logging"
  *
  * // Single logger layer
@@ -1196,8 +1194,7 @@ export const layer = <
  *
  * ```ts
  * import { NodeFileSystem, NodeRuntime } from "@effect/platform-node"
- * import { Effect } from "effect"
- * import { Layer } from "effect"
+ * import { Effect, Layer } from "effect"
  * import { Logger } from "effect/logging"
  *
  * const fileLogger = Logger.formatJson.pipe(
@@ -1219,7 +1216,7 @@ export const layer = <
  * ```ts
  * import { Logger } from "effect/logging"
  * import { Effect } from "effect"
- * import { Duration } from "effect/time"
+ * import { Duration } from "effect/data"
  * import { NodeFileSystem } from "@effect/platform-node"
  *
  * // Basic file logging

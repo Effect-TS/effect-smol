@@ -1,11 +1,11 @@
 /**
  * @since 4.0.0
  */
+import * as Exit from "../../data/Exit.ts"
+import { dual } from "../../data/Function.ts"
 import type { ReadonlyRecord } from "../../data/Record.ts"
 import * as Effect from "../../Effect.ts"
-import * as Exit from "../../Exit.ts"
 import * as FiberHandle from "../../FiberHandle.ts"
-import { dual } from "../../Function.ts"
 import * as Hash from "../../interfaces/Hash.ts"
 import * as Layer from "../../Layer.ts"
 import * as Queue from "../../Queue.ts"

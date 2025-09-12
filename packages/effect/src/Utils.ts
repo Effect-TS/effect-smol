@@ -1,8 +1,8 @@
 /**
  * @since 2.0.0
  */
+import { identity } from "./data/Function.ts"
 import { isNullish, isObject } from "./data/Predicate.ts"
-import { identity } from "./Function.ts"
 import type { Kind, TypeLambda } from "./types/HKT.ts"
 import type * as Types from "./types/Types.ts"
 
@@ -25,7 +25,7 @@ const GenKindTypeId = "~effect/Utils/GenKind"
  * @example
  * ```ts
  * import { Utils } from "effect"
- * import * as Option from "effect/data/Option"
+ * import { Option } from "effect/data"
  *
  * // A GenKind wraps types to make them generator-compatible
  * declare const genKind: Utils.GenKind<Option.OptionTypeLambda, never, never, never, number>
@@ -188,7 +188,7 @@ export const makeGenKind = <F extends TypeLambda, R, O, E, A>(
  * @example
  * ```ts
  * import { Utils } from "effect"
- * import * as Option from "effect/data/Option"
+ * import { Option } from "effect/data"
  *
  * // Variance defines the type parameter relationships
  * declare const variance: Utils.Variance<Option.OptionTypeLambda, never, never, never>

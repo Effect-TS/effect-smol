@@ -4,11 +4,8 @@
 
 import * as Equivalence from "../data/Equivalence.ts"
 import type { Option } from "../data/Option.ts"
-import type { Predicate, Refinement } from "../data/Predicate.ts"
-import { isFunction } from "../data/Predicate.ts"
+import { isFunction, type Predicate, type Refinement } from "../data/Predicate.ts"
 import type { Yieldable } from "../Effect.ts"
-import type { LazyArg } from "../Function.ts"
-import { constNull, constUndefined, dual, identity } from "../Function.ts"
 import type { Inspectable } from "../interfaces/Inspectable.ts"
 import type { Pipeable } from "../interfaces/Pipeable.ts"
 import * as doNotation from "../internal/doNotation.ts"
@@ -18,6 +15,7 @@ import type { TypeLambda } from "../types/HKT.ts"
 import type { Covariant, NoInfer, NotFunction } from "../types/Types.ts"
 import type * as Unify from "../types/Unify.ts"
 import * as Gen from "../Utils.ts"
+import { constNull, constUndefined, dual, identity, type LazyArg } from "./Function.ts"
 
 const TypeId = "~effect/data/Result"
 
@@ -303,8 +301,7 @@ export const fromNullishOr: {
  * @example
  * ```ts
  * import * as assert from "node:assert"
- * import { Result } from "effect/data"
- * import { Option } from "effect/data"
+ * import { Option, Result } from "effect/data"
  *
  * assert.deepStrictEqual(Result.fromOption(Option.some(1), () => 'error'), Result.succeed(1))
  * assert.deepStrictEqual(Result.fromOption(Option.none(), () => 'error'), Result.fail('error'))
@@ -428,8 +425,7 @@ export const isSuccess: <A, E>(self: Result<A, E>) => self is Success<A, E> = re
  * @example
  * ```ts
  * import * as assert from "node:assert"
- * import { Result } from "effect/data"
- * import { Option } from "effect/data"
+ * import { Option, Result } from "effect/data"
  *
  * assert.deepStrictEqual(Result.getSuccess(Result.succeed('ok')), Option.some('ok'))
  * assert.deepStrictEqual(Result.getSuccess(Result.fail('err')), Option.none())
@@ -446,8 +442,7 @@ export const getSuccess: <A, E>(self: Result<A, E>) => Option<A> = result.getSuc
  * @example
  * ```ts
  * import * as assert from "node:assert"
- * import { Result } from "effect/data"
- * import { Option } from "effect/data"
+ * import { Option, Result } from "effect/data"
  *
  * assert.deepStrictEqual(Result.getFailure(Result.succeed('ok')), Option.none())
  * assert.deepStrictEqual(Result.getFailure(Result.fail('err')), Option.some('err'))
@@ -464,8 +459,7 @@ export const getFailure: <A, E>(self: Result<A, E>) => Option<E> = result.getFai
  * @example
  * ```ts
  * import * as assert from "node:assert"
- * import { Result } from "effect/data"
- * import { Equivalence } from "effect/data"
+ * import { Equivalence, Result } from "effect/data"
  *
  * const stringEquivalence = Equivalence.string
  * const numberEquivalence = Equivalence.number
@@ -1289,8 +1283,7 @@ export {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Result } from "effect/data"
- * import { Option } from "effect/data"
+ * import { Option, Result } from "effect/data"
  *
  * //      ┌─── Option<Result<number, never>>
  * //      ▼
@@ -1315,8 +1308,7 @@ export const transposeOption = <A = never, E = never>(
  *
  * @example
  * ```ts
- * import { Result } from "effect/data"
- * import { Option } from "effect/data"
+ * import { Option, Result } from "effect/data"
  *
  * const parseNumber = (s: string) =>
  *   isNaN(Number(s)) ? Result.fail("Invalid number") : Result.succeed(Number(s))
@@ -1353,8 +1345,7 @@ export const transposeMapOption = dual<
  * @example
  * ```ts
  * import * as assert from "node:assert"
- * import { Result } from "effect/data"
- * import { Option } from "effect/data"
+ * import { Option, Result } from "effect/data"
  *
  * const result = Result.succeedNone
  * assert.deepStrictEqual(result, Result.succeed(Option.none()))
@@ -1371,8 +1362,7 @@ export const succeedNone = succeed(option_.none)
  * @example
  * ```ts
  * import * as assert from "node:assert"
- * import { Result } from "effect/data"
- * import { Option } from "effect/data"
+ * import { Option, Result } from "effect/data"
  *
  * const result = Result.succeedSome(42)
  * assert.deepStrictEqual(result, Result.succeed(Option.some(42)))

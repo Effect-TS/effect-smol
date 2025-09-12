@@ -1,7 +1,6 @@
 import { hole, pipe } from "effect"
+import { Number, String as Str, Struct } from "effect/data"
 import type { Reducer } from "effect/data"
-import { Struct } from "effect/data"
-import { Number, String as Str } from "effect/primitives"
 import { Schema } from "effect/schema"
 import { describe, expect, it, when } from "tstyche"
 

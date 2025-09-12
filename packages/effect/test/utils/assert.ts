@@ -1,6 +1,4 @@
-import type { Cause } from "effect"
-import { Option, Predicate, Result } from "effect/data"
-import * as Exit from "effect/Exit"
+import { type Cause, Exit, Option, Predicate, Result } from "effect/data"
 import { Equal } from "effect/interfaces"
 import * as assert from "node:assert"
 import { assert as vassert } from "vitest"

@@ -56,7 +56,7 @@
  * @example
  * ```ts
  * import { Chunk } from "effect/collections"
-import { Effect } from "effect"
+ * import { Effect } from "effect"
  *
  * // Working with Effects
  * const processChunk = (chunk: Chunk.Chunk<number>) =>
@@ -73,18 +73,17 @@ import * as RA from "../collections/Array.ts"
 import type { NonEmptyReadonlyArray } from "../collections/Array.ts"
 import type { NonEmptyIterable } from "../collections/NonEmptyIterable.ts"
 import * as Equivalence from "../data/Equivalence.ts"
+import { dual, identity, pipe } from "../data/Function.ts"
 import type { Option } from "../data/Option.ts"
 import * as O from "../data/Option.ts"
 import * as Order from "../data/Order.ts"
 import { hasProperty, type Predicate, type Refinement } from "../data/Predicate.ts"
 import type { Result } from "../data/Result.ts"
 import * as UndefinedOr from "../data/UndefinedOr.ts"
-import { dual, identity, pipe } from "../Function.ts"
 import * as Equal from "../interfaces/Equal.ts"
 import * as Hash from "../interfaces/Hash.ts"
 import { format, type Inspectable, NodeInspectSymbol, toJson } from "../interfaces/Inspectable.ts"
-import type { Pipeable } from "../interfaces/Pipeable.ts"
-import { pipeArguments } from "../interfaces/Pipeable.ts"
+import { type Pipeable, pipeArguments } from "../interfaces/Pipeable.ts"
 import type { TypeLambda } from "../types/HKT.ts"
 import type { Covariant, NoInfer } from "../types/Types.ts"
 
@@ -212,7 +211,7 @@ const emptyArray: ReadonlyArray<never> = []
  * @example
  * ```ts
  * import { Chunk } from "effect/collections"
-import * as Equivalence from "effect/data/Equivalence"
+ * import { Equivalence } from "effect/data"
  *
  * const chunk1 = Chunk.make(1, 2, 3)
  * const chunk2 = Chunk.make(1, 2, 3)
@@ -561,7 +560,7 @@ export const reverse: <S extends Chunk<any>>(self: S) => Chunk.With<S, Chunk.Inf
  * @example
  * ```ts
  * import { Chunk } from "effect/collections"
- * import * as Option from "effect/data/Option"
+ * import { Option } from "effect/data"
  *
  * const chunk = Chunk.make("a", "b", "c", "d")
  *
@@ -614,7 +613,7 @@ export const fromArrayUnsafe = <A>(self: ReadonlyArray<A>): Chunk<A> =>
  * @example
  * ```ts
  * import { Chunk } from "effect/collections"
-import * as Array from "effect/collections/Array"
+ * import * as Array from "effect/collections/Array"
  *
  * const nonEmptyArray = Array.make(1, 2, 3, 4, 5)
  * const chunk = Chunk.fromNonEmptyArrayUnsafe(nonEmptyArray)
@@ -1799,7 +1798,7 @@ export const size = <A>(self: Chunk<A>): number => self.length
  * @example
  * ```ts
  * import { Chunk } from "effect/collections"
-import * as Order from "effect/data/Order"
+ * import * as Order from "effect/data/Order"
  *
  * const numbers = Chunk.make(3, 1, 4, 1, 5, 9, 2, 6)
  * const sorted = Chunk.sort(numbers, Order.number)
@@ -1832,7 +1831,7 @@ export const sort: {
  * @example
  * ```ts
  * import { Chunk } from "effect/collections"
-import * as Order from "effect/data/Order"
+ * import * as Order from "effect/data/Order"
  *
  * const people = Chunk.make(
  *   { name: "Alice", age: 30 },

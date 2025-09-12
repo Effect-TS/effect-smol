@@ -1,8 +1,9 @@
 /**
  * @since 4.0.0
  */
-import * as Cause from "../../Cause.ts"
 import * as Arr from "../../collections/Array.ts"
+import * as Cause from "../../data/Cause.ts"
+import * as Duration from "../../data/Duration.ts"
 import * as Effect from "../../Effect.ts"
 import * as Exporter from "../../internal/tracing/otlpExporter.ts"
 import type * as Layer from "../../Layer.ts"
@@ -10,7 +11,6 @@ import * as Logger from "../../logging/Logger.ts"
 import type * as LogLevel from "../../logging/LogLevel.ts"
 import { CurrentLogAnnotations, CurrentLogSpans } from "../../References.ts"
 import type * as Scope from "../../Scope.ts"
-import * as Duration from "../../time/Duration.ts"
 import type * as Headers from "../http/Headers.ts"
 import type * as HttpClient from "../http/HttpClient.ts"
 import type { AnyValue, Fixed64, KeyValue, Resource } from "./OtlpResource.ts"

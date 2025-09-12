@@ -1,8 +1,7 @@
 import type { Brand } from "effect/data"
 import type { ServiceMap } from "effect"
 import { Effect, flow, hole } from "effect"
-import { Option, Predicate, Struct, Tuple } from "effect/data"
-import { String as Str } from "effect/primitives"
+import { String as Str, Option, Predicate, Struct, Tuple  } from "effect/data"
 import { AST, Check, Getter, Schema, Transformation } from 'effect/schema'
 import type { Array } from "effect/collections"
 import { immerable, produce } from "immer"

@@ -2,7 +2,7 @@
  * @since 2.0.0
  */
 
-import { identity } from "../Function.ts"
+import { identity } from "../data/Function.ts"
 
 /**
  * A unique symbol used to identify unification behavior in Effect types.
@@ -171,7 +171,7 @@ type FilterOut<A> = A extends any ? typeSymbol extends keyof A ? never : A : nev
  *
  * @example
  * ```ts
- * import * as Unify from "effect/types/Unify"
+ * import { Unify } from "effect/types"
  *
  * // Example of types that can be unified
  * type UnifiableA = {

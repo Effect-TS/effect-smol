@@ -2,12 +2,12 @@
  * @since 4.0.0
  */
 import * as Arr from "../../collections/Array.ts"
+import * as Exit from "../../data/Exit.ts"
+import { constant, dual } from "../../data/Function.ts"
 import * as Option from "../../data/Option.ts"
 import * as Predicate from "../../data/Predicate.ts"
 import * as UndefinedOr from "../../data/UndefinedOr.ts"
 import * as Effect from "../../Effect.ts"
-import * as Exit from "../../Exit.ts"
-import { constant, dual } from "../../Function.ts"
 import * as Inspectable from "../../interfaces/Inspectable.ts"
 import * as FileSystem from "../../platform/FileSystem.ts"
 import * as Path from "../../platform/Path.ts"

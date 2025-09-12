@@ -1,12 +1,11 @@
 /**
  * @since 1.0.0
  */
-import * as Cause from "effect/Cause"
 import * as Arr from "effect/collections/Array"
+import { Cause, Exit } from "effect/data"
+import { dual, type LazyArg } from "effect/data/Function"
 import * as Effect from "effect/Effect"
-import * as Exit from "effect/Exit"
 import * as Fiber from "effect/Fiber"
-import { dual, type LazyArg } from "effect/Function"
 import * as MutableRef from "effect/MutableRef"
 import type { SizeInput } from "effect/platform/FileSystem"
 import * as Scope from "effect/Scope"
@@ -14,8 +13,7 @@ import * as ServiceMap from "effect/ServiceMap"
 import * as Channel from "effect/stream/Channel"
 import * as Pull from "effect/stream/Pull"
 import * as Stream from "effect/stream/Stream"
-import type { Duplex } from "node:stream"
-import { Readable } from "node:stream"
+import { type Duplex, Readable } from "node:stream"
 import { pullIntoWritable } from "./NodeSink.ts"
 
 /**

@@ -6,8 +6,8 @@
 import * as Equivalence from "../data/Equivalence.ts"
 import * as order from "../data/Order.ts"
 import type { Apply, Lambda } from "../data/Struct.ts"
-import { dual } from "../Function.ts"
 import * as Combiner from "./Combiner.ts"
+import { dual } from "./Function.ts"
 import * as Reducer from "./Reducer.ts"
 
 /**
@@ -365,12 +365,10 @@ export const mapOmit: {
  *
  * @example
  * ```ts
- * import { Tuple } from "effect/data"
- * import * as S from "effect/primitives/String"
- * import * as N from "effect/primitives/Number"
+ * import { Number, String, Tuple } from "effect/data"
  *
  * // Creates an equivalence for tuples with string and number elements
- * const equivalence = Tuple.getEquivalence([S.Equivalence, N.Equivalence])
+ * const equivalence = Tuple.getEquivalence([String.Equivalence, Number.Equivalence])
  * ```
  *
  * @category Equivalence
@@ -383,12 +381,10 @@ export const getEquivalence = Equivalence.tuple
  *
  * @example
  * ```ts
- * import { Tuple } from "effect/data"
- * import * as S from "effect/primitives/String"
- * import * as N from "effect/primitives/Number"
+ * import { Number, String, Tuple } from "effect/data"
  *
  * // Creates an order for tuples with string and number elements
- * const tupleOrder = Tuple.getOrder([S.Order, N.Order])
+ * const tupleOrder = Tuple.getOrder([String.Order, Number.Order])
  * ```
  *
  * @category Ordering
@@ -463,7 +459,7 @@ export {
  *
  * ```ts
  * import { Tuple } from "effect/data"
- * import { Number, String } from "effect/primitives"
+ * import { Number, String } from "effect/data"
  *
  * const C = Tuple.getCombiner<readonly [number, string]>([Number.ReducerSum, String.ReducerConcat])
  * ```
@@ -499,7 +495,7 @@ export function getCombiner<A extends ReadonlyArray<unknown>>(
  *
  * ```ts
  * import { Tuple } from "effect/data"
- * import { Number, String } from "effect/primitives"
+ * import { Number, String } from "effect/data"
  *
  * const R = Tuple.getReducer<readonly [number, string]>([Number.ReducerSum, String.ReducerConcat])
  * ```

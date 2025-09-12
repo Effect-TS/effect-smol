@@ -1,19 +1,18 @@
 /**
  * @since 3.5.0
  */
-import * as Cause from "./Cause.ts"
+import { Clock } from "./Clock.ts"
 import * as MutableHashMap from "./collections/MutableHashMap.ts"
+import * as Cause from "./data/Cause.ts"
+import * as Duration from "./data/Duration.ts"
+import * as Exit from "./data/Exit.ts"
+import { dual } from "./data/Function.ts"
 import * as Deferred from "./Deferred.ts"
 import * as Effect from "./Effect.ts"
-import * as Exit from "./Exit.ts"
 import * as Fiber from "./Fiber.ts"
-import { dual } from "./Function.ts"
-import type { Pipeable } from "./interfaces/Pipeable.ts"
-import { pipeArguments } from "./interfaces/Pipeable.ts"
+import { type Pipeable, pipeArguments } from "./interfaces/Pipeable.ts"
 import * as Scope from "./Scope.ts"
 import * as ServiceMap from "./ServiceMap.ts"
-import { Clock } from "./time/Clock.ts"
-import * as Duration from "./time/Duration.ts"
 
 const TypeId = "~effect/RcMap"
 
@@ -26,8 +25,7 @@ const TypeId = "~effect/RcMap"
  * @category models
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { RcMap } from "effect"
+ * import { Effect, RcMap } from "effect"
  *
  * Effect.gen(function*() {
  *   // Create an RcMap that manages database connections
@@ -116,7 +114,7 @@ export declare namespace State {
    * @category Models
    * @example
    * ```ts
-   * import * as MutableHashMap from "effect/collections/MutableHashMap"
+   * import { MutableHashMap } from "effect/collections"
    * import { RcMap } from "effect"
    *
    * // State.Open contains the active resource map
@@ -167,11 +165,8 @@ export declare namespace State {
    * @category Models
    * @example
    * ```ts
-   * import { Effect } from "effect"
-   * import { Deferred } from "effect"
-   * import { Fiber } from "effect"
-   * import { RcMap } from "effect"
-   * import { Scope } from "effect"
+   * import { Deferred, Effect, Fiber, RcMap, Scope } from "effect"
+
    *
    * // Entry contains all metadata for a resource in the map
    * declare const entry: RcMap.State.Entry<string, never>
@@ -236,8 +231,7 @@ const makeUnsafe = <K, A, E>(options: {
  * @category models
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { RcMap } from "effect"
+ * import { Effect, RcMap } from "effect"
  *
  * Effect.gen(function*() {
  *   const map = yield* RcMap.make({
@@ -312,8 +306,7 @@ export const make: {
  * @category combinators
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { RcMap } from "effect"
+ * import { Effect, RcMap } from "effect"
  *
  * Effect.gen(function*() {
  *   const map = yield* RcMap.make({
@@ -429,8 +422,7 @@ const release = <K, A, E>(self: RcMap<K, A, E>, key: K, entry: State.Entry<A, E>
  * @category combinators
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { RcMap } from "effect"
+ * import { Effect, RcMap } from "effect"
  *
  * Effect.gen(function*() {
  *   const map = yield* RcMap.make({
@@ -462,8 +454,7 @@ export const keys = <K, A, E>(self: RcMap<K, A, E>): Effect.Effect<Iterable<K>> 
  * @category combinators
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { RcMap } from "effect"
+ * import { Effect, RcMap } from "effect"
  *
  * Effect.gen(function*() {
  *   const map = yield* RcMap.make({
@@ -528,8 +519,7 @@ export const has: {
  * @category combinators
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { RcMap } from "effect"
+ * import { Effect, RcMap } from "effect"
  *
  * Effect.gen(function*() {
  *   const map = yield* RcMap.make({

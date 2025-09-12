@@ -18,8 +18,8 @@ const TypeId = internal.HashMapTypeId
  *
  * @example
  * ```ts
- * import * as HashMap from "effect/collections/HashMap"
- * import * as Option from "effect/data/Option"
+ * import { HashMap } from "effect/collections"
+ * import { Option } from "effect/data"
  *
  * // Create a HashMap
  * const map = HashMap.make(["a", 1], ["b", 2], ["c", 3])
@@ -49,8 +49,8 @@ export interface HashMap<out Key, out Value> extends Iterable<[Key, Value]>, Equ
  *
  * @example
  * ```ts
- * import * as HashMap from "effect/collections/HashMap"
- * import * as Option from "effect/data/Option"
+ * import { HashMap } from "effect/collections"
+ * import { Option } from "effect/data"
  *
  * // Create a concrete HashMap for type extraction
  * const inventory = HashMap.make(
@@ -86,8 +86,8 @@ export declare namespace HashMap {
    *
    * @example
    * ```ts
-   * import * as HashMap from "effect/collections/HashMap"
-   * import * as Option from "effect/data/Option"
+   * import { HashMap } from "effect/collections"
+   * import { Option } from "effect/data"
    *
    * const map = HashMap.make(["a", 1], ["b", 2])
    *
@@ -109,7 +109,7 @@ export declare namespace HashMap {
    *
    * @example
    * ```ts
-   * import * as HashMap from "effect/collections/HashMap"
+   * import { HashMap } from "effect/collections"
    *
    * // Create a HashMap to extract key type from
    * const userMap = HashMap.make(
@@ -134,7 +134,7 @@ export declare namespace HashMap {
    *
    * @example
    * ```ts
-   * import * as HashMap from "effect/collections/HashMap"
+   * import { HashMap } from "effect/collections"
    *
    * // Create a HashMap with user data
    * const userMap = HashMap.make(
@@ -163,7 +163,7 @@ export declare namespace HashMap {
    *
    * @example
    * ```ts
-   * import * as HashMap from "effect/collections/HashMap"
+   * import { HashMap } from "effect/collections"
    *
    * // Create a product catalog HashMap
    * const catalog = HashMap.make(
@@ -194,7 +194,7 @@ export declare namespace HashMap {
  *
  * @example
  * ```ts
- * import * as HashMap from "effect/collections/HashMap"
+ * import { HashMap } from "effect/collections"
  *
  * const map = HashMap.make(["a", 1], ["b", 2])
  * const notMap = { a: 1 }
@@ -217,7 +217,7 @@ export const isHashMap: {
  *
  * @example
  * ```ts
- * import * as HashMap from "effect/collections/HashMap"
+ * import { HashMap } from "effect/collections"
  *
  * const map = HashMap.empty<string, number>()
  * console.log(HashMap.isEmpty(map)) // true
@@ -234,7 +234,7 @@ export const empty: <K = never, V = never>() => HashMap<K, V> = internal.empty
  *
  * @example
  * ```ts
- * import * as HashMap from "effect/collections/HashMap"
+ * import { HashMap } from "effect/collections"
  *
  * const map = HashMap.make(["a", 1], ["b", 2], ["c", 3])
  * console.log(HashMap.size(map)) // 3
@@ -256,7 +256,7 @@ export const make: <Entries extends ReadonlyArray<readonly [any, any]>>(
  *
  * @example
  * ```ts
- * import * as HashMap from "effect/collections/HashMap"
+ * import { HashMap } from "effect/collections"
  *
  * const entries = [["a", 1], ["b", 2], ["c", 3]] as const
  * const map = HashMap.fromIterable(entries)
@@ -274,7 +274,7 @@ export const fromIterable: <K, V>(entries: Iterable<readonly [K, V]>) => HashMap
  *
  * @example
  * ```ts
- * import * as HashMap from "effect/collections/HashMap"
+ * import { HashMap } from "effect/collections"
  *
  * const emptyMap = HashMap.empty<string, number>()
  * const nonEmptyMap = HashMap.make(["a", 1])
@@ -294,8 +294,8 @@ export const isEmpty: <K, V>(self: HashMap<K, V>) => boolean = internal.isEmpty
  *
  * @example
  * ```ts
- * import * as HashMap from "effect/collections/HashMap"
- * import * as Option from "effect/data/Option"
+ * import { HashMap } from "effect/collections"
+ * import { Option } from "effect/data"
  *
  * const map = HashMap.make(["a", 1], ["b", 2])
  *
@@ -320,9 +320,9 @@ export const get: {
  *
  * @example
  * ```ts
- * import * as HashMap from "effect/collections/HashMap"
-import { Hash } from "effect/interfaces"
- * import * as Option from "effect/data/Option"
+ * import { HashMap } from "effect/collections"
+ * import { Option } from "effect/data"
+ * import { Hash } from "effect/interfaces"
  *
  * // Useful when implementing custom equality for complex keys
  * const userMap = HashMap.make(
@@ -360,8 +360,8 @@ export const getHash: {
  *
  * @example
  * ```ts
- * import * as HashMap from "effect/collections/HashMap"
- * import * as Option from "effect/data/Option"
+ * import { HashMap } from "effect/collections"
+ * import { Option } from "effect/data"
  *
  * const config = HashMap.make(
  *   ["api_url", "https://api.example.com"],
@@ -396,7 +396,7 @@ export const getUnsafe: {
  *
  * @example
  * ```ts
- * import * as HashMap from "effect/collections/HashMap"
+ * import { HashMap } from "effect/collections"
  *
  * const map = HashMap.make(["a", 1], ["b", 2])
  *
@@ -422,8 +422,8 @@ export const has: {
  *
  * @example
  * ```ts
- * import * as HashMap from "effect/collections/HashMap"
-import { Hash } from "effect/interfaces"
+ * import { HashMap } from "effect/collections"
+ * import { Hash } from "effect/interfaces"
  *
  * // Create a map with case-sensitive keys
  * const userMap = HashMap.make(
@@ -453,7 +453,7 @@ export const hasHash: {
  *
  * @example
  * ```ts
- * import * as HashMap from "effect/collections/HashMap"
+ * import { HashMap } from "effect/collections"
  *
  * const hm = HashMap.make([1, 'a'])
  * HashMap.hasBy(hm, (value, key) => value === 'a' && key === 1) // -> true
@@ -474,7 +474,7 @@ export const hasBy: {
  *
  * @example
  * ```ts
- * import * as HashMap from "effect/collections/HashMap"
+ * import { HashMap } from "effect/collections"
  *
  * const map1 = HashMap.make(["a", 1])
  * const map2 = HashMap.set(map1, "b", 2)
@@ -499,7 +499,7 @@ export const set: {
  *
  * @example
  * ```ts
- * import * as HashMap from "effect/collections/HashMap"
+ * import { HashMap } from "effect/collections"
  *
  * const map = HashMap.make(["a", 1], ["b", 2], ["c", 3])
  * const keys = Array.from(HashMap.keys(map))
@@ -516,7 +516,7 @@ export const keys: <K, V>(self: HashMap<K, V>) => IterableIterator<K> = internal
  *
  * @example
  * ```ts
- * import * as HashMap from "effect/collections/HashMap"
+ * import { HashMap } from "effect/collections"
  *
  * const map = HashMap.make(["a", 1], ["b", 2], ["c", 3])
  * const values = Array.from(HashMap.values(map))
@@ -533,7 +533,7 @@ export const values: <K, V>(self: HashMap<K, V>) => IterableIterator<V> = intern
  *
  * @example
  * ```ts
- * import * as HashMap from "effect/collections/HashMap"
+ * import { HashMap } from "effect/collections"
  *
  * const employees = HashMap.make(
  *   ["alice", { department: "engineering", salary: 90000 }],
@@ -564,7 +564,7 @@ export const toValues = <K, V>(self: HashMap<K, V>): Array<V> => Array.from(valu
  *
  * @example
  * ```ts
- * import * as HashMap from "effect/collections/HashMap"
+ * import { HashMap } from "effect/collections"
  *
  * // Create a configuration map
  * const config = HashMap.make(
@@ -599,7 +599,7 @@ export const entries: <K, V>(self: HashMap<K, V>) => IterableIterator<[K, V]> = 
  *
  * @example
  * ```ts
- * import * as HashMap from "effect/collections/HashMap"
+ * import { HashMap } from "effect/collections"
  *
  * const gameScores = HashMap.make(
  *   ["alice", 1250],
@@ -632,7 +632,7 @@ export const toEntries = <K, V>(self: HashMap<K, V>): Array<[K, V]> => Array.fro
  *
  * @example
  * ```ts
- * import * as HashMap from "effect/collections/HashMap"
+ * import { HashMap } from "effect/collections"
  *
  * const emptyMap = HashMap.empty<string, number>()
  * const map = HashMap.make(["a", 1], ["b", 2], ["c", 3])
@@ -651,7 +651,7 @@ export const size: <K, V>(self: HashMap<K, V>) => number = internal.size
  *
  * @example
  * ```ts
- * import * as HashMap from "effect/collections/HashMap"
+ * import { HashMap } from "effect/collections"
  *
  * const map = HashMap.make(["a", 1])
  *
@@ -678,7 +678,7 @@ export const beginMutation: <K, V>(self: HashMap<K, V>) => HashMap<K, V> = inter
  *
  * @example
  * ```ts
- * import * as HashMap from "effect/collections/HashMap"
+ * import { HashMap } from "effect/collections"
  *
  * // Start with an existing map
  * const original = HashMap.make(["x", 10], ["y", 20])
@@ -709,7 +709,7 @@ export const endMutation: <K, V>(self: HashMap<K, V>) => HashMap<K, V> = interna
  *
  * @example
  * ```ts
- * import * as HashMap from "effect/collections/HashMap"
+ * import { HashMap } from "effect/collections"
  *
  * const map1 = HashMap.make(["a", 1])
  * const map2 = HashMap.mutate(map1, (mutable) => {
@@ -735,10 +735,13 @@ export const mutate: {
  * The update function will be invoked with the current value of the key if it
  * exists, or `None` if no such value exists.
  *
+ * This function will always either update or insert a value into the `HashMap`.
+ *
  * @example
  * ```ts
- * import * as HashMap from "effect/collections/HashMap"
- * import * as Option from "effect/data/Option"
+ * import { HashMap } from "effect/collections"
+ * import { Option } from "effect/data"
+ * import { Hash } from "effect/interfaces"
  *
  * const map = HashMap.make(["a", 1], ["b", 2])
  *
@@ -770,9 +773,9 @@ export const modifyAt: {
  *
  * @example
  * ```ts
- * import * as HashMap from "effect/collections/HashMap"
-import { Hash } from "effect/interfaces"
- * import * as Option from "effect/data/Option"
+ * import { HashMap } from "effect/collections"
+ * import { Option } from "effect/data"
+ * import { Hash } from "effect/interfaces"
  *
  * // Useful when working with precomputed hashes for performance
  * const counters = HashMap.make(["downloads", 100], ["views", 250])
@@ -809,7 +812,7 @@ export const modifyHash: {
  *
  * @example
  * ```ts
- * import * as HashMap from "effect/collections/HashMap"
+ * import { HashMap } from "effect/collections"
  *
  * const map1 = HashMap.make(["a", 1], ["b", 2])
  * const map2 = HashMap.modify(map1, "a", (value) => value * 3)
@@ -831,7 +834,7 @@ export const modify: {
  *
  * @example
  * ```ts
- * import * as HashMap from "effect/collections/HashMap"
+ * import { HashMap } from "effect/collections"
  *
  * const map1 = HashMap.make(["a", 1], ["b", 2])
  * const map2 = HashMap.make(["b", 20], ["c", 3])
@@ -855,7 +858,7 @@ export const union: {
  *
  * @example
  * ```ts
- * import * as HashMap from "effect/collections/HashMap"
+ * import { HashMap } from "effect/collections"
  *
  * const map1 = HashMap.make(["a", 1], ["b", 2], ["c", 3])
  * const map2 = HashMap.remove(map1, "b")
@@ -878,7 +881,7 @@ export const remove: {
  *
  * @example
  * ```ts
- * import * as HashMap from "effect/collections/HashMap"
+ * import { HashMap } from "effect/collections"
  *
  * const map1 = HashMap.make(["a", 1], ["b", 2], ["c", 3], ["d", 4])
  * const map2 = HashMap.removeMany(map1, ["b", "d"])
@@ -901,7 +904,7 @@ export const removeMany: {
  *
  * @example
  * ```ts
- * import * as HashMap from "effect/collections/HashMap"
+ * import { HashMap } from "effect/collections"
  *
  * const map1 = HashMap.make(["a", 1], ["b", 2])
  * const newEntries = [["c", 3], ["d", 4], ["a", 10]] as const // "a" will be overwritten
@@ -925,7 +928,7 @@ export const setMany: {
  *
  * @example
  * ```ts
- * import * as HashMap from "effect/collections/HashMap"
+ * import { HashMap } from "effect/collections"
  *
  * const map1 = HashMap.make(["a", 1], ["b", 2], ["c", 3])
  * const map2 = HashMap.map(map1, (value, key) => `${key}:${value * 2}`)
@@ -949,7 +952,7 @@ export const map: {
  *
  * @example
  * ```ts
- * import * as HashMap from "effect/collections/HashMap"
+ * import { HashMap } from "effect/collections"
  *
  * const map1 = HashMap.make(["a", 1], ["b", 2])
  * const map2 = HashMap.flatMap(map1, (value, key) =>
@@ -974,7 +977,7 @@ export const flatMap: {
  *
  * @example
  * ```ts
- * import * as HashMap from "effect/collections/HashMap"
+ * import { HashMap } from "effect/collections"
  *
  * const map = HashMap.make(["a", 1], ["b", 2])
  * const collected: Array<[string, number]> = []
@@ -999,7 +1002,7 @@ export const forEach: {
  *
  * @example
  * ```ts
- * import * as HashMap from "effect/collections/HashMap"
+ * import { HashMap } from "effect/collections"
  *
  * const map = HashMap.make(["a", 1], ["b", 2], ["c", 3])
  * const sum = HashMap.reduce(map, 0, (acc, value) => acc + value)
@@ -1020,7 +1023,7 @@ export const reduce: {
  *
  * @example
  * ```ts
- * import * as HashMap from "effect/collections/HashMap"
+ * import { HashMap } from "effect/collections"
  *
  * const map1 = HashMap.make(["a", 1], ["b", 2], ["c", 3], ["d", 4])
  * const map2 = HashMap.filter(map1, (value) => value % 2 === 0)
@@ -1044,8 +1047,8 @@ export const filter: {
  *
  * @example
  * ```ts
- * import * as HashMap from "effect/collections/HashMap"
- * import * as Option from "effect/data/Option"
+ * import { HashMap } from "effect/collections"
+ * import { Option } from "effect/data"
  *
  * const map1 = HashMap.make(
  *   ["a", Option.some(1)],
@@ -1070,8 +1073,8 @@ export const compact: <K, A>(self: HashMap<K, Option<A>>) => HashMap<K, A> = int
  *
  * @example
  * ```ts
- * import * as HashMap from "effect/collections/HashMap"
- * import * as Option from "effect/data/Option"
+ * import { HashMap } from "effect/collections"
+ * import { Option } from "effect/data"
  *
  * const map1 = HashMap.make(["a", 1], ["b", 2], ["c", 3], ["d", 4])
  * const map2 = HashMap.filterMap(map1, (value) =>
@@ -1097,7 +1100,7 @@ export const filterMap: {
  *
  * @example
  * ```ts
- * import * as HashMap from "effect/collections/HashMap"
+ * import { HashMap } from "effect/collections"
  *
  * const map = HashMap.make(["a", 1], ["b", 2], ["c", 3])
  * const result = HashMap.findFirst(map, (value) => value > 1)
@@ -1117,7 +1120,7 @@ export const findFirst: {
  *
  * @example
  * ```ts
- * import * as HashMap from "effect/collections/HashMap"
+ * import { HashMap } from "effect/collections"
  *
  * const map = HashMap.make(["a", 1], ["b", 2], ["c", 3])
  *
@@ -1138,7 +1141,7 @@ export const some: {
  *
  * @example
  * ```ts
- * import * as HashMap from "effect/collections/HashMap"
+ * import { HashMap } from "effect/collections"
  *
  * const map = HashMap.make(["a", 1], ["b", 2], ["c", 3])
  *

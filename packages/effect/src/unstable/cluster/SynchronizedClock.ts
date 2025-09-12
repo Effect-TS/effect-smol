@@ -1,12 +1,12 @@
 /**
  * @since 4.0.0
  */
+import * as Clock from "../../Clock.ts"
+import * as Duration from "../../data/Duration.ts"
 import * as Effect from "../../Effect.ts"
 import * as Layer from "../../Layer.ts"
 import * as Schedule from "../../Schedule.ts"
 import type { Scope } from "../../Scope.ts"
-import * as Clock from "../../time/Clock.ts"
-import * as Duration from "../../time/Duration.ts"
 import { ShardManagerClient } from "./ShardManager.ts"
 
 /**

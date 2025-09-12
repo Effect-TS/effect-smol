@@ -1,8 +1,8 @@
 /**
  * @since 4.0.0
  */
+import { identity } from "../../data/Function.ts"
 import * as Effect from "../../Effect.ts"
-import { identity } from "../../Function.ts"
 import * as Layer from "../../Layer.ts"
 import * as FileSystem from "../../platform/FileSystem.ts"
 import type { PlatformError } from "../../platform/PlatformError.ts"

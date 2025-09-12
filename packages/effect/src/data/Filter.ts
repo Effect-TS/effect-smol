@@ -5,9 +5,9 @@ import type * as Option from "../data/Option.ts"
 import * as Predicate from "../data/Predicate.ts"
 import type * as Result from "../data/Result.ts"
 import type { Effect } from "../Effect.ts"
-import { dual } from "../Function.ts"
 import * as Equal from "../interfaces/Equal.ts"
 import type { EqualsWith, ExcludeTag, ExtractTag, Tags } from "../types/Types.ts"
+import { dual } from "./Function.ts"
 
 /**
  * Represents a filter function that can transform inputs to outputs or filter them out.

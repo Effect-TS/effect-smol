@@ -30,7 +30,7 @@
  * @since 2.0.0
  * @category data-structures
  */
-import * as Dual from "./Function.ts"
+import * as Dual from "./data/Function.ts"
 import * as Equal from "./interfaces/Equal.ts"
 import { type Inspectable, toJson } from "./interfaces/Inspectable.ts"
 import type { Pipeable } from "./interfaces/Pipeable.ts"

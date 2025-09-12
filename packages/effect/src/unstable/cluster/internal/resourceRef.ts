@@ -1,6 +1,6 @@
+import * as Exit from "../../../data/Exit.ts"
 import * as Option from "../../../data/Option.ts"
 import * as Effect from "../../../Effect.ts"
-import * as Exit from "../../../Exit.ts"
 import * as MutableRef from "../../../MutableRef.ts"
 import * as Scope from "../../../Scope.ts"
 import { internalInterruptors } from "./interruptors.ts"

@@ -2,10 +2,10 @@
  * @since 1.0.0
  */
 import * as Sqlite from "@op-engineering/op-sqlite"
-import * as Config from "effect/config/Config"
+import * as Config from "effect/Config"
+import { constFalse, identity } from "effect/data/Function"
 import * as Effect from "effect/Effect"
 import * as Fiber from "effect/Fiber"
-import { constFalse, identity } from "effect/Function"
 import * as Layer from "effect/Layer"
 import * as Scope from "effect/Scope"
 import * as ServiceMap from "effect/ServiceMap"

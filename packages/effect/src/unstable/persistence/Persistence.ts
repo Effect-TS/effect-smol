@@ -1,17 +1,17 @@
 /**
  * @since 4.0.0
  */
+import * as Clock from "../../Clock.ts"
 import * as Arr from "../../collections/Array.ts"
+import * as Duration from "../../data/Duration.ts"
+import * as Exit from "../../data/Exit.ts"
+import { identity } from "../../data/Function.ts"
 import * as Effect from "../../Effect.ts"
-import * as Exit from "../../Exit.ts"
-import { identity } from "../../Function.ts"
 import * as PrimaryKey from "../../interfaces/PrimaryKey.ts"
 import * as Layer from "../../Layer.ts"
 import * as Schema from "../../schema/Schema.ts"
 import type * as Scope from "../../Scope.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
-import * as Clock from "../../time/Clock.ts"
-import * as Duration from "../../time/Duration.ts"
 import * as SqlClient from "../sql/SqlClient.ts"
 import type { SqlError } from "../sql/SqlError.ts"
 import * as KeyValueStore from "./KeyValueStore.ts"

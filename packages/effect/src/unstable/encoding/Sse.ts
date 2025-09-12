@@ -4,6 +4,7 @@
 import type { NonEmptyReadonlyArray } from "../../collections/Array.ts"
 import * as Arr from "../../collections/Array.ts"
 import * as Data from "../../data/Data.ts"
+import * as Duration from "../../data/Duration.ts"
 import * as Filter from "../../data/Filter.ts"
 import { hasProperty } from "../../data/Predicate.ts"
 import * as Effect from "../../Effect.ts"
@@ -12,7 +13,6 @@ import * as Transformation from "../../schema/Transformation.ts"
 import * as Channel from "../../stream/Channel.ts"
 import * as ChannelSchema from "../../stream/ChannelSchema.ts"
 import * as Pull from "../../stream/Pull.ts"
-import * as Duration from "../../time/Duration.ts"
 
 /**
  * @since 4.0.0

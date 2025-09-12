@@ -27,50 +27,82 @@ export {
    * @since 2.0.0
    */
   pipe
-} from "./Function.ts"
+} from "./data/Function.ts"
 
 /**
- * This module provides utilities for working with `Cause`, a data type that represents
- * the different ways an `Effect` can fail. It includes structured error handling with
- * typed errors, defects, and interruptions.
+ * @since 4.0.0
+ */
+export * as Cache from "./Cache.ts"
+
+/**
+ * The `Clock` module provides functionality for time-based operations in Effect applications.
+ * It offers precise time measurements, scheduling capabilities, and controlled time management
+ * for testing scenarios.
  *
- * A `Cause` can represent:
- * - **Fail**: A typed, expected error that can be handled
- * - **Die**: An unrecoverable defect (like a programming error)
- * - **Interrupt**: A fiber interruption
+ * The Clock service is a core component of the Effect runtime, providing:
+ * - Current time access in milliseconds and nanoseconds
+ * - Sleep operations for delaying execution
+ * - Time-based scheduling primitives
+ * - Testable time control through `TestClock`
+ *
+ * ## Key Features
+ *
+ * - **Precise timing**: Access to both millisecond and nanosecond precision
+ * - **Sleep operations**: Non-blocking sleep with proper interruption handling
+ * - **Service integration**: Seamless integration with Effect's dependency injection
+ * - **Testable**: Mock time control for deterministic testing
+ * - **Resource-safe**: Automatic cleanup of time-based resources
  *
  * @example
  * ```ts
- * import { Cause, Effect } from "effect"
+ * import { Clock, Effect } from "effect"
  *
- * // Creating different types of causes
- * const failCause = Cause.fail("Something went wrong")
- * const dieCause = Cause.die(new Error("Unexpected error"))
- * const interruptCause = Cause.interrupt(123)
+ * // Get current time in milliseconds
+ * const getCurrentTime = Clock.currentTimeMillis
  *
- * // Working with effects that can fail
- * const program = Effect.fail("user error").pipe(
- *   Effect.catchCause((cause) => {
- *     if (Cause.hasFail(cause)) {
- *       const error = Cause.filterError(cause)
- *       console.log("Expected error:", error)
- *     }
- *     return Effect.succeed("handled")
- *   })
- * )
+ * // Sleep for 1 second
+ * const sleep1Second = Effect.sleep("1 seconds")
  *
- * // Analyzing failure types
- * const analyzeCause = (cause: Cause.Cause<string>) => {
- *   if (Cause.hasFail(cause)) return "Has user error"
- *   if (Cause.hasDie(cause)) return "Has defect"
- *   if (Cause.hasInterrupt(cause)) return "Was interrupted"
- *   return "Unknown cause"
- * }
+ * // Measure execution time
+ * const measureTime = Effect.gen(function* () {
+ *   const start = yield* Clock.currentTimeMillis
+ *   yield* Effect.sleep("100 millis")
+ *   const end = yield* Clock.currentTimeMillis
+ *   return end - start
+ * })
+ * ```
+ *
+ * @example
+ * ```ts
+ * import { Clock, Effect } from "effect"
+ *
+ * // Using Clock service directly
+ * const program = Effect.gen(function* () {
+ *   const clock = yield* Clock.Clock
+ *   const currentTime = yield* clock.currentTimeMillis
+ *   console.log(`Current time: ${currentTime}`)
+ *
+ *   // Sleep for 500ms
+ *   yield* Effect.sleep("500 millis")
+ *
+ *   const afterSleep = yield* clock.currentTimeMillis
+ *   console.log(`After sleep: ${afterSleep}`)
+ * })
  * ```
  *
  * @since 2.0.0
  */
-export * as Cause from "./Cause.ts"
+export * as Clock from "./Clock.ts"
+
+/**
+ * @since 4.0.0
+ */
+export * as Config from "./Config.ts"
+
+/**
+ * @since 4.0.0
+ */
+export * as ConfigProvider from "./ConfigProvider.ts"
 
 /**
  * This module provides utilities for working with `Deferred`, a powerful concurrency
@@ -91,9 +123,7 @@ export * as Cause from "./Cause.ts"
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Deferred } from "effect"
- * import { Fiber } from "effect"
+ * import { Deferred, Effect, Fiber } from "effect"
  *
  * // Basic usage: coordinate between fibers
  * const program = Effect.gen(function* () {
@@ -216,19 +246,6 @@ export * as Deferred from "./Deferred.ts"
 export * as Effect from "./Effect.ts"
 
 /**
- * The `Exit` type represents the result of running an Effect computation.
- * An `Exit<A, E>` can either be:
- * - `Success`: Contains a value of type `A`
- * - `Failure`: Contains a `Cause<E>` describing why the effect failed
- *
- * `Exit` is used internally by the Effect runtime and can be useful for
- * handling the results of Effect computations in a more explicit way.
- *
- * @since 2.0.0
- */
-export * as Exit from "./Exit.ts"
-
-/**
  * This module provides utilities for working with `Fiber`, the fundamental unit of
  * concurrency in Effect. Fibers are lightweight, user-space threads that allow
  * multiple Effects to run concurrently with structured concurrency guarantees.
@@ -248,9 +265,8 @@ export * as Exit from "./Exit.ts"
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
+ * import { Effect, Fiber } from "effect"
  * import { Console } from "effect/logging"
- * import { Fiber } from "effect"
  *
  * // Basic fiber operations
  * const basicExample = Effect.gen(function* () {
@@ -322,11 +338,6 @@ export * as FiberMap from "./FiberMap.ts"
 export * as FiberSet from "./FiberSet.ts"
 
 /**
- * @since 2.0.0
- */
-export * as Function from "./Function.ts"
-
-/**
  * A `Layer<ROut, E, RIn>` describes how to build one or more services in your
  * application. Services can be injected into effects via
  * `Effect.provideService`. Effects can require services via `Effect.service`.
@@ -356,6 +367,177 @@ export * as LayerMap from "./LayerMap.ts"
  * @since 2.0.0
  */
 export * as ManagedRuntime from "./ManagedRuntime.ts"
+
+/**
+ * The `Match` module provides a type-safe pattern matching system for
+ * TypeScript. Inspired by functional programming, it simplifies conditional
+ * logic by replacing verbose if/else or switch statements with a structured and
+ * expressive API.
+ *
+ * This module supports matching against types, values, and discriminated unions
+ * while enforcing exhaustiveness checking to ensure all cases are handled.
+ *
+ * Although pattern matching is not yet a native JavaScript feature,
+ * the `Match` module offers a reliable implementation that is available today.
+ *
+ * **How Pattern Matching Works**
+ *
+ * Pattern matching follows a structured process:
+ *
+ * - **Creating a matcher**: Define a `Matcher` that operates on either a
+ *   specific `Match.type` or `Match.value`.
+ *
+ * - **Defining patterns**: Use combinators such as `Match.when`, `Match.not`,
+ *   and `Match.tag` to specify matching conditions.
+ *
+ * - **Completing the match**: Apply a finalizer such as `Match.exhaustive`,
+ *   `Match.orElse`, or `Match.option` to determine how unmatched cases should
+ *   be handled.
+ *
+ * @since 4.0.0
+ */
+export * as Match from "./Match.ts"
+
+/**
+ * @since 2.0.0
+ *
+ * The `Metric` module provides a comprehensive system for collecting, aggregating, and observing
+ * application metrics in Effect applications. It offers type-safe, concurrent metrics that can
+ * be used to monitor performance, track business metrics, and gain insights into application behavior.
+ *
+ * ## Key Features
+ *
+ * - **Five Metric Types**: Counters, Gauges, Frequencies, Histograms, and Summaries
+ * - **Type Safety**: Fully typed metrics with compile-time guarantees
+ * - **Concurrency Safe**: Thread-safe metrics that work with Effect's concurrency model
+ * - **Attributes**: Tag metrics with key-value attributes for filtering and grouping
+ * - **Snapshots**: Take point-in-time snapshots of all metrics for reporting
+ * - **Runtime Integration**: Automatic fiber runtime metrics collection
+ *
+ * ## Metric Types
+ *
+ * ### Counter
+ * Tracks cumulative values that only increase or can be reset to zero.
+ * Perfect for counting events, requests, errors, etc.
+ *
+ * ### Gauge
+ * Represents a single numerical value that can go up or down.
+ * Ideal for current resource usage, temperature, queue sizes, etc.
+ *
+ * ### Frequency
+ * Counts occurrences of discrete string values.
+ * Useful for tracking categorical data like HTTP status codes, user actions, etc.
+ *
+ * ### Histogram
+ * Records observations in configurable buckets to analyze distribution.
+ * Great for response times, request sizes, and other measured values.
+ *
+ * ### Summary
+ * Calculates quantiles over a sliding time window.
+ * Provides statistical insights into value distributions over time.
+ *
+ * ## Basic Usage
+ *
+ * ```ts
+ * import { Effect, Metric } from "effect"
+ *
+ * // Create metrics
+ * const requestCount = Metric.counter("http_requests_total", {
+ *   description: "Total number of HTTP requests"
+ * })
+ *
+ * const responseTime = Metric.histogram("http_response_time", {
+ *   description: "HTTP response time in milliseconds",
+ *   boundaries: Metric.linearBoundaries({ start: 0, width: 50, count: 20 })
+ * })
+ *
+ * // Use metrics in your application
+ * const handleRequest = Effect.gen(function* () {
+ *   yield* Metric.update(requestCount, 1)
+ *
+ *   const startTime = yield* Effect.clockWith(clock => clock.currentTimeMillis)
+ *
+ *   // Process request...
+ *   yield* Effect.sleep("100 millis")
+ *
+ *   const endTime = yield* Effect.clockWith(clock => clock.currentTimeMillis)
+ *   yield* Metric.update(responseTime, endTime - startTime)
+ * })
+ * ```
+ *
+ * ## Attributes and Tagging
+ *
+ * ```ts
+ * import { Effect, Metric } from "effect"
+ *
+ * const requestCount = Metric.counter("requests", {
+ *   description: "Number of requests by endpoint and method"
+ * })
+ *
+ * const program = Effect.gen(function* () {
+ *   // Add attributes to metrics
+ *   yield* Metric.update(
+ *     Metric.withAttributes(requestCount, {
+ *       endpoint: "/api/users",
+ *       method: "GET"
+ *     }),
+ *     1
+ *   )
+ *
+ *   // Or use withAttributes for compile-time attributes
+ *   const taggedCounter = Metric.withAttributes(requestCount, {
+ *     endpoint: "/api/posts",
+ *     method: "POST"
+ *   })
+ *   yield* Metric.update(taggedCounter, 1)
+ * })
+ * ```
+ *
+ * ## Advanced Examples
+ *
+ * ```ts
+ * import { Effect, Metric } from "effect"
+ * import { Schedule } from "effect"
+ *
+ * // Business metrics
+ * const userSignups = Metric.counter("user_signups_total")
+ * const activeUsers = Metric.gauge("active_users_current")
+ * const featureUsage = Metric.frequency("feature_usage")
+ *
+ * // Performance metrics
+ * const dbQueryTime = Metric.summary("db_query_duration", {
+ *   maxAge: "5 minutes",
+ *   maxSize: 1000,
+ *   quantiles: [0.5, 0.9, 0.95, 0.99]
+ * })
+ *
+ * const program = Effect.gen(function* () {
+ *   // Track user signup
+ *   yield* Metric.update(userSignups, 1)
+ *
+ *   // Update active user count
+ *   yield* Metric.update(activeUsers, 1250)
+ *
+ *   // Record feature usage
+ *   yield* Metric.update(featureUsage, "dashboard_view")
+ *
+ *   // Measure database query time
+ *   yield* Effect.timed(performDatabaseQuery).pipe(
+ *     Effect.tap(([duration]) => Metric.update(dbQueryTime, duration))
+ *   )
+ * })
+ *
+ * // Get metric snapshots
+ * const getMetrics = Effect.gen(function* () {
+ *   const snapshots = yield* Metric.snapshot
+ *
+ *   for (const metric of snapshots) {
+ *     console.log(`${metric.id}: ${JSON.stringify(metric.state)}`)
+ *   }
+ * })
+ * ```
+ */
+export * as Metric from "./Metric.ts"
 
 /**
  * @fileoverview
@@ -405,9 +587,7 @@ export * as Pool from "./Pool.ts"
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Scope } from "effect"
- * import { PubSub } from "effect"
+ * import { Effect, PubSub, Scope } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const pubsub = yield* PubSub.bounded<string>(10)
@@ -439,8 +619,7 @@ export * as PubSub from "./PubSub.ts"
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Queue } from "effect"
+ * import { Effect, Queue } from "effect"
  *
  * // Creating a bounded queue with capacity 10
  * const program = Effect.gen(function*() {
@@ -486,8 +665,7 @@ export * as RcRef from "./RcRef.ts"
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Ref } from "effect"
+ * import { Effect, Ref } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   // Create a ref with initial value
@@ -525,6 +703,35 @@ export * as Ref from "./Ref.ts"
 export * as References from "./References.ts"
 
 /**
+ * This module provides utility functions for working with RegExp in TypeScript.
+ *
+ * @since 2.0.0
+ */
+export * as RegExp from "./data/RegExp.ts"
+
+/**
+ * The `Request` module provides a way to model requests to external data sources
+ * in a functional and composable manner. Requests represent descriptions of
+ * operations that can be batched, cached, and executed efficiently.
+ *
+ * A `Request<A, E, R>` represents a request that:
+ * - Yields a value of type `A` on success
+ * - Can fail with an error of type `E`
+ * - Requires services of type `R`
+ *
+ * Requests are primarily used with RequestResolver to implement efficient
+ * data fetching patterns, including automatic batching and caching.
+ *
+ * @since 2.0.0
+ */
+export * as Request from "./Request.ts"
+
+/**
+ * @since 2.0.0
+ */
+export * as RequestResolver from "./RequestResolver.ts"
+
+/**
  * This module provides utilities for running Effect programs and managing their execution lifecycle.
  *
  * The Runtime module contains functions for creating main program runners that handle process
@@ -533,9 +740,7 @@ export * as References from "./References.ts"
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Runtime } from "effect"
- * import { Fiber } from "effect"
+ * import { Effect, Fiber, Runtime } from "effect"
  *
  * // Create a main runner for Node.js
  * const runMain = Runtime.makeRunMain((options) => {
@@ -566,9 +771,8 @@ export * as Runtime from "./Runtime.ts"
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Schedule } from "effect"
- * import { Duration } from "effect/time"
+ * import { Effect, Schedule } from "effect"
+ * import { Duration } from "effect/data"
  *
  * // Retry with exponential backoff
  * const retryPolicy = Schedule.exponential("100 millis", 2.0)
@@ -614,6 +818,11 @@ export * as Scheduler from "./Scheduler.ts"
 export * as Scope from "./Scope.ts"
 
 /**
+ * @since 4.0.0
+ */
+export * as ScopedCache from "./ScopedCache.ts"
+
+/**
  * @since 2.0.0
  */
 export * as ScopedRef from "./ScopedRef.ts"
@@ -633,6 +842,11 @@ export * as ServiceMap from "./ServiceMap.ts"
  * @since 2.0.0
  */
 export * as SynchronizedRef from "./SynchronizedRef.ts"
+
+/**
+ * @since 2.0.0
+ */
+export * as Tracer from "./Tracer.ts"
 
 /**
  * @since 2.0.0

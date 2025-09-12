@@ -1,7 +1,7 @@
 /**
  * @since 4.0.0
  */
-import * as Cause from "../../Cause.ts"
+import * as Cause from "../../data/Cause.ts"
 import { hasProperty } from "../../data/Predicate.ts"
 import * as Effect from "../../Effect.ts"
 import * as Schema from "../../schema/Schema.ts"

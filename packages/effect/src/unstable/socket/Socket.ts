@@ -3,20 +3,20 @@
  */
 import type { NonEmptyReadonlyArray } from "../../collections/Array.ts"
 import * as Data from "../../data/Data.ts"
+import type { DurationInput } from "../../data/Duration.ts"
+import * as Exit from "../../data/Exit.ts"
 import * as Filter from "../../data/Filter.ts"
+import { dual } from "../../data/Function.ts"
 import * as Predicate from "../../data/Predicate.ts"
 import * as Deferred from "../../Deferred.ts"
 import * as Effect from "../../Effect.ts"
-import * as Exit from "../../Exit.ts"
 import * as FiberSet from "../../FiberSet.ts"
-import { dual } from "../../Function.ts"
 import * as Layer from "../../Layer.ts"
 import * as Queue from "../../Queue.ts"
 import * as Scope from "../../Scope.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import * as Channel from "../../stream/Channel.ts"
 import * as Pull from "../../stream/Pull.ts"
-import type { DurationInput } from "../../time/Duration.ts"
 
 /** @internal */
 export const TypeId = "~effect/socket/Socket"

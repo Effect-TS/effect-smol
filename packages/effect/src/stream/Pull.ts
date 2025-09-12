@@ -1,12 +1,12 @@
 /**
  * @since 4.0.0
  */
-import * as Cause from "../Cause.ts"
+import * as Cause from "../data/Cause.ts"
+import * as Exit from "../data/Exit.ts"
 import * as Filter from "../data/Filter.ts"
+import { dual } from "../data/Function.ts"
 import { hasProperty } from "../data/Predicate.ts"
 import type { Effect } from "../Effect.ts"
-import * as Exit from "../Exit.ts"
-import { dual } from "../Function.ts"
 import * as internalEffect from "../internal/effect.ts"
 
 /**
@@ -93,8 +93,7 @@ export type Leftover<P> = P extends Effect<infer _A, infer _E, infer _R> ? _E ex
  * @example
  * ```ts
  * import { Pull } from "effect/stream"
- * import { Effect } from "effect"
- * import { ServiceMap } from "effect"
+ * import { Effect, ServiceMap } from "effect"
  *
  * interface MyService {
  *   readonly value: number
@@ -262,7 +261,7 @@ export const isHalt = (u: unknown): u is Halt<unknown> => hasProperty(u, HaltTyp
  * @example
  * ```ts
  * import { Pull } from "effect/stream"
- * import { Cause } from "effect"
+ * import { Cause } from "effect/data"
  *
  * const halt = new Pull.Halt("completed")
  * const causeWithHalt = Cause.fail(halt)
@@ -283,7 +282,7 @@ export const isHaltCause = <E>(cause: Cause.Cause<E>): boolean => cause.failures
  * @example
  * ```ts
  * import { Pull } from "effect/stream"
- * import { Cause } from "effect"
+ * import { Cause } from "effect/data"
  *
  * const halt = new Pull.Halt("completed")
  * const haltCause = Cause.fail(halt)
@@ -330,7 +329,7 @@ export const filterNoHalt: <E>(
  * @example
  * ```ts
  * import { Pull } from "effect/stream"
- * import { Cause } from "effect"
+ * import { Cause } from "effect/data"
  *
  * const halt = new Pull.Halt("stream completed")
  * const causeWithHalt = Cause.fail(halt)
@@ -394,7 +393,7 @@ export const haltVoid: Effect<never, Halt<void>> = internalEffect.fail(new Halt(
  *
  * @example
  * ```ts
- * import { Cause, Exit } from "effect"
+ * import { Cause, Exit } from "effect/data"
  * import { Pull } from "effect/stream"
  *
  * const halt = new Pull.Halt("completed")
@@ -417,7 +416,8 @@ export const haltExitFromCause = <E>(cause: Cause.Cause<E>): Exit.Exit<Halt.Extr
  *
  * @example
  * ```ts
- * import { Effect, Cause } from "effect"
+ * import { Effect } from "effect"
+ * import { Cause } from "effect/data"
  * import { Pull } from "effect/stream"
  *
  * const pull = Pull.halt("stream ended")

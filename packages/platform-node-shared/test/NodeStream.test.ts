@@ -1,10 +1,9 @@
 import * as NodeStream from "@effect/platform-node-shared/NodeStream"
 import { assert, describe, it } from "@effect/vitest"
 import { Effect } from "effect"
-import * as Array from "effect/collections/Array"
-import * as Console from "effect/logging/Console"
-import * as Channel from "effect/stream/Channel"
-import * as Stream from "effect/stream/Stream"
+import { Array } from "effect/collections"
+import { Console } from "effect/logging"
+import { Channel, Stream } from "effect/stream"
 import { Duplex, Readable, Transform } from "node:stream"
 import * as Zlib from "node:zlib"
 

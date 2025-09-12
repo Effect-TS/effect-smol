@@ -67,7 +67,7 @@ export * as Array from "./Array.ts"
  * @example
  * ```ts
  * import { Chunk } from "effect/collections"
-import { Effect } from "effect"
+ * import { Effect } from "effect"
  *
  * // Working with Effects
  * const processChunk = (chunk: Chunk.Chunk<number>) =>
@@ -249,7 +249,7 @@ export * as MutableList from "./MutableList.ts"
  * ## Basic Usage
  *
  * ```ts
- * import * as NonEmptyIterable from "effect/collections/NonEmptyIterable"
+ * import { NonEmptyIterable } from "effect/collections"
  *
  * // NonEmptyIterable is a type that represents any iterable with at least one element
  * function processNonEmpty<A>(data: NonEmptyIterable.NonEmptyIterable<A>): A {
@@ -280,9 +280,7 @@ export * as MutableList from "./MutableList.ts"
  *
  * ```ts
  * import { pipe } from "effect"
- * import * as NonEmptyIterable from "effect/collections/NonEmptyIterable"
- * import { Array } from "effect/collections"
- * import * as Chunk from "effect/collections/Chunk"
+ * import { NonEmptyIterable, Array, Chunk } from "effect/collections"
  *
  * // Creating non-empty arrays
  * const nonEmptyArray = Array.make(1, 2, 3) as unknown as NonEmptyIterable.NonEmptyIterable<number>
@@ -320,9 +318,7 @@ export * as MutableList from "./MutableList.ts"
  *
  * ```ts
  * import { pipe } from "effect"
- * import * as NonEmptyIterable from "effect/collections/NonEmptyIterable"
- * import { Array } from "effect/collections"
- * import * as Chunk from "effect/collections/Chunk"
+ * import { NonEmptyIterable, Array, Chunk } from "effect/collections"
  *
  * // Many Array functions work with NonEmptyIterable
  * declare const nonEmptyData: NonEmptyIterable.NonEmptyIterable<number>

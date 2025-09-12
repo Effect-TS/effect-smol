@@ -44,13 +44,13 @@
  *
  * @since 2.0.0
  */
-import type * as Cause from "../Cause.ts"
 import * as Predicate from "../data/Predicate.ts"
 import * as core from "../internal/core.ts"
 import { StructuralPrototype } from "../internal/core.ts"
 import * as internal from "../internal/data.ts"
 import type * as Types from "../types/Types.ts"
 import type { Unify } from "../types/Unify.ts"
+import type * as Cause from "./Cause.ts"
 
 /**
  * A namespace providing utilities for Case constructors.
@@ -948,8 +948,8 @@ function taggedMatch<
  *
  * @example
  * ```ts
- * import { Effect, Exit } from "effect"
- * import { Data } from "effect/data"
+ * import { Effect } from "effect"
+ * import { Data, Exit } from "effect/data"
  *
  * class NetworkError extends Data.Error<{ code: number; message: string }> {}
  *

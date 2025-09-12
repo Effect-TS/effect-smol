@@ -7,8 +7,8 @@
  *
  * @since 2.0.0
  */
+import { dual, pipe } from "../data/Function.ts"
 import { hasProperty } from "../data/Predicate.ts"
-import { dual, pipe } from "../Function.ts"
 
 /** @internal */
 const randomHashCache = new WeakMap<object, number>()

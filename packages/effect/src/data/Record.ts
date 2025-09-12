@@ -8,11 +8,11 @@ import type { Equivalence } from "../data/Equivalence.ts"
 import * as Option from "../data/Option.ts"
 import type { Result } from "../data/Result.ts"
 import * as R from "../data/Result.ts"
-import { dual, identity } from "../Function.ts"
 import * as Equal from "../interfaces/Equal.ts"
 import type { TypeLambda } from "../types/HKT.ts"
 import type { NoInfer } from "../types/Types.ts"
 import type * as Combiner from "./Combiner.ts"
+import { dual, identity } from "./Function.ts"
 import * as Reducer from "./Reducer.ts"
 
 /**
@@ -389,8 +389,7 @@ export const has: {
  * @example
  * ```ts
  * import * as assert from "node:assert"
- * import { Record as R } from "effect/data"
- * import { Option } from "effect/data"
+ * import { Option, Record as R } from "effect/data"
  *
  * const person: Record<string, unknown> = { name: "John Doe", age: 35 }
  *
@@ -660,8 +659,7 @@ export const mapEntries: {
  * @example
  * ```ts
  * import * as assert from "node:assert"
- * import { Record } from "effect/data"
- * import { Option } from "effect/data"
+ * import { Option, Record } from "effect/data"
  *
  * const x = { a: 1, b: 2, c: 3 }
  * const f = (a: number, key: string) => a > 2 ? Option.some(a * 2) : Option.none()
@@ -748,8 +746,7 @@ export const filter: {
  * @example
  * ```ts
  * import * as assert from "node:assert"
- * import { Record } from "effect/data"
- * import { Option } from "effect/data"
+ * import { Option, Record } from "effect/data"
  *
  * assert.deepStrictEqual(
  *   Record.getSomes({ a: Option.some(1), b: Option.none(), c: Option.some(2) }),
@@ -772,8 +769,7 @@ export const getSomes: <K extends string, A>(
  * @example
  * ```ts
  * import * as assert from "node:assert"
- * import { Record } from "effect/data"
- * import { Result } from "effect/data"
+ * import { Record, Result } from "effect/data"
  *
  * assert.deepStrictEqual(
  *   Record.getFailures({ a: Result.succeed(1), b: Result.fail("err"), c: Result.succeed(2) }),
@@ -804,8 +800,7 @@ export const getFailures = <K extends string, A, E>(
  * @example
  * ```ts
  * import * as assert from "node:assert"
- * import { Record } from "effect/data"
- * import { Result } from "effect/data"
+ * import { Record, Result } from "effect/data"
  *
  * assert.deepStrictEqual(
  *   Record.getSuccesses({ a: Result.succeed(1), b: Result.fail("err"), c: Result.succeed(2) }),
@@ -836,8 +831,7 @@ export const getSuccesses = <K extends string, A, E>(
  * @example
  * ```ts
  * import * as assert from "node:assert"
- * import { Record } from "effect/data"
- * import { Result } from "effect/data"
+ * import { Record, Result } from "effect/data"
  *
  * const x = { a: 1, b: 2, c: 3 }
  * const f = (n: number) => (n % 2 === 0 ? Result.succeed(n) : Result.fail(n))
@@ -884,8 +878,7 @@ export const partitionMap: {
  * @example
  * ```ts
  * import * as assert from "node:assert"
- * import { Record } from "effect/data"
- * import { Result } from "effect/data"
+ * import { Record, Result } from "effect/data"
  *
  * assert.deepStrictEqual(
  *   Record.separate({ a: Result.fail("e"), b: Result.succeed(1) }),

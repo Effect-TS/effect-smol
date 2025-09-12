@@ -37,8 +37,8 @@
  *
  * @since 2.0.0
  */
-import { dual } from "../Function.ts"
 import type { TypeLambda } from "../types/HKT.ts"
+import { dual } from "./Function.ts"
 import * as Reducer from "./Reducer.ts"
 
 /**

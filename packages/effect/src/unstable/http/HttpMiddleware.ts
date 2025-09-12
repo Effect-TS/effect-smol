@@ -1,17 +1,17 @@
 /**
  * @since 4.0.0
  */
+import { Clock } from "../../Clock.ts"
+import { constFalse } from "../../data/Function.ts"
 import type { Predicate } from "../../data/Predicate.ts"
 import type { ReadonlyRecord } from "../../data/Record.ts"
 import * as UndefinedOr from "../../data/UndefinedOr.ts"
 import * as Effect from "../../Effect.ts"
-import { constFalse } from "../../Function.ts"
 import * as internalEffect from "../../internal/effect.ts"
 import * as Layer from "../../Layer.ts"
-import { ParentSpan } from "../../observability/Tracer.ts"
 import { TracerEnabled } from "../../References.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
-import { Clock } from "../../time/Clock.ts"
+import { ParentSpan } from "../../Tracer.ts"
 import * as Headers from "./Headers.ts"
 import type { PreResponseHandler } from "./HttpEffect.ts"
 import { causeResponseStripped, exitResponse } from "./HttpServerError.ts"

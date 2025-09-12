@@ -1,8 +1,8 @@
 import { assertFalse, assertNone, assertSome, assertTrue, assertUndefined, deepStrictEqual } from "@effect/vitest/utils"
-import { Option, Record, Result } from "effect/data"
-import { pipe } from "effect/Function"
-import { Number as Num } from "effect/primitives"
+import { Function, Number as Num, Option, Record, Result } from "effect/data"
 import { describe, it } from "vitest"
+
+const { pipe } = Function
 
 describe("Record", () => {
   it("singleton", () => {

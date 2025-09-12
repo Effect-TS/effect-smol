@@ -1,11 +1,11 @@
 /**
  * @since 4.0.0
  */
-import * as Cause from "../../Cause.ts"
+import * as Cause from "../../data/Cause.ts"
 import * as Data from "../../data/Data.ts"
+import type * as Exit from "../../data/Exit.ts"
 import { hasProperty } from "../../data/Predicate.ts"
 import * as Effect from "../../Effect.ts"
-import type * as Exit from "../../Exit.ts"
 import type * as Request from "./HttpServerRequest.ts"
 import * as Respondable from "./HttpServerRespondable.ts"
 import * as Response from "./HttpServerResponse.ts"

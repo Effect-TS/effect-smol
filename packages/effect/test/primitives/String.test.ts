@@ -1,4 +1,4 @@
-import * as String from "effect/primitives/String"
+import { String } from "effect/data"
 import { describe, it } from "vitest"
 import { strictEqual } from "../utils/assert.ts"
 

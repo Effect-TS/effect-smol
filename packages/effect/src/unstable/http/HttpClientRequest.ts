@@ -1,11 +1,11 @@
 /**
  * @since 4.0.0
  */
+import { dual } from "../../data/Function.ts"
 import { hasProperty } from "../../data/Predicate.ts"
 import * as Redacted from "../../data/Redacted.ts"
 import * as Result from "../../data/Result.ts"
 import * as Effect from "../../Effect.ts"
-import { dual } from "../../Function.ts"
 import * as Inspectable from "../../interfaces/Inspectable.ts"
 import { type Pipeable, pipeArguments } from "../../interfaces/Pipeable.ts"
 import type * as FileSystem from "../../platform/FileSystem.ts"

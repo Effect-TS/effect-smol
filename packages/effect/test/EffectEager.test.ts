@@ -1,5 +1,6 @@
 import { assert, describe, it } from "@effect/vitest"
-import { Effect, Exit, Fiber } from "effect"
+import { Effect, Fiber } from "effect"
+import { Exit } from "effect/data"
 import { TestClock } from "effect/testing"
 
 describe("Effect Eager Operations", () => {

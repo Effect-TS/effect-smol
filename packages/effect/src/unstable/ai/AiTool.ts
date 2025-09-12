@@ -1,9 +1,9 @@
 /**
  * @since 4.0.0
  */
+import { constFalse, constTrue } from "../../data/Function.ts"
 import * as Predicate from "../../data/Predicate.ts"
 import type * as Effect from "../../Effect.ts"
-import { constFalse, constTrue } from "../../Function.ts"
 import { type Pipeable, pipeArguments } from "../../interfaces/Pipeable.ts"
 import * as Schema from "../../schema/Schema.ts"
 import * as ServiceMap from "../../ServiceMap.ts"

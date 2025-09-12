@@ -1,13 +1,13 @@
 /**
  * @since 4.0.0
  */
-import * as Cause from "../../Cause.ts"
+import * as Cause from "../../data/Cause.ts"
 import * as Data from "../../data/Data.ts"
+import * as Exit from "../../data/Exit.ts"
+import { constFalse, constTrue, dual, identity } from "../../data/Function.ts"
 import * as Option from "../../data/Option.ts"
 import * as Predicate from "../../data/Predicate.ts"
 import * as Effect from "../../Effect.ts"
-import * as Exit from "../../Exit.ts"
-import { constFalse, constTrue, dual, identity } from "../../Function.ts"
 import * as Layer from "../../Layer.ts"
 import * as Schedule from "../../Schedule.ts"
 import { Serializer } from "../../schema/index.ts"

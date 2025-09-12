@@ -1,10 +1,8 @@
 import { describe, it } from "@effect/vitest"
 import { deepStrictEqual } from "@effect/vitest/utils"
-import { Effect, pipe } from "effect"
-import { Config, ConfigProvider } from "effect/config"
-import { Option, Redacted } from "effect/data"
+import { Config, ConfigProvider, Effect, pipe } from "effect"
+import { Duration, Option, Redacted } from "effect/data"
 import { Issue, Schema } from "effect/schema"
-import { Duration } from "effect/time"
 import { assertions } from "../utils/schema.ts"
 
 async function assertSuccess<T>(config: Config.Config<T>, provider: ConfigProvider.ConfigProvider, expected: T) {

@@ -1,15 +1,11 @@
-import { Effect, Layer, Queue, ServiceMap } from "effect"
+import { Effect, Layer, Metric, Queue, ServiceMap } from "effect"
 import { Option } from "effect/data"
-import { Metric } from "effect/observability"
 import { Schema } from "effect/schema"
 import { Headers } from "effect/unstable/http"
+import { RpcGroup, RpcMiddleware, RpcServer, RpcTest } from "effect/unstable/rpc"
 import * as Rpc from "effect/unstable/rpc/Rpc"
 import * as RpcClient from "effect/unstable/rpc/RpcClient"
 import type { RpcClientError } from "effect/unstable/rpc/RpcClientError"
-import * as RpcGroup from "effect/unstable/rpc/RpcGroup"
-import * as RpcMiddleware from "effect/unstable/rpc/RpcMiddleware"
-import * as RpcServer from "effect/unstable/rpc/RpcServer"
-import * as RpcTest from "effect/unstable/rpc/RpcTest"
 
 export class User extends Schema.Class<User>("User")({
   id: Schema.String,

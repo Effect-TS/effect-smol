@@ -1,6 +1,5 @@
 import { Effect } from "effect"
-import type { AST } from "effect/schema"
-import { Formatter, Schema, ToParser } from "effect/schema"
+import { type AST, Formatter, Schema, ToParser } from "effect/schema"
 import { describe, it } from "vitest"
 import { assertions } from "../utils/schema.ts"
 

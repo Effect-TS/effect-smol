@@ -1,8 +1,8 @@
 import { PgClient } from "@effect/sql-pg"
 import { assert, expect, it } from "@effect/vitest"
 import { Effect } from "effect"
-import { String } from "effect/primitives"
-import * as Statement from "effect/unstable/sql/Statement"
+import { String } from "effect/data"
+import { Statement } from "effect/unstable/sql"
 import { PgContainer } from "./utils.ts"
 
 const compilerTransform = PgClient.makeCompiler(String.camelToSnake)

@@ -1,8 +1,8 @@
 /**
  * @since 4.0.0
  */
+import * as Exit from "../../data/Exit.ts"
 import * as Effect from "../../Effect.ts"
-import * as Exit from "../../Exit.ts"
 import * as Layer from "../../Layer.ts"
 import * as Queue from "../../Queue.ts"
 import * as RcMap from "../../RcMap.ts"

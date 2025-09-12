@@ -1,10 +1,10 @@
 /**
  * @since 3.5.0
  */
+import type * as Duration from "./data/Duration.ts"
 import type * as Effect from "./Effect.ts"
 import * as internal from "./internal/rcRef.ts"
 import type { Scope } from "./Scope.ts"
-import type * as Duration from "./time/Duration.ts"
 import type * as Types from "./types/Types.ts"
 
 const TypeId = "~effect/RcRef"
@@ -20,8 +20,7 @@ const TypeId = "~effect/RcRef"
  * @category models
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { RcRef } from "effect"
+ * import { Effect, RcRef } from "effect"
  *
  * // Create an RcRef for a database connection
  * const createConnectionRef = (connectionString: string) =>
@@ -94,8 +93,7 @@ export declare namespace RcRef {
  * @category constructors
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { RcRef } from "effect"
+ * import { Effect, RcRef } from "effect"
  *
  * Effect.gen(function*() {
  *   const ref = yield* RcRef.make({
@@ -136,8 +134,7 @@ export const make: <A, E, R>(
  * @category combinators
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { RcRef } from "effect"
+ * import { Effect, RcRef } from "effect"
  *
  * const program = Effect.gen(function* () {
  *   // Create an RcRef with a resource

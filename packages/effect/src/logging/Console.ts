@@ -73,8 +73,8 @@
  *
  * @since 2.0.0
  */
+import { dual } from "../data/Function.ts"
 import type * as Effect from "../Effect.ts"
-import { dual } from "../Function.ts"
 import * as core from "../internal/core.ts"
 import * as effect from "../internal/effect.ts"
 import type { Scope } from "../Scope.ts"

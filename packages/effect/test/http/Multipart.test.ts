@@ -3,7 +3,7 @@ import { deepStrictEqual } from "@effect/vitest/utils"
 import { Effect, identity } from "effect"
 import { Stream } from "effect/stream"
 import { Unify } from "effect/types"
-import * as Multipart from "effect/unstable/http/Multipart"
+import { Multipart } from "effect/unstable/http"
 
 describe("Multipart", () => {
   it.effect("it parses", () =>

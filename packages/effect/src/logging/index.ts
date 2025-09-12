@@ -141,8 +141,7 @@ export * as Console from "./Console.ts"
  * ## Multiple Loggers
  *
  * ```ts
- * import { Effect } from "effect"
- * import { Layer } from "effect"
+ * import { Effect, Layer } from "effect"
  * import { Logger } from "effect/logging"
  *
  * // Combine multiple loggers
@@ -161,7 +160,7 @@ export * as Console from "./Console.ts"
  * ```ts
  * import { Logger } from "effect/logging"
  * import { Effect } from "effect"
- * import { Duration } from "effect/time"
+ * import { Duration } from "effect/data"
  *
  * const batchedLogger = Logger.batched(Logger.formatJson, {
  *   window: Duration.seconds(5),

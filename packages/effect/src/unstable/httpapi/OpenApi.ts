@@ -2,8 +2,8 @@
  * @since 4.0.0
  */
 import type { NonEmptyArray } from "../../collections/Array.ts"
+import { constFalse } from "../../data/Function.ts"
 import * as Option from "../../data/Option.ts"
-import { constFalse } from "../../Function.ts"
 import type * as AST from "../../schema/AST.ts"
 import * as Schema from "../../schema/Schema.ts"
 import * as ToJsonSchema from "../../schema/ToJsonSchema.ts"

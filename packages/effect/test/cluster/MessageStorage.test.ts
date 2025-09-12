@@ -1,5 +1,6 @@
 import { describe, expect, it } from "@effect/vitest"
-import { Effect, Exit, Layer, ServiceMap } from "effect"
+import { Effect, Layer, ServiceMap } from "effect"
+import { Exit } from "effect/data"
 import { Schema } from "effect/schema"
 import {
   EntityAddress,

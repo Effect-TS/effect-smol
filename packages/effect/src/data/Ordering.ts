@@ -25,8 +25,7 @@
  * @since 2.0.0
  * @category utilities
  */
-import type { LazyArg } from "../Function.ts"
-import { dual } from "../Function.ts"
+import { dual, type LazyArg } from "./Function.ts"
 import * as Reducer_ from "./Reducer.ts"
 
 /**
@@ -104,13 +103,12 @@ export const reverse = (o: Ordering): Ordering => (o === -1 ? 1 : o === 1 ? -1 :
  * @example
  * ```ts
  * import * as assert from "node:assert"
- * import { Ordering } from "effect/data"
- * import { constant } from "effect/Function"
+ * import { Function, Ordering } from "effect/data"
  *
  * const toMessage = Ordering.match({
- *   onLessThan: constant('less than'),
- *   onEqual: constant('equal'),
- *   onGreaterThan: constant('greater than')
+ *   onLessThan: Function.constant('less than'),
+ *   onEqual: Function.constant('equal'),
+ *   onGreaterThan: Function.constant('greater than')
  * })
  *
  * assert.deepStrictEqual(toMessage(-1), "less than")

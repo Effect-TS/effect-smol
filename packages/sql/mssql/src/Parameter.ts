@@ -1,7 +1,7 @@
 /**
  * @since 1.0.0
  */
-import { identity } from "effect/Function"
+import { identity } from "effect/data/Function"
 import type { DataType } from "tedious/lib/data-type.ts"
 import type { ParameterOptions } from "tedious/lib/request.ts"
 

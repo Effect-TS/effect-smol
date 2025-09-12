@@ -1,11 +1,9 @@
 import * as NodeClient from "@effect/platform-node/NodeHttpClient"
 import { describe, expect, it } from "@effect/vitest"
+import { Effect, Layer, ServiceMap } from "effect"
 import { Struct } from "effect/data"
-import * as Effect from "effect/Effect"
-import * as Layer from "effect/Layer"
-import * as Schema from "effect/schema/Schema"
-import * as ServiceMap from "effect/ServiceMap"
-import * as Stream from "effect/stream/Stream"
+import { Schema } from "effect/schema"
+import { Stream } from "effect/stream"
 import { HttpClient, HttpClientRequest, HttpClientResponse } from "effect/unstable/http"
 
 const Todo = Schema.Struct({

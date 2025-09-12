@@ -6,8 +6,8 @@
 
 import * as Equivalence from "../data/Equivalence.ts"
 import * as order from "../data/Order.ts"
-import { dual } from "../Function.ts"
 import * as Combiner from "./Combiner.ts"
+import { dual } from "./Function.ts"
 import * as Reducer from "./Reducer.ts"
 
 /**
@@ -346,9 +346,7 @@ export const renameKeys: {
  *
  * @example
  * ```ts
- * import { Struct } from "effect/data"
- * import * as S from "effect/primitives/String"
- * import * as N from "effect/primitives/Number"
+ * import { Number as N, String as S, Struct } from "effect/data"
  *
  * const PersonEquivalence = Struct.getEquivalence({
  *   name: S.Equivalence,
@@ -374,9 +372,7 @@ export const getEquivalence = Equivalence.struct
  *
  * @example
  * ```ts
- * import { Struct } from "effect/data"
- * import * as S from "effect/primitives/String"
- * import * as N from "effect/primitives/Number"
+ * import { Number as N, String as S, Struct } from "effect/data"
  *
  * const PersonOrder = Struct.getOrder({
  *   name: S.Order,
@@ -602,7 +598,7 @@ function buildStruct<
  *
  * ```ts
  * import { Struct } from "effect/data"
- * import { Number, String } from "effect/primitives"
+ * import { Number, String } from "effect/data"
  *
  * const C = Struct.getCombiner<{ readonly n: number; readonly s: string }>({
  *   n: Number.ReducerSum,
@@ -648,7 +644,7 @@ export function getCombiner<A>(
  *
  * ```ts
  * import { Struct } from "effect/data"
- * import { Number, String } from "effect/primitives"
+ * import { Number, String } from "effect/data"
  *
  * const R = Struct.getReducer<{ readonly n: number; readonly s: string }>({
  *   n: Number.ReducerSum,

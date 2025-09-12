@@ -1,9 +1,7 @@
 import { MysqlClient } from "@effect/sql-mysql2"
-import type { StartedMySqlContainer } from "@testcontainers/mysql"
-import { MySqlContainer } from "@testcontainers/mysql"
+import { MySqlContainer, type StartedMySqlContainer } from "@testcontainers/mysql"
 import { Effect, Layer, ServiceMap } from "effect"
-import { Data, Redacted } from "effect/data"
-import { String } from "effect/primitives"
+import { Data, Redacted, String } from "effect/data"
 
 export class ContainerError extends Data.TaggedError("ContainerError")<{
   cause: unknown

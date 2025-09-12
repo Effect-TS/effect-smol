@@ -1,8 +1,9 @@
 /**
  * @since 4.0.0
  */
-import * as Cause from "../../Cause.ts"
+import * as Cause from "../../data/Cause.ts"
 import * as Filter from "../../data/Filter.ts"
+import { constFalse, identity } from "../../data/Function.ts"
 import * as Option from "../../data/Option.ts"
 import type { ReadonlyRecord } from "../../data/Record.ts"
 import * as Redacted from "../../data/Redacted.ts"
@@ -11,7 +12,6 @@ import * as UndefinedOr from "../../data/UndefinedOr.ts"
 import * as Effect from "../../Effect.ts"
 import * as Encoding from "../../encoding/Encoding.ts"
 import * as Fiber from "../../Fiber.ts"
-import { constFalse, identity } from "../../Function.ts"
 import { type Pipeable, pipeArguments } from "../../interfaces/Pipeable.ts"
 import * as Layer from "../../Layer.ts"
 import type { FileSystem } from "../../platform/FileSystem.ts"

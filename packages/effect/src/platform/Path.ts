@@ -1,8 +1,8 @@
 /**
  * @since 4.0.0
  */
+import { identity } from "../data/Function.ts"
 import * as Effect from "../Effect.ts"
-import { identity } from "../Function.ts"
 import * as Layer from "../Layer.ts"
 import * as ServiceMap from "../ServiceMap.ts"
 import { BadArgument } from "./PlatformError.ts"
@@ -139,8 +139,7 @@ export declare namespace Path {
  * @category tag
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Layer } from "effect"
+ * import { Effect, Layer } from "effect"
  * import { Path } from "effect/platform"
  *
  * // Create a custom path implementation

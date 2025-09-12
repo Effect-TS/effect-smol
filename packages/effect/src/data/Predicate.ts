@@ -1,9 +1,9 @@
 /**
  * @since 2.0.0
  */
-import { dual, isFunction as isFunction_ } from "../Function.ts"
 import type { TypeLambda } from "../types/HKT.ts"
 import type { TupleOf, TupleOfAtLeast } from "../types/Types.ts"
+import { dual, isFunction as isFunction_ } from "./Function.ts"
 
 /**
  * A `Predicate<A>` is a function that takes a value of type `A` and returns a boolean.
@@ -236,8 +236,7 @@ export declare namespace Refinement {
  * @example
  * ```ts
  * import * as assert from "node:assert"
- * import { Predicate } from "effect/data"
- * import * as N from "effect/primitives/Number"
+ * import { Number as N, Predicate } from "effect/data"
  *
  * const minLength3 = Predicate.mapInput(N.greaterThan(2), (s: string) => s.length)
  *
@@ -1126,8 +1125,7 @@ export const struct: {
  * @example
  * ```ts
  * import * as assert from "node:assert"
- * import { Predicate } from "effect/data"
- * import * as N from "effect/primitives/Number"
+ * import { Number as N, Predicate } from "effect/data"
  *
  * const isPositive = Predicate.not(N.lessThan(0))
  *
@@ -1147,8 +1145,7 @@ export const not = <A>(self: Predicate<A>): Predicate<A> => (a) => !self(a)
  * @example
  * ```ts
  * import * as assert from "node:assert"
- * import { Predicate } from "effect/data"
- * import * as N from "effect/primitives/Number"
+ * import { Number as N, Predicate } from "effect/data"
  *
  * const nonZero = Predicate.or(N.lessThan(0), N.greaterThan(0))
  *

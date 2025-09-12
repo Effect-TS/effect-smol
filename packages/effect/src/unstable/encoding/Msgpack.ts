@@ -3,10 +3,10 @@
  */
 import * as Arr from "../../collections/Array.ts"
 import * as Data from "../../data/Data.ts"
+import { dual } from "../../data/Function.ts"
 import * as Option from "../../data/Option.ts"
 import * as Predicate from "../../data/Predicate.ts"
 import * as Effect from "../../Effect.ts"
-import { dual } from "../../Function.ts"
 import * as Issue from "../../schema/Issue.ts"
 import * as Schema from "../../schema/Schema.ts"
 import * as Transformation from "../../schema/Transformation.ts"

@@ -2,7 +2,8 @@
  * @since 1.0.0
  */
 import * as Arr from "effect/collections/Array"
-import * as Config from "effect/config/Config"
+import * as Config from "effect/Config"
+import { Duration } from "effect/data"
 import * as Redacted from "effect/data/Redacted"
 import * as Effect from "effect/Effect"
 import * as Fiber from "effect/Fiber"
@@ -14,7 +15,6 @@ import * as ServiceMap from "effect/ServiceMap"
 import * as Channel from "effect/stream/Channel"
 import * as Pull from "effect/stream/Pull"
 import * as Stream from "effect/stream/Stream"
-import * as Duration from "effect/time/Duration"
 import * as Reactivity from "effect/unstable/reactivity/Reactivity"
 import * as Client from "effect/unstable/sql/SqlClient"
 import type { Connection } from "effect/unstable/sql/SqlConnection"

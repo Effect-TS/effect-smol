@@ -1,8 +1,7 @@
 import { assert, describe, it } from "@effect/vitest"
-import * as Effect from "effect/Effect"
-import * as Layer from "effect/Layer"
-import * as Logger from "effect/logging/Logger"
-import * as TestConsole from "effect/testing/TestConsole"
+import { Effect, Layer } from "effect"
+import { Logger } from "effect/logging"
+import { TestConsole } from "effect/testing"
 
 describe("Logger", () => {
   it.effect("should output logs", () =>

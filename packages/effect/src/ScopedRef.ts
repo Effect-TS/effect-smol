@@ -1,9 +1,9 @@
 /**
  * @since 2.0.0
  */
+import * as Exit from "./data/Exit.ts"
+import { dual, type LazyArg } from "./data/Function.ts"
 import * as Effect from "./Effect.ts"
-import * as Exit from "./Exit.ts"
-import { dual, type LazyArg } from "./Function.ts"
 import type { Pipeable } from "./interfaces/Pipeable.ts"
 import { PipeInspectableProto } from "./internal/core.ts"
 import * as Scope from "./Scope.ts"

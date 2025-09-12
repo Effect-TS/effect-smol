@@ -2,16 +2,16 @@
  * @since 4.0.0
  */
 import * as Arr from "../../collections/Array.ts"
+import { compose, dual, identity } from "../../data/Function.ts"
 import type { ReadonlyRecord } from "../../data/Record.ts"
 import * as UndefinedOr from "../../data/UndefinedOr.ts"
 import * as Effect from "../../Effect.ts"
-import { compose, dual, identity } from "../../Function.ts"
 import * as Layer from "../../Layer.ts"
-import * as Tracer from "../../observability/Tracer.ts"
 import type { ParseOptions } from "../../schema/AST.ts"
 import * as Schema from "../../schema/Schema.ts"
 import * as Scope from "../../Scope.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
+import * as Tracer from "../../Tracer.ts"
 import type * as Types from "../../types/Types.ts"
 import * as FindMyWay from "./FindMyWay.ts"
 import * as HttpEffect from "./HttpEffect.ts"
@@ -363,9 +363,8 @@ export const schemaPathParams = <A, I extends Readonly<Record<string, string | u
  * A helper function that is the equivalent of:
  *
  * ```ts
- * import * as HttpRouter from "effect/unstable/http/HttpRouter"
- * import { Effect } from "effect"
- * import * as Layer from "effect/Layer"
+ * import { HttpRouter } from "effect/unstable/http"
+ * import { Effect, Layer } from "effect"
  *
  * const MyRoute = Layer.effectDiscard(Effect.gen(function*() {
  *   const router = yield* HttpRouter.HttpRouter
@@ -387,8 +386,8 @@ export const use = <A, E, R>(
  *
  * ```ts
  * import { Effect } from "effect"
- * import * as HttpRouter from "effect/unstable/http/HttpRouter"
- * import * as HttpServerResponse from "effect/unstable/http/HttpServerResponse"
+ * import { HttpRouter } from "effect/unstable/http"
+ * import { HttpServerResponse } from "effect/unstable/http"
  *
  * const Route = HttpRouter.add("GET", "/hello", Effect.succeed(HttpServerResponse.text("Hello, World!")))
  * ```
@@ -414,8 +413,8 @@ export const add = <E = never, R = never>(
  *
  * ```ts
  * import { Effect } from "effect"
- * import * as HttpRouter from "effect/unstable/http/HttpRouter"
- * import * as HttpServerResponse from "effect/unstable/http/HttpServerResponse"
+ * import { HttpRouter } from "effect/unstable/http"
+ * import { HttpServerResponse } from "effect/unstable/http"
  *
  * const Routes = HttpRouter.addAll([
  *   HttpRouter.route("GET", "/hello", Effect.succeed(HttpServerResponse.text("Hello, World!")))
@@ -710,12 +709,11 @@ export interface Middleware<
  * the `global` option as `true`.
  *
  * ```ts
- * import * as HttpRouter from "effect/unstable/http/HttpRouter"
- * import * as HttpMiddleware from "effect/unstable/http/HttpMiddleware"
- * import * as HttpServerResponse from "effect/unstable/http/HttpServerResponse"
- * import * as ServiceMap from "effect/ServiceMap"
- * import { Effect } from "effect"
- * import * as Layer from "effect/Layer"
+ * import { HttpRouter } from "effect/unstable/http"
+ * import { HttpMiddleware } from "effect/unstable/http"
+ * import { HttpServerResponse } from "effect/unstable/http"
+ * import { ServiceMap } from "effect"
+ * import { Effect, Layer } from "effect"
  *
  * // Here we are defining a CORS middleware
  * const CorsMiddleware = HttpRouter.middleware(HttpMiddleware.cors()).layer
@@ -999,9 +997,9 @@ export const cors = (
  *
  * ```ts
  * import { Effect } from "effect"
- * import * as HttpRouter from "effect/unstable/http/HttpRouter"
- * import * as HttpServerResponse from "effect/unstable/http/HttpServerResponse"
- * import * as Layer from "effect/Layer"
+ * import { HttpRouter } from "effect/unstable/http"
+ * import { HttpServerResponse } from "effect/unstable/http"
+ * import { Layer } from "effect"
  *
  * const Route = HttpRouter.add("GET", "/hello", Effect.succeed(HttpServerResponse.text("Hello, World!"))).pipe(
  *   // disable the logger for this route

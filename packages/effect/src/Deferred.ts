@@ -17,9 +17,7 @@
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Deferred } from "effect"
- * import { Fiber } from "effect"
+ * import { Deferred, Effect, Fiber } from "effect"
  *
  * // Basic usage: coordinate between fibers
  * const program = Effect.gen(function* () {
@@ -68,12 +66,11 @@
  *
  * @since 2.0.0
  */
-import type * as Cause from "./Cause.ts"
+import type * as Cause from "./data/Cause.ts"
+import type * as Exit from "./data/Exit.ts"
+import { dual, identity, type LazyArg } from "./data/Function.ts"
 import type { Effect } from "./Effect.ts"
-import type * as Exit from "./Exit.ts"
-import { dual, identity, type LazyArg } from "./Function.ts"
-import type { Pipeable } from "./interfaces/Pipeable.ts"
-import { pipeArguments } from "./interfaces/Pipeable.ts"
+import { type Pipeable, pipeArguments } from "./interfaces/Pipeable.ts"
 import * as core from "./internal/core.ts"
 import * as internalEffect from "./internal/effect.ts"
 import type * as Types from "./types/Types.ts"
@@ -91,9 +88,7 @@ const TypeId = "~effect/Deferred"
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Deferred } from "effect"
- * import { Fiber } from "effect"
+ * import { Deferred, Effect, Fiber } from "effect"
  *
  * // Create and use a Deferred for inter-fiber communication
  * const program = Effect.gen(function* () {
@@ -185,8 +180,7 @@ export const makeUnsafe = <A, E = never>(): Deferred<A, E> => {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Deferred } from "effect"
+ * import { Effect, Deferred } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const deferred = yield* Deferred.make<number>()
@@ -219,8 +213,7 @@ export {
    *
    * @example
    * ```ts
-   * import { Effect } from "effect"
-   * import { Deferred } from "effect"
+   * import { Effect, Deferred } from "effect"
    *
    * const program = Effect.gen(function*() {
    *   const deferred = yield* Deferred.make<number>()
@@ -246,8 +239,7 @@ export {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Deferred } from "effect"
+ * import { Effect, Deferred } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const deferred = yield* Deferred.make<number>()
@@ -277,8 +269,7 @@ export const complete: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Deferred } from "effect"
+ * import { Effect, Deferred } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const deferred = yield* Deferred.make<number>()
@@ -308,8 +299,8 @@ export const completeWith: {
  *
  * @example
  * ```ts
- * import { Effect, Exit } from "effect"
- * import { Deferred } from "effect"
+ * import { Deferred, Effect } from "effect"
+ * import { Exit } from "effect/data"
  *
  * const program = Effect.gen(function*() {
  *   const deferred = yield* Deferred.make<number>()
@@ -334,8 +325,7 @@ export const done: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Deferred } from "effect"
+ * import { Effect, Deferred } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const deferred = yield* Deferred.make<number, string>()
@@ -358,8 +348,7 @@ export const fail: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Deferred } from "effect"
+ * import { Effect, Deferred } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const deferred = yield* Deferred.make<number, string>()
@@ -386,8 +375,8 @@ export const failSync: {
  *
  * @example
  * ```ts
- * import { Effect, Cause } from "effect"
- * import { Deferred } from "effect"
+ * import { Deferred, Effect } from "effect"
+ * import { Cause } from "effect/data"
  *
  * const program = Effect.gen(function*() {
  *   const deferred = yield* Deferred.make<number, string>()
@@ -413,8 +402,8 @@ export const failCause: {
  *
  * @example
  * ```ts
- * import { Effect, Cause } from "effect"
- * import { Deferred } from "effect"
+ * import { Deferred, Effect } from "effect"
+ * import { Cause } from "effect/data"
  *
  * const program = Effect.gen(function*() {
  *   const deferred = yield* Deferred.make<number, string>()
@@ -441,8 +430,7 @@ export const failCauseSync: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Deferred } from "effect"
+ * import { Effect, Deferred } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const deferred = yield* Deferred.make<number>()
@@ -465,8 +453,7 @@ export const die: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Deferred } from "effect"
+ * import { Effect, Deferred } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const deferred = yield* Deferred.make<number>()
@@ -494,8 +481,7 @@ export const dieSync: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Deferred } from "effect"
+ * import { Effect, Deferred } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const deferred = yield* Deferred.make<number>()
@@ -516,8 +502,7 @@ export const interrupt = <A, E>(self: Deferred<A, E>): Effect<boolean> =>
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Deferred } from "effect"
+ * import { Effect, Deferred } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const deferred = yield* Deferred.make<number>()
@@ -544,8 +529,7 @@ export const interruptWith: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Deferred } from "effect"
+ * import { Effect, Deferred } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const deferred = yield* Deferred.make<number>()
@@ -578,8 +562,7 @@ export const isDoneUnsafe = <A, E>(self: Deferred<A, E>): boolean => self.effect
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Deferred } from "effect"
+ * import { Effect, Deferred } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const deferred = yield* Deferred.make<number>()
@@ -604,8 +587,7 @@ export function poll<A, E>(self: Deferred<A, E>): Effect<Effect<A, E> | undefine
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Deferred } from "effect"
+ * import { Effect, Deferred } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const deferred = yield* Deferred.make<number>()
@@ -629,8 +611,7 @@ export const succeed: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Deferred } from "effect"
+ * import { Effect, Deferred } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const deferred = yield* Deferred.make<number>()
@@ -659,8 +640,7 @@ export const sync: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Deferred } from "effect"
+ * import { Effect, Deferred } from "effect"
  *
  * const deferred = Deferred.makeUnsafe<number>()
  * const success = Deferred.doneUnsafe(deferred, Effect.succeed(42))
@@ -694,8 +674,7 @@ export const doneUnsafe = <A, E>(self: Deferred<A, E>, effect: Effect<A, E>): bo
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Deferred } from "effect"
+ * import { Effect, Deferred } from "effect"
  *
  * // Define an effect that succeeds
  * const successEffect = Effect.succeed(42)

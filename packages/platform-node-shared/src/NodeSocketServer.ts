@@ -1,11 +1,10 @@
 /**
  * @since 1.0.0
  */
-import type { Cause } from "effect/Cause"
+import { type Cause, Exit } from "effect/data"
+import { pipe } from "effect/data/Function"
 import * as Effect from "effect/Effect"
-import * as Exit from "effect/Exit"
 import * as FiberSet from "effect/FiberSet"
-import { pipe } from "effect/Function"
 import * as Layer from "effect/Layer"
 import * as References from "effect/References"
 import * as Scope from "effect/Scope"
@@ -213,7 +212,7 @@ export const layerWebSocket: (
   SocketServer.SocketServerError
 > = Layer.effect(SocketServer.SocketServer)(makeWebSocket)
 
-const reportUnhandledError = <E>(cause: Cause<E>) =>
+const reportUnhandledError = <E>(cause: Cause.Cause<E>) =>
   Effect.withFiber<void>((fiber) => {
     const unhandledLogLevel = fiber.getRef(References.UnhandledLogLevel)
     if (unhandledLogLevel) {

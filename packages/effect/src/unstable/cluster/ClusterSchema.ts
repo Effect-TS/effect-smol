@@ -1,7 +1,7 @@
 /**
  * @since 4.0.0
  */
-import { constFalse, constTrue } from "../../Function.ts"
+import { constFalse, constTrue } from "../../data/Function.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import type { EntityId } from "./EntityId.ts"
 

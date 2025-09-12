@@ -7,10 +7,10 @@
  *
  * @since 4.0.0
  */
+import { constant, dual, type LazyArg } from "./data/Function.ts"
 import * as Option from "./data/Option.ts"
 import { hasProperty } from "./data/Predicate.ts"
 import type { Effect, EffectIterator, Yieldable } from "./Effect.ts"
-import { constant, dual, type LazyArg } from "./Function.ts"
 import * as Equal from "./interfaces/Equal.ts"
 import * as Hash from "./interfaces/Hash.ts"
 import type { Inspectable } from "./interfaces/Inspectable.ts"
@@ -472,8 +472,7 @@ export const make = <I, S>(
  * @example
  * ```ts
  * import * as assert from "node:assert"
- * import { pipe } from "effect"
- * import { ServiceMap } from "effect"
+ * import { ServiceMap, pipe } from "effect"
  *
  * const Port = ServiceMap.Key<{ PORT: number }>("Port")
  * const Timeout = ServiceMap.Key<{ TIMEOUT: number }>("Timeout")
@@ -632,8 +631,7 @@ export const getUnsafe: {
  * @example
  * ```ts
  * import * as assert from "node:assert"
- * import { pipe } from "effect"
- * import { ServiceMap } from "effect"
+ * import { ServiceMap, pipe } from "effect"
  *
  * const Port = ServiceMap.Key<{ PORT: number }>("Port")
  * const Timeout = ServiceMap.Key<{ TIMEOUT: number }>("Timeout")
@@ -791,8 +789,8 @@ export const merge: {
  * @example
  * ```ts
  * import * as assert from "node:assert"
- * import { pipe } from "effect"
- * import { ServiceMap } from "effect"
+ * import { ServiceMap, pipe } from "effect"
+
  * import { Option } from "effect/data"
  *
  * const Port = ServiceMap.Key<{ PORT: number }>("Port")
@@ -830,8 +828,8 @@ export const pick = <Keys extends ReadonlyArray<Key<any, any>>>(
  * @example
  * ```ts
  * import * as assert from "node:assert"
- * import { pipe } from "effect"
- * import { ServiceMap } from "effect"
+ * import { ServiceMap, pipe } from "effect"
+
  * import { Option } from "effect/data"
  *
  * const Port = ServiceMap.Key<{ PORT: number }>("Port")

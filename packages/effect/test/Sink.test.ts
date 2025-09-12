@@ -1,9 +1,11 @@
 import { describe, it } from "@effect/vitest"
 import { assertExitFailure, assertExitSuccess, deepStrictEqual, strictEqual } from "@effect/vitest/utils"
-import { Cause, Effect, Ref } from "effect"
+import { Effect, Ref } from "effect"
 import { Array } from "effect/collections"
-import { constTrue } from "effect/Function"
+import { Cause, Function } from "effect/data"
 import { Sink, Stream } from "effect/stream"
+
+const { constTrue } = Function
 
 describe("Sink", () => {
   describe("fold", () => {

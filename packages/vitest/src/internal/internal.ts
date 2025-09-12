@@ -2,11 +2,10 @@
  * @since 1.0.0
  */
 
-import * as Cause from "effect/Cause"
+import { Cause, Duration, Exit } from "effect/data"
+import { flow, pipe } from "effect/data/Function"
 import { isObject } from "effect/data/Predicate"
 import * as Effect from "effect/Effect"
-import * as Exit from "effect/Exit"
-import { flow, pipe } from "effect/Function"
 import * as Layer from "effect/Layer"
 import * as Schedule from "effect/Schedule"
 import * as Schema from "effect/schema/Schema"
@@ -15,7 +14,6 @@ import * as Scope from "effect/Scope"
 import * as fc from "effect/testing/FastCheck"
 import * as TestClock from "effect/testing/TestClock"
 import * as TestConsole from "effect/testing/TestConsole"
-import * as Duration from "effect/time/Duration"
 import * as V from "vitest"
 import type * as Vitest from "../index.ts"
 

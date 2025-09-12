@@ -2,19 +2,18 @@
  * @since 2.0.0
  */
 // @effect-diagnostics returnEffectInGen:off
-import * as Cause from "../Cause.ts"
 import * as Arr from "../collections/Array.ts"
 import * as MutableHashMap from "../collections/MutableHashMap.ts"
+import * as Cause from "../data/Cause.ts"
+import * as Duration from "../data/Duration.ts"
+import * as Exit from "../data/Exit.ts"
 import type * as Filter from "../data/Filter.ts"
+import { constant, constTrue, constVoid, dual, identity, type LazyArg } from "../data/Function.ts"
 import * as Option from "../data/Option.ts"
 import { hasProperty } from "../data/Predicate.ts"
 import * as Effect from "../Effect.ts"
-import * as Exit from "../Exit.ts"
 import * as Fiber from "../Fiber.ts"
-import type { LazyArg } from "../Function.ts"
-import { constant, constTrue, constVoid, dual, identity } from "../Function.ts"
 import { type Pipeable, pipeArguments } from "../interfaces/Pipeable.ts"
-import type { ParentSpan, SpanOptions } from "../observability/Tracer.ts"
 import type * as PubSub from "../PubSub.ts"
 import * as Queue from "../Queue.ts"
 import * as RcMap from "../RcMap.ts"
@@ -24,7 +23,7 @@ import * as ServiceMap from "../ServiceMap.ts"
 import * as Channel from "../stream/Channel.ts"
 import * as Pull from "../stream/Pull.ts"
 import type * as Sink from "../stream/Sink.ts"
-import * as Duration from "../time/Duration.ts"
+import type { ParentSpan, SpanOptions } from "../Tracer.ts"
 import type { TypeLambda } from "../types/HKT.ts"
 import type { Covariant } from "../types/Types.ts"
 import type * as Unify from "../types/Unify.ts"
@@ -256,8 +255,7 @@ const StreamProto = {
  *
  * @example
  * ```ts
- * import { Stream } from "effect/stream"
- * import { Channel } from "effect/stream"
+ * import { Channel, Stream } from "effect/stream"
  *
  * const myChannel = Channel.succeed([1, 2, 3] as const)
  * const stream = Stream.fromChannel(myChannel)
@@ -402,8 +400,7 @@ export const toChannel = <A, E, R>(
  * @example
  * ```ts
  * import { Stream } from "effect/stream"
- * import { Effect } from "effect"
- * import { Queue } from "effect"
+ * import { Effect, Queue } from "effect"
  *
  * const stream = Stream.callback<number>((queue) => {
  *   // Emit values to the stream
@@ -588,8 +585,8 @@ export const failSync = <E>(evaluate: LazyArg<E>): Stream<never, E> => fromChann
  * @example
  * ```ts
  * import { Effect } from "effect"
+ * import { Cause } from "effect/data"
  * import { Stream } from "effect/stream"
- * import { Cause } from "effect"
  *
  * const cause = Cause.fail("Database connection failed")
  * const stream = Stream.failCause(cause)
@@ -615,8 +612,8 @@ export const die = (defect: unknown): Stream<never> => fromChannel(Channel.die(d
  * @example
  * ```ts
  * import { Effect } from "effect"
+ * import { Cause } from "effect/data"
  * import { Stream } from "effect/stream"
- * import { Cause } from "effect"
  *
  * const stream = Stream.failCauseSync(() =>
  *   Cause.fail("Connection timeout after retries")
@@ -736,8 +733,7 @@ export const fromArrayEffect = <A, E, R>(effect: Effect.Effect<ReadonlyArray<A>,
  * @example
  * ```ts
  * import { Stream } from "effect/stream"
- * import { Effect } from "effect"
- * import { Queue } from "effect"
+ * import { Effect, Queue } from "effect"
  *
  * const program = Effect.gen(function* () {
  *   const queue = yield* Queue.unbounded<number>()
@@ -762,9 +758,8 @@ export const fromQueue = <A, E>(queue: Queue.Dequeue<A, E>): Stream<A, Exclude<E
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
+ * import { Effect, PubSub } from "effect"
  * import { Stream } from "effect/stream"
- * import { PubSub } from "effect"
  *
  * const program = Effect.gen(function* () {
  *   const pubsub = yield* PubSub.unbounded<number>()
@@ -864,9 +859,8 @@ export const fromSchedule = <O, E, R>(schedule: Schedule.Schedule<O, unknown, E,
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
+ * import { Effect, PubSub } from "effect"
  * import { Stream } from "effect/stream"
- * import { PubSub } from "effect"
  *
  * const program = Effect.gen(function* () {
  *   const pubsub = yield* PubSub.unbounded<number>()
@@ -972,9 +966,9 @@ export const fromEventListener = <A = unknown>(
  * ```ts
  * import { Stream } from "effect/stream"
  * import { Effect } from "effect"
- * import * as Option from "effect/data/Option"
+ * import { Option } from "effect/data"
  *
- * const stream = Stream.paginate(0, (n) => [
+ * const stream = Stream.paginate(0, (n: number) => [
  *   n,
  *   n < 3 ? Option.some(n + 1) : Option.none()
  * ])
@@ -1513,8 +1507,8 @@ export const filter: {
  * @example
  * ```ts
  * import { Effect } from "effect"
+ * import { Cause } from "effect/data"
  * import { Stream } from "effect/stream"
- * import { Cause } from "effect"
  *
  * const failingStream = Stream.make(1, 2).pipe(
  *   Stream.concat(Stream.fail("Oops!")),
@@ -1590,8 +1584,8 @@ export const mapError: {
  * @example
  * ```ts
  * import { Effect } from "effect"
+ * import { Cause } from "effect/data"
  * import { Stream } from "effect/stream"
- * import { Cause } from "effect"
  *
  * const failingStream = Stream.fail("NetworkError")
  *
@@ -2555,7 +2549,8 @@ export const splitLines = <E, R>(self: Stream<string, E, R>): Stream<string, E, 
  *
  * @example
  * ```ts
- * import { Effect, Exit } from "effect"
+ * import { Effect } from "effect"
+ * import { Exit } from "effect/data"
  * import { Console } from "effect/logging"
  * import { Stream } from "effect/stream"
  *
@@ -2978,8 +2973,7 @@ export const runDrain = <A, E, R>(self: Stream<A, E, R>): Effect.Effect<void, E,
  * @example
  * ```ts
  * import { Stream } from "effect/stream"
- * import { Effect } from "effect"
- * import { Scope } from "effect"
+ * import { Effect, Scope } from "effect"
  *
  * const stream = Stream.make(1, 2, 3)
  * const program = Effect.scoped(

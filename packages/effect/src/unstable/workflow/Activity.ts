@@ -2,9 +2,9 @@
  * @since 4.0.0
  */
 import type { NonEmptyReadonlyArray } from "../../collections/Array.ts"
+import * as Exit from "../../data/Exit.ts"
+import { dual } from "../../data/Function.ts"
 import * as Effect from "../../Effect.ts"
-import * as Exit from "../../Exit.ts"
-import { dual } from "../../Function.ts"
 import { PipeInspectableProto, YieldableProto } from "../../internal/core.ts"
 import { Serializer } from "../../schema/index.ts"
 import * as Schema from "../../schema/Schema.ts"

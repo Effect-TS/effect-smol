@@ -1,11 +1,11 @@
+import * as Duration from "../data/Duration.ts"
+import * as Exit from "../data/Exit.ts"
+import { identity } from "../data/Function.ts"
 import * as Effect from "../Effect.ts"
-import * as Exit from "../Exit.ts"
 import * as Fiber from "../Fiber.ts"
-import { identity } from "../Function.ts"
 import type * as RcRef from "../RcRef.ts"
 import * as Scope from "../Scope.ts"
 import * as ServiceMap from "../ServiceMap.ts"
-import * as Duration from "../time/Duration.ts"
 
 const TypeId = "~effect/RcRef"
 

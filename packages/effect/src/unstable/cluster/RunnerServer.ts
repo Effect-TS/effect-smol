@@ -1,8 +1,8 @@
 /**
  * @since 4.0.0
  */
+import { constant } from "../../data/Function.ts"
 import * as Effect from "../../Effect.ts"
-import { constant } from "../../Function.ts"
 import * as Layer from "../../Layer.ts"
 import * as Queue from "../../Queue.ts"
 import * as RpcServer from "../rpc/RpcServer.ts"

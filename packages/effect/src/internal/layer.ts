@@ -1,5 +1,5 @@
+import { dual } from "../data/Function.ts"
 import type { Effect } from "../Effect.ts"
-import { dual } from "../Function.ts"
 import * as Layer from "../Layer.ts"
 import * as ServiceMap from "../ServiceMap.ts"
 import * as effect from "./effect.ts"

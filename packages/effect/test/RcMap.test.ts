@@ -1,6 +1,6 @@
 import { assert, describe, it } from "@effect/vitest"
-import { Cause, Effect, Exit, RcMap, Scope } from "effect"
-import { Data } from "effect/data"
+import { Effect, RcMap, Scope } from "effect"
+import { Cause, Data, Exit } from "effect/data"
 import { TestClock } from "effect/testing"
 
 describe("RcMap", () => {

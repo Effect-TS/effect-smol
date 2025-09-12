@@ -1,15 +1,15 @@
 /**
  * @since 4.0.0
  */
-import * as Config from "../../config/Config.ts"
-import * as ConfigProvider from "../../config/ConfigProvider.ts"
+import * as Config from "../../Config.ts"
+import * as ConfigProvider from "../../ConfigProvider.ts"
+import type { DurationInput } from "../../data/Duration.ts"
+import * as Duration from "../../data/Duration.ts"
 import * as Option from "../../data/Option.ts"
 import * as Effect from "../../Effect.ts"
 import * as Layer from "../../Layer.ts"
 import * as Schema from "../../schema/Schema.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
-import type { DurationInput } from "../../time/Duration.ts"
-import * as Duration from "../../time/Duration.ts"
 import { RunnerAddress } from "./RunnerAddress.ts"
 
 /**

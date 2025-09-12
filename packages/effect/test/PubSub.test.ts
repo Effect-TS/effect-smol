@@ -1,7 +1,9 @@
 import { assert, describe, it } from "@effect/vitest"
 import { Effect, Fiber, PubSub } from "effect"
 import { Array } from "effect/collections"
-import { pipe } from "effect/Function"
+import { Function } from "effect/data"
+
+const { pipe } = Function
 
 describe("PubSub", () => {
   it.effect("publishAll - capacity 2 (BoundedPubSubPow2)", () => {

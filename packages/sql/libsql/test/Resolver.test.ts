@@ -1,8 +1,9 @@
 import { LibsqlClient } from "@effect/sql-libsql"
 import { assert, layer } from "@effect/vitest"
-import { Cause, Effect, Layer } from "effect"
+import { Effect, Layer } from "effect"
 import { Iterable } from "effect/collections"
-import * as Schema from "effect/schema/Schema"
+import { Cause } from "effect/data"
+import { Schema } from "effect/schema"
 import { SqlError, SqlResolver } from "effect/unstable/sql"
 import { LibsqlContainer } from "./util.ts"
 

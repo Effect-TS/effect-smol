@@ -1,9 +1,10 @@
 import { describe, it } from "@effect/vitest"
 import { assertNone, assertSome, deepStrictEqual, strictEqual, throws } from "@effect/vitest/utils"
-import * as Trie from "effect/collections/Trie"
-import * as Option from "effect/data/Option"
-import { pipe } from "effect/Function"
-import * as Equal from "effect/interfaces/Equal"
+import { Trie } from "effect/collections"
+import { Function, Option } from "effect/data"
+import { Equal } from "effect/interfaces"
+
+const { pipe } = Function
 
 describe("Trie", () => {
   it("toString", () => {

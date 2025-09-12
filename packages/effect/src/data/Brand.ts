@@ -23,7 +23,6 @@
  * @since 2.0.0
  */
 import * as Arr from "../collections/Array.ts"
-import { identity } from "../Function.ts"
 import * as AST from "../schema/AST.ts"
 import * as Check from "../schema/Check.ts"
 import * as Formatter from "../schema/Formatter.ts"
@@ -31,6 +30,7 @@ import * as Issue from "../schema/Issue.ts"
 import * as ToParser from "../schema/ToParser.ts"
 import type * as Types from "../types/Types.ts"
 import * as Data from "./Data.ts"
+import { identity } from "./Function.ts"
 import * as Option from "./Option.ts"
 import * as Result from "./Result.ts"
 

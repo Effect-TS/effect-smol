@@ -2,10 +2,9 @@
  * @since 1.0.0
  */
 import type { NonEmptyReadonlyArray } from "effect/collections/Array"
+import { identity, type LazyArg } from "effect/data/Function"
 import * as Effect from "effect/Effect"
-import { identity, type LazyArg } from "effect/Function"
-import type { PlatformError } from "effect/platform/PlatformError"
-import { SystemError } from "effect/platform/PlatformError"
+import { type PlatformError, SystemError } from "effect/platform/PlatformError"
 import * as Channel from "effect/stream/Channel"
 import * as Pull from "effect/stream/Pull"
 import * as Sink from "effect/stream/Sink"

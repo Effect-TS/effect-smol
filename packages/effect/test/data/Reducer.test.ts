@@ -1,5 +1,4 @@
-import { Reducer } from "effect/data"
-import { String } from "effect/primitives"
+import { Reducer, String } from "effect/data"
 import { describe, it } from "vitest"
 import { strictEqual } from "../utils/assert.ts"
 

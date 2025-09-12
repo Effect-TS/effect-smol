@@ -1,6 +1,7 @@
 import { D1Client } from "@effect/sql-d1"
 import { assert, describe, it } from "@effect/vitest"
-import { Cause, Effect } from "effect"
+import { Effect } from "effect"
+import { Cause } from "effect/data"
 import { D1Miniflare } from "./utils.ts"
 
 describe("Client", () => {

@@ -1,8 +1,7 @@
 import { assert, describe, it } from "@effect/vitest"
-import * as Effect from "effect/Effect"
-import * as Exit from "effect/Exit"
+import { Effect } from "effect"
+import { Duration, Exit } from "effect/data"
 import * as TestClock from "effect/testing/TestClock"
-import * as Duration from "effect/time/Duration"
 
 describe("TestClock", () => {
   it.effect("sleep - does not require passage of wall time", () =>
