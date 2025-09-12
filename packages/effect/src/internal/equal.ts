@@ -45,3 +45,6 @@ export const getAllObjectKeys = (obj: object): Set<PropertyKey> => {
 
   return keys
 }
+
+/** @internal */
+export const byReferenceInstances = new WeakSet<object>()

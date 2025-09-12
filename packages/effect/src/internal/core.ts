@@ -162,7 +162,7 @@ export class CauseImpl<E> implements Cause.Cause<E> {
     )
   }
   [Hash.symbol](): number {
-    return Hash.cached(this, () => Hash.array(this.failures))
+    return Hash.array(this.failures)
   }
 }
 
@@ -247,10 +247,9 @@ export class Fail<E> extends FailureBase<"Fail"> implements Cause.Fail<E> {
     )
   }
   [Hash.symbol](): number {
-    return Hash.cached(this, () =>
-      Hash.combine(Hash.string(this._tag))(
-        Hash.combine(Hash.hash(this.error))(Hash.hash(this.annotations))
-      ))
+    return Hash.combine(Hash.string(this._tag))(
+      Hash.combine(Hash.hash(this.error))(Hash.hash(this.annotations))
+    )
   }
 }
 
@@ -300,10 +299,9 @@ export class Die extends FailureBase<"Die"> implements Cause.Die {
     )
   }
   [Hash.symbol](): number {
-    return Hash.cached(this, () =>
-      Hash.combine(Hash.string(this._tag))(
-        Hash.combine(Hash.hash(this.defect))(Hash.hash(this.annotations))
-      ))
+    return Hash.combine(Hash.string(this._tag))(
+      Hash.combine(Hash.hash(this.defect))(Hash.hash(this.annotations))
+    )
   }
 }
 
@@ -479,7 +477,7 @@ export const makeExit = <
       )
     },
     [Hash.symbol](this: any): number {
-      return Hash.cached(this, () => Hash.combine(Hash.string(options.op))(Hash.hash(this[args])))
+      return Hash.combine(Hash.string(options.op))(Hash.hash(this[args]))
     }
   }
   return function(value: unknown) {

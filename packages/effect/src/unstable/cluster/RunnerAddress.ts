@@ -32,7 +32,7 @@ export class RunnerAddress extends Schema.Class<RunnerAddress>(TypeId)({
    * @since 4.0.0
    */
   [Hash.symbol]() {
-    return Hash.cached(this, () => Hash.string(this.toString()))
+    return Hash.string(this.toString())
   }
 
   /**

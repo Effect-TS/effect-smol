@@ -8,7 +8,7 @@
 import type { Equivalence } from "../data/Equivalence.ts"
 import { hasProperty } from "../data/Predicate.ts"
 import * as Hash from "../interfaces/Hash.ts"
-import { getAllObjectKeys } from "../internal/equal.ts"
+import { byReferenceInstances, getAllObjectKeys } from "../internal/equal.ts"
 
 /** @internal */
 const visitedLeft = new WeakSet<object>()
@@ -243,6 +243,10 @@ function compareBoth(self: unknown, that: unknown): boolean {
     return false
   }
 
+  if (byReferenceInstances.has(self) || byReferenceInstances.has(that)) {
+    return false
+  }
+
   // For objects and functions, use cached comparison
   return compareObjectsCached(self as object, that as object)
 }
@@ -390,34 +394,40 @@ export const equivalence: <A>() => Equivalence<A> = () => equals
  * @since 2.0.0
  */
 export const byReference = <T extends object>(obj: T): T => {
-  const h = Hash.random({})
-  const p = new Proxy(obj, {
-    get(target, prop, receiver) {
-      if (prop === symbol) return (that: Equal) => receiver === that
-      if (prop === Hash.symbol) return () => h
-      const value = Reflect.get(target, prop, target)
-      return typeof value === "function" ? value.bind(target) : value
-    },
-    has(target, prop) {
-      return prop === symbol || prop === Hash.symbol || Reflect.has(target, prop)
-    },
-    ownKeys(target) {
-      const keys = Reflect.ownKeys(target)
-      if (!keys.includes(symbol)) {
-        keys.push(symbol)
-      }
-      if (!keys.includes(Hash.symbol)) {
-        keys.push(Hash.symbol)
-      }
-      return keys
-    },
-    getOwnPropertyDescriptor(target, prop) {
-      return prop === symbol ?
-        { value: (that: Equal) => p === that, configurable: true }
-        : prop === Hash.symbol ?
-        { value: () => h, configurable: true }
-        : Reflect.getOwnPropertyDescriptor(target, prop)
-    }
-  })
+  const p = new Proxy(obj, {})
+  byReferenceInstances.add(p)
   return p as T
+}
+
+/**
+ * Marks an object to use reference equality instead of structural equality, without creating a proxy.
+ *
+ * Unlike `byReference`, this function directly modifies the object's equality behavior
+ * without creating a proxy wrapper. This is more performant but "unsafe" because
+ * it permanently changes how the object is compared.
+ *
+ * @example
+ * ```ts
+ * import { Equal } from "effect/interfaces"
+ * import * as assert from "node:assert"
+ *
+ * const obj1 = { a: 1, b: 2 }
+ * const obj2 = { a: 1, b: 2 }
+ *
+ * // Mark obj1 for reference equality (modifies obj1 directly)
+ * const obj1ByRef = Equal.byReferenceUnsafe(obj1)
+ * assert(obj1ByRef === obj1) // Same object, no proxy created
+ * assert(Equal.equals(obj1ByRef, obj2) === false) // uses reference equality
+ * assert(Equal.equals(obj1ByRef, obj1ByRef) === true) // same reference
+ *
+ * // The original obj1 is now permanently marked for reference equality
+ * assert(Equal.equals(obj1, obj2) === false) // obj1 uses reference equality
+ * ```
+ *
+ * @category utility
+ * @since 2.0.0
+ */
+export const byReferenceUnsafe = <T extends object>(obj: T): T => {
+  byReferenceInstances.add(obj)
+  return obj
 }

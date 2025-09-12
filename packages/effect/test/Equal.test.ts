@@ -787,6 +787,86 @@ describe("Equal - Structural Equality Behavior", () => {
     })
   })
 
+  describe("byReferenceUnsafe", () => {
+    it("should allow objects to opt out of structural equality without proxy", () => {
+      const obj1 = { a: 1, b: 2 }
+      const obj2 = { a: 1, b: 2 }
+
+      // Mark obj1 for reference equality (modifies obj1 directly)
+      const obj1ByRef = Equal.byReferenceUnsafe(obj1)
+      expect(obj1ByRef).toBe(obj1) // Same object, no proxy created
+      expect(Equal.equals(obj1ByRef, obj2)).toBe(false) // uses reference equality
+      expect(Equal.equals(obj1ByRef, obj1ByRef)).toBe(true) // same reference
+
+      // The original obj1 now uses reference equality
+      expect(Equal.equals(obj1, obj2)).toBe(false) // obj1 uses reference equality
+    })
+
+    it("should work with arrays", () => {
+      const arr1 = [1, 2, 3]
+      const arr2 = [1, 2, 3]
+
+      // Mark arr1 for reference equality
+      const arr1ByRef = Equal.byReferenceUnsafe(arr1)
+      expect(arr1ByRef).toBe(arr1) // Same array, no proxy
+      expect(Equal.equals(arr1ByRef, arr2)).toBe(false)
+      expect(Equal.equals(arr1ByRef, arr1ByRef)).toBe(true)
+    })
+
+    it("should work with Maps", () => {
+      const map1 = new Map([["a", 1]])
+      const map2 = new Map([["a", 1]])
+
+      // Mark map1 for reference equality
+      const map1ByRef = Equal.byReferenceUnsafe(map1)
+      expect(map1ByRef).toBe(map1) // Same map, no proxy
+      expect(Equal.equals(map1ByRef, map2)).toBe(false)
+      expect(Equal.equals(map1ByRef, map1ByRef)).toBe(true)
+    })
+
+    it("should work with Sets", () => {
+      const set1 = new Set([1, 2])
+      const set2 = new Set([1, 2])
+
+      // Mark set1 for reference equality
+      const set1ByRef = Equal.byReferenceUnsafe(set1)
+      expect(set1ByRef).toBe(set1) // Same set, no proxy
+      expect(Equal.equals(set1ByRef, set2)).toBe(false)
+      expect(Equal.equals(set1ByRef, set1ByRef)).toBe(true)
+    })
+
+    it("should permanently change object equality behavior", () => {
+      const obj1 = { a: 1, b: 2 }
+      const obj2 = { a: 1, b: 2 }
+
+      // Mark obj1 for reference equality
+      Equal.byReferenceUnsafe(obj1)
+
+      // Now obj1 permanently uses reference equality
+      expect(Equal.equals(obj1, obj2)).toBe(false)
+      expect(Equal.equals(obj1, obj1)).toBe(true)
+    })
+
+    it("should work when either object is marked for reference equality", () => {
+      const obj1 = { a: 1, b: 2 }
+      const obj2 = { a: 1, b: 2 }
+
+      // Mark obj2 for reference equality
+      Equal.byReferenceUnsafe(obj2)
+      expect(Equal.equals(obj1, obj2)).toBe(false)
+      expect(Equal.equals(obj2, obj1)).toBe(false)
+    })
+
+    it("should work with nested structures", () => {
+      const obj1 = { a: { b: 1 }, c: [1, 2] }
+      const obj2 = { a: { b: 1 }, c: [1, 2] }
+
+      // Mark obj1 for reference equality
+      Equal.byReferenceUnsafe(obj1)
+      expect(Equal.equals(obj1, obj2)).toBe(false)
+    })
+  })
+
   describe("Error objects", () => {
     it("should return true for Error objects with same message and additional properties", () => {
       const error1 = new Error("test message")

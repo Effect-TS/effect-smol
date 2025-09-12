@@ -144,7 +144,7 @@ const Proto = {
     return `<redacted${isString(this.label) ? ":" + this.label : ""}>`
   },
   [Hash.symbol]<T>(this: Redacted<T>): number {
-    return Hash.cached(this, () => Hash.hash(redactedRegistry.get(this)))
+    return Hash.hash(redactedRegistry.get(this))
   },
   [Equal.symbol]<T>(this: Redacted<T>, that: unknown): boolean {
     return (

@@ -56,7 +56,7 @@ const Proto = Object.assign(Object.create(null), {
     return Equivalence(this, that)
   },
   [Hash.symbol](this: Headers): number {
-    return Hash.cached(this, () => Hash.structure(this))
+    return Hash.structure(this)
   }
 })
 

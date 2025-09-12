@@ -80,7 +80,7 @@ const Proto = {
     return Equivalence(this, that)
   },
   [Hash.symbol](this: UrlParams): number {
-    return Hash.cached(this, () => Hash.array(this.params.flat()))
+    return Hash.array(this.params.flat())
   }
 }
 

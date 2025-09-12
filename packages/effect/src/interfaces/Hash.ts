@@ -9,10 +9,13 @@
  */
 import { hasProperty } from "../data/Predicate.ts"
 import { dual, pipe } from "../Function.ts"
-import { getAllObjectKeys } from "../internal/equal.ts"
+import { byReferenceInstances, getAllObjectKeys } from "../internal/equal.ts"
 
 /** @internal */
 const randomHashCache = new WeakMap<any, number>()
+
+/** @internal */
+const hashCache = new WeakMap<any, number>()
 
 /** @internal */
 const visitedObjects = new WeakSet<object>()
@@ -121,8 +124,11 @@ export const hash: <A>(self: A) => number = <A>(self: A) => {
       } else if (self instanceof RegExp) {
         return string(self.toString())
       } else {
-        if (randomHashCache.has(self)) {
-          return randomHashCache.get(self)!
+        if (byReferenceInstances.has(self)) {
+          return random(self)
+        }
+        if (hashCache.has(self)) {
+          return hashCache.get(self)!
         }
         const h = withVisitedTracking(self, () => {
           if (isHash(self)) {
@@ -138,7 +144,7 @@ export const hash: <A>(self: A) => number = <A>(self: A) => {
           }
           return hashStructure(self)
         })
-        randomHashCache.set(self, h)
+        hashCache.set(self, h)
         return h
       }
     }
@@ -447,8 +453,6 @@ const hashArray = <A>(arr: ReadonlyArray<A>) => {
   return array(arr)
 }
 
-const hashCache = new WeakMap<object, number>()
-
 const hashMap = <K, V>(map: Map<K, V>) => {
   let h = string("Map")
   for (const [key, value] of map) {
@@ -463,54 +467,4 @@ const hashSet = <V>(set: Set<V>) => {
     h ^= hash(value)
   }
   return optimize(h)
-}
-
-/**
- * Caches the result of a hash computation for an object.
- *
- * This function provides a caching mechanism for expensive hash computations.
- * The computed hash value is stored in a WeakMap, so the same object will
- * always return the same cached hash value, avoiding recomputation.
- *
- * @example
- * ```ts
- * import { Hash } from "effect/interfaces"
- *
- * const obj = { complex: "data structure" }
- *
- * // Using curried form
- * const getCachedHash = Hash.cached(obj)
- * const hash1 = getCachedHash(() => Hash.structure(obj))
- * const hash2 = getCachedHash(() => Hash.structure(obj)) // returns cached value
- *
- * // Using direct form
- * const hash3 = Hash.cached(obj, () => Hash.structure(obj))
- * const hash4 = Hash.cached(obj, () => Hash.structure(obj)) // returns cached value
- *
- * console.log(hash1 === hash2) // true
- * console.log(hash3 === hash4) // true
- * ```
- *
- * @category hashing
- * @since 2.0.0
- */
-export const cached: {
-  (self: object): (hash: () => number) => number
-  (self: object, hash: () => number): number
-} = function() {
-  if (arguments.length === 1) {
-    const self = arguments[0] as object
-    return function(hash: () => number) {
-      if (!hashCache.has(self)) {
-        hashCache.set(self, hash())
-      }
-      return hashCache.get(self)
-    } as any
-  }
-  const self = arguments[0] as object
-  const hash = arguments[1] as () => number
-  if (!hashCache.has(self)) {
-    hashCache.set(self, hash())
-  }
-  return hashCache.get(self)
 }
