@@ -950,6 +950,21 @@ describe("Equal - Structural Equality Behavior", () => {
       expect(Equal.equals(obj2, obj3)).toBe(false)
     })
 
+    it("should include constructor property when it has a meaningful user-defined value from a prototype when it is a function", () => {
+      const f = () => 10
+      const g = () => 10
+      const obj1 = Object.setPrototypeOf({ a: 1 }, { constructor: f })
+      const obj2 = Object.setPrototypeOf({ a: 1 }, { constructor: f })
+      const obj3 = Object.setPrototypeOf({ a: 1 }, { constructor: g })
+
+      // Objects with same constructor value should be equal
+      expect(Equal.equals(obj1, obj2)).toBe(true)
+
+      // Objects with different constructor values should not be equal
+      expect(Equal.equals(obj1, obj3)).toBe(false)
+      expect(Equal.equals(obj2, obj3)).toBe(false)
+    })
+
     it("should still ignore default constructor property", () => {
       const obj1 = { a: 1, b: 2 }
       const obj2 = { a: 1, b: 2 }

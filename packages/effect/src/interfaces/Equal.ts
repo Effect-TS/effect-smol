@@ -181,13 +181,12 @@ function compareObjects(self: Record<PropertyKey, unknown>, that: Record<Propert
   const selfKeys = getAllObjectKeys(self)
   const thatKeys = getAllObjectKeys(that)
 
-  if (selfKeys.length !== thatKeys.length) {
+  if (selfKeys.size !== thatKeys.size) {
     return false
   }
 
-  for (let i = 0; i < selfKeys.length; i++) {
-    const key = selfKeys[i]
-    if (!(key in that) || !compareBoth(self[key], that[key])) {
+  for (const key of selfKeys) {
+    if (!(thatKeys.has(key)) || !compareBoth(self[key], that[key])) {
       return false
     }
   }
