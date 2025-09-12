@@ -17,8 +17,8 @@ import * as ToParser from "../schema/ToParser.ts"
  * @since 4.0.0
  */
 export interface Optic<in out S, in out A> {
-  readonly getOptic: (s: S) => Result.Result<A, string>
-  readonly setOptic: (a: A, s: S) => Result.Result<S, string>
+  readonly getResult: (s: S) => Result.Result<A, string>
+  readonly replaceResult: (a: A, s: S) => Result.Result<S, string>
 
   /**
    * @since 4.0.0
@@ -101,70 +101,71 @@ function compose<S, A, B>(
   self: OpticBuilder<S, A>,
   that: OpticBuilder<A, B>
 ): Optic<S, B> {
-  const setterIgnoresSource = self.setterIgnoresSource && that.setterIgnoresSource
-  return new OpticBuilder(
-    setterIgnoresSource,
-    (s) =>
-      Result.flatMap(
-        self.getOptic(s),
-        (a) => that.getOptic(a)
-      ),
-    setterIgnoresSource ?
-      /**
-       * Compose two optics when the piece of the whole returned by the get
-       * operator of the first optic is not needed by the set operator of the
-       * second optic (see the `as any` cast).
-       */
-      (b, s) =>
-        Result.flatMap(
-          that.setOptic(b, s as any),
-          (a) => self.setOptic(a, s)
-        ) :
-      /**
-       * Compose two optics when the piece of the whole returned by the first
-       * optic is needed by the set operator of the second optic
-       */
-      (b, s) =>
-        Result.flatMap(
-          self.getOptic(s),
-          (a) =>
-            Result.flatMap(
-              that.setOptic(b, a),
-              (a) => self.setOptic(a, s)
-            )
-        )
-  )
+  const getUnsafe = self.getUnsafe && that.getUnsafe ? (s: S) => that.getUnsafe!(self.getUnsafe!(s)) : undefined
+
+  const setUnsafe = self.setUnsafe && that.setUnsafe ? (b: B) => self.setUnsafe!(that.setUnsafe!(b)) : undefined
+
+  const getResult = getUnsafe
+    ? (s: S) => Result.succeed(getUnsafe(s))
+    : (s: S) => Result.flatMap(self.getResult(s), (a) => that.getResult(a))
+
+  // If RHS doesn't need the source we can avoid reading A entirely.
+  if (that.setUnsafe) {
+    const replaceResult = (b: B, s: S) => self.replaceResult(that.setUnsafe!(b), s)
+    return new OpticBuilder(getResult, replaceResult, getUnsafe, setUnsafe)
+  }
+
+  // RHS needs the current A
+  if (self.getUnsafe) {
+    const replaceResult = (b: B, s: S) =>
+      Result.flatMap(that.replaceResult(b, self.getUnsafe!(s)), (a2) => self.replaceResult(a2, s))
+    return new OpticBuilder(getResult, replaceResult, getUnsafe, setUnsafe)
+  }
+
+  const replaceResult = (b: B, s: S) =>
+    Result.flatMap(
+      self.getResult(s),
+      (a) => Result.flatMap(that.replaceResult(b, a), (a2) => self.replaceResult(a2, s))
+    )
+
+  return new OpticBuilder(getResult, replaceResult, getUnsafe, setUnsafe)
 }
 
 /** @internal */
 export class OpticBuilder<in out S, in out A> implements Optic<S, A> {
-  readonly setterIgnoresSource: boolean
-  readonly getOptic: (s: S) => Result.Result<A, string>
-  readonly setOptic: (a: A, s: S) => Result.Result<S, string>
+  readonly getResult: (s: S) => Result.Result<A, string>
+  readonly replaceResult: (a: A, s: S) => Result.Result<S, string>
+  // fast paths (optional)
+  readonly getUnsafe: ((s: S) => A) | undefined
+  readonly setUnsafe: ((a: A) => S) | undefined
+
   constructor(
-    setterIgnoresSource: boolean,
-    getOptic: (s: S) => Result.Result<A, string>,
-    setOptic: (a: A, s: S) => Result.Result<S, string>
+    getResult: (s: S) => Result.Result<A, string>,
+    replaceResult: (a: A, s: S) => Result.Result<S, string>,
+    getUnsafe?: (s: S) => A,
+    setUnsafe?: (a: A) => S
   ) {
-    this.setterIgnoresSource = setterIgnoresSource
-    this.getOptic = getOptic
-    this.setOptic = setOptic
+    this.getResult = getResult
+    this.replaceResult = replaceResult
+    this.getUnsafe = getUnsafe
+    this.setUnsafe = setUnsafe
   }
 
   get(s: S): A {
-    return Result.getOrThrowWith(this.getOptic(s), (message) => new Error(message))
+    return this.getUnsafe!(s)
   }
 
   set(a: A): S {
-    return Result.getOrThrowWith(this.setOptic(a, undefined as any), (message) => new Error(message))
+    return this.setUnsafe!(a)
   }
 
   replace(a: A, s: S): S {
-    return Result.getOrElse(this.setOptic(a, s), () => s)
+    return Result.getOrElse(this.replaceResult(a, s), () => s)
   }
 
   getOption(s: S): Option.Option<A> {
-    return Result.getSuccess(this.getOptic(s))
+    if (this.getUnsafe) return Option.some(this.getUnsafe(s))
+    return Result.getSuccess(this.getResult(s))
   }
 
   compose(that: any): any {
@@ -178,8 +179,8 @@ export class OpticBuilder<in out S, in out A> implements Optic<S, A> {
 
   modifyResult(f: (a: A) => A): (s: S) => Result.Result<S, string> {
     return (s) =>
-      this.getOptic(s).pipe(
-        Result.flatMap((a) => this.setOptic(f(a), s))
+      this.getResult(s).pipe(
+        Result.flatMap((a) => this.replaceResult(f(a), s))
       )
   }
 
@@ -219,7 +220,7 @@ export interface Iso<in out S, in out A> extends Lens<S, A>, Prism<S, A> {}
  * @since 4.0.0
  */
 export function makeIso<S, A>(get: (s: S) => A, set: (a: A) => S): Iso<S, A> {
-  return new OpticBuilder(true, (s) => Result.succeed(get(s)), (a) => Result.succeed(set(a)))
+  return new OpticBuilder((s) => Result.succeed(get(s)), (a) => Result.succeed(set(a)), get, set)
 }
 
 /**
@@ -235,7 +236,7 @@ export interface Lens<in out S, in out A> extends Optional<S, A> {
  * @since 4.0.0
  */
 export function makeLens<S, A>(get: (s: S) => A, replace: (a: A, s: S) => S): Lens<S, A> {
-  return new OpticBuilder(false, (s) => Result.succeed(get(s)), (b, s) => Result.succeed(replace(b, s)))
+  return new OpticBuilder((s) => Result.succeed(get(s)), (b, s) => Result.succeed(replace(b, s)), get)
 }
 
 /**
@@ -254,7 +255,7 @@ export function makePrism<S, A>(
   getResult: (s: S) => Result.Result<A, string>,
   set: (a: A) => S
 ): Prism<S, A> {
-  return new OpticBuilder(true, getResult, (b) => Result.succeed(set(b)))
+  return new OpticBuilder(getResult, (b) => Result.succeed(set(b)), undefined, set)
 }
 
 /**
@@ -274,7 +275,7 @@ export function makeOptional<S, A>(
   getResult: (s: S) => Result.Result<A, string>,
   setResult: (a: A, s: S) => Result.Result<S, string>
 ): Optional<S, A> {
-  return new OpticBuilder(false, getResult, setResult)
+  return new OpticBuilder(getResult, setResult)
 }
 
 /**
@@ -294,17 +295,10 @@ export function id<S>(): Iso<S, S> {
  * @since 4.0.0
  */
 export function fromKey<S extends object, Key extends keyof S>(key: Key): Lens<S, S[Key]> {
-  return makeLens((s) => {
-    if (Object.hasOwn(s, key)) {
-      return s[key]
-    }
-    throw new Error(`Key ${format(key)} not found`)
-  }, (a, s) => {
-    if (Object.hasOwn(s, key)) {
-      return replace(key, a, s)
-    }
-    throw new Error(`Key ${format(key)} not found`)
-  })
+  return makeLens(
+    (s) => s[key],
+    (a, s) => replace(key, a, s)
+  )
 }
 
 function replace<S, Key extends keyof S>(key: Key, a: S[Key], s: S): S {

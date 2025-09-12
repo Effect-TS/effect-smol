@@ -2,15 +2,7 @@ import { Cause, Exit } from "effect"
 import { Data, Option, Predicate, Record } from "effect/data"
 import { Check, Schema, ToOptic, Util } from "effect/schema"
 import { describe, it } from "vitest"
-import {
-  assertFailure,
-  assertNone,
-  assertSome,
-  assertSuccess,
-  deepStrictEqual,
-  strictEqual,
-  throws
-} from "../utils/assert.ts"
+import { assertNone, assertSome, deepStrictEqual, strictEqual, throws } from "../utils/assert.ts"
 
 class Value extends Schema.Class<Value, { readonly brand: unique symbol }>("Value")({
   a: Schema.ValidDate
@@ -34,11 +26,11 @@ describe("ToOptic", () => {
     it("Class", () => {
       const schema = Value
       const optic = ToOptic.makeIso(schema).key("a")
-      const modifyResult = optic.modifyResult(addOne)
+      const modify = optic.modify(addOne)
 
-      assertSuccess(modifyResult(Value.makeSync({ a: new Date(0) })), Value.makeSync({ a: new Date(1) }))
-      assertFailure(
-        modifyResult(Value.makeSync({ a: new Date(-1) })),
+      deepStrictEqual(modify(Value.makeSync({ a: new Date(0) })), Value.makeSync({ a: new Date(1) }))
+      throws(
+        () => modify(Value.makeSync({ a: new Date(-1) })),
         `Expected a valid date, got Invalid Date
   at ["a"]`
       )
@@ -85,7 +77,7 @@ describe("ToOptic", () => {
     it("Array", () => {
       const schema = Schema.Array(Value)
       const optic = ToOptic.makeIso(schema)
-      const item = ToOptic.getFocusIso(Value).key("a")
+      const item = ToOptic.makeFocusIso(Value).key("a")
       const modify = optic.modify((as) => as.map(item.modify(addOne)))
 
       deepStrictEqual(modify([Value.makeSync({ a: new Date(0) })]), [Value.makeSync({ a: new Date(1) })])
@@ -94,7 +86,7 @@ describe("ToOptic", () => {
     it("NonEmptyArray", () => {
       const schema = Schema.NonEmptyArray(Value)
       const optic = ToOptic.makeIso(schema)
-      const item = ToOptic.getFocusIso(Value).key("a")
+      const item = ToOptic.makeFocusIso(Value).key("a")
       const modify = optic.modify(([a, ...rest]) => [item.modify(addOne)(a), ...rest.map(item.modify(addTwo))])
 
       deepStrictEqual(
@@ -114,7 +106,7 @@ describe("ToOptic", () => {
     it("TupleWithRest", () => {
       const schema = Schema.TupleWithRest(Schema.Tuple([Value]), [Value])
       const optic = ToOptic.makeIso(schema)
-      const item = ToOptic.getFocusIso(Value).key("a")
+      const item = ToOptic.makeFocusIso(Value).key("a")
       const modify = optic.modify((
         [value, ...rest]
       ) => [item.modify(addOne)(value), ...rest.map((r) => item.modify(addTwo)(r))])
@@ -164,7 +156,7 @@ describe("ToOptic", () => {
     it("Record", () => {
       const schema = Schema.Record(Schema.String, Value)
       const optic = ToOptic.makeIso(schema)
-      const item = ToOptic.getFocusIso(Value).key("a")
+      const item = ToOptic.makeFocusIso(Value).key("a")
       const modify = optic.modify((rec) => Record.map(rec, item.modify(addOne)))
 
       deepStrictEqual(
@@ -185,7 +177,7 @@ describe("ToOptic", () => {
         [Schema.Record(Schema.String, Value)]
       )
       const optic = ToOptic.makeIso(schema)
-      const item = ToOptic.getFocusIso(Value).key("a")
+      const item = ToOptic.makeFocusIso(Value).key("a")
       const modify = optic.modify(({ a, ...rest }) => ({
         a: item.modify(addOne)(a),
         ...Record.map(rest, item.modify(addTwo))
@@ -200,7 +192,7 @@ describe("ToOptic", () => {
     it("Union", () => {
       const schema = Schema.Union([Schema.String, Value])
       const optic = ToOptic.makeIso(schema)
-      const item = ToOptic.getFocusIso(Value).key("a")
+      const item = ToOptic.makeFocusIso(Value).key("a")
       const modify = optic.modify((x) => Predicate.isString(x) ? x : item.modify(addOne)(x))
 
       deepStrictEqual(modify("a"), "a")
@@ -221,7 +213,7 @@ describe("ToOptic", () => {
         as: Schema.Array(Schema.suspend((): Schema.Optic<A, AIso> => schema))
       })
       const optic = ToOptic.makeIso(schema)
-      const item = ToOptic.getFocusIso(Value).key("a")
+      const item = ToOptic.makeFocusIso(Value).key("a")
       const f = ({ a, as }: AIso): AIso => ({
         a: item.modify(addOne)(a),
         as: as.map(f)
@@ -288,7 +280,7 @@ describe("ToOptic", () => {
     it("Cause", () => {
       const schema = Schema.Cause(Value, Value)
       const optic = ToOptic.makeIso(schema)
-      const failure = ToOptic.getFocusIso(Schema.CauseFailure(Value, Value)).tag("Fail").key("error").key("a")
+      const failure = ToOptic.makeFocusIso(Schema.CauseFailure(Value, Value)).tag("Fail").key("error").key("a")
       const modify = optic.modify((failures) => failures.map(failure.modify(addOne)))
 
       deepStrictEqual(
@@ -319,7 +311,7 @@ describe("ToOptic", () => {
     it("Map", () => {
       const schema = Schema.Map(Schema.String, Value)
       const optic = ToOptic.makeIso(schema)
-      const entry = ToOptic.getFocusIso(Schema.Tuple([Schema.String, Value])).key("1").key("a")
+      const entry = ToOptic.makeFocusIso(Schema.Tuple([Schema.String, Value])).key("1").key("a")
       const modify = optic.modify((entries) => entries.map(([key, value]) => entry.modify(addOne)([key, value])))
 
       deepStrictEqual(

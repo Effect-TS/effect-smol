@@ -2620,7 +2620,7 @@ export function refineByGuard<T extends S["Type"], S extends Top>(
   annotations?: Annotations.Filter
 ) {
   return (self: S): refine<T, S["~rebuild.out"]> => {
-    return self.pipe(refine(Check.makeRefine(is, annotations)))
+    return self.pipe(refine(Check.makeRefineByGuard(is, annotations)))
   }
 }
 

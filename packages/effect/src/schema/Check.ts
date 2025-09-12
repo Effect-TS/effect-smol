@@ -118,8 +118,10 @@ export interface RefinementGroup<T extends E, E> extends FilterGroup<E> {
  */
 export type Refine<T extends E, E> = Refinement<T, E> | RefinementGroup<T, E>
 
-/** @internal */
-export function makeRefine<T extends E, E>(
+/**
+ * @since 4.0.0
+ */
+export function makeRefineByGuard<T extends E, E>(
   is: (value: E) => value is T,
   annotations?: Annotations.Filter
 ): Refinement<T, E> {
@@ -133,16 +135,16 @@ export function makeRefine<T extends E, E>(
 /**
  * @since 4.0.0
  */
-export function refine<T extends E, E>(
+export function refineByGuard<T extends E, E>(
   is: (value: E) => value is T,
   annotations?: Annotations.Filter
 ) {
   return (self: Check<E>): RefinementGroup<T, E> => {
-    return self.and(makeRefine(is, annotations))
+    return self.and(makeRefineByGuard(is, annotations))
   }
 }
 
-const brand_ = makeRefine((_u): _u is any => true)
+const brand_ = makeRefineByGuard((_u): _u is any => true)
 
 const BRAND_KEY = "~effect/schema/Check/brand"
 
@@ -1510,13 +1512,14 @@ export function unique<T>(equivalence: Equivalence.Equivalence<T>, annotations?:
   )
 }
 
+// TODO: remove this
 /**
  * A check that ensures the value is a Some value.
  *
  * @since 4.0.0
  */
 export function some<A>(annotations?: Annotations.Filter) {
-  return makeRefine<Option.Some<A>, Option.Option<A>>(
+  return makeRefineByGuard<Option.Some<A>, Option.Option<A>>(
     Option.isSome,
     Annotations.combine({ title: "some", description: "a Some value" }, annotations)
   )
