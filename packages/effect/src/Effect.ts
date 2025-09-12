@@ -7200,6 +7200,26 @@ export const runForkWith: <R>(
 ) => <A, E>(effect: Effect<A, E, R>, options?: RunOptions | undefined) => Fiber<A, E> = internal.runForkWith
 
 /**
+ * @since 4.0.0
+ * @category Running Effects
+ */
+export const runCallbackWith: <R>(
+  services: ServiceMap.ServiceMap<R>
+) => <A, E>(
+  effect: Effect<A, E, R>,
+  options?: (RunOptions & { readonly onExit: (exit: Exit.Exit<A, E>) => void }) | undefined
+) => (interruptor?: number | undefined) => void = internal.runCallbackWith
+
+/**
+ * @since 4.0.0
+ * @category Running Effects
+ */
+export const runCallback: <A, E>(
+  effect: Effect<A, E, never>,
+  options?: (RunOptions & { readonly onExit: (exit: Exit.Exit<A, E>) => void }) | undefined
+) => (interruptor?: number | undefined) => void = internal.runCallback
+
+/**
  * Executes an effect and returns the result as a `Promise`.
  *
  * **When to Use**

@@ -4034,6 +4034,28 @@ export const runFork: <A, E>(
 ) => Fiber.Fiber<A, E> = runForkWith(ServiceMap.empty())
 
 /** @internal */
+export const runCallbackWith = <R>(services: ServiceMap.ServiceMap<R>) => {
+  const runFork = runForkWith(services)
+  return <A, E>(
+    effect: Effect.Effect<A, E, R>,
+    options?:
+      | Effect.RunOptions & {
+        readonly onExit: (exit: Exit.Exit<A, E>) => void
+      }
+      | undefined
+  ): (interruptor?: number | undefined) => void => {
+    const fiber = runFork(effect, options)
+    if (options?.onExit) {
+      fiber.addObserver(options.onExit)
+    }
+    return (interruptor) => fiber.interruptUnsafe(interruptor)
+  }
+}
+
+/** @internal */
+export const runCallback = runCallbackWith(ServiceMap.empty())
+
+/** @internal */
 export const runPromiseExitWith = <R>(services: ServiceMap.ServiceMap<R>) => {
   const runFork = runForkWith(services)
   return <A, E>(
