@@ -54,29 +54,54 @@ export interface Equal extends Hash.Hash {
 }
 
 /**
- * Compares two values for equality. Returns `true` if the values are equal, `false` otherwise.
+ * Compares two values for structural equality. Returns `true` if the values are structurally equal, `false` otherwise.
  *
- * For objects implementing the `Equal` interface, uses their custom equality logic.
- * For `Date` objects, compares their ISO string representations.
- * For other values, uses reference equality and type checking.
+ * This function performs deep structural comparison:
+ * - For primitive values: uses value equality (including NaN === NaN)
+ * - For objects implementing `Equal` interface: uses their custom equality logic
+ * - For Date objects: compares ISO string representations
+ * - For RegExp objects: compares string representations
+ * - For Arrays: recursively compares each element
+ * - For Maps: compares keys and values structurally (order-independent)
+ * - For Sets: compares values structurally (order-independent)
+ * - For plain objects: compares all properties recursively
+ * - Handles circular references correctly
+ *
+ * **Note**: This function does not use hash comparison for optimization. If you need
+ * hash-based equality checking for performance reasons, you must implement the
+ * hash comparison manually before calling this function.
  *
  * @example
  * ```ts
  * import { Equal } from "effect/interfaces"
+ * import * as assert from "node:assert"
  *
- * // Basic equality
- * console.log(Equal.equals(1, 1)) // true
- * console.log(Equal.equals(1, 2)) // false
+ * // Primitive values
+ * assert(Equal.equals(1, 1) === true)
+ * assert(Equal.equals(NaN, NaN) === true)
  *
- * // Date equality
+ * // Objects - structural comparison
+ * assert(Equal.equals({ a: 1, b: 2 }, { a: 1, b: 2 }) === true)
+ * assert(Equal.equals({ a: 1 }, { a: 1, b: 2 }) === false)
+ *
+ * // Arrays - recursive comparison
+ * assert(Equal.equals([1, [2, 3]], [1, [2, 3]]) === true)
+ * assert(Equal.equals([1, 2], [1, 3]) === false)
+ *
+ * // Date equality by ISO string
  * const date1 = new Date("2023-01-01")
  * const date2 = new Date("2023-01-01")
- * console.log(Equal.equals(date1, date2)) // true
+ * assert(Equal.equals(date1, date2) === true)
+ *
+ * // Maps and Sets - structural comparison
+ * const map1 = new Map([["a", 1], ["b", 2]])
+ * const map2 = new Map([["b", 2], ["a", 1]]) // different order
+ * assert(Equal.equals(map1, map2) === true)
  *
  * // Curried version
  * const isEqualTo5 = Equal.equals(5)
- * console.log(isEqualTo5(5)) // true
- * console.log(isEqualTo5(3)) // false
+ * assert(isEqualTo5(5) === true)
+ * assert(isEqualTo5(3) === false)
  * ```
  *
  * @category equality
@@ -234,6 +259,7 @@ function compareSets(self: Set<unknown>, that: Set<unknown>): boolean {
  * @example
  * ```ts
  * import { Equal, Hash } from "effect/interfaces"
+ * import * as assert from "node:assert"
  *
  * class MyClass implements Equal.Equal {
  *   [Equal.symbol](that: Equal.Equal): boolean {
@@ -245,9 +271,9 @@ function compareSets(self: Set<unknown>, that: Set<unknown>): boolean {
  * }
  *
  * const instance = new MyClass()
- * console.log(Equal.isEqual(instance)) // true
- * console.log(Equal.isEqual({})) // false
- * console.log(Equal.isEqual(42)) // false
+ * assert(Equal.isEqual(instance) === true)
+ * assert(Equal.isEqual({}) === false)
+ * assert(Equal.isEqual(42) === false)
  * ```
  *
  * @category guards
@@ -284,24 +310,25 @@ export const equivalence: <A>() => Equivalence<A> = () => equals
  * @example
  * ```ts
  * import { Equal } from "effect/interfaces"
+ * import * as assert from "node:assert"
  *
  * const obj1 = { a: 1, b: 2 }
  * const obj2 = { a: 1, b: 2 }
  *
  * // Normal structural equality
- * console.log(Equal.equals(obj1, obj2)) // true
+ * assert(Equal.equals(obj1, obj2) === true)
  *
  * // Create reference equality version
  * const obj1ByRef = Equal.byReference(obj1)
- * console.log(Equal.equals(obj1ByRef, obj2)) // false (uses reference equality)
- * console.log(Equal.equals(obj1ByRef, obj1ByRef)) // true (same reference)
+ * assert(Equal.equals(obj1ByRef, obj2) === false) // uses reference equality
+ * assert(Equal.equals(obj1ByRef, obj1ByRef) === true) // same reference
  *
  * // Each call creates a new proxy instance
  * const obj1ByRef2 = Equal.byReference(obj1)
- * console.log(Equal.equals(obj1ByRef, obj1ByRef2)) // false (different instances)
+ * assert(Equal.equals(obj1ByRef, obj1ByRef2) === false) // different instances
  *
  * // Proxy behaves like the original
- * console.log(obj1ByRef.a) // 1
+ * assert(obj1ByRef.a === 1)
  * ```
  *
  * @category utility
