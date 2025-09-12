@@ -70,8 +70,15 @@ export interface Hash {
  * objects, arrays, and other complex data structures. It automatically handles
  * different types and provides a consistent hash value for equivalent inputs.
  *
- * IMPORTANT: Once a hash is computed the object it is cached, meaning if you then
- * mutate the object the hash will not change.
+ * **⚠️ CRITICAL IMMUTABILITY REQUIREMENT**: Objects being hashed must be treated as
+ * immutable after their first hash computation. Hash results are cached, so mutating
+ * an object after hashing will lead to stale cached values and broken hash-based
+ * operations. For mutable objects, use referential equality by implementing custom
+ * `Hash` interface that hashes the object reference, not its content.
+ *
+ * **FORBIDDEN**: Modifying objects after `Hash.hash()` has been called on them
+ * **ALLOWED**: Using immutable objects, or mutable objects with custom `Hash` interface
+ * that uses referential equality (hashes the object reference, not content)
  *
  * @example
  * ```ts
@@ -139,19 +146,6 @@ export const hash: <A>(self: A) => number = <A>(self: A) => {
       throw new Error(
         `BUG: unhandled typeof ${typeof self} - please report an issue at https://github.com/Effect-TS/effect/issues`
       )
-  }
-}
-
-/**
- * Clears the cache of a specific object allowing the hash to be re-computed
- *
- * @category hashing
- * @since 4.0.0
- */
-export const clearCache = <A>(obj: A) => {
-  const objType = typeof obj
-  if (objType === "object" || objType === "function") {
-    randomHashCache.delete(obj)
   }
 }
 

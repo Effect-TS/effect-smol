@@ -16,6 +16,9 @@ const visitedLeft = new WeakSet<object>()
 /** @internal */
 const visitedRight = new WeakSet<object>()
 
+/** @internal */
+const equalityCache = new WeakMap<object, WeakMap<object, boolean>>()
+
 /**
  * The unique identifier used to identify objects that implement the `Equal` interface.
  *
@@ -67,9 +70,18 @@ export interface Equal extends Hash.Hash {
  * - For plain objects: compares all properties recursively
  * - Handles circular references correctly
  *
- * **Note**: This function does not use hash comparison for optimization. If you need
- * hash-based equality checking for performance reasons, you must implement the
- * hash comparison manually before calling this function.
+ * **Performance**: Results of object comparisons are cached using WeakMaps to optimize
+ * repeated equality checks between the same object pairs.
+ *
+ * **⚠️ CRITICAL IMMUTABILITY REQUIREMENT**: Objects being compared must be treated as
+ * immutable after their first equality computation. Equality results are cached, so
+ * mutating an object after comparison will lead to stale cached values and incorrect
+ * equality results. For mutable objects, use referential equality by implementing
+ * custom `Equal` interface that compares object references, not content.
+ *
+ * **FORBIDDEN**: Modifying objects after `Equal.equals()` has been called on them
+ * **ALLOWED**: Using immutable objects, or mutable objects with custom `Equal` interface
+ * that uses referential equality (compares object references, not content)
  *
  * @example
  * ```ts
@@ -139,6 +151,83 @@ function withVisitedTracking(
   return result
 }
 
+/** Helper to perform cached object comparison */
+function compareObjectsCached(self: object, that: object): boolean {
+  // Check cache first
+  const selfMap = equalityCache.get(self)
+  if (selfMap?.has(that)) {
+    return selfMap.get(that)!
+  }
+
+  // Perform the comparison
+  let result: boolean
+  if (Hash.hash(self) !== Hash.hash(that)) {
+    result = false
+  } else if (self instanceof Date) {
+    if (!(that instanceof Date)) {
+      result = false
+    } else {
+      result = self.toISOString() === that.toISOString()
+    }
+  } else if (self instanceof RegExp) {
+    if (!(that instanceof RegExp)) {
+      result = false
+    } else {
+      result = self.toString() === that.toString()
+    }
+  } else {
+    const selfIsEqual = isEqual(self)
+    const thatIsEqual = isEqual(that)
+    if (selfIsEqual !== thatIsEqual) {
+      result = false
+    } else {
+      const bothEquals = selfIsEqual && thatIsEqual
+      if (typeof self === "function" && !bothEquals) {
+        result = false
+      } else {
+        result = withVisitedTracking(self, that, () => {
+          if (bothEquals) {
+            return (self as any)[symbol](that)
+          } else if (Array.isArray(self)) {
+            if (!Array.isArray(that) || self.length !== that.length) {
+              return false
+            }
+            return compareArrays(self, that)
+          } else if (self instanceof Map) {
+            if (!(that instanceof Map) || self.size !== that.size) {
+              return false
+            }
+            return compareMaps(self, that)
+          } else if (self instanceof Set) {
+            if (!(that instanceof Set) || self.size !== that.size) {
+              return false
+            }
+            return compareSets(self, that)
+          }
+          return compareObjects(self as any, that as any)
+        })
+      }
+    }
+  }
+
+  // Cache the result bidirectionally
+  let selfMap2 = equalityCache.get(self)
+  if (!selfMap2) {
+    selfMap2 = new WeakMap()
+    equalityCache.set(self, selfMap2)
+  }
+  selfMap2.set(that, result)
+
+  let thatMap = equalityCache.get(that)
+  if (!thatMap) {
+    thatMap = new WeakMap()
+    equalityCache.set(that, thatMap)
+  }
+  thatMap.set(self, result)
+
+  return result
+}
+
 function compareBoth(self: unknown, that: unknown): boolean {
   if (self === that) return true
   if (self == null || that == null) return false
@@ -153,43 +242,9 @@ function compareBoth(self: unknown, that: unknown): boolean {
   if (selfType !== "object" && selfType !== "function") {
     return false
   }
-  if (self instanceof Date) {
-    if (!(that instanceof Date)) return false
-    return self.toISOString() === that.toISOString()
-  } else if (self instanceof RegExp) {
-    if (!(that instanceof RegExp)) return false
-    return self.toString() === that.toString()
-  }
-  const selfIsEqual = isEqual(self)
-  const thatIsEqual = isEqual(that)
-  if (selfIsEqual !== thatIsEqual) {
-    return false
-  }
-  const bothEquals = selfIsEqual && thatIsEqual
-  if (selfType === "function" && !bothEquals) {
-    return false
-  }
-  return withVisitedTracking(self as object, that as object, () => {
-    if (bothEquals) {
-      return self[symbol](that)
-    } else if (Array.isArray(self)) {
-      if (!Array.isArray(that) || self.length !== that.length) {
-        return false
-      }
-      return compareArrays(self, that)
-    } else if (self instanceof Map) {
-      if (!(that instanceof Map) || self.size !== that.size) {
-        return false
-      }
-      return compareMaps(self, that)
-    } else if (self instanceof Set) {
-      if (!(that instanceof Set) || self.size !== that.size) {
-        return false
-      }
-      return compareSets(self, that)
-    }
-    return compareObjects(self as any, that as any)
-  })
+
+  // For objects and functions, use cached comparison
+  return compareObjectsCached(self as object, that as object)
 }
 
 function compareArrays(self: Array<unknown>, that: Array<unknown>): boolean {
