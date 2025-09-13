@@ -1,4 +1,5 @@
 import { Result } from "effect/data"
+import { Optic2 as Optic } from "effect/optic"
 import { Schema, ToOptic } from "effect/schema"
 import { Bench } from "tinybench"
 
@@ -6,11 +7,12 @@ import { Bench } from "tinybench"
 ┌─────────┬─────────────────┬──────────────────┬──────────────────┬────────────────────────┬────────────────────────┬──────────┐
 │ (index) │ Task name       │ Latency avg (ns) │ Latency med (ns) │ Throughput avg (ops/s) │ Throughput med (ops/s) │ Samples  │
 ├─────────┼─────────────────┼──────────────────┼──────────────────┼────────────────────────┼────────────────────────┼──────────┤
-│ 0       │ 'iso get'       │ '3703.6 ± 0.25%' │ '3500.0 ± 42.00' │ '280410 ± 0.04%'       │ '285714 ± 3470'        │ 270008   │
-│ 1       │ 'direct get'    │ '23.46 ± 0.17%'  │ '41.00 ± 1.00'   │ '32241285 ± 0.01%'     │ '24390244 ± 580720'    │ 42617517 │
-│ 2       │ 'Result get'    │ '95.51 ± 1.29%'  │ '83.00 ± 0.00'   │ '11789036 ± 0.01%'     │ '12048192 ± 1'         │ 10470212 │
-│ 3       │ 'iso modify'    │ '22615 ± 1.23%'  │ '21125 ± 208.00' │ '46168 ± 0.11%'        │ '47337 ± 464'          │ 44220    │
-│ 4       │ 'direct modify' │ '3373.8 ± 0.32%' │ '3166.0 ± 41.00' │ '309896 ± 0.04%'       │ '315856 ± 4144'        │ 296405   │
+│ 0       │ 'iso get'       │ '3670.7 ± 0.26%' │ '3458.0 ± 42.00' │ '283173 ± 0.04%'       │ '289184 ± 3470'        │ 272431   │
+│ 1       │ 'optic get'     │ '33.23 ± 0.25%'  │ '42.00 ± 1.00'   │ '25114284 ± 0.00%'     │ '23809524 ± 580720'    │ 30091933 │
+│ 2       │ 'direct get'    │ '23.34 ± 0.09%'  │ '41.00 ± 1.00'   │ '32336253 ± 0.01%'     │ '24390244 ± 580720'    │ 42845570 │
+│ 3       │ 'Result get'    │ '97.02 ± 4.07%'  │ '83.00 ± 0.00'   │ '11928772 ± 0.01%'     │ '12048193 ± 0'         │ 10306960 │
+│ 4       │ 'iso modify'    │ '14876 ± 0.84%'  │ '14084 ± 208.00' │ '69786 ± 0.07%'        │ '71003 ± 1033'         │ 67223    │
+│ 5       │ 'direct modify' │ '3352.0 ± 0.32%' │ '3167.0 ± 42.00' │ '309763 ± 0.03%'       │ '315756 ± 4244'        │ 298333   │
 └─────────┴─────────────────┴──────────────────┴──────────────────┴────────────────────────┴────────────────────────┴──────────┘
 */
 
@@ -44,13 +46,16 @@ const user = new User({
   }
 })
 
-const userOptic = ToOptic.makeIso(User)
-const streetOptic = userOptic.key("profile").key("address").key("street")
+const streetOptic = ToOptic.makeIso(User).key("profile").key("address").key("street")
+const streetOptic2 = Optic.id<typeof User["Type"]>().key("profile").key("address").key("street")
 const modify = streetOptic.modify((street) => street + " Updated")
 
 bench
   .add("iso get", function() {
     streetOptic.get(user)
+  })
+  .add("optic get", function() {
+    streetOptic2.get(user)
   })
   .add("direct get", function() {
     // eslint-disable-next-line

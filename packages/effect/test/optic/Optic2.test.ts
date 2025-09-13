@@ -1,11 +1,40 @@
-import { Optic2 as Optic } from "effect/optic"
+import { AST, Optic2 as Optic } from "effect/optic"
 import { Check } from "effect/schema"
 import { describe, it } from "vitest"
-import { assertFailure, assertSuccess, deepStrictEqual, strictEqual } from "../utils/assert.ts"
+import { assertFailure, assertSuccess, assertTrue, deepStrictEqual, strictEqual } from "../utils/assert.ts"
 
 const addOne = (n: number) => n + 1
 
 describe("Optic", () => {
+  describe("AST", () => {
+    const iso = new AST.Iso<1, 2>(() => 2, () => 1)
+
+    it("composing an identity with another ast should return the other ast", () => {
+      const path = new AST.Path(["a"])
+      strictEqual(AST.compose(AST.identity, path), path)
+    })
+
+    it("composing two path asts should return a path ast with the two paths concatenated", () => {
+      const path1 = new AST.Path(["a"])
+      const path2 = new AST.Path(["b"])
+      const composed = AST.compose(AST.compose(iso, path1), path2)
+      assertTrue(composed._tag === "Composition")
+      strictEqual(composed.asts.length, 2)
+      strictEqual(composed.asts[0], iso)
+      deepStrictEqual(composed.asts[1], new AST.Path(["a", "b"]))
+    })
+
+    it("composing two checks asts should return a checks ast with the two checks concatenated", () => {
+      const checks1 = new AST.Checks([Check.positive()])
+      const checks2 = new AST.Checks([Check.int()])
+      const composed = AST.compose(AST.compose(iso, checks1), checks2)
+      assertTrue(composed._tag === "Composition")
+      strictEqual(composed.asts.length, 2)
+      strictEqual(composed.asts[0], iso)
+      deepStrictEqual(composed.asts[1], new AST.Checks([...checks1.checks, ...checks2.checks]))
+    })
+  })
+
   describe("Iso", () => {
     it("id", () => {
       const iso = Optic.id<number>()
