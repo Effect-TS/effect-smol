@@ -143,8 +143,8 @@ const Proto = {
   toString() {
     return `<redacted${isString(this.label) ? ":" + this.label : ""}>`
   },
-  [Hash.symbol]<T>(this: Redacted<T>): number {
-    return Hash.hash(redactedRegistry.get(this))
+  [Hash.symbol]<T>(this: Redacted<T>, context: Hash.HashContext): number {
+    return context.hash(redactedRegistry.get(this))
   },
   [Equal.symbol]<T>(this: Redacted<T>, that: unknown): boolean {
     return (

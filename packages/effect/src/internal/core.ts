@@ -161,8 +161,8 @@ export class CauseImpl<E> implements Cause.Cause<E> {
       this.failures.every((e, i) => Equal.equals(e, that.failures[i]))
     )
   }
-  [Hash.symbol](): number {
-    return Hash.array(this.failures)
+  [Hash.symbol](context: Hash.HashContext): number {
+    return context.array(this.failures)
   }
 }
 
@@ -201,7 +201,7 @@ export abstract class FailureBase<Tag extends string> implements Cause.Cause.Fai
 
   abstract toJSON(): unknown
   abstract [Equal.symbol](that: any): boolean
-  abstract [Hash.symbol](): number
+  abstract [Hash.symbol](context: Hash.HashContext): number
 
   toString() {
     return format(this)
@@ -246,9 +246,9 @@ export class Fail<E> extends FailureBase<"Fail"> implements Cause.Fail<E> {
       Equal.equals(this.annotations, that.annotations)
     )
   }
-  [Hash.symbol](): number {
-    return Hash.combine(Hash.string(this._tag))(
-      Hash.combine(Hash.hash(this.error))(Hash.hash(this.annotations))
+  [Hash.symbol](context: Hash.HashContext): number {
+    return context.combine(context.string(this._tag))(
+      context.combine(context.hash(this.error))(context.hash(this.annotations))
     )
   }
 }
@@ -298,9 +298,9 @@ export class Die extends FailureBase<"Die"> implements Cause.Die {
       Equal.equals(this.annotations, that.annotations)
     )
   }
-  [Hash.symbol](): number {
-    return Hash.combine(Hash.string(this._tag))(
-      Hash.combine(Hash.hash(this.defect))(Hash.hash(this.annotations))
+  [Hash.symbol](context: Hash.HashContext): number {
+    return context.combine(context.string(this._tag))(
+      context.combine(context.hash(this.defect))(context.hash(this.annotations))
     )
   }
 }
@@ -478,8 +478,8 @@ export const makeExit = <
         Equal.equals(this[args], (that as any)[args])
       )
     },
-    [Hash.symbol](this: any): number {
-      return Hash.combine(Hash.string(options.op))(Hash.hash(this[args]))
+    [Hash.symbol](this: any, context: Hash.HashContext): number {
+      return context.combine(context.string(options.op))(context.hash(this[args]))
     }
   }
   return function(value: unknown) {

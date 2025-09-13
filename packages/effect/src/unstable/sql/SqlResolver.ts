@@ -31,8 +31,8 @@ const SqlRequestProto = {
   ): boolean {
     return Equal.equals(this.payload, that.payload)
   },
-  [Hash.symbol](this: SqlRequest<any, any, any, any>): number {
-    return Hash.hash(this.payload)
+  [Hash.symbol](this: SqlRequest<any, any, any, any>, context: Hash.HashContext): number {
+    return context.hash(this.payload)
   }
 }
 

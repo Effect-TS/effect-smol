@@ -54,8 +54,8 @@ const Proto = Object.assign(Object.create(null), {
   [Equal.symbol](this: Headers, that: Headers): boolean {
     return Equivalence(this, that)
   },
-  [Hash.symbol](this: Headers): number {
-    return Hash.structure(this)
+  [Hash.symbol](this: Headers, context: Hash.HashContext): number {
+    return context.structure(this)
   }
 })
 

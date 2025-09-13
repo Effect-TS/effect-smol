@@ -168,16 +168,16 @@ const ProtoGraph = {
     }
     return false
   },
-  [Hash.symbol](this: Graph<any, any>): number {
-    let hash = Hash.string("Graph")
-    hash = hash ^ Hash.string(this.type)
-    hash = hash ^ Hash.number(this.nodes.size)
-    hash = hash ^ Hash.number(this.edges.size)
+  [Hash.symbol](this: Graph<any, any>, context: Hash.HashContext): number {
+    let hash = context.string("Graph")
+    hash = hash ^ context.string(this.type)
+    hash = hash ^ context.number(this.nodes.size)
+    hash = hash ^ context.number(this.edges.size)
     for (const [nodeIndex, nodeData] of this.nodes) {
-      hash = hash ^ (Hash.hash(nodeIndex) + Hash.hash(nodeData))
+      hash = hash ^ (context.hash(nodeIndex) + context.hash(nodeData))
     }
     for (const [edgeIndex, edgeData] of this.edges) {
-      hash = hash ^ (Hash.hash(edgeIndex) + Hash.hash(edgeData))
+      hash = hash ^ (context.hash(edgeIndex) + context.hash(edgeData))
     }
     return hash
   },

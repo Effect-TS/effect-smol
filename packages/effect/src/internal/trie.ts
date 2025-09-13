@@ -32,10 +32,10 @@ const TrieProto: TR.Trie<unknown> = {
   [Symbol.iterator]<V>(this: TrieImpl<V>): Iterator<[string, V]> {
     return new TrieIterator(this, (k, v) => [k, v], () => true)
   },
-  [Hash.symbol](this: TR.Trie<unknown>): number {
-    let hash = Hash.hash(TrieTypeId)
+  [Hash.symbol](this: TR.Trie<unknown>, context: Hash.HashContext): number {
+    let hash = context.hash(TrieTypeId)
     for (const item of this) {
-      hash ^= pipe(Hash.hash(item[0]), Hash.combine(Hash.hash(item[1])))
+      hash ^= pipe(context.hash(item[0]), context.combine(context.hash(item[1])))
     }
     return hash
   },

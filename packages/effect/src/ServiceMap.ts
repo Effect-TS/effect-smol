@@ -366,8 +366,8 @@ const Proto: Omit<ServiceMap<never>, "mapUnsafe"> = {
     }
     return true
   },
-  [Hash.symbol]<A>(this: ServiceMap<A>): number {
-    return Hash.number(this.mapUnsafe.size)
+  [Hash.symbol]<A>(this: ServiceMap<A>, context: Hash.HashContext): number {
+    return context.number(this.mapUnsafe.size)
   }
 }
 

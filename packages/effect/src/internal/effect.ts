@@ -112,9 +112,9 @@ export class Interrupt extends FailureBase<"Interrupt"> implements Cause.Interru
       this.annotations === that.annotations
     )
   }
-  [Hash.symbol](): number {
-    return Hash.combine(Hash.string(`${this._tag}:${this.fiberId}`))(
-      Hash.random(this.annotations)
+  [Hash.symbol](context: Hash.HashContext): number {
+    return context.combine(context.string(`${this._tag}:${this.fiberId}`))(
+      context.random(this.annotations)
     )
   }
 }

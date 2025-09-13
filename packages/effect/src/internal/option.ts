@@ -26,8 +26,8 @@ const SomeProto = Object.assign(Object.create(CommonProto), {
       isOption(that) && isSome(that) && Equal.equals(this.value, that.value)
     )
   },
-  [Hash.symbol]<A>(this: Option.Some<A>) {
-    return Hash.combine(Hash.hash(this._tag))(Hash.hash(this.value))
+  [Hash.symbol]<A>(this: Option.Some<A>, context: Hash.HashContext) {
+    return context.combine(context.hash(this._tag))(context.hash(this.value))
   },
   toString<A>(this: Option.Some<A>) {
     return `some(${format(this.value)})`
@@ -44,15 +44,14 @@ const SomeProto = Object.assign(Object.create(CommonProto), {
   }
 })
 
-const NoneHash = Hash.hash("None")
 const NoneProto = Object.assign(Object.create(CommonProto), {
   _tag: "None",
   _op: "None",
   [Equal.symbol]<A>(this: Option.None<A>, that: unknown): boolean {
     return isOption(that) && isNone(that)
   },
-  [Hash.symbol]<A>(this: Option.None<A>) {
-    return NoneHash
+  [Hash.symbol]<A>(this: Option.None<A>, context: Hash.HashContext) {
+    return context.hash("None")
   },
   toString<A>(this: Option.None<A>) {
     return `none()`
