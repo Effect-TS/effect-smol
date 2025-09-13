@@ -683,7 +683,7 @@ const toResponseSchema = (getStatus: (ast: AST.AST) => number) => {
     // const serialized = encoding.kind === "Json"
     //   ? Serializer.json(schema)
     //   : encoding.kind === "UrlParams"
-    //   ? Serializer.stringLeafJson(schema)
+    //   ? Serializer.stringPojo(schema)
     //   : schema
     const transform = responseSchema.pipe(
       Schema.decodeTo(schema, responseTransformation(getStatus, schema))

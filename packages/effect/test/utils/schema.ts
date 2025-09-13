@@ -192,10 +192,10 @@ function make(asserts: {
           async succeed<const A, const I, RD, RE>(
             schema: Schema.Codec<A, I, RD, RE>,
             input: A,
-            expected?: Serializer.StringLeafJson
+            expected?: Serializer.StringPojo
           ) {
             return out.effect.succeed(
-              Schema.encodeEffect(Serializer.stringLeafJson(Schema.typeCodec(schema)))(input),
+              Schema.encodeEffect(Serializer.stringPojo(Schema.typeCodec(schema)))(input),
               arguments.length > 2 ? expected : input
             )
           },
@@ -206,7 +206,7 @@ function make(asserts: {
             message: string
           ) {
             return out.effect.fail(
-              Schema.encodeEffect(Serializer.stringLeafJson(Schema.typeCodec(schema)))(input).pipe(
+              Schema.encodeEffect(Serializer.stringPojo(Schema.typeCodec(schema)))(input).pipe(
                 Effect.mapError((err) => err.issue)
               ),
               message
@@ -271,22 +271,22 @@ function make(asserts: {
         typeCodec: {
           async succeed<const A, const I, RD, RE>(
             schema: Schema.Codec<A, I, RD, RE>,
-            input: Serializer.StringLeafJson,
+            input: Serializer.StringPojo,
             expected?: A
           ) {
             return out.effect.succeed(
-              Schema.decodeEffect(Serializer.stringLeafJson(Schema.typeCodec(schema)))(input),
+              Schema.decodeEffect(Serializer.stringPojo(Schema.typeCodec(schema)))(input),
               arguments.length > 2 ? expected : input
             )
           },
 
           async fail<const A, const I, RD, RE>(
             schema: Schema.Codec<A, I, RD, RE>,
-            input: Serializer.StringLeafJson,
+            input: Serializer.StringPojo,
             message: string
           ) {
             return out.effect.fail(
-              Schema.decodeEffect(Serializer.stringLeafJson(Schema.typeCodec(schema)))(input).pipe(
+              Schema.decodeEffect(Serializer.stringPojo(Schema.typeCodec(schema)))(input).pipe(
                 Effect.mapError((err) => err.issue)
               ),
               message

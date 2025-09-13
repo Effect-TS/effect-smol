@@ -86,7 +86,7 @@ export const schema: schema = Schema.declare(
       _tag: "Declaration",
       declaration: () => Equivalence
     },
-    defaultJsonSerializer: () =>
+    defaultIsoSerializer: () =>
       Schema.link<Headers>()(
         Schema.Record(Schema.String, Schema.String),
         Transformation.transform({

@@ -8,8 +8,7 @@ import * as Option from "../data/Option.ts"
 import * as Predicate from "../data/Predicate.ts"
 import * as Result from "../data/Result.ts"
 import * as Effect from "../Effect.ts"
-import * as internalRecord from "../internal/record.ts"
-import { memoizeThunk } from "../internal/schema/util.ts"
+import * as InternalRecord from "../internal/record.ts"
 import * as RegEx from "../primitives/RegExp.ts"
 import type { Annotated } from "./Annotations.ts"
 import * as Annotations from "./Annotations.ts"
@@ -261,6 +260,9 @@ export interface ParseOptions {
   readonly "~variant"?: "make" | undefined
 }
 
+/** @internal */
+export const defaultParseOptions: ParseOptions = {}
+
 /**
  * @category model
  * @since 4.0.0
@@ -355,13 +357,6 @@ export class Declaration extends Base {
     this.run = run
   }
   /** @internal */
-  go(go: (ast: AST) => AST) {
-    const tps = mapOrSame(this.typeParameters, go)
-    return tps === this.typeParameters ?
-      this :
-      new Declaration(tps, this.run, this.annotations, this.checks, undefined, this.context)
-  }
-  /** @internal */
   parser(): ToParser.Parser {
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const ast = this
@@ -374,21 +369,11 @@ export class Declaration extends Base {
     }
   }
   /** @internal */
-  goJson(goJson: (ast: AST) => AST, make: (ast: AST) => Schema.Top) {
-    // eslint-disable-next-line @typescript-eslint/no-this-alias
-    const ast = this
-    const defaultJsonSerializer = ast.annotations?.defaultJsonSerializer
-    if (Predicate.isFunction(defaultJsonSerializer)) {
-      const link = defaultJsonSerializer(ast.typeParameters.map((tp) => make(goJson(encodedAST(tp)))))
-      const to = goJson(link.to)
-      if (to === link.to) {
-        return replaceEncoding(ast, [link])
-      } else {
-        return replaceEncoding(ast, [new Link(to, link.transformation)])
-      }
-    } else {
-      return requiredDefaultJsonSerializerAnnotation(ast)
-    }
+  go(go: (ast: AST) => AST) {
+    const tps = mapOrSame(this.typeParameters, go)
+    return tps === this.typeParameters ?
+      this :
+      new Declaration(tps, this.run, this.annotations, this.checks, undefined, this.context)
   }
   /** @internal */
   getExpected(): string {
@@ -408,12 +393,7 @@ export class NullKeyword extends AbstractParser {
   parser() {
     return fromRefinement(this, Predicate.isNull)
   }
-  /** @internal */
-  goJson() {
-    return this
-  }
-  /** @internal */
-  goStringLeafJson() {
+  goStringPojo(): AST {
     return replaceEncoding(this, [nullLink])
   }
   /** @internal */
@@ -438,10 +418,6 @@ export class UndefinedKeyword extends AbstractParser {
     return fromRefinement(this, Predicate.isUndefined)
   }
   /** @internal */
-  goJson() {
-    return coerceUndefined(this)
-  }
-  /** @internal */
   getExpected(): string {
     return "undefined"
   }
@@ -461,10 +437,6 @@ export class VoidKeyword extends AbstractParser {
   /** @internal */
   parser() {
     return fromRefinement(this, Predicate.isUndefined)
-  }
-  /** @internal */
-  goJson() {
-    return coerceUndefined(this)
   }
   /** @internal */
   getExpected(): string {
@@ -507,10 +479,6 @@ export class AnyKeyword extends AbstractParser {
   /** @internal */
   parser() {
     return fromRefinement(this, Predicate.isUnknown)
-  }
-  /** @internal */
-  goJson() {
-    return this
   }
   /** @internal */
   getExpected(): string {
@@ -585,16 +553,9 @@ export class Enums extends AbstractParser {
       (input): input is typeof this.enums[number][1] => this.enums.some(([_, value]) => value === input)
     )
   }
-  /** @internal */
-  goJson() {
-    return this
-  }
-  /** @internal */
-  goStringLeafJson() {
-    // eslint-disable-next-line @typescript-eslint/no-this-alias
-    const ast = this
-    if (ast.enums.some(([_, v]) => Predicate.isNumber(v))) {
-      const coercions = Object.fromEntries(ast.enums.map(([_, v]) => [String(v), v]))
+  goStringPojo(): AST {
+    if (this.enums.some(([_, v]) => Predicate.isNumber(v))) {
+      const coercions = Object.fromEntries(this.enums.map(([_, v]) => [String(v), v]))
       const enumLink = new Link(
         new UnionType(Object.keys(coercions).map((k) => new LiteralType(k)), "anyOf"),
         new Transformation.Transformation(
@@ -602,9 +563,9 @@ export class Enums extends AbstractParser {
           Getter.String()
         )
       )
-      return replaceEncoding(ast, [enumLink])
+      return replaceEncoding(this, [enumLink])
     }
-    return ast
+    return this
   }
   /** @internal */
   getExpected(): string {
@@ -682,20 +643,12 @@ export class TemplateLiteral extends AbstractParser {
       )
   }
   /** @internal */
-  goJson() {
-    return this
-  }
-  /** @internal */
-  goStringLeafJson() {
-    return this
-  }
-  /** @internal */
   getExpected(): string {
     return formatTemplateLiteral(this)
   }
   /** @internal */
   asTemplateLiteralParser(): TupleType {
-    const tuple = goStringLeafJson(new TupleType(false, this.parts, [])) as TupleType
+    const tuple = goTemplateLiteral(new TupleType(false, this.parts, [])) as TupleType
     const regex = getTemplateLiteralRegExp(this)
     return decodeTo(
       stringKeyword,
@@ -743,16 +696,13 @@ export class UniqueSymbol extends AbstractParser {
     return fromRefinement(this, (input): input is typeof this.symbol => input === this.symbol)
   }
   /** @internal */
-  goJson() {
-    return coerceSymbol(this)
-  }
-  /** @internal */
   getExpected(): string {
     return String(this.symbol)
   }
 }
 
-function coerceLiteral(ast: LiteralType): LiteralType {
+/** @internal */
+export function coerceLiteral(ast: LiteralType): LiteralType {
   const s = String(ast.literal)
   return replaceEncoding(ast, [
     new Link(
@@ -792,15 +742,7 @@ export class LiteralType extends AbstractParser {
   parser() {
     return fromRefinement(this, (input): input is typeof this.literal => input === this.literal)
   }
-  /** @internal */
-  goJson() {
-    if (Predicate.isBigInt(this.literal)) {
-      return coerceLiteral(this)
-    }
-    return this
-  }
-  /** @internal */
-  goStringLeafJson() {
+  goStringPojo(): AST {
     return Predicate.isString(this.literal) ? this : coerceLiteral(this)
   }
   /** @internal */
@@ -818,14 +760,6 @@ export class StringKeyword extends AbstractParser {
   /** @internal */
   parser() {
     return fromRefinement(this, Predicate.isString)
-  }
-  /** @internal */
-  goJson() {
-    return this
-  }
-  /** @internal */
-  goStringLeafJson() {
-    return this
   }
   /** @internal */
   getExpected(): string {
@@ -848,12 +782,7 @@ export class NumberKeyword extends AbstractParser {
   parser() {
     return fromRefinement(this, Predicate.isNumber)
   }
-  /** @internal */
-  goJson() {
-    return this
-  }
-  /** @internal */
-  goStringLeafJson() {
+  goStringPojo(): AST {
     return replaceEncoding(this, [numberLink])
   }
   /** @internal */
@@ -877,12 +806,7 @@ export class BooleanKeyword extends AbstractParser {
   parser() {
     return fromRefinement(this, Predicate.isBoolean)
   }
-  /** @internal */
-  goJson() {
-    return this
-  }
-  /** @internal */
-  goStringLeafJson() {
+  goStringPojo(): AST {
     return replaceEncoding(this, [booleanLink])
   }
   /** @internal */
@@ -907,10 +831,6 @@ export class SymbolKeyword extends AbstractParser {
     return fromRefinement(this, Predicate.isSymbol)
   }
   /** @internal */
-  goJson() {
-    return coerceSymbol(this)
-  }
-  /** @internal */
   getExpected(): string {
     return "symbol"
   }
@@ -931,12 +851,8 @@ export class BigIntKeyword extends AbstractParser {
   parser() {
     return fromRefinement(this, Predicate.isBigInt)
   }
-  goJson() {
-    return coerceBigInt(this)
-  }
-  /** @internal */
-  goStringLeafJson() {
-    return coerceBigInt(this)
+  goStringPojo(): AST {
+    return replaceEncoding(this, [bigIntLink])
   }
   /** @internal */
   getExpected(): string {
@@ -1312,7 +1228,7 @@ export class TypeLiteral extends Base {
               }
             } else {
               // preserve key
-              internalRecord.set(out, key, input[key])
+              InternalRecord.set(out, key, input[key])
             }
           }
         }
@@ -1343,7 +1259,7 @@ export class TypeLiteral extends Base {
           }
         } else {
           if (Option.isSome(r.success)) {
-            internalRecord.set(out, name, r.success.value)
+            InternalRecord.set(out, name, r.success.value)
           } else {
             if (!isOptional(ps.type)) {
               const issue = new Issue.Pointer([name], new Issue.MissingKey(keyAnnotations))
@@ -1402,9 +1318,9 @@ export class TypeLiteral extends Base {
               const v2 = rValue.success.value
               if (is.merge && is.merge.decode && Object.hasOwn(out, k2)) {
                 const [k, v] = is.merge.decode.combine([k2, out[k2]], [k2, v2])
-                internalRecord.set(out, k, v)
+                InternalRecord.set(out, k, v)
               } else {
-                internalRecord.set(out, k2, v2)
+                InternalRecord.set(out, k2, v2)
               }
             }
           }
@@ -1420,7 +1336,7 @@ export class TypeLiteral extends Base {
         const preserved: Record<PropertyKey, unknown> = {}
         for (const key of keys) {
           if (Object.hasOwn(out, key)) {
-            internalRecord.set(preserved, key, out[key])
+            InternalRecord.set(preserved, key, out[key])
           }
         }
         return Option.some(preserved)
@@ -1797,6 +1713,20 @@ export class UnionType<A extends AST = AST> extends Base {
   getExpected(getExpected: (ast: AST) => string): string {
     if (this.types.length === 0) return "never"
     return Array.from(new Set(this.types.map(getExpected))).join(" | ")
+  }
+}
+
+/** @internal */
+export function memoizeThunk<A>(f: () => A): () => A {
+  let done = false
+  let a: A
+  return () => {
+    if (done) {
+      return a
+    }
+    a = f()
+    done = true
+    return a
   }
 }
 
@@ -2349,6 +2279,36 @@ export function getReducer<A>(alg: ReducerAlg<A>) {
   }
 }
 
+/** @internal */
+export function coerceBigInt(ast: BigIntKeyword): BigIntKeyword {
+  return replaceEncoding(ast, [bigIntLink])
+}
+
+/** @internal */
+export const goTemplateLiteral = memoize((ast: AST): AST => {
+  if (ast.encoding) {
+    const links = ast.encoding
+    const last = links.at(-1)!
+    const to = goTemplateLiteral(last.to)
+    return to === last.to ?
+      ast :
+      replaceEncoding(ast, replaceLastLink(links, new Link(to, last.transformation)))
+  }
+  switch (ast._tag) {
+    case "StringKeyword":
+    case "TemplateLiteral":
+      return ast
+    case "NumberKeyword":
+    case "BigIntKeyword":
+    case "LiteralType":
+      return ast.goStringPojo()
+    case "TupleType":
+    case "UnionType":
+      return ast.go(goTemplateLiteral)
+  }
+  throw new Error(`Unsupported template literal part tag: ${ast._tag}`)
+})
+
 const nullLink = new Link(
   undefinedKeyword,
   new Transformation.Transformation(
@@ -2385,83 +2345,6 @@ const bigIntLink = new Link(
     Getter.String()
   )
 )
-
-/** @internal */
-export function coerceBigInt(ast: BigIntKeyword): BigIntKeyword {
-  return replaceEncoding(ast, [bigIntLink])
-}
-
-/** @internal */
-export const goStringLeafJson = memoize((ast: AST): AST => {
-  if (ast.encoding) {
-    const links = ast.encoding
-    const last = links.at(-1)!
-    const to = goStringLeafJson(last.to)
-    if (to === last.to) {
-      return ast
-    }
-    return replaceEncoding(ast, replaceLastLink(links, new Link(to, last.transformation)))
-  }
-  const out = (ast as any).goStringLeafJson?.() ?? (ast as any).go?.(goStringLeafJson) ?? ast
-  return isOptional(ast) ? optionalKey(out) : out
-})
-
-/** @internal */
-export function forbidden<A extends AST>(ast: A, message: string): A {
-  const link = new Link(
-    neverKeyword,
-    new Transformation.Transformation(
-      Getter.passthrough(),
-      Getter.forbidden(() => message)
-    )
-  )
-  return replaceEncoding(ast, [link])
-}
-
-/** @internal */
-export function requiredDefaultJsonSerializerAnnotation(ast: AST): AST {
-  return forbidden(ast, `cannot serialize to JSON, required \`defaultJsonSerializer\` annotation for ${ast._tag}`)
-}
-
-const SYMBOL_PATTERN = /^Symbol\((.*)\)$/
-
-// to distinguish between Symbol and String, we need to add a check to the string keyword
-const symbolLink = new Link(
-  appendChecks(stringKeyword, [Check.regex(SYMBOL_PATTERN, { title: "a string representing a symbol" })]),
-  new Transformation.Transformation(
-    Getter.transform((description) => Symbol.for(SYMBOL_PATTERN.exec(description)![1])),
-    Getter.transformOrFail((sym: symbol) => {
-      const description = sym.description
-      if (description !== undefined) {
-        if (Symbol.for(description) === sym) {
-          return Effect.succeed(String(sym))
-        }
-        return Effect.fail(
-          new Issue.Forbidden(Option.some(sym), { message: "cannot serialize to string, Symbol is not registered" })
-        )
-      }
-      return Effect.fail(
-        new Issue.Forbidden(Option.some(sym), { message: "cannot serialize to string, Symbol has no description" })
-      )
-    })
-  )
-)
-
-function coerceSymbol<A extends SymbolKeyword | UniqueSymbol>(ast: A): A {
-  return replaceEncoding(ast, [symbolLink])
-}
-
-const undefinedLink = new Link(
-  nullKeyword,
-  new Transformation.Transformation(
-    Getter.transform(() => undefined),
-    Getter.transform(() => null)
-  )
-)
-
-function coerceUndefined<A extends UndefinedKeyword | VoidKeyword>(ast: A): A {
-  return replaceEncoding(ast, [undefinedLink])
-}
 
 /** @internal */
 export function getAnnotations(ast: AST): Annotations.Annotations | undefined {
