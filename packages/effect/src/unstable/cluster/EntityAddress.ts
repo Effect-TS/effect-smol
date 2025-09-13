@@ -37,8 +37,8 @@ export class EntityAddress extends Schema.Class<EntityAddress>(TypeId)({
   /**
    * @since 4.0.0
    */
-  [Hash.symbol]() {
-    return Hash.string(`${this.entityType}:${this.entityId}:${this.shardId.toString()}`)
+  [Hash.symbol](context: Hash.HashContext) {
+    return context.string(`${this.entityType}:${this.entityId}:${this.shardId.toString()}`)
   }
 }
 /**

@@ -31,8 +31,8 @@ export class RunnerAddress extends Schema.Class<RunnerAddress>(TypeId)({
   /**
    * @since 4.0.0
    */
-  [Hash.symbol]() {
-    return Hash.string(this.toString())
+  [Hash.symbol](context: Hash.HashContext) {
+    return context.string(this.toString())
   }
 
   /**

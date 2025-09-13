@@ -25,8 +25,8 @@ export class SingletonAddress extends Schema.Class<SingletonAddress>(TypeId)({
   /**
    * @since 4.0.0
    */
-  [Hash.symbol]() {
-    return Hash.string(`${this.name}:${this.shardId.toString()}`)
+  [Hash.symbol](context: Hash.HashContext) {
+    return context.string(`${this.name}:${this.shardId.toString()}`)
   }
   /**
    * @since 4.0.0

@@ -605,10 +605,10 @@ class HashMapImpl<K, V> implements HashMap<K, V> {
     }
     return false
   }
-  [Hash.symbol](): number {
-    let hash = Hash.string("HashMap")
+  [Hash.symbol](context: Hash.HashContext): number {
+    let hash = context.string("HashMap")
     for (const [key, value] of this) {
-      hash = hash ^ (Hash.hash(key) + Hash.hash(value))
+      hash = hash ^ (context.hash(key) + context.hash(value))
     }
     return hash
   }

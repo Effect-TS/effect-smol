@@ -94,15 +94,15 @@ const CronProto = {
   [Equal.symbol](this: Cron, that: unknown) {
     return isCron(that) && equals(this, that)
   },
-  [Hash.symbol](this: Cron): number {
+  [Hash.symbol](this: Cron, context: Hash.HashContext): number {
     return pipe(
-      Hash.hash(this.tz),
-      Hash.combine(Hash.array(Arr.fromIterable(this.seconds))),
-      Hash.combine(Hash.array(Arr.fromIterable(this.minutes))),
-      Hash.combine(Hash.array(Arr.fromIterable(this.hours))),
-      Hash.combine(Hash.array(Arr.fromIterable(this.days))),
-      Hash.combine(Hash.array(Arr.fromIterable(this.months))),
-      Hash.combine(Hash.array(Arr.fromIterable(this.weekdays)))
+      context.hash(this.tz),
+      context.combine(context.array(Arr.fromIterable(this.seconds))),
+      context.combine(context.array(Arr.fromIterable(this.minutes))),
+      context.combine(context.array(Arr.fromIterable(this.hours))),
+      context.combine(context.array(Arr.fromIterable(this.days))),
+      context.combine(context.array(Arr.fromIterable(this.months))),
+      context.combine(context.array(Arr.fromIterable(this.weekdays)))
     )
   },
   toObject(this: Cron) {

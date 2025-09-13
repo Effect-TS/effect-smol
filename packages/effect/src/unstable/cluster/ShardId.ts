@@ -38,8 +38,8 @@ export class ShardId extends S.Class<ShardId>(TypeId)({
   /**
    * @since 4.0.0
    */
-  [Hash.symbol](): number {
-    return Hash.string(this.toString())
+  [Hash.symbol](context: Hash.HashContext): number {
+    return context.string(this.toString())
   }
 
   /**

@@ -65,8 +65,8 @@ export class Runner extends Schema.Class<Runner>(TypeId)({
   /**
    * @since 4.0.0
    */
-  [Hash.symbol](): number {
-    return Hash.string(`${this.address.toString()}:${this.version}`)
+  [Hash.symbol](context: Hash.HashContext): number {
+    return context.string(`${this.address.toString()}:${this.version}`)
   }
 }
 

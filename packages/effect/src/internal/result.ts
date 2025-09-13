@@ -28,8 +28,8 @@ const SuccessProto = Object.assign(Object.create(CommonProto), {
       isResult(that) && isSuccess(that) && Equal.equals(this.success, that.success)
     )
   },
-  [Hash.symbol]<A, E>(this: Result.Success<A, E>) {
-    return Hash.combine(Hash.hash(this._tag))(Hash.hash(this.success))
+  [Hash.symbol]<A, E>(this: Result.Success<A, E>, context: Hash.HashContext) {
+    return context.combine(context.hash(this._tag))(context.hash(this.success))
   },
   toString<A, E>(this: Result.Success<A, E>) {
     return `success(${format(this.success)})`
@@ -52,8 +52,8 @@ const FailureProto = Object.assign(Object.create(CommonProto), {
   [Equal.symbol]<A, E>(this: Result.Failure<A, E>, that: unknown): boolean {
     return isResult(that) && isFailure(that) && Equal.equals(this.failure, that.failure)
   },
-  [Hash.symbol]<A, E>(this: Result.Failure<A, E>) {
-    return Hash.combine(Hash.hash(this._tag))(Hash.hash(this.failure))
+  [Hash.symbol]<A, E>(this: Result.Failure<A, E>, context: Hash.HashContext) {
+    return context.combine(context.hash(this._tag))(context.hash(this.failure))
   },
   toString<A, E>(this: Result.Failure<A, E>) {
     return `failure(${format(this.failure)})`

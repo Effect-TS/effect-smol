@@ -39,8 +39,8 @@ const Proto = {
 const ProtoUtc = {
   ...Proto,
   _tag: "Utc",
-  [Hash.symbol](this: DateTime.Utc) {
-    return Hash.number(this.epochMillis)
+  [Hash.symbol](this: DateTime.Utc, context: Hash.HashContext) {
+    return context.number(this.epochMillis)
   },
   [Equal.symbol](this: DateTime.Utc, that: unknown) {
     return isDateTime(that) && that._tag === "Utc" && this.epochMillis === that.epochMillis
@@ -53,8 +53,8 @@ const ProtoUtc = {
 const ProtoZoned = {
   ...Proto,
   _tag: "Zoned",
-  [Hash.symbol](this: DateTime.Zoned) {
-    return Hash.combine(Hash.number(this.epochMillis))(Hash.hash(this.zone))
+  [Hash.symbol](this: DateTime.Zoned, context: Hash.HashContext) {
+    return context.combine(context.number(this.epochMillis))(context.hash(this.zone))
   },
   [Equal.symbol](this: DateTime.Zoned, that: unknown) {
     return isDateTime(that) && that._tag === "Zoned" && this.epochMillis === that.epochMillis &&
@@ -75,8 +75,8 @@ const ProtoTimeZone = {
 const ProtoTimeZoneNamed = {
   ...ProtoTimeZone,
   _tag: "Named",
-  [Hash.symbol](this: DateTime.TimeZone.Named) {
-    return Hash.string(`Named:${this.id}`)
+  [Hash.symbol](this: DateTime.TimeZone.Named, context: Hash.HashContext) {
+    return context.string(`Named:${this.id}`)
   },
   [Equal.symbol](this: DateTime.TimeZone.Named, that: unknown) {
     return isTimeZone(that) && that._tag === "Named" && this.id === that.id
@@ -96,8 +96,8 @@ const ProtoTimeZoneNamed = {
 const ProtoTimeZoneOffset = {
   ...ProtoTimeZone,
   _tag: "Offset",
-  [Hash.symbol](this: DateTime.TimeZone.Offset) {
-    return Hash.string(`Offset:${this.offset}`)
+  [Hash.symbol](this: DateTime.TimeZone.Offset, context: Hash.HashContext) {
+    return context.string(`Offset:${this.offset}`)
   },
   [Equal.symbol](this: DateTime.TimeZone.Offset, that: unknown) {
     return isTimeZone(that) && that._tag === "Offset" && this.offset === that.offset
