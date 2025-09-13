@@ -18,7 +18,6 @@ const TypeId = "~effect/cluster/HashRing" as const
 export interface HashRing<A extends PrimaryKey.PrimaryKey> extends Pipeable, Iterable<A> {
   readonly [TypeId]: typeof TypeId
   readonly baseWeight: number
-  readonly range: number
   readonly nodes: Map<string, [node: A, weight: number]>
   ring: Array<[hash: number, node: string]>
 }
@@ -47,7 +46,7 @@ const Proto = {
   ...PipeInspectableProto,
   [TypeId]: TypeId,
   [Symbol.iterator]<A extends PrimaryKey.PrimaryKey>(this: HashRing<A>): Iterator<A> {
-    return Iterable.map(this.ring, ([, n]) => this.nodes.get(n)![0])[Symbol.iterator]()
+    return Iterable.map(this.nodes.values(), ([n]) => n)[Symbol.iterator]()
   },
   toJSON(this: HashRing<any>) {
     return {
@@ -65,7 +64,7 @@ const Proto = {
  * @since 4.0.0
  * @category Combinators
  */
-export const addNodes: {
+export const addMany: {
   <A extends PrimaryKey.PrimaryKey>(nodes: Iterable<A>, options?: {
     readonly weight?: number | undefined
   }): (self: HashRing<A>) => HashRing<A>
@@ -121,7 +120,7 @@ function addNodesToRing<A extends PrimaryKey.PrimaryKey>(self: HashRing<A>, keys
  * @since 4.0.0
  * @category Combinators
  */
-export const addNode: {
+export const add: {
   <A extends PrimaryKey.PrimaryKey>(node: A, options?: {
     readonly weight?: number | undefined
   }): (self: HashRing<A>) => HashRing<A>
@@ -130,7 +129,7 @@ export const addNode: {
   }): HashRing<A>
 } = dual((args) => isHashRing(args[0]), <A extends PrimaryKey.PrimaryKey>(self: HashRing<A>, node: A, options?: {
   readonly weight?: number | undefined
-}): HashRing<A> => addNodes(self, [node], options))
+}): HashRing<A> => addMany(self, [node], options))
 
 /**
  * Removes the node from the ring. No-op's if the node does not exist.
@@ -138,7 +137,7 @@ export const addNode: {
  * @since 4.0.0
  * @category Combinators
  */
-export const removeNode: {
+export const remove: {
   <A extends PrimaryKey.PrimaryKey>(node: A): (self: HashRing<A>) => HashRing<A>
   <A extends PrimaryKey.PrimaryKey>(self: HashRing<A>, node: A): HashRing<A>
 } = dual(2, <A extends PrimaryKey.PrimaryKey>(self: HashRing<A>, node: A): HashRing<A> => {
@@ -156,7 +155,7 @@ export const removeNode: {
  * @since 4.0.0
  * @category Combinators
  */
-export const getNode = <A extends PrimaryKey.PrimaryKey>(self: HashRing<A>, input: string): A | undefined => {
+export const get = <A extends PrimaryKey.PrimaryKey>(self: HashRing<A>, input: string): A | undefined => {
   if (self.ring.length === 0) {
     return undefined
   }
