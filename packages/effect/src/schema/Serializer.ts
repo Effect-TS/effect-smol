@@ -5,6 +5,7 @@
 import * as Option from "../data/Option.ts"
 import * as Predicate from "../data/Predicate.ts"
 import * as Effect from "../Effect.ts"
+import { memoize } from "../Function.ts"
 import * as AST from "./AST.ts"
 import * as Check from "./Check.ts"
 import * as Getter from "./Getter.ts"
@@ -26,7 +27,7 @@ export function json<T, E, RD, RE>(
   return Schema.make<Schema.Codec<T, unknown, RD, RE>>(goJson(codec.ast))
 }
 
-const goJson = AST.memoize((ast: AST.AST): AST.AST => {
+const goJson = memoize((ast: AST.AST): AST.AST => {
   if (ast.encoding) {
     const links = ast.encoding
     const last = links.at(-1)!
@@ -141,7 +142,7 @@ export function iso<S extends Schema.Codec<unknown, unknown>>(
   return Schema.make<Schema.Codec<S["Type"], S["Iso"]>>(goIso(AST.typeAST(codec.ast)))
 }
 
-const goIso = AST.memoize((ast: AST.AST): AST.AST => {
+const goIso = memoize((ast: AST.AST): AST.AST => {
   function go(ast: AST.AST): AST.AST {
     switch (ast._tag) {
       case "Declaration": {
@@ -180,7 +181,7 @@ export function stringPojo<T, E, RD, RE>(
 }
 
 /** @internal */
-export const goStringPojo = AST.memoize((ast: AST.AST): AST.AST => {
+export const goStringPojo = memoize((ast: AST.AST): AST.AST => {
   if (ast.encoding) {
     const links = ast.encoding
     const last = links.at(-1)!
@@ -231,7 +232,7 @@ export function ensureArray<T, RD, RE>(
 const ENSURE_ARRAY_FLAG = "~effect/schema/Serializer/ensureArray"
 
 /** @internal */
-export const goEnsureArray = AST.memoize((ast: AST.AST): AST.AST => {
+export const goEnsureArray = memoize((ast: AST.AST): AST.AST => {
   if (ast.encoding) {
     const links = ast.encoding
     const last = links.at(-1)!

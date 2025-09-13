@@ -6,6 +6,7 @@ import * as Arr from "../collections/Array.ts"
 import * as Option from "../data/Option.ts"
 import * as Result from "../data/Result.ts"
 import * as Effect from "../Effect.ts"
+import { memoize } from "../Function.ts"
 import * as AST from "./AST.ts"
 import type * as Check from "./Check.ts"
 import * as Formatter from "./Formatter.ts"
@@ -324,7 +325,7 @@ export function runChecks<T>(
   }
 }
 
-const go = AST.memoize(
+const go = memoize(
   (ast: AST.AST): Parser => {
     let parser: Parser
     return Effect.fnUntracedEager(function*(ou, options) {

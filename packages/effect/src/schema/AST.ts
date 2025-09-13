@@ -8,6 +8,7 @@ import * as Option from "../data/Option.ts"
 import * as Predicate from "../data/Predicate.ts"
 import * as Result from "../data/Result.ts"
 import * as Effect from "../Effect.ts"
+import { memoize } from "../Function.ts"
 import * as InternalRecord from "../internal/record.ts"
 import * as RegEx from "../primitives/RegExp.ts"
 import type { Annotated } from "./Annotations.ts"
@@ -1869,19 +1870,6 @@ export function mapOrSame<A>(as: ReadonlyArray<A>, f: (a: A) => A): ReadonlyArra
     out[i] = fa
   }
   return changed ? out : as
-}
-
-/** @internal */
-export function memoize<A extends AST, O>(f: (ast: A) => O): (ast: A) => O {
-  const cache = new WeakMap<AST, O>()
-  return (ast) => {
-    if (cache.has(ast)) {
-      return cache.get(ast)!
-    }
-    const result = f(ast)
-    cache.set(ast, result)
-    return result
-  }
 }
 
 /** @internal */

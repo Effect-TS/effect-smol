@@ -1243,3 +1243,18 @@ export const hole: <T>() => T = coerceUnsafe(absurd)
  * @since 2.0.0
  */
 export const SK = <A, B>(_: A, b: B): B => b
+
+/**
+ * @since 4.0.0
+ */
+export function memoize<A extends object, O>(f: (a: A) => O): (ast: A) => O {
+  const cache = new WeakMap<object, O>()
+  return (a) => {
+    if (cache.has(a)) {
+      return cache.get(a)!
+    }
+    const result = f(a)
+    cache.set(a, result)
+    return result
+  }
+}

@@ -7,6 +7,7 @@ import * as Option from "../data/Option.ts"
 import * as Predicate from "../data/Predicate.ts"
 import * as Struct from "../data/Struct.ts"
 import * as UndefinedOr from "../data/UndefinedOr.ts"
+import { memoize } from "../Function.ts"
 import * as Boolean from "../primitives/Boolean.ts"
 import * as Number from "../primitives/Number.ts"
 import * as FastCheck from "../testing/FastCheck.ts"
@@ -263,7 +264,7 @@ function resetContext(ctx: Context | undefined): Context | undefined {
   }
 }
 
-const go = AST.memoize((ast: AST.AST): LazyArbitrary<any> => {
+const go = memoize((ast: AST.AST): LazyArbitrary<any> => {
   // ---------------------------------------------
   // handle annotations
   // ---------------------------------------------

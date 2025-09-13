@@ -5,7 +5,7 @@
 import * as Arr from "../collections/Array.ts"
 import * as Option from "../data/Option.ts"
 import * as Result from "../data/Result.ts"
-import { identity } from "../Function.ts"
+import { identity, memoize } from "../Function.ts"
 import { format } from "../interfaces/Inspectable.ts"
 import type { Literal } from "../schema/AST.ts"
 import { unknownKeyword } from "../schema/AST.ts"
@@ -222,7 +222,15 @@ type Op = {
   readonly set: any
 }
 
-function go(ast: AST.AST): Op {
+function hasGetResult(op: Op): boolean {
+  return op._tag === "Prism" || op._tag === "Optional"
+}
+
+function hasSet(op: Op): boolean {
+  return op._tag === "Iso" || op._tag === "Prism"
+}
+
+const go = memoize((ast: AST.AST): Op => {
   switch (ast._tag) {
     case "Identity":
       return { _tag: "Iso", get: identity, set: identity }
@@ -285,7 +293,7 @@ function go(ast: AST.AST): Op {
           for (let i = 0; i < ops.length; i++) {
             const op = ops[i]
             const result = op.get(s)
-            if (op._tag === "Prism" || op._tag === "Optional") {
+            if (hasGetResult(op)) {
               if (Result.isFailure(result)) {
                 return result
               }
@@ -298,24 +306,25 @@ function go(ast: AST.AST): Op {
         },
         set: (a: any, s: any) => {
           const failure = s
-          const ss = [s]
-          for (let i = 0; i < ops.length; i++) {
+          const len = ops.length
+          const ss = new Array(len + 1)
+          ss[0] = s
+          for (let i = 0; i < len; i++) {
             const op = ops[i]
-            if (op._tag === "Prism" || op._tag === "Optional") {
+            if (hasGetResult(op)) {
               const result = op.get(s)
               if (Result.isFailure(result)) {
                 return failure
               }
               s = result.success
-              ss.push(s)
             } else {
               s = op.get(s)
-              ss.push(s)
             }
+            ss[i + 1] = s
           }
-          for (let i = ops.length - 1; i >= 0; i--) {
+          for (let i = len - 1; i >= 0; i--) {
             const op = ops[i]
-            if (op._tag === "Iso" || op._tag === "Prism") {
+            if (hasSet(op)) {
               a = op.set(a)
             } else {
               a = op.set(a, ss[i])
@@ -326,7 +335,7 @@ function go(ast: AST.AST): Op {
       }
     }
   }
-}
+})
 
 function getComposition(a: Op["_tag"], b: Op["_tag"]): Op["_tag"] {
   return composition[a][b]
