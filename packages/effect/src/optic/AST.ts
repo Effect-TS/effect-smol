@@ -14,7 +14,7 @@ export type AST =
   | Prism<any, any>
   | Optional<any, any>
   | Path
-  | Checks
+  | Checks<any>
   | Composition
 
 /**
@@ -22,9 +22,6 @@ export type AST =
  */
 export class Identity {
   readonly _tag = "Identity"
-  compose(ast: AST): AST {
-    return ast
-  }
 }
 
 /**
@@ -42,9 +39,6 @@ export class Composition {
   constructor(asts: readonly [AST, ...Array<AST>]) {
     this.asts = asts
   }
-  compose(ast: AST): AST {
-    return new Composition([...this.asts, ast])
-  }
 }
 
 /**
@@ -58,9 +52,6 @@ export class Iso<S, A> {
   constructor(get: (s: S) => A, set: (a: A) => S) {
     this.get = get
     this.set = set
-  }
-  compose(ast: AST): AST {
-    return new Composition([this, ast])
   }
 }
 
@@ -76,9 +67,6 @@ export class Lens<S, A> {
     this.get = get
     this.set = set
   }
-  compose(ast: AST): AST {
-    return new Composition([this, ast])
-  }
 }
 
 /**
@@ -92,9 +80,6 @@ export class Prism<S, A> {
   constructor(get: (s: S) => Result.Result<A, string>, set: (a: A) => S) {
     this.get = get
     this.set = set
-  }
-  compose(ast: AST): AST {
-    return new Composition([this, ast])
   }
 }
 
@@ -110,9 +95,6 @@ export class Optional<S, A> {
     this.get = get
     this.set = set
   }
-  compose(ast: AST): AST {
-    return new Composition([this, ast])
-  }
 }
 
 /**
@@ -125,32 +107,85 @@ export class Path {
   constructor(path: ReadonlyArray<PropertyKey>) {
     this.path = path
   }
-  compose(ast: AST): AST {
-    switch (ast._tag) {
-      case "Path":
-        return new Path([...this.path, ...ast.path])
-      default:
-        return new Composition([this, ast])
-    }
-  }
 }
 
 /**
  * @since 4.0.0
  */
-export class Checks {
+export class Checks<T> {
   readonly _tag = "Checks"
-  readonly checks: readonly [Check.Check<any>, ...Array<Check.Check<any>>]
+  readonly checks: readonly [Check.Check<T>, ...Array<Check.Check<T>>]
 
-  constructor(checks: readonly [Check.Check<any>, ...Array<Check.Check<any>>]) {
+  constructor(checks: readonly [Check.Check<T>, ...Array<Check.Check<T>>]) {
     this.checks = checks
   }
-  compose(ast: AST): AST {
-    switch (ast._tag) {
-      case "Checks":
-        return new Checks([...this.checks, ...ast.checks])
-      default:
-        return new Composition([this, ast])
-    }
+}
+
+function isIdentity(ast: AST): ast is Identity {
+  return ast._tag === "Identity"
+}
+function isComposition(ast: AST): ast is Composition {
+  return ast._tag === "Composition"
+}
+function isPath(ast: AST): ast is Path {
+  return ast._tag === "Path"
+}
+function isChecks(ast: AST): ast is Checks<any> {
+  return ast._tag === "Checks"
+}
+
+/** Flatten an AST into a linear list of primitive nodes (no Composition). */
+function flatten(ast: AST, out: Array<AST> = []): Array<AST> {
+  if (isComposition(ast)) {
+    for (const x of ast.asts) flatten(x, out)
+  } else {
+    out.push(ast)
   }
+  return out
+}
+
+/**
+ * Normalize a linear chain:
+ * - remove Identity
+ * - fuse consecutive Path
+ * - fuse consecutive Checks
+ * (never collapses into concrete optics)
+ */
+function normalizeChain(chain: Array<AST>): Array<AST> {
+  const res: Array<AST> = []
+  for (const node of chain) {
+    if (isIdentity(node)) continue
+
+    const last = res[res.length - 1]
+    if (last && isPath(last) && isPath(node)) {
+      // fuse Path
+      res[res.length - 1] = new Path([...last.path, ...node.path])
+      continue
+    }
+    if (last && isChecks(last) && isChecks(node)) {
+      // fuse Checks
+      res[res.length - 1] = new Checks<any>([...last.checks, ...node.checks] as any)
+      continue
+    }
+    res.push(node)
+  }
+  return res
+}
+
+/**
+ * Compose two ASTs without collapsing:
+ * - flatten a and b
+ * - concatenate
+ * - normalize (fuse Path/Checks, drop Identity)
+ * - return Identity if empty, single node if one, otherwise a single Composition
+ *
+ * @since 4.0.0
+ */
+export function compose(a: AST, b: AST): AST {
+  const flat = [...flatten(a), ...flatten(b)]
+  const norm = normalizeChain(flat)
+
+  if (norm.length === 0) return identity
+  if (norm.length === 1) return norm[0]
+  return new Composition(norm as [AST, ...Array<AST>])
 }

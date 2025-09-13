@@ -86,20 +86,21 @@ class OpticBuilder {
     this.ast = ast
   }
   compose(that: any): any {
-    return make(this.ast.compose(that.ast))
+    return make(AST.compose(this.ast, that.ast))
   }
   key(key: PropertyKey): any {
-    return make(this.ast.compose(new AST.Path([key])))
+    return make(AST.compose(this.ast, new AST.Path([key])))
   }
   check(...checks: readonly [Check.Check<any>, ...Array<Check.Check<any>>]): any {
-    return make(this.ast.compose(new AST.Checks(checks)))
+    return make(AST.compose(this.ast, new AST.Checks(checks)))
   }
   refine(refine: Check.Refine<any, any>): any {
-    return make(this.ast.compose(new AST.Checks([refine])))
+    return make(AST.compose(this.ast, new AST.Checks([refine])))
   }
   tag(tag: string): any {
     return make(
-      this.ast.compose(
+      AST.compose(
+        this.ast,
         new AST.Prism(
           (s) =>
             s._tag === tag
@@ -112,7 +113,8 @@ class OpticBuilder {
   }
   at(key: PropertyKey): any {
     return make(
-      this.ast.compose(
+      AST.compose(
+        this.ast,
         new AST.Optional(
           (s) => Object.hasOwn(s, key) ? Result.succeed(s[key]) : Result.fail(`Key ${format(key)} not found`),
           (a, s) => {
