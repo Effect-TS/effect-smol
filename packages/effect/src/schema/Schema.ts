@@ -4551,8 +4551,8 @@ function getClassTransformation(self: new(...args: ReadonlyArray<any>) => any) {
   )
 }
 
-const makeClassLink = (self: new(...args: ReadonlyArray<any>) => any) => (from: AST.AST) =>
-  new AST.Link(from, getClassTransformation(self))
+const makeClassLink = (self: new(...args: ReadonlyArray<any>) => any) =>
+  new AST.Link(AST.anyKeyword, getClassTransformation(self))
 
 function getClassSchemaFactory<S extends Top>(
   from: S,
@@ -4564,7 +4564,7 @@ function getClassSchemaFactory<S extends Top>(
     self: Self
   ): decodeTo<declareConstructor<Self, S["Encoded"], readonly [S]>, S> => {
     if (memo === undefined) {
-      const getLink = makeClassLink(self)
+      const defaultIsoSerializerLink = makeClassLink(self)
       const to = make<declareConstructor<Self, S["Encoded"], readonly [S]>>(
         new AST.Declaration(
           [from.ast],
@@ -4574,7 +4574,7 @@ function getClassSchemaFactory<S extends Top>(
               Effect.fail(new Issue.InvalidType(ast, O.some(input)))
           },
           Annotations.combine({
-            defaultIsoSerializer: ([from]: readonly [any]) => getLink(from.ast),
+            defaultIsoSerializer: () => defaultIsoSerializerLink,
             arbitrary: {
               _tag: "Declaration",
               declaration: ([from]: readonly [any]) => () => from.map((args: any) => new self(args))
