@@ -22,7 +22,8 @@ export const symbol = "~effect/interfaces/Hash"
  * A type that represents an object that can be hashed.
  *
  * Objects implementing this interface provide a method to compute their hash value,
- * which is used for efficient comparison and storage operations.
+ * which is used for efficient comparison and storage operations. The hash method
+ * receives a HashContext that provides access to all hashing functionality.
  *
  * @example
  * ```ts
@@ -31,20 +32,20 @@ export const symbol = "~effect/interfaces/Hash"
  * class MyClass implements Hash.Hash {
  *   constructor(private value: number) {}
  *
- *   [Hash.symbol](): number {
- *     return Hash.hash(this.value)
+ *   [Hash.symbol](context: Hash.HashContext): number {
+ *     return context.hash(this.value)
  *   }
  * }
  *
  * const instance = new MyClass(42)
- * console.log(instance[Hash.symbol]()) // hash value of 42
+ * console.log(Hash.hash(instance)) // hash value of 42
  * ```
  *
  * @category models
  * @since 2.0.0
  */
 export interface Hash {
-  [symbol](): number
+  [symbol](context: HashContext): number
 }
 
 /**
@@ -189,7 +190,7 @@ export const hash: <A>(self: A) => number = <A>(self: A) => {
         }
         const h = withVisitedTracking(self, () => {
           if (isHash(self)) {
-            return self[symbol]()
+            return self[symbol](hashContext)
           } else if (typeof self === "function") {
             return random(self)
           } else if (Array.isArray(self)) {
@@ -308,7 +309,7 @@ export const optimize = (n: number): number => (n & 0xbfffffff) | ((n >>> 1) & 0
  * import { Hash } from "effect/interfaces"
  *
  * class MyHashable implements Hash.Hash {
- *   [Hash.symbol]() {
+ *   [Hash.symbol](context: Hash.HashContext) {
  *     return 42
  *   }
  * }
