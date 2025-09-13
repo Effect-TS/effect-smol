@@ -48,6 +48,82 @@ export interface Hash {
 }
 
 /**
+ * A context interface that provides access to all hashing functionality.
+ *
+ * This interface represents a service that can be used to compute hash values
+ * for various types of data. It includes all the hashing functions available
+ * in the Hash module, making it useful for dependency injection scenarios
+ * where you need to provide hashing capabilities as a service.
+ *
+ * @category models
+ * @since 2.0.0
+ */
+export interface HashContext {
+  /**
+   * Computes a hash value for any given value.
+   */
+  readonly hash: <A>(self: A) => number
+
+  /**
+   * Generates a random hash value for an object and caches it.
+   */
+  readonly random: <A extends object>(self: A) => number
+
+  /**
+   * Combines two hash values into a single hash value.
+   */
+  readonly combine: {
+    (b: number): (self: number) => number
+    (self: number, b: number): number
+  }
+
+  /**
+   * Optimizes a hash value by applying bit manipulation techniques.
+   */
+  readonly optimize: (n: number) => number
+
+  /**
+   * Checks if a value implements the Hash interface.
+   */
+  readonly isHash: (u: unknown) => u is Hash
+
+  /**
+   * Computes a hash value for a number.
+   */
+  readonly number: (n: number) => number
+
+  /**
+   * Computes a hash value for a string using the djb2 algorithm.
+   */
+  readonly string: (str: string) => number
+
+  /**
+   * Computes a hash value for an object using only the specified keys.
+   */
+  readonly structureKeys: <A extends object>(o: A, keys: ReadonlyArray<keyof A>) => number
+
+  /**
+   * Computes a hash value for an object using all of its enumerable keys.
+   */
+  readonly structure: <A extends object>(o: A) => number
+
+  /**
+   * Computes a hash value for an array by hashing all of its elements.
+   */
+  readonly array: <A>(arr: ReadonlyArray<A>) => number
+
+  /**
+   * Computes a hash value for a Map by hashing all of its key-value pairs.
+   */
+  readonly map: <K, V>(map: Map<K, V>) => number
+
+  /**
+   * Computes a hash value for a Set by hashing all of its values.
+   */
+  readonly set: <V>(set: Set<V>) => number
+}
+
+/**
  * Computes a hash value for any given value.
  *
  * This function can hash primitives (numbers, strings, booleans, etc.) as well as
@@ -119,9 +195,9 @@ export const hash: <A>(self: A) => number = <A>(self: A) => {
           } else if (Array.isArray(self)) {
             return array(self)
           } else if (self instanceof Map) {
-            return hashMap(self)
+            return map(self)
           } else if (self instanceof Set) {
-            return hashSet(self)
+            return set(self)
           }
           return structure(self)
         })
@@ -423,11 +499,108 @@ const iterableWith = (seed: number, f: (el: any) => number) => (iter: Iterable<a
  */
 export const array: <A>(arr: Iterable<A>) => number = iterableWith(6151, hash)
 
-const hashMap: <K, V>(map: Iterable<readonly [K, V]>) => number = iterableWith(
+/**
+ * Computes a hash value for a Map by hashing all of its key-value pairs.
+ *
+ * This function creates a hash value based on all entries in the Map.
+ * The hash combines the hashes of all keys and values. Since Map iteration
+ * order is insertion order, Maps with the same entries added in the same
+ * order will produce the same hash value.
+ *
+ * @example
+ * ```ts
+ * import { Hash } from "effect/interfaces"
+ *
+ * const map1 = new Map([["a", 1], ["b", 2]])
+ * const map2 = new Map([["a", 1], ["b", 2]])
+ * const map3 = new Map([["b", 2], ["a", 1]])
+ *
+ * console.log(Hash.map(map1)) // hash of map1
+ * console.log(Hash.map(map2)) // same hash as map1
+ * console.log(Hash.map(map3)) // potentially different hash (different insertion order)
+ *
+ * // Maps with same entries produce same hash
+ * console.log(Hash.map(map1) === Hash.map(map2)) // true
+ * ```
+ *
+ * @category hashing
+ * @since 2.0.0
+ */
+export const map: <K, V>(map: Map<K, V>) => number = iterableWith(
   string("Map"),
   ([k, v]) => combine(hash(k), hash(v))
 )
-const hashSet: <A>(set: Iterable<A>) => number = iterableWith(string("Set"), hash)
+
+/**
+ * Computes a hash value for a Set by hashing all of its values.
+ *
+ * This function creates a hash value based on all values in the Set.
+ * Since Set iteration order is insertion order, Sets with the same values
+ * added in the same order will produce the same hash value.
+ *
+ * @example
+ * ```ts
+ * import { Hash } from "effect/interfaces"
+ *
+ * const set1 = new Set([1, 2, 3])
+ * const set2 = new Set([1, 2, 3])
+ * const set3 = new Set([3, 2, 1])
+ *
+ * console.log(Hash.set(set1)) // hash of set1
+ * console.log(Hash.set(set2)) // same hash as set1
+ * console.log(Hash.set(set3)) // potentially different hash (different insertion order)
+ *
+ * // Sets with same values produce same hash
+ * console.log(Hash.set(set1) === Hash.set(set2)) // true
+ * ```
+ *
+ * @category hashing
+ * @since 2.0.0
+ */
+export const set: <A>(set: Set<A>) => number = iterableWith(string("Set"), hash)
+
+/**
+ * A default implementation of the HashContext interface.
+ *
+ * This constant provides a ready-to-use instance of HashContext that delegates
+ * to all the hash functions available in this module. It can be used directly
+ * or as a reference implementation for custom HashContext services.
+ *
+ * @example
+ * ```ts
+ * import { Hash } from "effect/interfaces"
+ *
+ * // Use the default hash context directly
+ * const value1 = Hash.hashContext.hash("hello")
+ * const value2 = Hash.hashContext.string("world")
+ * const combined = Hash.hashContext.combine(value2)(value1)
+ *
+ * // Use it as a service implementation
+ * function processData(data: unknown[], context: Hash.HashContext) {
+ *   return data.map(item => context.hash(item))
+ * }
+ *
+ * const hashes = processData(["a", "b", "c"], Hash.hashContext)
+ * console.log(hashes) // array of hash values
+ * ```
+ *
+ * @category constructors
+ * @since 2.0.0
+ */
+export const hashContext: HashContext = {
+  hash,
+  random,
+  combine,
+  optimize,
+  isHash,
+  number,
+  string,
+  structureKeys,
+  structure,
+  array,
+  map,
+  set
+}
 
 const randomHashCache = new WeakMap<any, number>()
 const hashCache = new WeakMap<any, number>()
