@@ -111,17 +111,17 @@ export interface HashContext {
   /**
    * Computes a hash value for an array by hashing all of its elements.
    */
-  readonly array: <A>(arr: ReadonlyArray<A>) => number
+  readonly array: <A>(arr: Iterable<A>) => number
 
   /**
    * Computes a hash value for a Map by hashing all of its key-value pairs.
    */
-  readonly map: <K, V>(map: Map<K, V>) => number
+  readonly map: <K, V>(map: Iterable<readonly [K, V]>) => number
 
   /**
    * Computes a hash value for a Set by hashing all of its values.
    */
-  readonly set: <V>(set: Set<V>) => number
+  readonly set: <V>(set: Iterable<V>) => number
 }
 
 /**
@@ -527,7 +527,7 @@ export const array: <A>(arr: Iterable<A>) => number = iterableWith(6151, hash)
  * @category hashing
  * @since 2.0.0
  */
-export const map: <K, V>(map: Map<K, V>) => number = iterableWith(
+export const map: <K, V>(map: Iterable<readonly [K, V]>) => number = iterableWith(
   string("Map"),
   ([k, v]) => combine(hash(k), hash(v))
 )
@@ -558,7 +558,7 @@ export const map: <K, V>(map: Map<K, V>) => number = iterableWith(
  * @category hashing
  * @since 2.0.0
  */
-export const set: <A>(set: Set<A>) => number = iterableWith(string("Set"), hash)
+export const set: <A>(set: Iterable<A>) => number = iterableWith(string("Set"), hash)
 
 /**
  * A default implementation of the HashContext interface.
