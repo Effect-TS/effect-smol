@@ -521,3 +521,11 @@ export function dateTimeUtcFromInput<E extends DateTime.DateTime.Input>(): Gette
       : Effect.fail(new Issue.InvalidValue(Option.some(input), { message: "Invalid DateTime input" }))
   })
 }
+
+/**
+ * @category Constructors
+ * @since 4.0.0
+ */
+export function shallowCopy<E extends object>(): Getter<unknown, E> {
+  return transform((s) => Array.isArray(s) ? s.slice() : { ...s })
+}
