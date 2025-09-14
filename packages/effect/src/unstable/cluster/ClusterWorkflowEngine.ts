@@ -144,7 +144,7 @@ export const make = Effect.gen(function*() {
 
   const replyForRequestId = Effect.fnUntraced(function*(requestId: Snowflake.Snowflake) {
     const replies = yield* storage.repliesForUnfiltered([requestId])
-    const last = replies.at(-1)
+    const last = replies[replies.length - 1]
     if (last && last._tag === "WithExit") {
       return last as WithExitEncoded<Workflow.ResultEncoded<any, any>>
     }

@@ -30,7 +30,7 @@ export function json<T, E, RD, RE>(
 const goJson = memoize((ast: AST.AST): AST.AST => {
   if (ast.encoding) {
     const links = ast.encoding
-    const last = links.at(-1)!
+    const last = links[links.length - 1]
     const to = goJson(last.to)
     return to === last.to
       ? ast
@@ -184,7 +184,7 @@ export function stringPojo<T, E, RD, RE>(
 export const goStringPojo = memoize((ast: AST.AST): AST.AST => {
   if (ast.encoding) {
     const links = ast.encoding
-    const last = links.at(-1)!
+    const last = links[links.length - 1]
     const to = goStringPojo(last.to)
     return to === last.to ?
       ast :
@@ -235,7 +235,7 @@ const ENSURE_ARRAY_FLAG = "~effect/schema/Serializer/ensureArray"
 export const goEnsureArray = memoize((ast: AST.AST): AST.AST => {
   if (ast.encoding) {
     const links = ast.encoding
-    const last = links.at(-1)!
+    const last = links[links.length - 1]
     const to = goEnsureArray(last.to)
     if (to === last.to) {
       return ast

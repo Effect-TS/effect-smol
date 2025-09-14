@@ -145,7 +145,7 @@ export interface Bottom<
 
 const TypeId = "~effect/schema/Schema"
 
-abstract class BottomBuilder<
+abstract class BottomImpl<
   T,
   E,
   RD,
@@ -718,7 +718,7 @@ export const encodeUnknownSync = ToParser.encodeUnknownSync
  */
 export const encodeSync = ToParser.encodeSync
 
-class make$<S extends Top> extends BottomBuilder<
+class make$<S extends Top> extends BottomImpl<
   S["Type"],
   S["Encoded"],
   S["DecodingServices"],
@@ -4551,9 +4551,6 @@ function getClassTransformation(self: new(...args: ReadonlyArray<any>) => any) {
   )
 }
 
-const makeClassLink = (self: new(...args: ReadonlyArray<any>) => any) =>
-  new AST.Link(AST.anyKeyword, getClassTransformation(self))
-
 function getClassSchemaFactory<S extends Top>(
   from: S,
   identifier: string,
@@ -4564,7 +4561,7 @@ function getClassSchemaFactory<S extends Top>(
     self: Self
   ): decodeTo<declareConstructor<Self, S["Encoded"], readonly [S]>, S> => {
     if (memo === undefined) {
-      const defaultIsoSerializerLink = makeClassLink(self)
+      const iso = new AST.Link(AST.anyKeyword, getClassTransformation(self))
       const to = make<declareConstructor<Self, S["Encoded"], readonly [S]>>(
         new AST.Declaration(
           [from.ast],
@@ -4574,7 +4571,7 @@ function getClassSchemaFactory<S extends Top>(
               Effect.fail(new Issue.InvalidType(ast, O.some(input)))
           },
           Annotations.combine({
-            defaultIsoSerializer: () => defaultIsoSerializerLink,
+            defaultIsoSerializer: () => iso,
             arbitrary: {
               _tag: "Declaration",
               declaration: ([from]: readonly [any]) => () => from.map((args: any) => new self(args))

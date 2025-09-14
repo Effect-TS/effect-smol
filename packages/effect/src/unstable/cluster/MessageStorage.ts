@@ -625,7 +625,7 @@ export class MemoryDriver extends ServiceMap.Key<MemoryDriver>()("effect/cluster
           }
           messages.push({
             envelope,
-            lastSentReply: entry?.replies.at(-1)
+            lastSentReply: entry?.replies[entry.replies.length - 1]
           })
         } else {
           messages.push({
@@ -742,7 +742,7 @@ export class MemoryDriver extends ServiceMap.Key<MemoryDriver>()("effect/cluster
               }
               messages.push({
                 envelope,
-                lastSentReply: entry.replies.at(-1)
+                lastSentReply: entry.replies[entry.replies.length - 1]
               })
             } else {
               messages.push({

@@ -34,10 +34,10 @@ export const identity = new Identity()
  */
 export class Composition {
   readonly _tag = "Composition"
-  readonly asts: readonly [AST, ...Array<AST>]
+  readonly ops: readonly [AST, ...Array<AST>]
 
-  constructor(asts: readonly [AST, ...Array<AST>]) {
-    this.asts = asts
+  constructor(ops: readonly [AST, ...Array<AST>]) {
+    this.ops = ops
   }
 }
 
@@ -137,7 +137,7 @@ function isChecks(ast: AST): ast is Checks<any> {
 /** Flatten an AST into a linear list of primitive nodes (no Composition). */
 function flatten(ast: AST, out: Array<AST> = []): Array<AST> {
   if (isComposition(ast)) {
-    for (const x of ast.asts) flatten(x, out)
+    for (const x of ast.ops) flatten(x, out)
   } else {
     out.push(ast)
   }

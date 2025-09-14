@@ -1818,7 +1818,7 @@ export function appendChecks<A extends AST>(ast: A, checks: Checks): A {
 function applyEncoded<A extends AST>(ast: A, f: (ast: AST) => AST): A {
   if (ast.encoding) {
     const links = ast.encoding
-    const last = links.at(-1)!
+    const last = links[links.length - 1]
     return replaceEncoding(ast, replaceLastLink(links, new Link(f(last.to), last.transformation)))
   }
   return ast
@@ -1875,7 +1875,7 @@ export function mapOrSame<A>(as: ReadonlyArray<A>, f: (a: A) => A): ReadonlyArra
 /** @internal */
 export function annotate<A extends AST>(ast: A, annotations: Annotations.Annotations): A {
   if (ast.checks) {
-    const last = ast.checks.at(-1)!
+    const last = ast.checks[ast.checks.length - 1]
     return replaceChecks(ast, Arr.append(ast.checks.slice(0, -1), last.annotate(annotations)))
   }
   return modifyOwnPropertyDescriptors(ast, (d) => {
@@ -2276,7 +2276,7 @@ export function coerceBigInt(ast: BigIntKeyword): BigIntKeyword {
 export const goTemplateLiteral = memoize((ast: AST): AST => {
   if (ast.encoding) {
     const links = ast.encoding
-    const last = links.at(-1)!
+    const last = links[links.length - 1]
     const to = goTemplateLiteral(last.to)
     return to === last.to ?
       ast :
@@ -2336,7 +2336,7 @@ const bigIntLink = new Link(
 
 /** @internal */
 export function getAnnotations(ast: AST): Annotations.Annotations | undefined {
-  return ast.checks ? ast.checks.at(-1)!.annotations : ast.annotations
+  return ast.checks ? ast.checks[ast.checks.length - 1].annotations : ast.annotations
 }
 
 /** @internal */

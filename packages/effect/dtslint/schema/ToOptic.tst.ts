@@ -1,7 +1,7 @@
 import type { Cause, Exit } from "effect"
 import type { Brand, Option } from "effect/data"
 import { Data } from "effect/data"
-import type { Optic2 as Optic } from "effect/optic"
+import type { Optic } from "effect/optic"
 import { Check, Schema, ToOptic, Util } from "effect/schema"
 import { describe, expect, it } from "tstyche"
 

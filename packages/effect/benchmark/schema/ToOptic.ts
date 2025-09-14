@@ -1,19 +1,17 @@
-import { Result } from "effect/data"
-import { Optic2 as Optic } from "effect/optic"
+import { Optic } from "effect/optic"
 import { Schema, ToOptic } from "effect/schema"
 import { Bench } from "tinybench"
 
 /*
-┌─────────┬─────────────────┬──────────────────┬──────────────────┬────────────────────────┬────────────────────────┬──────────┐
-│ (index) │ Task name       │ Latency avg (ns) │ Latency med (ns) │ Throughput avg (ops/s) │ Throughput med (ops/s) │ Samples  │
-├─────────┼─────────────────┼──────────────────┼──────────────────┼────────────────────────┼────────────────────────┼──────────┤
-│ 0       │ 'iso get'       │ '717.61 ± 0.42%' │ '667.00 ± 1.00'  │ '1452320 ± 0.02%'      │ '1499250 ± 2251'       │ 1393523  │
-│ 1       │ 'optic get'     │ '32.74 ± 0.06%'  │ '42.00 ± 1.00'   │ '25346624 ± 0.00%'     │ '23809524 ± 580720'    │ 30542023 │
-│ 2       │ 'direct get'    │ '23.92 ± 2.33%'  │ '41.00 ± 1.00'   │ '32019650 ± 0.01%'     │ '24390244 ± 580720'    │ 41803450 │
-│ 3       │ 'Result get'    │ '92.12 ± 3.54%'  │ '83.00 ± 0.00'   │ '12348092 ± 0.01%'     │ '12048193 ± 0'         │ 10855703 │
-│ 4       │ 'iso modify'    │ '5897.6 ± 0.78%' │ '5667.0 ± 83.00' │ '174523 ± 0.03%'       │ '176460 ± 2547'        │ 169561   │
-│ 5       │ 'direct modify' │ '3303.8 ± 0.27%' │ '3167.0 ± 42.00' │ '311384 ± 0.02%'       │ '315756 ± 4244'        │ 302684   │
-└─────────┴─────────────────┴──────────────────┴──────────────────┴────────────────────────┴────────────────────────┴──────────┘
+┌─────────┬──────────────────┬──────────────────┬──────────────────┬────────────────────────┬────────────────────────┬──────────┐
+│ (index) │ Task name        │ Latency avg (ns) │ Latency med (ns) │ Throughput avg (ops/s) │ Throughput med (ops/s) │ Samples  │
+├─────────┼──────────────────┼──────────────────┼──────────────────┼────────────────────────┼────────────────────────┼──────────┤
+│ 0       │ 'iso get'        │ '678.89 ± 0.67%' │ '667.00 ± 1.00'  │ '1506021 ± 0.01%'      │ '1499250 ± 2251'       │ 1472998  │
+│ 1       │ 'optic get'      │ '33.07 ± 0.04%'  │ '42.00 ± 0.00'   │ '25288617 ± 0.00%'     │ '23809524 ± 1'         │ 30242260 │
+│ 2       │ 'direct get'     │ '22.87 ± 0.04%'  │ '41.00 ± 1.00'   │ '32921874 ± 0.01%'     │ '24390244 ± 580720'    │ 43729228 │
+│ 3       │ 'iso replace'    │ '5278.8 ± 3.68%' │ '4958.0 ± 83.00' │ '200082 ± 0.03%'       │ '201694 ± 3360'        │ 189438   │
+│ 4       │ 'direct replace' │ '3320.8 ± 0.37%' │ '3166.0 ± 41.00' │ '312689 ± 0.02%'       │ '315856 ± 4144'        │ 301129   │
+└─────────┴──────────────────┴──────────────────┴──────────────────┴────────────────────────┴────────────────────────┴──────────┘
 */
 
 const bench = new Bench()
@@ -33,7 +31,7 @@ class User extends Schema.Class<User>("User")({
 }) {}
 
 // Create a user instance
-const user = new User({
+const user = User.makeSync({
   id: 1,
   profile: {
     name: "John Doe",
@@ -46,39 +44,31 @@ const user = new User({
   }
 })
 
-const streetOptic = ToOptic.makeIso(User).key("profile").key("address").key("street")
-const streetOptic2 = Optic.id<typeof User["Type"]>().key("profile").key("address").key("street")
-const modify = streetOptic.modify((street) => street + " Updated")
+const iso = ToOptic.makeIso(User).key("profile").key("address").key("street")
+const optic = Optic.id<typeof User["Type"]>().key("profile").key("address").key("street")
 
 bench
   .add("iso get", function() {
-    streetOptic.get(user)
+    iso.get(user)
   })
   .add("optic get", function() {
-    streetOptic2.get(user)
+    optic.get(user)
   })
   .add("direct get", function() {
     // eslint-disable-next-line
     user.profile.address.street
   })
-  .add("Result get", function() {
-    Result.succeed(user).pipe(
-      Result.flatMap((user) => Result.succeed(user.profile)),
-      Result.flatMap((profile) => Result.succeed(profile.address)),
-      Result.flatMap((address) => Result.succeed(address.street))
-    )
+  .add("iso replace", function() {
+    iso.replace("Updated", user)
   })
-  .add("iso modify", function() {
-    modify(user)
-  })
-  .add("direct modify", function() {
+  .add("direct replace", function() {
     new User({
       ...user,
       profile: {
         ...user.profile,
         address: {
           ...user.profile.address,
-          street: user.profile.address.street + " Updated"
+          street: "Updated"
         }
       }
     })
