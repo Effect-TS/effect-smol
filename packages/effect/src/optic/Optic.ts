@@ -80,7 +80,7 @@ export interface Optic<in out S, in out A> {
   at<S, A extends object, Key extends keyof A>(this: Optional<S, A>, key: Key): Optional<S, A[Key]>
 }
 
-class OpticBuilder {
+class OpticImpl {
   readonly ast: AST.AST
   constructor(ast: AST.AST) {
     this.ast = ast
@@ -132,7 +132,7 @@ class OpticBuilder {
   }
 }
 
-class IsoBuilder<S, A> extends OpticBuilder implements Iso<S, A> {
+class IsoImpl<S, A> extends OpticImpl implements Iso<S, A> {
   readonly get: (s: S) => A
   readonly set: (a: A) => S
   constructor(ast: AST.AST, get: (s: S) => A, set: (a: A) => S) {
@@ -151,7 +151,7 @@ class IsoBuilder<S, A> extends OpticBuilder implements Iso<S, A> {
   }
 }
 
-class LensBuilder<S, A> extends OpticBuilder implements Lens<S, A> {
+class LensImpl<S, A> extends OpticImpl implements Lens<S, A> {
   readonly get: (s: S) => A
   readonly replace: (a: A, s: S) => S
   constructor(ast: AST.AST, get: (s: S) => A, replace: (a: A, s: S) => S) {
@@ -167,7 +167,7 @@ class LensBuilder<S, A> extends OpticBuilder implements Lens<S, A> {
   }
 }
 
-class PrismBuilder<S, A> extends OpticBuilder implements Prism<S, A> {
+class PrismImpl<S, A> extends OpticImpl implements Prism<S, A> {
   readonly getResult: (s: S) => Result.Result<A, string>
   readonly set: (a: A) => S
   constructor(ast: AST.AST, getResult: (s: S) => Result.Result<A, string>, set: (a: A) => S) {
@@ -183,7 +183,7 @@ class PrismBuilder<S, A> extends OpticBuilder implements Prism<S, A> {
   }
 }
 
-class OptionalBuilder<S, A> extends OpticBuilder implements Optional<S, A> {
+class OptionalImpl<S, A> extends OpticImpl implements Optional<S, A> {
   readonly getResult: (s: S) => Result.Result<A, string>
   readonly replace: (a: A, s: S) => S
   constructor(ast: AST.AST, getResult: (s: S) => Result.Result<A, string>, replace: (a: A, s: S) => S) {
@@ -204,13 +204,13 @@ export function make<O>(ast: AST.AST): O {
   const op = go(ast)
   switch (op._tag) {
     case "Iso":
-      return new IsoBuilder(ast, op.get, op.set) as O
+      return new IsoImpl(ast, op.get, op.set) as O
     case "Lens":
-      return new LensBuilder(ast, op.get, op.set) as O
+      return new LensImpl(ast, op.get, op.set) as O
     case "Prism":
-      return new PrismBuilder(ast, op.get, op.set) as O
+      return new PrismImpl(ast, op.get, op.set) as O
     case "Optional":
-      return new OptionalBuilder(ast, op.get, op.set) as O
+      return new OptionalImpl(ast, op.get, op.set) as O
   }
 }
 
@@ -279,8 +279,8 @@ const go = memoize((ast: AST.AST): Op => {
         set: identity
       }
     case "Composition": {
-      const ops = ast.ops.map(go)
-      const _tag = ops.reduce<Op["_tag"]>((tag, op) => getComposition(tag, op._tag), "Iso")
+      const ops = ast.asts.map(go)
+      const _tag = ops.reduce<Op["_tag"]>((tag, op) => getCompositionTag(tag, op._tag), "Iso")
       return {
         _tag,
         get: (s: any) => {
@@ -339,7 +339,7 @@ function hasSet(tag: Op["_tag"]): boolean {
   return tag === "Iso" || tag === "Prism"
 }
 
-function getComposition(a: Op["_tag"], b: Op["_tag"]): Op["_tag"] {
+function getCompositionTag(a: Op["_tag"], b: Op["_tag"]): Op["_tag"] {
   switch (a) {
     case "Iso":
       return b

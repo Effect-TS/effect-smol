@@ -34,10 +34,10 @@ export const identity = new Identity()
  */
 export class Composition {
   readonly _tag = "Composition"
-  readonly ops: readonly [AST, ...Array<AST>]
+  readonly asts: readonly [AST, ...Array<AST>]
 
-  constructor(ops: readonly [AST, ...Array<AST>]) {
-    this.ops = ops
+  constructor(asts: readonly [AST, ...Array<AST>]) {
+    this.asts = asts
   }
 }
 
@@ -121,12 +121,6 @@ export class Checks<T> {
   }
 }
 
-function isIdentity(ast: AST): ast is Identity {
-  return ast._tag === "Identity"
-}
-function isComposition(ast: AST): ast is Composition {
-  return ast._tag === "Composition"
-}
 function isPath(ast: AST): ast is Path {
   return ast._tag === "Path"
 }
@@ -134,58 +128,53 @@ function isChecks(ast: AST): ast is Checks<any> {
   return ast._tag === "Checks"
 }
 
-/** Flatten an AST into a linear list of primitive nodes (no Composition). */
-function flatten(ast: AST, out: Array<AST> = []): Array<AST> {
-  if (isComposition(ast)) {
-    for (const x of ast.ops) flatten(x, out)
-  } else {
-    out.push(ast)
-  }
-  return out
-}
+// Nodes that can appear in a normalized chain (no Identity/Composition)
+type Node = Exclude<AST, Identity | Composition>
 
-/**
- * Normalize a linear chain:
- * - remove Identity
- * - fuse consecutive Path
- * - fuse consecutive Checks
- * (never collapses into concrete optics)
- */
-function normalizeChain(chain: Array<AST>): Array<AST> {
-  const res: Array<AST> = []
-  for (const node of chain) {
-    if (isIdentity(node)) continue
-
-    const last = res[res.length - 1]
-    if (last && isPath(last) && isPath(node)) {
+// Fuse with tail when possible, else push.
+function pushNormalized(acc: Array<Node>, node: Node): void {
+  const last = acc[acc.length - 1]
+  if (last) {
+    if (isPath(last) && isPath(node)) {
       // fuse Path
-      res[res.length - 1] = new Path([...last.path, ...node.path])
-      continue
+      acc[acc.length - 1] = new Path([...last.path, ...node.path])
+      return
     }
-    if (last && isChecks(last) && isChecks(node)) {
+    if (isChecks(last) && isChecks(node)) {
       // fuse Checks
-      res[res.length - 1] = new Checks<any>([...last.checks, ...node.checks] as any)
-      continue
+      acc[acc.length - 1] = new Checks<any>([...last.checks, ...node.checks])
+      return
     }
-    res.push(node)
   }
-  return res
+  acc.push(node)
+}
+
+// Collect nodes from an AST into `acc`, flattening & normalizing on the fly.
+function collect(ast: AST, acc: Array<Node>): void {
+  if (ast._tag === "Identity") return
+  if (ast._tag === "Composition") {
+    // flatten without extra arrays
+    for (let i = 0; i < ast.asts.length; i++) collect(ast.asts[i], acc)
+    return
+  }
+  // primitive node
+  pushNormalized(acc, ast)
 }
 
 /**
- * Compose two ASTs without collapsing:
- * - flatten a and b
- * - concatenate
- * - normalize (fuse Path/Checks, drop Identity)
- * - return Identity if empty, single node if one, otherwise a single Composition
- *
  * @since 4.0.0
  */
 export function compose(a: AST, b: AST): AST {
-  const flat = [...flatten(a), ...flatten(b)]
-  const norm = normalizeChain(flat)
+  const nodes: Array<Node> = []
+  collect(a, nodes)
+  collect(b, nodes)
 
-  if (norm.length === 0) return identity
-  if (norm.length === 1) return norm[0]
-  return new Composition(norm as [AST, ...Array<AST>])
+  switch (nodes.length) {
+    case 0:
+      return identity
+    case 1:
+      return nodes[0]
+    default:
+      return new Composition(nodes as [AST, ...Array<AST>])
+  }
 }

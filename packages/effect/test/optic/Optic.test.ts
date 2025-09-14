@@ -19,9 +19,9 @@ describe("Optic", () => {
       const path2 = new AST.Path(["b"])
       const composed = AST.compose(AST.compose(iso, path1), path2)
       assertTrue(composed._tag === "Composition")
-      strictEqual(composed.ops.length, 2)
-      strictEqual(composed.ops[0], iso)
-      deepStrictEqual(composed.ops[1], new AST.Path(["a", "b"]))
+      strictEqual(composed.asts.length, 2)
+      strictEqual(composed.asts[0], iso)
+      deepStrictEqual(composed.asts[1], new AST.Path(["a", "b"]))
     })
 
     it("composing two checks asts should return a checks ast with the two checks concatenated", () => {
@@ -29,9 +29,9 @@ describe("Optic", () => {
       const checks2 = new AST.Checks([Check.int()])
       const composed = AST.compose(AST.compose(iso, checks1), checks2)
       assertTrue(composed._tag === "Composition")
-      strictEqual(composed.ops.length, 2)
-      strictEqual(composed.ops[0], iso)
-      deepStrictEqual(composed.ops[1], new AST.Checks([...checks1.checks, ...checks2.checks]))
+      strictEqual(composed.asts.length, 2)
+      strictEqual(composed.asts[0], iso)
+      deepStrictEqual(composed.asts[1], new AST.Checks([...checks1.checks, ...checks2.checks]))
     })
   })
 
