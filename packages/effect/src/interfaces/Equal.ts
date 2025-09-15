@@ -211,21 +211,19 @@ function compareObjects(self: object, that: object): boolean {
 
 function withCache(self: object, that: object, f: (a: any, b: any) => boolean): boolean {
   // Check cache first
-  const cached = equalityCache.get(self)?.get(that)
-  if (cached !== undefined) {
-    return cached
+  let selfMap = equalityCache.get(self)
+  if (!selfMap) {
+    selfMap = new WeakMap()
+    equalityCache.set(self, selfMap)
+  } else if (selfMap.has(that)) {
+    return selfMap.get(that)!
   }
 
   // Perform the comparison
   const result = f(self, that)
 
   // Cache the result bidirectionally
-  let selfMap2 = equalityCache.get(self)
-  if (!selfMap2) {
-    selfMap2 = new WeakMap()
-    equalityCache.set(self, selfMap2)
-  }
-  selfMap2.set(that, result)
+  selfMap.set(that, result)
 
   let thatMap = equalityCache.get(that)
   if (!thatMap) {

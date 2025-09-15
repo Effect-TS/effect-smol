@@ -117,7 +117,7 @@ export const hash: <A>(self: A) => number = <A>(self: A) => {
           } else if (typeof self === "function") {
             return random(self)
           } else if (Array.isArray(self)) {
-            return hashArray(self)
+            return array(self)
           } else if (self instanceof Map) {
             return hashMap(self)
           } else if (self instanceof Set) {
@@ -386,6 +386,14 @@ export const structureKeys = (o: object, keys: Iterable<PropertyKey>) => {
  */
 export const structure = <A extends object>(o: A) => structureKeys(o, getAllObjectKeys(o))
 
+const iterableWith = (seed: number, f: (el: any) => number) => (iter: Iterable<any>) => {
+  let h = seed
+  for (const element of iter) {
+    h ^= f(element)
+  }
+  return optimize(h)
+}
+
 /**
  * Computes a hash value for an array by hashing all of its elements.
  *
@@ -413,33 +421,13 @@ export const structure = <A extends object>(o: A) => structureKeys(o, getAllObje
  * @category hashing
  * @since 2.0.0
  */
-export const array = <A>(arr: ReadonlyArray<A>) => {
-  let h = 6151
-  for (let i = 0; i < arr.length; i++) {
-    h = combine(h, hash(arr[i]))
-  }
-  return optimize(h)
-}
+export const array: <A>(arr: Iterable<A>) => number = iterableWith(6151, hash)
 
-const hashArray = <A>(arr: ReadonlyArray<A>) => {
-  return array(arr)
-}
-
-const hashMap = <K, V>(map: Map<K, V>) => {
-  let h = string("Map")
-  for (const [key, value] of map) {
-    h ^= combine(hash(key), hash(value))
-  }
-  return optimize(h)
-}
-
-const hashSet = <V>(set: Set<V>) => {
-  let h = string("Set")
-  for (const value of set) {
-    h ^= hash(value)
-  }
-  return optimize(h)
-}
+const hashMap: <K, V>(map: Iterable<readonly [K, V]>) => number = iterableWith(
+  string("Map"),
+  ([k, v]) => combine(hash(k), hash(v))
+)
+const hashSet: <A>(set: Iterable<A>) => number = iterableWith(string("Set"), hash)
 
 const randomHashCache = new WeakMap<any, number>()
 const hashCache = new WeakMap<any, number>()
