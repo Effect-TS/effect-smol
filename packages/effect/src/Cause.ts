@@ -218,7 +218,7 @@ export declare namespace Cause {
    * @since 4.0.0
    * @category models
    */
-  export interface FailureProto<Tag extends string> extends Inspectable {
+  export interface FailureProto<Tag extends string> extends Inspectable, Equal {
     readonly [FailureTypeId]: typeof FailureTypeId
     readonly _tag: Tag
     readonly annotations: ReadonlyMap<string, unknown>

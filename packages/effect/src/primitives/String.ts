@@ -7,7 +7,6 @@
  */
 
 import type { NonEmptyArray } from "../collections/Array.ts"
-import * as equivalence from "../data/Equivalence.ts"
 import * as order from "../data/Order.ts"
 import type * as Ordering from "../data/Ordering.ts"
 import type { Refinement } from "../data/Predicate.ts"
@@ -50,22 +49,6 @@ export const String = globalThis.String
  * @since 2.0.0
  */
 export const isString: Refinement<unknown, string> = predicate.isString
-
-/**
- * `Equivalence` instance for comparing strings using strict equality.
- *
- * @example
- * ```ts
- * import { String } from "effect/primitives"
- *
- * console.log(String.Equivalence("hello", "hello")) // true
- * console.log(String.Equivalence("hello", "world")) // false
- * ```
- *
- * @category instances
- * @since 2.0.0
- */
-export const Equivalence: equivalence.Equivalence<string> = equivalence.string
 
 /**
  * `Order` instance for comparing strings using lexicographic ordering.

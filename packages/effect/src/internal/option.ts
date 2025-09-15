@@ -27,7 +27,7 @@ const SomeProto = Object.assign(Object.create(CommonProto), {
     )
   },
   [Hash.symbol]<A>(this: Option.Some<A>) {
-    return Hash.cached(this, () => Hash.combine(Hash.hash(this._tag))(Hash.hash(this.value)))
+    return Hash.combine(Hash.hash(this._tag))(Hash.hash(this.value))
   },
   toString<A>(this: Option.Some<A>) {
     return `some(${format(this.value)})`

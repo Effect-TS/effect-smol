@@ -31,14 +31,14 @@ export class EntityAddress extends Schema.Class<EntityAddress>(TypeId)({
    */
   [Equal.symbol](that: EntityAddress): boolean {
     return this.entityType === that.entityType && this.entityId === that.entityId &&
-      this.shardId[Equal.symbol](that.shardId)
+      Equal.equals(this.shardId, that.shardId)
   }
 
   /**
    * @since 4.0.0
    */
   [Hash.symbol]() {
-    return Hash.cached(this, () => Hash.string(`${this.entityType}:${this.entityId}:${this.shardId.toString()}`))
+    return Hash.string(`${this.entityType}:${this.entityId}:${this.shardId.toString()}`)
   }
 }
 /**

@@ -414,7 +414,7 @@ export const make = Effect.fnUntraced(function*<
     Effect.suspend(function loop(): Effect.Effect<void> {
       const toInterrupt = new Set<EntityState>()
       for (const state of activeServers.values()) {
-        if (shardId[Equal.symbol](state.address.shardId)) {
+        if (Equal.equals(shardId, state.address.shardId)) {
           toInterrupt.add(state)
         }
       }

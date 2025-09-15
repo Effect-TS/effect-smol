@@ -39,7 +39,7 @@ export class ShardId extends S.Class<ShardId>(TypeId)({
    * @since 4.0.0
    */
   [Hash.symbol](): number {
-    return Hash.cached(this, () => Hash.string(this.toString()))
+    return Hash.string(this.toString())
   }
 
   /**

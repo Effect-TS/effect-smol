@@ -5,7 +5,6 @@
  *
  * @since 2.0.0
  */
-import * as equivalence from "../data/Equivalence.ts"
 import * as order from "../data/Order.ts"
 import type { Ordering } from "../data/Ordering.ts"
 import * as predicate from "../data/Predicate.ts"
@@ -161,22 +160,6 @@ export const increment = (n: number): number => n + 1
  * @since 2.0.0
  */
 export const decrement = (n: number): number => n - 1
-
-/**
- * An `Equivalence` instance for `number` values.
- *
- * @example
- * ```ts
- * import * as Number from "effect/primitives/Number"
- *
- * console.log(Number.Equivalence(1, 1)) // true
- * console.log(Number.Equivalence(1, 2)) // false
- * ```
- *
- * @category instances
- * @since 2.0.0
- */
-export const Equivalence: equivalence.Equivalence<number> = equivalence.number
 
 /**
  * An `Order` instance for `number` values.

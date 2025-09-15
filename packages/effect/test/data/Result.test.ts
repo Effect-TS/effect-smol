@@ -1,8 +1,8 @@
 import { Cause, Effect, flow, identity, pipe } from "effect"
 import { Chunk } from "effect/collections"
-import { Option, Result } from "effect/data"
+import { Equivalence, Option, Result } from "effect/data"
 import { Equal } from "effect/interfaces"
-import { Number as Num, String as Str } from "effect/primitives"
+import { String as Str } from "effect/primitives"
 import { inspect } from "node:util"
 import { describe, it } from "vitest"
 import {
@@ -267,7 +267,10 @@ describe("Result", () => {
 
   describe("Equivalence", () => {
     it("getEquivalence", () => {
-      const isEquivalent = Result.getEquivalence({ success: Num.Equivalence, failure: Str.Equivalence })
+      const isEquivalent = Result.getEquivalence({
+        success: Equivalence.strict<number>(),
+        failure: Equivalence.strict<string>()
+      })
       deepStrictEqual(isEquivalent(Result.succeed(1), Result.succeed(1)), true)
       deepStrictEqual(isEquivalent(Result.succeed(1), Result.succeed(2)), false)
       deepStrictEqual(isEquivalent(Result.succeed(1), Result.fail("foo")), false)

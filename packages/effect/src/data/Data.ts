@@ -9,326 +9,13 @@
  * - **Type safety**: Constructors ensure type safety and consistency
  * - **Effect integration**: Error types work seamlessly with Effect's error handling
  *
- * @example
- * ```ts
- * import { Equal } from "effect/interfaces"
- * import { Data } from "effect/data"
- *
- * // Basic struct usage
- * const person1 = Data.struct({ name: "Alice", age: 30 })
- * const person2 = Data.struct({ name: "Alice", age: 30 })
- *
- * console.log(Equal.equals(person1, person2)) // true
- * console.log(person1 === person2) // false (different references)
- *
- * // Regular objects don't have structural equality
- * const obj1 = { name: "Alice", age: 30 }
- * const obj2 = { name: "Alice", age: 30 }
- * console.log(Equal.equals(obj1, obj2)) // false
- *
- * // Tagged enums for discriminated unions
- * const { Success, Failure, $match } = Data.taggedEnum<
- *   | { _tag: "Success"; value: number }
- *   | { _tag: "Failure"; error: string }
- * >()
- *
- * const result1 = Success({ value: 42 })
- * const result2 = Failure({ error: "Not found" })
- *
- * // Pattern matching
- * const message = $match(result1, {
- *   Success: ({ value }) => `Got value: ${value}`,
- *   Failure: ({ error }) => `Error: ${error}`
- * })
- * ```
- *
  * @since 2.0.0
  */
 import type * as Cause from "../Cause.ts"
 import * as Predicate from "../data/Predicate.ts"
 import * as core from "../internal/core.ts"
-import { StructuralPrototype } from "../internal/core.ts"
-import * as internal from "../internal/data.ts"
 import type * as Types from "../types/Types.ts"
 import type { Unify } from "../types/Unify.ts"
-
-/**
- * A namespace providing utilities for Case constructors.
- *
- * This namespace contains types and utilities for creating case constructors
- * that provide structural equality semantics for data types.
- *
- * @example
- * ```ts
- * import { Data } from "effect/data"
- *
- * interface User {
- *   readonly name: string
- *   readonly age: number
- * }
- *
- * const User = Data.case<User>()
- *
- * const user1 = User({ name: "Alice", age: 30 })
- * const user2 = User({ name: "Alice", age: 30 })
- *
- * // Structural equality
- * console.log(user1 === user2) // false (different references)
- * ```
- *
- * @since 2.0.0
- * @category types
- */
-export declare namespace Case {
-  /**
-   * A constructor type for creating Case instances with structural equality.
-   *
-   * This type represents a constructor function that takes arguments (excluding
-   * the specified tag fields) and returns an instance of type `A` with
-   * structural equality semantics.
-   *
-   * @example
-   * ```ts
-   * import { Data } from "effect/data"
-   *
-   * interface User {
-   *   readonly name: string
-   *   readonly age: number
-   * }
-   *
-   * // Constructor type for User
-   * type UserConstructor = Data.Case.Constructor<User>
-   * // Type: (args: { readonly name: string; readonly age: number }) => User
-   *
-   * interface TaggedUser {
-   *   readonly _tag: "User"
-   *   readonly name: string
-   *   readonly age: number
-   * }
-   *
-   * // Constructor type for TaggedUser (excluding _tag field)
-   * type TaggedUserConstructor = Data.Case.Constructor<TaggedUser, "_tag">
-   * // Type: (args: { readonly name: string; readonly age: number }) => TaggedUser
-   * ```
-   *
-   * @since 2.0.0
-   * @category models
-   */
-  export type Constructor<A, Tag extends keyof A = never> = (
-    args: Types.Equals<Omit<A, Tag>, {}> extends true ? void
-      : { readonly [P in keyof A as P extends Tag ? never : P]: A[P] }
-  ) => A
-}
-
-/**
- * @example
- * ```ts
- * import * as assert from "node:assert"
- * import { Equal } from "effect/interfaces"
- * import { Data } from "effect/data"
- *
- * const alice = Data.struct({ name: "Alice", age: 30 })
- *
- * const bob = Data.struct({ name: "Bob", age: 40 })
- *
- * assert.deepStrictEqual(Equal.equals(alice, alice), true)
- * assert.deepStrictEqual(Equal.equals(alice, Data.struct({ name: "Alice", age: 30 })), true)
- *
- * assert.deepStrictEqual(Equal.equals(alice, { name: "Alice", age: 30 }), false)
- * assert.deepStrictEqual(Equal.equals(alice, bob), false)
- * ```
- *
- * @category constructors
- * @since 2.0.0
- */
-export const struct: <A extends Record<string, any>>(
-  a: A
-) => { readonly [P in keyof A]: A[P] } = internal.struct
-
-/**
- * Create a `Data` struct from an object without copying it.
- *
- * **Warning**: This function directly modifies the input object's prototype
- * to enable structural equality without creating a copy. Use `struct` if you
- * need immutability guarantees.
- *
- * @example
- * ```ts
- * import { Equal } from "effect/interfaces"
- * import { Data } from "effect/data"
- *
- * const obj = { name: "Alice", age: 30 }
- * const person = Data.structUnsafe(obj)
- *
- * // obj and person reference the same object
- * console.log(obj === person) // true
- * console.log(Equal.equals(person, Data.struct({ name: "Alice", age: 30 }))) // true
- * ```
- *
- * @category constructors
- * @since 2.0.0
- */
-export const structUnsafe = <A extends Record<string, any>>(
-  as: A
-): { readonly [P in keyof A]: A[P] } => Object.setPrototypeOf(as, StructuralPrototype)
-
-/**
- * Create a `Data` tuple with structural equality from the provided elements.
- *
- * Unlike regular arrays, `Data` tuples support structural equality comparison
- * using the `Equal` module.
- *
- * @example
- * ```ts
- * import * as assert from "node:assert"
- * import { Equal } from "effect/interfaces"
- * import { Data } from "effect/data"
- *
- * const alice = Data.tuple("Alice", 30)
- * const bob = Data.tuple("Bob", 40)
- *
- * assert.deepStrictEqual(Equal.equals(alice, alice), true)
- * assert.deepStrictEqual(Equal.equals(alice, Data.tuple("Alice", 30)), true)
- *
- * assert.deepStrictEqual(Equal.equals(alice, ["Alice", 30]), false)
- * assert.deepStrictEqual(Equal.equals(alice, bob), false)
- * ```
- *
- * @category constructors
- * @since 2.0.0
- */
-export const tuple = <As extends ReadonlyArray<any>>(...as: As): Readonly<As> => arrayUnsafe(as)
-
-/**
- * Create a `Data` array with structural equality from the provided array.
- *
- * This function creates a copy of the input array and enables structural
- * equality comparison using the `Equal` module.
- *
- * @example
- * ```ts
- * import * as assert from "node:assert"
- * import { Equal } from "effect/interfaces"
- * import { Data } from "effect/data"
- *
- * const alice = Data.struct({ name: "Alice", age: 30 })
- * const bob = Data.struct({ name: "Bob", age: 40 })
- *
- * const persons = Data.array([alice, bob])
- *
- * assert.deepStrictEqual(
- *   Equal.equals(
- *     persons,
- *     Data.array([
- *       Data.struct({ name: "Alice", age: 30 }),
- *       Data.struct({ name: "Bob", age: 40 })
- *     ])
- *   ),
- *   true
- * )
- * ```
- *
- * @category constructors
- * @since 2.0.0
- */
-export const array = <As extends ReadonlyArray<any>>(as: As): Readonly<As> => arrayUnsafe(as.slice(0) as unknown as As)
-
-/**
- * Create a `Data` array from an array without copying it.
- *
- * **Warning**: This function directly modifies the input array's prototype
- * to enable structural equality without creating a copy. Use `array` if you
- * need immutability guarantees.
- *
- * @example
- * ```ts
- * import { Equal } from "effect/interfaces"
- * import { Data } from "effect/data"
- *
- * const originalArray = [1, 2, 3]
- * const dataArray = Data.arrayUnsafe(originalArray)
- *
- * // originalArray and dataArray reference the same array
- * console.log(originalArray === dataArray) // true
- * console.log(Equal.equals(dataArray, Data.array([1, 2, 3]))) // true
- * ```
- *
- * @category constructors
- * @since 2.0.0
- */
-export const arrayUnsafe = <As extends ReadonlyArray<any>>(
-  as: As
-): Readonly<As> => Object.setPrototypeOf(as, internal.ArrayProto)
-
-const _case = <A>(): Case.Constructor<A> => (args) =>
-  (args === undefined
-    ? Object.create(StructuralPrototype)
-    : struct(args)) as any
-
-export {
-  /**
-   * Provides a constructor for the specified `Case`.
-   *
-   * @example
-   * ```ts
-   * import * as assert from "node:assert"
-   * import { Equal } from "effect/interfaces"
-   * import { Data } from "effect/data"
-   *
-   * interface Person {
-   *   readonly name: string
-   * }
-   *
-   * // Creating a constructor for the specified Case
-   * const Person = Data.case<Person>()
-   *
-   * // Creating instances of Person
-   * const mike1 = Person({ name: "Mike" })
-   * const mike2 = Person({ name: "Mike" })
-   * const john = Person({ name: "John" })
-   *
-   * // Checking equality
-   * assert.deepStrictEqual(Equal.equals(mike1, mike2), true)
-   * assert.deepStrictEqual(Equal.equals(mike1, john), false)
-   *
-   * ```
-   * @since 2.0.0
-   * @category constructors
-   */
-  _case as case
-}
-
-/**
- * Provides a tagged constructor for the specified `Case`.
- *
- * @example
- * ```ts
- * import * as assert from "node:assert"
- * import { Data } from "effect/data"
- *
- * interface Person {
- *   readonly _tag: "Person" // the tag
- *   readonly name: string
- * }
- *
- * const Person = Data.tagged<Person>("Person")
- *
- * const mike = Person({ name: "Mike" })
- *
- * assert.deepEqual(mike, { _tag: "Person", name: "Mike" })
- * ```
- *
- * @since 2.0.0
- * @category constructors
- */
-export const tagged = <A extends { readonly _tag: string }>(
-  tag: A["_tag"]
-): Case.Constructor<A, "_tag"> =>
-(args) => {
-  const value = args === undefined ? Object.create(StructuralPrototype) : struct(args)
-  value._tag = tag
-  return value
-}
 
 /**
  * Provides a constructor for a Case Class.
@@ -357,7 +44,11 @@ export const tagged = <A extends { readonly _tag: string }>(
 export const Class: new<A extends Record<string, any> = {}>(
   args: Types.Equals<A, {}> extends true ? void
     : { readonly [P in keyof A]: A[P] }
-) => Readonly<A> = internal.Structural as any
+) => Readonly<A> = function(this: any, props: any) {
+  if (props) {
+    Object.assign(this, props)
+  }
+} as any
 
 /**
  * Provides a Tagged constructor for a Case Class.
@@ -390,39 +81,13 @@ export const TaggedClass = <Tag extends string>(
 ): new<A extends Record<string, any> = {}>(
   args: Types.Equals<A, {}> extends true ? void
     : { readonly [P in keyof A as P extends "_tag" ? never : P]: A[P] }
-) => Readonly<A> & { readonly _tag: Tag } => {
-  class Base extends Class<any> {
-    readonly _tag = tag
-  }
-  return Base as any
-}
-
-/**
- * A base constructor for creating structural data types.
- *
- * This provides the underlying implementation for creating objects with
- * structural equality semantics.
- *
- * @example
- * ```ts
- * import { Equal } from "effect/interfaces"
- * import { Data } from "effect/data"
- *
- * class Person extends Data.Structural<{ name: string; age: number }> {}
- *
- * const person1 = new Person({ name: "Alice", age: 30 })
- * const person2 = new Person({ name: "Alice", age: 30 })
- *
- * console.log(Equal.equals(person1, person2)) // true
- * ```
- *
- * @category constructors
- * @since 2.0.0
- */
-export const Structural: new<A>(
-  args: Types.Equals<A, {}> extends true ? void
-    : { readonly [P in keyof A]: A[P] }
-) => {} = internal.Structural as any
+) => Readonly<A> & { readonly _tag: Tag } =>
+  function(this: any, props: any) {
+    this._tag = tag
+    if (props) {
+      Object.assign(this, props)
+    }
+  } as any
 
 /**
  * Create a tagged enum data type, which is a union of `Data` structs.
@@ -691,7 +356,7 @@ export declare namespace TaggedEnum {
    */
   export type Constructor<A extends { readonly _tag: string }> = Types.Simplify<
     {
-      readonly [Tag in A["_tag"]]: Case.Constructor<
+      readonly [Tag in A["_tag"]]: ConstructorFrom<
         Extract<A, { readonly _tag: Tag }>,
         "_tag"
       >
@@ -722,6 +387,15 @@ export declare namespace TaggedEnum {
       }
     }
   >
+
+  /**
+   * @since 4.0.0
+   * @category types
+   */
+  export type ConstructorFrom<A, Tag extends keyof A = never> = (
+    args: Types.Equals<Omit<A, Tag>, {}> extends true ? void
+      : { readonly [P in keyof A as P extends Tag ? never : P]: A[P] }
+  ) => A
 
   /**
    * Provides type-safe pattern matching for generic tagged enums.
@@ -906,7 +580,7 @@ export const taggedEnum: {
         } else if (tag === "$match") {
           return taggedMatch
         }
-        return tagged(tag as string)
+        return (props: any) => ({ _tag: tag, ...props })
       }
     }
   ) as any
