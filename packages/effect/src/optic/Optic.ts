@@ -44,6 +44,7 @@ export interface Prism<in out S, in out A> extends Optional<S, A> {
 export interface Optional<in out S, in out A> extends Optic<S, A> {
   readonly getResult: (s: S) => Result.Result<A, string>
   readonly replace: (a: A, s: S) => S
+  readonly replaceResult: (a: A, s: S) => Result.Result<S, string>
 }
 
 /**
@@ -112,18 +113,19 @@ class OpticImpl {
     )
   }
   at(key: PropertyKey): any {
+    const failure = Result.fail(`Key ${format(key)} not found`)
     return make(
       AST.compose(
         this.ast,
         new AST.Optional(
-          (s) => Object.hasOwn(s, key) ? Result.succeed(s[key]) : Result.fail(`Key ${format(key)} not found`),
+          (s) => Object.hasOwn(s, key) ? Result.succeed(s[key]) : failure,
           (a, s) => {
             if (Object.hasOwn(s, key)) {
               const copy = shallowCopy(s)
               copy[key] = a
-              return copy
+              return Result.succeed(copy)
             } else {
-              return s
+              return failure
             }
           }
         )
@@ -142,6 +144,9 @@ class IsoImpl<S, A> extends OpticImpl implements Iso<S, A> {
   }
   getResult(s: S): Result.Result<A, string> {
     return Result.succeed(this.get(s))
+  }
+  replaceResult(a: A, _: S): Result.Result<S, string> {
+    return Result.succeed(this.set(a))
   }
   replace(a: A, _: S): S {
     return this.set(a)
@@ -162,6 +167,9 @@ class LensImpl<S, A> extends OpticImpl implements Lens<S, A> {
   getResult(s: S): Result.Result<A, string> {
     return Result.succeed(this.get(s))
   }
+  replaceResult(a: A, _: S): Result.Result<S, string> {
+    return Result.succeed(this.replace(a, _))
+  }
   modify(f: (a: A) => A): (s: S) => S {
     return (s) => this.replace(f(this.get(s)), s)
   }
@@ -178,6 +186,9 @@ class PrismImpl<S, A> extends OpticImpl implements Prism<S, A> {
   replace(a: A, _: S): S {
     return this.set(a)
   }
+  replaceResult(a: A, _: S): Result.Result<S, string> {
+    return Result.succeed(this.set(a))
+  }
   modify(f: (a: A) => A): (s: S) => S {
     return (s) => Result.getOrElse(Result.map(this.getResult(s), (a) => this.set(f(a))), () => s)
   }
@@ -185,14 +196,21 @@ class PrismImpl<S, A> extends OpticImpl implements Prism<S, A> {
 
 class OptionalImpl<S, A> extends OpticImpl implements Optional<S, A> {
   readonly getResult: (s: S) => Result.Result<A, string>
-  readonly replace: (a: A, s: S) => S
-  constructor(ast: AST.AST, getResult: (s: S) => Result.Result<A, string>, replace: (a: A, s: S) => S) {
+  readonly replaceResult: (a: A, s: S) => Result.Result<S, string>
+  constructor(
+    ast: AST.AST,
+    getResult: (s: S) => Result.Result<A, string>,
+    replaceResult: (a: A, s: S) => Result.Result<S, string>
+  ) {
     super(ast)
     this.getResult = getResult
-    this.replace = replace
+    this.replaceResult = replaceResult
+  }
+  replace(a: A, s: S): S {
+    return Result.getOrElse(this.replaceResult(a, s), () => s)
   }
   modify(f: (a: A) => A): (s: S) => S {
-    return (s) => Result.getOrElse(Result.map(this.getResult(s), (a) => this.replace(f(a), s)), () => s)
+    return (s) => Result.getOrElse(Result.flatMap(this.getResult(s), (a) => this.replaceResult(f(a), s)), () => s)
   }
 }
 
@@ -298,10 +316,10 @@ const go = memoize((ast: AST.AST): Op => {
               s = result
             }
           }
-          return _tag === "Prism" || _tag === "Optional" ? Result.succeed(s) : s
+          return hasFailingGet(_tag) ? Result.succeed(s) : s
         },
         set: (a: any, s: any) => {
-          const failure = s
+          const source = s
           const len = ops.length
           const ss = new Array(len + 1)
           ss[0] = s
@@ -310,7 +328,7 @@ const go = memoize((ast: AST.AST): Op => {
             if (hasFailingGet(op._tag)) {
               const result = op.get(s)
               if (Result.isFailure(result)) {
-                return failure
+                return _tag === "Optional" ? result : source
               }
               s = result.success
             } else {
@@ -322,11 +340,17 @@ const go = memoize((ast: AST.AST): Op => {
             const op = ops[i]
             if (hasSet(op._tag)) {
               a = op.set(a)
-            } else {
+            } else if (op._tag === "Lens") {
               a = op.set(a, ss[i])
+            } else {
+              const result = op.set(a, ss[i])
+              if (Result.isFailure(result)) {
+                return result
+              }
+              a = result.success
             }
           }
-          return a
+          return _tag === "Optional" ? Result.succeed(a) : a
         }
       }
     }

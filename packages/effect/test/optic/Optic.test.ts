@@ -165,8 +165,10 @@ Expected a value greater than 0, got -1.1`
 
         assertSuccess(optic.getResult({ a: 1, b: 2 }), 1)
         assertFailure(optic.getResult({ b: 2 }), `Key "a" not found`)
-        deepStrictEqual(optic.replace(2, { b: 2 }), { b: 2 })
+        assertSuccess(optic.replaceResult(2, { a: 1, b: 2 }), { a: 2, b: 2 })
+        assertFailure(optic.replaceResult(2, { b: 2 }), `Key "a" not found`)
         deepStrictEqual(optic.replace(2, { a: 1, b: 2 }), { a: 2, b: 2 })
+        deepStrictEqual(optic.replace(2, { b: 2 }), { b: 2 })
       })
 
       it("Array", () => {
@@ -175,8 +177,10 @@ Expected a value greater than 0, got -1.1`
 
         assertSuccess(optic.getResult([1, 2]), 1)
         assertFailure(optic.getResult([]), `Key 0 not found`)
-        deepStrictEqual(optic.replace(2, []), [])
+        assertSuccess(optic.replaceResult(3, [1, 2]), [3, 2])
+        assertFailure(optic.replaceResult(2, []), `Key 0 not found`)
         deepStrictEqual(optic.replace(3, [1, 2]), [3, 2])
+        deepStrictEqual(optic.replace(2, []), [])
       })
     })
   })
@@ -187,6 +191,8 @@ Expected a value greater than 0, got -1.1`
       const optic = Optic.id<S>().key("a").check(Check.positive())
       assertSuccess(optic.getResult({ a: 1 }), 1)
       assertFailure(optic.getResult({ a: 0 }), `Expected a value greater than 0, got 0`)
+      assertSuccess(optic.replaceResult(2, { a: 1 }), { a: 2 })
+      assertFailure(optic.replaceResult(2, { a: 0 }), `Expected a value greater than 0, got 0`)
       deepStrictEqual(optic.replace(2, { a: 1 }), { a: 2 })
       deepStrictEqual(optic.replace(2, { a: 0 }), { a: 0 })
     })

@@ -89,9 +89,9 @@ export class Prism<S, A> {
 export class Optional<S, A> {
   readonly _tag = "Optional"
   readonly get: (s: S) => Result.Result<A, string>
-  readonly set: (a: A, s: S) => S
+  readonly set: (a: A, s: S) => Result.Result<S, string>
 
-  constructor(get: (s: S) => Result.Result<A, string>, set: (a: A, s: S) => S) {
+  constructor(get: (s: S) => Result.Result<A, string>, set: (a: A, s: S) => Result.Result<S, string>) {
     this.get = get
     this.set = set
   }
