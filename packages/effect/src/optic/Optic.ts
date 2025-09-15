@@ -63,6 +63,9 @@ export interface Optic<in out S, in out A> {
   key<S, A extends object, Key extends keyof A>(this: Lens<S, A>, key: Key): Lens<S, A[Key]>
   key<S, A extends object, Key extends keyof A>(this: Optional<S, A>, key: Key): Optional<S, A[Key]>
 
+  optionalKey<S, A extends object, Key extends keyof A>(this: Lens<S, A>, key: Key): Lens<S, A[Key]>
+  optionalKey<S, A extends object, Key extends keyof A>(this: Optional<S, A>, key: Key): Optional<S, A[Key]>
+
   check<S, A>(this: Prism<S, A>, ...checks: readonly [Check.Check<A>, ...Array<Check.Check<A>>]): Prism<S, A>
   check<S, A>(this: Optional<S, A>, ...checks: readonly [Check.Check<A>, ...Array<Check.Check<A>>]): Optional<S, A>
 
@@ -91,6 +94,31 @@ class OpticImpl {
   }
   key(key: PropertyKey): any {
     return make(AST.compose(this.ast, new AST.Path([key])))
+  }
+  optionalKey(key: PropertyKey): any {
+    return make(
+      AST.compose(
+        this.ast,
+        new AST.Lens(
+          (s) => s[key],
+          (a, s) => {
+            const copy = shallowCopy(s)
+            if (a === undefined) {
+              if (Array.isArray(copy)) {
+                if (key === copy.length - 1) {
+                  copy.pop()
+                }
+              } else {
+                delete copy[key]
+              }
+            } else {
+              copy[key] = a
+            }
+            return copy
+          }
+        )
+      )
+    )
   }
   check(...checks: readonly [Check.Check<any>, ...Array<Check.Check<any>>]): any {
     return make(AST.compose(this.ast, new AST.Checks(checks)))

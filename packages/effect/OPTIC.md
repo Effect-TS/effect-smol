@@ -149,29 +149,80 @@ console.log(_0.replace(3, [1, 2]))
 
 ### Accessing an optional key in a struct or a tuple
 
-When using `replace`, passing `undefined` will remove the key from the struct or the tuple.
+There are two ways to handle an optional key in a struct or a tuple, depending on how you want to treat the `undefined` value:
 
-**Example** (Accessing an optional key in a struct)
+1. when setting `undefined`, the key is preserved
+2. when setting `undefined`, the key is removed
+
+**Example** (Preserving the key when setting `undefined`)
+
+```ts
+import { Optic } from "effect/optic"
+
+type S = {
+  readonly a?: number | undefined
+}
+
+// Lens<S, number | undefined>
+const _a = Optic.id<S>().key("a")
+
+console.log(_a.getResult({ a: 1 }))
+// { _id: 'Result', _tag: 'Success', value: 1 }
+
+console.log(_a.getResult({}))
+// { _id: 'Result', _tag: 'Success', value: undefined }
+
+console.log(_a.getResult({ a: undefined }))
+// { _id: 'Result', _tag: 'Success', value: undefined }
+
+console.log(_a.replace(2, { a: 1 }))
+// { a: 2 }
+
+console.log(_a.replace(2, {}))
+// { a: 2 }
+
+console.log(_a.replace(undefined, { a: 1 }))
+// { a: undefined }
+
+console.log(_a.replace(undefined, {}))
+// { a: undefined }
+
+console.log(_a.replace(2, { a: undefined }))
+// { a: 2 }
+```
+
+**Example** (Removing the key when setting `undefined`)
 
 ```ts
 import { Optic } from "effect/optic"
 
 type S = {
   readonly a?: number
-  readonly b: number
 }
 
-// Build an optic to access the optional key "a"
+// Lens<S, number | undefined>
 const _a = Optic.id<S>().optionalKey("a")
 
-console.log(_a.replace(3, { a: 1, b: 2 }))
-// { a: 3, b: 2 }
+console.log(_a.getResult({ a: 1 }))
+// { _id: 'Result', _tag: 'Success', value: 1 }
 
-console.log(_a.replace(undefined, { a: 1, b: 2 }))
-// { b: 2 }
+console.log(_a.getResult({}))
+// { _id: 'Result', _tag: 'Success', value: undefined }
+
+console.log(_a.replace(2, { a: 1 }))
+// { a: 2 }
+
+console.log(_a.replace(2, {}))
+// { a: 2 }
+
+console.log(_a.replace(undefined, { a: 1 }))
+// {}
+
+console.log(_a.replace(undefined, {}))
+// {}
 ```
 
-**Example** (Accessing an optional key in a tuple)
+**Example** (Removing the element when setting `undefined`)
 
 ```ts
 import { Optic } from "effect/optic"
@@ -179,12 +230,18 @@ import { Optic } from "effect/optic"
 type S = readonly [number, number?]
 
 // Build an optic to access the optional second element
-const _0 = Optic.id<S>().optionalKey(1)
+const _1 = Optic.id<S>().optionalKey(1)
 
-console.log(_0.replace(3, [1, 2]))
+console.log(_1.get([1, 2]))
+// 2
+
+console.log(_1.get([1]))
+// undefined
+
+console.log(_1.replace(3, [1, 2]))
 // [1, 3]
 
-console.log(_0.replace(undefined, [1, 2]))
+console.log(_1.replace(undefined, [1, 2]))
 // [1]
 ```
 

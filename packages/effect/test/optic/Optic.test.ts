@@ -71,6 +71,58 @@ describe("Optic", () => {
         })
       })
 
+      describe("optional key", () => {
+        it("undefined = undefined", () => {
+          type S = { readonly a?: number | undefined }
+          const optic = Optic.id<S>().key("a")
+          const f = (n: number | undefined) => n !== undefined ? n + 1 : undefined
+
+          strictEqual(optic.get({ a: 1 }), 1)
+          strictEqual(optic.get({}), undefined)
+          strictEqual(optic.get({ a: undefined }), undefined)
+          deepStrictEqual(optic.replace(2, { a: 1 }), { a: 2 })
+          deepStrictEqual(optic.replace(2, {}), { a: 2 })
+          deepStrictEqual(optic.replace(2, { a: undefined }), { a: 2 })
+          deepStrictEqual(optic.replace(undefined, { a: 1 }), { a: undefined })
+          deepStrictEqual(optic.replace(undefined, {}), { a: undefined })
+          deepStrictEqual(optic.modify(f)({ a: 1 }), { a: 2 })
+          deepStrictEqual(optic.modify(f)({}), { a: undefined })
+          deepStrictEqual(optic.modify(f)({ a: undefined }), { a: undefined })
+        })
+
+        it("undefined = missing key", () => {
+          type S = { readonly a?: number }
+          const optic = Optic.id<S>().optionalKey("a")
+          const f = (n: number | undefined) => n !== undefined ? n + 1 : undefined
+
+          strictEqual(optic.get({ a: 1 }), 1)
+          strictEqual(optic.get({}), undefined)
+          deepStrictEqual(optic.replace(2, { a: 1 }), { a: 2 })
+          deepStrictEqual(optic.replace(2, {}), { a: 2 })
+          deepStrictEqual(optic.replace(undefined, { a: 1 }), {})
+          deepStrictEqual(optic.replace(undefined, {}), {})
+          deepStrictEqual(optic.modify(f)({ a: 1 }), { a: 2 })
+          deepStrictEqual(optic.modify(f)({}), {})
+        })
+      })
+
+      describe("optional element", () => {
+        it("undefined = missing key", () => {
+          type S = readonly [number, number?]
+          const optic = Optic.id<S>().optionalKey(1)
+          const f = (n: number | undefined) => n !== undefined ? n + 1 : undefined
+
+          strictEqual(optic.get([1, 2]), 2)
+          strictEqual(optic.get([1]), undefined)
+          deepStrictEqual(optic.replace(3, [1, 2]), [1, 3])
+          deepStrictEqual(optic.replace(3, [1]), [1, 3])
+          deepStrictEqual(optic.replace(undefined, [1, 2]), [1])
+          deepStrictEqual(optic.replace(undefined, [1]), [1])
+          deepStrictEqual(optic.modify(f)([1, 2]), [1, 3])
+          deepStrictEqual(optic.modify(f)([1]), [1])
+        })
+      })
+
       describe("Tuple", () => {
         it("required element", () => {
           type S = readonly [number]
