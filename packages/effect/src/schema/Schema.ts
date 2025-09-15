@@ -4561,7 +4561,7 @@ function getClassSchemaFactory<S extends Top>(
     self: Self
   ): decodeTo<declareConstructor<Self, S["Encoded"], readonly [S]>, S> => {
     if (memo === undefined) {
-      const iso = new AST.Link(AST.anyKeyword, getClassTransformation(self))
+      const isoLink = new AST.Link(AST.anyKeyword, getClassTransformation(self))
       const to = make<declareConstructor<Self, S["Encoded"], readonly [S]>>(
         new AST.Declaration(
           [from.ast],
@@ -4571,7 +4571,8 @@ function getClassSchemaFactory<S extends Top>(
               Effect.fail(new Issue.InvalidType(ast, O.some(input)))
           },
           Annotations.combine({
-            defaultIsoSerializer: () => iso,
+            defaultIsoSerializer: () => isoLink,
+            defaultJsonSerializer: ([from]: readonly [any]) => new AST.Link(from.ast, getClassTransformation(self)),
             arbitrary: {
               _tag: "Declaration",
               declaration: ([from]: readonly [any]) => () => from.map((args: any) => new self(args))

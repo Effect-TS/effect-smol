@@ -609,7 +609,7 @@ describe("Serializer", () => {
           a: FiniteFromDate
         })) {}
 
-        await assertions.serialization.json.typeCodec.succeed(A, new A({ a: 0 }), new A({ a: 0 }))
+        await assertions.serialization.json.typeCodec.succeed(A, new A({ a: 0 }), { a: 0 })
         await assertions.deserialization.json.typeCodec.succeed(A, { a: 0 }, new A({ a: 0 }))
       })
 
@@ -618,7 +618,7 @@ describe("Serializer", () => {
           a: FiniteFromDate
         }) {}
 
-        await assertions.serialization.json.typeCodec.succeed(E, new E({ a: 0 }), new E({ a: 0 }))
+        await assertions.serialization.json.typeCodec.succeed(E, new E({ a: 0 }), { a: 0 })
         await assertions.deserialization.json.typeCodec.succeed(E, { a: 0 }, new E({ a: 0 }))
       })
 
