@@ -70,7 +70,7 @@ describe("ToOptic", () => {
           readonly [{ readonly a: Date }, ...Array<{ readonly a: Date }>]
         >
       >()
-      expect(optic).type.toBeAssignableWith<
+      expect(optic).type.toBeAssignableFrom<
         Optic.Iso<
           readonly [Value, ...Array<Value>],
           readonly [{ readonly a: Date }, ...Array<{ readonly a: Date }>]
@@ -95,7 +95,7 @@ describe("ToOptic", () => {
           readonly [{ readonly a: Date }, ...Array<{ readonly a: Date }>, { readonly a: Date }]
         >
       >()
-      expect(optic).type.toBeAssignableWith<
+      expect(optic).type.toBeAssignableFrom<
         Optic.Iso<
           readonly [Value, ...Array<Value>, Value],
           readonly [{ readonly a: Date }, ...Array<{ readonly a: Date }>, { readonly a: Date }]
