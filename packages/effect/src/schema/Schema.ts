@@ -4551,9 +4551,6 @@ function getClassTransformation(self: new(...args: ReadonlyArray<any>) => any) {
   )
 }
 
-/** @internal */
-export const anyIsoFocus = AST.annotate(AST.anyKeyword, {})
-
 function getClassSchemaFactory<S extends Top>(
   from: S,
   identifier: string,
@@ -4564,7 +4561,6 @@ function getClassSchemaFactory<S extends Top>(
     self: Self
   ): decodeTo<declareConstructor<Self, S["Encoded"], readonly [S]>, S> => {
     if (memo === undefined) {
-      const isoLink = new AST.Link(anyIsoFocus, getClassTransformation(self))
       const to = make<declareConstructor<Self, S["Encoded"], readonly [S]>>(
         new AST.Declaration(
           [from.ast],
@@ -4574,8 +4570,7 @@ function getClassSchemaFactory<S extends Top>(
               Effect.fail(new Issue.InvalidType(ast, O.some(input)))
           },
           Annotations.combine({
-            defaultIsoSerializer: () => isoLink,
-            defaultJsonSerializer: ([from]: readonly [any]) => new AST.Link(from.ast, getClassTransformation(self)),
+            defaultIsoSerializer: ([from]: readonly [any]) => new AST.Link(from.ast, getClassTransformation(self)),
             arbitrary: {
               _tag: "Declaration",
               declaration: ([from]: readonly [any]) => () => from.map((args: any) => new self(args))

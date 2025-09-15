@@ -214,7 +214,9 @@ export function make<O>(ast: AST.AST): O {
   }
 }
 
-const shallowCopy = (s: any) => Array.isArray(s) ? s.slice() : { ...s }
+function shallowCopy(s: any) {
+  return Array.isArray(s) ? s.slice() : { ...s }
+}
 
 type Op = {
   readonly _tag: "Iso" | "Lens" | "Prism" | "Optional"

@@ -23,17 +23,20 @@ function addTwo(date: Date): Date {
 
 describe("ToOptic", () => {
   describe("makeIso", () => {
-    it("Class", () => {
-      const schema = Value
-      const optic = ToOptic.makeIso(schema).key("a")
-      const modify = optic.modify(addOne)
+    describe("Class", () => {
+      it("Class", () => {
+        class A extends Schema.Class<A>("A")({ value: Value }) {}
+        class B extends Schema.Class<B>("B")({ a: A }) {}
 
-      deepStrictEqual(modify(Value.makeSync({ a: new Date(0) })), Value.makeSync({ a: new Date(1) }))
-      throws(
-        () => modify(Value.makeSync({ a: new Date(-1) })),
-        `Expected a valid date, got Invalid Date
-  at ["a"]`
-      )
+        const schema = B
+        const optic = ToOptic.makeIso(schema).key("a").key("value").key("a")
+        const modify = optic.modify(addOne)
+
+        deepStrictEqual(
+          modify(B.makeSync({ a: A.makeSync({ value: Value.makeSync({ a: new Date(0) }) }) })),
+          B.makeSync({ a: A.makeSync({ value: Value.makeSync({ a: new Date(1) }) }) })
+        )
+      })
     })
 
     it("typeCodec(Class)", () => {
