@@ -4551,6 +4551,9 @@ function getClassTransformation(self: new(...args: ReadonlyArray<any>) => any) {
   )
 }
 
+/** @internal */
+export const anyIsoFocus = AST.annotate(AST.anyKeyword, {})
+
 function getClassSchemaFactory<S extends Top>(
   from: S,
   identifier: string,
@@ -4561,7 +4564,7 @@ function getClassSchemaFactory<S extends Top>(
     self: Self
   ): decodeTo<declareConstructor<Self, S["Encoded"], readonly [S]>, S> => {
     if (memo === undefined) {
-      const isoLink = new AST.Link(AST.anyKeyword, getClassTransformation(self))
+      const isoLink = new AST.Link(anyIsoFocus, getClassTransformation(self))
       const to = make<declareConstructor<Self, S["Encoded"], readonly [S]>>(
         new AST.Declaration(
           [from.ast],
