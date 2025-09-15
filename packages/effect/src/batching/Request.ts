@@ -18,6 +18,7 @@ import { hasProperty } from "../data/Predicate.ts"
 import type * as Effect from "../Effect.ts"
 import type * as Exit from "../Exit.ts"
 import { dual } from "../Function.ts"
+import * as Equal from "../interfaces/Equal.ts"
 import * as core from "../internal/core.ts"
 import * as internalEffect from "../internal/effect.ts"
 import type * as ServiceMap from "../ServiceMap.ts"
@@ -164,19 +165,20 @@ export type Services<T extends Request<any, any, any>> = [T] extends [Request<in
 export type Result<T extends Request<any, any, any>> = T extends Request<infer A, infer E, infer _R> ? Exit.Exit<A, E>
   : never
 
-const requestVariance = {
+const requestVariance = Equal.byReferenceUnsafe({
   /* c8 ignore next */
   _E: (_: never) => _,
   /* c8 ignore next */
   _A: (_: never) => _,
   /* c8 ignore next */
   _R: (_: never) => _
-}
+})
 
 /**
  * @since 4.0.0
  */
 export const RequestPrototype: Request<any, any, any> = {
+  ...core.StructuralProto,
   [TypeId]: requestVariance
 }
 

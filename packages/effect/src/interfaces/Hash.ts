@@ -8,27 +8,8 @@
  * @since 2.0.0
  */
 import { hasProperty } from "../data/Predicate.ts"
-import { dual, pipe } from "../Function.ts"
+import { dual } from "../Function.ts"
 import { byReferenceInstances, getAllObjectKeys } from "../internal/equal.ts"
-
-/** @internal */
-const randomHashCache = new WeakMap<any, number>()
-
-/** @internal */
-const hashCache = new WeakMap<any, number>()
-
-/** @internal */
-const visitedObjects = new WeakSet<object>()
-
-function withVisitedTracking<T>(obj: object, fn: () => T): T {
-  if (visitedObjects.has(obj)) {
-    return string("[Circular]") as T
-  }
-  visitedObjects.add(obj)
-  const result = fn()
-  visitedObjects.delete(obj)
-  return result
-}
 
 /**
  * The unique identifier used to identify objects that implement the Hash interface.
@@ -142,7 +123,7 @@ export const hash: <A>(self: A) => number = <A>(self: A) => {
           } else if (self instanceof Set) {
             return hashSet(self)
           }
-          return hashStructure(self)
+          return structure(self)
         })
         hashCache.set(self, h)
         return h
@@ -369,18 +350,10 @@ export const string = (str: string) => {
  * @category hashing
  * @since 2.0.0
  */
-export const structureKeys = <A extends object>(o: A, keys: ReadonlyArray<keyof A>) => {
+export const structureKeys = (o: object, keys: Iterable<PropertyKey>) => {
   let h = 12289
-  for (let i = 0; i < keys.length; i++) {
-    h ^= pipe(hash(keys[i]!), combine(hash((o as any)[keys[i]!])))
-  }
-  return optimize(h)
-}
-
-const hashStructure = <A extends object>(o: A) => {
-  let h = 12289
-  for (const key of getAllObjectKeys(o)) {
-    h ^= pipe(hash(key), combine(hash((o as any)[key])))
+  for (const key of keys) {
+    h ^= combine(hash(key), hash((o as any)[key]))
   }
   return optimize(h)
 }
@@ -411,8 +384,7 @@ const hashStructure = <A extends object>(o: A) => {
  * @category hashing
  * @since 2.0.0
  */
-export const structure = <A extends object>(o: A) =>
-  structureKeys(o, getAllObjectKeys(o) as unknown as ReadonlyArray<keyof A>)
+export const structure = <A extends object>(o: A) => structureKeys(o, getAllObjectKeys(o))
 
 /**
  * Computes a hash value for an array by hashing all of its elements.
@@ -444,7 +416,7 @@ export const structure = <A extends object>(o: A) =>
 export const array = <A>(arr: ReadonlyArray<A>) => {
   let h = 6151
   for (let i = 0; i < arr.length; i++) {
-    h = pipe(h, combine(hash(arr[i])))
+    h = combine(h, hash(arr[i]))
   }
   return optimize(h)
 }
@@ -467,4 +439,18 @@ const hashSet = <V>(set: Set<V>) => {
     h ^= hash(value)
   }
   return optimize(h)
+}
+
+const randomHashCache = new WeakMap<any, number>()
+const hashCache = new WeakMap<any, number>()
+const visitedObjects = new WeakSet<object>()
+
+function withVisitedTracking<T>(obj: object, fn: () => T): T {
+  if (visitedObjects.has(obj)) {
+    return string("[Circular]") as T
+  }
+  visitedObjects.add(obj)
+  const result = fn()
+  visitedObjects.delete(obj)
+  return result
 }

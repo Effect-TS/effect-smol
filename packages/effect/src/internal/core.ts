@@ -78,6 +78,24 @@ export const PipeInspectableProto = {
 }
 
 /** @internal */
+export const StructuralProto = {
+  [Hash.symbol](this: any): number {
+    return Hash.structureKeys(this, Object.keys(this))
+  },
+  [Equal.symbol](this: any, that: any): boolean {
+    const selfKeys = Object.keys(this)
+    const thatKeys = Object.keys(that)
+    if (selfKeys.length !== thatKeys.length) return false
+    for (let i = 0; i < selfKeys.length; i++) {
+      if (selfKeys[i] !== thatKeys[i] && !Equal.equals(this[selfKeys[i]], that[selfKeys[i]])) {
+        return false
+      }
+    }
+    return true
+  }
+}
+
+/** @internal */
 export const YieldableProto = {
   [Symbol.iterator]() {
     return new SingleShotGen(this) as any
@@ -479,7 +497,7 @@ export const makeExit = <
       )
     },
     [Hash.symbol](this: any): number {
-      return Hash.combine(Hash.string(options.op))(Hash.hash(this[args]))
+      return Hash.combine(Hash.string(options.op), Hash.hash(this[args]))
     }
   }
   return function(value: unknown) {
