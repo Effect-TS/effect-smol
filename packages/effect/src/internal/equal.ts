@@ -9,22 +9,16 @@ export const getAllObjectKeys = (obj: object): Set<PropertyKey> => {
 
   const proto = Object.getPrototypeOf(obj)
   let current = proto
-  let objConstructor: Function | undefined
 
   while (current !== null && current !== Object.prototype) {
     const ownKeys = Reflect.ownKeys(current)
     for (let i = 0; i < ownKeys.length; i++) {
-      const key = ownKeys[i]
-      if (key === "constructor") {
-        objConstructor ??= typeof obj.constructor === "function" && proto === obj.constructor.prototype
-          ? obj.constructor
-          : undefined
-        if (current.constructor === objConstructor) continue
-      }
-      keys.add(key)
+      keys.add(ownKeys[i])
     }
-
     current = Object.getPrototypeOf(current)
+  }
+  if (keys.has("constructor") && typeof obj.constructor === "function" && proto === obj.constructor.prototype) {
+    keys.delete("constructor")
   }
 
   return keys
