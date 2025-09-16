@@ -3,6 +3,7 @@
  */
 import * as Arr from "../../collections/Array.ts"
 import * as Effect from "../../Effect.ts"
+import { identity } from "../../Function.ts"
 import * as Layer from "../../Layer.ts"
 import * as SqlClient from "../sql/SqlClient.ts"
 import type { SqlError } from "../sql/SqlError.ts"
@@ -220,6 +221,13 @@ export const make = Effect.fnUntraced(function*(options: {
       `
   })
 
+  const wrapString = sql.onDialectOrElse({
+    mssql: () => (s: string) => `N'${s}'`,
+    orElse: () => (s: string) => `'${s}'`
+  })
+  const stringLiteral = (s: string) => sql.literal(wrapString(s))
+  const stringLiteralArr = (arr: ReadonlyArray<string>) => sql.literal(arr.map(wrapString).join(","))
+
   const forUpdate = sql.onDialectOrElse({
     sqlite: () => sql.literal(""),
     orElse: () => sql.literal("FOR UPDATE")
@@ -240,7 +248,7 @@ export const make = Effect.fnUntraced(function*(options: {
       ),
 
     unregister: (address) =>
-      sql`DELETE FROM ${runnersTableSql} WHERE address = ${address} OR last_heartbeat <= ${lockExpiresAt}`.pipe(
+      sql`DELETE FROM ${runnersTableSql} WHERE address = ${address} OR last_heartbeat < ${lockExpiresAt}`.pipe(
         Effect.asVoid,
         PersistenceError.refail,
         withTracerDisabled
@@ -256,7 +264,7 @@ export const make = Effect.fnUntraced(function*(options: {
 
     acquire: Effect.fnUntraced(
       function*(address, shardIds) {
-        const values = shardIds.map((shardId) => sql`(${shardId}, ${address}, ${sqlNow})`)
+        const values = shardIds.map((shardId) => sql`(${stringLiteral(shardId)}, ${stringLiteral(address)}, ${sqlNow})`)
         yield* acquireLock(address, values)
         const currentLocks = yield* sql<{ shard_id: string }>`
           SELECT shard_id FROM ${sql(locksTable)}
@@ -271,10 +279,14 @@ export const make = Effect.fnUntraced(function*(options: {
     ),
 
     refresh: (address, shardIds) =>
-      sql`UPDATE ${locksTableSql} SET acquired_at = ${sqlNow} WHERE address = ${address} AND ${
-        sql.in("shard_id", shardIds)
-      }`.pipe(
-        Effect.tap(sql`UPDATE ${runnersTableSql} SET last_heartbeat = ${sqlNow} WHERE address = ${address}`),
+      sql`UPDATE ${runnersTableSql} SET last_heartbeat = ${sqlNow} WHERE address = ${address}`.pipe(
+        shardIds.length === 0 ?
+          identity :
+          Effect.andThen(
+            sql`UPDATE ${locksTableSql} SET acquired_at = ${sqlNow} WHERE address = ${address} AND shard_id IN (${
+              stringLiteralArr(shardIds)
+            })`
+          ),
         Effect.andThen(
           sql`SELECT shard_id FROM ${locksTableSql} WHERE address = ${address} AND acquired_at >= ${lockExpiresAt} ${forUpdate}`
             .values

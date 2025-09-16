@@ -306,6 +306,7 @@ export const make = Effect.fnUntraced(function*(options: {
     mssql: () => (s: string) => `N'${s}'`,
     orElse: () => (s: string) => `'${s}'`
   })
+  const wrapStringArr = (arr: ReadonlyArray<string>) => sql.literal(arr.map(wrapString).join(","))
 
   const getUnprocessedMessages = sql.onDialectOrElse({
     pg: () => (shardIds: ReadonlyArray<string>, now: number) =>
@@ -315,7 +316,7 @@ export const make = Effect.fnUntraced(function*(options: {
         FROM (
           SELECT m.*
           FROM ${messagesTableSql} m
-          WHERE m.shard_id IN (${sql.literal(shardIds.map(wrapString).join(","))})
+          WHERE m.shard_id IN (${wrapStringArr(shardIds)})
           AND NOT EXISTS (
             SELECT 1 FROM ${repliesTableSql}
             WHERE request_id = m.request_id
@@ -336,7 +337,7 @@ export const make = Effect.fnUntraced(function*(options: {
         SELECT m.*, r.id as reply_reply_id, r.kind as reply_kind, r.payload as reply_payload, r.sequence as reply_sequence
         FROM ${messagesTableSql} m
         LEFT JOIN ${repliesTableSql} r ON r.id = m.last_reply_id
-        WHERE m.shard_id IN (${sql.literal(shardIds.map(wrapString).join(","))})
+        WHERE m.shard_id IN (${wrapStringArr(shardIds)})
         AND NOT EXISTS (
           SELECT 1 FROM ${repliesTableSql}
           WHERE request_id = m.request_id
@@ -447,7 +448,7 @@ export const make = Effect.fnUntraced(function*(options: {
       sql<ReplyRow>`
         SELECT id, kind, request_id, payload, sequence
         FROM ${repliesTableSql}
-        WHERE request_id IN (${sql.literal(requestIds.join(","))})
+        WHERE request_id IN (${wrapStringArr(requestIds)})
         AND (
           kind = ${replyKindWithExit}
           OR (
@@ -467,7 +468,7 @@ export const make = Effect.fnUntraced(function*(options: {
       sql<ReplyRow>`
         SELECT id, kind, request_id, payload, sequence
         FROM ${repliesTableSql}
-        WHERE request_id IN (${sql.literal(requestIds.join(","))})
+        WHERE request_id IN (${wrapStringArr(requestIds)})
         ORDER BY rowid ASC
       `.unprepared.pipe(
         Effect.provideService(SqlClient.SafeIntegers, true),
@@ -562,7 +563,7 @@ export const make = Effect.fnUntraced(function*(options: {
         UPDATE ${messagesTableSql}
         SET last_read = NULL
         WHERE processed = ${sqlFalse}
-        AND shard_id IN (${sql.literal(shardIds.map(wrapString).join(","))})
+        AND shard_id IN (${wrapStringArr(shardIds)})
       `.pipe(
         Effect.asVoid,
         PersistenceError.refail,

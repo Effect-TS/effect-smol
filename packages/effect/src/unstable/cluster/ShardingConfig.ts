@@ -72,11 +72,19 @@ export class ShardingConfig extends ServiceMap.Key<ShardingConfig, {
    * The interval at which to poll for client replies from storage.
    */
   readonly entityReplyPollInterval: DurationInput
+  /**
+   * The interval at which to poll for new runners and refresh shard
+   * assignments.
+   */
   readonly refreshAssignmentsInterval: DurationInput
   /**
    * The interval to retry a send if EntityNotAssignedToRunner is returned.
    */
   readonly sendRetryInterval: DurationInput
+  /**
+   * The interval at which to check for unhealthy runners and report them
+   */
+  readonly runnerHealthCheckInterval: DurationInput
   // readonly unhealthyRunnerReportInterval: Duration.Duration
   /**
    * Simulate serialization and deserialization to remote runners for local
@@ -104,6 +112,7 @@ export const defaults: ShardingConfig["Service"] = {
   entityReplyPollInterval: Duration.millis(200),
   sendRetryInterval: Duration.millis(100),
   refreshAssignmentsInterval: Duration.seconds(5),
+  runnerHealthCheckInterval: Duration.minutes(1),
   simulateRemoteSerialization: true
 }
 
@@ -185,6 +194,11 @@ export const config: Config.Config<ShardingConfig["Service"]> = Config.all({
     Config.withDefault(() => defaults.refreshAssignmentsInterval)
     // Config.withDescription("The interval at which to refresh shard assignments.")
   ),
+  runnerHealthCheckInterval: Config.duration("runnerHealthCheckInterval").pipe(
+    Config.withDefault(() => defaults.runnerHealthCheckInterval)
+    // Config.withDescription("The interval at which to check for unhealthy runners and report them.")
+  ),
+  // unhealthyRunnerReportInterval: Config.duration("unhealthyRunnerReportInterval").pipe(
   simulateRemoteSerialization: Config.boolean("simulateRemoteSerialization").pipe(
     Config.withDefault(() => defaults.simulateRemoteSerialization)
     // Config.withDescription("Simulate serialization and deserialization to remote runners for local entities.")

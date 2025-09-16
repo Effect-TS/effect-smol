@@ -12,6 +12,7 @@ import * as Option from "../../data/Option.ts"
 import * as Effect from "../../Effect.ts"
 import * as Fiber from "../../Fiber.ts"
 import * as FiberMap from "../../FiberMap.ts"
+import * as FiberSet from "../../FiberSet.ts"
 import { constant } from "../../Function.ts"
 import * as Equal from "../../interfaces/Equal.ts"
 import * as Layer from "../../Layer.ts"
@@ -812,10 +813,11 @@ const make = Effect.gen(function*() {
     )
   }
 
+  let allRunners = MutableHashMap.empty<Runner, boolean>()
+
   yield* Effect.gen(function*() {
     const hashRings = new Map<string, HashRing.HashRing<RunnerAddress>>()
     const healthyRunners = MutableHashSet.empty<Runner>()
-    let allRunners = MutableHashMap.empty<Runner, boolean>()
     let nextRunners = MutableHashMap.empty<Runner, boolean>()
     const toAdd = new Map<string, Array<RunnerAddress>>()
 
@@ -860,6 +862,7 @@ const make = Effect.gen(function*() {
         const ohealthy = MutableHashMap.get(nextRunners, runner)
         if (ohealthy._tag === "Some" && ohealthy.value) continue
         changed = true
+        MutableHashSet.remove(healthyRunners, runner)
         for (let i = 0; i < runner.groups.length; i++) {
           HashRing.remove(hashRings.get(runner.groups[i])!, runner.address)
         }
@@ -888,7 +891,7 @@ const make = Effect.gen(function*() {
         MutableHashSet.clear(selfShards)
         for (const [group, ring] of hashRings) {
           const newAssignments = HashRing.getShards(ring, config.shardsPerGroup)
-          for (let i = 1; i < config.shardsPerGroup; i++) {
+          for (let i = 0; i < config.shardsPerGroup; i++) {
             const shard = makeShardId(group, i + 1)
             if (newAssignments) {
               const runner = newAssignments[i]
@@ -901,18 +904,14 @@ const make = Effect.gen(function*() {
             }
           }
         }
+        yield* Effect.logDebug("New shard assignments", selfShards)
         activeShardsLatch.openUnsafe()
       }
-
       yield* Effect.sleep(config.refreshAssignmentsInterval)
     }
   }).pipe(
     Effect.catchCause((cause) => Effect.logDebug(cause)),
-    Effect.repeat(
-      Schedule.exponential(1000).pipe(
-        Schedule.either(Schedule.spaced(10_000))
-      )
-    ),
+    Effect.repeat(Schedule.spaced(1000)),
     Effect.annotateLogs({
       package: "@effect/cluster",
       module: "Sharding",
@@ -922,6 +921,53 @@ const make = Effect.gen(function*() {
     Effect.interruptible,
     Effect.forkIn(shardingScope)
   )
+
+  // --- Runner health checks ---
+
+  if (selfRunner) {
+    yield* registerSingleton(
+      "Cluster/Sharding/RunnerHealth",
+      Effect.gen(function*() {
+        const fiberSet = yield* FiberSet.make()
+
+        while (true) {
+          for (const [runner, healthy] of allRunners) {
+            if (isLocalRunner(runner.address)) continue
+
+            yield* runners.ping(runner.address).pipe(
+              Effect.timeout("10 seconds"),
+              Effect.retry({ times: 3 }),
+              Effect.matchCauseEffect({
+                onSuccess() {
+                  if (healthy) return Effect.void
+                  MutableHashMap.set(allRunners, runner, true)
+                  return Effect.logDebug("Runner is healthy", runner).pipe(
+                    Effect.andThen(runnerStorage.setRunnerHealth(runner.address, true))
+                  )
+                },
+                onFailure() {
+                  if (!healthy) return Effect.void
+                  MutableHashMap.set(allRunners, runner, false)
+                  return Effect.logDebug("Runner is unhealthy", runner).pipe(
+                    Effect.andThen(runnerStorage.setRunnerHealth(runner.address, false))
+                  )
+                }
+              }),
+              FiberSet.run(fiberSet)
+            )
+          }
+          yield* FiberSet.awaitEmpty(fiberSet)
+          yield* Effect.sleep(config.runnerHealthCheckInterval)
+        }
+      }).pipe(
+        Effect.annotateLogs({
+          package: "@effect/cluster",
+          module: "Sharding",
+          fiber: "Runner health check"
+        })
+      )
+    )
+  }
 
   // --- Clients ---
 
