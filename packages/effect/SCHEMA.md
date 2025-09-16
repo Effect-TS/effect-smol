@@ -842,14 +842,13 @@ You can define your own filters using `Check.make`.
 **Example** (Defining a custom filter)
 
 ```ts
-import { Result } from "effect/data"
 import { Check, Schema } from "effect/schema"
 
 // A simple filter that checks if a string has at least 3 characters
 const schema = Schema.String.check(Check.make((s) => s.length >= 3))
 
-console.log(Schema.decodeUnknownResult(schema)("").pipe(Result.merge))
-// SchemaError: Expected <filter>, got ""
+console.log(String(Schema.decodeUnknownExit(schema)("")))
+// Failure(Cause([Fail(SchemaError: Expected <filter>, got "")]))
 ```
 
 You can also attach annotations and provide a custom error message when defining a filter.
@@ -857,7 +856,6 @@ You can also attach annotations and provide a custom error message when defining
 **Example** (Custom filter with annotations and error message)
 
 ```ts
-import { Result } from "effect/data"
 import { Check, Schema } from "effect/schema"
 
 // A filter with a title, description, and custom error message
@@ -868,8 +866,8 @@ const schema = Schema.String.check(
   })
 )
 
-console.log(Schema.decodeUnknownResult(schema)("").pipe(Result.merge))
-// SchemaError: length must be >= 3, got 0
+console.log(String(Schema.decodeUnknownExit(schema)("")))
+// Failure(Cause([Fail(SchemaError: length must be >= 3, got 0)]))
 ```
 
 ### 🆕 Preserving Schema Type After Filtering
@@ -920,7 +918,6 @@ You can also pass multiple filters at once to a single `.check(...)` call.
 **Example** (Combining filters on a string)
 
 ```ts
-import { Result } from "effect/data"
 import { Check, Schema } from "effect/schema"
 
 const schema = Schema.String.check(
@@ -928,34 +925,32 @@ const schema = Schema.String.check(
   Check.trimmed() // Filter<string>
 )
 
-console.log(Schema.decodeUnknownResult(schema)(" a").pipe(Result.merge))
-// SchemaError: Expected a value with a length of at least 3, got " a"
+console.log(String(Schema.decodeUnknownExit(schema)(" a")))
+// Failure(Cause([Fail(SchemaError: Expected a value with a length of at least 3, got " a")]))
 ```
 
 **Example** (Applying `minLength` to an object with a `length` field)
 
 ```ts
-import { Result } from "effect/data"
 import { Check, Schema } from "effect/schema"
 
 // Object has a numeric `length` field, which must be >= 3
 const schema = Schema.Struct({ length: Schema.Number }).check(Check.minLength(3))
 
-console.log(Schema.decodeUnknownResult(schema)({ length: 2 }).pipe(Result.merge))
-// SchemaError: Expected a value with a length of at least 3, got {"length":2}
+console.log(String(Schema.decodeUnknownExit(schema)({ length: 2 })))
+// Failure(Cause([Fail(SchemaError: Expected a value with a length of at least 3, got {"length":2}]))
 ```
 
 **Example** (Validating array length)
 
 ```ts
-import { Result } from "effect/data"
 import { Check, Schema } from "effect/schema"
 
 // Array must contain at least 3 strings
 const schema = Schema.Array(Schema.String).check(Check.minLength(3))
 
-console.log(Schema.decodeUnknownResult(schema)(["a", "b"]).pipe(Result.merge))
-// SchemaError: Expected a value with a length of at least 3, got ["a","b"]
+console.log(String(Schema.decodeUnknownExit(schema)(["a", "b"])))
+// Failure(Cause([Fail(SchemaError: Expected a value with a length of at least 3, got ["a","b"]]))
 ```
 
 ### 🆕 Multiple Issues Reporting
@@ -965,19 +960,20 @@ By default, when `{ errors: "all" }` is passed, all filters are evaluated, even 
 **Example** (Collecting multiple validation issues)
 
 ```ts
-import { Result } from "effect/data"
 import { Check, Schema } from "effect/schema"
 
 const schema = Schema.String.check(Check.minLength(3), Check.trimmed())
 
 console.log(
-  Schema.decodeUnknownResult(schema)(" a", {
-    errors: "all"
-  }).pipe(Result.merge)
+  String(
+    Schema.decodeUnknownExit(schema)(" a", {
+      errors: "all"
+    })
+  )
 )
 /*
-SchemaError: Expected a value with a length of at least 3, got " a"
-Expected a string with no leading or trailing whitespace, got " a"
+Failure(Cause([Fail(SchemaError: Expected a value with a length of at least 3, got " a"
+Expected a string with no leading or trailing whitespace, got " a")]))
 */
 ```
 
@@ -988,7 +984,6 @@ If you want to stop validation as soon as a filter fails, you can wrap it with `
 **Example** (Stop validation)
 
 ```ts
-import { Result } from "effect/data"
 import { Check, Schema } from "effect/schema"
 
 const schema = Schema.String.check(
@@ -997,11 +992,13 @@ const schema = Schema.String.check(
 )
 
 console.log(
-  Schema.decodeUnknownResult(schema)(" a", {
-    errors: "all"
-  }).pipe(Result.merge)
+  String(
+    Schema.decodeUnknownExit(schema)(" a", {
+      errors: "all"
+    })
+  )
 )
-// SchemaError: Expected a value with a length of at least 3, got " a"
+// Failure(Cause([Fail(SchemaError: Expected a value with a length of at least 3, got " a")]))
 ```
 
 ### 🆕 Filter Groups
@@ -1140,7 +1137,6 @@ These filters are evaluated separately from item-level filters and allow multipl
 **Example** (Validating an array with item and structural constraints)
 
 ```ts
-import { Result } from "effect/data"
 import { Check, Schema } from "effect/schema"
 
 const schema = Schema.Struct({
@@ -1149,12 +1145,12 @@ const schema = Schema.Struct({
   )
 })
 
-console.log(Schema.decodeUnknownResult(schema)({ tags: ["a", ""] }, { errors: "all" }).pipe(Result.merge))
+console.log(String(Schema.decodeUnknownExit(schema)({ tags: ["a", ""] }, { errors: "all" })))
 /*
-SchemaError: Expected a value with a length of at least 1, got ""
+Failure(Cause([Fail(SchemaError: Expected a value with a length of at least 1, got ""
   at ["tags"][1]
 Expected a value with a length of at least 3, got ["a",""]
-  at ["tags"]
+  at ["tags"])]))
 */
 ```
 
@@ -1188,7 +1184,7 @@ const schema = Schema.Finite.pipe(
         const user = yield* Effect.result(myapi(n))
 
         // If the result is an error, return a SchemaIssue
-        return Result.isErr(user) ? new Issue.InvalidValue(Option.some(n), { title: "not found" }) : undefined // No issue, value is valid
+        return Result.isFailure(user) ? new Issue.InvalidValue(Option.some(n), { title: "not found" }) : undefined // No issue, value is valid
       })
     ),
     encode: Getter.passthrough()
@@ -1687,7 +1683,6 @@ You can annotate individual keys using the `annotateKey` method. This is useful 
 **Example** (Annotating a required `username` field)
 
 ```ts
-import { Result } from "effect/data"
 import { Schema } from "effect/schema"
 
 const schema = Schema.Struct({
@@ -1698,10 +1693,11 @@ const schema = Schema.Struct({
   })
 })
 
-console.log(Schema.decodeUnknownResult(schema)({}).pipe(Result.merge))
+console.log(String(Schema.decodeUnknownExit(schema)({})))
 /*
-SchemaError: Username is required
+Failure(Cause([Fail(SchemaError: Username is required
   at ["username"]
+)]))
 */
 ```
 
@@ -1712,17 +1708,17 @@ You can annotate a struct with a custom message to use when a key is unexpected 
 **Example** (Annotating a struct with a custom message)
 
 ```ts
-import { Result } from "effect/data"
 import { Schema } from "effect/schema"
 
 const schema = Schema.Struct({
   a: Schema.String
 }).annotate({ unexpectedKeyMessage: "Custom message" })
 
-console.log(Schema.decodeUnknownResult(schema)({ a: "a", b: "b" }, { onExcessProperty: "error" }).pipe(Result.merge))
+console.log(String(Schema.decodeUnknownExit(schema)({ a: "a", b: "b" }, { onExcessProperty: "error" })))
 /*
-SchemaError: Custom message
+Failure(Cause([Fail(SchemaError: Custom message
   at ["b"]
+)]))
 */
 ```
 
@@ -1733,17 +1729,16 @@ You can preserve unexpected keys by setting `onExcessProperty` to `preserve`.
 **Example** (Preserving unexpected keys)
 
 ```ts
-import { Result } from "effect/data"
 import { Schema } from "effect/schema"
 
 const schema = Schema.Struct({
   a: Schema.String
 })
 
-console.log(Schema.decodeUnknownResult(schema)({ a: "a", b: "b" }, { onExcessProperty: "preserve" }).pipe(Result.merge))
+console.log(String(Schema.decodeUnknownExit(schema)({ a: "a", b: "b" }, { onExcessProperty: "preserve" })))
 /*
 Output:
-{ b: 'b', a: 'a' }
+Success({"b":"b","a":"a"})
 */
 ```
 
@@ -1889,7 +1884,7 @@ If you want to preserve the checks of the original struct, you can pass `{ prese
 **Example** (Preserving checks when merging fields)
 
 ```ts
-import { Result, Struct } from "effect/data"
+import { Struct } from "effect/data"
 import { Check, Schema } from "effect/schema"
 
 const original = Schema.Struct({
@@ -1902,13 +1897,15 @@ const schema = original.mapFields(Struct.merge({ c: Schema.String }), {
 })
 
 console.log(
-  Schema.decodeUnknownResult(schema)({
-    a: "a",
-    b: "b",
-    c: "c"
-  }).pipe(Result.merge)
+  String(
+    Schema.decodeUnknownExit(schema)({
+      a: "a",
+      b: "b",
+      c: "c"
+    })
+  )
 )
-// SchemaError: Expected a === b, got {"a":"a","b":"b","c":"c"}
+// Failure(Cause([Fail(SchemaError: Expected a === b, got {"a":"a","b":"b","c":"c"})]))
 ```
 
 #### Mapping individual fields
@@ -2271,7 +2268,6 @@ You can attach filters and annotations to the struct passed into `Opaque`.
 **Example** (Applying a filter and title annotation)
 
 ```ts
-import { Result } from "effect/data"
 import { Schema } from "effect/schema"
 
 class Person extends Schema.Opaque<Person>()(
@@ -2280,8 +2276,8 @@ class Person extends Schema.Opaque<Person>()(
   }).annotate({ identifier: "Person" })
 ) {}
 
-console.log(Schema.decodeUnknownResult(Person)(null).pipe(Result.merge))
-// SchemaError: Expected Person, got null
+console.log(String(Schema.decodeUnknownExit(Person)(null)))
+// Failure(Cause([Fail(SchemaError: Expected Person, got null)]))
 ```
 
 When you call methods like `annotate` on an opaque struct, you get back the original struct, not a new class.
@@ -2627,7 +2623,6 @@ You can annotate elements using the `annotateKey` method.
 **Example** (Annotating an element)
 
 ```ts
-import { Result } from "effect/data"
 import { Schema } from "effect/schema"
 
 const schema = Schema.Tuple([
@@ -2638,10 +2633,11 @@ const schema = Schema.Tuple([
   })
 ])
 
-console.log(Schema.decodeUnknownResult(schema)([]).pipe(Result.merge))
+console.log(String(Schema.decodeUnknownExit(schema)([])))
 /*
-SchemaError: this element is required
+Failure(Cause([Fail(SchemaError: this element is required
   at [0]
+)]))
 */
 ```
 
@@ -2844,13 +2840,12 @@ You can deduplicate arrays using `Schema.UniqueArray`.
 Internally, `Schema.UniqueArray` uses `Schema.Array` and adds a check based on `Check.deduped` using `ToEquivalence.make(item)` for the equivalence.
 
 ```ts
-import { Result } from "effect/data"
 import { Schema } from "effect/schema"
 
 const schema = Schema.UniqueArray(Schema.String)
 
-console.log(Schema.decodeUnknownResult(schema)(["a", "b", "a"]).pipe(Result.merge))
-// SchemaError: Expected unique, got ["a","b","a"]
+console.log(String(Schema.decodeUnknownExit(schema)(["a", "b", "a"])))
+// Failure(Cause([Fail(SchemaError: Expected an array with unique items, got ["a","b","a"])]))
 ```
 
 ## Classes
@@ -3317,13 +3312,12 @@ If a union member is not compatible with the input, it is automatically excluded
 **Example** (Excluding incompatible members from the union)
 
 ```ts
-import { Result } from "effect/data"
 import { Schema } from "effect/schema"
 
 const schema = Schema.Union([Schema.NonEmptyString, Schema.Number])
 
-console.log(Schema.decodeUnknownResult(schema)("").pipe(Result.merge))
-// SchemaError: Expected a value with a length of at least 1, got ""
+console.log(String(Schema.decodeUnknownExit(schema)("")))
+// Failure(Cause([Fail(SchemaError: Expected a value with a length of at least 1, got "")]))
 ```
 
 If none of the union members match the input, the union fails with a message at the top level.
@@ -3331,13 +3325,12 @@ If none of the union members match the input, the union fails with a message at 
 **Example** (All members excluded)
 
 ```ts
-import { Result } from "effect/data"
 import { Schema } from "effect/schema"
 
 const schema = Schema.Union([Schema.NonEmptyString, Schema.Number])
 
-console.log(Schema.decodeUnknownResult(schema)(null).pipe(Result.merge))
-// SchemaError: Expected string | number, got null
+console.log(String(Schema.decodeUnknownExit(schema)(null)))
+// Failure(Cause([Fail(SchemaError: Expected string | number, got null)]))
 ```
 
 This behavior is especially helpful when working with literal values. Instead of producing a separate error for each literal (as in version 3), the schema reports a single, clear message.
@@ -3345,13 +3338,12 @@ This behavior is especially helpful when working with literal values. Instead of
 **Example** (Validating against a set of literals)
 
 ```ts
-import { Result } from "effect/data"
 import { Schema } from "effect/schema"
 
 const schema = Schema.Literals(["a", "b"])
 
-console.log(Schema.decodeUnknownResult(schema)(null).pipe(Result.merge))
-// SchemaError: Expected "a" | "b", got null
+console.log(String(Schema.decodeUnknownExit(schema)(null)))
+// Failure(Cause([Fail(SchemaError: Expected "a" | "b", got null)]))
 ```
 
 ### 🆕 Exclusive Unions
@@ -3361,15 +3353,14 @@ You can create an exclusive union, where the union matches if exactly one member
 **Example** (Exclusive Union)
 
 ```ts
-import { Result } from "effect/data"
 import { Schema } from "effect/schema"
 
 const schema = Schema.Union([Schema.Struct({ a: Schema.String }), Schema.Struct({ b: Schema.Number })], {
   mode: "oneOf"
 })
 
-console.log(Schema.decodeUnknownResult(schema)({ a: "a", b: 1 }).pipe(Result.merge))
-// SchemaError: Expected exactly one member to match the input {"a":"a","b":1}
+console.log(String(Schema.decodeUnknownExit(schema)({ a: "a", b: 1 })))
+// Failure(Cause([Fail(SchemaError: Expected exactly one member to match the input {"a":"a","b":1})]))
 ```
 
 ### Deriving Unions
@@ -4021,21 +4012,20 @@ They are similar to transformations, but they are able to catch errors and modif
 
 ```ts
 import { Effect } from "effect"
-import { Result } from "effect/data"
 import { Schema } from "effect/schema"
 
 const fallback = Effect.succeedSome("b")
 const schema = Schema.String.pipe(Schema.catchDecoding(() => fallback))
 
-console.log(Schema.decodeUnknownResult(schema)(null).pipe(Result.merge))
-// "b"
+console.log(String(Schema.decodeUnknownExit(schema)(null)))
+// Success("b")
 ```
 
 ### Providing a Service
 
 ```ts
 import { Effect, ServiceMap } from "effect"
-import { Option, Result } from "effect/data"
+import { Option } from "effect/data"
 import { Schema } from "effect/schema"
 
 class Service extends ServiceMap.Key<Service, { fallback: Effect.Effect<string> }>()("Service") {}
@@ -4059,8 +4049,8 @@ const provided = schema.pipe(
   )
 )
 
-console.log(Schema.decodeUnknownResult(provided)(null).pipe(Result.merge))
-// "b"
+console.log(String(Schema.decodeUnknownExit(provided)(null)))
+// Success("b")
 ```
 
 ## Generating a JSON Schema from a Schema
@@ -4633,7 +4623,7 @@ To make the examples easier to follow, we define a helper function that prints f
 
 ```ts
 // utils.ts
-import { Result } from "effect/data"
+import { Exit } from "effect"
 import { Formatter, Schema } from "effect/schema"
 import i18next from "i18next"
 
@@ -4664,9 +4654,10 @@ export function getLogIssues(options?: {
 }) {
   return <S extends Schema.Codec<unknown, unknown, never, never>>(schema: S, input: unknown) => {
     console.log(
-      Schema.decodeUnknownResult(schema)(input, { errors: "all" }).pipe(
-        Result.mapError((err) => Formatter.makeStandardSchemaV1(options).format(err.issue).issues),
-        Result.merge
+      String(
+        Schema.decodeUnknownExit(schema)(input, { errors: "all" }).pipe(
+          Exit.mapError((err) => Formatter.makeStandardSchemaV1(options).format(err.issue).issues)
+        )
       )
     )
   }
@@ -4730,19 +4721,19 @@ const logIssues = getLogIssues({
 
 // Invalid object (not even a struct)
 logIssues(Person, null)
-// [ { path: [], message: 'Please enter a valid object' } ]
+// Failure(Cause([Fail([{"path":[],"message":"Please enter a valid object"}])]))
 
 // Missing "name" key
 logIssues(Person, {})
-// [ { path: [ 'name' ], message: 'This field is required' } ]
+// Failure(Cause([Fail([{"path":["name"],"message":"This field is required"}])]))
 
 // "name" has the wrong type
 logIssues(Person, { name: 1 })
-// [ { path: [ 'name' ], message: 'Please enter a valid string' } ]
+// Failure(Cause([Fail([{"path":["name"],"message":"Please enter a valid string"}])]))
 
 // "name" is an empty string
 logIssues(Person, { name: "" })
-// [ { path: [ 'name' ], message: 'The value does not match the check' } ]
+// Failure(Cause([Fail([{"path":["name"],"message":"The value does not match the check"}])]))
 ```
 
 #### Inline custom messages
@@ -4772,19 +4763,19 @@ const logIssues = getLogIssues()
 
 // Invalid object (not even a struct)
 logIssues(Person, null)
-// [ { path: [], message: 'Please enter a valid object' } ]
+// Failure(Cause([Fail([{"path":[],"message":"Please enter a valid object"}])]))
 
 // Missing "name" key
 logIssues(Person, {})
-// [ { path: [ 'name' ], message: 'This field is required' } ]
+// Failure(Cause([Fail([{"path":["name"],"message":"This field is required"}])]))
 
 // "name" has the wrong type
 logIssues(Person, { name: 1 })
-// [ { path: [ 'name' ], message: 'Please enter a valid string' } ]
+// Failure(Cause([Fail([{"path":["name"],"message":"Please enter a valid string"}])]))
 
 // "name" is an empty string
 logIssues(Person, { name: "" })
-// [ { path: [ 'name' ], message: 'Please enter at least 1 character(s)' } ]
+// Failure(Cause([Fail([{"path":["name"],"message":"Please enter at least 1 character(s)"}])]))
 ```
 
 #### Sending a FailureResult over the wire
@@ -4804,12 +4795,15 @@ const schema = Schema.Struct({
   c: Schema.Tuple([Schema.String])
 })
 
-const r = ToParser.decodeUnknownResult(schema)({ a: "", c: [] }, { errors: "all" })
+const r = ToParser.decodeUnknownExit(schema)({ a: "", c: [] }, { errors: "all" })
 
 if (r._tag === "Failure") {
-  const failureResult = Formatter.makeStandardSchemaV1().format(r.failure)
-  const serializer = Serializer.json(Schema.StandardSchemaV1FailureResult)
-  console.dir(Schema.encodeSync(serializer)(failureResult), { depth: null })
+  const failures = r.cause.failures
+  if (failures[0]?._tag === "Fail") {
+    const failureResult = Formatter.makeStandardSchemaV1().format(failures[0].error)
+    const serializer = Serializer.json(Schema.StandardSchemaV1FailureResult)
+    console.dir(Schema.encodeSync(serializer)(failureResult), { depth: null })
+  }
 }
 /*
 {
@@ -5046,7 +5040,6 @@ You can use `Schema.TemplateLiteral` to define structured string patterns made o
 **Example** (Constraining parts of an email-like string)
 
 ```ts
-import { Result } from "effect/data"
 import { Check, Schema } from "effect/schema"
 
 // Construct a template literal schema for values like `${string}@${string}`
@@ -5065,8 +5058,8 @@ const email = Schema.TemplateLiteral([
 // The inferred type is `${string}@${string}`
 export type Type = typeof email.Type
 
-console.log(Schema.decodeUnknownResult(email)("@b.com").pipe(Result.merge))
-// SchemaError: Expected `${string}@${string}`, got "@b.com"
+console.log(String(Schema.decodeUnknownExit(email)("@b.com")))
+// Failure(Cause([Fail(SchemaError: Expected `${string}@${string}`, got "@b.com")]))
 ```
 
 #### Template literal parser
@@ -5076,7 +5069,6 @@ If you want to extract the parts of a string that match a template, you can use 
 **Example** (Parsing a template literal into components)
 
 ```ts
-import { Result } from "effect/data"
 import { Check, Schema } from "effect/schema"
 
 const email = Schema.TemplateLiteralParser([
@@ -5088,8 +5080,8 @@ const email = Schema.TemplateLiteralParser([
 // The inferred type is `readonly [string, "@", string]`
 export type Type = typeof email.Type
 
-console.log(Schema.decodeUnknownResult(email)("a@b.com").pipe(Result.merge))
-// => [ 'a', '@', 'b.com' ]
+console.log(String(Schema.decodeUnknownExit(email)("a@b.com")))
+// Success(["a","@","b.com"])
 ```
 
 ## Migration from v3

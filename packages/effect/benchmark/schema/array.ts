@@ -32,10 +32,10 @@ const zod = z.array(z.string())
 const good = ["a", "b"]
 const bad = ["a", 1]
 
-const decodeUnknownResult = ToParser.decodeUnknownResult(schema)
+const decodeUnknownExit = ToParser.decodeUnknownExit(schema)
 
-// console.log(decodeUnknownResult(good))
-// console.log(decodeUnknownResult(bad))
+// console.log(decodeUnknownExit(good))
+// console.log(decodeUnknownExit(bad))
 // console.log(v.safeParse(valibot, good))
 // console.log(v.safeParse(valibot, bad))
 // console.log(arktype(good))
@@ -45,10 +45,10 @@ const decodeUnknownResult = ToParser.decodeUnknownResult(schema)
 
 bench
   .add("Schema (good)", function() {
-    decodeUnknownResult(good)
+    decodeUnknownExit(good)
   })
   .add("Schema (bad)", function() {
-    decodeUnknownResult(bad)
+    decodeUnknownExit(bad)
   })
   .add("Valibot (good)", function() {
     v.safeParse(valibot, good)

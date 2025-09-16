@@ -1835,6 +1835,10 @@ export const exitAsVoidAll = <I extends Iterable<Exit.Exit<any, any>>>(
   return failures.length === 0 ? exitVoid : exitFailCause(causeFromFailures(failures))
 }
 
+/** @internal */
+export const exitGetSuccess = <A, E>(self: Exit.Exit<A, E>): Option.Option<A> =>
+  exitIsSuccess(self) ? Option.some(self.value) : Option.none()
+
 // ----------------------------------------------------------------------------
 // environment
 // ----------------------------------------------------------------------------

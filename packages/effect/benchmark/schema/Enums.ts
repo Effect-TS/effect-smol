@@ -22,17 +22,17 @@ const schema = Schema.Enums(Enum)
 const valid = "b"
 const invalid = "c"
 
-const decodeUnknownResult = ToParser.decodeUnknownResult(schema)
+const decodeUnknownExit = ToParser.decodeUnknownExit(schema)
 
-// console.log(decodeUnknownResult(valid))
-// console.log(decodeUnknownResult(invalid))
+// console.log(decodeUnknownExit(valid))
+// console.log(decodeUnknownExit(invalid))
 
 bench
   .add("valid", function() {
-    decodeUnknownResult(valid)
+    decodeUnknownExit(valid)
   })
   .add("invalid", function() {
-    decodeUnknownResult(invalid)
+    decodeUnknownExit(invalid)
   })
 
 await bench.run()

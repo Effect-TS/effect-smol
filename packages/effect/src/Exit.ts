@@ -11,6 +11,7 @@
  */
 import type * as Cause from "./Cause.ts"
 import type * as Filter from "./data/Filter.ts"
+import type { Option } from "./data/Option.ts"
 import type * as Effect from "./Effect.ts"
 import * as core from "./internal/core.ts"
 import * as effect from "./internal/effect.ts"
@@ -528,3 +529,9 @@ export const asVoid: <A, E>(self: Exit<A, E>) => Exit<void, E> = effect.exitAsVo
 export const asVoidAll: <I extends Iterable<Exit<any, any>>>(
   exits: I
 ) => Exit<void, I extends Iterable<Exit<infer _A, infer _E>> ? _E : never> = effect.exitAsVoidAll
+
+/**
+ * @category Accessors
+ * @since 4.0.0
+ */
+export const getSuccess: <A, E>(self: Exit<A, E>) => Option<A> = effect.exitGetSuccess

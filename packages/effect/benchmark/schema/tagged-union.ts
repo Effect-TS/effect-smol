@@ -39,18 +39,18 @@ const bad = {
   c: "c"
 }
 
-const decodeUnknownResult = ToParser.decodeUnknownResult(schema)
+const decodeUnknownExit = ToParser.decodeUnknownExit(schema)
 const options: AST.ParseOptions = { errors: "all" }
 
-// console.log(decodeUnknownResult(good))
-// console.log(decodeUnknownResult(bad))
+// console.log(decodeUnknownExit(good))
+// console.log(decodeUnknownExit(bad))
 
 bench
   .add("Schema (good)", function() {
-    decodeUnknownResult(good, options)
+    decodeUnknownExit(good, options)
   })
   .add("Schema (bad)", function() {
-    decodeUnknownResult(bad, options)
+    decodeUnknownExit(bad, options)
   })
 
 await bench.run()

@@ -27,16 +27,16 @@ const zod = z.string().check(z.trim())
 
 const good = " a "
 
-const decodeUnknownResult = ToParser.decodeUnknownResult(schema)
+const decodeUnknownExit = ToParser.decodeUnknownExit(schema)
 
-// console.log(decodeUnknownResult(good))
+// console.log(decodeUnknownExit(good))
 // console.log(v.safeParse(valibot, good))
 // console.log(arktype(good))
 // console.log(zod.safeParse(good))
 
 bench
   .add("Schema", function() {
-    decodeUnknownResult(good)
+    decodeUnknownExit(good)
   })
   .add("Valibot", function() {
     v.safeParse(valibot, good)

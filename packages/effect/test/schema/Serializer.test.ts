@@ -942,13 +942,16 @@ describe("Serializer", () => {
         c: Schema.Tuple([Schema.String])
       })
 
-      const r = ToParser.decodeUnknownResult(schema)({ a: "", c: [] }, { errors: "all" })
+      const r = ToParser.decodeUnknownExit(schema)({ a: "", c: [] }, { errors: "all" })
 
       assertTrue(r._tag === "Failure")
+      assertTrue(r.cause.failures.length === 1)
+      const failure = r.cause.failures[0]
+      assertTrue(failure._tag === "Fail")
 
       const failureResult = Formatter.makeStandardSchemaV1({
         leafHook: Formatter.defaultLeafHook
-      }).format(r.failure)
+      }).format(failure.error)
       await assertions.serialization.json.codec.succeed(Schema.StandardSchemaV1FailureResult, failureResult, {
         issues: [
           { path: ["a"], message: `Expected a value with a length of at least 1, got ""` },
