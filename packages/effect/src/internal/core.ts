@@ -167,7 +167,7 @@ export class CauseImpl<E> implements Cause.Cause<E> {
     }
   }
   toString() {
-    return format(this)
+    return `Cause(${format(this.failures)})`
   }
   [NodeInspectSymbol]() {
     return this.toJSON()
@@ -240,6 +240,9 @@ export class Fail<E> extends FailureBase<"Fail"> implements Cause.Fail<E> {
     super("Fail", annotations, error)
     this.error = error
   }
+  override toString() {
+    return `Fail(${format(this.error)})`
+  }
   toJSON(): unknown {
     return {
       _tag: "Fail",
@@ -291,6 +294,9 @@ export class Die extends FailureBase<"Die"> implements Cause.Die {
   ) {
     super("Die", annotations, defect)
     this.defect = defect
+  }
+  override toString() {
+    return `Die(${format(this.defect)})`
   }
   toJSON(): unknown {
     return {
@@ -481,6 +487,9 @@ export const makeExit = <
     _tag: options.op,
     get [options.prop](): any {
       return (this as any)[args]
+    },
+    toString(this: any) {
+      return `${options.op}(${format(this[args])})`
     },
     toJSON(this: any) {
       return {
