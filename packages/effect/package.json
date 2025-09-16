@@ -126,7 +126,6 @@
   "scripts": {
     "codegen": "build-utils prepare-v4",
     "build": "tsc -b tsconfig.build.json && babel dist --plugins annotate-pure-calls --out-dir dist --source-maps",
-    "test-types": "tstyche",
     "check": "tsc -b tsconfig.json",
     "test": "vitest",
     "coverage": "vitest --coverage"
