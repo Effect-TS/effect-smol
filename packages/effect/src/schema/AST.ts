@@ -2,14 +2,17 @@
  * @since 4.0.0
  */
 
+import * as Cause from "../Cause.ts"
 import * as Arr from "../collections/Array.ts"
 import type * as Combiner from "../data/Combiner.ts"
+import * as Filter from "../data/Filter.ts"
 import * as Option from "../data/Option.ts"
 import * as Predicate from "../data/Predicate.ts"
-import * as Result from "../data/Result.ts"
 import * as Effect from "../Effect.ts"
+import type * as Exit from "../Exit.ts"
 import { memoize } from "../Function.ts"
-import * as InternalRecord from "../internal/record.ts"
+import { effectIsExit } from "../internal/effect.ts"
+import * as internalRecord from "../internal/record.ts"
 import * as RegEx from "../primitives/RegExp.ts"
 import type { Annotated } from "./Annotations.ts"
 import * as Annotations from "./Annotations.ts"
@@ -364,9 +367,9 @@ export class Declaration extends Base {
     const run = ast.run(ast.typeParameters)
     return function(oinput, options) {
       if (Option.isNone(oinput)) {
-        return Effect.succeed(Option.none())
+        return Effect.succeedNone
       }
-      return run(oinput.value, ast, options).pipe(Effect.mapEager(Option.some))
+      return Effect.mapEager(run(oinput.value, ast, options), Option.some)
     }
   }
   /** @internal */
@@ -392,7 +395,7 @@ export class NullKeyword extends AbstractParser {
   readonly _tag = "NullKeyword"
   /** @internal */
   parser() {
-    return fromRefinement(this, Predicate.isNull)
+    return fromConst(this, null)
   }
   goStringPojo(): AST {
     return replaceEncoding(this, [nullLink])
@@ -416,7 +419,7 @@ export class UndefinedKeyword extends AbstractParser {
   readonly _tag = "UndefinedKeyword"
   /** @internal */
   parser() {
-    return fromRefinement(this, Predicate.isUndefined)
+    return fromConst(this, undefined)
   }
   /** @internal */
   getExpected(): string {
@@ -437,7 +440,7 @@ export class VoidKeyword extends AbstractParser {
   readonly _tag = "VoidKeyword"
   /** @internal */
   parser() {
-    return fromRefinement(this, Predicate.isUndefined)
+    return fromConst(this, undefined)
   }
   /** @internal */
   getExpected(): string {
@@ -637,12 +640,10 @@ export class TemplateLiteral extends AbstractParser {
   parser(go: (ast: AST) => ToParser.Parser): ToParser.Parser {
     const parser = go(this.asTemplateLiteralParser())
     return (oinput: Option.Option<unknown>, options: ParseOptions) =>
-      parser(oinput, options).pipe(
-        Effect.mapBothEager({
-          onSuccess: () => oinput,
-          onFailure: () => new Issue.InvalidType(this, oinput)
-        })
-      )
+      Effect.mapBothEager(parser(oinput, options), {
+        onSuccess: () => oinput,
+        onFailure: () => new Issue.InvalidType(this, oinput)
+      })
   }
   /** @internal */
   getExpected(): string {
@@ -695,7 +696,7 @@ export class UniqueSymbol extends AbstractParser {
   }
   /** @internal */
   parser() {
-    return fromRefinement(this, (input): input is typeof this.symbol => input === this.symbol)
+    return fromConst(this, this.symbol)
   }
   /** @internal */
   getExpected(): string {
@@ -742,7 +743,7 @@ export class LiteralType extends AbstractParser {
   }
   /** @internal */
   parser() {
-    return fromRefinement(this, (input): input is typeof this.literal => input === this.literal)
+    return fromConst(this, this.literal)
   }
   goStringPojo(): AST {
     return Predicate.isString(this.literal) ? this : coerceLiteral(this)
@@ -974,9 +975,14 @@ export class TupleType extends Base {
   parser(go: (ast: AST) => ToParser.Parser): ToParser.Parser {
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const ast = this
+    const elements = ast.elements.map((ast) => ({
+      ast,
+      parser: go(ast)
+    }))
+    const elementCount = elements.length
     return Effect.fnUntracedEager(function*(oinput, options) {
-      if (Option.isNone(oinput)) {
-        return Option.none()
+      if (oinput._tag === "None") {
+        return oinput
       }
       const input = oinput.value
 
@@ -986,38 +992,39 @@ export class TupleType extends Base {
       }
 
       const output: Array<unknown> = []
-      const issues: Array<Issue.Issue> = []
-      const errorsAllOption = options?.errors === "all"
+      let issues: Arr.NonEmptyArray<Issue.Issue> | undefined
+      const errorsAllOption = options.errors === "all"
 
       let i = 0
       // ---------------------------------------------
       // handle elements
       // ---------------------------------------------
-      for (; i < ast.elements.length; i++) {
-        const element = ast.elements[i]
+      for (; i < elementCount; i++) {
+        const e = elements[i]
         const value = i < input.length ? Option.some(input[i]) : Option.none()
-        const parser = go(element)
-        const keyAnnotations = element.context?.annotations
-        const r = yield* Effect.result(parser(value, options))
-        if (Result.isFailure(r)) {
-          const issue = new Issue.Pointer([i], r.failure)
+        const eff = e.parser(value, options)
+        const exit = effectIsExit(eff) ? eff : yield* Effect.exit(eff)
+        if (exit._tag === "Failure") {
+          const issueElement = Cause.filterError(exit.cause)
+          if (Filter.isFail(issueElement)) {
+            return yield* exit
+          }
+          const issue = new Issue.Pointer([i], issueElement)
           if (errorsAllOption) {
-            issues.push(issue)
+            if (issues) issues.push(issue)
+            else issues = [issue]
           } else {
             return yield* Effect.fail(new Issue.Composite(ast, oinput, [issue]))
           }
-        } else {
-          if (Option.isSome(r.success)) {
-            output[i] = r.success.value
+        } else if (exit.value._tag === "Some") {
+          output[i] = exit.value.value
+        } else if (!isOptional(e.ast)) {
+          const issue = new Issue.Pointer([i], new Issue.MissingKey(e.ast.context?.annotations))
+          if (errorsAllOption) {
+            if (issues) issues.push(issue)
+            else issues = [issue]
           } else {
-            if (!isOptional(element)) {
-              const issue = new Issue.Pointer([i], new Issue.MissingKey(keyAnnotations))
-              if (errorsAllOption) {
-                issues.push(issue)
-              } else {
-                return yield* Effect.fail(new Issue.Composite(ast, oinput, [issue]))
-              }
-            }
+            return yield* Effect.fail(new Issue.Composite(ast, oinput, [issue]))
           }
         }
       }
@@ -1030,24 +1037,29 @@ export class TupleType extends Base {
         const parser = go(head)
         const keyAnnotations = head.context?.annotations
         for (; i < len - tail.length; i++) {
-          const r = yield* Effect.result(parser(Option.some(input[i]), options))
-          if (Result.isFailure(r)) {
-            const issue = new Issue.Pointer([i], r.failure)
+          const eff = parser(Option.some(input[i]), options)
+          const exit = effectIsExit(eff) ? eff : yield* Effect.exit(eff)
+          if (exit._tag === "Failure") {
+            const issueRest = Cause.filterError(exit.cause)
+            if (Filter.isFail(issueRest)) {
+              return yield* exit
+            }
+            const issue = new Issue.Pointer([i], issueRest)
             if (errorsAllOption) {
-              issues.push(issue)
+              if (issues) issues.push(issue)
+              else issues = [issue]
             } else {
               return yield* Effect.fail(new Issue.Composite(ast, oinput, [issue]))
             }
+          } else if (exit.value._tag === "Some") {
+            output[i] = exit.value.value
           } else {
-            if (Option.isSome(r.success)) {
-              output[i] = r.success.value
+            const issue = new Issue.Pointer([i], new Issue.MissingKey(keyAnnotations))
+            if (errorsAllOption) {
+              if (issues) issues.push(issue)
+              else issues = [issue]
             } else {
-              const issue = new Issue.Pointer([i], new Issue.MissingKey(keyAnnotations))
-              if (errorsAllOption) {
-                issues.push(issue)
-              } else {
-                return yield* Effect.fail(new Issue.Composite(ast, oinput, [issue]))
-              }
+              return yield* Effect.fail(new Issue.Composite(ast, oinput, [issue]))
             }
           }
         }
@@ -1060,24 +1072,29 @@ export class TupleType extends Base {
           } else {
             const parser = go(tail[j])
             const keyAnnotations = tail[j].context?.annotations
-            const r = yield* Effect.result(parser(Option.some(input[i]), options))
-            if (Result.isFailure(r)) {
-              const issue = new Issue.Pointer([i], r.failure)
+            const eff = parser(Option.some(input[i]), options)
+            const exit = effectIsExit(eff) ? eff : yield* Effect.exit(eff)
+            if (exit._tag === "Failure") {
+              const issueRest = Cause.filterError(exit.cause)
+              if (Filter.isFail(issueRest)) {
+                return yield* exit
+              }
+              const issue = new Issue.Pointer([i], issueRest)
               if (errorsAllOption) {
-                issues.push(issue)
+                if (issues) issues.push(issue)
+                else issues = [issue]
               } else {
                 return yield* Effect.fail(new Issue.Composite(ast, oinput, [issue]))
               }
+            } else if (exit.value._tag === "Some") {
+              output[i] = exit.value.value
             } else {
-              if (Option.isSome(r.success)) {
-                output[i] = r.success.value
+              const issue = new Issue.Pointer([i], new Issue.MissingKey(keyAnnotations))
+              if (errorsAllOption) {
+                if (issues) issues.push(issue)
+                else issues = [issue]
               } else {
-                const issue = new Issue.Pointer([i], new Issue.MissingKey(keyAnnotations))
-                if (errorsAllOption) {
-                  issues.push(issue)
-                } else {
-                  return yield* Effect.fail(new Issue.Composite(ast, oinput, [issue]))
-                }
+                return yield* Effect.fail(new Issue.Composite(ast, oinput, [issue]))
               }
             }
           }
@@ -1089,13 +1106,14 @@ export class TupleType extends Base {
         for (let i = ast.elements.length; i <= len - 1; i++) {
           const issue = new Issue.Pointer([i], new Issue.UnexpectedKey(ast, input[i]))
           if (errorsAllOption) {
-            issues.push(issue)
+            if (issues) issues.push(issue)
+            else issues = [issue]
           } else {
             return yield* Effect.fail(new Issue.Composite(ast, oinput, [issue]))
           }
         }
       }
-      if (Arr.isArrayNonEmpty(issues)) {
+      if (issues) {
         return yield* Effect.fail(new Issue.Composite(ast, oinput, issues))
       }
       return Option.some(output)
@@ -1183,11 +1201,25 @@ export class TypeLiteral extends Base {
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const ast = this
     const expectedKeys: Array<PropertyKey> = []
-    const expectedKeysMap: Record<PropertyKey, null> = {}
+    const expectedKeysSet = new Set<PropertyKey>()
+    const properties: Array<{
+      readonly ps: PropertySignature
+      readonly parser: ToParser.Parser
+      readonly name: PropertyKey
+      readonly type: AST
+    }> = []
+    const propertyCount = ast.propertySignatures.length
     for (const ps of ast.propertySignatures) {
       expectedKeys.push(ps.name)
-      expectedKeysMap[ps.name] = null
+      expectedKeysSet.add(ps.name)
+      properties.push({
+        ps,
+        parser: go(ps.type),
+        name: ps.name,
+        type: ps.type
+      })
     }
+    const indexCount = ast.indexSignatures.length
     // ---------------------------------------------
     // handle empty struct
     // ---------------------------------------------
@@ -1195,21 +1227,21 @@ export class TypeLiteral extends Base {
       return fromRefinement(ast, Predicate.isNotNullish)
     }
     return Effect.fnUntracedEager(function*(oinput, options) {
-      if (Option.isNone(oinput)) {
-        return Option.none()
+      if (oinput._tag === "None") {
+        return oinput
       }
-      const input = oinput.value
+      const input = oinput.value as Record<PropertyKey, unknown>
 
       // If the input is not a record, return early with an error
-      if (!Predicate.isRecord(input)) {
+      if (!(typeof input === "object" && input !== null && !Array.isArray(input))) {
         return yield* Effect.fail(new Issue.InvalidType(ast, oinput))
       }
 
       const out: Record<PropertyKey, unknown> = {}
-      const issues: Array<Issue.Issue> = []
-      const errorsAllOption = options?.errors === "all"
-      const onExcessPropertyError = options?.onExcessProperty === "error"
-      const onExcessPropertyPreserve = options?.onExcessProperty === "preserve"
+      let issues: Arr.NonEmptyArray<Issue.Issue> | undefined
+      const errorsAllOption = options.errors === "all"
+      const onExcessPropertyError = options.onExcessProperty === "error"
+      const onExcessPropertyPreserve = options.onExcessProperty === "preserve"
 
       // ---------------------------------------------
       // handle excess properties
@@ -1217,20 +1249,25 @@ export class TypeLiteral extends Base {
       let inputKeys: Array<PropertyKey> | undefined
       if (ast.indexSignatures.length === 0 && (onExcessPropertyError || onExcessPropertyPreserve)) {
         inputKeys = Reflect.ownKeys(input)
-        for (const key of inputKeys) {
-          if (!Object.hasOwn(expectedKeysMap, key)) {
+        for (let i = 0; i < inputKeys.length; i++) {
+          const key = inputKeys[i]
+          if (!expectedKeysSet.has(key)) {
             // key is unexpected
             if (onExcessPropertyError) {
               const issue = new Issue.Pointer([key], new Issue.UnexpectedKey(ast, input[key]))
               if (errorsAllOption) {
-                issues.push(issue)
+                if (issues) {
+                  issues.push(issue)
+                } else {
+                  issues = [issue]
+                }
                 continue
               } else {
                 return yield* Effect.fail(new Issue.Composite(ast, oinput, [issue]))
               }
             } else {
               // preserve key
-              InternalRecord.set(out, key, input[key])
+              internalRecord.set(out, key, input[key])
             }
           }
         }
@@ -1239,41 +1276,36 @@ export class TypeLiteral extends Base {
       // ---------------------------------------------
       // handle property signatures
       // ---------------------------------------------
-      for (const ps of ast.propertySignatures) {
-        const name = ps.name
-        const type = ps.type
-        let value: Option.Option<unknown> = Option.none()
-        if (Object.hasOwn(input, name)) {
-          value = Option.some(input[name])
-        }
-        const parser = go(type)
-        const keyAnnotations = type.context?.annotations
-        const r = yield* Effect.result(parser(value, options))
-        if (Result.isFailure(r)) {
-          const issue = new Issue.Pointer([name], r.failure)
+      for (let i = 0; i < propertyCount; i++) {
+        const p = properties[i]
+        const value: Option.Option<unknown> = Object.hasOwn(input, p.name) ? Option.some(input[p.name]) : Option.none()
+        const eff = p.parser(value, options)
+        const exit = effectIsExit(eff) ? eff : yield* Effect.exit(eff)
+        if (exit._tag === "Failure") {
+          const issueProp = Cause.filterError(exit.cause)
+          if (Filter.isFail(issueProp)) {
+            return yield* exit
+          }
+          const issue = new Issue.Pointer([p.name], issueProp)
           if (errorsAllOption) {
-            issues.push(issue)
+            if (issues) issues.push(issue)
+            else issues = [issue]
+            continue
+          } else {
+            return yield* Effect.fail(new Issue.Composite(ast, oinput, [issue]))
+          }
+        } else if (exit.value._tag === "Some") {
+          internalRecord.set(out, p.name, exit.value.value)
+        } else if (!isOptional(p.type)) {
+          const issue = new Issue.Pointer([p.name], new Issue.MissingKey(p.type.context?.annotations))
+          if (errorsAllOption) {
+            if (issues) issues.push(issue)
+            else issues = [issue]
             continue
           } else {
             return yield* Effect.fail(
               new Issue.Composite(ast, oinput, [issue])
             )
-          }
-        } else {
-          if (Option.isSome(r.success)) {
-            InternalRecord.set(out, name, r.success.value)
-          } else {
-            if (!isOptional(ps.type)) {
-              const issue = new Issue.Pointer([name], new Issue.MissingKey(keyAnnotations))
-              if (errorsAllOption) {
-                issues.push(issue)
-                continue
-              } else {
-                return yield* Effect.fail(
-                  new Issue.Composite(ast, oinput, [issue])
-                )
-              }
-            }
           }
         }
       }
@@ -1281,64 +1313,77 @@ export class TypeLiteral extends Base {
       // ---------------------------------------------
       // handle index signatures
       // ---------------------------------------------
-      for (const is of ast.indexSignatures) {
-        const keys = getIndexSignatureKeys(input, is)
-        for (const key of keys) {
-          const parserKey = go(is.parameter)
-          const rKey = (yield* Effect.result(parserKey(Option.some(key), options))) as Result.Result<
-            Option.Option<PropertyKey>,
-            Issue.Issue
-          >
-          if (Result.isFailure(rKey)) {
-            const issue = new Issue.Pointer([key], rKey.failure)
-            if (errorsAllOption) {
-              issues.push(issue)
-              continue
-            } else {
+      if (indexCount > 0) {
+        for (let i = 0; i < indexCount; i++) {
+          const is = ast.indexSignatures[i]
+          const keys = getIndexSignatureKeys(input, is)
+          for (let j = 0; j < keys.length; j++) {
+            const key = keys[j]
+            const parserKey = go(is.parameter)
+            const effKey = parserKey(Option.some(key), options)
+            const exitKey = (effectIsExit(effKey) ? effKey : yield* Effect.exit(effKey)) as Exit.Exit<
+              Option.Option<PropertyKey>,
+              Issue.Issue
+            >
+            if (exitKey._tag === "Failure") {
+              const issueKey = Cause.filterError(exitKey.cause)
+              if (Filter.isFail(issueKey)) {
+                return yield* exitKey
+              }
+              const issue = new Issue.Pointer([key], issueKey)
+              if (errorsAllOption) {
+                if (issues) issues.push(issue)
+                else issues = [issue]
+                continue
+              }
               return yield* Effect.fail(
                 new Issue.Composite(ast, oinput, [issue])
               )
             }
-          }
 
-          const value: Option.Option<unknown> = Option.some(input[key])
-          const parserValue = go(is.type)
-          const rValue = yield* Effect.result(parserValue(value, options))
-          if (Result.isFailure(rValue)) {
-            const issue = new Issue.Pointer([key], rValue.failure)
-            if (errorsAllOption) {
-              issues.push(issue)
-              continue
-            } else {
-              return yield* Effect.fail(
-                new Issue.Composite(ast, oinput, [issue])
-              )
-            }
-          } else {
-            if (Option.isSome(rKey.success) && Option.isSome(rValue.success)) {
-              const k2 = rKey.success.value
-              const v2 = rValue.success.value
+            const value: Option.Option<unknown> = Option.some(input[key])
+            const parserValue = go(is.type)
+            const effValue = parserValue(value, options)
+            const exitValue = effectIsExit(effValue) ? effValue : yield* Effect.exit(effValue)
+            if (exitValue._tag === "Failure") {
+              const issueValue = Cause.filterError(exitValue.cause)
+              if (Filter.isFail(issueValue)) {
+                return yield* exitValue
+              }
+              const issue = new Issue.Pointer([key], issueValue)
+              if (errorsAllOption) {
+                if (issues) issues.push(issue)
+                else issues = [issue]
+                continue
+              } else {
+                return yield* Effect.fail(
+                  new Issue.Composite(ast, oinput, [issue])
+                )
+              }
+            } else if (exitKey.value._tag === "Some" && exitValue.value._tag === "Some") {
+              const k2 = exitKey.value.value
+              const v2 = exitValue.value.value
               if (is.merge && is.merge.decode && Object.hasOwn(out, k2)) {
                 const [k, v] = is.merge.decode.combine([k2, out[k2]], [k2, v2])
-                InternalRecord.set(out, k, v)
+                internalRecord.set(out, k, v)
               } else {
-                InternalRecord.set(out, k2, v2)
+                internalRecord.set(out, k2, v2)
               }
             }
           }
         }
       }
 
-      if (Arr.isArrayNonEmpty(issues)) {
+      if (issues) {
         return yield* Effect.fail(new Issue.Composite(ast, oinput, issues))
       }
-      if (options?.propertyOrder === "original") {
+      if (options.propertyOrder === "original") {
         // preserve input keys order
         const keys = (inputKeys ?? Reflect.ownKeys(input)).concat(expectedKeys)
         const preserved: Record<PropertyKey, unknown> = {}
         for (const key of keys) {
           if (Object.hasOwn(out, key)) {
-            InternalRecord.set(preserved, key, out[key])
+            internalRecord.set(preserved, key, out[key])
           }
         }
         return Option.some(preserved)
@@ -1663,13 +1708,13 @@ export class UnionType<A extends AST = AST> extends Base {
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const ast = this
     return Effect.fnUntracedEager(function*(oinput, options) {
-      if (Option.isNone(oinput)) {
-        return Option.none()
+      if (oinput._tag === "None") {
+        return oinput
       }
       const input = oinput.value
       const oneOf = ast.mode === "oneOf"
       const candidates = getCandidates(input, ast.types)
-      const issues: Array<Issue.Issue> = []
+      let issues: Arr.NonEmptyArray<Issue.Issue> | undefined
 
       const tracking: {
         out: Option.Option<unknown> | undefined
@@ -1678,18 +1723,25 @@ export class UnionType<A extends AST = AST> extends Base {
         out: undefined,
         successes: []
       }
-      for (const candidate of candidates) {
+      for (let i = 0; i < candidates.length; i++) {
+        const candidate = candidates[i]
         const parser = go(candidate)
-        const r = yield* Effect.result(parser(oinput, options))
-        if (Result.isFailure(r)) {
-          issues.push(r.failure)
+        const eff = parser(oinput, options)
+        const exit = effectIsExit(eff) ? eff : yield* Effect.exit(eff)
+        if (exit._tag === "Failure") {
+          const issue = Cause.filterError(exit.cause)
+          if (Filter.isFail(issue)) {
+            return yield* exit
+          }
+          if (issues) issues.push(issue)
+          else issues = [issue]
           continue
         } else {
           if (tracking.out && oneOf) {
             tracking.successes.push(candidate)
             return yield* Effect.fail(new Issue.OneOf(ast, input, tracking.successes))
           }
-          tracking.out = r.success
+          tracking.out = exit.value
           tracking.successes.push(candidate)
           if (!oneOf) {
             break
@@ -1700,7 +1752,7 @@ export class UnionType<A extends AST = AST> extends Base {
       if (tracking.out) {
         return tracking.out
       } else {
-        return yield* Effect.fail(new Issue.AnyOf(ast, oinput, issues))
+        return yield* Effect.fail(new Issue.AnyOf(ast, oinput, issues ?? []))
       }
     })
   }
@@ -2174,17 +2226,31 @@ function handleTemplateLiteralASTPartParens(part: TemplateLiteralPart, s: string
   return `(${s})`
 }
 
+function fromConst<const T>(
+  ast: AST,
+  value: T
+): ToParser.Parser {
+  const succeed = Effect.succeedSome(value)
+  return (oinput) => {
+    if (oinput._tag === "None") {
+      return Effect.succeedNone
+    }
+    return oinput.value === value
+      ? succeed
+      : Effect.fail(new Issue.InvalidType(ast, oinput))
+  }
+}
+
 function fromRefinement<T>(
   ast: AST,
   refinement: (input: unknown) => input is T
 ): ToParser.Parser {
   return (oinput) => {
-    if (Option.isNone(oinput)) {
+    if (oinput._tag === "None") {
       return Effect.succeedNone
     }
-    const u = oinput.value
-    return refinement(u)
-      ? Effect.succeed(Option.some(u))
+    return refinement(oinput.value)
+      ? Effect.succeed(oinput)
       : Effect.fail(new Issue.InvalidType(ast, oinput))
   }
 }
