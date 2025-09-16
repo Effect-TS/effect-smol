@@ -18,9 +18,7 @@ async function assertFailure<T>(config: Config.Config<T>, provider: ConfigProvid
       "SourceError",
       (e) =>
         Effect.fail(
-          new Schema.SchemaError({
-            issue: new Issue.InvalidValue(Option.none(), { message: `SourceError: ${e.message}` })
-          })
+          new Schema.SchemaError(new Issue.InvalidValue(Option.none(), { message: `SourceError: ${e.message}` }))
         )
     )
   )
@@ -56,7 +54,7 @@ describe("Config", () => {
     const config = Config.schema(Schema.String)
     const f = (s: string) =>
       s === ""
-        ? Effect.fail(new Schema.SchemaError({ issue: new Issue.InvalidValue(Option.some(s), { message: "empty" }) }))
+        ? Effect.fail(new Schema.SchemaError(new Issue.InvalidValue(Option.some(s), { message: "empty" })))
         : Effect.succeed(s.toUpperCase())
 
     await assertSuccess(
@@ -662,7 +660,7 @@ describe("Config", () => {
     it("fail", async () => {
       await assertFailure(
         Config.fail(
-          new Schema.SchemaError({ issue: new Issue.Forbidden(Option.none(), { message: "failure message" }) })
+          new Schema.SchemaError(new Issue.Forbidden(Option.none(), { message: "failure message" }))
         ),
         ConfigProvider.fromStringPojo({}),
         `failure message`

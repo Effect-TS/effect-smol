@@ -536,11 +536,11 @@ const makeMessageDecode = <Type extends string, Rpcs extends Rpc.Any>(entity: En
     const rpc = entity.protocol.requests.get(message.envelope.tag) as any as Rpc.AnyWithProps
     if (!rpc) {
       return Effect.fail(
-        new Schema.SchemaError({
-          issue: new Issue.InvalidValue(Option.some(message), {
+        new Schema.SchemaError(
+          new Issue.InvalidValue(Option.some(message), {
             description: `Unknown tag ${message.envelope.tag} for entity type ${entity.type}`
           })
-        })
+        )
       )
     }
     return decodeRequest(message, rpc) as Effect.Effect<
