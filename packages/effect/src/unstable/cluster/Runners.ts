@@ -500,7 +500,12 @@ export const makeRpc: Effect.Effect<
     ping(address) {
       return RcMap.get(clients, address).pipe(
         Effect.flatMap((client) => client.Ping()),
-        Effect.catchCause(() => Effect.fail(new RunnerUnavailable({ address }))),
+        Effect.catchCause(() => {
+          return Effect.flatMap(
+            RcMap.invalidate(clients, address),
+            () => Effect.fail(new RunnerUnavailable({ address }))
+          )
+        }),
         Effect.scoped
       )
     },
