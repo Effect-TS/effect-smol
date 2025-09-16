@@ -15,16 +15,6 @@ export * as BunClusterRunnerSocket from "./BunClusterRunnerSocket.ts"
 /**
  * @since 1.0.0
  */
-export * as BunClusterShardManagerHttp from "./BunClusterShardManagerHttp.ts"
-
-/**
- * @since 1.0.0
- */
-export * as BunClusterShardManagerSocket from "./BunClusterShardManagerSocket.ts"
-
-/**
- * @since 1.0.0
- */
 export * as BunFileSystem from "./BunFileSystem.ts"
 
 /**

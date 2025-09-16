@@ -10,10 +10,9 @@ import * as Message from "./Message.ts"
 import * as MessageStorage from "./MessageStorage.ts"
 import * as Reply from "./Reply.ts"
 import * as Runners from "./Runners.ts"
+import * as RunnerStorage from "./RunnerStorage.ts"
 import * as Sharding from "./Sharding.ts"
 import { ShardingConfig } from "./ShardingConfig.ts"
-import * as ShardManager from "./ShardManager.ts"
-import * as ShardStorage from "./ShardStorage.ts"
 import * as SynchronizedClock from "./SynchronizedClock.ts"
 
 const constVoid = constant(Effect.void)
@@ -129,12 +128,11 @@ export const layerWithClients: Layer.Layer<
   | ShardingConfig
   | Runners.RpcClientProtocol
   | MessageStorage.MessageStorage
-  | ShardStorage.ShardStorage
+  | RunnerStorage.RunnerStorage
 > = layer.pipe(
   Layer.provideMerge(Sharding.layer),
   Layer.provideMerge(Runners.layerRpc),
-  Layer.provideMerge(SynchronizedClock.layer),
-  Layer.provide(ShardManager.layerClientRpc)
+  Layer.provideMerge(SynchronizedClock.layer)
 )
 
 /**
@@ -155,8 +153,7 @@ export const layerClientOnly: Layer.Layer<
   | MessageStorage.MessageStorage
 > = Sharding.layer.pipe(
   Layer.provideMerge(Runners.layerRpc),
-  Layer.provide(ShardManager.layerClientRpc),
-  Layer.provide(ShardStorage.layerNoop),
+  Layer.provide(RunnerStorage.layerNoop),
   Layer.updateService(ShardingConfig, (config) => ({
     ...config,
     runnerAddress: undefined

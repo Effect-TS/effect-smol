@@ -3,23 +3,20 @@
  */
 import * as Cause from "../../Cause.ts"
 import * as Arr from "../../collections/Array.ts"
+import * as HashRing from "../../collections/HashRing.ts"
 import * as Iterable from "../../collections/Iterable.ts"
 import * as MutableHashMap from "../../collections/MutableHashMap.ts"
 import * as MutableHashSet from "../../collections/MutableHashSet.ts"
 import * as Filter from "../../data/Filter.ts"
 import * as Option from "../../data/Option.ts"
-import * as Deferred from "../../Deferred.ts"
 import * as Effect from "../../Effect.ts"
-import * as Exit from "../../Exit.ts"
 import * as Fiber from "../../Fiber.ts"
-import * as FiberHandle from "../../FiberHandle.ts"
 import * as FiberMap from "../../FiberMap.ts"
 import { constant } from "../../Function.ts"
 import * as Equal from "../../interfaces/Equal.ts"
 import * as Layer from "../../Layer.ts"
 import * as MutableRef from "../../MutableRef.ts"
 import * as PubSub from "../../PubSub.ts"
-import * as Queue from "../../Queue.ts"
 import { CurrentLogAnnotations } from "../../References.ts"
 import * as Schedule from "../../Schedule.ts"
 import * as Scope from "../../Scope.ts"
@@ -47,14 +44,14 @@ import { ResourceMap } from "./internal/resourceMap.ts"
 import * as Message from "./Message.ts"
 import * as MessageStorage from "./MessageStorage.ts"
 import * as Reply from "./Reply.ts"
+import { Runner } from "./Runner.ts"
 import type { RunnerAddress } from "./RunnerAddress.ts"
 import { Runners } from "./Runners.ts"
+import { RunnerStorage } from "./RunnerStorage.ts"
 import type { ShardId } from "./ShardId.ts"
 import { make as makeShardId } from "./ShardId.ts"
 import { ShardingConfig } from "./ShardingConfig.ts"
 import { EntityRegistered, type ShardingRegistrationEvent, SingletonRegistered } from "./ShardingRegistrationEvent.ts"
-import { ShardManagerClient } from "./ShardManager.ts"
-import { ShardStorage } from "./ShardStorage.ts"
 import { SingletonAddress } from "./SingletonAddress.ts"
 import * as Snowflake from "./Snowflake.ts"
 
@@ -183,14 +180,13 @@ const make = Effect.gen(function*() {
   const config = yield* ShardingConfig
 
   const runners = yield* Runners
-  const shardManager = yield* ShardManagerClient
   const snowflakeGen = yield* Snowflake.Generator
   const shardingScope = yield* Effect.scope
   const isShutdown = MutableRef.make(false)
 
   const storage = yield* MessageStorage.MessageStorage
   const storageEnabled = storage !== MessageStorage.noop
-  const shardStorage = yield* ShardStorage
+  const runnerStorage = yield* RunnerStorage
 
   const entityManagers = new Map<string, EntityManagerState>()
 
@@ -221,7 +217,7 @@ const make = Effect.gen(function*() {
     const selfAddress = config.runnerAddress
     yield* Scope.addFinalizerExit(shardingScope, () => {
       // the locks expire over time, so if this fails we ignore it
-      return Effect.ignore(shardStorage.releaseAll(selfAddress))
+      return Effect.ignore(runnerStorage.releaseAll(selfAddress))
     })
 
     const releasingShards = MutableHashSet.empty<ShardId>()
@@ -252,7 +248,7 @@ const make = Effect.gen(function*() {
           continue
         }
 
-        const acquired = yield* shardStorage.acquire(selfAddress, unacquiredShards)
+        const acquired = yield* runnerStorage.acquire(selfAddress, unacquiredShards)
         yield* Effect.ignore(storage.resetShards(acquired))
         for (const shardId of acquired) {
           MutableHashSet.add(acquiredShards, shardId)
@@ -277,7 +273,7 @@ const make = Effect.gen(function*() {
 
     // refresh the shard locks every 4s
     yield* Effect.suspend(() =>
-      shardStorage.refresh(selfAddress, [
+      runnerStorage.refresh(selfAddress, [
         ...acquiredShards,
         ...releasingShards
       ])
@@ -305,8 +301,7 @@ const make = Effect.gen(function*() {
           Effect.andThen(clearSelfShards)
         )
       ),
-      Effect.delay("4 seconds"),
-      Effect.forever,
+      Effect.repeat(Schedule.fixed("4 seconds")),
       Effect.interruptible,
       Effect.forkIn(shardingScope)
     )
@@ -322,7 +317,7 @@ const make = Effect.gen(function*() {
               (state) => state.manager.interruptShard(shardId),
               { concurrency: "unbounded", discard: true }
             ).pipe(
-              Effect.andThen(shardStorage.release(selfAddress, shardId)),
+              Effect.andThen(runnerStorage.release(selfAddress, shardId)),
               Effect.annotateLogs({
                 runner: selfAddress
               }),
@@ -800,97 +795,73 @@ const make = Effect.gen(function*() {
     })
   )
 
-  // --- Shard Manager sync ---
-
-  const shardManagerTimeoutFiber = yield* FiberHandle.make().pipe(
-    Scope.provide(shardingScope)
-  )
-  const startShardManagerTimeout = FiberHandle.run(
-    shardManagerTimeoutFiber,
-    Effect.flatMap(Effect.sleep(config.shardManagerUnavailableTimeout), () => {
-      MutableHashMap.clear(shardAssignments)
-      return clearSelfShards
-    }),
-    { onlyIfMissing: true }
-  )
-  const stopShardManagerTimeout = FiberHandle.clear(shardManagerTimeoutFiber)
-
-  // Every time the link to the shard manager is lost, we re-register the runner
-  // and re-subscribe to sharding events
+  // --- RunnerStorage sync ---
+  const hashRings = new Map<string, HashRing.HashRing<RunnerAddress>>()
+  let allRunners = MutableHashSet.empty<Runner>()
   yield* Effect.gen(function*() {
-    yield* Effect.logDebug("Registering with shard manager")
-    if (config.runnerAddress) {
-      const machineId = yield* shardManager.register(config.runnerAddress, config.shardGroups)
-      yield* snowflakeGen.setMachineId(machineId)
-    }
-
-    yield* stopShardManagerTimeout
-
-    yield* Effect.logDebug("Subscribing to sharding events")
-    const queue = yield* shardManager.shardingEvents(config.runnerAddress)
-    const startedLatch = yield* Deferred.make<void>()
-
-    const eventsFiber = yield* Effect.gen(function*() {
-      while (true) {
-        const events = yield* Queue.takeAll(queue)
-        for (const event of events) {
-          yield* Effect.logDebug("Received sharding event", event)
-
-          switch (event._tag) {
-            case "StreamStarted": {
-              yield* Deferred.done(startedLatch, Exit.void)
-              break
-            }
-            case "ShardsAssigned": {
-              for (const shard of event.shards) {
-                MutableHashMap.set(shardAssignments, shard, event.address)
+    while (true) {
+      const runners = yield* runnerStorage.getRunners
+      const newRunners = MutableHashSet.empty<Runner>()
+      const toAdd = new Map<string, Array<RunnerAddress>>()
+      let changed = false
+      for (let i = 0; i < runners.length; i++) {
+        const [runner, healthy] = runners[i]
+        if (!healthy) continue
+        MutableHashSet.add(newRunners, runner)
+        if (MutableHashSet.has(allRunners, runner)) {
+          continue
+        }
+        changed = true
+        MutableHashSet.add(allRunners, runner)
+        for (const group of runner.groups) {
+          let arr = toAdd.get(group)
+          if (!arr) {
+            arr = []
+            toAdd.set(group, arr)
+          }
+          arr.push(runner.address)
+        }
+      }
+      for (const [group, addresses] of toAdd) {
+        let ring = hashRings.get(group)
+        if (!ring) {
+          ring = HashRing.make()
+          hashRings.set(group, ring)
+        }
+        HashRing.addMany(ring, addresses)
+      }
+      for (const runner of allRunners) {
+        if (MutableHashSet.has(newRunners, runner)) continue
+        changed = true
+        for (const group of runner.groups) {
+          HashRing.remove(hashRings.get(group)!, runner.address)
+        }
+      }
+      if (changed) {
+        allRunners = newRunners
+        MutableHashSet.clear(selfShards)
+        for (const [group, ring] of hashRings) {
+          const newAssignments = HashRing.getShards(ring, config.shardsPerGroup)
+          for (let i = 1; i < config.shardsPerGroup; i++) {
+            const shard = makeShardId(group, i + 1)
+            if (newAssignments) {
+              const runner = newAssignments[i]
+              MutableHashMap.set(shardAssignments, shard, runner)
+              if (isLocalRunner(runner)) {
+                MutableHashSet.add(selfShards, shard)
               }
-              if (!MutableRef.get(isShutdown) && isLocalRunner(event.address)) {
-                for (const shardId of event.shards) {
-                  if (MutableHashSet.has(selfShards, shardId)) continue
-                  MutableHashSet.add(selfShards, shardId)
-                }
-                activeShardsLatch.openUnsafe()
-              }
-              break
-            }
-            case "ShardsUnassigned": {
-              for (const shard of event.shards) {
-                MutableHashMap.remove(shardAssignments, shard)
-              }
-              if (isLocalRunner(event.address)) {
-                for (const shard of event.shards) {
-                  MutableHashSet.remove(selfShards, shard)
-                }
-                activeShardsLatch.openUnsafe()
-              }
-              break
+            } else {
+              MutableHashMap.remove(shardAssignments, shard)
             }
           }
         }
+        activeShardsLatch.openUnsafe()
       }
-    }).pipe(
-      Deferred.into(startedLatch),
-      Effect.forkScoped({ startImmediately: true })
-    )
 
-    // Wait for the stream to be established
-    yield* Deferred.await(startedLatch)
-
-    // perform a full sync every config.refreshAssignmentsInterval
-    const syncFiber = yield* syncAssignments.pipe(
-      Effect.andThen(Effect.sleep(config.refreshAssignmentsInterval)),
-      Effect.forever,
-      Effect.forkScoped({ startImmediately: true })
-    )
-
-    yield* Fiber.awaitAll([eventsFiber, syncFiber]).pipe(
-      Effect.flatMap(Exit.asVoidAll)
-    )
+      yield* Effect.sleep(config.refreshAssignmentsInterval)
+    }
   }).pipe(
-    Effect.scoped,
     Effect.catchCause((cause) => Effect.logDebug(cause)),
-    Effect.flatMap(() => startShardManagerTimeout),
     Effect.repeat(
       Schedule.exponential(1000).pipe(
         Schedule.either(Schedule.spaced(10_000))
@@ -899,38 +870,12 @@ const make = Effect.gen(function*() {
     Effect.annotateLogs({
       package: "@effect/cluster",
       module: "Sharding",
-      fiber: "ShardManager sync",
+      fiber: "RunnerStorage sync",
       runner: config.runnerAddress
     }),
     Effect.interruptible,
     Effect.forkIn(shardingScope)
   )
-
-  const syncAssignments = Effect.gen(function*() {
-    const assignments = yield* shardManager.getAssignments
-    yield* Effect.logDebug("Received shard assignments", assignments)
-
-    for (const [shardId, runner] of assignments) {
-      if (runner === undefined) {
-        MutableHashMap.remove(shardAssignments, shardId)
-        MutableHashSet.remove(selfShards, shardId)
-        continue
-      }
-
-      MutableHashMap.set(shardAssignments, shardId, runner)
-
-      if (!isLocalRunner(runner)) {
-        MutableHashSet.remove(selfShards, shardId)
-        continue
-      }
-      if (MutableRef.get(isShutdown) || MutableHashSet.has(selfShards, shardId)) {
-        continue
-      }
-      MutableHashSet.add(selfShards, shardId)
-    }
-
-    activeShardsLatch.openUnsafe()
-  })
 
   // --- Clients ---
 
@@ -1170,17 +1115,15 @@ const make = Effect.gen(function*() {
 
   if (config.runnerAddress) {
     const selfAddress = config.runnerAddress
-    // Unregister runner from shard manager when scope is closed
-    yield* Scope.addFinalizer(
-      shardingScope,
-      Effect.gen(function*() {
-        yield* Effect.logDebug("Unregistering runner from shard manager", selfAddress)
-        yield* shardManager.unregister(selfAddress).pipe(
-          Effect.catchCause((cause) => Effect.logError("Error calling unregister with shard manager", cause))
-        )
-        yield* clearSelfShards
+    yield* Effect.logDebug("Registering runner", selfAddress)
+    yield* Effect.orDie(runnerStorage.register(
+      selfAddress,
+      new Runner({
+        address: selfAddress,
+        groups: config.shardGroups,
+        version: config.serverVersion
       })
-    )
+    ))
   }
 
   yield* Scope.addFinalizer(
@@ -1225,7 +1168,7 @@ const make = Effect.gen(function*() {
 export const layer: Layer.Layer<
   Sharding,
   never,
-  ShardingConfig | Runners | ShardManagerClient | MessageStorage.MessageStorage | ShardStorage
+  ShardingConfig | Runners | MessageStorage.MessageStorage | RunnerStorage
 > = Layer.effect(Sharding)(make).pipe(
   Layer.provide([Snowflake.layerGenerator, EntityReaper.layer])
 )

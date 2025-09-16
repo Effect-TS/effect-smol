@@ -46,7 +46,14 @@ export class Runner extends Schema.Class<Runner>(TypeId)({
   /**
    * @since 4.0.0
    */
-  static readonly encodeSync = Schema.encodeSync(Schema.fromJsonString(Runner));
+  static readonly encodeSync = Schema.encodeSync(Schema.fromJsonString(Runner))
+
+  /**
+   * @since 4.0.0
+   */
+  override toString(): string {
+    return Runner.format(this)
+  }
 
   /**
    * @since 4.0.0

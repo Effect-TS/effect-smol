@@ -80,11 +80,6 @@ export * as HttpRunner from "./HttpRunner.ts"
 /**
  * @since 4.0.0
  */
-export * as HttpShardManager from "./HttpShardManager.ts"
-
-/**
- * @since 4.0.0
- */
 export * as MachineId from "./MachineId.ts"
 
 /**
@@ -115,17 +110,17 @@ export * as RunnerAddress from "./RunnerAddress.ts"
 /**
  * @since 4.0.0
  */
-export * as RunnerHealth from "./RunnerHealth.ts"
-
-/**
- * @since 4.0.0
- */
 export * as Runners from "./Runners.ts"
 
 /**
  * @since 4.0.0
  */
 export * as RunnerServer from "./RunnerServer.ts"
+
+/**
+ * @since 4.0.0
+ */
+export * as RunnerStorage from "./RunnerStorage.ts"
 
 /**
  * @since 4.0.0
@@ -150,16 +145,6 @@ export * as ShardingRegistrationEvent from "./ShardingRegistrationEvent.ts"
 /**
  * @since 4.0.0
  */
-export * as ShardManager from "./ShardManager.ts"
-
-/**
- * @since 4.0.0
- */
-export * as ShardStorage from "./ShardStorage.ts"
-
-/**
- * @since 4.0.0
- */
 export * as Singleton from "./Singleton.ts"
 
 /**
@@ -180,17 +165,12 @@ export * as SocketRunner from "./SocketRunner.ts"
 /**
  * @since 4.0.0
  */
-export * as SocketShardManager from "./SocketShardManager.ts"
-
-/**
- * @since 4.0.0
- */
 export * as SqlMessageStorage from "./SqlMessageStorage.ts"
 
 /**
  * @since 4.0.0
  */
-export * as SqlShardStorage from "./SqlShardStorage.ts"
+export * as SqlRunnerStorage from "./SqlRunnerStorage.ts"
 
 /**
  * @since 4.0.0

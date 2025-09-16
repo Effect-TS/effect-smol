@@ -2,12 +2,10 @@
  * @since 4.0.0
  */
 import * as Effect from "../../Effect.ts"
-import * as Layer from "../../Layer.ts"
 import * as Schedule from "../../Schedule.ts"
 import type { Scope } from "../../Scope.ts"
 import * as Clock from "../../time/Clock.ts"
 import * as Duration from "../../time/Duration.ts"
-import { ShardManagerClient } from "./ShardManager.ts"
 
 /**
  * @since 4.0.0
@@ -65,18 +63,3 @@ export const make: (getRemoteTime: Effect.Effect<number, never, never>) => Effec
     currentTimeNanos: Effect.sync(currentTimeNanosUnsafe)
   })
 })
-
-/**
- * @since 4.0.0
- * @category Layers
- */
-export const layer: Layer.Layer<
-  never,
-  never,
-  ShardManagerClient
-> = Layer.effect(Clock.Clock)(
-  Effect.gen(function*() {
-    const shardManager = yield* ShardManagerClient
-    return yield* make(shardManager.getTime)
-  })
-)

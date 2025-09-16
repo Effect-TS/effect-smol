@@ -6,12 +6,12 @@ import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as MessageStorage from "effect/unstable/cluster/MessageStorage"
 import type * as Runners from "effect/unstable/cluster/Runners"
+import * as RunnerStorage from "effect/unstable/cluster/RunnerStorage"
 import type { Sharding } from "effect/unstable/cluster/Sharding"
 import * as ShardingConfig from "effect/unstable/cluster/ShardingConfig"
-import * as ShardStorage from "effect/unstable/cluster/ShardStorage"
 import * as SocketRunner from "effect/unstable/cluster/SocketRunner"
 import * as SqlMessageStorage from "effect/unstable/cluster/SqlMessageStorage"
-import * as SqlShardStorage from "effect/unstable/cluster/SqlShardStorage"
+import * as SqlRunnerStorage from "effect/unstable/cluster/SqlRunnerStorage"
 import * as RpcSerialization from "effect/unstable/rpc/RpcSerialization"
 import type * as SocketServer from "effect/unstable/socket/SocketServer"
 import type { SqlClient } from "effect/unstable/sql/SqlClient"
@@ -72,8 +72,8 @@ export const layer = <const ClientOnly extends boolean = false, const Storage ex
     ),
     Layer.provide(
       options?.storage === "sql"
-        ? options.clientOnly ? Layer.empty : SqlShardStorage.layer
-        : ShardStorage.layerNoop
+        ? options.clientOnly ? Layer.empty : SqlRunnerStorage.layer
+        : RunnerStorage.layerNoop
     ),
     Layer.provide(ShardingConfig.layerFromEnv(options?.shardingConfig)),
     Layer.provide(

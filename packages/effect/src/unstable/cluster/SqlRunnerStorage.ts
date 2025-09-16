@@ -7,7 +7,7 @@ import * as Layer from "../../Layer.ts"
 import * as SqlClient from "../sql/SqlClient.ts"
 import type { SqlError } from "../sql/SqlError.ts"
 import { PersistenceError } from "./ClusterError.ts"
-import * as ShardStorage from "./ShardStorage.ts"
+import * as RunnerStorage from "./RunnerStorage.ts"
 
 const withTracerDisabled = Effect.withTracerEnabled(false)
 
@@ -30,66 +30,46 @@ export const make = Effect.fnUntraced(function*(options: {
       sql`
         IF OBJECT_ID(N'${runnersTableSql}', N'U') IS NULL
         CREATE TABLE ${runnersTableSql} (
-          address VARCHAR(255) PRIMARY KEY,
-          runner TEXT NOT NULL
+          machine_id INT IDENTITY PRIMARY KEY,
+          address VARCHAR(255) NOT NULL,
+          runner TEXT NOT NULL,
+          healthy BIT NOT NULL DEFAULT 1,
+          last_heartbeat DATETIME NOT NULL DEFAULT GETDATE(),
+          UNIQUE(address)
         )
       `,
     mysql: () =>
       sql`
         CREATE TABLE IF NOT EXISTS ${runnersTableSql} (
-          address VARCHAR(255) PRIMARY KEY,
-          runner TEXT NOT NULL
+          machine_id INT AUTO_INCREMENT PRIMARY KEY,
+          address VARCHAR(255) NOT NULL,
+          runner TEXT NOT NULL,
+          healthy BOOLEAN NOT NULL DEFAULT TRUE,
+          last_heartbeat DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          UNIQUE(address)
         )
       `,
     pg: () =>
       sql`
         CREATE TABLE IF NOT EXISTS ${runnersTableSql} (
-          address VARCHAR(255) PRIMARY KEY,
-          runner TEXT NOT NULL
+          machine_id SERIAL PRIMARY KEY,
+          address VARCHAR(255) NOT NULL,
+          runner TEXT NOT NULL,
+          healthy BOOLEAN NOT NULL DEFAULT TRUE,
+          last_heartbeat TIMESTAMP NOT NULL DEFAULT NOW(),
+          UNIQUE(address)
         )
       `,
     orElse: () =>
       // sqlite
       sql`
         CREATE TABLE IF NOT EXISTS ${runnersTableSql} (
-          address TEXT PRIMARY KEY,
-          runner TEXT NOT NULL
-        )
-      `
-  })
-
-  const shardsTable = table("shards")
-  const shardsTableSql = sql(shardsTable)
-
-  yield* sql.onDialectOrElse({
-    mssql: () =>
-      sql`
-        IF OBJECT_ID(N'${shardsTableSql}', N'U') IS NULL
-        CREATE TABLE ${shardsTableSql} (
-          shard_id VARCHAR(50) PRIMARY KEY,
-          address VARCHAR(255)
-        )
-      `,
-    mysql: () =>
-      sql`
-        CREATE TABLE IF NOT EXISTS ${shardsTableSql} (
-          shard_id VARCHAR(50) PRIMARY KEY,
-          address VARCHAR(255)
-        )
-      `,
-    pg: () =>
-      sql`
-        CREATE TABLE IF NOT EXISTS ${shardsTableSql} (
-          shard_id VARCHAR(50) PRIMARY KEY,
-          address VARCHAR(255)
-        )
-      `,
-    orElse: () =>
-      // sqlite
-      sql`
-        CREATE TABLE IF NOT EXISTS ${shardsTableSql} (
-          shard_id TEXT PRIMARY KEY,
-          address TEXT
+          machine_id INTEGER PRIMARY KEY AUTOINCREMENT,
+          address TEXT NOT NULL,
+          runner TEXT NOT NULL,
+          healthy INTEGER NOT NULL DEFAULT 1,
+          last_heartbeat DATETIME NOT NULL DEFAULT (CURRENT_TIMESTAMP),
+          UNIQUE(address)
         )
       `
   })
@@ -143,10 +123,56 @@ export const make = Effect.fnUntraced(function*(options: {
   const sqlNow = sql.literal(sqlNowString)
 
   const lockExpiresAt = sql.onDialectOrElse({
-    pg: () => sql`${sqlNow} - INTERVAL '10 seconds'`,
+    pg: () => sql`${sqlNow} - INTERVAL '5 seconds'`,
     mysql: () => sql`DATE_SUB(${sqlNow}, INTERVAL 5 SECOND)`,
     mssql: () => sql`DATEADD(SECOND, -5, ${sqlNow})`,
     orElse: () => sql`datetime(${sqlNow}, '-5 seconds')`
+  })
+
+  // Upsert runner and return machine_id
+  const insertRunner = sql.onDialectOrElse({
+    mssql: () => (address: string, runner: string) =>
+      sql`
+        MERGE ${runnersTableSql} AS target
+        USING (SELECT ${address} AS address, ${runner} AS runner, ${sqlNow} AS last_heartbeat) AS source
+        ON target.address = source.address
+        WHEN MATCHED THEN
+          UPDATE SET runner = source.runner, last_heartbeat = source.last_heartbeat
+        WHEN NOT MATCHED THEN
+          INSERT (address, runner, last_heartbeat)
+          VALUES (source.address, source.runner, source.last_heartbeat)
+        OUTPUT INSERTED.machine_id;
+      `.values,
+    mysql: () => (address: string, runner: string) =>
+      sql<{ machine_id: number }>`
+        INSERT INTO ${runnersTableSql} (address, runner, last_heartbeat)
+        VALUES (${address}, ${runner}, ${sqlNow})
+        ON DUPLICATE KEY UPDATE
+          runner = VALUES(runner),
+          last_heartbeat = VALUES(last_heartbeat);
+        SELECT machine_id FROM ${runnersTableSql} WHERE address = ${address};
+      `.unprepared.pipe(
+        Effect.map((results: any) => [[results[1][0].machine_id]])
+      ),
+    pg: () => (address: string, runner: string) =>
+      sql`
+        INSERT INTO ${runnersTableSql} (address, runner, last_heartbeat)
+        VALUES (${address}, ${runner}, ${sqlNow})
+        ON CONFLICT (address) DO UPDATE
+        SET runner = EXCLUDED.runner,
+            last_heartbeat = EXCLUDED.last_heartbeat
+        RETURNING machine_id
+      `.values,
+    orElse: () => (address: string, runner: string) =>
+      // sqlite
+      sql`
+        INSERT INTO ${runnersTableSql} (address, runner, last_heartbeat)
+        VALUES (${address}, ${runner}, ${sqlNow})
+        ON CONFLICT(address) DO UPDATE SET
+          runner = excluded.runner,
+          last_heartbeat = excluded.last_heartbeat
+        RETURNING machine_id;
+      `.values
   })
 
   const acquireLock = sql.onDialectOrElse({
@@ -199,46 +225,34 @@ export const make = Effect.fnUntraced(function*(options: {
     orElse: () => sql.literal("FOR UPDATE")
   })
 
-  return ShardStorage.makeEncoded({
-    getAssignments: sql`SELECT shard_id, address FROM ${shardsTableSql} ORDER BY shard_id`.values.pipe(
+  return RunnerStorage.makeEncoded({
+    getRunners: sql`SELECT runner, healthy FROM ${runnersTableSql} WHERE last_heartbeat > ${lockExpiresAt}`.values.pipe(
       PersistenceError.refail,
-      withTracerDisabled
-    ) as any,
-
-    saveAssignments: (assignments) => {
-      const remove = sql`DELETE FROM ${shardsTableSql}`
-      if (assignments.length === 0) {
-        return PersistenceError.refail(remove)
-      }
-      const values = assignments.map(([shardId, address]) => sql`(${shardId}, ${address})`)
-      return remove.pipe(
-        Effect.andThen(sql`INSERT INTO ${shardsTableSql} (shard_id, address) VALUES ${sql.csv(values)}`.unprepared),
-        sql.withTransaction,
-        PersistenceError.refail,
-        withTracerDisabled
-      )
-    },
-
-    getRunners: sql`SELECT address, runner FROM ${runnersTableSql}`.values.pipe(
-      PersistenceError.refail,
-      Effect.map(Arr.map(([address, runner]) => [String(address), String(runner)] as const)),
+      Effect.map(Arr.map(([runner, healthy]) => [String(runner), Boolean(healthy)] as const)),
       withTracerDisabled
     ),
 
-    saveRunners: (runners) => {
-      const remove = sql`DELETE FROM ${runnersTableSql}`
-      if (runners.length === 0) {
-        return PersistenceError.refail(remove)
-      }
-      const values = runners.map(([address, runner]) => sql`(${address}, ${runner})`)
-      const insert = sql`INSERT INTO ${runnersTableSql} (address, runner) VALUES ${sql.csv(values)}`.unprepared
-      return remove.pipe(
-        Effect.andThen(insert),
-        sql.withTransaction,
+    register: (address, runner) =>
+      insertRunner(address, runner).pipe(
+        Effect.map((rows: any) => Number(rows[0][0])),
         PersistenceError.refail,
         withTracerDisabled
-      )
-    },
+      ),
+
+    unregister: (address) =>
+      sql`DELETE FROM ${runnersTableSql} WHERE address = ${address} OR last_heartbeat <= ${lockExpiresAt}`.pipe(
+        Effect.asVoid,
+        PersistenceError.refail,
+        withTracerDisabled
+      ),
+
+    setRunnerHealth: (address, healthy) =>
+      sql`UPDATE ${runnersTableSql} SET healthy = ${healthy} WHERE address = ${address}`
+        .pipe(
+          Effect.asVoid,
+          PersistenceError.refail,
+          withTracerDisabled
+        ),
 
     acquire: Effect.fnUntraced(
       function*(address, shardIds) {
@@ -260,6 +274,7 @@ export const make = Effect.fnUntraced(function*(options: {
       sql`UPDATE ${locksTableSql} SET acquired_at = ${sqlNow} WHERE address = ${address} AND ${
         sql.in("shard_id", shardIds)
       }`.pipe(
+        Effect.tap(sql`UPDATE ${runnersTableSql} SET last_heartbeat = ${sqlNow} WHERE address = ${address}`),
         Effect.andThen(
           sql`SELECT shard_id FROM ${locksTableSql} WHERE address = ${address} AND acquired_at >= ${lockExpiresAt} ${forUpdate}`
             .values
@@ -288,10 +303,10 @@ export const make = Effect.fnUntraced(function*(options: {
  * @category Layers
  */
 export const layer: Layer.Layer<
-  ShardStorage.ShardStorage,
+  RunnerStorage.RunnerStorage,
   SqlError,
   SqlClient.SqlClient
-> = Layer.effect(ShardStorage.ShardStorage)(make({}))
+> = Layer.effect(RunnerStorage.RunnerStorage)(make({}))
 
 /**
  * @since 4.0.0
@@ -299,5 +314,5 @@ export const layer: Layer.Layer<
  */
 export const layerWith = (options: {
   readonly prefix?: string | undefined
-}): Layer.Layer<ShardStorage.ShardStorage, SqlError, SqlClient.SqlClient> =>
-  Layer.effect(ShardStorage.ShardStorage)(make(options))
+}): Layer.Layer<RunnerStorage.RunnerStorage, SqlError, SqlClient.SqlClient> =>
+  Layer.effect(RunnerStorage.RunnerStorage)(make(options))

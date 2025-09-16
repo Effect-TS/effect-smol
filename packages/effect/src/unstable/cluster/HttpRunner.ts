@@ -16,10 +16,9 @@ import { layerClientProtocolHttp, layerClientProtocolWebsocket } from "./HttpCom
 import type { MessageStorage } from "./MessageStorage.ts"
 import * as Runners from "./Runners.ts"
 import * as RunnerServer from "./RunnerServer.ts"
+import type { RunnerStorage } from "./RunnerStorage.ts"
 import * as Sharding from "./Sharding.ts"
 import type * as ShardingConfig from "./ShardingConfig.ts"
-import * as ShardManager from "./ShardManager.ts"
-import type { ShardStorage } from "./ShardStorage.ts"
 import * as SynchronizedClock from "./SynchronizedClock.ts"
 
 /**
@@ -61,11 +60,10 @@ export const toHttpEffectWebsocket: Effect.Effect<
 export const layerClient: Layer.Layer<
   Sharding.Sharding | Runners.Runners,
   never,
-  ShardingConfig.ShardingConfig | Runners.RpcClientProtocol | MessageStorage | ShardStorage
+  ShardingConfig.ShardingConfig | Runners.RpcClientProtocol | MessageStorage | RunnerStorage
 > = Sharding.layer.pipe(
   Layer.provideMerge(Runners.layerRpc),
-  Layer.provideMerge(SynchronizedClock.layer),
-  Layer.provide(ShardManager.layerClientRpc)
+  Layer.provideMerge(SynchronizedClock.layer)
 )
 
 /**
@@ -80,7 +78,7 @@ export const layerHttpOptions = (options: {
 }): Layer.Layer<
   Sharding.Sharding | Runners.Runners,
   never,
-  | ShardStorage
+  | RunnerStorage
   | RpcSerialization.RpcSerialization
   | MessageStorage
   | ShardingConfig.ShardingConfig
@@ -103,7 +101,7 @@ export const layerWebsocketOptions = (options: {
   | ShardingConfig.ShardingConfig
   | Runners.RpcClientProtocol
   | MessageStorage
-  | ShardStorage
+  | RunnerStorage
   | RpcSerialization.RpcSerialization
   | HttpRouter.HttpRouter
 > =>
@@ -123,7 +121,7 @@ export const layerHttp: Layer.Layer<
   | HttpClient.HttpClient
   | HttpServer.HttpServer
   | MessageStorage
-  | ShardStorage
+  | RunnerStorage
 > = HttpRouter.serve(layerHttpOptions({ path: "/" })).pipe(
   Layer.provide(layerClientProtocolHttp({ path: "/" }))
 )
@@ -155,7 +153,7 @@ export const layerWebsocket: Layer.Layer<
   | Socket.WebSocketConstructor
   | HttpServer.HttpServer
   | MessageStorage
-  | ShardStorage
+  | RunnerStorage
 > = HttpRouter.serve(layerWebsocketOptions({ path: "/" })).pipe(
   Layer.provide(layerClientProtocolWebsocket({ path: "/" }))
 )

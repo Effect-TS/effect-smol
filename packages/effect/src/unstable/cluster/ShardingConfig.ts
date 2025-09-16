@@ -50,15 +50,6 @@ export class ShardingConfig extends ServiceMap.Key<ShardingConfig, {
    */
   readonly shardsPerGroup: number
   /**
-   * The address of the shard manager.
-   */
-  readonly shardManagerAddress: RunnerAddress
-  /**
-   * If the shard manager is unavailable for this duration, all the shard
-   * assignments will be reset.
-   */
-  readonly shardManagerUnavailableTimeout: DurationInput
-  /**
    * The default capacity of the mailbox for entities.
    */
   readonly entityMailboxCapacity: number | "unbounded"
@@ -105,8 +96,6 @@ export const defaults: ShardingConfig["Service"] = {
   runnerListenAddress: undefined,
   serverVersion: 1,
   shardsPerGroup: 300,
-  shardManagerAddress: RunnerAddress.makeSync({ host: "localhost", port: 8080 }),
-  shardManagerUnavailableTimeout: Duration.minutes(10),
   shardGroups: ["default"],
   entityMailboxCapacity: 4096,
   entityMaxIdleTime: Duration.minutes(1),
@@ -114,7 +103,7 @@ export const defaults: ShardingConfig["Service"] = {
   entityMessagePollInterval: Duration.seconds(10),
   entityReplyPollInterval: Duration.millis(200),
   sendRetryInterval: Duration.millis(100),
-  refreshAssignmentsInterval: Duration.minutes(5),
+  refreshAssignmentsInterval: Duration.seconds(5),
   simulateRemoteSerialization: true
 }
 
@@ -165,22 +154,6 @@ export const config: Config.Config<ShardingConfig["Service"]> = Config.all({
   shardsPerGroup: Config.int("shardsPerGroup").pipe(
     Config.withDefault(() => defaults.shardsPerGroup)
     // Config.withDescription("The number of shards to allocate per shard group.")
-  ),
-  shardManagerAddress: Config.all({
-    host: Config.string("shardManagerHost").pipe(
-      Config.withDefault(() => defaults.shardManagerAddress.host)
-      // Config.withDescription("The host of the shard manager.")
-    ),
-    port: Config.int("shardManagerPort").pipe(
-      Config.withDefault(() => defaults.shardManagerAddress.port)
-      // Config.withDescription("The port of the shard manager.")
-    )
-  }).pipe(Config.map((options) => RunnerAddress.makeSync(options))),
-  shardManagerUnavailableTimeout: Config.duration("shardManagerUnavailableTimeout").pipe(
-    Config.withDefault(() => defaults.shardManagerUnavailableTimeout)
-    // Config.withDescription(
-    //   "If the shard is unavilable for this duration, all the shard assignments will be reset."
-    // )
   ),
   entityMailboxCapacity: Config.int("entityMailboxCapacity").pipe(
     Config.withDefault(() => defaults.entityMailboxCapacity)

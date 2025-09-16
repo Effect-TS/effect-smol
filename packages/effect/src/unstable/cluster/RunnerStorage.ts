@@ -1,14 +1,15 @@
 /**
  * @since 4.0.0
  */
-import * as Arr from "../../collections/Array.ts"
 import * as MutableHashMap from "../../collections/MutableHashMap.ts"
 import * as Effect from "../../Effect.ts"
 import * as Layer from "../../Layer.ts"
+import type { Scope } from "../../Scope.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import type { PersistenceError } from "./ClusterError.ts"
+import * as MachineId from "./MachineId.ts"
 import { Runner } from "./Runner.ts"
-import { RunnerAddress } from "./RunnerAddress.ts"
+import type { RunnerAddress } from "./RunnerAddress.ts"
 import { ShardId } from "./ShardId.ts"
 
 /**
@@ -18,31 +19,25 @@ import { ShardId } from "./ShardId.ts"
  * @since 4.0.0
  * @category models
  */
-export class ShardStorage extends ServiceMap.Key<ShardStorage, {
+export class RunnerStorage extends ServiceMap.Key<RunnerStorage, {
   /**
-   * Get the current assignments of shards to runners.
+   * Register a new runner with the cluster. While the Scope is open, the runner
+   * will be considered active.
    */
-  readonly getAssignments: Effect.Effect<
-    Array<[ShardId, RunnerAddress | undefined]>,
-    PersistenceError
-  >
-
-  /**
-   * Save the current state of shards assignments to runners.
-   */
-  readonly saveAssignments: (
-    assignments: Iterable<readonly [ShardId, RunnerAddress | undefined]>
-  ) => Effect.Effect<void, PersistenceError>
+  readonly register: (
+    address: RunnerAddress,
+    runner: Runner
+  ) => Effect.Effect<MachineId.MachineId, PersistenceError, Scope>
 
   /**
    * Get all runners registered with the cluster.
    */
-  readonly getRunners: Effect.Effect<Array<[RunnerAddress, Runner]>, PersistenceError>
+  readonly getRunners: Effect.Effect<Array<readonly [runner: Runner, healthy: boolean]>, PersistenceError>
 
   /**
-   * Save the current runners registered with the cluster.
+   * Set the health status of the given runner.
    */
-  readonly saveRunners: (runners: Iterable<readonly [RunnerAddress, Runner]>) => Effect.Effect<void, PersistenceError>
+  readonly setRunnerHealth: (address: RunnerAddress, healthy: boolean) => Effect.Effect<void, PersistenceError>
 
   /**
    * Try to acquire the given shard ids for processing.
@@ -57,7 +52,7 @@ export class ShardStorage extends ServiceMap.Key<ShardStorage, {
   /**
    * Refresh the locks owned by the given runner.
    *
-   * Locks expire after 15 seconds, so this method should be called every 10
+   * Locks expire after 5 seconds, so this method should be called every 4
    * seconds to keep the locks alive.
    */
   readonly refresh: (
@@ -85,36 +80,24 @@ export class ShardStorage extends ServiceMap.Key<ShardStorage, {
  */
 export interface Encoded {
   /**
-   * Get the current assignments of shards to runners.
-   */
-  readonly getAssignments: Effect.Effect<
-    Array<
-      readonly [
-        shardId: string,
-        runnerAddress: string | null
-      ]
-    >,
-    PersistenceError
-  >
-
-  /**
-   * Save the current state of shards assignments to runners.
-   */
-  readonly saveAssignments: (
-    assignments: Array<readonly [shardId: string, RunnerAddress: string | null]>
-  ) => Effect.Effect<void, PersistenceError>
-
-  /**
    * Get all runners registered with the cluster.
    */
-  readonly getRunners: Effect.Effect<Array<readonly [address: string, runner: string]>, PersistenceError>
+  readonly getRunners: Effect.Effect<Array<readonly [runner: string, healthy: boolean]>, PersistenceError>
 
   /**
-   * Save the current runners registered with the cluster.
+   * Register a new runner with the cluster.
    */
-  readonly saveRunners: (
-    runners: Array<readonly [address: string, runner: string]>
-  ) => Effect.Effect<void, PersistenceError>
+  readonly register: (address: string, runner: string) => Effect.Effect<number, PersistenceError>
+
+  /**
+   * Unregister the runner with the given address.
+   */
+  readonly unregister: (address: string) => Effect.Effect<void, PersistenceError>
+
+  /**
+   * Set the health status of the given runner.
+   */
+  readonly setRunnerHealth: (address: string, healthy: boolean) => Effect.Effect<void, PersistenceError>
 
   /**
    * Acquire the lock on the given shards, returning the shards that were
@@ -153,46 +136,28 @@ export interface Encoded {
  * @category layers
  */
 export const makeEncoded = (encoded: Encoded) =>
-  ShardStorage.of({
-    getAssignments: Effect.map(encoded.getAssignments, (assignments) => {
-      const arr = Arr.empty<[ShardId, RunnerAddress | undefined]>()
-      for (const [shardId, runnerAddress] of assignments) {
-        arr.push([
-          ShardId.fromString(shardId),
-          runnerAddress === null ? undefined : decodeRunnerAddress(runnerAddress)
-        ])
-      }
-      return arr
-    }),
-    saveAssignments: (assignments) => {
-      const arr = Arr.empty<readonly [string, string | null]>()
-      for (const [shardId, runnerAddress] of assignments) {
-        arr.push([
-          shardId.toString(),
-          runnerAddress === undefined ? null : encodeRunnerAddress(runnerAddress)
-        ])
-      }
-      return encoded.saveAssignments(arr)
-    },
+  RunnerStorage.of({
     getRunners: Effect.gen(function*() {
       const runners = yield* encoded.getRunners
-      const results: Array<[RunnerAddress, Runner]> = []
+      const results: Array<[Runner, boolean]> = []
       for (let i = 0; i < runners.length; i++) {
-        const [address, runner] = runners[i]
+        const [runner, healthy] = runners[i]
         try {
-          results.push([decodeRunnerAddress(address), Runner.decodeSync(runner)])
+          results.push([Runner.decodeSync(runner), healthy])
         } catch {
           //
         }
       }
       return results
     }),
-    saveRunners: (runners) =>
-      Effect.suspend(() =>
-        encoded.saveRunners(
-          Array.from(runners, ([address, runner]) => [encodeRunnerAddress(address), Runner.encodeSync(runner)])
-        )
+    register: (address, runner) =>
+      Effect.acquireRelease(
+        encoded.register(encodeRunnerAddress(address), Runner.encodeSync(runner)),
+        () => Effect.orDie(encoded.unregister(encodeRunnerAddress(address)))
+      ).pipe(
+        Effect.map(MachineId.make)
       ),
+    setRunnerHealth: (address, healthy) => encoded.setRunnerHealth(encodeRunnerAddress(address), healthy),
     acquire: (address, shardIds) => {
       const arr = Array.from(shardIds, (id) => id.toString())
       return encoded.acquire(encodeRunnerAddress(address), arr).pipe(
@@ -217,14 +182,14 @@ export const makeEncoded = (encoded: Encoded) =>
  * @since 4.0.0
  * @category layers
  */
-export const layerNoop: Layer.Layer<ShardStorage> = Layer.sync(ShardStorage)(
+export const layerNoop: Layer.Layer<RunnerStorage> = Layer.sync(RunnerStorage)(
   () => {
     let acquired: Array<ShardId> = []
-    return ShardStorage.of({
-      getAssignments: Effect.sync(() => []),
-      saveAssignments: () => Effect.void,
+    let id = 0
+    return RunnerStorage.of({
       getRunners: Effect.sync(() => []),
-      saveRunners: () => Effect.void,
+      register: () => Effect.sync(() => MachineId.make(id++)),
+      setRunnerHealth: () => Effect.void,
       acquire: (_address, shards) => {
         acquired = Array.from(shards)
         return Effect.succeed(Array.from(shards))
@@ -241,32 +206,24 @@ export const layerNoop: Layer.Layer<ShardStorage> = Layer.sync(ShardStorage)(
  * @category constructors
  */
 export const makeMemory = Effect.gen(function*() {
-  const assignments = MutableHashMap.empty<ShardId, RunnerAddress | undefined>()
   const runners = MutableHashMap.empty<RunnerAddress, Runner>()
-
-  function saveAssignments(value: Iterable<readonly [ShardId, RunnerAddress | undefined]>) {
-    return Effect.sync(() => {
-      for (const [shardId, runnerAddress] of value) {
-        MutableHashMap.set(assignments, shardId, runnerAddress)
-      }
-    })
-  }
-
-  function saveRunners(value: Iterable<readonly [RunnerAddress, Runner]>) {
-    return Effect.sync(() => {
-      for (const [address, runner] of value) {
-        MutableHashMap.set(runners, address, runner)
-      }
-    })
-  }
-
   let acquired: Array<ShardId> = []
+  let id = 0
 
-  return ShardStorage.of({
-    getAssignments: Effect.sync(() => Array.from(assignments)),
-    saveAssignments,
-    getRunners: Effect.sync(() => Array.from(runners)),
-    saveRunners,
+  return RunnerStorage.of({
+    getRunners: Effect.sync(() => Array.from(MutableHashMap.values(runners), (runner) => [runner, true])),
+    register: (address, runner) =>
+      Effect.acquireRelease(
+        Effect.sync(() => {
+          MutableHashMap.set(runners, address, runner)
+          return MachineId.make(id++)
+        }),
+        () =>
+          Effect.sync(() => {
+            MutableHashMap.remove(runners, address)
+          })
+      ),
+    setRunnerHealth: () => Effect.void,
     acquire: (_address, shardIds) => {
       acquired = Array.from(shardIds)
       return Effect.succeed(Array.from(shardIds))
@@ -281,15 +238,10 @@ export const makeMemory = Effect.gen(function*() {
  * @since 4.0.0
  * @category layers
  */
-export const layerMemory: Layer.Layer<ShardStorage> = Layer.effect(ShardStorage)(makeMemory)
+export const layerMemory: Layer.Layer<RunnerStorage> = Layer.effect(RunnerStorage)(makeMemory)
 
 // -------------------------------------------------------------------------------------
 // internal
 // -------------------------------------------------------------------------------------
 
 const encodeRunnerAddress = (runnerAddress: RunnerAddress) => `${runnerAddress.host}:${runnerAddress.port}`
-
-const decodeRunnerAddress = (runnerAddress: string): RunnerAddress => {
-  const [host, port] = runnerAddress.split(":")
-  return new RunnerAddress({ host, port: Number(port) })
-}

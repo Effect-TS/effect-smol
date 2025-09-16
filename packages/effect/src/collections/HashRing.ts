@@ -36,7 +36,7 @@ export const make = <A extends PrimaryKey.PrimaryKey>(options?: {
   readonly baseWeight?: number | undefined
 }): HashRing<A> => {
   const self = Object.create(Proto)
-  self.baseWeight = Math.max(options?.baseWeight ?? 100, 1)
+  self.baseWeight = Math.max(options?.baseWeight ?? 50, 1)
   self.nodes = new Map()
   self.ring = []
   return self
@@ -147,6 +147,18 @@ export const remove: {
   }
   return self
 })
+
+/**
+ * @since 4.0.0
+ * @category Combinators
+ */
+export const has: {
+  <A extends PrimaryKey.PrimaryKey>(node: A): (self: HashRing<A>) => boolean
+  <A extends PrimaryKey.PrimaryKey>(self: HashRing<A>, node: A): boolean
+} = dual(
+  2,
+  <A extends PrimaryKey.PrimaryKey>(self: HashRing<A>, node: A): boolean => self.nodes.has(PrimaryKey.value(node))
+)
 
 /**
  * Gets the node which should handle the given input. Returns undefined if
