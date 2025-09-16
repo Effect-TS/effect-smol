@@ -796,24 +796,52 @@ const make = Effect.gen(function*() {
   )
 
   // --- RunnerStorage sync ---
-  const hashRings = new Map<string, HashRing.HashRing<RunnerAddress>>()
-  let allRunners = MutableHashSet.empty<Runner>()
+
+  const selfRunner = config.runnerAddress ?
+    new Runner({
+      address: config.runnerAddress,
+      groups: config.shardGroups,
+      version: config.serverVersion
+    }) :
+    undefined
+
+  if (selfRunner) {
+    yield* Scope.addFinalizer(
+      shardingScope,
+      Effect.ignore(runnerStorage.unregister(selfRunner.address))
+    )
+  }
+
   yield* Effect.gen(function*() {
+    const hashRings = new Map<string, HashRing.HashRing<RunnerAddress>>()
+    const healthyRunners = MutableHashSet.empty<Runner>()
+    let allRunners = MutableHashMap.empty<Runner, boolean>()
+    let nextRunners = MutableHashMap.empty<Runner, boolean>()
+    const toAdd = new Map<string, Array<RunnerAddress>>()
+
     while (true) {
+      // Ensure the current runner is registered
+      if (selfRunner && !MutableHashMap.has(allRunners, selfRunner)) {
+        yield* Effect.logDebug("Registering runner", selfRunner)
+        const machineId = yield* runnerStorage.register(selfRunner)
+        yield* snowflakeGen.setMachineId(machineId)
+      }
+
       const runners = yield* runnerStorage.getRunners
-      const newRunners = MutableHashSet.empty<Runner>()
-      const toAdd = new Map<string, Array<RunnerAddress>>()
       let changed = false
       for (let i = 0; i < runners.length; i++) {
         const [runner, healthy] = runners[i]
-        if (!healthy) continue
-        MutableHashSet.add(newRunners, runner)
-        if (MutableHashSet.has(allRunners, runner)) {
+        MutableHashMap.set(nextRunners, runner, healthy)
+        if (!healthy) {
+          MutableHashSet.remove(healthyRunners, runner)
+          continue
+        } else if (MutableHashSet.has(healthyRunners, runner)) {
           continue
         }
         changed = true
-        MutableHashSet.add(allRunners, runner)
-        for (const group of runner.groups) {
+        MutableHashSet.add(healthyRunners, runner)
+        for (let j = 0; j < runner.groups.length; j++) {
+          const group = runner.groups[j]
           let arr = toAdd.get(group)
           if (!arr) {
             arr = []
@@ -822,23 +850,41 @@ const make = Effect.gen(function*() {
           arr.push(runner.address)
         }
       }
-      for (const [group, addresses] of toAdd) {
-        let ring = hashRings.get(group)
-        if (!ring) {
-          ring = HashRing.make()
-          hashRings.set(group, ring)
-        }
-        HashRing.addMany(ring, addresses)
-      }
-      for (const runner of allRunners) {
-        if (MutableHashSet.has(newRunners, runner)) continue
+
+      // Remove runners that are no longer present or healthy
+      for (const [runner, prevHealthy] of allRunners) {
+        // if the runner was not healthy before, it will not be in the hash
+        // rings
+        if (!prevHealthy) continue
+        // if the runner is present & healthy, we do nothing
+        const ohealthy = MutableHashMap.get(nextRunners, runner)
+        if (ohealthy._tag === "Some" && ohealthy.value) continue
         changed = true
-        for (const group of runner.groups) {
-          HashRing.remove(hashRings.get(group)!, runner.address)
+        for (let i = 0; i < runner.groups.length; i++) {
+          HashRing.remove(hashRings.get(runner.groups[i])!, runner.address)
         }
       }
+
+      if (toAdd.size > 0) {
+        for (const [group, addresses] of toAdd) {
+          let ring = hashRings.get(group)
+          if (!ring) {
+            ring = HashRing.make()
+            hashRings.set(group, ring)
+          }
+          HashRing.addMany(ring, addresses)
+        }
+        toAdd.clear()
+      }
+
+      // swap allRunners and nextRunners
+      const prevRunners = allRunners
+      allRunners = nextRunners
+      nextRunners = prevRunners
+      MutableHashMap.clear(nextRunners)
+
+      // recalculate assignments if something changed
       if (changed) {
-        allRunners = newRunners
         MutableHashSet.clear(selfShards)
         for (const [group, ring] of hashRings) {
           const newAssignments = HashRing.getShards(ring, config.shardsPerGroup)
@@ -1112,19 +1158,6 @@ const make = Effect.gen(function*() {
   )
 
   // --- Finalization ---
-
-  if (config.runnerAddress) {
-    const selfAddress = config.runnerAddress
-    yield* Effect.logDebug("Registering runner", selfAddress)
-    yield* Effect.orDie(runnerStorage.register(
-      selfAddress,
-      new Runner({
-        address: selfAddress,
-        groups: config.shardGroups,
-        version: config.serverVersion
-      })
-    ))
-  }
 
   yield* Scope.addFinalizer(
     shardingScope,

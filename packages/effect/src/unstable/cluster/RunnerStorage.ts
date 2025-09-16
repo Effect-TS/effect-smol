@@ -4,7 +4,6 @@
 import * as MutableHashMap from "../../collections/MutableHashMap.ts"
 import * as Effect from "../../Effect.ts"
 import * as Layer from "../../Layer.ts"
-import type { Scope } from "../../Scope.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import type { PersistenceError } from "./ClusterError.ts"
 import * as MachineId from "./MachineId.ts"
@@ -21,13 +20,14 @@ import { ShardId } from "./ShardId.ts"
  */
 export class RunnerStorage extends ServiceMap.Key<RunnerStorage, {
   /**
-   * Register a new runner with the cluster. While the Scope is open, the runner
-   * will be considered active.
+   * Register a new runner with the cluster.
    */
-  readonly register: (
-    address: RunnerAddress,
-    runner: Runner
-  ) => Effect.Effect<MachineId.MachineId, PersistenceError, Scope>
+  readonly register: (runner: Runner) => Effect.Effect<MachineId.MachineId, PersistenceError>
+
+  /**
+   * Unregister the runner with the given address.
+   */
+  readonly unregister: (address: RunnerAddress) => Effect.Effect<void, PersistenceError>
 
   /**
    * Get all runners registered with the cluster.
@@ -150,13 +150,12 @@ export const makeEncoded = (encoded: Encoded) =>
       }
       return results
     }),
-    register: (address, runner) =>
-      Effect.acquireRelease(
-        encoded.register(encodeRunnerAddress(address), Runner.encodeSync(runner)),
-        () => Effect.orDie(encoded.unregister(encodeRunnerAddress(address)))
-      ).pipe(
-        Effect.map(MachineId.make)
+    register: (runner) =>
+      Effect.map(
+        encoded.register(encodeRunnerAddress(runner.address), Runner.encodeSync(runner)),
+        MachineId.make
       ),
+    unregister: (address) => encoded.unregister(encodeRunnerAddress(address)),
     setRunnerHealth: (address, healthy) => encoded.setRunnerHealth(encodeRunnerAddress(address), healthy),
     acquire: (address, shardIds) => {
       const arr = Array.from(shardIds, (id) => id.toString())
@@ -189,6 +188,7 @@ export const layerNoop: Layer.Layer<RunnerStorage> = Layer.sync(RunnerStorage)(
     return RunnerStorage.of({
       getRunners: Effect.sync(() => []),
       register: () => Effect.sync(() => MachineId.make(id++)),
+      unregister: () => Effect.void,
       setRunnerHealth: () => Effect.void,
       acquire: (_address, shards) => {
         acquired = Array.from(shards)
@@ -212,17 +212,15 @@ export const makeMemory = Effect.gen(function*() {
 
   return RunnerStorage.of({
     getRunners: Effect.sync(() => Array.from(MutableHashMap.values(runners), (runner) => [runner, true])),
-    register: (address, runner) =>
-      Effect.acquireRelease(
-        Effect.sync(() => {
-          MutableHashMap.set(runners, address, runner)
-          return MachineId.make(id++)
-        }),
-        () =>
-          Effect.sync(() => {
-            MutableHashMap.remove(runners, address)
-          })
-      ),
+    register: (runner) =>
+      Effect.sync(() => {
+        MutableHashMap.set(runners, runner.address, runner)
+        return MachineId.make(id++)
+      }),
+    unregister: (address) =>
+      Effect.sync(() => {
+        MutableHashMap.remove(runners, address)
+      }),
     setRunnerHealth: () => Effect.void,
     acquire: (_address, shardIds) => {
       acquired = Array.from(shardIds)

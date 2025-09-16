@@ -1,7 +1,7 @@
 import { NodeFileSystem } from "@effect/platform-node"
 import { SqliteClient } from "@effect/sql-sqlite-node"
 import { describe, expect, it } from "@effect/vitest"
-import { Effect, Exit, Layer, Scope } from "effect"
+import { Effect, Layer } from "effect"
 import { FileSystem } from "effect/platform"
 import { Runner, RunnerAddress, RunnerStorage, ShardId, SqlRunnerStorage } from "effect/unstable/cluster"
 import { MysqlContainer } from "../fixtures/mysql2-utils.ts"
@@ -27,17 +27,12 @@ describe("SqlRunnerStorage", () => {
             groups: ["default"],
             version: 1
           })
-          const scope = Scope.makeUnsafe()
-          const machineId = yield* storage.register(runnerAddress1, runner).pipe(
-            Scope.provide(scope)
-          )
-          yield* storage.register(runnerAddress1, runner).pipe(
-            Scope.provide(scope)
-          )
+          const machineId = yield* storage.register(runner)
+          yield* storage.register(runner)
           expect(machineId).toEqual(1)
           expect(yield* storage.getRunners).toEqual([[runner, true]])
 
-          yield* Scope.close(scope, Exit.void)
+          yield* storage.unregister(runnerAddress1)
           expect(yield* storage.getRunners).toEqual([])
         }))
 

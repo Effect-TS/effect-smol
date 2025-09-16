@@ -14,7 +14,17 @@ const constDisableValidation = { disableValidation: true }
  * @since 4.0.0
  * @category Constructors
  */
-export const make = (group: string, id: number): ShardId => new ShardId({ group, id }, constDisableValidation)
+export const make = (group: string, id: number): ShardId => {
+  const key = `${group}:${id}`
+  let shardId = shardIdCache.get(key)
+  if (!shardId) {
+    shardId = new ShardId({ group, id }, constDisableValidation)
+    shardIdCache.set(key, shardId)
+  }
+  return shardId
+}
+
+const shardIdCache = new Map<string, ShardId>()
 
 /**
  * @since 4.0.0

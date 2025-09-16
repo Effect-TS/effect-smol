@@ -7,10 +7,9 @@ import {
   ClusterWorkflowEngine,
   MessageStorage,
   Runners,
+  RunnerStorage,
   Sharding,
-  ShardingConfig,
-  ShardManager,
-  ShardStorage
+  ShardingConfig
 } from "effect/unstable/cluster"
 import { Activity, DurableClock, DurableDeferred, Workflow } from "effect/unstable/workflow"
 import { WorkflowInstance } from "effect/unstable/workflow/WorkflowEngine"
@@ -242,8 +241,7 @@ const TestShardingConfig = ShardingConfig.layer({
 
 const TestWorkflowEngine = ClusterWorkflowEngine.layer.pipe(
   Layer.provideMerge(Sharding.layer),
-  Layer.provide(ShardManager.layerClientLocal),
-  Layer.provide(ShardStorage.layerMemory),
+  Layer.provide(RunnerStorage.layerMemory),
   Layer.provide(Runners.layerNoop),
   Layer.provideMerge(MessageStorage.layerMemory),
   Layer.provide(TestShardingConfig)

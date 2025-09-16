@@ -13,7 +13,6 @@ import * as Runners from "./Runners.ts"
 import * as RunnerStorage from "./RunnerStorage.ts"
 import * as Sharding from "./Sharding.ts"
 import { ShardingConfig } from "./ShardingConfig.ts"
-import * as SynchronizedClock from "./SynchronizedClock.ts"
 
 const constVoid = constant(Effect.void)
 
@@ -131,8 +130,7 @@ export const layerWithClients: Layer.Layer<
   | RunnerStorage.RunnerStorage
 > = layer.pipe(
   Layer.provideMerge(Sharding.layer),
-  Layer.provideMerge(Runners.layerRpc),
-  Layer.provideMerge(SynchronizedClock.layer)
+  Layer.provideMerge(Runners.layerRpc)
 )
 
 /**

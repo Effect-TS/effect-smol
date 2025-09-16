@@ -9,10 +9,9 @@ import {
   MessageStorage,
   RunnerAddress,
   Runners,
+  RunnerStorage,
   Sharding,
   ShardingConfig,
-  ShardManager,
-  ShardStorage,
   Snowflake
 } from "effect/unstable/cluster"
 import { TestEntity, TestEntityNoState, TestEntityState, User } from "./TestEntity.ts"
@@ -529,8 +528,7 @@ const TestShardingConfig = ShardingConfig.layer({
 
 const TestShardingWithoutState = TestEntityNoState.pipe(
   Layer.provideMerge(Sharding.layer),
-  Layer.provide(ShardManager.layerClientLocal),
-  Layer.provide(ShardStorage.layerMemory)
+  Layer.provide(RunnerStorage.layerMemory)
   // Layer.provide(Logger.minimumLogLevel(LogLevel.All)),
   // Layer.provideMerge(Logger.pretty)
 )
@@ -550,8 +548,7 @@ const TestSharding = TestShardingWithoutStorage.pipe(
 )
 
 const TestShardingWithoutEntities = Sharding.layer.pipe(
-  Layer.provide(ShardManager.layerClientLocal),
-  Layer.provide(ShardStorage.layerMemory),
+  Layer.provide(RunnerStorage.layerMemory),
   Layer.provide(Runners.layerNoop),
   Layer.provideMerge(MessageStorage.layerMemory),
   Layer.provide(TestShardingConfig)

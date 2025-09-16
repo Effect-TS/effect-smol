@@ -171,8 +171,3 @@ export * as SqlMessageStorage from "./SqlMessageStorage.ts"
  * @since 4.0.0
  */
 export * as SqlRunnerStorage from "./SqlRunnerStorage.ts"
-
-/**
- * @since 4.0.0
- */
-export * as SynchronizedClock from "./SynchronizedClock.ts"

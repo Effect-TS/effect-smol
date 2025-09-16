@@ -19,7 +19,6 @@ import * as RunnerServer from "./RunnerServer.ts"
 import type { RunnerStorage } from "./RunnerStorage.ts"
 import * as Sharding from "./Sharding.ts"
 import type * as ShardingConfig from "./ShardingConfig.ts"
-import * as SynchronizedClock from "./SynchronizedClock.ts"
 
 /**
  * @since 4.0.0
@@ -62,8 +61,7 @@ export const layerClient: Layer.Layer<
   never,
   ShardingConfig.ShardingConfig | Runners.RpcClientProtocol | MessageStorage | RunnerStorage
 > = Sharding.layer.pipe(
-  Layer.provideMerge(Runners.layerRpc),
-  Layer.provideMerge(SynchronizedClock.layer)
+  Layer.provideMerge(Runners.layerRpc)
 )
 
 /**
