@@ -39,12 +39,12 @@ const TrieProto: TR.Trie<unknown> = {
     }
     return hash
   },
-  [Equal.symbol]<V>(this: TrieImpl<V>, that: unknown): boolean {
+  [Equal.symbol]<V>(this: TrieImpl<V>, that: unknown, ctx: Equal.EqualContext): boolean {
     if (isTrie(that)) {
       const entries = Array.from(that)
       return Array.from(this).every((itemSelf, i) => {
         const itemThat = entries[i]
-        return Equal.equals(itemSelf[0], itemThat[0]) && Equal.equals(itemSelf[1], itemThat[1])
+        return ctx.equals(itemSelf[0], itemThat[0]) && ctx.equals(itemSelf[1], itemThat[1])
       })
     }
     return false

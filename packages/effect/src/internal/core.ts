@@ -82,12 +82,12 @@ export const StructuralProto = {
   [Hash.symbol](this: any, ctx: Hash.HashContext): number {
     return ctx.structureKeys(this, Object.keys(this))
   },
-  [Equal.symbol](this: any, that: any): boolean {
+  [Equal.symbol](this: any, that: any, ctx: Equal.EqualContext): boolean {
     const selfKeys = Object.keys(this)
     const thatKeys = Object.keys(that)
     if (selfKeys.length !== thatKeys.length) return false
     for (let i = 0; i < selfKeys.length; i++) {
-      if (selfKeys[i] !== thatKeys[i] && !Equal.equals(this[selfKeys[i]], that[selfKeys[i]])) {
+      if (selfKeys[i] !== thatKeys[i] && !ctx.equals(this[selfKeys[i]], that[selfKeys[i]])) {
         return false
       }
     }
@@ -172,11 +172,11 @@ export class CauseImpl<E> implements Cause.Cause<E> {
   [NodeInspectSymbol]() {
     return this.toJSON()
   }
-  [Equal.symbol](that: any): boolean {
+  [Equal.symbol](that: any, ctx: Equal.EqualContext): boolean {
     return (
       isCause(that) &&
       this.failures.length === that.failures.length &&
-      this.failures.every((e, i) => Equal.equals(e, that.failures[i]))
+      this.failures.every((e, i) => ctx.equals(e, that.failures[i]))
     )
   }
   [Hash.symbol](context: Hash.HashContext): number {
@@ -218,7 +218,7 @@ export abstract class FailureBase<Tag extends string> implements Cause.Cause.Fai
   }
 
   abstract toJSON(): unknown
-  abstract [Equal.symbol](that: any): boolean
+  abstract [Equal.symbol](that: any, ctx: Equal.EqualContext): boolean
   abstract [Hash.symbol](context: Hash.HashContext): number
 
   toString() {
@@ -257,11 +257,11 @@ export class Fail<E> extends FailureBase<"Fail"> implements Cause.Fail<E> {
       new Map([...this.annotations, [tag.key, value]])
     ) as this
   }
-  [Equal.symbol](that: any): boolean {
+  [Equal.symbol](that: any, ctx: Equal.EqualContext): boolean {
     return (
       failureIsFail(that) &&
-      Equal.equals(this.error, that.error) &&
-      Equal.equals(this.annotations, that.annotations)
+      ctx.equals(this.error, that.error) &&
+      ctx.equals(this.annotations, that.annotations)
     )
   }
   [Hash.symbol](context: Hash.HashContext): number {
@@ -309,11 +309,11 @@ export class Die extends FailureBase<"Die"> implements Cause.Die {
       new Map([...this.annotations, [tag.key, value]])
     ) as this
   }
-  [Equal.symbol](that: any): boolean {
+  [Equal.symbol](that: any, ctx: Equal.EqualContext): boolean {
     return (
       failureIsDie(that) &&
-      Equal.equals(this.defect, that.defect) &&
-      Equal.equals(this.annotations, that.annotations)
+      ctx.equals(this.defect, that.defect) &&
+      ctx.equals(this.annotations, that.annotations)
     )
   }
   [Hash.symbol](context: Hash.HashContext): number {
@@ -489,11 +489,11 @@ export const makeExit = <
         [options.prop]: this[args]
       }
     },
-    [Equal.symbol](this: any, that: any): boolean {
+    [Equal.symbol](this: any, that: any, ctx: Equal.EqualContext): boolean {
       return (
         isExit(that) &&
         that._tag === this._tag &&
-        Equal.equals(this[args], (that as any)[args])
+        ctx.equals(this[args], (that as any)[args])
       )
     },
     [Hash.symbol](this: any, context: Hash.HashContext): number {

@@ -21,9 +21,9 @@ const CommonProto = {
 const SomeProto = Object.assign(Object.create(CommonProto), {
   _tag: "Some",
   _op: "Some",
-  [Equal.symbol]<A>(this: Option.Some<A>, that: unknown): boolean {
+  [Equal.symbol]<A>(this: Option.Some<A>, that: unknown, ctx: Equal.EqualContext): boolean {
     return (
-      isOption(that) && isSome(that) && Equal.equals(this.value, that.value)
+      isOption(that) && isSome(that) && ctx.equals(this.value, that.value)
     )
   },
   [Hash.symbol]<A>(this: Option.Some<A>, context: Hash.HashContext) {

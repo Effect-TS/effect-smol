@@ -351,7 +351,7 @@ const Proto: Omit<ServiceMap<never>, "mapUnsafe"> = {
       services: Array.from(this.mapUnsafe).map(([key, value]) => ({ key, value }))
     }
   },
-  [Equal.symbol]<A>(this: ServiceMap<A>, that: unknown): boolean {
+  [Equal.symbol]<A>(this: ServiceMap<A>, that: unknown, ctx: Equal.EqualContext): boolean {
     if (
       !isServiceMap(that)
       || this.mapUnsafe.size !== that.mapUnsafe.size
@@ -359,7 +359,7 @@ const Proto: Omit<ServiceMap<never>, "mapUnsafe"> = {
     for (const k of this.mapUnsafe.keys()) {
       if (
         !that.mapUnsafe.has(k) ||
-        !Equal.equals(this.mapUnsafe.get(k), that.mapUnsafe.get(k))
+        !ctx.equals(this.mapUnsafe.get(k), that.mapUnsafe.get(k))
       ) {
         return false
       }

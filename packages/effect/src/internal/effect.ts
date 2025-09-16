@@ -222,10 +222,11 @@ export const causeMerge: {
 } = dual(
   2,
   <E, E2>(self: Cause.Cause<E>, that: Cause.Cause<E2>): Cause.Cause<E | E2> => {
-    const newCause = new CauseImpl<E | E2>(
-      Arr.union(self.failures, that.failures)
-    )
-    return Equal.equals(self, newCause) ? self : newCause
+    const selfEmpty = self.failures.length === 0
+    const thatEmpty = that.failures.length === 0
+    if (thatEmpty) return self
+    if (selfEmpty) return that
+    return new CauseImpl<E | E2>(Arr.union(self.failures, that.failures))
   }
 )
 

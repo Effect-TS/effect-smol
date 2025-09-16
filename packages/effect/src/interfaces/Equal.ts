@@ -44,7 +44,7 @@ export const symbol = "~effect/interfaces/Equal"
  * @since 2.0.0
  */
 export interface Equal extends Hash.Hash {
-  [symbol](that: Equal): boolean
+  [symbol](that: Equal, context: EqualContext): boolean
 }
 
 /**
@@ -188,7 +188,7 @@ function compareObjects(self: object, that: object): boolean {
   }
   return withVisitedTracking(self, that, () => {
     if (bothEquals) {
-      return (self as any)[symbol](that)
+      return (self as any)[symbol](that, context)
     } else if (Array.isArray(self)) {
       if (!Array.isArray(that) || self.length !== that.length) {
         return false
@@ -415,4 +415,20 @@ export const byReference = <T extends object>(obj: T): T => byReferenceUnsafe(ne
 export const byReferenceUnsafe = <T extends object>(obj: T): T => {
   byReferenceInstances.add(obj)
   return obj
+}
+
+/**
+ * @category EqualContext
+ * @since 4.0.0
+ */
+export interface EqualContext {
+  readonly equals: (a: any, b: any) => boolean
+}
+
+/**
+ * @category EqualContext
+ * @since 4.0.0
+ */
+export const context: EqualContext = {
+  equals: compareBoth
 }
