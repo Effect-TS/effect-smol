@@ -112,9 +112,9 @@ export class Interrupt extends FailureBase<"Interrupt"> implements Cause.Interru
       this.annotations === that.annotations
     )
   }
-  [Hash.symbol](): number {
-    return Hash.combine(Hash.string(`${this._tag}:${this.fiberId}`))(
-      Hash.random(this.annotations)
+  [Hash.symbol](context: Hash.HashContext): number {
+    return context.combine(context.string(`${this._tag}:${this.fiberId}`))(
+      context.random(this.annotations)
     )
   }
 }
@@ -222,10 +222,11 @@ export const causeMerge: {
 } = dual(
   2,
   <E, E2>(self: Cause.Cause<E>, that: Cause.Cause<E2>): Cause.Cause<E | E2> => {
-    const newCause = new CauseImpl<E | E2>(
-      Arr.union(self.failures, that.failures)
-    )
-    return Equal.equals(self, newCause) ? self : newCause
+    const selfEmpty = self.failures.length === 0
+    const thatEmpty = that.failures.length === 0
+    if (thatEmpty) return self
+    if (selfEmpty) return that
+    return new CauseImpl<E | E2>(Arr.union(self.failures, that.failures))
   }
 )
 

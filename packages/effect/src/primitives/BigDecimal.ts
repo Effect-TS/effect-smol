@@ -55,9 +55,9 @@ export interface BigDecimal extends Equal.Equal, Pipeable, Inspectable {
 
 const BigDecimalProto: Omit<BigDecimal, "value" | "scale" | "normalized"> = {
   [TypeId]: TypeId,
-  [Hash.symbol](this: BigDecimal): number {
+  [Hash.symbol](this: BigDecimal, context: Hash.HashContext): number {
     const normalized = normalize(this)
-    return Hash.combine(Hash.hash(normalized.value), Hash.number(normalized.scale))
+    return context.combine(context.hash(normalized.value), context.number(normalized.scale))
   },
   [Equal.symbol](this: BigDecimal, that: unknown): boolean {
     return isBigDecimal(that) && equals(this, that)

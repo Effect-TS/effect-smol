@@ -135,7 +135,7 @@ const ProtoGraph = {
   [NodeInspectSymbol](this: Graph<any, any>) {
     return this.toJSON()
   },
-  [Equal.symbol](this: Graph<any, any>, that: Equal.Equal): boolean {
+  [Equal.symbol](this: Graph<any, any>, that: Equal.Equal, ctx: Equal.EqualContext): boolean {
     if (isGraph(that)) {
       if (
         this.nodes.size !== that.nodes.size ||
@@ -150,7 +150,7 @@ const ProtoGraph = {
           return false
         }
         const otherNodeData = that.nodes.get(nodeIndex)!
-        if (!Equal.equals(nodeData, otherNodeData)) {
+        if (!ctx.equals(nodeData, otherNodeData)) {
           return false
         }
       }
@@ -160,7 +160,7 @@ const ProtoGraph = {
           return false
         }
         const otherEdge = that.edges.get(edgeIndex)!
-        if (!Equal.equals(edgeData, otherEdge)) {
+        if (!ctx.equals(edgeData, otherEdge)) {
           return false
         }
       }
@@ -168,16 +168,16 @@ const ProtoGraph = {
     }
     return false
   },
-  [Hash.symbol](this: Graph<any, any>): number {
-    let hash = Hash.string("Graph")
-    hash = hash ^ Hash.string(this.type)
-    hash = hash ^ Hash.number(this.nodes.size)
-    hash = hash ^ Hash.number(this.edges.size)
+  [Hash.symbol](this: Graph<any, any>, context: Hash.HashContext): number {
+    let hash = context.string("Graph")
+    hash = hash ^ context.string(this.type)
+    hash = hash ^ context.number(this.nodes.size)
+    hash = hash ^ context.number(this.edges.size)
     for (const [nodeIndex, nodeData] of this.nodes) {
-      hash = hash ^ (Hash.hash(nodeIndex) + Hash.hash(nodeData))
+      hash = hash ^ (context.hash(nodeIndex) + context.hash(nodeData))
     }
     for (const [edgeIndex, edgeData] of this.edges) {
-      hash = hash ^ (Hash.hash(edgeIndex) + Hash.hash(edgeData))
+      hash = hash ^ (context.hash(edgeIndex) + context.hash(edgeData))
     }
     return hash
   },

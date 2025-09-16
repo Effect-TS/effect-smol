@@ -605,12 +605,8 @@ class HashMapImpl<K, V> implements HashMap<K, V> {
     }
     return false
   }
-  [Hash.symbol](): number {
-    let hash = Hash.string("HashMap")
-    for (const [key, value] of this) {
-      hash = hash ^ (Hash.hash(key) + Hash.hash(value))
-    }
-    return hash
+  [Hash.symbol](context: Hash.HashContext): number {
+    return context.combine(context.string("HashMap"), context.map(this))
   }
   [NodeInspectSymbol](): unknown {
     return toJson(this)

@@ -27,12 +27,13 @@ const SqlRequestProto = {
   ...Request.Class.prototype,
   [Equal.symbol](
     this: SqlRequest<any, any, any, any>,
-    that: SqlRequest<any, any, any, any>
+    that: SqlRequest<any, any, any, any>,
+    ctx: Equal.EqualContext
   ): boolean {
-    return Equal.equals(this.payload, that.payload)
+    return ctx.equals(this.payload, that.payload)
   },
-  [Hash.symbol](this: SqlRequest<any, any, any, any>): number {
-    return Hash.hash(this.payload)
+  [Hash.symbol](this: SqlRequest<any, any, any, any>, context: Hash.HashContext): number {
+    return context.hash(this.payload)
   }
 }
 

@@ -203,8 +203,8 @@ export const isEntity = (u: unknown): u is Any => Predicate.hasProperty(u, TypeI
 
 const Proto = {
   [TypeId]: TypeId,
-  [Hash.symbol](this: Entity<string, any>): number {
-    return Hash.structure({ type: this.type })
+  [Hash.symbol](this: Entity<string, any>, context: Hash.HashContext): number {
+    return context.structure({ type: this.type })
   },
   [Equal.symbol](this: Entity<string, any>, that: Equal.Equal): boolean {
     return isEntity(that) && this.type === that.type
