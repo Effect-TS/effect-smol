@@ -389,7 +389,7 @@ export class SchemaError {
   /**
    * @since 4.0.0
    */
-  readonly _tag: "SchemaError" = "SchemaError" as const
+  readonly _tag = "SchemaError"
   /**
    * @since 4.0.0
    */

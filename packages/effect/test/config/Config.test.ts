@@ -18,9 +18,7 @@ async function assertFailure<T>(config: Config.Config<T>, provider: ConfigProvid
       "SourceError",
       (e) =>
         Effect.fail(
-          new Schema.SchemaError(
-            new Issue.InvalidValue(Option.none(), { message: `SourceError: ${e.message}` })
-          )
+          new Schema.SchemaError(new Issue.InvalidValue(Option.none(), { message: `SourceError: ${e.message}` }))
         )
     )
   )

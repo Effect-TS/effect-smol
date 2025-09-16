@@ -89,6 +89,9 @@ export class Interrupt extends FailureBase<"Interrupt"> implements Cause.Interru
     super("Interrupt", annotations, "Interrupted")
     this.fiberId = fiberId
   }
+  override toString() {
+    return `Interrupt(${this.fiberId})`
+  }
   toJSON(): unknown {
     return {
       _tag: "Interrupt",

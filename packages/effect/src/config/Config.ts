@@ -380,9 +380,7 @@ export function schema<T, E>(codec: Schema.Codec<T, E>, path?: string | ConfigPr
     go(serializerEncodedAST, provider, defaultPath).pipe(
       Effect.flatMapEager((stringPojo) =>
         decodeUnknownEffect(stringPojo).pipe(Effect.mapErrorEager((issue) =>
-          new Schema.SchemaError(
-            defaultPath.length > 0 ? new Issue.Pointer(defaultPath, issue) : issue
-          )
+          new Schema.SchemaError(defaultPath.length > 0 ? new Issue.Pointer(defaultPath, issue) : issue)
         ))
       )
     )
