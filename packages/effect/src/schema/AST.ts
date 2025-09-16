@@ -549,9 +549,10 @@ export class Enums extends AbstractParser {
   }
   /** @internal */
   parser() {
+    const values = new Set<unknown>(this.enums.map(([, v]) => v))
     return fromRefinement(
       this,
-      (input): input is typeof this.enums[number][1] => this.enums.some(([_, value]) => value === input)
+      (input): input is typeof this.enums[number][1] => values.has(input)
     )
   }
   goStringPojo(): AST {
