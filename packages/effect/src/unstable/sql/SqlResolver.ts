@@ -32,7 +32,7 @@ const SqlRequestProto = {
     return Equal.equals(this.payload, that.payload)
   },
   [Hash.symbol](this: SqlRequest<any, any, any, any>): number {
-    return Hash.cached(this, () => Hash.hash(this.payload))
+    return Hash.hash(this.payload)
   }
 }
 

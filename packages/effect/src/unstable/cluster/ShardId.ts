@@ -3,6 +3,7 @@
  */
 import * as Equal from "../../interfaces/Equal.ts"
 import * as Hash from "../../interfaces/Hash.ts"
+import * as PrimaryKey from "../../interfaces/PrimaryKey.ts"
 import * as S from "../../schema/Schema.ts"
 
 const TypeId = "~effect/cluster/ShardId"
@@ -39,7 +40,14 @@ export class ShardId extends S.Class<ShardId>(TypeId)({
    * @since 4.0.0
    */
   [Hash.symbol](): number {
-    return Hash.cached(this, () => Hash.string(this.toString()))
+    return Hash.string(this.toString())
+  }
+
+  /**
+   * @since 4.0.0
+   */
+  [PrimaryKey.symbol](): string {
+    return this.toString()
   }
 
   /**

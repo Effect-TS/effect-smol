@@ -471,7 +471,7 @@ export const unbounded = <A, E = never>(): Effect<Queue<A, E>> => make()
  * @category offering
  * @since 4.0.0
  */
-export const offer = <A, E>(self: Queue<A, E>, message: A): Effect<boolean> =>
+export const offer = <A, E>(self: Queue<A, E>, message: Types.NoInfer<A>): Effect<boolean> =>
   internalEffect.suspend(() => {
     if (self.state._tag !== "Open") {
       return exitFalse
@@ -526,7 +526,7 @@ export const offer = <A, E>(self: Queue<A, E>, message: A): Effect<boolean> =>
  * @category offering
  * @since 4.0.0
  */
-export const offerUnsafe = <A, E>(self: Queue<A, E>, message: A): boolean => {
+export const offerUnsafe = <A, E>(self: Queue<A, E>, message: Types.NoInfer<A>): boolean => {
   if (self.state._tag !== "Open") {
     return false
   } else if (self.messages.length >= self.capacity) {

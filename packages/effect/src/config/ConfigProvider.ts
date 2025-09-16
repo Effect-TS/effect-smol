@@ -13,7 +13,7 @@ import * as FileSystem from "../platform/FileSystem.ts"
 import * as Path_ from "../platform/Path.ts"
 import type { PlatformError } from "../platform/PlatformError.ts"
 import * as Str from "../primitives/String.ts"
-import type { StringLeafJson } from "../schema/Serializer.ts"
+import type { StringPojo } from "../schema/Serializer.ts"
 import type { Scope } from "../Scope.ts"
 import * as ServiceMap from "../ServiceMap.ts"
 
@@ -233,21 +233,21 @@ export const layerAdd = <E = never, R = never>(
   )
 
 // -----------------------------------------------------------------------------
-// fromStringLeafJson
+// fromStringPojo
 // -----------------------------------------------------------------------------
 
 /**
- * Create a ConfigProvider that reads values from a string-leaf JSON object.
+ * Create a ConfigProvider that reads values from a string-leaf POJO object.
  *
  * @category ConfigProviders
  * @since 4.0.0
  */
-export function fromStringLeafJson(root: StringLeafJson): ConfigProvider {
+export function fromStringPojo(root: StringPojo): ConfigProvider {
   return make((path) => Effect.succeed(describeStat(resolvePath(root, path))))
 }
 
-function resolvePath(input: StringLeafJson, path: Path): StringLeafJson | undefined {
-  let out: StringLeafJson = input
+function resolvePath(input: StringPojo, path: Path): StringPojo | undefined {
+  let out: StringPojo = input
 
   for (const seg of path) {
     if (Predicate.isString(out)) return undefined
@@ -266,7 +266,7 @@ function resolvePath(input: StringLeafJson, path: Path): StringLeafJson | undefi
   return out
 }
 
-function describeStat(value: StringLeafJson | undefined): Stat | undefined {
+function describeStat(value: StringPojo | undefined): Stat | undefined {
   if (value === undefined) return undefined
   if (Predicate.isString(value)) return leaf(value)
   if (Array.isArray(value)) return array(value.length)
@@ -284,20 +284,20 @@ function describeStat(value: StringLeafJson | undefined): Stat | undefined {
  * @since 4.0.0
  */
 export function fromJson(root: unknown): ConfigProvider {
-  return fromStringLeafJson(asStringLeafJson(root))
+  return fromStringPojo(asStringPojo(root))
 }
 
-function asStringLeafJson(u: unknown): StringLeafJson {
+function asStringPojo(u: unknown): StringPojo {
   if (u === null || u === undefined) return ""
   if (Predicate.isString(u)) return u
   if (Predicate.isNumber(u)) return String(u)
   if (Predicate.isBoolean(u)) return String(u)
-  if (Array.isArray(u)) return u.map(asStringLeafJson)
+  if (Array.isArray(u)) return u.map(asStringPojo)
 
   if (Predicate.isObject(u)) {
-    const result: Record<string, StringLeafJson> = {}
+    const result: Record<string, StringPojo> = {}
     for (const [key, value] of Object.entries(u)) {
-      result[key] = asStringLeafJson(value)
+      result[key] = asStringPojo(value)
     }
     return result
   }

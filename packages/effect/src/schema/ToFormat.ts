@@ -3,8 +3,8 @@
  */
 import type { Format } from "../data/Format.ts"
 import * as Option from "../data/Option.ts"
+import { memoize } from "../Function.ts"
 import { format, formatPropertyKey } from "../interfaces/Inspectable.ts"
-import { memoizeThunk } from "../internal/schema/util.ts"
 import type * as Annotations from "./Annotations.ts"
 import * as AST from "./AST.ts"
 import type * as Schema from "./Schema.ts"
@@ -183,7 +183,7 @@ export const defaultReducerAlg: AST.ReducerAlg<Format<any>> = {
     return format(t)
   },
   Suspend: (ast, reduce) => {
-    const get = memoizeThunk(() => reduce(ast.thunk()))
+    const get = AST.memoizeThunk(() => reduce(ast.thunk()))
     return (t) => get()(t)
   }
 }
@@ -193,7 +193,7 @@ export const defaultReducerAlg: AST.ReducerAlg<Format<any>> = {
  * @since 4.0.0
  */
 export function getReducer(alg: AST.ReducerAlg<Format<any>>) {
-  const reducer = AST.memoize(AST.getReducer<Format<any>>(alg))
+  const reducer = memoize(AST.getReducer<Format<any>>(alg))
   return <T>(schema: Schema.Schema<T>): Format<T> => {
     return reducer(schema.ast)
   }

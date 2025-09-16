@@ -24,7 +24,7 @@ export interface HashSet<out V> extends Iterable<V>, Equal.Equal, Pipeable, Insp
 
 const HashSetProto: Omit<HashSet<unknown>, HashSetTypeId> = {
   [Hash.symbol]<V>(this: HashSet<V>): number {
-    return Hash.cached(this, () => Hash.hash(HashSetTypeId))
+    return Hash.hash(HashSetTypeId)
   },
   [Equal.symbol]<V>(this: HashSet<V>, that: unknown): boolean {
     return isHashSet(that) && size(this) === size(that) && every(this, (value) => has(that, value))

@@ -78,6 +78,24 @@ export const PipeInspectableProto = {
 }
 
 /** @internal */
+export const StructuralProto = {
+  [Hash.symbol](this: any): number {
+    return Hash.structureKeys(this, Object.keys(this))
+  },
+  [Equal.symbol](this: any, that: any): boolean {
+    const selfKeys = Object.keys(this)
+    const thatKeys = Object.keys(that)
+    if (selfKeys.length !== thatKeys.length) return false
+    for (let i = 0; i < selfKeys.length; i++) {
+      if (selfKeys[i] !== thatKeys[i] && !Equal.equals(this[selfKeys[i]], that[selfKeys[i]])) {
+        return false
+      }
+    }
+    return true
+  }
+}
+
+/** @internal */
 export const YieldableProto = {
   [Symbol.iterator]() {
     return new SingleShotGen(this) as any
@@ -103,30 +121,6 @@ export const EffectProto = {
   }
 }
 
-/** @internal */
-export const StructuralPrototype: Equal.Equal = {
-  [Hash.symbol]() {
-    return Hash.cached(this, () => Hash.structure(this))
-  },
-  [Equal.symbol](this: Equal.Equal, that: Equal.Equal) {
-    const selfKeys = Object.keys(this)
-    const thatKeys = Object.keys(that as object)
-    if (selfKeys.length !== thatKeys.length) {
-      return false
-    }
-    for (const key of selfKeys) {
-      if (
-        !(
-          key in (that as object) &&
-          Equal.equals((this as any)[key], (that as any)[key])
-        )
-      ) {
-        return false
-      }
-    }
-    return true
-  }
-}
 /** @internal */
 export const isEffect = (u: unknown): u is Effect.Effect<any, any, any> => hasProperty(u, EffectTypeId)
 
@@ -186,7 +180,7 @@ export class CauseImpl<E> implements Cause.Cause<E> {
     )
   }
   [Hash.symbol](): number {
-    return Hash.cached(this, () => Hash.array(this.failures))
+    return Hash.array(this.failures)
   }
 }
 
@@ -278,10 +272,9 @@ export class Fail<E> extends FailureBase<"Fail"> implements Cause.Fail<E> {
     )
   }
   [Hash.symbol](): number {
-    return Hash.cached(this, () =>
-      Hash.combine(Hash.string(this._tag))(
-        Hash.combine(Hash.hash(this.error))(Hash.hash(this.annotations))
-      ))
+    return Hash.combine(Hash.string(this._tag))(
+      Hash.combine(Hash.hash(this.error))(Hash.hash(this.annotations))
+    )
   }
 }
 
@@ -331,10 +324,9 @@ export class Die extends FailureBase<"Die"> implements Cause.Die {
     )
   }
   [Hash.symbol](): number {
-    return Hash.cached(this, () =>
-      Hash.combine(Hash.string(this._tag))(
-        Hash.combine(Hash.hash(this.defect))(Hash.hash(this.annotations))
-      ))
+    return Hash.combine(Hash.string(this._tag))(
+      Hash.combine(Hash.hash(this.defect))(Hash.hash(this.annotations))
+    )
   }
 }
 
@@ -507,12 +499,12 @@ export const makeExit = <
     [Equal.symbol](this: any, that: any): boolean {
       return (
         isExit(that) &&
-        that._tag === options.op &&
+        that._tag === this._tag &&
         Equal.equals(this[args], (that as any)[args])
       )
     },
     [Hash.symbol](this: any): number {
-      return Hash.cached(this, () => Hash.combine(Hash.string(options.op))(Hash.hash(this[args])))
+      return Hash.combine(Hash.string(options.op), Hash.hash(this[args]))
     }
   }
   return function(value: unknown) {
@@ -592,7 +584,7 @@ export const YieldableError: new(
       return exitFail(this)
     }
   }
-  Object.assign(YieldableError.prototype, StructuralPrototype, YieldableProto)
+  Object.assign(YieldableError.prototype, YieldableProto)
   return YieldableError as any
 })()
 

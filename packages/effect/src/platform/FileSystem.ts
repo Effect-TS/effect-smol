@@ -39,7 +39,6 @@
  */
 import * as Arr from "../collections/Array.ts"
 import * as Brand from "../data/Brand.ts"
-import * as Data from "../data/Data.ts"
 import * as UndefinedOr from "../data/UndefinedOr.ts"
 import * as Effect from "../Effect.ts"
 import { pipe } from "../Function.ts"
@@ -1225,36 +1224,6 @@ export declare namespace WatchEvent {
     readonly path: string
   }
 }
-
-/**
- * Creates a file creation watch event.
- *
- * @since 4.0.0
- * @category constructor
- */
-export const WatchEventCreate: Data.Case.Constructor<WatchEvent.Create, "_tag"> = Data.tagged<WatchEvent.Create>(
-  "Create"
-)
-
-/**
- * Creates a file update watch event.
- *
- * @since 4.0.0
- * @category constructor
- */
-export const WatchEventUpdate: Data.Case.Constructor<WatchEvent.Update, "_tag"> = Data.tagged<WatchEvent.Update>(
-  "Update"
-)
-
-/**
- * Creates a file removal watch event.
- *
- * @since 4.0.0
- * @category constructor
- */
-export const WatchEventRemove: Data.Case.Constructor<WatchEvent.Remove, "_tag"> = Data.tagged<WatchEvent.Remove>(
-  "Remove"
-)
 
 /**
  * Service key for file system watch backend implementations.

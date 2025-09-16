@@ -4,6 +4,7 @@
 import * as Equal from "../../interfaces/Equal.ts"
 import * as Hash from "../../interfaces/Hash.ts"
 import { NodeInspectSymbol } from "../../interfaces/Inspectable.ts"
+import * as PrimaryKey from "../../interfaces/PrimaryKey.ts"
 import * as Schema from "../../schema/Schema.ts"
 
 const TypeId = "~effect/cluster/RunnerAddress"
@@ -32,7 +33,14 @@ export class RunnerAddress extends Schema.Class<RunnerAddress>(TypeId)({
    * @since 4.0.0
    */
   [Hash.symbol]() {
-    return Hash.cached(this, () => Hash.string(this.toString()))
+    return Hash.string(`${this.host}:${this.port}`)
+  }
+
+  /**
+   * @since 4.0.0
+   */
+  [PrimaryKey.symbol](): string {
+    return `${this.host}:${this.port}`
   }
 
   /**

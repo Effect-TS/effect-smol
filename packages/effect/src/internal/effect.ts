@@ -109,15 +109,14 @@ export class Interrupt extends FailureBase<"Interrupt"> implements Cause.Interru
   [Equal.symbol](that: any): boolean {
     return (
       failureIsInterrupt(that) &&
-      Equal.equals(this.fiberId, that.fiberId) &&
-      Equal.equals(this.annotations, that.annotations)
+      this.fiberId === that.fiberId &&
+      this.annotations === that.annotations
     )
   }
   [Hash.symbol](): number {
-    return Hash.cached(this, () =>
-      Hash.combine(Hash.string(this._tag))(
-        Hash.combine(Hash.hash(this.fiberId))(Hash.hash(this.annotations))
-      ))
+    return Hash.combine(Hash.string(`${this._tag}:${this.fiberId}`))(
+      Hash.random(this.annotations)
+    )
   }
 }
 
@@ -232,7 +231,7 @@ export const causeMerge: {
     const newCause = new CauseImpl<E | E2>(
       Arr.union(self.failures, that.failures)
     )
-    return self[Equal.symbol](newCause) ? self : newCause
+    return Equal.equals(self, newCause) ? self : newCause
   }
 )
 
@@ -4032,6 +4031,28 @@ export const runFork: <A, E>(
   effect: Effect.Effect<A, E, never>,
   options?: Effect.RunOptions | undefined
 ) => Fiber.Fiber<A, E> = runForkWith(ServiceMap.empty())
+
+/** @internal */
+export const runCallbackWith = <R>(services: ServiceMap.ServiceMap<R>) => {
+  const runFork = runForkWith(services)
+  return <A, E>(
+    effect: Effect.Effect<A, E, R>,
+    options?:
+      | Effect.RunOptions & {
+        readonly onExit: (exit: Exit.Exit<A, E>) => void
+      }
+      | undefined
+  ): (interruptor?: number | undefined) => void => {
+    const fiber = runFork(effect, options)
+    if (options?.onExit) {
+      fiber.addObserver(options.onExit)
+    }
+    return (interruptor) => fiber.interruptUnsafe(interruptor)
+  }
+}
+
+/** @internal */
+export const runCallback = runCallbackWith(ServiceMap.empty())
 
 /** @internal */
 export const runPromiseExitWith = <R>(services: ServiceMap.ServiceMap<R>) => {

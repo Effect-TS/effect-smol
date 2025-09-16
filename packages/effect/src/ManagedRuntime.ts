@@ -78,17 +78,21 @@ export interface ManagedRuntime<in R, out ER> {
    */
   readonly runSync: <A, E>(effect: Effect.Effect<A, E, R>) => A
 
-  // /**
-  //  * Executes the effect asynchronously, eventually passing the exit value to
-  //  * the specified callback.
-  //  *
-  //  * This method is effectful and should only be invoked at the edges of your
-  //  * program.
-  //  */
-  // readonly runCallback: <A, E>(
-  //   effect: Effect.Effect<A, E, R>,
-  //   options?: Runtime.RunCallbackOptions<A, E | ER> | undefined
-  // ) => Runtime.Cancel<A, E | ER>
+  /**
+   * Executes the effect asynchronously, eventually passing the exit value to
+   * the specified callback.
+   *
+   * This method is effectful and should only be invoked at the edges of your
+   * program.
+   */
+  readonly runCallback: <A, E>(
+    effect: Effect.Effect<A, E, R>,
+    options?:
+      | Effect.RunOptions & {
+        readonly onExit: (exit: Exit.Exit<A, E | ER>) => void
+      }
+      | undefined
+  ) => (interruptor?: number | undefined) => void
 
   /**
    * Runs the `Effect`, returning a JavaScript `Promise` that will be resolved
@@ -205,6 +209,16 @@ export const make = <R, ER>(
       return self.cachedServices === undefined ?
         Effect.runFork(provide(self, effect), options) :
         Effect.runForkWith(self.cachedServices)(effect, options)
+    },
+    runCallback<A, E>(
+      effect: Effect.Effect<A, E, R>,
+      options?: Effect.RunOptions & {
+        readonly onExit: (exit: Exit.Exit<A, E | ER>) => void
+      }
+    ): (interruptor?: number | undefined) => void {
+      return self.cachedServices === undefined ?
+        Effect.runCallback(provide(self, effect), options) :
+        Effect.runCallbackWith(self.cachedServices)(effect, options)
     },
     runSyncExit<A, E>(effect: Effect.Effect<A, E, R>): Exit.Exit<A, E | ER> {
       return self.cachedServices === undefined ?

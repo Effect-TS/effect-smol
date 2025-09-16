@@ -16,13 +16,13 @@ export function getNativeClassSchema<C extends new(...args: any) => any, S exten
     readonly encoding: S
     readonly annotations?: Annotations.Declaration<InstanceType<C>, readonly []>
   }
-): Schema.decodeTo<Schema.instanceOf<InstanceType<C>>, S> {
+): Schema.decodeTo<Schema.instanceOf<InstanceType<C>, S["Iso"]>, S> {
   const transformation = Transformation.transform<InstanceType<C>, S["Type"]>({
     decode: (props) => new constructor(props),
     encode: identity
   })
   return Schema.instanceOf(constructor, {
-    defaultJsonSerializer: () => Schema.link<InstanceType<C>>()(options.encoding, transformation),
+    defaultIsoSerializer: () => Schema.link<InstanceType<C>>()(options.encoding, transformation),
     ...options.annotations
   }).pipe(Schema.encodeTo(options.encoding, transformation))
 }

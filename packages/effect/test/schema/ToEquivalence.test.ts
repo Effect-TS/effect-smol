@@ -88,7 +88,7 @@ describe("ToEquivalence", () => {
       const equivalence = ToEquivalence.make(schema)
       const a = {}
       assertTrue(equivalence(a, a))
-      assertFalse(equivalence({}, {}))
+      assertTrue(equivalence({}, {})) // Now supports structural equality
     })
 
     it("required fields", () => {

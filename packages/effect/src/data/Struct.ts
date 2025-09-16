@@ -346,13 +346,11 @@ export const renameKeys: {
  *
  * @example
  * ```ts
- * import { Struct } from "effect/data"
- * import * as S from "effect/primitives/String"
- * import * as N from "effect/primitives/Number"
+ * import { Struct, Equivalence } from "effect/data"
  *
  * const PersonEquivalence = Struct.getEquivalence({
- *   name: S.Equivalence,
- *   age: N.Equivalence
+ *   name: Equivalence.strict<string>(),
+ *   age: Equivalence.strict<number>()
  * })
  *
  * console.log(PersonEquivalence({ name: "John", age: 25 }, { name: "John", age: 25 }))

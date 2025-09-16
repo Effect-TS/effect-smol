@@ -83,6 +83,9 @@ export interface Declaration<T, TypeParameters extends ReadonlyArray<Schema.Top>
   readonly default?: T | undefined
   readonly examples?: ReadonlyArray<T> | undefined
   readonly jsonSchema?: ToJsonSchema.Annotation.Override | undefined
+  readonly defaultIsoSerializer?:
+    | ((typeParameters: { readonly [K in keyof TypeParameters]: Schema.Schema<TypeParameters[K]["Type"]> }) => AST.Link)
+    | undefined
   readonly defaultJsonSerializer?:
     | ((
       typeParameters: { readonly [K in keyof TypeParameters]: Schema.Schema<TypeParameters[K]["Encoded"]> }

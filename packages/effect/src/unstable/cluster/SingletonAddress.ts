@@ -26,12 +26,12 @@ export class SingletonAddress extends Schema.Class<SingletonAddress>(TypeId)({
    * @since 4.0.0
    */
   [Hash.symbol]() {
-    return Hash.cached(this, () => Hash.string(`${this.name}:${this.shardId.toString()}`))
+    return Hash.string(`${this.name}:${this.shardId.toString()}`)
   }
   /**
    * @since 4.0.0
    */
   [Equal.symbol](that: SingletonAddress): boolean {
-    return this.name === that.name && this.shardId[Equal.symbol](that.shardId)
+    return this.name === that.name && Equal.equals(this.shardId, that.shardId)
   }
 }

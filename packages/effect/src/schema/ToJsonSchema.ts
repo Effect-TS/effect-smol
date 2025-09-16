@@ -351,7 +351,7 @@ function compactLiterals(members: Array<JsonSchema>) {
   const out: Array<JsonSchema> = []
   for (const m of members) {
     if (isCompactableLiteral(m) && out.length > 0) {
-      const last = out.at(-1)
+      const last = out[out.length - 1]
       if (isCompactableLiteral(last) && last.type === m.type) {
         out[out.length - 1] = {
           ...last,
@@ -424,7 +424,7 @@ function go(
   // handle encoding
   // ---------------------------------------------
   if (ast.encoding) {
-    return go(ast.encoding.at(-1)!.to, path, options, ignoreIdentifier)
+    return go(ast.encoding[ast.encoding.length - 1].to, path, options, ignoreIdentifier)
   }
   // ---------------------------------------------
   // handle base cases

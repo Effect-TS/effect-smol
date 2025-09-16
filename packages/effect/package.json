@@ -40,6 +40,7 @@
     "./logging": "./src/logging/index.ts",
     "./match": "./src/match/index.ts",
     "./observability": "./src/observability/index.ts",
+    "./optic": "./src/optic/index.ts",
     "./platform": "./src/platform/index.ts",
     "./primitives": "./src/primitives/index.ts",
     "./resources": "./src/resources/index.ts",
@@ -92,6 +93,7 @@
       "./logging": "./dist/logging/index.js",
       "./match": "./dist/match/index.js",
       "./observability": "./dist/observability/index.js",
+      "./optic": "./dist/optic/index.js",
       "./platform": "./dist/platform/index.js",
       "./primitives": "./dist/primitives/index.js",
       "./resources": "./dist/resources/index.js",
@@ -124,7 +126,6 @@
   "scripts": {
     "codegen": "build-utils prepare-v4",
     "build": "tsc -b tsconfig.build.json && babel dist --plugins annotate-pure-calls --out-dir dist --source-maps",
-    "test-types": "tstyche",
     "check": "tsc -b tsconfig.json",
     "test": "vitest",
     "coverage": "vitest --coverage"

@@ -73,7 +73,7 @@ Ultimately, the intent is to eliminate the need for two separate paths like in v
 
 ## Model
 
-A "schema" in is a strongly typed wrapper around an untyped AST (abstract syntax tree) node.
+A "schema" is a strongly typed wrapper around an untyped AST (abstract syntax tree) node.
 
 The base interface is `Bottom`, which sits at the bottom of the schema type hierarchy. In Schema v4, the number of tracked type parameters has increased to 14, allowing for more precise and flexible schema definitions.
 
@@ -323,7 +323,7 @@ In this example, the `Date` is encoded as a string and decoded back using the st
 
 ## 🆕 String‑Leaf Serializer
 
-`Serializer.stringLeafJson` lets you funnel many string‑based inputs—URL queries, form posts, CLI args—into any **Schema** without adding custom transformations.
+`Serializer.stringPojo` lets you funnel many string‑based inputs—URL queries, form posts, CLI args—into any **Schema** without adding custom transformations.
 
 The process has two steps:
 
@@ -331,14 +331,14 @@ The process has two steps:
    A short helper converts the raw data into a structure whose leaves are all strings.
 
    ```ts
-   type StringLeafJson = string | undefined | { [key: string]: StringLeafJson } | Array<StringLeafJson>
+   type StringPojo = string | undefined | { [key: string]: StringPojo } | Array<StringPojo>
    ```
 
 2. **Tree → value**
    A normal schema decodes that tree into your typed model.
 
 Write the schema using the types you actually need: `Schema.Number`, `Schema.Boolean`, `Schema.Date`, and so on.
-`Serializer.stringLeafJson` will convert the string leaves to these types while decoding, so you do **not** have to insert helpers like `numberFromString` or `booleanFromString`.
+`Serializer.stringPojo` will convert the string leaves to these types while decoding, so you do **not** have to insert helpers like `numberFromString` or `booleanFromString`.
 
 Below are two quick examples.
 
@@ -347,9 +347,9 @@ Below are two quick examples.
 ```ts
 import { Schema, Serializer } from "effect/schema"
 
-// 1. URL params ➜ StringLeafJson
-function toStringLeafJson(p: URLSearchParams): Serializer.StringLeafJson {
-  const out: Serializer.StringLeafJson = {}
+// 1. URL params ➜ StringPojo
+function toStringPojo(p: URLSearchParams): Serializer.StringPojo {
+  const out: Serializer.StringPojo = {}
   for (const [key, value] of p.entries()) {
     if (out[key] === undefined) {
       out[key] = value
@@ -368,18 +368,18 @@ const Query = Schema.Struct({
   q: Schema.optionalKey(Schema.Array(Schema.String))
 })
 
-const serializer = Serializer.ensureArray(Serializer.stringLeafJson(Query))
+const serializer = Serializer.ensureArray(Serializer.stringPojo(Query))
 
-console.log(Schema.decodeSync(serializer)(toStringLeafJson(new URLSearchParams("?page=1&q=foo"))))
+console.log(Schema.decodeSync(serializer)(toStringPojo(new URLSearchParams("?page=1&q=foo"))))
 // => { page: 1, q: [ 'foo' ] }
 
-console.log(Schema.decodeSync(serializer)(toStringLeafJson(new URLSearchParams("?page=2"))))
+console.log(Schema.decodeSync(serializer)(toStringPojo(new URLSearchParams("?page=2"))))
 // => { page: 2 }
 
-console.log(Schema.decodeSync(serializer)(toStringLeafJson(new URLSearchParams("?page=1&q=foo&q=bar"))))
+console.log(Schema.decodeSync(serializer)(toStringPojo(new URLSearchParams("?page=1&q=foo&q=bar"))))
 // => { page: 1, q: [ 'foo', 'bar' ] }
 
-console.log(Schema.decodeSync(serializer)(toStringLeafJson(new URLSearchParams("?page=1&q="))))
+console.log(Schema.decodeSync(serializer)(toStringPojo(new URLSearchParams("?page=1&q="))))
 // => { page: 1, q: [] }
 ```
 
@@ -389,8 +389,8 @@ console.log(Schema.decodeSync(serializer)(toStringLeafJson(new URLSearchParams("
 import * as Predicate from "effect/data/Predicate"
 import { Schema, Serializer } from "effect/schema"
 
-// 1. FormData ➜ StringLeafJson
-const toStringLeafJson = (fd: FormData): Serializer.StringLeafJson =>
+// 1. FormData ➜ StringPojo
+const toStringPojo = (fd: FormData): Serializer.StringPojo =>
   // exclude File values
   Object.fromEntries([...fd.entries()].filter((entry): entry is [string, string] => Predicate.isString(entry[1])))
 
@@ -401,7 +401,7 @@ const User = Schema.Struct({
   age: Schema.Finite
 })
 
-const serializer = Serializer.stringLeafJson(User)
+const serializer = Serializer.stringPojo(User)
 
 const fd = new FormData()
 fd.set("user", "alice")
@@ -409,13 +409,13 @@ fd.set("pass", "secret")
 fd.set("age", "30")
 fd.set("age", "31")
 
-console.log(Schema.decodeSync(serializer)(toStringLeafJson(fd)))
+console.log(Schema.decodeSync(serializer)(toStringPojo(fd)))
 // => { user: "alice", pass: "secret", age: 30 }
 ```
 
 ### How it works
 
-The `stringLeafJson` serializer first delegates to `Serializer.json` to obtain a plain JSON‑safe value, then converts every leaf (number, boolean, null) to a string so the whole tree matches `StringLeafJson`.
+The `stringPojo` serializer first delegates to `Serializer.json` to obtain a plain JSON‑safe value, then converts every leaf (number, boolean, null) to a string so the whole tree matches `StringPojo`.
 
 **Example** (Difference between the two serializers)
 
@@ -431,7 +431,7 @@ const schema = Schema.Struct({
 
 const json = Serializer.json(schema)
 
-const stringLeafJson = Serializer.stringLeafJson(schema)
+const stringPojo = Serializer.stringPojo(schema)
 
 const value = {
   name: "John",
@@ -450,7 +450,7 @@ console.log(Schema.encodeSync(json)(value))
 }
 */
 
-console.log(Schema.encodeSync(stringLeafJson)(value))
+console.log(Schema.encodeSync(stringPojo)(value))
 /*
 everything is a string
 {
@@ -4484,6 +4484,63 @@ const schema = Schema.Struct({
 }).pipe(ToEquivalence.override(() => Equivalence.make((x, y) => x.a === y.a)))
 
 const equivalence = ToEquivalence.make(schema)
+```
+
+## Generating an Optic from a Schema
+
+### Problem
+
+The `Optic` module only works with plain JavaScript objects and collections (structs, records, tuples, and arrays).
+This can feel restrictive when working with custom types.
+
+To work around this, you can define an `Iso` between your custom type and a plain JavaScript object.
+
+**Example** (Defining an `Iso` manually between a custom type and a plain JavaScript object)
+
+```ts
+import { Optic } from "effect/optic"
+import { Schema } from "effect/schema"
+
+// Define custom schema-based classes
+class A extends Schema.Class<A>("A")({ s: Schema.String }) {}
+class B extends Schema.Class<B>("B")({ a: A }) {}
+
+// Create an Iso that converts between B and a plain object
+const iso = Optic.makeIso<B, { readonly a: { readonly s: string } }>(
+  (s) => ({ a: { s: s.a.s } }), // forward transformation
+  (a) => new B({ a: new A({ s: a.a.s }) }) // backward transformation
+)
+
+// Build an optic that drills down to the "s" field inside "a"
+const _s = iso.key("a").key("s")
+
+console.log(_s.replace("b", new B({ a: new A({ s: "a" }) })))
+// B { a: A { s: 'b' } }
+```
+
+### Solution
+
+Manually creating `Iso` instances is repetitive and error-prone.
+To simplify this, the library provides a helper function that generates an `Iso` directly from a schema.
+
+This allows you to keep working with plain JavaScript objects and collections while still benefiting from schema definitions.
+
+**Example** (Generating an `Iso` automatically from a schema)
+
+```ts
+import { Schema, ToOptic } from "effect/schema"
+
+class A extends Schema.Class<A>("A")({ s: Schema.String }) {}
+class B extends Schema.Class<B>("B")({ a: A }) {}
+
+// Automatically generate an Iso from the schema of B
+// const iso: Iso<B, { readonly a: { readonly s: string } }>
+const iso = ToOptic.makeIso(B)
+
+const _s = iso.key("a").key("s")
+
+console.log(_s.replace("b", new B({ a: new A({ s: "a" }) })))
+// B { a: A { s: 'b' } }
 ```
 
 ## Formatters

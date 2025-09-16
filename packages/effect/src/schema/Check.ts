@@ -9,7 +9,7 @@ import * as Option from "../data/Option.ts"
 import * as Order from "../data/Order.ts"
 import * as Predicate from "../data/Predicate.ts"
 import { format } from "../interfaces/Inspectable.ts"
-import { PipeableClass } from "../internal/schema/util.ts"
+import { Class } from "../interfaces/Pipeable.ts"
 import * as Num from "../primitives/Number.ts"
 import * as Annotations from "./Annotations.ts"
 import type * as AST from "./AST.ts"
@@ -19,7 +19,7 @@ import * as Issue from "./Issue.ts"
  * @category model
  * @since 4.0.0
  */
-export class Filter<in E> extends PipeableClass implements Annotations.Annotated {
+export class Filter<in E> extends Class implements Annotations.Annotated {
   readonly _tag = "Filter"
   readonly run: (input: E, self: AST.AST, options: AST.ParseOptions) => Issue.Issue | undefined
   readonly annotations: Annotations.Filter | undefined
@@ -55,7 +55,7 @@ export class Filter<in E> extends PipeableClass implements Annotations.Annotated
  * @category model
  * @since 4.0.0
  */
-export class FilterGroup<in E> extends PipeableClass implements Annotations.Annotated {
+export class FilterGroup<in E> extends Class implements Annotations.Annotated {
   readonly _tag = "FilterGroup"
   readonly checks: readonly [Check<E>, Check<E>, ...Array<Check<E>>]
   readonly annotations: Annotations.Filter | undefined
@@ -118,8 +118,10 @@ export interface RefinementGroup<T extends E, E> extends FilterGroup<E> {
  */
 export type Refine<T extends E, E> = Refinement<T, E> | RefinementGroup<T, E>
 
-/** @internal */
-export function makeRefine<T extends E, E>(
+/**
+ * @since 4.0.0
+ */
+export function makeRefineByGuard<T extends E, E>(
   is: (value: E) => value is T,
   annotations?: Annotations.Filter
 ): Refinement<T, E> {
@@ -133,16 +135,16 @@ export function makeRefine<T extends E, E>(
 /**
  * @since 4.0.0
  */
-export function refine<T extends E, E>(
+export function refineByGuard<T extends E, E>(
   is: (value: E) => value is T,
   annotations?: Annotations.Filter
 ) {
   return (self: Check<E>): RefinementGroup<T, E> => {
-    return self.and(makeRefine(is, annotations))
+    return self.and(makeRefineByGuard(is, annotations))
   }
 }
 
-const brand_ = makeRefine((_u): _u is any => true)
+const brand_ = makeRefineByGuard((_u): _u is any => true)
 
 const BRAND_KEY = "~effect/schema/Check/brand"
 
@@ -1507,5 +1509,18 @@ export function unique<T>(equivalence: Equivalence.Equivalence<T>, annotations?:
         }
       }
     }, annotations)
+  )
+}
+
+// TODO: remove this
+/**
+ * A check that ensures the value is a Some value.
+ *
+ * @since 4.0.0
+ */
+export function some<A>(annotations?: Annotations.Filter) {
+  return makeRefineByGuard<Option.Some<A>, Option.Option<A>>(
+    Option.isSome,
+    Annotations.combine({ title: "some", description: "a Some value" }, annotations)
   )
 }

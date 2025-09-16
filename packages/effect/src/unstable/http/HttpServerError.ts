@@ -2,7 +2,6 @@
  * @since 4.0.0
  */
 import * as Cause from "../../Cause.ts"
-import * as Arr from "../../collections/Array.ts"
 import * as Data from "../../data/Data.ts"
 import { hasProperty } from "../../data/Predicate.ts"
 import * as Effect from "../../Effect.ts"
@@ -127,31 +126,30 @@ export const clientAbortFiberId = -499
 export const causeResponse = <E>(
   cause: Cause.Cause<E>
 ): Effect.Effect<readonly [Response.HttpServerResponse, Cause.Cause<E>]> => {
-  const [effect, failures] = Arr.reduce(
-    cause.failures,
-    [Effect.succeed(internalServerError), Arr.empty<Cause.Failure<E>>()] as const,
-    (acc, f) => {
-      switch (f._tag) {
-        case "Fail": {
-          return [Respondable.toResponseOrElse(f.error, internalServerError), [f]]
-        }
-        case "Die": {
-          return [Respondable.toResponseOrElseDefect(f.defect, internalServerError), [f]]
-        }
-        case "Interrupt": {
-          if (acc[1].length > 0) return acc
-          const response = f.fiberId === clientAbortFiberId
-            ? clientAbortError
-            : serverAbortError
-          return [Effect.succeed(response), [f]]
-        }
-        default: {
-          return acc
-        }
+  let effect = succeedInternalServerError
+  const failures: Array<Cause.Failure<E>> = []
+  for (let i = 0; i < cause.failures.length; i++) {
+    const f = cause.failures[i]
+    switch (f._tag) {
+      case "Fail": {
+        effect = Respondable.toResponseOrElse(f.error, internalServerError)
+        failures[0] = f
+        break
+      }
+      case "Die": {
+        effect = Respondable.toResponseOrElseDefect(f.defect, internalServerError)
+        failures[0] = f
+        break
+      }
+      case "Interrupt": {
+        if (failures.length > 0) break
+        effect = f.fiberId === clientAbortFiberId ? clientAbortError : serverAbortError
+        failures[0] = f
+        break
       }
     }
-  )
-  return Effect.map(effect, (response) => {
+  }
+  return Effect.mapEager(effect, (response) => {
     failures.push(Cause.failureDie(response))
     return [response, Cause.fromFailures(failures)] as const
   })
@@ -178,8 +176,9 @@ export const causeResponseStripped = <E>(
 }
 
 const internalServerError = Response.empty({ status: 500 })
-const clientAbortError = Response.empty({ status: 499 })
-const serverAbortError = Response.empty({ status: 503 })
+const succeedInternalServerError = Effect.succeed(internalServerError)
+const clientAbortError = Effect.succeed(Response.empty({ status: 499 }))
+const serverAbortError = Effect.succeed(Response.empty({ status: 503 }))
 
 /**
  * @since 4.0.0

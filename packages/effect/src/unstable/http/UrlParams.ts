@@ -17,7 +17,6 @@ import * as Hash from "../../interfaces/Hash.ts"
 import { type Inspectable } from "../../interfaces/Inspectable.ts"
 import type { Pipeable } from "../../interfaces/Pipeable.ts"
 import { PipeInspectableProto } from "../../internal/core.ts"
-import * as String$ from "../../primitives/String.ts"
 import type * as Annotations from "../../schema/Annotations.ts"
 import type * as AST from "../../schema/AST.ts"
 import * as Issue from "../../schema/Issue.ts"
@@ -80,7 +79,7 @@ const Proto = {
     return Equivalence(this, that)
   },
   [Hash.symbol](this: UrlParams): number {
-    return Hash.cached(this, () => Hash.array(this.params.flat()))
+    return Hash.array(this.params.flat())
   }
 }
 
@@ -142,7 +141,9 @@ export const Equivalence: Equivalence_.Equivalence<UrlParams> = Equivalence_.mak
   arrayEquivalence(a.params, b.params)
 )
 
-const arrayEquivalence = Arr.getEquivalence(Tuple.getEquivalence([String$.Equivalence, String$.Equivalence]))
+const arrayEquivalence = Arr.getEquivalence(
+  Tuple.getEquivalence([Equivalence_.strict<string>(), Equivalence_.strict<string>()])
+)
 
 /**
  * @since 4.0.0
@@ -162,7 +163,7 @@ export const schema: schema = Schema.declare(
       _tag: "Declaration",
       declaration: () => Equivalence
     },
-    defaultJsonSerializer: () =>
+    defaultIsoSerializer: () =>
       Schema.link<UrlParams>()(
         Schema.Array(Schema.Tuple([Schema.String, Schema.String])),
         Transformation.transform({

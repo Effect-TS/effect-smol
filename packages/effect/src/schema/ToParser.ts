@@ -8,7 +8,7 @@ import * as Filter from "../data/Filter.ts"
 import * as Option from "../data/Option.ts"
 import * as Effect from "../Effect.ts"
 import * as Exit from "../Exit.ts"
-import { defaultParseOptions } from "../internal/schema/util.ts"
+import { memoize } from "../Function.ts"
 import * as AST from "./AST.ts"
 import type * as Check from "./Check.ts"
 import * as Formatter from "./Formatter.ts"
@@ -55,7 +55,7 @@ export function is<T, E, RE>(codec: Schema.Codec<T, E, never, RE>): <I>(input: I
 export function refinement<T>(ast: AST.AST) {
   const parser = asExit(run<T, never>(AST.typeAST(ast)))
   return <I>(input: I): input is I & T => {
-    return Exit.isSuccess(parser(input, defaultParseOptions))
+    return Exit.isSuccess(parser(input, AST.defaultParseOptions))
   }
 }
 
@@ -66,7 +66,7 @@ export function refinement<T>(ast: AST.AST) {
 export function asserts<T, E, RE>(codec: Schema.Codec<T, E, never, RE>) {
   const parser = asExit(run<T, never>(AST.typeAST(codec.ast)))
   return <I>(input: I): asserts input is I & T => {
-    const exit = parser(input, defaultParseOptions)
+    const exit = parser(input, AST.defaultParseOptions)
     if (Exit.isFailure(exit)) {
       const issue = Cause.filterError(exit.cause)
       if (Filter.isFail(issue)) {
@@ -260,7 +260,7 @@ export const encodeSync: <T, E, RD>(
 function run<T, R>(ast: AST.AST) {
   const parser = go(ast)
   return (input: unknown, options?: AST.ParseOptions): Effect.Effect<T, Issue.Issue, R> =>
-    Effect.flatMapEager(parser(Option.some(input), options ?? defaultParseOptions), (oa) => {
+    Effect.flatMapEager(parser(Option.some(input), options ?? AST.defaultParseOptions), (oa) => {
       if (oa._tag === "None") {
         return Effect.fail(new Issue.InvalidValue(oa))
       }
@@ -328,7 +328,7 @@ export function runChecks<T>(
   }
 }
 
-const go = AST.memoize(
+const go = memoize(
   (ast: AST.AST): Parser => {
     if (!ast.context && !ast.encoding && !ast.checks) {
       if (ast._tag === "Suspend") {

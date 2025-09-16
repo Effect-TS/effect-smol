@@ -1,11 +1,13 @@
 /**
  * @since 4.0.0
  */
+import type { Cause } from "../../Cause.ts"
 import * as UndefinedOr from "../../data/UndefinedOr.ts"
 import * as Effect from "../../Effect.ts"
 import * as Exit from "../../Exit.ts"
 import * as Fiber from "../../Fiber.ts"
 import { dual } from "../../Function.ts"
+import { effectIsExit } from "../../internal/effect.ts"
 import * as Layer from "../../Layer.ts"
 import * as Scope from "../../Scope.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
@@ -37,54 +39,61 @@ export const toHandled = <E, R, EH, RH>(
     const handler = fiber.getRef(PreResponseHandlers)
     if (handler === undefined) {
       ;(request as any)[handledSymbol] = true
-      return Effect.as(handleResponse(request, response), response)
+      const eff = handleResponse(request, response)
+      if (effectIsExit(eff)) {
+        return eff._tag === "Success" ? Effect.succeed(response) : handleCause(eff.cause)
+      }
+      return Effect.matchCauseEffect(eff, {
+        onFailure: handleCause,
+        onSuccess: () => Effect.succeed(response)
+      })
     }
-    return Effect.tap(handler(request, response), (response) => {
+    return Effect.flatMapEager(handler(request, response), (sentResponse) => {
       ;(request as any)[handledSymbol] = true
-      return handleResponse(request, response)
+      return Effect.matchCauseEffectEager(handleResponse(request, sentResponse), {
+        onSuccess: () => Effect.succeed(response),
+        onFailure: handleCause
+      })
     })
   })
 
-  const withErrorHandling = Effect.catchCause(
-    responded,
-    (cause) =>
-      Effect.flatMap(causeResponse(cause), ([response, cause]) => {
-        const fiber = Fiber.getCurrent()!
-        const request = ServiceMap.getUnsafe(fiber.services, HttpServerRequest)
-        const handler = fiber.getRef(PreResponseHandlers)
-        if (handler === undefined) {
+  const handleCause = (cause: Cause<E | EH | HttpServerError>) =>
+    Effect.flatMapEager(causeResponse(cause), ([response, cause]) => {
+      const fiber = Fiber.getCurrent()!
+      const request = ServiceMap.getUnsafe(fiber.services, HttpServerRequest)
+      const handler = fiber.getRef(PreResponseHandlers)
+      if (handler === undefined) {
+        ;(request as any)[handledSymbol] = true
+        return Effect.flatMapEager(handleResponse(request, response), () => Effect.failCause(cause))
+      }
+      return Effect.flatMapEager(
+        Effect.flatMapEager(handler(request, response), (response) => {
           ;(request as any)[handledSymbol] = true
-          return Effect.flatMap(handleResponse(request, response), () => Effect.failCause(cause))
-        }
-        return Effect.flatMap(
-          Effect.flatMap(handler(request, response), (response) => {
-            ;(request as any)[handledSymbol] = true
-            return handleResponse(request, response)
-          }),
-          () => Effect.failCause(cause)
-        )
-      })
-  )
+          return handleResponse(request, response)
+        }),
+        () => Effect.failCause(cause)
+      )
+    })
 
   const withMiddleware: Effect.Effect<
     unknown,
     E | EH | HttpServerError,
     HttpServerRequest | R | RH
   > = middleware === undefined ?
-    tracer(withErrorHandling) :
-    Effect.matchCauseEffect(middleware(tracer(withErrorHandling)), {
-      onFailure: (cause): Effect.Effect<void, EH, RH> => {
+    tracer(responded) :
+    Effect.matchCauseEffect(tracer(middleware(responded)), {
+      onFailure(cause): Effect.Effect<void, EH, RH> {
         const fiber = Fiber.getCurrent()!
         const request = ServiceMap.getUnsafe(fiber.services, HttpServerRequest)
         if (handledSymbol in request) {
           return Effect.void
         }
-        return Effect.matchCauseEffect(causeResponse(cause), {
+        return Effect.matchCauseEffectEager(causeResponse(cause), {
           onFailure: (_cause) => handleResponse(request, Response.empty({ status: 500 })),
           onSuccess: ([response]) => handleResponse(request, response)
         })
       },
-      onSuccess: (response): Effect.Effect<void, EH, RH> => {
+      onSuccess(response): Effect.Effect<void, EH, RH> {
         const fiber = Fiber.getCurrent()!
         const request = ServiceMap.getUnsafe(fiber.services, Request.HttpServerRequest)
         return handledSymbol in request ? Effect.void : handleResponse(request, response)
@@ -104,7 +113,7 @@ const handledSymbol = Symbol.for("effect/http/HttpEffect/handled")
  * @category Scope
  */
 export const scopeDisableClose = (scope: Scope.Scope): void => {
-  ejectedScopes.add(scope)
+  ;(scope as any)[scopeEjected] = true
 }
 
 /**
@@ -130,16 +139,19 @@ export const scopeTransferToStream = (
   )
 }
 
-const ejectedScopes = new WeakSet<Scope.Scope>()
+const scopeEjected = Symbol.for("effect/http/HttpEffect/scopeEjected")
 
 const scoped = <A, E, R>(effect: Effect.Effect<A, E, R>) =>
-  Effect.flatMap(Scope.make(), (scope) =>
-    Effect.onExitInterruptible(Scope.provide(effect, scope), (exit) => {
-      if (ejectedScopes.has(scope)) {
-        return Effect.void
-      }
-      return Scope.close(scope, exit)
-    }))
+  Effect.withFiber((fiber) => {
+    const scope = Scope.makeUnsafe()
+    const prev = ServiceMap.getOption(fiber.services, Scope.Scope)
+    fiber.setServices(ServiceMap.add(fiber.services, Scope.Scope, scope))
+    return Effect.onExitInterruptible(effect, (exit) => {
+      fiber.setServices(ServiceMap.addOrOmit(fiber.services, Scope.Scope, prev))
+      if (scopeEjected in scope) return
+      return Scope.closeUnsafe(scope, exit)
+    })
+  })
 
 /**
  * @since 4.0.0

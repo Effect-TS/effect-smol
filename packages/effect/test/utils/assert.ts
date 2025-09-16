@@ -80,16 +80,19 @@ export function assertMatch(actual: string, regexp: RegExp, ..._: Array<never>) 
   }
 }
 
-export function throws(thunk: () => void, error?: Error | ((u: unknown) => undefined), ..._: Array<never>) {
+export function throws(thunk: () => void, error?: string | Error | ((u: unknown) => undefined), ..._: Array<never>) {
   try {
     thunk()
     fail("Expected to throw an error")
   } catch (e) {
     if (error !== undefined) {
-      if (Predicate.isFunction(error)) {
-        error(e)
-      } else {
+      if (Predicate.isString(error)) {
+        assertInstanceOf(e, Error)
+        strictEqual(e.message, error)
+      } else if (Predicate.isError(error)) {
         deepStrictEqual(e, error)
+      } else {
+        error(e)
       }
     }
   }

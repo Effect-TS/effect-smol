@@ -536,13 +536,13 @@ const watchNode = (path: string) =>
           switch (event) {
             case "rename": {
               Effect.runFork(Effect.matchEffect(stat(path), {
-                onSuccess: (_) => Queue.offer(queue, FileSystem.WatchEventCreate({ path })),
-                onFailure: (_) => Queue.offer(queue, FileSystem.WatchEventRemove({ path }))
+                onSuccess: (_) => Queue.offer(queue, { _tag: "Create", path }),
+                onFailure: (_) => Queue.offer(queue, { _tag: "Remove", path })
               }))
               return
             }
             case "change": {
-              Queue.offerUnsafe(queue, FileSystem.WatchEventUpdate({ path }))
+              Queue.offerUnsafe(queue, { _tag: "Update", path })
               return
             }
           }

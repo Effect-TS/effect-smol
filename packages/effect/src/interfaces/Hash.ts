@@ -8,10 +8,8 @@
  * @since 2.0.0
  */
 import { hasProperty } from "../data/Predicate.ts"
-import { dual, pipe } from "../Function.ts"
-
-/** @internal */
-const randomHashCache = new WeakMap<object, number>()
+import { dual } from "../Function.ts"
+import { byReferenceInstances, getAllObjectKeys } from "../internal/equal.ts"
 
 /**
  * The unique identifier used to identify objects that implement the Hash interface.
@@ -56,6 +54,16 @@ export interface Hash {
  * objects, arrays, and other complex data structures. It automatically handles
  * different types and provides a consistent hash value for equivalent inputs.
  *
+ * **⚠️ CRITICAL IMMUTABILITY REQUIREMENT**: Objects being hashed must be treated as
+ * immutable after their first hash computation. Hash results are cached, so mutating
+ * an object after hashing will lead to stale cached values and broken hash-based
+ * operations. For mutable objects, use referential equality by implementing custom
+ * `Hash` interface that hashes the object reference, not its content.
+ *
+ * **FORBIDDEN**: Modifying objects after `Hash.hash()` has been called on them
+ * **ALLOWED**: Using immutable objects, or mutable objects with custom `Hash` interface
+ * that uses referential equality (hashes the object reference, not content)
+ *
  * @example
  * ```ts
  * import { Hash } from "effect/interfaces"
@@ -93,11 +101,32 @@ export const hash: <A>(self: A) => number = <A>(self: A) => {
       if (self === null) {
         return string("null")
       } else if (self instanceof Date) {
-        return hash(self.toISOString())
-      } else if (isHash(self)) {
-        return self[symbol]()
+        return string(self.toISOString())
+      } else if (self instanceof RegExp) {
+        return string(self.toString())
       } else {
-        return random(self)
+        if (byReferenceInstances.has(self)) {
+          return random(self)
+        }
+        if (hashCache.has(self)) {
+          return hashCache.get(self)!
+        }
+        const h = withVisitedTracking(self, () => {
+          if (isHash(self)) {
+            return self[symbol]()
+          } else if (typeof self === "function") {
+            return random(self)
+          } else if (Array.isArray(self)) {
+            return array(self)
+          } else if (self instanceof Map) {
+            return hashMap(self)
+          } else if (self instanceof Set) {
+            return hashSet(self)
+          }
+          return structure(self)
+        })
+        hashCache.set(self, h)
+        return h
       }
     }
     default:
@@ -223,7 +252,7 @@ export const isHash = (u: unknown): u is Hash => hasProperty(u, symbol)
  * Computes a hash value for a number.
  *
  * This function creates a hash value for numeric inputs, handling special cases
- * like NaN and Infinity. It uses bitwise operations to ensure good distribution
+ * like NaN, Infinity, and -Infinity with distinct hash values. It uses bitwise operations to ensure good distribution
  * of hash values across different numeric inputs.
  *
  * @example
@@ -232,7 +261,7 @@ export const isHash = (u: unknown): u is Hash => hasProperty(u, symbol)
  *
  * console.log(Hash.number(42)) // hash of 42
  * console.log(Hash.number(3.14)) // hash of 3.14
- * console.log(Hash.number(NaN)) // 0 (special case)
+ * console.log(Hash.number(NaN)) // hash of "NaN"
  * console.log(Hash.number(Infinity)) // 0 (special case)
  *
  * // Same numbers produce the same hash
@@ -243,8 +272,14 @@ export const isHash = (u: unknown): u is Hash => hasProperty(u, symbol)
  * @since 2.0.0
  */
 export const number = (n: number) => {
-  if (n !== n || n === Infinity) {
-    return 0
+  if (n !== n) {
+    return string("NaN")
+  }
+  if (n === Infinity) {
+    return string("Infinity")
+  }
+  if (n === -Infinity) {
+    return string("-Infinity")
   }
   let h = n | 0
   if (h !== n) {
@@ -315,10 +350,10 @@ export const string = (str: string) => {
  * @category hashing
  * @since 2.0.0
  */
-export const structureKeys = <A extends object>(o: A, keys: ReadonlyArray<keyof A>) => {
+export const structureKeys = (o: object, keys: Iterable<PropertyKey>) => {
   let h = 12289
-  for (let i = 0; i < keys.length; i++) {
-    h ^= pipe(string(keys[i]! as string), combine(hash((o as any)[keys[i]!])))
+  for (const key of keys) {
+    h ^= combine(hash(key), hash((o as any)[key]))
   }
   return optimize(h)
 }
@@ -349,8 +384,15 @@ export const structureKeys = <A extends object>(o: A, keys: ReadonlyArray<keyof 
  * @category hashing
  * @since 2.0.0
  */
-export const structure = <A extends object>(o: A) =>
-  structureKeys(o, Object.keys(o) as unknown as ReadonlyArray<keyof A>)
+export const structure = <A extends object>(o: A) => structureKeys(o, getAllObjectKeys(o))
+
+const iterableWith = (seed: number, f: (el: any) => number) => (iter: Iterable<any>) => {
+  let h = seed
+  for (const element of iter) {
+    h ^= f(element)
+  }
+  return optimize(h)
+}
 
 /**
  * Computes a hash value for an array by hashing all of its elements.
@@ -379,62 +421,24 @@ export const structure = <A extends object>(o: A) =>
  * @category hashing
  * @since 2.0.0
  */
-export const array = <A>(arr: ReadonlyArray<A>) => {
-  let h = 6151
-  for (let i = 0; i < arr.length; i++) {
-    h = pipe(h, combine(hash(arr[i])))
-  }
-  return optimize(h)
-}
+export const array: <A>(arr: Iterable<A>) => number = iterableWith(6151, hash)
 
-const hashCache = new WeakMap<object, number>()
+const hashMap: <K, V>(map: Iterable<readonly [K, V]>) => number = iterableWith(
+  string("Map"),
+  ([k, v]) => combine(hash(k), hash(v))
+)
+const hashSet: <A>(set: Iterable<A>) => number = iterableWith(string("Set"), hash)
 
-/**
- * Caches the result of a hash computation for an object.
- *
- * This function provides a caching mechanism for expensive hash computations.
- * The computed hash value is stored in a WeakMap, so the same object will
- * always return the same cached hash value, avoiding recomputation.
- *
- * @example
- * ```ts
- * import { Hash } from "effect/interfaces"
- *
- * const obj = { complex: "data structure" }
- *
- * // Using curried form
- * const getCachedHash = Hash.cached(obj)
- * const hash1 = getCachedHash(() => Hash.structure(obj))
- * const hash2 = getCachedHash(() => Hash.structure(obj)) // returns cached value
- *
- * // Using direct form
- * const hash3 = Hash.cached(obj, () => Hash.structure(obj))
- * const hash4 = Hash.cached(obj, () => Hash.structure(obj)) // returns cached value
- *
- * console.log(hash1 === hash2) // true
- * console.log(hash3 === hash4) // true
- * ```
- *
- * @category hashing
- * @since 2.0.0
- */
-export const cached: {
-  (self: object): (hash: () => number) => number
-  (self: object, hash: () => number): number
-} = function() {
-  if (arguments.length === 1) {
-    const self = arguments[0] as object
-    return function(hash: () => number) {
-      if (!hashCache.has(self)) {
-        hashCache.set(self, hash())
-      }
-      return hashCache.get(self)
-    } as any
+const randomHashCache = new WeakMap<any, number>()
+const hashCache = new WeakMap<any, number>()
+const visitedObjects = new WeakSet<object>()
+
+function withVisitedTracking<T>(obj: object, fn: () => T): T {
+  if (visitedObjects.has(obj)) {
+    return string("[Circular]") as T
   }
-  const self = arguments[0] as object
-  const hash = arguments[1] as () => number
-  if (!hashCache.has(self)) {
-    hashCache.set(self, hash())
-  }
-  return hashCache.get(self)
+  visitedObjects.add(obj)
+  const result = fn()
+  visitedObjects.delete(obj)
+  return result
 }

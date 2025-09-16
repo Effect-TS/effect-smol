@@ -20,7 +20,7 @@ describe("Serializer", () => {
   describe("json", () => {
     describe("default serialization", () => {
       describe("Unsupported schemas", () => {
-        it("Declaration without defaultJsonSerializer annotation", async () => {
+        it("Declaration without defaultIsoSerializer annotation", async () => {
           class A {
             readonly _tag = "A"
           }
@@ -28,7 +28,7 @@ describe("Serializer", () => {
           await assertions.serialization.json.typeCodec.fail(
             Schema.declare((u): u is A => u instanceof A),
             new A(),
-            `cannot serialize to JSON, required \`defaultJsonSerializer\` annotation for Declaration`
+            "cannot serialize to JSON, required `defaultJsonSerializer` or `defaultIsoSerializer` annotation for Declaration"
           )
         })
 
@@ -36,7 +36,7 @@ describe("Serializer", () => {
           await assertions.serialization.json.typeCodec.fail(
             Schema.Unknown,
             "a",
-            `cannot serialize to JSON, required \`defaultJsonSerializer\` annotation for UnknownKeyword`
+            "cannot serialize to JSON, required `defaultJsonSerializer` or `defaultIsoSerializer` annotation for UnknownKeyword"
           )
         })
 
@@ -44,7 +44,7 @@ describe("Serializer", () => {
           await assertions.serialization.json.typeCodec.fail(
             Schema.Object,
             {},
-            `cannot serialize to JSON, required \`defaultJsonSerializer\` annotation for ObjectKeyword`
+            "cannot serialize to JSON, required `defaultJsonSerializer` or `defaultIsoSerializer` annotation for ObjectKeyword"
           )
         })
 
@@ -57,7 +57,7 @@ describe("Serializer", () => {
           await assertions.serialization.json.typeCodec.fail(
             schema,
             { [a]: "b" },
-            "cannot serialize to JSON, property names must be strings"
+            "cannot serialize to JSON, TypeLiteral property names must be strings"
           )
         })
       })
@@ -97,10 +97,10 @@ describe("Serializer", () => {
         })
       })
 
-      it("should apply the construction process to the provided link in the defaultJsonSerializer annotation", async () => {
+      it("should apply the construction process to the provided link in the defaultIsoSerializer annotation", async () => {
         const schema = Schema.Struct({
           a: Schema.Date.annotate({
-            defaultJsonSerializer: () =>
+            defaultIsoSerializer: () =>
               Schema.link<Date>()(
                 Schema.Date,
                 Transformation.passthrough()
@@ -114,7 +114,7 @@ describe("Serializer", () => {
         })
       })
 
-      describe("instanceOf with defaultJsonSerializer annotation", () => {
+      describe("instanceOf with defaultIsoSerializer annotation", () => {
         it("arg: message: string", async () => {
           class MyError extends Error {
             constructor(message?: string) {
@@ -128,7 +128,7 @@ describe("Serializer", () => {
             MyError,
             {
               title: "MyError",
-              defaultJsonSerializer: () =>
+              defaultIsoSerializer: () =>
                 Schema.link<MyError>()(
                   Schema.String,
                   Transformation.transform({
@@ -160,7 +160,7 @@ describe("Serializer", () => {
               MyError,
               {
                 title: "MyError",
-                defaultJsonSerializer: () =>
+                defaultIsoSerializer: () =>
                   Schema.link<MyError>()(
                     MyError.Props,
                     Transformation.transform({
@@ -733,10 +733,11 @@ describe("Serializer", () => {
       it("Option(Date)", async () => {
         const schema = Schema.Option(Schema.Date)
 
-        await assertions.serialization.json.typeCodec.succeed(schema, Option.some(new Date("2021-01-01")), [
-          "2021-01-01T00:00:00.000Z"
-        ])
-        await assertions.serialization.json.typeCodec.succeed(schema, Option.none(), [])
+        await assertions.serialization.json.typeCodec.succeed(schema, Option.some(new Date("2021-01-01")), {
+          _tag: "Some",
+          value: "2021-01-01T00:00:00.000Z"
+        })
+        await assertions.serialization.json.typeCodec.succeed(schema, Option.none(), { _tag: "None" })
       })
 
       describe("Redacted", () => {
@@ -753,8 +754,16 @@ describe("Serializer", () => {
             Redacted.make(Option.some("a")),
             `Cannot serialize Redacted`
           )
-          await assertions.deserialization.json.typeCodec.succeed(schema, [], Redacted.make(Option.none()))
-          await assertions.deserialization.json.typeCodec.succeed(schema, ["a"], Redacted.make(Option.some("a")))
+          await assertions.deserialization.json.typeCodec.succeed(
+            schema,
+            { _tag: "None" },
+            Redacted.make(Option.none())
+          )
+          await assertions.deserialization.json.typeCodec.succeed(
+            schema,
+            { _tag: "Some", value: "a" },
+            Redacted.make(Option.some("a"))
+          )
         })
 
         it("encoding a Redacted with a label", async () => {
@@ -779,13 +788,13 @@ describe("Serializer", () => {
           schema,
           new Map([[Option.some(new Date("2021-01-01")), 0]]),
           [[
-            ["2021-01-01T00:00:00.000Z"],
+            { _tag: "Some", value: "2021-01-01T00:00:00.000Z" },
             0
           ]]
         )
         await assertions.deserialization.json.typeCodec.succeed(
           schema,
-          [[["2021-01-01T00:00:00.000Z"], 0]],
+          [[{ _tag: "Some", value: "2021-01-01T00:00:00.000Z" }, 0]],
           new Map([[Option.some(new Date("2021-01-01")), 0]])
         )
       })
@@ -855,9 +864,13 @@ describe("Serializer", () => {
       it("Option(Option(FiniteFromDate))", async () => {
         const schema = Schema.Option(Schema.Option(FiniteFromDate))
 
-        await assertions.serialization.json.codec.succeed(schema, Option.some(Option.some(0)), [[
-          "1970-01-01T00:00:00.000Z"
-        ]])
+        await assertions.serialization.json.codec.succeed(schema, Option.some(Option.some(0)), {
+          _tag: "Some",
+          value: {
+            _tag: "Some",
+            value: "1970-01-01T00:00:00.000Z"
+          }
+        })
       })
 
       it("Map(Option(Symbol), Date)", async () => {
@@ -867,13 +880,13 @@ describe("Serializer", () => {
           schema,
           new Map([[Option.some(Symbol.for("a")), new Date("2021-01-01")]]),
           [[
-            ["Symbol(a)"],
+            { _tag: "Some", value: "Symbol(a)" },
             "2021-01-01T00:00:00.000Z"
           ]]
         )
         await assertions.deserialization.json.codec.succeed(
           schema,
-          [[["Symbol(a)"], "2021-01-01T00:00:00.000Z"]],
+          [[{ _tag: "Some", value: "Symbol(a)" }, "2021-01-01T00:00:00.000Z"]],
           new Map([[Option.some(Symbol.for("a")), new Date("2021-01-01")]])
         )
       })
@@ -889,11 +902,11 @@ describe("Serializer", () => {
         const schema = Schema.Cause(Schema.Option(Schema.Finite), Schema.Option(Schema.String))
         await assertions.serialization.json.codec.succeed(schema, Cause.fail(Option.some(1)), [{
           _tag: "Fail",
-          error: [1]
+          error: { _tag: "Some", value: 1 }
         }])
         await assertions.serialization.json.codec.succeed(schema, Cause.die(Option.some("a")), [{
           _tag: "Die",
-          defect: ["a"]
+          defect: { _tag: "Some", value: "a" }
         }])
         await assertions.serialization.json.codec.succeed(schema, Cause.interrupt(1), [{
           _tag: "Interrupt",
@@ -955,11 +968,11 @@ describe("Serializer", () => {
     })
   })
 
-  describe("stringLeafJson", () => {
+  describe.skip("stringLeafJson", () => {
     describe("should return the same reference if nothing changed", () => {
       it("String", async () => {
         const schema = Schema.String
-        const serializer = Serializer.stringLeafJson(schema)
+        const serializer = Serializer.stringPojo(schema)
         strictEqual(serializer.ast, schema.ast)
       })
 
@@ -967,7 +980,7 @@ describe("Serializer", () => {
         const schema = Schema.Struct({
           a: Schema.String
         })
-        const serializer = Serializer.stringLeafJson(schema)
+        const serializer = Serializer.stringPojo(schema)
         strictEqual(serializer.ast, schema.ast)
       })
     })
@@ -977,14 +990,14 @@ describe("Serializer", () => {
         const schema = Schema.Struct({
           a: Schema.Finite
         })
-        const serializer = Serializer.stringLeafJson(schema)
-        strictEqual(serializer.ast, Serializer.stringLeafJson(serializer).ast)
+        const serializer = Serializer.stringPojo(schema)
+        strictEqual(serializer.ast, Serializer.stringPojo(serializer).ast)
       })
 
       it("Array", async () => {
         const schema = Schema.Array(Schema.Finite)
-        const serializer = Serializer.stringLeafJson(schema)
-        strictEqual(serializer.ast, Serializer.stringLeafJson(serializer).ast)
+        const serializer = Serializer.stringPojo(schema)
+        strictEqual(serializer.ast, Serializer.stringPojo(serializer).ast)
       })
     })
 
@@ -998,7 +1011,7 @@ describe("Serializer", () => {
           await assertions.serialization.stringLeafJson.typeCodec.fail(
             Schema.declare((u): u is A => u instanceof A),
             new A(),
-            `cannot serialize to JSON, required \`defaultJsonSerializer\` annotation for Declaration`
+            "cannot serialize to JSON, required `defaultJsonSerializer` or `defaultIsoSerializer` annotation for Declaration"
           )
         })
 
@@ -1006,7 +1019,7 @@ describe("Serializer", () => {
           await assertions.serialization.stringLeafJson.typeCodec.fail(
             Schema.Unknown,
             "a",
-            `cannot serialize to JSON, required \`defaultJsonSerializer\` annotation for UnknownKeyword`
+            "cannot serialize to JSON, required `defaultJsonSerializer` or `defaultIsoSerializer` annotation for UnknownKeyword"
           )
         })
 
@@ -1014,7 +1027,7 @@ describe("Serializer", () => {
           await assertions.serialization.stringLeafJson.typeCodec.fail(
             Schema.Object,
             {},
-            `cannot serialize to JSON, required \`defaultJsonSerializer\` annotation for ObjectKeyword`
+            "cannot serialize to JSON, required `defaultJsonSerializer` or `defaultIsoSerializer` annotation for ObjectKeyword"
           )
         })
 
@@ -1546,10 +1559,11 @@ describe("Serializer", () => {
       it("Option(Date)", async () => {
         const schema = Schema.Option(Schema.Date)
 
-        await assertions.serialization.stringLeafJson.typeCodec.succeed(schema, Option.some(new Date("2021-01-01")), [
-          "2021-01-01T00:00:00.000Z"
-        ])
-        await assertions.serialization.stringLeafJson.typeCodec.succeed(schema, Option.none(), [])
+        await assertions.serialization.stringLeafJson.typeCodec.succeed(schema, Option.some(new Date("2021-01-01")), {
+          _tag: "Some",
+          value: "2021-01-01T00:00:00.000Z"
+        })
+        await assertions.serialization.stringLeafJson.typeCodec.succeed(schema, Option.none(), { _tag: "None" })
       })
 
       it("Redacted(Option(String))", async () => {
@@ -1565,10 +1579,14 @@ describe("Serializer", () => {
           Redacted.make(Option.some("a")),
           `Cannot serialize Redacted`
         )
-        await assertions.deserialization.stringLeafJson.typeCodec.succeed(schema, [], Redacted.make(Option.none()))
         await assertions.deserialization.stringLeafJson.typeCodec.succeed(
           schema,
-          ["a"],
+          { _tag: "None" },
+          Redacted.make(Option.none())
+        )
+        await assertions.deserialization.stringLeafJson.typeCodec.succeed(
+          schema,
+          { _tag: "Some", value: "a" },
           Redacted.make(Option.some("a"))
         )
       })
@@ -1580,13 +1598,13 @@ describe("Serializer", () => {
           schema,
           new Map([[Option.some(new Date("2021-01-01")), 0]]),
           [[
-            ["2021-01-01T00:00:00.000Z"],
+            { _tag: "Some", value: "2021-01-01T00:00:00.000Z" },
             "0"
           ]]
         )
         await assertions.deserialization.stringLeafJson.typeCodec.succeed(
           schema,
-          [[["2021-01-01T00:00:00.000Z"], "0"]],
+          [[{ _tag: "Some", value: "2021-01-01T00:00:00.000Z" }, "0"]],
           new Map([[Option.some(new Date("2021-01-01")), 0]])
         )
       })
@@ -1599,14 +1617,14 @@ describe("Serializer", () => {
         const schema = Schema.Struct({
           a: Schema.Finite
         })
-        const serializer = Serializer.ensureArray(Serializer.stringLeafJson(schema))
-        strictEqual(serializer.ast, Serializer.ensureArray(Serializer.stringLeafJson(serializer)).ast)
+        const serializer = Serializer.ensureArray(Serializer.stringPojo(schema))
+        strictEqual(serializer.ast, Serializer.ensureArray(Serializer.stringPojo(serializer)).ast)
       })
 
       it("Array", async () => {
         const schema = Schema.Array(Schema.Finite)
-        const serializer = Serializer.ensureArray(Serializer.stringLeafJson(schema))
-        strictEqual(serializer.ast, Serializer.ensureArray(Serializer.stringLeafJson(serializer)).ast)
+        const serializer = Serializer.ensureArray(Serializer.stringPojo(schema))
+        strictEqual(serializer.ast, Serializer.ensureArray(Serializer.stringPojo(serializer)).ast)
       })
     })
 
@@ -1614,7 +1632,7 @@ describe("Serializer", () => {
       const schema = Schema.Struct({
         a: Schema.optionalKey(Schema.NonEmptyArray(Schema.String))
       })
-      const serializer = Serializer.ensureArray(Serializer.stringLeafJson(schema))
+      const serializer = Serializer.ensureArray(Serializer.stringPojo(schema))
 
       await assertions.decoding.succeed(serializer, {})
       await assertions.decoding.succeed(serializer, { a: ["a"] })

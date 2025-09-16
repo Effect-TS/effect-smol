@@ -40,7 +40,7 @@ jobs:
         with:
           node-version: latest
       - run: pnpm check
-      - run: pnpm test-types --target '>=5.4'
+      - run: pnpm test-types --target '>=5.8'
 
   types-deno:
     name: Types on Deno

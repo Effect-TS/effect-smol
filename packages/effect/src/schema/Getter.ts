@@ -6,7 +6,7 @@ import * as Predicate from "../data/Predicate.ts"
 import * as Result from "../data/Result.ts"
 import * as Effect from "../Effect.ts"
 import * as Encoding from "../encoding/Encoding.ts"
-import { PipeableClass } from "../internal/schema/util.ts"
+import { Class } from "../interfaces/Pipeable.ts"
 import * as Str from "../primitives/String.ts"
 import * as DateTime from "../time/DateTime.ts"
 import type * as Annotations from "./Annotations.ts"
@@ -17,7 +17,7 @@ import * as Issue from "./Issue.ts"
  * @category model
  * @since 4.0.0
  */
-export class Getter<out T, in E, R = never> extends PipeableClass {
+export class Getter<out T, in E, R = never> extends Class {
   readonly run: (
     input: Option.Option<E>,
     options: AST.ParseOptions
