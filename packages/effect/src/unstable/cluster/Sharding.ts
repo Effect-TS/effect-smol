@@ -907,6 +907,11 @@ const make = Effect.gen(function*() {
         yield* Effect.logDebug("New shard assignments", selfShards)
         activeShardsLatch.openUnsafe()
       }
+
+      // Ensure the current runner is registered
+      if (selfRunner && !MutableHashMap.has(allRunners, selfRunner)) {
+        continue
+      }
       yield* Effect.sleep(config.refreshAssignmentsInterval)
     }
   }).pipe(
