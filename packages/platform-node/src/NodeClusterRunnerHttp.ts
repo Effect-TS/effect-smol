@@ -7,7 +7,7 @@ import * as Layer from "effect/Layer"
 import * as HttpRunner from "effect/unstable/cluster/HttpRunner"
 import * as MessageStorage from "effect/unstable/cluster/MessageStorage"
 import type * as Runners from "effect/unstable/cluster/Runners"
-import * as RunnerStorage from "effect/unstable/cluster/RunnerStorage"
+import type * as RunnerStorage from "effect/unstable/cluster/RunnerStorage"
 import type { Sharding } from "effect/unstable/cluster/Sharding"
 import * as ShardingConfig from "effect/unstable/cluster/ShardingConfig"
 import * as SqlMessageStorage from "effect/unstable/cluster/SqlMessageStorage"
@@ -41,12 +41,12 @@ export const layer = <
 }): ClientOnly extends true ? Layer.Layer<
     Sharding | Runners.Runners | MessageStorage.MessageStorage,
     Config.ConfigError | ("sql" extends Storage ? SqlError : never),
-    "sql" extends Storage ? SqlClient : never
+    "sql" extends Storage ? SqlClient : RunnerStorage.RunnerStorage
   > :
   Layer.Layer<
     Sharding | Runners.Runners | MessageStorage.MessageStorage,
     ServeError | Config.ConfigError | ("sql" extends Storage ? SqlError : never),
-    "sql" extends Storage ? SqlClient : never
+    "sql" extends Storage ? SqlClient : RunnerStorage.RunnerStorage
   > =>
 {
   const layer: Layer.Layer<any, any, any> = options.clientOnly
@@ -65,11 +65,7 @@ export const layer = <
         SqlMessageStorage.layer
         : MessageStorage.layerNoop
     ),
-    Layer.provide(
-      options?.storage === "sql"
-        ? options.clientOnly ? Layer.empty : SqlRunnerStorage.layer
-        : RunnerStorage.layerNoop
-    ),
+    Layer.provide(options?.storage === "sql" ? SqlRunnerStorage.layer : Layer.empty),
     Layer.provide(ShardingConfig.layerFromEnv(options?.shardingConfig)),
     Layer.provide(
       options?.serialization === "ndjson" ? RpcSerialization.layerNdjson : RpcSerialization.layerMsgPack

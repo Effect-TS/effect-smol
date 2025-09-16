@@ -6,7 +6,7 @@ import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as MessageStorage from "effect/unstable/cluster/MessageStorage"
 import * as Runners from "effect/unstable/cluster/Runners"
-import * as RunnerStorage from "effect/unstable/cluster/RunnerStorage"
+import type * as RunnerStorage from "effect/unstable/cluster/RunnerStorage"
 import type { Sharding } from "effect/unstable/cluster/Sharding"
 import * as ShardingConfig from "effect/unstable/cluster/ShardingConfig"
 import * as SocketRunner from "effect/unstable/cluster/SocketRunner"
@@ -76,12 +76,12 @@ export const layer = <const ClientOnly extends boolean = false, const Storage ex
 ): ClientOnly extends true ? Layer.Layer<
     Sharding | Runners.Runners | MessageStorage.MessageStorage,
     Config.ConfigError,
-    "sql" extends Storage ? SqlClient : never
+    "sql" extends Storage ? SqlClient : RunnerStorage.RunnerStorage
   > :
   Layer.Layer<
     Sharding | Runners.Runners | MessageStorage.MessageStorage,
     SocketServer.SocketServerError | Config.ConfigError | ("sql" extends Storage ? SqlError : never),
-    "sql" extends Storage ? SqlClient : never
+    "sql" extends Storage ? SqlClient : RunnerStorage.RunnerStorage
   > =>
 {
   const layer: Layer.Layer<any, any, any> = options?.clientOnly
@@ -92,15 +92,11 @@ export const layer = <const ClientOnly extends boolean = false, const Storage ex
 
   return layer.pipe(
     Layer.provideMerge(
-      options?.storage === "sql"
-        ? SqlMessageStorage.layer
+      options?.storage === "sql" ?
+        SqlMessageStorage.layer
         : MessageStorage.layerNoop
     ),
-    Layer.provide(
-      options?.storage === "sql"
-        ? options.clientOnly ? Layer.empty : SqlRunnerStorage.layer
-        : RunnerStorage.layerMemory
-    ),
+    Layer.provide(options?.storage === "sql" ? SqlRunnerStorage.layer : Layer.empty),
     Layer.provide(ShardingConfig.layerFromEnv(options?.shardingConfig)),
     Layer.provide(
       options?.serialization === "ndjson" ? RpcSerialization.layerNdjson : RpcSerialization.layerMsgPack
