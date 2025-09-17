@@ -496,16 +496,17 @@ export const makeRpc: Effect.Effect<
     idleTimeToLive: "3 minutes"
   })
 
+  const runnerUnavailable = (address: RunnerAddress) =>
+    Effect.flatMap(
+      RcMap.invalidate(clients, address),
+      () => Effect.fail(new RunnerUnavailable({ address }))
+    )
+
   return yield* make({
     ping(address) {
       return RcMap.get(clients, address).pipe(
         Effect.flatMap((client) => client.Ping()),
-        Effect.catchCause(() => {
-          return Effect.flatMap(
-            RcMap.invalidate(clients, address),
-            () => Effect.fail(new RunnerUnavailable({ address }))
-          )
-        }),
+        Effect.catchCause(() => runnerUnavailable(address)),
         Effect.scoped
       )
     },
@@ -522,7 +523,7 @@ export const makeRpc: Effect.Effect<
           ),
           Effect.catchTag("RpcClientError", Effect.die),
           Effect.scoped,
-          Effect.catchDefect(() => Effect.fail(new RunnerUnavailable({ address })))
+          Effect.catchDefect(() => runnerUnavailable(address))
         )
       }
       const isStream = RpcSchema.isStreamSchema(rpc.successSchema)
@@ -545,7 +546,7 @@ export const makeRpc: Effect.Effect<
               ),
               Effect.flatMap(message.respond),
               Effect.scoped,
-              Effect.catchDefect(() => Effect.fail(new RunnerUnavailable({ address })))
+              Effect.catchDefect(() => runnerUnavailable(address))
             ),
           onFailure: (error) =>
             message.respond(
@@ -575,7 +576,7 @@ export const makeRpc: Effect.Effect<
                 Effect.catchTag("RpcClientError", Effect.die),
                 Effect.provideServices(message.services),
                 Effect.catchTag("Done", () => Effect.void),
-                Effect.catchDefect(() => Effect.fail(new RunnerUnavailable({ address })))
+                Effect.catchDefect(() => runnerUnavailable(address))
               )
             }),
             Effect.scoped
@@ -602,7 +603,7 @@ export const makeRpc: Effect.Effect<
           if (error._tag === "EntityNotManagedByRunner") {
             return Effect.fail(error)
           }
-          return Effect.void
+          return RcMap.invalidate(clients, address)
         })
       )
     }
