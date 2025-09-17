@@ -34,7 +34,7 @@ export const layerClientProtocol: Layer.Layer<
     const serialization = yield* RpcSerialization.RpcSerialization
     return Effect.fnUntraced(function*(address) {
       const socket = yield* NodeSocket.makeNet({
-        timeout: 15000,
+        timeout: 5500,
         host: address.host,
         port: address.port
       })

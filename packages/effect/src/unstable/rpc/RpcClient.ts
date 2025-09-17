@@ -1042,7 +1042,7 @@ const makePinger = Effect.fnUntraced(function*<A, E, R>(writePing: Effect.Effect
     recievedPong = false
     return writePing
   }).pipe(
-    Effect.delay("10 seconds"),
+    Effect.delay("5 seconds"),
     Effect.ignore,
     Effect.forever,
     Effect.interruptible,
