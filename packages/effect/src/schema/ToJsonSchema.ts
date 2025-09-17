@@ -376,6 +376,27 @@ function go(
   ignoreErrors: boolean = false
 ): JsonSchema {
   // ---------------------------------------------
+  // handle identifier annotation
+  // ---------------------------------------------
+  if (!ignoreIdentifier) {
+    const identifier = getId(ast)
+    if (identifier !== undefined) {
+      const escapedIdentifier = identifier.replace(/~/ig, "~0").replace(/\//ig, "~1")
+      const $ref = { $ref: options.getRef(escapedIdentifier) }
+      const encodedAST = AST.encodedAST(ast)
+      if (Object.hasOwn(options.definitions, identifier)) {
+        if (AST.isSuspend(ast) || cacheEncodedAST.has(encodedAST)) {
+          return $ref
+        }
+      } else {
+        options.definitions[identifier] = $ref
+        cacheEncodedAST.set(encodedAST, identifier)
+        options.definitions[identifier] = go(ast, path, options, true)
+        return $ref
+      }
+    }
+  }
+  // ---------------------------------------------
   // handle json schema annotations
   // ---------------------------------------------
   const target = options.target
@@ -396,27 +417,6 @@ function go(
             ...annotation.constraint({ target, type: jsonSchema.type })
           }
         }
-      }
-    }
-  }
-  // ---------------------------------------------
-  // handle id annotation
-  // ---------------------------------------------
-  if (!ignoreIdentifier) {
-    const identifier = getId(ast)
-    if (identifier !== undefined) {
-      const escapedIdentifier = identifier.replace(/~/ig, "~0").replace(/\//ig, "~1")
-      const $ref = { $ref: options.getRef(escapedIdentifier) }
-      const encodedAST = AST.encodedAST(ast)
-      if (Object.hasOwn(options.definitions, identifier)) {
-        if (AST.isSuspend(ast) || cacheEncodedAST.has(encodedAST)) {
-          return $ref
-        }
-      } else {
-        options.definitions[identifier] = $ref
-        cacheEncodedAST.set(encodedAST, identifier)
-        options.definitions[identifier] = go(ast, path, options, true)
-        return $ref
       }
     }
   }

@@ -2770,6 +2770,24 @@ describe("ToJsonSchema", () => {
           ]
         })
       })
+
+      it("identifier & override json schema annotation", async () => {
+        const schema = Schema.Number.annotate({
+          identifier: "ID",
+          jsonSchema: {
+            _tag: "Override",
+            override: () => ({ type: "integer" })
+          }
+        })
+        await assertDraft7(schema, {
+          "$defs": {
+            "ID": {
+              "type": "integer"
+            }
+          },
+          "$ref": "#/$defs/ID"
+        })
+      })
     })
 
     describe("jsonSchema annotation", () => {
