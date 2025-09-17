@@ -11,10 +11,7 @@ describe("Headers", () => {
         "Accept": "application/json, text/plain, */*",
         "Cache-Control": "no-cache"
       })
-      assertSuccess(
-        _Accept.getResult(headers),
-        "application/json, text/plain, */*"
-      )
+      assertSuccess(_Accept.getResult(headers), "application/json, text/plain, */*")
       assertSuccess(
         _Accept.replaceResult("application/json", headers),
         Headers.fromRecordUnsafe({

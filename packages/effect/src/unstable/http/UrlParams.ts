@@ -149,16 +149,18 @@ const arrayEquivalence = Arr.getEquivalence(
  * @since 4.0.0
  * @category schemas
  */
-export interface schema extends Schema.declare<UrlParams> {}
+export interface UrlParamsSchema extends Schema.declare<UrlParams, ReadonlyArray<readonly [string, string]>> {
+  readonly "~rebuild.out": UrlParamsSchema
+}
 
 /**
  * @since 4.0.0
  * @category schemas
  */
-export const schema: schema = Schema.declare(
+export const UrlParamsSchema: UrlParamsSchema = Schema.declare(
   isUrlParams,
   {
-    identifier: "UrlParams",
+    title: "UrlParams",
     equivalence: {
       _tag: "Declaration",
       declaration: () => Equivalence
@@ -402,7 +404,7 @@ export const toReadonlyRecord: (self: UrlParams) => ReadonlyRecord<string, strin
  * @since 4.0.0
  * @category Schemas
  */
-export interface schemaJsonField extends Schema.decodeTo<Schema.UnknownFromJsonString, schema> {}
+export interface schemaJsonField extends Schema.decodeTo<Schema.UnknownFromJsonString, UrlParamsSchema> {}
 
 /**
  * Extract a JSON value from the first occurrence of the given `field` in the
@@ -431,7 +433,7 @@ export interface schemaJsonField extends Schema.decodeTo<Schema.UnknownFromJsonS
  * @category Schemas
  */
 export const schemaJsonField = (field: string): schemaJsonField =>
-  schema.pipe(
+  UrlParamsSchema.pipe(
     Schema.decodeTo(
       Schema.UnknownFromJsonString,
       Transformation.transformOrFail({
@@ -490,7 +492,7 @@ export interface schemaRecord extends
  * @since 4.0.0
  * @category schema
  */
-export const schemaRecord: schemaRecord = schema.pipe(
+export const schemaRecord: schemaRecord = UrlParamsSchema.pipe(
   Schema.decodeTo(
     Schema.Record(
       Schema.String,
