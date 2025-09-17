@@ -4662,6 +4662,7 @@ class ClockImpl implements Clock.Clock {
   readonly currentTimeNanos: Effect.Effect<bigint> = sync(() => this.currentTimeNanosUnsafe())
   sleep(duration: Duration.Duration): Effect.Effect<void> {
     const millis = Duration.toMillis(duration)
+    if (millis <= 0) return yieldNow
     return callback((resume) => {
       if (millis > MAX_TIMER_MILLIS) return
       const handle = setTimeout(() => resume(void_), millis)

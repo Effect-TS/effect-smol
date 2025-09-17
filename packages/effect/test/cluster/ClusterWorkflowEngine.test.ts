@@ -236,7 +236,8 @@ const TestShardingConfig = ShardingConfig.layer({
   entityMailboxCapacity: 10,
   entityTerminationTimeout: 0,
   entityMessagePollInterval: 5000,
-  sendRetryInterval: 100
+  sendRetryInterval: 100,
+  refreshAssignmentsInterval: 0
 })
 
 const TestWorkflowEngine = ClusterWorkflowEngine.layer.pipe(
