@@ -533,8 +533,7 @@
                 "type": "object",
                 "properties": {
                   "file": {
-                    "type": "string",
-                    "format": "binary"
+                    "$ref": "#/components/schemas/PersistedFile"
                   }
                 },
                 "required": ["file"],
@@ -600,8 +599,7 @@
                 "type": "object",
                 "properties": {
                   "file": {
-                    "type": "string",
-                    "format": "binary"
+                    "$ref": "#/components/schemas/PersistedFile"
                   }
                 },
                 "required": ["file"],
