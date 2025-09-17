@@ -609,23 +609,11 @@ class NoStatusError extends Schema.ErrorClass<NoStatusError>("NoStatusError")({
   _tag: Schema.tag("NoStatusError")
 }) {}
 
-const DateTimeFromSelf = Schema.declare((u) => DateTime.isDateTime(u) && DateTime.isUtc(u))
-
-const DateTimeFromString = Schema.String.pipe(
-  Schema.decodeTo(
-    DateTimeFromSelf,
-    Transformation.transform({
-      decode: DateTime.makeUnsafe,
-      encode: DateTime.formatIso
-    })
-  )
-)
-
 class User extends Schema.Class<User>("User")({
   id: Schema.Int,
   uuid: Schema.optional(Schema.String),
   name: Schema.String,
-  createdAt: DateTimeFromString
+  createdAt: Schema.DateTimeUtcFromString
 }, {
   description: "Some description for User"
 }) {}

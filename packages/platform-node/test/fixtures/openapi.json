@@ -704,7 +704,8 @@
             "type": "string"
           },
           "createdAt": {
-            "type": "string"
+            "type": "string",
+            "description": "a string that will be decoded as a DateTime.Utc"
           }
         },
         "required": ["id", "name", "createdAt"],

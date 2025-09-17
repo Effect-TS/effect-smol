@@ -9,9 +9,13 @@ describe("Multipart", () => {
       const jsonSchema = ToJsonSchema.makeDraft07(Multipart.FileSchema)
       deepStrictEqual(jsonSchema, {
         "$schema": "http://json-schema.org/draft-07/schema",
-        "type": "string",
-        "title": "PersistedFile",
-        "format": "binary"
+        "$defs": {
+          "PersistedFile": {
+            "type": "string",
+            "format": "binary"
+          }
+        },
+        "$ref": "#/$defs/PersistedFile"
       })
     })
   })

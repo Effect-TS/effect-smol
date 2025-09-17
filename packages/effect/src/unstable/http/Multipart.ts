@@ -154,12 +154,11 @@ export interface FileSchema extends Schema.declare<PersistedFile> {
 export const FileSchema: FileSchema = Schema.declare(
   isPersistedFile,
   {
-    title: "PersistedFile",
+    identifier: "PersistedFile",
     jsonSchema: {
       _tag: "Override",
       override: () => ({
         type: "string",
-        title: "PersistedFile",
         format: "binary"
       })
     }

@@ -4871,10 +4871,13 @@ export interface DateTimeUtcFromString extends decodeTo<DateTimeUtc, String> {
 export const DateTimeUtcFromString: DateTimeUtcFromString = String.annotate({
   description: "a string that will be decoded as a DateTime.Utc"
 }).pipe(
-  decodeTo(DateTimeUtc, {
-    decode: Getter.dateTimeUtcFromInput(),
-    encode: Getter.transform(DateTime.formatIso)
-  })
+  decodeTo(
+    DateTimeUtc,
+    Transformation.transform({
+      decode: DateTime.makeUnsafe,
+      encode: DateTime.formatIso
+    })
+  )
 )
 
 /**
