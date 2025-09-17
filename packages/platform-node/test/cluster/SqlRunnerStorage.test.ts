@@ -18,7 +18,7 @@ describe("SqlRunnerStorage", () => {
     it.layer(StorageLive.pipe(Layer.provideMerge(layer)), {
       timeout: 30000
     })(label, (it) => {
-      it.effect("saveRunners", () =>
+      it.effect("getRunners", () =>
         Effect.gen(function*() {
           const storage = yield* RunnerStorage.RunnerStorage
 
@@ -31,6 +31,9 @@ describe("SqlRunnerStorage", () => {
           yield* storage.register(runner)
           expect(machineId).toEqual(1)
           expect(yield* storage.getRunners).toEqual([[runner, true]])
+
+          yield* storage.setRunnerHealth(runnerAddress1, false)
+          expect(yield* storage.getRunners).toEqual([[runner, false]])
 
           yield* storage.unregister(runnerAddress1)
           expect(yield* storage.getRunners).toEqual([])

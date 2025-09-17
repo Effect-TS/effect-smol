@@ -130,6 +130,12 @@ export const make = Effect.fnUntraced(function*(options: {
     orElse: () => sql`datetime(${sqlNow}, '-5 seconds')`
   })
 
+  const encodeBoolean = sql.onDialectOrElse({
+    mssql: () => (b: boolean) => (b ? 1 : 0),
+    sqlite: () => (b: boolean) => (b ? 1 : 0),
+    orElse: () => (b: boolean) => b
+  })
+
   // Upsert runner and return machine_id
   const insertRunner = sql.onDialectOrElse({
     mssql: () => (address: string, runner: string) =>
@@ -255,7 +261,7 @@ export const make = Effect.fnUntraced(function*(options: {
       ),
 
     setRunnerHealth: (address, healthy) =>
-      sql`UPDATE ${runnersTableSql} SET healthy = ${healthy} WHERE address = ${address}`
+      sql`UPDATE ${runnersTableSql} SET healthy = ${encodeBoolean(healthy)} WHERE address = ${address}`
         .pipe(
           Effect.asVoid,
           PersistenceError.refail,

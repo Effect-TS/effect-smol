@@ -921,7 +921,7 @@ const make = Effect.gen(function*() {
 
   if (selfRunner) {
     yield* registerSingleton(
-      "Cluster/Sharding/RunnerHealth",
+      "effect/cluster/Sharding/RunnerHealth",
       Effect.gen(function*() {
         const fiberSet = yield* FiberSet.make()
 
