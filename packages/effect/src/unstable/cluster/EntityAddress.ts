@@ -24,7 +24,14 @@ export class EntityAddress extends Schema.Class<EntityAddress>(TypeId)({
   /**
    * @since 4.0.0
    */
-  readonly [TypeId] = TypeId;
+  readonly [TypeId] = TypeId
+
+  /**
+   * @since 4.0.0
+   */
+  override toString() {
+    return `EntityAddress(${this.entityType.toString()}, ${this.entityId.toString()}, ${this.shardId.toString()})`
+  }
 
   /**
    * @since 4.0.0
