@@ -40,10 +40,16 @@ export const Socket: ServiceMap.Key<Socket, Socket> = ServiceMap.Key<Socket>("ef
 export interface Socket {
   readonly [TypeId]: typeof TypeId
   readonly run: <_, E = never, R = never>(
-    handler: (_: Uint8Array) => Effect.Effect<_, E, R> | void
+    handler: (_: Uint8Array) => Effect.Effect<_, E, R> | void,
+    options?: {
+      readonly onOpen?: Effect.Effect<void> | undefined
+    }
   ) => Effect.Effect<void, SocketError | E, R>
   readonly runRaw: <_, E = never, R = never>(
-    handler: (_: string | Uint8Array) => Effect.Effect<_, E, R> | void
+    handler: (_: string | Uint8Array) => Effect.Effect<_, E, R> | void,
+    options?: {
+      readonly onOpen?: Effect.Effect<void> | undefined
+    }
   ) => Effect.Effect<void, SocketError | E, R>
   readonly writer: Effect.Effect<
     (chunk: Uint8Array | string | CloseEvent) => Effect.Effect<void, SocketError>,
@@ -359,7 +365,9 @@ export const fromWebSocket = <RO>(
     const acquireContext = fiber.services as ServiceMap.ServiceMap<RO>
     const closeCodeIsError = options?.closeCodeIsError ?? defaultCloseCodeIsError
 
-    const runRaw = <_, E, R>(handler: (_: string | Uint8Array) => Effect.Effect<_, E, R> | void) =>
+    const runRaw = <_, E, R>(handler: (_: string | Uint8Array) => Effect.Effect<_, E, R> | void, opts?: {
+      readonly onOpen?: Effect.Effect<void> | undefined
+    }) =>
       Effect.scopedWith(Effect.fnUntraced(function*(scope) {
         const fiberSet = yield* FiberSet.make<any, E | SocketError>().pipe(
           Scope.provide(scope)
@@ -424,6 +432,7 @@ export const fromWebSocket = <RO>(
         open = true
         currentWS = ws
         yield* latch.open
+        if (opts?.onOpen) yield* opts.onOpen
         return yield* FiberSet.join(fiberSet).pipe(
           Effect.catchFilter(
             SocketCloseError.isClean((_) => !closeCodeIsError(_)),
@@ -439,14 +448,15 @@ export const fromWebSocket = <RO>(
       )
 
     const encoder = new TextEncoder()
-    const run = <_, E, R>(handler: (_: Uint8Array) => Effect.Effect<_, E, R> | void) =>
+    const run = <_, E, R>(handler: (_: Uint8Array) => Effect.Effect<_, E, R> | void, opts?: {
+      readonly onOpen?: Effect.Effect<void> | undefined
+    }) =>
       runRaw((data) =>
         typeof data === "string"
           ? handler(encoder.encode(data))
           : data instanceof Uint8Array
           ? handler(data)
-          : handler(new Uint8Array(data))
-      )
+          : handler(new Uint8Array(data)), opts)
 
     const write = (chunk: Uint8Array | string | CloseEvent) =>
       latch.whenOpen(Effect.sync(() => {
@@ -534,7 +544,9 @@ export const fromTransformStream = <R>(acquire: Effect.Effect<InputTransformStre
     } | undefined
     const acquireServices = fiber.services as ServiceMap.ServiceMap<R>
     const closeCodeIsError = options?.closeCodeIsError ?? defaultCloseCodeIsError
-    const runRaw = <_, E, R>(handler: (_: string | Uint8Array) => Effect.Effect<_, E, R> | void) =>
+    const runRaw = <_, E, R>(handler: (_: string | Uint8Array) => Effect.Effect<_, E, R> | void, opts?: {
+      readonly onOpen?: Effect.Effect<void> | undefined
+    }) =>
       Effect.scopedWith(Effect.fnUntraced(function*(scope) {
         const stream = yield* Scope.provide(acquire, scope)
         const reader = stream.readable.getReader()
@@ -564,6 +576,7 @@ export const fromTransformStream = <R>(acquire: Effect.Effect<InputTransformStre
 
         currentStream = { stream, fiberSet }
         yield* latch.open
+        if (opts?.onOpen) yield* opts.onOpen
 
         return yield* FiberSet.join(fiberSet).pipe(
           Effect.catchFilter(
@@ -581,12 +594,13 @@ export const fromTransformStream = <R>(acquire: Effect.Effect<InputTransformStre
       )
 
     const encoder = new TextEncoder()
-    const run = <_, E, R>(handler: (_: Uint8Array) => Effect.Effect<_, E, R> | void) =>
+    const run = <_, E, R>(handler: (_: Uint8Array) => Effect.Effect<_, E, R> | void, opts?: {
+      readonly onOpen?: Effect.Effect<void> | undefined
+    }) =>
       runRaw((data) =>
         typeof data === "string"
           ? handler(encoder.encode(data))
-          : handler(data)
-      )
+          : handler(data), opts)
 
     const writers = new WeakMap<InputTransformStream, WritableStreamDefaultWriter<Uint8Array>>()
     const getWriter = (stream: InputTransformStream) => {
