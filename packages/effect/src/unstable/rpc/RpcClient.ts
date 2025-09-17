@@ -1001,7 +1001,7 @@ export const makeProtocolSocket = (options?: {
           ) {
             return Effect.void
           }
-          const currentError = new RpcClientError({
+          currentError = new RpcClientError({
             reason: "Protocol",
             message: "Error in socket",
             cause: Cause.squash(cause)
