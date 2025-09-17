@@ -822,7 +822,6 @@ const make = Effect.gen(function*() {
     const hashRings = new Map<string, HashRing.HashRing<RunnerAddress>>()
     const healthyRunners = MutableHashSet.empty<Runner>()
     let nextRunners = MutableHashMap.empty<Runner, boolean>()
-    let pendingReassignments = false
 
     while (true) {
       // Ensure the current runner is registered
@@ -880,9 +879,6 @@ const make = Effect.gen(function*() {
       // Recompute shard assignments if the set of healthy runners has changed.
       // We wait for an iteration with no changes to avoid thrashing.
       if (changed) {
-        pendingReassignments = true
-      } else if (pendingReassignments) {
-        pendingReassignments = false
         MutableHashSet.clear(selfShards)
         for (const [group, ring] of hashRings) {
           const newAssignments = HashRing.getShards(ring, config.shardsPerGroup)
