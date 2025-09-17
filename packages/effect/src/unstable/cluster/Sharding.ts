@@ -284,7 +284,7 @@ const make = Effect.gen(function*() {
     ).pipe(
       Effect.flatMap((acquired) => {
         for (const shardId of acquiredShards) {
-          if (!acquired.some((_) => Equal.equals(_, shardId))) {
+          if (!acquired.includes(shardId)) {
             MutableHashSet.remove(acquiredShards, shardId)
             MutableHashSet.add(releasingShards, shardId)
           }
@@ -322,16 +322,14 @@ const make = Effect.gen(function*() {
               { concurrency: "unbounded", discard: true }
             ).pipe(
               Effect.andThen(runnerStorage.release(selfAddress, shardId)),
-              Effect.annotateLogs({
-                runner: selfAddress
-              }),
+              Effect.annotateLogs({ runner: selfAddress }),
               Effect.andThen(() => {
                 MutableHashSet.remove(releasingShards, shardId)
               })
             ),
           { concurrency: "unbounded", discard: true }
         )
-      )
+      ).pipe(Effect.andThen(activeShardsLatch.open))
     )
   }
 

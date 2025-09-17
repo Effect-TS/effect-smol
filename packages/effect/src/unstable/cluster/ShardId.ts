@@ -37,6 +37,11 @@ export class ShardId extends S.Class<ShardId>(TypeId)({
   /**
    * @since 4.0.0
    */
+  static readonly make = make
+
+  /**
+   * @since 4.0.0
+   */
   readonly [TypeId] = TypeId;
 
   /**
@@ -100,6 +105,7 @@ export class ShardId extends S.Class<ShardId>(TypeId)({
    * @since 4.0.0
    */
   static fromString(s: string): ShardId {
-    return new ShardId(ShardId.fromStringEncoded(s), constDisableValidation)
+    const encoded = ShardId.fromStringEncoded(s)
+    return make(encoded.group, encoded.id)
   }
 }
