@@ -34,11 +34,27 @@ export interface Cookies extends Pipeable, Inspectable.Inspectable {
  * @since 4.0.0
  * @category Schemas
  */
-export const schema: Schema.Codec<Cookies> = Schema.declare(
+export interface CookiesSchema extends Schema.declare<Cookies, Record.ReadonlyRecord<string, CookieSchema["Iso"]>> {
+  readonly "~rebuild.out": CookiesSchema
+}
+
+/**
+ * @since 4.0.0
+ * @category Schemas
+ */
+export const CookiesSchema: CookiesSchema = Schema.declare(
   isCookies,
   {
-    identifier: "Cookies",
+    title: "Cookies",
     defaultIsoSerializer: () =>
+      Schema.link<Cookies>()(
+        Schema.Record(Schema.String, CookieSchema),
+        Transformation.transform({
+          decode: (input) => fromReadonlyRecord(input),
+          encode: (cookies) => cookies.cookies
+        })
+      ),
+    defaultJsonSerializer: () =>
       Schema.link<Cookies>()(
         Schema.Array(Schema.String),
         Transformation.transform({
@@ -78,6 +94,23 @@ export interface Cookie extends Inspectable.Inspectable {
  * @category Guards
  */
 export const isCookie = (u: unknown): u is Cookie => Predicate.hasProperty(u, CookieTypeId)
+
+/**
+ * @since 4.0.0
+ * @category Schemas
+ */
+export interface CookieSchema extends Schema.declare<Cookie> {
+  readonly "~rebuild.out": CookieSchema
+}
+
+/**
+ * @since 4.0.0
+ * @category Schemas
+ */
+export const CookieSchema: CookieSchema = Schema.declare(
+  isCookie,
+  { title: "Cookie" }
+)
 
 const CookieErrorTypeId = "~effect/http/Cookies/CookieError"
 
@@ -383,10 +416,7 @@ export const makeCookieUnsafe = (
  */
 export const setCookie: {
   (cookie: Cookie): (self: Cookies) => Cookies
-  (
-    self: Cookies,
-    cookie: Cookie
-  ): Cookies
+  (self: Cookies, cookie: Cookie): Cookies
 } = dual(
   2,
   (self: Cookies, cookie: Cookie) =>
@@ -405,10 +435,7 @@ export const setCookie: {
  */
 export const setAllCookie: {
   (cookies: Iterable<Cookie>): (self: Cookies) => Cookies
-  (
-    self: Cookies,
-    cookies: Iterable<Cookie>
-  ): Cookies
+  (self: Cookies, cookies: Iterable<Cookie>): Cookies
 } = dual(2, (self: Cookies, cookies: Iterable<Cookie>) => {
   const record = { ...self.cookies }
   for (const cookie of cookies) {
@@ -425,10 +452,7 @@ export const setAllCookie: {
  */
 export const merge: {
   (that: Cookies): (self: Cookies) => Cookies
-  (
-    self: Cookies,
-    that: Cookies
-  ): Cookies
+  (self: Cookies, that: Cookies): Cookies
 } = dual(2, (self: Cookies, that: Cookies) =>
   fromReadonlyRecord({
     ...self.cookies,
@@ -443,10 +467,7 @@ export const merge: {
  */
 export const remove: {
   (name: string): (self: Cookies) => Cookies
-  (
-    self: Cookies,
-    name: string
-  ): Cookies
+  (self: Cookies, name: string): Cookies
 } = dual(2, (self: Cookies, name: string) => fromReadonlyRecord(Record.remove(self.cookies, name)))
 
 /**
@@ -573,13 +594,8 @@ export const setAll: {
  * @category combinators
  */
 export const setAllUnsafe: {
-  (
-    cookies: Iterable<readonly [name: string, value: string, options?: Cookie["options"]]>
-  ): (self: Cookies) => Cookies
-  (
-    self: Cookies,
-    cookies: Iterable<readonly [name: string, value: string, options?: Cookie["options"]]>
-  ): Cookies
+  (cookies: Iterable<readonly [name: string, value: string, options?: Cookie["options"]]>): (self: Cookies) => Cookies
+  (self: Cookies, cookies: Iterable<readonly [name: string, value: string, options?: Cookie["options"]]>): Cookies
 } = dual(
   2,
   (
@@ -693,10 +709,7 @@ export const toRecord = (self: Cookies): Record<string, string> => {
  * @since 4.0.0
  * @category Schemas
  */
-export const schemaRecord: Schema.Codec<
-  Record<string, string>,
-  Cookies
-> = schema.pipe(
+export const schemaRecord = CookiesSchema.pipe(
   Schema.decodeTo(
     Schema.Record(Schema.String, Schema.String),
     Transformation.transform({
