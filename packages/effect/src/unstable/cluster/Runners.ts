@@ -486,6 +486,7 @@ export const makeRpc: Effect.Effect<
 > = Effect.gen(function*() {
   const makeClientProtocol = yield* RpcClientProtocol
   const snowflakeGen = yield* Snowflake.Generator
+  const scope = yield* Effect.scope
 
   const clients = yield* RcMap.make({
     lookup: (address: RunnerAddress) =>
@@ -498,7 +499,7 @@ export const makeRpc: Effect.Effect<
 
   const runnerUnavailable = (address: RunnerAddress) =>
     Effect.flatMap(
-      RcMap.invalidate(clients, address),
+      Effect.forkIn(RcMap.invalidate(clients, address), scope),
       () => Effect.fail(new RunnerUnavailable({ address }))
     )
 
@@ -602,8 +603,10 @@ export const makeRpc: Effect.Effect<
         Effect.catch((error) => {
           if (error._tag === "EntityNotManagedByRunner") {
             return Effect.fail(error)
+          } else if (error._tag === "RpcClientError") {
+            return Effect.asVoid(Effect.forkIn(RcMap.invalidate(clients, address), scope))
           }
-          return RcMap.invalidate(clients, address)
+          return Effect.void
         })
       )
     }
