@@ -944,6 +944,10 @@ export const makeProtocolSocket = (options?: {
     let parser = serialization.makeUnsafe()
 
     const pinger = yield* makePinger(write(parser.encode(constPing)!))
+    let currentError: RpcClientError | undefined
+    const clearCurrentError = Effect.sync(() => {
+      currentError = undefined
+    })
 
     yield* Effect.suspend(() => {
       parser = serialization.makeUnsafe()
@@ -974,7 +978,7 @@ export const makeProtocolSocket = (options?: {
             })
           })
         }
-      }).pipe(
+      }, { onOpen: clearCurrentError }).pipe(
         Effect.raceFirst(Effect.flatMap(
           pinger.timeout,
           () =>
@@ -997,13 +1001,14 @@ export const makeProtocolSocket = (options?: {
           ) {
             return Effect.void
           }
+          const currentError = new RpcClientError({
+            reason: "Protocol",
+            message: "Error in socket",
+            cause: Cause.squash(cause)
+          })
           return writeResponse({
             _tag: "ClientProtocolError",
-            error: new RpcClientError({
-              reason: "Protocol",
-              message: "Error in socket",
-              cause: Cause.squash(cause)
-            })
+            error: currentError
           })
         }
       ),
@@ -1018,6 +1023,9 @@ export const makeProtocolSocket = (options?: {
 
     return {
       send(request) {
+        if (currentError) {
+          return Effect.fail(currentError)
+        }
         const encoded = parser.encode(request)
         if (encoded === undefined) return Effect.void
         return Effect.orDie(write(encoded))
