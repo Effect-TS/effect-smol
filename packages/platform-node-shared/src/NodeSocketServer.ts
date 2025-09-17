@@ -4,7 +4,7 @@
 import type { Cause } from "effect/Cause"
 import * as Effect from "effect/Effect"
 import * as Exit from "effect/Exit"
-import * as FiberSet from "effect/FiberSet"
+import * as Fiber from "effect/Fiber"
 import { pipe } from "effect/Function"
 import * as Layer from "effect/Layer"
 import * as References from "effect/References"
@@ -40,6 +40,15 @@ export const make = Effect.fnUntraced(function*(
         server.close(() => resume(Effect.void))
       })
   )
+  const pendingConnections = new Set<Net.Socket>()
+  function defaultHandler(conn: Net.Socket) {
+    pendingConnections.add(conn)
+    conn.on("close", () => {
+      pendingConnections.delete(conn)
+    })
+  }
+  let onConnection = defaultHandler
+  server.on("connection", (conn) => onConnection(conn))
 
   yield* Effect.callback<void, SocketServer.SocketServerError>((resume) => {
     server.once("error", (cause) => {
@@ -57,11 +66,10 @@ export const make = Effect.fnUntraced(function*(
 
   const run = Effect.fnUntraced(function*<R, E, _>(handler: (socket: Socket.Socket) => Effect.Effect<_, E, R>) {
     const scope = yield* Scope.make()
-    const fiberSet = yield* FiberSet.make().pipe(
-      Scope.provide(scope)
-    )
-    const run = yield* FiberSet.runtime(fiberSet)<R>()
-    function onConnection(conn: Net.Socket) {
+    const services = ServiceMap.omit(Scope.Scope)(yield* Effect.services<R>()) as ServiceMap.ServiceMap<R>
+    const trackFiber = Fiber.runIn(scope)
+    const prevOnConnection = onConnection
+    onConnection = function(conn: Net.Socket) {
       pipe(
         NodeSocket.fromDuplex(
           Effect.acquireRelease(
@@ -76,14 +84,17 @@ export const make = Effect.fnUntraced(function*(
         ),
         Effect.flatMap(handler),
         Effect.catchCause(reportUnhandledError),
-        Effect.provideService(NodeSocket.NetSocket, conn),
-        run
+        Effect.runForkWith(ServiceMap.add(services, NodeSocket.NetSocket, conn)),
+        trackFiber
       )
     }
+    for (const conn of pendingConnections) {
+      onConnection(conn)
+    }
+    pendingConnections.clear()
     return yield* Effect.callback<never>((_resume) => {
-      server.on("connection", onConnection)
       return Effect.sync(() => {
-        server.off("connection", onConnection)
+        onConnection = prevOnConnection
       })
     }).pipe(
       Effect.ensuring(Scope.close(scope, Exit.void))
@@ -137,6 +148,16 @@ export const makeWebSocket: (
         server.close(() => resume(Effect.void))
       })
   )
+  const pendingConnections = new Set<readonly [globalThis.WebSocket, Http.IncomingMessage]>()
+  function defaultHandler(conn: globalThis.WebSocket, req: Http.IncomingMessage) {
+    const entry = [conn, req] as const
+    pendingConnections.add(entry)
+    conn.addEventListener("close", () => {
+      pendingConnections.delete(entry)
+    })
+  }
+  let onConnection = defaultHandler
+  server.on("connection", (conn, req) => onConnection(conn as any, req))
 
   yield* Effect.callback<void, SocketServer.SocketServerError>((resume) => {
     server.once("error", (error) => {
@@ -154,15 +175,17 @@ export const makeWebSocket: (
 
   const run = Effect.fnUntraced(function*<R, E, _>(handler: (socket: Socket.Socket) => Effect.Effect<_, E, R>) {
     const scope = yield* Scope.make()
-    const fiberSet = yield* FiberSet.make().pipe(
-      Scope.provide(scope)
-    )
-    const run = yield* FiberSet.runtime(fiberSet)<R>()
-    function onConnection(conn: Net.Socket, req: Http.IncomingMessage) {
+    const services = ServiceMap.omit(Scope.Scope)(yield* Effect.services<R>()) as ServiceMap.ServiceMap<R>
+    const trackFiber = Fiber.runIn(scope)
+    const prevOnConnection = onConnection
+    onConnection = function(conn: globalThis.WebSocket, req: Http.IncomingMessage) {
+      const map = new Map(services.mapUnsafe)
+      map.set(IncomingMessage.key, req)
+      map.set(Socket.WebSocket.key, conn as any)
       pipe(
         Socket.fromWebSocket(
           Effect.acquireRelease(
-            Effect.succeed(conn as unknown as globalThis.WebSocket),
+            Effect.succeed(conn),
             (conn) =>
               Effect.sync(() => {
                 conn.close()
@@ -171,15 +194,17 @@ export const makeWebSocket: (
         ),
         Effect.flatMap(handler),
         Effect.catchCause(reportUnhandledError),
-        Effect.provideService(Socket.WebSocket, conn as any),
-        Effect.provideService(IncomingMessage, req),
-        run
+        Effect.runForkWith(ServiceMap.makeUnsafe(map)),
+        trackFiber
       )
     }
+    for (const [conn, req] of pendingConnections) {
+      onConnection(conn, req)
+    }
+    pendingConnections.clear()
     return yield* Effect.callback<never>((_resume) => {
-      server.on("connection", onConnection)
       return Effect.sync(() => {
-        server.off("connection", onConnection)
+        onConnection = prevOnConnection
       })
     }).pipe(
       Effect.ensuring(Scope.close(scope, Exit.void))
