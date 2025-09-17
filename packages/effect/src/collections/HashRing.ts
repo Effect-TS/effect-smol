@@ -18,6 +18,7 @@ const TypeId = "~effect/cluster/HashRing" as const
 export interface HashRing<A extends PrimaryKey.PrimaryKey> extends Pipeable, Iterable<A> {
   readonly [TypeId]: typeof TypeId
   readonly baseWeight: number
+  totalWeightCache: number
   readonly nodes: Map<string, [node: A, weight: number]>
   ring: Array<[hash: number, node: string]>
 }
@@ -36,7 +37,8 @@ export const make = <A extends PrimaryKey.PrimaryKey>(options?: {
   readonly baseWeight?: number | undefined
 }): HashRing<A> => {
   const self = Object.create(Proto)
-  self.baseWeight = Math.max(options?.baseWeight ?? 50, 1)
+  self.baseWeight = Math.max(options?.baseWeight ?? 128, 1)
+  self.totalWeightCache = 0
   self.nodes = new Map()
   self.ring = []
   return self
@@ -86,9 +88,12 @@ export const addMany: {
         if (entry[1] === weight) continue
         toRemove ??= new Set()
         toRemove.add(key)
+        self.totalWeightCache -= entry[1]
+        self.totalWeightCache += weight
         entry[1] = weight
       } else {
         self.nodes.set(key, [node, weight])
+        self.totalWeightCache += weight
       }
       keys.push(key)
     }
@@ -142,8 +147,11 @@ export const remove: {
   <A extends PrimaryKey.PrimaryKey>(self: HashRing<A>, node: A): HashRing<A>
 } = dual(2, <A extends PrimaryKey.PrimaryKey>(self: HashRing<A>, node: A): HashRing<A> => {
   const key = PrimaryKey.value(node)
-  if (self.nodes.delete(key)) {
+  const entry = self.nodes.get(key)
+  if (entry) {
+    self.nodes.delete(key)
     self.ring = self.ring.filter(([, n]) => n !== key)
+    self.totalWeightCache -= entry[1]
   }
   return self
 })
@@ -190,7 +198,6 @@ export const getShards = <A extends PrimaryKey.PrimaryKey>(self: HashRing<A>, co
   }
 
   const shards = new Array<A>(count)
-  const maxPerNode = Math.max(Math.floor(count / self.nodes.size), 1)
 
   // for tracking how many shards have been allocated to each node
   const allocations = new Map<string, number>()
@@ -213,11 +220,13 @@ export const getShards = <A extends PrimaryKey.PrimaryKey>(self: HashRing<A>, co
   for (let i = 0; i < count; i++) {
     const [shard, node] = distances[i]
     if (exclude.has(node)) continue
-    shards[shard] = self.nodes.get(node)![0]!
+    const [value, weight] = self.nodes.get(node)!
+    shards[shard] = value
     remaining.delete(shard)
-    const count = (allocations.get(node) ?? 0) + 1
-    allocations.set(node, count)
-    if (count >= maxPerNode) {
+    const nodeCount = (allocations.get(node) ?? 0) + 1
+    allocations.set(node, nodeCount)
+    const maxPerNode = Math.max(1, Math.floor(count * (weight / self.totalWeightCache)))
+    if (nodeCount >= maxPerNode) {
       exclude.add(node)
     }
   }
@@ -228,12 +237,14 @@ export const getShards = <A extends PrimaryKey.PrimaryKey>(self: HashRing<A>, co
   remaining.forEach((shard) => {
     const index = getIndexForInput(self, shardHashes[shard], allAtMax ? undefined : exclude)[0]
     const node = self.ring[index][1]
-    shards[shard] = self.nodes.get(node)![0]
+    const [value, weight] = self.nodes.get(node)!
+    shards[shard] = value
 
     if (allAtMax) return
-    const count = (allocations.get(node) ?? 0) + 1
-    allocations.set(node, count)
-    if (count >= maxPerNode) {
+    const nodeCount = (allocations.get(node) ?? 0) + 1
+    allocations.set(node, nodeCount)
+    const maxPerNode = Math.max(1, Math.floor(count * (weight / self.totalWeightCache)))
+    if (nodeCount >= maxPerNode) {
       exclude.add(node)
       if (exclude.size === self.nodes.size) {
         allAtMax = true

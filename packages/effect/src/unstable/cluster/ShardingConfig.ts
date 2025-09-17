@@ -34,9 +34,15 @@ export class ShardingConfig extends ServiceMap.Key<ShardingConfig, {
    */
   readonly runnerListenAddress: RunnerAddress | undefined
   /**
-   * The version of the current runner.
+   * A number that determines how many shards this runner will be assigned
+   * relative to other runners.
+   *
+   * Defaults to `1`.
+   *
+   * A value of `2` means that this runner should be assigned twice as many
+   * shards as a runner with a weight of `1`.
    */
-  readonly serverVersion: number
+  readonly runnerShardWeight: number
   /**
    * The shard groups that are assigned to this runner.
    *
@@ -102,7 +108,7 @@ const defaultRunnerAddress = RunnerAddress.makeSync({ host: "localhost", port: 3
 export const defaults: ShardingConfig["Service"] = {
   runnerAddress: defaultRunnerAddress,
   runnerListenAddress: undefined,
-  serverVersion: 1,
+  runnerShardWeight: 1,
   shardsPerGroup: 300,
   shardGroups: ["default"],
   entityMailboxCapacity: 4096,
@@ -152,9 +158,9 @@ export const config: Config.Config<ShardingConfig["Service"]> = Config.all({
       // Config.withDescription("The port to listen on.")
     )
   }).pipe(Config.map((options) => RunnerAddress.makeSync(options)), Config.option, Config.map(Option.getOrUndefined)),
-  serverVersion: Config.int("serverVersion").pipe(
-    Config.withDefault(() => defaults.serverVersion)
-    // Config.withDescription("The version of the current runner.")
+  runnerShardWeight: Config.int("runnerShardWeight").pipe(
+    Config.withDefault(() => defaults.runnerShardWeight)
+    // Config.withDescription("A number that determines how many shards this runner will be assigned relative to other runners.")
   ),
   shardGroups: Config.schema(Schema.Array(Schema.String), "shardGroups").pipe(
     Config.withDefault(() => ["default"])

@@ -805,7 +805,7 @@ const make = Effect.gen(function*() {
     new Runner({
       address: config.runnerAddress,
       groups: config.shardGroups,
-      version: config.serverVersion
+      weight: config.runnerShardWeight
     }) :
     undefined
 
@@ -822,7 +822,6 @@ const make = Effect.gen(function*() {
     const hashRings = new Map<string, HashRing.HashRing<RunnerAddress>>()
     const healthyRunners = MutableHashSet.empty<Runner>()
     let nextRunners = MutableHashMap.empty<Runner, boolean>()
-    const toAdd = new Map<string, Array<RunnerAddress>>()
 
     while (true) {
       // Ensure the current runner is registered
@@ -847,12 +846,12 @@ const make = Effect.gen(function*() {
         MutableHashSet.add(healthyRunners, runner)
         for (let j = 0; j < runner.groups.length; j++) {
           const group = runner.groups[j]
-          let arr = toAdd.get(group)
-          if (!arr) {
-            arr = []
-            toAdd.set(group, arr)
+          let ring = hashRings.get(group)
+          if (!ring) {
+            ring = HashRing.make()
+            hashRings.set(group, ring)
           }
-          arr.push(runner.address)
+          HashRing.add(ring, runner.address, { weight: runner.weight })
         }
       }
 
@@ -869,18 +868,6 @@ const make = Effect.gen(function*() {
         for (let i = 0; i < runner.groups.length; i++) {
           HashRing.remove(hashRings.get(runner.groups[i])!, runner.address)
         }
-      }
-
-      if (toAdd.size > 0) {
-        for (const [group, addresses] of toAdd) {
-          let ring = hashRings.get(group)
-          if (!ring) {
-            ring = HashRing.make()
-            hashRings.set(group, ring)
-          }
-          HashRing.addMany(ring, addresses)
-        }
-        toAdd.clear()
       }
 
       // swap allRunners and nextRunners

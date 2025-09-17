@@ -25,7 +25,7 @@ describe("SqlRunnerStorage", () => {
           const runner = Runner.make({
             address: runnerAddress1,
             groups: ["default"],
-            version: 1
+            weight: 1
           })
           const machineId = yield* storage.register(runner)
           yield* storage.register(runner)
