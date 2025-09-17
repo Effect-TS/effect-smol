@@ -4,6 +4,7 @@
 import type { Array } from "effect/collections"
 import * as Deferred from "effect/Deferred"
 import * as Effect from "effect/Effect"
+import type * as Exit from "effect/Exit"
 import * as FiberSet from "effect/FiberSet"
 import * as Layer from "effect/Layer"
 import * as Scope from "effect/Scope"
@@ -30,7 +31,9 @@ export class NetSocket extends ServiceMap.Key<NetSocket, Net.Socket>()("@effect/
  * @category constructors
  */
 export const makeNet = (
-  options: Net.NetConnectOpts
+  options: Net.NetConnectOpts & {
+    readonly forwardErrorsToWrite?: boolean | undefined
+  }
 ): Effect.Effect<Socket.Socket, Socket.SocketError> =>
   fromDuplex(
     Effect.acquireRelease(
@@ -67,12 +70,19 @@ export const makeNet = (
  * @category constructors
  */
 export const fromDuplex = <RO>(
-  open: Effect.Effect<Duplex, Socket.SocketError, RO>
+  open: Effect.Effect<Duplex, Socket.SocketError, RO>,
+  options?: {
+    readonly forwardErrorsToWrite?: boolean | undefined
+  }
 ): Effect.Effect<Socket.Socket, never, Exclude<RO, Scope.Scope>> =>
   Effect.withFiber<Socket.Socket, never, Exclude<RO, Scope.Scope>>((fiber) => {
     let currentSocket: Duplex | undefined
     const latch = Effect.makeLatchUnsafe(false)
     const openServices = fiber.services as ServiceMap.ServiceMap<RO>
+
+    const forwardErrorsToWrite = options?.forwardErrorsToWrite ?? false
+    let currentErrorExit: Exit.Exit<never, Socket.SocketError> | undefined
+
     const run = <R, E, _>(handler: (_: Uint8Array) => Effect.Effect<_, E, R> | void) =>
       Effect.scopedWith(Effect.fnUntraced(function*(scope) {
         const fiberSet = yield* FiberSet.make<any, E | Socket.SocketError>().pipe(
@@ -117,19 +127,27 @@ export const fromDuplex = <RO>(
         conn.on("close", onClose)
 
         currentSocket = conn
-        yield* latch.open
+        currentErrorExit = undefined
+        latch.openUnsafe()
 
         return yield* FiberSet.join(fiberSet)
       })).pipe(
         Effect.updateServices((input: ServiceMap.ServiceMap<R>) => ServiceMap.merge(openServices, input)),
-        Effect.ensuring(Effect.sync(() => {
-          latch.closeUnsafe()
+        Effect.onExit((exit) => {
+          if (forwardErrorsToWrite && exit._tag === "Failure") {
+            currentErrorExit = exit as any
+          } else {
+            latch.closeUnsafe()
+          }
           currentSocket = undefined
-        }))
+        })
       )
 
     const write = (chunk: Uint8Array | string | Socket.CloseEvent) =>
       latch.whenOpen(Effect.callback<void, Socket.SocketError>((resume) => {
+        if (currentErrorExit) {
+          return resume(currentErrorExit)
+        }
         const conn = currentSocket!
         if (Socket.isCloseEvent(chunk)) {
           conn.destroy(chunk.code > 1000 ? new Error(`closed with code ${chunk.code}`) : undefined)
