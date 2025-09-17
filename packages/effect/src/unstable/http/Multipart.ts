@@ -143,7 +143,9 @@ export class MultipartError extends Schema.ErrorClass<MultipartError>(MultipartE
  * @since 4.0.0
  * @category Schemas
  */
-export interface FileSchema extends Schema.declare<PersistedFile> {}
+export interface FileSchema extends Schema.declare<PersistedFile> {
+  readonly "~rebuild.out": FileSchema
+}
 
 /**
  * @since 4.0.0
@@ -152,11 +154,12 @@ export interface FileSchema extends Schema.declare<PersistedFile> {}
 export const FileSchema: FileSchema = Schema.declare(
   isPersistedFile,
   {
-    identifier: "PersistedFile",
+    title: "PersistedFile",
     jsonSchema: {
       _tag: "Override",
       override: () => ({
         type: "string",
+        title: "PersistedFile",
         format: "binary"
       })
     }
