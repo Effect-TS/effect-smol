@@ -62,7 +62,8 @@ export const makeNet = (
           }
           conn.removeAllListeners()
         })
-    )
+    ),
+    options
   )
 
 /**
