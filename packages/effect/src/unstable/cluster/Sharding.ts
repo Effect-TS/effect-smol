@@ -271,7 +271,6 @@ const make = Effect.gen(function*() {
         fiber: "Shard acquisition loop",
         runner: selfAddress
       }),
-      Effect.interruptible,
       Effect.forkIn(shardingScope)
     )
 
@@ -306,7 +305,6 @@ const make = Effect.gen(function*() {
         )
       ),
       Effect.repeat(Schedule.fixed("4 seconds")),
-      Effect.interruptible,
       Effect.forkIn(shardingScope)
     )
 
@@ -330,6 +328,13 @@ const make = Effect.gen(function*() {
           { concurrency: "unbounded", discard: true }
         )
       ).pipe(Effect.andThen(activeShardsLatch.open))
+    )
+
+    // open the shard latch every poll interval
+    yield* activeShardsLatch.open.pipe(
+      Effect.delay(config.entityMessagePollInterval),
+      Effect.forever,
+      Effect.forkIn(shardingScope)
     )
   }
 
@@ -367,8 +372,7 @@ const make = Effect.gen(function*() {
         Effect.andThen(Effect.never),
         Effect.scoped,
         Effect.provideServices(services),
-        Effect.orDie,
-        Effect.interruptible
+        Effect.orDie
       ) as Effect.Effect<never>
       MutableHashMap.set(map, address, wrappedRun)
 
@@ -542,14 +546,12 @@ const make = Effect.gen(function*() {
       Effect.scoped,
       Effect.ensuring(storageReadLock.releaseAll),
       Effect.catchCause((cause) => Effect.logWarning("Could not read messages from storage", cause)),
-      Effect.repeat(Schedule.spaced(config.entityMessagePollInterval)),
       Effect.annotateLogs({
         package: "@effect/cluster",
         module: "Sharding",
         fiber: "Storage read loop",
         runner: selfAddress
       }),
-      Effect.interruptible,
       Effect.forkIn(shardingScope)
     )
 
@@ -557,7 +559,6 @@ const make = Effect.gen(function*() {
     yield* storageReadLatch.open.pipe(
       Effect.delay(config.entityMessagePollInterval),
       Effect.forever,
-      Effect.interruptible,
       Effect.forkIn(shardingScope)
     )
 
@@ -677,7 +678,6 @@ const make = Effect.gen(function*() {
           effect,
           Effect.sync(() => MutableHashMap.remove(entityResumptionState, address))
         ),
-      Effect.interruptible,
       Effect.forkIn(shardingScope)
     )
   }
@@ -912,7 +912,6 @@ const make = Effect.gen(function*() {
       fiber: "RunnerStorage sync",
       runner: config.runnerAddress
     }),
-    Effect.interruptible,
     Effect.forkIn(shardingScope)
   )
 
