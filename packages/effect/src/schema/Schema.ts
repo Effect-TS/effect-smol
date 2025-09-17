@@ -372,7 +372,7 @@ export function revealCodec<T, E, RD, RE>(codec: Codec<T, E, RD, RE>) {
 }
 
 /**
- * A `SchemaError` is thrown when schema decoding or encoding fails.
+ * A `SchemaError` is returned when schema decoding or encoding fails.
  *
  * This error extends `Data.TaggedError` and contains detailed information about
  * what went wrong during schema processing. The error includes an `issue` field
@@ -403,6 +403,9 @@ export class SchemaError {
   get message() {
     return this.issue.toString()
   }
+  /**
+   * @since 4.0.0
+   */
   toString() {
     return `SchemaError(${this.message})`
   }
