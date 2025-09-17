@@ -39,6 +39,13 @@ describe("Schema", () => {
     assertFalse(Schema.isSchema({}))
   })
 
+  it("toString", () => {
+    const schema = Schema.String
+    const result = Schema.decodeUnknownExit(schema)(null)
+    assertTrue(Exit.isFailure(result))
+    strictEqual(String(result.cause.failures[0]), "Fail(SchemaError(Expected string, got null))")
+  })
+
   describe("annotate", () => {
     it("should remove any existing id annotation", () => {
       const schema = Schema.String.annotate({ identifier: "a" })

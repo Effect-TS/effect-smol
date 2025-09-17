@@ -403,6 +403,9 @@ export class SchemaError {
   get message() {
     return this.issue.toString()
   }
+  toString() {
+    return `SchemaError(${this.message})`
+  }
 }
 
 function makeStandardResult<A>(exit: Exit_.Exit<StandardSchemaV1.Result<A>>): StandardSchemaV1.Result<A> {
