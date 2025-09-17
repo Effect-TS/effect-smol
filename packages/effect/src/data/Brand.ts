@@ -29,7 +29,6 @@ import * as Check from "../schema/Check.ts"
 import * as Issue from "../schema/Issue.ts"
 import * as ToParser from "../schema/ToParser.ts"
 import type * as Types from "../types/Types.ts"
-import * as Data from "./Data.ts"
 import * as Option from "./Option.ts"
 import * as Result from "./Result.ts"
 
@@ -94,17 +93,39 @@ export interface Constructor<in out A extends Brand<any>> {
 }
 
 /**
+ * A `BrandError` is returned when a branded type is constructed from an invalid
+ * value.
+ *
  * @category models
  * @since 4.0.0
  */
-export class BrandError extends Data.TaggedError("BrandError")<{
-  readonly issue: Issue.Issue
-}> {
+export class BrandError {
+  constructor(issue: Issue.Issue) {
+    this.issue = issue
+  }
   /**
    * @since 4.0.0
    */
-  override get message() {
+  readonly _tag = "BrandError"
+  /**
+   * @since 4.0.0
+   */
+  readonly name: string = "BrandError"
+  /**
+   * @since 4.0.0
+   */
+  readonly issue: Issue.Issue
+  /**
+   * @since 4.0.0
+   */
+  get message() {
     return this.issue.toString()
+  }
+  /**
+   * @since 4.0.0
+   */
+  toString() {
+    return `BrandError(${this.message})`
   }
 }
 
@@ -221,7 +242,7 @@ export function check<A extends Brand<any>>(
     ToParser.runChecks(checks, input, issues, AST.unknownKeyword, { errors: "all" })
     if (Arr.isArrayNonEmpty(issues)) {
       const issue = new Issue.Composite(AST.unknownKeyword, Option.some(input), issues)
-      return Result.fail(new BrandError({ issue }))
+      return Result.fail(new BrandError(issue))
     }
     return Result.succeed(input as A)
   }

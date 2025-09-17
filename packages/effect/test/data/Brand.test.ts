@@ -25,6 +25,14 @@ function assertFailure<T extends Brand.Brand<any>>(
 }
 
 describe("Brand", () => {
+  it("toString", () => {
+    type Int = number & Brand.Brand<"Int">
+    const Int = Brand.check<Int>(Check.int())
+    const result = Int.result(1.1)
+    assertTrue(Result.isFailure(result))
+    strictEqual(String(result.failure), "BrandError(Expected an integer, got 1.1)")
+  })
+
   it("nominal", () => {
     type MyNumber = number & Brand.Brand<"MyNumber">
     const MyNumber = Brand.nominal<MyNumber>()
