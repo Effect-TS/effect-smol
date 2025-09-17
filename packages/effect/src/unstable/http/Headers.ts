@@ -72,16 +72,18 @@ export const Equivalence: Equivalence_.Equivalence<Headers> = Record.getEquivale
  * @since 4.0.0
  * @category schemas
  */
-export interface schema extends Schema.declare<Headers> {}
+export interface HeadersSchema extends Schema.declare<Headers, { readonly [x: string]: string }> {
+  readonly "~rebuild.out": HeadersSchema
+}
 
 /**
  * @since 4.0.0
  * @category schemas
  */
-export const schema: schema = Schema.declare(
+export const HeadersSchema: HeadersSchema = Schema.declare(
   isHeaders,
   {
-    identifier: "Headers",
+    title: "Headers",
     equivalence: {
       _tag: "Declaration",
       declaration: () => Equivalence

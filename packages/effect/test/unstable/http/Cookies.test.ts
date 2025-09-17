@@ -7,14 +7,14 @@ import { assertions } from "../../utils/schema.ts"
 describe("Cookies", () => {
   describe("CookiesSchema", () => {
     it("defaultIsoSerializer", () => {
-      const sessionId = ToOptic.makeIso(Cookies.CookiesSchema).at("sessionId")
+      const _sessionId = ToOptic.makeIso(Cookies.CookiesSchema).at("sessionId")
       const cookies = Cookies.fromSetCookie([
         "sessionId=abc123; Path=/; HttpOnly; Secure",
         "theme=dark; Path=/; Max-Age=3600",
         "language=en; Domain=.example.com; SameSite=Lax"
       ])
       assertSuccess(
-        sessionId.getResult(cookies),
+        _sessionId.getResult(cookies),
         Cookies.makeCookieUnsafe("sessionId", "abc123", { path: "/", httpOnly: true, secure: true })
       )
     })

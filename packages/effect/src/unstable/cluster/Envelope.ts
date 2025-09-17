@@ -65,7 +65,7 @@ export class PartialRequest extends Schema.Opaque<PartialRequest>()(Schema.Struc
   address: EntityAddress,
   tag: Schema.String,
   payload: Schema.Any,
-  headers: Headers.schema,
+  headers: Headers.HeadersSchema,
   traceId: Schema.optional(Schema.String),
   spanId: Schema.optional(Schema.String),
   sampled: Schema.optional(Schema.Boolean)
