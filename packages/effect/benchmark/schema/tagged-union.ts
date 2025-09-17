@@ -1,14 +1,14 @@
 import { Array as RA } from "effect/collections"
 import type { AST } from "effect/schema"
-import { Schema, ToParser } from "effect/schema"
+import { Schema } from "effect/schema"
 import { Bench } from "tinybench"
 
 /*
 ┌─────────┬─────────────────┬──────────────────┬──────────────────┬────────────────────────┬────────────────────────┬─────────┐
 │ (index) │ Task name       │ Latency avg (ns) │ Latency med (ns) │ Throughput avg (ops/s) │ Throughput med (ops/s) │ Samples │
 ├─────────┼─────────────────┼──────────────────┼──────────────────┼────────────────────────┼────────────────────────┼─────────┤
-│ 0       │ 'Schema (good)' │ '492.49 ± 0.48%' │ '458.00 ± 1.00'  │ '2116578 ± 0.01%'      │ '2183406 ± 4757'       │ 2030480 │
-│ 1       │ 'Schema (bad)'  │ '1135.7 ± 3.93%' │ '791.00 ± 41.00' │ '1280031 ± 0.02%'      │ '1264223 ± 69111'      │ 880517  │
+│ 0       │ 'Schema (good)' │ '495.61 ± 0.87%' │ '458.00 ± 1.00'  │ '2116025 ± 0.01%'      │ '2183406 ± 4757'       │ 2017736 │
+│ 1       │ 'Schema (bad)'  │ '628.82 ± 2.10%' │ '584.00 ± 1.00'  │ '1663268 ± 0.01%'      │ '1712329 ± 2937'       │ 1590283 │
 └─────────┴─────────────────┴──────────────────┴──────────────────┴────────────────────────┴────────────────────────┴─────────┘
 */
 
@@ -39,7 +39,7 @@ const bad = {
   c: "c"
 }
 
-const decodeUnknownExit = ToParser.decodeUnknownExit(schema)
+const decodeUnknownExit = Schema.decodeUnknownExit(schema)
 const options: AST.ParseOptions = { errors: "all" }
 
 // console.log(decodeUnknownExit(good))
