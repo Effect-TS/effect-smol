@@ -479,10 +479,9 @@ export const make = Effect.fnUntraced(function*(options: {
 
     unprocessedMessages: Effect.fnUntraced(
       function*(shardIds, now) {
+        if (shardIds.length === 0) return []
         const rows = yield* getUnprocessedMessages(shardIds, now)
-        if (rows.length === 0) {
-          return []
-        }
+        if (rows.length === 0) return []
         const messages: Array<{
           readonly envelope: Envelope.Encoded
           readonly lastSentReply: Reply.Encoded | undefined
@@ -500,6 +499,7 @@ export const make = Effect.fnUntraced(function*(options: {
     ),
 
     unprocessedMessagesById(ids, now) {
+      if (ids.length === 0) return Effect.succeed([])
       const idArr = Array.from(ids, (id) => String(id))
       return sql<MessageRow & ReplyJoinRow>`
         SELECT m.*, r.id as reply_id, r.kind as reply_kind, r.payload as reply_payload, r.sequence as reply_sequence
