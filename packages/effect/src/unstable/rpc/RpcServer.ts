@@ -14,7 +14,6 @@ import * as Layer from "../../Layer.ts"
 import * as Tracer from "../../observability/Tracer.ts"
 import * as Queue from "../../Queue.ts"
 import * as Schedule from "../../Schedule.ts"
-import * as Formatter from "../../schema/Formatter.ts"
 import * as Schema from "../../schema/Schema.ts"
 import * as Serializer from "../../schema/Serializer.ts"
 import * as Scope from "../../Scope.ts"
@@ -512,8 +511,6 @@ export const make: <Rpcs extends Rpc.Any>(
   }
   const clients = new Map<number, Client>()
 
-  const formatter = Formatter.makeDefault()
-
   const handleEncode = <A, R>(
     client: Client,
     requestId: RequestId,
@@ -525,7 +522,7 @@ export const make: <Rpcs extends Rpc.Any>(
       Effect.flatMap((a) => send(client.id, onSuccess(a))),
       Effect.catchCause((cause) => {
         client.schemas.delete(requestId)
-        const defect = Cause.squash(Cause.map(cause, (e) => formatter.format(e.issue)))
+        const defect = Cause.squash(Cause.map(cause, (e) => e.issue.toString()))
         return Effect.andThen(
           sendRequestDefect(client, requestId, defect),
           server.write(client.id, { _tag: "Interrupt", requestId, interruptors: [] })
@@ -592,7 +589,7 @@ export const make: <Rpcs extends Rpc.Any>(
         return Effect.matchEffect(
           Effect.provideServices(schemas.decode(request.payload), schemas.services),
           {
-            onFailure: (error) => sendRequestDefect(client, requestId, formatter.format(error.issue)),
+            onFailure: (error) => sendRequestDefect(client, requestId, error.issue.toString()),
             onSuccess: (payload) => {
               client.schemas.set(requestId, schemas)
               return server.write(clientId, {

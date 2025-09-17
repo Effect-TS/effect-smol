@@ -1,51 +1,89 @@
-import { type } from "arktype"
-import { Schema, ToParser, Transformation } from "effect/schema"
+import { Check, Schema, ToParser, Transformation } from "effect/schema"
 import { Bench } from "tinybench"
-import * as v from "valibot"
-import { z } from "zod/v4-mini"
+import { z } from "zod"
 
 /*
-┌─────────┬───────────┬──────────────────┬──────────────────┬────────────────────────┬────────────────────────┬──────────┐
-│ (index) │ Task name │ Latency avg (ns) │ Latency med (ns) │ Throughput avg (ops/s) │ Throughput med (ops/s) │ Samples  │
-├─────────┼───────────┼──────────────────┼──────────────────┼────────────────────────┼────────────────────────┼──────────┤
-│ 0       │ 'Schema'  │ '161.25 ± 0.04%' │ '167.00 ± 0.00'  │ '6321089 ± 0.01%'      │ '5988024 ± 0'          │ 6201677  │
-│ 1       │ 'Valibot' │ '51.40 ± 0.17%'  │ '42.00 ± 0.00'   │ '21453065 ± 0.01%'     │ '23809524 ± 1'         │ 19454217 │
-│ 2       │ 'Arktype' │ '26.14 ± 0.13%'  │ '41.00 ± 1.00'   │ '29384597 ± 0.01%'     │ '24390244 ± 580720'    │ 38251549 │
-│ 3       │ 'Zod'     │ '41.08 ± 1.24%'  │ '42.00 ± 0.00'   │ '23790825 ± 0.00%'     │ '23809524 ± 0'         │ 24345199 │
-└─────────┴───────────┴──────────────────┴──────────────────┴────────────────────────┴────────────────────────┴──────────┘
+┌─────────┬─────────────────┬──────────────────┬──────────────────┬────────────────────────┬────────────────────────┬─────────┐
+│ (index) │ Task name       │ Latency avg (ns) │ Latency med (ns) │ Throughput avg (ops/s) │ Throughput med (ops/s) │ Samples │
+├─────────┼─────────────────┼──────────────────┼──────────────────┼────────────────────────┼────────────────────────┼─────────┤
+│ 0       │ 'Schema (good)' │ '1074.9 ± 0.32%' │ '1041.0 ± 41.00' │ '962199 ± 0.01%'       │ '960615 ± 38106'       │ 930331  │
+│ 1       │ 'Zod (good)'    │ '240.24 ± 3.69%' │ '209.00 ± 1.00'  │ '4542625 ± 0.01%'      │ '4784689 ± 23003'      │ 4162505 │
+│ 2       │ 'Schema (bad)'  │ '595.78 ± 2.44%' │ '542.00 ± 1.00'  │ '1784711 ± 0.01%'      │ '1845018 ± 3410'       │ 1678484 │
+│ 3       │ 'Zod (bad)'     │ '7330.7 ± 2.95%' │ '6375.0 ± 84.00' │ '155283 ± 0.04%'       │ '156863 ± 2094'        │ 136413  │
+└─────────┴─────────────────┴──────────────────┴──────────────────┴────────────────────────┴────────────────────────┴─────────┘
 */
 
 const bench = new Bench()
 
-const schema = Schema.String.pipe(Schema.decodeTo(Schema.String, Transformation.trim()))
+const schema = Schema.Struct({
+  a: Schema.String,
+  id: Schema.String,
+  c: Schema.Number.check(Check.nonNegative()),
+  d: Schema.String
+}).pipe(Schema.decodeTo(
+  Schema.Struct({
+    a: Schema.String,
+    b: Schema.Struct({ id: Schema.String }),
+    c: Schema.Number.check(Check.nonNegative()),
+    d: Schema.String
+  }),
+  Transformation.transform({
+    decode: ({ id, ...v }) => ({ ...v, b: { id } }),
+    encode: ({ b: { id }, ...v }) => ({ ...v, id })
+  })
+))
 
-const valibot = v.pipe(v.string(), v.trim())
+const zod = z.codec(
+  z.object({
+    a: z.string(),
+    id: z.string(),
+    c: z.number().check(z.nonnegative()),
+    d: z.string()
+  }),
+  z.object({
+    a: z.string(),
+    b: z.object({ id: z.string() }),
+    c: z.number().check(z.nonnegative()),
+    d: z.string()
+  }),
+  {
+    decode: ({ id, ...v }) => ({ ...v, b: { id } }),
+    encode: ({ b: { id }, ...v }) => ({ ...v, id })
+  }
+)
 
-const arktype = type("string").pipe((str) => str.trim())
-
-const zod = z.string().check(z.trim())
-
-const good = " a "
+const good = {
+  a: "a",
+  id: "id",
+  c: 1,
+  d: "d"
+}
+const bad = {
+  a: "a",
+  id: "id",
+  c: -1,
+  d: "d"
+}
 
 const decodeUnknownExit = ToParser.decodeUnknownExit(schema)
 
 // console.log(decodeUnknownExit(good))
-// console.log(v.safeParse(valibot, good))
-// console.log(arktype(good))
-// console.log(zod.safeParse(good))
+// console.log(String(decodeUnknownExit(bad)))
+// console.log(zod.safeDecode(good))
+// console.log(zod.safeDecode(bad))
 
 bench
-  .add("Schema", function() {
+  .add("Schema (good)", function() {
     decodeUnknownExit(good)
   })
-  .add("Valibot", function() {
-    v.safeParse(valibot, good)
+  .add("Zod (good)", function() {
+    zod.safeDecode(good)
   })
-  .add("Arktype", function() {
-    arktype(good)
+  .add("Schema (bad)", function() {
+    decodeUnknownExit(bad)
   })
-  .add("Zod", function() {
-    zod.safeParse(good)
+  .add("Zod (bad)", function() {
+    zod.safeDecode(bad)
   })
 
 await bench.run()

@@ -1,6 +1,6 @@
 import { Effect } from "effect"
 import type { AST } from "effect/schema"
-import { Formatter, Schema, ToParser } from "effect/schema"
+import { Schema, ToParser } from "effect/schema"
 import { describe, it } from "vitest"
 import { assertions } from "../utils/schema.ts"
 
@@ -13,7 +13,7 @@ const assertStandardIssue = async <T, E>(
   } | undefined
 ) => {
   const r = await ToParser.decodeUnknownEffect(schema)(input, { errors: "all", ...options?.parseOptions }).pipe(
-    Effect.mapError((issue) => Formatter.makeDefault().format(issue)),
+    Effect.mapError((issue) => issue.toString()),
     Effect.result,
     Effect.runPromise
   )

@@ -20,11 +20,6 @@ export * as Check from "./Check.ts"
 /**
  * @since 4.0.0
  */
-export * as Formatter from "./Formatter.ts"
-
-/**
- * @since 4.0.0
- */
 export * as Getter from "./Getter.ts"
 
 /**

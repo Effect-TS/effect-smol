@@ -10,7 +10,6 @@ import { format } from "../interfaces/Inspectable.ts"
 import type { Literal } from "../schema/AST.ts"
 import { unknownKeyword } from "../schema/AST.ts"
 import type * as Check from "../schema/Check.ts"
-import * as Formatter from "../schema/Formatter.ts"
 import * as Issue from "../schema/Issue.ts"
 import * as ToParser from "../schema/ToParser.ts"
 import * as AST from "./AST.ts"
@@ -320,7 +319,7 @@ const go = memoize((ast: AST.AST): Op => {
           ToParser.runChecks(ast.checks, s, issues, unknownKeyword, { errors: "all" })
           if (Arr.isArrayNonEmpty(issues)) {
             const issue = new Issue.Composite(unknownKeyword, Option.some(s), issues)
-            return Result.fail(Formatter.makeDefault().format(issue))
+            return Result.fail(issue.toString())
           }
           return Result.succeed(s)
         },

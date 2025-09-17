@@ -1,7 +1,7 @@
 import { assertTrue, deepStrictEqual, strictEqual } from "@effect/vitest/utils"
 import { Effect, ServiceMap } from "effect"
 import { Option } from "effect/data"
-import { Check, Formatter, Getter, Schema } from "effect/schema"
+import { Check, Getter, Issue, Schema } from "effect/schema"
 import { describe, it } from "vitest"
 import { standard } from "../utils/schema.ts"
 
@@ -352,7 +352,7 @@ describe("asStandardSchemaV1", () => {
     it("String", () => {
       const schema = Schema.String
       const standardSchema = Schema.asStandardSchemaV1(schema, {
-        leafHook: Formatter.defaultLeafHook
+        leafHook: Issue.defaultLeafHook
       })
       standard.expectSyncFailure(standardSchema, null, [
         {
@@ -365,7 +365,7 @@ describe("asStandardSchemaV1", () => {
     it("NonEmptyString", () => {
       const schema = Schema.NonEmptyString
       const standardSchema = Schema.asStandardSchemaV1(schema, {
-        leafHook: Formatter.defaultLeafHook
+        leafHook: Issue.defaultLeafHook
       })
       standard.expectSyncFailure(standardSchema, "", [
         {

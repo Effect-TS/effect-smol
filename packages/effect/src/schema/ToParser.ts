@@ -11,7 +11,6 @@ import * as Exit from "../Exit.ts"
 import { memoize } from "../Function.ts"
 import * as AST from "./AST.ts"
 import type * as Check from "./Check.ts"
-import * as Formatter from "./Formatter.ts"
 import * as Issue from "./Issue.ts"
 import type * as Schema from "./Schema.ts"
 
@@ -37,7 +36,7 @@ export function makeSync<S extends Schema.Top>(schema: S) {
     return Effect.runSync(
       Effect.mapErrorEager(
         parser(input, options),
-        (issue) => new Error(Formatter.makeDefault().format(issue), { cause: issue })
+        (issue) => new Error(issue.toString(), { cause: issue })
       )
     )
   }
@@ -72,7 +71,7 @@ export function asserts<T, E, RE>(codec: Schema.Codec<T, E, never, RE>) {
       if (Filter.isFail(issue)) {
         throw Cause.squash(issue.fail)
       }
-      throw new Error(Formatter.makeDefault().format(issue), { cause: issue })
+      throw new Error(issue.toString(), { cause: issue })
     }
   }
 }
@@ -294,7 +293,7 @@ function asSync<T, E, R>(
     Effect.runSync(
       Effect.mapErrorEager(
         parser(input, options),
-        (issue) => new Error(Formatter.makeDefault().format(issue), { cause: issue })
+        (issue) => new Error(issue.toString(), { cause: issue })
       ) as any
     )
 }

@@ -5,7 +5,7 @@ import * as Equivalence from "../data/Equivalence.ts"
 import * as Predicate from "../data/Predicate.ts"
 import { memoize } from "../Function.ts"
 import * as Equal from "../interfaces/Equal.ts"
-import type * as Annotations from "./Annotations.ts"
+import * as Annotations from "./Annotations.ts"
 import * as AST from "./AST.ts"
 import type * as Schema from "./Schema.ts"
 import * as ToParser from "./ToParser.ts"
@@ -55,7 +55,7 @@ function getEquivalenceAnnotation(
   return annotations?.equivalence as any
 }
 
-const getAnnotation = AST.getAnnotation(getEquivalenceAnnotation)
+const getAnnotation = Annotations.getAnnotation(getEquivalenceAnnotation)
 
 const go = memoize((ast: AST.AST): Equivalence.Equivalence<any> => {
   // ---------------------------------------------

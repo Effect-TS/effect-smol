@@ -26,7 +26,6 @@ import * as Arr from "../collections/Array.ts"
 import { identity } from "../Function.ts"
 import * as AST from "../schema/AST.ts"
 import * as Check from "../schema/Check.ts"
-import * as Formatter from "../schema/Formatter.ts"
 import * as Issue from "../schema/Issue.ts"
 import * as ToParser from "../schema/ToParser.ts"
 import type * as Types from "../types/Types.ts"
@@ -105,7 +104,7 @@ export class BrandError extends Data.TaggedError("BrandError")<{
    * @since 4.0.0
    */
   override get message() {
-    return Formatter.makeDefault().format(this.issue)
+    return this.issue.toString()
   }
 }
 

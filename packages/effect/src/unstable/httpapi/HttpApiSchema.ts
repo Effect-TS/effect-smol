@@ -7,7 +7,7 @@ import type { Brand } from "../../data/Brand.ts"
 import * as Predicate from "../../data/Predicate.ts"
 import { constant, constVoid, dual, type LazyArg } from "../../Function.ts"
 import type * as FileSystem from "../../platform/FileSystem.ts"
-import type * as Annotations from "../../schema/Annotations.ts"
+import * as Annotations from "../../schema/Annotations.ts"
 import * as AST from "../../schema/AST.ts"
 import * as Schema from "../../schema/Schema.ts"
 import * as Transformation from "../../schema/Transformation.ts"
@@ -47,7 +47,7 @@ export const isVoid = (ast: AST.AST): boolean => {
   }
 }
 
-const getHttpApiStatusAnnotation = AST.getAnnotation((annotations) => {
+const getHttpApiStatusAnnotation = Annotations.getAnnotation((annotations) => {
   const status = annotations?.httpApiStatus
   if (Predicate.isNumber(status)) return status
 })
@@ -123,13 +123,13 @@ function shouldExtractUnion(ast: AST.UnionType): boolean {
   if (ast.encoding) return false
   if (
     ast.types.some((ast) => {
-      const annotations = AST.getAnnotations(ast)
+      const annotations = Annotations.getAnnotations(ast)
       return annotations && Object.keys(annotations).some(isHttpApiAnnotationKey)
     })
   ) {
     return true
   }
-  return AST.getAnnotations(ast) === undefined
+  return Annotations.getAnnotations(ast) === undefined
 }
 
 /**

@@ -1425,7 +1425,7 @@ export class TypeLiteral extends Base {
   getExpected(): string {
     if (this.propertySignatures.length === 0 && this.indexSignatures.length === 0) return "object | array"
     const tag = this.propertySignatures.find((ps) => ps.name === "_tag")
-    if (tag) return `{ _tag: ${getExpected(tag.type)}, ... }`
+    if (tag) return `{ _tag: ${Annotations.getExpected(tag.type)}, ... }`
     return "object"
   }
 }
@@ -2144,7 +2144,7 @@ function formatTemplateLiteral(ast: TemplateLiteral): string {
     }
     switch (part._tag) {
       case "LiteralType":
-        return getExpected(part)
+        return Annotations.getExpected(part)
       case "StringKeyword":
         return "string"
       case "NumberKeyword":
@@ -2400,30 +2400,3 @@ const bigIntLink = new Link(
     Getter.String()
   )
 )
-
-/** @internal */
-export function getAnnotations(ast: AST): Annotations.Annotations | undefined {
-  return ast.checks ? ast.checks[ast.checks.length - 1].annotations : ast.annotations
-}
-
-/** @internal */
-export function getAnnotation<A>(f: (annotations: Annotations.Annotations | undefined) => A | undefined) {
-  return (ast: AST): A | undefined => f(getAnnotations(ast))
-}
-
-/** @internal */
-export const getIdentifierAnnotation = getAnnotation((annotations) => {
-  const identifier = annotations?.identifier
-  if (Predicate.isString(identifier)) return identifier
-})
-
-/** @internal */
-export const getDescriptionAnnotation = getAnnotation((annotations) => {
-  const description = annotations?.description
-  if (Predicate.isString(description)) return description
-})
-
-/** @internal */
-export const getExpected = memoize((ast: AST): string => {
-  return getIdentifierAnnotation(ast) ?? ast.getExpected(getExpected)
-})

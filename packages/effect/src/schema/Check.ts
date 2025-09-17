@@ -7,7 +7,6 @@ import type { Brand } from "../data/Brand.ts"
 import type * as Equivalence from "../data/Equivalence.ts"
 import * as Option from "../data/Option.ts"
 import * as Order from "../data/Order.ts"
-import * as Predicate from "../data/Predicate.ts"
 import { format } from "../interfaces/Inspectable.ts"
 import { Class } from "../interfaces/Pipeable.ts"
 import * as Num from "../primitives/Number.ts"
@@ -146,22 +145,12 @@ export function refineByGuard<T extends E, E>(
 
 const brand_ = makeRefineByGuard((_u): _u is any => true)
 
-const BRAND_KEY = "~effect/schema/Check/brand"
-
 /** @internal */
 export function makeBrand<B extends string | symbol, T>(
   brand: B,
   annotations?: Annotations.Filter
 ): Refinement<T & Brand<B>, T> {
-  return brand_.annotate(Annotations.combine({ [BRAND_KEY]: brand }, annotations))
-}
-
-/** @internal */
-export function getBrand<T>(check: Check<T>): string | symbol | undefined {
-  const brand = check.annotations?.[BRAND_KEY]
-  if (Predicate.isString(brand) || Predicate.isSymbol(brand)) {
-    return brand
-  }
+  return brand_.annotate(Annotations.combine({ [Annotations.BRAND_KEY]: brand }, annotations))
 }
 
 /**

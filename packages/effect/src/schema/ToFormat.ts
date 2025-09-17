@@ -5,7 +5,7 @@ import type { Format } from "../data/Format.ts"
 import * as Option from "../data/Option.ts"
 import { memoize } from "../Function.ts"
 import { format, formatPropertyKey } from "../interfaces/Inspectable.ts"
-import type * as Annotations from "./Annotations.ts"
+import * as Annotations from "./Annotations.ts"
 import * as AST from "./AST.ts"
 import type * as Schema from "./Schema.ts"
 import * as ToParser from "./ToParser.ts"
@@ -48,7 +48,7 @@ function getFormatAnnotation(
   return annotations?.format as any
 }
 
-const getAnnotation = AST.getAnnotation(getFormatAnnotation)
+const getAnnotation = Annotations.getAnnotation(getFormatAnnotation)
 
 const defaultFormat = () => format
 

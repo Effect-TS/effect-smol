@@ -4,7 +4,7 @@
 import * as Predicate from "../data/Predicate.ts"
 import type * as Record from "../data/Record.ts"
 import { formatPath } from "../interfaces/Inspectable.ts"
-import type * as Annotations from "./Annotations.ts"
+import * as Annotations from "./Annotations.ts"
 import * as AST from "./AST.ts"
 import type * as Check from "./Check.ts"
 import type * as Schema from "./Schema.ts"
@@ -316,7 +316,7 @@ type GoOptions = {
 }
 
 function getId(ast: AST.AST): string | undefined {
-  const id = AST.getIdentifierAnnotation(ast)
+  const id = Annotations.getIdentifierAnnotation(ast)
   if (id !== undefined) return id
   if (AST.isSuspend(ast)) {
     return getId(ast.thunk())

@@ -2,7 +2,10 @@
  * @since 4.0.0
  */
 
+import * as Predicate from "../data/Predicate.ts"
+import { memoize } from "../Function.ts"
 import type * as AST from "./AST.ts"
+import type * as Check from "./Check.ts"
 import type * as Schema from "./Schema.ts"
 import type * as ToArbitrary from "./ToArbitrary.ts"
 import type * as ToEquivalence from "./ToEquivalence.ts"
@@ -160,4 +163,42 @@ export function combine<A extends Annotations>(existing: A | undefined, incoming
     Object.defineProperty(out, key, descriptor)
   }
   return out
+}
+
+/** @internal */
+export function getAnnotations(ast: AST.AST): Annotations | undefined {
+  return ast.checks ? ast.checks[ast.checks.length - 1].annotations : ast.annotations
+}
+
+/** @internal */
+export function getAnnotation<A>(f: (annotations: Annotations | undefined) => A | undefined) {
+  return (ast: AST.AST): A | undefined => f(getAnnotations(ast))
+}
+
+/** @internal */
+export const getIdentifierAnnotation = getAnnotation((annotations) => {
+  const identifier = annotations?.identifier
+  if (Predicate.isString(identifier)) return identifier
+})
+
+/** @internal */
+export const getDescriptionAnnotation = getAnnotation((annotations) => {
+  const description = annotations?.description
+  if (Predicate.isString(description)) return description
+})
+
+/** @internal */
+export const getExpected = memoize((ast: AST.AST): string => {
+  return getIdentifierAnnotation(ast) ?? ast.getExpected(getExpected)
+})
+
+/** @internal */
+export const BRAND_KEY = "~effect/schema/Check/brand"
+
+/** @internal */
+export function getBrand<T>(check: Check.Check<T>): string | symbol | undefined {
+  const brand = check.annotations?.[BRAND_KEY]
+  if (Predicate.isString(brand) || Predicate.isSymbol(brand)) {
+    return brand
+  }
 }

@@ -6,6 +6,7 @@ import * as Predicate from "../../data/Predicate.ts"
 import * as Record from "../../data/Record.ts"
 import * as UndefinedOr from "../../data/UndefinedOr.ts"
 import { type Pipeable, pipeArguments } from "../../interfaces/Pipeable.ts"
+import * as Annotations from "../../schema/Annotations.ts"
 import * as AST from "../../schema/AST.ts"
 import type * as Schema from "../../schema/Schema.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
@@ -269,7 +270,7 @@ export const reflect = <Id extends string, Groups extends HttpApiGroup.Any>(
 const emptyMap = new Map<never, never>()
 
 function getDescriptionOrIdentifier(ast: AST.AST): string | undefined {
-  return AST.getDescriptionAnnotation(ast) ?? AST.getIdentifierAnnotation(ast)
+  return Annotations.getDescriptionAnnotation(ast) ?? Annotations.getIdentifierAnnotation(ast)
 }
 
 const extractMembers = (

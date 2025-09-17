@@ -1,6 +1,6 @@
 import { Cause } from "effect"
 import { Option, Redacted } from "effect/data"
-import { Check, Formatter, Schema, Serializer, ToParser, Transformation } from "effect/schema"
+import { Check, Issue, Schema, Serializer, ToParser, Transformation } from "effect/schema"
 import { DateTime, Duration } from "effect/time"
 import { describe, it } from "vitest"
 import { assertTrue, strictEqual } from "../utils/assert.ts"
@@ -949,8 +949,8 @@ describe("Serializer", () => {
       const failure = r.cause.failures[0]
       assertTrue(failure._tag === "Fail")
 
-      const failureResult = Formatter.makeStandardSchemaV1({
-        leafHook: Formatter.defaultLeafHook
+      const failureResult = Issue.makeStandardSchemaV1({
+        leafHook: Issue.defaultLeafHook
       }).format(failure.error)
       await assertions.serialization.json.codec.succeed(Schema.StandardSchemaV1FailureResult, failureResult, {
         issues: [

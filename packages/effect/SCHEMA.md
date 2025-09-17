@@ -4589,7 +4589,7 @@ Default hooks are just for demo purposes:
 
 ```ts
 import { Effect } from "effect"
-import { Formatter, Schema } from "effect/schema"
+import { Issue, Schema } from "effect/schema"
 
 const schema = Schema.Struct({
   a: Schema.NonEmptyString,
@@ -4598,7 +4598,7 @@ const schema = Schema.Struct({
 
 Schema.decodeUnknownEffect(schema)({ b: "" }, { errors: "all" })
   .pipe(
-    Effect.mapError((error) => Formatter.makeStandardSchemaV1().format(error.issue)),
+    Effect.mapError((error) => Issue.makeStandardSchemaV1().format(error.issue)),
     Effect.runPromise
   )
   .then(console.log, (a) => console.dir(a, { depth: null }))
@@ -4624,7 +4624,7 @@ To make the examples easier to follow, we define a helper function that prints f
 ```ts
 // utils.ts
 import { Exit } from "effect"
-import { Formatter, Schema } from "effect/schema"
+import { Issue, Schema } from "effect/schema"
 import i18next from "i18next"
 
 i18next.init({
@@ -4649,14 +4649,14 @@ i18next.init({
 export const t = i18next.t
 
 export function getLogIssues(options?: {
-  readonly leafHook?: Formatter.LeafHook | undefined
-  readonly checkHook?: Formatter.CheckHook | undefined
+  readonly leafHook?: Issue.LeafHook | undefined
+  readonly checkHook?: Issue.CheckHook | undefined
 }) {
   return <S extends Schema.Codec<unknown, unknown, never, never>>(schema: S, input: unknown) => {
     console.log(
       String(
         Schema.decodeUnknownExit(schema)(input, { errors: "all" }).pipe(
-          Exit.mapError((err) => Formatter.makeStandardSchemaV1(options).format(err.issue).issues)
+          Exit.mapError((err) => Issue.makeStandardSchemaV1(options).format(err.issue).issues)
         )
       )
     )
@@ -4785,7 +4785,7 @@ You can use the `Schema.StandardSchemaV1FailureResult` schema to send a `Standar
 **Example** (Sending a FailureResult over the wire)
 
 ```ts
-import { Formatter, Schema, Serializer, ToParser } from "effect/schema"
+import { Issue, Schema, Serializer, ToParser } from "effect/schema"
 
 const b = Symbol.for("b")
 
@@ -4800,7 +4800,7 @@ const r = ToParser.decodeUnknownExit(schema)({ a: "", c: [] }, { errors: "all" }
 if (r._tag === "Failure") {
   const failures = r.cause.failures
   if (failures[0]?._tag === "Fail") {
-    const failureResult = Formatter.makeStandardSchemaV1().format(failures[0].error)
+    const failureResult = Issue.makeStandardSchemaV1().format(failures[0].error)
     const serializer = Serializer.json(Schema.StandardSchemaV1FailureResult)
     console.dir(Schema.encodeSync(serializer)(failureResult), { depth: null })
   }

@@ -30,7 +30,6 @@ import * as Duration_ from "../time/Duration.ts"
 import * as Annotations from "./Annotations.ts"
 import * as AST from "./AST.ts"
 import * as Check from "./Check.ts"
-import * as Formatter from "./Formatter.ts"
 import * as Getter from "./Getter.ts"
 import * as Issue from "./Issue.ts"
 import * as ToEquivalence from "./ToEquivalence.ts"
@@ -402,7 +401,7 @@ export class SchemaError {
    * @since 4.0.0
    */
   get message() {
-    return Formatter.makeDefault().format(this.issue)
+    return this.issue.toString()
   }
 }
 
@@ -475,8 +474,8 @@ function makeStandardResult<A>(exit: Exit_.Exit<StandardSchemaV1.Result<A>>): St
 export const asStandardSchemaV1 = <S extends Top>(
   self: S,
   options?: {
-    readonly leafHook?: Formatter.LeafHook | undefined
-    readonly checkHook?: Formatter.CheckHook | undefined
+    readonly leafHook?: Issue.LeafHook | undefined
+    readonly checkHook?: Issue.CheckHook | undefined
     readonly parseOptions?: AST.ParseOptions | undefined
   }
 ): StandardSchemaV1<S["Encoded"], S["Type"]> & S => {
@@ -485,7 +484,7 @@ export const asStandardSchemaV1 = <S extends Top>(
     options?: AST.ParseOptions
   ) => Effect.Effect<S["Type"], Issue.Issue>
   const parseOptions: AST.ParseOptions = { errors: "all", ...options?.parseOptions }
-  const formatter = Formatter.makeStandardSchemaV1(options)
+  const formatter = Issue.makeStandardSchemaV1(options)
   const standard: StandardSchemaV1<S["Encoded"], S["Type"]> = {
     "~standard": {
       version: 1,
