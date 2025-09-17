@@ -223,8 +223,11 @@ const make = Effect.gen(function*() {
 
     const releasingShards = MutableHashSet.empty<ShardId>()
     yield* Effect.gen(function*() {
+      activeShardsLatch.openUnsafe()
+
       while (true) {
         yield* activeShardsLatch.await
+        activeShardsLatch.closeUnsafe()
 
         // if a shard is no longer assigned to this runner, we release it
         for (const shardId of acquiredShards) {
@@ -245,7 +248,6 @@ const make = Effect.gen(function*() {
         }
 
         if (MutableHashSet.size(unacquiredShards) === 0) {
-          yield* activeShardsLatch.close
           continue
         }
 
@@ -258,12 +260,10 @@ const make = Effect.gen(function*() {
           yield* storageReadLatch.open
           yield* Effect.forkIn(syncSingletons, shardingScope)
         }
+        activeShardsLatch.openUnsafe()
       }
     }).pipe(
-      Effect.catchCause((cause) => {
-        activeShardsLatch.openUnsafe()
-        return Effect.logWarning("Could not acquire/release shards", cause)
-      }),
+      Effect.catchCause((cause) => Effect.logWarning("Could not acquire/release shards", cause)),
       Effect.repeat(Schedule.spaced(config.entityMessagePollInterval)),
       Effect.annotateLogs({
         package: "@effect/cluster",
