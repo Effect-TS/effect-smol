@@ -260,6 +260,7 @@ const make = Effect.gen(function*() {
           yield* storageReadLatch.open
           yield* Effect.forkIn(syncSingletons, shardingScope)
         }
+        yield* Effect.sleep(1000)
         activeShardsLatch.openUnsafe()
       }
     }).pipe(
