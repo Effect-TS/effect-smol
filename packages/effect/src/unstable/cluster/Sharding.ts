@@ -855,12 +855,13 @@ const make = Effect.gen(function*() {
 
       // Remove runners that are no longer present or healthy
       for (const [runner, prevHealthy] of allRunners) {
-        // if the runner was not healthy before, it will not be in the hash
-        // rings
-        if (!prevHealthy) continue
-        // if the runner is present & healthy, we do nothing
         const ohealthy = MutableHashMap.get(nextRunners, runner)
-        if (ohealthy._tag === "Some" && ohealthy.value) continue
+        if (
+          (ohealthy._tag === "Some" && ohealthy.value) ||
+          (ohealthy._tag === "Some" && !prevHealthy)
+        ) {
+          continue
+        }
         changed = true
         MutableHashSet.remove(healthyRunners, runner)
         for (let i = 0; i < runner.groups.length; i++) {
