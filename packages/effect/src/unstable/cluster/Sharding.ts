@@ -260,7 +260,10 @@ const make = Effect.gen(function*() {
         }
       }
     }).pipe(
-      Effect.catchCause((cause) => Effect.logWarning("Could not acquire/release shards", cause)),
+      Effect.catchCause((cause) => {
+        activeShardsLatch.openUnsafe()
+        return Effect.logWarning("Could not acquire/release shards", cause)
+      }),
       Effect.repeat(Schedule.spaced(config.entityMessagePollInterval)),
       Effect.annotateLogs({
         package: "@effect/cluster",
