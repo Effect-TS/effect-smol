@@ -917,14 +917,18 @@ const make = Effect.gen(function*() {
   // --- Runner health checks ---
 
   if (selfRunner) {
-    const checkRunner = ([runner, healthy]: [Runner, boolean]) =>
-      Effect.flatMap(runnerHealth.isAlive(runner.address), (isAlive) => {
+    const checkRunner = ([runner, healthy]: [Runner, boolean]) => {
+      if (isLocalRunner(runner.address)) {
+        return Effect.void
+      }
+      return Effect.flatMap(runnerHealth.isAlive(runner.address), (isAlive) => {
         if (healthy === isAlive) return Effect.void
         MutableHashMap.set(allRunners, runner, isAlive)
         return Effect.logDebug(`Runner is ${isAlive ? "healthy" : "unheathy"}`, runner).pipe(
           Effect.andThen(runnerStorage.setRunnerHealth(runner.address, isAlive))
         )
       })
+    }
 
     yield* registerSingleton(
       "effect/cluster/Sharding/RunnerHealth",
