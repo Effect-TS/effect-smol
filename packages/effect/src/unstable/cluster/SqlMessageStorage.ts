@@ -217,11 +217,11 @@ export const make = Effect.fnUntraced(function*(options: {
           // inserted a new row
           if (rows.length > 0) return Effect.succeed([])
           return sql`
-          SELECT m.id, r.id as reply_id, r.kind as reply_kind, r.payload as reply_payload, r.sequence as reply_sequence
-          FROM ${messagesTableSql} m
-          LEFT JOIN ${repliesTableSql} r ON r.id = m.last_reply_id
-          WHERE m.message_id = ${message_id}
-        `
+            SELECT m.id, r.id as reply_id, r.kind as reply_kind, r.payload as reply_payload, r.sequence as reply_sequence
+            FROM ${messagesTableSql} m
+            LEFT JOIN ${repliesTableSql} r ON r.id = m.last_reply_id
+            WHERE m.message_id = ${message_id}
+          `
         }
       ),
     mysql: () => (row, message_id) =>

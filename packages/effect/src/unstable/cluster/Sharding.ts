@@ -924,8 +924,6 @@ const make = Effect.gen(function*() {
 
         while (true) {
           for (const [runner, healthy] of allRunners) {
-            if (isLocalRunner(runner.address)) continue
-
             yield* runners.ping(runner.address).pipe(
               Effect.timeout("10 seconds"),
               Effect.retry({ times: 3 }),
