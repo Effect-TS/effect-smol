@@ -873,7 +873,6 @@ const make = Effect.gen(function*() {
       MutableHashMap.clear(nextRunners)
 
       // Recompute shard assignments if the set of healthy runners has changed.
-      // We wait for an iteration with no changes to avoid thrashing.
       if (changed) {
         MutableHashSet.clear(selfShards)
         for (const [group, ring] of hashRings) {
@@ -916,35 +915,36 @@ const make = Effect.gen(function*() {
   // --- Runner health checks ---
 
   if (selfRunner) {
+    const pingRunner = ([runner, healthy]: [Runner, boolean]) =>
+      runners.ping(runner.address).pipe(
+        Effect.timeout("10 seconds"),
+        Effect.retry({ times: 3 }),
+        Effect.matchCauseEffect({
+          onSuccess() {
+            if (healthy) return Effect.void
+            MutableHashMap.set(allRunners, runner, true)
+            return Effect.logDebug("Runner is healthy", runner).pipe(
+              Effect.andThen(runnerStorage.setRunnerHealth(runner.address, true)),
+              Effect.ignore
+            )
+          },
+          onFailure() {
+            if (!healthy) return Effect.void
+            MutableHashMap.set(allRunners, runner, false)
+            return Effect.logDebug("Runner is unhealthy", runner).pipe(
+              Effect.andThen(runnerStorage.setRunnerHealth(runner.address, false)),
+              Effect.ignore
+            )
+          }
+        })
+      )
+
     yield* registerSingleton(
       "effect/cluster/Sharding/RunnerHealth",
-      Effect.gen(function*() {
-        while (true) {
-          yield* Effect.forEach(allRunners, ([runner, healthy]) =>
-            runners.ping(runner.address).pipe(
-              Effect.timeout("10 seconds"),
-              Effect.retry({ times: 3 }),
-              Effect.matchCauseEffect({
-                onSuccess() {
-                  if (healthy) return Effect.void
-                  MutableHashMap.set(allRunners, runner, true)
-                  return Effect.logDebug("Runner is healthy", runner).pipe(
-                    Effect.andThen(runnerStorage.setRunnerHealth(runner.address, true))
-                  )
-                },
-                onFailure() {
-                  if (!healthy) return Effect.void
-                  MutableHashMap.set(allRunners, runner, false)
-                  return Effect.logDebug("Runner is unhealthy", runner).pipe(
-                    Effect.andThen(runnerStorage.setRunnerHealth(runner.address, false))
-                  )
-                }
-              })
-            ), { discard: true, concurrency: 10 })
-
-          yield* Effect.sleep(config.runnerHealthCheckInterval)
-        }
-      }).pipe(
+      Effect.forEach(allRunners, pingRunner, { discard: true, concurrency: 10 }).pipe(
+        Effect.catchCause((cause) => Effect.logDebug("Could not ping runners", cause)),
+        Effect.delay(config.runnerHealthCheckInterval),
+        Effect.forever,
         Effect.annotateLogs({
           package: "@effect/cluster",
           module: "Sharding",
