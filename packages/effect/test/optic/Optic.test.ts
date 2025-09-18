@@ -1,4 +1,4 @@
-import { AST, Optic } from "effect/optic"
+import { Optic } from "effect/optic"
 import { Check } from "effect/schema"
 import { describe, it } from "vitest"
 import { assertFailure, assertSuccess, assertTrue, deepStrictEqual, strictEqual } from "../utils/assert.ts"
@@ -7,31 +7,31 @@ const addOne = (n: number) => n + 1
 
 describe("Optic", () => {
   describe("AST", () => {
-    const iso = new AST.Iso<1, 2>(() => 2, () => 1)
+    const iso = new Optic.IsoNode<1, 2>(() => 2, () => 1)
 
     it("composing an identity with another ast should return the other ast", () => {
-      const path = new AST.Path(["a"])
-      strictEqual(AST.compose(AST.identity, path), path)
+      const path = new Optic.PathNode(["a"])
+      strictEqual(Optic.compose(Optic.identityNode, path), path)
     })
 
     it("composing two path asts should return a path ast with the two paths concatenated", () => {
-      const path1 = new AST.Path(["a"])
-      const path2 = new AST.Path(["b"])
-      const composed = AST.compose(AST.compose(iso, path1), path2)
+      const path1 = new Optic.PathNode(["a"])
+      const path2 = new Optic.PathNode(["b"])
+      const composed = Optic.compose(Optic.compose(iso, path1), path2)
       assertTrue(composed._tag === "Composition")
       strictEqual(composed.asts.length, 2)
       strictEqual(composed.asts[0], iso)
-      deepStrictEqual(composed.asts[1], new AST.Path(["a", "b"]))
+      deepStrictEqual(composed.asts[1], new Optic.PathNode(["a", "b"]))
     })
 
     it("composing two checks asts should return a checks ast with the two checks concatenated", () => {
-      const checks1 = new AST.Checks([Check.positive()])
-      const checks2 = new AST.Checks([Check.int()])
-      const composed = AST.compose(AST.compose(iso, checks1), checks2)
+      const checks1 = new Optic.CheckNode([Check.positive()])
+      const checks2 = new Optic.CheckNode([Check.int()])
+      const composed = Optic.compose(Optic.compose(iso, checks1), checks2)
       assertTrue(composed._tag === "Composition")
       strictEqual(composed.asts.length, 2)
       strictEqual(composed.asts[0], iso)
-      deepStrictEqual(composed.asts[1], new AST.Checks([...checks1.checks, ...checks2.checks]))
+      deepStrictEqual(composed.asts[1], new Optic.CheckNode([...checks1.checks, ...checks2.checks]))
     })
   })
 
@@ -72,7 +72,7 @@ describe("Optic", () => {
       })
 
       describe("optional key", () => {
-        it("undefined = undefined", () => {
+        it("undefined = set the key to undefined", () => {
           type S = { readonly a?: number | undefined }
           const optic = Optic.id<S>().key("a")
           const f = (n: number | undefined) => n !== undefined ? n + 1 : undefined
@@ -90,7 +90,7 @@ describe("Optic", () => {
           deepStrictEqual(optic.modify(f)({ a: undefined }), { a: undefined })
         })
 
-        it("undefined = missing key", () => {
+        it("undefined = remove the key", () => {
           type S = { readonly a?: number }
           const optic = Optic.id<S>().optionalKey("a")
           const f = (n: number | undefined) => n !== undefined ? n + 1 : undefined

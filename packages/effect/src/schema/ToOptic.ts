@@ -2,7 +2,6 @@
  * @since 4.0.0
  */
 
-import * as Op from "../optic/AST.ts"
 import * as Optic from "../optic/Optic.ts"
 import type * as Schema from "./Schema.ts"
 import * as Serializer from "./Serializer.ts"
@@ -13,9 +12,7 @@ import * as ToParser from "./ToParser.ts"
  */
 export function makeIso<T, Iso>(codec: Schema.Optic<T, Iso>): Optic.Iso<T, Iso> {
   const serializer = Serializer.iso(codec)
-  const get = ToParser.encodeSync(serializer)
-  const set = ToParser.decodeSync(serializer)
-  return Optic.make(new Op.Iso(get, set))
+  return Optic.makeIso(ToParser.encodeSync(serializer), ToParser.decodeSync(serializer))
 }
 
 /**

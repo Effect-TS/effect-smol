@@ -12,7 +12,6 @@ import { unknownKeyword } from "../schema/AST.ts"
 import type * as Check from "../schema/Check.ts"
 import * as Issue from "../schema/Issue.ts"
 import * as ToParser from "../schema/ToParser.ts"
-import * as AST from "./AST.ts"
 
 /**
  * @category Iso
@@ -21,11 +20,27 @@ import * as AST from "./AST.ts"
 export interface Iso<in out S, in out A> extends Lens<S, A>, Prism<S, A> {}
 
 /**
+ * @category Constructors
+ * @since 4.0.0
+ */
+export function makeIso<S, A>(get: (s: S) => A, set: (a: A) => S): Iso<S, A> {
+  return make(new IsoNode(get, set))
+}
+
+/**
  * @category Lens
  * @since 4.0.0
  */
 export interface Lens<in out S, in out A> extends Optional<S, A> {
   readonly get: (s: S) => A
+}
+
+/**
+ * @category Constructors
+ * @since 4.0.0
+ */
+export function makeLens<S, A>(get: (s: S) => A, replace: (a: A, s: S) => S): Lens<S, A> {
+  return make(new LensNode(get, replace))
 }
 
 /**
@@ -37,21 +52,22 @@ export interface Prism<in out S, in out A> extends Optional<S, A> {
 }
 
 /**
- * @category Optional
+ * @category Constructors
  * @since 4.0.0
  */
-export interface Optional<in out S, in out A> extends Optic<S, A> {
-  readonly getResult: (s: S) => Result.Result<A, string>
-  readonly replace: (a: A, s: S) => S
-  readonly replaceResult: (a: A, s: S) => Result.Result<S, string>
+export function makePrism<S, A>(getResult: (s: S) => Result.Result<A, string>, set: (a: A) => S): Prism<S, A> {
+  return make(new PrismNode(getResult, set))
 }
 
 /**
- * @category Optic
+ * @category Optional
  * @since 4.0.0
  */
-export interface Optic<in out S, in out A> {
-  readonly ast: AST.AST
+export interface Optional<in out S, in out A> {
+  readonly ast: AST
+  readonly getResult: (s: S) => Result.Result<A, string>
+  readonly replace: (a: A, s: S) => S
+  readonly replaceResult: (a: A, s: S) => Result.Result<S, string>
   compose<B>(this: Iso<S, A>, that: Iso<A, B>): Iso<S, B>
   compose<B>(this: Lens<S, A>, that: Lens<A, B>): Lens<S, B>
   compose<B>(this: Prism<S, A>, that: Prism<A, B>): Prism<S, B>
@@ -83,30 +99,53 @@ export interface Optic<in out S, in out A> {
   at<S, A extends object, Key extends keyof A>(this: Optional<S, A>, key: Key): Optional<S, A[Key]>
 }
 
-class OpticImpl {
-  readonly ast: AST.AST
-  constructor(ast: AST.AST) {
+/**
+ * @category Constructors
+ * @since 4.0.0
+ */
+export function makeOptional<S, A>(
+  getResult: (s: S) => Result.Result<A, string>,
+  set: (a: A, s: S) => Result.Result<S, string>
+): Optional<S, A> {
+  return make(new OptionalNode(getResult, set))
+}
+
+class OptionalImpl<S, A> implements Optional<S, A> {
+  readonly ast: AST
+  readonly getResult: (s: S) => Result.Result<A, string>
+  readonly replaceResult: (a: A, s: S) => Result.Result<S, string>
+  constructor(
+    ast: AST,
+    getResult: (s: S) => Result.Result<A, string>,
+    replaceResult: (a: A, s: S) => Result.Result<S, string>
+  ) {
     this.ast = ast
+    this.getResult = getResult
+    this.replaceResult = replaceResult
+  }
+  replace(a: A, s: S): S {
+    return Result.getOrElse(this.replaceResult(a, s), () => s)
+  }
+  modify(f: (a: A) => A): (s: S) => S {
+    return (s) => Result.getOrElse(Result.flatMap(this.getResult(s), (a) => this.replaceResult(f(a), s)), () => s)
   }
   compose(that: any): any {
-    return make(AST.compose(this.ast, that.ast))
+    return make(compose(this.ast, that.ast))
   }
   key(key: PropertyKey): any {
-    return make(AST.compose(this.ast, new AST.Path([key])))
+    return make(compose(this.ast, new PathNode([key])))
   }
   optionalKey(key: PropertyKey): any {
     return make(
-      AST.compose(
+      compose(
         this.ast,
-        new AST.Lens(
+        new LensNode(
           (s) => s[key],
           (a, s) => {
             const copy = shallowCopy(s)
             if (a === undefined) {
-              if (Array.isArray(copy)) {
-                if (key === copy.length - 1) {
-                  copy.pop()
-                }
+              if (Array.isArray(copy) && typeof key === "number") {
+                copy.splice(key, 1)
               } else {
                 delete copy[key]
               }
@@ -120,19 +159,19 @@ class OpticImpl {
     )
   }
   check(...checks: readonly [Check.Check<any>, ...Array<Check.Check<any>>]): any {
-    return make(AST.compose(this.ast, new AST.Checks(checks)))
+    return make(compose(this.ast, new CheckNode(checks)))
   }
   refine(refine: Check.Refine<any, any>): any {
-    return make(AST.compose(this.ast, new AST.Checks([refine])))
+    return make(compose(this.ast, new CheckNode([refine])))
   }
   tag(tag: string): any {
     return make(
-      AST.compose(
+      compose(
         this.ast,
-        new AST.Prism(
+        new PrismNode(
           (s) =>
             s._tag === tag
-              ? Result.succeed(s as any)
+              ? Result.succeed(s)
               : Result.fail(`Expected ${format(tag)} tag, got ${format(s._tag)}`),
           identity
         )
@@ -140,19 +179,19 @@ class OpticImpl {
     )
   }
   at(key: PropertyKey): any {
-    const failure = Result.fail(`Key ${format(key)} not found`)
+    const err = Result.fail(`Key ${format(key)} not found`)
     return make(
-      AST.compose(
+      compose(
         this.ast,
-        new AST.Optional(
-          (s) => Object.hasOwn(s, key) ? Result.succeed(s[key]) : failure,
+        new OptionalNode(
+          (s) => Object.hasOwn(s, key) ? Result.succeed(s[key]) : err,
           (a, s) => {
             if (Object.hasOwn(s, key)) {
               const copy = shallowCopy(s)
               copy[key] = a
               return Result.succeed(copy)
             } else {
-              return failure
+              return err
             }
           }
         )
@@ -161,101 +200,59 @@ class OpticImpl {
   }
 }
 
-class IsoImpl<S, A> extends OpticImpl implements Iso<S, A> {
+class IsoImpl<S, A> extends OptionalImpl<S, A> implements Iso<S, A> {
   readonly get: (s: S) => A
   readonly set: (a: A) => S
-  constructor(ast: AST.AST, get: (s: S) => A, set: (a: A) => S) {
-    super(ast)
+  constructor(ast: AST, get: (s: S) => A, set: (a: A) => S) {
+    super(ast, (s) => Result.succeed(get(s)), (a) => Result.succeed(set(a)))
     this.get = get
     this.set = set
   }
-  getResult(s: S): Result.Result<A, string> {
-    return Result.succeed(this.get(s))
-  }
-  replaceResult(a: A, _: S): Result.Result<S, string> {
-    return Result.succeed(this.set(a))
-  }
-  replace(a: A, _: S): S {
+  override replace(a: A, _: S): S {
     return this.set(a)
   }
-  modify(f: (a: A) => A): (s: S) => S {
+  override modify(f: (a: A) => A): (s: S) => S {
     return (s) => this.set(f(this.get(s)))
   }
 }
 
-class LensImpl<S, A> extends OpticImpl implements Lens<S, A> {
+class LensImpl<S, A> extends OptionalImpl<S, A> implements Lens<S, A> {
   readonly get: (s: S) => A
-  readonly replace: (a: A, s: S) => S
-  constructor(ast: AST.AST, get: (s: S) => A, replace: (a: A, s: S) => S) {
-    super(ast)
+  constructor(ast: AST, get: (s: S) => A, replace: (a: A, s: S) => S) {
+    super(ast, (s) => Result.succeed(get(s)), (a, s) => Result.succeed(replace(a, s)))
     this.get = get
     this.replace = replace
   }
-  getResult(s: S): Result.Result<A, string> {
-    return Result.succeed(this.get(s))
-  }
-  replaceResult(a: A, _: S): Result.Result<S, string> {
-    return Result.succeed(this.replace(a, _))
-  }
-  modify(f: (a: A) => A): (s: S) => S {
+  override modify(f: (a: A) => A): (s: S) => S {
     return (s) => this.replace(f(this.get(s)), s)
   }
 }
 
-class PrismImpl<S, A> extends OpticImpl implements Prism<S, A> {
-  readonly getResult: (s: S) => Result.Result<A, string>
+class PrismImpl<S, A> extends OptionalImpl<S, A> implements Prism<S, A> {
   readonly set: (a: A) => S
-  constructor(ast: AST.AST, getResult: (s: S) => Result.Result<A, string>, set: (a: A) => S) {
-    super(ast)
-    this.getResult = getResult
+  constructor(ast: AST, getResult: (s: S) => Result.Result<A, string>, set: (a: A) => S) {
+    super(ast, getResult, (a, _) => Result.succeed(set(a)))
     this.set = set
   }
-  replace(a: A, _: S): S {
+  override replace(a: A, _: S): S {
     return this.set(a)
   }
-  replaceResult(a: A, _: S): Result.Result<S, string> {
-    return Result.succeed(this.set(a))
-  }
-  modify(f: (a: A) => A): (s: S) => S {
+  override modify(f: (a: A) => A): (s: S) => S {
     return (s) => Result.getOrElse(Result.map(this.getResult(s), (a) => this.set(f(a))), () => s)
   }
 }
 
-class OptionalImpl<S, A> extends OpticImpl implements Optional<S, A> {
-  readonly getResult: (s: S) => Result.Result<A, string>
-  readonly replaceResult: (a: A, s: S) => Result.Result<S, string>
-  constructor(
-    ast: AST.AST,
-    getResult: (s: S) => Result.Result<A, string>,
-    replaceResult: (a: A, s: S) => Result.Result<S, string>
-  ) {
-    super(ast)
-    this.getResult = getResult
-    this.replaceResult = replaceResult
-  }
-  replace(a: A, s: S): S {
-    return Result.getOrElse(this.replaceResult(a, s), () => s)
-  }
-  modify(f: (a: A) => A): (s: S) => S {
-    return (s) => Result.getOrElse(Result.flatMap(this.getResult(s), (a) => this.replaceResult(f(a), s)), () => s)
-  }
-}
-
-/**
- * @category Constructors
- * @since 4.0.0
- */
-export function make<O>(ast: AST.AST): O {
+function make(ast: AST): any {
   const op = go(ast)
   switch (op._tag) {
     case "Iso":
-      return new IsoImpl(ast, op.get, op.set) as O
+      return new IsoImpl(ast, op.get, op.set)
     case "Lens":
-      return new LensImpl(ast, op.get, op.set) as O
+      return new LensImpl(ast, op.get, op.set)
     case "Prism":
-      return new PrismImpl(ast, op.get, op.set) as O
+      return new PrismImpl(ast, op.get, op.set)
     case "Optional":
-      return new OptionalImpl(ast, op.get, op.set) as O
+      return new OptionalImpl(ast, op.get, op.set)
   }
 }
 
@@ -265,11 +262,11 @@ function shallowCopy(s: any) {
 
 type Op = {
   readonly _tag: "Iso" | "Lens" | "Prism" | "Optional"
-  readonly get: any
-  readonly set: any
+  readonly get: (s: unknown) => any
+  readonly set: (a: unknown, s?: unknown) => any
 }
 
-const go = memoize((ast: AST.AST): Op => {
+const go = memoize((ast: AST): Op => {
   switch (ast._tag) {
     case "Identity":
       return { _tag: "Iso", get: identity, set: identity }
@@ -405,7 +402,155 @@ function getCompositionTag(a: Op["_tag"], b: Op["_tag"]): Op["_tag"] {
   }
 }
 
-const identityIso = make<Iso<any, any>>(AST.identity)
+// ---------------------------------------------
+// AST
+// ---------------------------------------------
+
+type AST =
+  | IdentityNode
+  | IsoNode<any, any>
+  | LensNode<any, any>
+  | PrismNode<any, any>
+  | OptionalNode<any, any>
+  | PathNode
+  | CheckNode<any>
+  | CompositionNode
+
+class IdentityNode {
+  readonly _tag = "Identity"
+}
+
+/** @internal */
+export const identityNode = new IdentityNode()
+
+class CompositionNode {
+  readonly _tag = "Composition"
+  readonly asts: readonly [AST, ...Array<AST>]
+
+  constructor(asts: readonly [AST, ...Array<AST>]) {
+    this.asts = asts
+  }
+}
+
+/** @internal */
+export class IsoNode<S, A> {
+  readonly _tag = "Iso"
+  readonly get: (s: S) => A
+  readonly set: (a: A) => S
+
+  constructor(get: (s: S) => A, set: (a: A) => S) {
+    this.get = get
+    this.set = set
+  }
+}
+
+class LensNode<S, A> {
+  readonly _tag = "Lens"
+  readonly get: (s: S) => A
+  readonly set: (a: A, s: S) => S
+
+  constructor(get: (s: S) => A, set: (a: A, s: S) => S) {
+    this.get = get
+    this.set = set
+  }
+}
+
+class PrismNode<S, A> {
+  readonly _tag = "Prism"
+  readonly get: (s: S) => Result.Result<A, string>
+  readonly set: (a: A) => S
+
+  constructor(get: (s: S) => Result.Result<A, string>, set: (a: A) => S) {
+    this.get = get
+    this.set = set
+  }
+}
+
+class OptionalNode<S, A> {
+  readonly _tag = "Optional"
+  readonly get: (s: S) => Result.Result<A, string>
+  readonly set: (a: A, s: S) => Result.Result<S, string>
+
+  constructor(get: (s: S) => Result.Result<A, string>, set: (a: A, s: S) => Result.Result<S, string>) {
+    this.get = get
+    this.set = set
+  }
+}
+
+/** @internal */
+export class PathNode {
+  readonly _tag = "Path"
+  readonly path: ReadonlyArray<PropertyKey>
+
+  constructor(path: ReadonlyArray<PropertyKey>) {
+    this.path = path
+  }
+}
+
+/** @internal */
+export class CheckNode<T> {
+  readonly _tag = "Checks"
+  readonly checks: readonly [Check.Check<T>, ...Array<Check.Check<T>>]
+
+  constructor(checks: readonly [Check.Check<T>, ...Array<Check.Check<T>>]) {
+    this.checks = checks
+  }
+}
+
+// Nodes that can appear in a normalized chain (no Identity/Composition)
+type NormalizedNode = Exclude<AST, IdentityNode | CompositionNode>
+
+// Fuse with tail when possible, else push.
+function pushNormalized(acc: Array<NormalizedNode>, node: NormalizedNode): void {
+  const last = acc[acc.length - 1]
+  if (last) {
+    if (last._tag === "Path" && node._tag === "Path") {
+      // fuse Path
+      acc[acc.length - 1] = new PathNode([...last.path, ...node.path])
+      return
+    }
+    if (last._tag === "Checks" && node._tag === "Checks") {
+      // fuse Checks
+      acc[acc.length - 1] = new CheckNode<any>([...last.checks, ...node.checks])
+      return
+    }
+  }
+  acc.push(node)
+}
+
+// Collect nodes from an AST into `acc`, flattening & normalizing on the fly.
+function collect(ast: AST, acc: Array<NormalizedNode>): void {
+  if (ast._tag === "Identity") return
+  if (ast._tag === "Composition") {
+    // flatten without extra arrays
+    for (let i = 0; i < ast.asts.length; i++) collect(ast.asts[i], acc)
+    return
+  }
+  // primitive node
+  pushNormalized(acc, ast)
+}
+
+/** @internal */
+export function compose(a: AST, b: AST): AST {
+  const nodes: Array<NormalizedNode> = []
+  collect(a, nodes)
+  collect(b, nodes)
+
+  switch (nodes.length) {
+    case 0:
+      return identityNode
+    case 1:
+      return nodes[0]
+    default:
+      return new CompositionNode(nodes as [AST, ...Array<AST>])
+  }
+}
+
+// ---------------------------------------------
+// Built-in Optics
+// ---------------------------------------------
+
+const identityIso = make(identityNode)
 
 /**
  * The identity optic.
