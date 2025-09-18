@@ -835,10 +835,7 @@ const make = Effect.gen(function*() {
       for (let i = 0; i < runners.length; i++) {
         const [runner, healthy] = runners[i]
         MutableHashMap.set(nextRunners, runner, healthy)
-        if (!healthy) {
-          MutableHashSet.remove(healthyRunners, runner)
-          continue
-        } else if (MutableHashSet.has(healthyRunners, runner)) {
+        if (!healthy || MutableHashSet.has(healthyRunners, runner)) {
           continue
         }
         changed = true

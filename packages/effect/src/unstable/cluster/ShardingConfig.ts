@@ -117,7 +117,7 @@ export const defaults: ShardingConfig["Service"] = {
   entityMessagePollInterval: Duration.seconds(10),
   entityReplyPollInterval: Duration.millis(200),
   sendRetryInterval: Duration.millis(100),
-  refreshAssignmentsInterval: Duration.seconds(5),
+  refreshAssignmentsInterval: Duration.seconds(3),
   runnerHealthCheckInterval: Duration.minutes(1),
   simulateRemoteSerialization: true
 }
