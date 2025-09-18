@@ -42,6 +42,10 @@ export const layer = <
   readonly clientOnly?: ClientOnly | undefined
   readonly storage?: Storage | undefined
   readonly runnerHealth?: Health | undefined
+  readonly runnerHealthK8s?: {
+    readonly namespace?: string | undefined
+    readonly labelSelector?: string | undefined
+  } | undefined
   readonly shardingConfig?: Partial<ShardingConfig.ShardingConfig["Service"]> | undefined
 }): ClientOnly extends true ? Layer.Layer<
     Sharding | Runners.Runners | MessageStorage.MessageStorage,
@@ -67,7 +71,7 @@ export const layer = <
   const runnerHealth: Layer.Layer<any, any, any> = options?.clientOnly
     ? Layer.empty as any
     : options?.runnerHealth === "k8s"
-    ? RunnerHealth.layerK8s().pipe(
+    ? RunnerHealth.layerK8s(options.runnerHealthK8s).pipe(
       Layer.provide([NodeFileSystem.layer, layerHttpClientK8s])
     )
     : RunnerHealth.layerPing.pipe(
