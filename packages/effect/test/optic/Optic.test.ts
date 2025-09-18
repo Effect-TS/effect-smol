@@ -35,218 +35,262 @@ describe("Optic", () => {
     })
   })
 
-  describe("Iso", () => {
-    it("id", () => {
-      const iso = Optic.id<number>()
+  it("id", () => {
+    const iso = Optic.id<number>()
 
-      strictEqual(iso.get(1), 1)
-      strictEqual(iso.set(1), 1)
-      strictEqual(iso.modify(addOne)(1), 2)
-    })
+    strictEqual(iso.get(1), 1)
+    strictEqual(iso.set(1), 1)
+    strictEqual(iso.modify(addOne)(1), 2)
   })
 
-  describe("Lens", () => {
-    describe("key", () => {
-      describe("Struct", () => {
-        it("required key", () => {
-          type S = { readonly a: number }
-          const optic = Optic.id<S>().key("a")
+  describe("key", () => {
+    describe("Struct", () => {
+      it("required key", () => {
+        type S = { readonly a: number }
+        const optic = Optic.id<S>().key("a")
 
-          strictEqual(optic.get({ a: 1 }), 1)
-          deepStrictEqual(optic.replace(2, { a: 1 }), { a: 2 })
-          deepStrictEqual(optic.modify(addOne)({ a: 1 }), { a: 2 })
-        })
-
-        it("nested required keys", () => {
-          type S = {
-            readonly a: {
-              readonly b: number
-            }
-          }
-          const optic = Optic.id<S>().key("a").key("b")
-
-          strictEqual(optic.get({ a: { b: 1 } }), 1)
-          deepStrictEqual(optic.replace(2, { a: { b: 1 } }), { a: { b: 2 } })
-          deepStrictEqual(optic.modify(addOne)({ a: { b: 1 } }), { a: { b: 2 } })
-        })
+        strictEqual(optic.get({ a: 1 }), 1)
+        deepStrictEqual(optic.replace(2, { a: 1 }), { a: 2 })
+        deepStrictEqual(optic.modify(addOne)({ a: 1 }), { a: 2 })
       })
 
-      describe("optional key", () => {
-        it("undefined = set the key to undefined", () => {
-          type S = { readonly a?: number | undefined }
-          const optic = Optic.id<S>().key("a")
-          const f = (n: number | undefined) => n !== undefined ? n + 1 : undefined
-
-          strictEqual(optic.get({ a: 1 }), 1)
-          strictEqual(optic.get({}), undefined)
-          strictEqual(optic.get({ a: undefined }), undefined)
-          deepStrictEqual(optic.replace(2, { a: 1 }), { a: 2 })
-          deepStrictEqual(optic.replace(2, {}), { a: 2 })
-          deepStrictEqual(optic.replace(2, { a: undefined }), { a: 2 })
-          deepStrictEqual(optic.replace(undefined, { a: 1 }), { a: undefined })
-          deepStrictEqual(optic.replace(undefined, {}), { a: undefined })
-          deepStrictEqual(optic.modify(f)({ a: 1 }), { a: 2 })
-          deepStrictEqual(optic.modify(f)({}), { a: undefined })
-          deepStrictEqual(optic.modify(f)({ a: undefined }), { a: undefined })
-        })
-
-        it("undefined = remove the key", () => {
-          type S = { readonly a?: number }
-          const optic = Optic.id<S>().optionalKey("a")
-          const f = (n: number | undefined) => n !== undefined ? n + 1 : undefined
-
-          strictEqual(optic.get({ a: 1 }), 1)
-          strictEqual(optic.get({}), undefined)
-          deepStrictEqual(optic.replace(2, { a: 1 }), { a: 2 })
-          deepStrictEqual(optic.replace(2, {}), { a: 2 })
-          deepStrictEqual(optic.replace(undefined, { a: 1 }), {})
-          deepStrictEqual(optic.replace(undefined, {}), {})
-          deepStrictEqual(optic.modify(f)({ a: 1 }), { a: 2 })
-          deepStrictEqual(optic.modify(f)({}), {})
-        })
-      })
-
-      describe("optional element", () => {
-        it("undefined = remove the index", () => {
-          type S = readonly [number, number?]
-          const optic = Optic.id<S>().optionalKey(1)
-          const f = (n: number | undefined) => n !== undefined ? n + 1 : undefined
-
-          strictEqual(optic.get([1, 2]), 2)
-          strictEqual(optic.get([1]), undefined)
-          deepStrictEqual(optic.replace(3, [1, 2]), [1, 3])
-          deepStrictEqual(optic.replace(3, [1]), [1, 3])
-          deepStrictEqual(optic.replace(undefined, [1, 2]), [1])
-          deepStrictEqual(optic.replace(undefined, [1]), [1])
-          deepStrictEqual(optic.modify(f)([1, 2]), [1, 3])
-          deepStrictEqual(optic.modify(f)([1]), [1])
-        })
-      })
-
-      describe("Tuple", () => {
-        it("required element", () => {
-          type S = readonly [number]
-          const optic = Optic.id<S>().key(0)
-
-          strictEqual(optic.get([1]), 1)
-          deepStrictEqual(optic.replace(2, [1]), [2])
-          deepStrictEqual(optic.modify(addOne)([1]), [2])
-        })
-
-        it("nested required element", () => {
-          type S = readonly [string, readonly [number]]
-          const optic = Optic.id<S>().key(1).key(0)
-
-          strictEqual(optic.get(["a", [1]]), 1)
-          deepStrictEqual(optic.replace(2, ["a", [1]]), ["a", [2]])
-          deepStrictEqual(optic.modify(addOne)(["a", [1]]), ["a", [2]])
-        })
-      })
-
-      it("Mixed structs and tuples", () => {
+      it("nested required keys", () => {
         type S = {
-          readonly a: readonly [number]
+          readonly a: {
+            readonly b: number
+          }
         }
-        const optic = Optic.id<S>().key("a").key(0)
+        const optic = Optic.id<S>().key("a").key("b")
 
-        strictEqual(optic.get({ a: [1] }), 1)
-        deepStrictEqual(optic.replace(2, { a: [1] }), { a: [2] })
-        deepStrictEqual(optic.modify(addOne)({ a: [1] }), { a: [2] })
+        strictEqual(optic.get({ a: { b: 1 } }), 1)
+        deepStrictEqual(optic.replace(2, { a: { b: 1 } }), { a: { b: 2 } })
+        deepStrictEqual(optic.modify(addOne)({ a: { b: 1 } }), { a: { b: 2 } })
       })
+
+      it("optional key (with undefined)", () => {
+        type S = { readonly a?: number | undefined }
+        const optic = Optic.id<S>().key("a")
+        const f = (n: number | undefined) => n !== undefined ? n + 1 : undefined
+
+        strictEqual(optic.get({ a: 1 }), 1)
+        strictEqual(optic.get({}), undefined)
+        strictEqual(optic.get({ a: undefined }), undefined)
+        deepStrictEqual(optic.replace(2, { a: 1 }), { a: 2 })
+        deepStrictEqual(optic.replace(2, {}), { a: 2 })
+        deepStrictEqual(optic.replace(2, { a: undefined }), { a: 2 })
+        deepStrictEqual(optic.replace(undefined, { a: 1 }), { a: undefined })
+        deepStrictEqual(optic.replace(undefined, {}), { a: undefined })
+        deepStrictEqual(optic.modify(f)({ a: 1 }), { a: 2 })
+        deepStrictEqual(optic.modify(f)({}), { a: undefined })
+        deepStrictEqual(optic.modify(f)({ a: undefined }), { a: undefined })
+      })
+    })
+
+    describe("Tuple", () => {
+      it("required element", () => {
+        type S = readonly [number]
+        const optic = Optic.id<S>().key(0)
+
+        strictEqual(optic.get([1]), 1)
+        deepStrictEqual(optic.replace(2, [1]), [2])
+        deepStrictEqual(optic.modify(addOne)([1]), [2])
+      })
+
+      it("nested required element", () => {
+        type S = readonly [string, readonly [number]]
+        const optic = Optic.id<S>().key(1).key(0)
+
+        strictEqual(optic.get(["a", [1]]), 1)
+        deepStrictEqual(optic.replace(2, ["a", [1]]), ["a", [2]])
+        deepStrictEqual(optic.modify(addOne)(["a", [1]]), ["a", [2]])
+      })
+
+      it("optional element (with undefined)", () => {
+        type S = readonly [number, (number | undefined)?]
+        const optic = Optic.id<S>().key(1)
+        const f = (n: number | undefined) => n !== undefined ? n + 1 : undefined
+
+        strictEqual(optic.get([1, 2]), 2)
+        strictEqual(optic.get([1]), undefined)
+        strictEqual(optic.get([1, undefined]), undefined)
+        deepStrictEqual(optic.replace(2, [1, 2]), [1, 2])
+        deepStrictEqual(optic.replace(2, [1]), [1, 2])
+        deepStrictEqual(optic.replace(2, [1, undefined]), [1, 2])
+        deepStrictEqual(optic.replace(undefined, [1, 2]), [1, undefined])
+        deepStrictEqual(optic.replace(undefined, [1]), [1, undefined])
+        deepStrictEqual(optic.modify(f)([1, 2]), [1, 3])
+        deepStrictEqual(optic.modify(f)([1]), [1, undefined])
+        deepStrictEqual(optic.modify(f)([1, undefined]), [1, undefined])
+      })
+    })
+
+    it("Mixed structs and tuples", () => {
+      type S = {
+        readonly a: readonly [number]
+      }
+      const optic = Optic.id<S>().key("a").key(0)
+
+      strictEqual(optic.get({ a: [1] }), 1)
+      deepStrictEqual(optic.replace(2, { a: [1] }), { a: [2] })
+      deepStrictEqual(optic.modify(addOne)({ a: [1] }), { a: [2] })
     })
   })
 
-  describe("Prism", () => {
-    describe("check", () => {
-      it("single check", () => {
-        type S = number
-        const optic = Optic.id<S>().check(Check.positive())
-        assertSuccess(optic.getResult(1), 1)
-        assertFailure(optic.getResult(0), `Expected a value greater than 0, got 0`)
-        strictEqual(optic.set(1), 1)
-        strictEqual(optic.set(0), 0)
-        deepStrictEqual(optic.modify(addOne)(1), 2)
-        deepStrictEqual(optic.modify(addOne)(0), 0)
-      })
+  describe("optionalKey", () => {
+    describe("Struct", () => {
+      it("exact optional key (without undefined)", () => {
+        type S = { readonly a?: number }
+        const optic = Optic.id<S>().optionalKey("a")
+        const f = (n: number | undefined) => n !== undefined ? n + 1 : undefined
 
-      it("multiple checks", () => {
-        type S = number
-        const optic = Optic.id<S>().check(Check.int(), Check.positive())
-        assertSuccess(optic.getResult(1), 1)
-        assertFailure(optic.getResult(0), `Expected a value greater than 0, got 0`)
-        assertFailure(optic.getResult(1.1), `Expected an integer, got 1.1`)
-        assertFailure(
-          optic.getResult(-1.1),
-          `Expected an integer, got -1.1
+        strictEqual(optic.get({ a: 1 }), 1)
+        strictEqual(optic.get({}), undefined)
+        deepStrictEqual(optic.replace(2, { a: 1 }), { a: 2 })
+        deepStrictEqual(optic.replace(2, {}), { a: 2 })
+        deepStrictEqual(optic.replace(undefined, { a: 1 }), {})
+        deepStrictEqual(optic.replace(undefined, {}), {})
+        deepStrictEqual(optic.modify(f)({ a: 1 }), { a: 2 })
+        deepStrictEqual(optic.modify(f)({}), {})
+      })
+    })
+
+    it("Record", () => {
+      type S = { [x: string]: number }
+      const optic = Optic.id<S>().optionalKey("a")
+      const f = (n: number | undefined) => n !== undefined ? n + 1 : undefined
+
+      strictEqual(optic.get({ a: 1, b: 2 }), 1)
+      strictEqual(optic.get({ b: 2 }), undefined)
+      deepStrictEqual(optic.replace(2, { a: 1, b: 2 }), { a: 2, b: 2 })
+      deepStrictEqual(optic.replace(2, { b: 2 }), { a: 2, b: 2 })
+      deepStrictEqual(optic.replace(undefined, { a: 1 }), {})
+      deepStrictEqual(optic.replace(undefined, { b: 2 }), { b: 2 })
+      deepStrictEqual(optic.modify(f)({ a: 1 }), { a: 2 })
+      deepStrictEqual(optic.modify(f)({ b: 2 }), { b: 2 })
+    })
+
+    describe("Tuple", () => {
+      it("exact optional element (without undefined)", () => {
+        type S = readonly [number, number?]
+        const optic = Optic.id<S>().optionalKey(1)
+        const f = (n: number | undefined) => n !== undefined ? n + 1 : undefined
+
+        strictEqual(optic.get([1, 2]), 2)
+        strictEqual(optic.get([1]), undefined)
+        deepStrictEqual(optic.replace(3, [1, 2]), [1, 3])
+        deepStrictEqual(optic.replace(3, [1]), [1, 3])
+        deepStrictEqual(optic.replace(undefined, [1, 2]), [1])
+        deepStrictEqual(optic.replace(undefined, [1]), [1])
+        deepStrictEqual(optic.modify(f)([1, 2]), [1, 3])
+        deepStrictEqual(optic.modify(f)([1]), [1])
+      })
+    })
+
+    it("Array", () => {
+      type S = ReadonlyArray<number>
+      const optic = Optic.id<S>().optionalKey(1)
+      const f = (n: number | undefined) => n !== undefined ? n + 1 : undefined
+
+      strictEqual(optic.get([1, 2, 3]), 2)
+      strictEqual(optic.get([1]), undefined)
+      deepStrictEqual(optic.replace(4, [1, 2, 3]), [1, 4, 3])
+      deepStrictEqual(optic.replace(4, [1]), [1, 4])
+      deepStrictEqual(optic.replace(undefined, [1, 2]), [1])
+      deepStrictEqual(optic.replace(undefined, [1, 2, 3]), [1, 3])
+      deepStrictEqual(optic.replace(undefined, [1]), [1])
+      deepStrictEqual(optic.modify(f)([1, 2]), [1, 3])
+      deepStrictEqual(optic.modify(f)([1, 2, 4]), [1, 3, 4])
+      deepStrictEqual(optic.modify(f)([1]), [1])
+    })
+  })
+
+  describe("check", () => {
+    it("single check", () => {
+      type S = number
+      const optic = Optic.id<S>().check(Check.positive())
+      assertSuccess(optic.getResult(1), 1)
+      assertFailure(optic.getResult(0), `Expected a value greater than 0, got 0`)
+      strictEqual(optic.set(1), 1)
+      strictEqual(optic.set(0), 0)
+      deepStrictEqual(optic.modify(addOne)(1), 2)
+      deepStrictEqual(optic.modify(addOne)(0), 0)
+    })
+
+    it("multiple checks", () => {
+      type S = number
+      const optic = Optic.id<S>().check(Check.int(), Check.positive())
+      assertSuccess(optic.getResult(1), 1)
+      assertFailure(optic.getResult(0), `Expected a value greater than 0, got 0`)
+      assertFailure(optic.getResult(1.1), `Expected an integer, got 1.1`)
+      assertFailure(
+        optic.getResult(-1.1),
+        `Expected an integer, got -1.1
 Expected a value greater than 0, got -1.1`
-        )
-        deepStrictEqual(optic.modify(addOne)(1), 2)
-        deepStrictEqual(optic.modify(addOne)(0), 0)
-        deepStrictEqual(optic.modify(addOne)(1.1), 1.1)
-        deepStrictEqual(optic.modify(addOne)(-1.1), -1.1)
-      })
-    })
-
-    it("refine", () => {
-      type B = { readonly _tag: "b"; readonly b: number }
-      type S = { readonly _tag: "a"; readonly a: string } | B
-      const optic = Optic.id<S>().refine(
-        Check.makeRefineByGuard((s: S): s is B => s._tag === "b", { title: `"b" tag` })
-      ).key("b")
-
-      assertSuccess(optic.getResult({ _tag: "b", b: 1 }), 1)
-      assertFailure(optic.getResult({ _tag: "a", a: "value" }), `Expected "b" tag, got {"_tag":"a","a":"value"}`)
-      deepStrictEqual(optic.modify(addOne)({ _tag: "a", a: "value" }), { _tag: "a", a: "value" })
-      deepStrictEqual(optic.modify(addOne)({ _tag: "b", b: 1 }), { _tag: "b", b: 2 })
-    })
-
-    it("tag", () => {
-      type S = { readonly _tag: "a"; readonly a: string } | { readonly _tag: "b"; readonly b: number }
-      const optic = Optic.id<S>().tag("b").key("b")
-
-      assertSuccess(optic.getResult({ _tag: "b", b: 1 }), 1)
-      assertFailure(optic.getResult({ _tag: "a", a: "value" }), `Expected "b" tag, got "a"`)
-      deepStrictEqual(optic.modify(addOne)({ _tag: "a", a: "value" }), { _tag: "a", a: "value" })
-      deepStrictEqual(optic.modify(addOne)({ _tag: "b", b: 1 }), { _tag: "b", b: 2 })
-    })
-
-    describe("at", () => {
-      it("Record", () => {
-        type S = { [x: string]: number }
-        const optic = Optic.id<S>().at("a")
-
-        assertSuccess(optic.getResult({ a: 1, b: 2 }), 1)
-        assertFailure(optic.getResult({ b: 2 }), `Key "a" not found`)
-        assertSuccess(optic.replaceResult(2, { a: 1, b: 2 }), { a: 2, b: 2 })
-        assertFailure(optic.replaceResult(2, { b: 2 }), `Key "a" not found`)
-        deepStrictEqual(optic.replace(2, { a: 1, b: 2 }), { a: 2, b: 2 })
-        deepStrictEqual(optic.replace(2, { b: 2 }), { b: 2 })
-      })
-
-      it("Array", () => {
-        type S = ReadonlyArray<number>
-        const optic = Optic.id<S>().at(0)
-
-        assertSuccess(optic.getResult([1, 2]), 1)
-        assertFailure(optic.getResult([]), `Key 0 not found`)
-        assertSuccess(optic.replaceResult(3, [1, 2]), [3, 2])
-        assertFailure(optic.replaceResult(2, []), `Key 0 not found`)
-        deepStrictEqual(optic.replace(3, [1, 2]), [3, 2])
-        deepStrictEqual(optic.replace(2, []), [])
-      })
+      )
+      deepStrictEqual(optic.modify(addOne)(1), 2)
+      deepStrictEqual(optic.modify(addOne)(0), 0)
+      deepStrictEqual(optic.modify(addOne)(1.1), 1.1)
+      deepStrictEqual(optic.modify(addOne)(-1.1), -1.1)
     })
   })
 
-  describe("Optional", () => {
-    it("key & check", () => {
-      type S = { readonly a: number }
-      const optic = Optic.id<S>().key("a").check(Check.positive())
-      assertSuccess(optic.getResult({ a: 1 }), 1)
-      assertFailure(optic.getResult({ a: 0 }), `Expected a value greater than 0, got 0`)
-      assertSuccess(optic.replaceResult(2, { a: 1 }), { a: 2 })
-      assertFailure(optic.replaceResult(2, { a: 0 }), `Expected a value greater than 0, got 0`)
-      deepStrictEqual(optic.replace(2, { a: 1 }), { a: 2 })
-      deepStrictEqual(optic.replace(2, { a: 0 }), { a: 0 })
+  it("refine", () => {
+    type B = { readonly _tag: "b"; readonly b: number }
+    type S = { readonly _tag: "a"; readonly a: string } | B
+    const optic = Optic.id<S>().refine(
+      Check.makeRefineByGuard((s: S): s is B => s._tag === "b", { title: `"b" tag` })
+    ).key("b")
+
+    assertSuccess(optic.getResult({ _tag: "b", b: 1 }), 1)
+    assertFailure(optic.getResult({ _tag: "a", a: "value" }), `Expected "b" tag, got {"_tag":"a","a":"value"}`)
+    deepStrictEqual(optic.modify(addOne)({ _tag: "a", a: "value" }), { _tag: "a", a: "value" })
+    deepStrictEqual(optic.modify(addOne)({ _tag: "b", b: 1 }), { _tag: "b", b: 2 })
+  })
+
+  it("tag", () => {
+    type S = { readonly _tag: "a"; readonly a: string } | { readonly _tag: "b"; readonly b: number }
+    const optic = Optic.id<S>().tag("b").key("b")
+
+    assertSuccess(optic.getResult({ _tag: "b", b: 1 }), 1)
+    assertFailure(optic.getResult({ _tag: "a", a: "value" }), `Expected "b" tag, got "a"`)
+    deepStrictEqual(optic.modify(addOne)({ _tag: "a", a: "value" }), { _tag: "a", a: "value" })
+    deepStrictEqual(optic.modify(addOne)({ _tag: "b", b: 1 }), { _tag: "b", b: 2 })
+  })
+
+  describe("at", () => {
+    it("Record", () => {
+      type S = { [x: string]: number }
+      const optic = Optic.id<S>().at("a")
+
+      assertSuccess(optic.getResult({ a: 1, b: 2 }), 1)
+      assertFailure(optic.getResult({ b: 2 }), `Key "a" not found`)
+      assertSuccess(optic.replaceResult(2, { a: 1, b: 2 }), { a: 2, b: 2 })
+      assertFailure(optic.replaceResult(2, { b: 2 }), `Key "a" not found`)
+      deepStrictEqual(optic.replace(2, { a: 1, b: 2 }), { a: 2, b: 2 })
+      deepStrictEqual(optic.replace(2, { b: 2 }), { b: 2 })
     })
+
+    it("Array", () => {
+      type S = ReadonlyArray<number>
+      const optic = Optic.id<S>().at(0)
+
+      assertSuccess(optic.getResult([1, 2]), 1)
+      assertFailure(optic.getResult([]), `Key 0 not found`)
+      assertSuccess(optic.replaceResult(3, [1, 2]), [3, 2])
+      assertFailure(optic.replaceResult(2, []), `Key 0 not found`)
+      deepStrictEqual(optic.replace(3, [1, 2]), [3, 2])
+      deepStrictEqual(optic.replace(2, []), [])
+    })
+  })
+
+  it("key & check", () => {
+    type S = { readonly a: number }
+    const optic = Optic.id<S>().key("a").check(Check.positive())
+    assertSuccess(optic.getResult({ a: 1 }), 1)
+    assertFailure(optic.getResult({ a: 0 }), `Expected a value greater than 0, got 0`)
+    assertSuccess(optic.replaceResult(2, { a: 1 }), { a: 2 })
+    assertFailure(optic.replaceResult(2, { a: 0 }), `Expected a value greater than 0, got 0`)
+    deepStrictEqual(optic.replace(2, { a: 1 }), { a: 2 })
+    deepStrictEqual(optic.replace(2, { a: 0 }), { a: 0 })
   })
 })
