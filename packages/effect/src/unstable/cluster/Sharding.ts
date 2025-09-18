@@ -924,16 +924,14 @@ const make = Effect.gen(function*() {
             if (healthy) return Effect.void
             MutableHashMap.set(allRunners, runner, true)
             return Effect.logDebug("Runner is healthy", runner).pipe(
-              Effect.andThen(runnerStorage.setRunnerHealth(runner.address, true)),
-              Effect.ignore
+              Effect.andThen(runnerStorage.setRunnerHealth(runner.address, true))
             )
           },
           onFailure() {
             if (!healthy) return Effect.void
             MutableHashMap.set(allRunners, runner, false)
             return Effect.logDebug("Runner is unhealthy", runner).pipe(
-              Effect.andThen(runnerStorage.setRunnerHealth(runner.address, false)),
-              Effect.ignore
+              Effect.andThen(runnerStorage.setRunnerHealth(runner.address, false))
             )
           }
         })
@@ -941,9 +939,13 @@ const make = Effect.gen(function*() {
 
     yield* registerSingleton(
       "effect/cluster/Sharding/RunnerHealth",
-      Effect.forEach(allRunners, pingRunner, { discard: true, concurrency: 10 }).pipe(
-        Effect.catchCause((cause) => Effect.logDebug("Could not ping runners", cause)),
-        Effect.delay(config.runnerHealthCheckInterval),
+      Effect.gen(function*() {
+        while (true) {
+          yield* Effect.forEach(allRunners, pingRunner, { discard: true, concurrency: 10 })
+          yield* Effect.sleep(config.runnerHealthCheckInterval)
+        }
+      }).pipe(
+        Effect.catchCause((cause) => Effect.logDebug("Runner health check failed", cause)),
         Effect.forever,
         Effect.annotateLogs({
           package: "@effect/cluster",
