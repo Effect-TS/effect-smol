@@ -602,7 +602,7 @@ const makeSecurityMiddleware = (
   return middleware
 }
 
-const responseSchema = Schema.declare(Response.isHttpServerResponse)
+const HttpServerResponseSchema = Schema.declare(Response.isHttpServerResponse)
 
 const makeSuccessSchema = (
   schema: Schema.Top
@@ -685,7 +685,7 @@ const toResponseSchema = (getStatus: (ast: AST.AST) => number) => {
     //   : encoding.kind === "UrlParams"
     //   ? Serializer.stringPojo(schema)
     //   : schema
-    const transform = responseSchema.pipe(
+    const transform = HttpServerResponseSchema.pipe(
       Schema.decodeTo(schema, responseTransformation(getStatus, schema))
     )
     cache.set(transform.ast, transform)

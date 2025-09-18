@@ -519,9 +519,9 @@ const statusCodeError = (response: HttpClientResponse.HttpClientResponse) =>
 
 const responseAsVoid = (_response: HttpClientResponse.HttpClientResponse) => Effect.void
 
-const HttpBodyFromSelf = Schema.declare(HttpBody.isHttpBody)
+const HttpBodySchema = Schema.declare(HttpBody.isHttpBody)
 
-const payloadSchemaBody = (schema: Schema.Top): Schema.decodeTo<typeof HttpBodyFromSelf, Schema.Any> =>
+const payloadSchemaBody = (schema: Schema.Top): Schema.decodeTo<typeof HttpBodySchema, Schema.Any> =>
   AST.isUnionType(schema.ast)
     ? Schema.Union(schema.ast.types.map(bodyFromPayload)) as any
     : bodyFromPayload(schema.ast) as any
@@ -534,7 +534,7 @@ const bodyFromPayload = (ast: AST.AST) => {
   }
   const schema = Schema.make(ast)
   const encoding = HttpApiSchema.getEncoding(ast)
-  const transform = HttpBodyFromSelf.pipe(Schema.decodeTo(
+  const transform = HttpBodySchema.pipe(Schema.decodeTo(
     schema as Schema.Any,
     Transformation.transformOrFail({
       decode(fromA) {

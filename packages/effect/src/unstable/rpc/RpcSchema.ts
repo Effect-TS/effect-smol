@@ -61,9 +61,9 @@ export const Stream = <A extends Schema.Top, E extends Schema.Top>(
     readonly success: A
   }
 ): Stream<A, E> => {
-  const schema = Schema.declare(Stream_.isStream)
+  const schema = Schema.declare(Stream_.isStream, { [StreamSchemaTypeId]: options })
   return Object.assign(
-    schema.annotate({ [StreamSchemaTypeId]: options }),
+    schema,
     options
   ) as any as Stream<A, E>
 }
