@@ -153,9 +153,7 @@ export class Chunk<R extends Rpc.Any> extends Data.TaggedClass("Chunk")<{
   /**
    * @since 4.0.0
    */
-  static readonly Any: Schema.Schema<Chunk<never>> = Schema.declare((u): u is Chunk<never> =>
-    isReply(u) && u._tag === "Chunk"
-  )
+  static readonly Any = Schema.declare((u): u is Chunk<never> => isReply(u) && u._tag === "Chunk")
 
   /**
    * @since 4.0.0

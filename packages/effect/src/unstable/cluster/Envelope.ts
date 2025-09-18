@@ -272,7 +272,7 @@ export const makeRequest = <Rpc extends Rpc.Any>(
  * @since 4.0.0
  * @category serialization / deserialization
  */
-export const Envelope: Schema.Codec<Envelope.Any> = Schema.declare(isEnvelope, {
+export const Envelope = Schema.declare(isEnvelope, {
   identifier: "Envelope"
 })
 
@@ -280,7 +280,7 @@ export const Envelope: Schema.Codec<Envelope.Any> = Schema.declare(isEnvelope, {
  * @since 4.0.0
  * @category serialization / deserialization
  */
-export const Request: Schema.Codec<Request.Any> = Schema.declare(
+export const Request = Schema.declare(
   (u): u is Request.Any => isEnvelope(u) && u._tag === "Request",
   { identifier: "Request" }
 )
