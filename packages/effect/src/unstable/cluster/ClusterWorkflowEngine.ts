@@ -425,7 +425,7 @@ export const make = Effect.gen(function*() {
           yield* latch.release
           activityLatches.delete(activityId)
         }
-        const client = (yield* RcMap.get(clients, instance.workflow.name))(instance.executionId)
+        const client = (yield* RcMap.get(clientsPartial, instance.workflow.name))(instance.executionId)
         while (true) {
           const result = yield* Effect.orDie(client.activity({ name: activity.name, attempt }))
           // If the activity has suspended and did not execute, we need to resume

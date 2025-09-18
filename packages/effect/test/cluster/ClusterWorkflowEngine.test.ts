@@ -6,6 +6,7 @@ import { DateTime } from "effect/time"
 import {
   ClusterWorkflowEngine,
   MessageStorage,
+  RunnerHealth,
   Runners,
   RunnerStorage,
   Sharding,
@@ -243,6 +244,7 @@ const TestShardingConfig = ShardingConfig.layer({
 const TestWorkflowEngine = ClusterWorkflowEngine.layer.pipe(
   Layer.provideMerge(Sharding.layer),
   Layer.provide(RunnerStorage.layerMemory),
+  Layer.provide(RunnerHealth.layerNoop),
   Layer.provide(Runners.layerNoop),
   Layer.provideMerge(MessageStorage.layerMemory),
   Layer.provide(TestShardingConfig)

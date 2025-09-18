@@ -46,6 +46,7 @@ import * as MessageStorage from "./MessageStorage.ts"
 import * as Reply from "./Reply.ts"
 import { Runner } from "./Runner.ts"
 import type { RunnerAddress } from "./RunnerAddress.ts"
+import * as RunnerHealth from "./RunnerHealth.ts"
 import { Runners } from "./Runners.ts"
 import { RunnerStorage } from "./RunnerStorage.ts"
 import type { ShardId } from "./ShardId.ts"
@@ -180,6 +181,7 @@ const make = Effect.gen(function*() {
   const config = yield* ShardingConfig
 
   const runners = yield* Runners
+  const runnerHealth = yield* RunnerHealth.RunnerHealth
   const snowflakeGen = yield* Snowflake.Generator
   const shardingScope = yield* Effect.scope
   const isShutdown = MutableRef.make(false)
@@ -915,33 +917,20 @@ const make = Effect.gen(function*() {
   // --- Runner health checks ---
 
   if (selfRunner) {
-    const pingRunner = ([runner, healthy]: [Runner, boolean]) =>
-      runners.ping(runner.address).pipe(
-        Effect.timeout("10 seconds"),
-        Effect.retry({ times: 3 }),
-        Effect.matchCauseEffect({
-          onSuccess() {
-            if (healthy) return Effect.void
-            MutableHashMap.set(allRunners, runner, true)
-            return Effect.logDebug("Runner is healthy", runner).pipe(
-              Effect.andThen(runnerStorage.setRunnerHealth(runner.address, true))
-            )
-          },
-          onFailure() {
-            if (!healthy) return Effect.void
-            MutableHashMap.set(allRunners, runner, false)
-            return Effect.logDebug("Runner is unhealthy", runner).pipe(
-              Effect.andThen(runnerStorage.setRunnerHealth(runner.address, false))
-            )
-          }
-        })
-      )
+    const checkRunner = ([runner, healthy]: [Runner, boolean]) =>
+      Effect.flatMap(runnerHealth.isAlive(runner.address), (isAlive) => {
+        if (healthy === isAlive) return Effect.void
+        MutableHashMap.set(allRunners, runner, isAlive)
+        return Effect.logDebug(`Runner is ${isAlive ? "healthy" : "unheathy"}`, runner).pipe(
+          Effect.andThen(runnerStorage.setRunnerHealth(runner.address, isAlive))
+        )
+      })
 
     yield* registerSingleton(
       "effect/cluster/Sharding/RunnerHealth",
       Effect.gen(function*() {
         while (true) {
-          yield* Effect.forEach(allRunners, pingRunner, { discard: true, concurrency: 10 })
+          yield* Effect.forEach(allRunners, checkRunner, { discard: true, concurrency: 10 })
           yield* Effect.sleep(config.runnerHealthCheckInterval)
         }
       }).pipe(
@@ -1234,7 +1223,7 @@ const make = Effect.gen(function*() {
 export const layer: Layer.Layer<
   Sharding,
   never,
-  ShardingConfig | Runners | MessageStorage.MessageStorage | RunnerStorage
+  ShardingConfig | Runners | MessageStorage.MessageStorage | RunnerStorage | RunnerHealth.RunnerHealth
 > = Layer.effect(Sharding)(make).pipe(
   Layer.provide([Snowflake.layerGenerator, EntityReaper.layer])
 )

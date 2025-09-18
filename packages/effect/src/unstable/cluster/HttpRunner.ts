@@ -4,21 +4,84 @@
 import * as Effect from "../../Effect.ts"
 import * as Layer from "../../Layer.ts"
 import type { Scope } from "../../Scope.ts"
-import type * as HttpClient from "../http/HttpClient.ts"
+import * as HttpClient from "../http/HttpClient.ts"
+import * as HttpClientRequest from "../http/HttpClientRequest.ts"
 import * as HttpRouter from "../http/HttpRouter.ts"
 import type * as HttpServer from "../http/HttpServer.ts"
 import type { HttpServerRequest } from "../http/HttpServerRequest.ts"
 import type { HttpServerResponse } from "../http/HttpServerResponse.ts"
-import type * as RpcSerialization from "../rpc/RpcSerialization.ts"
+import * as RpcClient from "../rpc/RpcClient.ts"
+import * as RpcSerialization from "../rpc/RpcSerialization.ts"
 import * as RpcServer from "../rpc/RpcServer.ts"
-import type * as Socket from "../socket/Socket.ts"
-import { layerClientProtocolHttp, layerClientProtocolWebsocket } from "./HttpCommon.ts"
+import * as Socket from "../socket/Socket.ts"
 import type { MessageStorage } from "./MessageStorage.ts"
+import type { RunnerHealth } from "./RunnerHealth.ts"
 import * as Runners from "./Runners.ts"
+import { RpcClientProtocol } from "./Runners.ts"
 import * as RunnerServer from "./RunnerServer.ts"
 import type { RunnerStorage } from "./RunnerStorage.ts"
 import * as Sharding from "./Sharding.ts"
 import type * as ShardingConfig from "./ShardingConfig.ts"
+
+/**
+ * @since 4.0.0
+ * @category Layers
+ */
+export const layerClientProtocolHttp = (options: {
+  readonly path: string
+  readonly https?: boolean | undefined
+}): Layer.Layer<
+  RpcClientProtocol,
+  never,
+  RpcSerialization.RpcSerialization | HttpClient.HttpClient
+> =>
+  Layer.effect(RpcClientProtocol)(
+    Effect.gen(function*() {
+      const serialization = yield* RpcSerialization.RpcSerialization
+      const client = yield* HttpClient.HttpClient
+      const https = options.https ?? false
+      return (address) => {
+        const clientWithUrl = HttpClient.mapRequest(
+          client,
+          HttpClientRequest.prependUrl(`http${https ? "s" : ""}://${address.host}:${address.port}/${options.path}`)
+        )
+        return RpcClient.makeProtocolHttp(clientWithUrl).pipe(
+          Effect.provideService(RpcSerialization.RpcSerialization, serialization)
+        )
+      }
+    })
+  )
+
+/**
+ * @since 4.0.0
+ * @category Layers
+ */
+export const layerClientProtocolWebsocket = (options: {
+  readonly path: string
+  readonly https?: boolean | undefined
+}): Layer.Layer<
+  RpcClientProtocol,
+  never,
+  RpcSerialization.RpcSerialization | Socket.WebSocketConstructor
+> =>
+  Layer.effect(RpcClientProtocol)(
+    Effect.gen(function*() {
+      const serialization = yield* RpcSerialization.RpcSerialization
+      const https = options.https ?? false
+      const constructor = yield* Socket.WebSocketConstructor
+      return Effect.fnUntraced(function*(address) {
+        const socket = yield* Socket.makeWebSocket(
+          `ws${https ? "s" : ""}://${address.host}:${address.port}/${options.path}`
+        ).pipe(
+          Effect.provideService(Socket.WebSocketConstructor, constructor)
+        )
+        return yield* RpcClient.makeProtocolSocket().pipe(
+          Effect.provideService(Socket.Socket, socket),
+          Effect.provideService(RpcSerialization.RpcSerialization, serialization)
+        )
+      })
+    })
+  )
 
 /**
  * @since 4.0.0
@@ -59,7 +122,7 @@ export const toHttpEffectWebsocket: Effect.Effect<
 export const layerClient: Layer.Layer<
   Sharding.Sharding | Runners.Runners,
   never,
-  ShardingConfig.ShardingConfig | Runners.RpcClientProtocol | MessageStorage | RunnerStorage
+  ShardingConfig.ShardingConfig | Runners.RpcClientProtocol | MessageStorage | RunnerStorage | RunnerHealth
 > = Sharding.layer.pipe(
   Layer.provideMerge(Runners.layerRpc)
 )
@@ -77,6 +140,7 @@ export const layerHttpOptions = (options: {
   Sharding.Sharding | Runners.Runners,
   never,
   | RunnerStorage
+  | RunnerHealth
   | RpcSerialization.RpcSerialization
   | MessageStorage
   | ShardingConfig.ShardingConfig
@@ -100,6 +164,7 @@ export const layerWebsocketOptions = (options: {
   | Runners.RpcClientProtocol
   | MessageStorage
   | RunnerStorage
+  | RunnerHealth
   | RpcSerialization.RpcSerialization
   | HttpRouter.HttpRouter
 > =>
@@ -120,6 +185,7 @@ export const layerHttp: Layer.Layer<
   | HttpServer.HttpServer
   | MessageStorage
   | RunnerStorage
+  | RunnerHealth
 > = HttpRouter.serve(layerHttpOptions({ path: "/" })).pipe(
   Layer.provide(layerClientProtocolHttp({ path: "/" }))
 )
@@ -152,6 +218,7 @@ export const layerWebsocket: Layer.Layer<
   | HttpServer.HttpServer
   | MessageStorage
   | RunnerStorage
+  | RunnerHealth
 > = HttpRouter.serve(layerWebsocketOptions({ path: "/" })).pipe(
   Layer.provide(layerClientProtocolWebsocket({ path: "/" }))
 )

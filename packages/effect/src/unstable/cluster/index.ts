@@ -110,6 +110,11 @@ export * as RunnerAddress from "./RunnerAddress.ts"
 /**
  * @since 4.0.0
  */
+export * as RunnerHealth from "./RunnerHealth.ts"
+
+/**
+ * @since 4.0.0
+ */
 export * as Runners from "./Runners.ts"
 
 /**

@@ -6,8 +6,9 @@ import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as HttpRunner from "effect/unstable/cluster/HttpRunner"
 import * as MessageStorage from "effect/unstable/cluster/MessageStorage"
+import * as RunnerHealth from "effect/unstable/cluster/RunnerHealth"
 import type * as Runners from "effect/unstable/cluster/Runners"
-import type * as RunnerStorage from "effect/unstable/cluster/RunnerStorage"
+import * as RunnerStorage from "effect/unstable/cluster/RunnerStorage"
 import type { Sharding } from "effect/unstable/cluster/Sharding"
 import * as ShardingConfig from "effect/unstable/cluster/ShardingConfig"
 import * as SqlMessageStorage from "effect/unstable/cluster/SqlMessageStorage"
@@ -50,7 +51,7 @@ export const layerHttpServer: Layer.Layer<
  */
 export const layer = <
   const ClientOnly extends boolean = false,
-  const Storage extends "noop" | "sql" = never
+  const Storage extends "local" | "sql" = never
 >(options: {
   readonly transport: "http" | "websocket"
   readonly serialization?: "msgpack" | "ndjson" | undefined
@@ -59,13 +60,13 @@ export const layer = <
   readonly shardingConfig?: Partial<ShardingConfig.ShardingConfig["Service"]> | undefined
 }): ClientOnly extends true ? Layer.Layer<
     Sharding | Runners.Runners | MessageStorage.MessageStorage,
-    Config.ConfigError | ("sql" extends Storage ? SqlError : never),
-    "sql" extends Storage ? SqlClient : RunnerStorage.RunnerStorage
+    Config.ConfigError | ("local" extends Storage ? never : SqlError),
+    "local" extends Storage ? never : SqlClient
   > :
   Layer.Layer<
     Sharding | Runners.Runners | MessageStorage.MessageStorage,
-    ServeError | Config.ConfigError | ("sql" extends Storage ? SqlError : never),
-    "sql" extends Storage ? SqlClient : RunnerStorage.RunnerStorage
+    ServeError | Config.ConfigError | ("local" extends Storage ? never : SqlError),
+    "local" extends Storage ? never : SqlClient
   > =>
 {
   const layer: Layer.Layer<any, any, any> = options.clientOnly
@@ -78,13 +79,25 @@ export const layer = <
     ? Layer.provide(HttpRunner.layerHttp, [layerHttpServer, FetchHttpClient.layer])
     : Layer.provide(HttpRunner.layerWebsocket, [layerHttpServer, BunSocket.layerWebSocketConstructor])
 
+  const runnerHealth: Layer.Layer<any, any, any> = options?.clientOnly
+    ? Layer.empty as any
+    // TODO: when bun supports adding custom CA certificates
+    // : options?.runnerHealth === "k8s"
+    // ? RunnerHealth.layerK8s().pipe(
+    //   Layer.provide([NodeFileSystem.layer, layerHttpClientK8s])
+    // )
+    : RunnerHealth.layerPing.pipe(
+      Layer.provide(layer)
+    )
+
   return layer.pipe(
     Layer.provideMerge(
-      options?.storage === "sql" ?
-        SqlMessageStorage.layer
-        : MessageStorage.layerNoop
+      options?.storage === "local"
+        ? MessageStorage.layerNoop
+        : SqlMessageStorage.layer
     ),
-    Layer.provide(options?.storage === "sql" ? SqlRunnerStorage.layer : Layer.empty),
+    Layer.provide(options?.storage === "local" ? RunnerStorage.layerMemory : SqlRunnerStorage.layer),
+    Layer.provide(runnerHealth),
     Layer.provide(ShardingConfig.layerFromEnv(options?.shardingConfig)),
     Layer.provide(
       options?.serialization === "ndjson" ? RpcSerialization.layerNdjson : RpcSerialization.layerMsgPack

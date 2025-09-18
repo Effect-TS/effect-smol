@@ -7,6 +7,7 @@ import type * as RpcSerialization from "../rpc/RpcSerialization.ts"
 import * as RpcServer from "../rpc/RpcServer.ts"
 import { SocketServer } from "../socket/SocketServer.ts"
 import type { MessageStorage } from "./MessageStorage.ts"
+import type { RunnerHealth } from "./RunnerHealth.ts"
 import type * as Runners from "./Runners.ts"
 import * as RunnerServer from "./RunnerServer.ts"
 import type * as RunnerStorage from "./RunnerStorage.ts"
@@ -38,6 +39,7 @@ export const layer: Layer.Layer<
   | SocketServer
   | MessageStorage
   | RunnerStorage.RunnerStorage
+  | RunnerHealth
 > = RunnerServer.layerWithClients.pipe(
   withLogAddress,
   Layer.provide(RpcServer.layerProtocolSocketServer)

@@ -8,6 +8,7 @@ import { Clock } from "effect/time"
 import {
   MessageStorage,
   RunnerAddress,
+  RunnerHealth,
   Runners,
   RunnerStorage,
   Sharding,
@@ -529,7 +530,8 @@ const TestShardingConfig = ShardingConfig.layer({
 
 const TestShardingWithoutState = TestEntityNoState.pipe(
   Layer.provideMerge(Sharding.layer),
-  Layer.provide(RunnerStorage.layerMemory)
+  Layer.provide(RunnerStorage.layerMemory),
+  Layer.provide(RunnerHealth.layerNoop)
   // Layer.provide(Logger.minimumLogLevel(LogLevel.All)),
   // Layer.provideMerge(Logger.pretty)
 )
@@ -550,6 +552,7 @@ const TestSharding = TestShardingWithoutStorage.pipe(
 
 const TestShardingWithoutEntities = Sharding.layer.pipe(
   Layer.provide(RunnerStorage.layerMemory),
+  Layer.provide(RunnerHealth.layerNoop),
   Layer.provide(Runners.layerNoop),
   Layer.provideMerge(MessageStorage.layerMemory),
   Layer.provide(TestShardingConfig)
