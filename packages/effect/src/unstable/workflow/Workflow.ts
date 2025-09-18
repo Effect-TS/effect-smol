@@ -422,6 +422,19 @@ export interface CompleteEncoded<A, E> {
 
 /**
  * @since 4.0.0
+ */
+export interface CompleteSchema<Success extends Schema.Top, Error extends Schema.Top> extends
+  Schema.declareConstructor<
+    Complete<Success["Type"], Error["Type"]>,
+    Complete<Success["Encoded"], Error["Encoded"]>,
+    readonly [Schema.Exit<Success, Error, Schema.Defect>]
+  >
+{
+  readonly "~rebuild.out": CompleteSchema<Success, Error>
+}
+
+/**
+ * @since 4.0.0
  * @category Result
  */
 export class Complete<A, E> extends Data.TaggedClass("Complete")<{
@@ -438,11 +451,7 @@ export class Complete<A, E> extends Data.TaggedClass("Complete")<{
   static Schema<Success extends Schema.Top, Error extends Schema.Top>(options: {
     readonly success: Success
     readonly error: Error
-  }): Schema.declareConstructor<
-    Complete<Success["Type"], Error["Type"]>,
-    Complete<Success["Encoded"], Error["Encoded"]>,
-    readonly [Schema.Exit<Success, Error, Schema.Defect>]
-  > {
+  }): CompleteSchema<Success, Error> {
     return Schema.declareConstructor([Schema.Exit(options.success, options.error, Schema.Defect)])<
       Complete<Success["Encoded"], Error["Encoded"]>
     >()(
@@ -457,7 +466,7 @@ export class Complete<A, E> extends Data.TaggedClass("Complete")<{
       },
       {
         title: "Complete",
-        defaultIsoSerializer: ([exit]) =>
+        defaultJsonSerializer: ([exit]) =>
           Schema.link<Complete<Success["Encoded"], Error["Encoded"]>>()(
             Schema.Struct({
               _tag: Schema.Literal("Complete"),
@@ -496,16 +505,7 @@ export const Result = <Success extends Schema.Top, Error extends Schema.Top>(
     readonly success: Success
     readonly error: Error
   }
-): Schema.Union<
-  readonly [
-    Schema.declareConstructor<
-      Complete<Success["Type"], Error["Type"]>,
-      Complete<Success["Encoded"], Error["Encoded"]>,
-      readonly [Schema.Exit<Success, Error, Schema.Defect>]
-    >,
-    typeof Suspended
-  ]
-> => Schema.Union([Complete.Schema(options), Suspended])
+) => Schema.Union([Complete.Schema(options), Suspended])
 
 const AnyOrVoid = Schema.Union([Schema.Any, Schema.Void])
 

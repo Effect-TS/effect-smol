@@ -56,7 +56,17 @@ export declare namespace Snowflake {
  * @since 4.0.0
  * @category Schemas
  */
-export const SnowflakeFromBigInt: Schema.Codec<Snowflake, bigint> = Schema.BigInt.pipe(
+export interface SnowflakeFromBigInt
+  extends Schema.refine<bigint & Brand.Brand<"~effect/cluster/Snowflake">, Schema.BigInt>
+{
+  readonly "~rebuild.out": SnowflakeFromBigInt
+}
+
+/**
+ * @since 4.0.0
+ * @category Schemas
+ */
+export const SnowflakeFromBigInt: SnowflakeFromBigInt = Schema.BigInt.pipe(
   Schema.brand(TypeId)
 )
 
@@ -64,7 +74,15 @@ export const SnowflakeFromBigInt: Schema.Codec<Snowflake, bigint> = Schema.BigIn
  * @since 4.0.0
  * @category Schemas
  */
-export const SnowflakeFromString: Schema.Codec<Snowflake, string> = Schema.String.pipe(
+export interface SnowflakeFromString extends Schema.decodeTo<SnowflakeFromBigInt, Schema.String> {
+  readonly "~rebuild.out": SnowflakeFromString
+}
+
+/**
+ * @since 4.0.0
+ * @category Schemas
+ */
+export const SnowflakeFromString: SnowflakeFromString = Schema.String.pipe(
   Schema.decodeTo(SnowflakeFromBigInt, Transformation.bigintFromString)
 )
 
