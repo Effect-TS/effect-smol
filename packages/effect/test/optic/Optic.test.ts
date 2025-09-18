@@ -107,7 +107,7 @@ describe("Optic", () => {
       })
 
       describe("optional element", () => {
-        it("undefined = missing key", () => {
+        it("undefined = remove the index", () => {
           type S = readonly [number, number?]
           const optic = Optic.id<S>().optionalKey(1)
           const f = (n: number | undefined) => n !== undefined ? n + 1 : undefined

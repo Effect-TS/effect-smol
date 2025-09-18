@@ -575,8 +575,7 @@ export const EmptyError = <Self>() =>
       decoded.stack = options.tag
       transform = asEmpty(
         Schema.declare((u) => u instanceof EmptyError, {
-          identifier: options.tag,
-          title: options.tag
+          identifier: options.tag
         }),
         {
           status: options.status,
