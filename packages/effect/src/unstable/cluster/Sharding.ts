@@ -12,7 +12,6 @@ import * as Option from "../../data/Option.ts"
 import * as Effect from "../../Effect.ts"
 import * as Fiber from "../../Fiber.ts"
 import * as FiberMap from "../../FiberMap.ts"
-import * as FiberSet from "../../FiberSet.ts"
 import { constant } from "../../Function.ts"
 import * as Equal from "../../interfaces/Equal.ts"
 import * as Layer from "../../Layer.ts"
@@ -920,11 +919,9 @@ const make = Effect.gen(function*() {
     yield* registerSingleton(
       "effect/cluster/Sharding/RunnerHealth",
       Effect.gen(function*() {
-        const fiberSet = yield* FiberSet.make()
-
         while (true) {
-          for (const [runner, healthy] of allRunners) {
-            yield* runners.ping(runner.address).pipe(
+          yield* Effect.forEach(allRunners, ([runner, healthy]) =>
+            runners.ping(runner.address).pipe(
               Effect.timeout("10 seconds"),
               Effect.retry({ times: 3 }),
               Effect.matchCauseEffect({
@@ -942,11 +939,9 @@ const make = Effect.gen(function*() {
                     Effect.andThen(runnerStorage.setRunnerHealth(runner.address, false))
                   )
                 }
-              }),
-              FiberSet.run(fiberSet)
-            )
-          }
-          yield* FiberSet.awaitEmpty(fiberSet)
+              })
+            ), { discard: true, concurrency: 10 })
+
           yield* Effect.sleep(config.runnerHealthCheckInterval)
         }
       }).pipe(
