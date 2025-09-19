@@ -363,6 +363,21 @@ describe("Metric", () => {
           max: 1
         })
       }))
+
+    it.effect("preserves precision of boundary values", () =>
+      Effect.gen(function*() {
+        const boundaries = [0.005, 0.01, 0.025, 0.05, 0.075, 0.1]
+
+        const histogram = Metric.histogram("precision_test", { boundaries })
+
+        const result = yield* Metric.value(histogram)
+
+        result.buckets.forEach(([boundary], index) => {
+          if (index < boundaries.length) {
+            assert.strictEqual(boundary, boundaries[index])
+          }
+        })
+      }))
   })
 
   describe("Summary", () => {

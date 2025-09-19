@@ -1912,7 +1912,7 @@ class HistogramMetric extends Metric$<number, HistogramState> {
     const bounds = this.#boundaries
     const size = bounds.length
     const values = new Uint32Array(size + 1)
-    const boundaries = new Float32Array(size)
+    const boundaries = new Float64Array(size)
     let count = 0
     let sum = 0
     let min = Number.MAX_VALUE
