@@ -827,8 +827,7 @@ const make = Effect.gen(function*() {
       // Ensure the current runner is registered
       if (selfRunner && !MutableHashMap.has(allRunners, selfRunner)) {
         yield* Effect.logDebug("Registering runner", selfRunner)
-        const isAlive = yield* runnerHealth.isAlive(selfRunner.address)
-        const machineId = yield* runnerStorage.register(selfRunner, isAlive)
+        const machineId = yield* runnerStorage.register(selfRunner, true)
         yield* snowflakeGen.setMachineId(machineId)
       }
 
