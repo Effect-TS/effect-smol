@@ -12,7 +12,7 @@ import * as Option from "../../data/Option.ts"
 import * as Effect from "../../Effect.ts"
 import * as Fiber from "../../Fiber.ts"
 import * as FiberMap from "../../FiberMap.ts"
-import { constant } from "../../Function.ts"
+import { constant, flow } from "../../Function.ts"
 import * as Equal from "../../interfaces/Equal.ts"
 import * as Layer from "../../Layer.ts"
 import * as MutableRef from "../../MutableRef.ts"
@@ -180,11 +180,15 @@ interface EntityManagerState {
 const make = Effect.gen(function*() {
   const config = yield* ShardingConfig
 
-  const runners = yield* Runners
+  const runnersService = yield* Runners
   const runnerHealth = yield* RunnerHealth.RunnerHealth
   const snowflakeGen = yield* Snowflake.Generator
   const shardingScope = yield* Effect.scope
   const isShutdown = MutableRef.make(false)
+  const runFork = flow(
+    Effect.runForkWith(ServiceMap.omit(Scope.Scope)(yield* Effect.services<never>())),
+    Fiber.runIn(shardingScope)
+  )
 
   const storage = yield* MessageStorage.MessageStorage
   const storageEnabled = storage !== MessageStorage.noop
@@ -716,7 +720,7 @@ const make = Effect.gen(function*() {
 
       return message._tag === "IncomingRequest" || message._tag === "IncomingEnvelope" ?
         state.manager.send(message) :
-        runners.sendLocal({
+        runnersService.sendLocal({
           message,
           send: state.manager.sendLocal,
           simulateRemoteSerialization: config.simulateRemoteSerialization
@@ -753,7 +757,7 @@ const make = Effect.gen(function*() {
           return notify()
         }
 
-        return runners.notifyLocal({ message, notify, discard }) as any
+        return runnersService.notifyLocal({ message, notify, discard }) as any
       }
     )
 
@@ -777,13 +781,13 @@ const make = Effect.gen(function*() {
         if (isPersisted) {
           return runnerIsLocal
             ? notifyLocal(message, discard)
-            : runners.notify({ address: maybeRunner, message, discard })
+            : runnersService.notify({ address: maybeRunner, message, discard })
         } else if (maybeRunner === undefined) {
           return Effect.fail(new EntityNotAssignedToRunner({ address }))
         }
         return runnerIsLocal
           ? sendLocal(message)
-          : runners.send({ address: maybeRunner, message })
+          : runnersService.send({ address: maybeRunner, message })
       }),
       (error) =>
         error._tag === "EntityNotAssignedToRunner" || error._tag === "RunnerUnavailable" ? error : Filter.fail(error),
@@ -865,6 +869,7 @@ const make = Effect.gen(function*() {
         changed = true
         MutableHashMap.remove(allRunners, runner)
         MutableHashSet.remove(healthyRunners, runner)
+        runFork(runnersService.onRunnerUnavailable(runner.address))
         for (let i = 0; i < runner.groups.length; i++) {
           HashRing.remove(hashRings.get(runner.groups[i])!, runner.address)
         }
