@@ -83,7 +83,8 @@ describe.concurrent("Sharding", () => {
         const makeClient = yield* TestEntity.client
         yield* TestClock.adjust(2000)
         const client = makeClient("1")
-        const fiber = yield* client.NeverVolatile().pipe(Effect.fork({ startImmediately: true }))
+        const fiber = yield* client.NeverVolatile().pipe(Effect.fork)
+        yield* TestClock.adjust(1)
         const config = yield* ShardingConfig.ShardingConfig
         ;(config as any).runnerAddress = Option.some(RunnerAddress.make("localhost", 1234))
         setTimeout(() => {
@@ -115,7 +116,7 @@ describe.concurrent("Sharding", () => {
             entityTerminationTimeout: 30000,
             entityMessagePollInterval: 5000,
             sendRetryInterval: 100,
-            refreshAssignmentsInterval: 0
+            refreshAssignmentsInterval: 100
           }))
         ))
       )
