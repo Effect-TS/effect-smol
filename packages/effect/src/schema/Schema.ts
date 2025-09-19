@@ -3655,7 +3655,7 @@ export interface Cause<E extends Top, D extends Top> extends
   declareConstructor<
     Cause_.Cause<E["Type"]>,
     Cause_.Cause<E["Encoded"]>,
-    readonly [CauseFailure<E, D>],
+    readonly [Array$<CauseFailure<E, D>>],
     CauseIso<E, D>
   >
 {
@@ -3672,12 +3672,12 @@ export type CauseIso<E extends Top, D extends Top> = ReadonlyArray<CauseFailureI
  * @since 4.0.0
  */
 export function Cause<E extends Top, D extends Top>(error: E, defect: D): Cause<E, D> {
-  return declareConstructor([CauseFailure(error, defect)])<Cause_.Cause<E["Encoded"]>>()(
-    ([failure]) => (input, ast, options) => {
+  return declareConstructor([Array(CauseFailure(error, defect))])<Cause_.Cause<E["Encoded"]>>()(
+    ([failures]) => (input, ast, options) => {
       if (!Cause_.isCause(input)) {
         return Effect.fail(new Issue.InvalidType(ast, O.some(input)))
       }
-      return ToParser.decodeUnknownEffect(Array(failure))(input.failures, options).pipe(Effect.mapBothEager(
+      return ToParser.decodeUnknownEffect(failures)(input.failures, options).pipe(Effect.mapBothEager(
         {
           onSuccess: Cause_.fromFailures,
           onFailure: (issue) => new Issue.Composite(ast, O.some(input), [new Issue.Pointer(["failures"], issue)])
@@ -3686,9 +3686,9 @@ export function Cause<E extends Top, D extends Top>(error: E, defect: D): Cause<
     },
     {
       title: "Cause",
-      defaultIsoSerializer: ([failure]) =>
+      defaultIsoSerializer: ([failures]) =>
         link<Cause_.Cause<E["Encoded"]>>()(
-          Array(failure),
+          failures,
           Transformation.transform({
             decode: (failures) => Cause_.fromFailures(failures),
             encode: ({ failures }) => failures
@@ -3696,17 +3696,16 @@ export function Cause<E extends Top, D extends Top>(error: E, defect: D): Cause<
         ),
       arbitrary: {
         _tag: "Declaration",
-        declaration: ([failure]) => (fc, ctx) =>
-          fc.array(failure, ctx?.constraints?.ArrayConstraints).map((failures) => Cause_.fromFailures(failures))
+        declaration: ([failures]) => (_fc, _ctx) => failures.map((failures) => Cause_.fromFailures(failures))
       },
       equivalence: {
         _tag: "Declaration",
-        declaration: ([failure]) => (a, b) => Arr.getEquivalence(failure)(a.failures, b.failures)
+        declaration: ([failures]) => (a, b) => failures(a.failures, b.failures)
       },
       format: {
         _tag: "Declaration",
-        declaration: ([failure]) => (t) => {
-          return `Cause([${t.failures.map((f) => failure(f)).join(", ")}])`
+        declaration: ([failures]) => (t) => {
+          return `Cause(${failures(t.failures)})`
         }
       }
     }
