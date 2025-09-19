@@ -1,6 +1,7 @@
 /**
  * @since 4.0.0
  */
+import { isArrayNonEmpty, type NonEmptyArray } from "../../collections/Array.ts"
 import * as MutableHashMap from "../../collections/MutableHashMap.ts"
 import * as Effect from "../../Effect.ts"
 import * as Layer from "../../Layer.ts"
@@ -105,7 +106,7 @@ export interface Encoded {
    */
   readonly acquire: (
     address: string,
-    shardIds: ReadonlyArray<string>
+    shardIds: NonEmptyArray<string>
   ) => Effect.Effect<Array<string>, PersistenceError>
 
   /**
@@ -114,7 +115,7 @@ export interface Encoded {
    */
   readonly refresh: (
     address: string,
-    shardIds: ReadonlyArray<string>
+    shardIds: Array<string>
   ) => Effect.Effect<Array<string>, PersistenceError>
 
   /**
@@ -159,6 +160,7 @@ export const makeEncoded = (encoded: Encoded) =>
     setRunnerHealth: (address, healthy) => encoded.setRunnerHealth(encodeRunnerAddress(address), healthy),
     acquire: (address, shardIds) => {
       const arr = Array.from(shardIds, (id) => id.toString())
+      if (!isArrayNonEmpty(arr)) return Effect.succeed([])
       return encoded.acquire(encodeRunnerAddress(address), arr).pipe(
         Effect.map((shards) => shards.map(ShardId.fromString))
       )
