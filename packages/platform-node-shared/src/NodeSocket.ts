@@ -5,10 +5,12 @@ import type { Array } from "effect/collections"
 import * as Deferred from "effect/Deferred"
 import * as Effect from "effect/Effect"
 import * as FiberSet from "effect/FiberSet"
+import { identity } from "effect/Function"
 import * as Layer from "effect/Layer"
 import * as Scope from "effect/Scope"
 import * as ServiceMap from "effect/ServiceMap"
 import * as Channel from "effect/stream/Channel"
+import type * as Duration from "effect/time/Duration"
 import * as Socket from "effect/unstable/socket/Socket"
 import * as Net from "node:net"
 import type { Duplex } from "node:stream"
@@ -30,7 +32,9 @@ export class NetSocket extends ServiceMap.Key<NetSocket, Net.Socket>()("@effect/
  * @category constructors
  */
 export const makeNet = (
-  options: Net.NetConnectOpts
+  options: Net.NetConnectOpts & {
+    readonly openTimeout?: Duration.DurationInput | undefined
+  }
 ): Effect.Effect<Socket.Socket, Socket.SocketError> =>
   fromDuplex(
     Effect.acquireRelease(
@@ -59,7 +63,8 @@ export const makeNet = (
           }
           conn.removeAllListeners()
         })
-    )
+    ),
+    options
   )
 
 /**
@@ -67,7 +72,10 @@ export const makeNet = (
  * @category constructors
  */
 export const fromDuplex = <RO>(
-  open: Effect.Effect<Duplex, Socket.SocketError, RO>
+  open: Effect.Effect<Duplex, Socket.SocketError, RO>,
+  options?: {
+    readonly openTimeout?: Duration.DurationInput | undefined
+  }
 ): Effect.Effect<Socket.Socket, never, Exclude<RO, Scope.Scope>> =>
   Effect.withFiber<Socket.Socket, never, Exclude<RO, Scope.Scope>>((fiber) => {
     let currentSocket: Duplex | undefined
@@ -81,7 +89,20 @@ export const fromDuplex = <RO>(
         const fiberSet = yield* FiberSet.make<any, E | Socket.SocketError>().pipe(
           Scope.provide(scope)
         )
-        const conn = yield* Scope.provide(open, scope)
+        const conn = yield* Scope.provide(open, scope).pipe(
+          options?.openTimeout ?
+            Effect.timeoutOrElse({
+              duration: options.openTimeout,
+              onTimeout: () =>
+                Effect.fail(
+                  new Socket.SocketGenericError({
+                    reason: "Open",
+                    cause: new Error("Connection timed out")
+                  })
+                )
+            }) :
+            identity
+        )
         const run = yield* Effect.provideService(FiberSet.runtime(fiberSet)<R>(), NetSocket, conn as Net.Socket)
 
         function onData(chunk: Uint8Array) {
