@@ -106,9 +106,7 @@ export const makeK8s = Effect.fnUntraced(function*(options?: {
       const pods = new Map<string, Pod>()
       for (let i = 0; i < list.items.length; i++) {
         const pod = list.items[i]
-        if (pod.isReady) {
-          pods.set(pod.status.podIP, pod)
-        }
+        pods.set(pod.status.podIP, pod)
       }
       return pods
     }),
@@ -118,7 +116,7 @@ export const makeK8s = Effect.fnUntraced(function*(options?: {
   return RunnerHealth.of({
     isAlive: (address) =>
       readyPods.pipe(
-        Effect.map((pods) => pods.has(address.host)),
+        Effect.map((pods) => pods.get(address.host)?.isReady ?? false),
         Effect.catchCause((cause) =>
           Effect.logWarning("Failed to check pod health", cause).pipe(
             Effect.as(true)
