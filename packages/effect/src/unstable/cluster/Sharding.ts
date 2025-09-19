@@ -837,7 +837,10 @@ const make = Effect.gen(function*() {
       for (let i = 0; i < runners.length; i++) {
         const [runner, healthy] = runners[i]
         MutableHashMap.set(nextRunners, runner, healthy)
-        const wasHealthy = MutableHashSet.has(healthyRunners, runner)
+        // We can't use `healthyRunners` here, because it is mutated in the
+        // runner health check singleton.
+        const ohealthy = MutableHashMap.get(allRunners, runner)
+        const wasHealthy = ohealthy._tag === "Some" && ohealthy.value
         if (!healthy || wasHealthy) {
           if (healthy === wasHealthy || !wasHealthy) {
             // no change
@@ -931,7 +934,6 @@ const make = Effect.gen(function*() {
           // deadlock
           return Effect.void
         }
-        MutableHashMap.set(allRunners, runner, isAlive)
         MutableHashSet.remove(healthyRunners, runner)
         return Effect.logDebug(`Runner is ${isAlive ? "healthy" : "unheathy"}`, runner).pipe(
           Effect.andThen(runnerStorage.setRunnerHealth(runner.address, isAlive))
