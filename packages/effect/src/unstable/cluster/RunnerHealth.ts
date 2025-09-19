@@ -133,15 +133,37 @@ class Pod extends Schema.Class<Pod>("effect/cluster/RunnerHealth/Pod")({
     phase: Schema.String,
     conditions: Schema.Array(Schema.Struct({
       type: Schema.String,
-      status: Schema.String
+      status: Schema.String,
+      lastTransitionTime: Schema.String
     })),
     podIP: Schema.String
   })
 }) {
   get isReady(): boolean {
-    return this.status.conditions.some(
-      (condition) => condition.type === "Ready" && condition.status === "True"
-    )
+    let initializedAt: string | undefined
+    let readyAt: string | undefined
+    for (let i = 0; i < this.status.conditions.length; i++) {
+      const condition = this.status.conditions[i]
+      switch (condition.type) {
+        case "Initialized": {
+          if (condition.status !== "True") {
+            return true
+          }
+          initializedAt = condition.lastTransitionTime
+          break
+        }
+        case "Ready": {
+          if (condition.status === "True") {
+            return true
+          }
+          readyAt = condition.lastTransitionTime
+          break
+        }
+      }
+    }
+    // if the pod is still booting up, consider it ready as it would have
+    // already registered itself with RunnerStorage by now
+    return initializedAt === readyAt
   }
 }
 
