@@ -138,46 +138,51 @@ export const make = Effect.fnUntraced(function*(options: {
 
   // Upsert runner and return machine_id
   const insertRunner = sql.onDialectOrElse({
-    mssql: () => (address: string, runner: string) =>
+    mssql: () => (address: string, runner: string, healthy: boolean) =>
       sql`
         MERGE ${runnersTableSql} AS target
-        USING (SELECT ${address} AS address, ${runner} AS runner, ${sqlNow} AS last_heartbeat) AS source
+        USING (SELECT ${address} AS address, ${runner} AS runner, ${sqlNow} AS last_heartbeat, ${
+        encodeBoolean(healthy)
+      } AS healthy) AS source
         ON target.address = source.address
         WHEN MATCHED THEN
-          UPDATE SET runner = source.runner, last_heartbeat = source.last_heartbeat
+          UPDATE SET runner = source.runner, last_heartbeat = source.last_heartbeat, healthy = source.healthy
         WHEN NOT MATCHED THEN
-          INSERT (address, runner, last_heartbeat)
-          VALUES (source.address, source.runner, source.last_heartbeat)
+          INSERT (address, runner, last_heartbeat, healthy)
+          VALUES (source.address, source.runner, source.last_heartbeat, source.healthy)
         OUTPUT INSERTED.machine_id;
       `.values,
-    mysql: () => (address: string, runner: string) =>
+    mysql: () => (address: string, runner: string, healthy: boolean) =>
       sql<{ machine_id: number }>`
-        INSERT INTO ${runnersTableSql} (address, runner, last_heartbeat)
-        VALUES (${address}, ${runner}, ${sqlNow})
+        INSERT INTO ${runnersTableSql} (address, runner, last_heartbeat, healthy)
+        VALUES (${address}, ${runner}, ${sqlNow}, ${healthy})
         ON DUPLICATE KEY UPDATE
           runner = VALUES(runner),
-          last_heartbeat = VALUES(last_heartbeat);
+          last_heartbeat = VALUES(last_heartbeat),
+          healthy = VALUES(healthy);
         SELECT machine_id FROM ${runnersTableSql} WHERE address = ${address};
       `.unprepared.pipe(
         Effect.map((results: any) => [[results[1][0].machine_id]])
       ),
-    pg: () => (address: string, runner: string) =>
+    pg: () => (address: string, runner: string, healthy: boolean) =>
       sql`
-        INSERT INTO ${runnersTableSql} (address, runner, last_heartbeat)
-        VALUES (${address}, ${runner}, ${sqlNow})
+        INSERT INTO ${runnersTableSql} (address, runner, last_heartbeat, healthy)
+        VALUES (${address}, ${runner}, ${sqlNow}, ${healthy})
         ON CONFLICT (address) DO UPDATE
         SET runner = EXCLUDED.runner,
-            last_heartbeat = EXCLUDED.last_heartbeat
+            last_heartbeat = EXCLUDED.last_heartbeat,
+            healthy = EXCLUDED.healthy
         RETURNING machine_id
       `.values,
-    orElse: () => (address: string, runner: string) =>
+    orElse: () => (address: string, runner: string, healthy: boolean) =>
       // sqlite
       sql`
-        INSERT INTO ${runnersTableSql} (address, runner, last_heartbeat)
-        VALUES (${address}, ${runner}, ${sqlNow})
+        INSERT INTO ${runnersTableSql} (address, runner, last_heartbeat, healthy)
+        VALUES (${address}, ${runner}, ${sqlNow}, ${encodeBoolean(healthy)})
         ON CONFLICT(address) DO UPDATE SET
           runner = excluded.runner,
-          last_heartbeat = excluded.last_heartbeat
+          last_heartbeat = excluded.last_heartbeat,
+          healthy = excluded.healthy
         RETURNING machine_id;
       `.values
   })
@@ -246,8 +251,8 @@ export const make = Effect.fnUntraced(function*(options: {
       withTracerDisabled
     ),
 
-    register: (address, runner) =>
-      insertRunner(address, runner).pipe(
+    register: (address, runner, healthy) =>
+      insertRunner(address, runner, healthy).pipe(
         Effect.map((rows: any) => Number(rows[0][0])),
         PersistenceError.refail,
         withTracerDisabled

@@ -27,8 +27,8 @@ describe("SqlRunnerStorage", () => {
             groups: ["default"],
             weight: 1
           })
-          const machineId = yield* storage.register(runner)
-          yield* storage.register(runner)
+          const machineId = yield* storage.register(runner, true)
+          yield* storage.register(runner, true)
           expect(machineId).toEqual(1)
           expect(yield* storage.getRunners).toEqual([[runner, true]])
 

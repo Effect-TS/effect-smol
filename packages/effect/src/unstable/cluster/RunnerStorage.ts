@@ -22,7 +22,7 @@ export class RunnerStorage extends ServiceMap.Key<RunnerStorage, {
   /**
    * Register a new runner with the cluster.
    */
-  readonly register: (runner: Runner) => Effect.Effect<MachineId.MachineId, PersistenceError>
+  readonly register: (runner: Runner, healthy: boolean) => Effect.Effect<MachineId.MachineId, PersistenceError>
 
   /**
    * Unregister the runner with the given address.
@@ -87,7 +87,7 @@ export interface Encoded {
   /**
    * Register a new runner with the cluster.
    */
-  readonly register: (address: string, runner: string) => Effect.Effect<number, PersistenceError>
+  readonly register: (address: string, runner: string, healthy: boolean) => Effect.Effect<number, PersistenceError>
 
   /**
    * Unregister the runner with the given address.
@@ -150,9 +150,9 @@ export const makeEncoded = (encoded: Encoded) =>
       }
       return results
     }),
-    register: (runner) =>
+    register: (runner, healthy) =>
       Effect.map(
-        encoded.register(encodeRunnerAddress(runner.address), Runner.encodeSync(runner)),
+        encoded.register(encodeRunnerAddress(runner.address), Runner.encodeSync(runner), healthy),
         MachineId.make
       ),
     unregister: (address) => encoded.unregister(encodeRunnerAddress(address)),

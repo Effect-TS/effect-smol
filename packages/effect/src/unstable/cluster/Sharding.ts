@@ -827,7 +827,8 @@ const make = Effect.gen(function*() {
       // Ensure the current runner is registered
       if (selfRunner && !MutableHashMap.has(allRunners, selfRunner)) {
         yield* Effect.logDebug("Registering runner", selfRunner)
-        const machineId = yield* runnerStorage.register(selfRunner)
+        const isAlive = yield* runnerHealth.isAlive(selfRunner.address)
+        const machineId = yield* runnerStorage.register(selfRunner, isAlive)
         yield* snowflakeGen.setMachineId(machineId)
       }
 
@@ -899,6 +900,12 @@ const make = Effect.gen(function*() {
       // Ensure the current runner is registered
       if (selfRunner && !MutableHashMap.has(allRunners, selfRunner)) {
         continue
+      } else if (selfRunner && MutableHashSet.size(healthyRunners) === 0) {
+        yield* Effect.logWarning("No healthy runners available")
+        // to prevent a deadlock, we will mark the current node as healthy to
+        // start the health check singleton again
+        yield* runnerStorage.setRunnerHealth(selfRunner.address, true)
+        continue
       }
       yield* Effect.sleep(config.refreshAssignmentsInterval)
     }
@@ -917,18 +924,14 @@ const make = Effect.gen(function*() {
   // --- Runner health checks ---
 
   if (selfRunner) {
-    const checkRunner = ([runner, healthy]: [Runner, boolean]) => {
-      if (isLocalRunner(runner.address)) {
-        return Effect.void
-      }
-      return Effect.flatMap(runnerHealth.isAlive(runner.address), (isAlive) => {
+    const checkRunner = ([runner, healthy]: [Runner, boolean]) =>
+      Effect.flatMap(runnerHealth.isAlive(runner.address), (isAlive) => {
         if (healthy === isAlive) return Effect.void
         MutableHashMap.set(allRunners, runner, isAlive)
         return Effect.logDebug(`Runner is ${isAlive ? "healthy" : "unheathy"}`, runner).pipe(
           Effect.andThen(runnerStorage.setRunnerHealth(runner.address, isAlive))
         )
       })
-    }
 
     yield* registerSingleton(
       "effect/cluster/Sharding/RunnerHealth",
