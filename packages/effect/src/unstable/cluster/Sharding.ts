@@ -834,10 +834,17 @@ const make = Effect.gen(function*() {
 
       const runners = yield* runnerStorage.getRunners
       let changed = false
+      let remaining = MutableHashMap.size(allRunners)
       for (let i = 0; i < runners.length; i++) {
         const [runner, healthy] = runners[i]
         MutableHashMap.set(nextRunners, runner, healthy)
-        if (!healthy || MutableHashSet.has(healthyRunners, runner)) {
+        const ohealthy = MutableHashMap.get(allRunners, runner)
+        const exists = ohealthy._tag === "Some"
+        const prevHealthy = exists && ohealthy.value
+        if (exists && (healthy === prevHealthy || healthy)) {
+          remaining--
+        }
+        if (!healthy || prevHealthy) {
           continue
         }
         changed = true
@@ -854,18 +861,20 @@ const make = Effect.gen(function*() {
       }
 
       // Remove runners that are no longer present or healthy
-      for (const [runner, prevHealthy] of allRunners) {
-        const ohealthy = MutableHashMap.get(nextRunners, runner)
-        if (
-          (ohealthy._tag === "Some" && ohealthy.value) ||
-          (ohealthy._tag === "Some" && !prevHealthy)
-        ) {
-          continue
-        }
-        changed = true
-        MutableHashSet.remove(healthyRunners, runner)
-        for (let i = 0; i < runner.groups.length; i++) {
-          HashRing.remove(hashRings.get(runner.groups[i])!, runner.address)
+      if (remaining > 0) {
+        for (const [runner, prevHealthy] of allRunners) {
+          const ohealthy = MutableHashMap.get(nextRunners, runner)
+          if (
+            (ohealthy._tag === "Some" && ohealthy.value) ||
+            (ohealthy._tag === "Some" && !prevHealthy)
+          ) {
+            continue
+          }
+          changed = true
+          MutableHashSet.remove(healthyRunners, runner)
+          for (let i = 0; i < runner.groups.length; i++) {
+            HashRing.remove(hashRings.get(runner.groups[i])!, runner.address)
+          }
         }
       }
 
