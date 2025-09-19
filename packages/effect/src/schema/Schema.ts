@@ -10,6 +10,7 @@ import type { Brand } from "../data/Brand.ts"
 import type * as Combiner from "../data/Combiner.ts"
 import * as Data from "../data/Data.ts"
 import * as Equivalence from "../data/Equivalence.ts"
+import type { Format } from "../data/Format.ts"
 import * as O from "../data/Option.ts"
 import * as Predicate from "../data/Predicate.ts"
 import * as R from "../data/Record.ts"
@@ -25,6 +26,7 @@ import * as Pipeable from "../interfaces/Pipeable.ts"
 import * as core from "../internal/core.ts"
 import * as InternalEffect from "../internal/effect.ts"
 import * as Scheduler from "../Scheduler.ts"
+import type * as FastCheck from "../testing/FastCheck.ts"
 import * as DateTime from "../time/DateTime.ts"
 import * as Duration_ from "../time/Duration.ts"
 import * as Annotations from "./Annotations.ts"
@@ -3286,18 +3288,26 @@ export interface Option<S extends Top> extends
     O.Option<S["Type"]>,
     O.Option<S["Encoded"]>,
     readonly [S],
-    { readonly _tag: "None" } | { readonly _tag: "Some"; readonly value: S["Iso"] }
+    OptionIso<S>
   >
 {
   readonly "~rebuild.out": Option<S>
 }
 
 /**
+ * @since 4.0.0
+ */
+export type OptionIso<S extends Top> =
+  | { readonly _tag: "None" }
+  | { readonly _tag: "Some"; readonly value: S["Iso"] }
+
+/**
  * @category Option
  * @since 4.0.0
  */
 export function Option<S extends Top>(value: S): Option<S> {
-  return declareConstructor([value])<O.Option<S["Encoded"]>>()(
+  return declareConstructor<O.Option<S["Type"]>, O.Option<S["Encoded"]>, OptionIso<S>>()(
+    [value],
     ([value]) => (input, ast, options) => {
       if (O.isOption(input)) {
         if (O.isNone(input)) {
@@ -3314,8 +3324,8 @@ export function Option<S extends Top>(value: S): Option<S> {
     },
     {
       title: "Option",
-      defaultIsoSerializer: ([value]) =>
-        link<O.Option<S["Encoded"]>>()(
+      defaultIsoSerializer: ([value]: readonly [Schema<S["Type"]>]) =>
+        link<O.Option<S["Type"]>>()(
           Union([Struct({ _tag: Literal("Some"), value }), Struct({ _tag: Literal("None") })]),
           Transformation.transform({
             decode: (input) => input._tag === "None" ? O.none() : O.some(input.value),
@@ -3437,8 +3447,12 @@ export function OptionFromOptional<S extends Top>(schema: S): OptionFromOptional
 /**
  * @since 4.0.0
  */
-export interface Redacted<S extends Top>
-  extends declareConstructor<Redacted_.Redacted<S["Type"]>, Redacted_.Redacted<S["Encoded"]>, readonly [S]>
+export interface Redacted<S extends Top> extends
+  declareConstructor<
+    Redacted_.Redacted<S["Type"]>,
+    Redacted_.Redacted<S["Encoded"]>,
+    readonly [S]
+  >
 {
   readonly "~rebuild.out": Redacted<S>
 }
@@ -3469,7 +3483,8 @@ export interface Redacted<S extends Top>
 export function Redacted<S extends Top>(value: S, options?: {
   readonly label?: string | undefined
 }): Redacted<S> {
-  return declareConstructor([value])<Redacted_.Redacted<S["Encoded"]>>()(
+  return declareConstructor<Redacted_.Redacted<S["Type"]>, Redacted_.Redacted<S["Encoded"]>>()(
+    [value],
     ([value]) => (input, ast, poptions) => {
       if (Redacted_.isRedacted(input)) {
         const label: Effect.Effect<void, Issue.Issue, never> = Predicate.isString(options?.label)
@@ -3498,7 +3513,7 @@ export function Redacted<S extends Top>(value: S, options?: {
     },
     {
       title: "Redacted",
-      defaultIsoSerializer: ([value]) =>
+      defaultJsonSerializer: ([value]) =>
         link<Redacted_.Redacted<S["Encoded"]>>()(
           value,
           {
@@ -3558,8 +3573,9 @@ export type CauseFailureIso<E extends Top, D extends Top> = {
  * @since 4.0.0
  */
 export function CauseFailure<E extends Top, D extends Top>(error: E, defect: D): CauseFailure<E, D> {
-  return declareConstructor([error, defect])<Cause_.Failure<E["Encoded"]>>()(
-    ([error, defect]) => (input, ast, options): Effect.Effect<Cause_.Failure<E["Type"]>, Issue.Issue> => {
+  return declareConstructor<Cause_.Failure<E["Type"]>, Cause_.Failure<E["Encoded"]>, CauseFailureIso<E, D>>()(
+    [error, defect],
+    ([error, defect]) => (input, ast, options) => {
       if (!Cause_.isFailure(input)) {
         return Effect.fail(new Issue.InvalidType(ast, O.some(input)))
       }
@@ -3584,8 +3600,8 @@ export function CauseFailure<E extends Top, D extends Top>(error: E, defect: D):
     },
     {
       title: "Cause.Failure",
-      defaultIsoSerializer: ([error, defect]) =>
-        link<Cause_.Failure<E["Encoded"]>>()(
+      defaultIsoSerializer: ([error, defect]: readonly [Schema<E["Type"]>, Schema<D["Type"]>]) =>
+        link<Cause_.Failure<E["Type"]>>()(
           Union([
             TaggedStruct("Fail", { error }),
             TaggedStruct("Die", { defect }),
@@ -3672,7 +3688,8 @@ export type CauseIso<E extends Top, D extends Top> = ReadonlyArray<CauseFailureI
  * @since 4.0.0
  */
 export function Cause<E extends Top, D extends Top>(error: E, defect: D): Cause<E, D> {
-  return declareConstructor([Array(CauseFailure(error, defect))])<Cause_.Cause<E["Encoded"]>>()(
+  return declareConstructor<Cause_.Cause<E["Type"]>, Cause_.Cause<E["Encoded"]>, CauseIso<E, D>>()(
+    [Array(CauseFailure(error, defect))],
     ([failures]) => (input, ast, options) => {
       if (!Cause_.isCause(input)) {
         return Effect.fail(new Issue.InvalidType(ast, O.some(input)))
@@ -3686,8 +3703,8 @@ export function Cause<E extends Top, D extends Top>(error: E, defect: D): Cause<
     },
     {
       title: "Cause",
-      defaultIsoSerializer: ([failures]) =>
-        link<Cause_.Cause<E["Encoded"]>>()(
+      defaultIsoSerializer: ([failures]: readonly [Schema<ReadonlyArray<CauseFailure<E, D>["Type"]>>]) =>
+        link<Cause_.Cause<E["Type"]>>()(
           failures,
           Transformation.transform({
             decode: (failures) => Cause_.fromFailures(failures),
@@ -3696,7 +3713,7 @@ export function Cause<E extends Top, D extends Top>(error: E, defect: D): Cause<
         ),
       arbitrary: {
         _tag: "Declaration",
-        declaration: ([failures]) => (_fc, _ctx) => failures.map((failures) => Cause_.fromFailures(failures))
+        declaration: ([failures]) => () => failures.map((failures) => Cause_.fromFailures(failures))
       },
       equivalence: {
         _tag: "Declaration",
@@ -3704,9 +3721,7 @@ export function Cause<E extends Top, D extends Top>(error: E, defect: D): Cause<
       },
       format: {
         _tag: "Declaration",
-        declaration: ([failures]) => (t) => {
-          return `Cause(${failures(t.failures)})`
-        }
+        declaration: ([failures]) => (t) => `Cause(${failures(t.failures)})`
       }
     }
   )
@@ -3831,8 +3846,13 @@ export type ExitIso<A extends Top, E extends Top, D extends Top> = {
  * @since 4.0.0
  */
 export function Exit<A extends Top, E extends Top, D extends Top>(value: A, error: E, defect: D): Exit<A, E, D> {
-  return declareConstructor([value, Cause(error, defect)])<Exit_.Exit<A["Encoded"], E["Encoded"]>>()(
-    ([value, cause]) => (input, ast, options): Effect.Effect<Exit_.Exit<A["Type"], E["Type"]>, Issue.Issue> => {
+  return declareConstructor<
+    Exit_.Exit<A["Type"], E["Type"]>,
+    Exit_.Exit<A["Encoded"], E["Encoded"]>,
+    ExitIso<A, E, D>
+  >()(
+    [value, Cause(error, defect)],
+    ([value, cause]) => (input, ast, options) => {
       if (!Exit_.isExit(input)) {
         return Effect.fail(new Issue.InvalidType(ast, O.some(input)))
       }
@@ -3855,8 +3875,8 @@ export function Exit<A extends Top, E extends Top, D extends Top>(value: A, erro
     },
     {
       title: "Exit",
-      defaultIsoSerializer: ([value, cause]) =>
-        link<Exit_.Exit<A["Encoded"], E["Encoded"]>>()(
+      defaultIsoSerializer: ([value, cause]: readonly [Schema<A["Type"]>, Schema<Cause<E, D>["Type"]>]) =>
+        link<Exit_.Exit<A["Type"], E["Type"]>>()(
           Union([
             TaggedStruct("Success", { value }),
             TaggedStruct("Failure", { cause })
@@ -3943,7 +3963,12 @@ export interface Map$<Key extends Top, Value extends Top> extends
  * @since 4.0.0
  */
 export function Map<Key extends Top, Value extends Top>(key: Key, value: Value): Map$<Key, Value> {
-  return declareConstructor([key, value])<globalThis.Map<Key["Encoded"], Value["Encoded"]>>()(
+  return declareConstructor<
+    globalThis.Map<Key["Type"], Value["Type"]>,
+    globalThis.Map<Key["Encoded"], Value["Encoded"]>,
+    ReadonlyArray<readonly [Key["Iso"], Value["Iso"]]>
+  >()(
+    [key, value],
     ([key, value]) => (input, ast, options) => {
       if (input instanceof globalThis.Map) {
         const array = Array(Tuple([key, value]))
@@ -3958,8 +3983,8 @@ export function Map<Key extends Top, Value extends Top>(key: Key, value: Value):
     },
     {
       title: "Map",
-      defaultIsoSerializer: ([key, value]) =>
-        link<globalThis.Map<Key["Encoded"], Value["Encoded"]>>()(
+      defaultIsoSerializer: ([key, value]: readonly [Schema<Key["Type"]>, Schema<Value["Type"]>]) =>
+        link<globalThis.Map<Key["Type"], Value["Type"]>>()(
           Array(Tuple([key, value])),
           Transformation.transform({
             decode: (entries) => new globalThis.Map(entries),
@@ -4586,14 +4611,16 @@ function getClassSchemaFactory<S extends Top>(
               Effect.fail(new Issue.InvalidType(ast, O.some(input)))
           },
           Annotations.combine({
-            defaultIsoSerializer: ([from]: readonly [any]) => new AST.Link(from.ast, getClassTransformation(self)),
+            defaultIsoSerializer: ([from]: readonly [Schema<S["Type"]>]) =>
+              new AST.Link(from.ast, getClassTransformation(self)),
             arbitrary: {
               _tag: "Declaration",
-              declaration: ([from]: readonly [any]) => () => from.map((args: any) => new self(args))
+              declaration: ([from]: readonly [FastCheck.Arbitrary<S["Type"]>]) => () =>
+                from.map((args) => new self(args))
             },
             format: {
               _tag: "Declaration",
-              declaration: ([from]: readonly [any]) => (t: any) => `${self.identifier}(${from(t)})`
+              declaration: ([from]: readonly [Format<S["Type"]>]) => (t: Self) => `${self.identifier}(${from(t)})`
             }
           }, annotations)
         )
@@ -4925,16 +4952,14 @@ export interface declareConstructor<T, E, TypeParameters extends ReadonlyArray<T
 /**
  * An API for creating schemas for parametric types.
  *
- * It is recommended to add the `defaultIsoSerializer` annotation to the schema.
- *
  * @see {@link declare} for creating schemas for non parametric types.
  *
  * @category Constructors
  * @since 4.0.0
  */
-export function declareConstructor<const TypeParameters extends ReadonlyArray<Top>>(typeParameters: TypeParameters) {
-  return <E>() =>
-  <T, Iso = T>(
+export function declareConstructor<T, E = T, Iso = T>() {
+  return <const TypeParameters extends ReadonlyArray<Top>>(
+    typeParameters: TypeParameters,
     run: (
       typeParameters: {
         readonly [K in keyof TypeParameters]: Codec<TypeParameters[K]["Type"], TypeParameters[K]["Encoded"]>
@@ -4963,8 +4988,6 @@ export interface declare<T, Iso = T> extends declareConstructor<T, T, readonly [
 /**
  * An API for creating schemas for non parametric types.
  *
- * It is recommended to add the `defaultJsonSerializer` annotation to the schema.
- *
  * @see {@link declareConstructor} for creating schemas for parametric types.
  *
  * @since 4.0.0
@@ -4973,7 +4996,8 @@ export function declare<T, Iso = T>(
   is: (u: unknown) => u is T,
   annotations?: Annotations.Declaration<T, readonly []> | undefined
 ): declare<T, Iso> {
-  return declareConstructor([])<T>()(
+  return declareConstructor<T, T, Iso>()(
+    [],
     () => (input, ast) =>
       is(input) ?
         Effect.succeed(input) :

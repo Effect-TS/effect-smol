@@ -452,9 +452,11 @@ export class Complete<A, E> extends Data.TaggedClass("Complete")<{
     readonly success: Success
     readonly error: Error
   }): CompleteSchema<Success, Error> {
-    return Schema.declareConstructor([Schema.Exit(options.success, options.error, Schema.Defect)])<
+    return Schema.declareConstructor<
+      Complete<Success["Type"], Error["Type"]>,
       Complete<Success["Encoded"], Error["Encoded"]>
     >()(
+      [Schema.Exit(options.success, options.error, Schema.Defect)],
       ([exit]) => (input, ast, options) => {
         if (!(isResult(input) && input._tag === "Complete")) {
           return Effect.fail(new Issue.InvalidType(ast, Option.some(input)))

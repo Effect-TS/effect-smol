@@ -182,31 +182,35 @@ export class Chunk<R extends Rpc.Any> extends Data.TaggedClass("Chunk")<{
   static schemaFrom<Success extends Schema.Top>(
     success: Success
   ): Schema.declareConstructor<Chunk<Rpc.Any>, Chunk<Rpc.Any>, readonly [Success]> {
-    return Schema.declareConstructor([success])<Chunk<Rpc.Any>>()(([success]) => (input, ast, options) => {
-      if (!isReply(input) || input._tag !== "Chunk") {
-        return Effect.fail(new Issue.InvalidType(ast, Option.some(input)))
+    return Schema.declareConstructor<Chunk<Rpc.Any>>()(
+      [success],
+      ([success]) => (input, ast, options) => {
+        if (!isReply(input) || input._tag !== "Chunk") {
+          return Effect.fail(new Issue.InvalidType(ast, Option.some(input)))
+        }
+        return Effect.mapBothEager(ToParser.decodeEffect(Schema.NonEmptyArray(success))(input.values, options), {
+          onFailure: (issue) => new Issue.Composite(ast, Option.some(input), [new Issue.Pointer(["values"], issue)]),
+          onSuccess: (values) => new Chunk({ ...input, values } as any)
+        })
+      },
+      {
+        title: "Chunk",
+        defaultJsonSerializer: ([success]) =>
+          Schema.link<Chunk<Rpc.Any>>()(
+            Schema.Struct({
+              _tag: Schema.Literal("Chunk"),
+              requestId: SnowflakeFromBigInt,
+              id: SnowflakeFromBigInt,
+              sequence: Schema.Number,
+              values: Schema.NonEmptyArray(success)
+            }),
+            Transformation.transform({
+              decode: (encoded) => new Chunk(encoded),
+              encode: (result) => ({ ...result })
+            })
+          )
       }
-      return Effect.mapBothEager(ToParser.decodeEffect(Schema.NonEmptyArray(success))(input.values, options), {
-        onFailure: (issue) => new Issue.Composite(ast, Option.some(input), [new Issue.Pointer(["values"], issue)]),
-        onSuccess: (values) => new Chunk({ ...input, values } as any)
-      })
-    }, {
-      title: "Chunk",
-      defaultJsonSerializer: ([success]) =>
-        Schema.link<Chunk<Rpc.Any>>()(
-          Schema.Struct({
-            _tag: Schema.Literal("Chunk"),
-            requestId: SnowflakeFromBigInt,
-            id: SnowflakeFromBigInt,
-            sequence: Schema.Number,
-            values: Schema.NonEmptyArray(success)
-          }),
-          Transformation.transform({
-            decode: (encoded) => new Chunk(encoded as any),
-            encode: (result) => ({ ...result } as const)
-          })
-        )
-    })
+    )
   }
 
   /**
@@ -264,30 +268,34 @@ export class WithExit<R extends Rpc.Any> extends Data.TaggedClass("WithExit")<{
     WithExit<Rpc.Any>,
     readonly [Schema.Exit<Success, Error, Defect>]
   > {
-    return Schema.declareConstructor([exitSchema])<WithExit<Rpc.Any>>()(([exit]) => (input, ast, options) => {
-      if (!isReply(input) || input._tag !== "WithExit") {
-        return Effect.fail(new Issue.InvalidType(ast, Option.some(input)))
+    return Schema.declareConstructor<WithExit<Rpc.Any>>()(
+      [exitSchema],
+      ([exit]) => (input, ast, options) => {
+        if (!isReply(input) || input._tag !== "WithExit") {
+          return Effect.fail(new Issue.InvalidType(ast, Option.some(input)))
+        }
+        return Effect.mapBothEager(ToParser.decodeEffect(exit)(input.exit, options), {
+          onFailure: (issue) => new Issue.Composite(ast, Option.some(input), [new Issue.Pointer(["exit"], issue)]),
+          onSuccess: (exit) => new WithExit({ ...input, exit: exit as any })
+        })
+      },
+      {
+        title: "WithExit",
+        defaultJsonSerializer: ([exit]) =>
+          Schema.link<WithExit<Rpc.Any>>()(
+            Schema.Struct({
+              _tag: Schema.Literal("WithExit"),
+              requestId: SnowflakeFromBigInt,
+              id: SnowflakeFromBigInt,
+              exit
+            }),
+            Transformation.transform({
+              decode: (encoded) => new WithExit(encoded as any),
+              encode: (result) => ({ ...result })
+            })
+          )
       }
-      return Effect.mapBothEager(ToParser.decodeEffect(exit)(input.exit, options), {
-        onFailure: (issue) => new Issue.Composite(ast, Option.some(input), [new Issue.Pointer(["exit"], issue)]),
-        onSuccess: (exit) => new WithExit({ ...input, exit: exit as any })
-      })
-    }, {
-      title: "WithExit",
-      defaultJsonSerializer: ([exit]) =>
-        Schema.link<WithExit<Rpc.Any>>()(
-          Schema.Struct({
-            _tag: Schema.Literal("WithExit"),
-            requestId: SnowflakeFromBigInt,
-            id: SnowflakeFromBigInt,
-            exit
-          }),
-          Transformation.transform({
-            decode: (encoded) => new WithExit(encoded as any),
-            encode: (result) => ({ ...result } as const)
-          })
-        )
-    })
+    )
   }
 
   /**
