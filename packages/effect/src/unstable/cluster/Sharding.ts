@@ -816,31 +816,33 @@ const make = Effect.gen(function*() {
       weight: config.runnerShardWeight
     }) :
     undefined
+  const selfRunnerAddress = selfRunner?.address.toString()
 
-  let allRunners = MutableHashMap.empty<Runner, boolean>()
+  let allRunners = new Map<string, readonly [Runner, boolean]>()
   const healthyRunners = MutableHashSet.empty<Runner>()
 
   yield* Effect.gen(function*() {
     const hashRings = new Map<string, HashRing.HashRing<RunnerAddress>>()
-    let nextRunners = MutableHashMap.empty<Runner, boolean>()
+    let nextRunners = new Map<string, readonly [Runner, boolean]>()
 
     while (true) {
       // Ensure the current runner is registered
-      if (selfRunner && !isShutdown.current && !MutableHashMap.has(allRunners, selfRunner)) {
+      if (selfRunnerAddress && !isShutdown.current && !allRunners.has(selfRunnerAddress)) {
         yield* Effect.logDebug("Registering runner", selfRunner)
-        const machineId = yield* runnerStorage.register(selfRunner, true)
+        const machineId = yield* runnerStorage.register(selfRunner!, true)
         yield* snowflakeGen.setMachineId(machineId)
       }
 
       const runners = yield* runnerStorage.getRunners
       let changed = false
-      let remaining = MutableHashMap.size(allRunners)
+      let remaining = allRunners.size
       for (let i = 0; i < runners.length; i++) {
         const [runner, healthy] = runners[i]
-        MutableHashMap.set(nextRunners, runner, healthy)
-        const ohealthy = MutableHashMap.get(allRunners, runner)
-        const exists = ohealthy._tag === "Some"
-        const prevHealthy = exists && ohealthy.value
+        const address = runner.address.toString()
+        nextRunners.set(address, runners[i])
+        const prev = allRunners.get(address)
+        const exists = prev !== undefined
+        const prevHealthy = prev ? prev[1] : false
         if (exists && (healthy === prevHealthy || healthy)) {
           remaining--
         }
@@ -862,11 +864,13 @@ const make = Effect.gen(function*() {
 
       // Remove runners that are no longer present or healthy
       if (remaining > 0) {
-        for (const [runner, prevHealthy] of allRunners) {
-          const ohealthy = MutableHashMap.get(nextRunners, runner)
+        for (const [address, [runner, prevHealthy]] of allRunners) {
+          const next = nextRunners.get(address)
+          const exists = next !== undefined
+          const healthy = next ? next[1] : false
           if (
-            (ohealthy._tag === "Some" && ohealthy.value) ||
-            (ohealthy._tag === "Some" && !prevHealthy)
+            (exists && healthy) ||
+            (exists && !prevHealthy)
           ) {
             continue
           }
@@ -882,7 +886,7 @@ const make = Effect.gen(function*() {
       const prevRunners = allRunners
       allRunners = nextRunners
       nextRunners = prevRunners
-      MutableHashMap.clear(nextRunners)
+      nextRunners.clear()
 
       // Recompute shard assignments if the set of healthy runners has changed.
       if (changed) {
@@ -907,7 +911,7 @@ const make = Effect.gen(function*() {
       }
 
       // Ensure the current runner is registered
-      if (selfRunner && !isShutdown.current && !MutableHashMap.has(allRunners, selfRunner)) {
+      if (selfRunnerAddress && !isShutdown.current && !allRunners.has(selfRunnerAddress)) {
         continue
       } else if (selfRunner && MutableHashSet.size(healthyRunners) === 0) {
         yield* Effect.logWarning("No healthy runners available")
@@ -933,7 +937,7 @@ const make = Effect.gen(function*() {
   // --- Runner health checks ---
 
   if (selfRunner) {
-    const checkRunner = ([runner, healthy]: [Runner, boolean]) =>
+    const checkRunner = ([runner, healthy]: readonly [Runner, boolean]) =>
       Effect.flatMap(runnerHealth.isAlive(runner.address), (isAlive) => {
         if (healthy === isAlive) return Effect.void
         if (!isAlive && MutableHashSet.size(healthyRunners) <= 1) {
@@ -941,7 +945,7 @@ const make = Effect.gen(function*() {
           // deadlock
           return Effect.void
         }
-        MutableHashMap.set(allRunners, runner, isAlive)
+        allRunners.set(runner.address.toString(), [runner, isAlive])
         MutableHashSet.remove(healthyRunners, runner)
         return Effect.logDebug(`Runner is ${isAlive ? "healthy" : "unheathy"}`, runner).pipe(
           Effect.andThen(runnerStorage.setRunnerHealth(runner.address, isAlive))
@@ -953,8 +957,8 @@ const make = Effect.gen(function*() {
       Effect.gen(function*() {
         while (true) {
           // Skip health checks if we are the only runner
-          if (MutableHashMap.size(allRunners) > 1) {
-            yield* Effect.forEach(allRunners, checkRunner, { discard: true, concurrency: 10 })
+          if (allRunners.size > 1) {
+            yield* Effect.forEach(allRunners.values(), checkRunner, { discard: true, concurrency: 10 })
           }
           yield* Effect.sleep(config.runnerHealthCheckInterval)
         }
