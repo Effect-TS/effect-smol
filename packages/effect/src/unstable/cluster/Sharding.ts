@@ -818,11 +818,12 @@ const make = Effect.gen(function*() {
     undefined
 
   let allRunners = MutableHashMap.empty<Runner, boolean>()
-  const healthyRunners = MutableHashSet.empty<Runner>()
+  let healthyRunnerCount = 0
 
   yield* Effect.gen(function*() {
     const hashRings = new Map<string, HashRing.HashRing<RunnerAddress>>()
     let nextRunners = MutableHashMap.empty<Runner, boolean>()
+    const healthyRunners = MutableHashSet.empty<Runner>()
 
     while (true) {
       // Ensure the current runner is registered
@@ -837,10 +838,7 @@ const make = Effect.gen(function*() {
       for (let i = 0; i < runners.length; i++) {
         const [runner, healthy] = runners[i]
         MutableHashMap.set(nextRunners, runner, healthy)
-        // We can't use `healthyRunners` here, because it is mutated in the
-        // runner health check singleton.
-        const ohealthy = MutableHashMap.get(allRunners, runner)
-        const wasHealthy = ohealthy._tag === "Some" && ohealthy.value
+        const wasHealthy = MutableHashSet.has(healthyRunners, runner)
         if (!healthy || wasHealthy) {
           if (healthy === wasHealthy || !wasHealthy) {
             // no change
@@ -876,6 +874,7 @@ const make = Effect.gen(function*() {
       const prevRunners = allRunners
       allRunners = nextRunners
       nextRunners = prevRunners
+      healthyRunnerCount = MutableHashSet.size(healthyRunners)
 
       // Recompute shard assignments if the set of healthy runners has changed.
       if (changed) {
@@ -929,13 +928,18 @@ const make = Effect.gen(function*() {
     const checkRunner = ([runner, healthy]: [Runner, boolean]) =>
       Effect.flatMap(runnerHealth.isAlive(runner.address), (isAlive) => {
         if (healthy === isAlive) return Effect.void
-        if (!isAlive && MutableHashSet.size(healthyRunners) <= 1) {
+        if (isAlive) {
+          return Effect.logDebug(`Runner is healthy`, runner).pipe(
+            Effect.andThen(runnerStorage.setRunnerHealth(runner.address, isAlive))
+          )
+        }
+        if (healthyRunnerCount <= 1) {
           // never mark the last healthy runner as unhealthy, to prevent a
           // deadlock
           return Effect.void
         }
-        MutableHashSet.remove(healthyRunners, runner)
-        return Effect.logDebug(`Runner is ${isAlive ? "healthy" : "unheathy"}`, runner).pipe(
+        healthyRunnerCount--
+        return Effect.logDebug(`Runner is unhealthy`, runner).pipe(
           Effect.andThen(runnerStorage.setRunnerHealth(runner.address, isAlive))
         )
       })
