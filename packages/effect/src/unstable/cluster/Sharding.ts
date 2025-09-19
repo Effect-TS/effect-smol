@@ -817,10 +817,10 @@ const make = Effect.gen(function*() {
   }
 
   let allRunners = MutableHashMap.empty<Runner, boolean>()
+  const healthyRunners = MutableHashSet.empty<Runner>()
 
   yield* Effect.gen(function*() {
     const hashRings = new Map<string, HashRing.HashRing<RunnerAddress>>()
-    const healthyRunners = MutableHashSet.empty<Runner>()
     let nextRunners = MutableHashMap.empty<Runner, boolean>()
 
     while (true) {
@@ -926,7 +926,13 @@ const make = Effect.gen(function*() {
     const checkRunner = ([runner, healthy]: [Runner, boolean]) =>
       Effect.flatMap(runnerHealth.isAlive(runner.address), (isAlive) => {
         if (healthy === isAlive) return Effect.void
+        if (!isAlive && MutableHashSet.size(healthyRunners) <= 1) {
+          // never mark the last healthy runner as unhealthy, to prevent a
+          // deadlock
+          return Effect.void
+        }
         MutableHashMap.set(allRunners, runner, isAlive)
+        MutableHashSet.remove(healthyRunners, runner)
         return Effect.logDebug(`Runner is ${isAlive ? "healthy" : "unheathy"}`, runner).pipe(
           Effect.andThen(runnerStorage.setRunnerHealth(runner.address, isAlive))
         )
@@ -936,7 +942,10 @@ const make = Effect.gen(function*() {
       "effect/cluster/Sharding/RunnerHealth",
       Effect.gen(function*() {
         while (true) {
-          yield* Effect.forEach(allRunners, checkRunner, { discard: true, concurrency: 10 })
+          // Skip health checks if we are the only runner
+          if (MutableHashMap.size(allRunners) > 1) {
+            yield* Effect.forEach(allRunners, checkRunner, { discard: true, concurrency: 10 })
+          }
           yield* Effect.sleep(config.runnerHealthCheckInterval)
         }
       }).pipe(
