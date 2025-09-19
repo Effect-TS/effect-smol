@@ -809,13 +809,6 @@ const make = Effect.gen(function*() {
     }) :
     undefined
 
-  if (selfRunner) {
-    yield* Scope.addFinalizer(
-      shardingScope,
-      Effect.ignore(runnerStorage.unregister(selfRunner.address))
-    )
-  }
-
   let allRunners = MutableHashMap.empty<Runner, boolean>()
   const healthyRunners = MutableHashSet.empty<Runner>()
 
@@ -825,7 +818,7 @@ const make = Effect.gen(function*() {
 
     while (true) {
       // Ensure the current runner is registered
-      if (selfRunner && !MutableHashMap.has(allRunners, selfRunner)) {
+      if (selfRunner && !isShutdown.current && !MutableHashMap.has(allRunners, selfRunner)) {
         yield* Effect.logDebug("Registering runner", selfRunner)
         const machineId = yield* runnerStorage.register(selfRunner, true)
         yield* snowflakeGen.setMachineId(machineId)
@@ -897,7 +890,7 @@ const make = Effect.gen(function*() {
       }
 
       // Ensure the current runner is registered
-      if (selfRunner && !MutableHashMap.has(allRunners, selfRunner)) {
+      if (selfRunner && !isShutdown.current && !MutableHashMap.has(allRunners, selfRunner)) {
         continue
       } else if (selfRunner && MutableHashSet.size(healthyRunners) === 0) {
         yield* Effect.logWarning("No healthy runners available")
@@ -1201,7 +1194,7 @@ const make = Effect.gen(function*() {
     Effect.withFiber((fiber) => {
       MutableRef.set(isShutdown, true)
       internalInterruptors.add(fiber.id)
-      return Effect.void
+      return selfRunner ? Effect.ignore(runnerStorage.unregister(selfRunner.address)) : Effect.void
     })
   )
 
