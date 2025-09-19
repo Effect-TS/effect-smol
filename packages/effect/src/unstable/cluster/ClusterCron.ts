@@ -3,6 +3,7 @@
  */
 import * as Option from "../../data/Option.ts"
 import * as Effect from "../../Effect.ts"
+import * as Exit from "../../Exit.ts"
 import * as PrimaryKey from "../../interfaces/PrimaryKey.ts"
 import * as Layer from "../../Layer.ts"
 import * as Schedule from "../../Schedule.ts"
@@ -91,10 +92,12 @@ export const make = <E, R>(options: {
   const EntityLayer = CronEntity.toLayer(Effect.gen(function*() {
     const makeClient = yield* CronEntity.client
     return {
-      run(request) {
-        return Effect.ensuring(
-          effect(request.payload.dateTime),
-          Effect.gen(function*() {
+      run: (request) =>
+        effect(request.payload.dateTime).pipe(
+          Effect.onExitInterruptible(Effect.fnUntraced(function*(exit) {
+            if (Exit.isFailure(exit)) {
+              yield* Effect.logWarning(exit.cause)
+            }
             const now = yield* DateTime.now
             const next = DateTime.fromDateUnsafe(Cron.next(
               options.cron,
@@ -106,16 +109,13 @@ export const make = <E, R>(options: {
               Effect.retry(retryPolicy),
               Effect.orDie
             )
-          })
-        ).pipe(
-          Effect.catchCause(Effect.logWarning),
+          })),
           Effect.annotateLogs({
             module: "ClusterCron",
             name: options.name,
             dateTime: request.payload.dateTime
           })
         )
-      }
     }
   }))
 

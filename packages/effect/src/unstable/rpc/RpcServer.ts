@@ -252,14 +252,15 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any>(
     let effect = Effect.onExit(withMiddleware, (exit) => {
       responded = true
       const close = Scope.closeUnsafe(scope, exit)
-      const write = exit._tag === "Failure" && !disableFatalDefects && Cause.hasDie(exit.cause) ?
-        sendDefect(client, Cause.squash(exit.cause)) :
-        options.onFromServer({
-          _tag: "Exit",
-          clientId: client.id,
-          requestId: request.id,
-          exit
-        })
+      const write =
+        exit._tag === "Failure" && !disableFatalDefects && Cause.hasDie(exit.cause) && !Cause.hasInterrupt(exit.cause) ?
+          sendDefect(client, Cause.squash(exit.cause)) :
+          options.onFromServer({
+            _tag: "Exit",
+            clientId: client.id,
+            requestId: request.id,
+            exit
+          })
       return close ? Effect.ensuring(write, close) : write
     })
     if (enableTracing) {
