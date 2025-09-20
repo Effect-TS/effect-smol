@@ -3,7 +3,7 @@
  */
 import * as Data from "../../data/Data.ts"
 import * as Option from "../../data/Option.ts"
-import { isUndefined } from "../../data/Predicate.ts"
+import * as Predicate from "../../data/Predicate.ts"
 import * as Result from "../../data/Result.ts"
 import * as UndefinedOr from "../../data/UndefinedOr.ts"
 import * as Effect from "../../Effect.ts"
@@ -182,7 +182,7 @@ export const KeyValueStore: ServiceMap.Key<
 export const make = (options: MakeOptions): KeyValueStore =>
   KeyValueStore.of({
     [TypeId]: TypeId,
-    has: (key) => Effect.map(options.get(key), isUndefined),
+    has: (key) => Effect.map(options.get(key), Predicate.isNotUndefined),
     isEmpty: Effect.map(options.size, (size) => size === 0),
     modify: (key, f) =>
       Effect.flatMap(
