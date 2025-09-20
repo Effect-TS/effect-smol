@@ -1,5 +1,5 @@
 import { afterEach, describe, it } from "@effect/vitest"
-import { assertTrue, strictEqual } from "@effect/vitest/utils"
+import { assertTrue, deepStrictEqual, strictEqual } from "@effect/vitest/utils"
 import type { Layer } from "effect"
 import { Effect } from "effect"
 import { Option } from "effect/data"
@@ -110,12 +110,12 @@ describe("KeyValueStore / prefix", () => {
     ))
 })
 
-class User extends Schema.Class<User>("User")({
-  name: Schema.String,
-  age: Schema.Number
-}) {}
+describe("toSchemaStore", () => {
+  class User extends Schema.Class<User>("User")({
+    name: Schema.String,
+    age: Schema.Number
+  }) {}
 
-describe("KeyValueStore / SchemaStore", () => {
   it("encodes & decodes", () =>
     Effect.gen(function*() {
       const store = yield* KeyValueStore.KeyValueStore
@@ -143,6 +143,22 @@ describe("KeyValueStore / SchemaStore", () => {
         strictEqual(value.value.name, "foo")
         strictEqual(value.value.age, 42)
       }
+    }).pipe(
+      Effect.provide(KeyValueStore.layerMemory),
+      Effect.runPromise
+    ))
+
+  it("json compliant", () =>
+    Effect.gen(function*() {
+      const store = yield* KeyValueStore.KeyValueStore
+      const schema = Schema.Struct({
+        a: Schema.Date
+      })
+      const schemaStore = KeyValueStore.toSchemaStore(store, schema)
+      yield* (schemaStore.set("foo", { a: new Date(0) }))
+      const value = yield* schemaStore.get("foo")
+      assertTrue(Option.isSome(value))
+      deepStrictEqual(value.value.a, new Date(0))
     }).pipe(
       Effect.provide(KeyValueStore.layerMemory),
       Effect.runPromise

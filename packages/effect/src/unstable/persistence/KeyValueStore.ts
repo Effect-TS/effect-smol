@@ -14,6 +14,7 @@ import * as FileSystem from "../../platform/FileSystem.ts"
 import * as Path from "../../platform/Path.ts"
 import type { PlatformError } from "../../platform/PlatformError.ts"
 import * as Schema from "../../schema/Schema.ts"
+import * as Serializer from "../../schema/Serializer.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 
 const TypeId = "~effect/persistence/KeyValueStore" as const
@@ -449,7 +450,8 @@ export interface SchemaStore<S extends Schema.Top> {
  * @category SchemaStore
  */
 export const toSchemaStore = <S extends Schema.Top>(self: KeyValueStore, schema: S): SchemaStore<S> => {
-  const jsonSchema = Schema.fromJsonString(schema)
+  const serializer = Serializer.json(schema)
+  const jsonSchema = Schema.fromJsonString(serializer)
   const decode = Schema.decodeEffect(jsonSchema)
   const encode = Schema.encodeEffect(jsonSchema)
 
