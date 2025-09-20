@@ -3313,12 +3313,13 @@ export function Option<S extends Top>(value: S): Option<S> {
         if (O.isNone(input)) {
           return Effect.succeedNone
         }
-        return ToParser.decodeUnknownEffect(value)(input.value, options).pipe(Effect.mapBothEager(
+        return Effect.mapBothEager(
+          ToParser.decodeUnknownEffect(value)(input.value, options),
           {
             onSuccess: O.some,
             onFailure: (issue) => new Issue.Composite(ast, O.some(input), [new Issue.Pointer(["value"], issue)])
           }
-        ))
+        )
       }
       return Effect.fail(new Issue.InvalidType(ast, O.some(input)))
     },
@@ -3496,7 +3497,8 @@ export function Redacted<S extends Top>(value: S, options?: {
         return Effect.flatMapEager(
           label,
           () =>
-            ToParser.decodeUnknownEffect(value)(Redacted_.value(input), poptions).pipe(Effect.mapBothEager(
+            Effect.mapBothEager(
+              ToParser.decodeUnknownEffect(value)(Redacted_.value(input), poptions),
               {
                 onSuccess: () => input,
                 onFailure: (/** ignore the actual issue because of security reasons */) => {
@@ -3506,7 +3508,7 @@ export function Redacted<S extends Top>(value: S, options?: {
                   ])
                 }
               }
-            ))
+            )
         )
       }
       return Effect.fail(new Issue.InvalidType(ast, O.some(input)))
@@ -3581,19 +3583,21 @@ export function CauseFailure<E extends Top, D extends Top>(error: E, defect: D):
       }
       switch (input._tag) {
         case "Fail":
-          return ToParser.decodeUnknownEffect(error)(input.error, options).pipe(Effect.mapBothEager(
+          return Effect.mapBothEager(
+            ToParser.decodeUnknownEffect(error)(input.error, options),
             {
               onSuccess: Cause_.failureFail,
               onFailure: (issue) => new Issue.Composite(ast, O.some(input), [new Issue.Pointer(["error"], issue)])
             }
-          ))
+          )
         case "Die":
-          return ToParser.decodeUnknownEffect(defect)(input.defect, options).pipe(Effect.mapBothEager(
+          return Effect.mapBothEager(
+            ToParser.decodeUnknownEffect(defect)(input.defect, options),
             {
               onSuccess: Cause_.failureDie,
               onFailure: (issue) => new Issue.Composite(ast, O.some(input), [new Issue.Pointer(["defect"], issue)])
             }
-          ))
+          )
         case "Interrupt":
           return Effect.succeed(input)
       }
@@ -3694,12 +3698,10 @@ export function Cause<E extends Top, D extends Top>(error: E, defect: D): Cause<
       if (!Cause_.isCause(input)) {
         return Effect.fail(new Issue.InvalidType(ast, O.some(input)))
       }
-      return ToParser.decodeUnknownEffect(failures)(input.failures, options).pipe(Effect.mapBothEager(
-        {
-          onSuccess: Cause_.fromFailures,
-          onFailure: (issue) => new Issue.Composite(ast, O.some(input), [new Issue.Pointer(["failures"], issue)])
-        }
-      ))
+      return Effect.mapBothEager(ToParser.decodeUnknownEffect(failures)(input.failures, options), {
+        onSuccess: Cause_.fromFailures,
+        onFailure: (issue) => new Issue.Composite(ast, O.some(input), [new Issue.Pointer(["failures"], issue)])
+      })
     },
     {
       title: "Cause",
@@ -3707,13 +3709,13 @@ export function Cause<E extends Top, D extends Top>(error: E, defect: D): Cause<
         link<Cause_.Cause<E["Type"]>>()(
           failures,
           Transformation.transform({
-            decode: (failures) => Cause_.fromFailures(failures),
+            decode: Cause_.fromFailures,
             encode: ({ failures }) => failures
           })
         ),
       arbitrary: {
         _tag: "Declaration",
-        declaration: ([failures]) => () => failures.map((failures) => Cause_.fromFailures(failures))
+        declaration: ([failures]) => () => failures.map(Cause_.fromFailures)
       },
       equivalence: {
         _tag: "Declaration",
@@ -3858,19 +3860,21 @@ export function Exit<A extends Top, E extends Top, D extends Top>(value: A, erro
       }
       switch (input._tag) {
         case "Success":
-          return ToParser.decodeUnknownEffect(value)(input.value, options).pipe(Effect.mapBothEager(
+          return Effect.mapBothEager(
+            ToParser.decodeUnknownEffect(value)(input.value, options),
             {
               onSuccess: Exit_.succeed,
               onFailure: (issue) => new Issue.Composite(ast, O.some(input), [new Issue.Pointer(["value"], issue)])
             }
-          ))
+          )
         case "Failure":
-          return ToParser.decodeUnknownEffect(cause)(input.cause, options).pipe(Effect.mapBothEager(
+          return Effect.mapBothEager(
+            ToParser.decodeUnknownEffect(cause)(input.cause, options),
             {
               onSuccess: Exit_.failCause,
               onFailure: (issue) => new Issue.Composite(ast, O.some(input), [new Issue.Pointer(["cause"], issue)])
             }
-          ))
+          )
       }
     },
     {
@@ -3972,12 +3976,13 @@ export function Map<Key extends Top, Value extends Top>(key: Key, value: Value):
     ([key, value]) => (input, ast, options) => {
       if (input instanceof globalThis.Map) {
         const array = Array(Tuple([key, value]))
-        return ToParser.decodeUnknownEffect(array)([...input], options).pipe(Effect.mapBothEager(
+        return Effect.mapBothEager(
+          ToParser.decodeUnknownEffect(array)([...input], options),
           {
             onSuccess: (array: ReadonlyArray<readonly [Key["Type"], Value["Type"]]>) => new globalThis.Map(array),
             onFailure: (issue) => new Issue.Composite(ast, O.some(input), [new Issue.Pointer(["entries"], issue)])
           }
-        ))
+        )
       }
       return Effect.fail(new Issue.InvalidType(ast, O.some(input)))
     },
