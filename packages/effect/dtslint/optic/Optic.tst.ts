@@ -44,4 +44,22 @@ describe("Optic", () => {
       expect(optic).type.toBe<Optic.Lens<S, number | undefined>>()
     })
   })
+
+  describe("pick", () => {
+    it("Struct", () => {
+      type S = { readonly a: string; readonly b: number; readonly c: boolean }
+      const optic = Optic.id<S>().pick(["a", "c"])
+
+      expect(optic).type.toBe<Optic.Lens<S, { readonly a: string; readonly c: boolean }>>()
+    })
+  })
+
+  describe("omit", () => {
+    it("Struct", () => {
+      type S = { readonly a: string; readonly b: number; readonly c: boolean }
+      const optic = Optic.id<S>().omit(["b"])
+
+      expect(optic).type.toBe<Optic.Lens<S, { readonly a: string; readonly c: boolean }>>()
+    })
+  })
 })

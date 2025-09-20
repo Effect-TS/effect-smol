@@ -293,4 +293,22 @@ Expected a value greater than 0, got -1.1`
     deepStrictEqual(optic.replace(2, { a: 1 }), { a: 2 })
     deepStrictEqual(optic.replace(2, { a: 0 }), { a: 0 })
   })
+
+  describe("pick", () => {
+    it("Struct", () => {
+      type S = { readonly a: string; readonly b: number; readonly c: boolean }
+      const optic = Optic.id<S>().pick(["a", "c"])
+
+      deepStrictEqual(optic.replace({ a: "a2", c: false }, { a: "a", b: 1, c: true }), { a: "a2", b: 1, c: false })
+    })
+  })
+
+  describe("omit", () => {
+    it("Struct", () => {
+      type S = { readonly a: string; readonly b: number; readonly c: boolean }
+      const optic = Optic.id<S>().omit(["b"])
+
+      deepStrictEqual(optic.replace({ a: "a2", c: false }, { a: "a", b: 1, c: true }), { a: "a2", b: 1, c: false })
+    })
+  })
 })

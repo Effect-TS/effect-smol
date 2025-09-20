@@ -5,6 +5,7 @@
 import * as Arr from "../collections/Array.ts"
 import * as Option from "../data/Option.ts"
 import * as Result from "../data/Result.ts"
+import * as Struct from "../data/Struct.ts"
 import { identity, memoize } from "../Function.ts"
 import { format } from "../interfaces/Inspectable.ts"
 import type { Literal } from "../schema/AST.ts"
@@ -97,6 +98,20 @@ export interface Optional<in out S, in out A> {
   ): Optional<S, Extract<A, { readonly _tag: Tag }>>
 
   at<S, A extends object, Key extends keyof A>(this: Optional<S, A>, key: Key): Optional<S, A[Key]>
+
+  /**
+   * An optic that accesses a group of keys of a struct.
+   */
+  pick<S, A, Keys extends ReadonlyArray<keyof A>>(this: Lens<S, A>, keys: Keys): Lens<S, Pick<A, Keys[number]>>
+  pick<S, A, Keys extends ReadonlyArray<keyof A>>(this: Optional<S, A>, keys: Keys): Optional<S, Pick<A, Keys[number]>>
+
+  /**
+   * An optic that excludes a group of keys of a struct.
+   *
+   * @since 1.0.0
+   */
+  omit<S, A, Keys extends ReadonlyArray<keyof A>>(this: Lens<S, A>, keys: Keys): Lens<S, Omit<A, Keys[number]>>
+  omit<S, A, Keys extends ReadonlyArray<keyof A>>(this: Optional<S, A>, keys: Keys): Optional<S, Omit<A, Keys[number]>>
 }
 
 /**
@@ -197,6 +212,12 @@ class OptionalImpl<S, A> implements Optional<S, A> {
         )
       )
     )
+  }
+  pick(keys: any) {
+    return this.compose(makeLens(Struct.pick(keys), (p, a) => ({ ...a, ...p })))
+  }
+  omit(keys: any) {
+    return this.compose(makeLens(Struct.omit(keys), (o, a) => ({ ...a, ...o })))
   }
 }
 
