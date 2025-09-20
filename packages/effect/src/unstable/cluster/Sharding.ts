@@ -832,6 +832,12 @@ const make = Effect.gen(function*() {
   let allRunners = MutableHashMap.empty<Runner, boolean>()
   let healthyRunnerCount = 0
 
+  // update metrics
+  if (selfRunner) {
+    ClusterMetrics.runners.updateUnsafe(BigInt(1), ServiceMap.empty())
+    ClusterMetrics.runnersHealthy.updateUnsafe(BigInt(1), ServiceMap.empty())
+  }
+
   yield* Effect.gen(function*() {
     const hashRings = new Map<string, HashRing.HashRing<RunnerAddress>>()
     let nextRunners = MutableHashMap.empty<Runner, boolean>()
@@ -909,6 +915,14 @@ const make = Effect.gen(function*() {
         })
         yield* Effect.logDebug("New shard assignments", selfShards)
         activeShardsLatch.openUnsafe()
+
+        // update metrics
+        if (selfRunner) {
+          ClusterMetrics.runnersHealthy.updateUnsafe(
+            BigInt(MutableHashSet.has(healthyRunners, selfRunner) ? 1 : 0),
+            ServiceMap.empty()
+          )
+        }
       }
 
       // Ensure the current runner is registered
