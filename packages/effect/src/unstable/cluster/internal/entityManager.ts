@@ -173,7 +173,7 @@ export const make = Effect.fnUntraced(function*<
                   Exit.hasInterrupt(response.exit) &&
                   (isShuttingDown || ServiceMap.get(request.rpc.annotations, Uninterruptible))
                 ) {
-                  return Effect.void
+                  return options.storage.unregisterReplyHandler(request.message.envelope.requestId)
                 }
 
                 return retryRespond(

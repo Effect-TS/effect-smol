@@ -6,6 +6,7 @@ import { constant } from "../../Function.ts"
 import * as Layer from "../../Layer.ts"
 import * as Queue from "../../Queue.ts"
 import * as RpcServer from "../rpc/RpcServer.ts"
+import { EntityNotAssignedToRunner } from "./ClusterError.ts"
 import * as Message from "./Message.ts"
 import * as MessageStorage from "./MessageStorage.ts"
 import * as Reply from "./Reply.ts"
@@ -38,7 +39,7 @@ export const layerHandlers = Runners.Rpcs.toLayer(Effect.gen(function*() {
           : new Message.IncomingEnvelope({ envelope })
       ),
     Effect: ({ persisted, request }) => {
-      let resume: (reply: Effect.Effect<Reply.Encoded>) => void
+      let resume: (reply: Effect.Effect<Reply.Encoded, EntityNotAssignedToRunner>) => void
       let replyEncoded: Reply.Encoded | undefined
       const message = new Message.IncomingRequest({
         envelope: request,
@@ -57,12 +58,21 @@ export const layerHandlers = Runners.Rpcs.toLayer(Effect.gen(function*() {
       return Effect.flatMap(
         persisted ?
           Effect.flatMap(
-            storage.registerReplyHandler(message),
+            storage.registerReplyHandler(
+              message,
+              Effect.sync(() =>
+                resume(Effect.fail(
+                  new EntityNotAssignedToRunner({
+                    address: request.address
+                  })
+                ))
+              )
+            ),
             () => sharding.notify(message)
           ) :
           sharding.send(message),
         () =>
-          Effect.callback<Reply.Encoded>((resume_) => {
+          Effect.callback<Reply.Encoded, EntityNotAssignedToRunner>((resume_) => {
             if (replyEncoded) {
               resume_(Effect.succeed(replyEncoded))
             } else {
@@ -73,7 +83,7 @@ export const layerHandlers = Runners.Rpcs.toLayer(Effect.gen(function*() {
     },
     Stream: ({ persisted, request }) =>
       Effect.flatMap(
-        Queue.make<Reply.Encoded>(),
+        Queue.make<Reply.Encoded, EntityNotAssignedToRunner>(),
         (queue) => {
           const message = new Message.IncomingRequest({
             envelope: request,
@@ -85,7 +95,10 @@ export const layerHandlers = Runners.Rpcs.toLayer(Effect.gen(function*() {
           return Effect.as(
             persisted ?
               Effect.flatMap(
-                storage.registerReplyHandler(message),
+                storage.registerReplyHandler(
+                  message,
+                  Effect.suspend(() => Queue.fail(queue, new EntityNotAssignedToRunner({ address: request.address })))
+                ),
                 () => sharding.notify(message)
               ) :
               sharding.send(message),

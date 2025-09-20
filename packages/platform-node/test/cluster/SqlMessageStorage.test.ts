@@ -164,7 +164,8 @@ describe("SqlMessageStorage", () => {
             new Message.OutgoingRequest({
               ...request,
               respond: () => latch.open
-            })
+            }),
+            Effect.void
           )
           yield* storage.saveReply(yield* makeReply(request))
           yield* latch.await

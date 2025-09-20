@@ -88,8 +88,14 @@ export class MessageStorage extends ServiceMap.Key<MessageStorage, {
    * For locally sent messages, register a handler to process the replies.
    */
   readonly registerReplyHandler: <R extends Rpc.Any>(
-    message: Message.OutgoingRequest<R> | Message.IncomingRequest<R>
+    message: Message.OutgoingRequest<R> | Message.IncomingRequest<R>,
+    onUnregister: Effect.Effect<void>
   ) => Effect.Effect<void>
+
+  /**
+   * Unregisters the reply handler for the specified request id.
+   */
+  readonly unregisterReplyHandler: (requestId: Snowflake.Snowflake) => Effect.Effect<void>
 
   /**
    * Retrieves the unprocessed messages for the specified shards.
@@ -334,21 +340,36 @@ export type EncodedRepliesOptions<A> = {
  * @category constructors
  */
 export const make = (
-  storage: Omit<MessageStorage["Service"], "registerReplyHandler">
+  storage: Omit<MessageStorage["Service"], "registerReplyHandler" | "unregisterReplyHandler">
 ): Effect.Effect<MessageStorage["Service"]> =>
   Effect.sync(() => {
     const replyHandlers = new Map<
       Snowflake.Snowflake,
-      (reply: Reply.ReplyWithContext<any>) => Effect.Effect<void, PersistenceError | MalformedMessage>
+      {
+        readonly respond: (
+          reply: Reply.ReplyWithContext<any>
+        ) => Effect.Effect<void, PersistenceError | MalformedMessage>
+        readonly onUnregister: Effect.Effect<void>
+      }
     >()
     return MessageStorage.of({
       ...storage,
-      registerReplyHandler: (message) =>
+      registerReplyHandler: (message, onUnregister) =>
         Effect.sync(() => {
           replyHandlers.set(
             message.envelope.requestId,
-            message._tag === "IncomingRequest" ? message.respond : (reply) => message.respond(reply.reply)
+            {
+              respond: message._tag === "IncomingRequest" ? message.respond : (reply) => message.respond(reply.reply),
+              onUnregister
+            }
           )
+        }),
+      unregisterReplyHandler: (requestId) =>
+        Effect.suspend(() => {
+          const handler = replyHandlers.get(requestId)
+          if (!handler) return Effect.void
+          replyHandlers.delete(requestId)
+          return handler.onUnregister
         }),
       saveReply(reply) {
         return Effect.flatMap(storage.saveReply(reply), () => {
@@ -358,7 +379,7 @@ export const make = (
           } else if (reply.reply._tag === "WithExit") {
             replyHandlers.delete(reply.reply.requestId)
           }
-          return handler(reply)
+          return handler.respond(reply)
         })
       }
     })

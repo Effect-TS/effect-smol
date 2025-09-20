@@ -127,6 +127,7 @@ export const make: (options: Omit<Runners["Service"], "sendLocal" | "notifyLocal
   const storage = yield* MessageStorage.MessageStorage
   const snowflakeGen = yield* Snowflake.Generator
   const config = yield* ShardingConfig
+  const runnersScope = yield* Effect.scope
 
   const requestIdRewrites = new Map<Snowflake.Snowflake, Snowflake.Snowflake>()
 
@@ -302,7 +303,7 @@ export const make: (options: Omit<Runners["Service"], "sendLocal" | "notifyLocal
       }
     }).pipe(
       Effect.interruptible,
-      Effect.forkScoped
+      Effect.forkIn(runnersScope)
     )
 
     yield* Effect.suspend(() => {
@@ -314,7 +315,7 @@ export const make: (options: Omit<Runners["Service"], "sendLocal" | "notifyLocal
       Effect.delay(config.entityReplyPollInterval),
       Effect.forever,
       Effect.interruptible,
-      Effect.forkScoped
+      Effect.forkIn(runnersScope)
     )
   }
 
@@ -375,7 +376,10 @@ export const make: (options: Omit<Runners["Service"], "sendLocal" | "notifyLocal
             () => Effect.void
           )
         } else if (!duplicate) {
-          return storage.registerReplyHandler(message).pipe(
+          return storage.registerReplyHandler(
+            message,
+            Effect.forkIn(replyFromStorage(message), runnersScope)
+          ).pipe(
             Effect.andThen(options.notify(Message.incomingLocalFromOutgoing(message))),
             Effect.catchTag("EntityNotAssignedToRunner", () => Effect.void)
           )
