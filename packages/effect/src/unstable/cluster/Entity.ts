@@ -18,7 +18,8 @@ import { Scope } from "../../Scope.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import type * as Stream from "../../stream/Stream.ts"
 import type { DurationInput } from "../../time/Duration.ts"
-import type * as Rpc from "../rpc/Rpc.ts"
+import * as Headers from "../http/Headers.ts"
+import * as Rpc from "../rpc/Rpc.ts"
 import * as RpcClient from "../rpc/RpcClient.ts"
 import * as RpcGroup from "../rpc/RpcGroup.ts"
 import * as RpcServer from "../rpc/RpcServer.ts"
@@ -28,13 +29,14 @@ import type {
   MailboxFull,
   PersistenceError
 } from "./ClusterError.ts"
-import { ShardGroup } from "./ClusterSchema.ts"
+import { Persisted, ShardGroup, Uninterruptible } from "./ClusterSchema.ts"
 import { EntityAddress } from "./EntityAddress.ts"
 import type { EntityId } from "./EntityId.ts"
 import { EntityType } from "./EntityType.ts"
 import * as Envelope from "./Envelope.ts"
 import { hashString } from "./internal/hash.ts"
 import { ResourceMap } from "./internal/resourceMap.ts"
+import * as Message from "./Message.ts"
 import type * as Reply from "./Reply.ts"
 import { RunnerAddress } from "./RunnerAddress.ts"
 import * as ShardId from "./ShardId.ts"
@@ -584,3 +586,61 @@ export const makeTestClient: <Type extends string, Rpcs extends Rpc.Any, LA, LE,
 
   return (entityId: string) => map.get(entityId)
 })
+
+/**
+ * @since 4.0.0
+ * @category Keep alive
+ */
+export const keepAlive: (
+  enabled: boolean
+) => Effect.Effect<
+  void,
+  never,
+  Sharding | CurrentAddress
+> = Effect.fnUntraced(function*(enabled: boolean) {
+  const olatch = yield* Effect.serviceOption(KeepAliveLatch)
+  if (olatch._tag === "None") return
+  if (!enabled) {
+    yield* olatch.value.open
+    return
+  }
+  const sharding = yield* shardingTag
+  const address = yield* CurrentAddress
+  const requestId = yield* sharding.getSnowflake
+  const span = yield* Effect.orDie(Effect.currentSpan)
+  yield* Effect.orDie(sharding.sendOutgoing(
+    new Message.OutgoingRequest({
+      rpc: KeepAliveRpc,
+      services: ServiceMap.empty() as any,
+      envelope: Envelope.makeRequest({
+        requestId,
+        address,
+        tag: KeepAliveRpc._tag,
+        payload: void 0,
+        headers: Headers.empty,
+        traceId: span.traceId,
+        spanId: span.spanId,
+        sampled: span.sampled
+      }),
+      lastReceivedReply: undefined,
+      respond: () => Effect.void
+    }),
+    true
+  ))
+}, Effect.withSpan("Entity/keepAlive", (enabled) => ({ attributes: { enabled } })))
+
+/**
+ * @since 4.0.0
+ * @category Keep alive
+ */
+export const KeepAliveRpc = Rpc.make("Cluster/Entity/keepAlive")
+  .annotate(Persisted, true)
+  .annotate(Uninterruptible, true)
+
+/**
+ * @since 4.0.0
+ * @category Keep alive
+ */
+export class KeepAliveLatch
+  extends ServiceMap.Key<KeepAliveLatch, Effect.Latch>()("effect/cluster/Entity/KeepAliveLatch")
+{}

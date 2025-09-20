@@ -23,7 +23,7 @@ import { AlreadyProcessingMessage, EntityNotAssignedToRunner, MailboxFull, Malfo
 import * as ClusterMetrics from "../ClusterMetrics.ts"
 import { Persisted, Uninterruptible } from "../ClusterSchema.ts"
 import type { Entity, HandlersFrom } from "../Entity.ts"
-import { CurrentAddress, CurrentRunnerAddress, Request } from "../Entity.ts"
+import { CurrentAddress, CurrentRunnerAddress, KeepAliveLatch, KeepAliveRpc, Request } from "../Entity.ts"
 import type { EntityAddress } from "../EntityAddress.ts"
 import type { EntityId } from "../EntityId.ts"
 import type * as Envelope from "../Envelope.ts"
@@ -63,6 +63,7 @@ export interface EntityManager {
 /** @internal */
 export type EntityState = {
   readonly address: EntityAddress
+  readonly scope: Scope.Scope
   readonly activeRequests: Map<bigint, {
     readonly rpc: Rpc.AnyWithProps
     readonly message: Message.IncomingRequestLocal<any>
@@ -72,6 +73,8 @@ export type EntityState = {
   }>
   lastActiveCheck: number
   write: RpcServer.RpcServer<any>["write"]
+  readonly keepAliveLatch: Effect.Latch
+  keepAliveEnabled: boolean
 }
 
 /** @internal */
@@ -105,6 +108,10 @@ export const make = Effect.fnUntraced(function*<
   const retryDriver = yield* Schedule.toStepWithSleep(
     options.defectRetryPolicy ? Schedule.andThen(options.defectRetryPolicy, defaultRetryPolicy) : defaultRetryPolicy
   )
+  const entityRpcs = new Map(entity.protocol.requests)
+
+  // add cluster internal RPCs
+  entityRpcs.set(KeepAliveRpc._tag, KeepAliveRpc as any)
 
   const activeServers = new Map<EntityId, EntityState>()
 
@@ -119,6 +126,7 @@ export const make = Effect.fnUntraced(function*<
 
     const scope = yield* Effect.scope
     const endLatch = Effect.makeLatchUnsafe()
+    const keepAliveLatch = Effect.makeLatchUnsafe(true)
 
     // on shutdown, reset the storage for the entity
     yield* Scope.addFinalizer(
@@ -142,6 +150,7 @@ export const make = Effect.fnUntraced(function*<
           Effect.provideServices(services.pipe(
             ServiceMap.add(CurrentAddress, address),
             ServiceMap.add(CurrentRunnerAddress, options.runnerAddress),
+            ServiceMap.add(KeepAliveLatch, keepAliveLatch),
             ServiceMap.add(Scope.Scope, scope)
           ))
         ) as Effect.Effect<ServiceMap.ServiceMap<Rpc.ToHandler<Rpcs>>>)
@@ -279,6 +288,7 @@ export const make = Effect.fnUntraced(function*<
 
     const state: EntityState = {
       address,
+      scope,
       write(clientId, message) {
         if (writeRef.state.current._tag !== "Acquired") {
           return Effect.flatMap(writeRef.await, (write) => write(clientId, message))
@@ -286,7 +296,9 @@ export const make = Effect.fnUntraced(function*<
         return writeRef.state.current.value(clientId, message)
       },
       activeRequests,
-      lastActiveCheck: clock.currentTimeMillisUnsafe()
+      lastActiveCheck: clock.currentTimeMillisUnsafe(),
+      keepAliveLatch,
+      keepAliveEnabled: false
     }
 
     // During shutdown, signal that no more messages will be processed
@@ -353,10 +365,39 @@ export const make = Effect.fnUntraced(function*<
                 )
               }
 
-              const rpc = entity.protocol.requests.get(message.envelope.tag)! as any as Rpc.AnyWithProps
+              const rpc = entityRpcs.get(message.envelope.tag)! as any as Rpc.AnyWithProps
               if (!storageEnabled && ServiceMap.get(rpc.annotations, Persisted)) {
                 return Effect.die(
                   "EntityManager.sendLocal: Cannot process a persisted message without MessageStorage"
+                )
+              }
+
+              // Cluster internal RPCs
+
+              // keep-alive RPC
+              if (rpc._tag === KeepAliveRpc._tag) {
+                const reply = Effect.suspend(() =>
+                  Effect.orDie(retryRespond(
+                    4,
+                    message.respond(
+                      new Reply.WithExit<typeof KeepAliveRpc>({
+                        requestId: message.envelope.requestId,
+                        id: snowflakeGen.nextUnsafe(),
+                        exit: Exit.void
+                      })
+                    )
+                  ))
+                )
+
+                if (server.keepAliveEnabled) return reply
+                server.keepAliveEnabled = true
+                server.keepAliveLatch.closeUnsafe()
+                return server.keepAliveLatch.whenOpen(Effect.suspend(() => {
+                  server.keepAliveEnabled = false
+                  return reply
+                })).pipe(
+                  Effect.forkIn(server.scope, { startImmediately: true }),
+                  Effect.asVoid
                 )
               }
 
@@ -430,7 +471,7 @@ export const make = Effect.fnUntraced(function*<
       )
     })
 
-  const decodeMessage = makeMessageDecode(entity)
+  const decodeMessage = makeMessageDecode(entity, entityRpcs)
 
   return identity<EntityManager>({
     interruptShard,
@@ -460,7 +501,7 @@ export const make = Effect.fnUntraced(function*<
                   requestId: message.envelope.requestId,
                   exit: Exit.die(new MalformedMessage({ cause }))
                 }),
-                rpc: entity.protocol.requests.get(message.envelope.tag)!,
+                rpc: entityRpcs.get(message.envelope.tag)!,
                 services: services as any
               })
             ))
@@ -472,7 +513,7 @@ export const make = Effect.fnUntraced(function*<
               )
             }
             const request = message as Message.IncomingRequest<any>
-            const rpc = entity.protocol.requests.get(decoded.envelope.tag)!
+            const rpc = entityRpcs.get(decoded.envelope.tag)!
             return sendLocal(
               new Message.IncomingRequestLocal({
                 envelope: decoded.envelope,
@@ -499,7 +540,10 @@ const defaultRetryPolicy = Schedule.exponential(500, 1.5).pipe(
   Schedule.either(Schedule.spaced("10 seconds"))
 )
 
-const makeMessageDecode = <Type extends string, Rpcs extends Rpc.Any>(entity: Entity<Type, Rpcs>) => {
+const makeMessageDecode = <Type extends string, Rpcs extends Rpc.Any>(
+  entity: Entity<Type, Rpcs>,
+  entityRpcs: Map<string, Rpcs>
+) => {
   const decodeRequest = Effect.fnUntracedEager(function*(
     message: Message.IncomingRequest<Rpcs>,
     rpc: Rpc.AnyWithProps
@@ -533,7 +577,7 @@ const makeMessageDecode = <Type extends string, Rpcs extends Rpc.Any>(entity: En
     if (message._tag === "IncomingEnvelope") {
       return Effect.succeed(message)
     }
-    const rpc = entity.protocol.requests.get(message.envelope.tag) as any as Rpc.AnyWithProps
+    const rpc = entityRpcs.get(message.envelope.tag) as any as Rpc.AnyWithProps
     if (!rpc) {
       return Effect.fail(
         new Schema.SchemaError(

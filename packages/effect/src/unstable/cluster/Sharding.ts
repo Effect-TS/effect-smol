@@ -75,6 +75,11 @@ export class Sharding extends ServiceMap.Key<Sharding, {
   readonly getShardId: (entityId: EntityId, group: string) => ShardId
 
   /**
+   * Generate a Snowflake ID that is unique to this runner.
+   */
+  readonly getSnowflake: Effect.Effect<Snowflake.Snowflake>
+
+  /**
    * Returns `true` if sharding is shutting down, `false` otherwise.
    */
   readonly isShutdown: Effect.Effect<boolean>
@@ -1248,6 +1253,7 @@ const make = Effect.gen(function*() {
   const sharding = Sharding.of({
     getRegistrationEvents,
     getShardId,
+    getSnowflake: Effect.sync(() => snowflakeGen.nextUnsafe()),
     isShutdown: Effect.sync(() => MutableRef.get(isShutdown)),
     registerEntity,
     registerSingleton,
