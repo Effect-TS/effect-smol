@@ -56,6 +56,16 @@ export const layerClientProtocolHttp = (options: {
  * @since 4.0.0
  * @category Layers
  */
+export const layerClientProtocolHttpDefault: Layer.Layer<
+  Runners.RpcClientProtocol,
+  never,
+  RpcSerialization.RpcSerialization | HttpClient.HttpClient
+> = layerClientProtocolHttp({ path: "/" })
+
+/**
+ * @since 4.0.0
+ * @category Layers
+ */
 export const layerClientProtocolWebsocket = (options: {
   readonly path: string
   readonly https?: boolean | undefined
@@ -82,6 +92,16 @@ export const layerClientProtocolWebsocket = (options: {
       })
     })
   )
+
+/**
+ * @since 4.0.0
+ * @category Layers
+ */
+export const layerClientProtocolWebsocketDefault: Layer.Layer<
+  Runners.RpcClientProtocol,
+  never,
+  RpcSerialization.RpcSerialization | Socket.WebSocketConstructor
+> = layerClientProtocolWebsocket({ path: "/" })
 
 /**
  * @since 4.0.0
@@ -187,7 +207,7 @@ export const layerHttp: Layer.Layer<
   | RunnerStorage
   | RunnerHealth
 > = HttpRouter.serve(layerHttpOptions({ path: "/" })).pipe(
-  Layer.provide(layerClientProtocolHttp({ path: "/" }))
+  Layer.provide(layerClientProtocolHttpDefault)
 )
 
 /**
@@ -202,7 +222,7 @@ export const layerHttpClientOnly: Layer.Layer<
   | HttpClient.HttpClient
   | MessageStorage
 > = RunnerServer.layerClientOnly.pipe(
-  Layer.provide(layerClientProtocolHttp({ path: "/" }))
+  Layer.provide(layerClientProtocolHttpDefault)
 )
 
 /**
@@ -220,7 +240,7 @@ export const layerWebsocket: Layer.Layer<
   | RunnerStorage
   | RunnerHealth
 > = HttpRouter.serve(layerWebsocketOptions({ path: "/" })).pipe(
-  Layer.provide(layerClientProtocolWebsocket({ path: "/" }))
+  Layer.provide(layerClientProtocolWebsocketDefault)
 )
 
 /**
@@ -232,5 +252,5 @@ export const layerWebsocketClientOnly: Layer.Layer<
   never,
   ShardingConfig.ShardingConfig | MessageStorage | RpcSerialization.RpcSerialization | Socket.WebSocketConstructor
 > = RunnerServer.layerClientOnly.pipe(
-  Layer.provide(layerClientProtocolWebsocket({ path: "/" }))
+  Layer.provide(layerClientProtocolWebsocketDefault)
 )

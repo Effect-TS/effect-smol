@@ -7,7 +7,7 @@ import * as Layer from "effect/Layer"
 import * as HttpRunner from "effect/unstable/cluster/HttpRunner"
 import * as MessageStorage from "effect/unstable/cluster/MessageStorage"
 import * as RunnerHealth from "effect/unstable/cluster/RunnerHealth"
-import type * as Runners from "effect/unstable/cluster/Runners"
+import * as Runners from "effect/unstable/cluster/Runners"
 import * as RunnerStorage from "effect/unstable/cluster/RunnerStorage"
 import type { Sharding } from "effect/unstable/cluster/Sharding"
 import * as ShardingConfig from "effect/unstable/cluster/ShardingConfig"
@@ -75,17 +75,22 @@ export const layer = <
       Layer.provide([NodeFileSystem.layer, layerHttpClientK8s])
     )
     : RunnerHealth.layerPing.pipe(
-      Layer.provide(layer)
+      Layer.provide(Runners.layerRpc),
+      Layer.provide(
+        options.transport === "http"
+          ? HttpRunner.layerClientProtocolHttpDefault.pipe(Layer.provide(NodeHttpClient.layerUndici))
+          : HttpRunner.layerClientProtocolWebsocketDefault.pipe(Layer.provide(NodeSocket.layerWebSocketConstructor))
+      )
     )
 
   return layer.pipe(
+    Layer.provide(runnerHealth),
     Layer.provideMerge(
       options?.storage === "local"
         ? MessageStorage.layerNoop
         : SqlMessageStorage.layer
     ),
     Layer.provide(options?.storage === "local" ? RunnerStorage.layerMemory : SqlRunnerStorage.layer),
-    Layer.provide(runnerHealth),
     Layer.provide(ShardingConfig.layerFromEnv(options?.shardingConfig)),
     Layer.provide(
       options?.serialization === "ndjson" ? RpcSerialization.layerNdjson : RpcSerialization.layerMsgPack
