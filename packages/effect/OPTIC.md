@@ -20,13 +20,13 @@ Suppose we have an employee object, and we want to capitalize the first characte
 **Example** (Uppercasing the first character of a street name)
 
 ```ts
-import { Option } from "effect/data"
 import { Optic } from "effect/optic"
+import { String } from "effect/primitives"
 
 // Define some nested data structures
 interface Street {
   readonly num: number
-  readonly name: Option.Option<string>
+  readonly name: string
 }
 interface Address {
   readonly city: string
@@ -50,23 +50,21 @@ const from: Employee = {
       city: "london",
       street: {
         num: 23,
-        name: Option.some("high street")
+        name: "high street"
       }
     }
   }
 }
 
-// Build an optic that drills down to the first character of the street name
-const _firstChar = Optic.id<Employee>()
+// Build an optic that drills down to the street name
+const _name = Optic.id<Employee>()
   .key("company") // access "company"
   .key("address") // access "address"
   .key("street") // access "street"
   .key("name") // access "name"
-  .compose(Optic.some()) // go inside an Option.Some
-  .compose(Optic.charAt(0)) // access the first character of the string
 
 // Modify the targeted value
-const capitalizeName = _firstChar.modify((s) => s.toUpperCase())
+const capitalizeName = _name.modify(String.capitalize)
 
 console.dir(capitalizeName(from), { depth: null })
 /*
