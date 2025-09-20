@@ -19,16 +19,4 @@ export const singletons = Metric.gauge("effect_cluster_singletons", { bigint: tr
  * @since 4.0.0
  * @category metrics
  */
-export const runners = Metric.gauge("effect_cluster_runners", { bigint: true })
-
-/**
- * @since 4.0.0
- * @category metrics
- */
-export const runnersHealthy = Metric.gauge("effect_cluster_runners_healthy", { bigint: true })
-
-/**
- * @since 4.0.0
- * @category metrics
- */
 export const shards = Metric.gauge("effect_cluster_shards", { bigint: true })

@@ -911,10 +911,6 @@ const make = Effect.gen(function*() {
         activeShardsLatch.openUnsafe()
       }
 
-      // Update metrics
-      ClusterMetrics.runners.updateUnsafe(BigInt(MutableHashMap.size(allRunners)), ServiceMap.empty())
-      ClusterMetrics.runnersHealthy.updateUnsafe(BigInt(healthyRunnerCount), ServiceMap.empty())
-
       // Ensure the current runner is registered
       if (selfRunner && !isShutdown.current && !MutableHashMap.has(allRunners, selfRunner)) {
         continue
@@ -951,8 +947,7 @@ const make = Effect.gen(function*() {
           )
         }
         if (healthyRunnerCount <= 1) {
-          // never mark the last healthy runner as unhealthy, to prevent a
-          // deadlock
+          // never mark the last runner as unhealthy, to prevent a deadlock
           return Effect.void
         }
         healthyRunnerCount--
