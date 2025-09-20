@@ -28,6 +28,7 @@ import * as RpcClient from "../rpc/RpcClient.ts"
 import { type FromServer, RequestId } from "../rpc/RpcMessage.ts"
 import type { MailboxFull, PersistenceError } from "./ClusterError.ts"
 import { AlreadyProcessingMessage, EntityNotAssignedToRunner, EntityNotManagedByRunner } from "./ClusterError.ts"
+import * as ClusterMetrics from "./ClusterMetrics.ts"
 import { Persisted, Uninterruptible } from "./ClusterSchema.ts"
 import * as ClusterSchema from "./ClusterSchema.ts"
 import type { CurrentAddress, CurrentRunnerAddress, Entity, HandlersFrom } from "./Entity.ts"
@@ -264,6 +265,9 @@ const make = Effect.gen(function*() {
         if (acquired.length > 0) {
           yield* storageReadLatch.open
           yield* Effect.forkIn(syncSingletons, shardingScope)
+
+          // update metrics
+          ClusterMetrics.shards.updateUnsafe(BigInt(MutableHashSet.size(acquiredShards)), ServiceMap.empty())
         }
         yield* Effect.sleep(1000)
         activeShardsLatch.openUnsafe()
@@ -408,6 +412,10 @@ const make = Effect.gen(function*() {
         }
       }
     }
+    ClusterMetrics.singletons.updateUnsafe(
+      BigInt(yield* FiberMap.size(singletonFibers)),
+      ServiceMap.empty()
+    )
   }))
 
   // --- Storage inbox ---
@@ -902,6 +910,10 @@ const make = Effect.gen(function*() {
         yield* Effect.logDebug("New shard assignments", selfShards)
         activeShardsLatch.openUnsafe()
       }
+
+      // Update metrics
+      ClusterMetrics.runners.updateUnsafe(BigInt(MutableHashMap.size(allRunners)), ServiceMap.empty())
+      ClusterMetrics.runnersHealthy.updateUnsafe(BigInt(healthyRunnerCount), ServiceMap.empty())
 
       // Ensure the current runner is registered
       if (selfRunner && !isShutdown.current && !MutableHashMap.has(allRunners, selfRunner)) {
