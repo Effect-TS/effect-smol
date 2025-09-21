@@ -279,6 +279,20 @@ export const make = <
         const engine = yield* EngineTag
         const executionId = yield* makeExecutionId(payload)
         yield* Effect.annotateCurrentSpan({ executionId })
+        let result: Result<unknown, unknown> | undefined
+
+        // link interruption with parent workflow
+        const parentInstance = yield* Effect.serviceOption(InstanceTag)
+        if (Option.isSome(parentInstance)) {
+          const instance = parentInstance.value
+          yield* Effect.addFinalizer(() => {
+            if (!instance.interrupted || result?._tag === "Complete") {
+              return Effect.void
+            }
+            return engine.interrupt(self, executionId)
+          })
+        }
+
         if (opts?.discard) {
           yield* engine.execute({
             workflow: self,
@@ -288,7 +302,7 @@ export const make = <
           })
           return executionId
         }
-        const parentInstance = yield* Effect.serviceOption(InstanceTag)
+
         const run = engine.execute({
           workflow: self,
           executionId,
@@ -297,7 +311,7 @@ export const make = <
           parent: Option.getOrUndefined(parentInstance)
         })
         if (Option.isSome(parentInstance)) {
-          const result = yield* wrapActivityResult(run, (result) => result._tag === "Suspended")
+          result = yield* wrapActivityResult(run, (result) => result._tag === "Suspended")
           if (result._tag === "Suspended") {
             parentInstance.value.suspended = true
             return yield* Effect.interrupt
@@ -307,7 +321,7 @@ export const make = <
 
         let sleep: Effect.Effect<any> | undefined
         while (true) {
-          const result = yield* run
+          result = yield* run
           if (result._tag === "Complete") {
             return yield* result.exit as Exit.Exit<Success["Type"], Error["Type"]>
           }
