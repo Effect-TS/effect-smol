@@ -449,7 +449,7 @@ export const callback = <A, E = never, R = never>(
  * @example
  * ```ts
  * import { Channel } from "effect/stream"
- * import { Queue } from "effect"
+ * import { Effect, Queue } from "effect"
  *
  * const channel = Channel.callbackArray<number>(Effect.fn(function*(queue) {
  *   yield* Queue.offer(queue, 1)
