@@ -451,10 +451,10 @@ export const callback = <A, E = never, R = never>(
  * import { Channel } from "effect/stream"
  * import { Queue } from "effect"
  *
- * const channel = Channel.callbackArray<number>((queue) => {
- *   Queue.offer(queue, 1)
- *   Queue.offer(queue, 2)
- * })
+ * const channel = Channel.callbackArray<number>(Effect.fn(function*(queue) {
+ *   yield* Queue.offer(queue, 1)
+ *   yield* Queue.offer(queue, 2)
+ * }))
  * // Emits arrays of numbers instead of individual numbers
  * ```
  *
@@ -543,17 +543,17 @@ export const acquireUseRelease = <A, E, R, OutElem, OutErr, OutDone, InElem, InE
  * @since 2.0.0
  */
 export const acquireRelease: {
-  <Z, R2>(
+  <Z>(
     release: (z: Z, e: Exit.Exit<unknown, unknown>) => Effect.Effect<unknown>
-  ): <E, R>(self: Effect.Effect<Z, E, R>) => Channel<Z, E, void, unknown, unknown, unknown, R2 | R>
-  <Z, E, R, R2>(
+  ): <E, R>(self: Effect.Effect<Z, E, R>) => Channel<Z, E, void, unknown, unknown, unknown, R>
+  <Z, E, R>(
     self: Effect.Effect<Z, E, R>,
     release: (z: Z, e: Exit.Exit<unknown, unknown>) => Effect.Effect<unknown>
-  ): Channel<Z, E, void, unknown, unknown, unknown, R | R2>
-} = dual(2, <Z, E, R, R2>(
+  ): Channel<Z, E, void, unknown, unknown, unknown, R>
+} = dual(2, <Z, E, R>(
   self: Effect.Effect<Z, E, R>,
   release: (z: Z, e: Exit.Exit<unknown, unknown>) => Effect.Effect<unknown>
-): Channel<Z, E, void, unknown, unknown, unknown, R | R2> =>
+): Channel<Z, E, void, unknown, unknown, unknown, R> =>
   unwrap(Effect.map(
     Effect.acquireRelease(self, release),
     succeed
@@ -729,8 +729,9 @@ export const fromIterable = <A, L>(iterable: Iterable<A, L>): Channel<A, never, 
  * @since 2.0.0
  */
 export const fromIterableArray = <A, L>(
-  iterable: Iterable<A, L>
-): Channel<Arr.NonEmptyReadonlyArray<A>, never, L> => fromIteratorArray(() => iterable[Symbol.iterator]())
+  iterable: Iterable<A, L>,
+  chunkSize = DefaultChunkSize
+): Channel<Arr.NonEmptyReadonlyArray<A>, never, L> => fromIteratorArray(() => iterable[Symbol.iterator](), chunkSize)
 
 /**
  * Creates a `Channel` that emits a single value and then ends.

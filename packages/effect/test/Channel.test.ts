@@ -1,15 +1,134 @@
 import { assert, describe, it } from "@effect/vitest"
-import { Fiber, Queue } from "effect"
+import * as Chunk from "effect/collections/Chunk"
 import * as Effect from "effect/Effect"
 import * as Exit from "effect/Exit"
-import { Channel } from "effect/stream"
+import * as Fiber from "effect/Fiber"
+import * as Queue from "effect/Queue"
+import * as Channel from "effect/stream/Channel"
 
 describe("Channel", () => {
   describe("constructors", () => {
+    it.effect("empty", () =>
+      Effect.gen(function*() {
+        const result = yield* Channel.empty.pipe(
+          Channel.runCollect
+        )
+        assert.deepStrictEqual(result, [])
+      }))
+
     it.effect("succeed", () =>
       Effect.gen(function*() {
-        const result = yield* Channel.succeed(1).pipe(Channel.runCollect)
+        const result = yield* Channel.succeed(1).pipe(
+          Channel.runCollect
+        )
         assert.deepStrictEqual(result, [1])
+      }))
+
+    it.effect("sync", () =>
+      Effect.gen(function*() {
+        const result = yield* Channel.sync(() => 1).pipe(
+          Channel.runCollect
+        )
+        assert.deepStrictEqual(result, [1])
+      }))
+
+    it.effect("end", () =>
+      Effect.gen(function*() {
+        let result = 0
+        yield* Channel.end(42).pipe(
+          Channel.mapDone((n) => {
+            result = n
+          }),
+          Channel.runDrain
+        )
+        assert.strictEqual(result, 42)
+      }))
+
+    it.effect("endSync", () =>
+      Effect.gen(function*() {
+        let result = 0
+        yield* Channel.endSync(() => 42).pipe(
+          Channel.mapDone((n) => {
+            result = n
+          }),
+          Channel.runDrain
+        )
+        assert.strictEqual(result, 42)
+      }))
+
+    it.effect("fromArray", () =>
+      Effect.gen(function*() {
+        const array = [0, 1, 2, 3, 4]
+        const result = yield* Channel.runCollect(Channel.fromArray(array))
+        assert.deepStrictEqual(result, array)
+      }))
+
+    it.effect("fromChunk", () =>
+      Effect.gen(function*() {
+        const chunk = Chunk.fromArrayUnsafe([0, 1, 2, 3, 4])
+        const result = yield* Channel.runCollect(Channel.fromChunk(chunk))
+        assert.deepStrictEqual(result, Chunk.toArray(chunk))
+      }))
+
+    it.effect("fromIterator", () =>
+      Effect.gen(function*() {
+        const result = yield* Channel.fromIterator(() => ({
+          n: 0,
+          next(this: { n: number }) {
+            return this.n === 5
+              ? { done: true, value: this.n }
+              : { done: false, value: this.n++ }
+          }
+        })).pipe(Channel.runCollect)
+        assert.deepStrictEqual(result, [0, 1, 2, 3, 4])
+      }))
+
+    it.effect("fromIteratorArray", () =>
+      Effect.gen(function*() {
+        function* fibonacci(): Generator<number, void, unknown> {
+          let a = 0, b = 1
+          for (let i = 0; i < 5; i++) {
+            yield a
+            ;[a, b] = [b, a + b]
+          }
+        }
+        const result = yield* Channel.runCollect(
+          Channel.fromIteratorArray(() => fibonacci(), 3)
+        )
+        assert.deepStrictEqual(result, [[0, 1, 1], [2, 3]])
+      }))
+
+    it.effect("fromIterable", () =>
+      Effect.gen(function*() {
+        const set = new Set([1, 1, 2, 3])
+        const result = yield* Channel.runCollect(Channel.fromIterable(set))
+        assert.deepStrictEqual(result, [1, 2, 3])
+      }))
+
+    it.effect("fromIterableArray", () =>
+      Effect.gen(function*() {
+        const numbers = [1, 2, 3, 4, 5]
+        const result = yield* Channel.runCollect(Channel.fromIterableArray(numbers))
+        const resultChunked = yield* Channel.runCollect(Channel.fromIterableArray(numbers, 4))
+        assert.deepStrictEqual(result, [[1, 2, 3, 4, 5]])
+        assert.deepStrictEqual(resultChunked, [[1, 2, 3, 4], [5]])
+      }))
+
+    it.effect("acquireRelease", () =>
+      Effect.gen(function*() {
+        let acquired = false
+        let released = false
+        yield* Channel.acquireRelease(
+          Effect.sync(() => {
+            acquired = true
+          }),
+          () =>
+            Effect.sync(() => {
+              released = true
+            })
+        ).pipe(Channel.runDrain)
+        assert.isTrue(acquired)
+        assert.isTrue(released)
       }))
   })
 
@@ -160,10 +279,11 @@ describe("Channel", () => {
   describe("switchMap", () => {
     it.effect("interrupts the previous channel", () =>
       Effect.gen(function*() {
-        yield* Channel.fromIterable([1, 2, 3]).pipe(
+        const result = yield* Channel.fromIterable([1, 2, 3]).pipe(
           Channel.switchMap((n) => n === 3 ? Channel.empty : Channel.never),
           Channel.runDrain
         )
+        assert.isUndefined(result)
       }))
   })
 })
