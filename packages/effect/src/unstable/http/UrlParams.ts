@@ -150,7 +150,7 @@ const arrayEquivalence = Arr.getEquivalence(
  * @category schemas
  */
 export interface UrlParamsSchema extends Schema.declare<UrlParams, ReadonlyArray<readonly [string, string]>> {
-  readonly "~rebuild.out": UrlParamsSchema
+  readonly "Rebuild": UrlParamsSchema
 }
 
 /**

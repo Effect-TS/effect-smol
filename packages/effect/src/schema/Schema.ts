@@ -96,7 +96,7 @@ export interface Bottom<
   RD,
   RE,
   Ast extends AST.AST,
-  RebuildOut extends Top,
+  Rebuild extends Top,
   AnnotateIn extends Annotations.Annotations,
   TypeMakeIn = T,
   Iso = T,
@@ -110,7 +110,7 @@ export interface Bottom<
   readonly [TypeId]: typeof TypeId
 
   readonly ast: Ast
-  readonly "~rebuild.out": RebuildOut
+  readonly "Rebuild": Rebuild
   readonly "~annotate.in": AnnotateIn
 
   readonly "Type": T
@@ -128,9 +128,9 @@ export interface Bottom<
   readonly "~encoded.mutability": EncodedMutability
   readonly "~encoded.optionality": EncodedOptionality
 
-  annotate(annotations: this["~annotate.in"]): this["~rebuild.out"]
-  annotateKey(annotations: Annotations.Key<this["Type"]>): this["~rebuild.out"]
-  rebuild(ast: this["ast"]): this["~rebuild.out"]
+  annotate(annotations: this["~annotate.in"]): this["Rebuild"]
+  annotateKey(annotations: Annotations.Key<this["Type"]>): this["Rebuild"]
+  rebuild(ast: this["ast"]): this["Rebuild"]
   /**
    * @throws {Error} The issue is contained in the error cause.
    */
@@ -140,7 +140,7 @@ export interface Bottom<
       Check.Check<this["Type"]>,
       ...Array<Check.Check<this["Type"]>>
     ]
-  ): this["~rebuild.out"]
+  ): this["Rebuild"]
 }
 
 const TypeId = "~effect/schema/Schema"
@@ -151,7 +151,7 @@ abstract class BottomImpl<
   RD,
   RE,
   Ast extends AST.AST,
-  RebuildOut extends Top,
+  Rebuild extends Top,
   AnnotateIn extends Annotations.Annotations,
   TypeMakeIn = T,
   Iso = T,
@@ -168,7 +168,7 @@ abstract class BottomImpl<
     RD,
     RE,
     Ast,
-    RebuildOut,
+    Rebuild,
     AnnotateIn,
     TypeMakeIn,
     Iso,
@@ -187,7 +187,7 @@ abstract class BottomImpl<
   declare readonly "DecodingServices": RD
   declare readonly "EncodingServices": RE
 
-  declare readonly "~rebuild.out": RebuildOut
+  declare readonly "Rebuild": Rebuild
   declare readonly "~annotate.in": AnnotateIn
 
   declare readonly "~type.make.in": TypeMakeIn
@@ -208,11 +208,11 @@ abstract class BottomImpl<
     this.ast = ast
     this.makeSync = ToParser.makeSync(this)
   }
-  abstract rebuild(ast: this["ast"]): this["~rebuild.out"]
-  annotate(annotations: this["~annotate.in"]): this["~rebuild.out"] {
+  abstract rebuild(ast: this["ast"]): this["Rebuild"]
+  annotate(annotations: this["~annotate.in"]): this["Rebuild"] {
     return this.rebuild(AST.annotate(this.ast, annotations))
   }
-  annotateKey(annotations: Annotations.Key<this["Type"]>): this["~rebuild.out"] {
+  annotateKey(annotations: Annotations.Key<this["Type"]>): this["Rebuild"] {
     return this.rebuild(AST.annotateKey(this.ast, annotations))
   }
   check(
@@ -220,7 +220,7 @@ abstract class BottomImpl<
       Check.Check<this["Type"]>,
       ...Array<Check.Check<this["Type"]>>
     ]
-  ): this["~rebuild.out"] {
+  ): this["Rebuild"] {
     return this.rebuild(AST.appendChecks(this.ast, checks))
   }
 }
@@ -239,7 +239,7 @@ export function revealBottom<S extends Top>(
   S["DecodingServices"],
   S["EncodingServices"],
   S["ast"],
-  S["~rebuild.out"],
+  S["Rebuild"],
   S["~annotate.in"],
   S["~type.make.in"],
   S["Iso"],
@@ -262,7 +262,7 @@ export function revealBottom<S extends Top>(
  * @since 4.0.0
  */
 export function annotate<S extends Top>(annotations: S["~annotate.in"]) {
-  return (self: S): S["~rebuild.out"] => {
+  return (self: S): S["Rebuild"] => {
     return self.annotate(annotations)
   }
 }
@@ -276,7 +276,7 @@ export function annotate<S extends Top>(annotations: S["~annotate.in"]) {
  * @since 4.0.0
  */
 export function annotateKey<S extends Top>(annotations: Annotations.Key<S["Type"]>) {
-  return (self: S): S["~rebuild.out"] => {
+  return (self: S): S["Rebuild"] => {
     return self.rebuild(AST.annotateKey(self.ast, annotations))
   }
 }
@@ -319,7 +319,7 @@ export declare namespace Schema {
  */
 export interface Schema<out T> extends Top {
   readonly "Type": T
-  readonly "~rebuild.out": Schema<T>
+  readonly "Rebuild": Schema<T>
 }
 
 /**
@@ -353,7 +353,7 @@ export interface Optic<out T, out Iso> extends Schema<T> {
   readonly "Iso": Iso
   readonly "DecodingServices": never
   readonly "EncodingServices": never
-  readonly "~rebuild.out": Optic<T, Iso>
+  readonly "Rebuild": Optic<T, Iso>
 }
 
 /**
@@ -363,7 +363,7 @@ export interface Codec<out T, out E = T, out RD = never, out RE = never> extends
   readonly "Encoded": E
   readonly "DecodingServices": RD
   readonly "EncodingServices": RE
-  readonly "~rebuild.out": Codec<T, E, RD, RE>
+  readonly "Rebuild": Codec<T, E, RD, RE>
 }
 
 /**
@@ -743,7 +743,7 @@ class make$<S extends Top> extends BottomImpl<
   S["DecodingServices"],
   S["EncodingServices"],
   S["ast"],
-  S["~rebuild.out"],
+  S["Rebuild"],
   S["~annotate.in"],
   S["~type.make.in"],
   S["Iso"],
@@ -754,11 +754,11 @@ class make$<S extends Top> extends BottomImpl<
   S["~encoded.mutability"],
   S["~encoded.optionality"]
 > {
-  readonly rebuild: (ast: S["ast"]) => S["~rebuild.out"]
+  readonly rebuild: (ast: S["ast"]) => S["Rebuild"]
 
   constructor(
     ast: S["ast"],
-    rebuild: (ast: S["ast"]) => S["~rebuild.out"]
+    rebuild: (ast: S["ast"]) => S["Rebuild"]
   ) {
     super(ast)
     this.rebuild = rebuild
@@ -786,7 +786,7 @@ export function make<S extends Top>(ast: S["ast"]): Bottom<
   S["DecodingServices"],
   S["EncodingServices"],
   S["ast"],
-  S["~rebuild.out"],
+  S["Rebuild"],
   S["~annotate.in"],
   S["~type.make.in"],
   S["Iso"],
@@ -879,7 +879,7 @@ export const optionalKey = lambda<optionalKeyLambda>(function optionalKey<S exte
  * @since 4.0.0
  */
 export interface optional<S extends Top> extends optionalKey<Union<readonly [S, Undefined]>> {
-  readonly "~rebuild.out": optional<S>
+  readonly "Rebuild": optional<S>
 }
 
 interface optionalLambda extends Lambda {
@@ -1062,7 +1062,7 @@ function isFlip$(schema: Top): schema is flip<any> {
 /**
  * @since 4.0.0
  */
-export function flip<S extends Top>(schema: S): S extends flip<infer F> ? F["~rebuild.out"] : flip<S>
+export function flip<S extends Top>(schema: S): S extends flip<infer F> ? F["Rebuild"] : flip<S>
 export function flip<S extends Top>(schema: S): flip<S> {
   if (isFlip$(schema)) {
     return schema.schema.rebuild(AST.flip(schema.ast))
@@ -2263,7 +2263,7 @@ export const NonEmptyArray = lambda<NonEmptyArrayLambda>(
  * @since 4.0.0
  */
 export interface UniqueArray<S extends Top> extends Array$<S> {
-  readonly "~rebuild.out": UniqueArray<S>
+  readonly "Rebuild": UniqueArray<S>
 }
 
 /**
@@ -2491,7 +2491,7 @@ export function Literals<const L extends ReadonlyArray<AST.Literal>>(literals: L
  * @since 4.0.0
  */
 export interface NullOr<S extends Top> extends Union<readonly [S, Null]> {
-  readonly "~rebuild.out": NullOr<S>
+  readonly "Rebuild": NullOr<S>
 }
 
 interface NullOrLambda extends Lambda {
@@ -2513,7 +2513,7 @@ export const NullOr = lambda<NullOrLambda>(
  * @since 4.0.0
  */
 export interface UndefinedOr<S extends Top> extends Union<readonly [S, Undefined]> {
-  readonly "~rebuild.out": UndefinedOr<S>
+  readonly "Rebuild": UndefinedOr<S>
 }
 
 interface UndefinedOrLambda extends Lambda {
@@ -2535,7 +2535,7 @@ export const UndefinedOr = lambda<UndefinedOrLambda>(
  * @since 4.0.0
  */
 export interface NullishOr<S extends Top> extends Union<readonly [S, Null, Undefined]> {
-  readonly "~rebuild.out": NullishOr<S>
+  readonly "Rebuild": NullishOr<S>
 }
 
 interface NullishOrLambda extends Lambda {
@@ -2593,7 +2593,7 @@ export function suspend<S extends Top>(f: () => S): suspend<S> {
  * @since 4.0.0
  */
 export function check<S extends Top>(...checks: readonly [Check.Check<S["Type"]>, ...Array<Check.Check<S["Type"]>>]) {
-  return (self: S): S["~rebuild.out"] => self.check(...checks)
+  return (self: S): S["Rebuild"] => self.check(...checks)
 }
 
 /**
@@ -2606,7 +2606,7 @@ export interface refine<T extends S["Type"], S extends Top> extends
     S["DecodingServices"],
     S["EncodingServices"],
     S["ast"],
-    refine<T, S["~rebuild.out"]>,
+    refine<T, S["Rebuild"]>,
     Annotations.Bottom<T>,
     S["~type.make.in"],
     T,
@@ -2624,7 +2624,7 @@ export interface refine<T extends S["Type"], S extends Top> extends
  * @since 4.0.0
  */
 export function refine<T extends E, E>(refine: Check.Refine<T, E>) {
-  return <S extends Schema<E>>(self: S): refine<S["Type"] & T, S["~rebuild.out"]> => {
+  return <S extends Schema<E>>(self: S): refine<S["Type"] & T, S["Rebuild"]> => {
     const ast = AST.appendChecks(self.ast, [refine])
     return self.rebuild(ast) as any
   }
@@ -2638,7 +2638,7 @@ export function refineByGuard<T extends S["Type"], S extends Top>(
   is: (value: S["Type"]) => value is T,
   annotations?: Annotations.Filter
 ) {
-  return (self: S): refine<T, S["~rebuild.out"]> => {
+  return (self: S): refine<T, S["Rebuild"]> => {
     return self.pipe(refine(Check.makeRefineByGuard(is, annotations)))
   }
 }
@@ -2648,7 +2648,7 @@ export function refineByGuard<T extends S["Type"], S extends Top>(
  * @since 4.0.0
  */
 export function brand<B extends string | symbol>(brand: B, annotations?: Annotations.Filter) {
-  return <S extends Top>(self: S): refine<S["Type"] & Brand<B>, S["~rebuild.out"]> => {
+  return <S extends Top>(self: S): refine<S["Type"] & Brand<B>, S["Rebuild"]> => {
     return self.pipe(refine(Check.makeBrand(brand, annotations)))
   }
 }
@@ -2742,7 +2742,7 @@ export function encodingMiddleware<S extends Top, RE>(
  */
 export function catchDecoding<S extends Top>(
   f: (issue: Issue.Issue) => Effect.Effect<O.Option<S["Type"]>, Issue.Issue>
-): (self: S) => S["~rebuild.out"] {
+): (self: S) => S["Rebuild"] {
   return catchDecodingWithContext(f)
 }
 
@@ -2762,7 +2762,7 @@ export function catchDecodingWithContext<S extends Top, R = never>(
  */
 export function catchEncoding<S extends Top>(
   f: (issue: Issue.Issue) => Effect.Effect<O.Option<S["Encoded"]>, Issue.Issue>
-): (self: S) => S["~rebuild.out"] {
+): (self: S) => S["Rebuild"] {
   return catchEncodingWithContext(f)
 }
 
@@ -2951,7 +2951,7 @@ export function withConstructorDefault<S extends Top & { readonly "~type.constru
  * @since 4.0.0
  */
 export interface withDecodingDefaultKey<S extends Top> extends decodeTo<S, optionalKey<encodedCodec<S>>> {
-  readonly "~rebuild.out": withDecodingDefaultKey<S>
+  readonly "Rebuild": withDecodingDefaultKey<S>
 }
 
 /**
@@ -2987,7 +2987,7 @@ export function withDecodingDefaultKey<S extends Top>(
  * @since 4.0.0
  */
 export interface withDecodingDefault<S extends Top> extends decodeTo<S, optional<encodedCodec<S>>> {
-  readonly "~rebuild.out": withDecodingDefault<S>
+  readonly "Rebuild": withDecodingDefault<S>
 }
 
 /**
@@ -3016,7 +3016,7 @@ export function withDecodingDefault<S extends Top>(
  * @since 4.0.0
  */
 export interface tag<Tag extends AST.Literal> extends withConstructorDefault<Literal<Tag>> {
-  readonly "~rebuild.out": tag<Tag>
+  readonly "Rebuild": tag<Tag>
 }
 
 /**
@@ -3291,7 +3291,7 @@ export interface Option<S extends Top> extends
     OptionIso<S>
   >
 {
-  readonly "~rebuild.out": Option<S>
+  readonly "Rebuild": Option<S>
 }
 
 /**
@@ -3363,7 +3363,7 @@ export function Option<S extends Top>(value: S): Option<S> {
  * @since 4.0.0
  */
 export interface OptionFromNullOr<S extends Top> extends decodeTo<Option<typeCodec<S>>, NullOr<S>> {
-  readonly "~rebuild.out": OptionFromNullOr<S>
+  readonly "Rebuild": OptionFromNullOr<S>
 }
 
 /**
@@ -3391,7 +3391,7 @@ export function OptionFromNullOr<S extends Top>(schema: S): OptionFromNullOr<S> 
  * @since 4.0.0
  */
 export interface OptionFromOptionalKey<S extends Top> extends decodeTo<Option<typeCodec<S>>, optionalKey<S>> {
-  readonly "~rebuild.out": OptionFromOptionalKey<S>
+  readonly "Rebuild": OptionFromOptionalKey<S>
 }
 
 /**
@@ -3419,7 +3419,7 @@ export function OptionFromOptionalKey<S extends Top>(schema: S): OptionFromOptio
  * @since 4.0.0
  */
 export interface OptionFromOptional<S extends Top> extends decodeTo<Option<typeCodec<S>>, optional<S>> {
-  readonly "~rebuild.out": OptionFromOptional<S>
+  readonly "Rebuild": OptionFromOptional<S>
 }
 
 /**
@@ -3455,7 +3455,7 @@ export interface Redacted<S extends Top> extends
     readonly [S]
   >
 {
-  readonly "~rebuild.out": Redacted<S>
+  readonly "Rebuild": Redacted<S>
 }
 
 /**
@@ -3553,7 +3553,7 @@ export interface CauseFailure<E extends Top, D extends Top> extends
     CauseFailureIso<E, D>
   >
 {
-  readonly "~rebuild.out": CauseFailure<E, D>
+  readonly "Rebuild": CauseFailure<E, D>
 }
 
 /**
@@ -3679,7 +3679,7 @@ export interface Cause<E extends Top, D extends Top> extends
     CauseIso<E, D>
   >
 {
-  readonly "~rebuild.out": Cause<E, D>
+  readonly "Rebuild": Cause<E, D>
 }
 
 /**
@@ -3733,7 +3733,7 @@ export function Cause<E extends Top, D extends Top>(error: E, defect: D): Cause<
  * @since 4.0.0
  */
 export interface Error extends instanceOf<globalThis.Error> {
-  readonly "~rebuild.out": Error
+  readonly "Rebuild": Error
 }
 
 const ErrorJsonEncoded = Struct({
@@ -3779,7 +3779,7 @@ export interface Defect extends
     ]
   >
 {
-  readonly "~rebuild.out": Defect
+  readonly "Rebuild": Defect
 }
 
 /**
@@ -3829,7 +3829,7 @@ export interface Exit<A extends Top, E extends Top, D extends Top> extends
     ExitIso<A, E, D>
   >
 {
-  readonly "~rebuild.out": Exit<A, E, D>
+  readonly "Rebuild": Exit<A, E, D>
 }
 
 /**
@@ -3956,7 +3956,7 @@ export interface Map$<Key extends Top, Value extends Top> extends
     ReadonlyArray<readonly [Key["Iso"], Value["Iso"]]>
   >
 {
-  readonly "~rebuild.out": Map$<Key, Value>
+  readonly "Rebuild": Map$<Key, Value>
 }
 
 /**
@@ -4042,7 +4042,7 @@ export interface Opaque<Self, S extends Top, Brand> extends
     S["DecodingServices"],
     S["EncodingServices"],
     S["ast"],
-    S["~rebuild.out"],
+    S["Rebuild"],
     S["~annotate.in"],
     S["~type.make.in"],
     S["Iso"],
@@ -4073,7 +4073,7 @@ export function Opaque<Self, Brand = {}>() {
  * @since 4.0.0
  */
 export interface instanceOf<T, Iso = T> extends declareConstructor<T, T, readonly [], Iso> {
-  readonly "~rebuild.out": instanceOf<T, Iso>
+  readonly "Rebuild": instanceOf<T, Iso>
 }
 
 /**
@@ -4111,7 +4111,7 @@ export function link<T>() { // TODO: better name
  * @since 4.0.0
  */
 export interface URL extends instanceOf<globalThis.URL> {
-  readonly "~rebuild.out": URL
+  readonly "Rebuild": URL
 }
 
 /**
@@ -4153,7 +4153,7 @@ export const URL: URL = instanceOf(
  * @since 4.0.0
  */
 export interface Date extends instanceOf<globalThis.Date> {
-  readonly "~rebuild.out": Date
+  readonly "Rebuild": Date
 }
 
 /**
@@ -4187,7 +4187,7 @@ export const Date: Date = instanceOf(
  * @since 4.0.0
  */
 export interface ValidDate extends Date {
-  readonly "~rebuild.out": ValidDate
+  readonly "Rebuild": ValidDate
 }
 
 /**
@@ -4204,7 +4204,7 @@ export const ValidDate = Date.check(Check.validDate())
  * @since 4.0.0
  */
 export interface Duration extends declare<Duration_.Duration> {
-  readonly "~rebuild.out": Duration
+  readonly "Rebuild": Duration
 }
 
 /**
@@ -4264,7 +4264,7 @@ export const Duration: Duration = declare(
  * @since 4.0.0
  */
 export interface UnknownFromJsonString extends decodeTo<Unknown, String> {
-  readonly "~rebuild.out": UnknownFromJsonString
+  readonly "Rebuild": UnknownFromJsonString
 }
 
 /**
@@ -4299,7 +4299,7 @@ export const UnknownFromJsonString: UnknownFromJsonString = String.annotate({
  * @since 4.0.0
  */
 export interface fromJsonString<S extends Top> extends decodeTo<S, UnknownFromJsonString> {
-  readonly "~rebuild.out": fromJsonString<S>
+  readonly "Rebuild": fromJsonString<S>
 }
 
 /**
@@ -4391,7 +4391,7 @@ export function fromJsonString<S extends Top>(schema: S): fromJsonString<S> {
  * @since 4.0.0
  */
 export interface Finite extends Number {
-  readonly "~rebuild.out": Finite
+  readonly "Rebuild": Finite
 }
 
 /**
@@ -4412,7 +4412,7 @@ export const Int = Number.check(Check.int())
  * @since 4.0.0
  */
 export interface FiniteFromString extends decodeTo<Number, String> {
-  readonly "~rebuild.out": FiniteFromString
+  readonly "Rebuild": FiniteFromString
 }
 
 /**
@@ -4533,7 +4533,7 @@ function makeClass<
     static readonly [TypeId] = TypeId
     static readonly [immerable] = true
 
-    declare static readonly "~rebuild.out": Class<Self, S, Self>
+    declare static readonly "Rebuild": Class<Self, S, Self>
     declare static readonly "~annotate.in": Annotations.Declaration<Self, readonly [S]>
 
     declare static readonly "Type": Self
@@ -4761,7 +4761,7 @@ export const StandardSchemaV1FailureResult = Struct({
  * @since 4.0.0
  */
 export interface BooleanFromBit extends decodeTo<Boolean, Literals<readonly [0, 1]>> {
-  readonly "~rebuild.out": BooleanFromBit
+  readonly "Rebuild": BooleanFromBit
 }
 
 /**
@@ -4784,7 +4784,7 @@ export const BooleanFromBit: BooleanFromBit = Literals([0, 1]).pipe(
  * @since 4.0.0
  */
 export interface Uint8Array extends instanceOf<globalThis.Uint8Array<ArrayBufferLike>> {
-  readonly "~rebuild.out": Uint8Array
+  readonly "Rebuild": Uint8Array
 }
 
 /**
@@ -4810,7 +4810,7 @@ export const Uint8Array: Uint8Array = instanceOf(globalThis.Uint8Array<ArrayBuff
  * @since 4.0.0
  */
 export interface DateTimeUtc extends declare<DateTime.Utc> {
-  readonly "~rebuild.out": DateTimeUtc
+  readonly "Rebuild": DateTimeUtc
 }
 
 /**
@@ -4856,7 +4856,7 @@ export const DateTimeUtc: DateTimeUtc = declare(
  * @since 4.0.0
  */
 export interface DateTimeUtcFromDate extends decodeTo<DateTimeUtc, Date> {
-  readonly "~rebuild.out": DateTimeUtcFromDate
+  readonly "Rebuild": DateTimeUtcFromDate
 }
 
 /**
@@ -4882,7 +4882,7 @@ export const DateTimeUtcFromDate: DateTimeUtcFromDate = ValidDate.pipe(
  * @since 4.0.0
  */
 export interface DateTimeUtcFromString extends decodeTo<DateTimeUtc, String> {
-  readonly "~rebuild.out": DateTimeUtcFromString
+  readonly "Rebuild": DateTimeUtcFromString
 }
 
 /**
@@ -4987,7 +4987,7 @@ export function declareConstructor<T, E = T, Iso = T>() {
  * @since 4.0.0
  */
 export interface declare<T, Iso = T> extends declareConstructor<T, T, readonly [], Iso> {
-  readonly "~rebuild.out": declare<T, Iso>
+  readonly "Rebuild": declare<T, Iso>
 }
 
 /**

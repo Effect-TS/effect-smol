@@ -568,7 +568,7 @@ export const JsonFromString = <S extends Schema.Top>(
 export interface brand<S extends Schema.Top, B extends string | symbol> extends
   Schema.refine<
     S["Type"] & Brand<B>,
-    S["~rebuild.out"]
+    S["Rebuild"]
   >
 {}
 

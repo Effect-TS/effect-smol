@@ -2062,7 +2062,7 @@ export interface Param<Name extends string, S extends Schema.Top> extends
     S["DecodingServices"],
     S["EncodingServices"],
     S["ast"],
-    S["~rebuild.out"],
+    S["Rebuild"],
     S["~annotate.in"],
     S["~type.make.in"],
     S["Iso"],

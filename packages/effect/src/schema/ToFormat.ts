@@ -37,7 +37,7 @@ export declare namespace Annotation {
  * @since 4.0.0
  */
 export function override<S extends Schema.Top>(override: () => Format<S["Type"]>) {
-  return (self: S): S["~rebuild.out"] => {
+  return (self: S): S["Rebuild"] => {
     return self.annotate({ format: { _tag: "Override", override } })
   }
 }

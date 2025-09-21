@@ -73,7 +73,7 @@ export const Equivalence: Equivalence_.Equivalence<Headers> = Record.getEquivale
  * @category schemas
  */
 export interface HeadersSchema extends Schema.declare<Headers, { readonly [x: string]: string }> {
-  readonly "~rebuild.out": HeadersSchema
+  readonly "Rebuild": HeadersSchema
 }
 
 /**

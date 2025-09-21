@@ -59,7 +59,7 @@ export declare namespace Snowflake {
 export interface SnowflakeFromBigInt
   extends Schema.refine<bigint & Brand.Brand<"~effect/cluster/Snowflake">, Schema.BigInt>
 {
-  readonly "~rebuild.out": SnowflakeFromBigInt
+  readonly "Rebuild": SnowflakeFromBigInt
 }
 
 /**
@@ -75,7 +75,7 @@ export const SnowflakeFromBigInt: SnowflakeFromBigInt = Schema.BigInt.pipe(
  * @category Schemas
  */
 export interface SnowflakeFromString extends Schema.decodeTo<SnowflakeFromBigInt, Schema.String> {
-  readonly "~rebuild.out": SnowflakeFromString
+  readonly "Rebuild": SnowflakeFromString
 }
 
 /**

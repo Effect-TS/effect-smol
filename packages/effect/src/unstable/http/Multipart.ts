@@ -144,7 +144,7 @@ export class MultipartError extends Schema.ErrorClass<MultipartError>(MultipartE
  * @category Schemas
  */
 export interface FileSchema extends Schema.declare<PersistedFile> {
-  readonly "~rebuild.out": FileSchema
+  readonly "Rebuild": FileSchema
 }
 
 /**

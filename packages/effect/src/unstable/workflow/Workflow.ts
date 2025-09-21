@@ -430,7 +430,7 @@ export interface CompleteSchema<Success extends Schema.Top, Error extends Schema
     readonly [Schema.Exit<Success, Error, Schema.Defect>]
   >
 {
-  readonly "~rebuild.out": CompleteSchema<Success, Error>
+  readonly "Rebuild": CompleteSchema<Success, Error>
 }
 
 /**

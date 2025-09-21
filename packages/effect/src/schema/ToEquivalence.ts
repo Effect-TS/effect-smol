@@ -44,7 +44,7 @@ export function make<T>(schema: Schema.Schema<T>): Equivalence.Equivalence<T> {
  * @since 4.0.0
  */
 export function override<S extends Schema.Top>(override: () => Equivalence.Equivalence<S["Type"]>) {
-  return (self: S): S["~rebuild.out"] => {
+  return (self: S): S["Rebuild"] => {
     return self.annotate({ equivalence: { _tag: "Override", override } })
   }
 }

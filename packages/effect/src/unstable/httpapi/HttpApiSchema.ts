@@ -151,7 +151,7 @@ export interface Param<Name extends string, S extends Schema.Top> extends
     S["DecodingServices"],
     S["EncodingServices"],
     S["ast"],
-    S["~rebuild.out"],
+    S["Rebuild"],
     S["~annotate.in"],
     S["~type.make.in"],
     S["Iso"],
@@ -304,7 +304,7 @@ export interface Multipart<S extends Schema.Top> extends
     S["DecodingServices"],
     S["EncodingServices"],
     S["ast"],
-    S["~rebuild.out"],
+    S["Rebuild"],
     S["~annotate.in"],
     S["~type.make.in"],
     S["Iso"],
@@ -346,7 +346,7 @@ export interface MultipartStream<S extends Schema.Top> extends
     S["DecodingServices"],
     S["EncodingServices"],
     S["ast"],
-    S["~rebuild.out"],
+    S["Rebuild"],
     S["~annotate.in"],
     S["~type.make.in"],
     S["Iso"],
@@ -428,18 +428,18 @@ export const withEncoding: {
       readonly kind: Kind
       readonly contentType?: string | undefined
     } & Encoding.Validate<S, Kind>
-  ): (self: S) => S["~rebuild.out"]
+  ): (self: S) => S["Rebuild"]
   <S extends Schema.Top, Kind extends Encoding["kind"]>(
     self: S,
     options: {
       readonly kind: Kind
       readonly contentType?: string | undefined
     } & Encoding.Validate<S, Kind>
-  ): S["~rebuild.out"]
+  ): S["Rebuild"]
 } = dual(2, <S extends Schema.Top>(self: S, options: {
   readonly kind: Encoding["kind"]
   readonly contentType?: string | undefined
-}): S["~rebuild.out"] =>
+}): S["Rebuild"] =>
   self.annotate({
     httpApiEncoding: {
       kind: options.kind,
