@@ -390,22 +390,17 @@ const SchemaStoreTypeId = "~effect/persistence/KeyValueStore/SchemaStore" as con
  * @since 1.0.0
  * @category SchemaStore
  */
-export interface SchemaStore<S extends Schema.Top> {
+export interface SchemaStore<T> {
   readonly [SchemaStoreTypeId]: typeof SchemaStoreTypeId
   /**
    * Returns the value of the specified key if it exists.
    */
-  readonly get: (
-    key: string
-  ) => Effect.Effect<Option.Option<S["Type"]>, KeyValueStoreError | Schema.SchemaError, S["DecodingServices"]>
+  readonly get: (key: string) => Effect.Effect<Option.Option<T>, KeyValueStoreError | Schema.SchemaError>
 
   /**
    * Sets the value of the specified key.
    */
-  readonly set: (
-    key: string,
-    value: S["Type"]
-  ) => Effect.Effect<void, KeyValueStoreError | Schema.SchemaError, S["EncodingServices"]>
+  readonly set: (key: string, value: T) => Effect.Effect<void, KeyValueStoreError | Schema.SchemaError>
 
   /**
    * Removes the specified key.
@@ -427,12 +422,8 @@ export interface SchemaStore<S extends Schema.Top> {
    */
   readonly modify: (
     key: string,
-    f: (value: S["Type"]) => S["Type"]
-  ) => Effect.Effect<
-    Option.Option<S["Type"]>,
-    KeyValueStoreError | Schema.SchemaError,
-    S["DecodingServices"] | S["EncodingServices"]
-  >
+    f: (value: T) => T
+  ) => Effect.Effect<Option.Option<T>, KeyValueStoreError | Schema.SchemaError>
 
   /**
    * Returns true if the KeyValueStore contains the specified key.
@@ -449,7 +440,7 @@ export interface SchemaStore<S extends Schema.Top> {
  * @since 1.0.0
  * @category SchemaStore
  */
-export const toSchemaStore = <S extends Schema.Top>(self: KeyValueStore, schema: S): SchemaStore<S> => {
+export const toSchemaStore = <T>(self: KeyValueStore, schema: Schema.Schema<T>): SchemaStore<T> => {
   const serializer = Serializer.json(Schema.typeCodec(schema))
   const jsonSchema = Schema.fromJsonString(serializer)
   const decode = Schema.decodeEffect(jsonSchema)
@@ -464,9 +455,9 @@ export const toSchemaStore = <S extends Schema.Top>(self: KeyValueStore, schema:
       })
     )
 
-  const set = (key: string, value: S["Type"]) => Effect.flatMap(encode(value), (json) => self.set(key, json))
+  const set = (key: string, value: T) => Effect.flatMap(encode(value), (json) => self.set(key, json))
 
-  const modify = (key: string, f: (value: S["Type"]) => S["Type"]) =>
+  const modify = (key: string, f: (value: T) => T) =>
     Effect.flatMap(
       get(key),
       (o) => {
