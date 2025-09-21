@@ -112,6 +112,23 @@ export interface Optional<in out S, in out A> {
    */
   omit<S, A, Keys extends ReadonlyArray<keyof A>>(this: Lens<S, A>, keys: Keys): Lens<S, Omit<A, Keys[number]>>
   omit<S, A, Keys extends ReadonlyArray<keyof A>>(this: Optional<S, A>, keys: Keys): Optional<S, Omit<A, Keys[number]>>
+
+  /**
+   * Focuses **all elements** of an array-like focus and then narrows to a
+   * **subset** using an element-level optic.
+   *
+   * Semantics:
+   * - **getResult**: collects the values focused by `f(id<A>())` for each
+   *   element, returning them as a `ReadonlyArray<B>` (non-focusable elements
+   *   are skipped).
+   * - **setResult**: expects exactly as many `B`s as were collected by
+   *   `getResult` and writes them back **in order** to the corresponding
+   *   elements; other elements are left unchanged. If the counts differ, it
+   *   fails with a length-mismatch error.
+   */
+  forEach<S, A, B>(this: Traversal<S, A>, f: (iso: Iso<A, A>) => Optional<A, B>): Traversal<S, B>
+
+  modifyAll<S, A>(this: Traversal<S, A>, f: (a: A) => A): (s: S) => S
 }
 
 /**
@@ -124,6 +141,12 @@ export function makeOptional<S, A>(
 ): Optional<S, A> {
   return make(new OptionalNode(getResult, set))
 }
+
+/**
+ * @category Traversal
+ * @since 4.0.0
+ */
+export interface Traversal<in out S, in out A> extends Optional<S, ReadonlyArray<A>> {}
 
 class OptionalImpl<S, A> implements Optional<S, A> {
   readonly ast: AST
@@ -218,6 +241,56 @@ class OptionalImpl<S, A> implements Optional<S, A> {
   }
   omit(keys: any) {
     return this.compose(makeLens(Struct.omit(keys), (o, a) => ({ ...a, ...o })))
+  }
+  forEach<S, A, B>(this: Traversal<S, A>, f: (iso: Iso<A, A>) => Optional<A, B>): Traversal<S, B> {
+    const inner = f(id<A>())
+    return makeOptional<S, ReadonlyArray<B>>(
+      // GET: collect focused Bs
+      (s) =>
+        Result.map(this.getResult(s), (as) => {
+          const bs: Array<B> = []
+          for (let i = 0; i < as.length; i++) {
+            const r = inner.getResult(as[i])
+            if (Result.isSuccess(r)) bs.push(r.success)
+          }
+          return bs
+        }),
+      // SET: bs must match the number of focusable elements
+      (bs, s) =>
+        Result.flatMap(this.getResult(s), (as) => {
+          // 1) collect focusable indices
+          const idxs: Array<number> = []
+          for (let i = 0; i < as.length; i++) {
+            if (Result.isSuccess(inner.getResult(as[i]))) idxs.push(i)
+          }
+
+          // 2) arity check
+          if (bs.length !== idxs.length) {
+            return Result.fail(
+              `each: replacement length mismatch: ${bs.length} !== ${idxs.length}`
+            )
+          }
+
+          // 3) update those indices
+          const out: Array<A> = as.slice()
+          for (let k = 0; k < idxs.length; k++) {
+            const i = idxs[k]
+            const r = inner.replaceResult(bs[k], as[i])
+            if (Result.isFailure(r)) {
+              return Result.fail(`each: could not set element ${i}`)
+            }
+            out[i] = r.success
+          }
+          return this.replaceResult(out, s)
+        })
+    )
+  }
+  modifyAll<S, A>(this: Traversal<S, A>, f: (a: A) => A): (s: S) => S {
+    return (s) =>
+      Result.getOrElse(
+        Result.flatMap(this.getResult(s), (as) => this.replaceResult(as.map(f), s)),
+        () => s
+      )
   }
 }
 
@@ -581,4 +654,12 @@ const identityIso = make(identityNode)
  */
 export function id<S>(): Iso<S, S> {
   return identityIso
+}
+
+/**
+ * @category Iso
+ * @since 4.0.0
+ */
+export function entries<A>(): Iso<Record<string, A>, ReadonlyArray<readonly [string, A]>> {
+  return make(new IsoNode(Object.entries, Object.fromEntries))
 }

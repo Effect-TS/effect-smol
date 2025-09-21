@@ -311,4 +311,58 @@ Expected a value greater than 0, got -1.1`
       deepStrictEqual(optic.replace({ a: "a2", c: false }, { a: "a", b: 1, c: true }), { a: "a2", b: 1, c: false })
     })
   })
+
+  describe("forEach", () => {
+    it("Array", () => {
+      type Post = { title: string; likes: number }
+      type S = { user: { posts: ReadonlyArray<Post> } }
+
+      const _like = Optic.id<S>().key("user").key("posts").forEach((post) => post.key("likes").check(Check.positive()))
+
+      const addLike = _like.modify((likes) => likes.map((l) => l + 1))
+
+      deepStrictEqual(
+        addLike({ user: { posts: [{ title: "a", likes: 0 }, { title: "b", likes: 1 }, { title: "c", likes: 0 }] } }),
+        {
+          user: { posts: [{ title: "a", likes: 0 }, { title: "b", likes: 2 }, { title: "c", likes: 0 }] }
+        }
+      )
+    })
+
+    it("Record", () => {
+      const optic = Optic.entries<number>().forEach((entry) => entry.key(1).check(Check.positive()))
+
+      deepStrictEqual(
+        optic.modify((entries) => entries.map((value) => value + 1))({ a: 0, b: 1, c: 0 }),
+        { a: 0, b: 2, c: 0 }
+      )
+    })
+  })
+
+  describe("modifyAll", () => {
+    it("Array", () => {
+      type Post = { title: string; likes: number }
+      type S = { user: { posts: ReadonlyArray<Post> } }
+
+      const _like = Optic.id<S>().key("user").key("posts").forEach((post) => post.key("likes").check(Check.positive()))
+
+      const addLike = _like.modifyAll((like) => like + 1)
+
+      deepStrictEqual(
+        addLike({ user: { posts: [{ title: "a", likes: 0 }, { title: "b", likes: 1 }, { title: "c", likes: 0 }] } }),
+        {
+          user: { posts: [{ title: "a", likes: 0 }, { title: "b", likes: 2 }, { title: "c", likes: 0 }] }
+        }
+      )
+    })
+
+    it("Record", () => {
+      const optic = Optic.entries<number>().forEach((entry) => entry.key(1).check(Check.positive()))
+
+      deepStrictEqual(
+        optic.modify((entries) => entries.map((value) => value + 1))({ a: 0, b: 1, c: 0 }),
+        { a: 0, b: 2, c: 0 }
+      )
+    })
+  })
 })
