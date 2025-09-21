@@ -276,6 +276,24 @@ export const fromTransform = <OutElem, OutErr, OutDone, InElem, InErr, InDone, E
 }
 
 /**
+ * Transforms a Channel by applying a function to its Pull implementation.
+ *
+ * @example
+ * ```ts
+ * import { Channel } from "effect/stream"
+ * import { Effect } from "effect"
+ *
+ * // Transform a channel by modifying its pull behavior
+ * const originalChannel = Channel.fromIterable([1, 2, 3])
+ *
+ * const transformedChannel = Channel.transformPull(originalChannel, (pull, scope) =>
+ *   Effect.succeed(
+ *     Effect.map(pull, (value) => value * 2)
+ *   )
+ * )
+ * // Outputs: 2, 4, 6
+ * ```
+ *
  * @category constructors
  * @since 4.0.0
  */
@@ -1627,7 +1645,7 @@ export const fromAsyncIterableArray = <A, D, E>(
  * ```
  *
  * @since 2.0.0
- * @category mapping
+ * @category Sequencing
  */
 export const map: {
   <OutElem, OutElem2>(
@@ -1652,7 +1670,7 @@ export const map: {
  * Maps the done value of this channel using the specified function.
  *
  * @since 2.0.0
- * @category mapping
+ * @category Sequencing
  */
 export const mapDone: {
   <OutDone, OutDone2>(
@@ -1676,7 +1694,7 @@ export const mapDone: {
  * Maps the done value of this channel using the specified effectful function.
  *
  * @since 2.0.0
- * @category mapping
+ * @category Sequencing
  */
 export const mapDoneEffect: {
   <OutDone, OutDone2, E, R>(
@@ -2485,6 +2503,24 @@ export const flattenArray = <
   })
 
 /**
+ * Creates a new channel that consumes all output from the source channel
+ * but emits nothing, preserving only the completion value.
+ *
+ * @example
+ * ```ts
+ * import { Channel } from "effect/stream"
+ * import { Effect } from "effect"
+ *
+ * // Create a channel that outputs values
+ * const sourceChannel = Channel.fromIterable([1, 2, 3, 4, 5])
+ *
+ * // Drain all output, keeping only the completion
+ * const drainedChannel = Channel.drain(sourceChannel)
+ *
+ * // The channel completes but emits no values
+ * // Useful for consuming side effects without collecting output
+ * ```
+ *
  * @since 2.0.0
  * @category constructors
  */
@@ -2510,6 +2546,29 @@ export const drain = <
   transformPull(self, (pull) => Effect.succeed(Effect.forever(pull, { autoYield: false })))
 
 /**
+ * Filters the output elements of a channel using a predicate function.
+ * Elements that don't match the predicate are discarded.
+ *
+ * @example
+ * ```ts
+ * import { Channel } from "effect/stream"
+ * import { Effect } from "effect"
+ *
+ * // Create a channel with mixed numbers
+ * const numbersChannel = Channel.fromIterable([1, 2, 3, 4, 5, 6, 7, 8])
+ *
+ * // Filter to keep only even numbers
+ * const evenChannel = Channel.filter(numbersChannel, (n) => n % 2 === 0)
+ * // Outputs: 2, 4, 6, 8
+ *
+ * // Filter with type refinement
+ * const mixedChannel = Channel.fromIterable([1, "hello", 2, "world", 3])
+ * const numbersOnlyChannel = Channel.filter(mixedChannel,
+ *   (value): value is number => typeof value === "number"
+ * )
+ * // Outputs: 1, 2, 3 (all typed as numbers)
+ * ```
+ *
  * @since 2.0.0
  * @category Filtering
  */
@@ -2542,6 +2601,32 @@ export const filter: {
   ))
 
 /**
+ * Filters arrays of elements emitted by a channel, applying the filter
+ * to each element within the arrays and only emitting non-empty filtered arrays.
+ *
+ * @example
+ * ```ts
+ * import { Channel } from "effect/stream"
+ * import { Effect } from "effect"
+ *
+ * // Create a channel that outputs arrays of mixed data
+ * const arrayChannel = Channel.fromIterable([
+ *   [1, 2, 3, 4, 5],
+ *   [6, 7, 8, 9, 10],
+ *   [11, 12, 13, 14, 15]
+ * ])
+ *
+ * // Filter arrays to keep only even numbers
+ * const evenArraysChannel = Channel.filterArray(arrayChannel, (n) => n % 2 === 0)
+ * // Outputs: [2, 4], [6, 8, 10], [12, 14]
+ * // Note: Only non-empty filtered arrays are emitted
+ *
+ * // Arrays that would become empty after filtering are discarded entirely
+ * const oddChannel = Channel.fromIterable([[1, 3, 5], [2, 4], [7, 9]])
+ * const filteredOddChannel = Channel.filterArray(oddChannel, (n) => n % 2 === 0)
+ * // Outputs: [2, 4] (the arrays [1,3,5] and [7,9] are discarded)
+ * ```
+ *
  * @since 2.0.0
  * @category Filtering
  */
@@ -2565,6 +2650,39 @@ export const filterArray: {
   }))
 
 /**
+ * Statefully maps over a channel with an accumulator, where each element can produce multiple output values.
+ *
+ * @example
+ * ```ts
+ * import { Channel } from "effect/stream"
+ * import { Effect } from "effect"
+ *
+ * // Create a channel with numbers
+ * const numbersChannel = Channel.fromIterable([1, 2, 3, 4])
+ *
+ * // Use mapAccum to create running sums and emit both current and sum
+ * const runningSum = Channel.mapAccum(
+ *   numbersChannel,
+ *   () => 0, // initial accumulator state
+ *   (sum, current) => {
+ *     const newSum = sum + current
+ *     // Return [newState, outputValues]
+ *     return [newSum, [current, newSum]] as const
+ *   }
+ * )
+ * // Outputs: 1, 1, 2, 3, 3, 6, 4, 10
+ *
+ * // Using with Effect for async processing
+ * const asyncMapAccum = Channel.mapAccum(
+ *   numbersChannel,
+ *   () => "",
+ *   (acc, value) => Effect.gen(function* () {
+ *     const newAcc = acc + value.toString()
+ *     return [newAcc, [`${value}-processed`, newAcc]] as const
+ *   })
+ * )
+ * ```
+ *
  * @since 2.0.0
  * @category Sequencing
  */
@@ -2647,6 +2765,30 @@ export const mapAccum: {
   ))
 
 /**
+ * Statefully transforms a channel by scanning over its output with an accumulator function.
+ * Emits the intermediate results of the scan operation.
+ *
+ * @example
+ * ```ts
+ * import { Channel } from "effect/stream"
+ * import { Effect } from "effect"
+ *
+ * // Create a channel with numbers
+ * const numbersChannel = Channel.fromIterable([1, 2, 3, 4, 5])
+ *
+ * // Scan to create running sum
+ * const runningSumChannel = Channel.scan(numbersChannel, 0, (sum, n) => sum + n)
+ * // Outputs: 0, 1, 3, 6, 10, 15
+ * // Note: emits the initial value and each intermediate result
+ *
+ * // Scan with string concatenation
+ * const wordsChannel = Channel.fromIterable(["hello", "world", "from", "effect"])
+ * const sentenceChannel = Channel.scan(wordsChannel, "", (sentence, word) =>
+ *   sentence === "" ? word : `${sentence} ${word}`
+ * )
+ * // Outputs: "", "hello", "hello world", "hello world from", "hello world from effect"
+ * ```
+ *
  * @since 2.0.0
  * @category Sequencing
  */
@@ -2680,6 +2822,47 @@ export const scan: {
   scanEffect(self, initial, (s, a) => Effect.succeed(f(s, a))))
 
 /**
+ * Statefully transforms a channel by scanning over its output with an effectful accumulator function.
+ * Emits the intermediate results of the scan operation.
+ *
+ * @example
+ * ```ts
+ * import { Channel } from "effect/stream"
+ * import { Effect } from "effect"
+ * import { Data } from "effect/data"
+ *
+ * class ScanError extends Data.TaggedError("ScanError")<{
+ *   readonly reason: string
+ * }> {}
+ *
+ * // Create a channel with numbers
+ * const numbersChannel = Channel.fromIterable([1, 2, 3, 4])
+ *
+ * // Effectful scan with async operations
+ * const asyncScanChannel = Channel.scanEffect(
+ *   numbersChannel,
+ *   "",
+ *   (acc, value) => Effect.gen(function* () {
+ *     // Simulate async work
+ *     yield* Effect.sleep("10 millis")
+ *     return acc + value.toString()
+ *   })
+ * )
+ * // Outputs: "", "1", "12", "123", "1234"
+ *
+ * // Scan with error handling
+ * const errorHandlingScan = Channel.scanEffect(
+ *   numbersChannel,
+ *   0,
+ *   (sum, n) => {
+ *     if (n < 0) {
+ *       return Effect.fail(new ScanError({ reason: "negative number" }))
+ *     }
+ *     return Effect.succeed(sum + n)
+ *   }
+ * )
+ * ```
+ *
  * @since 2.0.0
  * @category Sequencing
  */
@@ -4438,6 +4621,16 @@ export const runCollect = <OutElem, OutErr, OutDone, Env>(
     acc.push(o)
     return acc
   })
+
+/**
+ * Runs a channel and outputs the done value.
+ *
+ * @since 4.0.0
+ * @category execution
+ */
+export const runDone = <OutElem, OutErr, OutDone, Env>(
+  self: Channel<OutElem, OutErr, OutDone, unknown, unknown, unknown, Env>
+): Effect.Effect<OutDone, OutErr, Env> => runWith(self, identity, Effect.succeed)
 
 /**
  * @since 2.0.0
