@@ -9,7 +9,7 @@ import * as Deferred from "../../Deferred.ts"
 import * as Effect from "../../Effect.ts"
 import * as Exit from "../../Exit.ts"
 import * as FiberSet from "../../FiberSet.ts"
-import { dual } from "../../Function.ts"
+import { constVoid, dual } from "../../Function.ts"
 import * as Layer from "../../Layer.ts"
 import * as Queue from "../../Queue.ts"
 import * as Scope from "../../Scope.ts"
@@ -198,8 +198,21 @@ export const toChannelMap = <IE, A>(
     const writeScope = yield* Scope.fork(scope)
     const write = yield* Scope.provide(self.writer, writeScope)
 
+    let chunk: NonEmptyReadonlyArray<Uint8Array | string | CloseEvent> | undefined
+    let index = 0
+    const writeChunk = Effect.whileLoop({
+      while: () => index < chunk!.length,
+      body: () => write(chunk![index++]),
+      step: constVoid
+    })
+
     yield* upstream.pipe(
-      Effect.flatMap(Effect.forEach(write, { discard: true })),
+      Effect.flatMap((arr) => {
+        if (arr.length === 1) return write(arr[0])
+        chunk = arr
+        index = 0
+        return writeChunk
+      }),
       Effect.forever({ autoYield: false }),
       Effect.catchCauseFilter(
         Pull.filterNoHalt,
@@ -431,7 +444,7 @@ export const fromWebSocket = <RO>(
         }
         open = true
         currentWS = ws
-        yield* latch.open
+        latch.openUnsafe()
         if (opts?.onOpen) yield* opts.onOpen
         return yield* FiberSet.join(fiberSet).pipe(
           Effect.catchFilter(
