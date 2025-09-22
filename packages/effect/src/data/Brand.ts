@@ -23,7 +23,6 @@
  * @since 2.0.0
  */
 import * as Arr from "../collections/Array.ts"
-import { identity } from "../Function.ts"
 import * as AST from "../schema/AST.ts"
 import * as Check from "../schema/Check.ts"
 import * as Issue from "../schema/Issue.ts"
@@ -246,7 +245,7 @@ export function check<A extends Brand<any>>(
     }
     return Result.succeed(input as A)
   }
-  return Object.assign((input: Brand.Unbranded<A>) => Result.getOrThrowWith(result(input), identity), {
+  return Object.assign((input: Brand.Unbranded<A>) => Result.getOrThrow(result(input)), {
     option: (input: Brand.Unbranded<A>) => Option.getSuccess(result(input)),
     result,
     is: (input: Brand.Unbranded<A>): input is Brand.Unbranded<A> & A => Result.isSuccess(result(input)),

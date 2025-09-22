@@ -836,21 +836,22 @@ export const getOrNull: <A, E>(self: Result<A, E>) => A | null = getOrElse(const
 export const getOrUndefined: <A, E>(self: Result<A, E>) => A | undefined = getOrElse(constUndefined)
 
 /**
- * Extracts the value of an `Result` or throws if the `Result` is a `Failure`.
+ * Extracts the success value of a `Result` or throws the value returned by the
+ * provided function if the `Result` is a `Failure`.
  *
- * If a default error is sufficient for your use case and you don't need to configure the thrown error, see {@link getOrThrow}.
+ * **Example**
  *
- * @example
  * ```ts
- * import * as assert from "node:assert"
  * import { Result } from "effect/data"
  *
- * assert.deepStrictEqual(
- *   Result.getOrThrowWith(Result.succeed(1), () => new Error('Unexpected Err')),
- *   1
- * )
- * assert.throws(() => Result.getOrThrowWith(Result.fail("error"), () => new Error('Unexpected Err')))
+ * Result.getOrThrowWith(Result.succeed(1), () => new Error('Unexpected Err'))
+ * // => 1
+ *
+ * Result.getOrThrowWith(Result.fail("error"), (err) => new Error(`Unexpected Err: ${err}`))
+ * // => throws new Error('Unexpected Err: error')
  * ```
+ *
+ * @see {@link getOrThrow} for a version that throws the failure value.
  *
  * @category Getters
  * @since 4.0.0
@@ -866,7 +867,8 @@ export const getOrThrowWith: {
 })
 
 /**
- * Extracts the value of an `Result` or throws if the `Result` is a `Failure`.
+ * Extracts the success value of an `Result` or throws if the `Result` is a
+ * `Failure`.
  *
  * @example
  * ```ts

@@ -5,7 +5,7 @@ import * as Data from "../../data/Data.ts"
 import * as Predicate from "../../data/Predicate.ts"
 import * as Record from "../../data/Record.ts"
 import * as Result from "../../data/Result.ts"
-import { dual, identity } from "../../Function.ts"
+import { dual } from "../../Function.ts"
 import * as Inspectable from "../../interfaces/Inspectable.ts"
 import { type Pipeable, pipeArguments } from "../../interfaces/Pipeable.ts"
 import * as Schema from "../../schema/Schema.ts"
@@ -406,7 +406,7 @@ export const makeCookieUnsafe = (
   name: string,
   value: string,
   options?: Cookie["options"] | undefined
-): Cookie => Result.getOrThrowWith(makeCookie(name, value, options), identity)
+): Cookie => Result.getOrThrow(makeCookie(name, value, options))
 
 /**
  * Add a cookie to a Cookies object
@@ -601,7 +601,7 @@ export const setAllUnsafe: {
   (
     self: Cookies,
     cookies: Iterable<readonly [name: string, value: string, options?: Cookie["options"]]>
-  ): Cookies => Result.getOrThrowWith(setAll(self, cookies), identity)
+  ): Cookies => Result.getOrThrow(setAll(self, cookies))
 )
 
 /**
