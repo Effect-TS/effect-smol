@@ -987,7 +987,7 @@ export class TupleType extends Base {
       const input = oinput.value
 
       // If the input is not an array, return early with an error
-      if (!Arr.isArray(input)) {
+      if (!Array.isArray(input)) {
         return yield* Effect.fail(new Issue.InvalidType(ast, oinput))
       }
 
@@ -1913,7 +1913,7 @@ export function mapOrSame<A>(as: Arr.NonEmptyReadonlyArray<A>, f: (a: A) => A): 
 export function mapOrSame<A>(as: ReadonlyArray<A>, f: (a: A) => A): ReadonlyArray<A>
 export function mapOrSame<A>(as: ReadonlyArray<A>, f: (a: A) => A): ReadonlyArray<A> {
   let changed = false
-  const out = Arr.allocate(as.length) as Array<A>
+  const out: Array<A> = new Array(as.length)
   for (let i = 0; i < as.length; i++) {
     const a = as[i]
     const fa = f(a)
