@@ -118,19 +118,14 @@ describe("Channel", () => {
 
     it.effect("acquireRelease", () =>
       Effect.gen(function*() {
-        let acquired = false
-        let released = false
+        const acquired = yield* Ref.make(false)
+        const released = yield* Ref.make(false)
         yield* Channel.acquireRelease(
-          Effect.sync(() => {
-            acquired = true
-          }),
-          () =>
-            Effect.sync(() => {
-              released = true
-            })
+          Ref.set(acquired, true),
+          () => Ref.set(released, true)
         ).pipe(Channel.runDrain)
-        assert.isTrue(acquired)
-        assert.isTrue(released)
+        assert.isTrue(yield* Ref.get(acquired))
+        assert.isTrue(yield* Ref.get(released))
       }))
   })
 
@@ -296,8 +291,7 @@ describe("Channel", () => {
         const latch = yield* Deferred.make<void>()
         const halt = yield* Deferred.make<void>()
         const started = yield* Deferred.make<void>()
-        const channel = pipe(
-          Deferred.succeed(started, void 0),
+        const channel = Deferred.succeed(started, void 0).pipe(
           Effect.andThen(Deferred.await(latch)),
           Effect.onInterrupt(() => Ref.set(interrupted, true)),
           Channel.fromEffect,
@@ -316,12 +310,11 @@ describe("Channel", () => {
     it.effect("interruptWhen - propagates errors", () =>
       Effect.gen(function*() {
         const deferred = yield* Deferred.make<never, string>()
-        const channel = pipe(
-          Channel.fromEffect(Effect.never),
+        const channel = Channel.fromEffect(Effect.never).pipe(
           Channel.interruptWhen(Deferred.await(deferred))
         )
         yield* Deferred.fail(deferred, "fail")
-        const result = yield* (Effect.result(Channel.runDrain(channel)))
+        const result = yield* Effect.result(Channel.runDrain(channel))
         assertFailure(result, "fail")
       }))
   })

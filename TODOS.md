@@ -113,13 +113,13 @@ The exports under each section are organized as they are in Effect 3.0. The cate
 
 ### Error Handling
 
-|    Effect 3     | Ported |   Effect 4   | Comments |
-| :-------------: | :----: | :----------: | :------: |
-|   `catchAll`    |  Done  |   `catch`    |          |
-| `catchAllCause` |  Done  | `catchCause` |          |
-|     `orDie`     |  Done  |   `orDie`    |          |
-|   `orDieWith`   |   -    |              |          |
-|    `orElse`     |   X    |   `catch`    |          |
+|    Effect 3     | Ported |   Effect 4   | Comments        |
+| :-------------: | :----: | :----------: | :-------------: |
+|   `catchAll`    |  Done  |   `catch`    |                 |
+| `catchAllCause` |  Done  | `catchCause` |                 |
+|     `orDie`     |  Done  |   `orDie`    |                 |
+|   `orDieWith`   |   X    |              | `catch` + `die` |
+|    `orElse`     |   X    |   `catch`    |                 |
 
 ### Mapping
 
