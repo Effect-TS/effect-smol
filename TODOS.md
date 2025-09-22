@@ -34,10 +34,10 @@ The exports under each section are organized as they are in Effect 3.0. The cate
 
 | Status | Description                                      |
 | :----: | :----------------------------------------------- |
-|   ❌   | Not done (default)                               |
-|   ✅   | Done - successfully ported to Effect 4           |
-|   🚫   | Won't do - not being ported to Effect 4          |
-|   ❓   | Question - method has questions or uncertainties |
+|   -    | Not done (default)                               |
+|  Done  | Done - successfully ported to Effect 4           |
+|   X    | Won't do - not being ported to Effect 4          |
+|   ?    | Question - method has questions or uncertainties |
 
 ## Channel
 
@@ -45,136 +45,136 @@ The exports under each section are organized as they are in Effect 3.0. The cate
 
 |      Effect 3       | Ported |      Effect 4       |                                                        Comments                                                        |
 | :-----------------: | :----: | :-----------------: | :--------------------------------------------------------------------------------------------------------------------: |
-| `acquireReleaseOut` |   ✅   |  `acquireRelease`   |                                                                                                                        |
-| `acquireUseRelease` |   ✅   | `acquireUseRelease` |                                                                                                                        |
-|      `buffer`       |   ❌   |                     |                                                                                                                        |
-|    `bufferChunk`    |   ❌   |                     |                                                                                                                        |
-|     `concatAll`     |   ✅   |      `concat`       |                                                Category fixed for 4.0.                                                 |
-|   `concatAllWith`   |   ✅   |    `concatWith`     | Category fixed for 4.0. New method does not have exactly the same semantics as 3.0, but provides similar functionality |
-|       `fail`        |   ✅   |       `fail`        |                                                                                                                        |
-|     `failCause`     |   ✅   |     `failCause`     |                                                                                                                        |
-|   `failCauseSync`   |   ✅   |   `failCauseSync`   |                                                                                                                        |
-|     `failSync`      |   ✅   |     `failSync`      |                                                                                                                        |
-|    `fromEffect`     |   ✅   |    `fromEffect`     |                                                                                                                        |
-|    `fromEither`     |   🚫   |                     |                                         Convert to Effect and use `fromEffect`                                         |
-|     `fromInput`     |   🚫   |                     | Scoped variants not needed |
-|    `fromOption`     |   🚫   |                     |                                         Convert to Effect and use `fromEffect`                                         |
-|    `fromPubSub`     |   ✅   |    `fromPubSub`     |                                                                                                                        |
-| `fromPubSubScoped`  |   🚫   |                     | Scoped variants not needed                                                                                |
-|     `fromQueue`     |   ✅   |     `fromQueue`     |                                                                                                                        |
-|     `identity`      |   ❌   |                     |                                                                                                                        |
-|       `never`       |   ✅   |       `never`       |                                                                                                                        |
-|       `read`        |   🚫   |                     |                                                      Not required                                                      |
-|    `readOrFail`     |   🚫   |                     |                                                      Not required                                                      |
-|     `readWith`      |   🚫   |                     |                                                      Not required                                                      |
-|   `readWithCause`   |   🚫   |                     |                                                      Not required                                                      |
-|      `scoped`       |   🚫   |                     |                                                      Not required                                                      |
-|    `scopedWith`     |   🚫   |                     |                                                      Not required                                                      |
-|      `succeed`      |   ✅   |      `succeed`      |                                                                                                                        |
-|      `suspend`      |   ✅   |      `suspend`      |                                                                                                                        |
-|       `sync`        |   ✅   |       `sync`        |                                                                                                                        |
-|      `unwrap`       |   ✅   |      `unwrap`       |                                                                                                                        |
-|   `unwrapScoped`    |   🚫   |                     |                                        Scoped variants not required                                         |
-| `unwrapScopedWith`  |   🚫   |                     |                                        Scoped variants not required                                         |
-|       `void`        |   🚫   |                     | New api is `Channel.end`                                                                                                                       |
-|       `write`       |   🚫   |                     | `Channel.write` is part of Pull                                                                                                                        |
-|     `writeAll`      |   🚫   |                     | `Channel.write` is part of Pull                                                                                                                        |
-|    `writeChunk`     |   🚫   |                     | `Channel.write` is part of Pull                                                                                                                        |
+| `acquireReleaseOut` |  Done  |  `acquireRelease`   |                                                                                                                        |
+| `acquireUseRelease` |  Done  | `acquireUseRelease` |                                                                                                                        |
+|      `buffer`       |  Done  |                     |                                                                                                                        |
+|    `bufferChunk`    |  Done  |                     |                                                                                                                        |
+|     `concatAll`     |  Done  |      `concat`       |                                                Category fixed for 4.0.                                                 |
+|   `concatAllWith`   |  Done  |    `concatWith`     | Category fixed for 4.0. New method does not have exactly the same semantics as 3.0, but provides similar functionality |
+|       `fail`        |  Done  |       `fail`        |                                                                                                                        |
+|     `failCause`     |  Done  |     `failCause`     |                                                                                                                        |
+|   `failCauseSync`   |  Done  |   `failCauseSync`   |                                                                                                                        |
+|     `failSync`      |  Done  |     `failSync`      |                                                                                                                        |
+|    `fromEffect`     |  Done  |    `fromEffect`     |                                                                                                                        |
+|    `fromEither`     |   X    |                     |                                         Convert to Effect and use `fromEffect`                                         |
+|     `fromInput`     |   X    |                     |                                               Scoped variants not needed                                               |
+|    `fromOption`     |   X    |                     |                                         Convert to Effect and use `fromEffect`                                         |
+|    `fromPubSub`     |  Done  |    `fromPubSub`     |                                                                                                                        |
+| `fromPubSubScoped`  |   X    |                     |                                               Scoped variants not needed                                               |
+|     `fromQueue`     |  Done  |     `fromQueue`     |                                                                                                                        |
+|     `identity`      |  Done  |                     |                                                                                                                        |
+|       `never`       |  Done  |       `never`       |                                                                                                                        |
+|       `read`        |   X    |                     |                                                      Not required                                                      |
+|    `readOrFail`     |   X    |                     |                                                      Not required                                                      |
+|     `readWith`      |   X    |                     |                                                      Not required                                                      |
+|   `readWithCause`   |   X    |                     |                                                      Not required                                                      |
+|      `scoped`       |   X    |                     |                                                      Not required                                                      |
+|    `scopedWith`     |   X    |                     |                                                      Not required                                                      |
+|      `succeed`      |  Done  |      `succeed`      |                                                                                                                        |
+|      `suspend`      |  Done  |      `suspend`      |                                                                                                                        |
+|       `sync`        |  Done  |       `sync`        |                                                                                                                        |
+|      `unwrap`       |  Done  |      `unwrap`       |                                                                                                                        |
+|   `unwrapScoped`    |   X    |                     |                                              Scoped variants not required                                              |
+| `unwrapScopedWith`  |   X    |                     |                                              Scoped variants not required                                              |
+|       `void`        |   X    |                     |                                                New api is `Channel.end`                                                |
+|       `write`       |   X    |                     |                                            `Channel.write` is part of Pull                                             |
+|     `writeAll`      |   X    |                     |                                            `Channel.write` is part of Pull                                             |
+|    `writeChunk`     |   X    |                     |                                            `Channel.write` is part of Pull                                             |
 
 ### Context
 
 |       Effect 3       | Ported |     Effect 4      | Comments |
 | :------------------: | :----: | :---------------: | :------: |
-|      `context`       |   ❌   |                   |          |
-|    `contextWith`     |   ❌   |                   |          |
-| `contextWithChannel` |   ✅   |   `contextWith`   |          |
-| `contextWithEffect`  |   🚫   |                   |          |
-|  `mapInputContext`   |   ✅   | `updateServices`  |          |
-|   `provideContext`   |   ✅   | `provideServices` |          |
-|    `provideLayer`    |   ❌   |                   |          |
-|   `provideService`   |   ❌   |                   |          |
-|  `provideSomeLayer`  |   🚫   |                   |          |
-|   `updateService`    |   ❌   |                   |          |
+|      `context`       |   X    |                   |          |
+|    `contextWith`     |  Done  |  `servicesWith`   |          |
+| `contextWithChannel` |   X    |  `servicesWith`   |          |
+| `contextWithEffect`  |   X    |                   |          |
+|  `mapInputContext`   |  Done  | `updateServices`  |          |
+|   `provideContext`   |  Done  | `provideServices` |          |
+|    `provideLayer`    |   -    |                   |          |
+|   `provideService`   |   -    |                   |          |
+|  `provideSomeLayer`  |   X    |                   |          |
+|   `updateService`    |   -    |                   |          |
 
 ### Destructors
 
 |   Effect 3   | Ported |       Effect 4       | Comments |
 | :----------: | :----: | :------------------: | :------: |
-|    `run`     |   ✅   |      `runDone`       |          |
-| `runCollect` |   ✅   |     `runCollect`     |          |
-|  `runDrain`  |   ✅   |      `runDrain`      |          |
-| `runScoped`  |   🚫   |                      |          |
-|  `toPubSub`  |   ❌   |                      |          |
-|   `toPull`   |   ✅   |       `toPull`       |          |
-|  `toPullIn`  |   ✅   |    `toPullScoped`    |          |
-|  `toQueue`   |   ✅   |      `toQueue`       |          |
-|   `toSink`   |   🚫   |  `Sink.fromChannel`  |          |
-|  `toStream`  |   🚫   | `Stream.fromChannel` |          |
+|    `run`     |  Done  |      `runDone`       |          |
+| `runCollect` |  Done  |     `runCollect`     |          |
+|  `runDrain`  |  Done  |      `runDrain`      |          |
+| `runScoped`  |   X    |                      |          |
+|  `toPubSub`  |   -    |                      |          |
+|   `toPull`   |  Done  |       `toPull`       |          |
+|  `toPullIn`  |  Done  |    `toPullScoped`    |          |
+|  `toQueue`   |  Done  |      `toQueue`       |          |
+|   `toSink`   |   X    |  `Sink.fromChannel`  |          |
+|  `toStream`  |   X    | `Stream.fromChannel` |          |
 
 ### Error Handling
 
 |    Effect 3     | Ported |   Effect 4   | Comments |
 | :-------------: | :----: | :----------: | :------: |
-|   `catchAll`    |   ✅   |   `catch`    |          |
-| `catchAllCause` |   ✅   | `catchCause` |          |
-|     `orDie`     |   ✅   |   `orDie`    |          |
-|   `orDieWith`   |   ❌   |              |          |
-|    `orElse`     |   🚫   |   `catch`    |          |
+|   `catchAll`    |  Done  |   `catch`    |          |
+| `catchAllCause` |  Done  | `catchCause` |          |
+|     `orDie`     |  Done  |   `orDie`    |          |
+|   `orDieWith`   |   -    |              |          |
+|    `orElse`     |   X    |   `catch`    |          |
 
 ### Mapping
 
-|     Effect 3      | Ported |    Effect 4     |          Comments          |
-| :---------------: | :----: | :-------------: | :------------------------: |
-|       `as`        |   🚫   |                 | `mapDone` takes care of this                           |
-|     `asVoid`      |   🚫   |                 | `mapDone` takes care of this                            |
-|       `map`       |   ✅   |    `mapDone`    |                            |
-|    `mapEffect`    |   ✅   | `mapDoneEffect` |                            |
-|    `mapError`     |   ✅   |   `mapError`    |                            |
-|  `mapErrorCause`  |   ❌   |   `mapCause`    |                            |
-|     `mapOut`      |   ✅   |      `map`      |                            |
-|  `mapOutEffect`   |   ✅   |   `mapEffect`   |                            |
-| `mapOutEffectPar` |   ✅   |   `mapEffect`   | With concurrency specified |
-|    `mergeMap`     |   ❌   |                 |                            |
+|     Effect 3      | Ported |    Effect 4     |           Comments           |
+| :---------------: | :----: | :-------------: | :--------------------------: |
+|       `as`        |   X    |                 | `mapDone` takes care of this |
+|     `asVoid`      |   X    |                 | `mapDone` takes care of this |
+|       `map`       |  Done  |    `mapDone`    |                              |
+|    `mapEffect`    |  Done  | `mapDoneEffect` |                              |
+|    `mapError`     |  Done  |   `mapError`    |                              |
+|  `mapErrorCause`  |   -    |   `mapCause`    |                              |
+|     `mapOut`      |  Done  |      `map`      |                              |
+|  `mapOutEffect`   |  Done  |   `mapEffect`   |                              |
+| `mapOutEffectPar` |  Done  |   `mapEffect`   |  With concurrency specified  |
+|    `mergeMap`     |   -    |                 |                              |
 
 ### Sequencing
 
 | Effect 3  | Ported | Effect 4  | Comments |
 | :-------: | :----: | :-------: | :------: |
-| `flatMap` |   ✅   | `flatMap` |          |
-| `flatten` |   ✅   | `flatten` |          |
+| `flatMap` |  Done  | `flatMap` |          |
+| `flatten` |  Done  | `flatten` |          |
 
 ### Refinements
 
 |       Effect 3       | Ported |  Effect 4   | Comments |
 | :------------------: | :----: | :---------: | :------: |
-|     `isChannel`      |   ✅   | `isChannel` |          |
-| `isChannelException` |   🚫   |             |          |
+|     `isChannel`      |  Done  | `isChannel` |          |
+| `isChannelException` |   X    |             |          |
 
 ### Tracing
 
 |  Effect 3  | Ported |  Effect 4  | Comments |
 | :--------: | :----: | :--------: | :------: |
-| `withSpan` |   ✅   | `withSpan` |          |
+| `withSpan` |  Done  | `withSpan` |          |
 
 ### Utility Functions
 
 |        Effect 3         | Ported |   Effect 4   | Comments |
 | :---------------------: | :----: | :----------: | :------: |
-|        `collect`        |   ✅   |   `filter`   |          |
-|       `concatMap`       |   ❌   |              |          |
-|     `concatMapWith`     |   ❌   |              |          |
-|  `concatMapWithCustom`  |   ❌   |              |          |
-|       `concatOut`       |   ❌   |              |          |
-|      `doneCollect`      |   ❌   |              |          |
-|         `drain`         |   ❌   |              |          |
-|      `embedInput`       |   ✅   | `embedInput` |          |
-|      `emitCollect`      |   ❌   |              |          |
-|       `ensuring`        |   ✅   |  `ensuring`  |          |
-|     `ensuringWith`      |   ✅   | `onExit`             |          |
-|   `foldCauseChannel`    |   ❌   |              |          |
-|      `foldChannel`      |   ❌   |              |          |
-|     `interruptWhen`     |   ❌   |              |          |
-| `interruptWhenDeferred` |   ❌   |              |          |
-|       `mapInput`        |   ❌   |              |          |
-|    `mapInputEffect`     |   ❌   |              |          |
-|     `mapInputError`     |   ❌   |              |          |
+|        `collect`        |  Done  |   `filter`   |          |
+|       `concatMap`       |   -    |              |          |
+|     `concatMapWith`     |   -    |              |          |
+|  `concatMapWithCustom`  |   -    |              |          |
+|       `concatOut`       |   -    |              |          |
+|      `doneCollect`      |   -    |              |          |
+|         `drain`         |   -    |              |          |
+|      `embedInput`       |  Done  | `embedInput` |          |
+|      `emitCollect`      |   -    |              |          |
+|       `ensuring`        |  Done  |  `ensuring`  |          |
+|     `ensuringWith`      |  Done  |   `onExit`   |          |
+|   `foldCauseChannel`    |   -    |              |          |
+|      `foldChannel`      |   -    |              |          |
+|     `interruptWhen`     |   -    |              |          |
+| `interruptWhenDeferred` |   -    |              |          |
+|       `mapInput`        |   -    |              |          |
+|    `mapInputEffect`     |   -    |              |          |
+|     `mapInputError`     |   -    |              |          |

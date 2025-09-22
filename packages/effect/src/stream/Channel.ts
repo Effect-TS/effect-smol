@@ -70,7 +70,7 @@ import * as Effect from "../Effect.ts"
 import * as Exit from "../Exit.ts"
 import * as Fiber from "../Fiber.ts"
 import type { LazyArg } from "../Function.ts"
-import { constTrue, dual, identity } from "../Function.ts"
+import { constTrue, dual, identity as identity_ } from "../Function.ts"
 import type { Pipeable } from "../interfaces/Pipeable.ts"
 import { pipeArguments } from "../interfaces/Pipeable.ts"
 import { endSpan } from "../internal/effect.ts"
@@ -225,11 +225,11 @@ export interface VarianceStruct<
 
 const ChannelProto = {
   [TypeId]: {
-    _Env: identity,
-    _InErr: identity,
-    _InElem: identity,
-    _OutErr: identity,
-    _OutElem: identity
+    _Env: identity_,
+    _InErr: identity_,
+    _InElem: identity_,
+    _OutErr: identity_,
+    _OutElem: identity_
   },
   pipe() {
     return pipeArguments(this, arguments)
@@ -1148,6 +1148,13 @@ export const fromQueueArray = <A, E>(
 ): Channel<Arr.NonEmptyReadonlyArray<A>, Exclude<E, Queue.Done>> => fromPull(Effect.succeed(Queue.toPullArray(queue)))
 
 /**
+ * @since 2.0.0
+ * @category Constructors
+ */
+export const identity = <Elem, Err, Done>(): Channel<Elem, Err, Done, Elem, Err, Done> =>
+  fromTransform((upstream, _scope) => Effect.succeed(upstream))
+
+/**
  * Create a channel from a PubSub subscription
  *
  * @example
@@ -1877,7 +1884,7 @@ const mapEffectConcurrent = <
         yield* Scope.addFinalizer(forkedScope, Queue.shutdown(queue))
 
         yield* Queue.take(fibers).pipe(
-          Effect.flatMap(identity),
+          Effect.flatMap(identity_),
           Effect.flatMap((exit) =>
             exit._tag === "Success" ? Queue.offer(queue, exit.value) : Queue.failCause(queue, exit.cause)
           ),
@@ -2432,7 +2439,7 @@ export const flatten = <
     Env1
   >
 ): Channel<OutElem, OutErr | OutErr1, OutDone1, InElem & InElem1, InErr & InErr1, InDone & InDone1, Env | Env1> =>
-  flatMap(channels, identity)
+  flatMap(channels, identity_)
 
 /**
  * Flattens a channel that outputs arrays into a channel that outputs individual elements.
@@ -4136,6 +4143,98 @@ export const embedInput: {
 )
 
 /**
+ * Allows a faster producer to progress independently of a slower consumer by
+ * buffering up to `capacity` elements in a queue.
+ *
+ * @since 2.0.0
+ * @category Buffering
+ */
+export const buffer: {
+  (
+    options: { readonly capacity: "unbounded" } | {
+      readonly capacity: number
+      readonly strategy?: "dropping" | "sliding" | "suspend" | undefined
+    }
+  ): <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>(
+    self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>
+  ) => Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>
+  <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>(
+    self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
+    options: { readonly capacity: "unbounded" } | {
+      readonly capacity: number
+      readonly strategy?: "dropping" | "sliding" | "suspend" | undefined
+    }
+  ): Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>
+} = dual(2, <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>(
+  self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
+  options: { readonly capacity: "unbounded" } | {
+    readonly capacity: number
+    readonly strategy?: "dropping" | "sliding" | "suspend" | undefined
+  }
+): Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env> =>
+  fromTransform(Effect.fnUntraced(function*(upstream, scope) {
+    const pull = yield* toTransform(self)(upstream, scope)
+    const queue = yield* Queue.make<OutElem, OutErr | Pull.Halt<OutDone>>({
+      capacity: options.capacity === "unbounded" ? undefined : options.capacity,
+      strategy: options.capacity === "unbounded" ? undefined : options.strategy
+    })
+    yield* Scope.addFinalizer(scope, Queue.shutdown(queue))
+    yield* pull.pipe(
+      Effect.flatMap((value) => Queue.offer(queue, value)),
+      Effect.forever({ autoYield: false }),
+      Effect.onError((cause) => Queue.failCause(queue, cause)),
+      Effect.forkIn(scope)
+    )
+    return Queue.toPull(queue)
+  })))
+
+/**
+ * Allows a faster producer to progress independently of a slower consumer by
+ * buffering up to `capacity` elements in a queue.
+ *
+ * @since 2.0.0
+ * @category Buffering
+ */
+export const bufferArray: {
+  (
+    options: { readonly capacity: "unbounded" } | {
+      readonly capacity: number
+      readonly strategy?: "dropping" | "sliding" | "suspend" | undefined
+    }
+  ): <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>(
+    self: Channel<Arr.NonEmptyReadonlyArray<OutElem>, OutErr, OutDone, InElem, InErr, InDone, Env>
+  ) => Channel<Arr.NonEmptyReadonlyArray<OutElem>, OutErr, OutDone, InElem, InErr, InDone, Env>
+  <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>(
+    self: Channel<Arr.NonEmptyReadonlyArray<OutElem>, OutErr, OutDone, InElem, InErr, InDone, Env>,
+    options: { readonly capacity: "unbounded" } | {
+      readonly capacity: number
+      readonly strategy?: "dropping" | "sliding" | "suspend" | undefined
+    }
+  ): Channel<Arr.NonEmptyReadonlyArray<OutElem>, OutErr, OutDone, InElem, InErr, InDone, Env>
+} = dual(2, <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>(
+  self: Channel<Arr.NonEmptyReadonlyArray<OutElem>, OutErr, OutDone, InElem, InErr, InDone, Env>,
+  options: { readonly capacity: "unbounded" } | {
+    readonly capacity: number
+    readonly strategy?: "dropping" | "sliding" | "suspend" | undefined
+  }
+): Channel<Arr.NonEmptyReadonlyArray<OutElem>, OutErr, OutDone, InElem, InErr, InDone, Env> =>
+  fromTransform(Effect.fnUntraced(function*(upstream, scope) {
+    const pull = yield* toTransform(self)(upstream, scope)
+    const queue = yield* Queue.make<OutElem, OutErr | Pull.Halt<OutDone>>({
+      capacity: options.capacity === "unbounded" ? undefined : options.capacity,
+      strategy: options.capacity === "unbounded" ? undefined : options.strategy
+    })
+    yield* Scope.addFinalizer(scope, Queue.shutdown(queue))
+    yield* pull.pipe(
+      Effect.flatMap((value) => Queue.offerAll(queue, value)),
+      Effect.forever({ autoYield: false }),
+      Effect.onError((cause) => Queue.failCause(queue, cause)),
+      Effect.forkIn(scope)
+    )
+    return Queue.toPullArray(queue)
+  })))
+
+/**
  * Returns a new channel with an attached finalizer. The finalizer is
  * guaranteed to be executed so long as the channel begins execution (and
  * regardless of whether or not it completes).
@@ -4254,6 +4353,19 @@ const runWith = <
   })
 
 /**
+ * Create a channel from the specified services.
+ *
+ * @since 2.0.0
+ * @category Services
+ */
+export const servicesWith = <Env, OutElem, OutErr, OutDone, InElem, InErr, InDone, Env2>(
+  f: (services: ServiceMap.ServiceMap<Env>) => Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env2>
+): Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env | Env2> =>
+  fromTransform((upstream, scope) =>
+    Effect.servicesWith((services: ServiceMap.ServiceMap<Env>) => toTransform(f(services))(upstream, scope))
+  )
+
+/**
  * @since 4.0.0
  * @category Services
  */
@@ -4272,6 +4384,26 @@ export const provideServices: {
   services: ServiceMap.ServiceMap<R2>
 ): Channel<OutElem, InElem, OutErr, InErr, OutDone, InDone, Exclude<R, R2>> =>
   fromTransform((upstream, scope) => Effect.provideServices(toTransform(self)(upstream, scope), services)))
+
+/**
+ * @since 2.0.0
+ * @category Services
+ */
+export const updateServices: {
+  <Env, R2>(
+    f: (services: ServiceMap.ServiceMap<R2>) => ServiceMap.ServiceMap<Env>
+  ): <OutElem, OutErr, OutDone, InElem, InErr, InDone>(
+    self: Channel<OutElem, InElem, OutErr, InErr, OutDone, InDone, Env>
+  ) => Channel<OutElem, InElem, OutErr, InErr, OutDone, InDone, R2>
+  <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, R2>(
+    self: Channel<OutElem, InElem, OutErr, InErr, OutDone, InDone, Env>,
+    f: (services: ServiceMap.ServiceMap<R2>) => ServiceMap.ServiceMap<Env>
+  ): Channel<OutElem, InElem, OutErr, InErr, OutDone, InDone, R2>
+} = dual(2, <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, R2>(
+  self: Channel<OutElem, InElem, OutErr, InErr, OutDone, InDone, Env>,
+  f: (services: ServiceMap.ServiceMap<R2>) => ServiceMap.ServiceMap<Env>
+): Channel<OutElem, InElem, OutErr, InErr, OutDone, InDone, R2> =>
+  fromTransform((upstream, scope) => Effect.updateServices(toTransform(self)(upstream, scope), f)))
 
 /**
  * @since 4.0.0
@@ -4638,7 +4770,7 @@ export const runCollect = <OutElem, OutErr, OutDone, Env>(
  */
 export const runDone = <OutElem, OutErr, OutDone, Env>(
   self: Channel<OutElem, OutErr, OutDone, unknown, unknown, unknown, Env>
-): Effect.Effect<OutDone, OutErr, Env> => runWith(self, identity, Effect.succeed)
+): Effect.Effect<OutDone, OutErr, Env> => runWith(self, identity_, Effect.succeed)
 
 /**
  * @since 2.0.0
