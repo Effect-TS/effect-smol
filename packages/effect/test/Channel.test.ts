@@ -1,4 +1,6 @@
 import { assert, describe, it } from "@effect/vitest"
+import { assertFailure, assertTrue } from "@effect/vitest/utils"
+import { Deferred, pipe, Ref } from "effect"
 import * as Chunk from "effect/collections/Chunk"
 import * as Effect from "effect/Effect"
 import * as Exit from "effect/Exit"
@@ -284,6 +286,43 @@ describe("Channel", () => {
           Channel.runDrain
         )
         assert.isUndefined(result)
+      }))
+  })
+
+  describe("interruptWhen", () => {
+    it.effect("interrupts the current element", () =>
+      Effect.gen(function*() {
+        const interrupted = yield* Ref.make(false)
+        const latch = yield* Deferred.make<void>()
+        const halt = yield* Deferred.make<void>()
+        const started = yield* Deferred.make<void>()
+        const channel = pipe(
+          Deferred.succeed(started, void 0),
+          Effect.andThen(Deferred.await(latch)),
+          Effect.onInterrupt(() => Ref.set(interrupted, true)),
+          Channel.fromEffect,
+          Channel.interruptWhen(Deferred.await(halt))
+        )
+        const fiber = yield* Effect.fork(Channel.runDrain(channel))
+        yield* pipe(
+          Deferred.await(started),
+          Effect.andThen(Deferred.succeed(halt, void 0))
+        )
+        yield* Fiber.await(fiber)
+        const result = yield* Ref.get(interrupted)
+        assertTrue(result)
+      }))
+
+    it.effect("interruptWhen - propagates errors", () =>
+      Effect.gen(function*() {
+        const deferred = yield* Deferred.make<never, string>()
+        const channel = pipe(
+          Channel.fromEffect(Effect.never),
+          Channel.interruptWhen(Deferred.await(deferred))
+        )
+        yield* Deferred.fail(deferred, "fail")
+        const result = yield* (Effect.result(Channel.runDrain(channel)))
+        assertFailure(result, "fail")
       }))
   })
 })

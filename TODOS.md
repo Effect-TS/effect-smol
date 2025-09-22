@@ -158,23 +158,23 @@ The exports under each section are organized as they are in Effect 3.0. The cate
 
 ### Utility Functions
 
-|        Effect 3         | Ported |   Effect 4   | Comments |
-| :---------------------: | :----: | :----------: | :------: |
-|        `collect`        |  Done  |   `filter`   |          |
-|       `concatMap`       |   -    |              |          |
-|     `concatMapWith`     |   -    |              |          |
-|  `concatMapWithCustom`  |   -    |              |          |
-|       `concatOut`       |   -    |              |          |
-|      `doneCollect`      |   -    |              |          |
-|         `drain`         |   -    |              |          |
-|      `embedInput`       |  Done  | `embedInput` |          |
-|      `emitCollect`      |   -    |              |          |
-|       `ensuring`        |  Done  |  `ensuring`  |          |
-|     `ensuringWith`      |  Done  |   `onExit`   |          |
-|   `foldCauseChannel`    |   -    |              |          |
-|      `foldChannel`      |   -    |              |          |
-|     `interruptWhen`     |   -    |              |          |
-| `interruptWhenDeferred` |   -    |              |          |
-|       `mapInput`        |   -    |              |          |
-|    `mapInputEffect`     |   -    |              |          |
-|     `mapInputError`     |   -    |              |          |
+|        Effect 3         | Ported |   Effect 4   |      Comments       |
+| :---------------------: | :----: | :----------: | :-----------------: |
+|        `collect`        |  Done  |   `filter`   |                     |
+|       `concatMap`       |   -    |              |                     |
+|     `concatMapWith`     |   -    |              |                     |
+|  `concatMapWithCustom`  |   -    |              |                     |
+|       `concatOut`       |   -    |              |                     |
+|      `doneCollect`      |   -    |              |                     |
+|         `drain`         |  Done  |              |                     |
+|      `embedInput`       |  Done  | `embedInput` |                     |
+|      `emitCollect`      |   -    |              |                     |
+|       `ensuring`        |  Done  |  `ensuring`  |                     |
+|     `ensuringWith`      |  Done  |   `onExit`   |                     |
+|   `foldCauseChannel`    |   -    |              |                     |
+|      `foldChannel`      |   -    |              |                     |
+|     `interruptWhen`     |  Done  |              |                     |
+| `interruptWhenDeferred` |   X    |              | Use `interruptWhen` |
+|       `mapInput`        |   -    |              |                     |
+|    `mapInputEffect`     |   -    |              |                     |
+|     `mapInputError`     |   -    |              |                     |

@@ -3798,8 +3798,8 @@ export const merge: {
         ),
         Effect.forkIn(forkedScope)
       )
-    yield* runSide("left", left, yield* Scope.fork(forkedScope))
-    yield* runSide("right", right, yield* Scope.fork(forkedScope))
+    yield* runSide("left", left, Scope.forkUnsafe(forkedScope))
+    yield* runSide("right", right, Scope.forkUnsafe(forkedScope))
     return Queue.toPull(queue)
   })))
 
@@ -4233,6 +4233,38 @@ export const bufferArray: {
     )
     return Queue.toPullArray(queue)
   })))
+
+/**
+ * Returns a new channel, which is the same as this one, except it will be
+ * interrupted when the specified effect completes. If the effect completes
+ * successfully before the underlying channel is done, then the returned
+ * channel will yield the success value of the effect as its terminal value.
+ * On the other hand, if the underlying channel finishes first, then the
+ * returned channel will yield the success value of the underlying channel as
+ * its terminal value.
+ *
+ * @since 2.0.0
+ * @category utils
+ */
+export const interruptWhen: {
+  <OutDone2, OutErr2, Env2>(
+    effect: Effect.Effect<OutDone2, OutErr2, Env2>
+  ): <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>(
+    self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>
+  ) => Channel<OutElem, OutErr | OutErr2, OutDone | OutDone2, InElem, InErr, InDone, Env2 | Env>
+  <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, OutDone2, OutErr2, Env2>(
+    self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
+    effect: Effect.Effect<OutDone2, OutErr2, Env2>
+  ): Channel<OutElem, OutErr | OutErr2, OutDone | OutDone2, InElem, InErr, InDone, Env2 | Env>
+} = dual(2, <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, OutDone2, OutErr2, Env2>(
+  self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
+  effect: Effect.Effect<OutDone2, OutErr2, Env2>
+): Channel<OutElem, OutErr | OutErr2, OutDone | OutDone2, InElem, InErr, InDone, Env2 | Env> =>
+  merge(
+    self,
+    fromPull(Effect.succeed(Effect.flatMap(effect, Pull.halt))),
+    { haltStrategy: "either" }
+  ))
 
 /**
  * Returns a new channel with an attached finalizer. The finalizer is
