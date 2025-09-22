@@ -2606,15 +2606,22 @@ export const filter: {
  *
  * @example
  * ```ts
+ * import { Array } from "effect/collections"
+ * import { Filter } from "effect/data"
  * import { Channel } from "effect/stream"
- * import { Effect } from "effect"
+ *
+ * const nonEmptyArrayFilter: Filter.Filter<
+ *   Array<number>,
+ *   Array.NonEmptyReadonlyArray<number>,
+ *   Array<number>
+ * > = (array) => Array.isReadonlyArrayNonEmpty(array) ? array : Filter.fail(array)
  *
  * // Create a channel that outputs arrays of mixed data
  * const arrayChannel = Channel.fromIterable([
  *   [1, 2, 3, 4, 5],
  *   [6, 7, 8, 9, 10],
  *   [11, 12, 13, 14, 15]
- * ])
+ * ]).pipe(Channel.filter(nonEmptyArrayFilter))
  *
  * // Filter arrays to keep only even numbers
  * const evenArraysChannel = Channel.filterArray(arrayChannel, (n) => n % 2 === 0)
@@ -2622,10 +2629,11 @@ export const filter: {
  * // Note: Only non-empty filtered arrays are emitted
  *
  * // Arrays that would become empty after filtering are discarded entirely
- * const oddChannel = Channel.fromIterable([[1, 3, 5], [2, 4], [7, 9]])
+ * const oddChannel = Channel.fromIterable([[1, 3, 5], [2, 4], [7, 9]]).pipe(
+ *   Channel.filter(nonEmptyArrayFilter)
+ * )
  * const filteredOddChannel = Channel.filterArray(oddChannel, (n) => n % 2 === 0)
  * // Outputs: [2, 4] (the arrays [1,3,5] and [7,9] are discarded)
- * ```
  *
  * @since 2.0.0
  * @category Filtering
