@@ -1508,6 +1508,67 @@ export const filter: {
 )
 
 /**
+ * Allows a faster producer to progress independently of a slower consumer by
+ * buffering up to `capacity` elements in a queue.
+ *
+ * Note: This combinator destroys the chunking structure. It's recommended to
+ *       use rechunk afterwards.
+ *
+ * @since 2.0.0
+ * @category utils
+ */
+export const buffer: {
+  (
+    options: { readonly capacity: "unbounded" } | {
+      readonly capacity: number
+      readonly strategy?: "dropping" | "sliding" | "suspend" | undefined
+    }
+  ): <A, E, R>(self: Stream<A, E, R>) => Stream<A, E, R>
+  <A, E, R>(
+    self: Stream<A, E, R>,
+    options: { readonly capacity: "unbounded" } | {
+      readonly capacity: number
+      readonly strategy?: "dropping" | "sliding" | "suspend" | undefined
+    }
+  ): Stream<A, E, R>
+} = dual(2, <A, E, R>(
+  self: Stream<A, E, R>,
+  options: { readonly capacity: "unbounded" } | {
+    readonly capacity: number
+    readonly strategy?: "dropping" | "sliding" | "suspend" | undefined
+  }
+): Stream<A, E, R> => fromChannel(Channel.bufferArray(self.channel, options)))
+
+/**
+ * Allows a faster producer to progress independently of a slower consumer by
+ * buffering up to `capacity` elements in a queue.
+ *
+ * @since 2.0.0
+ * @category utils
+ */
+export const bufferArray: {
+  (
+    options: { readonly capacity: "unbounded" } | {
+      readonly capacity: number
+      readonly strategy?: "dropping" | "sliding" | "suspend" | undefined
+    }
+  ): <A, E, R>(self: Stream<A, E, R>) => Stream<A, E, R>
+  <A, E, R>(
+    self: Stream<A, E, R>,
+    options: { readonly capacity: "unbounded" } | {
+      readonly capacity: number
+      readonly strategy?: "dropping" | "sliding" | "suspend" | undefined
+    }
+  ): Stream<A, E, R>
+} = dual(2, <A, E, R>(
+  self: Stream<A, E, R>,
+  options: { readonly capacity: "unbounded" } | {
+    readonly capacity: number
+    readonly strategy?: "dropping" | "sliding" | "suspend" | undefined
+  }
+): Stream<A, E, R> => fromChannel(Channel.buffer(self.channel, options)))
+
+/**
  * Handles stream failures by examining the full Cause of failure.
  *
  * @example
