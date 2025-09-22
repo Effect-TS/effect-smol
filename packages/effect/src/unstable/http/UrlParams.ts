@@ -17,8 +17,6 @@ import * as Hash from "../../interfaces/Hash.ts"
 import { type Inspectable } from "../../interfaces/Inspectable.ts"
 import type { Pipeable } from "../../interfaces/Pipeable.ts"
 import { PipeInspectableProto } from "../../internal/core.ts"
-import type * as Annotations from "../../schema/Annotations.ts"
-import type * as AST from "../../schema/AST.ts"
 import * as Issue from "../../schema/Issue.ts"
 import * as Schema from "../../schema/Schema.ts"
 import * as Transformation from "../../schema/Transformation.ts"
@@ -149,9 +147,7 @@ const arrayEquivalence = Arr.getEquivalence(
  * @since 4.0.0
  * @category schemas
  */
-export interface UrlParamsSchema extends Schema.declare<UrlParams, ReadonlyArray<readonly [string, string]>> {
-  readonly "~rebuild.out": UrlParamsSchema
-}
+export interface UrlParamsSchema extends Schema.declare<UrlParams, ReadonlyArray<readonly [string, string]>> {}
 
 /**
  * @since 4.0.0
@@ -454,14 +450,11 @@ export const schemaJsonField = (field: string): schemaJsonField =>
  * @category Schemas
  */
 export interface schemaRecord extends
-  Schema.Bottom<
-    ReadonlyRecord<string, string | Arr.NonEmptyReadonlyArray<string>>,
-    UrlParams,
+  Schema.decodeTo<
+    Schema.Record$<Schema.String, Schema.Union<readonly [Schema.String, Schema.NonEmptyArray<Schema.String>]>>,
+    UrlParamsSchema,
     never,
-    never,
-    AST.AST,
-    schemaRecord,
-    Annotations.Bottom<ReadonlyRecord<string, string | Arr.NonEmptyReadonlyArray<string>>>
+    never
   >
 {}
 

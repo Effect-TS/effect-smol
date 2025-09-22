@@ -833,6 +833,7 @@ export interface optionalKey<S extends Top> extends
     "optional"
   >
 {
+  readonly "~rebuild.out": this
   readonly schema: S
 }
 
@@ -878,9 +879,7 @@ export const optionalKey = lambda<optionalKeyLambda>(function optionalKey<S exte
 /**
  * @since 4.0.0
  */
-export interface optional<S extends Top> extends optionalKey<Union<readonly [S, Undefined]>> {
-  readonly "~rebuild.out": optional<S>
-}
+export interface optional<S extends Top> extends optionalKey<Union<readonly [S, Undefined]>> {}
 
 interface optionalLambda extends Lambda {
   <S extends Top>(self: S): optional<S>
@@ -939,6 +938,7 @@ export interface mutableKey<S extends Top> extends
     S["~encoded.optionality"]
   >
 {
+  readonly "~rebuild.out": this
   readonly schema: S
 }
 
@@ -975,7 +975,9 @@ export interface typeCodec<S extends Top> extends
     S["~encoded.mutability"],
     S["~encoded.optionality"]
   >
-{}
+{
+  readonly "~rebuild.out": this
+}
 
 interface typeCodecLambda extends Lambda {
   <S extends Top>(self: S): typeCodec<S>
@@ -1010,7 +1012,9 @@ export interface encodedCodec<S extends Top> extends
     S["~encoded.mutability"],
     S["~encoded.optionality"]
   >
-{}
+{
+  readonly "~rebuild.out": this
+}
 
 interface encodedCodecLambda extends Lambda {
   <S extends Top>(self: S): encodedCodec<S>
@@ -1076,10 +1080,12 @@ export function flip<S extends Top>(schema: S): flip<S> {
 export interface Literal<L extends AST.Literal>
   extends Bottom<L, L, never, never, AST.LiteralType, Literal<L>, Annotations.Annotations>
 {
+  readonly "~rebuild.out": this
   readonly literal: L
 }
 
 class Literal$<L extends AST.Literal> extends make$<Literal<L>> implements Literal<L> {
+  declare readonly "~rebuild.out": this
   readonly literal: L
 
   constructor(ast: AST.LiteralType, literal: L) {
@@ -1152,12 +1158,14 @@ export interface TemplateLiteral<Parts extends TemplateLiteral.Parts> extends
     Annotations.Annotations
   >
 {
+  readonly "~rebuild.out": this
   readonly parts: Parts
 }
 
 class TemplateLiteral$<Parts extends TemplateLiteral.Parts> extends make$<TemplateLiteral<Parts>>
   implements TemplateLiteral<Parts>
 {
+  declare readonly "~rebuild.out": this
   readonly parts: Parts
 
   constructor(ast: AST.TemplateLiteral, parts: Parts) {
@@ -1236,10 +1244,12 @@ export function TemplateLiteralParser<const Parts extends TemplateLiteral.Parts>
 export interface Enums<A extends { [x: string]: string | number }>
   extends Bottom<A[keyof A], A[keyof A], never, never, AST.Enums, Enums<A>, Annotations.Annotations>
 {
+  readonly "~rebuild.out": this
   readonly enums: A
 }
 
 class Enums$<A extends { [x: string]: string | number }> extends make$<Enums<A>> implements Enums<A> {
+  declare readonly "~rebuild.out": this
   readonly enums: A
 
   constructor(ast: AST.Enums, enums: A) {
@@ -1265,7 +1275,9 @@ export function Enums<A extends { [x: string]: string | number }>(enums: A): Enu
 /**
  * @since 4.0.0
  */
-export interface Never extends Bottom<never, never, never, never, AST.NeverKeyword, Never, Annotations.Bottom<never>> {}
+export interface Never extends Bottom<never, never, never, never, AST.NeverKeyword, Never, Annotations.Bottom<never>> {
+  readonly "~rebuild.out": this
+}
 
 /**
  * @since 4.0.0
@@ -1275,7 +1287,9 @@ export const Never: Never = make<Never>(AST.neverKeyword)
 /**
  * @since 4.0.0
  */
-export interface Any extends Bottom<any, any, never, never, AST.AnyKeyword, Any, Annotations.Bottom<any>> {}
+export interface Any extends Bottom<any, any, never, never, AST.AnyKeyword, Any, Annotations.Bottom<any>> {
+  readonly "~rebuild.out": this
+}
 
 /**
  * @since 4.0.0
@@ -1287,7 +1301,9 @@ export const Any: Any = make<Any>(AST.anyKeyword)
  */
 export interface Unknown
   extends Bottom<unknown, unknown, never, never, AST.UnknownKeyword, Unknown, Annotations.Bottom<unknown>>
-{}
+{
+  readonly "~rebuild.out": this
+}
 
 /**
  * @since 4.0.0
@@ -1297,7 +1313,9 @@ export const Unknown: Unknown = make<Unknown>(AST.unknownKeyword)
 /**
  * @since 4.0.0
  */
-export interface Null extends Bottom<null, null, never, never, AST.NullKeyword, Null, Annotations.Bottom<null>> {}
+export interface Null extends Bottom<null, null, never, never, AST.NullKeyword, Null, Annotations.Bottom<null>> {
+  readonly "~rebuild.out": this
+}
 
 /**
  * @since 4.0.0
@@ -1307,17 +1325,11 @@ export const Null: Null = make<Null>(AST.nullKeyword)
 /**
  * @since 4.0.0
  */
-export interface Undefined extends
-  Bottom<
-    undefined,
-    undefined,
-    never,
-    never,
-    AST.UndefinedKeyword,
-    Undefined,
-    Annotations.Bottom<undefined>
-  >
-{}
+export interface Undefined
+  extends Bottom<undefined, undefined, never, never, AST.UndefinedKeyword, Undefined, Annotations.Bottom<undefined>>
+{
+  readonly "~rebuild.out": this
+}
 
 /**
  * @since 4.0.0
@@ -1329,7 +1341,9 @@ export const Undefined: Undefined = make<Undefined>(AST.undefinedKeyword)
  */
 export interface String
   extends Bottom<string, string, never, never, AST.StringKeyword, String, Annotations.Bottom<string>>
-{}
+{
+  readonly "~rebuild.out": this
+}
 
 /**
  * A schema for all strings.
@@ -1343,7 +1357,9 @@ export const String: String = make<String>(AST.stringKeyword)
  */
 export interface Number
   extends Bottom<number, number, never, never, AST.NumberKeyword, Number, Annotations.Bottom<number>>
-{}
+{
+  readonly "~rebuild.out": this
+}
 
 /**
  * A schema for all numbers, including `NaN`, `Infinity`, and `-Infinity`.
@@ -1357,7 +1373,9 @@ export const Number: Number = make<Number>(AST.numberKeyword)
  */
 export interface Boolean
   extends Bottom<boolean, boolean, never, never, AST.BooleanKeyword, Boolean, Annotations.Bottom<boolean>>
-{}
+{
+  readonly "~rebuild.out": this
+}
 
 /**
  * A schema for all booleans.
@@ -1372,7 +1390,9 @@ export const Boolean: Boolean = make<Boolean>(AST.booleanKeyword)
  */
 export interface Symbol
   extends Bottom<symbol, symbol, never, never, AST.SymbolKeyword, Symbol, Annotations.Bottom<symbol>>
-{}
+{
+  readonly "~rebuild.out": this
+}
 
 /**
  * A schema for all symbols.
@@ -1386,7 +1406,9 @@ export const Symbol: Symbol = make<Symbol>(AST.symbolKeyword)
  */
 export interface BigInt
   extends Bottom<bigint, bigint, never, never, AST.BigIntKeyword, BigInt, Annotations.Bottom<bigint>>
-{}
+{
+  readonly "~rebuild.out": this
+}
 
 /**
  * A schema for all bigints.
@@ -1398,7 +1420,9 @@ export const BigInt: BigInt = make<BigInt>(AST.bigIntKeyword)
 /**
  * @since 4.0.0
  */
-export interface Void extends Bottom<void, void, never, never, AST.VoidKeyword, Void, Annotations.Bottom<void>> {}
+export interface Void extends Bottom<void, void, never, never, AST.VoidKeyword, Void, Annotations.Bottom<void>> {
+  readonly "~rebuild.out": this
+}
 
 /**
  * A schema for the `void` type.
@@ -1412,7 +1436,9 @@ export const Void: Void = make<Void>(AST.voidKeyword)
  */
 export interface Object$
   extends Bottom<object, object, never, never, AST.ObjectKeyword, Object$, Annotations.Bottom<object>>
-{}
+{
+  readonly "~rebuild.out": this
+}
 
 const Object_: Object$ = make<Object$>(AST.objectKeyword)
 
@@ -1430,7 +1456,9 @@ export {
  */
 export interface UniqueSymbol<sym extends symbol>
   extends Bottom<sym, sym, never, never, AST.UniqueSymbol, UniqueSymbol<sym>, Annotations.Bottom<sym>>
-{}
+{
+  readonly "~rebuild.out": this
+}
 
 /**
  * A schema for unique symbols.
@@ -1566,6 +1594,7 @@ export interface Struct<Fields extends Struct.Fields> extends
     Simplify<Struct.Iso<Fields>>
   >
 {
+  readonly "~rebuild.out": this
   readonly fields: Fields
   /**
    * Returns a new struct with the fields modified by the provided function.
@@ -1584,6 +1613,7 @@ export interface Struct<Fields extends Struct.Fields> extends
 }
 
 class Struct$<Fields extends Struct.Fields> extends make$<Struct<Fields>> implements Struct<Fields> {
+  declare readonly "~rebuild.out": this
   readonly fields: Fields
   constructor(ast: AST.TypeLiteral, fields: Fields) {
     super(ast, (ast) => new Struct$(ast, fields))
@@ -1781,6 +1811,7 @@ export interface Record$<Key extends Record.Key, Value extends Top> extends
     Record.Iso<Key, Value>
   >
 {
+  readonly "~rebuild.out": this
   readonly key: Key
   readonly value: Value
 }
@@ -1788,6 +1819,7 @@ export interface Record$<Key extends Record.Key, Value extends Top> extends
 class Record$$<Key extends Record.Key, Value extends Top> extends make$<Record$<Key, Value>>
   implements Record$<Key, Value>
 {
+  declare readonly "~rebuild.out": this
   readonly key: Key
   readonly value: Value
 
@@ -1897,6 +1929,7 @@ export interface StructWithRest<
     Simplify<StructWithRest.Iso<S, Records>>
   >
 {
+  readonly "~rebuild.out": this
   readonly schema: S
   readonly records: Records
 }
@@ -1905,6 +1938,7 @@ class StructWithRest$$<S extends StructWithRest.TypeLiteral, Records extends Str
   extends make$<StructWithRest<S, Records>>
   implements StructWithRest<S, Records>
 {
+  declare readonly "~rebuild.out": this
   readonly schema: S
   readonly records: Records
 
@@ -2027,6 +2061,7 @@ export interface Tuple<Elements extends Tuple.Elements> extends
     Tuple.Iso<Elements>
   >
 {
+  readonly "~rebuild.out": this
   readonly elements: Elements
   /**
    * Returns a new tuple with the elements modified by the provided function.
@@ -2045,6 +2080,7 @@ export interface Tuple<Elements extends Tuple.Elements> extends
 }
 
 class Tuple$<Elements extends Tuple.Elements> extends make$<Tuple<Elements>> implements Tuple<Elements> {
+  declare readonly "~rebuild.out": this
   readonly elements: Elements
   constructor(ast: AST.TupleType, elements: Elements) {
     super(ast, (ast) => new Tuple$(ast, elements))
@@ -2155,6 +2191,7 @@ export interface TupleWithRest<
     TupleWithRest.Iso<S["Iso"], Rest>
   >
 {
+  readonly "~rebuild.out": this
   readonly schema: S
   readonly rest: Rest
 }
@@ -2203,6 +2240,7 @@ export interface Array$<S extends Top> extends
     ReadonlyArray<S["Iso"]>
   >
 {
+  readonly "~rebuild.out": this
   readonly schema: S
 }
 
@@ -2238,6 +2276,7 @@ export interface NonEmptyArray<S extends Top> extends
     readonly [S["Iso"], ...Array<S["Iso"]>]
   >
 {
+  readonly "~rebuild.out": this
   readonly schema: S
 }
 
@@ -2262,9 +2301,7 @@ export const NonEmptyArray = lambda<NonEmptyArrayLambda>(
 /**
  * @since 4.0.0
  */
-export interface UniqueArray<S extends Top> extends Array$<S> {
-  readonly "~rebuild.out": UniqueArray<S>
-}
+export interface UniqueArray<S extends Top> extends Array$<S> {}
 
 /**
  * Returns a new array schema that ensures all elements are unique.
@@ -2302,6 +2339,7 @@ export interface mutable<S extends Top> extends
     S["~encoded.optionality"]
   >
 {
+  readonly "~rebuild.out": this
   readonly schema: S
 }
 
@@ -2340,6 +2378,7 @@ export interface readonly$<S extends Top> extends
     S["~encoded.optionality"]
   >
 {
+  readonly "~rebuild.out": this
   readonly schema: S
 }
 
@@ -2371,6 +2410,7 @@ export interface Union<Members extends ReadonlyArray<Top>> extends
     Members[number]["Iso"]
   >
 {
+  readonly "~rebuild.out": this
   readonly members: Members
   /**
    * Returns a new union with the members modified by the provided function.
@@ -2389,6 +2429,7 @@ export interface Union<Members extends ReadonlyArray<Top>> extends
 }
 
 class Union$<Members extends ReadonlyArray<Top>> extends make$<Union<Members>> implements Union<Members> {
+  declare readonly "~rebuild.out": this
   override readonly ast: AST.UnionType<Members[number]["ast"]>
   readonly members: Members
 
@@ -2444,6 +2485,7 @@ export interface Literals<L extends ReadonlyArray<AST.Literal>> extends
     Annotations.Bottom<L[number]>
   >
 {
+  readonly "~rebuild.out": this
   readonly literals: L
   readonly members: { readonly [K in keyof L]: Literal<L[K]> }
   /**
@@ -2455,6 +2497,7 @@ export interface Literals<L extends ReadonlyArray<AST.Literal>> extends
 }
 
 class Literals$<L extends ReadonlyArray<AST.Literal>> extends make$<Literals<L>> implements Literals<L> {
+  declare readonly "~rebuild.out": this
   readonly literals: L
   readonly members: { readonly [K in keyof L]: Literal<L[K]> }
 
@@ -2490,9 +2533,7 @@ export function Literals<const L extends ReadonlyArray<AST.Literal>>(literals: L
 /**
  * @since 4.0.0
  */
-export interface NullOr<S extends Top> extends Union<readonly [S, Null]> {
-  readonly "~rebuild.out": NullOr<S>
-}
+export interface NullOr<S extends Top> extends Union<readonly [S, Null]> {}
 
 interface NullOrLambda extends Lambda {
   <S extends Top>(self: S): NullOr<S>
@@ -2512,9 +2553,7 @@ export const NullOr = lambda<NullOrLambda>(
 /**
  * @since 4.0.0
  */
-export interface UndefinedOr<S extends Top> extends Union<readonly [S, Undefined]> {
-  readonly "~rebuild.out": UndefinedOr<S>
-}
+export interface UndefinedOr<S extends Top> extends Union<readonly [S, Undefined]> {}
 
 interface UndefinedOrLambda extends Lambda {
   <S extends Top>(self: S): UndefinedOr<S>
@@ -2534,9 +2573,7 @@ export const UndefinedOr = lambda<UndefinedOrLambda>(
 /**
  * @since 4.0.0
  */
-export interface NullishOr<S extends Top> extends Union<readonly [S, Null, Undefined]> {
-  readonly "~rebuild.out": NullishOr<S>
-}
+export interface NullishOr<S extends Top> extends Union<readonly [S, Null, Undefined]> {}
 
 interface NullishOrLambda extends Lambda {
   <S extends Top>(self: S): NullishOr<S>
@@ -2574,7 +2611,9 @@ export interface suspend<S extends Top> extends
     S["~encoded.mutability"],
     S["~encoded.optionality"]
   >
-{}
+{
+  readonly "~rebuild.out": this
+}
 
 /**
  * Creates a suspended schema that defers evaluation until needed. This is
@@ -2675,6 +2714,7 @@ export interface decodingMiddleware<S extends Top, RD> extends
     S["~encoded.optionality"]
   >
 {
+  readonly "~rebuild.out": this
   readonly schema: S
 }
 
@@ -2717,6 +2757,7 @@ export interface encodingMiddleware<S extends Top, RE> extends
     S["~encoded.optionality"]
   >
 {
+  readonly "~rebuild.out": this
   readonly schema: S
 }
 
@@ -2799,6 +2840,7 @@ export interface decodeTo<To extends Top, From extends Top, RD = never, RE = nev
     From["~encoded.optionality"]
   >
 {
+  readonly "~rebuild.out": this
   readonly from: From
   readonly to: To
 }
@@ -2811,6 +2853,7 @@ export interface compose<To extends Top, From extends Top> extends decodeTo<To, 
 class decodeTo$<To extends Top, From extends Top, RD, RE> extends make$<decodeTo<To, From, RD, RE>>
   implements decodeTo<To, From, RD, RE>
 {
+  declare readonly "~rebuild.out": this
   override readonly ast: From["ast"]
   readonly from: From
   readonly to: To
@@ -2910,25 +2953,27 @@ export function encode<S extends Top, RD = never, RE = never>(transformation: {
 /**
  * @since 4.0.0
  */
-export interface withConstructorDefault<S extends Top> extends
-  Bottom<
-    S["Type"],
-    S["Encoded"],
-    S["DecodingServices"],
-    S["EncodingServices"],
-    S["ast"],
-    withConstructorDefault<S>,
-    S["~annotate.in"],
-    S["~type.make.in"],
-    S["Iso"],
-    S["~type.make"],
-    S["~type.mutability"],
-    S["~type.optionality"],
-    "with-default",
-    S["~encoded.mutability"],
-    S["~encoded.optionality"]
-  >
+export interface withConstructorDefault<S extends Top & { readonly "~type.constructor.default": "no-default" }>
+  extends
+    Bottom<
+      S["Type"],
+      S["Encoded"],
+      S["DecodingServices"],
+      S["EncodingServices"],
+      S["ast"],
+      withConstructorDefault<S>,
+      S["~annotate.in"],
+      S["~type.make.in"],
+      S["Iso"],
+      S["~type.make"],
+      S["~type.mutability"],
+      S["~type.optionality"],
+      "with-default",
+      S["~encoded.mutability"],
+      S["~encoded.optionality"]
+    >
 {
+  readonly "~rebuild.out": this
   readonly schema: S
 }
 
@@ -2950,9 +2995,7 @@ export function withConstructorDefault<S extends Top & { readonly "~type.constru
 /**
  * @since 4.0.0
  */
-export interface withDecodingDefaultKey<S extends Top> extends decodeTo<S, optionalKey<encodedCodec<S>>> {
-  readonly "~rebuild.out": withDecodingDefaultKey<S>
-}
+export interface withDecodingDefaultKey<S extends Top> extends decodeTo<S, optionalKey<encodedCodec<S>>> {}
 
 /**
  * @since 4.0.0
@@ -2986,9 +3029,7 @@ export function withDecodingDefaultKey<S extends Top>(
 /**
  * @since 4.0.0
  */
-export interface withDecodingDefault<S extends Top> extends decodeTo<S, optional<encodedCodec<S>>> {
-  readonly "~rebuild.out": withDecodingDefault<S>
-}
+export interface withDecodingDefault<S extends Top> extends decodeTo<S, optional<encodedCodec<S>>> {}
 
 /**
  * **Options**
@@ -3015,9 +3056,7 @@ export function withDecodingDefault<S extends Top>(
 /**
  * @since 4.0.0
  */
-export interface tag<Tag extends AST.Literal> extends withConstructorDefault<Literal<Tag>> {
-  readonly "~rebuild.out": tag<Tag>
-}
+export interface tag<Tag extends AST.Literal> extends withConstructorDefault<Literal<Tag>> {}
 
 /**
  * Creates a schema for a literal value that automatically provides itself as a
@@ -3204,6 +3243,7 @@ export interface TaggedUnion<Cases extends Record<string, Top>> extends
     { [K in keyof Cases]: Cases[K]["~type.make"] }[keyof Cases]
   >
 {
+  readonly "~rebuild.out": this
   readonly cases: Cases
   readonly isAnyOf: <const Keys>(
     keys: ReadonlyArray<Keys>
@@ -3221,6 +3261,7 @@ export interface TaggedUnion<Cases extends Record<string, Top>> extends
 }
 
 class TaggedUnion$<Cases extends Record<string, Top>> extends make$<TaggedUnion<Cases>> implements TaggedUnion<Cases> {
+  declare readonly "~rebuild.out": this
   override readonly ast: AST.UnionType<AST.TypeLiteral>
   readonly cases: Cases
   readonly isAnyOf: <const Keys>(
@@ -3290,9 +3331,7 @@ export interface Option<S extends Top> extends
     readonly [S],
     OptionIso<S>
   >
-{
-  readonly "~rebuild.out": Option<S>
-}
+{}
 
 /**
  * @since 4.0.0
@@ -3362,9 +3401,7 @@ export function Option<S extends Top>(value: S): Option<S> {
 /**
  * @since 4.0.0
  */
-export interface OptionFromNullOr<S extends Top> extends decodeTo<Option<typeCodec<S>>, NullOr<S>> {
-  readonly "~rebuild.out": OptionFromNullOr<S>
-}
+export interface OptionFromNullOr<S extends Top> extends decodeTo<Option<typeCodec<S>>, NullOr<S>> {}
 
 /**
  * Decodes a nullable, required value `T` to a required `Option<T>` value.
@@ -3390,9 +3427,7 @@ export function OptionFromNullOr<S extends Top>(schema: S): OptionFromNullOr<S> 
 /**
  * @since 4.0.0
  */
-export interface OptionFromOptionalKey<S extends Top> extends decodeTo<Option<typeCodec<S>>, optionalKey<S>> {
-  readonly "~rebuild.out": OptionFromOptionalKey<S>
-}
+export interface OptionFromOptionalKey<S extends Top> extends decodeTo<Option<typeCodec<S>>, optionalKey<S>> {}
 
 /**
  * Decodes an optional value `A` to a required `Option<A>` value.
@@ -3418,9 +3453,7 @@ export function OptionFromOptionalKey<S extends Top>(schema: S): OptionFromOptio
 /**
  * @since 4.0.0
  */
-export interface OptionFromOptional<S extends Top> extends decodeTo<Option<typeCodec<S>>, optional<S>> {
-  readonly "~rebuild.out": OptionFromOptional<S>
-}
+export interface OptionFromOptional<S extends Top> extends decodeTo<Option<typeCodec<S>>, optional<S>> {}
 
 /**
  * Decodes an optional or `undefined` value `A` to an required `Option<A>`
@@ -3454,9 +3487,7 @@ export interface Redacted<S extends Top> extends
     Redacted_.Redacted<S["Encoded"]>,
     readonly [S]
   >
-{
-  readonly "~rebuild.out": Redacted<S>
-}
+{}
 
 /**
  * Creates a schema for the `Redacted` type, providing secure handling of
@@ -3552,9 +3583,7 @@ export interface CauseFailure<E extends Top, D extends Top> extends
     readonly [E, D],
     CauseFailureIso<E, D>
   >
-{
-  readonly "~rebuild.out": CauseFailure<E, D>
-}
+{}
 
 /**
  * @since 4.0.0
@@ -3678,9 +3707,7 @@ export interface Cause<E extends Top, D extends Top> extends
     readonly [Array$<CauseFailure<E, D>>],
     CauseIso<E, D>
   >
-{
-  readonly "~rebuild.out": Cause<E, D>
-}
+{}
 
 /**
  * @since 4.0.0
@@ -3732,9 +3759,7 @@ export function Cause<E extends Top, D extends Top>(error: E, defect: D): Cause<
 /**
  * @since 4.0.0
  */
-export interface Error extends instanceOf<globalThis.Error> {
-  readonly "~rebuild.out": Error
-}
+export interface Error extends instanceOf<globalThis.Error> {}
 
 const ErrorJsonEncoded = Struct({
   message: String,
@@ -3778,9 +3803,7 @@ export interface Defect extends
       decodeTo<Unknown, String>
     ]
   >
-{
-  readonly "~rebuild.out": Defect
-}
+{}
 
 /**
  * A schema that represents defects.
@@ -3828,9 +3851,7 @@ export interface Exit<A extends Top, E extends Top, D extends Top> extends
     readonly [A, Cause<E, D>],
     ExitIso<A, E, D>
   >
-{
-  readonly "~rebuild.out": Exit<A, E, D>
-}
+{}
 
 /**
  * @since 4.0.0
@@ -3955,9 +3976,7 @@ export interface Map$<Key extends Top, Value extends Top> extends
     readonly [Key, Value],
     ReadonlyArray<readonly [Key["Iso"], Value["Iso"]]>
   >
-{
-  readonly "~rebuild.out": Map$<Key, Value>
-}
+{}
 
 /**
  * Creates a schema that validates a Map where keys and values must conform to
@@ -4073,7 +4092,7 @@ export function Opaque<Self, Brand = {}>() {
  * @since 4.0.0
  */
 export interface instanceOf<T, Iso = T> extends declareConstructor<T, T, readonly [], Iso> {
-  readonly "~rebuild.out": instanceOf<T, Iso>
+  readonly "~rebuild.out": this
 }
 
 /**
@@ -4110,9 +4129,7 @@ export function link<T>() { // TODO: better name
 /**
  * @since 4.0.0
  */
-export interface URL extends instanceOf<globalThis.URL> {
-  readonly "~rebuild.out": URL
-}
+export interface URL extends instanceOf<globalThis.URL> {}
 
 /**
  * A schema for JavaScript `URL` objects.
@@ -4152,9 +4169,7 @@ export const URL: URL = instanceOf(
 /**
  * @since 4.0.0
  */
-export interface Date extends instanceOf<globalThis.Date> {
-  readonly "~rebuild.out": Date
-}
+export interface Date extends instanceOf<globalThis.Date> {}
 
 /**
  * A schema for JavaScript `Date` objects.
@@ -4186,9 +4201,7 @@ export const Date: Date = instanceOf(
 /**
  * @since 4.0.0
  */
-export interface ValidDate extends Date {
-  readonly "~rebuild.out": ValidDate
-}
+export interface ValidDate extends Date {}
 
 /**
  * A schema for **valid** JavaScript `Date` objects.
@@ -4203,9 +4216,7 @@ export const ValidDate = Date.check(Check.validDate())
 /**
  * @since 4.0.0
  */
-export interface Duration extends declare<Duration_.Duration> {
-  readonly "~rebuild.out": Duration
-}
+export interface Duration extends declare<Duration_.Duration> {}
 
 /**
  * A schema for `Duration` values.
@@ -4263,9 +4274,7 @@ export const Duration: Duration = declare(
 /**
  * @since 4.0.0
  */
-export interface UnknownFromJsonString extends decodeTo<Unknown, String> {
-  readonly "~rebuild.out": UnknownFromJsonString
-}
+export interface UnknownFromJsonString extends decodeTo<Unknown, String> {}
 
 /**
  * A transformation schema that decodes a JSON-encoded string into an `unknown` value.
@@ -4298,9 +4307,7 @@ export const UnknownFromJsonString: UnknownFromJsonString = String.annotate({
 /**
  * @since 4.0.0
  */
-export interface fromJsonString<S extends Top> extends decodeTo<S, UnknownFromJsonString> {
-  readonly "~rebuild.out": fromJsonString<S>
-}
+export interface fromJsonString<S extends Top> extends decodeTo<S, UnknownFromJsonString> {}
 
 /**
  * Returns a schema that decodes a JSON string and then decodes the parsed value
@@ -4390,9 +4397,7 @@ export function fromJsonString<S extends Top>(schema: S): fromJsonString<S> {
 /**
  * @since 4.0.0
  */
-export interface Finite extends Number {
-  readonly "~rebuild.out": Finite
-}
+export interface Finite extends Number {}
 
 /**
  * A schema for finite numbers, rejecting `NaN`, `Infinity`, and `-Infinity`.
@@ -4411,9 +4416,7 @@ export const Int = Number.check(Check.int())
 /**
  * @since 4.0.0
  */
-export interface FiniteFromString extends decodeTo<Number, String> {
-  readonly "~rebuild.out": FiniteFromString
-}
+export interface FiniteFromString extends decodeTo<Number, String> {}
 
 /**
  * A transformation schema that parses a string into a finite number.
@@ -4533,7 +4536,7 @@ function makeClass<
     static readonly [TypeId] = TypeId
     static readonly [immerable] = true
 
-    declare static readonly "~rebuild.out": Class<Self, S, Self>
+    declare static readonly "~rebuild.out": decodeTo<declareConstructor<Self, S["Encoded"], readonly [S], S["Iso"]>, S>
     declare static readonly "~annotate.in": Annotations.Declaration<Self, readonly [S]>
 
     declare static readonly "Type": Self
@@ -4760,9 +4763,7 @@ export const StandardSchemaV1FailureResult = Struct({
 /**
  * @since 4.0.0
  */
-export interface BooleanFromBit extends decodeTo<Boolean, Literals<readonly [0, 1]>> {
-  readonly "~rebuild.out": BooleanFromBit
-}
+export interface BooleanFromBit extends decodeTo<Boolean, Literals<readonly [0, 1]>> {}
 
 /**
  * A boolean parsed from 0 or 1.
@@ -4783,9 +4784,7 @@ export const BooleanFromBit: BooleanFromBit = Literals([0, 1]).pipe(
 /**
  * @since 4.0.0
  */
-export interface Uint8Array extends instanceOf<globalThis.Uint8Array<ArrayBufferLike>> {
-  readonly "~rebuild.out": Uint8Array
-}
+export interface Uint8Array extends instanceOf<globalThis.Uint8Array<ArrayBufferLike>> {}
 
 /**
  * A schema for JavaScript `Uint8Array` objects.
@@ -4809,9 +4808,7 @@ export const Uint8Array: Uint8Array = instanceOf(globalThis.Uint8Array<ArrayBuff
 /**
  * @since 4.0.0
  */
-export interface DateTimeUtc extends declare<DateTime.Utc> {
-  readonly "~rebuild.out": DateTimeUtc
-}
+export interface DateTimeUtc extends declare<DateTime.Utc> {}
 
 /**
  * A schema for `DateTime.Utc` values.
@@ -4855,9 +4852,7 @@ export const DateTimeUtc: DateTimeUtc = declare(
 /**
  * @since 4.0.0
  */
-export interface DateTimeUtcFromDate extends decodeTo<DateTimeUtc, Date> {
-  readonly "~rebuild.out": DateTimeUtcFromDate
-}
+export interface DateTimeUtcFromDate extends decodeTo<DateTimeUtc, Date> {}
 
 /**
  * A transformation schema that decodes a `Date` into a `DateTime.Utc`.
@@ -4881,9 +4876,7 @@ export const DateTimeUtcFromDate: DateTimeUtcFromDate = ValidDate.pipe(
 /**
  * @since 4.0.0
  */
-export interface DateTimeUtcFromString extends decodeTo<DateTimeUtc, String> {
-  readonly "~rebuild.out": DateTimeUtcFromString
-}
+export interface DateTimeUtcFromString extends decodeTo<DateTimeUtc, String> {}
 
 /**
  * A transformation schema that decodes a string into a `DateTime.Utc`.
@@ -4952,7 +4945,9 @@ export interface declareConstructor<T, E, TypeParameters extends ReadonlyArray<T
     T,
     Iso
   >
-{}
+{
+  readonly "~rebuild.out": this
+}
 
 /**
  * An API for creating schemas for parametric types.
@@ -4986,9 +4981,7 @@ export function declareConstructor<T, E = T, Iso = T>() {
  * @category Constructors
  * @since 4.0.0
  */
-export interface declare<T, Iso = T> extends declareConstructor<T, T, readonly [], Iso> {
-  readonly "~rebuild.out": declare<T, Iso>
-}
+export interface declare<T, Iso = T> extends declareConstructor<T, T, readonly [], Iso> {}
 
 /**
  * An API for creating schemas for non parametric types.

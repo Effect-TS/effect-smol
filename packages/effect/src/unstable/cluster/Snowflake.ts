@@ -74,9 +74,7 @@ export const SnowflakeFromBigInt: SnowflakeFromBigInt = Schema.BigInt.pipe(
  * @since 4.0.0
  * @category Schemas
  */
-export interface SnowflakeFromString extends Schema.decodeTo<SnowflakeFromBigInt, Schema.String> {
-  readonly "~rebuild.out": SnowflakeFromString
-}
+export interface SnowflakeFromString extends Schema.decodeTo<SnowflakeFromBigInt, Schema.String> {}
 
 /**
  * @since 4.0.0

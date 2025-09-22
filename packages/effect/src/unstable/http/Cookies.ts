@@ -34,9 +34,7 @@ export interface Cookies extends Pipeable, Inspectable.Inspectable {
  * @since 4.0.0
  * @category Schemas
  */
-export interface CookiesSchema extends Schema.declare<Cookies, Record.ReadonlyRecord<string, CookieSchema["Iso"]>> {
-  readonly "~rebuild.out": CookiesSchema
-}
+export interface CookiesSchema extends Schema.declare<Cookies, Record.ReadonlyRecord<string, CookieSchema["Iso"]>> {}
 
 /**
  * @since 4.0.0
@@ -99,9 +97,7 @@ export const isCookie = (u: unknown): u is Cookie => Predicate.hasProperty(u, Co
  * @since 4.0.0
  * @category Schemas
  */
-export interface CookieSchema extends Schema.declare<Cookie> {
-  readonly "~rebuild.out": CookieSchema
-}
+export interface CookieSchema extends Schema.declare<Cookie> {}
 
 /**
  * @since 4.0.0

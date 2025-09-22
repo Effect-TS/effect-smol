@@ -19,24 +19,7 @@ import * as RpcMiddleware from "../rpc/RpcMiddleware.ts"
  * @since 4.0.0
  */
 export interface optionalWithDefault<S extends Schema.Top & { readonly "~type.constructor.default": "no-default" }>
-  extends
-    Schema.Bottom<
-      S["Type"],
-      S["Encoded"],
-      S["DecodingServices"],
-      S["EncodingServices"],
-      S["ast"],
-      optionalWithDefault<S>,
-      S["~annotate.in"],
-      S["~type.make.in"],
-      S["Iso"],
-      S["~type.make"],
-      S["~type.mutability"],
-      "optional",
-      "with-default",
-      S["~encoded.mutability"],
-      "optional"
-    >
+  extends Schema.withConstructorDefault<Schema.decodeTo<Schema.typeCodec<Schema.optionalKey<S>>, Schema.optionalKey<S>>>
 {}
 
 /**
@@ -53,8 +36,7 @@ export const optionalWithDefault = <S extends Schema.Top & { readonly "~type.con
     }),
     Schema.withConstructorDefault<
       Schema.decodeTo<Schema.typeCodec<Schema.optionalKey<S>>, Schema.optionalKey<S>>
-    >(() => Option.some(defaultValue())),
-    Schema.revealBottom
+    >(() => Option.some(defaultValue()))
   )
 
 /**
@@ -2087,6 +2069,4 @@ export interface Param<Name extends string, S extends Schema.Top> extends
  * @category Parameters
  */
 export const param = <const Id extends string, S extends Schema.Top>(id: Id, schema: S): Param<Id, S> =>
-  schema.annotate({
-    mcpServerParam: id
-  }) as any
+  schema.annotate({ mcpServerParam: id }) as any

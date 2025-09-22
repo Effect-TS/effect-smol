@@ -405,6 +405,11 @@ describe("Schema", () => {
     })
   })
 
+  it("Schema", () => {
+    const schema: Schema.Schema<string> = Schema.String
+    expect(schema.annotate({})).type.toBe<Schema.Schema<string>>()
+  })
+
   describe("Never", () => {
     const schema = Schema.Never
 
@@ -1222,6 +1227,7 @@ describe("Schema", () => {
         Schema.Class<A, Schema.Struct<{ readonly a: Schema.String }>, A>
       >()
       expect(A.fields).type.toBe<{ readonly a: Schema.String }>()
+      expect(A.annotate({})).type.toBe<Schema.decodeTo<Schema.declareConstructor<A, { readonly a: string; }, readonly [Schema.Struct<{ readonly a: Schema.String; }>], { readonly a: string; }>, Schema.Struct<{ readonly a: Schema.String; }>>>()
     })
 
     it("Struct argument", () => {
