@@ -365,4 +365,37 @@ Expected a value greater than 0, got -1.1`
       )
     })
   })
+
+  it(`smoke test: "pretty good" persistency (copy only the path)`, () => {
+    type Task = { id: number; done: boolean; title: string }
+    type Project = { id: number; name: string; tasks: Array<Task> }
+    type State = { user: { id: string; name: string }; settings: { theme: "light" | "dark" }; projects: Array<Project> }
+
+    const s1: State = {
+      user: { id: "u1", name: "Ada" },
+      settings: { theme: "light" },
+      projects: [
+        { id: 1, name: "Alpha", tasks: [{ id: 1, done: false, title: "T1" }] },
+        { id: 2, name: "Beta", tasks: [{ id: 2, done: false, title: "T2" }] }
+      ]
+    }
+
+    // build an optic to projects[1].tasks[0].done
+    const _done = Optic.id<State>()
+      .key("projects").key(1)
+      .key("tasks").key(0)
+      .key("done")
+
+    // Real update -> copy only the path
+    const s2 = _done.replace(true, s1)
+    assertTrue(s2 !== s1, "root should change on real update")
+    assertTrue(s2.user === s1.user, "unrelated branch reused")
+    assertTrue(s2.settings === s1.settings, "unrelated branch reused")
+    assertTrue(s2.projects !== s1.projects, "parent array on the path should be new")
+    assertTrue(s2.projects[0] === s1.projects[0], "sibling project reused")
+    assertTrue(s2.projects[1] !== s1.projects[1], "changed project replaced")
+    assertTrue(s2.projects[1].tasks !== s1.projects[1].tasks, "parent array of changed element should be new")
+    assertTrue(s2.projects[1].tasks[0] !== s1.projects[1].tasks[0], "changed task replaced")
+    assertTrue(s2.projects[1].tasks[0].done === true, "value updated")
+  })
 })

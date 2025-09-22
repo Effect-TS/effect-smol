@@ -1,4 +1,8 @@
 /**
+ * Design: "pretty good" persistency.
+ * Real updates copy only the path; unrelated branches keep referential identity.
+ * No-op updates may still allocate a new root/parents — callers must not rely on identity for no-ops.
+ *
  * @since 4.0.0
  */
 
@@ -350,7 +354,7 @@ function make(ast: AST): any {
   }
 }
 
-function shallowCopy(s: any) {
+function shallowCopy(s: object): any {
   return Array.isArray(s) ? s.slice() : { ...s }
 }
 
@@ -383,19 +387,16 @@ const go = memoize((ast: AST): Op => {
         set: (a: any, s: any) => {
           const path = ast.path
           const out = shallowCopy(s)
-          if (path.length === 1) {
-            out[path[0]] = a
-            return out
-          }
 
           let current = out
-          for (let i = 0; i < path.length - 1; i++) {
+          let i = 0
+          for (; i < path.length - 1; i++) {
             const key = path[i]
             current[key] = shallowCopy(current[key])
             current = current[key]
           }
 
-          const finalKey = path[path.length - 1]
+          const finalKey = path[i]
           current[finalKey] = a
 
           return out
