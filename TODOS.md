@@ -26,7 +26,7 @@ Pre-releases to npm from smol repo
 
 - [ ] Copy code over to main repo
 
-# Channel Module Audit
+# Module Audit
 
 The exports under each section are organized as they are in Effect 3.0. The categorization of these modules may not be correct, and should be fixed for 4.0.
 
@@ -38,6 +38,8 @@ The exports under each section are organized as they are in Effect 3.0. The cate
 |   ✅   | Done - successfully ported to Effect 4           |
 |   🚫   | Won't do - not being ported to Effect 4          |
 |   ❓   | Question - method has questions or uncertainties |
+
+## Channel
 
 ### Constructors
 
@@ -55,10 +57,10 @@ The exports under each section are organized as they are in Effect 3.0. The cate
 |     `failSync`      |   ✅   |     `failSync`      |                                                                                                                        |
 |    `fromEffect`     |   ✅   |    `fromEffect`     |                                                                                                                        |
 |    `fromEither`     |   🚫   |                     |                                         Convert to Effect and use `fromEffect`                                         |
-|     `fromInput`     |   🚫   |                     |                                                                                                                        |
+|     `fromInput`     |   🚫   |                     | Scoped variants not needed |
 |    `fromOption`     |   🚫   |                     |                                         Convert to Effect and use `fromEffect`                                         |
 |    `fromPubSub`     |   ✅   |    `fromPubSub`     |                                                                                                                        |
-| `fromPubSubScoped`  |   🚫   |                     |                                        Do we need the scoped variants for 4.0?                                         |
+| `fromPubSubScoped`  |   🚫   |                     | Scoped variants not needed                                                                                |
 |     `fromQueue`     |   ✅   |     `fromQueue`     |                                                                                                                        |
 |     `identity`      |   ❌   |                     |                                                                                                                        |
 |       `never`       |   ✅   |       `never`       |                                                                                                                        |
@@ -72,12 +74,12 @@ The exports under each section are organized as they are in Effect 3.0. The cate
 |      `suspend`      |   ✅   |      `suspend`      |                                                                                                                        |
 |       `sync`        |   ✅   |       `sync`        |                                                                                                                        |
 |      `unwrap`       |   ✅   |      `unwrap`       |                                                                                                                        |
-|   `unwrapScoped`    |   🚫   |                     |                                        Do we need the scoped variants for 4.0?                                         |
-| `unwrapScopedWith`  |   🚫   |                     |                                        Do we need the scoped variants for 4.0?                                         |
-|       `void`        |   🚫   |                     |                                                                                                                        |
-|       `write`       |   🚫   |                     |                                                                                                                        |
-|     `writeAll`      |   🚫   |                     |                                                                                                                        |
-|    `writeChunk`     |   🚫   |                     |                                                                                                                        |
+|   `unwrapScoped`    |   🚫   |                     |                                        Scoped variants not required                                         |
+| `unwrapScopedWith`  |   🚫   |                     |                                        Scoped variants not required                                         |
+|       `void`        |   🚫   |                     | New api is `Channel.end`                                                                                                                       |
+|       `write`       |   🚫   |                     | `Channel.write` is part of Pull                                                                                                                        |
+|     `writeAll`      |   🚫   |                     | `Channel.write` is part of Pull                                                                                                                        |
+|    `writeChunk`     |   🚫   |                     | `Channel.write` is part of Pull                                                                                                                        |
 
 ### Context
 
@@ -85,9 +87,9 @@ The exports under each section are organized as they are in Effect 3.0. The cate
 | :------------------: | :----: | :---------------: | :------: |
 |      `context`       |   ❌   |                   |          |
 |    `contextWith`     |   ❌   |                   |          |
-| `contextWithChannel` |   🚫   |   `contextWith`   |          |
+| `contextWithChannel` |   ✅   |   `contextWith`   |          |
 | `contextWithEffect`  |   🚫   |                   |          |
-|  `mapInputContext`   |   ❌   | `updateServices`  |          |
+|  `mapInputContext`   |   ✅   | `updateServices`  |          |
 |   `provideContext`   |   ✅   | `provideServices` |          |
 |    `provideLayer`    |   ❌   |                   |          |
 |   `provideService`   |   ❌   |                   |          |
@@ -123,8 +125,8 @@ The exports under each section are organized as they are in Effect 3.0. The cate
 
 |     Effect 3      | Ported |    Effect 4     |          Comments          |
 | :---------------: | :----: | :-------------: | :------------------------: |
-|       `as`        |   🚫   |                 |                            |
-|     `asVoid`      |   🚫   |                 |                            |
+|       `as`        |   🚫   |                 | `mapDone` takes care of this                           |
+|     `asVoid`      |   🚫   |                 | `mapDone` takes care of this                            |
 |       `map`       |   ✅   |    `mapDone`    |                            |
 |    `mapEffect`    |   ✅   | `mapDoneEffect` |                            |
 |    `mapError`     |   ✅   |   `mapError`    |                            |
@@ -168,7 +170,7 @@ The exports under each section are organized as they are in Effect 3.0. The cate
 |      `embedInput`       |   ✅   | `embedInput` |          |
 |      `emitCollect`      |   ❌   |              |          |
 |       `ensuring`        |   ✅   |  `ensuring`  |          |
-|     `ensuringWith`      |   ❌   |              |          |
+|     `ensuringWith`      |   ✅   | `onExit`             |          |
 |   `foldCauseChannel`    |   ❌   |              |          |
 |      `foldChannel`      |   ❌   |              |          |
 |     `interruptWhen`     |   ❌   |              |          |
