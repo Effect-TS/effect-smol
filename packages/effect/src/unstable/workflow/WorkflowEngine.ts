@@ -66,8 +66,8 @@ export class WorkflowEngine extends ServiceMap.Key<
         readonly suspendedRetrySchedule?: Schedule.Schedule<any, unknown> | undefined
       }
     ) => Effect.Effect<
-      Discard extends true ? string : Workflow.Result<Success["Type"], Error["Type"]>,
-      never,
+      Discard extends true ? string : Success["Type"],
+      Error["Type"],
       Payload["EncodingServices"] | Success["DecodingServices"] | Error["DecodingServices"]
     >
 
@@ -309,7 +309,7 @@ export const makeUnsafe = (options: Encoded): WorkflowEngine["Service"] =>
       const executionId = opts.executionId
       const suspendedRetrySchedule = opts.suspendedRetrySchedule ?? defaultRetrySchedule
       yield* Effect.annotateCurrentSpan({ executionId })
-      let result: Workflow.Result<unknown, unknown> | undefined
+      let result: Workflow.Result<Success["Type"], Error["Type"]> | undefined
 
       // link interruption with parent workflow
       const parentInstance = yield* Effect.serviceOption(WorkflowInstance)
@@ -329,7 +329,7 @@ export const makeUnsafe = (options: Encoded): WorkflowEngine["Service"] =>
           payload: payload as object,
           discard: true
         })
-        return executionId as any
+        return executionId
       }
 
       const run = options.execute(self, {
@@ -344,7 +344,7 @@ export const makeUnsafe = (options: Encoded): WorkflowEngine["Service"] =>
           parentInstance.value.suspended = true
           return yield* Effect.interrupt
         }
-        return yield* result.exit as Exit.Exit<any>
+        return yield* result.exit
       }
 
       let sleep: Effect.Effect<any> | undefined
