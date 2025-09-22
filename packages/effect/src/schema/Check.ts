@@ -7,6 +7,7 @@ import type { Brand } from "../data/Brand.ts"
 import type * as Equivalence from "../data/Equivalence.ts"
 import * as Option from "../data/Option.ts"
 import * as Order from "../data/Order.ts"
+import * as Result from "../data/Result.ts"
 import { format } from "../interfaces/Inspectable.ts"
 import { Class } from "../interfaces/Pipeable.ts"
 import * as Num from "../primitives/Number.ts"
@@ -1501,9 +1502,8 @@ export function unique<T>(equivalence: Equivalence.Equivalence<T>, annotations?:
   )
 }
 
-// TODO: remove this
 /**
- * A check that ensures the value is a Some value.
+ * A check that ensures the value is a `Some` value.
  *
  * @since 4.0.0
  */
@@ -1511,5 +1511,41 @@ export function some<A>(annotations?: Annotations.Filter) {
   return makeRefineByGuard<Option.Some<A>, Option.Option<A>>(
     Option.isSome,
     Annotations.combine({ title: "some", description: "a Some value" }, annotations)
+  )
+}
+
+/**
+ * A check that ensures the value is a `None` value.
+ *
+ * @since 4.0.0
+ */
+export function none<A>(annotations?: Annotations.Filter) {
+  return makeRefineByGuard<Option.None<A>, Option.Option<A>>(
+    Option.isNone,
+    Annotations.combine({ title: "none", description: "a None value" }, annotations)
+  )
+}
+
+/**
+ * A check that ensures the value is a `Result.Success` value.
+ *
+ * @since 4.0.0
+ */
+export function success<A, E>(annotations?: Annotations.Filter) {
+  return makeRefineByGuard<Result.Success<A, E>, Result.Result<A, E>>(
+    Result.isSuccess,
+    Annotations.combine({ title: "success", description: "a Result.Success value" }, annotations)
+  )
+}
+
+/**
+ * A check that ensures the value is a `Result.Failure` value.
+ *
+ * @since 4.0.0
+ */
+export function failure<A, E>(annotations?: Annotations.Filter) {
+  return makeRefineByGuard<Result.Failure<A, E>, Result.Result<A, E>>(
+    Result.isFailure,
+    Annotations.combine({ title: "failure", description: "a Result.Failure value" }, annotations)
   )
 }

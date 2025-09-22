@@ -8,6 +8,7 @@ import type * as Combiner from "../data/Combiner.ts"
 import * as Filter from "../data/Filter.ts"
 import * as Option from "../data/Option.ts"
 import * as Predicate from "../data/Predicate.ts"
+import * as Result from "../data/Result.ts"
 import * as Effect from "../Effect.ts"
 import type * as Exit from "../Exit.ts"
 import { memoize } from "../Function.ts"
@@ -2400,3 +2401,46 @@ const bigIntLink = new Link(
     Getter.String()
   )
 )
+
+/** @internal */
+export function collectIssues<T>(
+  checks: ReadonlyArray<Check.Check<T>>,
+  value: T,
+  issues: Array<Issue.Issue>,
+  ast: AST,
+  options: ParseOptions
+) {
+  for (let i = 0; i < checks.length; i++) {
+    const check = checks[i]
+    if (check._tag === "FilterGroup") {
+      collectIssues(check.checks, value, issues, ast, options)
+    } else {
+      const issue = check.run(value, ast, options)
+      if (issue) {
+        issues.push(new Issue.Filter(value, check, issue))
+        if (check.abort || options?.errors !== "all") {
+          return
+        }
+      }
+    }
+  }
+}
+
+/** @internal */
+export function runChecks<T>(
+  checks: readonly [Check.Check<T>, ...Array<Check.Check<T>>],
+  s: T
+): Result.Result<T, Issue.Issue> {
+  const issues: Array<Issue.Issue> = []
+  collectIssues(checks, s, issues, unknownKeyword, { errors: "all" })
+  if (Arr.isArrayNonEmpty(issues)) {
+    const issue = new Issue.Composite(unknownKeyword, Option.some(s), issues)
+    return Result.fail(issue)
+  }
+  return Result.succeed(s)
+}
+
+/** @internal */
+export function runRefine<T extends E, E>(refine: Check.Refine<T, E>, s: E): Result.Result<T, Issue.Issue> {
+  return runChecks([refine], s) as any
+}

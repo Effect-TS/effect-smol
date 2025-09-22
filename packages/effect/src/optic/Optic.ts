@@ -6,17 +6,14 @@
  * @since 4.0.0
  */
 
-import * as Arr from "../collections/Array.ts"
 import * as Option from "../data/Option.ts"
 import * as Result from "../data/Result.ts"
 import * as Struct from "../data/Struct.ts"
 import { identity, memoize } from "../Function.ts"
 import { format } from "../interfaces/Inspectable.ts"
 import type { Literal } from "../schema/AST.ts"
-import { unknownKeyword } from "../schema/AST.ts"
-import type * as Check from "../schema/Check.ts"
-import * as Issue from "../schema/Issue.ts"
-import * as ToParser from "../schema/ToParser.ts"
+import * as AST from "../schema/AST.ts"
+import * as Check from "../schema/Check.ts"
 
 /**
  * @category Iso
@@ -62,6 +59,22 @@ export interface Prism<in out S, in out A> extends Optional<S, A> {
  */
 export function makePrism<S, A>(getResult: (s: S) => Result.Result<A, string>, set: (a: A) => S): Prism<S, A> {
   return make(new PrismNode(getResult, set))
+}
+
+/**
+ * @category Constructors
+ * @since 4.0.0
+ */
+export function fromChecks<T>(...checks: readonly [Check.Check<T>, ...Array<Check.Check<T>>]): Prism<T, T> {
+  return make(new CheckNode(checks))
+}
+
+/**
+ * @category Constructors
+ * @since 4.0.0
+ */
+export function fromRefine<T extends E, E>(refine: Check.Refine<T, E>): Prism<E, T> {
+  return make(new CheckNode([refine]))
 }
 
 /**
@@ -406,15 +419,7 @@ const go = memoize((ast: AST): Op => {
     case "Checks":
       return {
         _tag: "Prism",
-        get: (s: any) => {
-          const issues: Array<Issue.Issue> = []
-          ToParser.runChecks(ast.checks, s, issues, unknownKeyword, { errors: "all" })
-          if (Arr.isArrayNonEmpty(issues)) {
-            const issue = new Issue.Composite(unknownKeyword, Option.some(s), issues)
-            return Result.fail(issue.toString())
-          }
-          return Result.succeed(s)
-        },
+        get: (s: any) => Result.mapError(AST.runChecks(ast.checks, s), String),
         set: identity
       }
     case "Composition": {
@@ -663,4 +668,64 @@ export function id<S>(): Iso<S, S> {
  */
 export function entries<A>(): Iso<Record<string, A>, ReadonlyArray<readonly [string, A]>> {
   return make(new IsoNode(Object.entries, Object.fromEntries))
+}
+
+/**
+ * @category Prism
+ * @since 4.0.0
+ */
+export function some<A>(): Prism<Option.Option<A>, A> {
+  return makePrism(
+    (s) =>
+      Result.mapBoth(AST.runRefine(Check.some<A>(), s), {
+        onFailure: String,
+        onSuccess: (s) => s.value
+      }),
+    Option.some
+  )
+}
+
+/**
+ * @category Prism
+ * @since 4.0.0
+ */
+export function none<A>(): Prism<Option.Option<A>, undefined> {
+  return makePrism(
+    (s) =>
+      Result.mapBoth(AST.runRefine(Check.none<A>(), s), {
+        onFailure: String,
+        onSuccess: () => undefined
+      }),
+    () => Option.none()
+  )
+}
+
+/**
+ * @category Prism
+ * @since 4.0.0
+ */
+export function success<A, E>(): Prism<Result.Result<A, E>, A> {
+  return makePrism(
+    (s) =>
+      Result.mapBoth(AST.runRefine(Check.success<A, E>(), s), {
+        onFailure: String,
+        onSuccess: (s) => s.success
+      }),
+    Result.succeed
+  )
+}
+
+/**
+ * @category Prism
+ * @since 4.0.0
+ */
+export function failure<A, E>(): Prism<Result.Result<A, E>, E> {
+  return makePrism(
+    (s) =>
+      Result.mapBoth(AST.runRefine(Check.failure<A, E>(), s), {
+        onFailure: String,
+        onSuccess: (s) => s.failure
+      }),
+    Result.fail
+  )
 }

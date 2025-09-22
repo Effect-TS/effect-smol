@@ -1,3 +1,4 @@
+import { Option, Result } from "effect/data"
 import { Optic } from "effect/optic"
 import { Check } from "effect/schema"
 import { describe, it } from "vitest"
@@ -397,5 +398,46 @@ Expected a value greater than 0, got -1.1`
     assertTrue(s2.projects[1].tasks !== s1.projects[1].tasks, "parent array of changed element should be new")
     assertTrue(s2.projects[1].tasks[0] !== s1.projects[1].tasks[0], "changed task replaced")
     assertTrue(s2.projects[1].tasks[0].done === true, "value updated")
+  })
+
+  it("fromChecks", () => {
+    const optic = Optic.id<number>().compose(Optic.fromChecks(Check.positive(), Check.int()))
+    assertSuccess(optic.getResult(1), 1)
+    assertFailure(optic.getResult(0), `Expected a value greater than 0, got 0`)
+    assertFailure(optic.getResult(1.1), `Expected an integer, got 1.1`)
+  })
+
+  it("fromRefine", () => {
+    const optic = Optic.id<Option.Option<number>>().compose(Optic.fromRefine(Check.some())).key("value")
+    assertSuccess(optic.getResult(Option.some(1)), 1)
+    assertFailure(optic.getResult(Option.none()), `Expected a Some value, got none()`)
+  })
+
+  describe("Option", () => {
+    it("some", () => {
+      const optic = Optic.id<Option.Option<number>>().compose(Optic.some())
+      assertSuccess(optic.getResult(Option.some(1)), 1)
+      assertFailure(optic.getResult(Option.none()), `Expected a Some value, got none()`)
+    })
+
+    it("none", () => {
+      const optic = Optic.id<Option.Option<number>>().compose(Optic.none())
+      assertSuccess(optic.getResult(Option.none()), undefined)
+      assertFailure(optic.getResult(Option.some(1)), `Expected a None value, got some(1)`)
+    })
+  })
+
+  describe("Result", () => {
+    it("success", () => {
+      const optic = Optic.id<Result.Result<number, string>>().compose(Optic.success())
+      assertSuccess(optic.getResult(Result.succeed(1)), 1)
+      assertFailure(optic.getResult(Result.fail("error")), `Expected a Result.Success value, got failure("error")`)
+    })
+
+    it("failure", () => {
+      const optic = Optic.id<Result.Result<number, string>>().compose(Optic.failure())
+      assertSuccess(optic.getResult(Result.fail("error")), "error")
+      assertFailure(optic.getResult(Result.succeed(1)), `Expected a Result.Failure value, got success(1)`)
+    })
   })
 })

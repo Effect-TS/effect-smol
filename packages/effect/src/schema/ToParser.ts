@@ -10,7 +10,6 @@ import * as Effect from "../Effect.ts"
 import * as Exit from "../Exit.ts"
 import { memoize } from "../Function.ts"
 import * as AST from "./AST.ts"
-import type * as Check from "./Check.ts"
 import * as Issue from "./Issue.ts"
 import type * as Schema from "./Schema.ts"
 
@@ -303,30 +302,6 @@ export interface Parser {
   (input: Option.Option<unknown>, options: AST.ParseOptions): Effect.Effect<Option.Option<unknown>, Issue.Issue, any>
 }
 
-/** @internal */
-export function runChecks<T>(
-  checks: ReadonlyArray<Check.Check<T>>,
-  value: T,
-  issues: Array<Issue.Issue>,
-  ast: AST.AST,
-  options: AST.ParseOptions
-) {
-  for (let i = 0; i < checks.length; i++) {
-    const check = checks[i]
-    if (check._tag === "FilterGroup") {
-      runChecks(check.checks, value, issues, ast, options)
-    } else {
-      const issue = check.run(value, ast, options)
-      if (issue) {
-        issues.push(new Issue.Filter(value, check, issue))
-        if (check.abort || options?.errors !== "all") {
-          return
-        }
-      }
-    }
-  }
-}
-
 const go = memoize(
   (ast: AST.AST): Parser => {
     if (!ast.context && !ast.encoding && !ast.checks) {
@@ -380,7 +355,13 @@ const go = memoize(
         if (options?.errors === "all" && isStructural && Option.isSome(ou)) {
           sroa = Effect.catchEager(sroa, (issue) => {
             const issues: Array<Issue.Issue> = []
-            runChecks(checks.filter((check) => check.annotations?.["~structural"]), ou.value, issues, ast, options)
+            AST.collectIssues(
+              checks.filter((check) => check.annotations?.["~structural"]),
+              ou.value,
+              issues,
+              ast,
+              options
+            )
             const out: Issue.Issue = Arr.isArrayNonEmpty(issues)
               ? issue._tag === "Composite" && issue.ast === ast
                 ? new Issue.Composite(ast, issue.actual, [...issue.issues, ...issues])
@@ -394,7 +375,7 @@ const go = memoize(
             const value = oa.value
             const issues: Array<Issue.Issue> = []
 
-            runChecks(checks, value, issues, ast, options)
+            AST.collectIssues(checks, value, issues, ast, options)
 
             if (Arr.isArrayNonEmpty(issues)) {
               return Effect.fail(new Issue.Composite(ast, oa, issues))

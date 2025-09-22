@@ -25,8 +25,7 @@
 import * as Arr from "../collections/Array.ts"
 import * as AST from "../schema/AST.ts"
 import * as Check from "../schema/Check.ts"
-import * as Issue from "../schema/Issue.ts"
-import * as ToParser from "../schema/ToParser.ts"
+import type * as Issue from "../schema/Issue.ts"
 import type * as Types from "../types/Types.ts"
 import * as Option from "./Option.ts"
 import * as Result from "./Result.ts"
@@ -237,13 +236,7 @@ export function check<A extends Brand<any>>(
   ]
 ): Constructor<A> {
   const result = (input: Brand.Unbranded<A>): Result.Result<A, BrandError> => {
-    const issues: Array<Issue.Issue> = []
-    ToParser.runChecks(checks, input, issues, AST.unknownKeyword, { errors: "all" })
-    if (Arr.isArrayNonEmpty(issues)) {
-      const issue = new Issue.Composite(AST.unknownKeyword, Option.some(input), issues)
-      return Result.fail(new BrandError(issue))
-    }
-    return Result.succeed(input as A)
+    return Result.mapError(AST.runChecks(checks, input), (issue) => new BrandError(issue)) as any
   }
   return Object.assign((input: Brand.Unbranded<A>) => Result.getOrThrow(result(input)), {
     option: (input: Brand.Unbranded<A>) => Option.getSuccess(result(input)),
