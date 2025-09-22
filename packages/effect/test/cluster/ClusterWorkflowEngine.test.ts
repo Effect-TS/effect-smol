@@ -82,7 +82,7 @@ describe.concurrent("ClusterWorkflowEngine", () => {
       // Test poll
       const result = yield* EmailWorkflow.poll(executionId)
       expect(result).toEqual(new Workflow.Complete({ exit: Exit.void }))
-    }).pipe(Effect.provide(TestWorkflowLayer)), 10000000)
+    }).pipe(Effect.provide(TestWorkflowLayer)))
 
   it.effect("interrupt", () =>
     Effect.gen(function*() {
@@ -211,8 +211,8 @@ describe.concurrent("ClusterWorkflowEngine", () => {
         token: DurableDeferred.Token.makeSync(token),
         exit: Exit.void
       })
-      yield* sharding.pollStorage
       yield* TestClock.adjust(5000)
+      yield* sharding.pollStorage
       assert.isTrue(flags.get("parent-end"))
       assert.isTrue(flags.get("child-end"))
     }).pipe(Effect.provide(TestWorkflowLayer)))

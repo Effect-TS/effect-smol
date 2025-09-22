@@ -63,8 +63,7 @@ export const sleep: (
   const engine = yield* EngineTag
   const instance = yield* InstanceTag
   const clock = make(options)
-  yield* engine.scheduleClock({
-    workflow: instance.workflow,
+  yield* engine.scheduleClock(instance.workflow, {
     executionId: instance.executionId,
     clock
   })

@@ -3,7 +3,6 @@
  */
 import type { NonEmptyReadonlyArray } from "../../collections/Array.ts"
 import * as Effect from "../../Effect.ts"
-import * as Exit from "../../Exit.ts"
 import { dual } from "../../Function.ts"
 import { PipeInspectableProto, YieldableProto } from "../../internal/core.ts"
 import { Serializer } from "../../schema/index.ts"
@@ -211,20 +210,12 @@ const makeExecute = Effect.fnUntraced(function*<
   const instance = yield* InstanceTag
   const attempt = yield* CurrentAttempt
   const result = yield* Workflow.wrapActivityResult(
-    engine.activityExecute({
-      activity,
-      attempt
-    }),
+    engine.activityExecute(activity, attempt),
     (_) => _._tag === "Suspended"
   )
   if (result._tag === "Suspended") {
     instance.suspended = true
     return yield* Effect.interrupt
   }
-  const exit = yield* Effect.orDie(
-    Schema.decodeEffect(activity.exitSchema)(toJsonExit(result.exit))
-  )
-  return yield* exit
+  return yield* result.exit
 })
-
-const toJsonExit = Exit.map((value: any) => value === undefined ? null : value)

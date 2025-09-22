@@ -8,7 +8,7 @@ import * as Predicate from "../../data/Predicate.ts"
 import * as Effect from "../../Effect.ts"
 import * as Encoding from "../../encoding/Encoding.ts"
 import * as Exit from "../../Exit.ts"
-import { dual } from "../../Function.ts"
+import { dual, identity } from "../../Function.ts"
 import * as Getter from "../../schema/Getter.ts"
 import * as Schema from "../../schema/Schema.ts"
 import * as Serializer from "../../schema/Serializer.ts"
@@ -108,20 +108,20 @@ const await_: <Success extends Schema.Top, Error extends Schema.Top>(
   Success["Type"],
   Error["Type"],
   WorkflowEngine | WorkflowInstance | Success["DecodingServices"] | Error["DecodingServices"]
-> = Effect.fnUntraced(function*<Success extends Schema.Top, Error extends Schema.Top>(
-  self: DurableDeferred<Success, Error>
-) {
-  const engine = yield* EngineTag
-  const instance = yield* InstanceTag
-  const oexit = yield* Workflow.wrapActivityResult(engine.deferredResult(self), Predicate.isUndefined)
-  if (oexit === undefined) {
-    instance.suspended = true
-    return yield* Effect.interrupt
+> = Effect.fnUntraced(
+  function*<Success extends Schema.Top, Error extends Schema.Top>(
+    self: DurableDeferred<Success, Error>
+  ) {
+    const engine = yield* EngineTag
+    const instance = yield* InstanceTag
+    const exit = yield* Workflow.wrapActivityResult(engine.deferredResult(self), Predicate.isUndefined)
+    if (exit === undefined) {
+      instance.suspended = true
+      return yield* Effect.interrupt
+    }
+    return yield* exit as Exit.Exit<any, any>
   }
-  return yield* Effect.flatten(Effect.orDie(
-    Schema.decodeEffect(self.exitSchema)(toJsonExit(oexit))
-  ))
-})
+)
 
 export {
   /**
@@ -166,12 +166,11 @@ export const into: {
       effect,
       Effect.fnUntraced(function*(exit) {
         if (instance.suspended) return
-        const encodedExit = yield* Effect.orDie(Schema.encodeEffect(self.exitSchema)(exit))
-        yield* engine.deferredDone({
+        yield* engine.deferredDone(self, {
           workflowName: instance.workflow.name,
           executionId: instance.executionId,
           deferredName: self.name,
-          exit: encodedExit as any
+          exit
         })
       })
     )
@@ -207,11 +206,9 @@ export const raceAll = <
   })
   return Effect.gen(function*() {
     const engine = yield* EngineTag
-    const oexit = yield* Workflow.wrapActivityResult(engine.deferredResult(deferred), Predicate.isUndefined)
-    if (oexit !== undefined) {
-      return yield* (Effect.flatten(Effect.orDie(
-        Schema.decodeEffect(deferred.exitSchema)(toJsonExit(oexit))
-      )) as Effect.Effect<any, any, any>)
+    const exit = yield* engine.deferredResult(deferred)
+    if (exit !== undefined) {
+      return yield* (Effect.flatten(exit) as Effect.Effect<any, any, any>)
     }
     return yield* into(Effect.raceAll(options.effects), deferred)
   })
@@ -392,14 +389,13 @@ export const done: {
   ) {
     const engine = yield* EngineTag
     const token = TokenParsed.fromString(options.token)
-    const exit = yield* Schema.encodeEffect(self.exitSchema)(options.exit)
-    yield* engine.deferredDone({
+    yield* engine.deferredDone(self, {
       workflowName: token.workflowName,
       executionId: token.executionId,
       deferredName: token.deferredName,
-      exit: exit as any
+      exit: options.exit
     })
-  }, Effect.orDie)
+  })
 )
 
 /**
@@ -500,5 +496,3 @@ export const failCause: {
       exit: Exit.failCause(options.cause)
     })
 )
-
-const toJsonExit = Exit.map((value: any) => value === undefined ? null : value)

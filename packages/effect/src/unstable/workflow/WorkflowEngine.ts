@@ -2,13 +2,17 @@
  * @since 4.0.0
  */
 import type * as Cause from "../../Cause.ts"
+import * as Option from "../../data/Option.ts"
 import * as Effect from "../../Effect.ts"
-import type * as Exit from "../../Exit.ts"
+import * as Exit from "../../Exit.ts"
+import * as Schedule from "../../Schedule.ts"
+import * as Schema from "../../schema/Schema.ts"
+import type * as Scope from "../../Scope.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import type * as Activity from "./Activity.ts"
 import type { DurableClock } from "./DurableClock.ts"
 import type * as DurableDeferred from "./DurableDeferred.ts"
-import type * as Workflow from "./Workflow.ts"
+import * as Workflow from "./Workflow.ts"
 
 /**
  * @since 4.0.0
@@ -20,36 +24,69 @@ export class WorkflowEngine extends ServiceMap.Key<
     /**
      * Register a workflow with the engine.
      */
-    readonly register: (
-      workflow: Workflow.Any,
+    readonly register: <
+      Name extends string,
+      Payload extends Workflow.AnyStructSchema,
+      Success extends Schema.Top,
+      Error extends Schema.Top,
+      R
+    >(
+      workflow: Workflow.Workflow<Name, Payload, Success, Error>,
       execute: (
-        payload: object,
+        payload: Payload["Type"],
         executionId: string
-      ) => Effect.Effect<unknown, unknown, WorkflowInstance | WorkflowEngine>
-    ) => Effect.Effect<void>
+      ) => Effect.Effect<Success["Type"], Error["Type"], R>
+    ) => Effect.Effect<
+      void,
+      never,
+      | Exclude<R, WorkflowEngine | WorkflowInstance | Workflow.Execution<Name> | Scope.Scope>
+      | Payload["DecodingServices"]
+      | Payload["EncodingServices"]
+      | Success["DecodingServices"]
+      | Success["EncodingServices"]
+      | Error["DecodingServices"]
+      | Error["EncodingServices"]
+    >
 
     /**
      * Execute a registered workflow.
      */
-    readonly execute: <const Discard extends boolean>(
+    readonly execute: <
+      Name extends string,
+      Payload extends Workflow.AnyStructSchema,
+      Success extends Schema.Top,
+      Error extends Schema.Top,
+      const Discard extends boolean = false
+    >(
+      workflow: Workflow.Workflow<Name, Payload, Success, Error>,
       options: {
-        readonly workflow: Workflow.Any
         readonly executionId: string
-        readonly payload: object
-        readonly discard: Discard
-        readonly parent?: WorkflowInstance["Service"] | undefined
+        readonly payload: Payload["Type"]
+        readonly discard?: Discard | undefined
+        readonly suspendedRetrySchedule?: Schedule.Schedule<any, unknown> | undefined
       }
-    ) => Effect.Effect<Discard extends true ? void : Workflow.Result<unknown, unknown>>
+    ) => Effect.Effect<
+      Discard extends true ? string : Workflow.Result<Success["Type"], Error["Type"]>,
+      never,
+      Payload["EncodingServices"] | Success["DecodingServices"] | Error["DecodingServices"]
+    >
 
     /**
      * Execute a registered workflow.
      */
-    readonly poll: (
-      options: {
-        readonly workflow: Workflow.Any
-        readonly executionId: string
-      }
-    ) => Effect.Effect<Workflow.Result<unknown, unknown> | undefined>
+    readonly poll: <
+      Name extends string,
+      Payload extends Workflow.AnyStructSchema,
+      Success extends Schema.Top,
+      Error extends Schema.Top
+    >(
+      workflow: Workflow.Workflow<Name, Payload, Success, Error>,
+      executionId: string
+    ) => Effect.Effect<
+      Workflow.Result<Success["Type"], Error["Type"]> | undefined,
+      never,
+      Success["DecodingServices"] | Error["DecodingServices"]
+    >
 
     /**
      * Interrupt a registered workflow.
@@ -70,41 +107,60 @@ export class WorkflowEngine extends ServiceMap.Key<
     /**
      * Execute an activity from a workflow.
      */
-    readonly activityExecute: (
-      options: {
-        readonly activity: Activity.Any
-        readonly attempt: number
-      }
-    ) => Effect.Effect<Workflow.Result<unknown, unknown>, never, WorkflowInstance>
+    readonly activityExecute: <
+      Success extends Schema.Top,
+      Error extends Schema.Top,
+      R
+    >(
+      activity: Activity.Activity<Success, Error, R>,
+      attempt: number
+    ) => Effect.Effect<
+      Workflow.Result<Success["Type"], Error["Type"]>,
+      never,
+      Success["DecodingServices"] | Error["DecodingServices"] | R | WorkflowInstance
+    >
 
     /**
      * Try to retrieve the result of an DurableDeferred
      */
-    readonly deferredResult: (
-      deferred: DurableDeferred.Any
-    ) => Effect.Effect<Exit.Exit<unknown, unknown> | undefined, never, WorkflowInstance>
+    readonly deferredResult: <
+      Success extends Schema.Top,
+      Error extends Schema.Top
+    >(
+      deferred: DurableDeferred.DurableDeferred<Success, Error>
+    ) => Effect.Effect<Exit.Exit<Success["Type"], Error["Type"]> | undefined, never, WorkflowInstance>
 
     /**
      * Set the result of a DurableDeferred, and then resume any waiting
      * workflows.
      */
-    readonly deferredDone: (
+    readonly deferredDone: <
+      Success extends Schema.Top,
+      Error extends Schema.Top
+    >(
+      deferred: DurableDeferred.DurableDeferred<Success, Error>,
       options: {
         readonly workflowName: string
         readonly executionId: string
         readonly deferredName: string
-        readonly exit: Exit.Exit<unknown, unknown>
+        readonly exit: Exit.Exit<Success["Type"], Error["Type"]>
       }
-    ) => Effect.Effect<void>
+    ) => Effect.Effect<
+      void,
+      never,
+      Success["EncodingServices"] | Error["EncodingServices"]
+    >
 
     /**
      * Schedule a wake up for a DurableClock
      */
-    readonly scheduleClock: (options: {
-      readonly workflow: Workflow.Any
-      readonly executionId: string
-      readonly clock: DurableClock
-    }) => Effect.Effect<void>
+    readonly scheduleClock: (
+      workflow: Workflow.Any,
+      options: {
+        readonly executionId: string
+        readonly clock: DurableClock
+      }
+    ) => Effect.Effect<void>
   }
 >()("effect/workflow/WorkflowEngine") {}
 
@@ -161,3 +217,222 @@ export class WorkflowInstance extends ServiceMap.Key<
     })
   }
 }
+
+/**
+ * @since 4.0.0
+ * @category Encoded
+ */
+export interface Encoded {
+  readonly register: (
+    workflow: Workflow.Any,
+    execute: (
+      payload: object,
+      executionId: string
+    ) => Effect.Effect<unknown, unknown, WorkflowInstance | WorkflowEngine>
+  ) => Effect.Effect<void>
+  readonly execute: <const Discard extends boolean>(
+    workflow: Workflow.Any,
+    options: {
+      readonly executionId: string
+      readonly payload: object
+      readonly discard: Discard
+      readonly parent?: WorkflowInstance["Service"] | undefined
+    }
+  ) => Effect.Effect<Discard extends true ? void : Workflow.Result<unknown, unknown>>
+  readonly poll: (
+    workflow: Workflow.Any,
+    executionId: string
+  ) => Effect.Effect<Workflow.Result<unknown, unknown> | undefined>
+  readonly interrupt: (
+    workflow: Workflow.Any,
+    executionId: string
+  ) => Effect.Effect<void>
+  readonly resume: (
+    workflow: Workflow.Any,
+    executionId: string
+  ) => Effect.Effect<void>
+  readonly activityExecute: (
+    activity: Activity.Any,
+    attempt: number
+  ) => Effect.Effect<Workflow.Result<unknown, unknown>, never, WorkflowInstance>
+  readonly deferredResult: (
+    deferred: DurableDeferred.Any
+  ) => Effect.Effect<Exit.Exit<unknown, unknown> | undefined, never, WorkflowInstance>
+  readonly deferredDone: (
+    options: {
+      readonly workflowName: string
+      readonly executionId: string
+      readonly deferredName: string
+      readonly exit: Exit.Exit<unknown, unknown>
+    }
+  ) => Effect.Effect<void>
+  readonly scheduleClock: (
+    workflow: Workflow.Any,
+    options: {
+      readonly executionId: string
+      readonly clock: DurableClock
+    }
+  ) => Effect.Effect<void>
+}
+
+/**
+ * @since 4.0.0
+ * @category Constructors
+ */
+export const makeUnsafe = (options: Encoded): WorkflowEngine["Service"] =>
+  WorkflowEngine.of({
+    register: Effect.fnUntraced(function*(workflow, execute) {
+      const services = yield* Effect.services<WorkflowEngine>()
+      yield* options.register(workflow, (payload, executionId) =>
+        Effect.suspend(() =>
+          execute(payload, executionId)
+        ).pipe(
+          Effect.updateServices((input) => ServiceMap.merge(services, input) as ServiceMap.ServiceMap<any>)
+        ))
+    }),
+    execute: Effect.fnUntraced(function*<
+      Name extends string,
+      Payload extends Workflow.AnyStructSchema,
+      Success extends Schema.Top,
+      Error extends Schema.Top,
+      const Discard extends boolean = false
+    >(
+      self: Workflow.Workflow<Name, Payload, Success, Error>,
+      opts: {
+        readonly executionId: string
+        readonly payload: Payload["Type"]
+        readonly discard?: Discard | undefined
+        readonly suspendedRetrySchedule?: Schedule.Schedule<any, unknown> | undefined
+      }
+    ) {
+      const payload = opts.payload
+      const executionId = opts.executionId
+      const suspendedRetrySchedule = opts.suspendedRetrySchedule ?? defaultRetrySchedule
+      yield* Effect.annotateCurrentSpan({ executionId })
+      let result: Workflow.Result<unknown, unknown> | undefined
+
+      // link interruption with parent workflow
+      const parentInstance = yield* Effect.serviceOption(WorkflowInstance)
+      if (Option.isSome(parentInstance)) {
+        const instance = parentInstance.value
+        yield* Effect.addFinalizer(() => {
+          if (!instance.interrupted || result?._tag === "Complete") {
+            return Effect.void
+          }
+          return options.interrupt(self, executionId)
+        })
+      }
+
+      if (opts.discard) {
+        yield* options.execute(self, {
+          executionId,
+          payload: payload as object,
+          discard: true
+        })
+        return executionId as any
+      }
+
+      const run = options.execute(self, {
+        executionId,
+        payload: payload as object,
+        discard: false,
+        parent: Option.getOrUndefined(parentInstance)
+      })
+      if (Option.isSome(parentInstance)) {
+        result = yield* Workflow.wrapActivityResult(run, (result) => result._tag === "Suspended")
+        if (result._tag === "Suspended") {
+          parentInstance.value.suspended = true
+          return yield* Effect.interrupt
+        }
+        return yield* result.exit as Exit.Exit<any>
+      }
+
+      let sleep: Effect.Effect<any> | undefined
+      while (true) {
+        result = yield* run
+        if (result._tag === "Complete") {
+          return yield* result.exit as Exit.Exit<any>
+        }
+        sleep ??= (yield* Schedule.toStepWithSleep(suspendedRetrySchedule))(void 0).pipe(
+          Effect.catch(() => Effect.die(`${self.name}.execute: suspendedRetrySchedule exhausted`))
+        )
+        yield* sleep
+      }
+    }),
+    poll: options.poll,
+    interrupt: options.interrupt,
+    resume: options.resume,
+    activityExecute: Effect.fnUntraced(function*<
+      Success extends Schema.Top,
+      Error extends Schema.Top,
+      R
+    >(activity: Activity.Activity<Success, Error, R>, attempt: number) {
+      const result = yield* options.activityExecute(activity, attempt)
+      if (result._tag === "Suspended") {
+        return result
+      }
+      const exit = yield* Effect.orDie(
+        Schema.decodeEffect(activity.exitSchema)(toJsonExit(result.exit))
+      )
+      return new Workflow.Complete({ exit })
+    }),
+    deferredResult: Effect.fnUntraced(
+      function*<
+        Success extends Schema.Top,
+        Error extends Schema.Top
+      >(deferred: DurableDeferred.DurableDeferred<Success, Error>) {
+        const instance = yield* WorkflowInstance
+        yield* Effect.annotateCurrentSpan({ executionId: instance.executionId })
+        const exit = yield* options.deferredResult(deferred)
+        if (exit === undefined) {
+          return exit
+        }
+        return yield* (Effect.orDie(
+          Schema.decodeEffect(deferred.exitSchema)(toJsonExit(exit))
+        ) as Effect.Effect<Exit.Exit<Success["Type"], Error["Type"]>>)
+      },
+      Effect.withSpan("WorkflowEngine.deferredResult", (deferred) => ({
+        attributes: { name: deferred.name }
+      }), { captureStackTrace: false })
+    ),
+    deferredDone: Effect.fnUntraced(
+      function*<
+        Success extends Schema.Top,
+        Error extends Schema.Top
+      >(deferred: DurableDeferred.DurableDeferred<Success, Error>, opts: {
+        readonly workflowName: string
+        readonly executionId: string
+        readonly deferredName: string
+        readonly exit: Exit.Exit<Success["Type"], Error["Type"]>
+      }) {
+        return yield* options.deferredDone({
+          workflowName: opts.workflowName,
+          executionId: opts.executionId,
+          deferredName: opts.deferredName,
+          exit: yield* (
+            Schema.encodeEffect(deferred.exitSchema)(opts.exit) as Effect.Effect<Exit.Exit<unknown, unknown>>
+          )
+        })
+      },
+      Effect.withSpan("WorkflowEngine.deferredDone", (_, { deferredName, executionId }) => ({
+        attributes: { name: deferredName, executionId }
+      }), { captureStackTrace: false })
+    ),
+    scheduleClock: (workflow, opts) =>
+      options.scheduleClock(workflow, opts).pipe(
+        Effect.withSpan("WorkflowEngine.scheduleClock", {
+          attributes: {
+            executionId: opts.executionId,
+            name: opts.clock.name
+          }
+        }, {
+          captureStackTrace: false
+        })
+      )
+  })
+
+const defaultRetrySchedule = Schedule.exponential(200, 1.5).pipe(
+  Schedule.either(Schedule.spaced(30000))
+)
+
+const toJsonExit = Exit.map((value: any) => value ?? null)

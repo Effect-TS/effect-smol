@@ -9,10 +9,10 @@ import * as Effect from "../../Effect.ts"
 import * as Exit from "../../Exit.ts"
 import { constFalse, constTrue, dual, identity } from "../../Function.ts"
 import * as Layer from "../../Layer.ts"
-import * as Schedule from "../../Schedule.ts"
-import { Serializer } from "../../schema/index.ts"
+import type * as Schedule from "../../Schedule.ts"
 import * as Issue from "../../schema/Issue.ts"
 import * as Schema from "../../schema/Schema.ts"
+import * as Serializer from "../../schema/Serializer.ts"
 import * as ToParser from "../../schema/ToParser.ts"
 import * as Tranformation from "../../schema/Transformation.ts"
 import type * as Scope from "../../Scope.ts"
@@ -103,7 +103,7 @@ export interface Workflow<
       executionId: string
     ) => Effect.Effect<Success["Type"], Error["Type"], R>
   ) => Layer.Layer<
-    WorkflowEngine,
+    never,
     never,
     | WorkflowEngine
     | Exclude<R, WorkflowEngine | WorkflowInstance | Execution<Name> | Scope.Scope>
@@ -252,7 +252,6 @@ export const make = <
     readonly annotations?: ServiceMap.ServiceMap<never>
   }
 ): Workflow<Name, Payload extends Schema.Struct.Fields ? Schema.Struct<Payload> : Payload, Success, Error> => {
-  const suspendedRetrySchedule = options.suspendedRetrySchedule ?? defaultRetrySchedule
   const makeExecutionId = (payload: any) => makeHashDigest(`${options.name}-${options.idempotencyKey(payload)}`)
   const self: Workflow<Name, any, Success, Error> = {
     [TypeId]: TypeId,
@@ -279,64 +278,19 @@ export const make = <
         const engine = yield* EngineTag
         const executionId = yield* makeExecutionId(payload)
         yield* Effect.annotateCurrentSpan({ executionId })
-        let result: Result<unknown, unknown> | undefined
-
-        // link interruption with parent workflow
-        const parentInstance = yield* Effect.serviceOption(InstanceTag)
-        if (Option.isSome(parentInstance)) {
-          const instance = parentInstance.value
-          yield* Effect.addFinalizer(() => {
-            if (!instance.interrupted || result?._tag === "Complete") {
-              return Effect.void
-            }
-            return engine.interrupt(self, executionId)
-          })
-        }
-
-        if (opts?.discard) {
-          yield* engine.execute({
-            workflow: self,
-            executionId,
-            payload,
-            discard: true
-          })
-          return executionId
-        }
-
-        const run = engine.execute({
-          workflow: self,
+        return yield* engine.execute(self, {
           executionId,
           payload,
-          discard: false,
-          parent: Option.getOrUndefined(parentInstance)
+          discard: opts?.discard,
+          suspendedRetrySchedule: options.suspendedRetrySchedule
         })
-        if (Option.isSome(parentInstance)) {
-          result = yield* wrapActivityResult(run, (result) => result._tag === "Suspended")
-          if (result._tag === "Suspended") {
-            parentInstance.value.suspended = true
-            return yield* Effect.interrupt
-          }
-          return yield* result.exit as Exit.Exit<Success["Type"], Error["Type"]>
-        }
-
-        let sleep: Effect.Effect<any> | undefined
-        while (true) {
-          result = yield* run
-          if (result._tag === "Complete") {
-            return yield* result.exit as Exit.Exit<Success["Type"], Error["Type"]>
-          }
-          sleep ??= (yield* Schedule.toStepWithSleep(suspendedRetrySchedule))(void 0).pipe(
-            Effect.catch(() => Effect.die(`${options.name}.execute: suspendedRetrySchedule exhausted`))
-          )
-          yield* sleep
-        }
       },
       Effect.withSpan(`${options.name}.execute`, {}, { captureStackTrace: false })
     ) as any,
     poll: Effect.fnUntraced(
       function*(executionId: string) {
         const engine = yield* EngineTag
-        return yield* engine.poll({ workflow: self, executionId })
+        return yield* engine.poll(self, executionId)
       },
       (effect, executionId) =>
         Effect.withSpan(effect, `${options.name}.poll`, {
@@ -367,42 +321,16 @@ export const make = <
         })
     ),
     toLayer: (execute) =>
-      Layer.effectServices(Effect.gen(function*() {
-        const context = yield* Effect.services<WorkflowEngine>()
-        const engine = ServiceMap.get(context, EngineTag)
-        yield* engine.register(self, (payload, executionId) =>
-          Effect.updateServices(
-            Effect.suspend(() => execute(payload, executionId)),
-            (input) => ServiceMap.merge(context, input)
-          ) as any)
-        return EngineTag.serviceMap(engine)
-      })) as any,
+      Layer.effectDiscard(Effect.gen(function*() {
+        const engine = yield* EngineTag
+        return yield* engine.register(self, execute)
+      })),
     executionId: (payload) => makeExecutionId(self.payloadSchema.make(payload)),
     withCompensation
   }
 
   return self
 }
-
-const defaultRetrySchedule = Schedule.exponential(200, 1.5).pipe(
-  Schedule.either(Schedule.spaced(30000))
-)
-
-// /**
-//  * @since 4.0.0
-//  * @category Constructors
-//  */
-// export const fromTaggedRequest = <S extends AnyTaggedRequestSchema>(schema: S, options?: {
-//   readonly suspendedRetrySchedule?: Schedule.Schedule<any, unknown> | undefined
-// }): Workflow<S["_tag"], S, S["success"], S["failure"]> =>
-//   make({
-//     name: schema._tag,
-//     payload: schema as any,
-//     success: schema.success,
-//     error: schema.failure,
-//     idempotencyKey: PrimaryKey.value,
-//     suspendedRetrySchedule: options?.suspendedRetrySchedule
-//   })
 
 const ResultTypeId = "~effect/workflow/Workflow/Result"
 
