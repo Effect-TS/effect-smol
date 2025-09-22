@@ -87,8 +87,8 @@ The exports under each section are organized as they are in Effect 3.0. The cate
 | :------------------: | :----: | :---------------: | :------: |
 |      `context`       |   X    |                   |          |
 |    `contextWith`     |  Done  |  `servicesWith`   |          |
-| `contextWithChannel` |   X    |  `servicesWith`   |          |
-| `contextWithEffect`  |   X    |                   |          |
+| `contextWithChannel` |  Done  |  `servicesWith`   |          |
+| `contextWithEffect`  |  Done  | `servicesWith`    |          |
 |  `mapInputContext`   |  Done  | `updateServices`  |          |
 |   `provideContext`   |  Done  | `provideServices` |          |
 |    `provideLayer`    |   -    |                   |          |
