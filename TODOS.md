@@ -62,12 +62,12 @@ The exports under each section are organized as they are in Effect 3.0. The cate
 | `fromQueue` | ✅ | `fromQueue` |  |
 | `identity` | ❌ |  |  |
 | `never` | ✅ | `never` |  |
-| `read` | ❓ |  |  |
-| `readOrFail` | ❓ |  |  |
-| `readWith` | ❓ |  |  |
-| `readWithCause` | ❓ |  |  |
-| `scoped` | ❌ |  |  |
-| `scopedWith` | ❌ |  |  |
+| `read` | 🚫 |  | Not required |
+| `readOrFail` | 🚫 |  | Not required |
+| `readWith` | 🚫 |  | Not required |
+| `readWithCause` | 🚫 |  | Not required |
+| `scoped` | 🚫 |  | Not required |
+| `scopedWith` | 🚫 |  | Not required |
 | `succeed` | ✅ | `succeed` |  |
 | `suspend` | ✅ | `suspend` |  |
 | `sync` | ✅ | `sync` |  |
