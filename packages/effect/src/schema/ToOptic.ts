@@ -10,8 +10,8 @@ import * as ToParser from "./ToParser.ts"
 /**
  * @since 4.0.0
  */
-export function makeIso<T, Iso>(codec: Schema.Optic<T, Iso>): Optic.Iso<T, Iso> {
-  const serializer = Serializer.iso(codec)
+export function makeIso<S extends Schema.Top>(schema: S): Optic.Iso<S["Type"], S["Iso"]> {
+  const serializer = Serializer.iso(schema)
   return Optic.makeIso(ToParser.encodeSync(serializer), ToParser.decodeSync(serializer))
 }
 

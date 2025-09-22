@@ -136,10 +136,8 @@ const symbolLink = new AST.Link(
 /**
  * @since 4.0.0
  */
-export function iso<S extends Schema.Codec<unknown, unknown>>(
-  codec: S
-): Schema.Codec<S["Type"], S["Iso"]> {
-  return Schema.make<Schema.Codec<S["Type"], S["Iso"]>>(goIso(AST.typeAST(codec.ast)))
+export function iso<S extends Schema.Top>(schema: S): Schema.Codec<S["Type"], S["Iso"]> {
+  return Schema.make<Schema.Codec<S["Type"], S["Iso"]>>(goIso(AST.typeAST(schema.ast)))
 }
 
 const goIso = memoize((ast: AST.AST): AST.AST => {
