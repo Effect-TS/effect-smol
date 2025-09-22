@@ -728,6 +728,16 @@ export const fromArrayEffect = <A, E, R>(effect: Effect.Effect<ReadonlyArray<A>,
   unwrap(Effect.map(effect, fromArray))
 
 /**
+ * Creates a stream from some ararys.
+ *
+ * @since 4.0.0
+ * @category constructors
+ */
+export const fromArrays = <Arr extends ReadonlyArray<ReadonlyArray<any>>>(
+  ...arrays: Arr
+): Stream<Arr[number][number]> => fromChannel(Channel.fromArray(Arr.filter(arrays, Arr.isReadonlyArrayNonEmpty)))
+
+/**
  * Creates a stream from a queue.
  *
  * This function creates a Stream that consumes values from the provided Queue.

@@ -593,6 +593,7 @@ export const clear = <A>(self: MutableList<A>): void => {
  * @category elements
  */
 export const takeN = <A>(self: MutableList<A>, n: number): Array<A> => {
+  if (n <= 0 || !self.head) return []
   n = Math.min(n, self.length)
   if (n === self.length && self.head?.offset === 0 && !self.head.next) {
     const array = self.head.array
