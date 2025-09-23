@@ -820,36 +820,41 @@ export const makeProtocolWithHttpEffect: Effect.Effect<
 > = Effect.gen(function*() {
   const serialization = yield* RpcSerialization.RpcSerialization
   const includesFraming = serialization.includesFraming
+  const isBinary = !serialization.contentType.includes("json")
 
   const disconnects = yield* Queue.make<number>()
   let writeRequest!: (clientId: number, message: FromClientEncoded) => Effect.Effect<void>
 
   let clientId = 0
 
-  const clients = new Map<number, {
+  type Client = {
     readonly write: (bytes: FromServerEncoded) => Effect.Effect<void>
     readonly end: Effect.Effect<void>
-  }>()
+  }
+  const clients = new Map<number, Client>()
   const clientIds = new Set<number>()
+
+  const encoder = new TextEncoder()
 
   const httpEffect: Effect.Effect<
     HttpServerResponse.HttpServerResponse,
     never,
     Scope.Scope | HttpServerRequest.HttpServerRequest
   > = Effect.gen(function*() {
-    const request = yield* HttpServerRequest.HttpServerRequest
+    const fiber = Fiber.getCurrent()!
+    const request = ServiceMap.getUnsafe(fiber.services, HttpServerRequest.HttpServerRequest)
+    const scope = ServiceMap.getUnsafe(fiber.services, Scope.Scope)
     const requestHeaders = Object.entries(request.headers)
-    const data = yield* Effect.orDie(request.arrayBuffer)
+    const data = yield* Effect.orDie<string | Uint8Array, any, never>(
+      isBinary ? Effect.map(request.arrayBuffer, (buf) => new Uint8Array(buf)) : request.text
+    )
     const id = clientId++
     const queue = yield* Queue.make<Uint8Array | FromServerEncoded, Queue.Done>()
     const parser = serialization.makeUnsafe()
-    const encoder = new TextEncoder()
-    let ended = false
 
     const offer = (data: Uint8Array | string) =>
       typeof data === "string" ? Queue.offer(queue, encoder.encode(data)) : Queue.offer(queue, data)
-
-    clients.set(id, {
+    const client: Client = {
       write: !includesFraming ? ((response) => Queue.offer(queue, response)) : (response) => {
         try {
           const encoded = parser.encode(response)
@@ -859,18 +864,29 @@ export const makeProtocolWithHttpEffect: Effect.Effect<
           return offer(parser.encode(ResponseDefectEncoded(cause))!)
         }
       },
-      end: Effect.suspend(() => {
-        ended = true
-        return Queue.end(queue)
-      })
+      end: Queue.end(queue)
+    }
+
+    yield* Scope.addFinalizerExit(scope, () => {
+      clients.delete(id)
+      clientIds.delete(id)
+      Queue.offerUnsafe(disconnects, id)
+      if (queue.state._tag === "Done") return Effect.void
+      return Effect.forEach(
+        requestIds,
+        (requestId) => writeRequest(id, { _tag: "Interrupt", requestId: String(requestId) }),
+        { discard: true }
+      )
     })
+    clients.set(id, client)
     clientIds.add(id)
 
     const requestIds: Array<RequestId> = []
 
     try {
-      const decoded = parser.decode(new Uint8Array(data)) as ReadonlyArray<FromClientEncoded>
-      for (const message of decoded) {
+      const decoded = parser.decode(data) as ReadonlyArray<FromClientEncoded>
+      for (let i = 0; i < decoded.length; i++) {
+        const message = decoded[i]
         if (message._tag === "Request") {
           requestIds.push(RequestId(message.id))
           ;(message as Types.Mutable<RequestEncoded>).headers = requestHeaders.concat(
@@ -880,34 +896,18 @@ export const makeProtocolWithHttpEffect: Effect.Effect<
         yield* writeRequest(id, message)
       }
     } catch (cause) {
-      yield* offer(parser.encode(ResponseDefectEncoded(cause))!)
+      yield* client.write(ResponseDefectEncoded(cause))
     }
 
     yield* writeRequest(id, constEof)
 
     if (!includesFraming) {
-      let done = false
-      yield* Effect.addFinalizer(() => {
-        clients.delete(id)
-        clientIds.delete(id)
-        Queue.offerUnsafe(disconnects, id)
-        if (done) return Effect.void
-        return Effect.forEach(
-          requestIds,
-          (requestId) => writeRequest(id, { _tag: "Interrupt", requestId: String(requestId) }),
-          { discard: true }
-        )
-      })
       const responses = yield* Queue.collect(queue)
-      done = true
       return HttpServerResponse.text(parser.encode(responses) as string, { contentType: serialization.contentType })
     }
 
-    const initialChunk = (yield* Effect.orDie(Queue.takeAll(queue))) as NonEmptyReadonlyArray<Uint8Array>
-    if (ended) {
-      clients.delete(id)
-      clientIds.delete(id)
-      Queue.offerUnsafe(disconnects, id)
+    const initialChunk = yield* Queue.takeAll(queue) as any as Effect.Effect<NonEmptyReadonlyArray<Uint8Array>>
+    if (queue.state._tag === "Done") {
       return HttpServerResponse.uint8Array(
         mergeUint8Arrays(initialChunk),
         { contentType: serialization.contentType }
@@ -918,18 +918,7 @@ export const makeProtocolWithHttpEffect: Effect.Effect<
       Stream.fromArray(initialChunk).pipe(
         Stream.concat(
           Stream.fromQueue(queue as Queue.Dequeue<Uint8Array, Queue.Done>)
-        ),
-        Stream.onExit((exit) => {
-          clients.delete(id)
-          clientIds.delete(id)
-          Queue.offerUnsafe(disconnects, id)
-          if (!Exit.hasInterrupt(exit)) return Effect.void
-          return Effect.forEach(
-            requestIds,
-            (requestId) => writeRequest(id, { _tag: "Interrupt", requestId: String(requestId) }),
-            { discard: true }
-          )
-        })
+        )
       ),
       { contentType: serialization.contentType }
     )
