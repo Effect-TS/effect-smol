@@ -56,7 +56,7 @@ export class UnrecognizedOption extends Data.TaggedError("UnrecognizedOption")<{
    */
   override get message() {
     const suggestionText = this.suggestions.length > 0
-      ? `\n\nDid you mean this?\n\t${this.suggestions.join("\n\t")}`
+      ? `\n\n  Did you mean this?\n    ${this.suggestions.join("\n    ")}`
       : ""
     const baseMessage = this.command
       ? `Unrecognized flag: ${this.option} in command ${this.command.join(" ")}`
@@ -168,7 +168,7 @@ export class UnknownSubcommand extends Data.TaggedError("UnknownSubcommand")<{
   readonly [TypeId]: TypeId = TypeId
   override get message() {
     const suggestionText = this.suggestions.length > 0
-      ? `\n\nDid you mean this?\n\t${this.suggestions.join("\n\t")}`
+      ? `\n\n  Did you mean this?\n    ${this.suggestions.join("\n    ")}`
       : ""
     return this.parent
       ? `Unknown subcommand "${this.subcommand}" for "${this.parent.join(" ")}"${suggestionText}`

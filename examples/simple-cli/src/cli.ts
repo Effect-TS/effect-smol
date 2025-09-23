@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
-import { Effect } from "../../../packages/effect/src/index.ts"
+import { Effect, Layer } from "../../../packages/effect/src/index.ts"
 import * as Console from "../../../packages/effect/src/logging/Console.ts"
-import { Argument, Command, Flag, HelpFormatter } from "../../../packages/effect/src/unstable/cli/index.ts"
+import { Argument, Command, Flag } from "../../../packages/effect/src/unstable/cli/index.ts"
 import { NodeFileSystem, NodePath } from "../../../packages/platform-node/src/index.ts"
 
 // File operations command
@@ -94,7 +94,7 @@ const deployProd = Command.make("production", {
   Effect.gen(function*() {
     if (!config.confirm) {
       yield* Console.error("❌ Production deployment requires --confirm flag")
-      return Effect.fail("Confirmation required")
+      return yield* Effect.fail("Confirmation required")
     }
     yield* Console.log("🚀 Deploying to production...")
     if (config.skipTests) yield* Console.log("  ⚠️  Skipping tests")
@@ -187,9 +187,14 @@ const program = Command.run(cli, {
 })
 
 const main = program(process.argv.slice(2)).pipe(
-  Effect.provide(NodeFileSystem.layer),
-  Effect.provide(NodePath.layer),
-  Effect.provide(HelpFormatter.layer(HelpFormatter.defaultHelpRenderer({ colors: true })))
+  Effect.provide(Layer.mergeAll(NodeFileSystem.layer, NodePath.layer))
 )
 
-Effect.runPromise(main).catch(console.error)
+Effect.runPromiseExit(main as any).then(
+  (exit) => {
+    if (exit._tag === "Failure") {
+      console.error("CLI failed:", exit.cause)
+      process.exit(1)
+    }
+  }
+).catch(console.error)

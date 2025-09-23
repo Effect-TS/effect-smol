@@ -22,6 +22,11 @@ export interface HelpRenderer {
    */
   readonly formatCliError: (error: CliError.CliError) => string
   /**
+   * Formats an error section with proper styling and color reset.
+   * @since 4.0.0
+   */
+  readonly formatError: (error: CliError.CliError) => string
+  /**
    * Formats version output for display.
    * @since 4.0.0
    */
@@ -115,6 +120,12 @@ export const defaultHelpRenderer = (options: { colors: boolean }): HelpRenderer 
   return {
     formatHelpDoc: (doc: HelpDoc): string => formatHelpDocImpl(doc, colors),
     formatCliError: (error): string => error.message,
+    formatError: (error): string => {
+      const reset = useColor ? "\x1b[0m" : ""
+      const red = useColor ? "\x1b[31m" : ""
+      const bold = useColor ? "\x1b[1m" : ""
+      return `${bold}${red}ERROR${reset}\n  ${error.message}${reset}`
+    },
     formatVersion: (name: string, version: string): string =>
       `${colors.bold(name)} ${colors.dim("v")}${colors.bold(version)}`
   }

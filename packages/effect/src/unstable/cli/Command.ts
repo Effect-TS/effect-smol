@@ -707,13 +707,13 @@ export const run = <Name extends string, Input, E, R>(
       const commandPath = [command.name, ...ParsedCommandInput.getCommandPath(parsedArgs)]
       const helpDoc = getHelpForCommandPath(command, commandPath)
 
-      // Show the error message
-      yield* Console.error(helpRenderer.formatCliError(error))
-      yield* Console.error("")
-
-      // Show the full help for the command
+      // Show the full help first (to stdout with normal colors)
       const helpText = helpRenderer.formatHelpDoc(helpDoc)
-      yield* Console.error(helpText)
+      yield* Console.log(helpText)
+      yield* Console.log("")
+
+      // Then show the error in a clearly marked ERROR section (to stderr)
+      yield* Console.error(helpRenderer.formatError(error))
 
       return
     }
@@ -725,13 +725,13 @@ export const run = <Name extends string, Input, E, R>(
       const commandPath = [command.name, ...ParsedCommandInput.getCommandPath(parsedArgs)]
       const helpDoc = getHelpForCommandPath(command, commandPath)
 
-      // Show the error message
-      yield* Console.error(helpRenderer.formatCliError(error))
-      yield* Console.error("")
-
-      // Show the full help for the command
+      // Show the full help first (to stdout with normal colors)
       const helpText = helpRenderer.formatHelpDoc(helpDoc)
-      yield* Console.error(helpText)
+      yield* Console.log(helpText)
+      yield* Console.log("")
+
+      // Then show the error in a clearly marked ERROR section (to stderr)
+      yield* Console.error(helpRenderer.formatError(error))
 
       return
     }
