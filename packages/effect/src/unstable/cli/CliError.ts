@@ -30,6 +30,7 @@ export type CliError =
   | UnrecognizedOption
   | DuplicateOption
   | MissingOption
+  | MissingArgument
   | InvalidValue
   | UnknownSubcommand
   | ShowHelp
@@ -106,6 +107,27 @@ export class MissingOption extends Data.TaggedError("MissingOption")<{
    */
   override get message() {
     return `Missing required flag: --${this.option}`
+  }
+}
+
+/**
+ * Error thrown when a required positional argument is missing.
+ *
+ * @since 4.0.0
+ * @category Models
+ */
+export class MissingArgument extends Data.TaggedError("MissingArgument")<{
+  readonly argument: string
+}> {
+  /**
+   * @since 4.0.0
+   */
+  readonly [TypeId]: TypeId = TypeId
+  /**
+   * @since 4.0.0
+   */
+  override get message() {
+    return `Missing required argument: ${this.argument}`
   }
 }
 

@@ -154,7 +154,7 @@ const parsePositional = <A>(
   FileSystem.FileSystem | Path.Path
 > => {
   if (args.arguments.length === 0) {
-    return Effect.fail(new CliError.MissingOption({ option: name }))
+    return Effect.fail(new CliError.MissingArgument({ argument: name }))
   }
 
   const rawValue = args.arguments[0]
