@@ -3,9 +3,8 @@
  */
 import type { Predicate } from "../../data/Predicate.ts"
 import type { ReadonlyRecord } from "../../data/Record.ts"
-import * as UndefinedOr from "../../data/UndefinedOr.ts"
 import * as Effect from "../../Effect.ts"
-import { constFalse } from "../../Function.ts"
+import { constant, constFalse } from "../../Function.ts"
 import * as internalEffect from "../../internal/effect.ts"
 import * as Layer from "../../Layer.ts"
 import { ParentSpan } from "../../observability/Tracer.ts"
@@ -234,7 +233,7 @@ export const searchParamsParser = <E, R>(
  * @category CORS
  */
 export const cors = (options?: {
-  readonly allowedOrigins?: ReadonlyArray<string> | undefined
+  readonly allowedOrigins?: ReadonlyArray<string> | Predicate<string> | undefined
   readonly allowedMethods?: ReadonlyArray<string> | undefined
   readonly allowedHeaders?: ReadonlyArray<string> | undefined
   readonly exposedHeaders?: ReadonlyArray<string> | undefined
@@ -244,7 +243,7 @@ export const cors = (options?: {
   httpApp: Effect.Effect<HttpServerResponse, E, R>
 ) => Effect.Effect<HttpServerResponse, E, R | HttpServerRequest> => {
   const opts = {
-    allowedOrigins: options?.allowedOrigins ?? ["*"],
+    allowedOrigins: options?.allowedOrigins ?? [],
     allowedMethods: options?.allowedMethods ?? ["GET", "HEAD", "PUT", "PATCH", "POST", "DELETE"],
     allowedHeaders: options?.allowedHeaders ?? [],
     exposedHeaders: options?.exposedHeaders ?? [],
@@ -252,29 +251,26 @@ export const cors = (options?: {
     maxAge: options?.maxAge
   }
 
-  const isAllowedOrigin = (origin: string) => opts.allowedOrigins.includes(origin)
+  const isAllowedOrigin = typeof opts.allowedOrigins === "function"
+    ? opts.allowedOrigins
+    : (origin: string) => (opts.allowedOrigins as ReadonlyArray<string>).includes(origin)
 
-  const allowOrigin = (originHeader: string): ReadonlyRecord<string, string> | undefined => {
-    if (opts.allowedOrigins.length === 0) {
-      return { "access-control-allow-origin": "*" }
-    }
-
-    if (opts.allowedOrigins.length === 1) {
-      return {
-        "access-control-allow-origin": opts.allowedOrigins[0],
-        vary: "Origin"
-      }
-    }
-
-    if (isAllowedOrigin(originHeader)) {
+  const allowOrigin = typeof opts.allowedOrigins === "function" || opts.allowedOrigins.length > 1
+    ? ((originHeader: string) => {
+      if (!isAllowedOrigin(originHeader)) return undefined
       return {
         "access-control-allow-origin": originHeader,
         vary: "Origin"
       }
-    }
-
-    return undefined
-  }
+    })
+    : opts.allowedOrigins.length === 0
+    ? constant({
+      "access-control-allow-origin": "*"
+    })
+    : constant({
+      "access-control-allow-origin": opts.allowedOrigins[0],
+      vary: "Origin"
+    })
 
   const allowMethods = opts.allowedMethods.length > 0
     ? { "access-control-allow-methods": opts.allowedMethods.join(", ") }
@@ -347,11 +343,11 @@ export const cors = (options?: {
           headers: headersFromRequestOptions(request)
         }))
       }
-      const next = UndefinedOr.match(fiber.getRef(PreResponseHandlers), {
-        onUndefined: () => preResponseHandler,
-        onDefined: (prev) => (request, response) =>
-          Effect.flatMap(prev(request, response), (response) => preResponseHandler(request, response))
-      })
+      const prev = fiber.getRef(PreResponseHandlers)
+      const next = prev
+        ? ((req: HttpServerRequest, res: HttpServerResponse) =>
+          Effect.flatMap(prev(req, res), (res) => preResponseHandler(req, res)))
+        : preResponseHandler
       fiber.setServices(ServiceMap.add(fiber.services, PreResponseHandlers, next))
       return httpApp
     })
