@@ -8,13 +8,17 @@ export const getSingles = (flags: ReadonlyArray<Param<unknown>>): ReadonlyArray<
   flags
     .flatMap(extractSingleParams)
     .filter((s: any) => s.kind === "flag")
-    .map((s: any) => ({
-      name: s.name,
-      aliases: s.aliases,
-      primitiveTag: s.primitiveType._tag,
-      ...(s.typeName !== undefined ? { typeName: s.typeName } : {}),
-      ...(Option.isSome(s.description) ? { description: Option.getOrUndefined(s.description) } : {})
-    }))
+    .map((s: any) => {
+      const description = Option.getOrUndefined(s.description)
+      const base = {
+        name: s.name,
+        aliases: s.aliases,
+        primitiveTag: s.primitiveType._tag,
+        ...(s.typeName !== undefined ? { typeName: s.typeName } : {})
+      }
+
+      return typeof description === "string" ? { ...base, description } : base
+    })
 
 export const flattenCommand = <Name extends string, I, E, R>(
   cmd: Command<Name, I, E, R>,

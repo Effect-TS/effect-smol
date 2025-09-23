@@ -21,30 +21,29 @@ export const generateDynamicZshCompletion = (
 #
 _${executableName}_dynamic_completions()
 {
-  local reply
-  local si=$IFS
+  emulate -L zsh -o no_aliases
+  setopt local_options nonomatch extendedglob
+  compstate[insert]=menu
 
-  if [[ -z \${_EFFECT_CLI_COMPLETION_STYLES_INITIALIZED+x} ]]; then
+  local -a reply _${executableName}_options _${executableName}_commands _${executableName}_values
+  local _${executableName}_line _${executableName}_tag _${executableName}_data _${executableName}_file_kind=""
+  local ret=1 si=$IFS
+
+  local _EFFECT_STYLES_VAR="_EFFECT_CLI_${executableName}_STYLES_INITIALIZED"
+  if [[ -z \${(P)_EFFECT_STYLES_VAR} ]]; then
     zstyle ':completion:*:*:${executableName}:*' group-name ''
     zstyle ':completion:*:*:${executableName}:*' verbose yes
     zstyle ':completion:*:*:${executableName}:*' menu select=long-list
-    zstyle ':completion:*:*:${executableName}:*' tag-order 'commands' 'options' 'values'
-    zstyle ':completion:*:*:${executableName}:*:commands' format '%BCommands%b'
-    zstyle ':completion:*:*:${executableName}:*:options' format '%BOptions%b'
-    zstyle ':completion:*:*:${executableName}:*:values' format '%BValues%b'
-    zstyle ':completion:*:*:${executableName}:*' list-colors \${(s.:.)LS_COLORS}
-    typeset -g _EFFECT_CLI_COMPLETION_STYLES_INITIALIZED=1
+    zstyle ':completion:*:*:${executableName}:*' tag-order 'commands' 'options' 'values' 'files'
+    zstyle ':completion:*:*:${executableName}:*:commands' format ''
+    zstyle ':completion:*:*:${executableName}:*:options' format ''
+    zstyle ':completion:*:*:${executableName}:*:values' format ''
+    [[ -n $LS_COLORS ]] && zstyle ':completion:*:*:${executableName}:*' list-colors \${(s.:.)LS_COLORS}
+    typeset -g "_EFFECT_CLI_${executableName}_STYLES_INITIALIZED=1"
   fi
-
-  # Call the CLI with special environment variables to get completions
-  # COMP_WORDS: All words in the current command line
-  # COMP_CWORD: Index of the current word being completed
-  # COMP_LINE: The full command line
-  # COMP_POINT: Cursor position
 
   IFS=$'\\n' reply=($(
     EFFECT_COMPLETION_FORMAT="zsh" \\
-    COMP_TYPE="9" \\
     COMP_CWORD="$((CURRENT-1))" \\
     COMP_LINE="$BUFFER" \\
     COMP_POINT="$CURSOR" \\
@@ -52,13 +51,8 @@ _${executableName}_dynamic_completions()
   ))
   IFS=$si
 
-  typeset -a _${executableName}_options _${executableName}_commands _${executableName}_values
-  local _${executableName}_line _${executableName}_tag _${executableName}_data
-
   for _${executableName}_line in "\${reply[@]}"; do
-    if [[ -z "\${_${executableName}_line}" ]]; then
-      continue
-    fi
+    [[ -z "\${_${executableName}_line}" ]] && continue
 
     if [[ "\${_${executableName}_line}" != *$'\\t'* ]]; then
       _${executableName}_values+=("\${_${executableName}_line}")
@@ -78,13 +72,28 @@ _${executableName}_dynamic_completions()
       value)
         _${executableName}_values+=("\${_${executableName}_data}")
         ;;
+      files)
+        _${executableName}_file_kind="\${_${executableName}_data}"
+        ;;
       *)
         _${executableName}_values+=("\${_${executableName}_data}")
         ;;
     esac
   done
 
-  local ret=1
+  if [[ -n "\${_${executableName}_file_kind}" ]]; then
+    case "\${_${executableName}_file_kind}" in
+      directory)
+        _files -/ && return 0
+        ;;
+      path|either)
+        _files && return 0
+        ;;
+      file)
+        _files -g '*' && return 0
+        ;;
+    esac
+  fi
 
   if (( \${#_${executableName}_commands[@]} > 0 )); then
     _describe -t commands 'commands' _${executableName}_commands && ret=0
@@ -95,12 +104,10 @@ _${executableName}_dynamic_completions()
   fi
 
   if (( \${#_${executableName}_values[@]} > 0 )); then
-    compadd -- "\${_${executableName}_values[@]}" && ret=0
+    compadd -Q -- "\${_${executableName}_values[@]}" && ret=0
   fi
 
-  if (( ret )); then
-    _default
-  fi
+  (( ret )) && _default
 
   return ret
 }
