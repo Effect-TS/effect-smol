@@ -149,10 +149,7 @@ export const make = <K, A = unknown, E = unknown>(): Effect.Effect<FiberMap<K, A
         const state = map.state
         if (state._tag === "Closed") return Effect.void
         map.state = { _tag: "Closed" }
-        return Fiber.interruptAllAs(
-          Iterable.map(state.backing, ([, fiber]) => fiber),
-          internalFiberId
-        ).pipe(
+        return Fiber.interruptAll(MutableHashMap.values(state.backing)).pipe(
           Deferred.into(map.deferred)
         )
       })

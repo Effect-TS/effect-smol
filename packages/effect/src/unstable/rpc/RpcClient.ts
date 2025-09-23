@@ -992,32 +992,29 @@ export const makeProtocolSocket = (options?: {
       )
     }).pipe(
       Effect.flatMap(() => Effect.fail(new Socket.SocketCloseError({ code: 1000 }))),
-      Effect.tapCause(
-        (cause) => {
-          const error = Cause.filterError(cause)
-          if (
-            options?.retryTransientErrors && Filter.isPass(error) &&
-            (error.reason === "Open" || error.reason === "OpenTimeout")
-          ) {
-            return Effect.void
-          }
-          currentError = new RpcClientError({
-            reason: "Protocol",
-            message: "Error in socket",
-            cause: Cause.squash(cause)
-          })
-          return writeResponse({
-            _tag: "ClientProtocolError",
-            error: currentError
-          })
+      Effect.tapCause((cause) => {
+        const error = Cause.filterError(cause)
+        if (
+          options?.retryTransientErrors && Filter.isPass(error) &&
+          (error.reason === "Open" || error.reason === "OpenTimeout")
+        ) {
+          return Effect.void
         }
-      ),
+        currentError = new RpcClientError({
+          reason: "Protocol",
+          message: "Error in socket",
+          cause: Cause.squash(cause)
+        })
+        return writeResponse({
+          _tag: "ClientProtocolError",
+          error: currentError
+        })
+      }),
       Effect.retry(Schedule.spaced(1000)),
       Effect.annotateLogs({
         module: "RpcClient",
         method: "makeProtocolSocket"
       }),
-      Effect.interruptible,
       Effect.forkScoped
     )
 

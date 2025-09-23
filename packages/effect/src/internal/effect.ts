@@ -1337,7 +1337,7 @@ export const raceAll = <Eff extends Effect.Effect<any, any, any>>(
       }
 
       for (let i = 0; i < len; i++) {
-        const fiber = forkUnsafe(parent, interruptible(effects[i]), true, true, "inherit")
+        const fiber = forkUnsafe(parent, effects[i], true, true, false)
         fibers.add(fiber)
         fiber.addObserver((exit) => {
           fibers.delete(fiber)
@@ -1374,7 +1374,7 @@ export const raceAllFirst = <Eff extends Effect.Effect<any, any, any>>(
         resume(
           fibers.size === 0
             ? exit
-            : flatMap(fiberInterruptAll(fibers), () => exit)
+            : flatMap(uninterruptible(fiberInterruptAll(fibers)), () => exit)
         )
       }
 
@@ -1382,7 +1382,7 @@ export const raceAllFirst = <Eff extends Effect.Effect<any, any, any>>(
       for (const effect of all) {
         if (done) break
         const index = i++
-        const fiber = forkUnsafe(parent, interruptible(effect), true, true, "inherit")
+        const fiber = forkUnsafe(parent, effect, true, true, false)
         fibers.add(fiber)
         fiber.addObserver((exit) => {
           fibers.delete(fiber)
@@ -2963,7 +2963,7 @@ export const timeoutOrElse: {
   ): Effect.Effect<A | A2, E | E2, R | R2> =>
     raceFirst(
       self,
-      flatMap(interruptible(sleep(options.duration)), options.onTimeout)
+      flatMap(sleep(options.duration), options.onTimeout)
     )
 )
 
@@ -3009,7 +3009,7 @@ export const timeoutOption: {
   ): Effect.Effect<Option.Option<A>, E, R> =>
     raceFirst(
       asSome(self),
-      as(interruptible(sleep(duration)), Option.none())
+      as(sleep(duration), Option.none())
     )
 )
 
@@ -3065,12 +3065,13 @@ const scopeCloseFinalizers = fnUntraced(function*<A, E>(
   let exits: Array<Exit.Exit<any, never>> = []
   const fibers: Array<Fiber.Fiber<any, never>> = []
   const arr = Array.from(finalizers.values())
+  const parent = getCurrentFiber() as any
   for (let i = arr.length - 1; i >= 0; i--) {
     const finalizer = arr[i]
     if (self.strategy === "sequential") {
       exits.push(yield* exit(finalizer(exit_)))
     } else {
-      fibers.push(forkUnsafe(getCurrentFiber() as any, finalizer(exit_), true, true, "inherit"))
+      fibers.push(forkUnsafe(parent, finalizer(exit_), true, true, "inherit"))
     }
   }
   if (fibers.length > 0) {

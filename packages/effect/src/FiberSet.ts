@@ -137,7 +137,7 @@ export const make = <A = unknown, E = unknown>(): Effect.Effect<FiberSet<A, E>, 
         if (state._tag === "Closed") return Effect.void
         set.state = { _tag: "Closed" }
         const fibers = state.backing
-        return Fiber.interruptAllAs(fibers, internalFiberId).pipe(
+        return Fiber.interruptAll(fibers).pipe(
           Deferred.into(set.deferred)
         )
       })
