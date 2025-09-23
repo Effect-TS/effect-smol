@@ -20,10 +20,6 @@ declare module "../../schema/Annotations.ts" {
     readonly httpApiIsEmpty?: true | undefined
     readonly httpApiMultipart?: Multipart_.withLimits.Options | undefined
     readonly httpApiMultipartStream?: Multipart_.withLimits.Options | undefined
-    readonly httpApiParam?: {
-      readonly name: string
-      readonly schema: Schema.Top
-    } | undefined
     readonly httpApiStatus?: number | undefined
   }
 }
@@ -293,34 +289,28 @@ export interface NoContent extends Schema.Void {
  */
 export const NoContent: NoContent = Empty(204) as any
 
-/** @internal */
-export type MultipartTypeId = "~effect/httpapi/HttpApiSchema/Multipart"
+/**
+ * @since 4.0.0
+ * @category multipart
+ */
+export const MultipartTypeId = "~effect/httpapi/HttpApiSchema/Multipart"
+
+/**
+ * @since 4.0.0
+ * @category multipart
+ */
+export type MultipartTypeId = typeof MultipartTypeId
 
 /**
  * @since 4.0.0
  * @category multipart
  */
 export interface Multipart<S extends Schema.Top> extends
-  Schema.Bottom<
-    S["Type"] & Brand<MultipartTypeId>,
-    S["Encoded"],
-    S["DecodingServices"],
-    S["EncodingServices"],
-    S["ast"],
-    S["~rebuild.out"],
-    S["~annotate.in"],
-    S["~type.make.in"],
-    S["Iso"],
-    S["~type.make"],
-    S["~type.mutability"],
-    S["~type.optionality"],
-    S["~type.constructor.default"],
-    S["~encoded.mutability"],
-    S["~encoded.optionality"]
+  Schema.refine<
+    S["~rebuild.out"]["Type"] & Brand<MultipartTypeId>,
+    S["~rebuild.out"]["~rebuild.out"]
   >
-{
-  readonly "~rebuild.out": this
-}
+{}
 
 /**
  * @since 4.0.0
@@ -332,39 +322,33 @@ export const Multipart = <S extends Schema.Top>(self: S, options?: {
   readonly maxFileSize?: FileSystem.SizeInput | undefined
   readonly maxTotalSize?: FileSystem.SizeInput | undefined
   readonly fieldMimeTypes?: ReadonlyArray<string> | undefined
-}): Multipart<S["~rebuild.out"]> =>
+}): Multipart<S> =>
   self.annotate({
     httpApiMultipart: options ?? {}
-  }) as any
+  }).pipe(Schema.brand(MultipartTypeId))
 
-/** @internal */
-export type MultipartStreamTypeId = "~effect/httpapi/HttpApiSchema/MultipartStream"
+/**
+ * @since 4.0.0
+ * @category multipart
+ */
+export const MultipartStreamTypeId = "~effect/httpapi/HttpApiSchema/MultipartStream"
+
+/**
+ * @since 4.0.0
+ * @category multipart
+ */
+export type MultipartStreamTypeId = typeof MultipartStreamTypeId
 
 /**
  * @since 4.0.0
  * @category multipart
  */
 export interface MultipartStream<S extends Schema.Top> extends
-  Schema.Bottom<
-    S["Type"] & Brand<MultipartStreamTypeId>,
-    S["Encoded"],
-    S["DecodingServices"],
-    S["EncodingServices"],
-    S["ast"],
-    S["~rebuild.out"],
-    S["~annotate.in"],
-    S["~type.make.in"],
-    S["Iso"],
-    S["~type.make"],
-    S["~type.mutability"],
-    S["~type.optionality"],
-    S["~type.constructor.default"],
-    S["~encoded.mutability"],
-    S["~encoded.optionality"]
+  Schema.refine<
+    S["~rebuild.out"]["Type"] & Brand<MultipartStreamTypeId>,
+    S["~rebuild.out"]["~rebuild.out"]
   >
-{
-  readonly "~rebuild.out": this
-}
+{}
 
 /**
  * @since 4.0.0
@@ -376,10 +360,10 @@ export const MultipartStream = <S extends Schema.Top>(self: S, options?: {
   readonly maxFileSize?: FileSystem.SizeInput | undefined
   readonly maxTotalSize?: FileSystem.SizeInput | undefined
   readonly fieldMimeTypes?: ReadonlyArray<string> | undefined
-}): MultipartStream<S["~rebuild.out"]> =>
+}): MultipartStream<S> =>
   self.annotate({
     httpApiMultipartStream: options ?? {}
-  }) as any
+  }).pipe(Schema.brand(MultipartStreamTypeId))
 
 /**
  * @since 4.0.0
