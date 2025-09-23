@@ -1,5 +1,6 @@
 import { Effect, Layer } from "effect"
-import { FileSystem, Path } from "effect/platform"
+import { FileSystem } from "effect/platform"
+import * as Path from "effect/platform/Path"
 import { Stream } from "effect/stream"
 
 // Create mock implementations for testing CLI commands
@@ -37,7 +38,7 @@ export const MockPath = Layer.mock(Path.Path)({
     const parts = path.split(".")
     return parts.length > 1 ? `.${parts[parts.length - 1]}` : ""
   },
-  format: ({ dir, ext, name }) => `${dir}/${name}${ext || ""}`,
+  format: ({ dir, ext, name }: { dir?: string; ext?: string; name?: string }) => `${dir}/${name}${ext || ""}`,
   fromFileUrl: (url: URL) => Effect.succeed(url.pathname),
   isAbsolute: (path: string) => path.startsWith("/"),
   join: (...paths: Array<string>) => paths.join("/"),
