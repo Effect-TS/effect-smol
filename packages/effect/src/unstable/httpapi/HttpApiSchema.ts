@@ -147,7 +147,7 @@ export interface Param<Name extends string, S extends Schema.Top> extends
     S["DecodingServices"],
     S["EncodingServices"],
     S["ast"],
-    S["~rebuild.out"],
+    Param<Name, S>,
     S["~annotate.in"],
     S["~type.make.in"],
     S["Iso"],
@@ -529,7 +529,7 @@ export interface EmptyErrorClass<Self, Tag> extends
     never,
     never,
     AST.Declaration,
-    EmptyErrorClass<Self, Tag>,
+    EmptyErrorClass<Self, Tag>, // TODO: Fix this
     Annotations.Annotations
   >
 {
