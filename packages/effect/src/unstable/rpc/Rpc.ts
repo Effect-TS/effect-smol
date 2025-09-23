@@ -728,10 +728,7 @@ export const make = <
     _tag: tag,
     payloadSchema,
     successSchema: options?.stream ?
-      RpcSchema.Stream({
-        success: successSchema,
-        error: errorSchema
-      }) :
+      RpcSchema.Stream(successSchema, errorSchema) :
       successSchema,
     errorSchema: options?.stream ? Schema.Never : errorSchema,
     annotations: ServiceMap.empty(),
@@ -757,7 +754,7 @@ export const exitSchema = <R extends Any>(
   }
   const rpc = self as any as AnyWithProps
   const failures = new Set<Schema.Top>([rpc.errorSchema])
-  const streamSchemas = RpcSchema.getStreamSchemas(rpc.successSchema.ast)
+  const streamSchemas = RpcSchema.getStreamSchemas(rpc.successSchema)
   if (streamSchemas) {
     failures.add(streamSchemas.error)
   }

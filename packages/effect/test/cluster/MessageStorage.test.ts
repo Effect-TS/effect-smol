@@ -135,10 +135,7 @@ export class PrimaryKeyTest extends Rpc.make("PrimaryKeyTest", {
 }) {}
 
 export class StreamRpc extends Rpc.make("StreamTest", {
-  success: RpcSchema.Stream({
-    success: Schema.Void,
-    error: Schema.Never
-  }),
+  success: RpcSchema.Stream(Schema.Void, Schema.Never),
   payload: {
     id: Schema.Number
   },

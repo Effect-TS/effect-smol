@@ -737,7 +737,10 @@ export const encodeUnknownSync = ToParser.encodeUnknownSync
  */
 export const encodeSync = ToParser.encodeSync
 
-class make$<S extends Top> extends BottomImpl<
+/**
+ * @since 4.0.0
+ */
+export class Make<S extends Top> extends BottomImpl<
   S["Type"],
   S["Encoded"],
   S["DecodingServices"],
@@ -797,7 +800,7 @@ export function make<S extends Top>(ast: S["ast"]): Bottom<
   S["~encoded.mutability"],
   S["~encoded.optionality"]
 > {
-  const rebuild = (ast: AST.AST) => new make$<S>(ast, rebuild)
+  const rebuild = (ast: AST.AST) => new Make<S>(ast, rebuild)
   return rebuild(ast)
 }
 
@@ -842,7 +845,7 @@ interface optionalKeyLambda extends Lambda {
   readonly "~lambda.out": this["~lambda.in"] extends Top ? optionalKey<this["~lambda.in"]> : never
 }
 
-class makeWithSchema$<S extends Top, Result extends Top> extends make$<Result> {
+class makeWithSchema$<S extends Top, Result extends Top> extends Make<Result> {
   readonly schema: S
 
   constructor(ast: AST.AST, schema: S) {
@@ -1084,7 +1087,7 @@ export interface Literal<L extends AST.Literal>
   readonly literal: L
 }
 
-class Literal$<L extends AST.Literal> extends make$<Literal<L>> implements Literal<L> {
+class Literal$<L extends AST.Literal> extends Make<Literal<L>> implements Literal<L> {
   declare readonly "~rebuild.out": this
   readonly literal: L
 
@@ -1162,7 +1165,7 @@ export interface TemplateLiteral<Parts extends TemplateLiteral.Parts> extends
   readonly parts: Parts
 }
 
-class TemplateLiteral$<Parts extends TemplateLiteral.Parts> extends make$<TemplateLiteral<Parts>>
+class TemplateLiteral$<Parts extends TemplateLiteral.Parts> extends Make<TemplateLiteral<Parts>>
   implements TemplateLiteral<Parts>
 {
   declare readonly "~rebuild.out": this
@@ -1218,7 +1221,7 @@ export interface TemplateLiteralParser<Parts extends TemplateLiteral.Parts> exte
   readonly parts: Parts
 }
 
-class TemplateLiteralParser$<Parts extends TemplateLiteral.Parts> extends make$<TemplateLiteralParser<Parts>>
+class TemplateLiteralParser$<Parts extends TemplateLiteral.Parts> extends Make<TemplateLiteralParser<Parts>>
   implements TemplateLiteralParser<Parts>
 {
   readonly parts: Parts
@@ -1248,7 +1251,7 @@ export interface Enums<A extends { [x: string]: string | number }>
   readonly enums: A
 }
 
-class Enums$<A extends { [x: string]: string | number }> extends make$<Enums<A>> implements Enums<A> {
+class Enums$<A extends { [x: string]: string | number }> extends Make<Enums<A>> implements Enums<A> {
   declare readonly "~rebuild.out": this
   readonly enums: A
 
@@ -1612,7 +1615,7 @@ export interface Struct<Fields extends Struct.Fields> extends
   ): Struct<Simplify<Readonly<To>>>
 }
 
-class Struct$<Fields extends Struct.Fields> extends make$<Struct<Fields>> implements Struct<Fields> {
+class Struct$<Fields extends Struct.Fields> extends Make<Struct<Fields>> implements Struct<Fields> {
   declare readonly "~rebuild.out": this
   readonly fields: Fields
   constructor(ast: AST.TypeLiteral, fields: Fields) {
@@ -1816,7 +1819,7 @@ export interface Record$<Key extends Record.Key, Value extends Top> extends
   readonly value: Value
 }
 
-class Record$$<Key extends Record.Key, Value extends Top> extends make$<Record$<Key, Value>>
+class Record$$<Key extends Record.Key, Value extends Top> extends Make<Record$<Key, Value>>
   implements Record$<Key, Value>
 {
   declare readonly "~rebuild.out": this
@@ -1935,7 +1938,7 @@ export interface StructWithRest<
 }
 
 class StructWithRest$$<S extends StructWithRest.TypeLiteral, Records extends StructWithRest.Records>
-  extends make$<StructWithRest<S, Records>>
+  extends Make<StructWithRest<S, Records>>
   implements StructWithRest<S, Records>
 {
   declare readonly "~rebuild.out": this
@@ -2079,7 +2082,7 @@ export interface Tuple<Elements extends Tuple.Elements> extends
   ): Tuple<Simplify<Readonly<To>>>
 }
 
-class Tuple$<Elements extends Tuple.Elements> extends make$<Tuple<Elements>> implements Tuple<Elements> {
+class Tuple$<Elements extends Tuple.Elements> extends Make<Tuple<Elements>> implements Tuple<Elements> {
   declare readonly "~rebuild.out": this
   readonly elements: Elements
   constructor(ast: AST.TupleType, elements: Elements) {
@@ -2197,7 +2200,7 @@ export interface TupleWithRest<
 }
 
 class TupleWithRest$<S extends Tuple<Tuple.Elements> | mutable<Tuple<Tuple.Elements>>, Rest extends TupleWithRest.Rest>
-  extends make$<TupleWithRest<S, Rest>>
+  extends Make<TupleWithRest<S, Rest>>
 {
   readonly schema: S
   readonly rest: Rest
@@ -2428,7 +2431,7 @@ export interface Union<Members extends ReadonlyArray<Top>> extends
   ): Union<Simplify<Readonly<To>>>
 }
 
-class Union$<Members extends ReadonlyArray<Top>> extends make$<Union<Members>> implements Union<Members> {
+class Union$<Members extends ReadonlyArray<Top>> extends Make<Union<Members>> implements Union<Members> {
   declare readonly "~rebuild.out": this
   override readonly ast: AST.UnionType<Members[number]["ast"]>
   readonly members: Members
@@ -2496,7 +2499,7 @@ export interface Literals<L extends ReadonlyArray<AST.Literal>> extends
   pick<const L2 extends ReadonlyArray<L[number]>>(literals: L2): Literals<L2>
 }
 
-class Literals$<L extends ReadonlyArray<AST.Literal>> extends make$<Literals<L>> implements Literals<L> {
+class Literals$<L extends ReadonlyArray<AST.Literal>> extends Make<Literals<L>> implements Literals<L> {
   declare readonly "~rebuild.out": this
   readonly literals: L
   readonly members: { readonly [K in keyof L]: Literal<L[K]> }
@@ -2850,7 +2853,7 @@ export interface decodeTo<To extends Top, From extends Top, RD = never, RE = nev
  */
 export interface compose<To extends Top, From extends Top> extends decodeTo<To, From> {}
 
-class decodeTo$<To extends Top, From extends Top, RD, RE> extends make$<decodeTo<To, From, RD, RE>>
+class decodeTo$<To extends Top, From extends Top, RD, RE> extends Make<decodeTo<To, From, RD, RE>>
   implements decodeTo<To, From, RD, RE>
 {
   declare readonly "~rebuild.out": this
@@ -3260,7 +3263,7 @@ export interface TaggedUnion<Cases extends Record<string, Top>> extends
   }
 }
 
-class TaggedUnion$<Cases extends Record<string, Top>> extends make$<TaggedUnion<Cases>> implements TaggedUnion<Cases> {
+class TaggedUnion$<Cases extends Record<string, Top>> extends Make<TaggedUnion<Cases>> implements TaggedUnion<Cases> {
   declare readonly "~rebuild.out": this
   override readonly ast: AST.UnionType<AST.TypeLiteral>
   readonly cases: Cases

@@ -772,7 +772,7 @@ const rpcSchemas = (rpc: Rpc.AnyWithProps) => {
   if (rpcSchemasCache.has(rpc)) {
     return rpcSchemasCache.get(rpc)!
   }
-  const streamSchemas = RpcSchema.getStreamSchemas(rpc.successSchema.ast)
+  const streamSchemas = RpcSchema.getStreamSchemas(rpc.successSchema)
   const entry: RpcSchemas = {
     decodeChunk: streamSchemas ?
       Schema.decodeUnknownEffect(Serializer.json(Schema.NonEmptyArray(streamSchemas.success))) :

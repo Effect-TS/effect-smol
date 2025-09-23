@@ -492,7 +492,7 @@ export const make: <Rpcs extends Rpc.Any>(
     let schemas = schemasCache.get(rpc)
     if (!schemas) {
       const entry = services.mapUnsafe.get(rpc.key) as Rpc.Handler<Rpcs["_tag"]>
-      const streamSchemas = RpcSchema.getStreamSchemas(rpc.successSchema.ast)
+      const streamSchemas = RpcSchema.getStreamSchemas(rpc.successSchema)
       schemas = {
         decode: Schema.decodeUnknownEffect(Serializer.json(rpc.payloadSchema as any)),
         encodeChunk: Schema.encodeUnknownEffect(

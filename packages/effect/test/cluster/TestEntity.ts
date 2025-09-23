@@ -12,10 +12,7 @@ export class User extends Schema.Class<User>("User")({
 }) {}
 
 export class StreamWithKey extends Rpc.make("StreamWithKey", {
-  success: RpcSchema.Stream({
-    success: Schema.Number,
-    error: Schema.Never
-  }),
+  success: RpcSchema.Stream(Schema.Number, Schema.Never),
   payload: { key: Schema.String },
   primaryKey: ({ key }) => key
 }) {}
