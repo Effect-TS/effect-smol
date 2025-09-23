@@ -6,7 +6,7 @@ import type { Path } from "../../../platform/Path.ts"
 import * as CliError from "../CliError.ts"
 import type { Command } from "../Command.ts"
 import { isFalseValue, isTrueValue } from "../Primitive.ts"
-import { completionsFlag, helpFlag, logLevelFlag, versionFlag } from "./builtInFlags.ts"
+import { completionsFlag, dynamicCompletionsFlag, helpFlag, logLevelFlag, versionFlag } from "./builtInFlags.ts"
 import { lex, type LexResult, type Token } from "./lexer.ts"
 import { extractSingleParams, type ParamKind, type Single } from "./param.ts"
 import { suggest } from "./suggestions.ts"
@@ -152,7 +152,8 @@ const builtInFlagParams: ReadonlyArray<FlagParam> = [
   ...extractSingleParams(logLevelFlag),
   ...extractSingleParams(helpFlag),
   ...extractSingleParams(versionFlag),
-  ...extractSingleParams(completionsFlag)
+  ...extractSingleParams(completionsFlag),
+  ...extractSingleParams(dynamicCompletionsFlag)
 ]
 
 /** Collect only the provided flags; leave everything else untouched as remainder. */
@@ -193,6 +194,7 @@ export const extractBuiltInOptions = (
     logLevel: Option.Option<LogLevel>
     version: boolean
     completions: Option.Option<"bash" | "zsh" | "fish">
+    dynamicCompletions: Option.Option<"bash" | "zsh" | "fish">
     remainder: ReadonlyArray<Token>
   },
   CliError.CliError,
@@ -205,7 +207,8 @@ export const extractBuiltInOptions = (
     const [, logLevel] = yield* logLevelFlag.parse(emptyArgs)
     const [, version] = yield* versionFlag.parse(emptyArgs)
     const [, completions] = yield* completionsFlag.parse(emptyArgs)
-    return { help, logLevel, version, completions, remainder }
+    const [, dynamicCompletions] = yield* dynamicCompletionsFlag.parse(emptyArgs)
+    return { help, logLevel, version, completions, dynamicCompletions, remainder }
   })
 
 /* ====================================================================== */
