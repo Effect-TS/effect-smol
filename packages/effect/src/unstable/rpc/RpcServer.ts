@@ -850,16 +850,13 @@ export const makeProtocolWithHttpEffect: Effect.Effect<
       typeof data === "string" ? Queue.offer(queue, encoder.encode(data)) : Queue.offer(queue, data)
 
     clients.set(id, {
-      write: (response) => {
+      write: !includesFraming ? ((response) => Queue.offer(queue, response)) : (response) => {
         try {
-          if (!includesFraming) return Queue.offer(queue, response)
           const encoded = parser.encode(response)
           if (encoded === undefined) return Effect.void
           return offer(encoded)
         } catch (cause) {
-          return !includesFraming
-            ? Queue.offer(queue, ResponseDefectEncoded(cause))
-            : offer(parser.encode(ResponseDefectEncoded(cause))!)
+          return offer(parser.encode(ResponseDefectEncoded(cause))!)
         }
       },
       end: Effect.suspend(() => {
