@@ -642,34 +642,49 @@ const getHelpForCommandPath = <Name extends string, Input, E, R>(
  *   })
  * )
  *
- * const runGreet = Command.run(greetCommand)
- *
- * // Run with input: ["--name", "Alice"]
- * const program = runGreet(["--name", "Alice"])
+ * // Automatically gets args from process.argv
+ * const program = Command.run(greetCommand, {
+ *   version: "1.0.0"
+ * })
  * ```
  *
  * @since 4.0.0
  * @category execution
  */
-export const run = <Name extends string, Input, E, R>(
+export const run: {
+  <Name extends string, Input, E, R>(
+    command: Command<Name, Input, E, R>,
+    config: {
+      readonly version: string
+    }
+  ): Effect.Effect<void, E | CliError.CliError, R | Environment>
+} = <Name extends string, Input, E, R>(
   command: Command<Name, Input, E, R>,
-  _config: {
-    readonly name: string
+  config: {
     readonly version: string
   }
-): (
-  input: ReadonlyArray<string>
-) => Effect.Effect<void, E | CliError.CliError, R | Environment> =>
-(input) =>
+) => {
+  const input = process.argv.slice(2)
+  return runWithArgs(command, config)(input)
+}
+
+export const runWithArgs = <Name extends string, Input, E, R>(
+  command: Command<Name, Input, E, R>,
+  config: {
+    readonly version: string
+  }
+): (input: ReadonlyArray<string>) => Effect.Effect<void, E | CliError.CliError, R | Environment> =>
+(input: ReadonlyArray<string>) =>
   Effect.gen(function*() {
+    const args = input
     // Check for dynamic completion request early (before normal parsing)
-    if (isCompletionRequest(input)) {
+    if (isCompletionRequest(args)) {
       yield* Effect.sync(() => handleCompletionRequest(command))
       return
     }
 
     // Parse command arguments (built-ins are extracted automatically)
-    const { tokens, trailingOperands } = lex(input)
+    const { tokens, trailingOperands } = lex(args)
     const { completions, dynamicCompletions, help, logLevel, remainder, version } = yield* extractBuiltInOptions(tokens)
     const parsedArgs = yield* parseArgs({ tokens: remainder, trailingOperands }, command)
     const helpRenderer = yield* HelpFormatter.HelpRenderer
@@ -683,19 +698,19 @@ export const run = <Name extends string, Input, E, R>(
     } else if (Option.isSome(completions)) {
       const shell = completions.value
       const script = shell === "bash"
-        ? generateBashCompletions(command, _config.name)
+        ? generateBashCompletions(command, command.name)
         : shell === "fish"
-        ? generateFishCompletions(command, _config.name)
-        : generateZshCompletions(command, _config.name)
+        ? generateFishCompletions(command, command.name)
+        : generateZshCompletions(command, command.name)
       yield* Console.log(script)
       return
     } else if (Option.isSome(dynamicCompletions)) {
       const shell = dynamicCompletions.value
-      const script = generateDynamicCompletion(command, _config.name, shell)
+      const script = generateDynamicCompletion(command, command.name, shell)
       yield* Console.log(script)
       return
     } else if (version && command.subcommands.length === 0) {
-      const versionText = helpRenderer.formatVersion(_config.name, _config.version)
+      const versionText = helpRenderer.formatVersion(command.name, config.version)
       yield* Console.log(versionText)
       return
     }
@@ -752,6 +767,7 @@ export const run = <Name extends string, Input, E, R>(
         CliError.isCliError(err) ? Effect.fail(err) : Effect.fail(new CliError.UserError({ cause: err }))
       )
     )
+
     yield* normalized
   }).pipe(
     Effect.catchTags({

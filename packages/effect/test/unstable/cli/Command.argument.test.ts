@@ -27,7 +27,7 @@ describe("Command arguments", () => {
       })
 
       // Test parsing with valid arguments
-      yield* Command.run(testCommand, { name: "test", version: "1.0.0" })([
+      yield* Command.runWithArgs(testCommand, { version: "1.0.0" })([
         "myapp", // name
         "42", // count
         "3.14", // ratio
@@ -64,11 +64,11 @@ describe("Command arguments", () => {
         return Effect.void
       })
 
-      yield* Command.run(existingFileCommand, { name: "test", version: "1.0.0" })([tempFile])
+      yield* Command.runWithArgs(existingFileCommand, { version: "1.0.0" })([tempFile])
 
       // Test 2: mustExist: true with non-existing file - should fail
       const error = yield* Effect.flip(
-        Command.run(existingFileCommand, { name: "test", version: "1.0.0" })(["/non/existent/file.txt"])
+        Command.runWithArgs(existingFileCommand, { version: "1.0.0" })(["/non/existent/file.txt"])
       )
       assert.isTrue(String(error).includes("does not exist"))
 
@@ -80,7 +80,7 @@ describe("Command arguments", () => {
         return Effect.void
       })
 
-      yield* Command.run(optionalFileCommand, { name: "test", version: "1.0.0" })([
+      yield* Command.runWithArgs(optionalFileCommand, { version: "1.0.0" })([
         "./non-existent-file.txt"
       ])
     }).pipe(Effect.provide(TestLayer)))
@@ -94,13 +94,13 @@ describe("Command arguments", () => {
 
       // Test invalid integer
       const error1 = yield* Effect.flip(
-        Command.run(testCommand, { name: "test", version: "1.0.0" })(["not-a-number", "dev"])
+        Command.runWithArgs(testCommand, { version: "1.0.0" })(["not-a-number", "dev"])
       )
       assert.isTrue(String(error1).includes("Failed to parse integer"))
 
       // Test invalid choice
       const error2 = yield* Effect.flip(
-        Command.run(testCommand, { name: "test", version: "1.0.0" })(["42", "invalid"])
+        Command.runWithArgs(testCommand, { version: "1.0.0" })(["42", "invalid"])
       )
       assert.isTrue(String(error2).includes("Expected one of: dev, prod"))
     }).pipe(Effect.provide(TestLayer)))
@@ -116,7 +116,7 @@ describe("Command arguments", () => {
         return Effect.void
       })
 
-      yield* Command.run(testCommand, { name: "test", version: "1.0.0" })([
+      yield* Command.runWithArgs(testCommand, { version: "1.0.0" })([
         "file1.txt",
         "file2.txt",
         "file3.txt"

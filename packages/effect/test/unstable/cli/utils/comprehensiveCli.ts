@@ -412,4 +412,4 @@ export const comprehensiveCli = (() => {
     )
 })()
 
-export const runComprehensiveCli = Command.run(comprehensiveCli, { name: "mycli", version: "1.0.0" })
+export const runComprehensiveCli = Command.runWithArgs(comprehensiveCli, { version: "1.0.0" })

@@ -293,7 +293,7 @@ describe("Command", () => {
           Command.withSubcommands(child)
         )
 
-        const runCommand = Command.run(combined, { name: "parent", version: "1.0.0" })
+        const runCommand = Command.runWithArgs(combined, { version: "1.0.0" })
         yield* runCommand([
           "--verbose",
           "--config",
@@ -328,7 +328,8 @@ describe("Command", () => {
           }))
 
         const npm = root.pipe(Command.withSubcommands(install))
-        const runNpm = Command.run(npm, { name: "npm", version: "1.0.0" })
+
+        const runNpm = Command.runWithArgs(npm, { version: "1.0.0" })
 
         // Global before subcommand
         yield* runNpm(["--global", "install", "--pkg", "cowsay"]).pipe(Effect.provide(TestLayer))
@@ -384,7 +385,7 @@ describe("Command", () => {
           Command.withSubcommands(serviceWithDeploy)
         )
 
-        const runCommand = Command.run(appWithService, { name: "app", version: "1.0.0" })
+        const runCommand = Command.runWithArgs(appWithService, { version: "1.0.0" })
         yield* runCommand([
           "--env",
           "production",
@@ -431,7 +432,7 @@ describe("Command", () => {
           Command.withSubcommands(deploy)
         )
 
-        const runCommand = Command.run(combined, { name: "parent", version: "1.0.0" })
+        const runCommand = Command.runWithArgs(combined, { version: "1.0.0" })
         yield* runCommand([
           "--config",
           "prod.json",
@@ -497,7 +498,7 @@ describe("Command", () => {
     it.effect("should suggest similar subcommands for unknown subcommands", () =>
       Effect.gen(function*() {
         // Test unknown subcommand with suggestion - "cpy" should suggest "copy"
-        const runCommand = Command.run(comprehensiveCli, { name: "mycli", version: "1.0.0" })
+        const runCommand = Command.runWithArgs(comprehensiveCli, { version: "1.0.0" })
         yield* runCommand(["cpy"])
 
         // Capture the error output
@@ -515,7 +516,7 @@ describe("Command", () => {
     it.effect("should suggest similar subcommands for nested unknown subcommands", () =>
       Effect.gen(function*() {
         // Test unknown nested subcommand with suggestion - "usrs" should suggest "users"
-        const runCommand = Command.run(comprehensiveCli, { name: "mycli", version: "1.0.0" })
+        const runCommand = Command.runWithArgs(comprehensiveCli, { version: "1.0.0" })
         yield* runCommand(["admin", "usrs", "list"])
 
         // Capture the error output
@@ -533,7 +534,7 @@ describe("Command", () => {
     it.effect("should suggest similar options for unrecognized options", () =>
       Effect.gen(function*() {
         // Test unrecognized option with suggestion - "--debugs" should suggest "--debug"
-        const runCommand = Command.run(comprehensiveCli, { name: "mycli", version: "1.0.0" })
+        const runCommand = Command.runWithArgs(comprehensiveCli, { version: "1.0.0" })
         yield* runCommand(["--debugs", "copy", "src.txt", "dest.txt"])
 
         // Capture the error output
@@ -551,7 +552,7 @@ describe("Command", () => {
     it.effect("should suggest similar short options for unrecognized short options", () =>
       Effect.gen(function*() {
         // Test unrecognized short option with suggestion - "-u" suggests similar single-char options
-        const runCommand = Command.run(comprehensiveCli, { name: "mycli", version: "1.0.0" })
+        const runCommand = Command.runWithArgs(comprehensiveCli, { version: "1.0.0" })
         yield* runCommand(["-u", "copy", "src.txt", "dest.txt"])
 
         // Capture the error output
