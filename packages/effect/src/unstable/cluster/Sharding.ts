@@ -224,6 +224,11 @@ const make = Effect.gen(function*() {
   }
 
   // --- Shard acquisition ---
+  //
+  // Responsible for acquiring and releasing shards from RunnerStorage.
+  //
+  // This should be shutdown last, when all entities have been shutdown, to
+  // allow them to move to another runner.
 
   if (config.runnerAddress) {
     const selfAddress = config.runnerAddress
@@ -359,6 +364,15 @@ const make = Effect.gen(function*() {
   })
 
   // --- Storage inbox ---
+  //
+  // Responsible for reading unprocessed messages from storage and sending them
+  // to the appropriate entity manager.
+  //
+  // This should be shutdown before shard acquisition, to ensure no messages are
+  // being processed before the shards are released.
+  //
+  // It should also be shutdown after the entity managers, to ensure interrupt
+  // & ack envelopes can still be processed.
 
   const storageReadLatch = yield* Effect.makeLatch(true)
   const openStorageReadLatch = constant(Effect.sync(() => {
@@ -760,6 +774,13 @@ const make = Effect.gen(function*() {
   )
 
   // --- RunnerStorage sync ---
+  //
+  // This is responsible for syncing the local view of runners and shard
+  // assignments with RunnerStorage.
+  //
+  // It should be shutdown after the clients, so that they can still get correct
+  // shard assignments for outgoing messages (they could still be in use by
+  // entities that are shutting down).
 
   const selfRunner = config.runnerAddress ?
     new Runner({
