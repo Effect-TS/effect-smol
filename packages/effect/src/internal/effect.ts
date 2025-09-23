@@ -3689,7 +3689,6 @@ export const forEach: {
                   length = index
                   // eslint-disable-next-line no-restricted-syntax
                   failures.push(...exit.cause.failures)
-                  fibers.forEach((fiber) => fiber.interruptUnsafe())
                   fibers.forEach((fiber) => fiber.interruptUnsafe(parent.id, span))
                 } else {
                   for (const f of exit.cause.failures) {
@@ -4029,14 +4028,23 @@ export const runForkWith = <R>(services: ServiceMap.ServiceMap<R>) =>
 
   if (options?.signal) {
     if (options.signal.aborted) {
-      fiber.interruptUnsafe()
+      fiber.interruptUnsafe(undefined, disablePropagationSpan(fiber, "Effect.runForkWith (abort)"))
     } else {
-      const abort = () => fiber.interruptUnsafe()
+      const abort = () => fiber.interruptUnsafe(undefined, disablePropagationSpan(fiber, "Effect.runForkWith (abort)"))
       options.signal.addEventListener("abort", abort, { once: true })
       fiber.addObserver(() => options.signal!.removeEventListener("abort", abort))
     }
   }
   return fiber
+}
+
+const disablePropagationContext = Tracer.DisablePropagation.serviceMap(true)
+const disablePropagationSpan = (fiber: Fiber.Fiber<any, any>, name: string) => {
+  const error = new Error()
+  return makeSpanUnsafe(fiber, name, {
+    context: disablePropagationContext,
+    captureStackTrace: () => error.stack?.split("\n").slice(3).join("\n")
+  })
 }
 
 /** @internal */
@@ -4083,7 +4091,9 @@ export const runCallbackWith = <R>(services: ServiceMap.ServiceMap<R>) => {
     if (options?.onExit) {
       fiber.addObserver(options.onExit)
     }
-    return (interruptor) => fiber.interruptUnsafe(interruptor)
+    return (interruptor) => {
+      return fiber.interruptUnsafe(interruptor, disablePropagationSpan(fiber, "Effect.runCallbackWith (cancel)"))
+    }
   }
 }
 
