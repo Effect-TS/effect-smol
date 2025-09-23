@@ -230,13 +230,13 @@ const formatHelpDocImpl = (doc: HelpDoc, colors: ColorFunctions): string => {
     const flagRows: Array<Row> = doc.flags.map((flag) => {
       const names: Array<string> = []
 
-      // Add aliases first (like -f) - color them the same as full names
+      // Add main name with -- prefix first
+      names.push(colors.green(`--${flag.name}`))
+
+      // Add aliases after (like -f) to match expected ordering
       for (const alias of flag.aliases) {
         names.push(colors.green(alias))
       }
-
-      // Add main name with -- prefix
-      names.push(colors.green(`--${flag.name}`))
 
       const namesPart = names.join(", ")
       const typePart = flag.type !== "boolean" ? ` ${colors.dim(flag.type)}` : ""

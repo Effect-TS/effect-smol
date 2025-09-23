@@ -700,12 +700,55 @@ export const run = <Name extends string, Input, E, R>(
       return
     }
 
-    // If there are parsing errors and no help was requested, fail with the first error
+    // If there are parsing errors and no help was requested, format and display the error
     if (parsedArgs.errors && parsedArgs.errors.length > 0) {
-      return yield* Effect.fail(parsedArgs.errors[0])
+      const error = parsedArgs.errors[0]
+      const helpRenderer = yield* HelpFormatter.HelpRenderer
+      const commandPath = [command.name, ...ParsedCommandInput.getCommandPath(parsedArgs)]
+      const helpDoc = getHelpForCommandPath(command, commandPath)
+
+      // Format and display the error message
+      yield* Console.error(helpRenderer.formatCliError(error))
+
+      // For missing arguments/options, show usage and help hint
+      if (error._tag === "MissingArgument" || error._tag === "MissingOption") {
+        yield* Console.error("")
+        yield* Console.error(`Usage: ${helpDoc.usage}`)
+        yield* Console.error("")
+        yield* Console.error("Use --help for more information.")
+      } // For other errors like InvalidValue, just show the error with help hint
+      else if (error._tag === "InvalidValue") {
+        yield* Console.error("")
+        yield* Console.error("Use --help for more information.")
+      }
+
+      return
     }
 
-    const parsed = yield* command.parse(parsedArgs)
+    const parseResult = yield* Effect.result(command.parse(parsedArgs))
+    if (parseResult._tag === "Failure") {
+      const error = parseResult.failure
+      const helpRenderer = yield* HelpFormatter.HelpRenderer
+      const commandPath = [command.name, ...ParsedCommandInput.getCommandPath(parsedArgs)]
+      const helpDoc = getHelpForCommandPath(command, commandPath)
+
+      yield* Console.error(helpRenderer.formatCliError(error))
+
+      // For missing arguments/options, show usage and help hint
+      if (error._tag === "MissingArgument" || error._tag === "MissingOption") {
+        yield* Console.error("")
+        yield* Console.error(`Usage: ${helpDoc.usage}`)
+        yield* Console.error("")
+        yield* Console.error("Use --help for more information.")
+      } // For other errors like InvalidValue, just show the error with help hint
+      else if (error._tag === "InvalidValue") {
+        yield* Console.error("")
+        yield* Console.error("Use --help for more information.")
+      }
+
+      return
+    }
+    const parsed = parseResult.success
 
     // Create the execution program
     const program = command.handle(parsed, [command.name])
@@ -731,16 +774,6 @@ export const run = <Name extends string, Input, E, R>(
           const helpRenderer = yield* HelpFormatter.HelpRenderer
           const helpText = helpRenderer.formatHelpDoc(helpDoc)
           yield* Console.log(helpText)
-        }),
-      UnknownSubcommand: (error: CliError.UnknownSubcommand) =>
-        Effect.gen(function*() {
-          const helpRenderer = yield* HelpFormatter.HelpRenderer
-          yield* Console.error(helpRenderer.formatCliError(error))
-        }),
-      UnrecognizedOption: (error: CliError.UnrecognizedOption) =>
-        Effect.gen(function*() {
-          const helpRenderer = yield* HelpFormatter.HelpRenderer
-          yield* Console.error(helpRenderer.formatCliError(error))
         })
     }),
     // Preserve prior public behavior: surface original handler errors
