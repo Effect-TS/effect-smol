@@ -358,71 +358,6 @@ const make = Effect.gen(function*() {
     activeShardsLatch.openUnsafe()
   })
 
-  // --- Singletons ---
-
-  const singletons = new Map<ShardId, MutableHashMap.MutableHashMap<SingletonAddress, Effect.Effect<void>>>()
-  const singletonFibers = yield* FiberMap.make<SingletonAddress>()
-  const withSingletonLock = Effect.makeSemaphoreUnsafe(1).withPermits(1)
-
-  const registerSingleton: Sharding["Service"]["registerSingleton"] = Effect.fnUntraced(
-    function*(name, run, options) {
-      const shardGroup = options?.shardGroup ?? "default"
-      const address = new SingletonAddress({
-        shardId: getShardId(makeEntityId(name), shardGroup),
-        name
-      })
-
-      let map = singletons.get(address.shardId)
-      if (!map) {
-        map = MutableHashMap.empty()
-        singletons.set(address.shardId, map)
-      }
-      if (MutableHashMap.has(map, address)) {
-        return yield* Effect.die(`Singleton '${name}' is already registered`)
-      }
-
-      const services = yield* Effect.services<never>()
-      const wrappedRun = run.pipe(
-        Effect.provideService(CurrentLogAnnotations, {}),
-        Effect.andThen(Effect.never),
-        Effect.scoped,
-        Effect.provideServices(services),
-        Effect.orDie
-      ) as Effect.Effect<never>
-      MutableHashMap.set(map, address, wrappedRun)
-
-      yield* PubSub.publish(events, SingletonRegistered({ address }))
-
-      // start if we are on the right shard
-      if (MutableHashSet.has(acquiredShards, address.shardId)) {
-        yield* Effect.logDebug("Starting singleton", address)
-        yield* FiberMap.run(singletonFibers, address, wrappedRun)
-      }
-    },
-    withSingletonLock
-  )
-
-  const syncSingletons = withSingletonLock(Effect.gen(function*() {
-    for (const [shardId, map] of singletons) {
-      for (const [address, run] of map) {
-        const running = FiberMap.hasUnsafe(singletonFibers, address)
-        const shouldBeRunning = MutableHashSet.has(acquiredShards, shardId)
-        if (running && !shouldBeRunning) {
-          yield* Effect.logDebug("Stopping singleton", address)
-          internalInterruptors.add(Fiber.getCurrent()!.id)
-          yield* FiberMap.remove(singletonFibers, address)
-        } else if (!running && shouldBeRunning) {
-          yield* Effect.logDebug("Starting singleton", address)
-          yield* FiberMap.run(singletonFibers, address, run)
-        }
-      }
-    }
-    ClusterMetrics.singletons.updateUnsafe(
-      BigInt(yield* FiberMap.size(singletonFibers)),
-      ServiceMap.empty()
-    )
-  }))
-
   // --- Storage inbox ---
 
   const storageReadLatch = yield* Effect.makeLatch(true)
@@ -954,49 +889,6 @@ const make = Effect.gen(function*() {
     Effect.forkIn(shardingScope)
   )
 
-  // --- Runner health checks ---
-
-  if (selfRunner) {
-    const checkRunner = ([runner, healthy]: [Runner, boolean]) =>
-      Effect.flatMap(runnerHealth.isAlive(runner.address), (isAlive) => {
-        if (healthy === isAlive) return Effect.void
-        if (isAlive) {
-          return Effect.logDebug(`Runner is healthy`, runner).pipe(
-            Effect.andThen(runnerStorage.setRunnerHealth(runner.address, isAlive))
-          )
-        }
-        if (healthyRunnerCount <= 1) {
-          // never mark the last runner as unhealthy, to prevent a deadlock
-          return Effect.void
-        }
-        healthyRunnerCount--
-        return Effect.logDebug(`Runner is unhealthy`, runner).pipe(
-          Effect.andThen(runnerStorage.setRunnerHealth(runner.address, isAlive))
-        )
-      })
-
-    yield* registerSingleton(
-      "effect/cluster/Sharding/RunnerHealth",
-      Effect.gen(function*() {
-        while (true) {
-          // Skip health checks if we are the only runner
-          if (MutableHashMap.size(allRunners) > 1) {
-            yield* Effect.forEach(allRunners, checkRunner, { discard: true, concurrency: 10 })
-          }
-          yield* Effect.sleep(config.runnerHealthCheckInterval)
-        }
-      }).pipe(
-        Effect.catchCause((cause) => Effect.logDebug("Runner health check failed", cause)),
-        Effect.forever,
-        Effect.annotateLogs({
-          package: "@effect/cluster",
-          module: "Sharding",
-          fiber: "Runner health check"
-        })
-      )
-    )
-  }
-
   // --- Clients ---
 
   type ClientRequestEntry = {
@@ -1187,6 +1079,71 @@ const make = Effect.gen(function*() {
     }
   }
 
+  // --- Singletons ---
+
+  const singletons = new Map<ShardId, MutableHashMap.MutableHashMap<SingletonAddress, Effect.Effect<void>>>()
+  const singletonFibers = yield* FiberMap.make<SingletonAddress>()
+  const withSingletonLock = Effect.makeSemaphoreUnsafe(1).withPermits(1)
+
+  const registerSingleton: Sharding["Service"]["registerSingleton"] = Effect.fnUntraced(
+    function*(name, run, options) {
+      const shardGroup = options?.shardGroup ?? "default"
+      const address = new SingletonAddress({
+        shardId: getShardId(makeEntityId(name), shardGroup),
+        name
+      })
+
+      let map = singletons.get(address.shardId)
+      if (!map) {
+        map = MutableHashMap.empty()
+        singletons.set(address.shardId, map)
+      }
+      if (MutableHashMap.has(map, address)) {
+        return yield* Effect.die(`Singleton '${name}' is already registered`)
+      }
+
+      const services = yield* Effect.services<never>()
+      const wrappedRun = run.pipe(
+        Effect.provideService(CurrentLogAnnotations, {}),
+        Effect.andThen(Effect.never),
+        Effect.scoped,
+        Effect.provideServices(services),
+        Effect.orDie
+      ) as Effect.Effect<never>
+      MutableHashMap.set(map, address, wrappedRun)
+
+      yield* PubSub.publish(events, SingletonRegistered({ address }))
+
+      // start if we are on the right shard
+      if (MutableHashSet.has(acquiredShards, address.shardId)) {
+        yield* Effect.logDebug("Starting singleton", address)
+        yield* FiberMap.run(singletonFibers, address, wrappedRun)
+      }
+    },
+    withSingletonLock
+  )
+
+  const syncSingletons = withSingletonLock(Effect.gen(function*() {
+    for (const [shardId, map] of singletons) {
+      for (const [address, run] of map) {
+        const running = FiberMap.hasUnsafe(singletonFibers, address)
+        const shouldBeRunning = MutableHashSet.has(acquiredShards, shardId)
+        if (running && !shouldBeRunning) {
+          yield* Effect.logDebug("Stopping singleton", address)
+          internalInterruptors.add(Fiber.getCurrent()!.id)
+          yield* FiberMap.remove(singletonFibers, address)
+        } else if (!running && shouldBeRunning) {
+          yield* Effect.logDebug("Starting singleton", address)
+          yield* FiberMap.run(singletonFibers, address, run)
+        }
+      }
+    }
+    ClusterMetrics.singletons.updateUnsafe(
+      BigInt(yield* FiberMap.size(singletonFibers)),
+      ServiceMap.empty()
+    )
+  }))
+
   // --- Entities ---
 
   const services = yield* Effect.services<ShardingConfig>()
@@ -1230,6 +1187,49 @@ const make = Effect.gen(function*() {
         { concurrency: "unbounded", discard: true }
       )
   )
+
+  // --- Runner health checks ---
+
+  if (selfRunner) {
+    const checkRunner = ([runner, healthy]: [Runner, boolean]) =>
+      Effect.flatMap(runnerHealth.isAlive(runner.address), (isAlive) => {
+        if (healthy === isAlive) return Effect.void
+        if (isAlive) {
+          return Effect.logDebug(`Runner is healthy`, runner).pipe(
+            Effect.andThen(runnerStorage.setRunnerHealth(runner.address, isAlive))
+          )
+        }
+        if (healthyRunnerCount <= 1) {
+          // never mark the last runner as unhealthy, to prevent a deadlock
+          return Effect.void
+        }
+        healthyRunnerCount--
+        return Effect.logDebug(`Runner is unhealthy`, runner).pipe(
+          Effect.andThen(runnerStorage.setRunnerHealth(runner.address, isAlive))
+        )
+      })
+
+    yield* registerSingleton(
+      "effect/cluster/Sharding/RunnerHealth",
+      Effect.gen(function*() {
+        while (true) {
+          // Skip health checks if we are the only runner
+          if (MutableHashMap.size(allRunners) > 1) {
+            yield* Effect.forEach(allRunners, checkRunner, { discard: true, concurrency: 10 })
+          }
+          yield* Effect.sleep(config.runnerHealthCheckInterval)
+        }
+      }).pipe(
+        Effect.catchCause((cause) => Effect.logDebug("Runner health check failed", cause)),
+        Effect.forever,
+        Effect.annotateLogs({
+          package: "@effect/cluster",
+          module: "Sharding",
+          fiber: "Runner health check"
+        })
+      )
+    )
+  }
 
   // --- Finalization ---
 
