@@ -7,6 +7,7 @@ export interface SingleFlagMeta {
   readonly aliases: ReadonlyArray<string>
   readonly primitiveTag: string
   readonly typeName?: string
+  readonly description?: string
 }
 
 export interface CommandRow<

@@ -6,6 +6,7 @@
 import type { Command } from "../../../Command.ts"
 import { getSingles } from "../shared.ts"
 import { optionRequiresValue } from "../types.ts"
+import type { SingleFlagMeta } from "../types.ts"
 
 interface CompletionContext {
   readonly words: ReadonlyArray<string>
@@ -43,11 +44,96 @@ export const getCompletionContext = (): CompletionContext | null => {
 /**
  * Generate completions for a command at the current context.
  */
+interface CompletionItem {
+  readonly type: "option" | "command" | "value"
+  readonly value: string
+  readonly description?: string
+}
+
+const formatAlias = (alias: string): string => {
+  if (alias.startsWith("-")) {
+    return alias
+  }
+  return alias.length === 1 ? `-${alias}` : `--${alias}`
+}
+
+const getTypeLabel = (flag: SingleFlagMeta): string | undefined => {
+  if (flag.typeName) {
+    switch (flag.typeName) {
+      case "directory":
+        return "type: directory"
+      case "file":
+        return "type: file"
+      case "either":
+      case "path":
+        return "type: path"
+      default:
+        return `type: ${flag.typeName}`
+    }
+  }
+
+  switch (flag.primitiveTag) {
+    case "Boolean":
+      return "type: boolean"
+    case "Integer":
+      return "type: integer"
+    case "Float":
+      return "type: number"
+    case "Date":
+      return "type: date"
+    case "Path":
+      return "type: path"
+    default:
+      return undefined
+  }
+}
+
+const buildFlagDescription = (
+  flag: SingleFlagMeta,
+  options: { readonly isAlias?: boolean }
+): string => {
+  const parts: Array<string> = []
+
+  if (flag.description) {
+    parts.push(flag.description)
+  }
+
+  const typeLabel = getTypeLabel(flag)
+  if (typeLabel) {
+    parts.push(typeLabel)
+  }
+
+  if (options.isAlias === true) {
+    parts.push(`alias for --${flag.name}`)
+  } else if (flag.aliases.length > 0) {
+    const aliases = flag.aliases.map(formatAlias).filter((alias) => alias !== `--${flag.name}`)
+    if (aliases.length > 0) {
+      parts.push(`aliases: ${aliases.join(", ")}`)
+    }
+  }
+
+  if (parts.length === 0) {
+    return `--${flag.name}`
+  }
+
+  return parts.join(" — ")
+}
+
+const sanitizeDescription = (description: string): string => description.replace(/:/g, "\\:")
+
 export const generateDynamicCompletions = <Name extends string, I, E, R>(
   rootCmd: Command<Name, I, E, R>,
   context: CompletionContext
 ): Array<string> => {
-  const completions: Array<string> = []
+  const completionFormat = process.env.EFFECT_COMPLETION_FORMAT
+  const items = new Map<string, CompletionItem>()
+
+  const addItem = (item: CompletionItem) => {
+    const key = `${item.type}|${item.value}`
+    if (!items.has(key)) {
+      items.set(key, item)
+    }
+  }
 
   // Handle edge cases
   if (context.words.length === 0 || context.currentIndex < 1) {
@@ -97,14 +183,22 @@ export const generateDynamicCompletions = <Name extends string, I, E, R>(
     // Complete flags when current word starts with -
     const singles = getSingles(currentCmd.parsedConfig.flags)
     for (const s of singles) {
-      if (`--${s.name}`.startsWith(currentWord)) {
-        const desc = s.typeName || s.name
-        completions.push(`--${s.name}:${desc}`)
+      const longForm = `--${s.name}`
+      if (longForm.startsWith(currentWord)) {
+        addItem({
+          type: "option",
+          value: longForm,
+          description: buildFlagDescription(s, { isAlias: false })
+        })
       }
       for (const alias of s.aliases) {
-        const flag = alias.length === 1 ? `-${alias}` : `--${alias}`
-        if (flag.startsWith(currentWord)) {
-          completions.push(`${flag}:${s.name}`)
+        const token = formatAlias(alias)
+        if (token.startsWith(currentWord)) {
+          addItem({
+            type: "option",
+            value: token,
+            description: buildFlagDescription(s, { isAlias: true })
+          })
         }
       }
     }
@@ -130,7 +224,11 @@ export const generateDynamicCompletions = <Name extends string, I, E, R>(
     // Complete subcommands first
     for (const subCmd of currentCmd.subcommands) {
       if (subCmd.name.startsWith(currentWord)) {
-        completions.push(`${subCmd.name}:${subCmd.description || subCmd.name + " command"}`)
+        addItem({
+          type: "command",
+          value: subCmd.name,
+          description: subCmd.description ?? `${subCmd.name} command`
+        })
       }
     }
 
@@ -138,15 +236,30 @@ export const generateDynamicCompletions = <Name extends string, I, E, R>(
     if (currentCmd.subcommands.length === 0 || currentWord === "") {
       const singles = getSingles(currentCmd.parsedConfig.flags)
       for (const s of singles) {
-        if (`--${s.name}`.startsWith(currentWord)) {
-          const desc = s.typeName || s.name
-          completions.push(`--${s.name}:${desc}`)
+        const longForm = `--${s.name}`
+        if (longForm.startsWith(currentWord)) {
+          addItem({
+            type: "option",
+            value: longForm,
+            description: buildFlagDescription(s, { isAlias: false })
+          })
         }
       }
     }
   }
 
-  return completions
+  const flatItems = Array.from(items.values())
+
+  if (completionFormat === "zsh") {
+    return flatItems.map((item) => {
+      const payload = item.description !== undefined
+        ? `${item.value}:${sanitizeDescription(item.description)}`
+        : item.value
+      return `${item.type}\t${payload}`
+    })
+  }
+
+  return flatItems.map((item) => item.value)
 }
 
 /**

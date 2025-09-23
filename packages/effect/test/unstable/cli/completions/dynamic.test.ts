@@ -112,8 +112,8 @@ describe("Dynamic Completion Handler", () => {
 
         const completions = generateDynamicCompletions(cmd, context)
 
-        assert.isTrue(completions.some((c) => c.startsWith("build:")))
-        assert.isTrue(completions.some((c) => c.startsWith("deploy:")))
+        assert.isTrue(completions.includes("build"))
+        assert.isTrue(completions.includes("deploy"))
       }))
 
     it.effect("should complete partial subcommand names", () =>
@@ -129,8 +129,8 @@ describe("Dynamic Completion Handler", () => {
 
         const completions = generateDynamicCompletions(cmd, context)
 
-        assert.isTrue(completions.some((c) => c.startsWith("build:")))
-        assert.isFalse(completions.some((c) => c.startsWith("deploy:")))
+        assert.isTrue(completions.includes("build"))
+        assert.isFalse(completions.includes("deploy"))
       }))
 
     it.effect("should complete flags when current word starts with dash", () =>
@@ -146,9 +146,9 @@ describe("Dynamic Completion Handler", () => {
 
         const completions = generateDynamicCompletions(cmd, context)
 
-        assert.isTrue(completions.some((c) => c.includes("--watch")))
-        assert.isTrue(completions.some((c) => c.includes("--out-dir")))
-        assert.isTrue(completions.some((c) => c.includes("--target")))
+        assert.isTrue(completions.includes("--watch"))
+        assert.isTrue(completions.includes("--out-dir"))
+        assert.isTrue(completions.includes("--target"))
       }))
 
     it.effect("should complete short flag aliases", () =>
@@ -164,8 +164,8 @@ describe("Dynamic Completion Handler", () => {
 
         const completions = generateDynamicCompletions(cmd, context)
 
-        assert.isTrue(completions.some((c) => c.includes("-w:")))
-        assert.isTrue(completions.some((c) => c.includes("-o:")))
+        assert.isTrue(completions.includes("-w"))
+        assert.isTrue(completions.includes("-o"))
       }))
 
     it.effect("should complete nested subcommands", () =>
@@ -181,8 +181,8 @@ describe("Dynamic Completion Handler", () => {
 
         const completions = generateDynamicCompletions(cmd, context)
 
-        assert.isTrue(completions.some((c) => c.startsWith("staging:")))
-        assert.isTrue(completions.some((c) => c.startsWith("production:")))
+        assert.isTrue(completions.includes("staging"))
+        assert.isTrue(completions.includes("production"))
       }))
 
     it.effect("should navigate through multiple subcommand levels", () =>
@@ -198,9 +198,9 @@ describe("Dynamic Completion Handler", () => {
 
         const completions = generateDynamicCompletions(cmd, context)
 
-        assert.isTrue(completions.some((c) => c.includes("--force")))
+        assert.isTrue(completions.includes("--force"))
         // Should not include parent command flags
-        assert.isFalse(completions.some((c) => c.includes("--dry-run")))
+        assert.isFalse(completions.includes("--dry-run"))
       }))
 
     it.effect("should skip option values when navigating", () =>
@@ -217,8 +217,8 @@ describe("Dynamic Completion Handler", () => {
         const completions = generateDynamicCompletions(cmd, context)
 
         // Should complete build flags, not root subcommands
-        assert.isTrue(completions.some((c) => c.includes("--watch")))
-        assert.isFalse(completions.some((c) => c.startsWith("deploy:")))
+        assert.isTrue(completions.includes("--watch"))
+        assert.isFalse(completions.includes("deploy"))
       }))
 
     it.effect("should return empty completions for option values", () =>
@@ -252,10 +252,46 @@ describe("Dynamic Completion Handler", () => {
         const completions = generateDynamicCompletions(cmd, context)
 
         // Should complete production subcommand flags
-        assert.isTrue(completions.some((c) => c.includes("--confirm")))
+        assert.isTrue(completions.includes("--confirm"))
         // Should not include parent flags
-        assert.isFalse(completions.some((c) => c.includes("--dry-run")))
-        assert.isFalse(completions.some((c) => c.includes("--verbose")))
+        assert.isFalse(completions.includes("--dry-run"))
+        assert.isFalse(completions.includes("--verbose"))
+      }))
+
+    it.effect("should emit grouped metadata in zsh format", () =>
+      Effect.gen(function*() {
+        const cmd = createTestCommand()
+        const originalEnv = { ...process.env }
+
+        try {
+          process.env.EFFECT_COMPLETION_FORMAT = "zsh"
+
+          const rootContext = {
+            words: ["myapp", ""],
+            currentWord: "",
+            currentIndex: 1,
+            line: "myapp ",
+            point: 6
+          }
+
+          const buildContext = {
+            words: ["myapp", "build", "--"],
+            currentWord: "--",
+            currentIndex: 2,
+            line: "myapp build --",
+            point: 14
+          }
+
+          const zshEntries = [
+            ...generateDynamicCompletions(cmd, rootContext),
+            ...generateDynamicCompletions(cmd, buildContext)
+          ]
+
+          assert.isTrue(zshEntries.some((entry) => entry.startsWith("command\tbuild:")))
+          assert.isTrue(zshEntries.some((entry) => entry.startsWith("option\t--watch:")))
+        } finally {
+          process.env = originalEnv
+        }
       }))
 
     it.effect("should handle empty input gracefully", () =>
