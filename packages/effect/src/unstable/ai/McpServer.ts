@@ -36,10 +36,10 @@ import {
   CompleteResult,
   Elicit,
   ElicitationDeclined,
-  getMcpServerParam,
   GetPromptResult,
   InternalError,
   InvalidParams,
+  isParamSchema,
   ListPromptsResult,
   ListResourcesResult,
   ListResourceTemplatesResult,
@@ -1032,8 +1032,8 @@ const compileUriTemplate = (segments: TemplateStringsArray, ...schemas: Readonly
       const key = String(i)
       arr.push(schema)
       routerPath += `:${key}${segment.replace(":", "::")}`
-      const paramName = getMcpServerParam(schema.ast) ?? `param${key}`
-      params[paramName as string] = schema
+      const paramName = isParamSchema(schema) ? schema.name : `param${key}`
+      params[paramName] = schema
       uriPath += `{${paramName}}${segment}`
     }
     pathSchema = Schema.Tuple(arr)

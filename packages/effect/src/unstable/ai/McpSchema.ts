@@ -5,7 +5,6 @@ import * as Option from "../../data/Option.ts"
 import * as Predicate from "../../data/Predicate.ts"
 import type * as Effect from "../../Effect.ts"
 import { constFalse, constTrue } from "../../Function.ts"
-import * as SchemaAnnotations from "../../schema/Annotations.ts"
 import * as Check from "../../schema/Check.ts"
 import * as Getter from "../../schema/Getter.ts"
 import * as Schema from "../../schema/Schema.ts"
@@ -2029,11 +2028,15 @@ export type FromClientEncoded = ClientRequestEncoded | ClientNotificationEncoded
  */
 export type FromServerEncoded = ServerResultEncoded | ServerNotificationEncoded
 
+const ParamSchemaTypeId = "~effect/ai/McpSchema/ParamSchema"
+
 /**
  * @since 4.0.0
  * @category Parameters
  */
-export const ParamAnnotation: unique symbol = Symbol.for("effect/ai/McpSchema/ParamNameId")
+export function isParamSchema(schema: Schema.Top): schema is Param<string, Schema.Top> {
+  return Predicate.hasProperty(schema, ParamSchemaTypeId)
+}
 
 /**
  * @since 4.0.0
@@ -2059,16 +2062,23 @@ export interface Param<Name extends string, S extends Schema.Top> extends
   >
 {
   readonly "~rebuild.out": this
-  readonly "~effect/ai/McpSchema/Param": {
-    readonly name: Name
-    readonly schema: S
-  }
+  readonly [ParamSchemaTypeId]: typeof ParamSchemaTypeId
+  readonly name: Name
+  readonly schema: S
 }
 
-const MCP_SERVER_PARAM_ANNOTATION_KEY = "mcpServerParam"
+class Param$<Name extends string, S extends Schema.Top> extends Schema.Make<Param<Name, S>> implements Param<Name, S> {
+  declare readonly "~rebuild.out": this
+  readonly [ParamSchemaTypeId] = ParamSchemaTypeId
+  readonly name: Name
+  readonly schema: S
 
-/** @internal */
-export const getMcpServerParam = SchemaAnnotations.getAt(MCP_SERVER_PARAM_ANNOTATION_KEY, Predicate.isString)
+  constructor(ast: S["ast"], name: Name, schema: S) {
+    super(ast, (ast) => new Param$(ast, name, schema))
+    this.name = name
+    this.schema = schema
+  }
+}
 
 /**
  * Helper to create a param for a resource URI template.
@@ -2076,7 +2086,9 @@ export const getMcpServerParam = SchemaAnnotations.getAt(MCP_SERVER_PARAM_ANNOTA
  * @since 4.0.0
  * @category Parameters
  */
-export const param = <const Name extends string, S extends Schema.Top>(
+export function param<const Name extends string, S extends Schema.Top>(
   name: Name,
   schema: S
-): Param<Name, S["~rebuild.out"]> => schema.annotate({ [MCP_SERVER_PARAM_ANNOTATION_KEY]: name }) as any
+): Param<Name, S["~rebuild.out"]> {
+  return new Param$(schema.ast, name, schema)
+}

@@ -845,11 +845,11 @@ interface optionalKeyLambda extends Lambda {
   readonly "~lambda.out": this["~lambda.in"] extends Top ? optionalKey<this["~lambda.in"]> : never
 }
 
-class makeWithSchema$<S extends Top, Result extends Top> extends Make<Result> {
+class MakeWithSchema$<S extends Top, Result extends Top> extends Make<Result> {
   readonly schema: S
 
   constructor(ast: AST.AST, schema: S) {
-    super(ast, (ast) => new makeWithSchema$(ast, schema))
+    super(ast, (ast) => new MakeWithSchema$(ast, schema))
     this.schema = schema
   }
 }
@@ -876,7 +876,7 @@ class makeWithSchema$<S extends Top, Result extends Top> extends Make<Result> {
  * @since 4.0.0
  */
 export const optionalKey = lambda<optionalKeyLambda>(function optionalKey<S extends Top>(self: S): optionalKey<S> {
-  return new makeWithSchema$<S, optionalKey<S>>(AST.optionalKey(self.ast), self)
+  return new MakeWithSchema$<S, optionalKey<S>>(AST.optionalKey(self.ast), self)
 })
 
 /**
@@ -954,7 +954,7 @@ interface mutableKeyLambda extends Lambda {
  * @since 4.0.0
  */
 export const mutableKey = lambda<mutableKeyLambda>(function mutableKey<S extends Top>(self: S): mutableKey<S> {
-  return new makeWithSchema$<S, mutableKey<S>>(AST.mutableKey(self.ast), self)
+  return new MakeWithSchema$<S, mutableKey<S>>(AST.mutableKey(self.ast), self)
 })
 
 /**
@@ -991,7 +991,7 @@ interface typeCodecLambda extends Lambda {
  * @since 4.0.0
  */
 export const typeCodec = lambda<typeCodecLambda>(function typeCodec<S extends Top>(self: S): typeCodec<S> {
-  return new makeWithSchema$<S, typeCodec<S>>(AST.typeAST(self.ast), self)
+  return new MakeWithSchema$<S, typeCodec<S>>(AST.typeAST(self.ast), self)
 })
 
 /**
@@ -1028,7 +1028,7 @@ interface encodedCodecLambda extends Lambda {
  * @since 4.0.0
  */
 export const encodedCodec = lambda<encodedCodecLambda>(function encodedCodec<S extends Top>(self: S): encodedCodec<S> {
-  return new makeWithSchema$<S, encodedCodec<S>>(AST.encodedAST(self.ast), self)
+  return new MakeWithSchema$<S, encodedCodec<S>>(AST.encodedAST(self.ast), self)
 })
 
 /**
@@ -1058,7 +1058,7 @@ export interface flip<S extends Top> extends
 
 const FlipTypeId = "~effect/schema/Schema/flip$"
 
-class flip$<S extends Top> extends makeWithSchema$<S, flip<S>> implements flip<S> {
+class flip$<S extends Top> extends MakeWithSchema$<S, flip<S>> implements flip<S> {
   readonly [FlipTypeId] = FlipTypeId
 }
 
@@ -2257,7 +2257,7 @@ interface ArrayLambda extends Lambda {
  * @since 4.0.0
  */
 export const Array = lambda<ArrayLambda>(function Array<S extends Top>(item: S): Array$<S> {
-  return new makeWithSchema$<S, Array$<S>>(
+  return new MakeWithSchema$<S, Array$<S>>(
     new AST.TupleType(false, [], [item.ast]),
     item
   )
@@ -2294,7 +2294,7 @@ interface NonEmptyArrayLambda extends Lambda {
  */
 export const NonEmptyArray = lambda<NonEmptyArrayLambda>(
   function NonEmptyArray<S extends Top>(item: S): NonEmptyArray<S> {
-    return new makeWithSchema$<S, NonEmptyArray<S>>(
+    return new MakeWithSchema$<S, NonEmptyArray<S>>(
       new AST.TupleType(false, [item.ast], [item.ast]),
       item
     )
@@ -2355,7 +2355,7 @@ interface mutableLambda extends Lambda {
  * @since 4.0.0
  */
 export const mutable = lambda<mutableLambda>(function mutable<S extends Top>(self: S): mutable<S> {
-  return new makeWithSchema$<S, mutable<S>>(AST.mutable(self.ast), self)
+  return new MakeWithSchema$<S, mutable<S>>(AST.mutable(self.ast), self)
 })
 
 /**
@@ -2394,7 +2394,7 @@ interface readonlyLambda extends Lambda {
  * @since 4.0.0
  */
 export const readonly = lambda<readonlyLambda>(function readonly<S extends Top>(self: S): readonly$<S> {
-  return new makeWithSchema$<S, readonly$<S>>(AST.mutable(self.ast), self)
+  return new MakeWithSchema$<S, readonly$<S>>(AST.mutable(self.ast), self)
 })
 
 /**
@@ -2731,7 +2731,7 @@ export function decodingMiddleware<S extends Top, RD>(
   ) => Effect.Effect<O.Option<S["Type"]>, Issue.Issue, RD>
 ) {
   return (self: S): decodingMiddleware<S, RD> => {
-    return new makeWithSchema$<S, decodingMiddleware<S, RD>>(
+    return new MakeWithSchema$<S, decodingMiddleware<S, RD>>(
       AST.decodingMiddleware(self.ast, new Transformation.Middleware(decode, identity)),
       self
     )
@@ -2774,7 +2774,7 @@ export function encodingMiddleware<S extends Top, RE>(
   ) => Effect.Effect<O.Option<S["Type"]>, Issue.Issue, RE>
 ) {
   return (self: S): encodingMiddleware<S, RE> => {
-    return new makeWithSchema$<S, encodingMiddleware<S, RE>>(
+    return new MakeWithSchema$<S, encodingMiddleware<S, RE>>(
       AST.encodingMiddleware(self.ast, new Transformation.Middleware(identity, encode)),
       self
     )
@@ -2991,7 +2991,7 @@ export function withConstructorDefault<S extends Top & { readonly "~type.constru
   ) => O.Option<S["~type.make.in"]> | Effect.Effect<O.Option<S["~type.make.in"]>>
 ) {
   return (self: S): withConstructorDefault<S> => {
-    return new makeWithSchema$<S, withConstructorDefault<S>>(AST.withConstructorDefault(self.ast, defaultValue), self)
+    return new MakeWithSchema$<S, withConstructorDefault<S>>(AST.withConstructorDefault(self.ast, defaultValue), self)
   }
 }
 

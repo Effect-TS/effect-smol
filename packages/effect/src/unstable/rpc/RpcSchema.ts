@@ -45,8 +45,8 @@ export interface Stream<A extends Schema.Top, E extends Schema.Top> extends
     Annotations.Declaration<Stream<A, E>, readonly []>
   >
 {
-  readonly [StreamSchemaTypeId]: typeof StreamSchemaTypeId
   readonly "~rebuild.out": this
+  readonly [StreamSchemaTypeId]: typeof StreamSchemaTypeId
   readonly success: A
   readonly error: E
 }
