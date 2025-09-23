@@ -125,7 +125,7 @@ export const generateDynamicCompletions = <Name extends string, I, E, R>(
   rootCmd: Command<Name, I, E, R>,
   context: CompletionContext
 ): Array<string> => {
-  const completionFormat = process.env.EFFECT_COMPLETION_FORMAT
+  const completionFormat = process.env.EFFECT_COMPLETION_FORMAT || (process.env.FISH_COMPLETION ? "fish" : undefined)
   const items = new Map<string, CompletionItem>()
 
   const addItem = (item: CompletionItem) => {
@@ -256,6 +256,15 @@ export const generateDynamicCompletions = <Name extends string, I, E, R>(
         ? `${item.value}:${sanitizeDescription(item.description)}`
         : item.value
       return `${item.type}\t${payload}`
+    })
+  }
+
+  if (completionFormat === "fish") {
+    return flatItems.map((item) => {
+      // Fish uses tab-separated value and description format
+      return item.description !== undefined
+        ? `${item.value}\t${item.description}`
+        : item.value
     })
   }
 

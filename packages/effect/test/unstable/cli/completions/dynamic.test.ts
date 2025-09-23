@@ -1,6 +1,7 @@
 import { assert, describe, it } from "@effect/vitest"
 import { Effect } from "effect"
 import { Command, Flag } from "../../../../src/unstable/cli/index.ts"
+import { generateDynamicFishCompletion } from "../../../../src/unstable/cli/internal/completions/dynamic/fish.ts"
 import {
   generateDynamicCompletions,
   getCompletionContext,
@@ -294,6 +295,47 @@ describe("Dynamic Completion Handler", () => {
         }
       }))
 
+    it.effect("should emit descriptions in fish format", () =>
+      Effect.gen(function*() {
+        const cmd = createTestCommand()
+        const originalEnv = { ...process.env }
+
+        try {
+          process.env.FISH_COMPLETION = "1"
+
+          const rootContext = {
+            words: ["myapp", ""],
+            currentWord: "",
+            currentIndex: 1,
+            line: "myapp ",
+            point: 6
+          }
+
+          const buildContext = {
+            words: ["myapp", "build", "--"],
+            currentWord: "--",
+            currentIndex: 2,
+            line: "myapp build --",
+            point: 14
+          }
+
+          const fishEntries = [
+            ...generateDynamicCompletions(cmd, rootContext),
+            ...generateDynamicCompletions(cmd, buildContext)
+          ]
+
+          // Fish format should include descriptions with tab separation (value\tdescription)
+          assert.isTrue(fishEntries.some((entry) => entry.includes("build") && entry.includes("\t")))
+          assert.isTrue(fishEntries.some((entry) => entry.includes("--watch") && entry.includes("\t")))
+
+          // Should not include type prefixes like zsh
+          assert.isFalse(fishEntries.some((entry) => entry.startsWith("command\t")))
+          assert.isFalse(fishEntries.some((entry) => entry.startsWith("option\t")))
+        } finally {
+          process.env = originalEnv
+        }
+      }))
+
     it.effect("should handle empty input gracefully", () =>
       Effect.gen(function*() {
         const cmd = createTestCommand()
@@ -381,6 +423,51 @@ describe("Dynamic Completion Handler", () => {
         } finally {
           process.env = originalEnv
         }
+      }))
+  })
+
+  describe("generateDynamicFishCompletion", () => {
+    it.effect("should generate fish completion script with function", () =>
+      Effect.gen(function*() {
+        const script = generateDynamicFishCompletion("myapp", "/usr/local/bin/myapp")
+
+        // Should include function definition
+        assert.isTrue(script.includes("function __myapp_complete"))
+
+        // Should include completion registration
+        assert.isTrue(script.includes("complete -c myapp -f -a '(__myapp_complete)'"))
+
+        // Should include FISH_COMPLETION environment variable
+        assert.isTrue(script.includes("FISH_COMPLETION=1"))
+
+        // Should include installation instructions
+        assert.isTrue(script.includes("Installation:"))
+        assert.isTrue(script.includes("~/.config/fish/completions/myapp.fish"))
+
+        // Should use the provided executable path
+        assert.isTrue(script.includes("/usr/local/bin/myapp --get-completions"))
+      }))
+
+    it.effect("should handle executable name without path", () =>
+      Effect.gen(function*() {
+        const script = generateDynamicFishCompletion("myapp")
+
+        // Should use executable name as path when no explicit path provided
+        assert.isTrue(script.includes("myapp --get-completions"))
+        assert.isFalse(script.includes("/"))
+      }))
+
+    it.effect("should include fish-specific command line parsing", () =>
+      Effect.gen(function*() {
+        const script = generateDynamicFishCompletion("myapp")
+
+        // Should use Fish's commandline builtin
+        assert.isTrue(script.includes("commandline -pco"))
+        assert.isTrue(script.includes("commandline -ct"))
+        assert.isTrue(script.includes("commandline -p"))
+
+        // Should handle Fish's 1-based indexing for compatibility
+        assert.isTrue(script.includes("math (count $cmd) - 1"))
       }))
   })
 })

@@ -24,6 +24,18 @@ _${executableName}_dynamic_completions()
   local reply
   local si=$IFS
 
+  if [[ -z \${_EFFECT_CLI_COMPLETION_STYLES_INITIALIZED+x} ]]; then
+    zstyle ':completion:*:*:${executableName}:*' group-name ''
+    zstyle ':completion:*:*:${executableName}:*' verbose yes
+    zstyle ':completion:*:*:${executableName}:*' menu select=long-list
+    zstyle ':completion:*:*:${executableName}:*' tag-order 'commands' 'options' 'values'
+    zstyle ':completion:*:*:${executableName}:*:commands' format '%BCommands%b'
+    zstyle ':completion:*:*:${executableName}:*:options' format '%BOptions%b'
+    zstyle ':completion:*:*:${executableName}:*:values' format '%BValues%b'
+    zstyle ':completion:*:*:${executableName}:*' list-colors \${(s.:.)LS_COLORS}
+    typeset -g _EFFECT_CLI_COMPLETION_STYLES_INITIALIZED=1
+  fi
+
   # Call the CLI with special environment variables to get completions
   # COMP_WORDS: All words in the current command line
   # COMP_CWORD: Index of the current word being completed
