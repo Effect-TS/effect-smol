@@ -181,6 +181,7 @@ interface EntityManagerState {
   readonly entity: Entity<any, any>
   readonly scope: Scope.Closeable
   readonly manager: EntityManager.EntityManager
+  closed: boolean
 }
 
 const make = Effect.gen(function*() {
@@ -447,6 +448,8 @@ const make = Effect.gen(function*() {
               })))
             }
             return Effect.void
+          } else if (state.closed) {
+            return Effect.void
           }
 
           const isProcessing = state.manager.isProcessingFor(message)
@@ -683,7 +686,7 @@ const make = Effect.gen(function*() {
       const state = entityManagers.get(address.entityType)
       if (!state) {
         return Effect.fail(new EntityNotManagedByRunner({ address }))
-      } else if (isShutdown.current && message._tag === "IncomingRequest") {
+      } else if (state.closed || (isShutdown.current && message._tag === "IncomingRequest")) {
         // if we are shutting down, we don't accept new requests
         return Effect.fail(new EntityNotAssignedToRunner({ address }))
       }
@@ -712,9 +715,11 @@ const make = Effect.gen(function*() {
         const address = message.envelope.address
         if (!isEntityOnLocalShards(address)) {
           return Effect.fail(new EntityNotAssignedToRunner({ address }))
-        } else if (!entityManagers.has(address.entityType)) {
+        }
+        const state = entityManagers.get(address.entityType)
+        if (!state) {
           return Effect.fail(new EntityNotManagedByRunner({ address }))
-        } else if (isShutdown.current && message._tag === "IncomingRequest") {
+        } else if (state.closed || (isShutdown.current && message._tag === "IncomingRequest")) {
           return Effect.fail(new EntityNotAssignedToRunner({ address }))
         }
 
@@ -1183,6 +1188,12 @@ const make = Effect.gen(function*() {
     function*(entity, build, options) {
       if (config.runnerAddress === undefined || entityManagers.has(entity.type)) return
       const scope = yield* Scope.make()
+      yield* Scope.addFinalizer(
+        scope,
+        Effect.sync(() => {
+          state.closed = true
+        })
+      )
       const manager = yield* EntityManager.make(entity, build, {
         ...options,
         storage,
@@ -1195,11 +1206,13 @@ const make = Effect.gen(function*() {
           ServiceMap.add(Snowflake.Generator, snowflakeGen)
         ))
       ) as Effect.Effect<EntityManager.EntityManager>
-      entityManagers.set(entity.type, {
+      const state: EntityManagerState = {
         entity,
         scope,
+        closed: false,
         manager
-      })
+      }
+      entityManagers.set(entity.type, state)
 
       yield* PubSub.publish(events, EntityRegistered({ entity }))
     }
