@@ -34,5 +34,14 @@ export { generateBashCompletions } from "./bash.ts"
 export { generateFishCompletions } from "./fish.ts"
 export { generateZshCompletions } from "./zsh/index.ts"
 
+// Export dynamic completion functions
+export {
+  generateDynamicBashCompletion,
+  generateDynamicCompletion,
+  generateDynamicZshCompletion,
+  handleCompletionRequest,
+  isCompletionRequest
+} from "./dynamic/index.ts"
+
 // Export types for external usage
 export type { CommandRow, Shell, SingleFlagMeta } from "./types.ts"

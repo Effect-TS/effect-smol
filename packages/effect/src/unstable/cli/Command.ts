@@ -11,6 +11,11 @@ import * as CliError from "./CliError.ts"
 import type { ArgDoc, FlagDoc, HelpDoc, SubcommandDoc } from "./HelpDoc.ts"
 import * as HelpFormatter from "./HelpFormatter.ts"
 import { generateBashCompletions, generateFishCompletions, generateZshCompletions } from "./internal/completions.ts"
+import {
+  generateDynamicCompletion,
+  handleCompletionRequest,
+  isCompletionRequest
+} from "./internal/completions/dynamic/index.ts"
 import type { CommandConfig, InferConfig, ParsedConfig } from "./internal/config.ts"
 import { parseConfig, reconstructConfigTree } from "./internal/config.ts"
 import { extractSingleParams, getParamMetadata, type Param } from "./internal/param.ts"
@@ -657,9 +662,15 @@ export const run = <Name extends string, Input, E, R>(
 ) => Effect.Effect<void, E | CliError.CliError, R | Environment> =>
 (input) =>
   Effect.gen(function*() {
+    // Check for dynamic completion request early (before normal parsing)
+    if (isCompletionRequest(input)) {
+      yield* Effect.sync(() => handleCompletionRequest(command))
+      return
+    }
+
     // Parse command arguments (built-ins are extracted automatically)
     const { tokens, trailingOperands } = lex(input)
-    const { completions, help, logLevel, remainder, version } = yield* extractBuiltInOptions(tokens)
+    const { completions, dynamicCompletions, help, logLevel, remainder, version } = yield* extractBuiltInOptions(tokens)
     const parsedArgs = yield* parseArgs({ tokens: remainder, trailingOperands }, command)
     const helpRenderer = yield* HelpFormatter.HelpRenderer
 
@@ -676,6 +687,11 @@ export const run = <Name extends string, Input, E, R>(
         : shell === "fish"
         ? generateFishCompletions(command, _config.name)
         : generateZshCompletions(command, _config.name)
+      yield* Console.log(script)
+      return
+    } else if (Option.isSome(dynamicCompletions)) {
+      const shell = dynamicCompletions.value
+      const script = generateDynamicCompletion(command, _config.name, shell)
       yield* Console.log(script)
       return
     } else if (version && command.subcommands.length === 0) {
