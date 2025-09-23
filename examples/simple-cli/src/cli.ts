@@ -3,7 +3,7 @@
 import { Effect, Layer } from "../../../packages/effect/src/index.ts"
 import * as Console from "../../../packages/effect/src/logging/Console.ts"
 import { Argument, Command, Flag } from "../../../packages/effect/src/unstable/cli/index.ts"
-import { NodeFileSystem, NodePath } from "../../../packages/platform-node/src/index.ts"
+import { NodeServices } from "../../../packages/platform-node/src/index.ts"
 
 // File operations command
 const copy = Command.make("copy", {
@@ -180,21 +180,11 @@ const cli = Command.make("myapp", {
   Command.withSubcommands(copy, build, deploy, db)
 )
 
-// Run the CLI
-const program = Command.run(cli, {
-  name: "myapp",
+// Run the CLI - automatically gets args and provides necessary layers
+const main = Command.run(cli, {
   version: "1.0.0"
-})
-
-const main = program(process.argv.slice(2)).pipe(
-  Effect.provide(Layer.mergeAll(NodeFileSystem.layer, NodePath.layer))
+}).pipe(
+  Effect.provide(Layer.mergeAll(NodeServices.layer))
 )
 
-Effect.runPromiseExit(main as any).then(
-  (exit) => {
-    if (exit._tag === "Failure") {
-      console.error("CLI failed:", exit.cause)
-      process.exit(1)
-    }
-  }
-).catch(console.error)
+Effect.runPromise(main)

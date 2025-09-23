@@ -19,7 +19,7 @@ const TestLayer = Layer.mergeAll(
  */
 const cli = comprehensiveCli
 
-const runCommand = Command.run(cli, { name: "mycli", version: "1.0.0" })
+const runCommand = Command.runWithArgs(cli, { version: "1.0.0" })
 
 const runCommandAndGetOutput = (command: ReadonlyArray<string>) =>
   Effect.gen(function*() {

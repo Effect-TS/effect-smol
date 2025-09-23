@@ -81,7 +81,7 @@ describe("LogLevel", () => {
           yield* Effect.logFatal("fatal")
         }))
 
-      const runCommand = Command.run(testCommand, { name: "test", version: "1.0.0" })
+      const runCommand = Command.runWithArgs(testCommand, { version: "1.0.0" })
       const args = logLevel ? ["--log-level", logLevel] : []
 
       yield* runCommand(args).pipe(Effect.provide(TestLayer))
@@ -142,7 +142,7 @@ describe("LogLevel", () => {
         }))
 
       const combined = parentCommand.pipe(Command.withSubcommands(childCommand))
-      const runCommand = Command.run(combined, { name: "test", version: "1.0.0" })
+      const runCommand = Command.runWithArgs(combined, { version: "1.0.0" })
 
       yield* runCommand(["--log-level", "info", "child"]).pipe(Effect.provide(TestLayer))
 
@@ -162,7 +162,7 @@ describe("LogLevel", () => {
 
       const testCommand = Command.make("test", {}, () => Effect.logInfo("Should not see this"))
 
-      const runCommand = Command.run(testCommand, { name: "test", version: "1.0.0" })
+      const runCommand = Command.runWithArgs(testCommand, { version: "1.0.0" })
 
       const result = yield* Effect.flip(
         runCommand(["--log-level", "invalid"]).pipe(Effect.provide(TestLayer))
