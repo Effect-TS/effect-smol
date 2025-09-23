@@ -427,6 +427,11 @@ const make = Effect.gen(function*() {
             }
             sentRequestIds.add(message.envelope.requestId)
             currentSentRequestIds!.add(message.envelope.requestId)
+
+            // if we are shutting down, we don't accept new requests
+            if (isShutdown.current) {
+              return Effect.void
+            }
           }
           const address = message.envelope.address
           if (!MutableHashSet.has(acquiredShards, address.shardId)) {
@@ -678,6 +683,9 @@ const make = Effect.gen(function*() {
       const state = entityManagers.get(address.entityType)
       if (!state) {
         return Effect.fail(new EntityNotManagedByRunner({ address }))
+      } else if (isShutdown.current && message._tag === "IncomingRequest") {
+        // if we are shutting down, we don't accept new requests
+        return Effect.fail(new EntityNotAssignedToRunner({ address }))
       }
 
       return message._tag === "IncomingRequest" || message._tag === "IncomingEnvelope" ?
@@ -706,6 +714,8 @@ const make = Effect.gen(function*() {
           return Effect.fail(new EntityNotAssignedToRunner({ address }))
         } else if (!entityManagers.has(address.entityType)) {
           return Effect.fail(new EntityNotManagedByRunner({ address }))
+        } else if (isShutdown.current && message._tag === "IncomingRequest") {
+          return Effect.fail(new EntityNotAssignedToRunner({ address }))
         }
 
         const notify = storageEnabled
