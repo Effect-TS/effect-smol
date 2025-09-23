@@ -6,6 +6,7 @@
 import type { Command } from "../../../Command.ts"
 import type { Shell } from "../types.ts"
 import { generateDynamicBashCompletion } from "./bash.ts"
+import { generateDynamicFishCompletion } from "./fish.ts"
 import { generateDynamicZshCompletion } from "./zsh.ts"
 
 /**
@@ -24,13 +25,13 @@ export const generateDynamicCompletion = <Name extends string, I, E, R>(
     case "zsh":
       return generateDynamicZshCompletion(executableName, executablePath)
     case "fish":
-      // TODO: Implement Fish dynamic completion
-      throw new Error("Fish dynamic completion not yet implemented")
+      return generateDynamicFishCompletion(executableName, executablePath)
   }
 }
 
 // Export individual components for advanced usage
 export { generateDynamicBashCompletion } from "./bash.ts"
+export { generateDynamicFishCompletion } from "./fish.ts"
 export { generateDynamicCompletions, getCompletionContext, handleCompletionRequest } from "./handler.ts"
 export { generateDynamicZshCompletion } from "./zsh.ts"
 
