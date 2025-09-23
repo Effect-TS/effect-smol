@@ -1913,6 +1913,29 @@ const mapEffectConcurrent = <
   )
 
 /**
+ * Returns a new channel which is the same as this one but applies the given
+ * function to the input channel’s input elements.
+ *
+ * @since 2.0.0
+ * @category sequencing
+ */
+export const mapInput: {
+  <InElem, InElem2>(
+    f: (i: InElem2) => InElem
+  ): <OutElem, OutErr, OutDone, InErr, InDone, Env>(
+    self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>
+  ) => Channel<OutElem, OutErr, OutDone, InElem2, InErr, InDone, Env>
+  <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, InElem2>(
+    self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
+    f: (i: InElem2) => InElem
+  ): Channel<OutElem, OutErr, OutDone, InElem2, InErr, InDone, Env>
+} = dual(2, <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, InElem2>(
+  self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
+  f: (i: InElem2) => InElem
+): Channel<OutElem, OutErr, OutDone, InElem2, InErr, InDone, Env> =>
+  fromTransform((upstream, scope) => toTransform(self)(Effect.map(upstream, f), scope)))
+
+/**
  * Applies a side effect function to each output element of the channel,
  * returning a new channel that emits the same elements.
  *

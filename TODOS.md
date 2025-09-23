@@ -175,6 +175,6 @@ The exports under each section are organized as they are in Effect 3.0. The cate
 |      `foldChannel`      |   -    |              |                     |
 |     `interruptWhen`     |  Done  |              |                     |
 | `interruptWhenDeferred` |   X    |              | Use `interruptWhen` |
-|       `mapInput`        |   -    |              |                     |
+|       `mapInput`        |  Done  | `mapInput`   |                     |
 |    `mapInputEffect`     |   -    |              |                     |
 |     `mapInputError`     |   -    |              |                     |
