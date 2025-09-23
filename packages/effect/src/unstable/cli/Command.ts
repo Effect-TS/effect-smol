@@ -707,20 +707,13 @@ export const run = <Name extends string, Input, E, R>(
       const commandPath = [command.name, ...ParsedCommandInput.getCommandPath(parsedArgs)]
       const helpDoc = getHelpForCommandPath(command, commandPath)
 
-      // Format and display the error message
+      // Show the error message
       yield* Console.error(helpRenderer.formatCliError(error))
+      yield* Console.error("")
 
-      // For missing arguments/options, show usage and help hint
-      if (error._tag === "MissingArgument" || error._tag === "MissingOption") {
-        yield* Console.error("")
-        yield* Console.error(`Usage: ${helpDoc.usage}`)
-        yield* Console.error("")
-        yield* Console.error("Use --help for more information.")
-      } // For other errors like InvalidValue, just show the error with help hint
-      else if (error._tag === "InvalidValue") {
-        yield* Console.error("")
-        yield* Console.error("Use --help for more information.")
-      }
+      // Show the full help for the command
+      const helpText = helpRenderer.formatHelpDoc(helpDoc)
+      yield* Console.error(helpText)
 
       return
     }
@@ -732,19 +725,13 @@ export const run = <Name extends string, Input, E, R>(
       const commandPath = [command.name, ...ParsedCommandInput.getCommandPath(parsedArgs)]
       const helpDoc = getHelpForCommandPath(command, commandPath)
 
+      // Show the error message
       yield* Console.error(helpRenderer.formatCliError(error))
+      yield* Console.error("")
 
-      // For missing arguments/options, show usage and help hint
-      if (error._tag === "MissingArgument" || error._tag === "MissingOption") {
-        yield* Console.error("")
-        yield* Console.error(`Usage: ${helpDoc.usage}`)
-        yield* Console.error("")
-        yield* Console.error("Use --help for more information.")
-      } // For other errors like InvalidValue, just show the error with help hint
-      else if (error._tag === "InvalidValue") {
-        yield* Console.error("")
-        yield* Console.error("Use --help for more information.")
-      }
+      // Show the full help for the command
+      const helpText = helpRenderer.formatHelpDoc(helpDoc)
+      yield* Console.error(helpText)
 
       return
     }
