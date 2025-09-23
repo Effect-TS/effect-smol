@@ -4029,23 +4029,14 @@ export const runForkWith = <R>(services: ServiceMap.ServiceMap<R>) =>
 
   if (options?.signal) {
     if (options.signal.aborted) {
-      fiber.interruptUnsafe(undefined, disablePropagationSpan(fiber, "Effect.runForkWith (abort)"))
+      fiber.interruptUnsafe()
     } else {
-      const abort = () => fiber.interruptUnsafe(undefined, disablePropagationSpan(fiber, "Effect.runForkWith (abort)"))
+      const abort = () => fiber.interruptUnsafe()
       options.signal.addEventListener("abort", abort, { once: true })
       fiber.addObserver(() => options.signal!.removeEventListener("abort", abort))
     }
   }
   return fiber
-}
-
-const disablePropagationContext = Tracer.DisablePropagation.serviceMap(true)
-const disablePropagationSpan = (fiber: Fiber.Fiber<any, any>, name: string) => {
-  const error = new Error()
-  return makeSpanUnsafe(fiber, name, {
-    context: disablePropagationContext,
-    captureStackTrace: () => error.stack?.split("\n").slice(3).join("\n")
-  })
 }
 
 /** @internal */
@@ -4093,7 +4084,7 @@ export const runCallbackWith = <R>(services: ServiceMap.ServiceMap<R>) => {
       fiber.addObserver(options.onExit)
     }
     return (interruptor) => {
-      return fiber.interruptUnsafe(interruptor, disablePropagationSpan(fiber, "Effect.runCallbackWith (cancel)"))
+      return fiber.interruptUnsafe(interruptor)
     }
   }
 }
