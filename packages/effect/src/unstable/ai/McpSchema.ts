@@ -2089,6 +2089,6 @@ class Param$<Name extends string, S extends Schema.Top> extends Schema.Make<Para
 export function param<const Name extends string, S extends Schema.Top>(
   name: Name,
   schema: S
-): Param<Name, S["~rebuild.out"]> {
+): Param<Name, S> {
   return new Param$(schema.ast, name, schema)
 }

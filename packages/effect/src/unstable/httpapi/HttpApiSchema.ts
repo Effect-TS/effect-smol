@@ -164,9 +164,19 @@ export interface Param<Name extends string, S extends Schema.Top> extends
   >
 {
   readonly "~rebuild.out": this
-  readonly "~effect/httpapi/HttpApiSchema/Param": {
-    readonly name: Name
-    readonly schema: S
+  readonly name: Name
+  readonly schema: S
+}
+
+class Param$<Name extends string, S extends Schema.Top> extends Schema.Make<Param<Name, S>> implements Param<Name, S> {
+  declare readonly "~rebuild.out": this
+  readonly name: Name
+  readonly schema: S
+
+  constructor(ast: S["ast"], name: Name, schema: S) {
+    super(ast, (ast) => new Param$(ast, name, schema))
+    this.name = name
+    this.schema = schema
   }
 }
 
@@ -174,24 +184,18 @@ export interface Param<Name extends string, S extends Schema.Top> extends
  * @since 4.0.0
  * @category path params
  */
-export const param: {
-  <Name extends string>(
-    name: Name
-  ): <S extends Schema.Codec<any, string, any, any>>(schema: S) => Param<Name, S["~rebuild.out"]>
-  <Name extends string, S extends Schema.Codec<any, string, any, any>>(
-    name: Name,
-    schema: S
-  ): Param<Name, S["~rebuild.out"]>
-} = function(name: string) {
+export function param<Name extends string>(
+  name: Name
+): <S extends Schema.Top & { readonly "Encoded": string }>(schema: S) => Param<Name, S>
+export function param<Name extends string, S extends Schema.Top & { readonly "Encoded": string }>(
+  name: Name,
+  schema: S
+): Param<Name, S>
+export function param(name: string): any {
   if (arguments.length === 1) {
-    return (schema: Schema.Top) =>
-      schema.annotate({
-        httpApiParam: { name, schema }
-      })
+    return (schema: Schema.Top) => new Param$(schema.ast, name, schema)
   }
-  return arguments[1].annotate({
-    httpApiParam: { name, schema: arguments[1] }
-  })
+  return new Param$(arguments[1].ast, name, arguments[1])
 }
 
 /**
