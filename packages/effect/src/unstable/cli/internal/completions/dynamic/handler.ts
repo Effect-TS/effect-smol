@@ -21,16 +21,28 @@ interface CompletionContext {
  */
 export const getCompletionContext = (): CompletionContext | null => {
   const cword = process.env.COMP_CWORD
-  const line = process.env.COMP_LINE
+  const rawLine = process.env.COMP_LINE
   const point = process.env.COMP_POINT
 
-  if (!cword || !line) {
+  if (!cword) {
     return null
   }
 
   const currentIndex = parseInt(cword, 10)
-  const words = line.split(/\s+/)
-  const currentWord = words[currentIndex] || ""
+
+  const markerIndex = process.argv.indexOf("--get-completions")
+  const argvWords = markerIndex >= 0 ? process.argv.slice(markerIndex + 1) : []
+
+  const fallbackLine = rawLine ?? ""
+  const fallbackWords = fallbackLine.length > 0 ? fallbackLine.split(/\s+/) : []
+  const words = argvWords.length > 0 ? argvWords : fallbackWords
+
+  if (words.length === 0 && fallbackLine.length === 0) {
+    return null
+  }
+
+  const line = rawLine ?? words.join(" ")
+  const currentWord = words[currentIndex] ?? ""
 
   return {
     words,
@@ -88,14 +100,18 @@ const getTypeLabel = (flag: SingleFlagMeta): string | undefined => {
   }
 }
 
-const buildFlagDescription = (
-  flag: SingleFlagMeta,
-  options: { readonly isAlias?: boolean }
-): string => {
+const buildFlagDescription = (flag: SingleFlagMeta): string => {
   const parts: Array<string> = []
+  const aliasParts = flag.aliases
+    .map(formatAlias)
+    .filter((alias) => alias !== `--${flag.name}`)
 
-  if (flag.description) {
-    parts.push(flag.description)
+  const baseDescription = flag.description ?? `--${flag.name}`
+
+  if (aliasParts.length > 0) {
+    parts.push(`${aliasParts.join(", ")}  -- ${baseDescription}`)
+  } else {
+    parts.push(baseDescription)
   }
 
   const typeLabel = getTypeLabel(flag)
@@ -103,23 +119,46 @@ const buildFlagDescription = (
     parts.push(typeLabel)
   }
 
-  if (options.isAlias === true) {
-    parts.push(`alias for --${flag.name}`)
-  } else if (flag.aliases.length > 0) {
-    const aliases = flag.aliases.map(formatAlias).filter((alias) => alias !== `--${flag.name}`)
-    if (aliases.length > 0) {
-      parts.push(`aliases: ${aliases.join(", ")}`)
-    }
-  }
-
-  if (parts.length === 0) {
-    return `--${flag.name}`
-  }
-
   return parts.join(" — ")
 }
 
-const sanitizeDescription = (description: string): string => description.replace(/:/g, "\\:")
+const addFlagCandidates = (
+  addItem: (item: CompletionItem) => void,
+  flag: SingleFlagMeta,
+  query: string,
+  includeAliases: boolean
+) => {
+  const description = buildFlagDescription(flag)
+  const longForm = `--${flag.name}`
+
+  if (longForm.startsWith(query)) {
+    addItem({
+      type: "option",
+      value: longForm,
+      description
+    })
+  }
+
+  if (includeAliases) {
+    for (const alias of flag.aliases) {
+      const token = formatAlias(alias)
+      if (token.startsWith(query)) {
+        addItem({
+          type: "option",
+          value: token,
+          description
+        })
+      }
+    }
+  }
+}
+
+const sanitizeDescription = (description: string): string =>
+  description
+    .replace(/\\/g, "\\\\")
+    .replace(/\t/g, " ")
+    .replace(/\n/g, " ")
+    .replace(/:/g, "\\:")
 
 export const generateDynamicCompletions = <Name extends string, I, E, R>(
   rootCmd: Command<Name, I, E, R>,
@@ -150,16 +189,26 @@ export const generateDynamicCompletions = <Name extends string, I, E, R>(
 
     // Skip options and their values
     if (word.startsWith("-")) {
+      const eqIndex = word.indexOf("=")
+      const optionToken = eqIndex === -1 ? word : word.slice(0, eqIndex)
+      const hasInlineValue = eqIndex !== -1
+
+      if (optionToken.startsWith("-") && !optionToken.startsWith("--") && optionToken.length > 2) {
+        wordIndex++
+        continue
+      }
+
       const singles = getSingles(currentCmd.parsedConfig.flags)
       const matchingOption = singles.find((s) =>
-        word === `--${s.name}` ||
-        s.aliases.some((a) => word === (a.length === 1 ? `-${a}` : `--${a}`))
+        optionToken === `--${s.name}` ||
+        s.aliases.some((a) => optionToken === (a.length === 1 ? `-${a}` : `--${a}`))
       )
 
       wordIndex++ // Move past the option
 
-      // If option requires a value and we have more words, skip the value too
-      if (matchingOption && optionRequiresValue(matchingOption) && wordIndex < context.currentIndex) {
+      if (
+        matchingOption && optionRequiresValue(matchingOption) && !hasInlineValue && wordIndex < context.currentIndex
+      ) {
         wordIndex++ // Skip the option value
       }
     } else {
@@ -179,43 +228,59 @@ export const generateDynamicCompletions = <Name extends string, I, E, R>(
   // Generate completions based on current context
   const currentWord = context.currentWord
 
+  const singles = getSingles(currentCmd.parsedConfig.flags)
+  const equalIndex = currentWord.indexOf("=")
+  if (currentWord.startsWith("-") && equalIndex !== -1) {
+    const optionToken = currentWord.slice(0, equalIndex)
+    const matchingOption = singles.find((s) =>
+      optionToken === `--${s.name}` ||
+      s.aliases.some((a) => optionToken === (a.length === 1 ? `-${a}` : `--${a}`))
+    )
+
+    if (matchingOption && optionRequiresValue(matchingOption)) {
+      const candidateKind = matchingOption.typeName ?? (matchingOption.primitiveTag === "Path" ? "path" : undefined)
+      const fileKind = candidateKind === "directory" || candidateKind === "file" || candidateKind === "either" ||
+          candidateKind === "path"
+        ? candidateKind
+        : undefined
+
+      if (completionFormat === "zsh" && fileKind) {
+        return [`files\t${fileKind}`]
+      }
+
+      return []
+    }
+  }
+
   if (currentWord.startsWith("-")) {
     // Complete flags when current word starts with -
-    const singles = getSingles(currentCmd.parsedConfig.flags)
+    const includeAliases = !currentWord.startsWith("--")
     for (const s of singles) {
-      const longForm = `--${s.name}`
-      if (longForm.startsWith(currentWord)) {
-        addItem({
-          type: "option",
-          value: longForm,
-          description: buildFlagDescription(s, { isAlias: false })
-        })
-      }
-      for (const alias of s.aliases) {
-        const token = formatAlias(alias)
-        if (token.startsWith(currentWord)) {
-          addItem({
-            type: "option",
-            value: token,
-            description: buildFlagDescription(s, { isAlias: true })
-          })
-        }
-      }
+      addFlagCandidates(addItem, s, currentWord, includeAliases)
     }
   } else {
     // Check if previous word was an option that requires a value
     if (context.currentIndex > 0) {
       const prevWord = context.words[context.currentIndex - 1]
       if (prevWord && prevWord.startsWith("-")) {
-        const singles = getSingles(currentCmd.parsedConfig.flags)
+        const prevEqIndex = prevWord.indexOf("=")
+        const prevToken = prevEqIndex === -1 ? prevWord : prevWord.slice(0, prevEqIndex)
         const matchingOption = singles.find((s) =>
-          prevWord === `--${s.name}` ||
-          s.aliases.some((a) => prevWord === (a.length === 1 ? `-${a}` : `--${a}`))
+          prevToken === `--${s.name}` ||
+          s.aliases.some((a) => prevToken === (a.length === 1 ? `-${a}` : `--${a}`))
         )
 
         if (matchingOption && optionRequiresValue(matchingOption)) {
-          // Return empty to trigger file completion for now
-          // In a real implementation, we'd provide value completions based on type
+          const candidateKind = matchingOption.typeName ?? (matchingOption.primitiveTag === "Path" ? "path" : undefined)
+          const fileKind = candidateKind === "directory" || candidateKind === "file" || candidateKind === "either" ||
+              candidateKind === "path"
+            ? candidateKind
+            : undefined
+
+          if (completionFormat === "zsh" && fileKind) {
+            return [`files\t${fileKind}`]
+          }
+
           return []
         }
       }
@@ -232,18 +297,10 @@ export const generateDynamicCompletions = <Name extends string, I, E, R>(
       }
     }
 
-    // If no subcommands or current word is empty, also show flags
+    // If no subcommands or current word is empty, also show flags (long form only)
     if (currentCmd.subcommands.length === 0 || currentWord === "") {
-      const singles = getSingles(currentCmd.parsedConfig.flags)
       for (const s of singles) {
-        const longForm = `--${s.name}`
-        if (longForm.startsWith(currentWord)) {
-          addItem({
-            type: "option",
-            value: longForm,
-            description: buildFlagDescription(s, { isAlias: false })
-          })
-        }
+        addFlagCandidates(addItem, s, currentWord, false)
       }
     }
   }

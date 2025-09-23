@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { Effect } from "../../../packages/effect/src/index.ts"
-import { Console } from "../../../packages/effect/src/logging/Console.ts"
+import * as Console from "../../../packages/effect/src/logging/Console.ts"
 import { Argument, Command, Flag, HelpFormatter } from "../../../packages/effect/src/unstable/cli/index.ts"
 import { NodeFileSystem, NodePath } from "../../../packages/platform-node/src/index.ts"
 

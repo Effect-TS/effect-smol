@@ -52,6 +52,7 @@ describe("Dynamic Completion Handler", () => {
     it.effect("should handle empty current word", () =>
       Effect.gen(function*() {
         const originalEnv = { ...process.env }
+        const originalArgv = process.argv.slice()
 
         try {
           process.env.COMP_CWORD = "2"
@@ -64,6 +65,36 @@ describe("Dynamic Completion Handler", () => {
           assert.strictEqual(context!.currentIndex, 2)
         } finally {
           process.env = originalEnv
+          process.argv = originalArgv
+        }
+      }))
+
+    it.effect("should prefer argv tokens when provided", () =>
+      Effect.gen(function*() {
+        const originalEnv = { ...process.env }
+        const originalArgv = process.argv.slice()
+
+        try {
+          process.env.COMP_CWORD = "2"
+          process.env.COMP_LINE = "myapp build path with spaces"
+          process.env.COMP_POINT = "29"
+
+          process.argv = [
+            ...originalArgv.slice(0, 2),
+            "--get-completions",
+            "myapp",
+            "build",
+            "path with spaces"
+          ]
+
+          const context = getCompletionContext()
+
+          assert.isNotNull(context)
+          assert.deepStrictEqual(context!.words, ["myapp", "build", "path with spaces"])
+          assert.strictEqual(context!.currentWord, "path with spaces")
+        } finally {
+          process.env = originalEnv
+          process.argv = originalArgv
         }
       }))
   })
@@ -152,7 +183,7 @@ describe("Dynamic Completion Handler", () => {
         assert.isTrue(completions.includes("--target"))
       }))
 
-    it.effect("should complete short flag aliases", () =>
+    it.effect("should include short aliases when completing a single dash", () =>
       Effect.gen(function*() {
         const cmd = createTestCommand()
         const context = {
@@ -167,6 +198,22 @@ describe("Dynamic Completion Handler", () => {
 
         assert.isTrue(completions.includes("-w"))
         assert.isTrue(completions.includes("-o"))
+      }))
+
+    it.effect("should complete short flag aliases when specifically requested", () =>
+      Effect.gen(function*() {
+        const cmd = createTestCommand()
+        const context = {
+          words: ["myapp", "build", "-w"],
+          currentWord: "-w",
+          currentIndex: 2,
+          line: "myapp build -w",
+          point: 14
+        }
+
+        const completions = generateDynamicCompletions(cmd, context)
+
+        assert.isTrue(completions.includes("-w"))
       }))
 
     it.effect("should complete nested subcommands", () =>
@@ -237,6 +284,54 @@ describe("Dynamic Completion Handler", () => {
 
         // Should return empty to trigger file completion
         assert.strictEqual(completions.length, 0)
+      }))
+
+    it.effect("should emit zsh file completions when option expects a directory", () =>
+      Effect.gen(function*() {
+        const cmd = createTestCommand()
+        const originalEnv = { ...process.env }
+
+        try {
+          process.env.EFFECT_COMPLETION_FORMAT = "zsh"
+
+          const context = {
+            words: ["myapp", "build", "--out-dir", ""],
+            currentWord: "",
+            currentIndex: 3,
+            line: "myapp build --out-dir ",
+            point: 26
+          }
+
+          const completions = generateDynamicCompletions(cmd, context)
+
+          assert.deepStrictEqual(completions, ["files\tdirectory"])
+        } finally {
+          process.env = originalEnv
+        }
+      }))
+
+    it.effect("should support inline flag assignment for file completions", () =>
+      Effect.gen(function*() {
+        const cmd = createTestCommand()
+        const originalEnv = { ...process.env }
+
+        try {
+          process.env.EFFECT_COMPLETION_FORMAT = "zsh"
+
+          const context = {
+            words: ["myapp", "--config="],
+            currentWord: "--config=",
+            currentIndex: 1,
+            line: "myapp --config=",
+            point: 15
+          }
+
+          const completions = generateDynamicCompletions(cmd, context)
+
+          assert.deepStrictEqual(completions, ["files\tfile"])
+        } finally {
+          process.env = originalEnv
+        }
       }))
 
     it.effect("should handle complex command line with mixed options", () =>
@@ -454,7 +549,7 @@ describe("Dynamic Completion Handler", () => {
 
         // Should use executable name as path when no explicit path provided
         assert.isTrue(script.includes("myapp --get-completions"))
-        assert.isFalse(script.includes("/"))
+        assert.isFalse(script.includes("/myapp --get-completions"))
       }))
 
     it.effect("should include fish-specific command line parsing", () =>
