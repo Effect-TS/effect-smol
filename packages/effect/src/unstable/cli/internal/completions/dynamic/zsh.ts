@@ -31,6 +31,7 @@ _${executableName}_dynamic_completions()
   # COMP_POINT: Cursor position
 
   IFS=$'\\n' reply=($(
+    EFFECT_COMPLETION_FORMAT="zsh" \\
     COMP_TYPE="9" \\
     COMP_CWORD="$((CURRENT-1))" \\
     COMP_LINE="$BUFFER" \\
@@ -39,13 +40,57 @@ _${executableName}_dynamic_completions()
   ))
   IFS=$si
 
-  # If we got completions, describe them
-  if [[ \${#reply} -gt 0 ]]; then
-    _describe 'values' reply
-  else
-    # Fall back to default completion (files)
+  typeset -a _${executableName}_options _${executableName}_commands _${executableName}_values
+  local _${executableName}_line _${executableName}_tag _${executableName}_data
+
+  for _${executableName}_line in "\${reply[@]}"; do
+    if [[ -z "\${_${executableName}_line}" ]]; then
+      continue
+    fi
+
+    if [[ "\${_${executableName}_line}" != *$'\\t'* ]]; then
+      _${executableName}_values+=("\${_${executableName}_line}")
+      continue
+    fi
+
+    _${executableName}_tag="\${_${executableName}_line%%$'\\t'*}"
+    _${executableName}_data="\${_${executableName}_line#*$'\\t'}"
+
+    case "\${_${executableName}_tag}" in
+      option)
+        _${executableName}_options+=("\${_${executableName}_data}")
+        ;;
+      command)
+        _${executableName}_commands+=("\${_${executableName}_data}")
+        ;;
+      value)
+        _${executableName}_values+=("\${_${executableName}_data}")
+        ;;
+      *)
+        _${executableName}_values+=("\${_${executableName}_data}")
+        ;;
+    esac
+  done
+
+  local ret=1
+
+  if (( \${#_${executableName}_commands[@]} > 0 )); then
+    _describe -t commands 'commands' _${executableName}_commands && ret=0
+  fi
+
+  if (( \${#_${executableName}_options[@]} > 0 )); then
+    _describe -t options 'options' _${executableName}_options && ret=0
+  fi
+
+  if (( \${#_${executableName}_values[@]} > 0 )); then
+    compadd -- "\${_${executableName}_values[@]}" && ret=0
+  fi
+
+  if (( ret )); then
     _default
   fi
+
+  return ret
 }
 
 # Handle both direct invocation and autoload

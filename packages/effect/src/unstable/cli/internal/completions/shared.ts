@@ -1,3 +1,4 @@
+import * as Option from "../../../../data/Option.ts"
 import type { Command } from "../../Command.ts"
 import { extractSingleParams } from "../param.ts"
 import type { Param } from "../param.ts"
@@ -11,7 +12,8 @@ export const getSingles = (flags: ReadonlyArray<Param<unknown>>): ReadonlyArray<
       name: s.name,
       aliases: s.aliases,
       primitiveTag: s.primitiveType._tag,
-      ...(s.typeName !== undefined ? { typeName: s.typeName } : {})
+      ...(s.typeName !== undefined ? { typeName: s.typeName } : {}),
+      ...(Option.isSome(s.description) ? { description: Option.getOrUndefined(s.description) } : {})
     }))
 
 export const flattenCommand = <Name extends string, I, E, R>(
