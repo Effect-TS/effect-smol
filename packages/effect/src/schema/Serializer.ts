@@ -227,7 +227,7 @@ export function ensureArray<T, RD, RE>(
   return Schema.make<Schema.Codec<T, StringPojo, RD, RE>>(goEnsureArray(codec.ast))
 }
 
-const ENSURE_ARRAY_FLAG = "~effect/schema/Serializer/ensureArray"
+const ENSURE_ARRAY_ANNOTATION_KEY = "~effect/schema/Serializer/ensureArray"
 
 /** @internal */
 export const goEnsureArray = memoize((ast: AST.AST): AST.AST => {
@@ -240,7 +240,7 @@ export const goEnsureArray = memoize((ast: AST.AST): AST.AST => {
     }
     return AST.replaceEncoding(ast, AST.replaceLastLink(links, new AST.Link(to, last.transformation)))
   }
-  if (AST.isUnionType(ast) && ast.annotations?.[ENSURE_ARRAY_FLAG]) {
+  if (AST.isUnionType(ast) && ast.annotations?.[ENSURE_ARRAY_ANNOTATION_KEY]) {
     return ast
   }
   const out: AST.AST = (ast as any).go?.(goEnsureArray) ?? ast
@@ -258,7 +258,7 @@ export const goEnsureArray = memoize((ast: AST.AST): AST.AST => {
         )
       ],
       "anyOf",
-      { [ENSURE_ARRAY_FLAG]: true }
+      { [ENSURE_ARRAY_ANNOTATION_KEY]: true }
     )
     return out.context?.isOptional ? AST.optionalKey(ensure) : ensure
   }

@@ -270,7 +270,7 @@ export const reflect = <Id extends string, Groups extends HttpApiGroup.Any>(
 const emptyMap = new Map<never, never>()
 
 function getDescriptionOrIdentifier(ast: AST.AST): string | undefined {
-  return Annotations.getDescriptionAnnotation(ast) ?? Annotations.getIdentifierAnnotation(ast)
+  return Annotations.getDescription(ast) ?? Annotations.getIdentifier(ast)
 }
 
 const extractMembers = (

@@ -1,7 +1,8 @@
 /**
  * @since 4.0.0
  */
-import type { Annotations } from "../../schema/Annotations.ts"
+import * as Predicate from "../../data/Predicate.ts"
+import * as Annotations from "../../schema/Annotations.ts"
 import type * as AST from "../../schema/AST.ts"
 import * as Schema from "../../schema/Schema.ts"
 import * as Stream_ from "../../stream/Stream.ts"
@@ -16,21 +17,18 @@ export const StreamSchemaTypeId = "~effect/rpc/RpcSchema/StreamSchema"
  * @since 4.0.0
  * @category Stream
  */
-export const isStreamSchema = (schema: Schema.Top): schema is Stream<any, any> =>
-  schema.ast.annotations !== undefined && StreamSchemaTypeId in schema.ast.annotations
+export function isStreamSchema(schema: Schema.Top): schema is Stream<any, any> {
+  return getStreamSchemas(schema.ast) !== undefined
+}
 
 /**
  * @since 4.0.0
  * @category Stream
  */
-export function getStreamSchemas(
-  ast: AST.AST
-): {
+export const getStreamSchemas = Annotations.getAt(StreamSchemaTypeId, (u: unknown): u is {
   readonly success: Schema.Top
   readonly error: Schema.Top
-} | undefined {
-  return ast.annotations?.[StreamSchemaTypeId] as any
-}
+} => Predicate.isObject(u))
 
 /**
  * @since 4.0.0
@@ -44,7 +42,7 @@ export interface Stream<A extends Schema.Top, E extends Schema.Top> extends
     A["EncodingServices"] | E["EncodingServices"],
     AST.AST,
     Stream<A, E>,
-    Annotations
+    Annotations.Annotations
   >
 {
   readonly success: A

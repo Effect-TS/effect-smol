@@ -2,8 +2,10 @@
  * @since 4.0.0
  */
 import * as Option from "../../data/Option.ts"
+import * as Predicate from "../../data/Predicate.ts"
 import type * as Effect from "../../Effect.ts"
 import { constFalse, constTrue } from "../../Function.ts"
+import * as SchemaAnnotations from "../../schema/Annotations.ts"
 import * as Check from "../../schema/Check.ts"
 import * as Getter from "../../schema/Getter.ts"
 import * as Schema from "../../schema/Schema.ts"
@@ -2044,7 +2046,7 @@ export interface Param<Name extends string, S extends Schema.Top> extends
     S["DecodingServices"],
     S["EncodingServices"],
     S["ast"],
-    S["~rebuild.out"],
+    Param<Name, S>,
     S["~annotate.in"],
     S["~type.make.in"],
     S["Iso"],
@@ -2056,11 +2058,17 @@ export interface Param<Name extends string, S extends Schema.Top> extends
     S["~encoded.optionality"]
   >
 {
+  readonly "~rebuild.out": this
   readonly "~effect/ai/McpSchema/Param": {
     readonly name: Name
     readonly schema: S
   }
 }
+
+const MCP_SERVER_PARAM_ANNOTATION_KEY = "mcpServerParam"
+
+/** @internal */
+export const getMcpServerParam = SchemaAnnotations.getAt(MCP_SERVER_PARAM_ANNOTATION_KEY, Predicate.isString)
 
 /**
  * Helper to create a param for a resource URI template.
@@ -2068,5 +2076,7 @@ export interface Param<Name extends string, S extends Schema.Top> extends
  * @since 4.0.0
  * @category Parameters
  */
-export const param = <const Id extends string, S extends Schema.Top>(id: Id, schema: S): Param<Id, S> =>
-  schema.annotate({ mcpServerParam: id }) as any
+export const param = <const Name extends string, S extends Schema.Top>(
+  name: Name,
+  schema: S
+): Param<Name, S["~rebuild.out"]> => schema.annotate({ [MCP_SERVER_PARAM_ANNOTATION_KEY]: name }) as any

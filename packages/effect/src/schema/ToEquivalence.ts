@@ -55,7 +55,7 @@ function getEquivalenceAnnotation(
   return annotations?.equivalence as any
 }
 
-const getAnnotation = Annotations.getAnnotation(getEquivalenceAnnotation)
+const getAnnotation = Annotations.parse(getEquivalenceAnnotation)
 
 const go = memoize((ast: AST.AST): Equivalence.Equivalence<any> => {
   // ---------------------------------------------

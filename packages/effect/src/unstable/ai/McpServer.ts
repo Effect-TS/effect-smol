@@ -9,6 +9,7 @@ import * as Exit from "../../Exit.ts"
 import * as Layer from "../../Layer.ts"
 import * as Queue from "../../Queue.ts"
 import * as RcMap from "../../RcMap.ts"
+import * as SchemaAnnotations from "../../schema/Annotations.ts"
 import * as AST from "../../schema/AST.ts"
 import * as Schema from "../../schema/Schema.ts"
 import * as Serializer from "../../schema/Serializer.ts"
@@ -35,6 +36,7 @@ import {
   CompleteResult,
   Elicit,
   ElicitationDeclined,
+  getMcpServerParam,
   GetPromptResult,
   InternalError,
   InvalidParams,
@@ -868,8 +870,8 @@ export const registerPrompt = <
   for (const [name, prop] of Object.entries(props)) {
     args.push({
       name,
-      description: prop.ast.annotations?.description as string,
-      required: prop.ast.context?.isOptional !== true
+      description: SchemaAnnotations.getDescription(prop.ast),
+      required: !AST.isOptional(prop.ast)
     })
   }
   const prompt = new Prompt({
@@ -1030,7 +1032,7 @@ const compileUriTemplate = (segments: TemplateStringsArray, ...schemas: Readonly
       const key = String(i)
       arr.push(schema)
       routerPath += `:${key}${segment.replace(":", "::")}`
-      const paramName = schema.ast.annotations?.mcpServerParam ?? `param${key}`
+      const paramName = getMcpServerParam(schema.ast) ?? `param${key}`
       params[paramName as string] = schema
       uriPath += `{${paramName}}${segment}`
     }

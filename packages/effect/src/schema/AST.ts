@@ -2070,14 +2070,16 @@ export function record(key: AST, value: AST, keyValueCombiner: KeyValueCombiner 
   return new TypeLiteral([], [new IndexSignature(false, key, value, keyValueCombiner)])
 }
 
-/** @internal */
-export function isOptional(ast: AST): boolean {
-  return ast.context?.isOptional ?? false
-}
-
 // -------------------------------------------------------------------------------------
 // Public APIs
 // -------------------------------------------------------------------------------------
+
+/**
+ * @since 4.0.0
+ */
+export function isOptional(ast: AST): boolean {
+  return ast.context?.isOptional ?? false
+}
 
 /**
  * @since 4.0.0

@@ -48,7 +48,7 @@ function getFormatAnnotation(
   return annotations?.format as any
 }
 
-const getAnnotation = Annotations.getAnnotation(getFormatAnnotation)
+const getAnnotation = Annotations.parse(getFormatAnnotation)
 
 const defaultFormat = () => format
 

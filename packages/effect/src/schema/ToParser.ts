@@ -9,6 +9,7 @@ import * as Option from "../data/Option.ts"
 import * as Effect from "../Effect.ts"
 import * as Exit from "../Exit.ts"
 import { memoize } from "../Function.ts"
+import * as Annotations from "./Annotations.ts"
 import * as AST from "./AST.ts"
 import * as Issue from "./Issue.ts"
 import type * as Schema from "./Schema.ts"
@@ -356,7 +357,7 @@ const go = memoize(
           sroa = Effect.catchEager(sroa, (issue) => {
             const issues: Array<Issue.Issue> = []
             AST.collectIssues(
-              checks.filter((check) => check.annotations?.["~structural"]),
+              checks.filter((check) => check.annotations?.[Annotations.STRUCTURAL_ANNOTATION_KEY]),
               ou.value,
               issues,
               ast,

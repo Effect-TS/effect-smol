@@ -316,7 +316,7 @@ type GoOptions = {
 }
 
 function getId(ast: AST.AST): string | undefined {
-  const id = Annotations.getIdentifierAnnotation(ast)
+  const id = Annotations.getIdentifier(ast)
   if (id !== undefined) return id
   if (AST.isSuspend(ast)) {
     return getId(ast.thunk())

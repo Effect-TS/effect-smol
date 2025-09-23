@@ -47,7 +47,7 @@ export const isVoid = (ast: AST.AST): boolean => {
   }
 }
 
-const getHttpApiStatusAnnotation = Annotations.getAnnotation((annotations) => {
+const getHttpApiStatusAnnotation = Annotations.parse((annotations) => {
   const status = annotations?.httpApiStatus
   if (Predicate.isNumber(status)) return status
 })
@@ -123,13 +123,13 @@ function shouldExtractUnion(ast: AST.UnionType): boolean {
   if (ast.encoding) return false
   if (
     ast.types.some((ast) => {
-      const annotations = Annotations.getAnnotations(ast)
+      const annotations = Annotations.getAll(ast)
       return annotations && Object.keys(annotations).some(isHttpApiAnnotationKey)
     })
   ) {
     return true
   }
-  return Annotations.getAnnotations(ast) === undefined
+  return Annotations.getAll(ast) === undefined
 }
 
 /**
@@ -163,6 +163,7 @@ export interface Param<Name extends string, S extends Schema.Top> extends
     S["~encoded.optionality"]
   >
 {
+  readonly "~rebuild.out": this
   readonly "~effect/httpapi/HttpApiSchema/Param": {
     readonly name: Name
     readonly schema: S
@@ -176,13 +177,11 @@ export interface Param<Name extends string, S extends Schema.Top> extends
 export const param: {
   <Name extends string>(
     name: Name
-  ): <S extends Schema.Codec<any, string, any, any>>(
-    schema: S
-  ) => Param<Name, S>
+  ): <S extends Schema.Codec<any, string, any, any>>(schema: S) => Param<Name, S["~rebuild.out"]>
   <Name extends string, S extends Schema.Codec<any, string, any, any>>(
     name: Name,
     schema: S
-  ): Param<Name, S>
+  ): Param<Name, S["~rebuild.out"]>
 } = function(name: string) {
   if (arguments.length === 1) {
     return (schema: Schema.Top) =>
@@ -315,7 +314,9 @@ export interface Multipart<S extends Schema.Top> extends
     S["~encoded.mutability"],
     S["~encoded.optionality"]
   >
-{}
+{
+  readonly "~rebuild.out": this
+}
 
 /**
  * @since 4.0.0
@@ -327,10 +328,10 @@ export const Multipart = <S extends Schema.Top>(self: S, options?: {
   readonly maxFileSize?: FileSystem.SizeInput | undefined
   readonly maxTotalSize?: FileSystem.SizeInput | undefined
   readonly fieldMimeTypes?: ReadonlyArray<string> | undefined
-}): Multipart<S> =>
+}): Multipart<S["~rebuild.out"]> =>
   self.annotate({
     httpApiMultipart: options ?? {}
-  }) as Multipart<S>
+  }) as any
 
 /** @internal */
 export type MultipartStreamTypeId = "~effect/httpapi/HttpApiSchema/MultipartStream"
@@ -357,7 +358,9 @@ export interface MultipartStream<S extends Schema.Top> extends
     S["~encoded.mutability"],
     S["~encoded.optionality"]
   >
-{}
+{
+  readonly "~rebuild.out": this
+}
 
 /**
  * @since 4.0.0
@@ -369,10 +372,10 @@ export const MultipartStream = <S extends Schema.Top>(self: S, options?: {
   readonly maxFileSize?: FileSystem.SizeInput | undefined
   readonly maxTotalSize?: FileSystem.SizeInput | undefined
   readonly fieldMimeTypes?: ReadonlyArray<string> | undefined
-}): MultipartStream<S> =>
+}): MultipartStream<S["~rebuild.out"]> =>
   self.annotate({
     httpApiMultipartStream: options ?? {}
-  }) as MultipartStream<S>
+  }) as any
 
 /**
  * @since 4.0.0

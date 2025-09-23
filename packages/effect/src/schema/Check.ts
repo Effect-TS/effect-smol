@@ -151,7 +151,7 @@ export function makeBrand<B extends string | symbol, T>(
   brand: B,
   annotations?: Annotations.Filter
 ): Refinement<T & Brand<B>, T> {
-  return brand_.annotate(Annotations.combine({ [Annotations.BRAND_KEY]: brand }, annotations))
+  return brand_.annotate(Annotations.combine({ [Annotations.BRAND_ANNOTATION_KEY]: brand }, annotations))
 }
 
 /**
@@ -1168,7 +1168,7 @@ export function minLength(minLength: number, annotations?: Annotations.Filter) {
         _tag: "minLength",
         minLength
       },
-      "~structural": true,
+      [Annotations.STRUCTURAL_ANNOTATION_KEY]: true,
       arbitrary: {
         _tag: "Constraints",
         constraints: {
@@ -1220,7 +1220,7 @@ export function maxLength(maxLength: number, annotations?: Annotations.Filter) {
         _tag: "maxLength",
         maxLength
       },
-      "~structural": true,
+      [Annotations.STRUCTURAL_ANNOTATION_KEY]: true,
       arbitrary: {
         _tag: "Constraints",
         constraints: {
@@ -1264,7 +1264,7 @@ export function length(length: number, annotations?: Annotations.Filter) {
         _tag: "length",
         length
       },
-      "~structural": true,
+      [Annotations.STRUCTURAL_ANNOTATION_KEY]: true,
       arbitrary: {
         _tag: "Constraints",
         constraints: {
@@ -1299,7 +1299,7 @@ export function minSize(minSize: number, annotations?: Annotations.Filter) {
         _tag: "minSize",
         minSize
       },
-      "~structural": true,
+      [Annotations.STRUCTURAL_ANNOTATION_KEY]: true,
       arbitrary: {
         _tag: "Constraints",
         constraints: {
@@ -1328,7 +1328,7 @@ export function maxSize(maxSize: number, annotations?: Annotations.Filter) {
         _tag: "maxSize",
         maxSize
       },
-      "~structural": true,
+      [Annotations.STRUCTURAL_ANNOTATION_KEY]: true,
       arbitrary: {
         _tag: "Constraints",
         constraints: {
@@ -1357,7 +1357,7 @@ export function size(size: number, annotations?: Annotations.Filter) {
         _tag: "size",
         size
       },
-      "~structural": true,
+      [Annotations.STRUCTURAL_ANNOTATION_KEY]: true,
       arbitrary: {
         _tag: "Constraints",
         constraints: {
@@ -1391,7 +1391,7 @@ export function minEntries(minEntries: number, annotations?: Annotations.Filter)
         _tag: "minEntries",
         minEntries
       },
-      "~structural": true,
+      [Annotations.STRUCTURAL_ANNOTATION_KEY]: true,
       arbitrary: {
         _tag: "Constraints",
         constraints: {
@@ -1424,7 +1424,7 @@ export function maxEntries(maxEntries: number, annotations?: Annotations.Filter)
         _tag: "maxEntries",
         maxEntries
       },
-      "~structural": true,
+      [Annotations.STRUCTURAL_ANNOTATION_KEY]: true,
       arbitrary: {
         _tag: "Constraints",
         constraints: {
@@ -1457,7 +1457,7 @@ export function entries(entries: number, annotations?: Annotations.Filter) {
         _tag: "entries",
         entries
       },
-      "~structural": true,
+      [Annotations.STRUCTURAL_ANNOTATION_KEY]: true,
       arbitrary: {
         _tag: "Constraints",
         constraints: {
