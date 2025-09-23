@@ -2659,7 +2659,9 @@ export interface refine<T extends S["Type"], S extends Top> extends
     S["~encoded.mutability"],
     S["~encoded.optionality"]
   >
-{}
+{
+  readonly "~rebuild.out": this
+}
 
 /**
  * @category Filtering
