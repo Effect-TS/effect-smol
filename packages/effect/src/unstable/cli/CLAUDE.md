@@ -115,6 +115,12 @@ Boolean options support three distinct states for maximum flexibility:
 - Present without value (`--verbose`): becomes `true`
 - Present with explicit value (`--verbose=false`): uses parsed value
 
+> _Future note_: consider extending boolean flags so maintainers can declare
+> `default: true` semantics with an auto-generated negated alias (for example
+> `--color` / `--no-color` similar to `argparse.BooleanOptionalAction`). This
+> would let CLI authors express “enabled by default, but opt-out available”
+> without hand-rolling aliases or custom parsing.
+
 ### Combinator Tree Traversal
 
 Option combinators can be arbitrarily nested, and the parser automatically extracts all `Single` options through recursive tree traversal. This enables powerful composition while maintaining simple parsing logic.

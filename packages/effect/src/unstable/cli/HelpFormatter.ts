@@ -43,7 +43,7 @@ export interface HelpRenderer {
 export const HelpRenderer: ServiceMap.Reference<HelpRenderer> = ServiceMap.Reference(
   "effect/cli/HelpRenderer",
   {
-    defaultValue: () => defaultHelpRenderer({ colors: true })
+    defaultValue: () => defaultHelpRenderer() // Auto-detect colors
   }
 )
 
@@ -56,7 +56,7 @@ export const HelpRenderer: ServiceMap.Reference<HelpRenderer> = ServiceMap.Refer
  * import * as Effect from "effect/Effect"
  *
  * // Create a custom renderer without colors
- * const noColorRenderer = HelpFormatter.defaultHelpRenderer({ colors: false })
+ * const noColorRenderer = HelpFormatter.defaultHelpRenderer({ colors: "never" })
  * const NoColorLayer = HelpFormatter.layer(noColorRenderer)
  *
  * const program = Effect.log("Help will be rendered without colors").pipe(
@@ -81,20 +81,26 @@ export const layer = (renderer: HelpRenderer): Layer.Layer<never> => Layer.succe
  *
  * // Create a renderer with colors for production
  * const colorRenderer = HelpFormatter.defaultHelpRenderer({ colors: true })
+ *
+ * // Auto-detect colors (default behavior)
+ * const autoRenderer = HelpFormatter.defaultHelpRenderer() // no colors option
  * ```
  *
  * @since 4.0.0
  * @category constructors
  */
-export const defaultHelpRenderer = (options: { colors: boolean }): HelpRenderer => {
+export const defaultHelpRenderer = (options?: { colors?: boolean }): HelpRenderer => {
   const globalProcess = (globalThis as any).process
   const hasProcess = typeof globalProcess === "object" && globalProcess !== null
-  const useColor = options.colors &&
-    hasProcess &&
-    typeof globalProcess.stdout === "object" &&
-    globalProcess.stdout !== null &&
-    globalProcess.stdout.isTTY === true &&
-    globalProcess.env?.NO_COLOR !== "1"
+
+  const useColor = options?.colors !== undefined
+    ? options.colors
+    // Auto-detect based on environment
+    : (hasProcess &&
+      typeof globalProcess.stdout === "object" &&
+      globalProcess.stdout !== null &&
+      globalProcess.stdout.isTTY === true &&
+      globalProcess.env?.NO_COLOR !== "1")
 
   // Color palette using ANSI escape codes
   const colors = useColor
@@ -124,7 +130,7 @@ export const defaultHelpRenderer = (options: { colors: boolean }): HelpRenderer 
       const reset = useColor ? "\x1b[0m" : ""
       const red = useColor ? "\x1b[31m" : ""
       const bold = useColor ? "\x1b[1m" : ""
-      return `${bold}${red}ERROR${reset}\n  ${error.message}${reset}`
+      return `\n${bold}${red}ERROR${reset}\n  ${error.message}${reset}`
     },
     formatVersion: (name: string, version: string): string =>
       `${colors.bold(name)} ${colors.dim("v")}${colors.bold(version)}`

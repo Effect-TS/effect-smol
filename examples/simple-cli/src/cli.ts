@@ -3,7 +3,7 @@
 import { NodeServices } from "@effect/platform-node"
 import { Effect, Layer } from "effect"
 import * as Console from "effect/logging/Console"
-import { Argument, Command, Flag } from "effect/unstable/cli"
+import { Argument, Command, Flag, HelpFormatter } from "effect/unstable/cli"
 
 // File operations command
 const copy = Command.make("copy", {
@@ -92,12 +92,9 @@ const deployProd = Command.make("production", {
   )
 }, (config) =>
   Effect.gen(function*() {
-    if (!config.confirm) {
-      yield* Console.error("❌ Production deployment requires --confirm flag")
-      return yield* Effect.fail("Confirmation required")
-    }
     yield* Console.log("🚀 Deploying to production...")
     if (config.skipTests) yield* Console.log("  ⚠️  Skipping tests")
+    if (config.confirm) yield* Console.log("  ✅ Confirmed deployment")
     yield* Console.log("✅ Deployed to production!")
   })).pipe(
     Command.withDescription("Deploy to production environment")
@@ -184,7 +181,12 @@ const cli = Command.make("myapp", {
 const main = Command.run(cli, {
   version: "1.0.0"
 }).pipe(
-  Effect.provide(Layer.mergeAll(NodeServices.layer))
+  Effect.provide(
+    Layer.mergeAll(
+      NodeServices.layer,
+      HelpFormatter.layer(HelpFormatter.defaultHelpRenderer({ colors: true }))
+    )
+  )
 )
 
 Effect.runPromise(main)

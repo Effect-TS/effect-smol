@@ -2,6 +2,7 @@ import * as Option from "../../data/Option.ts"
 import * as Effect from "../../Effect.ts"
 import { dual } from "../../Function.ts"
 import { type Pipeable, pipeArguments } from "../../interfaces/Pipeable.ts"
+import { YieldableProto } from "../../internal/core.ts"
 import * as Console from "../../logging/Console.ts"
 import type * as FileSystem from "../../platform/FileSystem.ts"
 import type * as Path from "../../platform/Path.ts"
@@ -27,7 +28,9 @@ import { getTypeName } from "./Primitive.ts"
  * @since 4.0.0
  * @category models
  */
-export interface Command<Name extends string, Input, E = never, R = never> extends Pipeable {
+export interface Command<Name extends string, Input, E = never, R = never>
+  extends Pipeable, Effect.Yieldable<Command<Name, Input, E, R>, Input, never, Command.Context<Name>>
+{
   readonly _tag: "Command"
   readonly name: Name
   readonly description: string
@@ -76,6 +79,10 @@ export declare namespace Command {
 const CommandProto = {
   pipe() {
     return pipeArguments(this, arguments)
+  },
+  ...YieldableProto,
+  asEffect(this: Command<any, any, any, any>) {
+    return this.tag.asEffect()
   }
 }
 
@@ -725,7 +732,6 @@ export const runWithArgs = <Name extends string, Input, E, R>(
       // Show the full help first (to stdout with normal colors)
       const helpText = helpRenderer.formatHelpDoc(helpDoc)
       yield* Console.log(helpText)
-      yield* Console.log("")
 
       // Then show the error in a clearly marked ERROR section (to stderr)
       yield* Console.error(helpRenderer.formatError(error))
@@ -743,7 +749,6 @@ export const runWithArgs = <Name extends string, Input, E, R>(
       // Show the full help first (to stdout with normal colors)
       const helpText = helpRenderer.formatHelpDoc(helpDoc)
       yield* Console.log(helpText)
-      yield* Console.log("")
 
       // Then show the error in a clearly marked ERROR section (to stderr)
       yield* Console.error(helpRenderer.formatError(error))
