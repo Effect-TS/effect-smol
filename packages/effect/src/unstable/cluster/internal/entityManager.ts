@@ -311,7 +311,7 @@ export const make = Effect.fnUntraced(function*<
         activeServers.delete(address.entityId)
         internalInterruptors.add(fiber.id)
         return state.write(0, { _tag: "Eof" }).pipe(
-          Effect.andThen(Effect.interruptible(endLatch.await)),
+          Effect.andThen(endLatch.await),
           Effect.timeoutOption(config.entityTerminationTimeout)
         )
       })

@@ -223,7 +223,7 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any>(
         (defect) => sendDefect(client, defect)
       )
       if (!client.ended || client.fibers.size > 0) return write
-      return Effect.andThen(write, endClient(client))
+      return Effect.ensuring(write, endClient(client))
     }
     const isStream = RpcSchema.isStreamSchema(rpc.successSchema)
     const metadata = {

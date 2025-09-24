@@ -67,7 +67,8 @@ export class ShardingConfig extends ServiceMap.Key<ShardingConfig, {
   /**
    * The maximum duration of time to wait for an entity to terminate.
    *
-   * By default this is set to 15 seconds to stay within kubernetes defaults.
+   * By default this is set to 25 seconds to stay within kubernetes default
+   * `terminationGracePeriodSeconds` of 30 seconds.
    */
   readonly entityTerminationTimeout: DurationInput
   /**
@@ -113,7 +114,7 @@ export const defaults: ShardingConfig["Service"] = {
   shardGroups: ["default"],
   entityMailboxCapacity: 4096,
   entityMaxIdleTime: Duration.minutes(1),
-  entityTerminationTimeout: Duration.seconds(20),
+  entityTerminationTimeout: Duration.seconds(25),
   entityMessagePollInterval: Duration.seconds(10),
   entityReplyPollInterval: Duration.millis(200),
   sendRetryInterval: Duration.millis(100),
