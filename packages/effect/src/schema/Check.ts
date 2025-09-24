@@ -19,7 +19,7 @@ import * as Issue from "./Issue.ts"
  * @category model
  * @since 4.0.0
  */
-export class Filter<in E> extends Class implements Annotations.Annotated {
+export class Filter<in E> extends Class {
   readonly _tag = "Filter"
   readonly run: (input: E, self: AST.AST, options: AST.ParseOptions) => Issue.Issue | undefined
   readonly annotations: Annotations.Filter | undefined
@@ -55,7 +55,7 @@ export class Filter<in E> extends Class implements Annotations.Annotated {
  * @category model
  * @since 4.0.0
  */
-export class FilterGroup<in E> extends Class implements Annotations.Annotated {
+export class FilterGroup<in E> extends Class {
   readonly _tag = "FilterGroup"
   readonly checks: readonly [Check<E>, Check<E>, ...Array<Check<E>>]
   readonly annotations: Annotations.Filter | undefined

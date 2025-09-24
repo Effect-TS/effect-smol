@@ -24,14 +24,6 @@ export interface Annotations {
  * @category Model
  * @since 4.0.0
  */
-export interface Annotated {
-  readonly annotations: Annotations | undefined
-}
-
-/**
- * @category Model
- * @since 4.0.0
- */
 export interface Documentation extends Annotations {
   readonly title?: string | undefined
   readonly description?: string | undefined
@@ -166,27 +158,26 @@ export function combine<A extends Annotations>(existing: A | undefined, incoming
 }
 
 /**
+ * Get all annotations from the AST.
+ * If the AST has checks, it will return the annotations from the last check.
+ *
  * @since 4.0.0
  */
-export function getAll(ast: AST.AST): Annotations | undefined {
+export function get(ast: AST.AST): Annotations | undefined {
   return ast.checks ? ast.checks[ast.checks.length - 1].annotations : ast.annotations
 }
 
 /**
- * @since 4.0.0
- */
-export function parse<A>(parser: (annotations: Annotations | undefined) => A | undefined) {
-  return (ast: AST.AST): A | undefined => parser(getAll(ast))
-}
-
-/**
+ * Get an annotation from the AST.
+ * If the AST has checks, it will return the annotations from the last check.
+ *
  * @since 4.0.0
  */
 export function getAt<A>(key: string, parser: (u: unknown) => u is A) {
-  return parse((annotations) => {
-    const value = annotations?.[key]
+  return (ast: AST.AST): A | undefined => {
+    const value = get(ast)?.[key]
     if (parser(value)) return value
-  })
+  }
 }
 
 /**

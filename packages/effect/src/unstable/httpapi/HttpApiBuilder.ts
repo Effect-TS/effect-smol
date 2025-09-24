@@ -11,7 +11,7 @@ import * as UndefinedOr from "../../data/UndefinedOr.ts"
 import * as Effect from "../../Effect.ts"
 import * as Encoding from "../../encoding/Encoding.ts"
 import * as Fiber from "../../Fiber.ts"
-import { constFalse, identity } from "../../Function.ts"
+import { identity } from "../../Function.ts"
 import { type Pipeable, pipeArguments } from "../../interfaces/Pipeable.ts"
 import * as Layer from "../../Layer.ts"
 import type { FileSystem } from "../../platform/FileSystem.ts"
@@ -441,10 +441,10 @@ const handlerToRoute = (
 ): HttpRouter.Route<any, any> => {
   const endpoint = handler.endpoint
   const isMultipartStream = endpoint.payloadSchema?.pipe(
-    ({ ast }) => ast.annotations?.httpApiMultipartStream !== undefined
-  ) ?? constFalse
+    ({ ast }) => HttpApiSchema.getHttpApiMultipartStream(ast) !== undefined
+  ) ?? false
   const multipartLimits = endpoint.payloadSchema?.pipe(
-    ({ ast }) => ast.annotations?.httpApiMultipartStream ?? ast.annotations?.httpApiMultipart
+    ({ ast }) => HttpApiSchema.getHttpApiMultipartStream(ast) ?? HttpApiSchema.getHttpApiMultipart(ast)
   )
   const decodePath = UndefinedOr.map(endpoint.pathSchema, Schema.decodeUnknownEffect)
   const decodePayload = handler.withFullRequest || isMultipartStream
@@ -638,7 +638,7 @@ const responseTransformation = <A, I, RD, RE>(
     decode: decodeForbidden<HttpServerResponse>,
     encode(data: I) {
       const ast = schema.ast
-      const isEmpty = HttpApiSchema.isVoid(ast)
+      const isEmpty = HttpApiSchema.isVoidEncoded(ast)
       const status = getStatus(ast)
       if (isEmpty) {
         return Effect.succeed(Response.empty({ status }))

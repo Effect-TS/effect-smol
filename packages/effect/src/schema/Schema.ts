@@ -182,23 +182,24 @@ abstract class Bottom$<
 {
   readonly [TypeId] = TypeId
 
-  readonly "Type": T
-  readonly "Encoded": E
-  readonly "DecodingServices": RD
-  readonly "EncodingServices": RE
+  // using declare to make them type-level only
+  declare readonly "Type": T
+  declare readonly "Encoded": E
+  declare readonly "DecodingServices": RD
+  declare readonly "EncodingServices": RE
 
-  readonly "~rebuild.out": RebuildOut
-  readonly "~annotate.in": AnnotateIn
+  declare readonly "~rebuild.out": RebuildOut
+  declare readonly "~annotate.in": AnnotateIn
 
-  readonly "~type.make.in": TypeMakeIn
-  readonly "~type.make": TypeMake
-  readonly "~type.constructor.default": TypeConstructorDefault
-  readonly "Iso": Iso
+  declare readonly "~type.make.in": TypeMakeIn
+  declare readonly "~type.make": TypeMake
+  declare readonly "~type.constructor.default": TypeConstructorDefault
+  declare readonly "Iso": Iso
 
-  readonly "~type.mutability": TypeMutability
-  readonly "~type.optionality": TypeOptionality
-  readonly "~encoded.mutability": EncodedMutability
-  readonly "~encoded.optionality": EncodedOptionality
+  declare readonly "~type.mutability": TypeMutability
+  declare readonly "~type.optionality": TypeOptionality
+  declare readonly "~encoded.mutability": EncodedMutability
+  declare readonly "~encoded.optionality": EncodedOptionality
 
   readonly ast: Ast
   readonly makeSync: (input: this["~type.make.in"], options?: MakeOptions) => this["Type"]

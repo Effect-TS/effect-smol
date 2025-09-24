@@ -49,13 +49,10 @@ export function override<S extends Schema.Top>(override: () => Equivalence.Equiv
   }
 }
 
-function getEquivalenceAnnotation(
-  annotations: Annotations.Annotations | undefined
-): Annotation.Declaration<any, ReadonlyArray<any>> | Annotation.Override<any> | undefined {
-  return annotations?.equivalence as any
-}
-
-const getAnnotation = Annotations.parse(getEquivalenceAnnotation)
+const getAnnotation = Annotations.getAt(
+  "equivalence",
+  (u: unknown): u is Annotation.Declaration<any, ReadonlyArray<any>> | Annotation.Override<any> => Predicate.isObject(u)
+)
 
 const go = memoize((ast: AST.AST): Equivalence.Equivalence<any> => {
   // ---------------------------------------------

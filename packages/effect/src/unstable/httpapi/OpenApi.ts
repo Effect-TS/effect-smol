@@ -323,7 +323,7 @@ export const fromApi = <Id extends string, Groups extends HttpApiGroup.Any>(
           op.responses[status] = {
             description: description ?? defaultDescription()
           }
-          if (ast && !ast.annotations?.httpApiIsEmpty) {
+          if (ast && !HttpApiSchema.getHttpApiIsEmpty(ast)) {
             const encoding = HttpApiSchema.getEncoding(ast)
             op.responses[status].content = {
               [encoding.contentType]: {

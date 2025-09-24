@@ -626,18 +626,18 @@ function toDefaultIssues(
   }
 }
 
-function formatCheck<T>(filter: Check.Check<T>): string {
-  const out = filter.annotations?.description ?? filter.annotations?.title
+function formatCheck<T>(check: Check.Check<T>): string {
+  const out = check.annotations?.description ?? check.annotations?.title
   if (Predicate.isString(out)) return out
 
-  const brand = Annotations.getBrand(filter)
+  const brand = Annotations.getBrand(check)
   if (brand !== undefined) return `Brand<"${String(brand)}">`
 
-  switch (filter._tag) {
+  switch (check._tag) {
     case "Filter":
       return "<filter>"
     case "FilterGroup":
-      return filter.checks.map((check) => formatCheck(check)).join(" & ")
+      return check.checks.map((check) => formatCheck(check)).join(" & ")
   }
 }
 

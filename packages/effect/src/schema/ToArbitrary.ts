@@ -143,7 +143,7 @@ export function make<T>(schema: Schema.Schema<T>): FastCheck.Arbitrary<T> {
 
 const arbitraryMemoMap = new WeakMap<AST.AST, LazyArbitrary<any>>()
 
-function getArbitraryAnnotation(
+function getAnnotation(
   annotations: Annotations.Annotations | undefined
 ):
   | Annotation.Declaration<any, ReadonlyArray<any>>
@@ -265,16 +265,16 @@ function resetContext(ctx: Context | undefined): Context | undefined {
 }
 
 const go = memoize((ast: AST.AST): LazyArbitrary<any> => {
-  // ---------------------------------------------
-  // handle annotations
-  // ---------------------------------------------
   if (ast.checks) {
     const filters = AST.getFilters(ast.checks)
     const f = mergeFiltersConstraints(filters)
     const out = go(AST.replaceChecks(ast, undefined))
     return (fc, ctx) => applyChecks(ast, filters, out(fc, f(ctx)))
   }
-  const annotation = getArbitraryAnnotation(ast.annotations)
+  // ---------------------------------------------
+  // handle annotations
+  // ---------------------------------------------
+  const annotation = getAnnotation(ast.annotations)
   if (annotation) {
     switch (annotation._tag) {
       case "Declaration": {
