@@ -1,4 +1,4 @@
-import { Option, Redacted } from "effect/data"
+import { Option, Redacted, Result } from "effect/data"
 import { Check, Schema, ToFormat } from "effect/schema"
 import { DateTime, Duration } from "effect/time"
 import { describe, it } from "vitest"
@@ -409,7 +409,13 @@ describe("ToFormat", () => {
     strictEqual(show(Option.none()), "none()")
   })
 
-  it("Map(String, Number)", () => {
+  it("Result(Number, String)", () => {
+    const show = ToFormat.make(Schema.Result(Schema.Number, Schema.String))
+    strictEqual(show(Result.succeed(1)), `success(1)`)
+    strictEqual(show(Result.fail("a")), `failure("a")`)
+  })
+
+  it("Map(String, Option(Number))", () => {
     const show = ToFormat.make(Schema.Map(Schema.String, Schema.Option(Schema.Number)))
     strictEqual(show(new Map([["a", Option.some(1)]])), `Map(1) { "a" => some(1) }`)
     strictEqual(show(new Map([["a", Option.none()]])), `Map(1) { "a" => none() }`)

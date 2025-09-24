@@ -11,10 +11,11 @@ import type * as Combiner from "../data/Combiner.ts"
 import * as Data from "../data/Data.ts"
 import * as Equivalence from "../data/Equivalence.ts"
 import type { Format } from "../data/Format.ts"
-import * as O from "../data/Option.ts"
+import * as Option_ from "../data/Option.ts"
 import * as Predicate from "../data/Predicate.ts"
-import * as R from "../data/Record.ts"
+import * as Record_ from "../data/Record.ts"
 import * as Redacted_ from "../data/Redacted.ts"
+import * as Result_ from "../data/Result.ts"
 import type { Lambda, Merge, Mutable, Simplify } from "../data/Struct.ts"
 import { lambda, renameKeys } from "../data/Struct.ts"
 import * as Effect from "../Effect.ts"
@@ -1536,12 +1537,12 @@ export function extendTo<S extends Struct<Struct.Fields>, const Fields extends S
   /** The new fields to add */
   fields: Fields,
   /** A function per field to derive its value from the original input */
-  derive: { readonly [K in keyof Fields]: (s: S["Type"]) => O.Option<Fields[K]["Type"]> }
+  derive: { readonly [K in keyof Fields]: (s: S["Type"]) => Option_.Option<Fields[K]["Type"]> }
 ) {
   return (
     self: S
   ): decodeTo<Struct<Simplify<{ [K in keyof S["fields"]]: typeCodec<S["fields"][K]> } & Fields>>, S> => {
-    const f = R.map(self.fields, typeCodec)
+    const f = Record_.map(self.fields, typeCodec)
     const to = Struct({ ...f, ...fields })
     return self.pipe(decodeTo(
       to,
@@ -1551,7 +1552,7 @@ export function extendTo<S extends Struct<Struct.Fields>, const Fields extends S
           for (const k in fields) {
             const f = derive[k]
             const o = f(input)
-            if (O.isSome(o)) {
+            if (Option_.isSome(o)) {
               out[k] = o.value
             }
           }
@@ -2502,9 +2503,9 @@ export interface decodingMiddleware<S extends Top, RD> extends
  */
 export function decodingMiddleware<S extends Top, RD>(
   decode: (
-    sr: Effect.Effect<O.Option<S["Type"]>, Issue.Issue, S["DecodingServices"]>,
+    sr: Effect.Effect<Option_.Option<S["Type"]>, Issue.Issue, S["DecodingServices"]>,
     options: AST.ParseOptions
-  ) => Effect.Effect<O.Option<S["Type"]>, Issue.Issue, RD>
+  ) => Effect.Effect<Option_.Option<S["Type"]>, Issue.Issue, RD>
 ) {
   return (schema: S): decodingMiddleware<S, RD> => {
     return makeProto(AST.decodingMiddleware(schema.ast, new Transformation.Middleware(decode, identity)), {
@@ -2544,9 +2545,9 @@ export interface encodingMiddleware<S extends Top, RE> extends
  */
 export function encodingMiddleware<S extends Top, RE>(
   encode: (
-    sr: Effect.Effect<O.Option<S["Type"]>, Issue.Issue, S["EncodingServices"]>,
+    sr: Effect.Effect<Option_.Option<S["Type"]>, Issue.Issue, S["EncodingServices"]>,
     options: AST.ParseOptions
-  ) => Effect.Effect<O.Option<S["Type"]>, Issue.Issue, RE>
+  ) => Effect.Effect<Option_.Option<S["Type"]>, Issue.Issue, RE>
 ) {
   return (schema: S): encodingMiddleware<S, RE> => {
     return makeProto(AST.encodingMiddleware(schema.ast, new Transformation.Middleware(identity, encode)), { schema })
@@ -2557,7 +2558,7 @@ export function encodingMiddleware<S extends Top, RE>(
  * @since 4.0.0
  */
 export function catchDecoding<S extends Top>(
-  f: (issue: Issue.Issue) => Effect.Effect<O.Option<S["Type"]>, Issue.Issue>
+  f: (issue: Issue.Issue) => Effect.Effect<Option_.Option<S["Type"]>, Issue.Issue>
 ): (self: S) => S["~rebuild.out"] {
   return catchDecodingWithContext(f)
 }
@@ -2566,7 +2567,7 @@ export function catchDecoding<S extends Top>(
  * @since 4.0.0
  */
 export function catchDecodingWithContext<S extends Top, R = never>(
-  f: (issue: Issue.Issue) => Effect.Effect<O.Option<S["Type"]>, Issue.Issue, R>
+  f: (issue: Issue.Issue) => Effect.Effect<Option_.Option<S["Type"]>, Issue.Issue, R>
 ) {
   return (self: S): decodingMiddleware<S, S["DecodingServices"] | R> => {
     return self.pipe(decodingMiddleware(Effect.catchEager(f)))
@@ -2577,7 +2578,7 @@ export function catchDecodingWithContext<S extends Top, R = never>(
  * @since 4.0.0
  */
 export function catchEncoding<S extends Top>(
-  f: (issue: Issue.Issue) => Effect.Effect<O.Option<S["Encoded"]>, Issue.Issue>
+  f: (issue: Issue.Issue) => Effect.Effect<Option_.Option<S["Encoded"]>, Issue.Issue>
 ): (self: S) => S["~rebuild.out"] {
   return catchEncodingWithContext(f)
 }
@@ -2586,7 +2587,7 @@ export function catchEncoding<S extends Top>(
  * @since 4.0.0
  */
 export function catchEncodingWithContext<S extends Top, R = never>(
-  f: (issue: Issue.Issue) => Effect.Effect<O.Option<S["Encoded"]>, Issue.Issue, R>
+  f: (issue: Issue.Issue) => Effect.Effect<Option_.Option<S["Encoded"]>, Issue.Issue, R>
 ) {
   return (self: S): encodingMiddleware<S, S["EncodingServices"] | R> => {
     return self.pipe(encodingMiddleware(Effect.catchEager(f)))
@@ -2745,10 +2746,10 @@ export interface withConstructorDefault<S extends Top & WithoutConstructorDefaul
  */
 export function withConstructorDefault<S extends Top & WithoutConstructorDefault>(
   defaultValue: (
-    input: O.Option<undefined>
+    input: Option_.Option<undefined>
     // `S["~type.make.in"]` instead of `S["Type"]` is intentional here because
     // it makes easier to define the default value if there are nested defaults
-  ) => O.Option<S["~type.make.in"]> | Effect.Effect<O.Option<S["~type.make.in"]>>
+  ) => Option_.Option<S["~type.make.in"]> | Effect.Effect<Option_.Option<S["~type.make.in"]>>
 ) {
   return (schema: S): withConstructorDefault<S> => {
     return makeProto(AST.withConstructorDefault(schema.ast, defaultValue), { schema })
@@ -2833,7 +2834,7 @@ export interface tag<Tag extends AST.Literal> extends withConstructorDefault<Lit
  * @since 4.0.0
  */
 export function tag<Tag extends AST.Literal>(literal: Tag): tag<Tag> {
-  return Literal(literal).pipe(withConstructorDefault(() => O.some(literal)))
+  return Literal(literal).pipe(withConstructorDefault(() => Option_.some(literal)))
 }
 
 /**
@@ -3041,56 +3042,62 @@ export function TaggedUnion<const CasesByTag extends Record<string, Struct.Field
 }
 
 /**
+ * @category Option
  * @since 4.0.0
  */
-export interface Option<S extends Top> extends
+export interface Option<A extends Top> extends
   declareConstructor<
-    O.Option<S["Type"]>,
-    O.Option<S["Encoded"]>,
-    readonly [S],
-    OptionIso<S>
+    Option_.Option<A["Type"]>,
+    Option_.Option<A["Encoded"]>,
+    readonly [A],
+    OptionIso<A>
   >
 {
-  readonly value: S
+  readonly value: A
 }
-
-/**
- * @since 4.0.0
- */
-export type OptionIso<S extends Top> =
-  | { readonly _tag: "None" }
-  | { readonly _tag: "Some"; readonly value: S["Iso"] }
 
 /**
  * @category Option
  * @since 4.0.0
  */
-export function Option<S extends Top>(value: S): Option<S> {
-  const schema = declareConstructor<O.Option<S["Type"]>, O.Option<S["Encoded"]>, OptionIso<S>>()(
+export type OptionIso<A extends Top> =
+  | { readonly _tag: "None" }
+  | { readonly _tag: "Some"; readonly value: A["Iso"] }
+
+/**
+ * @category Option
+ * @since 4.0.0
+ */
+export function Option<A extends Top>(value: A): Option<A> {
+  const schema = declareConstructor<
+    Option_.Option<A["Type"]>,
+    Option_.Option<A["Encoded"]>,
+    OptionIso<A>
+  >()(
     [value],
     ([value]) => (input, ast, options) => {
-      if (O.isOption(input)) {
-        if (O.isNone(input)) {
+      if (Option_.isOption(input)) {
+        if (Option_.isNone(input)) {
           return Effect.succeedNone
         }
         return Effect.mapBothEager(
           ToParser.decodeUnknownEffect(value)(input.value, options),
           {
-            onSuccess: O.some,
-            onFailure: (issue) => new Issue.Composite(ast, O.some(input), [new Issue.Pointer(["value"], issue)])
+            onSuccess: Option_.some,
+            onFailure: (issue) => new Issue.Composite(ast, Option_.some(input), [new Issue.Pointer(["value"], issue)])
           }
         )
       }
-      return Effect.fail(new Issue.InvalidType(ast, O.some(input)))
+      return Effect.fail(new Issue.InvalidType(ast, Option_.some(input)))
     },
     {
       title: "Option",
-      defaultIsoSerializer: ([value]: readonly [Schema<S["Type"]>]) =>
-        link<O.Option<S["Type"]>>()(
+      defaultIsoSerializer: ([value]: readonly [Schema<A["Type"]>]) =>
+        link<Option_.Option<A["Type"]>>()(
           Union([Struct({ _tag: Literal("Some"), value }), Struct({ _tag: Literal("None") })]),
           Transformation.transform({
-            decode: (input) => input._tag === "None" ? O.none() : O.some(input.value),
-            encode: (o) => (O.isSome(o) ? { _tag: "Some", value: o.value } as const : { _tag: "None" } as const)
+            decode: (input) => input._tag === "None" ? Option_.none() : Option_.some(input.value),
+            encode: (o) => (Option_.isSome(o) ? { _tag: "Some", value: o.value } as const : { _tag: "None" } as const)
           })
         ),
       arbitrary: {
@@ -3098,19 +3105,19 @@ export function Option<S extends Top>(value: S): Option<S> {
         declaration: ([value]) => (fc, ctx) => {
           return fc.oneof(
             ctx?.isSuspend ? { maxDepth: 2, depthIdentifier: "Option" } : {},
-            fc.constant(O.none()),
-            value.map(O.some)
+            fc.constant(Option_.none()),
+            value.map(Option_.some)
           )
         }
       },
       equivalence: {
         _tag: "Declaration",
-        declaration: ([value]) => O.getEquivalence(value)
+        declaration: ([value]) => Option_.getEquivalence(value)
       },
       format: {
         _tag: "Declaration",
         declaration: ([value]) =>
-          O.match({
+          Option_.match({
             onNone: () => "none()",
             onSome: (t) => `some(${value(t)})`
           })
@@ -3201,6 +3208,105 @@ export function OptionFromOptional<S extends Top>(schema: S): OptionFromOptional
 }
 
 /**
+ * @category Result
+ * @since 4.0.0
+ */
+export interface Result<A extends Top, E extends Top> extends
+  declareConstructor<
+    Result_.Result<A["Type"], E["Type"]>,
+    Result_.Result<A["Encoded"], E["Encoded"]>,
+    readonly [A, E],
+    ResultIso<A, E>
+  >
+{
+  readonly success: A
+  readonly failure: E
+}
+
+/**
+ * @category Result
+ * @since 4.0.0
+ */
+export type ResultIso<A extends Top, E extends Top> =
+  | { readonly _tag: "Success"; readonly success: A["Iso"] }
+  | { readonly _tag: "Failure"; readonly failure: E["Iso"] }
+
+/**
+ * @category Result
+ * @since 4.0.0
+ */
+export function Result<A extends Top, E extends Top>(
+  success: A,
+  failure: E
+): Result<A, E> {
+  const schema = declareConstructor<
+    Result_.Result<A["Type"], E["Type"]>,
+    Result_.Result<A["Encoded"], E["Encoded"]>,
+    ResultIso<A, E>
+  >()(
+    [success, failure],
+    ([success, failure]) => (input, ast, options) => {
+      if (!Result_.isResult(input)) {
+        return Effect.fail(new Issue.InvalidType(ast, Option_.some(input)))
+      }
+      switch (input._tag) {
+        case "Success":
+          return Effect.mapBothEager(ToParser.decodeEffect(success)(input.success, options), {
+            onSuccess: Result_.succeed,
+            onFailure: (issue) => new Issue.Composite(ast, Option_.some(input), [new Issue.Pointer(["success"], issue)])
+          })
+        case "Failure":
+          return Effect.mapBothEager(ToParser.decodeEffect(failure)(input.failure, options), {
+            onSuccess: Result_.fail,
+            onFailure: (issue) => new Issue.Composite(ast, Option_.some(input), [new Issue.Pointer(["failure"], issue)])
+          })
+      }
+    },
+    {
+      title: "Result",
+      defaultIsoSerializer: ([success, failure]: readonly [Schema<A["Type"]>, Schema<E["Type"]>]) =>
+        link<Result_.Result<A["Type"], E["Type"]>>()(
+          Union([
+            Struct({ _tag: Literal("Success"), success }),
+            Struct({ _tag: Literal("Failure"), failure })
+          ]),
+          Transformation.transform({
+            decode: (input) => input._tag === "Success" ? Result_.succeed(input.success) : Result_.fail(input.failure),
+            encode: (r) =>
+              Result_.isSuccess(r)
+                ? { _tag: "Success", success: r.success } as const
+                : { _tag: "Failure", failure: r.failure } as const
+          })
+        ),
+      arbitrary: {
+        _tag: "Declaration",
+        declaration: ([success, failure]) => (fc, ctx) => {
+          return fc.oneof(
+            ctx?.isSuspend ? { maxDepth: 2, depthIdentifier: "Result" } : {},
+            success.map(Result_.succeed),
+            failure.map(Result_.fail)
+          )
+        }
+      },
+      equivalence: {
+        _tag: "Declaration",
+        declaration: ([success, failure]) => Result_.getEquivalence(success, failure)
+      },
+      format: {
+        _tag: "Declaration",
+        declaration: ([success, failure]) =>
+          Result_.match({
+            onSuccess: (t) => `success(${success(t)})`,
+            onFailure: (t) => `failure(${failure(t)})`
+          })
+      }
+    }
+  )
+  return makeProto(schema.ast, { success, failure })
+}
+
+/**
+ * @category Redacted
  * @since 4.0.0
  */
 export interface Redacted<S extends Top> extends
@@ -3233,7 +3339,7 @@ export interface Redacted<S extends Top> extends
  * The default JSON serializer will fail when attempting to serialize a `Redacted` value,
  * but it will deserialize a value into a `Redacted` instance.
  *
- * @category Constructors
+ * @category Redacted
  * @since 4.0.0
  */
 export function Redacted<S extends Top>(value: S, options?: {
@@ -3257,7 +3363,7 @@ export function Redacted<S extends Top>(value: S, options?: {
               {
                 onSuccess: () => input,
                 onFailure: (/** ignore the actual issue because of security reasons */) => {
-                  const oinput = O.some(input)
+                  const oinput = Option_.some(input)
                   return new Issue.Composite(ast, oinput, [
                     new Issue.Pointer(["value"], new Issue.InvalidValue(oinput))
                   ])
@@ -3266,7 +3372,7 @@ export function Redacted<S extends Top>(value: S, options?: {
             )
         )
       }
-      return Effect.fail(new Issue.InvalidType(ast, O.some(input)))
+      return Effect.fail(new Issue.InvalidType(ast, Option_.some(input)))
     },
     {
       title: "Redacted",
@@ -3277,7 +3383,7 @@ export function Redacted<S extends Top>(value: S, options?: {
             decode: Getter.transform((e) => Redacted_.make(e, { label: options?.label })),
             encode: Getter.forbidden((oe) =>
               "Cannot serialize Redacted" +
-              (O.isSome(oe) && Predicate.isString(oe.value.label) ? ` with label: "${oe.value.label}"` : "")
+              (Option_.isSome(oe) && Predicate.isString(oe.value.label) ? ` with label: "${oe.value.label}"` : "")
             )
           }
         ),
@@ -3299,6 +3405,7 @@ export function Redacted<S extends Top>(value: S, options?: {
 }
 
 /**
+ * @category CauseFailure
  * @since 4.0.0
  */
 export interface CauseFailure<E extends Top, D extends Top> extends
@@ -3314,6 +3421,7 @@ export interface CauseFailure<E extends Top, D extends Top> extends
 }
 
 /**
+ * @category CauseFailure
  * @since 4.0.0
  */
 export type CauseFailureIso<E extends Top, D extends Top> = {
@@ -3328,7 +3436,7 @@ export type CauseFailureIso<E extends Top, D extends Top> = {
 }
 
 /**
- * @category Constructors
+ * @category CauseFailure
  * @since 4.0.0
  */
 export function CauseFailure<E extends Top, D extends Top>(error: E, defect: D): CauseFailure<E, D> {
@@ -3336,7 +3444,7 @@ export function CauseFailure<E extends Top, D extends Top>(error: E, defect: D):
     [error, defect],
     ([error, defect]) => (input, ast, options) => {
       if (!Cause_.isFailure(input)) {
-        return Effect.fail(new Issue.InvalidType(ast, O.some(input)))
+        return Effect.fail(new Issue.InvalidType(ast, Option_.some(input)))
       }
       switch (input._tag) {
         case "Fail":
@@ -3344,7 +3452,7 @@ export function CauseFailure<E extends Top, D extends Top>(error: E, defect: D):
             ToParser.decodeUnknownEffect(error)(input.error, options),
             {
               onSuccess: Cause_.failureFail,
-              onFailure: (issue) => new Issue.Composite(ast, O.some(input), [new Issue.Pointer(["error"], issue)])
+              onFailure: (issue) => new Issue.Composite(ast, Option_.some(input), [new Issue.Pointer(["error"], issue)])
             }
           )
         case "Die":
@@ -3352,7 +3460,8 @@ export function CauseFailure<E extends Top, D extends Top>(error: E, defect: D):
             ToParser.decodeUnknownEffect(defect)(input.defect, options),
             {
               onSuccess: Cause_.failureDie,
-              onFailure: (issue) => new Issue.Composite(ast, O.some(input), [new Issue.Pointer(["defect"], issue)])
+              onFailure: (issue) =>
+                new Issue.Composite(ast, Option_.some(input), [new Issue.Pointer(["defect"], issue)])
             }
           )
         case "Interrupt":
@@ -3427,6 +3536,7 @@ export function CauseFailure<E extends Top, D extends Top>(error: E, defect: D):
 }
 
 /**
+ * @category Cause
  * @since 4.0.0
  */
 export interface Cause<E extends Top, D extends Top> extends
@@ -3442,12 +3552,13 @@ export interface Cause<E extends Top, D extends Top> extends
 }
 
 /**
+ * @category Cause
  * @since 4.0.0
  */
 export type CauseIso<E extends Top, D extends Top> = ReadonlyArray<CauseFailureIso<E, D>>
 
 /**
- * @category Constructors
+ * @category Cause
  * @since 4.0.0
  */
 export function Cause<E extends Top, D extends Top>(error: E, defect: D): Cause<E, D> {
@@ -3455,11 +3566,11 @@ export function Cause<E extends Top, D extends Top>(error: E, defect: D): Cause<
     [Array(CauseFailure(error, defect))],
     ([failures]) => (input, ast, options) => {
       if (!Cause_.isCause(input)) {
-        return Effect.fail(new Issue.InvalidType(ast, O.some(input)))
+        return Effect.fail(new Issue.InvalidType(ast, Option_.some(input)))
       }
       return Effect.mapBothEager(ToParser.decodeUnknownEffect(failures)(input.failures, options), {
         onSuccess: Cause_.fromFailures,
-        onFailure: (issue) => new Issue.Composite(ast, O.some(input), [new Issue.Pointer(["failures"], issue)])
+        onFailure: (issue) => new Issue.Composite(ast, Option_.some(input), [new Issue.Pointer(["failures"], issue)])
       })
     },
     {
@@ -3575,6 +3686,7 @@ export const Defect: Defect = Union([
 ])
 
 /**
+ * @category Exit
  * @since 4.0.0
  */
 export interface Exit<A extends Top, E extends Top, D extends Top> extends
@@ -3591,6 +3703,7 @@ export interface Exit<A extends Top, E extends Top, D extends Top> extends
 }
 
 /**
+ * @category Exit
  * @since 4.0.0
  */
 export type ExitIso<A extends Top, E extends Top, D extends Top> = {
@@ -3602,7 +3715,7 @@ export type ExitIso<A extends Top, E extends Top, D extends Top> = {
 }
 
 /**
- * @category Constructors
+ * @category Exit
  * @since 4.0.0
  */
 export function Exit<A extends Top, E extends Top, D extends Top>(value: A, error: E, defect: D): Exit<A, E, D> {
@@ -3614,7 +3727,7 @@ export function Exit<A extends Top, E extends Top, D extends Top>(value: A, erro
     [value, Cause(error, defect)],
     ([value, cause]) => (input, ast, options) => {
       if (!Exit_.isExit(input)) {
-        return Effect.fail(new Issue.InvalidType(ast, O.some(input)))
+        return Effect.fail(new Issue.InvalidType(ast, Option_.some(input)))
       }
       switch (input._tag) {
         case "Success":
@@ -3622,7 +3735,7 @@ export function Exit<A extends Top, E extends Top, D extends Top>(value: A, erro
             ToParser.decodeUnknownEffect(value)(input.value, options),
             {
               onSuccess: Exit_.succeed,
-              onFailure: (issue) => new Issue.Composite(ast, O.some(input), [new Issue.Pointer(["value"], issue)])
+              onFailure: (issue) => new Issue.Composite(ast, Option_.some(input), [new Issue.Pointer(["value"], issue)])
             }
           )
         case "Failure":
@@ -3630,7 +3743,7 @@ export function Exit<A extends Top, E extends Top, D extends Top>(value: A, erro
             ToParser.decodeUnknownEffect(cause)(input.cause, options),
             {
               onSuccess: Exit_.failCause,
-              onFailure: (issue) => new Issue.Composite(ast, O.some(input), [new Issue.Pointer(["cause"], issue)])
+              onFailure: (issue) => new Issue.Composite(ast, Option_.some(input), [new Issue.Pointer(["cause"], issue)])
             }
           )
       }
@@ -3705,6 +3818,7 @@ export const NonEmptyString = String.check(Check.nonEmpty())
 export const Char = String.check(Check.length(1))
 
 /**
+ * @category Map
  * @since 4.0.0
  */
 export interface Map$<Key extends Top, Value extends Top> extends
@@ -3712,7 +3826,7 @@ export interface Map$<Key extends Top, Value extends Top> extends
     globalThis.Map<Key["Type"], Value["Type"]>,
     globalThis.Map<Key["Encoded"], Value["Encoded"]>,
     readonly [Key, Value],
-    ReadonlyArray<readonly [Key["Iso"], Value["Iso"]]>
+    MapIso<Key, Value>
   >
 {
   readonly key: Key
@@ -3720,17 +3834,23 @@ export interface Map$<Key extends Top, Value extends Top> extends
 }
 
 /**
+ * @category Map
+ * @since 4.0.0
+ */
+export type MapIso<Key extends Top, Value extends Top> = ReadonlyArray<readonly [Key["Iso"], Value["Iso"]]>
+
+/**
  * Creates a schema that validates a Map where keys and values must conform to
  * the provided schemas.
  *
- * @category Constructors
+ * @category Map
  * @since 4.0.0
  */
 export function Map<Key extends Top, Value extends Top>(key: Key, value: Value): Map$<Key, Value> {
   const schema = declareConstructor<
     globalThis.Map<Key["Type"], Value["Type"]>,
     globalThis.Map<Key["Encoded"], Value["Encoded"]>,
-    ReadonlyArray<readonly [Key["Iso"], Value["Iso"]]>
+    MapIso<Key, Value>
   >()(
     [key, value],
     ([key, value]) => (input, ast, options) => {
@@ -3740,11 +3860,11 @@ export function Map<Key extends Top, Value extends Top>(key: Key, value: Value):
           ToParser.decodeUnknownEffect(array)([...input], options),
           {
             onSuccess: (array: ReadonlyArray<readonly [Key["Type"], Value["Type"]]>) => new globalThis.Map(array),
-            onFailure: (issue) => new Issue.Composite(ast, O.some(input), [new Issue.Pointer(["entries"], issue)])
+            onFailure: (issue) => new Issue.Composite(ast, Option_.some(input), [new Issue.Pointer(["entries"], issue)])
           }
         )
       }
-      return Effect.fail(new Issue.InvalidType(ast, O.some(input)))
+      return Effect.fail(new Issue.InvalidType(ast, Option_.some(input)))
     },
     {
       title: "Map",
@@ -3893,7 +4013,7 @@ export const URL: URL = instanceOf(
           decode: (s) =>
             Effect.try({
               try: () => new globalThis.URL(s),
-              catch: (e) => new Issue.InvalidValue(O.some(s), { message: globalThis.String(e) })
+              catch: (e) => new Issue.InvalidValue(Option_.some(s), { message: globalThis.String(e) })
             }),
           encode: (url) => Effect.succeed(url.toString())
         })
@@ -4360,7 +4480,7 @@ function getClassSchemaFactory<S extends Top>(
           () => (input, ast) => {
             return input instanceof self ?
               Effect.succeed(input) :
-              Effect.fail(new Issue.InvalidType(ast, O.some(input)))
+              Effect.fail(new Issue.InvalidType(ast, Option_.some(input)))
           },
           Annotations.combine({
             defaultIsoSerializer: ([from]: readonly [Schema<S["Type"]>]) =>
@@ -4743,7 +4863,7 @@ export function declare<T, Iso = T>(
     () => (input, ast) =>
       is(input) ?
         Effect.succeed(input) :
-        Effect.fail(new Issue.InvalidType(ast, O.some(input))),
+        Effect.fail(new Issue.InvalidType(ast, Option_.some(input))),
     annotations
   )
 }

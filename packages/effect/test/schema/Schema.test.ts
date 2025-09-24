@@ -1,5 +1,5 @@
 import { Cause, Effect, Exit, flow, pipe, ServiceMap } from "effect"
-import { Option, Order, Predicate, Redacted, Struct, Tuple } from "effect/data"
+import { Option, Order, Predicate, Redacted, Result, Struct, Tuple } from "effect/data"
 import { Equal } from "effect/interfaces"
 import { String as Str } from "effect/primitives"
 import { AST, Check, Getter, Issue, Schema, ToParser, Transformation } from "effect/schema"
@@ -2069,6 +2069,38 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
     await assertions.encoding.succeed(schema, { a: Option.none() }, { expected: {} })
     await assertions.encoding.succeed(schema, { a: Option.some(1) }, { expected: { a: "1" } })
+  })
+
+  describe("Result", () => {
+    it("should expose the values", () => {
+      const schema = Schema.Result(Schema.String, Schema.Number)
+      strictEqual(schema.success, Schema.String)
+      strictEqual(schema.annotate({}).success, Schema.String)
+      strictEqual(schema.failure, Schema.Number)
+      strictEqual(schema.annotate({}).failure, Schema.Number)
+    })
+
+    it("Result(FiniteFromString, FiniteFromString)", async () => {
+      const schema = Schema.Result(Schema.FiniteFromString, Schema.FiniteFromString)
+      await assertions.decoding.succeed(schema, Result.succeed("1"), { expected: Result.succeed(1) })
+      await assertions.decoding.succeed(schema, Result.fail("2"), { expected: Result.fail(2) })
+      await assertions.decoding.fail(schema, null, `Expected Result, got null`)
+      await assertions.decoding.fail(
+        schema,
+        Result.succeed("a"),
+        `Expected a finite number, got NaN
+  at ["success"]`
+      )
+      await assertions.decoding.fail(
+        schema,
+        Result.fail("b"),
+        `Expected a finite number, got NaN
+  at ["failure"]`
+      )
+
+      await assertions.encoding.succeed(schema, Result.succeed(1), { expected: Result.succeed("1") })
+      await assertions.encoding.succeed(schema, Result.fail(2), { expected: Result.fail("2") })
+    })
   })
 
   describe("Defect", () => {

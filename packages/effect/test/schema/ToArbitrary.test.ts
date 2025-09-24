@@ -512,6 +512,10 @@ describe("ToArbitrary", () => {
     assertions.arbitrary.satisfy(Schema.Option(Schema.String))
   })
 
+  it("Result(Number, String)", () => {
+    assertions.arbitrary.satisfy(Schema.Result(Schema.Number, Schema.String))
+  })
+
   describe("Map", () => {
     it("Map(String, Number)", () => {
       assertions.arbitrary.satisfy(Schema.Map(Schema.String, Schema.Number))

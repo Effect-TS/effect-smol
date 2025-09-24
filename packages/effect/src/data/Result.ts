@@ -461,33 +461,35 @@ export const getFailure: <A, E>(self: Result<A, E>) => Option<E> = result.getFai
 /**
  * Returns an `Equivalence` for comparing two `Result` values.
  *
- * @example
+ * **Example**
+ *
  * ```ts
- * import * as assert from "node:assert"
  * import { Result } from "effect/data"
  * import { Equivalence } from "effect/data"
  *
  * const stringEquivalence = Equivalence.strict<string>()
  * const numberEquivalence = Equivalence.strict<number>()
  *
- * const resultEquivalence = Result.getEquivalence({
- *   success: numberEquivalence,
- *   failure: stringEquivalence
- * })
- *
- * assert.deepStrictEqual(
- *   resultEquivalence(Result.succeed(1), Result.succeed(1)),
- *   true
+ * const resultEquivalence = Result.getEquivalence(
+ *   numberEquivalence,
+ *   stringEquivalence
  * )
+ *
+ * console.log(resultEquivalence(Result.succeed(1), Result.succeed(1)))
+ * // true
+ * console.log(resultEquivalence(Result.succeed(1), Result.succeed(2)))
+ * // false
+ * console.log(resultEquivalence(Result.succeed(1), Result.fail("foo")))
+ * // false
  * ```
  *
  * @category Equivalence
  * @since 4.0.0
  */
-export const getEquivalence = <A, E>({ failure, success }: {
-  success: Equivalence.Equivalence<A>
+export const getEquivalence = <A, E>(
+  success: Equivalence.Equivalence<A>,
   failure: Equivalence.Equivalence<E>
-}): Equivalence.Equivalence<Result<A, E>> =>
+): Equivalence.Equivalence<Result<A, E>> =>
   Equivalence.make((x, y) =>
     isFailure(x) ?
       isFailure(y) && failure(x.failure, y.failure) :

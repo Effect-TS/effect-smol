@@ -1,4 +1,4 @@
-import { Equivalence, Option, Redacted } from "effect/data"
+import { Equivalence, Option, Redacted, Result } from "effect/data"
 import { Check, Schema, ToEquivalence } from "effect/schema"
 import { DateTime, Duration } from "effect/time"
 import { describe, it } from "vitest"
@@ -328,6 +328,19 @@ describe("ToEquivalence", () => {
     assertFalse(equivalence(Option.none(), Option.some(1)))
     assertFalse(equivalence(Option.some(1), Option.none()))
     assertFalse(equivalence(Option.some(1), Option.some(2)))
+  })
+
+  it("Result(Number, String)", () => {
+    const schema = Schema.Result(Schema.Number, Schema.String)
+    const equivalence = ToEquivalence.make(schema)
+    assertTrue(equivalence(Result.succeed(1), Result.succeed(1)))
+    assertFalse(equivalence(Result.succeed(1), Result.succeed(2)))
+
+    assertTrue(equivalence(Result.fail("a"), Result.fail("a")))
+    assertFalse(equivalence(Result.fail("a"), Result.fail("b")))
+
+    assertFalse(equivalence(Result.succeed(1), Result.fail("a")))
+    assertFalse(equivalence(Result.fail("a"), Result.succeed(1)))
   })
 
   it("Map(String, Number)", () => {

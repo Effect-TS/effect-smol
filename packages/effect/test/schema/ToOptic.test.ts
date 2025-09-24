@@ -1,5 +1,5 @@
 import { Cause, Exit } from "effect"
-import { Data, Option, Predicate, Record } from "effect/data"
+import { Data, Option, Predicate, Record, Result } from "effect/data"
 import { Check, Schema, ToOptic, Util } from "effect/schema"
 import { describe, it } from "vitest"
 import { assertNone, assertSome, deepStrictEqual, strictEqual, throws } from "../utils/assert.ts"
@@ -267,6 +267,17 @@ describe("ToOptic", () => {
         Value.makeSync({ a: new Date(1) })
       )
       assertNone(modify(Option.none()))
+    })
+
+    it("Result", () => {
+      const schema = Schema.Result(Value, Value)
+      const optic = ToOptic.makeIso(schema).tag("Success").key("success").key("a")
+      const modify = optic.modify(addOne)
+
+      deepStrictEqual(
+        modify(Result.succeed(Value.makeSync({ a: new Date(0) }))),
+        Result.succeed(Value.makeSync({ a: new Date(1) }))
+      )
     })
 
     it("CauseFailure", () => {
