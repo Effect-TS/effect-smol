@@ -1239,6 +1239,7 @@ const make = Effect.gen(function*() {
       Effect.flatMap(runnerHealth.isAlive(runner.address), (isAlive) => {
         if (healthy === isAlive) return Effect.void
         if (isAlive) {
+          healthyRunnerCount++
           return Effect.logDebug(`Runner is healthy`, runner).pipe(
             Effect.andThen(runnerStorage.setRunnerHealth(runner.address, isAlive))
           )
