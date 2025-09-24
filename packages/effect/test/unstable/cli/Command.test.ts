@@ -342,6 +342,83 @@ describe("Command", () => {
         ])
       }))
 
+    it.effect("should allow direct yielding of parent command (new Yieldable pattern)", () =>
+      Effect.gen(function*() {
+        const messages: Array<string> = []
+
+        // Parent command with a global-ish flag
+        const root = Command.make("npm", {
+          global: Flag.boolean("global")
+        })
+
+        const install = Command.make("install", {
+          pkg: Flag.string("pkg")
+        }, (config) =>
+          Effect.gen(function*() {
+            // NEW: Direct yielding of parent command instead of root.tag
+            const parentConfig = yield* root
+            messages.push(`install: global=${parentConfig.global}, pkg=${config.pkg}`)
+          }))
+
+        const npm = root.pipe(Command.withSubcommands(install))
+
+        const runNpm = Command.runWithArgs(npm, { version: "1.0.0" })
+
+        // Test the new pattern works
+        yield* runNpm(["--global", "install", "--pkg", "effect"]).pipe(Effect.provide(TestLayer))
+
+        assert.deepStrictEqual(messages, [
+          "install: global=true, pkg=effect"
+        ])
+      }))
+
+    it.effect("should support both .tag and direct yielding patterns (backward compatibility)", () =>
+      Effect.gen(function*() {
+        const messages: Array<string> = []
+
+        const parent = Command.make("parent", {
+          verbose: Flag.boolean("verbose"),
+          config: Flag.string("config")
+        })
+
+        // Child using old pattern (.tag)
+        const childOld = Command.make("child-old", {
+          action: Flag.string("action")
+        }, (config) =>
+          Effect.gen(function*() {
+            const parentConfig = yield* parent.tag // Old pattern
+            messages.push(`child-old: parent.verbose=${parentConfig.verbose}, action=${config.action}`)
+          }))
+
+        // Child using new pattern (direct yield)
+        const childNew = Command.make("child-new", {
+          action: Flag.string("action")
+        }, (config) =>
+          Effect.gen(function*() {
+            const parentConfig = yield* parent // New pattern
+            messages.push(`child-new: parent.verbose=${parentConfig.verbose}, action=${config.action}`)
+          }))
+
+        const combined = parent.pipe(
+          Command.withSubcommands(childOld, childNew)
+        )
+
+        const runCommand = Command.runWithArgs(combined, { version: "1.0.0" })
+
+        // Test both patterns work
+        yield* runCommand(["--verbose", "--config", "prod.json", "child-old", "--action", "deploy"]).pipe(
+          Effect.provide(TestLayer)
+        )
+        yield* runCommand(["--verbose", "--config", "prod.json", "child-new", "--action", "deploy"]).pipe(
+          Effect.provide(TestLayer)
+        )
+
+        assert.deepStrictEqual(messages, [
+          "child-old: parent.verbose=true, action=deploy",
+          "child-new: parent.verbose=true, action=deploy"
+        ])
+      }))
+
     it.effect("should handle nested subcommands with context sharing", () =>
       Effect.gen(function*() {
         const messages: Array<string> = []
