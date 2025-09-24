@@ -188,6 +188,22 @@ importers:
         specifier: ^4.1.11
         version: 4.1.11
 
+  examples/simple-cli:
+    dependencies:
+      '@effect/platform-node':
+        specifier: workspace:*
+        version: link:../../packages/platform-node
+      effect:
+        specifier: workspace:*
+        version: link:../../packages/effect
+    devDependencies:
+      tsx:
+        specifier: ^4.7.0
+        version: 4.20.5
+      typescript:
+        specifier: ^5.3.3
+        version: 5.9.2
+
   packages/effect:
     dependencies:
       '@standard-schema/spec':
@@ -7883,7 +7899,9 @@ snapshots:
       metro-runtime: 0.83.2
     transitivePeerDependencies:
       - '@babel/core'
+      - bufferutil
       - supports-color
+      - utf-8-validate
 
   '@react-native/normalize-colors@0.81.0': {}
 
