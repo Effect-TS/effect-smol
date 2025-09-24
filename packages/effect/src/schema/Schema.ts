@@ -119,7 +119,7 @@ export interface Bottom<
   readonly "EncodingServices": RE
 
   readonly "~type.make.in": TypeMakeIn
-  readonly "~type.make": TypeMake
+  readonly "~type.make": TypeMake // useful to type the `refine` interface
   readonly "~type.constructor.default": TypeConstructorDefault
   readonly "Iso": Iso
 
@@ -2159,7 +2159,6 @@ export interface readonly$<S extends Top> extends
     S["EncodingServices"],
     S["ast"],
     readonly$<S>,
-    // we keep "~annotate.in", "~type.make" and "~type.make.in" as they are because they are contravariant
     S["~annotate.in"],
     S["~type.make.in"],
     S["Iso"],
