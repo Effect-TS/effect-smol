@@ -18,6 +18,7 @@ import type { ParentSpan, SpanOptions } from "../observability/Tracer.ts"
 import type * as PubSub from "../PubSub.ts"
 import * as Queue from "../Queue.ts"
 import * as RcMap from "../RcMap.ts"
+import * as RcRef from "../RcRef.ts"
 import * as Schedule from "../Schedule.ts"
 import * as Scope from "../Scope.ts"
 import * as ServiceMap from "../ServiceMap.ts"
@@ -28,6 +29,7 @@ import * as Duration from "../time/Duration.ts"
 import type { TypeLambda } from "../types/HKT.ts"
 import type { Covariant } from "../types/Types.ts"
 import type * as Unify from "../types/Unify.ts"
+import type * as Take from "./Take.ts"
 
 const TypeId = "~effect/stream/Stream"
 
@@ -795,6 +797,13 @@ export const fromQueue = <A, E>(queue: Queue.Dequeue<A, E>): Stream<A, Exclude<E
 export const fromPubSub = <A>(pubsub: PubSub.PubSub<A>): Stream<A> => fromChannel(Channel.fromPubSubArray(pubsub))
 
 /**
+ * @since 4.0.0
+ * @category constructors
+ */
+export const fromPubSubTake = <A, E>(pubsub: PubSub.PubSub<Take.Take<A, E>>): Stream<A, E> =>
+  fromChannel(Channel.fromPubSubTake(pubsub))
+
+/**
  * Creates a stream from a ReadableStream.
  *
  * @example
@@ -1302,6 +1311,23 @@ export const mapEffect: {
   ))
 
 /**
+ * @since 4.0.0
+ * @category mapping
+ */
+export const mapArrayEffect: {
+  <A, B, E2, R2>(
+    f: (a: Arr.NonEmptyReadonlyArray<A>) => Effect.Effect<Arr.NonEmptyReadonlyArray<B>, E2, R2>
+  ): <E, R>(self: Stream<A, E, R>) => Stream<B, E | E2, R | R2>
+  <A, E, R, B, E2, R2>(
+    self: Stream<A, E, R>,
+    f: (a: Arr.NonEmptyReadonlyArray<A>) => Effect.Effect<Arr.NonEmptyReadonlyArray<B>, E2, R2>
+  ): Stream<B, E | E2, R | R2>
+} = dual(2, <A, E, R, B, E2, R2>(
+  self: Stream<A, E, R>,
+  f: (a: Arr.NonEmptyReadonlyArray<A>) => Effect.Effect<Arr.NonEmptyReadonlyArray<B>, E2, R2>
+): Stream<B, E | E2, R | R2> => fromChannel(Channel.mapEffect(self.channel, f)))
+
+/**
  * Adds an effect to consumption of every element of the stream.
  *
  * @example
@@ -1474,6 +1500,19 @@ export const drain = <A, E, R>(self: Stream<A, E, R>): Stream<never, E, R> => fr
  */
 export const flattenIterable = <A, E, R>(self: Stream<Iterable<A>, E, R>): Stream<A, E, R> =>
   flatMap(self, fromIterable)
+
+/**
+ * Flattens a stream of Take's into a single stream.
+ *
+ * @since 4.0.0
+ * @category sequencing
+ */
+export const flattenTake = <A, E, E2, R>(self: Stream<Take.Take<A, E>, E2, R>): Stream<A, E | E2, R> =>
+  self.channel.pipe(
+    Channel.flattenArray,
+    Channel.flattenTake,
+    fromChannel
+  )
 
 /**
  * Concatenates two streams, emitting all elements from the first stream
@@ -2391,6 +2430,95 @@ const groupByImpl = <A, E, R, K, V, E2, R2>(
       return Queue.toPullArray(out)
     })
   )
+
+/**
+ * @since 2.0.0
+ * @category Broadcast
+ */
+export const broadcast: {
+  (
+    options: {
+      readonly capacity: "unbounded"
+      readonly replay?: number | undefined
+    } | {
+      readonly capacity: number
+      readonly strategy?: "sliding" | "dropping" | "suspend" | undefined
+      readonly replay?: number | undefined
+    }
+  ): <A, E, R>(self: Stream<A, E, R>) => Effect.Effect<Stream<A, E>, never, Scope.Scope | R>
+  <A, E, R>(
+    self: Stream<A, E, R>,
+    options: {
+      readonly capacity: "unbounded"
+      readonly replay?: number | undefined
+    } | {
+      readonly capacity: number
+      readonly strategy?: "sliding" | "dropping" | "suspend" | undefined
+      readonly replay?: number | undefined
+    }
+  ): Effect.Effect<Stream<A, E>, never, Scope.Scope | R>
+} = dual(2, <A, E, R>(
+  self: Stream<A, E, R>,
+  options: {
+    readonly capacity: "unbounded"
+    readonly replay?: number | undefined
+  } | {
+    readonly capacity: number
+    readonly strategy?: "sliding" | "dropping" | "suspend" | undefined
+    readonly replay?: number | undefined
+  }
+): Effect.Effect<Stream<A, E>, never, Scope.Scope | R> => Effect.map(toPubSubTake(self, options), fromPubSubTake))
+
+/**
+ * @since 2.0.0
+ * @category Broadcast
+ */
+export const share: {
+  (
+    options: {
+      readonly capacity: "unbounded"
+      readonly replay?: number | undefined
+      readonly idleTimeToLive?: Duration.DurationInput | undefined
+    } | {
+      readonly capacity: number
+      readonly strategy?: "sliding" | "dropping" | "suspend" | undefined
+      readonly replay?: number | undefined
+      readonly idleTimeToLive?: Duration.DurationInput | undefined
+    }
+  ): <A, E, R>(self: Stream<A, E, R>) => Effect.Effect<Stream<A, E>, never, Scope.Scope | R>
+  <A, E, R>(
+    self: Stream<A, E, R>,
+    options: {
+      readonly capacity: "unbounded"
+      readonly replay?: number | undefined
+      readonly idleTimeToLive?: Duration.DurationInput | undefined
+    } | {
+      readonly capacity: number
+      readonly strategy?: "sliding" | "dropping" | "suspend" | undefined
+      readonly replay?: number | undefined
+      readonly idleTimeToLive?: Duration.DurationInput | undefined
+    }
+  ): Effect.Effect<Stream<A, E>, never, Scope.Scope | R>
+} = dual(2, <A, E, R>(
+  self: Stream<A, E, R>,
+  options: {
+    readonly capacity: "unbounded"
+    readonly replay?: number | undefined
+    readonly idleTimeToLive?: Duration.DurationInput | undefined
+  } | {
+    readonly capacity: number
+    readonly strategy?: "sliding" | "dropping" | "suspend" | undefined
+    readonly replay?: number | undefined
+    readonly idleTimeToLive?: Duration.DurationInput | undefined
+  }
+): Effect.Effect<Stream<A, E>, never, Scope.Scope | R> =>
+  Effect.map(
+    RcRef.make({
+      acquire: broadcast(self, options),
+      idleTimeToLive: options.idleTimeToLive
+    }),
+    (ref) => unwrap(RcRef.get(ref))
+  ))
 
 /**
  * Pipes all the values from this stream through the provided channel.
@@ -3318,3 +3446,92 @@ export const toAsyncIterableEffect = <A, E, R>(self: Stream<A, E, R>): Effect.Ef
  */
 export const toAsyncIterable = <A, E>(self: Stream<A, E>): AsyncIterable<A> =>
   toAsyncIterableWith(self, ServiceMap.empty())
+
+/**
+ * @since 2.0.0
+ * @category destructors
+ */
+export const toPubSub: {
+  (
+    options: {
+      readonly capacity: "unbounded"
+      readonly replay?: number | undefined
+      readonly shutdownOnEnd?: boolean | undefined
+    } | {
+      readonly capacity: number
+      readonly strategy?: "dropping" | "sliding" | "suspend" | undefined
+      readonly replay?: number | undefined
+      readonly shutdownOnEnd?: boolean | undefined
+    }
+  ): <A, E, R>(self: Stream<A, E, R>) => Effect.Effect<PubSub.PubSub<A>, never, R | Scope.Scope>
+  <A, E, R>(
+    self: Stream<A, E, R>,
+    options: {
+      readonly capacity: "unbounded"
+      readonly replay?: number | undefined
+      readonly shutdownOnEnd?: boolean | undefined
+    } | {
+      readonly capacity: number
+      readonly strategy?: "dropping" | "sliding" | "suspend" | undefined
+      readonly replay?: number | undefined
+      readonly shutdownOnEnd?: boolean | undefined
+    }
+  ): Effect.Effect<PubSub.PubSub<A>, never, R | Scope.Scope>
+} = dual(
+  2,
+  <A, E, R>(
+    self: Stream<A, E, R>,
+    options: {
+      readonly capacity: "unbounded"
+      readonly replay?: number | undefined
+      readonly shutdownOnEnd?: boolean | undefined
+    } | {
+      readonly capacity: number
+      readonly strategy?: "dropping" | "sliding" | "suspend" | undefined
+      readonly replay?: number | undefined
+      readonly shutdownOnEnd?: boolean | undefined
+    }
+  ): Effect.Effect<PubSub.PubSub<A>, never, R | Scope.Scope> => Channel.toPubSubArray(self.channel, options)
+)
+
+/**
+ * @since 4.0.0
+ * @category destructors
+ */
+export const toPubSubTake: {
+  (
+    options: {
+      readonly capacity: "unbounded"
+      readonly replay?: number | undefined
+    } | {
+      readonly capacity: number
+      readonly strategy?: "dropping" | "sliding" | "suspend" | undefined
+      readonly replay?: number | undefined
+    }
+  ): <A, E, R>(self: Stream<A, E, R>) => Effect.Effect<PubSub.PubSub<Take.Take<A, E>>, never, R | Scope.Scope>
+  <A, E, R>(
+    self: Stream<A, E, R>,
+    options: {
+      readonly capacity: "unbounded"
+      readonly replay?: number | undefined
+    } | {
+      readonly capacity: number
+      readonly strategy?: "dropping" | "sliding" | "suspend" | undefined
+      readonly replay?: number | undefined
+    }
+  ): Effect.Effect<PubSub.PubSub<Take.Take<A, E>>, never, R | Scope.Scope>
+} = dual(
+  2,
+  <A, E, R>(
+    self: Stream<A, E, R>,
+    options: {
+      readonly capacity: "unbounded"
+      readonly replay?: number | undefined
+    } | {
+      readonly capacity: number
+      readonly strategy?: "dropping" | "sliding" | "suspend" | undefined
+      readonly replay?: number | undefined
+    }
+  ): Effect.Effect<PubSub.PubSub<Take.Take<A, E>>, never, R | Scope.Scope> =>
+    Channel.toPubSubTake(self.channel, options)
+)

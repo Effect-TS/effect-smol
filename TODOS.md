@@ -88,7 +88,7 @@ The exports under each section are organized as they are in Effect 3.0. The cate
 |      `context`       |   X    |                   |          |
 |    `contextWith`     |  Done  |  `servicesWith`   |          |
 | `contextWithChannel` |  Done  |  `servicesWith`   |          |
-| `contextWithEffect`  |  Done  | `servicesWith`    |          |
+| `contextWithEffect`  |  Done  |  `servicesWith`   |          |
 |  `mapInputContext`   |  Done  | `updateServices`  |          |
 |   `provideContext`   |  Done  | `provideServices` |          |
 |    `provideLayer`    |   -    |                   |          |
@@ -104,7 +104,7 @@ The exports under each section are organized as they are in Effect 3.0. The cate
 | `runCollect` |  Done  |     `runCollect`     |          |
 |  `runDrain`  |  Done  |      `runDrain`      |          |
 | `runScoped`  |   X    |                      |          |
-|  `toPubSub`  |   -    |                      |          |
+|  `toPubSub`  |  Done  |                      |          |
 |   `toPull`   |  Done  |       `toPull`       |          |
 |  `toPullIn`  |  Done  |    `toPullScoped`    |          |
 |  `toQueue`   |  Done  |      `toQueue`       |          |
@@ -113,7 +113,7 @@ The exports under each section are organized as they are in Effect 3.0. The cate
 
 ### Error Handling
 
-|    Effect 3     | Ported |   Effect 4   | Comments        |
+|    Effect 3     | Ported |   Effect 4   |    Comments     |
 | :-------------: | :----: | :----------: | :-------------: |
 |   `catchAll`    |  Done  |   `catch`    |                 |
 | `catchAllCause` |  Done  | `catchCause` |                 |
@@ -175,6 +175,6 @@ The exports under each section are organized as they are in Effect 3.0. The cate
 |      `foldChannel`      |   -    |              |                     |
 |     `interruptWhen`     |  Done  |              |                     |
 | `interruptWhenDeferred` |   X    |              | Use `interruptWhen` |
-|       `mapInput`        |  Done  | `mapInput`   |                     |
+|       `mapInput`        |  Done  |  `mapInput`  |                     |
 |    `mapInputEffect`     |   -    |              |                     |
 |     `mapInputError`     |   -    |              |                     |

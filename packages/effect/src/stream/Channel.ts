@@ -83,6 +83,7 @@ import * as ServiceMap from "../ServiceMap.ts"
 import * as Pull from "../stream/Pull.ts"
 import type * as Types from "../types/Types.ts"
 import type * as Unify from "../types/Unify.ts"
+import * as Take from "./Take.ts"
 
 const TypeId = "~effect/Channel"
 
@@ -1055,6 +1056,15 @@ export const fromEffect = <A, E, R>(
   )
 
 /**
+ * @since 4.0.0
+ * @category constructors
+ */
+export const fromEffectTake = <A, E, Done, E2, R>(
+  effect: Effect.Effect<Take.Take<A, E, Done>, E2, R>
+): Channel<Arr.NonEmptyReadonlyArray<A>, E | E2, Done, unknown, unknown, unknown, R> =>
+  fromPull(Effect.succeed(Effect.flatMap(effect, Take.toPull)))
+
+/**
  * Create a channel from a queue
  *
  * @example
@@ -1566,7 +1576,16 @@ export const fromPubSub = <A>(
  * @category constructors
  */
 export const fromPubSubArray = <A>(pubsub: PubSub.PubSub<A>): Channel<Arr.NonEmptyReadonlyArray<A>> =>
-  unwrap(Effect.map(PubSub.subscribe(pubsub), (sub) => fromSubscriptionArray(sub)))
+  unwrap(Effect.map(PubSub.subscribe(pubsub), fromSubscriptionArray))
+
+/**
+ * @since 4.0.0
+ * @category constructors
+ */
+export const fromPubSubTake = <A, E, Done>(
+  pubsub: PubSub.PubSub<Take.Take<A, E, Done>>
+): Channel<Arr.NonEmptyReadonlyArray<A>, E, Done> =>
+  unwrap(Effect.map(PubSub.subscribe(pubsub), (sub) => fromEffectTake(PubSub.take(sub))))
 
 /**
  * Creates a Channel from a Schedule.
@@ -2531,6 +2550,25 @@ export const flattenArray = <
     })
     return Effect.succeed(pump)
   })
+
+/**
+ * @since 4.0.0
+ * @category utils
+ */
+export const flattenTake = <
+  OutElem,
+  OutErr,
+  OutDone,
+  OutErr2,
+  OutDone2,
+  InElem,
+  InErr,
+  InDone,
+  Env
+>(
+  self: Channel<Take.Take<OutElem, OutErr, OutDone>, OutErr2, OutDone2, InElem, InErr, InDone, Env>
+): Channel<Arr.NonEmptyReadonlyArray<OutElem>, OutErr | OutErr2, OutDone, InElem, InErr, InDone, Env> =>
+  mapEffectSequential(self, Take.toPull) as any
 
 /**
  * Creates a new channel that consumes all output from the source channel
@@ -4954,7 +4992,7 @@ export const runFold: {
  * ```
  *
  * @since 2.0.0
- * @category constructors
+ * @category Destructors
  */
 export const toPull: <OutElem, OutErr, OutDone, Env>(
   self: Channel<OutElem, OutErr, OutDone, unknown, unknown, unknown, Env>
@@ -5005,7 +5043,7 @@ export const toPull: <OutElem, OutErr, OutDone, Env>(
  * ```
  *
  * @since 4.0.0
- * @category constructors
+ * @category Destructors
  */
 export const toPullScoped = <OutElem, OutErr, OutDone, Env>(
   self: Channel<OutElem, OutErr, OutDone, unknown, unknown, unknown, Env>,
@@ -5037,7 +5075,7 @@ export const toPullScoped = <OutElem, OutErr, OutDone, Env>(
  * ```
  *
  * @since 4.0.0
- * @category conversions
+ * @category Destructors
  */
 export const toQueue: {
   (options?: {
@@ -5069,5 +5107,208 @@ export const toQueue: {
       Effect.forkIn(scope)
     )
     return queue
+  })
+)
+
+/**
+ * Converts a channel to a PubSub for concurrent consumption.
+ *
+ * `shutdownOnEnd` indicates whether the PubSub should be shut down when the
+ * channel ends. By default this is `true`.
+ *
+ * @since 4.0.0
+ * @category Destructors
+ */
+export const toPubSub: {
+  (
+    options: {
+      readonly capacity: "unbounded"
+      readonly replay?: number | undefined
+      readonly shutdownOnEnd?: boolean | undefined
+    } | {
+      readonly capacity: number
+      readonly strategy?: "dropping" | "sliding" | "suspend" | undefined
+      readonly replay?: number | undefined
+      readonly shutdownOnEnd?: boolean | undefined
+    }
+  ): <OutElem, OutErr, OutDone, Env>(
+    self: Channel<OutDone, OutErr, OutDone, unknown, unknown, unknown, Env>
+  ) => Effect.Effect<PubSub.PubSub<OutElem>, never, Env | Scope.Scope>
+  <OutElem, OutErr, OutDone, Env>(
+    self: Channel<OutElem, OutErr, OutDone, unknown, unknown, unknown, Env>,
+    options: {
+      readonly capacity: "unbounded"
+      readonly replay?: number | undefined
+      readonly shutdownOnEnd?: boolean | undefined
+    } | {
+      readonly capacity: number
+      readonly strategy?: "dropping" | "sliding" | "suspend" | undefined
+      readonly replay?: number | undefined
+      readonly shutdownOnEnd?: boolean | undefined
+    }
+  ): Effect.Effect<PubSub.PubSub<OutElem>, never, Env | Scope.Scope>
+} = dual(
+  2,
+  Effect.fnUntraced(function*<OutElem, OutErr, OutDone, Env>(
+    self: Channel<OutElem, OutErr, OutDone, unknown, unknown, unknown, Env>,
+    options: {
+      readonly capacity: "unbounded"
+      readonly replay?: number | undefined
+      readonly shutdownOnEnd?: boolean | undefined
+    } | {
+      readonly capacity: number
+      readonly strategy?: "dropping" | "sliding" | "suspend" | undefined
+      readonly replay?: number | undefined
+      readonly shutdownOnEnd?: boolean | undefined
+    }
+  ) {
+    const pubsub = yield* makePubSub<OutElem>(options)
+    yield* runForEach(self, (value) => PubSub.publish(pubsub, value)).pipe(
+      options.shutdownOnEnd === false ? identity_ : Effect.ensuring(PubSub.shutdown(pubsub)),
+      Effect.forkScoped
+    )
+    return pubsub
+  })
+)
+
+const makePubSub = <A>(
+  options: {
+    readonly capacity: "unbounded"
+    readonly replay?: number | undefined
+  } | {
+    readonly capacity: number
+    readonly strategy?: "dropping" | "sliding" | "suspend" | undefined
+    readonly replay?: number | undefined
+  }
+) =>
+  Effect.acquireRelease(
+    options.capacity === "unbounded"
+      ? PubSub.unbounded<A>(options)
+      : options.strategy === "dropping"
+      ? PubSub.dropping<A>(options)
+      : options.strategy === "sliding"
+      ? PubSub.sliding<A>(options)
+      : PubSub.bounded<A>(options),
+    PubSub.shutdown
+  )
+
+/**
+ * Converts a channel to a PubSub for concurrent consumption.
+ *
+ * `shutdownOnEnd` indicates whether the PubSub should be shut down when the
+ * channel ends. By default this is `true`.
+ *
+ * @since 4.0.0
+ * @category Destructors
+ */
+export const toPubSubArray: {
+  (
+    options: {
+      readonly capacity: "unbounded"
+      readonly replay?: number | undefined
+      readonly shutdownOnEnd?: boolean | undefined
+    } | {
+      readonly capacity: number
+      readonly strategy?: "dropping" | "sliding" | "suspend" | undefined
+      readonly replay?: number | undefined
+      readonly shutdownOnEnd?: boolean | undefined
+    }
+  ): <OutElem, OutErr, OutDone, Env>(
+    self: Channel<Arr.NonEmptyReadonlyArray<OutElem>, OutErr, OutDone, unknown, unknown, unknown, Env>
+  ) => Effect.Effect<PubSub.PubSub<OutElem>, never, Env | Scope.Scope>
+  <OutElem, OutErr, OutDone, Env>(
+    self: Channel<Arr.NonEmptyReadonlyArray<OutElem>, OutErr, OutDone, unknown, unknown, unknown, Env>,
+    options: {
+      readonly capacity: "unbounded"
+      readonly replay?: number | undefined
+      readonly shutdownOnEnd?: boolean | undefined
+    } | {
+      readonly capacity: number
+      readonly strategy?: "dropping" | "sliding" | "suspend" | undefined
+      readonly replay?: number | undefined
+      readonly shutdownOnEnd?: boolean | undefined
+    }
+  ): Effect.Effect<PubSub.PubSub<OutElem>, never, Env | Scope.Scope>
+} = dual(
+  2,
+  Effect.fnUntraced(function*<OutElem, OutErr, OutDone, Env>(
+    self: Channel<Arr.NonEmptyReadonlyArray<OutElem>, OutErr, OutDone, unknown, unknown, unknown, Env>,
+    options: {
+      readonly capacity: "unbounded"
+      readonly replay?: number | undefined
+      readonly shutdownOnEnd?: boolean | undefined
+    } | {
+      readonly capacity: number
+      readonly strategy?: "dropping" | "sliding" | "suspend" | undefined
+      readonly replay?: number | undefined
+      readonly shutdownOnEnd?: boolean | undefined
+    }
+  ) {
+    const pubsub = yield* makePubSub<OutElem>(options)
+    yield* runForEach(self, (value) => PubSub.publishAll(pubsub, value)).pipe(
+      options.shutdownOnEnd === false ? identity_ : Effect.ensuring(PubSub.shutdown(pubsub)),
+      Effect.forkScoped
+    )
+    return pubsub
+  })
+)
+
+/**
+ * Converts a channel to a PubSub for concurrent consumption.
+ *
+ * @since 4.0.0
+ * @category Destructors
+ */
+export const toPubSubTake: {
+  (
+    options: {
+      readonly capacity: "unbounded"
+      readonly replay?: number | undefined
+    } | {
+      readonly capacity: number
+      readonly strategy?: "dropping" | "sliding" | "suspend" | undefined
+      readonly replay?: number | undefined
+    }
+  ): <OutElem, OutErr, OutDone, Env>(
+    self: Channel<Arr.NonEmptyReadonlyArray<OutDone>, OutErr, OutDone, unknown, unknown, unknown, Env>
+  ) => Effect.Effect<
+    PubSub.PubSub<Take.Take<OutElem, OutErr, OutDone>>,
+    never,
+    Env | Scope.Scope
+  >
+  <OutElem, OutErr, OutDone, Env>(
+    self: Channel<Arr.NonEmptyReadonlyArray<OutElem>, OutErr, OutDone, unknown, unknown, unknown, Env>,
+    options: {
+      readonly capacity: "unbounded"
+      readonly replay?: number | undefined
+    } | {
+      readonly capacity: number
+      readonly strategy?: "dropping" | "sliding" | "suspend" | undefined
+      readonly replay?: number | undefined
+    }
+  ): Effect.Effect<
+    PubSub.PubSub<Take.Take<OutElem, OutErr, OutDone>>,
+    never,
+    Env | Scope.Scope
+  >
+} = dual(
+  2,
+  Effect.fnUntraced(function*<OutElem, OutErr, OutDone, Env>(
+    self: Channel<Arr.NonEmptyReadonlyArray<OutElem>, OutErr, OutDone, unknown, unknown, unknown, Env>,
+    options: {
+      readonly capacity: "unbounded"
+      readonly replay?: number | undefined
+    } | {
+      readonly capacity: number
+      readonly strategy?: "dropping" | "sliding" | "suspend" | undefined
+      readonly replay?: number | undefined
+    }
+  ) {
+    const pubsub = yield* makePubSub<Take.Take<OutElem, OutErr, OutDone>>(options)
+    yield* runForEach(self, (value) => PubSub.publish(pubsub, value)).pipe(
+      Effect.onExit((exit) => PubSub.publish(pubsub, exit)),
+      Effect.forkScoped
+    )
+    return pubsub
   })
 )
