@@ -41,9 +41,9 @@ describe("Command help output", () => {
           mycli <subcommand> [flags]
 
         FLAGS
-          -d, --debug          Enable debug logging
-          -c, --config file    Path to configuration file
-          -q, --quiet          Suppress non-error output
+          --debug, -d          Enable debug logging
+          --config, -c file    Path to configuration file
+          --quiet, -q          Suppress non-error output
 
         SUBCOMMANDS
           admin            Administrative commands
@@ -71,9 +71,9 @@ describe("Command help output", () => {
           mycli <subcommand> [flags]
 
         FLAGS
-          -d, --debug          Enable debug logging
-          -c, --config file    Path to configuration file
-          -q, --quiet          Suppress non-error output
+          --debug, -d          Enable debug logging
+          --config, -c file    Path to configuration file
+          --quiet, -q          Suppress non-error output
 
         SUBCOMMANDS
           admin            Administrative commands
@@ -101,9 +101,9 @@ describe("Command help output", () => {
           mycli <subcommand> [flags]
 
         FLAGS
-          -d, --debug          Enable debug logging
-          -c, --config file    Path to configuration file
-          -q, --quiet          Suppress non-error output
+          --debug, -d          Enable debug logging
+          --config, -c file    Path to configuration file
+          --quiet, -q          Suppress non-error output
 
         SUBCOMMANDS
           admin            Administrative commands
@@ -133,7 +133,7 @@ describe("Command help output", () => {
         FLAGS
           --format string    Output format (json, table, csv)
           --active           Show only active users
-          -v, --verbose      Show detailed information"
+          --verbose, -v      Show detailed information"
       `)
     }).pipe(Effect.provide(TestLayer)))
 
@@ -154,7 +154,7 @@ describe("Command help output", () => {
 
         FLAGS
           --role string    User role (admin, user, guest)
-          -n, --notify     Send notification email"
+          --notify, -n     Send notification email"
       `)
     }).pipe(Effect.provide(TestLayer)))
 
@@ -170,7 +170,7 @@ describe("Command help output", () => {
           mycli admin config <subcommand> [flags]
 
         FLAGS
-          -p, --profile string    Configuration profile to use
+          --profile, -p string    Configuration profile to use
 
         SUBCOMMANDS
           set    Set configuration values
@@ -193,7 +193,7 @@ describe("Command help output", () => {
           key=value... string    Configuration key-value pairs
 
         FLAGS
-          -f, --config-file file    Write to specific config file"
+          --config-file, -f file    Write to specific config file"
       `)
     }).pipe(Effect.provide(TestLayer)))
 })

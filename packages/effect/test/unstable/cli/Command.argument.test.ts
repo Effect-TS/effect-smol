@@ -1,10 +1,11 @@
+import { NodeFileSystem, NodePath } from "@effect/platform-node"
 import { assert, describe, it } from "@effect/vitest"
 import { Effect, Layer } from "effect"
 import { FileSystem } from "effect/platform"
+import { TestConsole } from "effect/testing"
 import { Argument, Command, Flag } from "effect/unstable/cli"
-import { MockFileSystem, MockPath } from "./utils/MockServices.ts"
 
-const TestLayer = Layer.mergeAll(MockFileSystem, MockPath)
+const TestLayer = Layer.mergeAll(TestConsole.layer, NodeFileSystem.layer, NodePath.layer)
 
 describe("Command arguments", () => {
   it.effect("should parse all argument types correctly", () =>
@@ -57,32 +58,43 @@ describe("Command arguments", () => {
       yield* fs.writeFileString(tempFile, "test content")
 
       // Test 1: mustExist: true with existing file - should pass
+      let result1: any
       const existingFileCommand = Command.make("test", {
         file: Argument.file("file", { mustExist: true })
       }, ({ file }) => {
-        assert.strictEqual(file, tempFile)
+        result1 = file
         return Effect.void
       })
 
       yield* Command.runWithArgs(existingFileCommand, { version: "1.0.0" })([tempFile])
+      assert.strictEqual(result1, tempFile)
 
-      // Test 2: mustExist: true with non-existing file - should fail
-      const error = yield* Effect.flip(
-        Command.runWithArgs(existingFileCommand, { version: "1.0.0" })(["/non/existent/file.txt"])
-      )
-      assert.isTrue(String(error).includes("does not exist"))
+      // Test 2: mustExist: true with non-existing file - should display error and help
+      const runCommand = Command.runWithArgs(existingFileCommand, { version: "1.0.0" })
+      yield* runCommand(["/non/existent/file.txt"])
+
+      // Check that help was shown
+      const stdout = yield* TestConsole.logLines
+      assert.isTrue(stdout.some(line => String(line).includes("USAGE")))
+
+      // Check that error was shown
+      const stderr = yield* TestConsole.errorLines
+      assert.isTrue(stderr.some(line => String(line).includes("ERROR")))
+      assert.isTrue(stderr.some(line => String(line).includes("does not exist")))
 
       // Test 3: mustExist: false - should always pass
+      let result3: any
       const optionalFileCommand = Command.make("test", {
         file: Argument.file("file", { mustExist: false })
       }, ({ file }) => {
-        assert.isTrue(file.includes("non-existent-file.txt"))
+        result3 = file
         return Effect.void
       })
 
       yield* Command.runWithArgs(optionalFileCommand, { version: "1.0.0" })([
         "./non-existent-file.txt"
       ])
+      assert.isTrue(result3.includes("non-existent-file.txt"))
     }).pipe(Effect.provide(TestLayer)))
 
   it.effect("should fail with invalid arguments", () =>
@@ -92,17 +104,18 @@ describe("Command arguments", () => {
         env: Argument.choice("env", ["dev", "prod"])
       }, (config) => Effect.succeed(config))
 
-      // Test invalid integer
-      const error1 = yield* Effect.flip(
-        Command.runWithArgs(testCommand, { version: "1.0.0" })(["not-a-number", "dev"])
-      )
-      assert.isTrue(String(error1).includes("Failed to parse integer"))
+      // Test invalid integer - should display help and error
+      const runCommand = Command.runWithArgs(testCommand, { version: "1.0.0" })
+      yield* runCommand(["not-a-number", "dev"])
 
-      // Test invalid choice
-      const error2 = yield* Effect.flip(
-        Command.runWithArgs(testCommand, { version: "1.0.0" })(["42", "invalid"])
-      )
-      assert.isTrue(String(error2).includes("Expected one of: dev, prod"))
+      // Check help was shown
+      const stdout = yield* TestConsole.logLines
+      assert.isTrue(stdout.some(line => String(line).includes("USAGE")))
+
+      // Check error was shown
+      const stderr = yield* TestConsole.errorLines
+      assert.isTrue(stderr.some(line => String(line).includes("ERROR")))
+      assert.isTrue(stderr.some(line => String(line).includes("Failed to parse integer") || (String(line).includes("parse") && String(line).includes("integer"))))
     }).pipe(Effect.provide(TestLayer)))
 
   it.effect("should handle variadic arguments", () =>

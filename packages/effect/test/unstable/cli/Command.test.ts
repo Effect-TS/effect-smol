@@ -4,7 +4,7 @@ import { Effect, Layer } from "effect"
 import { Option } from "effect/data"
 import { Path } from "effect/platform"
 import { TestConsole } from "effect/testing"
-import { CliError, Command, Flag, HelpFormatter } from "effect/unstable/cli"
+import { Command, Flag, HelpFormatter } from "effect/unstable/cli"
 import { comprehensiveCli, runComprehensiveCli } from "./utils/comprehensiveCli.ts"
 import * as TestActions from "./utils/TestActions.ts"
 
@@ -123,12 +123,21 @@ describe("Command", () => {
 
     it.effect("should handle parsing errors from run", () =>
       Effect.gen(function*() {
-        const result = yield* Effect.flip(runComprehensiveCli(["test-required"]).pipe(Effect.provide(TestLayer)))
+        // Test with invalid subcommand - should display help and error
+        const runCommand = Command.runWithArgs(comprehensiveCli, { version: "1.0.0" })
+        yield* runCommand(["invalid-command"])
 
-        assert.isTrue(CliError.isCliError(result))
-        assert.strictEqual((result as CliError.CliError)._tag, "MissingOption")
-        // The exact error message may vary, but it should be a CliError indicating parsing failure
-      }))
+        // Check that help text was shown to stdout
+        const stdout = yield* TestConsole.logLines
+        assert.isTrue(stdout.some(line => String(line).includes("DESCRIPTION")))
+        assert.isTrue(stdout.some(line => String(line).includes("comprehensive CLI tool")))
+
+        // Check that error was shown to stderr
+        const stderr = yield* TestConsole.errorLines
+        assert.isTrue(stderr.some(line => String(line).includes("ERROR")))
+        assert.isTrue(stderr.some(line => String(line).includes("Unknown subcommand")))
+        assert.isTrue(stderr.some(line => String(line).includes("invalid-command")))
+      }).pipe(Effect.provide(TestLayer)))
 
     it.effect("should propagate handler errors from run", () =>
       Effect.gen(function*() {
@@ -583,10 +592,12 @@ describe("Command", () => {
         const errorText = errorOutput.join("\n")
 
         expect(errorText).toMatchInlineSnapshot(`
-          "Unknown subcommand "cpy" for "mycli"
+          "
+          ERROR
+            Unknown subcommand "cpy" for "mycli"
 
-          Did you mean this?
-          	copy"
+            Did you mean this?
+              copy"
         `)
       }).pipe(Effect.provide(TestLayer)))
 
@@ -601,10 +612,12 @@ describe("Command", () => {
         const errorText = errorOutput.join("\n")
 
         expect(errorText).toMatchInlineSnapshot(`
-          "Unknown subcommand "usrs" for "mycli admin"
+          "
+          ERROR
+            Unknown subcommand "usrs" for "mycli admin"
 
-          Did you mean this?
-          	users"
+            Did you mean this?
+              users"
         `)
       }).pipe(Effect.provide(TestLayer)))
 
@@ -619,10 +632,12 @@ describe("Command", () => {
         const errorText = errorOutput.join("\n")
 
         expect(errorText).toMatchInlineSnapshot(`
-          "Unrecognized flag: --debugs in command mycli
+          "
+          ERROR
+            Unrecognized flag: --debugs in command mycli
 
-          Did you mean this?
-          	--debug"
+            Did you mean this?
+              --debug"
         `)
       }).pipe(Effect.provide(TestLayer)))
 
@@ -637,12 +652,14 @@ describe("Command", () => {
         const errorText = errorOutput.join("\n")
 
         expect(errorText).toMatchInlineSnapshot(`
-          "Unrecognized flag: -u in command mycli
+          "
+          ERROR
+            Unrecognized flag: -u in command mycli
 
-          Did you mean this?
-          	-d
-          	-c
-          	-q"
+            Did you mean this?
+              -d
+              -c
+              -q"
         `)
       }).pipe(Effect.provide(TestLayer)))
   })

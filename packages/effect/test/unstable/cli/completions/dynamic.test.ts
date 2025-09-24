@@ -1,12 +1,12 @@
 import { assert, describe, it } from "@effect/vitest"
 import { Effect } from "effect"
-import { Command, Flag } from "../../../../src/unstable/cli/index.ts"
-import { generateDynamicFishCompletion } from "../../../../src/unstable/cli/internal/completions/dynamic/fish.ts"
+import { Command, Flag } from "effect/unstable/cli"
+import { generateDynamicFishCompletion } from "effect/unstable/cli/internal/completions/dynamic/fish"
 import {
   generateDynamicCompletions,
   getCompletionContext,
   handleCompletionRequest
-} from "../../../../src/unstable/cli/internal/completions/dynamic/handler.ts"
+} from "effect/unstable/cli/internal/completions/dynamic/handler"
 
 describe("Dynamic Completion Handler", () => {
   describe("getCompletionContext", () => {
