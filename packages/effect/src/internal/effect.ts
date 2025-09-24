@@ -3075,7 +3075,7 @@ const scopeCloseFinalizers = fnUntraced(function*<A, E>(
   let exits: Array<Exit.Exit<any, never>> = []
   const fibers: Array<Fiber.Fiber<any, never>> = []
   const arr = Array.from(finalizers.values())
-  const parent = getCurrentFiber() as any
+  const parent = getCurrentFiber()!
   for (let i = arr.length - 1; i >= 0; i--) {
     const finalizer = arr[i]
     if (self.strategy === "sequential") {
@@ -3907,7 +3907,7 @@ export const fork: {
 
 /** @internal */
 export const forkUnsafe = <FA, FE, A, E, R>(
-  parent: FiberImpl<FA, FE>,
+  parent: Fiber.Fiber<FA, FE>,
   effect: Effect.Effect<A, E, R>,
   immediate = false,
   daemon = false,
