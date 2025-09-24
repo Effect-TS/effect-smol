@@ -2423,7 +2423,7 @@ export interface refine<T extends S["Type"], S extends Top> extends
     S["DecodingServices"],
     S["EncodingServices"],
     S["ast"],
-    refine<T, S["~rebuild.out"]>,
+    refine<T, S>,
     Annotations.Bottom<T>,
     S["~type.make.in"],
     T,
