@@ -2710,25 +2710,31 @@ export function encode<S extends Top, RD = never, RE = never>(transformation: {
 /**
  * @since 4.0.0
  */
-export interface withConstructorDefault<S extends Top & { readonly "~type.constructor.default": "no-default" }>
-  extends
-    Bottom<
-      S["Type"],
-      S["Encoded"],
-      S["DecodingServices"],
-      S["EncodingServices"],
-      S["ast"],
-      withConstructorDefault<S>,
-      S["~annotate.in"],
-      S["~type.make.in"],
-      S["Iso"],
-      S["~type.make"],
-      S["~type.mutability"],
-      S["~type.optionality"],
-      "with-default",
-      S["~encoded.mutability"],
-      S["~encoded.optionality"]
-    >
+export interface WithoutConstructorDefault {
+  readonly "~type.constructor.default": "no-default"
+}
+
+/**
+ * @since 4.0.0
+ */
+export interface withConstructorDefault<S extends Top & WithoutConstructorDefault> extends
+  Bottom<
+    S["Type"],
+    S["Encoded"],
+    S["DecodingServices"],
+    S["EncodingServices"],
+    S["ast"],
+    withConstructorDefault<S>,
+    S["~annotate.in"],
+    S["~type.make.in"],
+    S["Iso"],
+    S["~type.make"],
+    S["~type.mutability"],
+    S["~type.optionality"],
+    "with-default",
+    S["~encoded.mutability"],
+    S["~encoded.optionality"]
+  >
 {
   readonly "~rebuild.out": this
   readonly schema: S
@@ -2737,7 +2743,7 @@ export interface withConstructorDefault<S extends Top & { readonly "~type.constr
 /**
  * @since 4.0.0
  */
-export function withConstructorDefault<S extends Top & { readonly "~type.constructor.default": "no-default" }>(
+export function withConstructorDefault<S extends Top & WithoutConstructorDefault>(
   defaultValue: (
     input: O.Option<undefined>
     // `S["~type.make.in"]` instead of `S["Type"]` is intentional here because

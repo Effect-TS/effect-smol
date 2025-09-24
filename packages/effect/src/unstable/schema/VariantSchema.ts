@@ -460,35 +460,23 @@ export const Override = <A>(value: A): A & Brand<"Override"> => value as any
  * @since 4.0.0
  * @category overrideable
  */
-export interface Overrideable<S extends Schema.Top> extends
-  Schema.Bottom<
-    S["Type"] & Brand<"Override">,
-    S["Encoded"],
-    S["DecodingServices"],
-    S["EncodingServices"],
-    S["ast"],
-    Overrideable<S>,
-    Annotations.Bottom<S["Type"] & Brand<"Override">>,
-    S["~type.make.in"] & Brand<"Override"> | undefined,
-    S["Iso"] & Brand<"Override">,
-    S["Type"] & Brand<"Override"> | undefined,
-    S["~type.mutability"],
-    S["~type.optionality"],
-    "with-default",
-    S["~encoded.mutability"],
-    S["~encoded.optionality"]
-  >
+export interface Overrideable<S extends Schema.Top & Schema.WithoutConstructorDefault>
+  extends Schema.refine<S["Type"] & Brand<"Override">, Schema.withConstructorDefault<S>>
 {}
 
 /**
  * @since 4.0.0
  * @category overrideable
  */
-export const Overrideable = <S extends Schema.Top>(schema: S, options: {
-  readonly defaultValue: Effect.Effect<S["~type.make.in"]>
-}): Overrideable<S> =>
-  (schema as any).pipe(
-    Schema.withConstructorDefault(constant(Effect.asSome(options.defaultValue)))
+export const Overrideable = <S extends Schema.Top & Schema.WithoutConstructorDefault>(
+  schema: S,
+  options: {
+    readonly defaultValue: Effect.Effect<S["~type.make.in"]>
+  }
+) =>
+  schema.pipe(
+    Schema.withConstructorDefault(constant(Effect.asSome(options.defaultValue))),
+    Schema.brand("Override")
   )
 
 const StructProto = {

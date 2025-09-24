@@ -19,14 +19,14 @@ import * as RpcMiddleware from "../rpc/RpcMiddleware.ts"
 /**
  * @since 4.0.0
  */
-export interface optionalWithDefault<S extends Schema.Top & { readonly "~type.constructor.default": "no-default" }>
+export interface optionalWithDefault<S extends Schema.Top & Schema.WithoutConstructorDefault>
   extends Schema.withConstructorDefault<Schema.decodeTo<Schema.typeCodec<Schema.optionalKey<S>>, Schema.optionalKey<S>>>
 {}
 
 /**
  * @since 4.0.0
  */
-export const optionalWithDefault = <S extends Schema.Top & { readonly "~type.constructor.default": "no-default" }>(
+export const optionalWithDefault = <S extends Schema.Top & Schema.WithoutConstructorDefault>(
   schema: S,
   defaultValue: () => Schema.optionalKey<S>["Type"]
 ): optionalWithDefault<S> =>
