@@ -1,12 +1,13 @@
 /* eslint-disable no-restricted-syntax */
 import { assert, describe, it } from "@effect/vitest"
 import { assertExitFailure, deepStrictEqual } from "@effect/vitest/utils"
-import { Cause, Deferred, Effect, Exit, Fiber, Queue, Ref } from "effect"
+import { Cause, Deferred, Effect, Exit, Fiber, Queue, Ref, Schedule } from "effect"
 import { Array } from "effect/collections"
 import { isReadonlyArrayNonEmpty, type NonEmptyArray } from "effect/collections/Array"
 import { Filter, Option } from "effect/data"
 import { constTrue, pipe } from "effect/Function"
 import { Sink, Stream } from "effect/stream"
+import { TestClock } from "effect/testing"
 import * as fc from "effect/testing/FastCheck"
 import { assertFailure } from "./utils/assert.ts"
 
@@ -857,6 +858,94 @@ describe("Stream", () => {
         const result2 = yield* Ref.get(ref)
         deepStrictEqual(result1, [1, 2])
         deepStrictEqual(result2, Array.range(1, 999))
+      }))
+  })
+
+  describe("share", () => {
+    it.effect("sequenced", () =>
+      Effect.gen(function*() {
+        const sharedStream = yield* Stream.fromSchedule(Schedule.spaced("1 seconds")).pipe(
+          Stream.share({ capacity: 16 })
+        )
+
+        const firstFiber = yield* sharedStream.pipe(
+          Stream.take(1),
+          Stream.run(Sink.collectAll()),
+          Effect.fork({ startImmediately: true })
+        )
+
+        yield* TestClock.adjust("1 seconds")
+
+        const first = yield* Fiber.join(firstFiber)
+        deepStrictEqual(first, [0])
+
+        const secondFiber = yield* sharedStream.pipe(
+          Stream.take(1),
+          Stream.run(Sink.collectAll()),
+          Effect.fork({ startImmediately: true })
+        )
+
+        yield* TestClock.adjust("1 seconds")
+
+        const second = yield* Fiber.join(secondFiber)
+        deepStrictEqual(second, [0])
+      }))
+
+    it.effect("sequenced with idleTimeToLive", () =>
+      Effect.gen(function*() {
+        const sharedStream = yield* Stream.fromSchedule(Schedule.spaced("1 seconds")).pipe(
+          Stream.share({
+            capacity: 16,
+            idleTimeToLive: "1 second"
+          })
+        )
+
+        const firstFiber = yield* sharedStream.pipe(
+          Stream.take(1),
+          Stream.run(Sink.collectAll()),
+          Effect.fork({ startImmediately: true })
+        )
+
+        yield* TestClock.adjust("1 seconds")
+
+        const first = yield* Fiber.join(firstFiber)
+        deepStrictEqual(first, [0])
+
+        const secondFiber = yield* sharedStream.pipe(
+          Stream.take(1),
+          Stream.run(Sink.collectAll()),
+          Effect.fork({ startImmediately: true })
+        )
+
+        yield* TestClock.adjust("1 seconds")
+
+        const second = yield* Fiber.join(secondFiber)
+        deepStrictEqual(second, [1])
+      }))
+
+    it.effect("parallel", () =>
+      Effect.gen(function*() {
+        const sharedStream = yield* Stream.fromSchedule(Schedule.spaced("1 seconds")).pipe(
+          Stream.share({ capacity: 16 })
+        )
+
+        const fiber1 = yield* sharedStream.pipe(
+          Stream.take(1),
+          Stream.run(Sink.collectAll()),
+          Effect.fork({ startImmediately: true })
+        )
+        const fiber2 = yield* sharedStream.pipe(
+          Stream.take(2),
+          Stream.run(Sink.collectAll()),
+          Effect.fork({ startImmediately: true })
+        )
+
+        yield* TestClock.adjust("2 seconds")
+
+        const [result1, result2] = yield* Fiber.joinAll([fiber1, fiber2])
+
+        deepStrictEqual(result1, [0])
+        deepStrictEqual(result2, [0, 1])
       }))
   })
 })

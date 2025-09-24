@@ -743,7 +743,17 @@ export const fiberAwaitAll = <Fiber extends Fiber.Fiber<any, any>>(
   })
 
 /** @internal */
-export const fiberJoin = <A, E>(self: Fiber.Fiber<A, E>): Effect.Effect<A, E> => flatten(fiberAwait(self))
+export const fiberJoin = <A, E>(self: Fiber.Fiber<A, E>): Effect.Effect<A, E> => {
+  const impl = self as FiberImpl<A, E>
+  if (impl._exit) return impl._exit
+  return callback((resume) => sync(self.addObserver(resume)))
+}
+
+/** @internal */
+export const fiberJoinAll = <A extends Fiber.Fiber<any, any>>(self: Iterable<A>): Effect.Effect<
+  Array<A extends Fiber.Fiber<infer _A, infer _E> ? _A : never>,
+  A extends Fiber.Fiber<infer _A, infer _E> ? _E : never
+> => forEachSequential(self, fiberJoin) as any
 
 /** @internal */
 export const fiberInterrupt = <A, E>(

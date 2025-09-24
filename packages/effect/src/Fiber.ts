@@ -256,6 +256,17 @@ export const awaitAll: <A extends Fiber<any, any>>(
 export const join: <A, E>(self: Fiber<A, E>) => Effect<A, E> = effect.fiberJoin
 
 /**
+ * @since 2.0.0
+ * @category combinators
+ */
+export const joinAll: <A extends Fiber<any, any>>(
+  self: Iterable<A>
+) => Effect<
+  Array<A extends Fiber<infer _A, infer _E> ? _A : never>,
+  A extends Fiber<infer _A, infer _E> ? _E : never
+> = effect.fiberJoinAll
+
+/**
  * Interrupts a fiber, causing it to stop executing and clean up any
  * acquired resources.
  *
