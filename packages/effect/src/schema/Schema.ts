@@ -1135,7 +1135,7 @@ export interface Never extends Bottom<never, never, never, never, AST.NeverKeywo
 /**
  * @since 4.0.0
  */
-export const Never: Never = make<Never>(AST.neverKeyword)
+export const Never: Never = make(AST.neverKeyword)
 
 /**
  * @since 4.0.0
@@ -1147,7 +1147,7 @@ export interface Any extends Bottom<any, any, never, never, AST.AnyKeyword, Any,
 /**
  * @since 4.0.0
  */
-export const Any: Any = make<Any>(AST.anyKeyword)
+export const Any: Any = make(AST.anyKeyword)
 
 /**
  * @since 4.0.0
@@ -1161,7 +1161,7 @@ export interface Unknown
 /**
  * @since 4.0.0
  */
-export const Unknown: Unknown = make<Unknown>(AST.unknownKeyword)
+export const Unknown: Unknown = make(AST.unknownKeyword)
 
 /**
  * @since 4.0.0
@@ -1173,7 +1173,7 @@ export interface Null extends Bottom<null, null, never, never, AST.NullKeyword, 
 /**
  * @since 4.0.0
  */
-export const Null: Null = make<Null>(AST.nullKeyword)
+export const Null: Null = make(AST.nullKeyword)
 
 /**
  * @since 4.0.0
@@ -1187,7 +1187,7 @@ export interface Undefined
 /**
  * @since 4.0.0
  */
-export const Undefined: Undefined = make<Undefined>(AST.undefinedKeyword)
+export const Undefined: Undefined = make(AST.undefinedKeyword)
 
 /**
  * @since 4.0.0
@@ -1203,7 +1203,7 @@ export interface String
  *
  * @since 4.0.0
  */
-export const String: String = make<String>(AST.stringKeyword)
+export const String: String = make(AST.stringKeyword)
 
 /**
  * @since 4.0.0
@@ -1219,7 +1219,7 @@ export interface Number
  *
  * @since 4.0.0
  */
-export const Number: Number = make<Number>(AST.numberKeyword)
+export const Number: Number = make(AST.numberKeyword)
 
 /**
  * @since 4.0.0
@@ -1236,7 +1236,7 @@ export interface Boolean
  * @category Boolean
  * @since 4.0.0
  */
-export const Boolean: Boolean = make<Boolean>(AST.booleanKeyword)
+export const Boolean: Boolean = make(AST.booleanKeyword)
 
 /**
  * @since 4.0.0
@@ -1252,7 +1252,7 @@ export interface Symbol
  *
  * @since 4.0.0
  */
-export const Symbol: Symbol = make<Symbol>(AST.symbolKeyword)
+export const Symbol: Symbol = make(AST.symbolKeyword)
 
 /**
  * @since 4.0.0
@@ -1268,7 +1268,7 @@ export interface BigInt
  *
  * @since 4.0.0
  */
-export const BigInt: BigInt = make<BigInt>(AST.bigIntKeyword)
+export const BigInt: BigInt = make(AST.bigIntKeyword)
 
 /**
  * @since 4.0.0
@@ -1282,7 +1282,7 @@ export interface Void extends Bottom<void, void, never, never, AST.VoidKeyword, 
  *
  * @since 4.0.0
  */
-export const Void: Void = make<Void>(AST.voidKeyword)
+export const Void: Void = make(AST.voidKeyword)
 
 /**
  * @since 4.0.0
@@ -1293,7 +1293,7 @@ export interface Object$
   readonly "~rebuild.out": this
 }
 
-const Object_: Object$ = make<Object$>(AST.objectKeyword)
+const Object_: Object$ = make(AST.objectKeyword)
 
 export {
   /**
@@ -1326,7 +1326,7 @@ export interface UniqueSymbol<sym extends symbol>
  * @since 4.0.0
  */
 export function UniqueSymbol<const sym extends symbol>(symbol: sym): UniqueSymbol<sym> {
-  return make<UniqueSymbol<sym>>(new AST.UniqueSymbol(symbol))
+  return make(new AST.UniqueSymbol(symbol))
 }
 
 /**
@@ -2401,7 +2401,7 @@ export interface suspend<S extends Top> extends
  * @since 4.0.0
  */
 export function suspend<S extends Top>(f: () => S): suspend<S> {
-  return make<suspend<S>>(new AST.Suspend(() => f().ast))
+  return make(new AST.Suspend(() => f().ast))
 }
 
 /**
@@ -3050,7 +3050,9 @@ export interface Option<S extends Top> extends
     readonly [S],
     OptionIso<S>
   >
-{}
+{
+  readonly value: S
+}
 
 /**
  * @since 4.0.0
@@ -3064,7 +3066,7 @@ export type OptionIso<S extends Top> =
  * @since 4.0.0
  */
 export function Option<S extends Top>(value: S): Option<S> {
-  return declareConstructor<O.Option<S["Type"]>, O.Option<S["Encoded"]>, OptionIso<S>>()(
+  const schema = declareConstructor<O.Option<S["Type"]>, O.Option<S["Encoded"]>, OptionIso<S>>()(
     [value],
     ([value]) => (input, ast, options) => {
       if (O.isOption(input)) {
@@ -3115,6 +3117,7 @@ export function Option<S extends Top>(value: S): Option<S> {
       }
     }
   )
+  return makeProto(schema.ast, { value })
 }
 
 /**
@@ -3206,7 +3209,9 @@ export interface Redacted<S extends Top> extends
     Redacted_.Redacted<S["Encoded"]>,
     readonly [S]
   >
-{}
+{
+  readonly value: S
+}
 
 /**
  * Creates a schema for the `Redacted` type, providing secure handling of
@@ -3234,7 +3239,7 @@ export interface Redacted<S extends Top> extends
 export function Redacted<S extends Top>(value: S, options?: {
   readonly label?: string | undefined
 }): Redacted<S> {
-  return declareConstructor<Redacted_.Redacted<S["Type"]>, Redacted_.Redacted<S["Encoded"]>>()(
+  const schema = declareConstructor<Redacted_.Redacted<S["Type"]>, Redacted_.Redacted<S["Encoded"]>>()(
     [value],
     ([value]) => (input, ast, poptions) => {
       if (Redacted_.isRedacted(input)) {
@@ -3290,6 +3295,7 @@ export function Redacted<S extends Top>(value: S, options?: {
       }
     }
   )
+  return makeProto(schema.ast, { value })
 }
 
 /**
@@ -3302,7 +3308,10 @@ export interface CauseFailure<E extends Top, D extends Top> extends
     readonly [E, D],
     CauseFailureIso<E, D>
   >
-{}
+{
+  readonly error: E
+  readonly defect: D
+}
 
 /**
  * @since 4.0.0
@@ -3323,7 +3332,7 @@ export type CauseFailureIso<E extends Top, D extends Top> = {
  * @since 4.0.0
  */
 export function CauseFailure<E extends Top, D extends Top>(error: E, defect: D): CauseFailure<E, D> {
-  return declareConstructor<Cause_.Failure<E["Type"]>, Cause_.Failure<E["Encoded"]>, CauseFailureIso<E, D>>()(
+  const schema = declareConstructor<Cause_.Failure<E["Type"]>, Cause_.Failure<E["Encoded"]>, CauseFailureIso<E, D>>()(
     [error, defect],
     ([error, defect]) => (input, ast, options) => {
       if (!Cause_.isFailure(input)) {
@@ -3414,6 +3423,7 @@ export function CauseFailure<E extends Top, D extends Top>(error: E, defect: D):
       }
     }
   )
+  return makeProto(schema.ast, { error, defect })
 }
 
 /**
@@ -3426,7 +3436,10 @@ export interface Cause<E extends Top, D extends Top> extends
     readonly [Array$<CauseFailure<E, D>>],
     CauseIso<E, D>
   >
-{}
+{
+  readonly error: E
+  readonly defect: D
+}
 
 /**
  * @since 4.0.0
@@ -3438,7 +3451,7 @@ export type CauseIso<E extends Top, D extends Top> = ReadonlyArray<CauseFailureI
  * @since 4.0.0
  */
 export function Cause<E extends Top, D extends Top>(error: E, defect: D): Cause<E, D> {
-  return declareConstructor<Cause_.Cause<E["Type"]>, Cause_.Cause<E["Encoded"]>, CauseIso<E, D>>()(
+  const schema = declareConstructor<Cause_.Cause<E["Type"]>, Cause_.Cause<E["Encoded"]>, CauseIso<E, D>>()(
     [Array(CauseFailure(error, defect))],
     ([failures]) => (input, ast, options) => {
       if (!Cause_.isCause(input)) {
@@ -3473,6 +3486,7 @@ export function Cause<E extends Top, D extends Top>(error: E, defect: D): Cause<
       }
     }
   )
+  return makeProto(schema.ast, { error, defect })
 }
 
 /**
@@ -3570,7 +3584,11 @@ export interface Exit<A extends Top, E extends Top, D extends Top> extends
     readonly [A, Cause<E, D>],
     ExitIso<A, E, D>
   >
-{}
+{
+  readonly value: A
+  readonly error: E
+  readonly defect: D
+}
 
 /**
  * @since 4.0.0
@@ -3588,7 +3606,7 @@ export type ExitIso<A extends Top, E extends Top, D extends Top> = {
  * @since 4.0.0
  */
 export function Exit<A extends Top, E extends Top, D extends Top>(value: A, error: E, defect: D): Exit<A, E, D> {
-  return declareConstructor<
+  const schema = declareConstructor<
     Exit_.Exit<A["Type"], E["Type"]>,
     Exit_.Exit<A["Encoded"], E["Encoded"]>,
     ExitIso<A, E, D>
@@ -3668,6 +3686,7 @@ export function Exit<A extends Top, E extends Top, D extends Top>(value: A, erro
       }
     }
   )
+  return makeProto(schema.ast, { value, error, defect })
 }
 
 /**
@@ -3695,7 +3714,10 @@ export interface Map$<Key extends Top, Value extends Top> extends
     readonly [Key, Value],
     ReadonlyArray<readonly [Key["Iso"], Value["Iso"]]>
   >
-{}
+{
+  readonly key: Key
+  readonly value: Value
+}
 
 /**
  * Creates a schema that validates a Map where keys and values must conform to
@@ -3705,7 +3727,7 @@ export interface Map$<Key extends Top, Value extends Top> extends
  * @since 4.0.0
  */
 export function Map<Key extends Top, Value extends Top>(key: Key, value: Value): Map$<Key, Value> {
-  return declareConstructor<
+  const schema = declareConstructor<
     globalThis.Map<Key["Type"], Value["Type"]>,
     globalThis.Map<Key["Encoded"], Value["Encoded"]>,
     ReadonlyArray<readonly [Key["Iso"], Value["Iso"]]>
@@ -3768,6 +3790,7 @@ export function Map<Key extends Top, Value extends Top>(key: Key, value: Value):
       }
     }
   )
+  return makeProto(schema.ast, { key, value })
 }
 
 /**
@@ -4688,7 +4711,7 @@ export function declareConstructor<T, E = T, Iso = T>() {
     ) => (u: unknown, self: AST.Declaration, options: AST.ParseOptions) => Effect.Effect<T, Issue.Issue>,
     annotations?: Annotations.Declaration<T, TypeParameters>
   ): declareConstructor<T, E, TypeParameters, Iso> => {
-    return make<declareConstructor<T, E, TypeParameters, Iso>>(
+    return make(
       new AST.Declaration(
         typeParameters.map(AST.getAST),
         (typeParameters) => run(typeParameters.map(make) as any),

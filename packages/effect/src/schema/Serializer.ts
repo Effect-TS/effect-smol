@@ -24,7 +24,7 @@ import * as Transformation from "./Transformation.ts"
 export function json<T, E, RD, RE>(
   codec: Schema.Codec<T, E, RD, RE>
 ): Schema.Codec<T, unknown, RD, RE> {
-  return Schema.make<Schema.Codec<T, unknown, RD, RE>>(goJson(codec.ast))
+  return Schema.make(goJson(codec.ast))
 }
 
 const goJson = memoize((ast: AST.AST): AST.AST => {
@@ -137,7 +137,7 @@ const symbolLink = new AST.Link(
  * @since 4.0.0
  */
 export function iso<S extends Schema.Top>(schema: S): Schema.Codec<S["Type"], S["Iso"]> {
-  return Schema.make<Schema.Codec<S["Type"], S["Iso"]>>(goIso(AST.typeAST(schema.ast)))
+  return Schema.make(goIso(AST.typeAST(schema.ast)))
 }
 
 const goIso = memoize((ast: AST.AST): AST.AST => {
@@ -175,7 +175,7 @@ export type StringPojo = string | undefined | { [x: string]: StringPojo } | Arra
 export function stringPojo<T, E, RD, RE>(
   codec: Schema.Codec<T, E, RD, RE>
 ): Schema.Codec<T, StringPojo, RD, RE> {
-  return Schema.make<Schema.Codec<T, StringPojo, RD, RE>>(goStringPojo(codec.ast))
+  return Schema.make(goStringPojo(codec.ast))
 }
 
 /** @internal */
@@ -224,7 +224,7 @@ export const goStringPojo = memoize((ast: AST.AST): AST.AST => {
 export function ensureArray<T, RD, RE>(
   codec: Schema.Codec<T, StringPojo, RD, RE>
 ): Schema.Codec<T, StringPojo, RD, RE> {
-  return Schema.make<Schema.Codec<T, StringPojo, RD, RE>>(goEnsureArray(codec.ast))
+  return Schema.make(goEnsureArray(codec.ast))
 }
 
 const ENSURE_ARRAY_ANNOTATION_KEY = "~effect/schema/Serializer/ensureArray"

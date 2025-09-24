@@ -371,7 +371,10 @@ export interface CompleteSchema<Success extends Schema.Top, Error extends Schema
     Complete<Success["Encoded"], Error["Encoded"]>,
     readonly [Schema.Exit<Success, Error, Schema.Defect>]
   >
-{}
+{
+  readonly success: Success
+  readonly error: Error
+}
 
 /**
  * @since 4.0.0
@@ -392,7 +395,7 @@ export class Complete<A, E> extends Data.TaggedClass("Complete")<{
     readonly success: Success
     readonly error: Error
   }): CompleteSchema<Success, Error> {
-    return Schema.declareConstructor<
+    const schema = Schema.declareConstructor<
       Complete<Success["Type"], Error["Type"]>,
       Complete<Success["Encoded"], Error["Encoded"]>
     >()(
@@ -421,6 +424,7 @@ export class Complete<A, E> extends Data.TaggedClass("Complete")<{
           )
       }
     )
+    return Schema.makeProto(schema.ast, { success: options.success, error: options.error })
   }
 }
 

@@ -1935,6 +1935,12 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
   })
 
   describe("Redacted", () => {
+    it("should expose the value", () => {
+      const schema = Schema.Redacted(Schema.String)
+      strictEqual(schema.value, Schema.String)
+      strictEqual(schema.annotate({}).value, Schema.String)
+    })
+
     it("Redacted(Finite)", async () => {
       const schema = Schema.Redacted(Schema.Finite)
       await assertions.decoding.succeed(schema, Redacted.make(123))
@@ -1981,6 +1987,12 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
   })
 
   describe("Option", () => {
+    it("should expose the value", () => {
+      const schema = Schema.Option(Schema.String)
+      strictEqual(schema.value, Schema.String)
+      strictEqual(schema.annotate({}).value, Schema.String)
+    })
+
     it("Option(FiniteFromString)", async () => {
       const schema = Schema.Option(Schema.FiniteFromString)
 
@@ -2109,7 +2121,25 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     })
   })
 
+  describe("CauseFailure", () => {
+    it("should expose the values", () => {
+      const schema = Schema.CauseFailure(Schema.String, Schema.Number)
+      strictEqual(schema.error, Schema.String)
+      strictEqual(schema.annotate({}).error, Schema.String)
+      strictEqual(schema.defect, Schema.Number)
+      strictEqual(schema.annotate({}).defect, Schema.Number)
+    })
+  })
+
   describe("Cause", () => {
+    it("should expose the values", () => {
+      const schema = Schema.Cause(Schema.String, Schema.Number)
+      strictEqual(schema.error, Schema.String)
+      strictEqual(schema.annotate({}).error, Schema.String)
+      strictEqual(schema.defect, Schema.Number)
+      strictEqual(schema.annotate({}).defect, Schema.Number)
+    })
+
     it("Cause(FiniteFromString, FiniteFromString)", async () => {
       const schema = Schema.Cause(Schema.FiniteFromString, Schema.FiniteFromString)
       await assertions.decoding.succeed(schema, Cause.fail("1"), { expected: Cause.fail(1) })
@@ -2149,6 +2179,16 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
   })
 
   describe("Exit", () => {
+    it("should expose the values", () => {
+      const schema = Schema.Exit(Schema.String, Schema.Number, Schema.Boolean)
+      strictEqual(schema.value, Schema.String)
+      strictEqual(schema.annotate({}).value, Schema.String)
+      strictEqual(schema.error, Schema.Number)
+      strictEqual(schema.annotate({}).error, Schema.Number)
+      strictEqual(schema.defect, Schema.Boolean)
+      strictEqual(schema.annotate({}).defect, Schema.Boolean)
+    })
+
     it("Exit(FiniteFromString, String, Unknown)", async () => {
       const schema = Schema.Exit(Schema.FiniteFromString, Schema.String, Schema.Unknown)
 
@@ -2919,6 +2959,11 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
   it("Map", async () => {
     const schema = Schema.Map(Schema.String, Schema.Number)
+
+    strictEqual(schema.key, Schema.String)
+    strictEqual(schema.annotate({}).key, Schema.String)
+    strictEqual(schema.value, Schema.Number)
+    strictEqual(schema.annotate({}).value, Schema.Number)
 
     await assertions.decoding.succeed(schema, new Map([["a", 1]]))
     await assertions.decoding.fail(schema, null, `Expected Map, got null`)
