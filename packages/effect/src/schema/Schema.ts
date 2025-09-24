@@ -145,7 +145,7 @@ export interface Bottom<
 
 const TypeId = "~effect/schema/Schema"
 
-abstract class BottomImpl<
+abstract class Bottom$<
   T,
   E,
   RD,
@@ -182,23 +182,23 @@ abstract class BottomImpl<
 {
   readonly [TypeId] = TypeId
 
-  declare readonly "Type": T
-  declare readonly "Encoded": E
-  declare readonly "DecodingServices": RD
-  declare readonly "EncodingServices": RE
+  readonly "Type": T
+  readonly "Encoded": E
+  readonly "DecodingServices": RD
+  readonly "EncodingServices": RE
 
-  declare readonly "~rebuild.out": RebuildOut
-  declare readonly "~annotate.in": AnnotateIn
+  readonly "~rebuild.out": RebuildOut
+  readonly "~annotate.in": AnnotateIn
 
-  declare readonly "~type.make.in": TypeMakeIn
-  declare readonly "~type.make": TypeMake
-  declare readonly "~type.constructor.default": TypeConstructorDefault
-  declare readonly "Iso": Iso
+  readonly "~type.make.in": TypeMakeIn
+  readonly "~type.make": TypeMake
+  readonly "~type.constructor.default": TypeConstructorDefault
+  readonly "Iso": Iso
 
-  declare readonly "~type.mutability": TypeMutability
-  declare readonly "~type.optionality": TypeOptionality
-  declare readonly "~encoded.mutability": EncodedMutability
-  declare readonly "~encoded.optionality": EncodedOptionality
+  readonly "~type.mutability": TypeMutability
+  readonly "~type.optionality": TypeOptionality
+  readonly "~encoded.mutability": EncodedMutability
+  readonly "~encoded.optionality": EncodedOptionality
 
   readonly ast: Ast
   readonly makeSync: (input: this["~type.make.in"], options?: MakeOptions) => this["Type"]
@@ -215,12 +215,7 @@ abstract class BottomImpl<
   annotateKey(annotations: Annotations.Key<this["Type"]>): this["~rebuild.out"] {
     return this.rebuild(AST.annotateKey(this.ast, annotations))
   }
-  check(
-    ...checks: readonly [
-      Check.Check<this["Type"]>,
-      ...Array<Check.Check<this["Type"]>>
-    ]
-  ): this["~rebuild.out"] {
+  check(...checks: readonly [Check.Check<this["Type"]>, ...Array<Check.Check<this["Type"]>>]): this["~rebuild.out"] {
     return this.rebuild(AST.appendChecks(this.ast, checks))
   }
 }
@@ -740,7 +735,7 @@ export const encodeSync = ToParser.encodeSync
 /**
  * @since 4.0.0
  */
-export class Make<S extends Top> extends BottomImpl<
+export class Make$<S extends Top> extends Bottom$<
   S["Type"],
   S["Encoded"],
   S["DecodingServices"],
@@ -757,6 +752,7 @@ export class Make<S extends Top> extends BottomImpl<
   S["~encoded.mutability"],
   S["~encoded.optionality"]
 > {
+  declare readonly "~rebuild.out": this
   readonly rebuild: (ast: S["ast"]) => S["~rebuild.out"]
 
   constructor(
@@ -800,7 +796,7 @@ export function make<S extends Top>(ast: S["ast"]): Bottom<
   S["~encoded.mutability"],
   S["~encoded.optionality"]
 > {
-  const rebuild = (ast: AST.AST) => new Make<S>(ast, rebuild)
+  const rebuild = (ast: AST.AST) => new Make$<S>(ast, rebuild)
   return rebuild(ast)
 }
 
@@ -845,7 +841,7 @@ interface optionalKeyLambda extends Lambda {
   readonly "~lambda.out": this["~lambda.in"] extends Top ? optionalKey<this["~lambda.in"]> : never
 }
 
-class MakeWithSchema$<S extends Top, Result extends Top> extends Make<Result> {
+class MakeWithSchema$<S extends Top, Result extends Top> extends Make$<Result> {
   readonly schema: S
 
   constructor(ast: AST.AST, schema: S) {
@@ -1031,6 +1027,8 @@ export const encodedCodec = lambda<encodedCodecLambda>(function encodedCodec<S e
   return new MakeWithSchema$<S, encodedCodec<S>>(AST.encodedAST(self.ast), self)
 })
 
+const FlipTypeId = "~effect/schema/Schema/flip"
+
 /**
  * @since 4.0.0
  */
@@ -1053,10 +1051,9 @@ export interface flip<S extends Top> extends
     S["~type.optionality"]
   >
 {
+  readonly [FlipTypeId]: typeof FlipTypeId
   readonly schema: S
 }
-
-const FlipTypeId = "~effect/schema/Schema/flip$"
 
 class flip$<S extends Top> extends MakeWithSchema$<S, flip<S>> implements flip<S> {
   readonly [FlipTypeId] = FlipTypeId
@@ -1087,8 +1084,7 @@ export interface Literal<L extends AST.Literal>
   readonly literal: L
 }
 
-class Literal$<L extends AST.Literal> extends Make<Literal<L>> implements Literal<L> {
-  declare readonly "~rebuild.out": this
+class Literal$<L extends AST.Literal> extends Make$<Literal<L>> implements Literal<L> {
   readonly literal: L
 
   constructor(ast: AST.LiteralType, literal: L) {
@@ -1165,10 +1161,9 @@ export interface TemplateLiteral<Parts extends TemplateLiteral.Parts> extends
   readonly parts: Parts
 }
 
-class TemplateLiteral$<Parts extends TemplateLiteral.Parts> extends Make<TemplateLiteral<Parts>>
+class TemplateLiteral$<Parts extends TemplateLiteral.Parts> extends Make$<TemplateLiteral<Parts>>
   implements TemplateLiteral<Parts>
 {
-  declare readonly "~rebuild.out": this
   readonly parts: Parts
 
   constructor(ast: AST.TemplateLiteral, parts: Parts) {
@@ -1218,10 +1213,11 @@ export interface TemplateLiteralParser<Parts extends TemplateLiteral.Parts> exte
     Annotations.Annotations
   >
 {
+  readonly "~rebuild.out": this
   readonly parts: Parts
 }
 
-class TemplateLiteralParser$<Parts extends TemplateLiteral.Parts> extends Make<TemplateLiteralParser<Parts>>
+class TemplateLiteralParser$<Parts extends TemplateLiteral.Parts> extends Make$<TemplateLiteralParser<Parts>>
   implements TemplateLiteralParser<Parts>
 {
   readonly parts: Parts
@@ -1251,8 +1247,7 @@ export interface Enums<A extends { [x: string]: string | number }>
   readonly enums: A
 }
 
-class Enums$<A extends { [x: string]: string | number }> extends Make<Enums<A>> implements Enums<A> {
-  declare readonly "~rebuild.out": this
+class Enums$<A extends { [x: string]: string | number }> extends Make$<Enums<A>> implements Enums<A> {
   readonly enums: A
 
   constructor(ast: AST.Enums, enums: A) {
@@ -1615,8 +1610,7 @@ export interface Struct<Fields extends Struct.Fields> extends
   ): Struct<Simplify<Readonly<To>>>
 }
 
-class Struct$<Fields extends Struct.Fields> extends Make<Struct<Fields>> implements Struct<Fields> {
-  declare readonly "~rebuild.out": this
+class Struct$<Fields extends Struct.Fields> extends Make$<Struct<Fields>> implements Struct<Fields> {
   readonly fields: Fields
   constructor(ast: AST.TypeLiteral, fields: Fields) {
     super(ast, (ast) => new Struct$(ast, fields))
@@ -1819,10 +1813,9 @@ export interface Record$<Key extends Record.Key, Value extends Top> extends
   readonly value: Value
 }
 
-class Record$$<Key extends Record.Key, Value extends Top> extends Make<Record$<Key, Value>>
+class Record$$<Key extends Record.Key, Value extends Top> extends Make$<Record$<Key, Value>>
   implements Record$<Key, Value>
 {
-  declare readonly "~rebuild.out": this
   readonly key: Key
   readonly value: Value
 
@@ -1938,10 +1931,9 @@ export interface StructWithRest<
 }
 
 class StructWithRest$$<S extends StructWithRest.TypeLiteral, Records extends StructWithRest.Records>
-  extends Make<StructWithRest<S, Records>>
+  extends Make$<StructWithRest<S, Records>>
   implements StructWithRest<S, Records>
 {
-  declare readonly "~rebuild.out": this
   readonly schema: S
   readonly records: Records
 
@@ -2082,8 +2074,7 @@ export interface Tuple<Elements extends Tuple.Elements> extends
   ): Tuple<Simplify<Readonly<To>>>
 }
 
-class Tuple$<Elements extends Tuple.Elements> extends Make<Tuple<Elements>> implements Tuple<Elements> {
-  declare readonly "~rebuild.out": this
+class Tuple$<Elements extends Tuple.Elements> extends Make$<Tuple<Elements>> implements Tuple<Elements> {
   readonly elements: Elements
   constructor(ast: AST.TupleType, elements: Elements) {
     super(ast, (ast) => new Tuple$(ast, elements))
@@ -2200,7 +2191,7 @@ export interface TupleWithRest<
 }
 
 class TupleWithRest$<S extends Tuple<Tuple.Elements> | mutable<Tuple<Tuple.Elements>>, Rest extends TupleWithRest.Rest>
-  extends Make<TupleWithRest<S, Rest>>
+  extends Make$<TupleWithRest<S, Rest>>
 {
   readonly schema: S
   readonly rest: Rest
@@ -2431,8 +2422,7 @@ export interface Union<Members extends ReadonlyArray<Top>> extends
   ): Union<Simplify<Readonly<To>>>
 }
 
-class Union$<Members extends ReadonlyArray<Top>> extends Make<Union<Members>> implements Union<Members> {
-  declare readonly "~rebuild.out": this
+class Union$<Members extends ReadonlyArray<Top>> extends Make$<Union<Members>> implements Union<Members> {
   override readonly ast: AST.UnionType<Members[number]["ast"]>
   readonly members: Members
 
@@ -2499,8 +2489,7 @@ export interface Literals<L extends ReadonlyArray<AST.Literal>> extends
   pick<const L2 extends ReadonlyArray<L[number]>>(literals: L2): Literals<L2>
 }
 
-class Literals$<L extends ReadonlyArray<AST.Literal>> extends Make<Literals<L>> implements Literals<L> {
-  declare readonly "~rebuild.out": this
+class Literals$<L extends ReadonlyArray<AST.Literal>> extends Make$<Literals<L>> implements Literals<L> {
   readonly literals: L
   readonly members: { readonly [K in keyof L]: Literal<L[K]> }
 
@@ -2855,10 +2844,9 @@ export interface decodeTo<To extends Top, From extends Top, RD = never, RE = nev
  */
 export interface compose<To extends Top, From extends Top> extends decodeTo<To, From> {}
 
-class decodeTo$<To extends Top, From extends Top, RD, RE> extends Make<decodeTo<To, From, RD, RE>>
+class decodeTo$<To extends Top, From extends Top, RD, RE> extends Make$<decodeTo<To, From, RD, RE>>
   implements decodeTo<To, From, RD, RE>
 {
-  declare readonly "~rebuild.out": this
   override readonly ast: From["ast"]
   readonly from: From
   readonly to: To
@@ -3265,8 +3253,7 @@ export interface TaggedUnion<Cases extends Record<string, Top>> extends
   }
 }
 
-class TaggedUnion$<Cases extends Record<string, Top>> extends Make<TaggedUnion<Cases>> implements TaggedUnion<Cases> {
-  declare readonly "~rebuild.out": this
+class TaggedUnion$<Cases extends Record<string, Top>> extends Make$<TaggedUnion<Cases>> implements TaggedUnion<Cases> {
   override readonly ast: AST.UnionType<AST.TypeLiteral>
   readonly cases: Cases
   readonly isAnyOf: <const Keys>(

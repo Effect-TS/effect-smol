@@ -164,8 +164,7 @@ export interface Param<Name extends string, S extends Schema.Top> extends
   readonly schema: S
 }
 
-class Param$<Name extends string, S extends Schema.Top> extends Schema.Make<Param<Name, S>> implements Param<Name, S> {
-  declare readonly "~rebuild.out": this
+class Param$<Name extends string, S extends Schema.Top> extends Schema.Make$<Param<Name, S>> implements Param<Name, S> {
   readonly name: Name
   readonly schema: S
 

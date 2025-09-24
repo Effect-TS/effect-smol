@@ -51,8 +51,7 @@ export interface Stream<A extends Schema.Top, E extends Schema.Top> extends
   readonly error: E
 }
 
-class Stream$<A extends Schema.Top, E extends Schema.Top> extends Schema.Make<Stream<A, E>> implements Stream<A, E> {
-  declare readonly "~rebuild.out": this
+class Stream$<A extends Schema.Top, E extends Schema.Top> extends Schema.Make$<Stream<A, E>> implements Stream<A, E> {
   readonly [StreamSchemaTypeId] = StreamSchemaTypeId
   readonly success: A
   readonly error: E

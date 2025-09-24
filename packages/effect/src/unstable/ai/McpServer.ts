@@ -39,7 +39,7 @@ import {
   GetPromptResult,
   InternalError,
   InvalidParams,
-  isParamSchema,
+  isParam,
   ListPromptsResult,
   ListResourcesResult,
   ListResourceTemplatesResult,
@@ -1032,7 +1032,7 @@ const compileUriTemplate = (segments: TemplateStringsArray, ...schemas: Readonly
       const key = String(i)
       arr.push(schema)
       routerPath += `:${key}${segment.replace(":", "::")}`
-      const paramName = isParamSchema(schema) ? schema.name : `param${key}`
+      const paramName = isParam(schema) ? schema.name : `param${key}`
       params[paramName] = schema
       uriPath += `{${paramName}}${segment}`
     }

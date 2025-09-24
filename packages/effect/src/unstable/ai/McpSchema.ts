@@ -2034,7 +2034,7 @@ const ParamSchemaTypeId = "~effect/ai/McpSchema/ParamSchema"
  * @since 4.0.0
  * @category Parameters
  */
-export function isParamSchema(schema: Schema.Top): schema is Param<string, Schema.Top> {
+export function isParam(schema: Schema.Top): schema is Param<string, Schema.Top> {
   return Predicate.hasProperty(schema, ParamSchemaTypeId)
 }
 
@@ -2067,8 +2067,7 @@ export interface Param<Name extends string, S extends Schema.Top> extends
   readonly schema: S
 }
 
-class Param$<Name extends string, S extends Schema.Top> extends Schema.Make<Param<Name, S>> implements Param<Name, S> {
-  declare readonly "~rebuild.out": this
+class Param$<Name extends string, S extends Schema.Top> extends Schema.Make$<Param<Name, S>> implements Param<Name, S> {
   readonly [ParamSchemaTypeId] = ParamSchemaTypeId
   readonly name: Name
   readonly schema: S
