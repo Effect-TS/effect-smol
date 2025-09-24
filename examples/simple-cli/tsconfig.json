@@ -5,7 +5,7 @@
     "rootDir": "./src",
     "module": "ESNext",
     "target": "ES2022",
-    "moduleResolution": "Node",
+    "moduleResolution": "bundler",
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true
   },

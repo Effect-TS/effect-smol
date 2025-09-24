@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 
-import { Effect, Layer } from "../../../packages/effect/src/index.ts"
-import * as Console from "../../../packages/effect/src/logging/Console.ts"
-import { Argument, Command, Flag } from "../../../packages/effect/src/unstable/cli/index.ts"
-import { NodeServices } from "../../../packages/platform-node/src/index.ts"
+import { NodeServices } from "@effect/platform-node"
+import { Effect, Layer } from "effect"
+import * as Console from "effect/logging/Console"
+import { Argument, Command, Flag } from "effect/unstable/cli"
 
 // File operations command
 const copy = Command.make("copy", {
