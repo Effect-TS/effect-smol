@@ -27,7 +27,7 @@ export const MockFileSystem = Layer.mock(FileSystem.FileSystem)(FileSystem.make(
   symlink: () => Effect.die("Not implemented"),
   truncate: () => Effect.die("Not implemented"),
   utimes: () => Effect.die("Not implemented"),
-  writeFile: () => Effect.die("Not implemented"),
+  writeFile: () => Effect.succeed(void 0),
   watch: () => Stream.die("Not implemented")
 }))
 
