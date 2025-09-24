@@ -51,18 +51,6 @@ export interface Stream<A extends Schema.Top, E extends Schema.Top> extends
   readonly error: E
 }
 
-class Stream$<A extends Schema.Top, E extends Schema.Top> extends Schema.Make$<Stream<A, E>> implements Stream<A, E> {
-  readonly [StreamSchemaTypeId] = StreamSchemaTypeId
-  readonly success: A
-  readonly error: E
-
-  constructor(ast: AST.Declaration, success: A, error: E) {
-    super(ast, (ast) => new Stream$(ast, success, error))
-    this.success = success
-    this.error = error
-  }
-}
-
 const schema = Schema.declare(Stream_.isStream)
 
 /**
@@ -70,5 +58,5 @@ const schema = Schema.declare(Stream_.isStream)
  * @category Stream
  */
 export function Stream<A extends Schema.Top, E extends Schema.Top>(success: A, error: E): Stream<A, E> {
-  return new Stream$(schema.ast, success, error)
+  return Schema.makeProto(schema.ast, { [StreamSchemaTypeId]: StreamSchemaTypeId, success, error })
 }

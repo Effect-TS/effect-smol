@@ -169,17 +169,6 @@ export interface Param<Name extends string, S extends Schema.Top> extends
   readonly schema: S
 }
 
-class Param$<Name extends string, S extends Schema.Top> extends Schema.Make$<Param<Name, S>> implements Param<Name, S> {
-  readonly name: Name
-  readonly schema: S
-
-  constructor(ast: S["ast"], name: Name, schema: S) {
-    super(ast, (ast) => new Param$(ast, name, schema))
-    this.name = name
-    this.schema = schema
-  }
-}
-
 /**
  * @since 4.0.0
  * @category path params
@@ -193,9 +182,9 @@ export function param<Name extends string, S extends Schema.Top & { readonly "En
 ): Param<Name, S>
 export function param(name: string): any {
   if (arguments.length === 1) {
-    return (schema: Schema.Top) => new Param$(schema.ast, name, schema)
+    return (schema: Schema.Top) => Schema.makeProto(schema.ast, { name, schema })
   }
-  return new Param$(arguments[1].ast, name, arguments[1])
+  return Schema.makeProto(arguments[1].ast, { name, schema: arguments[1] })
 }
 
 /**

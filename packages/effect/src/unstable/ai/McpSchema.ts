@@ -2067,18 +2067,6 @@ export interface Param<Name extends string, S extends Schema.Top> extends
   readonly schema: S
 }
 
-class Param$<Name extends string, S extends Schema.Top> extends Schema.Make$<Param<Name, S>> implements Param<Name, S> {
-  readonly [ParamSchemaTypeId] = ParamSchemaTypeId
-  readonly name: Name
-  readonly schema: S
-
-  constructor(ast: S["ast"], name: Name, schema: S) {
-    super(ast, (ast) => new Param$(ast, name, schema))
-    this.name = name
-    this.schema = schema
-  }
-}
-
 /**
  * Helper to create a param for a resource URI template.
  *
@@ -2089,5 +2077,5 @@ export function param<const Name extends string, S extends Schema.Top>(
   name: Name,
   schema: S
 ): Param<Name, S> {
-  return new Param$(schema.ast, name, schema)
+  return Schema.makeProto(schema.ast, { [ParamSchemaTypeId]: ParamSchemaTypeId, name, schema })
 }

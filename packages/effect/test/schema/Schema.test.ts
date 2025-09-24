@@ -70,6 +70,12 @@ describe("Schema", () => {
       )
     })
 
+    it("should expose the literal", () => {
+      const schema = Schema.Literal("a")
+      strictEqual(schema.literal, "a")
+      strictEqual(schema.annotate({}).literal, "a")
+    })
+
     it(`"a"`, async () => {
       const schema = Schema.Literal("a")
 
@@ -780,6 +786,7 @@ Unexpected key
     it("should expose the item schema", () => {
       const schema = Schema.Array(Schema.String)
       strictEqual(schema.schema, Schema.String)
+      strictEqual(schema.annotate({}).schema, Schema.String)
     })
 
     it("readonly string[]", async () => {
