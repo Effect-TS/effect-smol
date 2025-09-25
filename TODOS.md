@@ -15,6 +15,7 @@ Releases are snapshot only
 ## Beta
 
 Pre-releases to npm from smol repo
+
 - [ ] Comprehensive JSDoc on every exported function
 - [ ] Codemod CLI for v3 migration
 
@@ -43,43 +44,43 @@ The exports under each section are organized as they are in Effect 3.0. The cate
 
 ### Constructors
 
-|      Effect 3       | Ported |      Effect 4       |                                                        Comments                                                        |
-| :-----------------: | :----: | :-----------------: | :--------------------------------------------------------------------------------------------------------------------: |
-| `acquireReleaseOut` |  Done  |  `acquireRelease`   |                                                                                                                        |
-| `acquireUseRelease` |  Done  | `acquireUseRelease` |                                                                                                                        |
-|      `buffer`       |  Done  |                     |                                                                                                                        |
-|    `bufferChunk`    |  Done  |                     |                                                                                                                        |
-|     `concatAll`     |  Done  |      `concat`       |                                                Category fixed for 4.0.                                                 |
-|   `concatAllWith`   |  Done  |    `concatWith`     | Category fixed for 4.0. New method does not have exactly the same semantics as 3.0, but provides similar functionality |
-|       `fail`        |  Done  |       `fail`        |                                                                                                                        |
-|     `failCause`     |  Done  |     `failCause`     |                                                                                                                        |
-|   `failCauseSync`   |  Done  |   `failCauseSync`   |                                                                                                                        |
-|     `failSync`      |  Done  |     `failSync`      |                                                                                                                        |
-|    `fromEffect`     |  Done  |    `fromEffect`     |                                                                                                                        |
-|    `fromEither`     |   X    |                     |                                         Convert to Effect and use `fromEffect`                                         |
-|     `fromInput`     |   X    |                     |                                               Scoped variants not needed                                               |
-|    `fromOption`     |   X    |                     |                                         Convert to Effect and use `fromEffect`                                         |
-|    `fromPubSub`     |  Done  |    `fromPubSub`     |                                                                                                                        |
-| `fromPubSubScoped`  |   X    |                     |                                               Scoped variants not needed                                               |
-|     `fromQueue`     |  Done  |     `fromQueue`     |                                                                                                                        |
-|     `identity`      |  Done  |                     |                                                                                                                        |
-|       `never`       |  Done  |       `never`       |                                                                                                                        |
-|       `read`        |   X    |                     |                                                      Not required                                                      |
-|    `readOrFail`     |   X    |                     |                                                      Not required                                                      |
-|     `readWith`      |   X    |                     |                                                      Not required                                                      |
-|   `readWithCause`   |   X    |                     |                                                      Not required                                                      |
-|      `scoped`       |   X    |                     |                                                      Not required                                                      |
-|    `scopedWith`     |   X    |                     |                                                      Not required                                                      |
-|      `succeed`      |  Done  |      `succeed`      |                                                                                                                        |
-|      `suspend`      |  Done  |      `suspend`      |                                                                                                                        |
-|       `sync`        |  Done  |       `sync`        |                                                                                                                        |
-|      `unwrap`       |  Done  |      `unwrap`       |                                                                                                                        |
-|   `unwrapScoped`    |   X    |                     |                                              Scoped variants not required                                              |
-| `unwrapScopedWith`  |   X    |                     |                                              Scoped variants not required                                              |
-|       `void`        |   X    |                     |                                                New api is `Channel.end`                                                |
-|       `write`       |   X    |                     |                                            `Channel.write` is part of Pull                                             |
-|     `writeAll`      |   X    |                     |                                            `Channel.write` is part of Pull                                             |
-|    `writeChunk`     |   X    |                     |                                            `Channel.write` is part of Pull                                             |
+|      Effect 3       | Ported |      Effect 4       |                Comments                |
+| :-----------------: | :----: | :-----------------: | :------------------------------------: |
+| `acquireReleaseOut` |  Done  |  `acquireRelease`   |                                        |
+| `acquireUseRelease` |  Done  | `acquireUseRelease` |                                        |
+|      `buffer`       |  Done  |                     |                                        |
+|    `bufferChunk`    |  Done  |                     |                                        |
+|     `concatAll`     |  Done  |      `concat`       |                                        |
+|   `concatAllWith`   |  Done  |    `concatWith`     |                                        |
+|       `fail`        |  Done  |       `fail`        |                                        |
+|     `failCause`     |  Done  |     `failCause`     |                                        |
+|   `failCauseSync`   |  Done  |   `failCauseSync`   |                                        |
+|     `failSync`      |  Done  |     `failSync`      |                                        |
+|    `fromEffect`     |  Done  |    `fromEffect`     |                                        |
+|    `fromEither`     |   X    |                     | Convert to Effect and use `fromEffect` |
+|     `fromInput`     |   X    |                     |       Scoped variants not needed       |
+|    `fromOption`     |   X    |                     | Convert to Effect and use `fromEffect` |
+|    `fromPubSub`     |  Done  |    `fromPubSub`     |                                        |
+| `fromPubSubScoped`  |   X    |                     |       Scoped variants not needed       |
+|     `fromQueue`     |  Done  |     `fromQueue`     |                                        |
+|     `identity`      |  Done  |                     |                                        |
+|       `never`       |  Done  |       `never`       |                                        |
+|       `read`        |   X    |                     |              Not required              |
+|    `readOrFail`     |   X    |                     |              Not required              |
+|     `readWith`      |   X    |                     |              Not required              |
+|   `readWithCause`   |   X    |                     |              Not required              |
+|      `scoped`       |   X    |                     |              Not required              |
+|    `scopedWith`     |   X    |                     |              Not required              |
+|      `succeed`      |  Done  |      `succeed`      |                                        |
+|      `suspend`      |  Done  |      `suspend`      |                                        |
+|       `sync`        |  Done  |       `sync`        |                                        |
+|      `unwrap`       |  Done  |      `unwrap`       |                                        |
+|   `unwrapScoped`    |   X    |                     |      Scoped variants not required      |
+| `unwrapScopedWith`  |   X    |                     |      Scoped variants not required      |
+|       `void`        |   X    |                     |        New api is `Channel.end`        |
+|       `write`       |   X    |                     |    `Channel.write` is part of Pull     |
+|     `writeAll`      |   X    |                     |    `Channel.write` is part of Pull     |
+|    `writeChunk`     |   X    |                     |    `Channel.write` is part of Pull     |
 
 ### Context
 
@@ -123,18 +124,18 @@ The exports under each section are organized as they are in Effect 3.0. The cate
 
 ### Mapping
 
-|     Effect 3      | Ported |    Effect 4     |           Comments           |
-| :---------------: | :----: | :-------------: | :--------------------------: |
-|       `as`        |   X    |                 | `mapDone` takes care of this |
-|     `asVoid`      |   X    |                 | `mapDone` takes care of this |
-|       `map`       |  Done  |    `mapDone`    |                              |
-|    `mapEffect`    |  Done  | `mapDoneEffect` |                              |
-|    `mapError`     |  Done  |   `mapError`    |                              |
-|  `mapErrorCause`  |   -    |   `mapCause`    |                              |
-|     `mapOut`      |  Done  |      `map`      |                              |
-|  `mapOutEffect`   |  Done  |   `mapEffect`   |                              |
-| `mapOutEffectPar` |  Done  |   `mapEffect`   |  With concurrency specified  |
-|    `mergeMap`     |   -    |                 |                              |
+|     Effect 3      | Ported |        Effect 4         |           Comments           |
+| :---------------: | :----: | :---------------------: | :--------------------------: |
+|       `as`        |   X    |                         | `mapDone` takes care of this |
+|     `asVoid`      |   X    |                         | `mapDone` takes care of this |
+|       `map`       |  Done  |        `mapDone`        |                              |
+|    `mapEffect`    |  Done  |     `mapDoneEffect`     |                              |
+|    `mapError`     |  Done  |       `mapError`        |                              |
+|  `mapErrorCause`  |   -    |       `mapCause`        |                              |
+|     `mapOut`      |  Done  |          `map`          |                              |
+|  `mapOutEffect`   |  Done  |       `mapEffect`       |                              |
+| `mapOutEffectPar` |  Done  |       `mapEffect`       |  With concurrency specified  |
+|    `mergeMap`     |  Done  | `flatMap` + concurrency |                              |
 
 ### Sequencing
 
@@ -161,20 +162,20 @@ The exports under each section are organized as they are in Effect 3.0. The cate
 |        Effect 3         | Ported |   Effect 4   |      Comments       |
 | :---------------------: | :----: | :----------: | :-----------------: |
 |        `collect`        |  Done  |   `filter`   |                     |
-|       `concatMap`       |   -    |              |                     |
-|     `concatMapWith`     |   -    |              |                     |
-|  `concatMapWithCustom`  |   -    |              |                     |
-|       `concatOut`       |   -    |              |                     |
-|      `doneCollect`      |   -    |              |                     |
+|       `concatMap`       |  Done  |  `flatMap`   |                     |
+|     `concatMapWith`     |   X    |              |                     |
+|  `concatMapWithCustom`  |   X    |              |                     |
+|       `concatOut`       |  Done  |  `flatten`   |                     |
+|      `doneCollect`      |   X    |              |    `runCollect`     |
 |         `drain`         |  Done  |              |                     |
 |      `embedInput`       |  Done  | `embedInput` |                     |
-|      `emitCollect`      |   -    |              |                     |
+|      `emitCollect`      |   X    |              |    `runCollect`     |
 |       `ensuring`        |  Done  |  `ensuring`  |                     |
 |     `ensuringWith`      |  Done  |   `onExit`   |                     |
-|   `foldCauseChannel`    |   -    |              |                     |
-|      `foldChannel`      |   -    |              |                     |
+|   `foldCauseChannel`    |   X    |              |                     |
+|      `foldChannel`      |   X    |              |                     |
 |     `interruptWhen`     |  Done  |              |                     |
 | `interruptWhenDeferred` |   X    |              | Use `interruptWhen` |
-|       `mapInput`        |  Done  |  `mapInput`  |                     |
-|    `mapInputEffect`     |   -    |              |                     |
-|     `mapInputError`     |   -    |              |                     |
+|       `mapInput`        |  Done  |              |                     |
+|    `mapInputEffect`     |  Done  |  `mapInput`  |                     |
+|     `mapInputError`     |  Done  |              |                     |

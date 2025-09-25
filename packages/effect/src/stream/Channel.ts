@@ -1939,20 +1939,60 @@ const mapEffectConcurrent = <
  * @category sequencing
  */
 export const mapInput: {
-  <InElem, InElem2>(
-    f: (i: InElem2) => InElem
+  <InElem, InElem2, InErr, R = never>(
+    f: (i: InElem2) => InElem | Effect.Effect<InElem, InErr, R>
   ): <OutElem, OutErr, OutDone, InErr, InDone, Env>(
-    self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>
+    self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env | R>
   ) => Channel<OutElem, OutErr, OutDone, InElem2, InErr, InDone, Env>
-  <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, InElem2>(
+  <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, InElem2, R = never>(
     self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
-    f: (i: InElem2) => InElem
-  ): Channel<OutElem, OutErr, OutDone, InElem2, InErr, InDone, Env>
-} = dual(2, <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, InElem2>(
+    f: (i: InElem2) => InElem | Effect.Effect<InElem, InErr, R>
+  ): Channel<OutElem, OutErr, OutDone, InElem2, InErr, InDone, Env | R>
+} = dual(2, <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, InElem2, R = never>(
   self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
-  f: (i: InElem2) => InElem
-): Channel<OutElem, OutErr, OutDone, InElem2, InErr, InDone, Env> =>
-  fromTransform((upstream, scope) => toTransform(self)(Effect.map(upstream, f), scope)))
+  f: (i: InElem2) => InElem | Effect.Effect<InElem, InErr, R>
+): Channel<OutElem, OutErr, OutDone, InElem2, InErr, InDone, Env | R> =>
+  fromTransform((upstream, scope) =>
+    toTransform(self)(
+      Effect.flatMap(upstream, (el) => {
+        const out = f(el)
+        return Effect.isEffect(out) ? out : Effect.succeed(out)
+      }) as Pull.Pull<InElem, InErr, InDone>,
+      scope
+    )
+  ))
+
+/**
+ * Returns a new channel which is the same as this one but applies the given
+ * function to the input errors.
+ *
+ * @since 2.0.0
+ * @category sequencing
+ */
+export const mapInputError: {
+  <InErr, InErr2, R = never>(
+    f: (i: InErr2) => InErr | Effect.Effect<InErr, InErr, R>
+  ): <OutElem, OutErr, OutDone, InElem, InDone, Env>(
+    self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env | R>
+  ) => Channel<OutElem, OutErr, OutDone, InElem, InErr2, InDone, Env>
+  <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, InErr2, R = never>(
+    self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
+    f: (i: InErr2) => InErr | Effect.Effect<InErr, InErr, R>
+  ): Channel<OutElem, OutErr, OutDone, InElem, InErr2, InDone, Env | R>
+} = dual(2, <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, InErr2, R = never>(
+  self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
+  f: (i: InErr2) => InErr | Effect.Effect<InErr, InErr, R>
+): Channel<OutElem, OutErr, OutDone, InElem, InErr2, InDone, Env | R> =>
+  fromTransform((upstream, scope) =>
+    toTransform(self)(
+      Effect.catch(upstream, (err): Pull.Pull<never, InErr, InDone> => {
+        if (Pull.isHalt(err)) return Effect.fail(err)
+        const out = f(err)
+        return Effect.isEffect(out) ? Effect.flatMap(out as Effect.Effect<InErr, InErr>, Effect.fail) : Effect.fail(out)
+      }),
+      scope
+    )
+  ))
 
 /**
  * Applies a side effect function to each output element of the channel,
@@ -2823,6 +2863,8 @@ export const mapAccum: {
               state = newState
               if (values.length === 0) {
                 return loop()
+              } else if (values.length === 1) {
+                return Effect.succeed(values[0])
               }
               current = values
               return loop()
