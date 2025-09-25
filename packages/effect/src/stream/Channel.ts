@@ -74,7 +74,7 @@ import { constTrue, dual, identity as identity_ } from "../Function.ts"
 import type { Pipeable } from "../interfaces/Pipeable.ts"
 import { pipeArguments } from "../interfaces/Pipeable.ts"
 import { endSpan } from "../internal/effect.ts"
-import type * as Layer from "../Layer.ts"
+import * as Layer from "../Layer.ts"
 import { ParentSpan, type SpanOptions } from "../observability/Tracer.ts"
 import * as PubSub from "../PubSub.ts"
 import * as Queue from "../Queue.ts"
@@ -4562,9 +4562,12 @@ export const provide: {
   self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
   layer: Layer.Layer<A, E, R> | ServiceMap.ServiceMap<A>
 ): Channel<OutElem, OutErr | E, OutDone, InElem, InErr, InDone, Exclude<Env, A> | R> =>
-  fromTransform((upstream, scope) =>
-    Effect.provide(toTransform(self)(upstream, scope), layer as ServiceMap.ServiceMap<A>)
-  ))
+  fromTransform((upstream, scope) => {
+    const eff = toTransform(self)(upstream, scope)
+    return ServiceMap.isServiceMap(layer)
+      ? Effect.provide(eff, layer)
+      : Effect.flatMap(Layer.buildWithScope(layer, scope), (services) => Effect.provide(eff, services))
+  }))
 
 /**
  * @since 2.0.0
