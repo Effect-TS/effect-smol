@@ -204,6 +204,11 @@ export const getIdentifier = getAt("identifier", Predicate.isString)
 /**
  * @since 4.0.0
  */
+export const getTitle = getAt("title", Predicate.isString)
+
+/**
+ * @since 4.0.0
+ */
 export const getDescription = getAt("description", Predicate.isString)
 
 /** @internal */

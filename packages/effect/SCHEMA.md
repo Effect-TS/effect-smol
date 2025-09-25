@@ -321,7 +321,7 @@ console.log(serialized)
 
 In this example, the `Date` is encoded as a string and decoded back using the standard ISO format.
 
-## 🆕 String‑Leaf Serializer
+## 🆕 String‑Pojo Serializer
 
 `Serializer.stringPojo` lets you funnel many string‑based inputs—URL queries, form posts, CLI args—into any **Schema** without adding custom transformations.
 
@@ -459,6 +459,60 @@ everything is a string
   isAdmin: 'true',
   createdAt: '2025-07-25T17:04:40.434Z'
 }
+*/
+```
+
+## 🆕 XML Encoder
+
+`Serializer.xmlEncoder` lets you serialize values to XML.
+
+**Example**
+
+```ts
+import { Effect } from "effect"
+import { Option } from "effect/data"
+import { Schema, Serializer } from "effect/schema"
+
+const schema = Schema.Struct({
+  a: Schema.String,
+  b: Schema.Array(Schema.NullOr(Schema.String)),
+  c: Schema.Struct({
+    d: Schema.Option(Schema.String),
+    e: Schema.Date
+  }),
+  f: Schema.optional(Schema.String)
+})
+
+// const encoder: (t: {...}) => Effect<string, Schema.SchemaError, never>
+const xmlEncoder = Serializer.xmlEncoder(schema)
+
+console.log(
+  Effect.runSync(
+    xmlEncoder({
+      a: "",
+      b: ["bar", "baz", null],
+      c: { d: Option.some("qux"), e: new Date("2021-01-01") },
+      f: undefined
+    })
+  )
+)
+/*
+<root>
+  <a></a>
+  <b>
+    <item>bar</item>
+    <item>baz</item>
+    <item/>
+  </b>
+  <c>
+    <d>
+      <_tag>Some</_tag>
+      <value>qux</value>
+    </d>
+    <e>2021-01-01T00:00:00.000Z</e>
+  </c>
+  <f/>
+</root>
 */
 ```
 

@@ -4,6 +4,7 @@
 
 import * as Predicate from "../data/Predicate.ts"
 import { memoize } from "../Function.ts"
+import * as Annotations from "./Annotations.ts"
 import * as AST from "./AST.ts"
 import * as Getter from "./Getter.ts"
 import * as Schema from "./Schema.ts"
@@ -259,3 +260,152 @@ export const goEnsureArray = memoize((ast: AST.AST): AST.AST => {
   }
   return out
 })
+
+type XmlEncoderOptions = {
+  /** Root element name for the returned XML string. Default: "root" */
+  readonly rootName?: string | undefined
+  /** When an array doesn't have a natural item name, use this. Default: "item" */
+  readonly arrayItemName?: string | undefined
+  /** Pretty-print output. Default: true */
+  readonly pretty?: boolean | undefined
+  /** Indentation used when pretty-printing. Default: "  " (two spaces) */
+  readonly indent?: string | undefined
+  /** Sort object keys for stable output. Default: true */
+  readonly sortKeys?: boolean | undefined
+}
+
+/**
+ * @since 4.0.0
+ */
+export function xmlEncoder<T, E, RD, RE>(
+  codec: Schema.Codec<T, E, RD, RE>,
+  options?: XmlEncoderOptions
+) {
+  const rootName = Annotations.getIdentifier(codec.ast) ?? Annotations.getTitle(codec.ast)
+  const serialize = Schema.encodeEffect(stringPojo(codec))
+  return (t: T) => serialize(t).pipe(Effect.map((pojo) => stringPojoToXml(pojo, { rootName, ...options })))
+}
+
+/**
+ * Convert a StringPojo to XML text.
+ */
+function stringPojoToXml(
+  value: StringPojo,
+  options: XmlEncoderOptions
+): string {
+  const opts: { [P in keyof XmlEncoderOptions]-?: Exclude<XmlEncoderOptions[P], undefined> } = {
+    rootName: options.rootName ?? "root",
+    arrayItemName: options.arrayItemName ?? "item",
+    pretty: options.pretty ?? true,
+    indent: options.indent ?? "  ",
+    sortKeys: options.sortKeys ?? true
+  }
+
+  const seen = new Set<any>() // cycle detection
+
+  type Line = string
+  const lines: Array<Line> = []
+
+  const pushLine = (depth: number, text: string) => {
+    if (opts.pretty) {
+      lines.push(opts.indent.repeat(depth) + text)
+    } else {
+      lines.push(text)
+    }
+  }
+
+  const renderNode = (
+    tagName: string,
+    node: StringPojo,
+    depth: number,
+    originalNameForMeta?: string
+  ) => {
+    if (node === undefined) {
+      const { changed, safe } = toValidTagName(tagName)
+      const attrs = changed || (originalNameForMeta && originalNameForMeta !== tagName)
+        ? ` data-name="${escapeAttr(originalNameForMeta ?? tagName)}"`
+        : ""
+      pushLine(depth, `<${safe}${attrs}/>`)
+      return
+    }
+
+    if (typeof node === "string") {
+      const { changed, safe } = toValidTagName(tagName)
+      const attrs = changed || (originalNameForMeta && originalNameForMeta !== tagName)
+        ? ` data-name="${escapeAttr(originalNameForMeta ?? tagName)}"`
+        : ""
+      const text = escapeText(node)
+      pushLine(depth, `<${safe}${attrs}>${text}</${safe}>`)
+      return
+    }
+
+    if (Array.isArray(node)) {
+      const { changed, safe: safeParent } = toValidTagName(tagName)
+      const parentAttrs = changed || (originalNameForMeta && originalNameForMeta !== tagName)
+        ? ` data-name="${escapeAttr(originalNameForMeta ?? tagName)}"`
+        : ""
+
+      if (node.length === 0) {
+        pushLine(depth, `<${safeParent}${parentAttrs}/>`)
+        return
+      }
+
+      pushLine(depth, `<${safeParent}${parentAttrs}>`)
+      const itemName = opts.arrayItemName
+      for (const item of node) {
+        renderNode(itemName, item, depth + 1)
+      }
+      pushLine(depth, `</${safeParent}>`)
+      return
+    }
+
+    if (Predicate.isRecord(node)) {
+      if (seen.has(node)) {
+        throw new Error("Cycle detected while serializing to XML.")
+      }
+      seen.add(node)
+      try {
+        const { changed, safe } = toValidTagName(tagName)
+        const attrs = changed || (originalNameForMeta && originalNameForMeta !== tagName)
+          ? ` data-name="${escapeAttr(originalNameForMeta ?? tagName)}"`
+          : ""
+
+        const keys = Object.keys(node)
+        if (opts.sortKeys) keys.sort()
+
+        if (keys.length === 0) {
+          pushLine(depth, `<${safe}${attrs}/>`)
+          return
+        }
+
+        pushLine(depth, `<${safe}${attrs}>`)
+        for (const k of keys) {
+          const child = (node as Record<string, StringPojo>)[k]
+          const { safe: childSafe } = toValidTagName(k)
+          renderNode(childSafe, child, depth + 1, k) // pass original for data-name if changed
+        }
+        pushLine(depth, `</${safe}>`)
+      } finally {
+        seen.delete(node)
+      }
+      return
+    }
+  }
+
+  renderNode(opts.rootName, value, 0)
+
+  return opts.pretty ? lines.join("\n") : lines.join("")
+}
+
+const escapeText = (s: string): string => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+
+const escapeAttr = (s: string): string => s.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;")
+
+const toValidTagName = (name: string): { safe: string; changed: boolean } => {
+  const original = name
+  let safe = name
+  if (!/^[A-Za-z_]/.test(safe)) safe = "_" + safe
+  safe = safe.replace(/[^A-Za-z0-9._-]/g, "_")
+  if (/^xml/i.test(safe)) safe = "_" + safe
+  return { safe, changed: safe !== original }
+}

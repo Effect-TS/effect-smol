@@ -1,4 +1,4 @@
-import { Cause } from "effect"
+import { Cause, Effect } from "effect"
 import { Option, Redacted } from "effect/data"
 import { Check, Issue, Schema, Serializer, ToParser, Transformation } from "effect/schema"
 import { DateTime, Duration } from "effect/time"
@@ -1650,6 +1650,58 @@ describe("Serializer", () => {
       await assertions.decoding.succeed(serializer, {})
       await assertions.decoding.succeed(serializer, { a: ["a"] })
       await assertions.decoding.succeed(serializer, { a: "a" }, { expected: { a: ["a"] } })
+    })
+  })
+
+  describe("xmlEncoder", () => {
+    async function assertXml<T, E, RD>(schema: Schema.Codec<T, E, RD>, value: T, expected: string) {
+      const serializer = Serializer.xmlEncoder(Serializer.stringPojo(schema))
+      strictEqual(await Effect.runPromise(serializer(value)), expected)
+    }
+
+    it("should use the identifier as the root name", async () => {
+      await assertXml(Schema.String.annotate({ identifier: "a" }), "value", "<a>value</a>")
+      await assertXml(Schema.String.annotate({ identifier: "a b" }), "value", `<a_b data-name="a b">value</a_b>`)
+      await assertXml(Schema.String.annotate({ identifier: "a", title: "b" }), "value", "<a>value</a>")
+    })
+
+    it("should use the title as the root name", async () => {
+      await assertXml(Schema.String.annotate({ title: "a" }), "value", "<a>value</a>")
+      await assertXml(Schema.String.annotate({ title: "a b" }), "value", `<a_b data-name="a b">value</a_b>`)
+    })
+
+    it("Null", async () => {
+      await assertXml(Schema.Null, null, "<root/>")
+    })
+
+    it("Undefined", async () => {
+      await assertXml(Schema.Undefined, undefined, "<root/>")
+    })
+
+    it("Struct", async () => {
+      await assertXml(
+        Schema.Struct({
+          a: Schema.Number,
+          "a b": Schema.Number
+        }),
+        { a: 1, "a b": 2 },
+        `<root>
+  <a>1</a>
+  <a_b data-name="a b">2</a_b>
+</root>`
+      )
+    })
+
+    it("Array", async () => {
+      await assertXml(
+        Schema.Array(Schema.Number),
+        [1, 2, 3],
+        `<root>
+  <item>1</item>
+  <item>2</item>
+  <item>3</item>
+</root>`
+      )
     })
   })
 })
