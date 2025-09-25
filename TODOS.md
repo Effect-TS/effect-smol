@@ -2,7 +2,8 @@
 
 Releases are snapshot only
 
-- [ ] Port Channel / Stream / Sink apis
+- [x] Port Channel apis
+- [ ] Port Stream / Sink apis
 - [ ] Port worker modules
 - [ ] Port command execution modules
 - [ ] Port platform-browser
