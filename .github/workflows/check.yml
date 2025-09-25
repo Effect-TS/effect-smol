@@ -86,11 +86,11 @@ jobs:
         shell: bash
         run: |
           mkdir -p bundle-out
-          mkdir -p bundle-base
+          mkdir -p bundle-out-base
 
           for filename in bundle/*.ts; do
             pnpm rollup -c rollup.config.js "${filename}" | gzip | wc -c > bundle-out/$(basename "${filename}") &
-            pnpm rollup -c rollup.config.js "base/${filename}" | gzip | wc -c > bundle-buse/$(basename "${filename}") &
+            pnpm rollup -c rollup.config.js "base/${filename}" | gzip | wc -c > bundle-out-base/$(basename "${filename}") &
           end
           wait
 
@@ -98,7 +98,7 @@ jobs:
           output+="\n|:----------|:------------:|:-------------:|:----------:|"
           for filename in bundle/*.ts; do
             current=$(cat "bundle-out/$(basename "${filename}")")
-            previous=$([[ -f "base/${filename}" ]] && cat "bundle-base/$(basename "${filename}")" || echo 0)
+            previous=$([[ -f "base/${filename}" ]] && cat "bundle-out-base/$(basename "${filename}")" || echo 0)
             line="$(awk -v filename=${filename} -v current="${current}" -v previous="${previous}" '
               BEGIN {
                 if (previous == 0) previous = current
