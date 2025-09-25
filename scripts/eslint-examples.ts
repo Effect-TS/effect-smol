@@ -67,11 +67,10 @@ const run = Effect.fnUntraced(function*(files: Array<string>) {
             + after
         }),
         Effect.flatMap((newContents) => fs.writeFileString(file, newContents))
-      )
-    ),
+      ), { concurrency: 3 }),
     Stream.runDrain
   )
-}, Effect.scoped)
+})
 
 const findExamples = (content: string) => {
   const start = /^ \* ```ts.*$/gm
