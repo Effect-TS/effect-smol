@@ -2,7 +2,7 @@
  * @since 1.0.0
  */
 import type { SqlStorage } from "@cloudflare/workers-types"
-import * as Config from "effect/config/Config"
+import * as Config from "effect/Config"
 import * as Effect from "effect/Effect"
 import * as Fiber from "effect/Fiber"
 import { identity } from "effect/Function"

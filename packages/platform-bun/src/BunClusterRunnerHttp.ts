@@ -1,7 +1,7 @@
 /**
  * @since 1.0.0
  */
-import type * as Config from "effect/config/Config"
+import type * as Config from "effect/Config"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as HttpRunner from "effect/unstable/cluster/HttpRunner"

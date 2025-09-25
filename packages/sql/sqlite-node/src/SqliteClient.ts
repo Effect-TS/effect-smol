@@ -3,7 +3,7 @@
  */
 import Sqlite from "better-sqlite3"
 import * as Cache from "effect/caching/Cache"
-import * as Config from "effect/config/Config"
+import * as Config from "effect/Config"
 import * as Effect from "effect/Effect"
 import * as Fiber from "effect/Fiber"
 import { identity } from "effect/Function"

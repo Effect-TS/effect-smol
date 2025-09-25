@@ -2,7 +2,7 @@
  * @since 1.0.0
  */
 import type * as Cause from "effect/Cause"
-import * as Config from "effect/config/Config"
+import * as Config from "effect/Config"
 import type * as Record from "effect/data/Record"
 import * as Effect from "effect/Effect"
 import * as Fiber from "effect/Fiber"

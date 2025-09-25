@@ -2,7 +2,7 @@
  * @since 1.0.0
  */
 import { layerClientProtocol, layerSocketServer } from "@effect/platform-node-shared/NodeClusterRunnerSocket"
-import type * as Config from "effect/config/Config"
+import type * as Config from "effect/Config"
 import * as Layer from "effect/Layer"
 import * as MessageStorage from "effect/unstable/cluster/MessageStorage"
 import * as RunnerHealth from "effect/unstable/cluster/RunnerHealth"

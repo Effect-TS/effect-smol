@@ -1,8 +1,8 @@
 /**
  * @since 4.0.0
  */
-import * as Config from "../../config/Config.ts"
-import * as ConfigProvider from "../../config/ConfigProvider.ts"
+import * as Config from "../../Config.ts"
+import * as ConfigProvider from "../../ConfigProvider.ts"
 import * as Option from "../../data/Option.ts"
 import * as Effect from "../../Effect.ts"
 import * as Layer from "../../Layer.ts"

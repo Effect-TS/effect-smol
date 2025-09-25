@@ -1,25 +1,25 @@
 /**
  * @since 4.0.0
  */
-import * as Option from "../data/Option.ts"
-import * as Predicate from "../data/Predicate.ts"
-import * as Rec from "../data/Record.ts"
-import * as Effect from "../Effect.ts"
-import { dual, type LazyArg } from "../Function.ts"
-import type { Pipeable } from "../interfaces/Pipeable.ts"
-import { PipeInspectableProto, YieldableProto } from "../internal/core.ts"
-import * as LogLevel_ from "../logging/LogLevel.ts"
-import * as AST from "../schema/AST.ts"
-import * as Check from "../schema/Check.ts"
-import * as Getter from "../schema/Getter.ts"
-import * as Issue from "../schema/Issue.ts"
-import * as Schema from "../schema/Schema.ts"
-import * as Serializer from "../schema/Serializer.ts"
-import * as ToParser from "../schema/ToParser.ts"
-import * as Transformation from "../schema/Transformation.ts"
-import * as Duration_ from "../time/Duration.ts"
 import type { Path, SourceError } from "./ConfigProvider.ts"
 import * as ConfigProvider from "./ConfigProvider.ts"
+import * as Option from "./data/Option.ts"
+import * as Predicate from "./data/Predicate.ts"
+import * as Rec from "./data/Record.ts"
+import * as Effect from "./Effect.ts"
+import { dual, type LazyArg } from "./Function.ts"
+import type { Pipeable } from "./interfaces/Pipeable.ts"
+import { PipeInspectableProto, YieldableProto } from "./internal/core.ts"
+import * as LogLevel_ from "./logging/LogLevel.ts"
+import * as AST from "./schema/AST.ts"
+import * as Check from "./schema/Check.ts"
+import * as Getter from "./schema/Getter.ts"
+import * as Issue from "./schema/Issue.ts"
+import * as Schema from "./schema/Schema.ts"
+import * as Serializer from "./schema/Serializer.ts"
+import * as ToParser from "./schema/ToParser.ts"
+import * as Transformation from "./schema/Transformation.ts"
+import * as Duration_ from "./time/Duration.ts"
 
 const TypeId = "~effect/config/Config"
 
@@ -241,11 +241,14 @@ type IsPlainObject<A> = [A] extends [Record<string, any>]
  * **Example**
  *
  * ```ts
- * import { Config } from "effect/config"
+ * import { Config } from "effect"
  *
- * interface Options { key: string }
+ * interface Options {
+ *   key: string
+ * }
  *
- * const makeConfig = (config: Config.Wrap<Options>): Config.Config<Options> => Config.unwrap(config)
+ * const makeConfig = (config: Config.Wrap<Options>): Config.Config<Options> =>
+ *   Config.unwrap(config)
  * ```
  *
  * @category Wrap
@@ -460,8 +463,7 @@ export const LogLevel = Schema.Literals(LogLevel_.values)
  * **Example**
  *
  * ```ts
- * import { Effect } from "effect"
- * import { Config, ConfigProvider } from "effect/config"
+ * import { Config, ConfigProvider, Effect } from "effect"
  * import { Schema } from "effect/schema"
  *
  * const schema = Config.Record(Schema.String, Schema.String)
@@ -469,7 +471,8 @@ export const LogLevel = Schema.Literals(LogLevel_.values)
  *
  * const provider = ConfigProvider.fromEnv({
  *   env: {
- *     OTEL_RESOURCE_ATTRIBUTES: "service.name=my-service,service.version=1.0.0,custom.attribute=value"
+ *     OTEL_RESOURCE_ATTRIBUTES:
+ *       "service.name=my-service,service.version=1.0.0,custom.attribute=value"
  *   }
  * })
  *
@@ -596,8 +599,7 @@ export function literal<L extends AST.Literal>(literal: L, name?: string) {
  * **Example**
  *
  * ```ts
- * import { Effect } from "effect"
- * import { Config, ConfigProvider } from "effect/config"
+ * import { Config, ConfigProvider, Effect } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const flag = yield* Config.boolean("FEATURE_FLAG")
@@ -610,7 +612,9 @@ export function literal<L extends AST.Literal>(literal: L, name?: string) {
  *   }
  * })
  *
- * Effect.runSync(program.pipe(Effect.provideService(ConfigProvider.ConfigProvider, provider)))
+ * Effect.runSync(
+ *   program.pipe(Effect.provideService(ConfigProvider.ConfigProvider, provider))
+ * )
  * // Output: true
  * ```
  *
@@ -629,8 +633,7 @@ export function boolean(name?: string) {
  * **Example**
  *
  * ```ts
- * import { Effect } from "effect"
- * import { Config, ConfigProvider } from "effect/config"
+ * import { Config, ConfigProvider, Effect } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const duration = yield* Config.duration("DURATION")
@@ -643,7 +646,9 @@ export function boolean(name?: string) {
  *   }
  * })
  *
- * Effect.runSync(program.pipe(Effect.provideService(ConfigProvider.ConfigProvider, provider)))
+ * Effect.runSync(
+ *   program.pipe(Effect.provideService(ConfigProvider.ConfigProvider, provider))
+ * )
  * // Output: Duration { _tag: "millis", value: 10000 }
  * ```
  *
@@ -662,8 +667,7 @@ export function duration(name?: string) {
  * **Example**
  *
  * ```ts
- * import { Effect } from "effect"
- * import { Config, ConfigProvider } from "effect/config"
+ * import { Config, ConfigProvider, Effect } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const port = yield* Config.port("PORT")
@@ -676,7 +680,9 @@ export function duration(name?: string) {
  *   }
  * })
  *
- * Effect.runSync(program.pipe(Effect.provideService(ConfigProvider.ConfigProvider, provider)))
+ * Effect.runSync(
+ *   program.pipe(Effect.provideService(ConfigProvider.ConfigProvider, provider))
+ * )
  * // Output: 8080
  * ```
  *
@@ -704,8 +710,7 @@ export function port(name?: string) {
  * **Example**
  *
  * ```ts
- * import { Effect } from "effect"
- * import { Config, ConfigProvider } from "effect/config"
+ * import { Config, ConfigProvider, Effect } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const logLevel = yield* Config.logLevel("LOG_LEVEL")
@@ -718,7 +723,9 @@ export function port(name?: string) {
  *   }
  * })
  *
- * Effect.runSync(program.pipe(Effect.provideService(ConfigProvider.ConfigProvider, provider)))
+ * Effect.runSync(
+ *   program.pipe(Effect.provideService(ConfigProvider.ConfigProvider, provider))
+ * )
  * // Output: "Info"
  * ```
  *
@@ -735,8 +742,7 @@ export function logLevel(name?: string) {
  * **Example**
  *
  * ```ts
- * import { Effect } from "effect"
- * import { Config, ConfigProvider } from "effect/config"
+ * import { Config, ConfigProvider, Effect } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const apiKey = yield* Config.redacted("API_KEY")
@@ -749,7 +755,9 @@ export function logLevel(name?: string) {
  *   }
  * })
  *
- * Effect.runSync(program.pipe(Effect.provideService(ConfigProvider.ConfigProvider, provider)))
+ * Effect.runSync(
+ *   program.pipe(Effect.provideService(ConfigProvider.ConfigProvider, provider))
+ * )
  * // Output: <redacted>
  * ```
  *
@@ -768,8 +776,7 @@ export function redacted(name?: string) {
  * **Example**
  *
  * ```ts
- * import { Effect } from "effect"
- * import { Config, ConfigProvider } from "effect/config"
+ * import { Config, ConfigProvider, Effect } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const url = yield* Config.url("URL")
@@ -782,7 +789,9 @@ export function redacted(name?: string) {
  *   }
  * })
  *
- * Effect.runSync(program.pipe(Effect.provideService(ConfigProvider.ConfigProvider, provider)))
+ * Effect.runSync(
+ *   program.pipe(Effect.provideService(ConfigProvider.ConfigProvider, provider))
+ * )
  * // Output:
  * // URL {
  * //   href: 'https://example.com/',

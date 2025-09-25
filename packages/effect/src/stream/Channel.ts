@@ -2742,6 +2742,7 @@ export const filter: {
  * )
  * const filteredOddChannel = Channel.filterArray(oddChannel, (n) => n % 2 === 0)
  * // Outputs: [2, 4] (the arrays [1,3,5] and [7,9] are discarded)
+ * ```
  *
  * @since 2.0.0
  * @category Filtering

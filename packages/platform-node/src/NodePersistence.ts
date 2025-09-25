@@ -2,7 +2,7 @@
  * @since 1.0.0
  */
 import type { NonEmptyArray } from "effect/collections/Array"
-import * as Config from "effect/config/Config"
+import * as Config from "effect/Config"
 import * as Effect from "effect/Effect"
 import { identity } from "effect/Function"
 import * as Layer from "effect/Layer"

@@ -270,7 +270,7 @@ export * as Logger from "./Logger.ts"
  *
  * ```ts
  * import { Effect } from "effect"
- * import { Config } from "effect/config"
+ * import { Config } from "effect"
  * import { LogLevel } from "effect/logging"
  * import { Logger } from "effect/logging"
  *

@@ -73,6 +73,16 @@ export {
 export * as Cause from "./Cause.ts"
 
 /**
+ * @since 4.0.0
+ */
+export * as Config from "./Config.ts"
+
+/**
+ * @since 4.0.0
+ */
+export * as ConfigProvider from "./ConfigProvider.ts"
+
+/**
  * This module provides utilities for working with `Deferred`, a powerful concurrency
  * primitive that represents an asynchronous variable that can be set exactly once.
  * Multiple fibers can await the same `Deferred` and will all be notified when it
