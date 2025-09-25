@@ -152,6 +152,8 @@ export const values: ReadonlyArray<LogLevel> = ["All", "Fatal", "Error", "Warn",
  *
  * @example
  * ```ts
+ * import { LogLevel } from "effect"
+ *
  * // Compare log levels using Order
  * console.log(LogLevel.Order("Error", "Info")) // 1 (Error > Info)
  * console.log(LogLevel.Order("Debug", "Error")) // -1 (Debug < Error)
