@@ -91,7 +91,7 @@ const findExamples = (content: string) => {
     const code = content
       .slice(startPos, endPos)
       .split("\n")
-      .map((line) => line.slice(3))
+      .map((line) => line.startsWith(" *") ? line.slice(3) : line.trim())
       .join("\n")
     examples.push({
       code,
