@@ -56,9 +56,9 @@
     "coverage": "vitest --coverage"
   },
   "devDependencies": {
-    "@types/bun": "^1.2.21",
-    "effect": "workspace:^",
-    "@effect/platform-bun": "workspace:^"
+    "@effect/platform-bun": "workspace:^",
+    "@types/bun": "^1.2.22",
+    "effect": "workspace:^"
   },
   "peerDependencies": {
     "effect": "workspace:^"

@@ -56,13 +56,13 @@
     "coverage": "vitest --coverage"
   },
   "devDependencies": {
-    "@testcontainers/mysql": "^11.5.1",
+    "@testcontainers/mysql": "^11.6.0",
     "effect": "workspace:^"
   },
   "peerDependencies": {
     "effect": "workspace:^"
   },
   "dependencies": {
-    "mysql2": "^3.11.0"
+    "mysql2": "^3.15.1"
   }
 }

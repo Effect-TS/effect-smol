@@ -62,17 +62,17 @@
   },
   "dependencies": {
     "@effect/platform-node-shared": "workspace:^",
-    "mime": "^4.0.7",
-    "undici": "^7.15.0"
+    "mime": "^4.1.0",
+    "undici": "^7.16.0"
   },
   "peerDependencies": {
     "effect": "workspace:^",
     "ioredis": "^5.7.0"
   },
   "devDependencies": {
-    "@testcontainers/mysql": "^11.5.1",
-    "@testcontainers/postgresql": "^11.5.1",
-    "@types/node": "^24.3.0",
+    "@testcontainers/mysql": "^11.6.0",
+    "@testcontainers/postgresql": "^11.6.0",
+    "@types/node": "^24.5.2",
     "effect": "workspace:^"
   }
 }

@@ -216,3 +216,115 @@ export const layer = (
         ServiceMap.add(Client.SqlClient, client)
       ))
   ).pipe(Layer.provide(Reactivity.layer))
+
+declare module "@op-engineering/op-sqlite" {
+  export function open(params: {
+    name: string
+    location?: string | undefined
+    encryptionKey?: string | undefined
+  }): DB
+
+  export type DB = {
+    close: () => void
+    delete: (location?: string) => void
+    attach: (params: {
+      secondaryDbFileName: string
+      alias: string
+      location?: string
+    }) => void
+    detach: (alias: string) => void
+    /**
+     * Sync version of the execute function
+     * It will block the JS thread and therefore your UI and should be used with caution
+     *
+     * When writing your queries, you can use the ? character as a placeholder for parameters
+     * The parameters will be automatically escaped and sanitized
+     *
+     * Example:
+     * db.executeSync('SELECT * FROM table WHERE id = ?', [1]);
+     *
+     * If you are writing a query that doesn't require parameters, you can omit the second argument
+     *
+     * If you are writing to the database YOU SHOULD BE USING TRANSACTIONS!
+     * Transactions protect you from partial writes and ensure that your data is always in a consistent state
+     *
+     * @param query
+     * @param params
+     * @returns QueryResult
+     */
+    executeSync: (query: string, params?: Array<any>) => QueryResult
+    /**
+     * Basic query execution function, it is async don't forget to await it
+     *
+     * When writing your queries, you can use the ? character as a placeholder for parameters
+     * The parameters will be automatically escaped and sanitized
+     *
+     * Example:
+     * await db.execute('SELECT * FROM table WHERE id = ?', [1]);
+     *
+     * If you are writing a query that doesn't require parameters, you can omit the second argument
+     *
+     * If you are writing to the database YOU SHOULD BE USING TRANSACTIONS!
+     * Transactions protect you from partial writes and ensure that your data is always in a consistent state
+     *
+     * If you need a large amount of queries ran as fast as possible you should be using `executeBatch`, `executeRaw`, `loadFile` or `executeWithHostObjects`
+     *
+     * @param query string of your SQL query
+     * @param params a list of parameters to bind to the query, if any
+     * @returns Promise<QueryResult> with the result of the query
+     */
+    execute: (query: string, params?: Array<any>) => Promise<QueryResult>
+    /**
+     * Loads a runtime loadable sqlite extension. Libsql and iOS embedded version do not support loading extensions
+     */
+    loadExtension: (path: string, entryPoint?: string) => void
+    /**
+     * Same as `execute` except the results are not returned in objects but rather in arrays with just the values and not the keys
+     * It will be faster since a lot of repeated work is skipped and only the values you care about are returned
+     */
+    executeRaw: (query: string, params?: Array<any>) => Promise<Array<any>>
+    /**
+     * Same as `executeRaw` but it will block the JS thread and therefore your UI and should be used with caution
+     * It will return an array of arrays with just the values and not the keys
+     */
+    executeRawSync: (query: string, params?: Array<any>) => Array<any>
+    /**
+     * Get's the absolute path to the db file. Useful for debugging on local builds and for attaching the DB from users devices
+     */
+    getDbPath: (location?: string) => string
+    /**
+     * Reactive execution of queries when data is written to the database. Check the docs for how to use them.
+     */
+    reactiveExecute: (params: {
+      query: string
+      arguments: Array<any>
+      fireOn: Array<{
+        table: string
+        ids?: Array<number>
+      }>
+      callback: (response: any) => void
+    }) => () => void
+    /** This function is only available for libsql.
+     * Allows to trigger a sync the database with it's remote replica
+     * In order for this function to work you need to use openSync or openRemote functions
+     * with libsql: true in the package.json
+     *
+     * The database is hosted in turso
+     */
+    sync: () => void
+  }
+
+  export type QueryResult = {
+    insertId?: number
+    rowsAffected: number
+    res?: Array<any>
+    rows: Array<Record<string, any>>
+    // An array of intermediate results, just values without column names
+    rawRows?: Array<Array<any>>
+    columnNames?: Array<string>
+    /**
+     * Query metadata, available only for select query results
+     */
+    metadata?: Array<any>
+  }
+}

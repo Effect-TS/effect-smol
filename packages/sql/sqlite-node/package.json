@@ -64,6 +64,6 @@
     "effect": "workspace:^"
   },
   "dependencies": {
-    "better-sqlite3": "^12.2.0"
+    "better-sqlite3": "^12.4.1"
   }
 }

@@ -56,7 +56,7 @@
     "coverage": "vitest --coverage"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20250515.0",
+    "@cloudflare/workers-types": "^4.20250924.0",
     "effect": "workspace:^"
   },
   "peerDependencies": {

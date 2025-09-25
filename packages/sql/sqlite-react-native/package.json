@@ -56,11 +56,11 @@
     "coverage": "vitest --coverage"
   },
   "devDependencies": {
-    "@op-engineering/op-sqlite": "15.0.1",
+    "@op-engineering/op-sqlite": "15.0.4",
     "effect": "workspace:^"
   },
   "peerDependencies": {
-    "@op-engineering/op-sqlite": "7.1.0",
+    "@op-engineering/op-sqlite": "15.0.4",
     "effect": "workspace:^"
   }
 }
