@@ -92,10 +92,10 @@ The exports under each section are organized as they are in Effect 3.0. The cate
 | `contextWithEffect`  |  Done  |  `servicesWith`   |          |
 |  `mapInputContext`   |  Done  | `updateServices`  |          |
 |   `provideContext`   |  Done  | `provideServices` |          |
-|    `provideLayer`    |   -    |                   |          |
-|   `provideService`   |   -    |                   |          |
+|    `provideLayer`    |  Done  |     `provide`     |          |
+|   `provideService`   |  Done  |                   |          |
 |  `provideSomeLayer`  |   X    |                   |          |
-|   `updateService`    |   -    |                   |          |
+|   `updateService`    |  Done  |                   |          |
 
 ### Destructors
 
@@ -131,7 +131,7 @@ The exports under each section are organized as they are in Effect 3.0. The cate
 |       `map`       |  Done  |        `mapDone`        |                              |
 |    `mapEffect`    |  Done  |     `mapDoneEffect`     |                              |
 |    `mapError`     |  Done  |       `mapError`        |                              |
-|  `mapErrorCause`  |   -    |       `mapCause`        |                              |
+|  `mapErrorCause`  |   X    |                         |    Use `catchCause` apis     |
 |     `mapOut`      |  Done  |          `map`          |                              |
 |  `mapOutEffect`   |  Done  |       `mapEffect`       |                              |
 | `mapOutEffectPar` |  Done  |       `mapEffect`       |  With concurrency specified  |
