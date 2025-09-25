@@ -221,3 +221,35 @@ export function getBrand<T>(check: Check.Check<T>): string | symbol | undefined 
     return brand
   }
 }
+
+/**
+ * Return all the typed annotations from the schema.
+ *
+ * This function is unsafe because it returns the annotations as they are stored
+ * in the AST, without any validation.
+ *
+ * @since 4.0.0
+ */
+export function getUnsafe<S extends Schema.Top>(schema: S): S["~annotate.in"] | undefined {
+  return get(schema.ast)
+}
+
+type RemoveIndexSignature<T> = {
+  readonly [
+    K in keyof T as string extends K ? never : K
+  ]: T[K]
+}
+
+/**
+ * Get a typed annotation from the schema.
+ *
+ * This function is unsafe because it returns the annotations as they are stored
+ * in the AST, without any validation.
+ *
+ * @since 4.0.0
+ */
+export function getAtUnsafe<S extends Schema.Top, K extends keyof RemoveIndexSignature<S["~annotate.in"]>>(
+  key: K
+): (schema: S) => S["~annotate.in"][K] | undefined {
+  return (schema: S) => getUnsafe(schema)?.[key]
+}
