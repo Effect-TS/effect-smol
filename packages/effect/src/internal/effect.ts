@@ -3607,38 +3607,23 @@ export const whileLoop: <A, E, R>(options: {
 
 /** @internal */
 export const forEach: {
-  <B, E, R, S extends Iterable<any>>(
+  <B, E, R, S extends Iterable<any>, const Discard extends boolean = false>(
     f: (a: Arr.ReadonlyArray.Infer<S>, i: number) => Effect.Effect<B, E, R>,
     options?: {
       readonly concurrency?: Concurrency | undefined
-      readonly discard?: false | undefined
+      readonly discard?: Discard | undefined
     } | undefined
   ): (
     self: S
-  ) => Effect.Effect<Arr.ReadonlyArray.With<S, B>, E, R>
-  <A, B, E, R>(
-    f: (a: A, i: number) => Effect.Effect<B, E, R>,
-    options: {
-      readonly concurrency?: Concurrency | undefined
-      readonly discard: true
-    }
-  ): (self: Iterable<A>) => Effect.Effect<void, E, R>
-  <B, E, R, S extends Iterable<any>>(
+  ) => Effect.Effect<Discard extends false ? Arr.ReadonlyArray.With<S, B> : void, E, R>
+  <B, E, R, S extends Iterable<any>, const Discard extends boolean = false>(
     self: S,
     f: (a: Arr.ReadonlyArray.Infer<S>, i: number) => Effect.Effect<B, E, R>,
     options?: {
       readonly concurrency?: Concurrency | undefined
-      readonly discard?: false | undefined
+      readonly discard?: Discard | undefined
     } | undefined
-  ): Effect.Effect<Arr.ReadonlyArray.With<S, B>, E, R>
-  <A, B, E, R>(
-    self: Iterable<A>,
-    f: (a: A, i: number) => Effect.Effect<B, E, R>,
-    options: {
-      readonly concurrency?: Concurrency | undefined
-      readonly discard: true
-    }
-  ): Effect.Effect<void, E, R>
+  ): Effect.Effect<Discard extends false ? Arr.ReadonlyArray.With<S, B> : void, E, R>
 } = dual((args) => typeof args[1] === "function", <A, B, E, R>(
   iterable: Iterable<A>,
   f: (a: A, index: number) => Effect.Effect<B, E, R>,

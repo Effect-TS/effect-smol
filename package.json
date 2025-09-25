@@ -34,7 +34,10 @@
     "detective-typescript": "^11.1.0"
   },
   "imports": {
-    "#dist/effect/*": "./packages/effect/dist/*.js"
+    "#dist/effect": "./packages/effect/dist/index.js",
+    "#dist/effect/*": "./packages/effect/dist/*.js",
+    "#dist/effect-platform-node": "./packages/platform-node/dist/index.js",
+    "#dist/effect-platform-node/*": "./packages/platform-node/dist/*.js"
   },
   "devDependencies": {
     "@babel/cli": "^7.28.3",
@@ -67,6 +70,7 @@
     "eslint-plugin-local-rules": "^3.0.2",
     "eslint-plugin-simple-import-sort": "^12.1.1",
     "eslint-plugin-sort-destructure-keys": "^2.0.0",
+    "eslint-plugin-unused-imports": "^4.2.0",
     "glob": "^11.0.3",
     "i18next": "^25.5.2",
     "jscodeshift": "^17.1.2",

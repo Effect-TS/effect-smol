@@ -5,6 +5,7 @@ import importPlugin from "eslint-plugin-import-x"
 import localRules from "eslint-plugin-local-rules"
 import simpleImportSort from "eslint-plugin-simple-import-sort"
 import sortDestructureKeys from "eslint-plugin-sort-destructure-keys"
+import unusedImports from "eslint-plugin-unused-imports"
 import tseslint from "typescript-eslint"
 
 export default tseslint.config(
@@ -128,6 +129,29 @@ export default tseslint.config(
     files: ["packages/*/src/**/*", "packages/*/test/**/*"],
     rules: {
       "no-console": "error"
+    }
+  },
+  {
+    files: ["scratchpad/eslint/**/*"],
+    plugins: {
+      "unused-imports": unusedImports
+    },
+    rules: {
+      "unused-imports/no-unused-imports": "error",
+      "@effect/dprint": [
+        "error",
+        {
+          config: {
+            indentWidth: 2,
+            lineWidth: 80,
+            semiColons: "asi",
+            quoteStyle: "alwaysDouble",
+            trailingCommas: "never",
+            operatorPosition: "maintain",
+            "arrowFunction.useParentheses": "force"
+          }
+        }
+      ]
     }
   }
 )

@@ -118,6 +118,9 @@ importers:
       eslint-plugin-sort-destructure-keys:
         specifier: ^2.0.0
         version: 2.0.0(eslint@9.36.0)
+      eslint-plugin-unused-imports:
+        specifier: ^4.2.0
+        version: 4.2.0(@typescript-eslint/eslint-plugin@8.44.1(@typescript-eslint/parser@8.44.1(eslint@9.36.0)(typescript@5.9.2))(eslint@9.36.0)(typescript@5.9.2))(eslint@9.36.0)
       glob:
         specifier: ^11.0.3
         version: 11.0.3
@@ -440,6 +443,51 @@ importers:
         version: 4.0.0-beta.10(@edge-runtime/vm@5.0.0)(@types/node@24.5.2)(@vitest/browser@4.0.0-beta.10)(terser@5.44.0)(tsx@4.20.5)(yaml@2.8.1)
 
   scratchpad:
+    dependencies:
+      '@effect/platform-bun':
+        specifier: workspace:*
+        version: link:../packages/platform-bun
+      '@effect/platform-node':
+        specifier: workspace:*
+        version: link:../packages/platform-node
+      '@effect/sql-clickhouse':
+        specifier: workspace:*
+        version: link:../packages/sql/clickhouse
+      '@effect/sql-d1':
+        specifier: workspace:*
+        version: link:../packages/sql/d1
+      '@effect/sql-libsql':
+        specifier: workspace:*
+        version: link:../packages/sql/libsql
+      '@effect/sql-mssql':
+        specifier: workspace:*
+        version: link:../packages/sql/mssql
+      '@effect/sql-mysql2':
+        specifier: workspace:*
+        version: link:../packages/sql/mysql2
+      '@effect/sql-pg':
+        specifier: workspace:*
+        version: link:../packages/sql/pg
+      '@effect/sql-sqlite-bun':
+        specifier: workspace:*
+        version: link:../packages/sql/sqlite-bun
+      '@effect/sql-sqlite-do':
+        specifier: workspace:*
+        version: link:../packages/sql/sqlite-do
+      '@effect/sql-sqlite-node':
+        specifier: workspace:*
+        version: link:../packages/sql/sqlite-node
+      '@effect/sql-sqlite-react-native':
+        specifier: workspace:*
+        version: link:../packages/sql/sqlite-react-native
+      '@effect/sql-sqlite-wasm':
+        specifier: workspace:*
+        version: link:../packages/sql/sqlite-wasm
+      effect:
+        specifier: workspace:*
+        version: link:../packages/effect
+
+  scripts:
     dependencies:
       '@effect/platform-bun':
         specifier: workspace:*
@@ -3478,6 +3526,15 @@ packages:
     engines: {node: '>=12'}
     peerDependencies:
       eslint: 5 - 9
+
+  eslint-plugin-unused-imports@4.2.0:
+    resolution: {integrity: sha512-hLbJ2/wnjKq4kGA9AUaExVFIbNzyxYdVo49QZmKCnhk5pc9wcYRbfgLHvWJ8tnsdcseGhoUAddm9gn/lt+d74w==}
+    peerDependencies:
+      '@typescript-eslint/eslint-plugin': ^8.0.0-0 || ^7.0.0 || ^6.0.0 || ^5.0.0
+      eslint: ^9.0.0 || ^8.0.0
+    peerDependenciesMeta:
+      '@typescript-eslint/eslint-plugin':
+        optional: true
 
   eslint-scope@8.4.0:
     resolution: {integrity: sha512-sNXOfKCn74rt8RICKMvJS7XKV/Xk9kA7DyJr8mJik3S7Cwgy3qlkkmyS2uQB3jiJg6VNdZd/pDBJu0nvG2NlTg==}
@@ -7828,7 +7885,9 @@ snapshots:
       metro-runtime: 0.83.2
     transitivePeerDependencies:
       - '@babel/core'
+      - bufferutil
       - supports-color
+      - utf-8-validate
 
   '@react-native/normalize-colors@0.81.0': {}
 
@@ -9311,6 +9370,12 @@ snapshots:
     dependencies:
       eslint: 9.36.0
       natural-compare-lite: 1.4.0
+
+  eslint-plugin-unused-imports@4.2.0(@typescript-eslint/eslint-plugin@8.44.1(@typescript-eslint/parser@8.44.1(eslint@9.36.0)(typescript@5.9.2))(eslint@9.36.0)(typescript@5.9.2))(eslint@9.36.0):
+    dependencies:
+      eslint: 9.36.0
+    optionalDependencies:
+      '@typescript-eslint/eslint-plugin': 8.44.1(@typescript-eslint/parser@8.44.1(eslint@9.36.0)(typescript@5.9.2))(eslint@9.36.0)(typescript@5.9.2)
 
   eslint-scope@8.4.0:
     dependencies:

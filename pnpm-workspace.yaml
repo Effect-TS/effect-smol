@@ -1,4 +1,5 @@
 packages:
   - scratchpad
+  - scripts
   - packages/*
   - packages/sql/*

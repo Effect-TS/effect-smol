@@ -1802,7 +1802,6 @@ export const mapEffect: {
     f: (d: OutElem) => Effect.Effect<OutElem1, OutErr1, Env1>,
     options?: {
       readonly concurrency?: number | "unbounded" | undefined
-      readonly bufferSize?: number | undefined
       readonly unordered?: boolean | undefined
     }
   ): <OutErr, OutDone, InElem, InErr, InDone, Env>(
@@ -4190,6 +4189,15 @@ export const unwrap = <OutElem, OutErr, OutDone, InElem, InErr, InDone, R2, E, R
       )
     }))
   })
+
+/**
+ * @since 2.0.0
+ * @category utils
+ */
+export const scoped = <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>(
+  self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>
+): Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Exclude<Env, Scope.Scope>> =>
+  fromTransformBracket((upstream, scope, forkedScope) => Scope.provide(toTransform(self)(upstream, scope), forkedScope))
 
 /**
  * Returns a new channel which embeds the given input handler into a Channel.
