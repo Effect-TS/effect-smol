@@ -1,5 +1,5 @@
 import { NodeRuntime, NodeServices } from "@effect/platform-node"
-import { Effect } from "effect"
+import { Cause, Effect } from "effect"
 import { Array } from "effect/collections"
 import { Filter } from "effect/data"
 import { FileSystem, Path } from "effect/platform"
@@ -7,10 +7,10 @@ import { Stream } from "effect/stream"
 import * as ChildProcess from "node:child_process"
 
 const exec = (command: string, options?: ChildProcess.ExecOptions) =>
-  Effect.callback<string>((resume) => {
+  Effect.callback<string, Cause.UnknownError>((resume) => {
     ChildProcess.exec(command, options, (error, stdout) => {
       if (error) {
-        resume(Effect.die(error))
+        resume(Effect.fail(new Cause.UnknownError(error)))
       } else {
         resume(Effect.succeed(stdout.toString()))
       }
@@ -47,7 +47,7 @@ const run = Effect.fnUntraced(function*(files: Array<string>) {
 
   yield* Effect.log("Formatting examples...")
   yield* exec("pnpm eslint --fix scratchpad/eslint/*.ts").pipe(
-    Effect.catchCause(() => Effect.void)
+    Effect.ignore
   )
 
   yield* Stream.fromArray(results).pipe(
@@ -59,13 +59,11 @@ const run = Effect.fnUntraced(function*(files: Array<string>) {
           const before = acc.slice(0, startPos)
           const after = acc.slice(endPos)
           return before
-            + " * ```ts\n"
             + newCode
               .trim()
               .split("\n")
               .map((line) => (" * " + line).trimEnd())
               .join("\n")
-            + "\n * ```"
             + after
         }),
         Effect.flatMap((newContents) => fs.writeFileString(file, newContents))
@@ -76,7 +74,7 @@ const run = Effect.fnUntraced(function*(files: Array<string>) {
 }, Effect.scoped)
 
 const findExamples = (content: string) => {
-  const start = /^ \* ```ts/gm
+  const start = /^ \* ```ts.*$/gm
   const end = /^ \* ```/gm
   const examples: Array<{
     readonly code: string
@@ -89,18 +87,19 @@ const findExamples = (content: string) => {
     end.lastIndex = match.index + match[0].length
     const endMatch = end.exec(content)
     if (!endMatch) break
+    const startPos = match.index + match[0].length + 1
+    const endPos = endMatch.index - 1
     const code = content
-      .slice(match.index, endMatch.index)
+      .slice(startPos, endPos)
       .split("\n")
-      .slice(1, -1)
       .map((line) => line.slice(3))
       .join("\n")
     examples.push({
       code,
-      startPos: match.index,
-      endPos: endMatch.index + endMatch[0].length
+      startPos,
+      endPos
     })
-    start.lastIndex = endMatch.index + endMatch[0].length
+    start.lastIndex = endMatch.index + endMatch[0].length + 1
   }
   return examples
 }
