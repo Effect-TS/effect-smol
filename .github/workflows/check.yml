@@ -71,19 +71,16 @@ jobs:
         uses: ./.github/actions/setup
         with:
           node-version: latest
-      - name: Build
-        run: pnpm build
       - name: Clone base ref
         uses: actions/checkout@v4
         with:
           path: base
           ref: ${{ github.event.pull_request.base.ref }}
-      - name: Build base ref
-        shell: bash
+      - name: Build
         run: |
-          cd base
-          pnpm install
-          pnpm build
+          pnpm build &
+          cd base && pnpm install && pnpm build &
+          wait
       - name: Compare bundle size
         id: bundle
         shell: bash
