@@ -129,14 +129,14 @@ describe("Command", () => {
 
         // Check that help text was shown to stdout
         const stdout = yield* TestConsole.logLines
-        assert.isTrue(stdout.some(line => String(line).includes("DESCRIPTION")))
-        assert.isTrue(stdout.some(line => String(line).includes("comprehensive CLI tool")))
+        assert.isTrue(stdout.some((line) => String(line).includes("DESCRIPTION")))
+        assert.isTrue(stdout.some((line) => String(line).includes("comprehensive CLI tool")))
 
         // Check that error was shown to stderr
         const stderr = yield* TestConsole.errorLines
-        assert.isTrue(stderr.some(line => String(line).includes("ERROR")))
-        assert.isTrue(stderr.some(line => String(line).includes("Unknown subcommand")))
-        assert.isTrue(stderr.some(line => String(line).includes("invalid-command")))
+        assert.isTrue(stderr.some((line) => String(line).includes("ERROR")))
+        assert.isTrue(stderr.some((line) => String(line).includes("Unknown subcommand")))
+        assert.isTrue(stderr.some((line) => String(line).includes("invalid-command")))
       }).pipe(Effect.provide(TestLayer)))
 
     it.effect("should propagate handler errors from run", () =>

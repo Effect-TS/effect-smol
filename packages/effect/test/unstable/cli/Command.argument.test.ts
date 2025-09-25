@@ -1,16 +1,22 @@
 import { NodeFileSystem, NodePath } from "@effect/platform-node"
-import { assert, describe, it } from "@effect/vitest"
-import { Effect, Layer } from "effect"
+import { assert, describe, expect, it } from "@effect/vitest"
+import { Effect, Layer, Ref } from "effect"
 import { FileSystem } from "effect/platform"
 import { TestConsole } from "effect/testing"
-import { Argument, Command, Flag } from "effect/unstable/cli"
+import { Argument, Command, Flag, HelpFormatter } from "effect/unstable/cli"
 
-const TestLayer = Layer.mergeAll(TestConsole.layer, NodeFileSystem.layer, NodePath.layer)
+const TestLayer = Layer.mergeAll(
+  TestConsole.layer,
+  HelpFormatter.layer(HelpFormatter.defaultHelpRenderer({ colors: false })),
+  NodeFileSystem.layer,
+  NodePath.layer
+)
 
 describe("Command arguments", () => {
   it.effect("should parse all argument types correctly", () =>
     Effect.gen(function*() {
-      let result: any
+      // Create a Ref to store the result
+      const resultRef = yield* Ref.make<any>(null)
 
       // Create test command with various argument types
       const testCommand = Command.make("test", {
@@ -22,10 +28,10 @@ describe("Command arguments", () => {
         workspace: Argument.directory("workspace", { mustExist: false }),
         startDate: Argument.date("start-date"),
         verbose: Flag.boolean("verbose")
-      }, (config: any) => {
-        result = config
-        return Effect.void
-      })
+      }, (config) =>
+        Effect.gen(function*() {
+          yield* Ref.set(resultRef, config)
+        }))
 
       // Test parsing with valid arguments
       yield* Command.runWithArgs(testCommand, { version: "1.0.0" })([
@@ -39,6 +45,7 @@ describe("Command arguments", () => {
         "--verbose" // flag
       ])
 
+      const result = yield* Ref.get(resultRef)
       assert.strictEqual(result.name, "myapp")
       assert.strictEqual(result.count, 42)
       assert.strictEqual(result.ratio, 3.14)
@@ -58,15 +65,16 @@ describe("Command arguments", () => {
       yield* fs.writeFileString(tempFile, "test content")
 
       // Test 1: mustExist: true with existing file - should pass
-      let result1: any
+      const result1Ref = yield* Ref.make<string | null>(null)
       const existingFileCommand = Command.make("test", {
         file: Argument.file("file", { mustExist: true })
-      }, ({ file }) => {
-        result1 = file
-        return Effect.void
-      })
+      }, ({ file }) =>
+        Effect.gen(function*() {
+          yield* Ref.set(result1Ref, file)
+        }))
 
       yield* Command.runWithArgs(existingFileCommand, { version: "1.0.0" })([tempFile])
+      const result1 = yield* Ref.get(result1Ref)
       assert.strictEqual(result1, tempFile)
 
       // Test 2: mustExist: true with non-existing file - should display error and help
@@ -75,26 +83,27 @@ describe("Command arguments", () => {
 
       // Check that help was shown
       const stdout = yield* TestConsole.logLines
-      assert.isTrue(stdout.some(line => String(line).includes("USAGE")))
+      assert.isTrue(stdout.some((line) => String(line).includes("USAGE")))
 
       // Check that error was shown
       const stderr = yield* TestConsole.errorLines
-      assert.isTrue(stderr.some(line => String(line).includes("ERROR")))
-      assert.isTrue(stderr.some(line => String(line).includes("does not exist")))
+      assert.isTrue(stderr.some((line) => String(line).includes("ERROR")))
+      assert.isTrue(stderr.some((line) => String(line).includes("does not exist")))
 
       // Test 3: mustExist: false - should always pass
-      let result3: any
+      const result3Ref = yield* Ref.make<string | null>(null)
       const optionalFileCommand = Command.make("test", {
         file: Argument.file("file", { mustExist: false })
-      }, ({ file }) => {
-        result3 = file
-        return Effect.void
-      })
+      }, ({ file }) =>
+        Effect.gen(function*() {
+          yield* Ref.set(result3Ref, file)
+        }))
 
       yield* Command.runWithArgs(optionalFileCommand, { version: "1.0.0" })([
         "./non-existent-file.txt"
       ])
-      assert.isTrue(result3.includes("non-existent-file.txt"))
+      const result3 = yield* Ref.get(result3Ref)
+      assert.isTrue(result3!.includes("non-existent-file.txt"))
     }).pipe(Effect.provide(TestLayer)))
 
   it.effect("should fail with invalid arguments", () =>
@@ -110,24 +119,36 @@ describe("Command arguments", () => {
 
       // Check help was shown
       const stdout = yield* TestConsole.logLines
-      assert.isTrue(stdout.some(line => String(line).includes("USAGE")))
+      const helpText = stdout.join("\n")
+      expect(helpText).toMatchInlineSnapshot(`
+        "USAGE
+          test [flags] <count> <env>
+
+        ARGUMENTS
+          count integer    
+          env choice       "
+      `)
 
       // Check error was shown
       const stderr = yield* TestConsole.errorLines
-      assert.isTrue(stderr.some(line => String(line).includes("ERROR")))
-      assert.isTrue(stderr.some(line => String(line).includes("Failed to parse integer") || (String(line).includes("parse") && String(line).includes("integer"))))
+      const errorText = stderr.join("\n")
+      expect(errorText).toMatchInlineSnapshot(`
+        "
+        ERROR
+          Invalid value for flag --count: "not-a-number". Expected: Failed to parse integer: Expected an integer, got NaN"
+      `)
     }).pipe(Effect.provide(TestLayer)))
 
   it.effect("should handle variadic arguments", () =>
     Effect.gen(function*() {
-      let result: any
+      const resultRef = yield* Ref.make<any>(null)
 
       const testCommand = Command.make("test", {
         files: Argument.string("files").pipe(Argument.repeated)
-      }, (config: any) => {
-        result = config
-        return Effect.void
-      })
+      }, (config) =>
+        Effect.gen(function*() {
+          yield* Ref.set(resultRef, config)
+        }))
 
       yield* Command.runWithArgs(testCommand, { version: "1.0.0" })([
         "file1.txt",
@@ -135,6 +156,7 @@ describe("Command arguments", () => {
         "file3.txt"
       ])
 
+      const result = yield* Ref.get(resultRef)
       assert.deepStrictEqual(result.files, ["file1.txt", "file2.txt", "file3.txt"])
     }).pipe(Effect.provide(TestLayer)))
 })
