@@ -106,6 +106,7 @@ export class Runners extends ServiceMap.Key<Runners, {
         options: Message.IncomingLocal<any>
       ) => Effect.Effect<void, EntityNotManagedByRunner | EntityNotAssignedToRunner>
       readonly discard: boolean
+      readonly storageOnly?: boolean | undefined
     }
   ) => Effect.Effect<void, EntityNotManagedByRunner | PersistenceError>
 
@@ -375,7 +376,7 @@ export const make: (options: Omit<Runners["Service"], "sendLocal" | "notifyLocal
             "EntityNotAssignedToRunner",
             () => Effect.void
           )
-        } else if (!duplicate) {
+        } else if (!duplicate && options.storageOnly !== true) {
           return storage.registerReplyHandler(
             message,
             Effect.forkIn(replyFromStorage(message), runnersScope)
