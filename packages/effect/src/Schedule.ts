@@ -45,8 +45,7 @@ import type * as DateTime from "./time/DateTime.ts"
 import * as Duration from "./time/Duration.ts"
 import type { Contravariant, Covariant } from "./types/Types.ts"
 
-/** @internal */
-export const TypeId = "~effect/Schedule"
+const TypeId = "~effect/Schedule"
 
 /**
  * A Schedule defines a strategy for repeating or retrying effects based on some policy.
@@ -311,7 +310,7 @@ const ScheduleProto = {
  * @since 2.0.0
  * @category guards
  */
-export const isSchedule = (u: unknown): u is Schedule<any, any, any, any> => hasProperty(u, TypeId)
+export const isSchedule = (u: unknown): u is Schedule<unknown, never, unknown, unknown> => hasProperty(u, TypeId)
 
 /**
  * Creates a Schedule from a step function that returns a Pull.

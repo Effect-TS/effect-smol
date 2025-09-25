@@ -772,11 +772,11 @@ export const retryTransient: {
     transformResponse(
       self,
       Effect.retry({
-        while: Schedule.TypeId in options || options.while === undefined
+        while: Schedule.isSchedule(options) || options.while === undefined
           ? isTransientError
           : Predicate.or(isTransientError, options.while),
-        schedule: Schedule.TypeId in options ? options : options.schedule,
-        times: Schedule.TypeId in options ? undefined : options.times
+        schedule: Schedule.isSchedule(options) ? options : options.schedule,
+        times: Schedule.isSchedule(options) ? undefined : options.times
       })
     ) as any
 )
