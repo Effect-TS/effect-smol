@@ -254,7 +254,7 @@ export const make = Effect.fnUntraced(function*(options: {
       sql`
         UPDATE ${locksTableSql}
         SET acquired_at = ${sqlNow}
-        OUTPUT inserted.*
+        OUTPUT inserted.shard_id
         WHERE address = ${address} AND shard_id IN (${wrapStringArr(shardIds)})
       `.values,
     orElse: () => (address: string, shardIds: ReadonlyArray<string>) =>
@@ -262,7 +262,7 @@ export const make = Effect.fnUntraced(function*(options: {
         UPDATE ${locksTableSql}
         SET acquired_at = ${sqlNow}
         WHERE address = ${address} AND shard_id IN (${wrapStringArr(shardIds)})
-        RETURNING *
+        RETURNING shard_id
       `.values
   })
 
