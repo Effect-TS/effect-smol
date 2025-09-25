@@ -61,61 +61,44 @@ describe("Command help output", () => {
 
   it.effect("file operation command with positional args", () =>
     Effect.gen(function*() {
-      const helpText = yield* runCommandAndGetOutput(["cp", "--help"])
+      const helpText = yield* runCommandAndGetOutput(["copy", "--help"])
 
       expect(helpText).toMatchInlineSnapshot(`
         "DESCRIPTION
-          A comprehensive CLI tool demonstrating all features
+          Copy files or directories
 
         USAGE
-          mycli <subcommand> [flags]
+          mycli copy [flags] <source> <destination>
+
+        ARGUMENTS
+          source file         Source file or directory
+          destination file    Destination path
 
         FLAGS
-          --debug, -d          Enable debug logging
-          --config, -c file    Path to configuration file
-          --quiet, -q          Suppress non-error output
-
-        SUBCOMMANDS
-          admin            Administrative commands
-          copy             Copy files or directories
-          move             Move or rename files
-          remove           Remove files or directories
-          build            Build the project
-          git              Git version control
-          test-required    Test command with required option
-          test-failing     Test command that always fails
-          app              Application management
-          app-nested       Application with nested services"
+          --recursive, -r          Copy directories recursively
+          --force, -f              Overwrite existing files
+          --buffer-size integer    Buffer size in KB"
       `)
     }).pipe(Effect.provide(TestLayer)))
 
   it.effect("variadic arguments command", () =>
     Effect.gen(function*() {
-      const helpText = yield* runCommandAndGetOutput(["rm", "--help"])
+      const helpText = yield* runCommandAndGetOutput(["remove", "--help"])
 
       expect(helpText).toMatchInlineSnapshot(`
         "DESCRIPTION
-          A comprehensive CLI tool demonstrating all features
+          Remove files or directories
 
         USAGE
-          mycli <subcommand> [flags]
+          mycli remove [flags] <files...>
+
+        ARGUMENTS
+          files... string    Files to remove
 
         FLAGS
-          --debug, -d          Enable debug logging
-          --config, -c file    Path to configuration file
-          --quiet, -q          Suppress non-error output
-
-        SUBCOMMANDS
-          admin            Administrative commands
-          copy             Copy files or directories
-          move             Move or rename files
-          remove           Remove files or directories
-          build            Build the project
-          git              Git version control
-          test-required    Test command with required option
-          test-failing     Test command that always fails
-          app              Application management
-          app-nested       Application with nested services"
+          --recursive, -r    Remove directories and contents
+          --force, -f        Force removal without prompts
+          --verbose, -v      Explain what is being done"
       `)
     }).pipe(Effect.provide(TestLayer)))
 
