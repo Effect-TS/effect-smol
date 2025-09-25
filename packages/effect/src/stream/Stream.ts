@@ -1262,7 +1262,7 @@ export const mapArray: {
  * ```ts
  * import { Effect } from "effect"
  * import { Stream } from "effect/stream"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  *
  * const stream = Stream.make(1, 2, 3)
  *
@@ -1342,7 +1342,7 @@ export const mapArrayEffect: {
  * ```ts
  * import { Effect } from "effect"
  * import { Stream } from "effect/stream"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  *
  * const stream = Stream.fromArray([1, 2, 3]).pipe(
  *   Stream.tap((n) => Console.log(`before mapping: ${n}`)),
@@ -2549,7 +2549,7 @@ export const share: {
  * ```ts
  * import { Effect } from "effect"
  * import { Stream, Channel } from "effect/stream"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  *
  * // Create a channel that processes chunks - this is a conceptual example
  * // In practice, this function is primarily used with specialized channels
@@ -2577,7 +2577,7 @@ export const share: {
  * ```ts
  * import { Effect } from "effect"
  * import { Stream, Channel } from "effect/stream"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  *
  * // Practical example: combining two channels with pipeTo
  * declare const sourceChannel: Channel.Channel<
@@ -2636,7 +2636,7 @@ export const pipeThroughChannel: {
  * ```ts
  * import { Effect } from "effect"
  * import { Stream, Channel } from "effect/stream"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  *
  * // Channel that might fail during processing
  * declare const transformChannel: Channel.Channel<
@@ -2660,7 +2660,7 @@ export const pipeThroughChannel: {
  * ```ts
  * import { Effect } from "effect"
  * import { Stream, Channel } from "effect/stream"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  *
  * // Demonstrate error preservation: both stream and channel can fail
  * const failingStream = Stream.make(1, 2, 3).pipe(
@@ -2774,7 +2774,7 @@ export const splitLines = <E, R>(self: Stream<string, E, R>): Stream<string, E, 
  * @example
  * ```ts
  * import { Effect, Exit } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  * import { Stream } from "effect/stream"
  *
  * const stream = Stream.make(1, 2, 3).pipe(
@@ -3098,7 +3098,7 @@ export const runLast = <A, E, R>(self: Stream<A, E, R>): Effect.Effect<Option.Op
  * ```ts
  * import { Effect } from "effect"
  * import { Stream } from "effect/stream"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  *
  * const stream = Stream.make(1, 2, 3)
  *
@@ -3136,7 +3136,7 @@ export const runForEach: {
  * ```ts
  * import { Effect } from "effect"
  * import { Stream } from "effect/stream"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  *
  * const stream = Stream.make(1, 2, 3, 4, 5)
  * const result = Stream.runForEachArray(stream, (chunk) =>
@@ -3170,7 +3170,7 @@ export const runForEachArray: {
  * ```ts
  * import { Effect } from "effect"
  * import { Stream } from "effect/stream"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  *
  * const stream = Stream.make(1, 2, 3).pipe(
  *   Stream.mapEffect((n) => Console.log(`Processing: ${n}`))

@@ -10,7 +10,7 @@
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  * import { FileSystem  } from "effect/platform"
  *
  * const program = Effect.gen(function* () {
@@ -63,7 +63,7 @@ const TypeId = "~effect/platform/FileSystem"
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  * import { FileSystem  } from "effect/platform"
  *
  * const program = Effect.gen(function* () {
@@ -538,7 +538,7 @@ export const MiB = (n: number): Size => Size(n * 1024 * 1024)
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  * import { FileSystem  } from "effect/platform"
  *
  * const program = Effect.gen(function* () {
@@ -570,7 +570,7 @@ export const GiB = (n: number): Size => Size(n * 1024 * 1024 * 1024)
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  * import { FileSystem  } from "effect/platform"
  *
  * const program = Effect.gen(function* () {
@@ -609,7 +609,7 @@ const bigintPiB = bigint1024 * bigint1024 * bigint1024 * bigint1024 * bigint1024
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  * import { FileSystem  } from "effect/platform"
  *
  * const program = Effect.gen(function* () {
@@ -1012,7 +1012,7 @@ export const isFile = (u: unknown): u is File => typeof u === "object" && u !== 
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  * import { FileSystem } from "effect/platform"
  *
  * const program = Effect.gen(function* () {
@@ -1103,7 +1103,7 @@ export declare namespace File {
    * @example
    * ```ts
    * import { Effect } from "effect"
-   * import { Console } from "effect/logging"
+   * import { Console } from "effect"
    * import { FileSystem } from "effect/platform"
    *
    * const program = Effect.gen(function* () {

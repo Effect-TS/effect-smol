@@ -137,7 +137,7 @@ export interface ManagedRuntime<in R, out ER> {
  * ```ts
  * import { Effect } from "effect"
  * import { Layer } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  * import { ServiceMap } from "effect"
  * import { ManagedRuntime } from "effect"
  *

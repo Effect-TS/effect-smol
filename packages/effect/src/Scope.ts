@@ -30,7 +30,7 @@ const CloseableTypeId = effect.ScopeCloseableTypeId
  * @example
  * ```ts
  * import { Effect, Exit } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  * import { Scope } from "effect"
  *
  * const program = Effect.gen(function* () {
@@ -61,7 +61,7 @@ export interface Scope {
  * @example
  * ```ts
  * import { Effect, Exit } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  * import { Scope } from "effect"
  *
  * const program = Effect.gen(function* () {
@@ -225,7 +225,7 @@ export const Scope: ServiceMap.Key<Scope, Scope> = effect.scopeTag
  * @example
  * ```ts
  * import { Effect, Exit } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  * import { Scope } from "effect"
  *
  * const program = Effect.gen(function* () {
@@ -255,7 +255,7 @@ export const make: (finalizerStrategy?: "sequential" | "parallel") => Effect<Clo
  * @example
  * ```ts
  * import { Effect, Exit } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  * import { Scope } from "effect"
  *
  * // Create a scope immediately
@@ -280,7 +280,7 @@ export const makeUnsafe: (finalizerStrategy?: "sequential" | "parallel") => Clos
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  * import { Scope } from "effect"
  *
  * // An effect that requires a Scope
@@ -312,7 +312,7 @@ export const provide: {
  * @example
  * ```ts
  * import { Effect, Exit } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  * import { Scope } from "effect"
  *
  * const withResource = Effect.gen(function* () {
@@ -345,7 +345,7 @@ export const addFinalizerExit: (scope: Scope, finalizer: (exit: Exit<any, any>) 
  * @example
  * ```ts
  * import { Effect, Exit } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  * import { Scope } from "effect"
  *
  * const program = Effect.gen(function* () {
@@ -376,7 +376,7 @@ export const addFinalizer: (scope: Scope, finalizer: Effect<unknown>) => Effect<
  * @example
  * ```ts
  * import { Effect, Exit } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  * import { Scope } from "effect"
  *
  * const nestedScopes = Effect.gen(function* () {
@@ -412,7 +412,7 @@ export const fork: (
  * @example
  * ```ts
  * import { Effect, Exit } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  * import { Scope } from "effect"
  *
  * const program = Effect.gen(function* () {
@@ -442,7 +442,7 @@ export const forkUnsafe: (scope: Scope, finalizerStrategy?: "sequential" | "para
  * @example
  * ```ts
  * import { Effect, Exit } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  * import { Scope } from "effect"
  *
  * const resourceManagement = Effect.gen(function* () {

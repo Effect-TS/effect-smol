@@ -19,7 +19,7 @@
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  * import { Fiber } from "effect"
  *
  * // Basic fiber operations
@@ -322,7 +322,7 @@ export const interruptAs: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  * import { Fiber } from "effect"
  *
  * const program = Effect.gen(function* () {
@@ -374,7 +374,7 @@ export const interruptAll: <A extends Iterable<Fiber<any, any>>>(
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  * import { Fiber } from "effect"
  *
  * const program = Effect.gen(function* () {

@@ -2981,7 +2981,7 @@ export const withAttributes: {
  * import { Effect } from "effect"
  * import { Metric } from "effect/observability"
  * import { Layer } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  * import { Data } from "effect/data"
  *
  * class SnapshotError extends Data.TaggedError("SnapshotError")<{
@@ -3040,7 +3040,7 @@ export const snapshot: Effect<ReadonlyArray<Metric.Snapshot>> = InternalEffect.m
  * import { Effect } from "effect"
  * import { Metric } from "effect/observability"
  * import { Layer } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  * import { Data } from "effect/data"
  *
  * class DumpError extends Data.TaggedError("DumpError")<{
@@ -3652,7 +3652,7 @@ export const FiberRuntimeMetricsImpl: FiberRuntimeMetricsService = {
  * import { Effect } from "effect"
  * import { Metric } from "effect/observability"
  * import { Layer } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  * import { Data } from "effect/data"
  *
  * class AppError extends Data.TaggedError("AppError")<{
@@ -3795,7 +3795,7 @@ export const disableRuntimeMetricsLayer = Layer.succeed(FiberRuntimeMetrics)(und
  * import { Effect } from "effect"
  * import { Metric } from "effect/observability"
  * import { Layer } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  * import { Data } from "effect/data"
  *
  * class RuntimeMetricsError extends Data.TaggedError("RuntimeMetricsError")<{
@@ -3881,7 +3881,7 @@ export const enableRuntimeMetrics: <A, E, R>(self: Effect<A, E, R>) => Effect<A,
  * import { Effect } from "effect"
  * import { Metric } from "effect/observability"
  * import { Layer } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  * import { Data } from "effect/data"
  *
  * class DisableMetricsError extends Data.TaggedError("DisableMetricsError")<{

@@ -1705,7 +1705,7 @@ export const every: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  * import { TxHashMap } from "effect/transactions"
  *
  * const program = Effect.gen(function* () {

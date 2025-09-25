@@ -23,11 +23,10 @@
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console, Effect } from "effect"
  *
  * // Basic logging
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   yield* Console.log("Hello, World!")
  *   yield* Console.error("Something went wrong")
  *   yield* Console.warn("This is a warning")
@@ -37,12 +36,11 @@
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console, Effect } from "effect"
  *
  * // Grouped logging with timing
  * const debugProgram = Console.withGroup(
- *   Effect.gen(function* () {
+ *   Effect.gen(function*() {
  *     yield* Console.log("Step 1: Loading...")
  *     yield* Effect.sleep("100 millis")
  *
@@ -55,11 +53,10 @@
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console, Effect } from "effect"
  *
  * // Data visualization and debugging
- * const dataProgram = Effect.gen(function* () {
+ * const dataProgram = Effect.gen(function*() {
  *   const users = [
  *     { id: 1, name: "Alice", age: 30 },
  *     { id: 2, name: "Bob", age: 25 }
@@ -73,12 +70,12 @@
  *
  * @since 2.0.0
  */
-import type * as Effect from "../Effect.ts"
-import { dual } from "../Function.ts"
-import * as core from "../internal/core.ts"
-import * as effect from "../internal/effect.ts"
-import type { Scope } from "../Scope.ts"
-import type * as ServiceMap from "../ServiceMap.ts"
+import type * as Effect from "./Effect.ts"
+import { dual } from "./Function.ts"
+import * as core from "./internal/core.ts"
+import * as effect from "./internal/effect.ts"
+import type { Scope } from "./Scope.ts"
+import type * as ServiceMap from "./ServiceMap.ts"
 
 /**
  * Represents a console interface for logging and debugging operations.
@@ -88,7 +85,7 @@ import type * as ServiceMap from "../ServiceMap.ts"
  *
  * @example
  * ```ts
- * import { Console } from "effect/logging"
+ * import type { Console } from "effect"
  *
  * // The Console interface defines all console methods
  * // It's typically implemented by the runtime
@@ -148,8 +145,7 @@ export interface Console {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console, Effect } from "effect"
  *
  * const program = Console.consoleWith((console) =>
  *   Effect.sync(() => {
@@ -171,8 +167,7 @@ export const Console: ServiceMap.Reference<Console> = effect.ConsoleRef
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console, Effect } from "effect"
  *
  * const program = Console.consoleWith((console) =>
  *   Effect.sync(() => {
@@ -196,10 +191,9 @@ export const consoleWith = <A, E, R>(f: (console: Console) => Effect.Effect<A, E
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console, Effect } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   yield* Console.assert(2 + 2 === 4, "Math is working correctly")
  *   yield* Console.assert(2 + 2 === 5, "This will be logged as an error")
  * })
@@ -222,10 +216,9 @@ export const assert = (condition: boolean, ...args: ReadonlyArray<any>): Effect.
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console, Effect } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   yield* Console.log("This will be cleared")
  *   yield* Console.clear
  *   yield* Console.log("This appears after clearing")
@@ -249,10 +242,9 @@ export const clear: Effect.Effect<void> = consoleWith((console) =>
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console, Effect } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   yield* Console.count("my-counter")
  *   yield* Console.count("my-counter") // Will show: my-counter: 2
  *   yield* Console.count() // Default counter
@@ -277,10 +269,9 @@ export const count = (label?: string): Effect.Effect<void> =>
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console, Effect } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   yield* Console.count("my-counter")
  *   yield* Console.count("my-counter") // Will show: my-counter: 2
  *   yield* Console.countReset("my-counter")
@@ -306,10 +297,9 @@ export const countReset = (label?: string): Effect.Effect<void> =>
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console, Effect } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   yield* Console.debug("Debug info:", { userId: 123, action: "login" })
  *   yield* Console.debug("Processing step", 1, "of", 5)
  * })
@@ -333,10 +323,9 @@ export const debug = (...args: ReadonlyArray<any>): Effect.Effect<void> =>
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console, Effect } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const obj = { name: "John", age: 30, nested: { city: "New York" } }
  *   yield* Console.dir(obj)
  *   yield* Console.dir(obj, { depth: 2, colors: true })
@@ -360,10 +349,9 @@ export const dir = (item: any, options?: any): Effect.Effect<void> =>
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console, Effect } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   // In a browser environment
  *   const element = document.getElementById("myElement")
  *   yield* Console.dirxml(element)
@@ -388,12 +376,14 @@ export const dirxml = (...args: ReadonlyArray<any>): Effect.Effect<void> =>
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console, Effect } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   yield* Console.error("Something went wrong!")
- *   yield* Console.error("Error details:", { code: 500, message: "Internal Server Error" })
+ *   yield* Console.error("Error details:", {
+ *     code: 500,
+ *     message: "Internal Server Error"
+ *   })
  * })
  * ```
  *
@@ -415,12 +405,11 @@ export const error = (...args: ReadonlyArray<any>): Effect.Effect<void> =>
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console, Effect } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   yield* Effect.scoped(
- *     Effect.gen(function* () {
+ *     Effect.gen(function*() {
  *       yield* Console.group({ label: "User Processing" })
  *       yield* Console.log("Loading user data...")
  *       yield* Console.log("Validating user...")
@@ -460,12 +449,14 @@ export const group = (
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console, Effect } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   yield* Console.info("Application started successfully")
- *   yield* Console.info("Server configuration:", { port: 3000, env: "development" })
+ *   yield* Console.info("Server configuration:", {
+ *     port: 3000,
+ *     env: "development"
+ *   })
  * })
  * ```
  *
@@ -486,10 +477,9 @@ export const info = (...args: ReadonlyArray<any>): Effect.Effect<void> =>
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console, Effect } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   yield* Console.log("Hello, world!")
  *   yield* Console.log("User data:", { name: "John", age: 30 })
  *   yield* Console.log("Processing", 42, "items")
@@ -514,10 +504,9 @@ export const log = (...args: ReadonlyArray<any>): Effect.Effect<void> =>
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console, Effect } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const users = [
  *     { name: "John", age: 30, city: "New York" },
  *     { name: "Jane", age: 25, city: "London" },
@@ -546,12 +535,11 @@ export const table = (tabularData: any, properties?: ReadonlyArray<string>): Eff
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console, Effect } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   yield* Effect.scoped(
- *     Effect.gen(function* () {
+ *     Effect.gen(function*() {
  *       yield* Console.time("operation-timer")
  *       yield* Effect.sleep("1 second")
  *       yield* Console.log("Operation completed")
@@ -585,12 +573,11 @@ export const time = (label?: string | undefined): Effect.Effect<void, never, Sco
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console, Effect } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   yield* Effect.scoped(
- *     Effect.gen(function* () {
+ *     Effect.gen(function*() {
  *       yield* Console.time("long-operation")
  *       yield* Effect.sleep("500 millis")
  *       yield* Console.timeLog("long-operation", "Halfway done")
@@ -619,10 +606,9 @@ export const timeLog = (label?: string, ...args: ReadonlyArray<any>): Effect.Eff
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console, Effect } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   yield* Console.trace("Debug trace point")
  *   yield* Console.trace("Function call:", { functionName: "processData" })
  * })
@@ -646,12 +632,13 @@ export const trace = (...args: ReadonlyArray<any>): Effect.Effect<void> =>
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console, Effect } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   yield* Console.warn("This feature is deprecated")
- *   yield* Console.warn("Performance warning:", { slowQuery: "SELECT * FROM large_table" })
+ *   yield* Console.warn("Performance warning:", {
+ *     slowQuery: "SELECT * FROM large_table"
+ *   })
  * })
  * ```
  *
@@ -674,12 +661,11 @@ export const warn = (...args: ReadonlyArray<any>): Effect.Effect<void> =>
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console, Effect } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   yield* Console.withGroup(
- *     Effect.gen(function* () {
+ *     Effect.gen(function*() {
  *       yield* Console.log("Step 1: Initialize")
  *       yield* Console.log("Step 2: Process")
  *       yield* Console.log("Step 3: Complete")
@@ -733,12 +719,11 @@ export const withGroup = dual<
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console, Effect } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   yield* Console.withTime(
- *     Effect.gen(function* () {
+ *     Effect.gen(function*() {
  *       yield* Effect.sleep("1 second")
  *       yield* Console.log("Operation completed")
  *     }),

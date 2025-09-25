@@ -54,7 +54,7 @@ const TypeId = "~effect/Schedule"
  * ```ts
  * import { Effect } from "effect"
  * import { Schedule } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  *
  * // Basic retry schedule - retry up to 3 times with exponential backoff
  * const retrySchedule = Schedule.exponential("100 millis").pipe(
@@ -203,7 +203,7 @@ export declare namespace Schedule {
    * import { Effect } from "effect"
    * import { Schedule } from "effect"
    * import { Duration } from "effect/time"
-   * import { Console } from "effect/logging"
+   * import { Console } from "effect"
    *
    * // Custom schedule that uses input metadata
    * const metadataAwareSchedule = Schedule.spaced("1 second").pipe(
@@ -247,7 +247,7 @@ export declare namespace Schedule {
    * import { Effect } from "effect"
    * import { Schedule } from "effect"
    * import { Duration } from "effect/time"
-   * import { Console } from "effect/logging"
+   * import { Console } from "effect"
    *
    * // Custom schedule that logs metadata including output
    * const loggingSchedule = Schedule.unfold(0, (n) => n + 1).pipe(
@@ -493,7 +493,7 @@ export const toStepWithSleep = <Output, Input, Error, Env>(
  * ```ts
  * import { Effect } from "effect"
  * import { Schedule } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  *
  * // Add random jitter to schedule delays
  * const jitteredSchedule = Schedule.addDelay(
@@ -646,7 +646,7 @@ export const addDelay: {
  * ```ts
  * import { Effect } from "effect"
  * import { Schedule } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  *
  * // First retry 3 times quickly, then switch to slower retries
  * const quickRetries = Schedule.exponential("100 millis").pipe(
@@ -707,7 +707,7 @@ export const andThen: {
  * import { Effect } from "effect"
  * import { Schedule } from "effect"
  * import { Result } from "effect/data"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  *
  * // Track which phase of the schedule we're in
  * const phaseTracker = Schedule.andThenResult(
@@ -789,7 +789,7 @@ export const andThenResult: {
  * ```ts
  * import { Effect } from "effect"
  * import { Schedule } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  *
  * // Both schedules must want to continue for the combined schedule to continue
  * const timeLimit = Schedule.spaced("1 second").pipe(Schedule.take(5)) // max 5 times
@@ -874,7 +874,7 @@ export const both: {
  * ```ts
  * import { Effect } from "effect"
  * import { Schedule } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  *
  * // Combine two schedules, keeping left output
  * const leftSchedule = Schedule.exponential("100 millis").pipe(
@@ -922,7 +922,7 @@ export const bothLeft: {
  * ```ts
  * import { Effect } from "effect"
  * import { Schedule } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  *
  * // Combine two schedules, keeping right output
  * const leftSchedule = Schedule.exponential("100 millis").pipe(
@@ -973,7 +973,7 @@ export const bothRight: {
  * ```ts
  * import { Effect } from "effect"
  * import { Schedule } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  *
  * // Combine two schedules with custom output combination
  * const leftSchedule = Schedule.exponential("100 millis").pipe(
@@ -1052,7 +1052,7 @@ export const bothWith: {
  * ```ts
  * import { Effect } from "effect"
  * import { Schedule } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  *
  * // Compose a quick retry phase followed by slower retry phase
  * const fastRetries = Schedule.exponential("100 millis").pipe(
@@ -1130,7 +1130,7 @@ export const compose: {
  * ```ts
  * import { Effect } from "effect"
  * import { Schedule } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  *
  * // Collect all inputs passed to the schedule
  * const inputCollector = Schedule.collectInputs(
@@ -1165,7 +1165,7 @@ export const collectInputs = <Output, Input, Error, Env>(
  * ```ts
  * import { Effect } from "effect"
  * import { Schedule } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  *
  * // Collect all outputs from the schedule
  * const outputCollector = Schedule.collectOutputs(
@@ -1198,7 +1198,7 @@ export const collectOutputs = <Output, Input, Error, Env>(
  * ```ts
  * import { Effect } from "effect"
  * import { Schedule } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  *
  * // Collect outputs while under time limit
  * const collectForTime = Schedule.collectWhile(
@@ -1327,7 +1327,7 @@ export const collectWhile: {
  * ```ts
  * import { Effect } from "effect"
  * import { Schedule } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  *
  * // Run every minute
  * const everyMinute = Schedule.cron("* * * * *")
@@ -1462,7 +1462,7 @@ export const cron: {
  * ```ts
  * import { Effect } from "effect"
  * import { Schedule } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  *
  * // Extract delays from an exponential backoff schedule
  * const exponentialDelays = Schedule.delays(
@@ -1564,7 +1564,7 @@ export const delays = <Out, In, E, R>(self: Schedule<Out, In, E, R>): Schedule<D
  * ```ts
  * import { Effect } from "effect"
  * import { Schedule } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  *
  * // Run a task for exactly 5 seconds, regardless of how many iterations
  * const fiveSecondSchedule = Schedule.during("5 seconds")
@@ -1655,7 +1655,7 @@ export const during = (duration: Duration.DurationInput): Schedule<Duration.Dura
  * ```ts
  * import { Effect } from "effect"
  * import { Schedule } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  *
  * // Either continues as long as at least one schedule wants to continue
  * const timeBasedSchedule = Schedule.spaced("2 seconds").pipe(Schedule.take(3))
@@ -1740,7 +1740,7 @@ export const either: {
  * ```ts
  * import { Effect } from "effect"
  * import { Schedule } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  *
  * // Combine two schedules with either semantics, keeping left output
  * const primarySchedule = Schedule.exponential("100 millis").pipe(
@@ -1791,7 +1791,7 @@ export const eitherLeft: {
  * ```ts
  * import { Effect } from "effect"
  * import { Schedule } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  *
  * // Combine two schedules with either semantics, keeping right output
  * const primarySchedule = Schedule.exponential("100 millis").pipe(
@@ -1843,7 +1843,7 @@ export const eitherRight: {
  * ```ts
  * import { Effect } from "effect"
  * import { Schedule } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  *
  * // Combine schedules with either semantics and custom combination
  * const primarySchedule = Schedule.exponential("100 millis").pipe(
@@ -1937,7 +1937,7 @@ export const eitherWith: {
  * import { Effect } from "effect"
  * import { Schedule } from "effect"
  * import { Duration } from "effect/time"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   yield* Effect.repeat(
@@ -1969,7 +1969,7 @@ export const elapsed: Schedule<Duration.Duration> = fromStepWithMetadata(
  * ```ts
  * import { Effect } from "effect"
  * import { Schedule } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  *
  * // Basic exponential backoff with default factor of 2
  * const basicExponential = Schedule.exponential("100 millis")
@@ -2028,7 +2028,7 @@ export const exponential = (
  * ```ts
  * import { Effect } from "effect"
  * import { Schedule } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  *
  * // Basic fibonacci schedule starting with 100ms
  * const fibSchedule = Schedule.fibonacci("100 millis")
@@ -2118,7 +2118,7 @@ export const fibonacci = (one: Duration.DurationInput): Schedule<Duration.Durati
  * ```ts
  * import { Effect } from "effect"
  * import { Schedule } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  *
  * // Fixed interval schedule - runs exactly every 1 second
  * const everySecond = Schedule.fixed("1 second")
@@ -2186,7 +2186,7 @@ export const fixed = (interval: Duration.DurationInput): Schedule<number> => {
  * ```ts
  * import { Effect } from "effect"
  * import { Schedule } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  *
  * // Transform schedule output from number to string
  * const countSchedule = Schedule.recurs(5).pipe(
@@ -2279,7 +2279,7 @@ export const map: {
  * import { Effect } from "effect"
  * import { Schedule } from "effect"
  * import { Duration } from "effect/time"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  *
  * // Modify delays based on output - increase delay on high iteration counts
  * const adaptiveDelay = Schedule.recurs(10).pipe(
@@ -2346,7 +2346,7 @@ export const modifyDelay: {
  * ```ts
  * import { Effect } from "effect"
  * import { Schedule } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  *
  * // Create a schedule that outputs the inputs instead of original outputs
  * const inputSchedule = Schedule.passthrough(
@@ -2387,7 +2387,7 @@ export const passthrough = <Output, Input, Error, Env>(
  * ```ts
  * import { Effect } from "effect"
  * import { Schedule } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  *
  * // Basic recurs - retry at most 3 times
  * const maxThreeAttempts = Schedule.recurs(3)
@@ -2446,7 +2446,7 @@ export const recurs = (times: number): Schedule<number> => while_(forever, ({ re
  * ```ts
  * import { Effect } from "effect"
  * import { Schedule } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  *
  * // Sum up execution counts from a counter schedule
  * const sumSchedule = Schedule.reduce(
@@ -2596,7 +2596,7 @@ export const reduce: {
  * ```ts
  * import { Effect } from "effect"
  * import { Schedule } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  *
  * // Basic spaced schedule - runs every 2 seconds
  * const everyTwoSeconds = Schedule.spaced("2 seconds")
@@ -2653,7 +2653,7 @@ export const spaced = (duration: Duration.DurationInput): Schedule<number> => {
  * ```ts
  * import { Effect } from "effect"
  * import { Schedule } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  *
  * // Log retry errors for debugging
  * const errorLoggingSchedule = Schedule.exponential("100 millis").pipe(
@@ -2790,7 +2790,7 @@ export const tapInput: {
  * ```ts
  * import { Effect } from "effect"
  * import { Schedule } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  *
  * // Log schedule outputs for debugging/monitoring
  * const monitoredSchedule = Schedule.exponential("100 millis").pipe(
@@ -2896,7 +2896,7 @@ export const tapOutput: {
  * ```ts
  * import { Effect } from "effect"
  * import { Schedule } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  *
  * // Limit an infinite schedule to run only 5 times
  * const limitedHeartbeat = Schedule.spaced("1 second").pipe(
@@ -2986,7 +2986,7 @@ export const take: {
  * ```ts
  * import { Effect } from "effect"
  * import { Schedule } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  *
  * // Counter schedule that increments by 1 each time
  * const counterSchedule = Schedule.unfold(0, (n) => n + 1)
@@ -3146,7 +3146,7 @@ export {
  * ```ts
  * import { Effect } from "effect"
  * import { Schedule } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  *
  * // Execute tasks at regular intervals aligned to window boundaries
  * const windowSchedule = Schedule.windowed("5 seconds")
@@ -3186,7 +3186,7 @@ export const windowed = (interval: Duration.DurationInput): Schedule<number> => 
  * ```ts
  * import { Effect } from "effect"
  * import { Schedule } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  *
  * // A schedule that runs forever with no delay
  * const infiniteSchedule = Schedule.forever

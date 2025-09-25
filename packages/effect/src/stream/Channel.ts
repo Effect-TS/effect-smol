@@ -2006,7 +2006,7 @@ export const mapInputError: {
  * ```ts
  * import { Effect } from "effect"
  * import { Channel } from "effect/stream"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  * import { Data } from "effect/data"
  *
  * class LogError extends Data.TaggedError("LogError")<{
@@ -4388,7 +4388,7 @@ export const interruptWhen: {
  * ```ts
  * import { Effect, Exit } from "effect"
  * import { Channel } from "effect/stream"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  * import { Data } from "effect/data"
  *
  * class ExitError extends Data.TaggedError("ExitError")<{
@@ -4440,7 +4440,7 @@ export const onExit: {
  * ```ts
  * import { Effect } from "effect"
  * import { Channel } from "effect/stream"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  * import { Data } from "effect/data"
  *
  * class EnsureError extends Data.TaggedError("EnsureError")<{
@@ -4910,7 +4910,7 @@ export const runDrain = <OutElem, OutErr, OutDone, Env>(
  * ```ts
  * import { Effect } from "effect"
  * import { Channel } from "effect/stream"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  * import { Data } from "effect/data"
  *
  * class ForEachError extends Data.TaggedError("ForEachError")<{

@@ -77,7 +77,7 @@ const makeTxSemaphore = (permitsRef: TxRef.TxRef<number>, capacity: number): TxS
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  * import { TxSemaphore } from "effect/transactions"
  *
  * // Create a semaphore for managing concurrent access to a resource pool
@@ -117,7 +117,7 @@ export const make = (permits: number): Effect.Effect<TxSemaphore> =>
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  * import { TxSemaphore } from "effect/transactions"
  *
  * const program = Effect.gen(function* () {
@@ -151,7 +151,7 @@ export const available = (self: TxSemaphore): Effect.Effect<number> => TxRef.get
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  * import { TxSemaphore } from "effect/transactions"
  *
  * const program = Effect.gen(function* () {
@@ -182,7 +182,7 @@ export const capacity = (self: TxSemaphore): Effect.Effect<number> => Effect.suc
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  * import { TxSemaphore } from "effect/transactions"
  *
  * const program = Effect.gen(function* () {
@@ -225,7 +225,7 @@ export const acquire = (self: TxSemaphore): Effect.Effect<void> =>
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  * import { TxSemaphore } from "effect/transactions"
  *
  * const program = Effect.gen(function* () {
@@ -269,7 +269,7 @@ export const acquireN = (self: TxSemaphore, n: number): Effect.Effect<void> => {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  * import { TxSemaphore } from "effect/transactions"
  *
  * const program = Effect.gen(function* () {
@@ -306,7 +306,7 @@ export const tryAcquire = (self: TxSemaphore): Effect.Effect<boolean> =>
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  * import { TxSemaphore } from "effect/transactions"
  *
  * const program = Effect.gen(function* () {
@@ -347,7 +347,7 @@ export const tryAcquireN = (self: TxSemaphore, n: number): Effect.Effect<boolean
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  * import { TxSemaphore } from "effect/transactions"
  *
  * const program = Effect.gen(function* () {
@@ -380,7 +380,7 @@ export const release = (self: TxSemaphore): Effect.Effect<void> =>
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  * import { TxSemaphore } from "effect/transactions"
  *
  * const program = Effect.gen(function* () {
@@ -426,7 +426,7 @@ export const releaseN = (self: TxSemaphore, n: number): Effect.Effect<void> => {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  * import { TxSemaphore } from "effect/transactions"
  *
  * const program = Effect.gen(function* () {
@@ -475,7 +475,7 @@ export const withPermit = <A, E, R>(
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  * import { TxSemaphore } from "effect/transactions"
  *
  * const program = Effect.gen(function* () {
@@ -525,7 +525,7 @@ export const withPermits = <A, E, R>(
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  * import { TxSemaphore } from "effect/transactions"
  * import { Scope } from "effect"
  *

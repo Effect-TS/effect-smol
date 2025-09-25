@@ -2,10 +2,10 @@
  * @since 4.0.0
  */
 import * as Array from "../collections/Array.ts"
+import * as Console from "../Console.ts"
 import * as Option from "../data/Option.ts"
 import * as Effect from "../Effect.ts"
 import * as Layer from "../Layer.ts"
-import * as Console from "../logging/Console.ts"
 
 /**
  * A `TestConsole` provides a testable implementation of the Console interface.
@@ -19,7 +19,7 @@ import * as Console from "../logging/Console.ts"
  * ```ts
  * import { TestConsole } from "effect/testing"
  * import { Effect } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   yield* Console.log("Hello, World!")
@@ -72,7 +72,7 @@ export declare namespace TestConsole {
    *
    * @example
    * ```ts
-   * import { Console } from "effect/logging"
+   * import { Console } from "effect"
    *
    * // Method represents console method names like:
    * // "log", "error", "warn", "debug", "info", etc.
@@ -115,7 +115,7 @@ export declare namespace TestConsole {
  * ```ts
  * import { TestConsole } from "effect/testing"
  * import { Effect } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   yield* Console.log("Debug message")
@@ -218,7 +218,7 @@ export const testConsoleWith = <A, E, R>(f: (console: TestConsole) => Effect.Eff
  * ```ts
  * import { TestConsole } from "effect/testing"
  * import { Effect } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   yield* Console.log("This will be captured")
@@ -245,7 +245,7 @@ export const layer: Layer.Layer<TestConsole> = Layer.effect(Console.Console)(mak
  * ```ts
  * import { TestConsole } from "effect/testing"
  * import { Effect } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   yield* Console.log("First message")
@@ -278,7 +278,7 @@ export const logLines: Effect.Effect<ReadonlyArray<unknown>, never, never> = tes
  * ```ts
  * import { TestConsole } from "effect/testing"
  * import { Effect } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   yield* Console.error("Error message")

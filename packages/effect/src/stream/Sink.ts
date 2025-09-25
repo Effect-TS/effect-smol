@@ -879,7 +879,7 @@ export const collectAllFilterEffect = <In, Out, X, E, R>(
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  * import { Sink, Stream } from "effect/stream"
  *
  * // Create a sink that logs each item
@@ -910,7 +910,7 @@ export const forEach = <In, X, E, R>(
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  * import { Sink, Stream } from "effect/stream"
  *
  * // Create a sink that processes chunks
@@ -948,7 +948,7 @@ export const forEachArray = <In, X, E, R>(
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  * import { Sink, Stream } from "effect/stream"
  *
  * // Create a sink from an effect that produces a sink

@@ -23,7 +23,7 @@
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  *
  * // Creating a simple effect
  * const hello = Effect.succeed("Hello, World!")
@@ -85,8 +85,8 @@ import * as internalLayer from "./internal/layer.ts"
 import * as internalRequest from "./internal/request.ts"
 import * as internalSchedule from "./internal/schedule.ts"
 import type * as Layer from "./Layer.ts"
-import type { Logger } from "./logging/Logger.ts"
-import type { LogLevel } from "./logging/LogLevel.ts"
+import type { Logger } from "./Logger.ts"
+import type { LogLevel } from "./LogLevel.ts"
 import * as Metric from "./observability/Metric.ts"
 import type {
   AnySpan,
@@ -615,7 +615,7 @@ export declare namespace All {
  * @example Combining Effects in Tuples
  * ```ts
  * import { Effect } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  *
  * const tupleOfEffects = [
  *   Effect.succeed(42).pipe(Effect.tap(Console.log)),
@@ -636,7 +636,7 @@ export declare namespace All {
  * @example Combining Effects in Iterables
  * ```ts
  * import { Effect } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  *
  * const iterableOfEffects: Iterable<Effect.Effect<number>> = [1, 2, 3].map(
  *   (n) => Effect.succeed(n).pipe(Effect.tap(Console.log))
@@ -657,7 +657,7 @@ export declare namespace All {
  * @example Combining Effects in Structs
  * ```ts
  * import { Effect } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  *
  * const structOfEffects = {
  *   a: Effect.succeed(42).pipe(Effect.tap(Console.log)),
@@ -678,7 +678,7 @@ export declare namespace All {
  * @example Combining Effects in Records
  * ```ts
  * import { Effect } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  *
  * const recordOfEffects: Record<string, Effect.Effect<number>> = {
  *   key1: Effect.succeed(1).pipe(Effect.tap(Console.log)),
@@ -699,7 +699,7 @@ export declare namespace All {
  * @example Short-Circuiting Behavior
  * ```ts
  * import { Effect } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  *
  * const program = Effect.all([
  *   Effect.succeed("Task1").pipe(Effect.tap(Console.log)),
@@ -764,7 +764,7 @@ export const all: <
  * ```ts
  * // Title: Applying Effects to Iterable Elements
  * import { Effect } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  *
  * const result = Effect.forEach([1, 2, 3, 4, 5], (n, index) =>
  *   Console.log(`Currently at index ${index}`).pipe(Effect.as(n * 2))
@@ -783,7 +783,7 @@ export const all: <
  * @example
  * // Title: Using discard to Ignore Results
  * import { Effect } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  *
  * // Apply effects but discard the results
  * const result = Effect.forEach(
@@ -1892,7 +1892,7 @@ export const andThen: {
  * ```ts
  * // Title: Logging a step in a pipeline
  * import { Effect, pipe } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  *
  * // Function to apply a discount safely to a transaction amount
  * const applyDiscount = (
@@ -2565,7 +2565,7 @@ export const catchTags: {
  * @example
  * ```ts
  * import { Effect, Cause } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  *
  * // An effect that might fail in different ways
  * const program = Effect.die("Something went wrong")
@@ -2620,7 +2620,7 @@ export const catchCause: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  *
  * // An effect that might throw an unexpected error (defect)
  * const program = Effect.sync(() => {
@@ -2698,7 +2698,7 @@ export const catchFilter: {
  * @example
  * ```ts
  * import { Effect, Cause } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  *
  * const httpRequest = Effect.fail("Network Error")
  *
@@ -2863,7 +2863,7 @@ export const orDie: <A, E, R>(self: Effect<A, E, R>) => Effect<A, never, R> = in
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  *
  * // Simulate a task that fails with an error
  * const task: Effect.Effect<number, string> = Effect.fail("NetworkError")
@@ -2903,7 +2903,7 @@ export const tapError: {
  * @example
  * ```ts
  * import { Effect, Cause } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  *
  * const task = Effect.fail("Something went wrong")
  *
@@ -2939,7 +2939,7 @@ export const tapCause: {
  * @example
  * ```ts
  * import { Effect, Cause } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  *
  * const task = Effect.fail("Network timeout")
  *
@@ -2990,7 +2990,7 @@ export const tapCauseFilter: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  *
  * // Simulate a task that fails with a recoverable error
  * const task1: Effect.Effect<number, string> = Effect.fail("NetworkError")
@@ -3199,7 +3199,7 @@ export const retry: {
  * ```ts
  * import { Effect } from "effect"
  * import { Schedule } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  *
  * let attempt = 0
  * const networkRequest = Effect.gen(function* () {
@@ -3495,7 +3495,7 @@ export const timeoutOption: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  *
  * const slowQuery = Effect.gen(function* () {
  *   yield* Console.log("Starting database query...")
@@ -3543,7 +3543,7 @@ export const timeoutOrElse: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  *
  * const program = Effect.delay(
  *   Console.log("Delayed message"),
@@ -3574,7 +3574,7 @@ export const delay: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  *
  * const program = Effect.gen(function* () {
  *   yield* Console.log("Start")
@@ -3888,7 +3888,7 @@ export const filterOrFail: {
  * ```ts
  * import { Effect } from "effect"
  * import * as Option from "effect/data/Option"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  *
  * const shouldLog = true
  *
@@ -4165,7 +4165,7 @@ export const matchCauseEffectEager: {
  * ```ts
  * import { Effect, Cause } from "effect"
  * import * as Filter from "effect/data/Filter"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  *
  * const task = Effect.fail(new Error("Task failed"))
  *
@@ -4358,7 +4358,7 @@ export const isSuccess: <A, E, R>(self: Effect<A, E, R>) => Effect<boolean, neve
  * ```ts
  * import { Effect } from "effect"
  * import * as Option from "effect/data/Option"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  * import { ServiceMap } from "effect"
  *
  * const Logger = ServiceMap.Key<{ log: (msg: string) => void }>("Logger")
@@ -4397,7 +4397,7 @@ export const services: <R>() => Effect<ServiceMap.ServiceMap<R>, never, R> = int
  * ```ts
  * import { Effect } from "effect"
  * import * as Option from "effect/data/Option"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  * import { ServiceMap } from "effect"
  *
  * const Logger = ServiceMap.Key<{ log: (msg: string) => void }>("Logger")
@@ -4662,7 +4662,7 @@ export const updateServices: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  * import { ServiceMap } from "effect"
  *
  * // Define a counter service
@@ -4706,7 +4706,7 @@ export const updateService: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  * import { ServiceMap } from "effect"
  *
  * // Define a service for configuration
@@ -4759,7 +4759,7 @@ export const provideService: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  * import { ServiceMap } from "effect"
  *
  * // Define a database connection service
@@ -4818,7 +4818,7 @@ export const provideServiceEffect: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  *
  * const task = (id: number) => Effect.gen(function* () {
  *   yield* Console.log(`Task ${id} starting`)
@@ -4864,7 +4864,7 @@ export const withConcurrency: {
  * ```ts
  * import { Effect } from "effect"
  * import { Scope } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  *
  * const program = Effect.gen(function* () {
  *   const currentScope = yield* Effect.scope
@@ -4900,7 +4900,7 @@ export const scope: Effect<Scope, never, Scope> = internal.scope
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  *
  * const resource = Effect.acquireRelease(
  *   Console.log("Acquiring resource").pipe(Effect.as("resource")),
@@ -4935,7 +4935,7 @@ export const scoped: <A, E, R>(
  * ```ts
  * import { Effect } from "effect"
  * import { Scope } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  *
  * const program = Effect.scopedWith((scope) =>
  *   Effect.gen(function* () {
@@ -4988,7 +4988,7 @@ export const scopedWith: <A, E, R>(
  * @example
  * ```ts
  * import { Effect, Exit } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  *
  * // Simulate a resource that needs cleanup
  * interface FileHandle {
@@ -5053,7 +5053,7 @@ export const acquireRelease: <A, E, R>(
  * @example
  * ```ts
  * import { Effect, Exit } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  *
  * interface Database {
  *   readonly connection: string
@@ -5115,7 +5115,7 @@ export const acquireUseRelease: <Resource, E, R, A, E2, R2, E3, R3>(
  * @example
  * ```ts
  * import { Effect, Exit } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  *
  * const program = Effect.scoped(
  *   Effect.gen(function* () {
@@ -5163,7 +5163,7 @@ export const addFinalizer: <R>(
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  *
  * const task = Effect.gen(function* () {
  *   yield* Console.log("Task started")
@@ -5206,7 +5206,7 @@ export const ensuring: {
  * @example
  * ```ts
  * import { Effect, Cause } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  *
  * const task = Effect.fail(new Error("Something went wrong"))
  *
@@ -5259,7 +5259,7 @@ export const onErrorFilter: {
  * @example
  * ```ts
  * import { Effect, Exit } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  *
  * const task = Effect.succeed(42)
  *
@@ -5350,7 +5350,7 @@ export const onExitFilter: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  *
  * let i = 1
  * const expensiveTask = Effect.promise<string>(() => {
@@ -5425,7 +5425,7 @@ export const cached: <A, E, R>(self: Effect<A, E, R>) => Effect<Effect<A, E, R>>
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  *
  * let i = 1
  * const expensiveTask = Effect.promise<string>(() => {
@@ -5497,7 +5497,7 @@ export const cachedWithTTL: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  *
  * let i = 1
  * const expensiveTask = Effect.promise<string>(() => {
@@ -5592,7 +5592,7 @@ export const interruptible: <A, E, R>(
  * ```ts
  * import { Effect } from "effect"
  * import { Fiber } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  *
  * const task = Effect.forever(Effect.succeed("working..."))
  *
@@ -5626,7 +5626,7 @@ export const onInterrupt: {
  * ```ts
  * import { Effect } from "effect"
  * import { Fiber } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  *
  * const criticalTask = Effect.gen(function* () {
  *   yield* Console.log("Starting critical section...")
@@ -5655,7 +5655,7 @@ export const uninterruptible: <A, E, R>(
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  *
  * const program = Effect.uninterruptibleMask((restore) =>
  *   Effect.gen(function* () {
@@ -5692,7 +5692,7 @@ export const uninterruptibleMask: <A, E, R>(
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  *
  * const program = Effect.interruptibleMask((restore) =>
  *   Effect.gen(function* () {
@@ -6009,7 +6009,7 @@ export declare namespace Repeat {
  * ```ts
  * import { Effect } from "effect"
  * import { Fiber } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  *
  * const task = Effect.gen(function* () {
  *   yield* Console.log("Task running...")
@@ -6063,7 +6063,7 @@ export const forever: <Arg extends Effect<any, any, any> | { readonly autoYield?
  * // Success Example
  * import { Effect } from "effect"
  * import { Schedule } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  *
  * const action = Console.log("success")
  * const policy = Schedule.addDelay(Schedule.recurs(2), () => "100 millis")
@@ -6139,7 +6139,7 @@ export const repeat: {
  * import { Effect } from "effect"
  * import { Schedule } from "effect"
  * import * as Option from "effect/data/Option"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  *
  * let attempt = 0
  * const task = Effect.gen(function* () {
@@ -6257,7 +6257,7 @@ export const replicateEffect: {
  * ```ts
  * import { Effect } from "effect"
  * import { Schedule } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  *
  * const task = Effect.gen(function* () {
  *   yield* Console.log("Task executing...")
@@ -6313,7 +6313,7 @@ export const schedule = dual<
  * ```ts
  * import { Effect } from "effect"
  * import { Schedule } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  *
  * const task = (input: number) =>
  *   Effect.gen(function* () {
@@ -7116,7 +7116,7 @@ export interface RunOptions {
  * import { Effect } from "effect"
  * import { Schedule } from "effect"
  * import { Fiber } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  *
  * //      ┌─── Effect<number, never, never>
  * //      ▼
@@ -9917,7 +9917,7 @@ export const fn: fn.Gen & fn.NonGen = internal.fn
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  *
  * const program = Effect.clockWith((clock) =>
  *   clock.currentTimeMillis.pipe(
@@ -10159,7 +10159,7 @@ export const logTrace: (...message: ReadonlyArray<any>) => Effect<void> = intern
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Logger } from "effect/logging"
+ * import { Logger } from "effect"
  *
  * // Create a custom logger that logs to the console
  * const customLogger = Logger.make(({ message }) =>

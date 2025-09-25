@@ -12,7 +12,7 @@
  */
 import type { ReadonlyRecord } from "./data/Record.ts"
 import { constTrue } from "./Function.ts"
-import type { LogLevel } from "./logging/LogLevel.ts"
+import type { LogLevel } from "./LogLevel.ts"
 import { DisablePropagation, type SpanLink, Tracer } from "./observability/Tracer.ts"
 import { MaxOpsBeforeYield } from "./Scheduler.ts"
 import * as ServiceMap from "./ServiceMap.ts"
@@ -294,7 +294,7 @@ export const TracerSpanLinks = ServiceMap.Reference<ReadonlyArray<SpanLink>>("ef
  * ```ts
  * import { Effect } from "effect"
  * import { References } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  *
  * const logAnnotationExample = Effect.gen(function* () {
  *   // Get current annotations (empty by default)
@@ -354,7 +354,7 @@ export const CurrentLogAnnotations = ServiceMap.Reference<ReadonlyRecord<string,
  * ```ts
  * import { Effect } from "effect"
  * import { References } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  *
  * const dynamicLogging = Effect.gen(function* () {
  *   // Get current log level (default is "Info")
@@ -414,7 +414,7 @@ export const UnhandledLogLevel: ServiceMap.Reference<LogLevel | undefined> = Ser
  * ```ts
  * import { Effect } from "effect"
  * import { References } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  *
  * const logSpanExample = Effect.gen(function* () {
  *   // Get current spans (empty by default)
@@ -478,7 +478,7 @@ export const CurrentLogSpans = ServiceMap.Reference<
  * ```ts
  * import { Effect } from "effect"
  * import { References } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  *
  * const configureMinimumLogging = Effect.gen(function* () {
  *   // Get current minimum level (default is "Info")

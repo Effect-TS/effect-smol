@@ -1436,7 +1436,7 @@ export const fresh = <A, E, R>(self: Layer<A, E, R>): Layer<A, E, R> =>
  * import { Effect } from "effect"
  * import { Layer } from "effect"
  * import { ServiceMap } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  *
  * class HttpServer extends ServiceMap.Key<HttpServer, {
  *   readonly start: () => Effect.Effect<string>

@@ -55,14 +55,14 @@ const run = Effect.fnUntraced(function*(files: Array<string>) {
     Stream.mapEffect(({ contents, examples, file }) =>
       Stream.fromArray(examples).pipe(
         Stream.bindEffect("newCode", ({ outFile }) => fs.readFileString(outFile), { concurrency: 10 }),
-        Stream.runFold(() => contents, (acc, { endPos, newCode, startPos }) => {
+        Stream.runFold(() => contents, (acc, { endPos, leading, newCode, startPos }) => {
           const before = acc.slice(0, startPos)
           const after = acc.slice(endPos)
           return before
             + newCode
               .trim()
               .split("\n")
-              .map((line) => (" * " + line).trimEnd())
+              .map((line) => (leading + "* " + line).trimEnd())
               .join("\n")
             + after
         }),
@@ -73,27 +73,30 @@ const run = Effect.fnUntraced(function*(files: Array<string>) {
 })
 
 const findExamples = (content: string) => {
-  const start = /^ \* ```ts.*$/gm
-  const end = /^ \* ```/gm
+  const start = /^( +)\* ```ts.*$/gm
+  const end = /^ +\* ```/gm
   const examples: Array<{
     readonly code: string
+    readonly leading: string
     readonly startPos: number
     readonly endPos: number
   }> = []
   while (true) {
     const match = start.exec(content)
     if (!match) break
-    end.lastIndex = match.index + match[0].length
+    const startPos = match.index + match[0].length + 1
+    end.lastIndex = startPos
     const endMatch = end.exec(content)
     if (!endMatch) break
-    const startPos = match.index + match[0].length + 1
+    const leading = match[1]
     const endPos = endMatch.index - 1
     const code = content
       .slice(startPos, endPos)
       .split("\n")
-      .map((line) => line.startsWith(" *") ? line.slice(3) : line.trim())
+      .map((line) => line.startsWith(`${leading}*`) ? line.slice(leading.length + 2) : line.trim())
       .join("\n")
     examples.push({
+      leading,
       code,
       startPos,
       endPos

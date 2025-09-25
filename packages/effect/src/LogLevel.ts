@@ -22,10 +22,9 @@
  *
  * ```ts
  * import { Effect } from "effect"
- * import { LogLevel } from "effect/logging"
  *
  * // Basic log level usage
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   yield* Effect.logFatal("System is shutting down")
  *   yield* Effect.logError("Database connection failed")
  *   yield* Effect.logWarning("Memory usage is high")
@@ -38,7 +37,7 @@
  * ## Level Comparison
  *
  * ```ts
- * import { LogLevel } from "effect/logging"
+ * import { LogLevel } from "effect"
  *
  * // Check if one level is more severe than another
  * console.log(LogLevel.greaterThan("Error", "Info")) // true
@@ -52,9 +51,7 @@
  * ## Filtering by Level
  *
  * ```ts
- * import { Effect } from "effect"
- * import { LogLevel } from "effect/logging"
- * import { Logger } from "effect/logging"
+ * import { Logger, LogLevel } from "effect"
  *
  * // Create a logger that only logs Error and above
  * const errorLogger = Logger.make((options) => {
@@ -66,7 +63,9 @@
  * // Production logger - Info and above
  * const productionLogger = Logger.make((options) => {
  *   if (LogLevel.greaterThanOrEqualTo(options.logLevel, "Info")) {
- *     console.log(`${options.date.toISOString()} [${options.logLevel}] ${options.message}`)
+ *     console.log(
+ *       `${options.date.toISOString()} [${options.logLevel}] ${options.message}`
+ *     )
  *   }
  * })
  *
@@ -81,17 +80,14 @@
  * ## Runtime Configuration
  *
  * ```ts
- * import { Effect } from "effect"
- * import { Config } from "effect"
- * import { LogLevel } from "effect/logging"
- * import { Logger } from "effect/logging"
+ * import { Config, Effect, Logger, LogLevel } from "effect"
  *
  * // Configure log level from environment
  * const logLevelConfig = Config.string("LOG_LEVEL").pipe(
  *   Config.withDefault("Info")
  * )
  *
- * const configurableLogger = Effect.gen(function* () {
+ * const configurableLogger = Effect.gen(function*() {
  *   const minLevel = yield* logLevelConfig
  *
  *   return Logger.make((options) => {
@@ -102,8 +98,8 @@
  * })
  * ```
  */
-import * as Ord from "../data/Order.ts"
-import * as effect from "../internal/effect.ts"
+import * as Ord from "./data/Order.ts"
+import * as effect from "./internal/effect.ts"
 
 /**
  * Represents the severity level of a log message.
@@ -121,10 +117,9 @@ import * as effect from "../internal/effect.ts"
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { LogLevel } from "effect/logging"
  *
  * // Using log levels with Effect logging
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   yield* Effect.logFatal("System failure")
  *   yield* Effect.logError("Database error")
  *   yield* Effect.logWarning("High memory usage")
@@ -157,9 +152,6 @@ export const values: ReadonlyArray<LogLevel> = ["All", "Fatal", "Error", "Warn",
  *
  * @example
  * ```ts
- * import { Array } from "effect/collections"
- * import { LogLevel } from "effect/logging"
- *
  * // Compare log levels using Order
  * console.log(LogLevel.Order("Error", "Info")) // 1 (Error > Info)
  * console.log(LogLevel.Order("Debug", "Error")) // -1 (Debug < Error)
@@ -179,7 +171,7 @@ export const Order: Ord.Order<LogLevel> = effect.LogLevelOrder
  *
  * @example
  * ```ts
- * import { LogLevel } from "effect/logging"
+ * import { LogLevel } from "effect"
  *
  * // Check if Error is more severe than Info
  * console.log(LogLevel.greaterThan("Error", "Info")) // true
@@ -215,8 +207,7 @@ export const greaterThan: {
  *
  * @example
  * ```ts
- * import { LogLevel } from "effect/logging"
- * import { Logger } from "effect/logging"
+ * import { Logger, LogLevel } from "effect"
  *
  * // Check if level meets minimum threshold
  * console.log(LogLevel.greaterThanOrEqualTo("Error", "Error")) // true
@@ -233,7 +224,9 @@ export const greaterThan: {
  * // Production logger - only Error and Fatal
  * const productionLogger = Logger.make((options) => {
  *   if (LogLevel.greaterThanOrEqualTo(options.logLevel, "Error")) {
- *     console.error(`${options.date.toISOString()} [${options.logLevel}] ${options.message}`)
+ *     console.error(
+ *       `${options.date.toISOString()} [${options.logLevel}] ${options.message}`
+ *     )
  *   }
  * })
  *
@@ -258,7 +251,7 @@ export const greaterThanOrEqualTo: {
  *
  * @example
  * ```ts
- * import { LogLevel } from "effect/logging"
+ * import { LogLevel } from "effect"
  *
  * // Check if Debug is less severe than Info
  * console.log(LogLevel.lessThan("Debug", "Info")) // true
@@ -294,8 +287,7 @@ export const lessThan: {
  *
  * @example
  * ```ts
- * import { LogLevel } from "effect/logging"
- * import { Logger } from "effect/logging"
+ * import { Logger, LogLevel } from "effect"
  *
  * // Check if level is at or below threshold
  * console.log(LogLevel.lessThanOrEqualTo("Info", "Info")) // true

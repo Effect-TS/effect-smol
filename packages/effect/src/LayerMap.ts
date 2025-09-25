@@ -278,7 +278,7 @@ export interface TagClass<
  * import { Effect } from "effect"
  * import { Layer } from "effect"
  * import { ServiceMap } from "effect"
- * import { Console } from "effect/logging"
+ * import { Console } from "effect"
  * import { LayerMap } from "effect"
  *
  * // Define a service key

@@ -453,7 +453,7 @@ export const layer = (options: {
  * ```ts
  * import { McpSchema, McpServer } from "effect/unstable/ai"
  * import { NodeRuntime, NodeSink, NodeStream } from "@effect/platform-node"
- * import { Logger } from "effect/logging"
+ * import { Logger } from "effect"
  * import { Schema } from "effect/schema"
  * import { Effect, Layer } from "effect"
  *
