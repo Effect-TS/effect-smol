@@ -518,7 +518,7 @@ export interface EmptyErrorClass<Self, Tag> extends
     never,
     AST.Declaration,
     EmptyErrorClass<Self, Tag>, // TODO: Fix this
-    Annotations.Annotations
+    Annotations.Bottom<Self>
   >
 {
   new(): { readonly _tag: Tag } & YieldableError

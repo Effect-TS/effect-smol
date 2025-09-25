@@ -684,9 +684,9 @@ function findMessage(issue: Issue): string | undefined {
     case "Forbidden":
       return getMessageAnnotation(issue.annotations)
     case "MissingKey":
-      return getMessageAnnotation(issue.annotations, "missingKeyMessage")
+      return getMessageAnnotation(issue.annotations, "messageMissingKey")
     case "UnexpectedKey":
-      return getMessageAnnotation(issue.ast.annotations, "unexpectedKeyMessage")
+      return getMessageAnnotation(issue.ast.annotations, "messageUnexpectedKey")
     case "Filter":
       return getMessageAnnotation(issue.filter.annotations)
     case "Encoding":
@@ -696,7 +696,7 @@ function findMessage(issue: Issue): string | undefined {
 
 function getMessageAnnotation(
   annotations: Annotations.Annotations | undefined,
-  type: "message" | "missingKeyMessage" | "unexpectedKeyMessage" = "message"
+  type: "message" | "messageMissingKey" | "messageUnexpectedKey" = "message"
 ): string | undefined {
   const message = annotations?.[type]
   if (Predicate.isString(message)) return message

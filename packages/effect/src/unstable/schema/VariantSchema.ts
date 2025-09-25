@@ -218,7 +218,7 @@ export interface Class<
     S["EncodingServices"],
     AST.Declaration,
     Schema.decodeTo<Schema.declareConstructor<Self, S["Encoded"], readonly [S], S["Iso"]>, S>,
-    Annotations.Declaration<Self, readonly [S]>,
+    Annotations.Bottom<Self, readonly [S]>,
     S["~type.make.in"],
     S["Iso"],
     Self,
@@ -346,7 +346,7 @@ export const make = <
   ) => <const Fields extends Struct.Fields>(
     fields: Fields & Struct.Validate<Fields, Variants[number]>,
     annotations?:
-      | Annotations.Declaration<Self, readonly [Schema.Struct<ExtractFields<Default, Fields, true>>]>
+      | Annotations.Bottom<Self, readonly [Schema.Struct<ExtractFields<Default, Fields, true>>]>
       | undefined
   ) => [Self] extends [never] ? MissingSelfGeneric
     :
@@ -374,7 +374,7 @@ export const make = <
   function Class<Self>(identifier: string) {
     return function(
       fields: Struct.Fields,
-      annotations?: Annotations.Declaration<Self, readonly [Schema.Struct<ExtractFields<Default, typeof fields, true>>]>
+      annotations?: Annotations.Bottom<Self, readonly [Schema.Struct<ExtractFields<Default, typeof fields, true>>]>
     ) {
       const variantStruct = Struct(fields)
       const schema = extract(variantStruct, options.defaultVariant, {

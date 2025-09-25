@@ -126,7 +126,7 @@ export default tseslint.config(
     }
   },
   {
-    files: ["packages/*/src/**/*", "packages/*/test/**/*"],
+    files: ["packages/*/src/**/*.ts", "packages/*/test/**/*.ts"],
     rules: {
       "no-console": "error"
     }

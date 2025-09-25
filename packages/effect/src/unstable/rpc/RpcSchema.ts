@@ -42,7 +42,7 @@ export interface Stream<A extends Schema.Top, E extends Schema.Top> extends
     A["EncodingServices"] | E["EncodingServices"],
     AST.Declaration,
     Stream<A, E>,
-    Annotations.Declaration<Stream<A, E>, readonly []>
+    Annotations.Bottom<Stream_.Stream<A["Type"], E["Type"]>>
   >
 {
   readonly "~rebuild.out": this

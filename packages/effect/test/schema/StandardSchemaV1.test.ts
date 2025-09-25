@@ -299,9 +299,9 @@ describe("asStandardSchemaV1", () => {
     })
 
     describe("Struct", () => {
-      it("Struct & missingKeyMessage", () => {
+      it("Struct & messageMissingKey", () => {
         const schema = Schema.Struct({
-          a: Schema.String.annotateKey({ missingKeyMessage: "Custom message" })
+          a: Schema.String.annotateKey({ messageMissingKey: "Custom message" })
         })
         const standardSchema = Schema.asStandardSchemaV1(schema)
         standard.expectSyncFailure(standardSchema, {}, [
@@ -312,10 +312,10 @@ describe("asStandardSchemaV1", () => {
         ])
       })
 
-      it("Struct & missingKeyMessage", () => {
+      it("Struct & messageUnexpectedKey", () => {
         const schema = Schema.Struct({
           a: Schema.String
-        }).annotate({ unexpectedKeyMessage: "Custom message" })
+        }).annotate({ messageUnexpectedKey: "Custom message" })
         const standardSchema = Schema.asStandardSchemaV1(schema, {
           parseOptions: { onExcessProperty: "error" }
         })

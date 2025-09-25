@@ -24,38 +24,46 @@ export interface Annotations {
  * @category Model
  * @since 4.0.0
  */
-export interface Documentation extends Annotations {
+export interface Documentation<T> extends Annotations {
   readonly title?: string | undefined
   readonly description?: string | undefined
   readonly documentation?: string | undefined
-  readonly contentEncoding?: string | undefined
+  readonly default?: T | undefined
+  readonly examples?: ReadonlyArray<T> | undefined
 }
 
 /**
  * @category Model
  * @since 4.0.0
  */
-export interface Key<T> extends Documentation {
+export interface Key<T> extends Documentation<T> {
   /**
    * The message to use when a key is missing.
    */
-  readonly missingKeyMessage?: string | undefined
-
-  readonly default?: T | undefined
-  readonly examples?: ReadonlyArray<T> | undefined
+  readonly messageMissingKey?: string | undefined
 }
 
 /**
  * @category Model
  * @since 4.0.0
  */
-export interface Bottom<T> extends Documentation {
-  readonly identifier?: string | undefined
-  readonly default?: T | undefined
-  readonly examples?: ReadonlyArray<T> | undefined
-  readonly jsonSchema?: ToJsonSchema.Annotation.Override | ToJsonSchema.Annotation.Constraint | undefined
-  readonly arbitrary?: ToArbitrary.Annotation.Override<T> | undefined
+export interface Bottom<T, TypeParameters extends ReadonlyArray<Schema.Top> = readonly []> extends Documentation<T> {
+  readonly contentEncoding?: string | undefined
+  /**
+   * The message to use when the value is invalid.
+   */
   readonly message?: string | undefined
+  readonly identifier?: string | undefined
+  readonly jsonSchema?:
+    | ToJsonSchema.Annotation.Override
+    | ToJsonSchema.Annotation.Constraint
+    | undefined
+  readonly arbitrary?:
+    | ToArbitrary.Annotation.Declaration<T, TypeParameters>
+    | ToArbitrary.Annotation.Override<T>
+    | ToArbitrary.Annotation.Constraint
+    | ToArbitrary.Annotation.Constraints
+    | undefined
 }
 
 /**
@@ -66,23 +74,28 @@ export interface Struct<T> extends Bottom<T> {
   /**
    * The message to use when a key is unexpected.
    */
-  readonly unexpectedKeyMessage?: string | undefined
+  readonly messageUnexpectedKey?: string | undefined
 }
 
 /**
  * @category Model
  * @since 4.0.0
  */
-export interface Declaration<T, TypeParameters extends ReadonlyArray<Schema.Top>> extends Documentation {
-  readonly id?: string | undefined
-  readonly default?: T | undefined
-  readonly examples?: ReadonlyArray<T> | undefined
-  readonly jsonSchema?: ToJsonSchema.Annotation.Override | undefined
+export interface Declaration<T, TypeParameters extends ReadonlyArray<Schema.Top> = readonly []>
+  extends Documentation<T>
+{
+  readonly contentEncoding?: string | undefined
+  /**
+   * The message to use when the value is invalid.
+   */
+  readonly message?: string | undefined
+  readonly identifier?: string | undefined
   readonly defaultJsonSerializer?:
     | ((
       typeParameters: { readonly [K in keyof TypeParameters]: Schema.Schema<TypeParameters[K]["Encoded"]> }
     ) => AST.Link)
     | undefined
+  readonly jsonSchema?: ToJsonSchema.Annotation.Override | undefined
   readonly arbitrary?: ToArbitrary.Annotation.Declaration<T, TypeParameters> | undefined
   readonly equivalence?: ToEquivalence.Annotation.Declaration<T, TypeParameters> | undefined
   readonly format?: ToFormat.Annotation.Declaration<T, TypeParameters> | undefined
@@ -94,16 +107,35 @@ export interface Declaration<T, TypeParameters extends ReadonlyArray<Schema.Top>
 export const STRUCTURAL_ANNOTATION_KEY = "~structural"
 
 /**
+ * **Technical Note**
+ *
+ * This annotation group is not parametric since it would make the filters
+ * invariant
+ *
  * @category Model
  * @since 4.0.0
  */
-export interface Filter extends Documentation { // This annotation group is not parametric since it would make the filters invariant
+export interface Filter extends Annotations {
+  readonly title?: string | undefined
+  readonly description?: string | undefined
+  readonly documentation?: string | undefined
+  readonly message?: string | undefined
+  readonly identifier?: string | undefined
   /**
-   * System annotation for branded types. Used internally to identify types that
-   * carry a brand marker.
+   * Optional metadata used to identify or extend the filter with custom data.
    */
-  readonly "~brand.type"?: string | symbol | undefined
-
+  readonly meta?: {
+    readonly _tag: string
+    readonly [x: string]: unknown
+  } | undefined
+  readonly jsonSchema?:
+    | ToJsonSchema.Annotation.Override
+    | ToJsonSchema.Annotation.Constraint
+    | undefined
+  readonly arbitrary?:
+    | ToArbitrary.Annotation.Constraint
+    | ToArbitrary.Annotation.Constraints
+    | undefined
   /**
    * Marks the filter as *structural*, meaning it applies to the shape or
    * structure of the container (e.g., array length, object keys) rather than
@@ -112,22 +144,6 @@ export interface Filter extends Documentation { // This annotation group is not 
    * Example: `minLength` on an array is a structural filter.
    */
   readonly "~structural"?: boolean | undefined
-
-  /**
-   * JSON Schema representation used for documentation or code generation.
-   */
-  readonly jsonSchema?: ToJsonSchema.Annotation.Override | ToJsonSchema.Annotation.Constraint | undefined
-
-  /**
-   * Optional metadata used to identify or extend the filter with custom data.
-   */
-  readonly meta?: {
-    readonly _tag: string
-    readonly [x: string]: unknown
-  } | undefined
-
-  readonly arbitrary?: ToArbitrary.Annotation.Constraint | ToArbitrary.Annotation.Constraints | undefined
-  readonly message?: string | undefined
 }
 
 /**

@@ -98,7 +98,7 @@ export interface Bottom<
   RE,
   Ast extends AST.AST,
   RebuildOut extends Top,
-  AnnotateIn extends Annotations.Annotations,
+  AnnotateIn extends Annotations.Annotations = Annotations.Bottom<T>,
   TypeMakeIn = T,
   Iso = T,
   TypeMake = TypeMakeIn,
@@ -898,7 +898,7 @@ export interface encodedCodec<S extends Top> extends
     never,
     AST.AST,
     encodedCodec<S>,
-    Annotations.Annotations,
+    Annotations.Bottom<S["Encoded"], ReadonlyArray<Top>>,
     S["Encoded"],
     S["Encoded"],
     S["Encoded"],
@@ -939,7 +939,7 @@ export interface flip<S extends Top> extends
     S["DecodingServices"],
     AST.AST,
     flip<S>,
-    Annotations.Bottom<S["Encoded"]>,
+    Annotations.Bottom<S["Encoded"], ReadonlyArray<Top>>,
     S["Encoded"],
     S["Encoded"],
     S["Encoded"],
@@ -973,9 +973,7 @@ export function flip<S extends Top>(schema: S): flip<S> {
 /**
  * @since 4.0.0
  */
-export interface Literal<L extends AST.Literal>
-  extends Bottom<L, L, never, never, AST.LiteralType, Literal<L>, Annotations.Annotations>
-{
+export interface Literal<L extends AST.Literal> extends Bottom<L, L, never, never, AST.LiteralType, Literal<L>> {
   readonly "~rebuild.out": this
   readonly literal: L
 }
@@ -1040,8 +1038,7 @@ export interface TemplateLiteral<Parts extends TemplateLiteral.Parts> extends
     never,
     never,
     AST.TemplateLiteral,
-    TemplateLiteral<Parts>,
-    Annotations.Annotations
+    TemplateLiteral<Parts>
   >
 {
   readonly "~rebuild.out": this
@@ -1085,8 +1082,7 @@ export interface TemplateLiteralParser<Parts extends TemplateLiteral.Parts> exte
     never,
     never,
     AST.TupleType,
-    TemplateLiteralParser<Parts>,
-    Annotations.Annotations
+    TemplateLiteralParser<Parts>
   >
 {
   readonly "~rebuild.out": this
@@ -1106,7 +1102,7 @@ export function TemplateLiteralParser<const Parts extends TemplateLiteral.Parts>
  * @since 4.0.0
  */
 export interface Enums<A extends { [x: string]: string | number }>
-  extends Bottom<A[keyof A], A[keyof A], never, never, AST.Enums, Enums<A>, Annotations.Annotations>
+  extends Bottom<A[keyof A], A[keyof A], never, never, AST.Enums, Enums<A>>
 {
   readonly "~rebuild.out": this
   readonly enums: A
@@ -1129,7 +1125,7 @@ export function Enums<A extends { [x: string]: string | number }>(enums: A): Enu
 /**
  * @since 4.0.0
  */
-export interface Never extends Bottom<never, never, never, never, AST.NeverKeyword, Never, Annotations.Bottom<never>> {
+export interface Never extends Bottom<never, never, never, never, AST.NeverKeyword, Never> {
   readonly "~rebuild.out": this
 }
 
@@ -1141,7 +1137,7 @@ export const Never: Never = make(AST.neverKeyword)
 /**
  * @since 4.0.0
  */
-export interface Any extends Bottom<any, any, never, never, AST.AnyKeyword, Any, Annotations.Bottom<any>> {
+export interface Any extends Bottom<any, any, never, never, AST.AnyKeyword, Any> {
   readonly "~rebuild.out": this
 }
 
@@ -1153,9 +1149,7 @@ export const Any: Any = make(AST.anyKeyword)
 /**
  * @since 4.0.0
  */
-export interface Unknown
-  extends Bottom<unknown, unknown, never, never, AST.UnknownKeyword, Unknown, Annotations.Bottom<unknown>>
-{
+export interface Unknown extends Bottom<unknown, unknown, never, never, AST.UnknownKeyword, Unknown> {
   readonly "~rebuild.out": this
 }
 
@@ -1167,7 +1161,7 @@ export const Unknown: Unknown = make(AST.unknownKeyword)
 /**
  * @since 4.0.0
  */
-export interface Null extends Bottom<null, null, never, never, AST.NullKeyword, Null, Annotations.Bottom<null>> {
+export interface Null extends Bottom<null, null, never, never, AST.NullKeyword, Null> {
   readonly "~rebuild.out": this
 }
 
@@ -1179,9 +1173,7 @@ export const Null: Null = make(AST.nullKeyword)
 /**
  * @since 4.0.0
  */
-export interface Undefined
-  extends Bottom<undefined, undefined, never, never, AST.UndefinedKeyword, Undefined, Annotations.Bottom<undefined>>
-{
+export interface Undefined extends Bottom<undefined, undefined, never, never, AST.UndefinedKeyword, Undefined> {
   readonly "~rebuild.out": this
 }
 
@@ -1193,9 +1185,7 @@ export const Undefined: Undefined = make(AST.undefinedKeyword)
 /**
  * @since 4.0.0
  */
-export interface String
-  extends Bottom<string, string, never, never, AST.StringKeyword, String, Annotations.Bottom<string>>
-{
+export interface String extends Bottom<string, string, never, never, AST.StringKeyword, String> {
   readonly "~rebuild.out": this
 }
 
@@ -1209,9 +1199,7 @@ export const String: String = make(AST.stringKeyword)
 /**
  * @since 4.0.0
  */
-export interface Number
-  extends Bottom<number, number, never, never, AST.NumberKeyword, Number, Annotations.Bottom<number>>
-{
+export interface Number extends Bottom<number, number, never, never, AST.NumberKeyword, Number> {
   readonly "~rebuild.out": this
 }
 
@@ -1225,9 +1213,7 @@ export const Number: Number = make(AST.numberKeyword)
 /**
  * @since 4.0.0
  */
-export interface Boolean
-  extends Bottom<boolean, boolean, never, never, AST.BooleanKeyword, Boolean, Annotations.Bottom<boolean>>
-{
+export interface Boolean extends Bottom<boolean, boolean, never, never, AST.BooleanKeyword, Boolean> {
   readonly "~rebuild.out": this
 }
 
@@ -1242,9 +1228,7 @@ export const Boolean: Boolean = make(AST.booleanKeyword)
 /**
  * @since 4.0.0
  */
-export interface Symbol
-  extends Bottom<symbol, symbol, never, never, AST.SymbolKeyword, Symbol, Annotations.Bottom<symbol>>
-{
+export interface Symbol extends Bottom<symbol, symbol, never, never, AST.SymbolKeyword, Symbol> {
   readonly "~rebuild.out": this
 }
 
@@ -1258,9 +1242,7 @@ export const Symbol: Symbol = make(AST.symbolKeyword)
 /**
  * @since 4.0.0
  */
-export interface BigInt
-  extends Bottom<bigint, bigint, never, never, AST.BigIntKeyword, BigInt, Annotations.Bottom<bigint>>
-{
+export interface BigInt extends Bottom<bigint, bigint, never, never, AST.BigIntKeyword, BigInt> {
   readonly "~rebuild.out": this
 }
 
@@ -1274,7 +1256,7 @@ export const BigInt: BigInt = make(AST.bigIntKeyword)
 /**
  * @since 4.0.0
  */
-export interface Void extends Bottom<void, void, never, never, AST.VoidKeyword, Void, Annotations.Bottom<void>> {
+export interface Void extends Bottom<void, void, never, never, AST.VoidKeyword, Void> {
   readonly "~rebuild.out": this
 }
 
@@ -1288,9 +1270,7 @@ export const Void: Void = make(AST.voidKeyword)
 /**
  * @since 4.0.0
  */
-export interface Object$
-  extends Bottom<object, object, never, never, AST.ObjectKeyword, Object$, Annotations.Bottom<object>>
-{
+export interface Object$ extends Bottom<object, object, never, never, AST.ObjectKeyword, Object$> {
   readonly "~rebuild.out": this
 }
 
@@ -1309,7 +1289,7 @@ export {
  * @since 4.0.0
  */
 export interface UniqueSymbol<sym extends symbol>
-  extends Bottom<sym, sym, never, never, AST.UniqueSymbol, UniqueSymbol<sym>, Annotations.Bottom<sym>>
+  extends Bottom<sym, sym, never, never, AST.UniqueSymbol, UniqueSymbol<sym>>
 {
   readonly "~rebuild.out": this
 }
@@ -2264,16 +2244,8 @@ export function Union<const Members extends ReadonlyArray<Top>>(
 /**
  * @since 4.0.0
  */
-export interface Literals<L extends ReadonlyArray<AST.Literal>> extends
-  Bottom<
-    L[number],
-    L[number],
-    never,
-    never,
-    AST.UnionType<AST.LiteralType>,
-    Literals<L>,
-    Annotations.Bottom<L[number]>
-  >
+export interface Literals<L extends ReadonlyArray<AST.Literal>>
+  extends Bottom<L[number], L[number], never, never, AST.UnionType<AST.LiteralType>, Literals<L>>
 {
   readonly "~rebuild.out": this
   readonly literals: L
@@ -2424,7 +2396,7 @@ export interface refine<T extends S["Type"], S extends Top> extends
     S["EncodingServices"],
     S["ast"],
     refine<T, S>,
-    Annotations.Bottom<T>,
+    Annotations.Bottom<T, ReadonlyArray<Top>>,
     S["~type.make.in"],
     T,
     T,
@@ -3968,7 +3940,7 @@ export interface instanceOf<T, Iso = T> extends declareConstructor<T, T, readonl
  */
 export function instanceOf<C extends abstract new(...args: any) => any, Iso = InstanceType<C>>(
   constructor: C,
-  annotations?: Annotations.Declaration<InstanceType<C>, readonly []> | undefined
+  annotations?: Annotations.Declaration<InstanceType<C>> | undefined
 ): instanceOf<InstanceType<C>, Iso> {
   return declare((u): u is InstanceType<C> => u instanceof constructor, annotations)
 }
@@ -4337,7 +4309,7 @@ export interface Class<Self, S extends Top & { readonly fields: Struct.Fields },
     S["EncodingServices"],
     AST.Declaration,
     decodeTo<declareConstructor<Self, S["Encoded"], readonly [S], S["Iso"]>, S>,
-    Annotations.Declaration<Self, readonly [S]>,
+    Annotations.Bottom<Self, readonly [S]>,
     S["~type.make.in"],
     S["Iso"],
     Self,
@@ -4401,7 +4373,7 @@ function makeClass<
     static readonly [immerable] = true
 
     declare static readonly "~rebuild.out": decodeTo<declareConstructor<Self, S["Encoded"], readonly [S], S["Iso"]>, S>
-    declare static readonly "~annotate.in": Annotations.Declaration<Self, readonly [S]>
+    declare static readonly "~annotate.in": Annotations.Bottom<Self, readonly [S]>
 
     declare static readonly "Type": Self
     declare static readonly "Encoded": S["Encoded"]
@@ -4433,7 +4405,7 @@ function makeClass<
     static makeSync(input: S["~type.make.in"], options?: MakeOptions): Self {
       return new this(input, options)
     }
-    static annotate(annotations: Annotations.Declaration<Self, readonly [S]>) {
+    static annotate(annotations: Annotations.Bottom<Self, readonly [S]>) {
       return this.rebuild(AST.annotate(this.ast, annotations))
     }
     static annotateKey(annotations: Annotations.Key<Self>) {
@@ -4805,7 +4777,7 @@ export interface declareConstructor<T, E, TypeParameters extends ReadonlyArray<T
     TypeParameters[number]["EncodingServices"],
     AST.Declaration,
     declareConstructor<T, E, TypeParameters, Iso>,
-    Annotations.Declaration<T, TypeParameters>,
+    Annotations.Bottom<T, TypeParameters>,
     T,
     Iso
   >
@@ -4856,7 +4828,7 @@ export interface declare<T, Iso = T> extends declareConstructor<T, T, readonly [
  */
 export function declare<T, Iso = T>(
   is: (u: unknown) => u is T,
-  annotations?: Annotations.Declaration<T, readonly []> | undefined
+  annotations?: Annotations.Declaration<T> | undefined
 ): declare<T, Iso> {
   return declareConstructor<T, T, Iso>()(
     [],

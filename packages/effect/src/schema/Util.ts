@@ -14,7 +14,7 @@ export function getNativeClassSchema<C extends new(...args: any) => any, S exten
   constructor: C,
   options: {
     readonly encoding: S
-    readonly annotations?: Annotations.Declaration<InstanceType<C>, readonly []>
+    readonly annotations?: Annotations.Declaration<InstanceType<C>>
   }
 ): Schema.decodeTo<Schema.instanceOf<InstanceType<C>, S["Iso"]>, S> {
   const transformation = Transformation.transform<InstanceType<C>, S["Type"]>({

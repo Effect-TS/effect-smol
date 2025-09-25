@@ -1938,7 +1938,7 @@ export function annotate<A extends AST>(ast: A, annotations: Annotations.Annotat
 }
 
 /** @internal */
-export function annotateKey<A extends AST>(ast: A, annotations: Annotations.Documentation): A {
+export function annotateKey<A extends AST>(ast: A, annotations: Annotations.Key<unknown>): A {
   const context = ast.context ?
     new Context(
       ast.context.isOptional,

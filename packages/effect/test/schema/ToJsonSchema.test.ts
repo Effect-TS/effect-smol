@@ -1006,7 +1006,7 @@ describe("ToJsonSchema", () => {
           title: "title",
           description: "description",
           default: Fruits.Apple,
-          examples: [Fruits.Banana, "orange"]
+          examples: [Fruits.Banana, Fruits.Orange]
         })
         await assertDraft7(schema, {
           anyOf: [

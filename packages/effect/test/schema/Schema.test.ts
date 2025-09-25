@@ -4642,10 +4642,10 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
   })
 
   describe("annotateKey", () => {
-    describe("the missingKeyMessage annotation should be used as a error message", () => {
+    describe("the messageMissingKey annotation should be used as a error message", () => {
       it("Struct", async () => {
         const schema = Schema.Struct({
-          a: Schema.String.pipe(Schema.annotateKey({ missingKeyMessage: "this field is required" }))
+          a: Schema.String.pipe(Schema.annotateKey({ messageMissingKey: "this field is required" }))
         })
 
         await assertions.decoding.fail(
@@ -4658,7 +4658,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
       it("Tuple", async () => {
         const schema = Schema.Tuple([
-          Schema.String.pipe(Schema.annotateKey({ missingKeyMessage: "this element is required" }))
+          Schema.String.pipe(Schema.annotateKey({ messageMissingKey: "this element is required" }))
         ])
 
         await assertions.decoding.fail(
