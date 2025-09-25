@@ -8,5 +8,7 @@ describe("Annotations", () => {
     expect(annotations).type.toBe<Annotations.Bottom<string, readonly []> | undefined>()
     const description = annotations?.description
     expect(description).type.toBe<string | undefined>()
+    const examples = annotations?.examples
+    expect(examples).type.toBe<ReadonlyArray<string> | undefined>()
   })
 })

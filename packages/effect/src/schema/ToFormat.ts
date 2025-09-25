@@ -3,7 +3,6 @@
  */
 import type { Format } from "../data/Format.ts"
 import * as Option from "../data/Option.ts"
-import * as Predicate from "../data/Predicate.ts"
 import { memoize } from "../Function.ts"
 import { format, formatPropertyKey } from "../interfaces/Inspectable.ts"
 import * as Annotations from "./Annotations.ts"
@@ -48,10 +47,11 @@ export function override<S extends Schema.Top>(override: () => Format<S["Type"]>
   }
 }
 
-const getAnnotation = Annotations.getAt(
-  "format",
-  (u: unknown): u is Annotation.Declaration<any, ReadonlyArray<any>> | Annotation.Override<any> => Predicate.isObject(u)
-)
+function getAnnotation(
+  ast: AST.AST
+): Annotation.Declaration<any, ReadonlyArray<any>> | Annotation.Override<any> | undefined {
+  return Annotations.get(ast)?.["format"] as any
+}
 
 const defaultFormat = () => format
 
