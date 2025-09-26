@@ -194,6 +194,7 @@ export const uncapitalize = <T extends string>(self: T): Uncapitalize<T> => {
  * @example
  * ```ts
  * import { pipe, String } from "effect"
+ * import * as assert from "node:assert"
  *
  * assert.deepStrictEqual(pipe("abc", String.replace("b", "d")), "adc")
  * assert.deepStrictEqual(
