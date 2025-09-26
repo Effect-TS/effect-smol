@@ -377,6 +377,7 @@ export const length = (self: string): number => self.length
  * @example
  * ```ts
  * import { pipe, String } from "effect"
+ * import * as assert from "node:assert"
  *
  * assert.deepStrictEqual(pipe("abc", String.split("")), ["a", "b", "c"])
  * assert.deepStrictEqual(pipe("", String.split("")), [""])
@@ -602,6 +603,7 @@ export const lastIndexOf = (searchString: string) => (self: string): number | un
  * @example
  * ```ts
  * import { pipe, String } from "effect"
+ * import * as assert from "node:assert"
  *
  * assert.deepStrictEqual(pipe("a", String.localeCompare("b")), -1)
  * assert.deepStrictEqual(pipe("b", String.localeCompare("a")), 1)
@@ -678,6 +680,7 @@ export const normalize = (form?: "NFC" | "NFD" | "NFKC" | "NFKD") => (self: stri
  * @example
  * ```ts
  * import { pipe, String } from "effect"
+ * import * as assert from "node:assert"
  *
  * assert.deepStrictEqual(pipe("a", String.padEnd(5)), "a    ")
  * assert.deepStrictEqual(pipe("a", String.padEnd(5, "_")), "a____")
@@ -695,6 +698,7 @@ export const padEnd = (maxLength: number, fillString?: string) => (self: string)
  * @example
  * ```ts
  * import { pipe, String } from "effect"
+ * import * as assert from "node:assert"
  *
  * assert.deepStrictEqual(pipe("a", String.padStart(5)), "    a")
  * assert.deepStrictEqual(pipe("a", String.padStart(5, "_")), "____a")
@@ -712,6 +716,7 @@ export const padStart = (maxLength: number, fillString?: string) => (self: strin
  * @example
  * ```ts
  * import { pipe, String } from "effect"
+ * import * as assert from "node:assert"
  *
  * assert.deepStrictEqual(pipe("a", String.repeat(5)), "aaaaa")
  * assert.deepStrictEqual(pipe("hello", String.repeat(3)), "hellohellohello")
@@ -728,6 +733,7 @@ export const repeat = (count: number) => (self: string): string => self.repeat(c
  * @example
  * ```ts
  * import { pipe, String } from "effect"
+ * import * as assert from "node:assert"
  *
  * assert.deepStrictEqual(pipe("ababb", String.replaceAll("b", "c")), "acacc")
  * assert.deepStrictEqual(pipe("ababb", String.replaceAll(/ba/g, "cc")), "accbb")
@@ -772,6 +778,7 @@ export const search: {
  * @example
  * ```ts
  * import { pipe, String } from "effect"
+ * import * as assert from "node:assert"
  *
  * const str = "\u0130"
  * assert.deepStrictEqual(pipe(str, String.toLocaleLowerCase("tr")), "i")
@@ -789,6 +796,7 @@ export const toLocaleLowerCase = (locale?: string | Array<string>) => (self: str
  * @example
  * ```ts
  * import { pipe, String } from "effect"
+ * import * as assert from "node:assert"
  *
  * const str = "i\u0307"
  * assert.deepStrictEqual(pipe(str, String.toLocaleUpperCase("lt-LT")), "I")
