@@ -2503,6 +2503,25 @@ console.log(Schema.encodeUnknownSync(schema)({ a_b: 1, aB: 2 }))
 // { a_b: 3 }
 ```
 
+### Number Keys
+
+Records with number keys are supported.
+
+**Example** (Record with number keys)
+
+```ts
+import { Schema } from "effect/schema"
+
+const schema = Schema.Record(Schema.Int, Schema.String)
+
+console.log(String(Schema.decodeUnknownExit(schema)({ 1: "a", 2: "b" })))
+// Success({"1":"a","2":"b"})
+
+console.log(String(Schema.decodeUnknownExit(schema)({ 1.1: "a" })))
+// Failure(Cause([Fail(SchemaError(Expected an integer, got 1.1
+//  at ["1.1"]))]))
+```
+
 ### Mutability
 
 By default, records are tagged as `readonly`. You can mark a record as mutable using `Schema.mutableKey` as you do with structs.
