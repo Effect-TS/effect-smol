@@ -24,7 +24,7 @@ import * as internalEffect from "./internal/effect.ts"
 import type * as ServiceMap from "./ServiceMap.ts"
 import type * as Types from "./types/Types.ts"
 
-const TypeId = "~effect/batching/Request"
+const TypeId = "~effect/Request"
 
 /**
  * A `Request<A, E, R>` is a request from a data source for a value of type `A`

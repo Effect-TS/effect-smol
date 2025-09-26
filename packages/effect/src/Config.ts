@@ -21,7 +21,7 @@ import * as ToParser from "./schema/ToParser.ts"
 import * as Transformation from "./schema/Transformation.ts"
 import * as Duration_ from "./time/Duration.ts"
 
-const TypeId = "~effect/config/Config"
+const TypeId = "~effect/Config"
 
 /**
  * A type guard that checks if a value is a Config instance.

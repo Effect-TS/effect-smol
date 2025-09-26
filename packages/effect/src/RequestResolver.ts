@@ -24,7 +24,7 @@ import type * as Types from "./types/Types.ts"
 import type * as Persistable from "./unstable/persistence/Persistable.ts"
 import * as Persistence from "./unstable/persistence/Persistence.ts"
 
-const TypeId = "~effect/batching/RequestResolver"
+const TypeId = "~effect/RequestResolver"
 
 /**
  * The `RequestResolver<A, R>` interface requires an environment `R` and handles

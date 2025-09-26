@@ -27,7 +27,7 @@ import { type Pipeable, pipeArguments } from "./interfaces/Pipeable.ts"
 const DEFAULT_PRECISION = 100
 const FINITE_INT_REGEX = /^[+-]?\d+$/
 
-const TypeId = "~effect/primitives/BigDecimal"
+const TypeId = "~effect/BigDecimal"
 
 /**
  * Represents an arbitrary precision decimal number.

@@ -4823,12 +4823,12 @@ export const CurrentLoggers = ServiceMap.Reference<
 })
 
 /** @internal */
-export const LogToStderr = ServiceMap.Reference<boolean>("effect/logging/Logger/LogToStderr", {
+export const LogToStderr = ServiceMap.Reference<boolean>("effect/Logger/LogToStderr", {
   defaultValue: constFalse
 })
 
 /** @internal */
-export const LoggerTypeId = "~effect/logging/Logger"
+export const LoggerTypeId = "~effect/Logger"
 
 const LoggerProto = {
   [LoggerTypeId]: {

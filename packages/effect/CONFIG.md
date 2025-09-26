@@ -234,7 +234,7 @@ ConfigProviders can be integrated into Effect applications using layers:
 
 ```ts
 import { Effect } from "effect"
-import { ConfigProvider } from "effect/config"
+import { ConfigProvider } from "effect"
 
 const provider = ConfigProvider.fromEnv({ env: { DATABASE_HOST: "localhost" } })
 
@@ -265,7 +265,7 @@ The environment provides strings only, but you can describe the desired output u
 
 ```ts
 import { Effect } from "effect"
-import { Config, ConfigProvider } from "effect/config"
+import { Config, ConfigProvider } from "effect"
 import { Formatter, Schema } from "effect/schema"
 
 // Define the shape of the configuration you want to read.
@@ -331,7 +331,7 @@ The `schema` function accepts an optional second argument: the `path` from which
 
 ```ts
 import { Effect } from "effect"
-import { Config, ConfigProvider } from "effect/config"
+import { Config, ConfigProvider } from "effect"
 import { Formatter, Schema } from "effect/schema"
 
 // Expecting a string at the root
@@ -366,7 +366,7 @@ Effect.runFork(program)
 
 ```ts
 import { Effect } from "effect"
-import { Config, ConfigProvider } from "effect/config"
+import { Config, ConfigProvider } from "effect"
 import { Formatter, Schema } from "effect/schema"
 
 // Read a string at path "a"
@@ -400,7 +400,7 @@ Effect.runFork(program)
 
 ```ts
 import { Effect } from "effect"
-import { Config, ConfigProvider } from "effect/config"
+import { Config, ConfigProvider } from "effect"
 import { Formatter, Schema } from "effect/schema"
 
 // Read a string at nested path ["a", "b"]

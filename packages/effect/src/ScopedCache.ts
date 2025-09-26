@@ -18,7 +18,7 @@ import * as Scope from "./Scope.ts"
 import * as ServiceMap from "./ServiceMap.ts"
 import * as Duration from "./time/Duration.ts"
 
-const TypeId = "~effect/caching/ScopedCache"
+const TypeId = "~effect/ScopedCache"
 
 /**
  * @since 4.0.0

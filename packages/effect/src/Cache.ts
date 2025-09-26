@@ -17,7 +17,7 @@ import * as effect from "./internal/effect.ts"
 import * as ServiceMap from "./ServiceMap.ts"
 import * as Duration from "./time/Duration.ts"
 
-const TypeId = "~effect/caching/Cache"
+const TypeId = "~effect/Cache"
 
 /**
  * A cache interface that provides a mutable key-value store with automatic TTL management,
