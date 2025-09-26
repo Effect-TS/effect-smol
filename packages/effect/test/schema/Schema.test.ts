@@ -310,11 +310,7 @@ describe("Schema", () => {
               new AST.PropertySignature("a", Schema.String.ast),
               new AST.PropertySignature("c", Schema.String.ast)
             ],
-            [],
-            undefined,
-            undefined,
-            undefined,
-            undefined
+            []
           ),
         new Error(`Duplicate identifiers: ["a","c"]. ts(2300)`)
       )

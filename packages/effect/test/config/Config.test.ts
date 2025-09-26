@@ -694,24 +694,37 @@ describe("Config", () => {
     })
 
     it("number", async () => {
-      const provider = ConfigProvider.fromStringPojo({ a: "1" })
+      const provider = ConfigProvider.fromStringPojo({ a: "1", c: "c", d: "Infinity" })
       await assertSuccess(Config.number("a"), provider, 1)
+      await assertSuccess(Config.number("d"), provider, Infinity)
       await assertFailure(
         Config.number("b"),
         provider,
         `Expected string, got undefined
   at ["b"]`
       )
+      await assertFailure(
+        Config.finite("c"),
+        provider,
+        `Expected a string matching the regex (?:[+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?|Infinity|-Infinity|NaN), got "c"
+  at ["c"]`
+      )
     })
 
     it("finite", async () => {
-      const provider = ConfigProvider.fromStringPojo({ a: "1", b: "a" })
+      const provider = ConfigProvider.fromStringPojo({ a: "1", b: "a", c: "Infinity" })
       await assertSuccess(Config.finite("a"), provider, 1)
       await assertFailure(
         Config.finite("b"),
         provider,
         `Expected a string matching the regex (?:[+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?|Infinity|-Infinity|NaN), got "a"
   at ["b"]`
+      )
+      await assertFailure(
+        Config.finite("c"),
+        provider,
+        `Expected a finite number, got Infinity
+  at ["c"]`
       )
     })
 
