@@ -183,7 +183,7 @@ export const dual: {
  * ```ts
  * import * as assert from "node:assert"
  * import { pipe, apply } from "effect/Function"
- * import { length } from "effect/primitives/String"
+ * import { length } from "effect/String"
  *
  * assert.deepStrictEqual(pipe(length, apply("hello")), 5)
  * ```

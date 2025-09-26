@@ -1,7 +1,7 @@
 import * as UndefinedOr from "../../data/UndefinedOr.ts"
 import * as Effect from "../../Effect.ts"
 import * as Fiber from "../../Fiber.ts"
-import * as Num from "../../primitives/Number.ts"
+import * as Num from "../../Number.ts"
 import * as Schedule from "../../Schedule.ts"
 import * as Scope from "../../Scope.ts"
 import { Clock } from "../../time/Clock.ts"

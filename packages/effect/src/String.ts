@@ -6,27 +6,18 @@
  * @since 2.0.0
  */
 
-import type { NonEmptyArray } from "../collections/Array.ts"
-import * as order from "../data/Order.ts"
-import type * as Ordering from "../data/Ordering.ts"
-import type { Refinement } from "../data/Predicate.ts"
-import * as predicate from "../data/Predicate.ts"
-import * as Reducer from "../data/Reducer.ts"
-import { dual } from "../Function.ts"
-import * as readonlyArray from "../internal/array.ts"
-import * as number from "../primitives/Number.ts"
+import type { NonEmptyArray } from "./collections/Array.ts"
+import * as order from "./data/Order.ts"
+import type * as Ordering from "./data/Ordering.ts"
+import type { Refinement } from "./data/Predicate.ts"
+import * as predicate from "./data/Predicate.ts"
+import * as Reducer from "./data/Reducer.ts"
+import { dual } from "./Function.ts"
+import * as readonlyArray from "./internal/array.ts"
+import * as number from "./Number.ts"
 
 /**
  * Reference to the global `String` constructor.
- *
- * @example
- * ```ts
- * import { String as EffectString } from "effect/primitives"
- *
- * // EffectString refers to the global String constructor
- * const str = "hello"
- * console.log(typeof str) // "string"
- * ```
  *
  * @category constructors
  * @since 4.0.0
@@ -39,7 +30,7 @@ export const String = globalThis.String
  * @example
  * ```ts
  * import * as assert from "node:assert"
- * import { String } from "effect/primitives"
+ * import { String } from "effect"
  *
  * assert.deepStrictEqual(String.isString("a"), true)
  * assert.deepStrictEqual(String.isString(1), false)
@@ -55,7 +46,7 @@ export const isString: Refinement<unknown, string> = predicate.isString
  *
  * @example
  * ```ts
- * import { String } from "effect/primitives"
+ * import { String } from "effect"
  *
  * console.log(String.Order("apple", "banana")) // -1
  * console.log(String.Order("banana", "apple")) // 1
@@ -72,7 +63,7 @@ export const Order: order.Order<string> = order.string
  *
  * @example
  * ```ts
- * import { String } from "effect/primitives"
+ * import { String } from "effect"
  *
  * console.log(String.empty) // ""
  * console.log(String.isEmpty(String.empty)) // true
@@ -88,7 +79,7 @@ export const empty: "" = "" as const
  *
  * @example
  * ```ts
- * import { String } from "effect/primitives"
+ * import { String } from "effect"
  *
  * // Type-level concatenation
  * type Result = String.Concat<"hello", "world"> // "helloworld"
@@ -105,7 +96,7 @@ export type Concat<A extends string, B extends string> = `${A}${B}`
  * @example
  * ```ts
  * import { pipe } from "effect"
- * import { String } from "effect/primitives"
+ * import { String } from "effect"
  *
  * const result1 = String.concat("hello", "world")
  * console.log(result1) // "helloworld"
@@ -129,7 +120,7 @@ export const concat: {
  * ```ts
  * import * as assert from "node:assert"
  * import { pipe } from "effect"
- * import { String } from "effect/primitives"
+ * import { String } from "effect"
  *
  * assert.deepStrictEqual(pipe('a', String.toUpperCase), 'A')
  * assert.deepStrictEqual(String.toUpperCase('hello'), 'HELLO')
@@ -147,7 +138,7 @@ export const toUpperCase = <S extends string>(self: S): Uppercase<S> => self.toU
  * ```ts
  * import * as assert from "node:assert"
  * import { pipe } from "effect"
- * import { String } from "effect/primitives"
+ * import { String } from "effect"
  *
  * assert.deepStrictEqual(pipe('A', String.toLowerCase), 'a')
  * assert.deepStrictEqual(String.toLowerCase('HELLO'), 'hello')
@@ -165,7 +156,7 @@ export const toLowerCase = <T extends string>(self: T): Lowercase<T> => self.toL
  * ```ts
  * import * as assert from "node:assert"
  * import { pipe } from "effect"
- * import { String } from "effect/primitives"
+ * import { String } from "effect"
  *
  * assert.deepStrictEqual(pipe('abc', String.capitalize), 'Abc')
  * assert.deepStrictEqual(String.capitalize('hello'), 'Hello')
@@ -187,7 +178,7 @@ export const capitalize = <T extends string>(self: T): Capitalize<T> => {
  * ```ts
  * import * as assert from "node:assert"
  * import { pipe } from "effect"
- * import { String } from "effect/primitives"
+ * import { String } from "effect"
  *
  * assert.deepStrictEqual(pipe('ABC', String.uncapitalize), 'aBC')
  * assert.deepStrictEqual(String.uncapitalize('Hello'), 'hello')
@@ -209,7 +200,7 @@ export const uncapitalize = <T extends string>(self: T): Uncapitalize<T> => {
  * ```ts
  * import * as assert from "node:assert"
  * import { pipe } from "effect"
- * import { String } from "effect/primitives"
+ * import { String } from "effect"
  *
  * assert.deepStrictEqual(pipe('abc', String.replace('b', 'd')), 'adc')
  * assert.deepStrictEqual(pipe('hello world', String.replace('world', 'Effect')), 'hello Effect')
@@ -226,7 +217,7 @@ export const replace = (searchValue: string | RegExp, replaceValue: string) => (
  *
  * @example
  * ```ts
- * import { String } from "effect/primitives"
+ * import { String } from "effect"
  *
  * type Result = String.Trim<"  hello  "> // "hello"
  * ```
@@ -242,7 +233,7 @@ export type Trim<A extends string> = TrimEnd<TrimStart<A>>
  * @example
  * ```ts
  * import * as assert from "node:assert"
- * import { String } from "effect/primitives"
+ * import { String } from "effect"
  *
  * assert.deepStrictEqual(String.trim(' a '), 'a')
  * assert.deepStrictEqual(String.trim('  hello world  '), 'hello world')
@@ -258,7 +249,7 @@ export const trim = <A extends string>(self: A): Trim<A> => self.trim() as Trim<
  *
  * @example
  * ```ts
- * import { String } from "effect/primitives"
+ * import { String } from "effect"
  *
  * type Result = String.TrimStart<"  hello"> // "hello"
  * ```
@@ -274,7 +265,7 @@ export type TrimStart<A extends string> = A extends `${" " | "\n" | "\t" | "\r"}
  * @example
  * ```ts
  * import * as assert from "node:assert"
- * import { String } from "effect/primitives"
+ * import { String } from "effect"
  *
  * assert.deepStrictEqual(String.trimStart(' a '), 'a ')
  * assert.deepStrictEqual(String.trimStart('  hello world'), 'hello world')
@@ -290,7 +281,7 @@ export const trimStart = <A extends string>(self: A): TrimStart<A> => self.trimS
  *
  * @example
  * ```ts
- * import { String } from "effect/primitives"
+ * import { String } from "effect"
  *
  * type Result = String.TrimEnd<"hello  "> // "hello"
  * ```
@@ -306,7 +297,7 @@ export type TrimEnd<A extends string> = A extends `${infer B}${" " | "\n" | "\t"
  * @example
  * ```ts
  * import * as assert from "node:assert"
- * import { String } from "effect/primitives"
+ * import { String } from "effect"
  *
  * assert.deepStrictEqual(String.trimEnd(' a '), ' a')
  * assert.deepStrictEqual(String.trimEnd('hello world  '), 'hello world')
@@ -324,7 +315,7 @@ export const trimEnd = <A extends string>(self: A): TrimEnd<A> => self.trimEnd()
  * ```ts
  * import * as assert from "node:assert"
  * import { pipe } from "effect"
- * import { String } from "effect/primitives"
+ * import { String } from "effect"
  *
  * assert.deepStrictEqual(pipe('abcd', String.slice(1, 3)), 'bc')
  * assert.deepStrictEqual(pipe('hello world', String.slice(0, 5)), 'hello')
@@ -341,7 +332,7 @@ export const slice = (start?: number, end?: number) => (self: string): string =>
  * @example
  * ```ts
  * import * as assert from "node:assert"
- * import { String } from "effect/primitives"
+ * import { String } from "effect"
  *
  * assert.deepStrictEqual(String.isEmpty(''), true)
  * assert.deepStrictEqual(String.isEmpty('a'), false)
@@ -358,7 +349,7 @@ export const isEmpty = (self: string): self is "" => self.length === 0
  * @example
  * ```ts
  * import * as assert from "node:assert"
- * import { String } from "effect/primitives"
+ * import { String } from "effect"
  *
  * assert.deepStrictEqual(String.isNonEmpty(''), false)
  * assert.deepStrictEqual(String.isNonEmpty('a'), true)
@@ -375,7 +366,7 @@ export const isNonEmpty = (self: string): boolean => self.length > 0
  * @example
  * ```ts
  * import * as assert from "node:assert"
- * import { String } from "effect/primitives"
+ * import { String } from "effect"
  *
  * assert.deepStrictEqual(String.length('abc'), 3)
  * ```
@@ -392,7 +383,7 @@ export const length = (self: string): number => self.length
  * ```ts
  * import * as assert from "node:assert"
  * import { pipe } from "effect"
- * import { String } from "effect/primitives"
+ * import { String } from "effect"
  *
  * assert.deepStrictEqual(pipe('abc', String.split('')), ['a', 'b', 'c'])
  * assert.deepStrictEqual(pipe('', String.split('')), [''])
@@ -418,7 +409,7 @@ export const split: {
  * ```ts
  * import * as assert from "node:assert"
  * import { pipe } from "effect"
- * import { String } from "effect/primitives"
+ * import { String } from "effect"
  *
  * assert.deepStrictEqual(pipe('hello world', String.includes('world')), true)
  * assert.deepStrictEqual(pipe('hello world', String.includes('foo')), false)
@@ -437,7 +428,7 @@ export const includes = (searchString: string, position?: number) => (self: stri
  * ```ts
  * import * as assert from "node:assert"
  * import { pipe } from "effect"
- * import { String } from "effect/primitives"
+ * import { String } from "effect"
  *
  * assert.deepStrictEqual(pipe('hello world', String.startsWith('hello')), true)
  * assert.deepStrictEqual(pipe('hello world', String.startsWith('world')), false)
@@ -456,7 +447,7 @@ export const startsWith = (searchString: string, position?: number) => (self: st
  * ```ts
  * import * as assert from "node:assert"
  * import { pipe } from "effect"
- * import { String } from "effect/primitives"
+ * import { String } from "effect"
  *
  * assert.deepStrictEqual(pipe('hello world', String.endsWith('world')), true)
  * assert.deepStrictEqual(pipe('hello world', String.endsWith('hello')), false)
@@ -474,7 +465,7 @@ export const endsWith = (searchString: string, position?: number) => (self: stri
  * **Example**
  *
  * ```ts
- * import { String } from "effect/primitives"
+ * import { String } from "effect"
  *
  * String.charCodeAt("abc", 1) // 98
  * String.charCodeAt("abc", 4) // undefined
@@ -501,7 +492,7 @@ export const charCodeAt: {
  *
  * ```ts
  * import { pipe } from "effect"
- * import { String } from "effect/primitives"
+ * import { String } from "effect"
  *
  * pipe("abcd", String.substring(1)) // "bcd"
  * pipe("abcd", String.substring(1, 3)) // "bc"
@@ -519,7 +510,7 @@ export const substring = (start: number, end?: number) => (self: string): string
  *
  * ```ts
  * import { pipe } from "effect"
- * import { String } from "effect/primitives"
+ * import { String } from "effect"
  *
  * pipe("abc", String.at(1)) // "b"
  * pipe("abc", String.at(4)) // undefined
@@ -539,7 +530,7 @@ export const at = (index: number) => (self: string): string | undefined => {
  *
  * ```ts
  * import { pipe } from "effect"
- * import { String } from "effect/primitives"
+ * import { String } from "effect"
  *
  * pipe("abc", String.charAt(1)) // "b"
  * pipe("abc", String.charAt(4)) // undefined
@@ -566,7 +557,7 @@ export const charAt: {
  *
  * ```ts
  * import { pipe } from "effect"
- * import { String } from "effect/primitives"
+ * import { String } from "effect"
  *
  * pipe("abc", String.codePointAt(1)) // 98
  * pipe("abc", String.codePointAt(10)) // undefined
@@ -586,7 +577,7 @@ export const codePointAt = (index: number) => (self: string): number | undefined
  *
  * ```ts
  * import { pipe } from "effect"
- * import { String } from "effect/primitives"
+ * import { String } from "effect"
  *
  * pipe("abbbc", String.indexOf("b")) // 1
  * pipe("abbbc", String.indexOf("z")) // undefined
@@ -607,7 +598,7 @@ export const indexOf = (searchString: string) => (self: string): number | undefi
  *
  * ```ts
  * import { pipe } from "effect"
- * import { String } from "effect/primitives"
+ * import { String } from "effect"
  *
  * pipe("abbbc", String.lastIndexOf("b")) // 3
  * pipe("abbbc", String.lastIndexOf("d")) // undefined
@@ -628,7 +619,7 @@ export const lastIndexOf = (searchString: string) => (self: string): number | un
  * ```ts
  * import * as assert from "node:assert"
  * import { pipe } from "effect"
- * import { String } from "effect/primitives"
+ * import { String } from "effect"
  *
  * assert.deepStrictEqual(pipe("a", String.localeCompare("b")), -1)
  * assert.deepStrictEqual(pipe("b", String.localeCompare("a")), 1)
@@ -649,7 +640,7 @@ export const localeCompare =
  *
  * ```ts
  * import { pipe } from "effect"
- * import { String } from "effect/primitives"
+ * import { String } from "effect"
  *
  * pipe("hello", String.match(/l+/)) // ["ll"]
  * pipe("hello", String.match(/x/)) // null
@@ -666,7 +657,7 @@ export const match = (regexp: RegExp | string) => (self: string): RegExpMatchArr
  * @example
  * ```ts
  * import { pipe } from "effect"
- * import { String } from "effect/primitives"
+ * import { String } from "effect"
  *
  * const matches = pipe("hello world", String.matchAll(/l/g))
  * console.log(Array.from(matches)) // [["l"], ["l"], ["l"]]
@@ -684,7 +675,7 @@ export const matchAll = (regexp: RegExp) => (self: string): IterableIterator<Reg
  * ```ts
  * import * as assert from "node:assert"
  * import { pipe } from "effect"
- * import { String } from "effect/primitives"
+ * import { String } from "effect"
  *
  * const str = "\u1E9B\u0323";
  * assert.deepStrictEqual(pipe(str, String.normalize()), "\u1E9B\u0323")
@@ -706,7 +697,7 @@ export const normalize = (form?: "NFC" | "NFD" | "NFKC" | "NFKD") => (self: stri
  * ```ts
  * import * as assert from "node:assert"
  * import { pipe } from "effect"
- * import { String } from "effect/primitives"
+ * import { String } from "effect"
  *
  * assert.deepStrictEqual(pipe("a", String.padEnd(5)), "a    ")
  * assert.deepStrictEqual(pipe("a", String.padEnd(5, "_")), "a____")
@@ -725,7 +716,7 @@ export const padEnd = (maxLength: number, fillString?: string) => (self: string)
  * ```ts
  * import * as assert from "node:assert"
  * import { pipe } from "effect"
- * import { String } from "effect/primitives"
+ * import { String } from "effect"
  *
  * assert.deepStrictEqual(pipe("a", String.padStart(5)), "    a")
  * assert.deepStrictEqual(pipe("a", String.padStart(5, "_")), "____a")
@@ -744,7 +735,7 @@ export const padStart = (maxLength: number, fillString?: string) => (self: strin
  * ```ts
  * import * as assert from "node:assert"
  * import { pipe } from "effect"
- * import { String } from "effect/primitives"
+ * import { String } from "effect"
  *
  * assert.deepStrictEqual(pipe("a", String.repeat(5)), "aaaaa")
  * assert.deepStrictEqual(pipe("hello", String.repeat(3)), "hellohellohello")
@@ -762,7 +753,7 @@ export const repeat = (count: number) => (self: string): string => self.repeat(c
  * ```ts
  * import * as assert from "node:assert"
  * import { pipe } from "effect"
- * import { String } from "effect/primitives"
+ * import { String } from "effect"
  *
  * assert.deepStrictEqual(pipe("ababb", String.replaceAll("b", "c")), "acacc")
  * assert.deepStrictEqual(pipe("ababb", String.replaceAll(/ba/g, "cc")), "accbb")
@@ -780,7 +771,7 @@ export const replaceAll = (searchValue: string | RegExp, replaceValue: string) =
  * **Example**
  *
  * ```ts
- * import { String } from "effect/primitives"
+ * import { String } from "effect"
  *
  * String.search("ababb","b") // 1
  * String.search("ababb","/abb/") // 2
@@ -808,7 +799,7 @@ export const search: {
  * ```ts
  * import * as assert from "node:assert"
  * import { pipe } from "effect"
- * import { String } from "effect/primitives"
+ * import { String } from "effect"
  *
  * const str = "\u0130"
  * assert.deepStrictEqual(pipe(str, String.toLocaleLowerCase("tr")), "i")
@@ -827,7 +818,7 @@ export const toLocaleLowerCase = (locale?: string | Array<string>) => (self: str
  * ```ts
  * import * as assert from "node:assert"
  * import { pipe } from "effect"
- * import { String } from "effect/primitives"
+ * import { String } from "effect"
  *
  * const str = "i\u0307"
  * assert.deepStrictEqual(pipe(str, String.toLocaleUpperCase("lt-LT")), "I")
@@ -852,7 +843,7 @@ export const toLocaleUpperCase = (locale?: string | Array<string>) => (self: str
  * @example
  * ```ts
  * import * as assert from "node:assert"
- * import { String } from "effect/primitives"
+ * import { String } from "effect"
  *
  * assert.deepStrictEqual(String.takeLeft("Hello World", 5), "Hello")
  * ```
@@ -878,7 +869,7 @@ export const takeLeft: {
  * @example
  * ```ts
  * import * as assert from "node:assert"
- * import { String } from "effect/primitives"
+ * import { String } from "effect"
  *
  * assert.deepStrictEqual(String.takeRight("Hello World", 5), "World")
  * ```
@@ -903,7 +894,7 @@ const LF = 0x0a
  *
  * @example
  * ```ts
- * import { String } from "effect/primitives"
+ * import { String } from "effect"
  *
  * const lines = String.linesIterator("hello\nworld\n")
  * console.log(Array.from(lines)) // ["hello", "world"]
@@ -920,7 +911,7 @@ export const linesIterator = (self: string): LinesIterator => linesSeparated(sel
  *
  * @example
  * ```ts
- * import { String } from "effect/primitives"
+ * import { String } from "effect"
  *
  * const lines = String.linesWithSeparators("hello\nworld\n")
  * console.log(Array.from(lines)) // ["hello\n", "world\n"]
@@ -938,7 +929,7 @@ export const linesWithSeparators = (s: string): LinesIterator => linesSeparated(
  *
  * @example
  * ```ts
- * import { String } from "effect/primitives"
+ * import { String } from "effect"
  *
  * const text = "  |hello\n  |world"
  * const result = String.stripMarginWith(text, "|")
@@ -977,7 +968,7 @@ export const stripMarginWith: {
  *
  * @example
  * ```ts
- * import { String } from "effect/primitives"
+ * import { String } from "effect"
  *
  * const text = "  |hello\n  |world"
  * const result = String.stripMargin(text)
@@ -994,7 +985,7 @@ export const stripMargin = (self: string): string => stripMarginWith(self, "|")
  *
  * @example
  * ```ts
- * import { String } from "effect/primitives"
+ * import { String } from "effect"
  *
  * console.log(String.snakeToCamel("hello_world")) // "helloWorld"
  * console.log(String.snakeToCamel("foo_bar_baz")) // "fooBarBaz"
@@ -1016,7 +1007,7 @@ export const snakeToCamel = (self: string): string => {
  *
  * @example
  * ```ts
- * import { String } from "effect/primitives"
+ * import { String } from "effect"
  *
  * console.log(String.snakeToPascal("hello_world")) // "HelloWorld"
  * console.log(String.snakeToPascal("foo_bar_baz")) // "FooBarBaz"
@@ -1038,7 +1029,7 @@ export const snakeToPascal = (self: string): string => {
  *
  * @example
  * ```ts
- * import { String } from "effect/primitives"
+ * import { String } from "effect"
  *
  * console.log(String.snakeToKebab("hello_world")) // "hello-world"
  * console.log(String.snakeToKebab("foo_bar_baz")) // "foo-bar-baz"
@@ -1054,7 +1045,7 @@ export const snakeToKebab = (self: string): string => self.replace(/_/g, "-")
  *
  * @example
  * ```ts
- * import { String } from "effect/primitives"
+ * import { String } from "effect"
  *
  * console.log(String.camelToSnake("helloWorld")) // "hello_world"
  * console.log(String.camelToSnake("fooBarBaz")) // "foo_bar_baz"
@@ -1070,7 +1061,7 @@ export const camelToSnake = (self: string): string => self.replace(/([A-Z])/g, "
  *
  * @example
  * ```ts
- * import { String } from "effect/primitives"
+ * import { String } from "effect"
  *
  * console.log(String.pascalToSnake("HelloWorld")) // "hello_world"
  * console.log(String.pascalToSnake("FooBarBaz")) // "foo_bar_baz"
@@ -1087,7 +1078,7 @@ export const pascalToSnake = (self: string): string =>
  *
  * @example
  * ```ts
- * import { String } from "effect/primitives"
+ * import { String } from "effect"
  *
  * console.log(String.kebabToSnake("hello-world")) // "hello_world"
  * console.log(String.kebabToSnake("foo-bar-baz")) // "foo_bar_baz"

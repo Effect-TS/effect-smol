@@ -2010,7 +2010,7 @@ Use `Struct.evolveKeys` to rename field keys while keeping the corresponding val
 
 ```ts
 import { Struct } from "effect/data"
-import { String } from "effect/primitives"
+import { String } from "effect"
 import { Schema } from "effect/schema"
 
 /*
@@ -2061,7 +2061,7 @@ Use `Struct.evolveEntries` when you want to transform both the key and the value
 
 ```ts
 import { Struct } from "effect/data"
-import { String } from "effect/primitives"
+import { String } from "effect"
 import { Schema } from "effect/schema"
 
 /*
@@ -4986,7 +4986,7 @@ Schema.Number.check(Check.int32)
 
 ```ts
 import { Order } from "effect/data"
-import { BigInt } from "effect/primitives"
+import { BigInt } from "effect"
 import { Schema, Check } from "effect/schema"
 
 const options = { order: Order.bigint }

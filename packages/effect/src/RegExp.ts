@@ -3,14 +3,14 @@
  *
  * @since 2.0.0
  */
-import * as predicate from "../data/Predicate.ts"
+import * as predicate from "./data/Predicate.ts"
 
 /**
  * @since 4.0.0
  * @category constructors
  * @example
  * ```ts
- * import { RegExp } from "effect/primitives"
+ * import { RegExp } from "effect"
  *
  * // Create a regular expression using Effect's RegExp constructor
  * const pattern = new RegExp.RegExp("hello", "i")
@@ -28,7 +28,7 @@ export const RegExp = globalThis.RegExp
  * @example
  * ```ts
  * import * as assert from "node:assert"
- * import { RegExp } from "effect/primitives"
+ * import { RegExp } from "effect"
  *
  * assert.deepStrictEqual(RegExp.isRegExp(/a/), true)
  * assert.deepStrictEqual(RegExp.isRegExp("a"), false)
@@ -45,7 +45,7 @@ export const isRegExp: (input: unknown) => input is RegExp = predicate.isRegExp
  * @example
  * ```ts
  * import * as assert from "node:assert"
- * import { RegExp } from "effect/primitives"
+ * import { RegExp } from "effect"
  *
  * assert.deepStrictEqual(RegExp.escape("a*b"), "a\\*b")
  * ```

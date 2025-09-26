@@ -39,7 +39,7 @@ import type { LazyArg } from "./Function.ts"
 import { dual, identity } from "./Function.ts"
 import { type Pipeable, pipeArguments } from "./interfaces/Pipeable.ts"
 import * as MutableRef from "./MutableRef.ts"
-import { nextPow2 } from "./primitives/Number.ts"
+import { nextPow2 } from "./Number.ts"
 import * as Scope from "./Scope.ts"
 import type { Covariant, Invariant } from "./types/Types.ts"
 

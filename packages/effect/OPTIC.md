@@ -21,7 +21,7 @@ Suppose we have an employee object, and we want to capitalize the first characte
 
 ```ts
 import { Optic } from "effect/optic"
-import { String } from "effect/primitives"
+import { String } from "effect"
 
 // Define some nested data structures
 interface Street {

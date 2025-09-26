@@ -2,7 +2,7 @@
  * @since 2.0.0
  */
 
-import * as predicate from "../data/Predicate.ts"
+import * as predicate from "./data/Predicate.ts"
 
 /**
  * Tests if a value is a `symbol`.

@@ -12,10 +12,10 @@ import * as Layer from "./Layer.ts"
 import * as FileSystem from "./platform/FileSystem.ts"
 import * as Path_ from "./platform/Path.ts"
 import type { PlatformError } from "./platform/PlatformError.ts"
-import * as Str from "./primitives/String.ts"
 import type { StringPojo } from "./schema/Serializer.ts"
 import type { Scope } from "./Scope.ts"
 import * as ServiceMap from "./ServiceMap.ts"
+import * as Str from "./String.ts"
 
 /**
  * @category Models
