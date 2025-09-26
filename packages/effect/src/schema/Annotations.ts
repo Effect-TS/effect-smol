@@ -24,7 +24,7 @@ import type * as ToJsonSchema from "./ToJsonSchema.ts"
  * **Example** (Defining your own annotations)
  *
  * ```ts
- * import { Annotations } from "effect/schema"
+ * import { Annotations, Schema } from "effect/schema"
  *
  * // Extend the Annotations interface with a custom `version` annotation
  * declare module "effect/schema/Annotations" {
