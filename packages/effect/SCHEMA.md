@@ -635,6 +635,37 @@ type Encoded = (typeof schema)["Encoded"]
 Schema.flip(schema).makeSync
 ```
 
+## Typed Annotations
+
+You can retrieve typed annotations with the `Annotations.getUnsafe` function.
+
+You can also extend the available annotations by adding your own in a module declaration file.
+
+**Example** (Adding a custom annotation for versioning)
+
+```ts
+import { Annotations, Schema } from "effect/schema"
+
+// Extend the Annotations interface with a custom `version` annotation
+declare module "effect/schema/Annotations" {
+  interface Annotations {
+    readonly version?: readonly [major: number, minor: number, patch: number] | undefined
+  }
+}
+
+// The `version` annotation is now recognized by the TypeScript compiler
+const schema = Schema.String.annotate({ version: [1, 2, 0] })
+
+// Retrieve the annotation using `getUnsafe`
+const version = Annotations.getUnsafe(schema)?.["version"]
+
+if (version) {
+  // Access individual parts of the version
+  console.log(version[1])
+  // Output: 2
+}
+```
+
 ## Constructors Redesign
 
 ### Constructors in Composed Schemas
