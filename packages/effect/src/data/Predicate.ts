@@ -1127,7 +1127,7 @@ export const struct: {
  * ```ts
  * import * as assert from "node:assert"
  * import { Predicate } from "effect/data"
- * import * as N from "effect"
+ * import * as N from "effect/Number"
  *
  * const isPositive = Predicate.not(N.lessThan(0))
  *
