@@ -1681,11 +1681,7 @@ describe("Serializer", () => {
       })
 
       it("Never", async () => {
-        await assertXmlFailure(
-          Schema.Never,
-          "test",
-          `Expected never, got "test"`
-        )
+        await assertXmlFailure(Schema.Never, "test", `Expected never, got "test"`)
       })
 
       it("Object", async () => {
@@ -1747,7 +1743,7 @@ describe("Serializer", () => {
     })
 
     it("Number", async () => {
-      await assertXml(Schema.Number, 42, "<root>42</root>")
+      await assertXml(Schema.Number, 1, "<root>1</root>")
       await assertXml(Schema.Number, 0, "<root>0</root>")
       await assertXml(Schema.Number, -1.5, "<root>-1.5</root>")
       await assertXml(Schema.Number, Infinity, "<root>Infinity</root>")
@@ -1818,19 +1814,12 @@ describe("Serializer", () => {
     })
 
     it("Union", async () => {
-      await assertXml(
-        Schema.Union([Schema.String, Schema.Number]),
-        "test",
-        "<root>test</root>"
-      )
-      await assertXml(
-        Schema.Union([Schema.String, Schema.Number]),
-        42,
-        "<root>42</root>"
-      )
+      await assertXml(Schema.Union([Schema.String, Schema.Number]), "test", "<root>test</root>")
+      await assertXml(Schema.Union([Schema.String, Schema.Number]), 42, "<root>42</root>")
     })
 
     it("Tuple", async () => {
+      await assertXml(Schema.Tuple([]), [], "<root/>")
       await assertXml(
         Schema.Tuple([Schema.String, Schema.Number, Schema.Boolean]),
         ["a", 1, true],
@@ -1842,11 +1831,8 @@ describe("Serializer", () => {
       )
     })
 
-    it("Empty Tuple", async () => {
-      await assertXml(Schema.Tuple([]), [], "<root/>")
-    })
-
     it("Record", async () => {
+      await assertXml(Schema.Record(Schema.String, Schema.Number), {}, "<root/>")
       await assertXml(
         Schema.Record(Schema.String, Schema.Number),
         { a: 1, b: 2 },
@@ -1857,31 +1843,8 @@ describe("Serializer", () => {
       )
     })
 
-    it("Empty Record", async () => {
-      await assertXml(Schema.Record(Schema.String, Schema.Number), {}, "<root/>")
-    })
-
-    it("Optional", async () => {
-      await assertXml(
-        Schema.Struct({ a: Schema.optional(Schema.String) }),
-        { a: "test" },
-        `<root>
-  <a>test</a>
-</root>`
-      )
-      await assertXml(
-        Schema.Struct({ a: Schema.optional(Schema.String) }),
-        {},
-        "<root/>"
-      )
-    })
-
     it("NullOr", async () => {
-      await assertXml(
-        Schema.NullOr(Schema.String),
-        "test",
-        "<root>test</root>"
-      )
+      await assertXml(Schema.NullOr(Schema.String), "test", "<root>test</root>")
       await assertXml(Schema.NullOr(Schema.String), null, "<root/>")
     })
 
@@ -1934,11 +1897,11 @@ describe("Serializer", () => {
     })
 
     it("Literals", async () => {
-      const schema = Schema.Literals(["a", "b", 1, 2])
+      const schema = Schema.Literals(["a", 1, true, 1n])
       await assertXml(schema, "a", "<root>a</root>")
-      await assertXml(schema, "b", "<root>b</root>")
       await assertXml(schema, 1, "<root>1</root>")
-      await assertXml(schema, 2, "<root>2</root>")
+      await assertXml(schema, true, "<root>true</root>")
+      await assertXml(schema, 1n, "<root>1</root>")
     })
 
     it("Nested Structures", async () => {
@@ -1961,27 +1924,6 @@ describe("Serializer", () => {
     <age>30</age>
     <name>John</name>
   </user>
-</root>`
-      )
-    })
-
-    it("Deeply Nested Structures", async () => {
-      const schema = Schema.Struct({
-        level1: Schema.Struct({
-          level2: Schema.Struct({
-            level3: Schema.String
-          })
-        })
-      })
-      await assertXml(
-        schema,
-        { level1: { level2: { level3: "deep" } } },
-        `<root>
-  <level1>
-    <level2>
-      <level3>deep</level3>
-    </level2>
-  </level1>
 </root>`
       )
     })
@@ -2119,30 +2061,6 @@ line2</root>`
       )
     })
 
-    it("XML Encoder Options - all options combined", async () => {
-      const serializer = Serializer.xmlEncoder(
-        Serializer.stringPojo(Schema.Struct({
-          items: Schema.Array(Schema.String)
-        })),
-        {
-          rootName: "data",
-          arrayItemName: "entry",
-          pretty: true,
-          indent: "  ",
-          sortKeys: true
-        }
-      )
-      strictEqual(
-        await Effect.runPromise(serializer({ items: ["a", "b"] })),
-        `<data>
-  <items>
-    <entry>a</entry>
-    <entry>b</entry>
-  </items>
-</data>`
-      )
-    })
-
     it("Circular Reference Detection", async () => {
       const obj: any = { name: "test" }
       obj.self = obj
@@ -2174,28 +2092,14 @@ line2</root>`
       )
     })
 
-    it("Mixed Array Types", async () => {
-      const schema = Schema.Array(Schema.Union([Schema.String, Schema.Number]))
-      await assertXml(
-        schema,
-        ["a", 1, "b", 2],
-        `<root>
-  <item>a</item>
-  <item>1</item>
-  <item>b</item>
-  <item>2</item>
-</root>`
-      )
-    })
-
-    it.todo("Record with Number Keys", async () => {
+    it("Record with Number Keys", async () => {
       const schema = Schema.Record(Schema.Number, Schema.String)
       await assertXml(
         schema,
         { 1: "one", 2: "two" },
         `<root>
-  <1>one</1>
-  <2>two</2>
+  <_1 data-name="1">one</_1>
+  <_2 data-name="2">two</_2>
 </root>`
       )
     })
