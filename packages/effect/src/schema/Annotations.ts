@@ -13,6 +13,39 @@ import type * as ToFormat from "./ToFormat.ts"
 import type * as ToJsonSchema from "./ToJsonSchema.ts"
 
 /**
+ * This interface is used to define the annotations that can be attached to a
+ * schema. You can extend this interface to define your own annotations.
+ *
+ * Note that both a missing key or `undefined` is used to indicate that the
+ * annotation is not present.
+ *
+ * This means that can remove any annotation by setting it to `undefined`.
+ *
+ * **Example** (Defining your own annotations)
+ *
+ * ```ts
+ * import { Annotations } from "effect/schema"
+ *
+ * // Extend the Annotations interface with a custom `version` annotation
+ * declare module "effect/schema/Annotations" {
+ *   interface Annotations {
+ *     readonly version?: readonly [major: number, minor: number, patch: number] | undefined
+ *   }
+ * }
+ *
+ * // The `version` annotation is now recognized by the TypeScript compiler
+ * const schema = Schema.String.annotate({ version: [1, 2, 0] })
+ *
+ * // Retrieve the annotation using `getUnsafe`
+ * const version = Annotations.getUnsafe(schema)?.["version"]
+ *
+ * if (version) {
+ *   // Access individual parts of the version
+ *   console.log(version[1])
+ *   // Output: 2
+ * }
+ * ```
+ *
  * @category Model
  * @since 4.0.0
  */
