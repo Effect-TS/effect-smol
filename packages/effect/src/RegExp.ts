@@ -27,8 +27,8 @@ export const RegExp = globalThis.RegExp
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
  * import { RegExp } from "effect"
+ * import * as assert from "node:assert"
  *
  * assert.deepStrictEqual(RegExp.isRegExp(/a/), true)
  * assert.deepStrictEqual(RegExp.isRegExp("a"), false)
@@ -44,8 +44,8 @@ export const isRegExp: (input: unknown) => input is RegExp = predicate.isRegExp
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
  * import { RegExp } from "effect"
+ * import * as assert from "node:assert"
  *
  * assert.deepStrictEqual(RegExp.escape("a*b"), "a\\*b")
  * ```

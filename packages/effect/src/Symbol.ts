@@ -9,8 +9,8 @@ import * as predicate from "./data/Predicate.ts"
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
  * import * as Predicate from "effect/data/Predicate"
+ * import * as assert from "node:assert"
  *
  * assert.deepStrictEqual(Predicate.isSymbol(Symbol.for("a")), true)
  * assert.deepStrictEqual(Predicate.isSymbol("a"), false)
