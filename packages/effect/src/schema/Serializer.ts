@@ -3,6 +3,7 @@
  */
 
 import * as Predicate from "../data/Predicate.ts"
+import * as Effect from "../Effect.ts"
 import { memoize } from "../Function.ts"
 import * as Annotations from "./Annotations.ts"
 import * as AST from "./AST.ts"
@@ -289,10 +290,7 @@ export function xmlEncoder<T, E, RD, RE>(
 /**
  * Convert a StringPojo to XML text.
  */
-function stringPojoToXml(
-  value: StringPojo,
-  options: XmlEncoderOptions
-): string {
+function stringPojoToXml(value: StringPojo, options: XmlEncoderOptions): string {
   const opts: { [P in keyof XmlEncoderOptions]-?: Exclude<XmlEncoderOptions[P], undefined> } = {
     rootName: options.rootName ?? "root",
     arrayItemName: options.arrayItemName ?? "item",
@@ -301,107 +299,72 @@ function stringPojoToXml(
     sortKeys: options.sortKeys ?? true
   }
 
-  const seen = new Set<any>() // cycle detection
+  const seen = new Set<{ [x: string]: StringPojo } | Array<StringPojo>>()
+  const lines: Array<string> = []
+  const push = (depth: number, text: string) => lines.push(opts.pretty ? opts.indent.repeat(depth) + text : text)
 
-  type Line = string
-  const lines: Array<Line> = []
-
-  const pushLine = (depth: number, text: string) => {
-    if (opts.pretty) {
-      lines.push(opts.indent.repeat(depth) + text)
-    } else {
-      lines.push(text)
-    }
+  const tagInfo = (name: string, original?: string) => {
+    const { changed, safe } = parseTagName(name)
+    const needsMeta = changed || (original && original !== name)
+    const attrs = needsMeta ? ` data-name="${escapeAttribute(original ?? name)}"` : ""
+    return { safe, attrs }
   }
 
-  const renderNode = (
-    tagName: string,
-    node: StringPojo,
-    depth: number,
-    originalNameForMeta?: string
-  ) => {
+  const render = (tagName: string, node: StringPojo, depth: number, originalNameForMeta?: string): void => {
     if (node === undefined) {
-      const { changed, safe } = toValidTagName(tagName)
-      const attrs = changed || (originalNameForMeta && originalNameForMeta !== tagName)
-        ? ` data-name="${escapeAttr(originalNameForMeta ?? tagName)}"`
-        : ""
-      pushLine(depth, `<${safe}${attrs}/>`)
+      const { attrs, safe } = tagInfo(tagName, originalNameForMeta)
+      push(depth, `<${safe}${attrs}/>`)
       return
     }
 
     if (typeof node === "string") {
-      const { changed, safe } = toValidTagName(tagName)
-      const attrs = changed || (originalNameForMeta && originalNameForMeta !== tagName)
-        ? ` data-name="${escapeAttr(originalNameForMeta ?? tagName)}"`
-        : ""
-      const text = escapeText(node)
-      pushLine(depth, `<${safe}${attrs}>${text}</${safe}>`)
+      const { attrs, safe } = tagInfo(tagName, originalNameForMeta)
+      push(depth, `<${safe}${attrs}>${escapeText(node)}</${safe}>`)
       return
     }
 
-    if (Array.isArray(node)) {
-      const { changed, safe: safeParent } = toValidTagName(tagName)
-      const parentAttrs = changed || (originalNameForMeta && originalNameForMeta !== tagName)
-        ? ` data-name="${escapeAttr(originalNameForMeta ?? tagName)}"`
-        : ""
-
-      if (node.length === 0) {
-        pushLine(depth, `<${safeParent}${parentAttrs}/>`)
-        return
-      }
-
-      pushLine(depth, `<${safeParent}${parentAttrs}>`)
-      const itemName = opts.arrayItemName
-      for (const item of node) {
-        renderNode(itemName, item, depth + 1)
-      }
-      pushLine(depth, `</${safeParent}>`)
-      return
-    }
-
-    if (Predicate.isRecord(node)) {
-      if (seen.has(node)) {
-        throw new Error("Cycle detected while serializing to XML.")
-      }
-      seen.add(node)
-      try {
-        const { changed, safe } = toValidTagName(tagName)
-        const attrs = changed || (originalNameForMeta && originalNameForMeta !== tagName)
-          ? ` data-name="${escapeAttr(originalNameForMeta ?? tagName)}"`
-          : ""
-
+    if (seen.has(node)) throw new Error("Cycle detected while serializing to XML.")
+    seen.add(node)
+    try {
+      if (Array.isArray(node)) {
+        const { attrs, safe: safeParent } = tagInfo(tagName, originalNameForMeta)
+        if (node.length === 0) {
+          push(depth, `<${safeParent}${attrs}/>`)
+        } else {
+          push(depth, `<${safeParent}${attrs}>`)
+          for (const item of node) render(opts.arrayItemName, item, depth + 1)
+          push(depth, `</${safeParent}>`)
+        }
+      } else {
+        const { attrs, safe } = tagInfo(tagName, originalNameForMeta)
         const keys = Object.keys(node)
         if (opts.sortKeys) keys.sort()
-
         if (keys.length === 0) {
-          pushLine(depth, `<${safe}${attrs}/>`)
+          push(depth, `<${safe}${attrs}/>`)
           return
         }
-
-        pushLine(depth, `<${safe}${attrs}>`)
+        push(depth, `<${safe}${attrs}>`)
         for (const k of keys) {
-          const child = (node as Record<string, StringPojo>)[k]
-          const { safe: childSafe } = toValidTagName(k)
-          renderNode(childSafe, child, depth + 1, k) // pass original for data-name if changed
+          const { safe: childSafe } = parseTagName(k)
+          render(childSafe, node[k], depth + 1, k)
         }
-        pushLine(depth, `</${safe}>`)
-      } finally {
-        seen.delete(node)
+        push(depth, `</${safe}>`)
       }
-      return
+    } finally {
+      seen.delete(node)
     }
   }
 
-  renderNode(opts.rootName, value, 0)
-
+  render(opts.rootName, value, 0)
   return opts.pretty ? lines.join("\n") : lines.join("")
 }
 
 const escapeText = (s: string): string => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
 
-const escapeAttr = (s: string): string => s.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;")
+const escapeAttribute = (s: string): string =>
+  s.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
 
-const toValidTagName = (name: string): { safe: string; changed: boolean } => {
+const parseTagName = (name: string): { safe: string; changed: boolean } => {
   const original = name
   let safe = name
   if (!/^[A-Za-z_]/.test(safe)) safe = "_" + safe

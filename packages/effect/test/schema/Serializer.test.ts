@@ -225,7 +225,7 @@ describe("Serializer", () => {
         const schema = Schema.Number
 
         await assertions.serialization.json.typeCodec.succeed(schema, 1)
-        await assertions.deserialization.json.typeCodec.succeed(schema, 1, 1)
+        await assertions.deserialization.json.typeCodec.succeed(schema, 1)
       })
 
       it("Boolean", async () => {
@@ -1091,7 +1091,13 @@ describe("Serializer", () => {
         const schema = Schema.Number
 
         await assertions.serialization.stringPojo.typeCodec.succeed(schema, 1, "1")
+        await assertions.serialization.stringPojo.typeCodec.succeed(schema, Infinity, "Infinity")
+        await assertions.serialization.stringPojo.typeCodec.succeed(schema, -Infinity, "-Infinity")
+        await assertions.serialization.stringPojo.typeCodec.succeed(schema, NaN, "NaN")
         await assertions.deserialization.stringPojo.typeCodec.succeed(schema, "1", 1)
+        await assertions.deserialization.stringPojo.typeCodec.succeed(schema, "Infinity", Infinity)
+        await assertions.deserialization.stringPojo.typeCodec.succeed(schema, "-Infinity", -Infinity)
+        await assertions.deserialization.stringPojo.typeCodec.succeed(schema, "NaN", NaN)
       })
 
       it("Boolean", async () => {
@@ -1659,6 +1665,38 @@ describe("Serializer", () => {
       strictEqual(await Effect.runPromise(serializer(value)), expected)
     }
 
+    async function assertXmlFailure<T, E, RD>(schema: Schema.Codec<T, E, RD>, value: T, message: string) {
+      const serializer = Serializer.xmlEncoder(Serializer.stringPojo(schema))
+      const effect = serializer(value).pipe(Effect.mapError((err) => err.issue))
+      await assertions.effect.fail(effect, message)
+    }
+
+    describe("Unsupported schemas", () => {
+      it("Unknown", async () => {
+        await assertXmlFailure(
+          Schema.Unknown,
+          "test",
+          "cannot serialize to StringPojo, required `defaultIsoSerializer` or `defaultJsonSerializer` annotation for UnknownKeyword"
+        )
+      })
+
+      it("Never", async () => {
+        await assertXmlFailure(
+          Schema.Never,
+          "test",
+          `Expected never, got "test"`
+        )
+      })
+
+      it("Object", async () => {
+        await assertXmlFailure(
+          Schema.Object,
+          {},
+          "cannot serialize to StringPojo, required `defaultIsoSerializer` or `defaultJsonSerializer` annotation for ObjectKeyword"
+        )
+      })
+    })
+
     it("should use the identifier as the root name", async () => {
       await assertXml(Schema.String.annotate({ identifier: "a" }), "value", "<a>value</a>")
       await assertXml(Schema.String.annotate({ identifier: "a b" }), "value", `<a_b data-name="a b">value</a_b>`)
@@ -1670,12 +1708,72 @@ describe("Serializer", () => {
       await assertXml(Schema.String.annotate({ title: "a b" }), "value", `<a_b data-name="a b">value</a_b>`)
     })
 
-    it("Null", async () => {
-      await assertXml(Schema.Null, null, "<root/>")
+    it("should escape the text", async () => {
+      await assertXml(Schema.String, "value&", `<root>value&amp;</root>`)
+      await assertXml(Schema.String, "<value/>", `<root>&lt;value/&gt;</root>`)
+    })
+
+    it("should escape the attributes", async () => {
+      await assertXml(Schema.String.annotate({ title: "value&" }), "", `<value_ data-name="value&amp;"></value_>`)
+      await assertXml(
+        Schema.String.annotate({ title: "<value/>" }),
+        "",
+        `<__value__ data-name="&lt;value/&gt;"></__value__>`
+      )
+    })
+
+    it("Any", async () => {
+      await assertXml(Schema.Any, "test", "<root>test</root>")
+      await assertXml(Schema.Any, 42, "<root/>")
+      await assertXml(
+        Schema.Any,
+        { a: 1 },
+        `<root>
+  <a/>
+</root>`
+      )
+    })
+
+    it("Void", async () => {
+      await assertXml(Schema.Void, undefined, "<root/>")
     })
 
     it("Undefined", async () => {
       await assertXml(Schema.Undefined, undefined, "<root/>")
+    })
+
+    it("Null", async () => {
+      await assertXml(Schema.Null, null, "<root/>")
+    })
+
+    it("Number", async () => {
+      await assertXml(Schema.Number, 42, "<root>42</root>")
+      await assertXml(Schema.Number, 0, "<root>0</root>")
+      await assertXml(Schema.Number, -1.5, "<root>-1.5</root>")
+      await assertXml(Schema.Number, Infinity, "<root>Infinity</root>")
+      await assertXml(Schema.Number, -Infinity, "<root>-Infinity</root>")
+      await assertXml(Schema.Number, NaN, "<root>NaN</root>")
+    })
+
+    it("Boolean", async () => {
+      await assertXml(Schema.Boolean, true, "<root>true</root>")
+      await assertXml(Schema.Boolean, false, "<root>false</root>")
+    })
+
+    it("BigInt", async () => {
+      await assertXml(Schema.BigInt, BigInt(42), "<root>42</root>")
+      await assertXml(Schema.BigInt, BigInt(0), "<root>0</root>")
+      await assertXml(Schema.BigInt, BigInt(-123), "<root>-123</root>")
+    })
+
+    it("Symbol", async () => {
+      const sym = Symbol.for("test")
+      await assertXml(Schema.Symbol, sym, "<root>Symbol(test)</root>")
+    })
+
+    it("TemplateLiteral", async () => {
+      const schema = Schema.TemplateLiteral([Schema.Literal("Hello "), Schema.String, Schema.Literal("!")])
+      await assertXml(schema, "Hello World!", "<root>Hello World!</root>")
     })
 
     it("Struct", async () => {
@@ -1693,6 +1791,7 @@ describe("Serializer", () => {
     })
 
     it("Array", async () => {
+      await assertXml(Schema.Array(Schema.Number), [], "<root/>")
       await assertXml(
         Schema.Array(Schema.Number),
         [1, 2, 3],
@@ -1700,6 +1799,527 @@ describe("Serializer", () => {
   <item>1</item>
   <item>2</item>
   <item>3</item>
+</root>`
+      )
+    })
+
+    it("Array with custom item name", async () => {
+      const serializer = Serializer.xmlEncoder(Serializer.stringPojo(Schema.Array(Schema.Number)), {
+        arrayItemName: "number"
+      })
+      strictEqual(
+        await Effect.runPromise(serializer([1, 2, 3])),
+        `<root>
+  <number>1</number>
+  <number>2</number>
+  <number>3</number>
+</root>`
+      )
+    })
+
+    it("Union", async () => {
+      await assertXml(
+        Schema.Union([Schema.String, Schema.Number]),
+        "test",
+        "<root>test</root>"
+      )
+      await assertXml(
+        Schema.Union([Schema.String, Schema.Number]),
+        42,
+        "<root>42</root>"
+      )
+    })
+
+    it("Tuple", async () => {
+      await assertXml(
+        Schema.Tuple([Schema.String, Schema.Number, Schema.Boolean]),
+        ["a", 1, true],
+        `<root>
+  <item>a</item>
+  <item>1</item>
+  <item>true</item>
+</root>`
+      )
+    })
+
+    it("Empty Tuple", async () => {
+      await assertXml(Schema.Tuple([]), [], "<root/>")
+    })
+
+    it("Record", async () => {
+      await assertXml(
+        Schema.Record(Schema.String, Schema.Number),
+        { a: 1, b: 2 },
+        `<root>
+  <a>1</a>
+  <b>2</b>
+</root>`
+      )
+    })
+
+    it("Empty Record", async () => {
+      await assertXml(Schema.Record(Schema.String, Schema.Number), {}, "<root/>")
+    })
+
+    it("Optional", async () => {
+      await assertXml(
+        Schema.Struct({ a: Schema.optional(Schema.String) }),
+        { a: "test" },
+        `<root>
+  <a>test</a>
+</root>`
+      )
+      await assertXml(
+        Schema.Struct({ a: Schema.optional(Schema.String) }),
+        {},
+        "<root/>"
+      )
+    })
+
+    it("NullOr", async () => {
+      await assertXml(
+        Schema.NullOr(Schema.String),
+        "test",
+        "<root>test</root>"
+      )
+      await assertXml(Schema.NullOr(Schema.String), null, "<root/>")
+    })
+
+    it("TaggedUnion", async () => {
+      const schema = Schema.TaggedUnion({
+        A: { value: Schema.String },
+        B: { value: Schema.Number }
+      })
+      await assertXml(
+        schema,
+        { _tag: "A", value: "test" },
+        `<root>
+  <_tag>A</_tag>
+  <value>test</value>
+</root>`
+      )
+      await assertXml(
+        schema,
+        { _tag: "B", value: 42 },
+        `<root>
+  <_tag>B</_tag>
+  <value>42</value>
+</root>`
+      )
+    })
+
+    it("TaggedStruct", async () => {
+      const schema = Schema.TaggedStruct("User", {
+        name: Schema.String,
+        age: Schema.Number
+      })
+      await assertXml(
+        schema,
+        { _tag: "User", name: "John", age: 30 },
+        `<root>
+  <_tag>User</_tag>
+  <age>30</age>
+  <name>John</name>
+</root>`
+      )
+    })
+
+    it("Enums", async () => {
+      const schema = Schema.Enums({
+        A: "a",
+        B: "b"
+      })
+      await assertXml(schema, "a", "<root>a</root>")
+      await assertXml(schema, "b", "<root>b</root>")
+    })
+
+    it("Literals", async () => {
+      const schema = Schema.Literals(["a", "b", 1, 2])
+      await assertXml(schema, "a", "<root>a</root>")
+      await assertXml(schema, "b", "<root>b</root>")
+      await assertXml(schema, 1, "<root>1</root>")
+      await assertXml(schema, 2, "<root>2</root>")
+    })
+
+    it("Nested Structures", async () => {
+      const schema = Schema.Struct({
+        user: Schema.Struct({
+          name: Schema.String,
+          age: Schema.Number
+        }),
+        tags: Schema.Array(Schema.String)
+      })
+      await assertXml(
+        schema,
+        { user: { name: "John", age: 30 }, tags: ["admin", "user"] },
+        `<root>
+  <tags>
+    <item>admin</item>
+    <item>user</item>
+  </tags>
+  <user>
+    <age>30</age>
+    <name>John</name>
+  </user>
+</root>`
+      )
+    })
+
+    it("Deeply Nested Structures", async () => {
+      const schema = Schema.Struct({
+        level1: Schema.Struct({
+          level2: Schema.Struct({
+            level3: Schema.String
+          })
+        })
+      })
+      await assertXml(
+        schema,
+        { level1: { level2: { level3: "deep" } } },
+        `<root>
+  <level1>
+    <level2>
+      <level3>deep</level3>
+    </level2>
+  </level1>
+</root>`
+      )
+    })
+
+    it("Special Characters in Text", async () => {
+      await assertXml(Schema.String, "&<>\"'", `<root>&amp;&lt;&gt;"'</root>`)
+      await assertXml(
+        Schema.String,
+        "line1\nline2",
+        `<root>line1
+line2</root>`
+      )
+      await assertXml(Schema.String, "tab\there", "<root>tab	here</root>")
+    })
+
+    it("Special Characters in Attributes", async () => {
+      await assertXml(
+        Schema.String.annotate({ title: "test&value" }),
+        "content",
+        `<test_value data-name="test&amp;value">content</test_value>`
+      )
+      await assertXml(
+        Schema.String.annotate({ title: "test<value>" }),
+        "content",
+        `<test_value_ data-name="test&lt;value&gt;">content</test_value_>`
+      )
+      await assertXml(
+        Schema.String.annotate({ title: "test\"value" }),
+        "content",
+        `<test_value data-name="test&quot;value">content</test_value>`
+      )
+    })
+
+    it("XML Reserved Names", async () => {
+      await assertXml(
+        Schema.String.annotate({ title: "xml" }),
+        "content",
+        `<_xml data-name="xml">content</_xml>`
+      )
+      await assertXml(
+        Schema.String.annotate({ title: "XML" }),
+        "content",
+        `<_XML data-name="XML">content</_XML>`
+      )
+      await assertXml(
+        Schema.String.annotate({ title: "xmlns" }),
+        "content",
+        `<_xmlns data-name="xmlns">content</_xmlns>`
+      )
+    })
+
+    it("Invalid XML Tag Names", async () => {
+      await assertXml(
+        Schema.String.annotate({ title: "123invalid" }),
+        "content",
+        `<_123invalid data-name="123invalid">content</_123invalid>`
+      )
+      await assertXml(
+        Schema.String.annotate({ title: "invalid name" }),
+        "content",
+        `<invalid_name data-name="invalid name">content</invalid_name>`
+      )
+    })
+
+    it("Empty String", async () => {
+      await assertXml(Schema.String, "", "<root></root>")
+    })
+
+    it("Whitespace Only String", async () => {
+      await assertXml(Schema.String, "   ", "<root>   </root>")
+      await assertXml(Schema.String, "\n\t", "<root>\n\t</root>")
+    })
+
+    it("Unicode Characters", async () => {
+      await assertXml(Schema.String, "Hello 世界", "<root>Hello 世界</root>")
+      await assertXml(Schema.String, "🚀🌟✨", "<root>🚀🌟✨</root>")
+      await assertXml(Schema.String, "αβγδε", "<root>αβγδε</root>")
+    })
+
+    it("XML Encoder Options - rootName", async () => {
+      const serializer = Serializer.xmlEncoder(Serializer.stringPojo(Schema.String), {
+        rootName: "custom"
+      })
+      strictEqual(await Effect.runPromise(serializer("test")), "<custom>test</custom>")
+    })
+
+    it("XML Encoder Options - pretty: false", async () => {
+      const serializer = Serializer.xmlEncoder(
+        Serializer.stringPojo(Schema.Struct({
+          a: Schema.Number,
+          b: Schema.String
+        })),
+        {
+          pretty: false
+        }
+      )
+      strictEqual(await Effect.runPromise(serializer({ a: 1, b: "test" })), "<root><a>1</a><b>test</b></root>")
+    })
+
+    it("XML Encoder Options - custom indent", async () => {
+      const serializer = Serializer.xmlEncoder(
+        Serializer.stringPojo(Schema.Struct({
+          a: Schema.Number
+        })),
+        {
+          indent: "    "
+        }
+      )
+      strictEqual(
+        await Effect.runPromise(serializer({ a: 1 })),
+        `<root>
+    <a>1</a>
+</root>`
+      )
+    })
+
+    it("XML Encoder Options - sortKeys: false", async () => {
+      const serializer = Serializer.xmlEncoder(
+        Serializer.stringPojo(Schema.Struct({
+          z: Schema.Number,
+          a: Schema.Number,
+          m: Schema.Number
+        })),
+        {
+          sortKeys: false
+        }
+      )
+      strictEqual(
+        await Effect.runPromise(serializer({ z: 3, a: 1, m: 2 })),
+        `<root>
+  <z>3</z>
+  <a>1</a>
+  <m>2</m>
+</root>`
+      )
+    })
+
+    it("XML Encoder Options - all options combined", async () => {
+      const serializer = Serializer.xmlEncoder(
+        Serializer.stringPojo(Schema.Struct({
+          items: Schema.Array(Schema.String)
+        })),
+        {
+          rootName: "data",
+          arrayItemName: "entry",
+          pretty: true,
+          indent: "  ",
+          sortKeys: true
+        }
+      )
+      strictEqual(
+        await Effect.runPromise(serializer({ items: ["a", "b"] })),
+        `<data>
+  <items>
+    <entry>a</entry>
+    <entry>b</entry>
+  </items>
+</data>`
+      )
+    })
+
+    it("Circular Reference Detection", async () => {
+      const obj: any = { name: "test" }
+      obj.self = obj
+
+      const serializer = Serializer.xmlEncoder(Serializer.stringPojo(Schema.Any))
+      try {
+        await Effect.runPromise(serializer(obj))
+        throw new Error("Expected error")
+      } catch (error: any) {
+        strictEqual(error.message, "Cycle detected while serializing to XML.")
+      }
+    })
+
+    it("Nested Arrays", async () => {
+      const schema = Schema.Array(Schema.Array(Schema.Number))
+      await assertXml(
+        schema,
+        [[1, 2], [3, 4]],
+        `<root>
+  <item>
+    <item>1</item>
+    <item>2</item>
+  </item>
+  <item>
+    <item>3</item>
+    <item>4</item>
+  </item>
+</root>`
+      )
+    })
+
+    it("Mixed Array Types", async () => {
+      const schema = Schema.Array(Schema.Union([Schema.String, Schema.Number]))
+      await assertXml(
+        schema,
+        ["a", 1, "b", 2],
+        `<root>
+  <item>a</item>
+  <item>1</item>
+  <item>b</item>
+  <item>2</item>
+</root>`
+      )
+    })
+
+    it.todo("Record with Number Keys", async () => {
+      const schema = Schema.Record(Schema.Number, Schema.String)
+      await assertXml(
+        schema,
+        { 1: "one", 2: "two" },
+        `<root>
+  <1>one</1>
+  <2>two</2>
+</root>`
+      )
+    })
+
+    it("Record with Symbol Keys", async () => {
+      const sym1 = Symbol.for("key1")
+      const sym2 = Symbol.for("key2")
+      const schema = Schema.Record(Schema.Symbol, Schema.String)
+      await assertXml(
+        schema,
+        { [sym1]: "value1", [sym2]: "value2" },
+        `<root>
+  <Symbol_key1_ data-name="Symbol(key1)">value1</Symbol_key1_>
+  <Symbol_key2_ data-name="Symbol(key2)">value2</Symbol_key2_>
+</root>`
+      )
+    })
+
+    it("Tuple with Rest", async () => {
+      const schema = Schema.TupleWithRest(Schema.Tuple([Schema.String, Schema.Number]), [Schema.Boolean])
+      await assertXml(
+        schema,
+        ["test", 42, true, false],
+        `<root>
+  <item>test</item>
+  <item>42</item>
+  <item>true</item>
+  <item>false</item>
+</root>`
+      )
+    })
+
+    it("Readonly and Mutable", async () => {
+      const readonlySchema = Schema.readonly(Schema.Struct({ a: Schema.Number }))
+      const mutableSchema = Schema.mutable(Schema.Struct({ a: Schema.Number }))
+
+      await assertXml(
+        readonlySchema,
+        { a: 1 },
+        `<root>
+  <a>1</a>
+</root>`
+      )
+      await assertXml(
+        mutableSchema,
+        { a: 1 },
+        `<root>
+  <a>1</a>
+</root>`
+      )
+    })
+
+    it("Branded Types", async () => {
+      const UserId = Schema.Number.pipe(Schema.brand("UserId"))
+      await assertXml(UserId, 123 as any, "<root>123</root>")
+    })
+
+    it("Transformed Types", async () => {
+      const StringToNumber = Schema.String.pipe(
+        Schema.decodeTo(
+          Schema.Number,
+          Transformation.transform({
+            decode: (s) => Number(s),
+            encode: (n) => String(n)
+          })
+        )
+      )
+      await assertXml(StringToNumber, 42, "<root>42</root>")
+    })
+
+    it("Suspend (Recursive Types)", async () => {
+      interface Tree {
+        readonly value: number
+        readonly children: ReadonlyArray<Tree>
+      }
+
+      const Tree: Schema.Codec<Tree> = Schema.Struct({
+        value: Schema.Number,
+        children: Schema.Array(Schema.suspend(() => Tree))
+      })
+
+      const tree: Tree = {
+        value: 1,
+        children: [
+          { value: 2, children: [] },
+          { value: 3, children: [] }
+        ]
+      }
+
+      await assertXml(
+        Tree,
+        tree,
+        `<root>
+  <children>
+    <item>
+      <children/>
+      <value>2</value>
+    </item>
+    <item>
+      <children/>
+      <value>3</value>
+    </item>
+  </children>
+  <value>1</value>
+</root>`
+      )
+    })
+
+    it("Property Signatures with Different Optionality", async () => {
+      const schema = Schema.Struct({
+        required: Schema.String,
+        optional: Schema.optional(Schema.String),
+        nullable: Schema.NullOr(Schema.String),
+        optionalNullable: Schema.optional(Schema.NullOr(Schema.String))
+      })
+
+      await assertXml(
+        schema,
+        { required: "test", optional: "opt", nullable: null, optionalNullable: undefined },
+        `<root>
+  <nullable/>
+  <optional>opt</optional>
+  <optionalNullable/>
+  <required>test</required>
 </root>`
       )
     })
