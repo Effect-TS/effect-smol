@@ -1,7 +1,7 @@
 /**
  * @since 2.0.0
  */
-import * as Cache from "./caching/Cache.ts"
+import * as Cache from "./Cache.ts"
 import type { NonEmptyArray } from "./collections/Array.ts"
 import * as Arr from "./collections/Array.ts"
 import * as Iterable from "./collections/Iterable.ts"

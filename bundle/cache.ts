@@ -1,4 +1,4 @@
-import * as Cache from "#dist/effect/caching/Cache"
+import * as Cache from "#dist/effect/Cache"
 import * as Effect from "#dist/effect/Effect"
 
 Cache.make({

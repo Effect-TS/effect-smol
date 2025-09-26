@@ -30,6 +30,11 @@ export {
 } from "./Function.ts"
 
 /**
+ * @since 4.0.0
+ */
+export * as Cache from "./Cache.ts"
+
+/**
  * This module provides utilities for working with `Cause`, a data type that represents
  * the different ways an `Effect` can fail. It includes structured error handling with
  * typed errors, defects, and interruptions.
@@ -923,6 +928,11 @@ export * as Scheduler from "./Scheduler.ts"
  * @since 2.0.0
  */
 export * as Scope from "./Scope.ts"
+
+/**
+ * @since 4.0.0
+ */
+export * as ScopedCache from "./ScopedCache.ts"
 
 /**
  * @since 2.0.0

@@ -1,7 +1,7 @@
 /**
  * @since 1.0.0
  */
-import * as Cache from "../../caching/Cache.ts"
+import * as Cache from "../../Cache.ts"
 import * as Effect from "../../Effect.ts"
 import type { Exit } from "../../Exit.ts"
 import { constant, identity } from "../../Function.ts"

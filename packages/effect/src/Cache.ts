@@ -1,21 +1,21 @@
 /**
  * @since 4.0.0
  */
-import * as Iterable from "../collections/Iterable.ts"
-import * as MutableHashMap from "../collections/MutableHashMap.ts"
-import * as Option from "../data/Option.ts"
-import type { Predicate } from "../data/Predicate.ts"
-import * as Deferred from "../Deferred.ts"
-import type * as Effect from "../Effect.ts"
-import type * as Exit from "../Exit.ts"
-import type * as Fiber from "../Fiber.ts"
-import { dual } from "../Function.ts"
-import type { Pipeable } from "../interfaces/Pipeable.ts"
-import * as core from "../internal/core.ts"
-import { PipeInspectableProto } from "../internal/core.ts"
-import * as effect from "../internal/effect.ts"
-import * as ServiceMap from "../ServiceMap.ts"
-import * as Duration from "../time/Duration.ts"
+import * as Iterable from "./collections/Iterable.ts"
+import * as MutableHashMap from "./collections/MutableHashMap.ts"
+import * as Option from "./data/Option.ts"
+import type { Predicate } from "./data/Predicate.ts"
+import * as Deferred from "./Deferred.ts"
+import type * as Effect from "./Effect.ts"
+import type * as Exit from "./Exit.ts"
+import type * as Fiber from "./Fiber.ts"
+import { dual } from "./Function.ts"
+import type { Pipeable } from "./interfaces/Pipeable.ts"
+import * as core from "./internal/core.ts"
+import { PipeInspectableProto } from "./internal/core.ts"
+import * as effect from "./internal/effect.ts"
+import * as ServiceMap from "./ServiceMap.ts"
+import * as Duration from "./time/Duration.ts"
 
 const TypeId = "~effect/caching/Cache"
 
@@ -25,9 +25,7 @@ const TypeId = "~effect/caching/Cache"
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Cache } from "effect/caching"
- * import { Duration } from "effect/time"
+ * import { Cache, Effect } from "effect"
  *
  * // Basic cache with string keys and number values
  * const program = Effect.gen(function*() {
@@ -37,9 +35,9 @@ const TypeId = "~effect/caching/Cache"
  *   })
  *
  *   // Cache operations
- *   const value1 = yield* Cache.get(cache, "hello")     // 5
- *   const value2 = yield* Cache.get(cache, "world")     // 5
- *   const value3 = yield* Cache.get(cache, "hello")     // 5 (cached)
+ *   const value1 = yield* Cache.get(cache, "hello") // 5
+ *   const value2 = yield* Cache.get(cache, "world") // 5
+ *   const value3 = yield* Cache.get(cache, "hello") // 5 (cached)
  *
  *   return [value1, value2, value3]
  * })
@@ -47,9 +45,7 @@ const TypeId = "~effect/caching/Cache"
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Cache } from "effect/caching"
- * import { Duration } from "effect/time"
+ * import { Cache, Effect } from "effect"
  *
  * // Cache with error handling
  * const program = Effect.gen(function*() {
@@ -62,7 +58,7 @@ const TypeId = "~effect/caching/Cache"
  *   })
  *
  *   // Handle successful and failed lookups
- *   const success = yield* Cache.get(cache, "test")    // 4
+ *   const success = yield* Cache.get(cache, "test") // 4
  *   const failure = yield* Effect.exit(Cache.get(cache, "error")) // Exit.fail
  *
  *   return { success, failure }
@@ -71,8 +67,7 @@ const TypeId = "~effect/caching/Cache"
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Cache } from "effect/caching"
+ * import { Cache, Effect } from "effect"
  * import { Data } from "effect/data"
  * import { Duration } from "effect/time"
  *
@@ -82,8 +77,7 @@ const TypeId = "~effect/caching/Cache"
  * const program = Effect.gen(function*() {
  *   const userCache = yield* Cache.make<UserId, string>({
  *     capacity: 1000,
- *     lookup: (userId: UserId) =>
- *       Effect.succeed(`User-${userId.id}`),
+ *     lookup: (userId: UserId) => Effect.succeed(`User-${userId.id}`),
  *     timeToLive: Duration.minutes(5)
  *   })
  *
@@ -125,19 +119,18 @@ export interface Entry<A, E> {
  *
  * @example
  * ```ts
- * import { Effect, Exit } from "effect"
- * import { Cache } from "effect/caching"
- * import { Duration } from "effect/time"
+ * import { Cache, Effect, Exit } from "effect"
  *
  * // Cache with different TTL for success vs failure
  * const program = Effect.gen(function*() {
  *   const cache = yield* Cache.makeWith<string, number, string>({
  *     capacity: 100,
- *     lookup: (key) => key === "fail"
- *       ? Effect.fail("error")
- *       : Effect.succeed(key.length),
+ *     lookup: (key) =>
+ *       key === "fail"
+ *         ? Effect.fail("error")
+ *         : Effect.succeed(key.length),
  *     timeToLive: (exit, key) => {
- *       if (Exit.isFailure(exit)) return "1 minute"  // Short TTL for errors
+ *       if (Exit.isFailure(exit)) return "1 minute" // Short TTL for errors
  *       return key.startsWith("temp") ? "5 minutes" : "1 hour"
  *     }
  *   })
@@ -151,12 +144,15 @@ export interface Entry<A, E> {
  *
  * @example
  * ```ts
- * import { Effect, Exit } from "effect"
- * import { Cache } from "effect/caching"
+ * import { Cache, Effect, Exit } from "effect"
  *
  * // Cache with TTL based on computed value
  * const userCache = Effect.gen(function*() {
- *   const cache = yield* Cache.makeWith<number, { id: number; active: boolean }, never>({
+ *   const cache = yield* Cache.makeWith<
+ *     number,
+ *     { id: number; active: boolean },
+ *     never
+ *   >({
  *     capacity: 1000,
  *     lookup: (id) => Effect.succeed({ id, active: id % 2 === 0 }),
  *     timeToLive: (exit) => {
@@ -214,8 +210,7 @@ export const makeWith = <
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Cache } from "effect/caching"
+ * import { Cache, Effect } from "effect"
  *
  * // Basic cache with string keys
  * const program = Effect.gen(function*() {
@@ -232,17 +227,21 @@ export const makeWith = <
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Cache } from "effect/caching"
+ * import { Cache, Effect } from "effect"
  *
  * // Cache with TTL and async lookup
  * const fetchUserCache = Effect.gen(function*() {
- *   const cache = yield* Cache.make<number, { name: string; email: string }, string>({
+ *   const cache = yield* Cache.make<
+ *     number,
+ *     { name: string; email: string },
+ *     string
+ *   >({
  *     capacity: 500,
- *     lookup: (userId) => Effect.tryPromise({
- *       try: () => fetch(`/api/users/${userId}`).then(r => r.json()),
- *       catch: () => "Failed to fetch user"
- *     }),
+ *     lookup: (userId) =>
+ *       Effect.tryPromise({
+ *         try: () => fetch(`/api/users/${userId}`).then((r) => r.json()),
+ *         catch: () => "Failed to fetch user"
+ *       }),
  *     timeToLive: "15 minutes"
  *   })
  *
@@ -301,8 +300,7 @@ const defaultTimeToLive = <A, E>(_: Exit.Exit<A, E>, _key: unknown): Duration.Du
  *
  * @example
  * ```ts
- * import { Cache } from "effect/caching"
- * import { Effect } from "effect"
+ * import { Cache, Effect } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const cache = yield* Cache.make({
@@ -324,8 +322,7 @@ const defaultTimeToLive = <A, E>(_: Exit.Exit<A, E>, _key: unknown): Duration.Du
  *
  * @example
  * ```ts
- * import { Cache } from "effect/caching"
- * import { Effect } from "effect"
+ * import { Cache, Effect } from "effect"
  *
  * // Error handling when lookup fails
  * const program = Effect.gen(function*() {
@@ -349,18 +346,18 @@ const defaultTimeToLive = <A, E>(_: Exit.Exit<A, E>, _key: unknown): Duration.Du
  *
  * @example
  * ```ts
- * import { Cache } from "effect/caching"
- * import { Effect } from "effect"
+ * import { Cache, Effect } from "effect"
  *
  * // Concurrent access - multiple gets of same key only invoke lookup once
  * const program = Effect.gen(function*() {
  *   let lookupCount = 0
  *   const cache = yield* Cache.make({
  *     capacity: 10,
- *     lookup: (key: string) => Effect.sync(() => {
- *       lookupCount++
- *       return key.length
- *     })
+ *     lookup: (key: string) =>
+ *       Effect.sync(() => {
+ *         lookupCount++
+ *         return key.length
+ *       })
  *   })
  *
  *   // Multiple concurrent gets
@@ -440,9 +437,7 @@ const checkCapacity = <K, A, E, R>(self: Cache<K, A, E, R>) => {
  *
  * @example
  * ```ts
- * import { Cache } from "effect/caching"
- * import { Option } from "effect/data"
- * import { Effect } from "effect"
+ * import { Cache, Effect } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const cache = yield* Cache.make({
@@ -467,10 +462,8 @@ const checkCapacity = <K, A, E, R>(self: Cache<K, A, E, R>) => {
  *
  * @example
  * ```ts
- * import { Cache } from "effect/caching"
- * import { Option } from "effect/data"
+ * import { Cache, Effect } from "effect"
  * import { TestClock } from "effect/testing"
- * import { Effect } from "effect"
  *
  * // Expired entries return None
  * const program = Effect.gen(function*() {
@@ -498,19 +491,14 @@ const checkCapacity = <K, A, E, R>(self: Cache<K, A, E, R>) => {
  *
  * @example
  * ```ts
- * import { Cache } from "effect/caching"
- * import { Deferred } from "effect"
- * import { Option } from "effect/data"
- * import { Fiber } from "effect"
- * import { Effect } from "effect"
+ * import { Cache, Deferred, Effect, Fiber } from "effect"
  *
  * // Waits for ongoing computation to complete
  * const program = Effect.gen(function*() {
  *   const deferred = yield* Deferred.make<void>()
  *   const cache = yield* Cache.make({
  *     capacity: 10,
- *     lookup: (_key: string) =>
- *       Deferred.await(deferred).pipe(Effect.as(42))
+ *     lookup: (_key: string) => Deferred.await(deferred).pipe(Effect.as(42))
  *   })
  *
  *   // Start lookup in background
@@ -589,8 +577,7 @@ export const getSuccess: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Cache } from "effect/caching"
+ * import { Cache, Effect } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const cache = yield* Cache.make({
@@ -607,8 +594,7 @@ export const getSuccess: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Cache } from "effect/caching"
+ * import { Cache, Effect } from "effect"
  *
  * // Overwriting existing cached values
  * const program = Effect.gen(function*() {
@@ -630,8 +616,7 @@ export const getSuccess: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Cache } from "effect/caching"
+ * import { Cache, Effect } from "effect"
  * import { TestClock } from "effect/testing"
  *
  * // TTL behavior with set operations
@@ -654,8 +639,7 @@ export const getSuccess: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Cache } from "effect/caching"
+ * import { Cache, Effect } from "effect"
  *
  * // Capacity enforcement with set operations
  * const program = Effect.gen(function*() {
@@ -711,8 +695,7 @@ export const set: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Cache } from "effect/caching"
+ * import { Cache, Effect } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const cache = yield* Cache.make({
@@ -731,8 +714,7 @@ export const set: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Cache } from "effect/caching"
+ * import { Cache, Effect } from "effect"
  * import { TestClock } from "effect/testing"
  *
  * // TTL expiration behavior
@@ -759,8 +741,7 @@ export const set: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Cache } from "effect/caching"
+ * import { Cache, Effect } from "effect"
  *
  * // Checking multiple keys efficiently
  * const program = Effect.gen(function*() {
@@ -807,8 +788,7 @@ export const has: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Cache } from "effect/caching"
+ * import { Cache, Effect } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const cache = yield* Cache.make({
@@ -831,7 +811,11 @@ export const has: {
  *   let lookupCount = 0
  *   const cache2 = yield* Cache.make({
  *     capacity: 10,
- *     lookup: (key: string) => Effect.sync(() => { lookupCount++; return key.length })
+ *     lookup: (key: string) =>
+ *       Effect.sync(() => {
+ *         lookupCount++
+ *         return key.length
+ *       })
  *   })
  *
  *   yield* Cache.get(cache2, "test") // lookupCount = 1
@@ -857,8 +841,7 @@ export const invalidate: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Cache } from "effect/caching"
+ * import { Cache, Effect } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const cache = yield* Cache.make({
@@ -868,30 +851,47 @@ export const invalidate: {
  *
  *   // Add values to the cache
  *   yield* Cache.get(cache, "hello") // value = 5
- *   yield* Cache.get(cache, "hi")    // value = 2
+ *   yield* Cache.get(cache, "hi") // value = 2
  *
  *   // Invalidate when value equals 5
- *   const invalidated1 = yield* Cache.invalidateWhen(cache, "hello", (value) => value === 5)
+ *   const invalidated1 = yield* Cache.invalidateWhen(
+ *     cache,
+ *     "hello",
+ *     (value) => value === 5
+ *   )
  *   console.log(invalidated1) // true
  *   console.log(yield* Cache.has(cache, "hello")) // false
  *
  *   // Don't invalidate when predicate doesn't match
- *   const invalidated2 = yield* Cache.invalidateWhen(cache, "hi", (value) => value === 5)
+ *   const invalidated2 = yield* Cache.invalidateWhen(
+ *     cache,
+ *     "hi",
+ *     (value) => value === 5
+ *   )
  *   console.log(invalidated2) // false
  *   console.log(yield* Cache.has(cache, "hi")) // true (still present)
  *
  *   // Returns false for non-existent keys
- *   const invalidated3 = yield* Cache.invalidateWhen(cache, "nonexistent", () => true)
+ *   const invalidated3 = yield* Cache.invalidateWhen(
+ *     cache,
+ *     "nonexistent",
+ *     () => true
+ *   )
  *   console.log(invalidated3) // false
  *
  *   // Returns false for failed cached values
  *   const cacheWithErrors = yield* Cache.make<string, number, string>({
  *     capacity: 10,
- *     lookup: (key: string) => key === "fail" ? Effect.fail("error") : Effect.succeed(key.length)
+ *     lookup: (key: string) =>
+ *       key === "fail" ? Effect.fail("error") : Effect.succeed(key.length)
  *   })
  *
  *   yield* Effect.exit(Cache.get(cacheWithErrors, "fail"))
- *   const invalidated4 = yield* Cache.invalidateWhen(cacheWithErrors, "fail", () => true)
+ *   const invalidated4 = yield* Cache.invalidateWhen(
+ *     cacheWithErrors,
+ *     "fail",
+ *     () => true
+ *   )
  *   console.log(invalidated4) // false (can't invalidate failed values)
  * })
  * ```
@@ -931,8 +931,7 @@ export const invalidateWhen: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Cache } from "effect/caching"
+ * import { Cache, Effect } from "effect"
  *
  * // Force refresh of existing cached values
  * const program = Effect.gen(function*() {
@@ -962,10 +961,8 @@ export const invalidateWhen: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Cache } from "effect/caching"
+ * import { Cache, Effect } from "effect"
  * import { TestClock } from "effect/testing"
- * import { Duration } from "effect/time"
  *
  * // Refresh resets TTL (Time To Live)
  * const program = Effect.gen(function*() {
@@ -992,8 +989,7 @@ export const invalidateWhen: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Cache } from "effect/caching"
+ * import { Cache, Effect } from "effect"
  *
  * // Refresh non-existent keys
  * const program = Effect.gen(function*() {
@@ -1054,8 +1050,7 @@ export const refresh: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Cache } from "effect/caching"
+ * import { Cache, Effect } from "effect"
  *
  * // Clear all cached entries at once
  * const program = Effect.gen(function*() {
@@ -1100,8 +1095,7 @@ export const invalidateAll = <Key, A, E, R>(self: Cache<Key, A, E, R>): Effect.E
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Cache } from "effect/caching"
+ * import { Cache, Effect } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const cache = yield* Cache.make({
@@ -1137,8 +1131,7 @@ export const size = <Key, A, E, R>(self: Cache<Key, A, E, R>): Effect.Effect<num
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Cache } from "effect/caching"
+ * import { Cache, Effect } from "effect"
  *
  * // Basic key enumeration
  * const program = Effect.gen(function*() {
@@ -1180,8 +1173,7 @@ export const keys = <Key, A, E, R>(self: Cache<Key, A, E, R>): Effect.Effect<Ite
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Cache } from "effect/caching"
+ * import { Cache, Effect } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const cache = yield* Cache.make({
