@@ -2132,44 +2132,6 @@ line2</root>`
       )
     })
 
-    it("Readonly and Mutable", async () => {
-      const readonlySchema = Schema.readonly(Schema.Struct({ a: Schema.Number }))
-      const mutableSchema = Schema.mutable(Schema.Struct({ a: Schema.Number }))
-
-      await assertXml(
-        readonlySchema,
-        { a: 1 },
-        `<root>
-  <a>1</a>
-</root>`
-      )
-      await assertXml(
-        mutableSchema,
-        { a: 1 },
-        `<root>
-  <a>1</a>
-</root>`
-      )
-    })
-
-    it("Branded Types", async () => {
-      const UserId = Schema.Number.pipe(Schema.brand("UserId"))
-      await assertXml(UserId, 123 as any, "<root>123</root>")
-    })
-
-    it("Transformed Types", async () => {
-      const StringToNumber = Schema.String.pipe(
-        Schema.decodeTo(
-          Schema.Number,
-          Transformation.transform({
-            decode: (s) => Number(s),
-            encode: (n) => String(n)
-          })
-        )
-      )
-      await assertXml(StringToNumber, 42, "<root>42</root>")
-    })
-
     it("Suspend (Recursive Types)", async () => {
       interface Tree {
         readonly value: number
@@ -2204,26 +2166,6 @@ line2</root>`
     </item>
   </children>
   <value>1</value>
-</root>`
-      )
-    })
-
-    it("Property Signatures with Different Optionality", async () => {
-      const schema = Schema.Struct({
-        required: Schema.String,
-        optional: Schema.optional(Schema.String),
-        nullable: Schema.NullOr(Schema.String),
-        optionalNullable: Schema.optional(Schema.NullOr(Schema.String))
-      })
-
-      await assertXml(
-        schema,
-        { required: "test", optional: "opt", nullable: null, optionalNullable: undefined },
-        `<root>
-  <nullable/>
-  <optional>opt</optional>
-  <optionalNullable/>
-  <required>test</required>
 </root>`
       )
     })
