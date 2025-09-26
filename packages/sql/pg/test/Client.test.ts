@@ -1,7 +1,6 @@
 import { PgClient } from "@effect/sql-pg"
 import { assert, expect, it } from "@effect/vitest"
-import { Effect } from "effect"
-import { String } from "effect/primitives"
+import { Effect, String } from "effect"
 import * as Statement from "effect/unstable/sql/Statement"
 import { PgContainer } from "./utils.ts"
 

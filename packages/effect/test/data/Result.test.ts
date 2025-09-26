@@ -1,8 +1,7 @@
-import { Cause, Effect, flow, identity, pipe } from "effect"
+import { Cause, Effect, flow, identity, pipe, String as Str } from "effect"
 import { Chunk } from "effect/collections"
 import { Equivalence, Option, Result } from "effect/data"
 import { Equal } from "effect/interfaces"
-import { String as Str } from "effect/primitives"
 import { inspect } from "node:util"
 import { describe, it } from "vitest"
 import {

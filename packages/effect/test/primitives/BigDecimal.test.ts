@@ -8,8 +8,8 @@ import {
   strictEqual,
   throws
 } from "@effect/vitest/utils"
+import { BigDecimal } from "effect"
 import { Equal } from "effect/interfaces"
-import { BigDecimal } from "effect/primitives"
 import { FastCheck as fc } from "effect/testing"
 
 const $ = BigDecimal.fromStringUnsafe

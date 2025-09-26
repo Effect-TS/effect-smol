@@ -1,10 +1,10 @@
 import { describe, it } from "@effect/vitest"
 import { assertNone, assertSome, assertUndefined, deepStrictEqual, strictEqual, throws } from "@effect/vitest/utils"
+import { Number as Num, String as Str } from "effect"
 import { Array as Arr } from "effect/collections"
 import { Equivalence, type Predicate } from "effect/data"
 import { Option, Order, Result } from "effect/data"
 import { identity, pipe } from "effect/Function"
-import { Number as Num, String as Str } from "effect/primitives"
 import { FastCheck as fc } from "effect/testing"
 
 const symA = Symbol.for("a")

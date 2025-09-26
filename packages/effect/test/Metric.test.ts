@@ -1,8 +1,7 @@
 import { assert, describe, it } from "@effect/vitest"
-import { Fiber } from "effect"
+import { Fiber, String } from "effect"
 import * as Effect from "effect/Effect"
 import { Metric } from "effect/observability"
-import { String } from "effect/primitives"
 import { TestClock } from "effect/testing"
 import { Duration } from "effect/time"
 

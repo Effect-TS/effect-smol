@@ -1,4 +1,4 @@
-import * as BigInt from "effect/primitives/BigInt"
+import * as BigInt from "effect/BigInt"
 import { describe, it } from "vitest"
 import { strictEqual } from "../utils/assert.ts"
 

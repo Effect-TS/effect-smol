@@ -1,7 +1,7 @@
 import { assertFalse, assertNone, assertSome, assertTrue, assertUndefined, deepStrictEqual } from "@effect/vitest/utils"
+import { Number as Num } from "effect"
 import { Equivalence, Option, Record, Result } from "effect/data"
 import { pipe } from "effect/Function"
-import { Number as Num } from "effect/primitives"
 import { describe, it } from "vitest"
 
 describe("Record", () => {

@@ -1,7 +1,6 @@
-import { Cause, Effect, Exit, flow, pipe, ServiceMap } from "effect"
+import { Cause, Effect, Exit, flow, pipe, ServiceMap, String as Str } from "effect"
 import { Option, Order, Predicate, Redacted, Result, Struct, Tuple } from "effect/data"
 import { Equal } from "effect/interfaces"
-import { String as Str } from "effect/primitives"
 import { AST, Check, Getter, Issue, Schema, ToParser, Transformation } from "effect/schema"
 import { DateTime } from "effect/time"
 import { produce } from "immer"
