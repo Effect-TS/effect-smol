@@ -162,10 +162,12 @@ export const goStringPojo = memoize((ast: AST.AST): AST.AST => {
         return requiredGoStringPojoAnnotation(ast)
       }
       case "NullKeyword":
-      case "NumberKeyword":
+        return AST.replaceEncoding(ast, [nullLink])
       case "BooleanKeyword":
-      case "LiteralType":
+        return AST.replaceEncoding(ast, [booleanLink])
       case "Enums":
+      case "NumberKeyword":
+      case "LiteralType":
         return ast.goStringPojo()
       case "BigIntKeyword":
       case "SymbolKeyword":
@@ -187,6 +189,22 @@ export const goStringPojo = memoize((ast: AST.AST): AST.AST => {
   const out = go(ast)
   return AST.isOptional(ast) ? AST.optionalKey(out) : out
 })
+
+const nullLink = new AST.Link(
+  AST.undefinedKeyword,
+  new Transformation.Transformation(
+    Getter.transform(() => null),
+    Getter.transform(() => undefined)
+  )
+)
+
+const booleanLink = new AST.Link(
+  new AST.UnionType([new AST.LiteralType("true"), new AST.LiteralType("false")], "anyOf"),
+  new Transformation.Transformation(
+    Getter.transform((s) => s === "true"),
+    Getter.String()
+  )
+)
 
 function requiredGoStringPojoAnnotation(ast: AST.AST): AST.AST {
   return forbidden(

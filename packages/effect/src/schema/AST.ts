@@ -399,10 +399,6 @@ export class NullKeyword extends AbstractParser {
     return fromConst(this, null)
   }
   /** @internal */
-  goStringPojo(): AST {
-    return replaceEncoding(this, [nullLink])
-  }
-  /** @internal */
   getExpected(): string {
     return "null"
   }
@@ -837,10 +833,6 @@ export class BooleanKeyword extends AbstractParser {
   /** @internal */
   parser() {
     return fromRefinement(this, Predicate.isBoolean)
-  }
-  /** @internal */
-  goStringPojo(): AST {
-    return replaceEncoding(this, [booleanLink])
   }
   /** @internal */
   getExpected(): string {
@@ -2400,14 +2392,6 @@ const goTemplateLiteral = memoize((ast: AST): AST => {
   throw new Error(`Unsupported template literal part tag: ${ast._tag}`)
 })
 
-const nullLink = new Link(
-  undefinedKeyword,
-  new Transformation.Transformation(
-    Getter.transform(() => null),
-    Getter.transform(() => undefined)
-  )
-)
-
 const numberKeywordPattern = appendChecks(stringKeyword, [
   Check.regex(new RegExp(NUMBER_KEYWORD_PATTERN), { title: "a string representing a number" })
 ])
@@ -2415,14 +2399,6 @@ const numberKeywordPattern = appendChecks(stringKeyword, [
 const numberLink = new Link(
   numberKeywordPattern,
   Transformation.numberFromString
-)
-
-const booleanLink = new Link(
-  new UnionType([new LiteralType("true"), new LiteralType("false")], "anyOf"),
-  new Transformation.Transformation(
-    Getter.transform((s) => s === "true"),
-    Getter.String()
-  )
 )
 
 const bigintKeywordPattern = appendChecks(stringKeyword, [
