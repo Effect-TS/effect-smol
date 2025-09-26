@@ -1,8 +1,6 @@
 /**
  * @since 4.0.0
  */
-import * as Request from "../../batching/Request.ts"
-import * as RequestResolver from "../../batching/RequestResolver.ts"
 import * as Cause from "../../Cause.ts"
 import * as Arr from "../../collections/Array.ts"
 import * as MutableHashMap from "../../collections/MutableHashMap.ts"
@@ -10,6 +8,8 @@ import * as Effect from "../../Effect.ts"
 import * as Exit from "../../Exit.ts"
 import * as Equal from "../../interfaces/Equal.ts"
 import * as Hash from "../../interfaces/Hash.ts"
+import * as Request from "../../Request.ts"
+import * as RequestResolver from "../../RequestResolver.ts"
 import * as Schema from "../../schema/Schema.ts"
 import type * as Types from "../../types/Types.ts"
 import * as SqlClient from "./SqlClient.ts"

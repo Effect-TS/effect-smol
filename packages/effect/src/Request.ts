@@ -13,16 +13,16 @@
  *
  * @since 2.0.0
  */
-import type * as Cause from "../Cause.ts"
-import { hasProperty } from "../data/Predicate.ts"
-import type * as Effect from "../Effect.ts"
-import type * as Exit from "../Exit.ts"
-import { dual } from "../Function.ts"
-import * as Equal from "../interfaces/Equal.ts"
-import * as core from "../internal/core.ts"
-import * as internalEffect from "../internal/effect.ts"
-import type * as ServiceMap from "../ServiceMap.ts"
-import type * as Types from "../types/Types.ts"
+import type * as Cause from "./Cause.ts"
+import { hasProperty } from "./data/Predicate.ts"
+import type * as Effect from "./Effect.ts"
+import type * as Exit from "./Exit.ts"
+import { dual } from "./Function.ts"
+import * as Equal from "./interfaces/Equal.ts"
+import * as core from "./internal/core.ts"
+import * as internalEffect from "./internal/effect.ts"
+import type * as ServiceMap from "./ServiceMap.ts"
+import type * as Types from "./types/Types.ts"
 
 const TypeId = "~effect/batching/Request"
 
@@ -32,7 +32,7 @@ const TypeId = "~effect/batching/Request"
  *
  * @example
  * ```ts
- * import { Request } from "effect/batching"
+ * import type { Request } from "effect"
  *
  * // Define a request that fetches a user by ID
  * interface GetUser extends Request.Request<string, Error> {
@@ -72,7 +72,7 @@ export interface Variance<out A, out E, out R> {
 /**
  * @example
  * ```ts
- * import { Request } from "effect/batching"
+ * import { Request } from "effect"
  *
  * interface GetUser extends Request.Request<string, Error> {
  *   readonly _tag: "GetUser"
@@ -96,7 +96,7 @@ export interface Constructor<R extends Request<any, any, any>, T extends keyof R
  *
  * @example
  * ```ts
- * import { Request } from "effect/batching"
+ * import type { Request } from "effect"
  *
  * interface GetUser extends Request.Request<string, Error> {
  *   readonly id: number
@@ -116,7 +116,7 @@ export type Error<T extends Request<any, any, any>> = [T] extends [Request<infer
  *
  * @example
  * ```ts
- * import { Request } from "effect/batching"
+ * import type { Request } from "effect"
  *
  * interface GetUser extends Request.Request<string, Error> {
  *   readonly _tag: "GetUser"
@@ -147,8 +147,7 @@ export type Services<T extends Request<any, any, any>> = [T] extends [Request<in
  *
  * @example
  * ```ts
- * import { Exit } from "effect"
- * import { Request } from "effect/batching"
+ * import type { Request } from "effect"
  *
  * interface GetUser extends Request.Request<string, Error> {
  *   readonly _tag: "GetUser"
@@ -187,7 +186,7 @@ export const RequestPrototype: Request<any, any, any> = {
  *
  * @example
  * ```ts
- * import { Request } from "effect/batching"
+ * import { Request } from "effect"
  *
  * declare const User: unique symbol
  * declare const UserNotFound: unique symbol
@@ -215,7 +214,7 @@ export const isRequest = (u: unknown): u is Request<unknown, unknown, unknown> =
  *
  * @example
  * ```ts
- * import { Request } from "effect/batching"
+ * import { Request } from "effect"
  *
  * declare const UserProfile: unique symbol
  * declare const ProfileError: unique symbol
@@ -247,7 +246,7 @@ export const of = <R extends Request<any, any, any>>(): Constructor<R> => (args)
  *
  * @example
  * ```ts
- * import { Request } from "effect/batching"
+ * import { Request } from "effect"
  *
  * declare const User: unique symbol
  * declare const UserNotFound: unique symbol
@@ -294,7 +293,7 @@ export const tagged = <R extends Request<any, any, any> & { _tag: string }>(
 /**
  * @example
  * ```ts
- * import { Request } from "effect/batching"
+ * import { Request } from "effect"
  *
  * class GetUser extends Request.Class<{ id: number }, string, Error> {
  *   constructor(readonly id: number) {
@@ -325,9 +324,11 @@ export const Class: new<A extends Record<string, any>, Success, Error = never, S
 /**
  * @example
  * ```ts
- * import { Request } from "effect/batching"
+ * import { Request } from "effect"
  *
- * class GetUserById extends Request.TaggedClass("GetUserById")<{ id: number }, string, Error> {}
+ * class GetUserById
+ *   extends Request.TaggedClass("GetUserById")<{ id: number }, string, Error>
+ * {}
  *
  * const request = new GetUserById({ id: 123 })
  * console.log(request._tag) // "GetUserById"

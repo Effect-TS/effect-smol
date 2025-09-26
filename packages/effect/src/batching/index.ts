@@ -17,9 +17,9 @@
  *
  * @since 2.0.0
  */
-export * as Request from "./Request.ts"
+export * as Request from "../Request.ts"
 
 /**
  * @since 2.0.0
  */
-export * as RequestResolver from "./RequestResolver.ts"
+export * as RequestResolver from "../RequestResolver.ts"

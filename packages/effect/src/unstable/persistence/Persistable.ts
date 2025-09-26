@@ -1,10 +1,10 @@
 /**
  * @since 4.0.0
  */
-import * as Request from "../../batching/Request.ts"
 import type * as Effect from "../../Effect.ts"
 import type * as Exit from "../../Exit.ts"
 import * as PrimaryKey from "../../interfaces/PrimaryKey.ts"
+import * as Request from "../../Request.ts"
 import * as Schema from "../../schema/Schema.ts"
 import * as Serializer from "../../schema/Serializer.ts"
 import type { DurationInput } from "../../time/Duration.ts"
