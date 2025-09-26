@@ -107,11 +107,10 @@ export * as ConfigProvider from "./ConfigProvider.ts"
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Console } from "effect"
+ * import { Console, Effect } from "effect"
  *
  * // Basic logging
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   yield* Console.log("Hello, World!")
  *   yield* Console.error("Something went wrong")
  *   yield* Console.warn("This is a warning")
@@ -121,12 +120,11 @@ export * as ConfigProvider from "./ConfigProvider.ts"
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Console } from "effect"
+ * import { Console, Effect } from "effect"
  *
  * // Grouped logging with timing
  * const debugProgram = Console.withGroup(
- *   Effect.gen(function* () {
+ *   Effect.gen(function*() {
  *     yield* Console.log("Step 1: Loading...")
  *     yield* Effect.sleep("100 millis")
  *
@@ -139,11 +137,10 @@ export * as ConfigProvider from "./ConfigProvider.ts"
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Console } from "effect"
+ * import { Console, Effect } from "effect"
  *
  * // Data visualization and debugging
- * const dataProgram = Effect.gen(function* () {
+ * const dataProgram = Effect.gen(function*() {
  *   const users = [
  *     { id: 1, name: "Alice", age: 30 },
  *     { id: 2, name: "Bob", age: 25 }
@@ -815,6 +812,28 @@ export * as Ref from "./Ref.ts"
  * @since 4.0.0
  */
 export * as References from "./References.ts"
+
+/**
+ * The `Request` module provides a way to model requests to external data sources
+ * in a functional and composable manner. Requests represent descriptions of
+ * operations that can be batched, cached, and executed efficiently.
+ *
+ * A `Request<A, E, R>` represents a request that:
+ * - Yields a value of type `A` on success
+ * - Can fail with an error of type `E`
+ * - Requires services of type `R`
+ *
+ * Requests are primarily used with RequestResolver to implement efficient
+ * data fetching patterns, including automatic batching and caching.
+ *
+ * @since 2.0.0
+ */
+export * as Request from "./Request.ts"
+
+/**
+ * @since 2.0.0
+ */
+export * as RequestResolver from "./RequestResolver.ts"
 
 /**
  * This module provides utilities for running Effect programs and managing their execution lifecycle.
