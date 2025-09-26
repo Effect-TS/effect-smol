@@ -374,7 +374,7 @@ export const getEquivalence = Equivalence.struct
  * ```ts
  * import { Struct } from "effect/data"
  * import * as S from "effect/String"
- * import * as N from "effect
+ * import * as N from "effect/Number"
  *
  * const PersonOrder = Struct.getOrder({
  *   name: S.Order,
@@ -600,7 +600,7 @@ function buildStruct<
  *
  * ```ts
  * import { Struct } from "effect/data"
- * import { Number, String } from "effect
+ * import { Number, String } from "effect"
  *
  * const C = Struct.getCombiner<{ readonly n: number; readonly s: string }>({
  *   n: Number.ReducerSum,
@@ -646,7 +646,7 @@ export function getCombiner<A>(
  *
  * ```ts
  * import { Struct } from "effect/data"
- * import { Number, String } from "effect
+ * import { Number, String } from "effect"
  *
  * const R = Struct.getReducer<{ readonly n: number; readonly s: string }>({
  *   n: Number.ReducerSum,
