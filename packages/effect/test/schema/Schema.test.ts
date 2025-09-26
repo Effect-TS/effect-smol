@@ -2582,6 +2582,18 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       await assertions.encoding.succeed(schema, { a_b: 1, aB: 2 }, { expected: { a_b: "1e2" } })
     })
 
+    it("UniqueSymbol", async () => {
+      const a = Symbol.for("a")
+      const schema = Schema.Record(Schema.UniqueSymbol(a), Schema.Number)
+      await assertions.decoding.succeed(schema, { [a]: 1 })
+      await assertions.decoding.fail(
+        schema,
+        { [a]: "b" },
+        `Expected number, got "b"
+  at [Symbol(a)]`
+      )
+    })
+
     describe("Literals keys", () => {
       it("Record(Literals, Number)", async () => {
         const schema = Schema.Record(Schema.Literals(["a", "b"]), Schema.Number)
@@ -2627,6 +2639,74 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
         await assertions.decoding.succeed(schema, { b: 2 })
         await assertions.decoding.succeed(schema, { a: 1, b: 2 })
       })
+    })
+
+    it("Record(Number, String)", async () => {
+      const schema = Schema.Record(Schema.Number, Schema.FiniteFromString)
+
+      await assertions.decoding.succeed(schema, { 1: "1", 2.2: "2", Infinity: "3", NaN: "4", "-Infinity": "5" }, {
+        expected: { "1": 1, "2.2": 2, Infinity: 3, NaN: 4, "-Infinity": 5 }
+      })
+      await assertions.decoding.fail(
+        schema,
+        { 1: null },
+        `Expected string, got null
+  at ["1"]`
+      )
+      await assertions.decoding.fail(
+        schema,
+        { 1: "a" },
+        `Expected a finite number, got NaN
+  at ["1"]`
+      )
+    })
+
+    it("Record(Int, String)", async () => {
+      const schema = Schema.Record(Schema.Int, Schema.FiniteFromString)
+
+      await assertions.decoding.succeed(schema, { 1: "1" }, { expected: { "1": 1 } })
+      await assertions.decoding.fail(
+        schema,
+        { 1: null },
+        `Expected string, got null
+  at ["1"]`
+      )
+      await assertions.decoding.fail(
+        schema,
+        { 1: "a" },
+        `Expected a finite number, got NaN
+  at ["1"]`
+      )
+      await assertions.decoding.fail(
+        schema,
+        { Infinity: "1" },
+        `Expected an integer, got Infinity
+  at ["Infinity"]`
+      )
+      await assertions.decoding.fail(
+        schema,
+        { NaN: "1" },
+        `Expected an integer, got NaN
+  at ["NaN"]`
+      )
+      await assertions.decoding.fail(
+        schema,
+        { "-Infinity": "1" },
+        `Expected an integer, got -Infinity
+  at ["-Infinity"]`
+      )
+    })
+
+    it("Record(Union(Number, string), FiniteFromString)", async () => {
+      const schema = Schema.Record(Schema.Union([Schema.Number, Schema.Literal("a")]), Schema.FiniteFromString)
+
+      await assertions.decoding.succeed(
+        schema,
+        { a: "-1", 1: "1", 2.2: "2", Infinity: "3", NaN: "4", "-Infinity": "5" },
+        {
+          expected: { a: -1, "1": 1, "2.2": 2, Infinity: 3, NaN: 4, "-Infinity": 5 }
+        }
+      )
     })
   })
 

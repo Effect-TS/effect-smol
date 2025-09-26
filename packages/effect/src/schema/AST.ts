@@ -1181,6 +1181,8 @@ export function getIndexSignatureKeys(
     }
     case "SymbolKeyword":
       return Object.getOwnPropertySymbols(input)
+    case "NumberKeyword":
+      return Object.keys(input).filter((key) => numberKeysRegExp.test(key))
     default:
       return Object.keys(input)
   }
@@ -1346,7 +1348,7 @@ export class TypeLiteral extends Base {
           const keys = getIndexSignatureKeys(input, is)
           for (let j = 0; j < keys.length; j++) {
             const key = keys[j]
-            const parserKey = go(is.parameter)
+            const parserKey = go(goIndexSignature(is.parameter))
             const effKey = parserKey(Option.some(key), options)
             const exitKey = (effectIsExit(effKey) ? effKey : yield* Effect.exit(effKey)) as Exit.Exit<
               Option.Option<PropertyKey>,
@@ -2074,26 +2076,52 @@ export function readonly<A extends AST>(ast: A): A {
   return mutableContext(ast, false) as A
 }
 
-function getRecordKeyLiterals(ast: AST): ReadonlyArray<PropertyKey> {
+function parseParameter(ast: AST): {
+  literals: ReadonlyArray<PropertyKey>
+  parameters: ReadonlyArray<AST>
+} {
   switch (ast._tag) {
     case "LiteralType":
-      if (Predicate.isPropertyKey(ast.literal)) {
-        return [ast.literal]
+      return {
+        literals: Predicate.isPropertyKey(ast.literal) ? [ast.literal] : [],
+        parameters: []
       }
-      break
-    case "UnionType":
-      return ast.types.flatMap(getRecordKeyLiterals)
+    case "UniqueSymbol":
+      return {
+        literals: [ast.symbol],
+        parameters: []
+      }
+    case "StringKeyword":
+    case "NumberKeyword":
+    case "SymbolKeyword":
+    case "TemplateLiteral":
+      return {
+        literals: [],
+        parameters: [ast]
+      }
+    case "UnionType": {
+      const out: {
+        literals: ReadonlyArray<PropertyKey>
+        parameters: ReadonlyArray<AST>
+      } = { literals: [], parameters: [] }
+      for (let i = 0; i < ast.types.length; i++) {
+        const parsed = parseParameter(ast.types[i])
+        out.literals = out.literals.concat(parsed.literals)
+        out.parameters = out.parameters.concat(parsed.parameters)
+      }
+      return out
+    }
   }
-  return []
+  return { literals: [], parameters: [] }
 }
 
 /** @internal */
 export function record(key: AST, value: AST, keyValueCombiner: KeyValueCombiner | undefined): TypeLiteral {
-  const literals = getRecordKeyLiterals(key)
-  if (literals.length > 0) {
-    return new TypeLiteral(literals.map((literal) => new PropertySignature(literal, value)), [])
-  }
-  return new TypeLiteral([], [new IndexSignature(false, key, value, keyValueCombiner)])
+  const { literals, parameters: indexSignatures } = parseParameter(key)
+  return new TypeLiteral(
+    literals.map((literal) => new PropertySignature(literal, value)),
+    indexSignatures.map((parameter) => new IndexSignature(false, parameter, value, keyValueCombiner))
+  )
 }
 
 // -------------------------------------------------------------------------------------
@@ -2367,6 +2395,25 @@ function coerceBigInt(ast: BigIntKeyword): BigIntKeyword {
   return replaceEncoding(ast, [bigIntLink])
 }
 
+const goIndexSignature = memoize((ast: AST): AST => {
+  if (ast.encoding) {
+    const links = ast.encoding
+    const last = links[links.length - 1]
+    const to = goIndexSignature(last.to)
+    return to === last.to ?
+      ast :
+      replaceEncoding(ast, replaceLastLink(links, new Link(to, last.transformation)))
+  }
+  switch (ast._tag) {
+    case "NumberKeyword":
+      return ast.goStringPojo()
+    case "UnionType":
+      return ast.go(goIndexSignature)
+    default:
+      return ast
+  }
+})
+
 const goTemplateLiteral = memoize((ast: AST): AST => {
   if (ast.encoding) {
     const links = ast.encoding
@@ -2392,8 +2439,12 @@ const goTemplateLiteral = memoize((ast: AST): AST => {
   throw new Error(`Unsupported template literal part tag: ${ast._tag}`)
 })
 
+const numberKeysRegExp = new RegExp(`(?:${NUMBER_KEYWORD_PATTERN}|Infinity|-Infinity|NaN)`)
+
 const numberKeywordPattern = appendChecks(stringKeyword, [
-  Check.regex(new RegExp(NUMBER_KEYWORD_PATTERN), { title: "a string representing a number" })
+  Check.regex(numberKeysRegExp, {
+    title: "a string representing a number"
+  })
 ])
 
 const numberLink = new Link(

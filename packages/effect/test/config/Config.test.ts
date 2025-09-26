@@ -97,7 +97,7 @@ describe("Config", () => {
       await assertFailure(
         config,
         ConfigProvider.fromStringPojo({ a: "a", b: "b" }),
-        `Expected a string matching the regex [+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?, got "b"
+        `Expected a string matching the regex (?:[+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?|Infinity|-Infinity|NaN), got "b"
   at ["b"]`
       )
     })
@@ -115,7 +115,7 @@ describe("Config", () => {
       await assertFailure(
         config,
         ConfigProvider.fromStringPojo({ a: "a", b: "b" }),
-        `Expected a string matching the regex [+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?, got "b"
+        `Expected a string matching the regex (?:[+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?|Infinity|-Infinity|NaN), got "b"
   at ["b"]`
       )
     })
@@ -133,7 +133,7 @@ describe("Config", () => {
       await assertFailure(
         config,
         ConfigProvider.fromStringPojo({ b: "b", d: "b" }),
-        `Expected a string matching the regex [+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?, got "b"
+        `Expected a string matching the regex (?:[+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?|Infinity|-Infinity|NaN), got "b"
   at ["d"]`
       )
     })
@@ -149,7 +149,7 @@ describe("Config", () => {
       await assertFailure(
         config,
         ConfigProvider.fromStringPojo({ a: "value" }),
-        `Expected a string matching the regex [+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?, got "value"
+        `Expected a string matching the regex (?:[+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?|Infinity|-Infinity|NaN), got "value"
   at ["a"]`
       )
     })
@@ -182,7 +182,7 @@ describe("Config", () => {
       await assertFailure(
         config,
         ConfigProvider.fromStringPojo({ a: "value" }),
-        `Expected a string matching the regex [+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?, got "value"
+        `Expected a string matching the regex (?:[+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?|Infinity|-Infinity|NaN), got "value"
   at ["a"]`
       )
     })
@@ -344,7 +344,7 @@ describe("Config", () => {
         await assertFailure(
           config,
           ConfigProvider.fromEnv({ env: { a: "1", b: "value" } }),
-          `Expected a string matching the regex [+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?, got "value"
+          `Expected a string matching the regex (?:[+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?|Infinity|-Infinity|NaN), got "value"
   at ["b"]`
         )
       })
@@ -379,7 +379,7 @@ describe("Config", () => {
         await assertFailure(
           config,
           ConfigProvider.fromEnv({ env: { a__0: "a", a__1: "value" } }),
-          `Expected a string matching the regex [+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?, got "value"
+          `Expected a string matching the regex (?:[+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?|Infinity|-Infinity|NaN), got "value"
   at ["a"][1]`
         )
       })
@@ -394,7 +394,7 @@ describe("Config", () => {
       await assertFailure(
         config,
         ConfigProvider.fromEnv({ env: { a__0: "1", a__1: "value" } }),
-        `Expected a string matching the regex [+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?, got "value"
+        `Expected a string matching the regex (?:[+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?|Infinity|-Infinity|NaN), got "value"
   at ["a"][1]`
       )
     })
@@ -523,7 +523,7 @@ describe("Config", () => {
         await assertFailure(
           config,
           ConfigProvider.fromStringPojo({ a: "value" }),
-          `Expected a string matching the regex [+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?, got "value"
+          `Expected a string matching the regex (?:[+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?|Infinity|-Infinity|NaN), got "value"
   at ["a"]`
         )
       })
@@ -563,7 +563,7 @@ describe("Config", () => {
       await assertFailure(
         config,
         ConfigProvider.fromStringPojo({ a: "1", b: "value" }),
-        `Expected a string matching the regex [+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?, got "value"
+        `Expected a string matching the regex (?:[+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?|Infinity|-Infinity|NaN), got "value"
   at ["b"]`
       )
     })
@@ -591,7 +591,7 @@ describe("Config", () => {
         await assertFailure(
           config,
           ConfigProvider.fromStringPojo(["a", "value"]),
-          `Expected a string matching the regex [+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?, got "value"
+          `Expected a string matching the regex (?:[+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?|Infinity|-Infinity|NaN), got "value"
   at [1]`
         )
       })
@@ -608,7 +608,7 @@ describe("Config", () => {
       await assertFailure(
         config,
         ConfigProvider.fromStringPojo(["1", "value"]),
-        `Expected a string matching the regex [+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?, got "value"
+        `Expected a string matching the regex (?:[+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?|Infinity|-Infinity|NaN), got "value"
   at [1]`
       )
     })
@@ -710,7 +710,7 @@ describe("Config", () => {
       await assertFailure(
         Config.finite("b"),
         provider,
-        `Expected a string matching the regex [+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?, got "a"
+        `Expected a string matching the regex (?:[+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?|Infinity|-Infinity|NaN), got "a"
   at ["b"]`
       )
     })
