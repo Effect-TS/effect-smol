@@ -253,6 +253,12 @@ describe("Serializer", () => {
         await assertions.deserialization.json.typeCodec.succeed(schema, "Symbol(a)", Symbol.for("a"))
       })
 
+      it("UniqueSymbol", async () => {
+        const schema = Schema.UniqueSymbol(Symbol.for("a"))
+        await assertions.serialization.json.typeCodec.succeed(schema, Symbol.for("a"), "Symbol(a)")
+        await assertions.deserialization.json.typeCodec.succeed(schema, "Symbol(a)", Symbol.for("a"))
+      })
+
       it("BigInt", async () => {
         const schema = Schema.BigInt
 
@@ -969,7 +975,7 @@ describe("Serializer", () => {
     })
   })
 
-  describe.skip("stringLeafJson", () => {
+  describe("stringPojo", () => {
     describe("should return the same reference if nothing changed", () => {
       it("String", async () => {
         const schema = Schema.String
@@ -1009,26 +1015,26 @@ describe("Serializer", () => {
             readonly _tag = "A"
           }
 
-          await assertions.serialization.stringLeafJson.typeCodec.fail(
+          await assertions.serialization.stringPojo.typeCodec.fail(
             Schema.declare((u): u is A => u instanceof A),
             new A(),
-            "cannot serialize to JSON, required `defaultJsonSerializer` or `defaultIsoSerializer` annotation for Declaration"
+            "cannot serialize to StringPojo, required `defaultIsoSerializer` or `defaultJsonSerializer` annotation for Declaration"
           )
         })
 
         it("Unknown", async () => {
-          await assertions.serialization.stringLeafJson.typeCodec.fail(
+          await assertions.serialization.stringPojo.typeCodec.fail(
             Schema.Unknown,
             "a",
-            "cannot serialize to JSON, required `defaultJsonSerializer` or `defaultIsoSerializer` annotation for UnknownKeyword"
+            "cannot serialize to StringPojo, required `defaultIsoSerializer` or `defaultJsonSerializer` annotation for UnknownKeyword"
           )
         })
 
         it("Object", async () => {
-          await assertions.serialization.stringLeafJson.typeCodec.fail(
+          await assertions.serialization.stringPojo.typeCodec.fail(
             Schema.Object,
             {},
-            "cannot serialize to JSON, required `defaultJsonSerializer` or `defaultIsoSerializer` annotation for ObjectKeyword"
+            "cannot serialize to StringPojo, required `defaultIsoSerializer` or `defaultJsonSerializer` annotation for ObjectKeyword"
           )
         })
 
@@ -1038,10 +1044,10 @@ describe("Serializer", () => {
             [a]: Schema.String
           })
 
-          await assertions.serialization.stringLeafJson.typeCodec.fail(
+          await assertions.serialization.stringPojo.typeCodec.fail(
             schema,
             { [a]: "b" },
-            "cannot serialize to JSON, property names must be strings"
+            "cannot serialize to StringPojo, TypeLiteral property names must be strings"
           )
         })
       })
@@ -1049,123 +1055,129 @@ describe("Serializer", () => {
       it("Any", async () => {
         const schema = Schema.Any
 
-        await assertions.serialization.stringLeafJson.typeCodec.succeed(schema, (() => {}) as any)
-        await assertions.deserialization.stringLeafJson.typeCodec.succeed(schema, (() => {}) as any)
+        await assertions.serialization.stringPojo.typeCodec.succeed(schema, (() => {}) as any)
+        await assertions.deserialization.stringPojo.typeCodec.succeed(schema, (() => {}) as any)
       })
 
       it("Undefined", async () => {
         const schema = Schema.Undefined
 
-        await assertions.serialization.stringLeafJson.typeCodec.succeed(schema, undefined)
-        await assertions.deserialization.stringLeafJson.typeCodec.succeed(schema, undefined)
+        await assertions.serialization.stringPojo.typeCodec.succeed(schema, undefined)
+        await assertions.deserialization.stringPojo.typeCodec.succeed(schema, undefined)
       })
 
       it("Void", async () => {
         const schema = Schema.Void
 
-        await assertions.serialization.stringLeafJson.typeCodec.succeed(schema, undefined)
-        await assertions.deserialization.stringLeafJson.typeCodec.succeed(schema, undefined)
+        await assertions.serialization.stringPojo.typeCodec.succeed(schema, undefined)
+        await assertions.deserialization.stringPojo.typeCodec.succeed(schema, undefined)
       })
 
       it("Null", async () => {
         const schema = Schema.Null
 
-        await assertions.serialization.stringLeafJson.typeCodec.succeed(schema, null, undefined)
-        await assertions.deserialization.stringLeafJson.typeCodec.succeed(schema, undefined, null)
+        await assertions.serialization.stringPojo.typeCodec.succeed(schema, null, undefined)
+        await assertions.deserialization.stringPojo.typeCodec.succeed(schema, undefined, null)
       })
 
       it("String", async () => {
         const schema = Schema.String
 
-        await assertions.serialization.stringLeafJson.typeCodec.succeed(schema, "a")
-        await assertions.deserialization.stringLeafJson.typeCodec.succeed(schema, "a")
+        await assertions.serialization.stringPojo.typeCodec.succeed(schema, "a")
+        await assertions.deserialization.stringPojo.typeCodec.succeed(schema, "a")
       })
 
       it("Number", async () => {
         const schema = Schema.Number
 
-        await assertions.serialization.stringLeafJson.typeCodec.succeed(schema, 1, "1")
-        await assertions.deserialization.stringLeafJson.typeCodec.succeed(schema, "1", 1)
+        await assertions.serialization.stringPojo.typeCodec.succeed(schema, 1, "1")
+        await assertions.deserialization.stringPojo.typeCodec.succeed(schema, "1", 1)
       })
 
       it("Boolean", async () => {
         const schema = Schema.Boolean
 
-        await assertions.serialization.stringLeafJson.typeCodec.succeed(schema, true, "true")
-        await assertions.serialization.stringLeafJson.typeCodec.succeed(schema, false, "false")
-        await assertions.deserialization.stringLeafJson.typeCodec.succeed(schema, "true", true)
-        await assertions.deserialization.stringLeafJson.typeCodec.succeed(schema, "false", false)
+        await assertions.serialization.stringPojo.typeCodec.succeed(schema, true, "true")
+        await assertions.serialization.stringPojo.typeCodec.succeed(schema, false, "false")
+        await assertions.deserialization.stringPojo.typeCodec.succeed(schema, "true", true)
+        await assertions.deserialization.stringPojo.typeCodec.succeed(schema, "false", false)
       })
 
       it("Symbol", async () => {
         const schema = Schema.Symbol
 
-        await assertions.serialization.stringLeafJson.typeCodec.succeed(schema, Symbol.for("a"), "Symbol(a)")
-        await assertions.serialization.stringLeafJson.typeCodec.fail(
+        await assertions.serialization.stringPojo.typeCodec.succeed(schema, Symbol.for("a"), "Symbol(a)")
+        await assertions.serialization.stringPojo.typeCodec.fail(
           schema,
           Symbol("a"),
           "cannot serialize to string, Symbol is not registered"
         )
-        await assertions.serialization.stringLeafJson.typeCodec.fail(
+        await assertions.serialization.stringPojo.typeCodec.fail(
           schema,
           Symbol(),
           "cannot serialize to string, Symbol has no description"
         )
 
-        await assertions.deserialization.stringLeafJson.typeCodec.succeed(schema, "Symbol(a)", Symbol.for("a"))
+        await assertions.deserialization.stringPojo.typeCodec.succeed(schema, "Symbol(a)", Symbol.for("a"))
+      })
+
+      it("UniqueSymbol", async () => {
+        const schema = Schema.UniqueSymbol(Symbol.for("a"))
+        await assertions.serialization.stringPojo.typeCodec.succeed(schema, Symbol.for("a"), "Symbol(a)")
+        await assertions.deserialization.stringPojo.typeCodec.succeed(schema, "Symbol(a)", Symbol.for("a"))
       })
 
       it("BigInt", async () => {
         const schema = Schema.BigInt
 
-        await assertions.serialization.stringLeafJson.typeCodec.succeed(schema, 1n, "1")
-        await assertions.deserialization.stringLeafJson.typeCodec.succeed(schema, "1", 1n)
+        await assertions.serialization.stringPojo.typeCodec.succeed(schema, 1n, "1")
+        await assertions.deserialization.stringPojo.typeCodec.succeed(schema, "1", 1n)
       })
 
       it("PropertyKey", async () => {
         const schema = Schema.PropertyKey
-        await assertions.serialization.stringLeafJson.typeCodec.succeed(schema, "a", "a")
-        await assertions.serialization.stringLeafJson.typeCodec.succeed(schema, 1, "1")
-        await assertions.serialization.stringLeafJson.typeCodec.succeed(schema, Symbol.for("a"), "Symbol(a)")
+        await assertions.serialization.stringPojo.typeCodec.succeed(schema, "a", "a")
+        await assertions.serialization.stringPojo.typeCodec.succeed(schema, 1, "1")
+        await assertions.serialization.stringPojo.typeCodec.succeed(schema, Symbol.for("a"), "Symbol(a)")
 
-        await assertions.deserialization.stringLeafJson.typeCodec.succeed(schema, "a", "a")
-        await assertions.deserialization.stringLeafJson.typeCodec.succeed(schema, "1", "1")
-        await assertions.deserialization.stringLeafJson.typeCodec.succeed(schema, "Symbol(a)", Symbol.for("a"))
+        await assertions.deserialization.stringPojo.typeCodec.succeed(schema, "a", "a")
+        await assertions.deserialization.stringPojo.typeCodec.succeed(schema, "1", "1")
+        await assertions.deserialization.stringPojo.typeCodec.succeed(schema, "Symbol(a)", Symbol.for("a"))
       })
 
       describe("Literal", () => {
         it("string", async () => {
           const schema = Schema.Literal("a")
 
-          await assertions.serialization.stringLeafJson.typeCodec.succeed(schema, "a", "a")
-          await assertions.deserialization.stringLeafJson.typeCodec.succeed(schema, "a", "a")
+          await assertions.serialization.stringPojo.typeCodec.succeed(schema, "a", "a")
+          await assertions.deserialization.stringPojo.typeCodec.succeed(schema, "a", "a")
         })
 
         it("number", async () => {
           const schema = Schema.Literal(1)
 
-          await assertions.serialization.stringLeafJson.typeCodec.succeed(schema, 1, "1")
-          await assertions.deserialization.stringLeafJson.typeCodec.succeed(schema, "1", 1)
+          await assertions.serialization.stringPojo.typeCodec.succeed(schema, 1, "1")
+          await assertions.deserialization.stringPojo.typeCodec.succeed(schema, "1", 1)
         })
 
         it("boolean", async () => {
           const schema = Schema.Literal(true)
 
-          await assertions.serialization.stringLeafJson.typeCodec.succeed(schema, true, "true")
-          await assertions.deserialization.stringLeafJson.typeCodec.succeed(schema, "true", true)
+          await assertions.serialization.stringPojo.typeCodec.succeed(schema, true, "true")
+          await assertions.deserialization.stringPojo.typeCodec.succeed(schema, "true", true)
         })
 
         it("bigint", async () => {
           const schema = Schema.Literal(1n)
 
-          await assertions.serialization.stringLeafJson.typeCodec.succeed(schema, 1n, "1")
-          await assertions.deserialization.stringLeafJson.typeCodec.succeed(schema, "1", 1n)
+          await assertions.serialization.stringPojo.typeCodec.succeed(schema, 1n, "1")
+          await assertions.deserialization.stringPojo.typeCodec.succeed(schema, "1", 1n)
         })
       })
 
       it("Literals", async () => {
         const schema = Schema.Literals(["a", 1, 2n, true])
-        await assertions.deserialization.stringLeafJson.typeCodec.fail(
+        await assertions.deserialization.stringPojo.typeCodec.fail(
           schema,
           "-",
           `Expected "a" | 1 | 2 | true, got "-"`
@@ -1195,10 +1207,10 @@ describe("Serializer", () => {
         }
         const schema = Schema.Enums(Fruits)
 
-        await assertions.serialization.stringLeafJson.typeCodec.succeed(schema, Fruits.Apple, "0")
-        await assertions.serialization.stringLeafJson.typeCodec.succeed(schema, Fruits.Banana, "1")
-        await assertions.deserialization.stringLeafJson.typeCodec.succeed(schema, "0", Fruits.Apple)
-        await assertions.deserialization.stringLeafJson.typeCodec.succeed(schema, "1", Fruits.Banana)
+        await assertions.serialization.stringPojo.typeCodec.succeed(schema, Fruits.Apple, "0")
+        await assertions.serialization.stringPojo.typeCodec.succeed(schema, Fruits.Banana, "1")
+        await assertions.deserialization.stringPojo.typeCodec.succeed(schema, "0", Fruits.Apple)
+        await assertions.deserialization.stringPojo.typeCodec.succeed(schema, "1", Fruits.Banana)
       })
 
       describe("Struct", () => {
@@ -1207,10 +1219,10 @@ describe("Serializer", () => {
             a: Schema.Date
           })
 
-          await assertions.serialization.stringLeafJson.typeCodec.succeed(schema, { a: new Date("2021-01-01") }, {
+          await assertions.serialization.stringPojo.typeCodec.succeed(schema, { a: new Date("2021-01-01") }, {
             a: "2021-01-01T00:00:00.000Z"
           })
-          await assertions.deserialization.stringLeafJson.typeCodec.succeed(schema, { a: "2021-01-01T00:00:00.000Z" }, {
+          await assertions.deserialization.stringPojo.typeCodec.succeed(schema, { a: "2021-01-01T00:00:00.000Z" }, {
             a: new Date("2021-01-01")
           })
         })
@@ -1220,15 +1232,15 @@ describe("Serializer", () => {
             a: Schema.UndefinedOr(Schema.Date)
           })
 
-          await assertions.serialization.stringLeafJson.typeCodec.succeed(schema, { a: new Date("2021-01-01") }, {
+          await assertions.serialization.stringPojo.typeCodec.succeed(schema, { a: new Date("2021-01-01") }, {
             a: "2021-01-01T00:00:00.000Z"
           })
-          await assertions.serialization.stringLeafJson.typeCodec.succeed(schema, { a: undefined }, { a: undefined })
+          await assertions.serialization.stringPojo.typeCodec.succeed(schema, { a: undefined }, { a: undefined })
 
-          await assertions.deserialization.stringLeafJson.typeCodec.succeed(schema, { a: "2021-01-01T00:00:00.000Z" }, {
+          await assertions.deserialization.stringPojo.typeCodec.succeed(schema, { a: "2021-01-01T00:00:00.000Z" }, {
             a: new Date("2021-01-01")
           })
-          await assertions.deserialization.stringLeafJson.typeCodec.succeed(schema, { a: undefined }, { a: undefined })
+          await assertions.deserialization.stringPojo.typeCodec.succeed(schema, { a: undefined }, { a: undefined })
         })
 
         it("NullOr(Date)", async () => {
@@ -1236,15 +1248,15 @@ describe("Serializer", () => {
             a: Schema.NullOr(Schema.Date)
           })
 
-          await assertions.serialization.stringLeafJson.typeCodec.succeed(schema, { a: new Date("2021-01-01") }, {
+          await assertions.serialization.stringPojo.typeCodec.succeed(schema, { a: new Date("2021-01-01") }, {
             a: "2021-01-01T00:00:00.000Z"
           })
-          await assertions.serialization.stringLeafJson.typeCodec.succeed(schema, { a: null }, { a: undefined })
+          await assertions.serialization.stringPojo.typeCodec.succeed(schema, { a: null }, { a: undefined })
 
-          await assertions.deserialization.stringLeafJson.typeCodec.succeed(schema, { a: "2021-01-01T00:00:00.000Z" }, {
+          await assertions.deserialization.stringPojo.typeCodec.succeed(schema, { a: "2021-01-01T00:00:00.000Z" }, {
             a: new Date("2021-01-01")
           })
-          await assertions.deserialization.stringLeafJson.typeCodec.succeed(schema, { a: undefined }, { a: null })
+          await assertions.deserialization.stringPojo.typeCodec.succeed(schema, { a: undefined }, { a: null })
         })
 
         it("optionalKey(Date)", async () => {
@@ -1252,15 +1264,15 @@ describe("Serializer", () => {
             a: Schema.optionalKey(Schema.Date)
           })
 
-          await assertions.serialization.stringLeafJson.typeCodec.succeed(schema, { a: new Date("2021-01-01") }, {
+          await assertions.serialization.stringPojo.typeCodec.succeed(schema, { a: new Date("2021-01-01") }, {
             a: "2021-01-01T00:00:00.000Z"
           })
-          await assertions.serialization.stringLeafJson.typeCodec.succeed(schema, {}, {})
+          await assertions.serialization.stringPojo.typeCodec.succeed(schema, {}, {})
 
-          await assertions.deserialization.stringLeafJson.typeCodec.succeed(schema, { a: "2021-01-01T00:00:00.000Z" }, {
+          await assertions.deserialization.stringPojo.typeCodec.succeed(schema, { a: "2021-01-01T00:00:00.000Z" }, {
             a: new Date("2021-01-01")
           })
-          await assertions.deserialization.stringLeafJson.typeCodec.succeed(schema, {}, {})
+          await assertions.deserialization.stringPojo.typeCodec.succeed(schema, {}, {})
         })
 
         it("optional(Date)", async () => {
@@ -1268,30 +1280,30 @@ describe("Serializer", () => {
             a: Schema.optional(Schema.Date)
           })
 
-          await assertions.serialization.stringLeafJson.typeCodec.succeed(schema, { a: new Date("2021-01-01") }, {
+          await assertions.serialization.stringPojo.typeCodec.succeed(schema, { a: new Date("2021-01-01") }, {
             a: "2021-01-01T00:00:00.000Z"
           })
-          await assertions.serialization.stringLeafJson.typeCodec.succeed(schema, {}, {})
-          await assertions.serialization.stringLeafJson.typeCodec.succeed(schema, { a: undefined }, { a: undefined })
+          await assertions.serialization.stringPojo.typeCodec.succeed(schema, {}, {})
+          await assertions.serialization.stringPojo.typeCodec.succeed(schema, { a: undefined }, { a: undefined })
 
-          await assertions.deserialization.stringLeafJson.typeCodec.succeed(schema, { a: "2021-01-01T00:00:00.000Z" }, {
+          await assertions.deserialization.stringPojo.typeCodec.succeed(schema, { a: "2021-01-01T00:00:00.000Z" }, {
             a: new Date("2021-01-01")
           })
-          await assertions.deserialization.stringLeafJson.typeCodec.succeed(schema, {}, {})
-          await assertions.deserialization.stringLeafJson.typeCodec.succeed(schema, { a: undefined }, { a: undefined })
+          await assertions.deserialization.stringPojo.typeCodec.succeed(schema, {}, {})
+          await assertions.deserialization.stringPojo.typeCodec.succeed(schema, { a: undefined }, { a: undefined })
         })
       })
 
       it("Record(Symbol, Date)", async () => {
         const schema = Schema.Record(Schema.Symbol, Schema.Date)
 
-        await assertions.serialization.stringLeafJson.typeCodec.succeed(
+        await assertions.serialization.stringPojo.typeCodec.succeed(
           schema,
           { [Symbol.for("a")]: new Date("2021-01-01"), [Symbol.for("b")]: new Date("2021-01-01") },
           { "Symbol(a)": "2021-01-01T00:00:00.000Z", "Symbol(b)": "2021-01-01T00:00:00.000Z" }
         )
 
-        await assertions.deserialization.stringLeafJson.typeCodec.succeed(
+        await assertions.deserialization.stringPojo.typeCodec.succeed(
           schema,
           { "Symbol(a)": "2021-01-01T00:00:00.000Z", "Symbol(b)": "2021-01-01T00:00:00.000Z" },
           { [Symbol.for("a")]: new Date("2021-01-01"), [Symbol.for("b")]: new Date("2021-01-01") }
@@ -1302,12 +1314,12 @@ describe("Serializer", () => {
         it("Date", async () => {
           const schema = Schema.Tuple([Schema.Date])
 
-          await assertions.serialization.stringLeafJson.typeCodec.succeed(
+          await assertions.serialization.stringPojo.typeCodec.succeed(
             schema,
             [new Date("2021-01-01")],
             ["2021-01-01T00:00:00.000Z"]
           )
-          await assertions.deserialization.stringLeafJson.typeCodec.succeed(
+          await assertions.deserialization.stringPojo.typeCodec.succeed(
             schema,
             ["2021-01-01T00:00:00.000Z"],
             [new Date("2021-01-01")]
@@ -1317,68 +1329,68 @@ describe("Serializer", () => {
         it("UndefinedOr(Date)", async () => {
           const schema = Schema.Tuple([Schema.UndefinedOr(Schema.Date)])
 
-          await assertions.serialization.stringLeafJson.typeCodec.succeed(
+          await assertions.serialization.stringPojo.typeCodec.succeed(
             schema,
             [new Date("2021-01-01")],
             ["2021-01-01T00:00:00.000Z"]
           )
-          await assertions.serialization.stringLeafJson.typeCodec.succeed(schema, [undefined])
+          await assertions.serialization.stringPojo.typeCodec.succeed(schema, [undefined])
 
-          await assertions.deserialization.stringLeafJson.typeCodec.succeed(schema, ["2021-01-01T00:00:00.000Z"], [
+          await assertions.deserialization.stringPojo.typeCodec.succeed(schema, ["2021-01-01T00:00:00.000Z"], [
             new Date("2021-01-01")
           ])
-          await assertions.deserialization.stringLeafJson.typeCodec.succeed(schema, [undefined])
+          await assertions.deserialization.stringPojo.typeCodec.succeed(schema, [undefined])
         })
 
         it("NullOr(Date)", async () => {
           const schema = Schema.Tuple([Schema.NullOr(Schema.Date)])
 
-          await assertions.serialization.stringLeafJson.typeCodec.succeed(schema, [new Date("2021-01-01")], [
+          await assertions.serialization.stringPojo.typeCodec.succeed(schema, [new Date("2021-01-01")], [
             "2021-01-01T00:00:00.000Z"
           ])
-          await assertions.serialization.stringLeafJson.typeCodec.succeed(schema, [null], [undefined])
+          await assertions.serialization.stringPojo.typeCodec.succeed(schema, [null], [undefined])
 
-          await assertions.deserialization.stringLeafJson.typeCodec.succeed(schema, ["2021-01-01T00:00:00.000Z"], [
+          await assertions.deserialization.stringPojo.typeCodec.succeed(schema, ["2021-01-01T00:00:00.000Z"], [
             new Date("2021-01-01")
           ])
-          await assertions.deserialization.stringLeafJson.typeCodec.succeed(schema, [undefined], [null])
+          await assertions.deserialization.stringPojo.typeCodec.succeed(schema, [undefined], [null])
         })
 
         it("optionalKey(Date)", async () => {
           const schema = Schema.Tuple([Schema.optionalKey(Schema.Date)])
 
-          await assertions.serialization.stringLeafJson.typeCodec.succeed(schema, [new Date("2021-01-01")], [
+          await assertions.serialization.stringPojo.typeCodec.succeed(schema, [new Date("2021-01-01")], [
             "2021-01-01T00:00:00.000Z"
           ])
-          await assertions.serialization.stringLeafJson.typeCodec.succeed(schema, [], [])
+          await assertions.serialization.stringPojo.typeCodec.succeed(schema, [], [])
 
-          await assertions.deserialization.stringLeafJson.typeCodec.succeed(schema, ["2021-01-01T00:00:00.000Z"], [
+          await assertions.deserialization.stringPojo.typeCodec.succeed(schema, ["2021-01-01T00:00:00.000Z"], [
             new Date("2021-01-01")
           ])
-          await assertions.deserialization.stringLeafJson.typeCodec.succeed(schema, [], [])
+          await assertions.deserialization.stringPojo.typeCodec.succeed(schema, [], [])
         })
 
         it("optional(Date)", async () => {
           const schema = Schema.Tuple([Schema.optional(Schema.Date)])
 
-          await assertions.serialization.stringLeafJson.typeCodec.succeed(schema, [new Date("2021-01-01")], [
+          await assertions.serialization.stringPojo.typeCodec.succeed(schema, [new Date("2021-01-01")], [
             "2021-01-01T00:00:00.000Z"
           ])
-          await assertions.serialization.stringLeafJson.typeCodec.succeed(schema, [], [])
-          await assertions.serialization.stringLeafJson.typeCodec.succeed(schema, [undefined])
+          await assertions.serialization.stringPojo.typeCodec.succeed(schema, [], [])
+          await assertions.serialization.stringPojo.typeCodec.succeed(schema, [undefined])
 
-          await assertions.deserialization.stringLeafJson.typeCodec.succeed(schema, ["2021-01-01T00:00:00.000Z"], [
+          await assertions.deserialization.stringPojo.typeCodec.succeed(schema, ["2021-01-01T00:00:00.000Z"], [
             new Date("2021-01-01")
           ])
-          await assertions.deserialization.stringLeafJson.typeCodec.succeed(schema, [], [])
-          await assertions.deserialization.stringLeafJson.typeCodec.succeed(schema, [undefined])
+          await assertions.deserialization.stringPojo.typeCodec.succeed(schema, [], [])
+          await assertions.deserialization.stringPojo.typeCodec.succeed(schema, [undefined])
         })
       })
 
       it("Array(Date)", async () => {
         const schema = Schema.Array(Schema.Date)
 
-        await assertions.serialization.stringLeafJson.typeCodec.succeed(
+        await assertions.serialization.stringPojo.typeCodec.succeed(
           schema,
           [new Date("2021-01-01"), new Date("2021-01-02")],
           ["2021-01-01T00:00:00.000Z", "2021-01-02T00:00:00.000Z"]
@@ -1389,37 +1401,37 @@ describe("Serializer", () => {
         it("NullOr(Date)", async () => {
           const schema = Schema.NullOr(Schema.String)
 
-          await assertions.serialization.stringLeafJson.typeCodec.succeed(schema, "a", "a")
-          await assertions.serialization.stringLeafJson.typeCodec.succeed(schema, null, undefined)
-          await assertions.deserialization.stringLeafJson.typeCodec.succeed(schema, undefined, null)
-          await assertions.deserialization.stringLeafJson.typeCodec.succeed(schema, "a", "a")
+          await assertions.serialization.stringPojo.typeCodec.succeed(schema, "a", "a")
+          await assertions.serialization.stringPojo.typeCodec.succeed(schema, null, undefined)
+          await assertions.deserialization.stringPojo.typeCodec.succeed(schema, undefined, null)
+          await assertions.deserialization.stringPojo.typeCodec.succeed(schema, "a", "a")
         })
 
         it("NullOr(Number)", async () => {
           const schema = Schema.NullOr(Schema.Number)
 
-          await assertions.serialization.stringLeafJson.typeCodec.succeed(schema, 1, "1")
-          await assertions.serialization.stringLeafJson.typeCodec.succeed(schema, null, undefined)
-          await assertions.deserialization.stringLeafJson.typeCodec.succeed(schema, undefined, null)
-          await assertions.deserialization.stringLeafJson.typeCodec.succeed(schema, "1", 1)
+          await assertions.serialization.stringPojo.typeCodec.succeed(schema, 1, "1")
+          await assertions.serialization.stringPojo.typeCodec.succeed(schema, null, undefined)
+          await assertions.deserialization.stringPojo.typeCodec.succeed(schema, undefined, null)
+          await assertions.deserialization.stringPojo.typeCodec.succeed(schema, "1", 1)
         })
 
         it("Array(NullOr(Number))", async () => {
           const schema = Schema.Array(Schema.NullOr(Schema.Number))
 
-          await assertions.serialization.stringLeafJson.typeCodec.succeed(schema, [1, null], ["1", undefined])
-          await assertions.deserialization.stringLeafJson.typeCodec.succeed(schema, ["1", undefined], [1, null])
+          await assertions.serialization.stringPojo.typeCodec.succeed(schema, [1, null], ["1", undefined])
+          await assertions.deserialization.stringPojo.typeCodec.succeed(schema, ["1", undefined], [1, null])
         })
 
         it("Union(Schema.Date, FiniteFromDate)", async () => {
           const schema = Schema.Union([Schema.Date, FiniteFromDate])
 
-          await assertions.serialization.stringLeafJson.typeCodec.succeed(
+          await assertions.serialization.stringPojo.typeCodec.succeed(
             schema,
             new Date("2021-01-01"),
             "2021-01-01T00:00:00.000Z"
           )
-          await assertions.serialization.stringLeafJson.typeCodec.succeed(schema, 0, "0")
+          await assertions.serialization.stringPojo.typeCodec.succeed(schema, 0, "0")
         })
       })
 
@@ -1436,11 +1448,11 @@ describe("Serializer", () => {
           categories: Schema.Array(Schema.suspend((): Schema.Codec<CategoryType, CategoryEncoded> => schema))
         })
 
-        await assertions.serialization.stringLeafJson.typeCodec.succeed(schema, { a: 1, categories: [] }, {
+        await assertions.serialization.stringPojo.typeCodec.succeed(schema, { a: 1, categories: [] }, {
           a: "1",
           categories: []
         })
-        await assertions.serialization.stringLeafJson.typeCodec.succeed(schema, {
+        await assertions.serialization.stringPojo.typeCodec.succeed(schema, {
           a: 1,
           categories: [{ a: 2, categories: [] }]
         }, {
@@ -1449,11 +1461,11 @@ describe("Serializer", () => {
             { a: "2", categories: [] }
           ]
         })
-        await assertions.deserialization.stringLeafJson.typeCodec.succeed(schema, {
+        await assertions.deserialization.stringPojo.typeCodec.succeed(schema, {
           a: "1",
           categories: []
         }, { a: 1, categories: [] })
-        await assertions.deserialization.stringLeafJson.typeCodec.succeed(schema, {
+        await assertions.deserialization.stringPojo.typeCodec.succeed(schema, {
           a: "1",
           categories: [
             { a: "2", categories: [] }
@@ -1464,7 +1476,7 @@ describe("Serializer", () => {
       it("FiniteFromDate", async () => {
         const schema = FiniteFromDate
 
-        await assertions.serialization.stringLeafJson.typeCodec.succeed(schema, 0, "0")
+        await assertions.serialization.stringPojo.typeCodec.succeed(schema, 0, "0")
       })
 
       it("Class", async () => {
@@ -1472,8 +1484,8 @@ describe("Serializer", () => {
           a: FiniteFromDate
         })) {}
 
-        await assertions.serialization.stringLeafJson.typeCodec.succeed(A, new A({ a: 0 }), { a: "0" })
-        await assertions.deserialization.stringLeafJson.typeCodec.succeed(A, { a: "0" }, new A({ a: 0 }))
+        await assertions.serialization.stringPojo.typeCodec.succeed(A, new A({ a: 0 }), { a: "0" })
+        await assertions.deserialization.stringPojo.typeCodec.succeed(A, { a: "0" }, new A({ a: 0 }))
       })
 
       it("ErrorClass", async () => {
@@ -1481,14 +1493,14 @@ describe("Serializer", () => {
           a: FiniteFromDate
         }) {}
 
-        await assertions.serialization.stringLeafJson.typeCodec.succeed(E, new E({ a: 0 }), { a: "0" })
-        await assertions.deserialization.stringLeafJson.typeCodec.succeed(E, { a: "0" }, new E({ a: 0 }))
+        await assertions.serialization.stringPojo.typeCodec.succeed(E, new E({ a: 0 }), { a: "0" })
+        await assertions.deserialization.stringPojo.typeCodec.succeed(E, { a: "0" }, new E({ a: 0 }))
       })
 
       it("Date", async () => {
         const schema = Schema.Date
 
-        await assertions.serialization.stringLeafJson.typeCodec.succeed(
+        await assertions.serialization.stringPojo.typeCodec.succeed(
           schema,
           new Date("2021-01-01"),
           "2021-01-01T00:00:00.000Z"
@@ -1498,19 +1510,19 @@ describe("Serializer", () => {
       it("Error", async () => {
         const schema = Schema.Error
 
-        await assertions.serialization.stringLeafJson.typeCodec.succeed(
+        await assertions.serialization.stringPojo.typeCodec.succeed(
           schema,
           new Error("a"),
           { name: "Error", message: "a" }
         )
         // Error: message only
-        await assertions.deserialization.stringLeafJson.typeCodec.succeed(
+        await assertions.deserialization.stringPojo.typeCodec.succeed(
           schema,
           { message: "a" },
           new Error("a", { cause: { message: "a" } })
         )
         // Error: message and name
-        await assertions.deserialization.stringLeafJson.typeCodec.succeed(
+        await assertions.deserialization.stringPojo.typeCodec.succeed(
           schema,
           { name: "b", message: "a" },
           (() => {
@@ -1520,7 +1532,7 @@ describe("Serializer", () => {
           })()
         )
         // Error: message, name, and stack
-        await assertions.deserialization.stringLeafJson.typeCodec.succeed(
+        await assertions.deserialization.stringPojo.typeCodec.succeed(
           schema,
           { name: "b", message: "a", stack: "c" },
           (() => {
@@ -1535,22 +1547,22 @@ describe("Serializer", () => {
       it("URL", async () => {
         const schema = Schema.URL
 
-        await assertions.serialization.stringLeafJson.typeCodec.succeed(
+        await assertions.serialization.stringPojo.typeCodec.succeed(
           schema,
           new URL("https://example.com"),
           "https://example.com/"
         )
-        await assertions.deserialization.stringLeafJson.typeCodec.succeed(
+        await assertions.deserialization.stringPojo.typeCodec.succeed(
           schema,
           "https://example.com",
           new URL("https://example.com")
         )
-        await assertions.deserialization.stringLeafJson.typeCodec.succeed(
+        await assertions.deserialization.stringPojo.typeCodec.succeed(
           schema,
           "https://example.com/",
           new URL("https://example.com")
         )
-        await assertions.deserialization.stringLeafJson.typeCodec.fail(
+        await assertions.deserialization.stringPojo.typeCodec.fail(
           schema,
           "not a url",
           isDeno ? `TypeError: Invalid URL: 'not a url'` : `TypeError: Invalid URL`
@@ -1560,32 +1572,32 @@ describe("Serializer", () => {
       it("Option(Date)", async () => {
         const schema = Schema.Option(Schema.Date)
 
-        await assertions.serialization.stringLeafJson.typeCodec.succeed(schema, Option.some(new Date("2021-01-01")), {
+        await assertions.serialization.stringPojo.typeCodec.succeed(schema, Option.some(new Date("2021-01-01")), {
           _tag: "Some",
           value: "2021-01-01T00:00:00.000Z"
         })
-        await assertions.serialization.stringLeafJson.typeCodec.succeed(schema, Option.none(), { _tag: "None" })
+        await assertions.serialization.stringPojo.typeCodec.succeed(schema, Option.none(), { _tag: "None" })
       })
 
       it("Redacted(Option(String))", async () => {
         const schema = Schema.Redacted(Schema.Option(Schema.String))
 
-        await assertions.serialization.stringLeafJson.typeCodec.fail(
+        await assertions.serialization.stringPojo.typeCodec.fail(
           schema,
           Redacted.make(Option.none()),
           `Cannot serialize Redacted`
         )
-        await assertions.serialization.stringLeafJson.typeCodec.fail(
+        await assertions.serialization.stringPojo.typeCodec.fail(
           schema,
           Redacted.make(Option.some("a")),
           `Cannot serialize Redacted`
         )
-        await assertions.deserialization.stringLeafJson.typeCodec.succeed(
+        await assertions.deserialization.stringPojo.typeCodec.succeed(
           schema,
           { _tag: "None" },
           Redacted.make(Option.none())
         )
-        await assertions.deserialization.stringLeafJson.typeCodec.succeed(
+        await assertions.deserialization.stringPojo.typeCodec.succeed(
           schema,
           { _tag: "Some", value: "a" },
           Redacted.make(Option.some("a"))
@@ -1595,7 +1607,7 @@ describe("Serializer", () => {
       it("Map", async () => {
         const schema = Schema.Map(Schema.Option(Schema.Date), FiniteFromDate)
 
-        await assertions.serialization.stringLeafJson.typeCodec.succeed(
+        await assertions.serialization.stringPojo.typeCodec.succeed(
           schema,
           new Map([[Option.some(new Date("2021-01-01")), 0]]),
           [[
@@ -1603,7 +1615,7 @@ describe("Serializer", () => {
             "0"
           ]]
         )
-        await assertions.deserialization.stringLeafJson.typeCodec.succeed(
+        await assertions.deserialization.stringPojo.typeCodec.succeed(
           schema,
           [[{ _tag: "Some", value: "2021-01-01T00:00:00.000Z" }, "0"]],
           new Map([[Option.some(new Date("2021-01-01")), 0]])

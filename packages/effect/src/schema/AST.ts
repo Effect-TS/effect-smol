@@ -398,6 +398,7 @@ export class NullKeyword extends AbstractParser {
   parser() {
     return fromConst(this, null)
   }
+  /** @internal */
   goStringPojo(): AST {
     return replaceEncoding(this, [nullLink])
   }
@@ -423,6 +424,10 @@ export class UndefinedKeyword extends AbstractParser {
     return fromConst(this, undefined)
   }
   /** @internal */
+  goJson(): AST {
+    return replaceEncoding(this, [undefinedLink])
+  }
+  /** @internal */
   getExpected(): string {
     return "undefined"
   }
@@ -433,6 +438,14 @@ export class UndefinedKeyword extends AbstractParser {
  */
 export const undefinedKeyword = new UndefinedKeyword()
 
+const undefinedLink = new Link(
+  nullKeyword,
+  new Transformation.Transformation(
+    Getter.transform(() => undefined),
+    Getter.transform(() => null)
+  )
+)
+
 /**
  * @category model
  * @since 4.0.0
@@ -442,6 +455,10 @@ export class VoidKeyword extends AbstractParser {
   /** @internal */
   parser() {
     return fromConst(this, undefined)
+  }
+  /** @internal */
+  goJson(): AST {
+    return replaceEncoding(this, [undefinedLink])
   }
   /** @internal */
   getExpected(): string {
@@ -559,6 +576,7 @@ export class Enums extends AbstractParser {
       (input): input is typeof this.enums[number][1] => values.has(input)
     )
   }
+  /** @internal */
   goStringPojo(): AST {
     if (this.enums.some(([_, v]) => Predicate.isNumber(v))) {
       const coercions = Object.fromEntries(this.enums.map(([_, v]) => [String(v), v]))
@@ -700,6 +718,10 @@ export class UniqueSymbol extends AbstractParser {
     return fromConst(this, this.symbol)
   }
   /** @internal */
+  goJson(): AST {
+    return replaceEncoding(this, [symbolLink])
+  }
+  /** @internal */
   getExpected(): string {
     return String(this.symbol)
   }
@@ -746,6 +768,11 @@ export class LiteralType extends AbstractParser {
   parser() {
     return fromConst(this, this.literal)
   }
+  /** @internal */
+  goJson(): AST {
+    return Predicate.isBigInt(this.literal) ? coerceLiteral(this) : this
+  }
+  /** @internal */
   goStringPojo(): AST {
     return Predicate.isString(this.literal) ? this : coerceLiteral(this)
   }
@@ -786,6 +813,7 @@ export class NumberKeyword extends AbstractParser {
   parser() {
     return fromRefinement(this, Predicate.isNumber)
   }
+  /** @internal */
   goStringPojo(): AST {
     return replaceEncoding(this, [numberLink])
   }
@@ -810,6 +838,7 @@ export class BooleanKeyword extends AbstractParser {
   parser() {
     return fromRefinement(this, Predicate.isBoolean)
   }
+  /** @internal */
   goStringPojo(): AST {
     return replaceEncoding(this, [booleanLink])
   }
@@ -835,6 +864,10 @@ export class SymbolKeyword extends AbstractParser {
     return fromRefinement(this, Predicate.isSymbol)
   }
   /** @internal */
+  goJson(): AST {
+    return replaceEncoding(this, [symbolLink])
+  }
+  /** @internal */
   getExpected(): string {
     return "symbol"
   }
@@ -855,8 +888,9 @@ export class BigIntKeyword extends AbstractParser {
   parser() {
     return fromRefinement(this, Predicate.isBigInt)
   }
-  goStringPojo(): AST {
-    return replaceEncoding(this, [bigIntLink])
+  /** @internal */
+  goJson(): AST {
+    return coerceBigInt(this)
   }
   /** @internal */
   getExpected(): string {
@@ -2337,13 +2371,11 @@ export function getReducer<A>(alg: ReducerAlg<A>) {
   }
 }
 
-/** @internal */
-export function coerceBigInt(ast: BigIntKeyword): BigIntKeyword {
+function coerceBigInt(ast: BigIntKeyword): BigIntKeyword {
   return replaceEncoding(ast, [bigIntLink])
 }
 
-/** @internal */
-export const goTemplateLiteral = memoize((ast: AST): AST => {
+const goTemplateLiteral = memoize((ast: AST): AST => {
   if (ast.encoding) {
     const links = ast.encoding
     const last = links[links.length - 1]
@@ -2356,8 +2388,9 @@ export const goTemplateLiteral = memoize((ast: AST): AST => {
     case "StringKeyword":
     case "TemplateLiteral":
       return ast
-    case "NumberKeyword":
     case "BigIntKeyword":
+      return ast.goJson()
+    case "NumberKeyword":
     case "LiteralType":
       return ast.goStringPojo()
     case "TupleType":
@@ -2401,6 +2434,32 @@ const bigIntLink = new Link(
   new Transformation.Transformation(
     Getter.transform(BigInt),
     Getter.String()
+  )
+)
+
+const SYMBOL_PATTERN = /^Symbol\((.*)\)$/
+
+/**
+ * to distinguish between Symbol and String, we need to add a check to the string keyword
+ */
+const symbolLink = new Link(
+  appendChecks(stringKeyword, [Check.regex(SYMBOL_PATTERN, { title: "a string representing a symbol" })]),
+  new Transformation.Transformation(
+    Getter.transform((description) => Symbol.for(SYMBOL_PATTERN.exec(description)![1])),
+    Getter.transformOrFail((sym: symbol) => {
+      const description = sym.description
+      if (description !== undefined) {
+        if (Symbol.for(description) === sym) {
+          return Effect.succeed(String(sym))
+        }
+        return Effect.fail(
+          new Issue.Forbidden(Option.some(sym), { message: "cannot serialize to string, Symbol is not registered" })
+        )
+      }
+      return Effect.fail(
+        new Issue.Forbidden(Option.some(sym), { message: "cannot serialize to string, Symbol has no description" })
+      )
+    })
   )
 )
 

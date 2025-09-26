@@ -187,7 +187,7 @@ function make(asserts: {
         }
       },
 
-      stringLeafJson: {
+      stringPojo: {
         typeCodec: {
           async succeed<const A, const I, RD, RE>(
             schema: Schema.Codec<A, I, RD, RE>,
@@ -267,7 +267,7 @@ function make(asserts: {
         }
       },
 
-      stringLeafJson: {
+      stringPojo: {
         typeCodec: {
           async succeed<const A, const I, RD, RE>(
             schema: Schema.Codec<A, I, RD, RE>,
