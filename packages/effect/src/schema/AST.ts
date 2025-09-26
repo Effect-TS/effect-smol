@@ -1897,11 +1897,30 @@ export function appendChecks<A extends AST>(ast: A, checks: Checks): A {
   return replaceChecks(ast, ast.checks ? [...ast.checks, ...checks] : checks)
 }
 
+/** @internal */
+export function apply(f: (ast: AST) => AST): (ast: AST) => AST {
+  function out(ast: AST): AST {
+    if (ast.encoding) {
+      const links = ast.encoding
+      const last = links[links.length - 1]
+      const to = out(last.to)
+      return to === last.to ?
+        ast :
+        replaceEncoding(ast, replaceLastLink(links, new Link(to, last.transformation)))
+    }
+    return f(ast)
+  }
+  return out
+}
+
 function applyEncoded<A extends AST>(ast: A, f: (ast: AST) => AST): A {
   if (ast.encoding) {
     const links = ast.encoding
     const last = links[links.length - 1]
-    return replaceEncoding(ast, replaceLastLink(links, new Link(f(last.to), last.transformation)))
+    const to = f(last.to)
+    return to === last.to ?
+      ast :
+      replaceEncoding(ast, replaceLastLink(links, new Link(to, last.transformation)))
   }
   return ast
 }
@@ -2395,15 +2414,7 @@ function coerceBigInt(ast: BigIntKeyword): BigIntKeyword {
   return replaceEncoding(ast, [bigIntLink])
 }
 
-const goIndexSignature = memoize((ast: AST): AST => {
-  if (ast.encoding) {
-    const links = ast.encoding
-    const last = links[links.length - 1]
-    const to = goIndexSignature(last.to)
-    return to === last.to ?
-      ast :
-      replaceEncoding(ast, replaceLastLink(links, new Link(to, last.transformation)))
-  }
+const goIndexSignature = memoize(apply((ast: AST): AST => {
   switch (ast._tag) {
     case "NumberKeyword":
       return ast.goStringPojo()
@@ -2412,17 +2423,9 @@ const goIndexSignature = memoize((ast: AST): AST => {
     default:
       return ast
   }
-})
+}))
 
-const goTemplateLiteral = memoize((ast: AST): AST => {
-  if (ast.encoding) {
-    const links = ast.encoding
-    const last = links[links.length - 1]
-    const to = goTemplateLiteral(last.to)
-    return to === last.to ?
-      ast :
-      replaceEncoding(ast, replaceLastLink(links, new Link(to, last.transformation)))
-  }
+const goTemplateLiteral = memoize(apply((ast: AST): AST => {
   switch (ast._tag) {
     case "StringKeyword":
     case "TemplateLiteral":
@@ -2437,7 +2440,7 @@ const goTemplateLiteral = memoize((ast: AST): AST => {
       return ast.go(goTemplateLiteral)
   }
   throw new Error(`Unsupported template literal part tag: ${ast._tag}`)
-})
+}))
 
 const numberKeysRegExp = new RegExp(`(?:${NUMBER_KEYWORD_PATTERN}|Infinity|-Infinity|NaN)`)
 

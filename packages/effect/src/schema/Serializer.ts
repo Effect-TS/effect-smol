@@ -25,16 +25,7 @@ export function json<T, E, RD, RE>(
   return Schema.make(goJson(codec.ast))
 }
 
-const goJson = memoize((ast: AST.AST): AST.AST => {
-  if (ast.encoding) {
-    const links = ast.encoding
-    const last = links[links.length - 1]
-    const to = goJson(last.to)
-    return to === last.to
-      ? ast
-      : AST.replaceEncoding(ast, AST.replaceLastLink(links, new AST.Link(to, last.transformation)))
-  }
-
+const goJson = memoize(AST.apply((ast: AST.AST): AST.AST => {
   function go(ast: AST.AST): AST.AST {
     switch (ast._tag) {
       case "UnknownKeyword":
@@ -73,7 +64,7 @@ const goJson = memoize((ast: AST.AST): AST.AST => {
 
   const out = go(ast)
   return AST.isOptional(ast) ? AST.optionalKey(out) : out
-})
+}))
 
 function requiredGoJsonAnnotation(ast: AST.AST): AST.AST {
   return forbidden(
@@ -139,15 +130,7 @@ export function stringPojo<T, E, RD, RE>(
 }
 
 /** @internal */
-export const goStringPojo = memoize((ast: AST.AST): AST.AST => {
-  if (ast.encoding) {
-    const links = ast.encoding
-    const last = links[links.length - 1]
-    const to = goStringPojo(last.to)
-    return to === last.to ?
-      ast :
-      AST.replaceEncoding(ast, AST.replaceLastLink(links, new AST.Link(to, last.transformation)))
-  }
+export const goStringPojo = memoize(AST.apply((ast: AST.AST): AST.AST => {
   function go(ast: AST.AST): AST.AST {
     switch (ast._tag) {
       case "UnknownKeyword":
@@ -190,7 +173,7 @@ export const goStringPojo = memoize((ast: AST.AST): AST.AST => {
   }
   const out = go(ast)
   return AST.isOptional(ast) ? AST.optionalKey(out) : out
-})
+}))
 
 const nullLink = new AST.Link(
   AST.undefinedKeyword,
@@ -227,16 +210,7 @@ export function ensureArray<T, RD, RE>(
 const ENSURE_ARRAY_ANNOTATION_KEY = "~effect/schema/Serializer/ensureArray"
 
 /** @internal */
-export const goEnsureArray = memoize((ast: AST.AST): AST.AST => {
-  if (ast.encoding) {
-    const links = ast.encoding
-    const last = links[links.length - 1]
-    const to = goEnsureArray(last.to)
-    if (to === last.to) {
-      return ast
-    }
-    return AST.replaceEncoding(ast, AST.replaceLastLink(links, new AST.Link(to, last.transformation)))
-  }
+export const goEnsureArray = memoize(AST.apply((ast: AST.AST): AST.AST => {
   if (AST.isUnionType(ast) && ast.annotations?.[ENSURE_ARRAY_ANNOTATION_KEY]) {
     return ast
   }
@@ -260,7 +234,7 @@ export const goEnsureArray = memoize((ast: AST.AST): AST.AST => {
     return out.context?.isOptional ? AST.optionalKey(ensure) : ensure
   }
   return out
-})
+}))
 
 type XmlEncoderOptions = {
   /** Root element name for the returned XML string. Default: "root" */
