@@ -2467,7 +2467,7 @@ export interface decodingMiddleware<S extends Top, RD> extends
  */
 export function decodingMiddleware<S extends Top, RD>(
   decode: (
-    sr: Effect.Effect<Option_.Option<S["Type"]>, Issue.Issue, S["DecodingServices"]>,
+    effect: Effect.Effect<Option_.Option<S["Type"]>, Issue.Issue, S["DecodingServices"]>,
     options: AST.ParseOptions
   ) => Effect.Effect<Option_.Option<S["Type"]>, Issue.Issue, RD>
 ) {
