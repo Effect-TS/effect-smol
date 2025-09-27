@@ -33,8 +33,8 @@ describe("ToOptic", () => {
         const modify = optic.modify(addOne)
 
         deepStrictEqual(
-          modify(B.makeSync({ a: A.makeSync({ value: Value.makeSync({ a: new Date(0) }) }) })),
-          B.makeSync({ a: A.makeSync({ value: Value.makeSync({ a: new Date(1) }) }) })
+          modify(B.makeUnsafe({ a: A.makeUnsafe({ value: Value.makeUnsafe({ a: new Date(0) }) }) })),
+          B.makeUnsafe({ a: A.makeUnsafe({ value: Value.makeUnsafe({ a: new Date(1) }) }) })
         )
       })
     })
@@ -44,7 +44,7 @@ describe("ToOptic", () => {
       const optic = ToOptic.makeIso(schema).key("a")
       const modify = optic.modify(addOne)
 
-      deepStrictEqual(modify(Value.makeSync({ a: new Date(0) })), Value.makeSync({ a: new Date(1) }))
+      deepStrictEqual(modify(Value.makeUnsafe({ a: new Date(0) })), Value.makeUnsafe({ a: new Date(1) }))
     })
 
     it("encodedCodec(Class)", () => {
@@ -59,10 +59,10 @@ describe("ToOptic", () => {
       it("Number & positive", () => {
         const schema = Schema.Number.check(Check.positive()).pipe(Schema.brand("positive"))
         const optic = ToOptic.makeIso(schema)
-        const modify = optic.modify((n) => schema.makeSync(n - 1))
+        const modify = optic.modify((n) => schema.makeUnsafe(n - 1))
 
-        strictEqual(modify(schema.makeSync(2)), 1)
-        throws(() => modify(schema.makeSync(1)), "Expected a value greater than 0, got 0")
+        strictEqual(modify(schema.makeUnsafe(2)), 1)
+        throws(() => modify(schema.makeUnsafe(1)), "Expected a value greater than 0, got 0")
       })
     })
 
@@ -72,8 +72,8 @@ describe("ToOptic", () => {
       const modify = optic.modify(addOne)
 
       deepStrictEqual(
-        modify([Value.makeSync({ a: new Date(0) })]),
-        [Value.makeSync({ a: new Date(1) })]
+        modify([Value.makeUnsafe({ a: new Date(0) })]),
+        [Value.makeUnsafe({ a: new Date(1) })]
       )
     })
 
@@ -83,7 +83,7 @@ describe("ToOptic", () => {
       const item = ToOptic.makeFocusIso(Value).key("a")
       const modify = optic.modify((as) => as.map(item.modify(addOne)))
 
-      deepStrictEqual(modify([Value.makeSync({ a: new Date(0) })]), [Value.makeSync({ a: new Date(1) })])
+      deepStrictEqual(modify([Value.makeUnsafe({ a: new Date(0) })]), [Value.makeUnsafe({ a: new Date(1) })])
     })
 
     it("NonEmptyArray", () => {
@@ -94,14 +94,14 @@ describe("ToOptic", () => {
 
       deepStrictEqual(
         modify([
-          Value.makeSync({ a: new Date(0) }),
-          Value.makeSync({ a: new Date(1) }),
-          Value.makeSync({ a: new Date(2) })
+          Value.makeUnsafe({ a: new Date(0) }),
+          Value.makeUnsafe({ a: new Date(1) }),
+          Value.makeUnsafe({ a: new Date(2) })
         ]),
         [
-          Value.makeSync({ a: new Date(1) }),
-          Value.makeSync({ a: new Date(3) }),
-          Value.makeSync({ a: new Date(4) })
+          Value.makeUnsafe({ a: new Date(1) }),
+          Value.makeUnsafe({ a: new Date(3) }),
+          Value.makeUnsafe({ a: new Date(4) })
         ]
       )
     })
@@ -116,14 +116,14 @@ describe("ToOptic", () => {
 
       deepStrictEqual(
         modify([
-          Value.makeSync({ a: new Date(0) }),
-          Value.makeSync({ a: new Date(1) }),
-          Value.makeSync({ a: new Date(2) })
+          Value.makeUnsafe({ a: new Date(0) }),
+          Value.makeUnsafe({ a: new Date(1) }),
+          Value.makeUnsafe({ a: new Date(2) })
         ]),
         [
-          Value.makeSync({ a: new Date(1) }),
-          Value.makeSync({ a: new Date(3) }),
-          Value.makeSync({ a: new Date(4) })
+          Value.makeUnsafe({ a: new Date(1) }),
+          Value.makeUnsafe({ a: new Date(3) }),
+          Value.makeUnsafe({ a: new Date(4) })
         ]
       )
     })
@@ -138,20 +138,20 @@ describe("ToOptic", () => {
 
       deepStrictEqual(
         modify({
-          value: Value.makeSync({ a: new Date(0) })
+          value: Value.makeUnsafe({ a: new Date(0) })
         }),
         {
-          value: Value.makeSync({ a: new Date(1) })
+          value: Value.makeUnsafe({ a: new Date(1) })
         }
       )
       deepStrictEqual(
         modify({
-          value: Value.makeSync({ a: new Date(0) }),
-          optionalValue: Value.makeSync({ a: new Date(2) })
+          value: Value.makeUnsafe({ a: new Date(0) }),
+          optionalValue: Value.makeUnsafe({ a: new Date(2) })
         }),
         {
-          value: Value.makeSync({ a: new Date(1) }),
-          optionalValue: Value.makeSync({ a: new Date(2) })
+          value: Value.makeUnsafe({ a: new Date(1) }),
+          optionalValue: Value.makeUnsafe({ a: new Date(2) })
         }
       )
     })
@@ -164,12 +164,12 @@ describe("ToOptic", () => {
 
       deepStrictEqual(
         modify({
-          a: Value.makeSync({ a: new Date(0) }),
-          b: Value.makeSync({ a: new Date(1) })
+          a: Value.makeUnsafe({ a: new Date(0) }),
+          b: Value.makeUnsafe({ a: new Date(1) })
         }),
         {
-          a: Value.makeSync({ a: new Date(1) }),
-          b: Value.makeSync({ a: new Date(2) })
+          a: Value.makeUnsafe({ a: new Date(1) }),
+          b: Value.makeUnsafe({ a: new Date(2) })
         }
       )
     })
@@ -187,8 +187,8 @@ describe("ToOptic", () => {
       }))
 
       deepStrictEqual(
-        modify({ a: Value.makeSync({ a: new Date(0) }), b: Value.makeSync({ a: new Date(1) }) }),
-        { a: Value.makeSync({ a: new Date(1) }), b: Value.makeSync({ a: new Date(3) }) }
+        modify({ a: Value.makeUnsafe({ a: new Date(0) }), b: Value.makeUnsafe({ a: new Date(1) }) }),
+        { a: Value.makeUnsafe({ a: new Date(1) }), b: Value.makeUnsafe({ a: new Date(3) }) }
       )
     })
 
@@ -199,7 +199,7 @@ describe("ToOptic", () => {
       const modify = optic.modify((x) => Predicate.isString(x) ? x : item.modify(addOne)(x))
 
       deepStrictEqual(modify("a"), "a")
-      deepStrictEqual(modify(Value.makeSync({ a: new Date(0) })), Value.makeSync({ a: new Date(1) }))
+      deepStrictEqual(modify(Value.makeUnsafe({ a: new Date(0) })), Value.makeUnsafe({ a: new Date(1) }))
     })
 
     it("suspend", () => {
@@ -224,10 +224,10 @@ describe("ToOptic", () => {
       const modify = optic.modify(f)
 
       deepStrictEqual(
-        modify({ a: Value.makeSync({ a: new Date(0) }), as: [{ a: Value.makeSync({ a: new Date(1) }), as: [] }] }),
+        modify({ a: Value.makeUnsafe({ a: new Date(0) }), as: [{ a: Value.makeUnsafe({ a: new Date(1) }), as: [] }] }),
         {
-          a: Value.makeSync({ a: new Date(1) }),
-          as: [{ a: Value.makeSync({ a: new Date(2) }), as: [] }]
+          a: Value.makeUnsafe({ a: new Date(1) }),
+          as: [{ a: Value.makeUnsafe({ a: new Date(2) }), as: [] }]
         }
       )
     })
@@ -237,7 +237,7 @@ describe("ToOptic", () => {
       const optic = ToOptic.makeIso(schema).key("a")
       const modify = optic.modify(addOne)
 
-      deepStrictEqual(modify(Value.makeSync({ a: new Date(0) })), { a: new Date(1) })
+      deepStrictEqual(modify(Value.makeUnsafe({ a: new Date(0) })), { a: new Date(1) })
     })
 
     it("flip(flip(schema))", () => {
@@ -245,7 +245,7 @@ describe("ToOptic", () => {
       const optic = ToOptic.makeIso(schema).key("a")
       const modify = optic.modify(addOne)
 
-      deepStrictEqual(modify(Value.makeSync({ a: new Date(0) })), Value.makeSync({ a: new Date(1) }))
+      deepStrictEqual(modify(Value.makeUnsafe({ a: new Date(0) })), Value.makeUnsafe({ a: new Date(1) }))
     })
 
     it("Opaque", () => {
@@ -263,8 +263,8 @@ describe("ToOptic", () => {
       const modify = optic.modify(addOne)
 
       assertSome(
-        modify(Option.some(Value.makeSync({ a: new Date(0) }))),
-        Value.makeSync({ a: new Date(1) })
+        modify(Option.some(Value.makeUnsafe({ a: new Date(0) }))),
+        Value.makeUnsafe({ a: new Date(1) })
       )
       assertNone(modify(Option.none()))
     })
@@ -275,8 +275,8 @@ describe("ToOptic", () => {
       const modify = optic.modify(addOne)
 
       deepStrictEqual(
-        modify(Result.succeed(Value.makeSync({ a: new Date(0) }))),
-        Result.succeed(Value.makeSync({ a: new Date(1) }))
+        modify(Result.succeed(Value.makeUnsafe({ a: new Date(0) }))),
+        Result.succeed(Value.makeUnsafe({ a: new Date(1) }))
       )
     })
 
@@ -286,8 +286,8 @@ describe("ToOptic", () => {
       const modify = optic.modify(addOne)
 
       deepStrictEqual(
-        modify(Cause.failureFail(Value.makeSync({ a: new Date(0) }))),
-        Cause.failureFail(Value.makeSync({ a: new Date(1) }))
+        modify(Cause.failureFail(Value.makeUnsafe({ a: new Date(0) }))),
+        Cause.failureFail(Value.makeUnsafe({ a: new Date(1) }))
       )
     })
 
@@ -298,8 +298,8 @@ describe("ToOptic", () => {
       const modify = optic.modify((failures) => failures.map(failure.modify(addOne)))
 
       deepStrictEqual(
-        modify(Cause.fail(Value.makeSync({ a: new Date(0) }))),
-        Cause.fail(Value.makeSync({ a: new Date(1) }))
+        modify(Cause.fail(Value.makeUnsafe({ a: new Date(0) }))),
+        Cause.fail(Value.makeUnsafe({ a: new Date(1) }))
       )
     })
 
@@ -317,8 +317,8 @@ describe("ToOptic", () => {
       const modify = optic.modify(addOne)
 
       deepStrictEqual(
-        modify(Exit.succeed(Value.makeSync({ a: new Date(0) }))),
-        Exit.succeed(Value.makeSync({ a: new Date(1) }))
+        modify(Exit.succeed(Value.makeUnsafe({ a: new Date(0) }))),
+        Exit.succeed(Value.makeUnsafe({ a: new Date(1) }))
       )
     })
 
@@ -329,8 +329,8 @@ describe("ToOptic", () => {
       const modify = optic.modify((entries) => entries.map(([key, value]) => entry.modify(addOne)([key, value])))
 
       deepStrictEqual(
-        modify(new Map([["a", Value.makeSync({ a: new Date(0) })]])),
-        new Map([["a", Value.makeSync({ a: new Date(1) })]])
+        modify(new Map([["a", Value.makeUnsafe({ a: new Date(0) })]])),
+        new Map([["a", Value.makeUnsafe({ a: new Date(1) })]])
       )
     })
 
@@ -340,7 +340,7 @@ describe("ToOptic", () => {
       })
       class Err extends Data.Error<typeof Props.Type> {
         constructor(props: typeof Props.Type) {
-          super(Props.makeSync(props))
+          super(Props.makeUnsafe(props))
         }
       }
       const schema = Util.getNativeClassSchema(Err, { encoding: Props })

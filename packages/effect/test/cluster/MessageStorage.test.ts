@@ -39,13 +39,13 @@ describe("MessageStorage", () => {
         yield* storage.saveRequest(
           yield* makeRequest({
             rpc: PrimaryKeyTest,
-            payload: PrimaryKeyTest.payloadSchema.makeSync({ id: 123 })
+            payload: PrimaryKeyTest.payloadSchema.makeUnsafe({ id: 123 })
           })
         )
         const result = yield* storage.saveRequest(
           yield* makeRequest({
             rpc: PrimaryKeyTest,
-            payload: PrimaryKeyTest.payloadSchema.makeSync({ id: 123 })
+            payload: PrimaryKeyTest.payloadSchema.makeUnsafe({ id: 123 })
           })
         )
         expect(result._tag).toEqual("Duplicate")

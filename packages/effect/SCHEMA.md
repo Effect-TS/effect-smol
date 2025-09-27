@@ -35,7 +35,7 @@ Ultimately, the intent is to eliminate the need for two separate paths like in v
 ### 4. Schema Algebra Goodies
 
 - `Schema.flip` ‑ swap input/output types (encode ≙ decode of the flipped schema).
-- **Redesigned constructors** (`makeSync`) everywhere, including unions, with smart handling of brands / refinements / defaults (sync or effectful).
+- **Redesigned constructors** (`makeUnsafe`) everywhere, including unions, with smart handling of brands / refinements / defaults (sync or effectful).
 - **Optional & mutable keys** via `Schema.optionalKey` / `Schema.mutableKey`; nested default‑value resolution.
 - **Derivation APIs** for structs, tuples, unions (`mapFields`, `mapElements`, `mapMembers`, etc.) to pick/omit/evolve/rename without losing checks.
 
@@ -119,7 +119,7 @@ export interface Bottom<
   /**
    * @throws {Error} The issue is contained in the error cause.
    */
-  makeSync(input: this["~type.make.in"], options?: MakeOptions): this["Type"]
+  makeUnsafe(input: this["~type.make.in"], options?: MakeOptions): this["Type"]
   check(
     ...checks: readonly [Check.Check<this["Type"]>, ...ReadonlyArray<Check.Check<this["Type"]>>]
   ): this["~rebuild.out"]
@@ -135,7 +135,7 @@ export interface Bottom<
 - `Ast`: the AST node type
 - `RebuildOut`: the type returned when modifying the schema (namely when you add annotations or checks)
 - `AnnotateIn`: the type of accepted annotations
-- `TypeMakeIn`: the type of the input to the `makeSync` constructor
+- `TypeMakeIn`: the type of the input to the `makeUnsafe` constructor
 
 Contextual information about the schema (when the schema is used in a composite schema such as a struct or a tuple):
 
@@ -631,8 +631,8 @@ type Encoded = {
 */
 type Encoded = (typeof schema)["Encoded"]
 
-// makeSync: { readonly a: string }  ──▶  { readonly a: string }
-Schema.flip(schema).makeSync
+// makeUnsafe: { readonly a: string }  ──▶  { readonly a: string }
+Schema.flip(schema).makeUnsafe
 ```
 
 ## Typed Annotations
@@ -670,15 +670,15 @@ if (version) {
 
 ### Constructors in Composed Schemas
 
-To support constructing values from composed schemas, `makeSync` is now available on all schemas, including unions.
+To support constructing values from composed schemas, `makeUnsafe` is now available on all schemas, including unions.
 
 ```ts
 import { Schema } from "effect/schema"
 
 const schema = Schema.Union([Schema.Struct({ a: Schema.String }), Schema.Struct({ b: Schema.Number })])
 
-schema.makeSync({ a: "hello" })
-schema.makeSync({ b: 1 })
+schema.makeUnsafe({ a: "hello" })
+schema.makeUnsafe({ b: 1 })
 ```
 
 ### Branded Constructors
@@ -690,8 +690,8 @@ import { Schema } from "effect/schema"
 
 const schema = Schema.String.pipe(Schema.brand("a"))
 
-// makeSync(input: string, options?: Schema.MakeOptions): string & Brand<"a">
-schema.makeSync
+// makeUnsafe(input: string, options?: Schema.MakeOptions): string & Brand<"a">
+schema.makeUnsafe
 ```
 
 However, when a branded schema is part of a composite (such as a struct), you must pass a branded value.
@@ -705,7 +705,7 @@ const schema = Schema.Struct({
 })
 
 /*
-makeSync(input: {
+makeUnsafe(input: {
     readonly a: string & Brand<"a">;
     readonly b: number;
 }, options?: Schema.MakeOptions): {
@@ -713,7 +713,7 @@ makeSync(input: {
     readonly b: number;
 }
 */
-schema.makeSync
+schema.makeUnsafe
 ```
 
 ### Refined Constructors
@@ -726,8 +726,8 @@ import { Schema } from "effect/schema"
 
 const schema = Schema.Option(Schema.String).pipe(Schema.refineByGuard(Option.isSome))
 
-// makeSync(input: Option.Option<string>, options?: Schema.MakeOptions): Option.Some<string>
-schema.makeSync
+// makeUnsafe(input: Option.Option<string>, options?: Schema.MakeOptions): Option.Some<string>
+schema.makeUnsafe
 ```
 
 As with branding, when used in a composite schema, the refined value must be provided.
@@ -742,7 +742,7 @@ const schema = Schema.Struct({
 })
 
 /*
-makeSync(input: {
+makeUnsafe(input: {
     readonly a: Option.Some<string>;
     readonly b: number;
 }, options?: Schema.MakeOptions): {
@@ -750,7 +750,7 @@ makeSync(input: {
     readonly b: number;
 }
 */
-schema.makeSync
+schema.makeUnsafe
 ```
 
 ### Default Values in Constructors
@@ -767,10 +767,10 @@ const schema = Schema.Struct({
   a: Schema.Number.pipe(Schema.withConstructorDefault(() => Option.some(-1)))
 })
 
-console.log(schema.makeSync({ a: 5 }))
+console.log(schema.makeUnsafe({ a: 5 }))
 // { a: 5 }
 
-console.log(schema.makeSync({}))
+console.log(schema.makeUnsafe({}))
 // { a: -1 }
 ```
 
@@ -786,10 +786,10 @@ const schema = Schema.Struct({
   a: Schema.Date.pipe(Schema.withConstructorDefault(() => Option.some(new Date())))
 })
 
-console.log(schema.makeSync({}))
+console.log(schema.makeUnsafe({}))
 // { a: 2025-05-19T16:46:10.912Z }
 
-console.log(schema.makeSync({}))
+console.log(schema.makeUnsafe({}))
 // { a: 2025-05-19T16:46:10.913Z }
 ```
 
@@ -816,7 +816,7 @@ const schema = Schema.Struct({
 })
 
 try {
-  console.log(schema.makeSync({}))
+  console.log(schema.makeUnsafe({}))
 } catch (error) {
   console.error(error)
 }
@@ -826,7 +826,7 @@ Error: Missing key
 */
 
 try {
-  console.log(schema.makeSync({}))
+  console.log(schema.makeUnsafe({}))
   // { a: 2025-05-19T16:46:10.913Z }
 } catch (error) {
   console.error(error)
@@ -850,9 +850,9 @@ const schema = Schema.Struct({
   }).pipe(Schema.withConstructorDefault(() => Result.succeedSome({})))
 })
 
-console.log(schema.makeSync({}))
+console.log(schema.makeUnsafe({}))
 // { a: { b: -1 } }
-console.log(schema.makeSync({ a: {} }))
+console.log(schema.makeUnsafe({ a: {} }))
 // { a: { b: -1 } }
 ```
 
@@ -957,7 +957,7 @@ console.log(String(Schema.decodeUnknownExit(schema)("")))
 
 ### 🆕 Preserving Schema Type After Filtering
 
-When you apply a filter using `Schema.check`, the original schema's type and methods remain available. This means you can still access schema-specific properties like `.fields` or use methods like `.makeSync` after applying filters.
+When you apply a filter using `Schema.check`, the original schema's type and methods remain available. This means you can still access schema-specific properties like `.fields` or use methods like `.makeUnsafe` after applying filters.
 
 **Example** (Chaining filters and annotations without losing type information)
 
@@ -2197,7 +2197,7 @@ const schema = A.mapFields(
 
 A tagged struct is a struct that includes a `_tag` field. This field is used to identify the specific variant of the object, which is especially useful when working with union types.
 
-When using the `makeSync` method, the `_tag` field is optional and will be added automatically. However, when decoding or encoding, the `_tag` field must be present in the input.
+When using the `makeUnsafe` method, the `_tag` field is optional and will be added automatically. However, when decoding or encoding, the `_tag` field must be present in the input.
 
 **Example** (Tagged struct as a shorthand for a struct with a `_tag` field)
 
@@ -2259,7 +2259,7 @@ class Person extends Schema.Opaque<Person>()(
 const codec = Schema.revealCodec(Person)
 
 // const person: Person
-const person = Person.makeSync({ name: "John" })
+const person = Person.makeUnsafe({ name: "John" })
 
 console.log(person.name)
 // "John"
@@ -2491,11 +2491,11 @@ class B extends Schema.Opaque<B, { readonly brand: unique symbol }>()(
 const f = (a: A) => a
 const g = (b: B) => b
 
-f(A.makeSync({ a: "a" })) // ok
-g(B.makeSync({ a: "a" })) // ok
+f(A.makeUnsafe({ a: "a" })) // ok
+g(B.makeUnsafe({ a: "a" })) // ok
 
-f(B.makeSync({ a: "a" })) // error: Argument of type 'B' is not assignable to parameter of type 'A'.
-g(A.makeSync({ a: "a" })) // error: Argument of type 'A' is not assignable to parameter of type 'B'.
+f(B.makeUnsafe({ a: "a" })) // error: Argument of type 'B' is not assignable to parameter of type 'A'.
+g(A.makeUnsafe({ a: "a" })) // error: Argument of type 'A' is not assignable to parameter of type 'B'.
 ```
 
 Like with branded classes, you can use the `Brand` module to create branded opaque structs.
@@ -2518,11 +2518,11 @@ class B extends Schema.Opaque<B, Brand.Brand<"B">>()(
 const f = (a: A) => a
 const g = (b: B) => b
 
-f(A.makeSync({ a: "a" })) // ok
-g(B.makeSync({ a: "a" })) // ok
+f(A.makeUnsafe({ a: "a" })) // ok
+g(B.makeUnsafe({ a: "a" })) // ok
 
-f(B.makeSync({ a: "a" })) // error: Argument of type 'B' is not assignable to parameter of type 'A'.
-g(A.makeSync({ a: "a" })) // error: Argument of type 'A' is not assignable to parameter of type 'B'.
+f(B.makeUnsafe({ a: "a" })) // error: Argument of type 'B' is not assignable to parameter of type 'A'.
+g(A.makeUnsafe({ a: "a" })) // error: Argument of type 'A' is not assignable to parameter of type 'B'.
 ```
 
 ## Records
@@ -2973,7 +2973,7 @@ class Person {
     readonly name: string,
     readonly age: number
   ) {
-    PersonConstructorArguments.makeSync([name, age])
+    PersonConstructorArguments.makeUnsafe([name, age])
   }
 }
 
@@ -3002,7 +3002,7 @@ class Person {
     readonly name: string,
     readonly age: number
   ) {
-    PersonConstructorArguments.makeSync([name, age])
+    PersonConstructorArguments.makeUnsafe([name, age])
   }
 }
 
@@ -3015,7 +3015,7 @@ class PersonWithEmail extends Person {
     readonly email: string
   ) {
     // Only validate the additional argument
-    PersonWithEmailConstructorArguments.makeSync([email])
+    PersonWithEmailConstructorArguments.makeUnsafe([email])
     super(name, age)
   }
 }
@@ -3126,7 +3126,7 @@ const Props = Schema.Struct({
 
 class Err extends Data.Error<typeof Props.Type> {
   constructor(props: typeof Props.Type) {
-    super(Props.makeSync(props))
+    super(Props.makeUnsafe(props))
   }
 }
 
@@ -3184,7 +3184,7 @@ class A extends Schema.Class<A>("A")({
 
 console.log(new A({ a: "a" }))
 // A { a: 'a', _a: 1 }
-console.log(A.makeSync({ a: "a" }))
+console.log(A.makeUnsafe({ a: "a" }))
 // A { a: 'a', _a: 1 }
 console.log(Schema.decodeUnknownSync(A)({ a: "a" }))
 // A { a: 'a', _a: 1 }
@@ -3206,9 +3206,9 @@ class B extends Schema.Class<B, { readonly brand: unique symbol }>("B")({
 }) {}
 
 // @ts-expect-error
-export const a: A = B.makeSync({ a: "a" })
+export const a: A = B.makeUnsafe({ a: "a" })
 // @ts-expect-error
-export const b: B = A.makeSync({ a: "a" })
+export const b: B = A.makeUnsafe({ a: "a" })
 ```
 
 or using the `Brand` module:
@@ -3226,9 +3226,9 @@ class B extends Schema.Class<B, Brand.Brand<"B">>("B")({
 }) {}
 
 // @ts-expect-error
-export const a: A = B.makeSync({ a: "a" })
+export const a: A = B.makeUnsafe({ a: "a" })
 // @ts-expect-error
-export const b: B = A.makeSync({ a: "a" })
+export const b: B = A.makeUnsafe({ a: "a" })
 ```
 
 #### Filters
@@ -3291,7 +3291,7 @@ class B extends A.extend<B>("B")({
 
 console.log(new B({ a: "a", b: 2 }))
 // B { a: 'a', _a: 1, _b: 2 }
-console.log(B.makeSync({ a: "a", b: 2 }))
+console.log(B.makeUnsafe({ a: "a", b: 2 }))
 // B { a: 'a', _a: 1, _b: 2 }
 console.log(Schema.decodeUnknownSync(B)({ a: "a", b: 2 }))
 // B { a: 'a', _a: 1, _b: 2 }

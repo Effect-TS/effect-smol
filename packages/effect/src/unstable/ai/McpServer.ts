@@ -921,7 +921,7 @@ export const registerPrompt = <
             messages = typeof messages === "string" ?
               [{
                 role: "user",
-                content: TextContent.makeSync({ text: messages })
+                content: TextContent.makeUnsafe({ text: messages })
               }] :
               messages
             return new GetPromptResult({ messages, description: prompt.description })
@@ -984,7 +984,7 @@ export const elicit: <S extends Schema.Codec<any, Record<string, unknown>, any, 
   const { getClient } = yield* McpServerClient
   const client = yield* getClient
   const schema = Serializer.json(options.schema)
-  const request = Elicit.payloadSchema.makeSync({
+  const request = Elicit.payloadSchema.makeUnsafe({
     message: options.message,
     requestedSchema: makeJsonSchema(schema)
   })

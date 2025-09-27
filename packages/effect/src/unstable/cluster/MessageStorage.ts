@@ -758,7 +758,7 @@ export class MemoryDriver extends ServiceMap.Key<MemoryDriver>()("effect/cluster
           }>()
           for (let index = 0; index < journal.length; index++) {
             const envelope = journal[index]
-            const shardId = ShardId.makeSync(envelope.address.shardId)
+            const shardId = ShardId.makeUnsafe(envelope.address.shardId)
             if (!unprocessed.has(envelope as any) || !shardIds.includes(shardId.toString())) {
               continue
             }

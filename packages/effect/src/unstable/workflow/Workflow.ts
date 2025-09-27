@@ -274,7 +274,7 @@ export const make = <
     },
     execute: Effect.fnUntraced(
       function*(fields: any, opts) {
-        const payload = self.payloadSchema.makeSync(fields)
+        const payload = self.payloadSchema.makeUnsafe(fields)
         const engine = yield* EngineTag
         const executionId = yield* makeExecutionId(payload)
         yield* Effect.annotateCurrentSpan({ executionId })

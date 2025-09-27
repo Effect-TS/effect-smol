@@ -62,7 +62,7 @@ export type Mutability = "readonly" | "mutable"
 export type ConstructorDefault = "no-default" | "with-default"
 
 /**
- * Configuration options for the `makeSync` method, providing control over
+ * Configuration options for the `makeUnsafe` method, providing control over
  * parsing behavior and validation.
  *
  * @since 4.0.0
@@ -131,22 +131,17 @@ export interface Bottom<
 
   annotate(annotations: this["~annotate.in"]): this["~rebuild.out"]
   annotateKey(annotations: Annotations.Key<this["Type"]>): this["~rebuild.out"]
+  check(...checks: readonly [Check.Check<this["Type"]>, ...Array<Check.Check<this["Type"]>>]): this["~rebuild.out"]
   rebuild(ast: this["ast"]): this["~rebuild.out"]
   /**
    * @throws {Error} The issue is contained in the error cause.
    */
-  makeSync(input: this["~type.make.in"], options?: MakeOptions): this["Type"]
-  check(
-    ...checks: readonly [
-      Check.Check<this["Type"]>,
-      ...Array<Check.Check<this["Type"]>>
-    ]
-  ): this["~rebuild.out"]
+  makeUnsafe(input: this["~type.make.in"], options?: MakeOptions): this["Type"]
 }
 
 const TypeId = "~effect/schema/Schema"
 
-const Proto = {
+const SchemaProto = {
   [TypeId]: TypeId,
   pipe() {
     return Pipeable.pipeArguments(this, arguments)
@@ -157,21 +152,18 @@ const Proto = {
   annotateKey(this: Top, annotations: Annotations.Key<unknown>) {
     return this.rebuild(AST.annotateKey(this.ast, annotations))
   },
-  check(
-    this: Top,
-    ...checks: readonly [Check.Check<unknown>, ...Array<Check.Check<unknown>>]
-  ) {
+  check(this: Top, ...checks: readonly [Check.Check<unknown>, ...Array<Check.Check<unknown>>]) {
     return this.rebuild(AST.appendChecks(this.ast, checks))
   }
 }
 
 /** @internal */
 export function makeProto<S extends Top>(ast: AST.AST, options: object): S {
-  const self = Object.create(Proto)
+  const self = Object.create(SchemaProto)
   Object.assign(self, options)
   self.ast = ast
   self.rebuild = (ast: AST.AST) => makeProto(ast, options)
-  self.makeSync = ToParser.makeSync(self)
+  self.makeUnsafe = ToParser.makeUnsafe(self)
   return self
 }
 
@@ -2821,7 +2813,7 @@ export type TaggedStruct<Tag extends AST.Literal, Fields extends Struct.Fields> 
  * to identify the specific variant of the object, which is especially useful
  * when working with union types.
  *
- * When using the `makeSync` method, the `_tag` field is optional and will be
+ * When using the `makeUnsafe` method, the `_tag` field is optional and will be
  * added automatically. However, when decoding or encoding, the `_tag` field
  * must be present in the input.
  *
@@ -4364,7 +4356,7 @@ function makeClass<
       if (options?.disableValidation) {
         super(input, options)
       } else {
-        const validated = schema.makeSync(input, options)
+        const validated = schema.makeUnsafe(input, options)
         super({ ...input, ...validated }, { ...options, disableValidation: true })
       }
     }
@@ -4402,7 +4394,7 @@ function makeClass<
     static rebuild(ast: AST.Declaration) {
       return getClassSchema(this).rebuild(ast)
     }
-    static makeSync(input: S["~type.make.in"], options?: MakeOptions): Self {
+    static makeUnsafe(input: S["~type.make.in"], options?: MakeOptions): Self {
       return new this(input, options)
     }
     static annotate(annotations: Annotations.Bottom<Self, readonly [S]>) {

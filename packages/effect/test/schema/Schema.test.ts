@@ -80,8 +80,8 @@ describe("Schema", () => {
 
       await assertions.make.succeed(schema, "a")
       await assertions.make.fail(schema, null, `Expected "a", got null`)
-      assertions.makeSync.succeed(schema, "a")
-      assertions.makeSync.fail(schema, null, `Expected "a", got null`)
+      assertions.makeUnsafe.succeed(schema, "a")
+      assertions.makeUnsafe.fail(schema, null, `Expected "a", got null`)
 
       await assertions.decoding.succeed(schema, "a")
       await assertions.decoding.fail(schema, 1, `Expected "a", got 1`)
@@ -95,8 +95,8 @@ describe("Schema", () => {
 
       await assertions.make.succeed(schema, 1)
       await assertions.make.fail(schema, null, `Expected 1, got null`)
-      assertions.makeSync.succeed(schema, 1)
-      assertions.makeSync.fail(schema, null, `Expected 1, got null`)
+      assertions.makeUnsafe.succeed(schema, 1)
+      assertions.makeUnsafe.fail(schema, null, `Expected 1, got null`)
 
       await assertions.decoding.succeed(schema, 1)
       await assertions.decoding.fail(schema, "1", `Expected 1, got "1"`)
@@ -133,7 +133,7 @@ describe("Schema", () => {
     const schema = Schema.Never
 
     await assertions.make.fail(schema, null as never, `Expected never, got null`)
-    assertions.makeSync.fail(schema, null as never, `Expected never, got null`)
+    assertions.makeUnsafe.fail(schema, null as never, `Expected never, got null`)
 
     await assertions.decoding.fail(schema, "a", `Expected never, got "a"`)
     await assertions.encoding.fail(schema, "a", `Expected never, got "a"`)
@@ -143,7 +143,7 @@ describe("Schema", () => {
     const schema = Schema.Any
 
     await assertions.make.succeed(schema, "a")
-    assertions.makeSync.succeed(schema, "a")
+    assertions.makeUnsafe.succeed(schema, "a")
 
     await assertions.decoding.succeed(schema, "a")
   })
@@ -152,7 +152,7 @@ describe("Schema", () => {
     const schema = Schema.Unknown
 
     await assertions.make.succeed(schema, "a")
-    assertions.makeSync.succeed(schema, "a")
+    assertions.makeUnsafe.succeed(schema, "a")
 
     await assertions.decoding.succeed(schema, "a")
   })
@@ -162,8 +162,8 @@ describe("Schema", () => {
 
     await assertions.make.succeed(schema, null)
     await assertions.make.fail(schema, undefined, `Expected null, got undefined`)
-    assertions.makeSync.succeed(schema, null)
-    assertions.makeSync.fail(schema, undefined, `Expected null, got undefined`)
+    assertions.makeUnsafe.succeed(schema, null)
+    assertions.makeUnsafe.fail(schema, undefined, `Expected null, got undefined`)
   })
 
   it("Undefined", async () => {
@@ -171,8 +171,8 @@ describe("Schema", () => {
 
     await assertions.make.succeed(schema, undefined)
     await assertions.make.fail(schema, null, `Expected undefined, got null`)
-    assertions.makeSync.succeed(schema, undefined)
-    assertions.makeSync.fail(schema, null, `Expected undefined, got null`)
+    assertions.makeUnsafe.succeed(schema, undefined)
+    assertions.makeUnsafe.fail(schema, null, `Expected undefined, got null`)
   })
 
   it("String", async () => {
@@ -180,8 +180,8 @@ describe("Schema", () => {
 
     await assertions.make.succeed(schema, "a")
     await assertions.make.fail(schema, null, `Expected string, got null`)
-    assertions.makeSync.succeed(schema, "a")
-    assertions.makeSync.fail(schema, null, `Expected string, got null`)
+    assertions.makeUnsafe.succeed(schema, "a")
+    assertions.makeUnsafe.fail(schema, null, `Expected string, got null`)
 
     await assertions.decoding.succeed(schema, "a")
     await assertions.decoding.fail(schema, 1, "Expected string, got 1")
@@ -195,8 +195,8 @@ describe("Schema", () => {
 
     await assertions.make.succeed(schema, 1)
     await assertions.make.fail(schema, null, `Expected number, got null`)
-    assertions.makeSync.succeed(schema, 1)
-    assertions.makeSync.fail(schema, null, `Expected number, got null`)
+    assertions.makeUnsafe.succeed(schema, 1)
+    assertions.makeUnsafe.fail(schema, null, `Expected number, got null`)
 
     await assertions.decoding.succeed(schema, 1)
     await assertions.decoding.fail(schema, "a", `Expected number, got "a"`)
@@ -226,8 +226,8 @@ describe("Schema", () => {
 
     await assertions.make.succeed(schema, Symbol("a"))
     await assertions.make.fail(schema, null, `Expected symbol, got null`)
-    assertions.makeSync.succeed(schema, Symbol("a"))
-    assertions.makeSync.fail(schema, null, `Expected symbol, got null`)
+    assertions.makeUnsafe.succeed(schema, Symbol("a"))
+    assertions.makeUnsafe.fail(schema, null, `Expected symbol, got null`)
 
     await assertions.decoding.succeed(schema, Symbol("a"))
     await assertions.decoding.fail(schema, "a", `Expected symbol, got "a"`)
@@ -242,8 +242,8 @@ describe("Schema", () => {
 
     await assertions.make.succeed(schema, a)
     await assertions.make.fail(schema, Symbol("b"), `Expected Symbol(a), got Symbol(b)`)
-    assertions.makeSync.succeed(schema, a)
-    assertions.makeSync.fail(schema, Symbol("b"), `Expected Symbol(a), got Symbol(b)`)
+    assertions.makeUnsafe.succeed(schema, a)
+    assertions.makeUnsafe.fail(schema, Symbol("b"), `Expected Symbol(a), got Symbol(b)`)
 
     await assertions.decoding.succeed(schema, a)
     await assertions.decoding.fail(schema, Symbol("b"), `Expected Symbol(a), got Symbol(b)`)
@@ -254,8 +254,8 @@ describe("Schema", () => {
 
     await assertions.make.succeed(schema, 1n)
     await assertions.make.fail(schema, null, `Expected bigint, got null`)
-    assertions.makeSync.succeed(schema, 1n)
-    assertions.makeSync.fail(schema, null, `Expected bigint, got null`)
+    assertions.makeUnsafe.succeed(schema, 1n)
+    assertions.makeUnsafe.fail(schema, null, `Expected bigint, got null`)
 
     await assertions.decoding.succeed(schema, 1n)
     await assertions.decoding.fail(schema, "1", `Expected bigint, got "1"`)
@@ -269,8 +269,8 @@ describe("Schema", () => {
 
     await assertions.make.succeed(schema, undefined)
     await assertions.make.fail(schema, null, `Expected void, got null`)
-    assertions.makeSync.succeed(schema, undefined)
-    assertions.makeSync.fail(schema, null, `Expected void, got null`)
+    assertions.makeUnsafe.succeed(schema, undefined)
+    assertions.makeUnsafe.fail(schema, null, `Expected void, got null`)
 
     await assertions.decoding.succeed(schema, undefined)
     await assertions.decoding.fail(schema, "1", `Expected void, got "1"`)
@@ -285,9 +285,9 @@ describe("Schema", () => {
     await assertions.make.succeed(schema, {})
     await assertions.make.succeed(schema, [])
     await assertions.make.fail(schema, null, `Expected object | array | function, got null`)
-    assertions.makeSync.succeed(schema, {})
-    assertions.makeSync.succeed(schema, [])
-    assertions.makeSync.fail(schema, null, `Expected object | array | function, got null`)
+    assertions.makeUnsafe.succeed(schema, {})
+    assertions.makeUnsafe.succeed(schema, [])
+    assertions.makeUnsafe.fail(schema, null, `Expected object | array | function, got null`)
 
     await assertions.decoding.succeed(schema, {})
     await assertions.decoding.succeed(schema, [])
@@ -423,8 +423,8 @@ Unexpected key
 
       await assertions.make.succeed(schema, { a: "a" })
       await assertions.make.fail(schema, null, `Expected object, got null`)
-      assertions.makeSync.succeed(schema, { a: "a" })
-      assertions.makeSync.fail(schema, null, `Expected object, got null`)
+      assertions.makeUnsafe.succeed(schema, { a: "a" })
+      assertions.makeUnsafe.fail(schema, null, `Expected object, got null`)
 
       await assertions.decoding.succeed(schema, { a: "a" })
       await assertions.decoding.fail(
@@ -484,8 +484,8 @@ Unexpected key
 
       await assertions.make.succeed(schema, { a: "a" })
       await assertions.make.succeed(schema, {})
-      assertions.makeSync.succeed(schema, { a: "a" })
-      assertions.makeSync.succeed(schema, {})
+      assertions.makeUnsafe.succeed(schema, { a: "a" })
+      assertions.makeUnsafe.succeed(schema, {})
 
       await assertions.decoding.succeed(schema, { a: "a" })
       await assertions.decoding.succeed(schema, {})
@@ -514,9 +514,9 @@ Unexpected key
       await assertions.make.succeed(schema, { a: "a" })
       await assertions.make.succeed(schema, { a: undefined })
       await assertions.make.succeed(schema, {})
-      assertions.makeSync.succeed(schema, { a: "a" })
-      assertions.makeSync.succeed(schema, { a: undefined })
-      assertions.makeSync.succeed(schema, {})
+      assertions.makeUnsafe.succeed(schema, { a: "a" })
+      assertions.makeUnsafe.succeed(schema, { a: undefined })
+      assertions.makeUnsafe.succeed(schema, {})
 
       await assertions.decoding.succeed(schema, { a: "a" })
       await assertions.decoding.succeed(schema, { a: undefined })
@@ -719,8 +719,8 @@ Unexpected key
         `Expected a value with a length of at least 1, got ""
   at [0]`
       )
-      assertions.makeSync.succeed(schema, ["a"])
-      assertions.makeSync.fail(
+      assertions.makeUnsafe.succeed(schema, ["a"])
+      assertions.makeUnsafe.fail(
         schema,
         [""],
         `Expected a value with a length of at least 1, got ""
@@ -766,8 +766,8 @@ Unexpected key
     it(`readonly [string?]`, async () => {
       const schema = Schema.Tuple([Schema.String.pipe(Schema.optionalKey)])
 
-      assertions.makeSync.succeed(schema, ["a"])
-      assertions.makeSync.succeed(schema, [])
+      assertions.makeUnsafe.succeed(schema, ["a"])
+      assertions.makeUnsafe.succeed(schema, [])
 
       await assertions.decoding.succeed(schema, ["a"])
       await assertions.decoding.succeed(schema, [])
@@ -788,7 +788,7 @@ Unexpected key
       const schema = Schema.Array(Schema.String)
 
       await assertions.make.succeed(schema, ["a", "b"])
-      assertions.makeSync.succeed(schema, ["a", "b"])
+      assertions.makeUnsafe.succeed(schema, ["a", "b"])
 
       await assertions.decoding.succeed(schema, ["a", "b"])
       await assertions.decoding.fail(
@@ -819,8 +819,8 @@ Unexpected key
 
       await assertions.make.succeed(schema, ["a"])
       await assertions.make.succeed(schema, ["a", "b"])
-      assertions.makeSync.succeed(schema, ["a"])
-      assertions.makeSync.succeed(schema, ["a", "b"])
+      assertions.makeUnsafe.succeed(schema, ["a"])
+      assertions.makeUnsafe.succeed(schema, ["a", "b"])
 
       await assertions.decoding.succeed(schema, ["a"])
       await assertions.decoding.succeed(schema, ["a", "b"])
@@ -945,8 +945,8 @@ Expected a string including "c", got "ab"`,
           const schema = Schema.String.pipe(Schema.brand("brand")).annotate({
             get examples() {
               return [
-                schema.makeSync("a"),
-                schema.makeSync("b")
+                schema.makeUnsafe("a"),
+                schema.makeUnsafe("b")
               ]
             }
           })
@@ -960,8 +960,8 @@ Expected a string including "c", got "ab"`,
           ).annotateKey({
             get examples() {
               return [
-                schema.makeSync("a"),
-                schema.makeSync("b")
+                schema.makeUnsafe("a"),
+                schema.makeUnsafe("b")
               ]
             }
           })
@@ -1905,17 +1905,17 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
         a: Schema.FiniteFromString.pipe(Schema.withConstructorDefault(() => Option.some(-1)))
       })
 
-      assertions.makeSync.succeed(schema, { a: 1 })
-      assertions.makeSync.succeed(schema, {}, { a: -1 })
+      assertions.makeUnsafe.succeed(schema, { a: 1 })
+      assertions.makeUnsafe.succeed(schema, {}, { a: -1 })
 
       const flipped = schema.pipe(Schema.flip)
-      throws(() => flipped.makeSync({} as any))
-      assertions.makeSync.succeed(flipped, { a: "1" })
+      throws(() => flipped.makeUnsafe({} as any))
+      assertions.makeUnsafe.succeed(flipped, { a: "1" })
 
       const flipped2 = flipped.pipe(Schema.flip)
       deepStrictEqual(flipped2.fields, schema.fields)
-      assertions.makeSync.succeed(flipped2, { a: 1 })
-      assertions.makeSync.succeed(flipped2, {}, { a: -1 })
+      assertions.makeUnsafe.succeed(flipped2, { a: 1 })
+      assertions.makeUnsafe.succeed(flipped2, {}, { a: -1 })
     })
   })
 
@@ -2326,9 +2326,9 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
           )
         })
 
-        assertions.makeSync.succeed(schema, { a: "a" })
-        assertions.makeSync.succeed(schema, {}, { a: "otherwise-default" })
-        assertions.makeSync.succeed(schema, { a: undefined }, { a: "undefined-default" })
+        assertions.makeUnsafe.succeed(schema, { a: "a" })
+        assertions.makeUnsafe.succeed(schema, {}, { a: "otherwise-default" })
+        assertions.makeUnsafe.succeed(schema, { a: undefined }, { a: "undefined-default" })
       })
 
       it("Struct & Some", () => {
@@ -2336,8 +2336,8 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
           a: Schema.FiniteFromString.pipe(Schema.withConstructorDefault(() => Option.some(-1)))
         })
 
-        assertions.makeSync.succeed(schema, { a: 1 })
-        assertions.makeSync.succeed(schema, {}, { a: -1 })
+        assertions.makeUnsafe.succeed(schema, { a: 1 })
+        assertions.makeUnsafe.succeed(schema, {}, { a: -1 })
       })
 
       it("Struct & None", () => {
@@ -2345,8 +2345,8 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
           a: Schema.FiniteFromString.pipe(Schema.withConstructorDefault(() => Option.none()))
         })
 
-        assertions.makeSync.succeed(schema, { a: 1 })
-        assertions.makeSync.fail(
+        assertions.makeUnsafe.succeed(schema, { a: 1 })
+        assertions.makeUnsafe.fail(
           schema,
           {},
           `Missing key
@@ -2362,9 +2362,9 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
             }).pipe(Schema.withConstructorDefault(() => Option.some({})))
           })
 
-          assertions.makeSync.succeed(schema, { a: { b: 1 } })
-          assertions.makeSync.succeed(schema, { a: {} }, { a: { b: -1 } })
-          assertions.makeSync.succeed(schema, {}, { a: { b: -1 } })
+          assertions.makeUnsafe.succeed(schema, { a: { b: 1 } })
+          assertions.makeUnsafe.succeed(schema, { a: {} }, { a: { b: -1 } })
+          assertions.makeUnsafe.succeed(schema, {}, { a: { b: -1 } })
         })
 
         it("Class", () => {
@@ -2374,9 +2374,9 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
             }).pipe(Schema.withConstructorDefault(() => Option.some({})))
           })) {}
 
-          assertions.makeSync.succeed(A, { a: { b: 1 } }, new A({ a: { b: 1 } }))
-          assertions.makeSync.succeed(A, { a: {} }, new A({ a: { b: -1 } }))
-          assertions.makeSync.succeed(A, {}, new A({ a: { b: -1 } }))
+          assertions.makeUnsafe.succeed(A, { a: { b: 1 } }, new A({ a: { b: 1 } }))
+          assertions.makeUnsafe.succeed(A, { a: {} }, new A({ a: { b: -1 } }))
+          assertions.makeUnsafe.succeed(A, {}, new A({ a: { b: -1 } }))
         })
       })
 
@@ -2385,8 +2385,8 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
           a: Schema.FiniteFromString.pipe(Schema.withConstructorDefault(() => Effect.succeed(Option.some(-1))))
         })
 
-        assertions.makeSync.succeed(schema, { a: 1 })
-        assertions.makeSync.succeed(schema, {}, { a: -1 })
+        assertions.makeUnsafe.succeed(schema, { a: 1 })
+        assertions.makeUnsafe.succeed(schema, {}, { a: -1 })
       })
 
       it("Struct & Effect async", async () => {
@@ -2436,8 +2436,8 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
           [Schema.FiniteFromString.pipe(Schema.withConstructorDefault(() => Option.some(-1)))]
         )
 
-        assertions.makeSync.succeed(schema, [1])
-        assertions.makeSync.succeed(schema, [], [-1])
+        assertions.makeUnsafe.succeed(schema, [1])
+        assertions.makeUnsafe.succeed(schema, [], [-1])
       })
 
       it("nested defaults (Struct)", () => {
@@ -2449,9 +2449,9 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
           ]
         )
 
-        assertions.makeSync.succeed(schema, [{ b: 1 }])
-        assertions.makeSync.succeed(schema, [{}], [{ b: -1 }])
-        assertions.makeSync.succeed(schema, [], [{ b: -1 }])
+        assertions.makeUnsafe.succeed(schema, [{ b: 1 }])
+        assertions.makeUnsafe.succeed(schema, [{}], [{ b: -1 }])
+        assertions.makeUnsafe.succeed(schema, [], [{ b: -1 }])
       })
 
       it("nested defaults (Tuple)", () => {
@@ -2463,9 +2463,9 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
           ]
         )
 
-        assertions.makeSync.succeed(schema, [[1]])
-        assertions.makeSync.succeed(schema, [[]], [[-1]])
-        assertions.makeSync.succeed(schema, [], [[-1]])
+        assertions.makeUnsafe.succeed(schema, [[1]])
+        assertions.makeUnsafe.succeed(schema, [[]], [[-1]])
+        assertions.makeUnsafe.succeed(schema, [], [[-1]])
       })
     })
   })
@@ -2476,8 +2476,8 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
       await assertions.make.succeed(schema, { a: 1 })
       await assertions.make.fail(schema, null, `Expected object, got null`)
-      assertions.makeSync.succeed(schema, { a: 1 })
-      assertions.makeSync.fail(schema, null, `Expected object, got null`)
+      assertions.makeUnsafe.succeed(schema, { a: 1 })
+      assertions.makeUnsafe.fail(schema, null, `Expected object, got null`)
 
       await assertions.decoding.succeed(schema, { a: 1 })
       await assertions.decoding.fail(schema, null, "Expected object, got null")
@@ -2523,8 +2523,8 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
       await assertions.make.succeed(schema, { [Symbol.for("a")]: 1 })
       await assertions.make.fail(schema, null, `Expected object, got null`)
-      assertions.makeSync.succeed(schema, { [Symbol.for("a")]: 1 })
-      assertions.makeSync.fail(schema, null, `Expected object, got null`)
+      assertions.makeUnsafe.succeed(schema, { [Symbol.for("a")]: 1 })
+      assertions.makeUnsafe.fail(schema, null, `Expected object, got null`)
 
       await assertions.decoding.succeed(schema, { [Symbol.for("a")]: 1 })
       await assertions.decoding.fail(schema, null, "Expected object, got null")
@@ -3112,7 +3112,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
       const schema = A
 
-      const instance = schema.makeSync({ a: "a" })
+      const instance = schema.makeUnsafe({ a: "a" })
       strictEqual(instance.a, "a")
       deepStrictEqual(A.fields, { a: Schema.String })
     })
@@ -3160,7 +3160,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
       await assertions.decoding.succeed(schema, { _tag: "a", a: "1" }, { expected: { _tag: "a", a: 1 } })
       await assertions.encoding.succeed(schema, { _tag: "a", a: 1 }, { expected: { _tag: "a", a: "1" } })
-      assertions.makeSync.succeed(schema, { _tag: "a", a: 1 })
+      assertions.makeUnsafe.succeed(schema, { _tag: "a", a: 1 })
     })
 
     it("decoding: required & encoding: required & constructor: optional", async () => {
@@ -3171,8 +3171,8 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
       await assertions.decoding.succeed(schema, { _tag: "a", a: "1" }, { expected: { _tag: "a", a: 1 } })
       await assertions.encoding.succeed(schema, { _tag: "a", a: 1 }, { expected: { _tag: "a", a: "1" } })
-      assertions.makeSync.succeed(schema, { _tag: "a", a: 1 })
-      assertions.makeSync.succeed(schema, { a: 1 }, { _tag: "a", a: 1 })
+      assertions.makeUnsafe.succeed(schema, { _tag: "a", a: 1 })
+      assertions.makeUnsafe.succeed(schema, { a: 1 }, { _tag: "a", a: 1 })
     })
 
     it("decoding: default & encoding: omit & constructor: optional", async () => {
@@ -3192,8 +3192,8 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       await assertions.decoding.succeed(schema, { _tag: "a", a: "1" }, { expected: { _tag: "a", a: 1 } })
       await assertions.decoding.succeed(schema, { a: "1" }, { expected: { _tag: "a", a: 1 } })
       await assertions.encoding.succeed(schema, { _tag: "a", a: 1 }, { expected: { a: "1" } })
-      assertions.makeSync.succeed(schema, { _tag: "a", a: 1 })
-      assertions.makeSync.succeed(schema, { a: 1 }, { _tag: "a", a: 1 })
+      assertions.makeUnsafe.succeed(schema, { _tag: "a", a: 1 })
+      assertions.makeUnsafe.succeed(schema, { a: 1 }, { _tag: "a", a: 1 })
     })
   })
 
@@ -3871,8 +3871,8 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       class A extends Schema.Class<A>("A")(Schema.Struct({ a: schema })) {}
       const string = Schema.String
 
-      assertions.makeSync.succeed(A, new A({ a: "a" }))
-      assertions.makeSync.succeed(A, { a: "a" }, new A({ a: "a" }))
+      assertions.makeUnsafe.succeed(A, new A({ a: "a" }))
+      assertions.makeUnsafe.succeed(A, { a: "a" }, new A({ a: "a" }))
 
       await assertions.decoding.succeed(A, new A({ a: "a" }))
     })
@@ -3930,8 +3930,8 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
         a: A.pipe(Schema.withConstructorDefault(() => Option.some(new A({ a: "default" }))))
       })
 
-      assertions.makeSync.succeed(schema, { a: new A({ a: "a" }) })
-      assertions.makeSync.succeed(schema, {}, { a: new A({ a: "default" }) })
+      assertions.makeUnsafe.succeed(schema, { a: new A({ a: "a" }) })
+      assertions.makeUnsafe.succeed(schema, {}, { a: new A({ a: "default" }) })
     })
 
     it("Class with nested Class", () => {
@@ -3943,8 +3943,8 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       })) {}
       const schema = B
 
-      assertions.makeSync.succeed(schema, { a: new A({ a: "a" }) }, new B({ a: new A({ a: "a" }) }))
-      assertions.makeSync.succeed(schema, {}, new B({ a: new A({ a: "default" }) }))
+      assertions.makeUnsafe.succeed(schema, { a: new A({ a: "a" }) }, new B({ a: new A({ a: "a" }) }))
+      assertions.makeUnsafe.succeed(schema, {}, new B({ a: new A({ a: "default" }) }))
     })
 
     it("should be possible to define a class with a mutable field", () => {
@@ -3956,8 +3956,8 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
         }
       }
 
-      assertions.makeSync.succeed(A, new A({ a: "a" }))
-      assertions.makeSync.succeed(A, { a: "a" }, new A({ a: "a" }))
+      assertions.makeUnsafe.succeed(A, new A({ a: "a" }))
+      assertions.makeUnsafe.succeed(A, { a: "a" }, new A({ a: "a" }))
 
       const a = new A({ a: "a" })
       a.update()
@@ -3981,18 +3981,18 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       strictEqual(A.name, "A")
 
       assertTrue(new A({ a: "a" }) instanceof A)
-      assertTrue(A.makeSync({ a: "a" }) instanceof A)
+      assertTrue(A.makeUnsafe({ a: "a" }) instanceof A)
 
       // test additional fields
       strictEqual(new A({ a: "a" })._a, 1)
-      strictEqual(A.makeSync({ a: "a" })._a, 1)
+      strictEqual(A.makeUnsafe({ a: "a" })._a, 1)
 
       // test Equal.equals
       assertTrue(Equal.equals(new A({ a: "a" }), new A({ a: "a" })))
       assertFalse(Equal.equals(new A({ a: "a" }), new A({ a: "b" })))
 
-      assertions.makeSync.succeed(A, new A({ a: "a" }))
-      assertions.makeSync.succeed(A, { a: "a" }, new A({ a: "a" }))
+      assertions.makeUnsafe.succeed(A, new A({ a: "a" }))
+      assertions.makeUnsafe.succeed(A, { a: "a" }, new A({ a: "a" }))
 
       await assertions.decoding.succeed(A, { a: "a" }, { expected: new A({ a: "a" }) })
       await assertions.decoding.fail(
@@ -4031,18 +4031,18 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       strictEqual(A.name, "A")
 
       assertTrue(new A({ a: "a" }) instanceof A)
-      assertTrue(A.makeSync({ a: "a" }) instanceof A)
+      assertTrue(A.makeUnsafe({ a: "a" }) instanceof A)
 
       // test additional fields
       strictEqual(new A({ a: "a" })._a, 1)
-      strictEqual(A.makeSync({ a: "a" })._a, 1)
+      strictEqual(A.makeUnsafe({ a: "a" })._a, 1)
 
       // test Equal.equals
       assertTrue(Equal.equals(new A({ a: "a" }), new A({ a: "a" })))
       assertFalse(Equal.equals(new A({ a: "a" }), new A({ a: "b" })))
 
-      assertions.makeSync.succeed(A, new A({ a: "a" }))
-      assertions.makeSync.succeed(A, { a: "a" }, new A({ a: "a" }))
+      assertions.makeUnsafe.succeed(A, new A({ a: "a" }))
+      assertions.makeUnsafe.succeed(A, { a: "a" }, new A({ a: "a" }))
 
       await assertions.decoding.succeed(A, { a: "a" }, { expected: new A({ a: "a" }) })
       await assertions.decoding.fail(
@@ -4076,7 +4076,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       // should expose the fields
       deepStrictEqual(Annotated.from.fields, { a: Schema.String })
 
-      assertTrue(Annotated.makeSync(new A({ a: "a" })) instanceof A)
+      assertTrue(Annotated.makeUnsafe(new A({ a: "a" })) instanceof A)
     })
 
     it("extend", async () => {
@@ -4094,17 +4094,17 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       const instance = new B({ a: "a", b: 2 })
 
       assertTrue(instance instanceof A)
-      assertTrue(B.makeSync({ a: "a", b: 2 }) instanceof A)
+      assertTrue(B.makeUnsafe({ a: "a", b: 2 }) instanceof A)
       assertTrue(instance instanceof B)
-      assertTrue(B.makeSync({ a: "a", b: 2 }) instanceof B)
+      assertTrue(B.makeUnsafe({ a: "a", b: 2 }) instanceof B)
 
       strictEqual(instance.a, "a")
       strictEqual(instance._a, 1)
       strictEqual(instance.b, 2)
       strictEqual(instance._b, 2)
 
-      assertions.makeSync.succeed(B, new B({ a: "a", b: 2 }))
-      assertions.makeSync.succeed(B, { a: "a", b: 2 }, new B({ a: "a", b: 2 }))
+      assertions.makeUnsafe.succeed(B, new B({ a: "a", b: 2 }))
+      assertions.makeUnsafe.succeed(B, { a: "a", b: 2 }, new B({ a: "a", b: 2 }))
 
       await assertions.decoding.succeed(B, { a: "a", b: 2 }, { expected: new B({ a: "a", b: 2 }) })
     })
@@ -4122,8 +4122,8 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       assertInclude(err.stack, "Schema.test.ts:")
       strictEqual(err.id, 1)
 
-      assertions.makeSync.succeed(E, new E({ id: 1 }))
-      assertions.makeSync.succeed(E, { id: 1 }, new E({ id: 1 }))
+      assertions.makeUnsafe.succeed(E, new E({ id: 1 }))
+      assertions.makeUnsafe.succeed(E, { id: 1 }, new E({ id: 1 }))
     })
 
     it("Struct argument", () => {
@@ -4137,8 +4137,8 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       assertInclude(err.stack, "Schema.test.ts:")
       strictEqual(err.id, 1)
 
-      assertions.makeSync.succeed(E, new E({ id: 1 }))
-      assertions.makeSync.succeed(E, { id: 1 }, new E({ id: 1 }))
+      assertions.makeUnsafe.succeed(E, new E({ id: 1 }))
+      assertions.makeUnsafe.succeed(E, { id: 1 }, new E({ id: 1 }))
     })
 
     it("extend", async () => {
@@ -4159,17 +4159,17 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       assertInclude(instance.stack, "Schema.test.ts:")
 
       assertTrue(instance instanceof A)
-      assertTrue(B.makeSync({ a: "a", b: 2 }) instanceof A)
+      assertTrue(B.makeUnsafe({ a: "a", b: 2 }) instanceof A)
       assertTrue(instance instanceof B)
-      assertTrue(B.makeSync({ a: "a", b: 2 }) instanceof B)
+      assertTrue(B.makeUnsafe({ a: "a", b: 2 }) instanceof B)
 
       strictEqual(instance.a, "a")
       strictEqual(instance._a, 1)
       strictEqual(instance.b, 2)
       strictEqual(instance._b, 2)
 
-      assertions.makeSync.succeed(B, new B({ a: "a", b: 2 }))
-      assertions.makeSync.succeed(B, { a: "a", b: 2 }, new B({ a: "a", b: 2 }))
+      assertions.makeUnsafe.succeed(B, new B({ a: "a", b: 2 }))
+      assertions.makeUnsafe.succeed(B, { a: "a", b: 2 }, new B({ a: "a", b: 2 }))
 
       await assertions.decoding.succeed(B, { a: "a", b: 2 }, { expected: new B({ a: "a", b: 2 }) })
     })

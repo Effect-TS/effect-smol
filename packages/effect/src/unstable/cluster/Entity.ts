@@ -370,7 +370,7 @@ export const fromRpcGroup = <const Type extends string, Rpcs extends Rpc.Any>(
   protocol: RpcGroup.RpcGroup<Rpcs>
 ): Entity<Type, Rpcs> => {
   const self = Object.create(Proto)
-  self.type = EntityType.makeSync(type)
+  self.type = EntityType.makeUnsafe(type)
   self.protocol = protocol
   self.getShardGroup = ServiceMap.get(protocol.annotations, ShardGroup)
   return self

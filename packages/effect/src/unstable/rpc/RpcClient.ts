@@ -307,7 +307,7 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any, E, const Flatten extend
             rpc,
             middleware,
             span,
-            rpc.payloadSchema.makeSync(payload),
+            rpc.payloadSchema.makeUnsafe(payload),
             headers,
             context,
             opts?.discard ?? false
@@ -321,7 +321,7 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any, E, const Flatten extend
       const queue = onStreamRequest(
         rpc,
         middleware,
-        rpc.payloadSchema.makeSync(payload),
+        rpc.payloadSchema.makeUnsafe(payload),
         headers,
         opts?.streamBufferSize ?? 16,
         context

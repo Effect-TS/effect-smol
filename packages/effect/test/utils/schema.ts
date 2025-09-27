@@ -109,7 +109,7 @@ function make(asserts: {
       }
     },
 
-    makeSync: {
+    makeUnsafe: {
       /**
        * Ensures that the given constructor produces the expected value.
        */
@@ -118,7 +118,7 @@ function make(asserts: {
         input: S["~type.make.in"],
         expected?: S["Type"]
       ) {
-        deepStrictEqual(schema.makeSync(input), expected === undefined ? input : expected)
+        deepStrictEqual(schema.makeUnsafe(input), expected === undefined ? input : expected)
       },
 
       /**
@@ -129,7 +129,7 @@ function make(asserts: {
         input: unknown,
         message: string
       ) {
-        throws(() => schema.makeSync(input), (err) => {
+        throws(() => schema.makeUnsafe(input), (err) => {
           assertInstanceOf(err, Error)
           strictEqual(err.message, message)
         })

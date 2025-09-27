@@ -1571,7 +1571,7 @@ export class CompleteResult extends Schema.Opaque<CompleteResult>()(Schema.Struc
   /**
    * @since 4.0.0
    */
-  static readonly empty = CompleteResult.makeSync({
+  static readonly empty = CompleteResult.makeUnsafe({
     completion: {
       values: [],
       total: 0,

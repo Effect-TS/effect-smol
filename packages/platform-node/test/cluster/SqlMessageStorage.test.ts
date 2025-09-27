@@ -54,7 +54,7 @@ describe("SqlMessageStorage", () => {
           const storage = yield* MessageStorage.MessageStorage
           const request = yield* makeRequest({
             rpc: StreamRpc,
-            payload: StreamRpc.payloadSchema.makeSync({ id: 123 })
+            payload: StreamRpc.payloadSchema.makeUnsafe({ id: 123 })
           })
           let result = yield* storage.saveRequest(request)
           expect(result._tag).toEqual("Success")
@@ -70,7 +70,7 @@ describe("SqlMessageStorage", () => {
           result = yield* storage.saveRequest(
             yield* makeRequest({
               rpc: StreamRpc,
-              payload: StreamRpc.payloadSchema.makeSync({ id: 123 })
+              payload: StreamRpc.payloadSchema.makeUnsafe({ id: 123 })
             })
           )
           expect(result._tag === "Duplicate" && result.lastReceivedReply !== undefined)
@@ -99,13 +99,13 @@ describe("SqlMessageStorage", () => {
           yield* storage.saveRequest(
             yield* makeRequest({
               rpc: PrimaryKeyTest,
-              payload: PrimaryKeyTest.payloadSchema.makeSync({ id: 123 })
+              payload: PrimaryKeyTest.payloadSchema.makeUnsafe({ id: 123 })
             })
           )
           const result = yield* storage.saveRequest(
             yield* makeRequest({
               rpc: PrimaryKeyTest,
-              payload: PrimaryKeyTest.payloadSchema.makeSync({ id: 123 })
+              payload: PrimaryKeyTest.payloadSchema.makeUnsafe({ id: 123 })
             })
           )
           expect(result._tag).toEqual("Duplicate")
