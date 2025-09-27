@@ -19,7 +19,10 @@ export class Asserts<S extends Schema.Top> {
   constructor(schema: S) {
     this.schema = schema
   }
-  provide<I, S>(key: ServiceMap.Key<I, S>, service: S) {
+  provide<Id, Service>(
+    key: ServiceMap.Key<Id, Service>,
+    service: Service
+  ): Asserts<Schema.decodingMiddleware<S, Exclude<S["DecodingServices"], Id>>> {
     return new Asserts(this.schema.pipe(
       Schema.decodingMiddleware(Effect.provideService(key, service))
     ))
