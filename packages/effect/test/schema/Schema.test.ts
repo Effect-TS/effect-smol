@@ -2463,7 +2463,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
           await make.succeed({}, { a: { b: -1 } })
         })
 
-        it.todo("Class", async () => {
+        it("Class", async () => {
           class A extends Schema.Class<A>("A")(Schema.Struct({
             a: Schema.Struct({
               b: Schema.FiniteFromString.pipe(Schema.withConstructorDefault(() => Option.some(-1)))
@@ -2477,9 +2477,9 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
           await make.succeed({ a: {} }, new A({ a: { b: -1 } }))
           await make.succeed({}, new A({ a: { b: -1 } }))
 
-          assertions.makeUnsafe.succeed(A, { a: { b: 1 } }, new A({ a: { b: 1 } }))
-          assertions.makeUnsafe.succeed(A, { a: {} }, new A({ a: { b: -1 } }))
-          assertions.makeUnsafe.succeed(A, {}, new A({ a: { b: -1 } }))
+          deepStrictEqual(A.makeUnsafe({ a: { b: 1 } }), new A({ a: { b: 1 } }))
+          deepStrictEqual(A.makeUnsafe({ a: {} }), new A({ a: { b: -1 } }))
+          deepStrictEqual(A.makeUnsafe({}), new A({ a: { b: -1 } }))
         })
       })
 
@@ -2555,6 +2555,19 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
         assertions.makeUnsafe.succeed(schema, [{ b: 1 }])
         assertions.makeUnsafe.succeed(schema, [{}], [{ b: -1 }])
         assertions.makeUnsafe.succeed(schema, [], [{ b: -1 }])
+      })
+
+      it("inner defaults (Tuple)", () => {
+        const schema = Schema.Tuple(
+          [
+            Schema.Tuple([
+              Schema.FiniteFromString.pipe(Schema.withConstructorDefault(() => Option.some(-1)))
+            ])
+          ]
+        )
+
+        assertions.makeUnsafe.succeed(schema, [[1]])
+        assertions.makeUnsafe.succeed(schema, [[]], [[-1]])
       })
 
       it("nested defaults (Tuple)", () => {

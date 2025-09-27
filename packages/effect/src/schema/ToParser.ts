@@ -6,6 +6,7 @@ import * as Cause from "../Cause.ts"
 import * as Arr from "../collections/Array.ts"
 import * as Filter from "../data/Filter.ts"
 import * as Option from "../data/Option.ts"
+import * as Predicate from "../data/Predicate.ts"
 import * as Effect from "../Effect.ts"
 import * as Exit from "../Exit.ts"
 import { memoize } from "../Function.ts"
@@ -14,15 +15,42 @@ import * as AST from "./AST.ts"
 import * as Issue from "./Issue.ts"
 import type * as Schema from "./Schema.ts"
 
+const goDefaults = memoize((ast: AST.AST): AST.AST => {
+  switch (ast._tag) {
+    case "Declaration": {
+      const getLink = ast.annotations?.[AST.ClassTypeId]
+      if (Predicate.isFunction(getLink)) {
+        const link = getLink(ast.typeParameters)
+        const to = goDefaults(link.to)
+        return AST.replaceEncoding(ast, to === link.to ? [link] : [new AST.Link(to, link.transformation)])
+      }
+      return ast
+    }
+    case "TypeLiteral":
+    case "TupleType":
+      return ast.go((ast) => {
+        const defaultValue = ast.context?.defaultValue
+        if (defaultValue) {
+          return AST.replaceEncoding(goDefaults(ast), defaultValue)
+        }
+        return goDefaults(ast)
+      })
+    case "Suspend":
+      return ast.go(goDefaults)
+    default:
+      return ast
+  }
+})
+
 /**
  * @category Constructing
  * @since 4.0.0
  */
 export function makeEffect<S extends Schema.Top>(schema: S) {
-  const parser = run<S["Type"], never>(AST.typeAST(schema.ast))
+  const ast = goDefaults(AST.typeAST(schema.ast))
+  const parser = run<S["Type"], never>(ast)
   return (input: S["~type.make.in"], options?: Schema.MakeOptions): Effect.Effect<S["Type"], Issue.Issue> => {
-    const parseOptions: AST.ParseOptions = { "~variant": "make", ...options?.parseOptions }
-    return parser(input, parseOptions)
+    return parser(input, options?.parseOptions)
   }
 }
 
@@ -319,16 +347,7 @@ const go = memoize(
     const isStructural = AST.isTupleType(ast) || AST.isTypeLiteral(ast) ||
       (AST.isDeclaration(ast) && ast.typeParameters.length > 0)
     return (ou, options) => {
-      let encoding = ast.encoding
-      if (options["~variant"] === "make" && ast.context) {
-        if (ast.context.defaultValue) {
-          encoding = ast.context.defaultValue
-        }
-        if (ast.context.make) {
-          encoding = encoding ? [...encoding, ...ast.context.make] : ast.context.make
-        }
-      }
-
+      const encoding = ast.encoding
       let srou: Effect.Effect<Option.Option<unknown>, Issue.Issue, unknown> | undefined
       if (encoding) {
         const links = encoding

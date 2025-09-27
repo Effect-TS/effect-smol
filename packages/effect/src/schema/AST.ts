@@ -259,9 +259,6 @@ export interface ParseOptions {
    * default: "none"
    */
   readonly propertyOrder?: "none" | "original" | undefined
-
-  /** @internal */
-  readonly "~variant"?: "make" | undefined
 }
 
 /** @internal */
@@ -276,8 +273,6 @@ export class Context {
   readonly isMutable: boolean
   /** Used for constructor default values (e.g. `withConstructorDefault` API) */
   readonly defaultValue: Encoding | undefined
-  /** Used for constructor encoding (e.g. `Class` API) */
-  readonly make: Encoding | undefined
   readonly annotations: Annotations.Key<unknown> | undefined
 
   constructor(
@@ -285,14 +280,11 @@ export class Context {
     isMutable: boolean,
     /** Used for constructor default values (e.g. `withConstructorDefault` API) */
     defaultValue: Encoding | undefined = undefined,
-    /** Used for constructor encoding (e.g. `Class` API) */
-    make: Encoding | undefined = undefined,
     annotations: Annotations.Key<unknown> | undefined = undefined
   ) {
     this.isOptional = isOptional
     this.isMutable = isMutable
     this.defaultValue = defaultValue
-    this.make = make
     this.annotations = annotations
   }
 }
@@ -1991,17 +1983,16 @@ export function annotateKey<A extends AST>(ast: A, annotations: Annotations.Key<
       ast.context.isOptional,
       ast.context.isMutable,
       ast.context.defaultValue,
-      ast.context.make,
       Annotations.combine(ast.context.annotations, annotations)
     ) :
-    new Context(false, false, undefined, undefined, annotations)
+    new Context(false, false, undefined, annotations)
   return replaceContext(ast, context)
 }
 
 /** @internal */
 export function optionalKey<A extends AST>(ast: A): A {
   const context = ast.context ?
-    new Context(true, ast.context.isMutable, ast.context.defaultValue, ast.context.make, ast.context.annotations) :
+    new Context(true, ast.context.isMutable, ast.context.defaultValue, ast.context.annotations) :
     new Context(true, false)
   return applyEncoded(replaceContext(ast, context), optionalKey)
 }
@@ -2009,7 +2000,7 @@ export function optionalKey<A extends AST>(ast: A): A {
 /** @internal */
 export function mutableKey<A extends AST>(ast: A): A {
   const context = ast.context ?
-    new Context(ast.context.isOptional, true, ast.context.defaultValue, ast.context.make, ast.context.annotations) :
+    new Context(ast.context.isOptional, true, ast.context.defaultValue, ast.context.annotations) :
     new Context(false, true)
   return applyEncoded(replaceContext(ast, context), mutableKey)
 }
@@ -2032,7 +2023,7 @@ export function withConstructorDefault<A extends AST>(
   )
   const encoding: Encoding = [new Link(unknownKeyword, transformation)]
   const context = ast.context ?
-    new Context(ast.context.isOptional, ast.context.isMutable, encoding, ast.context.make, ast.context.annotations) :
+    new Context(ast.context.isOptional, ast.context.isMutable, encoding, ast.context.annotations) :
     new Context(false, false, encoding)
   return replaceContext(ast, context)
 }
@@ -2063,7 +2054,6 @@ function mutableContext(ast: AST, isMutable: boolean): AST {
                   ast.context.isOptional,
                   isMutable,
                   ast.context.defaultValue,
-                  ast.context.make,
                   ast.context.annotations
                 )
                 : new Context(false, isMutable)
@@ -2535,3 +2525,6 @@ export function runChecks<T>(
 export function runRefine<T extends E, E>(refine: Check.Refine<T, E>, s: E): Result.Result<T, Issue.Issue> {
   return runChecks([refine], s) as any
 }
+
+/** @internal */
+export const ClassTypeId = "~effect/schema/Schema/Class"
