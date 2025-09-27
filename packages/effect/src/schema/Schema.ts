@@ -2467,7 +2467,7 @@ export interface decodingMiddleware<S extends Top, RD> extends
  */
 export function decodingMiddleware<S extends Top, RD>(
   decode: (
-    sr: Effect.Effect<Option_.Option<S["Type"]>, Issue.Issue, S["DecodingServices"]>,
+    effect: Effect.Effect<Option_.Option<S["Type"]>, Issue.Issue, S["DecodingServices"]>,
     options: AST.ParseOptions
   ) => Effect.Effect<Option_.Option<S["Type"]>, Issue.Issue, RD>
 ) {
@@ -4438,6 +4438,7 @@ function getClassSchemaFactory<S extends Top>(
     self: Self
   ): decodeTo<declareConstructor<Self, S["Encoded"], readonly [S]>, S> => {
     if (memo === undefined) {
+      const transformation = getClassTransformation(self)
       const to = make<declareConstructor<Self, S["Encoded"], readonly [S]>>(
         new AST.Declaration(
           [from.ast],
@@ -4447,8 +4448,8 @@ function getClassSchemaFactory<S extends Top>(
               Effect.fail(new Issue.InvalidType(ast, Option_.some(input)))
           },
           Annotations.combine({
-            defaultIsoSerializer: ([from]: readonly [Schema<S["Type"]>]) =>
-              new AST.Link(from.ast, getClassTransformation(self)),
+            [AST.ClassTypeId]: ([from]: readonly [AST.AST]) => new AST.Link(from, transformation),
+            defaultIsoSerializer: ([from]: readonly [Schema<S["Type"]>]) => new AST.Link(from.ast, transformation),
             arbitrary: {
               _tag: "Declaration",
               declaration: ([from]: readonly [FastCheck.Arbitrary<S["Type"]>]) => () =>

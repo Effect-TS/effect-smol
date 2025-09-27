@@ -4148,9 +4148,7 @@ const schema = Schema.String.pipe(
 //      ┌─── Codec<string, string, never, never>
 //      ▼
 const provided = schema.pipe(
-  Schema.decodingMiddleware((sr) =>
-    Effect.isEffect(sr) ? Effect.provideService(sr, Service, { fallback: Effect.succeed("b") }) : sr
-  )
+  Schema.decodingMiddleware(Effect.provideService(Service, { fallback: Effect.succeed("b") }))
 )
 
 console.log(String(Schema.decodeUnknownExit(provided)(null)))
