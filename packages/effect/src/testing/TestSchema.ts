@@ -104,9 +104,9 @@ export class Asserts<S extends Schema.Top> {
     readonly parseOptions?: AST.ParseOptions | undefined
   }) {
     const encodeUnknownEffect = ToParser.encodeUnknownEffect(this.schema)
-    async function succeed(input: S["Type"]): Promise<void>
-    async function succeed(input: S["Type"], expected: S["Encoded"]): Promise<void>
-    async function succeed(input: S["Type"], expected?: S["Encoded"]) {
+    async function succeed(input: unknown): Promise<void>
+    async function succeed(input: unknown, expected: S["Encoded"]): Promise<void>
+    async function succeed(input: unknown, expected?: S["Encoded"]) {
       const r = await Effect.runPromise(
         encodeUnknownEffect(input, options?.parseOptions).pipe(
           Effect.mapError((issue) => issue.toString()),
