@@ -300,7 +300,7 @@ describe("ToOptic", () => {
     })
     class Err extends Data.Error<typeof Props.Type> {
       constructor(props: typeof Props.Type) {
-        super(Props.makeSync(props))
+        super(Props.makeUnsafe(props))
       }
     }
     const schema = Util.getNativeClassSchema(Err, { encoding: Props })

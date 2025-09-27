@@ -31,7 +31,7 @@ class User extends Schema.Class<User>("User")({
 }) {}
 
 // Create a user instance
-const user = User.makeSync({
+const user = User.makeUnsafe({
   id: 1,
   profile: {
     name: "John Doe",
