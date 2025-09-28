@@ -6,7 +6,8 @@ import * as Predicate from "../data/Predicate.ts"
 import * as Result from "../data/Result.ts"
 import * as DateTime from "../DateTime.ts"
 import * as Effect from "../Effect.ts"
-import * as Encoding from "../encoding/Encoding.ts"
+import * as Base64 from "../encoding/Base64.ts"
+import * as Base64Url from "../encoding/Base64Url.ts"
 import { Class } from "../interfaces/Pipeable.ts"
 import * as Str from "../String.ts"
 import type * as Annotations from "./Annotations.ts"
@@ -446,7 +447,7 @@ export function split<E extends string>(options?: {
  * @since 4.0.0
  */
 export function encodeBase64<E extends Uint8Array | string>(): Getter<string, E> {
-  return transform(Encoding.encodeBase64)
+  return transform(Base64.encode)
 }
 
 /**
@@ -454,7 +455,7 @@ export function encodeBase64<E extends Uint8Array | string>(): Getter<string, E>
  * @since 4.0.0
  */
 export function encodeBase64Url<E extends Uint8Array | string>(): Getter<string, E> {
-  return transform(Encoding.encodeBase64Url)
+  return transform(Base64Url.encode)
 }
 
 /**
@@ -464,7 +465,7 @@ export function encodeBase64Url<E extends Uint8Array | string>(): Getter<string,
 export function decodeBase64<E extends string>(): Getter<Uint8Array, E> {
   return transformOrFail((input) =>
     Result.mapError(
-      Encoding.decodeBase64(input),
+      Base64.decode(input),
       (e) => new Issue.InvalidValue(Option.some(input), { message: e.message })
     ).asEffect()
   )
@@ -476,7 +477,7 @@ export function decodeBase64<E extends string>(): Getter<Uint8Array, E> {
  */
 export function decodeBase64String<E extends string>(): Getter<string, E> {
   return transformOrFail((input) =>
-    Result.match(Encoding.decodeBase64String(input), {
+    Result.match(Base64.decodeString(input), {
       onFailure: (e) => Effect.fail(new Issue.InvalidValue(Option.some(input), { message: e.message })),
       onSuccess: Effect.succeed
     })
@@ -489,7 +490,7 @@ export function decodeBase64String<E extends string>(): Getter<string, E> {
  */
 export function decodeBase64Url<E extends string>(): Getter<Uint8Array, E> {
   return transformOrFail((input) =>
-    Result.match(Encoding.decodeBase64Url(input), {
+    Result.match(Base64Url.decode(input), {
       onFailure: (e) => Effect.fail(new Issue.InvalidValue(Option.some(input), { message: e.message })),
       onSuccess: Effect.succeed
     })
@@ -502,7 +503,7 @@ export function decodeBase64Url<E extends string>(): Getter<Uint8Array, E> {
  */
 export function decodeBase64UrlString<E extends string>(): Getter<string, E> {
   return transformOrFail((input) =>
-    Result.match(Encoding.decodeBase64UrlString(input), {
+    Result.match(Base64Url.decodeString(input), {
       onFailure: (e) => Effect.fail(new Issue.InvalidValue(Option.some(input), { message: e.message })),
       onSuccess: Effect.succeed
     })

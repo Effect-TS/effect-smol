@@ -1,9 +1,37 @@
-import * as Result from "../../data/Result.ts"
-import type * as Encoding from "../../encoding/Encoding.ts"
-import { DecodeException } from "./common.ts"
+/**
+ * This module provides encoding & decoding functionality for:
+ *
+ * - base64 (RFC4648)
+ * - base64 (URL)
+ * - hex
+ *
+ * @since 2.0.0
+ */
+import * as Result from "../data/Result.ts"
+import { EncodingError } from "./EncodingError.ts"
 
-/** @internal */
-export const encode = (bytes: Uint8Array) => {
+/**
+ * Encodes the given value into a base64 (RFC4648) `string`.
+ *
+ * @example
+ * ```ts
+ * import { Base64 } from "effect/encoding"
+ *
+ * // Encode a string
+ * console.log(Base64.encode("hello")) // "aGVsbG8="
+ *
+ * // Encode binary data
+ * const bytes = new Uint8Array([72, 101, 108, 108, 111])
+ * console.log(Base64.encode(bytes)) // "SGVsbG8="
+ * ```
+ *
+ * @category encoding
+ * @since 2.0.0
+ */
+export const encode: (input: Uint8Array | string) => string = (input) =>
+  typeof input === "string" ? encodeUint8Array(encoder.encode(input)) : encodeUint8Array(input)
+
+const encodeUint8Array = (bytes: Uint8Array) => {
   const length = bytes.length
 
   let result = ""
@@ -34,20 +62,46 @@ export const encode = (bytes: Uint8Array) => {
   return result
 }
 
-/** @internal */
-export const decode = (str: string): Result.Result<Uint8Array, Encoding.DecodeException> => {
+/**
+ * Decodes a base64 (RFC4648) encoded `string` into a `Uint8Array`.
+ *
+ * @example
+ * ```ts
+ * import { Base64 } from "effect/encoding"
+ * import { Result } from "effect/data"
+ *
+ * const result = Base64.decode("SGVsbG8=")
+ * if (Result.isSuccess(result)) {
+ *   console.log(Array.from(result.success)) // [72, 101, 108, 108, 111]
+ * }
+ * ```
+ *
+ * @category decoding
+ * @since 2.0.0
+ */
+export const decode = (str: string): Result.Result<Uint8Array, EncodingError> => {
   const stripped = stripCrlf(str)
   const length = stripped.length
   if (length % 4 !== 0) {
     return Result.fail(
-      DecodeException(stripped, `Length must be a multiple of 4, but is ${length}`)
+      new EncodingError({
+        reason: "Decode",
+        module: "Base64",
+        input: stripped,
+        message: `Length must be a multiple of 4, but is ${length}`
+      })
     )
   }
 
   const index = stripped.indexOf("=")
   if (index !== -1 && ((index < length - 2) || (index === length - 2 && stripped[length - 1] !== "="))) {
     return Result.fail(
-      DecodeException(stripped, "Found a '=' character, but it is not at the end")
+      new EncodingError({
+        reason: "Decode",
+        module: "Base64",
+        input: stripped,
+        message: `Found a '=' character, but it is not at the end`
+      })
     )
   }
 
@@ -68,15 +122,43 @@ export const decode = (str: string): Result.Result<Uint8Array, Encoding.DecodeEx
     return Result.succeed(result)
   } catch (e) {
     return Result.fail(
-      DecodeException(stripped, e instanceof Error ? e.message : "Invalid input")
+      new EncodingError({
+        reason: "Decode",
+        module: "Base64",
+        input: stripped,
+        message: e instanceof Error ? e.message : "Invalid input"
+      })
     )
   }
 }
 
-/** @internal */
-export const stripCrlf = (str: string) => str.replace(/[\n\r]/g, "")
+/**
+ * Decodes a base64 (RFC4648) encoded `string` into a UTF-8 `string`.
+ *
+ * @example
+ * ```ts
+ * import { Base64 } from "effect/encoding"
+ * import { Result } from "effect/data"
+ *
+ * const result = Base64.decodeString("aGVsbG8=")
+ * if (Result.isSuccess(result)) {
+ *   console.log(result.success) // "hello"
+ * }
+ * ```
+ *
+ * @category decoding
+ * @since 2.0.0
+ */
+export const decodeString = (str: string) => Result.map(decode(str), (_) => decoder.decode(_))
 
-/** @internal */
+// Internal utils
+
+const encoder = new TextEncoder()
+
+const decoder = new TextDecoder()
+
+const stripCrlf = (str: string) => str.replace(/[\n\r]/g, "")
+
 function getBase64Code(charCode: number) {
   if (charCode >= base64codes.length) {
     throw new TypeError(`Invalid character ${String.fromCharCode(charCode)}`)
@@ -90,7 +172,6 @@ function getBase64Code(charCode: number) {
   return code
 }
 
-/** @internal */
 const base64abc = [
   "A",
   "B",
@@ -158,7 +239,6 @@ const base64abc = [
   "/"
 ]
 
-/** @internal */
 const base64codes = [
   255,
   255,

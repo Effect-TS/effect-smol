@@ -6,7 +6,7 @@ import type { NonEmptyReadonlyArray } from "../../collections/Array.ts"
 import type * as Brand from "../../data/Brand.ts"
 import * as Predicate from "../../data/Predicate.ts"
 import * as Effect from "../../Effect.ts"
-import * as Encoding from "../../encoding/Encoding.ts"
+import * as Base64Url from "../../encoding/Base64Url.ts"
 import * as Exit from "../../Exit.ts"
 import { dual } from "../../Function.ts"
 import * as Getter from "../../schema/Getter.ts"
@@ -243,7 +243,7 @@ export class TokenParsed extends Schema.Class<TokenParsed>("effect/workflow/Dura
    * @since 4.0.0
    */
   get asToken(): Token {
-    return Encoding.encodeBase64Url(JSON.stringify([this.workflowName, this.executionId, this.deferredName])) as Token
+    return Base64Url.encode(JSON.stringify([this.workflowName, this.executionId, this.deferredName])) as Token
   }
 
   /**

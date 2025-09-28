@@ -9,7 +9,7 @@ import * as Redacted from "../../data/Redacted.ts"
 import * as Result from "../../data/Result.ts"
 import * as UndefinedOr from "../../data/UndefinedOr.ts"
 import * as Effect from "../../Effect.ts"
-import * as Encoding from "../../encoding/Encoding.ts"
+import * as Base64 from "../../encoding/Base64.ts"
 import * as Fiber from "../../Fiber.ts"
 import { identity } from "../../Function.ts"
 import { type Pipeable, pipeArguments } from "../../interfaces/Pipeable.ts"
@@ -333,7 +333,7 @@ export const securityDecode = <Security extends HttpApiSecurity.HttpApiSecurity>
       } as any
       return HttpServerRequest.asEffect().pipe(
         Effect.flatMap((request) =>
-          Encoding.decodeBase64String((request.headers.authorization ?? "").slice(basicLen)).asEffect()
+          Base64.decodeString((request.headers.authorization ?? "").slice(basicLen)).asEffect()
         ),
         Effect.match({
           onFailure: () => empty,

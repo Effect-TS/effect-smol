@@ -1,9 +1,31 @@
-import * as Result from "../../data/Result.ts"
-import type * as Encoding from "../../encoding/Encoding.ts"
-import { DecodeException } from "./common.ts"
+/**
+ * @since 2.0.0
+ */
+import * as Result from "../data/Result.ts"
+import { EncodingError } from "./EncodingError.js"
 
-/** @internal */
-export const encode = (bytes: Uint8Array) => {
+/**
+ * Encodes the given value into a hex `string`.
+ *
+ * @example
+ * ```ts
+ * import { Hex } from "effect/encoding"
+ *
+ * // Encode a string to hex
+ * console.log(Hex.encode("hello")) // "68656c6c6f"
+ *
+ * // Encode binary data to hex
+ * const bytes = new Uint8Array([72, 101, 108, 108, 111])
+ * console.log(Hex.encode(bytes)) // "48656c6c6f"
+ * ```
+ *
+ * @category encoding
+ * @since 2.0.0
+ */
+export const encode: (input: Uint8Array | string) => string = (input) =>
+  typeof input === "string" ? encodeUint8Array(encoder.encode(input)) : encodeUint8Array(input)
+
+const encodeUint8Array = (bytes: Uint8Array) => {
   let result = ""
   for (let i = 0; i < bytes.length; ++i) {
     result += bytesToHex[bytes[i]]
@@ -12,11 +34,34 @@ export const encode = (bytes: Uint8Array) => {
   return result
 }
 
-/** @internal */
-export const decode = (str: string): Result.Result<Uint8Array, Encoding.DecodeException> => {
+/**
+ * Decodes a hex encoded `string` into a `Uint8Array`.
+ *
+ * @example
+ * ```ts
+ * import { Hex } from "effect/encoding"
+ * import { Result } from "effect/data"
+ *
+ * const result = Hex.decode("48656c6c6f")
+ * if (Result.isSuccess(result)) {
+ *   console.log(Array.from(result.success)) // [72, 101, 108, 108, 111]
+ * }
+ * ```
+ *
+ * @category decoding
+ * @since 2.0.0
+ */
+export const decode = (str: string): Result.Result<Uint8Array, EncodingError> => {
   const bytes = new TextEncoder().encode(str)
   if (bytes.length % 2 !== 0) {
-    return Result.fail(DecodeException(str, `Length must be a multiple of 2, but is ${bytes.length}`))
+    return Result.fail(
+      new EncodingError({
+        module: "Hex",
+        reason: "Decode",
+        input: str,
+        message: `Length must be a multiple of 2, but is ${bytes.length}`
+      })
+    )
   }
 
   try {
@@ -30,11 +75,41 @@ export const decode = (str: string): Result.Result<Uint8Array, Encoding.DecodeEx
 
     return Result.succeed(result)
   } catch (e) {
-    return Result.fail(DecodeException(str, e instanceof Error ? e.message : "Invalid input"))
+    return Result.fail(
+      new EncodingError({
+        module: "Hex",
+        reason: "Decode",
+        input: str,
+        message: e instanceof Error ? e.message : "Invalid input"
+      })
+    )
   }
 }
 
-/** @internal */
+/**
+ * Decodes a hex encoded `string` into a UTF-8 `string`.
+ *
+ * @example
+ * ```ts
+ * import { Hex } from "effect/encoding"
+ * import { Result } from "effect/data"
+ *
+ * const result = Hex.decodeString("68656c6c6f")
+ * if (Result.isSuccess(result)) {
+ *   console.log(result.success) // "hello"
+ * }
+ * ```
+ *
+ * @category decoding
+ * @since 2.0.0
+ */
+export const decodeString = (str: string) => Result.map(decode(str), (_) => decoder.decode(_))
+
+// Internal
+
+const decoder = new TextDecoder()
+const encoder = new TextEncoder()
+
 const bytesToHex = [
   "00",
   "01",
