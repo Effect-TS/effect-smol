@@ -1,8 +1,7 @@
 import { assert, describe, it } from "@effect/vitest"
 import { deepStrictEqual, strictEqual } from "@effect/vitest/utils"
-import { Deferred, Effect, Exit, Fiber, pipe, Pool, Ref, Schedule, Scope } from "effect"
+import { Deferred, Duration, Effect, Exit, Fiber, pipe, Pool, Ref, Schedule, Scope } from "effect"
 import { TestClock } from "effect/testing"
-import { Duration } from "effect/time"
 
 describe("Pool", () => {
   it.effect("preallocates pool items", () =>

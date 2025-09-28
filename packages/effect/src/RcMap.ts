@@ -2,8 +2,10 @@
  * @since 3.5.0
  */
 import * as Cause from "./Cause.ts"
+import { Clock } from "./Clock.ts"
 import * as MutableHashMap from "./collections/MutableHashMap.ts"
 import * as Deferred from "./Deferred.ts"
+import * as Duration from "./Duration.ts"
 import * as Effect from "./Effect.ts"
 import * as Exit from "./Exit.ts"
 import * as Fiber from "./Fiber.ts"
@@ -12,8 +14,6 @@ import type { Pipeable } from "./interfaces/Pipeable.ts"
 import { pipeArguments } from "./interfaces/Pipeable.ts"
 import * as Scope from "./Scope.ts"
 import * as ServiceMap from "./ServiceMap.ts"
-import { Clock } from "./time/Clock.ts"
-import * as Duration from "./time/Duration.ts"
 
 const TypeId = "~effect/RcMap"
 

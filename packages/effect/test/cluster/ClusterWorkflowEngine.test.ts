@@ -1,8 +1,7 @@
 import { assert, describe, expect, it } from "@effect/vitest"
-import { Cause, Effect, Exit, Fiber, Layer, ServiceMap } from "effect"
+import { Cause, DateTime, Effect, Exit, Fiber, Layer, ServiceMap } from "effect"
 import { Schema } from "effect/schema"
 import { TestClock } from "effect/testing"
-import { DateTime } from "effect/time"
 import {
   ClusterWorkflowEngine,
   MessageStorage,

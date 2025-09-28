@@ -1,7 +1,6 @@
-import { Cause, Effect } from "effect"
+import { Cause, DateTime, Duration, Effect } from "effect"
 import { Option, Redacted } from "effect/data"
 import { Check, Issue, Schema, Serializer, ToParser, Transformation } from "effect/schema"
-import { DateTime, Duration } from "effect/time"
 import { describe, it } from "vitest"
 import { assertTrue, strictEqual } from "../utils/assert.ts"
 import { assertions } from "../utils/schema.ts"

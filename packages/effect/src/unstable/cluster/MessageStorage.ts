@@ -1,6 +1,7 @@
 /**
  * @since 4.0.0
  */
+import { Clock } from "../../Clock.ts"
 import * as Arr from "../../collections/Array.ts"
 import * as Data from "../../data/Data.ts"
 import type * as Option from "../../data/Option.ts"
@@ -12,7 +13,6 @@ import * as Layer from "../../Layer.ts"
 import { Serializer } from "../../schema/index.ts"
 import * as Schema from "../../schema/Schema.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
-import { Clock } from "../../time/Clock.ts"
 import type * as Rpc from "../rpc/Rpc.ts"
 import type { PersistenceError } from "./ClusterError.ts"
 import { MalformedMessage } from "./ClusterError.ts"

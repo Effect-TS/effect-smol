@@ -2,13 +2,13 @@
  * @since 4.0.0
  */
 import * as Cause from "../../Cause.ts"
+import * as Duration from "../../Duration.ts"
 import * as Effect from "../../Effect.ts"
 import type * as Exit from "../../Exit.ts"
 import * as Exporter from "../../internal/tracing/otlpExporter.ts"
 import * as Layer from "../../Layer.ts"
 import type * as Scope from "../../Scope.ts"
 import type * as ServiceMap from "../../ServiceMap.ts"
-import * as Duration from "../../time/Duration.ts"
 import * as Tracer from "../../Tracer.ts"
 import type { ExtractTag, Mutable } from "../../types/Types.ts"
 import type * as Headers from "../http/Headers.ts"

@@ -1,13 +1,13 @@
 /**
  * @since 3.14.0
  */
+import type * as Duration from "./Duration.ts"
 import * as Effect from "./Effect.ts"
 import { identity } from "./Function.ts"
 import * as Layer from "./Layer.ts"
 import * as RcMap from "./RcMap.ts"
 import * as Scope from "./Scope.ts"
 import * as ServiceMap from "./ServiceMap.ts"
-import type * as Duration from "./time/Duration.ts"
 import type { Mutable, NoExcessProperties } from "./types/Types.ts"
 
 const TypeId = "~effect/LayerMap"

@@ -6,6 +6,7 @@ import * as MutableHashMap from "./collections/MutableHashMap.ts"
 import * as Option from "./data/Option.ts"
 import type { Predicate } from "./data/Predicate.ts"
 import * as Deferred from "./Deferred.ts"
+import * as Duration from "./Duration.ts"
 import type * as Effect from "./Effect.ts"
 import type * as Exit from "./Exit.ts"
 import type * as Fiber from "./Fiber.ts"
@@ -15,7 +16,6 @@ import * as core from "./internal/core.ts"
 import { PipeInspectableProto } from "./internal/core.ts"
 import * as effect from "./internal/effect.ts"
 import * as ServiceMap from "./ServiceMap.ts"
-import * as Duration from "./time/Duration.ts"
 
 const TypeId = "~effect/Cache"
 
@@ -69,7 +69,7 @@ const TypeId = "~effect/Cache"
  * ```ts
  * import { Cache, Effect } from "effect"
  * import { Data } from "effect/data"
- * import { Duration } from "effect/time"
+ * import { Duration } from "effect"
  *
  * // Cache with complex key types and TTL
  * class UserId extends Data.Class<{ id: number }> {}

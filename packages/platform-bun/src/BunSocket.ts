@@ -1,10 +1,10 @@
 /**
  * @since 1.0.0
  */
+import type * as Duration from "effect/Duration"
 import type { Effect } from "effect/Effect"
 import { flow } from "effect/Function"
 import * as Layer from "effect/Layer"
-import type * as Duration from "effect/time/Duration"
 import * as Socket from "effect/unstable/socket/Socket"
 
 /**

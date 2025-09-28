@@ -1,10 +1,10 @@
 /**
  * @since 4.0.0
  */
+import * as Duration from "../../Duration.ts"
 import * as Effect from "../../Effect.ts"
 import type * as Schema from "../../schema/Schema.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
-import * as Duration from "../../time/Duration.ts"
 import * as DurableDeferred from "./DurableDeferred.ts"
 import type { WorkflowEngine, WorkflowInstance } from "./WorkflowEngine.ts"
 

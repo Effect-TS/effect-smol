@@ -140,6 +140,7 @@
 import * as Arr from "./collections/Array.ts"
 import * as Order from "./data/Order.ts"
 import * as Predicate from "./data/Predicate.ts"
+import * as Duration from "./Duration.ts"
 import type { Effect } from "./Effect.ts"
 import type { Exit } from "./Exit.ts"
 import { constUndefined, dual } from "./Function.ts"
@@ -150,7 +151,6 @@ import * as InternalMetric from "./internal/metric.ts"
 import * as Layer from "./Layer.ts"
 import * as ServiceMap from "./ServiceMap.ts"
 import * as _String from "./String.ts"
-import * as Duration from "./time/Duration.ts"
 import type { Contravariant, Covariant } from "./types/Types.ts"
 
 /**
@@ -2526,7 +2526,7 @@ export const histogram = (name: string, options: {
  * ```ts
  * import { Effect, Metric } from "effect"
  * import { Data } from "effect/data"
- * import { Duration } from "effect/time"
+ * import { Duration } from "effect"
  *
  * class SummaryError extends Data.TaggedError("SummaryError")<{
  *   readonly operation: string
@@ -2652,7 +2652,7 @@ export const summaryWithTimestamp = (name: string, options: {
  * ```ts
  * import { Effect, Metric } from "effect"
  * import { Data } from "effect/data"
- * import { Duration } from "effect/time"
+ * import { Duration } from "effect"
  *
  * class TimerError extends Data.TaggedError("TimerError")<{
  *   readonly operation: string

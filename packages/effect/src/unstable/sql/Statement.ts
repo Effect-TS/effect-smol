@@ -1,6 +1,7 @@
 /**
  * @since 4.0.0
  */
+import { Clock } from "../../Clock.ts"
 import { hasProperty } from "../../data/Predicate.ts"
 import * as Effect from "../../Effect.ts"
 import type * as Fiber from "../../Fiber.ts"
@@ -11,7 +12,6 @@ import * as core from "../../internal/core.ts"
 import * as internalEffect from "../../internal/effect.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import * as Stream from "../../stream/Stream.ts"
-import { Clock } from "../../time/Clock.ts"
 import type * as Tracer from "../../Tracer.ts"
 import type { Acquirer, Connection, Row } from "./SqlConnection.ts"
 import type { SqlError } from "./SqlError.ts"

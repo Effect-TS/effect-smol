@@ -2,6 +2,8 @@
  * @since 4.0.0
  */
 import * as Record from "../../data/Record.ts"
+import * as DateTime from "../../DateTime.ts"
+import * as Duration from "../../Duration.ts"
 import * as Effect from "../../Effect.ts"
 import * as Exit from "../../Exit.ts"
 import * as PrimaryKey from "../../interfaces/PrimaryKey.ts"
@@ -11,8 +13,6 @@ import * as Schedule from "../../Schedule.ts"
 import * as Schema from "../../schema/Schema.ts"
 import * as Serializer from "../../schema/Serializer.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
-import * as DateTime from "../../time/DateTime.ts"
-import * as Duration from "../../time/Duration.ts"
 import * as Rpc from "../rpc/Rpc.ts"
 import * as Activity from "../workflow/Activity.ts"
 import * as DurableClock from "../workflow/DurableClock.ts"

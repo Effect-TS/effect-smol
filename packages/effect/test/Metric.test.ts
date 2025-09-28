@@ -1,8 +1,7 @@
 import { assert, describe, it } from "@effect/vitest"
-import { Fiber, Metric, String } from "effect"
+import { Duration, Fiber, Metric, String } from "effect"
 import * as Effect from "effect/Effect"
 import { TestClock } from "effect/testing"
-import { Duration } from "effect/time"
 
 const attributes = { x: "a", y: "b" }
 

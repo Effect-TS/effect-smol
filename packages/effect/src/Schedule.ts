@@ -10,7 +10,7 @@
  * ```ts
  * import { Effect } from "effect"
  * import { Schedule } from "effect"
- * import { Duration } from "effect/time"
+ * import { Duration } from "effect"
  *
  * // Retry with exponential backoff
  * const retryPolicy = Schedule.exponential("100 millis", 2.0)
@@ -31,8 +31,11 @@
  *
  * @since 2.0.0
  */
+import * as Cron from "./Cron.ts"
 import { hasProperty } from "./data/Predicate.ts"
 import * as Result from "./data/Result.ts"
+import type * as DateTime from "./DateTime.ts"
+import * as Duration from "./Duration.ts"
 import type { Effect } from "./Effect.ts"
 import type { LazyArg } from "./Function.ts"
 import { constant, constTrue, dual, identity } from "./Function.ts"
@@ -40,9 +43,6 @@ import { type Pipeable, pipeArguments } from "./interfaces/Pipeable.ts"
 import { isEffect } from "./internal/core.ts"
 import * as effect from "./internal/effect.ts"
 import * as Pull from "./stream/Pull.ts"
-import * as Cron from "./time/Cron.ts"
-import type * as DateTime from "./time/DateTime.ts"
-import * as Duration from "./time/Duration.ts"
 import type { Contravariant, Covariant } from "./types/Types.ts"
 
 const TypeId = "~effect/Schedule"
@@ -96,7 +96,7 @@ export interface Schedule<out Output, in Input = unknown, out Error = never, out
  * ```ts
  * import { Effect } from "effect"
  * import { Schedule } from "effect"
- * import { Duration } from "effect/time"
+ * import { Duration } from "effect"
  *
  * // Usage of the Schedule namespace for creating schedules
  *
@@ -132,7 +132,7 @@ export declare namespace Schedule {
    * ```ts
    * import { Effect } from "effect"
    * import { Schedule } from "effect"
-   * import { Duration } from "effect/time"
+   * import { Duration } from "effect"
    *
    * // Understanding Schedule variance:
    * // - Output: covariant (can be a subtype)
@@ -202,7 +202,7 @@ export declare namespace Schedule {
    * ```ts
    * import { Effect } from "effect"
    * import { Schedule } from "effect"
-   * import { Duration } from "effect/time"
+   * import { Duration } from "effect"
    * import { Console } from "effect"
    *
    * // Custom schedule that uses input metadata
@@ -246,7 +246,7 @@ export declare namespace Schedule {
    * ```ts
    * import { Effect } from "effect"
    * import { Schedule } from "effect"
-   * import { Duration } from "effect/time"
+   * import { Duration } from "effect"
    * import { Console } from "effect"
    *
    * // Custom schedule that logs metadata including output
@@ -1936,7 +1936,7 @@ export const eitherWith: {
  * ```ts
  * import { Effect } from "effect"
  * import { Schedule } from "effect"
- * import { Duration } from "effect/time"
+ * import { Duration } from "effect"
  * import { Console } from "effect"
  *
  * const program = Effect.gen(function*() {
@@ -2278,7 +2278,7 @@ export const map: {
  * ```ts
  * import { Effect } from "effect"
  * import { Schedule } from "effect"
- * import { Duration } from "effect/time"
+ * import { Duration } from "effect"
  * import { Console } from "effect"
  *
  * // Modify delays based on output - increase delay on high iteration counts
@@ -3243,7 +3243,7 @@ export const ensureInput = <T>() =>
  * @example
  * ```ts
  * import { Schedule } from "effect"
- * import { Duration } from "effect/time"
+ * import { Duration } from "effect"
  *
  * // ensureOutput is a type-level function for compile-time constraints
  * // It ensures that a schedule's output type matches the specified type

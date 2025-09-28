@@ -4,6 +4,7 @@
 
 import * as Cause from "effect/Cause"
 import { isObject } from "effect/data/Predicate"
+import * as Duration from "effect/Duration"
 import * as Effect from "effect/Effect"
 import * as Exit from "effect/Exit"
 import { flow, pipe } from "effect/Function"
@@ -15,7 +16,6 @@ import * as Scope from "effect/Scope"
 import * as fc from "effect/testing/FastCheck"
 import * as TestClock from "effect/testing/TestClock"
 import * as TestConsole from "effect/testing/TestConsole"
-import * as Duration from "effect/time/Duration"
 import * as V from "vitest"
 import type * as Vitest from "../index.ts"
 

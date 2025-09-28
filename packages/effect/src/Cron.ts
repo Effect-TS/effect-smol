@@ -1,22 +1,22 @@
 /**
  * @since 2.0.0
  */
-import * as Arr from "../collections/Array.ts"
-import * as Data from "../data/Data.ts"
-import * as equivalence from "../data/Equivalence.ts"
-import { hasProperty } from "../data/Predicate.ts"
-import * as Result from "../data/Result.ts"
-import * as UndefinedOr from "../data/UndefinedOr.ts"
-import { constVoid, dual, pipe } from "../Function.ts"
-import * as Equal from "../interfaces/Equal.ts"
-import * as Hash from "../interfaces/Hash.ts"
-import { format, type Inspectable, NodeInspectSymbol } from "../interfaces/Inspectable.ts"
-import { type Pipeable, pipeArguments } from "../interfaces/Pipeable.ts"
-import * as dateTime from "../internal/dateTime.ts"
-import * as N from "../Number.ts"
-import * as String from "../String.ts"
-import type * as DateTime from "../time/DateTime.ts"
-import type { Mutable } from "../types/Types.ts"
+import * as Arr from "./collections/Array.ts"
+import * as Data from "./data/Data.ts"
+import * as equivalence from "./data/Equivalence.ts"
+import { hasProperty } from "./data/Predicate.ts"
+import * as Result from "./data/Result.ts"
+import * as UndefinedOr from "./data/UndefinedOr.ts"
+import type * as DateTime from "./DateTime.ts"
+import { constVoid, dual, pipe } from "./Function.ts"
+import * as Equal from "./interfaces/Equal.ts"
+import * as Hash from "./interfaces/Hash.ts"
+import { format, type Inspectable, NodeInspectSymbol } from "./interfaces/Inspectable.ts"
+import { type Pipeable, pipeArguments } from "./interfaces/Pipeable.ts"
+import * as dateTime from "./internal/dateTime.ts"
+import * as N from "./Number.ts"
+import * as String from "./String.ts"
+import type { Mutable } from "./types/Types.ts"
 
 const TypeId = "~effect/time/Cron"
 
@@ -29,13 +29,45 @@ const TypeId = "~effect/time/Cron"
  *
  * @example
  * ```ts
- * import { Cron } from "effect/time"
+ * import { Cron } from "effect"
  *
  * // Create a cron that runs at 9 AM on weekdays
  * const weekdayMorning = Cron.make({
  *   minutes: [0],
  *   hours: [9],
- *   days: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31],
+ *   days: [
+ *     1,
+ *     2,
+ *     3,
+ *     4,
+ *     5,
+ *     6,
+ *     7,
+ *     8,
+ *     9,
+ *     10,
+ *     11,
+ *     12,
+ *     13,
+ *     14,
+ *     15,
+ *     16,
+ *     17,
+ *     18,
+ *     19,
+ *     20,
+ *     21,
+ *     22,
+ *     23,
+ *     24,
+ *     25,
+ *     26,
+ *     27,
+ *     28,
+ *     29,
+ *     30,
+ *     31
+ *   ],
  *   months: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
  *   weekdays: [1, 2, 3, 4, 5] // Monday to Friday
  * })
@@ -141,7 +173,7 @@ const CronProto = {
  *
  * @example
  * ```ts
- * import { Cron } from "effect/time"
+ * import { Cron } from "effect"
  *
  * const cron = Cron.make({
  *   minutes: [0],
@@ -170,13 +202,45 @@ export const isCron = (u: unknown): u is Cron => hasProperty(u, TypeId)
  *
  * @example
  * ```ts
- * import { Cron } from "effect/time"
+ * import { Cron } from "effect"
  *
  * // Every day at midnight
  * const midnight = Cron.make({
  *   minutes: [0],
  *   hours: [0],
- *   days: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31],
+ *   days: [
+ *     1,
+ *     2,
+ *     3,
+ *     4,
+ *     5,
+ *     6,
+ *     7,
+ *     8,
+ *     9,
+ *     10,
+ *     11,
+ *     12,
+ *     13,
+ *     14,
+ *     15,
+ *     16,
+ *     17,
+ *     18,
+ *     19,
+ *     20,
+ *     21,
+ *     22,
+ *     23,
+ *     24,
+ *     25,
+ *     26,
+ *     27,
+ *     28,
+ *     29,
+ *     30,
+ *     31
+ *   ],
  *   months: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
  *   weekdays: [0, 1, 2, 3, 4, 5, 6]
  * })
@@ -185,7 +249,39 @@ export const isCron = (u: unknown): u is Cron => hasProperty(u, TypeId)
  * const businessHours = Cron.make({
  *   minutes: [0, 15, 30, 45],
  *   hours: [9, 10, 11, 12, 13, 14, 15, 16, 17],
- *   days: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31],
+ *   days: [
+ *     1,
+ *     2,
+ *     3,
+ *     4,
+ *     5,
+ *     6,
+ *     7,
+ *     8,
+ *     9,
+ *     10,
+ *     11,
+ *     12,
+ *     13,
+ *     14,
+ *     15,
+ *     16,
+ *     17,
+ *     18,
+ *     19,
+ *     20,
+ *     21,
+ *     22,
+ *     23,
+ *     24,
+ *     25,
+ *     26,
+ *     27,
+ *     28,
+ *     29,
+ *     30,
+ *     31
+ *   ],
  *   months: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
  *   weekdays: [1, 2, 3, 4, 5] // Monday to Friday
  * })
@@ -269,7 +365,7 @@ const CronParseErrorTypeId = "~effect/time/Cron/CronParseError"
  *
  * @example
  * ```ts
- * import { Cron } from "effect/time"
+ * import { Cron } from "effect"
  * import { Result } from "effect/data"
  *
  * const result = Cron.parse("invalid expression")
@@ -303,7 +399,7 @@ export class CronParseError extends Data.TaggedError("CronParseError")<{
  *
  * @example
  * ```ts
- * import { Cron } from "effect/time"
+ * import { Cron } from "effect"
  * import { Result } from "effect/data"
  *
  * const result = Cron.parse("invalid cron expression")
@@ -328,19 +424,22 @@ export const isCronParseError = (u: unknown): u is CronParseError => hasProperty
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
- * import { Cron } from "effect/time"
+ * import { Cron } from "effect"
  * import { Result } from "effect/data"
+ * import * as assert from "node:assert"
  *
  * // At 04:00 on every day-of-month from 8 through 14.
- * assert.deepStrictEqual(Cron.parse("0 0 4 8-14 * *"), Result.succeed(Cron.make({
- *   seconds: [0],
- *   minutes: [0],
- *   hours: [4],
- *   days: [8, 9, 10, 11, 12, 13, 14],
- *   months: [],
- *   weekdays: []
- * })))
+ * assert.deepStrictEqual(
+ *   Cron.parse("0 0 4 8-14 * *"),
+ *   Result.succeed(Cron.make({
+ *     seconds: [0],
+ *     minutes: [0],
+ *     hours: [4],
+ *     days: [8, 9, 10, 11, 12, 13, 14],
+ *     months: [],
+ *     weekdays: []
+ *   }))
+ * )
  * ```
  *
  * @since 2.0.0
@@ -385,7 +484,7 @@ export const parse = (cron: string, tz?: DateTime.TimeZone | string): Result.Res
  *
  * @example
  * ```ts
- * import { Cron } from "effect/time"
+ * import { Cron } from "effect"
  *
  * // At 04:00 on every day-of-month from 8 through 14
  * const cron = Cron.parseUnsafe("0 0 4 8-14 * *")
@@ -411,7 +510,7 @@ export const parseUnsafe = (cron: string, tz?: DateTime.TimeZone | string): Cron
  *
  * @example
  * ```ts
- * import { Cron } from "effect/time"
+ * import { Cron } from "effect"
  * import { Result } from "effect/data"
  *
  * const cron = Result.getOrThrow(Cron.parse("0 0 4 8-14 * *"))
@@ -478,7 +577,7 @@ const daysInMonth = (date: Date): number =>
  *
  * @example
  * ```ts
- * import { Cron } from "effect/time"
+ * import { Cron } from "effect"
  * import { Result } from "effect/data"
  *
  * const cron = Result.getOrThrow(Cron.parse("0 0 4 8-14 * *"))
@@ -627,7 +726,7 @@ export const next = (cron: Cron, now?: DateTime.DateTime.Input): Date => {
  *
  * @example
  * ```ts
- * import { Cron } from "effect/time"
+ * import { Cron } from "effect"
  * import { Result } from "effect/data"
  *
  * const cron = Result.getOrThrow(Cron.parse("0 0 9 * * 1-5")) // 9 AM weekdays
@@ -658,8 +757,7 @@ export const sequence = function*(cron: Cron, now?: DateTime.DateTime.Input): It
  *
  * @example
  * ```ts
- * import { Cron } from "effect/time"
- * import * as Equivalence from "effect/data/Equivalence"
+ * import { Cron } from "effect"
  *
  * const cron1 = Cron.make({
  *   minutes: [0, 30],
@@ -704,7 +802,7 @@ const restrictionsEquals = (self: ReadonlySet<number>, that: ReadonlySet<number>
  *
  * @example
  * ```ts
- * import { Cron } from "effect/time"
+ * import { Cron } from "effect"
  *
  * const cron1 = Cron.make({
  *   minutes: [0],

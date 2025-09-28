@@ -1,13 +1,13 @@
 /**
  * @since 4.0.0
  */
+import type { DurationInput } from "../../Duration.ts"
 import type * as Effect from "../../Effect.ts"
 import type * as Exit from "../../Exit.ts"
 import * as PrimaryKey from "../../interfaces/PrimaryKey.ts"
 import * as Request from "../../Request.ts"
 import * as Schema from "../../schema/Schema.ts"
 import * as Serializer from "../../schema/Serializer.ts"
-import type { DurationInput } from "../../time/Duration.ts"
 import type * as Types from "../../types/Types.ts"
 import type { PersistenceError } from "./Persistence.ts"
 

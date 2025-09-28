@@ -19,8 +19,7 @@
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Clock } from "effect/time"
+ * import { Clock, Effect } from "effect"
  *
  * // Get current time in milliseconds
  * const getCurrentTime = Clock.currentTimeMillis
@@ -29,7 +28,7 @@
  * const sleep1Second = Effect.sleep("1 seconds")
  *
  * // Measure execution time
- * const measureTime = Effect.gen(function* () {
+ * const measureTime = Effect.gen(function*() {
  *   const start = yield* Clock.currentTimeMillis
  *   yield* Effect.sleep("100 millis")
  *   const end = yield* Clock.currentTimeMillis
@@ -39,11 +38,10 @@
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Clock } from "effect/time"
+ * import { Clock, Effect } from "effect"
  *
  * // Using Clock service directly
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const clock = yield* Clock.Clock
  *   const currentTime = yield* clock.currentTimeMillis
  *   console.log(`Current time: ${currentTime}`)
@@ -58,10 +56,10 @@
  *
  * @since 2.0.0
  */
-import type { Effect } from "../Effect.ts"
-import * as effect from "../internal/effect.ts"
-import type * as ServiceMap from "../ServiceMap.ts"
-import type * as Duration from "../time/Duration.ts"
+import type * as Duration from "./Duration.ts"
+import type { Effect } from "./Effect.ts"
+import * as effect from "./internal/effect.ts"
+import type * as ServiceMap from "./ServiceMap.ts"
 
 /**
  * Represents a time-based clock which provides functionality related to time
@@ -69,10 +67,9 @@ import type * as Duration from "../time/Duration.ts"
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Clock } from "effect/time"
+ * import { Clock, Effect } from "effect"
  *
- * const clockOperations = Effect.gen(function* () {
+ * const clockOperations = Effect.gen(function*() {
  *   const currentTime = yield* Clock.currentTimeMillis
  *   const currentTimeNanos = yield* Clock.currentTimeNanos
  *
@@ -112,10 +109,9 @@ export interface Clock {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Clock } from "effect/time"
+ * import { Clock, Effect } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const clock = yield* Clock.Clock
  *   return clock.currentTimeMillisUnsafe()
  * })
@@ -131,8 +127,7 @@ export const Clock: ServiceMap.Reference<Clock> = effect.ClockRef
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Clock } from "effect/time"
+ * import { Clock, Effect } from "effect"
  *
  * const program = Clock.clockWith((clock) =>
  *   Effect.sync(() => {
@@ -153,10 +148,9 @@ export const clockWith: <A, E, R>(f: (clock: Clock) => Effect<A, E, R>) => Effec
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Clock } from "effect/time"
+ * import { Clock, Effect } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const currentTime = yield* Clock.currentTimeMillis
  *   console.log(`Current time: ${currentTime}ms`)
  *   return currentTime
@@ -173,10 +167,9 @@ export const currentTimeMillis: Effect<number> = effect.currentTimeMillis
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Clock } from "effect/time"
+ * import { Clock, Effect } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const currentTime = yield* Clock.currentTimeNanos
  *   console.log(`Current time: ${currentTime}ns`)
  *   return currentTime

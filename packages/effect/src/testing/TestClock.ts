@@ -1,14 +1,14 @@
 /**
  * @since 2.0.0
  */
+import * as Clock from "../Clock.ts"
 import * as Arr from "../collections/Array.ts"
 import * as Data from "../data/Data.ts"
 import * as Order from "../data/Order.ts"
+import * as Duration from "../Duration.ts"
 import * as Effect from "../Effect.ts"
 import * as Fiber from "../Fiber.ts"
 import * as Layer from "../Layer.ts"
-import * as Clock from "../time/Clock.ts"
-import * as Duration from "../time/Duration.ts"
 
 /**
  * A `TestClock` simplifies deterministically and efficiently testing effects
@@ -24,7 +24,7 @@ import * as Duration from "../time/Duration.ts"
  *
  * ```ts
  * import * as assert from "node:assert"
- * import { Duration } from "effect/time"
+ * import { Duration } from "effect"
  * import { Effect, pipe } from "effect"
  * import { Option } from "effect/data"
  * import { Fiber } from "effect"
@@ -440,7 +440,7 @@ export const adjust = (duration: Duration.DurationInput): Effect.Effect<void> =>
  *
  * @example
  * ```ts
- * import { Duration } from "effect/time"
+ * import { Duration } from "effect"
  * import { Effect } from "effect"
  * import { TestClock } from "effect/testing"
  *
@@ -475,7 +475,7 @@ export const setTime = (timestamp: number): Effect.Effect<void> =>
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Clock } from "effect/time"
+ * import { Clock } from "effect"
  * import { TestClock } from "effect/testing"
  *
  * const program = Effect.gen(function*() {

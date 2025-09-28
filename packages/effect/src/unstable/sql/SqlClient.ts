@@ -1,6 +1,7 @@
 /**
  * @since 4.0.0
  */
+import { Clock } from "../../Clock.ts"
 import * as Option from "../../data/Option.ts"
 import type { ReadonlyRecord } from "../../data/Record.ts"
 import * as Effect from "../../Effect.ts"
@@ -9,7 +10,6 @@ import type * as Queue from "../../Queue.ts"
 import * as Scope from "../../Scope.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import * as Stream from "../../stream/Stream.ts"
-import { Clock } from "../../time/Clock.ts"
 import * as Tracer from "../../Tracer.ts"
 import type { NoInfer } from "../../types/Types.ts"
 import { Reactivity } from "../reactivity/Reactivity.ts"

@@ -113,6 +113,66 @@ export * as Cache from "./Cache.ts"
 export * as Cause from "./Cause.ts"
 
 /**
+ * The `Clock` module provides functionality for time-based operations in Effect applications.
+ * It offers precise time measurements, scheduling capabilities, and controlled time management
+ * for testing scenarios.
+ *
+ * The Clock service is a core component of the Effect runtime, providing:
+ * - Current time access in milliseconds and nanoseconds
+ * - Sleep operations for delaying execution
+ * - Time-based scheduling primitives
+ * - Testable time control through `TestClock`
+ *
+ * ## Key Features
+ *
+ * - **Precise timing**: Access to both millisecond and nanosecond precision
+ * - **Sleep operations**: Non-blocking sleep with proper interruption handling
+ * - **Service integration**: Seamless integration with Effect's dependency injection
+ * - **Testable**: Mock time control for deterministic testing
+ * - **Resource-safe**: Automatic cleanup of time-based resources
+ *
+ * @example
+ * ```ts
+ * import { Clock, Effect } from "effect"
+ *
+ * // Get current time in milliseconds
+ * const getCurrentTime = Clock.currentTimeMillis
+ *
+ * // Sleep for 1 second
+ * const sleep1Second = Effect.sleep("1 seconds")
+ *
+ * // Measure execution time
+ * const measureTime = Effect.gen(function*() {
+ *   const start = yield* Clock.currentTimeMillis
+ *   yield* Effect.sleep("100 millis")
+ *   const end = yield* Clock.currentTimeMillis
+ *   return end - start
+ * })
+ * ```
+ *
+ * @example
+ * ```ts
+ * import { Clock, Effect } from "effect"
+ *
+ * // Using Clock service directly
+ * const program = Effect.gen(function*() {
+ *   const clock = yield* Clock.Clock
+ *   const currentTime = yield* clock.currentTimeMillis
+ *   console.log(`Current time: ${currentTime}`)
+ *
+ *   // Sleep for 500ms
+ *   yield* Effect.sleep("500 millis")
+ *
+ *   const afterSleep = yield* clock.currentTimeMillis
+ *   console.log(`After sleep: ${afterSleep}`)
+ * })
+ * ```
+ *
+ * @since 2.0.0
+ */
+export * as Clock from "./Clock.ts"
+
+/**
  * @since 4.0.0
  */
 export * as Config from "./Config.ts"
@@ -197,6 +257,16 @@ export * as ConfigProvider from "./ConfigProvider.ts"
 export * as Console from "./Console.ts"
 
 /**
+ * @since 2.0.0
+ */
+export * as Cron from "./Cron.ts"
+
+/**
+ * @since 3.6.0
+ */
+export * as DateTime from "./DateTime.ts"
+
+/**
  * This module provides utilities for working with `Deferred`, a powerful concurrency
  * primitive that represents an asynchronous variable that can be set exactly once.
  * Multiple fibers can await the same `Deferred` and will all be notified when it
@@ -267,6 +337,23 @@ export * as Console from "./Console.ts"
  * @since 2.0.0
  */
 export * as Deferred from "./Deferred.ts"
+
+/**
+ * This module provides utilities for working with durations of time. A `Duration`
+ * is an immutable data type that represents a span of time with high precision,
+ * supporting operations from nanoseconds to weeks.
+ *
+ * Durations support:
+ * - **High precision**: Nanosecond-level accuracy using BigInt
+ * - **Multiple formats**: Numbers (millis), BigInt (nanos), tuples, strings
+ * - **Arithmetic operations**: Add, subtract, multiply, divide
+ * - **Comparisons**: Equal, less than, greater than
+ * - **Conversions**: Between different time units
+ * - **Human-readable formatting**: Pretty printing and parsing
+ *
+ * @since 2.0.0
+ */
+export * as Duration from "./Duration.ts"
 
 /**
  * The `Effect` module is the core of the Effect library, providing a powerful and expressive
@@ -553,7 +640,7 @@ export * as LayerMap from "./LayerMap.ts"
  *
  * ```ts
  * import { Effect, Logger } from "effect"
- * import { Duration } from "effect/time"
+ * import { Duration } from "effect"
  *
  * const batchedLogger = Logger.batched(Logger.formatJson, {
  *   window: Duration.seconds(5),
@@ -727,8 +814,7 @@ export * as ManagedRuntime from "./ManagedRuntime.ts"
  * ## Basic Usage
  *
  * ```ts
- * import { Effect } from "effect"
- * import { Metric } from "effect/observability"
+ * import { Effect, Metric } from "effect"
  *
  * // Create metrics
  * const requestCount = Metric.counter("http_requests_total", {
@@ -741,15 +827,15 @@ export * as ManagedRuntime from "./ManagedRuntime.ts"
  * })
  *
  * // Use metrics in your application
- * const handleRequest = Effect.gen(function* () {
+ * const handleRequest = Effect.gen(function*() {
  *   yield* Metric.update(requestCount, 1)
  *
- *   const startTime = yield* Effect.clockWith(clock => clock.currentTimeMillis)
+ *   const startTime = yield* Effect.clockWith((clock) => clock.currentTimeMillis)
  *
  *   // Process request...
  *   yield* Effect.sleep("100 millis")
  *
- *   const endTime = yield* Effect.clockWith(clock => clock.currentTimeMillis)
+ *   const endTime = yield* Effect.clockWith((clock) => clock.currentTimeMillis)
  *   yield* Metric.update(responseTime, endTime - startTime)
  * })
  * ```
@@ -757,14 +843,13 @@ export * as ManagedRuntime from "./ManagedRuntime.ts"
  * ## Attributes and Tagging
  *
  * ```ts
- * import { Effect } from "effect"
- * import { Metric } from "effect/observability"
+ * import { Effect, Metric } from "effect"
  *
  * const requestCount = Metric.counter("requests", {
  *   description: "Number of requests by endpoint and method"
  * })
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   // Add attributes to metrics
  *   yield* Metric.update(
  *     Metric.withAttributes(requestCount, {
@@ -786,9 +871,7 @@ export * as ManagedRuntime from "./ManagedRuntime.ts"
  * ## Advanced Examples
  *
  * ```ts
- * import { Effect } from "effect"
- * import { Metric } from "effect/observability"
- * import { Schedule } from "effect"
+ * import { Effect, Metric } from "effect"
  *
  * // Business metrics
  * const userSignups = Metric.counter("user_signups_total")
@@ -802,7 +885,7 @@ export * as ManagedRuntime from "./ManagedRuntime.ts"
  *   quantiles: [0.5, 0.9, 0.95, 0.99]
  * })
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   // Track user signup
  *   yield* Metric.update(userSignups, 1)
  *
@@ -819,7 +902,7 @@ export * as ManagedRuntime from "./ManagedRuntime.ts"
  * })
  *
  * // Get metric snapshots
- * const getMetrics = Effect.gen(function* () {
+ * const getMetrics = Effect.gen(function*() {
  *   const snapshots = yield* Metric.snapshot
  *
  *   for (const metric of snapshots) {
@@ -1079,7 +1162,7 @@ export * as Runtime from "./Runtime.ts"
  * ```ts
  * import { Effect } from "effect"
  * import { Schedule } from "effect"
- * import { Duration } from "effect/time"
+ * import { Duration } from "effect"
  *
  * // Retry with exponential backoff
  * const retryPolicy = Schedule.exponential("100 millis", 2.0)

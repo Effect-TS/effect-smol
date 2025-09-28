@@ -1,7 +1,7 @@
+import { Clock } from "../../../Clock.ts"
 import * as Effect from "../../../Effect.ts"
 import * as Layer from "../../../Layer.ts"
 import * as ServiceMap from "../../../ServiceMap.ts"
-import { Clock } from "../../../time/Clock.ts"
 import type { EntityNotAssignedToRunner } from "../ClusterError.ts"
 import type { EntityAddress } from "../EntityAddress.ts"
 import type { EntityId } from "../EntityId.ts"

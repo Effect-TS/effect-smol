@@ -1,15 +1,15 @@
 /**
  * @since 4.0.0
  */
+import { Clock } from "../../Clock.ts"
 import type * as Brand from "../../data/Brand.ts"
+import * as DateTime from "../../DateTime.ts"
 import * as Effect from "../../Effect.ts"
 import { identity } from "../../Function.ts"
 import * as Layer from "../../Layer.ts"
 import * as Schema from "../../schema/Schema.ts"
 import * as Transformation from "../../schema/Transformation.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
-import { Clock } from "../../time/Clock.ts"
-import * as DateTime from "../../time/DateTime.ts"
 import type { MachineId } from "./MachineId.ts"
 
 const TypeId = "~effect/cluster/Snowflake"

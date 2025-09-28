@@ -1,8 +1,8 @@
 import { describe, it } from "@effect/vitest"
 import { assertFalse, assertTrue, deepStrictEqual, throws } from "@effect/vitest/utils"
+import { Cron, DateTime } from "effect"
 import { Result } from "effect/data"
 import { Equal } from "effect/interfaces"
-import { Cron, DateTime } from "effect/time"
 
 const match = (input: Cron.Cron | string, date: DateTime.DateTime.Input) =>
   Cron.match(Cron.isCron(input) ? input : Cron.parseUnsafe(input), date)

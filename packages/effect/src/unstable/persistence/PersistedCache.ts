@@ -2,12 +2,12 @@
  * @since 1.0.0
  */
 import * as Cache from "../../Cache.ts"
+import * as Duration from "../../Duration.ts"
 import * as Effect from "../../Effect.ts"
 import type { Exit } from "../../Exit.ts"
 import { constant, identity } from "../../Function.ts"
 import type * as Schema from "../../schema/Schema.ts"
 import type * as Scope from "../../Scope.ts"
-import * as Duration from "../../time/Duration.ts"
 import type * as Persistable from "./Persistable.ts"
 import * as Persistence from "./Persistence.ts"
 
