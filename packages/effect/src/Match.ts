@@ -26,13 +26,13 @@
  *
  * @since 4.0.0
  */
-import type * as Option from "../data/Option.ts"
-import * as Predicate from "../data/Predicate.ts"
-import type * as Result from "../data/Result.ts"
-import type { Pipeable } from "../interfaces/Pipeable.ts"
-import * as internal from "../internal/matcher.ts"
-import type * as T from "../types/Types.ts"
-import type { Unify } from "../types/Unify.ts"
+import type * as Option from "./data/Option.ts"
+import * as Predicate from "./data/Predicate.ts"
+import type * as Result from "./data/Result.ts"
+import type { Pipeable } from "./interfaces/Pipeable.ts"
+import * as internal from "./internal/matcher.ts"
+import type * as T from "./types/Types.ts"
+import type { Unify } from "./types/Unify.ts"
 
 const TypeId = internal.TypeId
 
@@ -51,7 +51,7 @@ const TypeId = internal.TypeId
  *
  * @example
  * ```ts
- * import { Match } from "effect/match"
+ * import { Match } from "effect"
  *
  * // Simulated dynamic input that can be a string or a number
  * const input: string | number = "some input"
@@ -88,7 +88,7 @@ export type Matcher<Input, Filters, RemainingApplied, Result, Provided, Return =
  *
  * @example
  * ```ts
- * import { Match } from "effect/match"
+ * import { Match } from "effect"
  *
  * // Create a TypeMatcher for string | number
  * const matcher = Match.type<string | number>().pipe(
@@ -126,7 +126,7 @@ export interface TypeMatcher<in Input, out Filters, out Remaining, out Result, o
  *
  * @example
  * ```ts
- * import { Match } from "effect/match"
+ * import { Match } from "effect"
  *
  * const input = { type: "user", name: "Alice", age: 30 }
  *
@@ -167,7 +167,7 @@ export interface ValueMatcher<in Input, Filters, out Remaining, out Result, Prov
  *
  * @example
  * ```ts
- * import { Match } from "effect/match"
+ * import type { Match } from "effect"
  *
  * // Case is a union type representing pattern matching cases
  * // It combines When (positive) and Not (negative) matching logic
@@ -194,7 +194,7 @@ export type Case = When | Not
  *
  * @example
  * ```ts
- * import { Match } from "effect/match"
+ * import { Match } from "effect"
  *
  * // When creates cases that match specific patterns
  * const stringMatcher = Match.type<string | number>().pipe(
@@ -225,7 +225,7 @@ export interface When {
  *
  * @example
  * ```ts
- * import { Match } from "effect/match"
+ * import { Match } from "effect"
  *
  * // Not creates cases that exclude specific patterns
  * const matcher = Match.type<string>().pipe(
@@ -260,7 +260,7 @@ export interface Not {
  * @example (Matching Numbers and Strings)
  *
  * ```ts
- * import { Match } from "effect/match"
+ * import { Match } from "effect"
  *
  * // Create a matcher for values that are either strings or numbers
  * //
@@ -305,7 +305,7 @@ export const type: <I>() => Matcher<I, Types.Without<never>, I, never, never> = 
  * @example (Matching an Object by Property)
  *
  * ```ts
- * import { Match } from "effect/match"
+ * import { Match } from "effect"
  *
  * const input = { name: "John", age: 30 }
  *
@@ -342,7 +342,7 @@ export const value: <const I>(
  *
  * @example
  * ```ts
- * import { Match } from "effect/match"
+ * import { Match } from "effect"
  *
  * type Status = { readonly _tag: "Success"; readonly data: string }
  *
@@ -383,7 +383,7 @@ export const valueTags: {
  *
  * @example
  * ```ts
- * import { Match } from "effect/match"
+ * import { Match } from "effect"
  *
  * type Result =
  *   | { readonly _tag: "Success"; readonly data: string }
@@ -453,7 +453,7 @@ export const typeTags: {
  * @example (Validating Return Type Consistency)
  *
  * ```ts
- * import { Match } from "effect/match"
+ * import { Match } from "effect"
  *
  * const match = Match.type<{ a: number } | { b: string }>().pipe(
  *   // Ensure all branches return a string
@@ -492,12 +492,15 @@ export const withReturnType: <Ret>() => <I, F, R, A, Pr, _>(
  * @example (Matching with Values and Predicates)
  *
  * ```ts
- * import { Match } from "effect/match"
+ * import { Match } from "effect"
  *
  * // Create a matcher for objects with an "age" property
  * const match = Match.type<{ age: number }>().pipe(
  *   // Match when age is greater than 18
- *   Match.when({ age: (age: number) => age > 18 }, (user: { age: number }) => `Age: ${user.age}`),
+ *   Match.when(
+ *     { age: (age: number) => age > 18 },
+ *     (user: { age: number }) => `Age: ${user.age}`
+ *   ),
  *   // Match when age is exactly 18
  *   Match.when({ age: 18 }, () => "You can vote"),
  *   // Fallback case for all other ages
@@ -556,7 +559,7 @@ export const when: <
  *
  * @example
  * ```ts
- * import { Match } from "effect/match"
+ * import { Match } from "effect"
  *
  * type ErrorType =
  *   | { readonly _tag: "NetworkError"; readonly message: string }
@@ -617,7 +620,7 @@ export const whenOr: <
  *
  * @example
  * ```ts
- * import { Match } from "effect/match"
+ * import { Match } from "effect"
  *
  * type User = { readonly age: number; readonly role: "admin" | "user" }
  *
@@ -670,11 +673,15 @@ export const whenAnd: <
  *
  * @example
  * ```ts
- * import { pipe } from "effect"
- * import { Match } from "effect/match"
+ * import { Match, pipe } from "effect"
  *
  * const match = pipe(
- *   Match.type<{ type: "A"; a: string } | { type: "B"; b: number } | { type: "C"; c: boolean }>(),
+ *   Match.type<
+ *     { type: "A"; a: string } | { type: "B"; b: number } | {
+ *       type: "C"
+ *       c: boolean
+ *     }
+ *   >(),
  *   Match.discriminator("type")("A", "B", (_) => `A or B: ${_.type}`),
  *   Match.discriminator("type")("C", (_) => `C(${_.c})`),
  *   Match.exhaustive
@@ -716,8 +723,7 @@ export const discriminator: <D extends string>(
  *
  * @example
  * ```ts
- * import { pipe } from "effect"
- * import { Match } from "effect/match"
+ * import { Match, pipe } from "effect"
  *
  * const match = pipe(
  *   Match.type<{ type: "A" } | { type: "B" } | { type: "A.A" } | {}>(),
@@ -765,11 +771,15 @@ export const discriminatorStartsWith: <D extends string>(
  *
  * @example
  * ```ts
- * import { pipe } from "effect"
- * import { Match } from "effect/match"
+ * import { Match, pipe } from "effect"
  *
  * const match = pipe(
- *   Match.type<{ type: "A"; a: string } | { type: "B"; b: number } | { type: "C"; c: boolean }>(),
+ *   Match.type<
+ *     { type: "A"; a: string } | { type: "B"; b: number } | {
+ *       type: "C"
+ *       c: boolean
+ *     }
+ *   >(),
  *   Match.discriminators("type")({
  *     A: (a) => a.a,
  *     B: (b) => b.b,
@@ -820,11 +830,15 @@ export const discriminators: <D extends string>(
  *
  * @example
  * ```ts
- * import { pipe } from "effect"
- * import { Match } from "effect/match"
+ * import { Match, pipe } from "effect"
  *
  * const match = pipe(
- *   Match.type<{ type: "A"; a: string } | { type: "B"; b: number } | { type: "C"; c: boolean }>(),
+ *   Match.type<
+ *     { type: "A"; a: string } | { type: "B"; b: number } | {
+ *       type: "C"
+ *       c: boolean
+ *     }
+ *   >(),
  *   Match.discriminatorsExhaustive("type")({
  *     A: (a) => a.a,
  *     B: (b) => b.b,
@@ -865,7 +879,7 @@ export const discriminatorsExhaustive: <D extends string>(
  * @example (Matching a Discriminated Union by Tag)
  *
  * ```ts
- * import { Match } from "effect/match"
+ * import { Match } from "effect"
  *
  * type Event =
  *   | { readonly _tag: "fetch" }
@@ -924,7 +938,7 @@ export const tag: <
  * @example
   ```ts
  * import { pipe } from "effect"
- * import { Match } from "effect/match"
+ * import { Match } from "effect"
  *
  * const match = pipe(
  *   Match.type<{ _tag: "A" } | { _tag: "B" } | { _tag: "A.A" } | {}>(),
@@ -973,11 +987,15 @@ export const tagStartsWith: <
  *
  * @example
  * ```ts
- * import { pipe } from "effect"
- * import { Match } from "effect/match"
+ * import { Match, pipe } from "effect"
  *
  * const match = pipe(
- *   Match.type<{ _tag: "A"; a: string } | { _tag: "B"; b: number } | { _tag: "C"; c: boolean }>(),
+ *   Match.type<
+ *     { _tag: "A"; a: string } | { _tag: "B"; b: number } | {
+ *       _tag: "C"
+ *       c: boolean
+ *     }
+ *   >(),
  *   Match.tags({
  *     A: (a) => a.a,
  *     B: (b) => b.b,
@@ -1023,11 +1041,15 @@ export const tags: <
  *
  * @example
  * ```ts
- * import { pipe } from "effect"
- * import { Match } from "effect/match"
+ * import { Match, pipe } from "effect"
  *
  * const match = pipe(
- *   Match.type<{ _tag: "A"; a: string } | { _tag: "B"; b: number } | { _tag: "C"; c: boolean }>(),
+ *   Match.type<
+ *     { _tag: "A"; a: string } | { _tag: "B"; b: number } | {
+ *       _tag: "C"
+ *       c: boolean
+ *     }
+ *   >(),
  *   Match.tagsExhaustive({
  *     A: (a) => a.a,
  *     B: (b) => b.b,
@@ -1066,7 +1088,7 @@ export const tagsExhaustive: <
  * @example (Ignoring a Specific Value)
  *
  * ```ts
- * import { Match } from "effect/match"
+ * import { Match } from "effect"
  *
  * // Create a matcher for string or number values
  * const match = Match.type<string | number>().pipe(
@@ -1113,7 +1135,7 @@ export const not: <
  *
  * @example
  * ```ts
- * import { Match } from "effect/match"
+ * import { Match } from "effect"
  *
  * const processInput = Match.type<string>()
  *   .pipe(
@@ -1144,7 +1166,7 @@ export const nonEmptyString: SafeRefinement<string, never> = internal.nonEmptySt
  *
  * @example
  * ```ts
- * import { Match } from "effect/match"
+ * import { Match } from "effect"
  *
  * const handleStatus = Match.type<string | number>()
  *   .pipe(
@@ -1185,7 +1207,7 @@ export const is: <
  *
  * @example
  * ```ts
- * import { Match } from "effect/match"
+ * import { Match } from "effect"
  *
  * const processValue = Match.type<string | number | boolean>().pipe(
  *   Match.when(Match.string, (str) => `String: ${str.toUpperCase()}`),
@@ -1213,7 +1235,7 @@ export const string: Predicate.Refinement<unknown, string> = Predicate.isString
  *
  * @example
  * ```ts
- * import { Match } from "effect/match"
+ * import { Match } from "effect"
  *
  * const categorizeNumber = Match.type<unknown>().pipe(
  *   Match.when(Match.number, (num) => {
@@ -1245,7 +1267,7 @@ export const number: Predicate.Refinement<unknown, number> = Predicate.isNumber
  *
  * @example
  * ```ts
- * import { Match } from "effect/match"
+ * import { Match } from "effect"
  *
  * const describeValue = Match.type<unknown>()
  *   .pipe(
@@ -1282,7 +1304,7 @@ export const any: SafeRefinement<unknown, any> = internal.any
  *
  * @example
  * ```ts
- * import { Match } from "effect/match"
+ * import { Match } from "effect"
  *
  * const processValue = Match.type<string | number | null | undefined>()
  *   .pipe(
@@ -1322,11 +1344,12 @@ export const defined: <A>(u: A) => u is A & {} = internal.defined
  *
  * @example
  * ```ts
- * import { Match } from "effect/match"
+ * import { Match } from "effect"
  *
  * const describeTruthiness = Match.type<unknown>().pipe(
- *   Match.when(Match.boolean, (bool) =>
- *     bool ? "Definitely true" : "Definitely false"
+ *   Match.when(
+ *     Match.boolean,
+ *     (bool) => bool ? "Definitely true" : "Definitely false"
  *   ),
  *   Match.when(0, () => "Falsy number"),
  *   Match.when("", () => "Empty string"),
@@ -1375,7 +1398,7 @@ export {
  *
  * @example
  * ```ts
- * import { Match } from "effect/match"
+ * import { Match } from "effect"
  *
  * const processLargeNumber = Match.type<unknown>().pipe(
  *   Match.when(Match.bigint, (big) => {
@@ -1408,7 +1431,7 @@ export const bigint: Predicate.Refinement<unknown, bigint> = Predicate.isBigInt
  *
  * @example
  * ```ts
- * import { Match } from "effect/match"
+ * import { Match } from "effect"
  *
  * const mySymbol = Symbol("my-symbol")
  * const globalSymbol = Symbol.for("global-symbol")
@@ -1443,23 +1466,26 @@ export const symbol: Predicate.Refinement<unknown, symbol> = Predicate.isSymbol
  *
  * @example
  * ```ts
- * import { Match } from "effect/match"
+ * import { Match } from "effect"
  *
  * const processDateValue = Match.type<unknown>().pipe(
  *   Match.when(Match.date, (date) => {
  *     if (isNaN(date.getTime())) {
  *       return "Invalid date"
  *     }
- *     return `Date: ${date.toISOString().split('T')[0]}`
+ *     return `Date: ${date.toISOString().split("T")[0]}`
  *   }),
  *   Match.when(Match.string, (str) => `Date string: ${str}`),
- *   Match.when(Match.number, (num) => `Timestamp: ${new Date(num).toISOString()}`),
+ *   Match.when(
+ *     Match.number,
+ *     (num) => `Timestamp: ${new Date(num).toISOString()}`
+ *   ),
  *   Match.orElse(() => "Not a date-related value")
  * )
  *
- * console.log(processDateValue(new Date('2024-01-01'))) // "Date: 2024-01-01"
- * console.log(processDateValue(new Date('invalid'))) // "Invalid date"
- * console.log(processDateValue('2024-01-01')) // "Date string: 2024-01-01"
+ * console.log(processDateValue(new Date("2024-01-01"))) // "Date: 2024-01-01"
+ * console.log(processDateValue(new Date("invalid"))) // "Invalid date"
+ * console.log(processDateValue("2024-01-01")) // "Date string: 2024-01-01"
  * console.log(processDateValue(1704067200000)) // "Timestamp: 2024-01-01T00:00:00.000Z"
  * ```
  *
@@ -1477,7 +1503,7 @@ export const date: Predicate.Refinement<unknown, Date> = Predicate.isDate
  *
  * @example
  * ```ts
- * import { Match } from "effect/match"
+ * import { Match } from "effect"
  *
  * const analyzeValue = Match.type<unknown>().pipe(
  *   Match.when(Match.record, (obj) => {
@@ -1485,7 +1511,10 @@ export const date: Predicate.Refinement<unknown, Date> = Predicate.isDate
  *     const valueCount = keys.length
  *     return `Object with ${valueCount} properties: [${keys.join(", ")}]`
  *   }),
- *   Match.when(Match.instanceOf(Array), (arr) => `Array with ${arr.length} items`),
+ *   Match.when(
+ *     Match.instanceOf(Array),
+ *     (arr) => `Array with ${arr.length} items`
+ *   ),
  *   Match.when(Match.date, () => "Date object"),
  *   Match.orElse(() => "Not an object")
  * )
@@ -1513,7 +1542,7 @@ export const record: Predicate.Refinement<unknown, { [x: string | symbol]: unkno
  *
  * @example
  * ```ts
- * import { Match } from "effect/match"
+ * import { Match } from "effect"
  *
  * class CustomError extends Error {
  *   constructor(message: string, public code: number) {
@@ -1523,17 +1552,18 @@ export const record: Predicate.Refinement<unknown, { [x: string | symbol]: unkno
  *
  * const handleValue = Match.type<unknown>()
  *   .pipe(
- *     Match.when(Match.instanceOf(CustomError), (err) =>
- *       `Custom error: ${err.message} (code: ${err.code})`
+ *     Match.when(
+ *       Match.instanceOf(CustomError),
+ *       (err) => `Custom error: ${err.message} (code: ${err.code})`
  *     ),
- *     Match.when(Match.instanceOf(Error), (err) =>
- *       `Standard error: ${err.message}`
+ *     Match.when(
+ *       Match.instanceOf(Error),
+ *       (err) => `Standard error: ${err.message}`
  *     ),
- *     Match.when(Match.instanceOf(Date), (date) =>
- *       `Date: ${date.toISOString()}`
- *     ),
- *     Match.when(Match.instanceOf(Array), (arr) =>
- *       `Array with ${arr.length} items`
+ *     Match.when(Match.instanceOf(Date), (date) => `Date: ${date.toISOString()}`),
+ *     Match.when(
+ *       Match.instanceOf(Array),
+ *       (arr) => `Array with ${arr.length} items`
  *     ),
  *     Match.orElse((value) => `Other: ${typeof value}`)
  *   )
@@ -1567,7 +1597,7 @@ export const instanceOf: <A extends abstract new(...args: any) => any>(
  *
  * @example
  * ```ts
- * import { Match } from "effect/match"
+ * import { Match } from "effect"
  *
  * class CustomError extends Error {
  *   constructor(message: string, public code: number) {
@@ -1606,7 +1636,7 @@ export const instanceOfUnsafe: <A extends abstract new(...args: any) => any>(
  * @example (Providing a Default Value When No Patterns Match)
  *
  * ```ts
- * import { Match } from "effect/match"
+ * import { Match } from "effect"
  *
  * // Create a matcher for string or number values
  * const match = Match.type<string | number>().pipe(
@@ -1648,7 +1678,7 @@ export const orElse: <RA, Ret, F extends (_: RA) => Ret>(
  *
  * @example
  * ```ts
- * import { Match } from "effect/match"
+ * import { Match } from "effect"
  *
  * const strictMatcher = Match.type<"a" | "b">().pipe(
  *   Match.when("a", () => "Found A"),
@@ -1689,7 +1719,7 @@ export const orElseAbsurd: <I, R, RA, A, Pr, Ret>(
  * @example (Extracting a User Role with `Match.result`)
  *
  * ```ts
- * import { Match } from "effect/match"
+ * import { Match } from "effect"
  *
  * type User = { readonly role: "admin" | "editor" | "viewer" }
  *
@@ -1730,7 +1760,7 @@ export const result: <I, F, R, A, Pr, Ret>(
  * @example (Extracting a User Role with `Match.option`)
  *
  * ```ts
- * import { Match } from "effect/match"
+ * import { Match } from "effect"
  *
  * type User = { readonly role: "admin" | "editor" | "viewer" }
  *
@@ -1764,7 +1794,7 @@ export const option: <I, F, R, A, Pr, Ret>(
  * @example (Ensuring All Cases Are Covered)
  *
  * ```ts
- * import { Match } from "effect/match"
+ * import { Match } from "effect"
  *
  * // Create a matcher for string or number values
  * const match = Match.type<string | number>().pipe(
@@ -1795,7 +1825,7 @@ const SafeRefinementId = "~effect/match/Match/SafeRefinement"
  *
  * @example
  * ```ts
- * import { Match } from "effect/match"
+ * import { Match } from "effect"
  *
  * // Built-in safe refinements
  * const processValue = Match.type<unknown>().pipe(
@@ -1831,7 +1861,7 @@ type Fail = typeof Fail
  *
  * @example
  * ```ts
- * import { Match } from "effect/match"
+ * import { Match } from "effect"
  *
  * // Most users won't need to use Types directly, but it powers the type system:
  * type MyPattern = Match.Types.PatternBase<{ name: string; age: number }>
@@ -1840,7 +1870,7 @@ type Fail = typeof Fail
  * // These types are used internally to provide accurate type inference
  * const matcher = Match.type<string | number>().pipe(
  *   Match.when(Match.string, (s) => s.length), // s is correctly typed as string
- *   Match.when(Match.number, (n) => n * 2),    // n is correctly typed as number
+ *   Match.when(Match.number, (n) => n * 2), // n is correctly typed as number
  *   Match.exhaustive
  * )
  * ```
@@ -1858,14 +1888,17 @@ export declare namespace Types {
    *
    * @example
    * ```ts
-   * import { Match } from "effect/match"
+   * import type { Match } from "effect"
    *
    * // WhenMatch computes the narrowed type after pattern matching
    * type StringMatch = Match.Types.WhenMatch<string | number, typeof Match.string>
    * // Result: string
    *
    * type ObjectMatch = Match.Types.WhenMatch<
-   *   { type: "user"; name: string } | { type: "admin"; permissions: string[] },
+   *   { type: "user"; name: string } | {
+   *     type: "admin"
+   *     permissions: Array<string>
+   *   },
    *   { type: "user" }
    * >
    * // Result: { type: "user"; name: string }
@@ -1897,10 +1930,13 @@ export declare namespace Types {
    *
    * @example
    * ```ts
-   * import { Match } from "effect/match"
+   * import type { Match } from "effect"
    *
    * // NotMatch computes what remains after exclusion
-   * type NotString = Match.Types.NotMatch<string | number | boolean, typeof Match.string>
+   * type NotString = Match.Types.NotMatch<
+   *   string | number | boolean,
+   *   typeof Match.string
+   * >
    * // Result: number | boolean
    *
    * type NotSpecificValue = Match.Types.NotMatch<"a" | "b" | "c", "a">
@@ -1924,7 +1960,7 @@ export declare namespace Types {
    *
    * @example
    * ```ts
-   * import { Match } from "effect/match"
+   * import type { Match } from "effect"
    *
    * // PForMatch resolves patterns to their matched types
    * type StringPattern = Match.Types.PForMatch<typeof Match.string>
@@ -1949,7 +1985,7 @@ export declare namespace Types {
    *
    * @example
    * ```ts
-   * import { Match } from "effect/match"
+   * import type { Match } from "effect"
    *
    * // PForExclude computes what to exclude from type operations
    * type ExcludeString = Match.Types.PForExclude<typeof Match.string>
@@ -2011,7 +2047,7 @@ export declare namespace Types {
    *
    * @example
    * ```ts
-   * import { Match } from "effect/match"
+   * import { Match } from "effect"
    *
    * // PatternBase enables complex object patterns
    * type UserPattern = Match.Types.PatternBase<{
@@ -2023,7 +2059,11 @@ export declare namespace Types {
    *
    * // Example usage:
    * Match.value({ name: "Alice", age: 30, role: "admin" as const }).pipe(
-   *   Match.when({ age: (n: number) => n >= 18, role: "admin" }, (user: { name: string; age: number; role: "admin" }) => `Admin: ${user.name}`),
+   *   Match.when(
+   *     { age: (n: number) => n >= 18, role: "admin" },
+   *     (user: { name: string; age: number; role: "admin" }) =>
+   *       `Admin: ${user.name}`
+   *   ),
    *   Match.orElse(() => "Not an adult admin")
    * )
    * ```
@@ -2046,7 +2086,7 @@ export declare namespace Types {
    *
    * @example
    * ```ts
-   * import { Match } from "effect/match"
+   * import { Match } from "effect"
    *
    * // PatternPrimitive includes various pattern types:
    *
@@ -2076,7 +2116,7 @@ export declare namespace Types {
    *
    * @example
    * ```ts
-   * import { Match } from "effect/match"
+   * import { Match } from "effect"
    *
    * // Without is used internally when you write:
    * Match.type<string | number | boolean>().pipe(
@@ -2103,7 +2143,7 @@ export declare namespace Types {
    *
    * @example
    * ```ts
-   * import { Match } from "effect/match"
+   * import { Match } from "effect"
    *
    * // Only is used internally when you write:
    * Match.type<string | number | boolean>().pipe(
@@ -2130,7 +2170,7 @@ export declare namespace Types {
    *
    * @example
    * ```ts
-   * import { Match } from "effect/match"
+   * import { Match } from "effect"
    *
    * // AddWithout is used when combining multiple exclusions:
    * Match.type<string | number | boolean | null>().pipe(
@@ -2157,7 +2197,7 @@ export declare namespace Types {
    *
    * @example
    * ```ts
-   * import { Match } from "effect/match"
+   * import { Match } from "effect"
    *
    * // AddOnly is used when refining positive matches:
    * Match.type<{ type: "user" | "admin"; name: string }>().pipe(
@@ -2185,7 +2225,7 @@ export declare namespace Types {
    *
    * @example
    * ```ts
-   * import { Match } from "effect/match"
+   * import type { Match } from "effect"
    *
    * // ApplyFilters computes the final narrowed type:
    * type Result = Match.Types.ApplyFilters<
@@ -2217,7 +2257,7 @@ export declare namespace Types {
    *
    * @example
    * ```ts
-   * import { Match } from "effect/match"
+   * import type { Match } from "effect"
    *
    * type Events =
    *   | { _tag: "click"; x: number; y: number }
@@ -2227,9 +2267,10 @@ export declare namespace Types {
    * type EventTags = Match.Types.Tags<"_tag", Events>
    * // Result: "click" | "keypress" | "scroll"
    *
-   * type CustomTags = Match.Types.Tags<"type",
+   * type CustomTags = Match.Types.Tags<
+   *   "type",
    *   | { type: "user"; name: string }
-   *   | { type: "admin"; permissions: string[] }
+   *   | { type: "admin"; permissions: Array<string> }
    * >
    * // Result: "user" | "admin"
    * ```
@@ -2248,7 +2289,7 @@ export declare namespace Types {
    *
    * @example
    * ```ts
-   * import { Match } from "effect/match"
+   * import type { Match } from "effect"
    *
    * type Combined = Match.Types.ArrayToIntersection<[
    *   { name: string },
@@ -2279,7 +2320,7 @@ export declare namespace Types {
    *
    * @example
    * ```ts
-   * import { Match } from "effect/match"
+   * import { Match } from "effect"
    *
    * type StringExtract = Match.Types.ExtractMatch<
    *   string | number | boolean,
