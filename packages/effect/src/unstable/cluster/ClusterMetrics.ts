@@ -1,7 +1,7 @@
 /**
  * @since 4.0.0
  */
-import * as Metric from "../../observability/Metric.ts"
+import * as Metric from "../../Metric.ts"
 
 /**
  * @since 4.0.0

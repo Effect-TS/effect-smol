@@ -13,9 +13,9 @@
 import type { ReadonlyRecord } from "./data/Record.ts"
 import { constTrue } from "./Function.ts"
 import type { LogLevel } from "./LogLevel.ts"
-import { DisablePropagation, type SpanLink, Tracer } from "./observability/Tracer.ts"
 import { MaxOpsBeforeYield } from "./Scheduler.ts"
 import * as ServiceMap from "./ServiceMap.ts"
+import { DisablePropagation, type SpanLink, Tracer } from "./Tracer.ts"
 
 export {
   /**
@@ -228,7 +228,7 @@ export const TracerSpanAnnotations = ServiceMap.Reference<ReadonlyRecord<string,
  * ```ts
  * import { Effect } from "effect"
  * import { References } from "effect"
- * import { Tracer } from "effect/observability"
+ * import { Tracer } from "effect"
  *
  * const spanLinksExample = Effect.gen(function* () {
  *   // Get current links (empty by default)

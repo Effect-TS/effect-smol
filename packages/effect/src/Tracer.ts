@@ -1,17 +1,17 @@
 /**
  * @since 2.0.0
  */
-import type * as Exit from "../Exit.ts"
-import type { Fiber } from "../Fiber.ts"
-import { constFalse, type LazyArg } from "../Function.ts"
-import * as ServiceMap from "../ServiceMap.ts"
+import type * as Exit from "./Exit.ts"
+import type { Fiber } from "./Fiber.ts"
+import { constFalse, type LazyArg } from "./Function.ts"
+import * as ServiceMap from "./ServiceMap.ts"
 
 /**
  * @since 2.0.0
  * @category models
  * @example
  * ```ts
- * import { Tracer } from "effect/observability"
+ * import { Tracer } from "effect"
  * import { ServiceMap } from "effect"
  *
  * // Create a custom tracer implementation
@@ -50,7 +50,7 @@ export interface Tracer {
  * @example
  * ```ts
  * import { Exit } from "effect"
- * import { Tracer } from "effect/observability"
+ * import { Tracer } from "effect"
  *
  * // Started span status
  * const startedStatus: Tracer.SpanStatus = {
@@ -83,7 +83,7 @@ export type SpanStatus = {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Tracer } from "effect/observability"
+ * import { Tracer } from "effect"
  *
  * // Function that accepts any span type
  * const logSpan = (span: Tracer.AnySpan) => {
@@ -105,7 +105,7 @@ export type AnySpan = Span | ExternalSpan
  * @category tags
  * @example
  * ```ts
- * import { Tracer } from "effect/observability"
+ * import { Tracer } from "effect"
  *
  * // The key used to identify parent spans in the service map
  * console.log(Tracer.ParentSpanKey) // "effect/Tracer/ParentSpan"
@@ -119,7 +119,7 @@ export const ParentSpanKey = "effect/Tracer/ParentSpan"
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Tracer } from "effect/observability"
+ * import { Tracer } from "effect"
  *
  * // Access the parent span from the context
  * const program = Effect.gen(function* () {
@@ -135,7 +135,7 @@ export class ParentSpan extends ServiceMap.Key<ParentSpan, AnySpan>()(ParentSpan
  * @category models
  * @example
  * ```ts
- * import { Tracer } from "effect/observability"
+ * import { Tracer } from "effect"
  * import { ServiceMap } from "effect"
  *
  * // Create an external span from another tracing system
@@ -164,7 +164,7 @@ export interface ExternalSpan {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Tracer } from "effect/observability"
+ * import { Tracer } from "effect"
  *
  * // Create an effect with span options
  * const options: Tracer.SpanOptions = {
@@ -208,7 +208,7 @@ export interface TraceOptions {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Tracer } from "effect/observability"
+ * import { Tracer } from "effect"
  *
  * // Different span kinds for different operations
  * const serverSpan = Effect.withSpan("handle-request", {
@@ -265,7 +265,7 @@ export interface Span {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Tracer } from "effect/observability"
+ * import { Tracer } from "effect"
  *
  * // Create a span link to connect spans
  * const externalSpan = Tracer.externalSpan({
@@ -293,7 +293,7 @@ export interface SpanLink {
  * @category constructors
  * @example
  * ```ts
- * import { Tracer } from "effect/observability"
+ * import { Tracer } from "effect"
  * import { ServiceMap } from "effect"
  * import { Option } from "effect/data"
  *
@@ -318,7 +318,7 @@ export const make = (options: Tracer): Tracer => options
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Tracer } from "effect/observability"
+ * import { Tracer } from "effect"
  *
  * // Create an external span from another tracing system
  * const span = Tracer.externalSpan({
@@ -354,7 +354,7 @@ export const externalSpan = (
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Tracer } from "effect/observability"
+ * import { Tracer } from "effect"
  *
  * // Disable span propagation for a specific effect
  * const program = Effect.gen(function* () {
@@ -381,7 +381,7 @@ export const TracerKey = "effect/Tracer"
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Tracer } from "effect/observability"
+ * import { Tracer } from "effect"
  *
  * // Access the current tracer from the context
  * const program = Effect.gen(function* () {
@@ -416,7 +416,7 @@ export const Tracer: ServiceMap.Reference<Tracer> = ServiceMap.Reference<Tracer>
  * @category native tracer
  * @example
  * ```ts
- * import { Tracer } from "effect/observability"
+ * import { Tracer } from "effect"
  * import { ServiceMap } from "effect"
  * import { Option } from "effect/data"
  *

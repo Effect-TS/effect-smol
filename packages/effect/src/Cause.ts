@@ -46,8 +46,8 @@ import type { Inspectable } from "./interfaces/Inspectable.ts"
 import type { Pipeable } from "./interfaces/Pipeable.ts"
 import * as core from "./internal/core.ts"
 import * as effect from "./internal/effect.ts"
-import type { Span } from "./observability/Tracer.ts"
 import * as ServiceMap from "./ServiceMap.ts"
+import type { Span } from "./Tracer.ts"
 import type { NoInfer } from "./types/Types.ts"
 
 const TypeId = core.CauseTypeId

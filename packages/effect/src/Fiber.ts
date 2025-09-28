@@ -80,10 +80,10 @@ import type { Exit } from "./Exit.ts"
 import type { Pipeable } from "./interfaces/Pipeable.ts"
 import * as effect from "./internal/effect.ts"
 import { version } from "./internal/version.ts"
-import type { AnySpan, Span } from "./observability/Tracer.ts"
 import type { Scheduler } from "./Scheduler.ts"
 import type { Scope } from "./Scope.ts"
 import type * as ServiceMap from "./ServiceMap.ts"
+import type { AnySpan, Span } from "./Tracer.ts"
 import type { Covariant } from "./types/Types.ts"
 
 const TypeId = `~effect/Fiber/${version}`

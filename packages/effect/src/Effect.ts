@@ -85,17 +85,7 @@ import * as internalSchedule from "./internal/schedule.ts"
 import type * as Layer from "./Layer.ts"
 import type { Logger } from "./Logger.ts"
 import type { LogLevel } from "./LogLevel.ts"
-import * as Metric from "./observability/Metric.ts"
-import type {
-  AnySpan,
-  ParentSpan,
-  Span,
-  SpanLink,
-  SpanOptions,
-  SpanOptionsNoTrace,
-  TraceOptions,
-  Tracer
-} from "./observability/Tracer.ts"
+import * as Metric from "./Metric.ts"
 import { CurrentLogAnnotations, CurrentLogSpans } from "./References.ts"
 import type * as Request from "./Request.ts"
 import type { RequestResolver } from "./RequestResolver.ts"
@@ -105,6 +95,16 @@ import type { Scope } from "./Scope.ts"
 import * as ServiceMap from "./ServiceMap.ts"
 import type { Clock } from "./time/Clock.ts"
 import * as Duration from "./time/Duration.ts"
+import type {
+  AnySpan,
+  ParentSpan,
+  Span,
+  SpanLink,
+  SpanOptions,
+  SpanOptionsNoTrace,
+  TraceOptions,
+  Tracer
+} from "./Tracer.ts"
 import type { TxRef } from "./transactions/TxRef.ts"
 import type { TypeLambda } from "./types/HKT.ts"
 import type {
@@ -10319,7 +10319,7 @@ export const withLogSpan = dual<
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Metric } from "effect/observability"
+ * import { Metric } from "effect"
  *
  * const counter = Metric.counter("effect_executions", {
  *   description: "Counts effect executions"
@@ -10339,7 +10339,7 @@ export const withLogSpan = dual<
  * @example
  * ```ts
  * import { Effect, Exit } from "effect"
- * import { Metric } from "effect/observability"
+ * import { Metric } from "effect"
  *
  * // Track different exit types with custom mapping
  * const exitTracker = Metric.frequency("exit_types", {
@@ -10400,7 +10400,7 @@ export const track: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Metric } from "effect/observability"
+ * import { Metric } from "effect"
  *
  * const successCounter = Metric.counter("successes").pipe(
  *   Metric.withConstantInput(1)
@@ -10419,7 +10419,7 @@ export const track: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Metric } from "effect/observability"
+ * import { Metric } from "effect"
  *
  * // Track successful request sizes
  * const requestSizeGauge = Metric.gauge("request_size_bytes")
@@ -10477,7 +10477,7 @@ export const trackSuccesses: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Metric } from "effect/observability"
+ * import { Metric } from "effect"
  *
  * const errorCounter = Metric.counter("errors").pipe(
  *   Metric.withConstantInput(1)
@@ -10496,7 +10496,7 @@ export const trackSuccesses: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Metric } from "effect/observability"
+ * import { Metric } from "effect"
  *
  * // Track error types using frequency metric
  * const errorTypeFrequency = Metric.frequency("error_types")
@@ -10554,7 +10554,7 @@ export const trackErrors: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Metric } from "effect/observability"
+ * import { Metric } from "effect"
  *
  * const defectCounter = Metric.counter("defects").pipe(
  *   Metric.withConstantInput(1)
@@ -10573,7 +10573,7 @@ export const trackErrors: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Metric } from "effect/observability"
+ * import { Metric } from "effect"
  *
  * // Track defect types using frequency metric
  * const defectTypeFrequency = Metric.frequency("defect_types")
@@ -10631,7 +10631,7 @@ export const trackDefects: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Metric } from "effect/observability"
+ * import { Metric } from "effect"
  * import { Duration } from "effect/time"
  *
  * const executionTimer = Metric.timer("execution_time")
@@ -10649,7 +10649,7 @@ export const trackDefects: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Metric } from "effect/observability"
+ * import { Metric } from "effect"
  * import { Duration } from "effect/time"
  *
  * // Track execution time in milliseconds using custom mapping
