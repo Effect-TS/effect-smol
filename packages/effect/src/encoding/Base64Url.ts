@@ -3,7 +3,7 @@
  */
 import * as Result from "../data/Result.ts"
 import * as Base64 from "./Base64.ts"
-import { EncodingError } from "./EncodingError.js"
+import { EncodingError } from "./EncodingError.ts"
 
 /**
  * Encodes the given value into a base64 (URL) `string`.
