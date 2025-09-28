@@ -2,7 +2,7 @@
  * @since 2.0.0
  */
 import * as Result from "../data/Result.ts"
-import { EncodingError } from "./EncodingError.js"
+import { EncodingError } from "./EncodingError.ts"
 
 /**
  * Encodes the given value into a hex `string`.
