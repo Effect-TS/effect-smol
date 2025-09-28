@@ -4,9 +4,11 @@ import { Equal } from "effect/interfaces"
 import { AST, Check, Getter, Issue, Schema, ToParser, Transformation } from "effect/schema"
 import { TestSchema } from "effect/testing"
 import { produce } from "immer"
+import { deepStrictEqual, fail, ok, strictEqual } from "node:assert"
 import { describe, it } from "vitest"
-import { assertFalse, assertInclude, assertTrue, deepStrictEqual, strictEqual, throws } from "../utils/assert.ts"
-import { assertions } from "../utils/schema.ts"
+import { assertFalse, assertInclude, assertTrue, throws } from "../utils/assert.ts"
+
+const equals = TestSchema.Asserts.ast.fields.equals
 
 const Trim = Schema.String.pipe(Schema.decode(Transformation.trim()))
 
@@ -2535,13 +2537,12 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
           `Missing key
   at ["a"]`
         )
-        const effect = ToParser.makeEffect(schema)({})
-        const provided = Effect.provideService(
-          effect,
-          Service,
-          Service.of({ value: Effect.succeed(-1) })
+        const effect = await ToParser.makeEffect(schema)({}).pipe(
+          Effect.provideService(Service, { value: Effect.succeed(-1) }),
+          Effect.result,
+          Effect.runPromise
         )
-        await assertions.effect.succeed(provided, { a: -1 })
+        deepStrictEqual(effect, Result.succeed({ a: -1 }))
       })
     })
 
@@ -4643,12 +4644,10 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       const schema = Schema.String.pipe(
         Schema.encodingMiddleware(() => Effect.fail(new Issue.Forbidden(Option.none(), { message: "my message" })))
       )
+      const asserts = new TestSchema.Asserts(schema)
 
-      await assertions.encoding.fail(
-        schema,
-        "a",
-        "my message"
-      )
+      const encoding = asserts.encoding()
+      await encoding.fail("a", "my message")
     })
   })
 
@@ -4942,30 +4941,39 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
   describe("asserts", () => {
     it("FiniteFromString", () => {
       const schema = Schema.FiniteFromString
-      assertions.asserts.succeed(schema, 1)
-      assertions.asserts.fail(schema, "a", `Expected number, got "a"`)
+      const asserts: Schema.Codec.ToAsserts<typeof schema> = Schema.asserts(schema)
+      try {
+        asserts(1)
+      } catch {
+        fail("Expected asserts to not throw an error")
+      }
+      try {
+        asserts("a")
+        fail("Expected asserts to throw an error")
+      } catch (e) {
+        ok(e instanceof Error)
+        strictEqual(e.message, `Expected number, got "a"`)
+      }
     })
   })
 
-  describe("decodeUnknownPromise", () => {
+  describe("decodeUnknownPromise / encodeUnknownPromise", () => {
     it("FiniteFromString", async () => {
       const schema = Schema.FiniteFromString
-      await assertions.promise.succeed(Schema.decodeUnknownPromise(schema)("1"), 1)
-      await assertions.promise.fail(
-        Schema.decodeUnknownPromise(schema)(null),
-        "Expected string, got null"
-      )
-    })
-  })
+      const decodeUnknownPromise = Schema.decodeUnknownPromise(schema)
+      const encodeUnknownPromise = Schema.encodeUnknownPromise(schema)
 
-  describe("encodeUnknownPromise", () => {
-    it("FiniteFromString", async () => {
-      const schema = Schema.FiniteFromString
-      await assertions.promise.succeed(Schema.encodeUnknownPromise(schema)(1), "1")
-      await assertions.promise.fail(
-        Schema.encodeUnknownPromise(schema)(null),
-        "Expected number, got null"
-      )
+      const r1 = await decodeUnknownPromise("1").then(Result.succeed, (e) => Result.fail(e.toString()))
+      deepStrictEqual(r1, Result.succeed(1))
+
+      const r2 = await decodeUnknownPromise(null).then(Result.succeed, (e) => Result.fail(e.toString()))
+      deepStrictEqual(r2, Result.fail("Expected string, got null"))
+
+      const r3 = await encodeUnknownPromise(1).then(Result.succeed, (e) => Result.fail(e.toString()))
+      deepStrictEqual(r3, Result.succeed("1"))
+
+      const r4 = await encodeUnknownPromise(null).then(Result.succeed, (e) => Result.fail(e.toString()))
+      deepStrictEqual(r4, Result.fail("Expected number, got null"))
     })
   })
 
@@ -5041,7 +5049,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
         b: Schema.Number
       }).mapFields(Struct.evolve({ a: (v) => Schema.optionalKey(v) }))
 
-      assertions.schema.fields.equals(schema.fields, {
+      equals(schema.fields, {
         a: Schema.optionalKey(Schema.String),
         b: Schema.Number
       })
@@ -5053,7 +5061,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
         b: Schema.Number
       }).mapFields(Struct.evolveKeys({ a: (k) => Str.toUpperCase(k) }))
 
-      assertions.schema.fields.equals(schema.fields, {
+      equals(schema.fields, {
         A: Schema.String,
         b: Schema.Number
       })
@@ -5066,7 +5074,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
         c: Schema.Boolean
       }).mapFields(Struct.renameKeys({ a: "A", b: "B" }))
 
-      assertions.schema.fields.equals(schema.fields, {
+      equals(schema.fields, {
         A: Schema.String,
         B: Schema.Number,
         c: Schema.Boolean
@@ -5079,7 +5087,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
         b: Schema.Number
       }).mapFields(Struct.evolveEntries({ a: (k, v) => [Str.toUpperCase(k), Schema.optionalKey(v)] }))
 
-      assertions.schema.fields.equals(schema.fields, {
+      equals(schema.fields, {
         A: Schema.optionalKey(Schema.String),
         b: Schema.Number
       })
@@ -5091,7 +5099,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
         b: Schema.Number
       }).mapFields(Struct.map(Schema.optionalKey))
 
-      assertions.schema.fields.equals(schema.fields, {
+      equals(schema.fields, {
         a: Schema.optionalKey(Schema.String),
         b: Schema.optionalKey(Schema.Number)
       })
@@ -5103,7 +5111,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
         b: Schema.Number
       }).mapFields(Struct.mapPick(["a"], Schema.optionalKey))
 
-      assertions.schema.fields.equals(schema.fields, {
+      equals(schema.fields, {
         a: Schema.optionalKey(Schema.String),
         b: Schema.Number
       })
@@ -5115,7 +5123,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
         b: Schema.Number
       }).mapFields(Struct.mapOmit(["b"], Schema.optionalKey))
 
-      assertions.schema.fields.equals(schema.fields, {
+      equals(schema.fields, {
         a: Schema.optionalKey(Schema.String),
         b: Schema.Number
       })
@@ -5127,7 +5135,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
         b: Schema.Number
       }).mapFields(Struct.map(Schema.optional))
 
-      assertions.schema.fields.equals(schema.fields, {
+      equals(schema.fields, {
         a: Schema.optional(Schema.String),
         b: Schema.optional(Schema.Number)
       })
@@ -5139,7 +5147,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
         b: Schema.Number
       }).mapFields(Struct.map(Schema.mutableKey))
 
-      assertions.schema.fields.equals(schema.fields, {
+      equals(schema.fields, {
         a: Schema.mutableKey(Schema.String),
         b: Schema.mutableKey(Schema.Number)
       })
@@ -5151,7 +5159,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
         b: Schema.Tuple([Schema.Number])
       }).mapFields(Struct.map(Schema.mutable))
 
-      assertions.schema.fields.equals(schema.fields, {
+      equals(schema.fields, {
         a: Schema.mutable(Schema.Array(Schema.String)),
         b: Schema.mutable(Schema.Tuple([Schema.Number]))
       })
@@ -5164,7 +5172,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       }).mapFields(Struct.map(Schema.mutable))
         .mapFields(Struct.map(Schema.readonly))
 
-      assertions.schema.fields.equals(schema.fields, {
+      equals(schema.fields, {
         a: Schema.readonly(Schema.Array(Schema.String)),
         b: Schema.readonly(Schema.Tuple([Schema.Number]))
       })
@@ -5176,7 +5184,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
         b: Schema.Number
       }).mapFields(Struct.map(Schema.NullOr))
 
-      assertions.schema.fields.equals(schema.fields, {
+      equals(schema.fields, {
         a: Schema.NullOr(Schema.String),
         b: Schema.NullOr(Schema.Number)
       })
@@ -5188,7 +5196,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
         b: Schema.Number
       }).mapFields(Struct.map(Schema.UndefinedOr))
 
-      assertions.schema.fields.equals(schema.fields, {
+      equals(schema.fields, {
         a: Schema.UndefinedOr(Schema.String),
         b: Schema.UndefinedOr(Schema.Number)
       })
@@ -5200,7 +5208,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
         b: Schema.Number
       }).mapFields(Struct.map(Schema.NullishOr))
 
-      assertions.schema.fields.equals(schema.fields, {
+      equals(schema.fields, {
         a: Schema.NullishOr(Schema.String),
         b: Schema.NullishOr(Schema.Number)
       })
@@ -5216,7 +5224,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
         Struct.mapPick(["a", "c"], Schema.mutableKey)
       ))
 
-      assertions.schema.fields.equals(schema.fields, {
+      equals(schema.fields, {
         a: Schema.mutableKey(Schema.NullOr(Schema.String)),
         b: Schema.NullOr(Schema.FiniteFromString),
         c: Schema.mutableKey(Schema.NullOr(Schema.Boolean))
@@ -5228,32 +5236,32 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     it("appendElement", () => {
       const schema = Schema.Tuple([Schema.String]).mapElements(Tuple.appendElement(Schema.Number))
 
-      assertions.schema.elements.equals(schema.elements, [Schema.String, Schema.Number])
+      TestSchema.Asserts.ast.elements.equals(schema.elements, [Schema.String, Schema.Number])
     })
 
     it("appendElements", () => {
       const schema = Schema.Tuple([Schema.String]).mapElements(Tuple.appendElements([Schema.Number, Schema.Boolean]))
 
-      assertions.schema.elements.equals(schema.elements, [Schema.String, Schema.Number, Schema.Boolean])
+      TestSchema.Asserts.ast.elements.equals(schema.elements, [Schema.String, Schema.Number, Schema.Boolean])
     })
 
     it("pick", () => {
       const schema = Schema.Tuple([Schema.String, Schema.Number, Schema.Boolean]).mapElements(Tuple.pick([0, 2]))
 
-      assertions.schema.elements.equals(schema.elements, [Schema.String, Schema.Boolean])
+      TestSchema.Asserts.ast.elements.equals(schema.elements, [Schema.String, Schema.Boolean])
     })
 
     it("omit", () => {
       const schema = Schema.Tuple([Schema.String, Schema.Number, Schema.Boolean]).mapElements(Tuple.omit([1]))
 
-      assertions.schema.elements.equals(schema.elements, [Schema.String, Schema.Boolean])
+      TestSchema.Asserts.ast.elements.equals(schema.elements, [Schema.String, Schema.Boolean])
     })
 
     describe("evolve", () => {
       it("readonly [string] -> readonly [string?]", () => {
         const schema = Schema.Tuple([Schema.String]).mapElements(Tuple.evolve([(v) => Schema.optionalKey(v)]))
 
-        assertions.schema.elements.equals(schema.elements, [Schema.optionalKey(Schema.String)])
+        TestSchema.Asserts.ast.elements.equals(schema.elements, [Schema.optionalKey(Schema.String)])
       })
 
       it("readonly [string, number] -> readonly [string, number?]", () => {
@@ -5261,7 +5269,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
           Tuple.evolve([undefined, (v) => Schema.optionalKey(v)])
         )
 
-        assertions.schema.elements.equals(schema.elements, [Schema.String, Schema.optionalKey(Schema.Number)])
+        TestSchema.Asserts.ast.elements.equals(schema.elements, [Schema.String, Schema.optionalKey(Schema.Number)])
       })
     })
 
@@ -5270,21 +5278,24 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
         const schema = Schema.Tuple([Schema.String, Schema.Number, Schema.Boolean]).mapElements(
           Tuple.renameIndices(["1", "0"])
         )
-        assertions.schema.elements.equals(schema.elements, [Schema.Number, Schema.String, Schema.Boolean])
+        TestSchema.Asserts.ast.elements.equals(schema.elements, [Schema.Number, Schema.String, Schema.Boolean])
       })
 
       it("full index mapping", () => {
         const schema = Schema.Tuple([Schema.String, Schema.Number, Schema.Boolean]).mapElements(
           Tuple.renameIndices(["2", "1", "0"])
         )
-        assertions.schema.elements.equals(schema.elements, [Schema.Boolean, Schema.Number, Schema.String])
+        TestSchema.Asserts.ast.elements.equals(schema.elements, [Schema.Boolean, Schema.Number, Schema.String])
       })
     })
 
     it("NullOr", () => {
       const schema = Schema.Tuple([Schema.String, Schema.Number]).mapElements(Tuple.map(Schema.NullOr))
 
-      assertions.schema.elements.equals(schema.elements, [Schema.NullOr(Schema.String), Schema.NullOr(Schema.Number)])
+      TestSchema.Asserts.ast.elements.equals(schema.elements, [
+        Schema.NullOr(Schema.String),
+        Schema.NullOr(Schema.Number)
+      ])
     })
   })
 
@@ -5292,7 +5303,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     it("appendElement", () => {
       const schema = Schema.Union([Schema.String, Schema.Number]).mapMembers(Tuple.appendElement(Schema.Boolean))
 
-      assertions.schema.elements.equals(schema.members, [Schema.String, Schema.Number, Schema.Boolean])
+      TestSchema.Asserts.ast.elements.equals(schema.members, [Schema.String, Schema.Number, Schema.Boolean])
     })
 
     it("evolve", () => {
@@ -5304,7 +5315,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
         ])
       )
 
-      assertions.schema.elements.equals(schema.members, [
+      TestSchema.Asserts.ast.elements.equals(schema.members, [
         Schema.Array(Schema.String),
         Schema.Number,
         Schema.Array(Schema.Boolean)
@@ -5314,7 +5325,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     it("Array", () => {
       const schema = Schema.Union([Schema.String, Schema.Number]).mapMembers(Tuple.map(Schema.Array))
 
-      assertions.schema.elements.equals(schema.members, [
+      TestSchema.Asserts.ast.elements.equals(schema.members, [
         Schema.Array(Schema.String),
         Schema.Array(Schema.Number)
       ])
@@ -5329,7 +5340,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
         (c) => Schema.Struct({ _tag: c, c: Schema.Boolean })
       ]))
 
-      assertions.schema.elements.equals(schema.members, [
+      TestSchema.Asserts.ast.elements.equals(schema.members, [
         Schema.Struct({ _tag: Schema.Literal("a"), a: Schema.String }),
         Schema.Struct({ _tag: Schema.Literal("b"), b: Schema.Number }),
         Schema.Struct({ _tag: Schema.Literal("c"), c: Schema.Boolean })

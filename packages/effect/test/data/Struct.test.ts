@@ -1,9 +1,11 @@
 import { Number, pipe, String, String as Str } from "effect"
 import { Equivalence, Struct, UndefinedOr } from "effect/data"
 import { Schema } from "effect/schema"
+import { TestSchema } from "effect/testing"
 import { describe, it } from "vitest"
 import { assertFalse, assertTrue, deepStrictEqual, strictEqual } from "../utils/assert.ts"
-import { assertions } from "../utils/schema.ts"
+
+const equals = TestSchema.Asserts.ast.fields.equals
 
 describe("Struct", () => {
   it("get", () => {
@@ -84,42 +86,48 @@ describe("Struct", () => {
   })
 
   it("map", () => {
-    assertions.schema.fields.equals(pipe({ a: Schema.String, b: Schema.Number }, Struct.map(Schema.NullOr)), {
+    equals(pipe({ a: Schema.String, b: Schema.Number }, Struct.map(Schema.NullOr)), {
       a: Schema.NullOr(Schema.String),
       b: Schema.NullOr(Schema.Number)
     })
-    assertions.schema.fields.equals(Struct.map({ a: Schema.String, b: Schema.Number }, Schema.NullOr), {
+    equals(Struct.map({ a: Schema.String, b: Schema.Number }, Schema.NullOr), {
       a: Schema.NullOr(Schema.String),
       b: Schema.NullOr(Schema.Number)
     })
   })
 
   it("mapPick", () => {
-    assertions.schema.fields.equals(
+    equals(
       pipe({ a: Schema.String, b: Schema.Number }, Struct.mapPick(["a"], Schema.NullOr)),
       {
         a: Schema.NullOr(Schema.String),
         b: Schema.Number
       }
     )
-    assertions.schema.fields.equals(Struct.mapPick({ a: Schema.String, b: Schema.Number }, ["a"], Schema.NullOr), {
-      a: Schema.NullOr(Schema.String),
-      b: Schema.Number
-    })
+    equals(
+      Struct.mapPick({ a: Schema.String, b: Schema.Number }, ["a"], Schema.NullOr),
+      {
+        a: Schema.NullOr(Schema.String),
+        b: Schema.Number
+      }
+    )
   })
 
   it("mapOmit", () => {
-    assertions.schema.fields.equals(
+    equals(
       pipe({ a: Schema.String, b: Schema.Number }, Struct.mapOmit(["b"], Schema.NullOr)),
       {
         a: Schema.NullOr(Schema.String),
         b: Schema.Number
       }
     )
-    assertions.schema.fields.equals(Struct.mapOmit({ a: Schema.String, b: Schema.Number }, ["b"], Schema.NullOr), {
-      a: Schema.NullOr(Schema.String),
-      b: Schema.Number
-    })
+    equals(
+      Struct.mapOmit({ a: Schema.String, b: Schema.Number }, ["b"], Schema.NullOr),
+      {
+        a: Schema.NullOr(Schema.String),
+        b: Schema.Number
+      }
+    )
   })
 
   it("getEquivalence", () => {

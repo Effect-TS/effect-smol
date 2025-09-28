@@ -1,26 +1,32 @@
 import { describe, it } from "@effect/vitest"
 import { deepStrictEqual } from "@effect/vitest/utils"
 import { Config, ConfigProvider, Duration, Effect, pipe } from "effect"
-import { Option, Redacted } from "effect/data"
+import { Option, Redacted, Result } from "effect/data"
 import { Issue, Schema } from "effect/schema"
-import { assertions } from "../utils/schema.ts"
+import * as assert from "node:assert"
 
-async function assertSuccess<T>(config: Config.Config<T>, provider: ConfigProvider.ConfigProvider, expected: T) {
-  const result = config.parse(provider)
-  return await assertions.effect.succeed(result, expected)
+async function succeed<T>(config: Config.Config<T>, provider: ConfigProvider.ConfigProvider, expected: T) {
+  const r = await config.parse(provider).pipe(
+    Effect.result,
+    Effect.runPromise
+  )
+  assert.deepStrictEqual(r, Result.succeed(expected))
 }
 
-async function assertFailure<T>(config: Config.Config<T>, provider: ConfigProvider.ConfigProvider, message: string) {
-  const result = config.parse(provider).pipe(
+async function fail<T>(config: Config.Config<T>, provider: ConfigProvider.ConfigProvider, message: string) {
+  const r = await config.parse(provider).pipe(
     Effect.catchTag(
       "SourceError",
       (e) =>
         Effect.fail(
           new Schema.SchemaError(new Issue.InvalidValue(Option.none(), { message: `SourceError: ${e.message}` }))
         )
-    )
+    ),
+    Effect.mapError((e) => e.issue.toString()),
+    Effect.result,
+    Effect.runPromise
   )
-  return await assertions.effect.fail(result.pipe(Effect.mapError((e) => e.issue)), message)
+  assert.deepStrictEqual(r, Result.fail(message))
 }
 
 describe("Config", () => {
@@ -36,12 +42,12 @@ describe("Config", () => {
   it("map", async () => {
     const config = Config.schema(Schema.String)
 
-    await assertSuccess(
+    await succeed(
       Config.map(config, (value) => value.toUpperCase()),
       ConfigProvider.fromStringPojo("value"),
       "VALUE"
     )
-    await assertSuccess(
+    await succeed(
       pipe(config, Config.map((value) => value.toUpperCase())),
       ConfigProvider.fromStringPojo("value"),
       "VALUE"
@@ -55,12 +61,12 @@ describe("Config", () => {
         ? Effect.fail(new Schema.SchemaError(new Issue.InvalidValue(Option.some(s), { message: "empty" })))
         : Effect.succeed(s.toUpperCase())
 
-    await assertSuccess(
+    await succeed(
       Config.mapOrFail(config, f),
       ConfigProvider.fromStringPojo("value"),
       "VALUE"
     )
-    await assertFailure(
+    await fail(
       Config.mapOrFail(config, f),
       ConfigProvider.fromStringPojo(""),
       `empty`
@@ -70,12 +76,12 @@ describe("Config", () => {
   it("orElse", async () => {
     const config = Config.orElse(Config.string("a"), () => Config.finite("b"))
 
-    await assertSuccess(
+    await succeed(
       config,
       ConfigProvider.fromStringPojo({ a: "value" }),
       "value"
     )
-    await assertSuccess(
+    await succeed(
       config,
       ConfigProvider.fromStringPojo({ b: "1" }),
       1
@@ -86,14 +92,14 @@ describe("Config", () => {
     it("tuple", async () => {
       const config = Config.all([Config.nonEmptyString("a"), Config.finite("b")])
 
-      await assertSuccess(config, ConfigProvider.fromStringPojo({ a: "a", b: "1" }), ["a", 1])
-      await assertFailure(
+      await succeed(config, ConfigProvider.fromStringPojo({ a: "a", b: "1" }), ["a", 1])
+      await fail(
         config,
         ConfigProvider.fromStringPojo({ a: "", b: "1" }),
         `Expected a value with a length of at least 1, got ""
   at ["a"]`
       )
-      await assertFailure(
+      await fail(
         config,
         ConfigProvider.fromStringPojo({ a: "a", b: "b" }),
         `Expected a string matching the regex (?:[+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?|Infinity|-Infinity|NaN), got "b"
@@ -104,14 +110,14 @@ describe("Config", () => {
     it("iterable", async () => {
       const config = Config.all(new Set([Config.nonEmptyString("a"), Config.finite("b")]))
 
-      await assertSuccess(config, ConfigProvider.fromStringPojo({ a: "a", b: "1" }), ["a", 1])
-      await assertFailure(
+      await succeed(config, ConfigProvider.fromStringPojo({ a: "a", b: "1" }), ["a", 1])
+      await fail(
         config,
         ConfigProvider.fromStringPojo({ a: "", b: "1" }),
         `Expected a value with a length of at least 1, got ""
   at ["a"]`
       )
-      await assertFailure(
+      await fail(
         config,
         ConfigProvider.fromStringPojo({ a: "a", b: "b" }),
         `Expected a string matching the regex (?:[+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?|Infinity|-Infinity|NaN), got "b"
@@ -122,14 +128,14 @@ describe("Config", () => {
     it("struct", async () => {
       const config = Config.all({ a: Config.nonEmptyString("b"), c: Config.finite("d") })
 
-      await assertSuccess(config, ConfigProvider.fromStringPojo({ b: "b", d: "1" }), { a: "b", c: 1 })
-      await assertFailure(
+      await succeed(config, ConfigProvider.fromStringPojo({ b: "b", d: "1" }), { a: "b", c: 1 })
+      await fail(
         config,
         ConfigProvider.fromStringPojo({ b: "", d: "1" }),
         `Expected a value with a length of at least 1, got ""
   at ["b"]`
       )
-      await assertFailure(
+      await fail(
         config,
         ConfigProvider.fromStringPojo({ b: "b", d: "b" }),
         `Expected a string matching the regex (?:[+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?|Infinity|-Infinity|NaN), got "b"
@@ -143,9 +149,9 @@ describe("Config", () => {
       const defaultValue = 0
       const config = Config.finite("a").pipe(Config.withDefault(() => defaultValue))
 
-      await assertSuccess(config, ConfigProvider.fromStringPojo({ a: "1" }), 1)
-      await assertSuccess(config, ConfigProvider.fromStringPojo({}), defaultValue)
-      await assertFailure(
+      await succeed(config, ConfigProvider.fromStringPojo({ a: "1" }), 1)
+      await succeed(config, ConfigProvider.fromStringPojo({}), defaultValue)
+      await fail(
         config,
         ConfigProvider.fromStringPojo({ a: "value" }),
         `Expected a string matching the regex (?:[+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?|Infinity|-Infinity|NaN), got "value"
@@ -159,11 +165,11 @@ describe("Config", () => {
         Config.withDefault(() => defaultValue)
       )
 
-      await assertSuccess(config, ConfigProvider.fromStringPojo({ b: "b", d: "1" }), { a: "b", c: 1 })
-      await assertSuccess(config, ConfigProvider.fromStringPojo({ b: "b" }), defaultValue)
-      await assertSuccess(config, ConfigProvider.fromStringPojo({ d: "1" }), defaultValue)
+      await succeed(config, ConfigProvider.fromStringPojo({ b: "b", d: "1" }), { a: "b", c: 1 })
+      await succeed(config, ConfigProvider.fromStringPojo({ b: "b" }), defaultValue)
+      await succeed(config, ConfigProvider.fromStringPojo({ d: "1" }), defaultValue)
 
-      await assertFailure(
+      await fail(
         config,
         ConfigProvider.fromStringPojo({ b: "", d: "1" }),
         `Expected a value with a length of at least 1, got ""
@@ -176,9 +182,9 @@ describe("Config", () => {
     it("value", async () => {
       const config = Config.finite("a").pipe(Config.option)
 
-      await assertSuccess(config, ConfigProvider.fromStringPojo({ a: "1" }), Option.some(1))
-      await assertSuccess(config, ConfigProvider.fromStringPojo({}), Option.none())
-      await assertFailure(
+      await succeed(config, ConfigProvider.fromStringPojo({ a: "1" }), Option.some(1))
+      await succeed(config, ConfigProvider.fromStringPojo({}), Option.none())
+      await fail(
         config,
         ConfigProvider.fromStringPojo({ a: "value" }),
         `Expected a string matching the regex (?:[+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?|Infinity|-Infinity|NaN), got "value"
@@ -191,11 +197,11 @@ describe("Config", () => {
         Config.option
       )
 
-      await assertSuccess(config, ConfigProvider.fromStringPojo({ b: "b", d: "1" }), Option.some({ a: "b", c: 1 }))
-      await assertSuccess(config, ConfigProvider.fromStringPojo({ b: "b" }), Option.none())
-      await assertSuccess(config, ConfigProvider.fromStringPojo({ d: "1" }), Option.none())
+      await succeed(config, ConfigProvider.fromStringPojo({ b: "b", d: "1" }), Option.some({ a: "b", c: 1 }))
+      await succeed(config, ConfigProvider.fromStringPojo({ b: "b" }), Option.none())
+      await succeed(config, ConfigProvider.fromStringPojo({ d: "1" }), Option.none())
 
-      await assertFailure(
+      await fail(
         config,
         ConfigProvider.fromStringPojo({ b: "", d: "1" }),
         `Expected a value with a length of at least 1, got ""
@@ -210,7 +216,7 @@ describe("Config", () => {
         a: Config.schema(Schema.String, "a2")
       })
 
-      await assertSuccess(config, ConfigProvider.fromStringPojo({ a2: "value" }), { a: "value" })
+      await succeed(config, ConfigProvider.fromStringPojo({ a2: "value" }), { a: "value" })
     })
 
     it("nested", async () => {
@@ -220,7 +226,7 @@ describe("Config", () => {
         }
       })
 
-      await assertSuccess(
+      await succeed(
         config,
         ConfigProvider.fromStringPojo({ b2: "value" }),
         { a: { b: "value" } }
@@ -234,43 +240,43 @@ describe("Config", () => {
         const schema = Schema.Struct({ a: Schema.Finite })
         const config = Config.schema(schema)
 
-        await assertSuccess(config, ConfigProvider.fromEnv({ env: { a: "1", "a__b": "2" } }), { a: 1 })
+        await succeed(config, ConfigProvider.fromEnv({ env: { a: "1", "a__b": "2" } }), { a: 1 })
       })
 
       it("node can be both leaf and array", async () => {
         const schema = Schema.Struct({ a: Schema.Finite })
         const config = Config.schema(schema)
 
-        await assertSuccess(config, ConfigProvider.fromEnv({ env: { a: "1", "a__0": "2" } }), { a: 1 })
+        await succeed(config, ConfigProvider.fromEnv({ env: { a: "1", "a__0": "2" } }), { a: 1 })
       })
 
       it("if a node can be both object and array, it should be an object", async () => {
         const schema = Schema.Struct({ a: Schema.Struct({ b: Schema.Finite }) })
         const config = Config.schema(schema)
 
-        await assertSuccess(config, ConfigProvider.fromEnv({ env: { a: "1", "a__b": "2", "a__0": "3" } }), {
+        await succeed(config, ConfigProvider.fromEnv({ env: { a: "1", "a__b": "2", "a__0": "3" } }), {
           a: { b: 2 }
         })
       })
     })
 
     it("path argument", async () => {
-      await assertSuccess(
+      await succeed(
         Config.schema(Schema.String, "a"),
         ConfigProvider.fromEnv({ env: { a: "value" } }),
         "value"
       )
-      await assertSuccess(
+      await succeed(
         Config.schema(Schema.String, ["a", "b"]),
         ConfigProvider.fromEnv({ env: { "a__b": "value" } }),
         "value"
       )
-      await assertSuccess(
+      await succeed(
         Config.schema(Schema.UndefinedOr(Schema.String)),
         ConfigProvider.fromEnv({ env: {} }),
         undefined
       )
-      await assertSuccess(
+      await succeed(
         Config.schema(Schema.UndefinedOr(Schema.String), "a"),
         ConfigProvider.fromEnv({ env: {} }),
         undefined
@@ -281,8 +287,8 @@ describe("Config", () => {
       const schema = Schema.String
       const config = Config.schema(schema, "a")
 
-      await assertSuccess(config, ConfigProvider.fromEnv({ env: { a: "a" } }), "a")
-      await assertFailure(
+      await succeed(config, ConfigProvider.fromEnv({ env: { a: "a" } }), "a")
+      await fail(
         config,
         ConfigProvider.fromEnv({ env: {} }),
         `Expected string, got undefined
@@ -295,15 +301,15 @@ describe("Config", () => {
         const schema = Schema.Struct({ a: Schema.Finite })
         const config = Config.schema(schema)
 
-        await assertSuccess(config, ConfigProvider.fromEnv({ env: { a: "1" } }), { a: 1 })
+        await succeed(config, ConfigProvider.fromEnv({ env: { a: "1" } }), { a: 1 })
       })
 
       it("optionalKey properties", async () => {
         const schema = Schema.Struct({ a: Schema.optionalKey(Schema.Finite) })
         const config = Config.schema(schema)
 
-        await assertSuccess(config, ConfigProvider.fromEnv({ env: { a: "1" } }), { a: 1 })
-        await assertSuccess(config, ConfigProvider.fromEnv({ env: {} }), {})
+        await succeed(config, ConfigProvider.fromEnv({ env: { a: "1" } }), { a: 1 })
+        await succeed(config, ConfigProvider.fromEnv({ env: {} }), {})
       })
 
       it("optional properties", async () => {
@@ -311,25 +317,25 @@ describe("Config", () => {
           Schema.Struct({ a: Schema.optional(Schema.Finite) })
         )
 
-        await assertSuccess(config, ConfigProvider.fromEnv({ env: { a: "1" } }), { a: 1 })
-        await assertSuccess(config, ConfigProvider.fromEnv({ env: {} }), {})
+        await succeed(config, ConfigProvider.fromEnv({ env: { a: "1" } }), { a: 1 })
+        await succeed(config, ConfigProvider.fromEnv({ env: {} }), {})
       })
 
       it("Literals", async () => {
         const schema = Schema.Struct({ a: Schema.Literals(["b", "c"]) })
         const config = Config.schema(schema)
 
-        await assertSuccess(config, ConfigProvider.fromEnv({ env: { a: "b" } }), { a: "b" })
-        await assertSuccess(config, ConfigProvider.fromEnv({ env: { a: "c" } }), { a: "c" })
+        await succeed(config, ConfigProvider.fromEnv({ env: { a: "b" } }), { a: "b" })
+        await succeed(config, ConfigProvider.fromEnv({ env: { a: "c" } }), { a: "c" })
       })
 
       it("Array(Finite)", async () => {
         const schema = Schema.Struct({ a: Schema.Array(Schema.Finite) })
         const config = Config.schema(schema)
 
-        await assertSuccess(config, ConfigProvider.fromEnv({ env: { a: "" } }), { a: [] })
-        await assertSuccess(config, ConfigProvider.fromEnv({ env: { a: "1" } }), { a: [1] })
-        await assertSuccess(config, ConfigProvider.fromEnv({ env: { a__0: "1", a__1: "2" } }), { a: [1, 2] })
+        await succeed(config, ConfigProvider.fromEnv({ env: { a: "" } }), { a: [] })
+        await succeed(config, ConfigProvider.fromEnv({ env: { a: "1" } }), { a: [1] })
+        await succeed(config, ConfigProvider.fromEnv({ env: { a__0: "1", a__1: "2" } }), { a: [1, 2] })
       })
     })
 
@@ -338,9 +344,9 @@ describe("Config", () => {
         const schema = Schema.Record(Schema.String, Schema.Finite)
         const config = Config.schema(schema)
 
-        await assertSuccess(config, ConfigProvider.fromEnv({ env: { a: "1" } }), { a: 1 })
-        await assertSuccess(config, ConfigProvider.fromEnv({ env: { a: "1", b: "2" } }), { a: 1, b: 2 })
-        await assertFailure(
+        await succeed(config, ConfigProvider.fromEnv({ env: { a: "1" } }), { a: 1 })
+        await succeed(config, ConfigProvider.fromEnv({ env: { a: "1", b: "2" } }), { a: 1, b: 2 })
+        await fail(
           config,
           ConfigProvider.fromEnv({ env: { a: "1", b: "value" } }),
           `Expected a string matching the regex (?:[+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?|Infinity|-Infinity|NaN), got "value"
@@ -354,28 +360,28 @@ describe("Config", () => {
         const schema = Schema.Struct({ a: Schema.Tuple([]) })
         const config = Config.schema(schema)
 
-        await assertSuccess(config, ConfigProvider.fromEnv({ env: { a: "" } }), { a: [] })
+        await succeed(config, ConfigProvider.fromEnv({ env: { a: "" } }), { a: [] })
       })
 
       it("ensure array", async () => {
         const schema = Schema.Struct({ a: Schema.Tuple([Schema.Finite]) })
         const config = Config.schema(schema)
 
-        await assertSuccess(config, ConfigProvider.fromEnv({ env: { a: "1" } }), { a: [1] })
+        await succeed(config, ConfigProvider.fromEnv({ env: { a: "1" } }), { a: [1] })
       })
 
       it("required elements", async () => {
         const schema = Schema.Struct({ a: Schema.Tuple([Schema.String, Schema.Finite]) })
         const config = Config.schema(schema)
 
-        await assertSuccess(config, ConfigProvider.fromEnv({ env: { a__0: "a", a__1: "2" } }), { a: ["a", 2] })
-        await assertFailure(
+        await succeed(config, ConfigProvider.fromEnv({ env: { a__0: "a", a__1: "2" } }), { a: ["a", 2] })
+        await fail(
           config,
           ConfigProvider.fromEnv({ env: { a: "a" } }),
           `Missing key
   at ["a"][1]`
         )
-        await assertFailure(
+        await fail(
           config,
           ConfigProvider.fromEnv({ env: { a__0: "a", a__1: "value" } }),
           `Expected a string matching the regex (?:[+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?|Infinity|-Infinity|NaN), got "value"
@@ -388,9 +394,9 @@ describe("Config", () => {
       const schema = Schema.Struct({ a: Schema.Array(Schema.Finite) })
       const config = Config.schema(schema)
 
-      await assertSuccess(config, ConfigProvider.fromEnv({ env: { a: "1" } }), { a: [1] })
-      await assertSuccess(config, ConfigProvider.fromEnv({ env: { a__0: "1", a__1: "2" } }), { a: [1, 2] })
-      await assertFailure(
+      await succeed(config, ConfigProvider.fromEnv({ env: { a: "1" } }), { a: [1] })
+      await succeed(config, ConfigProvider.fromEnv({ env: { a__0: "1", a__1: "2" } }), { a: [1, 2] })
+      await fail(
         config,
         ConfigProvider.fromEnv({ env: { a__0: "1", a__1: "value" } }),
         `Expected a string matching the regex (?:[+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?|Infinity|-Infinity|NaN), got "value"
@@ -404,8 +410,8 @@ describe("Config", () => {
           const schema = Schema.Struct({ a: Schema.Literals(["a", "b"]) })
           const config = Config.schema(schema)
 
-          await assertSuccess(config, ConfigProvider.fromEnv({ env: { a: "a" } }), { a: "a" })
-          await assertSuccess(config, ConfigProvider.fromEnv({ env: { a: "b" } }), { a: "b" })
+          await succeed(config, ConfigProvider.fromEnv({ env: { a: "a" } }), { a: "a" })
+          await succeed(config, ConfigProvider.fromEnv({ env: { a: "b" } }), { a: "b" })
         })
       })
 
@@ -416,9 +422,9 @@ describe("Config", () => {
         ])
         const config = Config.schema(schema)
 
-        await assertSuccess(config, ConfigProvider.fromEnv({ env: { a: "a" } }), { a: "a" })
-        await assertSuccess(config, ConfigProvider.fromEnv({ env: { b: "1" } }), { b: 1 })
-        await assertSuccess(config, ConfigProvider.fromEnv({ env: { a: "a", b: "1" } }), { a: "a" })
+        await succeed(config, ConfigProvider.fromEnv({ env: { a: "a" } }), { a: "a" })
+        await succeed(config, ConfigProvider.fromEnv({ env: { b: "1" } }), { b: 1 })
+        await succeed(config, ConfigProvider.fromEnv({ env: { a: "a", b: "1" } }), { a: "a" })
       })
 
       it("exclusive", async () => {
@@ -428,9 +434,9 @@ describe("Config", () => {
         ], { mode: "oneOf" })
         const config = Config.schema(schema)
 
-        await assertSuccess(config, ConfigProvider.fromEnv({ env: { a: "a" } }), { a: "a" })
-        await assertSuccess(config, ConfigProvider.fromEnv({ env: { b: "1" } }), { b: 1 })
-        await assertFailure(
+        await succeed(config, ConfigProvider.fromEnv({ env: { a: "a" } }), { a: "a" })
+        await succeed(config, ConfigProvider.fromEnv({ env: { b: "1" } }), { b: 1 })
+        await fail(
           config,
           ConfigProvider.fromEnv({ env: { a: "a", b: "1" } }),
           `Expected exactly one member to match the input {"a":"a","b":"1"}`
@@ -449,8 +455,8 @@ describe("Config", () => {
       })
       const config = Config.schema(schema)
 
-      await assertSuccess(config, ConfigProvider.fromEnv({ env: { a: "1", as: "" } }), { a: "1", as: [] })
-      await assertSuccess(
+      await succeed(config, ConfigProvider.fromEnv({ env: { a: "1", as: "" } }), { a: "1", as: [] })
+      await succeed(
         config,
         ConfigProvider.fromEnv({ env: { a: "1", as__0__a: "2", as__0__as__TYPE: "A" } }),
         {
@@ -464,14 +470,14 @@ describe("Config", () => {
       const schema = Schema.Redacted(Schema.Int)
       const config = Config.schema(schema, "a")
 
-      await assertSuccess(config, ConfigProvider.fromEnv({ env: { a: "1" } }), Redacted.make(1))
-      await assertFailure(
+      await succeed(config, ConfigProvider.fromEnv({ env: { a: "1" } }), Redacted.make(1))
+      await fail(
         config,
         ConfigProvider.fromEnv({ env: {} }),
         `Expected string, got undefined
   at ["a"]`
       )
-      await assertFailure(
+      await fail(
         config,
         ConfigProvider.fromEnv({ env: { a: "1.1" } }),
         `Expected an integer, got 1.1
@@ -482,17 +488,17 @@ describe("Config", () => {
 
   describe("fromStringLeafJson", () => {
     it("path argument", async () => {
-      await assertSuccess(
+      await succeed(
         Config.schema(Schema.String, []),
         ConfigProvider.fromStringPojo("value"),
         "value"
       )
-      await assertSuccess(
+      await succeed(
         Config.schema(Schema.String, "a"),
         ConfigProvider.fromStringPojo({ a: "value" }),
         "value"
       )
-      await assertSuccess(
+      await succeed(
         Config.schema(Schema.String, ["a", "b"]),
         ConfigProvider.fromStringPojo({ a: { b: "value" } }),
         "value"
@@ -503,8 +509,8 @@ describe("Config", () => {
       const schema = Schema.String
       const config = Config.schema(schema)
 
-      await assertSuccess(config, ConfigProvider.fromStringPojo("value"), "value")
-      await assertFailure(config, ConfigProvider.fromStringPojo({}), `Expected string, got undefined`)
+      await succeed(config, ConfigProvider.fromStringPojo("value"), "value")
+      await fail(config, ConfigProvider.fromStringPojo({}), `Expected string, got undefined`)
     })
 
     describe("Struct", () => {
@@ -512,14 +518,14 @@ describe("Config", () => {
         const schema = Schema.Struct({ a: Schema.Finite })
         const config = Config.schema(schema)
 
-        await assertSuccess(config, ConfigProvider.fromStringPojo({ a: "1" }), { a: 1 })
-        await assertFailure(
+        await succeed(config, ConfigProvider.fromStringPojo({ a: "1" }), { a: 1 })
+        await fail(
           config,
           ConfigProvider.fromStringPojo({}),
           `Missing key
   at ["a"]`
         )
-        await assertFailure(
+        await fail(
           config,
           ConfigProvider.fromStringPojo({ a: "value" }),
           `Expected a string matching the regex (?:[+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?|Infinity|-Infinity|NaN), got "value"
@@ -531,8 +537,8 @@ describe("Config", () => {
         const schema = Schema.Struct({ a: Schema.optionalKey(Schema.Finite) })
         const config = Config.schema(schema)
 
-        await assertSuccess(config, ConfigProvider.fromStringPojo({ a: "1" }), { a: 1 })
-        await assertSuccess(config, ConfigProvider.fromStringPojo({}), {})
+        await succeed(config, ConfigProvider.fromStringPojo({ a: "1" }), { a: 1 })
+        await succeed(config, ConfigProvider.fromStringPojo({}), {})
       })
 
       it("optional properties", async () => {
@@ -540,16 +546,16 @@ describe("Config", () => {
           Schema.Struct({ a: Schema.optional(Schema.Finite) })
         )
 
-        await assertSuccess(config, ConfigProvider.fromStringPojo({ a: "1" }), { a: 1 })
-        await assertSuccess(config, ConfigProvider.fromStringPojo({}), {})
+        await succeed(config, ConfigProvider.fromStringPojo({ a: "1" }), { a: 1 })
+        await succeed(config, ConfigProvider.fromStringPojo({}), {})
       })
 
       it("Literals", async () => {
         const schema = Schema.Struct({ a: Schema.Literals(["b", "c"]) })
         const config = Config.schema(schema)
 
-        await assertSuccess(config, ConfigProvider.fromStringPojo({ a: "b" }), { a: "b" })
-        await assertSuccess(config, ConfigProvider.fromStringPojo({ a: "c" }), { a: "c" })
+        await succeed(config, ConfigProvider.fromStringPojo({ a: "b" }), { a: "b" })
+        await succeed(config, ConfigProvider.fromStringPojo({ a: "c" }), { a: "c" })
       })
     })
 
@@ -557,9 +563,9 @@ describe("Config", () => {
       const schema = Schema.Record(Schema.String, Schema.Finite)
       const config = Config.schema(schema)
 
-      await assertSuccess(config, ConfigProvider.fromStringPojo({ a: "1" }), { a: 1 })
-      await assertSuccess(config, ConfigProvider.fromStringPojo({ a: "1", b: "2" }), { a: 1, b: 2 })
-      await assertFailure(
+      await succeed(config, ConfigProvider.fromStringPojo({ a: "1" }), { a: 1 })
+      await succeed(config, ConfigProvider.fromStringPojo({ a: "1", b: "2" }), { a: 1, b: 2 })
+      await fail(
         config,
         ConfigProvider.fromStringPojo({ a: "1", b: "value" }),
         `Expected a string matching the regex (?:[+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?|Infinity|-Infinity|NaN), got "value"
@@ -572,22 +578,22 @@ describe("Config", () => {
         const schema = Schema.Tuple([Schema.Finite])
         const config = Config.schema(schema)
 
-        await assertSuccess(config, ConfigProvider.fromStringPojo(["1"]), [1])
-        await assertSuccess(config, ConfigProvider.fromStringPojo("1"), [1])
+        await succeed(config, ConfigProvider.fromStringPojo(["1"]), [1])
+        await succeed(config, ConfigProvider.fromStringPojo("1"), [1])
       })
 
       it("required elements", async () => {
         const schema = Schema.Tuple([Schema.String, Schema.Finite])
         const config = Config.schema(schema)
 
-        await assertSuccess(config, ConfigProvider.fromStringPojo(["a", "2"]), ["a", 2])
-        await assertFailure(
+        await succeed(config, ConfigProvider.fromStringPojo(["a", "2"]), ["a", 2])
+        await fail(
           config,
           ConfigProvider.fromStringPojo(["a"]),
           `Missing key
   at [1]`
         )
-        await assertFailure(
+        await fail(
           config,
           ConfigProvider.fromStringPojo(["a", "value"]),
           `Expected a string matching the regex (?:[+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?|Infinity|-Infinity|NaN), got "value"
@@ -600,11 +606,11 @@ describe("Config", () => {
       const schema = Schema.Array(Schema.Finite)
       const config = Config.schema(schema)
 
-      await assertSuccess(config, ConfigProvider.fromStringPojo(["1"]), [1])
+      await succeed(config, ConfigProvider.fromStringPojo(["1"]), [1])
       // ensure array
-      await assertSuccess(config, ConfigProvider.fromStringPojo("1"), [1])
-      await assertSuccess(config, ConfigProvider.fromStringPojo(["1", "2"]), [1, 2])
-      await assertFailure(
+      await succeed(config, ConfigProvider.fromStringPojo("1"), [1])
+      await succeed(config, ConfigProvider.fromStringPojo(["1", "2"]), [1, 2])
+      await fail(
         config,
         ConfigProvider.fromStringPojo(["1", "value"]),
         `Expected a string matching the regex (?:[+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?|Infinity|-Infinity|NaN), got "value"
@@ -618,8 +624,8 @@ describe("Config", () => {
           const schema = Schema.Literals(["a", "b"])
           const config = Config.schema(schema)
 
-          await assertSuccess(config, ConfigProvider.fromStringPojo("a"), "a")
-          await assertSuccess(config, ConfigProvider.fromStringPojo("b"), "b")
+          await succeed(config, ConfigProvider.fromStringPojo("a"), "a")
+          await succeed(config, ConfigProvider.fromStringPojo("b"), "b")
         })
       })
     })
@@ -635,8 +641,8 @@ describe("Config", () => {
       })
       const config = Config.schema(schema)
 
-      await assertSuccess(config, ConfigProvider.fromStringPojo({ a: "1", as: [] }), { a: "1", as: [] })
-      await assertSuccess(config, ConfigProvider.fromStringPojo({ a: "1", as: [{ a: "2", as: [] }] }), {
+      await succeed(config, ConfigProvider.fromStringPojo({ a: "1", as: [] }), { a: "1", as: [] })
+      await succeed(config, ConfigProvider.fromStringPojo({ a: "1", as: [{ a: "2", as: [] }] }), {
         a: "1",
         as: [{ a: "2", as: [] }]
       })
@@ -646,7 +652,7 @@ describe("Config", () => {
       const schema = Schema.Struct({ url: Schema.URL })
       const config = Config.schema(schema)
 
-      await assertSuccess(
+      await succeed(
         config,
         ConfigProvider.fromStringPojo({ url: "https://example.com" }),
         { url: new URL("https://example.com") }
@@ -656,7 +662,7 @@ describe("Config", () => {
 
   describe("constructors", () => {
     it("fail", async () => {
-      await assertFailure(
+      await fail(
         Config.fail(
           new Schema.SchemaError(new Issue.Forbidden(Option.none(), { message: "failure message" }))
         ),
@@ -667,13 +673,13 @@ describe("Config", () => {
 
     it("succeed", async () => {
       const provider = ConfigProvider.fromStringPojo({})
-      await assertSuccess(Config.succeed(1), provider, 1)
+      await succeed(Config.succeed(1), provider, 1)
     })
 
     it("string", async () => {
       const provider = ConfigProvider.fromStringPojo({ a: "value" })
-      await assertSuccess(Config.string("a"), provider, "value")
-      await assertFailure(
+      await succeed(Config.string("a"), provider, "value")
+      await fail(
         Config.string("b"),
         provider,
         `Expected string, got undefined
@@ -683,8 +689,8 @@ describe("Config", () => {
 
     it("nonEmptyString", async () => {
       const provider = ConfigProvider.fromStringPojo({ a: "value", b: "" })
-      await assertSuccess(Config.nonEmptyString("a"), provider, "value")
-      await assertFailure(
+      await succeed(Config.nonEmptyString("a"), provider, "value")
+      await fail(
         Config.nonEmptyString("b"),
         provider,
         `Expected a value with a length of at least 1, got ""
@@ -694,15 +700,15 @@ describe("Config", () => {
 
     it("number", async () => {
       const provider = ConfigProvider.fromStringPojo({ a: "1", c: "c", d: "Infinity" })
-      await assertSuccess(Config.number("a"), provider, 1)
-      await assertSuccess(Config.number("d"), provider, Infinity)
-      await assertFailure(
+      await succeed(Config.number("a"), provider, 1)
+      await succeed(Config.number("d"), provider, Infinity)
+      await fail(
         Config.number("b"),
         provider,
         `Expected string, got undefined
   at ["b"]`
       )
-      await assertFailure(
+      await fail(
         Config.finite("c"),
         provider,
         `Expected a string matching the regex (?:[+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?|Infinity|-Infinity|NaN), got "c"
@@ -712,14 +718,14 @@ describe("Config", () => {
 
     it("finite", async () => {
       const provider = ConfigProvider.fromStringPojo({ a: "1", b: "a", c: "Infinity" })
-      await assertSuccess(Config.finite("a"), provider, 1)
-      await assertFailure(
+      await succeed(Config.finite("a"), provider, 1)
+      await fail(
         Config.finite("b"),
         provider,
         `Expected a string matching the regex (?:[+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?|Infinity|-Infinity|NaN), got "a"
   at ["b"]`
       )
-      await assertFailure(
+      await fail(
         Config.finite("c"),
         provider,
         `Expected a finite number, got Infinity
@@ -729,8 +735,8 @@ describe("Config", () => {
 
     it("int", async () => {
       const provider = ConfigProvider.fromStringPojo({ a: "1", b: "1.2" })
-      await assertSuccess(Config.int("a"), provider, 1)
-      await assertFailure(
+      await succeed(Config.int("a"), provider, 1)
+      await fail(
         Config.int("b"),
         provider,
         `Expected an integer, got 1.2
@@ -740,8 +746,8 @@ describe("Config", () => {
 
     it("literal", async () => {
       const provider = ConfigProvider.fromStringPojo({ a: "L" })
-      await assertSuccess(Config.literal("L", "a"), provider, "L")
-      await assertFailure(
+      await succeed(Config.literal("L", "a"), provider, "L")
+      await fail(
         Config.literal("-", "a"),
         provider,
         `Expected "-", got "L"
@@ -751,8 +757,8 @@ describe("Config", () => {
 
     it("date", async () => {
       const provider = ConfigProvider.fromStringPojo({ a: "2021-01-01", b: "invalid" })
-      await assertSuccess(Config.date("a"), provider, new Date("2021-01-01"))
-      await assertFailure(
+      await succeed(Config.date("a"), provider, new Date("2021-01-01"))
+      await fail(
         Config.date("b"),
         provider,
         `Expected a valid date, got Invalid Date
@@ -775,15 +781,15 @@ describe("Config", () => {
         failure: "value"
       })
 
-      await assertSuccess(Config.boolean("a"), provider, true)
-      await assertSuccess(Config.boolean("b"), provider, false)
-      await assertSuccess(Config.boolean("c"), provider, true)
-      await assertSuccess(Config.boolean("d"), provider, false)
-      await assertSuccess(Config.boolean("e"), provider, true)
-      await assertSuccess(Config.boolean("f"), provider, false)
-      await assertSuccess(Config.boolean("g"), provider, true)
-      await assertSuccess(Config.boolean("h"), provider, false)
-      await assertFailure(
+      await succeed(Config.boolean("a"), provider, true)
+      await succeed(Config.boolean("b"), provider, false)
+      await succeed(Config.boolean("c"), provider, true)
+      await succeed(Config.boolean("d"), provider, false)
+      await succeed(Config.boolean("e"), provider, true)
+      await succeed(Config.boolean("f"), provider, false)
+      await succeed(Config.boolean("g"), provider, true)
+      await succeed(Config.boolean("h"), provider, false)
+      await fail(
         Config.boolean("failure"),
         provider,
         `Expected "true" | "yes" | "on" | "1" | "false" | "no" | "off" | "0", got "value"
@@ -798,9 +804,9 @@ describe("Config", () => {
         failure: "value"
       })
 
-      await assertSuccess(Config.duration("a"), provider, Duration.millis(1000))
-      await assertSuccess(Config.duration("b"), provider, Duration.seconds(1))
-      await assertFailure(
+      await succeed(Config.duration("a"), provider, Duration.millis(1000))
+      await succeed(Config.duration("b"), provider, Duration.seconds(1))
+      await fail(
         Config.duration("failure"),
         provider,
         `Invalid data "value"
@@ -814,8 +820,8 @@ describe("Config", () => {
         failure: "-1"
       })
 
-      await assertSuccess(Config.port("a"), provider, 8080)
-      await assertFailure(
+      await succeed(Config.port("a"), provider, 8080)
+      await fail(
         Config.port("failure"),
         provider,
         `Expected a value between 1 and 65535, got -1
@@ -830,14 +836,14 @@ describe("Config", () => {
         failure_2: "value"
       })
 
-      await assertSuccess(Config.logLevel("a"), provider, "Info")
-      await assertFailure(
+      await succeed(Config.logLevel("a"), provider, "Info")
+      await fail(
         Config.logLevel("failure_1"),
         provider,
         `Expected "All" | "Fatal" | "Error" | "Warn" | "Info" | "Debug" | "Trace" | "None", got "info"
   at ["failure_1"]`
       )
-      await assertFailure(
+      await fail(
         Config.logLevel("failure_2"),
         provider,
         `Expected "All" | "Fatal" | "Error" | "Warn" | "Info" | "Debug" | "Trace" | "None", got "value"
@@ -850,8 +856,8 @@ describe("Config", () => {
         a: "value"
       })
 
-      await assertSuccess(Config.redacted("a"), provider, Redacted.make("value"))
-      await assertFailure(
+      await succeed(Config.redacted("a"), provider, Redacted.make("value"))
+      await fail(
         Config.redacted("failure"),
         provider,
         `Expected string, got undefined
@@ -864,8 +870,8 @@ describe("Config", () => {
         a: "https://example.com"
       })
 
-      await assertSuccess(Config.url("a"), provider, new URL("https://example.com"))
-      await assertFailure(
+      await succeed(Config.url("a"), provider, new URL("https://example.com"))
+      await fail(
         Config.url("failure"),
         provider,
         `Expected string, got undefined
@@ -878,7 +884,7 @@ describe("Config", () => {
         const schema = Config.Record(Schema.String, Schema.String)
         const config = Config.schema(schema, "OTEL_RESOURCE_ATTRIBUTES")
 
-        await assertSuccess(
+        await succeed(
           config,
           ConfigProvider.fromStringPojo({
             OTEL_RESOURCE_ATTRIBUTES: {
@@ -899,7 +905,7 @@ describe("Config", () => {
         const schema = Config.Record(Schema.String, Schema.String)
         const config = Config.schema(schema, "OTEL_RESOURCE_ATTRIBUTES")
 
-        await assertSuccess(
+        await succeed(
           config,
           ConfigProvider.fromEnv({
             env: {
@@ -918,7 +924,7 @@ describe("Config", () => {
         const schema = Config.Record(Schema.String, Schema.String, { separator: "&", keyValueSeparator: "==" })
         const config = Config.schema(schema, "OTEL_RESOURCE_ATTRIBUTES")
 
-        await assertSuccess(
+        await succeed(
           config,
           ConfigProvider.fromEnv({
             env: {

@@ -1,7 +1,7 @@
 import { describe, it } from "@effect/vitest"
 import { ToJsonSchema } from "effect/schema"
 import { Multipart } from "effect/unstable/http"
-import { deepStrictEqual } from "../../utils/assert.ts"
+import { deepStrictEqual } from "node:assert"
 
 describe("Multipart", () => {
   describe("FileSchema", () => {

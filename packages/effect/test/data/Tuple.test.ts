@@ -1,9 +1,9 @@
 import { Number, pipe, String } from "effect"
 import { Tuple } from "effect/data"
 import { Schema } from "effect/schema"
+import { TestSchema } from "effect/testing"
+import { deepStrictEqual, strictEqual } from "node:assert"
 import { describe, it } from "vitest"
-import { deepStrictEqual, strictEqual } from "../utils/assert.ts"
-import { assertions } from "../utils/schema.ts"
 
 const tuple = ["a", 2, true] as [string, number, boolean]
 
@@ -69,12 +69,12 @@ describe("Tuple", () => {
 
   it("map", () => {
     const tuple = [Schema.String, Schema.Number, Schema.Boolean] as const
-    assertions.schema.elements.equals(pipe(tuple, Tuple.map(Schema.NullOr)), [
+    TestSchema.Asserts.ast.elements.equals(pipe(tuple, Tuple.map(Schema.NullOr)), [
       Schema.NullOr(Schema.String),
       Schema.NullOr(Schema.Number),
       Schema.NullOr(Schema.Boolean)
     ])
-    assertions.schema.elements.equals(Tuple.map(tuple, Schema.NullOr), [
+    TestSchema.Asserts.ast.elements.equals(Tuple.map(tuple, Schema.NullOr), [
       Schema.NullOr(Schema.String),
       Schema.NullOr(Schema.Number),
       Schema.NullOr(Schema.Boolean)
@@ -83,12 +83,12 @@ describe("Tuple", () => {
 
   it("mapPick", () => {
     const tuple = [Schema.String, Schema.Number, Schema.Boolean] as const
-    assertions.schema.elements.equals(pipe(tuple, Tuple.mapPick([0, 2], Schema.NullOr)), [
+    TestSchema.Asserts.ast.elements.equals(pipe(tuple, Tuple.mapPick([0, 2], Schema.NullOr)), [
       Schema.NullOr(Schema.String),
       Schema.Number,
       Schema.NullOr(Schema.Boolean)
     ])
-    assertions.schema.elements.equals(Tuple.mapPick(tuple, [0, 2], Schema.NullOr), [
+    TestSchema.Asserts.ast.elements.equals(Tuple.mapPick(tuple, [0, 2], Schema.NullOr), [
       Schema.NullOr(Schema.String),
       Schema.Number,
       Schema.NullOr(Schema.Boolean)
@@ -97,12 +97,12 @@ describe("Tuple", () => {
 
   it("mapOmit", () => {
     const tuple = [Schema.String, Schema.Number, Schema.Boolean] as const
-    assertions.schema.elements.equals(pipe(tuple, Tuple.mapOmit([1], Schema.NullOr)), [
+    TestSchema.Asserts.ast.elements.equals(pipe(tuple, Tuple.mapOmit([1], Schema.NullOr)), [
       Schema.NullOr(Schema.String),
       Schema.Number,
       Schema.NullOr(Schema.Boolean)
     ])
-    assertions.schema.elements.equals(Tuple.mapOmit(tuple, [1], Schema.NullOr), [
+    TestSchema.Asserts.ast.elements.equals(Tuple.mapOmit(tuple, [1], Schema.NullOr), [
       Schema.NullOr(Schema.String),
       Schema.Number,
       Schema.NullOr(Schema.Boolean)

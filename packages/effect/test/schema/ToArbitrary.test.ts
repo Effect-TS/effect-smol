@@ -1,7 +1,7 @@
 import { AST, Check, Schema, ToArbitrary, ToEquivalence } from "effect/schema"
+import { TestSchema } from "effect/testing"
+import { deepStrictEqual } from "node:assert"
 import { describe, it } from "vitest"
-import { deepStrictEqual } from "../utils/assert.ts"
-import { assertions } from "../utils/schema.ts"
 
 function assertFragments(schema: Schema.Schema<any>, ctx: ToArbitrary.Context) {
   const ast = schema.ast
@@ -10,114 +10,119 @@ function assertFragments(schema: Schema.Schema<any>, ctx: ToArbitrary.Context) {
   deepStrictEqual(f({}), ctx)
 }
 
+function satisfy<S extends Schema.Codec<unknown, unknown, never, unknown>>(schema: S) {
+  const asserts = new TestSchema.Asserts(schema)
+  asserts.arbitrary().satisfy()
+}
+
 describe("ToArbitrary", () => {
   it("Any", () => {
-    assertions.arbitrary.satisfy(Schema.Any)
+    satisfy(Schema.Any)
   })
 
   it("Unknown", () => {
-    assertions.arbitrary.satisfy(Schema.Unknown)
+    satisfy(Schema.Unknown)
   })
 
   it("Void", () => {
-    assertions.arbitrary.satisfy(Schema.Void)
+    satisfy(Schema.Void)
   })
 
   it("Null", () => {
-    assertions.arbitrary.satisfy(Schema.Null)
+    satisfy(Schema.Null)
   })
 
   it("String", () => {
-    assertions.arbitrary.satisfy(Schema.String)
+    satisfy(Schema.String)
   })
 
   it("Number", () => {
-    assertions.arbitrary.satisfy(Schema.Number)
+    satisfy(Schema.Number)
   })
 
   it("Boolean", () => {
-    assertions.arbitrary.satisfy(Schema.Boolean)
+    satisfy(Schema.Boolean)
   })
 
   it("BigInt", () => {
-    assertions.arbitrary.satisfy(Schema.BigInt)
+    satisfy(Schema.BigInt)
   })
 
   it("Symbol", () => {
-    assertions.arbitrary.satisfy(Schema.Symbol)
+    satisfy(Schema.Symbol)
   })
 
   it("UniqueSymbol", () => {
-    assertions.arbitrary.satisfy(Schema.UniqueSymbol(Symbol.for("a")))
+    satisfy(Schema.UniqueSymbol(Symbol.for("a")))
   })
 
   it("Object", () => {
-    assertions.arbitrary.satisfy(Schema.Object)
+    satisfy(Schema.Object)
   })
 
   describe("Literal", () => {
     it("string", () => {
-      assertions.arbitrary.satisfy(Schema.Literal("a"))
+      satisfy(Schema.Literal("a"))
     })
 
     it("number", () => {
-      assertions.arbitrary.satisfy(Schema.Literal(1))
+      satisfy(Schema.Literal(1))
     })
 
     it("boolean", () => {
-      assertions.arbitrary.satisfy(Schema.Literal(true))
+      satisfy(Schema.Literal(true))
     })
 
     it("bigint", () => {
-      assertions.arbitrary.satisfy(Schema.Literal(1n))
+      satisfy(Schema.Literal(1n))
     })
   })
 
   it("Literals", () => {
-    assertions.arbitrary.satisfy(Schema.Literals(["a", "b", "c"]))
+    satisfy(Schema.Literals(["a", "b", "c"]))
   })
 
   describe("TemplateLiteral", () => {
     it("a", () => {
       const schema = Schema.TemplateLiteral([Schema.Literal("a")])
-      assertions.arbitrary.satisfy(schema)
+      satisfy(schema)
     })
 
     it("a b", () => {
       const schema = Schema.TemplateLiteral([Schema.Literal("a"), Schema.Literal(" "), Schema.Literal("b")])
-      assertions.arbitrary.satisfy(schema)
+      satisfy(schema)
     })
 
     it("a${string}", () => {
       const schema = Schema.TemplateLiteral([Schema.Literal("a"), Schema.String])
-      assertions.arbitrary.satisfy(schema)
+      satisfy(schema)
     })
 
     it("a${number}", () => {
       const schema = Schema.TemplateLiteral([Schema.Literal("a"), Schema.Number])
-      assertions.arbitrary.satisfy(schema)
+      satisfy(schema)
     })
 
     it("a", () => {
       const schema = Schema.TemplateLiteral([Schema.Literal("a")])
-      assertions.arbitrary.satisfy(schema)
+      satisfy(schema)
     })
 
     it("${string}", () => {
       const schema = Schema.TemplateLiteral([Schema.String])
-      assertions.arbitrary.satisfy(schema)
+      satisfy(schema)
     })
 
     it("a${string}b", () => {
       const schema = Schema.TemplateLiteral([Schema.Literal("a"), Schema.String, Schema.Literal("b")])
-      assertions.arbitrary.satisfy(schema)
+      satisfy(schema)
     })
 
     it("https://www.typescriptlang.org/docs/handbook/2/template-literal-types.html", async () => {
       const EmailLocaleIDs = Schema.Literals(["welcome_email", "email_heading"])
       const FooterLocaleIDs = Schema.Literals(["footer_title", "footer_sendoff"])
       const schema = Schema.TemplateLiteral([Schema.Union([EmailLocaleIDs, FooterLocaleIDs]), "_id"])
-      assertions.arbitrary.satisfy(schema)
+      satisfy(schema)
     })
 
     it("< + h + (1|2) + >", async () => {
@@ -126,7 +131,7 @@ describe("ToArbitrary", () => {
         Schema.TemplateLiteral([Schema.Literal("h"), Schema.Union([Schema.Literal(1), Schema.Literal(2)])]),
         Schema.Literal(">")
       ])
-      assertions.arbitrary.satisfy(schema)
+      satisfy(schema)
     })
   })
 
@@ -136,7 +141,7 @@ describe("ToArbitrary", () => {
         Apple,
         Banana
       }
-      assertions.arbitrary.satisfy(Schema.Enums(Fruits))
+      satisfy(Schema.Enums(Fruits))
     })
 
     it("String enums", () => {
@@ -145,7 +150,7 @@ describe("ToArbitrary", () => {
         Banana = "banana",
         Cantaloupe = 0
       }
-      assertions.arbitrary.satisfy(Schema.Enums(Fruits))
+      satisfy(Schema.Enums(Fruits))
     })
 
     it("Const enums", () => {
@@ -154,46 +159,46 @@ describe("ToArbitrary", () => {
         Banana: "banana",
         Cantaloupe: 3
       } as const
-      assertions.arbitrary.satisfy(Schema.Enums(Fruits))
+      satisfy(Schema.Enums(Fruits))
     })
   })
 
   it("Union", () => {
-    assertions.arbitrary.satisfy(
+    satisfy(
       Schema.Union([Schema.String, Schema.Number])
     )
   })
 
   describe("Tuple", () => {
     it("empty", () => {
-      assertions.arbitrary.satisfy(
+      satisfy(
         Schema.Tuple([])
       )
     })
 
     it("required element", () => {
-      assertions.arbitrary.satisfy(
+      satisfy(
         Schema.Tuple([Schema.String])
       )
-      assertions.arbitrary.satisfy(
+      satisfy(
         Schema.Tuple([Schema.String, Schema.Number])
       )
     })
 
     it("optionalKey element", () => {
-      assertions.arbitrary.satisfy(
+      satisfy(
         Schema.Tuple([Schema.optionalKey(Schema.Number)])
       )
-      assertions.arbitrary.satisfy(
+      satisfy(
         Schema.Tuple([Schema.String, Schema.optionalKey(Schema.Number)])
       )
     })
 
     it("optional element", () => {
-      assertions.arbitrary.satisfy(
+      satisfy(
         Schema.Tuple([Schema.optional(Schema.Number)])
       )
-      assertions.arbitrary.satisfy(
+      satisfy(
         Schema.Tuple([Schema.String, Schema.optional(Schema.Number)])
       )
     })
@@ -201,18 +206,18 @@ describe("ToArbitrary", () => {
 
   describe("Array", () => {
     it("Array", () => {
-      assertions.arbitrary.satisfy(Schema.Array(Schema.String))
+      satisfy(Schema.Array(Schema.String))
     })
   })
 
   it("TupleWithRest", () => {
-    assertions.arbitrary.satisfy(
+    satisfy(
       Schema.TupleWithRest(Schema.Tuple([Schema.Boolean]), [Schema.Number, Schema.String])
     )
-    assertions.arbitrary.satisfy(
+    satisfy(
       Schema.TupleWithRest(Schema.Tuple([]), [Schema.Number, Schema.String])
     )
-    assertions.arbitrary.satisfy(
+    satisfy(
       Schema.TupleWithRest(Schema.Tuple([Schema.optionalKey(Schema.Boolean)]), [Schema.Number]).check(
         Check.minLength(3)
       )
@@ -221,33 +226,33 @@ describe("ToArbitrary", () => {
 
   describe("Struct", () => {
     it("empty", () => {
-      assertions.arbitrary.satisfy(Schema.Struct({}))
+      satisfy(Schema.Struct({}))
     })
 
     it("required fields", () => {
-      assertions.arbitrary.satisfy(Schema.Struct({
+      satisfy(Schema.Struct({
         a: Schema.String
       }))
-      assertions.arbitrary.satisfy(Schema.Struct({
+      satisfy(Schema.Struct({
         a: Schema.String,
         b: Schema.Number
       }))
     })
 
     it("required field with undefined", () => {
-      assertions.arbitrary.satisfy(Schema.Struct({
+      satisfy(Schema.Struct({
         a: Schema.UndefinedOr(Schema.String)
       }))
     })
 
     it("optionalKey field", () => {
-      assertions.arbitrary.satisfy(Schema.Struct({
+      satisfy(Schema.Struct({
         a: Schema.optionalKey(Schema.String)
       }))
     })
 
     it("optional field", () => {
-      assertions.arbitrary.satisfy(Schema.Struct({
+      satisfy(Schema.Struct({
         a: Schema.optional(Schema.String)
       }))
     })
@@ -255,20 +260,20 @@ describe("ToArbitrary", () => {
 
   describe("Record", () => {
     it("Record(String, Number)", () => {
-      assertions.arbitrary.satisfy(Schema.Record(Schema.String, Schema.Number))
+      satisfy(Schema.Record(Schema.String, Schema.Number))
     })
 
     it("Record(Symbol, Number)", () => {
-      assertions.arbitrary.satisfy(Schema.Record(Schema.Symbol, Schema.Number))
+      satisfy(Schema.Record(Schema.Symbol, Schema.Number))
     })
   })
 
   it("StructWithRest", () => {
-    assertions.arbitrary.satisfy(Schema.StructWithRest(
+    satisfy(Schema.StructWithRest(
       Schema.Struct({ a: Schema.Number }),
       [Schema.Record(Schema.String, Schema.Number)]
     ))
-    assertions.arbitrary.satisfy(Schema.StructWithRest(
+    satisfy(Schema.StructWithRest(
       Schema.Struct({ a: Schema.Number }),
       [Schema.Record(Schema.Symbol, Schema.Number)]
     ))
@@ -280,7 +285,7 @@ describe("ToArbitrary", () => {
         a: Schema.String
       }) {}
       const schema = A
-      assertions.arbitrary.satisfy(schema)
+      satisfy(schema)
     })
   })
 
@@ -291,13 +296,13 @@ describe("ToArbitrary", () => {
         Schema.Number,
         Schema.NullOr(Rec)
       ])
-      assertions.arbitrary.satisfy(schema)
+      satisfy(schema)
     })
 
     it("Array", () => {
       const Rec = Schema.suspend((): Schema.Codec<any> => schema)
       const schema: any = Schema.Array(Schema.Union([Schema.String, Rec]))
-      assertions.arbitrary.satisfy(schema)
+      satisfy(schema)
     })
 
     it("Struct", () => {
@@ -306,13 +311,13 @@ describe("ToArbitrary", () => {
         a: Schema.String,
         as: Schema.Array(Rec)
       })
-      assertions.arbitrary.satisfy(schema)
+      satisfy(schema)
     })
 
     it("Record", () => {
       const Rec = Schema.suspend((): Schema.Codec<any> => schema)
       const schema = Schema.Record(Schema.String, Rec)
-      assertions.arbitrary.satisfy(schema)
+      satisfy(schema)
     })
 
     it("optional", () => {
@@ -320,7 +325,7 @@ describe("ToArbitrary", () => {
       const schema: any = Schema.Struct({
         a: Schema.optional(Rec)
       })
-      assertions.arbitrary.satisfy(schema)
+      satisfy(schema)
     })
 
     it("Array + Array", () => {
@@ -329,7 +334,7 @@ describe("ToArbitrary", () => {
         a: Schema.Array(Rec),
         b: Schema.Array(Rec)
       })
-      assertions.arbitrary.satisfy(schema)
+      satisfy(schema)
     })
 
     it("optional + Array", () => {
@@ -338,7 +343,7 @@ describe("ToArbitrary", () => {
         a: Schema.optional(Rec),
         b: Schema.Array(Rec)
       })
-      assertions.arbitrary.satisfy(schema)
+      satisfy(schema)
     })
 
     it.skip("mutually suspended schemas", { retry: 5 }, () => {
@@ -365,7 +370,7 @@ describe("ToArbitrary", () => {
         left: Expression,
         right: Expression
       })
-      assertions.arbitrary.satisfy(Operation)
+      satisfy(Operation)
     })
 
     it("Option", () => {
@@ -374,173 +379,173 @@ describe("ToArbitrary", () => {
         a: Schema.String,
         as: Schema.Option(Rec)
       })
-      assertions.arbitrary.satisfy(schema)
+      satisfy(schema)
     })
 
     it("Map", () => {
       const Rec = Schema.suspend((): Schema.Codec<any> => schema)
       const schema = Schema.Map(Schema.String, Rec)
-      assertions.arbitrary.satisfy(schema)
+      satisfy(schema)
     })
   })
 
   describe("checks", () => {
     it("minLength(2)", () => {
-      assertions.arbitrary.satisfy(Schema.String.pipe(Schema.check(Check.minLength(2))))
-      assertions.arbitrary.satisfy(Schema.Array(Schema.String).pipe(Schema.check(Check.minLength(2))))
+      satisfy(Schema.String.pipe(Schema.check(Check.minLength(2))))
+      satisfy(Schema.Array(Schema.String).pipe(Schema.check(Check.minLength(2))))
     })
 
     it("maxLength(2)", () => {
-      assertions.arbitrary.satisfy(Schema.String.pipe(Schema.check(Check.maxLength(2))))
-      assertions.arbitrary.satisfy(Schema.Array(Schema.String).pipe(Schema.check(Check.maxLength(2))))
+      satisfy(Schema.String.pipe(Schema.check(Check.maxLength(2))))
+      satisfy(Schema.Array(Schema.String).pipe(Schema.check(Check.maxLength(2))))
     })
 
     it("minLength(2) & maxLength(4)", () => {
-      assertions.arbitrary.satisfy(Schema.String.pipe(Schema.check(Check.minLength(2), Check.maxLength(4))))
-      assertions.arbitrary.satisfy(
+      satisfy(Schema.String.pipe(Schema.check(Check.minLength(2), Check.maxLength(4))))
+      satisfy(
         Schema.Array(Schema.String).pipe(Schema.check(Check.minLength(2), Check.maxLength(4)))
       )
     })
 
     it("length(2)", () => {
-      assertions.arbitrary.satisfy(Schema.String.pipe(Schema.check(Check.length(2))))
-      assertions.arbitrary.satisfy(Schema.Array(Schema.String).pipe(Schema.check(Check.length(2))))
+      satisfy(Schema.String.pipe(Schema.check(Check.length(2))))
+      satisfy(Schema.Array(Schema.String).pipe(Schema.check(Check.length(2))))
     })
 
     it("minEntries(2)", () => {
-      assertions.arbitrary.satisfy(
+      satisfy(
         Schema.Record(Schema.String, Schema.Number).check(Check.minEntries(2))
       )
     })
 
     it("maxEntries(2)", () => {
-      assertions.arbitrary.satisfy(
+      satisfy(
         Schema.Record(Schema.String, Schema.Number).check(Check.maxEntries(2))
       )
     })
 
     it("minEntries(2) & maxEntries(4)", () => {
-      assertions.arbitrary.satisfy(
+      satisfy(
         Schema.Record(Schema.String, Schema.Number).check(Check.minEntries(2), Check.maxEntries(4))
       )
     })
 
     it("entries(2)", () => {
-      assertions.arbitrary.satisfy(
+      satisfy(
         Schema.Record(Schema.String, Schema.Number).check(Check.entries(2))
       )
     })
 
     it("int", () => {
       const schema = Schema.Number.check(Check.int())
-      assertions.arbitrary.satisfy(schema)
+      satisfy(schema)
     })
 
     it("int32", () => {
       const schema = Schema.Number.check(Check.int32())
-      assertions.arbitrary.satisfy(schema)
+      satisfy(schema)
     })
 
     it("regex", () => {
-      assertions.arbitrary.satisfy(Schema.String.check(Check.regex(/^[A-Z]{3}[0-9]{3}$/)))
+      satisfy(Schema.String.check(Check.regex(/^[A-Z]{3}[0-9]{3}$/)))
     })
 
     it("nonEmpty + regex", () => {
-      assertions.arbitrary.satisfy(Schema.NonEmptyString.check(Check.regex(/^[-]*$/)))
+      satisfy(Schema.NonEmptyString.check(Check.regex(/^[-]*$/)))
     })
 
     it("regex + regex", () => {
-      assertions.arbitrary.satisfy(
+      satisfy(
         Schema.String.check(Check.regex(/^[^A-Z]*$/), Check.regex(/^0x[0-9a-f]{40}$/))
       )
     })
 
     it("greaterThanOrEqualToDate", () => {
-      assertions.arbitrary.satisfy(Schema.Date.check(Check.greaterThanOrEqualToDate(new Date(0))))
+      satisfy(Schema.Date.check(Check.greaterThanOrEqualToDate(new Date(0))))
     })
 
     it("lessThanOrEqualToDate", () => {
-      assertions.arbitrary.satisfy(Schema.Date.check(Check.lessThanOrEqualToDate(new Date(10))))
+      satisfy(Schema.Date.check(Check.lessThanOrEqualToDate(new Date(10))))
     })
 
     it("betweenDate", () => {
-      assertions.arbitrary.satisfy(Schema.Date.check(Check.betweenDate(new Date(0), new Date(10))))
+      satisfy(Schema.Date.check(Check.betweenDate(new Date(0), new Date(10))))
     })
 
     it("ValidDate", () => {
-      assertions.arbitrary.satisfy(Schema.ValidDate)
+      satisfy(Schema.ValidDate)
     })
 
     it("greaterThanOrEqualToBigInt", () => {
-      assertions.arbitrary.satisfy(Schema.BigInt.check(Check.greaterThanOrEqualToBigInt(BigInt(0))))
+      satisfy(Schema.BigInt.check(Check.greaterThanOrEqualToBigInt(BigInt(0))))
     })
 
     it("lessThanOrEqualToBigInt", () => {
-      assertions.arbitrary.satisfy(Schema.BigInt.check(Check.lessThanOrEqualToBigInt(BigInt(10))))
+      satisfy(Schema.BigInt.check(Check.lessThanOrEqualToBigInt(BigInt(10))))
     })
 
     it("betweenBigInt", () => {
-      assertions.arbitrary.satisfy(Schema.BigInt.check(Check.betweenBigInt(BigInt(0), BigInt(10))))
+      satisfy(Schema.BigInt.check(Check.betweenBigInt(BigInt(0), BigInt(10))))
     })
   })
 
   it("Finite", () => {
-    assertions.arbitrary.satisfy(Schema.Finite)
+    satisfy(Schema.Finite)
   })
 
   it("Date", () => {
-    assertions.arbitrary.satisfy(Schema.Date)
+    satisfy(Schema.Date)
   })
 
   it("URL", () => {
-    assertions.arbitrary.satisfy(Schema.URL)
+    satisfy(Schema.URL)
   })
 
   it("Duration", () => {
-    assertions.arbitrary.satisfy(Schema.Duration)
+    satisfy(Schema.Duration)
   })
 
   it("DateTimeUtc", () => {
-    assertions.arbitrary.satisfy(Schema.DateTimeUtc)
+    satisfy(Schema.DateTimeUtc)
   })
 
   it("UnknownFromJsonString", () => {
-    assertions.arbitrary.satisfy(Schema.UnknownFromJsonString)
+    satisfy(Schema.UnknownFromJsonString)
   })
 
   it("Option(String)", () => {
-    assertions.arbitrary.satisfy(Schema.Option(Schema.String))
+    satisfy(Schema.Option(Schema.String))
   })
 
   it("Result(Number, String)", () => {
-    assertions.arbitrary.satisfy(Schema.Result(Schema.Number, Schema.String))
+    satisfy(Schema.Result(Schema.Number, Schema.String))
   })
 
   describe("Map", () => {
     it("Map(String, Number)", () => {
-      assertions.arbitrary.satisfy(Schema.Map(Schema.String, Schema.Number))
+      satisfy(Schema.Map(Schema.String, Schema.Number))
     })
 
     it("minSize(2)", () => {
-      assertions.arbitrary.satisfy(
+      satisfy(
         Schema.Map(Schema.String, Schema.Number).check(Check.minSize(2))
       )
     })
 
     it("maxSize(4)", () => {
-      assertions.arbitrary.satisfy(
+      satisfy(
         Schema.Map(Schema.String, Schema.Number).check(Check.maxSize(4))
       )
     })
 
     it("minSize(2) & maxSize(4)", () => {
-      assertions.arbitrary.satisfy(
+      satisfy(
         Schema.Map(Schema.String, Schema.Number).check(Check.minSize(2), Check.maxSize(4))
       )
     })
 
     it("size(2)", () => {
-      assertions.arbitrary.satisfy(
+      satisfy(
         Schema.Map(Schema.String, Schema.Number).check(Check.size(2))
       )
     })
@@ -549,12 +554,12 @@ describe("ToArbitrary", () => {
   describe("Redacted", () => {
     it("Redacted(String)", () => {
       const schema = Schema.Redacted(Schema.String)
-      assertions.arbitrary.satisfy(schema)
+      satisfy(schema)
     })
 
     it("with label", () => {
       const schema = Schema.Redacted(Schema.String, { label: "password" })
-      assertions.arbitrary.satisfy(schema)
+      satisfy(schema)
     })
   })
 

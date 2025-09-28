@@ -2,9 +2,10 @@
  * @since 4.0.0
  */
 import * as assert from "node:assert"
+import * as Record from "../data/Record.ts"
 import * as Result from "../data/Result.ts"
 import * as Effect from "../Effect.ts"
-import type * as AST from "../schema/AST.ts"
+import * as AST from "../schema/AST.ts"
 import * as Schema from "../schema/Schema.ts"
 import * as ToArbitrary from "../schema/ToArbitrary.ts"
 import * as ToParser from "../schema/ToParser.ts"
@@ -15,6 +16,19 @@ import * as FastCheck from "../testing/FastCheck.ts"
  * @since 4.0.0
  */
 export class Asserts<S extends Schema.Top> {
+  static ast = {
+    fields: {
+      equals: (a: Schema.Struct.Fields, b: Schema.Struct.Fields) => {
+        assert.deepStrictEqual(Record.map(a, AST.getAST), Record.map(b, AST.getAST))
+      }
+    },
+    elements: {
+      equals: (a: Schema.Tuple.Elements, b: Schema.Tuple.Elements) => {
+        assert.deepStrictEqual(a.map(AST.getAST), b.map(AST.getAST))
+      }
+    }
+  }
+
   readonly schema: S
   constructor(schema: S) {
     this.schema = schema
@@ -92,6 +106,11 @@ export class Asserts<S extends Schema.Top> {
     }
     return {
       succeed,
+      /**
+       * Attempts to decode the given input using the provided schema. If the
+       * decoding fails, the error message is compared to the expected message.
+       * Otherwise the test fails.
+       */
       async fail(input: unknown, message: string) {
         const r = await Effect.runPromise(
           decodeUnknownEffect(input, options?.parseOptions).pipe(
@@ -121,6 +140,11 @@ export class Asserts<S extends Schema.Top> {
     }
     return {
       succeed,
+      /**
+       * Attempts to encode the given input using the provided schema. If the
+       * encoding fails, the error message is compared to the expected message.
+       * Otherwise the test fails.
+       */
       async fail(input: unknown, message: string) {
         const r = await Effect.runPromise(
           encodeUnknownEffect(input, options?.parseOptions).pipe(
@@ -129,6 +153,23 @@ export class Asserts<S extends Schema.Top> {
           )
         )
         assert.deepStrictEqual(r, Result.fail(message))
+      }
+    }
+  }
+  arbitrary<S extends Schema.Codec<unknown, unknown, never, unknown>>(this: Asserts<S>, options?: {
+    readonly params?: FastCheck.Parameters<[S["Type"]]> | undefined
+  }) {
+    const schema = this.schema
+    return {
+      /**
+       * Verifies that the schema generates valid arbitrary values that satisfy
+       * the schema.
+       */
+      satisfy() {
+        const params = options?.params
+        const is = Schema.is(schema)
+        const arb = ToArbitrary.make(schema)
+        FastCheck.assert(FastCheck.property(arb, (a) => is(a)), { numRuns: 20, ...params })
       }
     }
   }

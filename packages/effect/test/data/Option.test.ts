@@ -1,7 +1,7 @@
 import { Number } from "effect"
 import { Option } from "effect/data"
+import { deepStrictEqual } from "node:assert"
 import { describe, it } from "vitest"
-import { deepStrictEqual } from "../utils/assert.ts"
 
 describe("Option", () => {
   it("getReducer", () => {

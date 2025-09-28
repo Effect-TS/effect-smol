@@ -1,8 +1,8 @@
 import { describe, it } from "@effect/vitest"
-import { ToOptic } from "effect/schema"
+import { Schema, Serializer, ToOptic } from "effect/schema"
+import { TestSchema } from "effect/testing"
 import { Cookies } from "effect/unstable/http"
 import { assertSuccess } from "../../utils/assert.ts"
-import { assertions } from "../../utils/schema.ts"
 
 describe("Cookies", () => {
   describe("CookiesSchema", () => {
@@ -21,8 +21,11 @@ describe("Cookies", () => {
 
     it("defaultJsonSerializer", async () => {
       const schema = Cookies.CookiesSchema
-      await assertions.serialization.json.typeCodec.succeed(
-        schema,
+      const asserts = new TestSchema.Asserts(Serializer.json(Schema.typeCodec(schema)))
+
+      const encoding = asserts.encoding()
+
+      await encoding.succeed(
         Cookies.fromSetCookie([
           "sessionId=abc123; Path=/; HttpOnly; Secure",
           "theme=dark; Path=/; Max-Age=3600",

@@ -1,8 +1,9 @@
 import { Effect } from "effect"
+import { Result } from "effect/data"
 import type { AST } from "effect/schema"
 import { Schema, ToParser } from "effect/schema"
+import * as assert from "node:assert"
 import { describe, it } from "vitest"
-import { assertions } from "../utils/schema.ts"
 
 const assertStandardIssue = async <T, E>(
   schema: Schema.Codec<T, E>,
@@ -18,7 +19,7 @@ const assertStandardIssue = async <T, E>(
     Effect.runPromise
   )
 
-  return assertions.result.fail(r, expected)
+  assert.deepStrictEqual(r, Result.fail(expected))
 }
 
 describe("makeDefault", () => {
