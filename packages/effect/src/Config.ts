@@ -38,7 +38,20 @@ export const isConfig = (u: unknown): u is Config<unknown> => Predicate.hasPrope
  * @since 4.0.0
  * @category Models
  */
-export type ConfigError = SourceError | Schema.SchemaError
+export class ConfigError {
+  readonly _tag = "ConfigError"
+  readonly name: string = "ConfigError"
+  readonly cause: SourceError | Schema.SchemaError
+  constructor(cause: SourceError | Schema.SchemaError) {
+    this.cause = cause
+  }
+  get message() {
+    return this.cause.toString()
+  }
+  toString() {
+    return `ConfigError(${this.message})`
+  }
+}
 
 /**
  * @since 4.0.0
@@ -192,13 +205,13 @@ export const withDefault: {
   <A, const A2>(self: Config<A>, defaultValue: LazyArg<A2>): Config<A | A2>
 } = dual(2, <A, const A2>(self: Config<A>, defaultValue: LazyArg<A2>): Config<A | A2> => {
   return orElse(self, (err) => {
-    if (err instanceof Schema.SchemaError) {
-      const issue = err.issue
+    if (err.cause instanceof Schema.SchemaError) {
+      const issue = err.cause.issue
       if (isMissingDataOnly(issue)) {
         return succeed(defaultValue())
       }
     }
-    return fail(err)
+    return fail(err.cause)
   })
 })
 
@@ -381,9 +394,12 @@ export function schema<T, E>(codec: Schema.Codec<T, E>, path?: string | ConfigPr
   const defaultPath = Predicate.isString(path) ? [path] : path ?? []
   return make((provider) =>
     go(serializerEncodedAST, provider, defaultPath).pipe(
+      Effect.mapErrorEager((cause) => new ConfigError(cause)),
       Effect.flatMapEager((stringPojo) =>
         decodeUnknownEffect(stringPojo).pipe(Effect.mapErrorEager((issue) =>
-          new Schema.SchemaError(defaultPath.length > 0 ? new Issue.Pointer(defaultPath, issue) : issue)
+          new ConfigError(
+            new Schema.SchemaError(defaultPath.length > 0 ? new Issue.Pointer(defaultPath, issue) : issue)
+          )
         ))
       )
     )
@@ -515,8 +531,8 @@ export const Record = <K extends Schema.Record.Key, V extends Schema.Top>(key: K
  * @category Constructors
  * @since 4.0.0
  */
-export function fail(err: ConfigError) {
-  return make(() => Effect.fail(err))
+export function fail(err: SourceError | Schema.SchemaError) {
+  return make(() => Effect.fail(new ConfigError(err)))
 }
 
 /**

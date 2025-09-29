@@ -15,14 +15,7 @@ async function succeed<T>(config: Config.Config<T>, provider: ConfigProvider.Con
 
 async function fail<T>(config: Config.Config<T>, provider: ConfigProvider.ConfigProvider, message: string) {
   const r = await config.parse(provider).pipe(
-    Effect.catchTag(
-      "SourceError",
-      (e) =>
-        Effect.fail(
-          new Schema.SchemaError(new Issue.InvalidValue(Option.none(), { message: `SourceError: ${e.message}` }))
-        )
-    ),
-    Effect.mapError((e) => e.issue.toString()),
+    Effect.mapError((e) => e.cause.message),
     Effect.result,
     Effect.runPromise
   )
@@ -58,7 +51,9 @@ describe("Config", () => {
     const config = Config.schema(Schema.String)
     const f = (s: string) =>
       s === ""
-        ? Effect.fail(new Schema.SchemaError(new Issue.InvalidValue(Option.some(s), { message: "empty" })))
+        ? Effect.fail(
+          new Config.ConfigError(new Schema.SchemaError(new Issue.InvalidValue(Option.some(s), { message: "empty" })))
+        )
         : Effect.succeed(s.toUpperCase())
 
     await succeed(

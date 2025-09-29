@@ -326,30 +326,15 @@ export function revealCodec<T, E, RD, RE>(codec: Codec<T, E, RD, RE>) {
  * @since 4.0.0
  */
 export class SchemaError {
+  readonly _tag = "SchemaError"
+  readonly name: string = "SchemaError"
+  readonly issue: Issue.Issue
   constructor(issue: Issue.Issue) {
     this.issue = issue
   }
-  /**
-   * @since 4.0.0
-   */
-  readonly _tag = "SchemaError"
-  /**
-   * @since 4.0.0
-   */
-  readonly name: string = "SchemaError"
-  /**
-   * @since 4.0.0
-   */
-  readonly issue: Issue.Issue
-  /**
-   * @since 4.0.0
-   */
   get message() {
     return this.issue.toString()
   }
-  /**
-   * @since 4.0.0
-   */
   toString() {
     return `SchemaError(${this.message})`
   }
