@@ -44,7 +44,7 @@ const TxHashMapProto = {
  * import { Option } from "effect/data"
  * import { TxHashMap } from "effect/stm"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   // Create a transactional hash map
  *   const txMap = yield* TxHashMap.make(["user1", "Alice"], ["user2", "Bob"])
  *
@@ -55,7 +55,7 @@ const TxHashMapProto = {
  *
  *   // Multi-step atomic operations
  *   yield* Effect.atomic(
- *     Effect.gen(function* () {
+ *     Effect.gen(function*() {
  *       const currentUser = yield* TxHashMap.get(txMap, "user1")
  *       if (Option.isSome(currentUser)) {
  *         yield* TxHashMap.set(txMap, "user1", currentUser.value + "_updated")
@@ -84,10 +84,9 @@ export interface TxHashMap<in out K, in out V> extends Inspectable, Pipeable {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { HashMap } from "effect/collections"
  * import { TxHashMap } from "effect/stm"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   // Create a transactional inventory map
  *   const inventory = yield* TxHashMap.make(
  *     ["laptop", { stock: 5, price: 999 }],
@@ -95,13 +94,17 @@ export interface TxHashMap<in out K, in out V> extends Inspectable, Pipeable {
  *   )
  *
  *   // Extract types for reuse
- *   type ProductId = TxHashMap.TxHashMap.Key<typeof inventory>     // string
- *   type Product = TxHashMap.TxHashMap.Value<typeof inventory>     // { stock: number, price: number }
+ *   type ProductId = TxHashMap.TxHashMap.Key<typeof inventory> // string
+ *   type Product = TxHashMap.TxHashMap.Value<typeof inventory> // { stock: number, price: number }
  *   type InventoryEntry = TxHashMap.TxHashMap.Entry<typeof inventory> // [string, Product]
  *
  *   // Use extracted types in functions
  *   const updateStock = (id: ProductId, newStock: number) =>
- *     TxHashMap.modify(inventory, id, (product) => ({ ...product, stock: newStock }))
+ *     TxHashMap.modify(
+ *       inventory,
+ *       id,
+ *       (product) => ({ ...product, stock: newStock })
+ *     )
  *
  *   yield* updateStock("laptop", 3)
  * })
@@ -119,7 +122,7 @@ export declare namespace TxHashMap {
    * import { Effect } from "effect"
    * import { TxHashMap } from "effect/stm"
    *
-   * const program = Effect.gen(function* () {
+   * const program = Effect.gen(function*() {
    *   // Create a user map to extract key type from
    *   const userMap = yield* TxHashMap.make(
    *     ["alice", { name: "Alice", age: 30 }],
@@ -148,7 +151,7 @@ export declare namespace TxHashMap {
    * import { Effect } from "effect"
    * import { TxHashMap } from "effect/stm"
    *
-   * const program = Effect.gen(function* () {
+   * const program = Effect.gen(function*() {
    *   // Create a product catalog TxHashMap
    *   const catalog = yield* TxHashMap.make(
    *     ["laptop", { price: 999, category: "electronics" }],
@@ -181,7 +184,7 @@ export declare namespace TxHashMap {
    * import { Effect } from "effect"
    * import { TxHashMap } from "effect/stm"
    *
-   * const program = Effect.gen(function* () {
+   * const program = Effect.gen(function*() {
    *   // Create a configuration TxHashMap
    *   const config = yield* TxHashMap.make(
    *     ["api_url", "https://api.example.com"],
@@ -218,7 +221,7 @@ export declare namespace TxHashMap {
  * import { Effect } from "effect"
  * import { TxHashMap } from "effect/stm"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   // Create an empty transactional hash map
  *   const emptyMap = yield* TxHashMap.empty<string, number>()
  *
@@ -251,10 +254,9 @@ export const empty = <K, V>(): Effect.Effect<TxHashMap<K, V>> =>
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Option } from "effect/data"
  * import { TxHashMap } from "effect/stm"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   // Create a user directory
  *   const userMap = yield* TxHashMap.make(
  *     ["alice", { name: "Alice Smith", role: "admin" }],
@@ -293,7 +295,7 @@ export const make = <K, V>(...entries: Array<readonly [K, V]>): Effect.Effect<Tx
  * import { Effect } from "effect"
  * import { TxHashMap } from "effect/stm"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   // Create from various iterable sources
  *   const configEntries = [
  *     ["database.host", "localhost"],
@@ -336,7 +338,7 @@ export const fromIterable = <K, V>(entries: Iterable<readonly [K, V]>): Effect.E
  * import { Option } from "effect/data"
  * import { TxHashMap } from "effect/stm"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const userMap = yield* TxHashMap.make(
  *     ["alice", { name: "Alice", role: "admin" }],
  *     ["bob", { name: "Bob", role: "user" }]
@@ -381,10 +383,9 @@ export const get: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Option } from "effect/data"
  * import { TxHashMap } from "effect/stm"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const inventory = yield* TxHashMap.make(
  *     ["laptop", 5],
  *     ["mouse", 20]
@@ -425,7 +426,7 @@ export const set: {
  * import { Effect } from "effect"
  * import { TxHashMap } from "effect/stm"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const permissions = yield* TxHashMap.make(
  *     ["alice", ["read", "write"]],
  *     ["bob", ["read"]],
@@ -471,7 +472,7 @@ export const has: {
  * import { Effect } from "effect"
  * import { TxHashMap } from "effect/stm"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const cache = yield* TxHashMap.make(
  *     ["user:1", { name: "Alice", lastSeen: "2024-01-01" }],
  *     ["user:2", { name: "Bob", lastSeen: "2024-01-02" }],
@@ -527,7 +528,7 @@ export const remove: {
  * import { Effect } from "effect"
  * import { TxHashMap } from "effect/stm"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const sessionMap = yield* TxHashMap.make(
  *     ["session1", { userId: "alice", expires: "2024-01-01T12:00:00Z" }],
  *     ["session2", { userId: "bob", expires: "2024-01-01T13:00:00Z" }],
@@ -563,7 +564,7 @@ export const clear = <K, V>(self: TxHashMap<K, V>): Effect.Effect<void> => TxRef
  * import { Effect } from "effect"
  * import { TxHashMap } from "effect/stm"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const metrics = yield* TxHashMap.make(
  *     ["requests", 1000],
  *     ["errors", 5],
@@ -602,7 +603,7 @@ export const size = <K, V>(self: TxHashMap<K, V>): Effect.Effect<number> =>
  * import { Effect } from "effect"
  * import { TxHashMap } from "effect/stm"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   // Start with empty map
  *   const cache = yield* TxHashMap.empty<string, any>()
  *   const empty = yield* TxHashMap.isEmpty(cache)
@@ -637,7 +638,7 @@ export const isEmpty = <K, V>(self: TxHashMap<K, V>): Effect.Effect<boolean> =>
  * import { Effect } from "effect"
  * import { TxHashMap } from "effect/stm"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const inventory = yield* TxHashMap.make(["laptop", 5])
  *
  *   const hasItems = yield* TxHashMap.isNonEmpty(inventory)
@@ -665,24 +666,31 @@ export const isNonEmpty = <K, V>(self: TxHashMap<K, V>): Effect.Effect<boolean> 
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Option } from "effect/data"
  * import { TxHashMap } from "effect/stm"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const counters = yield* TxHashMap.make(
  *     ["downloads", 100],
  *     ["views", 250]
  *   )
  *
  *   // Increment existing counter
- *   const oldDownloads = yield* TxHashMap.modify(counters, "downloads", (count) => count + 1)
+ *   const oldDownloads = yield* TxHashMap.modify(
+ *     counters,
+ *     "downloads",
+ *     (count) => count + 1
+ *   )
  *   console.log(oldDownloads) // Option.some(100)
  *
  *   const newDownloads = yield* TxHashMap.get(counters, "downloads")
  *   console.log(newDownloads) // Option.some(101)
  *
  *   // Try to modify non-existent key
- *   const nonExistent = yield* TxHashMap.modify(counters, "clicks", (count) => count + 1)
+ *   const nonExistent = yield* TxHashMap.modify(
+ *     counters,
+ *     "clicks",
+ *     (count) => count + 1
+ *   )
  *   console.log(nonExistent) // Option.none()
  *
  *   // Update views counter with direct method call
@@ -726,8 +734,11 @@ export const modify: {
  * import { Option } from "effect/data"
  * import { TxHashMap } from "effect/stm"
  *
- * const program = Effect.gen(function* () {
- *   const storage = yield* TxHashMap.make<string, string | number>(["file1.txt", "content1"], ["access_count", 0])
+ * const program = Effect.gen(function*() {
+ *   const storage = yield* TxHashMap.make<string, string | number>([
+ *     "file1.txt",
+ *     "content1"
+ *   ], ["access_count", 0])
  *
  *   // Increment counter or initialize to 1
  *   const updateFn = (opt: Option.Option<string | number>) =>
@@ -785,7 +796,7 @@ export const modifyAt: {
  * import { Option } from "effect/data"
  * import { TxHashMap } from "effect/stm"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const userRoles = yield* TxHashMap.make(
  *     ["alice", "admin"],
  *     ["bob", "user"],
@@ -822,7 +833,7 @@ export const keys = <K, V>(self: TxHashMap<K, V>): Effect.Effect<Array<K>> =>
  * import { Effect } from "effect"
  * import { TxHashMap } from "effect/stm"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const scores = yield* TxHashMap.make(
  *     ["alice", 95],
  *     ["bob", 87],
@@ -833,7 +844,8 @@ export const keys = <K, V>(self: TxHashMap<K, V>): Effect.Effect<Array<K>> =>
  *   console.log(allScores.sort()) // [87, 92, 95]
  *
  *   // Calculate average
- *   const average = allScores.reduce((sum, score) => sum + score, 0) / allScores.length
+ *   const average = allScores.reduce((sum, score) => sum + score, 0) /
+ *     allScores.length
  *   console.log(average) // 91.33
  *
  *   // Find maximum
@@ -859,7 +871,7 @@ export const values = <K, V>(self: TxHashMap<K, V>): Effect.Effect<Array<V>> =>
  * import { Effect } from "effect"
  * import { TxHashMap } from "effect/stm"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const config = yield* TxHashMap.make(
  *     ["host", "localhost"],
  *     ["port", "3000"],
@@ -898,7 +910,7 @@ export const entries = <K, V>(self: TxHashMap<K, V>): Effect.Effect<Array<readon
  * import { HashMap } from "effect/collections"
  * import { TxHashMap } from "effect/stm"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const liveData = yield* TxHashMap.make(
  *     ["temperature", 22.5],
  *     ["humidity", 45.2],
@@ -940,7 +952,7 @@ export const snapshot = <K, V>(self: TxHashMap<K, V>): Effect.Effect<HashMap.Has
  * import { HashMap } from "effect/collections"
  * import { TxHashMap } from "effect/stm"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   // Create initial user preferences
  *   const userPrefs = yield* TxHashMap.make(
  *     ["theme", "light"],
@@ -950,9 +962,9 @@ export const snapshot = <K, V>(self: TxHashMap<K, V>): Effect.Effect<HashMap.Has
  *
  *   // New preferences to merge in
  *   const newSettings = HashMap.make(
- *     ["theme", "dark"],        // will override existing
- *     ["timezone", "UTC"],      // new setting
- *     ["sound", "enabled"]      // new setting
+ *     ["theme", "dark"], // will override existing
+ *     ["timezone", "UTC"], // new setting
+ *     ["sound", "enabled"] // new setting
  *   )
  *
  *   // Merge the new settings
@@ -996,7 +1008,7 @@ export const union: {
  * import { Effect } from "effect"
  * import { TxHashMap } from "effect/stm"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   // Create a cache with temporary data
  *   const cache = yield* TxHashMap.make(
  *     ["session_1", { user: "alice", expires: "2024-01-01" }],
@@ -1048,12 +1060,17 @@ export const removeMany: {
  * import { Effect } from "effect"
  * import { TxHashMap } from "effect/stm"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   // Create an empty product catalog
- *   const catalog = yield* TxHashMap.empty<string, { price: number, stock: number }>()
+ *   const catalog = yield* TxHashMap.empty<
+ *     string,
+ *     { price: number; stock: number }
+ *   >()
  *
  *   // Bulk load initial products
- *   const initialProducts: Array<readonly [string, { price: number, stock: number }]> = [
+ *   const initialProducts: Array<
+ *     readonly [string, { price: number; stock: number }]
+ *   > = [
  *     ["laptop", { price: 999, stock: 5 }],
  *     ["mouse", { price: 29, stock: 50 }],
  *     ["keyboard", { price: 79, stock: 20 }],
@@ -1065,10 +1082,12 @@ export const removeMany: {
  *   console.log(yield* TxHashMap.size(catalog)) // 4
  *
  *   // Update prices with a new batch
- *   const priceUpdates: Array<readonly [string, { price: number, stock: number }]> = [
- *     ["laptop", { price: 899, stock: 5 }],  // sale price
- *     ["mouse", { price: 25, stock: 50 }],   // sale price
- *     ["webcam", { price: 89, stock: 12 }]   // new product
+ *   const priceUpdates: Array<
+ *     readonly [string, { price: number; stock: number }]
+ *   > = [
+ *     ["laptop", { price: 899, stock: 5 }], // sale price
+ *     ["mouse", { price: 25, stock: 50 }], // sale price
+ *     ["webcam", { price: 89, stock: 12 }] // new product
  *   ]
  *
  *   yield* TxHashMap.setMany(catalog, priceUpdates)
@@ -1109,7 +1128,7 @@ export const setMany: {
  * import { Effect } from "effect"
  * import { TxHashMap } from "effect/stm"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const txMap = yield* TxHashMap.make(["key", "value"])
  *
  *   console.log(TxHashMap.isTxHashMap(txMap)) // true
@@ -1142,11 +1161,10 @@ export const isTxHashMap = <K, V>(value: unknown): value is TxHashMap<K, V> => {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Option } from "effect/data"
- * import { TxHashMap } from "effect/stm"
  * import { Hash } from "effect/interfaces"
+ * import { TxHashMap } from "effect/stm"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   // Create a cache with user sessions
  *   const cache = yield* TxHashMap.make(
  *     ["session_abc123", { userId: "user1", lastActive: Date.now() }],
@@ -1162,7 +1180,11 @@ export const isTxHashMap = <K, V>(value: unknown): value is TxHashMap<K, V> => {
  *   console.log(session) // Option.some({ userId: "user1", lastActive: ... })
  *
  *   // This avoids recomputing the hash when you already have it
- *   const invalidSession = yield* TxHashMap.getHash(cache, "invalid", Hash.string("invalid"))
+ *   const invalidSession = yield* TxHashMap.getHash(
+ *     cache,
+ *     "invalid",
+ *     Hash.string("invalid")
+ *   )
  *   console.log(invalidSession) // Option.none()
  * })
  * ```
@@ -1186,10 +1208,10 @@ export const getHash: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { TxHashMap } from "effect/stm"
  * import { Hash } from "effect/interfaces"
+ * import { TxHashMap } from "effect/stm"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   // Create an access control map
  *   const permissions = yield* TxHashMap.make(
  *     ["admin", { read: true, write: true, delete: true }],
@@ -1205,12 +1227,16 @@ export const getHash: {
  *   console.log(hasAdminRole) // true
  *
  *   // Check non-existent role
- *   const hasGuestRole = yield* TxHashMap.hasHash(permissions, "guest", Hash.string("guest"))
+ *   const hasGuestRole = yield* TxHashMap.hasHash(
+ *     permissions,
+ *     "guest",
+ *     Hash.string("guest")
+ *   )
  *   console.log(hasGuestRole) // false
  *
  *   // Useful in hot paths where hash is computed once and reused
  *   const roles = ["admin", "user", "moderator"]
- *   const roleHashes = roles.map(role => [role, Hash.string(role)] as const)
+ *   const roleHashes = roles.map((role) => [role, Hash.string(role)] as const)
  *
  *   for (const [role, hash] of roleHashes) {
  *     const exists = yield* TxHashMap.hasHash(permissions, role, hash)
@@ -1242,7 +1268,7 @@ export const hasHash: {
  * import { Effect } from "effect"
  * import { TxHashMap } from "effect/stm"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   // Create a user profile map
  *   const profiles = yield* TxHashMap.make(
  *     ["alice", { name: "Alice", age: 30, active: true }],
@@ -1251,8 +1277,9 @@ export const hasHash: {
  *   )
  *
  *   // Transform to extract just names with greeting
- *   const greetings = yield* TxHashMap.map(profiles, (profile, userId) =>
- *     `Hello, ${profile.name}! (User: ${userId})`
+ *   const greetings = yield* TxHashMap.map(
+ *     profiles,
+ *     (profile, userId) => `Hello, ${profile.name}! (User: ${userId})`
  *   )
  *
  *   // Check the transformed values
@@ -1302,7 +1329,7 @@ export const map: {
  * import { Effect } from "effect"
  * import { TxHashMap } from "effect/stm"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   // Create a product inventory
  *   const inventory = yield* TxHashMap.make(
  *     ["laptop", { price: 999, stock: 5, category: "electronics" }],
@@ -1331,7 +1358,8 @@ export const map: {
  *   // Type guard usage
  *   const highValueItems = yield* TxHashMap.filter(
  *     inventory,
- *     (product): product is typeof product & { price: number } => product.price > 50
+ *     (product): product is typeof product & { price: number } =>
+ *       product.price > 50
  *   )
  * })
  * ```
@@ -1370,7 +1398,7 @@ export const filter: {
  * import { Effect } from "effect"
  * import { TxHashMap } from "effect/stm"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   // Create a sales data map
  *   const sales = yield* TxHashMap.make(
  *     ["Q1", 15000],
@@ -1438,7 +1466,7 @@ export const reduce: {
  * import { Option } from "effect/data"
  * import { TxHashMap } from "effect/stm"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   // Create a mixed data map
  *   const userData = yield* TxHashMap.make(
  *     ["alice", { age: "30", role: "admin", active: true }],
@@ -1454,7 +1482,11 @@ export const reduce: {
  *       if (!user.active || user.role !== "admin") return Option.none()
  *       const age = parseInt(user.age)
  *       if (isNaN(age)) return Option.none()
- *       return Option.some({ username, age, seniority: age > 27 ? "senior" : "junior" })
+ *       return Option.some({
+ *         username,
+ *         age,
+ *         seniority: age > 27 ? "senior" : "junior"
+ *       })
  *     }
  *   )
  *
@@ -1503,7 +1535,7 @@ export const filterMap: {
  * import { Effect } from "effect"
  * import { TxHashMap } from "effect/stm"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   // Create a user status map
  *   const userStatuses = yield* TxHashMap.make(
  *     ["alice", { status: "online", lastSeen: Date.now() }],
@@ -1552,10 +1584,9 @@ export const hasBy: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Option } from "effect/data"
  * import { TxHashMap } from "effect/stm"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   // Create a task priority map
  *   const tasks = yield* TxHashMap.make(
  *     ["task1", { priority: 1, assignee: "alice", completed: false }],
@@ -1606,7 +1637,7 @@ export const findFirst: {
  * import { Effect } from "effect"
  * import { TxHashMap } from "effect/stm"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   // Create a product inventory
  *   const inventory = yield* TxHashMap.make(
  *     ["laptop", { price: 999, stock: 5 }],
@@ -1656,7 +1687,7 @@ export const some: {
  * import { Effect } from "effect"
  * import { TxHashMap } from "effect/stm"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   // Create a user permissions map
  *   const permissions = yield* TxHashMap.make(
  *     ["alice", { canRead: true, canWrite: true, canDelete: false }],
@@ -1704,11 +1735,10 @@ export const every: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Console } from "effect"
+ * import { Console, Effect } from "effect"
  * import { TxHashMap } from "effect/stm"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   // Create a log processing map
  *   const logs = yield* TxHashMap.make(
  *     ["error.log", { size: 1024, level: "error" }],
@@ -1718,13 +1748,14 @@ export const every: {
  *
  *   // Process each log file with side effects
  *   yield* TxHashMap.forEach(logs, (logInfo, filename) =>
- *     Effect.gen(function* () {
- *       yield* Console.log(`Processing ${filename}: ${logInfo.size} bytes, level: ${logInfo.level}`)
+ *     Effect.gen(function*() {
+ *       yield* Console.log(
+ *         `Processing ${filename}: ${logInfo.size} bytes, level: ${logInfo.level}`
+ *       )
  *       if (logInfo.level === "error") {
  *         yield* Console.log(`⚠️  Error log detected: ${filename}`)
  *       }
- *     })
- *   )
+ *     }))
  *
  *   // Data-last usage with pipe
  *   yield* logs.pipe(
@@ -1765,7 +1796,7 @@ export const forEach: {
  * import { Effect } from "effect"
  * import { TxHashMap } from "effect/stm"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   // Create a department-employee map
  *   const departments = yield* TxHashMap.make(
  *     ["engineering", ["alice", "bob"]],
@@ -1776,8 +1807,11 @@ export const forEach: {
  *   const employeeDetails = yield* TxHashMap.flatMap(
  *     departments,
  *     (employees, department) =>
- *       Effect.gen(function* () {
- *         const employeeMap = yield* TxHashMap.empty<string, { department: string, role: string }>()
+ *       Effect.gen(function*() {
+ *         const employeeMap = yield* TxHashMap.empty<
+ *           string,
+ *           { department: string; role: string }
+ *         >()
  *         for (let i = 0; i < employees.length; i++) {
  *           const employee = employees[i]
  *           const role = i === 0 ? "lead" : "member"
@@ -1845,9 +1879,12 @@ export const flatMap: {
  * import { Option } from "effect/data"
  * import { TxHashMap } from "effect/stm"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   // Create a map with optional user data
- *   const userData = yield* TxHashMap.make<string, Option.Option<{ age: number, email?: string }>>(
+ *   const userData = yield* TxHashMap.make<
+ *     string,
+ *     Option.Option<{ age: number; email?: string }>
+ *   >(
  *     ["alice", Option.some({ age: 30, email: "alice@example.com" })],
  *     ["bob", Option.none()], // incomplete data
  *     ["charlie", Option.some({ age: 25 })],
@@ -1895,7 +1932,7 @@ export const compact = <K, A>(self: TxHashMap<K, Option.Option<A>>): Effect.Effe
  * import { Effect } from "effect"
  * import { TxHashMap } from "effect/stm"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const settings = yield* TxHashMap.make(
  *     ["theme", "dark"],
  *     ["language", "en-US"],
@@ -1932,7 +1969,7 @@ export const toEntries = <K, V>(self: TxHashMap<K, V>): Effect.Effect<Array<read
  * import { Effect } from "effect"
  * import { TxHashMap } from "effect/stm"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const inventory = yield* TxHashMap.make(
  *     ["laptop", { price: 999, stock: 5 }],
  *     ["mouse", { price: 29, stock: 50 }],
@@ -1945,11 +1982,14 @@ export const toEntries = <K, V>(self: TxHashMap<K, V>): Effect.Effect<Array<read
  *   // [{ price: 999, stock: 5 }, { price: 29, stock: 50 }, { price: 79, stock: 20 }]
  *
  *   // Calculate total inventory value
- *   const totalValue = products.reduce((sum, product) => sum + (product.price * product.stock), 0)
+ *   const totalValue = products.reduce(
+ *     (sum, product) => sum + (product.price * product.stock),
+ *     0
+ *   )
  *   console.log(`Total inventory value: $${totalValue}`) // $8,435
  *
  *   // Find products with low stock
- *   const lowStockProducts = products.filter(product => product.stock < 10)
+ *   const lowStockProducts = products.filter((product) => product.stock < 10)
  *   console.log(`${lowStockProducts.length} products with low stock`)
  * })
  * ```

@@ -24,7 +24,7 @@ const TypeId = "~effect/transactions/TxSemaphore"
  * import { TxSemaphore } from "effect/stm"
  *
  * // Create a semaphore with 3 permits for managing concurrent database connections
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const dbSemaphore = yield* TxSemaphore.make(3)
  *
  *   // Acquire a permit before accessing the database
@@ -76,12 +76,11 @@ const makeTxSemaphore = (permitsRef: TxRef.TxRef<number>, capacity: number): TxS
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Console } from "effect"
+ * import { Console, Effect } from "effect"
  * import { TxSemaphore } from "effect/stm"
  *
  * // Create a semaphore for managing concurrent access to a resource pool
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   // Create a semaphore with 3 permits for a connection pool
  *   const connectionSemaphore = yield* TxSemaphore.make(3)
  *
@@ -89,7 +88,9 @@ const makeTxSemaphore = (permitsRef: TxRef.TxRef<number>, capacity: number): TxS
  *   const available = yield* TxSemaphore.available(connectionSemaphore)
  *   const capacity = yield* TxSemaphore.capacity(connectionSemaphore)
  *
- *   yield* Console.log(`Created semaphore with ${capacity} permits, ${available} available`)
+ *   yield* Console.log(
+ *     `Created semaphore with ${capacity} permits, ${available} available`
+ *   )
  *   // Output: "Created semaphore with 3 permits, 3 available"
  * })
  * ```
@@ -116,11 +117,10 @@ export const make = (permits: number): Effect.Effect<TxSemaphore> =>
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Console } from "effect"
+ * import { Console, Effect } from "effect"
  * import { TxSemaphore } from "effect/stm"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const semaphore = yield* TxSemaphore.make(5)
  *
  *   // Check available permits before acquiring
@@ -150,11 +150,10 @@ export const available = (self: TxSemaphore): Effect.Effect<number> => TxRef.get
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Console } from "effect"
+ * import { Console, Effect } from "effect"
  * import { TxSemaphore } from "effect/stm"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const semaphore = yield* TxSemaphore.make(10)
  *
  *   const capacity = yield* TxSemaphore.capacity(semaphore)
@@ -181,11 +180,10 @@ export const capacity = (self: TxSemaphore): Effect.Effect<number> => Effect.suc
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Console } from "effect"
+ * import { Console, Effect } from "effect"
  * import { TxSemaphore } from "effect/stm"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const semaphore = yield* TxSemaphore.make(2)
  *
  *   yield* Console.log("Acquiring first permit...")
@@ -224,11 +222,10 @@ export const acquire = (self: TxSemaphore): Effect.Effect<void> =>
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Console } from "effect"
+ * import { Console, Effect } from "effect"
  * import { TxSemaphore } from "effect/stm"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const semaphore = yield* TxSemaphore.make(5)
  *
  *   yield* Console.log("Acquiring 3 permits...")
@@ -268,11 +265,10 @@ export const acquireN = (self: TxSemaphore, n: number): Effect.Effect<void> => {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Console } from "effect"
+ * import { Console, Effect } from "effect"
  * import { TxSemaphore } from "effect/stm"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const semaphore = yield* TxSemaphore.make(1)
  *
  *   // First try should succeed
@@ -305,11 +301,10 @@ export const tryAcquire = (self: TxSemaphore): Effect.Effect<boolean> =>
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Console } from "effect"
+ * import { Console, Effect } from "effect"
  * import { TxSemaphore } from "effect/stm"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const semaphore = yield* TxSemaphore.make(3)
  *
  *   // Try to acquire 2 permits (should succeed)
@@ -346,11 +341,10 @@ export const tryAcquireN = (self: TxSemaphore, n: number): Effect.Effect<boolean
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Console } from "effect"
+ * import { Console, Effect } from "effect"
  * import { TxSemaphore } from "effect/stm"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const semaphore = yield* TxSemaphore.make(2)
  *
  *   // Acquire a permit
@@ -379,11 +373,10 @@ export const release = (self: TxSemaphore): Effect.Effect<void> =>
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Console } from "effect"
+ * import { Console, Effect } from "effect"
  * import { TxSemaphore } from "effect/stm"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const semaphore = yield* TxSemaphore.make(5)
  *
  *   // Acquire 3 permits
@@ -425,16 +418,16 @@ export const releaseN = (self: TxSemaphore, n: number): Effect.Effect<void> => {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Console } from "effect"
+ * import { Console, Effect } from "effect"
  * import { TxSemaphore } from "effect/stm"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const semaphore = yield* TxSemaphore.make(2)
  *
  *   // Execute database operation with automatic permit management
- *   const result = yield* TxSemaphore.withPermit(semaphore,
- *     Effect.gen(function* () {
+ *   const result = yield* TxSemaphore.withPermit(
+ *     semaphore,
+ *     Effect.gen(function*() {
  *       yield* Console.log("Permit acquired, accessing database...")
  *       yield* Effect.sleep("100 millis") // Simulate database work
  *       yield* Console.log("Database operation complete")
@@ -474,16 +467,17 @@ export const withPermit = <A, E, R>(
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Console } from "effect"
+ * import { Console, Effect } from "effect"
  * import { TxSemaphore } from "effect/stm"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const semaphore = yield* TxSemaphore.make(5)
  *
  *   // Execute batch operation with 3 permits
- *   const results = yield* TxSemaphore.withPermits(semaphore, 3,
- *     Effect.gen(function* () {
+ *   const results = yield* TxSemaphore.withPermits(
+ *     semaphore,
+ *     3,
+ *     Effect.gen(function*() {
  *       yield* Console.log("3 permits acquired, processing batch...")
  *       yield* Effect.sleep("200 millis") // Simulate batch processing
  *       return ["result1", "result2", "result3"]
@@ -524,16 +518,14 @@ export const withPermits = <A, E, R>(
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Console } from "effect"
+ * import { Console, Effect } from "effect"
  * import { TxSemaphore } from "effect/stm"
- * import { Scope } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const semaphore = yield* TxSemaphore.make(3)
  *
  *   yield* Effect.scoped(
- *     Effect.gen(function* () {
+ *     Effect.gen(function*() {
  *       // Acquire permit for the duration of this scope
  *       yield* TxSemaphore.withPermitScoped(semaphore)
  *       yield* Console.log("Permit acquired for scope")
@@ -570,11 +562,11 @@ export const withPermitScoped = (self: TxSemaphore): Effect.Effect<void, never, 
  * import { Effect } from "effect"
  * import { TxSemaphore } from "effect/stm"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const semaphore = yield* TxSemaphore.make(5)
  *   const notSemaphore = { some: "object" }
  *
- *   console.log(TxSemaphore.isTxSemaphore(semaphore))    // true
+ *   console.log(TxSemaphore.isTxSemaphore(semaphore)) // true
  *   console.log(TxSemaphore.isTxSemaphore(notSemaphore)) // false
  *
  *   // Useful for runtime type checking in generic functions
