@@ -186,13 +186,13 @@ export type HandlersServices<Rpcs extends Rpc.Any, Handlers> = keyof Handlers ex
 export type HandlerServices<Rpcs extends Rpc.Any, K extends Rpcs["_tag"], Handler> = [Rpc.IsStream<Rpcs, K>] extends
   [true] ? Handler extends (...args: any) =>
     | Stream.Stream<infer _A, infer _E, infer _R>
-    | Rpc.Fork<Stream.Stream<infer _A, infer _E, infer _R>>
+    | Rpc.Wrapper<Stream.Stream<infer _A, infer _E, infer _R>>
     | Effect.Effect<
       Queue.Dequeue<infer _A, infer _E | Queue.Done>,
       infer _EX,
       infer _R
     >
-    | Rpc.Fork<
+    | Rpc.Wrapper<
       Effect.Effect<
         Queue.Dequeue<infer _A, infer _E | Queue.Done>,
         infer _EX,
@@ -202,7 +202,7 @@ export type HandlerServices<Rpcs extends Rpc.Any, K extends Rpcs["_tag"], Handle
   never :
   Handler extends (
     ...args: any
-  ) => Effect.Effect<infer _A, infer _E, infer _R> | Rpc.Fork<Effect.Effect<infer _A, infer _E, infer _R>> ?
+  ) => Effect.Effect<infer _A, infer _E, infer _R> | Rpc.Wrapper<Effect.Effect<infer _A, infer _E, infer _R>> ?
     Rpc.ExcludeProvides<_R, Rpcs, K> | Rpc.ExtractRequires<Rpcs, K>
   : never
 
@@ -302,7 +302,7 @@ const RpcGroupProto = {
       return Effect.succeed((payload: Rpc.Payload<any>, options: any) => {
         options.rpc = rpc
         const result = handler(payload, options)
-        const effectOrStream = Rpc.isFork(result) ? result.value : result
+        const effectOrStream = Rpc.isWrapper(result) ? result.value : result
         return Effect.isEffect(effectOrStream)
           ? Effect.provide(effectOrStream, services)
           : Stream.provideServices(effectOrStream, services)

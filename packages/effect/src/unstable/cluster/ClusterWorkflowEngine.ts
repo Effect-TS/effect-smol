@@ -301,10 +301,10 @@ export const make = Effect.gen(function*() {
                 serviceMap.set(Activity.CurrentAttempt.key, payload.attempt)
                 const instance = WorkflowEngine.WorkflowInstance.initial(workflow, executionId)
                 serviceMap.set(WorkflowEngine.WorkflowInstance.key, instance)
-                return yield* entry.activity.executeEncoded.pipe(
-                  Effect.onInterrupt((interruptors) => {
-                    if (interruptors.has(-499)) return Effect.void
-                    return Entity.interruptIgnored
+                return yield* Effect.interruptible(entry.activity.executeEncoded).pipe(
+                  Effect.onInterrupt(() => {
+                    instance.suspended = true
+                    return Effect.void
                   }),
                   Workflow.intoResult,
                   Effect.provideServices(ServiceMap.makeUnsafe(serviceMap)),
@@ -312,7 +312,7 @@ export const make = Effect.gen(function*() {
                     activities.delete(activityId)
                   }))
                 )
-              }, Rpc.fork),
+              }, Rpc.wrap({ fork: true, uninterruptible: true })),
 
               deferred: Effect.fnUntraced(function*(request: Entity.Request<any>) {
                 const payload = request.payload as any

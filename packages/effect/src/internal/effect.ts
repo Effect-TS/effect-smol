@@ -4017,7 +4017,8 @@ export const runForkWith = <R>(services: ServiceMap.ServiceMap<R>) =>
   const scheduler = options?.scheduler ||
     (!services.mapUnsafe.has(Scheduler.Scheduler.key) && new Scheduler.MixedScheduler())
   const fiber = new FiberImpl<A, E>(
-    scheduler ? ServiceMap.add(services, Scheduler.Scheduler, scheduler) : services
+    scheduler ? ServiceMap.add(services, Scheduler.Scheduler, scheduler) : services,
+    options?.uninterruptible !== true
   )
   fiber.evaluate(effect as any)
   if (fiber._exit) return fiber

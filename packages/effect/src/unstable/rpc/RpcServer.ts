@@ -236,9 +236,11 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any>(
     const result = entry.handler(request.payload, metadata)
 
     // if the handler requested forking, then we skip the concurrency control
-    const isFork = Rpc.isFork(result)
+    const isWrapper = Rpc.isWrapper(result)
+    const isFork = isWrapper && result.fork
+    const isUninterruptible = isWrapper && result.uninterruptible
     // unwrap the fork data type
-    const streamOrEffect = isFork ? result.value : result
+    const streamOrEffect = isWrapper ? result.value : result
     const handler = isStream
       ? streamEffect(client, request, streamOrEffect) as Effect.Effect<any>
       : streamOrEffect as Effect.Effect<any>
@@ -251,15 +253,15 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any>(
     let effect = Effect.onExit(withMiddleware, (exit) => {
       responded = true
       const close = Scope.closeUnsafe(scope, exit)
-      const write =
-        exit._tag === "Failure" && !disableFatalDefects && Cause.hasDie(exit.cause) && !Cause.hasInterrupt(exit.cause) ?
-          sendDefect(client, Cause.squash(exit.cause)) :
-          options.onFromServer({
-            _tag: "Exit",
-            clientId: client.id,
-            requestId: request.id,
-            exit
-          })
+      const write = exit._tag === "Failure" && !disableFatalDefects && Cause.hasDie(exit.cause) &&
+          !Cause.hasInterrupt(exit.cause) ?
+        sendDefect(client, Cause.squash(exit.cause)) :
+        options.onFromServer({
+          _tag: "Exit",
+          clientId: client.id,
+          requestId: request.id,
+          exit
+        })
       return close ? Effect.ensuring(write, close) : write
     })
     if (enableTracing) {
@@ -291,7 +293,7 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any>(
     serviceMap.forEach((value, key) => serviceMap.set(key, value))
     serviceMap.set(Scope.Scope.key, scope)
     const runFork = Effect.runForkWith(ServiceMap.makeUnsafe(serviceMap))
-    const fiber = trackFiber(runFork(effect))
+    const fiber = trackFiber(runFork(effect, isUninterruptible ? { uninterruptible: true } : undefined))
     client.fibers.set(request.id, fiber)
     fiber.addObserver((exit) => {
       if (!responded && exit._tag === "Failure") {
