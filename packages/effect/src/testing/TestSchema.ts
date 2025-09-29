@@ -27,7 +27,7 @@ export class Asserts<S extends Schema.Top> {
         assert.deepStrictEqual(a.map(AST.getAST), b.map(AST.getAST))
       }
     }
-  }
+  } as const
 
   readonly schema: S
   constructor(schema: S) {
@@ -68,7 +68,7 @@ export class Asserts<S extends Schema.Top> {
       }
     }
   }
-  roundtrip<S extends Schema.Codec<unknown, unknown, never, never>>(this: Asserts<S>, options?: {
+  verifyLosslessTransformation<S extends Schema.Codec<unknown, unknown, never, never>>(this: Asserts<S>, options?: {
     readonly params?: FastCheck.Parameters<[S["Type"]]>
   }) {
     const decodeUnknownEffect = ToParser.decodeUnknownEffect(this.schema)
@@ -165,7 +165,7 @@ export class Asserts<S extends Schema.Top> {
        * Verifies that the schema generates valid arbitrary values that satisfy
        * the schema.
        */
-      satisfy() {
+      verifyGeneration() {
         const params = options?.params
         const is = Schema.is(schema)
         const arb = ToArbitrary.make(schema)

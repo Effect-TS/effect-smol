@@ -10,119 +10,119 @@ function assertFragments(schema: Schema.Schema<any>, ctx: ToArbitrary.Context) {
   deepStrictEqual(f({}), ctx)
 }
 
-function satisfy<S extends Schema.Codec<unknown, unknown, never, unknown>>(schema: S) {
+function verifyGeneration<S extends Schema.Codec<unknown, unknown, never, unknown>>(schema: S) {
   const asserts = new TestSchema.Asserts(schema)
-  asserts.arbitrary().satisfy()
+  asserts.arbitrary().verifyGeneration()
 }
 
 describe("ToArbitrary", () => {
   it("Any", () => {
-    satisfy(Schema.Any)
+    verifyGeneration(Schema.Any)
   })
 
   it("Unknown", () => {
-    satisfy(Schema.Unknown)
+    verifyGeneration(Schema.Unknown)
   })
 
   it("Void", () => {
-    satisfy(Schema.Void)
+    verifyGeneration(Schema.Void)
   })
 
   it("Null", () => {
-    satisfy(Schema.Null)
+    verifyGeneration(Schema.Null)
   })
 
   it("String", () => {
-    satisfy(Schema.String)
+    verifyGeneration(Schema.String)
   })
 
   it("Number", () => {
-    satisfy(Schema.Number)
+    verifyGeneration(Schema.Number)
   })
 
   it("Boolean", () => {
-    satisfy(Schema.Boolean)
+    verifyGeneration(Schema.Boolean)
   })
 
   it("BigInt", () => {
-    satisfy(Schema.BigInt)
+    verifyGeneration(Schema.BigInt)
   })
 
   it("Symbol", () => {
-    satisfy(Schema.Symbol)
+    verifyGeneration(Schema.Symbol)
   })
 
   it("UniqueSymbol", () => {
-    satisfy(Schema.UniqueSymbol(Symbol.for("a")))
+    verifyGeneration(Schema.UniqueSymbol(Symbol.for("a")))
   })
 
   it("Object", () => {
-    satisfy(Schema.Object)
+    verifyGeneration(Schema.Object)
   })
 
   describe("Literal", () => {
     it("string", () => {
-      satisfy(Schema.Literal("a"))
+      verifyGeneration(Schema.Literal("a"))
     })
 
     it("number", () => {
-      satisfy(Schema.Literal(1))
+      verifyGeneration(Schema.Literal(1))
     })
 
     it("boolean", () => {
-      satisfy(Schema.Literal(true))
+      verifyGeneration(Schema.Literal(true))
     })
 
     it("bigint", () => {
-      satisfy(Schema.Literal(1n))
+      verifyGeneration(Schema.Literal(1n))
     })
   })
 
   it("Literals", () => {
-    satisfy(Schema.Literals(["a", "b", "c"]))
+    verifyGeneration(Schema.Literals(["a", "b", "c"]))
   })
 
   describe("TemplateLiteral", () => {
     it("a", () => {
       const schema = Schema.TemplateLiteral([Schema.Literal("a")])
-      satisfy(schema)
+      verifyGeneration(schema)
     })
 
     it("a b", () => {
       const schema = Schema.TemplateLiteral([Schema.Literal("a"), Schema.Literal(" "), Schema.Literal("b")])
-      satisfy(schema)
+      verifyGeneration(schema)
     })
 
     it("a${string}", () => {
       const schema = Schema.TemplateLiteral([Schema.Literal("a"), Schema.String])
-      satisfy(schema)
+      verifyGeneration(schema)
     })
 
     it("a${number}", () => {
       const schema = Schema.TemplateLiteral([Schema.Literal("a"), Schema.Number])
-      satisfy(schema)
+      verifyGeneration(schema)
     })
 
     it("a", () => {
       const schema = Schema.TemplateLiteral([Schema.Literal("a")])
-      satisfy(schema)
+      verifyGeneration(schema)
     })
 
     it("${string}", () => {
       const schema = Schema.TemplateLiteral([Schema.String])
-      satisfy(schema)
+      verifyGeneration(schema)
     })
 
     it("a${string}b", () => {
       const schema = Schema.TemplateLiteral([Schema.Literal("a"), Schema.String, Schema.Literal("b")])
-      satisfy(schema)
+      verifyGeneration(schema)
     })
 
     it("https://www.typescriptlang.org/docs/handbook/2/template-literal-types.html", async () => {
       const EmailLocaleIDs = Schema.Literals(["welcome_email", "email_heading"])
       const FooterLocaleIDs = Schema.Literals(["footer_title", "footer_sendoff"])
       const schema = Schema.TemplateLiteral([Schema.Union([EmailLocaleIDs, FooterLocaleIDs]), "_id"])
-      satisfy(schema)
+      verifyGeneration(schema)
     })
 
     it("< + h + (1|2) + >", async () => {
@@ -131,7 +131,7 @@ describe("ToArbitrary", () => {
         Schema.TemplateLiteral([Schema.Literal("h"), Schema.Union([Schema.Literal(1), Schema.Literal(2)])]),
         Schema.Literal(">")
       ])
-      satisfy(schema)
+      verifyGeneration(schema)
     })
   })
 
@@ -141,7 +141,7 @@ describe("ToArbitrary", () => {
         Apple,
         Banana
       }
-      satisfy(Schema.Enums(Fruits))
+      verifyGeneration(Schema.Enums(Fruits))
     })
 
     it("String enums", () => {
@@ -150,7 +150,7 @@ describe("ToArbitrary", () => {
         Banana = "banana",
         Cantaloupe = 0
       }
-      satisfy(Schema.Enums(Fruits))
+      verifyGeneration(Schema.Enums(Fruits))
     })
 
     it("Const enums", () => {
@@ -159,46 +159,46 @@ describe("ToArbitrary", () => {
         Banana: "banana",
         Cantaloupe: 3
       } as const
-      satisfy(Schema.Enums(Fruits))
+      verifyGeneration(Schema.Enums(Fruits))
     })
   })
 
   it("Union", () => {
-    satisfy(
+    verifyGeneration(
       Schema.Union([Schema.String, Schema.Number])
     )
   })
 
   describe("Tuple", () => {
     it("empty", () => {
-      satisfy(
+      verifyGeneration(
         Schema.Tuple([])
       )
     })
 
     it("required element", () => {
-      satisfy(
+      verifyGeneration(
         Schema.Tuple([Schema.String])
       )
-      satisfy(
+      verifyGeneration(
         Schema.Tuple([Schema.String, Schema.Number])
       )
     })
 
     it("optionalKey element", () => {
-      satisfy(
+      verifyGeneration(
         Schema.Tuple([Schema.optionalKey(Schema.Number)])
       )
-      satisfy(
+      verifyGeneration(
         Schema.Tuple([Schema.String, Schema.optionalKey(Schema.Number)])
       )
     })
 
     it("optional element", () => {
-      satisfy(
+      verifyGeneration(
         Schema.Tuple([Schema.optional(Schema.Number)])
       )
-      satisfy(
+      verifyGeneration(
         Schema.Tuple([Schema.String, Schema.optional(Schema.Number)])
       )
     })
@@ -206,18 +206,18 @@ describe("ToArbitrary", () => {
 
   describe("Array", () => {
     it("Array", () => {
-      satisfy(Schema.Array(Schema.String))
+      verifyGeneration(Schema.Array(Schema.String))
     })
   })
 
   it("TupleWithRest", () => {
-    satisfy(
+    verifyGeneration(
       Schema.TupleWithRest(Schema.Tuple([Schema.Boolean]), [Schema.Number, Schema.String])
     )
-    satisfy(
+    verifyGeneration(
       Schema.TupleWithRest(Schema.Tuple([]), [Schema.Number, Schema.String])
     )
-    satisfy(
+    verifyGeneration(
       Schema.TupleWithRest(Schema.Tuple([Schema.optionalKey(Schema.Boolean)]), [Schema.Number]).check(
         Check.minLength(3)
       )
@@ -226,33 +226,33 @@ describe("ToArbitrary", () => {
 
   describe("Struct", () => {
     it("empty", () => {
-      satisfy(Schema.Struct({}))
+      verifyGeneration(Schema.Struct({}))
     })
 
     it("required fields", () => {
-      satisfy(Schema.Struct({
+      verifyGeneration(Schema.Struct({
         a: Schema.String
       }))
-      satisfy(Schema.Struct({
+      verifyGeneration(Schema.Struct({
         a: Schema.String,
         b: Schema.Number
       }))
     })
 
     it("required field with undefined", () => {
-      satisfy(Schema.Struct({
+      verifyGeneration(Schema.Struct({
         a: Schema.UndefinedOr(Schema.String)
       }))
     })
 
     it("optionalKey field", () => {
-      satisfy(Schema.Struct({
+      verifyGeneration(Schema.Struct({
         a: Schema.optionalKey(Schema.String)
       }))
     })
 
     it("optional field", () => {
-      satisfy(Schema.Struct({
+      verifyGeneration(Schema.Struct({
         a: Schema.optional(Schema.String)
       }))
     })
@@ -260,20 +260,20 @@ describe("ToArbitrary", () => {
 
   describe("Record", () => {
     it("Record(String, Number)", () => {
-      satisfy(Schema.Record(Schema.String, Schema.Number))
+      verifyGeneration(Schema.Record(Schema.String, Schema.Number))
     })
 
     it("Record(Symbol, Number)", () => {
-      satisfy(Schema.Record(Schema.Symbol, Schema.Number))
+      verifyGeneration(Schema.Record(Schema.Symbol, Schema.Number))
     })
   })
 
   it("StructWithRest", () => {
-    satisfy(Schema.StructWithRest(
+    verifyGeneration(Schema.StructWithRest(
       Schema.Struct({ a: Schema.Number }),
       [Schema.Record(Schema.String, Schema.Number)]
     ))
-    satisfy(Schema.StructWithRest(
+    verifyGeneration(Schema.StructWithRest(
       Schema.Struct({ a: Schema.Number }),
       [Schema.Record(Schema.Symbol, Schema.Number)]
     ))
@@ -285,7 +285,7 @@ describe("ToArbitrary", () => {
         a: Schema.String
       }) {}
       const schema = A
-      satisfy(schema)
+      verifyGeneration(schema)
     })
   })
 
@@ -296,13 +296,13 @@ describe("ToArbitrary", () => {
         Schema.Number,
         Schema.NullOr(Rec)
       ])
-      satisfy(schema)
+      verifyGeneration(schema)
     })
 
     it("Array", () => {
       const Rec = Schema.suspend((): Schema.Codec<any> => schema)
       const schema: any = Schema.Array(Schema.Union([Schema.String, Rec]))
-      satisfy(schema)
+      verifyGeneration(schema)
     })
 
     it("Struct", () => {
@@ -311,13 +311,13 @@ describe("ToArbitrary", () => {
         a: Schema.String,
         as: Schema.Array(Rec)
       })
-      satisfy(schema)
+      verifyGeneration(schema)
     })
 
     it("Record", () => {
       const Rec = Schema.suspend((): Schema.Codec<any> => schema)
       const schema = Schema.Record(Schema.String, Rec)
-      satisfy(schema)
+      verifyGeneration(schema)
     })
 
     it("optional", () => {
@@ -325,7 +325,7 @@ describe("ToArbitrary", () => {
       const schema: any = Schema.Struct({
         a: Schema.optional(Rec)
       })
-      satisfy(schema)
+      verifyGeneration(schema)
     })
 
     it("Array + Array", () => {
@@ -334,7 +334,7 @@ describe("ToArbitrary", () => {
         a: Schema.Array(Rec),
         b: Schema.Array(Rec)
       })
-      satisfy(schema)
+      verifyGeneration(schema)
     })
 
     it("optional + Array", () => {
@@ -343,7 +343,7 @@ describe("ToArbitrary", () => {
         a: Schema.optional(Rec),
         b: Schema.Array(Rec)
       })
-      satisfy(schema)
+      verifyGeneration(schema)
     })
 
     it.skip("mutually suspended schemas", { retry: 5 }, () => {
@@ -370,7 +370,7 @@ describe("ToArbitrary", () => {
         left: Expression,
         right: Expression
       })
-      satisfy(Operation)
+      verifyGeneration(Operation)
     })
 
     it("Option", () => {
@@ -379,173 +379,173 @@ describe("ToArbitrary", () => {
         a: Schema.String,
         as: Schema.Option(Rec)
       })
-      satisfy(schema)
+      verifyGeneration(schema)
     })
 
     it("Map", () => {
       const Rec = Schema.suspend((): Schema.Codec<any> => schema)
       const schema = Schema.Map(Schema.String, Rec)
-      satisfy(schema)
+      verifyGeneration(schema)
     })
   })
 
   describe("checks", () => {
     it("minLength(2)", () => {
-      satisfy(Schema.String.pipe(Schema.check(Check.minLength(2))))
-      satisfy(Schema.Array(Schema.String).pipe(Schema.check(Check.minLength(2))))
+      verifyGeneration(Schema.String.pipe(Schema.check(Check.minLength(2))))
+      verifyGeneration(Schema.Array(Schema.String).pipe(Schema.check(Check.minLength(2))))
     })
 
     it("maxLength(2)", () => {
-      satisfy(Schema.String.pipe(Schema.check(Check.maxLength(2))))
-      satisfy(Schema.Array(Schema.String).pipe(Schema.check(Check.maxLength(2))))
+      verifyGeneration(Schema.String.pipe(Schema.check(Check.maxLength(2))))
+      verifyGeneration(Schema.Array(Schema.String).pipe(Schema.check(Check.maxLength(2))))
     })
 
     it("minLength(2) & maxLength(4)", () => {
-      satisfy(Schema.String.pipe(Schema.check(Check.minLength(2), Check.maxLength(4))))
-      satisfy(
+      verifyGeneration(Schema.String.pipe(Schema.check(Check.minLength(2), Check.maxLength(4))))
+      verifyGeneration(
         Schema.Array(Schema.String).pipe(Schema.check(Check.minLength(2), Check.maxLength(4)))
       )
     })
 
     it("length(2)", () => {
-      satisfy(Schema.String.pipe(Schema.check(Check.length(2))))
-      satisfy(Schema.Array(Schema.String).pipe(Schema.check(Check.length(2))))
+      verifyGeneration(Schema.String.pipe(Schema.check(Check.length(2))))
+      verifyGeneration(Schema.Array(Schema.String).pipe(Schema.check(Check.length(2))))
     })
 
     it("minEntries(2)", () => {
-      satisfy(
+      verifyGeneration(
         Schema.Record(Schema.String, Schema.Number).check(Check.minEntries(2))
       )
     })
 
     it("maxEntries(2)", () => {
-      satisfy(
+      verifyGeneration(
         Schema.Record(Schema.String, Schema.Number).check(Check.maxEntries(2))
       )
     })
 
     it("minEntries(2) & maxEntries(4)", () => {
-      satisfy(
+      verifyGeneration(
         Schema.Record(Schema.String, Schema.Number).check(Check.minEntries(2), Check.maxEntries(4))
       )
     })
 
     it("entries(2)", () => {
-      satisfy(
+      verifyGeneration(
         Schema.Record(Schema.String, Schema.Number).check(Check.entries(2))
       )
     })
 
     it("int", () => {
       const schema = Schema.Number.check(Check.int())
-      satisfy(schema)
+      verifyGeneration(schema)
     })
 
     it("int32", () => {
       const schema = Schema.Number.check(Check.int32())
-      satisfy(schema)
+      verifyGeneration(schema)
     })
 
     it("regex", () => {
-      satisfy(Schema.String.check(Check.regex(/^[A-Z]{3}[0-9]{3}$/)))
+      verifyGeneration(Schema.String.check(Check.regex(/^[A-Z]{3}[0-9]{3}$/)))
     })
 
     it("nonEmpty + regex", () => {
-      satisfy(Schema.NonEmptyString.check(Check.regex(/^[-]*$/)))
+      verifyGeneration(Schema.NonEmptyString.check(Check.regex(/^[-]*$/)))
     })
 
     it("regex + regex", () => {
-      satisfy(
+      verifyGeneration(
         Schema.String.check(Check.regex(/^[^A-Z]*$/), Check.regex(/^0x[0-9a-f]{40}$/))
       )
     })
 
     it("greaterThanOrEqualToDate", () => {
-      satisfy(Schema.Date.check(Check.greaterThanOrEqualToDate(new Date(0))))
+      verifyGeneration(Schema.Date.check(Check.greaterThanOrEqualToDate(new Date(0))))
     })
 
     it("lessThanOrEqualToDate", () => {
-      satisfy(Schema.Date.check(Check.lessThanOrEqualToDate(new Date(10))))
+      verifyGeneration(Schema.Date.check(Check.lessThanOrEqualToDate(new Date(10))))
     })
 
     it("betweenDate", () => {
-      satisfy(Schema.Date.check(Check.betweenDate(new Date(0), new Date(10))))
+      verifyGeneration(Schema.Date.check(Check.betweenDate(new Date(0), new Date(10))))
     })
 
     it("ValidDate", () => {
-      satisfy(Schema.ValidDate)
+      verifyGeneration(Schema.ValidDate)
     })
 
     it("greaterThanOrEqualToBigInt", () => {
-      satisfy(Schema.BigInt.check(Check.greaterThanOrEqualToBigInt(BigInt(0))))
+      verifyGeneration(Schema.BigInt.check(Check.greaterThanOrEqualToBigInt(BigInt(0))))
     })
 
     it("lessThanOrEqualToBigInt", () => {
-      satisfy(Schema.BigInt.check(Check.lessThanOrEqualToBigInt(BigInt(10))))
+      verifyGeneration(Schema.BigInt.check(Check.lessThanOrEqualToBigInt(BigInt(10))))
     })
 
     it("betweenBigInt", () => {
-      satisfy(Schema.BigInt.check(Check.betweenBigInt(BigInt(0), BigInt(10))))
+      verifyGeneration(Schema.BigInt.check(Check.betweenBigInt(BigInt(0), BigInt(10))))
     })
   })
 
   it("Finite", () => {
-    satisfy(Schema.Finite)
+    verifyGeneration(Schema.Finite)
   })
 
   it("Date", () => {
-    satisfy(Schema.Date)
+    verifyGeneration(Schema.Date)
   })
 
   it("URL", () => {
-    satisfy(Schema.URL)
+    verifyGeneration(Schema.URL)
   })
 
   it("Duration", () => {
-    satisfy(Schema.Duration)
+    verifyGeneration(Schema.Duration)
   })
 
   it("DateTimeUtc", () => {
-    satisfy(Schema.DateTimeUtc)
+    verifyGeneration(Schema.DateTimeUtc)
   })
 
   it("UnknownFromJsonString", () => {
-    satisfy(Schema.UnknownFromJsonString)
+    verifyGeneration(Schema.UnknownFromJsonString)
   })
 
   it("Option(String)", () => {
-    satisfy(Schema.Option(Schema.String))
+    verifyGeneration(Schema.Option(Schema.String))
   })
 
   it("Result(Number, String)", () => {
-    satisfy(Schema.Result(Schema.Number, Schema.String))
+    verifyGeneration(Schema.Result(Schema.Number, Schema.String))
   })
 
   describe("Map", () => {
     it("Map(String, Number)", () => {
-      satisfy(Schema.Map(Schema.String, Schema.Number))
+      verifyGeneration(Schema.Map(Schema.String, Schema.Number))
     })
 
     it("minSize(2)", () => {
-      satisfy(
+      verifyGeneration(
         Schema.Map(Schema.String, Schema.Number).check(Check.minSize(2))
       )
     })
 
     it("maxSize(4)", () => {
-      satisfy(
+      verifyGeneration(
         Schema.Map(Schema.String, Schema.Number).check(Check.maxSize(4))
       )
     })
 
     it("minSize(2) & maxSize(4)", () => {
-      satisfy(
+      verifyGeneration(
         Schema.Map(Schema.String, Schema.Number).check(Check.minSize(2), Check.maxSize(4))
       )
     })
 
     it("size(2)", () => {
-      satisfy(
+      verifyGeneration(
         Schema.Map(Schema.String, Schema.Number).check(Check.size(2))
       )
     })
@@ -554,12 +554,12 @@ describe("ToArbitrary", () => {
   describe("Redacted", () => {
     it("Redacted(String)", () => {
       const schema = Schema.Redacted(Schema.String)
-      satisfy(schema)
+      verifyGeneration(schema)
     })
 
     it("with label", () => {
       const schema = Schema.Redacted(Schema.String, { label: "password" })
-      satisfy(schema)
+      verifyGeneration(schema)
     })
   })
 

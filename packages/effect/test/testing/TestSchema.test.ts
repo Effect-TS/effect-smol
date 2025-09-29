@@ -20,9 +20,9 @@ describe("TestSchema", () => {
     await encoding.fail(-1, `Expected a value greater than 0, got -1`)
   })
 
-  it("roundtrip", async () => {
+  it("verifyLosslessTransformation", async () => {
     const schema = Schema.FiniteFromString.check(Check.positive())
     const assert = new TestSchema.Asserts(schema)
-    await assert.roundtrip()
+    await assert.verifyLosslessTransformation()
   })
 })
