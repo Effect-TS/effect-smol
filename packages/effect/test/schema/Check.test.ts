@@ -1,6 +1,9 @@
-import { Check } from "effect/schema"
+import { Check, Schema } from "effect/schema"
+import { TestSchema } from "effect/testing"
 import { describe, it } from "vitest"
 import { assertGetter, strictEqual } from "../utils/assert.ts"
+
+const verifyGeneration = true
 
 describe("Check", () => {
   describe("Filter", () => {
@@ -99,5 +102,22 @@ describe("Check", () => {
         strictEqual(filter.annotate({}).annotations?.identifier, undefined)
       })
     })
+  })
+
+  it("ulid", async () => {
+    const schema = Schema.String.check(Check.ulid())
+    const asserts = new TestSchema.Asserts(schema)
+
+    if (verifyGeneration) {
+      const arbitrary = asserts.arbitrary()
+      arbitrary.verifyGeneration()
+    }
+
+    const decoding = asserts.decoding()
+    await decoding.succeed("01H4PGGGJVN2DKP2K1H7EH996V")
+    await decoding.fail(
+      "",
+      `Expected a string matching the regex ^[0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{26}$, got ""`
+    )
   })
 })

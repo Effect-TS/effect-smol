@@ -3599,7 +3599,11 @@ export const Error: Error = instanceOf(globalThis.Error, {
     link<globalThis.Error>()(
       ErrorJsonEncoded,
       Transformation.error()
-    )
+    ),
+  arbitrary: {
+    _tag: "Declaration",
+    declaration: () => (fc) => fc.string().map((message) => new globalThis.Error(message))
+  }
 })
 
 /**
@@ -4640,7 +4644,11 @@ export const Uint8Array: Uint8Array = instanceOf(globalThis.Uint8Array<ArrayBuff
         decode: Getter.decodeBase64(),
         encode: Getter.encodeBase64()
       }
-    )
+    ),
+  arbitrary: {
+    _tag: "Declaration",
+    declaration: () => (fc) => fc.uint8Array()
+  }
 })
 
 /**
