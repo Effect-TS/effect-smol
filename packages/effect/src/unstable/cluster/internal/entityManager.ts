@@ -180,7 +180,8 @@ export const make = Effect.fnUntraced(function*<
                   storageEnabled &&
                   ServiceMap.get(request.rpc.annotations, Persisted) &&
                   Exit.hasInterrupt(response.exit) &&
-                  (isShuttingDown || ServiceMap.get(request.rpc.annotations, Uninterruptible))
+                  (isShuttingDown || ServiceMap.get(request.rpc.annotations, Uninterruptible) ||
+                    Cause.interruptors(response.exit.cause).has(-1))
                 ) {
                   return options.storage.unregisterReplyHandler(request.message.envelope.requestId)
                 }
@@ -440,7 +441,11 @@ export const make = Effect.fnUntraced(function*<
                 0,
                 message.envelope._tag === "AckChunk"
                   ? { _tag: "Ack", requestId: RequestId(message.envelope.requestId) }
-                  : { _tag: "Interrupt", requestId: RequestId(message.envelope.requestId), interruptors: [] }
+                  : {
+                    _tag: "Interrupt",
+                    requestId: RequestId(message.envelope.requestId),
+                    interruptors: []
+                  }
               )
             }
           }

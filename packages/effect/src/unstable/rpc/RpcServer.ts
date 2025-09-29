@@ -169,7 +169,7 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any>(
           case "Interrupt": {
             const fiber = client.fibers.get(message.requestId)
             return fiber ?
-              Effect.forkDaemon(Fiber.interrupt(fiber), { startImmediately: true }) :
+              Effect.forkDaemon(Fiber.interruptAs(fiber, fiberIdClientInterrupt), { startImmediately: true }) :
               options.onFromServer({
                 _tag: "Exit",
                 clientId,
@@ -1130,6 +1130,14 @@ export const layerProtocolStdio = <EIn, EOut, RIn, ROut>(options: {
   readonly stdout: Sink.Sink<void, Uint8Array | string, unknown, EOut, ROut>
 }): Layer.Layer<Protocol, never, RpcSerialization.RpcSerialization | RIn | ROut> =>
   Layer.effect(Protocol)(makeProtocolStdio(options))
+
+/**
+ * Fiber id used to indicate client induced interrupts
+ *
+ * @since 4.0.0
+ * @category Interruption
+ */
+export const fiberIdClientInterrupt = -499
 
 // internal
 

@@ -299,11 +299,13 @@ export const make = Effect.gen(function*() {
                 }
                 const serviceMap = new Map(entry.services.mapUnsafe)
                 serviceMap.set(Activity.CurrentAttempt.key, payload.attempt)
-                serviceMap.set(
-                  WorkflowEngine.WorkflowInstance.key,
-                  WorkflowEngine.WorkflowInstance.initial(workflow, executionId)
-                )
+                const instance = WorkflowEngine.WorkflowInstance.initial(workflow, executionId)
+                serviceMap.set(WorkflowEngine.WorkflowInstance.key, instance)
                 return yield* entry.activity.executeEncoded.pipe(
+                  Effect.onInterrupt((interruptors) => {
+                    if (interruptors.has(-499)) return Effect.void
+                    return Entity.interruptIgnored
+                  }),
                   Workflow.intoResult,
                   Effect.provideServices(ServiceMap.makeUnsafe(serviceMap)),
                   Effect.ensuring(Effect.sync(() => {
@@ -511,7 +513,8 @@ const ActivityRpc = Rpc.make("activity", {
     success: AnyOrVoid,
     error: AnyOrVoid
   })
-}).annotate(ClusterSchema.Persisted, true)
+})
+  .annotate(ClusterSchema.Persisted, true)
 
 const DeferredRpc = Rpc.make("deferred", {
   payload: {

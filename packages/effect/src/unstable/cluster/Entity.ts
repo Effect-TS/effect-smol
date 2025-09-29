@@ -1,7 +1,7 @@
 /**
  * @since 4.0.0
  */
-import type * as Cause from "../../Cause.ts"
+import * as Cause from "../../Cause.ts"
 import * as Arr from "../../collections/Array.ts"
 import * as Data from "../../data/Data.ts"
 import * as Predicate from "../../data/Predicate.ts"
@@ -644,3 +644,19 @@ export const KeepAliveRpc = Rpc.make("Cluster/Entity/keepAlive")
 export class KeepAliveLatch
   extends ServiceMap.Key<KeepAliveLatch, Effect.Latch>()("effect/cluster/Entity/KeepAliveLatch")
 {}
+
+/**
+ * Fiber id used to interrupt the current rpc and don't persist the result.
+ *
+ * @since 4.0.0
+ * @category Interruption
+ */
+export const fiberIdIgnored: number = -1
+
+/**
+ * Interrupt the current rpc and don't persist the result.
+ *
+ * @since 4.0.0
+ * @category Interruption
+ */
+export const interruptIgnored: Effect.Effect<never> = Effect.failCause(Cause.interrupt(fiberIdIgnored))
