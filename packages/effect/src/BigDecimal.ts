@@ -1019,7 +1019,7 @@ export const fromBigInt = (n: bigint): BigDecimal => make(n, 0)
  * assert.deepStrictEqual(fromNumberUnsafe(123.456), make(123456n, 3))
  * ```
  *
- * @since 3.11.0
+ * @since 4.0.0
  * @category constructors
  */
 export const fromNumberUnsafe = (n: number): BigDecimal => {
@@ -1049,7 +1049,7 @@ export const fromNumberUnsafe = (n: number): BigDecimal => {
  * assert.deepStrictEqual(BigDecimal.fromNumber(Infinity), undefined)
  * ```
  *
- * @since 3.11.0
+ * @since 4.0.0
  * @category constructors
  */
 export const fromNumber = (n: number): BigDecimal | undefined => {
@@ -1213,7 +1213,7 @@ export const format = (n: BigDecimal): string => {
  * assert.deepStrictEqual(toExponential(make(123456n, -5)), "1.23456e+10")
  * ```
  *
- * @since 3.11.0
+ * @since 4.0.0
  * @category conversions
  */
 export const toExponential = (n: BigDecimal): string => {
@@ -1323,3 +1323,201 @@ export const isNegative = (n: BigDecimal): boolean => n.value < bigint0
  * @category predicates
  */
 export const isPositive = (n: BigDecimal): boolean => n.value > bigint0
+
+const isBigDecimalArgs = (args: IArguments) => isBigDecimal(args[0])
+
+/**
+ * Rounding modes for `BigDecimal`.
+ *
+ * `ceil`: round towards positive infinity
+ * `floor`: round towards negative infinity
+ * `to-zero`: round towards zero
+ * `from-zero`: round away from zero
+ * `half-ceil`: round to the nearest neighbor; if equidistant round towards positive infinity
+ * `half-floor`: round to the nearest neighbor; if equidistant round towards negative infinity
+ * `half-to-zero`: round to the nearest neighbor; if equidistant round towards zero
+ * `half-from-zero`: round to the nearest neighbor; if equidistant round away from zero
+ * `half-even`: round to the nearest neighbor; if equidistant round to the neighbor with an even digit
+ * `half-odd`: round to the nearest neighbor; if equidistant round to the neighbor with an odd digit
+ *
+ * @since 4.0.0
+ * @category math
+ */
+export type RoundingMode =
+  | "ceil"
+  | "floor"
+  | "to-zero"
+  | "from-zero"
+  | "half-ceil"
+  | "half-floor"
+  | "half-to-zero"
+  | "half-from-zero"
+  | "half-even"
+  | "half-odd"
+
+/**
+ * Rounds a `BigDecimal` at the given scale with the specified rounding mode.
+ *
+ * @example
+ * ```ts
+ * import * as assert from "node:assert"
+ * import { round, unsafeFromString } from "effect/BigDecimal"
+ *
+ * assert.deepStrictEqual(round(unsafeFromString("145"), { mode: "from-zero", scale: -1 }), unsafeFromString("150"))
+ * assert.deepStrictEqual(round(unsafeFromString("-14.5")), unsafeFromString("-15"))
+ * ```
+ *
+ * @since 4.0.0
+ * @category math
+ */
+export const round: {
+  (options: { scale?: number; mode?: RoundingMode }): (self: BigDecimal) => BigDecimal
+  (n: BigDecimal, options?: { scale?: number; mode?: RoundingMode }): BigDecimal
+} = dual(isBigDecimalArgs, (self: BigDecimal, options?: { scale?: number; mode?: RoundingMode }): BigDecimal => {
+  const mode = options?.mode ?? "half-from-zero"
+  const scale = options?.scale ?? 0
+
+  switch (mode) {
+    case "ceil":
+      return ceil(self, scale)
+
+    case "floor":
+      return floor(self, scale)
+
+    case "to-zero":
+      return truncate(self, scale)
+
+    case "from-zero":
+      return (isPositive(self) ? ceil(self, scale) : floor(self, scale))
+
+    case "half-ceil":
+      return floor(sum(self, make(5n, scale + 1)), scale)
+
+    case "half-floor":
+      return ceil(sum(self, make(-5n, scale + 1)), scale)
+
+    case "half-to-zero":
+      return isNegative(self)
+        ? floor(sum(self, make(5n, scale + 1)), scale)
+        : ceil(sum(self, make(-5n, scale + 1)), scale)
+
+    case "half-from-zero":
+      return isNegative(self)
+        ? ceil(sum(self, make(-5n, scale + 1)), scale)
+        : floor(sum(self, make(5n, scale + 1)), scale)
+  }
+
+  const halfCeil = floor(sum(self, make(5n, scale + 1)), scale)
+  const halfFloor = ceil(sum(self, make(-5n, scale + 1)), scale)
+  const digit = digitAt(halfCeil, scale)
+
+  switch (mode) {
+    case "half-even":
+      return equals(halfCeil, halfFloor) ? halfCeil : (digit % 2n === 0n) ? halfCeil : halfFloor
+
+    case "half-odd":
+      return equals(halfCeil, halfFloor) ? halfCeil : (digit % 2n === 0n) ? halfFloor : halfCeil
+  }
+})
+
+/**
+ * Truncate a `BigDecimal` at the given scale. This is the same operation as rounding away from zero.
+ *
+ * @example
+ * ```ts
+ * import * as assert from "node:assert"
+ * import { truncate, unsafeFromString } from "effect/BigDecimal"
+ *
+ * assert.deepStrictEqual(truncate(unsafeFromString("145"), -1), unsafeFromString("140"))
+ * assert.deepStrictEqual(truncate(unsafeFromString("-14.5")), unsafeFromString("-14"))
+ * ```
+ *
+ * @since 4.0.0
+ * @category math
+ */
+export const truncate: {
+  (scale: number): (self: BigDecimal) => BigDecimal
+  (self: BigDecimal, scale?: number): BigDecimal
+} = dual(isBigDecimalArgs, (self: BigDecimal, scale: number = 0): BigDecimal => {
+  if (self.scale <= scale) {
+    return self
+  }
+
+  // BigInt division truncates towards zero
+  return make(self.value / (10n ** BigInt(self.scale - scale)), scale)
+})
+
+/**
+ * Calculate the ceiling of a `BigDecimal` at the given scale.
+ *
+ * @example
+ * ```ts
+ * import * as assert from "node:assert"
+ * import { ceil, unsafeFromString } from "effect/BigDecimal"
+ *
+ * assert.deepStrictEqual(ceil(unsafeFromString("145"), -1), unsafeFromString("150"))
+ * assert.deepStrictEqual(ceil(unsafeFromString("-14.5")), unsafeFromString("-14"))
+ * ```
+ *
+ * @since 4.0.0
+ * @category math
+ */
+export const ceil: {
+  (scale: number): (self: BigDecimal) => BigDecimal
+  (self: BigDecimal, scale?: number): BigDecimal
+} = dual(isBigDecimalArgs, (self: BigDecimal, scale: number = 0): BigDecimal => {
+  const truncated = truncate(self, scale)
+
+  if (isPositive(self) && lessThan(truncated, self)) {
+    return sum(truncated, make(1n, scale))
+  }
+
+  return truncated
+})
+
+/**
+ * Internal function used by `round` for `half-even` and `half-odd` rounding modes.
+ *
+ * Returns the digit at the position of the given `scale` within the `BigDecimal`.
+ *
+ * @internal
+ */
+export const digitAt: {
+  (scale: number): (self: BigDecimal) => bigint
+  (self: BigDecimal, scale: number): bigint
+} = dual(2, (self: BigDecimal, scale: number): bigint => {
+  if (self.scale < scale) {
+    return 0n
+  }
+
+  const scaled = self.value / (10n ** BigInt(self.scale - scale))
+  return scaled % 10n
+})
+
+/**
+ * Calculate the floor of a `BigDecimal` at the given scale.
+ *
+ * @example
+ * ```ts
+ * import * as assert from "node:assert"
+ * import { floor, unsafeFromString } from "effect/BigDecimal"
+ *
+ * assert.deepStrictEqual(floor(unsafeFromString("145"), -1), unsafeFromString("140"))
+ * assert.deepStrictEqual(floor(unsafeFromString("-14.5")), unsafeFromString("-15"))
+ * ```
+ *
+ * @since 4.0.0
+ * @category math
+ */
+export const floor: {
+  (scale: number): (self: BigDecimal) => BigDecimal
+  (self: BigDecimal, scale?: number): BigDecimal
+} = dual(isBigDecimalArgs, (self: BigDecimal, scale: number = 0): BigDecimal => {
+  const truncated = truncate(self, scale)
+
+  if (isNegative(self) && greaterThan(truncated, self)) {
+    return sum(truncated, make(-1n, scale))
+  }
+
+  return truncated
+})
