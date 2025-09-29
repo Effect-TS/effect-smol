@@ -394,13 +394,13 @@ export function schema<T, E>(codec: Schema.Codec<T, E>, path?: string | ConfigPr
   const defaultPath = Predicate.isString(path) ? [path] : path ?? []
   return make((provider) =>
     go(serializerEncodedAST, provider, defaultPath).pipe(
-      Effect.mapErrorEager((cause) => new ConfigError(cause)),
       Effect.flatMapEager((stringPojo) =>
         decodeUnknownEffect(stringPojo).pipe(Effect.mapErrorEager((issue) =>
-          new ConfigError(
-            new Schema.SchemaError(defaultPath.length > 0 ? new Issue.Pointer(defaultPath, issue) : issue)
-          )
+          new Schema.SchemaError(defaultPath.length > 0 ? new Issue.Pointer(defaultPath, issue) : issue)
         ))
+      ),
+      Effect.mapErrorEager((cause) =>
+        new ConfigError(cause)
       )
     )
   )
