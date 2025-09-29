@@ -4770,7 +4770,10 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     ))
     const asserts = new TestSchema.Asserts(schema)
 
-    const decoding = asserts.provide(Service, { fallback: Effect.succeed("b") }).decoding()
+    const decoding = asserts.decoding().provide(
+      Service,
+      { fallback: Effect.succeed("b") }
+    )
     await decoding.succeed("a")
     await decoding.succeed(null, "b")
   })
@@ -5115,9 +5118,12 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
           encode: Getter.passthrough()
         })
       )
-      const asserts = new TestSchema.Asserts(schema).provide(Service, { fallback: Effect.succeed("b") })
+      const asserts = new TestSchema.Asserts(schema)
 
-      const decoding = asserts.decoding()
+      const decoding = asserts.decoding().provide(
+        Service,
+        { fallback: Effect.succeed("b") }
+      )
       await decoding.succeed("a")
       await decoding.fail(
         "",
