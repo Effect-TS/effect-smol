@@ -1,6 +1,6 @@
 import { Effect } from "effect"
 import { Chunk } from "effect/collections"
-import { TxChunk } from "effect/transactions"
+import { TxChunk } from "effect/stm"
 import { describe, expect, it } from "vitest"
 
 describe("TxChunk", () => {

@@ -6,7 +6,7 @@ import * as Effect from "effect/Effect"
 import * as Exit from "effect/Exit"
 import { constFalse, constTrue, pipe } from "effect/Function"
 import { TestClock } from "effect/testing"
-import { TxRef } from "effect/transactions"
+import { TxRef } from "effect/stm"
 
 class ATag extends ServiceMap.Key<ATag, "A">()("ATag") {}
 

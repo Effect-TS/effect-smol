@@ -4,7 +4,7 @@ import * as Cause from "effect/Cause"
 import { Chunk } from "effect/collections"
 import { Option } from "effect/data"
 import * as Effect from "effect/Effect"
-import { TxQueue } from "effect/transactions"
+import { TxQueue } from "effect/stm"
 
 describe("TxQueue", () => {
   describe("interfaces", () => {

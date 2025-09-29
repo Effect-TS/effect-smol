@@ -17,8 +17,8 @@ import * as Effect from "../Effect.ts"
 import { dual } from "../Function.ts"
 import type { Inspectable } from "../interfaces/Inspectable.ts"
 import { NodeInspectSymbol, toJson } from "../interfaces/Inspectable.ts"
-import * as TxChunk from "../transactions/TxChunk.ts"
-import * as TxRef from "../transactions/TxRef.ts"
+import * as TxChunk from "../stm/TxChunk.ts"
+import * as TxRef from "../stm/TxRef.ts"
 import type * as Types from "../types/Types.ts"
 
 /**
@@ -32,7 +32,7 @@ import type * as Types from "../types/Types.ts"
  * @example
  * ```ts
  * import { Cause } from "effect"
- * import { TxQueue } from "effect/transactions"
+ * import { TxQueue } from "effect/stm"
  *
  * // State progression example
  * declare const state: TxQueue.State<string, Error>
@@ -71,7 +71,7 @@ const TypeId = "~effect/transactions/TxQueue"
  *
  * @example
  * ```ts
- * import { TxQueue } from "effect/transactions"
+ * import { TxQueue } from "effect/stm"
  *
  * // Use variance types for type-level operations
  * declare const variance: TxQueue.TxEnqueue.Variance<number, Error>
@@ -86,7 +86,7 @@ export declare namespace TxEnqueue {
    *
    * @example
    * ```ts
-   * import { TxQueue } from "effect/transactions"
+   * import { TxQueue } from "effect/stm"
    *
    * // Demonstrates contravariant type behavior for both A and E
    * declare const variance: TxQueue.TxEnqueue.Variance<string, Error>
@@ -106,7 +106,7 @@ export declare namespace TxEnqueue {
  *
  * @example
  * ```ts
- * import { TxQueue } from "effect/transactions"
+ * import { TxQueue } from "effect/stm"
  *
  * // Use variance types for type-level operations
  * declare const variance: TxQueue.TxDequeue.Variance<number, Error>
@@ -121,7 +121,7 @@ export declare namespace TxDequeue {
    *
    * @example
    * ```ts
-   * import { TxQueue } from "effect/transactions"
+   * import { TxQueue } from "effect/stm"
    *
    * // Demonstrates covariant type behavior for both A and E
    * declare const variance: TxQueue.TxDequeue.Variance<string, Error>
@@ -141,7 +141,7 @@ export declare namespace TxDequeue {
  *
  * @example
  * ```ts
- * import { TxQueue } from "effect/transactions"
+ * import { TxQueue } from "effect/stm"
  *
  * // Use variance types for type-level operations
  * declare const variance: TxQueue.TxQueue.Variance<number, Error>
@@ -156,7 +156,7 @@ export declare namespace TxQueue {
    *
    * @example
    * ```ts
-   * import { TxQueue } from "effect/transactions"
+   * import { TxQueue } from "effect/stm"
    *
    * // Demonstrates invariant type behavior for both A and E
    * declare const variance: TxQueue.TxQueue.Variance<string, Error>
@@ -193,7 +193,7 @@ export interface TxQueueState extends Inspectable {
  * @example
  * ```ts
  * import { Effect, Cause } from "effect"
- * import { TxQueue } from "effect/transactions"
+ * import { TxQueue } from "effect/stm"
  *
  * const program = Effect.gen(function* () {
  *   // Queue without error channel
@@ -226,7 +226,7 @@ export interface TxEnqueue<in A, in E = never> extends TxQueueState {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { TxQueue } from "effect/transactions"
+ * import { TxQueue } from "effect/stm"
  *
  * const program = Effect.gen(function* () {
  *   // Queue without error channel
@@ -258,7 +258,7 @@ export interface TxDequeue<out A, out E = never> extends TxQueueState {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { TxQueue } from "effect/transactions"
+ * import { TxQueue } from "effect/stm"
  *
  * const program = Effect.gen(function* () {
  *   // Create a bounded transactional queue (E defaults to never)
@@ -290,7 +290,7 @@ export interface TxQueue<in out A, in out E = never> extends TxEnqueue<A, E>, Tx
  *
  * @example
  * ```ts
- * import { TxQueue } from "effect/transactions"
+ * import { TxQueue } from "effect/stm"
  *
  * declare const someValue: unknown
  *
@@ -310,7 +310,7 @@ export const isTxEnqueue = <A = unknown, E = unknown>(u: unknown): u is TxEnqueu
  *
  * @example
  * ```ts
- * import { TxQueue } from "effect/transactions"
+ * import { TxQueue } from "effect/stm"
  *
  * declare const someValue: unknown
  *
@@ -330,7 +330,7 @@ export const isTxDequeue = <A = unknown, E = unknown>(u: unknown): u is TxDequeu
  *
  * @example
  * ```ts
- * import { TxQueue } from "effect/transactions"
+ * import { TxQueue } from "effect/stm"
  *
  * declare const someValue: unknown
  *
@@ -381,7 +381,7 @@ const TxQueueProto = {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { TxQueue } from "effect/transactions"
+ * import { TxQueue } from "effect/stm"
  *
  * const program = Effect.gen(function* () {
  *   // Create a bounded queue (E defaults to never)
@@ -424,7 +424,7 @@ export const bounded = <A = never, E = never>(capacity: number): Effect.Effect<T
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { TxQueue } from "effect/transactions"
+ * import { TxQueue } from "effect/stm"
  *
  * const program = Effect.gen(function* () {
  *   // Create an unbounded queue (E defaults to never)
@@ -467,7 +467,7 @@ export const unbounded = <A = never, E = never>(): Effect.Effect<TxQueue<A, E>> 
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { TxQueue } from "effect/transactions"
+ * import { TxQueue } from "effect/stm"
  *
  * const program = Effect.gen(function* () {
  *   // Create a dropping queue with capacity 2
@@ -508,7 +508,7 @@ export const dropping = <A = never, E = never>(capacity: number): Effect.Effect<
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { TxQueue } from "effect/transactions"
+ * import { TxQueue } from "effect/stm"
  *
  * const program = Effect.gen(function* () {
  *   // Create a sliding queue with capacity 2
@@ -555,7 +555,7 @@ export const sliding = <A = never, E = never>(capacity: number): Effect.Effect<T
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { TxQueue } from "effect/transactions"
+ * import { TxQueue } from "effect/stm"
  *
  * const program = Effect.gen(function* () {
  *   const queue = yield* TxQueue.bounded<number>(10)
@@ -620,7 +620,7 @@ export const offer: {
  * ```ts
  * import { Effect } from "effect"
  * import { Chunk } from "effect/collections"
- * import { TxQueue } from "effect/transactions"
+ * import { TxQueue } from "effect/stm"
  *
  * const program = Effect.gen(function* () {
  *   const queue = yield* TxQueue.bounded<number>(10)
@@ -665,7 +665,7 @@ export const offerAll: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { TxQueue } from "effect/transactions"
+ * import { TxQueue } from "effect/stm"
  *
  * const program = Effect.gen(function* () {
  *   const queue = yield* TxQueue.bounded<number, string>(10)
@@ -725,7 +725,7 @@ export const take = <A, E>(self: TxDequeue<A, E>): Effect.Effect<A, E> =>
  * ```ts
  * import { Effect } from "effect"
  * import { Option } from "effect/data"
- * import { TxQueue } from "effect/transactions"
+ * import { TxQueue } from "effect/stm"
  *
  * const program = Effect.gen(function* () {
  *   const queue = yield* TxQueue.bounded<number>(10)
@@ -774,7 +774,7 @@ export const poll = <A, E>(self: TxDequeue<A, E>): Effect.Effect<Option.Option<A
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { TxQueue } from "effect/transactions"
+ * import { TxQueue } from "effect/stm"
  *
  * const program = Effect.gen(function* () {
  *   const queue = yield* TxQueue.bounded<number, string>(10)
@@ -848,7 +848,7 @@ export const takeAll = <A, E>(self: TxDequeue<A, E>): Effect.Effect<ReadonlyArra
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { TxQueue } from "effect/transactions"
+ * import { TxQueue } from "effect/stm"
  *
  * const program = Effect.gen(function* () {
  *   const queue = yield* TxQueue.bounded<number>(5)
@@ -935,7 +935,7 @@ export const takeN: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { TxQueue } from "effect/transactions"
+ * import { TxQueue } from "effect/stm"
  *
  * const program = Effect.gen(function* () {
  *   const queue = yield* TxQueue.bounded<number>(10)
@@ -1022,7 +1022,7 @@ export const takeBetween: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { TxQueue } from "effect/transactions"
+ * import { TxQueue } from "effect/stm"
  *
  * const program = Effect.gen(function* () {
  *   const queue = yield* TxQueue.bounded<number, string>(10)
@@ -1075,7 +1075,7 @@ export const peek = <A, E>(self: TxDequeue<A, E>): Effect.Effect<A, E> =>
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { TxQueue } from "effect/transactions"
+ * import { TxQueue } from "effect/stm"
  *
  * const program = Effect.gen(function* () {
  *   const queue = yield* TxQueue.bounded<number>(10)
@@ -1097,7 +1097,7 @@ export const size = (self: TxQueueState): Effect.Effect<number> => TxChunk.size(
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { TxQueue } from "effect/transactions"
+ * import { TxQueue } from "effect/stm"
  *
  * const program = Effect.gen(function* () {
  *   const queue = yield* TxQueue.bounded<number>(10)
@@ -1122,7 +1122,7 @@ export const isEmpty = (self: TxQueueState): Effect.Effect<boolean> => TxChunk.i
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { TxQueue } from "effect/transactions"
+ * import { TxQueue } from "effect/stm"
  *
  * const program = Effect.gen(function* () {
  *   const queue = yield* TxQueue.bounded<number>(2)
@@ -1157,7 +1157,7 @@ export const isFull = (self: TxQueueState): Effect.Effect<boolean> =>
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { TxQueue } from "effect/transactions"
+ * import { TxQueue } from "effect/stm"
  *
  * const program = Effect.gen(function* () {
  *   const queue = yield* TxQueue.bounded<number>(10)
@@ -1184,7 +1184,7 @@ export const interrupt = <A, E>(self: TxEnqueue<A, E>): Effect.Effect<boolean> =
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { TxQueue } from "effect/transactions"
+ * import { TxQueue } from "effect/stm"
  *
  * const program = Effect.gen(function* () {
  *   const queue = yield* TxQueue.bounded<number, string>(10)
@@ -1227,7 +1227,7 @@ export const fail: {
  * @example
  * ```ts
  * import { Effect, Cause } from "effect"
- * import { TxQueue } from "effect/transactions"
+ * import { TxQueue } from "effect/stm"
  *
  * const program = Effect.gen(function* () {
  *   const queue = yield* TxQueue.bounded<number>(10)
@@ -1278,7 +1278,7 @@ export const failCause: {
  * @example
  * ```ts
  * import { Effect, Cause } from "effect"
- * import { TxQueue } from "effect/transactions"
+ * import { TxQueue } from "effect/stm"
  *
  * const program = Effect.gen(function* () {
  *   const queue = yield* TxQueue.bounded<number, Cause.NoSuchElementError>(10)
@@ -1313,7 +1313,7 @@ export const end = <A, E>(self: TxEnqueue<A, E | Cause.NoSuchElementError>): Eff
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { TxQueue } from "effect/transactions"
+ * import { TxQueue } from "effect/stm"
  *
  * const program = Effect.gen(function* () {
  *   const queue = yield* TxQueue.bounded<number>(10)
@@ -1346,7 +1346,7 @@ export const clear = <A, E>(self: TxEnqueue<A, E>): Effect.Effect<void> => TxChu
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { TxQueue } from "effect/transactions"
+ * import { TxQueue } from "effect/stm"
  *
  * const program = Effect.gen(function* () {
  *   const queue = yield* TxQueue.bounded<number>(10)
@@ -1382,7 +1382,7 @@ export const shutdown = <A, E>(self: TxEnqueue<A, E>): Effect.Effect<boolean> =>
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { TxQueue } from "effect/transactions"
+ * import { TxQueue } from "effect/stm"
  *
  * const program = Effect.gen(function* () {
  *   const queue = yield* TxQueue.bounded<number>(10)
@@ -1411,7 +1411,7 @@ export const isOpen = (self: TxQueueState): Effect.Effect<boolean> =>
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { TxQueue } from "effect/transactions"
+ * import { TxQueue } from "effect/stm"
  *
  * const program = Effect.gen(function* () {
  *   const queue = yield* TxQueue.bounded<number>(10)
@@ -1441,7 +1441,7 @@ export const isClosing = (self: TxQueueState): Effect.Effect<boolean> =>
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { TxQueue } from "effect/transactions"
+ * import { TxQueue } from "effect/stm"
  *
  * const program = Effect.gen(function* () {
  *   const queue = yield* TxQueue.bounded<number>(10)
@@ -1470,7 +1470,7 @@ export const isDone = (self: TxQueueState): Effect.Effect<boolean> =>
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { TxQueue } from "effect/transactions"
+ * import { TxQueue } from "effect/stm"
  *
  * const program = Effect.gen(function* () {
  *   const queue = yield* TxQueue.bounded<number>(10)
@@ -1495,7 +1495,7 @@ export const isShutdown = (self: TxQueueState): Effect.Effect<boolean> => isDone
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { TxQueue } from "effect/transactions"
+ * import { TxQueue } from "effect/stm"
  *
  * const program = Effect.gen(function* () {
  *   const queue = yield* TxQueue.bounded<number, string>(10)

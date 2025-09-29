@@ -105,7 +105,7 @@ import type {
   TraceOptions,
   Tracer
 } from "./Tracer.ts"
-import type { TxRef } from "./transactions/TxRef.ts"
+import type { TxRef } from "./stm/TxRef.ts"
 import type { TypeLambda } from "./types/HKT.ts"
 import type {
   Concurrency,
@@ -10762,7 +10762,7 @@ export class Transaction extends ServiceMap.Key<
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { TxRef } from "effect/transactions"
+ * import { TxRef } from "effect/stm"
  *
  * const program = Effect.gen(function* () {
  *   const ref1 = yield* TxRef.make(0)
@@ -10794,7 +10794,7 @@ export const atomic = <A, E, R>(
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { TxRef } from "effect/transactions"
+ * import { TxRef } from "effect/stm"
  *
  * const program = Effect.atomicWith((txState) =>
  *   Effect.gen(function* () {
@@ -10854,7 +10854,7 @@ export const atomicWith = <A, E, R>(
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { TxRef } from "effect/transactions"
+ * import { TxRef } from "effect/stm"
  *
  * const program = Effect.gen(function* () {
  *   const ref1 = yield* TxRef.make(0)
@@ -10897,7 +10897,7 @@ export const transaction = <A, E, R>(
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { TxRef } from "effect/transactions"
+ * import { TxRef } from "effect/stm"
  *
  * const program = Effect.transactionWith((txState) =>
  *   Effect.gen(function* () {
@@ -11022,7 +11022,7 @@ function clearTransaction(state: Transaction["Service"]) {
  *
  * ```ts
  * import { Effect } from "effect"
- * import * as TxRef from "effect/transactions/TxRef"
+ * import * as TxRef from "effect/stm/TxRef"
  *
  * const program = Effect.gen(function*() {
  *   // create a transactional reference

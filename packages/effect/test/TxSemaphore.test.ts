@@ -2,7 +2,7 @@ import { assert, describe, it } from "@effect/vitest"
 import { Fiber } from "effect"
 import * as Effect from "effect/Effect"
 import * as Exit from "effect/Exit"
-import * as TxSemaphore from "effect/transactions/TxSemaphore"
+import * as TxSemaphore from "effect/stm/TxSemaphore"
 
 describe("TxSemaphore", () => {
   describe("constructors", () => {
