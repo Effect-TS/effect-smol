@@ -16,7 +16,7 @@ describe("SqlRunnerStorage", () => {
     ["sqlite", Layer.orDie(SqliteLayer)]
   ] as const).forEach(([label, layer]) => {
     it.layer(StorageLive.pipe(Layer.provideMerge(layer)), {
-      timeout: 30000
+      timeout: 60000
     })(label, (it) => {
       it.effect("getRunners", () =>
         Effect.gen(function*() {
