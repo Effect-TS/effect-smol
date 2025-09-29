@@ -87,6 +87,7 @@ export interface Bottom<T, TypeParameters extends ReadonlyArray<Schema.Top> = re
    */
   readonly message?: string | undefined
   readonly identifier?: string | undefined
+  readonly parseOptions?: AST.ParseOptions | undefined
   readonly jsonSchema?:
     | ToJsonSchema.Annotation.Override
     | ToJsonSchema.Annotation.Constraint
@@ -123,6 +124,7 @@ export interface Declaration<T, TypeParameters extends ReadonlyArray<Schema.Top>
    */
   readonly message?: string | undefined
   readonly identifier?: string | undefined
+  readonly parseOptions?: AST.ParseOptions | undefined
   readonly defaultJsonSerializer?:
     | ((
       typeParameters: { readonly [K in keyof TypeParameters]: Schema.Schema<TypeParameters[K]["Encoded"]> }

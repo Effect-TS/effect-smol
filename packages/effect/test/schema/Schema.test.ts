@@ -57,6 +57,38 @@ describe("Schema", () => {
     })
   })
 
+  describe("parseOptions annotation", () => {
+    it("Number", async () => {
+      const schema = Schema.Number.check(Check.positive(), Check.int()).annotate({ parseOptions: { errors: "all" } })
+      const asserts = new TestSchema.Asserts(schema)
+
+      const decoding = asserts.decoding()
+      await decoding.fail(
+        -1.2,
+        `Expected a value greater than 0, got -1.2
+Expected an integer, got -1.2`
+      )
+    })
+
+    it("Struct", async () => {
+      const schema = Schema.Struct({
+        a: Schema.String,
+        b: Schema.Struct({
+          c: Schema.String,
+          d: Schema.String
+        }).annotate({ parseOptions: { errors: "first" } })
+      })
+      const asserts = new TestSchema.Asserts(schema)
+
+      const decoding = asserts.decoding({ parseOptions: { errors: "all" } })
+      await decoding.fail(
+        { a: "a", b: {} },
+        `Missing key
+  at ["b"]["c"]`
+      )
+    })
+  })
+
   describe("Literal", () => {
     it("should throw an error if the literal is not a finite number", () => {
       throws(

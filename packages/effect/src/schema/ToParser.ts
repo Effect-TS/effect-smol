@@ -333,20 +333,17 @@ export interface Parser {
 
 const go = memoize(
   (ast: AST.AST): Parser => {
-    if (!ast.context && !ast.encoding && !ast.checks) {
-      if (ast._tag === "Suspend") {
-        let parser: Parser
-        return (ou, options) => {
-          parser ??= ast.parser(go)
-          return parser(ou, options)
-        }
-      }
-      return ast.parser(go)
-    }
     let parser: Parser
+    if (!ast.context && !ast.encoding && !ast.checks) {
+      return (ou, options) => {
+        parser ??= ast.parser(go)
+        return parser(ou, Annotations.get(ast)?.["parseOptions"] ?? options)
+      }
+    }
     const isStructural = AST.isTupleType(ast) || AST.isTypeLiteral(ast) ||
       (AST.isDeclaration(ast) && ast.typeParameters.length > 0)
     return (ou, options) => {
+      options = Annotations.get(ast)?.["parseOptions"] ?? options
       const encoding = ast.encoding
       let srou: Effect.Effect<Option.Option<unknown>, Issue.Issue, unknown> | undefined
       if (encoding) {
