@@ -52,3 +52,8 @@ export * as Path from "./Path.ts"
  * @since 4.0.0
  */
 export * as PlatformError from "./PlatformError.ts"
+
+/**
+ * @since 4.0.0
+ */
+export * as Terminal from "./Terminal.ts"
