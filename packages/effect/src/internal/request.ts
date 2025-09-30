@@ -68,13 +68,17 @@ export const requestUnsafe = <A extends Request.Any>(
 }
 
 interface Batch {
-  readonly key: unknown
-  readonly resolver: RequestResolver<any>
+  key: unknown
+  resolver: RequestResolver<any>
+  map: Map<unknown, Batch>
   readonly entrySet: Set<Request.Entry<any>>
   readonly entries: Set<Request.Entry<any>>
+  readonly delayEffect: Effect<void>
+  readonly run: Effect<void, unknown>
   delayFiber?: Fiber<void, unknown> | undefined
 }
 
+const batchPool: Array<Batch> = []
 const pendingBatches = new Map<RequestResolver<any>, Map<unknown, Batch>>()
 
 const addEntry = <A extends Request.Any>(
@@ -111,17 +115,51 @@ const addEntry = <A extends Request.Any>(
   const key = resolver.batchKey(entry)
   batch = batchMap.get(key)
   if (!batch) {
-    batch = {
-      key,
-      resolver,
-      entrySet: new Set(),
-      entries: new Set()
+    if (batchPool.length > 0) {
+      batch = batchPool.pop()!
+      batch.key = key
+      batch.resolver = resolver
+      batch.map = batchMap
+    } else {
+      const newBatch: Batch = {
+        key,
+        resolver,
+        map: batchMap,
+        entrySet: new Set(),
+        entries: new Set(),
+        delayEffect: effect.flatMap(
+          effect.suspend(() => newBatch.resolver.delay),
+          (_) => runBatch(newBatch)
+        ) as Effect<void>,
+        run: effect.onExit(
+          effect.suspend(() =>
+            newBatch.resolver.runAll(Array.from(newBatch.entries) as NonEmptyArray<Request.Entry<any>>, newBatch.key)
+          ),
+          (exit) => {
+            for (const entry of newBatch.entrySet) {
+              entry.completeUnsafe(
+                exit._tag === "Success"
+                  ? exitDie(
+                    new Error("Effect.request: RequestResolver did not complete request", { cause: entry.request })
+                  )
+                  : exit
+              )
+            }
+            newBatch.entries.clear()
+            if (batchPool.length < 128) {
+              newBatch.entrySet.clear()
+              newBatch.key = undefined
+              newBatch.delayFiber = undefined
+              batchPool.push(newBatch)
+            }
+            return effect.void
+          }
+        )
+      }
+      batch = newBatch
     }
     batchMap.set(key, batch)
-    batch.delayFiber = effect.runFork(
-      effect.andThen(resolver.delay, runBatch(batchMap, batch)),
-      { scheduler: fiber.currentScheduler }
-    )
+    batch.delayFiber = effect.runFork(batch.delayEffect, { scheduler: fiber.currentScheduler })
   }
 
   batch.entrySet.add(entry)
@@ -130,7 +168,7 @@ const addEntry = <A extends Request.Any>(
 
   batch.delayFiber!.interruptUnsafe(fiber.id)
   batch.delayFiber = undefined
-  effect.runFork(runBatch(batchMap, batch), { scheduler: fiber.currentScheduler })
+  effect.runFork(runBatch(batch), { scheduler: fiber.currentScheduler })
   return entry
 }
 
@@ -149,7 +187,7 @@ const removeEntryUnsafe = <A extends Request.Any>(
   batch.entrySet.delete(entry)
 
   if (batch.entries.size === 0) {
-    pendingBatches.delete(resolver)
+    batchMap.delete(key)
     if (batch.delayFiber) {
       batch.delayFiber.interruptUnsafe()
     }
@@ -161,27 +199,8 @@ const maybeRemoveEntry = <A extends Request.Any>(
   entry: Request.Entry<A>
 ) => effect.sync(() => removeEntryUnsafe(resolver, entry))
 
-const runBatch = (
-  batchMap: Map<unknown, Batch>,
-  { entries, entrySet, key, resolver }: Batch
-) =>
-  effect.suspend(() => {
-    if (!batchMap.has(key)) return effect.void
-    batchMap.delete(key)
-    return effect.onExit(
-      resolver.runAll(Array.from(entries) as NonEmptyArray<Request.Entry<any>>, key),
-      (exit) => {
-        for (const entry of entrySet) {
-          entry.completeUnsafe(
-            exit._tag === "Success"
-              ? exitDie(
-                new Error("Effect.request: RequestResolver did not complete request", { cause: entry.request })
-              )
-              : exit
-          )
-        }
-        entries.clear()
-        return effect.void
-      }
-    )
-  })
+function runBatch(batch: Batch) {
+  if (!batch.map.has(batch.key)) return effect.void
+  batch.map.delete(batch.key)
+  return batch.run
+}
