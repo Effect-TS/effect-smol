@@ -425,7 +425,7 @@ export const make: <Rpcs extends Rpc.Any>(
     readonly disableFatalDefects?: boolean | undefined
   }
 ) {
-  const { disconnects, end, run, send, supportsAck, supportsSpanPropagation } = yield* Protocol
+  const { disconnects, end, run, send, supportsAck, supportsSpanPropagation, supportsStructuredClone } = yield* Protocol
   const services = yield* Effect.services<Rpc.ToHandler<Rpcs> | Rpc.Middleware<Rpcs>>()
   const scope = yield* Scope.make()
 
@@ -490,17 +490,18 @@ export const make: <Rpcs extends Rpc.Any>(
   }
 
   const schemasCache = new WeakMap<any, Schemas>()
+  const serializer = supportsStructuredClone ? identity : Serializer.json
   const getSchemas = (rpc: Rpc.AnyWithProps) => {
     let schemas = schemasCache.get(rpc)
     if (!schemas) {
       const entry = services.mapUnsafe.get(rpc.key) as Rpc.Handler<Rpcs["_tag"]>
       const streamSchemas = RpcSchema.getStreamSchemas(rpc.successSchema)
       schemas = {
-        decode: Schema.decodeUnknownEffect(Serializer.json(rpc.payloadSchema as any)),
+        decode: Schema.decodeUnknownEffect(serializer(rpc.payloadSchema as any)),
         encodeChunk: Schema.encodeUnknownEffect(
-          Serializer.json(Schema.Array(streamSchemas ? streamSchemas.success : Schema.Any))
+          serializer(Schema.Array(streamSchemas ? streamSchemas.success : Schema.Any))
         ) as any,
-        encodeExit: Schema.encodeUnknownEffect(Serializer.json(Rpc.exitSchema(rpc as any))) as any,
+        encodeExit: Schema.encodeUnknownEffect(serializer(Rpc.exitSchema(rpc as any))) as any,
         services: entry.services
       }
       schemasCache.set(rpc, schemas)
@@ -711,6 +712,7 @@ export class Protocol extends ServiceMap.Key<Protocol, {
   readonly supportsAck: boolean
   readonly supportsTransferables: boolean
   readonly supportsSpanPropagation: boolean
+  readonly supportsStructuredClone: boolean
 }>()("effect/rpc/RpcServer/Protocol") {
   /**
    * @since 4.0.0
@@ -944,7 +946,8 @@ export const makeProtocolWithHttpEffect: Effect.Effect<
       initialMessage: Effect.succeedNone,
       supportsAck: false,
       supportsTransferables: false,
-      supportsSpanPropagation: false
+      supportsSpanPropagation: false,
+      supportsStructuredClone: !serialization.jsonSerialization
     })
   })
 
@@ -1116,7 +1119,8 @@ export const makeProtocolStdio = Effect.fnUntraced(function*<EIn, EOut, RIn, ROu
       initialMessage: Effect.succeedNone,
       supportsAck: true,
       supportsTransferables: false,
-      supportsSpanPropagation: true
+      supportsSpanPropagation: true,
+      supportsStructuredClone: !serialization.jsonSerialization
     }
   }))
 })
@@ -1243,7 +1247,8 @@ const makeSocketProtocol: Effect.Effect<
       initialMessage: Effect.succeedNone,
       supportsAck: true,
       supportsTransferables: false,
-      supportsSpanPropagation: true
+      supportsSpanPropagation: true,
+      supportsStructuredClone: !serialization.jsonSerialization
     })
   })
 
