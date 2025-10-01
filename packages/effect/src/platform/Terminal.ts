@@ -96,7 +96,7 @@ export const isQuitError = (u: unknown): u is QuitError =>
 
 /**
  * @since 4.0.0
- * @category tag
+ * @category services 
  */
 export const Terminal: ServiceMap.Key<Terminal, Terminal> = ServiceMap.Key("effect/platform/Terminal")
 
