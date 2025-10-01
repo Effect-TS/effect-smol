@@ -25,6 +25,7 @@
     // Miscellaneoaus
     "skipLibCheck": true, // Skip type checking of third party libraries.
     "noErrorTruncation": true, // Do not truncate error messages.
+    "stripInternal": true, // Remove declarations marked with `/** @internal */` from generated `.d.ts` files.
     "types": [], // Disable automatic loading of `@types/*` packages.
     "plugins": [
       {
