@@ -501,6 +501,7 @@ const keepAlive = (() => {
   })
 })()
 
+/** @internal */
 export class FiberImpl<A = any, E = any> implements Fiber.Fiber<A, E> {
   constructor(
     services: ServiceMap.ServiceMap<never>,
@@ -877,12 +878,14 @@ export const die = (defect: unknown): Effect.Effect<never> => exitDie(defect)
 /** @internal */
 export const failSync = <E>(error: LazyArg<E>): Effect.Effect<never, E> => suspend(() => fail(internalCall(error)))
 
+/** @internal */
 const void_: Effect.Effect<void> = succeed(void 0)
 export {
   /** @internal */
   void_ as void
 }
 
+/** @internal */
 const try_ = <A, E>(options: {
   try: LazyArg<A>
   catch: (error: unknown) => E
@@ -3834,6 +3837,7 @@ export const bind: {
   ): Effect.Effect<Simplify<Omit<A, N> & Record<N, B>>, E | E2, R | R2>
 } = doNotation.bind<Effect.EffectTypeLambda>(map, flatMap)
 
+/** @internal */
 const let_: {
   <N extends string, A extends Record<string, any>, B>(
     name: N,
@@ -5148,6 +5152,7 @@ export function interruptChildrenPatch() {
   fiberMiddleware.interruptChildren ??= fiberInterruptChildren
 }
 
+/** @internal */
 const undefined_ = succeed(undefined)
 
 export {
