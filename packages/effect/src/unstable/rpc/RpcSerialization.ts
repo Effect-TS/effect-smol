@@ -16,6 +16,7 @@ export class RpcSerialization extends ServiceMap.Key<RpcSerialization, {
   makeUnsafe(): Parser
   readonly contentType: string
   readonly includesFraming: boolean
+  readonly jsonSerialization: boolean
 }>()("effect/rpc/RpcSerialization") {}
 
 /**
@@ -34,6 +35,7 @@ export interface Parser {
 export const json: RpcSerialization["Service"] = RpcSerialization.of({
   contentType: "application/json",
   includesFraming: false,
+  jsonSerialization: true,
   makeUnsafe: () => {
     const decoder = new TextDecoder()
     return {
@@ -50,6 +52,7 @@ export const json: RpcSerialization["Service"] = RpcSerialization.of({
 export const ndjson: RpcSerialization["Service"] = RpcSerialization.of({
   contentType: "application/ndjson",
   includesFraming: true,
+  jsonSerialization: true,
   makeUnsafe: () => {
     const decoder = new TextDecoder()
     let buffer = ""
@@ -93,6 +96,7 @@ export const jsonRpc = (options?: {
   RpcSerialization.of({
     contentType: options?.contentType ?? "application/json",
     includesFraming: false,
+    jsonSerialization: true,
     makeUnsafe: () => {
       const decoder = new TextDecoder()
       const batches = new Map<string, {
@@ -128,6 +132,7 @@ export const ndJsonRpc = (options?: {
   RpcSerialization.of({
     contentType: options?.contentType ?? "application/json-rpc",
     includesFraming: true,
+    jsonSerialization: true,
     makeUnsafe: () => {
       const parser = ndjson.makeUnsafe()
       const batches = new Map<string, {
@@ -369,9 +374,16 @@ type JsonRpcMessage = JsonRpcRequest | JsonRpcResponse
 export const msgPack: RpcSerialization["Service"] = RpcSerialization.of({
   contentType: "application/msgpack",
   includesFraming: true,
+  jsonSerialization: false,
   makeUnsafe: () => {
-    const unpackr = new Msgpackr.Unpackr()
-    const packr = new Msgpackr.Packr()
+    const unpackr = new Msgpackr.Unpackr({
+      useRecords: true,
+      moreTypes: true
+    })
+    const packr = new Msgpackr.Packr({
+      useRecords: true,
+      moreTypes: true
+    })
     const encoder = new TextEncoder()
     let incomplete: Uint8Array | undefined = undefined
     return {
