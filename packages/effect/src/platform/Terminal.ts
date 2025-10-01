@@ -38,7 +38,7 @@ export interface Terminal {
 
 /**
  * @since 4.0.0
- * @category model
+ * @category models
  */
 export interface Key {
   /**
@@ -61,7 +61,7 @@ export interface Key {
 
 /**
  * @since 4.0.0
- * @category model
+ * @category models
  */
 export interface UserInput {
   /**
@@ -79,7 +79,7 @@ export interface UserInput {
  * quit out of a `Terminal` prompt for input (usually by entering `ctrl`+`c`).
  *
  * @since 4.0.0
- * @category model
+ * @category models
  */
 export class QuitError extends Data.TaggedError("QuitError")<{}> { }
 
