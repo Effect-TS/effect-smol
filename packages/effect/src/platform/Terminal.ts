@@ -2,11 +2,13 @@
  * @since 4.0.0
  */
 
-import { Effect, Scope, ServiceMap } from "../index.ts"
+import * as Effect from "../Effect.ts"
+import * as Scope from "../Scope.ts"
 import type { Dequeue } from "../Queue.ts"
-import type { PlatformError } from "./index.ts"
+import type { PlatformError } from "./PlatformError.ts"
 import type * as Option from "../data/Option.ts"
 import * as Data from "../data/Data.ts"
+import * as ServiceMap from "../ServiceMap.ts"
 
 /**
  * A `Terminal` represents a command-line interface which can read input from a
@@ -31,7 +33,7 @@ export interface Terminal {
   /**
    * Displays text to the default standard output.
    */
-  readonly display: (text: string) => Effect.Effect<void, PlatformError.PlatformError>
+  readonly display: (text: string) => Effect.Effect<void, PlatformError>
 }
 
 /**
