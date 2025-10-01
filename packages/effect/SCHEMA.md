@@ -83,18 +83,19 @@ export interface Bottom<
   E,
   RD,
   RE,
-  Ast extends SchemaAST.AST,
+  Ast extends AST.AST,
   RebuildOut extends Top,
-  AnnotateIn extends SchemaAnnotations.Annotations,
+  AnnotateIn extends Annotations.Annotations = Annotations.Bottom<T>,
   TypeMakeIn = T,
+  Iso = T,
   TypeMake = TypeMakeIn,
   TypeMutability extends Mutability = "readonly",
   TypeOptionality extends Optionality = "required",
   TypeConstructorDefault extends ConstructorDefault = "no-default",
   EncodedMutability extends Mutability = "readonly",
   EncodedOptionality extends Optionality = "required"
-> extends Pipeable {
-  readonly [TypeId]: TypeId
+> extends Pipeable.Pipeable {
+  readonly [TypeId]: typeof TypeId
 
   readonly ast: Ast
   readonly "~rebuild.out": RebuildOut
@@ -106,23 +107,23 @@ export interface Bottom<
   readonly EncodingServices: RE
 
   readonly "~type.make.in": TypeMakeIn
-  readonly "~type.make": TypeMake
+  readonly "~type.make": TypeMake // useful to type the `refine` interface
+  readonly "~type.constructor.default": TypeConstructorDefault
+  readonly Iso: Iso
+
   readonly "~type.mutability": TypeMutability
   readonly "~type.optionality": TypeOptionality
-  readonly "~type.constructor.default": TypeConstructorDefault
-
   readonly "~encoded.mutability": EncodedMutability
   readonly "~encoded.optionality": EncodedOptionality
 
   annotate(annotations: this["~annotate.in"]): this["~rebuild.out"]
+  annotateKey(annotations: Annotations.Key<this["Type"]>): this["~rebuild.out"]
+  check(...checks: readonly [Check.Check<this["Type"]>, ...Array<Check.Check<this["Type"]>>]): this["~rebuild.out"]
   rebuild(ast: this["ast"]): this["~rebuild.out"]
   /**
    * @throws {Error} The issue is contained in the error cause.
    */
   makeUnsafe(input: this["~type.make.in"], options?: MakeOptions): this["Type"]
-  check(
-    ...checks: readonly [Check.Check<this["Type"]>, ...ReadonlyArray<Check.Check<this["Type"]>>]
-  ): this["~rebuild.out"]
 }
 ```
 
@@ -136,6 +137,7 @@ export interface Bottom<
 - `RebuildOut`: the type returned when modifying the schema (namely when you add annotations or checks)
 - `AnnotateIn`: the type of accepted annotations
 - `TypeMakeIn`: the type of the input to the `makeUnsafe` constructor
+- `Iso`: the type of the focus of the default `Optic.Iso`
 
 Contextual information about the schema (when the schema is used in a composite schema such as a struct or a tuple):
 
@@ -4635,6 +4637,61 @@ console.log(_s.replace("b", new B({ a: new A({ s: "a" }) })))
 // B { a: A { s: 'b' } }
 ```
 
+## Using the Differ Module for Type-Safe JSON Patches
+
+The `Differ` module lets you compute and apply JSON Patch (RFC 6902) changes for any value described by a `Schema`. You give it a schema once, then use the returned differ to produce a patch from an old value to a new value, and to apply that patch.
+
+**Example** (Compare two values and apply the patch)
+
+```ts
+import { Differ, Schema } from "effect/schema"
+
+// Describe the shape of your data
+const schema = Schema.Struct({
+  id: Schema.Number,
+  name: Schema.String,
+  price: Schema.Number
+})
+
+// Build a differ tied to the schema
+const jsonPatchDiffer = Differ.jsonPatch(schema)
+
+// Prepare two values to compare
+const oldValue = schema.makeUnsafe({ id: 1, name: "a", price: 1 })
+const newValue = schema.makeUnsafe({ id: 1, name: "b", price: 2 })
+
+// Compute a JSON Patch document (an array of operations)
+const jsonPatch = jsonPatchDiffer.diff(oldValue, newValue)
+console.log(jsonPatch)
+/*
+[
+  { op: 'replace', path: '/name', value: 'b' },
+  { op: 'replace', path: '/price', value: 2 }
+]
+*/
+
+// Apply the patch to the old value to get the new value
+const patched = jsonPatchDiffer.patch(oldValue, jsonPatch)
+console.log(patched)
+// { id: 1, name: 'b', price: 2 }
+```
+
+### How it works
+
+The idea is simple: if you have a `Schema` for a type `T`, you can serialize any `T` to JSON and back. That lets us compute and apply JSON Patch on the JSON view, while keeping the public API typed as `T`.
+
+- **diff(oldValue, newValue)**
+  1. Encode `oldValue: T` and `newValue: T` to JSON with the schema serializer.
+  2. Compute a JSON Patch document between the two JSON values.
+  3. Return that patch (an array of `"add" | "remove" | "replace"` operations).
+
+- **patch(oldValue, patch)**
+  1. Encode `oldValue: T` to JSON.
+  2. Apply the JSON Patch to the JSON value.
+  3. Decode the patched JSON back to `T` using the schema.
+
+This approach keeps patches independent from TypeScript types and uses the schema as the guardrail when turning JSON back into `T`.
+
 ## Formatters
 
 ### StandardSchemaV1 formatter
@@ -6069,14 +6126,24 @@ import { Schema } from "effect/schema"
 
 const schema = Schema.Struct({
   a: Schema.String,
-  b: Schema.Literal("b").pipe(Schema.withDecodingDefaultKey(() => "b" as const, { encodingStrategy: "omit" }))
+  b: Schema.Literal("b").pipe(Schema.withDecodingDefaultKey(() => "b", { encodingStrategy: "omit" }))
 })
 
-console.log(Schema.decodeUnknownSync(schema)({ a: "a" }))
+console.log(Schema.decodeUnknownSync(schema)({ a: "a", b: "b" }))
+// { a: 'a', b: 'b' }
+
+console.log(Schema.decodeUnknownSync(schema)({ a: "a", b: "b" }))
 // { a: 'a', b: 'b' }
 
 console.log(Schema.encodeUnknownSync(schema)({ a: "a", b: "b" }))
 // { a: 'a' }
+
+Schema.decodeUnknownSync(schema)({ a: "a", b: "c" })
+/*
+throws:
+Error: Expected "b", got "c"
+  at ["b"]
+*/
 ```
 
 ### annotations

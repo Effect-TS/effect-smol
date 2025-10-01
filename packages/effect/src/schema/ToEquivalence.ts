@@ -172,8 +172,8 @@ const go = memoize((ast: AST.AST): Equivalence.Equivalence<any> => {
         // ---------------------------------------------
         for (let i = 0; i < indexSignatures.length; i++) {
           const is = ast.indexSignatures[i]
-          const aKeys = AST.getIndexSignatureKeys(a, is)
-          const bKeys = AST.getIndexSignatureKeys(b, is)
+          const aKeys = AST.getIndexSignatureKeys(a, is.parameter)
+          const bKeys = AST.getIndexSignatureKeys(b, is.parameter)
 
           if (aKeys.length !== bKeys.length) return false
 

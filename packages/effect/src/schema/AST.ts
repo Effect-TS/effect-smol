@@ -1061,7 +1061,7 @@ export class TupleType extends Base {
       // handle rest element
       // ---------------------------------------------
       const len = input.length
-      if (Arr.isReadonlyArrayNonEmpty(ast.rest)) {
+      if (ast.rest.length > 0) {
         const [head, ...tail] = ast.rest
         const parser = go(head)
         const keyAnnotations = head.context?.annotations
@@ -1173,12 +1173,12 @@ function getIndexSignatureHash(ast: AST): string {
 /** @internal */
 export function getIndexSignatureKeys(
   input: { readonly [x: PropertyKey]: unknown },
-  is: IndexSignature
+  parameter: AST
 ): ReadonlyArray<PropertyKey> {
-  const parameter = encodedAST(is.parameter)
-  switch (parameter._tag) {
+  const p = encodedAST(parameter)
+  switch (p._tag) {
     case "TemplateLiteral": {
-      const regex = getTemplateLiteralRegExp(parameter)
+      const regex = getTemplateLiteralRegExp(p)
       return Object.keys(input).filter((key) => regex.test(key))
     }
     case "SymbolKeyword":
@@ -1347,7 +1347,7 @@ export class TypeLiteral extends Base {
       if (indexCount > 0) {
         for (let i = 0; i < indexCount; i++) {
           const is = ast.indexSignatures[i]
-          const keys = getIndexSignatureKeys(input, is)
+          const keys = getIndexSignatureKeys(input, is.parameter)
           for (let j = 0; j < keys.length; j++) {
             const key = keys[j]
             const parserKey = go(goIndexSignature(is.parameter))

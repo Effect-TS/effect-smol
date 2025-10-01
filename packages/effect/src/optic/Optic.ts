@@ -198,7 +198,7 @@ class OptionalImpl<S, A> implements Optional<S, A> {
         new AST.Lens(
           (s) => s[key],
           (a, s) => {
-            const copy = shallowCopy(s)
+            const copy = cloneShallow(s)
             if (a === undefined) {
               if (Array.isArray(copy) && typeof key === "number") {
                 copy.splice(key, 1)
@@ -243,7 +243,7 @@ class OptionalImpl<S, A> implements Optional<S, A> {
           (s) => Object.hasOwn(s, key) ? Result.succeed(s[key]) : err,
           (a, s) => {
             if (Object.hasOwn(s, key)) {
-              const copy = shallowCopy(s)
+              const copy = cloneShallow(s)
               copy[key] = a
               return Result.succeed(copy)
             } else {
@@ -368,8 +368,11 @@ function make(ast: AST.AST): any {
   }
 }
 
-function shallowCopy(s: object): any {
-  return Array.isArray(s) ? s.slice() : { ...s }
+/** @internal */
+export function cloneShallow<T>(x: T): T {
+  if (Array.isArray(x)) return x.slice() as T
+  if (typeof x === "object" && x !== null) return { ...x } as T
+  return x
 }
 
 type Op = {
@@ -400,13 +403,13 @@ const go = memoize((ast: AST.AST): Op => {
         },
         set: (a: any, s: any) => {
           const path = ast.path
-          const out = shallowCopy(s)
+          const out = cloneShallow(s)
 
           let current = out
           let i = 0
           for (; i < path.length - 1; i++) {
             const key = path[i]
-            current[key] = shallowCopy(current[key])
+            current[key] = cloneShallow(current[key])
             current = current[key]
           }
 

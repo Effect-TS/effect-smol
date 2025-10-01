@@ -161,7 +161,7 @@ export const defaultReducerAlg: AST.ReducerAlg<Format<any>> = {
       // handle index signatures
       // ---------------------------------------------
       for (let i = 0; i < indexSignatures.length; i++) {
-        const keys = AST.getIndexSignatureKeys(t, ast.indexSignatures[i])
+        const keys = AST.getIndexSignatureKeys(t, ast.indexSignatures[i].parameter)
         for (const key of keys) {
           if (visited.has(key)) {
             continue
