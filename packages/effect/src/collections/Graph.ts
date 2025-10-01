@@ -218,7 +218,10 @@ const missingNode = (node: number) => new GraphError({ message: `Node ${node} do
 // Constructors
 // =============================================================================
 
-/** @internal */
+/**
+ * @since 4.0.0
+ * @category Guards
+ */
 export const isGraph = (u: unknown): u is Graph<unknown, unknown> => typeof u === "object" && u !== null && TypeId in u
 
 /**

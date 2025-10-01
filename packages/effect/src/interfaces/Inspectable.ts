@@ -279,7 +279,7 @@ function safeToString(input: any): string {
  * - `ignoreToString`: If `true`, the `toString` method is not called on the value.
  *   Defaults to `false`.
  *
- * @internal
+ * @since 4.0.0
  */
 export function format(
   input: unknown,

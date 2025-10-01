@@ -110,13 +110,9 @@ export interface Chunk<out A> extends Iterable<A>, Equal.Equal, Pipeable, Inspec
     readonly _A: Covariant<A>
   }
   readonly length: number
-  /** @internal */
   right: Chunk<A>
-  /** @internal */
   left: Chunk<A>
-  /** @internal */
   backing: Backing<A>
-  /** @internal */
   depth: number
 }
 

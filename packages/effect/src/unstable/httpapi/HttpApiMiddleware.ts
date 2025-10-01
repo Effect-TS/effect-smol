@@ -15,8 +15,7 @@ import type * as HttpApiSecurity from "./HttpApiSecurity.ts"
 
 const TypeId = "~effect/httpapi/HttpApiMiddleware"
 
-/** @internal */
-export const SecurityTypeId = "~effect/httpapi/HttpApiMiddleware/Security"
+const SecurityTypeId = "~effect/httpapi/HttpApiMiddleware/Security"
 
 /**
  * @since 4.0.0
