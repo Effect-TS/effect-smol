@@ -1,14 +1,14 @@
 /**
  * @since 4.0.0
  */
-
-import * as Effect from "../Effect.ts"
-import * as Scope from "../Scope.ts"
-import type { Dequeue } from "../Queue.ts"
-import type { PlatformError } from "./PlatformError.ts"
-import type * as Option from "../data/Option.ts"
 import * as Data from "../data/Data.ts"
+import type * as Option from "../data/Option.ts"
+import { hasProperty } from "../data/Predicate.ts"
+import type * as Effect from "../Effect.ts"
+import type { Dequeue } from "../Queue.ts"
+import type * as Scope from "../Scope.ts"
 import * as ServiceMap from "../ServiceMap.ts"
+import type { PlatformError } from "./PlatformError.ts"
 
 const TypeId = "~effect/platform/Terminal"
 
@@ -17,7 +17,7 @@ const TypeId = "~effect/platform/Terminal"
  * user and display messages to a user.
  *
  * @since 4.0.0
- * @category models
+ * @category Models
  */
 export interface Terminal {
   readonly [TypeId]: typeof TypeId
@@ -42,7 +42,7 @@ export interface Terminal {
 
 /**
  * @since 4.0.0
- * @category models
+ * @category Models
  */
 export interface Key {
   /**
@@ -65,7 +65,7 @@ export interface Key {
 
 /**
  * @since 4.0.0
- * @category models
+ * @category Models
  */
 export interface UserInput {
   /**
@@ -78,25 +78,31 @@ export interface UserInput {
   readonly key: Key
 }
 
+const QuitErrorTypeId = "~effect/platform/Terminal/QuitError" as const
+
 /**
  * A `QuitError` represents an error that occurs when a user attempts to
  * quit out of a `Terminal` prompt for input (usually by entering `ctrl`+`c`).
  *
  * @since 4.0.0
- * @category models
+ * @category QuitError
  */
-export class QuitError extends Data.TaggedError("QuitError")<{}> { }
+export class QuitError extends Data.TaggedError("QuitError") {
+  /**
+   * @since 4.0.0
+   */
+  readonly [QuitErrorTypeId]: typeof QuitErrorTypeId = QuitErrorTypeId
+}
 
 /**
  * @since 4.0.0
- * @category refinements
+ * @category QuitError
  */
-export const isQuitError = (u: unknown): u is QuitError =>
-  typeof u === "object" && u != null && "_tag" in u && u._tag === "QuitError"
+export const isQuitError = (u: unknown): u is QuitError => hasProperty(u, QuitErrorTypeId)
 
 /**
  * @since 4.0.0
- * @category services 
+ * @category Services
  */
 export const Terminal: ServiceMap.Key<Terminal, Terminal> = ServiceMap.Key("effect/platform/Terminal")
 
@@ -104,7 +110,7 @@ export const Terminal: ServiceMap.Key<Terminal, Terminal> = ServiceMap.Key("effe
  * Creates a Terminal implementation
  *
  * @since 4.0.0
- * @category constructor
+ * @category Constructors
  */
 export const make = (
   impl: Omit<Terminal, typeof TypeId>
