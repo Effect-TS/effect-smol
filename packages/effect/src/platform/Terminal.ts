@@ -10,6 +10,8 @@ import type * as Option from "../data/Option.ts"
 import * as Data from "../data/Data.ts"
 import * as ServiceMap from "../ServiceMap.ts"
 
+const TypeId = "~effect/platform/Terminal"
+
 /**
  * A `Terminal` represents a command-line interface which can read input from a
  * user and display messages to a user.
@@ -18,6 +20,8 @@ import * as ServiceMap from "../ServiceMap.ts"
  * @category models
  */
 export interface Terminal {
+  readonly [TypeId]: typeof TypeId
+
   /**
    * The number of columns available on the platform's terminal interface.
    */
@@ -95,3 +99,13 @@ export const isQuitError = (u: unknown): u is QuitError =>
  * @category tag
  */
 export const Terminal: ServiceMap.Key<Terminal, Terminal> = ServiceMap.Key("effect/platform/Terminal")
+
+/**
+ * Creates a Terminal implementation
+ *
+ * @since 4.0.0
+ * @category constructor
+ */
+export const make = (
+  impl: Omit<Terminal, typeof TypeId>
+): Terminal => Terminal.of({ ...impl, [TypeId]: TypeId })
