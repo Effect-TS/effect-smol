@@ -414,7 +414,7 @@ const go = memoize((ast: AST.AST): Op => {
 
           console.log({ a, s, path })
 
-          const out = Clonable.symbol in s ? s[Clonable.symbol] : shallowCopy(s)
+          const out = Clonable.symbol in s ? s[Clonable.symbol]() : shallowCopy(s)
 
           let current = out
           let i = 0
@@ -426,8 +426,14 @@ const go = memoize((ast: AST.AST): Op => {
             current = current[key]
           }
 
+          console.log({ path })
+
           const finalKey = path[i]
-          current[finalKey] = a
+          if (Clonable.symbol in s) {
+            return current[Clonable.symbol]({ [finalKey]: a })
+          } else {
+            current[finalKey] = a
+          }
 
           return out
         }

@@ -10,7 +10,7 @@ import type { Result } from "../data/Result.ts"
 import type { EffectIterator, Yieldable } from "../Effect.ts"
 import type { LazyArg } from "../Function.ts"
 import { constNull, constUndefined, dual, identity, isFunction } from "../Function.ts"
-import * as Clonable from "../interfaces/Clonable.ts"
+import type * as Clonable from "../interfaces/Clonable.ts"
 import * as Equal from "../interfaces/Equal.ts"
 import type { Inspectable } from "../interfaces/Inspectable.ts"
 import type { Pipeable } from "../interfaces/Pipeable.ts"
@@ -66,11 +66,6 @@ const TypeId = "~effect/data/Option"
  */
 export type Option<A> = None<A> | Some<A>
 
-declare const asd: Option<number>
-
-const qwe2: Partial<typeof asd> = asd
-
-const qwe = asd[Clonable.symbol]({ value: 5 })
 /**
  * @category Models
  * @since 2.0.0

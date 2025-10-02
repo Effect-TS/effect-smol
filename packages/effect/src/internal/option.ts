@@ -30,15 +30,16 @@ const SomeProto = Object.assign(Object.create(CommonProto), {
   [Hash.symbol]<A>(this: Option.Some<A>) {
     return Hash.combine(Hash.hash(this._tag))(Hash.hash(this.value))
   },
-  [Clonable.symbol]<A>(this: Option.Some<A>, patch: Partial<Option.Option<A>>): Option.Option<A> {
-    if (patch._tag === "None") {
-      return none
-    } else {
+  [Clonable.symbol]<A>(this: Option.Some<A>, patch?: Partial<Option.Option<A>>): Option.Option<A> {
+    if (patch) {
+      if ("_tag" in patch && patch._tag === "None") {
+        return none
+      }
       if ("value" in patch) {
         return some(patch.value)
       }
     }
-    return some(this.value)
+    return some(Clonable.clone(this.value))
   },
   toString<A>(this: Option.Some<A>) {
     return `some(${format(this.value)})`
@@ -65,11 +66,11 @@ const NoneProto = Object.assign(Object.create(CommonProto), {
   [Hash.symbol]<A>(this: Option.None<A>) {
     return NoneHash
   },
-  [Clonable.symbol]<A>(this: Option.None<A>, patch: Partial<Option.Option<A>>): Option.Option<A> {
-    if (patch._tag === "Some" && "value" in patch) {
+  [Clonable.symbol]<A>(this: Option.None<A>, patch?: Partial<Option.Option<A>>): Option.Option<A> {
+    if (patch && patch._tag === "Some" && "value" in patch) {
       return some(patch.value)
     }
-    return none
+    return this
   },
   toString<A>(this: Option.None<A>) {
     return `none()`
