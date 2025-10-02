@@ -329,7 +329,8 @@ export const run: (
                 } as any)
               },
               supportsAck: true,
-              supportsTransferables: false
+              supportsTransferables: false,
+              supportsStructuredClone: false
             }
           }))
         )
