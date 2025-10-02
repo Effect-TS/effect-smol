@@ -10,6 +10,7 @@ import type { Result } from "../data/Result.ts"
 import type { EffectIterator, Yieldable } from "../Effect.ts"
 import type { LazyArg } from "../Function.ts"
 import { constNull, constUndefined, dual, identity, isFunction } from "../Function.ts"
+import * as Clonable from "../interfaces/Clonable.ts"
 import * as Equal from "../interfaces/Equal.ts"
 import type { Inspectable } from "../interfaces/Inspectable.ts"
 import type { Pipeable } from "../interfaces/Pipeable.ts"
@@ -65,11 +66,18 @@ const TypeId = "~effect/data/Option"
  */
 export type Option<A> = None<A> | Some<A>
 
+declare const asd: Option<number>
+
+const qwe2: Partial<typeof asd> = asd
+
+const qwe = asd[Clonable.symbol]({ value: 5 })
 /**
  * @category Models
  * @since 2.0.0
  */
-export interface None<out A> extends Pipeable, Inspectable, Yieldable<Option<A>, A, NoSuchElementError> {
+export interface None<out A>
+  extends Clonable.Clonable, Pipeable, Inspectable, Yieldable<Option<A>, A, NoSuchElementError>
+{
   readonly _tag: "None"
   readonly _op: "None"
   readonly [TypeId]: {
@@ -84,7 +92,9 @@ export interface None<out A> extends Pipeable, Inspectable, Yieldable<Option<A>,
  * @category Models
  * @since 2.0.0
  */
-export interface Some<out A> extends Pipeable, Inspectable, Yieldable<Option<A>, A, NoSuchElementError> {
+export interface Some<out A>
+  extends Clonable.Clonable, Pipeable, Inspectable, Yieldable<Option<A>, A, NoSuchElementError>
+{
   readonly _tag: "Some"
   readonly _op: "Some"
   readonly value: A

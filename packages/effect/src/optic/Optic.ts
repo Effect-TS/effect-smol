@@ -10,6 +10,7 @@ import * as Option from "../data/Option.ts"
 import * as Result from "../data/Result.ts"
 import * as Struct from "../data/Struct.ts"
 import { identity, memoize } from "../Function.ts"
+import * as Clonable from "../interfaces/Clonable.ts"
 import { format } from "../interfaces/Inspectable.ts"
 import type { Literal } from "../schema/AST.ts"
 import { runChecks, runRefine } from "../schema/AST.ts"
@@ -410,13 +411,18 @@ const go = memoize((ast: AST.AST): Op => {
         },
         set: (a: any, s: any) => {
           const path = ast.path
-          const out = cloneShallow(s)
+
+          console.log({ a, s, path })
+
+          const out = Clonable.symbol in s ? s[Clonable.symbol] : shallowCopy(s)
 
           let current = out
           let i = 0
           for (; i < path.length - 1; i++) {
             const key = path[i]
-            current[key] = cloneShallow(current[key])
+
+            console.log(444)
+            current[key] = shallowCopy(current[key])
             current = current[key]
           }
 
