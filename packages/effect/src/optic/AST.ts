@@ -1,27 +1,39 @@
-import type * as Result from "../../data/Result.ts"
-import type * as Check from "../../schema/Check.ts"
+/**
+ * @since 4.0.0
+ */
 
-/** @internal */
+import type * as Result from "../data/Result.ts"
+import type * as Check_ from "../schema/Check.ts"
+
+/**
+ * @since 4.0.0
+ */
 export type AST =
-  | IdentityNode
-  | IsoNode<any, any>
-  | LensNode<any, any>
-  | PrismNode<any, any>
-  | OptionalNode<any, any>
-  | PathNode
-  | CheckNode<any>
-  | CompositionNode
+  | Identity
+  | Iso<any, any>
+  | Lens<any, any>
+  | Prism<any, any>
+  | Optional<any, any>
+  | Path
+  | Check<any>
+  | Composition
 
-/** @internal */
-export class IdentityNode {
+/**
+ * @since 4.0.0
+ */
+export class Identity {
   readonly _tag = "Identity"
 }
 
-/** @internal */
-export const identityNode = new IdentityNode()
+/**
+ * @since 4.0.0
+ */
+export const identity = new Identity()
 
-/** @internal */
-export class CompositionNode {
+/**
+ * @since 4.0.0
+ */
+export class Composition {
   readonly _tag = "Composition"
   readonly asts: readonly [AST, ...Array<AST>]
 
@@ -30,8 +42,10 @@ export class CompositionNode {
   }
 }
 
-/** @internal */
-export class IsoNode<S, A> {
+/**
+ * @since 4.0.0
+ */
+export class Iso<S, A> {
   readonly _tag = "Iso"
   readonly get: (s: S) => A
   readonly set: (a: A) => S
@@ -42,8 +56,10 @@ export class IsoNode<S, A> {
   }
 }
 
-/** @internal */
-export class LensNode<S, A> {
+/**
+ * @since 4.0.0
+ */
+export class Lens<S, A> {
   readonly _tag = "Lens"
   readonly get: (s: S) => A
   readonly set: (a: A, s: S) => S
@@ -54,8 +70,10 @@ export class LensNode<S, A> {
   }
 }
 
-/** @internal */
-export class PrismNode<S, A> {
+/**
+ * @since 4.0.0
+ */
+export class Prism<S, A> {
   readonly _tag = "Prism"
   readonly get: (s: S) => Result.Result<A, string>
   readonly set: (a: A) => S
@@ -66,8 +84,10 @@ export class PrismNode<S, A> {
   }
 }
 
-/** @internal */
-export class OptionalNode<S, A> {
+/**
+ * @since 4.0.0
+ */
+export class Optional<S, A> {
   readonly _tag = "Optional"
   readonly get: (s: S) => Result.Result<A, string>
   readonly set: (a: A, s: S) => Result.Result<S, string>
@@ -78,8 +98,10 @@ export class OptionalNode<S, A> {
   }
 }
 
-/** @internal */
-export class PathNode {
+/**
+ * @since 4.0.0
+ */
+export class Path {
   readonly _tag = "Path"
   readonly path: ReadonlyArray<PropertyKey>
 
@@ -88,18 +110,20 @@ export class PathNode {
   }
 }
 
-/** @internal */
-export class CheckNode<T> {
+/**
+ * @since 4.0.0
+ */
+export class Check<T> {
   readonly _tag = "Checks"
-  readonly checks: readonly [Check.Check<T>, ...Array<Check.Check<T>>]
+  readonly checks: readonly [Check_.Check<T>, ...Array<Check_.Check<T>>]
 
-  constructor(checks: readonly [Check.Check<T>, ...Array<Check.Check<T>>]) {
+  constructor(checks: readonly [Check_.Check<T>, ...Array<Check_.Check<T>>]) {
     this.checks = checks
   }
 }
 
 // Nodes that can appear in a normalized chain (no Identity/Composition)
-type NormalizedNode = Exclude<AST, IdentityNode | CompositionNode>
+type NormalizedNode = Exclude<AST, Identity | Composition>
 
 // Fuse with tail when possible, else push.
 function pushNormalized(acc: Array<NormalizedNode>, node: NormalizedNode): void {
@@ -107,12 +131,12 @@ function pushNormalized(acc: Array<NormalizedNode>, node: NormalizedNode): void 
   if (last) {
     if (last._tag === "Path" && node._tag === "Path") {
       // fuse Path
-      acc[acc.length - 1] = new PathNode([...last.path, ...node.path])
+      acc[acc.length - 1] = new Path([...last.path, ...node.path])
       return
     }
     if (last._tag === "Checks" && node._tag === "Checks") {
       // fuse Checks
-      acc[acc.length - 1] = new CheckNode<any>([...last.checks, ...node.checks])
+      acc[acc.length - 1] = new Check<any>([...last.checks, ...node.checks])
       return
     }
   }
@@ -139,10 +163,10 @@ export function compose(a: AST, b: AST): AST {
 
   switch (nodes.length) {
     case 0:
-      return identityNode
+      return identity
     case 1:
       return nodes[0]
     default:
-      return new CompositionNode(nodes as [AST, ...Array<AST>])
+      return new Composition(nodes as [AST, ...Array<AST>])
   }
 }

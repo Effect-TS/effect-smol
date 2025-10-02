@@ -12,19 +12,9 @@ import * as Struct from "../data/Struct.ts"
 import { identity, memoize } from "../Function.ts"
 import { format } from "../interfaces/Inspectable.ts"
 import type { Literal } from "../schema/AST.ts"
-import * as SAST from "../schema/AST.ts"
+import { runChecks, runRefine } from "../schema/AST.ts"
 import * as Check from "../schema/Check.ts"
-import {
-  type AST,
-  CheckNode,
-  compose,
-  identityNode,
-  IsoNode,
-  LensNode,
-  OptionalNode,
-  PathNode,
-  PrismNode
-} from "./internal/optic.ts"
+import * as AST from "./AST.ts"
 
 /**
  * @category Iso
@@ -37,7 +27,7 @@ export interface Iso<in out S, in out A> extends Lens<S, A>, Prism<S, A> {}
  * @since 4.0.0
  */
 export function makeIso<S, A>(get: (s: S) => A, set: (a: A) => S): Iso<S, A> {
-  return make(new IsoNode(get, set))
+  return make(new AST.Iso(get, set))
 }
 
 /**
@@ -53,7 +43,7 @@ export interface Lens<in out S, in out A> extends Optional<S, A> {
  * @since 4.0.0
  */
 export function makeLens<S, A>(get: (s: S) => A, replace: (a: A, s: S) => S): Lens<S, A> {
-  return make(new LensNode(get, replace))
+  return make(new AST.Lens(get, replace))
 }
 
 /**
@@ -69,7 +59,7 @@ export interface Prism<in out S, in out A> extends Optional<S, A> {
  * @since 4.0.0
  */
 export function makePrism<S, A>(getResult: (s: S) => Result.Result<A, string>, set: (a: A) => S): Prism<S, A> {
-  return make(new PrismNode(getResult, set))
+  return make(new AST.Prism(getResult, set))
 }
 
 /**
@@ -77,7 +67,7 @@ export function makePrism<S, A>(getResult: (s: S) => Result.Result<A, string>, s
  * @since 4.0.0
  */
 export function fromChecks<T>(...checks: readonly [Check.Check<T>, ...Array<Check.Check<T>>]): Prism<T, T> {
-  return make(new CheckNode(checks))
+  return make(new AST.Check(checks))
 }
 
 /**
@@ -85,7 +75,7 @@ export function fromChecks<T>(...checks: readonly [Check.Check<T>, ...Array<Chec
  * @since 4.0.0
  */
 export function fromRefine<T extends E, E>(refine: Check.Refine<T, E>): Prism<E, T> {
-  return make(new CheckNode([refine]))
+  return make(new AST.Check([refine]))
 }
 
 /**
@@ -93,8 +83,7 @@ export function fromRefine<T extends E, E>(refine: Check.Refine<T, E>): Prism<E,
  * @since 4.0.0
  */
 export interface Optional<in out S, in out A> {
-  /** @internal */
-  readonly ast: AST
+  readonly ast: AST.AST
   readonly getResult: (s: S) => Result.Result<A, string>
   readonly replace: (a: A, s: S) => S
   readonly replaceResult: (a: A, s: S) => Result.Result<S, string>
@@ -168,7 +157,7 @@ export function makeOptional<S, A>(
   getResult: (s: S) => Result.Result<A, string>,
   set: (a: A, s: S) => Result.Result<S, string>
 ): Optional<S, A> {
-  return make(new OptionalNode(getResult, set))
+  return make(new AST.Optional(getResult, set))
 }
 
 /**
@@ -178,11 +167,11 @@ export function makeOptional<S, A>(
 export interface Traversal<in out S, in out A> extends Optional<S, ReadonlyArray<A>> {}
 
 class OptionalImpl<S, A> implements Optional<S, A> {
-  readonly ast: AST
+  readonly ast: AST.AST
   readonly getResult: (s: S) => Result.Result<A, string>
   readonly replaceResult: (a: A, s: S) => Result.Result<S, string>
   constructor(
-    ast: AST,
+    ast: AST.AST,
     getResult: (s: S) => Result.Result<A, string>,
     replaceResult: (a: A, s: S) => Result.Result<S, string>
   ) {
@@ -197,16 +186,16 @@ class OptionalImpl<S, A> implements Optional<S, A> {
     return (s) => Result.getOrElse(Result.flatMap(this.getResult(s), (a) => this.replaceResult(f(a), s)), () => s)
   }
   compose(that: any): any {
-    return make(compose(this.ast, that.ast))
+    return make(AST.compose(this.ast, that.ast))
   }
   key(key: PropertyKey): any {
-    return make(compose(this.ast, new PathNode([key])))
+    return make(AST.compose(this.ast, new AST.Path([key])))
   }
   optionalKey(key: PropertyKey): any {
     return make(
-      compose(
+      AST.compose(
         this.ast,
-        new LensNode(
+        new AST.Lens(
           (s) => s[key],
           (a, s) => {
             const copy = shallowCopy(s)
@@ -226,16 +215,16 @@ class OptionalImpl<S, A> implements Optional<S, A> {
     )
   }
   check(...checks: readonly [Check.Check<any>, ...Array<Check.Check<any>>]): any {
-    return make(compose(this.ast, new CheckNode(checks)))
+    return make(AST.compose(this.ast, new AST.Check(checks)))
   }
   refine(refine: Check.Refine<any, any>): any {
-    return make(compose(this.ast, new CheckNode([refine])))
+    return make(AST.compose(this.ast, new AST.Check([refine])))
   }
   tag(tag: string): any {
     return make(
-      compose(
+      AST.compose(
         this.ast,
-        new PrismNode(
+        new AST.Prism(
           (s) =>
             s._tag === tag
               ? Result.succeed(s)
@@ -248,9 +237,9 @@ class OptionalImpl<S, A> implements Optional<S, A> {
   at(key: PropertyKey): any {
     const err = Result.fail(`Key ${format(key)} not found`)
     return make(
-      compose(
+      AST.compose(
         this.ast,
-        new OptionalNode(
+        new AST.Optional(
           (s) => Object.hasOwn(s, key) ? Result.succeed(s[key]) : err,
           (a, s) => {
             if (Object.hasOwn(s, key)) {
@@ -326,7 +315,7 @@ class OptionalImpl<S, A> implements Optional<S, A> {
 class IsoImpl<S, A> extends OptionalImpl<S, A> implements Iso<S, A> {
   readonly get: (s: S) => A
   readonly set: (a: A) => S
-  constructor(ast: AST, get: (s: S) => A, set: (a: A) => S) {
+  constructor(ast: AST.AST, get: (s: S) => A, set: (a: A) => S) {
     super(ast, (s) => Result.succeed(get(s)), (a) => Result.succeed(set(a)))
     this.get = get
     this.set = set
@@ -341,7 +330,7 @@ class IsoImpl<S, A> extends OptionalImpl<S, A> implements Iso<S, A> {
 
 class LensImpl<S, A> extends OptionalImpl<S, A> implements Lens<S, A> {
   readonly get: (s: S) => A
-  constructor(ast: AST, get: (s: S) => A, replace: (a: A, s: S) => S) {
+  constructor(ast: AST.AST, get: (s: S) => A, replace: (a: A, s: S) => S) {
     super(ast, (s) => Result.succeed(get(s)), (a, s) => Result.succeed(replace(a, s)))
     this.get = get
     this.replace = replace
@@ -353,7 +342,7 @@ class LensImpl<S, A> extends OptionalImpl<S, A> implements Lens<S, A> {
 
 class PrismImpl<S, A> extends OptionalImpl<S, A> implements Prism<S, A> {
   readonly set: (a: A) => S
-  constructor(ast: AST, getResult: (s: S) => Result.Result<A, string>, set: (a: A) => S) {
+  constructor(ast: AST.AST, getResult: (s: S) => Result.Result<A, string>, set: (a: A) => S) {
     super(ast, getResult, (a, _) => Result.succeed(set(a)))
     this.set = set
   }
@@ -365,7 +354,7 @@ class PrismImpl<S, A> extends OptionalImpl<S, A> implements Prism<S, A> {
   }
 }
 
-function make(ast: AST): any {
+function make(ast: AST.AST): any {
   const op = go(ast)
   switch (op._tag) {
     case "Iso":
@@ -389,7 +378,7 @@ type Op = {
   readonly set: (a: unknown, s?: unknown) => any
 }
 
-const go = memoize((ast: AST): Op => {
+const go = memoize((ast: AST.AST): Op => {
   switch (ast._tag) {
     case "Identity":
       return { _tag: "Iso", get: identity, set: identity }
@@ -431,7 +420,7 @@ const go = memoize((ast: AST): Op => {
     case "Checks":
       return {
         _tag: "Prism",
-        get: (s: any) => Result.mapError(SAST.runChecks(ast.checks, s), String),
+        get: (s: any) => Result.mapError(runChecks(ast.checks, s), String),
         set: identity
       }
     case "Composition": {
@@ -518,7 +507,7 @@ function getCompositionTag(a: Op["_tag"], b: Op["_tag"]): Op["_tag"] {
 // Built-in Optics
 // ---------------------------------------------
 
-const identityIso = make(identityNode)
+const identityIso = make(AST.identity)
 
 /**
  * The identity optic.
@@ -535,7 +524,7 @@ export function id<S>(): Iso<S, S> {
  * @since 4.0.0
  */
 export function entries<A>(): Iso<Record<string, A>, ReadonlyArray<readonly [string, A]>> {
-  return make(new IsoNode(Object.entries, Object.fromEntries))
+  return make(new AST.Iso(Object.entries, Object.fromEntries))
 }
 
 /**
@@ -545,7 +534,7 @@ export function entries<A>(): Iso<Record<string, A>, ReadonlyArray<readonly [str
 export function some<A>(): Prism<Option.Option<A>, A> {
   return makePrism(
     (s) =>
-      Result.mapBoth(SAST.runRefine(Check.some<A>(), s), {
+      Result.mapBoth(runRefine(Check.some<A>(), s), {
         onFailure: String,
         onSuccess: (s) => s.value
       }),
@@ -560,7 +549,7 @@ export function some<A>(): Prism<Option.Option<A>, A> {
 export function none<A>(): Prism<Option.Option<A>, undefined> {
   return makePrism(
     (s) =>
-      Result.mapBoth(SAST.runRefine(Check.none<A>(), s), {
+      Result.mapBoth(runRefine(Check.none<A>(), s), {
         onFailure: String,
         onSuccess: () => undefined
       }),
@@ -575,7 +564,7 @@ export function none<A>(): Prism<Option.Option<A>, undefined> {
 export function success<A, E>(): Prism<Result.Result<A, E>, A> {
   return makePrism(
     (s) =>
-      Result.mapBoth(SAST.runRefine(Check.success<A, E>(), s), {
+      Result.mapBoth(runRefine(Check.success<A, E>(), s), {
         onFailure: String,
         onSuccess: (s) => s.success
       }),
@@ -590,7 +579,7 @@ export function success<A, E>(): Prism<Result.Result<A, E>, A> {
 export function failure<A, E>(): Prism<Result.Result<A, E>, E> {
   return makePrism(
     (s) =>
-      Result.mapBoth(SAST.runRefine(Check.failure<A, E>(), s), {
+      Result.mapBoth(runRefine(Check.failure<A, E>(), s), {
         onFailure: String,
         onSuccess: (s) => s.failure
       }),
