@@ -6,6 +6,7 @@ import * as Deferred from "effect/Deferred"
 import * as Effect from "effect/Effect"
 import * as Exit from "effect/Exit"
 import * as Fiber from "effect/Fiber"
+import { identity } from "effect/Function"
 import * as Layer from "effect/Layer"
 import * as Scope from "effect/Scope"
 import { WorkerError } from "effect/unstable/workers/WorkerError"
@@ -19,13 +20,13 @@ declare const self: MessagePort
  */
 export const layer: Layer.Layer<WorkerRunner.WorkerRunnerPlatform> = Layer.succeed(WorkerRunner.WorkerRunnerPlatform)(
   WorkerRunner.WorkerRunnerPlatform.of({
-    start: Effect.gen(function*() {
+    start: Effect.fnUntraced(function*<O = unknown, I = unknown>() {
       if (!("postMessage" in self)) {
         return yield* new WorkerError({ reason: "Spawn", message: "not in a Worker context" })
       }
       const port = self
       const run = <A, E, R>(
-        handler: (portId: number, message: any) => Effect.Effect<A, E, R> | void
+        handler: (portId: number, message: I) => Effect.Effect<A, E, R> | void
       ) =>
         Effect.scopedWith(Effect.fnUntraced(function*(scope) {
           const closeLatch = Deferred.makeUnsafe<void, WorkerError>()
@@ -39,7 +40,7 @@ export const layer: Layer.Layer<WorkerRunner.WorkerRunnerPlatform> = Layer.succe
           }
 
           function onMessage(event: MessageEvent) {
-            const message = (event as MessageEvent).data as WorkerRunner.PlatformMessage
+            const message = (event as MessageEvent).data as WorkerRunner.PlatformMessage<I>
             if (message[0] === 0) {
               const result = handler(0, message[1])
               if (Effect.isEffect(result)) {
@@ -79,13 +80,13 @@ export const layer: Layer.Layer<WorkerRunner.WorkerRunnerPlatform> = Layer.succe
           return yield* Deferred.await(closeLatch)
         }))
 
-      const send = (_portId: number, message: any, transfer?: ReadonlyArray<unknown>) =>
+      const send = (_portId: number, message: O, transfer?: ReadonlyArray<unknown>) =>
         Effect.sync(() =>
           port.postMessage([1, message], {
             transfer: transfer as any
           })
         )
-      return { run, send }
+      return identity<WorkerRunner.WorkerRunner<any, any>>({ run, send })
     })
   })
 )

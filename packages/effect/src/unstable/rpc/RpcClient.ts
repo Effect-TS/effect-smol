@@ -4,12 +4,15 @@
 import * as Cause from "../../Cause.ts"
 import type { NonEmptyReadonlyArray } from "../../collections/Array.ts"
 import * as Filter from "../../data/Filter.ts"
+import * as Option from "../../data/Option.ts"
 import type * as Struct from "../../data/Struct.ts"
+import type * as Duration from "../../Duration.ts"
 import * as Effect from "../../Effect.ts"
 import * as Exit from "../../Exit.ts"
 import * as Fiber from "../../Fiber.ts"
 import { constVoid, dual, identity } from "../../Function.ts"
 import * as Layer from "../../Layer.ts"
+import * as Pool from "../../Pool.ts"
 import * as Queue from "../../Queue.ts"
 import * as Schedule from "../../Schedule.ts"
 import * as Schema from "../../schema/Schema.ts"
@@ -24,6 +27,8 @@ import * as HttpBody from "../http/HttpBody.ts"
 import * as HttpClient from "../http/HttpClient.ts"
 import * as HttpClientRequest from "../http/HttpClientRequest.ts"
 import * as Socket from "../socket/Socket.ts"
+import * as Worker from "../workers/Worker.ts"
+import type { WorkerError } from "../workers/WorkerError.ts"
 import * as Rpc from "./Rpc.ts"
 import { RpcClientError } from "./RpcClientError.ts"
 import type * as RpcGroup from "./RpcGroup.ts"
@@ -32,6 +37,7 @@ import { constPing, RequestId } from "./RpcMessage.ts"
 import type * as RpcMiddleware from "./RpcMiddleware.ts"
 import * as RpcSchema from "./RpcSchema.ts"
 import * as RpcSerialization from "./RpcSerialization.ts"
+import * as RpcWorker from "./RpcWorker.ts"
 import { withRun } from "./Utils.ts"
 
 /**
@@ -1076,6 +1082,175 @@ export const layerProtocolSocket = (options?: {
   never,
   Socket.Socket | RpcSerialization.RpcSerialization
 > => Layer.effect(Protocol)(makeProtocolSocket(options))
+
+/**
+ * @since 4.0.0
+ * @category protocol
+ */
+export const makeProtocolWorker = (
+  options: {
+    readonly size: number
+    readonly concurrency?: number | undefined
+    readonly targetUtilization?: number | undefined
+  } | {
+    readonly minSize: number
+    readonly maxSize: number
+    readonly concurrency?: number | undefined
+    readonly targetUtilization?: number | undefined
+    readonly timeToLive: Duration.DurationInput
+  }
+): Effect.Effect<
+  Protocol["Service"],
+  WorkerError,
+  Scope.Scope | Worker.WorkerPlatform | Worker.Spawner
+> =>
+  Protocol.make(Effect.fnUntraced(function*(writeResponse) {
+    const worker = yield* Worker.WorkerPlatform
+    const scope = yield* Effect.scope
+    let workerId = 0
+    const initialMessage = yield* Effect.serviceOption(RpcWorker.InitialMessage)
+
+    const entries = new Map<string, {
+      readonly worker: Worker.Worker<FromServerEncoded, FromClientEncoded | RpcWorker.InitialMessage.Encoded>
+      readonly latch: Effect.Latch
+    }>()
+
+    const acquire = Effect.gen(function*() {
+      const id = workerId++
+      const backing = yield* worker.spawn<FromServerEncoded, FromClientEncoded | RpcWorker.InitialMessage.Encoded>(id)
+
+      yield* backing.run((response) => {
+        if (response._tag === "Exit") {
+          const entry = entries.get(response.requestId)
+          if (entry) {
+            entries.delete(response.requestId)
+            entry.latch.openUnsafe()
+            return writeResponse(response)
+          }
+        } else if (response._tag === "Defect") {
+          for (const [requestId, entry] of entries) {
+            entries.delete(requestId)
+            entry.latch.openUnsafe()
+          }
+          return writeResponse(response)
+        }
+        return writeResponse(response)
+      }, {
+        onSpawn: Option.isSome(initialMessage) ?
+          Effect.flatMap(
+            initialMessage.value,
+            ([value, transfers]) => Effect.orDie(backing.send({ _tag: "InitialMessage", value }, transfers))
+          ) :
+          undefined
+      }).pipe(
+        Effect.tapCause((cause) =>
+          writeResponse({
+            _tag: "ClientProtocolError",
+            error: new RpcClientError({
+              reason: "Protocol",
+              message: "Error in worker",
+              cause: Cause.squash(cause)
+            })
+          })
+        ),
+        Effect.retry(Schedule.spaced(1000)),
+        Effect.annotateLogs({
+          module: "RpcClient",
+          method: "makeProtocolWorker"
+        }),
+        Effect.interruptible,
+        Effect.forkScoped
+      )
+
+      return backing
+    })
+
+    const pool = "minSize" in options ?
+      yield* Pool.makeWithTTL({
+        acquire,
+        min: options.minSize,
+        max: options.maxSize,
+        concurrency: options.concurrency,
+        targetUtilization: options.targetUtilization,
+        timeToLive: options.timeToLive
+      }) :
+      yield* Pool.make({
+        acquire,
+        size: options.size,
+        concurrency: options.concurrency,
+        targetUtilization: options.targetUtilization
+      })
+
+    yield* Scope.addFinalizer(
+      scope,
+      Effect.sync(() => {
+        for (const entry of entries.values()) {
+          entry.latch.openUnsafe()
+        }
+        entries.clear()
+      })
+    )
+
+    const send = (request: FromClientEncoded, transferables?: ReadonlyArray<globalThis.Transferable>) => {
+      switch (request._tag) {
+        case "Request": {
+          return Pool.get(pool).pipe(
+            Effect.flatMap((worker) => {
+              const latch = Effect.makeLatchUnsafe(false)
+              entries.set(request.id, { worker, latch })
+              return Effect.flatMap(worker.send(request, transferables), () => latch.await)
+            }),
+            Effect.scoped,
+            Effect.orDie
+          )
+        }
+        case "Interrupt": {
+          const entry = entries.get(request.requestId)
+          if (!entry) return Effect.void
+          entries.delete(request.requestId)
+          entry.latch.openUnsafe()
+          return Effect.orDie(entry.worker.send(request))
+        }
+        case "Ack": {
+          const entry = entries.get(request.requestId)
+          if (!entry) return Effect.void
+          return Effect.orDie(entry.worker.send(request))
+        }
+      }
+      return Effect.void
+    }
+
+    yield* Effect.scoped(Pool.get(pool))
+
+    return {
+      send,
+      supportsAck: true,
+      supportsTransferables: true,
+      supportsStructuredClone: true
+    }
+  }))
+
+/**
+ * @since 4.0.0
+ * @category protocol
+ */
+export const layerProtocolWorker: (
+  options: {
+    readonly size: number
+    readonly concurrency?: number | undefined
+    readonly targetUtilization?: number | undefined
+  } | {
+    readonly minSize: number
+    readonly maxSize: number
+    readonly concurrency?: number | undefined
+    readonly targetUtilization?: number | undefined
+    readonly timeToLive: Duration.DurationInput
+  }
+) => Layer.Layer<
+  Protocol,
+  WorkerError,
+  Worker.WorkerPlatform | Worker.Spawner
+> = Layer.effect(Protocol)(makeProtocolWorker)
 
 // internal
 
