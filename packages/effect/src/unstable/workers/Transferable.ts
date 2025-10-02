@@ -13,10 +13,10 @@ import * as ServiceMap from "../../ServiceMap.ts"
  */
 export class Collector extends ServiceMap.Key<Collector, {
   readonly addAll: (_: Iterable<globalThis.Transferable>) => Effect.Effect<void>
-  readonly unsafeAddAll: (_: Iterable<globalThis.Transferable>) => void
+  readonly addAllUnsafe: (_: Iterable<globalThis.Transferable>) => void
   readonly read: Effect.Effect<Array<globalThis.Transferable>>
-  readonly unsafeRead: () => Array<globalThis.Transferable>
-  readonly unsafeClear: () => Array<globalThis.Transferable>
+  readonly readUnsafe: () => Array<globalThis.Transferable>
+  readonly clearUnsafe: () => Array<globalThis.Transferable>
   readonly clear: Effect.Effect<Array<globalThis.Transferable>>
 }>()("effect/workers/Transferable/Collector") {}
 
@@ -24,7 +24,7 @@ export class Collector extends ServiceMap.Key<Collector, {
  * @since 1.0.0
  * @category constructors
  */
-export const unsafeMakeCollector = (): Collector["Service"] => {
+export const makeCollectorUnsafe = (): Collector["Service"] => {
   let tranferables: Array<globalThis.Transferable> = []
   const unsafeAddAll = (transfers: Iterable<globalThis.Transferable>): void => {
     // eslint-disable-next-line no-restricted-syntax
@@ -37,11 +37,11 @@ export const unsafeMakeCollector = (): Collector["Service"] => {
     return prev
   }
   return Collector.of({
-    unsafeAddAll,
+    addAllUnsafe: unsafeAddAll,
     addAll: (transferables) => Effect.sync(() => unsafeAddAll(transferables)),
-    unsafeRead,
+    readUnsafe: unsafeRead,
     read: Effect.sync(unsafeRead),
-    unsafeClear,
+    clearUnsafe: unsafeClear,
     clear: Effect.sync(unsafeClear)
   })
 }
@@ -50,7 +50,7 @@ export const unsafeMakeCollector = (): Collector["Service"] => {
  * @since 1.0.0
  * @category constructors
  */
-export const makeCollector: Effect.Effect<Collector["Service"]> = Effect.sync(unsafeMakeCollector)
+export const makeCollector: Effect.Effect<Collector["Service"]> = Effect.sync(makeCollectorUnsafe)
 
 /**
  * @since 1.0.0
@@ -60,7 +60,7 @@ export const addAll = (tranferables: Iterable<globalThis.Transferable>): Effect.
   Effect.servicesWith((services) => {
     const collector = ServiceMap.getOrUndefined(services, Collector)
     if (!collector) return Effect.void
-    collector.unsafeAddAll(tranferables)
+    collector.addAllUnsafe(tranferables)
     return Effect.void
   })
 
@@ -73,7 +73,7 @@ export const getterAddAll = <A>(f: (_: A) => Iterable<globalThis.Transferable>):
     Effect.servicesWith((services) => {
       const collector = ServiceMap.getOrUndefined(services, Collector)
       if (!collector) return Effect.succeed(e)
-      collector.unsafeAddAll(f(e))
+      collector.addAllUnsafe(f(e))
       return Effect.succeed(e)
     })
   )
@@ -82,7 +82,9 @@ export const getterAddAll = <A>(f: (_: A) => Iterable<globalThis.Transferable>):
  * @since 1.0.0
  * @category schema
  */
-export interface Transferable<S extends Schema.Top> extends Schema.decodeTo<Schema.typeCodec<S>, S> {}
+export interface Transferable<S extends Schema.Top>
+  extends Schema.decodeTo<Schema.typeCodec<S["~rebuild.out"]>, S["~rebuild.out"]>
+{}
 
 /**
  * @since 1.0.0
@@ -100,12 +102,22 @@ export const schema: {
   self: S,
   f: (_: S["Encoded"]) => Iterable<globalThis.Transferable>
 ): Transferable<S> =>
-  self.pipe(
+  self.annotate({
+    defaultJsonSerializer: () => passthroughLink
+  }).pipe(
     Schema.decode({
       decode: Getter.passthrough(),
       encode: getterAddAll(f)
     })
   ))
+
+const passthroughLink = Schema.link()(
+  Schema.Any,
+  {
+    decode: Getter.passthrough(),
+    encode: Getter.passthrough()
+  }
+)
 
 /**
  * @since 1.0.0
@@ -113,7 +125,7 @@ export const schema: {
  */
 export const ImageData: Transferable<Schema.declare<ImageData>> = schema(
   Schema.Any as any as Schema.declare<globalThis.ImageData>,
-  (_) => [(_ as ImageData).data.buffer]
+  (_) => [_.data.buffer]
 )
 
 /**
@@ -122,7 +134,7 @@ export const ImageData: Transferable<Schema.declare<ImageData>> = schema(
  */
 export const MessagePort: Transferable<Schema.declare<MessagePort>> = schema(
   Schema.Any as any as Schema.declare<MessagePort>,
-  (_) => [_ as MessagePort]
+  (_) => [_]
 )
 
 /**
@@ -130,6 +142,6 @@ export const MessagePort: Transferable<Schema.declare<MessagePort>> = schema(
  * @category schema
  */
 export const Uint8Array: Transferable<Schema.Uint8Array> = schema(
-  Schema.instanceOf(globalThis.Uint8Array),
+  Schema.Uint8Array,
   (_) => [_.buffer]
 )

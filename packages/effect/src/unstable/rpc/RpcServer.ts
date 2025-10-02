@@ -29,6 +29,7 @@ import * as HttpServerRequest from "../http/HttpServerRequest.ts"
 import * as HttpServerResponse from "../http/HttpServerResponse.ts"
 import type * as Socket from "../socket/Socket.ts"
 import * as SocketServer from "../socket/SocketServer.ts"
+import * as Transferable from "../workers/Transferable.ts"
 import type { WorkerError } from "../workers/WorkerError.ts"
 import * as WorkerRunner from "../workers/WorkerRunner.ts"
 import * as Rpc from "./Rpc.ts"
@@ -429,7 +430,7 @@ export const make: <Rpcs extends Rpc.Any>(
     readonly disableFatalDefects?: boolean | undefined
   }
 ) {
-  const { disconnects, end, run, send, supportsAck, supportsSpanPropagation, supportsStructuredClone } = yield* Protocol
+  const { disconnects, end, run, send, supportsAck, supportsSpanPropagation, supportsTransferables } = yield* Protocol
   const services = yield* Effect.services<Rpc.ToHandler<Rpcs> | Rpc.Middleware<Rpcs>>()
   const scope = yield* Scope.make()
 
@@ -447,6 +448,7 @@ export const make: <Rpcs extends Rpc.Any>(
           return handleEncode(
             client,
             response.requestId,
+            schemas.collector,
             Effect.provideServices(schemas.encodeChunk(response.values), schemas.services),
             (values) => ({ _tag: "Chunk", requestId: String(response.requestId), values })
           )
@@ -458,6 +460,7 @@ export const make: <Rpcs extends Rpc.Any>(
           return handleEncode(
             client,
             response.requestId,
+            schemas.collector,
             Effect.provideServices(schemas.encodeExit(response.exit), schemas.services),
             (exit) => ({ _tag: "Exit", requestId: String(response.requestId), exit })
           )
@@ -490,22 +493,21 @@ export const make: <Rpcs extends Rpc.Any>(
     ) => Effect.Effect<NonEmptyReadonlyArray<unknown>, Schema.SchemaError>
     readonly encodeExit: (u: unknown) => Effect.Effect<ResponseExitEncoded["exit"], Schema.SchemaError>
     readonly services: ServiceMap.ServiceMap<never>
-    // readonly collector?: Transferable.CollectorService | undefined
+    readonly collector?: Transferable.Collector["Service"] | undefined
   }
 
   const schemasCache = new WeakMap<any, Schemas>()
-  const serializer = supportsStructuredClone ? identity : Serializer.json
   const getSchemas = (rpc: Rpc.AnyWithProps) => {
     let schemas = schemasCache.get(rpc)
     if (!schemas) {
       const entry = services.mapUnsafe.get(rpc.key) as Rpc.Handler<Rpcs["_tag"]>
       const streamSchemas = RpcSchema.getStreamSchemas(rpc.successSchema)
       schemas = {
-        decode: Schema.decodeUnknownEffect(serializer(rpc.payloadSchema as any)),
+        decode: Schema.decodeUnknownEffect(Serializer.json(rpc.payloadSchema as any)),
         encodeChunk: Schema.encodeUnknownEffect(
-          serializer(Schema.Array(streamSchemas ? streamSchemas.success : Schema.Any))
+          Serializer.json(Schema.Array(streamSchemas ? streamSchemas.success : Schema.Any))
         ) as any,
-        encodeExit: Schema.encodeUnknownEffect(serializer(Rpc.exitSchema(rpc as any))) as any,
+        encodeExit: Schema.encodeUnknownEffect(Serializer.json(Rpc.exitSchema(rpc as any))) as any,
         services: entry.services
       }
       schemasCache.set(rpc, schemas)
@@ -522,12 +524,12 @@ export const make: <Rpcs extends Rpc.Any>(
   const handleEncode = <A, R>(
     client: Client,
     requestId: RequestId,
-    // collector: Transferable.CollectorService | undefined,
+    collector: Transferable.Collector["Service"] | undefined,
     effect: Effect.Effect<A, Schema.SchemaError, R>,
     onSuccess: (a: A) => FromServerEncoded
   ) =>
-    effect.pipe(
-      Effect.flatMap((a) => send(client.id, onSuccess(a))),
+    (collector ? Effect.provideService(effect, Transferable.Collector, collector) : effect).pipe(
+      Effect.flatMap((a) => send(client.id, onSuccess(a), collector && collector.clearUnsafe())),
       Effect.catchCause((cause) => {
         client.schemas.delete(requestId)
         const defect = Cause.squash(Cause.map(cause, (e) => e.issue.toString()))
@@ -599,7 +601,15 @@ export const make: <Rpcs extends Rpc.Any>(
           {
             onFailure: (error) => sendRequestDefect(client, requestId, error.issue.toString()),
             onSuccess: (payload) => {
-              client.schemas.set(requestId, schemas)
+              client.schemas.set(
+                requestId,
+                supportsTransferables ?
+                  {
+                    ...schemas,
+                    collector: Transferable.makeCollectorUnsafe()
+                  } :
+                  schemas
+              )
               return server.write(clientId, {
                 ...request,
                 id: requestId,
@@ -716,7 +726,6 @@ export class Protocol extends ServiceMap.Key<Protocol, {
   readonly supportsAck: boolean
   readonly supportsTransferables: boolean
   readonly supportsSpanPropagation: boolean
-  readonly supportsStructuredClone: boolean
 }>()("effect/rpc/RpcServer/Protocol") {
   /**
    * @since 4.0.0
@@ -950,8 +959,7 @@ export const makeProtocolWithHttpEffect: Effect.Effect<
       initialMessage: Effect.succeedNone,
       supportsAck: false,
       supportsTransferables: false,
-      supportsSpanPropagation: false,
-      supportsStructuredClone: !serialization.jsonSerialization
+      supportsSpanPropagation: false
     })
   })
 
@@ -1123,8 +1131,7 @@ export const makeProtocolStdio = Effect.fnUntraced(function*<EIn, EOut, RIn, ROu
       initialMessage: Effect.succeedNone,
       supportsAck: true,
       supportsTransferables: false,
-      supportsSpanPropagation: true,
-      supportsStructuredClone: !serialization.jsonSerialization
+      supportsSpanPropagation: true
     }
   }))
 })
@@ -1191,8 +1198,7 @@ export const makeProtocolWorkerRunner: Effect.Effect<
     initialMessage: Effect.asSome(Deferred.await(initialMessage)),
     supportsAck: true,
     supportsTransferables: true,
-    supportsSpanPropagation: true,
-    supportsStructuredClone: true
+    supportsSpanPropagation: true
   }
 }))
 
@@ -1316,8 +1322,7 @@ const makeSocketProtocol: Effect.Effect<
       initialMessage: Effect.succeedNone,
       supportsAck: true,
       supportsTransferables: false,
-      supportsSpanPropagation: true,
-      supportsStructuredClone: !serialization.jsonSerialization
+      supportsSpanPropagation: true
     })
   })
 
