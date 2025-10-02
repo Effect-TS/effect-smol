@@ -23,7 +23,7 @@ import * as Effect from "../Effect.ts"
 import * as Exit_ from "../Exit.ts"
 import { identity } from "../Function.ts"
 import * as Equal from "../interfaces/Equal.ts"
-import { formatJson } from "../interfaces/Inspectable.ts"
+import { formatDate, formatJson } from "../interfaces/Inspectable.ts"
 import * as Pipeable from "../interfaces/Pipeable.ts"
 import * as core from "../internal/core.ts"
 import * as InternalEffect from "../internal/effect.ts"
@@ -4013,7 +4013,7 @@ export const Date: Date = instanceOf(
         String,
         Transformation.transform({
           decode: (s) => new globalThis.Date(s),
-          encode: (date) => date.toISOString()
+          encode: formatDate
         })
       ),
     arbitrary: {

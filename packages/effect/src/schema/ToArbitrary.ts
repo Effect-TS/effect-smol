@@ -130,14 +130,14 @@ export type LazyArbitrary<T> = (fc: typeof FastCheck, context?: Context) => Fast
 /**
  * @since 4.0.0
  */
-export function makeLazy<T>(schema: Schema.Schema<T>): LazyArbitrary<T> {
+export function makeLazy<S extends Schema.Top>(schema: S): LazyArbitrary<S["Type"]> {
   return go(schema.ast)
 }
 
 /**
  * @since 4.0.0
  */
-export function make<T>(schema: Schema.Schema<T>): FastCheck.Arbitrary<T> {
+export function make<S extends Schema.Top>(schema: S): FastCheck.Arbitrary<S["Type"]> {
   return makeLazy(schema)(FastCheck, {})
 }
 
@@ -394,7 +394,7 @@ const go = memoize((ast: AST.AST): LazyArbitrary<any> => {
           }
           pss[ps.name] = go(ps.type)(fc, reset)
         }
-        let out = fc.record<any>(pss, { requiredKeys })
+        let out = fc.record<any>(pss, { requiredKeys, noNullPrototype: true })
         // ---------------------------------------------
         // handle index signatures
         // ---------------------------------------------

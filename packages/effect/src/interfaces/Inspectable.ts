@@ -236,11 +236,12 @@ export function formatPath(path: ReadonlyArray<PropertyKey>): string {
   return path.map((key) => `[${formatPropertyKey(key)}]`).join("")
 }
 
-function formatDate(date: Date): string {
+/** @internal */
+export function formatDate(date: Date): string {
   try {
     return date.toISOString()
   } catch {
-    return String(date)
+    return "Invalid Date"
   }
 }
 

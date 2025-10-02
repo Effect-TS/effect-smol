@@ -47,19 +47,25 @@ export function jsonPatch<S extends Schema.Top>(schema: S): Differ<S["Type"], Js
     empty: [],
     diff: (v1, v2) => diff(iso.get(v1), iso.get(v2)),
     combine: (first, second) => [...first, ...second],
-    patch: (oldValue, patch) => iso.set(applyJsonPatchDocument(patch, iso.get(oldValue)))
+    patch: (oldValue, patch) => {
+      const get = iso.get(oldValue)
+      const patched = applyJsonPatchDocument(patch, get)
+      return Object.is(patched, get) ? oldValue : iso.set(patched)
+    }
   }
 }
 
 const goDiff = memoize((ast: AST.AST): (v1: any, v2: any) => JsonPatchDocument => {
   switch (ast._tag) {
+    case "NullKeyword":
+      return () => []
     case "StringKeyword":
     case "NumberKeyword":
     case "BooleanKeyword":
     case "LiteralType":
     case "Enums":
     case "TemplateLiteral":
-      return (v1, v2) => v1 === v2 ? [] : [{ op: "replace", path: "", value: v2 }]
+      return (v1, v2) => Object.is(v1, v2) ? [] : [{ op: "replace", path: "", value: v2 }]
     case "Suspend":
       return goDiff(ast.thunk())
     case "TupleType": {
@@ -82,15 +88,20 @@ const goDiff = memoize((ast: AST.AST): (v1: any, v2: any) => JsonPatchDocument =
         // ---------------------------------------------
         // handle rest element
         // ---------------------------------------------
-        const len = v1.length
+        const len1 = v1.length
+        const len2 = v2.length
         if (rest.length > 0) {
           const [head, ...tail] = rest
-          for (; i < len - tail.length; i++) {
+          for (; i < len1 - tail.length; i++) {
             const path = `/${i}`
-            const patch = head(v1[i], v2[i])
-            for (const op of patch) {
-              op.path = op.path === "" ? path : `${path}${op.path}`
-              patches.push(op)
+            if (i < len2) {
+              const patch = head(v1[i], v2[i])
+              for (const op of patch) {
+                op.path = op.path === "" ? path : `${path}${op.path}`
+                patches.push(op)
+              }
+            } else {
+              patches.push({ op: "remove", path })
             }
           }
           // ---------------------------------------------
@@ -99,11 +110,20 @@ const goDiff = memoize((ast: AST.AST): (v1: any, v2: any) => JsonPatchDocument =
           for (let j = 0; j < tail.length; j++) {
             i += j
             const path = `/${i}`
-            const patch = tail[j](v1[i], v2[i])
-            for (const op of patch) {
-              op.path = op.path === "" ? path : `${path}${op.path}`
-              patches.push(op)
+            if (i < len2) {
+              const patch = tail[j](v1[i], v2[i])
+              for (const op of patch) {
+                op.path = op.path === "" ? path : `${path}${op.path}`
+                patches.push(op)
+              }
+            } else {
+              patches.push({ op: "remove", path })
             }
+          }
+        }
+        if (len1 < len2) {
+          for (let j = len1; j < len2; j++) {
+            patches.push({ op: "add", path: `/${j}`, value: v2[j] })
           }
         }
 
@@ -146,22 +166,27 @@ const goDiff = memoize((ast: AST.AST): (v1: any, v2: any) => JsonPatchDocument =
         // ---------------------------------------------
         // handle index signatures
         // ---------------------------------------------
-        for (const [parameter, diff] of indexSignatures) {
-          const keys = AST.getIndexSignatureKeys(v1, parameter)
-          for (let j = 0; j < keys.length; j++) {
-            const key = String(keys[j])
-            const path = `/${escapeToken(key)}`
-            const newVal = v2[key]
-            if (!Object.hasOwn(v1, key)) {
-              patches.push({ op: "add", path, value: newVal })
-            } else if (!Object.hasOwn(v2, key)) {
-              patches.push({ op: "remove", path })
-            } else {
-              const patch = diff(v1[key], newVal)
-              for (const op of patch) {
-                op.path = op.path === "" ? path : `${path}${op.path}`
-                patches.push(op)
+        if (indexSignatures.length > 0) {
+          for (const [parameter, diff] of indexSignatures) {
+            const keys = AST.getIndexSignatureKeys(v1, parameter)
+            for (let j = 0; j < keys.length; j++) {
+              const key = String(keys[j])
+              const path = `/${escapeToken(key)}`
+              const newVal = v2[key]
+              if (!Object.hasOwn(v2, key)) {
+                patches.push({ op: "remove", path })
+              } else {
+                const patch = diff(v1[key], newVal)
+                for (const op of patch) {
+                  op.path = op.path === "" ? path : `${path}${op.path}`
+                  patches.push(op)
+                }
               }
+            }
+          }
+          for (const key of Object.keys(v2)) {
+            if (!Object.hasOwn(v1, key)) {
+              patches.push({ op: "add", path: `/${escapeToken(key)}`, value: v2[key] })
             }
           }
         }
@@ -203,6 +228,7 @@ export function applyJsonPatchDocument(patch: JsonPatchDocument, json: unknown):
         break
       }
       case "replace": {
+        if (op.path === "") return op.value
         doc = setAt(doc, op.path, op.value, "replace")
         break
       }
@@ -212,8 +238,14 @@ export function applyJsonPatchDocument(patch: JsonPatchDocument, json: unknown):
   return doc
 }
 
-function cloneDeep<T>(t: T): T {
-  return JSON.parse(JSON.stringify(t))
+function cloneDeep<T>(x: T): T {
+  if (Array.isArray(x)) return x.map((v) => cloneDeep(v)) as T
+  if (typeof x === "object" && x !== null) {
+    const out: Record<string, unknown> = {}
+    for (const k of Object.keys(x)) out[k] = cloneDeep((x as any)[k])
+    return out as T
+  }
+  return x
 }
 
 /** RFC 6901 tokenizer ("" is root). Supports ~0 -> ~ and ~1 -> / */
