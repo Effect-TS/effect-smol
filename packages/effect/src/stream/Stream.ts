@@ -250,6 +250,21 @@ const StreamProto = {
 }
 
 /**
+ * The default chunk size used by streams for batching operations.
+ *
+ * @example
+ * ```ts
+ * import { Stream } from "effect/stream"
+ *
+ * console.log(Stream.DefaultChunkSize) // 4096
+ * ```
+ *
+ * @category constants
+ * @since 2.0.0
+ */
+export const DefaultChunkSize: number = Channel.DefaultChunkSize
+
+/**
  * Creates a stream from a `Channel`.
  *
  * This function allows you to create a Stream by providing a Channel that
