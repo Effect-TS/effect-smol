@@ -13,7 +13,10 @@ import type * as Stream from "../../stream/Stream.ts"
 import type * as Headers from "./Headers.ts"
 import * as UrlParams from "./UrlParams.ts"
 
-/** @internal */
+/**
+ * @since 4.0.0
+ * @category Type IDs
+ */
 export const TypeId = "~effect/http/HttpIncomingMessage"
 
 /**

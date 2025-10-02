@@ -30,7 +30,10 @@ export {
   MaxBodySize
 } from "./HttpIncomingMessage.ts"
 
-/** @internal */
+/**
+ * @since 4.0.0
+ * @category Type IDs
+ */
 export const TypeId = "~effect/http/HttpServerRequest"
 
 /**

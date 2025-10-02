@@ -18,7 +18,10 @@ import * as ServiceMap from "../../ServiceMap.ts"
 import * as Channel from "../../stream/Channel.ts"
 import * as Pull from "../../stream/Pull.ts"
 
-/** @internal */
+/**
+ * @since 4.0.0
+ * @category Type IDs
+ */
 export const TypeId = "~effect/socket/Socket"
 
 /**

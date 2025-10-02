@@ -8,7 +8,10 @@ import * as Schema from "../../schema/Schema.ts"
 import type { HttpServerResponse } from "./HttpServerResponse.ts"
 import * as Response from "./HttpServerResponse.ts"
 
-/** @internal */
+/**
+ * @since 4.0.0
+ * @category Type IDs
+ */
 export const TypeId = "~effect/http/HttpServerRespondable"
 
 /**
