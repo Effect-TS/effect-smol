@@ -3547,7 +3547,7 @@ const fiberFailures = counter("child_fiber_failures", {
  * @since 4.0.0
  * @category Runtime Metrics
  */
-export const FiberRuntimeMetricsKey: typeof InternalMetric.FiberRuntimeMetricsKey =
+export const FiberRuntimeMetricsKey: "effect/observability/Metric/FiberRuntimeMetricsKey" =
   InternalMetric.FiberRuntimeMetricsKey
 
 /**
