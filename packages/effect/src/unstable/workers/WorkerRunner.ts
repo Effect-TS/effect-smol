@@ -19,6 +19,11 @@ export interface WorkerRunner<O = unknown, I = unknown> {
     message: O,
     transfers?: ReadonlyArray<unknown>
   ) => Effect.Effect<void>
+  readonly sendUnsafe: (
+    portId: number,
+    message: O,
+    transfers?: ReadonlyArray<unknown>
+  ) => void
   readonly disconnects?: Queue.Dequeue<number> | undefined
 }
 
