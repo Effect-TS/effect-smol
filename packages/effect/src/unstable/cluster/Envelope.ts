@@ -12,7 +12,10 @@ import type * as Rpc from "../rpc/Rpc.ts"
 import { EntityAddress } from "./EntityAddress.ts"
 import { type Snowflake, SnowflakeFromBigInt } from "./Snowflake.ts"
 
-/** @internal */
+/**
+ * @since 4.0.0
+ * @category Type IDs
+ */
 export const TypeId = "~effect/cluster/Envelope"
 
 /**

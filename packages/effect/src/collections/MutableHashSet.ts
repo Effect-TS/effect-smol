@@ -61,8 +61,6 @@ const TypeId = "~effect/collections/MutableHashSet"
  */
 export interface MutableHashSet<out V> extends Iterable<V>, Pipeable, Inspectable {
   readonly [TypeId]: typeof TypeId
-
-  /** @internal */
   readonly keyMap: MutableHashMap.MutableHashMap<V, boolean>
 }
 

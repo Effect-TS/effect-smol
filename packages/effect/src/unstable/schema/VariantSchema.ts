@@ -11,7 +11,10 @@ import type * as Annotations from "../../schema/Annotations.ts"
 import type * as AST from "../../schema/AST.ts"
 import * as Schema from "../../schema/Schema.ts"
 
-/** @internal */
+/**
+ * @since 4.0.0
+ * @category Type IDs
+ */
 export const TypeId = "~effect/unstable/schema/VariantSchema"
 
 const cacheSymbol = Symbol.for(`${TypeId}/cache`)

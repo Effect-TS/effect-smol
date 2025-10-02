@@ -51,7 +51,6 @@ export interface FiberMap<in out K, out A = unknown, out E = unknown>
 {
   readonly [TypeId]: typeof TypeId
   readonly deferred: Deferred.Deferred<void, unknown>
-  /** @internal */
   state: {
     readonly _tag: "Open"
     readonly backing: MutableHashMap.MutableHashMap<K, Fiber.Fiber<A, E>>

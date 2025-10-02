@@ -238,7 +238,6 @@ const streamVariance = {
  *
  * @since 2.0.0
  * @category guards
- * @internal
  */
 export const isStream = (u: unknown): u is Stream<unknown, unknown, unknown> => hasProperty(u, TypeId)
 
