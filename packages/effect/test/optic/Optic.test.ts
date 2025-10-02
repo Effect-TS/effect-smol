@@ -1,5 +1,6 @@
 import { Option, Result } from "effect/data"
 import { Optic } from "effect/optic"
+import * as Internal from "effect/optic/internal/optic"
 import { Check } from "effect/schema"
 import { describe, it } from "vitest"
 import { assertFailure, assertSuccess, assertTrue, deepStrictEqual, strictEqual } from "../utils/assert.ts"
@@ -8,31 +9,31 @@ const addOne = (n: number) => n + 1
 
 describe("Optic", () => {
   describe("AST", () => {
-    const iso = new Optic.IsoNode<1, 2>(() => 2, () => 1)
+    const iso = new Internal.IsoNode<1, 2>(() => 2, () => 1)
 
     it("composing an identity with another ast should return the other ast", () => {
-      const path = new Optic.PathNode(["a"])
-      strictEqual(Optic.compose(Optic.identityNode, path), path)
+      const path = new Internal.PathNode(["a"])
+      strictEqual(Internal.compose(Internal.identityNode, path), path)
     })
 
     it("composing two path asts should return a path ast with the two paths concatenated", () => {
-      const path1 = new Optic.PathNode(["a"])
-      const path2 = new Optic.PathNode(["b"])
-      const composed = Optic.compose(Optic.compose(iso, path1), path2)
+      const path1 = new Internal.PathNode(["a"])
+      const path2 = new Internal.PathNode(["b"])
+      const composed = Internal.compose(Internal.compose(iso, path1), path2)
       assertTrue(composed._tag === "Composition")
       strictEqual(composed.asts.length, 2)
       strictEqual(composed.asts[0], iso)
-      deepStrictEqual(composed.asts[1], new Optic.PathNode(["a", "b"]))
+      deepStrictEqual(composed.asts[1], new Internal.PathNode(["a", "b"]))
     })
 
     it("composing two checks asts should return a checks ast with the two checks concatenated", () => {
-      const checks1 = new Optic.CheckNode([Check.positive()])
-      const checks2 = new Optic.CheckNode([Check.int()])
-      const composed = Optic.compose(Optic.compose(iso, checks1), checks2)
+      const checks1 = new Internal.CheckNode([Check.positive()])
+      const checks2 = new Internal.CheckNode([Check.int()])
+      const composed = Internal.compose(Internal.compose(iso, checks1), checks2)
       assertTrue(composed._tag === "Composition")
       strictEqual(composed.asts.length, 2)
       strictEqual(composed.asts[0], iso)
-      deepStrictEqual(composed.asts[1], new Optic.CheckNode([...checks1.checks, ...checks2.checks]))
+      deepStrictEqual(composed.asts[1], new Internal.CheckNode([...checks1.checks, ...checks2.checks]))
     })
   })
 

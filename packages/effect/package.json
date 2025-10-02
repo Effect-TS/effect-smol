@@ -54,6 +54,7 @@
     "./unstable/workflow": "./src/unstable/workflow/index.ts",
     "./*": "./src/*.ts",
     "./internal/*": null,
+    "./optic/internal/*": null,
     "./unstable/cluster/internal/*": null,
     "./*/index": null
   },
@@ -94,6 +95,8 @@
       "./unstable/workflow": "./dist/unstable/workflow/index.js",
       "./*": "./dist/*.js",
       "./internal/*": null,
+      "./optic/internal/*": null,
+      "./unstable/cluster/internal/*": null,
       "./*/index": null
     }
   },
