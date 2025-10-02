@@ -520,7 +520,10 @@ class IdentityNode {
   readonly _tag = "Identity"
 }
 
-/** @internal */
+/**
+ * @since 4.0.0
+ * @category Internal
+ */
 export const identityNode = new IdentityNode()
 
 class CompositionNode {
@@ -532,7 +535,10 @@ class CompositionNode {
   }
 }
 
-/** @internal */
+/**
+ * @since 4.0.0
+ * @category Internal
+ */
 export class IsoNode<S, A> {
   readonly _tag = "Iso"
   readonly get: (s: S) => A
@@ -577,7 +583,10 @@ class OptionalNode<S, A> {
   }
 }
 
-/** @internal */
+/**
+ * @since 4.0.0
+ * @category Internal
+ */
 export class PathNode {
   readonly _tag = "Path"
   readonly path: ReadonlyArray<PropertyKey>
@@ -587,7 +596,10 @@ export class PathNode {
   }
 }
 
-/** @internal */
+/**
+ * @since 4.0.0
+ * @category Internal
+ */
 export class CheckNode<T> {
   readonly _tag = "Checks"
   readonly checks: readonly [Check.Check<T>, ...Array<Check.Check<T>>]
