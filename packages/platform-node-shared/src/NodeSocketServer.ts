@@ -2,6 +2,7 @@
  * @since 1.0.0
  */
 import type { Cause } from "effect/Cause"
+import * as Deferred from "effect/Deferred"
 import * as Effect from "effect/Effect"
 import * as Exit from "effect/Exit"
 import * as Fiber from "effect/Fiber"
@@ -33,36 +34,36 @@ export class IncomingMessage extends ServiceMap.Key<
 export const make = Effect.fnUntraced(function*(
   options: Net.ServerOpts & Net.ListenOptions
 ) {
-  const server = yield* Effect.acquireRelease(
-    Effect.sync(() => Net.createServer(options)),
-    (server) =>
-      Effect.callback<void>((resume) => {
-        server.close(() => resume(Effect.void))
-      })
-  )
-  const pendingConnections = new Set<Net.Socket>()
-  function defaultHandler(conn: Net.Socket) {
-    pendingConnections.add(conn)
-    conn.on("close", () => {
-      pendingConnections.delete(conn)
-    })
+  const errorDeferred = Deferred.makeUnsafe<never, Error>()
+  const pending = new Set<Net.Socket>()
+  function defaultOnConnection(conn: Net.Socket) {
+    pending.add(conn)
+    const remove = () => {
+      pending.delete(conn)
+    }
+    conn.on("close", remove)
+    conn.on("error", remove)
   }
-  let onConnection = defaultHandler
-  server.on("connection", (conn) => onConnection(conn))
+  let onConnection = defaultOnConnection
+  // eslint-disable-next-line prefer-const
+  let server: Net.Server | undefined
+  yield* Effect.addFinalizer(() =>
+    Effect.callback<void>((resume) => {
+      server?.close(() => resume(Effect.void))
+    })
+  )
+  server = Net.createServer(options, (conn) => onConnection(conn))
+  server.on("error", (err) => Deferred.doneUnsafe(errorDeferred, Exit.fail(err)))
 
   yield* Effect.callback<void, SocketServer.SocketServerError>((resume) => {
-    server.once("error", (cause) => {
-      resume(Effect.fail(
-        new SocketServer.SocketServerError({
-          reason: "Open",
-          cause
-        })
-      ))
-    })
-    server.listen(options, () => {
-      resume(Effect.void)
-    })
-  })
+    server.listen(options, () => resume(Effect.void))
+  }).pipe(
+    Effect.raceFirst(Effect.mapError(Deferred.await(errorDeferred), (err) =>
+      new SocketServer.SocketServerError({
+        reason: "Open",
+        cause: err
+      })))
+  )
 
   const run = Effect.fnUntraced(function*<R, E, _>(handler: (socket: Socket.Socket) => Effect.Effect<_, E, R>) {
     const scope = yield* Scope.make()
@@ -70,10 +71,30 @@ export const make = Effect.fnUntraced(function*(
     const trackFiber = Fiber.runIn(scope)
     const prevOnConnection = onConnection
     onConnection = function(conn: Net.Socket) {
+      let error: Error | undefined
+      conn.on("error", (err) => {
+        error = err
+      })
       pipe(
         NodeSocket.fromDuplex(
           Effect.acquireRelease(
-            Effect.succeed(conn),
+            Effect.suspend((): Effect.Effect<Net.Socket, Socket.SocketError> => {
+              if (error) {
+                return Effect.fail(
+                  new Socket.SocketGenericError({
+                    reason: "Open",
+                    cause: error
+                  })
+                )
+              } else if (conn.closed) {
+                return Effect.fail(
+                  new Socket.SocketCloseError({
+                    code: 1000
+                  })
+                )
+              }
+              return Effect.succeed(conn)
+            }),
             (conn) =>
               Effect.sync(() => {
                 if (conn.closed === false) {
@@ -88,17 +109,18 @@ export const make = Effect.fnUntraced(function*(
         trackFiber
       )
     }
-    for (const conn of pendingConnections) {
+    pending.forEach((conn) => {
+      conn.removeAllListeners("error")
+      conn.removeAllListeners("close")
       onConnection(conn)
-    }
-    pendingConnections.clear()
+    })
+    pending.clear()
     return yield* Effect.callback<never>((_resume) => {
-      return Effect.sync(() => {
+      return Effect.suspend(() => {
         onConnection = prevOnConnection
+        return Scope.close(scope, Exit.void)
       })
-    }).pipe(
-      Effect.ensuring(Scope.close(scope, Exit.void))
-    )
+    })
   })
 
   const address = server.address()!
