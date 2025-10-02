@@ -93,6 +93,7 @@ export function fromRefine<T extends E, E>(refine: Check.Refine<T, E>): Prism<E,
  * @since 4.0.0
  */
 export interface Optional<in out S, in out A> {
+  /** @internal */
   readonly ast: AST
   readonly getResult: (s: S) => Result.Result<A, string>
   readonly replace: (a: A, s: S) => S
