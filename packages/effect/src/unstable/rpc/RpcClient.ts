@@ -27,6 +27,7 @@ import * as HttpBody from "../http/HttpBody.ts"
 import * as HttpClient from "../http/HttpClient.ts"
 import * as HttpClientRequest from "../http/HttpClientRequest.ts"
 import * as Socket from "../socket/Socket.ts"
+import * as Transferable from "../workers/Transferable.ts"
 import * as Worker from "../workers/Worker.ts"
 import type { WorkerError } from "../workers/WorkerError.ts"
 import * as Rpc from "./Rpc.ts"
@@ -643,7 +644,7 @@ export const make: <Rpcs extends Rpc.Any, const Flatten extends boolean = false>
     readonly flatten?: Flatten | undefined
   } | undefined
 ) {
-  const { run, send, supportsAck, supportsStructuredClone } = yield* Protocol
+  const { run, send, supportsAck, supportsTransferables } = yield* Protocol
 
   type ClientEntry = {
     readonly rpc: Rpc.AnyWithProps
@@ -652,8 +653,6 @@ export const make: <Rpcs extends Rpc.Any, const Flatten extends boolean = false>
   }
   const entries = new Map<RequestId, ClientEntry>()
 
-  const serializer = supportsStructuredClone ? identity : Serializer.json
-
   const { client, write } = yield* makeNoSerialization(group, {
     ...options,
     supportsAck,
@@ -661,14 +660,14 @@ export const make: <Rpcs extends Rpc.Any, const Flatten extends boolean = false>
       switch (message._tag) {
         case "Request": {
           const rpc = group.requests.get(message.tag)! as any as Rpc.AnyWithProps
-          // const collector = supportsTransferables ? Transferable.makeCollectorUnsafe() : undefined
+          const collector = supportsTransferables ? Transferable.makeCollectorUnsafe() : undefined
 
           const fiber = Fiber.getCurrent()!
 
           const entry: ClientEntry = {
             rpc,
-            context: fiber.services,
-            schemas: rpcSchemas(rpc, serializer)
+            context: collector ? ServiceMap.add(fiber.services, Transferable.Collector, collector) : fiber.services,
+            schemas: rpcSchemas(rpc)
           }
           entries.set(message.id, entry)
 
@@ -681,7 +680,7 @@ export const make: <Rpcs extends Rpc.Any, const Flatten extends boolean = false>
                 id: String(message.id),
                 payload,
                 headers: Object.entries(message.headers)
-              })
+              }, collector && collector.readUnsafe())
             )
           ) as Effect.Effect<void, RpcClientError>
         }
@@ -775,24 +774,21 @@ interface RpcSchemas {
   readonly encodePayload: (payload: any) => Effect.Effect<any, Schema.SchemaError, unknown>
   readonly decodeExit: (encoded: unknown) => Effect.Effect<Exit.Exit<any, any>, Schema.SchemaError, unknown>
 }
-const rpcSchemasCache = new Map<typeof Serializer.json, WeakMap<Rpc.AnyWithProps, RpcSchemas>>()
-const rpcSchemas = (rpc: Rpc.AnyWithProps, serializer: typeof Serializer.json) => {
-  let cache = rpcSchemasCache.get(serializer)
-  if (cache === undefined) {
-    cache = new WeakMap()
-    rpcSchemasCache.set(serializer, cache)
-  } else if (cache.has(rpc)) {
-    return cache.get(rpc)!
+const rpcSchemasCache = new WeakMap<Rpc.AnyWithProps, RpcSchemas>()
+const rpcSchemas = (rpc: Rpc.AnyWithProps) => {
+  let entry = rpcSchemasCache.get(rpc)
+  if (entry !== undefined) {
+    return entry
   }
   const streamSchemas = RpcSchema.getStreamSchemas(rpc.successSchema)
-  const entry: RpcSchemas = {
+  entry = {
     decodeChunk: streamSchemas ?
-      Schema.decodeUnknownEffect(serializer(Schema.NonEmptyArray(streamSchemas.success))) :
+      Schema.decodeUnknownEffect(Serializer.json(Schema.NonEmptyArray(streamSchemas.success))) :
       undefined,
-    encodePayload: Schema.encodeEffect(serializer(rpc.payloadSchema)),
-    decodeExit: Schema.decodeUnknownEffect(serializer(Rpc.exitSchema(rpc as any)))
+    encodePayload: Schema.encodeEffect(Serializer.json(rpc.payloadSchema)),
+    decodeExit: Schema.decodeUnknownEffect(Serializer.json(Rpc.exitSchema(rpc as any)))
   }
-  cache.set(rpc, entry)
+  rpcSchemasCache.set(rpc, entry)
   return entry
 }
 
@@ -831,7 +827,6 @@ export class Protocol extends ServiceMap.Key<Protocol, {
   ) => Effect.Effect<void, RpcClientError>
   readonly supportsAck: boolean
   readonly supportsTransferables: boolean
-  readonly supportsStructuredClone: boolean
 }>()("effect/rpc/RpcClient/Protocol") {
   /**
    * @since 4.0.0
@@ -915,8 +910,7 @@ export const makeProtocolHttp = (client: HttpClient.HttpClient): Effect.Effect<
     return {
       send,
       supportsAck: false,
-      supportsTransferables: false,
-      supportsStructuredClone: !serialization.jsonSerialization
+      supportsTransferables: false
     }
   }))
 
@@ -1042,8 +1036,7 @@ export const makeProtocolSocket = (options?: {
         return Effect.orDie(write(encoded))
       },
       supportsAck: true,
-      supportsTransferables: false,
-      supportsStructuredClone: !serialization.jsonSerialization
+      supportsTransferables: false
     }
   }))
 
@@ -1225,8 +1218,7 @@ export const makeProtocolWorker = (
     return {
       send,
       supportsAck: true,
-      supportsTransferables: true,
-      supportsStructuredClone: true
+      supportsTransferables: true
     }
   }))
 

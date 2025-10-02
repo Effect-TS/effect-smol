@@ -3140,7 +3140,8 @@ export const runForEach: {
 } = dual(2, <A, E, R, X, E2, R2>(
   self: Stream<A, E, R>,
   f: (a: A) => Effect.Effect<X, E2, R2>
-): Effect.Effect<void, E | E2, R | R2> => Channel.runForEach(self.channel, Effect.forEach(f, { discard: true })))
+): Effect.Effect<void, E | E2, R | R2> =>
+  Channel.runForEach(self.channel, Effect.forEach((_) => f(_), { discard: true })))
 
 /**
  * Consumes all elements of the stream, passing them to the specified
