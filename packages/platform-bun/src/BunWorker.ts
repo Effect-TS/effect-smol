@@ -17,7 +17,7 @@ export const layer = (
   spawn: (id: number) => globalThis.Worker
 ): Layer.Layer<Worker.WorkerPlatform | Worker.Spawner> =>
   Layer.merge(
-    layerWorker,
+    layerPlatform,
     Layer.succeed(Worker.Spawner)(spawn)
   )
 
@@ -25,7 +25,7 @@ export const layer = (
  * @since 1.0.0
  * @category layers
  */
-export const layerWorker = Layer.succeed(Worker.WorkerPlatform)(
+export const layerPlatform = Layer.succeed(Worker.WorkerPlatform)(
   Worker.makePlatform<globalThis.Worker>()({
     setup({ scope, worker }) {
       const closeDeferred = Deferred.makeUnsafe<void>()
@@ -56,7 +56,7 @@ export const layerWorker = Layer.succeed(Worker.WorkerPlatform)(
           deferred,
           new WorkerError({
             reason: "Unknown",
-            message: "An error event was emitted from the worker",
+            message: "An error event was emitted",
             cause: event.error ?? event.message
           }).asEffect()
         )

@@ -95,4 +95,14 @@ export * as NodeStream from "./NodeStream.ts"
 /**
  * @since 1.0.0
  */
+export * as NodeWorker from "./NodeWorker.ts"
+
+/**
+ * @since 1.0.0
+ */
+export * as NodeWorkerRunner from "./NodeWorkerRunner.ts"
+
+/**
+ * @since 1.0.0
+ */
 export * as Undici from "./Undici.ts"
