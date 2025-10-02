@@ -413,7 +413,7 @@ export class UndefinedKeyword extends AbstractParser {
   }
   /** @internal */
   goJson(): AST {
-    return replaceEncoding(this, [undefinedLink])
+    return replaceEncoding(this, [undefinedJsonLink])
   }
   /** @internal */
   getExpected(): string {
@@ -426,7 +426,7 @@ export class UndefinedKeyword extends AbstractParser {
  */
 export const undefinedKeyword = new UndefinedKeyword()
 
-const undefinedLink = new Link(
+const undefinedJsonLink = new Link(
   nullKeyword,
   new Transformation.Transformation(
     Getter.transform(() => undefined),
@@ -446,7 +446,7 @@ export class VoidKeyword extends AbstractParser {
   }
   /** @internal */
   goJson(): AST {
-    return replaceEncoding(this, [undefinedLink])
+    return replaceEncoding(this, [undefinedJsonLink])
   }
   /** @internal */
   getExpected(): string {
@@ -568,14 +568,15 @@ export class Enums extends AbstractParser {
   goStringPojo(): AST {
     if (this.enums.some(([_, v]) => Predicate.isNumber(v))) {
       const coercions = Object.fromEntries(this.enums.map(([_, v]) => [String(v), v]))
-      const enumLink = new Link(
-        new UnionType(Object.keys(coercions).map((k) => new LiteralType(k)), "anyOf"),
-        new Transformation.Transformation(
-          Getter.transform((s) => coercions[s]),
-          Getter.String()
+      return replaceEncoding(this, [
+        new Link(
+          new UnionType(Object.keys(coercions).map((k) => new LiteralType(k)), "anyOf"),
+          new Transformation.Transformation(
+            Getter.transform((s) => coercions[s]),
+            Getter.String()
+          )
         )
-      )
-      return replaceEncoding(this, [enumLink])
+      ])
     }
     return this
   }
@@ -707,7 +708,7 @@ export class UniqueSymbol extends AbstractParser {
   }
   /** @internal */
   goJson(): AST {
-    return replaceEncoding(this, [symbolLink])
+    return replaceEncoding(this, [symbolJsonLink])
   }
   /** @internal */
   getExpected(): string {
@@ -792,6 +793,11 @@ export class StringKeyword extends AbstractParser {
 export const stringKeyword = new StringKeyword()
 
 /**
+ * **Default Json Serializer**
+ *
+ * - If the number is finite, it is serialized as a number.
+ * - If the number is infinite or NaN, it is serialized as a string.
+ *
  * @category model
  * @since 4.0.0
  */
@@ -802,8 +808,12 @@ export class NumberKeyword extends AbstractParser {
     return fromRefinement(this, Predicate.isNumber)
   }
   /** @internal */
+  goJson(): AST {
+    return replaceEncoding(this, [numberJsonLink])
+  }
+  /** @internal */
   goStringPojo(): AST {
-    return replaceEncoding(this, [numberLink])
+    return replaceEncoding(this, [numberStringPojoLink])
   }
   /** @internal */
   getExpected(): string {
@@ -849,7 +859,7 @@ export class SymbolKeyword extends AbstractParser {
   }
   /** @internal */
   goJson(): AST {
-    return replaceEncoding(this, [symbolLink])
+    return replaceEncoding(this, [symbolJsonLink])
   }
   /** @internal */
   getExpected(): string {
@@ -874,7 +884,7 @@ export class BigIntKeyword extends AbstractParser {
   }
   /** @internal */
   goJson(): AST {
-    return coerceBigInt(this)
+    return replaceEncoding(this, [bigIntJsonLink])
   }
   /** @internal */
   getExpected(): string {
@@ -1174,7 +1184,7 @@ export function getIndexSignatureKeys(
     case "SymbolKeyword":
       return Object.getOwnPropertySymbols(input)
     case "NumberKeyword":
-      return Object.keys(input).filter((key) => numberKeysRegExp.test(key))
+      return Object.keys(input).filter((key) => numberKeywordPatternRegExp.test(key))
     default:
       return Object.keys(input)
   }
@@ -2256,7 +2266,7 @@ export const getTemplateLiteralRegExp = memoize((ast: TemplateLiteral): RegExp =
  */
 const STRING_KEYWORD_PATTERN = "[\\s\\S]*?"
 /**
- * floating point or integer, with optional exponent, no leading "+"
+ * floating point or integer, with optional exponent
  */
 const NUMBER_KEYWORD_PATTERN = "[+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?"
 /**
@@ -2400,10 +2410,6 @@ export function getReducer<A>(alg: ReducerAlg<A>) {
   }
 }
 
-function coerceBigInt(ast: BigIntKeyword): BigIntKeyword {
-  return replaceEncoding(ast, [bigIntLink])
-}
-
 const goIndexSignature = memoize(apply((ast: AST): AST => {
   switch (ast._tag) {
     case "NumberKeyword":
@@ -2432,25 +2438,34 @@ const goTemplateLiteral = memoize(apply((ast: AST): AST => {
   throw new Error(`Unsupported template literal part tag: ${ast._tag}`)
 }))
 
-const numberKeysRegExp = new RegExp(`(?:${NUMBER_KEYWORD_PATTERN}|Infinity|-Infinity|NaN)`)
+const numberJsonLink = new Link(
+  new UnionType(
+    [numberKeyword, new LiteralType("Infinity"), new LiteralType("-Infinity"), new LiteralType("NaN")],
+    "anyOf"
+  ),
+  new Transformation.Transformation(
+    Getter.Number(),
+    Getter.transform((n) => Number.isFinite(n) ? n : String(n))
+  )
+)
+
+const numberKeywordPatternRegExp = new RegExp(`(?:${NUMBER_KEYWORD_PATTERN}|Infinity|-Infinity|NaN)`)
 
 const numberKeywordPattern = appendChecks(stringKeyword, [
-  Check.regex(numberKeysRegExp, {
+  Check.regex(numberKeywordPatternRegExp, {
     title: "a string representing a number"
   })
 ])
 
-const numberLink = new Link(
+const numberStringPojoLink = new Link(
   numberKeywordPattern,
   Transformation.numberFromString
 )
 
-const bigintKeywordPattern = appendChecks(stringKeyword, [
-  Check.regex(new RegExp(BIGINT_KEYWORD_PATTERN), { title: "a string representing a bigint" })
-])
-
-const bigIntLink = new Link(
-  bigintKeywordPattern,
+const bigIntJsonLink = new Link(
+  appendChecks(stringKeyword, [
+    Check.regex(new RegExp(BIGINT_KEYWORD_PATTERN), { title: "a string representing a bigint" })
+  ]),
   new Transformation.Transformation(
     Getter.transform(BigInt),
     Getter.String()
@@ -2462,7 +2477,7 @@ const SYMBOL_PATTERN = /^Symbol\((.*)\)$/
 /**
  * to distinguish between Symbol and String, we need to add a check to the string keyword
  */
-const symbolLink = new Link(
+const symbolJsonLink = new Link(
   appendChecks(stringKeyword, [Check.regex(SYMBOL_PATTERN, { title: "a string representing a symbol" })]),
   new Transformation.Transformation(
     Getter.transform((description) => Symbol.for(SYMBOL_PATTERN.exec(description)![1])),

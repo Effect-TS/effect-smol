@@ -75,20 +75,20 @@ describe("Serializer", () => {
         it("Struct", async () => {
           const schema = Schema.Struct({
             a: Schema.String,
-            b: Schema.Number
+            b: Schema.Boolean
           })
           const serializer = Serializer.json(schema)
           strictEqual(serializer.ast, schema.ast)
         })
 
         it("Record", async () => {
-          const schema = Schema.Record(Schema.String, Schema.Number)
+          const schema = Schema.Record(Schema.String, Schema.Boolean)
           const serializer = Serializer.json(schema)
           strictEqual(serializer.ast, schema.ast)
         })
 
         it("Tuple", async () => {
-          const schema = Schema.Tuple([Schema.String, Schema.Number])
+          const schema = Schema.Tuple([Schema.String, Schema.Boolean])
           const serializer = Serializer.json(schema)
           strictEqual(serializer.ast, schema.ast)
         })
@@ -100,7 +100,7 @@ describe("Serializer", () => {
         })
 
         it("Union", async () => {
-          const schema = Schema.Union([Schema.String, Schema.Number])
+          const schema = Schema.Union([Schema.String, Schema.Boolean])
           const serializer = Serializer.json(schema)
           strictEqual(serializer.ast, schema.ast)
         })
@@ -257,9 +257,15 @@ describe("Serializer", () => {
 
         const encoding = asserts.encoding()
         await encoding.succeed(1)
+        await encoding.succeed(Infinity, "Infinity")
+        await encoding.succeed(-Infinity, "-Infinity")
+        await encoding.succeed(NaN, "NaN")
 
         const decoding = asserts.decoding()
-        await decoding.succeed(1, 1)
+        await decoding.succeed(1)
+        await decoding.succeed("Infinity", Infinity)
+        await decoding.succeed("-Infinity", -Infinity)
+        await decoding.succeed("NaN", NaN)
       })
 
       it("Boolean", async () => {

@@ -47,6 +47,7 @@ const goJson = memoize(AST.apply((ast: AST.AST): AST.AST => {
       case "UniqueSymbol":
       case "BigIntKeyword":
       case "LiteralType":
+      case "NumberKeyword":
         return ast.goJson()
       case "TypeLiteral": {
         if (ast.propertySignatures.some((ps) => !Predicate.isString(ps.name))) {
@@ -74,14 +75,15 @@ function requiredGoJsonAnnotation(ast: AST.AST): AST.AST {
 }
 
 function forbidden<A extends AST.AST>(ast: A, message: string): A {
-  const link = new AST.Link(
-    AST.neverKeyword,
-    new Transformation.Transformation(
-      Getter.passthrough(),
-      Getter.forbidden(() => message)
+  return AST.replaceEncoding(ast, [
+    new AST.Link(
+      AST.neverKeyword,
+      new Transformation.Transformation(
+        Getter.passthrough(),
+        Getter.forbidden(() => message)
+      )
     )
-  )
-  return AST.replaceEncoding(ast, [link])
+  ])
 }
 
 /**
@@ -147,9 +149,9 @@ export const goStringPojo = memoize(AST.apply((ast: AST.AST): AST.AST => {
         return requiredGoStringPojoAnnotation(ast)
       }
       case "NullKeyword":
-        return AST.replaceEncoding(ast, [nullLink])
+        return AST.replaceEncoding(ast, [nullStringPojoLink])
       case "BooleanKeyword":
-        return AST.replaceEncoding(ast, [booleanLink])
+        return AST.replaceEncoding(ast, [booleanStringPojoLink])
       case "Enums":
       case "NumberKeyword":
       case "LiteralType":
@@ -175,7 +177,7 @@ export const goStringPojo = memoize(AST.apply((ast: AST.AST): AST.AST => {
   return AST.isOptional(ast) ? AST.optionalKey(out) : out
 }))
 
-const nullLink = new AST.Link(
+const nullStringPojoLink = new AST.Link(
   AST.undefinedKeyword,
   new Transformation.Transformation(
     Getter.transform(() => null),
@@ -183,7 +185,7 @@ const nullLink = new AST.Link(
   )
 )
 
-const booleanLink = new AST.Link(
+const booleanStringPojoLink = new AST.Link(
   new AST.UnionType([new AST.LiteralType("true"), new AST.LiteralType("false")], "anyOf"),
   new Transformation.Transformation(
     Getter.transform((s) => s === "true"),
