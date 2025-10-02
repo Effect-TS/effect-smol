@@ -7,7 +7,9 @@ import * as Layer from "../Layer.ts"
 import * as ServiceMap from "../ServiceMap.ts"
 import { BadArgument } from "./PlatformError.ts"
 
-/** @internal */
+/**
+ * @since 4.0.0
+ */
 export const TypeId = "~effect/platform/Path"
 
 /**

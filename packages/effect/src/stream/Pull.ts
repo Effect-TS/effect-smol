@@ -130,7 +130,10 @@ export type ExcludeHalt<E> = Exclude<E, Halt<any>>
 // Halt
 // -----------------------------------------------------------------------------
 
-/** @internal */
+/**
+ * @since 4.0.0
+ * @category Halt
+ */
 export const HaltTypeId = "~effect/stream/Pull/Halt"
 
 /**

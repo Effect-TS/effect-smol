@@ -988,7 +988,10 @@ export const makeNoop = (fileSystem: Partial<FileSystem>): FileSystem =>
 export const layerNoop = (fileSystem: Partial<FileSystem>): Layer.Layer<FileSystem> =>
   Layer.succeed(FileSystem)(makeNoop(fileSystem))
 
-/** @internal */
+/**
+ * @since 4.0.0
+ * @category File
+ */
 export const FileTypeId = "~effect/platform/FileSystem/File"
 
 /**
@@ -998,7 +1001,7 @@ export const FileTypeId = "~effect/platform/FileSystem/File"
  * instance by checking for the presence of the File type identifier.
  *
  * @since 4.0.0
- * @category guard
+ * @category File
  */
 export const isFile = (u: unknown): u is File => typeof u === "object" && u !== null && FileTypeId in u
 
@@ -1043,7 +1046,7 @@ export const isFile = (u: unknown): u is File => typeof u === "object" && u !== 
  * ```
  *
  * @since 4.0.0
- * @category model
+ * @category File
  */
 export interface File {
   readonly [FileTypeId]: typeof FileTypeId
@@ -1060,7 +1063,7 @@ export interface File {
 
 /**
  * @since 4.0.0
- * @category model
+ * @category File
  */
 export declare namespace File {
   /**
@@ -1070,7 +1073,7 @@ export declare namespace File {
    * to identify open files. The branded type ensures type safety.
    *
    * @since 4.0.0
-   * @category model
+   * @category File
    */
   export type Descriptor = Brand.Branded<number, "FileDescriptor">
 
@@ -1081,7 +1084,7 @@ export declare namespace File {
    * from regular files to special device files and symbolic links.
    *
    * @since 4.0.0
-   * @category model
+   * @category File
    */
   export type Type =
     | "File"
@@ -1127,7 +1130,7 @@ export declare namespace File {
    * ```
    *
    * @since 4.0.0
-   * @category model
+   * @category File
    */
   export interface Info {
     readonly type: Type

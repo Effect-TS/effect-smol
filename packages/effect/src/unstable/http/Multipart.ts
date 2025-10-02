@@ -23,7 +23,9 @@ import * as Stream from "../../stream/Stream.ts"
 import * as IncomingMessage from "./HttpIncomingMessage.ts"
 import * as MP from "./Multipasta.ts"
 
-/** @internal */
+/**
+ * @since 4.0.0
+ */
 export const TypeId = "~effect/http/Multipart"
 
 /**

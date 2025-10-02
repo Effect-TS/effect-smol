@@ -50,8 +50,15 @@ import * as ServiceMap from "./ServiceMap.ts"
 import type { Span } from "./Tracer.ts"
 import type { NoInfer } from "./types/Types.ts"
 
-const TypeId = core.CauseTypeId
-const FailureTypeId = core.CauseFailureTypeId
+/**
+ * @since 2.0.0
+ */
+export const TypeId: "~effect/Cause" = core.CauseTypeId
+
+/**
+ * @since 2.0.0
+ */
+export const FailureTypeId: "~effect/Cause/Failure" = core.CauseFailureTypeId
 
 /**
  * A `Cause` is a data type that represents the different ways a `Effect` can fail.
@@ -645,6 +652,12 @@ export interface YieldableError extends Error {
 export const isNoSuchElementError: (u: unknown) => u is NoSuchElementError = core.isNoSuchElementError
 
 /**
+ * @since 4.0.0
+ * @category errors
+ */
+export const NoSuchElementErrorTypeId: "~effect/Cause/NoSuchElementError" = core.NoSuchElementErrorTypeId
+
+/**
  * @example
  * ```ts
  * import { Cause } from "effect"
@@ -659,7 +672,7 @@ export const isNoSuchElementError: (u: unknown) => u is NoSuchElementError = cor
  * @category errors
  */
 export interface NoSuchElementError extends YieldableError {
-  readonly [core.NoSuchElementErrorTypeId]: typeof core.NoSuchElementErrorTypeId
+  readonly [NoSuchElementErrorTypeId]: typeof NoSuchElementErrorTypeId
   readonly _tag: "NoSuchElementError"
 }
 
@@ -678,6 +691,12 @@ export interface NoSuchElementError extends YieldableError {
  * @since 4.0.0
  */
 export const NoSuchElementError: new(message?: string) => NoSuchElementError = core.NoSuchElementError
+
+/**
+ * @category errors
+ * @since 4.0.0
+ */
+export const TimeoutErrorTypeId: "~effect/Cause/TimeoutError" = effect.TimeoutErrorTypeId
 
 /**
  * Tests if a value is a `TimeoutError`.
@@ -711,7 +730,7 @@ export const isTimeoutError: (u: unknown) => u is TimeoutError = effect.isTimeou
  * @category errors
  */
 export interface TimeoutError extends YieldableError {
-  readonly [effect.TimeoutErrorTypeId]: typeof effect.TimeoutErrorTypeId
+  readonly [TimeoutErrorTypeId]: typeof TimeoutErrorTypeId
   readonly _tag: "TimeoutError"
 }
 
@@ -730,6 +749,12 @@ export interface TimeoutError extends YieldableError {
  * @since 4.0.0
  */
 export const TimeoutError: new(message?: string) => TimeoutError = effect.TimeoutError
+
+/**
+ * @category errors
+ * @since 4.0.0
+ */
+export const IllegalArgumentErrorTypeId: "~effect/Cause/IllegalArgumentError" = effect.IllegalArgumentErrorTypeId
 
 /**
  * Tests if a value is an `IllegalArgumentError`.
@@ -763,7 +788,7 @@ export const isIllegalArgumentError: (u: unknown) => u is IllegalArgumentError =
  * @category errors
  */
 export interface IllegalArgumentError extends YieldableError {
-  readonly [effect.IllegalArgumentErrorTypeId]: typeof effect.IllegalArgumentErrorTypeId
+  readonly [IllegalArgumentErrorTypeId]: typeof IllegalArgumentErrorTypeId
   readonly _tag: "IllegalArgumentError"
 }
 
@@ -801,6 +826,12 @@ export const IllegalArgumentError: new(message?: string) => IllegalArgumentError
 export const isExceededCapacityError: (u: unknown) => u is ExceededCapacityError = effect.isExceededCapacityError
 
 /**
+ * @category errors
+ * @since 4.0.0
+ */
+export const ExceededCapacityErrorTypeId: "~effect/Cause/ExceededCapacityError" = effect.ExceededCapacityErrorTypeId
+
+/**
  * @example
  * ```ts
  * import { Cause } from "effect"
@@ -815,7 +846,7 @@ export const isExceededCapacityError: (u: unknown) => u is ExceededCapacityError
  * @category errors
  */
 export interface ExceededCapacityError extends YieldableError {
-  readonly [effect.ExceededCapacityErrorTypeId]: typeof effect.ExceededCapacityErrorTypeId
+  readonly [ExceededCapacityErrorTypeId]: typeof ExceededCapacityErrorTypeId
   readonly _tag: "ExceededCapacityError"
 }
 
@@ -834,6 +865,12 @@ export interface ExceededCapacityError extends YieldableError {
  * @since 4.0.0
  */
 export const ExceededCapacityError: new(message?: string) => ExceededCapacityError = effect.ExceededCapacityError
+
+/**
+ * @category errors
+ * @since 4.0.0
+ */
+export const UnknownErrorTypeId: "~effect/Cause/UnknownError" = effect.UnknownErrorTypeId
 
 /**
  * Tests if a value is an `UnknownError`.
@@ -867,7 +904,7 @@ export const isUnknownError: (u: unknown) => u is UnknownError = effect.isUnknow
  * @category errors
  */
 export interface UnknownError extends YieldableError {
-  readonly [effect.UnknownErrorTypeId]: typeof effect.UnknownErrorTypeId
+  readonly [UnknownErrorTypeId]: typeof UnknownErrorTypeId
   readonly _tag: "UnknownError"
 }
 
