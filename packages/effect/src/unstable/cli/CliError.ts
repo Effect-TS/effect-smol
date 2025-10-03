@@ -1,26 +1,20 @@
 /**
  * @since 4.0.0
  */
-import * as Data from "../../data/Data.ts"
-import { hasProperty } from "../../data/Predicate.ts"
+import * as Predicate from "../../data/Predicate.ts"
+import * as Schema from "../../schema/Schema.ts"
 
 /**
  * @since 4.0.0
  * @category TypeId
  */
-export const TypeId: TypeId = "@effect/cli/CliError"
-
-/**
- * @since 4.0.0
- * @category TypeId
- */
-export type TypeId = "@effect/cli/CliError"
+export const TypeId = "~effect/cli/CliError"
 
 /**
  * @since 4.0.0
  * @category Guards
  */
-export const isCliError = (u: unknown): u is CliError => hasProperty(u, TypeId)
+export const isCliError = (u: unknown): u is CliError => Predicate.hasProperty(u, TypeId)
 
 /**
  * @since 4.0.0
@@ -42,15 +36,17 @@ export type CliError =
  * @since 4.0.0
  * @category Models
  */
-export class UnrecognizedOption extends Data.TaggedError("UnrecognizedOption")<{
-  readonly option: string
-  readonly command?: ReadonlyArray<string>
-  readonly suggestions: ReadonlyArray<string>
-}> {
+export class UnrecognizedOption extends Schema.ErrorClass(`${TypeId}/UnrecognizedOption`)({
+  _tag: Schema.tag("UnrecognizedOption"),
+  option: Schema.String,
+  command: Schema.optional(Schema.Array(Schema.String)),
+  suggestions: Schema.Array(Schema.String)
+}) {
   /**
    * @since 4.0.0
    */
-  readonly [TypeId]: TypeId = TypeId
+  readonly [TypeId] = TypeId
+
   /**
    * @since 4.0.0
    */
@@ -71,15 +67,17 @@ export class UnrecognizedOption extends Data.TaggedError("UnrecognizedOption")<{
  * @since 4.0.0
  * @category Models
  */
-export class DuplicateOption extends Data.TaggedError("DuplicateOption")<{
-  readonly option: string
-  readonly parentCommand: string
-  readonly childCommand: string
-}> {
+export class DuplicateOption extends Schema.ErrorClass(`${TypeId}/DuplicateOption`)({
+  _tag: Schema.tag("DuplicateOption"),
+  option: Schema.String,
+  parentCommand: Schema.String,
+  childCommand: Schema.String
+}) {
   /**
    * @since 4.0.0
    */
-  readonly [TypeId]: TypeId = TypeId
+  readonly [TypeId] = TypeId
+
   /**
    * @since 4.0.0
    */
@@ -95,13 +93,15 @@ export class DuplicateOption extends Data.TaggedError("DuplicateOption")<{
  * @since 4.0.0
  * @category Models
  */
-export class MissingOption extends Data.TaggedError("MissingOption")<{
-  readonly option: string
-}> {
+export class MissingOption extends Schema.ErrorClass(`${TypeId}/MissingOption`)({
+  _tag: Schema.tag("MissingOption"),
+  option: Schema.String
+}) {
   /**
    * @since 4.0.0
    */
-  readonly [TypeId]: TypeId = TypeId
+  readonly [TypeId] = TypeId
+
   /**
    * @since 4.0.0
    */
@@ -116,13 +116,15 @@ export class MissingOption extends Data.TaggedError("MissingOption")<{
  * @since 4.0.0
  * @category Models
  */
-export class MissingArgument extends Data.TaggedError("MissingArgument")<{
-  readonly argument: string
-}> {
+export class MissingArgument extends Schema.ErrorClass(`${TypeId}/MissingArgument`)({
+  _tag: Schema.tag("MissingArgument"),
+  argument: Schema.String
+}) {
   /**
    * @since 4.0.0
    */
-  readonly [TypeId]: TypeId = TypeId
+  readonly [TypeId] = TypeId
+
   /**
    * @since 4.0.0
    */
@@ -137,15 +139,17 @@ export class MissingArgument extends Data.TaggedError("MissingArgument")<{
  * @since 4.0.0
  * @category Models
  */
-export class InvalidValue extends Data.TaggedError("InvalidValue")<{
-  readonly option: string
-  readonly value: string
-  readonly expected: string
-}> {
+export class InvalidValue extends Schema.ErrorClass(`${TypeId}/InvalidValue`)({
+  _tag: Schema.tag("InvalidValue"),
+  option: Schema.String,
+  value: Schema.String,
+  expected: Schema.String
+}) {
   /**
    * @since 4.0.0
    */
-  readonly [TypeId]: TypeId = TypeId
+  readonly [TypeId] = TypeId
+
   /**
    * @since 4.0.0
    */
@@ -160,12 +164,20 @@ export class InvalidValue extends Data.TaggedError("InvalidValue")<{
  * @since 4.0.0
  * @category Models
  */
-export class UnknownSubcommand extends Data.TaggedError("UnknownSubcommand")<{
-  readonly subcommand: string
-  readonly parent?: ReadonlyArray<string>
-  readonly suggestions: ReadonlyArray<string>
-}> {
-  readonly [TypeId]: TypeId = TypeId
+export class UnknownSubcommand extends Schema.ErrorClass(`${TypeId}/UnknownSubcommand`)({
+  _tag: Schema.tag("UnknownSubcommand"),
+  subcommand: Schema.String,
+  parent: Schema.optional(Schema.Array(Schema.String)),
+  suggestions: Schema.Array(Schema.String)
+}) {
+  /**
+   * @since 4.0.0
+   */
+  readonly [TypeId] = TypeId
+
+  /**
+   * @since 4.0.0
+   */
   override get message() {
     const suggestionText = this.suggestions.length > 0
       ? `\n\n  Did you mean this?\n    ${this.suggestions.join("\n    ")}`
@@ -183,13 +195,15 @@ export class UnknownSubcommand extends Data.TaggedError("UnknownSubcommand")<{
  * @since 4.0.0
  * @category Models
  */
-export class ShowHelp extends Data.TaggedError("ShowHelp")<{
-  readonly commandPath: ReadonlyArray<string>
-}> {
+export class ShowHelp extends Schema.ErrorClass(`${TypeId}/ShowHelp`)({
+  _tag: Schema.tag("ShowHelp"),
+  commandPath: Schema.Array(Schema.String)
+}) {
   /**
    * @since 4.0.0
    */
-  readonly [TypeId]: TypeId = TypeId
+  readonly [TypeId] = TypeId
+
   /**
    * @since 4.0.0
    */
@@ -204,17 +218,12 @@ export class ShowHelp extends Data.TaggedError("ShowHelp")<{
  * @since 4.0.0
  * @category Models
  */
-export class UserError extends Data.TaggedError("UserError")<{
-  readonly cause: unknown
-}> {
+export class UserError extends Schema.ErrorClass(`${TypeId}/UserError`)({
+  _tag: Schema.tag("UserError"),
+  cause: Schema.Defect
+}) {
   /**
    * @since 4.0.0
    */
-  readonly [TypeId]: TypeId = TypeId
-  /**
-   * @since 4.0.0
-   */
-  override get message() {
-    return String(this.cause)
-  }
+  readonly [TypeId] = TypeId
 }

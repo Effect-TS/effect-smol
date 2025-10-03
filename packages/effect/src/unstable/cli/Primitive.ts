@@ -231,8 +231,8 @@ export const redacted: Primitive<Redacted.Redacted<string>> = makePrimitive(
  * @since 4.0.0
  * @category constructors
  */
-export const fileContent: Primitive<string> = makePrimitive(
-  "FileContent",
+export const fileString: Primitive<string> = makePrimitive(
+  "FileString",
   Effect.fnUntraced(function*(filePath) {
     const fs = yield* FileSystem.FileSystem
     const path = yield* Path.Path
@@ -284,9 +284,9 @@ export const fileSchema = <A>(
 ): Primitive<A> => {
   const decode = Schema.decodeUnknownEffect(schema)
   return makePrimitive(
-    "FileParse",
+    "FileSchema",
     Effect.fnUntraced(function*(filePath) {
-      const content = yield* fileContent.parse(filePath)
+      const content = yield* fileString.parse(filePath)
       return yield* Effect.mapError(decode(content), (error) => {
         const formatHint = format ? ` (expected ${format} format)` : ""
         return `Failed to parse file content${formatHint}: ${error.message}`
@@ -354,9 +354,9 @@ export const getTypeName = <A>(primitive: Primitive<A>): string => {
       return "choice"
     case "Redacted":
       return "string"
-    case "FileContent":
+    case "FileString":
       return "file"
-    case "FileParse":
+    case "FileSchema":
       return "file"
     case "KeyValueMap":
       return "key=value"

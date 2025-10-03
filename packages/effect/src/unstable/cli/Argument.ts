@@ -16,42 +16,20 @@ import type * as CliError from "./CliError.ts"
 import type { Environment } from "./Command.ts"
 import * as Param from "./Param.ts"
 
-/* -------------------------------------------------------------------------------------------------
- * branding
- * -------------------------------------------------------------------------------------------------*/
-
-const ArgumentBrand: unique symbol = Symbol("@effect/cli/ArgumentBrand")
-
 /**
- * Branded args type. It behaves exactly like `Param.Param<A, "argument">` but carries
- * an extra field keyed by a private symbol so that external code cannot construct it directly.
+ * Represents a positional command-line argument.
  *
  * @since 4.0.0
  * @category models
  */
-export interface Argument<A> extends Param.Param<A, "argument"> {
-  readonly [ArgumentBrand]: { _A: (_: never) => A }
-}
-
-/* -------------------------------------------------------------------------------------------------
- * internal helper
- * -------------------------------------------------------------------------------------------------*/
-
-function asArgument<A>(param: Param.Param<A, "argument">): Argument<A> {
-  // Attach the unique brand without altering runtime behaviour.
-  return param as Argument<A>
-}
-
-/* -------------------------------------------------------------------------------------------------
- * constructors
- * -------------------------------------------------------------------------------------------------*/
+export interface Argument<A> extends Param.Param<A, "argument"> {}
 
 /**
  * Creates a positional string argument.
  *
  * @example
  * ```ts
- * import * as Argument from "@effect/cli/Argument"
+ * import { Argument } from "effect/unstable/cli"
  *
  * const filename = Argument.string("filename")
  * ```
@@ -59,14 +37,14 @@ function asArgument<A>(param: Param.Param<A, "argument">): Argument<A> {
  * @since 4.0.0
  * @category constructors
  */
-export const string = (name: string): Argument<string> => asArgument(Param.string(name, "argument"))
+export const string = (name: string): Argument<string> => Param.string(name, "argument")
 
 /**
  * Creates a positional integer argument.
  *
  * @example
  * ```ts
- * import * as Argument from "@effect/cli/Argument"
+ * import { Argument } from "effect/unstable/cli"
  *
  * const count = Argument.integer("count")
  * ```
@@ -74,14 +52,14 @@ export const string = (name: string): Argument<string> => asArgument(Param.strin
  * @since 4.0.0
  * @category constructors
  */
-export const integer = (name: string): Argument<number> => asArgument(Param.integer(name, "argument"))
+export const integer = (name: string): Argument<number> => Param.integer(name, "argument")
 
 /**
  * Creates a positional file path argument.
  *
  * @example
  * ```ts
- * import * as Argument from "@effect/cli/Argument"
+ * import { Argument } from "effect/unstable/cli"
  *
  * const inputFile = Argument.file("input", { mustExist: true }) // Must exist
  * const outputFile = Argument.file("output", { mustExist: false }) // Must not exist
@@ -90,15 +68,16 @@ export const integer = (name: string): Argument<number> => asArgument(Param.inte
  * @since 4.0.0
  * @category constructors
  */
-export const file = (name: string, options?: { mustExist?: boolean }): Argument<string> =>
-  asArgument(Param.file(name, "argument", options))
+export const file = (name: string, options?: {
+  readonly mustExist?: boolean | undefined
+}): Argument<string> => Param.file(name, "argument", options)
 
 /**
  * Creates a positional directory path argument.
  *
  * @example
  * ```ts
- * import * as Argument from "@effect/cli/Argument"
+ * import { Argument } from "effect/unstable/cli"
  *
  * const workspace = Argument.directory("workspace", { mustExist: true }) // Must exist
  * ```
@@ -106,15 +85,16 @@ export const file = (name: string, options?: { mustExist?: boolean }): Argument<
  * @since 4.0.0
  * @category constructors
  */
-export const directory = (name: string, options?: { mustExist?: boolean }): Argument<string> =>
-  asArgument(Param.directory(name, "argument", options))
+export const directory = (name: string, options?: {
+  readonly mustExist?: boolean | undefined
+}): Argument<string> => Param.directory(name, "argument", options)
 
 /**
  * Creates a positional float argument.
  *
  * @example
  * ```ts
- * import * as Argument from "@effect/cli/Argument"
+ * import { Argument } from "effect/unstable/cli"
  *
  * const ratio = Argument.float("ratio")
  * ```
@@ -122,14 +102,14 @@ export const directory = (name: string, options?: { mustExist?: boolean }): Argu
  * @since 4.0.0
  * @category constructors
  */
-export const float = (name: string): Argument<number> => asArgument(Param.float(name, "argument"))
+export const float = (name: string): Argument<number> => Param.float(name, "argument")
 
 /**
  * Creates a positional date argument.
  *
  * @example
  * ```ts
- * import * as Argument from "@effect/cli/Argument"
+ * import { Argument } from "effect/unstable/cli"
  *
  * const startDate = Argument.date("start-date")
  * ```
@@ -137,14 +117,14 @@ export const float = (name: string): Argument<number> => asArgument(Param.float(
  * @since 4.0.0
  * @category constructors
  */
-export const date = (name: string): Argument<Date> => asArgument(Param.date(name, "argument"))
+export const date = (name: string): Argument<Date> => Param.date(name, "argument")
 
 /**
  * Creates a positional choice argument.
  *
  * @example
  * ```ts
- * import * as Argument from "@effect/cli/Argument"
+ * import { Argument } from "effect/unstable/cli"
  *
  * const environment = Argument.choice("environment", ["dev", "staging", "prod"])
  * ```
@@ -155,14 +135,14 @@ export const date = (name: string): Argument<Date> => asArgument(Param.date(name
 export const choice = <const A extends ReadonlyArray<string>>(
   name: string,
   choices: A
-): Argument<A[number]> => asArgument(Param.choice(name, choices, "argument"))
+): Argument<A[number]> => Param.choice(name, choices, "argument")
 
 /**
  * Creates a positional path argument.
  *
  * @example
  * ```ts
- * import * as Argument from "@effect/cli/Argument"
+ * import { Argument } from "effect/unstable/cli"
  *
  * const configPath = Argument.path("config")
  * ```
@@ -173,14 +153,14 @@ export const choice = <const A extends ReadonlyArray<string>>(
 export const path = (name: string, options?: {
   pathType?: "file" | "directory" | "either"
   mustExist?: boolean
-}): Argument<string> => asArgument(Param.path(name, "argument", options))
+}): Argument<string> => Param.path(name, "argument", options)
 
 /**
  * Creates a positional redacted argument that obscures its value.
  *
  * @example
  * ```ts
- * import * as Argument from "@effect/cli/Argument"
+ * import { Argument } from "effect/unstable/cli"
  *
  * const secret = Argument.redacted("secret")
  * ```
@@ -188,38 +168,29 @@ export const path = (name: string, options?: {
  * @since 4.0.0
  * @category constructors
  */
-export const redacted = (name: string): Argument<Redacted.Redacted<string>> =>
-  asArgument(Param.redacted(name, "argument"))
+export const redacted = (name: string): Argument<Redacted.Redacted<string>> => Param.redacted(name, "argument")
 
 /**
- * Creates a positional argument that reads file content.
+ * Creates a positional argument that reads file content as a string.
  *
  * @example
  * ```ts
- * import * as Argument from "@effect/cli/Argument"
+ * import { Argument } from "effect/unstable/cli"
  *
- * const config = Argument.fileContent("config-file")
+ * const config = Argument.fileString("config-file")
  * ```
  *
  * @since 4.0.0
  * @category constructors
  */
-export const fileContent = (name: string): Argument<string> => asArgument(Param.fileContent(name, "argument"))
+export const fileText = (name: string): Argument<string> => Param.fileString(name, "argument")
 
 /**
- * Creates a positional argument that reads file content (alias for fileContent).
- *
- * @since 4.0.0
- * @category constructors
- */
-export const fileText = (name: string): Argument<string> => asArgument(Param.fileText(name, "argument"))
-
-/**
- * Creates a positional argument that reads and parses file content using a schema.
+ * Creates a positional argument that reads and validates file content using a schema.
  *
  * @example
  * ```ts
- * import * as Argument from "@effect/cli/Argument"
+ * import { Argument } from "effect/unstable/cli"
  * import { Schema } from "effect"
  *
  * const ConfigSchema = Schema.Struct({
@@ -227,20 +198,8 @@ export const fileText = (name: string): Argument<string> => asArgument(Param.fil
  *   host: Schema.String
  * })
  *
- * const config = Argument.fileParse("config", ConfigSchema, "JSON")
+ * const config = Argument.fileSchema("config", ConfigSchema, "JSON")
  * ```
- *
- * @since 4.0.0
- * @category constructors
- */
-export const fileParse = <A>(
-  name: string,
-  schema: Schema.Codec<A, string>,
-  format?: string
-): Argument<A> => asArgument(Param.fileParse(name, schema, "argument", format))
-
-/**
- * Creates a positional argument that reads and validates file content using a schema.
  *
  * @since 4.0.0
  * @category constructors
@@ -249,7 +208,7 @@ export const fileSchema = <A>(
   name: string,
   schema: Schema.Codec<A, string>,
   format?: string
-): Argument<A> => asArgument(Param.fileSchema(name, schema, "argument", format))
+): Argument<A> => Param.fileSchema(name, schema, "argument", format)
 
 /**
  * Creates an empty sentinel argument that always fails to parse.
@@ -257,18 +216,14 @@ export const fileSchema = <A>(
  * @since 4.0.0
  * @category constructors
  */
-export const none: Argument<never> = asArgument(Param.none("argument"))
-
-/* -------------------------------------------------------------------------------------------------
- * combinators
- * -------------------------------------------------------------------------------------------------*/
+export const none: Argument<never> = Param.none("argument")
 
 /**
  * Makes a positional argument optional.
  *
  * @example
  * ```ts
- * import * as Argument from "@effect/cli/Argument"
+ * import { Argument } from "effect/unstable/cli"
  *
  * const optionalVersion = Argument.string("version").pipe(Argument.optional)
  * ```
@@ -276,14 +231,14 @@ export const none: Argument<never> = asArgument(Param.none("argument"))
  * @since 4.0.0
  * @category combinators
  */
-export const optional = <A>(arg: Argument<A>): Argument<Option.Option<A>> => asArgument(Param.optional(arg))
+export const optional = <A>(arg: Argument<A>): Argument<Option.Option<A>> => Param.optional(arg)
 
 /**
  * Adds a description to a positional argument.
  *
  * @example
  * ```ts
- * import * as Argument from "@effect/cli/Argument"
+ * import { Argument } from "effect/unstable/cli"
  *
  * const filename = Argument.string("filename").pipe(
  *   Argument.withDescription("The input file to process")
@@ -298,7 +253,7 @@ export const withDescription: {
   <A>(self: Argument<A>, description: string): Argument<A>
 } = dual(
   2,
-  <A>(self: Argument<A>, description: string): Argument<A> => asArgument(Param.withDescription(self, description))
+  <A>(self: Argument<A>, description: string): Argument<A> => Param.withDescription(self, description)
 )
 
 /**
@@ -306,7 +261,7 @@ export const withDescription: {
  *
  * @example
  * ```ts
- * import * as Argument from "@effect/cli/Argument"
+ * import { Argument } from "effect/unstable/cli"
  *
  * const port = Argument.integer("port").pipe(Argument.withDefault(8080))
  * ```
@@ -317,14 +272,14 @@ export const withDescription: {
 export const withDefault: {
   <A>(defaultValue: A): (self: Argument<A>) => Argument<A>
   <A>(self: Argument<A>, defaultValue: A): Argument<A>
-} = dual(2, <A>(self: Argument<A>, defaultValue: A): Argument<A> => asArgument(Param.withDefault(self, defaultValue)))
+} = dual(2, <A>(self: Argument<A>, defaultValue: A): Argument<A> => Param.withDefault(self, defaultValue))
 
 /**
  * Creates a variadic positional argument that accepts multiple values.
  *
  * @example
  * ```ts
- * import * as Argument from "@effect/cli/Argument"
+ * import { Argument } from "effect/unstable/cli"
  *
  * // Accept any number of files
  * const files = Argument.string("files").pipe(Argument.variadic)
@@ -345,11 +300,11 @@ export const variadic: {
 } = dual(
   2,
   <A>(self: Argument<A>, options?: { min?: number; max?: number }): Argument<ReadonlyArray<A>> =>
-    asArgument(Param.variadic(
+    Param.variadic(
       self,
       options?.min !== undefined ? Option.some(options.min) : Option.none(),
       options?.max !== undefined ? Option.some(options.max) : Option.none()
-    ))
+    )
 )
 
 /**
@@ -357,7 +312,7 @@ export const variadic: {
  *
  * @example
  * ```ts
- * import * as Argument from "@effect/cli/Argument"
+ * import { Argument } from "effect/unstable/cli"
  *
  * const port = Argument.integer("port").pipe(
  *   Argument.map(p => ({ port: p, url: `http://localhost:${p}` }))
@@ -370,14 +325,14 @@ export const variadic: {
 export const map: {
   <A, B>(f: (a: A) => B): (self: Argument<A>) => Argument<B>
   <A, B>(self: Argument<A>, f: (a: A) => B): Argument<B>
-} = dual(2, <A, B>(self: Argument<A>, f: (a: A) => B): Argument<B> => asArgument(Param.map(self, f)))
+} = dual(2, <A, B>(self: Argument<A>, f: (a: A) => B): Argument<B> => Param.map(self, f))
 
 /**
  * Transforms the parsed value of a positional argument using an effectful function.
  *
  * @example
  * ```ts
- * import * as Argument from "@effect/cli/Argument"
+ * import { Argument } from "effect/unstable/cli"
  * import { Effect } from "effect"
  *
  * const files = Argument.string("files").pipe(
@@ -403,14 +358,14 @@ export const mapEffect: {
 } = dual(2, <A, B>(
   self: Argument<A>,
   f: (a: A) => Effect.Effect<B, CliError.CliError, FileSystem.FileSystem | Path.Path>
-): Argument<B> => asArgument(Param.mapEffect(self, f)))
+): Argument<B> => Param.mapEffect(self, f))
 
 /**
  * Transforms the parsed value of a positional argument using a function that may throw.
  *
  * @example
  * ```ts
- * import * as Argument from "@effect/cli/Argument"
+ * import { Argument } from "effect/unstable/cli"
  *
  * const json = Argument.string("data").pipe(
  *   Argument.mapTryCatch(
@@ -433,14 +388,14 @@ export const mapTryCatch: {
   self: Argument<A>,
   f: (a: A) => B,
   onError: (error: unknown) => string
-): Argument<B> => asArgument(Param.mapTryCatch(self, f, onError)))
+): Argument<B> => Param.mapTryCatch(self, f, onError))
 
 /**
  * Creates a variadic argument that accepts multiple values (same as variadic).
  *
  * @example
  * ```ts
- * import * as Argument from "@effect/cli/Argument"
+ * import { Argument } from "effect/unstable/cli"
  *
  * const files = Argument.string("files").pipe(Argument.repeated)
  * ```
@@ -448,14 +403,14 @@ export const mapTryCatch: {
  * @since 4.0.0
  * @category combinators
  */
-export const repeated = <A>(arg: Argument<A>): Argument<ReadonlyArray<A>> => asArgument(Param.repeated(arg))
+export const repeated = <A>(arg: Argument<A>): Argument<ReadonlyArray<A>> => Param.repeated(arg)
 
 /**
  * Creates a variadic argument that requires at least n values.
  *
  * @example
  * ```ts
- * import * as Argument from "@effect/cli/Argument"
+ * import { Argument } from "effect/unstable/cli"
  *
  * const files = Argument.string("files").pipe(Argument.atLeast(1))
  * ```
@@ -466,14 +421,14 @@ export const repeated = <A>(arg: Argument<A>): Argument<ReadonlyArray<A>> => asA
 export const atLeast: {
   <A>(min: number): (self: Argument<A>) => Argument<ReadonlyArray<A>>
   <A>(self: Argument<A>, min: number): Argument<ReadonlyArray<A>>
-} = dual(2, <A>(self: Argument<A>, min: number): Argument<ReadonlyArray<A>> => asArgument(Param.atLeast(self, min)))
+} = dual(2, <A>(self: Argument<A>, min: number): Argument<ReadonlyArray<A>> => Param.atLeast(self, min))
 
 /**
  * Creates a variadic argument that accepts at most n values.
  *
  * @example
  * ```ts
- * import * as Argument from "@effect/cli/Argument"
+ * import { Argument } from "effect/unstable/cli"
  *
  * const files = Argument.string("files").pipe(Argument.atMost(5))
  * ```
@@ -484,14 +439,17 @@ export const atLeast: {
 export const atMost: {
   <A>(max: number): (self: Argument<A>) => Argument<ReadonlyArray<A>>
   <A>(self: Argument<A>, max: number): Argument<ReadonlyArray<A>>
-} = dual(2, <A>(self: Argument<A>, max: number): Argument<ReadonlyArray<A>> => asArgument(Param.atMost(self, max)))
+} = dual(2, <A>(
+  self: Argument<A>,
+  max: number
+): Argument<ReadonlyArray<A>> => Param.atMost(self, max))
 
 /**
  * Creates a variadic argument that accepts between min and max values.
  *
  * @example
  * ```ts
- * import * as Argument from "@effect/cli/Argument"
+ * import { Argument } from "effect/unstable/cli"
  *
  * const files = Argument.string("files").pipe(Argument.between(1, 5))
  * ```
@@ -502,18 +460,18 @@ export const atMost: {
 export const between: {
   <A>(min: number, max: number): (self: Argument<A>) => Argument<ReadonlyArray<A>>
   <A>(self: Argument<A>, min: number, max: number): Argument<ReadonlyArray<A>>
-} = dual(
-  3,
-  <A>(self: Argument<A>, min: number, max: number): Argument<ReadonlyArray<A>> =>
-    asArgument(Param.between(self, min, max))
-)
+} = dual(3, <A>(
+  self: Argument<A>,
+  min: number,
+  max: number
+): Argument<ReadonlyArray<A>> => Param.between(self, min, max))
 
 /**
  * Validates parsed values against a Schema.
  *
  * @example
  * ```ts
- * import * as Argument from "@effect/cli/Argument"
+ * import { Argument } from "effect/unstable/cli"
  * import { Schema } from "effect"
  *
  * const Email = Schema.String.pipe(
@@ -531,7 +489,7 @@ export const between: {
 export const withSchema: {
   <A, B>(schema: Schema.Codec<B, A>): (self: Argument<A>) => Argument<B>
   <A, B>(self: Argument<A>, schema: Schema.Codec<B, A>): Argument<B>
-} = dual(
-  2,
-  <A, B>(self: Argument<A>, schema: Schema.Codec<B, A>): Argument<B> => asArgument(Param.withSchema(self, schema))
-)
+} = dual(2, <A, B>(
+  self: Argument<A>,
+  schema: Schema.Codec<B, A>
+): Argument<B> => Param.withSchema(self, schema))
