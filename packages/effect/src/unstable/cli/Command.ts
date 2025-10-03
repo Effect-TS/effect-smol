@@ -23,15 +23,21 @@ import {
 } from "./internal/completions/dynamic/index.ts"
 import { extractBuiltInOptions, lex, parseArgs, ParsedCommandInput } from "./internal/parseCommandArgs.ts"
 import * as Param from "./Param.ts"
-import { getTypeName } from "./Primitive.ts"
+import * as Primitive from "./Primitive.ts"
+
+/**
+ * @since 4.0.0
+ */
+export const TypeId = "~effect/cli/Command"
 
 /**
  * @since 4.0.0
  * @category models
  */
 export interface Command<Name extends string, Input, E = never, R = never>
-  extends Pipeable, Effect.Yieldable<Command<Name, Input, E, R>, Input, never, Command.Context<Name>>
+  extends Pipeable, Effect.Yieldable<Command<Name, Input, E, R>, Input, never, Context<Name>>
 {
+  readonly [TypeId]: typeof TypeId
   readonly _tag: "Command"
   readonly name: Name
   readonly description: string
@@ -41,13 +47,14 @@ export interface Command<Name extends string, Input, E = never, R = never>
   // TODO: I hate this name.
   readonly parsedConfig: ParsedConfig
   readonly handler?: (input: Input) => Effect.Effect<void, E, R>
-  readonly tag: ServiceMap.Key<Command.Context<Name>, Input>
+  readonly tag: ServiceMap.Key<Context<Name>, Input>
 
   /** @internal */
   readonly handle: (
     input: Input,
     commandPath: ReadonlyArray<string>
   ) => Effect.Effect<void, E | CliError.CliError, R>
+
   /** @internal */
   readonly parse: (
     input: ParsedCommandInput
@@ -66,15 +73,9 @@ export type Environment = FileSystem.FileSystem | Path.Path // | Terminal when a
  * @since 4.0.0
  * @category models
  */
-export declare namespace Command {
-  /**
-   * @since 4.0.0
-   * @category models
-   */
-  export interface Context<Name extends string> {
-    readonly _: unique symbol
-    readonly name: Name
-  }
+export interface Context<Name extends string> {
+  readonly _: unique symbol
+  readonly name: Name
 }
 
 /**
@@ -83,8 +84,8 @@ export declare namespace Command {
  */
 export interface CommandConfig {
   readonly [key: string]:
-    | Param.Param<any>
-    | ReadonlyArray<Param.Param<any> | CommandConfig>
+    | Param.Param<any, Param.ParamKind>
+    | ReadonlyArray<Param.Param<any, Param.ParamKind> | CommandConfig>
     | CommandConfig
 }
 
@@ -100,9 +101,8 @@ export type InferConfig<A extends CommandConfig> = Simplify<
  * @since 4.0.0
  * @category models
  */
-export type InferConfigValue<A> = A extends ReadonlyArray<infer _> ?
-  { readonly [Key in keyof A]: InferConfigValue<A[Key]> }
-  : A extends Param.Param<infer Value> ? Value
+export type InferConfigValue<A> = A extends ReadonlyArray<any> ? { readonly [Key in keyof A]: InferConfigValue<A[Key]> }
+  : A extends Param.Param<infer _Value, infer _Kind> ? _Value
   : A extends CommandConfig ? InferConfig<A>
   : never
 
@@ -134,129 +134,21 @@ export type ConfigNode = {
  * @category models
  */
 export interface ParsedConfig {
-  readonly flags: ReadonlyArray<Param.Param<any>>
-  readonly arguments: ReadonlyArray<Param.Param<any>>
+  readonly flags: ReadonlyArray<Param.Param<any, Param.ParamKind>>
+  readonly arguments: ReadonlyArray<Param.Param<any, Param.ParamKind>>
   /** Params in the exact order they were declared. */
-  readonly paramOrder: ReadonlyArray<Param.Param<any>>
+  readonly orderedParams: ReadonlyArray<Param.Param<any, Param.ParamKind>>
   readonly tree: ConfigTree
 }
 
-const CommandProto = {
+const Proto = {
+  ...YieldableProto,
   pipe() {
     return pipeArguments(this, arguments)
   },
-  ...YieldableProto,
   asEffect(this: Command<any, any, any, any>) {
     return this.tag.asEffect()
   }
-}
-
-/**
- * Creates a new Command by cloning an existing one and overriding selected fields.
- * Keeps the surface area small and helps readability when composing commands.
- * @internal
- */
-const deriveCommand = <Name extends string, NewInput, E, R>(
-  base: Command<Name, any, any, any>,
-  overrides: {
-    readonly subcommands?: ReadonlyArray<Command<any, unknown, unknown, unknown>>
-    readonly handler?: ((input: NewInput) => Effect.Effect<void, E, R>) | undefined
-    readonly parse: (
-      input: ParsedCommandInput
-    ) => Effect.Effect<NewInput, CliError.CliError, Environment>
-    readonly handle: (
-      input: NewInput,
-      commandPath: ReadonlyArray<string>
-    ) => Effect.Effect<void, E | CliError.CliError, R>
-  }
-): Command<Name, NewInput, E, R> => {
-  const command = Object.create(CommandProto)
-  command._tag = "Command"
-  command.name = base.name
-  command.description = base.description
-  command.config = base.config
-  command.subcommands = overrides.subcommands ?? base.subcommands
-  command.parsedConfig = base.parsedConfig
-  command.handler = overrides.handler ?? base.handler
-  command.tag = ServiceMap.Key<Command.Context<Name>, NewInput>(`@effect/cli/Command/${base.name}`)
-  command.handle = overrides.handle
-  command.parse = overrides.parse
-  return Object.freeze(command)
-}
-
-/**
- * Parses param values from parsed command arguments into their typed representations.
- * @internal
- */
-const parseParams: (
-  parsedArgs: Param.ParseArgs,
-  params: ReadonlyArray<Param.Param<unknown>>
-) => Effect.Effect<ReadonlyArray<unknown>, CliError.CliError, Environment> = Effect.fnUntraced(
-  function*(parsedArgs, params) {
-    const results: Array<unknown> = []
-    let currentArguments = parsedArgs.arguments
-
-    for (const option of params) {
-      const [remainingArguments, parsed] = yield* option.parse({
-        flags: parsedArgs.flags,
-        arguments: currentArguments
-      })
-      results.push(parsed)
-      currentArguments = remainingArguments
-    }
-
-    return results
-  }
-)
-
-/**
- * Core constructor for all Command instances.
- * @internal
- */
-const makeCore = <Name extends string, Input, E, R>(
-  name: Name,
-  config: CommandConfig,
-  description: string,
-  subcommands: ReadonlyArray<Command<any, unknown, unknown, unknown>>,
-  handler?: (input: Input) => Effect.Effect<void, E, R>
-): Command<Name, Input, E, R> => {
-  const parsedConfig = parseConfig(config)
-  const tag = ServiceMap.Key<Command.Context<Name>, Input>(`@effect/cli/Command/${name}`)
-
-  const parse = (
-    input: ParsedCommandInput
-  ): Effect.Effect<Input, CliError.CliError, Environment> => {
-    return Effect.gen(function*() {
-      const parsedArgs: Param.ParseArgs = { flags: input.flags, arguments: input.arguments }
-      const allParams = parsedConfig.paramOrder
-      const allValues = yield* parseParams(parsedArgs, allParams)
-      const reconstructed = reconstructConfigTree(parsedConfig.tree, allValues)
-      return reconstructed as Input
-    })
-  }
-
-  const handle = (input: Input, commandPath: ReadonlyArray<string>) =>
-    Effect.gen(function*() {
-      if (handler) {
-        yield* handler(input)
-      } else {
-        return yield* Effect.fail(new CliError.ShowHelp({ commandPath }))
-      }
-    })
-
-  const command = Object.create(CommandProto)
-  command._tag = "Command"
-  command.name = name
-  command.description = description
-  command.config = config
-  command.subcommands = subcommands
-  command.parsedConfig = parsedConfig
-  command.handler = handler
-  command.tag = tag
-  command.handle = handle
-  command.parse = parse
-
-  return Object.freeze(command)
 }
 
 /**
@@ -314,15 +206,15 @@ export const make: {
   <Name extends string, const Config extends CommandConfig, R, E>(
     name: Name,
     config: Config,
-    handler: (_: InferConfig<Config>) => Effect.Effect<void, E, R>
+    handler: (config: InferConfig<Config>) => Effect.Effect<void, E, R>
   ): Command<Name, InferConfig<Config>, E, R>
 } = ((
   name: string,
   config?: CommandConfig,
-  handler?: (_: unknown) => Effect.Effect<void, unknown, unknown>
+  handler?: (config: unknown) => Effect.Effect<void, unknown, unknown>
 ) => {
   const actualConfig = config ?? ({} as CommandConfig)
-  return makeCore(name, actualConfig, "", [], handler)
+  return makeCommand(name, actualConfig, "", [], handler)
 }) as any
 
 /**
@@ -356,19 +248,19 @@ export const make: {
  */
 export const withHandler: {
   <A, R, E>(
-    handler: (_: A) => Effect.Effect<void, E, R>
+    handler: (value: A) => Effect.Effect<void, E, R>
   ): <Name extends string, XR, XE>(
     self: Command<Name, A, XE, XR>
   ) => Command<Name, A, E, R>
   <Name extends string, A, XR, XE, R, E>(
     self: Command<Name, A, XE, XR>,
-    handler: (_: A) => Effect.Effect<void, E, R>
+    handler: (value: A) => Effect.Effect<void, E, R>
   ): Command<Name, A, E, R>
 } = dual(2, <Name extends string, A, XR, XE, R, E>(
   self: Command<Name, A, XE, XR>,
-  handler: (_: A) => Effect.Effect<void, E, R>
+  handler: (value: A) => Effect.Effect<void, E, R>
 ): Command<Name, A, E, R> => {
-  return makeCore<Name, A, E, R>(self.name, self.config, self.description, self.subcommands, handler)
+  return makeCommand<Name, A, E, R>(self.name, self.config, self.description, self.subcommands, handler)
 })
 
 /**
@@ -405,43 +297,6 @@ export const withHandler: {
  * @since 4.0.0
  * @category combinators
  */
-/**
- * Checks for duplicate flag names between parent and child commands.
- * @internal
- */
-const checkForDuplicateFlags = <Name extends string, Input>(
-  parent: Command<Name, Input, unknown, unknown>,
-  subcommands: ReadonlyArray<Command<any, unknown, unknown, unknown>>
-): void => {
-  const parentOptionNames = new Set<string>()
-
-  const extractNames = (options: ReadonlyArray<Param.Param<unknown>>): void => {
-    for (const option of options) {
-      const singles = Param.extractSingleParams(option)
-      for (const single of singles) {
-        parentOptionNames.add(single.name)
-      }
-    }
-  }
-
-  extractNames(parent.parsedConfig.flags)
-
-  for (const subcommand of subcommands) {
-    for (const option of subcommand.parsedConfig.flags) {
-      const singles = Param.extractSingleParams(option)
-      for (const single of singles) {
-        if (parentOptionNames.has(single.name)) {
-          throw new CliError.DuplicateOption({
-            option: single.name,
-            parentCommand: parent.name,
-            childCommand: subcommand.name
-          })
-        }
-      }
-    }
-  }
-}
-
 export const withSubcommands = <const Subcommands extends ReadonlyArray<Command<any, any, any, any>>>(
   ...subcommands: Subcommands
 ) =>
@@ -451,7 +306,7 @@ export const withSubcommands = <const Subcommands extends ReadonlyArray<Command<
   Name,
   Input & { readonly subcommand: Option.Option<ExtractSubcommandInputs<Subcommands>> },
   ExtractSubcommandErrors<Subcommands>,
-  R | Exclude<ExtractSubcommandContext<Subcommands>, Command.Context<Name>>
+  R | Exclude<ExtractSubcommandContext<Subcommands>, Context<Name>>
 > => {
   checkForDuplicateFlags(self, subcommands)
 
@@ -461,58 +316,54 @@ export const withSubcommands = <const Subcommands extends ReadonlyArray<Command<
   const subcommandIndex = new Map<string, Command<any, any, any, any>>()
   for (const s of subcommands) subcommandIndex.set(s.name, s)
 
-  const parse = (
-    input: ParsedCommandInput
-  ): Effect.Effect<NewInput, CliError.CliError, Environment> =>
-    Effect.gen(function*() {
-      const parentResult = yield* self.parse(input)
+  const parse = Effect.fnUntraced(function*(input: ParsedCommandInput) {
+    const parentResult = yield* self.parse(input)
 
-      const subRef = input.subcommand
-      if (!subRef) {
-        return { ...parentResult, subcommand: Option.none() } as NewInput
+    const subRef = input.subcommand
+    if (!subRef) {
+      return { ...parentResult, subcommand: Option.none() } as NewInput
+    }
+
+    const sub = subcommandIndex.get(subRef.name)
+    // Parser guarantees valid subcommand names, but guard defensively
+    if (!sub) {
+      return {
+        ...parentResult,
+        subcommand: Option.none()
+      } as NewInput
+    }
+
+    const subResult = yield* sub.parse(subRef.parsedInput)
+    const value = { name: sub.name, result: subResult } as ExtractSubcommandInputs<Subcommands>
+    return { ...parentResult, subcommand: Option.some(value) } as NewInput
+  })
+
+  const handle = Effect.fnUntraced(function*(input: NewInput, commandPath: ReadonlyArray<string>) {
+    if (Option.isSome(input.subcommand)) {
+      const selected = input.subcommand.value
+      const child = subcommandIndex.get(selected.name)
+      if (!child) {
+        return yield* new CliError.ShowHelp({ commandPath })
       }
+      yield* child
+        .handle(selected.result, [...commandPath, child.name])
+        .pipe(Effect.provideService(self.tag, input))
+      return
+    }
 
-      const sub = subcommandIndex.get(subRef.name)
-      // Parser guarantees valid subcommand names, but guard defensively
-      if (!sub) {
-        return {
-          ...parentResult,
-          subcommand: Option.none()
-        } as NewInput
-      }
+    if (self.handler) {
+      yield* self.handler(input as any)
+      return
+    }
 
-      const subResult = yield* sub.parse(subRef.parsedInput)
-      const value = { name: sub.name, result: subResult } as ExtractSubcommandInputs<Subcommands>
-      return { ...parentResult, subcommand: Option.some(value) } as NewInput
-    })
+    return yield* new CliError.ShowHelp({ commandPath })
+  })
 
-  const handle = (input: NewInput, commandPath: ReadonlyArray<string>) =>
-    Effect.gen(function*() {
-      if (Option.isSome(input.subcommand)) {
-        const selected = input.subcommand.value
-        const child = subcommandIndex.get(selected.name)
-        if (!child) {
-          return yield* Effect.fail(new CliError.ShowHelp({ commandPath }))
-        }
-        yield* child
-          .handle(selected.result, [...commandPath, child.name])
-          .pipe(Effect.provideService(self.tag, input))
-        return
-      }
-
-      if (self.handler) {
-        yield* self.handler(input as any)
-        return
-      }
-
-      return yield* Effect.fail(new CliError.ShowHelp({ commandPath }))
-    })
-
-  return deriveCommand<
+  return overrideCommand<
     Name,
     NewInput,
     ExtractSubcommandErrors<Subcommands>,
-    R | Exclude<ExtractSubcommandContext<Subcommands>, Command.Context<Name>>
+    R | Exclude<ExtractSubcommandContext<Subcommands>, Context<Name>>
   >(self, {
     subcommands,
     // Maintain the same handler reference; type-widen for the derived input
@@ -584,7 +435,7 @@ export const withDescription: {
   self: Command<Name, Input, E, R>,
   description: string
 ): Command<Name, Input, E, R> => {
-  return makeCore<Name, Input, E, R>(self.name, self.config, description, self.subcommands, self.handler)
+  return makeCommand<Name, Input, E, R>(self.name, self.config, description, self.subcommands, self.handler)
 })
 
 /**
@@ -609,7 +460,7 @@ export const getHelpDoc = <Name extends string, Input>(
     for (const single of singles) {
       args.push({
         name: single.name,
-        type: single.typeName ?? getTypeName(single.primitiveType),
+        type: single.typeName ?? Primitive.getTypeName(single.primitiveType),
         description: Option.getOrElse(single.description, () => ""),
         required: !metadata.isOptional,
         variadic: metadata.isVariadic
@@ -639,7 +490,7 @@ export const getHelpDoc = <Name extends string, Input>(
   }
 
   // Extract flags from options
-  const extractFlags = (options: ReadonlyArray<Param.Param<unknown>>): void => {
+  const extractFlags = (options: ReadonlyArray<Param.Any>): void => {
     for (const option of options) {
       const singles = Param.extractSingleParams(option)
       for (const single of singles) {
@@ -648,7 +499,7 @@ export const getHelpDoc = <Name extends string, Input>(
         flags.push({
           name: single.name,
           aliases: formattedAliases,
-          type: single.typeName ?? getTypeName(single.primitiveType),
+          type: single.typeName ?? Primitive.getTypeName(single.primitiveType),
           description: Option.getOrElse(single.description, () => ""),
           required: single.primitiveType._tag !== "Boolean"
         })
@@ -853,7 +704,9 @@ export const runWithArgs = <Name extends string, Input, E, R>(
     Effect.catchTag("UserError", (error: CliError.UserError) => Effect.fail(error.cause as any))
   )
 
-//
+// =============================================================================
+// Command Config
+// =============================================================================
 
 /**
  * Transforms a nested command configuration into a flat structure for parsing.
@@ -875,9 +728,9 @@ export const runWithArgs = <Name extends string, Input, E, R>(
  * }
  */
 const parseConfig = (config: CommandConfig): ParsedConfig => {
-  const flags: Array<Param.Param<any>> = []
-  const args: Array<Param.Param<any>> = []
-  const paramOrder: Array<Param.Param<any>> = []
+  const orderedParams: Array<Param.Any> = []
+  const flags: Array<Param.AnyFlag> = []
+  const args: Array<Param.AnyArgument> = []
 
   // Recursively walk the config structure, building the blueprint tree
   function parse(config: CommandConfig) {
@@ -891,8 +744,8 @@ const parseConfig = (config: CommandConfig): ParsedConfig => {
   // Process each value in the config, extracting Params and preserving structure
   function parseValue(
     value:
-      | Param.Param<any>
-      | ReadonlyArray<Param.Param<any> | CommandConfig>
+      | Param.Any
+      | ReadonlyArray<Param.Any | CommandConfig>
       | CommandConfig
   ): ConfigNode {
     if (Array.isArray(value)) {
@@ -903,13 +756,13 @@ const parseConfig = (config: CommandConfig): ParsedConfig => {
       }
     } else if (Param.isParam(value)) {
       // Found a Param - add to appropriate array based on kind and record its index
-      const index = paramOrder.length
-      paramOrder.push(value)
+      const index = orderedParams.length
+      orderedParams.push(value)
 
       if (value.kind === "argument") {
-        args.push(value)
+        args.push(value as Param.AnyArgument)
       } else {
-        flags.push(value)
+        flags.push(value as Param.AnyFlag)
       }
 
       return {
@@ -928,7 +781,7 @@ const parseConfig = (config: CommandConfig): ParsedConfig => {
   return {
     flags,
     arguments: args,
-    paramOrder,
+    orderedParams,
     tree: parse(config)
   }
 }
@@ -977,6 +830,139 @@ const reconstructConfigTree = (
     } else {
       // Nested object - recursively reconstruct the subtree
       return reconstructConfigTree(node.tree, results)
+    }
+  }
+}
+
+// =============================================================================
+// Utilities
+// =============================================================================
+
+/**
+ * Core constructor for all Command instances.
+ * @internal
+ */
+const makeCommand = <Name extends string, Input, E, R>(
+  name: Name,
+  config: CommandConfig,
+  description: string,
+  subcommands: ReadonlyArray<Command<any, unknown, unknown, unknown>>,
+  handler?: ((input: Input) => Effect.Effect<void, E, R>) | undefined
+): Command<Name, Input, E, R> => {
+  const parsedConfig = parseConfig(config)
+  const tag = ServiceMap.Key<Context<Name>, Input>(`${TypeId}/${name}`)
+
+  const parse = Effect.fnUntraced(function*(input: ParsedCommandInput) {
+    const parsedArgs: Param.ParsedArgs = { flags: input.flags, arguments: input.arguments }
+    const values = yield* parseParams(parsedArgs, parsedConfig.orderedParams)
+    return reconstructConfigTree(parsedConfig.tree, values) as Input
+  })
+
+  const handle = (
+    input: Input,
+    commandPath: ReadonlyArray<string>
+  ): Effect.Effect<void, CliError.CliError | E, R> =>
+    handler !== undefined
+      ? handler(input)
+      : new CliError.ShowHelp({ commandPath }).asEffect()
+
+  return Object.assign(Object.create(Proto), {
+    _tag: "Command",
+    tag,
+    name,
+    description,
+    subcommands,
+    parsedConfig,
+    handler,
+    handle,
+    parse
+  })
+}
+
+/** @internal */
+const overrideCommand = <Name extends string, NewInput, E, R>(
+  base: Command<Name, any, any, any>,
+  overrides: {
+    readonly subcommands?: ReadonlyArray<Command<any, unknown, unknown, unknown>> | undefined
+    readonly handler?: ((input: NewInput) => Effect.Effect<void, E, R>) | undefined
+    readonly parse: (
+      input: ParsedCommandInput
+    ) => Effect.Effect<NewInput, CliError.CliError, Environment>
+    readonly handle: (
+      input: NewInput,
+      commandPath: ReadonlyArray<string>
+    ) => Effect.Effect<void, E | CliError.CliError, R>
+  }
+): Command<Name, NewInput, E, R> =>
+  Object.assign(Object.create(Proto), {
+    ...base,
+    tag: ServiceMap.Key<Context<Name>, NewInput>(`${TypeId}/${base.name}`),
+    subcommands: overrides.subcommands ?? base.subcommands,
+    handler: overrides.handler ?? base.handler,
+    handle: overrides.handle,
+    parse: overrides.parse
+  })
+
+/**
+ * Parses param values from parsed command arguments into their typed
+ * representations.
+ *
+ * @internal
+ */
+const parseParams: (parsedArgs: Param.ParsedArgs, params: ReadonlyArray<Param.Any>) => Effect.Effect<
+  ReadonlyArray<unknown>,
+  CliError.CliError,
+  Environment
+> = Effect.fnUntraced(function*(parsedArgs, params) {
+  const results: Array<unknown> = []
+  let currentArguments = parsedArgs.arguments
+
+  for (const option of params) {
+    const [remainingArguments, parsed] = yield* option.parse({
+      flags: parsedArgs.flags,
+      arguments: currentArguments
+    })
+    results.push(parsed)
+    currentArguments = remainingArguments
+  }
+
+  return results
+})
+
+/**
+ * Checks for duplicate flag names between parent and child commands.
+ *
+ * @internal
+ */
+const checkForDuplicateFlags = <Name extends string, Input>(
+  parent: Command<Name, Input, unknown, unknown>,
+  subcommands: ReadonlyArray<Command<any, unknown, unknown, unknown>>
+): void => {
+  const parentOptionNames = new Set<string>()
+
+  const extractNames = (options: ReadonlyArray<Param.Any>): void => {
+    for (const option of options) {
+      const singles = Param.extractSingleParams(option)
+      for (const single of singles) {
+        parentOptionNames.add(single.name)
+      }
+    }
+  }
+
+  extractNames(parent.parsedConfig.flags)
+
+  for (const subcommand of subcommands) {
+    for (const option of subcommand.parsedConfig.flags) {
+      const singles = Param.extractSingleParams(option)
+      for (const single of singles) {
+        if (parentOptionNames.has(single.name)) {
+          throw new CliError.DuplicateOption({
+            option: single.name,
+            parentCommand: parent.name,
+            childCommand: subcommand.name
+          })
+        }
+      }
     }
   }
 }

@@ -33,11 +33,26 @@ export interface Param<out A, Kind extends ParamKind> extends Param.Variance<A> 
 export type ParamKind = "flag" | "argument"
 
 /**
+ * Represents any parameter.
+ */
+export type Any = Param<any, ParamKind>
+
+/**
+ * Represents any positional argument parameter.
+ */
+export type AnyArgument = Param<any, "argument">
+
+/**
+ * Represents any flag parameter.
+ */
+export type AnyFlag = Param<any, "flag">
+
+/**
  * @since 4.0.0
  * @category models
  */
 export type Parse<A> = (
-  args: ParseArgs
+  args: ParsedArgs
 ) => Effect.Effect<
   readonly [leftover: ReadonlyArray<string>, value: A],
   CliError.CliError,
@@ -82,7 +97,7 @@ export type Flags = Record<string, ReadonlyArray<string>>
  * @since 4.0.0
  * @category models
  */
-export interface ParseArgs {
+export interface ParsedArgs {
   readonly flags: Flags
   readonly arguments: ReadonlyArray<string>
 }
@@ -536,7 +551,7 @@ export const map: {
     self: Param<A, Kind>,
     f: (a: A) => B
   ): Param<B, Kind> => {
-    const parse: Parse<B> = (args: ParseArgs) =>
+    const parse: Parse<B> = (args: ParsedArgs) =>
       Effect.map(
         self.parse(args),
         ([operands, value]) => [operands, f(value)] as const
@@ -1253,7 +1268,7 @@ export const orElseResult: {
 const parsePositional: <A>(
   name: string,
   primitiveType: Primitive.Primitive<A>,
-  args: ParseArgs
+  args: ParsedArgs
 ) => Effect.Effect<
   readonly [leftover: ReadonlyArray<string>, value: A],
   CliError.CliError,
@@ -1280,7 +1295,7 @@ const parsePositional: <A>(
 const parseOption: <A>(
   name: string,
   primitiveType: Primitive.Primitive<A>,
-  args: ParseArgs
+  args: ParsedArgs
 ) => Effect.Effect<
   readonly [remainingOperands: ReadonlyArray<string>, value: A],
   CliError.CliError,
@@ -1318,7 +1333,7 @@ const parsePositionalVariadic: <A, Kind extends ParamKind>(
   param: Param<A, Kind>,
   min: Option.Option<number>,
   max: Option.Option<number>,
-  args: ParseArgs
+  args: ParsedArgs
 ) => Effect.Effect<
   readonly [remainingOperands: ReadonlyArray<string>, value: ReadonlyArray<A>],
   CliError.CliError,
@@ -1328,7 +1343,7 @@ const parsePositionalVariadic: <A, Kind extends ParamKind>(
   param: Param<A, Kind>,
   min: Option.Option<number>,
   max: Option.Option<number>,
-  args: ParseArgs
+  args: ParsedArgs
 ) {
   const results: Array<A> = []
   const minValue = Option.getOrElse(min, () => 0)
@@ -1362,7 +1377,7 @@ const parseOptionVariadic: <A, Kind extends ParamKind>(
   param: Param<A, Kind>,
   min: Option.Option<number>,
   max: Option.Option<number>,
-  args: ParseArgs
+  args: ParsedArgs
 ) => Effect.Effect<
   readonly [remainingOperands: ReadonlyArray<string>, value: ReadonlyArray<A>],
   CliError.CliError,
@@ -1372,7 +1387,7 @@ const parseOptionVariadic: <A, Kind extends ParamKind>(
   param: Param<A, Kind>,
   min: Option.Option<number>,
   max: Option.Option<number>,
-  args: ParseArgs
+  args: ParsedArgs
 ) {
   const results: Array<A> = []
   const names = [single.name, ...single.aliases]

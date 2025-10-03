@@ -42,9 +42,7 @@ export interface HelpRenderer {
  */
 export const HelpRenderer: ServiceMap.Reference<HelpRenderer> = ServiceMap.Reference(
   "effect/cli/HelpRenderer",
-  {
-    defaultValue: () => defaultHelpRenderer() // Auto-detect colors
-  }
+  { defaultValue: () => defaultHelpRenderer() }
 )
 
 /**
