@@ -2,7 +2,6 @@
  * @since 4.0.0
  */
 import * as Predicate from "../data/Predicate.ts"
-import * as Optic from "../optic/Optic.ts"
 import * as Schema from "./Schema.ts"
 import * as Serializer from "./Serializer.ts"
 import * as ToParser from "./ToParser.ts"
@@ -44,15 +43,16 @@ export type JsonPatch = ReadonlyArray<JsonPatchOperation>
  */
 export function makeJsonPatch<S extends Schema.Top>(schema: S): Differ<S["Type"], JsonPatch> {
   const serializer = Serializer.json(Schema.typeCodec(schema))
-  const iso = Optic.makeIso(ToParser.encodeSync(serializer), ToParser.decodeSync(serializer))
+  const get = ToParser.encodeSync(serializer)
+  const set = ToParser.decodeSync(serializer)
   return {
     empty: [],
-    diff: (oldValue, newValue) => getJsonPatch(iso.get(oldValue), iso.get(newValue)),
+    diff: (oldValue, newValue) => getJsonPatch(get(oldValue), get(newValue)),
     combine: (first, second) => [...first, ...second],
     patch: (oldValue, patch) => {
-      const get = iso.get(oldValue)
-      const patched = applyJsonPatch(patch, get)
-      return Object.is(patched, get) ? oldValue : iso.set(patched)
+      const value = get(oldValue)
+      const patched = applyJsonPatch(patch, value)
+      return Object.is(patched, value) ? oldValue : set(patched)
     }
   }
 }
