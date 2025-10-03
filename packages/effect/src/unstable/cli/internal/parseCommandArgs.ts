@@ -1,16 +1,15 @@
 import type * as Option from "../../../data/Option.ts"
 import * as Effect from "../../../Effect.ts"
-import type { LogLevel } from "../../../logging/LogLevel.ts"
+import type { LogLevel } from "../../../LogLevel.ts"
 import type { FileSystem } from "../../../platform/FileSystem.ts"
 import type { Path } from "../../../platform/Path.ts"
 import * as CliError from "../CliError.ts"
 import type { Command } from "../Command.ts"
+import * as Param from "../Param.ts"
 import { isFalseValue, isTrueValue } from "../Primitive.ts"
 import { completionsFlag, dynamicCompletionsFlag, helpFlag, logLevelFlag, versionFlag } from "./builtInFlags.ts"
 import { lex, type LexResult, type Token } from "./lexer.ts"
-import { extractSingleParams, type ParamKind, type Single } from "./param.ts"
 import { suggest } from "./suggestions.ts"
-import type { ParamParseArgs } from "./types.ts"
 
 export { lex, type LexResult }
 
@@ -34,7 +33,7 @@ export const ParsedCommandInput = {
       : []
 }
 
-type FlagParam = Single<unknown, "flag">
+type FlagParam = Param.Single<unknown, "flag">
 type FlagMap = Record<string, ReadonlyArray<string>>
 type MutableFlagMap = Record<string, Array<string>>
 
@@ -54,8 +53,8 @@ const makeCursor = (tokens: ReadonlyArray<Token>): TokenCursor => {
 }
 
 /** Map canonicalized names/aliases → Single<A> (O(1) lookup). */
-const buildFlagIndex = (singles: ReadonlyArray<Single<unknown>>): Map<string, Single<unknown>> => {
-  const lookup = new Map<string, Single<unknown>>()
+const buildFlagIndex = (singles: ReadonlyArray<Param.Single<unknown>>): Map<string, Param.Single<unknown>> => {
+  const lookup = new Map<string, Param.Single<unknown>>()
   for (const single of singles) {
     if (lookup.has(single.name)) throw new Error(`Duplicate option name: ${single.name}`)
     lookup.set(single.name, single)
@@ -149,11 +148,11 @@ const unrecognizedFlagError = (
 /* ====================================================================== */
 
 const builtInFlagParams: ReadonlyArray<FlagParam> = [
-  ...extractSingleParams(logLevelFlag),
-  ...extractSingleParams(helpFlag),
-  ...extractSingleParams(versionFlag),
-  ...extractSingleParams(completionsFlag),
-  ...extractSingleParams(dynamicCompletionsFlag)
+  ...Param.extractSingleParams(logLevelFlag),
+  ...Param.extractSingleParams(helpFlag),
+  ...Param.extractSingleParams(versionFlag),
+  ...Param.extractSingleParams(completionsFlag),
+  ...Param.extractSingleParams(dynamicCompletionsFlag)
 ]
 
 /** Collect only the provided flags; leave everything else untouched as remainder. */
@@ -202,7 +201,7 @@ export const extractBuiltInOptions = (
 > =>
   Effect.gen(function*() {
     const { flagMap, remainder } = collectFlagValues(tokens, builtInFlagParams)
-    const emptyArgs: ParamParseArgs = { flags: flagMap, arguments: [] }
+    const emptyArgs: Param.ParseArgs = { flags: flagMap, arguments: [] }
     const [, help] = yield* helpFlag.parse(emptyArgs)
     const [, logLevel] = yield* logLevelFlag.parse(emptyArgs)
     const [, version] = yield* versionFlag.parse(emptyArgs)
@@ -233,7 +232,7 @@ type LevelSubcommand = {
 
 type LevelResult = LevelLeaf | LevelSubcommand
 
-const isFlagParam = <A>(s: Single<A, ParamKind>): s is Single<A, "flag"> => s.kind === "flag"
+const isFlagParam = <A>(s: Param.Single<A, Param.ParamKind>): s is Param.Single<A, "flag"> => s.kind === "flag"
 
 const scanCommandLevel = <Name extends string, Input, E, R>(
   tokens: ReadonlyArray<Token>,
@@ -311,7 +310,7 @@ export const parseArgs = <Name extends string, Input, E, R>(
     const newCommandPath = [...commandPath, command.name]
 
     // Flags available at this level (ignore arguments)
-    const singles = command.parsedConfig.flags.flatMap(extractSingleParams)
+    const singles = command.parsedConfig.flags.flatMap(Param.extractSingleParams)
     const flags = singles.filter(isFlagParam)
 
     const result = scanCommandLevel(tokens, command, flags, newCommandPath)

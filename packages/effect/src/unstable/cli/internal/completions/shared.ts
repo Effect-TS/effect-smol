@@ -1,12 +1,11 @@
 import * as Option from "../../../../data/Option.ts"
 import type { Command } from "../../Command.ts"
-import { extractSingleParams } from "../param.ts"
-import type { Param } from "../param.ts"
+import * as Param from "../../Param.ts"
 import type { CommandRow, SingleFlagMeta } from "./types.ts"
 
-export const getSingles = (flags: ReadonlyArray<Param<unknown>>): ReadonlyArray<SingleFlagMeta> =>
+export const getSingles = (flags: ReadonlyArray<Param.Param<any>>): ReadonlyArray<SingleFlagMeta> =>
   flags
-    .flatMap(extractSingleParams)
+    .flatMap(Param.extractSingleParams)
     .filter((s: any) => s.kind === "flag")
     .map((s: any) => {
       const description = Option.getOrUndefined(s.description)

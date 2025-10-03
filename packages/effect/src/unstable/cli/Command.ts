@@ -1,13 +1,17 @@
+/**
+ * @since 4.0.0
+ */
+import * as Console from "../../Console.ts"
 import * as Option from "../../data/Option.ts"
 import * as Effect from "../../Effect.ts"
 import { dual } from "../../Function.ts"
 import { type Pipeable, pipeArguments } from "../../interfaces/Pipeable.ts"
 import { YieldableProto } from "../../internal/core.ts"
-import * as Console from "../../logging/Console.ts"
 import type * as FileSystem from "../../platform/FileSystem.ts"
 import type * as Path from "../../platform/Path.ts"
 import * as References from "../../References.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
+import type { Simplify } from "../../types/Types.ts"
 import * as CliError from "./CliError.ts"
 import type { ArgDoc, FlagDoc, HelpDoc, SubcommandDoc } from "./HelpDoc.ts"
 import * as HelpFormatter from "./HelpFormatter.ts"
@@ -17,11 +21,8 @@ import {
   handleCompletionRequest,
   isCompletionRequest
 } from "./internal/completions/dynamic/index.ts"
-import type { CommandConfig, InferConfig, ParsedConfig } from "./internal/config.ts"
-import { parseConfig, reconstructConfigTree } from "./internal/config.ts"
-import { extractSingleParams, getParamMetadata, type Param } from "./internal/param.ts"
 import { extractBuiltInOptions, lex, parseArgs, ParsedCommandInput } from "./internal/parseCommandArgs.ts"
-import type { ParamParseArgs } from "./internal/types.ts"
+import * as Param from "./Param.ts"
 import { getTypeName } from "./Primitive.ts"
 
 /**
@@ -76,6 +77,70 @@ export declare namespace Command {
   }
 }
 
+/**
+ * @since 4.0.0
+ * @category models
+ */
+export interface CommandConfig {
+  readonly [key: string]:
+    | Param.Param<any>
+    | ReadonlyArray<Param.Param<any> | CommandConfig>
+    | CommandConfig
+}
+
+/**
+ * @since 4.0.0
+ * @category models
+ */
+export type InferConfig<A extends CommandConfig> = Simplify<
+  { readonly [Key in keyof A]: InferConfigValue<A[Key]> }
+>
+
+/**
+ * @since 4.0.0
+ * @category models
+ */
+export type InferConfigValue<A> = A extends ReadonlyArray<infer _> ?
+  { readonly [Key in keyof A]: InferConfigValue<A[Key]> }
+  : A extends Param.Param<infer Value> ? Value
+  : A extends CommandConfig ? InferConfig<A>
+  : never
+
+/**
+ * @since 4.0.0
+ * @category models
+ */
+export interface ConfigTree {
+  [key: string]: ConfigNode
+}
+
+/**
+ * @since 4.0.0
+ * @category models
+ */
+export type ConfigNode = {
+  readonly _tag: "Param"
+  readonly index: number
+} | {
+  readonly _tag: "Array"
+  readonly children: ReadonlyArray<ConfigNode>
+} | {
+  readonly _tag: "ParsedConfig"
+  readonly tree: ConfigTree
+}
+
+/**
+ * @since 4.0.0
+ * @category models
+ */
+export interface ParsedConfig {
+  readonly flags: ReadonlyArray<Param.Param<any>>
+  readonly arguments: ReadonlyArray<Param.Param<any>>
+  /** Params in the exact order they were declared. */
+  readonly paramOrder: ReadonlyArray<Param.Param<any>>
+  readonly tree: ConfigTree
+}
+
 const CommandProto = {
   pipe() {
     return pipeArguments(this, arguments)
@@ -123,11 +188,11 @@ const deriveCommand = <Name extends string, NewInput, E, R>(
  * Parses param values from parsed command arguments into their typed representations.
  * @internal
  */
-const parseParams = (
-  parsedArgs: ParamParseArgs,
-  params: ReadonlyArray<Param<unknown>>
-): Effect.Effect<ReadonlyArray<unknown>, CliError.CliError, Environment> => {
-  return Effect.gen(function*() {
+const parseParams: (
+  parsedArgs: Param.ParseArgs,
+  params: ReadonlyArray<Param.Param<unknown>>
+) => Effect.Effect<ReadonlyArray<unknown>, CliError.CliError, Environment> = Effect.fnUntraced(
+  function*(parsedArgs, params) {
     const results: Array<unknown> = []
     let currentArguments = parsedArgs.arguments
 
@@ -141,8 +206,8 @@ const parseParams = (
     }
 
     return results
-  })
-}
+  }
+)
 
 /**
  * Core constructor for all Command instances.
@@ -162,7 +227,7 @@ const makeCore = <Name extends string, Input, E, R>(
     input: ParsedCommandInput
   ): Effect.Effect<Input, CliError.CliError, Environment> => {
     return Effect.gen(function*() {
-      const parsedArgs: ParamParseArgs = { flags: input.flags, arguments: input.arguments }
+      const parsedArgs: Param.ParseArgs = { flags: input.flags, arguments: input.arguments }
       const allParams = parsedConfig.paramOrder
       const allValues = yield* parseParams(parsedArgs, allParams)
       const reconstructed = reconstructConfigTree(parsedConfig.tree, allValues)
@@ -350,9 +415,9 @@ const checkForDuplicateFlags = <Name extends string, Input>(
 ): void => {
   const parentOptionNames = new Set<string>()
 
-  const extractNames = (options: ReadonlyArray<Param<unknown>>): void => {
+  const extractNames = (options: ReadonlyArray<Param.Param<unknown>>): void => {
     for (const option of options) {
-      const singles = extractSingleParams(option)
+      const singles = Param.extractSingleParams(option)
       for (const single of singles) {
         parentOptionNames.add(single.name)
       }
@@ -363,7 +428,7 @@ const checkForDuplicateFlags = <Name extends string, Input>(
 
   for (const subcommand of subcommands) {
     for (const option of subcommand.parsedConfig.flags) {
-      const singles = extractSingleParams(option)
+      const singles = Param.extractSingleParams(option)
       for (const single of singles) {
         if (parentOptionNames.has(single.name)) {
           throw new CliError.DuplicateOption({
@@ -538,8 +603,8 @@ export const getHelpDoc = <Name extends string, Input>(
 
   // Extract positional arguments
   for (const arg of command.parsedConfig.arguments) {
-    const singles = extractSingleParams(arg)
-    const metadata = getParamMetadata(arg)
+    const singles = Param.extractSingleParams(arg)
+    const metadata = Param.getParamMetadata(arg)
 
     for (const single of singles) {
       args.push({
@@ -574,9 +639,9 @@ export const getHelpDoc = <Name extends string, Input>(
   }
 
   // Extract flags from options
-  const extractFlags = (options: ReadonlyArray<Param<unknown>>): void => {
+  const extractFlags = (options: ReadonlyArray<Param.Param<unknown>>): void => {
     for (const option of options) {
-      const singles = extractSingleParams(option)
+      const singles = Param.extractSingleParams(option)
       for (const single of singles) {
         const formattedAliases = single.aliases.map((alias) => alias.length === 1 ? `-${alias}` : `--${alias}`)
 
@@ -787,3 +852,131 @@ export const runWithArgs = <Name extends string, Input, E, R>(
     // Preserve prior public behavior: surface original handler errors
     Effect.catchTag("UserError", (error: CliError.UserError) => Effect.fail(error.cause as any))
   )
+
+//
+
+/**
+ * Transforms a nested command configuration into a flat structure for parsing.
+ *
+ * This function walks through the entire config tree and:
+ * 1. Extracts all Params into a single flat array (for command-line parsing)
+ * 2. Creates a "blueprint" tree that remembers the original structure
+ * 3. Assigns each Param an index to link parsed values back to their position
+ *
+ * The separation allows us to:
+ * - Parse all options using existing flat parsing logic
+ * - Reconstruct the original nested structure afterward
+ *
+ * @example
+ * Input: { name: Param.string("name"), db: { host: Param.string("host") } }
+ * Output: {
+ *   options: [Param.string("name"), Param.string("host")],
+ *   tree: { name: {_tag: "Param", index: 0}, db: {_tag: "ParsedConfig", tree: {host: {_tag: "Param", index: 1}}} }
+ * }
+ */
+const parseConfig = (config: CommandConfig): ParsedConfig => {
+  const flags: Array<Param.Param<any>> = []
+  const args: Array<Param.Param<any>> = []
+  const paramOrder: Array<Param.Param<any>> = []
+
+  // Recursively walk the config structure, building the blueprint tree
+  function parse(config: CommandConfig) {
+    const tree: ConfigTree = {}
+    for (const key in config) {
+      tree[key] = parseValue(config[key])
+    }
+    return tree
+  }
+
+  // Process each value in the config, extracting Params and preserving structure
+  function parseValue(
+    value:
+      | Param.Param<any>
+      | ReadonlyArray<Param.Param<any> | CommandConfig>
+      | CommandConfig
+  ): ConfigNode {
+    if (Array.isArray(value)) {
+      // Array of options/configs - preserve array structure
+      return {
+        _tag: "Array",
+        children: (value as Array<any>).map((value) => parseValue(value))
+      }
+    } else if (Param.isParam(value)) {
+      // Found a Param - add to appropriate array based on kind and record its index
+      const index = paramOrder.length
+      paramOrder.push(value)
+
+      if (value.kind === "argument") {
+        args.push(value)
+      } else {
+        flags.push(value)
+      }
+
+      return {
+        _tag: "Param",
+        index
+      }
+    } else {
+      // Nested config object - recursively process
+      return {
+        _tag: "ParsedConfig",
+        tree: parse(value as any)
+      }
+    }
+  }
+
+  return {
+    flags,
+    arguments: args,
+    paramOrder,
+    tree: parse(config)
+  }
+}
+
+/**
+ * Reconstructs the original nested structure using parsed values and the blueprint tree.
+ *
+ * This is the inverse operation of parseConfig:
+ * 1. Takes the flat array of parsed option values
+ * 2. Uses the blueprint tree to determine where each value belongs
+ * 3. Rebuilds the original nested object structure
+ *
+ * The blueprint tree acts as a "map" showing how to reassemble the flat data
+ * back into the user's expected nested configuration shape.
+ *
+ * @param tree - The blueprint tree created by parseConfig
+ * @param results - Flat array of parsed values (in the same order as the options array)
+ * @returns The reconstructed nested configuration object
+ *
+ * @example
+ * Input tree: { name: {_tag: "Param", index: 0}, db: {_tag: "ParsedConfig", tree: {host: {_tag: "Param", index: 1}}} }
+ * Input results: ["myapp", "localhost"]
+ * Output: { name: "myapp", db: { host: "localhost" } }
+ */
+const reconstructConfigTree = (
+  tree: ConfigTree,
+  results: ReadonlyArray<any>
+): Record<string, any> => {
+  const output: Record<string, any> = {}
+
+  // Walk through each key in the blueprint tree
+  for (const key in tree) {
+    output[key] = nodeValue(tree[key])
+  }
+
+  return output
+
+  // Convert a blueprint node back to its corresponding value
+  function nodeValue(node: ConfigNode): any {
+    if (node._tag === "Param") {
+      // Param reference - look up the parsed value by index
+      return results[node.index]
+    } else if (node._tag === "Array") {
+      // Array structure - recursively process each child
+      return node.children.map((node) => nodeValue(node))
+    } else {
+      // Nested object - recursively reconstruct the subtree
+      return reconstructConfigTree(node.tree, results)
+    }
+  }
+}

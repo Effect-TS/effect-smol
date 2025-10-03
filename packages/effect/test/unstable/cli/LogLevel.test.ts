@@ -1,7 +1,6 @@
 import { NodeFileSystem, NodePath } from "@effect/platform-node"
 import { assert, describe, it } from "@effect/vitest"
-import { Effect, Layer } from "effect"
-import { Logger } from "effect/logging"
+import { Effect, Layer, Logger } from "effect"
 import { Command, Flag, HelpFormatter } from "effect/unstable/cli"
 
 // Create a test logger that captures log messages

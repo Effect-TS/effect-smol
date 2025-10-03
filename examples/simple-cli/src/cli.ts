@@ -2,7 +2,7 @@
 
 import { NodeServices } from "@effect/platform-node"
 import { Effect, Layer } from "effect"
-import * as Console from "effect/logging/Console"
+import * as Console from "effect/Console"
 import { Argument, Command, Flag, HelpFormatter } from "effect/unstable/cli"
 
 // File operations command

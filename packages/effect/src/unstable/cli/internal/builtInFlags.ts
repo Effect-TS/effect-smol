@@ -5,8 +5,8 @@
  */
 
 import * as Option from "../../../data/Option.ts"
-import type { LogLevel } from "../../../logging/LogLevel.ts"
-import * as Flag from "./flag.ts"
+import type { LogLevel } from "../../../LogLevel.ts"
+import * as Flag from "../Flag.ts"
 
 /**
  * Built-in --log-level option with all Effect LogLevel values.
