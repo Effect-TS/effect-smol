@@ -23,10 +23,9 @@ import * as Effect from "../Effect.ts"
 import * as Exit_ from "../Exit.ts"
 import { identity } from "../Function.ts"
 import * as Equal from "../interfaces/Equal.ts"
-import { formatDate, formatJson } from "../interfaces/Inspectable.ts"
+import { format, formatDate } from "../interfaces/Inspectable.ts"
 import * as Pipeable from "../interfaces/Pipeable.ts"
 import * as core from "../internal/core.ts"
-import * as InternalEffect from "../internal/effect.ts"
 import * as Request from "../Request.ts"
 import * as Scheduler from "../Scheduler.ts"
 import type * as FastCheck from "../testing/FastCheck.ts"
@@ -3598,7 +3597,6 @@ export const Error: Error = instanceOf(globalThis.Error, {
 export interface Defect extends
   Union<
     readonly [
-      String,
       decodeTo<
         Error,
         Struct<{
@@ -3607,16 +3605,19 @@ export interface Defect extends
           readonly stack: optionalKey<String>
         }>
       >,
-      decodeTo<Unknown, String>
+      decodeTo<Unknown, Any>
     ]
   >
 {}
 
 const defectTransformation = new Transformation.Transformation(
   Getter.passthrough(),
-  Getter.transform((a) => {
-    if (Predicate.isRecord(a)) return InternalEffect.causePrettyMessage(a)
-    return formatJson(a)
+  Getter.transform((u) => {
+    try {
+      return JSON.parse(JSON.stringify(u))
+    } catch {
+      return format(u)
+    }
   })
 )
 
@@ -3627,13 +3628,14 @@ const defectTransformation = new Transformation.Transformation(
  * @since 4.0.0
  */
 export const Defect: Defect = Union([
-  String,
-  // error from struct
   ErrorJsonEncoded.pipe(decodeTo(Error, Transformation.error())),
-  // unknown from string
-  String.pipe(decodeTo(
+  Any.pipe(decodeTo(
     Unknown.annotate({
-      defaultJsonSerializer: () => link<unknown>()(String, defectTransformation)
+      defaultJsonSerializer: () => link<unknown>()(Any, defectTransformation),
+      arbitrary: {
+        _tag: "Override",
+        override: (fc) => fc.json()
+      }
     }),
     defectTransformation
   ))

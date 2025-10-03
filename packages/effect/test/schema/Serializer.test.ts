@@ -1091,8 +1091,8 @@ describe("Serializer", () => {
 
         const encoding = asserts.encoding()
         await encoding.succeed(new Error("a"), { name: "Error", message: "a" })
-        await encoding.succeed("a", "a")
-        await encoding.succeed({ toString: () => "a" }, "a")
+        await encoding.succeed("a")
+        await encoding.succeed({ a: 1 })
       })
 
       it("Cause(Option(Finite), Option(String))", async () => {

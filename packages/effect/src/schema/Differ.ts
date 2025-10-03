@@ -1,6 +1,7 @@
 /**
  * @since 4.0.0
  */
+import * as Predicate from "../data/Predicate.ts"
 import * as Optic from "../optic/Optic.ts"
 import * as Schema from "./Schema.ts"
 import * as Serializer from "./Serializer.ts"
@@ -89,12 +90,11 @@ function getJsonPatch(oldValue: unknown, newValue: unknown): JsonPatch {
     for (let i = len1; i < len2; i++) {
       patches.push({ op: "add", path: `/${i}`, value: newValue[i] })
     }
-  } else if (typeof oldValue === "object" && oldValue !== null && typeof newValue === "object" && newValue !== null) {
+  } else if (Predicate.isRecord(oldValue) && Predicate.isRecord(newValue)) {
     // Get all keys from both objects
     const keys1 = Object.keys(oldValue)
     const keys2 = Object.keys(newValue)
-    const allKeys: Array<keyof typeof oldValue | keyof typeof newValue> = Array.from(new Set([...keys1, ...keys2]))
-      .sort() as any // <-- stable
+    const allKeys = Array.from(new Set([...keys1, ...keys2])).sort() // <-- stable
 
     for (const key of allKeys) {
       const esc = escapeToken(key)

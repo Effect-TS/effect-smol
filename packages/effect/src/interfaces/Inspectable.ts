@@ -321,8 +321,9 @@ export function format(
     if (
       !options?.ignoreToString &&
       Predicate.hasProperty(v, "toString") &&
-      Predicate.isFunction((v as any)["toString"]) &&
-      (v as any)["toString"] !== Object.prototype.toString
+      Predicate.isFunction(v["toString"]) &&
+      v["toString"] !== Object.prototype.toString &&
+      v["toString"] !== Array.prototype.toString
     ) return safeToString(v)
 
     if (Predicate.isString(v)) return JSON.stringify(v)

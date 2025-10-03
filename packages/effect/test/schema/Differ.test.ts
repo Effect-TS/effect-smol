@@ -153,6 +153,14 @@ describe("Differ", () => {
       deepStrictEqual(out, { a: { b: [1, 9] } })
     })
 
+    it("should handle array vs object", () => {
+      const schema = Schema.Any
+      const differ = Differ.makeJsonPatch(schema)
+
+      deepStrictEqual(differ.diff([], {}), [{ op: "replace", path: "", value: {} }])
+      deepStrictEqual(differ.patch([], [{ op: "replace", path: "", value: {} }]), {})
+    })
+
     it("Number", () => {
       const schema = Schema.Number
       const differ = Differ.makeJsonPatch(schema)
@@ -243,7 +251,7 @@ describe("Differ", () => {
     roundtrip(Schema.Result(Schema.Number, Schema.String))
     roundtrip(Schema.Map(Schema.String, Schema.Number))
     roundtrip(Schema.Error)
-    // roundtrip(Schema.Defect)
-    // roundtrip(Schema.Exit(Schema.Number, Schema.String, Schema.Defect))
+    roundtrip(Schema.Defect)
+    roundtrip(Schema.Exit(Schema.Number, Schema.String, Schema.Defect))
   })
 })

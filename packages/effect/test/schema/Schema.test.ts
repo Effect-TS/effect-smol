@@ -2281,19 +2281,17 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
         return err
       })()
     )
-    // string
-    await decoding.succeed("a", "a")
+    // anything else
+    await decoding.succeed("a")
+    await decoding.succeed({ a: 1 })
 
     const encoding = asserts.encoding()
     // Error
     await encoding.succeed(new Error("a"), { name: "Error", message: "a" })
-    // string
-    await encoding.succeed("a")
-    // a value with a custom toString method
-    await encoding.succeed({ toString: () => "a" }, "a")
     // anything else
-    await encoding.succeed({ a: 1 }, `{"a":1}`)
-    await encoding.succeed(noPrototypeObject, "a")
+    await encoding.succeed("a")
+    await encoding.succeed({ a: 1 })
+    await encoding.succeed(noPrototypeObject, { message: "a" })
   })
 
   describe("CauseFailure", () => {
