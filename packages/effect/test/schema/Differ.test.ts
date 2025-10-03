@@ -247,11 +247,20 @@ describe("Differ", () => {
     roundtrip(Schema.Duration)
     roundtrip(Schema.DateTimeUtc)
     roundtrip(Schema.ValidDate)
+    roundtrip(Schema.Uint8Array)
+    roundtrip(Schema.PropertyKey)
     roundtrip(Schema.Option(Schema.String))
     roundtrip(Schema.Result(Schema.Number, Schema.String))
     roundtrip(Schema.Map(Schema.String, Schema.Number))
     roundtrip(Schema.Error)
     roundtrip(Schema.Defect)
     roundtrip(Schema.Exit(Schema.Number, Schema.String, Schema.Defect))
+
+    class A extends Schema.Class<A>("A")({ value: Schema.Number }) {}
+    class B extends Schema.Class<B>("B")({ a: A }) {}
+    roundtrip(B)
+
+    class E extends Schema.ErrorClass<E>("E")({ message: Schema.String }) {}
+    roundtrip(E)
   })
 })
