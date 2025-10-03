@@ -1,6 +1,6 @@
-import { NodeFileSystem, NodePath } from "@effect/platform-node"
 import { assert, describe, it } from "@effect/vitest"
 import { Effect, Layer, Logger } from "effect"
+import { FileSystem, Path } from "effect/platform"
 import { Command, Flag, HelpFormatter } from "effect/unstable/cli"
 
 // Create a test logger that captures log messages
@@ -30,8 +30,8 @@ const makeTestLogger = () => {
 // Create a test layer with the test logger
 const makeTestLayer = (testLogger: Logger.Logger<unknown, void>) =>
   Layer.mergeAll(
-    NodeFileSystem.layer,
-    NodePath.layer,
+    FileSystem.layerNoop({}),
+    Path.layer,
     HelpFormatter.layer(HelpFormatter.defaultHelpRenderer({ colors: false })),
     Logger.layer([testLogger])
   )
@@ -104,17 +104,11 @@ describe("LogLevel", () => {
     "none"
   ]
 
-  testCases.forEach((level) => {
-    const testName = level === "warning"
-      ? "should support log level alias 'warning' for 'warn'"
-      : `should filter logs correctly with --log-level=${level}`
-
-    it.effect(testName, () =>
-      Effect.gen(function*() {
-        const logs = yield* testLogLevels(level)
-        assert.deepStrictEqual(logs, filterLogs(level))
-      }))
-  })
+  it.effect.each(testCases)("level=%s", (level) =>
+    Effect.gen(function*() {
+      const logs = yield* testLogLevels(level)
+      assert.deepStrictEqual(logs, filterLogs(level))
+    }))
 
   it.effect("should use default log level when --log-level is not provided", () =>
     Effect.gen(function*() {

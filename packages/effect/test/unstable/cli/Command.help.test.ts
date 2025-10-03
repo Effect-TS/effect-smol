@@ -1,6 +1,6 @@
-import { NodeFileSystem, NodePath } from "@effect/platform-node"
 import { describe, expect, it } from "@effect/vitest"
 import { Effect, Layer } from "effect"
+import { FileSystem, Path } from "effect/platform"
 import { TestConsole } from "effect/testing"
 import { Command, HelpFormatter } from "effect/unstable/cli"
 import { comprehensiveCli } from "./utils/comprehensiveCli.ts"
@@ -10,8 +10,8 @@ const TestLayer = Layer.mergeAll(
   TestConsole.layer,
   HelpFormatter.layer(HelpFormatter.defaultHelpRenderer({ colors: false })),
   TestActions.layer,
-  NodeFileSystem.layer,
-  NodePath.layer
+  FileSystem.layerNoop({}),
+  Path.layer
 )
 
 /**

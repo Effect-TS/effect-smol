@@ -1,11 +1,11 @@
-import { NodeFileSystem, NodePath } from "@effect/platform-node"
 import { assert, describe, it } from "@effect/vitest"
 import { Effect, Layer } from "effect"
+import { FileSystem, Path } from "effect/platform"
 import { CliError, Command, Flag } from "effect/unstable/cli"
 import * as Lexer from "effect/unstable/cli/internal/lexer"
 import * as Parser from "effect/unstable/cli/internal/parser"
 
-const TestLayer = Layer.mergeAll(NodeFileSystem.layer, NodePath.layer)
+const TestLayer = Layer.mergeAll(FileSystem.layerNoop({}), Path.layer)
 
 describe("Command errors", () => {
   describe("parse", () => {

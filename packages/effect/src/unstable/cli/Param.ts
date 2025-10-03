@@ -239,7 +239,7 @@ export const makeSingle = <A, K extends ParamKind>(params: {
   return Object.assign(Object.create(Proto), {
     _tag: "Single",
     ...params,
-    description: Option.fromNullishOr(params.description),
+    description: params.description ?? Option.none(),
     aliases: params.aliases ?? [],
     parse
   })
@@ -1552,7 +1552,7 @@ const parseOption: <A>(
 
   // Parse the first value (later we can handle multiple)
   const arg = providedValues[0]
-  const value = Effect.mapError(
+  const value = yield* Effect.mapError(
     primitiveType.parse(arg),
     (error) =>
       new CliError.InvalidValue({

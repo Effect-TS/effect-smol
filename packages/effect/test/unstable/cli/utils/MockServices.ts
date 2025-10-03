@@ -1,6 +1,5 @@
 import { Effect, Layer } from "effect"
-import { FileSystem } from "effect/platform"
-import * as Path from "effect/platform/Path"
+import { FileSystem, Path } from "effect/platform"
 import { Stream } from "effect/stream"
 
 // Create mock implementations for testing CLI commands

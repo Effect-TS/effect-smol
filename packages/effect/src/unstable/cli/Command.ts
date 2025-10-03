@@ -700,7 +700,7 @@ export const withSubcommands = <const Subcommands extends ReadonlyArray<Command<
     return yield* new CliError.ShowHelp({ commandPath })
   })
 
-  return overrideCommand<
+  return makeOverride<
     Name,
     NewInput,
     ExtractSubcommandErrors<Subcommands>,
@@ -883,24 +883,20 @@ export const getHelpDoc = <Name extends string, Input>(
   }
 
   // Extract flags from options
-  const extractFlags = (options: ReadonlyArray<Param.Any>): void => {
-    for (const option of options) {
-      const singles = Param.extractSingleParams(option)
-      for (const single of singles) {
-        const formattedAliases = single.aliases.map((alias) => alias.length === 1 ? `-${alias}` : `--${alias}`)
+  for (const option of command.parsedConfig.flags) {
+    const singles = Param.extractSingleParams(option)
+    for (const single of singles) {
+      const formattedAliases = single.aliases.map((alias) => alias.length === 1 ? `-${alias}` : `--${alias}`)
 
-        flags.push({
-          name: single.name,
-          aliases: formattedAliases,
-          type: single.typeName ?? Primitive.getTypeName(single.primitiveType),
-          description: Option.getOrElse(single.description, () => ""),
-          required: single.primitiveType._tag !== "Boolean"
-        })
-      }
+      flags.push({
+        name: single.name,
+        aliases: formattedAliases,
+        type: single.typeName ?? Primitive.getTypeName(single.primitiveType),
+        description: Option.getOrElse(single.description, () => ""),
+        required: single.primitiveType._tag !== "Boolean"
+      })
     }
   }
-
-  extractFlags(command.parsedConfig.flags)
 
   // Extract subcommand info
   const subcommandDocs: Array<SubcommandDoc> = command.subcommands.map((sub) => ({
@@ -1304,6 +1300,7 @@ const makeCommand = <Name extends string, Input, E, R>(
     _tag: "Command",
     tag,
     name,
+    config,
     description,
     subcommands,
     parsedConfig,
@@ -1314,7 +1311,7 @@ const makeCommand = <Name extends string, Input, E, R>(
 }
 
 /** @internal */
-const overrideCommand = <Name extends string, NewInput, E, R>(
+const makeOverride = <Name extends string, NewInput, E, R>(
   base: Command<Name, any, any, any>,
   overrides: {
     readonly subcommands?: ReadonlyArray<Command<any, unknown, unknown, unknown>> | undefined
