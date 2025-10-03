@@ -1183,6 +1183,11 @@ export interface Number extends Bottom<number, number, never, never, AST.NumberK
 /**
  * A schema for all numbers, including `NaN`, `Infinity`, and `-Infinity`.
  *
+ * **Default Json Serializer**
+ *
+ * - If the number is finite, it is serialized as a number.
+ * - Otherwise, it is serialized as a string ("NaN", "Infinity", or "-Infinity").
+ *
  * @since 4.0.0
  */
 export const Number: Number = make(AST.numberKeyword)

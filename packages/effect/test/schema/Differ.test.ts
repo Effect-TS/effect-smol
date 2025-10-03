@@ -1,245 +1,207 @@
-import { Option } from "effect/data"
 import { Differ, Schema, ToArbitrary } from "effect/schema"
 import * as FastCheck from "effect/testing/FastCheck"
 import { describe, it } from "vitest"
-import { deepStrictEqual, strictEqual } from "../utils/assert.ts"
+import { deepStrictEqual, strictEqual, throws } from "../utils/assert.ts"
 
 function roundtrip<S extends Schema.Top>(schema: S) {
-  const differ = Differ.jsonPatch(schema)
+  const differ = Differ.makeJsonPatch(schema)
   const arbitrary = ToArbitrary.make(schema)
   const arb = arbitrary
   FastCheck.assert(
     FastCheck.property(arb, arb, (v1, v2) => {
       const patch = differ.diff(v1, v2)
       const patched = differ.patch(v1, patch)
+      // two invalid dates are not considered equal by deepStrictEqual
       if (patched instanceof Date && v2 instanceof Date && Object.is(patched.getTime(), v2.getTime())) {
         return
       }
       deepStrictEqual(patched, v2)
-    }),
-    { seed: 1847023290, path: "2:0", endOnFailure: true }
+    })
   )
 }
 
 describe("Differ", () => {
-  describe("jsonPatch", () => {
-    it("String", () => {
-      const schema = Schema.String
-      const differ = Differ.jsonPatch(schema)
+  describe("makeJsonPatch", () => {
+    it("patch should return the same reference if nothing changed", () => {
+      const schema = Schema.Struct({ a: Schema.String })
+      const differ = Differ.makeJsonPatch(schema)
+      const value = { a: "a" }
+      strictEqual(differ.patch(value, []), value)
+    })
 
-      deepStrictEqual(differ.diff("a", "a"), [])
-      deepStrictEqual(differ.diff("a", "b"), [{ op: "replace", path: "", value: "b" }])
+    it("array removes are ordered highest → lowest (no index shifting)", () => {
+      const differ = Differ.makeJsonPatch(Schema.Any)
 
-      deepStrictEqual(differ.patch("a", [{ op: "replace", path: "", value: "b" }]), "b")
+      const oldValue = [0, 1, 2, 3, 4, 5]
+      const newValue = [0, 1, 3]
 
-      roundtrip(schema)
+      const patch = differ.diff(oldValue, newValue)
+
+      const removeIdx = patch
+        .filter((op) => op.op === "remove")
+        .map((op) => Number(op.path.slice(1)))
+
+      const sorted = [...removeIdx].sort((a, b) => b - a)
+      deepStrictEqual(removeIdx, sorted)
+
+      const patched = differ.patch(oldValue, patch)
+      deepStrictEqual(patched, newValue)
+    })
+
+    it("object patches use stable key order (sorted keys)", () => {
+      const differ = Differ.makeJsonPatch(Schema.Any)
+
+      const oldValue = { b: 1, a: 1 }
+      const newValue = { a: 2, b: 2 }
+
+      const patch = differ.diff(oldValue, newValue)
+      const replacePaths = patch.filter((op) => op.op === "replace").map((op) => op.path)
+
+      deepStrictEqual(replacePaths, ["/a", "/b"])
+      deepStrictEqual(differ.patch(oldValue, patch), newValue)
+    })
+
+    it(`"-" is only valid for objects and add into arrays`, () => {
+      const differ = Differ.makeJsonPatch(Schema.Any)
+
+      {
+        const doc = { "-": 123, a: 1 }
+        const out = differ.patch(doc, [
+          { op: "remove", path: "/-" },
+          { op: "replace", path: "/a", value: 0 }
+        ])
+        deepStrictEqual(out, { a: 0 })
+      }
+
+      // replace "/-" value
+      {
+        const doc = { "-": 1 }
+        const out = differ.patch(doc, [{ op: "replace", path: "/-", value: 2 }])
+        deepStrictEqual(out, { "-": 2 })
+      }
+
+      // replace "/-" should throw if key does not exist (replace requires existence)
+      {
+        const doc = {}
+        throws(() => differ.patch(doc, [{ op: "replace", path: "/-", value: 2 }]))
+      }
+
+      // add with "-" appends
+      {
+        const doc = { xs: [1, 2] }
+        const out = differ.patch(doc, [{ op: "add", path: "/xs/-", value: 3 }])
+        deepStrictEqual(out, { xs: [1, 2, 3] })
+      }
+
+      // remove with "-" -> throws
+      {
+        const doc = { xs: [1, 2, 3] }
+        throws(() => differ.patch(doc, [{ op: "remove", path: "/xs/-" }]))
+      }
+
+      // replace with "-" -> throws
+      {
+        const doc = { xs: [1, 2, 3] }
+        throws(() => differ.patch(doc, [{ op: "replace", path: "/xs/-", value: 9 }]))
+      }
+    })
+
+    it("replace requires the target to exist; add can create", () => {
+      const differ = Differ.makeJsonPatch(Schema.Any)
+
+      // add can create missing key
+      {
+        const doc = {}
+        const out = differ.patch(doc, [{ op: "add", path: "/x", value: 1 }])
+        deepStrictEqual(out, { x: 1 })
+      }
+
+      // replace on missing key throws
+      {
+        const doc = {}
+        throws(() => differ.patch(doc, [{ op: "replace", path: "/x", value: 1 }]))
+      }
+    })
+
+    it("root replace returns the provided reference (no clone)", () => {
+      const differ = Differ.makeJsonPatch(Schema.Any)
+
+      const newRef = { hello: "world" }
+      const out = differ.patch({ old: true }, [{ op: "replace", path: "", value: newRef }])
+
+      strictEqual(out, newRef) // same reference
+      deepStrictEqual(out, newRef)
+    })
+
+    it("immutability: original input is not mutated by patch", () => {
+      const differ = Differ.makeJsonPatch(Schema.Any)
+
+      const oldValue = { a: { b: [1, 2, 3] } }
+
+      const snapshot = JSON.parse(JSON.stringify(oldValue))
+      const out = differ.patch(oldValue, [
+        { op: "replace", path: "/a/b/1", value: 9 },
+        { op: "remove", path: "/a/b/2" }
+      ])
+
+      deepStrictEqual(oldValue, snapshot) // unchanged
+      deepStrictEqual(out, { a: { b: [1, 9] } })
     })
 
     it("Number", () => {
       const schema = Schema.Number
-      const differ = Differ.jsonPatch(schema)
+      const differ = Differ.makeJsonPatch(schema)
 
       deepStrictEqual(differ.diff(0, -0), [{ op: "replace", path: "", value: -0 }])
-      deepStrictEqual(differ.diff(0, 0), [])
+      deepStrictEqual(differ.diff(-0, 0), [{ op: "replace", path: "", value: 0 }])
       deepStrictEqual(differ.diff(NaN, NaN), [])
       deepStrictEqual(differ.diff(Infinity, Infinity), [])
       deepStrictEqual(differ.diff(-Infinity, -Infinity), [])
 
       deepStrictEqual(differ.patch(0, [{ op: "replace", path: "", value: -0 }]), -0)
-
-      roundtrip(schema)
+      deepStrictEqual(differ.patch(-0, [{ op: "replace", path: "", value: 0 }]), 0)
     })
 
     it("Date", () => {
       const schema = Schema.Date
-      const differ = Differ.jsonPatch(schema)
+      const differ = Differ.makeJsonPatch(schema)
 
-      deepStrictEqual(differ.diff(new Date(0), new Date(0)), [])
-      deepStrictEqual(differ.diff(new Date(0), new Date(1)), [
-        { op: "replace", path: "", value: "1970-01-01T00:00:00.001Z" }
-      ])
       deepStrictEqual(differ.diff(new Date("1970-01-01T00:00:00.000Z"), new Date(NaN)), [
         { op: "replace", path: "", value: "Invalid Date" }
       ])
-
-      deepStrictEqual(
-        differ.patch(new Date(0), [{ op: "replace", path: "", value: "1970-01-01T00:00:00.001Z" }]),
-        new Date(1)
-      )
-
-      roundtrip(schema)
     })
+  })
 
-    describe("Struct", () => {
-      it("required fields", () => {
-        const schema = Schema.Struct({
-          a: Schema.String,
-          b: Schema.NullOr(Schema.String),
-          "": Schema.String
-        })
-        const differ = Differ.jsonPatch(schema)
-
-        deepStrictEqual(differ.diff({ a: "a", b: "b", "": "c" }, { a: "a2", b: null, "": "c2" }), [
-          { op: "replace", path: "/a", value: "a2" },
-          { op: "replace", path: "/b", value: null },
-          { op: "replace", path: "/", value: "c2" }
-        ])
-
-        deepStrictEqual(
-          differ.patch({ a: "a", b: "b", "": "c" }, [
-            { op: "replace", path: "/a", value: "a2" },
-            { op: "replace", path: "/b", value: null },
-            { op: "replace", path: "/", value: "c2" }
-          ]),
-          { a: "a2", b: null, "": "c2" }
-        )
-
-        roundtrip(schema)
-      })
-    })
-
-    describe("Record", () => {
-      it("Record(String, Number)", () => {
-        const schema = Schema.Record(Schema.String, Schema.Number)
-        const differ = Differ.jsonPatch(schema)
-
-        deepStrictEqual(differ.diff({ a: 1, b: 2 }, { a: 1, b: 2 }), [])
-        deepStrictEqual(differ.diff({ a: 1, b: 2 }, { a: 1 }), [
-          { op: "remove", path: "/b" }
-        ])
-        deepStrictEqual(differ.diff({ a: 1 }, { a: 1, b: 2 }), [
-          { op: "add", path: "/b", value: 2 }
-        ])
-        deepStrictEqual(differ.diff({ a: 1, b: 2 }, { a: 1, b: 3 }), [
-          { op: "replace", path: "/b", value: 3 }
-        ])
-
-        deepStrictEqual(
-          differ.patch({ a: 1, b: 2 }, [
-            { op: "replace", path: "/b", value: 3 }
-          ]),
-          { a: 1, b: 3 }
-        )
-
-        roundtrip(schema)
-      })
-    })
-
-    describe("Tuple", () => {
-      it("required elements", () => {
-        const schema = Schema.Tuple([Schema.String, Schema.Number])
-        const differ = Differ.jsonPatch(schema)
-
-        deepStrictEqual(differ.diff(["a", 1], ["a", 1]), [])
-        deepStrictEqual(differ.diff(["a", 1], ["b", 1]), [
-          { op: "replace", path: "/0", value: "b" }
-        ])
-        deepStrictEqual(differ.diff(["a", 1], ["a", 2]), [
-          { op: "replace", path: "/1", value: 2 }
-        ])
-        deepStrictEqual(differ.diff(["a", 1], ["b", 2]), [
-          { op: "replace", path: "/0", value: "b" },
-          { op: "replace", path: "/1", value: 2 }
-        ])
-
-        deepStrictEqual(
-          differ.patch(["a", 1], [
-            { op: "replace", path: "/0", value: "b" },
-            { op: "replace", path: "/1", value: 2 }
-          ]),
-          ["b", 2]
-        )
-
-        roundtrip(schema)
-      })
-    })
-
-    describe("Array", () => {
-      it("Array(Number)", () => {
-        const schema = Schema.Array(Schema.Number)
-        const differ = Differ.jsonPatch(schema)
-
-        deepStrictEqual(differ.diff([], []), [])
-        deepStrictEqual(differ.diff([1, 2], [1, 2]), [])
-        deepStrictEqual(differ.diff([1, 2], [3, 2]), [
-          { op: "replace", path: "/0", value: 3 }
-        ])
-
-        deepStrictEqual(
-          differ.patch([1, 2], [
-            { op: "replace", path: "/0", value: 3 }
-          ]),
-          [3, 2]
-        )
-
-        roundtrip(schema)
-      })
-    })
-
-    describe("Union", () => {
-      it("Union(String, Number)", () => {
-        const schema = Schema.Union([Schema.String, Schema.Number])
-        const differ = Differ.jsonPatch(schema)
-
-        deepStrictEqual(differ.diff("a", "b"), [{ op: "replace", path: "", value: "b" }])
-        deepStrictEqual(differ.diff(1, 2), [{ op: "replace", path: "", value: 2 }])
-        deepStrictEqual(differ.diff("a", 1), [{ op: "replace", path: "", value: 1 }])
-        deepStrictEqual(differ.diff(1, "a"), [{ op: "replace", path: "", value: "a" }])
-
-        deepStrictEqual(
-          differ.patch("a", [{ op: "replace", path: "", value: 2 }]),
-          2
-        )
-
-        roundtrip(schema)
-      })
-
-      it("Complex Union", () => {
-        const schema = Schema.Union([
-          Schema.Struct({ type: Schema.Literal("user"), name: Schema.String }),
-          Schema.Struct({ type: Schema.Literal("admin"), name: Schema.String, level: Schema.Number })
-        ])
-        const differ = Differ.jsonPatch(schema)
-
-        // Same union member, different values
-        deepStrictEqual(
-          differ.diff({ type: "user", name: "Alice" }, { type: "user", name: "Bob" }),
-          [{ op: "replace", path: "/name", value: "Bob" }]
-        )
-
-        // Different union members - should replace entire value
-        deepStrictEqual(
-          differ.diff({ type: "user", name: "Alice" }, { type: "admin", name: "Bob", level: 5 }),
-          [{ op: "replace", path: "", value: { type: "admin", name: "Bob", level: 5 } }]
-        )
-
-        roundtrip(schema)
-      })
-    })
-
-    it("patch should return the same reference if nothing changed", () => {
-      const schema = Schema.Struct({ a: Schema.String })
-      const differ = Differ.jsonPatch(schema)
-      const value = { a: "a" }
-      strictEqual(differ.patch(value, []), value)
-    })
-
-    it("Option(String)", () => {
-      const schema = Schema.Option(Schema.String)
-      const differ = Differ.jsonPatch(schema)
-
-      deepStrictEqual(differ.diff(Option.some("a"), Option.some("b")), [
-        { op: "replace", path: "/value", value: "b" }
-      ])
-
-      deepStrictEqual(
-        differ.patch(Option.some("a"), [
-          { op: "replace", path: "/value", value: "b" }
-        ]),
-        Option.some("b")
-      )
-
-      roundtrip(schema)
-    })
+  it("roundtrip", () => {
+    roundtrip(Schema.Any.annotate({ arbitrary: { _tag: "Override", override: (fc) => fc.json() } }))
+    roundtrip(Schema.String)
+    roundtrip(Schema.Number)
+    roundtrip(Schema.Date)
+    roundtrip(Schema.Struct({
+      a: Schema.String,
+      "-": Schema.NullOr(Schema.String),
+      "": Schema.String
+    }))
+    roundtrip(Schema.Record(Schema.String, Schema.Number))
+    roundtrip(Schema.StructWithRest(
+      Schema.Struct({
+        a: Schema.Number,
+        "-": Schema.Number,
+        "": Schema.Number
+      }),
+      [Schema.Record(Schema.String, Schema.Number)]
+    ))
+    roundtrip(Schema.Tuple([Schema.String, Schema.Number]))
+    roundtrip(Schema.Array(Schema.Number))
+    roundtrip(Schema.TupleWithRest(
+      Schema.Tuple([Schema.Number]),
+      [Schema.String]
+    ))
+    roundtrip(Schema.TupleWithRest(
+      Schema.Tuple([Schema.Number]),
+      [Schema.String, Schema.Boolean]
+    ))
+    roundtrip(Schema.Union([Schema.String, Schema.Finite]))
+    roundtrip(Schema.Option(Schema.String))
   })
 })

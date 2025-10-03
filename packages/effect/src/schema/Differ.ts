@@ -1,27 +1,27 @@
 /**
  * @since 4.0.0
  */
-import { memoize } from "../Function.ts"
 import * as Optic from "../optic/Optic.ts"
-import * as AST from "./AST.ts"
 import * as Schema from "./Schema.ts"
 import * as Serializer from "./Serializer.ts"
 import * as ToParser from "./ToParser.ts"
 
 /**
+ * @category Model
  * @since 4.0.0
  */
-export interface Differ<in out Value, in out Patch> {
+export interface Differ<in out T, in out Patch> {
   readonly empty: Patch
-  diff(oldValue: Value, newValue: Value): Patch
+  diff(oldValue: T, newValue: T): Patch
   combine(first: Patch, second: Patch): Patch
-  patch(oldValue: Value, patch: Patch): Value
+  patch(oldValue: T, patch: Patch): T
 }
 
 /**
  * RFC 6902 (subset) JSON Patch operations
  * Keeping only "add", "remove", "replace"
  *
+ * @category JsonPatch Differ
  * @since 4.0.0
  */
 export type JsonPatchOperation =
@@ -32,193 +32,107 @@ export type JsonPatchOperation =
 /**
  * A JSON Patch document is an array of operations
  *
+ * @category JsonPatch Differ
  * @since 4.0.0
  */
-export type JsonPatchDocument = ReadonlyArray<JsonPatchOperation>
+export type JsonPatch = ReadonlyArray<JsonPatchOperation>
 
 /**
+ * @category JsonPatch Differ
  * @since 4.0.0
  */
-export function jsonPatch<S extends Schema.Top>(schema: S): Differ<S["Type"], JsonPatchDocument> {
+export function makeJsonPatch<S extends Schema.Top>(schema: S): Differ<S["Type"], JsonPatch> {
   const serializer = Serializer.json(Schema.typeCodec(schema))
   const iso = Optic.makeIso(ToParser.encodeSync(serializer), ToParser.decodeSync(serializer))
-  const diff = goDiff(AST.encodedAST(serializer.ast))
   return {
     empty: [],
-    diff: (v1, v2) => diff(iso.get(v1), iso.get(v2)),
+    diff: (oldValue, newValue) => getJsonPatch(iso.get(oldValue), iso.get(newValue)),
     combine: (first, second) => [...first, ...second],
     patch: (oldValue, patch) => {
       const get = iso.get(oldValue)
-      const patched = applyJsonPatchDocument(patch, get)
+      const patched = applyJsonPatch(patch, get)
       return Object.is(patched, get) ? oldValue : iso.set(patched)
     }
   }
 }
 
-const goDiff = memoize((ast: AST.AST): (v1: any, v2: any) => JsonPatchDocument => {
-  switch (ast._tag) {
-    case "NullKeyword":
-      return () => []
-    case "StringKeyword":
-    case "NumberKeyword":
-    case "BooleanKeyword":
-    case "LiteralType":
-    case "Enums":
-    case "TemplateLiteral":
-      return (v1, v2) => Object.is(v1, v2) ? [] : [{ op: "replace", path: "", value: v2 }]
-    case "Suspend":
-      return goDiff(ast.thunk())
-    case "TupleType": {
-      const elements = ast.elements.map(goDiff)
-      const rest = ast.rest.map(goDiff)
-      return (v1, v2) => {
-        const patches: Array<JsonPatchOperation> = []
-        let i = 0
-        // ---------------------------------------------
-        // handle elements
-        // ---------------------------------------------
-        for (; i < elements.length; i++) {
-          const path = `/${i}`
-          const elementDiff = elements[i](v1[i], v2[i])
-          for (const patch of elementDiff) {
-            patch.path = patch.path === "" ? path : `${path}${patch.path}`
-            patches.push(patch)
-          }
-        }
-        // ---------------------------------------------
-        // handle rest element
-        // ---------------------------------------------
-        const len1 = v1.length
-        const len2 = v2.length
-        if (rest.length > 0) {
-          const [head, ...tail] = rest
-          for (; i < len1 - tail.length; i++) {
-            const path = `/${i}`
-            if (i < len2) {
-              const patch = head(v1[i], v2[i])
-              for (const op of patch) {
-                op.path = op.path === "" ? path : `${path}${op.path}`
-                patches.push(op)
-              }
-            } else {
-              patches.push({ op: "remove", path })
-            }
-          }
-          // ---------------------------------------------
-          // handle post rest elements
-          // ---------------------------------------------
-          for (let j = 0; j < tail.length; j++) {
-            i += j
-            const path = `/${i}`
-            if (i < len2) {
-              const patch = tail[j](v1[i], v2[i])
-              for (const op of patch) {
-                op.path = op.path === "" ? path : `${path}${op.path}`
-                patches.push(op)
-              }
-            } else {
-              patches.push({ op: "remove", path })
-            }
-          }
-        }
-        if (len1 < len2) {
-          for (let j = len1; j < len2; j++) {
-            patches.push({ op: "add", path: `/${j}`, value: v2[j] })
-          }
-        }
+// Mutates op.path in place for perf; safe because child ops are freshly created and not shared.
+function prefixPathInPlace(op: JsonPatchOperation, parent: string): void {
+  op.path = op.path === "" ? parent : parent + op.path
+}
 
-        return patches
+function getJsonPatch(oldValue: unknown, newValue: unknown): JsonPatch {
+  if (Object.is(oldValue, newValue)) return []
+  const patches: Array<JsonPatchOperation> = []
+  if (Array.isArray(oldValue) && Array.isArray(newValue)) {
+    const len1 = oldValue.length
+    const len2 = newValue.length
+
+    // Handle array elements that exist in both arrays
+    const shared = Math.min(len1, len2)
+    for (let i = 0; i < shared; i++) {
+      const path = `/${i}`
+      const patch = getJsonPatch(oldValue[i], newValue[i])
+      for (const op of patch) {
+        prefixPathInPlace(op, path)
+        patches.push(op)
       }
     }
-    case "TypeLiteral": {
-      // ---------------------------------------------
-      // handle empty struct
-      // ---------------------------------------------
-      if (ast.propertySignatures.length === 0 && ast.indexSignatures.length === 0) {
-        throw new Error("empty structs are not supported")
-      }
-      const propertySignatures = ast.propertySignatures.map((ps) => [ps.name, goDiff(ps.type)] as const)
-      const indexSignatures = ast.indexSignatures.map((is) => [is.parameter, goDiff(is.type)] as const)
-      return (v1, v2) => {
-        const patches: Array<JsonPatchOperation> = []
 
-        // ---------------------------------------------
-        // handle property signatures
-        // ---------------------------------------------
-        for (const [name, diff] of propertySignatures) {
-          const key = String(name)
-          const path = `/${escapeToken(key)}`
-          const newVal = v2[key]
+    // Handle array elements that need to be removed
+    // Remove from end to start so later indices do not shift.
+    for (let i = len1 - 1; i >= len2; i--) {
+      patches.push({ op: "remove", path: `/${i}` })
+    }
 
-          if (!Object.hasOwn(v1, key)) {
-            patches.push({ op: "add", path, value: newVal })
-          } else if (!Object.hasOwn(v2, key)) {
-            patches.push({ op: "remove", path })
-          } else {
-            const patch = diff(v1[key], newVal)
-            for (const op of patch) {
-              op.path = op.path === "" ? path : `${path}${op.path}`
-              patches.push(op)
-            }
-          }
+    // Handle array elements that need to be added (from beginning to end)
+    for (let i = len1; i < len2; i++) {
+      patches.push({ op: "add", path: `/${i}`, value: newValue[i] })
+    }
+  } else if (typeof oldValue === "object" && oldValue !== null && typeof newValue === "object" && newValue !== null) {
+    // Get all keys from both objects
+    const keys1 = Object.keys(oldValue)
+    const keys2 = Object.keys(newValue)
+    const allKeys: Array<keyof typeof oldValue | keyof typeof newValue> = Array.from(new Set([...keys1, ...keys2]))
+      .sort() as any // <-- stable
+
+    for (const key of allKeys) {
+      const esc = escapeToken(key)
+      const path = `/${esc}`
+      const hasKey1 = Object.hasOwn(oldValue, key)
+      const hasKey2 = Object.hasOwn(newValue, key)
+
+      if (hasKey1 && hasKey2) {
+        // Both objects have the key, recursively compare values
+        const patch = getJsonPatch(oldValue[key], newValue[key])
+        for (const op of patch) {
+          prefixPathInPlace(op, path)
+          patches.push(op)
         }
-
-        // ---------------------------------------------
-        // handle index signatures
-        // ---------------------------------------------
-        if (indexSignatures.length > 0) {
-          for (const [parameter, diff] of indexSignatures) {
-            const keys = AST.getIndexSignatureKeys(v1, parameter)
-            for (let j = 0; j < keys.length; j++) {
-              const key = String(keys[j])
-              const path = `/${escapeToken(key)}`
-              const newVal = v2[key]
-              if (!Object.hasOwn(v2, key)) {
-                patches.push({ op: "remove", path })
-              } else {
-                const patch = diff(v1[key], newVal)
-                for (const op of patch) {
-                  op.path = op.path === "" ? path : `${path}${op.path}`
-                  patches.push(op)
-                }
-              }
-            }
-          }
-          for (const key of Object.keys(v2)) {
-            if (!Object.hasOwn(v1, key)) {
-              patches.push({ op: "add", path: `/${escapeToken(key)}`, value: v2[key] })
-            }
-          }
-        }
-
-        return patches
+      } else if (!hasKey1 && hasKey2) {
+        // Key exists only in v2, add it
+        patches.push({ op: "add", path, value: newValue[key] })
+      } else if (hasKey1 && !hasKey2) {
+        // Key exists only in v1, remove it
+        patches.push({ op: "remove", path })
       }
     }
-    case "UnionType":
-      return (v1, v2) => {
-        const candidates = AST.getCandidates(v1, ast.types)
-        const types = candidates.map(ToParser.refinement)
-        for (let i = 0; i < candidates.length; i++) {
-          const is = types[i]
-          if (is(v1) && is(v2)) {
-            return goDiff(candidates[i])(v1, v2)
-          }
-        }
-        return [{ op: "replace", path: "", value: v2 }]
-      }
-    default:
-      throw new Error(`BUG: unsupported AST: ${ast._tag}`)
+  } else {
+    patches.push({ op: "replace", path: "", value: newValue })
   }
-})
+  return patches
+}
 
-/**
- * @since 4.0.0
- */
-export function applyJsonPatchDocument(patch: JsonPatchDocument, json: unknown): unknown {
-  let doc = json
+function applyJsonPatch(patch: JsonPatch, oldValue: unknown): unknown {
+  let doc = oldValue
 
   for (const op of patch) {
     switch (op.op) {
+      case "replace": {
+        if (op.path === "") return op.value // root replace: write as-is
+        doc = setAt(doc, op.path, op.value, "replace")
+        break
+      }
       case "add": {
         doc = addAt(doc, op.path, op.value)
         break
@@ -227,58 +141,54 @@ export function applyJsonPatchDocument(patch: JsonPatchDocument, json: unknown):
         doc = setAt(doc, op.path, undefined, "remove")
         break
       }
-      case "replace": {
-        if (op.path === "") return op.value
-        doc = setAt(doc, op.path, op.value, "replace")
-        break
-      }
     }
   }
 
   return doc
 }
 
-function cloneDeep<T>(x: T): T {
-  if (Array.isArray(x)) return x.map((v) => cloneDeep(v)) as T
-  if (typeof x === "object" && x !== null) {
-    const out: Record<string, unknown> = {}
-    for (const k of Object.keys(x)) out[k] = cloneDeep((x as any)[k])
-    return out as T
-  }
-  return x
-}
-
-/** RFC 6901 tokenizer ("" is root). Supports ~0 -> ~ and ~1 -> / */
+// RFC 6901 tokenizer ("" is root). Supports ~0 -> ~ and ~1 -> /
 function tokenize(pointer: string): Array<string> {
   if (pointer === "") return []
+  if (pointer.charCodeAt(0) !== 47 /* "/" */) {
+    throw new Error(`Invalid JSON Pointer "${pointer}". It must start with "/".`)
+  }
   return pointer
     .split("/")
     .slice(1)
-    .map((t) => t.replace(/~1/g, "/").replace(/~0/g, "~"))
+    .map((s) => s.replace(/~1/g, "/").replace(/~0/g, "~"))
 }
 
-/** Read value at pointer or throw if not found */
+// Convert token to a non-negative integer index; throws on invalid
+function toIndex(token: string): number {
+  if (!/^(0|[1-9]\d*)$/.test(token)) {
+    throw new Error(`Invalid array index token "${token}".`)
+  }
+  return Number(token)
+}
+
+// Read value at pointer ("" is root). Returns undefined if path walks into undefined.
 function getAt(doc: unknown, pointer: string): unknown {
   if (pointer === "") return doc
   const tokens = tokenize(pointer)
   let cur: any = doc
-
   for (const token of tokens) {
+    if (cur == null) return undefined
     if (Array.isArray(cur)) {
-      const idx = Number(token)
+      const idx = toIndex(token)
+      if (idx < 0 || idx >= cur.length) return undefined
       cur = cur[idx]
     } else {
-      cur = cur[token]
+      cur = (cur as any)[token]
     }
   }
   return cur
 }
 
-/** Add: on root replaces whole doc; on arrays inserts (supports "-" to append); on objects sets/creates a member */
+// "add" may create a missing member; for arrays supports "-" to append. Throws
+// if parent is not a container or (array) index is out of bounds.
 function addAt(doc: unknown, pointer: string, val: unknown): unknown {
-  if (pointer === "") {
-    return cloneDeep(val)
-  }
+  if (pointer === "") return val
 
   const tokens = tokenize(pointer)
   const parentPath = "/" + tokens.slice(0, -1).map(escapeToken).join("/")
@@ -286,21 +196,30 @@ function addAt(doc: unknown, pointer: string, val: unknown): unknown {
   const parent = getAt(doc, parentPath === "/" ? "" : parentPath)
 
   if (Array.isArray(parent)) {
-    const idx = lastToken === "-" ? parent.length : Number(lastToken)
+    const idx = lastToken === "-" ? parent.length : toIndex(lastToken)
+    if (idx < 0 || idx > parent.length) throw new Error(`Array index out of bounds at "${pointer}".`)
     const updated = parent.slice()
-    updated.splice(idx, 0, cloneDeep(val))
-    return setParent(doc, parentPath, updated)
-  } else {
-    const updated = { ...(parent as Record<string, unknown>) }
-    updated[lastToken] = cloneDeep(val)
+    updated.splice(idx, 0, val)
     return setParent(doc, parentPath, updated)
   }
+
+  // NOTE: here, "-" is treated as a normal property name on objects.
+  if (parent && typeof parent === "object") {
+    const updated = { ...(parent as Record<string, unknown>) }
+    updated[lastToken] = val
+    return setParent(doc, parentPath, updated)
+  }
+
+  throw new Error(`Cannot add at "${pointer}" (parent not found or not a container).`)
 }
 
-/** Unified writer for "replace" and "remove" */
+// "replace" and "remove" require the target to exist (RFC 6902). "-" is not
+// valid here; only concrete array indices are accepted. Removing the root ("")
+// is not supported; root replace returns provided value as-is.
 function setAt(doc: unknown, pointer: string, val: unknown, mode: "replace" | "remove"): unknown {
   if (pointer === "") {
-    return cloneDeep(val)
+    if (mode === "remove") throw new Error(`Removing the root document ("") is not supported.`)
+    return val
   }
 
   const tokens = tokenize(pointer)
@@ -309,26 +228,32 @@ function setAt(doc: unknown, pointer: string, val: unknown, mode: "replace" | "r
   const parent = getAt(doc, parentPath === "/" ? "" : parentPath)
 
   if (Array.isArray(parent)) {
-    const idx = Number(lastToken)
+    // Here, "-" is NOT allowed: remove/replace need a concrete numeric index
+    if (lastToken === "-") throw new Error(`"-" is not valid for ${mode} at "${pointer}".`)
+    const idx = toIndex(lastToken)
+    if (idx < 0 || idx >= parent.length) throw new Error(`Array index out of bounds at "${pointer}".`)
     const updated = parent.slice()
-    if (mode === "remove") {
-      updated.splice(idx, 1)
-    } else {
-      updated[idx] = cloneDeep(val)
-    }
-    return setParent(doc, parentPath, updated)
-  } else {
-    const updated = { ...(parent as Record<string, unknown>) }
-    if (mode === "remove") {
-      delete updated[lastToken]
-    } else {
-      updated[lastToken] = cloneDeep(val)
-    }
+    if (mode === "remove") updated.splice(idx, 1)
+    else updated[idx] = val
     return setParent(doc, parentPath, updated)
   }
+
+  // On objects, "-" is just a normal property name
+  if (parent && typeof parent === "object") {
+    if (!Object.hasOwn(parent as object, lastToken)) {
+      throw new Error(`Property "${lastToken}" does not exist at "${pointer}".`)
+    }
+    const updated = { ...(parent as Record<string, unknown>) }
+    if (mode === "remove") delete updated[lastToken]
+    else updated[lastToken] = val
+    return setParent(doc, parentPath, updated)
+  }
+
+  throw new Error(`Cannot ${mode} at "${pointer}" (parent not found or not a container).`)
 }
 
-/** Immutably write an updated parent back into the document */
+// Immutably write an updated parent back into the document. Throws if parent
+// is not a container or index is out of bounds.
 function setParent(doc: unknown, parentPointer: string, newParent: unknown): unknown {
   if (parentPointer === "" || parentPointer === "/") return newParent
 
@@ -338,16 +263,24 @@ function setParent(doc: unknown, parentPointer: string, newParent: unknown): unk
 
   for (const token of tokens) {
     if (Array.isArray(cur)) {
-      const idx = Number(token)
+      const idx = toIndex(token)
+      if (idx < 0 || idx >= cur.length) {
+        throw new Error(`Array index out of bounds while writing at "${parentPointer}".`)
+      }
       stack.push({ container: cur, token: idx })
       cur = cur[idx]
-    } else {
+    } else if (cur && typeof cur === "object") {
+      if (!Object.hasOwn(cur, token)) {
+        throw new Error(`Property "${token}" not found while writing at "${parentPointer}".`)
+      }
       stack.push({ container: cur, token })
       cur = (cur as Record<string, unknown>)[token]
+    } else {
+      throw new Error(`Cannot traverse non-container at "${parentPointer}".`)
     }
   }
 
-  // Rebuild immutably up the stack
+  // rebuild unchanged
   let acc: unknown = newParent
   for (let i = stack.length - 1; i >= 0; i--) {
     const { container, token } = stack[i]
@@ -364,7 +297,7 @@ function setParent(doc: unknown, parentPointer: string, newParent: unknown): unk
   return acc
 }
 
-/** Escape token when reconstructing a pointer fragment */
+// Escape token when reconstructing a pointer fragment
 function escapeToken(token: string): string {
   return token.replace(/~/g, "~0").replace(/\//g, "~1")
 }

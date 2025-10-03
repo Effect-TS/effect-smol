@@ -4654,7 +4654,7 @@ const schema = Schema.Struct({
 })
 
 // Build a differ tied to the schema
-const jsonPatchDiffer = Differ.jsonPatch(schema)
+const jsonPatchDiffer = Differ.makeJsonPatch(schema)
 
 // Prepare two values to compare
 const oldValue = schema.makeUnsafe({ id: 1, name: "a", price: 1 })
@@ -4680,12 +4680,12 @@ console.log(patched)
 
 The idea is simple: if you have a `Schema` for a type `T`, you can serialize any `T` to JSON and back. That lets us compute and apply JSON Patch on the JSON view, while keeping the public API typed as `T`.
 
-- **diff(oldValue, newValue)**
+- `diff(oldValue, newValue)`
   1. Encode `oldValue: T` and `newValue: T` to JSON with the schema serializer.
   2. Compute a JSON Patch document between the two JSON values.
   3. Return that patch (an array of `"add" | "remove" | "replace"` operations).
 
-- **patch(oldValue, patch)**
+- `patch(oldValue, patch)`
   1. Encode `oldValue: T` to JSON.
   2. Apply the JSON Patch to the JSON value.
   3. Decode the patched JSON back to `T` using the schema.
