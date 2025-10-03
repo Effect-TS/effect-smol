@@ -203,7 +203,6 @@ function addAt(doc: unknown, pointer: string, val: unknown): unknown {
     return setParent(doc, parentPath, updated)
   }
 
-  // NOTE: here, "-" is treated as a normal property name on objects.
   if (parent && typeof parent === "object") {
     const updated = { ...(parent as Record<string, unknown>) }
     updated[lastToken] = val

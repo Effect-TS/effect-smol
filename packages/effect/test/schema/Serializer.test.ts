@@ -796,13 +796,13 @@ describe("Serializer", () => {
         // Error: message only
         await decoding.succeed(
           { message: "a" },
-          new Error("a", { cause: { message: "a" } })
+          new Error("a")
         )
         // Error: message and name
         await decoding.succeed(
           { name: "b", message: "a" },
           (() => {
-            const err = new Error("a", { cause: { message: "a", name: "b" } })
+            const err = new Error("a")
             err.name = "b"
             return err
           })()
@@ -811,7 +811,7 @@ describe("Serializer", () => {
         await decoding.succeed(
           { name: "b", message: "a", stack: "c" },
           (() => {
-            const err = new Error("a", { cause: { message: "a", name: "b", stack: "c" } })
+            const err = new Error("a")
             err.name = "b"
             err.stack = "c"
             return err
@@ -1870,13 +1870,13 @@ describe("Serializer", () => {
         // Error: message only
         await decoding.succeed(
           { message: "a" },
-          new Error("a", { cause: { message: "a" } })
+          new Error("a")
         )
         // Error: message and name
         await decoding.succeed(
           { name: "b", message: "a" },
           (() => {
-            const err = new Error("a", { cause: { message: "a", name: "b" } })
+            const err = new Error("a")
             err.name = "b"
             return err
           })()
@@ -1885,7 +1885,7 @@ describe("Serializer", () => {
         await decoding.succeed(
           { name: "b", message: "a", stack: "c" },
           (() => {
-            const err = new Error("a", { cause: { message: "a", name: "b", stack: "c" } })
+            const err = new Error("a")
             err.name = "b"
             err.stack = "c"
             return err

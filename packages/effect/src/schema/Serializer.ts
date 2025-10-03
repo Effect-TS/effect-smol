@@ -31,11 +31,13 @@ const goJson = memoize(AST.apply((ast: AST.AST): AST.AST => {
       case "UnknownKeyword":
       case "ObjectKeyword":
       case "NeverKeyword":
-        return requiredGoJsonAnnotation(ast)
       case "Declaration": {
         const getLink = ast.annotations?.defaultJsonSerializer ?? ast.annotations?.defaultIsoSerializer
         if (Predicate.isFunction(getLink)) {
-          const link = getLink(ast.typeParameters.map((tp) => Schema.make(goJson(AST.encodedAST(tp)))))
+          const tps = AST.isDeclaration(ast)
+            ? ast.typeParameters.map((tp) => Schema.make(goJson(AST.encodedAST(tp))))
+            : []
+          const link = getLink(tps)
           const to = goJson(link.to)
           return AST.replaceEncoding(ast, to === link.to ? [link] : [new AST.Link(to, link.transformation)])
         }
@@ -138,11 +140,13 @@ export const goStringPojo = memoize(AST.apply((ast: AST.AST): AST.AST => {
       case "UnknownKeyword":
       case "ObjectKeyword":
       case "NeverKeyword":
-        return requiredGoStringPojoAnnotation(ast)
       case "Declaration": {
         const getLink = ast.annotations?.defaultIsoSerializer ?? ast.annotations?.defaultJsonSerializer
         if (Predicate.isFunction(getLink)) {
-          const link = getLink(ast.typeParameters.map((tp) => Schema.make(goIso(AST.encodedAST(tp)))))
+          const tps = AST.isDeclaration(ast)
+            ? ast.typeParameters.map((tp) => Schema.make(goIso(AST.encodedAST(tp))))
+            : []
+          const link = getLink(tps)
           const to = goStringPojo(link.to)
           return AST.replaceEncoding(ast, to === link.to ? [link] : [new AST.Link(to, link.transformation)])
         }

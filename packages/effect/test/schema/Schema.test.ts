@@ -2260,13 +2260,13 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
     const decoding = asserts.decoding()
     // Error: message only
-    await decoding.succeed({ message: "a" }, new Error("a", { cause: { message: "a" } }))
-    await decoding.succeed(noPrototypeObject, new Error("a", { cause: { message: "a" } }))
+    await decoding.succeed({ message: "a" }, new Error("a"))
+    await decoding.succeed(noPrototypeObject, new Error("a"))
     // Error: message and name
     await decoding.succeed(
       { message: "a", name: "b" },
       (() => {
-        const err = new Error("a", { cause: { message: "a", name: "b" } })
+        const err = new Error("a")
         err.name = "b"
         return err
       })()
@@ -2275,7 +2275,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     await decoding.succeed(
       { message: "a", name: "b", stack: "c" },
       (() => {
-        const err = new Error("a", { cause: { message: "a", name: "b", stack: "c" } })
+        const err = new Error("a")
         err.name = "b"
         err.stack = "c"
         return err
@@ -2422,12 +2422,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       const asserts = new TestSchema.Asserts(schema)
 
       const decoding = asserts.decoding()
-      const boomError = new Error("boom message", {
-        cause: {
-          name: "boom",
-          message: "boom message"
-        }
-      })
+      const boomError = new Error("boom message")
       boomError.name = "boom"
 
       await decoding.succeed(

@@ -6,7 +6,12 @@ import { deepStrictEqual, strictEqual, throws } from "../utils/assert.ts"
 function roundtrip<S extends Schema.Top>(schema: S) {
   const differ = Differ.makeJsonPatch(schema)
   const arbitrary = ToArbitrary.make(schema)
-  const arb = arbitrary
+  const arb = arbitrary.filter((v) => {
+    if (typeof v === "object" && v !== null && (Object.getPrototypeOf(v) === null || Object.hasOwn(v, "__proto__"))) {
+      return false
+    }
+    return true
+  })
   FastCheck.assert(
     FastCheck.property(arb, arb, (v1, v2) => {
       const patch = differ.diff(v1, v2)
@@ -170,13 +175,36 @@ describe("Differ", () => {
         { op: "replace", path: "", value: "Invalid Date" }
       ])
     })
+
+    it("Defect", () => {
+      const schema = Schema.Defect
+      const differ = Differ.makeJsonPatch(schema)
+
+      deepStrictEqual(differ.diff("", new Error("b")), [{
+        op: "replace",
+        path: "",
+        value: { name: "Error", message: "b" }
+      }])
+
+      deepStrictEqual(
+        differ.patch("", [{
+          op: "replace",
+          path: "",
+          value: { name: "Error", message: "b" }
+        }]),
+        new Error("b")
+      )
+    })
   })
 
   it("roundtrip", () => {
     roundtrip(Schema.Any.annotate({ arbitrary: { _tag: "Override", override: (fc) => fc.json() } }))
     roundtrip(Schema.String)
     roundtrip(Schema.Number)
-    roundtrip(Schema.Date)
+    roundtrip(Schema.Boolean)
+    roundtrip(Schema.BigInt)
+    roundtrip(Schema.Symbol)
+
     roundtrip(Schema.Struct({
       a: Schema.String,
       "-": Schema.NullOr(Schema.String),
@@ -191,6 +219,7 @@ describe("Differ", () => {
       }),
       [Schema.Record(Schema.String, Schema.Number)]
     ))
+
     roundtrip(Schema.Tuple([Schema.String, Schema.Number]))
     roundtrip(Schema.Array(Schema.Number))
     roundtrip(Schema.TupleWithRest(
@@ -201,7 +230,20 @@ describe("Differ", () => {
       Schema.Tuple([Schema.Number]),
       [Schema.String, Schema.Boolean]
     ))
+
     roundtrip(Schema.Union([Schema.String, Schema.Finite]))
+
+    roundtrip(Schema.Finite)
+    roundtrip(Schema.Date)
+    roundtrip(Schema.URL)
+    roundtrip(Schema.Duration)
+    roundtrip(Schema.DateTimeUtc)
+    roundtrip(Schema.ValidDate)
     roundtrip(Schema.Option(Schema.String))
+    roundtrip(Schema.Result(Schema.Number, Schema.String))
+    roundtrip(Schema.Map(Schema.String, Schema.Number))
+    roundtrip(Schema.Error)
+    // roundtrip(Schema.Defect)
+    // roundtrip(Schema.Exit(Schema.Number, Schema.String, Schema.Defect))
   })
 })

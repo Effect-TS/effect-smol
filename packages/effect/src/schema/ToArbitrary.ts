@@ -394,7 +394,7 @@ const go = memoize((ast: AST.AST): LazyArbitrary<any> => {
           }
           pss[ps.name] = go(ps.type)(fc, reset)
         }
-        let out = fc.record<any>(pss, { requiredKeys, noNullPrototype: true })
+        let out = fc.record<any>(pss, { requiredKeys })
         // ---------------------------------------------
         // handle index signatures
         // ---------------------------------------------

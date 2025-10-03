@@ -286,8 +286,8 @@ export function error(): Transformation<Error, {
 }> {
   return transform({
     decode: (i) => {
-      const err = new Error(i.message, { cause: i })
-      if (Predicate.isString(i.name)) err.name = i.name
+      const err = new Error(i.message)
+      if (Predicate.isString(i.name) && i.name !== "Error") err.name = i.name
       if (Predicate.isString(i.stack)) err.stack = i.stack
       return err
     },
