@@ -1,8 +1,4 @@
 /**
- * Thin facade around `Param` that only exposes *positional argument* constructors & combinators.
- * We publish this under the name **Argument** to provide a clear API for positional arguments.
- * Everything here is guaranteed to be of kind `"argument"`.
- *
  * @since 4.0.0
  */
 import * as Option from "../../data/Option.ts"
