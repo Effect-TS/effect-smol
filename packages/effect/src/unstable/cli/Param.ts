@@ -197,7 +197,7 @@ export const makeSingle = <A, K extends ParamKind>(params: {
 export const string = <K extends ParamKind>(
   name: string,
   kind: K
-) => makeSingle({ name, primitiveType: Primitive.stringPrimitive, kind })
+) => makeSingle({ name, primitiveType: Primitive.string, kind })
 
 /**
  * @since 4.0.0
@@ -206,7 +206,7 @@ export const string = <K extends ParamKind>(
 export const boolean = <K extends ParamKind>(
   name: string,
   kind: K
-) => makeSingle({ name, primitiveType: Primitive.booleanPrimitive, kind })
+) => makeSingle({ name, primitiveType: Primitive.boolean, kind })
 
 /**
  * @since 4.0.0
@@ -215,7 +215,7 @@ export const boolean = <K extends ParamKind>(
 export const integer = <K extends ParamKind>(
   name: string,
   kind: K
-) => makeSingle({ name, primitiveType: Primitive.integerPrimitive, kind })
+) => makeSingle({ name, primitiveType: Primitive.integer, kind })
 
 /**
  * @since 4.0.0
@@ -224,7 +224,7 @@ export const integer = <K extends ParamKind>(
 export const float = <K extends ParamKind>(
   name: string,
   kind: K
-) => makeSingle({ name, primitiveType: Primitive.floatPrimitive, kind })
+) => makeSingle({ name, primitiveType: Primitive.float, kind })
 
 /**
  * @since 4.0.0
@@ -233,7 +233,7 @@ export const float = <K extends ParamKind>(
 export const date = <K extends ParamKind>(
   name: string,
   kind: K
-) => makeSingle({ name, primitiveType: Primitive.datePrimitive, kind })
+) => makeSingle({ name, primitiveType: Primitive.date, kind })
 
 /**
  * Constructs command-line params that represent a choice between several
@@ -274,7 +274,7 @@ export const choiceWithValue = <
   name: string,
   choices: C,
   kind: K
-): Param<C[number][1], K> => makeSingle({ name, primitiveType: Primitive.choicePrimitive(choices), kind })
+): Param<C[number][1], K> => makeSingle({ name, primitiveType: Primitive.choice(choices), kind })
 
 /**
  * Constructs command-line params that represent a choice between several
@@ -315,7 +315,7 @@ export const path = <K extends ParamKind>(
   makeSingle({
     name,
     kind,
-    primitiveType: Primitive.pathPrimitive(options?.pathType ?? "either", options?.mustExist),
+    primitiveType: Primitive.path(options?.pathType ?? "either", options?.mustExist),
     typeName: options?.typeName
   })
 
@@ -368,7 +368,7 @@ export const file = <K extends ParamKind>(
 export const redacted = <K extends ParamKind>(
   name: string,
   kind: K
-) => makeSingle({ name, primitiveType: Primitive.redactedPrimitive, kind })
+) => makeSingle({ name, primitiveType: Primitive.redacted, kind })
 
 /**
  * Creates a param that reads and returns file content as a string.
@@ -379,34 +379,11 @@ export const redacted = <K extends ParamKind>(
 export const fileContent = <K extends ParamKind>(
   name: string,
   kind: K
-) => makeSingle({ name, primitiveType: Primitive.fileContentPrimitive, kind })
+) => makeSingle({ name, primitiveType: Primitive.fileContent, kind })
 
 /**
- * Creates a param that reads and returns file content as a string (alias for fileContent).
- *
- * @since 4.0.0
- * @category constructors
- */
-export const fileText = <K extends ParamKind>(
-  name: string,
-  kind: K
-) => makeSingle({ name, primitiveType: Primitive.fileTextPrimitive, kind })
-
-/**
- * Creates a param that reads and parses file content using a schema.
- *
- * @since 4.0.0
- * @category constructors
- */
-export const fileParse = <A, K extends ParamKind>(
-  name: string,
-  schema: Schema.Codec<A, string>,
-  kind: K,
-  format?: string | undefined
-) => makeSingle({ name, primitiveType: Primitive.fileParsePrimitive(schema, format), kind })
-
-/**
- * Creates a param that reads and validates file content using a schema (alias for fileParse).
+ * Creates a param that reads and validates file content using the specified
+ * schema.
  *
  * @since 4.0.0
  * @category constructors
@@ -416,7 +393,7 @@ export const fileSchema = <A, K extends ParamKind>(
   schema: Schema.Codec<A, string>,
   kind: K,
   format?: string | undefined
-) => makeSingle({ name, primitiveType: Primitive.fileSchemaPrimitive(schema, format), kind })
+) => makeSingle({ name, primitiveType: Primitive.fileSchema(schema, format), kind })
 
 /**
  * Creates a param that parses key=value pairs.
@@ -436,7 +413,7 @@ export const fileSchema = <A, K extends ParamKind>(
 export const keyValueMap = <K extends ParamKind>(
   name: string,
   kind: K
-) => makeSingle({ name, primitiveType: Primitive.keyValueMapPrimitive, kind })
+) => makeSingle({ name, primitiveType: Primitive.keyValueMap, kind })
 
 /**
  * Creates an empty sentinel param that always fails to parse.
@@ -447,7 +424,7 @@ export const keyValueMap = <K extends ParamKind>(
  */
 export const none = <K extends ParamKind>(
   kind: K
-): Param<never, K> => makeSingle({ name: "__none__", primitiveType: Primitive.nonePrimitive, kind })
+): Param<never, K> => makeSingle({ name: "__none__", primitiveType: Primitive.none, kind })
 
 const FLAG_DASH_REGEX = /^-+/
 

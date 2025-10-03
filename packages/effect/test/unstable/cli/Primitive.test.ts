@@ -50,7 +50,7 @@ const expectValidDates = (
 describe("Primitive", () => {
   describe("booleanPrimitive", () => {
     it.effect("should parse true values correctly", () =>
-      expectValidValues(Primitive.booleanPrimitive, [
+      expectValidValues(Primitive.boolean, [
         ["true", true],
         ["1", true],
         ["y", true],
@@ -59,7 +59,7 @@ describe("Primitive", () => {
       ]).pipe(Effect.provide(TestLayer)))
 
     it.effect("should parse false values correctly", () =>
-      expectValidValues(Primitive.booleanPrimitive, [
+      expectValidValues(Primitive.boolean, [
         ["false", false],
         ["0", false],
         ["n", false],
@@ -69,19 +69,19 @@ describe("Primitive", () => {
 
     it.effect("should fail for invalid values", () =>
       expectInvalidValues(
-        Primitive.booleanPrimitive,
+        Primitive.boolean,
         ["invalid"],
         (error) => error === "Unable to recognize 'invalid' as a valid boolean"
       ).pipe(Effect.provide(TestLayer)))
 
     it("should have correct _tag", () => {
-      assert.strictEqual(Primitive.booleanPrimitive._tag, "Boolean")
+      assert.strictEqual(Primitive.boolean._tag, "Boolean")
     })
   })
 
   describe("floatPrimitive", () => {
     it.effect("should parse valid float values", () =>
-      expectValidValues(Primitive.floatPrimitive, [
+      expectValidValues(Primitive.float, [
         ["42", 42],
         ["3.14", 3.14],
         ["-42.5", -42.5],
@@ -90,50 +90,54 @@ describe("Primitive", () => {
       ]).pipe(Effect.provide(TestLayer)))
 
     it.effect("should fail for invalid values", () =>
-      expectInvalidValues(
-        Primitive.floatPrimitive,
-        ["not-a-number"],
-        (error) => error.startsWith("Failed to parse number:")
-      ).pipe(Effect.provide(TestLayer)))
+      expectInvalidValues(Primitive.float, ["not-a-number"], (error) => error.startsWith("Failed to parse number:"))
+        .pipe(Effect.provide(TestLayer)))
 
     it("should have correct _tag", () => {
-      assert.strictEqual(Primitive.floatPrimitive._tag, "Float")
+      assert.strictEqual(Primitive.float._tag, "Float")
     })
   })
 
   describe("datePrimitive", () => {
     it.effect("should parse valid date values", () =>
-      expectValidDates(Primitive.datePrimitive, [
+      expectValidDates(Primitive.date, [
         // ISO date
-        ["2024-01-15", (date) => {
-          assert.strictEqual(date.toISOString().slice(0, 10), "2024-01-15")
-        }],
+        [
+          "2024-01-15",
+          (date) => {
+            assert.strictEqual(date.toISOString().slice(0, 10), "2024-01-15")
+          }
+        ],
         // Full ISO datetime
-        ["2024-01-15T12:30:45.123Z", (date) => {
-          assert.strictEqual(date.toISOString(), "2024-01-15T12:30:45.123Z")
-        }],
+        [
+          "2024-01-15T12:30:45.123Z",
+          (date) => {
+            assert.strictEqual(date.toISOString(), "2024-01-15T12:30:45.123Z")
+          }
+        ],
         // With timezone offset
-        ["2024-01-15T12:30:45+02:00", (date) => {
-          assert.strictEqual(date.getUTCHours(), 10)
-          assert.strictEqual(date.getUTCMinutes(), 30)
-        }]
+        [
+          "2024-01-15T12:30:45+02:00",
+          (date) => {
+            assert.strictEqual(date.getUTCHours(), 10)
+            assert.strictEqual(date.getUTCMinutes(), 30)
+          }
+        ]
       ]).pipe(Effect.provide(TestLayer)))
 
     it("should fail for invalid values", () =>
-      expectInvalidValues(
-        Primitive.datePrimitive,
-        ["not-a-date"],
-        (error) => error.startsWith("Failed to parse date:")
-      ).pipe(Effect.provide(TestLayer)))
+      expectInvalidValues(Primitive.date, ["not-a-date"], (error) => error.startsWith("Failed to parse date:")).pipe(
+        Effect.provide(TestLayer)
+      ))
 
     it("should have correct _tag", () => {
-      assert.strictEqual(Primitive.datePrimitive._tag, "Date")
+      assert.strictEqual(Primitive.date._tag, "Date")
     })
   })
 
   describe("integerPrimitive", () => {
     it.effect("should parse valid integer values", () =>
-      expectValidValues(Primitive.integerPrimitive, [
+      expectValidValues(Primitive.integer, [
         ["42", 42],
         ["-123", -123],
         ["0", 0],
@@ -145,19 +149,19 @@ describe("Primitive", () => {
 
     it.effect("should fail for invalid values", () =>
       expectInvalidValues(
-        Primitive.integerPrimitive,
+        Primitive.integer,
         ["3.14", "not-a-number"],
         (error) => error.startsWith("Failed to parse integer:")
       ).pipe(Effect.provide(TestLayer)))
 
     it("should have correct _tag", () => {
-      assert.strictEqual(Primitive.integerPrimitive._tag, "Integer")
+      assert.strictEqual(Primitive.integer._tag, "Integer")
     })
   })
 
   describe("stringPrimitive", () => {
     it.effect("should parse string values", () =>
-      expectValidValues(Primitive.stringPrimitive, [
+      expectValidValues(Primitive.string, [
         ["hello", "hello"],
         ["", ""],
         [" spaces ", " spaces "],
@@ -166,12 +170,12 @@ describe("Primitive", () => {
       ]).pipe(Effect.provide(TestLayer)))
 
     it("should have correct _tag", () => {
-      assert.strictEqual(Primitive.stringPrimitive._tag, "String")
+      assert.strictEqual(Primitive.string._tag, "String")
     })
   })
 
   describe("choicePrimitive", () => {
-    const colorChoice = Primitive.choicePrimitive([
+    const colorChoice = Primitive.choice([
       ["red", "RED"],
       ["green", "GREEN"],
       ["blue", "BLUE"]
@@ -195,7 +199,7 @@ describe("Primitive", () => {
       assert.strictEqual(colorChoice._tag, "Choice")
     })
 
-    const numberChoice = Primitive.choicePrimitive([
+    const numberChoice = Primitive.choice([
       ["one", 1],
       ["two", 2],
       ["three", 3]
@@ -212,7 +216,7 @@ describe("Primitive", () => {
   describe("pathPrimitive", () => {
     it.effect("should parse paths without validation", () =>
       Effect.gen(function*() {
-        const pathPrimitive = Primitive.pathPrimitive("either")
+        const pathPrimitive = Primitive.path("either")
         const result1 = yield* pathPrimitive.parse("./test.txt")
         const result2 = yield* pathPrimitive.parse("/absolute/path")
         const result3 = yield* pathPrimitive.parse("relative/path")
@@ -224,26 +228,34 @@ describe("Primitive", () => {
       }).pipe(Effect.provide(TestLayer)))
 
     it("should have correct _tag", () => {
-      assert.strictEqual(Primitive.pathPrimitive("either")._tag, "Path")
+      assert.strictEqual(Primitive.path("either")._tag, "Path")
     })
 
     it.effect("should validate file existence when required", () =>
       Effect.gen(function*() {
-        const filePath = Primitive.pathPrimitive("file", true)
+        const filePath = Primitive.path("file", true)
 
         // Test non-existent file - should fail validation
-        const error = yield* Effect.flip(filePath.parse("/non/existent/file.txt"))
-        assert.isTrue(error.includes("does not exist") || error.includes("not found"))
+        const error = yield* Effect.flip(
+          filePath.parse("/non/existent/file.txt")
+        )
+        assert.isTrue(
+          error.includes("does not exist") || error.includes("not found")
+        )
       }).pipe(Effect.provide(TestLayer)))
 
     it.effect("should validate directory type when required", () =>
       Effect.gen(function*() {
-        const dirPath = Primitive.pathPrimitive("directory", true)
+        const dirPath = Primitive.path("directory", true)
 
         // Test non-existent directory - should fail validation
-        const error = yield* Effect.flip(dirPath.parse("/non/existent/directory"))
+        const error = yield* Effect.flip(
+          dirPath.parse("/non/existent/directory")
+        )
         assert.isTrue(
-          error.includes("does not exist") || error.includes("not found") || error.includes("not a directory")
+          error.includes("does not exist") ||
+            error.includes("not found") ||
+            error.includes("not a directory")
         )
       }).pipe(Effect.provide(TestLayer)))
   })
@@ -251,7 +263,7 @@ describe("Primitive", () => {
   describe("redactedPrimitive", () => {
     it.effect("should parse and redact values", () =>
       Effect.gen(function*() {
-        const result = yield* Primitive.redactedPrimitive.parse("secret123")
+        const result = yield* Primitive.redacted.parse("secret123")
         // Check if it's a Redacted value
         assert.isTrue(Redacted.isRedacted(result))
         // The toString method should return a redacted representation
@@ -259,12 +271,12 @@ describe("Primitive", () => {
       }).pipe(Effect.provide(TestLayer)))
 
     it("should have correct _tag", () => {
-      assert.strictEqual(Primitive.redactedPrimitive._tag, "Redacted")
+      assert.strictEqual(Primitive.redacted._tag, "Redacted")
     })
 
     it.effect("should handle empty strings", () =>
       Effect.gen(function*() {
-        const result = yield* Primitive.redactedPrimitive.parse("")
+        const result = yield* Primitive.redacted.parse("")
         assert.isTrue(Redacted.isRedacted(result))
       }).pipe(Effect.provide(TestLayer)))
   })
