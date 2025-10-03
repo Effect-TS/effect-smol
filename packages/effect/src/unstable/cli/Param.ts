@@ -2,21 +2,29 @@
  * @since 4.0.0
  */
 import * as Option from "../../data/Option.ts"
+import * as Predicate from "../../data/Predicate.ts"
 import * as Result from "../../data/Result.ts"
 import * as Effect from "../../Effect.ts"
-import { dual, identity } from "../../Function.ts"
+import { dual, identity, type LazyArg } from "../../Function.ts"
 import { type Pipeable, pipeArguments } from "../../interfaces/Pipeable.ts"
 import type * as FileSystem from "../../platform/FileSystem.ts"
 import type * as Path from "../../platform/Path.ts"
 import * as Schema from "../../schema/Schema.ts"
 import type { Covariant } from "../../types/Types.ts"
 import * as CliError from "./CliError.ts"
-import type { Environment } from "./Command.ts"
-import { createWithCommonProto } from "./internal/utils.ts"
 import * as Primitive from "./Primitive.ts"
 
-const ParamSymbolKey = "@effect/cli/Param"
-export const ParamTypeId = Symbol.for(ParamSymbolKey)
+const TypeId = "~effect/cli/Param"
+
+/**
+ * @since 4.0.0
+ * @category models
+ */
+export interface Param<out A, Kind extends ParamKind> extends Param.Variance<A> {
+  readonly _tag: "Single" | "Map" | "MapEffect" | "Optional" | "Variadic"
+  readonly kind: Kind
+  readonly parse: Parse<A>
+}
 
 /**
  * @since 4.0.0
@@ -28,17 +36,31 @@ export type ParamKind = "flag" | "argument"
  * @since 4.0.0
  * @category models
  */
-export interface Param<out A, Kind extends ParamKind = ParamKind> extends Pipeable {
-  readonly [ParamTypeId]: {
+export type Parse<A> = (args: ParseArgs) => Effect.Effect<
+  readonly [leftover: ReadonlyArray<string>, value: A],
+  CliError.CliError,
+  FileSystem.FileSystem | Path.Path
+>
+
+/**
+ * @since 4.0.0
+ */
+export declare namespace Param {
+  /**
+   * @since 4.0.0
+   * @category models
+   */
+  export interface Variance<out A> extends Pipeable {
+    readonly [TypeId]: VarianceStruct<A>
+  }
+
+  /**
+   * @since 4.0.0
+   * @category models
+   */
+  export interface VarianceStruct<out A> {
     readonly _A: Covariant<A>
   }
-  readonly _tag: "Single" | "Map" | "MapEffect" | "Optional" | "Variadic"
-  readonly kind: Kind
-  readonly parse: (args: ParseArgs) => Effect.Effect<
-    readonly [remainingOperands: ReadonlyArray<string>, value: A],
-    CliError.CliError,
-    Environment
-  >
 }
 
 /**
@@ -63,6 +85,10 @@ export interface ParseArgs {
   readonly arguments: ReadonlyArray<string>
 }
 
+/**
+ * @since 4.0.0
+ * @category models
+ */
 export interface Single<out A, Kind extends ParamKind = "flag"> extends Param<A, Kind> {
   readonly _tag: "Single"
   readonly kind: Kind
@@ -70,18 +96,13 @@ export interface Single<out A, Kind extends ParamKind = "flag"> extends Param<A,
   readonly description: Option.Option<string>
   readonly aliases: ReadonlyArray<string>
   readonly primitiveType: Primitive.Primitive<A>
-  readonly typeName?: string
+  readonly typeName?: string | undefined
 }
 
-const CommonProto = {
-  [ParamTypeId]: {
-    _A: identity
-  },
-  pipe() {
-    return pipeArguments(this, arguments)
-  }
-}
-
+/**
+ * @since 4.0.0
+ * @category models
+ */
 export interface Map<in out X, out A, Kind extends ParamKind = ParamKind> extends Param<A, Kind> {
   readonly _tag: "Map"
   readonly kind: Kind
@@ -89,6 +110,10 @@ export interface Map<in out X, out A, Kind extends ParamKind = ParamKind> extend
   readonly f: (x: X) => A
 }
 
+/**
+ * @since 4.0.0
+ * @category models
+ */
 export interface MapEffect<in out X, out A, Kind extends ParamKind = ParamKind> extends Param<A, Kind> {
   readonly _tag: "MapEffect"
   readonly kind: Kind
@@ -96,12 +121,20 @@ export interface MapEffect<in out X, out A, Kind extends ParamKind = ParamKind> 
   readonly f: (x: X) => Effect.Effect<A, CliError.CliError, FileSystem.FileSystem | Path.Path>
 }
 
+/**
+ * @since 4.0.0
+ * @category models
+ */
 export interface Optional<A, Kind extends ParamKind = ParamKind> extends Param<Option.Option<A>, Kind> {
   readonly _tag: "Optional"
   readonly kind: Kind
   readonly param: Param<A, Kind>
 }
 
+/**
+ * @since 4.0.0
+ * @category models
+ */
 export interface Variadic<A, Kind extends ParamKind = ParamKind> extends Param<ReadonlyArray<A>, Kind> {
   readonly _tag: "Variadic"
   readonly kind: Kind
@@ -110,228 +143,93 @@ export interface Variadic<A, Kind extends ParamKind = ParamKind> extends Param<R
   readonly max: Option.Option<number>
 }
 
-export const makeSingle = <A, K extends ParamKind>(
-  params: {
-    name: string
-    primitiveType: Primitive.Primitive<A>
-    kind: K
-    typeName?: string
-    description?: Option.Option<string>
-    aliases?: ReadonlyArray<string>
+const Proto = {
+  [TypeId]: {
+    _A: identity
+  },
+  pipe() {
+    return pipeArguments(this, arguments)
   }
-): Single<A, K> => {
-  const { aliases = [], description = Option.none(), kind, name, primitiveType, typeName } = params
-  return createWithCommonProto(CommonProto)({
+}
+
+/**
+ * @since 4.0.0
+ * @category refinements
+ */
+export const isParam = (u: unknown): u is Param<any, ParamKind> => Predicate.hasProperty(u, TypeId)
+
+/**
+ * @since 4.0.0
+ * @category refinements
+ */
+export const isSingle = <A, Kind extends ParamKind>(param: Param<A, Kind>): param is Single<A, Kind> =>
+  Predicate.isTagged(param, "Single")
+
+/**
+ * @since 4.0.0
+ * @category constructors
+ */
+export const makeSingle = <A, K extends ParamKind>(params: {
+  readonly name: string
+  readonly primitiveType: Primitive.Primitive<A>
+  readonly kind: K
+  readonly typeName?: string | undefined
+  readonly description?: Option.Option<string> | undefined
+  readonly aliases?: ReadonlyArray<string> | undefined
+}): Single<A, K> => {
+  const parse: Parse<A> = (args) =>
+    params.kind === "argument"
+      ? parsePositional(params.name, params.primitiveType, args)
+      : parseOption(params.name, params.primitiveType, args)
+  return Object.assign(Object.create(Proto), {
     _tag: "Single",
-    kind,
-    name,
-    description,
-    aliases,
-    primitiveType,
-    ...(typeName !== undefined ? { typeName } : {}),
-    parse(
-      args: ParseArgs
-    ): Effect.Effect<
-      readonly [remainingOperands: ReadonlyArray<string>, value: A],
-      CliError.CliError,
-      Environment
-    > {
-      if (kind === "argument") {
-        return parsePositional(name, primitiveType, args)
-      } else {
-        return parseOption(name, primitiveType, args)
-      }
-    }
+    ...params,
+    description: Option.fromNullishOr(params.description),
+    aliases: params.aliases ?? [],
+    parse
   })
 }
 
 /**
  * @since 4.0.0
- * @category refinements
+ * @category constructors
  */
-export const isParam = (value: any): value is Param<any> => {
-  return value && typeof value === "object" && ParamTypeId in value
-}
-
-/**
- * @since 4.0.0
- * @category refinements
- */
-export const isSingle = <A>(value: Param<A>): value is Single<A> => {
-  return value._tag === "Single"
-}
-
-// Helper functions for parsing
-
-const parsePositional = <A>(
-  name: string,
-  primitiveType: Primitive.Primitive<A>,
-  args: ParseArgs
-): Effect.Effect<
-  readonly [remainingOperands: ReadonlyArray<string>, value: A],
-  CliError.CliError,
-  FileSystem.FileSystem | Path.Path
-> => {
-  if (args.arguments.length === 0) {
-    return Effect.fail(new CliError.MissingArgument({ argument: name }))
-  }
-
-  const rawValue = args.arguments[0]
-
-  return Effect.map(
-    Effect.mapError(
-      primitiveType.parse(rawValue),
-      (error) => new CliError.InvalidValue({ option: name, value: rawValue, expected: error })
-    ),
-    (value) => [args.arguments.slice(1), value] as const
-  )
-}
-
-const parseOption = <A>(
-  name: string,
-  primitiveType: Primitive.Primitive<A>,
-  args: ParseArgs
-): Effect.Effect<
-  readonly [remainingOperands: ReadonlyArray<string>, value: A],
-  CliError.CliError,
-  FileSystem.FileSystem | Path.Path
-> => {
-  const providedValues = args.flags[name]
-
-  if (providedValues === undefined || providedValues.length === 0) {
-    // Option not provided (empty array due to initialization)
-    if (primitiveType._tag === "Boolean") {
-      // Boolean params default to false when not present
-      return Effect.succeed([args.arguments, false as A] as const)
-    } else {
-      return Effect.fail(new CliError.MissingOption({ option: name }))
-    }
-  } else {
-    // Parse the first value (later we can handle multiple)
-    const rawValue = providedValues[0]
-    return Effect.map(
-      Effect.mapError(
-        primitiveType.parse(rawValue),
-        (error) => new CliError.InvalidValue({ option: name, value: rawValue, expected: error })
-      ),
-      (value) => [args.arguments, value] as const
-    )
-  }
-}
-
-const parsePositionalVariadic = <A, Kind extends ParamKind>(
-  single: Single<A, Kind>,
-  param: Param<A, Kind>,
-  min: Option.Option<number>,
-  max: Option.Option<number>,
-  args: ParseArgs
-): Effect.Effect<
-  readonly [remainingOperands: ReadonlyArray<string>, value: ReadonlyArray<A>],
-  CliError.CliError,
-  FileSystem.FileSystem | Path.Path
-> =>
-  Effect.gen(function*() {
-    let currentOperands = args.arguments
-    const results: Array<A> = []
-    const minValue = Option.getOrElse(min, () => 0)
-    const maxValue = Option.getOrElse(max, () => Infinity)
-
-    let count = 0
-    while (currentOperands.length > 0 && count < maxValue) {
-      const [remainingOperands, value] = yield* param.parse({
-        flags: args.flags,
-        arguments: currentOperands
-      })
-      results.push(value)
-      currentOperands = remainingOperands
-      count++
-    }
-
-    if (count < minValue) {
-      return yield* Effect.fail(
-        new CliError.InvalidValue({
-          option: single.name,
-          value: `${count} values`,
-          expected: `at least ${minValue} value${minValue === 1 ? "" : "s"}`
-        })
-      )
-    }
-
-    return [currentOperands, results] as const
-  })
-
-const parseOptionVariadic = <A, Kind extends ParamKind>(
-  single: Single<A, Kind>,
-  param: Param<A, Kind>,
-  min: Option.Option<number>,
-  max: Option.Option<number>,
-  args: ParseArgs
-): Effect.Effect<
-  readonly [remainingOperands: ReadonlyArray<string>, value: ReadonlyArray<A>],
-  CliError.CliError,
-  FileSystem.FileSystem | Path.Path
-> =>
-  Effect.gen(function*() {
-    const results: Array<A> = []
-    const optionNames = [single.name, ...single.aliases]
-    const allValues = optionNames.flatMap((name) => args.flags[name] || [])
-    const count = allValues.length
-
-    // Validate count constraints
-    if (Option.isSome(min) && count < min.value) {
-      return yield* Effect.fail(
-        count === 0
-          ? new CliError.MissingOption({ option: single.name })
-          : new CliError.InvalidValue({
-            option: single.name,
-            value: `${count} occurrences`,
-            expected: `at least ${min.value} value${min.value === 1 ? "" : "s"}`
-          })
-      )
-    }
-
-    if (Option.isSome(max) && count > max.value) {
-      return yield* Effect.fail(
-        new CliError.InvalidValue({
-          option: single.name,
-          value: `${count} occurrences`,
-          expected: `at most ${max.value} value${max.value === 1 ? "" : "s"}`
-        })
-      )
-    }
-
-    // Parse each value individually
-    for (const value of allValues) {
-      const [, parsedValue] = yield* param.parse({
-        flags: { [single.name]: [value] },
-        arguments: []
-      })
-      results.push(parsedValue)
-    }
-
-    return [args.arguments, results] as const
-  })
-
 export const string = <K extends ParamKind>(
   name: string,
   kind: K
 ) => makeSingle({ name, primitiveType: Primitive.stringPrimitive, kind })
 
+/**
+ * @since 4.0.0
+ * @category constructors
+ */
 export const boolean = <K extends ParamKind>(
   name: string,
   kind: K
 ) => makeSingle({ name, primitiveType: Primitive.booleanPrimitive, kind })
 
+/**
+ * @since 4.0.0
+ * @category constructors
+ */
 export const integer = <K extends ParamKind>(
   name: string,
   kind: K
 ) => makeSingle({ name, primitiveType: Primitive.integerPrimitive, kind })
 
+/**
+ * @since 4.0.0
+ * @category constructors
+ */
 export const float = <K extends ParamKind>(
   name: string,
   kind: K
 ) => makeSingle({ name, primitiveType: Primitive.floatPrimitive, kind })
 
+/**
+ * @since 4.0.0
+ * @category constructors
+ */
 export const date = <K extends ParamKind>(
   name: string,
   kind: K
@@ -401,20 +299,24 @@ export const choice = <const A extends ReadonlyArray<string>, K extends ParamKin
   return choiceWithValue(name, mappedChoices, kind)
 }
 
+/**
+ * @since 4.0.0
+ * @category constructors
+ */
 export const path = <K extends ParamKind>(
   name: string,
   kind: K,
   options?: {
-    pathType?: Primitive.PathType
-    mustExist?: boolean
-    typeName?: string
+    readonly pathType?: Primitive.PathType | undefined
+    readonly mustExist?: boolean | undefined
+    readonly typeName?: string | undefined
   }
 ) =>
   makeSingle({
     name,
-    primitiveType: Primitive.pathPrimitive(options?.pathType ?? "either", options?.mustExist),
     kind,
-    ...(options?.typeName ? { typeName: options.typeName } : {})
+    primitiveType: Primitive.pathPrimitive(options?.pathType ?? "either", options?.mustExist),
+    typeName: options?.typeName
   })
 
 /**
@@ -429,13 +331,13 @@ export const directory = <K extends ParamKind>(
   name: string,
   kind: K,
   options?: {
-    mustExist?: boolean
+    readonly mustExist?: boolean | undefined
   }
 ) =>
   path(name, kind, {
     pathType: "directory",
-    ...(options?.mustExist !== undefined && { mustExist: options.mustExist }),
-    typeName: "directory"
+    typeName: "directory",
+    mustExist: options?.mustExist
   })
 
 /**
@@ -450,15 +352,19 @@ export const file = <K extends ParamKind>(
   name: string,
   kind: K,
   options?: {
-    mustExist?: boolean
+    readonly mustExist?: boolean | undefined
   }
 ) =>
   path(name, kind, {
     pathType: "file",
-    ...(options?.mustExist !== undefined && { mustExist: options.mustExist }),
-    typeName: "file"
+    typeName: "file",
+    mustExist: options?.mustExist
   })
 
+/**
+ * @since 4.0.0
+ * @category constructors
+ */
 export const redacted = <K extends ParamKind>(
   name: string,
   kind: K
@@ -496,7 +402,7 @@ export const fileParse = <A, K extends ParamKind>(
   name: string,
   schema: Schema.Codec<A, string>,
   kind: K,
-  format?: string
+  format?: string | undefined
 ) => makeSingle({ name, primitiveType: Primitive.fileParsePrimitive(schema, format), kind })
 
 /**
@@ -509,7 +415,7 @@ export const fileSchema = <A, K extends ParamKind>(
   name: string,
   schema: Schema.Codec<A, string>,
   kind: K,
-  format?: string
+  format?: string | undefined
 ) => makeSingle({ name, primitiveType: Primitive.fileSchemaPrimitive(schema, format), kind })
 
 /**
@@ -542,6 +448,894 @@ export const keyValueMap = <K extends ParamKind>(
 export const none = <K extends ParamKind>(
   kind: K
 ): Param<never, K> => makeSingle({ name: "__none__", primitiveType: Primitive.nonePrimitive, kind })
+
+const FLAG_DASH_REGEX = /^-+/
+
+/**
+ * Adds an alias to an option.
+ *
+ * Aliases allow params to be specified with alternative names,
+ * typically single-character shortcuts like "-f" for "--force".
+ *
+ * This works on any param structure by recursively finding the underlying
+ * `Single` node and applying the alias there.
+ *
+ * @example
+ * ```ts
+ * import * as Param from "./Param"
+ *
+ * const force = Param.boolean("force").pipe(
+ *   Param.withAlias("-f"),
+ *   Param.withAlias("--no-prompt")
+ * )
+ *
+ * // Also works on composed params:
+ * const count = Param.integer("count").pipe(
+ *   Param.optional,
+ *   Param.withAlias("-c")  // finds the underlying Single and adds alias
+ * )
+ * ```
+ *
+ * @since 4.0.0
+ * @category combinators
+ */
+export const withAlias: {
+  <A, K extends ParamKind>(alias: string): (self: Param<A, K>) => Param<A, K>
+  <A, K extends ParamKind>(self: Param<A, K>, alias: string): Param<A, K>
+} = dual(2, <A, K extends ParamKind>(
+  self: Param<A, K>,
+  alias: string
+): Param<A, K> => {
+  return transformSingle(self, <X>(single: Single<X, K>) =>
+    makeSingle({
+      ...single,
+      aliases: [...single.aliases, alias.replace(FLAG_DASH_REGEX, "")]
+    }))
+})
+
+/**
+ * Adds a description to an option for help text.
+ *
+ * Descriptions provide users with information about what the option does
+ * when they view help documentation.
+ *
+ * @example
+ * ```ts
+ * import * as Param from "./Param"
+ *
+ * const verbose = Param.boolean("verbose").pipe(
+ *   Param.withAlias("-v"),
+ *   Param.withDescription("Enable verbose output")
+ * )
+ * ```
+ *
+ * @since 4.0.0
+ * @category combinators
+ */
+export const withDescription: {
+  <A, K extends ParamKind>(description: string): (self: Param<A, K>) => Param<A, K>
+  <A, K extends ParamKind>(self: Param<A, K>, description: string): Param<A, K>
+} = dual(2, <A, K extends ParamKind>(
+  self: Param<A, K>,
+  description: string
+): Param<A, K> => {
+  return transformSingle(self, <X>(single: Single<X, K>) =>
+    makeSingle({
+      ...single,
+      description: Option.some(description)
+    }))
+})
+
+/**
+ * Transforms the parsed value of an option using a mapping function.
+ *
+ * @example
+ * ```ts
+ * import * as Param from "./Param"
+ *
+ * const port = Param.integer("port").pipe(
+ *   Param.map(n => ({ port: n, url: `http://localhost:${n}` }))
+ * )
+ * ```
+ *
+ * @since 4.0.0
+ * @category combinators
+ */
+export const map: {
+  <A, B>(f: (a: A) => B): <Kind extends ParamKind>(self: Param<A, Kind>) => Param<B, Kind>
+  <A, B, Kind extends ParamKind>(self: Param<A, Kind>, f: (a: A) => B): Param<B, Kind>
+} = dual(2, <A, B, Kind extends ParamKind>(
+  self: Param<A, Kind>,
+  f: (a: A) => B
+): Param<B, Kind> => {
+  const parse: Parse<B> = (args: ParseArgs) =>
+    Effect.map(self.parse(args), ([operands, value]) => [operands, f(value)] as const)
+  return Object.assign(Object.create(Proto), {
+    _tag: "Map",
+    kind: self.kind,
+    param: self,
+    f,
+    parse
+  })
+})
+
+/**
+ * Transforms the parsed value of an option using an effectful mapping function.
+ *
+ * @example
+ * ```ts
+ * import * as Param from "./Param"
+ * import * as Effect from "effect/Effect"
+ * import * as CliError from "./CliError"
+ *
+ * const validatedEmail = Param.string("email").pipe(
+ *   Param.mapEffect(email =>
+ *     email.includes("@")
+ *       ? Effect.succeed(email)
+ *       : Effect.fail(new CliError.InvalidValue({
+ *         option: "email",
+ *         value: email,
+ *         expected: "valid email format"
+ *       }))
+ *   )
+ * )
+ * ```
+ *
+ * @since 4.0.0
+ * @category combinators
+ */
+export const mapEffect: {
+  <A, B>(
+    f: (a: A) => Effect.Effect<B, CliError.CliError, FileSystem.FileSystem | Path.Path>
+  ): <Kind extends ParamKind>(self: Param<A, Kind>) => Param<B, Kind>
+  <A, B, Kind extends ParamKind>(
+    self: Param<A, Kind>,
+    f: (a: A) => Effect.Effect<B, CliError.CliError, FileSystem.FileSystem | Path.Path>
+  ): Param<B, Kind>
+} = dual(2, <A, B, Kind extends ParamKind>(
+  self: Param<A, Kind>,
+  f: (a: A) => Effect.Effect<B, CliError.CliError, FileSystem.FileSystem | Path.Path>
+): Param<B, Kind> => {
+  const parse: Parse<B> = (args) =>
+    Effect.flatMap(
+      self.parse(args),
+      ([operands, a]) => Effect.map(f(a), (b) => [operands, b] as const)
+    )
+  return Object.assign(Object.create(Proto), {
+    _tag: "MapEffect",
+    kind: self.kind,
+    param: self,
+    f,
+    parse
+  })
+})
+
+/**
+ * Transforms the parsed value of an option using a function that may throw,
+ * converting any thrown errors into failure messages.
+ *
+ * @example
+ * ```ts
+ * import * as Param from "./Param"
+ *
+ * const parsedJson = Param.string("config").pipe(
+ *   Param.mapTryCatch(
+ *     str => JSON.parse(str),
+ *     error => `Invalid JSON: ${error instanceof Error ? error.message : String(error)}`
+ *   )
+ * )
+ * ```
+ *
+ * @since 4.0.0
+ * @category combinators
+ */
+export const mapTryCatch: {
+  <A, B>(
+    f: (a: A) => B,
+    onError: (error: unknown) => string
+  ): <Kind extends ParamKind>(self: Param<A, Kind>) => Param<B, Kind>
+  <A, B, Kind extends ParamKind>(
+    self: Param<A, Kind>,
+    f: (a: A) => B,
+    onError: (error: unknown) => string
+  ): Param<B, Kind>
+} = dual(3, <A, B, Kind extends ParamKind>(
+  self: Param<A, Kind>,
+  f: (a: A) => B,
+  onError: (error: unknown) => string
+): Param<B, Kind> => {
+  const parse: Parse<B> = (args) =>
+    Effect.flatMap(self.parse(args), ([leftover, a]) =>
+      Effect.try({
+        try: () => f(a),
+        catch: (error) => onError(error)
+      }).pipe(
+        Effect.mapError((error) =>
+          new CliError.InvalidValue({
+            option: "unknown",
+            value: String(a),
+            expected: error
+          })
+        ),
+        Effect.map((b) => [leftover, b] as const)
+      ))
+  return Object.assign(Object.create(Proto), {
+    _tag: "MapEffect",
+    kind: self.kind,
+    param: self,
+    f: (a: A) =>
+      Effect.orDie(Effect.try({
+        try: () => f(a),
+        catch: (error) => onError(error)
+      })),
+    parse
+  })
+})
+
+/**
+ * Creates an optional option that returns None when not provided.
+ *
+ * Optional options never fail with MissingOption errors. If the option is not
+ * provided on the command line, Option.none() is returned instead.
+ *
+ * @example
+ * ```ts
+ * import * as Param from "./Param"
+ * import { Option } from "effect/data"
+ *
+ * // Create an optional port option
+ * const port = Param.optional(Param.integer("port"))
+ *
+ * // When not provided: returns Option.none()
+ * // When provided: returns Option.some(parsedValue)
+ * ```
+ *
+ * @since 4.0.0
+ * @category constructors
+ */
+export const optional = <A, Kind extends ParamKind>(param: Param<A, Kind>): Param<Option.Option<A>, Kind> => {
+  const parse: Parse<Option.Option<A>> = (args) =>
+    param.parse(args).pipe(
+      Effect.map(([leftover, value]) => [leftover, Option.some(value)] as const),
+      Effect.catchTag("MissingOption", () => Effect.succeed([args.arguments, Option.none()] as const))
+    )
+  return Object.assign(Object.create(Proto), {
+    _tag: "Optional",
+    kind: param.kind,
+    param,
+    parse
+  })
+}
+
+/**
+ * Makes an option optional by providing a default value.
+ *
+ * This combinator is useful when you want to make an existing option optional
+ * by providing a fallback value that will be used when the option is not
+ * provided on the command line.
+ *
+ * @example
+ * ```ts
+ * import * as Param from "./Param"
+ *
+ * // Using the pipe operator to make an option optional
+ * const port = Param.integer("port").pipe(
+ *   Param.withDefault(8080)
+ * )
+ *
+ * // Can also be used with other combinators
+ * const verbose = Param.boolean("verbose").pipe(
+ *   Param.withAlias("-v"),
+ *   Param.withDescription("Enable verbose output"),
+ *   Param.withDefault(false)
+ * )
+ * ```
+ *
+ * @since 4.0.0
+ * @category combinators
+ */
+export const withDefault: {
+  <A>(defaultValue: A): <Kind extends ParamKind>(self: Param<A, Kind>) => Param<A, Kind>
+  <A, Kind extends ParamKind>(self: Param<A, Kind>, defaultValue: A): Param<A, Kind>
+} = dual(2, <A, Kind extends ParamKind>(
+  self: Param<A, Kind>,
+  defaultValue: A
+): Param<A, Kind> => map(optional(self), Option.getOrElse(() => defaultValue)))
+
+/**
+ * Creates a variadic option that can be specified multiple times.
+ *
+ * This is the base combinator for creating options that accept multiple values.
+ * The min and max parameters are optional - if not provided, the option can be
+ * specified any number of times (0 to infinity).
+ *
+ * @since 4.0.0
+ * @category combinators
+ */
+export const variadic = <A, Kind extends ParamKind>(
+  self: Param<A, Kind>,
+  min: Option.Option<number> = Option.none(),
+  max: Option.Option<number> = Option.none()
+): Param<ReadonlyArray<A>, Kind> => {
+  const single = getUnderlyingSingleOrThrow(self)
+  const parse: Parse<ReadonlyArray<A>> = (args) => {
+    if (single.kind === "argument") {
+      return parsePositionalVariadic(single, self, min, max, args)
+    } else {
+      return parseOptionVariadic(single, self, min, max, args)
+    }
+  }
+  return Object.assign(Object.create(Proto), {
+    _tag: "Variadic",
+    kind: self.kind,
+    param: self,
+    min,
+    max,
+    parse
+  })
+}
+
+/**
+ * Wraps an option to allow it to be specified multiple times within a range.
+ *
+ * This combinator transforms an option to accept between `min` and `max`
+ * occurrences on the command line, returning an array of all provided values.
+ *
+ * @example
+ * ```ts
+ * import * as Param from "./Param"
+ *
+ * // Allow 1-3 file inputs
+ * const files = Param.string("file").pipe(
+ *   Param.between(1, 3),
+ *   Param.withAlias("-f")
+ * )
+ *
+ * // Parse: --file a.txt --file b.txt
+ * // Result: ["a.txt", "b.txt"]
+ *
+ * // Allow 0 or more tags
+ * const tags = Param.string("tag").pipe(
+ *   Param.between(0, Infinity)
+ * )
+ *
+ * // Parse: --tag dev --tag staging --tag v1.0
+ * // Result: ["dev", "staging", "v1.0"]
+ * ```
+ *
+ * @since 4.0.0
+ * @category combinators
+ */
+export const between: {
+  <A>(min: number, max: number): <Kind extends ParamKind>(self: Param<A, Kind>) => Param<ReadonlyArray<A>, Kind>
+  <A, Kind extends ParamKind>(self: Param<A, Kind>, min: number, max: number): Param<ReadonlyArray<A>, Kind>
+} = dual(3, <A, Kind extends ParamKind>(
+  self: Param<A, Kind>,
+  min: number,
+  max: number
+): Param<ReadonlyArray<A>, Kind> => {
+  if (min < 0) {
+    throw new Error("between: min must be non-negative")
+  }
+  if (max < min) {
+    throw new Error("between: max must be greater than or equal to min")
+  }
+
+  return variadic(self, Option.some(min), Option.some(max))
+})
+
+/**
+ * Wraps an option to allow it to be specified multiple times without limit.
+ *
+ * This combinator transforms an option to accept any number of occurrences
+ * on the command line, returning an array of all provided values.
+ *
+ * @example
+ * ```ts
+ * import * as Param from "./Param"
+ *
+ * // Allow unlimited file inputs
+ * const files = Param.string("file").pipe(
+ *   Param.repeated,
+ *   Param.withAlias("-f")
+ * )
+ *
+ * // Parse: --file a.txt --file b.txt --file c.txt --file d.txt
+ * // Result: ["a.txt", "b.txt", "c.txt", "d.txt"]
+ * ```
+ *
+ * @since 4.0.0
+ * @category combinators
+ */
+export const repeated = <A, Kind extends ParamKind>(self: Param<A, Kind>): Param<ReadonlyArray<A>, Kind> =>
+  variadic(self)
+
+/**
+ * Wraps an option to allow it to be specified at most `max` times.
+ *
+ * This combinator transforms an option to accept between 0 and `max`
+ * occurrences on the command line, returning an array of all provided values.
+ *
+ * @example
+ * ```ts
+ * import * as Param from "./Param"
+ *
+ * // Allow at most 3 warning suppressions
+ * const suppressions = Param.string("suppress").pipe(
+ *   Param.atMost(3)
+ * )
+ *
+ * // Parse: --suppress warning1 --suppress warning2
+ * // Result: ["warning1", "warning2"]
+ * ```
+ *
+ * @since 4.0.0
+ * @category combinators
+ */
+export const atMost: {
+  <A>(max: number): <Kind extends ParamKind>(self: Param<A, Kind>) => Param<ReadonlyArray<A>, Kind>
+  <A, Kind extends ParamKind>(self: Param<A, Kind>, max: number): Param<ReadonlyArray<A>, Kind>
+} = dual(2, <A, Kind extends ParamKind>(
+  self: Param<A, Kind>,
+  max: number
+): Param<ReadonlyArray<A>, Kind> => {
+  if (max < 0) {
+    throw new Error("atMost: max must be non-negative")
+  }
+
+  return variadic(self, Option.none(), Option.some(max))
+})
+
+/**
+ * Wraps an option to require it to be specified at least `min` times.
+ *
+ * This combinator transforms an option to accept at least `min`
+ * occurrences on the command line, returning an array of all provided values.
+ *
+ * @example
+ * ```ts
+ * import * as Param from "./Param"
+ *
+ * // Require at least 2 input files
+ * const inputs = Param.string("input").pipe(
+ *   Param.atLeast(2),
+ *   Param.withAlias("-i")
+ * )
+ *
+ * // Parse: --input file1.txt --input file2.txt --input file3.txt
+ * // Result: ["file1.txt", "file2.txt", "file3.txt"]
+ * ```
+ *
+ * @since 4.0.0
+ * @category combinators
+ */
+export const atLeast: {
+  <A>(min: number): <Kind extends ParamKind>(self: Param<A, Kind>) => Param<ReadonlyArray<A>, Kind>
+  <A, Kind extends ParamKind>(self: Param<A, Kind>, min: number): Param<ReadonlyArray<A>, Kind>
+} = dual(2, <A, Kind extends ParamKind>(
+  self: Param<A, Kind>,
+  min: number
+): Param<ReadonlyArray<A>, Kind> => {
+  if (min < 0) {
+    throw new Error("atLeast: min must be non-negative")
+  }
+
+  return variadic(self, Option.some(min), Option.none())
+})
+
+/**
+ * Filters and transforms parsed values, failing with a custom error message
+ * if the filter function returns None.
+ *
+ * This combinator is useful for validation and transformation in a single step.
+ *
+ * @example
+ * ```ts
+ * import * as Param from "./Param"
+ * import { Option } from "effect"
+ *
+ * const positiveInt = Param.integer("count").pipe(
+ *   Param.filterMap(
+ *     n => n > 0 ? Option.some(n) : Option.none(),
+ *     n => `Expected positive integer, got ${n}`
+ *   )
+ * )
+ * ```
+ *
+ * @since 4.0.0
+ * @category combinators
+ */
+export const filterMap: {
+  <A, B>(
+    filter: (a: A) => Option.Option<B>,
+    onNone: (a: A) => string
+  ): <Kind extends ParamKind>(self: Param<A, Kind>) => Param<B, Kind>
+  <A, B, Kind extends ParamKind>(
+    self: Param<A, Kind>,
+    filter: (a: A) => Option.Option<B>,
+    onNone: (a: A) => string
+  ): Param<B, Kind>
+} = dual(3, <A, B, Kind extends ParamKind>(
+  self: Param<A, Kind>,
+  filter: (a: A) => Option.Option<B>,
+  onNone: (a: A) => string
+): Param<B, Kind> =>
+  mapEffect(
+    self,
+    Effect.fnUntraced(function*(a) {
+      const result = filter(a)
+      if (Option.isSome(result)) {
+        return result.value
+      }
+      const single = getUnderlyingSingleOrThrow(self)
+      return yield* new CliError.InvalidValue({
+        option: single.name,
+        value: String(a),
+        expected: onNone(a)
+      })
+    })
+  ))
+
+/**
+ * Filters parsed values, failing with a custom error message if the predicate returns false.
+ *
+ * @example
+ * ```ts
+ * import * as Param from "./Param"
+ *
+ * const evenNumber = Param.integer("num").pipe(
+ *   Param.filter(
+ *     n => n % 2 === 0,
+ *     n => `Expected even number, got ${n}`
+ *   )
+ * )
+ * ```
+ *
+ * @since 4.0.0
+ * @category combinators
+ */
+export const filter: {
+  <A>(
+    predicate: (a: A) => boolean,
+    onFalse: (a: A) => string
+  ): <Kind extends ParamKind>(self: Param<A, Kind>) => Param<A, Kind>
+  <A, Kind extends ParamKind>(
+    self: Param<A, Kind>,
+    predicate: (a: A) => boolean,
+    onFalse: (a: A) => string
+  ): Param<A, Kind>
+} = dual(3, <A, Kind extends ParamKind>(
+  self: Param<A, Kind>,
+  predicate: (a: A) => boolean,
+  onFalse: (a: A) => string
+): Param<A, Kind> =>
+  filterMap(
+    self,
+    (a) => predicate(a) ? Option.some(a) : Option.none(),
+    onFalse
+  ))
+
+/**
+ * Sets a custom display name for the param type in help documentation.
+ *
+ * This is useful when you want to override the default type name shown in help text.
+ *
+ * @example
+ * ```ts
+ * import * as Param from "./Param"
+ *
+ * const port = Param.integer("port").pipe(
+ *   Param.withPseudoName("PORT"),
+ *   Param.filter(p => p >= 1 && p <= 65535, () => "Port must be between 1 and 65535")
+ * )
+ * ```
+ *
+ * @since 4.0.0
+ * @category combinators
+ */
+export const withPseudoName: {
+  <A, K extends ParamKind>(pseudoName: string): (self: Param<A, K>) => Param<A, K>
+  <A, K extends ParamKind>(self: Param<A, K>, pseudoName: string): Param<A, K>
+} = dual(2, <A, K extends ParamKind>(
+  self: Param<A, K>,
+  pseudoName: string
+): Param<A, K> =>
+  transformSingle(self, (single) =>
+    makeSingle({
+      ...single,
+      typeName: pseudoName
+    })))
+
+/**
+ * Validates parsed values against a Schema, providing detailed error messages.
+ *
+ * @example
+ * ```ts
+ * import * as Param from "./Param"
+ * import { Schema } from "effect"
+ *
+ * const Email = Schema.String.pipe(
+ *   Schema.pattern(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)
+ * )
+ *
+ * const email = Param.string("email").pipe(
+ *   Param.withSchema(Email)
+ * )
+ * ```
+ *
+ * @since 4.0.0
+ * @category combinators
+ */
+export const withSchema: {
+  <A, B>(
+    schema: Schema.Codec<B, A>
+  ): <Kind extends ParamKind>(
+    self: Param<A, Kind>
+  ) => Param<B, Kind>
+  <A, B, Kind extends ParamKind>(
+    self: Param<A, Kind>,
+    schema: Schema.Codec<B, A>
+  ): Param<B, Kind>
+} = dual(2, <A, B, Kind extends ParamKind>(
+  self: Param<A, Kind>,
+  schema: Schema.Codec<B, A>
+): Param<B, Kind> => {
+  const decodeParam = Schema.decodeUnknownEffect(schema)
+  return mapEffect(self, (value) =>
+    Effect.mapError(decodeParam(value), (error) => {
+      const single = getUnderlyingSingleOrThrow(self)
+      return new CliError.InvalidValue({
+        option: single.name,
+        value: String(value),
+        expected: `Schema validation failed: ${error.message}`
+      })
+    }))
+})
+
+/**
+ * Provides a fallback param to use if this param fails to parse.
+ *
+ * @example
+ * ```ts
+ * import * as Param from "./Param"
+ *
+ * const config = Param.file("config", "flag").pipe(
+ *   Param.orElse(() => Param.string("config-url", "flag"))
+ * )
+ * ```
+ *
+ * @since 4.0.0
+ * @category combinators
+ */
+export const orElse: {
+  <B, Kind extends ParamKind>(
+    orElse: LazyArg<Param<B, Kind>>
+  ): <A>(self: Param<A, Kind>) => Param<A | B, Kind>
+  <A, B, Kind extends ParamKind>(
+    self: Param<A, Kind>,
+    orElse: LazyArg<Param<B, Kind>>
+  ): Param<A | B, Kind>
+} = dual(2, <A, B, Kind extends ParamKind>(
+  self: Param<A, Kind>,
+  orElse: LazyArg<Param<B, Kind>>
+): Param<A | B, Kind> => {
+  const parse: Parse<A | B> = (args) =>
+    Effect.catch(
+      self.parse(args),
+      () => orElse().parse(args)
+    )
+  return Object.assign(Object.create(Proto), {
+    _tag: "MapEffect",
+    kind: self.kind,
+    parse
+  })
+})
+
+/**
+ * Provides a fallback param, wrapping results in Either to distinguish which param succeeded.
+ *
+ * @example
+ * ```ts
+ * import * as Param from "./Param"
+ * import { Either } from "effect"
+ *
+ * const configSource = Param.file("config", "flag").pipe(
+ *   Param.orElseResult(() => Param.string("config-url", "flag"))
+ * )
+ * // Returns Result<string, string>
+ * ```
+ *
+ * @since 4.0.0
+ * @category combinators
+ */
+export const orElseResult: {
+  <B, Kind extends ParamKind>(
+    orElse: LazyArg<Param<B, Kind>>
+  ): <A>(
+    self: Param<A, Kind>
+  ) => Param<Result.Result<A, B>, Kind>
+  <A, B, Kind extends ParamKind>(
+    self: Param<A, Kind>,
+    orElse: LazyArg<Param<B, Kind>>
+  ): Param<Result.Result<A, B>, Kind>
+} = dual(2, <A, B, Kind extends ParamKind>(
+  self: Param<A, Kind>,
+  orElse: LazyArg<Param<B, Kind>>
+): Param<Result.Result<A, B>, Kind> => {
+  const parse: Parse<Result.Result<A, B>> = (args) =>
+    self.parse(args).pipe(
+      Effect.map(([leftover, value]) => [leftover, Result.succeed(value)] as const),
+      Effect.catch(() =>
+        Effect.map(
+          orElse().parse(args),
+          ([leftover, value]) => [leftover, Result.fail(value)] as const
+        )
+      )
+    )
+  return Object.assign(Object.create(Proto), {
+    _tag: "MapEffect",
+    kind: self.kind,
+    parse
+  })
+})
+
+// =============================================================================
+// Parsing Utilities
+// =============================================================================
+
+const parsePositional: <A>(
+  name: string,
+  primitiveType: Primitive.Primitive<A>,
+  args: ParseArgs
+) => Effect.Effect<
+  readonly [leftover: ReadonlyArray<string>, value: A],
+  CliError.CliError,
+  FileSystem.FileSystem | Path.Path
+> = Effect.fnUntraced(function*(name, primitiveType, args) {
+  if (args.arguments.length === 0) {
+    return yield* new CliError.MissingArgument({ argument: name })
+  }
+
+  const arg = args.arguments[0]
+  const value = yield* Effect.mapError(primitiveType.parse(arg), (error) =>
+    new CliError.InvalidValue({
+      option: name,
+      value: arg,
+      expected: error
+    }))
+
+  return [args.arguments.slice(1), value] as const
+})
+
+const parseOption: <A>(
+  name: string,
+  primitiveType: Primitive.Primitive<A>,
+  args: ParseArgs
+) => Effect.Effect<
+  readonly [remainingOperands: ReadonlyArray<string>, value: A],
+  CliError.CliError,
+  FileSystem.FileSystem | Path.Path
+> = Effect.fnUntraced(function*(name, primitiveType, args) {
+  const providedValues = args.flags[name]
+
+  if (providedValues === undefined || providedValues.length === 0) {
+    // Option not provided (empty array due to initialization)
+    if (primitiveType._tag === "Boolean") {
+      // Boolean params default to false when not present
+      return [args.arguments, false as any] as const
+    } else {
+      return yield* new CliError.MissingOption({ option: name })
+    }
+  }
+
+  // Parse the first value (later we can handle multiple)
+  const arg = providedValues[0]
+  const value = Effect.mapError(primitiveType.parse(arg), (error) =>
+    new CliError.InvalidValue({
+      option: name,
+      value: arg,
+      expected: error
+    }))
+
+  return [args.arguments, value] as const
+})
+
+const parsePositionalVariadic: <A, Kind extends ParamKind>(
+  single: Single<A, Kind>,
+  param: Param<A, Kind>,
+  min: Option.Option<number>,
+  max: Option.Option<number>,
+  args: ParseArgs
+) => Effect.Effect<
+  readonly [remainingOperands: ReadonlyArray<string>, value: ReadonlyArray<A>],
+  CliError.CliError,
+  FileSystem.FileSystem | Path.Path
+> = Effect.fnUntraced(function*<A, Kind extends ParamKind>(
+  single: Single<A, Kind>,
+  param: Param<A, Kind>,
+  min: Option.Option<number>,
+  max: Option.Option<number>,
+  args: ParseArgs
+) {
+  const results: Array<A> = []
+  const minValue = Option.getOrElse(min, () => 0)
+  const maxValue = Option.getOrElse(max, () => Number.POSITIVE_INFINITY)
+
+  let count = 0
+  let currentArgs = args.arguments
+  while (currentArgs.length > 0 && count < maxValue) {
+    const [remainingArgs, value] = yield* param.parse({
+      flags: args.flags,
+      arguments: currentArgs
+    })
+    results.push(value)
+    currentArgs = remainingArgs
+    count++
+  }
+
+  if (count < minValue) {
+    return yield* new CliError.InvalidValue({
+      option: single.name,
+      value: `${count} values`,
+      expected: `at least ${minValue} value${minValue === 1 ? "" : "s"}`
+    })
+  }
+
+  return [currentArgs, results] as const
+})
+
+const parseOptionVariadic: <A, Kind extends ParamKind>(
+  single: Single<A, Kind>,
+  param: Param<A, Kind>,
+  min: Option.Option<number>,
+  max: Option.Option<number>,
+  args: ParseArgs
+) => Effect.Effect<
+  readonly [remainingOperands: ReadonlyArray<string>, value: ReadonlyArray<A>],
+  CliError.CliError,
+  FileSystem.FileSystem | Path.Path
+> = Effect.fnUntraced(function*<A, Kind extends ParamKind>(
+  single: Single<A, Kind>,
+  param: Param<A, Kind>,
+  min: Option.Option<number>,
+  max: Option.Option<number>,
+  args: ParseArgs
+) {
+  const results: Array<A> = []
+  const names = [single.name, ...single.aliases]
+  const values = names.flatMap((name) => args.flags[name] ?? [])
+  const count = values.length
+
+  // Validate count constraints
+  if (Option.isSome(min) && count < min.value) {
+    return yield* count === 0
+      ? new CliError.MissingOption({ option: single.name })
+      : new CliError.InvalidValue({
+        option: single.name,
+        value: `${count} occurrences`,
+        expected: `at least ${min.value} value${min.value === 1 ? "" : "s"}`
+      })
+  }
+
+  if (Option.isSome(max) && count > max.value) {
+    return yield* new CliError.InvalidValue({
+      option: single.name,
+      value: `${count} occurrences`,
+      expected: `at most ${max.value} value${max.value === 1 ? "" : "s"}`
+    })
+  }
+
+  // Parse each value individually
+  for (const value of values) {
+    const [, parsedValue] = yield* param.parse({
+      flags: { [single.name]: [value] },
+      arguments: []
+    })
+    results.push(parsedValue)
+  }
+
+  return [args.arguments, results] as const
+})
 
 // NOTE: Create individual constructors for each subtype
 // - Try Match.type
@@ -601,512 +1395,10 @@ const transformSingle = <A, K extends ParamKind>(
 }
 
 /**
- * Adds an alias to an option.
- *
- * Aliases allow params to be specified with alternative names,
- * typically single-character shortcuts like "-f" for "--force".
- *
- * This works on any param structure by recursively finding the underlying
- * `Single` node and applying the alias there.
- *
- * @example
- * ```ts
- * import * as Param from "./Param"
- *
- * const force = Param.boolean("force").pipe(
- *   Param.withAlias("-f"),
- *   Param.withAlias("--no-prompt")
- * )
- *
- * // Also works on composed params:
- * const count = Param.integer("count").pipe(
- *   Param.optional,
- *   Param.withAlias("-c")  // finds the underlying Single and adds alias
- * )
- * ```
- *
- * @since 4.0.0
- * @category combinators
- */
-export const withAlias: {
-  <A, K extends ParamKind>(alias: string): (self: Param<A, K>) => Param<A, K>
-  <A, K extends ParamKind>(self: Param<A, K>, alias: string): Param<A, K>
-} = dual(2, <A, K extends ParamKind>(self: Param<A, K>, alias: string): Param<A, K> => {
-  return transformSingle(self, <X>(single: Single<X, K>) =>
-    makeSingle({
-      ...single,
-      aliases: [...single.aliases, alias.replace(/^-+/, "")]
-    }))
-})
-
-/**
- * Adds a description to an option for help text.
- *
- * Descriptions provide users with information about what the option does
- * when they view help documentation.
- *
- * @example
- * ```ts
- * import * as Param from "./Param"
- *
- * const verbose = Param.boolean("verbose").pipe(
- *   Param.withAlias("-v"),
- *   Param.withDescription("Enable verbose output")
- * )
- * ```
- *
- * @since 4.0.0
- * @category combinators
- */
-export const withDescription: {
-  <A, K extends ParamKind>(description: string): (self: Param<A, K>) => Param<A, K>
-  <A, K extends ParamKind>(self: Param<A, K>, description: string): Param<A, K>
-} = dual(2, <A, K extends ParamKind>(self: Param<A, K>, description: string): Param<A, K> => {
-  return transformSingle(self, <X>(single: Single<X, K>) =>
-    makeSingle({
-      ...single,
-      description: Option.some(description)
-    }))
-})
-
-/**
- * Transforms the parsed value of an option using a mapping function.
- *
- * @example
- * ```ts
- * import * as Param from "./Param"
- *
- * const port = Param.integer("port").pipe(
- *   Param.map(n => ({ port: n, url: `http://localhost:${n}` }))
- * )
- * ```
- *
- * @since 4.0.0
- * @category combinators
- */
-export const map: {
-  <A, B>(f: (a: A) => B): <Kind extends ParamKind>(self: Param<A, Kind>) => Param<B, Kind>
-  <A, B, Kind extends ParamKind>(self: Param<A, Kind>, f: (a: A) => B): Param<B, Kind>
-} = dual(2, <A, B, Kind extends ParamKind>(self: Param<A, Kind>, f: (a: A) => B): Param<B, Kind> => {
-  return createWithCommonProto(CommonProto)<Map<A, B, Kind>>({
-    _tag: "Map",
-    kind: self.kind,
-    param: self,
-    f,
-    parse(
-      args: ParseArgs
-    ): Effect.Effect<
-      readonly [remainingOperands: ReadonlyArray<string>, value: B],
-      CliError.CliError,
-      Environment
-    > {
-      return Effect.map(
-        self.parse(args),
-        ([operands, value]) => [operands, f(value)] as const
-      )
-    }
-  })
-})
-
-/**
- * Transforms the parsed value of an option using an effectful mapping function.
- *
- * @example
- * ```ts
- * import * as Param from "./Param"
- * import * as Effect from "effect/Effect"
- * import * as CliError from "./CliError"
- *
- * const validatedEmail = Param.string("email").pipe(
- *   Param.mapEffect(email =>
- *     email.includes("@")
- *       ? Effect.succeed(email)
- *       : Effect.fail(new CliError.InvalidValue({
- *         option: "email",
- *         value: email,
- *         expected: "valid email format"
- *       }))
- *   )
- * )
- * ```
- *
- * @since 4.0.0
- * @category combinators
- */
-export const mapEffect: {
-  <A, B>(
-    f: (a: A) => Effect.Effect<B, CliError.CliError, FileSystem.FileSystem | Path.Path>
-  ): <Kind extends ParamKind>(self: Param<A, Kind>) => Param<B, Kind>
-  <A, B, Kind extends ParamKind>(
-    self: Param<A, Kind>,
-    f: (a: A) => Effect.Effect<B, CliError.CliError, FileSystem.FileSystem | Path.Path>
-  ): Param<B, Kind>
-} = dual(
-  2,
-  <A, B, Kind extends ParamKind>(
-    self: Param<A, Kind>,
-    f: (a: A) => Effect.Effect<B, CliError.CliError, FileSystem.FileSystem | Path.Path>
-  ): Param<B, Kind> => {
-    return createWithCommonProto(CommonProto)<MapEffect<A, B, Kind>>({
-      _tag: "MapEffect",
-      kind: self.kind,
-      param: self,
-      f,
-      parse(
-        args: ParseArgs
-      ): Effect.Effect<
-        readonly [remainingOperands: ReadonlyArray<string>, value: B],
-        CliError.CliError,
-        Environment
-      > {
-        return Effect.flatMap(
-          self.parse(args),
-          ([operands, a]) =>
-            Effect.map(
-              f(a),
-              (b) => [operands, b] as const
-            )
-        )
-      }
-    })
-  }
-)
-
-/**
- * Transforms the parsed value of an option using a function that may throw,
- * converting any thrown errors into failure messages.
- *
- * @example
- * ```ts
- * import * as Param from "./Param"
- *
- * const parsedJson = Param.string("config").pipe(
- *   Param.mapTryCatch(
- *     str => JSON.parse(str),
- *     error => `Invalid JSON: ${error instanceof Error ? error.message : String(error)}`
- *   )
- * )
- * ```
- *
- * @since 4.0.0
- * @category combinators
- */
-export const mapTryCatch: {
-  <A, B>(
-    f: (a: A) => B,
-    onError: (error: unknown) => string
-  ): <Kind extends ParamKind>(self: Param<A, Kind>) => Param<B, Kind>
-  <A, B, Kind extends ParamKind>(
-    self: Param<A, Kind>,
-    f: (a: A) => B,
-    onError: (error: unknown) => string
-  ): Param<B, Kind>
-} = dual(
-  3,
-  <A, B, Kind extends ParamKind>(
-    self: Param<A, Kind>,
-    f: (a: A) => B,
-    onError: (error: unknown) => string
-  ): Param<B, Kind> => {
-    const mapped: Map<A, B, Kind> = {
-      ...CommonProto,
-      _tag: "Map",
-      kind: self.kind,
-      param: self,
-      f: (a: A) => {
-        try {
-          return f(a)
-        } catch (error) {
-          throw new Error(onError(error))
-        }
-      },
-      parse(
-        args: ParseArgs
-      ): Effect.Effect<
-        readonly [remainingOperands: ReadonlyArray<string>, value: B],
-        CliError.CliError,
-        Environment
-      > {
-        return Effect.flatMap(
-          self.parse(args),
-          ([operands, a]) =>
-            Effect.map(
-              Effect.mapError(
-                Effect.try({
-                  try: () => f(a),
-                  catch: (error) => onError(error)
-                }),
-                (error) => new CliError.InvalidValue({ option: "unknown", value: String(a), expected: error })
-              ),
-              (b) => [operands, b] as const
-            )
-        )
-      }
-    }
-    return mapped
-  }
-)
-
-/**
- * Creates an optional option that returns None when not provided.
- *
- * Optional options never fail with MissingOption errors. If the option is not
- * provided on the command line, Option.none() is returned instead.
- *
- * @example
- * ```ts
- * import * as Param from "./Param"
- * import { Option } from "effect/data"
- *
- * // Create an optional port option
- * const port = Param.optional(Param.integer("port"))
- *
- * // When not provided: returns Option.none()
- * // When provided: returns Option.some(parsedValue)
- * ```
- *
- * @since 4.0.0
- * @category constructors
- */
-export const optional = <A, Kind extends ParamKind>(param: Param<A, Kind>): Param<Option.Option<A>, Kind> => {
-  return createWithCommonProto(CommonProto)<Optional<A, Kind>>({
-    _tag: "Optional",
-    kind: param.kind,
-    param,
-    parse(
-      args: ParseArgs
-    ): Effect.Effect<
-      readonly [remainingOperands: ReadonlyArray<string>, value: Option.Option<A>],
-      CliError.CliError,
-      Environment
-    > {
-      return Effect.catchTag(
-        Effect.map(param.parse(args), ([operands, value]) => [operands, Option.some(value)] as const),
-        "MissingOption",
-        () => Effect.succeed([args.arguments, Option.none()] as const)
-      )
-    }
-  })
-}
-
-/**
- * Makes an option optional by providing a default value.
- *
- * This combinator is useful when you want to make an existing option optional
- * by providing a fallback value that will be used when the option is not
- * provided on the command line.
- *
- * @example
- * ```ts
- * import * as Param from "./Param"
- *
- * // Using the pipe operator to make an option optional
- * const port = Param.integer("port").pipe(
- *   Param.withDefault(8080)
- * )
- *
- * // Can also be used with other combinators
- * const verbose = Param.boolean("verbose").pipe(
- *   Param.withAlias("-v"),
- *   Param.withDescription("Enable verbose output"),
- *   Param.withDefault(false)
- * )
- * ```
- *
- * @since 4.0.0
- * @category combinators
- */
-export const withDefault: {
-  <A>(defaultValue: A): <Kind extends ParamKind>(self: Param<A, Kind>) => Param<A, Kind>
-  <A, Kind extends ParamKind>(self: Param<A, Kind>, defaultValue: A): Param<A, Kind>
-} = dual(
-  2,
-  <A, Kind extends ParamKind>(self: Param<A, Kind>, defaultValue: A): Param<A, Kind> =>
-    map(optional(self), Option.getOrElse(() => defaultValue))
-)
-
-/**
- * Creates a variadic option that can be specified multiple times.
- *
- * This is the base combinator for creating options that accept multiple values.
- * The min and max parameters are optional - if not provided, the option can be
- * specified any number of times (0 to infinity).
- *
- * @since 4.0.0
- * @category combinators
- */
-export const variadic = <A, Kind extends ParamKind>(
-  self: Param<A, Kind>,
-  min: Option.Option<number> = Option.none(),
-  max: Option.Option<number> = Option.none()
-): Param<ReadonlyArray<A>, Kind> => {
-  const single = getUnderlyingSingleOrThrow(self)
-  return createWithCommonProto(CommonProto)<Variadic<A, Kind>>({
-    _tag: "Variadic",
-    kind: self.kind,
-    param: self,
-    min,
-    max,
-    parse(
-      args: ParseArgs
-    ): Effect.Effect<
-      readonly [remainingOperands: ReadonlyArray<string>, value: ReadonlyArray<A>],
-      CliError.CliError,
-      Environment
-    > {
-      if (single.kind === "argument") {
-        return parsePositionalVariadic(single, self, min, max, args)
-      } else {
-        return parseOptionVariadic(single, self, min, max, args)
-      }
-    }
-  })
-}
-
-/**
- * Wraps an option to allow it to be specified multiple times within a range.
- *
- * This combinator transforms an option to accept between `min` and `max`
- * occurrences on the command line, returning an array of all provided values.
- *
- * @example
- * ```ts
- * import * as Param from "./Param"
- *
- * // Allow 1-3 file inputs
- * const files = Param.string("file").pipe(
- *   Param.between(1, 3),
- *   Param.withAlias("-f")
- * )
- *
- * // Parse: --file a.txt --file b.txt
- * // Result: ["a.txt", "b.txt"]
- *
- * // Allow 0 or more tags
- * const tags = Param.string("tag").pipe(
- *   Param.between(0, Infinity)
- * )
- *
- * // Parse: --tag dev --tag staging --tag v1.0
- * // Result: ["dev", "staging", "v1.0"]
- * ```
- *
- * @since 4.0.0
- * @category combinators
- */
-export const between: {
-  <A>(min: number, max: number): <Kind extends ParamKind>(self: Param<A, Kind>) => Param<ReadonlyArray<A>, Kind>
-  <A, Kind extends ParamKind>(self: Param<A, Kind>, min: number, max: number): Param<ReadonlyArray<A>, Kind>
-} = dual(
-  3,
-  <A, Kind extends ParamKind>(self: Param<A, Kind>, min: number, max: number): Param<ReadonlyArray<A>, Kind> => {
-    if (min < 0) {
-      throw new Error("between: min must be non-negative")
-    }
-    if (max < min) {
-      throw new Error("between: max must be greater than or equal to min")
-    }
-
-    return variadic(self, Option.some(min), Option.some(max))
-  }
-)
-
-/**
- * Wraps an option to allow it to be specified multiple times without limit.
- *
- * This combinator transforms an option to accept any number of occurrences
- * on the command line, returning an array of all provided values.
- *
- * @example
- * ```ts
- * import * as Param from "./Param"
- *
- * // Allow unlimited file inputs
- * const files = Param.string("file").pipe(
- *   Param.repeated,
- *   Param.withAlias("-f")
- * )
- *
- * // Parse: --file a.txt --file b.txt --file c.txt --file d.txt
- * // Result: ["a.txt", "b.txt", "c.txt", "d.txt"]
- * ```
- *
- * @since 4.0.0
- * @category combinators
- */
-export const repeated = <A, Kind extends ParamKind>(self: Param<A, Kind>): Param<ReadonlyArray<A>, Kind> =>
-  variadic(self)
-
-/**
- * Wraps an option to allow it to be specified at most `max` times.
- *
- * This combinator transforms an option to accept between 0 and `max`
- * occurrences on the command line, returning an array of all provided values.
- *
- * @example
- * ```ts
- * import * as Param from "./Param"
- *
- * // Allow at most 3 warning suppressions
- * const suppressions = Param.string("suppress").pipe(
- *   Param.atMost(3)
- * )
- *
- * // Parse: --suppress warning1 --suppress warning2
- * // Result: ["warning1", "warning2"]
- * ```
- *
- * @since 4.0.0
- * @category combinators
- */
-export const atMost: {
-  <A>(max: number): <Kind extends ParamKind>(self: Param<A, Kind>) => Param<ReadonlyArray<A>, Kind>
-  <A, Kind extends ParamKind>(self: Param<A, Kind>, max: number): Param<ReadonlyArray<A>, Kind>
-} = dual(2, <A, Kind extends ParamKind>(self: Param<A, Kind>, max: number): Param<ReadonlyArray<A>, Kind> => {
-  if (max < 0) {
-    throw new Error("atMost: max must be non-negative")
-  }
-
-  return variadic(self, Option.none(), Option.some(max))
-})
-
-/**
- * Wraps an option to require it to be specified at least `min` times.
- *
- * This combinator transforms an option to accept at least `min`
- * occurrences on the command line, returning an array of all provided values.
- *
- * @example
- * ```ts
- * import * as Param from "./Param"
- *
- * // Require at least 2 input files
- * const inputs = Param.string("input").pipe(
- *   Param.atLeast(2),
- *   Param.withAlias("-i")
- * )
- *
- * // Parse: --input file1.txt --input file2.txt --input file3.txt
- * // Result: ["file1.txt", "file2.txt", "file3.txt"]
- * ```
- *
- * @since 4.0.0
- * @category combinators
- */
-export const atLeast: {
-  <A>(min: number): <Kind extends ParamKind>(self: Param<A, Kind>) => Param<ReadonlyArray<A>, Kind>
-  <A, Kind extends ParamKind>(self: Param<A, Kind>, min: number): Param<ReadonlyArray<A>, Kind>
-} = dual(2, <A, Kind extends ParamKind>(self: Param<A, Kind>, min: number): Param<ReadonlyArray<A>, Kind> => {
-  if (min < 0) {
-    throw new Error("atLeast: min must be non-negative")
-  }
-
-  return variadic(self, Option.some(min), Option.none())
-})
-
-/**
  * Extracts all Single params from a potentially nested param structure.
  * This handles all param combinators including Map, MapEffect, Optional, and Variadic.
+ *
+ * @internal
  */
 export const extractSingleParams = <A, K extends ParamKind>(param: Param<A, K>): Array<Single<unknown, K>> => {
   return matchParam(param, {
@@ -1121,6 +1413,8 @@ export const extractSingleParams = <A, K extends ParamKind>(param: Param<A, K>):
 /**
  * Gets the underlying Single param from a potentially nested param structure.
  * Throws an error if there are no singles or multiple singles found.
+ *
+ * @internal
  */
 export const getUnderlyingSingleOrThrow = <A, Kind extends ParamKind>(param: Param<A, Kind>): Single<A, Kind> => {
   const singles = extractSingleParams(param)
@@ -1138,6 +1432,8 @@ export const getUnderlyingSingleOrThrow = <A, Kind extends ParamKind>(param: Par
 
 /**
  * Gets param metadata by traversing the structure.
+ *
+ * @internal
  */
 export const getParamMetadata = <A, K extends ParamKind>(
   param: Param<A, K>
@@ -1150,281 +1446,3 @@ export const getParamMetadata = <A, K extends ParamKind>(
     Variadic: (variadic) => ({ ...getParamMetadata(variadic.param), isVariadic: true })
   })
 }
-
-/**
- * Filters and transforms parsed values, failing with a custom error message
- * if the filter function returns None.
- *
- * This combinator is useful for validation and transformation in a single step.
- *
- * @example
- * ```ts
- * import * as Param from "./Param"
- * import { Option } from "effect"
- *
- * const positiveInt = Param.integer("count").pipe(
- *   Param.filterMap(
- *     n => n > 0 ? Option.some(n) : Option.none(),
- *     n => `Expected positive integer, got ${n}`
- *   )
- * )
- * ```
- *
- * @since 4.0.0
- * @category combinators
- */
-export const filterMap: {
-  <A, B>(
-    f: (a: A) => Option.Option<B>,
-    onNone: (a: A) => string
-  ): <Kind extends ParamKind>(self: Param<A, Kind>) => Param<B, Kind>
-  <A, B, Kind extends ParamKind>(
-    self: Param<A, Kind>,
-    f: (a: A) => Option.Option<B>,
-    onNone: (a: A) => string
-  ): Param<B, Kind>
-} = dual(
-  3,
-  <A, B, Kind extends ParamKind>(
-    self: Param<A, Kind>,
-    f: (a: A) => Option.Option<B>,
-    onNone: (a: A) => string
-  ): Param<B, Kind> => {
-    return mapEffect(self, (a) =>
-      Effect.gen(function*() {
-        const result = f(a)
-        if (Option.isSome(result)) {
-          return result.value
-        }
-        const single = getUnderlyingSingleOrThrow(self)
-        return yield* Effect.fail(
-          new CliError.InvalidValue({
-            option: single.name,
-            value: String(a),
-            expected: onNone(a)
-          })
-        )
-      }))
-  }
-)
-
-/**
- * Filters parsed values, failing with a custom error message if the predicate returns false.
- *
- * @example
- * ```ts
- * import * as Param from "./Param"
- *
- * const evenNumber = Param.integer("num").pipe(
- *   Param.filter(
- *     n => n % 2 === 0,
- *     n => `Expected even number, got ${n}`
- *   )
- * )
- * ```
- *
- * @since 4.0.0
- * @category combinators
- */
-export const filter: {
-  <A>(
-    predicate: (a: A) => boolean,
-    onFalse: (a: A) => string
-  ): <Kind extends ParamKind>(self: Param<A, Kind>) => Param<A, Kind>
-  <A, Kind extends ParamKind>(
-    self: Param<A, Kind>,
-    predicate: (a: A) => boolean,
-    onFalse: (a: A) => string
-  ): Param<A, Kind>
-} = dual(
-  3,
-  <A, Kind extends ParamKind>(
-    self: Param<A, Kind>,
-    predicate: (a: A) => boolean,
-    onFalse: (a: A) => string
-  ): Param<A, Kind> => {
-    return filterMap(
-      self,
-      (a) => predicate(a) ? Option.some(a) : Option.none(),
-      onFalse
-    )
-  }
-)
-
-/**
- * Sets a custom display name for the param type in help documentation.
- *
- * This is useful when you want to override the default type name shown in help text.
- *
- * @example
- * ```ts
- * import * as Param from "./Param"
- *
- * const port = Param.integer("port").pipe(
- *   Param.withPseudoName("PORT"),
- *   Param.filter(p => p >= 1 && p <= 65535, () => "Port must be between 1 and 65535")
- * )
- * ```
- *
- * @since 4.0.0
- * @category combinators
- */
-export const withPseudoName: {
-  <A, K extends ParamKind>(pseudoName: string): (self: Param<A, K>) => Param<A, K>
-  <A, K extends ParamKind>(self: Param<A, K>, pseudoName: string): Param<A, K>
-} = dual(2, <A, K extends ParamKind>(self: Param<A, K>, pseudoName: string): Param<A, K> => {
-  return transformSingle(self, <X>(single: Single<X, K>) =>
-    makeSingle({
-      ...single,
-      typeName: pseudoName
-    }))
-})
-
-/**
- * Validates parsed values against a Schema, providing detailed error messages.
- *
- * @example
- * ```ts
- * import * as Param from "./Param"
- * import { Schema } from "effect"
- *
- * const Email = Schema.String.pipe(
- *   Schema.pattern(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)
- * )
- *
- * const email = Param.string("email").pipe(
- *   Param.withSchema(Email)
- * )
- * ```
- *
- * @since 4.0.0
- * @category combinators
- */
-export const withSchema: {
-  <A, B>(
-    schema: Schema.Codec<B, A>
-  ): <Kind extends ParamKind>(self: Param<A, Kind>) => Param<B, Kind>
-  <A, B, Kind extends ParamKind>(
-    self: Param<A, Kind>,
-    schema: Schema.Codec<B, A>
-  ): Param<B, Kind>
-} = dual(
-  2,
-  <A, B, Kind extends ParamKind>(
-    self: Param<A, Kind>,
-    schema: Schema.Codec<B, A>
-  ): Param<B, Kind> => {
-    return mapEffect(self, (a) =>
-      Effect.gen(function*() {
-        const result = yield* Schema.decodeUnknownEffect(schema)(a).pipe(
-          Effect.mapError((error) => {
-            const single = getUnderlyingSingleOrThrow(self)
-            return new CliError.InvalidValue({
-              option: single.name,
-              value: String(a),
-              expected: `Schema validation failed: ${error.message}`
-            })
-          })
-        )
-        return result
-      }))
-  }
-)
-
-/**
- * Provides a fallback param to use if this param fails to parse.
- *
- * @example
- * ```ts
- * import * as Param from "./Param"
- *
- * const config = Param.file("config", "flag").pipe(
- *   Param.orElse(() => Param.string("config-url", "flag"))
- * )
- * ```
- *
- * @since 4.0.0
- * @category combinators
- */
-export const orElse: {
-  <B, Kind extends ParamKind>(
-    that: () => Param<B, Kind>
-  ): <A>(self: Param<A, Kind>) => Param<A | B, Kind>
-  <A, B, Kind extends ParamKind>(
-    self: Param<A, Kind>,
-    that: () => Param<B, Kind>
-  ): Param<A | B, Kind>
-} = dual(
-  2,
-  <A, B, Kind extends ParamKind>(
-    self: Param<A, Kind>,
-    that: () => Param<B, Kind>
-  ): Param<A | B, Kind> => {
-    // Create a custom param that tries self first, then fallback
-    const orElseParam = Object.create(CommonProto)
-    orElseParam._tag = "MapEffect"
-    orElseParam.kind = self.kind
-    orElseParam.parse = function(
-      args: ParseArgs
-    ): Effect.Effect<
-      readonly [remainingOperands: ReadonlyArray<string>, value: A | B],
-      CliError.CliError,
-      Environment
-    > {
-      return self.parse(args).pipe(
-        Effect.catch(() => that().parse(args))
-      )
-    }
-    return Object.freeze(orElseParam)
-  }
-)
-
-/**
- * Provides a fallback param, wrapping results in Either to distinguish which param succeeded.
- *
- * @example
- * ```ts
- * import * as Param from "./Param"
- * import { Either } from "effect"
- *
- * const configSource = Param.file("config", "flag").pipe(
- *   Param.orElseEither(() => Param.string("config-url", "flag"))
- * )
- * // Returns Either<string, string> - Left for file, Right for URL
- * ```
- *
- * @since 4.0.0
- * @category combinators
- */
-export const orElseEither: {
-  <B, Kind extends ParamKind>(
-    that: () => Param<B, Kind>
-  ): <A>(self: Param<A, Kind>) => Param<Result.Result<A, B>, Kind>
-  <A, B, Kind extends ParamKind>(
-    self: Param<A, Kind>,
-    that: () => Param<B, Kind>
-  ): Param<Result.Result<A, B>, Kind>
-} = dual(
-  2,
-  <A, B, Kind extends ParamKind>(
-    self: Param<A, Kind>,
-    that: () => Param<B, Kind>
-  ): Param<Result.Result<A, B>, Kind> => {
-    // Create a custom param that returns Result.succeed for self, Result.fail for fallback
-    const orElseEitherParam = Object.create(CommonProto)
-    orElseEitherParam._tag = "MapEffect"
-    orElseEitherParam.kind = self.kind
-    orElseEitherParam.parse = function(
-      args: ParseArgs
-    ): Effect.Effect<
-      readonly [remainingOperands: ReadonlyArray<string>, value: Result.Result<A, B>],
-      CliError.CliError,
-      Environment
-    > {
-      return Effect.map(self.parse(args), ([ops, a]) => [ops, Result.succeed(a)] as const).pipe(
-        Effect.catch(() => Effect.map(that().parse(args), ([ops, b]) => [ops, Result.fail(b)] as const))
-      )
-    }
-    return Object.freeze(orElseEitherParam)
-  }
-)
