@@ -1,12 +1,14 @@
 import { idFromTrail } from "../shared.ts"
 import { isDirType, isEitherPath, isFileType, optionRequiresValue, type SingleFlagMeta } from "../types.ts"
 
+/** @internal */
 export const getValueCompleter = (s: SingleFlagMeta): string => {
   if (isDirType(s)) return "_path_files -/"
   if (isFileType(s) || isEitherPath(s)) return "_files"
   return "_message 'value'"
 }
 
+/** @internal */
 export const buildArgumentSpec = (s: SingleFlagMeta): Array<string> => {
   const specs: Array<string> = []
   const desc = s.name
@@ -28,8 +30,10 @@ export const buildArgumentSpec = (s: SingleFlagMeta): Array<string> => {
   return specs
 }
 
+/** @internal */
 export const buildSubcommandState = (trail: Array<string>): string => `"*::subcommand:->sub_${idFromTrail(trail)}"`
 
+/** @internal */
 export const generateSubcommandCompletion = (subcommands: ReadonlyArray<any>, trail: Array<string>): Array<string> => {
   const items = subcommands.map((c) => `      '${c.name}:${c.name} command'`)
   return [

@@ -4,6 +4,7 @@
  * Based on the yargs completion approach but adapted for Effect CLI.
  */
 
+/** @internal */
 export const generateDynamicZshCompletion = (
   executableName: string,
   executablePath?: string

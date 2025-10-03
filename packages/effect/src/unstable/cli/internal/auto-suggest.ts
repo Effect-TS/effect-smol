@@ -1,4 +1,6 @@
-/** Simple Levenshtein distance implementation (small N, no perf worries) */
+/**
+ * Simple Levenshtein distance implementation (small N, no perf worries)
+ */
 const levenshtein = (a: string, b: string): number => {
   const m = a.length
   const n = b.length
@@ -18,7 +20,11 @@ const levenshtein = (a: string, b: string): number => {
   return dp[m][n]
 }
 
-/** Return suggestions with minimum distance found, up to distance 2 */
+/**
+ * Return suggestions with minimum distance found, up to distance 2.
+ *
+ * @internal
+ */
 export const suggest = (input: string, candidates: ReadonlyArray<string>): ReadonlyArray<string> => {
   const distances = candidates
     .map((c) => [levenshtein(input, c), c] as const)

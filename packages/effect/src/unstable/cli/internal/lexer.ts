@@ -1,13 +1,16 @@
+/** @internal */
 export type Token =
   | { _tag: "LongOption"; name: string; raw: string; value?: string }
   | { _tag: "ShortOption"; flag: string; raw: string; value?: string }
   | { _tag: "Value"; value: string }
 
+/** @internal */
 export interface LexResult {
   readonly tokens: ReadonlyArray<Token>
   readonly trailingOperands: ReadonlyArray<string>
 }
 
+/** @internal */
 export function lex(argv: ReadonlyArray<string>): LexResult {
   const endIndex = argv.indexOf("--")
 
@@ -26,7 +29,7 @@ export function lex(argv: ReadonlyArray<string>): LexResult {
   }
 }
 
-function lexTokens(args: ReadonlyArray<string>): ReadonlyArray<Token> {
+const lexTokens = (args: ReadonlyArray<string>): ReadonlyArray<Token> => {
   const tokens: Array<Token> = []
 
   for (const arg of args) {

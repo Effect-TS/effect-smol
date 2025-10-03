@@ -2,6 +2,7 @@ import { getSingles, handlerName } from "../shared.ts"
 import type { CommandRow } from "../types.ts"
 import { buildArgumentSpec, buildSubcommandState, generateSubcommandCompletion } from "./utils.ts"
 
+/** @internal */
 export const generateHandlers = (rows: ReadonlyArray<CommandRow>, executableName: string): Array<string> => {
   const handlers: Array<string> = []
 

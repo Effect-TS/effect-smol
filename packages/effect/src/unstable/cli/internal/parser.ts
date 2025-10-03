@@ -7,14 +7,14 @@ import * as CliError from "../CliError.ts"
 import type { Command } from "../Command.ts"
 import * as Param from "../Param.ts"
 import { isFalseValue, isTrueValue } from "../Primitive.ts"
+import { suggest } from "./auto-suggest.ts"
 import { completionsFlag, dynamicCompletionsFlag, helpFlag, logLevelFlag, versionFlag } from "./builtInFlags.ts"
-import { lex, type LexResult, type Token } from "./lexer.ts"
-import { suggest } from "./suggestions.ts"
-
-export { lex, type LexResult }
+import { type LexResult, type Token } from "./lexer.ts"
 
 /**
  * Parsed arguments for a command *including* potential nested sub-command.
+ *
+ * @internal
  */
 export interface ParsedCommandInput {
   readonly flags: Record<string, ReadonlyArray<string>>
@@ -26,12 +26,11 @@ export interface ParsedCommandInput {
   readonly errors?: ReadonlyArray<CliError.CliError>
 }
 
-export const ParsedCommandInput = {
-  getCommandPath: (parsedInput: ParsedCommandInput): ReadonlyArray<string> =>
-    parsedInput.subcommand
-      ? [parsedInput.subcommand.name, ...ParsedCommandInput.getCommandPath(parsedInput.subcommand.parsedInput)]
-      : []
-}
+/** @internal */
+export const getCommandPath = (parsedInput: ParsedCommandInput): ReadonlyArray<string> =>
+  parsedInput.subcommand
+    ? [parsedInput.subcommand.name, ...getCommandPath(parsedInput.subcommand.parsedInput)]
+    : []
 
 type FlagParam = Param.Single<unknown, "flag">
 type FlagMap = Record<string, ReadonlyArray<string>>
@@ -184,6 +183,8 @@ const collectFlagValues = (
 
 /**
  * Extract built-in flags using the same machinery.
+ *
+ * @internal
  */
 export const extractBuiltInOptions = (
   tokens: ReadonlyArray<Token>
@@ -201,7 +202,7 @@ export const extractBuiltInOptions = (
 > =>
   Effect.gen(function*() {
     const { flagMap, remainder } = collectFlagValues(tokens, builtInFlagParams)
-    const emptyArgs: Param.ParseArgs = { flags: flagMap, arguments: [] }
+    const emptyArgs: Param.ParsedArgs = { flags: flagMap, arguments: [] }
     const [, help] = yield* helpFlag.parse(emptyArgs)
     const [, logLevel] = yield* logLevelFlag.parse(emptyArgs)
     const [, version] = yield* versionFlag.parse(emptyArgs)
@@ -300,6 +301,7 @@ const scanCommandLevel = <Name extends string, Input, E, R>(
 /* Public API                                                             */
 /* ====================================================================== */
 
+/** @internal */
 export const parseArgs = <Name extends string, Input, E, R>(
   lexResult: LexResult,
   command: Command<Name, Input, E, R>,

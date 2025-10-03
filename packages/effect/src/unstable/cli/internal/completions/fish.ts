@@ -2,6 +2,7 @@ import type { Command } from "../../Command.ts"
 import { getSingles } from "./shared.ts"
 import { isDirType, isEitherPath, isFileType, optionRequiresValue } from "./types.ts"
 
+/** @internal */
 export const generateFishCompletions = <Name extends string, I, E, R>(
   rootCmd: Command<Name, I, E, R>,
   executableName: string

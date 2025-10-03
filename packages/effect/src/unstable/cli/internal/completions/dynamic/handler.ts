@@ -18,6 +18,8 @@ interface CompletionContext {
 
 /**
  * Extract completion context from environment variables set by the shell.
+ *
+ * @internal
  */
 export const getCompletionContext = (): CompletionContext | null => {
   const cword = process.env.COMP_CWORD
@@ -331,6 +333,8 @@ export const generateDynamicCompletions = <Name extends string, I, E, R>(
 /**
  * Handle a completion request from the shell.
  * This should be called when the CLI is invoked with --get-completions.
+ *
+ * @internal
  */
 export const handleCompletionRequest = <Name extends string, I, E, R>(
   rootCmd: Command<Name, I, E, R>

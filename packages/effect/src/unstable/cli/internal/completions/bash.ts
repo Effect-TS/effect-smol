@@ -13,6 +13,7 @@ const optionTokens = (singles: ReadonlyArray<any>): Array<string> => {
   return out
 }
 
+/** @internal */
 export const generateBashCompletions = <Name extends string, I, E, R>(
   rootCmd: Command<Name, I, E, R>,
   executableName: string

@@ -23,9 +23,12 @@ export interface Primitive<out A> extends Primitive.Variance<A> {
 
 /**
  * @since 4.0.0
- * @category models
  */
 export declare namespace Primitive {
+  /**
+   * @since 4.0.0
+   * @category models
+   */
   export interface Variance<out A> {
     readonly [TypeId]: VarianceStruct<A>
   }

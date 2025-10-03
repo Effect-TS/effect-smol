@@ -21,7 +21,8 @@ import {
   handleCompletionRequest,
   isCompletionRequest
 } from "./internal/completions/dynamic/index.ts"
-import { extractBuiltInOptions, lex, parseArgs, ParsedCommandInput } from "./internal/parseCommandArgs.ts"
+import * as Lexer from "./internal/lexer.ts"
+import * as Parser from "./internal/parser.ts"
 import * as Param from "./Param.ts"
 import * as Primitive from "./Primitive.ts"
 
@@ -50,15 +51,10 @@ export interface Command<Name extends string, Input, E = never, R = never>
   readonly tag: ServiceMap.Key<Context<Name>, Input>
 
   /** @internal */
-  readonly handle: (
-    input: Input,
-    commandPath: ReadonlyArray<string>
-  ) => Effect.Effect<void, E | CliError.CliError, R>
+  readonly handle: (input: Input, commandPath: ReadonlyArray<string>) => Effect.Effect<void, E | CliError.CliError, R>
 
   /** @internal */
-  readonly parse: (
-    input: ParsedCommandInput
-  ) => Effect.Effect<Input, CliError.CliError, Environment>
+  readonly parse: (input: Parser.ParsedCommandInput) => Effect.Effect<Input, CliError.CliError, Environment>
 }
 
 /**
@@ -316,7 +312,7 @@ export const withSubcommands = <const Subcommands extends ReadonlyArray<Command<
   const subcommandIndex = new Map<string, Command<any, any, any, any>>()
   for (const s of subcommands) subcommandIndex.set(s.name, s)
 
-  const parse = Effect.fnUntraced(function*(input: ParsedCommandInput) {
+  const parse = Effect.fnUntraced(function*(input: Parser.ParsedCommandInput) {
     const parentResult = yield* self.parse(input)
 
     const subRef = input.subcommand
@@ -525,29 +521,6 @@ export const getHelpDoc = <Name extends string, Input>(
 }
 
 /**
- * Helper function to get help documentation for a specific command path.
- * Navigates through the command hierarchy to find the right command.
- * @internal
- */
-const getHelpForCommandPath = <Name extends string, Input, E, R>(
-  command: Command<Name, Input, E, R>,
-  commandPath: ReadonlyArray<string>
-): HelpDoc => {
-  let currentCommand: Command<string, unknown, unknown, unknown> = command as any
-
-  // Navigate through the command path to find the target command
-  for (let i = 1; i < commandPath.length; i++) {
-    const subcommandName = commandPath[i]
-    const subcommand = currentCommand.subcommands.find((sub) => sub.name === subcommandName)
-    if (subcommand) {
-      currentCommand = subcommand
-    }
-  }
-
-  return getHelpDoc(currentCommand, commandPath)
-}
-
-/**
  * Runs a command with the provided input arguments.
  *
  * @example
@@ -572,7 +545,7 @@ const getHelpForCommandPath = <Name extends string, Input, E, R>(
  * ```
  *
  * @since 4.0.0
- * @category execution
+ * @category command execution
  */
 export const run: {
   <Name extends string, Input, E, R>(
@@ -591,6 +564,10 @@ export const run: {
   return runWithArgs(command, config)(input)
 }
 
+/**
+ * @since 4.0.0
+ * @category command execution
+ */
 export const runWithArgs = <Name extends string, Input, E, R>(
   command: Command<Name, Input, E, R>,
   config: {
@@ -602,18 +579,25 @@ export const runWithArgs = <Name extends string, Input, E, R>(
     const args = input
     // Check for dynamic completion request early (before normal parsing)
     if (isCompletionRequest(args)) {
-      yield* Effect.sync(() => handleCompletionRequest(command))
+      handleCompletionRequest(command)
       return
     }
 
     // Parse command arguments (built-ins are extracted automatically)
-    const { tokens, trailingOperands } = lex(args)
-    const { completions, dynamicCompletions, help, logLevel, remainder, version } = yield* extractBuiltInOptions(tokens)
-    const parsedArgs = yield* parseArgs({ tokens: remainder, trailingOperands }, command)
+    const { tokens, trailingOperands } = Lexer.lex(args)
+    const {
+      completions,
+      dynamicCompletions,
+      help,
+      logLevel,
+      remainder,
+      version
+    } = yield* Parser.extractBuiltInOptions(tokens)
+    const parsedArgs = yield* Parser.parseArgs({ tokens: remainder, trailingOperands }, command)
     const helpRenderer = yield* HelpFormatter.HelpRenderer
 
     if (help) {
-      const commandPath = [command.name, ...ParsedCommandInput.getCommandPath(parsedArgs)]
+      const commandPath = [command.name, ...Parser.getCommandPath(parsedArgs)]
       const helpDoc = getHelpForCommandPath(command, commandPath)
       const helpText = helpRenderer.formatHelpDoc(helpDoc)
       yield* Console.log(helpText)
@@ -642,7 +626,7 @@ export const runWithArgs = <Name extends string, Input, E, R>(
     if (parsedArgs.errors && parsedArgs.errors.length > 0) {
       const error = parsedArgs.errors[0]
       const helpRenderer = yield* HelpFormatter.HelpRenderer
-      const commandPath = [command.name, ...ParsedCommandInput.getCommandPath(parsedArgs)]
+      const commandPath = [command.name, ...Parser.getCommandPath(parsedArgs)]
       const helpDoc = getHelpForCommandPath(command, commandPath)
 
       // Show the full help first (to stdout with normal colors)
@@ -659,7 +643,7 @@ export const runWithArgs = <Name extends string, Input, E, R>(
     if (parseResult._tag === "Failure") {
       const error = parseResult.failure
       const helpRenderer = yield* HelpFormatter.HelpRenderer
-      const commandPath = [command.name, ...ParsedCommandInput.getCommandPath(parsedArgs)]
+      const commandPath = [command.name, ...Parser.getCommandPath(parsedArgs)]
       const helpDoc = getHelpForCommandPath(command, commandPath)
 
       // Show the full help first (to stdout with normal colors)
@@ -852,7 +836,7 @@ const makeCommand = <Name extends string, Input, E, R>(
   const parsedConfig = parseConfig(config)
   const tag = ServiceMap.Key<Context<Name>, Input>(`${TypeId}/${name}`)
 
-  const parse = Effect.fnUntraced(function*(input: ParsedCommandInput) {
+  const parse = Effect.fnUntraced(function*(input: Parser.ParsedCommandInput) {
     const parsedArgs: Param.ParsedArgs = { flags: input.flags, arguments: input.arguments }
     const values = yield* parseParams(parsedArgs, parsedConfig.orderedParams)
     return reconstructConfigTree(parsedConfig.tree, values) as Input
@@ -885,9 +869,7 @@ const overrideCommand = <Name extends string, NewInput, E, R>(
   overrides: {
     readonly subcommands?: ReadonlyArray<Command<any, unknown, unknown, unknown>> | undefined
     readonly handler?: ((input: NewInput) => Effect.Effect<void, E, R>) | undefined
-    readonly parse: (
-      input: ParsedCommandInput
-    ) => Effect.Effect<NewInput, CliError.CliError, Environment>
+    readonly parse: (input: Parser.ParsedCommandInput) => Effect.Effect<NewInput, CliError.CliError, Environment>
     readonly handle: (
       input: NewInput,
       commandPath: ReadonlyArray<string>
@@ -965,4 +947,28 @@ const checkForDuplicateFlags = <Name extends string, Input>(
       }
     }
   }
+}
+
+/**
+ * Helper function to get help documentation for a specific command path.
+ * Navigates through the command hierarchy to find the right command.
+ *
+ * @internal
+ */
+const getHelpForCommandPath = <Name extends string, Input, E, R>(
+  command: Command<Name, Input, E, R>,
+  commandPath: ReadonlyArray<string>
+): HelpDoc => {
+  let currentCommand: Command<string, unknown, unknown, unknown> = command as any
+
+  // Navigate through the command path to find the target command
+  for (let i = 1; i < commandPath.length; i++) {
+    const subcommandName = commandPath[i]
+    const subcommand = currentCommand.subcommands.find((sub) => sub.name === subcommandName)
+    if (subcommand) {
+      currentCommand = subcommand
+    }
+  }
+
+  return getHelpDoc(currentCommand, commandPath)
 }

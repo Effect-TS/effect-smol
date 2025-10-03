@@ -3,6 +3,7 @@
  * This generates a completion script that calls the CLI at runtime to get completions.
  */
 
+/** @internal */
 export const generateDynamicBashCompletion = (
   executableName: string,
   executablePath?: string

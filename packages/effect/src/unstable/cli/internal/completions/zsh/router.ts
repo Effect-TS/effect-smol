@@ -2,6 +2,7 @@ import { getSingles, handlerName, idFromTrail } from "../shared.ts"
 import type { CommandRow } from "../types.ts"
 import { optionRequiresValue } from "../types.ts"
 
+/** @internal */
 export const generateRouter = (
   rows: ReadonlyArray<CommandRow>,
   executableName: string,

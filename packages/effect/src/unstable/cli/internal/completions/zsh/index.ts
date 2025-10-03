@@ -3,6 +3,7 @@ import { flattenCommand } from "../shared.ts"
 import { generateHandlers } from "./handlers.ts"
 import { generateRouter } from "./router.ts"
 
+/** @internal */
 export const generateZshCompletions = <Name extends string, I, E, R>(
   rootCmd: Command<Name, I, E, R>,
   executableName: string

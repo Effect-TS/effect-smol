@@ -4,6 +4,7 @@
  * Based on Fish's dynamic completion capabilities.
  */
 
+/** @internal */
 export const generateDynamicFishCompletion = (
   executableName: string,
   executablePath?: string

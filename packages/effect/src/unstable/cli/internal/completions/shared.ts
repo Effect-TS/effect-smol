@@ -3,7 +3,8 @@ import type { Command } from "../../Command.ts"
 import * as Param from "../../Param.ts"
 import type { CommandRow, SingleFlagMeta } from "./types.ts"
 
-export const getSingles = (flags: ReadonlyArray<Param.Param<any>>): ReadonlyArray<SingleFlagMeta> =>
+/** @internal */
+export const getSingles = (flags: ReadonlyArray<Param.Any>): ReadonlyArray<SingleFlagMeta> =>
   flags
     .flatMap(Param.extractSingleParams)
     .filter((s: any) => s.kind === "flag")
@@ -19,6 +20,7 @@ export const getSingles = (flags: ReadonlyArray<Param.Param<any>>): ReadonlyArra
       return typeof description === "string" ? { ...base, description } : base
     })
 
+/** @internal */
 export const flattenCommand = <Name extends string, I, E, R>(
   cmd: Command<Name, I, E, R>,
   parents: Array<string> = []
@@ -32,7 +34,9 @@ export const flattenCommand = <Name extends string, I, E, R>(
   return rows
 }
 
+/** @internal */
 export const idFromTrail = (trail: Array<string>): string => trail.map((p) => p.replace(/-/g, "_")).join("_")
 
+/** @internal */
 export const handlerName = (trail: Array<string>, executableName: string): string =>
   `_${executableName}_${idFromTrail(trail)}_handler`

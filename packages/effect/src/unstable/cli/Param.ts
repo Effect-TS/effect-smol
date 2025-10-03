@@ -34,16 +34,25 @@ export type ParamKind = "flag" | "argument"
 
 /**
  * Represents any parameter.
+ *
+ * @since 4.0.0
+ * @category models
  */
 export type Any = Param<any, ParamKind>
 
 /**
  * Represents any positional argument parameter.
+ *
+ * @since 4.0.0
+ * @category models
  */
 export type AnyArgument = Param<any, "argument">
 
 /**
  * Represents any flag parameter.
+ *
+ * @since 4.0.0
+ * @category models
  */
 export type AnyFlag = Param<any, "flag">
 
@@ -251,7 +260,7 @@ export const date = <K extends ParamKind>(name: string, kind: K) =>
  *
  * @example
  * ```ts
- * import * as Param from "@effect/cli/Param"
+ * import { Param } from "effect/unstable/cli"
  * import * as Data from "effect/Data"
  *
  * export type Animal = Dog | Cat
@@ -292,7 +301,7 @@ export const choiceWithValue = <
  *
  * @example
  * ```ts
- * import * as Param from "@effect/cli/Param"
+ * import { Param } from "effect/unstable/cli"
  *
  * const logLevel = Param.choice("log-level", ["debug", "info", "warn", "error"])
  * ```
@@ -418,7 +427,7 @@ export const fileSchema = <A, K extends ParamKind>(
  *
  * @example
  * ```ts
- * import * as Param from "@effect/cli/Param"
+ * import { Param } from "effect/unstable/cli"
  *
  * const env = Param.keyValueMap("env", "flag")
  * // --env FOO=bar will parse to { FOO: "bar" }
@@ -453,7 +462,7 @@ const FLAG_DASH_REGEX = /^-+/
  *
  * @example
  * ```ts
- * import * as Param from "./Param"
+ * import { Param } from "./Param"
  *
  * const force = Param.boolean("force").pipe(
  *   Param.withAlias("-f"),
@@ -492,7 +501,7 @@ export const withAlias: {
  *
  * @example
  * ```ts
- * import * as Param from "./Param"
+ * import { Param } from "./Param"
  *
  * const verbose = Param.boolean("verbose").pipe(
  *   Param.withAlias("-v"),
@@ -527,7 +536,7 @@ export const withDescription: {
  *
  * @example
  * ```ts
- * import * as Param from "./Param"
+ * import { Param } from "./Param"
  *
  * const port = Param.integer("port").pipe(
  *   Param.map(n => ({ port: n, url: `http://localhost:${n}` }))
@@ -571,7 +580,7 @@ export const map: {
  *
  * @example
  * ```ts
- * import * as Param from "./Param"
+ * import { Param } from "./Param"
  * import * as Effect from "effect/Effect"
  * import * as CliError from "./CliError"
  *
@@ -629,7 +638,7 @@ export const mapEffect: {
  *
  * @example
  * ```ts
- * import * as Param from "./Param"
+ * import { Param } from "./Param"
  *
  * const parsedJson = Param.string("config").pipe(
  *   Param.mapTryCatch(
@@ -699,7 +708,7 @@ export const mapTryCatch: {
  *
  * @example
  * ```ts
- * import * as Param from "./Param"
+ * import { Param } from "./Param"
  * import { Option } from "effect/data"
  *
  * // Create an optional port option
@@ -739,7 +748,7 @@ export const optional = <A, Kind extends ParamKind>(
  *
  * @example
  * ```ts
- * import * as Param from "./Param"
+ * import { Param } from "./Param"
  *
  * // Using the pipe operator to make an option optional
  * const port = Param.integer("port").pipe(
@@ -818,7 +827,7 @@ export const variadic = <A, Kind extends ParamKind>(
  *
  * @example
  * ```ts
- * import * as Param from "./Param"
+ * import { Param } from "./Param"
  *
  * // Allow 1-3 file inputs
  * const files = Param.string("file").pipe(
@@ -879,7 +888,7 @@ export const between: {
  *
  * @example
  * ```ts
- * import * as Param from "./Param"
+ * import { Param } from "./Param"
  *
  * // Allow unlimited file inputs
  * const files = Param.string("file").pipe(
@@ -906,7 +915,7 @@ export const repeated = <A, Kind extends ParamKind>(
  *
  * @example
  * ```ts
- * import * as Param from "./Param"
+ * import { Param } from "./Param"
  *
  * // Allow at most 3 warning suppressions
  * const suppressions = Param.string("suppress").pipe(
@@ -952,7 +961,7 @@ export const atMost: {
  *
  * @example
  * ```ts
- * import * as Param from "./Param"
+ * import { Param } from "./Param"
  *
  * // Require at least 2 input files
  * const inputs = Param.string("input").pipe(
@@ -999,7 +1008,7 @@ export const atLeast: {
  *
  * @example
  * ```ts
- * import * as Param from "./Param"
+ * import { Param } from "./Param"
  * import { Option } from "effect"
  *
  * const positiveInt = Param.integer("count").pipe(
@@ -1052,7 +1061,7 @@ export const filterMap: {
  *
  * @example
  * ```ts
- * import * as Param from "./Param"
+ * import { Param } from "./Param"
  *
  * const evenNumber = Param.integer("num").pipe(
  *   Param.filter(
@@ -1096,7 +1105,7 @@ export const filter: {
  *
  * @example
  * ```ts
- * import * as Param from "./Param"
+ * import { Param } from "./Param"
  *
  * const port = Param.integer("port").pipe(
  *   Param.withPseudoName("PORT"),
@@ -1130,7 +1139,7 @@ export const withPseudoName: {
  *
  * @example
  * ```ts
- * import * as Param from "./Param"
+ * import { Param } from "./Param"
  * import { Schema } from "effect"
  *
  * const Email = Schema.String.pipe(
@@ -1177,7 +1186,7 @@ export const withSchema: {
  *
  * @example
  * ```ts
- * import * as Param from "./Param"
+ * import { Param } from "./Param"
  *
  * const config = Param.file("config", "flag").pipe(
  *   Param.orElse(() => Param.string("config-url", "flag"))
@@ -1215,8 +1224,7 @@ export const orElse: {
  *
  * @example
  * ```ts
- * import * as Param from "./Param"
- * import { Either } from "effect"
+ * import { Param } from "./Param"
  *
  * const configSource = Param.file("config", "flag").pipe(
  *   Param.orElseResult(() => Param.string("config-url", "flag"))

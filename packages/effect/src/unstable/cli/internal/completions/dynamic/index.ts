@@ -12,6 +12,8 @@ import { generateDynamicZshCompletion } from "./zsh.ts"
 /**
  * Generate a dynamic completion script for the specified shell.
  * The script will call the CLI at runtime to get completions.
+ *
+ * @internal
  */
 export const generateDynamicCompletion = <Name extends string, I, E, R>(
   rootCmd: Command<Name, I, E, R>,
@@ -30,14 +32,30 @@ export const generateDynamicCompletion = <Name extends string, I, E, R>(
 }
 
 // Export individual components for advanced usage
-export { generateDynamicBashCompletion } from "./bash.ts"
-export { generateDynamicFishCompletion } from "./fish.ts"
-export { generateDynamicCompletions, getCompletionContext, handleCompletionRequest } from "./handler.ts"
-export { generateDynamicZshCompletion } from "./zsh.ts"
+export {
+  /** @internal */
+  generateDynamicBashCompletion
+} from "./bash.ts"
+export {
+  /** @internal */
+  generateDynamicFishCompletion
+} from "./fish.ts"
+export {
+  /** @internal */
+  generateDynamicCompletions,
+  getCompletionContext,
+  handleCompletionRequest
+} from "./handler.ts"
+export {
+  /** @internal */
+  generateDynamicZshCompletion
+} from "./zsh.ts"
 
 /**
  * Check if the current process is a completion request.
  * This checks for the --get-completions flag or COMP_* environment variables.
+ *
+ * @internal
  */
 export const isCompletionRequest = (args: ReadonlyArray<string>): boolean => {
   // Check for explicit completion flag

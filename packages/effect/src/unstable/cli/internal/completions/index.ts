@@ -4,6 +4,7 @@ import { generateFishCompletions } from "./fish.ts"
 import type { Shell } from "./types.ts"
 import { generateZshCompletions } from "./zsh/index.ts"
 
+/** @internal */
 export const generateCompletions = <Name extends string, I, E, R>(
   rootCmd: Command<Name, I, E, R>,
   executableName: string,
@@ -30,18 +31,41 @@ export const generateCompletions = <Name extends string, I, E, R>(
 }
 
 // Export the individual generators for testing/advanced usage
-export { generateBashCompletions } from "./bash.ts"
-export { generateFishCompletions } from "./fish.ts"
-export { generateZshCompletions } from "./zsh/index.ts"
+export {
+  /** @internal */
+  generateBashCompletions
+} from "./bash.ts"
+
+export {
+  /** @internal */
+  generateFishCompletions
+} from "./fish.ts"
+
+export {
+  /** @internal */
+  generateZshCompletions
+} from "./zsh/index.ts"
 
 // Export dynamic completion functions
 export {
+  /** @internal */
   generateDynamicBashCompletion,
+  /** @internal */
   generateDynamicCompletion,
+  /** @internal */
   generateDynamicZshCompletion,
+  /** @internal */
   handleCompletionRequest,
+  /** @internal */
   isCompletionRequest
 } from "./dynamic/index.ts"
 
-// Export types for external usage
-export type { CommandRow, Shell, SingleFlagMeta } from "./types.ts"
+/** @internal */
+export type {
+  /** @internal */
+  CommandRow,
+  /** @internal */
+  Shell,
+  /** @internal */
+  SingleFlagMeta
+} from "./types.ts"
