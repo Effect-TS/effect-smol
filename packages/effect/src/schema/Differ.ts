@@ -2,7 +2,7 @@
  * @since 4.0.0
  */
 import * as Predicate from "../data/Predicate.ts"
-import * as Schema from "./Schema.ts"
+import type * as Schema from "./Schema.ts"
 import * as Serializer from "./Serializer.ts"
 import * as ToParser from "./ToParser.ts"
 
@@ -41,8 +41,8 @@ export type JsonPatch = ReadonlyArray<JsonPatchOperation>
  * @category JsonPatch Differ
  * @since 4.0.0
  */
-export function makeJsonPatch<S extends Schema.Top>(schema: S): Differ<S["Type"], JsonPatch> {
-  const serializer = Serializer.json(Schema.typeCodec(schema))
+export function makeJsonPatch<T, E>(codec: Schema.Codec<T, E>): Differ<T, JsonPatch> {
+  const serializer = Serializer.json(codec)
   const get = ToParser.encodeSync(serializer)
   const set = ToParser.decodeSync(serializer)
   return {
