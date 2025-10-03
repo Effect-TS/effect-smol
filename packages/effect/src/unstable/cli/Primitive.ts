@@ -29,17 +29,12 @@ const TypeId = "~effect/cli/Primitive"
  *   return { stringResult, numberResult, boolResult }
  * })
  *
- * // Creating custom primitive
- * const emailPrimitive: Primitive<string> = {
- *   [Primitive.TypeId]: { _A: (_: never) => _ },
- *   _tag: "Email",
- *   parse: (value) => {
- *     if (value.includes("@")) {
- *       return Effect.succeed(value)
- *     }
- *     return Effect.fail("Invalid email format")
- *   }
- * }
+ * // All primitives provide parsing functionality
+ * const parseDate = Effect.gen(function* () {
+ *   const dateResult = yield* Primitive.date.parse("2023-12-25")
+ *   const pathResult = yield* Primitive.path("file", true).parse("./package.json")
+ *   return { dateResult, pathResult }
+ * })
  * ```
  *
  * @since 4.0.0
@@ -354,8 +349,6 @@ export type PathType = "file" | "directory" | "either"
  * ```ts
  * import { Primitive } from "effect/unstable/cli"
  * import { Effect } from "effect"
- * import { FileSystem } from "effect/platform"
- * import { Path } from "effect/platform"
  *
  * const program = Effect.gen(function* () {
  *   // Parse a file path that must exist
@@ -372,10 +365,7 @@ export type PathType = "file" | "directory" | "either"
  *   const anyPrimitive = Primitive.path("either", false)
  *   const anyPath = yield* anyPrimitive.parse("./some/path")
  *   console.log(anyPath) // Absolute path
- * }).pipe(
- *   Effect.provide(FileSystem.layer),
- *   Effect.provide(Path.layer)
- * )
+ * })
  * ```
  *
  * @since 4.0.0
@@ -429,11 +419,11 @@ export const path = (
  *
  * @example
  * ```ts
- * import { Primitive } from "effect/unstable/cli"
  * import { Effect } from "effect"
- * import { Redacted } from "effect"
+ * import { Redacted } from "effect/data"
+ * import { Primitive } from "effect/unstable/cli"
  *
- * const parseRedacted = Effect.gen(function* () {
+ * const parseRedacted = Effect.gen(function*() {
  *   const result = yield* Primitive.redacted.parse("secret-password")
  *   console.log(Redacted.value(result)) // "secret-password"
  *   console.log(String(result)) // "<redacted>"
@@ -455,8 +445,6 @@ export const redacted: Primitive<Redacted.Redacted<string>> = makePrimitive(
  * ```ts
  * import { Primitive } from "effect/unstable/cli"
  * import { Effect } from "effect"
- * import { FileSystem } from "effect/platform"
- * import { Path } from "effect/platform"
  *
  * const readConfigFile = Effect.gen(function* () {
  *   const content = yield* Primitive.fileString.parse("./config.json")
@@ -464,10 +452,7 @@ export const redacted: Primitive<Redacted.Redacted<string>> = makePrimitive(
  *
  *   const parsed = JSON.parse(content)
  *   return parsed
- * }).pipe(
- *   Effect.provide(FileSystem.layer),
- *   Effect.provide(Path.layer)
- * )
+ * })
  * ```
  *
  * @since 4.0.0
@@ -522,8 +507,6 @@ export const fileString: Primitive<string> = makePrimitive(
  * import { Primitive } from "effect/unstable/cli"
  * import { Effect } from "effect"
  * import { Schema } from "effect/schema"
- * import { FileSystem } from "effect/platform"
- * import { Path } from "effect/platform"
  *
  * const ConfigSchema = Schema.Struct({
  *   name: Schema.String,
@@ -532,7 +515,7 @@ export const fileString: Primitive<string> = makePrimitive(
  * })
  *
  * const jsonConfigPrimitive = Primitive.fileSchema(
- *   Schema.parseJson(ConfigSchema),
+ *   Schema.fromJsonString(ConfigSchema),
  *   "JSON"
  * )
  *
@@ -540,10 +523,7 @@ export const fileString: Primitive<string> = makePrimitive(
  *   const config = yield* jsonConfigPrimitive.parse("./config.json")
  *   console.log(config) // { name: "my-app", version: "1.0.0", port: 3000 }
  *   return config
- * }).pipe(
- *   Effect.provide(FileSystem.layer),
- *   Effect.provide(Path.layer)
- * )
+ * })
  * ```
  *
  * @since 4.0.0

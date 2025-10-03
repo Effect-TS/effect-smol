@@ -364,7 +364,6 @@ export const date = <K extends ParamKind>(name: string, kind: K) =>
  * @example
  * ```ts
  * import { Param } from "effect/unstable/cli"
- * import * as Data from "effect/Data"
  *
  * type Animal = Dog | Cat
  *
@@ -372,17 +371,13 @@ export const date = <K extends ParamKind>(name: string, kind: K) =>
  *   readonly _tag: "Dog"
  * }
  *
- * const Dog = Data.tagged<Dog>("Dog")
- *
  * interface Cat {
  *   readonly _tag: "Cat"
  * }
  *
- * const Cat = Data.tagged<Cat>("Cat")
- *
  * const animal = Param.choiceWithValue("animal", [
- *   ["dog", Dog()],
- *   ["cat", Cat()]
+ *   ["dog", { _tag: "Dog" }],
+ *   ["cat", { _tag: "Cat" }]
  * ], "flag")
  * ```
  *
@@ -585,14 +580,15 @@ export const fileString = <K extends ParamKind>(name: string, kind: K) =>
  *
  * @example
  * ```ts
- * import { Param } from "effect/unstable/cli"
  * import { Schema } from "effect/schema"
+ * import { Param } from "effect/unstable/cli"
  *
  * // Parse JSON config file
  * const configSchema = Schema.Struct({
  *   port: Schema.Number,
  *   host: Schema.String
- * })
+ * }).pipe(Schema.fromJsonString)
+ *
  * const config = Param.fileSchema("config", configSchema, "flag", "json")
  *
  * // Parse YAML file
@@ -639,6 +635,7 @@ export const keyValueMap = <K extends ParamKind>(name: string, kind: K) =>
 
 /**
  * Creates an empty sentinel parameter that always fails to parse.
+ *
  * This is useful for creating placeholder parameters or for combinators.
  *
  * @example
@@ -649,8 +646,8 @@ export const keyValueMap = <K extends ParamKind>(name: string, kind: K) =>
  * const noneParam = Param.none("flag")
  *
  * // Often used in conditional parameter creation
- * const conditionalParam = condition
- *   ? Param.string("value", "flag")
+ * const conditionalParam = process.env.NODE_ENV === "production"
+ *   ? Param.string("my-dev-flag", "flag")
  *   : Param.none("flag")
  * ```
  *
@@ -919,13 +916,11 @@ export const mapTryCatch: {
  * @example
  * ```ts
  * import { Param } from "effect/unstable/cli"
- * import { Option } from "effect"
  *
  * // Create an optional port option
+ * // - When not provided: returns Option.none()
+ * // - When provided: returns Option.some(parsedValue)
  * const port = Param.optional(Param.integer("port", "flag"))
- *
- * // When not provided: returns Option.none()
- * // When provided: returns Option.some(parsedValue)
  * ```
  *
  * @since 4.0.0
@@ -1005,8 +1000,8 @@ export const withDefault: {
  *
  * @example
  * ```ts
+ * import { Option } from "effect/data"
  * import { Param } from "effect/unstable/cli"
- * import { Option } from "effect"
  *
  * // Basic variadic parameter (0 to infinity)
  * const tags = Param.variadic(Param.string("tag", "flag"))
@@ -1240,13 +1235,13 @@ export const atLeast: {
  *
  * @example
  * ```ts
+ * import { Option } from "effect/data"
  * import { Param } from "effect/unstable/cli"
- * import { Option } from "effect"
  *
  * const positiveInt = Param.integer("count", "flag").pipe(
  *   Param.filterMap(
- *     n => n > 0 ? Option.some(n) : Option.none(),
- *     n => `Expected positive integer, got ${n}`
+ *     (n) => n > 0 ? Option.some(n) : Option.none(),
+ *     (n) => `Expected positive integer, got ${n}`
  *   )
  * )
  * ```
@@ -1371,11 +1366,13 @@ export const withPseudoName: {
  *
  * @example
  * ```ts
+ * import { Check, Schema } from "effect/schema"
  * import { Param } from "effect/unstable/cli"
- * import { Schema } from "effect/schema"
+ *
+ * const isEmail = Check.regex(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)
  *
  * const Email = Schema.String.pipe(
- *   Schema.pattern(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)
+ *   Schema.check(isEmail)
  * )
  *
  * const email = Param.string("email", "flag").pipe(

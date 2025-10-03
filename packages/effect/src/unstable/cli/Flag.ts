@@ -221,13 +221,17 @@ export const directory = (name: string, options?: {
  *
  * @example
  * ```ts
+ * import { Effect } from "effect"
+ * import { Redacted } from "effect/data"
  * import { Flag } from "effect/unstable/cli"
- * import { Effect, Redacted } from "effect"
  *
  * const passwordFlag = Flag.redacted("password")
  *
- * const program = Effect.gen(function* () {
- *   const password = yield* passwordFlag
+ * const program = Effect.gen(function*() {
+ *   const [leftover, password] = yield* passwordFlag.parse({
+ *     arguments: [],
+ *     flags: { "password": ["abc123"] }
+ *   })
  *   const value = Redacted.value(password) // Access the underlying value
  *   console.log("Password length:", value.length)
  * })
@@ -245,7 +249,7 @@ export const redacted = (name: string): Flag<Redacted.Redacted<string>> => Param
  * ```ts
  * import { Flag } from "effect/unstable/cli"
  *
- * const config = Flag.fileContent("config-file")
+ * const config = Flag.fileString("config-file")
  * // --config-file ./app.json will read the file content
  * ```
  *
@@ -261,12 +265,12 @@ export const fileString = (name: string): Flag<string> => Param.fileString(name,
  * @example
  * ```ts
  * import { Flag } from "effect/unstable/cli"
- * import { Schema } from "effect"
+ * import { Schema } from "effect/schema"
  *
  * const ConfigSchema = Schema.Struct({
  *   port: Schema.Number,
  *   host: Schema.String
- * })
+ * }).pipe(Schema.fromJsonString)
  *
  * const config = Flag.fileSchema("config", ConfigSchema, "JSON")
  * ```
@@ -306,7 +310,7 @@ export const keyValueMap = (name: string): Flag<Record<string, string>> => Param
  * import { Flag } from "effect/unstable/cli"
  *
  * // Used as a placeholder in flag combinators
- * const conditionalFlag = someCondition ? Flag.string("value") : Flag.none
+ * const conditionalFlag = true ? Flag.string("value") : Flag.none
  * ```
  *
  * @since 4.0.0
@@ -400,13 +404,17 @@ export const withPseudoName: {
  *
  * @example
  * ```ts
+ * import { Effect } from "effect"
+ * import { Option } from "effect/data"
  * import { Flag } from "effect/unstable/cli"
- * import { Option, Effect } from "effect"
  *
  * const optionalPort = Flag.optional(Flag.integer("port"))
  *
- * const program = Effect.gen(function* () {
- *   const port = yield* optionalPort
+ * const program = Effect.gen(function*() {
+ *   const [leftover, port] = yield* optionalPort.parse({
+ *     arguments: [],
+ *     flags: { "port": ["4000"] }
+ *   })
  *   if (Option.isSome(port)) {
  *     console.log("Port specified:", port.value)
  *   } else {
@@ -477,18 +485,17 @@ export const map: {
  *
  * @example
  * ```ts
+ * import { Effect } from "effect"
+ * import { FileSystem } from "effect/platform"
  * import { Flag } from "effect/unstable/cli"
- * import { Effect, FileSystem } from "effect"
  *
  * // Read file size from path flag
  * const fileSizeFlag = Flag.file("input").pipe(
- *   Flag.mapEffect(path =>
- *     Effect.gen(function* () {
- *       const fs = yield* FileSystem.FileSystem
- *       const stats = yield* fs.stat(path)
- *       return stats.size
- *     })
- *   )
+ *   Flag.mapEffect(Effect.fnUntraced(function*(path) {
+ *     const fs = yield* FileSystem.FileSystem
+ *     const stats = yield* Effect.orDie(fs.stat(path))
+ *     return stats.size
+ *   }))
  * )
  * ```
  *
@@ -648,22 +655,22 @@ export const between: {
  *
  * @example
  * ```ts
+ * import { Option } from "effect/data"
  * import { Flag } from "effect/unstable/cli"
- * import { Option } from "effect"
  *
  * // Parse positive integers only
  * const positiveInt = Flag.integer("count").pipe(
  *   Flag.filterMap(
- *     n => n > 0 ? Option.some(n) : Option.none(),
- *     n => `Expected positive integer, got ${n}`
+ *     (n) => n > 0 ? Option.some(n) : Option.none(),
+ *     (n) => `Expected positive integer, got ${n}`
  *   )
  * )
  *
  * // Parse valid email addresses
  * const emailFlag = Flag.string("email").pipe(
  *   Flag.filterMap(
- *     email => email.includes("@") ? Option.some(email) : Option.none(),
- *     email => `Invalid email address: ${email}`
+ *     (email) => email.includes("@") ? Option.some(email) : Option.none(),
+ *     (email) => `Invalid email address: ${email}`
  *   )
  * )
  * ```
@@ -755,8 +762,9 @@ export const orElse: {
  *
  * @example
  * ```ts
+ * import { Effect } from "effect"
+ * import { Result } from "effect/data"
  * import { Flag } from "effect/unstable/cli"
- * import { Result, Effect } from "effect"
  *
  * // Try file path, fallback to URL
  * const sourceFlag = Flag.orElseResult(
@@ -764,8 +772,11 @@ export const orElse: {
  *   () => Flag.string("source-url")
  * )
  *
- * const program = Effect.gen(function* () {
- *   const source = yield* sourceFlag
+ * const program = Effect.gen(function*() {
+ *   const [leftover, source] = yield* sourceFlag.parse({
+ *     arguments: [],
+ *     flags: { "source-url": ["https://google.com"] }
+ *   })
  *   if (Result.isSuccess(source)) {
  *     console.log("Using file:", source.success)
  *   } else {
@@ -790,14 +801,16 @@ export const orElseResult: {
  *
  * @example
  * ```ts
+ * import { Check, Schema } from "effect/schema"
  * import { Flag } from "effect/unstable/cli"
- * import { Schema } from "effect"
+ *
+ * const isEmail = Check.includes("@", {
+ *   message: "Must be a valid email address"
+ * })
  *
  * // Parse and validate email with custom schema
  * const EmailSchema = Schema.String.pipe(
- *   Schema.filter(email => email.includes("@"), {
- *     message: () => "Must be a valid email address"
- *   })
+ *   Schema.check(isEmail)
  * )
  *
  * const emailFlag = Flag.string("email").pipe(
@@ -809,10 +822,10 @@ export const orElseResult: {
  *   port: Schema.Number,
  *   host: Schema.String,
  *   ssl: Schema.optional(Schema.Boolean)
- * })
+ * }).pipe(Schema.fromJsonString)
  *
  * const configFlag = Flag.string("config").pipe(
- *   Flag.withSchema(Schema.parseJson(ConfigSchema))
+ *   Flag.withSchema(ConfigSchema)
  * )
  * ```
  *

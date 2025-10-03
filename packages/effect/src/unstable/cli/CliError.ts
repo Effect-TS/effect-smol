@@ -26,13 +26,13 @@ export const TypeId = "~effect/cli/CliError"
  *   return Effect.fail("Unknown error")
  * }
  *
+ * // Example usage in error handling
  * const program = Effect.gen(function* () {
- *   try {
- *     // Some CLI operation that might fail
- *     yield* someCliOperation()
- *   } catch (error) {
- *     yield* handleError(error)
- *   }
+ *   const result = yield* Effect.try({
+ *     try: () => ({ success: true }),
+ *     catch: (error) => error
+ *   })
+ *   handleError(result)
  * })
  * ```
  *
@@ -49,7 +49,7 @@ export const isCliError = (u: unknown): u is CliError => Predicate.hasProperty(u
  * import { CliError } from "effect/unstable/cli"
  * import { Effect } from "effect"
  *
- * const handleCliError = (error: CliError) => {
+ * const handleCliError = (error: CliError.CliError): void => {
  *   switch (error._tag) {
  *     case "UnrecognizedOption":
  *       console.log(`Unknown flag: ${error.option}`)
@@ -197,8 +197,8 @@ export class DuplicateOption extends Schema.ErrorClass(`${TypeId}/DuplicateOptio
  * // "Missing required flag: --api-key"
  *
  * // In validation context
- * const validateRequiredOptions = Effect.gen(function* () {
- *   const apiKey = yield* getOption("api-key")
+ * const validateRequiredOptions = (options: Record<string, string | undefined>) => Effect.gen(function* () {
+ *   const apiKey = options["api-key"]
  *   if (!apiKey) {
  *     return yield* Effect.fail(missingOptionError)
  *   }
@@ -242,8 +242,7 @@ export class MissingOption extends Schema.ErrorClass(`${TypeId}/MissingOption`)(
  * // "Missing required argument: target"
  *
  * // In argument parsing
- * const parseArguments = Effect.gen(function* () {
- *   const args = yield* getArguments()
+ * const parseArguments = (args: string[]) => Effect.gen(function* () {
  *   if (args.length === 0) {
  *     return yield* Effect.fail(missingArgError)
  *   }
@@ -395,19 +394,18 @@ export class UnknownSubcommand extends Schema.ErrorClass(`${TypeId}/UnknownSubco
  * // "Help requested"
  *
  * // In help flag handling
- * const handleHelpFlag = Effect.gen(function* () {
- *   const shouldShowHelp = yield* checkHelpFlag()
- *   if (shouldShowHelp) {
+ * const handleHelpFlag = (hasHelpFlag: boolean) => Effect.gen(function* () {
+ *   if (hasHelpFlag) {
  *     return yield* Effect.fail(showHelpIndicator)
  *   }
- *   return yield* continueWithCommand()
+ *   return "continuing with command"
  * })
  *
  * // In error handling
- * const handleCliErrors = (error: CliError) => {
+ * const handleCliErrors = (error: CliError.CliError): void => {
  *   if (error._tag === "ShowHelp") {
  *     // Display help for the command path
- *     return displayHelp(error.commandPath)
+ *     console.log(`Displaying help for: ${error.commandPath.join(" ")}`)
  *   }
  *   // Handle other errors...
  * }
@@ -448,22 +446,20 @@ export class ShowHelp extends Schema.ErrorClass(`${TypeId}/ShowHelp`)({
  *
  * // In command handler
  * const deployCommand = Effect.gen(function* () {
- *   try {
- *     yield* connectToDatabase()
- *     yield* performDeployment()
- *   } catch (error) {
- *     // Wrap user errors to unify error handling
- *     return yield* Effect.fail(new CliError.UserError({ cause: error }))
- *   }
+ *   const result = yield* Effect.try({
+ *     try: () => ({ deployed: true }),
+ *     catch: (error) => new CliError.UserError({ cause: error })
+ *   })
+ *   return result
  * })
  *
  * // In error handling
- * const handleError = (error: CliError) => {
+ * const handleError = (error: CliError.CliError): Effect.Effect<number> => {
  *   if (error._tag === "UserError") {
  *     console.log("Command failed:", error.cause)
  *     return Effect.succeed(1) // Exit code 1
  *   }
- *   // Handle other CLI errors...
+ *   return Effect.succeed(0)
  * }
  * ```
  *

@@ -13,8 +13,8 @@ import type { HelpDoc } from "./HelpDoc.ts"
  *
  * @example
  * ```ts
+ * import { Effect } from "effect"
  * import { HelpFormatter } from "effect/unstable/cli"
- * import * as Effect from "effect/Effect"
  *
  * // Create a custom renderer implementation
  * const customRenderer: HelpFormatter.HelpRenderer = {
@@ -25,7 +25,7 @@ import type { HelpDoc } from "./HelpDoc.ts"
  * }
  *
  * // Use the custom renderer in a program
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const renderer = yield* HelpFormatter.HelpRenderer
  *   const helpText = renderer.formatVersion("myapp", "1.0.0")
  *   console.log(helpText)
@@ -227,9 +227,8 @@ export const layer = (renderer: HelpRenderer): Layer.Layer<never> => Layer.succe
  *
  * @example
  * ```ts
- * import { HelpFormatter } from "effect/unstable/cli"
- * import * as Effect from "effect/Effect"
- * import * as Data from "effect/Data"
+ * import { Effect } from "effect"
+ * import { CliError, HelpFormatter } from "effect/unstable/cli"
  *
  * // Create a renderer without colors for tests or CI environments
  * const noColorRenderer = HelpFormatter.defaultHelpRenderer({ colors: false })
@@ -240,14 +239,15 @@ export const layer = (renderer: HelpRenderer): Layer.Layer<never> => Layer.succe
  * // Auto-detect colors based on terminal support (default behavior)
  * const autoRenderer = HelpFormatter.defaultHelpRenderer()
  *
- * // Use the renderer in a program
- * class MyError extends Data.TaggedError("MyError")<{ message: string }> {}
- *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const renderer = colorRenderer
  *
  *   // Format an error with proper styling
- *   const error = new MyError({ message: "Invalid argument provided" })
+ *   const error = new CliError.InvalidValue({
+ *     option: "foo",
+ *     value: "bar",
+ *     expected: "baz"
+ *   })
  *   const errorText = renderer.formatError(error)
  *   console.log(errorText)
  *

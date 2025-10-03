@@ -51,28 +51,35 @@ export const TypeId = "~effect/cli/Command"
  *
  * @example
  * ```ts
- * import { Command, Flag, Argument } from "effect/unstable/cli"
- * import { Effect, Console } from "effect"
+ * import { Console } from "effect"
+ * import { Argument, Command, Flag } from "effect/unstable/cli"
  *
  * // Simple command with no configuration
- * const version: Command.Command<"version", {}> = Command.make("version")
+ * const version: Command.Command<"version", {}, never, never> = Command.make("version")
  *
  * // Command with flags and arguments
- * const deploy: Command.Command<"deploy", { env: string; force: boolean; files: ReadonlyArray<string> }> =
- *   Command.make("deploy", {
+ * const deploy: Command.Command<
+ *   "deploy",
+ *   {
+ *     readonly env: string
+ *     readonly force: boolean
+ *     readonly files: ReadonlyArray<unknown>
+ *   },
+ *   never,
+ *   never
+ * > = Command.make(
+ *   "deploy",
+ *   {
  *     env: Flag.string("env"),
  *     force: Flag.boolean("force"),
  *     files: Argument.string("files").pipe(Argument.variadic)
- *   })
+ *   }
+ * )
  *
  * // Command with handler
  * const greet = Command.make("greet", {
  *   name: Flag.string("name")
- * }, (config) =>
- *   Effect.gen(function*() {
- *     yield* Console.log(`Hello, ${config.name}!`)
- *   })
- * )
+ * }, (config) => Console.log(`Hello, ${config.name}!`))
  * ```
  *
  * @since 4.0.0
@@ -139,8 +146,8 @@ export type Environment = FileSystem.FileSystem | Path.Path // | Terminal when a
  *
  * @example
  * ```ts
+ * import { Console, Effect } from "effect"
  * import { Command, Flag } from "effect/unstable/cli"
- * import { Effect, Console } from "effect"
  *
  * const parentCommand = Command.make("parent", {
  *   verbose: Flag.boolean("verbose")
@@ -149,15 +156,14 @@ export type Environment = FileSystem.FileSystem | Path.Path // | Terminal when a
  * const childCommand = Command.make("child", {}, () =>
  *   Effect.gen(function*() {
  *     // Access parent command's context within subcommand
- *     const parentConfig = yield* parentCommand.tag
+ *     const parentConfig = yield* parentCommand
  *     if (parentConfig.verbose) {
  *       yield* Console.log("Verbose mode enabled from parent")
  *     }
- *   })
- * )
+ *   }))
  *
  * const app = parentCommand.pipe(
- *   Command.withSubcommands([childCommand])
+ *   Command.withSubcommands(childCommand)
  * )
  * ```
  *
@@ -285,7 +291,7 @@ export type InferConfig<A extends CommandConfig> = Simplify<
  * // Result: string
  *
  * // Array param extraction
- * type StringArgs = Command.InferConfigValue<typeof Argument.array<string>>
+ * type StringArgs = readonly string[]
  * // Result: ReadonlyArray<string>
  *
  * // Nested config extraction
@@ -458,7 +464,7 @@ const Proto = {
  * @example
  * ```ts
  * import { Command, Flag, Argument } from "effect/unstable/cli"
- * import { Effect, Console, Data } from "effect"
+ * import { Effect, Console } from "effect"
  *
  * // Simple command with no configuration
  * const version = Command.make("version")

@@ -9,9 +9,9 @@
  *
  * @example
  * ```ts
- * import { HelpDoc } from "effect/unstable/cli"
+ * import * as HelpDoc from "effect/unstable/cli/HelpDoc"
  *
- * const deployCommandHelp: HelpDoc = {
+ * const deployCommandHelp: HelpDoc.HelpDoc = {
  *   description: "Deploy your application to the cloud",
  *   usage: "myapp deploy [options] <target>",
  *   flags: [
@@ -78,9 +78,9 @@ export interface HelpDoc {
  *
  * @example
  * ```ts
- * import { FlagDoc } from "effect/unstable/cli"
+ * import { HelpDoc } from "effect/unstable/cli"
  *
- * const verboseFlag: FlagDoc = {
+ * const verboseFlag: HelpDoc.FlagDoc = {
  *   name: "verbose",
  *   aliases: ["-v", "--verbose"],
  *   type: "boolean",
@@ -88,7 +88,7 @@ export interface HelpDoc {
  *   required: false
  * }
  *
- * const portFlag: FlagDoc = {
+ * const portFlag: HelpDoc.FlagDoc = {
  *   name: "port",
  *   aliases: ["-p"],
  *   type: "integer",
@@ -132,20 +132,20 @@ export interface FlagDoc {
  *
  * @example
  * ```ts
- * import { SubcommandDoc } from "effect/unstable/cli"
+ * import { HelpDoc } from "effect/unstable/cli"
  *
- * const deploySubcommand: SubcommandDoc = {
+ * const deploySubcommand: HelpDoc.SubcommandDoc = {
  *   name: "deploy",
  *   description: "Deploy the application to the cloud"
  * }
  *
- * const buildSubcommand: SubcommandDoc = {
+ * const buildSubcommand: HelpDoc.SubcommandDoc = {
  *   name: "build",
  *   description: "Build the application for production"
  * }
  *
  * // Used in parent command's help documentation
- * const mainCommandHelp = {
+ * const mainCommandHelp: HelpDoc.HelpDoc = {
  *   description: "Cloud deployment tool",
  *   usage: "myapp <command> [options]",
  *   flags: [],
@@ -173,9 +173,9 @@ export interface SubcommandDoc {
  *
  * @example
  * ```ts
- * import { ArgDoc } from "effect/unstable/cli"
+ * import { HelpDoc } from "effect/unstable/cli"
  *
- * const sourceArg: ArgDoc = {
+ * const sourceArg: HelpDoc.ArgDoc = {
  *   name: "source",
  *   type: "file",
  *   description: "Source file to process",
@@ -183,7 +183,7 @@ export interface SubcommandDoc {
  *   variadic: false
  * }
  *
- * const filesArg: ArgDoc = {
+ * const filesArg: HelpDoc.ArgDoc = {
  *   name: "files",
  *   type: "file",
  *   description: "Files to process (can specify multiple)",
@@ -192,7 +192,7 @@ export interface SubcommandDoc {
  * }
  *
  * // Used in command help documentation
- * const copyCommandHelp = {
+ * const copyCommandHelp: HelpDoc.HelpDoc = {
  *   description: "Copy files from source to destination",
  *   usage: "copy <source> [files...]",
  *   flags: [],
