@@ -13,6 +13,7 @@
     "**/node_modules/",
     "**/dist/",
     "bundle/",
+    "examples/",
     "scripts/",
     "scratchpad/",
     "packages/*/dtslint/",
