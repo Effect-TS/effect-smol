@@ -2,7 +2,8 @@ import { NodeFileSystem, NodePath } from "@effect/platform-node"
 import { assert, describe, it } from "@effect/vitest"
 import { Effect, Layer } from "effect"
 import { CliError, Command, Flag } from "effect/unstable/cli"
-import { lex, parseArgs } from "effect/unstable/cli/internal/parseCommandArgs"
+import * as Lexer from "effect/unstable/cli/internal/lexer"
+import * as Parser from "effect/unstable/cli/internal/parser"
 
 const TestLayer = Layer.mergeAll(NodeFileSystem.layer, NodePath.layer)
 
@@ -14,7 +15,7 @@ describe("Command errors", () => {
           value: Flag.string("value")
         })
 
-        const parsedInput = yield* parseArgs(lex([]), command)
+        const parsedInput = yield* Parser.parseArgs(Lexer.lex([]), command)
         const error = yield* Effect.flip(command.parse(parsedInput))
         assert.strictEqual(error._tag, "MissingOption")
         if (error._tag === "MissingOption") {
