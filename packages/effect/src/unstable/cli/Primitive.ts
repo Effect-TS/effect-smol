@@ -13,6 +13,35 @@ import type { Covariant } from "../../types/Types.ts"
 const TypeId = "~effect/cli/Primitive"
 
 /**
+ * Represents a primitive type that can parse string input into a typed value.
+ *
+ * @example
+ * ```ts
+ * import { Primitive } from "effect/unstable/cli"
+ * import { Effect } from "effect"
+ *
+ * // Using built-in primitives
+ * const parseString = Effect.gen(function* () {
+ *   const stringResult = yield* Primitive.string.parse("hello")
+ *   const numberResult = yield* Primitive.integer.parse("42")
+ *   const boolResult = yield* Primitive.boolean.parse("true")
+ *
+ *   return { stringResult, numberResult, boolResult }
+ * })
+ *
+ * // Creating custom primitive
+ * const emailPrimitive: Primitive<string> = {
+ *   [Primitive.TypeId]: { _A: (_: never) => _ },
+ *   _tag: "Email",
+ *   parse: (value) => {
+ *     if (value.includes("@")) {
+ *       return Effect.succeed(value)
+ *     }
+ *     return Effect.fail("Invalid email format")
+ *   }
+ * }
+ * ```
+ *
  * @since 4.0.0
  * @category models
  */
@@ -85,6 +114,32 @@ const makeSchemaPrimitive = <A>(
 }
 
 /**
+ * Creates a primitive that parses boolean values from string input.
+ *
+ * Recognizes various forms of true/false values:
+ * - True values: "true", "1", "y", "yes", "on"
+ * - False values: "false", "0", "n", "no", "off"
+ *
+ * @example
+ * ```ts
+ * import { Primitive } from "effect/unstable/cli"
+ * import { Effect } from "effect"
+ *
+ * const parseBoolean = Effect.gen(function* () {
+ *   const result1 = yield* Primitive.boolean.parse("true")
+ *   console.log(result1) // true
+ *
+ *   const result2 = yield* Primitive.boolean.parse("yes")
+ *   console.log(result2) // true
+ *
+ *   const result3 = yield* Primitive.boolean.parse("false")
+ *   console.log(result3) // false
+ *
+ *   const result4 = yield* Primitive.boolean.parse("0")
+ *   console.log(result4) // false
+ * })
+ * ```
+ *
  * @since 4.0.0
  * @category constructors
  */
@@ -95,6 +150,25 @@ export const boolean: Primitive<boolean> = makePrimitive("Boolean", (value) => {
 })
 
 /**
+ * Creates a primitive that parses floating-point numbers from string input.
+ *
+ * @example
+ * ```ts
+ * import { Primitive } from "effect/unstable/cli"
+ * import { Effect } from "effect"
+ *
+ * const parseFloat = Effect.gen(function* () {
+ *   const result1 = yield* Primitive.float.parse("3.14")
+ *   console.log(result1) // 3.14
+ *
+ *   const result2 = yield* Primitive.float.parse("-42.5")
+ *   console.log(result2) // -42.5
+ *
+ *   const result3 = yield* Primitive.float.parse("0")
+ *   console.log(result3) // 0
+ * })
+ * ```
+ *
  * @since 4.0.0
  * @category constructors
  */
@@ -107,6 +181,25 @@ export const float: Primitive<number> = makeSchemaPrimitive(
 )
 
 /**
+ * Creates a primitive that parses integer numbers from string input.
+ *
+ * @example
+ * ```ts
+ * import { Primitive } from "effect/unstable/cli"
+ * import { Effect } from "effect"
+ *
+ * const parseInteger = Effect.gen(function* () {
+ *   const result1 = yield* Primitive.integer.parse("42")
+ *   console.log(result1) // 42
+ *
+ *   const result2 = yield* Primitive.integer.parse("-123")
+ *   console.log(result2) // -123
+ *
+ *   const result3 = yield* Primitive.integer.parse("0")
+ *   console.log(result3) // 0
+ * })
+ * ```
+ *
  * @since 4.0.0
  * @category constructors
  */
@@ -136,6 +229,25 @@ const DateFromString = Schema.String.pipe(
 )
 
 /**
+ * Creates a primitive that parses Date objects from string input.
+ *
+ * @example
+ * ```ts
+ * import { Primitive } from "effect/unstable/cli"
+ * import { Effect } from "effect"
+ *
+ * const parseDate = Effect.gen(function* () {
+ *   const result1 = yield* Primitive.date.parse("2023-12-25")
+ *   console.log(result1) // Date object for December 25, 2023
+ *
+ *   const result2 = yield* Primitive.date.parse("2023-12-25T10:30:00Z")
+ *   console.log(result2) // Date object with time
+ *
+ *   const result3 = yield* Primitive.date.parse("Dec 25, 2023")
+ *   console.log(result3) // Date object parsed from natural format
+ * })
+ * ```
+ *
  * @since 4.0.0
  * @category constructors
  */
@@ -146,12 +258,56 @@ export const date: Primitive<Date> = makeSchemaPrimitive(
 )
 
 /**
+ * Creates a primitive that accepts any string value without validation.
+ *
+ * @example
+ * ```ts
+ * import { Primitive } from "effect/unstable/cli"
+ * import { Effect } from "effect"
+ *
+ * const parseString = Effect.gen(function* () {
+ *   const result1 = yield* Primitive.string.parse("hello world")
+ *   console.log(result1) // "hello world"
+ *
+ *   const result2 = yield* Primitive.string.parse("")
+ *   console.log(result2) // ""
+ *
+ *   const result3 = yield* Primitive.string.parse("123")
+ *   console.log(result3) // "123"
+ * })
+ * ```
+ *
  * @since 4.0.0
  * @category constructors
  */
 export const string: Primitive<string> = makePrimitive("String", (value) => Effect.succeed(value))
 
 /**
+ * Creates a primitive that accepts only specific choice values mapped to custom types.
+ *
+ * @example
+ * ```ts
+ * import { Primitive } from "effect/unstable/cli"
+ * import { Effect } from "effect"
+ *
+ * type LogLevel = "debug" | "info" | "warn" | "error"
+ *
+ * const logLevelPrimitive = Primitive.choice<LogLevel>([
+ *   ["debug", "debug"],
+ *   ["info", "info"],
+ *   ["warn", "warn"],
+ *   ["error", "error"]
+ * ])
+ *
+ * const parseLogLevel = Effect.gen(function* () {
+ *   const result1 = yield* logLevelPrimitive.parse("info")
+ *   console.log(result1) // "info"
+ *
+ *   const result2 = yield* logLevelPrimitive.parse("debug")
+ *   console.log(result2) // "debug"
+ * })
+ * ```
+ *
  * @since 4.0.0
  * @category constructors
  */
@@ -169,12 +325,59 @@ export const choice = <A>(
 }
 
 /**
+ * Specifies the type of path validation to perform.
+ *
+ * @example
+ * ```ts
+ * import { Primitive } from "effect/unstable/cli"
+ * import { Effect } from "effect"
+ *
+ * // Only accept files
+ * const filePath = Primitive.path("file", true)
+ *
+ * // Only accept directories
+ * const dirPath = Primitive.path("directory", true)
+ *
+ * // Accept either files or directories
+ * const anyPath = Primitive.path("either", false)
+ * ```
+ *
  * @since 4.0.0
  * @category models
  */
 export type PathType = "file" | "directory" | "either"
 
 /**
+ * Creates a primitive that validates and resolves file system paths.
+ *
+ * @example
+ * ```ts
+ * import { Primitive } from "effect/unstable/cli"
+ * import { Effect } from "effect"
+ * import { FileSystem } from "effect/platform"
+ * import { Path } from "effect/platform"
+ *
+ * const program = Effect.gen(function* () {
+ *   // Parse a file path that must exist
+ *   const filePrimitive = Primitive.path("file", true)
+ *   const filePath = yield* filePrimitive.parse("./package.json")
+ *   console.log(filePath) // Absolute path to package.json
+ *
+ *   // Parse a directory path
+ *   const dirPrimitive = Primitive.path("directory", false)
+ *   const dirPath = yield* dirPrimitive.parse("./src")
+ *   console.log(dirPath) // Absolute path to src directory
+ *
+ *   // Parse any path type
+ *   const anyPrimitive = Primitive.path("either", false)
+ *   const anyPath = yield* anyPrimitive.parse("./some/path")
+ *   console.log(anyPath) // Absolute path
+ * }).pipe(
+ *   Effect.provide(FileSystem.layer),
+ *   Effect.provide(Path.layer)
+ * )
+ * ```
+ *
  * @since 4.0.0
  * @category constructors
  */
@@ -222,6 +425,21 @@ export const path = (
   )
 
 /**
+ * Creates a primitive that wraps string input in a redacted type for secure handling.
+ *
+ * @example
+ * ```ts
+ * import { Primitive } from "effect/unstable/cli"
+ * import { Effect } from "effect"
+ * import { Redacted } from "effect"
+ *
+ * const parseRedacted = Effect.gen(function* () {
+ *   const result = yield* Primitive.redacted.parse("secret-password")
+ *   console.log(Redacted.value(result)) // "secret-password"
+ *   console.log(String(result)) // "<redacted>"
+ * })
+ * ```
+ *
  * @since 4.0.0
  * @category constructors
  */
@@ -231,6 +449,27 @@ export const redacted: Primitive<Redacted.Redacted<string>> = makePrimitive(
 )
 
 /**
+ * Creates a primitive that reads and returns the contents of a file as a string.
+ *
+ * @example
+ * ```ts
+ * import { Primitive } from "effect/unstable/cli"
+ * import { Effect } from "effect"
+ * import { FileSystem } from "effect/platform"
+ * import { Path } from "effect/platform"
+ *
+ * const readConfigFile = Effect.gen(function* () {
+ *   const content = yield* Primitive.fileString.parse("./config.json")
+ *   console.log(content) // File contents as string
+ *
+ *   const parsed = JSON.parse(content)
+ *   return parsed
+ * }).pipe(
+ *   Effect.provide(FileSystem.layer),
+ *   Effect.provide(Path.layer)
+ * )
+ * ```
+ *
  * @since 4.0.0
  * @category constructors
  */
@@ -278,6 +517,35 @@ export const fileString: Primitive<string> = makePrimitive(
 /**
  * Reads and parses file content using the specified schema.
  *
+ * @example
+ * ```ts
+ * import { Primitive } from "effect/unstable/cli"
+ * import { Effect } from "effect"
+ * import { Schema } from "effect/schema"
+ * import { FileSystem } from "effect/platform"
+ * import { Path } from "effect/platform"
+ *
+ * const ConfigSchema = Schema.Struct({
+ *   name: Schema.String,
+ *   version: Schema.String,
+ *   port: Schema.Number
+ * })
+ *
+ * const jsonConfigPrimitive = Primitive.fileSchema(
+ *   Schema.parseJson(ConfigSchema),
+ *   "JSON"
+ * )
+ *
+ * const loadConfig = Effect.gen(function* () {
+ *   const config = yield* jsonConfigPrimitive.parse("./config.json")
+ *   console.log(config) // { name: "my-app", version: "1.0.0", port: 3000 }
+ *   return config
+ * }).pipe(
+ *   Effect.provide(FileSystem.layer),
+ *   Effect.provide(Path.layer)
+ * )
+ * ```
+ *
  * @since 4.0.0
  * @category constructors
  */
@@ -299,7 +567,24 @@ export const fileSchema = <A>(
 }
 
 /**
- * Parses `key=value` pairs.
+ * Parses `key=value` pairs into a record object.
+ *
+ * @example
+ * ```ts
+ * import { Primitive } from "effect/unstable/cli"
+ * import { Effect } from "effect"
+ *
+ * const parseKeyValue = Effect.gen(function* () {
+ *   const result1 = yield* Primitive.keyValueMap.parse("name=john")
+ *   console.log(result1) // { name: "john" }
+ *
+ *   const result2 = yield* Primitive.keyValueMap.parse("port=3000")
+ *   console.log(result2) // { port: "3000" }
+ *
+ *   const result3 = yield* Primitive.keyValueMap.parse("debug=true")
+ *   console.log(result3) // { debug: "true" }
+ * })
+ * ```
  *
  * @since 4.0.0
  * @category constructors
@@ -326,6 +611,21 @@ export const keyValueMap: Primitive<Record<string, string>> = makePrimitive(
 /**
  * A sentinel primitive that always fails to parse a value.
  *
+ * Used for flags that don't accept values.
+ *
+ * @example
+ * ```ts
+ * import { Primitive } from "effect/unstable/cli"
+ * import { Effect } from "effect"
+ *
+ * const program = Effect.gen(function* () {
+ *   // This will always fail - useful for boolean flags
+ *   const result = yield* Primitive.none.parse("any-value")
+ * })
+ *
+ * // The above effect will fail with "This option does not accept values"
+ * ```
+ *
  * @since 4.0.0
  * @category constructors
  */
@@ -335,6 +635,23 @@ export const none: Primitive<never> = makePrimitive("None", () => Effect.fail("T
  * Gets a human-readable type name for a primitive.
  *
  * Used for generating help documentation.
+ *
+ * @example
+ * ```ts
+ * import { Primitive } from "effect/unstable/cli"
+ *
+ * console.log(Primitive.getTypeName(Primitive.string)) // "string"
+ * console.log(Primitive.getTypeName(Primitive.integer)) // "integer"
+ * console.log(Primitive.getTypeName(Primitive.boolean)) // "boolean"
+ * console.log(Primitive.getTypeName(Primitive.date)) // "date"
+ * console.log(Primitive.getTypeName(Primitive.keyValueMap)) // "key=value"
+ *
+ * const logLevelChoice = Primitive.choice([
+ *   ["debug", "debug"],
+ *   ["info", "info"]
+ * ])
+ * console.log(Primitive.getTypeName(logLevelChoice)) // "choice"
+ * ```
  *
  * @since 4.0.0
  * @category utilities

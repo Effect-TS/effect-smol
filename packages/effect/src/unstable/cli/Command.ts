@@ -27,11 +27,54 @@ import * as Param from "./Param.ts"
 import * as Primitive from "./Primitive.ts"
 
 /**
+ * @example
+ * ```ts
+ * import { Command } from "effect/unstable/cli"
+ *
+ * // TypeId is used internally for Effect's brand system
+ * console.log(Command.TypeId) // "~effect/cli/Command"
+ * ```
+ *
  * @since 4.0.0
+ * @category symbols
  */
 export const TypeId = "~effect/cli/Command"
 
 /**
+ * Represents a CLI command with its configuration, handler, and metadata.
+ *
+ * Commands are the core building blocks of CLI applications. They define:
+ * - The command name and description
+ * - Configuration including flags and arguments
+ * - Handler function for execution
+ * - Optional subcommands for hierarchical structures
+ *
+ * @example
+ * ```ts
+ * import { Command, Flag, Argument } from "effect/unstable/cli"
+ * import { Effect, Console } from "effect"
+ *
+ * // Simple command with no configuration
+ * const version: Command.Command<"version", {}> = Command.make("version")
+ *
+ * // Command with flags and arguments
+ * const deploy: Command.Command<"deploy", { env: string; force: boolean; files: ReadonlyArray<string> }> =
+ *   Command.make("deploy", {
+ *     env: Flag.string("env"),
+ *     force: Flag.boolean("force"),
+ *     files: Argument.string("files").pipe(Argument.variadic)
+ *   })
+ *
+ * // Command with handler
+ * const greet = Command.make("greet", {
+ *   name: Flag.string("name")
+ * }, (config) =>
+ *   Effect.gen(function*() {
+ *     yield* Console.log(`Hello, ${config.name}!`)
+ *   })
+ * )
+ * ```
+ *
  * @since 4.0.0
  * @category models
  */
@@ -60,12 +103,64 @@ export interface Command<Name extends string, Input, E = never, R = never>
 /**
  * The environment required by CLI commands, including file system and path operations.
  *
+ * This type represents the services that CLI commands may need access to,
+ * particularly for file operations and path manipulations.
+ *
+ * @example
+ * ```ts
+ * import { Command } from "effect/unstable/cli"
+ * import { Effect, Console } from "effect"
+ * import { FileSystem, Path } from "effect/platform"
+ *
+ * // Commands that need file system access require Environment
+ * const readConfig = Command.make("read-config", {}, () =>
+ *   Effect.gen(function*() {
+ *     const fs = yield* FileSystem.FileSystem
+ *     const path = yield* Path.Path
+ *     const configPath = path.join(process.cwd(), "config.json")
+ *     const content = yield* fs.readFileString(configPath)
+ *     yield* Console.log(content)
+ *   })
+ * )
+ *
+ * // Environment is provided automatically by Command.run
+ * ```
+ *
  * @since 4.0.0
  * @category types
  */
 export type Environment = FileSystem.FileSystem | Path.Path // | Terminal when available
 
 /**
+ * Service context for a specific command, providing access to command input through Effect's service system.
+ *
+ * Context allows commands and subcommands to access their parsed configuration
+ * through Effect's dependency injection system.
+ *
+ * @example
+ * ```ts
+ * import { Command, Flag } from "effect/unstable/cli"
+ * import { Effect, Console } from "effect"
+ *
+ * const parentCommand = Command.make("parent", {
+ *   verbose: Flag.boolean("verbose")
+ * })
+ *
+ * const childCommand = Command.make("child", {}, () =>
+ *   Effect.gen(function*() {
+ *     // Access parent command's context within subcommand
+ *     const parentConfig = yield* parentCommand.tag
+ *     if (parentConfig.verbose) {
+ *       yield* Console.log("Verbose mode enabled from parent")
+ *     }
+ *   })
+ * )
+ *
+ * const app = parentCommand.pipe(
+ *   Command.withSubcommands([childCommand])
+ * )
+ * ```
+ *
  * @since 4.0.0
  * @category models
  */
@@ -75,6 +170,47 @@ export interface Context<Name extends string> {
 }
 
 /**
+ * Configuration object for defining command flags, arguments, and nested structures.
+ *
+ * CommandConfig allows you to specify:
+ * - Individual flags and arguments using Param types
+ * - Nested configuration objects for organization
+ * - Arrays of parameters for repeated elements
+ *
+ * @example
+ * ```ts
+ * import { Command, Flag, Argument } from "effect/unstable/cli"
+ * import { Effect, Console } from "effect"
+ *
+ * // Simple flat configuration
+ * const simpleConfig = {
+ *   name: Flag.string("name"),
+ *   age: Flag.integer("age"),
+ *   file: Argument.string("file")
+ * }
+ *
+ * // Nested configuration for organization
+ * const nestedConfig = {
+ *   user: {
+ *     name: Flag.string("name"),
+ *     email: Flag.string("email")
+ *   },
+ *   server: {
+ *     host: Flag.string("host"),
+ *     port: Flag.integer("port")
+ *   },
+ *   files: Argument.string("files").pipe(Argument.variadic)
+ * }
+ *
+ * // Use in command creation
+ * const command = Command.make("deploy", nestedConfig, (config) =>
+ *   Effect.gen(function*() {
+ *     // config.user.name, config.server.host, etc. are all type-safe
+ *     yield* Console.log(`Deploying for ${config.user.name} to ${config.server.host}:${config.server.port}`)
+ *   })
+ * )
+ * ```
+ *
  * @since 4.0.0
  * @category models
  */
@@ -86,6 +222,45 @@ export interface CommandConfig {
 }
 
 /**
+ * Infers the TypeScript type from a CommandConfig structure.
+ *
+ * This type utility extracts the final configuration type that handlers will receive,
+ * preserving the nested structure while converting Param types to their values.
+ *
+ * @example
+ * ```ts
+ * import { Command, Flag, Argument } from "effect/unstable/cli"
+ * import { Effect, Console } from "effect"
+ *
+ * // Define a configuration structure
+ * const config = {
+ *   name: Flag.string("name"),
+ *   server: {
+ *     host: Flag.string("host"),
+ *     port: Flag.integer("port")
+ *   },
+ *   files: Argument.string("files").pipe(Argument.variadic)
+ * } as const
+ *
+ * // InferConfig extracts the final type
+ * type ConfigType = Command.InferConfig<typeof config>
+ * // Result: {
+ * //   readonly name: string
+ * //   readonly server: {
+ * //     readonly host: string
+ * //     readonly port: number
+ * //   }
+ * //   readonly files: ReadonlyArray<string>
+ * // }
+ *
+ * const command = Command.make("deploy", config, (config: ConfigType) =>
+ *   Effect.gen(function*() {
+ *     // config is fully typed with the inferred structure
+ *     yield* Console.log(`Deploying to ${config.server.host}:${config.server.port}`)
+ *   })
+ * )
+ * ```
+ *
  * @since 4.0.0
  * @category models
  */
@@ -94,6 +269,33 @@ export type InferConfig<A extends CommandConfig> = Simplify<
 >
 
 /**
+ * Helper type utility for recursively inferring types from CommandConfig values.
+ *
+ * This type handles the different kinds of values that can appear in a CommandConfig:
+ * - Arrays of params/configs are recursively processed
+ * - Param types are extracted to their value types
+ * - Nested CommandConfig objects are recursively inferred
+ *
+ * @example
+ * ```ts
+ * import { Command, Flag, Argument } from "effect/unstable/cli"
+ *
+ * // Single param extraction
+ * type StringFlag = Command.InferConfigValue<typeof Flag.string>
+ * // Result: string
+ *
+ * // Array param extraction
+ * type StringArgs = Command.InferConfigValue<typeof Argument.array<string>>
+ * // Result: ReadonlyArray<string>
+ *
+ * // Nested config extraction
+ * type NestedConfig = Command.InferConfigValue<{
+ *   host: typeof Flag.string
+ *   port: typeof Flag.integer
+ * }>
+ * // Result: { readonly host: string; readonly port: number }
+ * ```
+ *
  * @since 4.0.0
  * @category models
  */
@@ -103,6 +305,28 @@ export type InferConfigValue<A> = A extends ReadonlyArray<any> ? { readonly [Key
   : never
 
 /**
+ * Internal tree structure that represents the blueprint for reconstructing parsed configuration.
+ *
+ * ConfigTree is used internally during command parsing to maintain the structure
+ * of nested configuration objects while allowing for flat parameter parsing.
+ *
+ * @example
+ * ```ts
+ * import { Command } from "effect/unstable/cli"
+ *
+ * // Internal structure for config like:
+ * // { name: Flag.string("name"), db: { host: Flag.string("host") } }
+ * //
+ * // Becomes ConfigTree:
+ * // {
+ * //   name: { _tag: "Param", index: 0 },
+ * //   db: {
+ * //     _tag: "ParsedConfig",
+ * //     tree: { host: { _tag: "Param", index: 1 } }
+ * //   }
+ * // }
+ * ```
+ *
  * @since 4.0.0
  * @category models
  */
@@ -111,6 +335,44 @@ export interface ConfigTree {
 }
 
 /**
+ * Individual node in the configuration tree, representing different types of configuration elements.
+ *
+ * ConfigNode can be:
+ * - Param: References a specific parameter by index in the flat parsed array
+ * - Array: Contains multiple child nodes for array parameters
+ * - ParsedConfig: Contains a nested configuration tree
+ *
+ * @example
+ * ```ts
+ * import { Command } from "effect/unstable/cli"
+ *
+ * // Different node types:
+ *
+ * // Param node (references parsed value at index)
+ * const paramNode: Command.ConfigNode = {
+ *   _tag: "Param",
+ *   index: 0
+ * }
+ *
+ * // Array node (contains multiple child nodes)
+ * const arrayNode: Command.ConfigNode = {
+ *   _tag: "Array",
+ *   children: [
+ *     { _tag: "Param", index: 1 },
+ *     { _tag: "Param", index: 2 }
+ *   ]
+ * }
+ *
+ * // ParsedConfig node (contains nested structure)
+ * const configNode: Command.ConfigNode = {
+ *   _tag: "ParsedConfig",
+ *   tree: {
+ *     host: { _tag: "Param", index: 3 },
+ *     port: { _tag: "Param", index: 4 }
+ *   }
+ * }
+ * ```
+ *
  * @since 4.0.0
  * @category models
  */
@@ -126,6 +388,45 @@ export type ConfigNode = {
 }
 
 /**
+ * Parsed and flattened configuration structure created from a CommandConfig.
+ *
+ * ParsedConfig separates parameters by type and maintains both the original
+ * nested structure (via tree) and the flattened parameter list for parsing.
+ *
+ * @example
+ * ```ts
+ * import { Command, Flag, Argument } from "effect/unstable/cli"
+ *
+ * // Example of what parseConfig produces for:
+ * const config = {
+ *   name: Flag.string("name"),
+ *   db: {
+ *     host: Flag.string("host"),
+ *     port: Flag.integer("port")
+ *   },
+ *   files: Argument.string("files").pipe(Argument.variadic)
+ * }
+ *
+ * // Results in ParsedConfig structure with:
+ * // - flags: All flags extracted and flattened
+ * // - arguments: All arguments extracted and flattened
+ * // - orderedParams: All params in declaration order
+ * // - tree: Blueprint preserving original nested structure
+ * //
+ * // Tree structure example:
+ * // {
+ * //   name: { _tag: "Param", index: 0 },
+ * //   db: {
+ * //     _tag: "ParsedConfig",
+ * //     tree: {
+ * //       host: { _tag: "Param", index: 1 },
+ * //       port: { _tag: "Param", index: 2 }
+ * //     }
+ * //   },
+ * //   files: { _tag: "Param", index: 3 }
+ * // }
+ * ```
+ *
  * @since 4.0.0
  * @category models
  */
@@ -150,41 +451,64 @@ const Proto = {
 /**
  * Creates a Command from a name, optional config, optional handler function, and optional description.
  *
+ * The make function is the primary constructor for CLI commands. It provides multiple overloads
+ * to support different patterns of command creation, from simple commands with no configuration
+ * to complex commands with nested configurations and error handling.
+ *
  * @example
  * ```ts
- * import * as Command from "effect/cli/Command"
- * import * as Param from "effect/cli/Param"
- * import * as Effect from "effect/Effect"
- * import * as Console from "effect/Console"
+ * import { Command, Flag, Argument } from "effect/unstable/cli"
+ * import { Effect, Console, Data } from "effect"
  *
- * // Name only
- * const bareCommand = Command.make("init")
+ * // Simple command with no configuration
+ * const version = Command.make("version")
  *
- * // With config
- * const configCommand = Command.make("deploy", {
- *   environment: Flag.string("env"),
- *   force: Flag.boolean("force")
+ * // Command with simple flags
+ * const greet = Command.make("greet", {
+ *   name: Flag.string("name"),
+ *   count: Flag.integer("count").pipe(Flag.withDefault(1))
  * })
  *
- * // With config and handler
- * const fullCommand = Command.make("deploy", {
+ * // Command with nested configuration
+ * const deploy = Command.make("deploy", {
+ *   environment: Flag.string("env").pipe(Flag.withDescription("Target environment")),
+ *   server: {
+ *     host: Flag.string("host").pipe(Flag.withDefault("localhost")),
+ *     port: Flag.integer("port").pipe(Flag.withDefault(3000))
+ *   },
+ *   files: Argument.string("files").pipe(Argument.variadic),
+ *   force: Flag.boolean("force").pipe(Flag.withDescription("Force deployment"))
+ * })
+ *
+ * // Command with handler
+ * const deployWithHandler = Command.make("deploy", {
  *   environment: Flag.string("env"),
  *   force: Flag.boolean("force")
  * }, (config) =>
  *   Effect.gen(function*() {
- *     yield* Console.log(`Deploying to ${config.environment}`)
+ *     yield* Console.log(`Starting deployment to ${config.environment}`)
+ *
+ *     if (!config.force && config.environment === "production") {
+ *       return yield* Effect.fail("Production deployments require --force flag")
+ *     }
+ *
+ *     yield* Console.log("Deployment completed successfully")
  *   })
  * )
  *
- * // With config, handler, and description
- * const describedCommand = Command.make("deploy", {
- *   environment: Flag.string("env"),
- *   force: Flag.boolean("force")
+ * // Command with complex file operations
+ * const backup = Command.make("backup", {
+ *   source: Argument.string("source"),
+ *   destination: Flag.string("dest").pipe(Flag.withDescription("Backup destination")),
+ *   compress: Flag.boolean("compress").pipe(Flag.withDefault(false))
  * }, (config) =>
  *   Effect.gen(function*() {
- *     yield* Console.log(`Deploying to ${config.environment}`)
- *   }),
- *   "Deploy the application to a specified environment"
+ *     yield* Console.log(`Backing up ${config.source} to ${config.destination}`)
+ *     if (config.compress) {
+ *       yield* Console.log("Compression enabled")
+ *     }
+ *     // File operations would go here
+ *   })
  * )
  * ```
  *
@@ -218,15 +542,32 @@ export const make: {
  *
  * @example
  * ```ts
- * import * as Command from "effect/cli/Command"
- * import * as Param from "effect/cli/Param"
- * import * as Effect from "effect/Effect"
- * import * as Console from "effect/Console"
+ * import { Command, Flag } from "effect/unstable/cli"
+ * import { Effect, Console } from "effect"
+ * import { Option } from "effect/data"
  *
+ * // First define subcommands
+ * const clone = Command.make("clone", {
+ *   repository: Flag.string("repository")
+ * }, (config) =>
+ *   Effect.gen(function*() {
+ *     yield* Console.log(`Cloning ${config.repository}`)
+ *   })
+ * )
+ *
+ * const add = Command.make("add", {
+ *   files: Flag.string("files")
+ * }, (config) =>
+ *   Effect.gen(function*() {
+ *     yield* Console.log(`Adding ${config.files}`)
+ *   })
+ * )
+ *
+ * // Create main command with subcommands and handler
  * const git = Command.make("git", {
  *   verbose: Flag.boolean("verbose")
  * }).pipe(
- *   Command.withSubcommands([clone, add]),
+ *   Command.withSubcommands(clone, add),
  *   Command.withHandler((config) =>
  *     Effect.gen(function*() {
  *       // Now config has the subcommand field
@@ -264,10 +605,8 @@ export const withHandler: {
  *
  * @example
  * ```ts
- * import * as Command from "effect/cli/Command"
- * import * as Param from "effect/cli/Param"
- * import * as Effect from "effect/Effect"
- * import * as Console from "effect/Console"
+ * import { Command, Flag } from "effect/unstable/cli"
+ * import { Effect, Console } from "effect"
  *
  * const clone = Command.make("clone", {
  *   repository: Flag.string("repository")
@@ -286,7 +625,7 @@ export const withHandler: {
  * )
  *
  * const git = Command.make("git", {}, () => Effect.void).pipe(
- *   Command.withSubcommands([clone, add])
+ *   Command.withSubcommands(clone, add)
  * )
  * ```
  *
@@ -400,10 +739,8 @@ type ExtractSubcommandInputs<T extends ReadonlyArray<unknown>> = T extends reado
  *
  * @example
  * ```ts
- * import * as Command from "effect/cli/Command"
- * import * as Param from "effect/cli/Param"
- * import * as Effect from "effect/Effect"
- * import * as Console from "effect/Console"
+ * import { Command, Flag } from "effect/unstable/cli"
+ * import { Effect, Console } from "effect"
  *
  * const deploy = Command.make("deploy", {
  *   environment: Flag.string("env")
@@ -436,7 +773,61 @@ export const withDescription: {
 
 /**
  * Generates a HelpDoc structure from a Command.
+ *
  * This structured data can be formatted for display using HelpFormatter.
+ * getHelpDoc extracts all relevant information from a command including its
+ * description, usage pattern, flags, arguments, and subcommands to create
+ * comprehensive help documentation.
+ *
+ * @example
+ * ```ts
+ * import { Command, Flag, Argument, HelpFormatter } from "effect/unstable/cli"
+ * import { Effect, Console } from "effect"
+ *
+ * // Create a complex command
+ * const deploy = Command.make("deploy", {
+ *   environment: Flag.string("env").pipe(Flag.withDescription("Target environment")),
+ *   force: Flag.boolean("force").pipe(Flag.withDescription("Force deployment")),
+ *   files: Argument.string("files").pipe(Argument.variadic, Argument.withDescription("Files to deploy"))
+ * }, (config) =>
+ *   Effect.gen(function*() {
+ *     yield* Console.log(`Deploying to ${config.environment}`)
+ *   })
+ * ).pipe(
+ *   Command.withDescription("Deploy application to specified environment")
+ * )
+ *
+ * // Generate help documentation
+ * const helpDoc = Command.getHelpDoc(deploy)
+ * // Result contains:
+ * // {
+ * //   description: "Deploy application to specified environment",
+ * //   usage: "deploy [flags] <files...>",
+ * //   flags: [
+ * //     { name: "env", aliases: ["--env"], type: "string", description: "Target environment", required: true },
+ * //     { name: "force", aliases: ["--force"], type: "boolean", description: "Force deployment", required: false }
+ * //   ],
+ * //   args: [
+ * //     { name: "files", type: "string", description: "Files to deploy", required: true, variadic: true }
+ * //   ]
+ * // }
+ *
+ * // Format and display help
+ * const program = Effect.gen(function*() {
+ *   const helpRenderer = yield* HelpFormatter.HelpRenderer
+ *   const helpText = helpRenderer.formatHelpDoc(helpDoc)
+ *   yield* Console.log(helpText)
+ * })
+ *
+ * // For subcommand help with command path
+ * const git = Command.make("git", {
+ *   verbose: Flag.boolean("verbose")
+ * }).pipe(
+ *   Command.withSubcommands(deploy)
+ * )
+ * const subcommandHelp = Command.getHelpDoc(deploy, ["git", "deploy"])
+ * // Usage will show: "git deploy [flags] <files...>"
+ * ```
  *
  * @since 4.0.0
  * @category help
@@ -525,10 +916,8 @@ export const getHelpDoc = <Name extends string, Input>(
  *
  * @example
  * ```ts
- * import * as Command from "effect/cli/Command"
- * import * as Param from "effect/cli/Param"
- * import * as Effect from "effect/Effect"
- * import * as Console from "effect/Console"
+ * import { Command, Flag } from "effect/unstable/cli"
+ * import { Effect, Console } from "effect"
  *
  * const greetCommand = Command.make("greet", {
  *   name: Flag.string("name")
@@ -565,6 +954,61 @@ export const run: {
 }
 
 /**
+ * Runs a command with explicitly provided arguments instead of using process.argv.
+ *
+ * This function is useful for testing CLI applications or when you want to
+ * programmatically execute commands with specific arguments. It provides the
+ * same functionality as `run` but with explicit control over the input arguments.
+ *
+ * @example
+ * ```ts
+ * import { Command, Flag, Argument } from "effect/unstable/cli"
+ * import { Effect, Console } from "effect"
+ *
+ * const greet = Command.make("greet", {
+ *   name: Flag.string("name"),
+ *   count: Flag.integer("count").pipe(Flag.withDefault(1))
+ * }, (config) =>
+ *   Effect.gen(function*() {
+ *     for (let i = 0; i < config.count; i++) {
+ *       yield* Console.log(`Hello, ${config.name}!`)
+ *     }
+ *   })
+ * )
+ *
+ * // Test with specific arguments
+ * const testProgram = Effect.gen(function*() {
+ *   const runCommand = Command.runWithArgs(greet, { version: "1.0.0" })
+ *
+ *   // Test normal execution
+ *   yield* runCommand(["--name", "Alice", "--count", "2"])
+ *
+ *   // Test help display
+ *   yield* runCommand(["--help"])
+ *
+ *   // Test version display
+ *   yield* runCommand(["--version"])
+ * })
+ *
+ * // Use with different environments
+ * const deploy = Command.make("deploy", {
+ *   env: Flag.string("env"),
+ *   config: Argument.string("config")
+ * }, (config) =>
+ *   Effect.gen(function*() {
+ *     yield* Console.log(`Deploying to ${config.env} with config ${config.config}`)
+ *   })
+ * )
+ *
+ * const deployProgram = Effect.gen(function*() {
+ *   const runDeploy = Command.runWithArgs(deploy, { version: "2.0.0" })
+ *
+ *   // Programmatically run with different configurations
+ *   yield* runDeploy(["--env", "staging", "staging.json"])
+ *   yield* runDeploy(["--env", "production", "prod.json"])
+ * })
+ * ```
+ *
  * @since 4.0.0
  * @category command execution
  */

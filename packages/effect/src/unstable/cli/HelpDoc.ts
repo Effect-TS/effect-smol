@@ -7,6 +7,41 @@
  * This data structure is independent of formatting, allowing for
  * different output formats (text, markdown, JSON, etc.).
  *
+ * @example
+ * ```ts
+ * import { HelpDoc } from "effect/unstable/cli"
+ *
+ * const deployCommandHelp: HelpDoc = {
+ *   description: "Deploy your application to the cloud",
+ *   usage: "myapp deploy [options] <target>",
+ *   flags: [
+ *     {
+ *       name: "verbose",
+ *       aliases: ["-v"],
+ *       type: "boolean",
+ *       description: "Enable verbose logging",
+ *       required: false
+ *     },
+ *     {
+ *       name: "env",
+ *       aliases: ["-e"],
+ *       type: "string",
+ *       description: "Target environment",
+ *       required: true
+ *     }
+ *   ],
+ *   args: [
+ *     {
+ *       name: "target",
+ *       type: "string",
+ *       description: "Deployment target (e.g., 'production', 'staging')",
+ *       required: true,
+ *       variadic: false
+ *     }
+ *   ]
+ * }
+ * ```
+ *
  * @since 4.0.0
  * @category models
  */
@@ -41,6 +76,27 @@ export interface HelpDoc {
 /**
  * Documentation for a single command-line flag/option
  *
+ * @example
+ * ```ts
+ * import { FlagDoc } from "effect/unstable/cli"
+ *
+ * const verboseFlag: FlagDoc = {
+ *   name: "verbose",
+ *   aliases: ["-v", "--verbose"],
+ *   type: "boolean",
+ *   description: "Enable verbose output",
+ *   required: false
+ * }
+ *
+ * const portFlag: FlagDoc = {
+ *   name: "port",
+ *   aliases: ["-p"],
+ *   type: "integer",
+ *   description: "Port number to use",
+ *   required: true
+ * }
+ * ```
+ *
  * @since 4.0.0
  * @category models
  */
@@ -74,6 +130,29 @@ export interface FlagDoc {
 /**
  * Documentation for a subcommand
  *
+ * @example
+ * ```ts
+ * import { SubcommandDoc } from "effect/unstable/cli"
+ *
+ * const deploySubcommand: SubcommandDoc = {
+ *   name: "deploy",
+ *   description: "Deploy the application to the cloud"
+ * }
+ *
+ * const buildSubcommand: SubcommandDoc = {
+ *   name: "build",
+ *   description: "Build the application for production"
+ * }
+ *
+ * // Used in parent command's help documentation
+ * const mainCommandHelp = {
+ *   description: "Cloud deployment tool",
+ *   usage: "myapp <command> [options]",
+ *   flags: [],
+ *   subcommands: [deploySubcommand, buildSubcommand]
+ * }
+ * ```
+ *
  * @since 4.0.0
  * @category models
  */
@@ -91,6 +170,35 @@ export interface SubcommandDoc {
 
 /**
  * Documentation for a positional argument
+ *
+ * @example
+ * ```ts
+ * import { ArgDoc } from "effect/unstable/cli"
+ *
+ * const sourceArg: ArgDoc = {
+ *   name: "source",
+ *   type: "file",
+ *   description: "Source file to process",
+ *   required: true,
+ *   variadic: false
+ * }
+ *
+ * const filesArg: ArgDoc = {
+ *   name: "files",
+ *   type: "file",
+ *   description: "Files to process (can specify multiple)",
+ *   required: false,
+ *   variadic: true
+ * }
+ *
+ * // Used in command help documentation
+ * const copyCommandHelp = {
+ *   description: "Copy files from source to destination",
+ *   usage: "copy <source> [files...]",
+ *   flags: [],
+ *   args: [sourceArg, filesArg]
+ * }
+ * ```
  *
  * @since 4.0.0
  * @category models

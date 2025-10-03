@@ -173,7 +173,7 @@ export const redacted = (name: string): Argument<Redacted.Redacted<string>> => P
  * ```ts
  * import { Argument } from "effect/unstable/cli"
  *
- * const config = Argument.fileString("config-file")
+ * const config = Argument.fileText("config-file")
  * ```
  *
  * @since 4.0.0
@@ -187,14 +187,16 @@ export const fileText = (name: string): Argument<string> => Param.fileString(nam
  * @example
  * ```ts
  * import { Argument } from "effect/unstable/cli"
- * import { Schema } from "effect"
+ * import { Schema } from "effect/schema"
  *
  * const ConfigSchema = Schema.Struct({
  *   port: Schema.Number,
  *   host: Schema.String
  * })
  *
- * const config = Argument.fileSchema("config", ConfigSchema, "JSON")
+ * const JsonConfigSchema = Schema.fromJsonString(ConfigSchema)
+ *
+ * const config = Argument.fileSchema("config", JsonConfigSchema)
  * ```
  *
  * @since 4.0.0
@@ -208,6 +210,14 @@ export const fileSchema = <A>(
 
 /**
  * Creates an empty sentinel argument that always fails to parse.
+ *
+ * @example
+ * ```ts
+ * import { Argument } from "effect/unstable/cli"
+ *
+ * // Used as a placeholder or default in combinators
+ * const noArg = Argument.none
+ * ```
  *
  * @since 4.0.0
  * @category constructors
@@ -278,13 +288,13 @@ export const withDefault: {
  * import { Argument } from "effect/unstable/cli"
  *
  * // Accept any number of files
- * const files = Argument.string("files").pipe(Argument.variadic)
+ * const anyFiles = Argument.string("files").pipe(Argument.variadic)
  *
  * // Accept at least 1 file
- * const files = Argument.string("files").pipe(Argument.variadic({ min: 1 }))
+ * const atLeastOneFile = Argument.string("files").pipe(Argument.variadic({ min: 1 }))
  *
  * // Accept between 1 and 5 files
- * const files = Argument.string("files").pipe(Argument.variadic({ min: 1, max: 5 }))
+ * const limitedFiles = Argument.string("files").pipe(Argument.variadic({ min: 1, max: 5 }))
  * ```
  *
  * @since 4.0.0
@@ -328,14 +338,16 @@ export const map: {
  *
  * @example
  * ```ts
- * import { Argument } from "effect/unstable/cli"
+ * import { Argument, CliError } from "effect/unstable/cli"
  * import { Effect } from "effect"
  *
  * const files = Argument.string("files").pipe(
  *   Argument.mapEffect(file =>
  *     file.endsWith(".txt")
  *       ? Effect.succeed(file)
- *       : Effect.fail("Only .txt files allowed")
+ *       : Effect.fail(new CliError.UserError({
+ *           cause: new Error("Only .txt files allowed")
+ *         }))
  *   )
  * )
  * ```
@@ -468,14 +480,10 @@ export const between: {
  * @example
  * ```ts
  * import { Argument } from "effect/unstable/cli"
- * import { Schema } from "effect"
+ * import { Schema } from "effect/schema"
  *
- * const Email = Schema.String.pipe(
- *   Schema.pattern(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)
- * )
- *
- * const email = Argument.string("email").pipe(
- *   Argument.withSchema(Email)
+ * const input = Argument.string("input").pipe(
+ *   Argument.withSchema(Schema.NonEmptyString)
  * )
  * ```
  *
