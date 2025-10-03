@@ -4657,8 +4657,8 @@ const schema = Schema.Struct({
 const jsonPatchDiffer = Differ.makeJsonPatch(schema)
 
 // Prepare two values to compare
-const oldValue = schema.makeUnsafe({ id: 1, name: "a", price: 1 })
-const newValue = schema.makeUnsafe({ id: 1, name: "b", price: 2 })
+const oldValue = { id: 1, name: "a", price: 1 }
+const newValue = { id: 1, name: "b", price: 2 }
 
 // Compute a JSON Patch document (an array of operations)
 const jsonPatch = jsonPatchDiffer.diff(oldValue, newValue)
@@ -4674,6 +4674,29 @@ console.log(jsonPatch)
 const patched = jsonPatchDiffer.patch(oldValue, jsonPatch)
 console.log(patched)
 // { id: 1, name: 'b', price: 2 }
+```
+
+### Works with custom types too
+
+**Example** (Compare two custom types)
+
+```ts
+import { Differ, Schema } from "effect/schema"
+
+class A extends Schema.Class<A>("A")({ n: Schema.Number }) {}
+class B extends Schema.Class<B>("B")({ a: A }) {}
+
+const jsonPatchDiffer = Differ.makeJsonPatch(B)
+
+const oldValue = new B({ a: new A({ n: 0 }) })
+const newValue = new B({ a: new A({ n: 1 }) })
+
+const patch = jsonPatchDiffer.diff(oldValue, newValue)
+console.log(patch)
+// [ { op: 'replace', path: '/a/n', value: 1 } ]
+
+console.log(jsonPatchDiffer.patch(oldValue, patch))
+// B { a: A { n: 1 } }
 ```
 
 ### How it works
