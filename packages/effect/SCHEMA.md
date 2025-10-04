@@ -79,27 +79,28 @@ The base interface is `Bottom`, which sits at the bottom of the schema type hier
 
 ```ts
 export interface Bottom<
-  T,
-  E,
-  RD,
-  RE,
-  Ast extends AST.AST,
-  RebuildOut extends Top,
-  AnnotateIn extends Annotations.Annotations = Annotations.Bottom<T>,
-  TypeMakeIn = T,
-  Iso = T,
-  TypeMake = TypeMakeIn,
-  TypeMutability extends Mutability = "readonly",
-  TypeOptionality extends Optionality = "required",
-  TypeConstructorDefault extends ConstructorDefault = "no-default",
-  EncodedMutability extends Mutability = "readonly",
-  EncodedOptionality extends Optionality = "required"
+  out T,
+  out E,
+  out RD,
+  out RE,
+  out Ast extends AST.AST,
+  out RebuildOut extends Top,
+  out TypeMakeIn = T,
+  out Iso = T,
+  in out TypeParameters extends ReadonlyArray<Top> = readonly [],
+  out TypeMake = TypeMakeIn,
+  out TypeMutability extends Mutability = "readonly",
+  out TypeOptionality extends Optionality = "required",
+  out TypeConstructorDefault extends ConstructorDefault = "no-default",
+  out EncodedMutability extends Mutability = "readonly",
+  out EncodedOptionality extends Optionality = "required"
 > extends Pipeable.Pipeable {
   readonly [TypeId]: typeof TypeId
 
   readonly ast: Ast
   readonly "~rebuild.out": RebuildOut
-  readonly "~annotate.in": AnnotateIn
+  readonly "~type.parameters": TypeParameters
+  readonly "~annotate.in": Annotations.Bottom<T, TypeParameters>
 
   readonly Type: T
   readonly Encoded: E
@@ -135,9 +136,9 @@ export interface Bottom<
 - `RE`: the type of the services required for encoding
 - `Ast`: the AST node type
 - `RebuildOut`: the type returned when modifying the schema (namely when you add annotations or checks)
-- `AnnotateIn`: the type of accepted annotations
 - `TypeMakeIn`: the type of the input to the `makeUnsafe` constructor
 - `Iso`: the type of the focus of the default `Optic.Iso`
+- `TypeParameters`: the type of the type parameters
 
 Contextual information about the schema (when the schema is used in a composite schema such as a struct or a tuple):
 

@@ -71,7 +71,7 @@ export declare namespace Annotation {
   /**
    * @since 4.0.0
    */
-  export type Any =
+  export type FastCheckConstraint =
     | StringConstraints
     | NumberConstraints
     | BigIntConstraints
@@ -83,7 +83,7 @@ export declare namespace Annotation {
    */
   export type Constraint = {
     readonly _tag: "Constraint"
-    readonly constraint: Any
+    readonly constraint: FastCheckConstraint
   }
 
   /**
@@ -224,7 +224,7 @@ const combiner: Combiner.Combiner<any> = Struct.getCombiner({
 
 function merge(
   constraints: Annotation.Constraints["constraints"],
-  constraint: Annotation.Any
+  constraint: Annotation.FastCheckConstraint
 ): Annotation.Constraints["constraints"] {
   const _tag = constraint._tag
   const c = constraints[_tag]

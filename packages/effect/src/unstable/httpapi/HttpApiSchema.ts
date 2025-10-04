@@ -153,9 +153,9 @@ export interface Param<Name extends string, S extends Schema.Top> extends
     S["EncodingServices"],
     S["ast"],
     Param<Name, S>,
-    S["~annotate.in"],
     S["~type.make.in"],
     S["Iso"],
+    S["~type.parameters"],
     S["~type.make"],
     S["~type.mutability"],
     S["~type.optionality"],
@@ -518,7 +518,7 @@ export interface EmptyErrorClass<Self, Tag> extends
     never,
     AST.Declaration,
     EmptyErrorClass<Self, Tag>, // TODO: Fix this
-    Annotations.Bottom<Self>
+    readonly [] // TODO: Fix this
   >
 {
   new(): { readonly _tag: Tag } & YieldableError

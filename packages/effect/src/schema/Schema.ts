@@ -91,27 +91,28 @@ export interface MakeOptions {
  * @since 4.0.0
  */
 export interface Bottom<
-  T,
-  E,
-  RD,
-  RE,
-  Ast extends AST.AST,
-  RebuildOut extends Top,
-  AnnotateIn extends Annotations.Annotations = Annotations.Bottom<T>,
-  TypeMakeIn = T,
-  Iso = T,
-  TypeMake = TypeMakeIn,
-  TypeMutability extends Mutability = "readonly",
-  TypeOptionality extends Optionality = "required",
-  TypeConstructorDefault extends ConstructorDefault = "no-default",
-  EncodedMutability extends Mutability = "readonly",
-  EncodedOptionality extends Optionality = "required"
+  out T,
+  out E,
+  out RD,
+  out RE,
+  out Ast extends AST.AST,
+  out RebuildOut extends Top,
+  out TypeMakeIn = T,
+  out Iso = T,
+  in out TypeParameters extends ReadonlyArray<Top> = readonly [],
+  out TypeMake = TypeMakeIn,
+  out TypeMutability extends Mutability = "readonly",
+  out TypeOptionality extends Optionality = "required",
+  out TypeConstructorDefault extends ConstructorDefault = "no-default",
+  out EncodedMutability extends Mutability = "readonly",
+  out EncodedOptionality extends Optionality = "required"
 > extends Pipeable.Pipeable {
   readonly [TypeId]: typeof TypeId
 
   readonly ast: Ast
   readonly "~rebuild.out": RebuildOut
-  readonly "~annotate.in": AnnotateIn
+  readonly "~type.parameters": TypeParameters
+  readonly "~annotate.in": Annotations.Bottom<T, TypeParameters>
 
   readonly "Type": T
   readonly "Encoded": E
@@ -181,9 +182,9 @@ export function revealBottom<S extends Top>(
   S["EncodingServices"],
   S["ast"],
   S["~rebuild.out"],
-  S["~annotate.in"],
   S["~type.make.in"],
   S["Iso"],
+  S["~type.parameters"],
   S["~type.make"],
   S["~type.mutability"],
   S["~type.optionality"],
@@ -233,9 +234,9 @@ export interface Top extends
     unknown,
     AST.AST,
     Top,
-    Annotations.Annotations,
     unknown,
     unknown,
+    any, // this is because TypeParameters is invariant
     unknown,
     Mutability,
     Optionality,
@@ -703,9 +704,9 @@ export interface optionalKey<S extends Top> extends
     S["EncodingServices"],
     S["ast"],
     optionalKey<S>,
-    S["~annotate.in"],
     S["~type.make.in"],
     S["Iso"],
+    S["~type.parameters"],
     S["~type.make"],
     S["~type.mutability"],
     "optional",
@@ -799,9 +800,9 @@ export interface mutableKey<S extends Top> extends
     S["EncodingServices"],
     S["ast"],
     mutableKey<S>,
-    S["~annotate.in"],
     S["~type.make.in"],
     S["Iso"],
+    S["~type.parameters"],
     S["~type.make"],
     "mutable",
     S["~type.optionality"],
@@ -837,9 +838,9 @@ export interface typeCodec<S extends Top> extends
     never,
     S["ast"],
     typeCodec<S>,
-    S["~annotate.in"],
     S["~type.make.in"],
     S["Iso"],
+    S["~type.parameters"],
     S["~type.make"],
     S["~type.mutability"],
     S["~type.optionality"],
@@ -874,9 +875,9 @@ export interface encodedCodec<S extends Top> extends
     never,
     AST.AST,
     encodedCodec<S>,
-    Annotations.Bottom<S["Encoded"], ReadonlyArray<Top>>,
     S["Encoded"],
     S["Encoded"],
+    ReadonlyArray<Top>,
     S["Encoded"],
     S["~type.mutability"],
     S["~type.optionality"],
@@ -915,9 +916,9 @@ export interface flip<S extends Top> extends
     S["DecodingServices"],
     AST.AST,
     flip<S>,
-    Annotations.Bottom<S["Encoded"], ReadonlyArray<Top>>,
     S["Encoded"],
     S["Encoded"],
+    ReadonlyArray<Top>,
     S["Encoded"],
     S["~encoded.mutability"],
     S["~encoded.optionality"],
@@ -1404,7 +1405,6 @@ export interface Struct<Fields extends Struct.Fields> extends
     Struct.EncodingServices<Fields>,
     AST.TypeLiteral,
     Struct<Fields>,
-    Annotations.Struct<Simplify<Struct.Type<Fields>>>,
     Simplify<Struct.MakeIn<Fields>>,
     Simplify<Struct.Iso<Fields>>
   >
@@ -1618,7 +1618,6 @@ export interface Record$<Key extends Record.Key, Value extends Top> extends
     Record.EncodingServices<Key, Value>,
     AST.TypeLiteral,
     Record$<Key, Value>,
-    Annotations.Bottom<Record.Type<Key, Value>>,
     Simplify<Record.MakeIn<Key, Value>>,
     Record.Iso<Key, Value>
   >
@@ -1722,7 +1721,6 @@ export interface StructWithRest<
     StructWithRest.EncodingServices<S, Records>,
     AST.TypeLiteral,
     StructWithRest<S, Records>,
-    Annotations.Bottom<Simplify<StructWithRest.Type<S, Records>>>,
     Simplify<StructWithRest.MakeIn<S, Records>>,
     Simplify<StructWithRest.Iso<S, Records>>
   >
@@ -1838,7 +1836,6 @@ export interface Tuple<Elements extends Tuple.Elements> extends
     Tuple.EncodingServices<Elements>,
     AST.TupleType,
     Tuple<Elements>,
-    Annotations.Bottom<Tuple.Type<Elements>>,
     Tuple.MakeIn<Elements>,
     Tuple.Iso<Elements>
   >
@@ -1964,7 +1961,6 @@ export interface TupleWithRest<
     S["EncodingServices"] | Rest[number]["EncodingServices"],
     AST.TupleType,
     TupleWithRest<S, Rest>,
-    Annotations.Bottom<TupleWithRest.Type<S["Type"], Rest>>,
     TupleWithRest.MakeIn<S["~type.make"], Rest>,
     TupleWithRest.Iso<S["Iso"], Rest>
   >
@@ -1996,7 +1992,6 @@ export interface Array$<S extends Top> extends
     S["EncodingServices"],
     AST.TupleType,
     Array$<S>,
-    Annotations.Bottom<ReadonlyArray<S["Type"]>>,
     ReadonlyArray<S["~type.make"]>,
     ReadonlyArray<S["Iso"]>
   >
@@ -2029,7 +2024,6 @@ export interface NonEmptyArray<S extends Top> extends
     S["EncodingServices"],
     AST.TupleType,
     NonEmptyArray<S>,
-    Annotations.Bottom<readonly [S["Type"], ...Array<S["Type"]>]>,
     readonly [S["~type.make"], ...Array<S["~type.make"]>],
     readonly [S["Iso"], ...Array<S["Iso"]>]
   >
@@ -2082,10 +2076,10 @@ export interface mutable<S extends Top> extends
     S["EncodingServices"],
     S["ast"],
     mutable<S>,
-    // we keep "~annotate.in", "~type.make" and "~type.make.in" as they are because they are contravariant
-    S["~annotate.in"],
+    // "~type.make" and "~type.make.in" as they are because they are contravariant
     S["~type.make.in"],
     S["Iso"],
+    S["~type.parameters"],
     S["~type.make"],
     S["~type.mutability"],
     S["~type.optionality"],
@@ -2121,9 +2115,9 @@ export interface readonly$<S extends Top> extends
     S["EncodingServices"],
     S["ast"],
     readonly$<S>,
-    S["~annotate.in"],
     S["~type.make.in"],
     S["Iso"],
+    S["~type.parameters"],
     S["~type.make"],
     S["~type.mutability"],
     S["~type.optionality"],
@@ -2159,7 +2153,6 @@ export interface Union<Members extends ReadonlyArray<Top>> extends
     Members[number]["EncodingServices"],
     AST.UnionType<Members[number]["ast"]>,
     Union<Members>,
-    Annotations.Bottom<Members[number]["Type"]>,
     Members[number]["~type.make"],
     Members[number]["Iso"]
   >
@@ -2332,9 +2325,9 @@ export interface suspend<S extends Top> extends
     S["EncodingServices"],
     AST.Suspend,
     suspend<S>,
-    S["~annotate.in"],
     S["~type.make.in"],
     S["Iso"],
+    S["~type.parameters"],
     S["~type.make"],
     S["~type.mutability"],
     S["~type.optionality"],
@@ -2377,9 +2370,9 @@ export interface refine<T extends S["Type"], S extends Top> extends
     S["EncodingServices"],
     S["ast"],
     refine<T, S>,
-    Annotations.Bottom<T, ReadonlyArray<Top>>,
     S["~type.make.in"],
     T,
+    S["~type.parameters"],
     T,
     S["~type.mutability"],
     S["~type.optionality"],
@@ -2436,9 +2429,9 @@ export interface decodingMiddleware<S extends Top, RD> extends
     S["EncodingServices"],
     S["ast"],
     decodingMiddleware<S, RD>,
-    S["~annotate.in"],
     S["~type.make.in"],
     S["Iso"],
+    S["~type.parameters"],
     S["~type.make"],
     S["~type.mutability"],
     S["~type.optionality"],
@@ -2479,9 +2472,9 @@ export interface encodingMiddleware<S extends Top, RE> extends
     RE,
     S["ast"],
     encodingMiddleware<S, RE>,
-    S["~annotate.in"],
     S["~type.make.in"],
     S["Iso"],
+    S["~type.parameters"],
     S["~type.make"],
     S["~type.mutability"],
     S["~type.optionality"],
@@ -2562,9 +2555,9 @@ export interface decodeTo<To extends Top, From extends Top, RD = never, RE = nev
     To["EncodingServices"] | From["EncodingServices"] | RE,
     To["ast"],
     decodeTo<To, From, RD, RE>,
-    To["~annotate.in"],
     To["~type.make.in"],
     To["Iso"],
+    To["~type.parameters"],
     To["~type.make"],
     To["~type.mutability"],
     To["~type.optionality"],
@@ -2685,9 +2678,9 @@ export interface withConstructorDefault<S extends Top & WithoutConstructorDefaul
     S["EncodingServices"],
     S["ast"],
     withConstructorDefault<S>,
-    S["~annotate.in"],
     S["~type.make.in"],
     S["Iso"],
+    S["~type.parameters"],
     S["~type.make"],
     S["~type.mutability"],
     S["~type.optionality"],
@@ -2965,7 +2958,6 @@ export interface TaggedUnion<Cases extends Record<string, Top>> extends
     { [K in keyof Cases]: Cases[K]["EncodingServices"] }[keyof Cases],
     AST.UnionType<AST.TypeLiteral>,
     TaggedUnion<Cases>,
-    Annotations.Bottom<{ [K in keyof Cases]: Cases[K]["Type"] }[keyof Cases]>,
     { [K in keyof Cases]: Cases[K]["~type.make"] }[keyof Cases]
   >
 {
@@ -3880,9 +3872,9 @@ export interface Opaque<Self, S extends Top, Brand> extends
     S["EncodingServices"],
     S["ast"],
     S["~rebuild.out"],
-    S["~annotate.in"],
     S["~type.make.in"],
     S["Iso"],
+    S["~type.parameters"],
     S["~type.make"],
     S["~type.mutability"],
     S["~type.optionality"],
@@ -3910,7 +3902,7 @@ export function Opaque<Self, Brand = {}>() {
 /**
  * @since 4.0.0
  */
-export interface instanceOf<T, Iso = T> extends declareConstructor<T, T, readonly [], Iso> {
+export interface instanceOf<T, Iso = T> extends declare<T, Iso> {
   readonly "~rebuild.out": this
 }
 
@@ -4201,6 +4193,7 @@ export function fromJsonString<S extends Top>(schema: S): fromJsonString<S> {
               "description": "a string that will be decoded as JSON"
             }
           case "draft-2020-12":
+          case "openApi3.1":
             return {
               "type": "string",
               "description": "a string that will be decoded as JSON",
@@ -4293,9 +4286,9 @@ export interface Class<Self, S extends Top & { readonly fields: Struct.Fields },
     S["EncodingServices"],
     AST.Declaration,
     decodeTo<declareConstructor<Self, S["Encoded"], readonly [S], S["Iso"]>, S>,
-    Annotations.Bottom<Self, readonly [S]>,
     S["~type.make.in"],
     S["Iso"],
+    readonly [S],
     Self,
     S["~type.mutability"],
     S["~type.optionality"],
@@ -4389,7 +4382,7 @@ function makeClass<
     static makeUnsafe(input: S["~type.make.in"], options?: MakeOptions): Self {
       return new this(input, options)
     }
-    static annotate(annotations: Annotations.Bottom<Self, readonly [S]>) {
+    static annotate(annotations: Annotations.Declaration<Self, readonly [S]>) {
       return this.rebuild(AST.annotate(this.ast, annotations))
     }
     static annotateKey(annotations: Annotations.Key<Self>) {
@@ -4465,6 +4458,10 @@ function getClassSchemaFactory<S extends Top>(
   }
 }
 
+function isStruct(schema: Struct.Fields | Struct<Struct.Fields>): schema is Struct<Struct.Fields> {
+  return isSchema(schema)
+}
+
 /**
  * @category Constructors
  * @since 4.0.0
@@ -4485,7 +4482,7 @@ export const Class: {
   schema: Struct.Fields | Struct<Struct.Fields>,
   annotations?: Annotations.Declaration<Self, readonly [Struct<Struct.Fields>]>
 ): ExtendableClass<Self, Struct<Struct.Fields>, Brand> => {
-  const struct = isSchema(schema) ? schema : Struct(schema)
+  const struct = isStruct(schema) ? schema : Struct(schema)
   return makeClass(Data.Class, id, struct, annotations)
 }
 
@@ -4516,7 +4513,7 @@ export const ErrorClass: {
   schema: Struct.Fields | Struct<Struct.Fields>,
   annotations?: Annotations.Declaration<Self, readonly [Struct<Struct.Fields>]>
 ): ErrorClass<Self, Struct<Struct.Fields>, Cause_.YieldableError & Brand> => {
-  const struct = isSchema(schema) ? schema : Struct(schema)
+  const struct = isStruct(schema) ? schema : Struct(schema)
   return makeClass(core.Error, id, struct, annotations)
 }
 
@@ -4766,9 +4763,9 @@ export interface declareConstructor<T, E, TypeParameters extends ReadonlyArray<T
     TypeParameters[number]["EncodingServices"],
     AST.Declaration,
     declareConstructor<T, E, TypeParameters, Iso>,
-    Annotations.Bottom<T, TypeParameters>,
     T,
-    Iso
+    Iso,
+    TypeParameters
   >
 {
   readonly "~rebuild.out": this

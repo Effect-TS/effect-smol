@@ -2,7 +2,6 @@
  * @since 4.0.0
  */
 import * as Predicate from "../../data/Predicate.ts"
-import type * as Annotations from "../../schema/Annotations.ts"
 import type * as AST from "../../schema/AST.ts"
 import * as Schema from "../../schema/Schema.ts"
 import * as Stream_ from "../../stream/Stream.ts"
@@ -41,8 +40,7 @@ export interface Stream<A extends Schema.Top, E extends Schema.Top> extends
     A["DecodingServices"] | E["DecodingServices"],
     A["EncodingServices"] | E["EncodingServices"],
     AST.Declaration,
-    Stream<A, E>,
-    Annotations.Bottom<Stream_.Stream<A["Type"], E["Type"]>>
+    Stream<A, E>
   >
 {
   readonly "~rebuild.out": this
