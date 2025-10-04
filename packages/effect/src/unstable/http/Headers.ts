@@ -83,8 +83,8 @@ export const HeadersSchema: HeadersSchema = Schema.declare(
   {
     title: "Headers",
     equivalence: {
-      _tag: "Declaration",
-      declaration: () => Equivalence
+      _tag: "Override",
+      override: () => Equivalence
     },
     defaultIsoSerializer: () =>
       Schema.link<Headers>()(

@@ -158,8 +158,8 @@ export const UrlParamsSchema: UrlParamsSchema = Schema.declare(
   {
     title: "UrlParams",
     equivalence: {
-      _tag: "Declaration",
-      declaration: () => Equivalence
+      _tag: "Override",
+      override: () => Equivalence
     },
     defaultIsoSerializer: () =>
       Schema.link<UrlParams>()(

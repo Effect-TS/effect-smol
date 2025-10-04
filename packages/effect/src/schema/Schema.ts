@@ -3065,8 +3065,8 @@ export function Option<A extends Top>(value: A): Option<A> {
         }
       },
       equivalence: {
-        _tag: "Declaration",
-        declaration: ([value]) => Option_.getEquivalence(value)
+        _tag: "Override",
+        override: ([value]) => Option_.getEquivalence(value)
       },
       format: {
         _tag: "Declaration",
@@ -3243,8 +3243,8 @@ export function Result<A extends Top, E extends Top>(
         }
       },
       equivalence: {
-        _tag: "Declaration",
-        declaration: ([success, failure]) => Result_.getEquivalence(success, failure)
+        _tag: "Override",
+        override: ([success, failure]) => Result_.getEquivalence(success, failure)
       },
       format: {
         _tag: "Declaration",
@@ -3350,8 +3350,8 @@ export function Redacted<S extends Top>(value: S, options?: {
         declaration: () => globalThis.String
       },
       equivalence: {
-        _tag: "Declaration",
-        declaration: ([value]) => Redacted_.getEquivalence(value)
+        _tag: "Override",
+        override: ([value]) => Redacted_.getEquivalence(value)
       }
     }
   )
@@ -3458,8 +3458,8 @@ export function CauseFailure<E extends Top, D extends Top>(error: E, defect: D):
         }
       },
       equivalence: {
-        _tag: "Declaration",
-        declaration: ([error, defect]) => (a, b) => {
+        _tag: "Override",
+        override: ([error, defect]) => (a, b) => {
           if (a._tag !== b._tag) return false
           switch (a._tag) {
             case "Fail":
@@ -3542,8 +3542,8 @@ export function Cause<E extends Top, D extends Top>(error: E, defect: D): Cause<
         override: ([failures]) => () => failures.map(Cause_.fromFailures)
       },
       equivalence: {
-        _tag: "Declaration",
-        declaration: ([failures]) => (a, b) => failures(a.failures, b.failures)
+        _tag: "Override",
+        override: ([failures]) => (a, b) => failures(a.failures, b.failures)
       },
       format: {
         _tag: "Declaration",
@@ -3723,8 +3723,8 @@ export function Exit<A extends Top, E extends Top, D extends Top>(value: A, erro
           )
       },
       equivalence: {
-        _tag: "Declaration",
-        declaration: ([value, cause]) => (a, b) => {
+        _tag: "Override",
+        override: ([value, cause]) => (a, b) => {
           if (a._tag !== b._tag) return false
           switch (a._tag) {
             case "Success":
@@ -3835,8 +3835,8 @@ export function Map<Key extends Top, Value extends Top>(key: Key, value: Value):
         }
       },
       equivalence: {
-        _tag: "Declaration",
-        declaration: ([key, value]) => {
+        _tag: "Override",
+        override: ([key, value]) => {
           const entries = Arr.getEquivalence(
             Equivalence.make<[Key["Type"], Value["Type"]]>(([ka, va], [kb, vb]) => key(ka, kb) && value(va, vb))
           )
@@ -3971,8 +3971,8 @@ export const URL: URL = instanceOf(
       override: () => (fc) => fc.webUrl().map((s) => new globalThis.URL(s))
     },
     equivalence: {
-      _tag: "Declaration",
-      declaration: () => (a, b) => a.toString() === b.toString()
+      _tag: "Override",
+      override: () => (a, b) => a.toString() === b.toString()
     }
   }
 )
@@ -4076,8 +4076,8 @@ export const Duration: Duration = declare(
       declaration: () => globalThis.String
     },
     equivalence: {
-      _tag: "Declaration",
-      declaration: () => Duration_.Equivalence
+      _tag: "Override",
+      override: () => Duration_.Equivalence
     }
   }
 )
@@ -4664,8 +4664,8 @@ export const DateTimeUtc: DateTimeUtc = declare(
       declaration: () => (utc) => utc.toString()
     },
     equivalence: {
-      _tag: "Declaration",
-      declaration: () => DateTime.Equivalence
+      _tag: "Override",
+      override: () => DateTime.Equivalence
     }
   }
 )

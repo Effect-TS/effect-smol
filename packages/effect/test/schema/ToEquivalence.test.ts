@@ -2,7 +2,7 @@ import { DateTime, Duration } from "effect"
 import { Equivalence, Option, Redacted, Result } from "effect/data"
 import { Check, Schema, ToEquivalence } from "effect/schema"
 import { describe, it } from "vitest"
-import { assertFalse, assertTrue, throws } from "../utils/assert.ts"
+import { assertFalse, assertTrue } from "../utils/assert.ts"
 
 describe("ToEquivalence", () => {
   it("String", () => {
@@ -378,13 +378,6 @@ describe("ToEquivalence", () => {
   })
 
   describe("Annotations", () => {
-    it("should throw on non-declaration ASTs", () => {
-      const schema = Schema.String.annotate({
-        equivalence: { _tag: "Declaration", declaration: () => Equivalence.make((a, b) => a === b) }
-      })
-      throws(() => ToEquivalence.make(schema), new Error("Declaration annotation found on non-declaration AST"))
-    })
-
     describe("Override annotation", () => {
       it("String", () => {
         const schema = Schema.String.pipe(

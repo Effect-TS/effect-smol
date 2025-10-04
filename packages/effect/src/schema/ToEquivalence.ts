@@ -17,19 +17,11 @@ export declare namespace Annotation {
   /**
    * @since 4.0.0
    */
-  export type Declaration<T, TypeParameters extends ReadonlyArray<Schema.Top>> = {
-    readonly _tag: "Declaration"
-    readonly declaration: (
+  export type Override<T, TypeParameters extends ReadonlyArray<Schema.Top>> = {
+    readonly _tag: "Override"
+    readonly override: (
       typeParameters: { readonly [K in keyof TypeParameters]: Equivalence.Equivalence<TypeParameters[K]["Type"]> }
     ) => Equivalence.Equivalence<T>
-  }
-
-  /**
-   * @since 4.0.0
-   */
-  export type Override<T> = {
-    readonly _tag: "Override"
-    readonly override: () => Equivalence.Equivalence<T>
   }
 }
 
@@ -54,9 +46,7 @@ export function override<S extends Schema.Top>(override: () => Equivalence.Equiv
   }
 }
 
-function getAnnotation(
-  ast: AST.AST
-): Annotation.Declaration<any, ReadonlyArray<any>> | Annotation.Override<any> | undefined {
+function getAnnotation(ast: AST.AST): Annotation.Override<any, ReadonlyArray<any>> | undefined {
   return Annotations.get(ast)?.["equivalence"] as any
 }
 
@@ -66,16 +56,10 @@ const go = memoize((ast: AST.AST): Equivalence.Equivalence<any> => {
   // ---------------------------------------------
   const annotation = getAnnotation(ast)
   if (annotation) {
-    switch (annotation._tag) {
-      case "Declaration": {
-        if (AST.isDeclaration(ast)) {
-          return annotation.declaration(ast.typeParameters.map(go))
-        }
-        throw new Error("Declaration annotation found on non-declaration AST")
-      }
-      case "Override":
-        return annotation.override()
+    if (AST.isDeclaration(ast)) {
+      return annotation.override(ast.typeParameters.map(go))
     }
+    return annotation.override([])
   }
   switch (ast._tag) {
     case "NeverKeyword":
