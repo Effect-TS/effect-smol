@@ -97,8 +97,7 @@ export interface Bottom<T, TypeParameters extends ReadonlyArray<Schema.Top>> ext
     | ToJsonSchema.Annotation.Constraint
     | undefined
   readonly arbitrary?:
-    | ToArbitrary.Annotation.Declaration<T, TypeParameters>
-    | ToArbitrary.Annotation.Override<T>
+    | ToArbitrary.Annotation.Override<T, TypeParameters>
     | ToArbitrary.Annotation.Constraint
     | ToArbitrary.Annotation.Constraints
     | undefined
@@ -117,7 +116,7 @@ export interface Declaration<T, TypeParameters extends ReadonlyArray<Schema.Top>
     ) => AST.Link)
     | undefined
   readonly jsonSchema?: ToJsonSchema.Annotation.Override | undefined
-  readonly arbitrary?: ToArbitrary.Annotation.Declaration<T, TypeParameters> | undefined
+  readonly arbitrary?: ToArbitrary.Annotation.Override<T, TypeParameters> | undefined
   readonly equivalence?: ToEquivalence.Annotation.Declaration<T, TypeParameters> | undefined
   readonly format?: ToFormat.Annotation.Declaration<T, TypeParameters> | undefined
   /** @internal */

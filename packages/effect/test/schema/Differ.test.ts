@@ -227,7 +227,7 @@ describe("Differ", () => {
     })
 
     it("roundtrip", () => {
-      roundtrip(Schema.Any.annotate({ arbitrary: { _tag: "Override", override: (fc) => fc.json() } }))
+      roundtrip(Schema.Any.annotate({ arbitrary: { _tag: "Override", override: () => (fc) => fc.json() } }))
       roundtrip(Schema.String)
       roundtrip(Schema.Number)
       roundtrip(Schema.Boolean)

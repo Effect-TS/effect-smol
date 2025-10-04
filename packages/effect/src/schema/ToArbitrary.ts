@@ -23,16 +23,6 @@ export declare namespace Annotation {
   /**
    * @since 4.0.0
    */
-  export type Declaration<T, TypeParameters extends ReadonlyArray<Schema.Top>> = {
-    readonly _tag: "Declaration"
-    readonly declaration: (
-      typeParameters: { readonly [K in keyof TypeParameters]: FastCheck.Arbitrary<TypeParameters[K]["Type"]> }
-    ) => (fc: typeof FastCheck, context?: Context) => FastCheck.Arbitrary<T>
-  }
-
-  /**
-   * @since 4.0.0
-   */
   export interface StringConstraints extends FastCheck.StringSharedConstraints {
     readonly _tag: "StringConstraints"
     readonly patterns?: readonly [string, ...Array<string>]
@@ -103,9 +93,11 @@ export declare namespace Annotation {
   /**
    * @since 4.0.0
    */
-  export type Override<T> = {
+  export type Override<T, TypeParameters extends ReadonlyArray<Schema.Top>> = {
     readonly _tag: "Override"
-    readonly override: (fc: typeof FastCheck, context?: Context) => FastCheck.Arbitrary<T>
+    readonly override: (
+      typeParameters: { readonly [K in keyof TypeParameters]: FastCheck.Arbitrary<TypeParameters[K]["Type"]> }
+    ) => (fc: typeof FastCheck, context?: Context) => FastCheck.Arbitrary<T>
   }
 }
 
@@ -146,10 +138,9 @@ const arbitraryMemoMap = new WeakMap<AST.AST, LazyArbitrary<any>>()
 function getAnnotation(
   annotations: Annotations.Annotations | undefined
 ):
-  | Annotation.Declaration<any, ReadonlyArray<any>>
   | Annotation.Constraint
   | Annotation.Constraints
-  | Annotation.Override<any>
+  | Annotation.Override<any, ReadonlyArray<any>>
   | undefined
 {
   return annotations?.arbitrary as any
@@ -277,15 +268,13 @@ const go = memoize((ast: AST.AST): LazyArbitrary<any> => {
   const annotation = getAnnotation(ast.annotations)
   if (annotation) {
     switch (annotation._tag) {
-      case "Declaration": {
+      case "Override": {
         if (AST.isDeclaration(ast)) {
           const typeParameters = ast.typeParameters.map(go)
-          return (fc, ctx) => annotation.declaration(typeParameters.map((tp) => tp(fc, resetContext(ctx))))(fc, ctx)
+          return (fc, ctx) => annotation.override(typeParameters.map((tp) => tp(fc, resetContext(ctx))))(fc, ctx)
         }
-        throw new Error("Declaration annotation found on non-declaration AST")
+        return annotation.override([])
       }
-      case "Override":
-        return annotation.override
       case "Constraint":
       case "Constraints":
         throw new Error("Constraint annotation found on non-constrained AST")

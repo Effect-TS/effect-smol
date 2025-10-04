@@ -3055,8 +3055,8 @@ export function Option<A extends Top>(value: A): Option<A> {
           })
         ),
       arbitrary: {
-        _tag: "Declaration",
-        declaration: ([value]) => (fc, ctx) => {
+        _tag: "Override",
+        override: ([value]) => (fc, ctx) => {
           return fc.oneof(
             ctx?.isSuspend ? { maxDepth: 2, depthIdentifier: "Option" } : {},
             fc.constant(Option_.none()),
@@ -3233,8 +3233,8 @@ export function Result<A extends Top, E extends Top>(
           })
         ),
       arbitrary: {
-        _tag: "Declaration",
-        declaration: ([success, failure]) => (fc, ctx) => {
+        _tag: "Override",
+        override: ([success, failure]) => (fc, ctx) => {
           return fc.oneof(
             ctx?.isSuspend ? { maxDepth: 2, depthIdentifier: "Result" } : {},
             success.map(Result_.succeed),
@@ -3342,8 +3342,8 @@ export function Redacted<S extends Top>(value: S, options?: {
           }
         ),
       arbitrary: {
-        _tag: "Declaration",
-        declaration: ([value]) => () => value.map((a) => Redacted_.make(a, { label: options?.label }))
+        _tag: "Override",
+        override: ([value]) => () => value.map((a) => Redacted_.make(a, { label: options?.label }))
       },
       format: {
         _tag: "Declaration",
@@ -3446,8 +3446,8 @@ export function CauseFailure<E extends Top, D extends Top>(error: E, defect: D):
           })
         ),
       arbitrary: {
-        _tag: "Declaration",
-        declaration: ([error, defect]) => (fc, ctx) => {
+        _tag: "Override",
+        override: ([error, defect]) => (fc, ctx) => {
           return fc.oneof(
             ctx?.isSuspend ? { maxDepth: 2, depthIdentifier: "Cause.Failure" } : {},
             fc.constant(Cause_.failureInterrupt()),
@@ -3538,8 +3538,8 @@ export function Cause<E extends Top, D extends Top>(error: E, defect: D): Cause<
           })
         ),
       arbitrary: {
-        _tag: "Declaration",
-        declaration: ([failures]) => () => failures.map(Cause_.fromFailures)
+        _tag: "Override",
+        override: ([failures]) => () => failures.map(Cause_.fromFailures)
       },
       equivalence: {
         _tag: "Declaration",
@@ -3578,8 +3578,8 @@ export const Error: Error = instanceOf(globalThis.Error, {
   title: "Error",
   defaultJsonSerializer: () => link<globalThis.Error>()(ErrorJsonEncoded, Transformation.error()),
   arbitrary: {
-    _tag: "Declaration",
-    declaration: () => (fc) => fc.string().map((message) => new globalThis.Error(message))
+    _tag: "Override",
+    override: () => (fc) => fc.string().map((message) => new globalThis.Error(message))
   }
 })
 
@@ -3626,7 +3626,7 @@ export const Defect: Defect = Union([
       defaultJsonSerializer: () => link<unknown>()(Any, defectTransformation),
       arbitrary: {
         _tag: "Override",
-        override: (fc) => fc.json()
+        override: () => (fc) => fc.json()
       }
     }),
     defectTransformation
@@ -3714,8 +3714,8 @@ export function Exit<A extends Top, E extends Top, D extends Top>(value: A, erro
           })
         ),
       arbitrary: {
-        _tag: "Declaration",
-        declaration: ([value, cause]) => (fc, ctx) =>
+        _tag: "Override",
+        override: ([value, cause]) => (fc, ctx) =>
           fc.oneof(
             ctx?.isSuspend ? { maxDepth: 2, depthIdentifier: "Exit" } : {},
             value.map((v) => Exit_.succeed(v)),
@@ -3825,8 +3825,8 @@ export function Map<Key extends Top, Value extends Top>(key: Key, value: Value):
           })
         ),
       arbitrary: {
-        _tag: "Declaration",
-        declaration: ([key, value]) => (fc, ctx) => {
+        _tag: "Override",
+        override: ([key, value]) => (fc, ctx) => {
           return fc.oneof(
             ctx?.isSuspend ? { maxDepth: 2, depthIdentifier: "Map" } : {},
             fc.constant([]),
@@ -3967,8 +3967,8 @@ export const URL: URL = instanceOf(
         })
       ),
     arbitrary: {
-      _tag: "Declaration",
-      declaration: () => (fc) => fc.webUrl().map((s) => new globalThis.URL(s))
+      _tag: "Override",
+      override: () => (fc) => fc.webUrl().map((s) => new globalThis.URL(s))
     },
     equivalence: {
       _tag: "Declaration",
@@ -4003,8 +4003,8 @@ export const Date: Date = instanceOf(
         })
       ),
     arbitrary: {
-      _tag: "Declaration",
-      declaration: () => (fc, ctx) => fc.date(ctx?.constraints?.DateConstraints)
+      _tag: "Override",
+      override: () => (fc, ctx) => fc.date(ctx?.constraints?.DateConstraints)
     }
   }
 )
@@ -4063,8 +4063,8 @@ export const Duration: Duration = declare(
         })
       ),
     arbitrary: {
-      _tag: "Declaration",
-      declaration: () => (fc) =>
+      _tag: "Override",
+      override: () => (fc) =>
         fc.oneof(
           fc.constant(Duration_.infinity),
           fc.bigInt({ min: 0n }).map(Duration_.nanos),
@@ -4436,9 +4436,8 @@ function getClassSchemaFactory<S extends Top>(
             [AST.ClassTypeId]: ([from]: readonly [AST.AST]) => new AST.Link(from, transformation),
             defaultIsoSerializer: ([from]: readonly [Schema<S["Type"]>]) => new AST.Link(from.ast, transformation),
             arbitrary: {
-              _tag: "Declaration",
-              declaration: ([from]: readonly [FastCheck.Arbitrary<S["Type"]>]) => () =>
-                from.map((args) => new self(args))
+              _tag: "Override",
+              override: ([from]: readonly [FastCheck.Arbitrary<S["Type"]>]) => () => from.map((args) => new self(args))
             },
             format: {
               _tag: "Declaration",
@@ -4622,8 +4621,8 @@ export const Uint8Array: Uint8Array = instanceOf(globalThis.Uint8Array<ArrayBuff
       }
     ),
   arbitrary: {
-    _tag: "Declaration",
-    declaration: () => (fc) => fc.uint8Array()
+    _tag: "Override",
+    override: () => (fc) => fc.uint8Array()
   }
 })
 
@@ -4654,8 +4653,8 @@ export const DateTimeUtc: DateTimeUtc = declare(
         }
       ),
     arbitrary: {
-      _tag: "Declaration",
-      declaration: () => (fc, ctx) =>
+      _tag: "Override",
+      override: () => (fc, ctx) =>
         fc.date({ noInvalidDate: true, ...ctx?.constraints?.DateConstraints }).map((date) =>
           DateTime.fromDateUnsafe(date)
         )
