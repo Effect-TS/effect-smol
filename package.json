@@ -72,6 +72,7 @@
     "eslint-plugin-sort-destructure-keys": "^2.0.0",
     "eslint-plugin-unused-imports": "^4.2.0",
     "glob": "^11.0.3",
+    "happy-dom": "^19.0.2",
     "i18next": "^25.5.2",
     "jscodeshift": "^17.1.2",
     "madge": "^8.0.0",

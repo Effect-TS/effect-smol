@@ -96,30 +96,24 @@ export const make = (self: MessagePort | Window): WorkerRunner.WorkerRunnerPlatf
           )
         }
         function handlePort(port: MessagePort) {
-          const fiber = Scope.fork(scope).pipe(
-            Effect.flatMap((scope) => {
-              const portId = currentPortId++
-              ports.set(portId, [port, scope])
-              const onMsg = onMessage(portId)
-              port.addEventListener("message", onMsg)
-              port.addEventListener("messageerror", onMessageError)
-              if ("start" in port) {
-                port.start()
-              }
-              port.postMessage([0])
-              return Scope.addFinalizer(
-                scope,
-                Effect.sync(() => {
-                  port.removeEventListener("message", onMsg)
-                  port.removeEventListener("messageerror", onError)
-                  port.close()
-                })
-              )
-            }),
-            runFork
-          )
-          fiber.addObserver(onExit)
-          trackFiber(fiber)
+          const portScope = Scope.forkUnsafe(scope)
+          const portId = currentPortId++
+          ports.set(portId, [port, portScope])
+          const onMsg = onMessage(portId)
+          port.addEventListener("message", onMsg)
+          port.addEventListener("messageerror", onMessageError)
+          if ("start" in port) {
+            port.start()
+          }
+          port.postMessage([0])
+          Effect.runSync(Scope.addFinalizer(
+            portScope,
+            Effect.sync(() => {
+              port.removeEventListener("message", onMsg)
+              port.removeEventListener("messageerror", onError)
+              port.close()
+            })
+          ))
         }
         self.addEventListener("error", onError)
         let prevOnConnect: unknown | undefined
@@ -133,10 +127,6 @@ export const make = (self: MessagePort | Window): WorkerRunner.WorkerRunnerPlatf
             handlePort(port)
           }
           cachedPorts.clear()
-          yield* Scope.addFinalizer(
-            scope,
-            Effect.sync(() => self.close())
-          )
         } else {
           handlePort(self as any)
         }
@@ -145,10 +135,13 @@ export const make = (self: MessagePort | Window): WorkerRunner.WorkerRunnerPlatf
           Effect.sync(() => {
             self.removeEventListener("error", onError)
             if ("onconnect" in self) {
+              self.close()
               self.onconnect = prevOnConnect
             }
           })
         )
+
+        yield* Deferred.await(closeLatch)
       }))
 
     return identity<WorkerRunner.WorkerRunner<O, I>>({ run, send, sendUnsafe, disconnects })

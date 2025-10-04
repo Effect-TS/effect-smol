@@ -4,8 +4,8 @@ import { Effect, Layer } from "effect"
 import { HttpClient, HttpClientRequest, HttpRouter, HttpServer } from "effect/unstable/http"
 import { RpcClient, RpcSerialization, RpcServer } from "effect/unstable/rpc"
 import { SocketServer } from "effect/unstable/socket"
-import { e2eSuite } from "./fixtures/rpc-e2e.ts"
-import { RpcLive, User, UsersClient } from "./fixtures/rpc-schemas.ts"
+import { e2eSuite, UsersClient } from "./fixtures/rpc-e2e.ts"
+import { RpcLive, User } from "./fixtures/rpc-schemas.ts"
 
 describe("RpcServer", () => {
   // http ndjson

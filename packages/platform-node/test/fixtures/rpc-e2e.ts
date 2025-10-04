@@ -1,10 +1,26 @@
 import { assert, describe, it } from "@effect/vitest"
-import type { Layer } from "effect"
-import { Cause, Effect, Fiber } from "effect"
+import { Cause, Effect, Fiber, ServiceMap } from "effect"
 import { Option } from "effect/data"
+import * as Layer from "effect/Layer"
 import { Stream } from "effect/stream"
-import { RpcClient, RpcServer } from "effect/unstable/rpc"
-import { User, UsersClient } from "./rpc-schemas.ts"
+import * as RpcClient from "effect/unstable/rpc/RpcClient"
+import type { RpcClientError } from "effect/unstable/rpc/RpcClientError"
+import type * as RpcGroup from "effect/unstable/rpc/RpcGroup"
+import * as RpcServer from "effect/unstable/rpc/RpcServer"
+import * as RpcTest from "effect/unstable/rpc/RpcTest"
+import { AuthClient, AuthLive, TimingLive, User, UserRpcs, UsersLive } from "./rpc-schemas.ts"
+
+export class UsersClient extends ServiceMap.Key<
+  UsersClient,
+  RpcClient.RpcClient<RpcGroup.Rpcs<typeof UserRpcs>, RpcClientError>
+>()("UsersClient") {
+  static layer = Layer.effect(UsersClient)(RpcClient.make(UserRpcs)).pipe(
+    Layer.provide(AuthClient)
+  )
+  static layerTest = Layer.effect(UsersClient)(RpcTest.makeClient(UserRpcs)).pipe(
+    Layer.provide([UsersLive, AuthLive, TimingLive, AuthClient])
+  )
+}
 
 export const e2eSuite = <E>(
   name: string,

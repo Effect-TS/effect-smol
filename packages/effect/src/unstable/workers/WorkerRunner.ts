@@ -7,7 +7,7 @@ import * as ServiceMap from "../../ServiceMap.ts"
 import type { WorkerError } from "./WorkerError.ts"
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category models
  */
 export interface WorkerRunner<O = unknown, I = unknown> {
@@ -28,13 +28,13 @@ export interface WorkerRunner<O = unknown, I = unknown> {
 }
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category models
  */
 export type PlatformMessage<I> = readonly [request: 0, I] | readonly [close: 1]
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category models
  */
 export class WorkerRunnerPlatform extends ServiceMap.Key<WorkerRunnerPlatform, {

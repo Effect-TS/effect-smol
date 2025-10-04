@@ -3,12 +3,9 @@ import { Option } from "effect/data"
 import { Schema } from "effect/schema"
 import { Headers } from "effect/unstable/http"
 import * as Rpc from "effect/unstable/rpc/Rpc"
-import * as RpcClient from "effect/unstable/rpc/RpcClient"
-import type { RpcClientError } from "effect/unstable/rpc/RpcClientError"
 import * as RpcGroup from "effect/unstable/rpc/RpcGroup"
 import * as RpcMiddleware from "effect/unstable/rpc/RpcMiddleware"
 import * as RpcServer from "effect/unstable/rpc/RpcServer"
-import * as RpcTest from "effect/unstable/rpc/RpcTest"
 
 export class User extends Schema.Class<User>("User")({
   id: Schema.String,
@@ -74,7 +71,7 @@ export const UserRpcs = RpcGroup.make(
   })
 ).middleware(AuthMiddleware)
 
-const AuthLive = Layer.succeed(AuthMiddleware)(
+export const AuthLive = Layer.succeed(AuthMiddleware)(
   AuthMiddleware.of((effect, options) =>
     Effect.provideService(
       effect,
@@ -87,7 +84,7 @@ const AuthLive = Layer.succeed(AuthMiddleware)(
 const rpcSuccesses = Metric.counter("rpc_middleware_success")
 const rpcDefects = Metric.counter("rpc_middleware_defects")
 const rpcCount = Metric.counter("rpc_middleware_count")
-const TimingLive = Layer.succeed(TimingMiddleware)(
+export const TimingLive = Layer.succeed(TimingMiddleware)(
   TimingMiddleware.of((effect) =>
     effect.pipe(
       Effect.tap(Metric.update(rpcSuccesses, 1)),
@@ -97,7 +94,7 @@ const TimingLive = Layer.succeed(TimingMiddleware)(
   )
 )
 
-const UsersLive = UserRpcs.toLayer(Effect.gen(function*() {
+export const UsersLive = UserRpcs.toLayer(Effect.gen(function*() {
   let interrupts = 0
   let emits = 0
   return UserRpcs.of({
@@ -153,20 +150,8 @@ export const RpcLive = RpcServer.layer(UserRpcs, {
   ])
 )
 
-const AuthClient = RpcMiddleware.layerClient(AuthMiddleware, ({ next, request }) =>
+export const AuthClient = RpcMiddleware.layerClient(AuthMiddleware, ({ next, request }) =>
   next({
     ...request,
     headers: Headers.set(request.headers, "name", "Logged in user")
   }))
-
-export class UsersClient extends ServiceMap.Key<
-  UsersClient,
-  RpcClient.RpcClient<RpcGroup.Rpcs<typeof UserRpcs>, RpcClientError>
->()("UsersClient") {
-  static layer = Layer.effect(UsersClient)(RpcClient.make(UserRpcs)).pipe(
-    Layer.provide(AuthClient)
-  )
-  static layerTest = Layer.effect(UsersClient)(RpcTest.makeClient(UserRpcs)).pipe(
-    Layer.provide([UsersLive, AuthLive, TimingLive, AuthClient])
-  )
-}
