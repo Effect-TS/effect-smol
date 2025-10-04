@@ -3,7 +3,7 @@
  */
 import type * as Option from "../data/Option.ts"
 import { hasProperty } from "../data/Predicate.ts"
-import * as Clonable from "../interfaces/Clonable.ts"
+import * as Opticable from "../interfaces/Opticable.ts"
 import * as Equal from "../interfaces/Equal.ts"
 import * as Hash from "../interfaces/Hash.ts"
 import { format, toJson } from "../interfaces/Inspectable.ts"
@@ -30,7 +30,7 @@ const SomeProto = Object.assign(Object.create(CommonProto), {
   [Hash.symbol]<A>(this: Option.Some<A>) {
     return Hash.combine(Hash.hash(this._tag))(Hash.hash(this.value))
   },
-  [Clonable.symbol]<A>(this: Option.Some<A>, patch?: Partial<Option.Option<A>>): Option.Option<A> {
+  [Opticable.symbol]<A>(this: Option.Some<A>, patch?: Partial<Option.Option<A>>): Option.Option<A> {
     if (patch) {
       if ("_tag" in patch && patch._tag === "None") {
         return none
@@ -39,7 +39,7 @@ const SomeProto = Object.assign(Object.create(CommonProto), {
         return some(patch.value)
       }
     }
-    return some(Clonable.clone(this.value))
+    return this
   },
   toString<A>(this: Option.Some<A>) {
     return `some(${format(this.value)})`
@@ -66,7 +66,7 @@ const NoneProto = Object.assign(Object.create(CommonProto), {
   [Hash.symbol]<A>(this: Option.None<A>) {
     return NoneHash
   },
-  [Clonable.symbol]<A>(this: Option.None<A>, patch?: Partial<Option.Option<A>>): Option.Option<A> {
+  [Opticable.symbol]<A>(this: Option.None<A>, patch?: Partial<Option.Option<A>>): Option.Option<A> {
     if (patch && patch._tag === "Some" && "value" in patch) {
       return some(patch.value)
     }
@@ -104,3 +104,7 @@ export const some = <A>(value: A): Option.Option<A> => {
   a.value = value
   return a
 }
+
+declare const asd:Option.Option<number>;
+
+const qwe = Opticable.patch(asd, {});

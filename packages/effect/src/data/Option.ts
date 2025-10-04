@@ -10,7 +10,7 @@ import type { Result } from "../data/Result.ts"
 import type { EffectIterator, Yieldable } from "../Effect.ts"
 import type { LazyArg } from "../Function.ts"
 import { constNull, constUndefined, dual, identity, isFunction } from "../Function.ts"
-import type * as Clonable from "../interfaces/Clonable.ts"
+import type * as Opticable from "../interfaces/Opticable.ts"
 import * as Equal from "../interfaces/Equal.ts"
 import type { Inspectable } from "../interfaces/Inspectable.ts"
 import type { Pipeable } from "../interfaces/Pipeable.ts"
@@ -71,7 +71,7 @@ export type Option<A> = None<A> | Some<A>
  * @since 2.0.0
  */
 export interface None<out A>
-  extends Clonable.Clonable, Pipeable, Inspectable, Yieldable<Option<A>, A, NoSuchElementError>
+  extends Opticable.Opticable, Pipeable, Inspectable, Yieldable<Option<A>, A, NoSuchElementError>
 {
   readonly _tag: "None"
   readonly _op: "None"
@@ -88,7 +88,7 @@ export interface None<out A>
  * @since 2.0.0
  */
 export interface Some<out A>
-  extends Clonable.Clonable, Pipeable, Inspectable, Yieldable<Option<A>, A, NoSuchElementError>
+  extends Opticable.Opticable, Pipeable, Inspectable, Yieldable<Option<A>, A, NoSuchElementError>
 {
   readonly _tag: "Some"
   readonly _op: "Some"

@@ -10,7 +10,7 @@ import * as Option from "../data/Option.ts"
 import * as Result from "../data/Result.ts"
 import * as Struct from "../data/Struct.ts"
 import { identity, memoize } from "../Function.ts"
-import * as Clonable from "../interfaces/Clonable.ts"
+import * as Opticable from "../interfaces/Opticable.ts"
 import { format } from "../interfaces/Inspectable.ts"
 import type { Literal } from "../schema/AST.ts"
 import { runChecks, runRefine } from "../schema/AST.ts"
@@ -370,6 +370,7 @@ function make(ast: AST.AST): any {
 }
 
 function cloneShallow<T>(pojo: T): T {
+  if (Opticable.isOpticable(pojo)) return Opticable.patch(pojo)
   if (Array.isArray(pojo)) return pojo.slice() as T
   if (typeof pojo === "object" && pojo !== null) {
     if (process.env.NODE_ENV !== "production") {
@@ -412,25 +413,19 @@ const go = memoize((ast: AST.AST): Op => {
         set: (a: any, s: any) => {
           const path = ast.path
 
-          console.log({ a, s, path })
-
-          const out = Clonable.symbol in s ? s[Clonable.symbol]() : shallowCopy(s)
+          const out =  cloneShallow(s)
 
           let current = out
           let i = 0
           for (; i < path.length - 1; i++) {
             const key = path[i]
-
-            console.log(444)
-            current[key] = shallowCopy(current[key])
+            current[key] = cloneShallow(current[key])
             current = current[key]
           }
 
-          console.log({ path })
-
           const finalKey = path[i]
-          if (Clonable.symbol in s) {
-            return current[Clonable.symbol]({ [finalKey]: a })
+          if (Opticable.isOpticable(current)) {
+            return Opticable.patch(current, { [finalKey]: a })
           } else {
             current[finalKey] = a
           }
