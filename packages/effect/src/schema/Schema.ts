@@ -3069,8 +3069,8 @@ export function Option<A extends Top>(value: A): Option<A> {
         override: ([value]) => Option_.getEquivalence(value)
       },
       format: {
-        _tag: "Declaration",
-        declaration: ([value]) =>
+        _tag: "Override",
+        override: ([value]) =>
           Option_.match({
             onNone: () => "none()",
             onSome: (t) => `some(${value(t)})`
@@ -3247,8 +3247,8 @@ export function Result<A extends Top, E extends Top>(
         override: ([success, failure]) => Result_.getEquivalence(success, failure)
       },
       format: {
-        _tag: "Declaration",
-        declaration: ([success, failure]) =>
+        _tag: "Override",
+        override: ([success, failure]) =>
           Result_.match({
             onSuccess: (t) => `success(${success(t)})`,
             onFailure: (t) => `failure(${failure(t)})`
@@ -3346,8 +3346,8 @@ export function Redacted<S extends Top>(value: S, options?: {
         override: ([value]) => () => value.map((a) => Redacted_.make(a, { label: options?.label }))
       },
       format: {
-        _tag: "Declaration",
-        declaration: () => globalThis.String
+        _tag: "Override",
+        override: () => globalThis.String
       },
       equivalence: {
         _tag: "Override",
@@ -3472,8 +3472,8 @@ export function CauseFailure<E extends Top, D extends Top>(error: E, defect: D):
         }
       },
       format: {
-        _tag: "Declaration",
-        declaration: ([error, defect]) => (t) => {
+        _tag: "Override",
+        override: ([error, defect]) => (t) => {
           switch (t._tag) {
             case "Fail":
               return `Fail(${error(t.error)})`
@@ -3546,8 +3546,8 @@ export function Cause<E extends Top, D extends Top>(error: E, defect: D): Cause<
         override: ([failures]) => (a, b) => failures(a.failures, b.failures)
       },
       format: {
-        _tag: "Declaration",
-        declaration: ([failures]) => (t) => `Cause(${failures(t.failures)})`
+        _tag: "Override",
+        override: ([failures]) => (t) => `Cause(${failures(t.failures)})`
       }
     }
   )
@@ -3735,8 +3735,8 @@ export function Exit<A extends Top, E extends Top, D extends Top>(value: A, erro
         }
       },
       format: {
-        _tag: "Declaration",
-        declaration: ([value, cause]) => (t) => {
+        _tag: "Override",
+        override: ([value, cause]) => (t) => {
           switch (t._tag) {
             case "Success":
               return `Exit.Success(${value(t.value)})`
@@ -3846,8 +3846,8 @@ export function Map<Key extends Top, Value extends Top>(key: Key, value: Value):
         }
       },
       format: {
-        _tag: "Declaration",
-        declaration: ([key, value]) => (t) => {
+        _tag: "Override",
+        override: ([key, value]) => (t) => {
           const size = t.size
           if (size === 0) {
             return "Map(0) {}"
@@ -4072,8 +4072,8 @@ export const Duration: Duration = declare(
         )
     },
     format: {
-      _tag: "Declaration",
-      declaration: () => globalThis.String
+      _tag: "Override",
+      override: () => globalThis.String
     },
     equivalence: {
       _tag: "Override",
@@ -4440,8 +4440,8 @@ function getClassSchemaFactory<S extends Top>(
               override: ([from]: readonly [FastCheck.Arbitrary<S["Type"]>]) => () => from.map((args) => new self(args))
             },
             format: {
-              _tag: "Declaration",
-              declaration: ([from]: readonly [Format<S["Type"]>]) => (t: Self) => `${self.identifier}(${from(t)})`
+              _tag: "Override",
+              override: ([from]: readonly [Format<S["Type"]>]) => (t: Self) => `${self.identifier}(${from(t)})`
             }
           }, annotations)
         )
@@ -4660,8 +4660,8 @@ export const DateTimeUtc: DateTimeUtc = declare(
         )
     },
     format: {
-      _tag: "Declaration",
-      declaration: () => (utc) => utc.toString()
+      _tag: "Override",
+      override: () => (utc) => utc.toString()
     },
     equivalence: {
       _tag: "Override",

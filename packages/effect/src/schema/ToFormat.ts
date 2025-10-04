@@ -17,19 +17,11 @@ export declare namespace Annotation {
   /**
    * @since 4.0.0
    */
-  export type Declaration<T, TypeParameters extends ReadonlyArray<Schema.Top>> = {
-    readonly _tag: "Declaration"
-    readonly declaration: (
+  export type Override<T, TypeParameters extends ReadonlyArray<Schema.Top>> = {
+    readonly _tag: "Override"
+    readonly override: (
       typeParameters: { readonly [K in keyof TypeParameters]: Format<TypeParameters[K]["Type"]> }
     ) => Format<T>
-  }
-
-  /**
-   * @since 4.0.0
-   */
-  export type Override<T> = {
-    readonly _tag: "Override"
-    readonly override: () => Format<T>
   }
 }
 
@@ -47,9 +39,7 @@ export function override<S extends Schema.Top>(override: () => Format<S["Type"]>
   }
 }
 
-function getAnnotation(
-  ast: AST.AST
-): Annotation.Declaration<any, ReadonlyArray<any>> | Annotation.Override<any> | undefined {
+function getAnnotation(ast: AST.AST): Annotation.Override<any, ReadonlyArray<any>> | undefined {
   return Annotations.get(ast)?.["format"] as any
 }
 
@@ -66,16 +56,10 @@ export const defaultReducerAlg: AST.ReducerAlg<Format<any>> = {
     // ---------------------------------------------
     const annotation = getAnnotation(ast)
     if (annotation) {
-      switch (annotation._tag) {
-        case "Declaration": {
-          if (AST.isDeclaration(ast)) {
-            return Option.some(annotation.declaration(ast.typeParameters.map(reduce)))
-          }
-          throw new Error("Declaration annotation found on non-declaration AST")
-        }
-        case "Override":
-          return Option.some(annotation.override())
+      if (AST.isDeclaration(ast)) {
+        return Option.some(annotation.override(ast.typeParameters.map(reduce)))
       }
+      return Option.some(annotation.override([]))
     }
     return Option.none()
   },

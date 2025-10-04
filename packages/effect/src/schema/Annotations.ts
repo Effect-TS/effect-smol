@@ -118,7 +118,7 @@ export interface Declaration<T, TypeParameters extends ReadonlyArray<Schema.Top>
   readonly jsonSchema?: ToJsonSchema.Annotation.Override | undefined
   readonly arbitrary?: ToArbitrary.Annotation.Override<T, TypeParameters> | undefined
   readonly equivalence?: ToEquivalence.Annotation.Override<T, TypeParameters> | undefined
-  readonly format?: ToFormat.Annotation.Declaration<T, TypeParameters> | undefined
+  readonly format?: ToFormat.Annotation.Override<T, TypeParameters> | undefined
   /** @internal */
   readonly "~sentinels"?: ReadonlyArray<AST.Sentinel> | undefined
 }

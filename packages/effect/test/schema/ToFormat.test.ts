@@ -2,7 +2,7 @@ import { DateTime, Duration } from "effect"
 import { Option, Redacted, Result } from "effect/data"
 import { Check, Schema, ToFormat } from "effect/schema"
 import { describe, it } from "vitest"
-import { strictEqual, throws } from "../utils/assert.ts"
+import { strictEqual } from "../utils/assert.ts"
 
 describe("ToFormat", () => {
   it("Any", () => {
@@ -467,13 +467,6 @@ describe("ToFormat", () => {
   })
 
   describe("Annotations", () => {
-    it("should throw on non-declaration ASTs", () => {
-      const schema = Schema.String.annotate({
-        format: { _tag: "Declaration", declaration: () => (s: string) => s.toUpperCase() }
-      })
-      throws(() => ToFormat.make(schema), new Error("Declaration annotation found on non-declaration AST"))
-    })
-
     describe("Override annotation", () => {
       it("String", () => {
         const schema = Schema.String.pipe(ToFormat.override(() => (s) => s.toUpperCase()))
