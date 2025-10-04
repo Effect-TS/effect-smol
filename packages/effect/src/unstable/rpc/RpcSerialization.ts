@@ -370,8 +370,12 @@ export const msgPack: RpcSerialization["Service"] = RpcSerialization.of({
   contentType: "application/msgpack",
   includesFraming: true,
   makeUnsafe: () => {
-    const unpackr = new Msgpackr.Unpackr()
-    const packr = new Msgpackr.Packr()
+    const unpackr = new Msgpackr.Unpackr({
+      useRecords: true
+    })
+    const packr = new Msgpackr.Packr({
+      useRecords: true
+    })
     const encoder = new TextEncoder()
     let incomplete: Uint8Array | undefined = undefined
     return {

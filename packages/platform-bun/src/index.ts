@@ -81,3 +81,13 @@ export * as BunSocketServer from "./BunSocketServer.ts"
  * @since 1.0.0
  */
 export * as BunStream from "./BunStream.ts"
+
+/**
+ * @since 1.0.0
+ */
+export * as BunWorker from "./BunWorker.ts"
+
+/**
+ * @since 1.0.0
+ */
+export * as BunWorkerRunner from "./BunWorkerRunner.ts"

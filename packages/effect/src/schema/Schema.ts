@@ -4620,6 +4620,7 @@ export const Uint8Array: Uint8Array = instanceOf(globalThis.Uint8Array<ArrayBuff
         encode: Getter.encodeBase64()
       }
     ),
+  title: "Uint8Array",
   arbitrary: {
     _tag: "Override",
     override: () => (fc) => fc.uint8Array()

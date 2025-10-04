@@ -55,4 +55,9 @@ export * as RpcTest from "./RpcTest.ts"
 /**
  * @since 4.0.0
  */
+export * as RpcWorker from "./RpcWorker.ts"
+
+/**
+ * @since 4.0.0
+ */
 export * as Utils from "./Utils.ts"

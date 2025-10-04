@@ -6,6 +6,7 @@ import type { NonEmptyReadonlyArray } from "../../collections/Array.ts"
 import * as Filter from "../../data/Filter.ts"
 import type * as Option from "../../data/Option.ts"
 import * as Predicate from "../../data/Predicate.ts"
+import * as Deferred from "../../Deferred.ts"
 import * as Effect from "../../Effect.ts"
 import * as Exit from "../../Exit.ts"
 import * as Fiber from "../../Fiber.ts"
@@ -28,6 +29,9 @@ import * as HttpServerRequest from "../http/HttpServerRequest.ts"
 import * as HttpServerResponse from "../http/HttpServerResponse.ts"
 import type * as Socket from "../socket/Socket.ts"
 import * as SocketServer from "../socket/SocketServer.ts"
+import * as Transferable from "../workers/Transferable.ts"
+import type { WorkerError } from "../workers/WorkerError.ts"
+import * as WorkerRunner from "../workers/WorkerRunner.ts"
 import * as Rpc from "./Rpc.ts"
 import type * as RpcGroup from "./RpcGroup.ts"
 import type {
@@ -42,6 +46,7 @@ import type {
 import { constEof, constPong, RequestId, ResponseDefectEncoded } from "./RpcMessage.ts"
 import * as RpcSchema from "./RpcSchema.ts"
 import * as RpcSerialization from "./RpcSerialization.ts"
+import type { InitialMessage } from "./RpcWorker.ts"
 import { withRun } from "./Utils.ts"
 
 /**
@@ -425,7 +430,7 @@ export const make: <Rpcs extends Rpc.Any>(
     readonly disableFatalDefects?: boolean | undefined
   }
 ) {
-  const { disconnects, end, run, send, supportsAck, supportsSpanPropagation } = yield* Protocol
+  const { disconnects, end, run, send, supportsAck, supportsSpanPropagation, supportsTransferables } = yield* Protocol
   const services = yield* Effect.services<Rpc.ToHandler<Rpcs> | Rpc.Middleware<Rpcs>>()
   const scope = yield* Scope.make()
 
@@ -443,6 +448,7 @@ export const make: <Rpcs extends Rpc.Any>(
           return handleEncode(
             client,
             response.requestId,
+            schemas.collector,
             Effect.provideServices(schemas.encodeChunk(response.values), schemas.services),
             (values) => ({ _tag: "Chunk", requestId: String(response.requestId), values })
           )
@@ -454,6 +460,7 @@ export const make: <Rpcs extends Rpc.Any>(
           return handleEncode(
             client,
             response.requestId,
+            schemas.collector,
             Effect.provideServices(schemas.encodeExit(response.exit), schemas.services),
             (exit) => ({ _tag: "Exit", requestId: String(response.requestId), exit })
           )
@@ -486,7 +493,7 @@ export const make: <Rpcs extends Rpc.Any>(
     ) => Effect.Effect<NonEmptyReadonlyArray<unknown>, Schema.SchemaError>
     readonly encodeExit: (u: unknown) => Effect.Effect<ResponseExitEncoded["exit"], Schema.SchemaError>
     readonly services: ServiceMap.ServiceMap<never>
-    // readonly collector?: Transferable.CollectorService | undefined
+    readonly collector?: Transferable.Collector["Service"] | undefined
   }
 
   const schemasCache = new WeakMap<any, Schemas>()
@@ -517,12 +524,12 @@ export const make: <Rpcs extends Rpc.Any>(
   const handleEncode = <A, R>(
     client: Client,
     requestId: RequestId,
-    // collector: Transferable.CollectorService | undefined,
+    collector: Transferable.Collector["Service"] | undefined,
     effect: Effect.Effect<A, Schema.SchemaError, R>,
     onSuccess: (a: A) => FromServerEncoded
   ) =>
-    effect.pipe(
-      Effect.flatMap((a) => send(client.id, onSuccess(a))),
+    (collector ? Effect.provideService(effect, Transferable.Collector, collector) : effect).pipe(
+      Effect.flatMap((a) => send(client.id, onSuccess(a), collector && collector.clearUnsafe())),
       Effect.catchCause((cause) => {
         client.schemas.delete(requestId)
         const defect = Cause.squash(Cause.map(cause, (e) => e.issue.toString()))
@@ -594,7 +601,15 @@ export const make: <Rpcs extends Rpc.Any>(
           {
             onFailure: (error) => sendRequestDefect(client, requestId, error.issue.toString()),
             onSuccess: (payload) => {
-              client.schemas.set(requestId, schemas)
+              client.schemas.set(
+                requestId,
+                supportsTransferables ?
+                  {
+                    ...schemas,
+                    collector: Transferable.makeCollectorUnsafe()
+                  } :
+                  schemas
+              )
               return server.write(clientId, {
                 ...request,
                 id: requestId,
@@ -1132,6 +1147,70 @@ export const layerProtocolStdio = <EIn, EOut, RIn, ROut>(options: {
   readonly stdout: Sink.Sink<void, Uint8Array | string, unknown, EOut, ROut>
 }): Layer.Layer<Protocol, never, RpcSerialization.RpcSerialization | RIn | ROut> =>
   Layer.effect(Protocol)(makeProtocolStdio(options))
+
+/**
+ * @since 4.0.0
+ * @category protocol
+ */
+export const makeProtocolWorkerRunner: Effect.Effect<
+  Protocol["Service"],
+  WorkerError,
+  WorkerRunner.WorkerRunnerPlatform | Scope.Scope
+> = Protocol.make(Effect.fnUntraced(function*(writeRequest) {
+  const fiber = Fiber.getCurrent()!
+  const runner = yield* WorkerRunner.WorkerRunnerPlatform
+  const backing = yield* runner.start<FromServerEncoded, FromClientEncoded | InitialMessage.Encoded>()
+  const initialMessage = yield* Deferred.make<unknown>()
+  const clientIds = new Set<number>()
+  const disconnects = yield* Queue.make<number>()
+
+  yield* backing.run((clientId, message) => {
+    clientIds.add(clientId)
+    if (message._tag === "InitialMessage") {
+      return Deferred.succeed(initialMessage, message.value)
+    }
+    return writeRequest(clientId, message)
+  }).pipe(
+    Effect.tapCause(Effect.logError),
+    Effect.onExit(() => {
+      fiber.currentScheduler.scheduleTask(() => fiber.interruptUnsafe(fiber.id), 0)
+    }),
+    Effect.forkScoped
+  )
+
+  if (backing.disconnects) {
+    yield* Queue.take(backing.disconnects).pipe(
+      Effect.tap((clientId) => {
+        clientIds.delete(clientId)
+        return Queue.offer(disconnects, clientId)
+      }),
+      Effect.forkScoped
+    )
+  }
+
+  return {
+    disconnects,
+    send: backing.send,
+    end(_clientId) {
+      return Effect.void
+    },
+    clientIds: Effect.sync(() => clientIds),
+    initialMessage: Effect.asSome(Deferred.await(initialMessage)),
+    supportsAck: true,
+    supportsTransferables: true,
+    supportsSpanPropagation: true
+  }
+}))
+
+/**
+ * @since 4.0.0
+ * @category protocol
+ */
+export const layerProtocolWorkerRunner: Layer.Layer<
+  Protocol,
+  WorkerError,
+  WorkerRunner.WorkerRunnerPlatform
+> = Layer.effect(Protocol)(makeProtocolWorkerRunner)
 
 /**
  * Fiber id used to indicate client induced interrupts
