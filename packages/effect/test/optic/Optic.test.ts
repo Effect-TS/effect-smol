@@ -448,19 +448,19 @@ Expected a value greater than 0, got -1.1`
       assertSuccess(optic.getResult(Option.none()), undefined)
       assertFailure(optic.getResult(Option.some(1)), `Expected a None value, got some(1)`)
     })
-
-    it("none11", () => {
+    
+    it("modify", () => {
       const optic = Optic.id<Option.Option<number>>().tag("Some").key("value")
       const optic1 = Optic.id<Option.Option<number>>().key("_tag")
-
-      const result = optic.modify(() => 3)(Option.some(2))
-      const qwe = optic1.modify(() => "None")(Option.some(2))
-      //    ^?
-
-      console.dir(result, { showHidden: true })
-      console.dir(qwe, { showHidden: true })
-      deepStrictEqual(Option.isOption(result), true)
-      // assertFailure(optic.getResult(Option.some(1)), `Expected a None value, got some(1)`)
+      
+      const resultNone = optic1.modify(() => "None")(Option.some(2))
+      const resultSome = optic.modify(() => 3)(Option.some(2))
+      
+      deepStrictEqual(Option.isOption(resultSome), true)
+      deepStrictEqual(Option.isOption(resultNone), true)
+      
+      deepStrictEqual(resultNone,Option.none())
+      deepStrictEqual(resultSome,Option.some(3))
     })
   })
 
