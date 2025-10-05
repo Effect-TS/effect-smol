@@ -307,6 +307,13 @@ export const fromEffect = <A, E, R>(effect: Effect.Effect<A, E, R>): Stream<A, E
   fromChannel(Channel.fromEffect(Effect.map(effect, Arr.of)))
 
 /**
+ * @since 4.0.0
+ * @category constructors
+ */
+export const fromEffectDrain = <A, E, R>(effect: Effect.Effect<A, E, R>): Stream<never, E, R> =>
+  drain(fromEffect(effect))
+
+/**
  * Creates a stream from a pull effect.
  *
  * A pull effect is a low-level representation of a stream that can be used
