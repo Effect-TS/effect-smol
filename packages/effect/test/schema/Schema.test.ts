@@ -3524,17 +3524,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
       const schema = Schema.instanceOf(
         MyError,
-        {
-          title: "MyError",
-          defaultIsoSerializer: () =>
-            Schema.link<MyError>()(
-              Schema.String,
-              Transformation.transform({
-                decode: (message) => new MyError(message),
-                encode: (e) => e.message
-              })
-            )
-        }
+        { title: "MyError" }
       )
       const asserts = new TestSchema.Asserts(schema)
 

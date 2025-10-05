@@ -110,15 +110,21 @@ export interface Bottom<T, TypeParameters extends ReadonlyArray<Schema.Top>> ext
 export interface Declaration<T, TypeParameters extends ReadonlyArray<Schema.Top> = readonly []>
   extends Bottom<T, TypeParameters>
 {
+  /** Used by both JSON and ISO serializers */
+  readonly serializer?:
+    | ((
+      typeParameters: { readonly [K in keyof TypeParameters]: Schema.Schema<TypeParameters[K]["Encoded"]> }
+    ) => AST.Link)
+    | undefined
+  /** Used only by JSON serializers */
   readonly defaultJsonSerializer?:
     | ((
       typeParameters: { readonly [K in keyof TypeParameters]: Schema.Schema<TypeParameters[K]["Encoded"]> }
     ) => AST.Link)
     | undefined
+  /** Used only by ISO serializers */
   readonly defaultIsoSerializer?:
-    | ((
-      typeParameters: { readonly [K in keyof TypeParameters]: Schema.Schema<TypeParameters[K]["Type"]> }
-    ) => AST.Link)
+    | ((typeParameters: { readonly [K in keyof TypeParameters]: Schema.Schema<TypeParameters[K]["Type"]> }) => AST.Link)
     | undefined
   readonly jsonSchema?: ToJsonSchema.Annotation.Override | undefined
   readonly arbitrary?: ToArbitrary.Annotation.Override<T, TypeParameters> | undefined

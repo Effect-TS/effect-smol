@@ -30,7 +30,7 @@ describe("Serializer", () => {
           const encoding = asserts.encoding()
           await encoding.fail(
             new A(),
-            "cannot serialize to JSON, required `defaultJsonSerializer` or `defaultIsoSerializer` annotation for Declaration"
+            "required `defaultJsonSerializer` or `serializer` annotation for Declaration"
           )
         })
 
@@ -41,7 +41,7 @@ describe("Serializer", () => {
           const encoding = asserts.encoding()
           await encoding.fail(
             "a",
-            "cannot serialize to JSON, required `defaultJsonSerializer` or `defaultIsoSerializer` annotation for UnknownKeyword"
+            "required `defaultJsonSerializer` or `serializer` annotation for UnknownKeyword"
           )
         })
 
@@ -52,7 +52,7 @@ describe("Serializer", () => {
           const encoding = asserts.encoding()
           await encoding.fail(
             {},
-            "cannot serialize to JSON, required `defaultJsonSerializer` or `defaultIsoSerializer` annotation for ObjectKeyword"
+            "required `defaultJsonSerializer` or `serializer` annotation for ObjectKeyword"
           )
         })
 
@@ -66,7 +66,7 @@ describe("Serializer", () => {
           const encoding = asserts.encoding()
           await encoding.fail(
             { [a]: "b" },
-            "cannot serialize to JSON, TypeLiteral property names must be strings"
+            "TypeLiteral property names must be strings"
           )
         })
       })
@@ -106,10 +106,10 @@ describe("Serializer", () => {
         })
       })
 
-      it("should apply the construction process to the provided link in the defaultIsoSerializer annotation", async () => {
+      it("should apply the construction process to the provided link in the serializer annotation", async () => {
         const schema = Schema.Struct({
           a: Schema.Date.annotate({
-            defaultIsoSerializer: () =>
+            serializer: () =>
               Schema.link<Date>()(
                 Schema.Date,
                 Transformation.passthrough()
@@ -140,7 +140,7 @@ describe("Serializer", () => {
             MyError,
             {
               title: "MyError",
-              defaultIsoSerializer: () =>
+              serializer: () =>
                 Schema.link<MyError>()(
                   Schema.String,
                   Transformation.transform({
@@ -176,7 +176,7 @@ describe("Serializer", () => {
               MyError,
               {
                 title: "MyError",
-                defaultIsoSerializer: () =>
+                serializer: () =>
                   Schema.link<MyError>()(
                     MyError.Props,
                     Transformation.transform({
@@ -1240,7 +1240,7 @@ describe("Serializer", () => {
           const encoding = asserts.encoding()
           await encoding.fail(
             new A(),
-            "cannot serialize to StringPojo, required `defaultIsoSerializer` or `defaultJsonSerializer` annotation for Declaration"
+            "required `defaultJsonSerializer` or `serializer` annotation for Declaration"
           )
         })
 
@@ -1251,7 +1251,7 @@ describe("Serializer", () => {
           const encoding = asserts.encoding()
           await encoding.fail(
             "a",
-            "cannot serialize to StringPojo, required `defaultIsoSerializer` or `defaultJsonSerializer` annotation for UnknownKeyword"
+            "required `defaultJsonSerializer` or `serializer` annotation for UnknownKeyword"
           )
         })
 
@@ -1262,7 +1262,7 @@ describe("Serializer", () => {
           const encoding = asserts.encoding()
           await encoding.fail(
             {},
-            "cannot serialize to StringPojo, required `defaultIsoSerializer` or `defaultJsonSerializer` annotation for ObjectKeyword"
+            "required `defaultJsonSerializer` or `serializer` annotation for ObjectKeyword"
           )
         })
 
@@ -1276,7 +1276,7 @@ describe("Serializer", () => {
           const encoding = asserts.encoding()
           await encoding.fail(
             { [a]: "b" },
-            "cannot serialize to StringPojo, TypeLiteral property names must be strings"
+            "TypeLiteral property names must be strings"
           )
         })
       })
@@ -2063,7 +2063,7 @@ describe("Serializer", () => {
         await assertXmlFailure(
           Schema.Unknown,
           "test",
-          "cannot serialize to StringPojo, required `defaultIsoSerializer` or `defaultJsonSerializer` annotation for UnknownKeyword"
+          "required `defaultJsonSerializer` or `serializer` annotation for UnknownKeyword"
         )
       })
 
@@ -2075,7 +2075,7 @@ describe("Serializer", () => {
         await assertXmlFailure(
           Schema.Object,
           {},
-          "cannot serialize to StringPojo, required `defaultIsoSerializer` or `defaultJsonSerializer` annotation for ObjectKeyword"
+          "required `defaultJsonSerializer` or `serializer` annotation for ObjectKeyword"
         )
       })
     })

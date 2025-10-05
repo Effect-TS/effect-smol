@@ -86,7 +86,7 @@ export const HeadersSchema: HeadersSchema = Schema.declare(
       _tag: "Override",
       override: () => Equivalence
     },
-    defaultIsoSerializer: () =>
+    serializer: () =>
       Schema.link<Headers>()(
         Schema.Record(Schema.String, Schema.String),
         Transformation.transform({

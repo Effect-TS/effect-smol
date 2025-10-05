@@ -3044,8 +3044,8 @@ export function Option<A extends Top>(value: A): Option<A> {
     },
     {
       title: "Option",
-      defaultIsoSerializer: ([value]) =>
-        link<Option_.Option<A["Type"]>>()(
+      serializer: ([value]) =>
+        link<Option_.Option<A["Encoded"]>>()(
           Union([Struct({ _tag: Literal("Some"), value }), Struct({ _tag: Literal("None") })]),
           Transformation.transform({
             decode: (input) => input._tag === "None" ? Option_.none() : Option_.some(input.value),
@@ -3216,8 +3216,8 @@ export function Result<A extends Top, E extends Top>(
     },
     {
       title: "Result",
-      defaultIsoSerializer: ([success, failure]) =>
-        link<Result_.Result<A["Type"], E["Type"]>>()(
+      serializer: ([success, failure]) =>
+        link<Result_.Result<A["Encoded"], E["Encoded"]>>()(
           Union([
             Struct({ _tag: Literal("Success"), success }),
             Struct({ _tag: Literal("Failure"), failure })
@@ -3422,8 +3422,8 @@ export function CauseFailure<E extends Top, D extends Top>(error: E, defect: D):
     },
     {
       title: "Cause.Failure",
-      defaultIsoSerializer: ([error, defect]) =>
-        link<Cause_.Failure<E["Type"]>>()(
+      serializer: ([error, defect]) =>
+        link<Cause_.Failure<E["Encoded"]>>()(
           Union([
             TaggedStruct("Fail", { error }),
             TaggedStruct("Die", { defect }),
@@ -3527,8 +3527,8 @@ export function Cause<E extends Top, D extends Top>(error: E, defect: D): Cause<
     },
     {
       title: "Cause",
-      defaultIsoSerializer: ([failures]) =>
-        link<Cause_.Cause<E["Type"]>>()(
+      serializer: ([failures]) =>
+        link<Cause_.Cause<E["Encoded"]>>()(
           failures,
           Transformation.transform({
             decode: Cause_.fromFailures,
@@ -3696,8 +3696,8 @@ export function Exit<A extends Top, E extends Top, D extends Top>(value: A, erro
     },
     {
       title: "Exit",
-      defaultIsoSerializer: ([value, cause]) =>
-        link<Exit_.Exit<A["Type"], E["Type"]>>()(
+      serializer: ([value, cause]) =>
+        link<Exit_.Exit<A["Encoded"], E["Encoded"]>>()(
           Union([
             TaggedStruct("Success", { value }),
             TaggedStruct("Failure", { cause })
@@ -3814,8 +3814,8 @@ export function ReadonlyMap<Key extends Top, Value extends Top>(key: Key, value:
     },
     {
       title: "ReadonlyMap",
-      defaultIsoSerializer: ([key, value]) =>
-        link<globalThis.Map<Key["Type"], Value["Type"]>>()(
+      serializer: ([key, value]) =>
+        link<globalThis.Map<Key["Encoded"], Value["Encoded"]>>()(
           Array(Tuple([key, value])),
           Transformation.transform({
             decode: (entries) => new globalThis.Map(entries),
@@ -3906,8 +3906,8 @@ export function ReadonlySet<Value extends Top>(value: Value): ReadonlySet$<Value
     },
     {
       title: "ReadonlySet",
-      defaultIsoSerializer: ([value]) =>
-        link<globalThis.Set<Value["Type"]>>()(
+      serializer: ([value]) =>
+        link<globalThis.Set<Value["Encoded"]>>()(
           Array(value),
           Transformation.transform({
             decode: (entries) => new globalThis.Set(entries),
@@ -4522,7 +4522,7 @@ function getClassSchemaFactory<S extends Top>(
           },
           Annotations.combine({
             [AST.ClassTypeId]: ([from]: readonly [AST.AST]) => new AST.Link(from, transformation),
-            defaultIsoSerializer: ([from]) => new AST.Link(from.ast, transformation),
+            serializer: ([from]) => new AST.Link(from.ast, transformation),
             arbitrary: {
               _tag: "Override",
               override: ([from]) => () => from.map((args) => new self(args))

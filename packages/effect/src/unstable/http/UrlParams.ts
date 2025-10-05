@@ -161,7 +161,7 @@ export const UrlParamsSchema: UrlParamsSchema = Schema.declare(
       _tag: "Override",
       override: () => Equivalence
     },
-    defaultIsoSerializer: () =>
+    serializer: () =>
       Schema.link<UrlParams>()(
         Schema.Array(Schema.Tuple([Schema.String, Schema.String])),
         Transformation.transform({

@@ -44,20 +44,20 @@ export const CookiesSchema: CookiesSchema = Schema.declare(
   isCookies,
   {
     title: "Cookies",
-    defaultIsoSerializer: () =>
-      Schema.link<Cookies>()(
-        Schema.Record(Schema.String, CookieSchema),
-        Transformation.transform({
-          decode: (input) => fromReadonlyRecord(input),
-          encode: (cookies) => cookies.cookies
-        })
-      ),
     defaultJsonSerializer: () =>
       Schema.link<Cookies>()(
         Schema.Array(Schema.String),
         Transformation.transform({
           decode: (input) => fromSetCookie(input),
           encode: (cookies) => toSetCookieHeaders(cookies)
+        })
+      ),
+    defaultIsoSerializer: () =>
+      Schema.link<Cookies>()(
+        Schema.Record(Schema.String, CookieSchema),
+        Transformation.transform({
+          decode: (input) => fromReadonlyRecord(input),
+          encode: (cookies) => cookies.cookies
         })
       )
   }

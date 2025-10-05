@@ -32,7 +32,7 @@ const goJson = memoize(AST.apply((ast: AST.AST): AST.AST => {
       case "ObjectKeyword":
       case "NeverKeyword":
       case "Declaration": {
-        const getLink = ast.annotations?.defaultJsonSerializer ?? ast.annotations?.defaultIsoSerializer
+        const getLink = ast.annotations?.defaultJsonSerializer ?? ast.annotations?.serializer
         if (Predicate.isFunction(getLink)) {
           const tps = AST.isDeclaration(ast)
             ? ast.typeParameters.map((tp) => Schema.make(goJson(AST.encodedAST(tp))))
@@ -51,16 +51,18 @@ const goJson = memoize(AST.apply((ast: AST.AST): AST.AST => {
       case "LiteralType":
       case "NumberKeyword":
         return ast.goJson()
-      case "TypeLiteral": {
-        if (ast.propertySignatures.some((ps) => !Predicate.isString(ps.name))) {
-          return forbidden(ast, "cannot serialize to JSON, TypeLiteral property names must be strings")
+      case "TypeLiteral":
+      case "TupleType":
+      case "UnionType":
+      case "Suspend": {
+        if (AST.isTypeLiteral(ast)) {
+          if (ast.propertySignatures.some((ps) => !Predicate.isString(ps.name))) {
+            return forbidden(ast, "TypeLiteral property names must be strings")
+          }
+          // TODO: check for index signatures
         }
         return ast.go(goJson)
       }
-      case "TupleType":
-      case "UnionType":
-      case "Suspend":
-        return ast.go(goJson)
     }
     return ast
   }
@@ -72,7 +74,7 @@ const goJson = memoize(AST.apply((ast: AST.AST): AST.AST => {
 function requiredGoJsonAnnotation(ast: AST.AST): AST.AST {
   return forbidden(
     ast,
-    `cannot serialize to JSON, required \`defaultJsonSerializer\` or \`defaultIsoSerializer\` annotation for ${ast._tag}`
+    `required \`defaultJsonSerializer\` or \`serializer\` annotation for ${ast._tag}`
   )
 }
 
@@ -99,9 +101,9 @@ const goIso = memoize((ast: AST.AST): AST.AST => {
   function go(ast: AST.AST): AST.AST {
     switch (ast._tag) {
       case "Declaration": {
-        const getLink = ast.annotations?.defaultIsoSerializer
+        const getLink = ast.annotations?.defaultIsoSerializer ?? ast.annotations?.serializer
         if (Predicate.isFunction(getLink)) {
-          const link = getLink(ast.typeParameters.map((tp) => Schema.make(goIso(AST.encodedAST(tp)))))
+          const link = getLink(ast.typeParameters.map((tp) => Schema.make(goIso(tp))))
           const to = goIso(link.to)
           return AST.replaceEncoding(ast, to === link.to ? [link] : [new AST.Link(to, link.transformation)])
         }
@@ -141,16 +143,16 @@ export const goStringPojo = memoize(AST.apply((ast: AST.AST): AST.AST => {
       case "ObjectKeyword":
       case "NeverKeyword":
       case "Declaration": {
-        const getLink = ast.annotations?.defaultIsoSerializer ?? ast.annotations?.defaultJsonSerializer
+        const getLink = ast.annotations?.defaultJsonSerializer ?? ast.annotations?.serializer
         if (Predicate.isFunction(getLink)) {
           const tps = AST.isDeclaration(ast)
-            ? ast.typeParameters.map((tp) => Schema.make(goIso(AST.encodedAST(tp))))
+            ? ast.typeParameters.map((tp) => Schema.make(goStringPojo(AST.encodedAST(tp))))
             : []
           const link = getLink(tps)
           const to = goStringPojo(link.to)
           return AST.replaceEncoding(ast, to === link.to ? [link] : [new AST.Link(to, link.transformation)])
         }
-        return requiredGoStringPojoAnnotation(ast)
+        return requiredGoJsonAnnotation(ast)
       }
       case "NullKeyword":
         return AST.replaceEncoding(ast, [nullStringPojoLink])
@@ -164,16 +166,17 @@ export const goStringPojo = memoize(AST.apply((ast: AST.AST): AST.AST => {
       case "SymbolKeyword":
       case "UniqueSymbol":
         return ast.goJson()
-      case "TypeLiteral": {
-        if (ast.propertySignatures.some((ps) => !Predicate.isString(ps.name))) {
-          return forbidden(ast, "cannot serialize to StringPojo, TypeLiteral property names must be strings")
+      case "TypeLiteral":
+      case "TupleType":
+      case "UnionType":
+      case "Suspend": {
+        if (AST.isTypeLiteral(ast)) {
+          if (ast.propertySignatures.some((ps) => !Predicate.isString(ps.name))) {
+            return forbidden(ast, "TypeLiteral property names must be strings")
+          }
         }
         return ast.go(goStringPojo)
       }
-      case "TupleType":
-      case "UnionType":
-      case "Suspend":
-        return ast.go(goStringPojo)
     }
     return ast
   }
@@ -196,13 +199,6 @@ const booleanStringPojoLink = new AST.Link(
     Getter.String()
   )
 )
-
-function requiredGoStringPojoAnnotation(ast: AST.AST): AST.AST {
-  return forbidden(
-    ast,
-    `cannot serialize to StringPojo, required \`defaultIsoSerializer\` or \`defaultJsonSerializer\` annotation for ${ast._tag}`
-  )
-}
 
 /**
  * @since 4.0.0
