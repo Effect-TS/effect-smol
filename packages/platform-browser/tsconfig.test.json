@@ -15,7 +15,7 @@
       "@effect/platform-browser": ["src/index.ts"],
       "@effect/platform-browser/*": ["src/*/index.ts", "src/*.ts"]
     },
-    "types": ["node"],
+    "types": [],
     "plugins": [
       {
         "name": "@effect/language-service",
