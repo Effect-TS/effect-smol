@@ -2,7 +2,7 @@ import * as BrowserWorkerRunner from "@effect/platform-browser/BrowserWorkerRunn
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as RpcServer from "effect/unstable/rpc/RpcServer"
-import { RpcLive } from "./rpc-schemas.js"
+import { RpcLive } from "./rpc-schemas.ts"
 
 const MainLive = RpcLive.pipe(
   Layer.provide(RpcServer.layerProtocolWorkerRunner),
