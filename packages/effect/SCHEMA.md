@@ -238,91 +238,139 @@ const encoding = Schema.encodeEffect(User)({ id: "user-123", name: "John Doe" })
 
 ## 🆕 Default JSON Serialization / Deserialization
 
-The `Schema` module is not just for validation, it also supports serializing and deserializing data.
+The `Schema` module is not only for validation. It can also encode and decode data.
 
-Two common scenarios for JSON serialization and deserialization are:
+**Example** (Date to epoch milliseconds)
 
-1. **Network Transmission** (for RPC or messaging systems)
-2. **Custom JSON Formats** (for REST APIs, file storage, etc.)
+```ts
+import { Schema, Transformation } from "effect/schema"
 
-This section focuses on the first use case, where the exact JSON format is less important. In these cases, you often want to send structured data over a network without manually specifying how to convert it to and from JSON. The goal is to send something that can be encoded on one end and decoded on the other.
+// Custom Date schema: JSON <-> number (epoch millis)
+const DateFromEpochMillis = Schema.Date.pipe(
+  Schema.encodeTo(
+    Schema.Number,
+    Transformation.transform({
+      // during decoding, go from number -> Date
+      decode: (epochMillis) => new Date(epochMillis),
+      // during encoding, go from Date -> number
+      encode: (date) => date.getTime()
+    })
+  )
+)
+
+console.log(Schema.encodeUnknownSync(DateFromEpochMillis)(new Date("2021-01-01T00:00:00.000Z")))
+// 1609459200000
+```
+
+Sometimes you do not want to define a new schema only to send or store data as JSON. You may want a **JSON-ready version** of an existing schema so that values can be serialized and deserialized on both ends of a network call.
+
+Common scenarios:
+
+1. **Network transmission** (RPC, messaging)
+2. **Custom JSON formats** (REST APIs, files)
+
+This page starts with the network case, where you mainly need round-trip conversion (encode on one side, decode on the other). The exact JSON shape is less important.
 
 ### Transmitting Data Over the Network
 
-For use cases like RPC or messaging systems, the JSON format only needs to support round-trip encoding and decoding. The `Serializer.json` operator helps with this by taking a schema and returning a `Codec` that knows how to serialize and deserialize the data using a JSON-compatible format.
+For RPC and messaging, it is enough that the JSON representation round-trips.
+`Serializer.json` takes a schema and returns a **new schema** that knows how to serialize to JSON and how to parse that JSON back.
 
-**Example** (Serializing and deserializing a Map with complex keys and values)
+**Example** (Round-tripping a `ReadonlySet<Date>`)
 
 ```ts
-import { Option } from "effect/data"
 import { Schema, Serializer } from "effect/schema"
 
-// A schema for Map<Option<symbol>, Date>
-const schema = Schema.Map(Schema.Option(Schema.Symbol), Schema.Date)
+// Build a schema for ReadonlySet<Date>
+const schema = Schema.ReadonlySet(Schema.Date)
 
-// Generate a JSON serializer for the schema
+// Ask for a JSON-capable schema
 const serializer = Serializer.json(schema)
 
-// Create a sample value
-const data = new Map([[Option.some(Symbol.for("a")), new Date("2021-01-01")]])
+// A sample value to send
+const data = new Set([new Date("2021-01-01"), new Date("2021-01-02")])
 
-// Encode and serialize the value
+// Serialize to the JSON shape
 const serialized = JSON.stringify(Schema.encodeUnknownSync(serializer)(data))
 
 console.log(serialized)
-// => [[["Symbol(a)"],"2021-01-01T00:00:00.000Z"]]
+// ["2021-01-01T00:00:00.000Z","2021-01-02T00:00:00.000Z"]
 
-// Deserialize and decode the value
+// Deserialize back to the original value
 console.log(Schema.decodeUnknownSync(serializer)(JSON.parse(serialized)))
-// => Map(1) {
-//     { _id: 'Option', _tag: 'Some', value: Symbol(a) } => 2021-01-01T00:00:00.000Z
-//   }
+// Set(2) { 2021-01-01T00:00:00.000Z, 2021-01-02T00:00:00.000Z }
 ```
 
-The schema automatically chooses a suitable JSON format:
+This schema chooses JSON formats based on its parts:
 
-- `Map` is encoded as an array of `[key, value]` pairs
-- `Option` is encoded as an array with zero or one element (e.g. `[value]` or `[]`)
-- `Date` is encoded as an ISO string
-- `Symbol` is encoded as a string
+- `ReadonlySet<A>` encodes as a JSON array
+- `Date` encodes as an ISO string
 
 > [!WARNING]
-> This default format is designed for portability and round-tripping. It may not match domain-specific formats like those used in public APIs.
+> The default JSON formats aim for portability and round-tripping. They may not match domain-specific formats used by public APIs.
 
 #### How it works
 
-By default, Schema can encode and decode values, including recursive structures. However, certain types like `Map` or `Option` are defined using `SchemaAST.Declaration`, which must provide a default serialization strategy using annotations.
+`Schema` can encode and decode many values by default, including recursive structures.
+Some data types (for example `Schema.ReadonlyMap`, `Schema.Option`, `Schema.ReadonlySet`) are built using `SchemaAST.Declaration`.
+These types attach a **default JSON serializer** via an annotation so `Serializer.json` can discover how to encode them.
 
-This is done by attaching a `defaultJsonSerializer` annotation when defining the schema.
+Here is how the built-in `Schema.Date` sets its annotation:
 
-**Example** (Providing a default serializer for Date)
+**Example** (Defining the default JSON serializer for `Date`)
+
+```ts
+import { Schema, Transformation } from "effect/schema"
+
+// Define a Date schema with a default JSON serializer annotation
+const Date = Schema.instanceOf(globalThis.Date, {
+  defaultJsonSerializer: () =>
+    Schema.link<globalThis.Date>()(
+      Schema.String, // JSON representation
+      Transformation.transform({
+        decode: (s) => new globalThis.Date(s), // JSON string -> Date
+        encode: (date) => date.toISOString() // Date -> JSON string
+      })
+    )
+})
+```
+
+The same idea applies to `Schema.ReadonlySet`. When you call `Serializer.json` on `Schema.ReadonlySet(Schema.Date)`, the library walks the schema tree and combines the `defaultJsonSerializer` annotations it finds.
+
+### Custom JSON Formats
+
+`Serializer.json` respects **explicit encodings** you add to a schema. If you choose a custom representation, that choice takes priority.
+
+**Example** (ReadonlySet<Date> encoded as epoch milliseconds)
 
 ```ts
 import { Schema, Serializer, Transformation } from "effect/schema"
 
-// Custom Date schema with a default serializer
-const MyDate = Schema.instanceOf(Date, {
-  defaultJsonSerializer: () =>
-    Schema.link<Date>()(
-      Schema.String, // JSON representation
-      Transformation.transform({
-        decode: (s) => new Date(s),
-        encode: (date) => date.toISOString()
-      })
-    )
-})
+const DateFromEpochMillis = Schema.Date.pipe(
+  Schema.encodeTo(
+    Schema.Number,
+    Transformation.transform({
+      decode: (epochMillis) => new Date(epochMillis),
+      encode: (date) => date.getTime()
+    })
+  )
+)
 
-const serializer = Serializer.json(MyDate)
+// Use the custom Date inside a Set
+const schema = Schema.ReadonlySet(DateFromEpochMillis)
 
-const serialized = JSON.stringify(Schema.encodeUnknownSync(serializer)(new Date("2021-01-01")))
+// Request a JSON-capable schema
+const serializer = Serializer.json(schema)
+
+const data = new Set([new Date("2021-01-01"), new Date("2021-01-02")])
+
+const serialized = JSON.stringify(Schema.encodeUnknownSync(serializer)(data))
 
 console.log(serialized)
-/*
-"2021-01-01T00:00:00.000Z"
-*/
+// [1609459200000,1609545600000]
 ```
 
-In this example, the `Date` is encoded as a string and decoded back using the standard ISO format.
+Here the set is still an array, but each `Date` uses the custom number format, as requested by `DateFromEpochMillis`.
 
 ## 🆕 String‑Pojo Serializer
 

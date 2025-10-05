@@ -4051,7 +4051,7 @@ export const URL: URL = instanceOf(
               try: () => new globalThis.URL(s),
               catch: (e) => new Issue.InvalidValue(Option_.some(s), { message: globalThis.String(e) })
             }),
-          encode: (url) => Effect.succeed(url.toString())
+          encode: (url) => Effect.succeed(url.href)
         })
       ),
     arbitrary: {
