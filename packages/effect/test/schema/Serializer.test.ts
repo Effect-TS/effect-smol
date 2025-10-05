@@ -954,8 +954,8 @@ describe("Serializer", () => {
         })
       })
 
-      it("Map", async () => {
-        const schema = Schema.Map(Schema.Option(Schema.Date), FiniteFromDate)
+      it("ReadonlyMap", async () => {
+        const schema = Schema.ReadonlyMap(Schema.Option(Schema.Date), FiniteFromDate)
         const asserts = new TestSchema.Asserts(Serializer.json(Schema.typeCodec(schema)))
 
         const encoding = asserts.encoding()
@@ -1065,8 +1065,8 @@ describe("Serializer", () => {
         })
       })
 
-      it("Map(Option(Symbol), Date)", async () => {
-        const schema = Schema.Map(Schema.Option(Schema.Symbol), Schema.Date)
+      it("ReadonlyMap(Option(Symbol), Date)", async () => {
+        const schema = Schema.ReadonlyMap(Schema.Option(Schema.Symbol), Schema.Date)
         const asserts = new TestSchema.Asserts(Serializer.json(schema))
 
         const encoding = asserts.encoding()
@@ -1955,8 +1955,8 @@ describe("Serializer", () => {
         )
       })
 
-      it("Map", async () => {
-        const schema = Schema.Map(Schema.Option(Schema.Date), FiniteFromDate)
+      it("ReadonlyMap", async () => {
+        const schema = Schema.ReadonlyMap(Schema.Option(Schema.Date), FiniteFromDate)
         const asserts = new TestSchema.Asserts(Serializer.stringPojo(Schema.typeCodec(schema)))
 
         const encoding = asserts.encoding()

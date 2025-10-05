@@ -285,8 +285,8 @@ describe("ToOptic", () => {
     >()
   })
 
-  it("Map", () => {
-    const schema = Schema.Map(Schema.String, Value)
+  it("ReadonlyMap", () => {
+    const schema = Schema.ReadonlyMap(Schema.String, Value)
     const optic = ToOptic.makeIso(schema)
 
     expect(optic).type.toBe<

@@ -322,8 +322,8 @@ describe("ToOptic", () => {
       )
     })
 
-    it("Map", () => {
-      const schema = Schema.Map(Schema.String, Value)
+    it("ReadonlyMap", () => {
+      const schema = Schema.ReadonlyMap(Schema.String, Value)
       const optic = ToOptic.makeIso(schema)
       const entry = ToOptic.makeFocusIso(Schema.Tuple([Schema.String, Value])).key("1").key("a")
       const modify = optic.modify((entries) => entries.map(([key, value]) => entry.modify(addOne)([key, value])))

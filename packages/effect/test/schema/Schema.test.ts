@@ -1543,14 +1543,14 @@ Expected an object with at most 2 entries, got {"a":1,"b":NaN,"c":3}`
         )
       })
 
-      it("Map + maxSize", async () => {
-        const schema = Schema.Map(Schema.String, Schema.Finite).check(Check.maxSize(2))
+      it("ReadonlyMap + maxSize", async () => {
+        const schema = Schema.ReadonlyMap(Schema.String, Schema.Finite).check(Check.maxSize(2))
         const asserts = new TestSchema.Asserts(schema)
 
         const decoding = asserts.decoding()
         await decoding.fail(
           null,
-          `Expected Map, got null`
+          `Expected ReadonlyMap, got null`
         )
         const decodingAll = asserts.decoding({ parseOptions: { errors: "all" } })
         await decodingAll.fail(
@@ -3424,8 +3424,8 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     await encoding.succeed(DateTime.makeUnsafe("2021-01-01T00:00:00.000Z"), 1609459200000)
   })
 
-  it("Map", async () => {
-    const schema = Schema.Map(Schema.String, Schema.Number)
+  it("ReadonlyMap", async () => {
+    const schema = Schema.ReadonlyMap(Schema.String, Schema.Number)
     const asserts = new TestSchema.Asserts(schema)
 
     strictEqual(schema.key, Schema.String)
@@ -3440,7 +3440,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
     const decoding = asserts.decoding()
     await decoding.succeed(new Map([["a", 1]]))
-    await decoding.fail(null, `Expected Map, got null`)
+    await decoding.fail(null, `Expected ReadonlyMap, got null`)
     await decoding.fail(
       new Map([["a", "b"]]),
       `Expected number, got "b"

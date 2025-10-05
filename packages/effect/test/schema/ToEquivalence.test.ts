@@ -343,8 +343,8 @@ describe("ToEquivalence", () => {
     assertFalse(equivalence(Result.fail("a"), Result.succeed(1)))
   })
 
-  it("Map(String, Number)", () => {
-    const schema = Schema.Map(Schema.String, Schema.Number)
+  it("ReadonlyMap(String, Number)", () => {
+    const schema = Schema.ReadonlyMap(Schema.String, Schema.Number)
     const equivalence = ToEquivalence.make(schema)
     assertTrue(equivalence(new Map(), new Map()))
     assertTrue(equivalence(new Map([["a", 1]]), new Map([["a", 1]])))

@@ -9,7 +9,6 @@ import type { Brand } from "../data/Brand.ts"
 import type * as Combiner from "../data/Combiner.ts"
 import * as Data from "../data/Data.ts"
 import * as Equivalence from "../data/Equivalence.ts"
-import type { Format } from "../data/Format.ts"
 import * as Option_ from "../data/Option.ts"
 import * as Predicate from "../data/Predicate.ts"
 import * as Record_ from "../data/Record.ts"
@@ -28,7 +27,6 @@ import * as Pipeable from "../interfaces/Pipeable.ts"
 import * as core from "../internal/core.ts"
 import * as Request from "../Request.ts"
 import * as Scheduler from "../Scheduler.ts"
-import type * as FastCheck from "../testing/FastCheck.ts"
 import * as Annotations from "./Annotations.ts"
 import * as AST from "./AST.ts"
 import * as Check from "./Check.ts"
@@ -3046,7 +3044,7 @@ export function Option<A extends Top>(value: A): Option<A> {
     },
     {
       title: "Option",
-      defaultIsoSerializer: ([value]: readonly [Schema<A["Type"]>]) =>
+      defaultIsoSerializer: ([value]) =>
         link<Option_.Option<A["Type"]>>()(
           Union([Struct({ _tag: Literal("Some"), value }), Struct({ _tag: Literal("None") })]),
           Transformation.transform({
@@ -3218,7 +3216,7 @@ export function Result<A extends Top, E extends Top>(
     },
     {
       title: "Result",
-      defaultIsoSerializer: ([success, failure]: readonly [Schema<A["Type"]>, Schema<E["Type"]>]) =>
+      defaultIsoSerializer: ([success, failure]) =>
         link<Result_.Result<A["Type"], E["Type"]>>()(
           Union([
             Struct({ _tag: Literal("Success"), success }),
@@ -3424,7 +3422,7 @@ export function CauseFailure<E extends Top, D extends Top>(error: E, defect: D):
     },
     {
       title: "Cause.Failure",
-      defaultIsoSerializer: ([error, defect]: readonly [Schema<E["Type"]>, Schema<D["Type"]>]) =>
+      defaultIsoSerializer: ([error, defect]) =>
         link<Cause_.Failure<E["Type"]>>()(
           Union([
             TaggedStruct("Fail", { error }),
@@ -3529,7 +3527,7 @@ export function Cause<E extends Top, D extends Top>(error: E, defect: D): Cause<
     },
     {
       title: "Cause",
-      defaultIsoSerializer: ([failures]: readonly [Schema<ReadonlyArray<CauseFailure<E, D>["Type"]>>]) =>
+      defaultIsoSerializer: ([failures]) =>
         link<Cause_.Cause<E["Type"]>>()(
           failures,
           Transformation.transform({
@@ -3698,7 +3696,7 @@ export function Exit<A extends Top, E extends Top, D extends Top>(value: A, erro
     },
     {
       title: "Exit",
-      defaultIsoSerializer: ([value, cause]: readonly [Schema<A["Type"]>, Schema<Cause<E, D>["Type"]>]) =>
+      defaultIsoSerializer: ([value, cause]) =>
         link<Exit_.Exit<A["Type"], E["Type"]>>()(
           Union([
             TaggedStruct("Success", { value }),
@@ -3769,12 +3767,12 @@ export const Char = String.check(Check.length(1))
  * @category Map
  * @since 4.0.0
  */
-export interface Map$<Key extends Top, Value extends Top> extends
+export interface ReadonlyMap$<Key extends Top, Value extends Top> extends
   declareConstructor<
-    globalThis.Map<Key["Type"], Value["Type"]>,
-    globalThis.Map<Key["Encoded"], Value["Encoded"]>,
+    globalThis.ReadonlyMap<Key["Type"], Value["Type"]>,
+    globalThis.ReadonlyMap<Key["Encoded"], Value["Encoded"]>,
     readonly [Key, Value],
-    MapIso<Key, Value>
+    ReadonlyMapIso<Key, Value>
   >
 {
   readonly key: Key
@@ -3785,20 +3783,20 @@ export interface Map$<Key extends Top, Value extends Top> extends
  * @category Map
  * @since 4.0.0
  */
-export type MapIso<Key extends Top, Value extends Top> = ReadonlyArray<readonly [Key["Iso"], Value["Iso"]]>
+export type ReadonlyMapIso<Key extends Top, Value extends Top> = ReadonlyArray<readonly [Key["Iso"], Value["Iso"]]>
 
 /**
- * Creates a schema that validates a Map where keys and values must conform to
- * the provided schemas.
+ * Creates a schema that validates a `ReadonlyMap` where keys and values must
+ * conform to the provided schemas.
  *
  * @category Map
  * @since 4.0.0
  */
-export function Map<Key extends Top, Value extends Top>(key: Key, value: Value): Map$<Key, Value> {
+export function ReadonlyMap<Key extends Top, Value extends Top>(key: Key, value: Value): ReadonlyMap$<Key, Value> {
   const schema = declareConstructor<
-    globalThis.Map<Key["Type"], Value["Type"]>,
-    globalThis.Map<Key["Encoded"], Value["Encoded"]>,
-    MapIso<Key, Value>
+    globalThis.ReadonlyMap<Key["Type"], Value["Type"]>,
+    globalThis.ReadonlyMap<Key["Encoded"], Value["Encoded"]>,
+    ReadonlyMapIso<Key, Value>
   >()(
     [key, value],
     ([key, value]) => (input, ast, options) => {
@@ -3815,8 +3813,8 @@ export function Map<Key extends Top, Value extends Top>(key: Key, value: Value):
       return Effect.fail(new Issue.InvalidType(ast, Option_.some(input)))
     },
     {
-      title: "Map",
-      defaultIsoSerializer: ([key, value]: readonly [Schema<Key["Type"]>, Schema<Value["Type"]>]) =>
+      title: "ReadonlyMap",
+      defaultIsoSerializer: ([key, value]) =>
         link<globalThis.Map<Key["Type"], Value["Type"]>>()(
           Array(Tuple([key, value])),
           Transformation.transform({
@@ -3828,7 +3826,7 @@ export function Map<Key extends Top, Value extends Top>(key: Key, value: Value):
         _tag: "Override",
         override: ([key, value]) => (fc, ctx) => {
           return fc.oneof(
-            ctx?.isSuspend ? { maxDepth: 2, depthIdentifier: "Map" } : {},
+            ctx?.isSuspend ? { maxDepth: 2, depthIdentifier: "ReadonlyMap" } : {},
             fc.constant([]),
             fc.array(fc.tuple(key, value), ctx?.constraints?.ArrayConstraints)
           ).map((as) => new globalThis.Map(as))
@@ -3850,10 +3848,10 @@ export function Map<Key extends Top, Value extends Top>(key: Key, value: Value):
         override: ([key, value]) => (t) => {
           const size = t.size
           if (size === 0) {
-            return "Map(0) {}"
+            return "ReadonlyMap(0) {}"
           }
           const entries = globalThis.Array.from(t.entries()).sort().map(([k, v]) => `${key(k)} => ${value(v)}`)
-          return `Map(${size}) { ${entries.join(", ")} }`
+          return `ReadonlyMap(${size}) { ${entries.join(", ")} }`
         }
       }
     }
@@ -4434,14 +4432,14 @@ function getClassSchemaFactory<S extends Top>(
           },
           Annotations.combine({
             [AST.ClassTypeId]: ([from]: readonly [AST.AST]) => new AST.Link(from, transformation),
-            defaultIsoSerializer: ([from]: readonly [Schema<S["Type"]>]) => new AST.Link(from.ast, transformation),
+            defaultIsoSerializer: ([from]) => new AST.Link(from.ast, transformation),
             arbitrary: {
               _tag: "Override",
-              override: ([from]: readonly [FastCheck.Arbitrary<S["Type"]>]) => () => from.map((args) => new self(args))
+              override: ([from]) => () => from.map((args) => new self(args))
             },
             format: {
               _tag: "Override",
-              override: ([from]: readonly [Format<S["Type"]>]) => (t: Self) => `${self.identifier}(${from(t)})`
+              override: ([from]) => (t: Self) => `${self.identifier}(${from(t)})`
             }
           }, annotations)
         )

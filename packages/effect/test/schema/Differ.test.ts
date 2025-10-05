@@ -272,7 +272,7 @@ describe("Differ", () => {
       roundtrip(Schema.PropertyKey)
       roundtrip(Schema.Option(Schema.String))
       roundtrip(Schema.Result(Schema.Number, Schema.String))
-      roundtrip(Schema.Map(Schema.String, Schema.Number))
+      roundtrip(Schema.ReadonlyMap(Schema.String, Schema.Number))
       roundtrip(Schema.Error)
       roundtrip(Schema.Defect)
       roundtrip(Schema.Exit(Schema.Number, Schema.String, Schema.Defect))
