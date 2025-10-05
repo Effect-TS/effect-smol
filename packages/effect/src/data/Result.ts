@@ -10,6 +10,7 @@ import type { Yieldable } from "../Effect.ts"
 import type { LazyArg } from "../Function.ts"
 import { constNull, constUndefined, dual, identity } from "../Function.ts"
 import type { Inspectable } from "../interfaces/Inspectable.ts"
+import type { Opticable } from "../interfaces/Opticable.ts"
 import type { Pipeable } from "../interfaces/Pipeable.ts"
 import * as doNotation from "../internal/doNotation.ts"
 import * as option_ from "../internal/option.ts"
@@ -63,7 +64,7 @@ export type Result<A, E = never> = Success<A, E> | Failure<A, E>
  * @category Models
  * @since 4.0.0
  */
-export interface Failure<out A, out E> extends Pipeable, Inspectable, Yieldable<Result<A, E>, A, E> {
+export interface Failure<out A, out E> extends Opticable, Pipeable, Inspectable, Yieldable<Result<A, E>, A, E> {
   readonly _tag: "Failure"
   readonly _op: "Failure"
   readonly failure: E
@@ -93,7 +94,7 @@ export interface Failure<out A, out E> extends Pipeable, Inspectable, Yieldable<
  * @category Models
  * @since 4.0.0
  */
-export interface Success<out A, out E> extends Pipeable, Inspectable, Yieldable<Result<A, E>, A, E> {
+export interface Success<out A, out E> extends Opticable, Pipeable, Inspectable, Yieldable<Result<A, E>, A, E> {
   readonly _tag: "Success"
   readonly _op: "Success"
   readonly success: A

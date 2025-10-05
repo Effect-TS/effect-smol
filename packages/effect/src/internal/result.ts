@@ -5,6 +5,7 @@ import { dual } from "../Function.ts"
 import * as Equal from "../interfaces/Equal.ts"
 import * as Hash from "../interfaces/Hash.ts"
 import { format, toJson } from "../interfaces/Inspectable.ts"
+import * as Opticable from "../interfaces/Opticable.ts"
 import { exitFail, exitSucceed, PipeInspectableProto, YieldableProto } from "./core.ts"
 import * as option from "./option.ts"
 
@@ -31,6 +32,18 @@ const SuccessProto = Object.assign(Object.create(CommonProto), {
   [Hash.symbol]<A, E>(this: Result.Success<A, E>) {
     return Hash.combine(Hash.hash(this._tag))(Hash.hash(this.success))
   },
+  [Opticable.symbol]<A, E>(this: Result.Success<A, E>, patch?: Partial<Result.Result<A, E>>): Result.Result<A, E> {
+    if (!patch) return this
+    if ("_tag" in patch) {
+      if (patch._tag === "Failure" && "failure" in patch) {
+        return fail(patch.failure)
+      }
+    }
+    if ("success" in patch) {
+      return succeed(patch.success)
+    }
+    return this
+  },
   toString<A, E>(this: Result.Success<A, E>) {
     return `success(${format(this.success)})`
   },
@@ -54,6 +67,18 @@ const FailureProto = Object.assign(Object.create(CommonProto), {
   },
   [Hash.symbol]<A, E>(this: Result.Failure<A, E>) {
     return Hash.combine(Hash.hash(this._tag))(Hash.hash(this.failure))
+  },
+  [Opticable.symbol]<A, E>(this: Result.Failure<A, E>, patch?: Partial<Result.Result<A, E>>): Result.Result<A, E> {
+    if (!patch) return this
+    if ("_tag" in patch) {
+      if (patch._tag === "Success" && "success" in patch) {
+        return succeed(patch.success)
+      }
+    }
+    if ("failure" in patch) {
+      return fail(patch.failure)
+    }
+    return this
   },
   toString<A, E>(this: Result.Failure<A, E>) {
     return `failure(${format(this.failure)})`
