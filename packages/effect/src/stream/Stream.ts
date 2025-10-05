@@ -264,6 +264,12 @@ const StreamProto = {
 export const DefaultChunkSize: number = Channel.DefaultChunkSize
 
 /**
+ * @category models
+ * @since 2.0.0
+ */
+export type HaltStrategy = Channel.HaltStrategy
+
+/**
  * Creates a stream from a `Channel`.
  *
  * This function allows you to create a Stream by providing a Channel that
@@ -1574,6 +1580,35 @@ export const concat: {
   2,
   <A, E, R, A2, E2, R2>(self: Stream<A, E, R>, that: Stream<A2, E2, R2>): Stream<A | A2, E | E2, R | R2> =>
     flatten(fromArray<Stream<A | A2, E | E2, R | R2>>([self, that]))
+)
+
+/**
+ * @since 2.0.0
+ * @category merging
+ */
+export const merge: {
+  <A2, E2, R2>(
+    that: Stream<A2, E2, R2>,
+    options?: {
+      readonly haltStrategy?: HaltStrategy | undefined
+    } | undefined
+  ): <A, E, R>(self: Stream<A, E, R>) => Stream<A | A2, E | E2, R | R2>
+  <A, E, R, A2, E2, R2>(
+    self: Stream<A, E, R>,
+    that: Stream<A2, E2, R2>,
+    options?: {
+      readonly haltStrategy?: HaltStrategy | undefined
+    } | undefined
+  ): Stream<A | A2, E | E2, R | R2>
+} = dual(
+  2,
+  <A, E, R, A2, E2, R2>(
+    self: Stream<A, E, R>,
+    that: Stream<A2, E2, R2>,
+    options?: {
+      readonly haltStrategy?: HaltStrategy | undefined
+    } | undefined
+  ): Stream<A | A2, E | E2, R | R2> => fromChannel(Channel.merge(toChannel(self), toChannel(that), options))
 )
 
 /**
