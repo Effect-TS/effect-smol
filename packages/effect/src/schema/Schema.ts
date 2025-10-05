@@ -3764,7 +3764,7 @@ export const NonEmptyString = String.check(Check.nonEmpty())
 export const Char = String.check(Check.length(1))
 
 /**
- * @category Map
+ * @category ReadonlyMap
  * @since 4.0.0
  */
 export interface ReadonlyMap$<Key extends Top, Value extends Top> extends
@@ -3780,7 +3780,7 @@ export interface ReadonlyMap$<Key extends Top, Value extends Top> extends
 }
 
 /**
- * @category Map
+ * @category ReadonlyMap
  * @since 4.0.0
  */
 export type ReadonlyMapIso<Key extends Top, Value extends Top> = ReadonlyArray<readonly [Key["Iso"], Value["Iso"]]>
@@ -3789,7 +3789,7 @@ export type ReadonlyMapIso<Key extends Top, Value extends Top> = ReadonlyArray<r
  * Creates a schema that validates a `ReadonlyMap` where keys and values must
  * conform to the provided schemas.
  *
- * @category Map
+ * @category ReadonlyMap
  * @since 4.0.0
  */
 export function ReadonlyMap<Key extends Top, Value extends Top>(key: Key, value: Value): ReadonlyMap$<Key, Value> {
@@ -3832,7 +3832,7 @@ export function ReadonlyMap<Key extends Top, Value extends Top>(key: Key, value:
           ).map((as) => new globalThis.Map(as))
         }
       },
-      equivalence: {
+      equivalence: { // TODO: fix this
         _tag: "Override",
         override: ([key, value]) => {
           const entries = Arr.getEquivalence(
@@ -3857,6 +3857,96 @@ export function ReadonlyMap<Key extends Top, Value extends Top>(key: Key, value:
     }
   )
   return makeProto(schema.ast, { key, value })
+}
+
+/**
+ * @category ReadonlySet
+ * @since 4.0.0
+ */
+export interface ReadonlySet$<Value extends Top> extends
+  declareConstructor<
+    globalThis.ReadonlySet<Value["Type"]>,
+    globalThis.ReadonlySet<Value["Encoded"]>,
+    readonly [Value],
+    ReadonlySetIso<Value>
+  >
+{
+  readonly value: Value
+}
+
+/**
+ * @category ReadonlySet
+ * @since 4.0.0
+ */
+export type ReadonlySetIso<Value extends Top> = ReadonlyArray<Value["Iso"]>
+
+/**
+ * @category ReadonlySet
+ * @since 4.0.0
+ */
+export function ReadonlySet<Value extends Top>(value: Value): ReadonlySet$<Value> {
+  const schema = declareConstructor<
+    globalThis.ReadonlySet<Value["Type"]>,
+    globalThis.ReadonlySet<Value["Encoded"]>,
+    ReadonlySetIso<Value>
+  >()(
+    [value],
+    ([value]) => (input, ast, options) => {
+      if (input instanceof globalThis.Set) {
+        const array = Array(value)
+        return Effect.mapBothEager(
+          ToParser.decodeUnknownEffect(array)([...input], options),
+          {
+            onSuccess: (array: ReadonlyArray<Value["Type"]>) => new globalThis.Set(array),
+            onFailure: (issue) => new Issue.Composite(ast, Option_.some(input), [new Issue.Pointer(["values"], issue)])
+          }
+        )
+      }
+      return Effect.fail(new Issue.InvalidType(ast, Option_.some(input)))
+    },
+    {
+      title: "ReadonlySet",
+      defaultIsoSerializer: ([value]) =>
+        link<globalThis.Set<Value["Type"]>>()(
+          Array(value),
+          Transformation.transform({
+            decode: (entries) => new globalThis.Set(entries),
+            encode: (set) => [...set.values()]
+          })
+        ),
+      arbitrary: {
+        _tag: "Override",
+        override: ([value]) => (fc, ctx) => {
+          return fc.oneof(
+            ctx?.isSuspend ? { maxDepth: 2, depthIdentifier: "ReadonlySet" } : {},
+            fc.constant([]),
+            fc.array(value, ctx?.constraints?.ArrayConstraints)
+          ).map((as) => new globalThis.Set(as))
+        }
+      },
+      equivalence: { // TODO: fix this
+        _tag: "Override",
+        override: ([value]) => {
+          const values = Arr.getEquivalence(value)
+          return Equivalence.make((a, b) =>
+            values(globalThis.Array.from(a.values()).sort(), globalThis.Array.from(b.values()).sort())
+          )
+        }
+      },
+      format: {
+        _tag: "Override",
+        override: ([value]) => (t) => {
+          const size = t.size
+          if (size === 0) {
+            return "ReadonlySet(0) {}"
+          }
+          const values = globalThis.Array.from(t.values()).sort().map((v) => `${value(v)}`)
+          return `ReadonlySet(${size}) { ${values.join(", ")} }`
+        }
+      }
+    }
+  )
+  return makeProto(schema.ast, { value })
 }
 
 /**

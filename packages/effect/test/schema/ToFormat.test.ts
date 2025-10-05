@@ -382,6 +382,14 @@ describe("ToFormat", () => {
       )
     })
 
+    it("ReadonlySet", () => {
+      const Rec = Schema.suspend((): Schema.Codec<any> => schema)
+      const schema = Schema.ReadonlySet(Rec)
+      const format = ToFormat.make(schema)
+      strictEqual(format(new Set()), `ReadonlySet(0) {}`)
+      strictEqual(format(new Set([new Set([new Set()])])), `ReadonlySet(1) { ReadonlySet(1) { ReadonlySet(0) {} } }`)
+    })
+
     it("ReadonlyMap", () => {
       const Rec = Schema.suspend((): Schema.Codec<any> => schema)
       const schema = Schema.ReadonlyMap(Schema.String, Rec)

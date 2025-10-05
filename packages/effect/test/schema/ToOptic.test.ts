@@ -322,6 +322,18 @@ describe("ToOptic", () => {
       )
     })
 
+    it("ReadonlySet", () => {
+      const schema = Schema.ReadonlySet(Value)
+      const optic = ToOptic.makeIso(schema)
+      const item = ToOptic.makeFocusIso(Value).key("a")
+      const modify = optic.modify((as) => as.map(item.modify(addOne)))
+
+      deepStrictEqual(
+        modify(new Set([Value.makeUnsafe({ a: new Date(0) })])),
+        new Set([Value.makeUnsafe({ a: new Date(1) })])
+      )
+    })
+
     it("ReadonlyMap", () => {
       const schema = Schema.ReadonlyMap(Schema.String, Value)
       const optic = ToOptic.makeIso(schema)

@@ -3424,14 +3424,12 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     await encoding.succeed(DateTime.makeUnsafe("2021-01-01T00:00:00.000Z"), 1609459200000)
   })
 
-  it("ReadonlyMap", async () => {
-    const schema = Schema.ReadonlyMap(Schema.String, Schema.Number)
+  it("ReadonlySet", async () => {
+    const schema = Schema.ReadonlySet(Schema.FiniteFromString)
     const asserts = new TestSchema.Asserts(schema)
 
-    strictEqual(schema.key, Schema.String)
-    strictEqual(schema.annotate({}).key, Schema.String)
-    strictEqual(schema.value, Schema.Number)
-    strictEqual(schema.annotate({}).value, Schema.Number)
+    strictEqual(schema.value, Schema.FiniteFromString)
+    strictEqual(schema.annotate({}).value, Schema.FiniteFromString)
 
     if (verifyGeneration) {
       const arbitrary = asserts.arbitrary()
@@ -3439,16 +3437,40 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     }
 
     const decoding = asserts.decoding()
-    await decoding.succeed(new Map([["a", 1]]))
+    await decoding.succeed(new Set(["1", "2", "3"]), new Set([1, 2, 3]))
+    await decoding.fail(null, `Expected ReadonlySet, got null`)
+    await decoding.fail(
+      new Set(["1", "2", null]),
+      `Expected string, got null
+  at ["values"][2]`
+    )
+  })
+
+  it("ReadonlyMap", async () => {
+    const schema = Schema.ReadonlyMap(Schema.String, Schema.FiniteFromString)
+    const asserts = new TestSchema.Asserts(schema)
+
+    strictEqual(schema.key, Schema.String)
+    strictEqual(schema.annotate({}).key, Schema.String)
+    strictEqual(schema.value, Schema.FiniteFromString)
+    strictEqual(schema.annotate({}).value, Schema.FiniteFromString)
+
+    if (verifyGeneration) {
+      const arbitrary = asserts.arbitrary()
+      arbitrary.verifyGeneration()
+    }
+
+    const decoding = asserts.decoding()
+    await decoding.succeed(new Map([["a", "1"]]), new Map([["a", 1]]))
     await decoding.fail(null, `Expected ReadonlyMap, got null`)
     await decoding.fail(
-      new Map([["a", "b"]]),
-      `Expected number, got "b"
+      new Map([["a", null]]),
+      `Expected string, got null
   at ["entries"][0][1]`
     )
 
     const encoding = asserts.encoding()
-    await encoding.succeed(new Map([["a", 1]]))
+    await encoding.succeed(new Map([["a", 1]]), new Map([["a", "1"]]))
   })
 
   describe("Transformations", () => {

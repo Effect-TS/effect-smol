@@ -382,6 +382,12 @@ describe("ToArbitrary", () => {
       verifyGeneration(schema)
     })
 
+    it("ReadonlySet", () => {
+      const Rec = Schema.suspend((): Schema.Codec<any> => schema)
+      const schema = Schema.ReadonlySet(Rec)
+      verifyGeneration(schema)
+    })
+
     it("ReadonlyMap", () => {
       const Rec = Schema.suspend((): Schema.Codec<any> => schema)
       const schema = Schema.ReadonlyMap(Schema.String, Rec)
@@ -519,6 +525,12 @@ describe("ToArbitrary", () => {
 
   it("Result(Number, String)", () => {
     verifyGeneration(Schema.Result(Schema.Number, Schema.String))
+  })
+
+  describe("ReadonlySet", () => {
+    it("ReadonlySet(Number)", () => {
+      verifyGeneration(Schema.ReadonlySet(Schema.Number))
+    })
   })
 
   describe("ReadonlyMap", () => {
