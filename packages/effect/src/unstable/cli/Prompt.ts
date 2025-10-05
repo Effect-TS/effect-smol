@@ -1129,15 +1129,13 @@ interface ConfirmState {
 
 const renderBeep = Ansi.beep
 
-function handleConfirmClear(options: ConfirmOptionsReq) {
-  return Effect.gen(function*() {
-    const terminal = yield* Terminal.Terminal
-    const columns = yield* terminal.columns
-    const clearOutput = eraseText(options.message, columns)
-    const resetCurrentLine = Ansi.eraseLine + Ansi.cursorLeft
-    return clearOutput + resetCurrentLine
-  })
-}
+const handleConfirmClear = Effect.fnUntraced(function*(options: ConfirmOptionsReq) {
+  const terminal = yield* Terminal.Terminal
+  const columns = yield* terminal.columns
+  const clearOutput = eraseText(options.message, columns)
+  const resetCurrentLine = Ansi.eraseLine + Ansi.cursorLeft
+  return clearOutput + resetCurrentLine
+})
 
 const NEWLINE_REGEX = /\r?\n/
 
@@ -1157,33 +1155,29 @@ function renderConfirmOutput(
   })
 }
 
-function renderConfirmNextFrame(state: ConfirmState, options: ConfirmOptionsReq) {
-  return Effect.gen(function*() {
-    const figures = yield* platformFigures
-    const leadingSymbol = Ansi.annotate("?", Ansi.cyanBright)
-    const trailingSymbol = Ansi.annotate(figures.pointerSmall, Ansi.blackBright)
-    // Marking these explicitly as present with `!` because they always will be
-    // and there is really no value in adding a `DeepRequired` type helper just
-    // for these internal cases
-    const confirmMessage = state.value
-      ? options.placeholder.defaultConfirm!
-      : options.placeholder.defaultDeny!
-    const confirm = Ansi.annotate(confirmMessage, Ansi.blackBright)
-    const promptMsg = renderConfirmOutput(confirm, leadingSymbol, trailingSymbol, options)
-    return Ansi.cursorHide + promptMsg
-  })
-}
+const renderConfirmNextFrame = Effect.fnUntraced(function*(state: ConfirmState, options: ConfirmOptionsReq) {
+  const figures = yield* platformFigures
+  const leadingSymbol = Ansi.annotate("?", Ansi.cyanBright)
+  const trailingSymbol = Ansi.annotate(figures.pointerSmall, Ansi.blackBright)
+  // Marking these explicitly as present with `!` because they always will be
+  // and there is really no value in adding a `DeepRequired` type helper just
+  // for these internal cases
+  const confirmMessage = state.value
+    ? options.placeholder.defaultConfirm!
+    : options.placeholder.defaultDeny!
+  const confirm = Ansi.annotate(confirmMessage, Ansi.blackBright)
+  const promptMsg = renderConfirmOutput(confirm, leadingSymbol, trailingSymbol, options)
+  return Ansi.cursorHide + promptMsg
+})
 
-function renderConfirmSubmission(value: boolean, options: ConfirmOptionsReq) {
-  return Effect.gen(function*() {
-    const figures = yield* platformFigures
-    const leadingSymbol = Ansi.annotate(figures.tick, Ansi.green)
-    const trailingSymbol = Ansi.annotate(figures.ellipsis, Ansi.blackBright)
-    const confirmMessage = value ? options.label.confirm : options.label.deny
-    const promptMsg = renderConfirmOutput(confirmMessage, leadingSymbol, trailingSymbol, options)
-    return promptMsg + "\n"
-  })
-}
+const renderConfirmSubmission = Effect.fnUntraced(function*(value: boolean, options: ConfirmOptionsReq) {
+  const figures = yield* platformFigures
+  const leadingSymbol = Ansi.annotate(figures.tick, Ansi.green)
+  const trailingSymbol = Ansi.annotate(figures.ellipsis, Ansi.blackBright)
+  const confirmMessage = value ? options.label.confirm : options.label.deny
+  const promptMsg = renderConfirmOutput(confirmMessage, leadingSymbol, trailingSymbol, options)
+  return promptMsg + "\n"
+})
 
 function handleConfirmRender(options: ConfirmOptionsReq) {
   return (_: ConfirmState, action: Action<ConfirmState, boolean>) => {
@@ -1223,19 +1217,17 @@ interface DateState {
 }
 
 function handleDateClear(options: DateOptionsReq) {
-  return (state: DateState, _: Action<DateState, globalThis.Date>) => {
-    return Effect.gen(function*() {
-      const terminal = yield* Terminal.Terminal
-      const columns = yield* terminal.columns
-      const resetCurrentLine = Ansi.eraseLine + Ansi.cursorLeft
-      const clearError = Option.match(state.error, {
-        onNone: () => "",
-        onSome: (error) => Ansi.cursorDown(lines(error, columns)) + eraseText(`\n${error}`, columns)
-      })
-      const clearOutput = eraseText(options.message, columns)
-      return clearError + clearOutput + resetCurrentLine
+  return Effect.fnUntraced(function*(state: DateState, _: Action<DateState, globalThis.Date>) {
+    const terminal = yield* Terminal.Terminal
+    const columns = yield* terminal.columns
+    const resetCurrentLine = Ansi.eraseLine + Ansi.cursorLeft
+    const clearError = Option.match(state.error, {
+      onNone: () => "",
+      onSome: (error) => Ansi.cursorDown(lines(error, columns)) + eraseText(`\n${error}`, columns)
     })
-  }
+    const clearOutput = eraseText(options.message, columns)
+    return clearError + clearOutput + resetCurrentLine
+  })
 }
 
 function renderDateError(state: DateState, pointer: string) {
@@ -1284,28 +1276,24 @@ function renderDateOutput(
   })
 }
 
-function renderDateNextFrame(state: DateState, options: DateOptionsReq) {
-  return Effect.gen(function*() {
-    const figures = yield* platformFigures
-    const leadingSymbol = Ansi.annotate("?", Ansi.cyanBright)
-    const trailingSymbol = Ansi.annotate(figures.pointerSmall, Ansi.blackBright)
-    const parts = renderParts(state)
-    const promptMsg = renderDateOutput(leadingSymbol, trailingSymbol, parts, options)
-    const errorMsg = renderDateError(state, figures.pointerSmall)
-    return Ansi.cursorHide + promptMsg + errorMsg
-  })
-}
+const renderDateNextFrame = Effect.fnUntraced(function*(state: DateState, options: DateOptionsReq) {
+  const figures = yield* platformFigures
+  const leadingSymbol = Ansi.annotate("?", Ansi.cyanBright)
+  const trailingSymbol = Ansi.annotate(figures.pointerSmall, Ansi.blackBright)
+  const parts = renderParts(state)
+  const promptMsg = renderDateOutput(leadingSymbol, trailingSymbol, parts, options)
+  const errorMsg = renderDateError(state, figures.pointerSmall)
+  return Ansi.cursorHide + promptMsg + errorMsg
+})
 
-function renderDateSubmission(state: DateState, options: DateOptionsReq) {
-  return Effect.gen(function*() {
-    const figures = yield* platformFigures
-    const leadingSymbol = Ansi.annotate(figures.tick, Ansi.green)
-    const trailingSymbol = Ansi.annotate(figures.ellipsis, Ansi.blackBright)
-    const parts = renderParts(state, true)
-    const promptMsg = renderDateOutput(leadingSymbol, trailingSymbol, parts, options)
-    return promptMsg + "\n"
-  })
-}
+const renderDateSubmission = Effect.fnUntraced(function*(state: DateState, options: DateOptionsReq) {
+  const figures = yield* platformFigures
+  const leadingSymbol = Ansi.annotate(figures.tick, Ansi.green)
+  const trailingSymbol = Ansi.annotate(figures.ellipsis, Ansi.blackBright)
+  const parts = renderParts(state, true)
+  const promptMsg = renderDateOutput(leadingSymbol, trailingSymbol, parts, options)
+  return promptMsg + "\n"
+})
 
 function processUp(state: DateState) {
   state.dateParts[state.cursor].increment()
@@ -2341,16 +2329,14 @@ function renderNumberOutput(
   })
 }
 
-function renderNumberNextFrame(state: NumberState, options: IntegerOptionsReq) {
-  return Effect.gen(function*() {
-    const figures = yield* platformFigures
-    const leadingSymbol = Ansi.annotate("?", Ansi.cyanBright)
-    const trailingSymbol = Ansi.annotate(figures.pointerSmall, Ansi.blackBright)
-    const errorMsg = renderNumberError(state, figures.pointerSmall)
-    const promptMsg = renderNumberOutput(state, leadingSymbol, trailingSymbol, options)
-    return promptMsg + errorMsg
-  })
-}
+const renderNumberNextFrame = Effect.fnUntraced(function*(state: NumberState, options: IntegerOptionsReq) {
+  const figures = yield* platformFigures
+  const leadingSymbol = Ansi.annotate("?", Ansi.cyanBright)
+  const trailingSymbol = Ansi.annotate(figures.pointerSmall, Ansi.blackBright)
+  const errorMsg = renderNumberError(state, figures.pointerSmall)
+  const promptMsg = renderNumberOutput(state, leadingSymbol, trailingSymbol, options)
+  return promptMsg + errorMsg
+})
 
 const renderNumberSubmission = Effect.fnUntraced(function*(nextState: NumberState, options: IntegerOptionsReq) {
   const figures = yield* platformFigures
