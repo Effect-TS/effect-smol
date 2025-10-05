@@ -1,462 +1,451 @@
 /**
  * @since 4.0.0
  */
-
 import type { NoSuchElementError } from "../../Cause.ts"
 import * as Arr from "../../collections/Array.ts"
 import * as Data from "../../data/Data.ts"
+import * as Filter from "../../data/Filter.ts"
 import * as Option from "../../data/Option.ts"
 import * as Redacted from "../../data/Redacted.ts"
 import * as Effect from "../../Effect.ts"
-import { dual, identity, pipe } from "../../Function.ts"
+import { dual, pipe } from "../../Function.ts"
 import * as Pipeable from "../../interfaces/Pipeable.ts"
 import { YieldableProto } from "../../internal/core.ts"
-import * as Match from "../../Match.ts"
+import * as EffectNumber from "../../Number.ts"
 import * as FileSystem from "../../platform/FileSystem.ts"
 import * as Path from "../../platform/Path.ts"
 import * as Terminal from "../../platform/Terminal.ts"
-import * as EffectNumber from "../../Number.ts"
 import * as Queue from "../../Queue.ts"
 import * as Ansi from "./internal/ansi.ts"
 import type * as Primitive from "./Primitive.js"
 
-const TypeId = "~@effect/cli/Prompt"
+const TypeId = "~effect/cli/Prompt"
 
 /**
  * @since 4.0.0
  * @category models
  */
 export interface Prompt<Output>
-  extends Prompt.Variance<Output>, Pipeable.Pipeable, Effect.Effect<Output, Terminal.QuitError, Terminal.Terminal> { }
+  extends Pipeable.Pipeable, Effect.Yieldable<Prompt<Output>, Output, Terminal.QuitError, Environment>
+{
+  readonly [TypeId]: {
+    readonly _Output: (_: never) => Output
+  }
+}
 
 /**
  * @since 4.0.0
+ * @category guards
  */
-export declare namespace Prompt {
-  /**
-   * @since 4.0.0
-   * @category models
-   */
-  export interface Variance<Output> {
-    readonly [TypeId]: Prompt.VarianceStruct<Output>
-  }
+export const isPrompt = (u: unknown): u is Prompt<unknown> => typeof u === "object" && u != null && TypeId in u
 
-  /**
-   * @since 4.0.0
-   * @category models
-   */
-  export interface VarianceStruct<Output> {
-    readonly _Output: (_: never) => Output
-  }
+/**
+ * Represents the services available to a custom `Prompt`.
+ *
+ * @since 4.0.0
+ * @category models
+ */
+export type Environment = FileSystem.FileSystem | Path.Path | Terminal.Terminal
 
+/**
+ * Represents the action that should be taken by a `Prompt` based upon the
+ * user input received during the current frame.
+ *
+ * @since 4.0.0
+ * @category models
+ */
+export type Action<State, Output> = Data.TaggedEnum<{
+  readonly Beep: {}
+  readonly NextFrame: { readonly state: State }
+  readonly Submit: { readonly value: Output }
+}>
+
+/**
+ * Represents the definition of an `Action`.
+ *
+ * Required to create a `Data.TaggedEnum` with generic type arguments.
+ *
+ * @since 4.0.0
+ * @category models
+ */
+export interface ActionDefinition extends Data.TaggedEnum.WithGenerics<2> {
+  readonly taggedEnum: Action<this["A"], this["B"]>
+}
+
+/**
+ * Represents the set of handlers used by a `Prompt` to:
+ *
+ *   - Render the current frame of the prompt
+ *   - Process user input and determine the next `Prompt.Action` to take
+ *   - Clear the terminal screen before the next frame
+ *
+ * @since 4.0.0
+ * @category models
+ */
+export interface Handlers<State, Output> {
   /**
-   * Represents the services available to a custom `Prompt`.
+   * A function that is called to render the current frame of the `Prompt`.
    *
-   * @since 4.0.0
-   * @category models
+   * @param state The current state of the prompt.
+   * @param action The `Prompt.Action` for the current frame.
+   * @returns An ANSI escape code sequence to display in the terminal screen.
    */
-  export type Environment = FileSystem | Path.Path | Terminal.Terminal
-
+  readonly render: (
+    state: State,
+    action: Action<State, Output>
+  ) => Effect.Effect<string, never, Environment>
   /**
-   * Represents the action that should be taken by a `Prompt` based upon the
-   * user input received during the current frame.
+   * A function that is called to process user input and determine the next
+   * `Prompt.Action` that should be taken.
    *
-   * @since 4.0.0
-   * @category models
+   * @param input The input the user provided for the current frame.
+   * @param state The current state of the prompt.
+   * @returns The next `Prompt.Action` that should be taken.
    */
-  export type Action<State, Output> = Data.TaggedEnum<{
-    readonly Beep: {}
-    readonly NextFrame: { readonly state: State }
-    readonly Submit: { readonly value: Output }
-  }>
-
+  readonly process: (
+    input: Terminal.UserInput,
+    state: State
+  ) => Effect.Effect<Action<State, Output>, never, Environment>
   /**
-   * Represents the definition of an `Action`.
+   * A function that is called to clear the terminal screen before rendering
+   * the next frame of the `Prompt`.
    *
-   * Required to create a `Data.TaggedEnum` with generic type arguments.
+   * @param action The `Prompt.Action` for the current frame.
+   * @param columns The current number of columns available in the `Terminal`.
+   * @returns An ANSI escape code sequence used to clear the terminal screen.
+   */
+  readonly clear: (
+    state: State,
+    action: Action<State, Output>
+  ) => Effect.Effect<string, never, Environment>
+}
+
+/**
+ * @since 4.0.0
+ * @category models
+ */
+export interface ConfirmOptions {
+  /**
+   * The message to display in the prompt.
+   */
+  readonly message: string
+  /**
+   * The intitial value of the confirm prompt (defaults to `false`).
+   */
+  readonly initial?: boolean
+  /**
+   * The label to display after a user has responded to the prompt.
+   */
+  readonly label?: {
+    /**
+     * The label used if the prompt is confirmed (defaults to `"yes"`).
+     */
+    readonly confirm: string
+    /**
+     * The label used if the prompt is not confirmed (defaults to `"no"`).
+     */
+    readonly deny: string
+  }
+  /**
+   * The placeholder to display when a user is responding to the prompt.
+   */
+  readonly placeholder?: {
+    /**
+     * The placeholder to use if the `initial` value of the prompt is `true`
+     * (defaults to `"(Y/n)"`).
+     */
+    readonly defaultConfirm?: string
+    /**
+     * The placeholder to use if the `initial` value of the prompt is `false`
+     * (defaults to `"(y/N)"`).
+     */
+    readonly defaultDeny?: string
+  }
+}
+
+/**
+ * @since 4.0.0
+ * @category models
+ */
+export interface DateOptions {
+  /**
+   * The message to display in the prompt.
+   */
+  readonly message: string
+  /**
+   * The initial date value to display in the prompt (defaults to the current
+   * date).
+   */
+  readonly initial?: globalThis.Date
+  /**
+   * The format mask of the date (defaults to `YYYY-MM-DD HH:mm:ss`).
+   */
+  readonly dateMask?: string
+  /**
+   * An effectful function that can be used to validate the value entered into
+   * the prompt before final submission.
+   */
+  readonly validate?: (value: globalThis.Date) => Effect.Effect<globalThis.Date, string>
+  /**
+   * Custom locales that can be used in place of the defaults.
+   */
+  readonly locales?: {
+    /**
+     * The full names of each month of the year.
+     */
+    readonly months: [
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string
+    ]
+    /**
+     * The short names of each month of the year.
+     */
+    readonly monthsShort: [
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string
+    ]
+    /**
+     * The full names of each day of the week.
+     */
+    readonly weekdays: [string, string, string, string, string, string, string]
+    /**
+     * The short names of each day of the week.
+     */
+    readonly weekdaysShort: [string, string, string, string, string, string, string]
+  }
+}
+
+/**
+ * @since 4.0.0
+ * @category models
+ */
+export interface IntegerOptions {
+  /**
+   * The message to display in the prompt.
+   */
+  readonly message: string
+  /**
+   * The minimum value that can be entered by the user (defaults to `-Infinity`).
+   */
+  readonly min?: number
+  /**
+   * The maximum value that can be entered by the user (defaults to `Infinity`).
+   */
+  readonly max?: number
+  /**
+   * The value that will be used to increment the prompt value when using the
+   * up arrow key (defaults to `1`).
+   */
+  readonly incrementBy?: number
+  /**
+   * The value that will be used to decrement the prompt value when using the
+   * down arrow key (defaults to `1`).
+   */
+  readonly decrementBy?: number
+  /**
+   * An effectful function that can be used to validate the value entered into
+   * the prompt before final submission.
+   */
+  readonly validate?: (value: number) => Effect.Effect<number, string>
+}
+
+/**
+ * @since 4.0.0
+ * @category models
+ */
+export interface FloatOptions extends IntegerOptions {
+  /**
+   * The precision to use for the floating point value (defaults to `2`).
+   */
+  readonly precision?: number
+}
+
+/**
+ * @since 4.0.0
+ * @category models
+ */
+export interface ListOptions extends TextOptions {
+  /**
+   * The delimiter that separates list entries.
+   */
+  readonly delimiter?: string
+}
+
+/**
+ * @since 4.0.0
+ * @category models
+ */
+export interface FileOptions {
+  /**
+   * The path type that will be selected.
    *
-   * @since 4.0.0
-   * @category models
+   * Defaults to `"file"`.
    */
-  export interface ActionDefinition extends Data.TaggedEnum.WithGenerics<2> {
-    readonly taggedEnum: Action<this["A"], this["B"]>
-  }
-
+  readonly type?: Primitive.PathType
   /**
-   * Represents the set of handlers used by a `Prompt` to:
+   * The message to display in the prompt.
    *
-   *   - Render the current frame of the prompt
-   *   - Process user input and determine the next `Prompt.Action` to take
-   *   - Clear the terminal screen before the next frame
+   * Defaults to `"Choose a file"`.
+   */
+  readonly message?: string
+  /**
+   * Where the user will initially be prompted to select files from.
    *
-   * @since 4.0.0
-   * @category models
+   * Defaults to the current working directory.
    */
-  export interface Handlers<State, Output> {
-    /**
-     * A function that is called to render the current frame of the `Prompt`.
-     *
-     * @param state The current state of the prompt.
-     * @param action The `Prompt.Action` for the current frame.
-     * @returns An ANSI escape code sequence to display in the terminal screen.
-     */
-    readonly render: (
-      state: State,
-      action: Action<State, Output>
-    ) => Effect.Effect<string, never, Environment>
-    /**
-     * A function that is called to process user input and determine the next
-     * `Prompt.Action` that should be taken.
-     *
-     * @param input The input the user provided for the current frame.
-     * @param state The current state of the prompt.
-     * @returns The next `Prompt.Action` that should be taken.
-     */
-    readonly process: (
-      input: Terminal.UserInput,
-      state: State
-    ) => Effect.Effect<Action<State, Output>, never, Environment>
-    /**
-     * A function that is called to clear the terminal screen before rendering
-     * the next frame of the `Prompt`.
-     *
-     * @param action The `Prompt.Action` for the current frame.
-     * @param columns The current number of columns available in the `Terminal`.
-     * @returns An ANSI escape code sequence used to clear the terminal screen.
-     */
-    readonly clear: (
-      state: State,
-      action: Action<State, Output>
-    ) => Effect.Effect<string, never, Environment>
-  }
-
+  readonly startingPath?: string
   /**
-   * @since 4.0.0
-   * @category models
+   * The number of choices to display at one time
+   *
+   * Defaults to `10`.
    */
-  export interface ConfirmOptions {
-    /**
-     * The message to display in the prompt.
-     */
-    readonly message: string
-    /**
-     * The intitial value of the confirm prompt (defaults to `false`).
-     */
-    readonly initial?: boolean
-    /**
-     * The label to display after a user has responded to the prompt.
-     */
-    readonly label?: {
-      /**
-       * The label used if the prompt is confirmed (defaults to `"yes"`).
-       */
-      readonly confirm: string
-      /**
-       * The label used if the prompt is not confirmed (defaults to `"no"`).
-       */
-      readonly deny: string
-    }
-    /**
-     * The placeholder to display when a user is responding to the prompt.
-     */
-    readonly placeholder?: {
-      /**
-       * The placeholder to use if the `initial` value of the prompt is `true`
-       * (defaults to `"(Y/n)"`).
-       */
-      readonly defaultConfirm?: string
-      /**
-       * The placeholder to use if the `initial` value of the prompt is `false`
-       * (defaults to `"(y/N)"`).
-       */
-      readonly defaultDeny?: string
-    }
-  }
-
+  readonly maxPerPage?: number
   /**
-   * @since 4.0.0
-   * @category models
+   * A function which removes any file from the prompt display where the
+   * specified predicate returns `true`.
+   *
+   * Defaults to returning all files.
    */
-  export interface DateOptions {
-    /**
-     * The message to display in the prompt.
-     */
-    readonly message: string
-    /**
-     * The initial date value to display in the prompt (defaults to the current
-     * date).
-     */
-    readonly initial?: globalThis.Date
-    /**
-     * The format mask of the date (defaults to `YYYY-MM-DD HH:mm:ss`).
-     */
-    readonly dateMask?: string
-    /**
-     * An effectful function that can be used to validate the value entered into
-     * the prompt before final submission.
-     */
-    readonly validate?: (value: globalThis.Date) => Effect.Effect<globalThis.Date, string>
-    /**
-     * Custom locales that can be used in place of the defaults.
-     */
-    readonly locales?: {
-      /**
-       * The full names of each month of the year.
-       */
-      readonly months: [
-        string,
-        string,
-        string,
-        string,
-        string,
-        string,
-        string,
-        string,
-        string,
-        string,
-        string,
-        string
-      ]
-      /**
-       * The short names of each month of the year.
-       */
-      readonly monthsShort: [
-        string,
-        string,
-        string,
-        string,
-        string,
-        string,
-        string,
-        string,
-        string,
-        string,
-        string,
-        string
-      ]
-      /**
-       * The full names of each day of the week.
-       */
-      readonly weekdays: [string, string, string, string, string, string, string]
-      /**
-       * The short names of each day of the week.
-       */
-      readonly weekdaysShort: [string, string, string, string, string, string, string]
-    }
-  }
+  readonly filter?: (file: string) => boolean | Effect.Effect<boolean, never, Environment>
+}
 
+/**
+ * @since 4.0.0
+ * @category models
+ */
+export interface SelectOptions<A> {
   /**
-   * @since 4.0.0
-   * @category models
+   * The message to display in the prompt.
    */
-  export interface IntegerOptions {
-    /**
-     * The message to display in the prompt.
-     */
-    readonly message: string
-    /**
-     * The minimum value that can be entered by the user (defaults to `-Infinity`).
-     */
-    readonly min?: number
-    /**
-     * The maximum value that can be entered by the user (defaults to `Infinity`).
-     */
-    readonly max?: number
-    /**
-     * The value that will be used to increment the prompt value when using the
-     * up arrow key (defaults to `1`).
-     */
-    readonly incrementBy?: number
-    /**
-     * The value that will be used to decrement the prompt value when using the
-     * down arrow key (defaults to `1`).
-     */
-    readonly decrementBy?: number
-    /**
-     * An effectful function that can be used to validate the value entered into
-     * the prompt before final submission.
-     */
-    readonly validate?: (value: number) => Effect.Effect<number, string>
-  }
+  readonly message: string
+  /**
+   * The choices to display to the user.
+   */
+  readonly choices: ReadonlyArray<SelectChoice<A>>
+  /**
+   * The number of choices to display at one time (defaults to `10`).
+   */
+  readonly maxPerPage?: number
+}
 
+/**
+ * @since 4.0.0
+ * @category models
+ */
+export interface MultiSelectOptions {
   /**
-   * @since 4.0.0
-   * @category models
+   * Text for the "Select All" option (defaults to "Select All").
    */
-  export interface FloatOptions extends IntegerOptions {
-    /**
-     * The precision to use for the floating point value (defaults to `2`).
-     */
-    readonly precision?: number
-  }
+  readonly selectAll?: string
+  /**
+   * Text for the "Select None" option (defaults to "Select None").
+   */
+  readonly selectNone?: string
+  /**
+   * Text for the "Inverse Selection" option (defaults to "Inverse Selection").
+   */
+  readonly inverseSelection?: string
+  /**
+   * The minimum number of choices that must be selected.
+   */
+  readonly min?: number
+  /**
+   * The maximum number of choices that can be selected.
+   */
+  readonly max?: number
+}
 
+/**
+ * @since 4.0.0
+ * @category models
+ */
+export interface SelectChoice<A> {
   /**
-   * @since 4.0.0
-   * @category models
+   * The name of the select option that is displayed to the user.
    */
-  export interface ListOptions extends TextOptions {
-    /**
-     * The delimiter that separates list entries.
-     */
-    readonly delimiter?: string
-  }
+  readonly title: string
+  /**
+   * The underlying value of the select option.
+   */
+  readonly value: A
+  /**
+   * An optional description for the select option which will be displayed
+   * to the user.
+   */
+  readonly description?: string
+  /**
+   * Whether or not this select option is disabled.
+   */
+  readonly disabled?: boolean
+  /**
+   * Whether this option should be selected by default (only used by MultiSelect).
+   */
+  readonly selected?: boolean
+}
 
+/**
+ * @since 4.0.0
+ * @category models
+ */
+export interface TextOptions {
   /**
-   * @since 4.0.0
-   * @category models
+   * The message to display in the prompt.
    */
-  export interface FileOptions {
-    /**
-     * The path type that will be selected.
-     *
-     * Defaults to `"file"`.
-     */
-    readonly type?: Primitive.PathType
-    /**
-     * The message to display in the prompt.
-     *
-     * Defaults to `"Choose a file"`.
-     */
-    readonly message?: string
-    /**
-     * Where the user will initially be prompted to select files from.
-     *
-     * Defaults to the current working directory.
-     */
-    readonly startingPath?: string
-    /**
-     * The number of choices to display at one time
-     *
-     * Defaults to `10`.
-     */
-    readonly maxPerPage?: number
-    /**
-     * A function which removes any file from the prompt display where the
-     * specified predicate returns `true`.
-     *
-     * Defaults to returning all files.
-     */
-    readonly filter?: (file: string) => boolean | Effect.Effect<boolean, never, Environment>
-  }
+  readonly message: string
+  /**
+   * The default value of the text option.
+   */
+  readonly default?: string
+  /**
+   * An effectful function that can be used to validate the value entered into
+   * the prompt before final submission.
+   */
+  readonly validate?: (value: string) => Effect.Effect<string, string>
+}
 
+/**
+ * @since 4.0.0
+ * @category models
+ */
+export interface ToggleOptions {
   /**
-   * @since 4.0.0
-   * @category models
+   * The message to display in the prompt.
    */
-  export interface SelectOptions<A> {
-    /**
-     * The message to display in the prompt.
-     */
-    readonly message: string
-    /**
-     * The choices to display to the user.
-     */
-    readonly choices: ReadonlyArray<SelectChoice<A>>
-    /**
-     * The number of choices to display at one time (defaults to `10`).
-     */
-    readonly maxPerPage?: number
-  }
-
+  readonly message: string
   /**
-   * @since 4.0.0
-   * @category models
+   * The intitial value of the toggle prompt (defaults to `false`).
    */
-  export interface MultiSelectOptions {
-    /**
-     * Text for the "Select All" option (defaults to "Select All").
-     */
-    readonly selectAll?: string
-    /**
-     * Text for the "Select None" option (defaults to "Select None").
-     */
-    readonly selectNone?: string
-    /**
-     * Text for the "Inverse Selection" option (defaults to "Inverse Selection").
-     */
-    readonly inverseSelection?: string
-    /**
-     * The minimum number of choices that must be selected.
-     */
-    readonly min?: number
-    /**
-     * The maximum number of choices that can be selected.
-     */
-    readonly max?: number
-  }
-
+  readonly initial?: boolean
   /**
-   * @since 4.0.0
-   * @category models
+   * The text to display when the toggle is in the active state (defaults to
+   * `on`).
    */
-  export interface SelectChoice<A> {
-    /**
-     * The name of the select option that is displayed to the user.
-     */
-    readonly title: string
-    /**
-     * The underlying value of the select option.
-     */
-    readonly value: A
-    /**
-     * An optional description for the select option which will be displayed
-     * to the user.
-     */
-    readonly description?: string
-    /**
-     * Whether or not this select option is disabled.
-     */
-    readonly disabled?: boolean
-    /**
-     * Whether this option should be selected by default (only used by MultiSelect).
-     */
-    readonly selected?: boolean
-  }
-
+  readonly active?: string
   /**
-   * @since 4.0.0
-   * @category models
+   * The text to display when the toggle is in the inactive state (defaults to
+   * `off`).
    */
-  export interface TextOptions {
-    /**
-     * The message to display in the prompt.
-     */
-    readonly message: string
-    /**
-     * The default value of the text option.
-     */
-    readonly default?: string
-    /**
-     * An effectful function that can be used to validate the value entered into
-     * the prompt before final submission.
-     */
-    readonly validate?: (value: string) => Effect.Effect<string, string>
-  }
-
-  /**
-   * @since 4.0.0
-   * @category models
-   */
-  export interface ToggleOptions {
-    /**
-     * The message to display in the prompt.
-     */
-    readonly message: string
-    /**
-     * The intitial value of the toggle prompt (defaults to `false`).
-     */
-    readonly initial?: boolean
-    /**
-     * The text to display when the toggle is in the active state (defaults to
-     * `on`).
-     */
-    readonly active?: string
-    /**
-     * The text to display when the toggle is in the inactive state (defaults to
-     * `off`).
-     */
-    readonly inactive?: string
-  }
+  readonly inactive?: string
 }
 
 const defaultFigures = {
@@ -511,8 +500,7 @@ export declare namespace All {
   /**
    * @since 4.0.0
    */
-  export type ReturnIterable<T extends Iterable<PromptAny>> = [T] extends [Iterable<Prompt.Variance<infer A>>] ?
-    Prompt<Array<A>>
+  export type ReturnIterable<T extends Iterable<PromptAny>> = [T] extends [Iterable<Prompt<infer A>>] ? Prompt<Array<A>>
     : never
 
   /**
@@ -520,17 +508,17 @@ export declare namespace All {
    */
   export type ReturnTuple<T extends ReadonlyArray<unknown>> = Prompt<
     T[number] extends never ? []
-    : { -readonly [K in keyof T]: [T[K]] extends [Prompt.Variance<infer _A>] ? _A : never }
+      : { -readonly [K in keyof T]: [T[K]] extends [Prompt<infer _A>] ? _A : never }
   > extends infer X ? X : never
 
   /**
    * @since 4.0.0
    */
   export type ReturnObject<T> = [T] extends [{ [K: string]: PromptAny }] ? Prompt<
-    {
-      -readonly [K in keyof T]: [T[K]] extends [Prompt.Variance<infer _A>] ? _A : never
-    }
-  >
+      {
+        -readonly [K in keyof T]: [T[K]] extends [Prompt<infer _A>] ? _A : never
+      }
+    >
     : never
 
   /**
@@ -579,7 +567,7 @@ export declare namespace All {
  */
 export const all: <
   const Arg extends Iterable<Prompt<any>> | Record<string, Prompt<any>>
->(arg: Arg) => All.Return<Arg> = function () {
+>(arg: Arg) => All.Return<Arg> = function() {
   if (arguments.length === 1) {
     if (isPrompt(arguments[0])) {
       return map(arguments[0], (x) => [x]) as any
@@ -615,8 +603,8 @@ const annotateErrorLine = (line: string): string => Ansi.annotate(line, Ansi.com
  * @since 4.0.0
  * @category constructors
  */
-export const confirm = (options: Prompt.ConfirmOptions): Prompt<boolean> => {
-  const opts: Required<Prompt.ConfirmOptions> = {
+export const confirm = (options: ConfirmOptions): Prompt<boolean> => {
+  const opts: Required<ConfirmOptions> = {
     initial: false,
     ...options,
     label: {
@@ -666,8 +654,8 @@ export const confirm = (options: Prompt.ConfirmOptions): Prompt<boolean> => {
  * @category constructors
  */
 export const custom = <State, Output>(
-  initialState: State | Effect.Effect<State, never, Prompt.Environment>,
-  handlers: Prompt.Handlers<State, Output>
+  initialState: State | Effect.Effect<State, never, Environment>,
+  handlers: Handlers<State, Output>
 ): Prompt<Output> => {
   const op = Object.create(proto)
   op._tag = "Loop"
@@ -682,8 +670,8 @@ export const custom = <State, Output>(
  * @since 4.0.0
  * @category constructors
  */
-export const date = (options: Prompt.DateOptions): Prompt<Date> => {
-  const opts: Required<Prompt.DateOptions> = {
+export const date = (options: DateOptions): Prompt<Date> => {
+  const opts: Required<DateOptions> = {
     initial: new Date(),
     dateMask: "YYYY-MM-DD HH:mm:ss",
     validate: Effect.succeed,
@@ -713,8 +701,8 @@ export const date = (options: Prompt.DateOptions): Prompt<Date> => {
  * @since 4.0.0
  * @category constructors
  */
-export const file = (options: Prompt.FileOptions = {}): Prompt<string> => {
-  const opts: FileOptions = {
+export const file = (options: FileOptions = {}): Prompt<string> => {
+  const opts: FileOptionsReq = {
     type: options.type ?? "file",
     message: options.message ?? `Choose a file`,
     startingPath: Option.fromNullishOr(options.startingPath),
@@ -724,8 +712,8 @@ export const file = (options: Prompt.FileOptions = {}): Prompt<string> => {
   const initialState: Effect.Effect<
     FileState,
     never,
-    Prompt.Environment
-  > = Effect.gen(function* () {
+    Environment
+  > = Effect.gen(function*() {
     const path = Option.none<string>()
     const currentPath = yield* resolveCurrentPath(path, opts)
     const files = yield* getFileList(currentPath, opts)
@@ -765,8 +753,8 @@ export const flatMap = dual<
  * @since 4.0.0
  * @category constructors
  */
-export const float = (options: Prompt.FloatOptions): Prompt<number> => {
-  const opts: FloatOptions = {
+export const float = (options: FloatOptions): Prompt<number> => {
+  const opts: FloatOptionsReq = {
     min: Number.NEGATIVE_INFINITY,
     max: Number.POSITIVE_INFINITY,
     incrementBy: 1,
@@ -799,15 +787,15 @@ export const float = (options: Prompt.FloatOptions): Prompt<number> => {
  * @category constructors
  */
 export const hidden = (
-  options: Prompt.TextOptions
+  options: TextOptions
 ): Prompt<Redacted.Redacted> => basePrompt(options, "hidden").pipe(map(Redacted.make))
 
 /**
  * @since 4.0.0
  * @category constructors
  */
-export const integer = (options: Prompt.IntegerOptions): Prompt<number> => {
-  const opts: IntegerOptions = {
+export const integer = (options: IntegerOptions): Prompt<number> => {
+  const opts: IntegerOptionsReq = {
     min: Number.NEGATIVE_INFINITY,
     max: Number.POSITIVE_INFINITY,
     incrementBy: 1,
@@ -839,7 +827,7 @@ export const integer = (options: Prompt.IntegerOptions): Prompt<number> => {
  * @since 4.0.0
  * @category constructors
  */
-export const list = (options: Prompt.ListOptions): Prompt<Array<string>> =>
+export const list = (options: ListOptions): Prompt<Array<string>> =>
   text(options).pipe(
     map((output) => output.split(options.delimiter || ","))
   )
@@ -865,7 +853,7 @@ export const map = dual<
  * @category constructors
  */
 export const password = (
-  options: Prompt.TextOptions
+  options: TextOptions
 ): Prompt<Redacted.Redacted> => basePrompt(options, "password").pipe(map(Redacted.make))
 
 /**
@@ -879,7 +867,7 @@ export const run: <Output>(
 ) => Effect.Effect<
   Output,
   Terminal.QuitError,
-  Prompt.Environment
+  Environment
 > = Effect.fnUntraced(
   function*<Output>(self: Prompt<Output>) {
     const terminal = yield* Terminal.Terminal
@@ -894,8 +882,8 @@ export const run: <Output>(
  * @since 4.0.0
  * @category constructors
  */
-export const select = <const A>(options: Prompt.SelectOptions<A>): Prompt<A> => {
-  const opts: SelectOptions<A> = {
+export const select = <const A>(options: SelectOptions<A>): Prompt<A> => {
+  const opts: SelectOptionsReq<A> = {
     maxPerPage: 10,
     ...options
   }
@@ -903,7 +891,7 @@ export const select = <const A>(options: Prompt.SelectOptions<A>): Prompt<A> => 
   let initialIndex = 0
   let seenSelected = -1
   for (let i = 0; i < opts.choices.length; i++) {
-    const choice = opts.choices[i] as Prompt.SelectChoice<A>
+    const choice = opts.choices[i] as SelectChoice<A>
     if (choice.selected === true) {
       if (seenSelected !== -1) {
         throw new Error("InvalidArgumentException: only a single choice can be selected by default for Prompt.select")
@@ -926,16 +914,16 @@ export const select = <const A>(options: Prompt.SelectOptions<A>): Prompt<A> => 
  * @category constructors
  */
 export const multiSelect = <const A>(
-  options: Prompt.SelectOptions<A> & Prompt.MultiSelectOptions
+  options: SelectOptions<A> & MultiSelectOptions
 ): Prompt<Array<A>> => {
-  const opts: SelectOptions<A> & MultiSelectOptions = {
+  const opts: SelectOptionsReq<A> & MultiSelectOptionsReq = {
     maxPerPage: 10,
     ...options
   }
   // Seed initial selection from choices marked as selected: true
   const initialSelected = new Set<number>()
   for (let i = 0; i < opts.choices.length; i++) {
-    const choice = opts.choices[i] as Prompt.SelectChoice<A>
+    const choice = opts.choices[i] as SelectChoice<A>
     if (choice.selected === true) {
       initialSelected.add(i)
     }
@@ -968,15 +956,15 @@ export const succeed = <A>(value: A): Prompt<A> => {
  * @category constructors
  */
 export const text = (
-  options: Prompt.TextOptions
+  options: TextOptions
 ): Prompt<string> => basePrompt(options, "text")
 
 /**
  * @since 4.0.0
  * @category constructors
  */
-export const toggle = (options: Prompt.ToggleOptions): Prompt<boolean> => {
-  const opts: ToggleOptions = {
+export const toggle = (options: ToggleOptions): Prompt<boolean> => {
+  const opts: ToggleOptionsReq = {
     initial: false,
     active: "on",
     inactive: "off",
@@ -989,13 +977,12 @@ export const toggle = (options: Prompt.ToggleOptions): Prompt<boolean> => {
   })
 }
 
-/** @internal */
 const proto = {
   ...YieldableProto,
   [TypeId]: {
     _Output: (_: never) => _
   },
-  commit(): Effect.Effect<Terminal.Terminal, Terminal.QuitError, unknown> {
+  asEffect(): Effect.Effect<unknown, Terminal.QuitError, Environment> {
     return run(this as any)
   },
   pipe() {
@@ -1003,38 +990,34 @@ const proto = {
   }
 }
 
-/** @internal */
 type Op<Tag extends string, Body = {}> = Prompt<never> & Body & {
   readonly _tag: Tag
 }
 
-/** @internal */
-export type PromptPrimitive = Loop | OnSuccess | Succeed
+type PromptPrimitive = Loop | OnSuccess | Succeed
 
-/** @internal */
-export interface Loop extends
+interface Loop extends
   Op<"Loop", {
-    readonly initialState: unknown | Effect.Effect<unknown, never, Prompt.Environment>
-    readonly render: Prompt.Handlers<unknown, unknown>["render"]
-    readonly process: Prompt.Handlers<unknown, unknown>["process"]
-    readonly clear: Prompt.Handlers<unknown, unknown>["clear"]
-  }> { }
+    readonly initialState: unknown | Effect.Effect<unknown, never, Environment>
+    readonly render: Handlers<unknown, unknown>["render"]
+    readonly process: Handlers<unknown, unknown>["process"]
+    readonly clear: Handlers<unknown, unknown>["clear"]
+  }>
+{}
 
 /** @internal */
 export interface OnSuccess extends
   Op<"OnSuccess", {
     readonly prompt: PromptPrimitive
     readonly onSuccess: (value: unknown) => Prompt<unknown>
-  }> { }
+  }>
+{}
 
-/** @internal */
-export interface Succeed extends
+interface Succeed extends
   Op<"Succeed", {
     readonly value: unknown
-  }> { }
-
-/** @internal */
-export const isPrompt = (u: unknown): u is Prompt<unknown> => typeof u === "object" && u != null && TypeId in u
+  }>
+{}
 
 const allTupled = <const T extends ArrayLike<Prompt<any>>>(arg: T): Prompt<
   {
@@ -1059,7 +1042,7 @@ const runWithInput = <Output>(
   prompt: Prompt<Output>,
   terminal: Terminal.Terminal,
   input: Queue.Dequeue<Terminal.UserInput>
-): Effect.Effect<Output, NoSuchElementError, Prompt.Environment> =>
+): Effect.Effect<Output, NoSuchElementError, Environment> =>
   Effect.suspend(() => {
     const op = prompt as PromptPrimitive
     switch (op._tag) {
@@ -1079,13 +1062,13 @@ const runWithInput = <Output>(
   })
 
 const runLoop = Effect.fnUntraced(
-  function* (
+  function*(
     loop: Loop,
     terminal: Terminal.Terminal,
     input: Queue.Dequeue<Terminal.UserInput>
   ) {
     let state = Effect.isEffect(loop.initialState) ? yield* loop.initialState : loop.initialState
-    let action: Prompt.Action<unknown, unknown> = Action.NextFrame({ state })
+    let action: Action<unknown, unknown> = Action.NextFrame({ state })
     while (true) {
       const msg = yield* loop.render(state, action)
       yield* Effect.orDie(terminal.display(msg))
@@ -1111,15 +1094,12 @@ const runLoop = Effect.fnUntraced(
   (effect, _, terminal) => Effect.ensuring(effect, Effect.orDie(terminal.display(Ansi.cursorShow)))
 )
 
-/** @internal */
-export const Action = Data.taggedEnum<Prompt.ActionDefinition>()
+const Action = Data.taggedEnum<ActionDefinition>()
 
 /**
  * Clears all lines taken up by the specified `text`.
- *
- * @internal
  */
-export function eraseText(text: string, columns: number): string {
+function eraseText(text: string, columns: number): string {
   if (columns === 0) {
     return Ansi.eraseLine + Ansi.cursorTo(0)
   }
@@ -1131,8 +1111,7 @@ export function eraseText(text: string, columns: number): string {
   return Ansi.eraseLines(rows)
 }
 
-/** @internal */
-export function lines(prompt: string, columns: number): number {
+function lines(prompt: string, columns: number): number {
   const lines = prompt.split(NEWLINE_REGEX)
   return columns === 0
     ? lines.length
@@ -1142,7 +1121,7 @@ export function lines(prompt: string, columns: number): number {
     )
 }
 
-interface ConfirmOptions extends Required<Prompt.ConfirmOptions> { }
+interface ConfirmOptionsReq extends Required<ConfirmOptions> {}
 
 interface ConfirmState {
   readonly value: boolean
@@ -1150,8 +1129,8 @@ interface ConfirmState {
 
 const renderBeep = Ansi.beep
 
-function handleConfirmClear(options: ConfirmOptions) {
-  return Effect.gen(function* () {
+function handleConfirmClear(options: ConfirmOptionsReq) {
+  return Effect.gen(function*() {
     const terminal = yield* Terminal.Terminal
     const columns = yield* terminal.columns
     const clearOutput = eraseText(options.message, columns)
@@ -1166,7 +1145,7 @@ function renderConfirmOutput(
   confirm: string,
   leadingSymbol: string,
   trailingSymbol: string,
-  options: ConfirmOptions
+  options: ConfirmOptionsReq
 ) {
   const prefix = leadingSymbol + " "
   return Arr.match(options.message.split(NEWLINE_REGEX), {
@@ -1178,8 +1157,8 @@ function renderConfirmOutput(
   })
 }
 
-function renderConfirmNextFrame(state: ConfirmState, options: ConfirmOptions) {
-  return Effect.gen(function* () {
+function renderConfirmNextFrame(state: ConfirmState, options: ConfirmOptionsReq) {
+  return Effect.gen(function*() {
     const figures = yield* platformFigures
     const leadingSymbol = Ansi.annotate("?", Ansi.cyanBright)
     const trailingSymbol = Ansi.annotate(figures.pointerSmall, Ansi.blackBright)
@@ -1195,8 +1174,8 @@ function renderConfirmNextFrame(state: ConfirmState, options: ConfirmOptions) {
   })
 }
 
-function renderConfirmSubmission(value: boolean, options: ConfirmOptions) {
-  return Effect.gen(function* () {
+function renderConfirmSubmission(value: boolean, options: ConfirmOptionsReq) {
+  return Effect.gen(function*() {
     const figures = yield* platformFigures
     const leadingSymbol = Ansi.annotate(figures.tick, Ansi.green)
     const trailingSymbol = Ansi.annotate(figures.ellipsis, Ansi.blackBright)
@@ -1206,8 +1185,8 @@ function renderConfirmSubmission(value: boolean, options: ConfirmOptions) {
   })
 }
 
-function handleConfirmRender(options: ConfirmOptions) {
-  return (_: ConfirmState, action: Prompt.Action<ConfirmState, boolean>) => {
+function handleConfirmRender(options: ConfirmOptionsReq) {
+  return (_: ConfirmState, action: Action<ConfirmState, boolean>) => {
     return Action.$match(action, {
       Beep: () => Effect.succeed(renderBeep),
       NextFrame: ({ state }) => renderConfirmNextFrame(state, options),
@@ -1233,7 +1212,7 @@ function handleConfirmProcess(input: Terminal.UserInput, defaultValue: boolean) 
   return Effect.succeed(Action.Beep())
 }
 
-interface DateOptions extends Required<Prompt.DateOptions> { }
+interface DateOptionsReq extends Required<DateOptions> {}
 
 interface DateState {
   readonly typed: string
@@ -1243,9 +1222,9 @@ interface DateState {
   readonly error: Option.Option<string>
 }
 
-function handleDateClear(options: DateOptions) {
-  return (state: DateState, _: Prompt.Action<DateState, globalThis.Date>) => {
-    return Effect.gen(function* () {
+function handleDateClear(options: DateOptionsReq) {
+  return (state: DateState, _: Action<DateState, globalThis.Date>) => {
+    return Effect.gen(function*() {
       const terminal = yield* Terminal.Terminal
       const columns = yield* terminal.columns
       const resetCurrentLine = Ansi.eraseLine + Ansi.cursorLeft
@@ -1293,7 +1272,7 @@ function renderDateOutput(
   leadingSymbol: string,
   trailingSymbol: string,
   parts: string,
-  options: DateOptions
+  options: DateOptionsReq
 ) {
   const prefix = leadingSymbol + " "
   return Arr.match(options.message.split(NEWLINE_REGEX), {
@@ -1305,8 +1284,8 @@ function renderDateOutput(
   })
 }
 
-function renderDateNextFrame(state: DateState, options: DateOptions) {
-  return Effect.gen(function* () {
+function renderDateNextFrame(state: DateState, options: DateOptionsReq) {
+  return Effect.gen(function*() {
     const figures = yield* platformFigures
     const leadingSymbol = Ansi.annotate("?", Ansi.cyanBright)
     const trailingSymbol = Ansi.annotate(figures.pointerSmall, Ansi.blackBright)
@@ -1317,8 +1296,8 @@ function renderDateNextFrame(state: DateState, options: DateOptions) {
   })
 }
 
-function renderDateSubmission(state: DateState, options: DateOptions) {
-  return Effect.gen(function* () {
+function renderDateSubmission(state: DateState, options: DateOptionsReq) {
+  return Effect.gen(function*() {
     const figures = yield* platformFigures
     const leadingSymbol = Ansi.annotate(figures.tick, Ansi.green)
     const trailingSymbol = Ansi.annotate(figures.ellipsis, Ansi.blackBright)
@@ -1394,7 +1373,7 @@ function defaultDateProcessor(value: string, state: DateState) {
   return Action.Beep()
 }
 
-const defaultLocales: Prompt.DateOptions["locales"] = {
+const defaultLocales: DateOptionsReq["locales"] = {
   months: [
     "January",
     "February",
@@ -1414,8 +1393,8 @@ const defaultLocales: Prompt.DateOptions["locales"] = {
   weekdaysShort: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
 }
 
-function handleDateRender(options: DateOptions) {
-  return (state: DateState, action: Prompt.Action<DateState, globalThis.Date>) => {
+function handleDateRender(options: DateOptionsReq) {
+  return (state: DateState, action: Action<DateState, globalThis.Date>) => {
     return Action.$match(action, {
       Beep: () => Effect.succeed(renderBeep),
       NextFrame: ({ state }) => renderDateNextFrame(state, options),
@@ -1424,7 +1403,7 @@ function handleDateRender(options: DateOptions) {
   }
 }
 
-function handleDateProcess(options: DateOptions) {
+function handleDateProcess(options: DateOptionsReq) {
   return (input: Terminal.UserInput, state: DateState) => {
     switch (input.key.name) {
       case "left": {
@@ -1483,7 +1462,7 @@ const regexGroups: Record<number, (params: DatePartParams) => DatePart> = {
 const makeDateParts = (
   dateMask: string,
   date: globalThis.Date,
-  locales: Prompt.DateOptions["locales"]
+  locales: DateOptions["locales"]
 ) => {
   const parts: Array<DatePart> = []
   let result: RegExpExecArray | null = null
@@ -1513,7 +1492,7 @@ const makeDateParts = (
 
 interface DatePartParams {
   readonly token: string
-  readonly locales: Prompt.DateOptions["locales"]
+  readonly locales: DateOptions["locales"]
   readonly date?: globalThis.Date
   readonly parts?: ReadonlyArray<DatePart>
 }
@@ -1522,7 +1501,7 @@ abstract class DatePart {
   token: string
   readonly date: globalThis.Date
   readonly parts: ReadonlyArray<DatePart>
-  readonly locales: Prompt.DateOptions["locales"]
+  readonly locales: DateOptions["locales"]
 
   constructor(params: DatePartParams) {
     this.token = params.token
@@ -1581,9 +1560,9 @@ abstract class DatePart {
 }
 
 class Token extends DatePart {
-  increment(): void { }
+  increment(): void {}
 
-  decrement(): void { }
+  decrement(): void {}
 
   setValue(value: string): void {
     this.token = this.token + value
@@ -1698,23 +1677,33 @@ class Day extends DatePart {
   override toString() {
     const date = this.date.getDate()
     const day = this.date.getDay()
-    return Match.value(this.token).pipe(
-      Match.when("DD", () => `${date}`.padStart(2, "0")),
-      Match.when("Do", () => `${date}${this.ordinalIndicator(date)}`),
-      Match.when("d", () => `${day + 1}`),
-      Match.when("ddd", () => this.locales!.weekdaysShort[day]!),
-      Match.when("dddd", () => this.locales!.weekdays[day]!),
-      Match.orElse(() => `${date}`)
-    )
+    switch (this.token) {
+      case "DD":
+        return `${date}`.padStart(2, "0")
+      case "Do":
+        return `${date}${this.ordinalIndicator(date)}`
+      case "d":
+        return `${day + 1}`
+      case "ddd":
+        return this.locales!.weekdaysShort[day]!
+      case "dddd":
+        return this.locales!.weekdays[day]!
+      default:
+        return `${date}`
+    }
   }
 
   private ordinalIndicator(day: number): string {
-    return Match.value(day % 10).pipe(
-      Match.when(1, () => "st"),
-      Match.when(2, () => "nd"),
-      Match.when(3, () => "rd"),
-      Match.orElse(() => "th")
-    )
+    switch (day % 10) {
+      case 1:
+        return "st"
+      case 2:
+        return "nd"
+      case 3:
+        return "rd"
+      default:
+        return "th"
+    }
   }
 }
 
@@ -1734,12 +1723,16 @@ class Month extends DatePart {
 
   override toString() {
     const month = this.date.getMonth()
-    return Match.value(this.token.length).pipe(
-      Match.when(2, () => `${month + 1}`.padStart(2, "0")),
-      Match.when(3, () => this.locales!.monthsShort[month]!),
-      Match.when(4, () => this.locales!.months[month]!),
-      Match.orElse(() => `${month + 1}`)
-    )
+    switch (this.token.length) {
+      case 2:
+        return `${month + 1}`.padStart(2, "0")
+      case 3:
+        return this.locales!.monthsShort[month]!
+      case 4:
+        return this.locales!.months[month]!
+      default:
+        return `${month + 1}`
+    }
   }
 }
 
@@ -1773,7 +1766,7 @@ class Meridiem extends DatePart {
     this.increment()
   }
 
-  setValue(_value: string): void { }
+  setValue(_value: string): void {}
 
   override toString() {
     const meridiem = this.date.getHours() > 12 ? "pm" : "am"
@@ -1783,7 +1776,7 @@ class Meridiem extends DatePart {
   }
 }
 
-interface FileOptions extends Required<Omit<Prompt.FileOptions, "startingPath">> {
+interface FileOptionsReq extends Required<Omit<FileOptions, "startingPath">> {
   readonly startingPath: Option.Option<string>
 }
 
@@ -1805,19 +1798,20 @@ const showConfirmation = Confirm.$is("Show")
 
 function resolveCurrentPath(
   path: Option.Option<string>,
-  options: FileOptions
+  options: FileOptionsReq
 ): Effect.Effect<string, never, FileSystem.FileSystem> {
   return Option.match(path, {
     onNone: () =>
       Option.match(options.startingPath, {
         onNone: () => Effect.sync(() => process.cwd()),
         onSome: (path) =>
-          Effect.flatMap(FileSystem.FileSystem, (fs) =>
+          Effect.flatMap(FileSystem.FileSystem.asEffect(), (fs) =>
             // Ensure the user provided starting path exists
             Effect.orDie(fs.exists(path)).pipe(
-              Effect.filterOrDieMessage(
-                identity,
-                `The provided starting path '${path}' does not exist`
+              Effect.flatMap((exists) =>
+                exists ? Effect.void : Effect.die(
+                  `The provided starting path '${path}' does not exist`
+                )
               ),
               Effect.as(path)
             ))
@@ -1826,45 +1820,41 @@ function resolveCurrentPath(
   })
 }
 
-function getFileList(directory: string, options: FileOptions) {
-  return Effect.gen(function* () {
-    const fs = yield* FileSystem.FileSystem
-    const path = yield* Path.Path
-    const files = yield* Effect.orDie(fs.readDirectory(directory)).pipe(
-      // Always prepend the `".."` option to the file list but allow it
-      // to be filtered out if the user so desires
-      Effect.map((files) => ["..", ...files])
-    )
-    return yield* Effect.filter(files, (file) => {
-      const result = options.filter(file)
-      const userDefinedFilter = Effect.isEffect(result)
-        ? result
-        : Effect.succeed(result)
-      const directoryFilter = options.type === "directory"
-        ? Effect.map(
-          Effect.orDie(fs.stat(path.join(directory, file))),
-          (info) => info.type === "Directory"
-        )
-        : Effect.succeed(true)
-      return Effect.zipWith(userDefinedFilter, directoryFilter, (a, b) => a && b)
-    }, { concurrency: files.length })
-  })
-}
+const getFileList = Effect.fnUntraced(function*(directory: string, options: FileOptionsReq) {
+  const fs = yield* FileSystem.FileSystem
+  const path = yield* Path.Path
+  const files = yield* Effect.orDie(fs.readDirectory(directory)).pipe(
+    // Always prepend the `".."` option to the file list but allow it
+    // to be filtered out if the user so desires
+    Effect.map((files) => ["..", ...files])
+  )
+  return yield* Effect.filter(files, (file) => {
+    const result = options.filter(file)
+    const userDefinedFilter = Effect.isEffect(result)
+      ? result
+      : Effect.succeed(result)
+    const directoryFilter = options.type === "directory"
+      ? Effect.map(
+        Effect.orDie(fs.stat(path.join(directory, file))),
+        (info) => info.type === "Directory"
+      )
+      : Effect.succeed(true)
+    return Effect.zipWith(userDefinedFilter, directoryFilter, (a, b) => a && b ? file : Filter.failVoid)
+  }, { concurrency: files.length })
+})
 
-function handleFileClear(options: FileOptions) {
-  return (state: FileState, _: Prompt.Action<FileState, string>) => {
-    return Effect.gen(function* () {
-      const terminal = yield* Terminal.Terminal
-      const columns = yield* terminal.columns
-      const currentPath = yield* resolveCurrentPath(state.path, options)
-      const text = "\n".repeat(Math.min(state.files.length, options.maxPerPage))
-      const clearPath = eraseText(currentPath, columns)
-      const message = showConfirmation(state.confirm) ? CONFIRM_MESSAGE : options.message
-      const clearPrompt = eraseText(`\n${message}`, columns)
-      const clearOptions = eraseText(text, columns)
-      return clearOptions + clearPath + clearPrompt
-    })
-  }
+function handleFileClear(options: FileOptionsReq) {
+  return Effect.fnUntraced(function*(state: FileState, _: Action<FileState, string>) {
+    const terminal = yield* Terminal.Terminal
+    const columns = yield* terminal.columns
+    const currentPath = yield* resolveCurrentPath(state.path, options)
+    const text = "\n".repeat(Math.min(state.files.length, options.maxPerPage))
+    const clearPath = eraseText(currentPath, columns)
+    const message = showConfirmation(state.confirm) ? CONFIRM_MESSAGE : options.message
+    const clearPrompt = eraseText(`\n${message}`, columns)
+    const clearOptions = eraseText(text, columns)
+    return clearOptions + clearPath + clearPrompt
+  })
 }
 
 function renderPrompt(
@@ -1911,7 +1901,7 @@ function renderFiles(
   state: FileState,
   files: ReadonlyArray<string>,
   figures: Effect.Success<typeof platformFigures>,
-  options: FileOptions
+  options: FileOptionsReq
 ) {
   const length = files.length
   const toDisplay = entriesToDisplay(state.cursor, length, options.maxPerPage)
@@ -1925,42 +1915,41 @@ function renderFiles(
   return documents.join("\n")
 }
 
-function renderFileNextFrame(state: FileState, options: FileOptions) {
-  return Effect.gen(function* () {
-    const path = yield* Path.Path
-    const figures = yield* platformFigures
-    const currentPath = yield* resolveCurrentPath(state.path, options)
-    const selectedPath = state.files[state.cursor]
-    const resolvedPath = path.resolve(currentPath, selectedPath)
-    const resolvedPathMsg = Ansi.annotate(figures.pointerSmall + " " + resolvedPath, Ansi.blackBright)
+const renderFileNextFrame = Effect.fnUntraced(function*(state: FileState, options: FileOptionsReq) {
+  const path = yield* Path.Path
+  const figures = yield* platformFigures
+  const currentPath = yield* resolveCurrentPath(state.path, options)
+  const selectedPath = state.files[state.cursor]
+  const resolvedPath = path.resolve(currentPath, selectedPath)
+  const resolvedPathMsg = Ansi.annotate(figures.pointerSmall + " " + resolvedPath, Ansi.blackBright)
 
-    if (showConfirmation(state.confirm)) {
-      const leadingSymbol = Ansi.annotate("?", Ansi.cyanBright)
-      const trailingSymbol = Ansi.annotate(figures.pointerSmall, Ansi.blackBright)
-      const confirm = Ansi.annotate("(Y/n)", Ansi.blackBright)
-      const promptMsg = renderPrompt(confirm, CONFIRM_MESSAGE, leadingSymbol, trailingSymbol)
-      return Ansi.cursorHide + promptMsg + "\n" + resolvedPathMsg
-    }
-    const leadingSymbol = Ansi.annotate(figures.tick, Ansi.green)
-    const trailingSymbol = Ansi.annotate(figures.ellipsis, Ansi.blackBright)
-    const promptMsg = renderPrompt("", options.message, leadingSymbol, trailingSymbol)
-    const files = renderFiles(state, state.files, figures, options)
-    return Ansi.cursorHide + promptMsg + "\n" + resolvedPathMsg + "\n" + files
-  })
-}
+  if (showConfirmation(state.confirm)) {
+    const leadingSymbol = Ansi.annotate("?", Ansi.cyanBright)
+    const trailingSymbol = Ansi.annotate(figures.pointerSmall, Ansi.blackBright)
+    const confirm = Ansi.annotate("(Y/n)", Ansi.blackBright)
+    const promptMsg = renderPrompt(confirm, CONFIRM_MESSAGE, leadingSymbol, trailingSymbol)
+    return Ansi.cursorHide + promptMsg + "\n" + resolvedPathMsg
+  }
+  const leadingSymbol = Ansi.annotate(figures.tick, Ansi.green)
+  const trailingSymbol = Ansi.annotate(figures.ellipsis, Ansi.blackBright)
+  const promptMsg = renderPrompt("", options.message, leadingSymbol, trailingSymbol)
+  const files = renderFiles(state, state.files, figures, options)
+  return Ansi.cursorHide + promptMsg + "\n" + resolvedPathMsg + "\n" + files
+})
 
-function renderFileSubmission(value: string, options: FileOptions) {
-  return Effect.gen(function* () {
-    const figures = yield* platformFigures
-    const leadingSymbol = Ansi.annotate(figures.tick, Ansi.green)
-    const trailingSymbol = Ansi.annotate(figures.ellipsis, Ansi.blackBright)
-    const promptMsg = renderPrompt("", options.message, leadingSymbol, trailingSymbol)
-    return promptMsg + " " + Ansi.annotate(value, Ansi.white) + "\n"
-  })
-}
+const renderFileSubmission = Effect.fnUntraced(function*(value: string, options: FileOptionsReq) {
+  const figures = yield* platformFigures
+  const leadingSymbol = Ansi.annotate(figures.tick, Ansi.green)
+  const trailingSymbol = Ansi.annotate(figures.ellipsis, Ansi.blackBright)
+  const promptMsg = renderPrompt("", options.message, leadingSymbol, trailingSymbol)
+  return promptMsg + " " + Ansi.annotate(value, Ansi.white) + "\n"
+})
 
-function handleFileRender(options: FileOptions) {
-  return (_: FileState, action: Prompt.Action<FileState, string>) => {
+function handleFileRender(options: FileOptionsReq) {
+  return (
+    _: FileState,
+    action: Action<FileState, string>
+  ): Effect.Effect<string, never, Path.Path | FileSystem.FileSystem> => {
     return Action.$match(action, {
       Beep: () => Effect.succeed(renderBeep),
       NextFrame: ({ state }) => renderFileNextFrame(state, options),
@@ -1982,99 +1971,96 @@ function processFileCursorDown(state: FileState) {
   }))
 }
 
-function processSelection(state: FileState, options: FileOptions) {
-  return Effect.gen(function* () {
-    const fs = yield* FileSystem.FileSystem
-    const path = yield* Path.Path
-    const currentPath = yield* resolveCurrentPath(state.path, options)
-    const selectedPath = state.files[state.cursor]
-    const resolvedPath = path.resolve(currentPath, selectedPath)
-    const info = yield* Effect.orDie(fs.stat(resolvedPath))
-    if (info.type === "Directory") {
-      const files = yield* getFileList(resolvedPath, options)
-      const filesWithoutParent = files.filter((file) => file !== "..")
-      // If the user selected a directory AND the prompt type can result with
-      // a directory, we must confirm:
-      //  - If the selected directory has any files
-      //  - Confirm whether or not the user wants to traverse those files
-      if (options.type === "directory" || options.type === "either") {
-        return filesWithoutParent.length === 0
-          // Directory is empty so it's safe to select it
-          ? Action.Submit({ value: resolvedPath })
-          // Directory has contents - show confirmation to user
-          : Action.NextFrame({
-            state: { ...state, confirm: Confirm.Show() }
-          })
-      }
-      return Action.NextFrame({
-        state: {
-          cursor: 0,
-          files,
-          path: Option.some(resolvedPath),
-          confirm: Confirm.Hide()
-        }
-      })
+const processSelection = Effect.fnUntraced(function*(state: FileState, options: FileOptionsReq) {
+  const fs = yield* FileSystem.FileSystem
+  const path = yield* Path.Path
+  const currentPath = yield* resolveCurrentPath(state.path, options)
+  const selectedPath = state.files[state.cursor]
+  const resolvedPath = path.resolve(currentPath, selectedPath)
+  const info = yield* Effect.orDie(fs.stat(resolvedPath))
+  if (info.type === "Directory") {
+    const files = yield* getFileList(resolvedPath, options)
+    const filesWithoutParent = files.filter((file) => file !== "..")
+    // If the user selected a directory AND the prompt type can result with
+    // a directory, we must confirm:
+    //  - If the selected directory has any files
+    //  - Confirm whether or not the user wants to traverse those files
+    if (options.type === "directory" || options.type === "either") {
+      return filesWithoutParent.length === 0
+        // Directory is empty so it's safe to select it
+        ? Action.Submit({ value: resolvedPath })
+        // Directory has contents - show confirmation to user
+        : Action.NextFrame({
+          state: { ...state, confirm: Confirm.Show() }
+        })
     }
-    return Action.Submit({ value: resolvedPath })
+    return Action.NextFrame({
+      state: {
+        cursor: 0,
+        files,
+        path: Option.some(resolvedPath),
+        confirm: Confirm.Hide()
+      }
+    })
+  }
+  return Action.Submit({ value: resolvedPath })
+})
+
+function handleFileProcess(options: FileOptionsReq) {
+  return Effect.fnUntraced(function*(input: Terminal.UserInput, state: FileState) {
+    switch (input.key.name) {
+      case "k":
+      case "up": {
+        return yield* processFileCursorUp(state)
+      }
+      case "j":
+      case "down":
+      case "tab": {
+        return yield* processFileCursorDown(state)
+      }
+      case "enter":
+      case "return": {
+        return yield* processSelection(state, options)
+      }
+      case "y":
+      case "t": {
+        if (showConfirmation(state.confirm)) {
+          const path = yield* Path.Path
+          const currentPath = yield* resolveCurrentPath(state.path, options)
+          const selectedPath = state.files[state.cursor]
+          const resolvedPath = path.resolve(currentPath, selectedPath)
+          const files = yield* getFileList(resolvedPath, options)
+          return Action.NextFrame({
+            state: {
+              cursor: 0,
+              files,
+              path: Option.some(resolvedPath),
+              confirm: Confirm.Hide()
+            }
+          })
+        }
+        return Action.Beep()
+      }
+      case "n":
+      case "f": {
+        if (showConfirmation(state.confirm)) {
+          const path = yield* Path.Path
+          const currentPath = yield* resolveCurrentPath(state.path, options)
+          const selectedPath = state.files[state.cursor]
+          const resolvedPath = path.resolve(currentPath, selectedPath)
+          return Action.Submit({ value: resolvedPath })
+        }
+        return Action.Beep()
+      }
+      default: {
+        return Action.Beep()
+      }
+    }
   })
 }
 
-function handleFileProcess(options: FileOptions) {
-  return (input: Terminal.UserInput, state: FileState) =>
-    Effect.gen(function* () {
-      switch (input.key.name) {
-        case "k":
-        case "up": {
-          return yield* processFileCursorUp(state)
-        }
-        case "j":
-        case "down":
-        case "tab": {
-          return yield* processFileCursorDown(state)
-        }
-        case "enter":
-        case "return": {
-          return yield* processSelection(state, options)
-        }
-        case "y":
-        case "t": {
-          if (showConfirmation(state.confirm)) {
-            const path = yield* Path.Path
-            const currentPath = yield* resolveCurrentPath(state.path, options)
-            const selectedPath = state.files[state.cursor]
-            const resolvedPath = path.resolve(currentPath, selectedPath)
-            const files = yield* getFileList(resolvedPath, options)
-            return Action.NextFrame({
-              state: {
-                cursor: 0,
-                files,
-                path: Option.some(resolvedPath),
-                confirm: Confirm.Hide()
-              }
-            })
-          }
-          return Action.Beep()
-        }
-        case "n":
-        case "f": {
-          if (showConfirmation(state.confirm)) {
-            const path = yield* Path.Path
-            const currentPath = yield* resolveCurrentPath(state.path, options)
-            const selectedPath = state.files[state.cursor]
-            const resolvedPath = path.resolve(currentPath, selectedPath)
-            return Action.Submit({ value: resolvedPath })
-          }
-          return Action.Beep()
-        }
-        default: {
-          return Action.Beep()
-        }
-      }
-    })
-}
-
-interface SelectOptions<A> extends Required<Prompt.SelectOptions<A>> { }
-interface MultiSelectOptions extends Prompt.MultiSelectOptions { }
+interface SelectOptionsReq<A> extends Required<SelectOptions<A>> {}
+interface MultiSelectOptionsReq extends MultiSelectOptions {}
 
 type MultiSelectState = {
   index: number
@@ -2098,7 +2084,7 @@ function renderMultiSelectError(state: MultiSelectState, pointer: string) {
 }
 
 function renderChoiceDescription<A>(
-  choice: Prompt.SelectChoice<A>,
+  choice: SelectChoice<A>,
   isActive: boolean
 ) {
   if (!choice.disabled && choice.description && isActive) {
@@ -2111,7 +2097,7 @@ const metaOptionsCount = 2
 
 function renderMultiSelectChoices<A>(
   state: MultiSelectState,
-  options: SelectOptions<A> & MultiSelectOptions,
+  options: SelectOptionsReq<A> & MultiSelectOptionsReq,
   figures: Effect.Success<typeof platformFigures>
 ) {
   const choices = options.choices
@@ -2156,15 +2142,15 @@ function renderMultiSelectChoices<A>(
         ? Ansi.annotate(checkbox, Ansi.cyanBright)
         : checkbox
       const title = choice.title
-      const description = renderChoiceDescription(choice as Prompt.SelectChoice<A>, isHighlighted)
+      const description = renderChoiceDescription(choice as SelectChoice<A>, isHighlighted)
       documents.push(prefix + " " + annotatedCheckbox + " " + title + " " + description)
     }
   }
   return documents.join("\n")
 }
 
-function renderMultiSelectNextFrame<A>(state: MultiSelectState, options: SelectOptions<A>) {
-  return Effect.gen(function* () {
+const renderMultiSelectNextFrame = Effect.fnUntraced(
+  function*<A>(state: MultiSelectState, options: SelectOptionsReq<A>) {
     const figures = yield* platformFigures
     const choices = renderMultiSelectChoices(state, options, figures)
     const leadingSymbol = Ansi.annotate("?", Ansi.cyanBright)
@@ -2172,11 +2158,11 @@ function renderMultiSelectNextFrame<A>(state: MultiSelectState, options: SelectO
     const promptMsg = renderSelectOutput(leadingSymbol, trailingSymbol, options)
     const error = renderMultiSelectError(state, figures.pointer)
     return Ansi.cursorHide + promptMsg + "\n" + choices + error
-  })
-}
+  }
+)
 
-function renderMultiSelectSubmission<A>(state: MultiSelectState, options: SelectOptions<A>) {
-  return Effect.gen(function* () {
+const renderMultiSelectSubmission = Effect.fnUntraced(
+  function*<A>(state: MultiSelectState, options: SelectOptionsReq<A>) {
     const figures = yield* platformFigures
     const selectedChoices = Array.from(state.selectedIndices).sort(EffectNumber.Order).map((index) =>
       options.choices[index].title
@@ -2186,8 +2172,8 @@ function renderMultiSelectSubmission<A>(state: MultiSelectState, options: Select
     const trailingSymbol = Ansi.annotate(figures.ellipsis, Ansi.blackBright)
     const promptMsg = renderSelectOutput(leadingSymbol, trailingSymbol, options)
     return promptMsg + " " + Ansi.annotate(selectedText, Ansi.white) + "\n"
-  })
-}
+  }
+)
 
 function processMultiSelectCursorUp(state: MultiSelectState, totalChoices: number) {
   const newIndex = state.index === 0 ? totalChoices - 1 : state.index - 1
@@ -2201,7 +2187,7 @@ function processMultiSelectCursorDown(state: MultiSelectState, totalChoices: num
 
 function processSpace<A>(
   state: MultiSelectState,
-  options: SelectOptions<A>
+  options: SelectOptionsReq<A>
 ) {
   const selectedIndices = new Set(state.selectedIndices)
   if (state.index === 0) {
@@ -2231,18 +2217,16 @@ function processSpace<A>(
   return Effect.succeed(Action.NextFrame({ state: { ...state, selectedIndices } }))
 }
 
-export function handleMultiSelectClear<A>(options: SelectOptions<A>) {
-  return Effect.gen(function* () {
-    const terminal = yield* Terminal.Terminal
-    const columns = yield* terminal.columns
-    const clearPrompt = Ansi.eraseLine + Ansi.cursorLeft
-    const text = "\n".repeat(Math.min(options.choices.length + 2, options.maxPerPage)) + options.message + 1
-    const clearOutput = eraseText(text, columns)
-    return clearOutput + clearPrompt
-  })
-}
+const handleMultiSelectClear = Effect.fnUntraced(function*<A>(options: SelectOptionsReq<A>) {
+  const terminal = yield* Terminal.Terminal
+  const columns = yield* terminal.columns
+  const clearPrompt = Ansi.eraseLine + Ansi.cursorLeft
+  const text = "\n".repeat(Math.min(options.choices.length + 2, options.maxPerPage)) + options.message + 1
+  const clearOutput = eraseText(text, columns)
+  return clearOutput + clearPrompt
+})
 
-function handleMultiSelectProcess<A>(options: SelectOptions<A> & MultiSelectOptions) {
+function handleMultiSelectProcess<A>(options: SelectOptionsReq<A> & MultiSelectOptionsReq) {
   return (input: Terminal.UserInput, state: MultiSelectState) => {
     const totalChoices = options.choices.length + metaOptionsCount
     switch (input.key.name) {
@@ -2283,8 +2267,8 @@ function handleMultiSelectProcess<A>(options: SelectOptions<A> & MultiSelectOpti
   }
 }
 
-function handleMultiSelectRender<A>(options: SelectOptions<A>) {
-  return (state: MultiSelectState, action: Prompt.Action<MultiSelectState, Array<A>>) => {
+function handleMultiSelectRender<A>(options: SelectOptionsReq<A>) {
+  return (state: MultiSelectState, action: Action<MultiSelectState, Array<A>>) => {
     return Action.$match(action, {
       Beep: () => Effect.succeed(renderBeep),
       NextFrame: ({ state }) => renderMultiSelectNextFrame(state, options),
@@ -2293,8 +2277,8 @@ function handleMultiSelectRender<A>(options: SelectOptions<A>) {
   }
 }
 
-interface IntegerOptions extends Required<Prompt.IntegerOptions> { }
-interface FloatOptions extends Required<Prompt.FloatOptions> { }
+interface IntegerOptionsReq extends Required<IntegerOptions> {}
+interface FloatOptionsReq extends Required<FloatOptions> {}
 
 interface NumberState {
   readonly cursor: number
@@ -2302,20 +2286,18 @@ interface NumberState {
   readonly error: Option.Option<string>
 }
 
-function handleNumberClear(options: IntegerOptions) {
-  return (state: NumberState, _: Prompt.Action<NumberState, number>) => {
-    return Effect.gen(function* () {
-      const terminal = yield* Terminal.Terminal
-      const columns = yield* terminal.columns
-      const resetCurrentLine = Ansi.eraseLine + Ansi.cursorLeft
-      const clearError = Option.match(state.error, {
-        onNone: () => "",
-        onSome: (error) => Ansi.cursorDown(lines(error, columns)) + eraseText(`\n${error}`, columns)
-      })
-      const clearOutput = eraseText(options.message, columns)
-      return clearError + clearOutput + resetCurrentLine
+function handleNumberClear(options: IntegerOptionsReq) {
+  return Effect.fnUntraced(function*(state: NumberState, _: Action<NumberState, number>) {
+    const terminal = yield* Terminal.Terminal
+    const columns = yield* terminal.columns
+    const resetCurrentLine = Ansi.eraseLine + Ansi.cursorLeft
+    const clearError = Option.match(state.error, {
+      onNone: () => "",
+      onSome: (error) => Ansi.cursorDown(lines(error, columns)) + eraseText(`\n${error}`, columns)
     })
-  }
+    const clearOutput = eraseText(options.message, columns)
+    return clearError + clearOutput + resetCurrentLine
+  })
 }
 
 function renderNumberInput(state: NumberState, submitted: boolean) {
@@ -2346,7 +2328,7 @@ function renderNumberOutput(
   state: NumberState,
   leadingSymbol: string,
   trailingSymbol: string,
-  options: IntegerOptions,
+  options: IntegerOptionsReq,
   submitted: boolean = false
 ) {
   const prefix = leadingSymbol + " "
@@ -2359,8 +2341,8 @@ function renderNumberOutput(
   })
 }
 
-function renderNumberNextFrame(state: NumberState, options: IntegerOptions) {
-  return Effect.gen(function* () {
+function renderNumberNextFrame(state: NumberState, options: IntegerOptionsReq) {
+  return Effect.gen(function*() {
     const figures = yield* platformFigures
     const leadingSymbol = Ansi.annotate("?", Ansi.cyanBright)
     const trailingSymbol = Ansi.annotate(figures.pointerSmall, Ansi.blackBright)
@@ -2370,15 +2352,13 @@ function renderNumberNextFrame(state: NumberState, options: IntegerOptions) {
   })
 }
 
-function renderNumberSubmission(nextState: NumberState, options: IntegerOptions) {
-  return Effect.gen(function* () {
-    const figures = yield* platformFigures
-    const leadingSymbol = Ansi.annotate(figures.tick, Ansi.green)
-    const trailingSymbol = Ansi.annotate(figures.ellipsis, Ansi.blackBright)
-    const promptMsg = renderNumberOutput(nextState, leadingSymbol, trailingSymbol, options, true)
-    return promptMsg + "\n"
-  })
-}
+const renderNumberSubmission = Effect.fnUntraced(function*(nextState: NumberState, options: IntegerOptionsReq) {
+  const figures = yield* platformFigures
+  const leadingSymbol = Ansi.annotate(figures.tick, Ansi.green)
+  const trailingSymbol = Ansi.annotate(figures.ellipsis, Ansi.blackBright)
+  const promptMsg = renderNumberOutput(nextState, leadingSymbol, trailingSymbol, options, true)
+  return promptMsg + "\n"
+})
 
 function processNumberBackspace(state: NumberState) {
   if (state.value.length <= 0) {
@@ -2399,11 +2379,11 @@ function defaultIntProcessor(state: NumberState, input: string) {
 
   const parsed = Number.parseInt(state.value + input)
   if (Number.isNaN(parsed)) {
-    return Action.Beep()
+    return Effect.succeed(Action.Beep())
   } else {
-    return Action.NextFrame({
+    return Effect.succeed(Action.NextFrame({
       state: { ...state, value: `${parsed}`, error: Option.none() }
-    })
+    }))
   }
 }
 
@@ -2422,20 +2402,20 @@ function defaultFloatProcessor(
 
   const parsed = Number.parseFloat(state.value + input)
   if (Number.isNaN(parsed)) {
-    return Action.Beep()
+    return Effect.succeed(Action.Beep())
   } else {
-    return Action.NextFrame({
+    return Effect.succeed(Action.NextFrame({
       state: {
         ...state,
         value: input === "." ? `${parsed}.` : `parsed`,
         error: Option.none()
       }
-    })
+    }))
   }
 }
 
-function handleRenderInteger(options: IntegerOptions) {
-  return (state: NumberState, action: Prompt.Action<NumberState, number>) => {
+function handleRenderInteger(options: IntegerOptionsReq) {
+  return (state: NumberState, action: Action<NumberState, number>) => {
     return Action.$match(action, {
       Beep: () => Effect.succeed(renderBeep),
       NextFrame: ({ state }) => renderNumberNextFrame(state, options),
@@ -2444,7 +2424,7 @@ function handleRenderInteger(options: IntegerOptions) {
   }
 }
 
-function handleProcessInteger(options: IntegerOptions) {
+function handleProcessInteger(options: IntegerOptionsReq) {
   return (input: Terminal.UserInput, state: NumberState) => {
     switch (input.key.name) {
       case "backspace": {
@@ -2505,8 +2485,8 @@ function handleProcessInteger(options: IntegerOptions) {
   }
 }
 
-function handleRenderFloat(options: FloatOptions) {
-  return (state: NumberState, action: Prompt.Action<NumberState, number>) => {
+function handleRenderFloat(options: FloatOptionsReq) {
+  return (state: NumberState, action: Action<NumberState, number>) => {
     return Action.$match(action, {
       Beep: () => Effect.succeed(renderBeep),
       NextFrame: ({ state }) => renderNumberNextFrame(state, options),
@@ -2515,7 +2495,7 @@ function handleRenderFloat(options: FloatOptions) {
   }
 }
 
-function handleProcessFloat(options: FloatOptions) {
+function handleProcessFloat(options: FloatOptionsReq) {
   return (input: Terminal.UserInput, state: NumberState) => {
     switch (input.key.name) {
       case "backspace": {
@@ -2582,12 +2562,12 @@ function handleProcessFloat(options: FloatOptions) {
 
 type SelectState = number
 
-interface SelectOptions<A> extends Required<Prompt.SelectOptions<A>> { }
+interface SelectOptionsReq<A> extends Required<SelectOptions<A>> {}
 
 function renderSelectOutput<A>(
   leadingSymbol: string,
   trailingSymbol: string,
-  options: SelectOptions<A>
+  options: SelectOptionsReq<A>
 ) {
   const prefix = leadingSymbol + " "
   return Arr.match(options.message.split(NEWLINE_REGEX), {
@@ -2601,7 +2581,7 @@ function renderSelectOutput<A>(
 
 function renderChoicePrefix<A>(
   state: SelectState,
-  choices: SelectOptions<A>["choices"],
+  choices: SelectOptionsReq<A>["choices"],
   toDisplay: { readonly startIndex: number; readonly endIndex: number },
   currentIndex: number,
   figures: Effect.Success<typeof platformFigures>
@@ -2624,7 +2604,7 @@ function renderChoicePrefix<A>(
 }
 
 function renderChoiceTitle<A>(
-  choice: Prompt.SelectChoice<A>,
+  choice: SelectChoice<A>,
   isSelected: boolean
 ) {
   const title = choice.title
@@ -2640,7 +2620,7 @@ function renderChoiceTitle<A>(
 
 function renderSelectChoices<A>(
   state: SelectState,
-  options: SelectOptions<A>,
+  options: SelectOptionsReq<A>,
   figures: Effect.Success<typeof platformFigures>
 ) {
   const choices = options.choices
@@ -2657,48 +2637,44 @@ function renderSelectChoices<A>(
   return documents.join("\n")
 }
 
-function renderSelectNextFrame<A>(state: SelectState, options: SelectOptions<A>) {
-  return Effect.gen(function* () {
-    const figures = yield* platformFigures
-    const choices = renderSelectChoices(state, options, figures)
-    const leadingSymbol = Ansi.annotate("?", Ansi.cyanBright)
-    const trailingSymbol = Ansi.annotate(figures.pointerSmall, Ansi.blackBright)
-    const promptMsg = renderSelectOutput(leadingSymbol, trailingSymbol, options)
-    return Ansi.cursorHide + promptMsg + "\n" + choices
-  })
-}
+const renderSelectNextFrame = Effect.fnUntraced(function*<A>(state: SelectState, options: SelectOptionsReq<A>) {
+  const figures = yield* platformFigures
+  const choices = renderSelectChoices(state, options, figures)
+  const leadingSymbol = Ansi.annotate("?", Ansi.cyanBright)
+  const trailingSymbol = Ansi.annotate(figures.pointerSmall, Ansi.blackBright)
+  const promptMsg = renderSelectOutput(leadingSymbol, trailingSymbol, options)
+  return Ansi.cursorHide + promptMsg + "\n" + choices
+})
 
-function renderSelectSubmission<A>(state: SelectState, options: SelectOptions<A>) {
-  return Effect.gen(function* () {
-    const figures = yield* platformFigures
-    const selected = options.choices[state].title
-    const leadingSymbol = Ansi.annotate(figures.tick, Ansi.green)
-    const trailingSymbol = Ansi.annotate(figures.ellipsis, Ansi.blackBright)
-    const promptMsg = renderSelectOutput(leadingSymbol, trailingSymbol, options)
-    return promptMsg + " " + Ansi.annotate(selected, Ansi.white) + "\n"
-  })
-}
+const renderSelectSubmission = Effect.fnUntraced(function*<A>(state: SelectState, options: SelectOptionsReq<A>) {
+  const figures = yield* platformFigures
+  const selected = options.choices[state].title
+  const leadingSymbol = Ansi.annotate(figures.tick, Ansi.green)
+  const trailingSymbol = Ansi.annotate(figures.ellipsis, Ansi.blackBright)
+  const promptMsg = renderSelectOutput(leadingSymbol, trailingSymbol, options)
+  return promptMsg + " " + Ansi.annotate(selected, Ansi.white) + "\n"
+})
 
-function processSelectCursorUp<A>(state: SelectState, choices: Prompt.SelectOptions<A>["choices"]) {
+function processSelectCursorUp<A>(state: SelectState, choices: SelectOptionsReq<A>["choices"]) {
   if (state === 0) {
     return Effect.succeed(Action.NextFrame({ state: choices.length - 1 }))
   }
   return Effect.succeed(Action.NextFrame({ state: state - 1 }))
 }
 
-function processSelectCursorDown<A>(state: SelectState, choices: Prompt.SelectOptions<A>["choices"]) {
+function processSelectCursorDown<A>(state: SelectState, choices: SelectOptionsReq<A>["choices"]) {
   if (state === choices.length - 1) {
     return Effect.succeed(Action.NextFrame({ state: 0 }))
   }
   return Effect.succeed(Action.NextFrame({ state: state + 1 }))
 }
 
-function processSelectNext<A>(state: SelectState, choices: Prompt.SelectOptions<A>["choices"]) {
+function processSelectNext<A>(state: SelectState, choices: SelectOptionsReq<A>["choices"]) {
   return Effect.succeed(Action.NextFrame({ state: (state + 1) % choices.length }))
 }
 
-function handleSelectRender<A>(options: SelectOptions<A>) {
-  return (state: SelectState, action: Prompt.Action<SelectState, A>) => {
+function handleSelectRender<A>(options: SelectOptionsReq<A>) {
+  return (state: SelectState, action: Action<SelectState, A>) => {
     return Action.$match(action, {
       Beep: () => Effect.succeed(renderBeep),
       NextFrame: ({ state }) => renderSelectNextFrame(state, options),
@@ -2707,18 +2683,16 @@ function handleSelectRender<A>(options: SelectOptions<A>) {
   }
 }
 
-export function handleSelectClear<A>(options: SelectOptions<A>) {
-  return Effect.gen(function* () {
-    const terminal = yield* Terminal.Terminal
-    const columns = yield* terminal.columns
-    const clearPrompt = Ansi.eraseLine + Ansi.cursorLeft
-    const text = "\n".repeat(Math.min(options.choices.length, options.maxPerPage)) + options.message
-    const clearOutput = eraseText(text, columns)
-    return clearOutput + clearPrompt
-  })
-}
+const handleSelectClear = Effect.fnUntraced(function*<A>(options: SelectOptionsReq<A>) {
+  const terminal = yield* Terminal.Terminal
+  const columns = yield* terminal.columns
+  const clearPrompt = Ansi.eraseLine + Ansi.cursorLeft
+  const text = "\n".repeat(Math.min(options.choices.length, options.maxPerPage)) + options.message
+  const clearOutput = eraseText(text, columns)
+  return clearOutput + clearPrompt
+})
 
-function handleSelectProcess<A>(options: SelectOptions<A>) {
+function handleSelectProcess<A>(options: SelectOptionsReq<A>) {
   return (input: Terminal.UserInput, state: SelectState) => {
     switch (input.key.name) {
       case "k":
@@ -2747,7 +2721,7 @@ function handleSelectProcess<A>(options: SelectOptions<A>) {
   }
 }
 
-interface TextOptions extends Required<Prompt.TextOptions> {
+interface TextOptionsReq extends Required<TextOptions> {
   /**
    * The type of the text option.
    */
@@ -2760,34 +2734,32 @@ interface TextState {
   readonly error: Option.Option<string>
 }
 
-function getValue(state: TextState, options: TextOptions): string {
+function getValue(state: TextState, options: TextOptionsReq): string {
   return state.value.length > 0 ? state.value : options.default
 }
 
-function renderClearScreen(state: TextState, options: TextOptions) {
-  return Effect.gen(function* () {
-    const terminal = yield* Terminal.Terminal
-    const columns = yield* terminal.columns
-    // Erase the current line and place the cursor in column one
-    const resetCurrentLine = Ansi.eraseLine + Ansi.cursorLeft
-    // Check for any error output
-    const clearError = Option.match(state.error, {
-      onNone: () => "",
-      onSome: (error) =>
-        // If there was an error, move the cursor down to the final error line and
-        // then clear all lines of error output
-        // Add a leading newline to the error message to ensure that the corrrect
-        // number of error lines are erased
-        Ansi.cursorDown(lines(error, columns)) + eraseText(`\n${error}`, columns)
-    })
-    // Ensure that the prior prompt output is cleaned up
-    const clearOutput = eraseText(options.message, columns)
-    // Concatenate and render all documents
-    return clearError + clearOutput + resetCurrentLine
+const renderClearScreen = Effect.fnUntraced(function*(state: TextState, options: TextOptionsReq) {
+  const terminal = yield* Terminal.Terminal
+  const columns = yield* terminal.columns
+  // Erase the current line and place the cursor in column one
+  const resetCurrentLine = Ansi.eraseLine + Ansi.cursorLeft
+  // Check for any error output
+  const clearError = Option.match(state.error, {
+    onNone: () => "",
+    onSome: (error) =>
+      // If there was an error, move the cursor down to the final error line and
+      // then clear all lines of error output
+      // Add a leading newline to the error message to ensure that the corrrect
+      // number of error lines are erased
+      Ansi.cursorDown(lines(error, columns)) + eraseText(`\n${error}`, columns)
   })
-}
+  // Ensure that the prior prompt output is cleaned up
+  const clearOutput = eraseText(options.message, columns)
+  // Concatenate and render all documents
+  return clearError + clearOutput + resetCurrentLine
+})
 
-function renderTextInput(nextState: TextState, options: TextOptions, submitted: boolean) {
+function renderTextInput(nextState: TextState, options: TextOptionsReq, submitted: boolean) {
   const text = getValue(nextState, options)
 
   const annotation = Option.match(nextState.error, {
@@ -2837,7 +2809,7 @@ function renderTextOutput(
   nextState: TextState,
   leadingSymbol: string,
   trailingSymbol: string,
-  options: TextOptions,
+  options: TextOptionsReq,
   submitted: boolean = false
 ) {
   const promptLines = options.message.split(NEWLINE_REGEX)
@@ -2850,27 +2822,23 @@ function renderTextOutput(
   return prefix + " " + trailingSymbol + " " + renderTextInput(nextState, options, submitted)
 }
 
-function renderTextNextFrame(state: TextState, options: TextOptions) {
-  return Effect.gen(function* () {
-    const figures = yield* platformFigures
-    const leadingSymbol = Ansi.annotate("?", Ansi.cyanBright)
-    const trailingSymbol = Ansi.annotate(figures.pointerSmall, Ansi.blackBright)
-    const promptMsg = renderTextOutput(state, leadingSymbol, trailingSymbol, options)
-    const errorMsg = renderTextError(state, figures.pointerSmall)
-    const offset = state.cursor - state.value.length
-    return promptMsg + errorMsg + Ansi.cursorMove(offset)
-  })
-}
+const renderTextNextFrame = Effect.fnUntraced(function*(state: TextState, options: TextOptionsReq) {
+  const figures = yield* platformFigures
+  const leadingSymbol = Ansi.annotate("?", Ansi.cyanBright)
+  const trailingSymbol = Ansi.annotate(figures.pointerSmall, Ansi.blackBright)
+  const promptMsg = renderTextOutput(state, leadingSymbol, trailingSymbol, options)
+  const errorMsg = renderTextError(state, figures.pointerSmall)
+  const offset = state.cursor - state.value.length
+  return promptMsg + errorMsg + Ansi.cursorMove(offset)
+})
 
-function renderTextSubmission(state: TextState, options: TextOptions) {
-  return Effect.gen(function* () {
-    const figures = yield* platformFigures
-    const leadingSymbol = Ansi.annotate(figures.tick, Ansi.green)
-    const trailingSymbol = Ansi.annotate(figures.ellipsis, Ansi.blackBright)
-    const promptMsg = renderTextOutput(state, leadingSymbol, trailingSymbol, options, true)
-    return promptMsg + "\n"
-  })
-}
+const renderTextSubmission = Effect.fnUntraced(function*(state: TextState, options: TextOptionsReq) {
+  const figures = yield* platformFigures
+  const leadingSymbol = Ansi.annotate(figures.tick, Ansi.green)
+  const trailingSymbol = Ansi.annotate(figures.ellipsis, Ansi.blackBright)
+  const promptMsg = renderTextOutput(state, leadingSymbol, trailingSymbol, options, true)
+  return promptMsg + "\n"
+})
 
 function processTextBackspace(state: TextState) {
   if (state.cursor <= 0) {
@@ -2911,7 +2879,7 @@ function processTextCursorRight(state: TextState) {
   )
 }
 
-function processTab(state: TextState, options: TextOptions) {
+function processTab(state: TextState, options: TextOptionsReq) {
   if (state.value === options.default) {
     return Effect.succeed(Action.Beep())
   }
@@ -2936,8 +2904,8 @@ function defaultTextProcessor(input: string, state: TextState) {
   )
 }
 
-function handleTextRender(options: TextOptions) {
-  return (state: TextState, action: Prompt.Action<TextState, string>) => {
+function handleTextRender(options: TextOptionsReq) {
+  return (state: TextState, action: Action<TextState, string>) => {
     return Action.$match(action, {
       Beep: () => Effect.succeed(renderBeep),
       NextFrame: ({ state }) => renderTextNextFrame(state, options),
@@ -2946,7 +2914,7 @@ function handleTextRender(options: TextOptions) {
   }
 }
 
-function handleTextProcess(options: TextOptions) {
+function handleTextProcess(options: TextOptionsReq) {
   return (input: Terminal.UserInput, state: TextState) => {
     switch (input.key.name) {
       case "backspace": {
@@ -2980,17 +2948,17 @@ function handleTextProcess(options: TextOptions) {
   }
 }
 
-function handleTextClear(options: TextOptions) {
-  return (state: TextState, _: Prompt.Action<TextState, string>) => {
+function handleTextClear(options: TextOptionsReq) {
+  return (state: TextState, _: Action<TextState, string>) => {
     return renderClearScreen(state, options)
   }
 }
 
 function basePrompt(
-  options: Prompt.TextOptions,
-  type: TextOptions["type"]
+  options: TextOptions,
+  type: TextOptionsReq["type"]
 ): Prompt<string> {
-  const opts: TextOptions = {
+  const opts: TextOptionsReq = {
     default: "",
     type,
     validate: Effect.succeed,
@@ -3009,23 +2977,21 @@ function basePrompt(
   })
 }
 
-interface ToggleOptions extends Required<Prompt.ToggleOptions> { }
+interface ToggleOptionsReq extends Required<ToggleOptions> {}
 
 type ToggleState = boolean
 
-function handleToggleClear(options: ToggleOptions) {
-  return Effect.gen(function* () {
-    const terminal = yield* Terminal.Terminal
-    const columns = yield* terminal.columns
-    const clearPrompt = Ansi.eraseLine + Ansi.cursorLeft
-    const clearOutput = eraseText(options.message, columns)
-    return clearOutput + clearPrompt
-  })
-}
+const handleToggleClear = Effect.fnUntraced(function*(options: ToggleOptionsReq) {
+  const terminal = yield* Terminal.Terminal
+  const columns = yield* terminal.columns
+  const clearPrompt = Ansi.eraseLine + Ansi.cursorLeft
+  const clearOutput = eraseText(options.message, columns)
+  return clearOutput + clearPrompt
+})
 
 function renderToggle(
   value: boolean,
-  options: ToggleOptions,
+  options: ToggleOptionsReq,
   submitted: boolean = false
 ) {
   const separator = Ansi.annotate("/", Ansi.blackBright)
@@ -3043,7 +3009,7 @@ function renderToggleOutput(
   toggle: string,
   leadingSymbol: string,
   trailingSymbol: string,
-  options: ToggleOptions
+  options: ToggleOptionsReq
 ) {
   const promptLines = options.message.split(NEWLINE_REGEX)
   const prefix = leadingSymbol + " "
@@ -3054,33 +3020,29 @@ function renderToggleOutput(
   return prefix + " " + trailingSymbol + " " + toggle
 }
 
-function renderToggleNextFrame(state: ToggleState, options: ToggleOptions) {
-  return Effect.gen(function* () {
-    const figures = yield* platformFigures
-    const leadingSymbol = Ansi.annotate("?", Ansi.cyanBright)
-    const trailingSymbol = Ansi.annotate(figures.pointerSmall, Ansi.blackBright)
-    const toggle = renderToggle(state, options)
-    const promptMsg = renderToggleOutput(toggle, leadingSymbol, trailingSymbol, options)
-    return Ansi.cursorHide + promptMsg
-  })
-}
+const renderToggleNextFrame = Effect.fnUntraced(function*(state: ToggleState, options: ToggleOptionsReq) {
+  const figures = yield* platformFigures
+  const leadingSymbol = Ansi.annotate("?", Ansi.cyanBright)
+  const trailingSymbol = Ansi.annotate(figures.pointerSmall, Ansi.blackBright)
+  const toggle = renderToggle(state, options)
+  const promptMsg = renderToggleOutput(toggle, leadingSymbol, trailingSymbol, options)
+  return Ansi.cursorHide + promptMsg
+})
 
-function renderToggleSubmission(value: boolean, options: ToggleOptions) {
-  return Effect.gen(function* () {
-    const figures = yield* platformFigures
-    const leadingSymbol = Ansi.annotate(figures.tick, Ansi.green)
-    const trailingSymbol = Ansi.annotate(figures.ellipsis, Ansi.blackBright)
-    const toggle = renderToggle(value, options, true)
-    const promptMsg = renderToggleOutput(toggle, leadingSymbol, trailingSymbol, options)
-    return promptMsg + "\n"
-  })
-}
+const renderToggleSubmission = Effect.fnUntraced(function*(value: boolean, options: ToggleOptionsReq) {
+  const figures = yield* platformFigures
+  const leadingSymbol = Ansi.annotate(figures.tick, Ansi.green)
+  const trailingSymbol = Ansi.annotate(figures.ellipsis, Ansi.blackBright)
+  const toggle = renderToggle(value, options, true)
+  const promptMsg = renderToggleOutput(toggle, leadingSymbol, trailingSymbol, options)
+  return promptMsg + "\n"
+})
 
 const activate = Effect.succeed(Action.NextFrame({ state: true }))
 const deactivate = Effect.succeed(Action.NextFrame({ state: false }))
 
-function handleToggleRender(options: ToggleOptions) {
-  return (state: ToggleState, action: Prompt.Action<ToggleState, boolean>) => {
+function handleToggleRender(options: ToggleOptionsReq) {
+  return (state: ToggleState, action: Action<ToggleState, boolean>) => {
     switch (action._tag) {
       case "Beep": {
         return Effect.succeed(renderBeep)
@@ -3124,8 +3086,7 @@ function handleToggleProcess(input: Terminal.UserInput, state: ToggleState) {
   }
 }
 
-/** @internal */
-export const entriesToDisplay = (cursor: number, total: number, maxVisible?: number) => {
+const entriesToDisplay = (cursor: number, total: number, maxVisible?: number) => {
   const max = maxVisible === undefined ? total : maxVisible
   let startIndex = Math.min(total - max, cursor - Math.floor(max / 2))
   if (startIndex < 0) {
@@ -3134,4 +3095,3 @@ export const entriesToDisplay = (cursor: number, total: number, maxVisible?: num
   const endIndex = Math.min(startIndex + max, total)
   return { startIndex, endIndex }
 }
-
