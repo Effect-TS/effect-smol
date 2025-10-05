@@ -3,10 +3,10 @@
  */
 import type * as Option from "../data/Option.ts"
 import { hasProperty } from "../data/Predicate.ts"
-import * as Opticable from "../interfaces/Opticable.ts"
 import * as Equal from "../interfaces/Equal.ts"
 import * as Hash from "../interfaces/Hash.ts"
 import { format, toJson } from "../interfaces/Inspectable.ts"
+import * as Opticable from "../interfaces/Opticable.ts"
 import { exitFail, exitSucceed, NoSuchElementError, PipeInspectableProto, YieldableProto } from "./core.ts"
 
 const TypeId = "~effect/data/Option"
@@ -104,7 +104,3 @@ export const some = <A>(value: A): Option.Option<A> => {
   a.value = value
   return a
 }
-
-declare const asd:Option.Option<number>;
-
-const qwe = Opticable.patch(asd, {});

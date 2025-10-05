@@ -10,8 +10,8 @@ import * as Option from "../data/Option.ts"
 import * as Result from "../data/Result.ts"
 import * as Struct from "../data/Struct.ts"
 import { identity, memoize } from "../Function.ts"
-import * as Opticable from "../interfaces/Opticable.ts"
 import { format } from "../interfaces/Inspectable.ts"
+import * as Opticable from "../interfaces/Opticable.ts"
 import type { Literal } from "../schema/AST.ts"
 import { runChecks, runRefine } from "../schema/AST.ts"
 import * as Check from "../schema/Check.ts"
@@ -413,7 +413,7 @@ const go = memoize((ast: AST.AST): Op => {
         set: (a: any, s: any) => {
           const path = ast.path
 
-          const out =  cloneShallow(s)
+          const out = cloneShallow(s)
 
           let current = out
           let i = 0
