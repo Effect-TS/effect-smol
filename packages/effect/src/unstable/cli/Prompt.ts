@@ -17,7 +17,7 @@ import * as Path from "../../platform/Path.ts"
 import * as Terminal from "../../platform/Terminal.ts"
 import * as Queue from "../../Queue.ts"
 import * as Ansi from "./internal/ansi.ts"
-import type * as Primitive from "./Primitive.js"
+import type * as Primitive from "./Primitive.ts"
 
 const TypeId = "~effect/cli/Prompt"
 
@@ -542,8 +542,8 @@ export declare namespace All {
  * **Example**
  *
  * ```ts
- * import * as Prompt from "@effect/cli/Prompt"
- * import * as Effect from "effect/Effect"
+ * import { Prompt } from "effect/unstable/cli"
+ * import { Effect } from "effect"
  *
  * const username = Prompt.text({
  *   message: "Enter your username: "
