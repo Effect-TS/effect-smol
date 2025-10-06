@@ -284,7 +284,8 @@ export const encodeSync: <T, E, RD>(
   codec: Schema.Codec<T, E, RD, never>
 ) => (input: T, options?: AST.ParseOptions) => E = encodeUnknownSync
 
-function run<T, R>(ast: AST.AST) {
+/** @internal */
+export function run<T, R>(ast: AST.AST) {
   const parser = go(ast)
   return (input: unknown, options?: AST.ParseOptions): Effect.Effect<T, Issue.Issue, R> =>
     Effect.flatMapEager(parser(Option.some(input), options ?? AST.defaultParseOptions), (oa) => {
@@ -307,7 +308,8 @@ function asExit<T, E, R>(
   return (input: E, options?: AST.ParseOptions) => Effect.runSyncExit(parser(input, options) as any)
 }
 
-function asOption<T, E, R>(
+/** @internal */
+export function asOption<T, E, R>(
   parser: (input: E, options?: AST.ParseOptions) => Effect.Effect<T, Issue.Issue, R>
 ): (input: E, options?: AST.ParseOptions) => Option.Option<T> {
   const parserExit = asExit(parser)

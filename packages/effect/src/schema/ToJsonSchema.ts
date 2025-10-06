@@ -1,6 +1,7 @@
 /**
  * @since 4.0.0
  */
+import type { Option } from "../data/Option.ts"
 import * as Predicate from "../data/Predicate.ts"
 import type * as Record from "../data/Record.ts"
 import { formatPath } from "../interfaces/Inspectable.ts"
@@ -8,6 +9,7 @@ import * as Annotations from "./Annotations.ts"
 import * as AST from "./AST.ts"
 import type * as Check from "./Check.ts"
 import type * as Schema from "./Schema.ts"
+import * as ToParser from "./ToParser.ts"
 
 /**
  * @since 4.0.0
@@ -190,10 +192,16 @@ function isContentEncodingSupported(target: Target): boolean {
   }
 }
 
+function getAnnotationsParser(ast: AST.AST) {
+  return ToParser.asOption(ToParser.run(AST.flip(ast)))
+}
+
 function getJsonSchemaAnnotations(
+  ast: AST.AST,
   target: Target,
   annotations: Annotations.Annotations | undefined
 ): JsonSchemaFragment | undefined {
+  let parser: (input: unknown, options?: AST.ParseOptions) => Option<unknown>
   if (annotations) {
     const out: JsonSchemaFragment = {}
     if (Predicate.isString(annotations.title)) {
@@ -203,10 +211,23 @@ function getJsonSchemaAnnotations(
       out.description = annotations.description
     }
     if (annotations.default !== undefined) {
-      out.default = annotations.default
+      parser ??= getAnnotationsParser(ast)
+      const o = parser(annotations.default)
+      if (o._tag === "Some") {
+        out.default = o.value
+      }
     }
     if (Array.isArray(annotations.examples)) {
-      const examples = annotations.examples.filter((example) => example !== undefined)
+      parser ??= getAnnotationsParser(ast)
+      const examples = []
+      for (const example of annotations.examples) {
+        if (example !== undefined) {
+          const o = parser(example)
+          if (o._tag === "Some") {
+            examples.push(example)
+          }
+        }
+      }
       if (examples.length > 0) {
         out.examples = examples
       }
@@ -243,13 +264,13 @@ function getChecksJsonFragment(
   type?: Type
 ): JsonSchemaFragment | undefined {
   let out: JsonSchemaFragment & { allOf: Array<unknown> } = {
-    ...getJsonSchemaAnnotations(target, ast.annotations),
+    ...getJsonSchemaAnnotations(ast, target, ast.annotations),
     allOf: []
   }
   if (ast.checks) {
     function handle(check: Check.Check<any>) {
       const fragment: JsonSchemaFragment = {
-        ...getJsonSchemaAnnotations(target, check.annotations),
+        ...getJsonSchemaAnnotations(ast, target, check.annotations),
         ...getCheckJsonFragment(check, target, type)
       }
       if (fragment.type !== undefined) {
@@ -509,7 +530,7 @@ function go(
       // ---------------------------------------------
       const items = ast.elements.map((e, i) => ({
         ...go(e, [...path, i], options),
-        ...getJsonSchemaAnnotations(target, e.context?.annotations)
+        ...getJsonSchemaAnnotations(e, target, e.context?.annotations)
       }))
       const minItems = ast.elements.findIndex(isLooseOptional)
       if (minItems !== -1) {
@@ -564,7 +585,7 @@ function go(
         } else {
           out.properties[name] = {
             ...go(ps.type, [...path, name], options),
-            ...getJsonSchemaAnnotations(target, ps.type.context?.annotations)
+            ...getJsonSchemaAnnotations(ps.type, target, ps.type.context?.annotations)
           }
           if (!isLooseOptional(ps.type)) {
             out.required.push(String(name))
@@ -602,7 +623,7 @@ function go(
           .map((ast) => {
             const out = go(ast, path, options)
             if (path.length > 0) {
-              return { ...out, ...getJsonSchemaAnnotations(target, ast.context?.annotations) }
+              return { ...out, ...getJsonSchemaAnnotations(ast, target, ast.context?.annotations) }
             }
             return out
           })

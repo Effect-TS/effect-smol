@@ -2875,6 +2875,25 @@ describe("ToJsonSchema", () => {
           "description": "description"
         })
       })
+
+      it("should filter out invalid examples", async () => {
+        await assertDraft7(Schema.NonEmptyString.annotate({ examples: ["", "a"] }), {
+          "type": "string",
+          "title": "minLength(1)",
+          "description": "a value with a length of at least 1",
+          "minLength": 1,
+          "examples": ["a"]
+        })
+      })
+
+      it("should filter out invalid defaults", async () => {
+        await assertDraft7(Schema.NonEmptyString.annotate({ default: "" }), {
+          "type": "string",
+          "title": "minLength(1)",
+          "description": "a value with a length of at least 1",
+          "minLength": 1
+        })
+      })
     })
 
     describe("identifier annotation", () => {
