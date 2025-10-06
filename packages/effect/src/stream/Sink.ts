@@ -548,25 +548,29 @@ export const take = <In>(n: number): Sink<Array<In>, In, In> =>
   )
 
 /**
- * A sink that folds its inputs with the provided function, termination
- * predicate and initial state.
+ * A sink that reduces its inputs using the provided function `f` starting from
+ * the provided `initial` state while the specified `predicate` returns `true`.
  *
  * @since 2.0.0
- * @category folding
+ * @category reducing
  */
-export const fold = <S, In>(initial: LazyArg<S>, contFn: Predicate<S>, f: (s: S, input: In) => S): Sink<S, In, In> =>
+export const reduceWhile = <S, In>(
+  initial: LazyArg<S>,
+  predicate: Predicate<S>,
+  f: (s: S, input: In) => S
+): Sink<S, In, In> =>
   fromTransform((upstream) =>
     Effect.sync(() => {
       let state = initial()
       let leftover: NonEmptyReadonlyArray<In> | undefined = undefined
-      if (!contFn(state)) {
+      if (!predicate(state)) {
         return Pull.halt([state])
       }
       return upstream.pipe(
         Effect.flatMap((arr) => {
           for (let i = 0; i < arr.length; i++) {
             state = f(state, arr[i])
-            if (!contFn(state)) {
+            if (!predicate(state)) {
               if ((i + 1) < arr.length) {
                 leftover = arr.slice(i + 1) as any
               }
@@ -582,22 +586,23 @@ export const fold = <S, In>(initial: LazyArg<S>, contFn: Predicate<S>, f: (s: S,
   )
 
 /**
- * A sink that folds its inputs with the provided effectful function, termination
- * predicate and initial state.
+ * A sink that reduces its inputs using the provided effectful function `f`
+ * starting from the provided `initial` state while the specified `predicate`
+ * returns `true`.
  *
  * @since 2.0.0
- * @category folding
+ * @category reducing
  */
-export const foldEffect = <S, In, E, R>(
+export const reduceWhileEffect = <S, In, E, R>(
   initial: LazyArg<S>,
-  contFn: Predicate<S>,
+  predicate: Predicate<S>,
   f: (s: S, input: In) => Effect.Effect<S, E, R>
 ): Sink<S, In, In, E, R> =>
   fromTransform((upstream) =>
     Effect.sync(() => {
       let state = initial()
       let leftover: NonEmptyReadonlyArray<In> | undefined = undefined
-      if (!contFn(state)) {
+      if (!predicate(state)) {
         return Pull.halt([state])
       }
       return upstream.pipe(
@@ -607,7 +612,7 @@ export const foldEffect = <S, In, E, R>(
             while: () => i < arr.length,
             body: constant(Effect.flatMap(Effect.suspend(() => f(state, arr[i++])), (s) => {
               state = s
-              if (!contFn(state)) {
+              if (!predicate(state)) {
                 if (i < arr.length) {
                   leftover = arr.slice(i) as any
                 }
@@ -625,13 +630,13 @@ export const foldEffect = <S, In, E, R>(
   )
 
 /**
- * A sink that folds its inputs with the provided function, termination
- * predicate and initial state.
+ * A sink that reduces its inputs using the provided function `f` starting from
+ * the provided `initial` state while the specified `predicate` returns `true`.
  *
  * @since 2.0.0
- * @category folding
+ * @category reducing
  */
-export const foldArray = <S, In>(
+export const reduceWhileArray = <S, In>(
   initial: LazyArg<S>,
   contFn: Predicate<S>,
   f: (s: S, input: NonEmptyReadonlyArray<In>) => S
@@ -659,28 +664,29 @@ export const foldArray = <S, In>(
   )
 
 /**
- * A sink that folds its inputs with the effectful provided function, termination
- * predicate and initial state.
+ * A sink that reduces its inputs using the provided effectful function `f`
+ * starting from the provided `initial` state while the specified `predicate`
+ * returns `true`.
  *
  * @since 2.0.0
- * @category folding
+ * @category reducing
  */
-export const foldArrayEffect = <S, In, E, R>(
+export const reduceWhileArrayEffect = <S, In, E, R>(
   initial: LazyArg<S>,
-  contFn: Predicate<S>,
+  predicate: Predicate<S>,
   f: (s: S, input: NonEmptyReadonlyArray<In>) => Effect.Effect<S, E, R>
 ): Sink<S, In, never, E, R> =>
   fromTransform((upstream) =>
     Effect.sync(() => {
       let state = initial()
-      if (!contFn(state)) {
+      if (!predicate(state)) {
         return Pull.halt([state])
       }
       return upstream.pipe(
         Effect.flatMap((arr) => f(state, arr)),
         Effect.flatMap((s) => {
           state = s
-          if (!contFn(state)) {
+          if (!predicate(state)) {
             return Pull.haltVoid
           }
           return Effect.void
@@ -692,13 +698,14 @@ export const foldArrayEffect = <S, In, E, R>(
   )
 
 /**
- * A sink that folds its inputs with the provided function and initial state.
+ * A sink that reduces its inputs using the provided function `f` starting from
+ * the provided `initial` state.
  *
  * @since 2.0.0
- * @category folding
+ * @category reducing
  */
-export const foldLeft = <S, In>(initial: LazyArg<S>, f: (s: S, input: In) => S): Sink<S, In> =>
-  foldLeftArray(initial, (s, arr) => {
+export const reduce = <S, In>(initial: LazyArg<S>, f: (s: S, input: In) => S): Sink<S, In> =>
+  reduceArray(initial, (s, arr) => {
     for (let i = 0; i < arr.length; i++) {
       s = f(s, arr[i])
     }
@@ -706,12 +713,13 @@ export const foldLeft = <S, In>(initial: LazyArg<S>, f: (s: S, input: In) => S):
   })
 
 /**
- * A sink that folds its inputs with the provided function and initial state.
+ * A sink that reduces its inputs using the provided function `f` starting from
+ * the specified `initial` state.
  *
  * @since 2.0.0
- * @category folding
+ * @category reducing
  */
-export const foldLeftArray = <S, In>(
+export const reduceArray = <S, In>(
   initial: LazyArg<S>,
   f: (s: S, input: NonEmptyReadonlyArray<In>) => S
 ): Sink<S, In> =>
@@ -730,17 +738,18 @@ export const foldLeftArray = <S, In>(
   )
 
 /**
- * A sink that folds its inputs with the provided function and initial state.
+ * A sink that reduces its inputs using the provided effectful function `f`
+ * starting from the specified `initial` state.
  *
  * @since 2.0.0
- * @category folding
+ * @category reducing
  */
-export const foldLeftEffect = <S, In, E, R>(
+export const reduceEffect = <S, In, E, R>(
   initial: LazyArg<S>,
   f: (s: S, input: In) => Effect.Effect<S, E, R>
-): Sink<S, In, never, E, R> => foldEffect(initial, constTrue, f) as any
+): Sink<S, In, never, E, R> => reduceWhileEffect(initial, constTrue, f) as any
 
-const head_ = fold(Option.none<unknown>, Option.isNone, (_, in_) => Option.some(in_))
+const head_ = reduceWhile(Option.none<unknown>, Option.isNone, (_, in_) => Option.some(in_))
 
 /**
  * Creates a sink containing the first value.
@@ -750,7 +759,7 @@ const head_ = fold(Option.none<unknown>, Option.isNone, (_, in_) => Option.some(
  */
 export const head: <In>() => Sink<Option.Option<In>, In, In> = head_ as any
 
-const last_ = foldLeftArray(Option.none<unknown>, (_, arr) => Arr.last(arr))
+const last_ = reduceArray(Option.none<unknown>, (_, arr) => Arr.last(arr))
 
 /**
  * Creates a sink containing the last value.
@@ -766,7 +775,7 @@ export const last: <In>() => Sink<Option.Option<In>, In> = last_ as any
  * @since 2.0.0
  * @category constructors
  */
-export const mkString: Sink<string, string> = foldLeftArray(() => "", (s, arr) => s + arr.join(""))
+export const mkString: Sink<string, string> = reduceArray(() => "", (s, arr) => s + arr.join(""))
 
 /**
  * Creates a sink which sums up its inputs.
@@ -774,14 +783,14 @@ export const mkString: Sink<string, string> = foldLeftArray(() => "", (s, arr) =
  * @since 2.0.0
  * @category constructors
  */
-export const sum: Sink<number, number> = foldLeftArray(() => 0, (s, arr) => {
+export const sum: Sink<number, number> = reduceArray(() => 0, (s, arr) => {
   for (let i = 0; i < arr.length; i++) {
     s += arr[i]
   }
   return s
 })
 
-const collectAll_ = foldLeftArray(Chunk.empty<unknown>, (s, arr) => Chunk.appendAll(s, Chunk.fromArrayUnsafe(arr)))
+const collectAll_ = reduceArray(Chunk.empty<unknown>, (s, arr) => Chunk.appendAll(s, Chunk.fromArrayUnsafe(arr)))
 
 /**
  * Accumulates incoming elements into a Chunk. It return a Chunk to reduce
@@ -799,7 +808,7 @@ export const collectAllChunk = <In>(): Sink<Chunk.Chunk<In>, In> => collectAll_ 
  * @category constructors
  */
 export const collectAll = <In>(): Sink<Array<In>, In> =>
-  foldLeftArray(Arr.empty<In>, (s, arr) => {
+  reduceArray(Arr.empty<In>, (s, arr) => {
     // eslint-disable-next-line no-restricted-syntax
     s.push(...arr)
     return s
