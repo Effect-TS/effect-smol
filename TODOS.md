@@ -64,73 +64,73 @@ The exports under each section are organized as they are in Effect 3.0. The cate
 
 ### Constructors
 
-|          Effect 3          | Ported |       Effect 4        | Comments |
-| :------------------------: | :----: | :-------------------: | :------: |
-|      `acquireRelease`      |   X    |       `unwrap`        |          |
-|          `async`           |  Done  |      `callback`       |          |
-|       `asyncEffect`        |  Done  |      `callback`       |          |
-|        `asyncPush`         |  Done  |      `callback`       |          |
-|       `asyncScoped`        |  Done  |                       |          |
-|        `concatAll`         |   -    |                       |          |
-|           `die`            |  Done  |         `die`         |          |
-|        `dieMessage`        |   X    |                       |          |
-|         `dieSync`          |   X    |                       |          |
-|          `empty`           |  Done  |        `empty`        |          |
-|         `execute`          |  Done  |   `fromEffectDrain`   |          |
-|           `fail`           |  Done  |        `fail`         |          |
-|        `failCause`         |  Done  |      `failCause`      |          |
-|      `failCauseSync`       |  Done  |    `failCauseSync`    |          |
-|         `failSync`         |  Done  |      `failSync`       |          |
-|        `finalizer`         |   X    |                       |          |
-|    `fromAsyncIterable`     |  Done  |  `fromAsyncIterable`  |          |
-|       `fromChannel`        |  Done  |     `fromChannel`     |          |
-|        `fromChunk`         |  Done  |      `fromArray`      |          |
-|     `fromChunkPubSub`      |   X    |                       |          |
-|      `fromChunkQueue`      |   X    |                       |          |
-|        `fromChunks`        |  Done  |     `fromArrays`      |          |
-|        `fromEffect`        |  Done  |     `fromEffect`      |          |
-|     `fromEffectOption`     |   X    |                       |          |
-|       `fromIterable`       |  Done  |    `fromIterable`     |          |
-|    `fromIterableEffect`    |  Done  | `fromIterableEffect`  |          |
-|   `fromIteratorSucceed`    |  Done  | `fromIteratorSucceed` |          |
-|        `fromPubSub`        |  Done  |                       |          |
-|         `fromPull`         |  Done  |      `fromPull`       |          |
-|        `fromQueue`         |  Done  |      `fromQueue`      |          |
-|    `fromReadableStream`    |  Done  | `fromReadableStream`  |          |
-|  `fromReadableStreamByob`  |   -    |                       |          |
-|       `fromSchedule`       |  Done  |    `fromSchedule`     |          |
-|       `fromTPubSub`        |   -    |                       |          |
-|        `fromTQueue`        |   -    |                       |          |
-|         `iterate`          |   -    |                       |          |
-|           `make`           |  Done  |        `make`         |          |
-|          `never`           |  Done  |        `never`        |          |
-|         `paginate`         |  Done  |      `paginate`       |          |
-|      `paginateChunk`       |  Done  |    `paginateArray`    |          |
-|   `paginateChunkEffect`    |  Done  | `paginateArrayEffect` |          |
-|      `paginateEffect`      |  Done  |   `paginateEffect`    |          |
-|          `range`           |  Done  |        `range`        |          |
-|       `repeatEffect`       |   -    |                       |          |
-|    `repeatEffectChunk`     |   -    |                       |          |
-| `repeatEffectChunkOption`  |   -    |                       |          |
-|    `repeatEffectOption`    |   -    |                       |          |
-| `repeatEffectWithSchedule` |   -    |                       |          |
-|       `repeatValue`        |   -    |                       |          |
-|          `scoped`          |  Done  |       `scoped`        |          |
-|        `scopedWith`        |   X    |                       |          |
-|         `succeed`          |  Done  |       `succeed`       |          |
-|         `suspend`          |  Done  |       `suspend`       |          |
-|           `sync`           |  Done  |        `sync`         |          |
-|           `tick`           |   -    |                       |          |
-|        `toChannel`         |  Done  |      `toChannel`      |          |
-|          `unfold`          |   -    |                       |          |
-|       `unfoldChunk`        |   -    |                       |          |
-|    `unfoldChunkEffect`     |   -    |  `unfoldArrayEffect`  |          |
-|       `unfoldEffect`       |   -    |                       |          |
-|          `unwrap`          |  Done  |       `unwrap`        |          |
-|       `unwrapScoped`       |   X    |                       |          |
-|     `unwrapScopedWith`     |   X    |                       |          |
-|           `void`           |   X    |                       |          |
-|         `whenCase`         |   X    |                       |          |
+|          Effect 3          | Ported |               Effect 4               | Comments |
+| :------------------------: | :----: | :----------------------------------: | :------: |
+|      `acquireRelease`      |   X    |               `unwrap`               |          |
+|          `async`           |  Done  |              `callback`              |          |
+|       `asyncEffect`        |  Done  |              `callback`              |          |
+|        `asyncPush`         |  Done  |              `callback`              |          |
+|       `asyncScoped`        |  Done  |                                      |          |
+|        `concatAll`         |   X    |          `make` + `flatten`          |          |
+|           `die`            |  Done  |                `die`                 |          |
+|        `dieMessage`        |   X    |                                      |          |
+|         `dieSync`          |   X    |                                      |          |
+|          `empty`           |  Done  |               `empty`                |          |
+|         `execute`          |  Done  |          `fromEffectDrain`           |          |
+|           `fail`           |  Done  |                `fail`                |          |
+|        `failCause`         |  Done  |             `failCause`              |          |
+|      `failCauseSync`       |  Done  |           `failCauseSync`            |          |
+|         `failSync`         |  Done  |              `failSync`              |          |
+|        `finalizer`         |   X    |                                      |          |
+|    `fromAsyncIterable`     |  Done  |         `fromAsyncIterable`          |          |
+|       `fromChannel`        |  Done  |            `fromChannel`             |          |
+|        `fromChunk`         |  Done  |             `fromArray`              |          |
+|     `fromChunkPubSub`      |   X    |                                      |          |
+|      `fromChunkQueue`      |   X    |                                      |          |
+|        `fromChunks`        |  Done  |             `fromArrays`             |          |
+|        `fromEffect`        |  Done  |             `fromEffect`             |          |
+|     `fromEffectOption`     |   X    |                                      |          |
+|       `fromIterable`       |  Done  |            `fromIterable`            |          |
+|    `fromIterableEffect`    |  Done  |         `fromIterableEffect`         |          |
+|   `fromIteratorSucceed`    |  Done  |        `fromIteratorSucceed`         |          |
+|        `fromPubSub`        |  Done  |                                      |          |
+|         `fromPull`         |  Done  |              `fromPull`              |          |
+|        `fromQueue`         |  Done  |             `fromQueue`              |          |
+|    `fromReadableStream`    |  Done  |         `fromReadableStream`         |          |
+|  `fromReadableStreamByob`  |   -    |                                      |          |
+|       `fromSchedule`       |  Done  |            `fromSchedule`            |          |
+|       `fromTPubSub`        |   -    |                                      |          |
+|        `fromTQueue`        |   -    |                                      |          |
+|         `iterate`          |  Done  |                                      |          |
+|           `make`           |  Done  |                `make`                |          |
+|          `never`           |  Done  |               `never`                |          |
+|         `paginate`         |  Done  |              `paginate`              |          |
+|      `paginateChunk`       |  Done  |                                      |          |
+|   `paginateChunkEffect`    |  Done  |           `paginateArray`            |          |
+|      `paginateEffect`      |  Done  |              `paginate`              |          |
+|          `range`           |  Done  |               `range`                |          |
+|       `repeatEffect`       |  Done  |          `fromEffectRepeat`          |          |
+|    `repeatEffectChunk`     |  Done  |      `fromIterableEffectRepeat`      |          |
+| `repeatEffectChunkOption`  |   X    |              `fromPull`              |          |
+|    `repeatEffectOption`    |   X    | `fromEffectRepeat` + `Pull.haltVoid` |          |
+| `repeatEffectWithSchedule` |  Done  |         `fromEffectSchedule`         |          |
+|       `repeatValue`        |   X    |                                      |          |
+|          `scoped`          |  Done  |               `scoped`               |          |
+|        `scopedWith`        |   X    |                                      |          |
+|         `succeed`          |  Done  |              `succeed`               |          |
+|         `suspend`          |  Done  |              `suspend`               |          |
+|           `sync`           |  Done  |                `sync`                |          |
+|           `tick`           |  Done  |                                      |          |
+|        `toChannel`         |  Done  |             `toChannel`              |          |
+|          `unfold`          |  Done  |                                      |          |
+|       `unfoldChunk`        |  Done  |                                      |          |
+|    `unfoldChunkEffect`     |  Done  |         `unfoldArrayEffect`          |          |
+|       `unfoldEffect`       |  Done  |                                      |          |
+|          `unwrap`          |  Done  |               `unwrap`               |          |
+|       `unwrapScoped`       |   X    |                                      |          |
+|     `unwrapScopedWith`     |   X    |                                      |          |
+|           `void`           |   X    |                                      |          |
+|         `whenCase`         |   X    |                                      |          |
 
 ### Context
 

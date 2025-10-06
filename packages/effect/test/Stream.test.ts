@@ -199,17 +199,7 @@ describe("Stream", () => {
     it.effect("paginate", () =>
       Effect.gen(function*() {
         const s: readonly [number, Array<number>] = [0, [1, 2, 3]]
-        const result = yield* Stream.paginate(s, ([n, nums]) =>
-          nums.length === 0 ?
-            [n, Option.none()] as const :
-            [n, Option.some([nums[0], nums.slice(1)] as const)] as const).pipe(Stream.runCollect)
-        assert.deepStrictEqual(result, [0, 1, 2, 3])
-      }))
-
-    it.effect("paginateEffect", () =>
-      Effect.gen(function*() {
-        const s: readonly [number, Array<number>] = [0, [1, 2, 3]]
-        const result = yield* Stream.paginateEffect(
+        const result = yield* Stream.paginate(
           s,
           (
             [n, nums]
@@ -221,30 +211,11 @@ describe("Stream", () => {
         assert.deepStrictEqual(result, [0, 1, 2, 3])
       }))
 
-    it.effect("paginateChunk", () =>
+    it.effect("paginateArray", () =>
       Effect.gen(function*() {
         const s: readonly [ReadonlyArray<number>, Array<number>] = [[0], [1, 2, 3, 4, 5]]
         const pageSize = 2
         const result = yield* Stream.paginateArray(s, ([chunk, nums]) =>
-          nums.length === 0 ?
-            [chunk, Option.none()] as const :
-            [
-              chunk,
-              Option.some(
-                [
-                  nums.slice(0, pageSize),
-                  nums.slice(pageSize)
-                ] as const
-              )
-            ] as const).pipe(Stream.runCollect)
-        assert.deepStrictEqual(result, [0, 1, 2, 3, 4, 5])
-      }))
-
-    it.effect("paginateChunkEffect", () =>
-      Effect.gen(function*() {
-        const s: readonly [ReadonlyArray<number>, Array<number>] = [[0], [1, 2, 3, 4, 5]]
-        const pageSize = 2
-        const result = yield* Stream.paginateArrayEffect(s, ([chunk, nums]) =>
           nums.length === 0 ?
             Effect.succeed([chunk, Option.none<readonly [ReadonlyArray<number>, Array<number>]>()] as const) :
             Effect.succeed(
