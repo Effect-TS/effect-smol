@@ -6,11 +6,11 @@ import { constTrue } from "effect/Function"
 import { Sink, Stream } from "effect/stream"
 
 describe("Sink", () => {
-  describe("fold", () => {
+  describe("reduceWhile", () => {
     it.effect("empty", () =>
       Effect.gen(function*() {
         const result = yield* Stream.empty.pipe(
-          Stream.transduce(Sink.fold<number, number>(() => 0, constTrue, (x, y) => x + y)),
+          Stream.transduce(Sink.reduceWhile<number, number>(() => 0, constTrue, (x, y) => x + y)),
           Stream.runCollect
         )
         deepStrictEqual(result, [0])
@@ -19,7 +19,7 @@ describe("Sink", () => {
     it.effect("termination in the middle", () =>
       Effect.gen(function*() {
         const result = yield* Stream.range(1, 9).pipe(
-          Stream.run(Sink.fold<number, number>(() => 0, (n) => n <= 5, (x, y) => x + y))
+          Stream.run(Sink.reduceWhile<number, number>(() => 0, (n) => n <= 5, (x, y) => x + y))
         )
         strictEqual(result, 6)
       }))
@@ -27,7 +27,7 @@ describe("Sink", () => {
     it.effect("immediate termination", () =>
       Effect.gen(function*() {
         const result = yield* Stream.range(1, 9).pipe(
-          Stream.run(Sink.fold<number, number>(() => 0, (n) => n <= -1, (x, y) => x + y))
+          Stream.run(Sink.reduceWhile<number, number>(() => 0, (n) => n <= -1, (x, y) => x + y))
         )
         strictEqual(result, 0)
       }))
@@ -35,12 +35,12 @@ describe("Sink", () => {
     it.effect("no termination", () =>
       Effect.gen(function*() {
         const result = yield* Stream.range(1, 9).pipe(
-          Stream.run(Sink.fold<number, number>(() => 0, (n) => n <= 500, (x, y) => x + y))
+          Stream.run(Sink.reduceWhile<number, number>(() => 0, (n) => n <= 500, (x, y) => x + y))
         )
         strictEqual(result, 45)
       }))
   })
-  describe("foldEffect", () => {
+  describe("reduceWhileEffect", () => {
     it.effect("short circuits", () =>
       Effect.gen(function*() {
         const empty: Stream.Stream<number> = Stream.empty
@@ -51,7 +51,7 @@ describe("Sink", () => {
           Ref.make(Array.empty<number>()).pipe(
             Effect.flatMap((ref) =>
               stream.pipe(
-                Stream.transduce(Sink.foldEffect(
+                Stream.transduce(Sink.reduceWhileEffect(
                   () => 0,
                   constTrue,
                   (_, y: number) => Effect.as(Ref.update(ref, Array.append(y)), 30)
@@ -77,11 +77,11 @@ describe("Sink", () => {
       }))
   })
 
-  describe("foldLeft", () => {
+  describe("reduce", () => {
     it.effect("equivalence with Array.reduce", () =>
       Effect.gen(function*() {
         const stream = Stream.range(1, 9)
-        const result1 = yield* stream.pipe(Stream.run(Sink.foldLeft(() => "", (s, n) => s + `${n}`)))
+        const result1 = yield* stream.pipe(Stream.run(Sink.reduce(() => "", (s, n) => s + `${n}`)))
         const result2 = yield* stream.pipe(
           Stream.runCollect,
           Effect.map(Array.reduce("", (s, n) => s + `${n}`))
