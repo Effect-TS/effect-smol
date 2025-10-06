@@ -652,7 +652,7 @@ export const isEmpty = <A>(self: PubSub<A>): Effect.Effect<boolean> => Effect.ma
  *   const pubsub = yield* PubSub.bounded<string>(1)
  *
  *   // Start a fiber that will be suspended waiting to publish
- *   const publisherFiber = yield* Effect.fork(
+ *   const publisherFiber = yield* Effect.forkChild(
  *     Effect.gen(function*() {
  *       yield* PubSub.publish(pubsub, "msg1") // fills the buffer
  *       yield* PubSub.publish(pubsub, "msg2") // will suspend here
@@ -747,7 +747,7 @@ export const isShutdownUnsafe = <A>(self: PubSub<A>): boolean => self.shutdownFl
  *   const pubsub = yield* PubSub.bounded<string>(10)
  *
  *   // Start a fiber that waits for shutdown
- *   const waiterFiber = yield* Effect.fork(
+ *   const waiterFiber = yield* Effect.forkChild(
  *     Effect.gen(function*() {
  *       yield* PubSub.awaitShutdown(pubsub)
  *       console.log("PubSub has been shutdown!")
@@ -1019,7 +1019,7 @@ const unsubscribe = <A>(self: Subscription<A>): Effect.Effect<void> =>
  *     const subscription = yield* PubSub.subscribe(pubsub)
  *
  *     // Start a fiber to take a message (will suspend)
- *     const takeFiber = yield* Effect.fork(
+ *     const takeFiber = yield* Effect.forkChild(
  *       PubSub.take(subscription)
  *     )
  *
@@ -1200,7 +1200,7 @@ export const takeUpTo: {
  *     const subscription = yield* PubSub.subscribe(pubsub)
  *
  *     // Start taking between 2 and 5 messages (will suspend)
- *     const takeFiber = yield* Effect.fork(
+ *     const takeFiber = yield* Effect.forkChild(
  *       PubSub.takeBetween(subscription, 2, 5)
  *     )
  *

@@ -41,13 +41,13 @@ export class EntityReaper extends ServiceMap.Key<EntityReaper>()("effect/cluster
             if (state.keepAliveEnabled || state.activeRequests.size > 0 || duration < maxIdleTime) {
               continue
             }
-            yield* Effect.fork(entities.removeIgnore(state.address))
+            yield* Effect.forkChild(entities.removeIgnore(state.address))
           }
         }
       }
     }).pipe(
       latch.whenOpen,
-      Effect.forkScoped
+      Effect.fork
     )
 
     return { register } as const

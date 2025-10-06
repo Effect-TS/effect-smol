@@ -1504,7 +1504,7 @@ export const isShutdown = (self: TxQueueState): Effect.Effect<boolean> => isDone
  *   const queue = yield* TxQueue.bounded<number, string>(10)
  *
  *   // In another fiber, end the queue
- *   yield* Effect.fork(Effect.delay(TxQueue.interrupt(queue), "100 millis"))
+ *   yield* Effect.forkChild(Effect.delay(TxQueue.interrupt(queue), "100 millis"))
  *
  *   // Wait for completion - succeeds when queue ends
  *   yield* TxQueue.awaitCompletion(queue)

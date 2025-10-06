@@ -46,7 +46,7 @@ describe.concurrent("Sharding", () => {
       yield* TestClock.adjust(2000)
       const client = makeClient("1")
 
-      const fiber = yield* client.Never().pipe(Effect.fork({ startImmediately: true }))
+      const fiber = yield* client.Never().pipe(Effect.forkChild({ startImmediately: true }))
       yield* Fiber.interrupt(fiber)
 
       yield* TestClock.adjust(2000)
@@ -63,7 +63,7 @@ describe.concurrent("Sharding", () => {
         const makeClient = yield* TestEntity.client
         yield* TestClock.adjust(2000)
         const client = makeClient("1")
-        yield* client.Never().pipe(Effect.fork)
+        yield* client.Never().pipe(Effect.forkChild)
         yield* TestClock.adjust(1)
       }).pipe(Effect.provide(TestSharding))
 
@@ -82,7 +82,7 @@ describe.concurrent("Sharding", () => {
         const makeClient = yield* TestEntity.client
         yield* TestClock.adjust(2000)
         const client = makeClient("1")
-        const fiber = yield* client.NeverVolatile().pipe(Effect.fork)
+        const fiber = yield* client.NeverVolatile().pipe(Effect.forkChild)
         yield* TestClock.adjust(1)
         const config = yield* ShardingConfig.ShardingConfig
         ;(config as any).runnerAddress = Option.some(RunnerAddress.make("localhost", 1234))
@@ -130,7 +130,7 @@ describe.concurrent("Sharding", () => {
       yield* TestClock.adjust(2000)
       const client = makeClient("1")
 
-      const fiber = yield* client.Never().pipe(Effect.fork)
+      const fiber = yield* client.Never().pipe(Effect.forkChild)
       yield* TestClock.adjust(1)
 
       const request = driver.journal[0]
@@ -168,7 +168,7 @@ describe.concurrent("Sharding", () => {
       yield* TestClock.adjust(2000)
       const client = makeClient("1")
 
-      yield* client.NeverVolatile().pipe(Effect.fork, Effect.replicateEffect(10))
+      yield* client.NeverVolatile().pipe(Effect.forkChild, Effect.replicateEffect(10))
       yield* TestClock.adjust(1)
       const error = yield* client.NeverVolatile().pipe(Effect.flip)
       assert.strictEqual(error._tag, "MailboxFull")
@@ -183,7 +183,7 @@ describe.concurrent("Sharding", () => {
         yield* TestClock.adjust(2000)
         const client = makeClient("1")
 
-        const fibers = yield* client.NeverFork().pipe(Effect.fork, Effect.replicateEffect(11))
+        const fibers = yield* client.NeverFork().pipe(Effect.forkChild, Effect.replicateEffect(11))
         yield* TestClock.adjust(1)
 
         // wait for entity to go into resume mode and request ids
@@ -204,7 +204,7 @@ describe.concurrent("Sharding", () => {
         yield* Fiber.interrupt(fibers[1])
 
         // send another request within mailbox capacity
-        yield* client.NeverFork().pipe(Effect.fork)
+        yield* client.NeverFork().pipe(Effect.forkChild)
         yield* TestClock.adjust(1)
         yield* Fiber.interruptAll(fibers)
         yield* TestClock.adjust(100)
@@ -232,7 +232,7 @@ describe.concurrent("Sharding", () => {
       const client = makeClient("1")
 
       const fibers = yield* client.NeverFork().pipe(
-        Effect.fork({ startImmediately: true }),
+        Effect.forkChild({ startImmediately: true }),
         Effect.replicateEffect(12)
       )
       yield* TestClock.adjust(1)
@@ -280,19 +280,19 @@ describe.concurrent("Sharding", () => {
         const client = makeClient("1")
 
         const fibers = yield* client.NeverFork().pipe(
-          Effect.fork({ startImmediately: true }),
+          Effect.forkChild({ startImmediately: true }),
           Effect.replicateEffect(10)
         )
         yield* TestClock.adjust(1)
 
         const fiber = yield* client.GetAllUsers({ ids: [1, 2, 3] }).pipe(
           Stream.runCollect,
-          Effect.fork({ startImmediately: true })
+          Effect.forkChild({ startImmediately: true })
         )
 
         // make sure entity doesn't leave resume mode
-        yield* client.NeverFork().pipe(Effect.fork({ startImmediately: true }))
-        yield* client.NeverFork().pipe(Effect.fork({ startImmediately: true }))
+        yield* client.NeverFork().pipe(Effect.forkChild({ startImmediately: true }))
+        yield* client.NeverFork().pipe(Effect.forkChild({ startImmediately: true }))
 
         // wait for entity to go into resume mode and request ids
         const ids = yield* Queue.take(requestedIds)
@@ -345,7 +345,7 @@ describe.concurrent("Sharding", () => {
         yield* TestClock.adjust(2000)
         const makeClient = yield* TestEntity.client
         const client = makeClient("1")
-        yield* Effect.fork(client.RequestWithKey({ key: "abc" }))
+        yield* Effect.forkChild(client.RequestWithKey({ key: "abc" }))
         yield* TestClock.adjust(1)
       }).pipe(
         Effect.provide(EnvLayer),
@@ -407,7 +407,7 @@ describe.concurrent("Sharding", () => {
         yield* TestClock.adjust(2000)
         const makeClient = yield* TestEntity.client
         const client = makeClient("1")
-        yield* Effect.fork(Stream.runDrain(client.StreamWithKey({ key: "abc" })))
+        yield* Effect.forkChild(Stream.runDrain(client.StreamWithKey({ key: "abc" })))
         yield* TestClock.adjust(2000)
         // second chunk
         yield* Queue.offer(state.streamMessages, void 0)
@@ -433,7 +433,7 @@ describe.concurrent("Sharding", () => {
         const client = makeClient("1")
 
         // let the reply loop run
-        yield* TestClock.adjust(500).pipe(Effect.fork)
+        yield* TestClock.adjust(500).pipe(Effect.forkChild)
 
         const results = yield* Stream.runCollect(client.StreamWithKey({ key: "abc" }))
         expect(results).toEqual([3, 4])
@@ -497,7 +497,7 @@ describe.concurrent("Sharding", () => {
       const makeClient = yield* TestEntity.client
       const client = makeClient("1")
       yield* TestClock.adjust(2000).pipe(
-        Effect.fork
+        Effect.forkChild
       )
       const error = yield* client.GetUser({ id: 123 }).pipe(
         Effect.flip

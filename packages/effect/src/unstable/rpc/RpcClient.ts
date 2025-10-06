@@ -761,7 +761,7 @@ export const make: <Rpcs extends Rpc.Any, const Flatten extends boolean = false>
   }).pipe(
     Effect.catchCause(Effect.logError),
     Effect.interruptible,
-    Effect.forkScoped
+    Effect.fork
   )
 
   return client
@@ -1023,7 +1023,7 @@ export const makeProtocolSocket = (options?: {
         module: "RpcClient",
         method: "makeProtocolSocket"
       }),
-      Effect.forkScoped
+      Effect.fork
     )
 
     return {
@@ -1059,7 +1059,7 @@ const makePinger = Effect.fnUntraced(function*<A, E, R>(writePing: Effect.Effect
     Effect.ignore,
     Effect.forever,
     Effect.interruptible,
-    Effect.forkScoped
+    Effect.fork
   )
   return { timeout: latch.await, reset, onPong } as const
 })
@@ -1152,7 +1152,7 @@ export const makeProtocolWorker = (
           method: "makeProtocolWorker"
         }),
         Effect.interruptible,
-        Effect.forkScoped
+        Effect.fork
       )
 
       return backing

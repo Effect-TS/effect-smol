@@ -593,7 +593,7 @@ export class FiberImpl<A = any, E = any> implements Fiber.Fiber<A, E> {
     if (exit === Yield) {
       return
     }
-    // the interruptChildren middleware is added in Effect.fork, so it can be
+    // the interruptChildren middleware is added in Effect.forkChild, so it can be
     // tree-shaken if not used
     const interruptChildren = fiberMiddleware.interruptChildren &&
       fiberMiddleware.interruptChildren(this)
@@ -3856,7 +3856,7 @@ export { let_ as let }
 // ----------------------------------------------------------------------------
 
 /** @internal */
-export const fork: {
+export const forkChild: {
   <
     Arg extends Effect.Effect<any, any, any> | {
       readonly startImmediately?: boolean | undefined
@@ -3911,7 +3911,7 @@ export const forkUnsafe = <FA, FE, A, E, R>(
 }
 
 /** @internal */
-export const forkDaemon: {
+export const forkDetach: {
   <
     Arg extends Effect.Effect<any, any, any> | {
       readonly startImmediately?: boolean | undefined
@@ -3980,7 +3980,7 @@ export const forkIn: {
 )
 
 /** @internal */
-export const forkScoped: {
+export const fork: {
   <
     Arg extends Effect.Effect<any, any, any> | {
       readonly startImmediately?: boolean | undefined

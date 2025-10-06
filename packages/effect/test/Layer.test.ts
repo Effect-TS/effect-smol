@@ -20,7 +20,7 @@ describe("Layer", () => {
         )
       )
       const env = layer1.pipe(Layer.merge(layer2), Layer.build)
-      const fiber = yield* Effect.forkDaemon(Effect.scoped(env))
+      const fiber = yield* Effect.forkDetach(Effect.scoped(env))
       yield* latch.await
       const result = yield* Fiber.interrupt(fiber)
       assert.isUndefined(result)
@@ -140,7 +140,7 @@ describe("Layer", () => {
       const layer1 = makeLayer1(arr)
       const layer2 = makeLayer2(arr)
       const env = layer1.pipe(Layer.merge(layer2), Layer.build)
-      const fiber = yield* Effect.fork(Effect.scoped(env))
+      const fiber = yield* Effect.forkChild(Effect.scoped(env))
       yield* Fiber.interrupt(fiber)
       if (arr.find((s) => s === acquire1) !== undefined) {
         assert.isTrue(arr.some((s) => s === release1))
@@ -155,7 +155,7 @@ describe("Layer", () => {
       const layer1 = makeLayer1(arr)
       const layer2 = makeLayer2(arr)
       const env = layer2.pipe(Layer.provide(layer1), Layer.build)
-      const fiber = yield* Effect.fork(Effect.scoped(env))
+      const fiber = yield* Effect.forkChild(Effect.scoped(env))
       yield* Fiber.interrupt(fiber)
       if (arr.find((s) => s === acquire1) !== undefined) {
         assert.isTrue(arr.some((s) => s === release1))
@@ -176,7 +176,7 @@ describe("Layer", () => {
         Layer.provide(layer1),
         Layer.build
       )
-      const fiber = yield* Effect.fork(Effect.scoped(env))
+      const fiber = yield* Effect.forkChild(Effect.scoped(env))
       yield* Fiber.interrupt(fiber)
       if (arr.find((s) => s === acquire1) !== undefined) {
         assert.isTrue(arr.some((s) => s === release1))

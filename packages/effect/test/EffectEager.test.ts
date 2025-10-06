@@ -190,7 +190,7 @@ describe("Effect Eager Operations", () => {
     it.effect("complex effect falls back to regular map", () =>
       Effect.gen(function*() {
         const effect = Effect.mapEager(Effect.delay(Effect.succeed(10), 1), (n) => n + 5)
-        const fiber = yield* Effect.fork(effect)
+        const fiber = yield* Effect.forkChild(effect)
         yield* TestClock.adjust(1)
         const result = yield* Fiber.join(fiber)
         assert.strictEqual(result, 15)
@@ -233,7 +233,7 @@ describe("Effect Eager Operations", () => {
         const effect = Effect.delay(Effect.succeed(10), "1 millis")
         const flatMapped = Effect.flatMapEager(effect, (n) => Effect.succeed(n * 2))
 
-        const fiber = yield* Effect.fork(flatMapped)
+        const fiber = yield* Effect.forkChild(flatMapped)
         yield* TestClock.adjust("1 millis")
         const result = yield* Fiber.join(fiber)
 
@@ -270,7 +270,7 @@ describe("Effect Eager Operations", () => {
         const effect = Effect.delay(Effect.fail("error"), "1 millis")
         const mapped = Effect.mapErrorEager(effect, (err) => `mapped: ${err}`)
 
-        const fiber = yield* Effect.fork(mapped)
+        const fiber = yield* Effect.forkChild(mapped)
         yield* TestClock.adjust("1 millis")
         const exit = yield* Fiber.await(fiber)
 
@@ -322,7 +322,7 @@ describe("Effect Eager Operations", () => {
           onSuccess: (n) => n * 2
         })
 
-        const fiber = yield* Effect.fork(mapped)
+        const fiber = yield* Effect.forkChild(mapped)
         yield* TestClock.adjust("1 millis")
         const result = yield* Fiber.join(fiber)
 
@@ -352,7 +352,7 @@ describe("Effect Eager Operations", () => {
         const effect = Effect.delay(Effect.fail("error"), "1 millis")
         const caught = Effect.catchEager(effect, (err) => Effect.succeed(`recovered: ${err}`))
 
-        const fiber = yield* Effect.fork(caught)
+        const fiber = yield* Effect.forkChild(caught)
         yield* TestClock.adjust("1 millis")
         const result = yield* Fiber.join(fiber)
 
@@ -391,7 +391,7 @@ describe("Effect Eager Operations", () => {
           onSuccess: (n) => `Success: ${n}`
         })
 
-        const fiber = yield* Effect.fork(matched)
+        const fiber = yield* Effect.forkChild(matched)
         yield* TestClock.adjust("1 millis")
         const result = yield* Fiber.join(fiber)
 
@@ -564,7 +564,7 @@ describe("Effect Eager Operations", () => {
         assert.strictEqual(onFailureCount, 0)
 
         // Fork the effect and advance time
-        const fiber = yield* Effect.fork(result)
+        const fiber = yield* Effect.forkChild(result)
         yield* TestClock.adjust("10 millis")
         const finalResult = yield* Fiber.join(fiber)
 
@@ -602,7 +602,7 @@ describe("Effect Eager Operations", () => {
         assert.strictEqual(onFailureCount, 0)
 
         // Fork the effect and advance time
-        const fiber = yield* Effect.fork(result)
+        const fiber = yield* Effect.forkChild(result)
         yield* TestClock.adjust("5 millis")
         const finalResult = yield* Fiber.join(fiber)
 
@@ -656,7 +656,7 @@ describe("Effect Eager Operations", () => {
         assert.strictEqual(executionCount, 0)
 
         // Fork the effect and advance time
-        const fiber = yield* Effect.fork(result)
+        const fiber = yield* Effect.forkChild(result)
         yield* TestClock.adjust("1 millis")
         const finalResult = yield* Fiber.join(fiber)
 

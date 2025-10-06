@@ -156,7 +156,7 @@ describe("layer", () => {
     it.effect("TestClock", () =>
       Effect.gen(function*() {
         const sleeper = yield* Sleeper
-        const fiber = yield* Effect.fork(sleeper.sleep(100_000))
+        const fiber = yield* Effect.forkChild(sleeper.sleep(100_000))
         yield* Effect.yieldNow
         yield* TestClock.adjust(100_000)
         yield* Fiber.join(fiber)

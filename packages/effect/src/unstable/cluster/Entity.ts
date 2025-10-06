@@ -338,7 +338,7 @@ const Proto = {
           return Effect.void
         }),
         Effect.interruptible,
-        Effect.forkScoped
+        Effect.fork
       )
 
       return handlers as any

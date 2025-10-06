@@ -34,7 +34,7 @@ import * as Layer from "../Layer.ts"
  *   const fiber = yield* pipe(
  *     Effect.sleep("5 minutes"),
  *     Effect.timeout("1 minute"),
- *     Effect.fork
+ *     Effect.forkChild
  *   )
  *   yield* TestClock.adjust("1 minute")
  *   const result = yield* Fiber.join(fiber)
@@ -62,7 +62,7 @@ import * as Layer from "../Layer.ts"
  *   const fiber = yield* Effect.gen(function*() {
  *     yield* Effect.sleep("1 hour")
  *     executed = true
- *   }).pipe(Effect.fork)
+ *   }).pipe(Effect.forkChild)
  *
  *   // Advance the test clock by 1 hour
  *   yield* TestClock.adjust("1 hour")
@@ -255,7 +255,7 @@ export const make = Effect.fnUntraced(function*(
         return Effect.logWarning(warningMessage).pipe(
           Effect.delay(config.warningDelay),
           withLive,
-          Effect.fork,
+          Effect.forkChild,
           Effect.interruptible,
           Effect.flatMap((fiber) =>
             Effect.sync(() => {
@@ -418,7 +418,7 @@ export const testClockWith = <A, E, R>(
  *   const fiber = yield* Effect.gen(function*() {
  *     yield* Effect.sleep("30 minutes")
  *     executed = true
- *   }).pipe(Effect.fork)
+ *   }).pipe(Effect.forkChild)
  *
  *   // Advance the clock by 30 minutes
  *   yield* TestClock.adjust("30 minutes")
@@ -451,7 +451,7 @@ export const adjust = (duration: Duration.DurationInput): Effect.Effect<void> =>
  *   const fiber = yield* Effect.gen(function*() {
  *     yield* Effect.sleep("2 hours")
  *     executed = true
- *   }).pipe(Effect.fork)
+ *   }).pipe(Effect.forkChild)
  *
  *   // Set the clock to a specific timestamp (2 hours from epoch)
  *   const targetTime = Duration.toMillis(Duration.hours(2))

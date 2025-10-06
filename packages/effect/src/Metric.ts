@@ -3668,8 +3668,8 @@ export const FiberRuntimeMetrics = ServiceMap.Reference<FiberRuntimeMetricsServi
  *
  *   return yield* Effect.gen(function*() {
  *     // Run some Effects to trigger metric collection
- *     yield* Effect.fork(Effect.sleep("50 millis"))
- *     yield* Effect.fork(Effect.sleep("100 millis"))
+ *     yield* Effect.forkChild(Effect.sleep("50 millis"))
+ *     yield* Effect.forkChild(Effect.sleep("100 millis"))
  *
  *     // Wait a bit and check the metrics
  *     yield* Effect.sleep("200 millis")
@@ -3828,8 +3828,8 @@ export const enableRuntimeMetricsLayer = Layer.succeed(FiberRuntimeMetrics)(Fibe
  *     console.log("Metrics enabled:", metricsService !== undefined) // false
  *
  *     // Run some Effects - no metrics will be collected
- *     yield* Effect.fork(Effect.sleep("50 millis"))
- *     yield* Effect.fork(Effect.sleep("100 millis"))
+ *     yield* Effect.forkChild(Effect.sleep("50 millis"))
+ *     yield* Effect.forkChild(Effect.sleep("100 millis"))
  *     yield* Effect.sleep("200 millis")
  *
  *     // Create test metrics to show they still work

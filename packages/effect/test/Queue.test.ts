@@ -7,7 +7,7 @@ describe("Queue", () => {
     Effect.gen(function*() {
       const queue = yield* Queue.bounded<number>(2)
       const fiber = yield* Queue.offerAll(queue, [1, 2, 3, 4]).pipe(
-        Effect.fork
+        Effect.forkChild
       )
       yield* Effect.yieldNow
       assert.isUndefined(fiber.pollUnsafe())
@@ -28,7 +28,7 @@ describe("Queue", () => {
   it.effect("takeN", () =>
     Effect.gen(function*() {
       const queue = yield* Queue.unbounded<number>()
-      yield* Queue.offerAll(queue, [1, 2, 3, 4]).pipe(Effect.fork)
+      yield* Queue.offerAll(queue, [1, 2, 3, 4]).pipe(Effect.forkChild)
       const a = yield* Queue.takeN(queue, 2)
       const b = yield* Queue.takeN(queue, 2)
       assert.deepEqual(a, [1, 2])
@@ -59,7 +59,7 @@ describe("Queue", () => {
     Effect.gen(function*() {
       const queue = yield* Queue.bounded<number>(2)
       const fiber = yield* Queue.offerAll(queue, [1, 2, 3, 4]).pipe(
-        Effect.fork
+        Effect.forkChild
       )
 
       yield* Effect.yieldNow
@@ -80,7 +80,7 @@ describe("Queue", () => {
     Effect.gen(function*() {
       const queue = yield* Queue.bounded<number, Queue.Done>(2)
       const fiber = yield* Queue.takeAll(queue).pipe(
-        Effect.fork
+        Effect.forkChild
       )
       yield* Effect.yieldNow
       yield* Queue.done(queue, Exit.void)
@@ -90,10 +90,10 @@ describe("Queue", () => {
   it.effect("end", () =>
     Effect.gen(function*() {
       const queue = yield* Queue.bounded<number, Queue.Done>(2)
-      yield* Effect.fork(Queue.offerAll(queue, [1, 2, 3, 4]))
-      yield* Effect.fork(Queue.offerAll(queue, [5, 6, 7, 8]))
-      yield* Effect.fork(Queue.offer(queue, 9))
-      yield* Effect.fork(Queue.end(queue))
+      yield* Effect.forkChild(Queue.offerAll(queue, [1, 2, 3, 4]))
+      yield* Effect.forkChild(Queue.offerAll(queue, [5, 6, 7, 8]))
+      yield* Effect.forkChild(Queue.offer(queue, 9))
+      yield* Effect.forkChild(Queue.end(queue))
       const items = yield* Stream.runCollect(Stream.fromQueue(queue))
       assert.deepStrictEqual(items, [1, 2, 3, 4, 5, 6, 7, 8, 9])
       assert.strictEqual(yield* Queue.await(queue), void 0)
@@ -103,9 +103,9 @@ describe("Queue", () => {
   it.effect("end with take", () =>
     Effect.gen(function*() {
       const queue = yield* Queue.bounded<number, Queue.Done>(2)
-      yield* Effect.fork(Queue.offerAll(queue, [1, 2]))
-      yield* Effect.fork(Queue.offer(queue, 3))
-      yield* Effect.fork(Queue.end(queue))
+      yield* Effect.forkChild(Queue.offerAll(queue, [1, 2]))
+      yield* Effect.forkChild(Queue.offer(queue, 3))
+      yield* Effect.forkChild(Queue.end(queue))
       assert.strictEqual(yield* Queue.take(queue), 1)
       assert.strictEqual(yield* Queue.take(queue), 2)
       assert.strictEqual(yield* Queue.take(queue), 3)
@@ -117,9 +117,9 @@ describe("Queue", () => {
   it.effect("fail", () =>
     Effect.gen(function*() {
       const queue = yield* Queue.bounded<number, string>(2)
-      yield* Effect.fork(Queue.offerAll(queue, [1, 2, 3, 4]))
-      yield* Effect.fork(Queue.offer(queue, 5))
-      yield* Effect.fork(Queue.fail(queue, "boom"))
+      yield* Effect.forkChild(Queue.offerAll(queue, [1, 2, 3, 4]))
+      yield* Effect.forkChild(Queue.offer(queue, 5))
+      yield* Effect.forkChild(Queue.fail(queue, "boom"))
       const takeArr = Queue.takeAll(queue)
       assert.deepStrictEqual(yield* takeArr, [1, 2])
       assert.deepStrictEqual(yield* takeArr, [3, 4])
@@ -134,9 +134,9 @@ describe("Queue", () => {
   it.effect("shutdown", () =>
     Effect.gen(function*() {
       const queue = yield* Queue.bounded<number>(2)
-      yield* Effect.fork(Queue.offerAll(queue, [1, 2, 3, 4]))
-      yield* Effect.fork(Queue.offerAll(queue, [5, 6, 7, 8]))
-      yield* Effect.fork(Queue.shutdown(queue))
+      yield* Effect.forkChild(Queue.offerAll(queue, [1, 2, 3, 4]))
+      yield* Effect.forkChild(Queue.offerAll(queue, [5, 6, 7, 8]))
+      yield* Effect.forkChild(Queue.shutdown(queue))
       const exit = yield* Stream.runCollect(Stream.fromQueue(queue)).pipe(
         Effect.exit
       )
@@ -148,9 +148,9 @@ describe("Queue", () => {
   it.effect("fail doesnt drop items", () =>
     Effect.gen(function*() {
       const queue = yield* Queue.bounded<number, string>(2)
-      yield* Effect.fork(Queue.offerAll(queue, [1, 2, 3, 4]))
-      yield* Effect.fork(Queue.offer(queue, 5))
-      yield* Effect.fork(Queue.fail(queue, "boom"))
+      yield* Effect.forkChild(Queue.offerAll(queue, [1, 2, 3, 4]))
+      yield* Effect.forkChild(Queue.offer(queue, 5))
+      yield* Effect.forkChild(Queue.fail(queue, "boom"))
       const items: Array<number> = []
       const error = yield* Stream.fromQueue(queue).pipe(
         Stream.runForEach((item) => Effect.sync(() => items.push(item))),
@@ -163,7 +163,7 @@ describe("Queue", () => {
   it.effect("await waits for no items", () =>
     Effect.gen(function*() {
       const queue = yield* Queue.unbounded<number, Queue.Done>()
-      const fiber = yield* Queue.await(queue).pipe(Effect.fork)
+      const fiber = yield* Queue.await(queue).pipe(Effect.forkChild)
       yield* Effect.yieldNow
       yield* Queue.offer(queue, 1)
       yield* Queue.end(queue)
@@ -180,10 +180,10 @@ describe("Queue", () => {
   it.effect("bounded 0 capacity", () =>
     Effect.gen(function*() {
       const queue = yield* Queue.bounded<number>(0)
-      yield* Queue.offer(queue, 1).pipe(Effect.fork)
+      yield* Queue.offer(queue, 1).pipe(Effect.forkChild)
       let result = yield* Queue.take(queue)
       assert.strictEqual(result, 1)
-      const fiber = yield* Queue.take(queue).pipe(Effect.fork)
+      const fiber = yield* Queue.take(queue).pipe(Effect.forkChild)
       yield* Queue.offer(queue, 2)
       result = yield* Fiber.join(fiber)
       assert.strictEqual(result, 2)

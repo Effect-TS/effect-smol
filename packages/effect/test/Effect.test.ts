@@ -209,7 +209,7 @@ describe("Effect", () => {
           concurrency: "inherit"
         }).pipe(
           Effect.withConcurrency("unbounded"),
-          Effect.fork
+          Effect.forkChild
         )
         yield* TestClock.adjust(90)
         assert.deepStrictEqual(handle.pollUnsafe(), Exit.succeed([1, 2, 3]))
@@ -222,7 +222,7 @@ describe("Effect", () => {
           Effect.sync(() => {
             done.push(i)
             return i
-          }).pipe(Effect.delay(300))).pipe(Effect.fork)
+          }).pipe(Effect.delay(300))).pipe(Effect.forkChild)
         yield* TestClock.adjust(800)
         yield* Fiber.interrupt(fiber)
         const result = yield* Fiber.await(fiber)
@@ -237,7 +237,7 @@ describe("Effect", () => {
           Effect.sync(() => {
             done.push(i)
             return i
-          }).pipe(Effect.delay(150)), { concurrency: "unbounded" }).pipe(Effect.fork)
+          }).pipe(Effect.delay(150)), { concurrency: "unbounded" }).pipe(Effect.forkChild)
         yield* TestClock.adjust(50)
         yield* Fiber.interrupt(fiber)
         const result = yield* Fiber.await(fiber)
@@ -252,7 +252,7 @@ describe("Effect", () => {
           Effect.sync(() => {
             done.push(i)
             return i
-          }).pipe(Effect.delay(200)), { concurrency: 2 }).pipe(Effect.fork)
+          }).pipe(Effect.delay(200)), { concurrency: 2 }).pipe(Effect.forkChild)
         yield* TestClock.adjust(350)
         yield* Fiber.interrupt(fiber)
         const result = yield* Fiber.await(fiber)
@@ -269,7 +269,7 @@ describe("Effect", () => {
             return i === 3 ? Effect.fail("error") : Effect.succeed(i)
           }).pipe(Effect.delay(i * 100)), {
           concurrency: "unbounded"
-        }).pipe(Effect.fork)
+        }).pipe(Effect.forkChild)
         yield* TestClock.adjust(500)
         const result = yield* Fiber.await(handle)
         assert.deepStrictEqual(result, Exit.fail("error"))
@@ -371,7 +371,7 @@ describe("Effect", () => {
             })
         ).pipe(
           Effect.scoped,
-          Effect.fork({ startImmediately: true })
+          Effect.forkChild({ startImmediately: true })
         )
         fiber.interruptUnsafe()
         yield* Fiber.await(fiber)
@@ -391,7 +391,7 @@ describe("Effect", () => {
             })
           )
         )
-      )).pipe(Effect.fork)
+      )).pipe(Effect.forkChild)
       yield* TestClock.adjust("500 millis")
       const result = yield* Fiber.join(fiber)
       assert.strictEqual(result, 100)
@@ -410,7 +410,7 @@ describe("Effect", () => {
             })
           )
         )
-      )).pipe(Effect.exit, Effect.fork)
+      )).pipe(Effect.exit, Effect.forkChild)
       yield* TestClock.adjust("500 millis")
       const result = yield* Fiber.join(fiber)
       assert.deepStrictEqual(result, Exit.fail("boom"))
@@ -424,7 +424,7 @@ describe("Effect", () => {
         const fiber = yield* Effect.void.pipe(
           Effect.forever,
           Effect.timeoutOption(50),
-          Effect.fork
+          Effect.forkChild
         )
         yield* TestClock.adjust(50)
         const result = yield* Fiber.join(fiber)
@@ -745,7 +745,7 @@ describe("Effect", () => {
           Effect.uninterruptible,
           Effect.forever,
           Effect.timeoutOption(10),
-          Effect.fork
+          Effect.forkChild
         )
         yield* TestClock.adjust(10)
         const result = yield* Fiber.join(fiber)
@@ -773,14 +773,14 @@ describe("Effect", () => {
   describe("interruption", () => {
     it.effect("sync forever is interruptible", () =>
       Effect.gen(function*() {
-        const fiber = yield* pipe(Effect.succeed(1), Effect.forever, Effect.fork)
+        const fiber = yield* pipe(Effect.succeed(1), Effect.forever, Effect.forkChild)
         yield* Fiber.interrupt(fiber)
         assert(Exit.hasInterrupt(fiber.pollUnsafe()!))
       }))
 
     it.effect("interrupt of never is interrupted with cause", () =>
       Effect.gen(function*() {
-        const fiber = yield* Effect.fork(Effect.never)
+        const fiber = yield* Effect.forkChild(Effect.never)
         yield* Fiber.interrupt(fiber)
         assert(Exit.hasInterrupt(fiber.pollUnsafe()!))
       }))
@@ -798,7 +798,7 @@ describe("Effect", () => {
           Effect.ensuring(Effect.sync(() => {
             ensuring = true
           })),
-          Effect.fork({ startImmediately: true })
+          Effect.forkChild({ startImmediately: true })
         )
         yield* Fiber.interrupt(handle)
         assert.isFalse(catchFailure)
@@ -817,7 +817,7 @@ describe("Effect", () => {
             })
           ),
           Effect.uninterruptible,
-          Effect.fork({ startImmediately: true })
+          Effect.forkChild({ startImmediately: true })
         )
         yield* Fiber.interrupt(fiber)
         assert.isTrue(recovered)
@@ -839,7 +839,7 @@ describe("Effect", () => {
             counter++
           })),
           Effect.uninterruptible,
-          Effect.fork({ startImmediately: true })
+          Effect.forkChild({ startImmediately: true })
         )
         yield* Fiber.interrupt(fiber)
         assert.strictEqual(counter, 2)
@@ -859,7 +859,7 @@ describe("Effect", () => {
           () => Effect.void
         ).pipe(
           Effect.uninterruptible,
-          Effect.fork({ startImmediately: true })
+          Effect.forkChild({ startImmediately: true })
         )
         yield* Fiber.interrupt(fiber)
         assert.isTrue(ref)
@@ -873,7 +873,7 @@ describe("Effect", () => {
             ref = true
           }),
           Effect.uninterruptible,
-          Effect.fork({ startImmediately: true })
+          Effect.forkChild({ startImmediately: true })
         )
         yield* Fiber.interrupt(fiber)
         assert.isTrue(ref)
@@ -887,7 +887,7 @@ describe("Effect", () => {
           }, 10)
         }).pipe(
           Effect.onInterrupt(() => Effect.sleep(30)),
-          Effect.fork({ startImmediately: true })
+          Effect.forkChild({ startImmediately: true })
         )
         yield* Fiber.interrupt(fiber)
         assert.isTrue(Exit.hasInterrupt(fiber.pollUnsafe()!))
@@ -902,7 +902,7 @@ describe("Effect", () => {
             ref = true
           })
         )
-        const fiber = yield* child.pipe(Effect.uninterruptible, Effect.fork({ startImmediately: true }))
+        const fiber = yield* child.pipe(Effect.uninterruptible, Effect.forkChild({ startImmediately: true }))
         yield* Fiber.interrupt(fiber)
         assert.isTrue(ref)
       }))
@@ -912,7 +912,7 @@ describe("Effect", () => {
         let signal: AbortSignal
         const fiber = yield* Effect.callback<void>((_cb, signal_) => {
           signal = signal_
-        }).pipe(Effect.fork({ startImmediately: true }))
+        }).pipe(Effect.forkChild({ startImmediately: true }))
         yield* Fiber.interrupt(fiber)
         assert.strictEqual(signal!.aborted, true)
       }))
@@ -929,14 +929,14 @@ describe("Effect", () => {
               child = true
             })
           ),
-          Effect.fork({ startImmediately: true }),
+          Effect.forkChild({ startImmediately: true }),
           Effect.andThen(Effect.never),
           Effect.onInterrupt(() =>
             Effect.sync(() => {
               parent = true
             })
           ),
-          Effect.fork({ startImmediately: true })
+          Effect.forkChild({ startImmediately: true })
         )
         yield* Fiber.interrupt(fiber)
         assert.isTrue(child)
@@ -955,14 +955,14 @@ describe("Effect", () => {
               child = true
             })
           ),
-          Effect.forkDaemon,
+          Effect.forkDetach,
           Effect.andThen(Effect.never),
           Effect.onInterrupt(() =>
             Effect.sync(() => {
               parent = true
             })
           ),
-          Effect.fork({ startImmediately: true })
+          Effect.forkChild({ startImmediately: true })
         )
         yield* Fiber.interrupt(handle)
         assert.isFalse(child)
@@ -999,7 +999,7 @@ describe("Effect", () => {
               interrupted = true
             })
           ),
-          Effect.forkScoped({ startImmediately: true }),
+          Effect.fork({ startImmediately: true }),
           Scope.provide(scope)
         )
         yield* Scope.close(scope, Exit.void)
@@ -1085,7 +1085,7 @@ describe("Effect", () => {
         const result = yield* pipe(
           Effect.succeed(42),
           Effect.ensuring(Effect.die(ExampleError)),
-          Effect.fork,
+          Effect.forkChild,
           Effect.flatMap((fiber) =>
             pipe(
               Fiber.await(fiber),
@@ -1228,7 +1228,7 @@ describe("Effect", () => {
       const task1 = Effect.succeed("a").pipe(Effect.delay(50), Effect.tap(() => executionOrder.push("task1")))
       const task2 = Effect.succeed(1).pipe(Effect.delay(1), Effect.tap(() => executionOrder.push("task2")))
       return Effect.gen(function*() {
-        const fiber = yield* Effect.fork(Effect.zip(task1, task2))
+        const fiber = yield* Effect.forkChild(Effect.zip(task1, task2))
         yield* TestClock.adjust(51)
         const result = yield* Fiber.join(fiber)
         assert.deepStrictEqual(result, ["a", 1])
@@ -1240,7 +1240,7 @@ describe("Effect", () => {
       const task1 = Effect.succeed("a").pipe(Effect.delay(50), Effect.tap(() => executionOrder.push("task1")))
       const task2 = Effect.succeed(1).pipe(Effect.delay(1), Effect.tap(() => executionOrder.push("task2")))
       return Effect.gen(function*() {
-        const fiber = yield* Effect.fork(Effect.zip(task1, task2, { concurrent: true }))
+        const fiber = yield* Effect.forkChild(Effect.zip(task1, task2, { concurrent: true }))
         yield* TestClock.adjust(50)
         const result = yield* Fiber.join(fiber)
         assert.deepStrictEqual(result, ["a", 1])
@@ -1255,7 +1255,7 @@ describe("Effect", () => {
       const task1 = Effect.succeed("a").pipe(Effect.delay(50), Effect.tap(() => executionOrder.push("task1")))
       const task2 = Effect.succeed(1).pipe(Effect.delay(1), Effect.tap(() => executionOrder.push("task2")))
       return Effect.gen(function*() {
-        const fiber = yield* Effect.fork(Effect.zipWith(task1, task2, (a, b) => a + b))
+        const fiber = yield* Effect.forkChild(Effect.zipWith(task1, task2, (a, b) => a + b))
         yield* TestClock.adjust(51)
         const result = yield* Fiber.join(fiber)
         assert.deepStrictEqual(result, "a1")
@@ -1267,7 +1267,7 @@ describe("Effect", () => {
       const task1 = Effect.succeed("a").pipe(Effect.delay(50), Effect.tap(() => executionOrder.push("task1")))
       const task2 = Effect.succeed(1).pipe(Effect.delay(1), Effect.tap(() => executionOrder.push("task2")))
       return Effect.gen(function*() {
-        const fiber = yield* Effect.fork(Effect.zipWith(task1, task2, (a, b) => a + b, { concurrent: true }))
+        const fiber = yield* Effect.forkChild(Effect.zipWith(task1, task2, (a, b) => a + b, { concurrent: true }))
         yield* TestClock.adjust(50)
         const result = yield* Fiber.join(fiber)
         assert.deepStrictEqual(result, "a1")

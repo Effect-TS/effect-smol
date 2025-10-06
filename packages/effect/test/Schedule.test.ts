@@ -176,7 +176,7 @@ describe("Schedule", () => {
         )
         yield* Effect.sleep("1.5 seconds").pipe(
           Effect.schedule(schedule),
-          Effect.fork
+          Effect.forkChild
         )
         yield* TestClock.setTime(Number.POSITIVE_INFINITY)
         expect(delays).toEqual([
@@ -192,7 +192,7 @@ describe("Schedule", () => {
 })
 
 const run = Effect.fnUntraced(function*<A, E, R>(effect: Effect.Effect<A, E, R>) {
-  const fiber = yield* Effect.fork(effect)
+  const fiber = yield* Effect.forkChild(effect)
   yield* TestClock.setTime(Number.POSITIVE_INFINITY)
   return yield* Fiber.join(fiber)
 })

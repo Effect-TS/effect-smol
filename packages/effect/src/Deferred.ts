@@ -26,7 +26,7 @@
  *   const deferred = yield* Deferred.make<string, never>()
  *
  *   // Fiber 1: waits for the value
- *   const waiter = yield* Effect.fork(
+ *   const waiter = yield* Effect.forkChild(
  *     Effect.gen(function* () {
  *       const value = yield* Deferred.await(deferred)
  *       console.log("Received:", value)
@@ -35,7 +35,7 @@
  *   )
  *
  *   // Fiber 2: sets the value after a delay
- *   const setter = yield* Effect.fork(
+ *   const setter = yield* Effect.forkChild(
  *     Effect.gen(function* () {
  *       yield* Effect.sleep("1 second")
  *       yield* Deferred.succeed(deferred, "Hello from setter!")
@@ -101,7 +101,7 @@ const TypeId = "~effect/Deferred"
  *   const deferred: Deferred.Deferred<string> = yield* Deferred.make<string>()
  *
  *   // Fork a fiber that will set the deferred value
- *   const producer = yield* Effect.fork(
+ *   const producer = yield* Effect.forkChild(
  *     Effect.gen(function* () {
  *       yield* Effect.sleep("100 millis")
  *       yield* Deferred.succeed(deferred, "Hello, World!")
@@ -109,7 +109,7 @@ const TypeId = "~effect/Deferred"
  *   )
  *
  *   // Fork a fiber that will await the deferred value
- *   const consumer = yield* Effect.fork(
+ *   const consumer = yield* Effect.forkChild(
  *     Effect.gen(function* () {
  *       const value = yield* Deferred.await(deferred)
  *       console.log("Received:", value)

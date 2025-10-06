@@ -307,7 +307,7 @@ describe("ScopedCache", () => {
           })
 
           const effects = [ScopedCache.get(cache, "key"), ScopedCache.get(cache, "key"), ScopedCache.get(cache, "key")]
-          const resultsFiber = yield* Effect.all(effects, { concurrency: "unbounded" }).pipe(Effect.fork)
+          const resultsFiber = yield* Effect.all(effects, { concurrency: "unbounded" }).pipe(Effect.forkChild)
 
           yield* TestClock.adjust(Duration.millis(150))
           const results = yield* Fiber.join(resultsFiber)
@@ -325,14 +325,14 @@ describe("ScopedCache", () => {
           })
 
           // First get starts
-          const fiber1 = yield* ScopedCache.get(cache, "test").pipe(Effect.fork)
+          const fiber1 = yield* ScopedCache.get(cache, "test").pipe(Effect.forkChild)
           yield* TestClock.adjust(Duration.millis(25))
 
           // Invalidate while first get is in progress
           yield* ScopedCache.invalidate(cache, "test")
 
           // Second get starts after invalidation
-          const fiber2 = yield* ScopedCache.get(cache, "test").pipe(Effect.fork)
+          const fiber2 = yield* ScopedCache.get(cache, "test").pipe(Effect.forkChild)
 
           yield* TestClock.adjust(Duration.millis(100))
           const result1 = yield* Fiber.join(fiber1)
@@ -447,8 +447,8 @@ describe("ScopedCache", () => {
             lookup: (_key: string) => Deferred.await(deferred).pipe(Effect.as(42))
           })
 
-          const getFiber = yield* ScopedCache.get(cache, "test").pipe(Effect.fork)
-          const optionFiber = yield* ScopedCache.getOption(cache, "test").pipe(Effect.fork)
+          const getFiber = yield* ScopedCache.get(cache, "test").pipe(Effect.forkChild)
+          const optionFiber = yield* ScopedCache.getOption(cache, "test").pipe(Effect.forkChild)
 
           yield* Deferred.succeed(deferred, void 0)
 
@@ -1698,9 +1698,9 @@ describe("ScopedCache", () => {
           })
 
           const fibers = yield* Effect.all([
-            ScopedCache.get(cache, "test").pipe(Effect.exit, Effect.fork),
-            ScopedCache.get(cache, "test").pipe(Effect.exit, Effect.fork),
-            ScopedCache.get(cache, "test").pipe(Effect.exit, Effect.fork)
+            ScopedCache.get(cache, "test").pipe(Effect.exit, Effect.forkChild),
+            ScopedCache.get(cache, "test").pipe(Effect.exit, Effect.forkChild),
+            ScopedCache.get(cache, "test").pipe(Effect.exit, Effect.forkChild)
           ])
 
           yield* TestClock.adjust(Duration.millis(100))
@@ -2170,10 +2170,10 @@ describe("ScopedCache", () => {
           })
 
           const fibers = yield* Effect.all([
-            ScopedCache.get(cache, "shared").pipe(Effect.fork),
-            ScopedCache.get(cache, "shared").pipe(Effect.fork),
-            ScopedCache.get(cache, "shared").pipe(Effect.fork),
-            ScopedCache.get(cache, "shared").pipe(Effect.fork)
+            ScopedCache.get(cache, "shared").pipe(Effect.forkChild),
+            ScopedCache.get(cache, "shared").pipe(Effect.forkChild),
+            ScopedCache.get(cache, "shared").pipe(Effect.forkChild),
+            ScopedCache.get(cache, "shared").pipe(Effect.forkChild)
           ])
 
           yield* TestClock.adjust(Duration.millis(150))
@@ -2232,17 +2232,17 @@ describe("ScopedCache", () => {
           })
 
           // Initial population
-          yield* ScopedCache.get(cache, "a").pipe(Effect.fork)
-          yield* ScopedCache.get(cache, "b").pipe(Effect.fork)
+          yield* ScopedCache.get(cache, "a").pipe(Effect.forkChild)
+          yield* ScopedCache.get(cache, "b").pipe(Effect.forkChild)
           yield* TestClock.adjust(50)
           counter = 0 // Reset counter
 
           // Concurrent refreshes
           const fibers = yield* Effect.all([
-            ScopedCache.refresh(cache, "a").pipe(Effect.fork),
-            ScopedCache.refresh(cache, "b").pipe(Effect.fork),
-            ScopedCache.refresh(cache, "a").pipe(Effect.fork),
-            ScopedCache.refresh(cache, "b").pipe(Effect.fork)
+            ScopedCache.refresh(cache, "a").pipe(Effect.forkChild),
+            ScopedCache.refresh(cache, "b").pipe(Effect.forkChild),
+            ScopedCache.refresh(cache, "a").pipe(Effect.forkChild),
+            ScopedCache.refresh(cache, "b").pipe(Effect.forkChild)
           ])
 
           yield* TestClock.adjust(Duration.millis(100))

@@ -120,7 +120,7 @@ export const UsersLive = UserRpcs.toLayer(Effect.gen(function*() {
         }),
         Effect.delay(100),
         Effect.forever,
-        Effect.forkScoped
+        Effect.fork
       )
 
       return mailbox

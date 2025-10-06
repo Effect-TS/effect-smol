@@ -605,7 +605,7 @@ describe("Metric", () => {
         const timer = Metric.timer(id)
         const fiber = yield* Effect.sleep("1 hour").pipe(
           Effect.trackDuration(timer),
-          Effect.fork
+          Effect.forkChild
         )
         yield* TestClock.adjust("1 hour")
         yield* Fiber.join(fiber)
@@ -624,7 +624,7 @@ describe("Metric", () => {
         const gauge = Metric.gauge(id)
         const fiber = yield* Effect.sleep("1 hour").pipe(
           Effect.trackDuration(gauge, (duration) => Duration.toMinutes(duration)),
-          Effect.fork
+          Effect.forkChild
         )
         yield* TestClock.adjust("1 hour")
         yield* Fiber.join(fiber)

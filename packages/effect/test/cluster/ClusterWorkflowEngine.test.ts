@@ -24,7 +24,7 @@ describe.concurrent("ClusterWorkflowEngine", () => {
       const fiber = yield* EmailWorkflow.execute({
         id: "test-email-1",
         to: "bob@example.com"
-      }).pipe(Effect.fork({ startImmediately: true }))
+      }).pipe(Effect.forkChild({ startImmediately: true }))
 
       // resume after the clock
       yield* TestClock.adjust("10 seconds")
@@ -92,7 +92,7 @@ describe.concurrent("ClusterWorkflowEngine", () => {
       const fiber = yield* EmailWorkflow.execute({
         id: "test-email-2",
         to: "bob@example.com"
-      }).pipe(Effect.fork)
+      }).pipe(Effect.forkChild)
 
       yield* TestClock.adjust(1)
       yield* TestClock.adjust("10 seconds")
@@ -139,7 +139,7 @@ describe.concurrent("ClusterWorkflowEngine", () => {
       const fiber = yield* EmailWorkflow.execute({
         id: "test-email-3",
         to: "compensation"
-      }).pipe(Effect.fork({ startImmediately: true }))
+      }).pipe(Effect.forkChild({ startImmediately: true }))
 
       yield* TestClock.adjust(1)
 
@@ -161,7 +161,7 @@ describe.concurrent("ClusterWorkflowEngine", () => {
 
       const fiber = yield* RaceWorkflow.execute({
         id: "race-1"
-      }).pipe(Effect.fork({ startImmediately: true }))
+      }).pipe(Effect.forkChild({ startImmediately: true }))
       yield* TestClock.adjust(500)
 
       const result = yield* Fiber.join(fiber)
@@ -179,7 +179,7 @@ describe.concurrent("ClusterWorkflowEngine", () => {
 
       const fiber = yield* DurableRaceWorkflow.execute({
         id: "race-2"
-      }).pipe(Effect.fork)
+      }).pipe(Effect.forkChild)
 
       yield* TestClock.adjust(1)
       yield* TestClock.adjust(1000)
@@ -198,7 +198,7 @@ describe.concurrent("ClusterWorkflowEngine", () => {
 
       yield* ParentWorkflow.execute({
         id: "123"
-      }).pipe(Effect.fork)
+      }).pipe(Effect.forkChild)
       yield* TestClock.adjust(1000)
 
       assert.isUndefined(flags.get("parent-end"))
@@ -224,7 +224,7 @@ describe.concurrent("ClusterWorkflowEngine", () => {
 
       yield* SuspendOnFailureWorkflow.execute({
         id: ""
-      }).pipe(Effect.fork)
+      }).pipe(Effect.forkChild)
       yield* TestClock.adjust(1000)
 
       assert.isTrue(flags.get("suspended"))

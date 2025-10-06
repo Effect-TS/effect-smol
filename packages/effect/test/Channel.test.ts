@@ -154,7 +154,7 @@ describe("Channel", () => {
               )
             ), { concurrency: 2 }),
           Channel.runDrain,
-          Effect.fork
+          Effect.forkChild
         )
         yield* Fiber.interrupt(fiber).pipe(latch.whenOpen)
         assert.isTrue(interrupted)
@@ -212,7 +212,7 @@ describe("Channel", () => {
         )
         const fiber = yield* Channel.merge(left, right, {
           haltStrategy: "right"
-        }).pipe(Channel.runCollect, Effect.fork)
+        }).pipe(Channel.runCollect, Effect.forkChild)
         yield* Queue.offerAll(leftQueue, [1, 2])
         yield* Queue.end(leftQueue)
         yield* latch.await
@@ -232,7 +232,7 @@ describe("Channel", () => {
         const right = Channel.fromQueue(rightQueue)
         const fiber = yield* Channel.merge(left, right, {
           haltStrategy: "left"
-        }).pipe(Channel.runCollect, Effect.fork)
+        }).pipe(Channel.runCollect, Effect.forkChild)
         yield* Queue.offerAll(leftQueue, [1, 2])
         yield* Queue.end(leftQueue)
         yield* latch.await
@@ -297,7 +297,7 @@ describe("Channel", () => {
           Channel.fromEffect,
           Channel.interruptWhen(Deferred.await(halt))
         )
-        const fiber = yield* Effect.fork(Channel.runDrain(channel))
+        const fiber = yield* Effect.forkChild(Channel.runDrain(channel))
         yield* pipe(
           Deferred.await(started),
           Effect.andThen(Deferred.succeed(halt, void 0))

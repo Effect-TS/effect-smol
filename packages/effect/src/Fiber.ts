@@ -25,7 +25,7 @@
  * // Basic fiber operations
  * const basicExample = Effect.gen(function* () {
  *   // Fork an effect to run concurrently
- *   const fiber = yield* Effect.fork(
+ *   const fiber = yield* Effect.forkChild(
  *     Effect.gen(function* () {
  *       yield* Effect.sleep("2 seconds")
  *       yield* Console.log("Background task completed")
@@ -48,8 +48,8 @@
  *   const task2 = Effect.delay(Effect.succeed("task2"), "2 seconds")
  *
  *   // Start both effects as fibers
- *   const fiber1 = yield* Effect.fork(task1)
- *   const fiber2 = yield* Effect.fork(task2)
+ *   const fiber1 = yield* Effect.forkChild(task1)
+ *   const fiber2 = yield* Effect.forkChild(task2)
  *
  *   // Wait for both to complete
  *   const result1 = yield* Fiber.join(fiber1)
@@ -101,7 +101,7 @@ const TypeId = `~effect/Fiber/${version}`
  *
  * const program = Effect.gen(function* () {
  *   // Fork an effect to run in a new fiber
- *   const fiber = yield* Effect.fork(Effect.succeed(42))
+ *   const fiber = yield* Effect.forkChild(Effect.succeed(42))
  *
  *   // Wait for the fiber to complete and get its result
  *   const result = yield* Fiber.await(fiber)
@@ -141,7 +141,7 @@ export interface Fiber<out A, out E = never> extends Pipeable {
  *
  * const program = Effect.gen(function* () {
  *   // Create a fiber
- *   const fiber = yield* Effect.fork(Effect.succeed(42))
+ *   const fiber = yield* Effect.forkChild(Effect.succeed(42))
  *
  *   // Use namespace types for variance
  *   const typedFiber: Fiber.Fiber<number, never> = fiber
@@ -192,7 +192,7 @@ export {
    * import { Fiber } from "effect"
    *
    * const program = Effect.gen(function* () {
-   *   const fiber = yield* Effect.fork(Effect.succeed(42))
+   *   const fiber = yield* Effect.forkChild(Effect.succeed(42))
    *   const exit = yield* Fiber.await(fiber)
    *   console.log(exit) // Exit.succeed(42)
    * })
@@ -213,8 +213,8 @@ export {
  * import { Fiber } from "effect"
  *
  * const program = Effect.gen(function* () {
- *   const fiber1 = yield* Effect.fork(Effect.succeed(1))
- *   const fiber2 = yield* Effect.fork(Effect.succeed(2))
+ *   const fiber1 = yield* Effect.forkChild(Effect.succeed(1))
+ *   const fiber2 = yield* Effect.forkChild(Effect.succeed(2))
  *   const exits = yield* Fiber.awaitAll([fiber1, fiber2])
  *   console.log(exits) // [Exit.succeed(1), Exit.succeed(2)]
  * })
@@ -244,7 +244,7 @@ export const awaitAll: <A extends Fiber<any, any>>(
  * import { Fiber } from "effect"
  *
  * const program = Effect.gen(function* () {
- *   const fiber = yield* Effect.fork(Effect.succeed(42))
+ *   const fiber = yield* Effect.forkChild(Effect.succeed(42))
  *   const result = yield* Fiber.join(fiber)
  *   console.log(result) // 42
  * })
@@ -276,7 +276,7 @@ export const joinAll: <A extends Fiber<any, any>>(
  * import { Fiber } from "effect"
  *
  * const program = Effect.gen(function* () {
- *   const fiber = yield* Effect.fork(Effect.delay("1 second")(Effect.succeed(42)))
+ *   const fiber = yield* Effect.forkChild(Effect.delay("1 second")(Effect.succeed(42)))
  *   yield* Fiber.interrupt(fiber)
  *   console.log("Fiber interrupted")
  * })
@@ -297,7 +297,7 @@ export const interrupt: <A, E>(self: Fiber<A, E>) => Effect<void> = effect.fiber
  * import { Fiber } from "effect"
  *
  * const program = Effect.gen(function* () {
- *   const targetFiber = yield* Effect.fork(
+ *   const targetFiber = yield* Effect.forkChild(
  *     Effect.delay("5 seconds")(Effect.succeed("task completed"))
  *   )
  *
@@ -327,7 +327,7 @@ export const interruptAs: {
  *
  * const program = Effect.gen(function* () {
  *   // Create multiple long-running fibers
- *   const fiber1 = yield* Effect.fork(
+ *   const fiber1 = yield* Effect.forkChild(
  *     Effect.gen(function* () {
  *       yield* Effect.sleep("5 seconds")
  *       yield* Console.log("Task 1 completed")
@@ -335,7 +335,7 @@ export const interruptAs: {
  *     })
  *   )
  *
- *   const fiber2 = yield* Effect.fork(
+ *   const fiber2 = yield* Effect.forkChild(
  *     Effect.gen(function* () {
  *       yield* Effect.sleep("3 seconds")
  *       yield* Console.log("Task 2 completed")
@@ -343,7 +343,7 @@ export const interruptAs: {
  *     })
  *   )
  *
- *   const fiber3 = yield* Effect.fork(
+ *   const fiber3 = yield* Effect.forkChild(
  *     Effect.gen(function* () {
  *       yield* Effect.sleep("4 seconds")
  *       yield* Console.log("Task 3 completed")
@@ -379,10 +379,10 @@ export const interruptAll: <A extends Iterable<Fiber<any, any>>>(
  *
  * const program = Effect.gen(function* () {
  *   // Create a controlling fiber
- *   const controllerFiber = yield* Effect.fork(Effect.succeed("controller"))
+ *   const controllerFiber = yield* Effect.forkChild(Effect.succeed("controller"))
  *
  *   // Create multiple worker fibers
- *   const worker1 = yield* Effect.fork(
+ *   const worker1 = yield* Effect.forkChild(
  *     Effect.gen(function* () {
  *       yield* Effect.sleep("5 seconds")
  *       yield* Console.log("Worker 1 completed")
@@ -390,7 +390,7 @@ export const interruptAll: <A extends Iterable<Fiber<any, any>>>(
  *     })
  *   )
  *
- *   const worker2 = yield* Effect.fork(
+ *   const worker2 = yield* Effect.forkChild(
  *     Effect.gen(function* () {
  *       yield* Effect.sleep("3 seconds")
  *       yield* Console.log("Worker 2 completed")
@@ -425,7 +425,7 @@ export const interruptAllAs: {
  *
  * const program = Effect.gen(function* () {
  *   // Create a fiber
- *   const fiber = yield* Effect.fork(Effect.succeed(42))
+ *   const fiber = yield* Effect.forkChild(Effect.succeed(42))
  *
  *   // Test if values are fibers
  *   console.log(Fiber.isFiber(fiber)) // true

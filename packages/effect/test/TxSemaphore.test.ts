@@ -241,15 +241,15 @@ describe("TxSemaphore", () => {
       Effect.gen(function*() {
         const semaphore = yield* TxSemaphore.make(3)
 
-        const fiber1 = yield* Effect.fork(
+        const fiber1 = yield* Effect.forkChild(
           TxSemaphore.withPermit(semaphore, Effect.succeed(1))
         )
 
-        const fiber2 = yield* Effect.fork(
+        const fiber2 = yield* Effect.forkChild(
           TxSemaphore.withPermit(semaphore, Effect.succeed(2))
         )
 
-        const fiber3 = yield* Effect.fork(
+        const fiber3 = yield* Effect.forkChild(
           TxSemaphore.withPermit(semaphore, Effect.succeed(3))
         )
 

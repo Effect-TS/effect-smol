@@ -502,10 +502,10 @@ const checkCapacity = <K, A, E, R>(self: Cache<K, A, E, R>) => {
  *   })
  *
  *   // Start lookup in background
- *   const getFiber = yield* Effect.fork(Cache.get(cache, "key"))
+ *   const getFiber = yield* Effect.forkChild(Cache.get(cache, "key"))
  *
  *   // getOption waits for ongoing computation
- *   const optionFiber = yield* Effect.fork(Cache.getOption(cache, "key"))
+ *   const optionFiber = yield* Effect.forkChild(Cache.getOption(cache, "key"))
  *
  *   // Complete the computation
  *   yield* Deferred.succeed(deferred, void 0)

@@ -512,7 +512,7 @@ export const makeEncoded: (encoded: Encoded) => Effect.Effect<
           requestId: Snowflake.Snowflake(envelope.envelope.requestId),
           defect: error.toString()
         })).pipe(
-          Effect.forkDaemon,
+          Effect.forkDetach,
           Effect.asVoid
         )
       }

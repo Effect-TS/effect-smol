@@ -3,7 +3,7 @@ import * as Metric from "#dist/effect/Metric"
 
 const program = Effect.gen(function*() {
   yield* Effect.succeed(1).pipe(
-    Effect.fork({ startImmediately: true })
+    Effect.forkChild({ startImmediately: true })
   )
 })
 

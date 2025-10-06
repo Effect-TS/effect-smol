@@ -97,7 +97,7 @@ describe("Pool", () => {
       yield* Effect.repeat(Ref.get(count), { until: (n) => n === 10 })
       yield* Effect.all(Effect.replicate(10)(Pool.get(pool)))
       const result = yield* Effect.scoped(Pool.get(pool)).pipe(
-        Effect.fork({ startImmediately: true })
+        Effect.forkChild({ startImmediately: true })
       )
       yield* Effect.sleep(10)
       assert.isUndefined(result.pollUnsafe())
@@ -202,7 +202,7 @@ describe("Pool", () => {
           Pool.get(pool),
           Deferred.await(deferred)
         )),
-        Effect.fork,
+        Effect.forkChild,
         Effect.repeat({ times: 14 })
       )
       yield* Effect.repeat(Ref.get(count), { until: (n) => n === 15 })
@@ -234,7 +234,7 @@ describe("Pool", () => {
           Pool.get(pool),
           Deferred.await(deferred)
         )),
-        Effect.fork,
+        Effect.forkChild,
         Effect.repeat({ times: 14 * 3 })
       )
       yield* Effect.repeat(Ref.get(count), { until: (n) => n === 15 })
@@ -293,7 +293,7 @@ describe("Pool", () => {
           Pool.get(pool),
           Deferred.await(deferred)
         )),
-        Effect.fork,
+        Effect.forkChild,
         Effect.repeat({ times: 29 })
       )
       yield* Effect.repeat(Ref.get(count), { until: (n) => n === 10 })
@@ -345,7 +345,7 @@ describe("Pool", () => {
       const pool = yield* Scope.provide(Pool.make({ acquire: get, size: 10 }), scope)
       yield* pipe(
         Effect.scoped(Pool.get(pool)),
-        Effect.fork,
+        Effect.forkChild,
         Effect.repeat({ times: 99 })
       )
       yield* Scope.close(scope, Exit.succeed(void 0))
@@ -365,7 +365,7 @@ describe("Pool", () => {
       yield* pipe(
         Pool.get(pool),
         Scope.provide(scope),
-        Effect.fork,
+        Effect.forkChild,
         Effect.repeat({ times: 99 })
       )
       yield* Scope.close(scope, Exit.succeed(void 0))
@@ -383,18 +383,18 @@ describe("Pool", () => {
       const fiberId = Fiber.getCurrent()!.id
       const pool = yield* Pool.make({ acquire: get, size: 10 })
       yield* Effect.repeat(Pool.get(pool), { times: 9 })
-      const fiber = yield* Effect.fork(Pool.get(pool))
+      const fiber = yield* Effect.forkChild(Pool.get(pool))
       yield* Fiber.interrupt(fiber)
       deepStrictEqual(fiber.pollUnsafe(), Exit.interrupt(fiberId))
     }))
 
   it.effect("get is interruptible with dynamic size", () =>
     Effect.gen(function*() {
-      const get = Effect.never.pipe(Effect.forkScoped)
+      const get = Effect.never.pipe(Effect.fork)
       const fiberId = Fiber.getCurrent()!.id
       const pool = yield* Pool.makeWithTTL({ acquire: get, min: 0, max: 10, timeToLive: Duration.infinity })
       yield* Effect.repeat(Pool.get(pool), { times: 9 })
-      const fiber = yield* Effect.fork(Pool.get(pool))
+      const fiber = yield* Effect.forkChild(Pool.get(pool))
       yield* Fiber.interrupt(fiber)
       deepStrictEqual(yield* Fiber.await(fiber), Exit.interrupt(fiberId))
     }))

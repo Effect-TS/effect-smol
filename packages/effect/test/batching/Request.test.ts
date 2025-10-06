@@ -164,7 +164,7 @@ describe.sequential("Request", () => {
     Effect.fnUntraced(
       function*() {
         const { getNames } = yield* makeUserResolver
-        const fiber = yield* Effect.fork(getNames)
+        const fiber = yield* Effect.forkChild(getNames)
         yield* Effect.yieldNow
         yield* Fiber.interrupt(fiber)
         const exit = yield* Fiber.await(fiber)
@@ -185,7 +185,7 @@ describe.sequential("Request", () => {
     Effect.fnUntraced(
       function*() {
         const { getNames } = yield* makeUserResolver
-        const fiber = yield* Effect.fork(Effect.uninterruptible(getNames))
+        const fiber = yield* Effect.forkChild(Effect.uninterruptible(getNames))
         yield* Effect.yieldNow
         yield* Fiber.interrupt(fiber)
         const exit = yield* Fiber.await(fiber)

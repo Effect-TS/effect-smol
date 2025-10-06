@@ -230,11 +230,11 @@ export const makeWithStrategy = <A, E, R>(options: {
     }
     yield* Scope.addFinalizer(scope, shutdown(self))
     yield* Effect.tap(
-      Effect.forkDaemon(restore(resize(self))),
+      Effect.forkDetach(restore(resize(self))),
       (fiber) => Scope.addFinalizer(scope, Fiber.interrupt(fiber))
     )
     yield* Effect.tap(
-      Effect.forkDaemon(restore(options.strategy.run(self))),
+      Effect.forkDetach(restore(options.strategy.run(self))),
       (fiber) => Scope.addFinalizer(scope, Fiber.interrupt(fiber))
     )
     return self

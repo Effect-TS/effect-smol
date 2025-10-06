@@ -238,7 +238,7 @@ const isInternalInterruption = Filter.toPredicate(Filter.compose(
  *
  * const program = Effect.gen(function*() {
  *   const set = yield* FiberSet.make()
- *   const fiber = yield* Effect.fork(Effect.succeed("hello"))
+ *   const fiber = yield* Effect.forkChild(Effect.succeed("hello"))
  *
  *   // Unsafe add - doesn't return an Effect
  *   FiberSet.addUnsafe(set, fiber)
@@ -306,7 +306,7 @@ export const addUnsafe: {
  *
  * const program = Effect.gen(function*() {
  *   const set = yield* FiberSet.make()
- *   const fiber = yield* Effect.fork(Effect.succeed("hello"))
+ *   const fiber = yield* Effect.forkChild(Effect.succeed("hello"))
  *
  *   // Add the fiber to the set
  *   yield* FiberSet.add(set, fiber)
@@ -452,7 +452,7 @@ const runImpl = <A, E, R, XE extends E, XA extends A>(
       return Effect.sync(constInterruptedFiber)
     }
     return Effect.tap(
-      Effect.forkDaemon(effect, options),
+      Effect.forkDetach(effect, options),
       (fiber) => addUnsafe(self, fiber, options)
     )
   })

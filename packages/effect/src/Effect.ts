@@ -6021,7 +6021,7 @@ export declare namespace Repeat {
  *
  * // Run for 5 seconds then interrupt
  * const timedProgram = Effect.gen(function* () {
- *   const fiber = yield* Effect.fork(program)
+ *   const fiber = yield* Effect.forkChild(program)
  *   yield* Effect.sleep("5 seconds")
  *   yield* Fiber.interrupt(fiber)
  * })
@@ -6878,7 +6878,7 @@ export const requestUnsafe: <A extends Request.Any>(
  * returning the fiber immediately, without waiting for it to begin executing
  * the effect.
  *
- * You can use the `fork` method whenever you want to execute an effect in a
+ * You can use the `forkChild` method whenever you want to execute an effect in a
  * new fiber, concurrently and without "blocking" the fiber executing other
  * effects. Using fibers can be tricky, so instead of using this method
  * directly, consider other higher-level methods, such as `raceWith`,
@@ -6892,7 +6892,7 @@ export const requestUnsafe: <A extends Request.Any>(
  * attached to the parent fiber's scope. This means when the parent fiber
  * terminates, the child fiber will be terminated as well, ensuring that no
  * fibers leak. This behavior is called "auto supervision", and if this
- * behavior is not desired, you may use the `forkDaemon` or `forkIn` methods.
+ * behavior is not desired, you may use the `forkDetach` or `forkIn` methods.
  *
  * @example
  * ```ts
@@ -6906,17 +6906,17 @@ export const requestUnsafe: <A extends Request.Any>(
  * })
  *
  * const program = Effect.gen(function* () {
- *   const fiber = yield* Effect.fork(longRunningTask)
+ *   const fiber = yield* Effect.forkChild(longRunningTask)
  *   yield* Effect.log("Task forked, continuing...")
  *   const result = yield* Fiber.join(fiber)
  *   return result
  * })
  * ```
  *
- * @since 2.0.0
+ * @since 4.0.0
  * @category supervision & fibers
  */
-export const fork: <
+export const forkChild: <
   Arg extends Effect<any, any, any> | {
     readonly startImmediately?: boolean | undefined
     readonly uninterruptible?: boolean | "inherit" | undefined
@@ -6928,7 +6928,7 @@ export const fork: <
     readonly uninterruptible?: boolean | "inherit" | undefined
   } | undefined
 ) => [Arg] extends [Effect<infer _A, infer _E, infer _R>] ? Effect<Fiber<_A, _E>, never, _R>
-  : <A, E, R>(self: Effect<A, E, R>) => Effect<Fiber<A, E>, never, R> = internal.fork
+  : <A, E, R>(self: Effect<A, E, R>) => Effect<Fiber<A, E>, never, R> = internal.forkChild
 
 /**
  * Forks the effect in the specified scope. The fiber will be interrupted
@@ -6993,7 +6993,7 @@ export const forkIn: {
  *
  * const program = Effect.scoped(
  *   Effect.gen(function* () {
- *     const fiber = yield* Effect.forkScoped(backgroundTask)
+ *     const fiber = yield* Effect.fork(backgroundTask)
  *     yield* Effect.log("Task forked in scope")
  *     yield* Effect.sleep("1 second")
  *     // Fiber will be interrupted when scope closes
@@ -7005,7 +7005,7 @@ export const forkIn: {
  * @since 2.0.0
  * @category supervision & fibers
  */
-export const forkScoped: <
+export const fork: <
   Arg extends Effect<any, any, any> | {
     readonly startImmediately?: boolean | undefined
     readonly uninterruptible?: boolean | "inherit" | undefined
@@ -7017,7 +7017,7 @@ export const forkScoped: <
     readonly uninterruptible?: boolean | "inherit" | undefined
   } | undefined
 ) => [Arg] extends [Effect<infer _A, infer _E, infer _R>] ? Effect<Fiber<_A, _E>, never, _R>
-  : <A, E, R>(self: Effect<A, E, R>) => Effect<Fiber<A, E>, never, R | Scope> = internal.forkScoped
+  : <A, E, R>(self: Effect<A, E, R>) => Effect<Fiber<A, E>, never, R | Scope> = internal.fork
 
 /**
  * Forks the effect into a new fiber attached to the global scope. Because the
@@ -7037,7 +7037,7 @@ export const forkScoped: <
  * })
  *
  * const program = Effect.gen(function* () {
- *   const fiber = yield* Effect.forkDaemon(daemonTask)
+ *   const fiber = yield* Effect.forkDetach(daemonTask)
  *   yield* Effect.log("Daemon started")
  *   yield* Effect.sleep("3 seconds")
  *   // Daemon continues running after this effect completes
@@ -7048,7 +7048,7 @@ export const forkScoped: <
  * @since 2.0.0
  * @category supervision & fibers
  */
-export const forkDaemon: <
+export const forkDetach: <
   Arg extends Effect<any, any, any> | {
     readonly startImmediately?: boolean | undefined
     readonly uninterruptible?: boolean | "inherit" | undefined
@@ -7060,7 +7060,7 @@ export const forkDaemon: <
     readonly uninterruptible?: boolean | "inherit" | undefined
   } | undefined
 ) => [Arg] extends [Effect<infer _A, infer _E, infer _R>] ? Effect<Fiber<_A, _E>, never, _R>
-  : <A, E, R>(self: Effect<A, E, R>) => Effect<Fiber<A, E>, never, R> = internal.forkDaemon
+  : <A, E, R>(self: Effect<A, E, R>) => Effect<Fiber<A, E>, never, R> = internal.forkDetach
 
 // -----------------------------------------------------------------------------
 // Running Effects
@@ -11030,7 +11030,7 @@ function clearTransaction(state: Transaction["Service"]) {
  *   const ref = yield* TxRef.make(0)
  *
  *   // forks a fiber that increases the value of `ref` every 100 millis
- *   yield* Effect.fork(Effect.forever(
+ *   yield* Effect.forkChild(Effect.forever(
  *     // update to transactional value
  *     TxRef.update(ref, (n) => n + 1).pipe(Effect.delay("100 millis"))
  *   ))

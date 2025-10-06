@@ -10,7 +10,7 @@ describe("TestClock", () => {
       let elapsed = false
       yield* Effect.sync(() => {
         elapsed = true
-      }).pipe(Effect.delay("10 hours"), Effect.fork)
+      }).pipe(Effect.delay("10 hours"), Effect.forkChild)
       yield* TestClock.adjust("11 hours")
       assert.isTrue(elapsed)
     }))
@@ -20,7 +20,7 @@ describe("TestClock", () => {
       let elapsed = false
       const fiber = yield* Effect.sync(() => {
         elapsed = true
-      }).pipe(Effect.delay("10 hours"), Effect.fork)
+      }).pipe(Effect.delay("10 hours"), Effect.forkChild)
       yield* TestClock.adjust("9 hours")
       assert.isUndefined(fiber.pollUnsafe())
       yield* TestClock.adjust("11 hours")
@@ -33,10 +33,10 @@ describe("TestClock", () => {
       let message = ""
       yield* Effect.sync(() => {
         message += "World!"
-      }).pipe(Effect.delay("3 hours"), Effect.forkScoped)
+      }).pipe(Effect.delay("3 hours"), Effect.fork)
       yield* Effect.sync(() => {
         message += "Hello, "
-      }).pipe(Effect.delay("1 hour"), Effect.forkScoped)
+      }).pipe(Effect.delay("1 hour"), Effect.fork)
       yield* TestClock.adjust("1 hour")
       assert.strictEqual(message, "Hello, ")
       yield* TestClock.adjust("4 hours")
@@ -48,7 +48,7 @@ describe("TestClock", () => {
       let elapsed = false
       yield* Effect.sync(() => {
         elapsed = true
-      }).pipe(Effect.delay("10 hours"), Effect.fork)
+      }).pipe(Effect.delay("10 hours"), Effect.forkChild)
       assert.isFalse(elapsed)
       yield* TestClock.setTime(Duration.toMillis(Duration.hours(11)))
       assert.isTrue(elapsed)

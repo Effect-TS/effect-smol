@@ -900,7 +900,7 @@ export const batched = dual<
           effect.forever
         )
       ).pipe(
-        effect.forkDaemon,
+        effect.forkDetach,
         effect.flatMap((fiber) => effect.scopeAddFinalizerExit(scope, () => effect.fiberInterrupt(fiber))),
         effect.andThen(effect.addFinalizer(() => flush)),
         effect.as(

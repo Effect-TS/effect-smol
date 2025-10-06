@@ -106,7 +106,7 @@ describe("FiberHandle", () => {
       const handle = yield* FiberHandle.make()
       yield* FiberHandle.run(handle, Effect.sleep(1000))
 
-      const fiber = yield* Effect.fork(FiberHandle.awaitEmpty(handle))
+      const fiber = yield* Effect.forkChild(FiberHandle.awaitEmpty(handle))
       yield* TestClock.adjust(500)
       assert.isUndefined(fiber.pollUnsafe())
       yield* TestClock.adjust(500)

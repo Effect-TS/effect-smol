@@ -265,7 +265,7 @@ const isInternalInterruption = Filter.toPredicate(Filter.compose(
  *   const map = yield* FiberMap.make<string>()
  *
  *   // Create a fiber and add it to the map
- *   const fiber = yield* Effect.fork(Effect.succeed("Hello"))
+ *   const fiber = yield* Effect.forkChild(Effect.succeed("Hello"))
  *   FiberMap.setUnsafe(map, "greeting", fiber)
  *
  *   // The fiber will be automatically removed when it completes
@@ -356,7 +356,7 @@ export const setUnsafe: {
  *   const map = yield* FiberMap.make<string>()
  *
  *   // Create a fiber and add it to the map using Effect
- *   const fiber = yield* Effect.fork(Effect.succeed("Hello"))
+ *   const fiber = yield* Effect.forkChild(Effect.succeed("Hello"))
  *   yield* FiberMap.set(map, "greeting", fiber)
  *
  *   // The fiber will be automatically removed when it completes
@@ -408,7 +408,7 @@ export const set: {
  *   const map = yield* FiberMap.make<string>()
  *
  *   // Add a fiber to the map
- *   const fiber = yield* Effect.fork(Effect.succeed("Hello"))
+ *   const fiber = yield* Effect.forkChild(Effect.succeed("Hello"))
  *   FiberMap.setUnsafe(map, "greeting", fiber)
  *
  *   // Retrieve the fiber
@@ -446,7 +446,7 @@ export const getUnsafe: {
  *   const map = yield* FiberMap.make<string>()
  *
  *   // Add a fiber to the map
- *   const fiber = yield* Effect.fork(Effect.succeed("Hello"))
+ *   const fiber = yield* Effect.forkChild(Effect.succeed("Hello"))
  *   yield* FiberMap.set(map, "greeting", fiber)
  *
  *   // Retrieve the fiber with error handling
@@ -707,7 +707,7 @@ const runImpl = <K, A, E, R, XE extends E, XA extends A>(
       return Effect.sync(constInterruptedFiber)
     }
     return Effect.tap(
-      Effect.forkDaemon(effect, options),
+      Effect.forkDetach(effect, options),
       (fiber) => setUnsafe(self, key, fiber, options)
     )
   })

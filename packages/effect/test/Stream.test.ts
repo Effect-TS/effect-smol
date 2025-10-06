@@ -41,7 +41,7 @@ describe("Stream", () => {
         })).pipe(
           Stream.tap(() => latch.open),
           Stream.runDrain,
-          Effect.fork
+          Effect.forkChild
         )
         yield* latch.await
         yield* Fiber.interrupt(fiber)
@@ -842,7 +842,7 @@ describe("Stream", () => {
         const firstFiber = yield* sharedStream.pipe(
           Stream.take(1),
           Stream.run(Sink.collectAll()),
-          Effect.fork({ startImmediately: true })
+          Effect.forkChild({ startImmediately: true })
         )
 
         yield* TestClock.adjust("1 seconds")
@@ -853,7 +853,7 @@ describe("Stream", () => {
         const secondFiber = yield* sharedStream.pipe(
           Stream.take(1),
           Stream.run(Sink.collectAll()),
-          Effect.fork({ startImmediately: true })
+          Effect.forkChild({ startImmediately: true })
         )
 
         yield* TestClock.adjust("1 seconds")
@@ -874,7 +874,7 @@ describe("Stream", () => {
         const firstFiber = yield* sharedStream.pipe(
           Stream.take(1),
           Stream.run(Sink.collectAll()),
-          Effect.fork({ startImmediately: true })
+          Effect.forkChild({ startImmediately: true })
         )
 
         yield* TestClock.adjust("1 seconds")
@@ -885,7 +885,7 @@ describe("Stream", () => {
         const secondFiber = yield* sharedStream.pipe(
           Stream.take(1),
           Stream.run(Sink.collectAll()),
-          Effect.fork({ startImmediately: true })
+          Effect.forkChild({ startImmediately: true })
         )
 
         yield* TestClock.adjust("1 seconds")
@@ -903,12 +903,12 @@ describe("Stream", () => {
         const fiber1 = yield* sharedStream.pipe(
           Stream.take(1),
           Stream.run(Sink.collectAll()),
-          Effect.fork({ startImmediately: true })
+          Effect.forkChild({ startImmediately: true })
         )
         const fiber2 = yield* sharedStream.pipe(
           Stream.take(2),
           Stream.run(Sink.collectAll()),
-          Effect.fork({ startImmediately: true })
+          Effect.forkChild({ startImmediately: true })
         )
 
         yield* TestClock.adjust("2 seconds")

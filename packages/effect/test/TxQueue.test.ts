@@ -334,7 +334,7 @@ describe("TxQueue", () => {
         const queue = yield* TxQueue.bounded<number>(5)
 
         // Start takeAll in a fiber - it should wait because queue is empty
-        const fiber = yield* Effect.fork(TxQueue.takeAll(queue))
+        const fiber = yield* Effect.forkChild(TxQueue.takeAll(queue))
 
         // Add items to the queue
         yield* TxQueue.offerAll(queue, [1, 2, 3])

@@ -531,7 +531,7 @@ const runImpl = <A, E, R, XE extends E, XA extends A>(
       return Effect.sync(constInterruptedFiber)
     }
     return Effect.tap(
-      Effect.forkDaemon(effect, options),
+      Effect.forkDetach(effect, options),
       (fiber) => setUnsafe(self, fiber, options)
     )
   })

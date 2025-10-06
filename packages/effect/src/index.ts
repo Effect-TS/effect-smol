@@ -294,7 +294,7 @@ export * as DateTime from "./DateTime.ts"
  *   const deferred = yield* Deferred.make<string, never>()
  *
  *   // Fiber 1: waits for the value
- *   const waiter = yield* Effect.fork(
+ *   const waiter = yield* Effect.forkChild(
  *     Effect.gen(function* () {
  *       const value = yield* Deferred.await(deferred)
  *       console.log("Received:", value)
@@ -303,7 +303,7 @@ export * as DateTime from "./DateTime.ts"
  *   )
  *
  *   // Fiber 2: sets the value after a delay
- *   const setter = yield* Effect.fork(
+ *   const setter = yield* Effect.forkChild(
  *     Effect.gen(function* () {
  *       yield* Effect.sleep("1 second")
  *       yield* Deferred.succeed(deferred, "Hello from setter!")
@@ -466,7 +466,7 @@ export * as Exit from "./Exit.ts"
  * // Basic fiber operations
  * const basicExample = Effect.gen(function* () {
  *   // Fork an effect to run concurrently
- *   const fiber = yield* Effect.fork(
+ *   const fiber = yield* Effect.forkChild(
  *     Effect.gen(function* () {
  *       yield* Effect.sleep("2 seconds")
  *       yield* Console.log("Background task completed")
@@ -489,8 +489,8 @@ export * as Exit from "./Exit.ts"
  *   const task2 = Effect.delay(Effect.succeed("task2"), "2 seconds")
  *
  *   // Start both effects as fibers
- *   const fiber1 = yield* Effect.fork(task1)
- *   const fiber2 = yield* Effect.fork(task2)
+ *   const fiber1 = yield* Effect.forkChild(task1)
+ *   const fiber2 = yield* Effect.forkChild(task2)
  *
  *   // Wait for both to complete
  *   const result1 = yield* Fiber.join(fiber1)

@@ -241,7 +241,7 @@ describe("Cache", () => {
           })
 
           const effects = [Cache.get(cache, "key"), Cache.get(cache, "key"), Cache.get(cache, "key")]
-          const resultsFiber = yield* Effect.all(effects, { concurrency: "unbounded" }).pipe(Effect.fork)
+          const resultsFiber = yield* Effect.all(effects, { concurrency: "unbounded" }).pipe(Effect.forkChild)
 
           yield* TestClock.adjust(Duration.millis(150))
           const results = yield* Fiber.join(resultsFiber)
@@ -259,14 +259,14 @@ describe("Cache", () => {
           })
 
           // First get starts
-          const fiber1 = yield* Cache.get(cache, "test").pipe(Effect.fork)
+          const fiber1 = yield* Cache.get(cache, "test").pipe(Effect.forkChild)
           yield* TestClock.adjust(Duration.millis(25))
 
           // Invalidate while first get is in progress
           yield* Cache.invalidate(cache, "test")
 
           // Second get starts after invalidation
-          const fiber2 = yield* Cache.get(cache, "test").pipe(Effect.fork)
+          const fiber2 = yield* Cache.get(cache, "test").pipe(Effect.forkChild)
 
           yield* TestClock.adjust(Duration.millis(100))
           const result1 = yield* Fiber.join(fiber1)
@@ -327,8 +327,8 @@ describe("Cache", () => {
             lookup: (_key) => Deferred.await(deferred).pipe(Effect.as(42))
           })
 
-          const getFiber = yield* Cache.get(cache, "test").pipe(Effect.fork)
-          const optionFiber = yield* Cache.getOption(cache, "test").pipe(Effect.fork)
+          const getFiber = yield* Cache.get(cache, "test").pipe(Effect.forkChild)
+          const optionFiber = yield* Cache.getOption(cache, "test").pipe(Effect.forkChild)
 
           yield* Deferred.succeed(deferred, void 0)
 
@@ -1286,7 +1286,7 @@ describe("Cache", () => {
             Effect.exit(Cache.get(cache, "key"))
           ],
           { concurrency: "unbounded" }
-        ).pipe(Effect.fork)
+        ).pipe(Effect.forkChild)
 
         yield* TestClock.adjust("150 millis")
         const results = yield* Fiber.join(fiber)

@@ -96,7 +96,7 @@ describe("SynchronizedRef", () => {
       const makeAndWait = Deferred.complete(deferred, SynchronizedRef.make<State>(Active)).pipe(
         Effect.andThen(Deferred.await(latch))
       )
-      const fiber = yield* Effect.fork(makeAndWait)
+      const fiber = yield* Effect.forkChild(makeAndWait)
       const ref = yield* Deferred.await(deferred)
       yield* Fiber.interrupt(fiber)
       const result = yield* SynchronizedRef.updateAndGetEffect(ref, (_) => Effect.succeed(Closed))

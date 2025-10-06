@@ -104,7 +104,7 @@ describe("FiberSet", () => {
       yield* FiberSet.run(set, Effect.sleep(1000))
       yield* FiberSet.run(set, Effect.sleep(1000))
 
-      const fiber = yield* Effect.fork(FiberSet.awaitEmpty(set))
+      const fiber = yield* Effect.forkChild(FiberSet.awaitEmpty(set))
       yield* TestClock.adjust(500)
       assert.isUndefined(fiber.pollUnsafe())
       yield* TestClock.adjust(500)

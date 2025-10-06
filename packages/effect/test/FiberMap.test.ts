@@ -132,7 +132,7 @@ describe("FiberMap", () => {
       yield* FiberMap.run(map, "c", Effect.sleep(1000))
       yield* FiberMap.run(map, "d", Effect.sleep(1000))
 
-      const fiber = yield* Effect.fork(FiberMap.awaitEmpty(map))
+      const fiber = yield* Effect.forkChild(FiberMap.awaitEmpty(map))
       yield* TestClock.adjust(500)
       assert.isUndefined(fiber.pollUnsafe())
       yield* TestClock.adjust(500)

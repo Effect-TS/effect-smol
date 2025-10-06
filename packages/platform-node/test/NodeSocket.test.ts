@@ -12,7 +12,7 @@ const makeServer = Effect.gen(function*() {
   yield* server.run(Effect.fnUntraced(function*(socket) {
     const write = yield* socket.writer
     yield* socket.run(write)
-  }, Effect.scoped)).pipe(Effect.forkScoped)
+  }, Effect.scoped)).pipe(Effect.fork)
 
   return server
 })
@@ -51,7 +51,7 @@ describe("Socket", () => {
         const server = yield* makeServer
         const socket = yield* Socket.makeWebSocket(Effect.succeed(url))
         const messages = yield* Queue.unbounded<Uint8Array>()
-        const fiber = yield* Effect.fork(socket.run((_) => Queue.offer(messages, _)))
+        const fiber = yield* Effect.forkChild(socket.run((_) => Queue.offer(messages, _)))
         yield* Effect.gen(function*() {
           const write = yield* socket.writer
           yield* write(new TextEncoder().encode("Hello"))
@@ -104,7 +104,7 @@ describe("Socket", () => {
             )
           ),
           Effect.scoped,
-          Effect.forkScoped
+          Effect.fork
         )
         const received: Array<string> = []
         yield* socket.run((chunk) =>

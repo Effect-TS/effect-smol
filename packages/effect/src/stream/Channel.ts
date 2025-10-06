@@ -1883,7 +1883,7 @@ const mapEffectConcurrent = <
         })
         yield* semaphore.take(1).pipe(
           Effect.flatMap(() => pull),
-          Effect.flatMap((value) => Effect.fork(handle(f(value)), { startImmediately: true })),
+          Effect.flatMap((value) => Effect.forkChild(handle(f(value)), { startImmediately: true })),
           Effect.forever({ autoYield: false }),
           Effect.catchCause((cause) =>
             semaphore.withPermits(concurrencyN - 1)(
@@ -1914,7 +1914,7 @@ const mapEffectConcurrent = <
 
         const handle = Effect.tapCause((cause: Cause.Cause<Types.NoInfer<EX>>) => Queue.failCause(queue, cause))
         yield* pull.pipe(
-          Effect.flatMap((value) => Effect.fork(handle(f(value)), { startImmediately: true })),
+          Effect.flatMap((value) => Effect.forkChild(handle(f(value)), { startImmediately: true })),
           Effect.flatMap((fiber) => Queue.offer(fibers, Fiber.await(fiber))),
           Effect.forever({ autoYield: false }),
           Effect.catchCause((cause) =>
@@ -3798,7 +3798,7 @@ export const mergeAll: {
                 if (halt) return
                 return yield* Queue.failCause(queue, cause as any)
               })),
-              Effect.fork
+              Effect.forkChild
             )
 
             doneLatch.closeUnsafe()
@@ -5408,7 +5408,7 @@ export const toPubSub: {
     const pubsub = yield* makePubSub<OutElem>(options)
     yield* runForEach(self, (value) => PubSub.publish(pubsub, value)).pipe(
       options.shutdownOnEnd === false ? identity_ : Effect.ensuring(PubSub.shutdown(pubsub)),
-      Effect.forkScoped
+      Effect.fork
     )
     return pubsub
   })
@@ -5490,7 +5490,7 @@ export const toPubSubArray: {
     const pubsub = yield* makePubSub<OutElem>(options)
     yield* runForEach(self, (value) => PubSub.publishAll(pubsub, value)).pipe(
       options.shutdownOnEnd === false ? identity_ : Effect.ensuring(PubSub.shutdown(pubsub)),
-      Effect.forkScoped
+      Effect.fork
     )
     return pubsub
   })
@@ -5550,7 +5550,7 @@ export const toPubSubTake: {
     const pubsub = yield* makePubSub<Take.Take<OutElem, OutErr, OutDone>>(options)
     yield* runForEach(self, (value) => PubSub.publish(pubsub, value)).pipe(
       Effect.onExit((exit) => PubSub.publish(pubsub, exit)),
-      Effect.forkScoped
+      Effect.fork
     )
     return pubsub
   })

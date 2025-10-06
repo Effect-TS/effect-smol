@@ -70,7 +70,7 @@ describe("PubSub", () => {
           )
         ),
         Effect.scoped,
-        Effect.fork({ startImmediately: true })
+        Effect.forkChild({ startImmediately: true })
       )
       yield* PubSub.publishAll(pubsub, values)
       yield* latch.open
@@ -91,7 +91,7 @@ describe("PubSub", () => {
           )
         ),
         Effect.scoped,
-        Effect.fork({ startImmediately: true })
+        Effect.forkChild({ startImmediately: true })
       )
       const subscriber2 = yield* pubsub.pipe(
         PubSub.subscribe,
@@ -102,7 +102,7 @@ describe("PubSub", () => {
           )
         ),
         Effect.scoped,
-        Effect.fork({ startImmediately: true })
+        Effect.forkChild({ startImmediately: true })
       )
       yield* PubSub.publishAll(pubsub, values)
       yield* latch.open
@@ -118,9 +118,9 @@ describe("PubSub", () => {
       const subscriber = yield* PubSub.subscribe(pubsub).pipe(
         Effect.flatMap((subscription) => Effect.forEach(values, (_) => PubSub.take(subscription))),
         Effect.scoped,
-        Effect.fork({ startImmediately: true })
+        Effect.forkChild({ startImmediately: true })
       )
-      yield* Effect.fork(PubSub.publishAll(pubsub, values))
+      yield* Effect.forkChild(PubSub.publishAll(pubsub, values))
       const result = yield* Fiber.join(subscriber)
       assert.deepStrictEqual(result, values)
     }))
@@ -131,14 +131,14 @@ describe("PubSub", () => {
       const subscriber1 = yield* PubSub.subscribe(pubsub).pipe(
         Effect.flatMap((subscription) => Effect.forEach(values, (_) => PubSub.take(subscription))),
         Effect.scoped,
-        Effect.fork({ startImmediately: true })
+        Effect.forkChild({ startImmediately: true })
       )
       const subscriber2 = yield* PubSub.subscribe(pubsub).pipe(
         Effect.flatMap((subscription) => Effect.forEach(values, (_) => PubSub.take(subscription))),
         Effect.scoped,
-        Effect.fork({ startImmediately: true })
+        Effect.forkChild({ startImmediately: true })
       )
-      yield* Effect.fork(PubSub.publishAll(pubsub, values))
+      yield* Effect.forkChild(PubSub.publishAll(pubsub, values))
       const result1 = yield* Fiber.join(subscriber1)
       const result2 = yield* Fiber.join(subscriber2)
       assert.deepStrictEqual(result1, values)
@@ -151,15 +151,15 @@ describe("PubSub", () => {
       const subscriber1 = yield* PubSub.subscribe(pubsub).pipe(
         Effect.flatMap((subscription) => Effect.forEach(values.concat(values), (_) => PubSub.take(subscription))),
         Effect.scoped,
-        Effect.fork({ startImmediately: true })
+        Effect.forkChild({ startImmediately: true })
       )
       const subscriber2 = yield* PubSub.subscribe(pubsub).pipe(
         Effect.flatMap((subscription) => Effect.forEach(values.concat(values), (_) => PubSub.take(subscription))),
         Effect.scoped,
-        Effect.fork({ startImmediately: true })
+        Effect.forkChild({ startImmediately: true })
       )
-      const fiber = yield* Effect.fork(PubSub.publishAll(pubsub, values))
-      yield* Effect.fork(PubSub.publishAll(pubsub, Array.map(values, (n) => -n)))
+      const fiber = yield* Effect.forkChild(PubSub.publishAll(pubsub, values))
+      yield* Effect.forkChild(PubSub.publishAll(pubsub, Array.map(values, (n) => -n)))
       const result1 = yield* Fiber.join(subscriber1)
       const result2 = yield* Fiber.join(subscriber2)
       yield* Fiber.join(fiber)
@@ -181,9 +181,9 @@ describe("PubSub", () => {
       const subscriber = yield* PubSub.subscribe(pubsub).pipe(
         Effect.flatMap((subscription) => Effect.forEach(values, (_) => PubSub.take(subscription))),
         Effect.scoped,
-        Effect.fork({ startImmediately: true })
+        Effect.forkChild({ startImmediately: true })
       )
-      yield* Effect.fork(Effect.forEach(values, (n) => PubSub.publish(pubsub, n)))
+      yield* Effect.forkChild(Effect.forEach(values, (n) => PubSub.publish(pubsub, n)))
       const result = yield* Fiber.join(subscriber)
       assert.deepStrictEqual(result, values)
     }))
@@ -194,14 +194,14 @@ describe("PubSub", () => {
       const subscriber1 = yield* PubSub.subscribe(pubsub).pipe(
         Effect.flatMap((subscription) => Effect.forEach(values, (_) => PubSub.take(subscription))),
         Effect.scoped,
-        Effect.fork({ startImmediately: true })
+        Effect.forkChild({ startImmediately: true })
       )
       const subscriber2 = yield* PubSub.subscribe(pubsub).pipe(
         Effect.flatMap((subscription) => Effect.forEach(values, (_) => PubSub.take(subscription))),
         Effect.scoped,
-        Effect.fork({ startImmediately: true })
+        Effect.forkChild({ startImmediately: true })
       )
-      yield* Effect.fork(Effect.forEach(values, (n) => PubSub.publish(pubsub, n)))
+      yield* Effect.forkChild(Effect.forEach(values, (n) => PubSub.publish(pubsub, n)))
       const result1 = yield* Fiber.join(subscriber1)
       const result2 = yield* Fiber.join(subscriber2)
       assert.deepStrictEqual(result1, values)
@@ -214,15 +214,15 @@ describe("PubSub", () => {
       const subscriber1 = yield* PubSub.subscribe(pubsub).pipe(
         Effect.flatMap((subscription) => Effect.forEach(values.concat(values), (_) => PubSub.take(subscription))),
         Effect.scoped,
-        Effect.fork({ startImmediately: true })
+        Effect.forkChild({ startImmediately: true })
       )
       const subscriber2 = yield* PubSub.subscribe(pubsub).pipe(
         Effect.flatMap((subscription) => Effect.forEach(values.concat(values), (_) => PubSub.take(subscription))),
         Effect.scoped,
-        Effect.fork({ startImmediately: true })
+        Effect.forkChild({ startImmediately: true })
       )
-      const fiber = yield* Effect.fork(Effect.forEach(values, (n) => PubSub.publish(pubsub, n)))
-      yield* Effect.fork(Effect.forEach(values, (n) => PubSub.publish(pubsub, -n)))
+      const fiber = yield* Effect.forkChild(Effect.forEach(values, (n) => PubSub.publish(pubsub, n)))
+      yield* Effect.forkChild(Effect.forEach(values, (n) => PubSub.publish(pubsub, -n)))
       const result1 = yield* Fiber.join(subscriber1)
       const result2 = yield* Fiber.join(subscriber2)
       yield* Fiber.join(fiber)
@@ -244,9 +244,9 @@ describe("PubSub", () => {
       const subscriber = yield* PubSub.subscribe(pubsub).pipe(
         Effect.flatMap((subscription) => Effect.forEach(values, (_) => PubSub.take(subscription))),
         Effect.scoped,
-        Effect.fork({ startImmediately: true })
+        Effect.forkChild({ startImmediately: true })
       )
-      yield* Effect.fork(Effect.forEach(values, (n) => PubSub.publish(pubsub, n)))
+      yield* Effect.forkChild(Effect.forEach(values, (n) => PubSub.publish(pubsub, n)))
       const result = yield* Fiber.join(subscriber)
       assert.deepStrictEqual(result, values)
     }))
@@ -257,14 +257,14 @@ describe("PubSub", () => {
       const subscriber1 = yield* PubSub.subscribe(pubsub).pipe(
         Effect.flatMap((subscription) => Effect.forEach(values, (_) => PubSub.take(subscription))),
         Effect.scoped,
-        Effect.fork({ startImmediately: true })
+        Effect.forkChild({ startImmediately: true })
       )
       const subscriber2 = yield* PubSub.subscribe(pubsub).pipe(
         Effect.flatMap((subscription) => Effect.forEach(values, (_) => PubSub.take(subscription))),
         Effect.scoped,
-        Effect.fork({ startImmediately: true })
+        Effect.forkChild({ startImmediately: true })
       )
-      yield* Effect.fork(PubSub.publishAll(pubsub, values))
+      yield* Effect.forkChild(PubSub.publishAll(pubsub, values))
       const result1 = yield* Fiber.join(subscriber1)
       const result2 = yield* Fiber.join(subscriber2)
       assert.deepStrictEqual(result1, values)
@@ -277,15 +277,15 @@ describe("PubSub", () => {
       const subscriber1 = yield* PubSub.subscribe(pubsub).pipe(
         Effect.flatMap((subscription) => Effect.forEach(values.concat(values), (_) => PubSub.take(subscription))),
         Effect.scoped,
-        Effect.fork({ startImmediately: true })
+        Effect.forkChild({ startImmediately: true })
       )
       const subscriber2 = yield* PubSub.subscribe(pubsub).pipe(
         Effect.flatMap((subscription) => Effect.forEach(values.concat(values), (_) => PubSub.take(subscription))),
         Effect.scoped,
-        Effect.fork({ startImmediately: true })
+        Effect.forkChild({ startImmediately: true })
       )
-      const fiber = yield* Effect.fork(PubSub.publishAll(pubsub, values))
-      yield* Effect.fork(PubSub.publishAll(pubsub, Array.map(values, (n) => -n)))
+      const fiber = yield* Effect.forkChild(PubSub.publishAll(pubsub, values))
+      yield* Effect.forkChild(PubSub.publishAll(pubsub, Array.map(values, (n) => -n)))
       const result1 = yield* Fiber.join(subscriber1)
       const result2 = yield* Fiber.join(subscriber2)
       yield* Fiber.join(fiber)
@@ -307,9 +307,9 @@ describe("PubSub", () => {
       const subscriber = yield* PubSub.subscribe(pubsub).pipe(
         Effect.flatMap((subscription) => Effect.forEach(values, (_) => PubSub.take(subscription))),
         Effect.scoped,
-        Effect.fork({ startImmediately: true })
+        Effect.forkChild({ startImmediately: true })
       )
-      yield* Effect.fork(PubSub.publishAll(pubsub, values))
+      yield* Effect.forkChild(PubSub.publishAll(pubsub, values))
 
       const result = yield* Fiber.join(subscriber)
       assert.deepStrictEqual(result, values)
@@ -321,14 +321,14 @@ describe("PubSub", () => {
       const subscriber1 = yield* PubSub.subscribe(pubsub).pipe(
         Effect.flatMap((subscription) => Effect.forEach(values, (_) => PubSub.take(subscription))),
         Effect.scoped,
-        Effect.fork({ startImmediately: true })
+        Effect.forkChild({ startImmediately: true })
       )
       const subscriber2 = yield* PubSub.subscribe(pubsub).pipe(
         Effect.flatMap((subscription) => Effect.forEach(values, (_) => PubSub.take(subscription))),
         Effect.scoped,
-        Effect.fork({ startImmediately: true })
+        Effect.forkChild({ startImmediately: true })
       )
-      yield* Effect.fork(PubSub.publishAll(pubsub, values))
+      yield* Effect.forkChild(PubSub.publishAll(pubsub, values))
       const result1 = yield* Fiber.join(subscriber1)
       const result2 = yield* Fiber.join(subscriber2)
       assert.deepStrictEqual(result1, values)
@@ -341,16 +341,16 @@ describe("PubSub", () => {
       const subscriber1 = yield* PubSub.subscribe(pubsub).pipe(
         Effect.flatMap((subscription) => Effect.forEach(values.concat(values), (_) => PubSub.take(subscription))),
         Effect.scoped,
-        Effect.fork({ startImmediately: true })
+        Effect.forkChild({ startImmediately: true })
       )
 
       const subscriber2 = yield* PubSub.subscribe(pubsub).pipe(
         Effect.flatMap((subscription) => Effect.forEach(values.concat(values), (_) => PubSub.take(subscription))),
         Effect.scoped,
-        Effect.fork({ startImmediately: true })
+        Effect.forkChild({ startImmediately: true })
       )
-      const fiber = yield* Effect.fork(PubSub.publishAll(pubsub, values))
-      yield* Effect.fork(PubSub.publishAll(pubsub, Array.map(values, (n) => -n)))
+      const fiber = yield* Effect.forkChild(PubSub.publishAll(pubsub, values))
+      yield* Effect.forkChild(PubSub.publishAll(pubsub, Array.map(values, (n) => -n)))
       const result1 = yield* Fiber.join(subscriber1)
       const result2 = yield* Fiber.join(subscriber2)
       yield* Fiber.join(fiber)

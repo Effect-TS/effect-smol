@@ -74,7 +74,7 @@ export const e2eSuite = <E>(
               users.push(user)
             })
           ),
-          Effect.fork
+          Effect.forkChild
         )
 
         yield* Effect.sleep(2000)
@@ -110,7 +110,7 @@ export const e2eSuite = <E>(
       Effect.gen(function*() {
         const client = yield* UsersClient
         const fiber = yield* client.Never().pipe(
-          Effect.fork
+          Effect.forkChild
         )
         yield* Effect.sleep(500)
         assert.isUndefined(fiber.pollUnsafe())

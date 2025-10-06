@@ -92,7 +92,7 @@ describe("SqlMessageStorage", () => {
           expect(result.lastReceivedReply._tag).toEqual("WithExit")
 
           // duplicate WithExit
-          const fiber = yield* storage.saveReply(yield* makeReply(request)).pipe(Effect.fork)
+          const fiber = yield* storage.saveReply(yield* makeReply(request)).pipe(Effect.forkChild)
           yield* TestClock.adjust(1)
           while (!fiber.pollUnsafe()) {
             yield* sql`SELECT 1`
