@@ -20,8 +20,8 @@ Suppose we have an employee object, and we want to capitalize the first characte
 **Example** (Uppercasing the first character of a street name)
 
 ```ts
-import { Optic } from "effect/optic"
 import { String } from "effect"
+import { Optic } from "effect/optic"
 
 // Define some nested data structures
 interface Street {
@@ -57,16 +57,16 @@ const from: Employee = {
 }
 
 // Build an optic that drills down to the street name
-const _name = Optic.id<Employee>()
+const _streetName = Optic.id<Employee>()
   .key("company") // access "company"
   .key("address") // access "address"
   .key("street") // access "street"
   .key("name") // access "name"
 
 // Modify the targeted value
-const capitalizeName = _name.modify(String.capitalize)
+const capitalizeStreetName = _streetName.modify(String.capitalize)
 
-console.dir(capitalizeName(from), { depth: null })
+console.dir(capitalizeStreetName(from), { depth: null })
 /*
 {
   name: 'john',
