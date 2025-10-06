@@ -308,7 +308,7 @@ describe("Stream", () => {
     it.effect("no remainder", () =>
       Effect.gen(function*() {
         const result = yield* Stream.make(1, 2, 3, 4).pipe(
-          Stream.transduce(Sink.fold(() => 100, (n) => n % 2 === 0, (acc, n) => acc + n)),
+          Stream.transduce(Sink.reduceWhile(() => 100, (n) => n % 2 === 0, (acc, n) => acc + n)),
           Stream.runCollect
         )
         assert.deepStrictEqual(result, [101, 105, 104])
@@ -317,7 +317,7 @@ describe("Stream", () => {
     it.effect("with a sink that always signals more", () =>
       Effect.gen(function*() {
         const result = yield* Stream.make(1, 2, 3).pipe(
-          Stream.transduce(Sink.fold(() => 0, constTrue, (acc, n) => acc + n)),
+          Stream.transduce(Sink.reduceWhile(() => 0, constTrue, (acc, n) => acc + n)),
           Stream.runCollect
         )
         assert.deepStrictEqual(result, [6])
