@@ -19,6 +19,7 @@ import * as Queue from "../../Queue.ts"
 import * as Ansi from "./internal/ansi.ts"
 import type * as Primitive from "./Primitive.ts"
 import type { Covariant } from "../../types/Types.ts"
+import * as Predicate from "../../data/Predicate.ts"
 
 const TypeId = "~effect/cli/Prompt"
 
@@ -37,7 +38,7 @@ export interface Prompt<Output>
  * @since 4.0.0
  * @category guards
  */
-export const isPrompt = (u: unknown): u is Prompt<unknown> => typeof u === "object" && u != null && TypeId in u
+export const isPrompt = (u: unknown): u is Prompt<unknown> => Predicate.hasProperty(u, TypeId)
 
 /**
  * Represents the services available to a custom `Prompt`.
