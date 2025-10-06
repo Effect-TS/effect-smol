@@ -3335,6 +3335,98 @@ export {
 }
 
 /**
+ * @since 4.0.0
+ * @category Error handling
+ */
+export const catchFilter: {
+  <OutErr, EB, X, OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>(
+    filter: Filter.Filter<OutErr, EB, X>,
+    f: (failure: EB) => Channel<OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>
+  ): <
+    OutElem,
+    OutDone,
+    InElem,
+    InErr,
+    InDone,
+    Env
+  >(self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>) => Channel<
+    OutElem | OutElem1,
+    X | OutErr1,
+    OutDone | OutDone1,
+    InElem & InElem1,
+    InErr & InErr1,
+    InDone & InDone1,
+    Env | Env1
+  >
+  <
+    OutElem,
+    OutErr,
+    OutDone,
+    InElem,
+    InErr,
+    InDone,
+    Env,
+    EB,
+    X,
+    OutElem1,
+    OutErr1,
+    OutDone1,
+    InElem1,
+    InErr1,
+    InDone1,
+    Env1
+  >(
+    self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
+    filter: Filter.Filter<OutErr, EB, X>,
+    f: (failure: EB) => Channel<OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>
+  ): Channel<
+    OutElem | OutElem1,
+    X | OutErr1,
+    OutDone | OutDone1,
+    InElem & InElem1,
+    InErr & InErr1,
+    InDone & InDone1,
+    Env | Env1
+  >
+} = dual(3, <
+  OutElem,
+  OutErr,
+  OutDone,
+  InElem,
+  InErr,
+  InDone,
+  Env,
+  EB,
+  X,
+  OutElem1,
+  OutErr1,
+  OutDone1,
+  InElem1,
+  InErr1,
+  InDone1,
+  Env1
+>(
+  self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
+  filter: Filter.Filter<OutErr, EB, X>,
+  f: (failure: EB) => Channel<OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>
+): Channel<
+  OutElem | OutElem1,
+  X | OutErr1,
+  OutDone | OutDone1,
+  InElem & InElem1,
+  InErr & InErr1,
+  InDone & InDone1,
+  Env | Env1
+> =>
+  catch_(
+    self,
+    (err): Channel<OutElem1, X | OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1> => {
+      const eb = filter(err)
+      return !Filter.isFail(eb) ? f(eb) : fail(eb.fail)
+    }
+  ))
+
+/**
  * Returns a new channel, which is the same as this one, except the failure
  * value of the returned channel is created by applying the specified function
  * to the failure value of this channel.
@@ -4552,6 +4644,29 @@ export const provideService: {
   service: NoInfer<S>
 ): Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Exclude<Env, I>> =>
   fromTransform((upstream, scope) => Effect.provideService(toTransform(self)(upstream, scope), key, service)))
+
+/**
+ * @since 4.0.0
+ * @category Services
+ */
+export const provideServiceEffect: {
+  <I, S, ES, RS>(
+    key: ServiceMap.Key<I, S>,
+    service: Effect.Effect<NoInfer<S>, ES, RS>
+  ): <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>(
+    self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>
+  ) => Channel<OutElem, OutErr | ES, OutDone, InElem, InErr, InDone, Exclude<Env, I> | RS>
+  <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, I, S, ES, RS>(
+    self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
+    key: ServiceMap.Key<I, S>,
+    service: Effect.Effect<NoInfer<S>, ES, RS>
+  ): Channel<OutElem, OutErr | ES, OutDone, InElem, InErr, InDone, Exclude<Env, I> | RS>
+} = dual(3, <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, I, S, ES, RS>(
+  self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
+  key: ServiceMap.Key<I, S>,
+  service: Effect.Effect<NoInfer<S>, ES, RS>
+): Channel<OutElem, OutErr | ES, OutDone, InElem, InErr, InDone, Exclude<Env, I> | RS> =>
+  fromTransform((upstream, scope) => Effect.provideServiceEffect(toTransform(self)(upstream, scope), key, service)))
 
 /**
  * @since 4.0.0

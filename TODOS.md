@@ -100,7 +100,7 @@ The exports under each section are organized as they are in Effect 3.0. The cate
 |  `fromReadableStreamByob`  |   -    |                                      |          |
 |       `fromSchedule`       |  Done  |            `fromSchedule`            |          |
 |       `fromTPubSub`        |   -    |                                      |          |
-|        `fromTQueue`        |   -    |                                      |          |
+|        `fromTQueue`        |   -    |            `fromTxQueue`             |          |
 |         `iterate`          |  Done  |                                      |          |
 |           `make`           |  Done  |                `make`                |          |
 |          `never`           |  Done  |               `never`                |          |
@@ -136,19 +136,19 @@ The exports under each section are organized as they are in Effect 3.0. The cate
 
 |        Effect 3        | Ported |     Effect 4      | Comments |
 | :--------------------: | :----: | :---------------: | :------: |
-|       `context`        |   -    |                   |          |
-|     `contextWith`      |   -    |                   |          |
-|  `contextWithEffect`   |   -    |                   |          |
-|  `contextWithStream`   |   -    |                   |          |
-|   `mapInputContext`    |   -    |                   |          |
+|       `context`        |   X    |     `unwrap`      |          |
+|     `contextWith`      |   X    |     `unwrap`      |          |
+|  `contextWithEffect`   |   X    |     `unwrap`      |          |
+|  `contextWithStream`   |   X    |     `unwrap`      |          |
+|   `mapInputContext`    |  Done  | `updateServices`  |          |
 |    `provideContext`    |  Done  | `provideServices` |          |
-|     `provideLayer`     |   -    |     `provide`     |          |
-|    `provideService`    |   -    |                   |          |
-| `provideServiceEffect` |   -    |                   |          |
-| `provideServiceStream` |   -    |                   |          |
-|  `provideSomeContext`  |   -    |                   |          |
-|   `provideSomeLayer`   |   -    |                   |          |
-|    `updateService`     |   -    |                   |          |
+|     `provideLayer`     |  Done  |     `provide`     |          |
+|    `provideService`    |  Done  |                   |          |
+| `provideServiceEffect` |  Done  |                   |          |
+| `provideServiceStream` |   X    |                   |          |
+|  `provideSomeContext`  |  Done  | `provideServices` |          |
+|   `provideSomeLayer`   |  Done  |     `provide`     |          |
+|    `updateService`     |  Done  |                   |          |
 
 ### Destructors
 
@@ -222,7 +222,7 @@ The exports under each section are organized as they are in Effect 3.0. The cate
 | :-------------------: | :----: | :-------------------: | :------: |
 |      `catchAll`       |  Done  |        `catch`        |          |
 |    `catchAllCause`    |  Done  |     `catchCause`      |          |
-|      `catchSome`      |   -    |     `catchFilter`     |          |
+|      `catchSome`      |  Done  |     `catchFilter`     |          |
 |   `catchSomeCause`    |  Done  |  `catchCauseFilter`   |          |
 |      `catchTag`       |   -    |                       |          |
 |      `catchTags`      |   -    |                       |          |

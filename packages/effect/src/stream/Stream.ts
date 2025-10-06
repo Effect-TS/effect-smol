@@ -15,6 +15,7 @@ import * as Fiber from "../Fiber.ts"
 import type { LazyArg } from "../Function.ts"
 import { constant, constTrue, constVoid, dual, identity } from "../Function.ts"
 import { type Pipeable, pipeArguments } from "../interfaces/Pipeable.ts"
+import type * as Layer from "../Layer.ts"
 import type * as PubSub from "../PubSub.ts"
 import * as Queue from "../Queue.ts"
 import * as RcMap from "../RcMap.ts"
@@ -1865,6 +1866,26 @@ export {
 }
 
 /**
+ * @since 4.0.0
+ * @category Error handling
+ */
+export const catchFilter: {
+  <E, EB, X, A2, E2, R2>(
+    filter: Filter.Filter<E, EB, X>,
+    f: (failure: EB) => Stream<A2, E2, R2>
+  ): <A, R>(self: Stream<A, E, R>) => Stream<A | A2, X | E2, R | R2>
+  <A, E, R, EB, X, A2, E2, R2>(
+    self: Stream<A, E, R>,
+    filter: Filter.Filter<E, EB, X>,
+    f: (failure: EB) => Stream<A2, E2, R2>
+  ): Stream<A | A2, X | E2, R | R2>
+} = dual(3, <A, E, R, EB, X, A2, E2, R2>(
+  self: Stream<A, E, R>,
+  filter: Filter.Filter<E, EB, X>,
+  f: (failure: EB) => Stream<A2, E2, R2>
+): Stream<A | A2, X | E2, R | R2> => fromChannel(Channel.catchFilter(toChannel(self), filter, (e) => f(e).channel)))
+
+/**
  * Transforms the errors emitted by this stream using `f`.
  *
  * @since 2.0.0
@@ -2984,6 +3005,25 @@ export const ensuring: {
 )
 
 /**
+ * @since 4.0.0
+ * @category Services
+ */
+export const provide: {
+  <AL, EL = never, RL = never>(
+    layer: Layer.Layer<AL, EL, RL> | ServiceMap.ServiceMap<AL>
+  ): <A, E, R>(
+    self: Stream<A, E, R>
+  ) => Stream<A, E | EL, Exclude<R, AL> | RL>
+  <A, E, R, AL, EL = never, RL = never>(
+    self: Stream<A, E, R>,
+    layer: Layer.Layer<AL, EL, RL> | ServiceMap.ServiceMap<AL>
+  ): Stream<A, E | EL, Exclude<R, AL> | RL>
+} = dual(2, <A, E, R, AL, EL = never, RL = never>(
+  self: Stream<A, E, R>,
+  layer: Layer.Layer<AL, EL, RL> | ServiceMap.ServiceMap<AL>
+): Stream<A, E | EL, Exclude<R, AL> | RL> => fromChannel(Channel.provide(self.channel, layer)))
+
+/**
  * Provides the stream with some of its required services, which eliminates its
  * dependency on `R`.
  *
@@ -2998,6 +3038,75 @@ export const provideServices: {
   <A, E, R, R2>(self: Stream<A, E, R>, services: ServiceMap.ServiceMap<R2>): Stream<A, E, Exclude<R, R2>> =>
     fromChannel(Channel.provideServices(self.channel, services))
 )
+
+/**
+ * @since 4.0.0
+ * @category Services
+ */
+export const provideServiceEffect: {
+  <I, S, ES, RS>(
+    key: ServiceMap.Key<I, S>,
+    service: Effect.Effect<NoInfer<S>, ES, RS>
+  ): <A, E, R>(
+    self: Stream<A, E, R>
+  ) => Stream<A, E | ES, Exclude<R, I> | RS>
+  <A, E, R, I, S, ES, RS>(
+    self: Stream<A, E, R>,
+    key: ServiceMap.Key<I, S>,
+    service: Effect.Effect<NoInfer<S>, ES, RS>
+  ): Stream<A, E | ES, Exclude<R, I> | RS>
+} = dual(3, <A, E, R, I, S, ES, RS>(
+  self: Stream<A, E, R>,
+  key: ServiceMap.Key<I, S>,
+  service: Effect.Effect<NoInfer<S>, ES, RS>
+): Stream<A, E | ES, Exclude<R, I> | RS> => fromChannel(Channel.provideServiceEffect(self.channel, key, service)))
+
+/**
+ * @since 2.0.0
+ * @category Services
+ */
+export const updateServices: {
+  <R, R2>(
+    f: (services: ServiceMap.ServiceMap<R2>) => ServiceMap.ServiceMap<R>
+  ): <A, E>(
+    self: Stream<A, E, R>
+  ) => Stream<A, E, R2>
+  <A, E, R, R2>(
+    self: Stream<A, E, R>,
+    f: (services: ServiceMap.ServiceMap<R2>) => ServiceMap.ServiceMap<R>
+  ): Stream<A, E, R2>
+} = dual(2, <A, E, R, R2>(
+  self: Stream<A, E, R>,
+  f: (services: ServiceMap.ServiceMap<R2>) => ServiceMap.ServiceMap<R>
+): Stream<A, E, R2> => fromChannel(Channel.updateServices(self.channel, f)))
+
+/**
+ * @since 2.0.0
+ * @category Services
+ */
+export const updateService: {
+  <I, S>(
+    key: ServiceMap.Key<I, S>,
+    f: (service: NoInfer<S>) => S
+  ): <A, E, R>(
+    self: Stream<A, E, R>
+  ) => Stream<A, E, R | I>
+  <A, E, R, I, S>(
+    self: Stream<A, E, R>,
+    key: ServiceMap.Key<I, S>,
+    f: (service: NoInfer<S>) => S
+  ): Stream<A, E, R | I>
+} = dual(3, <A, E, R, I, S>(
+  self: Stream<A, E, R>,
+  key: ServiceMap.Key<I, S>,
+  f: (service: NoInfer<S>) => S
+): Stream<A, E, R | I> =>
+  updateServices(self, (services) =>
+    ServiceMap.add(
+      services,
+      key,
+      f(ServiceMap.get(services, key))
+    )))
 
 /**
  * @since 4.0.0
