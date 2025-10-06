@@ -402,7 +402,7 @@ export const run: (
   })
 
   const encodeNotification = Schema.encodeUnknownEffect(
-    Serializer.json(Schema.Union(Array.from(ServerNotificationRpcs.requests.values(), (rpc) => rpc.payloadSchema)))
+    Schema.Union(Array.from(ServerNotificationRpcs.requests.values(), (rpc) => rpc.payloadSchema))
   )
   yield* Queue.take(server.notificationsQueue).pipe(
     Effect.flatMap(Effect.fnUntraced(function*(request) {
@@ -560,7 +560,7 @@ export const registerToolkit: <Tools extends AiTool.Any>(toolkit: AiToolkit.AiTo
     const mcpTool = new Tool({
       name: tool.name,
       description: tool.description!,
-      inputSchema: makeJsonSchema(Serializer.json(tool.parametersSchema)),
+      inputSchema: makeJsonSchema(tool.parametersSchema),
       annotations: {
         ...(ServiceMap.getOption(tool.annotations, AiTool.Title).pipe(
           Option.map((title) => ({ title })),
@@ -880,7 +880,7 @@ export const registerPrompt = <
     arguments: args
   })
   const decode = options.parameters
-    ? Schema.decodeEffect(Serializer.json(Schema.Struct(props)))
+    ? Schema.decodeEffect(Schema.Struct(props))
     : () => Effect.succeed({} as Params)
   const completion: Record<string, (input: string) => Effect.Effect<any>> = options.completion ?? {}
   return Effect.gen(function*() {
@@ -983,7 +983,7 @@ export const elicit: <S extends Schema.Codec<any, Record<string, unknown>, any, 
 }) {
   const { getClient } = yield* McpServerClient
   const client = yield* getClient
-  const schema = Serializer.json(options.schema)
+  const schema = options.schema
   const request = Elicit.payloadSchema.makeUnsafe({
     message: options.message,
     requestedSchema: makeJsonSchema(schema)
