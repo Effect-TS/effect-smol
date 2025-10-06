@@ -18,6 +18,7 @@ import * as Terminal from "../../platform/Terminal.ts"
 import * as Queue from "../../Queue.ts"
 import * as Ansi from "./internal/ansi.ts"
 import type * as Primitive from "./Primitive.ts"
+import type { Covariant } from "../../types/Types.ts"
 
 const TypeId = "~effect/cli/Prompt"
 
@@ -26,10 +27,9 @@ const TypeId = "~effect/cli/Prompt"
  * @category models
  */
 export interface Prompt<Output>
-  extends Pipeable.Pipeable, Effect.Yieldable<Prompt<Output>, Output, Terminal.QuitError, Environment>
-{
+  extends Pipeable.Pipeable, Effect.Yieldable<Prompt<Output>, Output, Terminal.QuitError, Environment> {
   readonly [TypeId]: {
-    readonly _Output: (_: never) => Output
+    readonly _Output: Covariant<Output>
   }
 }
 
