@@ -273,11 +273,14 @@ export const make = Effect.fnUntraced(function*<
     )
 
     function onDefect(cause: Cause.Cause<never>): Effect.Effect<void> {
+      if (!activeServers.has(address.entityId)) {
+        return endLatch.open
+      }
       const effect = writeRef.rebuildUnsafe()
       defectRequestIds = Array.from(activeRequests.keys())
       return Effect.logError("Defect in entity, restarting", cause).pipe(
         Effect.andThen(Effect.ignore(retryDriver(void 0))),
-        Effect.andThen(effect),
+        Effect.flatMap((_) => activeServers.has(address.entityId) ? effect : endLatch.open),
         Effect.annotateLogs({
           module: "EntityManager",
           address,
