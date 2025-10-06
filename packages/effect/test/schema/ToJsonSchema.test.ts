@@ -128,17 +128,222 @@ describe("ToJsonSchema", () => {
     })
 
     describe("topLevelReferenceStrategy", () => {
-      it(`"skip"`, async () => {
-        const schema = Schema.String.annotate({ identifier: "ID" })
-        const definitions = {}
-        await assertDraft7(schema, {
-          "$schema": "http://json-schema.org/draft-07/schema",
-          "type": "string"
-        }, {
-          topLevelReferenceStrategy: "skip",
-          definitions
+      describe(`"skip"`, () => {
+        it("top level identifier", async () => {
+          const schema = Schema.String.annotate({ identifier: "ID" })
+          const definitions = {}
+          await assertDraft7(schema, {
+            "$schema": "http://json-schema.org/draft-07/schema",
+            "type": "string"
+          }, {
+            topLevelReferenceStrategy: "skip",
+            definitions
+          })
+          deepStrictEqual(definitions, {})
         })
-        deepStrictEqual(definitions, {})
+
+        it("nested identifiers", async () => {
+          class A extends Schema.Class<A>("A")({ s: Schema.String.annotate({ identifier: "ID4" }) }) {}
+          const schema = Schema.Struct({
+            a: Schema.String.annotate({ identifier: "ID" }),
+            b: Schema.Struct({
+              c: Schema.String.annotate({ identifier: "ID3" })
+            }).annotate({ identifier: "ID2" }),
+            d: A
+          })
+          const definitions = {}
+          await assertDraft7(schema, {
+            "type": "object",
+            "properties": {
+              "a": {
+                "type": "string"
+              },
+              "b": {
+                "type": "object",
+                "properties": {
+                  "c": { "type": "string" }
+                },
+                "required": ["c"],
+                "additionalProperties": false
+              },
+              "d": {
+                "type": "object",
+                "properties": {
+                  "s": { "type": "string" }
+                },
+                "required": ["s"],
+                "additionalProperties": false
+              }
+            },
+            "required": ["a", "b", "d"],
+            "additionalProperties": false
+          }, {
+            topLevelReferenceStrategy: "skip",
+            definitions
+          })
+          deepStrictEqual(definitions, {})
+        })
+
+        describe("Suspend", () => {
+          it("inner annotation", async () => {
+            interface A {
+              readonly a: string
+              readonly as: ReadonlyArray<A>
+            }
+            const schema = Schema.Struct({
+              a: Schema.String.annotate({ identifier: "ID" }),
+              as: Schema.Array(Schema.suspend((): Schema.Codec<A> => schema.annotate({ identifier: "A" })))
+            })
+            await assertDraft7(schema, {
+              "$defs": {
+                "A": {
+                  "type": "object",
+                  "required": [
+                    "a",
+                    "as"
+                  ],
+                  "properties": {
+                    "a": {
+                      "type": "string"
+                    },
+                    "as": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/$defs/A"
+                      }
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "type": "object",
+              "required": [
+                "a",
+                "as"
+              ],
+              "properties": {
+                "a": {
+                  "type": "string"
+                },
+                "as": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/A"
+                  }
+                }
+              },
+              "additionalProperties": false
+            }, {
+              topLevelReferenceStrategy: "skip"
+            })
+          })
+
+          it("outer annotation", async () => {
+            interface A {
+              readonly a: string
+              readonly as: ReadonlyArray<A>
+            }
+            const schema = Schema.Struct({
+              a: Schema.String.annotate({ identifier: "ID" }),
+              as: Schema.Array(Schema.suspend((): Schema.Codec<A> => schema).annotate({ identifier: "A" }))
+            })
+            await assertDraft7(schema, {
+              "$defs": {
+                "A": {
+                  "type": "object",
+                  "required": [
+                    "a",
+                    "as"
+                  ],
+                  "properties": {
+                    "a": {
+                      "type": "string"
+                    },
+                    "as": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/$defs/A"
+                      }
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "type": "object",
+              "required": [
+                "a",
+                "as"
+              ],
+              "properties": {
+                "a": {
+                  "type": "string"
+                },
+                "as": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/A"
+                  }
+                }
+              },
+              "additionalProperties": false
+            }, {
+              topLevelReferenceStrategy: "skip"
+            })
+          })
+
+          it("top annotation", async () => {
+            interface A {
+              readonly a: string
+              readonly as: ReadonlyArray<A>
+            }
+            const schema = Schema.Struct({
+              a: Schema.String.annotate({ identifier: "ID" }),
+              as: Schema.Array(Schema.suspend((): Schema.Codec<A> => schema))
+            }).annotate({ identifier: "A" })
+            await assertDraft7(schema, {
+              "type": "object",
+              "properties": {
+                "a": {
+                  "type": "string"
+                },
+                "as": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/A"
+                  }
+                }
+              },
+              "required": [
+                "a",
+                "as"
+              ],
+              "additionalProperties": false,
+              "$defs": {
+                "A": {
+                  "type": "object",
+                  "properties": {
+                    "a": {
+                      "type": "string"
+                    },
+                    "as": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/$defs/A"
+                      }
+                    }
+                  },
+                  "required": [
+                    "a",
+                    "as"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }, {
+              topLevelReferenceStrategy: "skip"
+            })
+          })
+        })
       })
     })
 

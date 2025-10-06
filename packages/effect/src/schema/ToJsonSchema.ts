@@ -164,15 +164,15 @@ function make<S extends Schema.Top>(schema: S, options?: Options): JsonSchema {
   const target = options?.target ?? "draft-07"
   const additionalPropertiesStrategy = options?.additionalPropertiesStrategy ?? "strict"
   const topLevelReferenceStrategy = options?.topLevelReferenceStrategy ?? "keep"
-  const skipId = topLevelReferenceStrategy === "skip"
   const out: JsonSchema = {
     $schema: get$schema(target),
     ...go(schema.ast, [], {
       definitions,
       getRef,
       target,
+      topLevelReferenceStrategy,
       additionalPropertiesStrategy
-    }, skipId)
+    })
   }
   if (Object.keys(definitions).length > 0) {
     out.$defs = definitions
@@ -312,6 +312,7 @@ type GoOptions = {
   readonly definitions: Record<string, JsonSchema>
   readonly getRef: (id: string) => string
   readonly target: Target
+  readonly topLevelReferenceStrategy: TopLevelReferenceStrategy
   readonly additionalPropertiesStrategy: AdditionalPropertiesStrategy
 }
 
@@ -378,7 +379,10 @@ function go(
   // ---------------------------------------------
   // handle identifier annotation
   // ---------------------------------------------
-  if (!ignoreIdentifier) {
+  if (
+    !ignoreIdentifier &&
+    (options.topLevelReferenceStrategy !== "skip" || AST.isSuspend(ast))
+  ) {
     const identifier = getId(ast)
     if (identifier !== undefined) {
       const escapedIdentifier = identifier.replace(/~/ig, "~0").replace(/\//ig, "~1")
