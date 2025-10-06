@@ -14,6 +14,7 @@ import { format } from "../interfaces/Inspectable.ts"
 import type { Literal } from "../schema/AST.ts"
 import { runChecks, runRefine } from "../schema/AST.ts"
 import * as Check from "../schema/Check.ts"
+import type { IsUnion } from "../types/Types.ts"
 import * as AST from "./AST.ts"
 
 /**
@@ -78,6 +79,8 @@ export function fromRefine<T extends E, E>(refine: Check.Refine<T, E>): Prism<E,
   return make(new AST.Check([refine]))
 }
 
+type ForbidUnion<A, Message extends string> = IsUnion<A> extends true ? [Message] : []
+
 /**
  * @category Optional
  * @since 4.0.0
@@ -94,11 +97,27 @@ export interface Optional<in out S, in out A> {
 
   modify(f: (a: A) => A): (s: S) => S
 
-  key<S, A extends object, Key extends keyof A>(this: Lens<S, A>, key: Key): Lens<S, A[Key]>
-  key<S, A extends object, Key extends keyof A>(this: Optional<S, A>, key: Key): Optional<S, A[Key]>
+  key<S, A extends object, Key extends keyof A>(
+    this: Lens<S, A>,
+    key: Key,
+    ..._err: ForbidUnion<A, "cannot use `key` on a union type">
+  ): Lens<S, A[Key]>
+  key<S, A extends object, Key extends keyof A>(
+    this: Optional<S, A>,
+    key: Key,
+    ..._err: ForbidUnion<A, "cannot use `key` on a union type">
+  ): Optional<S, A[Key]>
 
-  optionalKey<S, A extends object, Key extends keyof A>(this: Lens<S, A>, key: Key): Lens<S, A[Key] | undefined>
-  optionalKey<S, A extends object, Key extends keyof A>(this: Optional<S, A>, key: Key): Optional<S, A[Key] | undefined>
+  optionalKey<S, A extends object, Key extends keyof A>(
+    this: Lens<S, A>,
+    key: Key,
+    ..._err: ForbidUnion<A, "cannot use `optionalKey` on a union type">
+  ): Lens<S, A[Key] | undefined>
+  optionalKey<S, A extends object, Key extends keyof A>(
+    this: Optional<S, A>,
+    key: Key,
+    ..._err: ForbidUnion<A, "cannot use `optionalKey` on a union type">
+  ): Optional<S, A[Key] | undefined>
 
   check<S, A>(this: Prism<S, A>, ...checks: readonly [Check.Check<A>, ...Array<Check.Check<A>>]): Prism<S, A>
   check<S, A>(this: Optional<S, A>, ...checks: readonly [Check.Check<A>, ...Array<Check.Check<A>>]): Optional<S, A>
@@ -115,21 +134,41 @@ export interface Optional<in out S, in out A> {
     tag: Tag
   ): Optional<S, Extract<A, { readonly _tag: Tag }>>
 
-  at<S, A extends object, Key extends keyof A>(this: Optional<S, A>, key: Key): Optional<S, A[Key]>
+  at<S, A extends object, Key extends keyof A>(
+    this: Optional<S, A>,
+    key: Key,
+    ..._err: ForbidUnion<A, "cannot use `at` on a union type">
+  ): Optional<S, A[Key]>
 
   /**
    * An optic that accesses a group of keys of a struct.
    */
-  pick<S, A, Keys extends ReadonlyArray<keyof A>>(this: Lens<S, A>, keys: Keys): Lens<S, Pick<A, Keys[number]>>
-  pick<S, A, Keys extends ReadonlyArray<keyof A>>(this: Optional<S, A>, keys: Keys): Optional<S, Pick<A, Keys[number]>>
+  pick<S, A, Keys extends ReadonlyArray<keyof A>>(
+    this: Lens<S, A>,
+    keys: Keys,
+    ..._err: ForbidUnion<A, "cannot use `pick` on a union type">
+  ): Lens<S, Pick<A, Keys[number]>>
+  pick<S, A, Keys extends ReadonlyArray<keyof A>>(
+    this: Optional<S, A>,
+    keys: Keys,
+    ..._err: ForbidUnion<A, "cannot use `pick` on a union type">
+  ): Optional<S, Pick<A, Keys[number]>>
 
   /**
    * An optic that excludes a group of keys of a struct.
    *
    * @since 1.0.0
    */
-  omit<S, A, Keys extends ReadonlyArray<keyof A>>(this: Lens<S, A>, keys: Keys): Lens<S, Omit<A, Keys[number]>>
-  omit<S, A, Keys extends ReadonlyArray<keyof A>>(this: Optional<S, A>, keys: Keys): Optional<S, Omit<A, Keys[number]>>
+  omit<S, A, Keys extends ReadonlyArray<keyof A>>(
+    this: Lens<S, A>,
+    keys: Keys,
+    ..._err: ForbidUnion<A, "cannot use `omit` on a union type">
+  ): Lens<S, Omit<A, Keys[number]>>
+  omit<S, A, Keys extends ReadonlyArray<keyof A>>(
+    this: Optional<S, A>,
+    keys: Keys,
+    ..._err: ForbidUnion<A, "cannot use `omit` on a union type">
+  ): Optional<S, Omit<A, Keys[number]>>
 
   /**
    * Focuses **all elements** of an array-like focus and then narrows to a
@@ -234,7 +273,7 @@ class OptionalImpl<S, A> implements Optional<S, A> {
       )
     )
   }
-  at(key: PropertyKey): any {
+  at(key: PropertyKey, ..._rest: Array<any>): any {
     const err = Result.fail(`Key ${format(key)} not found`)
     return make(
       AST.compose(

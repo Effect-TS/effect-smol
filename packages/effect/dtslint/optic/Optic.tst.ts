@@ -5,6 +5,11 @@ import { describe, expect, it } from "tstyche"
 
 describe("Optic", () => {
   describe("key", () => {
+    it("should not be allowed on union types", () => {
+      type S = { readonly _tag: "A"; readonly a?: string } | { readonly _tag: "B"; readonly a?: number }
+      expect(Optic.id<S>().key).type.not.toBeCallableWith("_tag")
+    })
+
     it("optional key (with undefined)", () => {
       type S = { readonly a?: number | undefined }
       const optic = Optic.id<S>().key("a")
@@ -14,6 +19,11 @@ describe("Optic", () => {
   })
 
   describe("optionalKey", () => {
+    it("should not be allowed on union types", () => {
+      type S = { readonly _tag: "A"; readonly a?: string } | { readonly _tag: "B"; readonly a?: number }
+      expect(Optic.id<S>().key).type.not.toBeCallableWith("a")
+    })
+
     describe("Struct", () => {
       it("exact optional key (without undefined)", () => {
         type S = { readonly a?: number }
@@ -47,7 +57,22 @@ describe("Optic", () => {
     })
   })
 
+  describe("at", () => {
+    it("should not be allowed on union types", () => {
+      type S =
+        | Record<string, string>
+        | Record<string, number>
+
+      expect(Optic.id<S>().at).type.not.toBeCallableWith("a")
+    })
+  })
+
   describe("pick", () => {
+    it("should not be allowed on union types", () => {
+      type S = { readonly _tag: "A"; readonly a?: string } | { readonly _tag: "B"; readonly a?: number }
+      expect(Optic.id<S>().pick).type.not.toBeCallableWith(["a"])
+    })
+
     it("Struct", () => {
       type S = { readonly a: string; readonly b: number; readonly c: boolean }
       const optic = Optic.id<S>().pick(["a", "c"])
@@ -57,6 +82,11 @@ describe("Optic", () => {
   })
 
   describe("omit", () => {
+    it("should not be allowed on union types", () => {
+      type S = { readonly _tag: "A"; readonly a?: string } | { readonly _tag: "B"; readonly a?: number }
+      expect(Optic.id<S>().omit).type.not.toBeCallableWith(["a"])
+    })
+
     it("Struct", () => {
       type S = { readonly a: string; readonly b: number; readonly c: boolean }
       const optic = Optic.id<S>().omit(["b"])

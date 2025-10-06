@@ -533,3 +533,9 @@ export interface unassigned {
 export interface unhandled {
   readonly _: unique symbol
 }
+
+/**
+ * @since 4.0.0
+ * @category types
+ */
+export type IsUnion<T> = [T] extends [UnionToIntersection<T>] ? false : true
