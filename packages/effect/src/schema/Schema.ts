@@ -4,11 +4,9 @@
 
 import type { StandardSchemaV1 } from "@standard-schema/spec"
 import * as Cause_ from "../Cause.ts"
-import * as Arr from "../collections/Array.ts"
 import type { Brand } from "../data/Brand.ts"
 import type * as Combiner from "../data/Combiner.ts"
 import * as Data from "../data/Data.ts"
-import * as Equivalence from "../data/Equivalence.ts"
 import * as Option_ from "../data/Option.ts"
 import * as Predicate from "../data/Predicate.ts"
 import * as Record_ from "../data/Record.ts"
@@ -3834,14 +3832,7 @@ export function ReadonlyMap<Key extends Top, Value extends Top>(key: Key, value:
       },
       equivalence: { // TODO: fix this
         _tag: "Override",
-        override: ([key, value]) => {
-          const entries = Arr.getEquivalence(
-            Equivalence.make<[Key["Type"], Value["Type"]]>(([ka, va], [kb, vb]) => key(ka, kb) && value(va, vb))
-          )
-          return Equivalence.make((a, b) =>
-            entries(globalThis.Array.from(a.entries()).sort(), globalThis.Array.from(b.entries()).sort())
-          )
-        }
+        override: ([key, value]) => Equal.makeCompareMap(key, value)
       },
       format: {
         _tag: "Override",
@@ -3924,14 +3915,9 @@ export function ReadonlySet<Value extends Top>(value: Value): ReadonlySet$<Value
           ).map((as) => new globalThis.Set(as))
         }
       },
-      equivalence: { // TODO: fix this
+      equivalence: {
         _tag: "Override",
-        override: ([value]) => {
-          const values = Arr.getEquivalence(value)
-          return Equivalence.make((a, b) =>
-            values(globalThis.Array.from(a.values()).sort(), globalThis.Array.from(b.values()).sort())
-          )
-        }
+        override: ([value]) => Equal.makeCompareSet(value)
       },
       format: {
         _tag: "Override",

@@ -543,7 +543,9 @@ describe("Equal - Structural Equality Behavior", () => {
     it("should return true for structurally identical maps", () => {
       const map1 = new Map([["a", 1], ["b", 2]])
       const map2 = new Map([["a", 1], ["b", 2]])
+      const map3 = new Map([["b", 2], ["a", 1]])
       expect(Equal.equals(map1, map2)).toBe(true)
+      expect(Equal.equals(map1, map3)).toBe(true)
     })
 
     it("should return true for same reference", () => {

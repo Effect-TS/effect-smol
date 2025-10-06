@@ -267,39 +267,49 @@ function compareRecords(
   return true
 }
 
-function compareMaps(self: Map<unknown, unknown>, that: Map<unknown, unknown>): boolean {
-  for (const [selfKey, selfValue] of self) {
-    let found = false
-    for (const [thatKey, thatValue] of that) {
-      if (compareBoth(selfKey, thatKey) && compareBoth(selfValue, thatValue)) {
-        found = true
-        break
+/** @internal */
+export function makeCompareMap<K, V>(keyEquivalence: Equivalence<K>, valueEquivalence: Equivalence<V>) {
+  return function compareMaps(self: ReadonlyMap<K, V>, that: ReadonlyMap<K, V>): boolean {
+    for (const [selfKey, selfValue] of self) {
+      let found = false
+      for (const [thatKey, thatValue] of that) {
+        if (keyEquivalence(selfKey, thatKey) && valueEquivalence(selfValue, thatValue)) {
+          found = true
+          break
+        }
+      }
+      if (!found) {
+        return false
       }
     }
-    if (!found) {
-      return false
-    }
-  }
 
-  return true
+    return true
+  }
 }
 
-function compareSets(self: Set<unknown>, that: Set<unknown>): boolean {
-  for (const selfValue of self) {
-    let found = false
-    for (const thatValue of that) {
-      if (compareBoth(selfValue, thatValue)) {
-        found = true
-        break
+const compareMaps = makeCompareMap(compareBoth, compareBoth)
+
+/** @internal */
+export function makeCompareSet<A>(equivalence: Equivalence<A>) {
+  return function compareSets(self: ReadonlySet<A>, that: ReadonlySet<A>): boolean {
+    for (const selfValue of self) {
+      let found = false
+      for (const thatValue of that) {
+        if (equivalence(selfValue, thatValue)) {
+          found = true
+          break
+        }
+      }
+      if (!found) {
+        return false
       }
     }
-    if (!found) {
-      return false
-    }
-  }
 
-  return true
+    return true
+  }
 }
+
+const compareSets = makeCompareSet(compareBoth)
 
 /**
  * Determines if a value implements the `Equal` interface.

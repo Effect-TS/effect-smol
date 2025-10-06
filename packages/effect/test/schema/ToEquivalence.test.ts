@@ -4,6 +4,20 @@ import { Check, Schema, ToEquivalence } from "effect/schema"
 import { describe, it } from "vitest"
 import { assertFalse, assertTrue } from "../utils/assert.ts"
 
+const Modulo2 = Schema.Number.annotate({
+  equivalence: {
+    _tag: "Override",
+    override: (): Equivalence.Equivalence<number> => Equivalence.make((a, b) => a % 2 === b % 2)
+  }
+})
+
+const Modulo3 = Schema.Number.annotate({
+  equivalence: {
+    _tag: "Override",
+    override: (): Equivalence.Equivalence<number> => Equivalence.make((a, b) => a % 3 === b % 3)
+  }
+})
+
 describe("ToEquivalence", () => {
   it("String", () => {
     const schema = Schema.String
@@ -320,39 +334,61 @@ describe("ToEquivalence", () => {
     assertFalse(equivalence(Redacted.make("a"), Redacted.make("b")))
   })
 
-  it("Option(Number)", () => {
-    const schema = Schema.Option(Schema.Number)
+  it("Option(Modulo2)", () => {
+    const schema = Schema.Option(Modulo2)
     const equivalence = ToEquivalence.make(schema)
+
     assertTrue(equivalence(Option.none(), Option.none()))
-    assertTrue(equivalence(Option.some(1), Option.some(1)))
-    assertFalse(equivalence(Option.none(), Option.some(1)))
-    assertFalse(equivalence(Option.some(1), Option.none()))
-    assertFalse(equivalence(Option.some(1), Option.some(2)))
+    assertTrue(equivalence(Option.some(0), Option.some(2)))
+    assertTrue(equivalence(Option.some(1), Option.some(3)))
+
+    assertFalse(equivalence(Option.none(), Option.some(0)))
+    assertFalse(equivalence(Option.some(0), Option.none()))
+    assertFalse(equivalence(Option.some(0), Option.some(1)))
   })
 
-  it("Result(Number, String)", () => {
-    const schema = Schema.Result(Schema.Number, Schema.String)
+  it("Result(Modulo2, Modulo3)", () => {
+    const schema = Schema.Result(Modulo2, Modulo3)
     const equivalence = ToEquivalence.make(schema)
-    assertTrue(equivalence(Result.succeed(1), Result.succeed(1)))
-    assertFalse(equivalence(Result.succeed(1), Result.succeed(2)))
 
-    assertTrue(equivalence(Result.fail("a"), Result.fail("a")))
-    assertFalse(equivalence(Result.fail("a"), Result.fail("b")))
+    assertTrue(equivalence(Result.succeed(0), Result.succeed(2)))
+    assertTrue(equivalence(Result.succeed(1), Result.succeed(3)))
+    assertTrue(equivalence(Result.fail(0), Result.fail(3)))
+    assertTrue(equivalence(Result.fail(1), Result.fail(4)))
+    assertTrue(equivalence(Result.fail(2), Result.fail(5)))
 
-    assertFalse(equivalence(Result.succeed(1), Result.fail("a")))
-    assertFalse(equivalence(Result.fail("a"), Result.succeed(1)))
+    assertFalse(equivalence(Result.succeed(0), Result.fail(2)))
+    assertFalse(equivalence(Result.fail(0), Result.succeed(3)))
   })
 
-  it("ReadonlyMap(String, Number)", () => {
-    const schema = Schema.ReadonlyMap(Schema.String, Schema.Number)
+  it("ReadonlySet(Modulo2)", () => {
+    const schema = Schema.ReadonlySet(Modulo2)
     const equivalence = ToEquivalence.make(schema)
+
+    assertTrue(equivalence(new Set(), new Set()))
+    assertTrue(equivalence(new Set([0]), new Set([0])))
+    assertTrue(equivalence(new Set([0]), new Set([2])))
+    assertTrue(equivalence(new Set([0, 1]), new Set([1, 0])))
+    assertTrue(equivalence(new Set([0, 1]), new Set([2, 3])))
+
+    assertFalse(equivalence(new Set([0]), new Set([1])))
+    assertFalse(equivalence(new Set([0, 1]), new Set([2, 2])))
+  })
+
+  it("ReadonlyMap(Modulo2, Modulo3)", () => {
+    const schema = Schema.ReadonlyMap(Modulo2, Modulo3)
+    const equivalence = ToEquivalence.make(schema)
+
     assertTrue(equivalence(new Map(), new Map()))
-    assertTrue(equivalence(new Map([["a", 1]]), new Map([["a", 1]])))
-    assertTrue(equivalence(new Map([["a", 1], ["b", 2]]), new Map([["a", 1], ["b", 2]])))
-    assertTrue(equivalence(new Map([["b", 2], ["a", 1]]), new Map([["a", 1], ["b", 2]])))
-    assertFalse(equivalence(new Map([["a", 1]]), new Map([["a", 2]])))
-    assertFalse(equivalence(new Map([["a", 1]]), new Map([["a", 1], ["b", 2]])))
-    assertFalse(equivalence(new Map([["a", 1], ["b", 2]]), new Map([["a", 1]])))
+    assertTrue(equivalence(new Map([[0, 1]]), new Map([[0, 1]])))
+    assertTrue(equivalence(new Map([[0, 1]]), new Map([[2, 4]])))
+    assertTrue(equivalence(new Map([[0, 1], [1, 2]]), new Map([[0, 1], [1, 2]])))
+    assertTrue(equivalence(new Map([[0, 1], [1, 2]]), new Map([[1, 2], [0, 1]])))
+
+    assertFalse(equivalence(new Map([[0, 1]]), new Map([[1, 1]])))
+    assertFalse(equivalence(new Map([[0, 1]]), new Map([[0, 2]])))
+    assertFalse(equivalence(new Map([[0, 1], [1, 2]]), new Map([[0, 1], [1, 3]])))
+    assertFalse(equivalence(new Map([[0, 1], [1, 2]]), new Map([[0, 1], [2, 2]])))
   })
 
   it("Duration", () => {
