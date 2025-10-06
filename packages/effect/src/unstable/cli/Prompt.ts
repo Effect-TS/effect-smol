@@ -510,7 +510,7 @@ export declare namespace All {
    */
   export type ReturnTuple<T extends ReadonlyArray<unknown>> = Prompt<
     T[number] extends never ? []
-      : { -readonly [K in keyof T]: [T[K]] extends [Prompt<infer _A>] ? _A : never }
+    : { -readonly [K in keyof T]: [T[K]] extends [Prompt<infer _A>] ? _A : never }
   > extends infer X ? X : never
 
   /**
@@ -569,7 +569,7 @@ export declare namespace All {
  */
 export const all: <
   const Arg extends Iterable<Prompt<any>> | Record<string, Prompt<any>>
->(arg: Arg) => All.Return<Arg> = function() {
+>(arg: Arg) => All.Return<Arg> = function () {
   if (arguments.length === 1) {
     if (isPrompt(arguments[0])) {
       return map(arguments[0], (x) => [x]) as any
@@ -715,7 +715,7 @@ export const file = (options: FileOptions = {}): Prompt<string> => {
     FileState,
     never,
     Environment
-  > = Effect.gen(function*() {
+  > = Effect.gen(function* () {
     const path = Option.none<string>()
     const currentPath = yield* resolveCurrentPath(path, opts)
     const files = yield* getFileList(currentPath, opts)
@@ -1006,22 +1006,19 @@ interface Loop extends
     readonly render: Handlers<unknown, unknown>["render"]
     readonly process: Handlers<unknown, unknown>["process"]
     readonly clear: Handlers<unknown, unknown>["clear"]
-  }>
-{}
+  }> { }
 
 /** @internal */
 export interface OnSuccess extends
   Op<"OnSuccess", {
     readonly prompt: PromptPrimitive
     readonly onSuccess: (value: unknown) => Prompt<unknown>
-  }>
-{}
+  }> { }
 
 interface Succeed extends
   Op<"Succeed", {
     readonly value: unknown
-  }>
-{}
+  }> { }
 
 const allTupled = <const T extends ArrayLike<Prompt<any>>>(arg: T): Prompt<
   {
@@ -1066,7 +1063,7 @@ const runWithInput = <Output>(
   })
 
 const runLoop = Effect.fnUntraced(
-  function*(
+  function* (
     loop: Loop,
     terminal: Terminal.Terminal,
     input: Queue.Dequeue<Terminal.UserInput>
@@ -1103,7 +1100,7 @@ const Action = Data.taggedEnum<ActionDefinition>()
 /**
  * Clears all lines taken up by the specified `text`.
  */
-function eraseText(text: string, columns: number): string {
+const eraseText = (text: string, columns: number): string => {
   if (columns === 0) {
     return Ansi.eraseLine + Ansi.cursorTo(0)
   }
@@ -1115,7 +1112,7 @@ function eraseText(text: string, columns: number): string {
   return Ansi.eraseLines(rows)
 }
 
-function lines(prompt: string, columns: number): number {
+const lines = (prompt: string, columns: number): number => {
   const lines = prompt.split(NEWLINE_REGEX)
   return columns === 0
     ? lines.length
@@ -1125,7 +1122,7 @@ function lines(prompt: string, columns: number): number {
     )
 }
 
-interface ConfirmOptionsReq extends Required<ConfirmOptions> {}
+interface ConfirmOptionsReq extends Required<ConfirmOptions> { }
 
 interface ConfirmState {
   readonly value: boolean
@@ -1133,7 +1130,7 @@ interface ConfirmState {
 
 const renderBeep = Ansi.beep
 
-const handleConfirmClear = Effect.fnUntraced(function*(options: ConfirmOptionsReq) {
+const handleConfirmClear = Effect.fnUntraced(function* (options: ConfirmOptionsReq) {
   const terminal = yield* Terminal.Terminal
   const columns = yield* terminal.columns
   const clearOutput = eraseText(options.message, columns)
@@ -1143,12 +1140,12 @@ const handleConfirmClear = Effect.fnUntraced(function*(options: ConfirmOptionsRe
 
 const NEWLINE_REGEX = /\r?\n/
 
-function renderConfirmOutput(
+const renderConfirmOutput = (
   confirm: string,
   leadingSymbol: string,
   trailingSymbol: string,
   options: ConfirmOptionsReq
-) {
+) => {
   const prefix = leadingSymbol + " "
   return Arr.match(options.message.split(NEWLINE_REGEX), {
     onEmpty: () => prefix + " " + trailingSymbol + " " + confirm,
@@ -1159,7 +1156,7 @@ function renderConfirmOutput(
   })
 }
 
-const renderConfirmNextFrame = Effect.fnUntraced(function*(state: ConfirmState, options: ConfirmOptionsReq) {
+const renderConfirmNextFrame = Effect.fnUntraced(function* (state: ConfirmState, options: ConfirmOptionsReq) {
   const figures = yield* platformFigures
   const leadingSymbol = Ansi.annotate("?", Ansi.cyanBright)
   const trailingSymbol = Ansi.annotate(figures.pointerSmall, Ansi.blackBright)
@@ -1174,7 +1171,7 @@ const renderConfirmNextFrame = Effect.fnUntraced(function*(state: ConfirmState, 
   return Ansi.cursorHide + promptMsg
 })
 
-const renderConfirmSubmission = Effect.fnUntraced(function*(value: boolean, options: ConfirmOptionsReq) {
+const renderConfirmSubmission = Effect.fnUntraced(function* (value: boolean, options: ConfirmOptionsReq) {
   const figures = yield* platformFigures
   const leadingSymbol = Ansi.annotate(figures.tick, Ansi.green)
   const trailingSymbol = Ansi.annotate(figures.ellipsis, Ansi.blackBright)
@@ -1183,7 +1180,7 @@ const renderConfirmSubmission = Effect.fnUntraced(function*(value: boolean, opti
   return promptMsg + "\n"
 })
 
-function handleConfirmRender(options: ConfirmOptionsReq) {
+const handleConfirmRender = (options: ConfirmOptionsReq) => {
   return (_: ConfirmState, action: Action<ConfirmState, boolean>) => {
     return Action.$match(action, {
       Beep: () => Effect.succeed(renderBeep),
@@ -1196,7 +1193,7 @@ function handleConfirmRender(options: ConfirmOptionsReq) {
 const TRUE_VALUE_REGEX = /^y|t$/
 const FALSE_VALUE_REGEX = /^n|f$/
 
-function handleConfirmProcess(input: Terminal.UserInput, defaultValue: boolean) {
+const handleConfirmProcess = (input: Terminal.UserInput, defaultValue: boolean) => {
   const value = Option.getOrElse(input.input, () => "")
   if (input.key.name === "enter" || input.key.name === "return") {
     return Effect.succeed(Action.Submit({ value: defaultValue }))
@@ -1210,7 +1207,7 @@ function handleConfirmProcess(input: Terminal.UserInput, defaultValue: boolean) 
   return Effect.succeed(Action.Beep())
 }
 
-interface DateOptionsReq extends Required<DateOptions> {}
+interface DateOptionsReq extends Required<DateOptions> { }
 
 interface DateState {
   readonly typed: string
@@ -1220,8 +1217,8 @@ interface DateState {
   readonly error: Option.Option<string>
 }
 
-function handleDateClear(options: DateOptionsReq) {
-  return Effect.fnUntraced(function*(state: DateState, _: Action<DateState, globalThis.Date>) {
+const handleDateClear = (options: DateOptionsReq) => {
+  return Effect.fnUntraced(function* (state: DateState, _: Action<DateState, globalThis.Date>) {
     const terminal = yield* Terminal.Terminal
     const columns = yield* terminal.columns
     const resetCurrentLine = Ansi.eraseLine + Ansi.cursorLeft
@@ -1234,7 +1231,7 @@ function handleDateClear(options: DateOptionsReq) {
   })
 }
 
-function renderDateError(state: DateState, pointer: string) {
+const renderDateError = (state: DateState, pointer: string) => {
   return Option.match(state.error, {
     onNone: () => "",
     onSome: (error) => {
@@ -1249,7 +1246,7 @@ function renderDateError(state: DateState, pointer: string) {
   })
 }
 
-function renderParts(state: DateState, submitted: boolean = false) {
+const renderParts = (state: DateState, submitted: boolean = false) => {
   return Arr.reduce(
     state.dateParts,
     "",
@@ -1264,12 +1261,12 @@ function renderParts(state: DateState, submitted: boolean = false) {
   )
 }
 
-function renderDateOutput(
+const renderDateOutput = (
   leadingSymbol: string,
   trailingSymbol: string,
   parts: string,
   options: DateOptionsReq
-) {
+) => {
   const prefix = leadingSymbol + " "
   return Arr.match(options.message.split(NEWLINE_REGEX), {
     onEmpty: () => prefix + " " + trailingSymbol + " " + parts,
@@ -1280,7 +1277,7 @@ function renderDateOutput(
   })
 }
 
-const renderDateNextFrame = Effect.fnUntraced(function*(state: DateState, options: DateOptionsReq) {
+const renderDateNextFrame = Effect.fnUntraced(function* (state: DateState, options: DateOptionsReq) {
   const figures = yield* platformFigures
   const leadingSymbol = Ansi.annotate("?", Ansi.cyanBright)
   const trailingSymbol = Ansi.annotate(figures.pointerSmall, Ansi.blackBright)
@@ -1290,7 +1287,7 @@ const renderDateNextFrame = Effect.fnUntraced(function*(state: DateState, option
   return Ansi.cursorHide + promptMsg + errorMsg
 })
 
-const renderDateSubmission = Effect.fnUntraced(function*(state: DateState, options: DateOptionsReq) {
+const renderDateSubmission = Effect.fnUntraced(function* (state: DateState, options: DateOptionsReq) {
   const figures = yield* platformFigures
   const leadingSymbol = Ansi.annotate(figures.tick, Ansi.green)
   const trailingSymbol = Ansi.annotate(figures.ellipsis, Ansi.blackBright)
@@ -1299,21 +1296,21 @@ const renderDateSubmission = Effect.fnUntraced(function*(state: DateState, optio
   return promptMsg + "\n"
 })
 
-function processUp(state: DateState) {
+const processUp = (state: DateState) => {
   state.dateParts[state.cursor].increment()
   return Action.NextFrame({
     state: { ...state, typed: "" }
   })
 }
 
-function processDown(state: DateState) {
+const processDown = (state: DateState) => {
   state.dateParts[state.cursor].decrement()
   return Action.NextFrame({
     state: { ...state, typed: "" }
   })
 }
 
-function processDateCursorLeft(state: DateState) {
+const processDateCursorLeft = (state: DateState) => {
   const previousPart = state.dateParts[state.cursor].previousPart()
   return Option.match(previousPart, {
     onNone: () => Action.Beep(),
@@ -1328,7 +1325,7 @@ function processDateCursorLeft(state: DateState) {
   })
 }
 
-function processDateCursorRight(state: DateState) {
+const processDateCursorRight = (state: DateState) => {
   const nextPart = state.dateParts[state.cursor].nextPart()
   return Option.match(nextPart, {
     onNone: () => Action.Beep(),
@@ -1343,7 +1340,7 @@ function processDateCursorRight(state: DateState) {
   })
 }
 
-function processDateNext(state: DateState) {
+const processDateNext = (state: DateState) => {
   const nextPart = state.dateParts[state.cursor].nextPart()
   const cursor = Option.match(nextPart, {
     onNone: () => state.dateParts.findIndex((part) => !part.isToken()),
@@ -1354,7 +1351,7 @@ function processDateNext(state: DateState) {
   })
 }
 
-function defaultDateProcessor(value: string, state: DateState) {
+const defaultDateProcessor = (value: string, state: DateState) => {
   if (/\d/.test(value)) {
     const typed = state.typed + value
     state.dateParts[state.cursor].setValue(typed)
@@ -1385,7 +1382,7 @@ const defaultLocales: DateOptionsReq["locales"] = {
   weekdaysShort: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
 }
 
-function handleDateRender(options: DateOptionsReq) {
+const handleDateRender = (options: DateOptionsReq) => {
   return (state: DateState, action: Action<DateState, globalThis.Date>) => {
     return Action.$match(action, {
       Beep: () => Effect.succeed(renderBeep),
@@ -1395,7 +1392,7 @@ function handleDateRender(options: DateOptionsReq) {
   }
 }
 
-function handleDateProcess(options: DateOptionsReq) {
+const handleDateProcess = (options: DateOptionsReq) => {
   return (input: Terminal.UserInput, state: DateState) => {
     switch (input.key.name) {
       case "left": {
@@ -1552,9 +1549,9 @@ abstract class DatePart {
 }
 
 class Token extends DatePart {
-  increment(): void {}
+  increment(): void { }
 
-  decrement(): void {}
+  decrement(): void { }
 
   setValue(value: string): void {
     this.token = this.token + value
@@ -1758,7 +1755,7 @@ class Meridiem extends DatePart {
     this.increment()
   }
 
-  setValue(_value: string): void {}
+  setValue(_value: string): void { }
 
   override toString() {
     const meridiem = this.date.getHours() > 12 ? "pm" : "am"
@@ -1788,10 +1785,10 @@ const Confirm = Data.taggedEnum<Confirm>()
 
 const showConfirmation = Confirm.$is("Show")
 
-function resolveCurrentPath(
+const resolveCurrentPath = (
   path: Option.Option<string>,
   options: FileOptionsReq
-): Effect.Effect<string, never, FileSystem.FileSystem> {
+): Effect.Effect<string, never, FileSystem.FileSystem> => {
   return Option.match(path, {
     onNone: () =>
       Option.match(options.startingPath, {
@@ -1812,7 +1809,7 @@ function resolveCurrentPath(
   })
 }
 
-const getFileList = Effect.fnUntraced(function*(directory: string, options: FileOptionsReq) {
+const getFileList = Effect.fnUntraced(function* (directory: string, options: FileOptionsReq) {
   const fs = yield* FileSystem.FileSystem
   const path = yield* Path.Path
   const files = yield* Effect.orDie(fs.readDirectory(directory)).pipe(
@@ -1835,8 +1832,8 @@ const getFileList = Effect.fnUntraced(function*(directory: string, options: File
   }, { concurrency: files.length })
 })
 
-function handleFileClear(options: FileOptionsReq) {
-  return Effect.fnUntraced(function*(state: FileState, _: Action<FileState, string>) {
+const handleFileClear = (options: FileOptionsReq) => {
+  return Effect.fnUntraced(function* (state: FileState, _: Action<FileState, string>) {
     const terminal = yield* Terminal.Terminal
     const columns = yield* terminal.columns
     const currentPath = yield* resolveCurrentPath(state.path, options)
@@ -1849,12 +1846,12 @@ function handleFileClear(options: FileOptionsReq) {
   })
 }
 
-function renderPrompt(
+const renderPrompt = (
   confirm: string,
   message: string,
   leadingSymbol: string,
   trailingSymbol: string
-) {
+) => {
   const prefix = leadingSymbol + " "
   return Arr.match(message.split(NEWLINE_REGEX), {
     onEmpty: () => prefix + " " + trailingSymbol + " " + confirm,
@@ -1865,13 +1862,13 @@ function renderPrompt(
   })
 }
 
-function renderPrefix(
+const renderPrefix = (
   state: FileState,
   toDisplay: { readonly startIndex: number; readonly endIndex: number },
   currentIndex: number,
   length: number,
   figures: Effect.Success<typeof platformFigures>
-) {
+) => {
   let prefix = " "
   if (currentIndex === toDisplay.startIndex && toDisplay.startIndex > 0) {
     prefix = figures.arrowUp
@@ -1883,18 +1880,18 @@ function renderPrefix(
     : prefix + " "
 }
 
-function renderFileName(file: string, isSelected: boolean) {
+const renderFileName = (file: string, isSelected: boolean) => {
   return isSelected
     ? Ansi.annotate(file, Ansi.combine(Ansi.underlined, Ansi.cyanBright))
     : file
 }
 
-function renderFiles(
+const renderFiles = (
   state: FileState,
   files: ReadonlyArray<string>,
   figures: Effect.Success<typeof platformFigures>,
   options: FileOptionsReq
-) {
+) => {
   const length = files.length
   const toDisplay = entriesToDisplay(state.cursor, length, options.maxPerPage)
   const documents: Array<string> = []
@@ -1907,7 +1904,7 @@ function renderFiles(
   return documents.join("\n")
 }
 
-const renderFileNextFrame = Effect.fnUntraced(function*(state: FileState, options: FileOptionsReq) {
+const renderFileNextFrame = Effect.fnUntraced(function* (state: FileState, options: FileOptionsReq) {
   const path = yield* Path.Path
   const figures = yield* platformFigures
   const currentPath = yield* resolveCurrentPath(state.path, options)
@@ -1929,7 +1926,7 @@ const renderFileNextFrame = Effect.fnUntraced(function*(state: FileState, option
   return Ansi.cursorHide + promptMsg + "\n" + resolvedPathMsg + "\n" + files
 })
 
-const renderFileSubmission = Effect.fnUntraced(function*(value: string, options: FileOptionsReq) {
+const renderFileSubmission = Effect.fnUntraced(function* (value: string, options: FileOptionsReq) {
   const figures = yield* platformFigures
   const leadingSymbol = Ansi.annotate(figures.tick, Ansi.green)
   const trailingSymbol = Ansi.annotate(figures.ellipsis, Ansi.blackBright)
@@ -1937,7 +1934,7 @@ const renderFileSubmission = Effect.fnUntraced(function*(value: string, options:
   return promptMsg + " " + Ansi.annotate(value, Ansi.white) + "\n"
 })
 
-function handleFileRender(options: FileOptionsReq) {
+const handleFileRender = (options: FileOptionsReq) => {
   return (
     _: FileState,
     action: Action<FileState, string>
@@ -1950,20 +1947,20 @@ function handleFileRender(options: FileOptionsReq) {
   }
 }
 
-function processFileCursorUp(state: FileState) {
+const processFileCursorUp = (state: FileState) => {
   const cursor = state.cursor - 1
   return Effect.succeed(Action.NextFrame({
     state: { ...state, cursor: cursor < 0 ? state.files.length - 1 : cursor }
   }))
 }
 
-function processFileCursorDown(state: FileState) {
+const processFileCursorDown = (state: FileState) => {
   return Effect.succeed(Action.NextFrame({
     state: { ...state, cursor: (state.cursor + 1) % state.files.length }
   }))
 }
 
-const processSelection = Effect.fnUntraced(function*(state: FileState, options: FileOptionsReq) {
+const processSelection = Effect.fnUntraced(function* (state: FileState, options: FileOptionsReq) {
   const fs = yield* FileSystem.FileSystem
   const path = yield* Path.Path
   const currentPath = yield* resolveCurrentPath(state.path, options)
@@ -1998,8 +1995,8 @@ const processSelection = Effect.fnUntraced(function*(state: FileState, options: 
   return Action.Submit({ value: resolvedPath })
 })
 
-function handleFileProcess(options: FileOptionsReq) {
-  return Effect.fnUntraced(function*(input: Terminal.UserInput, state: FileState) {
+const handleFileProcess = (options: FileOptionsReq) => {
+  return Effect.fnUntraced(function* (input: Terminal.UserInput, state: FileState) {
     switch (input.key.name) {
       case "k":
       case "up": {
@@ -2051,8 +2048,8 @@ function handleFileProcess(options: FileOptionsReq) {
   })
 }
 
-interface SelectOptionsReq<A> extends Required<SelectOptions<A>> {}
-interface MultiSelectOptionsReq extends MultiSelectOptions {}
+interface SelectOptionsReq<A> extends Required<SelectOptions<A>> { }
+interface MultiSelectOptionsReq extends MultiSelectOptions { }
 
 type MultiSelectState = {
   index: number
@@ -2060,7 +2057,7 @@ type MultiSelectState = {
   error: Option.Option<string>
 }
 
-function renderMultiSelectError(state: MultiSelectState, pointer: string) {
+const renderMultiSelectError = (state: MultiSelectState, pointer: string) => {
   return Option.match(state.error, {
     onNone: () => "",
     onSome: (error) =>
@@ -2075,10 +2072,10 @@ function renderMultiSelectError(state: MultiSelectState, pointer: string) {
   })
 }
 
-function renderChoiceDescription<A>(
+const renderChoiceDescription = <A>(
   choice: SelectChoice<A>,
   isActive: boolean
-) {
+) => {
   if (!choice.disabled && choice.description && isActive) {
     return Ansi.annotate("-" + " " + choice.description, Ansi.blackBright)
   }
@@ -2087,11 +2084,11 @@ function renderChoiceDescription<A>(
 
 const metaOptionsCount = 2
 
-function renderMultiSelectChoices<A>(
+const renderMultiSelectChoices = <A>(
   state: MultiSelectState,
   options: SelectOptionsReq<A> & MultiSelectOptionsReq,
   figures: Effect.Success<typeof platformFigures>
-) {
+) => {
   const choices = options.choices
   const totalChoices = choices.length
   const selectedCount = state.selectedIndices.size
@@ -2167,20 +2164,20 @@ const renderMultiSelectSubmission = Effect.fnUntraced(
   }
 )
 
-function processMultiSelectCursorUp(state: MultiSelectState, totalChoices: number) {
+const processMultiSelectCursorUp = (state: MultiSelectState, totalChoices: number) => {
   const newIndex = state.index === 0 ? totalChoices - 1 : state.index - 1
   return Effect.succeed(Action.NextFrame({ state: { ...state, index: newIndex } }))
 }
 
-function processMultiSelectCursorDown(state: MultiSelectState, totalChoices: number) {
+const processMultiSelectCursorDown = (state: MultiSelectState, totalChoices: number) => {
   const newIndex = (state.index + 1) % totalChoices
   return Effect.succeed(Action.NextFrame({ state: { ...state, index: newIndex } }))
 }
 
-function processSpace<A>(
+const processSpace = <A>(
   state: MultiSelectState,
   options: SelectOptionsReq<A>
-) {
+) => {
   const selectedIndices = new Set(state.selectedIndices)
   if (state.index === 0) {
     if (state.selectedIndices.size === options.choices.length) {
@@ -2218,7 +2215,7 @@ const handleMultiSelectClear = Effect.fnUntraced(function*<A>(options: SelectOpt
   return clearOutput + clearPrompt
 })
 
-function handleMultiSelectProcess<A>(options: SelectOptionsReq<A> & MultiSelectOptionsReq) {
+const handleMultiSelectProcess = <A>(options: SelectOptionsReq<A> & MultiSelectOptionsReq) => {
   return (input: Terminal.UserInput, state: MultiSelectState) => {
     const totalChoices = options.choices.length + metaOptionsCount
     switch (input.key.name) {
@@ -2259,7 +2256,7 @@ function handleMultiSelectProcess<A>(options: SelectOptionsReq<A> & MultiSelectO
   }
 }
 
-function handleMultiSelectRender<A>(options: SelectOptionsReq<A>) {
+const handleMultiSelectRender = <A>(options: SelectOptionsReq<A>) => {
   return (state: MultiSelectState, action: Action<MultiSelectState, Array<A>>) => {
     return Action.$match(action, {
       Beep: () => Effect.succeed(renderBeep),
@@ -2269,8 +2266,8 @@ function handleMultiSelectRender<A>(options: SelectOptionsReq<A>) {
   }
 }
 
-interface IntegerOptionsReq extends Required<IntegerOptions> {}
-interface FloatOptionsReq extends Required<FloatOptions> {}
+interface IntegerOptionsReq extends Required<IntegerOptions> { }
+interface FloatOptionsReq extends Required<FloatOptions> { }
 
 interface NumberState {
   readonly cursor: number
@@ -2278,8 +2275,8 @@ interface NumberState {
   readonly error: Option.Option<string>
 }
 
-function handleNumberClear(options: IntegerOptionsReq) {
-  return Effect.fnUntraced(function*(state: NumberState, _: Action<NumberState, number>) {
+const handleNumberClear = (options: IntegerOptionsReq) => {
+  return Effect.fnUntraced(function* (state: NumberState, _: Action<NumberState, number>) {
     const terminal = yield* Terminal.Terminal
     const columns = yield* terminal.columns
     const resetCurrentLine = Ansi.eraseLine + Ansi.cursorLeft
@@ -2292,7 +2289,7 @@ function handleNumberClear(options: IntegerOptionsReq) {
   })
 }
 
-function renderNumberInput(state: NumberState, submitted: boolean) {
+const renderNumberInput = (state: NumberState, submitted: boolean) => {
   const annotation = Option.match(state.error, {
     onNone: () => Ansi.combine(Ansi.underlined, Ansi.cyanBright),
     onSome: () => Ansi.red
@@ -2301,7 +2298,7 @@ function renderNumberInput(state: NumberState, submitted: boolean) {
   return submitted ? value : Ansi.annotate(value, annotation)
 }
 
-function renderNumberError(state: NumberState, pointer: string) {
+const renderNumberError = (state: NumberState, pointer: string) => {
   return Option.match(state.error, {
     onNone: () => "",
     onSome: (error) =>
@@ -2316,13 +2313,13 @@ function renderNumberError(state: NumberState, pointer: string) {
   })
 }
 
-function renderNumberOutput(
+const renderNumberOutput = (
   state: NumberState,
   leadingSymbol: string,
   trailingSymbol: string,
   options: IntegerOptionsReq,
   submitted: boolean = false
-) {
+) => {
   const prefix = leadingSymbol + " "
   return Arr.match(options.message.split(NEWLINE_REGEX), {
     onEmpty: () => prefix + " " + trailingSymbol + " " + renderNumberInput(state, submitted),
@@ -2333,7 +2330,7 @@ function renderNumberOutput(
   })
 }
 
-const renderNumberNextFrame = Effect.fnUntraced(function*(state: NumberState, options: IntegerOptionsReq) {
+const renderNumberNextFrame = Effect.fnUntraced(function* (state: NumberState, options: IntegerOptionsReq) {
   const figures = yield* platformFigures
   const leadingSymbol = Ansi.annotate("?", Ansi.cyanBright)
   const trailingSymbol = Ansi.annotate(figures.pointerSmall, Ansi.blackBright)
@@ -2342,7 +2339,7 @@ const renderNumberNextFrame = Effect.fnUntraced(function*(state: NumberState, op
   return promptMsg + errorMsg
 })
 
-const renderNumberSubmission = Effect.fnUntraced(function*(nextState: NumberState, options: IntegerOptionsReq) {
+const renderNumberSubmission = Effect.fnUntraced(function* (nextState: NumberState, options: IntegerOptionsReq) {
   const figures = yield* platformFigures
   const leadingSymbol = Ansi.annotate(figures.tick, Ansi.green)
   const trailingSymbol = Ansi.annotate(figures.ellipsis, Ansi.blackBright)
@@ -2350,7 +2347,7 @@ const renderNumberSubmission = Effect.fnUntraced(function*(nextState: NumberStat
   return promptMsg + "\n"
 })
 
-function processNumberBackspace(state: NumberState) {
+const processNumberBackspace = (state: NumberState) => {
   if (state.value.length <= 0) {
     return Effect.succeed(Action.Beep())
   }
@@ -2360,7 +2357,7 @@ function processNumberBackspace(state: NumberState) {
   }))
 }
 
-function defaultIntProcessor(state: NumberState, input: string) {
+const defaultIntProcessor = (state: NumberState, input: string) => {
   if (state.value.length === 0 && input === "-") {
     return Effect.succeed(Action.NextFrame({
       state: { ...state, value: "-", error: Option.none() }
@@ -2377,10 +2374,10 @@ function defaultIntProcessor(state: NumberState, input: string) {
   }
 }
 
-function defaultFloatProcessor(
+const defaultFloatProcessor = (
   state: NumberState,
   input: string
-) {
+) => {
   if (input === "." && state.value.includes(".")) {
     return Effect.succeed(Action.Beep())
   }
@@ -2404,7 +2401,7 @@ function defaultFloatProcessor(
   }
 }
 
-function handleRenderInteger(options: IntegerOptionsReq) {
+const handleRenderInteger = (options: IntegerOptionsReq) => {
   return (state: NumberState, action: Action<NumberState, number>) => {
     return Action.$match(action, {
       Beep: () => Effect.succeed(renderBeep),
@@ -2414,7 +2411,7 @@ function handleRenderInteger(options: IntegerOptionsReq) {
   }
 }
 
-function handleProcessInteger(options: IntegerOptionsReq) {
+const handleProcessInteger = (options: IntegerOptionsReq) => {
   return (input: Terminal.UserInput, state: NumberState) => {
     switch (input.key.name) {
       case "backspace": {
@@ -2475,7 +2472,7 @@ function handleProcessInteger(options: IntegerOptionsReq) {
   }
 }
 
-function handleRenderFloat(options: FloatOptionsReq) {
+const handleRenderFloat = (options: FloatOptionsReq) => {
   return (state: NumberState, action: Action<NumberState, number>) => {
     return Action.$match(action, {
       Beep: () => Effect.succeed(renderBeep),
@@ -2485,7 +2482,7 @@ function handleRenderFloat(options: FloatOptionsReq) {
   }
 }
 
-function handleProcessFloat(options: FloatOptionsReq) {
+const handleProcessFloat = (options: FloatOptionsReq) => {
   return (input: Terminal.UserInput, state: NumberState) => {
     switch (input.key.name) {
       case "backspace": {
@@ -2552,13 +2549,13 @@ function handleProcessFloat(options: FloatOptionsReq) {
 
 type SelectState = number
 
-interface SelectOptionsReq<A> extends Required<SelectOptions<A>> {}
+interface SelectOptionsReq<A> extends Required<SelectOptions<A>> { }
 
-function renderSelectOutput<A>(
+const renderSelectOutput = <A>(
   leadingSymbol: string,
   trailingSymbol: string,
   options: SelectOptionsReq<A>
-) {
+) => {
   const prefix = leadingSymbol + " "
   return Arr.match(options.message.split(NEWLINE_REGEX), {
     onEmpty: () => prefix + " " + trailingSymbol,
@@ -2569,13 +2566,13 @@ function renderSelectOutput<A>(
   })
 }
 
-function renderChoicePrefix<A>(
+const renderChoicePrefix = <A>(
   state: SelectState,
   choices: SelectOptionsReq<A>["choices"],
   toDisplay: { readonly startIndex: number; readonly endIndex: number },
   currentIndex: number,
   figures: Effect.Success<typeof platformFigures>
-) {
+) => {
   let prefix = " "
   if (currentIndex === toDisplay.startIndex && toDisplay.startIndex > 0) {
     prefix = figures.arrowUp
@@ -2593,10 +2590,10 @@ function renderChoicePrefix<A>(
     : prefix + " "
 }
 
-function renderChoiceTitle<A>(
+const renderChoiceTitle = <A>(
   choice: SelectChoice<A>,
   isSelected: boolean
-) {
+) => {
   const title = choice.title
   if (isSelected) {
     return choice.disabled
@@ -2608,11 +2605,11 @@ function renderChoiceTitle<A>(
     : title
 }
 
-function renderSelectChoices<A>(
+const renderSelectChoices = <A>(
   state: SelectState,
   options: SelectOptionsReq<A>,
   figures: Effect.Success<typeof platformFigures>
-) {
+) => {
   const choices = options.choices
   const toDisplay = entriesToDisplay(state, choices.length, options.maxPerPage)
   const documents: Array<string> = []
@@ -2645,25 +2642,25 @@ const renderSelectSubmission = Effect.fnUntraced(function*<A>(state: SelectState
   return promptMsg + " " + Ansi.annotate(selected, Ansi.white) + "\n"
 })
 
-function processSelectCursorUp<A>(state: SelectState, choices: SelectOptionsReq<A>["choices"]) {
+const processSelectCursorUp = <A>(state: SelectState, choices: SelectOptionsReq<A>["choices"]) => {
   if (state === 0) {
     return Effect.succeed(Action.NextFrame({ state: choices.length - 1 }))
   }
   return Effect.succeed(Action.NextFrame({ state: state - 1 }))
 }
 
-function processSelectCursorDown<A>(state: SelectState, choices: SelectOptionsReq<A>["choices"]) {
+const processSelectCursorDown = <A>(state: SelectState, choices: SelectOptionsReq<A>["choices"]) => {
   if (state === choices.length - 1) {
     return Effect.succeed(Action.NextFrame({ state: 0 }))
   }
   return Effect.succeed(Action.NextFrame({ state: state + 1 }))
 }
 
-function processSelectNext<A>(state: SelectState, choices: SelectOptionsReq<A>["choices"]) {
+const processSelectNext = <A>(state: SelectState, choices: SelectOptionsReq<A>["choices"]) => {
   return Effect.succeed(Action.NextFrame({ state: (state + 1) % choices.length }))
 }
 
-function handleSelectRender<A>(options: SelectOptionsReq<A>) {
+const handleSelectRender = <A>(options: SelectOptionsReq<A>) => {
   return (state: SelectState, action: Action<SelectState, A>) => {
     return Action.$match(action, {
       Beep: () => Effect.succeed(renderBeep),
@@ -2682,7 +2679,7 @@ const handleSelectClear = Effect.fnUntraced(function*<A>(options: SelectOptionsR
   return clearOutput + clearPrompt
 })
 
-function handleSelectProcess<A>(options: SelectOptionsReq<A>) {
+const handleSelectProcess = <A>(options: SelectOptionsReq<A>) => {
   return (input: Terminal.UserInput, state: SelectState) => {
     switch (input.key.name) {
       case "k":
@@ -2724,11 +2721,11 @@ interface TextState {
   readonly error: Option.Option<string>
 }
 
-function getValue(state: TextState, options: TextOptionsReq): string {
+const getValue = (state: TextState, options: TextOptionsReq): string => {
   return state.value.length > 0 ? state.value : options.default
 }
 
-const renderClearScreen = Effect.fnUntraced(function*(state: TextState, options: TextOptionsReq) {
+const renderClearScreen = Effect.fnUntraced(function* (state: TextState, options: TextOptionsReq) {
   const terminal = yield* Terminal.Terminal
   const columns = yield* terminal.columns
   // Erase the current line and place the cursor in column one
@@ -2749,7 +2746,7 @@ const renderClearScreen = Effect.fnUntraced(function*(state: TextState, options:
   return clearError + clearOutput + resetCurrentLine
 })
 
-function renderTextInput(nextState: TextState, options: TextOptionsReq, submitted: boolean) {
+const renderTextInput = (nextState: TextState, options: TextOptionsReq, submitted: boolean) => {
   const text = getValue(nextState, options)
 
   const annotation = Option.match(nextState.error, {
@@ -2780,7 +2777,7 @@ function renderTextInput(nextState: TextState, options: TextOptionsReq, submitte
   }
 }
 
-function renderTextError(nextState: TextState, pointer: string) {
+const renderTextError = (nextState: TextState, pointer: string) => {
   return Option.match(nextState.error, {
     onNone: () => "",
     onSome: (error) =>
@@ -2795,13 +2792,13 @@ function renderTextError(nextState: TextState, pointer: string) {
   })
 }
 
-function renderTextOutput(
+const renderTextOutput = (
   nextState: TextState,
   leadingSymbol: string,
   trailingSymbol: string,
   options: TextOptionsReq,
   submitted: boolean = false
-) {
+) => {
   const promptLines = options.message.split(NEWLINE_REGEX)
   const prefix = leadingSymbol + " "
   if (Arr.isReadonlyArrayNonEmpty(promptLines)) {
@@ -2812,7 +2809,7 @@ function renderTextOutput(
   return prefix + " " + trailingSymbol + " " + renderTextInput(nextState, options, submitted)
 }
 
-const renderTextNextFrame = Effect.fnUntraced(function*(state: TextState, options: TextOptionsReq) {
+const renderTextNextFrame = Effect.fnUntraced(function* (state: TextState, options: TextOptionsReq) {
   const figures = yield* platformFigures
   const leadingSymbol = Ansi.annotate("?", Ansi.cyanBright)
   const trailingSymbol = Ansi.annotate(figures.pointerSmall, Ansi.blackBright)
@@ -2822,7 +2819,7 @@ const renderTextNextFrame = Effect.fnUntraced(function*(state: TextState, option
   return promptMsg + errorMsg + Ansi.cursorMove(offset)
 })
 
-const renderTextSubmission = Effect.fnUntraced(function*(state: TextState, options: TextOptionsReq) {
+const renderTextSubmission = Effect.fnUntraced(function* (state: TextState, options: TextOptionsReq) {
   const figures = yield* platformFigures
   const leadingSymbol = Ansi.annotate(figures.tick, Ansi.green)
   const trailingSymbol = Ansi.annotate(figures.ellipsis, Ansi.blackBright)
@@ -2830,7 +2827,7 @@ const renderTextSubmission = Effect.fnUntraced(function*(state: TextState, optio
   return promptMsg + "\n"
 })
 
-function processTextBackspace(state: TextState) {
+const processTextBackspace = (state: TextState) => {
   if (state.cursor <= 0) {
     return Effect.succeed(Action.Beep())
   }
@@ -2845,7 +2842,7 @@ function processTextBackspace(state: TextState) {
   )
 }
 
-function processTextCursorLeft(state: TextState) {
+const processTextCursorLeft = (state: TextState) => {
   if (state.cursor <= 0) {
     return Effect.succeed(Action.Beep())
   }
@@ -2857,7 +2854,7 @@ function processTextCursorLeft(state: TextState) {
   )
 }
 
-function processTextCursorRight(state: TextState) {
+const processTextCursorRight = (state: TextState) => {
   if (state.cursor >= state.value.length) {
     return Effect.succeed(Action.Beep())
   }
@@ -2869,7 +2866,7 @@ function processTextCursorRight(state: TextState) {
   )
 }
 
-function processTab(state: TextState, options: TextOptionsReq) {
+const processTab = (state: TextState, options: TextOptionsReq) => {
   if (state.value === options.default) {
     return Effect.succeed(Action.Beep())
   }
@@ -2882,7 +2879,7 @@ function processTab(state: TextState, options: TextOptionsReq) {
   )
 }
 
-function defaultTextProcessor(input: string, state: TextState) {
+const defaultTextProcessor = (input: string, state: TextState) => {
   const beforeCursor = state.value.slice(0, state.cursor)
   const afterCursor = state.value.slice(state.cursor)
   const value = `${beforeCursor}${input}${afterCursor}`
@@ -2894,7 +2891,7 @@ function defaultTextProcessor(input: string, state: TextState) {
   )
 }
 
-function handleTextRender(options: TextOptionsReq) {
+const handleTextRender = (options: TextOptionsReq) => {
   return (state: TextState, action: Action<TextState, string>) => {
     return Action.$match(action, {
       Beep: () => Effect.succeed(renderBeep),
@@ -2904,7 +2901,7 @@ function handleTextRender(options: TextOptionsReq) {
   }
 }
 
-function handleTextProcess(options: TextOptionsReq) {
+const handleTextProcess = (options: TextOptionsReq) => {
   return (input: Terminal.UserInput, state: TextState) => {
     switch (input.key.name) {
       case "backspace": {
@@ -2938,16 +2935,16 @@ function handleTextProcess(options: TextOptionsReq) {
   }
 }
 
-function handleTextClear(options: TextOptionsReq) {
+const handleTextClear = (options: TextOptionsReq) => {
   return (state: TextState, _: Action<TextState, string>) => {
     return renderClearScreen(state, options)
   }
 }
 
-function basePrompt(
+const basePrompt = (
   options: TextOptions,
   type: TextOptionsReq["type"]
-): Prompt<string> {
+): Prompt<string> => {
   const opts: TextOptionsReq = {
     default: "",
     type,
@@ -2967,11 +2964,11 @@ function basePrompt(
   })
 }
 
-interface ToggleOptionsReq extends Required<ToggleOptions> {}
+interface ToggleOptionsReq extends Required<ToggleOptions> { }
 
 type ToggleState = boolean
 
-const handleToggleClear = Effect.fnUntraced(function*(options: ToggleOptionsReq) {
+const handleToggleClear = Effect.fnUntraced(function* (options: ToggleOptionsReq) {
   const terminal = yield* Terminal.Terminal
   const columns = yield* terminal.columns
   const clearPrompt = Ansi.eraseLine + Ansi.cursorLeft
@@ -2979,11 +2976,11 @@ const handleToggleClear = Effect.fnUntraced(function*(options: ToggleOptionsReq)
   return clearOutput + clearPrompt
 })
 
-function renderToggle(
+const renderToggle = (
   value: boolean,
   options: ToggleOptionsReq,
   submitted: boolean = false
-) {
+) => {
   const separator = Ansi.annotate("/", Ansi.blackBright)
   const selectedAnnotation = Ansi.combine(Ansi.underlined, submitted ? Ansi.white : Ansi.cyanBright)
   const inactive = value
@@ -2995,12 +2992,12 @@ function renderToggle(
   return active + " " + separator + " " + inactive
 }
 
-function renderToggleOutput(
+const renderToggleOutput = (
   toggle: string,
   leadingSymbol: string,
   trailingSymbol: string,
   options: ToggleOptionsReq
-) {
+) => {
   const promptLines = options.message.split(NEWLINE_REGEX)
   const prefix = leadingSymbol + " "
   if (Arr.isReadonlyArrayNonEmpty(promptLines)) {
@@ -3010,7 +3007,7 @@ function renderToggleOutput(
   return prefix + " " + trailingSymbol + " " + toggle
 }
 
-const renderToggleNextFrame = Effect.fnUntraced(function*(state: ToggleState, options: ToggleOptionsReq) {
+const renderToggleNextFrame = Effect.fnUntraced(function* (state: ToggleState, options: ToggleOptionsReq) {
   const figures = yield* platformFigures
   const leadingSymbol = Ansi.annotate("?", Ansi.cyanBright)
   const trailingSymbol = Ansi.annotate(figures.pointerSmall, Ansi.blackBright)
@@ -3019,7 +3016,7 @@ const renderToggleNextFrame = Effect.fnUntraced(function*(state: ToggleState, op
   return Ansi.cursorHide + promptMsg
 })
 
-const renderToggleSubmission = Effect.fnUntraced(function*(value: boolean, options: ToggleOptionsReq) {
+const renderToggleSubmission = Effect.fnUntraced(function* (value: boolean, options: ToggleOptionsReq) {
   const figures = yield* platformFigures
   const leadingSymbol = Ansi.annotate(figures.tick, Ansi.green)
   const trailingSymbol = Ansi.annotate(figures.ellipsis, Ansi.blackBright)
@@ -3031,7 +3028,7 @@ const renderToggleSubmission = Effect.fnUntraced(function*(value: boolean, optio
 const activate = Effect.succeed(Action.NextFrame({ state: true }))
 const deactivate = Effect.succeed(Action.NextFrame({ state: false }))
 
-function handleToggleRender(options: ToggleOptionsReq) {
+const handleToggleRender = (options: ToggleOptionsReq) => {
   return (state: ToggleState, action: Action<ToggleState, boolean>) => {
     switch (action._tag) {
       case "Beep": {
@@ -3047,7 +3044,7 @@ function handleToggleRender(options: ToggleOptionsReq) {
   }
 }
 
-function handleToggleProcess(input: Terminal.UserInput, state: ToggleState) {
+const handleToggleProcess = (input: Terminal.UserInput, state: ToggleState) => {
   switch (input.key.name) {
     case "0":
     case "j":
