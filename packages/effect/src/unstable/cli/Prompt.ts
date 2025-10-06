@@ -491,17 +491,18 @@ export const platformFigures = Effect.map(
 
 /**
  * @since 4.0.0
+ * @category utility types
+ */
+export type Any = Prompt<any>
+
+/**
+ * @since 4.0.0
  */
 export declare namespace All {
   /**
    * @since 4.0.0
    */
-  export type PromptAny = Prompt<any>
-
-  /**
-   * @since 4.0.0
-   */
-  export type ReturnIterable<T extends Iterable<PromptAny>> = [T] extends [Iterable<Prompt<infer A>>] ? Prompt<Array<A>>
+  export type ReturnIterable<T extends Iterable<Any>> = [T] extends [Iterable<Prompt<infer A>>] ? Prompt<Array<A>>
     : never
 
   /**
@@ -515,21 +516,21 @@ export declare namespace All {
   /**
    * @since 4.0.0
    */
-  export type ReturnObject<T> = [T] extends [{ [K: string]: PromptAny }] ? Prompt<
-      {
-        -readonly [K in keyof T]: [T[K]] extends [Prompt<infer _A>] ? _A : never
-      }
-    >
+  export type ReturnObject<T> = [T] extends [{ [K: string]: Any }] ? Prompt<
+    {
+      -readonly [K in keyof T]: [T[K]] extends [Prompt<infer _A>] ? _A : never
+    }
+  >
     : never
 
   /**
    * @since 4.0.0
    */
   export type Return<
-    Arg extends Iterable<PromptAny> | Record<string, PromptAny>
-  > = [Arg] extends [ReadonlyArray<PromptAny>] ? ReturnTuple<Arg>
-    : [Arg] extends [Iterable<PromptAny>] ? ReturnIterable<Arg>
-    : [Arg] extends [Record<string, PromptAny>] ? ReturnObject<Arg>
+    Arg extends Iterable<Any> | Record<string, Any>
+  > = [Arg] extends [ReadonlyArray<Any>] ? ReturnTuple<Arg>
+    : [Arg] extends [Iterable<Any>] ? ReturnIterable<Arg>
+    : [Arg] extends [Record<string, Any>] ? ReturnObject<Arg>
     : never
 }
 
