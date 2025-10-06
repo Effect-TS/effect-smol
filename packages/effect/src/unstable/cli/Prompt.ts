@@ -6,6 +6,7 @@ import * as Arr from "../../collections/Array.ts"
 import * as Data from "../../data/Data.ts"
 import * as Filter from "../../data/Filter.ts"
 import * as Option from "../../data/Option.ts"
+import * as Predicate from "../../data/Predicate.ts"
 import * as Redacted from "../../data/Redacted.ts"
 import * as Effect from "../../Effect.ts"
 import { dual, pipe } from "../../Function.ts"
@@ -16,10 +17,9 @@ import * as FileSystem from "../../platform/FileSystem.ts"
 import * as Path from "../../platform/Path.ts"
 import * as Terminal from "../../platform/Terminal.ts"
 import * as Queue from "../../Queue.ts"
+import type { Covariant } from "../../types/Types.ts"
 import * as Ansi from "./internal/ansi.ts"
 import type * as Primitive from "./Primitive.ts"
-import type { Covariant } from "../../types/Types.ts"
-import * as Predicate from "../../data/Predicate.ts"
 
 const TypeId = "~effect/cli/Prompt"
 
@@ -28,7 +28,8 @@ const TypeId = "~effect/cli/Prompt"
  * @category models
  */
 export interface Prompt<Output>
-  extends Pipeable.Pipeable, Effect.Yieldable<Prompt<Output>, Output, Terminal.QuitError, Environment> {
+  extends Pipeable.Pipeable, Effect.Yieldable<Prompt<Output>, Output, Terminal.QuitError, Environment>
+{
   readonly [TypeId]: {
     readonly _Output: Covariant<Output>
   }
@@ -510,17 +511,17 @@ export declare namespace All {
    */
   export type ReturnTuple<T extends ReadonlyArray<unknown>> = Prompt<
     T[number] extends never ? []
-    : { -readonly [K in keyof T]: [T[K]] extends [Prompt<infer _A>] ? _A : never }
+      : { -readonly [K in keyof T]: [T[K]] extends [Prompt<infer _A>] ? _A : never }
   > extends infer X ? X : never
 
   /**
    * @since 4.0.0
    */
   export type ReturnObject<T> = [T] extends [{ [K: string]: Any }] ? Prompt<
-    {
-      -readonly [K in keyof T]: [T[K]] extends [Prompt<infer _A>] ? _A : never
-    }
-  >
+      {
+        -readonly [K in keyof T]: [T[K]] extends [Prompt<infer _A>] ? _A : never
+      }
+    >
     : never
 
   /**
@@ -569,7 +570,7 @@ export declare namespace All {
  */
 export const all: <
   const Arg extends Iterable<Prompt<any>> | Record<string, Prompt<any>>
->(arg: Arg) => All.Return<Arg> = function () {
+>(arg: Arg) => All.Return<Arg> = function() {
   if (arguments.length === 1) {
     if (isPrompt(arguments[0])) {
       return map(arguments[0], (x) => [x]) as any
@@ -715,7 +716,7 @@ export const file = (options: FileOptions = {}): Prompt<string> => {
     FileState,
     never,
     Environment
-  > = Effect.gen(function* () {
+  > = Effect.gen(function*() {
     const path = Option.none<string>()
     const currentPath = yield* resolveCurrentPath(path, opts)
     const files = yield* getFileList(currentPath, opts)
@@ -736,7 +737,7 @@ export const file = (options: FileOptions = {}): Prompt<string> => {
 export const flatMap: {
   <Output, Output2>(
     f: (output: Output) => Prompt<Output2>
-  ): (self: Prompt<Output>) => Prompt<Output2>,
+  ): (self: Prompt<Output>) => Prompt<Output2>
   <Output, Output2>(
     self: Prompt<Output>,
     f: (output: Output) => Prompt<Output2>
@@ -842,7 +843,7 @@ export const list = (options: ListOptions): Prompt<Array<string>> =>
 export const map: {
   <Output, Output2>(
     f: (output: Output) => Output2
-  ): (self: Prompt<Output>) => Prompt<Output2>,
+  ): (self: Prompt<Output>) => Prompt<Output2>
   <Output, Output2>(
     self: Prompt<Output>,
     f: (output: Output) => Output2
@@ -1006,19 +1007,22 @@ interface Loop extends
     readonly render: Handlers<unknown, unknown>["render"]
     readonly process: Handlers<unknown, unknown>["process"]
     readonly clear: Handlers<unknown, unknown>["clear"]
-  }> { }
+  }>
+{}
 
 /** @internal */
 export interface OnSuccess extends
   Op<"OnSuccess", {
     readonly prompt: PromptPrimitive
     readonly onSuccess: (value: unknown) => Prompt<unknown>
-  }> { }
+  }>
+{}
 
 interface Succeed extends
   Op<"Succeed", {
     readonly value: unknown
-  }> { }
+  }>
+{}
 
 const allTupled = <const T extends ArrayLike<Prompt<any>>>(arg: T): Prompt<
   {
@@ -1063,7 +1067,7 @@ const runWithInput = <Output>(
   })
 
 const runLoop = Effect.fnUntraced(
-  function* (
+  function*(
     loop: Loop,
     terminal: Terminal.Terminal,
     input: Queue.Dequeue<Terminal.UserInput>
@@ -1122,7 +1126,7 @@ const lines = (prompt: string, columns: number): number => {
     )
 }
 
-interface ConfirmOptionsReq extends Required<ConfirmOptions> { }
+interface ConfirmOptionsReq extends Required<ConfirmOptions> {}
 
 interface ConfirmState {
   readonly value: boolean
@@ -1130,7 +1134,7 @@ interface ConfirmState {
 
 const renderBeep = Ansi.beep
 
-const handleConfirmClear = Effect.fnUntraced(function* (options: ConfirmOptionsReq) {
+const handleConfirmClear = Effect.fnUntraced(function*(options: ConfirmOptionsReq) {
   const terminal = yield* Terminal.Terminal
   const columns = yield* terminal.columns
   const clearOutput = eraseText(options.message, columns)
@@ -1156,7 +1160,7 @@ const renderConfirmOutput = (
   })
 }
 
-const renderConfirmNextFrame = Effect.fnUntraced(function* (state: ConfirmState, options: ConfirmOptionsReq) {
+const renderConfirmNextFrame = Effect.fnUntraced(function*(state: ConfirmState, options: ConfirmOptionsReq) {
   const figures = yield* platformFigures
   const leadingSymbol = Ansi.annotate("?", Ansi.cyanBright)
   const trailingSymbol = Ansi.annotate(figures.pointerSmall, Ansi.blackBright)
@@ -1171,7 +1175,7 @@ const renderConfirmNextFrame = Effect.fnUntraced(function* (state: ConfirmState,
   return Ansi.cursorHide + promptMsg
 })
 
-const renderConfirmSubmission = Effect.fnUntraced(function* (value: boolean, options: ConfirmOptionsReq) {
+const renderConfirmSubmission = Effect.fnUntraced(function*(value: boolean, options: ConfirmOptionsReq) {
   const figures = yield* platformFigures
   const leadingSymbol = Ansi.annotate(figures.tick, Ansi.green)
   const trailingSymbol = Ansi.annotate(figures.ellipsis, Ansi.blackBright)
@@ -1207,7 +1211,7 @@ const handleConfirmProcess = (input: Terminal.UserInput, defaultValue: boolean) 
   return Effect.succeed(Action.Beep())
 }
 
-interface DateOptionsReq extends Required<DateOptions> { }
+interface DateOptionsReq extends Required<DateOptions> {}
 
 interface DateState {
   readonly typed: string
@@ -1218,7 +1222,7 @@ interface DateState {
 }
 
 const handleDateClear = (options: DateOptionsReq) => {
-  return Effect.fnUntraced(function* (state: DateState, _: Action<DateState, globalThis.Date>) {
+  return Effect.fnUntraced(function*(state: DateState, _: Action<DateState, globalThis.Date>) {
     const terminal = yield* Terminal.Terminal
     const columns = yield* terminal.columns
     const resetCurrentLine = Ansi.eraseLine + Ansi.cursorLeft
@@ -1277,7 +1281,7 @@ const renderDateOutput = (
   })
 }
 
-const renderDateNextFrame = Effect.fnUntraced(function* (state: DateState, options: DateOptionsReq) {
+const renderDateNextFrame = Effect.fnUntraced(function*(state: DateState, options: DateOptionsReq) {
   const figures = yield* platformFigures
   const leadingSymbol = Ansi.annotate("?", Ansi.cyanBright)
   const trailingSymbol = Ansi.annotate(figures.pointerSmall, Ansi.blackBright)
@@ -1287,7 +1291,7 @@ const renderDateNextFrame = Effect.fnUntraced(function* (state: DateState, optio
   return Ansi.cursorHide + promptMsg + errorMsg
 })
 
-const renderDateSubmission = Effect.fnUntraced(function* (state: DateState, options: DateOptionsReq) {
+const renderDateSubmission = Effect.fnUntraced(function*(state: DateState, options: DateOptionsReq) {
   const figures = yield* platformFigures
   const leadingSymbol = Ansi.annotate(figures.tick, Ansi.green)
   const trailingSymbol = Ansi.annotate(figures.ellipsis, Ansi.blackBright)
@@ -1549,9 +1553,9 @@ abstract class DatePart {
 }
 
 class Token extends DatePart {
-  increment(): void { }
+  increment(): void {}
 
-  decrement(): void { }
+  decrement(): void {}
 
   setValue(value: string): void {
     this.token = this.token + value
@@ -1755,7 +1759,7 @@ class Meridiem extends DatePart {
     this.increment()
   }
 
-  setValue(_value: string): void { }
+  setValue(_value: string): void {}
 
   override toString() {
     const meridiem = this.date.getHours() > 12 ? "pm" : "am"
@@ -1809,7 +1813,7 @@ const resolveCurrentPath = (
   })
 }
 
-const getFileList = Effect.fnUntraced(function* (directory: string, options: FileOptionsReq) {
+const getFileList = Effect.fnUntraced(function*(directory: string, options: FileOptionsReq) {
   const fs = yield* FileSystem.FileSystem
   const path = yield* Path.Path
   const files = yield* Effect.orDie(fs.readDirectory(directory)).pipe(
@@ -1833,7 +1837,7 @@ const getFileList = Effect.fnUntraced(function* (directory: string, options: Fil
 })
 
 const handleFileClear = (options: FileOptionsReq) => {
-  return Effect.fnUntraced(function* (state: FileState, _: Action<FileState, string>) {
+  return Effect.fnUntraced(function*(state: FileState, _: Action<FileState, string>) {
     const terminal = yield* Terminal.Terminal
     const columns = yield* terminal.columns
     const currentPath = yield* resolveCurrentPath(state.path, options)
@@ -1904,7 +1908,7 @@ const renderFiles = (
   return documents.join("\n")
 }
 
-const renderFileNextFrame = Effect.fnUntraced(function* (state: FileState, options: FileOptionsReq) {
+const renderFileNextFrame = Effect.fnUntraced(function*(state: FileState, options: FileOptionsReq) {
   const path = yield* Path.Path
   const figures = yield* platformFigures
   const currentPath = yield* resolveCurrentPath(state.path, options)
@@ -1926,7 +1930,7 @@ const renderFileNextFrame = Effect.fnUntraced(function* (state: FileState, optio
   return Ansi.cursorHide + promptMsg + "\n" + resolvedPathMsg + "\n" + files
 })
 
-const renderFileSubmission = Effect.fnUntraced(function* (value: string, options: FileOptionsReq) {
+const renderFileSubmission = Effect.fnUntraced(function*(value: string, options: FileOptionsReq) {
   const figures = yield* platformFigures
   const leadingSymbol = Ansi.annotate(figures.tick, Ansi.green)
   const trailingSymbol = Ansi.annotate(figures.ellipsis, Ansi.blackBright)
@@ -1960,7 +1964,7 @@ const processFileCursorDown = (state: FileState) => {
   }))
 }
 
-const processSelection = Effect.fnUntraced(function* (state: FileState, options: FileOptionsReq) {
+const processSelection = Effect.fnUntraced(function*(state: FileState, options: FileOptionsReq) {
   const fs = yield* FileSystem.FileSystem
   const path = yield* Path.Path
   const currentPath = yield* resolveCurrentPath(state.path, options)
@@ -1996,7 +2000,7 @@ const processSelection = Effect.fnUntraced(function* (state: FileState, options:
 })
 
 const handleFileProcess = (options: FileOptionsReq) => {
-  return Effect.fnUntraced(function* (input: Terminal.UserInput, state: FileState) {
+  return Effect.fnUntraced(function*(input: Terminal.UserInput, state: FileState) {
     switch (input.key.name) {
       case "k":
       case "up": {
@@ -2048,8 +2052,8 @@ const handleFileProcess = (options: FileOptionsReq) => {
   })
 }
 
-interface SelectOptionsReq<A> extends Required<SelectOptions<A>> { }
-interface MultiSelectOptionsReq extends MultiSelectOptions { }
+interface SelectOptionsReq<A> extends Required<SelectOptions<A>> {}
+interface MultiSelectOptionsReq extends MultiSelectOptions {}
 
 type MultiSelectState = {
   index: number
@@ -2266,8 +2270,8 @@ const handleMultiSelectRender = <A>(options: SelectOptionsReq<A>) => {
   }
 }
 
-interface IntegerOptionsReq extends Required<IntegerOptions> { }
-interface FloatOptionsReq extends Required<FloatOptions> { }
+interface IntegerOptionsReq extends Required<IntegerOptions> {}
+interface FloatOptionsReq extends Required<FloatOptions> {}
 
 interface NumberState {
   readonly cursor: number
@@ -2276,7 +2280,7 @@ interface NumberState {
 }
 
 const handleNumberClear = (options: IntegerOptionsReq) => {
-  return Effect.fnUntraced(function* (state: NumberState, _: Action<NumberState, number>) {
+  return Effect.fnUntraced(function*(state: NumberState, _: Action<NumberState, number>) {
     const terminal = yield* Terminal.Terminal
     const columns = yield* terminal.columns
     const resetCurrentLine = Ansi.eraseLine + Ansi.cursorLeft
@@ -2330,7 +2334,7 @@ const renderNumberOutput = (
   })
 }
 
-const renderNumberNextFrame = Effect.fnUntraced(function* (state: NumberState, options: IntegerOptionsReq) {
+const renderNumberNextFrame = Effect.fnUntraced(function*(state: NumberState, options: IntegerOptionsReq) {
   const figures = yield* platformFigures
   const leadingSymbol = Ansi.annotate("?", Ansi.cyanBright)
   const trailingSymbol = Ansi.annotate(figures.pointerSmall, Ansi.blackBright)
@@ -2339,7 +2343,7 @@ const renderNumberNextFrame = Effect.fnUntraced(function* (state: NumberState, o
   return promptMsg + errorMsg
 })
 
-const renderNumberSubmission = Effect.fnUntraced(function* (nextState: NumberState, options: IntegerOptionsReq) {
+const renderNumberSubmission = Effect.fnUntraced(function*(nextState: NumberState, options: IntegerOptionsReq) {
   const figures = yield* platformFigures
   const leadingSymbol = Ansi.annotate(figures.tick, Ansi.green)
   const trailingSymbol = Ansi.annotate(figures.ellipsis, Ansi.blackBright)
@@ -2549,7 +2553,7 @@ const handleProcessFloat = (options: FloatOptionsReq) => {
 
 type SelectState = number
 
-interface SelectOptionsReq<A> extends Required<SelectOptions<A>> { }
+interface SelectOptionsReq<A> extends Required<SelectOptions<A>> {}
 
 const renderSelectOutput = <A>(
   leadingSymbol: string,
@@ -2725,7 +2729,7 @@ const getValue = (state: TextState, options: TextOptionsReq): string => {
   return state.value.length > 0 ? state.value : options.default
 }
 
-const renderClearScreen = Effect.fnUntraced(function* (state: TextState, options: TextOptionsReq) {
+const renderClearScreen = Effect.fnUntraced(function*(state: TextState, options: TextOptionsReq) {
   const terminal = yield* Terminal.Terminal
   const columns = yield* terminal.columns
   // Erase the current line and place the cursor in column one
@@ -2809,7 +2813,7 @@ const renderTextOutput = (
   return prefix + " " + trailingSymbol + " " + renderTextInput(nextState, options, submitted)
 }
 
-const renderTextNextFrame = Effect.fnUntraced(function* (state: TextState, options: TextOptionsReq) {
+const renderTextNextFrame = Effect.fnUntraced(function*(state: TextState, options: TextOptionsReq) {
   const figures = yield* platformFigures
   const leadingSymbol = Ansi.annotate("?", Ansi.cyanBright)
   const trailingSymbol = Ansi.annotate(figures.pointerSmall, Ansi.blackBright)
@@ -2819,7 +2823,7 @@ const renderTextNextFrame = Effect.fnUntraced(function* (state: TextState, optio
   return promptMsg + errorMsg + Ansi.cursorMove(offset)
 })
 
-const renderTextSubmission = Effect.fnUntraced(function* (state: TextState, options: TextOptionsReq) {
+const renderTextSubmission = Effect.fnUntraced(function*(state: TextState, options: TextOptionsReq) {
   const figures = yield* platformFigures
   const leadingSymbol = Ansi.annotate(figures.tick, Ansi.green)
   const trailingSymbol = Ansi.annotate(figures.ellipsis, Ansi.blackBright)
@@ -2964,11 +2968,11 @@ const basePrompt = (
   })
 }
 
-interface ToggleOptionsReq extends Required<ToggleOptions> { }
+interface ToggleOptionsReq extends Required<ToggleOptions> {}
 
 type ToggleState = boolean
 
-const handleToggleClear = Effect.fnUntraced(function* (options: ToggleOptionsReq) {
+const handleToggleClear = Effect.fnUntraced(function*(options: ToggleOptionsReq) {
   const terminal = yield* Terminal.Terminal
   const columns = yield* terminal.columns
   const clearPrompt = Ansi.eraseLine + Ansi.cursorLeft
@@ -3007,7 +3011,7 @@ const renderToggleOutput = (
   return prefix + " " + trailingSymbol + " " + toggle
 }
 
-const renderToggleNextFrame = Effect.fnUntraced(function* (state: ToggleState, options: ToggleOptionsReq) {
+const renderToggleNextFrame = Effect.fnUntraced(function*(state: ToggleState, options: ToggleOptionsReq) {
   const figures = yield* platformFigures
   const leadingSymbol = Ansi.annotate("?", Ansi.cyanBright)
   const trailingSymbol = Ansi.annotate(figures.pointerSmall, Ansi.blackBright)
@@ -3016,7 +3020,7 @@ const renderToggleNextFrame = Effect.fnUntraced(function* (state: ToggleState, o
   return Ansi.cursorHide + promptMsg
 })
 
-const renderToggleSubmission = Effect.fnUntraced(function* (value: boolean, options: ToggleOptionsReq) {
+const renderToggleSubmission = Effect.fnUntraced(function*(value: boolean, options: ToggleOptionsReq) {
   const figures = yield* platformFigures
   const leadingSymbol = Ansi.annotate(figures.tick, Ansi.green)
   const trailingSymbol = Ansi.annotate(figures.ellipsis, Ansi.blackBright)
