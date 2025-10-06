@@ -733,17 +733,18 @@ export const file = (options: FileOptions = {}): Prompt<string> => {
  * @since 4.0.0
  * @category combinators
  */
-export const flatMap = dual<
+export const flatMap: {
   <Output, Output2>(
     f: (output: Output) => Prompt<Output2>
-  ) => (
-    self: Prompt<Output>
-  ) => Prompt<Output2>,
+  ): (self: Prompt<Output>) => Prompt<Output2>,
   <Output, Output2>(
     self: Prompt<Output>,
     f: (output: Output) => Prompt<Output2>
-  ) => Prompt<Output2>
->(2, (self, f) => {
+  ): Prompt<Output2>
+} = dual(2, <Output, Output2>(
+  self: Prompt<Output>,
+  f: (output: Output) => Prompt<Output2>
+) => {
   const op = Object.create(proto)
   op._tag = "OnSuccess"
   op.prompt = self
@@ -838,17 +839,18 @@ export const list = (options: ListOptions): Prompt<Array<string>> =>
  * @since 4.0.0
  * @category combinators
  */
-export const map = dual<
+export const map: {
   <Output, Output2>(
     f: (output: Output) => Output2
-  ) => (
-    self: Prompt<Output>
-  ) => Prompt<Output2>,
+  ): (self: Prompt<Output>) => Prompt<Output2>,
   <Output, Output2>(
     self: Prompt<Output>,
     f: (output: Output) => Output2
-  ) => Prompt<Output2>
->(2, (self, f) => flatMap(self, (a) => succeed(f(a))))
+  ): Prompt<Output2>
+} = dual(2, <Output, Output2>(
+  self: Prompt<Output>,
+  f: (output: Output) => Output2
+) => flatMap(self, (a) => succeed(f(a))))
 
 /**
  * @since 4.0.0
