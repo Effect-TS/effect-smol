@@ -101,7 +101,7 @@ The exports under each section are organized as they are in Effect 3.0. The cate
 |  `fromReadableStreamByob`  |   -    |                                      |          |
 |       `fromSchedule`       |  Done  |            `fromSchedule`            |          |
 |       `fromTPubSub`        |   -    |                                      |          |
-|        `fromTQueue`        |  Done  |            `fromTxQueue`             |          |
+|        `fromTQueue`        |   -    |            `fromTxQueue`             |          |
 |         `iterate`          |  Done  |                                      |          |
 |           `make`           |  Done  |                `make`                |          |
 |          `never`           |  Done  |               `never`                |          |
