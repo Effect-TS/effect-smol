@@ -51,6 +51,7 @@ import * as Pull from "./stream/Pull.ts"
 import type * as Types from "./types/Types.ts"
 
 const TypeId = "~effect/Queue"
+const EnqueueTypeId = "~effect/Queue/Enqueue"
 const DequeueTypeId = "~effect/Queue/Dequeue"
 
 /**
@@ -76,6 +77,129 @@ const DequeueTypeId = "~effect/Queue/Dequeue"
 export const isQueue = <A = unknown, E = unknown>(
   u: unknown
 ): u is Queue<A, E> => hasProperty(u, TypeId)
+
+/**
+ * Type guard to check if a value is an Enqueue.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ * import { Queue } from "effect"
+ *
+ * const program = Effect.gen(function*() {
+ *   const queue = yield* Queue.bounded<number>(10)
+ *
+ *   console.log(Queue.isEnqueue(queue)) // true
+ *   console.log(Queue.isEnqueue({}))    // false
+ * })
+ * ```
+ *
+ * @since 4.0.0
+ * @category guards
+ */
+export const isEnqueue = <A = unknown, E = unknown>(
+  u: unknown
+): u is Enqueue<A, E> => hasProperty(u, EnqueueTypeId)
+
+/**
+ * Type guard to check if a value is a Dequeue.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ * import { Queue } from "effect"
+ *
+ * const program = Effect.gen(function*() {
+ *   const queue = yield* Queue.bounded<number>(10)
+ *
+ *   console.log(Queue.isDequeue(queue)) // true
+ *   console.log(Queue.isDequeue({}))    // false
+ * })
+ * ```
+ *
+ * @since 4.0.0
+ * @category guards
+ */
+export const isDequeue = <A = unknown, E = unknown>(
+  u: unknown
+): u is Dequeue<A, E> => hasProperty(u, DequeueTypeId)
+
+/**
+ * Converts a Queue to an Enqueue (write-only interface).
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ * import { Queue } from "effect"
+ *
+ * const program = Effect.gen(function*() {
+ *   const queue = yield* Queue.bounded<number>(10)
+ *
+ *   // Convert to write-only interface
+ *   const enqueue = Queue.asEnqueue(queue)
+ *
+ *   // Can only offer, not take
+ *   yield* Queue.offer(enqueue, 42)
+ * })
+ * ```
+ *
+ * @since 4.0.0
+ * @category conversions
+ */
+export const asEnqueue = <A, E>(self: Queue<A, E>): Enqueue<A, E> => self
+
+/**
+ * An `Enqueue` is a queue that can be offered to.
+ *
+ * This interface represents the write-only part of a Queue, allowing you to offer
+ * elements to the queue but not take elements from it.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ * import { Queue } from "effect"
+ *
+ * const program = Effect.gen(function*() {
+ *   const queue = yield* Queue.bounded<string>(10)
+ *
+ *   // An Enqueue can only offer elements
+ *   const enqueue: Queue.Enqueue<string> = queue
+ *
+ *   // Offer elements using enqueue interface
+ *   yield* Queue.offer(enqueue, "hello")
+ *   yield* Queue.offerAll(enqueue, ["world", "!"])
+ * })
+ * ```
+ *
+ * @since 4.0.0
+ * @category models
+ */
+export interface Enqueue<in A, in E = never> extends Inspectable {
+  readonly [EnqueueTypeId]: Enqueue.Variance<A, E>
+  readonly strategy: "suspend" | "dropping" | "sliding"
+  readonly scheduler: Scheduler
+  capacity: number
+  messages: MutableList.MutableList<any>
+  state: Queue.State<any, any>
+  scheduleRunning: boolean
+}
+
+/**
+ * @since 4.0.0
+ * @category models
+ */
+export declare namespace Enqueue {
+  /**
+   * Variance interface for Enqueue types, defining the type parameter constraints.
+   *
+   * @since 4.0.0
+   * @category models
+   */
+  export interface Variance<A, E> {
+    _A: Types.Contravariant<A>
+    _E: Types.Contravariant<E>
+  }
+}
 
 /**
  * A `Dequeue` is a queue that can be taken from.
@@ -163,7 +287,7 @@ export declare namespace Dequeue {
  * @since 3.8.0
  * @category models
  */
-export interface Queue<in out A, in out E = never> extends Dequeue<A, E> {
+export interface Queue<in out A, in out E = never> extends Enqueue<A, E>, Dequeue<A, E> {
   readonly [TypeId]: Queue.Variance<A, E>
 }
 
@@ -234,6 +358,7 @@ const variance = {
 }
 const QueueProto = {
   [TypeId]: variance,
+  [EnqueueTypeId]: variance,
   [DequeueTypeId]: variance,
   ...PipeInspectableProto,
   toJSON(this: Queue<unknown, unknown>) {

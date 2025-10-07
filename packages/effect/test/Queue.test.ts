@@ -3,6 +3,51 @@ import { Cause, Effect, Exit, Fiber, Queue } from "effect"
 import { Stream } from "effect/stream"
 
 describe("Queue", () => {
+  it.effect("isEnqueue type guard", () =>
+    Effect.gen(function*() {
+      const queue = yield* Queue.bounded<number>(10)
+
+      assert.isTrue(Queue.isEnqueue(queue))
+      assert.isFalse(Queue.isEnqueue({}))
+      assert.isFalse(Queue.isEnqueue(null))
+    }))
+
+  it.effect("isDequeue type guard", () =>
+    Effect.gen(function*() {
+      const queue = yield* Queue.bounded<number>(10)
+
+      assert.isTrue(Queue.isDequeue(queue))
+      assert.isFalse(Queue.isDequeue({}))
+      assert.isFalse(Queue.isDequeue(null))
+    }))
+
+  it.effect("asEnqueue converts to write-only interface", () =>
+    Effect.gen(function*() {
+      const queue = yield* Queue.bounded<number>(10)
+      const enqueue: Queue.Enqueue<number> = Queue.asEnqueue(queue)
+
+      // Verify it's recognized as an enqueue
+      assert.isTrue(Queue.isEnqueue(enqueue))
+
+      // Verify queue operations still work through enqueue reference
+      assert.isTrue(Queue.isQueue(enqueue))
+    }))
+
+  it.effect("asDequeue converts to read-only interface", () =>
+    Effect.gen(function*() {
+      const queue = yield* Queue.bounded<number>(10)
+      yield* Queue.offer(queue, 42)
+
+      const dequeue = Queue.asDequeue(queue)
+
+      // Can use dequeue operations
+      const item = yield* Queue.take(dequeue)
+      assert.strictEqual(item, 42)
+
+      // Verify it's recognized as a dequeue
+      assert.isTrue(Queue.isDequeue(dequeue))
+    }))
+
   it.effect("offerAll with capacity", () =>
     Effect.gen(function*() {
       const queue = yield* Queue.bounded<number>(2)
