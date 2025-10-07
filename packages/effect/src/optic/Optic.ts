@@ -171,6 +171,14 @@ export interface Optional<in out S, in out A> {
   ): Optional<S, Omit<A, Keys[number]>>
 
   /**
+   * Omits `undefined` values.
+   *
+   * @since 4.0.0
+   */
+  notUndefined(): Prism<S, Exclude<A, undefined>>
+  notUndefined(): Optional<S, Exclude<A, undefined>>
+
+  /**
    * Focuses **all elements** of an array-like focus and then narrows to a
    * **subset** using an element-level optic.
    *
@@ -298,6 +306,9 @@ class OptionalImpl<S, A> implements Optional<S, A> {
   }
   omit(keys: any) {
     return this.compose(makeLens(Struct.omit(keys), (o, a) => ({ ...a, ...o })))
+  }
+  notUndefined(): Prism<S, Exclude<A, undefined>> {
+    return this.refine(Check.notUndefined())
   }
   forEach<S, A, B>(this: Traversal<S, A>, f: (iso: Iso<A, A>) => Optional<A, B>): Traversal<S, B> {
     const inner = f(id<A>())
@@ -550,6 +561,23 @@ function getCompositionTag(a: Op["_tag"], b: Op["_tag"]): Op["_tag"] {
     case "Optional":
       return "Optional"
   }
+}
+// ---------------------------------------------
+// Derived APIs
+// ---------------------------------------------
+
+/**
+ * Returns all the elements focused by the traversal.
+ *
+ * @category Traversal
+ * @since 4.0.0
+ */
+export function getAll<S, A>(traversal: Traversal<S, A>): (s: S) => Array<A> {
+  return (s) =>
+    Result.match(traversal.getResult(s), {
+      onFailure: () => [],
+      onSuccess: (as) => [...as]
+    })
 }
 
 // ---------------------------------------------

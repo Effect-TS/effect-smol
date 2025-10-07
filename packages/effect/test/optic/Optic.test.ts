@@ -390,6 +390,25 @@ Expected a value greater than 0, got -1.1`
     })
   })
 
+  it("notUndefined", () => {
+    const optic = Optic.id<number | undefined>().notUndefined()
+    assertSuccess(optic.getResult(1), 1)
+    assertFailure(optic.getResult(undefined), "Expected a value other than `undefined`, got undefined")
+
+    deepStrictEqual(optic.replace(2, undefined), 2)
+    deepStrictEqual(optic.replace(2, 1), 2)
+  })
+
+  it("getAll", () => {
+    type S = {
+      readonly a: ReadonlyArray<number>
+    }
+    const optic = Optic.id<S>().key("a").forEach((a) => a.check(Check.positive()))
+    const getAll = Optic.getAll(optic)
+    deepStrictEqual(getAll({ a: [1, 2, 3] }), [1, 2, 3])
+    deepStrictEqual(getAll({ a: [1, -2, 3] }), [1, 3])
+  })
+
   it(`smoke test: "pretty good" persistency (copy only the path)`, () => {
     type Task = { id: number; done: boolean; title: string }
     type Project = { id: number; name: string; tasks: Array<Task> }

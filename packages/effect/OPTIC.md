@@ -1,17 +1,19 @@
 ## Introduction
 
-`effect/optic/Optic` is a module for creating and composing functional optics.
+`effect/optic/Optic` provides tools for building and composing functional optics.
 
-Optics are a way to access and modify parts of data structures.
+Optics let you focus on parts of immutable data structures to read or update them in a safe, composable way.
+
+Immutability keeps previous references valid after an update. This is useful in many domains, not only in concurrent programs.
 
 ## Features
 
-- **Unified Representation of Optics**. All optics compose in the same way because they are instances of the same data type (`Optic`).
-- **Integration**. `Iso` generation via `effect/schema/ToOptic`.
+- **Unified representation of optics.** All optics compose the same way because they share a single data type: `Optional`.
+- **Integration.** Generate `Iso` values from schemas with `effect/schema/ToOptic`.
 
 ## Known Limitations
 
-The `Optic` module only works with plain JavaScript objects and collections (structs, records, tuples, and arrays).
+The `Optic` module only works with **plain JavaScript objects** and collections (structs, records, tuples, and arrays).
 
 ## Getting started
 
@@ -85,7 +87,7 @@ console.dir(capitalizeStreetName(from), { depth: null })
 
 ### Accessing a key in a struct or a tuple
 
-**Example** (Accessing a key in a struct)
+**Example** (Reading and updating a single struct field)
 
 ```ts
 import { Optic } from "effect/optic"
@@ -101,7 +103,7 @@ console.log(_a.replace("b", { a: "a" }))
 // { a: 'b' }
 ```
 
-**Example** (Accessing a key in a tuple)
+**Example** (Reading and updating the first element of a tuple)
 
 ```ts
 import { Optic } from "effect/optic"
@@ -115,34 +117,46 @@ console.log(_0.replace("b", ["a"]))
 // ["b"]
 ```
 
-### Accessing a key in a record or an array
+### Accessing a group of keys in a struct
 
-**Example** (Accessing a key in a record)
+#### pick
+
+**Example** (Updating multiple fields with `pick`)
 
 ```ts
 import { Optic } from "effect/optic"
 
-type S = { [key: string]: number }
+type S = {
+  readonly a: number
+  readonly b: number
+  readonly c: number
+}
 
-// Build an optic to access the value at key "a"
-const _a = Optic.id<S>().at("a")
+// Build an optic to access the "a" and "c" fields
+const _a = Optic.id<S>().pick(["a", "c"])
 
-console.log(_a.replace(2, { a: 1 }))
-// { a: 2 }
+console.log(_a.replace({ a: 4, c: 5 }, { a: 1, b: 2, c: 3 }))
+// { a: 4, b: 2, c: 5 }
 ```
 
-**Example** (Accessing a key in an array)
+#### omit
+
+**Example** (Updating all fields except a set with `omit`)
 
 ```ts
 import { Optic } from "effect/optic"
 
-type S = ReadonlyArray<number>
+type S = {
+  readonly a: number
+  readonly b: number
+  readonly c: number
+}
 
-// Build an optic to access the first element
-const _0 = Optic.id<S>().at(0)
+// Build an optic to access the "a" and "c" fields
+const _a = Optic.id<S>().omit(["b"])
 
-console.log(_0.replace(3, [1, 2]))
-// [3, 2]
+console.log(_a.replace({ a: 4, c: 5 }, { a: 1, b: 2, c: 3 }))
+// { a: 4, b: 2, c: 5 }
 ```
 
 ### Accessing an optional key in a struct or a tuple
@@ -220,7 +234,7 @@ console.log(_a.replace(undefined, {}))
 // {}
 ```
 
-**Example** (Removing the element when setting `undefined`)
+**Example** (Dropping a tuple element when setting `undefined`)
 
 ```ts
 import { Optic } from "effect/optic"
@@ -243,12 +257,42 @@ console.log(_1.replace(undefined, [1, 2]))
 // [1]
 ```
 
+### Accessing a key in a record or an array
+
+**Example** (Reading and updating a record entry)
+
+```ts
+import { Optic } from "effect/optic"
+
+type S = { [key: string]: number }
+
+// Build an optic to access the value at key "a"
+const _a = Optic.id<S>().at("a")
+
+console.log(_a.replace(2, { a: 1 }))
+// { a: 2 }
+```
+
+**Example** (Reading and updating an array element)
+
+```ts
+import { Optic } from "effect/optic"
+
+type S = ReadonlyArray<number>
+
+// Build an optic to access the first element
+const _0 = Optic.id<S>().at(0)
+
+console.log(_0.replace(3, [1, 2]))
+// [3, 2]
+```
+
 ### Accessing a member in a tagged union
 
 **Aside** (Convention for tagged unions)
 The convention is to use `"_tag"` as the field that identifies the variant.
 
-**Example** (Accessing a member in a tagged union)
+**Example** (Focusing a field inside one variant)
 
 ```ts
 import { Optic } from "effect/optic"
@@ -273,3 +317,178 @@ console.log(_a.replace(2, { _tag: "A", a: 1 }))
 console.log(_a.replace(2, { _tag: "B", b: 1 })) // no match, so no change
 // { _tag: 'B', b: 1 }
 ```
+
+### Traversing a collection
+
+**Example** (Incrementing only positive numbers in an array field)
+
+```ts
+import { Optic } from "effect/optic"
+import { Check } from "effect/schema"
+
+type S = {
+  readonly a: ReadonlyArray<number>
+}
+
+// Build an optic that focuses the field "a" and then
+// narrows the focus to elements that pass the positivity check
+const _positive = Optic.id<S>()
+  .key("a") // focus the "a" array
+  .forEach((item) => item.check(Check.positive())) // keep only positive elements
+
+// Create a function that increments only the focused elements
+const addOne = _positive.modifyAll((n) => n + 1)
+
+console.log(addOne({ a: [1, -2, 3] }))
+// { a: [ 2, -2, 4 ] }
+```
+
+**Technical detail**
+
+Unlike many optic libraries, `Traversal` is not an optic on its own. It is modeled as an `Optional` whose focus is a `ReadonlyArray<A>`:
+
+```ts
+export interface Traversal<in out S, in out A> extends Optional<S, ReadonlyArray<A>> {}
+```
+
+To operate on each `A` inside a `Traversal<S, A>`, use `forEach`.
+`forEach` takes a function whose argument is an `Iso<A, A>`, so you can keep drilling down by composing that `Iso` with other optics.
+
+## Why use functional optics when we already have Immer?
+
+Immer is great: it lets you write "mutating" code that produces new immutable objects under the hood. For many teams that is enough. If you work with nested data, union types, and reusable update logic, **functional optics** (Iso, Lens, Prism, Optional, Traversal) cover use cases that Immer does not aim to address.
+
+Below are the main differences, with small examples.
+
+### Reusable focus instead of ad-hoc navigation
+
+**Immer:** you repeat the path to the field each time you update it.
+
+```ts
+import { produce } from "immer"
+
+type S = {
+  readonly user: {
+    readonly profile: {
+      readonly name: string
+    }
+  }
+}
+
+declare const state: S
+
+const upperName = produce(state, (draft) => {
+  // Navigate to the field inline
+  draft.user.profile.name = draft.user.profile.name.toUpperCase()
+})
+
+const lowerName = produce(state, (draft) => {
+  // Repeat the same navigation again
+  draft.user.profile.name = draft.user.profile.name.toLowerCase()
+})
+```
+
+**Optics:** define a **Lens** once, then reuse it.
+
+```ts
+import { Optic } from "effect/optic"
+
+type S = {
+  readonly user: {
+    readonly profile: {
+      readonly name: string
+    }
+  }
+}
+
+// Define a reusable Lens focusing the "name" field
+// Lens<S, string>
+const _name = Optic.id<S>().key("user").key("profile").key("name")
+
+declare const state: S
+
+// Apply different transformations without repeating the path
+const upperName = _name.modify((name) => name.toUpperCase())(state)
+const lowerName = _name.modify((name) => name.toLowerCase())(state)
+```
+
+Why this matters: if the path changes, you update it in one place. You also get small, testable building blocks that can be shared across modules instead of repeating object navigation.
+
+### Declarative vs manual handling of optional data
+
+**Immer:** manual checks for each optional field.
+
+**Example** (Uppercasing titles with optional fields)
+
+```ts
+import { produce } from "immer"
+
+type S = {
+  readonly todos?: ReadonlyArray<{
+    readonly title?: string
+    readonly description: string
+  }>
+}
+
+const state: S = {
+  todos: [{ title: "milk", description: "buy milk" }, { description: "buy bread" }]
+}
+
+const next = produce(state, (draft) => {
+  // Guard the optional array
+  if (!draft.todos) return
+
+  for (const item of draft.todos) {
+    // Guard the optional field
+    if (item.title !== undefined) {
+      item.title = item.title.toUpperCase()
+    }
+  }
+})
+
+console.log(next)
+/*
+{
+  todos: [
+    { title: 'MILK', description: 'buy milk' },
+    { description: 'buy bread' }
+  ]
+}
+*/
+```
+
+**Optics:** declare the focus; types carry the safety.
+
+**Example** (Uppercasing titles with declarative focus)
+
+```ts
+import { Optic } from "effect/optic"
+
+type S = {
+  readonly todos?: ReadonlyArray<{
+    readonly title?: string
+    readonly description: string
+  }>
+}
+
+const _title = Optic.id<S>()
+  .key("todos")
+  .notUndefined() // proceed only if 'todos' exists
+  .forEach((item) => item.key("title").notUndefined()) // proceed only if 'title' exists
+
+const state: S = {
+  todos: [{ title: "milk", description: "buy milk" }, { description: "buy bread" }]
+}
+
+// Modify only the focused values (titles)
+console.log(_title.modifyAll((title) => title.toUpperCase())(state))
+```
+
+### Composition over nesting
+
+**Immer:** you often nest update blocks or repeat the same property paths.
+
+**Optics:** compose small optics into larger ones. Composition keeps code flat and readable.
+
+**Aside** (Reusing optics across modules)
+Define an optic once (for example, a `User.address` lens) and import it wherever you need it. This avoids duplicating paths and centralizes changes when the data shape evolves.

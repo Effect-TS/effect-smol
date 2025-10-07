@@ -7,6 +7,7 @@ import type { Brand } from "../data/Brand.ts"
 import type * as Equivalence from "../data/Equivalence.ts"
 import * as Option from "../data/Option.ts"
 import * as Order from "../data/Order.ts"
+import * as Predicate from "../data/Predicate.ts"
 import * as Result from "../data/Result.ts"
 import { format } from "../interfaces/Inspectable.ts"
 import { Class } from "../interfaces/Pipeable.ts"
@@ -1505,6 +1506,7 @@ export function unique<T>(equivalence: Equivalence.Equivalence<T>, annotations?:
 /**
  * A check that ensures the value is a `Some` value.
  *
+ * @category Option checks
  * @since 4.0.0
  */
 export function some<A>(annotations?: Annotations.Filter) {
@@ -1517,6 +1519,7 @@ export function some<A>(annotations?: Annotations.Filter) {
 /**
  * A check that ensures the value is a `None` value.
  *
+ * @category Option checks
  * @since 4.0.0
  */
 export function none<A>(annotations?: Annotations.Filter) {
@@ -1529,6 +1532,7 @@ export function none<A>(annotations?: Annotations.Filter) {
 /**
  * A check that ensures the value is a `Result.Success` value.
  *
+ * @category Result checks
  * @since 4.0.0
  */
 export function success<A, E>(annotations?: Annotations.Filter) {
@@ -1541,11 +1545,45 @@ export function success<A, E>(annotations?: Annotations.Filter) {
 /**
  * A check that ensures the value is a `Result.Failure` value.
  *
+ * @category Result checks
  * @since 4.0.0
  */
 export function failure<A, E>(annotations?: Annotations.Filter) {
   return makeRefineByGuard<Result.Failure<A, E>, Result.Result<A, E>>(
     Result.isFailure,
     Annotations.combine({ title: "failure", description: "a Result.Failure value" }, annotations)
+  )
+}
+
+/**
+ * @since 4.0.0
+ */
+export function notUndefined<A>(annotations?: Annotations.Filter) {
+  return makeRefineByGuard<Exclude<A, undefined>, A>(
+    Predicate.isNotUndefined,
+    Annotations.combine({ title: "notUndefined", description: "a value other than `undefined`" }, annotations)
+  )
+}
+
+/**
+ * @since 4.0.0
+ */
+export function notNull<A>(annotations?: Annotations.Filter) {
+  return makeRefineByGuard<Exclude<A, null>, A>(
+    Predicate.isNotNull,
+    Annotations.combine({ title: "notNull", description: "a value other than `null`" }, annotations)
+  )
+}
+
+/**
+ * @since 4.0.0
+ */
+export function notNullish<A>(annotations?: Annotations.Filter) {
+  return makeRefineByGuard<NonNullable<A>, A>(
+    Predicate.isNotNullish,
+    Annotations.combine(
+      { title: "notNullish", description: "a value other than `null` or `undefined  `" },
+      annotations
+    )
   )
 }

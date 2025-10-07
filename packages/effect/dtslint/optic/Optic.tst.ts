@@ -95,6 +95,11 @@ describe("Optic", () => {
     })
   })
 
+  it("notUndefined", () => {
+    const optic = Optic.id<number | undefined>().notUndefined()
+    expect(optic).type.toBe<Optic.Prism<number | undefined, number>>()
+  })
+
   it("fromChecks", () => {
     const optic = Optic.id<number>().compose(Optic.fromChecks(Check.positive(), Check.int()))
     expect(optic).type.toBe<Optic.Prism<number, number>>()
