@@ -70,7 +70,7 @@ import * as Effect from "../Effect.ts"
 import * as Exit from "../Exit.ts"
 import * as Fiber from "../Fiber.ts"
 import type { LazyArg } from "../Function.ts"
-import { constTrue, dual, identity as identity_ } from "../Function.ts"
+import { constant, constTrue, constVoid, dual, identity as identity_ } from "../Function.ts"
 import type { Pipeable } from "../interfaces/Pipeable.ts"
 import { pipeArguments } from "../interfaces/Pipeable.ts"
 import { endSpan } from "../internal/effect.ts"
@@ -5066,6 +5066,34 @@ export const runForEach: {
 )
 
 /**
+ * @since 2.0.0
+ * @category execution
+ */
+export const runForEachWhile: {
+  <OutElem, EX, RX>(
+    f: (o: OutElem) => Effect.Effect<boolean, EX, RX>
+  ): <OutErr, OutDone, Env>(
+    self: Channel<OutElem, OutErr, OutDone, unknown, unknown, unknown, Env>
+  ) => Effect.Effect<void, OutErr | EX, Env | RX>
+  <OutElem, OutErr, OutDone, Env, EX, RX>(
+    self: Channel<OutElem, OutErr, OutDone, unknown, unknown, unknown, Env>,
+    f: (o: OutElem) => Effect.Effect<boolean, EX, RX>
+  ): Effect.Effect<void, OutErr | EX, Env | RX>
+} = dual(
+  2,
+  <OutElem, OutErr, OutDone, Env, EX, RX>(
+    self: Channel<OutElem, OutErr, OutDone, unknown, unknown, unknown, Env>,
+    f: (o: OutElem) => Effect.Effect<boolean, EX, RX>
+  ): Effect.Effect<void, OutErr | EX, Env | RX> =>
+    runWith(self, (pull) =>
+      pull.pipe(
+        Effect.flatMap(f),
+        Effect.flatMap((cont) => (cont ? Effect.void : Pull.haltVoid)),
+        Effect.forever({ autoYield: false })
+      ))
+)
+
+/**
  * Runs a channel and collects all output elements into an array.
  *
  * @example
@@ -5204,6 +5232,46 @@ export const runFold: {
           step: (value) => {
             state = f(state, value)
           }
+        }),
+      () => Effect.succeed(state)
+    )
+  }))
+
+/**
+ * @since 2.0.0
+ * @category execution
+ */
+export const runFoldEffect: {
+  <OutElem, Z, E, R>(
+    initial: LazyArg<Z>,
+    f: (acc: Z, o: OutElem) => Effect.Effect<Z, E, R>
+  ): <OutErr, OutDone, Env>(
+    self: Channel<OutElem, OutErr, OutDone, unknown, unknown, unknown, Env>
+  ) => Effect.Effect<Z, OutErr | E, Env | R>
+  <OutElem, OutErr, OutDone, Env, Z, E, R>(
+    self: Channel<OutElem, OutErr, OutDone, unknown, unknown, unknown, Env>,
+    initial: LazyArg<Z>,
+    f: (acc: Z, o: OutElem) => Effect.Effect<Z, E, R>
+  ): Effect.Effect<Z, OutErr | E, Env | R>
+} = dual(3, <OutElem, OutErr, OutDone, Env, Z, E, R>(
+  self: Channel<OutElem, OutErr, OutDone, unknown, unknown, unknown, Env>,
+  initial: LazyArg<Z>,
+  f: (acc: Z, o: OutElem) => Effect.Effect<Z, E, R>
+): Effect.Effect<Z, OutErr | E, Env | R> =>
+  Effect.suspend(() => {
+    let state = initial()
+    return runWith(
+      self,
+      (pull) =>
+        Effect.whileLoop({
+          while: constTrue,
+          body: constant(pull.pipe(
+            Effect.flatMap((o) => f(state, o)),
+            Effect.map((s) => {
+              state = s
+            })
+          )),
+          step: constVoid
         }),
       () => Effect.succeed(state)
     )

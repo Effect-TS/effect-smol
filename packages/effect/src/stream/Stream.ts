@@ -3376,6 +3376,43 @@ export const runFold: {
  * @since 2.0.0
  * @category destructors
  */
+export const runFoldEffect: {
+  <Z, A, EX, RX>(
+    initial: LazyArg<Z>,
+    f: (acc: Z, a: A) => Effect.Effect<Z, EX, RX>
+  ): <E, R>(
+    self: Stream<A, E, R>
+  ) => Effect.Effect<Z, E | EX, R | RX>
+  <A, E, R, Z, EX, RX>(
+    self: Stream<A, E, R>,
+    initial: LazyArg<Z>,
+    f: (acc: Z, a: A) => Effect.Effect<Z, EX, RX>
+  ): Effect.Effect<Z, E | EX, R | RX>
+} = dual(3, <A, E, R, Z, EX, RX>(
+  self: Stream<A, E, R>,
+  initial: LazyArg<Z>,
+  f: (acc: Z, a: A) => Effect.Effect<Z, EX, RX>
+): Effect.Effect<Z, E | EX, R | RX> =>
+  Channel.runFoldEffect(self.channel, initial, (acc, arr) => {
+    let i = 0
+    let s = acc
+    return Effect.map(
+      Effect.whileLoop({
+        while: () => i < arr.length,
+        body: () => f(s, arr[i]),
+        step(z) {
+          s = z
+          i++
+        }
+      }),
+      () => s
+    )
+  }))
+
+/**
+ * @since 2.0.0
+ * @category destructors
+ */
 export const runHead = <A, E, R>(self: Stream<A, E, R>): Effect.Effect<Option.Option<A>, E, R> =>
   Effect.map(Channel.runHead(self.channel), Option.map(Arr.getUnsafe(0)))
 
@@ -3423,7 +3460,46 @@ export const runForEach: {
   self: Stream<A, E, R>,
   f: (a: A) => Effect.Effect<X, E2, R2>
 ): Effect.Effect<void, E | E2, R | R2> =>
-  Channel.runForEach(self.channel, Effect.forEach((_) => f(_), { discard: true })))
+  Channel.runForEach(self.channel, (arr) => {
+    let i = 0
+    return Effect.whileLoop({
+      while: () => i < arr.length,
+      body: () => f(arr[i++]),
+      step: constVoid
+    })
+  }))
+
+/**
+ * @since 2.0.0
+ * @category destructors
+ */
+export const runForEachWhile: {
+  <A, E2, R2>(
+    f: (a: A) => Effect.Effect<boolean, E2, R2>
+  ): <E, R>(self: Stream<A, E, R>) => Effect.Effect<void, E2 | E, R2 | R>
+  <A, E, R, E2, R2>(
+    self: Stream<A, E, R>,
+    f: (a: A) => Effect.Effect<boolean, E2, R2>
+  ): Effect.Effect<void, E | E2, R | R2>
+} = dual(2, <A, E, R, E2, R2>(
+  self: Stream<A, E, R>,
+  f: (a: A) => Effect.Effect<boolean, E2, R2>
+): Effect.Effect<void, E | E2, R | R2> =>
+  Channel.runForEachWhile(self.channel, (arr) => {
+    let done = false
+    let i = 0
+    return Effect.map(
+      Effect.whileLoop({
+        while: () => !done && i < arr.length,
+        body: () => f(arr[i]),
+        step(b) {
+          i++
+          if (!b) done = true
+        }
+      }),
+      () => done
+    )
+  }))
 
 /**
  * Consumes all elements of the stream, passing them to the specified
