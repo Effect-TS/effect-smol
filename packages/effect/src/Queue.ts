@@ -34,7 +34,7 @@
  * @since 3.8.0
  */
 import type { Cause } from "./Cause.ts"
-import { Done } from "./Cause.ts"
+import { Done, interrupt as causeInterrupt } from "./Cause.ts"
 import * as Arr from "./collections/Array.ts"
 import * as Iterable from "./collections/Iterable.ts"
 import * as MutableList from "./collections/MutableList.ts"
@@ -781,6 +781,51 @@ export const end = <A, E>(self: Queue<A, E | Done>): Effect<boolean> => done(sel
  * @since 4.0.0
  */
 export const endUnsafe = <A, E>(self: Queue<A, E | Done>) => doneUnsafe(self, internalEffect.exitVoid)
+
+/**
+ * Interrupts the queue gracefully, transitioning it to a closing state.
+ *
+ * This operation stops accepting new offers but allows existing messages to be consumed.
+ * Once all messages are drained, the queue transitions to the Done state with an interrupt cause.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ * import { Queue } from "effect"
+ *
+ * const program = Effect.gen(function*() {
+ *   const queue = yield* Queue.bounded<number>(10)
+ *
+ *   // Add some messages
+ *   yield* Queue.offer(queue, 1)
+ *   yield* Queue.offer(queue, 2)
+ *
+ *   // Interrupt gracefully - no more offers accepted, but messages can be consumed
+ *   const interrupted = yield* Queue.interrupt(queue)
+ *   console.log(interrupted) // true
+ *
+ *   // Trying to offer more messages will return false
+ *   const offerResult = yield* Queue.offer(queue, 3)
+ *   console.log(offerResult) // false
+ *
+ *   // But we can still take existing messages
+ *   const message1 = yield* Queue.take(queue)
+ *   console.log(message1) // 1
+ *
+ *   const message2 = yield* Queue.take(queue)
+ *   console.log(message2) // 2
+ *
+ *   // After all messages are consumed, queue is done
+ *   const isDone = queue.state._tag === "Done"
+ *   console.log(isDone) // true
+ * })
+ * ```
+ *
+ * @category completion
+ * @since 4.0.0
+ */
+export const interrupt = <A, E>(self: Queue<A, E>): Effect<boolean> =>
+  core.withFiber((fiber) => done(self, core.exitFailCause(causeInterrupt(fiber.id))))
 
 /**
  * Signal that the queue is done with a specific exit value. If the queue is already done, `false` is

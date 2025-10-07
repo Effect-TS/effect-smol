@@ -114,6 +114,31 @@ describe("Queue", () => {
       assert.strictEqual(yield* Queue.offer(queue, 10), false)
     }))
 
+  it.effect("interrupt allows draining", () =>
+    Effect.gen(function*() {
+      const queue = yield* Queue.bounded<number>(10)
+      yield* Queue.offerAll(queue, [1, 2, 3, 4, 5])
+
+      // Interrupt gracefully
+      const interrupted = yield* Queue.interrupt(queue)
+      assert.strictEqual(interrupted, true)
+
+      // No more offers accepted
+      const offerResult = yield* Queue.offer(queue, 6)
+      assert.strictEqual(offerResult, false)
+
+      // But can still drain existing messages
+      assert.strictEqual(yield* Queue.take(queue), 1)
+      assert.strictEqual(yield* Queue.take(queue), 2)
+      assert.strictEqual(yield* Queue.take(queue), 3)
+      assert.strictEqual(yield* Queue.take(queue), 4)
+      assert.strictEqual(yield* Queue.take(queue), 5)
+
+      // Now queue is done and take fails with interrupt
+      const exit = yield* Queue.take(queue).pipe(Effect.exit)
+      assert.isTrue(Exit.hasInterrupt(exit))
+    }))
+
   it.effect("fail", () =>
     Effect.gen(function*() {
       const queue = yield* Queue.bounded<number, string>(2)
