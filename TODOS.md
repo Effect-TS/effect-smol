@@ -232,10 +232,10 @@ The exports under each section are organized as they are in Effect 3.0. The cate
 |       `orElse`        |   X    |        `catch`        |          |
 |    `orElseEither`     |   X    |                       |          |
 |     `orElseFail`      |   X    |                       |          |
-|    `orElseIfEmpty`    |   -    |                       |          |
+|    `orElseIfEmpty`    |  Done  |                       |          |
 | `orElseIfEmptyChunk`  |   X    |                       |          |
 | `orElseIfEmptyStream` |   X    |    `orElseIfEmpty`    |          |
-|    `orElseSucceed`    |   -    |                       |          |
+|    `orElseSucceed`    |  Done  |                       |          |
 |     `refineOrDie`     |   X    | `catchFilter` + `die` |          |
 |   `refineOrDieWith`   |   X    |                       |          |
 
@@ -244,7 +244,7 @@ The exports under each section are organized as they are in Effect 3.0. The cate
 |    Effect 3    | Ported | Effect 4 | Comments |
 | :------------: | :----: | :------: | :------: |
 |    `filter`    |  Done  | `filter` |          |
-| `filterEffect` |   -    |          |          |
+| `filterEffect` |  Done  |          |          |
 
 ### Grouping
 
