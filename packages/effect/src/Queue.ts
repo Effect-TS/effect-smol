@@ -838,7 +838,43 @@ export const fail = <A, E>(self: Queue<A, E>, error: E) => done(self, core.exitF
  * @category completion
  * @since 4.0.0
  */
-export const failCause = <A, E>(self: Queue<A, E>, cause: Cause<E>) => done(self, core.exitFailCause(cause))
+export const failCause: {
+  <E>(cause: Cause<E>): <A>(self: Queue<A, E>) => Effect<boolean>
+  <A, E>(self: Queue<A, E>, cause: Cause<E>): Effect<boolean>
+} = dual(2, <A, E>(self: Queue<A, E>, cause: Cause<E>): Effect<boolean> => done(self, core.exitFailCause(cause)))
+
+/**
+ * Fail the queue with a cause synchronously. If the queue is already done, `false` is
+ * returned.
+ *
+ * This is an unsafe operation that directly modifies the queue without Effect wrapping.
+ *
+ * @example
+ * ```ts
+ * import { Effect, Cause } from "effect"
+ * import { Queue } from "effect"
+ *
+ * const program = Effect.gen(function*() {
+ *   const queue = yield* Queue.bounded<number, string>(10)
+ *
+ *   // Add some messages
+ *   Queue.offerUnsafe(queue, 1)
+ *
+ *   // Create a cause and fail the queue synchronously
+ *   const cause = Cause.fail("Processing error")
+ *   const failed = Queue.failCauseUnsafe(queue, cause)
+ *   console.log(failed) // true
+ *
+ *   // The queue is now in failed state
+ *   console.log(queue.state._tag) // "Done"
+ * })
+ * ```
+ *
+ * @category completion
+ * @since 4.0.0
+ */
+export const failCauseUnsafe = <A, E>(self: Queue<A, E>, cause: Cause<E>): boolean =>
+  doneUnsafe(self, core.exitFailCause(cause))
 
 /**
  * Signal that the queue is complete. If the queue is already done, `false` is
