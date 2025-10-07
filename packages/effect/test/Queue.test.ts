@@ -1,5 +1,6 @@
 import { assert, describe, it } from "@effect/vitest"
 import { Cause, Effect, Exit, Fiber, Queue } from "effect"
+import { Option } from "effect/data"
 import { Stream } from "effect/stream"
 
 describe("Queue", () => {
@@ -182,6 +183,27 @@ describe("Queue", () => {
       // Now queue is done and take fails with interrupt
       const exit = yield* Queue.take(queue).pipe(Effect.exit)
       assert.isTrue(Exit.hasInterrupt(exit))
+    }))
+
+  it.effect("poll returns Option for non-blocking take", () =>
+    Effect.gen(function*() {
+      const queue = yield* Queue.bounded<number>(10)
+
+      // Poll returns Option.none when empty
+      const empty = yield* Queue.poll(queue)
+      assert.isTrue(Option.isNone(empty))
+
+      // Add an item
+      yield* Queue.offer(queue, 42)
+
+      // Poll returns Option.some with the item
+      const item = yield* Queue.poll(queue)
+      assert.isTrue(Option.isSome(item))
+      assert.strictEqual(Option.getOrNull(item), 42)
+
+      // Queue is now empty again
+      const empty2 = yield* Queue.poll(queue)
+      assert.isTrue(Option.isNone(empty2))
     }))
 
   it.effect("fail", () =>

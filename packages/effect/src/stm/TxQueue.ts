@@ -9,8 +9,8 @@
  *
  * @since 4.0.0
  */
-import * as Arr from "../collections/Array.ts"
-import * as Cause from "../Cause.ts"
+import type * as Cause from "../Cause.ts"
+import type * as Arr from "../collections/Array.ts"
 import * as Chunk from "../collections/Chunk.ts"
 import * as Option from "../data/Option.ts"
 import { hasProperty } from "../data/Predicate.ts"

@@ -38,6 +38,7 @@ import { Done, interrupt as causeInterrupt } from "./Cause.ts"
 import * as Arr from "./collections/Array.ts"
 import * as Iterable from "./collections/Iterable.ts"
 import * as MutableList from "./collections/MutableList.ts"
+import * as Option from "./data/Option.ts"
 import { hasProperty } from "./data/Predicate.ts"
 import type { Effect } from "./Effect.ts"
 import type { Exit, Failure } from "./Exit.ts"
@@ -1340,6 +1341,52 @@ export const take = <A, E>(self: Dequeue<A, E>): Effect<A, E> =>
   internalEffect.suspend(
     () => takeUnsafe(self) ?? internalEffect.andThen(awaitTake(self), take(self))
   )
+
+/**
+ * Tries to take an item from the queue without blocking.
+ *
+ * Returns `Option.some` with the item if available, or `Option.none` if the queue is empty or done.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ * import { Option } from "effect/data"
+ * import { Queue } from "effect"
+ *
+ * const program = Effect.gen(function*() {
+ *   const queue = yield* Queue.bounded<number>(10)
+ *
+ *   // Poll returns Option.none if empty
+ *   const maybe1 = yield* Queue.poll(queue)
+ *   console.log(Option.isNone(maybe1)) // true
+ *
+ *   // Add an item
+ *   yield* Queue.offer(queue, 42)
+ *
+ *   // Poll returns Option.some with the item
+ *   const maybe2 = yield* Queue.poll(queue)
+ *   console.log(Option.getOrNull(maybe2)) // 42
+ *
+ *   // Queue is now empty again
+ *   const maybe3 = yield* Queue.poll(queue)
+ *   console.log(Option.isNone(maybe3)) // true
+ * })
+ * ```
+ *
+ * @category taking
+ * @since 4.0.0
+ */
+export const poll = <A, E>(self: Dequeue<A, E>): Effect<Option.Option<A>> =>
+  internalEffect.suspend(() => {
+    const result = takeUnsafe(self)
+    if (result === undefined) {
+      return internalEffect.succeed(Option.none())
+    }
+    if (result._tag === "Success") {
+      return internalEffect.succeed(Option.some(result.value))
+    }
+    return internalEffect.succeed(Option.none())
+  })
 
 /**
  * Take a single message from the queue synchronously, or wait for a message to be
