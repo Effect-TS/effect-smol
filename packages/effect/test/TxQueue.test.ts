@@ -577,7 +577,7 @@ describe("TxQueue", () => {
   })
 
   describe("clear", () => {
-    it.effect("clear removes all items from queue", () =>
+    it.effect("clear removes all items from queue and returns them", () =>
       Effect.gen(function*() {
         const queue = yield* TxQueue.bounded<number>(10)
         yield* TxQueue.offerAll(queue, [1, 2, 3, 4, 5])
@@ -585,7 +585,8 @@ describe("TxQueue", () => {
         const sizeBefore = yield* TxQueue.size(queue)
         assert.strictEqual(sizeBefore, 5)
 
-        yield* TxQueue.clear(queue)
+        const cleared = yield* TxQueue.clear(queue)
+        assert.deepStrictEqual(cleared, [1, 2, 3, 4, 5])
 
         const sizeAfter = yield* TxQueue.size(queue)
         assert.strictEqual(sizeAfter, 0)
@@ -599,7 +600,8 @@ describe("TxQueue", () => {
         const queue = yield* TxQueue.bounded<number>(10)
         yield* TxQueue.offerAll(queue, [1, 2, 3])
 
-        yield* TxQueue.clear(queue)
+        const cleared = yield* TxQueue.clear(queue)
+        assert.deepStrictEqual(cleared, [1, 2, 3])
 
         // Queue should still be open
         const isOpen = yield* TxQueue.isOpen(queue)
@@ -617,7 +619,8 @@ describe("TxQueue", () => {
       Effect.gen(function*() {
         const queue = yield* TxQueue.bounded<number>(10)
 
-        yield* TxQueue.clear(queue)
+        const cleared = yield* TxQueue.clear(queue)
+        assert.deepStrictEqual(cleared, [])
 
         const size = yield* TxQueue.size(queue)
         assert.strictEqual(size, 0)
@@ -639,7 +642,8 @@ describe("TxQueue", () => {
         const isDoneBefore = yield* TxQueue.isDone(queue)
         assert.strictEqual(isDoneBefore, true)
 
-        yield* TxQueue.clear(queue)
+        const cleared = yield* TxQueue.clear(queue)
+        assert.deepStrictEqual(cleared, [])
 
         const size = yield* TxQueue.size(queue)
         assert.strictEqual(size, 0)

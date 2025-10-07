@@ -1309,6 +1309,7 @@ export const end = <A, E>(self: TxEnqueue<A, E | Cause.Done>): Effect.Effect<boo
 
 /**
  * Clears all elements from the queue without affecting its state.
+ * Returns the cleared elements.
  *
  * **Mutation behavior**: This function mutates the original TxQueue by removing
  * all elements. It does not return a new TxQueue reference.
@@ -1325,7 +1326,9 @@ export const end = <A, E>(self: TxEnqueue<A, E | Cause.Done>): Effect.Effect<boo
  *   const sizeBefore = yield* TxQueue.size(queue)
  *   console.log(sizeBefore) // 5
  *
- *   yield* TxQueue.clear(queue)
+ *   const cleared = yield* TxQueue.clear(queue)
+ *   console.log(cleared) // [1, 2, 3, 4, 5]
+ *
  *   const sizeAfter = yield* TxQueue.size(queue)
  *   console.log(sizeAfter) // 0
  * })
@@ -1334,7 +1337,12 @@ export const end = <A, E>(self: TxEnqueue<A, E | Cause.Done>): Effect.Effect<boo
  * @since 4.0.0
  * @category combinators
  */
-export const clear = <A, E>(self: TxEnqueue<A, E>): Effect.Effect<void> => TxChunk.set(self.items, Chunk.empty())
+export const clear = <A, E>(self: TxEnqueue<A, E>): Effect.Effect<Array<A>> =>
+  Effect.gen(function*() {
+    const chunk = yield* TxChunk.get(self.items)
+    yield* TxChunk.set(self.items, Chunk.empty())
+    return Chunk.toArray(chunk)
+  })
 
 /**
  * Shuts down the queue immediately by clearing all items and interrupting it (legacy compatibility).
