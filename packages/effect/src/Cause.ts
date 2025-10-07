@@ -693,6 +693,81 @@ export interface NoSuchElementError extends YieldableError {
 export const NoSuchElementError: new(message?: string) => NoSuchElementError = core.NoSuchElementError
 
 /**
+ * Tests if a value is a `Done` error.
+ *
+ * @example
+ * ```ts
+ * import { Cause } from "effect"
+ *
+ * const error = new Cause.Done()
+ * console.log(Cause.isDone(error)) // true
+ * console.log(Cause.isDone("not an error")) // false
+ * ```
+ *
+ * @category guards
+ * @since 4.0.0
+ */
+export const isDone: (u: unknown) => u is Done = core.isDone
+
+/**
+ * @since 4.0.0
+ * @category errors
+ */
+export const DoneTypeId: "~effect/Cause/Done" = core.DoneTypeId
+
+/**
+ * Represents a graceful completion signal for queues and streams.
+ *
+ * `Done` is used to signal that a queue or stream has completed normally
+ * and no more elements will be produced. This is distinct from an error
+ * or interruption - it represents successful completion.
+ *
+ * @example
+ * ```ts
+ * import { Cause, Effect } from "effect"
+ * import { Queue } from "effect"
+ *
+ * const program = Effect.gen(function*() {
+ *   const queue = yield* Queue.bounded<number, Cause.Done>(10)
+ *
+ *   yield* Queue.offer(queue, 1)
+ *   yield* Queue.offer(queue, 2)
+ *
+ *   // Signal completion
+ *   yield* Queue.end(queue)
+ *
+ *   // Taking from ended queue fails with Done
+ *   const result = yield* Effect.flip(Queue.take(queue))
+ *   console.log(Cause.isDone(result)) // true
+ * })
+ * ```
+ *
+ * @since 4.0.0
+ * @category errors
+ */
+export interface Done extends YieldableError {
+  readonly [DoneTypeId]: typeof DoneTypeId
+  readonly _tag: "Done"
+}
+
+/**
+ * Creates a `Done` error to signal graceful completion.
+ *
+ * @example
+ * ```ts
+ * import { Cause } from "effect"
+ *
+ * const done = new Cause.Done()
+ * console.log(done._tag) // "Done"
+ * console.log(Cause.isDone(done)) // true
+ * ```
+ *
+ * @category constructors
+ * @since 4.0.0
+ */
+export const Done: new() => Done = core.Done
+
+/**
  * @category errors
  * @since 4.0.0
  */

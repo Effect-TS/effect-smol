@@ -648,3 +648,21 @@ export class NoSuchElementError extends TaggedError("NoSuchElementError") {
     super({ message } as any)
   }
 }
+
+/** @internal */
+export const DoneTypeId = "~effect/Cause/Done"
+
+/** @internal */
+export const HaltTypeId = "~effect/stream/Pull/Halt"
+
+/** @internal */
+export const isDone = (
+  u: unknown
+): u is Cause.Done => hasProperty(u, DoneTypeId)
+
+/** @internal */
+export class Done extends TaggedError("Done") {
+  readonly [DoneTypeId] = DoneTypeId
+  readonly [HaltTypeId] = HaltTypeId
+  readonly leftover = void 0 as void
+}
