@@ -8,6 +8,7 @@ import * as Hash from "../interfaces/Hash.ts"
 import { format, NodeInspectSymbol } from "../interfaces/Inspectable.ts"
 import { pipeArguments } from "../interfaces/Pipeable.ts"
 import type * as ServiceMap from "../ServiceMap.ts"
+import type { Halt as PullHalt } from "../stream/Pull.ts"
 import type { Span } from "../Tracer.ts"
 import type { Equals, NoInfer } from "../types/Types.ts"
 import { SingleShotGen } from "../Utils.ts"
@@ -661,8 +662,8 @@ export const isDone = (
 ): u is Cause.Done => hasProperty(u, DoneTypeId)
 
 /** @internal */
-export class Done extends TaggedError("Done") {
+export const Done = new (class Done extends TaggedError("Done") implements PullHalt<void> {
   readonly [DoneTypeId] = DoneTypeId
   readonly [HaltTypeId] = HaltTypeId
   readonly leftover = void 0 as void
-}
+})()

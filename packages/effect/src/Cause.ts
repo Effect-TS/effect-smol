@@ -47,6 +47,7 @@ import type { Pipeable } from "./interfaces/Pipeable.ts"
 import * as core from "./internal/core.ts"
 import * as effect from "./internal/effect.ts"
 import * as ServiceMap from "./ServiceMap.ts"
+import type * as Pull from "./stream/Pull.ts"
 import type { Span } from "./Tracer.ts"
 import type { NoInfer } from "./types/Types.ts"
 
@@ -745,27 +746,26 @@ export const DoneTypeId: "~effect/Cause/Done" = core.DoneTypeId
  * @since 4.0.0
  * @category errors
  */
-export interface Done extends YieldableError {
+export interface Done extends Pull.Halt<void>, YieldableError {
   readonly [DoneTypeId]: typeof DoneTypeId
   readonly _tag: "Done"
 }
 
 /**
- * Creates a `Done` error to signal graceful completion.
+ * Singleton instance of `Done` error to signal graceful completion.
  *
  * @example
  * ```ts
  * import { Cause } from "effect"
  *
- * const done = new Cause.Done()
- * console.log(done._tag) // "Done"
- * console.log(Cause.isDone(done)) // true
+ * console.log(Cause.Done._tag) // "Done"
+ * console.log(Cause.isDone(Cause.Done)) // true
  * ```
  *
  * @category constructors
  * @since 4.0.0
  */
-export const Done: new() => Done = core.Done
+export const Done: Done = core.Done
 
 /**
  * @category errors

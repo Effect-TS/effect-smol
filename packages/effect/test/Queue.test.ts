@@ -1,5 +1,5 @@
 import { assert, describe, it } from "@effect/vitest"
-import { Effect, Exit, Fiber, Queue } from "effect"
+import { Cause, Effect, Exit, Fiber, Queue } from "effect"
 import { Stream } from "effect/stream"
 
 describe("Queue", () => {
@@ -78,18 +78,18 @@ describe("Queue", () => {
 
   it.effect("done completes takes", () =>
     Effect.gen(function*() {
-      const queue = yield* Queue.bounded<number, Queue.Done>(2)
+      const queue = yield* Queue.bounded<number, Cause.Done>(2)
       const fiber = yield* Queue.takeAll(queue).pipe(
         Effect.forkChild
       )
       yield* Effect.yieldNow
       yield* Queue.done(queue, Exit.void)
-      assert.deepStrictEqual(yield* Fiber.await(fiber), Exit.fail(Queue.Done))
+      assert.deepStrictEqual(yield* Fiber.await(fiber), Exit.fail(Cause.Done))
     }))
 
   it.effect("end", () =>
     Effect.gen(function*() {
-      const queue = yield* Queue.bounded<number, Queue.Done>(2)
+      const queue = yield* Queue.bounded<number, Cause.Done>(2)
       yield* Effect.forkChild(Queue.offerAll(queue, [1, 2, 3, 4]))
       yield* Effect.forkChild(Queue.offerAll(queue, [5, 6, 7, 8]))
       yield* Effect.forkChild(Queue.offer(queue, 9))
@@ -102,7 +102,7 @@ describe("Queue", () => {
 
   it.effect("end with take", () =>
     Effect.gen(function*() {
-      const queue = yield* Queue.bounded<number, Queue.Done>(2)
+      const queue = yield* Queue.bounded<number, Cause.Done>(2)
       yield* Effect.forkChild(Queue.offerAll(queue, [1, 2]))
       yield* Effect.forkChild(Queue.offer(queue, 3))
       yield* Effect.forkChild(Queue.end(queue))
@@ -162,7 +162,7 @@ describe("Queue", () => {
 
   it.effect("await waits for no items", () =>
     Effect.gen(function*() {
-      const queue = yield* Queue.unbounded<number, Queue.Done>()
+      const queue = yield* Queue.unbounded<number, Cause.Done>()
       const fiber = yield* Queue.await(queue).pipe(Effect.forkChild)
       yield* Effect.yieldNow
       yield* Queue.offer(queue, 1)

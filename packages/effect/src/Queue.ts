@@ -34,10 +34,10 @@
  * @since 3.8.0
  */
 import type { Cause } from "./Cause.ts"
+import { Done } from "./Cause.ts"
 import * as Arr from "./collections/Array.ts"
 import * as Iterable from "./collections/Iterable.ts"
 import * as MutableList from "./collections/MutableList.ts"
-import * as Filter from "./data/Filter.ts"
 import { hasProperty } from "./data/Predicate.ts"
 import type { Effect } from "./Effect.ts"
 import type { Exit, Failure } from "./Exit.ts"
@@ -965,31 +965,19 @@ export const clear = <A, E>(self: Dequeue<A, E>): Effect<Array<A>, E> =>
  * @category Done
  * @since 4.0.0
  */
-export interface Done extends Pull.Halt<void> {
-  readonly _tag: "Done"
-}
-
 /**
+ * @deprecated Use `Cause.Done` instead. Re-exported for backward compatibility.
  * @category Done
  * @since 4.0.0
  */
-export const Done: Done = {
-  [Pull.HaltTypeId]: Pull.HaltTypeId,
-  _tag: "Done",
-  leftover: void 0
-}
+export type { Done } from "./Cause.ts"
 
 /**
- * @since 4.0.0
+ * @deprecated Use `Cause.isDone` instead. Re-exported for backward compatibility.
  * @category Done
- */
-export const isDone = (u: unknown): u is Done => Pull.isHalt(u) && (u as Done)._tag === "Done"
-
-/**
  * @since 4.0.0
- * @category Done
  */
-export const filterDone: Filter.Filter<unknown, Done> = Filter.fromPredicate(isDone)
+export { isDone } from "./Cause.ts"
 
 /**
  * Take all messages from the queue, or wait for messages to be available.
