@@ -7,6 +7,7 @@
 Queue.ts provides Effect-based asynchronous queues with backpressure strategies, while TxQueue.ts provides STM-based transactional queues. As TxQueue is the transactional counterpart of Queue, the APIs should mirror each other closely.
 
 **Key Differences to Preserve:**
+
 - **Queue.ts**: Effect-based, supports unsafe synchronous operations
 - **TxQueue.ts**: STM-based, all operations are atomic transactions (no unsafe variants needed)
 
@@ -15,16 +16,19 @@ Queue.ts provides Effect-based asynchronous queues with backpressure strategies,
 ### 1. ❌ WRONG: Inconsistent Completion Semantics (HIGHEST PRIORITY)
 
 **Current State:**
+
 - Queue.ts uses local `Done` interface (lines 968-992)
 - TxQueue.ts uses `Cause.NoSuchElementError`
 - Both represent the same concept: graceful queue completion
 
 **Why This is Wrong:**
+
 - `NoSuchElementError` implies "element not found" (lookup failure)
 - Queue completion means "gracefully finished, no more items" (lifecycle event)
 - Different types for same semantic meaning = API confusion
 
 **Solution:**
+
 - Create unified `Cause.Done` error type in Cause.ts
 - Both queues use `Cause.Done` for completion semantics
 - Remove Queue's local `Done` interface
@@ -33,21 +37,24 @@ Queue.ts provides Effect-based asynchronous queues with backpressure strategies,
 ### 2. ❌ WRONG: Queue's `done()` Operation (HIGH PRIORITY)
 
 **Current State:**
+
 ```typescript
 // Queue.ts - Complex signature with Exit
 export const done = <A, E>(
-  self: Queue<A, E>, 
+  self: Queue<A, E>,
   exit: Exit<Done extends E ? unknown : never, E>
 ): Effect<boolean>
 ```
 
 **Why This is Wrong:**
+
 - Complex conditional type signature
 - Takes `Exit` instead of `Cause` (less natural)
 - Not present in TxQueue (inconsistency)
 - `Cause` is the natural primitive, not `Exit`
 
 **TxQueue's Better Approach:**
+
 ```typescript
 // TxQueue.ts - Clean signatures
 export const fail: <A, E>(self: TxEnqueue<A, E>, error: E) => Effect<boolean>
@@ -56,6 +63,7 @@ export const end: <A, E>(self: TxEnqueue<A, E | Cause.Done>) => Effect<boolean>
 ```
 
 **Solution:**
+
 - Remove `done()` and `doneUnsafe()` from Queue.ts
 - Make `failCause(cause: Cause<E>)` the primitive in both implementations
 - Build `fail` and `end` as convenience wrappers around `failCause`
@@ -64,49 +72,57 @@ export const end: <A, E>(self: TxEnqueue<A, E | Cause.Done>) => Effect<boolean>
 ### 3. ❌ WRONG: TxQueue `takeAll` Type Lie (HIGH PRIORITY)
 
 **Current State:**
+
 ```typescript
 // TxQueue.ts - Says "might be empty" but blocks until non-empty!
 export const takeAll = <A, E>(self: TxDequeue<A, E>): Effect<ReadonlyArray<A>, E>
 ```
 
 **Implementation Reality:**
+
 ```typescript
 // Blocks until at least 1 item available
-if (yield* isEmpty(self)) {
-  return yield* Effect.retryTransaction  // ← BLOCKS HERE
+if (yield * isEmpty(self)) {
+  return yield * Effect.retryTransaction // ← BLOCKS HERE
 }
 // Only proceeds when ≥1 item available
 ```
 
 **Queue.ts Has it Correct:**
+
 ```typescript
 export const takeAll = <A, E>(self: Dequeue<A, E>): Effect<NonEmptyArray<A>, E>
 ```
 
 **Solution:**
+
 - Fix TxQueue `takeAll` signature to return `NonEmptyArray<A>`
 - Type now accurately reflects runtime behavior
 
 ### 4. ❌ WRONG: Queue Missing `interrupt` Operation (HIGH PRIORITY)
 
 **Current State:**
+
 - Queue.ts has NO `interrupt` operation
 - Only has `shutdown` which clears AND interrupts immediately
 - No way to gracefully close (stop accepting, allow draining)
 
 **TxQueue.ts Has it:**
+
 ```typescript
 export const interrupt = <A, E>(self: TxEnqueue<A, E>): Effect<boolean>
   // Graceful close - stops accepting, allows draining existing items
 ```
 
 **Solution:**
+
 - Add `interrupt` to Queue.ts
 - Refactor `shutdown` to compose `clear` + `interrupt`
 
 ### 5. ❌ WRONG: Inconsistent `clear` Semantics (MEDIUM PRIORITY)
 
 **Current State:**
+
 ```typescript
 // Queue.ts - Returns Array<A>, category "taking"
 export const clear = <A, E>(self: Dequeue<A, E>): Effect<Array<A>, E>
@@ -116,6 +132,7 @@ export const clear = <A, E>(self: TxEnqueue<A, E>): Effect<void>
 ```
 
 **Solution:**
+
 - Align both to return `Array<A>` (observable operations)
 - Fix Queue's category from "taking" to "combinators"
 - Change TxQueue to return cleared items
@@ -123,6 +140,7 @@ export const clear = <A, E>(self: TxEnqueue<A, E>): Effect<void>
 ### 6. ❌ WRONG: Queue Missing `Enqueue` Interface (MEDIUM PRIORITY)
 
 **Current State:**
+
 ```typescript
 // TxQueue.ts - THREE interfaces (correct structure)
 TxEnqueue<in A, in E>  // Write-only (contravariant)
@@ -136,6 +154,7 @@ Queue<in out A, in out E>  // Full queue
 ```
 
 **Solution:**
+
 - Add `Enqueue<in A, in E>` interface to Queue.ts
 - Update `Queue` to extend both `Enqueue` and `Dequeue`
 - Add `isEnqueue` guard and `asEnqueue` converter
@@ -144,23 +163,138 @@ Queue<in out A, in out E>  // Full queue
 ### 7. ❌ WRONG: Return Type Inconsistencies (MEDIUM PRIORITY)
 
 **Issue 7a: `offerAll` returns different types**
+
 - Queue.ts: `Effect<Array<A>>` (remaining messages)
 - TxQueue.ts: `Effect<Chunk<A>>` (rejected items)
 - **Solution:** Both return `Array<A>`
 
 **Issue 7b: Signature patterns need unified `Cause.Done`**
+
 - All `E | Done` → `E | Cause.Done`
 - All `Exclude<E, Done>` → `Exclude<E, Cause.Done>`
 - All `E | Cause.NoSuchElementError` → `E | Cause.Done`
+
+## Detailed Implementation Steps with Commits
+
+### Phase 0: Unified Completion API (HIGHEST PRIORITY)
+
+**Commit 0.1:** `feat(Cause): add Done error type for queue completion`
+
+- Add `Done` class extending `Pull.Halt<void>` to `packages/effect/src/internal/core.ts`
+- Export `Done`, `DoneTypeId`, `isDone` from `packages/effect/src/Cause.ts`
+- Validates: `pnpm lint --fix`, `pnpm tsc --noEmit`
+
+**Commit 0.2:** `refactor(Queue): migrate to use Cause.Done for completion`
+
+- Replace all `E | Done` with `E | Cause.Done` in Queue.ts
+- Replace all `Exclude<E, Done>` with `Exclude<E, Cause.Done>`
+- Update `end`, `endUnsafe`, `collect`, `await_`, `into`, `toPull`, `toPullArray` signatures
+- Deprecate local `Queue.Done`, re-export `Cause.Done` as `Queue.Done` for compatibility
+- Update JSDoc examples to use `Cause.Done`
+- Validates: `pnpm lint --fix`, `pnpm tsc --noEmit`, `pnpm test packages/effect/test/Queue.test.ts`
+
+**Commit 0.3:** `refactor(TxQueue): migrate from NoSuchElementError to Cause.Done`
+
+- Replace all `Cause.NoSuchElementError` with `Cause.Done`
+- Update `end()` signature and implementation
+- Update all JSDoc examples
+- Validates: `pnpm lint --fix`, `pnpm tsc --noEmit`, `pnpm test packages/effect/test/TxQueue.test.ts`
+
+**Commit 0.4:** `feat(Queue): add interrupt operation for graceful close`
+
+- Add `interrupt()` function to Queue.ts
+- Add JSDoc with examples
+- Validates: `pnpm lint --fix`, `pnpm tsc --noEmit`, `pnpm test packages/effect/test/Queue.test.ts`
+
+**Commit 0.5:** `refactor(Queue): fix clear semantics to return cleared items`
+
+- Change `clear()` category from "taking" to "combinators"
+- Validates: `pnpm lint --fix`, `pnpm tsc --noEmit`
+
+**Commit 0.6:** `refactor(TxQueue): change clear to return cleared items`
+
+- Update `clear()` to return `Array<A>` instead of `void`
+- Update implementation
+- Validates: `pnpm lint --fix`, `pnpm tsc --noEmit`, `pnpm test packages/effect/test/TxQueue.test.ts`
+
+**Commit 0.7:** `refactor(Queue): refactor shutdown to compose clear + interrupt`
+
+- Change `shutdown()` implementation to call `clear()` then `interrupt()`
+- Validates: `pnpm lint --fix`, `pnpm tsc --noEmit`, `pnpm test packages/effect/test/Queue.test.ts`
+
+### Phase 1: Interface Structure Alignment
+
+**Commit 1.1:** `feat(Queue): add Enqueue interface for write-only operations`
+
+- Add `EnqueueTypeId`, `Enqueue` interface with contravariant variance
+- Add `isEnqueue()` guard and `asEnqueue()` converter
+- Update `Queue` interface to extend both `Enqueue` and `Dequeue`
+- Update `QueueProto` to include `EnqueueTypeId`
+- Validates: `pnpm lint --fix`, `pnpm tsc --noEmit`, `pnpm test packages/effect/test/Queue.test.ts`
+
+### Phase 2: Critical Return Type Fixes
+
+**Commit 2.1:** `fix(TxQueue): change takeAll to return NonEmptyArray`
+
+- Update `takeAll()` signature from `ReadonlyArray<A>` to `NonEmptyArray<A>`
+- Update tests
+- Validates: `pnpm lint --fix`, `pnpm tsc --noEmit`, `pnpm test packages/effect/test/TxQueue.test.ts`
+
+**Commit 2.2:** `fix(TxQueue): change offerAll to return Array instead of Chunk`
+
+- Update `offerAll()` signature from `Chunk<A>` to `Array<A>`
+- Update implementation to convert Chunk to Array
+- Update tests
+- Validates: `pnpm lint --fix`, `pnpm tsc --noEmit`, `pnpm test packages/effect/test/TxQueue.test.ts`
+
+### Phase 3: Missing Operations
+
+**Commit 3.1:** `feat(Queue): add poll operation for non-blocking take`
+
+- Add `poll()` function returning `Effect<Option<A>, E>`
+- Add JSDoc with examples
+- Validates: `pnpm lint --fix`, `pnpm tsc --noEmit`, `pnpm test packages/effect/test/Queue.test.ts`
+
+**Commit 3.2:** `feat(Queue): add peek operation to inspect without removing`
+
+- Add `peek()` function returning `Effect<A, E>`
+- Add JSDoc with examples
+- Validates: `pnpm lint --fix`, `pnpm tsc --noEmit`, `pnpm test packages/effect/test/Queue.test.ts`
+
+**Commit 3.3:** `feat(TxQueue): add collect operation for drain until done`
+
+- Add `collect()` function
+- Add JSDoc with examples
+- Validates: `pnpm lint --fix`, `pnpm tsc --noEmit`, `pnpm test packages/effect/test/TxQueue.test.ts`
+
+### Phase 4: Documentation & Final Validation
+
+**Commit 4.1:** `docs(Queue,TxQueue): update all JSDoc examples for Cause.Done`
+
+- Review and update remaining JSDoc examples
+- Validates: `pnpm docgen`
+
+**Commit 4.2:** `test(Queue,TxQueue): update tests for API changes`
+
+- Update all test files for breaking changes
+- Validates: `pnpm test packages/effect/test/Queue.test.ts packages/effect/test/TxQueue.test.ts`
+
+**Final Validation:**
+
+- `pnpm lint` - All files
+- `pnpm check` - Full typecheck
+- `pnpm docgen` - Examples compile
+- `pnpm test` - All tests pass
 
 ## Implementation Plan
 
 ### Phase 0: Unified Completion API (HIGHEST PRIORITY)
 
 #### Step 1: Create `Cause.Done` Error Type
+
 **File:** `packages/effect/src/Cause.ts` + `packages/effect/src/internal/core.ts`
 
-```typescript
+````typescript
 /**
  * Type identifier for Done errors.
  * @since 4.0.0
@@ -170,7 +304,7 @@ export const DoneTypeId: "~effect/Cause/Done" = "~effect/Cause/Done" as const
 
 /**
  * Represents a graceful completion signal for queues and streams.
- * 
+ *
  * `Done` is used to signal that a queue or stream has completed normally
  * and no more elements will be produced. This is distinct from an error
  * or interruption - it represents successful completion.
@@ -182,13 +316,13 @@ export const DoneTypeId: "~effect/Cause/Done" = "~effect/Cause/Done" as const
  *
  * const program = Effect.gen(function*() {
  *   const queue = yield* Queue.bounded<number, Cause.Done>(10)
- *   
+ *
  *   yield* Queue.offer(queue, 1)
  *   yield* Queue.offer(queue, 2)
- *   
+ *
  *   // Signal completion
  *   yield* Queue.end(queue)
- *   
+ *
  *   // Taking from ended queue fails with Done
  *   const result = yield* Effect.flip(Queue.take(queue))
  *   console.log(Cause.isDone(result)) // true
@@ -208,7 +342,7 @@ export interface Done extends YieldableError {
  * @since 4.0.0
  * @category constructors
  */
-export const Done: new() => Done
+export const Done: new () => Done
 
 /**
  * Tests if a value is a `Done` error.
@@ -216,31 +350,35 @@ export const Done: new() => Done
  * @category guards
  */
 export const isDone: (u: unknown) => u is Done
-```
+````
 
 #### Step 2: Remove Queue's `done()` Operations
+
 **File:** `packages/effect/src/Queue.ts`
 
 **DELETE:**
+
 - Line ~816: `done()` operation
 - Line ~850: `doneUnsafe()` operation
 
 **REFACTOR:**
+
 ```typescript
 // Change fail and end to call failCause directly
-export const fail = <A, E>(self: Queue<A, E>, error: E): Effect<boolean> =>
-  failCause(self, Cause.fail(error))
+export const fail = <A, E>(self: Queue<A, E>, error: E): Effect<boolean> => failCause(self, Cause.fail(error))
 
 export const end = <A, E>(self: Queue<A, E | Cause.Done>): Effect<boolean> =>
   failCause(self, Cause.fail(new Cause.Done()))
 ```
 
 #### Step 3: Migrate Queue.ts Signatures to `Cause.Done`
+
 **File:** `packages/effect/src/Queue.ts`
 
 **Update locations:**
+
 - Line 750: `end` signature
-- Line 783: `endUnsafe` signature  
+- Line 783: `endUnsafe` signature
 - Line 968-992: **DELETE** local `Done` interface, `isDone`, `filterDone`
 - Line 1040: `collect` signature (both patterns)
 - Line 1244-1245: `await_` signature
@@ -249,26 +387,31 @@ export const end = <A, E>(self: Queue<A, E | Cause.Done>): Effect<boolean> =>
 - Line 1499-1500: `toPullArray` signature
 
 **Search/Replace patterns:**
+
 ```typescript
 E | Done                    →    E | Cause.Done
 Exclude<E, Done>            →    Exclude<E, Cause.Done>
 ```
 
 **Add import:**
+
 ```typescript
 import { Done } from "./Cause.ts"
 ```
 
 #### Step 4: Migrate TxQueue.ts from `NoSuchElementError` to `Cause.Done`
+
 **File:** `packages/effect/src/stm/TxQueue.ts`
 
 **Update locations:**
+
 - Line 208-211: JSDoc example in `TxEnqueue` interface
 - Line 1273-1308: `end` function signature + implementation
 - Line 1287: Example type annotation
 - Line 1295-1300: JSDoc examples with `isNoSuchElementError`
 
 **Search/Replace patterns:**
+
 ```typescript
 E | Cause.NoSuchElementError       →    E | Cause.Done
 Exclude<E, Cause.NoSuchElementError> →  Exclude<E, Cause.Done>
@@ -278,9 +421,10 @@ new Cause.NoSuchElementError()     →    new Cause.Done()
 ```
 
 #### Step 5: Add `interrupt` to Queue.ts
+
 **File:** `packages/effect/src/Queue.ts`
 
-```typescript
+````typescript
 /**
  * Interrupts the queue, transitioning it to a closing state.
  * Existing items can still be consumed, but no new items will be accepted.
@@ -309,9 +453,10 @@ new Cause.NoSuchElementError()     →    new Cause.Done()
  */
 export const interrupt = <A, E>(self: Queue<A, E>): Effect<boolean> =>
   Effect.withFiber((fiber) => failCause(self, Cause.interrupt(fiber.id)))
-```
+````
 
 #### Step 6: Fix `clear` Semantics
+
 **File:** `packages/effect/src/Queue.ts`
 
 ```typescript
@@ -326,7 +471,7 @@ export const clear = <A, E>(self: Dequeue<A, E>): Effect<Array<A>, E>
 // Change to return Array<A> instead of void
 export const clear = <A, E>(self: TxEnqueue<A, E>): Effect.Effect<Array<A>> =>
   Effect.atomic(
-    Effect.gen(function*() {
+    Effect.gen(function* () {
       const chunk = yield* TxChunk.get(self.items)
       const items = Chunk.toArray(chunk)
       yield* TxChunk.set(self.items, Chunk.empty())
@@ -336,22 +481,24 @@ export const clear = <A, E>(self: TxEnqueue<A, E>): Effect.Effect<Array<A>> =>
 ```
 
 #### Step 7: Refactor `shutdown` Composition
+
 **File:** `packages/effect/src/Queue.ts`
 
 ```typescript
 export const shutdown = <A, E>(self: Queue<A, E>): Effect<boolean> =>
-  Effect.gen(function*() {
-    yield* clear(self)        // Clear items first
-    return yield* interrupt(self)  // Then interrupt
+  Effect.gen(function* () {
+    yield* clear(self) // Clear items first
+    return yield* interrupt(self) // Then interrupt
   })
 ```
 
 ### Phase 1: Interface Structure Alignment
 
 #### Step 1: Add `Enqueue` Interface to Queue.ts
+
 **File:** `packages/effect/src/Queue.ts`
 
-```typescript
+````typescript
 const EnqueueTypeId = "~effect/Queue/Enqueue"
 
 /**
@@ -394,9 +541,7 @@ export declare namespace Enqueue {
  * @since 4.0.0
  * @category guards
  */
-export const isEnqueue = <A = unknown, E = unknown>(
-  u: unknown
-): u is Enqueue<A, E> => hasProperty(u, EnqueueTypeId)
+export const isEnqueue = <A = unknown, E = unknown>(u: unknown): u is Enqueue<A, E> => hasProperty(u, EnqueueTypeId)
 
 /**
  * Convert a Queue to an Enqueue, allowing only write operations.
@@ -404,9 +549,10 @@ export const isEnqueue = <A = unknown, E = unknown>(
  * @category conversions
  */
 export const asEnqueue: <A, E>(self: Queue<A, E>) => Enqueue<A, E> = identity
-```
+````
 
 #### Step 2: Update Queue Interface
+
 **File:** `packages/effect/src/Queue.ts`
 
 ```typescript
@@ -414,17 +560,18 @@ export const asEnqueue: <A, E>(self: Queue<A, E>) => Enqueue<A, E> = identity
 export interface Queue<in out A, in out E = never> extends Dequeue<A, E>
 
 // To:
-export interface Queue<in out A, in out E = never> 
+export interface Queue<in out A, in out E = never>
   extends Enqueue<A, E>, Dequeue<A, E>
 ```
 
 #### Step 3: Update Proto
+
 ```typescript
 const QueueProto = {
   [TypeId]: variance,
   [DequeueTypeId]: variance,
-  [EnqueueTypeId]: variance,  // ADD THIS
-  ...PipeInspectableProto,
+  [EnqueueTypeId]: variance, // ADD THIS
+  ...PipeInspectableProto
   // ...
 }
 ```
@@ -432,6 +579,7 @@ const QueueProto = {
 ### Phase 2: Critical Return Type Fixes
 
 #### Step 1: Fix TxQueue `takeAll` Return Type
+
 **File:** `packages/effect/src/stm/TxQueue.ts`
 
 ```typescript
@@ -443,18 +591,19 @@ export const takeAll = <A, E>(self: TxDequeue<A, E>): Effect.Effect<Arr.NonEmpty
 ```
 
 #### Step 2: Align `offerAll` Return Type
+
 **File:** `packages/effect/src/stm/TxQueue.ts`
 
 ```typescript
 // Change from:
 export const offerAll = <A, E>(
-  self: TxEnqueue<A, E>, 
+  self: TxEnqueue<A, E>,
   values: Iterable<A>
 ): Effect.Effect<Chunk.Chunk<A>>
 
 // To:
 export const offerAll = <A, E>(
-  self: TxEnqueue<A, E>, 
+  self: TxEnqueue<A, E>,
   values: Iterable<A>
 ): Effect.Effect<Array<A>>
 
@@ -464,10 +613,12 @@ export const offerAll = <A, E>(
 ### Phase 3: Missing Operations
 
 #### Add to Queue.ts:
+
 - `poll` - non-blocking take (returns `Option<A>`)
 - `peek` - inspect without removing
 
 #### Add to TxQueue.ts:
+
 - `collect` - take all until done/error
 
 ### Phase 4: Documentation & Validation
@@ -483,6 +634,7 @@ export const offerAll = <A, E>(
 ## Breaking Changes Summary
 
 ### Breaking Change #1: Unified Completion Type
+
 ```typescript
 // Before
 Queue<number, Queue.Done>
@@ -494,6 +646,7 @@ TxQueue<number, Cause.Done>
 ```
 
 **Migration:**
+
 ```typescript
 // Queue users: Change imports
 import { Queue } from "effect"
@@ -501,31 +654,34 @@ import { Queue } from "effect"
 import { Cause } from "effect"
 
 // Type annotations
-const queue: Queue<number, Queue.Done>  // Before
-const queue: Queue<number, Cause.Done>  // After
+const queue: Queue<number, Queue.Done> // Before
+const queue: Queue<number, Cause.Done> // After
 
 // TxQueue users: Similar change
-const queue: TxQueue<number, Cause.NoSuchElementError>  // Before
-const queue: TxQueue<number, Cause.Done>  // After
+const queue: TxQueue<number, Cause.NoSuchElementError> // Before
+const queue: TxQueue<number, Cause.Done> // After
 ```
 
 ### Breaking Change #2: Remove `Queue.done()` Operation
+
 ```typescript
 // Before
-yield* Queue.done(queue, Exit.fail(error))
-yield* Queue.done(queue, Exit.succeed(undefined))
+yield * Queue.done(queue, Exit.fail(error))
+yield * Queue.done(queue, Exit.succeed(undefined))
 
 // After
-yield* Queue.failCause(queue, Cause.fail(error))
-yield* Queue.end(queue)  // For graceful completion
+yield * Queue.failCause(queue, Cause.fail(error))
+yield * Queue.end(queue) // For graceful completion
 ```
 
 **Migration:**
+
 - Replace `Queue.done(queue, Exit.fail(e))` with `Queue.failCause(queue, Cause.fail(e))`
 - Replace `Queue.done(queue, Exit.succeed())` with `Queue.end(queue)`
 - No `doneUnsafe` equivalent - use `failCauseUnsafe` or `endUnsafe`
 
 ### Breaking Change #3: `takeAll` Return Type
+
 ```typescript
 // Before (TxQueue)
 const items: ReadonlyArray<number> = yield* TxQueue.takeAll(queue)
@@ -537,16 +693,18 @@ const items: NonEmptyArray<number> = yield* TxQueue.takeAll(queue)
 ```
 
 ### Breaking Change #4: `clear` Return Type
+
 ```typescript
 // Before (TxQueue)
-yield* TxQueue.clear(queue)  // Returns void
+yield * TxQueue.clear(queue) // Returns void
 
 // After (TxQueue)
-const cleared = yield* TxQueue.clear(queue)  // Returns Array<A>
+const cleared = yield * TxQueue.clear(queue) // Returns Array<A>
 console.log("Cleared items:", cleared)
 ```
 
 ### Breaking Change #5: Queue Interface Structure
+
 ```typescript
 // Before
 Queue extends Dequeue  // Only two interfaces
@@ -597,28 +755,33 @@ After implementation, verify:
 ## Rationale
 
 ### Why `Cause.Done` Over `NoSuchElementError`?
+
 - **Semantic correctness**: Completion is not "not finding something"
 - **Consistency**: Same concept = same type
 - **Clarity**: `Done` clearly signals "finished normally"
 
 ### Why Remove `Queue.done()`?
+
 - **Simpler API**: `failCause` is more natural than `done(Exit<...>)`
 - **Consistency**: TxQueue doesn't have it, shouldn't be different
 - **Power**: `Cause<E>` can represent ANY completion scenario
 - **Type safety**: Clearer signature without complex conditional types
 
 ### Why `takeAll` Returns `NonEmptyArray`?
+
 - **Type honesty**: Implementation blocks until ≥1 item available
 - **User benefit**: No unnecessary empty checks
 - **Correctness**: Type reflects runtime behavior
 
 ### Why Add `Enqueue` Interface?
+
 - **Type safety**: Restrict operations at type level
 - **Consistency**: Match TxQueue's structure
 - **Patterns**: Enable producer-consumer separation
 - **Variance**: Proper contravariant producer type
 
 ### Why `clear` Returns `Array<A>`?
+
 - **Observability**: See what was cleared (useful for debugging)
 - **Consistency**: Both queues behave the same
 - **Less breaking**: Queue already has this signature
