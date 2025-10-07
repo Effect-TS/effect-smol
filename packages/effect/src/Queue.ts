@@ -965,31 +965,25 @@ export const clear = <A, E>(self: Dequeue<A, E>): Effect<Array<A>, E> =>
  * @category Done
  * @since 4.0.0
  */
-export interface Done extends Pull.Halt<void> {
-  readonly _tag: "Done"
-}
+export interface Done extends Pull.Halt<any> {}
 
 /**
  * @category Done
  * @since 4.0.0
  */
-export const Done: Done = {
-  [Pull.HaltTypeId]: Pull.HaltTypeId,
-  _tag: "Done",
-  leftover: void 0
-}
+export const Done: Done = new Pull.Halt(void 0)
 
 /**
  * @since 4.0.0
  * @category Done
  */
-export const isDone = (u: unknown): u is Done => Pull.isHalt(u) && (u as Done)._tag === "Done"
+export const isDone: (u: unknown) => u is Done = Pull.isHalt
 
 /**
  * @since 4.0.0
  * @category Done
  */
-export const filterDone: Filter.Filter<unknown, Done> = Filter.fromPredicate(isDone)
+export const filterDone: <A>(u: A) => Done | Filter.fail<Exclude<A, Done>> = Filter.fromPredicate(isDone) as any
 
 /**
  * Take all messages from the queue, or wait for messages to be available.

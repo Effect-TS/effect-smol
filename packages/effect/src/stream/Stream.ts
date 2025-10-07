@@ -3348,6 +3348,18 @@ export const runCount = <A, E, R>(self: Stream<A, E, R>): Effect.Effect<number, 
  * @since 2.0.0
  * @category destructors
  */
+export const runSum = <E, R>(self: Stream<number, E, R>): Effect.Effect<number, E, R> =>
+  Channel.runFold(self.channel, () => 0, (acc, chunk) => {
+    for (let i = 0; i < chunk.length; i++) {
+      acc += chunk[i]
+    }
+    return acc
+  })
+
+/**
+ * @since 2.0.0
+ * @category destructors
+ */
 export const runFold: {
   <Z, A>(
     initial: LazyArg<Z>,
@@ -3843,6 +3855,32 @@ export const toAsyncIterable = <A, E>(self: Stream<A, E>): AsyncIterable<A> =>
  * @since 2.0.0
  * @category destructors
  */
+export const runIntoPubSub: {
+  <A>(
+    pubsub: PubSub.PubSub<A>,
+    options?: {
+      readonly shutdownOnEnd?: boolean | undefined
+    } | undefined
+  ): <E, R>(self: Stream<A, E, R>) => Effect.Effect<void, E, R>
+  <A, E, R>(
+    self: Stream<A, E, R>,
+    pubsub: PubSub.PubSub<A>,
+    options?: {
+      readonly shutdownOnEnd?: boolean | undefined
+    } | undefined
+  ): Effect.Effect<void, never, R>
+} = dual((args) => isStream(args[0]), <A, E, R>(
+  self: Stream<A, E, R>,
+  pubsub: PubSub.PubSub<A>,
+  options?: {
+    readonly shutdownOnEnd?: boolean | undefined
+  } | undefined
+): Effect.Effect<void, E, R> => Channel.runIntoPubSubArray(self.channel, pubsub, options))
+
+/**
+ * @since 2.0.0
+ * @category destructors
+ */
 export const toPubSub: {
   (
     options: {
@@ -3927,3 +3965,54 @@ export const toPubSubTake: {
   ): Effect.Effect<PubSub.PubSub<Take.Take<A, E>>, never, R | Scope.Scope> =>
     Channel.toPubSubTake(self.channel, options)
 )
+
+/**
+ * @since 2.0.0
+ * @category destructors
+ */
+export const toQueue: {
+  (
+    options: {
+      readonly capacity: "unbounded"
+    } | {
+      readonly capacity: number
+      readonly strategy?: "dropping" | "sliding" | "suspend" | undefined
+    }
+  ): <A, E, R>(self: Stream<A, E, R>) => Effect.Effect<Queue.Dequeue<A, E | Queue.Done>, never, R | Scope.Scope>
+  <A, E, R>(
+    self: Stream<A, E, R>,
+    options: {
+      readonly capacity: "unbounded"
+    } | {
+      readonly capacity: number
+      readonly strategy?: "dropping" | "sliding" | "suspend" | undefined
+    }
+  ): Effect.Effect<PubSub.PubSub<A>, never, R | Scope.Scope>
+} = dual(
+  2,
+  <A, E, R>(
+    self: Stream<A, E, R>,
+    options: {
+      readonly capacity: "unbounded"
+      readonly replay?: number | undefined
+      readonly shutdownOnEnd?: boolean | undefined
+    } | {
+      readonly capacity: number
+      readonly strategy?: "dropping" | "sliding" | "suspend" | undefined
+      readonly replay?: number | undefined
+      readonly shutdownOnEnd?: boolean | undefined
+    }
+  ): Effect.Effect<PubSub.PubSub<A>, never, R | Scope.Scope> => Channel.toPubSubArray(self.channel, options)
+)
+
+/**
+ * @since 2.0.0
+ * @category destructors
+ */
+export const runIntoQueue: {
+  <A, E>(queue: Queue.Queue<A, E | Queue.Done>): <R>(self: Stream<A, E, R>) => Effect.Effect<void, never, R>
+  <A, E, R>(self: Stream<A, E, R>, queue: Queue.Queue<A, E | Queue.Done>): Effect.Effect<void, never, R>
+} = dual(2, <A, E, R>(
+  self: Stream<A, E, R>,
+  queue: Queue.Queue<A, E | Queue.Done>
+): Effect.Effect<void, never, R> => Channel.runIntoQueueArray(self.channel, queue))

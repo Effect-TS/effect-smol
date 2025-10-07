@@ -174,20 +174,20 @@ The exports under each section are organized as they are in Effect 3.0. The cate
 |      `runForEachWhile`       |  Done  |                          |          |
 |   `runForEachWhileScoped`    |   X    |                          |          |
 |          `runHead`           |  Done  |        `runHead`         |          |
-|       `runIntoPubSub`        |   -    |                          |          |
+|       `runIntoPubSub`        |  Done  |                          |          |
 |    `runIntoPubSubScoped`     |   X    |                          |          |
-|        `runIntoQueue`        |   -    |                          |          |
+|        `runIntoQueue`        |  Done  |                          |          |
 | `runIntoQueueElementsScoped` |   X    |                          |          |
 |     `runIntoQueueScoped`     |   X    |                          |          |
 |          `runLast`           |  Done  |        `runLast`         |          |
 |         `runScoped`          |   X    |                          |          |
-|           `runSum`           |   -    |                          |          |
+|           `runSum`           |  Done  |                          |          |
 |      `toAsyncIterable`       |  Done  |    `toAsyncIterable`     |          |
 |   `toAsyncIterableEffect`    |  Done  |                          |          |
 |   `toAsyncIterableRuntime`   |  Done  |  `toAsyncIterableWith`   |          |
 |          `toPubSub`          |  Done  |        `toPubSub`        |          |
 |           `toPull`           |  Done  |         `toPull`         |          |
-|          `toQueue`           |   -    |                          |          |
+|          `toQueue`           |  Done  |                          |          |
 |     `toQueueOfElements`      |   X    |                          |          |
 |      `toReadableStream`      |  Done  |    `toReadableStream`    |          |
 |   `toReadableStreamEffect`   |  Done  | `toReadableStreamEffect` |          |
