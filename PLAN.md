@@ -2,6 +2,54 @@
 
 **Goal:** Align the APIs of Queue.ts (Effect-based) and TxQueue.ts (STM-based) to ensure consistent naming, return types, functionality, and structure while respecting their fundamental differences.
 
+## 🚨 CRITICAL IMPLEMENTATION RULES 🚨
+
+### Rule 1: Small, Single-Purpose Commits
+
+- Each commit must have ONE clear purpose
+- No mixing of unrelated changes
+- Commit message must clearly describe the single change made
+- If you're tempted to use "and" in a commit message, split into multiple commits
+
+### Rule 2: Zero Tolerance for Errors Before Commit
+
+- **MANDATORY**: Before ANY commit is made, ALL of the following MUST pass:
+  1. ✅ All TypeScript files compile: `pnpm tsc --noEmit`
+  2. ✅ All linting passes: `pnpm lint --fix <files>`
+  3. ✅ All tests pass: `pnpm test <test_files>`
+  4. ✅ JSDoc examples compile: `pnpm docgen` (if JSDoc was modified)
+
+### Rule 3: Never Proceed with Errors
+
+- **ABSOLUTELY FORBIDDEN**: Never continue to next step if current step has errors
+- **ABSOLUTELY FORBIDDEN**: Never commit code that has compilation errors
+- **ABSOLUTELY FORBIDDEN**: Never commit code that has linting errors
+- **ABSOLUTELY FORBIDDEN**: Never commit code that has failing tests
+- **MANDATORY**: Stop and fix ALL errors before proceeding
+
+### Rule 4: Follow AGENTS.md Validation Commands
+
+- **Lint TypeScript files**: `pnpm lint --fix <typescript_file.ts>`
+  - Run IMMEDIATELY after ANY edit to a .ts file
+  - NEVER lint non-.ts files (markdown, JSON, etc.)
+- **Check types**: `pnpm tsc --noEmit`
+  - Run after any type signature changes
+- **Run tests**: `pnpm test <test_file.ts>`
+  - Run after any implementation changes
+- **Check JSDoc examples**: `pnpm docgen`
+  - Run before committing if JSDoc examples were modified
+- **Full project check**: `pnpm check`
+  - Run before final commit
+
+### Rule 5: Mandatory After-Edit Actions
+
+After editing ANY TypeScript file:
+
+1. **IMMEDIATELY** run: `pnpm lint --fix <file.ts>`
+2. Check for type errors: `pnpm tsc --noEmit`
+3. Run relevant tests: `pnpm test <test_file.ts>`
+4. Fix all errors before proceeding
+
 ## Overview
 
 Queue.ts provides Effect-based asynchronous queues with backpressure strategies, while TxQueue.ts provides STM-based transactional queues. As TxQueue is the transactional counterpart of Queue, the APIs should mirror each other closely.
