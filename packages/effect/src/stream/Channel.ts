@@ -5362,6 +5362,66 @@ export const toPullScoped = <OutElem, OutErr, OutDone, Env>(
 ): Effect.Effect<Pull.Pull<OutElem, OutErr, OutDone, Env>, never, Env> => toTransform(self)(Pull.haltVoid, scope)
 
 /**
+ * @since 4.0.0
+ * @category Destructors
+ */
+export const runIntoQueue: {
+  <OutElem, OutErr>(queue: Queue.Queue<OutElem, OutErr | Queue.Done>): <OutDone, Env>(
+    self: Channel<OutElem, OutErr, OutDone, unknown, unknown, unknown, Env>
+  ) => Effect.Effect<void, never, Env>
+  <OutElem, OutErr, OutDone, Env>(
+    self: Channel<OutElem, OutErr, OutDone, unknown, unknown, unknown, Env>,
+    queue: Queue.Queue<OutElem, OutErr | Queue.Done>
+  ): Effect.Effect<void, never, Env>
+} = dual(
+  (args) => isChannel(args[0]),
+  <OutElem, OutErr, OutDone, Env>(
+    self: Channel<OutElem, OutErr, OutDone, unknown, unknown, unknown, Env>,
+    queue: Queue.Queue<OutElem, OutErr | Queue.Done>
+  ): Effect.Effect<void, never, Env> =>
+    Effect.uninterruptibleMask((restore) =>
+      runForEach(self, (value) => Queue.offer(queue, value)).pipe(
+        restore,
+        Effect.exit,
+        Effect.flatMap((exit) => {
+          Queue.doneUnsafe(queue, Exit.asVoid(exit))
+          return Effect.void
+        })
+      )
+    )
+)
+
+/**
+ * @since 4.0.0
+ * @category Destructors
+ */
+export const runIntoQueueArray: {
+  <OutElem, OutErr>(queue: Queue.Queue<OutElem, OutErr | Queue.Done>): <OutDone, Env>(
+    self: Channel<Arr.NonEmptyReadonlyArray<OutElem>, OutErr, OutDone, unknown, unknown, unknown, Env>
+  ) => Effect.Effect<void, never, Env>
+  <OutElem, OutErr, OutDone, Env>(
+    self: Channel<Arr.NonEmptyReadonlyArray<OutElem>, OutErr, OutDone, unknown, unknown, unknown, Env>,
+    queue: Queue.Queue<OutElem, OutErr | Queue.Done>
+  ): Effect.Effect<void, never, Env>
+} = dual(
+  (args) => isChannel(args[0]),
+  <OutElem, OutErr, OutDone, Env>(
+    self: Channel<Arr.NonEmptyReadonlyArray<OutElem>, OutErr, OutDone, unknown, unknown, unknown, Env>,
+    queue: Queue.Queue<OutElem, OutErr | Queue.Done>
+  ): Effect.Effect<void, never, Env> =>
+    Effect.uninterruptibleMask((restore) =>
+      runForEach(self, (value) => Queue.offerAll(queue, value)).pipe(
+        restore,
+        Effect.exit,
+        Effect.flatMap((exit) => {
+          Queue.doneUnsafe(queue, Exit.asVoid(exit))
+          return Effect.void
+        })
+      )
+    )
+)
+
+/**
  * Converts a channel to a queue for concurrent consumption.
  *
  * @example
@@ -5389,34 +5449,89 @@ export const toPullScoped = <OutElem, OutErr, OutDone, Env>(
  * @category Destructors
  */
 export const toQueue: {
-  (options?: {
-    readonly bufferSize?: number | undefined
-  }): <OutElem, OutErr, OutDone, Env>(
+  (
+    options: {
+      readonly capacity: "unbounded"
+    } | {
+      readonly capacity: number
+      readonly strategy?: "dropping" | "sliding" | "suspend" | undefined
+    }
+  ): <OutElem, OutErr, OutDone, Env>(
     self: Channel<OutElem, OutErr, OutDone, unknown, unknown, unknown, Env>
   ) => Effect.Effect<Queue.Dequeue<OutElem, OutErr | Queue.Done>, never, Env | Scope.Scope>
   <OutElem, OutErr, OutDone, Env>(
     self: Channel<OutElem, OutErr, OutDone, unknown, unknown, unknown, Env>,
-    options?: {
-      readonly bufferSize?: number | undefined
+    options: {
+      readonly capacity: "unbounded"
+    } | {
+      readonly capacity: number
+      readonly strategy?: "dropping" | "sliding" | "suspend" | undefined
     }
   ): Effect.Effect<Queue.Dequeue<OutElem, OutErr | Queue.Done>, never, Env | Scope.Scope>
 } = dual(
   (args) => isChannel(args[0]),
   Effect.fnUntraced(function*<OutElem, OutErr, OutDone, Env>(
     self: Channel<OutElem, OutErr, OutDone, unknown, unknown, unknown, Env>,
-    options?: {
-      readonly bufferSize?: number | undefined
+    options: {
+      readonly capacity: "unbounded"
+    } | {
+      readonly capacity: number
+      readonly strategy?: "dropping" | "sliding" | "suspend" | undefined
     }
   ) {
     const scope = yield* Effect.scope
     const queue = yield* Queue.make<OutElem, OutErr | Queue.Done>({
-      capacity: options?.bufferSize
+      capacity: typeof options.capacity === "number" ? options.capacity : undefined,
+      strategy: typeof options.capacity === "number" ? options.strategy : undefined
     })
     yield* Scope.addFinalizer(scope, Queue.shutdown(queue))
-    yield* runForEach(self, (value) => Queue.offer(queue, value)).pipe(
-      Effect.onExit((exit) => Queue.done(queue, Exit.asVoid(exit))),
-      Effect.forkIn(scope)
-    )
+    yield* Effect.forkIn(runIntoQueue(self, queue), scope)
+    return queue
+  })
+)
+
+/**
+ * @since 4.0.0
+ * @category Destructors
+ */
+export const toQueueArray: {
+  (
+    options: {
+      readonly capacity: "unbounded"
+    } | {
+      readonly capacity: number
+      readonly strategy?: "dropping" | "sliding" | "suspend" | undefined
+    }
+  ): <OutElem, OutErr, OutDone, Env>(
+    self: Channel<Arr.NonEmptyReadonlyArray<OutElem>, OutErr, OutDone, unknown, unknown, unknown, Env>
+  ) => Effect.Effect<Queue.Dequeue<OutElem, OutErr | Queue.Done>, never, Env | Scope.Scope>
+  <OutElem, OutErr, OutDone, Env>(
+    self: Channel<Arr.NonEmptyReadonlyArray<OutElem>, OutErr, OutDone, unknown, unknown, unknown, Env>,
+    options: {
+      readonly capacity: "unbounded"
+    } | {
+      readonly capacity: number
+      readonly strategy?: "dropping" | "sliding" | "suspend" | undefined
+    }
+  ): Effect.Effect<Queue.Dequeue<OutElem, OutErr | Queue.Done>, never, Env | Scope.Scope>
+} = dual(
+  (args) => isChannel(args[0]),
+  Effect.fnUntraced(function*<OutElem, OutErr, OutDone, Env>(
+    self: Channel<Arr.NonEmptyReadonlyArray<OutElem>, OutErr, OutDone, unknown, unknown, unknown, Env>,
+    options: {
+      readonly capacity: "unbounded"
+    } | {
+      readonly capacity: number
+      readonly strategy?: "dropping" | "sliding" | "suspend" | undefined
+    }
+  ) {
+    const scope = yield* Effect.scope
+    const queue = yield* Queue.make<OutElem, OutErr | Queue.Done>({
+      capacity: typeof options.capacity === "number" ? options.capacity : undefined,
+      strategy: typeof options.capacity === "number" ? options.strategy : undefined
+    })
+    yield* Scope.addFinalizer(scope, Queue.shutdown(queue))
+    yield* Effect.forkIn(runIntoQueueArray(self, queue), scope)
     return queue
   })
 )
@@ -5443,7 +5558,7 @@ export const toPubSub: {
       readonly shutdownOnEnd?: boolean | undefined
     }
   ): <OutElem, OutErr, OutDone, Env>(
-    self: Channel<OutDone, OutErr, OutDone, unknown, unknown, unknown, Env>
+    self: Channel<OutElem, OutErr, OutDone, unknown, unknown, unknown, Env>
   ) => Effect.Effect<PubSub.PubSub<OutElem>, never, Env | Scope.Scope>
   <OutElem, OutErr, OutDone, Env>(
     self: Channel<OutElem, OutErr, OutDone, unknown, unknown, unknown, Env>,
@@ -5474,12 +5589,45 @@ export const toPubSub: {
     }
   ) {
     const pubsub = yield* makePubSub<OutElem>(options)
-    yield* runForEach(self, (value) => PubSub.publish(pubsub, value)).pipe(
-      options.shutdownOnEnd === false ? identity_ : Effect.ensuring(PubSub.shutdown(pubsub)),
-      Effect.fork
-    )
+    yield* Effect.fork(runIntoPubSub(self, pubsub, {
+      shutdownOnEnd: options.shutdownOnEnd !== false
+    }))
     return pubsub
   })
+)
+
+/**
+ * @since 4.0.0
+ * @category Destructors
+ */
+export const runIntoPubSub: {
+  <OutElem>(
+    pubsub: PubSub.PubSub<OutElem>,
+    options?: {
+      readonly shutdownOnEnd?: boolean | undefined
+    } | undefined
+  ): <OutErr, OutDone, Env>(
+    self: Channel<OutElem, OutErr, OutDone, unknown, unknown, unknown, Env>
+  ) => Effect.Effect<void, never, Env>
+  <OutElem, OutErr, OutDone, Env>(
+    self: Channel<OutElem, OutErr, OutDone, unknown, unknown, unknown, Env>,
+    pubsub: PubSub.PubSub<OutElem>,
+    options?: {
+      readonly shutdownOnEnd?: boolean | undefined
+    } | undefined
+  ): Effect.Effect<void, never, Env>
+} = dual(
+  (args) => isChannel(args[0]),
+  <OutElem, OutErr, OutDone, Env>(
+    self: Channel<OutElem, OutErr, OutDone, unknown, unknown, unknown, Env>,
+    pubsub: PubSub.PubSub<OutElem>,
+    options?: {
+      readonly shutdownOnEnd?: boolean | undefined
+    } | undefined
+  ) =>
+    runForEach(self, (value) => PubSub.publish(pubsub, value)).pipe(
+      options?.shutdownOnEnd === true ? Effect.ensuring(PubSub.shutdown(pubsub)) : identity_
+    )
 )
 
 const makePubSub = <A>(
@@ -5556,12 +5704,45 @@ export const toPubSubArray: {
     }
   ) {
     const pubsub = yield* makePubSub<OutElem>(options)
-    yield* runForEach(self, (value) => PubSub.publishAll(pubsub, value)).pipe(
-      options.shutdownOnEnd === false ? identity_ : Effect.ensuring(PubSub.shutdown(pubsub)),
-      Effect.fork
-    )
+    yield* Effect.fork(runIntoPubSubArray(self, pubsub, {
+      shutdownOnEnd: options.shutdownOnEnd !== false
+    }))
     return pubsub
   })
+)
+
+/**
+ * @since 4.0.0
+ * @category Destructors
+ */
+export const runIntoPubSubArray: {
+  <OutElem>(
+    pubsub: PubSub.PubSub<OutElem>,
+    options?: {
+      readonly shutdownOnEnd?: boolean | undefined
+    } | undefined
+  ): <OutErr, OutDone, Env>(
+    self: Channel<Arr.NonEmptyReadonlyArray<OutElem>, OutErr, OutDone, unknown, unknown, unknown, Env>
+  ) => Effect.Effect<OutDone, OutErr, Env>
+  <OutElem, OutErr, OutDone, Env>(
+    self: Channel<Arr.NonEmptyReadonlyArray<OutElem>, OutErr, OutDone, unknown, unknown, unknown, Env>,
+    pubsub: PubSub.PubSub<OutElem>,
+    options?: {
+      readonly shutdownOnEnd?: boolean | undefined
+    } | undefined
+  ): Effect.Effect<OutDone, OutErr, Env>
+} = dual(
+  (args) => isChannel(args[0]),
+  <OutElem, OutErr, OutDone, Env>(
+    self: Channel<Arr.NonEmptyReadonlyArray<OutElem>, OutErr, OutDone, unknown, unknown, unknown, Env>,
+    pubsub: PubSub.PubSub<OutElem>,
+    options?: {
+      readonly shutdownOnEnd?: boolean | undefined
+    } | undefined
+  ) =>
+    runForEach(self, (value) => PubSub.publishAll(pubsub, value)).pipe(
+      options?.shutdownOnEnd === true ? Effect.ensuring(PubSub.shutdown(pubsub)) : identity_
+    )
 )
 
 /**
