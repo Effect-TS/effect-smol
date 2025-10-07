@@ -700,8 +700,7 @@ export const NoSuchElementError: new(message?: string) => NoSuchElementError = c
  * ```ts
  * import { Cause } from "effect"
  *
- * const error = new Cause.Done()
- * console.log(Cause.isDone(error)) // true
+ * console.log(Cause.isDone(Cause.Done)) // true
  * console.log(Cause.isDone("not an error")) // false
  * ```
  *

@@ -792,7 +792,7 @@ export const poll = <A, E>(self: TxDequeue<A, E>): Effect.Effect<Option.Option<A
  *   // Take all items atomically - returns NonEmptyArray
  *   const items = yield* TxQueue.takeAll(queue)
  *   console.log(items) // [1, 2, 3, 4, 5]
- *   console.log(Array.isNonEmptyArray(items)) // true
+ *   console.log(Array.isArrayNonEmpty(items)) // true
  * })
  *
  * // Error propagation example

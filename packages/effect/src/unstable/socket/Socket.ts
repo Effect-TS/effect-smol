@@ -1,6 +1,7 @@
 /**
  * @since 4.0.0
  */
+import type * as Cause from "../../Cause.ts"
 import type { NonEmptyReadonlyArray } from "../../collections/Array.ts"
 import * as Data from "../../data/Data.ts"
 import * as Filter from "../../data/Filter.ts"
@@ -196,7 +197,7 @@ export const toChannelMap = <IE, A>(
   IE
 > =>
   Channel.fromTransform(Effect.fnUntraced(function*(upstream, scope) {
-    const queue = yield* Queue.make<A, SocketError | IE | Queue.Done>()
+    const queue = yield* Queue.make<A, SocketError | IE | Cause.Done>()
 
     const writeScope = yield* Scope.fork(scope)
     const write = yield* Scope.provide(self.writer, writeScope)

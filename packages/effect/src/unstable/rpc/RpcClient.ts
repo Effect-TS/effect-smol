@@ -116,7 +116,7 @@ export declare namespace RpcClient {
       infer _Middleware,
       infer _Requires
     > ? [_Success] extends [RpcSchema.Stream<infer _A, infer _E>] ? AsQueue extends true ? Effect.Effect<
-            Queue.Dequeue<_A["Type"], _E["Type"] | _Error["Type"] | E | _Middleware["error"]["Type"] | Queue.Done>,
+            Queue.Dequeue<_A["Type"], _E["Type"] | _Error["Type"] | E | _Middleware["error"]["Type"] | Cause.Done>,
             never,
             | Scope.Scope
             | _Payload["EncodingServices"]

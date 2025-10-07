@@ -155,7 +155,7 @@ describe("Queue", () => {
       assert.strictEqual(yield* Queue.take(queue), 1)
       assert.strictEqual(yield* Queue.take(queue), 2)
       assert.strictEqual(yield* Queue.take(queue), 3)
-      assert.strictEqual(Queue.isDone(yield* Queue.take(queue).pipe(Effect.flip)), true)
+      assert.strictEqual(Cause.isDone(yield* Queue.take(queue).pipe(Effect.flip)), true)
       assert.strictEqual(yield* Queue.await(queue), void 0)
       assert.strictEqual(yield* Queue.offer(queue, 10), false)
     }))

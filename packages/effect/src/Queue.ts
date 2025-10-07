@@ -7,12 +7,11 @@
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Queue } from "effect"
+ * import { Cause, Effect, Queue } from "effect"
  *
  * // Creating a bounded queue with capacity 10
  * const program = Effect.gen(function*() {
- *   const queue = yield* Queue.bounded<number, Queue.Done>(10)
+ *   const queue = yield* Queue.bounded<number, Cause.Done>(10)
  *
  *   // Producer: add items to queue
  *   yield* Queue.offer(queue, 1)
@@ -60,8 +59,7 @@ const DequeueTypeId = "~effect/Queue/Dequeue"
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Queue } from "effect"
+ * import { Cause, Effect, Queue } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const queue = yield* Queue.bounded<number>(10)
@@ -84,8 +82,7 @@ export const isQueue = <A = unknown, E = unknown>(
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Queue } from "effect"
+ * import { Cause, Effect, Queue } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const queue = yield* Queue.bounded<number>(10)
@@ -107,8 +104,7 @@ export const isEnqueue = <A = unknown, E = unknown>(
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Queue } from "effect"
+ * import { Cause, Effect, Queue } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const queue = yield* Queue.bounded<number>(10)
@@ -130,17 +126,20 @@ export const isDequeue = <A = unknown, E = unknown>(
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Queue } from "effect"
+ * import { Effect, Queue } from "effect"
+ *
+ * // Function that only needs to offer to a queue
+ * const producer = (enqueue: Queue.Enqueue<number>) =>
+ *   Effect.gen(function*() {
+ *     yield* Queue.offer(enqueue as Queue.Queue<number>, 42)
+ *   })
  *
  * const program = Effect.gen(function*() {
  *   const queue = yield* Queue.bounded<number>(10)
  *
- *   // Convert to write-only interface
+ *   // Convert to write-only interface for type safety
  *   const enqueue = Queue.asEnqueue(queue)
- *
- *   // Can only offer, not take
- *   yield* Queue.offer(enqueue, 42)
+ *   yield* producer(enqueue)
  * })
  * ```
  *
@@ -157,18 +156,18 @@ export const asEnqueue = <A, E>(self: Queue<A, E>): Enqueue<A, E> => self
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Queue } from "effect"
+ * import { Effect, Queue } from "effect"
+ *
+ * // Function that only needs write access to a queue
+ * const producer = (enqueue: Queue.Enqueue<string>) =>
+ *   Effect.gen(function*() {
+ *     yield* Queue.offer(enqueue as Queue.Queue<string>, "hello")
+ *     yield* Queue.offerAll(enqueue as Queue.Queue<string>, ["world", "!"])
+ *   })
  *
  * const program = Effect.gen(function*() {
  *   const queue = yield* Queue.bounded<string>(10)
- *
- *   // An Enqueue can only offer elements
- *   const enqueue: Queue.Enqueue<string> = queue
- *
- *   // Offer elements using enqueue interface
- *   yield* Queue.offer(enqueue, "hello")
- *   yield* Queue.offerAll(enqueue, ["world", "!"])
+ *   yield* producer(queue)
  * })
  * ```
  *
@@ -210,8 +209,7 @@ export declare namespace Enqueue {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Queue } from "effect"
+ * import { Cause, Effect, Queue } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const queue = yield* Queue.bounded<string, never>(10)
@@ -265,8 +263,7 @@ export declare namespace Dequeue {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Queue } from "effect"
+ * import { Cause, Effect, Queue } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   // Create a bounded queue
@@ -381,11 +378,10 @@ const QueueProto = {
  * @example
  * ```ts
  * import * as assert from "node:assert"
- * import { Effect } from "effect"
- * import { Queue } from "effect"
+ * import { Cause, Effect, Queue } from "effect"
  *
  * Effect.gen(function*() {
- *   const queue = yield* Queue.make<number, string | Queue.Done>()
+ *   const queue = yield* Queue.make<number, string | Cause.Done>()
  *
  *   // add messages to the queue
  *   yield* Queue.offer(queue, 1)
@@ -399,7 +395,7 @@ const QueueProto = {
  *   // signal that the queue is done
  *   yield* Queue.end(queue)
  *   const done = yield* Effect.flip(Queue.takeAll(queue))
- *   assert.deepStrictEqual(done, Queue.Done)
+ *   assert.deepStrictEqual(done, Cause.Done)
  *
  *   // signal that the queue has failed
  *   yield* Queue.fail(queue, "boom")
@@ -439,8 +435,7 @@ export const make = <A, E = never>(
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Queue } from "effect"
+ * import { Cause, Effect, Queue } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const queue = yield* Queue.bounded<string>(5)
@@ -471,8 +466,7 @@ export const bounded = <A, E = never>(capacity: number): Effect<Queue<A, E>> => 
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Queue } from "effect"
+ * import { Cause, Effect, Queue } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const queue = yield* Queue.sliding<number>(3)
@@ -507,8 +501,7 @@ export const sliding = <A, E = never>(capacity: number): Effect<Queue<A, E>> => 
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Queue } from "effect"
+ * import { Cause, Effect, Queue } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const queue = yield* Queue.dropping<number>(2)
@@ -542,8 +535,7 @@ export const dropping = <A, E = never>(capacity: number): Effect<Queue<A, E>> =>
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Queue } from "effect"
+ * import { Cause, Effect, Queue } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const queue = yield* Queue.unbounded<string>()
@@ -577,8 +569,7 @@ export const unbounded = <A, E = never>(): Effect<Queue<A, E>> => make()
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Queue } from "effect"
+ * import { Cause, Effect, Queue } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const queue = yield* Queue.bounded<number>(3)
@@ -631,8 +622,7 @@ export const offer = <A, E>(self: Queue<A, E>, message: Types.NoInfer<A>): Effec
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Queue } from "effect"
+ * import { Cause, Effect, Queue } from "effect"
  *
  * // Create a queue effect and extract the queue for unsafe operations
  * const program = Effect.gen(function*() {
@@ -682,8 +672,7 @@ export const offerUnsafe = <A, E>(self: Queue<A, E>, message: Types.NoInfer<A>):
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Queue } from "effect"
+ * import { Cause, Effect, Queue } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const queue = yield* Queue.bounded<number>(3)
@@ -727,8 +716,7 @@ export const offerAll = <A, E>(self: Queue<A, E>, messages: Iterable<A>): Effect
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Queue } from "effect"
+ * import { Cause, Effect, Queue } from "effect"
  *
  * // Create a bounded queue and use unsafe API
  * const program = Effect.gen(function*() {
@@ -787,8 +775,7 @@ export const offerAllUnsafe = <A, E>(self: Queue<A, E>, messages: Iterable<A>): 
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Queue } from "effect"
+ * import { Cause, Effect, Queue } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const queue = yield* Queue.bounded<number, string>(10)
@@ -899,11 +886,10 @@ export const failCauseUnsafe = <A, E>(self: Queue<A, E>, cause: Cause<E>): boole
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Queue } from "effect"
+ * import { Cause, Effect, Queue } from "effect"
  *
  * const program = Effect.gen(function*() {
- *   const queue = yield* Queue.bounded<number, Queue.Done>(10)
+ *   const queue = yield* Queue.bounded<number, Cause.Done>(10)
  *
  *   // Add some messages
  *   yield* Queue.offer(queue, 1)
@@ -936,12 +922,11 @@ export const end = <A, E>(self: Queue<A, E | Done>): Effect<boolean> => failCaus
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Queue } from "effect"
+ * import { Cause, Effect, Queue } from "effect"
  *
  * // Create a queue and use unsafe operations
  * const program = Effect.gen(function*() {
- *   const queue = yield* Queue.bounded<number, Queue.Done>(10)
+ *   const queue = yield* Queue.bounded<number, Cause.Done>(10)
  *
  *   // Add some messages
  *   Queue.offerUnsafe(queue, 1)
@@ -969,8 +954,7 @@ export const endUnsafe = <A, E>(self: Queue<A, E | Done>) => failCauseUnsafe(sel
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Queue } from "effect"
+ * import { Cause, Effect, Queue } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const queue = yield* Queue.bounded<number>(10)
@@ -1012,8 +996,7 @@ export const interrupt = <A, E>(self: Queue<A, E>): Effect<boolean> =>
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Queue } from "effect"
+ * import { Cause, Effect, Queue } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const queue = yield* Queue.bounded<number>(2)
@@ -1065,8 +1048,7 @@ export const shutdown = <A, E>(self: Queue<A, E>): Effect<boolean> =>
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Queue } from "effect"
+ * import { Cause, Effect, Queue } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const queue = yield* Queue.bounded<number>(10)
@@ -1109,20 +1091,6 @@ export const clear = <A, E>(self: Dequeue<A, E>): Effect<Array<A>, E> =>
  * @since 4.0.0
  */
 /**
- * @deprecated Use `Cause.Done` instead. Re-exported for backward compatibility.
- * @category Done
- * @since 4.0.0
- */
-export type { Done } from "./Cause.ts"
-
-/**
- * @deprecated Use `Cause.isDone` instead. Re-exported for backward compatibility.
- * @category Done
- * @since 4.0.0
- */
-export { isDone } from "./Cause.ts"
-
-/**
  * Take all messages from the queue, or wait for messages to be available.
  *
  * If the queue is done, the `done` flag will be `true`. If the queue
@@ -1130,11 +1098,10 @@ export { isDone } from "./Cause.ts"
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Queue } from "effect"
+ * import { Cause, Effect, Queue } from "effect"
  *
  * const program = Effect.gen(function*() {
- *   const queue = yield* Queue.bounded<number, Queue.Done>(5)
+ *   const queue = yield* Queue.bounded<number, Cause.Done>(5)
  *
  *   // Add several messages
  *   yield* Queue.offerAll(queue, [1, 2, 3, 4, 5])
@@ -1152,7 +1119,7 @@ export { isDone } from "./Cause.ts"
  *   console.log(messages2) // [10, 20]
  *
  *   const done = yield* Effect.flip(Queue.takeAll(queue))
- *   console.log(done) // Queue.Done
+ *   console.log(done) // Cause.Done
  * })
  * ```
  *
@@ -1196,8 +1163,7 @@ export const collect = <A, E>(self: Dequeue<A, E | Done>): Effect<Array<A>, Excl
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Queue } from "effect"
+ * import { Cause, Effect, Queue } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const queue = yield* Queue.bounded<number>(10)
@@ -1236,8 +1202,7 @@ export const takeN = <A, E>(
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Queue } from "effect"
+ * import { Cause, Effect, Queue } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const queue = yield* Queue.bounded<number>(10)
@@ -1279,11 +1244,10 @@ export const takeBetween = <A, E>(
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Queue } from "effect"
+ * import { Cause, Effect, Queue } from "effect"
  *
  * const program = Effect.gen(function*() {
- *   const queue = yield* Queue.bounded<string, Queue.Done>(3)
+ *   const queue = yield* Queue.bounded<string, Cause.Done>(3)
  *
  *   // Add some messages
  *   yield* Queue.offer(queue, "first")
@@ -1299,7 +1263,7 @@ export const takeBetween = <A, E>(
  *
  *   // Taking from ended queue fails with None
  *   const result = yield* Effect.match(Queue.take(queue), {
- *     onFailure: (error: Queue.Done) => true,
+ *     onFailure: (error: Cause.Done) => true,
  *     onSuccess: (value: string) => false
  *   })
  *   console.log("Queue ended:", result) // true
@@ -1367,8 +1331,7 @@ export const poll = <A, E>(self: Dequeue<A, E>): Effect<Option.Option<A>> =>
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Queue } from "effect"
+ * import { Cause, Effect, Queue } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const queue = yield* Queue.bounded<number>(10)
@@ -1493,12 +1456,11 @@ export {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Queue } from "effect"
+ * import { Cause, Effect, Queue } from "effect"
  * import * as Option from "effect/data/Option"
  *
  * const program = Effect.gen(function*() {
- *   const queue = yield* Queue.bounded<number, Queue.Done>(10)
+ *   const queue = yield* Queue.bounded<number, Cause.Done>(10)
  *
  *   // Check size of empty queue
  *   const size1 = yield* Queue.size(queue)
@@ -1539,13 +1501,12 @@ export const isFull = <A, E>(self: Dequeue<A, E>): Effect<boolean> => internalEf
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Queue } from "effect"
+ * import { Cause, Effect, Queue } from "effect"
  * import * as Option from "effect/data/Option"
  *
  * // Create a queue and use unsafe operations
  * const program = Effect.gen(function*() {
- *   const queue = yield* Queue.bounded<number, Queue.Done>(10)
+ *   const queue = yield* Queue.bounded<number, Cause.Done>(10)
  *
  *   // Check size of empty queue
  *   const size1 = Queue.sizeUnsafe(queue)
@@ -1585,8 +1546,7 @@ export const isFullUnsafe = <A, E>(self: Dequeue<A, E>): boolean => sizeUnsafe(s
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Queue } from "effect"
+ * import { Cause, Effect, Queue } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const queue = yield* Queue.bounded<number>(10)
@@ -1620,11 +1580,10 @@ export const asDequeue: <A, E>(self: Queue<A, E>) => Dequeue<A, E> = identity
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Queue } from "effect"
+ * import { Cause, Effect, Queue } from "effect"
  *
  * const program = Effect.gen(function*() {
- *   const queue = yield* Queue.bounded<number, Queue.Done>(10)
+ *   const queue = yield* Queue.bounded<number, Cause.Done>(10)
  *
  *   // Create an effect that succeeds
  *   const dataProcessing = Effect.gen(function*() {
@@ -1677,8 +1636,7 @@ export const into: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Queue } from "effect"
+ * import { Cause, Effect, Queue } from "effect"
  *
  * const program = Effect.gen(function* () {
  *   const queue = yield* Queue.bounded<number, string>(10)
@@ -1699,8 +1657,7 @@ export const toPull: <A, E, L = void>(self: Dequeue<A, E | Done>) => Pull.Pull<A
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Queue } from "effect"
+ * import { Cause, Effect, Queue } from "effect"
  *
  * const program = Effect.gen(function* () {
  *   const queue = yield* Queue.bounded<number, string>(10)
