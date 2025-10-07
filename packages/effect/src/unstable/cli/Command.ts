@@ -9,6 +9,7 @@ import { type Pipeable, pipeArguments } from "../../interfaces/Pipeable.ts"
 import { YieldableProto } from "../../internal/core.ts"
 import type * as FileSystem from "../../platform/FileSystem.ts"
 import type * as Path from "../../platform/Path.ts"
+import type * as Terminal from "../../platform/Terminal.ts"
 import * as References from "../../References.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import type { Simplify } from "../../types/Types.ts"
@@ -136,7 +137,7 @@ export interface Command<Name extends string, Input, E = never, R = never>
  * @since 4.0.0
  * @category types
  */
-export type Environment = FileSystem.FileSystem | Path.Path // | Terminal when available
+export type Environment = FileSystem.FileSystem | Path.Path | Terminal.Terminal
 
 /**
  * Service context for a specific command, providing access to command input through Effect's service system.
