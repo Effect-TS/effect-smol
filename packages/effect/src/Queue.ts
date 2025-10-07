@@ -34,7 +34,7 @@
  * @since 3.8.0
  */
 import type { Cause } from "./Cause.ts"
-import { Done, interrupt as causeInterrupt } from "./Cause.ts"
+import { Done, fail as causeFail, interrupt as causeInterrupt } from "./Cause.ts"
 import * as Arr from "./collections/Array.ts"
 import * as Iterable from "./collections/Iterable.ts"
 import * as MutableList from "./collections/MutableList.ts"
@@ -873,7 +873,7 @@ export const failCause = <A, E>(self: Queue<A, E>, cause: Cause<E>) => done(self
  * @category completion
  * @since 4.0.0
  */
-export const end = <A, E>(self: Queue<A, E | Done>): Effect<boolean> => done(self, internalEffect.exitVoid)
+export const end = <A, E>(self: Queue<A, E | Done>): Effect<boolean> => failCause(self, causeFail(Done))
 
 /**
  * Signal that the queue is complete synchronously. If the queue is already done, `false` is
