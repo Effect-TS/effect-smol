@@ -1,7 +1,6 @@
 import { assert, describe, it } from "@effect/vitest"
 import { Fiber } from "effect"
 import * as Cause from "effect/Cause"
-import { Chunk } from "effect/collections"
 import { Option } from "effect/data"
 import * as Effect from "effect/Effect"
 import { TxQueue } from "effect/stm"
@@ -23,7 +22,7 @@ describe("TxQueue", () => {
         assert.strictEqual(offered, true)
 
         const rejected = yield* TxQueue.offerAll(queue, [1, 2, 3])
-        assert.deepStrictEqual(Chunk.toReadonlyArray(rejected), [])
+        assert.deepStrictEqual(rejected, [])
       }))
 
     it.effect("TxDequeue provides read-only interface", () =>
@@ -72,7 +71,7 @@ describe("TxQueue", () => {
         assert.strictEqual(accepted, true)
 
         const rejected = yield* TxQueue.offerAll(enqueue, [1, 2, 3])
-        assert.deepStrictEqual(Chunk.toReadonlyArray(rejected), [])
+        assert.deepStrictEqual(rejected, [])
 
         // State management operations should work
         const result = yield* TxQueue.failCause(enqueue, Cause.interrupt())
@@ -229,7 +228,7 @@ describe("TxQueue", () => {
         const queue = yield* TxQueue.bounded<number>(10)
 
         const rejected = yield* TxQueue.offerAll(queue, [1, 2, 3, 4, 5])
-        assert.deepStrictEqual(Chunk.toReadonlyArray(rejected), [])
+        assert.deepStrictEqual(rejected, [])
 
         const size = yield* TxQueue.size(queue)
         assert.strictEqual(size, 5)

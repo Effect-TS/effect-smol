@@ -617,21 +617,23 @@ export const offer: {
 /**
  * Offers multiple items to the queue.
  *
+ * Returns an array of items that were rejected (not added to the queue).
+ *
  * **Mutation behavior**: This function mutates the original TxQueue by adding
  * items according to the queue's strategy. It does not return a new TxQueue reference.
  *
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Chunk } from "effect/collections"
  * import { TxQueue } from "effect/stm"
  *
  * const program = Effect.gen(function*() {
  *   const queue = yield* TxQueue.bounded<number>(10)
  *
- *   // Offer multiple items - returns rejected items
+ *   // Offer multiple items - returns rejected items as array
  *   const rejected = yield* TxQueue.offerAll(queue, [1, 2, 3, 4, 5])
- *   console.log(Chunk.toArray(rejected)) // [] if all accepted
+ *   console.log(rejected) // [] if all accepted
+ *   console.log(rejected.length) // 0
  * })
  * ```
  *
@@ -639,11 +641,11 @@ export const offer: {
  * @category combinators
  */
 export const offerAll: {
-  <A, E>(values: Iterable<A>): (self: TxEnqueue<A, E>) => Effect.Effect<Chunk.Chunk<A>>
-  <A, E>(self: TxEnqueue<A, E>, values: Iterable<A>): Effect.Effect<Chunk.Chunk<A>>
+  <A, E>(values: Iterable<A>): (self: TxEnqueue<A, E>) => Effect.Effect<Array<A>>
+  <A, E>(self: TxEnqueue<A, E>, values: Iterable<A>): Effect.Effect<Array<A>>
 } = dual(
   2,
-  <A, E>(self: TxEnqueue<A, E>, values: Iterable<A>): Effect.Effect<Chunk.Chunk<A>> =>
+  <A, E>(self: TxEnqueue<A, E>, values: Iterable<A>): Effect.Effect<Array<A>> =>
     Effect.atomic(
       Effect.gen(function*() {
         const rejected: Array<A> = []
@@ -655,7 +657,7 @@ export const offerAll: {
           }
         }
 
-        return Chunk.fromIterable(rejected)
+        return rejected
       })
     )
 )
