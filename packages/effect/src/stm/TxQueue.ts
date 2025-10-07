@@ -205,10 +205,10 @@ export interface TxQueueState extends Inspectable {
  *   yield* TxQueue.offerAll(faultTolerantQueue, [1, 2, 3])
  *   yield* TxQueue.fail(faultTolerantQueue, "processing complete")
  *
- *   // Works with NoSuchElementError for clean completion
+ *   // Works with Done for clean completion
  *   const completableQueue = yield* TxQueue.bounded<
  *     string,
- *     Cause.NoSuchElementError
+ *     Cause.Done
  *   >(5)
  *   yield* TxQueue.offer(completableQueue, "task")
  *   yield* TxQueue.end(completableQueue)
@@ -1270,13 +1270,13 @@ export const failCause: {
   ))
 
 /**
- * Ends a queue by signaling completion with a NoSuchElementError error.
+ * Ends a queue by signaling completion with a Done error.
  *
  * This function provides a clean way to signal the end of a queue by calling
- * `failCause` with a new `NoSuchElementError` instance. This is a convenience function for
- * queues that are typed to accept `NoSuchElementError` in their error channel.
+ * `failCause` with `Cause.Done`. This is a convenience function for
+ * queues that are typed to accept `Cause.Done` in their error channel.
  * When a queue is ended, all subsequent operations (take, peek, etc.) will fail with
- * the NoSuchElementError, propagating through the E-channel.
+ * `Cause.Done`, propagating through the E-channel.
  *
  * @example
  * ```ts
@@ -1284,7 +1284,7 @@ export const failCause: {
  * import { TxQueue } from "effect/stm"
  *
  * const program = Effect.gen(function*() {
- *   const queue = yield* TxQueue.bounded<number, Cause.NoSuchElementError>(10)
+ *   const queue = yield* TxQueue.bounded<number, Cause.Done>(10)
  *   yield* TxQueue.offer(queue, 1)
  *   yield* TxQueue.offer(queue, 2)
  *
@@ -1292,20 +1292,20 @@ export const failCause: {
  *   const result = yield* TxQueue.end(queue)
  *   console.log(result) // true
  *
- *   // All operations will now fail with NoSuchElementError
+ *   // All operations will now fail with Done
  *   const takeResult = yield* Effect.flip(TxQueue.take(queue))
- *   console.log(Cause.isNoSuchElementError(takeResult)) // true
+ *   console.log(Cause.isDone(takeResult)) // true
  *
  *   const peekResult = yield* Effect.flip(TxQueue.peek(queue))
- *   console.log(Cause.isNoSuchElementError(peekResult)) // true
+ *   console.log(Cause.isDone(peekResult)) // true
  * })
  * ```
  *
  * @since 4.0.0
  * @category combinators
  */
-export const end = <A, E>(self: TxEnqueue<A, E | Cause.NoSuchElementError>): Effect.Effect<boolean> =>
-  failCause(self, Cause.fail(new Cause.NoSuchElementError()))
+export const end = <A, E>(self: TxEnqueue<A, E | Cause.Done>): Effect.Effect<boolean> =>
+  failCause(self, Cause.fail(Cause.Done))
 
 /**
  * Clears all elements from the queue without affecting its state.
