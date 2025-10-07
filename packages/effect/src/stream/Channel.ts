@@ -5439,7 +5439,7 @@ export const runIntoQueueArray: {
  * const dataChannel = Channel.fromIterable([1, 2, 3, 4, 5])
  *
  * // Convert to queue for concurrent processing
- * const queueEffect = Channel.toQueue({ bufferSize: 32 })(dataChannel)
+ * const queueEffect = Channel.toQueue(dataChannel, { capacity: 32 })
  *
  * // The queue can be used for concurrent consumption
  * // Multiple consumers can read from the queue
