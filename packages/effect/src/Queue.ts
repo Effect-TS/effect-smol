@@ -809,7 +809,7 @@ export const offerAllUnsafe = <A, E>(self: Queue<A, E>, messages: Iterable<A>): 
  * @category completion
  * @since 4.0.0
  */
-export const fail = <A, E>(self: Queue<A, E>, error: E) => done(self, core.exitFail(error))
+export const fail = <A, E>(self: Queue<A, E>, error: E) => failCause(self, causeFail(error))
 
 /**
  * Fail the queue with a cause. If the queue is already done, `false` is
@@ -841,7 +841,10 @@ export const fail = <A, E>(self: Queue<A, E>, error: E) => done(self, core.exitF
 export const failCause: {
   <E>(cause: Cause<E>): <A>(self: Queue<A, E>) => Effect<boolean>
   <A, E>(self: Queue<A, E>, cause: Cause<E>): Effect<boolean>
-} = dual(2, <A, E>(self: Queue<A, E>, cause: Cause<E>): Effect<boolean> => done(self, core.exitFailCause(cause)))
+} = dual(
+  2,
+  <A, E>(self: Queue<A, E>, cause: Cause<E>): Effect<boolean> => internalEffect.sync(() => failCauseUnsafe(self, cause))
+)
 
 /**
  * Fail the queue with a cause synchronously. If the queue is already done, `false` is
@@ -873,8 +876,22 @@ export const failCause: {
  * @category completion
  * @since 4.0.0
  */
-export const failCauseUnsafe = <A, E>(self: Queue<A, E>, cause: Cause<E>): boolean =>
-  doneUnsafe(self, core.exitFailCause(cause))
+export const failCauseUnsafe = <A, E>(self: Queue<A, E>, cause: Cause<E>): boolean => {
+  if (self.state._tag !== "Open") {
+    return false
+  }
+  const exit = core.exitFailCause(cause)
+  const fail = internalEffect.exitZipRight(exit, exitFailDone) as Failure<never, E>
+  if (
+    self.state.offers.size === 0 &&
+    self.messages.length === 0
+  ) {
+    finalize(self, fail)
+    return true
+  }
+  self.state = { ...self.state, _tag: "Closing", exit: fail }
+  return true
+}
 
 /**
  * Signal that the queue is complete. If the queue is already done, `false` is
@@ -942,7 +959,7 @@ export const end = <A, E>(self: Queue<A, E | Done>): Effect<boolean> => failCaus
  * @category completion
  * @since 4.0.0
  */
-export const endUnsafe = <A, E>(self: Queue<A, E | Done>) => doneUnsafe(self, internalEffect.exitVoid)
+export const endUnsafe = <A, E>(self: Queue<A, E | Done>) => failCauseUnsafe(self, causeFail(Done))
 
 /**
  * Interrupts the queue gracefully, transitioning it to a closing state.
@@ -987,88 +1004,7 @@ export const endUnsafe = <A, E>(self: Queue<A, E | Done>) => doneUnsafe(self, in
  * @since 4.0.0
  */
 export const interrupt = <A, E>(self: Queue<A, E>): Effect<boolean> =>
-  core.withFiber((fiber) => done(self, core.exitFailCause(causeInterrupt(fiber.id))))
-
-/**
- * Signal that the queue is done with a specific exit value. If the queue is already done, `false` is
- * returned.
- *
- * @example
- * ```ts
- * import { Effect, Exit } from "effect"
- * import { Queue } from "effect"
- *
- * const program = Effect.gen(function*() {
- *   const queue = yield* Queue.bounded<number, Queue.Done>(10)
- *
- *   // Add some messages
- *   yield* Queue.offer(queue, 1)
- *   yield* Queue.offer(queue, 2)
- *
- *   // Create a success exit and mark queue as done
- *   const successExit = Exit.succeed(undefined)
- *   const isDone = yield* Queue.done(queue, successExit)
- *   console.log(isDone) // true
- *
- *   // Or create a failure exit
- *   const failureExit = Exit.fail("Processing error")
- *   const queue2 = yield* Queue.bounded<number, string>(10)
- *   const isDone2 = yield* Queue.done(queue2, failureExit)
- *   console.log(isDone2) // true
- * })
- * ```
- *
- * @category completion
- * @since 4.0.0
- */
-export const done = <A, E>(self: Queue<A, E>, exit: Exit<Done extends E ? unknown : never, E>): Effect<boolean> =>
-  internalEffect.sync(() => doneUnsafe(self, exit))
-
-/**
- * Signal that the queue is done synchronously with a specific exit value. If the queue is already done, `false` is
- * returned.
- *
- * This is an unsafe operation that directly modifies the queue without Effect wrapping.
- *
- * @example
- * ```ts
- * import { Effect, Exit } from "effect"
- * import { Queue } from "effect"
- *
- * // Create a queue and use unsafe operations
- * const program = Effect.gen(function*() {
- *   const queue = yield* Queue.bounded<number, Queue.Done>(10)
- *
- *   // Add some messages
- *   Queue.offerUnsafe(queue, 1)
- *   Queue.offerUnsafe(queue, 2)
- *
- *   // Mark as done with success exit
- *   const successExit = Exit.succeed(undefined)
- *   const isDone = Queue.doneUnsafe(queue, successExit)
- *   console.log(isDone) // true
- *   console.log(queue.state._tag) // "Done"
- * })
- * ```
- *
- * @category completion
- * @since 4.0.0
- */
-export const doneUnsafe = <A, E>(self: Queue<A, E>, exit: Exit<Done extends E ? unknown : never, E>): boolean => {
-  if (self.state._tag !== "Open") {
-    return false
-  }
-  const fail = internalEffect.exitZipRight(exit, exitFailDone) as Failure<never, E>
-  if (
-    self.state.offers.size === 0 &&
-    self.messages.length === 0
-  ) {
-    finalize(self, fail)
-    return true
-  }
-  self.state = { ...self.state, _tag: "Closing", exit: fail }
-  return true
-}
+  core.withFiber((fiber) => failCause(self, causeInterrupt(fiber.id)))
 
 /**
  * Shutdown the queue, canceling any pending operations.

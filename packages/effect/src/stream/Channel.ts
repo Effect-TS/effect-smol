@@ -5346,7 +5346,7 @@ export const toQueue: {
     })
     yield* Scope.addFinalizer(scope, Queue.shutdown(queue))
     yield* runForEach(self, (value) => Queue.offer(queue, value)).pipe(
-      Effect.onExit((exit) => Queue.done(queue, Exit.asVoid(exit))),
+      Effect.onExit((exit) => exit._tag === "Success" ? Queue.end(queue) : Queue.failCause(queue, exit.cause)),
       Effect.forkIn(scope)
     )
     return queue

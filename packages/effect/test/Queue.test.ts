@@ -129,7 +129,7 @@ describe("Queue", () => {
         Effect.forkChild
       )
       yield* Effect.yieldNow
-      yield* Queue.done(queue, Exit.void)
+      yield* Queue.end(queue)
       assert.deepStrictEqual(yield* Fiber.await(fiber), Exit.fail(Cause.Done))
     }))
 
