@@ -151,7 +151,7 @@ function applyJsonPatch(patch: JsonPatch, oldValue: unknown): unknown {
 function tokenize(pointer: string): Array<string> {
   if (pointer === "") return []
   if (pointer.charCodeAt(0) !== 47 /* "/" */) {
-    throw new Error(`Invalid JSON Pointer "${pointer}". It must start with "/".`)
+    throw new Error(`Invalid JSON Pointer, it must start with "/": "${pointer}"`)
   }
   return pointer
     .split("/")
@@ -162,7 +162,7 @@ function tokenize(pointer: string): Array<string> {
 // Convert token to a non-negative integer index; throws on invalid
 function toIndex(token: string): number {
   if (!/^(0|[1-9]\d*)$/.test(token)) {
-    throw new Error(`Invalid array index token "${token}".`)
+    throw new Error(`Invalid array index: "${token}"`)
   }
   return Number(token)
 }
@@ -270,7 +270,7 @@ function setParent(doc: unknown, parentPointer: string, newParent: unknown): unk
       cur = cur[idx]
     } else if (cur && typeof cur === "object") {
       if (!Object.hasOwn(cur, token)) {
-        throw new Error(`Property "${token}" not found while writing at "${parentPointer}".`)
+        throw new Error(`Key ${token} not found while writing at "${parentPointer}".`)
       }
       stack.push({ container: cur, token })
       cur = (cur as Record<string, unknown>)[token]

@@ -653,29 +653,30 @@ export const getUnsafe: {
   (index: number): <A>(self: Chunk<A>) => A
   <A>(self: Chunk<A>, index: number): A
 } = dual(2, <A>(self: Chunk<A>, index: number): A => {
+  const i = Math.floor(index)
   switch (self.backing._tag) {
     case "IEmpty": {
-      throw new Error(`Index out of bounds`)
+      throw new Error(`Index out of bounds: ${i}`)
     }
     case "ISingleton": {
       if (index !== 0) {
-        throw new Error(`Index out of bounds`)
+        throw new Error(`Index out of bounds: ${i}`)
       }
       return self.backing.a
     }
     case "IArray": {
-      if (index >= self.length || index < 0) {
-        throw new Error(`Index out of bounds`)
+      if (i >= self.length || i < 0) {
+        throw new Error(`Index out of bounds: ${i}`)
       }
-      return self.backing.array[index]!
+      return self.backing.array[i]!
     }
     case "IConcat": {
-      return index < self.left.length
-        ? getUnsafe(self.left, index)
-        : getUnsafe(self.right, index - self.left.length)
+      return i < self.left.length
+        ? getUnsafe(self.left, i)
+        : getUnsafe(self.right, i - self.left.length)
     }
     case "ISlice": {
-      return getUnsafe(self.backing.chunk, index + self.backing.offset)
+      return getUnsafe(self.backing.chunk, i + self.backing.offset)
     }
   }
 })

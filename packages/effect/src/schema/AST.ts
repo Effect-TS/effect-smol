@@ -638,7 +638,7 @@ export class TemplateLiteral extends AbstractParser {
       if (isTemplateLiteralPart(encoded)) {
         encodedParts.push(encoded)
       } else {
-        throw new Error("Invalid TemplateLiteral part")
+        throw new Error(`Invalid TemplateLiteral part ${encoded._tag}`)
       }
     }
     this.parts = parts
@@ -746,12 +746,12 @@ export class LiteralType extends AbstractParser {
     context?: Context
   ) {
     super(annotations, checks, encoding, context)
-    this.literal = literal
     if (process.env.NODE_ENV !== "production") {
-      if (Predicate.isNumber(this.literal) && !Number.isFinite(this.literal)) {
-        throw new Error("LiteralType must be a finite number")
+      if (Predicate.isNumber(literal) && !Number.isFinite(literal)) {
+        throw new Error(`LiteralType must be a finite number, got: ${literal}`)
       }
     }
+    this.literal = literal
   }
   /** @internal */
   parser() {

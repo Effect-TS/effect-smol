@@ -642,7 +642,7 @@ describe("Array", () => {
 
   describe("getUnsafe", () => {
     it("should throw on index out of bound", () => {
-      throws(() => pipe([], Arr.getUnsafe(100)), new Error("Index 100 out of bounds"))
+      throws(() => pipe([], Arr.getUnsafe(100)), new Error("Index out of bounds: 100"))
     })
   })
 

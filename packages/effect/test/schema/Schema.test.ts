@@ -93,15 +93,15 @@ Expected an integer, got -1.2`
     it("should throw an error if the literal is not a finite number", () => {
       throws(
         () => Schema.Literal(Infinity),
-        new Error("LiteralType must be a finite number")
+        new Error("LiteralType must be a finite number, got: Infinity")
       )
       throws(
         () => Schema.Literal(-Infinity),
-        new Error("LiteralType must be a finite number")
+        new Error("LiteralType must be a finite number, got: -Infinity")
       )
       throws(
         () => Schema.Literal(NaN),
-        new Error("LiteralType must be a finite number")
+        new Error("LiteralType must be a finite number, got: NaN")
       )
     })
 

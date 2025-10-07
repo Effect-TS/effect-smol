@@ -705,7 +705,7 @@ export const getUnsafe: {
 } = dual(2, <A>(self: ReadonlyArray<A>, index: number): A => {
   const i = Math.floor(index)
   if (isOutOfBounds(i, self)) {
-    throw new Error(`Index ${i} out of bounds`)
+    throw new Error(`Index out of bounds: ${i}`)
   }
   return self[i]
 })

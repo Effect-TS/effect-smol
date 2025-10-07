@@ -738,7 +738,7 @@ describe("Chunk", () => {
   it("lastUnsafe", () => {
     strictEqual(Chunk.lastUnsafe(Chunk.make(1)), 1)
     strictEqual(Chunk.lastUnsafe(Chunk.make(1, 2, 3)), 3)
-    throws(() => Chunk.lastUnsafe(Chunk.empty()), new Error("Index out of bounds"))
+    throws(() => Chunk.lastUnsafe(Chunk.empty()), new Error("Index out of bounds: -1"))
   })
 
   it("splitNonEmptyAt", () => {

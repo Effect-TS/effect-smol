@@ -697,7 +697,7 @@ export const getUnsafe = dual<
   if (Option.isSome(result)) {
     return result.value
   }
-  throw new Error("HashMap.getUnsafe: key not found")
+  throw new Error(`HashMap.getUnsafe: key not found: ${key}`)
 })
 
 /** @internal */

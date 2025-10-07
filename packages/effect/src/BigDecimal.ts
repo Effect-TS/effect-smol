@@ -1149,7 +1149,7 @@ export const fromString = (s: string): BigDecimal | undefined => {
 export const fromStringUnsafe = (s: string): BigDecimal => {
   const out = fromString(s)
   if (out) return out
-  throw new Error("Invalid numerical string")
+  throw new Error(`Invalid numerical string: ${s}`)
 }
 
 /**
