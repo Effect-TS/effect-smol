@@ -9,6 +9,7 @@
  *
  * @since 4.0.0
  */
+import * as Arr from "../collections/Array.ts"
 import * as Cause from "../Cause.ts"
 import * as Chunk from "../collections/Chunk.ts"
 import * as Option from "../data/Option.ts"
@@ -771,21 +772,25 @@ export const poll = <A, E>(self: TxDequeue<A, E>): Effect.Effect<Option.Option<A
  * If the queue is already in a failed state, the error is propagated through the E-channel.
  * Follows the same patterns as `take` - waits when there are no elements.
  *
+ * Returns a non-empty array since it blocks until at least one item is available.
+ *
  * **Mutation behavior**: This function mutates the original TxQueue by removing
  * all items. It does not return a new TxQueue reference.
  *
  * @example
  * ```ts
  * import { Effect } from "effect"
+ * import { Array } from "effect/collections"
  * import { TxQueue } from "effect/stm"
  *
  * const program = Effect.gen(function*() {
  *   const queue = yield* TxQueue.bounded<number, string>(10)
  *   yield* TxQueue.offerAll(queue, [1, 2, 3, 4, 5])
  *
- *   // Take all items atomically
+ *   // Take all items atomically - returns NonEmptyArray
  *   const items = yield* TxQueue.takeAll(queue)
  *   console.log(items) // [1, 2, 3, 4, 5]
+ *   console.log(Array.isNonEmptyArray(items)) // true
  * })
  *
  * // Error propagation example
@@ -803,7 +808,7 @@ export const poll = <A, E>(self: TxDequeue<A, E>): Effect.Effect<Option.Option<A
  * @since 4.0.0
  * @category combinators
  */
-export const takeAll = <A, E>(self: TxDequeue<A, E>): Effect.Effect<ReadonlyArray<A>, E> =>
+export const takeAll = <A, E>(self: TxDequeue<A, E>): Effect.Effect<Arr.NonEmptyArray<A>, E> =>
   Effect.atomic(
     Effect.gen(function*() {
       const state = yield* TxRef.get(self.stateRef)
@@ -820,8 +825,8 @@ export const takeAll = <A, E>(self: TxDequeue<A, E>): Effect.Effect<ReadonlyArra
 
       const chunk = yield* TxChunk.get(self.items)
 
-      // Take all items
-      const items = Chunk.toArray(chunk)
+      // Take all items (guaranteed non-empty due to isEmpty check above)
+      const items = Chunk.toArray(chunk) as Arr.NonEmptyArray<A>
       yield* TxChunk.set(self.items, Chunk.empty())
 
       // Check if we need to transition Closing → Done
