@@ -206,6 +206,32 @@ describe("Queue", () => {
       assert.isTrue(Option.isNone(empty2))
     }))
 
+  it.effect("peek views item without removing it", () =>
+    Effect.gen(function*() {
+      const queue = yield* Queue.bounded<number>(10)
+      yield* Queue.offer(queue, 42)
+
+      // Peek at the item
+      const item = yield* Queue.peek(queue)
+      assert.strictEqual(item, 42)
+
+      // Item is still in the queue
+      const size = yield* Queue.size(queue)
+      assert.strictEqual(size, 1)
+
+      // Peek again - same item
+      const item2 = yield* Queue.peek(queue)
+      assert.strictEqual(item2, 42)
+
+      // Now take it
+      const taken = yield* Queue.take(queue)
+      assert.strictEqual(taken, 42)
+
+      // Queue is now empty
+      const newSize = yield* Queue.size(queue)
+      assert.strictEqual(newSize, 0)
+    }))
+
   it.effect("fail", () =>
     Effect.gen(function*() {
       const queue = yield* Queue.bounded<number, string>(2)

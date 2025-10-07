@@ -1389,6 +1389,48 @@ export const poll = <A, E>(self: Dequeue<A, E>): Effect<Option.Option<A>> =>
   })
 
 /**
+ * Views the next item without removing it.
+ *
+ * Blocks until an item is available. If the queue is done or fails, the error is propagated.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ * import { Queue } from "effect"
+ *
+ * const program = Effect.gen(function*() {
+ *   const queue = yield* Queue.bounded<number>(10)
+ *   yield* Queue.offer(queue, 42)
+ *
+ *   // Peek at the next item without removing it
+ *   const item = yield* Queue.peek(queue)
+ *   console.log(item) // 42
+ *
+ *   // Item is still in the queue
+ *   const size = yield* Queue.size(queue)
+ *   console.log(size) // 1
+ *
+ *   // Take the item
+ *   const taken = yield* Queue.take(queue)
+ *   console.log(taken) // 42
+ * })
+ * ```
+ *
+ * @category taking
+ * @since 4.0.0
+ */
+export const peek = <A, E>(self: Dequeue<A, E>): Effect<A, E> =>
+  internalEffect.suspend(() => {
+    if (self.state._tag === "Done") {
+      return self.state.exit
+    }
+    if (self.messages.length > 0 && self.messages.head) {
+      return internalEffect.succeed(self.messages.head.array[self.messages.head.offset])
+    }
+    return internalEffect.andThen(awaitTake(self), peek(self))
+  })
+
+/**
  * Take a single message from the queue synchronously, or wait for a message to be
  * available.
  *
