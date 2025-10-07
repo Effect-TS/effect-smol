@@ -1,6 +1,8 @@
 /**
  * @since 4.0.0
  */
+import { Packr, Unpackr } from "msgpackr"
+import * as Msgpackr from "msgpackr"
 import * as Arr from "../../collections/Array.ts"
 import * as Data from "../../data/Data.ts"
 import * as Option from "../../data/Option.ts"
@@ -13,8 +15,6 @@ import * as Transformation from "../../schema/Transformation.ts"
 import * as Channel from "../../stream/Channel.ts"
 import * as ChannelSchema from "../../stream/ChannelSchema.ts"
 import type * as Pull from "../../stream/Pull.ts"
-import { Packr, Unpackr } from "./Msgpackr.ts"
-import * as Msgpackr from "./Msgpackr.ts"
 
 const MsgPackErrorTypeId = "~effect/encoding/MsgPack/MsgPackError"
 
