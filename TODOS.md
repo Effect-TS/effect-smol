@@ -160,18 +160,18 @@ The exports under each section are organized as they are in Effect 3.0. The cate
 |          `runCount`          |  Done  |        `runCount`        |          |
 |          `runDrain`          |  Done  |        `runDrain`        |          |
 |          `runFold`           |  Done  |        `runFold`         |          |
-|       `runFoldEffect`        |   -    |                          |          |
+|       `runFoldEffect`        |  Done  |                          |          |
 |       `runFoldScoped`        |   X    |                          |          |
 |    `runFoldScopedEffect`     |   X    |                          |          |
-|        `runFoldWhile`        |   -    |                          |          |
-|     `runFoldWhileEffect`     |   -    |                          |          |
+|        `runFoldWhile`        |   X    |                          |          |
+|     `runFoldWhileEffect`     |   X    |                          |          |
 |     `runFoldWhileScoped`     |   X    |                          |          |
 |  `runFoldWhileScopedEffect`  |   X    |                          |          |
 |         `runForEach`         |  Done  |       `runForEach`       |          |
 |      `runForEachChunk`       |  Done  |    `runForEachArray`     |          |
 |   `runForEachChunkScoped`    |   X    |                          |          |
 |      `runForEachScoped`      |   X    |                          |          |
-|      `runForEachWhile`       |   -    |                          |          |
+|      `runForEachWhile`       |  Done  |                          |          |
 |   `runForEachWhileScoped`    |   X    |                          |          |
 |          `runHead`           |  Done  |        `runHead`         |          |
 |       `runIntoPubSub`        |   -    |                          |          |
