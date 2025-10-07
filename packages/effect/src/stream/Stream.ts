@@ -1941,6 +1941,44 @@ export const catchCauseFilter: {
   ))
 
 /**
+ * @since 2.0.0
+ * @category Error handling
+ */
+export const orElseIfEmpty: {
+  <E, A2, E2, R2>(
+    orElse: LazyArg<Stream<A2, E2, R2>>
+  ): <A, R>(self: Stream<A, E, R>) => Stream<A | A2, E | E2, R | R2>
+  <A, E, R, A2, E2, R2>(
+    self: Stream<A, E, R>,
+    orElse: LazyArg<Stream<A2, E2, R2>>
+  ): Stream<A | A2, E | E2, R | R2>
+} = dual(2, <A, E, R, A2, E2, R2>(
+  self: Stream<A, E, R>,
+  orElse: LazyArg<Stream<A2, E2, R2>>
+): Stream<A | A2, E | E2, R | R2> =>
+  fromChannel(Channel.orElseIfEmpty(
+    self.channel,
+    (_) => toChannel(orElse())
+  )))
+
+/**
+ * @since 2.0.0
+ * @category Error handling
+ */
+export const orElseSucceed: {
+  <E, A2>(
+    f: (error: E) => A2
+  ): <A, R>(self: Stream<A, E, R>) => Stream<A | A2, never, R>
+  <A, E, R, A2>(
+    self: Stream<A, E, R>,
+    f: (error: E) => A2
+  ): Stream<A | A2, never, R>
+} = dual(2, <A, E, R, A2>(
+  self: Stream<A, E, R>,
+  f: (error: E) => A2
+): Stream<A | A2, never, R> => catch_(self, (e) => succeed(f(e))))
+
+/**
  * Converts stream failures into fiber terminations, making them unrecoverable.
  *
  * @example

@@ -367,7 +367,7 @@ export const fromTransformBracket = <OutElem, OutErr, OutDone, InElem, InErr, In
 ): Channel<OutElem, Pull.ExcludeHalt<OutErr> | EX, OutDone, InElem, InErr, InDone, Env | EnvX> =>
   fromTransform(
     Effect.fnUntraced(function*(upstream, scope) {
-      const closableScope = yield* Scope.fork(scope)
+      const closableScope = Scope.forkUnsafe(scope)
       const onCause = (cause: Cause.Cause<EX | OutErr | Pull.Halt<OutDone>>) =>
         Scope.close(closableScope, Pull.haltExitFromCause(cause))
       const pull = yield* Effect.onError(
@@ -2206,16 +2206,17 @@ const flatMapSequential = <
     Effect.map(toTransform(self)(upstream, scope), (pull) => {
       let childPull: Effect.Effect<OutElem1, OutErr1, Env1> | undefined
       const makePull: Pull.Pull<OutElem1, OutErr | OutErr1, OutDone, Env1> = pull.pipe(
-        Effect.flatMap((value) =>
-          Effect.flatMap(Scope.fork(scope), (childScope) =>
-            Effect.flatMap(toTransform(f(value))(upstream, childScope), (pull) => {
-              childPull = Pull.catchHalt(pull, (_) => {
-                childPull = undefined
-                return Effect.andThen(Scope.close(childScope, Exit.succeed(_)), makePull)
-              }) as any
-              return childPull!
-            }))
-        )
+        Effect.flatMap((value) => {
+          const childScope = Scope.forkUnsafe(scope)
+          return Effect.flatMapEager(toTransform(f(value))(upstream, childScope), (pull) => {
+            childPull = Pull.catchHalt(pull, (_) => {
+              childPull = undefined
+              const closeEff = Scope.closeUnsafe(childScope, Exit.succeed(_))
+              return closeEff ? Effect.flatMap(closeEff, () => makePull) : makePull
+            }) as any
+            return childPull!
+          })
+        })
       )
       return Effect.suspend(() => childPull ?? makePull)
     })
@@ -2352,21 +2353,20 @@ export const concatWith: {
   fromTransform((upstream, scope) =>
     Effect.sync(() => {
       let currentPull: Pull.Pull<OutElem | OutElem1, OutErr1 | OutErr, OutDone1, Env1 | Env> | undefined
-      const makePull = Effect.flatMap(
-        Scope.fork(scope),
-        (forkedScope) =>
-          Effect.flatMap(toTransform(self)(upstream, forkedScope), (pull) => {
-            currentPull = Pull.catchHalt(pull, (leftover) =>
-              Scope.close(forkedScope, Exit.succeed(leftover)).pipe(
-                Effect.andThen(toTransform(f(leftover as OutDone))(upstream, scope)),
-                Effect.flatMap((pull) => {
-                  currentPull = pull
-                  return pull
-                })
-              ))
-            return currentPull
-          })
-      )
+      const forkedScope = Scope.forkUnsafe(scope)
+      const makePull = Effect.flatMap(toTransform(self)(upstream, forkedScope), (pull) => {
+        currentPull = Pull.catchHalt(pull, (leftover) => {
+          const closeEff = Scope.closeUnsafe(forkedScope, Exit.succeed(leftover))
+          const nextPull = toTransform(f(leftover as OutDone))(upstream, scope)
+          return (closeEff ? Effect.flatMap(closeEff, () => nextPull) : nextPull).pipe(
+            Effect.flatMapEager((pull) => {
+              currentPull = pull
+              return pull
+            })
+          )
+        })
+        return currentPull
+      })
       return Effect.suspend(() => currentPull ?? makePull)
     })
   ))
@@ -2466,6 +2466,103 @@ export const concat: {
   InDone & InDone1,
   Env1 | Env
 > => concatWith(self, (_) => that))
+
+/**
+ * @since 2.0.0
+ * @category sequencing
+ */
+export const orElseIfEmpty: {
+  <OutDone, OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>(
+    f: (leftover: Types.NoInfer<OutDone>) => Channel<OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>
+  ): <OutElem, OutErr, InElem, InErr, InDone, Env>(
+    self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>
+  ) => Channel<
+    OutElem | OutElem1,
+    OutErr1 | OutErr,
+    OutDone | OutDone1,
+    InElem & InElem1,
+    InErr & InErr1,
+    InDone & InDone1,
+    Env1 | Env
+  >
+  <
+    OutElem,
+    OutErr,
+    OutDone,
+    InElem,
+    InErr,
+    InDone,
+    Env,
+    OutElem1,
+    OutErr1,
+    OutDone1,
+    InElem1,
+    InErr1,
+    InDone1,
+    Env1
+  >(
+    self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
+    f: (leftover: Types.NoInfer<OutDone>) => Channel<OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>
+  ): Channel<
+    OutElem | OutElem1,
+    OutErr1 | OutErr,
+    OutDone | OutDone1,
+    InElem & InElem1,
+    InErr & InErr1,
+    InDone & InDone1,
+    Env1 | Env
+  >
+} = dual(2, <
+  OutElem,
+  OutErr,
+  OutDone,
+  InElem,
+  InErr,
+  InDone,
+  Env,
+  OutElem1,
+  OutErr1,
+  OutDone1,
+  InElem1,
+  InErr1,
+  InDone1,
+  Env1
+>(
+  self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
+  f: (leftover: Types.NoInfer<OutDone>) => Channel<OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>
+): Channel<
+  OutElem | OutElem1,
+  OutErr1 | OutErr,
+  OutDone | OutDone1,
+  InElem & InElem1,
+  InErr & InErr1,
+  InDone & InDone1,
+  Env1 | Env
+> =>
+  fromTransform((upstream, scope) =>
+    Effect.sync(() => {
+      let currentPull: Pull.Pull<OutElem | OutElem1, OutErr1 | OutErr, OutDone | OutDone1, Env1 | Env> | undefined
+      const forkedScope = Scope.forkUnsafe(scope)
+      const makePull = Effect.flatMap(toTransform(self)(upstream, forkedScope), (pull) => {
+        currentPull = pull.pipe(
+          Effect.tap(() => {
+            currentPull = pull
+          }),
+          Pull.catchHalt((leftover) =>
+            Scope.close(forkedScope, Exit.succeed(leftover)).pipe(
+              Effect.andThen(toTransform(f(leftover as OutDone))(upstream, scope)),
+              Effect.flatMap((pull) => {
+                currentPull = pull
+                return pull
+              })
+            )
+          )
+        )
+        return currentPull
+      })
+      return Effect.suspend(() => currentPull ?? makePull)
+    })
+  ))
 
 /**
  * Flatten a channel of channels.
@@ -2744,7 +2841,7 @@ export const filter: {
  * // Outputs: [2, 4] (the arrays [1,3,5] and [7,9] are discarded)
  * ```
  *
- * @since 2.0.0
+ * @since 4.0.0
  * @category Filtering
  */
 export const filterArray: {
@@ -2764,6 +2861,34 @@ export const filterArray: {
   filter(self, (arr) => {
     const [passes] = Arr.partitionFilter(arr, filter_)
     return Arr.isReadonlyArrayNonEmpty(passes) ? passes : Filter.fail(arr)
+  }))
+
+/**
+ * @since 4.0.0
+ * @category Filtering
+ */
+export const filterArrayEffect: {
+  <OutElem, B, X, E, R>(
+    filter: Filter.FilterEffect<OutElem, B, X, E, R>
+  ): <OutErr, OutDone, InElem, InErr, InDone, Env>(
+    self: Channel<Arr.NonEmptyReadonlyArray<OutElem>, OutErr, OutDone, InElem, InErr, InDone, Env>
+  ) => Channel<Arr.NonEmptyReadonlyArray<B>, OutErr | E, OutDone, InElem, InErr, InDone, Env | R>
+  <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, B, X, E, R>(
+    self: Channel<Arr.NonEmptyReadonlyArray<OutElem>, OutErr, OutDone, InElem, InErr, InDone, Env>,
+    filter: Filter.FilterEffect<OutElem, B, X, E, R>
+  ): Channel<Arr.NonEmptyReadonlyArray<B>, OutErr | E, OutDone, InElem, InErr, InDone, Env | R>
+} = dual(2, <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, B, X, E, R>(
+  self: Channel<Arr.NonEmptyReadonlyArray<OutElem>, OutErr, OutDone, InElem, InErr, InDone, Env>,
+  filter_: Filter.FilterEffect<OutElem, B, X, E, R>
+): Channel<Arr.NonEmptyReadonlyArray<B>, OutErr | E, OutDone, InElem, InErr, InDone, Env | R> =>
+  transformPull(self, (pull) => {
+    const filter = Effect.flatMap(pull, (arr) => Effect.filter(arr, filter_))
+    return Effect.succeed(Effect.flatMap(
+      filter,
+      function loop(arr): Pull.Pull<Arr.NonEmptyReadonlyArray<B>, OutErr | E, OutDone, Env | R> {
+        return Arr.isReadonlyArrayNonEmpty(arr) ? Effect.succeed(arr) : Effect.flatMap(filter, loop)
+      }
+    ))
   }))
 
 /**
@@ -3772,7 +3897,7 @@ export const mergeAll: {
           while (true) {
             if (semaphore) yield* semaphore.take(1)
             const channel = yield* pull
-            const childScope = yield* Scope.fork(forkedScope)
+            const childScope = Scope.forkUnsafe(forkedScope)
             const childPull = yield* toTransform(channel)(upstream, childScope)
 
             while (fibers.size >= concurrencyN) {
