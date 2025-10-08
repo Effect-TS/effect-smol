@@ -2206,16 +2206,6 @@ const flatMapSequential = <
     Effect.map(toTransform(self)(upstream, scope), (pull) => {
       let childPull: Effect.Effect<OutElem1, OutErr1, Env1> | undefined
       let childScope: Scope.Closeable | undefined
-      const catchHalt = Pull.catchHalt((_) => {
-        childPull = undefined
-        // we can reuse the scope if the only finalizer is the "fork" one
-        if (childScope?.state._tag === "Open" && childScope.state.finalizers.size === 1) {
-          return makePull
-        }
-        const closeEff = Scope.closeUnsafe(childScope!, Exit.succeed(_))
-        childScope = undefined
-        return closeEff ? Effect.flatMap(closeEff, () => makePull) : makePull
-      })
       const makePull: Pull.Pull<
         OutElem1,
         OutErr | OutErr1,
@@ -2227,6 +2217,16 @@ const flatMapSequential = <
           childPull = catchHalt(pull) as any
           return childPull!
         })
+      })
+      const catchHalt = Pull.catchHalt((_) => {
+        childPull = undefined
+        // we can reuse the scope if the only finalizer is the "fork" one
+        if (childScope?.state._tag === "Open" && childScope.state.finalizers.size === 1) {
+          return makePull
+        }
+        const closeEff = Scope.closeUnsafe(childScope!, Exit.succeed(_))
+        childScope = undefined
+        return closeEff ? Effect.flatMap(closeEff, () => makePull) : makePull
       })
       return Effect.suspend(() => childPull ?? makePull)
     })
