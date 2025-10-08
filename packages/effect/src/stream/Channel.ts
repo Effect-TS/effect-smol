@@ -2221,12 +2221,12 @@ const flatMapSequential = <
       const catchHalt = Pull.catchHalt((_) => {
         childPull = undefined
         // we can reuse the scope if the only finalizer is the "fork" one
-        if (childScope?.state._tag === "Open" && childScope.state.finalizers.size === 1) {
+        if (childScope!.state._tag === "Open" && childScope!.state.finalizers.size === 1) {
           return makePull
         }
-        const closeEff = Scope.closeUnsafe(childScope!, Exit.succeed(_))
+        const close = Scope.close(childScope!, Exit.void)
         childScope = undefined
-        return closeEff ? Effect.flatMap(closeEff, () => makePull) : makePull
+        return Effect.flatMap(close, () => makePull)
       })
       return Effect.suspend(() => childPull ?? makePull)
     })
@@ -2366,10 +2366,9 @@ export const concatWith: {
       const forkedScope = Scope.forkUnsafe(scope)
       const makePull = Effect.flatMap(toTransform(self)(upstream, forkedScope), (pull) => {
         currentPull = Pull.catchHalt(pull, (leftover) => {
-          const closeEff = Scope.closeUnsafe(forkedScope, Exit.succeed(leftover))
-          const nextPull = toTransform(f(leftover as OutDone))(upstream, scope)
-          return (closeEff ? Effect.flatMap(closeEff, () => nextPull) : nextPull).pipe(
-            Effect.flatMapEager((pull) => {
+          return Scope.close(forkedScope, Exit.void).pipe(
+            Effect.flatMap(() => toTransform(f(leftover as OutDone))(upstream, scope)),
+            Effect.flatMap((pull) => {
               currentPull = pull
               return pull
             })
