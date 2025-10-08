@@ -8,6 +8,7 @@ import * as DateTime from "../DateTime.ts"
 import * as Effect from "../Effect.ts"
 import * as Base64 from "../encoding/Base64.ts"
 import * as Base64Url from "../encoding/Base64Url.ts"
+import * as Hex from "../encoding/Hex.ts"
 import { Class } from "../interfaces/Pipeable.ts"
 import * as Str from "../String.ts"
 import type * as Annotations from "./Annotations.ts"
@@ -459,6 +460,14 @@ export function encodeBase64Url<E extends Uint8Array | string>(): Getter<string,
 }
 
 /**
+ * @category Hex
+ * @since 4.0.0
+ */
+export function encodeHex<E extends Uint8Array | string>(): Getter<string, E> {
+  return transform(Hex.encode)
+}
+
+/**
  * @category Base64
  * @since 4.0.0
  */
@@ -504,6 +513,32 @@ export function decodeBase64Url<E extends string>(): Getter<Uint8Array, E> {
 export function decodeBase64UrlString<E extends string>(): Getter<string, E> {
   return transformOrFail((input) =>
     Result.match(Base64Url.decodeString(input), {
+      onFailure: (e) => Effect.fail(new Issue.InvalidValue(Option.some(input), { message: e.message })),
+      onSuccess: Effect.succeed
+    })
+  )
+}
+
+/**
+ * @category Hex
+ * @since 4.0.0
+ */
+export function decodeHex<E extends string>(): Getter<Uint8Array, E> {
+  return transformOrFail((input) =>
+    Result.match(Hex.decode(input), {
+      onFailure: (e) => Effect.fail(new Issue.InvalidValue(Option.some(input), { message: e.message })),
+      onSuccess: Effect.succeed
+    })
+  )
+}
+
+/**
+ * @category Hex
+ * @since 4.0.0
+ */
+export function decodeHexString<E extends string>(): Getter<string, E> {
+  return transformOrFail((input) =>
+    Result.match(Hex.decodeString(input), {
       onFailure: (e) => Effect.fail(new Issue.InvalidValue(Option.some(input), { message: e.message })),
       onSuccess: Effect.succeed
     })

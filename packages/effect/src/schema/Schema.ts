@@ -4695,6 +4695,81 @@ export const Uint8Array: Uint8Array = instanceOf(globalThis.Uint8Array<ArrayBuff
 /**
  * @since 4.0.0
  */
+export interface Uint8ArrayFromBase64 extends decodeTo<Uint8Array, String> {}
+
+/**
+ * A transformation schema that decodes a base64 encoded string into a
+ * `Uint8Array`.
+ *
+ * Decoding:
+ * - A **valid** base64 encoded string is decoded as a `Uint8Array`.
+ *
+ * Encoding:
+ * - A `Uint8Array` is encoded as a base64-encoded string.
+ *
+ * @category Uint8Array
+ * @since 4.0.0
+ */
+export const Uint8ArrayFromBase64: Uint8ArrayFromBase64 = String.pipe(
+  decodeTo(Uint8Array, {
+    decode: Getter.decodeBase64(),
+    encode: Getter.encodeBase64()
+  })
+)
+
+/**
+ * @since 4.0.0
+ */
+export interface Uint8ArrayFromBase64Url extends decodeTo<Uint8Array, String> {}
+
+/**
+ * A transformation schema that decodes a base64 (URL) encoded string into a
+ * `Uint8Array`.
+ *
+ * Decoding:
+ * - A **valid** base64 (URL) encoded string is decoded as a `Uint8Array`.
+ *
+ * Encoding:
+ * - A `Uint8Array` is encoded as a base64 (URL) encoded string.
+ *
+ * @category Uint8Array
+ * @since 4.0.0
+ */
+export const Uint8ArrayFromBase64Url: Uint8ArrayFromBase64 = String.pipe(
+  decodeTo(Uint8Array, {
+    decode: Getter.decodeBase64Url(),
+    encode: Getter.encodeBase64Url()
+  })
+)
+
+/**
+ * @since 4.0.0
+ */
+export interface Uint8ArrayFromHex extends decodeTo<Uint8Array, String> {}
+
+/**
+ * A transformation schema that decodes a hex encoded string into a
+ * `Uint8Array`.
+ *
+ * Decoding:
+ * - A **valid** hex encoded string is decoded as a `Uint8Array`.
+ *
+ * Encoding:
+ * - A `Uint8Array` is encoded as a hex encoded string.
+ *
+ * @category Uint8Array
+ * @since 4.0.0
+ */
+export const Uint8ArrayFromHex: Uint8ArrayFromHex = String.pipe(
+  decodeTo(Uint8Array, {
+    decode: Getter.decodeHex(),
+    encode: Getter.encodeHex()
+  })
+)
+
+/**
+ * @since 4.0.0
+ */
 export interface DateTimeUtc extends declare<DateTime.Utc> {}
 
 /**

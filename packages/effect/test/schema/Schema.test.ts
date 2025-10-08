@@ -3332,6 +3332,75 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     }
   })
 
+  it("Uint8ArrayFromBase64", async () => {
+    const schema = Schema.Uint8ArrayFromBase64
+    const asserts = new TestSchema.Asserts(schema)
+    const encoder = new TextEncoder()
+
+    if (verifyGeneration) {
+      const arbitrary = asserts.arbitrary()
+      arbitrary.verifyGeneration()
+    }
+
+    const decoding = asserts.decoding()
+    await decoding.succeed("Zm9vYmFy", encoder.encode("foobar"))
+    await decoding.fail("Zm9vY", "Length must be a multiple of 4, but is 5")
+    await decoding.fail("Zm9vYmF-", "Invalid character -")
+    await decoding.fail("=Zm9vYmF", "Found a '=' character, but it is not at the end")
+
+    const encoding = asserts.encoding()
+    await encoding.succeed(encoder.encode("foobar"), "Zm9vYmFy")
+  })
+
+  it("Uint8ArrayFromBase64Url", async () => {
+    const schema = Schema.Uint8ArrayFromBase64Url
+    const asserts = new TestSchema.Asserts(schema)
+    const encoder = new TextEncoder()
+
+    if (verifyGeneration) {
+      const arbitrary = asserts.arbitrary()
+      arbitrary.verifyGeneration()
+    }
+
+    const decoding = asserts.decoding()
+    await decoding.succeed("Zm9vYmFy", encoder.encode("foobar"))
+    await decoding.fail("Zm9vY", "Length should be a multiple of 4, but is 5")
+    await decoding.succeed("Pj8-ZD_Dnw", encoder.encode(">?>d?ß"))
+    await decoding.fail("Pj8/ZD+Dnw", "Invalid input")
+
+    const encoding = asserts.encoding()
+    await encoding.succeed(encoder.encode("foobar"), "Zm9vYmFy")
+    await encoding.succeed(encoder.encode(">?>d?ß"), "Pj8-ZD_Dnw")
+  })
+
+  it("Uint8ArrayFromHex", async () => {
+    const schema = Schema.Uint8ArrayFromHex
+    const asserts = new TestSchema.Asserts(schema)
+    const encoder = new TextEncoder()
+
+    if (verifyGeneration) {
+      const arbitrary = asserts.arbitrary()
+      arbitrary.verifyGeneration()
+    }
+
+    const decoding = asserts.decoding()
+    await decoding.succeed(
+      "0001020304050607",
+      Uint8Array.from([0, 1, 2, 3, 4, 5, 6, 7])
+    )
+    await decoding.succeed(
+      "f0f1f2f3f4f5f6f7",
+      Uint8Array.from([0xf0, 0xf1, 0xf2, 0xf3, 0xf4, 0xf5, 0xf6, 0xf7])
+    )
+    await decoding.succeed("67", encoder.encode("g"))
+    await decoding.fail("0", "Length must be a multiple of 2, but is 1")
+    await decoding.fail("2d4aa", "Length must be a multiple of 2, but is 5")
+    await decoding.fail("0\x01", "Invalid input")
+
+    const encoding = asserts.encoding()
+    await encoding.succeed(Uint8Array.from([0, 1, 2, 3, 4, 5, 6, 7]), "0001020304050607")
+  })
+
   it("Date", async () => {
     const schema = Schema.Date
     const asserts = new TestSchema.Asserts(schema)
