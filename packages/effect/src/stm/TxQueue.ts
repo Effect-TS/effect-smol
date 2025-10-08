@@ -20,6 +20,7 @@ import type { Inspectable } from "../interfaces/Inspectable.ts"
 import { NodeInspectSymbol, toJson } from "../interfaces/Inspectable.ts"
 import * as TxChunk from "../stm/TxChunk.ts"
 import * as TxRef from "../stm/TxRef.ts"
+import { type ExcludeHalt, isHaltCause } from "../stream/Pull.ts"
 import type * as Types from "../types/Types.ts"
 
 /**
@@ -1316,7 +1317,7 @@ export const end = <A, E>(self: TxEnqueue<A, E | Cause.Done>): Effect.Effect<boo
 
 /**
  * Clears all elements from the queue without affecting its state.
- * Returns the cleared elements.
+ * Returns the cleared elements, or an empty array if the queue is done with Done or interrupt.
  *
  * **Mutation behavior**: This function mutates the original TxQueue by removing
  * all elements. It does not return a new TxQueue reference.
@@ -1344,12 +1345,22 @@ export const end = <A, E>(self: TxEnqueue<A, E | Cause.Done>): Effect.Effect<boo
  * @since 4.0.0
  * @category combinators
  */
-export const clear = <A, E>(self: TxEnqueue<A, E>): Effect.Effect<Array<A>> =>
-  Effect.gen(function*() {
-    const chunk = yield* TxChunk.get(self.items)
-    yield* TxChunk.set(self.items, Chunk.empty())
-    return Chunk.toArray(chunk)
-  })
+export const clear = <A, E>(self: TxEnqueue<A, E>): Effect.Effect<Array<A>, ExcludeHalt<E>> =>
+  Effect.atomic(
+    Effect.gen(function*() {
+      const state = yield* TxRef.get(self.stateRef)
+      if (state._tag === "Done") {
+        // Return empty array only for halt causes (like Cause.Done)
+        if (isHaltCause(state.cause)) {
+          return []
+        }
+        return yield* Effect.failCause(state.cause)
+      }
+      const chunk = yield* TxChunk.get(self.items)
+      yield* TxChunk.set(self.items, Chunk.empty())
+      return Chunk.toArray(chunk)
+    })
+  )
 
 /**
  * Shuts down the queue immediately by clearing all items and interrupting it (legacy compatibility).
@@ -1389,7 +1400,7 @@ export const clear = <A, E>(self: TxEnqueue<A, E>): Effect.Effect<Array<A>> =>
 export const shutdown = <A, E>(self: TxEnqueue<A, E>): Effect.Effect<boolean> =>
   Effect.atomic(
     Effect.gen(function*() {
-      yield* clear(self)
+      yield* Effect.ignore(clear(self))
       return yield* interrupt(self)
     })
   )

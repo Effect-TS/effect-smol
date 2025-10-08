@@ -1073,7 +1073,7 @@ export const shutdown = <A, E>(self: Queue<A, E>): Effect<boolean> =>
  * @category taking
  * @since 4.0.0
  */
-export const clear = <A, E>(self: Dequeue<A, E>): Effect<Array<A>, E> =>
+export const clear = <A, E>(self: Dequeue<A, E>): Effect<Array<A>, Pull.ExcludeHalt<E>> =>
   internalEffect.suspend(() => {
     if (self.state._tag === "Done") {
       if (Pull.isHaltCause(self.state.exit.cause)) {
@@ -1135,7 +1135,7 @@ export const takeAll = <A, E>(self: Dequeue<A, E>): Effect<Arr.NonEmptyArray<A>,
  * @category taking
  * @since 4.0.0
  */
-export const collect = <A, E>(self: Dequeue<A, E | Done>): Effect<Array<A>, Exclude<E, Done>> =>
+export const collect = <A, E>(self: Dequeue<A, E | Done>): Effect<Array<A>, Pull.ExcludeHalt<E>> =>
   internalEffect.suspend(() => {
     const out = Arr.empty<A>()
     return internalEffect.as(
@@ -1144,8 +1144,9 @@ export const collect = <A, E>(self: Dequeue<A, E | Done>): Effect<Array<A>, Excl
           while: constTrue,
           body: constant(takeAll(self)),
           step(items: Arr.NonEmptyArray<A>) {
-            // eslint-disable-next-line no-restricted-syntax
-            out.push(...items)
+            for (let i = 0; i < items.length; i++) {
+              out.push(items[i])
+            }
           }
         }),
         () => internalEffect.void

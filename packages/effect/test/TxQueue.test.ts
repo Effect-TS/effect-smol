@@ -628,11 +628,11 @@ describe("TxQueue", () => {
         assert.strictEqual(isEmpty, true)
       }))
 
-    it.effect("clear works on closed queue", () =>
+    it.effect("clear works on queue ended with Done", () =>
       Effect.gen(function*() {
-        const queue = yield* TxQueue.bounded<number>(10)
+        const queue = yield* TxQueue.bounded<number, Cause.Done>(10)
         yield* TxQueue.offerAll(queue, [1, 2, 3])
-        yield* TxQueue.interrupt(queue)
+        yield* TxQueue.end(queue)
 
         // Take all items to move from Closing to Done state
         yield* TxQueue.takeAll(queue)
@@ -641,6 +641,7 @@ describe("TxQueue", () => {
         const isDoneBefore = yield* TxQueue.isDone(queue)
         assert.strictEqual(isDoneBefore, true)
 
+        // clear() returns empty array for halt causes (like Done)
         const cleared = yield* TxQueue.clear(queue)
         assert.deepStrictEqual(cleared, [])
 
