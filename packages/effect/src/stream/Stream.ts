@@ -312,7 +312,7 @@ export const fromEffect = <A, E, R>(effect: Effect.Effect<A, E, R>): Stream<A, E
  * @category constructors
  */
 export const fromEffectDrain = <A, E, R>(effect: Effect.Effect<A, E, R>): Stream<never, E, R> =>
-  drain(fromEffect(effect))
+  fromPull(Effect.succeed(Effect.flatMap(effect, () => Pull.haltVoid)))
 
 /**
  * @since 4.0.0
@@ -1456,6 +1456,35 @@ export const mapEffect: {
   ))
 
 /**
+ * @since 2.0.0
+ * @category mapping
+ */
+export const flattenEffect: {
+  (
+    options?: {
+      readonly concurrency?: number | "unbounded" | undefined
+      readonly bufferSize?: number | undefined
+      readonly unordered?: boolean | undefined
+    } | undefined
+  ): <A, EX, RX, E, R>(self: Stream<Effect.Effect<A, EX, RX>, E, R>) => Stream<A, EX | E, RX | R>
+  <A, E, R, EX, RX>(
+    self: Stream<Effect.Effect<A, EX, RX>, E, R>,
+    options?: {
+      readonly concurrency?: number | "unbounded" | undefined
+      readonly bufferSize?: number | undefined
+      readonly unordered?: boolean | undefined
+    } | undefined
+  ): Stream<A, EX | E, RX | R>
+} = dual((args) => isStream(args[0]), <A, E, R, EX, RX>(
+  self: Stream<Effect.Effect<A, EX, RX>, E, R>,
+  options?: {
+    readonly concurrency?: number | "unbounded" | undefined
+    readonly bufferSize?: number | undefined
+    readonly unordered?: boolean | undefined
+  } | undefined
+): Stream<A, EX | E, RX | R> => mapEffect(self, identity, options))
+
+/**
  * @since 4.0.0
  * @category mapping
  */
@@ -2381,6 +2410,33 @@ export const mapAccum: {
  * @since 2.0.0
  * @category sequencing
  */
+export const mapAccumArray: {
+  <S, A, B>(
+    initial: LazyArg<S>,
+    f: (s: S, a: Arr.NonEmptyReadonlyArray<A>) => readonly [state: S, values: ReadonlyArray<B>]
+  ): <E, R>(self: Stream<A, E, R>) => Stream<B, E, R>
+  <A, E, R, S, B>(
+    self: Stream<A, E, R>,
+    initial: LazyArg<S>,
+    f: (s: S, a: Arr.NonEmptyReadonlyArray<A>) => readonly [state: S, values: ReadonlyArray<B>]
+  ): Stream<B, E, R>
+} = dual(3, <A, E, R, S, B>(
+  self: Stream<A, E, R>,
+  initial: LazyArg<S>,
+  f: (s: S, a: Arr.NonEmptyReadonlyArray<A>) => readonly [state: S, values: ReadonlyArray<B>]
+): Stream<B, E, R> =>
+  fromChannel(Channel.mapAccum(self.channel, initial, (state, arr) => {
+    const [newState, values] = f(state, arr)
+    state = newState
+    return [state, Arr.isReadonlyArrayNonEmpty(values) ? Arr.of(values) : emptyArr]
+  })))
+
+const emptyArr = Arr.empty<Arr.NonEmptyReadonlyArray<never>>()
+
+/**
+ * @since 2.0.0
+ * @category sequencing
+ */
 export const mapAccumEffect: {
   <S, A, B, E2, R2>(
     initial: LazyArg<S>,
@@ -2404,6 +2460,37 @@ export const mapAccumEffect: {
         ([state, values]) => [
           state,
           Arr.isReadonlyArrayNonEmpty(values) ? Arr.of(values) : Arr.empty<Arr.NonEmptyReadonlyArray<B>>()
+        ]
+      )),
+    fromChannel
+  ))
+
+/**
+ * @since 2.0.0
+ * @category sequencing
+ */
+export const mapAccumArrayEffect: {
+  <S, A, B, E2, R2>(
+    initial: LazyArg<S>,
+    f: (s: S, a: Arr.NonEmptyReadonlyArray<A>) => Effect.Effect<readonly [state: S, values: ReadonlyArray<B>], E2, R2>
+  ): <E, R>(self: Stream<A, E, R>) => Stream<B, E | E2, R | R2>
+  <A, E, R, S, B, E2, R2>(
+    self: Stream<A, E, R>,
+    initial: LazyArg<S>,
+    f: (s: S, a: Arr.NonEmptyReadonlyArray<A>) => Effect.Effect<readonly [state: S, values: ReadonlyArray<B>], E2, R2>
+  ): Stream<B, E | E2, R | R2>
+} = dual(3, <A, E, R, S, B, E2, R2>(
+  self: Stream<A, E, R>,
+  initial: LazyArg<S>,
+  f: (s: S, a: Arr.NonEmptyReadonlyArray<A>) => Effect.Effect<readonly [state: S, values: ReadonlyArray<B>], E2, R2>
+): Stream<B, E | E2, R | R2> =>
+  self.channel.pipe(
+    Channel.mapAccum(initial, (state, a) =>
+      Effect.map(
+        f(state, a),
+        ([state, values]) => [
+          state,
+          Arr.isReadonlyArrayNonEmpty(values) ? Arr.of(values) : emptyArr
         ]
       )),
     fromChannel
@@ -2925,6 +3012,22 @@ export const pipeThroughChannelOrFail: {
   self: Stream<A, E, R>,
   channel: Channel.Channel<Arr.NonEmptyReadonlyArray<A2>, E2, unknown, Arr.NonEmptyReadonlyArray<A>, E, unknown, R2>
 ): Stream<A2, E | E2, R | R2> => fromChannel(Channel.pipeToOrFail(self.channel, channel)))
+
+/**
+ * @since 2.0.0
+ * @category accumulation
+ */
+export const collect = <A, E, R>(self: Stream<A, E, R>): Stream<Array<A>, E, R> => fromEffect(runCollect(self))
+
+/**
+ * @since 2.0.0
+ * @category accumulation
+ */
+export const accumulate = <A, E, R>(self: Stream<A, E, R>): Stream<Arr.NonEmptyArray<A>, E, R> =>
+  mapAccumArray(self, Arr.empty<A>, (acc, as) => {
+    const combined = Arr.appendAll(acc, as)
+    return [combined, [combined]]
+  })
 
 /**
  * Decode Uint8Array chunks into a stream of strings using the specified encoding.

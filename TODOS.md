@@ -260,7 +260,7 @@ The exports under each section are organized as they are in Effect 3.0. The cate
 
 |        Effect 3        | Ported |     Effect 4     | Comments |
 | :--------------------: | :----: | :--------------: | :------: |
-|          `as`          |   -    |                  |          |
+|          `as`          |   X    |                  |          |
 |         `map`          |  Done  |      `map`       |          |
 |       `mapAccum`       |  Done  |    `mapAccum`    |          |
 |    `mapAccumEffect`    |  Done  | `mapAccumEffect` |          |
@@ -285,12 +285,12 @@ The exports under each section are organized as they are in Effect 3.0. The cate
 
 |      Effect 3       | Ported |        Effect 4         | Comments |
 | :-----------------: | :----: | :---------------------: | :------: |
-|    `branchAfter`    |   -    | `collect` + `flatMap` ? |          |
+|    `branchAfter`    |   X    | `collect` + `flatMap` ? |          |
 |      `flatMap`      |  Done  |        `flatMap`        |          |
 |      `flatten`      |  Done  |        `flatten`        |          |
 |   `flattenChunks`   |  Done  |     `flattenArray`      |          |
-|   `flattenEffect`   |   -    |                         |          |
-| `flattenExitOption` |   -    |                         |          |
+|   `flattenEffect`   |  Done  |                         |          |
+| `flattenExitOption` |   X    |                         |          |
 | `flattenIterables`  |  Done  |    `flattenIterable`    |          |
 |    `flattenTake`    |  Done  |      `flattenTake`      |          |
 |       `onEnd`       |   -    |                         |          |
@@ -308,116 +308,116 @@ The exports under each section are organized as they are in Effect 3.0. The cate
 
 ### Utils
 
-|          Effect 3          | Ported |          Effect 4          | Comments |
-| :------------------------: | :----: | :------------------------: | :------: |
-|        `accumulate`        |   -    |                            |          |
-|     `accumulateChunks`     |   -    |                            |          |
-|        `aggregate`         |   -    |                            |          |
-|     `aggregateWithin`      |   -    |                            |          |
-|  `aggregateWithinEither`   |   -    |                            |          |
-|        `broadcast`         |  Done  |        `broadcast`         |          |
-|     `broadcastDynamic`     |   X    |        `broadcast`         |          |
-|    `broadcastedQueues`     |   X    |        `broadcast`         |          |
-| `broadcastedQueuesDynamic` |   X    |        `broadcast`         |          |
-|          `buffer`          |  Done  |          `buffer`          |          |
-|       `bufferChunks`       |  Done  |       `bufferArray`        |          |
-|         `changes`          |   -    |                            |          |
-|       `changesWith`        |   -    |                            |          |
-|    `changesWithEffect`     |   -    |                            |          |
-|          `chunks`          |  Done  |          `chunks`          |          |
-|        `chunksWith`        |   -    |                            |          |
-|         `combine`          |   -    |                            |          |
-|      `combineChunks`       |   -    |                            |          |
-|          `concat`          |  Done  |          `concat`          |          |
-|          `cross`           |   -    |                            |          |
-|        `crossLeft`         |   -    |                            |          |
-|        `crossRight`        |   -    |                            |          |
-|        `crossWith`         |   -    |                            |          |
-|         `debounce`         |   -    |                            |          |
-|     `distributedWith`      |   -    |                            |          |
-|  `distributedWithDynamic`  |   -    |                            |          |
-|          `drain`           |  Done  |          `drain`           |          |
-|        `drainFork`         |   -    |                            |          |
-|           `drop`           |  Done  |           `drop`           |          |
-|        `dropRight`         |   -    |                            |          |
-|        `dropUntil`         |   -    |                            |          |
-|     `dropUntilEffect`      |   -    |                            |          |
-|        `dropWhile`         |   -    |                            |          |
-|     `dropWhileEffect`      |   -    |                            |          |
-|          `either`          |   -    |                            |          |
-|         `ensuring`         |  Done  |         `ensuring`         |          |
-|       `ensuringWith`       |  Done  |          `onExit`          |          |
-|        `filterMap`         |   X    |          `filter`          |          |
-|     `filterMapEffect`      |   X    |       `filterEffect`       |          |
-|      `filterMapWhile`      |   X    |                            |          |
-|   `filterMapWhileEffect`   |   X    |                            |          |
-|         `forever`          |   -    |                            |          |
-|    `fromEventListener`     |  Done  |                            |          |
-|        `haltAfter`         |   X    |                            |          |
-|         `haltWhen`         |   -    |                            |          |
-|     `haltWhenDeferred`     |   X    |                            |          |
-|         `identity`         |   X    |                            |          |
-|        `interleave`        |   -    |                            |          |
-|      `interleaveWith`      |   -    |                            |          |
-|      `interruptAfter`      |   X    |                            |          |
-|      `interruptWhen`       |   -    |                            |          |
-|  `interruptWhenDeferred`   |   X    |                            |          |
-|       `intersperse`        |   -    |                            |          |
-|    `intersperseAffixes`    |   -    |                            |          |
-|         `mapBoth`          |   -    |                            |          |
-|          `merge`           |  Done  |                            |          |
-|         `mergeAll`         |   -    |                            |          |
-|       `mergeEither`        |   -    |                            |          |
-|        `mergeLeft`         |   -    |                            |          |
-|        `mergeRight`        |   -    |                            |          |
-|        `mergeWith`         |   -    |                            |          |
-|         `mkString`         |  Done  |         `mkString`         |          |
-|          `onDone`          |   -    |                            |          |
-|         `onError`          |   -    |                            |          |
-|        `partition`         |   -    |                            |          |
-|     `partitionEither`      |   -    |                            |          |
-|           `peel`           |   -    |                            |          |
-|       `pipeThrough`        |   -    |                            |          |
-|    `pipeThroughChannel`    |  Done  |    `pipeThroughChannel`    |          |
-| `pipeThroughChannelOrFail` |  Done  | `pipeThroughChannelOrFail` |          |
-|         `prepend`          |   -    |                            |          |
-|         `rechunk`          |  Done  |         `rechunk`          |          |
-|          `repeat`          |   -    |                            |          |
-|       `repeatEither`       |   -    |                            |          |
-|      `repeatElements`      |   -    |                            |          |
-|    `repeatElementsWith`    |   -    |                            |          |
-|        `repeatWith`        |   -    |                            |          |
-|          `retry`           |   -    |                            |          |
-|           `scan`           |  Done  |           `scan`           |          |
-|        `scanEffect`        |  Done  |        `scanEffect`        |          |
-|        `scanReduce`        |   X    |                            |          |
-|     `scanReduceEffect`     |   X    |                            |          |
-|         `schedule`         |   -    |                            |          |
-|       `scheduleWith`       |   -    |                            |          |
-|          `share`           |  Done  |          `share`           |          |
-|         `sliding`          |   -    |                            |          |
-|       `slidingSize`        |   -    |                            |          |
-|           `some`           |   X    |                            |          |
-|        `someOrElse`        |   X    |                            |          |
-|        `someOrFail`        |   X    |                            |          |
-|          `split`           |   -    |                            |          |
-|       `splitOnChunk`       |   X    |                            |          |
-|           `take`           |  Done  |           `take`           |          |
-|        `takeRight`         |   -    |                            |          |
-|        `takeUntil`         |  Done  |        `takeUntil`         |          |
-|     `takeUntilEffect`      |  Done  |     `takeUntilEffect`      |          |
-|        `takeWhile`         |  Done  |        `takeWhile`         |          |
-|      `tapErrorCause`       |  Done  |         `tapCause`         |          |
-|         `throttle`         |   -    |                            |          |
-|      `throttleEffect`      |   -    |                            |          |
-|         `timeout`          |   -    |                            |          |
-|       `timeoutFail`        |  Done  |      `timeoutOrElse`       |          |
-|     `timeoutFailCause`     |   X    |                            |          |
-|        `timeoutTo`         |   X    |                            |          |
-|        `transduce`         |  Done  |        `transduce`         |          |
-|           `when`           |   -    |                            |          |
-|      `whenCaseEffect`      |   X    |                            |          |
-|        `whenEffect`        |   X    |           `when`           |          |
+|          Effect 3          | Ported |           Effect 4            | Comments |
+| :------------------------: | :----: | :---------------------------: | :------: |
+|        `accumulate`        |  Done  |                               |          |
+|     `accumulateChunks`     |   X    | `accumulate` + `flattenArray` |          |
+|        `aggregate`         |   -    |                               |          |
+|     `aggregateWithin`      |   -    |                               |          |
+|  `aggregateWithinEither`   |   -    |                               |          |
+|        `broadcast`         |  Done  |          `broadcast`          |          |
+|     `broadcastDynamic`     |   X    |          `broadcast`          |          |
+|    `broadcastedQueues`     |   X    |          `broadcast`          |          |
+| `broadcastedQueuesDynamic` |   X    |          `broadcast`          |          |
+|          `buffer`          |  Done  |           `buffer`            |          |
+|       `bufferChunks`       |  Done  |         `bufferArray`         |          |
+|         `changes`          |   -    |                               |          |
+|       `changesWith`        |   -    |                               |          |
+|    `changesWithEffect`     |   -    |                               |          |
+|          `chunks`          |  Done  |           `chunks`            |          |
+|        `chunksWith`        |   -    |                               |          |
+|         `combine`          |   -    |                               |          |
+|      `combineChunks`       |   -    |                               |          |
+|          `concat`          |  Done  |           `concat`            |          |
+|          `cross`           |   -    |                               |          |
+|        `crossLeft`         |   -    |                               |          |
+|        `crossRight`        |   -    |                               |          |
+|        `crossWith`         |   -    |                               |          |
+|         `debounce`         |   -    |                               |          |
+|     `distributedWith`      |   -    |                               |          |
+|  `distributedWithDynamic`  |   -    |                               |          |
+|          `drain`           |  Done  |            `drain`            |          |
+|        `drainFork`         |   -    |                               |          |
+|           `drop`           |  Done  |            `drop`             |          |
+|        `dropRight`         |   -    |                               |          |
+|        `dropUntil`         |   -    |                               |          |
+|     `dropUntilEffect`      |   -    |                               |          |
+|        `dropWhile`         |   -    |                               |          |
+|     `dropWhileEffect`      |   -    |                               |          |
+|          `either`          |   -    |                               |          |
+|         `ensuring`         |  Done  |          `ensuring`           |          |
+|       `ensuringWith`       |  Done  |           `onExit`            |          |
+|        `filterMap`         |   X    |           `filter`            |          |
+|     `filterMapEffect`      |   X    |        `filterEffect`         |          |
+|      `filterMapWhile`      |   X    |                               |          |
+|   `filterMapWhileEffect`   |   X    |                               |          |
+|         `forever`          |   -    |                               |          |
+|    `fromEventListener`     |  Done  |                               |          |
+|        `haltAfter`         |   X    |                               |          |
+|         `haltWhen`         |   -    |                               |          |
+|     `haltWhenDeferred`     |   X    |                               |          |
+|         `identity`         |   X    |                               |          |
+|        `interleave`        |   -    |                               |          |
+|      `interleaveWith`      |   -    |                               |          |
+|      `interruptAfter`      |   X    |                               |          |
+|      `interruptWhen`       |   -    |                               |          |
+|  `interruptWhenDeferred`   |   X    |                               |          |
+|       `intersperse`        |   -    |                               |          |
+|    `intersperseAffixes`    |   -    |                               |          |
+|         `mapBoth`          |   -    |                               |          |
+|          `merge`           |  Done  |                               |          |
+|         `mergeAll`         |   -    |                               |          |
+|       `mergeEither`        |   -    |                               |          |
+|        `mergeLeft`         |   -    |                               |          |
+|        `mergeRight`        |   -    |                               |          |
+|        `mergeWith`         |   -    |                               |          |
+|         `mkString`         |  Done  |          `mkString`           |          |
+|          `onDone`          |   -    |                               |          |
+|         `onError`          |   -    |                               |          |
+|        `partition`         |   -    |                               |          |
+|     `partitionEither`      |   -    |                               |          |
+|           `peel`           |   -    |                               |          |
+|       `pipeThrough`        |   -    |                               |          |
+|    `pipeThroughChannel`    |  Done  |     `pipeThroughChannel`      |          |
+| `pipeThroughChannelOrFail` |  Done  |  `pipeThroughChannelOrFail`   |          |
+|         `prepend`          |   -    |                               |          |
+|         `rechunk`          |  Done  |           `rechunk`           |          |
+|          `repeat`          |   -    |                               |          |
+|       `repeatEither`       |   -    |                               |          |
+|      `repeatElements`      |   -    |                               |          |
+|    `repeatElementsWith`    |   -    |                               |          |
+|        `repeatWith`        |   -    |                               |          |
+|          `retry`           |   -    |                               |          |
+|           `scan`           |  Done  |            `scan`             |          |
+|        `scanEffect`        |  Done  |         `scanEffect`          |          |
+|        `scanReduce`        |   X    |                               |          |
+|     `scanReduceEffect`     |   X    |                               |          |
+|         `schedule`         |   -    |                               |          |
+|       `scheduleWith`       |   -    |                               |          |
+|          `share`           |  Done  |            `share`            |          |
+|         `sliding`          |   -    |                               |          |
+|       `slidingSize`        |   -    |                               |          |
+|           `some`           |   X    |                               |          |
+|        `someOrElse`        |   X    |                               |          |
+|        `someOrFail`        |   X    |                               |          |
+|          `split`           |   -    |                               |          |
+|       `splitOnChunk`       |   X    |                               |          |
+|           `take`           |  Done  |            `take`             |          |
+|        `takeRight`         |   -    |                               |          |
+|        `takeUntil`         |  Done  |          `takeUntil`          |          |
+|     `takeUntilEffect`      |  Done  |       `takeUntilEffect`       |          |
+|        `takeWhile`         |  Done  |          `takeWhile`          |          |
+|      `tapErrorCause`       |  Done  |          `tapCause`           |          |
+|         `throttle`         |   -    |                               |          |
+|      `throttleEffect`      |   -    |                               |          |
+|         `timeout`          |   -    |                               |          |
+|       `timeoutFail`        |  Done  |        `timeoutOrElse`        |          |
+|     `timeoutFailCause`     |   X    |                               |          |
+|        `timeoutTo`         |   X    |                               |          |
+|        `transduce`         |  Done  |          `transduce`          |          |
+|           `when`           |   -    |                               |          |
+|      `whenCaseEffect`      |   X    |                               |          |
+|        `whenEffect`        |   X    |            `when`             |          |
 
 ### Zipping
 
