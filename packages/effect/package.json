@@ -100,6 +100,7 @@
       "./*": "./dist/*.js",
       "./internal/*": null,
       "./optic/internal/*": null,
+      "./unstable/cli/internal/*": null,
       "./unstable/cluster/internal/*": null,
       "./*/index": null
     }
