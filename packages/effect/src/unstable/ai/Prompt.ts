@@ -1318,7 +1318,6 @@ export const Prompt = Schema.declare(
   Schema.Struct({
     content: Schema.Array(Schema.encodedCodec(Message))
   }),
-  // TODO
   SchemaTransformation.transformOrFail({})
 ))
 
