@@ -459,7 +459,9 @@ export const JsonValue: Schema.Schema<JsonValue> = Schema.Union([
  * @since 4.0.0
  * @category schemas
  */
-export const ProviderMetadata = Schema.typeCodec(Schema.Record(Schema.String, Schema.UndefinedOr(JsonValue)))
+export const ProviderMetadata = Schema.typeCodec(
+  Schema.Record(Schema.String, Schema.UndefinedOr(JsonValue))
+)
 
 /**
  * @since 4.0.0
