@@ -4,10 +4,10 @@
 
 import * as Option from "../data/Option.ts"
 import * as Predicate from "../data/Predicate.ts"
-import type * as Effect from "../Effect.ts"
+import * as Effect from "../Effect.ts"
 import type * as AST from "./AST.ts"
 import * as Getter from "./Getter.ts"
-import type * as Issue from "./Issue.ts"
+import * as Issue from "./Issue.ts"
 
 /**
  * @category model
@@ -276,30 +276,26 @@ export const bigintFromString = new Transformation(
   Getter.String()
 )
 
-/**
- * @since 4.0.0
- */
-export function error(): Transformation<Error, {
+/** @internal */
+export const errorFromErrorJsonEncoded: Transformation<Error, {
   message: string
   name?: string
   stack?: string
-}> {
-  return transform({
-    decode: (i) => {
-      const err = new Error(i.message)
-      if (Predicate.isString(i.name) && i.name !== "Error") err.name = i.name
-      if (Predicate.isString(i.stack)) err.stack = i.stack
-      return err
-    },
-    encode: (a) => {
-      return {
-        name: a.name,
-        message: a.message
-        // no stack because of security reasons
-      }
+}> = transform({
+  decode: (i) => {
+    const err = new Error(i.message)
+    if (Predicate.isString(i.name) && i.name !== "Error") err.name = i.name
+    if (Predicate.isString(i.stack)) err.stack = i.stack
+    return err
+  },
+  encode: (a) => {
+    return {
+      name: a.name,
+      message: a.message
+      // no stack because of security reasons
     }
-  })
-}
+  }
+})
 
 /**
  * @since 4.0.0
@@ -330,3 +326,15 @@ export function optionFromOptional<T>(): Transformation<Option.Option<T>, T | un
     encode: Option.flatten
   })
 }
+
+/**
+ * @since 4.0.0
+ */
+export const urlFromString = transformOrFail<URL, string>({
+  decode: (s) =>
+    Effect.try({
+      try: () => new URL(s),
+      catch: (e) => new Issue.InvalidValue(Option.some(s), { message: globalThis.String(e) })
+    }),
+  encode: (url) => Effect.succeed(url.href)
+})

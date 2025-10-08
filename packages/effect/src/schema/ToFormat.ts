@@ -28,8 +28,8 @@ export declare namespace Annotation {
 /**
  * **Technical Note**
  *
- * This annotation cannot be added to the standard annotations because it would
- * make the schema invariant.
+ * This annotation cannot be added to `Annotations.Bottom` because it would make
+ * the schema invariant.
  *
  * @since 4.0.0
  */

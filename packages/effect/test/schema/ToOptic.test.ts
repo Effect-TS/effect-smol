@@ -1,6 +1,6 @@
 import { Cause, Exit } from "effect"
 import { Data, Option, Predicate, Record, Result } from "effect/data"
-import { Check, Schema, ToOptic, Util } from "effect/schema"
+import { Check, Schema, ToOptic, Transformation, Util } from "effect/schema"
 import { describe, it } from "vitest"
 import { assertNone, assertSome, deepStrictEqual, strictEqual, throws } from "../utils/assert.ts"
 
@@ -22,6 +22,15 @@ function addTwo(date: Date): Date {
 }
 
 describe("ToOptic", () => {
+  describe("override", () => {
+    it("override", () => {
+      const schema = Schema.URL.pipe(ToOptic.override(Schema.String, Transformation.urlFromString))
+      const optic = ToOptic.makeIso(schema)
+      const modify = optic.modify((s) => s + "test")
+      deepStrictEqual(modify(new URL("https://example.com")), new URL("https://example.com/test"))
+    })
+  })
+
   describe("makeIso", () => {
     describe("Class", () => {
       it("Class", () => {

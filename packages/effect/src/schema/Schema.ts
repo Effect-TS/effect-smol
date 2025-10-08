@@ -3572,7 +3572,7 @@ const ErrorJsonEncoded = Struct({
  */
 export const Error: Error = instanceOf(globalThis.Error, {
   title: "Error",
-  defaultJsonSerializer: () => link<globalThis.Error>()(ErrorJsonEncoded, Transformation.error()),
+  defaultJsonSerializer: () => link<globalThis.Error>()(ErrorJsonEncoded, Transformation.errorFromErrorJsonEncoded),
   arbitrary: {
     _tag: "Override",
     override: () => (fc) => fc.string().map((message) => new globalThis.Error(message))
@@ -3616,7 +3616,7 @@ const defectTransformation = new Transformation.Transformation(
  * @since 4.0.0
  */
 export const Defect: Defect = Union([
-  ErrorJsonEncoded.pipe(decodeTo(Error, Transformation.error())),
+  ErrorJsonEncoded.pipe(decodeTo(Error, Transformation.errorFromErrorJsonEncoded)),
   Any.pipe(decodeTo(
     Unknown.annotate({
       defaultJsonSerializer: () => link<unknown>()(Any, defectTransformation),
@@ -4020,7 +4020,8 @@ export interface URL extends instanceOf<globalThis.URL> {}
  * A schema for JavaScript `URL` objects.
  *
  * **Default JSON serializer**
- * - encodes `URL` as a `string`.
+ *
+ * - encodes `URL` as a `string`
  *
  * @since 4.0.0
  */
@@ -4028,18 +4029,7 @@ export const URL: URL = instanceOf(
   globalThis.URL,
   {
     title: "URL",
-    defaultJsonSerializer: () =>
-      link<globalThis.URL>()(
-        String,
-        Transformation.transformOrFail({
-          decode: (s) =>
-            Effect.try({
-              try: () => new globalThis.URL(s),
-              catch: (e) => new Issue.InvalidValue(Option_.some(s), { message: globalThis.String(e) })
-            }),
-          encode: (url) => Effect.succeed(url.href)
-        })
-      ),
+    defaultJsonSerializer: () => link<globalThis.URL>()(String, Transformation.urlFromString),
     arbitrary: {
       _tag: "Override",
       override: () => (fc) => fc.webUrl().map((s) => new globalThis.URL(s))
@@ -4107,6 +4097,7 @@ export interface Duration extends declare<Duration_.Duration> {}
  * A schema for `Duration` values.
  *
  * **Default JSON serializer**
+ *
  * - encodes `Duration` as a `string`
  *
  * @since 4.0.0
@@ -4710,6 +4701,7 @@ export interface DateTimeUtc extends declare<DateTime.Utc> {}
  * A schema for `DateTime.Utc` values.
  *
  * **Default JSON serializer**
+ *
  * - encodes `DateTime.Utc` as a UTC ISO string
  *
  * @category DateTime

@@ -104,6 +104,24 @@ export interface Bottom<T, TypeParameters extends ReadonlyArray<Schema.Top>> ext
 }
 
 /**
+ * @since 4.0.0
+ */
+export declare namespace TypeParameters {
+  /**
+   * @since 4.0.0
+   */
+  export type Type<TypeParameters extends ReadonlyArray<Schema.Top>> = {
+    readonly [K in keyof TypeParameters]: Schema.Codec<TypeParameters[K]["Type"]>
+  }
+  /**
+   * @since 4.0.0
+   */
+  export type Encoded<TypeParameters extends ReadonlyArray<Schema.Top>> = {
+    readonly [K in keyof TypeParameters]: Schema.Codec<TypeParameters[K]["Encoded"]>
+  }
+}
+
+/**
  * @category Model
  * @since 4.0.0
  */
@@ -112,19 +130,15 @@ export interface Declaration<T, TypeParameters extends ReadonlyArray<Schema.Top>
 {
   /** Used by both JSON and ISO serializers */
   readonly serializer?:
-    | ((
-      typeParameters: { readonly [K in keyof TypeParameters]: Schema.Schema<TypeParameters[K]["Encoded"]> }
-    ) => AST.Link)
+    | ((typeParameters: TypeParameters.Encoded<TypeParameters>) => AST.Link)
     | undefined
   /** Used only by JSON serializers */
   readonly defaultJsonSerializer?:
-    | ((
-      typeParameters: { readonly [K in keyof TypeParameters]: Schema.Schema<TypeParameters[K]["Encoded"]> }
-    ) => AST.Link)
+    | ((typeParameters: TypeParameters.Encoded<TypeParameters>) => AST.Link)
     | undefined
   /** Used only by ISO serializers */
   readonly defaultIsoSerializer?:
-    | ((typeParameters: { readonly [K in keyof TypeParameters]: Schema.Schema<TypeParameters[K]["Type"]> }) => AST.Link)
+    | ((typeParameters: TypeParameters.Type<TypeParameters>) => AST.Link)
     | undefined
   readonly jsonSchema?: ToJsonSchema.Annotation.Override | undefined
   readonly arbitrary?: ToArbitrary.Annotation.Override<T, TypeParameters> | undefined
