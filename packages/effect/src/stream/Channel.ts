@@ -1044,7 +1044,7 @@ export const die = (defect: unknown): Channel<never, never, never> => failCause(
  */
 export const fromEffect = <A, E, R>(
   effect: Effect.Effect<A, E, R>
-): Channel<A, E, void, unknown, unknown, unknown, R> =>
+): Channel<A, Pull.ExcludeHalt<E>, void, unknown, unknown, unknown, R> =>
   fromPull(
     Effect.sync(() => {
       let done = false
@@ -2205,19 +2205,29 @@ const flatMapSequential = <
   fromTransform((upstream, scope) =>
     Effect.map(toTransform(self)(upstream, scope), (pull) => {
       let childPull: Effect.Effect<OutElem1, OutErr1, Env1> | undefined
-      const makePull: Pull.Pull<OutElem1, OutErr | OutErr1, OutDone, Env1> = pull.pipe(
-        Effect.flatMap((value) => {
-          const childScope = Scope.forkUnsafe(scope)
-          return Effect.flatMapEager(toTransform(f(value))(upstream, childScope), (pull) => {
-            childPull = Pull.catchHalt(pull, (_) => {
-              childPull = undefined
-              const closeEff = Scope.closeUnsafe(childScope, Exit.succeed(_))
-              return closeEff ? Effect.flatMap(closeEff, () => makePull) : makePull
-            }) as any
-            return childPull!
-          })
+      let childScope: Scope.Closeable | undefined
+      const catchHalt = Pull.catchHalt((_) => {
+        childPull = undefined
+        // we can reuse the scope if the only finalizer is the "fork" one
+        if (childScope?.state._tag === "Open" && childScope.state.finalizers.size === 1) {
+          return makePull
+        }
+        const closeEff = Scope.closeUnsafe(childScope!, Exit.succeed(_))
+        childScope = undefined
+        return closeEff ? Effect.flatMap(closeEff, () => makePull) : makePull
+      })
+      const makePull: Pull.Pull<
+        OutElem1,
+        OutErr | OutErr1,
+        OutDone,
+        Env1
+      > = Effect.flatMap(pull, (value) => {
+        childScope ??= Scope.forkUnsafe(scope)
+        return Effect.flatMapEager(toTransform(f(value))(upstream, childScope), (pull) => {
+          childPull = catchHalt(pull) as any
+          return childPull!
         })
-      )
+      })
       return Effect.suspend(() => childPull ?? makePull)
     })
   )
@@ -3920,7 +3930,7 @@ export const mergeAll: {
                 fibers.delete(fiber)
                 if (semaphore) yield* semaphore.release(1)
                 if (fibers.size === 0) yield* doneLatch.open
-                if (halt) return
+                if (Filter.isPass(halt)) return
                 return yield* Queue.failCause(queue, cause as any)
               })),
               Effect.forkChild
