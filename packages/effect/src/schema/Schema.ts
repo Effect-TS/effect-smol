@@ -4690,8 +4690,12 @@ export const BooleanFromBit: BooleanFromBit = Literals([0, 1]).pipe(
  */
 export interface Uint8Array extends instanceOf<globalThis.Uint8Array<ArrayBufferLike>> {}
 
+const Base64 = String.annotate({ description: "a string that will be decoded as Uint8Array" })
+
 /**
  * A schema for JavaScript `Uint8Array` objects.
+ *
+ * **Default JSON serializer**
  *
  * The default JSON serializer encodes Uint8Array as a Base64 encoded string.
  *
@@ -4700,13 +4704,7 @@ export interface Uint8Array extends instanceOf<globalThis.Uint8Array<ArrayBuffer
  */
 export const Uint8Array: Uint8Array = instanceOf(globalThis.Uint8Array<ArrayBufferLike>, {
   defaultJsonSerializer: () =>
-    link<globalThis.Uint8Array<ArrayBufferLike>>()(
-      String.annotate({ description: "Base64 encoded Uint8Array" }),
-      {
-        decode: Getter.decodeBase64(),
-        encode: Getter.encodeBase64()
-      }
-    ),
+    link<globalThis.Uint8Array<ArrayBufferLike>>()(Base64, Transformation.uint8ArrayFromString),
   title: "Uint8Array",
   arbitrary: {
     _tag: "Override",
@@ -4732,11 +4730,8 @@ export interface Uint8ArrayFromBase64 extends decodeTo<Uint8Array, String> {}
  * @category Uint8Array
  * @since 4.0.0
  */
-export const Uint8ArrayFromBase64: Uint8ArrayFromBase64 = String.pipe(
-  decodeTo(Uint8Array, {
-    decode: Getter.decodeBase64(),
-    encode: Getter.encodeBase64()
-  })
+export const Uint8ArrayFromBase64: Uint8ArrayFromBase64 = Base64.pipe(
+  decodeTo(Uint8Array, Transformation.uint8ArrayFromString)
 )
 
 /**
@@ -4757,7 +4752,9 @@ export interface Uint8ArrayFromBase64Url extends decodeTo<Uint8Array, String> {}
  * @category Uint8Array
  * @since 4.0.0
  */
-export const Uint8ArrayFromBase64Url: Uint8ArrayFromBase64 = String.pipe(
+export const Uint8ArrayFromBase64Url: Uint8ArrayFromBase64 = String.annotate({
+  description: "a string that will be decoded as Uint8Array"
+}).pipe(
   decodeTo(Uint8Array, {
     decode: Getter.decodeBase64Url(),
     encode: Getter.encodeBase64Url()
@@ -4782,7 +4779,9 @@ export interface Uint8ArrayFromHex extends decodeTo<Uint8Array, String> {}
  * @category Uint8Array
  * @since 4.0.0
  */
-export const Uint8ArrayFromHex: Uint8ArrayFromHex = String.pipe(
+export const Uint8ArrayFromHex: Uint8ArrayFromHex = String.annotate({
+  description: "a string that will be decoded as Uint8Array"
+}).pipe(
   decodeTo(Uint8Array, {
     decode: Getter.decodeHex(),
     encode: Getter.encodeHex()

@@ -338,3 +338,11 @@ export const urlFromString = transformOrFail<URL, string>({
     }),
   encode: (url) => Effect.succeed(url.href)
 })
+
+/**
+ * @since 4.0.0
+ */
+export const uint8ArrayFromString = new Transformation(
+  Getter.decodeBase64(),
+  Getter.encodeBase64()
+)

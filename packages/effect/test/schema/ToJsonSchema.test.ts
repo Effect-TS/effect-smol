@@ -3123,6 +3123,30 @@ describe("ToJsonSchema", () => {
         })
       })
     })
+
+    it("Uint8ArrayFromBase64", async () => {
+      const schema = Schema.Uint8ArrayFromBase64
+      await assertDraft7(schema, {
+        "type": "string",
+        "description": "a string that will be decoded as Uint8Array"
+      })
+    })
+
+    it("Uint8ArrayFromBase64Url", async () => {
+      const schema = Schema.Uint8ArrayFromBase64Url
+      await assertDraft7(schema, {
+        "type": "string",
+        "description": "a string that will be decoded as Uint8Array"
+      })
+    })
+
+    it("Uint8ArrayFromHex", async () => {
+      const schema = Schema.Uint8ArrayFromHex
+      await assertDraft7(schema, {
+        "type": "string",
+        "description": "a string that will be decoded as Uint8Array"
+      })
+    })
   })
 
   describe("draft-2020-12", () => {
