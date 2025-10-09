@@ -180,7 +180,7 @@ export type HandlersFrom<Tools extends Record<string, Tool.Any>> = {
     params: Tool.Parameters<Tools[Name]>
   ) => Effect.Effect<
     Tool.Success<Tools[Name]>,
-    Tool.HandlerError<Tools[Name]>,
+    Tool.Failure<Tools[Name]>,
     Tool.HandlerServices<Tools[Name]>
   >
 }
@@ -231,12 +231,12 @@ const Proto = {
     return Effect.gen(this, function*() {
       const services = yield* Effect.services<never>()
       const handlers = Effect.isEffect(build) ? yield* build : build
-      const contextMap = new Map<string, unknown>()
+      const serviceMap = new Map<string, unknown>()
       for (const [name, handler] of Object.entries(handlers)) {
         const tool = this.tools[name]!
-        contextMap.set(tool.id, { name, handler, context: services })
+        serviceMap.set(tool.id, { name, handler, services })
       }
-      return ServiceMap.makeUnsafe(contextMap)
+      return ServiceMap.makeUnsafe(serviceMap)
     })
   },
   toLayer(
