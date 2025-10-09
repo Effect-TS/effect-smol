@@ -26,14 +26,9 @@
  *
  * @since 4.0.0
  */
-import * as Option from "../../data/Option.ts"
 import * as Predicate from "../../data/Predicate.ts"
 import type * as DateTime from "../../DateTime.ts"
-import * as Effect from "../../Effect.ts"
-import * as Base64 from "../../encoding/Base64.ts"
 import { constFalse, identity } from "../../Function.ts"
-import * as SchemaCheck from "../../schema/Check.ts"
-import * as SchemaIssue from "../../schema/Issue.ts"
 import * as Schema from "../../schema/Schema.ts"
 import * as SchemaTransformation from "../../schema/Transformation.ts"
 import type * as Tool from "./Tool.ts"
@@ -1717,23 +1712,7 @@ export const FilePart = Schema.Struct({
   ...BasePart.fields,
   type: Schema.tag("file"),
   mediaType: Schema.String,
-  data: Schema.String.check(SchemaCheck.base64()).pipe(
-    Schema.decodeTo(
-      Schema.Uint8Array,
-      SchemaTransformation.transformOrFail({
-        decode: (encoded) =>
-          Base64.decode(encoded).asEffect().pipe(
-            Effect.mapError((error) =>
-              new SchemaIssue.InvalidValue(
-                Option.some(encoded),
-                { title: error.message }
-              )
-            )
-          ),
-        encode: (decoded) => Effect.succeed(Base64.encode(decoded))
-      })
-    )
-  )
+  data: Schema.Uint8ArrayFromBase64
 }).annotate({ identifier: "FilePart" }) satisfies Schema.Codec<FilePart, FilePartEncoded>
 
 // =============================================================================
