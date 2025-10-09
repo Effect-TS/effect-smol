@@ -4024,6 +4024,7 @@ export interface URL extends instanceOf<globalThis.URL> {}
  * - encodes `URL` as a `string`
  *
  * @since 4.0.0
+ * @category URL
  */
 export const URL: URL = instanceOf(
   globalThis.URL,
@@ -4039,6 +4040,27 @@ export const URL: URL = instanceOf(
       override: () => (a, b) => a.toString() === b.toString()
     }
   }
+)
+
+/**
+ * @since 4.0.0
+ */
+export interface URLFromString extends decodeTo<URL, String> {}
+
+/**
+ * A transformation schema that decodes a `string` into a `URL`.
+ *
+ * Decoding:
+ * - A **valid** URL `string` is decoded as a `URL`
+ *
+ * Encoding:
+ * - A `URL` is encoded as a `string`
+ *
+ * @category URL
+ * @since 4.0.0
+ */
+export const URLFromString: URLFromString = String.pipe(
+  decodeTo(URL, Transformation.urlFromString)
 )
 
 /**
