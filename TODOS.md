@@ -207,8 +207,8 @@ The exports under each section are organized as they are in Effect 3.0. The cate
 
 |   Effect 3   | Ported | Effect 4 | Comments |
 | :----------: | :----: | :------: | :------: |
-|    `find`    |   -    |          |          |
-| `findEffect` |   -    |          |          |
+|    `find`    |   X    |          |          |
+| `findEffect` |   X    |          |          |
 
 ### Encoding
 
@@ -278,8 +278,8 @@ The exports under each section are organized as they are in Effect 3.0. The cate
 
 | Effect 3  | Ported | Effect 4 | Comments |
 | :-------: | :----: | :------: | :------: |
-|  `race`   |   -    |          |          |
-| `raceAll` |   -    |          |          |
+|  `race`   |  Done  |          |          |
+| `raceAll` |  Done  |          |          |
 
 ### Sequencing
 

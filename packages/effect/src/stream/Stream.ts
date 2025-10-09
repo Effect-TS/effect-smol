@@ -1759,6 +1759,54 @@ export const merge: {
 )
 
 /**
+ * @since 3.7.0
+ * @category racing
+ */
+export const raceAll = <S extends ReadonlyArray<Stream<any, any, any>>>(
+  ...streams: S
+): Stream<Success<S[number]>, Error<S[number]>, Services<S[number]>> =>
+  fromChannel(Channel.fromTransform(Effect.fnUntraced(function*(_, scope) {
+    let winner:
+      | Pull.Pull<Arr.NonEmptyReadonlyArray<Success<S[number]>>, Error<S[number]>, void, Services<S[number]>>
+      | undefined
+    const race = Effect.raceAll(streams.map((stream) => {
+      const childScope = Scope.forkUnsafe(scope)
+      return Channel.toPullScoped(stream.channel, childScope).pipe(
+        Effect.flatMap((pull) => Effect.zip(Effect.succeed(pull), pull)),
+        Effect.onExit((exit) => {
+          if (exit._tag === "Success") {
+            if (winner) {
+              return Scope.close(childScope, exit)
+            }
+            winner = exit.value[0]
+            return Effect.void
+          }
+          return Scope.close(childScope, exit)
+        }),
+        Effect.map(([, chunk]) => chunk)
+      )
+    }))
+    return Effect.suspend(() => winner ?? race)
+  })))
+
+/**
+ * @since 3.7.0
+ * @category racing
+ */
+export const race: {
+  <AR, ER, RR>(
+    right: Stream<AR, ER, RR>
+  ): <AL, EL, RL>(left: Stream<AL, EL, RL>) => Stream<AL | AR, EL | ER, RL | RR>
+  <AL, EL, RL, AR, ER, RR>(
+    left: Stream<AL, EL, RL>,
+    right: Stream<AR, ER, RR>
+  ): Stream<AL | AR, EL | ER, RL | RR>
+} = dual(2, <AL, EL, RL, AR, ER, RR>(
+  left: Stream<AL, EL, RL>,
+  right: Stream<AR, ER, RR>
+): Stream<AL | AR, EL | ER, RL | RR> => raceAll(left, right))
+
+/**
  * @since 2.0.0
  * @category Filtering
  */

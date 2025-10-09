@@ -919,6 +919,61 @@ describe("Stream", () => {
         deepStrictEqual(result2, [0, 1])
       }))
   })
+
+  describe("raceAll", () => {
+    it.effect("sync", () =>
+      Effect.gen(function*() {
+        const result = yield* pipe(
+          Stream.raceAll(
+            Stream.make(0, 1, 2, 3),
+            Stream.make(4, 5, 6, 7),
+            Stream.make(7, 8, 9, 10)
+          ),
+          Stream.runCollect
+        )
+        deepStrictEqual(result, [0, 1, 2, 3])
+      }))
+
+    it.effect("async", () =>
+      Effect.gen(function*() {
+        const fiber = yield* pipe(
+          Stream.raceAll(
+            Stream.fromSchedule(Schedule.spaced("1 second")),
+            Stream.fromSchedule(Schedule.spaced("2 second"))
+          ),
+          Stream.take(5),
+          Stream.runCollect,
+          Effect.fork
+        )
+        yield* TestClock.adjust("5 second")
+        const result = yield* Fiber.join(fiber)
+        deepStrictEqual(result, [0, 1, 2, 3, 4])
+      }))
+
+    it.effect("combined async + sync", () =>
+      Effect.gen(function*() {
+        const result = yield* pipe(
+          Stream.raceAll(
+            Stream.fromSchedule(Schedule.spaced("1 second")),
+            Stream.make(0, 1, 2, 3)
+          ),
+          Stream.runCollect
+        )
+        deepStrictEqual(result, [0, 1, 2, 3])
+      }))
+
+    it.effect("combined sync + async", () =>
+      Effect.gen(function*() {
+        const result = yield* pipe(
+          Stream.raceAll(
+            Stream.make(0, 1, 2, 3),
+            Stream.fromSchedule(Schedule.spaced("1 second"))
+          ),
+          Stream.runCollect
+        )
+        deepStrictEqual(result, [0, 1, 2, 3])
+      }))
+  })
 })
 
 const grouped = <A>(arr: Array<A>, size: number): Array<NonEmptyArray<A>> => {
