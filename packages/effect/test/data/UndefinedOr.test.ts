@@ -1,7 +1,7 @@
 import { Number } from "effect"
 import { UndefinedOr } from "effect/data"
 import { describe, it } from "vitest"
-import { strictEqual } from "../utils/assert.ts"
+import { strictEqual, throws } from "../utils/assert.ts"
 
 describe("UndefinedOr", () => {
   it("map", () => {
@@ -15,6 +15,27 @@ describe("UndefinedOr", () => {
   it("match", () => {
     strictEqual(UndefinedOr.match(1, { onDefined: (a) => a, onUndefined: () => 0 }), 1)
     strictEqual(UndefinedOr.match(undefined, { onDefined: (a) => a, onUndefined: () => 0 }), 0)
+  })
+
+  it("getOrThrowWith", () => {
+    strictEqual(UndefinedOr.getOrThrowWith(1, () => new Error("test")), 1)
+    throws(() => UndefinedOr.getOrThrowWith(undefined, () => new Error("test")), new Error("test"))
+  })
+
+  it("getOrThrow", () => {
+    strictEqual(UndefinedOr.getOrThrow(1), 1)
+    throws(() => UndefinedOr.getOrThrow(undefined), new Error("getOrThrow called on a undefined"))
+  })
+
+  it("liftThrowable", () => {
+    const f = (a: number) => {
+      if (a === 0) {
+        throw new Error("test")
+      }
+      return a + 1
+    }
+    strictEqual(UndefinedOr.liftThrowable(f)(1), 2)
+    strictEqual(UndefinedOr.liftThrowable(f)(0), undefined)
   })
 
   it("getReducer", () => {

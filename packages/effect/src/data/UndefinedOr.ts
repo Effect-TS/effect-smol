@@ -1,4 +1,30 @@
 /**
+ * This module provides small, allocation-free utilities for working with values of type
+ * `A | undefined`, where `undefined` means "no value".
+ *
+ * Why not `Option<A>`?
+ * In TypeScript, `Option<A>` is often unnecessary. If `undefined` already models absence
+ * in your domain, using `A | undefined` keeps types simple, avoids extra wrappers, and
+ * reduces overhead. The key is that `A` itself must not include `undefined`; in this
+ * module `undefined` is reserved to mean "no value".
+ *
+ * When to use `A | undefined`:
+ * - Absence can be represented by `undefined` in your domain model.
+ * - You do not need to distinguish between "no value" and "value is undefined".
+ * - You want straightforward ergonomics and zero extra allocations.
+ *
+ * When to prefer `Option<A>`:
+ * - You must distinguish `None` from `Some(undefined)` (that is, `undefined` is a valid
+ *   payload and carries meaning on its own).
+ * - You need a tagged representation for serialization or pattern matching across
+ *   boundaries where `undefined` would be ambiguous.
+ * - You want the richer `Option` API and are comfortable with the extra wrapper.
+ *
+ * Lawfulness note:
+ * All helpers treat `undefined` as absence. Do not use these utilities with payloads
+ * where `A` can itself be `undefined`, or you will lose information. If you need to
+ * carry `undefined` as a valid payload, use `Option<A>` instead.
+ *
  * @since 4.0.0
  */
 import type { LazyArg } from "../Function.ts"
