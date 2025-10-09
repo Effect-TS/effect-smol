@@ -1917,15 +1917,14 @@ const mapEffectConcurrent = <
           Effect.forkIn(forkedScope)
         )
 
-        let errored = false
+        let errorCause: Cause.Cause<EX> | undefined
         const onExit = (exit: Exit.Exit<OutElem2, EX>) => {
           if (exit._tag === "Success") return
-          Queue.doneUnsafe(queue, exit)
-          errored = true
+          errorCause = exit.cause
         }
         yield* pull.pipe(
           Effect.flatMap((value) => {
-            if (errored) return Effect.interrupt
+            if (errorCause) return Effect.failCause(errorCause)
             const fiber = runFork(f(value))
             trackFiber(fiber)
             fiber.addObserver(onExit)
