@@ -3632,7 +3632,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
     const decoding = asserts.decoding()
     await decoding.succeed("https://effect.website", new URL("https://effect.website"))
-    await decoding.fail("123", "TypeError: Invalid URL")
+    await decoding.fail("123", `Invalid URL: "123"`)
 
     const encoding = asserts.encoding()
     await encoding.succeed(new URL("https://effect.website"), "https://effect.website/")
