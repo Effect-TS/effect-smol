@@ -12,6 +12,7 @@ Releases are snapshot only
 - [ ] Port SubscriptionRef
 - [ ] RateLimiter with persistence
 - [x] Reduce nesting of modules
+- [ ] Align Queue and TxQueue, remove Queue.Done trickery
 
 ## Beta
 
