@@ -16,7 +16,7 @@
  * const Calculator = Tool.make("Calculator", {
  *   description: "Performs basic arithmetic operations",
  *   parameters: {
- *     operation: Schema.Literal("add", "subtract", "multiply", "divide"),
+ *     operation: Schema.Literals(["add", "subtract", "multiply", "divide"]),
  *     a: Schema.Number,
  *     b: Schema.Number
  *   },
@@ -82,7 +82,7 @@ export type FailureMode = "error" | "return"
  *   description: "Get current weather for a location",
  *   parameters: {
  *     location: Schema.String,
- *     units: Schema.Literal("celsius", "fahrenheit")
+ *     units: Schema.Literals(["celsius", "fahrenheit"])
  *   },
  *   success: Schema.Struct({
  *     temperature: Schema.Number,
@@ -331,7 +331,7 @@ export interface ProviderDefined<
  * const UserDefinedTool = Tool.make("Calculator", {
  *   description: "Performs basic arithmetic operations",
  *   parameters: {
- *     operation: Schema.Literal("add", "subtract", "multiply", "divide"),
+ *     operation: Schema.Literals(["add", "subtract", "multiply", "divide"]),
  *     a: Schema.Number,
  *     b: Schema.Number
  *   },
@@ -375,7 +375,7 @@ export const isUserDefined = (u: unknown): u is Tool<string, any, any> =>
  * const UserDefinedTool = Tool.make("Calculator", {
  *   description: "Performs basic arithmetic operations",
  *   parameters: {
- *     operation: Schema.Literal("add", "subtract", "multiply", "divide"),
+ *     operation: Schema.Literals(["add", "subtract", "multiply", "divide"]),
  *     a: Schema.Number,
  *     b: Schema.Number
  *   },
@@ -602,12 +602,12 @@ export type ResultEncoded<T> = T extends Tool<
   : never
 
 /**
- * A utility type to extract the requirements of a `Tool`.
+ * A utility type to extract the requirements of a `Tool` call handler.
  *
  * @since 4.0.0
  * @category utility types
  */
-export type Services<T> = T extends Tool<
+export type HandlerServices<T> = T extends Tool<
   infer _Name,
   infer _Config,
   infer _Requirements
@@ -1082,7 +1082,7 @@ export const getDescription = <Tool extends Any>(tool: Tool): string | undefined
  * const weatherTool = Tool.make("get_weather", {
  *   parameters: {
  *     location: Schema.String,
- *     units: Schema.optional(Schema.Literal("celsius", "fahrenheit"))
+ *     units: Schema.optional(Schema.Literals(["celsius", "fahrenheit"]))
  *   }
  * })
  *
@@ -1101,8 +1101,14 @@ export const getDescription = <Tool extends Any>(tool: Tool): string | undefined
  * @since 4.0.0
  * @category utilities
  */
-export const getJsonSchema = <Tool extends Any>(tool: Tool): JsonSchema.JsonSchema => {
-  const schema = tool.parametersSchema
+export const getJsonSchema = <Tool extends Any>(tool: Tool): JsonSchema.JsonSchema =>
+  getJsonSchemaFromSchema(tool.parametersSchema)
+
+/**
+ * @since 4.0.0
+ * @category utilities
+ */
+export const getJsonSchemaFromSchema = <S extends Schema.Top>(schema: S): JsonSchema.JsonSchema => {
   const props = AST.isTypeLiteral(schema.ast) ? schema.ast.propertySignatures : []
   if (props.length === 0) {
     return {

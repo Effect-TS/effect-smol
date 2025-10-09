@@ -3043,6 +3043,28 @@ export const provideServices: {
  * @since 4.0.0
  * @category Services
  */
+export const provideService: {
+  <I, S>(
+    key: ServiceMap.Key<I, S>,
+    service: NoInfer<S>
+  ): <A, E, R>(
+    self: Stream<A, E, R>
+  ) => Stream<A, E, Exclude<R, I>>
+  <A, E, R, I, S>(
+    self: Stream<A, E, R>,
+    key: ServiceMap.Key<I, S>,
+    service: NoInfer<S>
+  ): Stream<A, E, Exclude<R, I>>
+} = dual(3, <A, E, R, I, S>(
+  self: Stream<A, E, R>,
+  key: ServiceMap.Key<I, S>,
+  service: NoInfer<S>
+): Stream<A, E, Exclude<R, I>> => fromChannel(Channel.provideService(self.channel, key, service)))
+
+/**
+ * @since 4.0.0
+ * @category Services
+ */
 export const provideServiceEffect: {
   <I, S, ES, RS>(
     key: ServiceMap.Key<I, S>,

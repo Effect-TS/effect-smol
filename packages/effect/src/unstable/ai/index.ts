@@ -76,11 +76,105 @@
 export * as AiError from "./AiError.ts"
 
 /**
+ * The `IdGenerator` module provides a pluggable system for generating unique identifiers
+ * for tool calls and other items in the Effect AI SDKs.
+ *
+ * This module offers a flexible and configurable approach to ID generation, supporting
+ * custom alphabets, prefixes, separators, and sizes.
+ *
+ * @example
+ * ```ts
+ * import { Effect, Layer } from "effect"
+ * import { IdGenerator } from "effect/unstable/ai"
+ *
+ * // Using the default ID generator
+ * const program = Effect.gen(function* () {
+ *   const idGen = yield* IdGenerator.IdGenerator
+ *   const toolCallId = yield* idGen.generateId()
+ *   console.log(toolCallId) // "id_A7xK9mP2qR5tY8uV"
+ *   return toolCallId
+ * }).pipe(Effect.provideService(
+ *   IdGenerator.IdGenerator,
+ *   IdGenerator.defaultIdGenerator
+ * ))
+ * ```
+ *
+ * @example
+ * ```ts
+ * import { Effect, Layer } from "effect"
+ * import { IdGenerator } from "effect/unstable/ai"
+ *
+ * // Creating a custom ID generator for AI tool calls
+ * const customLayer = IdGenerator.layer({
+ *   alphabet: "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
+ *   prefix: "tool_call",
+ *   separator: "-",
+ *   size: 12
+ * })
+ *
+ * const program = Effect.gen(function* () {
+ *   const idGen = yield* IdGenerator.IdGenerator
+ *   const id = yield* idGen.generateId()
+ *   console.log(id) // "tool_call-A7XK9MP2QR5T"
+ *   return id
+ * }).pipe(Effect.provide(customLayer))
+ * ```
+ *
  * @since 4.0.0
  */
-export * as AiToolkit from "./AiToolkit.ts"
+export * as IdGenerator from "./IdGenerator.ts"
 
-
+/**
+ * The `LanguageModel` module provides AI text generation capabilities with tool
+ * calling support.
+ *
+ * This module offers a comprehensive interface for interacting with large
+ * language models, supporting both streaming and non-streaming text generation,
+ * structured output generation, and tool calling functionality. It provides a
+ * unified API that can be implemented by different AI providers while
+ * maintaining type safety and effect management.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ * import { LanguageModel } from "effect/unstable/ai"
+ *
+ * // Basic text generation
+ * const program = Effect.gen(function* () {
+ *   const response = yield* LanguageModel.generateText({
+ *     prompt: "Explain quantum computing"
+ *   })
+ *
+ *   console.log(response.text)
+ *
+ *   return response
+ * })
+ * ```
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ * import { Schema } from "effect/schema"
+ * import { LanguageModel } from "effect/unstable/ai"
+ *
+ * // Structured output generation
+ * const ContactSchema = Schema.Struct({
+ *   name: Schema.String,
+ *   email: Schema.String
+ * })
+ *
+ * const extractContact = Effect.gen(function* () {
+ *   const response = yield* LanguageModel.generateObject({
+ *     prompt: "Extract contact: John Doe, john@example.com",
+ *     schema: ContactSchema
+ *   })
+ *
+ *   return response.value
+ * })
+ * ```
+ *
+ * @since 4.0.0
+ */
 export * as LanguageModel from "./LanguageModel.ts"
 
 /**
@@ -133,7 +227,7 @@ export * as McpServer from "./McpServer.ts"
  * ```ts
  * import { Prompt } from "effect/unstable/ai"
  *
- * // Merge multiple prompts
+ * // Concatenate multiple prompts together sequentially
  * const systemPrompt = Prompt.make([{
  *   role: "system",
  *   content: "You are a coding assistant."
@@ -141,7 +235,7 @@ export * as McpServer from "./McpServer.ts"
  *
  * const userPrompt = Prompt.make("Help me write a function")
  *
- * const combined = Prompt.merge(systemPrompt, userPrompt)
+ * const combined = Prompt.concat(systemPrompt, userPrompt)
  * ```
  *
  * @since 4.0.0
@@ -179,6 +273,41 @@ export * as Prompt from "./Prompt.ts"
 export * as Response from "./Response.ts"
 
 /**
+ * The `Telemetry` module provides OpenTelemetry integration for operations
+ * performed against a large language model provider by defining telemetry
+ * attributes and utilities that follow the OpenTelemetry GenAI semantic
+ * conventions.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ * import { Telemetry } from "effect/unstable/ai"
+ *
+ * // Add telemetry attributes to a span
+ * const addTelemetry = Effect.gen(function* () {
+ *   const span = yield* Effect.currentSpan
+ *
+ *   Telemetry.addGenAIAnnotations(span, {
+ *     system: "openai",
+ *     operation: { name: "chat" },
+ *     request: {
+ *       model: "gpt-4",
+ *       temperature: 0.7,
+ *       maxTokens: 1000
+ *     },
+ *     usage: {
+ *       inputTokens: 100,
+ *       outputTokens: 50
+ *     }
+ *   })
+ * })
+ * ```
+ *
+ * @since 4.0.0
+ */
+export * as Telemetry from "./Telemetry.ts"
+
+/**
  * The `Tool` module provides functionality for defining and managing tools
  * that language models can call to augment their capabilities.
  *
@@ -196,7 +325,7 @@ export * as Response from "./Response.ts"
  * const Calculator = Tool.make("Calculator", {
  *   description: "Performs basic arithmetic operations",
  *   parameters: {
- *     operation: Schema.Literal("add", "subtract", "multiply", "divide"),
+ *     operation: Schema.Literals(["add", "subtract", "multiply", "divide"]),
  *     a: Schema.Number,
  *     b: Schema.Number
  *   },

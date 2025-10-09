@@ -180,8 +180,8 @@ export type HandlersFrom<Tools extends Record<string, Tool.Any>> = {
     params: Tool.Parameters<Tools[Name]>
   ) => Effect.Effect<
     Tool.Success<Tools[Name]>,
-    Tool.Failure<Tools[Name]>,
-    Tool.Services<Tools[Name]>
+    Tool.HandlerError<Tools[Name]>,
+    Tool.HandlerServices<Tools[Name]>
   >
 }
 
@@ -214,8 +214,8 @@ export interface WithHandler<in out Tools extends Record<string, Tool.Any>> {
     params: Tool.Parameters<Tools[Name]>
   ) => Effect.Effect<
     Tool.HandlerResult<Tools[Name]>,
-    Tool.Failure<Tools[Name]>,
-    Tool.Services<Tools[Name]>
+    Tool.HandlerError<Tools[Name]>,
+    Tool.HandlerServices<Tools[Name]>
   >
 }
 
@@ -341,7 +341,7 @@ const Proto = {
       })
       return {
         tools,
-        handle
+        handle: handle as any
       } satisfies WithHandler<Record<string, any>>
     })
   },

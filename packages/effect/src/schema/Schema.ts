@@ -2875,7 +2875,8 @@ type TaggedUnionUtils<
   }
 }
 
-function getTag(tag: PropertyKey, ast: AST.AST): PropertyKey | undefined {
+/** @internal */
+export function getTag(tag: PropertyKey, ast: AST.AST): PropertyKey | undefined {
   if (AST.isTypeLiteral(ast)) {
     const ps = ast.propertySignatures.find((p) => p.name === tag)
     if (ps) {

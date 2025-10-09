@@ -38,7 +38,7 @@
  * ```ts
  * import { Prompt } from "effect/unstable/ai"
  *
- * // Merge multiple prompts
+ * // Concatenate multiple prompts together sequentially
  * const systemPrompt = Prompt.make([{
  *   role: "system",
  *   content: "You are a coding assistant."
@@ -46,17 +46,20 @@
  *
  * const userPrompt = Prompt.make("Help me write a function")
  *
- * const combined = Prompt.merge(systemPrompt, userPrompt)
+ * const combined = Prompt.concat(systemPrompt, userPrompt)
  * ```
  *
  * @since 4.0.0
  */
 import * as Arr from "../../collections/Array.ts"
+import * as Option from "../../data/Option.ts"
 import * as Predicate from "../../data/Predicate.ts"
+import * as Effect from "../../Effect.ts"
 import { constFalse, dual } from "../../Function.ts"
 import { type Pipeable, pipeArguments } from "../../interfaces/Pipeable.ts"
-import type * as AST from "../../schema/AST.ts"
+import * as SchemaIssue from "../../schema/Issue.ts"
 import * as Schema from "../../schema/Schema.ts"
+import * as ToParser from "../../schema/ToParser.ts"
 import * as SchemaTransformation from "../../schema/Transformation.ts"
 import type * as Response from "./Response.ts"
 
@@ -77,7 +80,7 @@ export type JsonValue = string | number | boolean | JsonObject | JsonArray
  * @category models
  */
 export interface JsonObject {
-  readonly [x: string]: JsonValue
+  [x: string]: JsonValue
 }
 
 /**
@@ -115,7 +118,9 @@ export const JsonValue: Schema.Schema<JsonValue> = Schema.Union([
  * @since 4.0.0
  * @category models
  */
-export const ProviderOptions = Schema.typeCodec(
+export const ProviderOptions: Schema.typeCodec<
+  Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<JsonValue>>>
+> = Schema.typeCodec(
   Schema.Record(Schema.String, Schema.UndefinedOr(JsonValue))
 )
 
@@ -322,7 +327,16 @@ export interface TextPartOptions extends ProviderOptions {}
  * @since 4.0.0
  * @category schemas
  */
-export const TextPart: Schema.Codec<TextPart, TextPartEncoded> = Schema.Struct({
+export const TextPart: Schema.Struct<
+  {
+    readonly type: Schema.Literal<"text">
+    readonly text: Schema.String
+    readonly "~effect/ai/Prompt/Part": Schema.withDecodingDefaultKey<Schema.Literal<"~effect/ai/Prompt/Part">>
+    readonly options: Schema.withDecodingDefault<
+      Schema.typeCodec<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<JsonValue>>>>
+    >
+  }
+> = Schema.Struct({
   ...BasePart.fields,
   type: Schema.Literal("text"),
   text: Schema.String
@@ -390,7 +404,16 @@ export interface ReasoningPartOptions extends ProviderOptions {}
  * @since 4.0.0
  * @category schemas
  */
-export const ReasoningPart: Schema.Codec<ReasoningPart, ReasoningPartEncoded> = Schema.Struct({
+export const ReasoningPart: Schema.Struct<
+  {
+    readonly type: Schema.Literal<"reasoning">
+    readonly text: Schema.String
+    readonly "~effect/ai/Prompt/Part": Schema.withDecodingDefaultKey<Schema.Literal<"~effect/ai/Prompt/Part">>
+    readonly options: Schema.withDecodingDefault<
+      Schema.typeCodec<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<JsonValue>>>>
+    >
+  }
+> = Schema.Struct({
   ...BasePart.fields,
   type: Schema.Literal("reasoning"),
   text: Schema.String
@@ -486,7 +509,18 @@ export interface FilePartOptions extends ProviderOptions {}
  * @since 4.0.0
  * @category schemas
  */
-export const FilePart: Schema.Codec<FilePart, FilePartEncoded> = Schema.Struct({
+export const FilePart: Schema.Struct<
+  {
+    readonly type: Schema.Literal<"file">
+    readonly mediaType: Schema.String
+    readonly fileName: Schema.optional<Schema.String>
+    readonly data: Schema.Union<readonly [Schema.String, Schema.Uint8Array, Schema.URL]>
+    readonly "~effect/ai/Prompt/Part": Schema.withDecodingDefaultKey<Schema.Literal<"~effect/ai/Prompt/Part">>
+    readonly options: Schema.withDecodingDefault<
+      Schema.typeCodec<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<JsonValue>>>>
+    >
+  }
+> = Schema.Struct({
   ...BasePart.fields,
   type: Schema.Literal("file"),
   mediaType: Schema.String,
@@ -583,7 +617,19 @@ export interface ToolCallPartOptions extends ProviderOptions {}
  * @since 4.0.0
  * @category schemas
  */
-export const ToolCallPart: Schema.Codec<ToolCallPart, ToolCallPartEncoded> = Schema.Struct({
+export const ToolCallPart: Schema.Struct<
+  {
+    readonly type: Schema.Literal<"tool-call">
+    readonly id: Schema.String
+    readonly name: Schema.String
+    readonly params: Schema.Unknown
+    readonly providerExecuted: Schema.withDecodingDefault<Schema.Boolean>
+    readonly "~effect/ai/Prompt/Part": Schema.withDecodingDefaultKey<Schema.Literal<"~effect/ai/Prompt/Part">>
+    readonly options: Schema.withDecodingDefault<
+      Schema.typeCodec<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<JsonValue>>>>
+    >
+  }
+> = Schema.Struct({
   ...BasePart.fields,
   type: Schema.Literal("tool-call"),
   id: Schema.String,
@@ -685,7 +731,19 @@ export interface ToolResultPartOptions extends ProviderOptions {}
  * @since 4.0.0
  * @category schemas
  */
-export const ToolResultPart: Schema.Codec<ToolResultPart, ToolResultPartEncoded> = Schema.Struct({
+export const ToolResultPart: Schema.Struct<
+  {
+    readonly type: Schema.Literal<"tool-result">
+    readonly id: Schema.String
+    readonly name: Schema.String
+    readonly isFailure: Schema.Boolean
+    readonly result: Schema.Unknown
+    readonly "~effect/ai/Prompt/Part": Schema.withDecodingDefaultKey<Schema.Literal<"~effect/ai/Prompt/Part">>
+    readonly options: Schema.withDecodingDefault<
+      Schema.typeCodec<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<JsonValue>>>>
+    >
+  }
+> = Schema.Struct({
   ...BasePart.fields,
   type: Schema.Literal("tool-result"),
   id: Schema.String,
@@ -883,7 +941,16 @@ export interface SystemMessageOptions extends ProviderOptions {}
  * @since 4.0.0
  * @category schemas
  */
-export const SystemMessage: Schema.Codec<SystemMessage, SystemMessageEncoded> = Schema.Struct({
+export const SystemMessage: Schema.Struct<
+  {
+    readonly role: Schema.Literal<"system">
+    readonly content: Schema.String
+    readonly "~effect/ai/Prompt/Message": Schema.withDecodingDefaultKey<Schema.Literal<"~effect/ai/Prompt/Message">>
+    readonly options: Schema.withDecodingDefault<
+      Schema.typeCodec<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<JsonValue>>>>
+    >
+  }
+> = Schema.Struct({
   ...BaseMessage.fields,
   role: Schema.Literal("system"),
   content: Schema.String
@@ -985,7 +1052,58 @@ export interface UserMessageOptions extends ProviderOptions {}
  * @since 4.0.0
  * @category schemas
  */
-export const UserMessage: Schema.Codec<UserMessage, UserMessageEncoded> = Schema.Struct({
+export const UserMessage: Schema.Struct<{
+  readonly role: Schema.Literal<"user">
+  readonly content: Schema.Union<
+    readonly [
+      Schema.decodeTo<
+        Schema.NonEmptyArray<
+          Schema.typeCodec<
+            Schema.Struct<{
+              readonly type: Schema.Literal<"text">
+              readonly text: Schema.String
+              readonly "~effect/ai/Prompt/Part": Schema.withDecodingDefaultKey<Schema.Literal<"~effect/ai/Prompt/Part">>
+              readonly options: Schema.withDecodingDefault<
+                Schema.typeCodec<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<JsonValue>>>>
+              >
+            }>
+          >
+        >,
+        Schema.String,
+        never,
+        never
+      >,
+      Schema.Array$<
+        Schema.Union<
+          readonly [
+            Schema.Struct<{
+              readonly type: Schema.Literal<"text">
+              readonly text: Schema.String
+              readonly "~effect/ai/Prompt/Part": Schema.withDecodingDefaultKey<Schema.Literal<"~effect/ai/Prompt/Part">>
+              readonly options: Schema.withDecodingDefault<
+                Schema.typeCodec<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<JsonValue>>>>
+              >
+            }>,
+            Schema.Struct<{
+              readonly type: Schema.Literal<"file">
+              readonly mediaType: Schema.String
+              readonly fileName: Schema.optional<Schema.String>
+              readonly data: Schema.Union<readonly [Schema.String, Schema.Uint8Array, Schema.URL]>
+              readonly "~effect/ai/Prompt/Part": Schema.withDecodingDefaultKey<Schema.Literal<"~effect/ai/Prompt/Part">>
+              readonly options: Schema.withDecodingDefault<
+                Schema.typeCodec<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<JsonValue>>>>
+              >
+            }>
+          ]
+        >
+      >
+    ]
+  >
+  readonly "~effect/ai/Prompt/Message": Schema.withDecodingDefaultKey<Schema.Literal<"~effect/ai/Prompt/Message">>
+  readonly options: Schema.withDecodingDefault<
+    Schema.typeCodec<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<JsonValue>>>>
+  >
+}> = Schema.Struct({
   ...BaseMessage.fields,
   role: Schema.Literal("user"),
   content: Schema.Union([
@@ -1101,7 +1219,88 @@ export interface AssistantMessageOptions extends ProviderOptions {}
  * @since 4.0.0
  * @category schemas
  */
-export const AssistantMessage: Schema.Codec<AssistantMessage, AssistantMessageEncoded> = Schema.Struct({
+export const AssistantMessage: Schema.Struct<{
+  readonly role: Schema.Literal<"assistant">
+  readonly content: Schema.Union<
+    readonly [
+      Schema.decodeTo<
+        Schema.NonEmptyArray<
+          Schema.typeCodec<
+            Schema.Struct<{
+              readonly type: Schema.Literal<"text">
+              readonly text: Schema.String
+              readonly "~effect/ai/Prompt/Part": Schema.withDecodingDefaultKey<Schema.Literal<"~effect/ai/Prompt/Part">>
+              readonly options: Schema.withDecodingDefault<
+                Schema.typeCodec<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<JsonValue>>>>
+              >
+            }>
+          >
+        >,
+        Schema.String,
+        never,
+        never
+      >,
+      Schema.Array$<
+        Schema.Union<
+          readonly [
+            Schema.Struct<{
+              readonly type: Schema.Literal<"text">
+              readonly text: Schema.String
+              readonly "~effect/ai/Prompt/Part": Schema.withDecodingDefaultKey<Schema.Literal<"~effect/ai/Prompt/Part">>
+              readonly options: Schema.withDecodingDefault<
+                Schema.typeCodec<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<JsonValue>>>>
+              >
+            }>,
+            Schema.Struct<{
+              readonly type: Schema.Literal<"file">
+              readonly mediaType: Schema.String
+              readonly fileName: Schema.optional<Schema.String>
+              readonly data: Schema.Union<readonly [Schema.String, Schema.Uint8Array, Schema.URL]>
+              readonly "~effect/ai/Prompt/Part": Schema.withDecodingDefaultKey<Schema.Literal<"~effect/ai/Prompt/Part">>
+              readonly options: Schema.withDecodingDefault<
+                Schema.typeCodec<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<JsonValue>>>>
+              >
+            }>,
+            Schema.Struct<{
+              readonly type: Schema.Literal<"reasoning">
+              readonly text: Schema.String
+              readonly "~effect/ai/Prompt/Part": Schema.withDecodingDefaultKey<Schema.Literal<"~effect/ai/Prompt/Part">>
+              readonly options: Schema.withDecodingDefault<
+                Schema.typeCodec<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<JsonValue>>>>
+              >
+            }>,
+            Schema.Struct<{
+              readonly type: Schema.Literal<"tool-call">
+              readonly id: Schema.String
+              readonly name: Schema.String
+              readonly params: Schema.Unknown
+              readonly providerExecuted: Schema.withDecodingDefault<Schema.Boolean>
+              readonly "~effect/ai/Prompt/Part": Schema.withDecodingDefaultKey<Schema.Literal<"~effect/ai/Prompt/Part">>
+              readonly options: Schema.withDecodingDefault<
+                Schema.typeCodec<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<JsonValue>>>>
+              >
+            }>,
+            Schema.Struct<{
+              readonly type: Schema.Literal<"tool-result">
+              readonly id: Schema.String
+              readonly name: Schema.String
+              readonly isFailure: Schema.Boolean
+              readonly result: Schema.Unknown
+              readonly "~effect/ai/Prompt/Part": Schema.withDecodingDefaultKey<Schema.Literal<"~effect/ai/Prompt/Part">>
+              readonly options: Schema.withDecodingDefault<
+                Schema.typeCodec<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<JsonValue>>>>
+              >
+            }>
+          ]
+        >
+      >
+    ]
+  >
+  readonly "~effect/ai/Prompt/Message": Schema.withDecodingDefaultKey<Schema.Literal<"~effect/ai/Prompt/Message">>
+  readonly options: Schema.withDecodingDefault<
+    Schema.typeCodec<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<JsonValue>>>>
+  >
+}> = Schema.Struct({
   ...BaseMessage.fields,
   role: Schema.Literal("assistant"),
   content: Schema.Union([
@@ -1208,7 +1407,26 @@ export interface ToolMessageOptions extends ProviderOptions {}
  * @since 4.0.0
  * @category schemas
  */
-export const ToolMessage: Schema.Codec<ToolMessage, ToolMessageEncoded> = Schema.Struct({
+export const ToolMessage: Schema.Struct<{
+  readonly role: Schema.Literal<"tool">
+  readonly content: Schema.Array$<
+    Schema.Struct<{
+      readonly type: Schema.Literal<"tool-result">
+      readonly id: Schema.String
+      readonly name: Schema.String
+      readonly isFailure: Schema.Boolean
+      readonly result: Schema.Unknown
+      readonly "~effect/ai/Prompt/Part": Schema.withDecodingDefaultKey<Schema.Literal<"~effect/ai/Prompt/Part">>
+      readonly options: Schema.withDecodingDefault<
+        Schema.typeCodec<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<JsonValue>>>>
+      >
+    }>
+  >
+  readonly "~effect/ai/Prompt/Message": Schema.withDecodingDefaultKey<Schema.Literal<"~effect/ai/Prompt/Message">>
+  readonly options: Schema.withDecodingDefault<
+    Schema.typeCodec<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<JsonValue>>>>
+  >
+}> = Schema.Struct({
   ...BaseMessage.fields,
   role: Schema.Literal("tool"),
   content: Schema.Array(ToolResultPart)
@@ -1256,7 +1474,190 @@ export type MessageEncoded =
  * @since 4.0.0
  * @category schemas
  */
-export const Message: Schema.Codec<Message, MessageEncoded> = Schema.Union([
+export const Message: Schema.Union<
+  readonly [
+    Schema.Struct<{
+      readonly role: Schema.Literal<"system">
+      readonly content: Schema.String
+      readonly "~effect/ai/Prompt/Message": Schema.withDecodingDefaultKey<Schema.Literal<"~effect/ai/Prompt/Message">>
+      readonly options: Schema.withDecodingDefault<
+        Schema.typeCodec<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<JsonValue>>>>
+      >
+    }>,
+    Schema.Struct<{
+      readonly role: Schema.Literal<"user">
+      readonly content: Schema.Union<
+        readonly [
+          Schema.decodeTo<
+            Schema.NonEmptyArray<
+              Schema.typeCodec<
+                Schema.Struct<{
+                  readonly type: Schema.Literal<"text">
+                  readonly text: Schema.String
+                  readonly "~effect/ai/Prompt/Part": Schema.withDecodingDefaultKey<
+                    Schema.Literal<"~effect/ai/Prompt/Part">
+                  >
+                  readonly options: Schema.withDecodingDefault<
+                    Schema.typeCodec<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<JsonValue>>>>
+                  >
+                }>
+              >
+            >,
+            Schema.String,
+            never,
+            never
+          >,
+          Schema.Array$<
+            Schema.Union<
+              readonly [
+                Schema.Struct<{
+                  readonly type: Schema.Literal<"text">
+                  readonly text: Schema.String
+                  readonly "~effect/ai/Prompt/Part": Schema.withDecodingDefaultKey<
+                    Schema.Literal<"~effect/ai/Prompt/Part">
+                  >
+                  readonly options: Schema.withDecodingDefault<
+                    Schema.typeCodec<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<JsonValue>>>>
+                  >
+                }>,
+                Schema.Struct<{
+                  readonly type: Schema.Literal<"file">
+                  readonly mediaType: Schema.String
+                  readonly fileName: Schema.optional<Schema.String>
+                  readonly data: Schema.Union<readonly [Schema.String, Schema.Uint8Array, Schema.URL]>
+                  readonly "~effect/ai/Prompt/Part": Schema.withDecodingDefaultKey<
+                    Schema.Literal<"~effect/ai/Prompt/Part">
+                  >
+                  readonly options: Schema.withDecodingDefault<
+                    Schema.typeCodec<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<JsonValue>>>>
+                  >
+                }>
+              ]
+            >
+          >
+        ]
+      >
+      readonly "~effect/ai/Prompt/Message": Schema.withDecodingDefaultKey<Schema.Literal<"~effect/ai/Prompt/Message">>
+      readonly options: Schema.withDecodingDefault<
+        Schema.typeCodec<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<JsonValue>>>>
+      >
+    }>,
+    Schema.Struct<{
+      readonly role: Schema.Literal<"assistant">
+      readonly content: Schema.Union<
+        readonly [
+          Schema.decodeTo<
+            Schema.NonEmptyArray<
+              Schema.typeCodec<
+                Schema.Struct<{
+                  readonly type: Schema.Literal<"text">
+                  readonly text: Schema.String
+                  readonly "~effect/ai/Prompt/Part": Schema.withDecodingDefaultKey<
+                    Schema.Literal<"~effect/ai/Prompt/Part">
+                  >
+                  readonly options: Schema.withDecodingDefault<
+                    Schema.typeCodec<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<JsonValue>>>>
+                  >
+                }>
+              >
+            >,
+            Schema.String,
+            never,
+            never
+          >,
+          Schema.Array$<
+            Schema.Union<
+              readonly [
+                Schema.Struct<{
+                  readonly type: Schema.Literal<"text">
+                  readonly text: Schema.String
+                  readonly "~effect/ai/Prompt/Part": Schema.withDecodingDefaultKey<
+                    Schema.Literal<"~effect/ai/Prompt/Part">
+                  >
+                  readonly options: Schema.withDecodingDefault<
+                    Schema.typeCodec<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<JsonValue>>>>
+                  >
+                }>,
+                Schema.Struct<{
+                  readonly type: Schema.Literal<"file">
+                  readonly mediaType: Schema.String
+                  readonly fileName: Schema.optional<Schema.String>
+                  readonly data: Schema.Union<readonly [Schema.String, Schema.Uint8Array, Schema.URL]>
+                  readonly "~effect/ai/Prompt/Part": Schema.withDecodingDefaultKey<
+                    Schema.Literal<"~effect/ai/Prompt/Part">
+                  >
+                  readonly options: Schema.withDecodingDefault<
+                    Schema.typeCodec<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<JsonValue>>>>
+                  >
+                }>,
+                Schema.Struct<{
+                  readonly type: Schema.Literal<"reasoning">
+                  readonly text: Schema.String
+                  readonly "~effect/ai/Prompt/Part": Schema.withDecodingDefaultKey<
+                    Schema.Literal<"~effect/ai/Prompt/Part">
+                  >
+                  readonly options: Schema.withDecodingDefault<
+                    Schema.typeCodec<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<JsonValue>>>>
+                  >
+                }>,
+                Schema.Struct<{
+                  readonly type: Schema.Literal<"tool-call">
+                  readonly id: Schema.String
+                  readonly name: Schema.String
+                  readonly params: Schema.Unknown
+                  readonly providerExecuted: Schema.withDecodingDefault<Schema.Boolean>
+                  readonly "~effect/ai/Prompt/Part": Schema.withDecodingDefaultKey<
+                    Schema.Literal<"~effect/ai/Prompt/Part">
+                  >
+                  readonly options: Schema.withDecodingDefault<
+                    Schema.typeCodec<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<JsonValue>>>>
+                  >
+                }>,
+                Schema.Struct<{
+                  readonly type: Schema.Literal<"tool-result">
+                  readonly id: Schema.String
+                  readonly name: Schema.String
+                  readonly isFailure: Schema.Boolean
+                  readonly result: Schema.Unknown
+                  readonly "~effect/ai/Prompt/Part": Schema.withDecodingDefaultKey<
+                    Schema.Literal<"~effect/ai/Prompt/Part">
+                  >
+                  readonly options: Schema.withDecodingDefault<
+                    Schema.typeCodec<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<JsonValue>>>>
+                  >
+                }>
+              ]
+            >
+          >
+        ]
+      >
+      readonly "~effect/ai/Prompt/Message": Schema.withDecodingDefaultKey<Schema.Literal<"~effect/ai/Prompt/Message">>
+      readonly options: Schema.withDecodingDefault<
+        Schema.typeCodec<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<JsonValue>>>>
+      >
+    }>,
+    Schema.Struct<{
+      readonly role: Schema.Literal<"tool">
+      readonly content: Schema.Array$<
+        Schema.Struct<{
+          readonly type: Schema.Literal<"tool-result">
+          readonly id: Schema.String
+          readonly name: Schema.String
+          readonly isFailure: Schema.Boolean
+          readonly result: Schema.Unknown
+          readonly "~effect/ai/Prompt/Part": Schema.withDecodingDefaultKey<Schema.Literal<"~effect/ai/Prompt/Part">>
+          readonly options: Schema.withDecodingDefault<
+            Schema.typeCodec<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<JsonValue>>>>
+          >
+        }>
+      >
+      readonly "~effect/ai/Prompt/Message": Schema.withDecodingDefaultKey<Schema.Literal<"~effect/ai/Prompt/Message">>
+      readonly options: Schema.withDecodingDefault<
+        Schema.typeCodec<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<JsonValue>>>>
+      >
+    }>
+  ]
+> = Schema.Union([
   SystemMessage,
   UserMessage,
   AssistantMessage,
@@ -1311,46 +1712,255 @@ export interface PromptEncoded {
  * @since 4.0.0
  * @category schemas
  */
-export const Prompt = Schema.declare(
-  (u) => isPrompt(u),
-  { identifier: "Prompt" }
-).pipe(Schema.encodeTo(
-  Schema.Struct({
-    content: Schema.Array(Schema.encodedCodec(Message))
-  }),
-  SchemaTransformation.transformOrFail({})
-))
-
-// /**
-//  * Schema for validation and encoding of prompts.
-//  *
-//  * @since 4.0.0
-//  * @category schemas
-//  */
-// export const Prompt: Schema.Schema<Prompt, PromptEncoded> = Schema.transformOrFail(
-//   Schema.Struct({ content: Schema.Array(Schema.encodedSchema(Message)) }),
-//   PromptFromSelf,
-//   {
-//     strict: true,
-//     decode: (i, _, ast) => decodePrompt(i, ast),
-//     encode: (a, _, ast) => encodePrompt(a, ast)
-//   }
-// ).annotations({ identifier: "Prompt" })
-//
-// const decodeMessages = ParseResult.decodeEither(Schema.Array(Message))
-// const encodeMessages = ParseResult.encodeEither(Schema.Array(Message))
-//
-// const decodePrompt = (input: PromptEncoded, ast: AST.AST) =>
-//   ParseResult.mapBoth(decodeMessages(input.content), {
-//     onFailure: () => new ParseResult.Type(ast, input, `Unable to decode ${JSON.stringify(input)} into a Prompt`),
-//     onSuccess: makePrompt
-//   })
-//
-// const encodePrompt = (input: Prompt, ast: AST.AST) =>
-//   ParseResult.mapBoth(encodeMessages(input.content), {
-//     onFailure: () => new ParseResult.Type(ast, input, `Failed to encode Prompt`),
-//     onSuccess: (messages) => ({ content: messages })
-//   })
+export const Prompt: Schema.decodeTo<
+  Schema.declare<Prompt, Prompt>,
+  Schema.Struct<{
+    readonly content: Schema.Array$<
+      Schema.encodedCodec<
+        Schema.Union<
+          readonly [
+            Schema.Struct<{
+              readonly role: Schema.Literal<"system">
+              readonly content: Schema.String
+              readonly "~effect/ai/Prompt/Message": Schema.withDecodingDefaultKey<
+                Schema.Literal<"~effect/ai/Prompt/Message">
+              >
+              readonly options: Schema.withDecodingDefault<
+                Schema.typeCodec<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<JsonValue>>>>
+              >
+            }>,
+            Schema.Struct<{
+              readonly role: Schema.Literal<"user">
+              readonly content: Schema.Union<
+                readonly [
+                  Schema.decodeTo<
+                    Schema.NonEmptyArray<
+                      Schema.typeCodec<
+                        Schema.Struct<{
+                          readonly type: Schema.Literal<"text">
+                          readonly text: Schema.String
+                          readonly "~effect/ai/Prompt/Part": Schema.withDecodingDefaultKey<
+                            Schema.Literal<"~effect/ai/Prompt/Part">
+                          >
+                          readonly options: Schema.withDecodingDefault<
+                            Schema.typeCodec<
+                              Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<JsonValue>>>
+                            >
+                          >
+                        }>
+                      >
+                    >,
+                    Schema.String,
+                    never,
+                    never
+                  >,
+                  Schema.Array$<
+                    Schema.Union<
+                      readonly [
+                        Schema.Struct<{
+                          readonly type: Schema.Literal<"text">
+                          readonly text: Schema.String
+                          readonly "~effect/ai/Prompt/Part": Schema.withDecodingDefaultKey<
+                            Schema.Literal<"~effect/ai/Prompt/Part">
+                          >
+                          readonly options: Schema.withDecodingDefault<
+                            Schema.typeCodec<
+                              Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<JsonValue>>>
+                            >
+                          >
+                        }>,
+                        Schema.Struct<{
+                          readonly type: Schema.Literal<"file">
+                          readonly mediaType: Schema.String
+                          readonly fileName: Schema.optional<Schema.String>
+                          readonly data: Schema.Union<readonly [Schema.String, Schema.Uint8Array, Schema.URL]>
+                          readonly "~effect/ai/Prompt/Part": Schema.withDecodingDefaultKey<
+                            Schema.Literal<"~effect/ai/Prompt/Part">
+                          >
+                          readonly options: Schema.withDecodingDefault<
+                            Schema.typeCodec<
+                              Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<JsonValue>>>
+                            >
+                          >
+                        }>
+                      ]
+                    >
+                  >
+                ]
+              >
+              readonly "~effect/ai/Prompt/Message": Schema.withDecodingDefaultKey<
+                Schema.Literal<"~effect/ai/Prompt/Message">
+              >
+              readonly options: Schema.withDecodingDefault<
+                Schema.typeCodec<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<JsonValue>>>>
+              >
+            }>,
+            Schema.Struct<{
+              readonly role: Schema.Literal<"assistant">
+              readonly content: Schema.Union<
+                readonly [
+                  Schema.decodeTo<
+                    Schema.NonEmptyArray<
+                      Schema.typeCodec<
+                        Schema.Struct<{
+                          readonly type: Schema.Literal<"text">
+                          readonly text: Schema.String
+                          readonly "~effect/ai/Prompt/Part": Schema.withDecodingDefaultKey<
+                            Schema.Literal<"~effect/ai/Prompt/Part">
+                          >
+                          readonly options: Schema.withDecodingDefault<
+                            Schema.typeCodec<
+                              Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<JsonValue>>>
+                            >
+                          >
+                        }>
+                      >
+                    >,
+                    Schema.String,
+                    never,
+                    never
+                  >,
+                  Schema.Array$<
+                    Schema.Union<
+                      readonly [
+                        Schema.Struct<{
+                          readonly type: Schema.Literal<"text">
+                          readonly text: Schema.String
+                          readonly "~effect/ai/Prompt/Part": Schema.withDecodingDefaultKey<
+                            Schema.Literal<"~effect/ai/Prompt/Part">
+                          >
+                          readonly options: Schema.withDecodingDefault<
+                            Schema.typeCodec<
+                              Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<JsonValue>>>
+                            >
+                          >
+                        }>,
+                        Schema.Struct<{
+                          readonly type: Schema.Literal<"file">
+                          readonly mediaType: Schema.String
+                          readonly fileName: Schema.optional<Schema.String>
+                          readonly data: Schema.Union<readonly [Schema.String, Schema.Uint8Array, Schema.URL]>
+                          readonly "~effect/ai/Prompt/Part": Schema.withDecodingDefaultKey<
+                            Schema.Literal<"~effect/ai/Prompt/Part">
+                          >
+                          readonly options: Schema.withDecodingDefault<
+                            Schema.typeCodec<
+                              Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<JsonValue>>>
+                            >
+                          >
+                        }>,
+                        Schema.Struct<{
+                          readonly type: Schema.Literal<"reasoning">
+                          readonly text: Schema.String
+                          readonly "~effect/ai/Prompt/Part": Schema.withDecodingDefaultKey<
+                            Schema.Literal<"~effect/ai/Prompt/Part">
+                          >
+                          readonly options: Schema.withDecodingDefault<
+                            Schema.typeCodec<
+                              Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<JsonValue>>>
+                            >
+                          >
+                        }>,
+                        Schema.Struct<{
+                          readonly type: Schema.Literal<"tool-call">
+                          readonly id: Schema.String
+                          readonly name: Schema.String
+                          readonly params: Schema.Unknown
+                          readonly providerExecuted: Schema.withDecodingDefault<Schema.Boolean>
+                          readonly "~effect/ai/Prompt/Part": Schema.withDecodingDefaultKey<
+                            Schema.Literal<"~effect/ai/Prompt/Part">
+                          >
+                          readonly options: Schema.withDecodingDefault<
+                            Schema.typeCodec<
+                              Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<JsonValue>>>
+                            >
+                          >
+                        }>,
+                        Schema.Struct<{
+                          readonly type: Schema.Literal<"tool-result">
+                          readonly id: Schema.String
+                          readonly name: Schema.String
+                          readonly isFailure: Schema.Boolean
+                          readonly result: Schema.Unknown
+                          readonly "~effect/ai/Prompt/Part": Schema.withDecodingDefaultKey<
+                            Schema.Literal<"~effect/ai/Prompt/Part">
+                          >
+                          readonly options: Schema.withDecodingDefault<
+                            Schema.typeCodec<
+                              Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<JsonValue>>>
+                            >
+                          >
+                        }>
+                      ]
+                    >
+                  >
+                ]
+              >
+              readonly "~effect/ai/Prompt/Message": Schema.withDecodingDefaultKey<
+                Schema.Literal<"~effect/ai/Prompt/Message">
+              >
+              readonly options: Schema.withDecodingDefault<
+                Schema.typeCodec<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<JsonValue>>>>
+              >
+            }>,
+            Schema.Struct<{
+              readonly role: Schema.Literal<"tool">
+              readonly content: Schema.Array$<
+                Schema.Struct<{
+                  readonly type: Schema.Literal<"tool-result">
+                  readonly id: Schema.String
+                  readonly name: Schema.String
+                  readonly isFailure: Schema.Boolean
+                  readonly result: Schema.Unknown
+                  readonly "~effect/ai/Prompt/Part": Schema.withDecodingDefaultKey<
+                    Schema.Literal<"~effect/ai/Prompt/Part">
+                  >
+                  readonly options: Schema.withDecodingDefault<
+                    Schema.typeCodec<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<JsonValue>>>>
+                  >
+                }>
+              >
+              readonly "~effect/ai/Prompt/Message": Schema.withDecodingDefaultKey<
+                Schema.Literal<"~effect/ai/Prompt/Message">
+              >
+              readonly options: Schema.withDecodingDefault<
+                Schema.typeCodec<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<JsonValue>>>>
+              >
+            }>
+          ]
+        >
+      >
+    >
+  }>,
+  never,
+  never
+> = Schema.Struct({
+  content: Schema.Array(Schema.encodedCodec(Message))
+}).pipe(
+  Schema.decodeTo(
+    Schema.declare((u) => isPrompt(u), { identifier: "Prompt" }),
+    SchemaTransformation.transformOrFail({
+      decode: (input) =>
+        Effect.mapBothEager(
+          ToParser.decodeEffect(Schema.Array(Message))(input.content),
+          {
+            onSuccess: makePrompt,
+            onFailure: () =>
+              new SchemaIssue.InvalidValue(Option.some(input.content), { message: "Invalid Prompt messages" })
+          }
+        ),
+      encode: (prompt) =>
+        Effect.mapBothEager(
+          ToParser.encodeEffect(Schema.Array(Message))(prompt.content),
+          {
+            onSuccess: (messages) => ({ content: messages }),
+            onFailure: () =>
+              new SchemaIssue.InvalidValue(Option.some(prompt.content), { message: "Invalid Prompt messages" })
+          }
+        )
+    })
+  )
+)
 
 /**
  * Raw input types that can be converted into a Prompt.
@@ -1522,7 +2132,6 @@ const isValidPart = (part: Response.AnyPart): part is ValidResponsePart => {
  *
  * @example
  * ```ts
- * import { Either } from "effect"
  * import { Prompt, Response } from "effect/unstable/ai"
  *
  * const responseParts: ReadonlyArray<Response.AnyPart> = [
@@ -1655,7 +2264,7 @@ export const fromResponseParts = (parts: ReadonlyArray<Response.AnyPart>): Promp
 // =============================================================================
 
 /**
- * Merges a prompt with additional raw input by concatenating messages.
+ * Concatenates a prompt with additional raw input by concatenating messages.
  *
  * Creates a new prompt containing all messages from both the original prompt,
  * and the provided raw input, maintaining the order of messages.
@@ -1669,13 +2278,13 @@ export const fromResponseParts = (parts: ReadonlyArray<Response.AnyPart>): Promp
  *   content: "You are a helpful assistant."
  * }])
  *
- * const merged = Prompt.merge(systemPrompt, "Hello, world!")
+ * const merged = Prompt.concat(systemPrompt, "Hello, world!")
  * ```
  *
  * @since 4.0.0
  * @category combinators
  */
-export const merge: {
+export const concat: {
   (input: RawInput): (self: Prompt) => Prompt
   (self: Prompt, input: RawInput): Prompt
 } = dual(2, (self: Prompt, input: RawInput): Prompt => {
@@ -1711,7 +2320,7 @@ export const merge: {
  *
  * const userPrompt = Prompt.make("Hello, world!")
  *
- * const prompt = Prompt.merge(systemPrompt, userPrompt)
+ * const prompt = Prompt.concat(systemPrompt, userPrompt)
  *
  * const replaced = Prompt.setSystem(
  *   prompt,
@@ -1753,7 +2362,7 @@ export const setSystem: {
  *
  * const userPrompt = Prompt.make("Hello, world!")
  *
- * const prompt = Prompt.merge(systemPrompt, userPrompt)
+ * const prompt = Prompt.concat(systemPrompt, userPrompt)
  *
  * const replaced = Prompt.prependSystem(
  *   prompt,
@@ -1800,7 +2409,7 @@ export const prependSystem: {
  *
  * const userPrompt = Prompt.make("Hello, world!")
  *
- * const prompt = Prompt.merge(systemPrompt, userPrompt)
+ * const prompt = Prompt.concat(systemPrompt, userPrompt)
  *
  * const replaced = Prompt.appendSystem(
  *   prompt,

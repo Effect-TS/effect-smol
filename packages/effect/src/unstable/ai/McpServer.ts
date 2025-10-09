@@ -13,7 +13,6 @@ import * as SchemaAnnotations from "../../schema/Annotations.ts"
 import * as AST from "../../schema/AST.ts"
 import * as Schema from "../../schema/Schema.ts"
 import * as Serializer from "../../schema/Serializer.ts"
-import * as JsonSchema from "../../schema/ToJsonSchema.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import type { Sink } from "../../stream/Sink.ts"
 import type { Stream } from "../../stream/Stream.ts"
@@ -27,8 +26,6 @@ import type * as RpcGroup from "../rpc/RpcGroup.ts"
 import * as RpcMessage from "../rpc/RpcMessage.ts"
 import * as RpcSerialization from "../rpc/RpcSerialization.ts"
 import * as RpcServer from "../rpc/RpcServer.ts"
-import * as AiTool from "./AiTool.ts"
-import type * as AiToolkit from "./AiToolkit.ts"
 import {
   CallToolResult,
   ClientNotificationRpcs,
@@ -52,7 +49,7 @@ import {
   ServerNotificationRpcs,
   ServerRequestRpcs,
   TextContent,
-  Tool
+  Tool as McpTool
 } from "./McpSchema.ts"
 import type {
   Annotations,
@@ -65,10 +62,12 @@ import type {
   ReadResourceResult,
   ServerCapabilities
 } from "./McpSchema.ts"
+import * as Tool from "./Tool.ts"
+import type * as Toolkit from "./Toolkit.ts"
 
 /**
  * @since 4.0.0
- * @category McpServer
+ * @category server
  */
 export class McpServer extends ServiceMap.Key<
   McpServer,
@@ -77,9 +76,9 @@ export class McpServer extends ServiceMap.Key<
     readonly notificationsQueue: Queue.Dequeue<RpcMessage.Request<any>>
     readonly initializedClients: Set<number>
 
-    readonly tools: ReadonlyArray<Tool>
+    readonly tools: ReadonlyArray<McpTool>
     readonly addTool: (options: {
-      readonly tool: Tool
+      readonly tool: McpTool
       readonly handle: (payload: any) => Effect.Effect<CallToolResult, never, McpServerClient>
     }) => Effect.Effect<void>
     readonly callTool: (
@@ -145,7 +144,7 @@ export class McpServer extends ServiceMap.Key<
         readonly effect: Effect.Effect<typeof ReadResourceResult.Type, InternalError, McpServerClient>
       }
     >()
-    const tools = Arr.empty<Tool>()
+    const tools = Arr.empty<McpTool>()
     const toolMap = new Map<string, (payload: any) => Effect.Effect<CallToolResult, InternalError, McpServerClient>>()
     const resources: Array<Resource> = []
     const resourceTemplates: Array<ResourceTemplate> = []
@@ -292,7 +291,7 @@ const SUPPORTED_PROTOCOL_VERSIONS = [
 
 /**
  * @since 4.0.0
- * @category Constructors
+ * @category constructors
  */
 export const run: (
   options: { readonly name: string; readonly version: string }
@@ -438,7 +437,7 @@ export const run: (
 
 /**
  * @since 4.0.0
- * @category Layers
+ * @category layers
  */
 export const layer = (options: {
   readonly name: string
@@ -451,12 +450,12 @@ export const layer = (options: {
 /**
  * Run the McpServer, using stdio for input and output.
  *
+ * @example
  * ```ts
+ * import { Effect, Layer, Logger } from "effect"
+ * import { Schema } from "effect/schema"
  * import { McpSchema, McpServer } from "effect/unstable/ai"
  * import { NodeRuntime, NodeSink, NodeStream } from "@effect/platform-node"
- * import { Logger } from "effect"
- * import { Schema } from "effect/schema"
- * import { Effect, Layer } from "effect"
  *
  * const idParam = McpSchema.param("id", Schema.Number)
  *
@@ -504,7 +503,7 @@ export const layer = (options: {
  * ```
  *
  * @since 4.0.0
- * @category Layers
+ * @category layers
  */
 export const layerStdio = <EIn, RIn, EOut, ROut>(options: {
   readonly name: string
@@ -521,10 +520,10 @@ export const layerStdio = <EIn, RIn, EOut, ROut>(options: {
   )
 
 /**
- * Run the McpServer, registering a router with a `HttpRouter`
+ * Run the `McpServer`, registering a router with a `HttpRouter`
  *
  * @since 4.0.0
- * @category Layers
+ * @category layers
  */
 export const layerHttp = (options: {
   readonly name: string
@@ -537,39 +536,41 @@ export const layerHttp = (options: {
   )
 
 /**
- * Register an AiToolkit with the McpServer.
+ * Register a `Toolkit` with the `McpServer`.
  *
  * @since 4.0.0
- * @category Tools
+ * @category tools
  */
-export const registerToolkit: <Tools extends AiTool.Any>(toolkit: AiToolkit.AiToolkit<Tools>) => Effect.Effect<
+export const registerToolkit: <Tools extends Record<string, Tool.Any>>(
+  toolkit: Toolkit.Toolkit<Tools>
+) => Effect.Effect<
   void,
   never,
-  McpServer | AiTool.ToHandler<Tools> | Exclude<AiTool.Services<Tools>, McpServerClient>
-> = Effect.fnUntraced(function*<Tools extends AiTool.Any>(
-  toolkit: AiToolkit.AiToolkit<Tools>
+  McpServer | Tool.HandlersFor<Tools> | Exclude<Tool.HandlerServices<Tools>, McpServerClient>
+> = Effect.fnUntraced(function*<Tools extends Record<string, Tool.Any>>(
+  toolkit: Toolkit.Toolkit<Tools>
 ) {
   const registry = yield* McpServer
   const built = yield* (toolkit as any as Effect.Effect<
-    AiToolkit.ToHandler<Tools>,
+    Toolkit.WithHandler<Tools>,
     never,
-    Exclude<AiTool.ToHandler<Tools>, McpServerClient>
+    Exclude<Tool.HandlersFor<Tools>, McpServerClient>
   >)
   const services = yield* Effect.services<never>()
-  for (const tool of built.tools) {
-    const mcpTool = new Tool({
+  for (const tool of Object.values(built.tools)) {
+    const mcpTool = new McpTool({
       name: tool.name,
-      description: tool.description!,
-      inputSchema: makeJsonSchema(tool.parametersSchema),
+      description: Tool.getDescription(tool),
+      inputSchema: Tool.getJsonSchema(tool),
       annotations: {
-        ...(ServiceMap.getOption(tool.annotations, AiTool.Title).pipe(
+        ...(ServiceMap.getOption(tool.annotations, Tool.Title).pipe(
           Option.map((title) => ({ title })),
           Option.getOrUndefined
         )),
-        readOnlyHint: ServiceMap.get(tool.annotations, AiTool.Readonly),
-        destructiveHint: ServiceMap.get(tool.annotations, AiTool.Destructive),
-        idempotentHint: ServiceMap.get(tool.annotations, AiTool.Idempotent),
-        openWorldHint: ServiceMap.get(tool.annotations, AiTool.OpenWorld)
+        readOnlyHint: ServiceMap.get(tool.annotations, Tool.Readonly),
+        destructiveHint: ServiceMap.get(tool.annotations, Tool.Destructive),
+        idempotentHint: ServiceMap.get(tool.annotations, Tool.Idempotent),
+        openWorldHint: ServiceMap.get(tool.annotations, Tool.OpenWorld)
       }
     })
     yield* registry.addTool({
@@ -607,14 +608,14 @@ export const registerToolkit: <Tools extends AiTool.Any>(toolkit: AiToolkit.AiTo
  * Register an AiToolkit with the McpServer.
  *
  * @since 4.0.0
- * @category Tools
+ * @category tools
  */
-export const toolkit = <Tools extends AiTool.Any>(
-  toolkit: AiToolkit.AiToolkit<Tools>
+export const toolkit = <Tools extends Record<string, Tool.Any>>(
+  toolkit: Toolkit.Toolkit<Tools>
 ): Layer.Layer<
   never,
   never,
-  AiTool.ToHandler<Tools> | Exclude<AiTool.Services<Tools>, McpServerClient>
+  Tool.HandlersFor<Tools> | Exclude<Tool.HandlerServices<Tools>, McpServerClient>
 > =>
   Layer.effectDiscard(registerToolkit(toolkit)).pipe(
     Layer.provide(McpServer.layer)
@@ -643,7 +644,7 @@ export type ResourceCompletions<Schemas extends ReadonlyArray<Schema.Top>> = {
  * Register a resource with the McpServer.
  *
  * @since 4.0.0
- * @category Resources
+ * @category resources
  */
 export const registerResource: {
   <E, R>(options: {
@@ -787,7 +788,7 @@ export const registerResource: {
  * Register a resource with the McpServer.
  *
  * @since 4.0.0
- * @category Resources
+ * @category resources
  */
 export const resource: {
   <E, R>(options: {
@@ -847,7 +848,7 @@ export const resource: {
  * Register a prompt with the McpServer.
  *
  * @since 4.0.0
- * @category Prompts
+ * @category prompts
  */
 export const registerPrompt = <
   E,
@@ -940,7 +941,7 @@ export const registerPrompt = <
  * Register a prompt with the McpServer.
  *
  * @since 4.0.0
- * @category Prompts
+ * @category prompts
  */
 export const prompt = <
   E,
@@ -968,7 +969,7 @@ export const prompt = <
  * Create an elicitation request
  *
  * @since 4.0.0
- * @category Elicitation
+ * @category elicitation
  */
 export const elicit: <S extends Schema.Codec<any, Record<string, unknown>, any, any>>(options: {
   readonly message: string
@@ -986,7 +987,7 @@ export const elicit: <S extends Schema.Codec<any, Record<string, unknown>, any, 
   const schema = options.schema
   const request = Elicit.payloadSchema.makeUnsafe({
     message: options.message,
-    requestedSchema: makeJsonSchema(schema)
+    requestedSchema: Tool.getJsonSchemaFromSchema(schema)
   })
   const res = yield* client["elicitation/create"](request).pipe(
     Effect.catchCause((cause) => Effect.fail(new ElicitationDeclined({ cause: Cause.squash(cause), request })))
@@ -1104,27 +1105,6 @@ const layerHandlers = (serverInfo: {
       })
     })
   )
-
-const makeJsonSchema = (schema: Schema.Top): JsonSchema.JsonSchema => {
-  const props = AST.isTypeLiteral(schema.ast) ? schema.ast.propertySignatures : []
-  if (props.length === 0) {
-    return {
-      type: "object",
-      properties: {},
-      required: [],
-      additionalProperties: false
-    }
-  }
-  const $defs = {}
-  const jsonSchema = JsonSchema.makeDraft2020_12(schema, {
-    definitions: $defs,
-    topLevelReferenceStrategy: "skip"
-  })
-  delete jsonSchema.$schema
-  if (Object.keys($defs).length === 0) return jsonSchema
-  jsonSchema.$defs = $defs
-  return jsonSchema
-}
 
 const resolveResourceContent = (
   uri: string,
