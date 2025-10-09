@@ -334,7 +334,7 @@ export const urlFromString = transformOrFail<URL, string>({
   decode: (s) =>
     Effect.try({
       try: () => new URL(s),
-      catch: () => new Issue.InvalidValue(Option.some(s), { message: `Invalid URL: "${s}"` })
+      catch: (e) => new Issue.InvalidValue(Option.some(s), { message: globalThis.String(e) })
     }),
   encode: (url) => Effect.succeed(url.href)
 })
