@@ -65,7 +65,7 @@ import * as Chunk from "../collections/Chunk.ts"
 import * as Iterable from "../collections/Iterable.ts"
 import * as Filter from "../data/Filter.ts"
 import * as Option from "../data/Option.ts"
-import { hasProperty } from "../data/Predicate.ts"
+import { hasProperty, isTagged } from "../data/Predicate.ts"
 import * as Effect from "../Effect.ts"
 import * as Exit from "../Exit.ts"
 import * as Fiber from "../Fiber.ts"
@@ -3574,6 +3574,110 @@ export const catchFilter: {
       return !Filter.isFail(eb) ? f(eb) : fail(eb.fail)
     }
   ))
+
+/**
+ * @since 4.0.0
+ * @category Error handling
+ */
+export const catchTag: {
+  <
+    OutErr,
+    const K extends Types.Tags<OutErr> | Arr.NonEmptyReadonlyArray<Types.Tags<OutErr>>,
+    OutElem1,
+    OutErr1,
+    OutDone1,
+    InElem1,
+    InErr1,
+    InDone1,
+    Env1
+  >(
+    k: K,
+    f: (
+      e: Types.ExtractTag<NoInfer<OutErr>, K extends Arr.NonEmptyReadonlyArray<string> ? K[number] : K>
+    ) => Channel<OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>
+  ): <
+    OutElem,
+    OutDone,
+    InElem,
+    InErr,
+    InDone,
+    Env
+  >(self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>) => Channel<
+    OutElem | OutElem1,
+    Types.ExcludeTag<OutErr, K extends Arr.NonEmptyReadonlyArray<string> ? K[number] : K> | OutErr1,
+    OutDone | OutDone1,
+    InElem & InElem1,
+    InErr & InErr1,
+    InDone & InDone1,
+    Env | Env1
+  >
+  <
+    OutElem,
+    OutErr,
+    OutDone,
+    InElem,
+    InErr,
+    InDone,
+    Env,
+    const K extends Types.Tags<OutErr> | Arr.NonEmptyReadonlyArray<Types.Tags<OutErr>>,
+    OutElem1,
+    OutErr1,
+    OutDone1,
+    InElem1,
+    InErr1,
+    InDone1,
+    Env1
+  >(
+    self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
+    k: K,
+    f: (
+      e: Types.ExtractTag<NoInfer<OutErr>, K extends Arr.NonEmptyReadonlyArray<string> ? K[number] : K>
+    ) => Channel<OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>
+  ): Channel<
+    OutElem | OutElem1,
+    Types.ExcludeTag<OutErr, K extends Arr.NonEmptyReadonlyArray<string> ? K[number] : K> | OutErr1,
+    OutDone | OutDone1,
+    InElem & InElem1,
+    InErr & InErr1,
+    InDone & InDone1,
+    Env | Env1
+  >
+} = dual(3, <
+  OutElem,
+  OutErr,
+  OutDone,
+  InElem,
+  InErr,
+  InDone,
+  Env,
+  const K extends Types.Tags<OutErr> | Arr.NonEmptyReadonlyArray<Types.Tags<OutErr>>,
+  OutElem1,
+  OutErr1,
+  OutDone1,
+  InElem1,
+  InErr1,
+  InDone1,
+  Env1
+>(
+  self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
+  k: K,
+  f: (
+    e: Types.ExtractTag<NoInfer<OutErr>, K extends Arr.NonEmptyReadonlyArray<string> ? K[number] : K>
+  ) => Channel<OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>
+): Channel<
+  OutElem | OutElem1,
+  Types.ExcludeTag<OutErr, K extends Arr.NonEmptyReadonlyArray<string> ? K[number] : K> | OutErr1,
+  OutDone | OutDone1,
+  InElem & InElem1,
+  InErr & InErr1,
+  InDone & InDone1,
+  Env | Env1
+> => {
+  const pred = Array.isArray(k)
+    ? ((e: OutErr): e is any => hasProperty(e, "_tag") && k.includes(e._tag))
+    : isTagged(k as string)
+  return catchFilter(self, Filter.fromPredicate(pred), f) as any
+})
 
 /**
  * Returns a new channel, which is the same as this one, except the failure

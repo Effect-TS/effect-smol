@@ -5,9 +5,9 @@
 import * as Cause from "../Cause.ts"
 import * as Arr from "../collections/Array.ts"
 import * as MutableHashMap from "../collections/MutableHashMap.ts"
-import type * as Filter from "../data/Filter.ts"
+import * as Filter from "../data/Filter.ts"
 import * as Option from "../data/Option.ts"
-import { hasProperty } from "../data/Predicate.ts"
+import { hasProperty, isTagged } from "../data/Predicate.ts"
 import * as Duration from "../Duration.ts"
 import * as Effect from "../Effect.ts"
 import * as Exit from "../Exit.ts"
@@ -26,9 +26,10 @@ import * as ServiceMap from "../ServiceMap.ts"
 import * as Channel from "../stream/Channel.ts"
 import * as Pull from "../stream/Pull.ts"
 import type * as Sink from "../stream/Sink.ts"
+import { isString } from "../String.ts"
 import type { ParentSpan, SpanOptions } from "../Tracer.ts"
 import type { TypeLambda } from "../types/HKT.ts"
-import type { Covariant } from "../types/Types.ts"
+import type { Covariant, ExcludeTag, ExtractTag, Tags } from "../types/Types.ts"
 import type * as Unify from "../types/Unify.ts"
 import type * as Take from "./Take.ts"
 
@@ -1913,6 +1914,118 @@ export const catchFilter: {
   filter: Filter.Filter<E, EB, X>,
   f: (failure: EB) => Stream<A2, E2, R2>
 ): Stream<A | A2, X | E2, R | R2> => fromChannel(Channel.catchFilter(toChannel(self), filter, (e) => f(e).channel)))
+
+/**
+ * @since 4.0.0
+ * @category Error handling
+ */
+export const catchTag: {
+  <const K extends Tags<E> | Arr.NonEmptyReadonlyArray<Tags<E>>, E, A1, E1, R1>(
+    k: K,
+    f: (
+      e: ExtractTag<NoInfer<E>, K extends Arr.NonEmptyReadonlyArray<string> ? K[number] : K>
+    ) => Stream<A1, E1, R1>
+  ): <A, R>(
+    self: Stream<A, E, R>
+  ) => Stream<A1 | A, E1 | ExcludeTag<E, K extends Arr.NonEmptyReadonlyArray<string> ? K[number] : K>, R1 | R>
+  <
+    A,
+    E,
+    R,
+    const K extends Tags<E> | Arr.NonEmptyReadonlyArray<Tags<E>>,
+    R1,
+    E1,
+    A1
+  >(
+    self: Stream<A, E, R>,
+    k: K,
+    f: (e: ExtractTag<E, K extends Arr.NonEmptyReadonlyArray<string> ? K[number] : K>) => Stream<A1, E1, R1>
+  ): Stream<A1 | A, E1 | ExcludeTag<E, K extends Arr.NonEmptyReadonlyArray<string> ? K[number] : K>, R1 | R>
+} = dual(
+  3,
+  <
+    A,
+    E,
+    R,
+    const K extends Tags<E> | Arr.NonEmptyReadonlyArray<Tags<E>>,
+    R1,
+    E1,
+    A1
+  >(
+    self: Stream<A, E, R>,
+    k: K,
+    f: (e: ExtractTag<E, K extends Arr.NonEmptyReadonlyArray<string> ? K[number] : K>) => Stream<A1, E1, R1>
+  ): Stream<A1 | A, E1 | ExcludeTag<E, K extends Arr.NonEmptyReadonlyArray<string> ? K[number] : K>, R1 | R> => {
+    const pred = Array.isArray(k)
+      ? ((e: E): e is any => hasProperty(e, "_tag") && k.includes(e._tag))
+      : isTagged(k as string)
+    return catchFilter(self, Filter.fromPredicate(pred), f) as any
+  }
+)
+
+/**
+ * @since 4.0.0
+ * @category Error handling
+ */
+export const catchTags: {
+  <
+    E,
+    Cases extends (E extends { _tag: string } ? {
+        [K in E["_tag"]]+?: (error: Extract<E, { _tag: K }>) => Stream<any, any, any>
+      } :
+      {})
+  >(
+    cases: Cases
+  ): <A, R>(self: Stream<A, E, R>) => Stream<
+    | A
+    | {
+      [K in keyof Cases]: Cases[K] extends ((...args: Array<any>) => Stream<infer A, any, any>) ? A : never
+    }[keyof Cases],
+    | Exclude<E, { _tag: keyof Cases }>
+    | {
+      [K in keyof Cases]: Cases[K] extends ((...args: Array<any>) => Stream<any, infer E, any>) ? E : never
+    }[keyof Cases],
+    | R
+    | {
+      [K in keyof Cases]: Cases[K] extends ((...args: Array<any>) => Stream<any, any, infer R>) ? R : never
+    }[keyof Cases]
+  >
+  <
+    R,
+    E,
+    A,
+    Cases extends (E extends { _tag: string } ? {
+        [K in E["_tag"]]+?: (error: Extract<E, { _tag: K }>) => Stream<any, any, any>
+      } :
+      {})
+  >(
+    self: Stream<A, E, R>,
+    cases: Cases
+  ): Stream<
+    | A
+    | {
+      [K in keyof Cases]: Cases[K] extends ((...args: Array<any>) => Stream<infer A, any, any>) ? A : never
+    }[keyof Cases],
+    | Exclude<E, { _tag: keyof Cases }>
+    | {
+      [K in keyof Cases]: Cases[K] extends ((...args: Array<any>) => Stream<any, infer E, any>) ? E : never
+    }[keyof Cases],
+    | R
+    | {
+      [K in keyof Cases]: Cases[K] extends ((...args: Array<any>) => Stream<any, any, infer R>) ? R : never
+    }[keyof Cases]
+  >
+} = dual(2, (self, cases) => {
+  let keys: Array<string>
+  return catchFilter(
+    self,
+    (e) => {
+      keys ??= Object.keys(cases)
+      return hasProperty(e, "_tag") && isString(e["_tag"]) && keys.includes(e["_tag"]) ? e : Filter.fail(e)
+    },
+    (e) => cases[e["_tag"] as string](e)
+  )
+})
 
 /**
  * Transforms the errors emitted by this stream using `f`.

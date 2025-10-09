@@ -225,8 +225,8 @@ The exports under each section are organized as they are in Effect 3.0. The cate
 |    `catchAllCause`    |  Done  |     `catchCause`      |          |
 |      `catchSome`      |  Done  |     `catchFilter`     |          |
 |   `catchSomeCause`    |  Done  |  `catchCauseFilter`   |          |
-|      `catchTag`       |   -    |                       |          |
-|      `catchTags`      |   -    |                       |          |
+|      `catchTag`       |  Done  |                       |          |
+|      `catchTags`      |  Done  |                       |          |
 |        `orDie`        |  Done  |        `orDie`        |          |
 |      `orDieWith`      |   X    |                       |          |
 |       `orElse`        |   X    |        `catch`        |          |
