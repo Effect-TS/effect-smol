@@ -165,7 +165,10 @@ export interface GenerateTextOptions<Tools extends Record<string, Tool.Any>> {
    * A toolkit containing both the tools and the tool call handler to use to
    * augment text generation.
    */
-  readonly toolkit?: Toolkit.WithHandler<Tools> | Effect.Effect<Toolkit.WithHandler<Tools>, any, any> | undefined
+  readonly toolkit?:
+    | Toolkit.WithHandler<Tools>
+    | Effect.Yieldable<Toolkit.Toolkit<Tools>, Toolkit.WithHandler<Tools>, never, any>
+    | undefined
 
   /**
    * The tool choice mode for the language model.
@@ -420,14 +423,24 @@ export type ExtractError<Options> = Options extends {
   readonly disableToolCallResolution: true
 } ? AiError.AiError
   : Options extends {
-    readonly toolkit: Effect.Effect<Toolkit.WithHandler<infer _Tools>, infer _E, infer _R>
+    readonly toolkit: Effect.Yieldable<
+      Toolkit.Toolkit<infer _Tools>,
+      Toolkit.WithHandler<infer _Tools>,
+      infer _E,
+      infer _R
+    >
     readonly disableToolCallResolution: true
   } ? AiError.AiError | _E
   : Options extends {
     readonly toolkit: Toolkit.WithHandler<infer _Tools>
   } ? AiError.AiError | Tool.HandlerError<_Tools[keyof _Tools]>
   : Options extends {
-    readonly toolkit: Effect.Effect<Toolkit.WithHandler<infer _Tools>, infer _E, infer _R>
+    readonly toolkit: Effect.Yieldable<
+      Toolkit.Toolkit<infer _Tools>,
+      Toolkit.WithHandler<infer _Tools>,
+      infer _E,
+      infer _R
+    >
   } ? AiError.AiError | Tool.HandlerError<_Tools[keyof _Tools]> | _E :
   AiError.AiError
 
@@ -446,7 +459,12 @@ export type ExtractServices<Options> = Options extends {
     // Required for decoding large language model responses
     | Tool.ResultDecodingServices<_Tools[keyof _Tools]>
   : Options extends {
-    readonly toolkit: Effect.Effect<Toolkit.WithHandler<infer _Tools>, infer _E, infer _R>
+    readonly toolkit: Effect.Yieldable<
+      Toolkit.Toolkit<infer _Tools>,
+      Toolkit.WithHandler<infer _Tools>,
+      infer _E,
+      infer _R
+    >
   } ? // Required for tool call execution
       | Tool.ResultEncodingServices<_Tools[keyof _Tools]>
       // Required for decoding large language model responses
@@ -822,7 +840,7 @@ export const make: (params: ConstructorParams) => Effect.Effect<Service> = Effec
         }
 
         // If there is a toolkit resolve and apply it to the provider options
-        const toolkit = Effect.isEffect(options.toolkit) ? yield* options.toolkit : options.toolkit
+        const toolkit = "asEffect" in options.toolkit ? yield* options.toolkit : options.toolkit
 
         // If the toolkit is empty, return immediately
         if (Object.values(toolkit.tools).length === 0) {
@@ -859,7 +877,7 @@ export const make: (params: ConstructorParams) => Effect.Effect<Service> = Effec
           }))
         ) as Stream.Stream<Response.StreamPart<Tools>, AiError.AiError | Schema.SchemaError, IdGenerator>
       }
-    )
+    ) as any
 
     return {
       generateText,
@@ -1043,10 +1061,12 @@ const resolveToolCalls = <Tools extends Record<string, Tool.Any>>(
 // =============================================================================
 
 const resolveToolkit = <Tools extends Record<string, Tool.Any>, E, R>(
-  toolkit: Toolkit.WithHandler<Tools> | Effect.Effect<Toolkit.WithHandler<Tools>, E, R>
-): Effect.Effect<Toolkit.WithHandler<Tools>, E, R> => Effect.isEffect(toolkit) ? toolkit : Effect.succeed(toolkit)
+  toolkit: Toolkit.WithHandler<Tools> | Effect.Yieldable<Toolkit.Toolkit<any>, Toolkit.WithHandler<Tools>, E, R>
+): Effect.Effect<Toolkit.WithHandler<Tools>, E, R> =>
+  "asEffect" in toolkit ? toolkit.asEffect() : Effect.succeed(toolkit)
 
-const getObjectName = <ObjectSchema extends Schema.Top>(
+/** @internal */
+export const getObjectName = <ObjectSchema extends Schema.Top>(
   objectName: string | undefined,
   schema: ObjectSchema
 ): string => {

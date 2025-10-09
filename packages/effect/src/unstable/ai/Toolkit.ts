@@ -222,6 +222,7 @@ export interface WithHandler<in out Tools extends Record<string, Tool.Any>> {
 const Proto = {
   ...YieldableProto,
   ...PipeInspectableProto,
+  [TypeId]: TypeId,
   of: identity,
   toHandlers(
     this: Toolkit<Record<string, Tool.Any>>,

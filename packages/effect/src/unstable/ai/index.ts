@@ -76,6 +76,57 @@
 export * as AiError from "./AiError.ts"
 
 /**
+ * The `Chat` module provides a stateful conversation interface for AI language
+ * models.
+ *
+ * This module enables persistent chat sessions that maintain conversation
+ * history, support tool calling, and offer both streaming and non-streaming
+ * text generation. It integrates seamlessly with the Effect AI ecosystem,
+ * providing type-safe conversational AI capabilities.
+ *
+ * @example
+ * ```ts
+ * import { Effect, Layer } from "effect"
+ * import { Chat, LanguageModel } from "effect/unstable/ai"
+ *
+ * // Create a new chat session
+ * const program = Effect.gen(function* () {
+ *   const chat = yield* Chat.empty
+ *
+ *   // Send a message and get response
+ *   const response = yield* chat.generateText({
+ *     prompt: "Hello! What can you help me with?"
+ *   })
+ *
+ *   console.log(response.content)
+ *
+ *   return response
+ * })
+ * ```
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ * import { Stream } from "effect/stream"
+ * import { Chat, LanguageModel } from "effect/unstable/ai"
+ *
+ * // Streaming chat with tool support
+ * const streamingChat = Effect.gen(function* () {
+ *   const chat = yield* Chat.empty
+ *
+ *   yield* chat.streamText({
+ *     prompt: "Generate a creative story"
+ *   }).pipe(Stream.runForEach((part) =>
+ *     Effect.sync(() => console.log(part))
+ *   ))
+ * })
+ * ```
+ *
+ * @since 4.0.0
+ */
+export * as Chat from "./Chat.ts"
+
+/**
  * The `IdGenerator` module provides a pluggable system for generating unique identifiers
  * for tool calls and other items in the Effect AI SDKs.
  *
@@ -186,6 +237,37 @@ export * as McpSchema from "./McpSchema.ts"
  * @since 4.0.0
  */
 export * as McpServer from "./McpServer.ts"
+
+/**
+ * The `Model` module provides a unified interface for AI service providers.
+ *
+ * This module enables creation of provider-specific AI models that can be used
+ * interchangeably within the Effect AI ecosystem. It combines Layer
+ * functionality with provider identification, allowing for seamless switching
+ * between different AI service providers while maintaining type safety.
+ *
+ * @example
+ * ```ts
+ * import { Effect, Layer } from "effect"
+ * import { Model, LanguageModel } from "effect/unstable/ai"
+ *
+ * declare const myAnthropicLayer: Layer.Layer<LanguageModel.LanguageModel>
+ *
+ * const anthropicModel = Model.make("anthropic", myAnthropicLayer)
+ *
+ * const program = Effect.gen(function* () {
+ *   const response = yield* LanguageModel.generateText({
+ *     prompt: "Hello, world!"
+ *   })
+ *   return response.text
+ * }).pipe(
+ *   Effect.provide(anthropicModel)
+ * )
+ * ```
+ *
+ * @since 4.0.0
+ */
+export * as Model from "./Model.ts"
 
 /**
  * The `Prompt` module provides several data structures to simplify creating and
@@ -306,6 +388,45 @@ export * as Response from "./Response.ts"
  * @since 4.0.0
  */
 export * as Telemetry from "./Telemetry.ts"
+
+/**
+ * The `Tokenizer` module provides tokenization and text truncation capabilities
+ * for large language model text processing workflows.
+ *
+ * This module offers services for converting text into tokens and truncating
+ * prompts based on token limits, essential for managing context length
+ * constraints in large language models.
+ *
+ * @example
+ * ```ts
+ * import { Tokenizer, Prompt } from "effect/unstable/ai"
+ * import { Effect } from "effect"
+ *
+ * const tokenizeText = Effect.gen(function* () {
+ *   const tokenizer = yield* Tokenizer.Tokenizer
+ *   const tokens = yield* tokenizer.tokenize("Hello, world!")
+ *   console.log(`Token count: ${tokens.length}`)
+ *   return tokens
+ * })
+ * ```
+ *
+ * @example
+ * ```ts
+ * import { Tokenizer, Prompt } from "effect/unstable/ai"
+ * import { Effect } from "effect"
+ *
+ * // Truncate a prompt to fit within token limits
+ * const truncatePrompt = Effect.gen(function* () {
+ *   const tokenizer = yield* Tokenizer.Tokenizer
+ *   const longPrompt = "This is a very long prompt..."
+ *   const truncated = yield* tokenizer.truncate(longPrompt, 100)
+ *   return truncated
+ * })
+ * ```
+ *
+ * @since 4.0.0
+ */
+export * as Tokenizer from "./Tokenizer.ts"
 
 /**
  * The `Tool` module provides functionality for defining and managing tools
