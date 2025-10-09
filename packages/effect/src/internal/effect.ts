@@ -705,7 +705,10 @@ export const fiberAwait = <A, E>(
 ): Effect.Effect<Exit.Exit<A, E>> => {
   const impl = self as FiberImpl<A, E>
   if (impl._exit) return succeed(impl._exit)
-  return callback((resume) => sync(self.addObserver((exit) => resume(succeed(exit)))))
+  return callback((resume) => {
+    if (impl._exit) return resume(succeed(impl._exit))
+    return sync(self.addObserver((exit) => resume(succeed(exit))))
+  })
 }
 
 /** @internal */
@@ -747,7 +750,10 @@ export const fiberAwaitAll = <Fiber extends Fiber.Fiber<any, any>>(
 export const fiberJoin = <A, E>(self: Fiber.Fiber<A, E>): Effect.Effect<A, E> => {
   const impl = self as FiberImpl<A, E>
   if (impl._exit) return impl._exit
-  return callback((resume) => sync(self.addObserver(resume)))
+  return callback((resume) => {
+    if (impl._exit) return resume(impl._exit)
+    return sync(self.addObserver(resume))
+  })
 }
 
 /** @internal */
