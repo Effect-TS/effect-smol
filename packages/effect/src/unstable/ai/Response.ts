@@ -31,7 +31,7 @@ import * as Predicate from "../../data/Predicate.ts"
 import type * as DateTime from "../../DateTime.ts"
 import * as Effect from "../../Effect.ts"
 import * as Base64 from "../../encoding/Base64.ts"
-import { constFalse } from "../../Function.ts"
+import { constFalse, identity } from "../../Function.ts"
 import * as SchemaCheck from "../../schema/Check.ts"
 import * as SchemaIssue from "../../schema/Issue.ts"
 import * as Schema from "../../schema/Schema.ts"
@@ -190,13 +190,20 @@ export type AllPartsEncoded =
  */
 export const AllParts = <T extends Toolkit.Any | Toolkit.WithHandler<any>>(
   toolkit: T
-) => {
-  // const toolCalls: Array<Schema.Codec<ToolCallPart<string, any>, ToolCallPartEncoded>> = []
-  // const toolCallResults: Array<Schema.Codec<ToolResultPart<string, any, any>, ToolResultPartEncoded>> = []
-  // for (const tool of Object.values(toolkit.tools as Record<string, Tool.Any>)) {
-  //   toolCalls.push(ToolCallPart(tool.name, tool.parametersSchema as any))
-  //   toolCallResults.push(ToolResultPart(tool.name, tool.successSchema, tool.failureSchema))
-  // }
+): Schema.Codec<
+  AllParts<Toolkit.Tools<T>>,
+  AllPartsEncoded,
+  Tool.ResultDecodingServices<Toolkit.Tools<T>[keyof Toolkit.Tools<T>]>,
+  Tool.ResultEncodingServices<Toolkit.Tools<T>[keyof Toolkit.Tools<T>]>
+> => {
+  const toolCalls: Array<Schema.Top> = []
+  const toolResults: Array<Schema.Top> = []
+  for (const tool of Object.values(toolkit.tools as Record<string, Tool.Any>)) {
+    const toolCall = ToolCallPart(tool.name, tool.parametersSchema)
+    const toolResult = ToolResultPart(tool.name, tool.successSchema, tool.failureSchema)
+    toolCalls.push(toolCall)
+    toolResults.push(toolResult)
+  }
   return Schema.Union([
     TextPart,
     TextStartPart,
@@ -214,10 +221,10 @@ export const AllParts = <T extends Toolkit.Any | Toolkit.WithHandler<any>>(
     UrlSourcePart,
     ResponseMetadataPart,
     FinishPart,
-    ErrorPart
-    // ...toolCalls,
-    // ...toolCallResults
-  ])
+    ErrorPart,
+    ...toolCalls,
+    ...toolResults
+  ]) as any
 }
 
 // =============================================================================
@@ -269,12 +276,19 @@ export type PartEncoded =
  */
 export const Part = <T extends Toolkit.Any | Toolkit.WithHandler<any>>(
   toolkit: T
-): Schema.Codec<Part<Toolkit.Tools<T>>, PartEncoded> => {
-  const toolCalls: Array<Schema.Codec<ToolCallPart<string, any>, ToolCallPartEncoded>> = []
-  const toolCallResults: Array<Schema.Codec<ToolResultPart<string, any, any>, ToolResultPartEncoded>> = []
+): Schema.Codec<
+  Part<Toolkit.Tools<T>>,
+  PartEncoded,
+  Tool.ResultDecodingServices<Toolkit.Tools<T>[keyof Toolkit.Tools<T>]>,
+  Tool.ResultEncodingServices<Toolkit.Tools<T>[keyof Toolkit.Tools<T>]>
+> => {
+  const toolCalls: Array<Schema.Top> = []
+  const toolResults: Array<Schema.Top> = []
   for (const tool of Object.values(toolkit.tools as Record<string, Tool.Any>)) {
-    toolCalls.push(ToolCallPart(tool.name, tool.parametersSchema as any))
-    toolCallResults.push(ToolResultPart(tool.name, tool.successSchema, tool.failureSchema))
+    const toolCall = ToolCallPart(tool.name, tool.parametersSchema)
+    const toolResult = ToolResultPart(tool.name, tool.successSchema, tool.failureSchema)
+    toolCalls.push(toolCall)
+    toolResults.push(toolResult)
   }
   return Schema.Union([
     TextPart,
@@ -285,7 +299,7 @@ export const Part = <T extends Toolkit.Any | Toolkit.WithHandler<any>>(
     ResponseMetadataPart,
     FinishPart,
     ...toolCalls,
-    ...toolCallResults
+    ...toolResults
   ]) as any
 }
 
@@ -351,12 +365,19 @@ export type StreamPartEncoded =
  */
 export const StreamPart = <T extends Toolkit.Any | Toolkit.WithHandler<any>>(
   toolkit: T
-): Schema.Codec<StreamPart<Toolkit.Tools<T>>, StreamPartEncoded> => {
-  const toolCalls: Array<Schema.Codec<ToolCallPart<string, any>, ToolCallPartEncoded>> = []
-  const toolCallResults: Array<Schema.Codec<ToolResultPart<string, any, any>, ToolResultPartEncoded>> = []
+): Schema.Codec<
+  StreamPart<Toolkit.Tools<T>>,
+  StreamPartEncoded,
+  Tool.ResultDecodingServices<Toolkit.Tools<T>[keyof Toolkit.Tools<T>]>,
+  Tool.ResultEncodingServices<Toolkit.Tools<T>[keyof Toolkit.Tools<T>]>
+> => {
+  const toolCalls: Array<Schema.Top> = []
+  const toolResults: Array<Schema.Top> = []
   for (const tool of Object.values(toolkit.tools as Record<string, Tool.Any>)) {
-    toolCalls.push(ToolCallPart(tool.name, tool.parametersSchema as any))
-    toolCallResults.push(ToolResultPart(tool.name, tool.successSchema, tool.failureSchema))
+    const toolCall = ToolCallPart(tool.name, tool.parametersSchema)
+    const toolResult = ToolResultPart(tool.name, tool.successSchema, tool.failureSchema)
+    toolCalls.push(toolCall)
+    toolResults.push(toolResult)
   }
   return Schema.Union([
     TextStartPart,
@@ -375,7 +396,7 @@ export const StreamPart = <T extends Toolkit.Any | Toolkit.WithHandler<any>>(
     FinishPart,
     ErrorPart,
     ...toolCalls,
-    ...toolCallResults
+    ...toolResults
   ]) as any
 }
 
@@ -1590,14 +1611,14 @@ export const ToolResultPart = <
   return Decoded.pipe(Schema.encodeTo(
     Encoded,
     SchemaTransformation.transform({
-      decode: (x) => ({
-        ...x,
+      decode: (encoded) => ({
+        ...encoded,
         [PartTypeId]: PartTypeId,
-        providerExecuted: x.providerExecuted ?? false,
-        metadata: x.metadata ?? {},
-        encodedResult: x.result
+        providerExecuted: encoded.providerExecuted ?? false,
+        metadata: encoded.metadata ?? {},
+        encodedResult: encoded.result
       }),
-      encode: (x) => x
+      encode: identity
     })
   )).annotate({ identifier: `ToolResultPart(${name})` }) satisfies Schema.Codec<
     ToolResultPart<Name, Success["Type"], Failure["Type"]>,

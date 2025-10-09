@@ -98,7 +98,7 @@ export type FailureMode = "error" | "return"
 export interface Tool<
   out Name extends string,
   out Config extends {
-    readonly parameters: AnyStructSchema
+    readonly parameters: Schema.Struct<Schema.Struct.Fields>
     readonly success: Schema.Top
     readonly failure: Schema.Top
     readonly failureMode: FailureMode
@@ -272,8 +272,8 @@ export interface Tool<
 export interface ProviderDefined<
   Name extends string,
   Config extends {
-    readonly args: AnyStructSchema
-    readonly parameters: AnyStructSchema
+    readonly args: Schema.Struct<Schema.Struct.Fields>
+    readonly parameters: Schema.Struct<Schema.Struct.Fields>
     readonly success: Schema.Top
     readonly failure: Schema.Top
     readonly failureMode: FailureMode
@@ -421,7 +421,7 @@ export const isProviderDefined = (
  */
 export interface Any extends
   Tool<any, {
-    readonly parameters: AnyStructSchema
+    readonly parameters: Schema.Struct<Schema.Struct.Fields>
     readonly success: Schema.Top
     readonly failure: Schema.Top
     readonly failureMode: FailureMode
@@ -436,21 +436,21 @@ export interface Any extends
  */
 export interface AnyProviderDefined extends
   ProviderDefined<any, {
-    readonly args: AnyStructSchema
-    readonly parameters: AnyStructSchema
+    readonly args: Schema.Struct<Schema.Struct.Fields>
+    readonly parameters: Schema.Struct<Schema.Struct.Fields>
     readonly success: Schema.Top
     readonly failure: Schema.Top
     readonly failureMode: FailureMode
   }, any>
 {}
 
-/**
- * @since 4.0.0
- * @category utility types
- */
-export interface AnyStructSchema extends Schema.Top {
-  readonly fields: Schema.Struct.Fields
-}
+// /**
+//  * @since 4.0.0
+//  * @category utility types
+//  */
+// export interface AnyStructSchema extends Schema.Top {
+//   readonly fields: Schema.Struct.Fields
+// }
 
 /**
  * A utility type to extract the `Name` type from an `Tool`.
@@ -615,10 +615,37 @@ export type Services<T> = T extends Tool<
     | _Config["parameters"]["DecodingServices"]
     // A tool call `result`, whether success or failure, is encoded and returned
     // as the `encodedResult` along with the `result`
-    | _Config["success"]["EncodingServices"]
-    | _Config["failure"]["EncodingServices"]
+    | ResultEncodingServices<T>
     // Per-request requirements
     | _Requirements
+  : never
+
+/**
+ * A utility type to extract the requirements needed to encode the result of
+ * a `Tool` call.
+ *
+ * @since 4.0.0
+ * @category utility types
+ */
+export type ResultEncodingServices<T> = T extends Tool<
+  infer _Name,
+  infer _Config,
+  infer _Requirements
+> ? _Config["success"]["EncodingServices"] | _Config["failure"]["EncodingServices"]
+  : never
+
+/**
+ * A utility type to extract the requirements needed to decode the result of
+ * a `Tool` call.
+ *
+ * @since 4.0.0
+ * @category utility types
+ */
+export type ResultDecodingServices<T> = T extends Tool<
+  infer _Name,
+  infer _Config,
+  infer _Requirements
+> ? _Config["success"]["DecodingServices"] | _Config["failure"]["DecodingServices"]
   : never
 
 /**
@@ -745,7 +772,7 @@ const ProviderDefinedProto = {
 
 const userDefinedProto = <
   const Name extends string,
-  Parameters extends AnyStructSchema,
+  Parameters extends Schema.Struct<Schema.Struct.Fields>,
   Success extends Schema.Top,
   Failure extends Schema.Top,
   Mode extends FailureMode
@@ -773,8 +800,8 @@ const userDefinedProto = <
 
 const providerDefinedProto = <
   const Name extends string,
-  Args extends AnyStructSchema,
-  Parameters extends AnyStructSchema,
+  Args extends Schema.Struct<Schema.Struct.Fields>,
+  Parameters extends Schema.Struct<Schema.Struct.Fields>,
   Success extends Schema.Top,
   Failure extends Schema.Top,
   RequiresHandler extends boolean,

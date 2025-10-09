@@ -3,6 +3,74 @@
  */
 
 /**
+ * The `AiError` module provides comprehensive error handling for AI operations.
+ *
+ * This module defines a hierarchy of error types that can occur when working
+ * with AI services, including HTTP request/response errors, input/output
+ * validation errors, and general runtime errors. All errors follow Effect's
+ * structured error patterns and provide detailed context for debugging.
+ *
+ * ## Error Types
+ *
+ * - **HttpRequestError**: Errors occurring during HTTP request processing
+ * - **HttpResponseError**: Errors occurring during HTTP response processing
+ * - **MalformedInput**: Errors when input data doesn't match expected format
+ * - **MalformedOutput**: Errors when output data can't be parsed or validated
+ * - **UnknownError**: Catch-all for unexpected runtime errors
+ *
+ * @example
+ * ```ts
+ * import { Effect, Match } from "effect"
+ * import { AiError } from "effect/unstable/ai"
+ *
+ * const handleAiError = Match.type<AiError.AiError>().pipe(
+ *   Match.tag("HttpRequestError", (err) =>
+ *     Effect.logError(`Request failed: ${err.message}`)
+ *   ),
+ *   Match.tag("HttpResponseError", (err) =>
+ *     Effect.logError(`Response error (${err.response.status}): ${err.message}`)
+ *   ),
+ *   Match.tag("MalformedInput", (err) =>
+ *     Effect.logError(`Invalid input: ${err.message}`)
+ *   ),
+ *   Match.tag("MalformedOutput", (err) =>
+ *     Effect.logError(`Invalid output: ${err.message}`)
+ *   ),
+ *   Match.orElse((err) =>
+ *     Effect.logError(`Unknown error: ${err.message}`)
+ *   )
+ * )
+ * ```
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ * import { AiError } from "effect/unstable/ai"
+ *
+ * const aiOperation = Effect.gen(function* () {
+ *   // Some AI operation that might fail
+ *   return yield* new AiError.HttpRequestError({
+ *     module: "OpenAI",
+ *     method: "completion",
+ *     reason: "Transport",
+ *     request: {
+ *       method: "POST",
+ *       url: "https://api.openai.com/v1/completions",
+ *       urlParams: [],
+ *       hash: undefined,
+ *       headers: { "Content-Type": "application/json" }
+ *     }
+ *   })
+ * })
+ *
+ * const program = aiOperation.pipe(
+ *   Effect.catchTag("HttpRequestError", (error) => {
+ *     console.log("Request failed:", error.message)
+ *     return Effect.succeed("fallback response")
+ *   })
+ * )
+ * ```
+ *
  * @since 4.0.0
  */
 export * as AiError from "./AiError.ts"
@@ -10,12 +78,10 @@ export * as AiError from "./AiError.ts"
 /**
  * @since 4.0.0
  */
-export * as AiTool from "./AiTool.ts"
-
-/**
- * @since 4.0.0
- */
 export * as AiToolkit from "./AiToolkit.ts"
+
+
+export * as LanguageModel from "./LanguageModel.ts"
 
 /**
  * @since 4.0.0
@@ -26,3 +92,160 @@ export * as McpSchema from "./McpSchema.ts"
  * @since 4.0.0
  */
 export * as McpServer from "./McpServer.ts"
+
+/**
+ * The `Prompt` module provides several data structures to simplify creating and
+ * combining prompts.
+ *
+ * This module defines the complete structure of a conversation with a large
+ * language model, including messages, content parts, and provider-specific
+ * options. It supports rich content types like text, files, tool calls, and
+ * reasoning.
+ *
+ * @example
+ * ```ts
+ * import { Prompt } from "effect/unstable/ai"
+ *
+ * // Create a structured conversation
+ * const conversation = Prompt.make([
+ *   {
+ *     role: "system",
+ *     content: "You are a helpful assistant specialized in mathematics."
+ *   },
+ *   {
+ *     role: "user",
+ *     content: [{
+ *       type: "text",
+ *       text: "What is the derivative of x²?"
+ *     }]
+ *   },
+ *   {
+ *     role: "assistant",
+ *     content: [{
+ *       type: "text",
+ *       text: "The derivative of x² is 2x."
+ *     }]
+ *   }
+ * ])
+ * ```
+ *
+ * @example
+ * ```ts
+ * import { Prompt } from "effect/unstable/ai"
+ *
+ * // Merge multiple prompts
+ * const systemPrompt = Prompt.make([{
+ *   role: "system",
+ *   content: "You are a coding assistant."
+ * }])
+ *
+ * const userPrompt = Prompt.make("Help me write a function")
+ *
+ * const combined = Prompt.merge(systemPrompt, userPrompt)
+ * ```
+ *
+ * @since 4.0.0
+ */
+export * as Prompt from "./Prompt.ts"
+
+/**
+ * The `Response` module provides data structures to represent responses from
+ * large language models.
+ *
+ * This module defines the complete structure of AI model responses, including
+ * various content parts for text, reasoning, tool calls, files, and metadata,
+ * supporting both streaming and non-streaming responses.
+ *
+ * @example
+ * ```ts
+ * import { Response } from "effect/unstable/ai"
+ *
+ * // Create a simple text response part
+ * const textResponse = Response.makePart("text", {
+ *   text: "The weather is sunny today!"
+ * })
+ *
+ * // Create a tool call response part
+ * const toolCallResponse = Response.makePart("tool-call", {
+ *   id: "call_123",
+ *   name: "get_weather",
+ *   params: { city: "San Francisco" },
+ *   providerExecuted: false
+ * })
+ * ```
+ *
+ * @since 4.0.0
+ */
+export * as Response from "./Response.ts"
+
+/**
+ * The `Tool` module provides functionality for defining and managing tools
+ * that language models can call to augment their capabilities.
+ *
+ * This module enables creation of both user-defined and provider-defined tools,
+ * with full schema validation, type safety, and handler support. Tools allow
+ * AI models to perform actions like searching databases, calling APIs, or
+ * executing code within your application context.
+ *
+ * @example
+ * ```ts
+ * import { Schema } from "effect/schema"
+ * import { Tool } from "effect/unstable/ai"
+ *
+ * // Define a simple calculator tool
+ * const Calculator = Tool.make("Calculator", {
+ *   description: "Performs basic arithmetic operations",
+ *   parameters: {
+ *     operation: Schema.Literal("add", "subtract", "multiply", "divide"),
+ *     a: Schema.Number,
+ *     b: Schema.Number
+ *   },
+ *   success: Schema.Number
+ * })
+ * ```
+ *
+ * @since 4.0.0
+ */
+export * as Tool from "./Tool.ts"
+
+/**
+ * The `Toolkit` module allows for creating and implementing a collection of
+ * `Tool`s which can be used to enhance the capabilities of a large language
+ * model beyond simple text generation.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ * import { Schema } from "effect/schema"
+ * import { Toolkit, Tool } from "effect/unstable/ai"
+ *
+ * // Create individual tools
+ * const GetCurrentTime = Tool.make("GetCurrentTime", {
+ *   description: "Get the current timestamp",
+ *   success: Schema.Number
+ * })
+ *
+ * const GetWeather = Tool.make("GetWeather", {
+ *   description: "Get weather for a location",
+ *   parameters: { location: Schema.String },
+ *   success: Schema.Struct({
+ *     temperature: Schema.Number,
+ *     condition: Schema.String
+ *   })
+ * })
+ *
+ * // Create a toolkit with multiple tools
+ * const MyToolkit = Toolkit.make(GetCurrentTime, GetWeather)
+ *
+ * const MyToolkitLayer = MyToolkit.toLayer({
+ *   GetCurrentTime: () => Effect.succeed(Date.now()),
+ *   GetWeather: ({ location }) => Effect.succeed({
+ *     temperature: 72,
+ *     condition: "sunny"
+ *   })
+ * })
+ * ```
+ *
+ * @since 1.0.0
+ */
+export * as Toolkit from "./Toolkit.ts"
