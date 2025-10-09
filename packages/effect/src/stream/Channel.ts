@@ -1875,15 +1875,22 @@ const mapEffectConcurrent = <
       const queue = yield* Queue.bounded<OutElem2, OutErr | EX | Pull.Halt<OutDone>>(0)
       yield* Scope.addFinalizer(forkedScope, Queue.shutdown(queue))
 
+      const runFork = Effect.runForkWith(yield* Effect.services<RX>())
+      const trackFiber = Fiber.runIn(forkedScope)
+
       if (options.unordered) {
         const semaphore = Effect.makeSemaphoreUnsafe(concurrencyN)
+        const release = constant(semaphore.release(1))
         const handle = Effect.matchCauseEffect({
-          onFailure: (cause: Cause.Cause<EX>) => Effect.andThen(Queue.failCause(queue, cause), semaphore.release(1)),
-          onSuccess: (value: OutElem2) => Effect.andThen(Queue.offer(queue, value), semaphore.release(1))
+          onFailure: (cause: Cause.Cause<EX>) => Effect.flatMap(Queue.failCause(queue, cause), release),
+          onSuccess: (value: OutElem2) => Effect.flatMap(Queue.offer(queue, value), release)
         })
         yield* semaphore.take(1).pipe(
           Effect.flatMap(() => pull),
-          Effect.flatMap((value) => Effect.forkChild(handle(f(value)), { startImmediately: true })),
+          Effect.flatMap((value) => {
+            trackFiber(runFork(handle(f(value))))
+            return Effect.void
+          }),
           Effect.forever({ autoYield: false }),
           Effect.catchCause((cause) =>
             semaphore.withPermits(concurrencyN - 1)(
@@ -1896,31 +1903,39 @@ const mapEffectConcurrent = <
         // capacity is n - 2 because
         // - 1 for the offer *after* starting a fiber
         // - 1 for the current processing fiber
-        const fibers = yield* Queue.bounded<
-          Effect.Effect<Exit.Exit<OutElem2, OutErr | EX | Pull.Halt<OutDone>>>,
+        const effects = yield* Queue.bounded<
+          Effect.Effect<OutElem2, OutErr | EX | Pull.Halt<OutDone>>,
           Queue.Done
         >(concurrencyN - 2)
         yield* Scope.addFinalizer(forkedScope, Queue.shutdown(queue))
 
-        yield* Queue.take(fibers).pipe(
-          Effect.flatMap(identity_),
-          Effect.flatMap((exit) =>
-            exit._tag === "Success" ? Queue.offer(queue, exit.value) : Queue.failCause(queue, exit.cause)
-          ),
+        yield* Queue.take(effects).pipe(
+          Effect.flatten,
+          Effect.flatMap((value) => Queue.offer(queue, value)),
           Effect.forever({ autoYield: false }),
-          Effect.ignore,
+          Queue.into(queue),
           Effect.forkIn(forkedScope)
         )
 
-        const handle = Effect.tapCause((cause: Cause.Cause<Types.NoInfer<EX>>) => Queue.failCause(queue, cause))
+        let errored = false
+        const onExit = (exit: Exit.Exit<OutElem2, EX>) => {
+          if (exit._tag === "Success") return
+          Queue.doneUnsafe(queue, exit)
+          errored = true
+        }
         yield* pull.pipe(
-          Effect.flatMap((value) => Effect.forkChild(handle(f(value)), { startImmediately: true })),
-          Effect.flatMap((fiber) => Queue.offer(fibers, Fiber.await(fiber))),
+          Effect.flatMap((value) => {
+            if (errored) return Effect.interrupt
+            const fiber = runFork(f(value))
+            trackFiber(fiber)
+            fiber.addObserver(onExit)
+            return Queue.offer(effects, Fiber.join(fiber))
+          }),
           Effect.forever({ autoYield: false }),
           Effect.catchCause((cause) =>
-            Queue.offer(fibers, Effect.succeed(Exit.failCause(cause))).pipe(
-              Effect.andThen(Queue.end(fibers)),
-              Effect.andThen(Queue.await(fibers))
+            Queue.offer(effects, Exit.failCause(cause)).pipe(
+              Effect.andThen(Queue.end(effects)),
+              Effect.andThen(Queue.await(effects))
             )
           ),
           Effect.forkIn(forkedScope)
