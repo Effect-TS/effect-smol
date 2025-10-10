@@ -4210,13 +4210,17 @@ console.log(String(Schema.decodeUnknownExit(provided)(null)))
 
 ### Basic Conversion (no annotations)
 
-By default, a plain schema (with no extra annotations) will yield the minimal valid JSON Schema for that shape. For example:
+By default, a plain schema (with no annotations) produces the minimal valid JSON Schema for that shape.
+
+**Example** (Tuple to draft-07 JSON Schema)
 
 ```ts
 import { Schema, ToJsonSchema } from "effect/schema"
 
+// Define a tuple: [string, number]
 const schema = Schema.Tuple([Schema.String, Schema.Number])
 
+// Generate a draft-07 JSON Schema
 const jsonSchema = ToJsonSchema.makeDraft07(schema)
 
 console.log(JSON.stringify(jsonSchema, null, 2))
@@ -4238,13 +4242,15 @@ Output:
 */
 ```
 
-Similarly, for Draft 2020-12:
+**Example** (Tuple to draft-2020-12 JSON Schema)
 
 ```ts
 import { Schema, ToJsonSchema } from "effect/schema"
 
+// Same tuple as above
 const schema = Schema.Tuple([Schema.String, Schema.Number])
 
+// Generate a draft-2020-12 JSON Schema
 const jsonSchema = ToJsonSchema.makeDraft2020_12(schema)
 
 console.log(JSON.stringify(jsonSchema, null, 2))
@@ -4266,17 +4272,29 @@ Output:
 */
 ```
 
-No errors are thrown as long as your schema is not a “Declaration” (e.g. `Schema.Option(Schema.String)`), `BigInt`, `Symbol`, or `UniqueSymbol` at the top level. In those cases, you'll see runtime errors like:
+If the top-level schema is a "Declaration" (e.g. `Schema.Option(Schema.String)`), `BigInt`, `Symbol`, or `UniqueSymbol`, generation fails with a runtime error.
 
-> `cannot generate JSON Schema for Declaration at root`
+**Example** (Unsupported top-level type)
 
-> `cannot generate JSON Schema for SymbolKeyword at root`
+```ts
+import { Schema, ToJsonSchema } from "effect/schema"
 
-> etc.
+const schema = Schema.BigInt
 
-### Attaching Standard Metadata (`title`, `description`, `default`, `examples`)
+ToJsonSchema.makeDraft07(schema)
+// throws Error: cannot generate JSON Schema for BigIntKeyword at root
+```
 
-Any schema implementing `Bottom<T>` (which includes all primitive keywords, arrays, tuples, objects, etc.) accepts the `.annotate(...)` method, where you may pass standard “documentation” or “metadata” fields:
+### Attaching Standard Metadata
+
+Use `.annotate(...)` to attach standard JSON Schema annotations:
+
+- `title`
+- `description`
+- `default`
+- `examples`
+
+**Example** (Adding basic annotations)
 
 ```ts
 import { Schema, ToJsonSchema } from "effect/schema"
@@ -4308,21 +4326,143 @@ Output:
 */
 ```
 
-### Overriding the Generated JSON Schema
+### Handling invalid examples and defaults
 
-Sometimes you want to tamper with the default JSON Schema that Effect would generate. For that, use the annotation:
+Annotations are not validated when you set them. During generation, `examples` and `default` are converted to the schema's encoded type. If the schema represents a transformation (for example `Schema.FiniteFromString`), values may change type in the output. Invalid examples are filtered out.
+
+**Example** (Filtering invalid annotations)
 
 ```ts
+import { Schema, ToJsonSchema } from "effect/schema"
+
+// Attaching invalid values is allowed at definition time
+const schema = Schema.NonEmptyString.annotate({
+  default: "", // invalid (empty string)
+  examples: ["alice", "", "bob"] // the empty string is invalid
+})
+
+// During generation invalid annotations are dropped
+const jsonSchema = ToJsonSchema.makeDraft07(schema)
+
+console.log(JSON.stringify(jsonSchema, null, 2))
+/*
+Output:
 {
-  jsonSchema: {
-    _tag: "Override"
-    override: (ctx) => JsonSchema,
-    required?: boolean
-  }
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "type": "string",
+  "title": "minLength(1)",
+  "description": "a value with a length of at least 1",
+  "examples": [
+    "alice",
+    "bob"
+  ],
+  "minLength": 1
+}
+*/
+```
+
+### Undefined is converted to optional fields / elements
+
+**Example** (Optional struct field from `UndefinedOr`)
+
+```ts
+import { Schema, ToJsonSchema } from "effect/schema"
+
+const schema = Schema.Struct({
+  a: Schema.UndefinedOr(Schema.Number) // 'a' may be undefined
+})
+
+const jsonSchema = ToJsonSchema.makeDraft07(schema)
+
+console.log(JSON.stringify(jsonSchema, null, 2))
+/*
+Output:
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "type": "object",
+  "properties": {
+    "a": {
+      "type": "number"
+    }
+  },
+  "required": [], // <= "a" is optional
+  "additionalProperties": false
+}
+*/
+```
+
+**Example** (Optional tuple element from `UndefinedOr`)
+
+```ts
+import { Schema, ToJsonSchema } from "effect/schema"
+
+const schema = Schema.Tuple([Schema.UndefinedOr(Schema.Number)]) // first element may be undefined
+
+const jsonSchema = ToJsonSchema.makeDraft07(schema)
+
+console.log(JSON.stringify(jsonSchema, null, 2))
+/*
+Output:
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "type": "array",
+  "minItems": 0, // <= first element is optional
+  "items": [
+    {
+      "type": "number"
+    }
+  ],
+  "additionalItems": false
+}
+*/
+```
+
+### Overriding the default generated JSON Schema
+
+Sometimes you need to adjust the generated JSON Schema. Use the `jsonSchema: { _tag: "Override", ... }` annotation to replace or extend the defaults.
+
+```ts
+type Target = "draft-07" | "draft-2020-12" | "openApi3.1"
+
+type OverrideContext = {
+  /** The target of the JSON Schema */
+  readonly target: Target
+  /** The default JSON Schema that would be generated by the AST */
+  readonly jsonSchema: JsonSchema
+  /** A function that generates a JSON Schema from an AST */
+  readonly make: (ast: AST.AST) => JsonSchema
+}
+
+type Override = {
+  readonly _tag: "Override"
+  readonly override: (context: OverrideContext) => JsonSchema
+  /** Whether the field / element is required */
+  readonly required?: boolean | undefined
 }
 ```
 
-In other words:
+**Example** (Without override, filter ignored in JSON Schema)
+
+```ts
+import { Check, Schema, ToJsonSchema } from "effect/schema"
+
+// Validation at runtime: n > 0
+const schema = Schema.Number.check(Check.make((n) => n > 0))
+
+// No override: the JSON Schema keeps the basic 'number' shape
+const jsonSchema = ToJsonSchema.makeDraft07(schema)
+
+console.log(JSON.stringify(jsonSchema, null, 2))
+/*
+Output:
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "type": "number"
+}
+*/
+```
+
+**Example** (With override, add 'minimum: 0')
 
 ```ts
 import { Check, Schema, ToJsonSchema } from "effect/schema"
@@ -4330,9 +4470,8 @@ import { Check, Schema, ToJsonSchema } from "effect/schema"
 const schema = Schema.Number.check(Check.make((n) => n > 0)).annotate({
   jsonSchema: {
     _tag: "Override",
-    // this thunk is evaluated at the time of schema generation
-    // must return a JSON‐Schema compatible object representing the override
-    override: () => ({ type: "number", minimum: 0 })
+    // Evaluated during generation; return a JSON Schema object
+    override: (ctx) => ({ ...ctx.jsonSchema, minimum: 0 })
   }
 })
 
@@ -4349,9 +4488,49 @@ Output:
 */
 ```
 
-### JSON Schema Fragments For Filters
+### Overriding the default optional strategy
 
-Whenever you call `.check(...)` on a schema, Effect attaches a filter which may carry a `"jsonSchema"` annotation that represents a JSON Schema fragment that will be merged into the final JSON Schema.
+You can force a field to be required (or optional) regardless of `UndefinedOr` by setting `required` in the override.
+
+**Example** (Mark an otherwise optional field as required)
+
+```ts
+import { Schema, ToJsonSchema } from "effect/schema"
+
+const schema = Schema.Struct({
+  a: Schema.UndefinedOr(Schema.Number).annotate({
+    jsonSchema: {
+      _tag: "Override",
+      override: (ctx) => ctx.jsonSchema, // keep the generated property schema
+      required: true // but mark it as required
+    }
+  })
+})
+
+const jsonSchema = ToJsonSchema.makeDraft07(schema)
+
+console.log(JSON.stringify(jsonSchema, null, 2))
+/*
+Output:
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "type": "object",
+  "properties": {
+    "a": {
+      "type": "number"
+    }
+  },
+  "required": [
+    "a" // <= "a" is required
+  ],
+  "additionalProperties": false
+}
+*/
+```
+
+### Adding JSON Schema Fragments For Filters
+
+When you call `.check(...)`, Effect attaches a filter. A filter may include a `"jsonSchema"` annotation that describes a JSON Schema fragment to merge into the final schema.
 
 #### Built-in Filters
 
@@ -4377,14 +4556,17 @@ Output:
 */
 ```
 
-Because no "outer" annotate() was used, and this is the first filter, we merge the fragment's keywords into the top‐level schema.
+Because no outer `.annotate(...)` is present and this is the first filter, the fragment's keywords are merged into the top level.
 
-If you stack two filters:
+**Example** (Multiple filters: top-level + `allOf`)
 
 ```ts
 import { Check, Schema, ToJsonSchema } from "effect/schema"
 
-const schema = Schema.String.check(Check.minLength(1), Check.maxLength(2))
+const schema = Schema.String.check(
+  Check.minLength(1), // first: merged at top-level
+  Check.maxLength(2) // subsequent: wrapped under allOf
+)
 
 const jsonSchema = ToJsonSchema.makeDraft07(schema)
 
@@ -4408,18 +4590,17 @@ Output:
 */
 ```
 
-- the FIRST filter (minLength) is inlined at top level
-- the SECOND filter (maxLength) is wrapped in an `allOf` array
+Rules of thumb:
 
-In other words:
-
-- The **first** fragment (if any) is merged directly into the parent schema.
-- Any **subsequent** fragments are wrapped under `"allOf": [ { /* fragment */ }, … ]`.
-- If you later call `.annotate(...)` on top of these checks, your `title/description/default/examples` appear alongside (or above) these filter fragments but never conflict.
+- The first fragment (if present) is merged at the top level.
+- Any further fragments are added under `"allOf": [ ... ]`.
+- If you later call `.annotate(...)`, your `title`, `description`, `default`, and `examples` appear alongside these fragments.
 
 #### Declaring your own fragment filter
 
-You can build a custom filter and attach a JSON fragment yourself:
+You can define a custom filter and provide a JSON Schema fragment.
+
+**Example** (Custom `pattern` constraint)
 
 ```ts
 import { Check, Schema, ToJsonSchema } from "effect/schema"
@@ -4430,8 +4611,7 @@ const schema = Schema.String.check(
     description: "must contain 'foo'",
     jsonSchema: {
       _tag: "Constraint",
-      // this thunk is evaluated at the time of schema generation
-      // must return a JSON‐Schema fragment representing the filter
+      // Evaluated during generation; return a fragment that will be merged
       constraint: () => ({
         pattern: "foo"
       })
@@ -4454,18 +4634,22 @@ Output:
 */
 ```
 
-The resulting JSON Schema merges `pattern: "foo"` at top level, along with the human‐readable `title` and `description` from your filter (if any).
+The resulting JSON Schema merges `pattern: "foo"` at the top level, together with the filter's `title` and `description` (if present).
 
 ### The fromJsonString combinator
 
-When using `fromJsonString` with `draft-2020-12` or `openApi3.1`, the
-resulting schema will be a JSON Schema with a `contentSchema` property that
-contains the JSON Schema for the given schema.
+With `fromJsonString` on `draft-2020-12` or `openApi3.1`, the generated schema uses `contentSchema` to embed the JSON Schema of the decoded value.
+
+**Example** (Embedding `contentSchema` for JSON string content)
 
 ```ts
 import { Schema, ToJsonSchema } from "effect/schema"
 
+// Original value is an object with a string field 'a'
 const original = Schema.Struct({ a: Schema.String })
+
+// fromJsonString: the outer value is a string,
+// but its content must be valid JSON matching 'original'
 const schema = Schema.fromJsonString(original)
 
 const jsonSchema = ToJsonSchema.makeDraft2020_12(schema)

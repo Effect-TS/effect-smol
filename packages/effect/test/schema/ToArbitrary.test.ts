@@ -515,6 +515,10 @@ describe("ToArbitrary", () => {
     verifyGeneration(Schema.DateTimeUtc)
   })
 
+  it("Uint8Array", () => {
+    verifyGeneration(Schema.Uint8Array)
+  })
+
   it("UnknownFromJsonString", () => {
     verifyGeneration(Schema.UnknownFromJsonString)
   })

@@ -415,7 +415,7 @@ describe("ToJsonSchema", () => {
       })
       expectError(
         schema,
-        "cannot generate JSON Schema for Suspend at [\"as\"][0], required `id` annotation"
+        "cannot generate JSON Schema for Suspend at [\"as\"][0], required `identifier` annotation"
       )
     })
 
