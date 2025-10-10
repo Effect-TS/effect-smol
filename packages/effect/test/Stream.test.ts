@@ -1,6 +1,6 @@
 /* eslint-disable no-restricted-syntax */
 import { assert, describe, it } from "@effect/vitest"
-import { assertExitFailure, deepStrictEqual } from "@effect/vitest/utils"
+import { assertExitFailure, deepStrictEqual, strictEqual } from "@effect/vitest/utils"
 import { Cause, Deferred, Effect, Exit, Fiber, Queue, Ref, Schedule } from "effect"
 import { Array } from "effect/collections"
 import { isReadonlyArrayNonEmpty, type NonEmptyArray } from "effect/collections/Array"
@@ -974,6 +974,30 @@ describe("Stream", () => {
         deepStrictEqual(result, [0, 1, 2, 3])
       }))
   })
+
+  it.effect("onStart", () =>
+    Effect.gen(function*() {
+      let counter = 0
+      const result = yield* pipe(
+        Stream.make(1, 1),
+        Stream.onStart(Effect.sync(() => counter++)),
+        Stream.runCollect
+      )
+      strictEqual(counter, 1)
+      deepStrictEqual(result, [1, 1])
+    }))
+
+  it.effect("onEnd", () =>
+    Effect.gen(function*() {
+      let counter = 0
+      const result = yield* pipe(
+        Stream.make(1, 2, 3),
+        Stream.onEnd(Effect.sync(() => counter++)),
+        Stream.runCollect
+      )
+      strictEqual(counter, 1)
+      deepStrictEqual(result, [1, 2, 3])
+    }))
 })
 
 const grouped = <A>(arr: Array<A>, size: number): Array<NonEmptyArray<A>> => {

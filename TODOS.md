@@ -293,8 +293,8 @@ The exports under each section are organized as they are in Effect 3.0. The cate
 | `flattenExitOption` |   X    |                         |          |
 | `flattenIterables`  |  Done  |    `flattenIterable`    |          |
 |    `flattenTake`    |  Done  |      `flattenTake`      |          |
-|       `onEnd`       |   -    |                         |          |
-|      `onStart`      |   -    |                         |          |
+|       `onEnd`       |  Done  |                         |          |
+|      `onStart`      |  Done  |                         |          |
 |        `tap`        |  Done  |          `tap`          |          |
 |      `tapBoth`      |   -    |                         |          |
 |     `tapError`      |   -    |                         |          |

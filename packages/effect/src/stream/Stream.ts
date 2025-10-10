@@ -3297,6 +3297,40 @@ export const onExit: {
  * @since 4.0.0
  * @category utils
  */
+export const onStart: {
+  <X, EX, RX>(
+    onStart: Effect.Effect<X, EX, RX>
+  ): <A, E, R>(self: Stream<A, E, R>) => Stream<A, E | EX, R | RX>
+  <A, E, R, X, EX, RX>(
+    self: Stream<A, E, R>,
+    onStart: Effect.Effect<X, EX, RX>
+  ): Stream<A, E | EX, R | RX>
+} = dual(2, <A, E, R, X, EX, RX>(
+  self: Stream<A, E, R>,
+  onStart: Effect.Effect<X, EX, RX>
+): Stream<A, E | EX, R | RX> => fromChannel(Channel.onStart(self.channel, onStart)))
+
+/**
+ * @since 4.0.0
+ * @category utils
+ */
+export const onEnd: {
+  <X, EX, RX>(
+    onEnd: Effect.Effect<X, EX, RX>
+  ): <A, E, R>(self: Stream<A, E, R>) => Stream<A, E | EX, R | RX>
+  <A, E, R, X, EX, RX>(
+    self: Stream<A, E, R>,
+    onEnd: Effect.Effect<X, EX, RX>
+  ): Stream<A, E | EX, R | RX>
+} = dual(2, <A, E, R, X, EX, RX>(
+  self: Stream<A, E, R>,
+  onEnd: Effect.Effect<X, EX, RX>
+): Stream<A, E | EX, R | RX> => fromChannel(Channel.onEnd(self.channel, onEnd)))
+
+/**
+ * @since 4.0.0
+ * @category utils
+ */
 export const ensuring: {
   <R2>(finalizer: Effect.Effect<unknown, never, R2>): <A, E, R>(self: Stream<A, E, R>) => Stream<A, E, R | R2>
   <A, E, R, R2>(self: Stream<A, E, R>, finalizer: Effect.Effect<unknown, never, R2>): Stream<A, E, R | R2>
