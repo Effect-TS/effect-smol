@@ -589,12 +589,10 @@ describe("ToArbitrary", () => {
     it("String & nonEmpty", () => {
       assertFragments(Schema.NonEmptyString, {
         constraints: {
-          ArrayConstraints: {
-            _tag: "ArrayConstraints",
+          array: {
             minLength: 1
           },
-          StringConstraints: {
-            _tag: "StringConstraints",
+          string: {
             minLength: 1
           }
         }
@@ -604,12 +602,10 @@ describe("ToArbitrary", () => {
     it("String & nonEmpty & minLength(2)", () => {
       assertFragments(Schema.String.check(Check.nonEmpty()).check(Check.minLength(2)), {
         constraints: {
-          ArrayConstraints: {
-            _tag: "ArrayConstraints",
+          array: {
             minLength: 2
           },
-          StringConstraints: {
-            _tag: "StringConstraints",
+          string: {
             minLength: 2
           }
         }
@@ -619,12 +615,10 @@ describe("ToArbitrary", () => {
     it("String & minLength(2) & nonEmpty", () => {
       assertFragments(Schema.String.check(Check.minLength(2)).check(Check.nonEmpty()), {
         constraints: {
-          ArrayConstraints: {
-            _tag: "ArrayConstraints",
+          array: {
             minLength: 2
           },
-          StringConstraints: {
-            _tag: "StringConstraints",
+          string: {
             minLength: 2
           }
         }
@@ -634,13 +628,11 @@ describe("ToArbitrary", () => {
     it("String & nonEmpty & maxLength(2)", () => {
       assertFragments(Schema.String.check(Check.nonEmpty()).check(Check.maxLength(2)), {
         constraints: {
-          ArrayConstraints: {
-            _tag: "ArrayConstraints",
+          array: {
             minLength: 1,
             maxLength: 2
           },
-          StringConstraints: {
-            _tag: "StringConstraints",
+          string: {
             minLength: 1,
             maxLength: 2
           }
@@ -651,13 +643,11 @@ describe("ToArbitrary", () => {
     it("String & length(2)", () => {
       assertFragments(Schema.String.check(Check.length(2)), {
         constraints: {
-          ArrayConstraints: {
-            _tag: "ArrayConstraints",
+          array: {
             minLength: 2,
             maxLength: 2
           },
-          StringConstraints: {
-            _tag: "StringConstraints",
+          string: {
             minLength: 2,
             maxLength: 2
           }
@@ -668,8 +658,7 @@ describe("ToArbitrary", () => {
     it("startsWith", () => {
       assertFragments(Schema.String.check(Check.startsWith("a")), {
         constraints: {
-          StringConstraints: {
-            _tag: "StringConstraints",
+          string: {
             patterns: ["^a"]
           }
         }
@@ -679,8 +668,7 @@ describe("ToArbitrary", () => {
     it("endsWith", () => {
       assertFragments(Schema.String.check(Check.endsWith("a")), {
         constraints: {
-          StringConstraints: {
-            _tag: "StringConstraints",
+          string: {
             patterns: ["a$"]
           }
         }
@@ -696,8 +684,7 @@ describe("ToArbitrary", () => {
     it("finite", () => {
       assertFragments(Schema.Number.check(Check.finite()), {
         constraints: {
-          NumberConstraints: {
-            _tag: "NumberConstraints",
+          number: {
             noDefaultInfinity: true,
             noNaN: true
           }
@@ -708,8 +695,7 @@ describe("ToArbitrary", () => {
     it("int", () => {
       assertFragments(Schema.Number.check(Check.int()), {
         constraints: {
-          NumberConstraints: {
-            _tag: "NumberConstraints",
+          number: {
             isInteger: true
           }
         }
@@ -719,8 +705,7 @@ describe("ToArbitrary", () => {
     it("finite & int", () => {
       assertFragments(Schema.Number.check(Check.finite(), Check.int()), {
         constraints: {
-          NumberConstraints: {
-            _tag: "NumberConstraints",
+          number: {
             noDefaultInfinity: true,
             noNaN: true,
             isInteger: true
@@ -732,8 +717,7 @@ describe("ToArbitrary", () => {
     it("int32", () => {
       assertFragments(Schema.Number.check(Check.int32()), {
         constraints: {
-          NumberConstraints: {
-            _tag: "NumberConstraints",
+          number: {
             isInteger: true,
             max: 2147483647,
             min: -2147483648
@@ -745,8 +729,7 @@ describe("ToArbitrary", () => {
     it("greaterThan", () => {
       assertFragments(Schema.Number.check(Check.greaterThan(10)), {
         constraints: {
-          NumberConstraints: {
-            _tag: "NumberConstraints",
+          number: {
             min: 10,
             minExcluded: true
           }
@@ -757,8 +740,7 @@ describe("ToArbitrary", () => {
     it("greaterThanOrEqualToDate", () => {
       assertFragments(Schema.Date.check(Check.greaterThanOrEqualToDate(new Date(0))), {
         constraints: {
-          DateConstraints: {
-            _tag: "DateConstraints",
+          date: {
             min: new Date(0)
           }
         }
@@ -768,8 +750,7 @@ describe("ToArbitrary", () => {
     it("lessThanOrEqualToDate", () => {
       assertFragments(Schema.Date.check(Check.lessThanOrEqualToDate(new Date(10))), {
         constraints: {
-          DateConstraints: {
-            _tag: "DateConstraints",
+          date: {
             max: new Date(10)
           }
         }
@@ -779,8 +760,7 @@ describe("ToArbitrary", () => {
     it("betweenDate", () => {
       assertFragments(Schema.Date.check(Check.betweenDate(new Date(0), new Date(10))), {
         constraints: {
-          DateConstraints: {
-            _tag: "DateConstraints",
+          date: {
             min: new Date(0),
             max: new Date(10)
           }
@@ -791,8 +771,7 @@ describe("ToArbitrary", () => {
     it("validDate", () => {
       assertFragments(Schema.Date.check(Check.validDate()), {
         constraints: {
-          DateConstraints: {
-            _tag: "DateConstraints",
+          date: {
             noInvalidDate: true
           }
         }
@@ -802,8 +781,7 @@ describe("ToArbitrary", () => {
     it("validDate & greaterThanOrEqualToDate", () => {
       assertFragments(Schema.Date.check(Check.validDate(), Check.greaterThanOrEqualToDate(new Date(0))), {
         constraints: {
-          DateConstraints: {
-            _tag: "DateConstraints",
+          date: {
             noInvalidDate: true,
             min: new Date(0)
           }
@@ -814,8 +792,7 @@ describe("ToArbitrary", () => {
     it("greaterThanOrEqualToBigInt", () => {
       assertFragments(Schema.BigInt.check(Check.greaterThanOrEqualToBigInt(BigInt(0))), {
         constraints: {
-          BigIntConstraints: {
-            _tag: "BigIntConstraints",
+          bigint: {
             min: BigInt(0)
           }
         }
@@ -825,8 +802,7 @@ describe("ToArbitrary", () => {
     it("lessThanOrEqualToBigInt", () => {
       assertFragments(Schema.BigInt.check(Check.lessThanOrEqualToBigInt(BigInt(10))), {
         constraints: {
-          BigIntConstraints: {
-            _tag: "BigIntConstraints",
+          bigint: {
             max: BigInt(10)
           }
         }
@@ -836,8 +812,7 @@ describe("ToArbitrary", () => {
     it("betweenBigInt", () => {
       assertFragments(Schema.BigInt.check(Check.betweenBigInt(BigInt(0), BigInt(10))), {
         constraints: {
-          BigIntConstraints: {
-            _tag: "BigIntConstraints",
+          bigint: {
             min: BigInt(0),
             max: BigInt(10)
           }
@@ -849,21 +824,18 @@ describe("ToArbitrary", () => {
       const comparator = ToEquivalence.make(Schema.String)
       assertFragments(Schema.UniqueArray(Schema.String), {
         constraints: {
-          ArrayConstraints: {
-            _tag: "ArrayConstraints",
+          array: {
             comparator
           }
         }
       })
       assertFragments(Schema.UniqueArray(Schema.String).check(Check.maxLength(2)), {
         constraints: {
-          ArrayConstraints: {
-            _tag: "ArrayConstraints",
+          array: {
             maxLength: 2,
             comparator
           },
-          StringConstraints: {
-            _tag: "StringConstraints",
+          string: {
             maxLength: 2
           }
         }

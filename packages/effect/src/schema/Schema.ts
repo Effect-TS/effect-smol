@@ -3827,7 +3827,7 @@ export function ReadonlyMap<Key extends Top, Value extends Top>(key: Key, value:
           return fc.oneof(
             ctx?.isSuspend ? { maxDepth: 2, depthIdentifier: "ReadonlyMap" } : {},
             fc.constant([]),
-            fc.array(fc.tuple(key, value), ctx?.constraints?.ArrayConstraints)
+            fc.array(fc.tuple(key, value), ctx?.constraints?.array)
           ).map((as) => new globalThis.Map(as))
         }
       },
@@ -3912,7 +3912,7 @@ export function ReadonlySet<Value extends Top>(value: Value): ReadonlySet$<Value
           return fc.oneof(
             ctx?.isSuspend ? { maxDepth: 2, depthIdentifier: "ReadonlySet" } : {},
             fc.constant([]),
-            fc.array(value, ctx?.constraints?.ArrayConstraints)
+            fc.array(value, ctx?.constraints?.array)
           ).map((as) => new globalThis.Set(as))
         }
       },
@@ -4091,7 +4091,7 @@ export const Date: Date = instanceOf(
       ),
     arbitrary: {
       _tag: "Override",
-      override: () => (fc, ctx) => fc.date(ctx?.constraints?.DateConstraints)
+      override: () => (fc, ctx) => fc.date(ctx?.constraints?.date)
     }
   }
 )
@@ -4819,9 +4819,7 @@ export const DateTimeUtc: DateTimeUtc = declare(
     arbitrary: {
       _tag: "Override",
       override: () => (fc, ctx) =>
-        fc.date({ noInvalidDate: true, ...ctx?.constraints?.DateConstraints }).map((date) =>
-          DateTime.fromDateUnsafe(date)
-        )
+        fc.date({ noInvalidDate: true, ...ctx?.constraints?.date }).map((date) => DateTime.fromDateUnsafe(date))
     },
     format: {
       _tag: "Override",

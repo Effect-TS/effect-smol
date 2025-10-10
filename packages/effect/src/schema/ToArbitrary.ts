@@ -3,7 +3,7 @@
  */
 import * as Boolean from "../Boolean.ts"
 import * as Array from "../collections/Array.ts"
-import * as Combiner from "../data/Combiner.ts"
+import type * as Combiner from "../data/Combiner.ts"
 import * as Option from "../data/Option.ts"
 import * as Predicate from "../data/Predicate.ts"
 import * as Struct from "../data/Struct.ts"
@@ -24,7 +24,6 @@ export declare namespace Annotation {
    * @since 4.0.0
    */
   export interface StringConstraints extends FastCheck.StringSharedConstraints {
-    readonly _tag: "StringConstraints"
     readonly patterns?: readonly [string, ...Array<string>]
   }
 
@@ -32,31 +31,25 @@ export declare namespace Annotation {
    * @since 4.0.0
    */
   export interface NumberConstraints extends FastCheck.FloatConstraints {
-    readonly _tag: "NumberConstraints"
     readonly isInteger?: boolean
   }
 
   /**
    * @since 4.0.0
    */
-  export interface BigIntConstraints extends FastCheck.BigIntConstraints {
-    readonly _tag: "BigIntConstraints"
-  }
+  export interface BigIntConstraints extends FastCheck.BigIntConstraints {}
 
   /**
    * @since 4.0.0
    */
   export interface ArrayConstraints extends FastCheck.ArrayConstraints {
-    readonly _tag: "ArrayConstraints"
     readonly comparator?: (a: any, b: any) => boolean
   }
 
   /**
    * @since 4.0.0
    */
-  export interface DateConstraints extends FastCheck.DateConstraints {
-    readonly _tag: "DateConstraints"
-  }
+  export interface DateConstraints extends FastCheck.DateConstraints {}
 
   /**
    * @since 4.0.0
@@ -73,20 +66,12 @@ export declare namespace Annotation {
    */
   export type Constraint = {
     readonly _tag: "Constraint"
-    readonly constraint: FastCheckConstraint
-  }
-
-  /**
-   * @since 4.0.0
-   */
-  export type Constraints = {
-    readonly _tag: "Constraints"
-    readonly constraints: {
-      readonly StringConstraints?: StringConstraints | undefined
-      readonly NumberConstraints?: NumberConstraints | undefined
-      readonly BigIntConstraints?: BigIntConstraints | undefined
-      readonly ArrayConstraints?: ArrayConstraints | undefined
-      readonly DateConstraints?: DateConstraints | undefined
+    readonly constraint: {
+      readonly string?: StringConstraints | undefined
+      readonly number?: NumberConstraints | undefined
+      readonly bigint?: BigIntConstraints | undefined
+      readonly array?: ArrayConstraints | undefined
+      readonly date?: DateConstraints | undefined
     }
   }
 
@@ -96,6 +81,7 @@ export declare namespace Annotation {
   export type Override<T, TypeParameters extends ReadonlyArray<Schema.Top>> = {
     readonly _tag: "Override"
     readonly override: (
+      // Arbitraries for any type parameters of the schema (if present)
       typeParameters: { readonly [K in keyof TypeParameters]: FastCheck.Arbitrary<TypeParameters[K]["Type"]> }
     ) => (fc: typeof FastCheck, context?: Context) => FastCheck.Arbitrary<T>
   }
@@ -111,7 +97,7 @@ export interface Context {
    * suspends, so implementations should try to avoid excessive recursion.
    */
   readonly isSuspend?: boolean | undefined
-  readonly constraints?: Annotation.Constraints["constraints"] | undefined
+  readonly constraints?: Annotation.Constraint["constraint"] | undefined
 }
 
 /**
@@ -139,7 +125,7 @@ function getAnnotation(
   annotations: Annotations.Annotations | undefined
 ):
   | Annotation.Constraint
-  | Annotation.Constraints
+  | Annotation.Constraint
   | Annotation.Override<any, ReadonlyArray<any>>
   | undefined
 {
@@ -148,7 +134,7 @@ function getAnnotation(
 
 function getCheckAnnotation(
   check: Check.Check<any>
-): Annotation.Constraint | Annotation.Constraints | undefined {
+): Annotation.Constraint | Annotation.Constraint | undefined {
   return check.annotations?.arbitrary as any
 }
 
@@ -174,7 +160,7 @@ function array(
   ctx: Context | undefined,
   item: FastCheck.Arbitrary<any>
 ) {
-  const constraint = ctx?.constraints?.ArrayConstraints
+  const constraint = ctx?.constraints?.array
   const array = isUniqueArrayConstraintsCustomCompare(constraint)
     ? fc.uniqueArray(item, constraint)
     : fc.array(item, constraint)
@@ -188,14 +174,12 @@ function array(
   return array
 }
 
-const last = UndefinedOr.getReducer(Combiner.last())
 const max = UndefinedOr.getReducer(Number.ReducerMax)
 const min = UndefinedOr.getReducer(Number.ReducerMin)
 const or = UndefinedOr.getReducer(Boolean.ReducerOr)
 const concat = UndefinedOr.getReducer(Array.getReducerConcat())
 
 const combiner: Combiner.Combiner<any> = Struct.getCombiner({
-  _tag: last,
   isInteger: or,
   max: min,
   maxExcluded: or,
@@ -214,16 +198,28 @@ const combiner: Combiner.Combiner<any> = Struct.getCombiner({
 })
 
 function merge(
-  constraints: Annotation.Constraints["constraints"],
+  _tag: "string" | "number" | "bigint" | "array" | "date",
+  constraints: Annotation.Constraint["constraint"],
   constraint: Annotation.FastCheckConstraint
-): Annotation.Constraints["constraints"] {
-  const _tag = constraint._tag
+): Annotation.Constraint["constraint"] {
   const c = constraints[_tag]
   if (c) {
-    return { ...constraints, [constraint._tag]: combiner.combine(c, constraint) }
+    return { ...constraints, [_tag]: combiner.combine(c, constraint) }
   } else {
-    return { ...constraints, [constraint._tag]: constraint }
+    return { ...constraints, [_tag]: constraint }
   }
+}
+
+const constraintsKeys = {
+  string: null,
+  number: null,
+  bigint: null,
+  array: null,
+  date: null
+}
+
+function isConstraintKey(key: string): key is keyof Annotation.Constraint["constraint"] {
+  return key in constraintsKeys
 }
 
 /** @internal */
@@ -232,17 +228,17 @@ export function mergeFiltersConstraints(
 ): (ctx: Context | undefined) => Context | undefined {
   const annotations = filters.map(getCheckAnnotation).filter(Predicate.isNotUndefined)
   return (ctx) => {
-    const constraints = annotations.reduce((acc: Annotation.Constraints["constraints"], c) => {
+    const constraints = annotations.reduce((acc: Annotation.Constraint["constraint"], c) => {
       switch (c._tag) {
-        case "Constraint":
-          return merge(acc, c.constraint)
-        case "Constraints":
-          return Object.values(c.constraints).reduce((acc, v) => {
-            if (v) {
-              return merge(acc, v)
+        case "Constraint": {
+          const keys = Object.keys(c.constraint)
+          for (const key of keys) {
+            if (isConstraintKey(key)) {
+              acc = merge(key, acc, c.constraint[key]!)
             }
-            return acc
-          }, acc)
+          }
+          return acc
+        }
       }
     }, ctx?.constraints || {})
     return { ...ctx, constraints }
@@ -276,7 +272,6 @@ const go = memoize((ast: AST.AST): LazyArbitrary<any> => {
         return annotation.override([])
       }
       case "Constraint":
-      case "Constraints":
         throw new Error("Constraint annotation found on non-constrained AST")
     }
   }
@@ -295,7 +290,7 @@ const go = memoize((ast: AST.AST): LazyArbitrary<any> => {
       return (fc) => fc.anything()
     case "StringKeyword":
       return (fc, ctx) => {
-        const constraint = ctx?.constraints?.StringConstraints
+        const constraint = ctx?.constraints?.string
         const patterns = constraint?.patterns
         if (patterns) {
           return fc.oneof(...patterns.map((pattern) => fc.stringMatching(new RegExp(pattern))))
@@ -304,7 +299,7 @@ const go = memoize((ast: AST.AST): LazyArbitrary<any> => {
       }
     case "NumberKeyword":
       return (fc, ctx) => {
-        const constraint = ctx?.constraints?.NumberConstraints
+        const constraint = ctx?.constraints?.number
         if (constraint?.isInteger) {
           return fc.integer(constraint)
         }
@@ -313,7 +308,7 @@ const go = memoize((ast: AST.AST): LazyArbitrary<any> => {
     case "BooleanKeyword":
       return (fc) => fc.boolean()
     case "BigIntKeyword":
-      return (fc, ctx) => fc.bigInt(ctx?.constraints?.BigIntConstraints ?? {})
+      return (fc, ctx) => fc.bigInt(ctx?.constraints?.bigint ?? {})
     case "SymbolKeyword":
       return (fc) => fc.string().map(Symbol.for)
     case "LiteralType":

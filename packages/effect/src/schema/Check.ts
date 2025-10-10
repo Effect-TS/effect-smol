@@ -227,8 +227,9 @@ export function trimmed(annotations?: Annotations.Filter) {
       arbitrary: {
         _tag: "Constraint",
         constraint: {
-          _tag: "StringConstraints",
-          patterns: [TRIMMED_PATTERN]
+          string: {
+            patterns: [TRIMMED_PATTERN]
+          }
         }
       }
     }, annotations)
@@ -262,8 +263,9 @@ export function regex(regex: RegExp, annotations?: Annotations.Filter) {
       arbitrary: {
         _tag: "Constraint",
         constraint: {
-          _tag: "StringConstraints",
-          patterns: [regex.source]
+          string: {
+            patterns: [regex.source]
+          }
         }
       }
     }, annotations)
@@ -370,8 +372,9 @@ export function startsWith(startsWith: string, annotations?: Annotations.Filter)
       arbitrary: {
         _tag: "Constraint",
         constraint: {
-          _tag: "StringConstraints",
-          patterns: [`^${startsWith}`]
+          string: {
+            patterns: [`^${startsWith}`]
+          }
         }
       }
     }, annotations)
@@ -400,8 +403,9 @@ export function endsWith(endsWith: string, annotations?: Annotations.Filter) {
       arbitrary: {
         _tag: "Constraint",
         constraint: {
-          _tag: "StringConstraints",
-          patterns: [`${endsWith}$`]
+          string: {
+            patterns: [`${endsWith}$`]
+          }
         }
       }
     }, annotations)
@@ -430,8 +434,9 @@ export function includes(includes: string, annotations?: Annotations.Filter) {
       arbitrary: {
         _tag: "Constraint",
         constraint: {
-          _tag: "StringConstraints",
-          patterns: [includes]
+          string: {
+            patterns: [includes]
+          }
         }
       }
     }, annotations)
@@ -460,8 +465,9 @@ export function uppercased(annotations?: Annotations.Filter) {
       arbitrary: {
         _tag: "Constraint",
         constraint: {
-          _tag: "StringConstraints",
-          patterns: [UPPERCASED_PATTERN]
+          string: {
+            patterns: [UPPERCASED_PATTERN]
+          }
         }
       }
     }, annotations)
@@ -490,8 +496,9 @@ export function lowercased(annotations?: Annotations.Filter) {
       arbitrary: {
         _tag: "Constraint",
         constraint: {
-          _tag: "StringConstraints",
-          patterns: [LOWERCASED_PATTERN]
+          string: {
+            patterns: [LOWERCASED_PATTERN]
+          }
         }
       }
     }, annotations)
@@ -522,8 +529,9 @@ export function capitalized(annotations?: Annotations.Filter) {
       arbitrary: {
         _tag: "Constraint",
         constraint: {
-          _tag: "StringConstraints",
-          patterns: [CAPITALIZED_PATTERN]
+          string: {
+            patterns: [CAPITALIZED_PATTERN]
+          }
         }
       }
     }, annotations)
@@ -554,8 +562,9 @@ export function uncapitalized(annotations?: Annotations.Filter) {
       arbitrary: {
         _tag: "Constraint",
         constraint: {
-          _tag: "StringConstraints",
-          patterns: [UNCAPITALIZED_PATTERN]
+          string: {
+            patterns: [UNCAPITALIZED_PATTERN]
+          }
         }
       }
     }, annotations)
@@ -578,9 +587,10 @@ export function finite(annotations?: Annotations.Filter) {
       arbitrary: {
         _tag: "Constraint",
         constraint: {
-          _tag: "NumberConstraints",
-          noDefaultInfinity: true,
-          noNaN: true
+          number: {
+            noDefaultInfinity: true,
+            noNaN: true
+          }
         }
       }
     }, annotations)
@@ -744,9 +754,10 @@ export const greaterThan = deriveGreaterThan({
     arbitrary: {
       _tag: "Constraint",
       constraint: {
-        _tag: "NumberConstraints",
-        min: exclusiveMinimum,
-        minExcluded: true
+        number: {
+          min: exclusiveMinimum,
+          minExcluded: true
+        }
       }
     }
   })
@@ -770,8 +781,9 @@ export const greaterThanOrEqualTo = deriveGreaterThanOrEqualTo({
     arbitrary: {
       _tag: "Constraint",
       constraint: {
-        _tag: "NumberConstraints",
-        min: minimum
+        number: {
+          min: minimum
+        }
       }
     }
   })
@@ -795,9 +807,10 @@ export const lessThan = deriveLessThan({
     arbitrary: {
       _tag: "Constraint",
       constraint: {
-        _tag: "NumberConstraints",
-        max: exclusiveMaximum,
-        maxExcluded: true
+        number: {
+          max: exclusiveMaximum,
+          maxExcluded: true
+        }
       }
     }
   })
@@ -821,8 +834,9 @@ export const lessThanOrEqualTo = deriveLessThanOrEqualTo({
     arbitrary: {
       _tag: "Constraint",
       constraint: {
-        _tag: "NumberConstraints",
-        max: maximum
+        number: {
+          max: maximum
+        }
       }
     }
   })
@@ -847,9 +861,10 @@ export const between = deriveBetween({
     arbitrary: {
       _tag: "Constraint",
       constraint: {
-        _tag: "NumberConstraints",
-        min: minimum,
-        max: maximum
+        number: {
+          min: minimum,
+          max: maximum
+        }
       }
     }
   })
@@ -926,8 +941,9 @@ export function int(annotations?: Annotations.Filter) {
       arbitrary: {
         _tag: "Constraint",
         constraint: {
-          _tag: "NumberConstraints",
-          isInteger: true
+          number: {
+            isInteger: true
+          }
         }
       }
     }, annotations)
@@ -1004,8 +1020,9 @@ export function validDate(annotations?: Annotations.Filter) {
       arbitrary: {
         _tag: "Constraint",
         constraint: {
-          _tag: "DateConstraints",
-          noInvalidDate: true
+          date: {
+            noInvalidDate: true
+          }
         }
       }
     }, annotations)
@@ -1026,8 +1043,9 @@ export const greaterThanOrEqualToDate = deriveGreaterThanOrEqualTo({
     arbitrary: {
       _tag: "Constraint",
       constraint: {
-        _tag: "DateConstraints",
-        min: minimum
+        date: {
+          min: minimum
+        }
       }
     }
   })
@@ -1047,8 +1065,9 @@ export const lessThanOrEqualToDate = deriveLessThanOrEqualTo({
     arbitrary: {
       _tag: "Constraint",
       constraint: {
-        _tag: "DateConstraints",
-        max: maximum
+        date: {
+          max: maximum
+        }
       }
     }
   })
@@ -1069,9 +1088,10 @@ export const betweenDate = deriveBetween({
     arbitrary: {
       _tag: "Constraint",
       constraint: {
-        _tag: "DateConstraints",
-        min: minimum,
-        max: maximum
+        date: {
+          min: minimum,
+          max: maximum
+        }
       }
     }
   })
@@ -1091,8 +1111,9 @@ export const greaterThanOrEqualToBigInt = deriveGreaterThanOrEqualTo({
     arbitrary: {
       _tag: "Constraint",
       constraint: {
-        _tag: "BigIntConstraints",
-        min: minimum
+        bigint: {
+          min: minimum
+        }
       }
     }
   })
@@ -1112,8 +1133,9 @@ export const lessThanOrEqualToBigInt = deriveLessThanOrEqualTo({
     arbitrary: {
       _tag: "Constraint",
       constraint: {
-        _tag: "BigIntConstraints",
-        max: maximum
+        bigint: {
+          max: maximum
+        }
       }
     }
   })
@@ -1134,9 +1156,10 @@ export const betweenBigInt = deriveBetween({
     arbitrary: {
       _tag: "Constraint",
       constraint: {
-        _tag: "BigIntConstraints",
-        min: minimum,
-        max: maximum
+        bigint: {
+          min: minimum,
+          max: maximum
+        }
       }
     }
   })
@@ -1171,14 +1194,12 @@ export function minLength(minLength: number, annotations?: Annotations.Filter) {
       },
       [Annotations.STRUCTURAL_ANNOTATION_KEY]: true,
       arbitrary: {
-        _tag: "Constraints",
-        constraints: {
-          StringConstraints: {
-            _tag: "StringConstraints",
+        _tag: "Constraint",
+        constraint: {
+          string: {
             minLength
           },
-          ArrayConstraints: {
-            _tag: "ArrayConstraints",
+          array: {
             minLength
           }
         }
@@ -1223,14 +1244,12 @@ export function maxLength(maxLength: number, annotations?: Annotations.Filter) {
       },
       [Annotations.STRUCTURAL_ANNOTATION_KEY]: true,
       arbitrary: {
-        _tag: "Constraints",
-        constraints: {
-          StringConstraints: {
-            _tag: "StringConstraints",
+        _tag: "Constraint",
+        constraint: {
+          string: {
             maxLength
           },
-          ArrayConstraints: {
-            _tag: "ArrayConstraints",
+          array: {
             maxLength
           }
         }
@@ -1267,15 +1286,13 @@ export function length(length: number, annotations?: Annotations.Filter) {
       },
       [Annotations.STRUCTURAL_ANNOTATION_KEY]: true,
       arbitrary: {
-        _tag: "Constraints",
-        constraints: {
-          StringConstraints: {
-            _tag: "StringConstraints",
+        _tag: "Constraint",
+        constraint: {
+          string: {
             minLength: length,
             maxLength: length
           },
-          ArrayConstraints: {
-            _tag: "ArrayConstraints",
+          array: {
             minLength: length,
             maxLength: length
           }
@@ -1302,10 +1319,9 @@ export function minSize(minSize: number, annotations?: Annotations.Filter) {
       },
       [Annotations.STRUCTURAL_ANNOTATION_KEY]: true,
       arbitrary: {
-        _tag: "Constraints",
-        constraints: {
-          ArrayConstraints: {
-            _tag: "ArrayConstraints",
+        _tag: "Constraint",
+        constraint: {
+          array: {
             minLength: minSize
           }
         }
@@ -1331,10 +1347,9 @@ export function maxSize(maxSize: number, annotations?: Annotations.Filter) {
       },
       [Annotations.STRUCTURAL_ANNOTATION_KEY]: true,
       arbitrary: {
-        _tag: "Constraints",
-        constraints: {
-          ArrayConstraints: {
-            _tag: "ArrayConstraints",
+        _tag: "Constraint",
+        constraint: {
+          array: {
             maxLength: maxSize
           }
         }
@@ -1360,10 +1375,9 @@ export function size(size: number, annotations?: Annotations.Filter) {
       },
       [Annotations.STRUCTURAL_ANNOTATION_KEY]: true,
       arbitrary: {
-        _tag: "Constraints",
-        constraints: {
-          ArrayConstraints: {
-            _tag: "ArrayConstraints",
+        _tag: "Constraint",
+        constraint: {
+          array: {
             minLength: size,
             maxLength: size
           }
@@ -1394,10 +1408,9 @@ export function minEntries(minEntries: number, annotations?: Annotations.Filter)
       },
       [Annotations.STRUCTURAL_ANNOTATION_KEY]: true,
       arbitrary: {
-        _tag: "Constraints",
-        constraints: {
-          ArrayConstraints: {
-            _tag: "ArrayConstraints",
+        _tag: "Constraint",
+        constraint: {
+          array: {
             minLength: minEntries
           }
         }
@@ -1427,10 +1440,9 @@ export function maxEntries(maxEntries: number, annotations?: Annotations.Filter)
       },
       [Annotations.STRUCTURAL_ANNOTATION_KEY]: true,
       arbitrary: {
-        _tag: "Constraints",
-        constraints: {
-          ArrayConstraints: {
-            _tag: "ArrayConstraints",
+        _tag: "Constraint",
+        constraint: {
+          array: {
             maxLength: maxEntries
           }
         }
@@ -1460,10 +1472,9 @@ export function entries(entries: number, annotations?: Annotations.Filter) {
       },
       [Annotations.STRUCTURAL_ANNOTATION_KEY]: true,
       arbitrary: {
-        _tag: "Constraints",
-        constraints: {
-          ArrayConstraints: {
-            _tag: "ArrayConstraints",
+        _tag: "Constraint",
+        constraint: {
+          array: {
             minLength: entries,
             maxLength: entries
           }
@@ -1491,10 +1502,9 @@ export function unique<T>(equivalence: Equivalence.Equivalence<T>, annotations?:
         equivalence
       },
       arbitrary: {
-        _tag: "Constraints",
-        constraints: {
-          ArrayConstraints: {
-            _tag: "ArrayConstraints",
+        _tag: "Constraint",
+        constraint: {
+          array: {
             comparator: equivalence
           }
         }

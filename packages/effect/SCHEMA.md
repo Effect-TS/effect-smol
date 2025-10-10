@@ -4720,83 +4720,187 @@ Output:
 
 ## Generating an Arbitrary from a Schema
 
-At its simplest, you can go from any non-declaration, non-`never` schema to a Fast-Check `Arbitrary<T>` with:
+### Basic Conversion
+
+You can convert any non-declaration, non-`never` schema to a Fast-Check `Arbitrary<T>`.
+
+**Example** (Tuple schema to Fast-Check Arbitrary)
 
 ```ts
 import { Schema, ToArbitrary } from "effect/schema"
+import { FastCheck } from "effect/testing"
 
-const arbString = ToArbitrary.make(Schema.String)
-// arbString is FastCheck.Arbitrary<string>
+// Build a tuple schema: [string, number]
+const schema = Schema.Tuple([Schema.String, Schema.Number])
 
-const arbTuple = ToArbitrary.make(Schema.Tuple([Schema.String, Schema.Number]))
-// arbTuple is FastCheck.Arbitrary<readonly [string, number]>
+// Create Arbitrary<readonly [string, number]>
+const arb = ToArbitrary.make(schema)
+
+// Sample 10 values from the arbitrary
+console.log(FastCheck.sample(arb, 10))
+/*
+Example Output:
+[
+  [ '', 0 ],
+  [ ' /pABDyx+4', -5.147705743113717e+24 ],
+  [ 'Sw\\', -163415396714545150 ],
+  [ 'h', 484085596160000 ],
+  [ 'bind-+$__p', -2.802596928649634e-44 ],
+  [ 'ref', 3.402820424023848e+38 ],
+  [ ' <', 4.2045513795681537e-22 ],
+  [ '!n', 5.894371773718808e+34 ],
+  [ '&x~', 8580584439808 ],
+  [ '(# x@', 1.97658453148482e-36 ]
+]
+*/
 ```
 
-If you need lazy/recursive support, use `makeLazy`:
+If you want to avoid bundling Fast-Check automatically, use `makeLazy`.
+
+**Example** (Lazy creation to control bundling)
 
 ```ts
+import { Schema, ToArbitrary } from "effect/schema"
+import { FastCheck } from "effect/testing"
+
+// Create a factory that needs FastCheck passed in at call time
 const lazyArb = ToArbitrary.makeLazy(Schema.String)
-// lazyArb: (fc, ctx) => Arbitrary<string>
-const arb = lazyArb(FastCheck, {}) // same as make(...)
+
+// Later, provide FastCheck (and an optional context) to get the Arbitrary<string>
+const arb = lazyArb(FastCheck, {}) // same result as make(...)
 ```
 
-Under the hood, the library walks your schema's AST and, for each node:
+Under the hood, the library traverses the schema AST and, for each node:
 
 - Emits constants (`null`, `undefined`)
-- Maps keywords `fc.boolean()` / `fc.integer()` / `fc.string()` / `fc.bigInt()`
-- Tuples `fc.tuple(...)` + optional/rest handling
-- Records/structs `fc.record(...)` plus index‐signature expansion
-- Unions `fc.oneof(...)`
-- Template literals `fc.stringMatching(...)`
-- Recursion (`Schema.suspend`) depth-limited `fc.oneof`
+- Maps primitives: `fc.boolean()`, `fc.integer()`, `fc.string()`, `fc.bigInt()`
+- Builds tuples via `fc.tuple(...)` with support for optional/rest elements
+- Builds structs/records via `fc.record(...)`, including index signatures
+- Builds unions via `fc.oneof(...)`
+- Handles template literals via `fc.stringMatching(...)`
+- Handles recursion (`Schema.suspend`) with depth-limited `fc.oneof(...)`
 
-It also **collects any `.check(...)` filters** and applies them as `.filter(...)` calls on the generated arbitrary.
+It also collects any `.check(...)` filters and applies them to the result via `.filter(...)`.
 
-### Customizing Generation via Annotations
+### Adding support for Custom Types
 
-Sometimes you need full control:
+For a custom type, provide an `arbitrary` annotation to teach the generator how to build values.
 
-#### Overrides
-
-Any schema supporting `Bottom<T>` (primitives, arrays, tuples, objects, etc.) can carry:
+**Example** (Custom Arbitrary for `URL`)
 
 ```ts
-.annotate({
+import { Schema, ToArbitrary } from "effect/schema"
+import { FastCheck } from "effect/testing"
+
+const URL = Schema.instanceOf(globalThis.URL, {
+  title: "URL",
   arbitrary: {
     _tag: "Override",
-    override: (fc, ctx) => {
-      // return any FastCheck.Arbitrary<T>
-      return fc.constant("always this")
+    // Build a URL by first generating a valid web URL string with Fast-Check
+    override: () => (fc) => fc.webUrl().map((s) => new globalThis.URL(s))
+  }
+})
+
+console.log(FastCheck.sample(ToArbitrary.make(URL), 3))
+/*
+Example Output:
+[
+  new URL('http://g2v.7wk9w96penc.sek/'),
+  new URL('http://jfeilqoq-ee5.zeenw6cvv.ox'),
+  new URL('https://g0iubr-ks.rz00c8.fn')
+]
+*/
+```
+
+### Overriding the default generated Arbitrary
+
+You can adjust the generated Arbitrary by adding an `arbitrary: { _tag: "Override", ... }` annotation.
+
+```ts
+interface Context {
+  /**
+   * This flag is set to `true` when the current schema is a suspend. The goal
+   * is to avoid infinite recursion when generating arbitrary values for
+   * suspends, so implementations should try to avoid excessive recursion.
+   */
+  readonly isSuspend?: boolean | undefined
+  readonly constraints?: Annotation.Constraints["constraints"] | undefined
+}
+
+type Override<T, TypeParameters extends ReadonlyArray<Schema.Top>> = {
+  readonly _tag: "Override"
+  readonly override: (
+    // Arbitraries for any type parameters of the schema (if present)
+    typeParameters: { readonly [K in keyof TypeParameters]: FastCheck.Arbitrary<TypeParameters[K]["Type"]> }
+  ) => (fc: typeof FastCheck, context?: Context) => FastCheck.Arbitrary<T>
+}
+```
+
+**Example** (Override number generator range)
+
+```ts
+import { Schema, ToArbitrary } from "effect/schema"
+import { FastCheck } from "effect/testing"
+
+// Default number schema (no override)
+console.log(FastCheck.sample(ToArbitrary.make(Schema.Number), 3))
+/*
+Example Output:
+[
+  1.401298464324817e-44,
+  1.1210387714598537e-44,
+  -3.4028234663852886e+38
+]
+*/
+
+// Add an override to restrict numbers to integers 10..20
+const schema = Schema.Number.annotate({
+  arbitrary: {
+    _tag: "Override",
+    override: () => (fc) => fc.integer({ min: 10, max: 20 }) // custom generator
+  }
+})
+
+console.log(FastCheck.sample(ToArbitrary.make(schema), 3))
+/*
+Example Output:
+[ 12, 12, 18 ]
+*/
+```
+
+### Adding support for custom filters
+
+Filters created with `.check(...)` can include Arbitrary hints so generators respect the same constraints.
+
+**Example** (Declare Arbitrary constraints for a custom `nonEmpty` filter)
+
+```ts
+import { Check, Schema, ToArbitrary } from "effect/schema"
+import { FastCheck } from "effect/testing"
+
+// A reusable 'nonEmpty' filter for strings and arrays
+const nonEmpty = Check.make((s: string) => s.length > 0, {
+  arbitrary: {
+    _tag: "Constraint",
+    // Tell the generator how to satisfy this check
+    constraint: {
+      string: {
+        minLength: 1
+      },
+      array: {
+        minLength: 1
+      }
     }
   }
 })
-```
 
-This replaces the entire default generation for that node:
+const schema = Schema.String.check(nonEmpty)
 
-```ts
-const s = Schema.Number.annotate({
-  arbitrary: {
-    _tag: "Override",
-    override: (fc) => fc.integer({ min: 10, max: 20 })
-  }
-})
-const arb = ToArbitrary.make(s)
-// arb only ever produces integers between 10 and 20
-```
-
-#### Declarations
-
-Some schemas in Effect, like `Schema.Option<T>`, `Schema.Map<K, V>` or any `Schema.Class`, are modeled as **declarations** and carry one or more **type parameters**. To override their default arbitrary, you attach an `arbitrary` annotation of **type** `"declaration"`, whose `declaration` function receives the **inner** arbitraries corresponding to each type parameter.
-
-```ts
-{
-  arbitrary: {
-    _tag: "Declaration"
-    declaration: (innerArbs: FastCheck.Arbitrary<any>[]) => (fc: typeof FastCheck, ctx?: Context) =>
-      FastCheck.Arbitrary<Schema["Type"]>
-  }
-}
+console.log(FastCheck.sample(ToArbitrary.make(schema), 3))
+/*
+Example Output:
+[ 'R|I6', 'q#" Z', 'qc= f' ]
+*/
 ```
 
 ## Generating an Equivalence from a Schema

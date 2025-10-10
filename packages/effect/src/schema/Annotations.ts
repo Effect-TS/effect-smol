@@ -99,7 +99,6 @@ export interface Bottom<T, TypeParameters extends ReadonlyArray<Schema.Top>> ext
   readonly arbitrary?:
     | ToArbitrary.Annotation.Override<T, TypeParameters>
     | ToArbitrary.Annotation.Constraint
-    | ToArbitrary.Annotation.Constraints
     | undefined
 }
 
@@ -179,7 +178,6 @@ export interface Filter extends Annotations {
     | undefined
   readonly arbitrary?:
     | ToArbitrary.Annotation.Constraint
-    | ToArbitrary.Annotation.Constraints
     | undefined
   /**
    * Marks the filter as *structural*, meaning it applies to the shape or
