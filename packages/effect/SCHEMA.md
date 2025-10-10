@@ -171,19 +171,59 @@ classDiagram
 
 ## Type Hierarchy
 
-The `Bottom` type sits at the base of the schema system. It tracks all type parameters used internally by the library.
+The `Bottom` type is the foundation of the schema system. It carries all internal type parameters used by the library.
 
-From this base, higher-level schema types are defined by selectively narrowing the parameters. Some commonly used derived types include:
+Higher-level schema types build on this base by narrowing those parameters. Common derived types include:
 
 - `Top`: a generic schema with no fixed shape
 - `Schema<T>`: represents the TypeScript type `T`
-- `Codec<T, E, RD, RE>`: a schema that both decodes `E` to `T` and encodes `T` to `E`, possibly requiring services `RD` and `RE`
+- `Codec<T, E, RD, RE>`: a schema that decodes `E` to `T` and encodes `T` to `E`, possibly requiring services `RD` and `RE`
 
 ```mermaid
 flowchart TD
     T[Top] --> S["Schema[T]"]
     S --> C["Codec[T, E, RD, RE]"]
-    C --> B["Bottom[T, E, RD, RE, Ast, RebuildOut, AnnotateIn, TypeMakeIn, TypeMake, TypeReadonly, TypeIsOptional, TypeDefault, EncodedIsReadonly, EncodedIsOptional]"]
+    S --> O["Optic[T, Iso]"]
+    C --> B["Bottom[T, E, RD, RE, Ast, RebuildOut, TypeMakeIn, Iso, TypeParameters, TypeMake, TypeMutability, TypeOptionality, TypeConstructorDefault, EncodedMutability, EncodedOptionality]"]
+```
+
+### Best Practices
+
+Use `Top`, `Schema`, and `Codec` as _constraints_ only. Do not use them as explicit annotations or return types.
+
+**Example** (Prefer constraints over wide annotations)
+
+```ts
+import { Schema } from "effect/schema"
+
+// ✅ Use as a constraint. S can be any schema that extends Top.
+declare function foo<S extends Schema.Top>(schema: S)
+
+// ❌ Do not return Codec directly. It erases useful type information.
+declare function bar(): Schema.Codec<number, string>
+
+// ❌ Avoid wide annotations that lose details baked into a specific schema.
+const schema: Schema.Codec<number, string> = Schema.FiniteFromString
+```
+
+These wide types reset other internal parameters to defaults, which removes useful information:
+
+- `Top`: all type parameters are set to defaults
+- `Schema`: all type parameters except `Type` are set to defaults
+- `Codec`: all type parameters except `Type`, `Encoded`, `DecodingServices`, `EncodingServices` are set to defaults
+
+**Example** (How wide annotations erase information)
+
+```ts
+import { Schema } from "effect/schema"
+
+// Read a hidden type-level property from a concrete schema
+type TypeMutability = (typeof Schema.FiniteFromString)["~type.mutability"] // "readonly"
+
+const schema: Schema.Codec<number, string> = Schema.FiniteFromString
+
+// After widening to Codec<...>, the mutability info is broadened
+type TypeMutability2 = (typeof schema)["~type.mutability"] // "readonly" | "mutable"
 ```
 
 ## 🆕 Separate Requirement Type Parameters
