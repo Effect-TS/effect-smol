@@ -2,7 +2,7 @@
  * @since 4.0.0
  */
 
-import * as Optic from "../optic/Optic.ts"
+import * as Optic from "../Optic.ts"
 import * as AST from "./AST.ts"
 import type * as Getter from "./Getter.ts"
 import * as Schema from "./Schema.ts"

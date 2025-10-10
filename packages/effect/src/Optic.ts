@@ -6,16 +6,15 @@
  * @since 4.0.0
  */
 
-import * as Option from "../data/Option.ts"
-import * as Result from "../data/Result.ts"
-import * as Struct from "../data/Struct.ts"
-import { identity, memoize } from "../Function.ts"
-import { format } from "../interfaces/Inspectable.ts"
-import type { Literal } from "../schema/AST.ts"
-import { runChecks, runRefine } from "../schema/AST.ts"
-import * as Check from "../schema/Check.ts"
-import type { IsUnion } from "../types/Types.ts"
-import * as AST from "./AST.ts"
+import * as Option from "./data/Option.ts"
+import * as Result from "./data/Result.ts"
+import * as Struct from "./data/Struct.ts"
+import { identity, memoize } from "./Function.ts"
+import { format } from "./interfaces/Inspectable.ts"
+import type { Literal } from "./schema/AST.ts"
+import { runChecks, runRefine } from "./schema/AST.ts"
+import * as Check from "./schema/Check.ts"
+import type { IsUnion } from "./types/Types.ts"
 
 /**
  * @category Iso
@@ -28,7 +27,7 @@ export interface Iso<in out S, in out A> extends Lens<S, A>, Prism<S, A> {}
  * @since 4.0.0
  */
 export function makeIso<S, A>(get: (s: S) => A, set: (a: A) => S): Iso<S, A> {
-  return make(new AST.Iso(get, set))
+  return make(new IsoNode(get, set))
 }
 
 /**
@@ -44,7 +43,7 @@ export interface Lens<in out S, in out A> extends Optional<S, A> {
  * @since 4.0.0
  */
 export function makeLens<S, A>(get: (s: S) => A, replace: (a: A, s: S) => S): Lens<S, A> {
-  return make(new AST.Lens(get, replace))
+  return make(new LensNode(get, replace))
 }
 
 /**
@@ -60,7 +59,7 @@ export interface Prism<in out S, in out A> extends Optional<S, A> {
  * @since 4.0.0
  */
 export function makePrism<S, A>(getResult: (s: S) => Result.Result<A, string>, set: (a: A) => S): Prism<S, A> {
-  return make(new AST.Prism(getResult, set))
+  return make(new PrismNode(getResult, set))
 }
 
 /**
@@ -68,7 +67,7 @@ export function makePrism<S, A>(getResult: (s: S) => Result.Result<A, string>, s
  * @since 4.0.0
  */
 export function fromChecks<T>(...checks: readonly [Check.Check<T>, ...Array<Check.Check<T>>]): Prism<T, T> {
-  return make(new AST.Check(checks))
+  return make(new CheckNode(checks))
 }
 
 /**
@@ -76,7 +75,142 @@ export function fromChecks<T>(...checks: readonly [Check.Check<T>, ...Array<Chec
  * @since 4.0.0
  */
 export function fromRefine<T extends E, E>(refine: Check.Refine<T, E>): Prism<E, T> {
-  return make(new AST.Check([refine]))
+  return make(new CheckNode([refine]))
+}
+
+type Node =
+  | IdentityNode
+  | IsoNode<any, any>
+  | LensNode<any, any>
+  | PrismNode<any, any>
+  | OptionalNode<any, any>
+  | PathNode
+  | CheckNode<any>
+  | CompositionNode
+
+class IdentityNode {
+  readonly _tag = "IdentityNode"
+}
+
+const identityNode = new IdentityNode()
+
+class CompositionNode {
+  readonly _tag = "CompositionNode"
+  readonly nodes: readonly [Node, ...Array<Node>]
+
+  constructor(nodes: readonly [Node, ...Array<Node>]) {
+    this.nodes = nodes
+  }
+}
+
+class IsoNode<S, A> {
+  readonly _tag = "IsoNode"
+  readonly get: (s: S) => A
+  readonly set: (a: A) => S
+
+  constructor(get: (s: S) => A, set: (a: A) => S) {
+    this.get = get
+    this.set = set
+  }
+}
+
+class LensNode<S, A> {
+  readonly _tag = "LensNode"
+  readonly get: (s: S) => A
+  readonly set: (a: A, s: S) => S
+
+  constructor(get: (s: S) => A, set: (a: A, s: S) => S) {
+    this.get = get
+    this.set = set
+  }
+}
+
+class PrismNode<S, A> {
+  readonly _tag = "PrismNode"
+  readonly get: (s: S) => Result.Result<A, string>
+  readonly set: (a: A) => S
+
+  constructor(get: (s: S) => Result.Result<A, string>, set: (a: A) => S) {
+    this.get = get
+    this.set = set
+  }
+}
+
+class OptionalNode<S, A> {
+  readonly _tag = "OptionalNode"
+  readonly get: (s: S) => Result.Result<A, string>
+  readonly set: (a: A, s: S) => Result.Result<S, string>
+
+  constructor(get: (s: S) => Result.Result<A, string>, set: (a: A, s: S) => Result.Result<S, string>) {
+    this.get = get
+    this.set = set
+  }
+}
+
+class PathNode {
+  readonly _tag = "PathNode"
+  readonly path: ReadonlyArray<PropertyKey>
+
+  constructor(path: ReadonlyArray<PropertyKey>) {
+    this.path = path
+  }
+}
+
+class CheckNode<T> {
+  readonly _tag = "CheckNode"
+  readonly checks: readonly [Check.Check<T>, ...Array<Check.Check<T>>]
+
+  constructor(checks: readonly [Check.Check<T>, ...Array<Check.Check<T>>]) {
+    this.checks = checks
+  }
+}
+
+// Nodes that can appear in a normalized chain (no Identity/Composition)
+type NormalizedNode = Exclude<Node, IdentityNode | CompositionNode>
+
+// Fuse with tail when possible, else push.
+function pushNormalized(acc: Array<NormalizedNode>, node: NormalizedNode): void {
+  const last = acc[acc.length - 1]
+  if (last) {
+    if (last._tag === "PathNode" && node._tag === "PathNode") {
+      // fuse Path
+      acc[acc.length - 1] = new PathNode([...last.path, ...node.path])
+      return
+    }
+    if (last._tag === "CheckNode" && node._tag === "CheckNode") {
+      // fuse Checks
+      acc[acc.length - 1] = new CheckNode<any>([...last.checks, ...node.checks])
+      return
+    }
+  }
+  acc.push(node)
+}
+
+// Collect nodes from a node into `acc`, flattening & normalizing on the fly.
+function collect(node: Node, acc: Array<NormalizedNode>): void {
+  if (node._tag === "IdentityNode") return
+  if (node._tag === "CompositionNode") {
+    // flatten without extra arrays
+    for (let i = 0; i < node.nodes.length; i++) collect(node.nodes[i], acc)
+    return
+  }
+  // primitive node
+  pushNormalized(acc, node)
+}
+
+function compose(a: Node, b: Node): Node {
+  const nodes: Array<NormalizedNode> = []
+  collect(a, nodes)
+  collect(b, nodes)
+
+  switch (nodes.length) {
+    case 0:
+      return identityNode
+    case 1:
+      return nodes[0]
+    default:
+      return new CompositionNode(nodes as [Node, ...Array<Node>])
+  }
 }
 
 type ForbidUnion<A, Message extends string> = IsUnion<A> extends true ? [Message] : []
@@ -86,7 +220,7 @@ type ForbidUnion<A, Message extends string> = IsUnion<A> extends true ? [Message
  * @since 4.0.0
  */
 export interface Optional<in out S, in out A> {
-  readonly ast: AST.AST
+  readonly node: Node
   readonly getResult: (s: S) => Result.Result<A, string>
   readonly replace: (a: A, s: S) => S
   readonly replaceResult: (a: A, s: S) => Result.Result<S, string>
@@ -204,7 +338,7 @@ export function makeOptional<S, A>(
   getResult: (s: S) => Result.Result<A, string>,
   set: (a: A, s: S) => Result.Result<S, string>
 ): Optional<S, A> {
-  return make(new AST.Optional(getResult, set))
+  return make(new OptionalNode(getResult, set))
 }
 
 /**
@@ -214,15 +348,15 @@ export function makeOptional<S, A>(
 export interface Traversal<in out S, in out A> extends Optional<S, ReadonlyArray<A>> {}
 
 class OptionalImpl<S, A> implements Optional<S, A> {
-  readonly ast: AST.AST
+  readonly node: Node
   readonly getResult: (s: S) => Result.Result<A, string>
   readonly replaceResult: (a: A, s: S) => Result.Result<S, string>
   constructor(
-    ast: AST.AST,
+    node: Node,
     getResult: (s: S) => Result.Result<A, string>,
     replaceResult: (a: A, s: S) => Result.Result<S, string>
   ) {
-    this.ast = ast
+    this.node = node
     this.getResult = getResult
     this.replaceResult = replaceResult
   }
@@ -233,16 +367,16 @@ class OptionalImpl<S, A> implements Optional<S, A> {
     return (s) => Result.getOrElse(Result.flatMap(this.getResult(s), (a) => this.replaceResult(f(a), s)), () => s)
   }
   compose(that: any): any {
-    return make(AST.compose(this.ast, that.ast))
+    return make(compose(this.node, that.node))
   }
   key(key: PropertyKey): any {
-    return make(AST.compose(this.ast, new AST.Path([key])))
+    return make(compose(this.node, new PathNode([key])))
   }
   optionalKey(key: PropertyKey): any {
     return make(
-      AST.compose(
-        this.ast,
-        new AST.Lens(
+      compose(
+        this.node,
+        new LensNode(
           (s) => s[key],
           (a, s) => {
             const copy = cloneShallow(s)
@@ -262,16 +396,16 @@ class OptionalImpl<S, A> implements Optional<S, A> {
     )
   }
   check(...checks: readonly [Check.Check<any>, ...Array<Check.Check<any>>]): any {
-    return make(AST.compose(this.ast, new AST.Check(checks)))
+    return make(compose(this.node, new CheckNode(checks)))
   }
   refine(refine: Check.Refine<any, any>): any {
-    return make(AST.compose(this.ast, new AST.Check([refine])))
+    return make(compose(this.node, new CheckNode([refine])))
   }
   tag(tag: string): any {
     return make(
-      AST.compose(
-        this.ast,
-        new AST.Prism(
+      compose(
+        this.node,
+        new PrismNode(
           (s) =>
             s._tag === tag
               ? Result.succeed(s)
@@ -284,9 +418,9 @@ class OptionalImpl<S, A> implements Optional<S, A> {
   at(key: PropertyKey, ..._rest: Array<any>): any {
     const err = Result.fail(`Key ${format(key)} not found`)
     return make(
-      AST.compose(
-        this.ast,
-        new AST.Optional(
+      compose(
+        this.node,
+        new OptionalNode(
           (s) => Object.hasOwn(s, key) ? Result.succeed(s[key]) : err,
           (a, s) => {
             if (Object.hasOwn(s, key)) {
@@ -365,8 +499,8 @@ class OptionalImpl<S, A> implements Optional<S, A> {
 class IsoImpl<S, A> extends OptionalImpl<S, A> implements Iso<S, A> {
   readonly get: (s: S) => A
   readonly set: (a: A) => S
-  constructor(ast: AST.AST, get: (s: S) => A, set: (a: A) => S) {
-    super(ast, (s) => Result.succeed(get(s)), (a) => Result.succeed(set(a)))
+  constructor(node: Node, get: (s: S) => A, set: (a: A) => S) {
+    super(node, (s) => Result.succeed(get(s)), (a) => Result.succeed(set(a)))
     this.get = get
     this.set = set
   }
@@ -380,8 +514,8 @@ class IsoImpl<S, A> extends OptionalImpl<S, A> implements Iso<S, A> {
 
 class LensImpl<S, A> extends OptionalImpl<S, A> implements Lens<S, A> {
   readonly get: (s: S) => A
-  constructor(ast: AST.AST, get: (s: S) => A, replace: (a: A, s: S) => S) {
-    super(ast, (s) => Result.succeed(get(s)), (a, s) => Result.succeed(replace(a, s)))
+  constructor(node: Node, get: (s: S) => A, replace: (a: A, s: S) => S) {
+    super(node, (s) => Result.succeed(get(s)), (a, s) => Result.succeed(replace(a, s)))
     this.get = get
     this.replace = replace
   }
@@ -392,8 +526,8 @@ class LensImpl<S, A> extends OptionalImpl<S, A> implements Lens<S, A> {
 
 class PrismImpl<S, A> extends OptionalImpl<S, A> implements Prism<S, A> {
   readonly set: (a: A) => S
-  constructor(ast: AST.AST, getResult: (s: S) => Result.Result<A, string>, set: (a: A) => S) {
-    super(ast, getResult, (a, _) => Result.succeed(set(a)))
+  constructor(node: Node, getResult: (s: S) => Result.Result<A, string>, set: (a: A) => S) {
+    super(node, getResult, (a, _) => Result.succeed(set(a)))
     this.set = set
   }
   override replace(a: A, _: S): S {
@@ -404,17 +538,17 @@ class PrismImpl<S, A> extends OptionalImpl<S, A> implements Prism<S, A> {
   }
 }
 
-function make(ast: AST.AST): any {
-  const op = go(ast)
+function make(node: Node): any {
+  const op = go(node)
   switch (op._tag) {
-    case "Iso":
-      return new IsoImpl(ast, op.get, op.set)
-    case "Lens":
-      return new LensImpl(ast, op.get, op.set)
-    case "Prism":
-      return new PrismImpl(ast, op.get, op.set)
-    case "Optional":
-      return new OptionalImpl(ast, op.get, op.set)
+    case "IsoNode":
+      return new IsoImpl(node, op.get, op.set)
+    case "LensNode":
+      return new LensImpl(node, op.get, op.set)
+    case "PrismNode":
+      return new PrismImpl(node, op.get, op.set)
+    case "OptionalNode":
+      return new OptionalImpl(node, op.get, op.set)
   }
 }
 
@@ -433,25 +567,25 @@ function cloneShallow<T>(pojo: T): T {
 }
 
 type Op = {
-  readonly _tag: "Iso" | "Lens" | "Prism" | "Optional"
+  readonly _tag: "IsoNode" | "LensNode" | "PrismNode" | "OptionalNode"
   readonly get: (s: unknown) => any
   readonly set: (a: unknown, s?: unknown) => any
 }
 
-const go = memoize((ast: AST.AST): Op => {
-  switch (ast._tag) {
-    case "Identity":
-      return { _tag: "Iso", get: identity, set: identity }
-    case "Iso":
-    case "Lens":
-    case "Prism":
-    case "Optional":
-      return { _tag: ast._tag, get: ast.get, set: ast.set }
-    case "Path": {
+const go = memoize((node: Node): Op => {
+  switch (node._tag) {
+    case "IdentityNode":
+      return { _tag: "IsoNode", get: identity, set: identity }
+    case "IsoNode":
+    case "LensNode":
+    case "PrismNode":
+    case "OptionalNode":
+      return { _tag: node._tag, get: node.get, set: node.set }
+    case "PathNode": {
       return {
-        _tag: "Lens",
+        _tag: "LensNode",
         get: (s: any) => {
-          const path = ast.path
+          const path = node.path
           let out: any = s
           for (let i = 0, n = path.length; i < n; i++) {
             out = out[path[i]]
@@ -459,7 +593,7 @@ const go = memoize((ast: AST.AST): Op => {
           return out
         },
         set: (a: any, s: any) => {
-          const path = ast.path
+          const path = node.path
           const out = cloneShallow(s)
 
           let current = out
@@ -477,15 +611,15 @@ const go = memoize((ast: AST.AST): Op => {
         }
       }
     }
-    case "Checks":
+    case "CheckNode":
       return {
-        _tag: "Prism",
-        get: (s: any) => Result.mapError(runChecks(ast.checks, s), String),
+        _tag: "PrismNode",
+        get: (s: any) => Result.mapError(runChecks(node.checks, s), String),
         set: identity
       }
-    case "Composition": {
-      const ops = ast.asts.map(go)
-      const _tag = ops.reduce<Op["_tag"]>((tag, op) => getCompositionTag(tag, op._tag), "Iso")
+    case "CompositionNode": {
+      const ops = node.nodes.map(go)
+      const _tag = ops.reduce<Op["_tag"]>((tag, op) => getCompositionTag(tag, op._tag), "IsoNode")
       return {
         _tag,
         get: (s: any) => {
@@ -513,7 +647,7 @@ const go = memoize((ast: AST.AST): Op => {
             if (hasFailingGet(op._tag)) {
               const result = op.get(s)
               if (Result.isFailure(result)) {
-                return _tag === "Optional" ? result : source
+                return _tag === "OptionalNode" ? result : source
               }
               s = result.success
             } else {
@@ -525,7 +659,7 @@ const go = memoize((ast: AST.AST): Op => {
             const op = ops[i]
             if (hasSet(op._tag)) {
               a = op.set(a)
-            } else if (op._tag === "Lens") {
+            } else if (op._tag === "LensNode") {
               a = op.set(a, ss[i])
             } else {
               const result = op.set(a, ss[i])
@@ -535,7 +669,7 @@ const go = memoize((ast: AST.AST): Op => {
               a = result.success
             }
           }
-          return _tag === "Optional" ? Result.succeed(a) : a
+          return _tag === "OptionalNode" ? Result.succeed(a) : a
         }
       }
     }
@@ -543,23 +677,23 @@ const go = memoize((ast: AST.AST): Op => {
 })
 
 function hasFailingGet(tag: Op["_tag"]): boolean {
-  return tag === "Prism" || tag === "Optional"
+  return tag === "PrismNode" || tag === "OptionalNode"
 }
 
 function hasSet(tag: Op["_tag"]): boolean {
-  return tag === "Iso" || tag === "Prism"
+  return tag === "IsoNode" || tag === "PrismNode"
 }
 
 function getCompositionTag(a: Op["_tag"], b: Op["_tag"]): Op["_tag"] {
   switch (a) {
-    case "Iso":
+    case "IsoNode":
       return b
-    case "Lens":
-      return hasFailingGet(b) ? "Optional" : "Lens"
-    case "Prism":
-      return hasSet(b) ? "Prism" : "Optional"
-    case "Optional":
-      return "Optional"
+    case "LensNode":
+      return hasFailingGet(b) ? "OptionalNode" : "LensNode"
+    case "PrismNode":
+      return hasSet(b) ? "PrismNode" : "OptionalNode"
+    case "OptionalNode":
+      return "OptionalNode"
   }
 }
 // ---------------------------------------------
@@ -584,7 +718,7 @@ export function getAll<S, A>(traversal: Traversal<S, A>): (s: S) => Array<A> {
 // Built-in Optics
 // ---------------------------------------------
 
-const identityIso = make(AST.identity)
+const identityIso = make(identityNode)
 
 /**
  * The identity optic.
@@ -601,7 +735,7 @@ export function id<S>(): Iso<S, S> {
  * @since 4.0.0
  */
 export function entries<A>(): Iso<Record<string, A>, ReadonlyArray<readonly [string, A]>> {
-  return make(new AST.Iso(Object.entries, Object.fromEntries))
+  return make(new IsoNode(Object.entries, Object.fromEntries))
 }
 
 /**

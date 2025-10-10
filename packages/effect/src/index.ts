@@ -987,6 +987,15 @@ export * as MutableRef from "./MutableRef.ts"
 export * as Number from "./Number.ts"
 
 /**
+ * Design: "pretty good" persistency.
+ * Real updates copy only the path; unrelated branches keep referential identity.
+ * No-op updates may still allocate a new root/parents — callers must not rely on identity for no-ops.
+ *
+ * @since 4.0.0
+ */
+export * as Optic from "./Optic.ts"
+
+/**
  * @since 2.0.0
  */
 export * as Pool from "./Pool.ts"

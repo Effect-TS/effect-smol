@@ -1,4 +1,4 @@
-import { Optic } from "effect/optic"
+import { Optic } from "effect"
 import { Schema, ToOptic } from "effect/schema"
 import { Bench } from "tinybench"
 
