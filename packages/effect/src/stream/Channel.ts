@@ -1921,6 +1921,7 @@ const mapEffectConcurrent = <
         const onExit = (exit: Exit.Exit<OutElem2, EX>) => {
           if (exit._tag === "Success") return
           errorCause = exit.cause
+          Queue.doneUnsafe(queue, Exit.failCause(exit.cause))
         }
         yield* pull.pipe(
           Effect.flatMap((value) => {
@@ -1933,8 +1934,7 @@ const mapEffectConcurrent = <
           Effect.forever({ autoYield: false }),
           Effect.catchCause((cause) =>
             Queue.offer(effects, Exit.failCause(cause)).pipe(
-              Effect.andThen(Queue.end(effects)),
-              Effect.andThen(Queue.await(effects))
+              Effect.andThen(Queue.end(effects))
             )
           ),
           Effect.forkIn(forkedScope)
