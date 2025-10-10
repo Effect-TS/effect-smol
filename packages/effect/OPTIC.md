@@ -1,6 +1,6 @@
 ## Introduction
 
-`effect/optic/Optic` provides tools for building and composing functional optics.
+`effect/Optic` provides tools for building and composing functional optics.
 
 Optics let you focus on parts of immutable data structures to read or update them in a safe, composable way.
 
@@ -22,8 +22,7 @@ Suppose we have an employee object, and we want to capitalize the first characte
 **Example** (Uppercasing the first character of a street name)
 
 ```ts
-import { String } from "effect"
-import { Optic } from "effect/optic"
+import { String, Optic } from "effect"
 
 // Define some nested data structures
 interface Street {
@@ -90,7 +89,7 @@ console.dir(capitalizeStreetName(from), { depth: null })
 **Example** (Reading and updating a single struct field)
 
 ```ts
-import { Optic } from "effect/optic"
+import { Optic } from "effect"
 
 type S = {
   readonly a: string
@@ -106,7 +105,7 @@ console.log(_a.replace("b", { a: "a" }))
 **Example** (Reading and updating the first element of a tuple)
 
 ```ts
-import { Optic } from "effect/optic"
+import { Optic } from "effect"
 
 type S = readonly [string]
 
@@ -124,7 +123,7 @@ console.log(_0.replace("b", ["a"]))
 **Example** (Updating multiple fields with `pick`)
 
 ```ts
-import { Optic } from "effect/optic"
+import { Optic } from "effect"
 
 type S = {
   readonly a: number
@@ -144,7 +143,7 @@ console.log(_a.replace({ a: 4, c: 5 }, { a: 1, b: 2, c: 3 }))
 **Example** (Updating all fields except a set with `omit`)
 
 ```ts
-import { Optic } from "effect/optic"
+import { Optic } from "effect"
 
 type S = {
   readonly a: number
@@ -169,7 +168,7 @@ There are two ways to handle an optional key in a struct or a tuple, depending o
 **Example** (Preserving the key when setting `undefined`)
 
 ```ts
-import { Optic } from "effect/optic"
+import { Optic } from "effect"
 
 type S = {
   readonly a?: number | undefined
@@ -206,7 +205,7 @@ console.log(_a.replace(2, { a: undefined }))
 **Example** (Removing the key when setting `undefined`)
 
 ```ts
-import { Optic } from "effect/optic"
+import { Optic } from "effect"
 
 type S = {
   readonly a?: number
@@ -237,7 +236,7 @@ console.log(_a.replace(undefined, {}))
 **Example** (Dropping a tuple element when setting `undefined`)
 
 ```ts
-import { Optic } from "effect/optic"
+import { Optic } from "effect"
 
 type S = readonly [number, number?]
 
@@ -262,7 +261,7 @@ console.log(_1.replace(undefined, [1, 2]))
 **Example** (Reading and updating a record entry)
 
 ```ts
-import { Optic } from "effect/optic"
+import { Optic } from "effect"
 
 type S = { [key: string]: number }
 
@@ -276,7 +275,7 @@ console.log(_a.replace(2, { a: 1 }))
 **Example** (Reading and updating an array element)
 
 ```ts
-import { Optic } from "effect/optic"
+import { Optic } from "effect"
 
 type S = ReadonlyArray<number>
 
@@ -295,7 +294,7 @@ The convention is to use `"_tag"` as the field that identifies the variant.
 **Example** (Focusing a field inside one variant)
 
 ```ts
-import { Optic } from "effect/optic"
+import { Optic } from "effect"
 
 // A union of two tagged types
 type S =
@@ -323,7 +322,7 @@ console.log(_a.replace(2, { _tag: "B", b: 1 })) // no match, so no change
 **Example** (Incrementing only positive numbers in an array field)
 
 ```ts
-import { Optic } from "effect/optic"
+import { Optic } from "effect"
 import { Check } from "effect/schema"
 
 type S = {
@@ -391,7 +390,7 @@ const lowerName = produce(state, (draft) => {
 **Optics:** define a **Lens** once, then reuse it.
 
 ```ts
-import { Optic } from "effect/optic"
+import { Optic } from "effect"
 
 type S = {
   readonly user: {
@@ -462,7 +461,7 @@ console.log(next)
 **Example** (Uppercasing titles with declarative focus)
 
 ```ts
-import { Optic } from "effect/optic"
+import { Optic } from "effect"
 
 type S = {
   readonly todos?: ReadonlyArray<{

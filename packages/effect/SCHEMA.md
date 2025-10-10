@@ -4969,7 +4969,7 @@ To work around this, you can define an `Iso` between your custom type and a plai
 **Example** (Defining an `Iso` manually between a custom type and a plain JavaScript object)
 
 ```ts
-import { Optic } from "effect/optic"
+import { Optic } from "effect"
 import { Schema } from "effect/schema"
 
 // Define custom schema-based classes
