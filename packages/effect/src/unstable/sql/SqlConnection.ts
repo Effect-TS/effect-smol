@@ -56,7 +56,7 @@ export type Acquirer = Effect<Connection, SqlError, Scope>
  * @category tag
  * @since 4.0.0
  */
-export const Connection = ServiceMap.Key<Connection>("effect/sql/SqlConnection")
+export const Connection = ServiceMap.Service<Connection>("effect/sql/SqlConnection")
 
 /**
  * @category model

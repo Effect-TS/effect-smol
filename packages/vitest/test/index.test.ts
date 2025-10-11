@@ -63,15 +63,15 @@ it.live.fails("interrupts on timeout", (ctx) =>
     yield* Effect.sleep(1000)
   }), 1)
 
-class Foo extends ServiceMap.Key<Foo, "foo">()("Foo") {
+class Foo extends ServiceMap.Service<Foo, "foo">()("Foo") {
   static Live = Layer.succeed(Foo)("foo")
 }
 
-class Bar extends ServiceMap.Key<Bar, "bar">()("Bar") {
+class Bar extends ServiceMap.Service<Bar, "bar">()("Bar") {
   static Live = Layer.effect(Bar)(Effect.map(Foo.asEffect(), () => "bar" as const))
 }
 
-class Sleeper extends ServiceMap.Key<Sleeper, {
+class Sleeper extends ServiceMap.Service<Sleeper, {
   readonly sleep: (ms: number) => Effect.Effect<void>
 }>()("Sleeper") {
   static layer = Layer.effect(Sleeper)(
@@ -119,7 +119,7 @@ describe("layer", () => {
         expect(released).toEqual(true)
       })
 
-      class Scoped extends ServiceMap.Key<Scoped, "scoped">()("Scoped") {
+      class Scoped extends ServiceMap.Service<Scoped, "scoped">()("Scoped") {
         static Live = Layer.effect(Scoped)(
           Effect.acquireRelease(
             Effect.succeed("scoped" as const),

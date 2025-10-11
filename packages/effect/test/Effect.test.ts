@@ -8,7 +8,7 @@ import { constFalse, constTrue, pipe } from "effect/Function"
 import { TxRef } from "effect/stm"
 import { TestClock } from "effect/testing"
 
-class ATag extends ServiceMap.Key<ATag, "A">()("ATag") {}
+class ATag extends ServiceMap.Service<ATag, "A">()("ATag") {}
 
 describe("Effect", () => {
   describe("structural compare", () => {
@@ -108,7 +108,7 @@ describe("Effect", () => {
     assert.isTrue(release)
   })
 
-  it("ServiceMap.Key", () =>
+  it("ServiceMap.Service", () =>
     ATag.asEffect().pipe(
       Effect.tap((_) => Effect.sync(() => assert.strictEqual(_, "A"))),
       Effect.provideService(ATag, "A"),
@@ -752,9 +752,10 @@ describe("Effect", () => {
         assert.deepStrictEqual(result, Option.none())
       }))
     it.effect("timeout in uninterruptible region", () =>
-      Effect.gen(function*() {
-        yield* Effect.void.pipe(Effect.timeoutOption(20_000), Effect.uninterruptible)
-      }), { timeout: 1000 })
+      Effect.void.pipe(
+        Effect.timeoutOption(20_000),
+        Effect.uninterruptible
+      ), { timeout: 1000 })
   })
 
   describe("timeout", () => {
@@ -1338,15 +1339,14 @@ describe("Effect", () => {
             yield* TxRef.set(ref1, 10)
 
             // This atomic operation composes with the parent
-            yield* Effect.atomic(Effect.gen(function*() {
-              yield* TxRef.set(ref1, 20) // Part of same transaction
-            }))
+            yield* Effect.atomic(
+              // Part of same transaction
+              TxRef.set(ref1, 20)
+            )
           }))
 
           // Isolated transaction - should be independent
-          yield* Effect.transaction(Effect.gen(function*() {
-            yield* TxRef.set(ref2, 200)
-          }))
+          yield* Effect.transaction(TxRef.set(ref2, 200))
 
           const val1 = yield* TxRef.get(ref1)
           const val2 = yield* TxRef.get(ref2)
@@ -1365,9 +1365,7 @@ describe("Effect", () => {
             yield* TxRef.set(ref1, 10)
 
             // Child isolated transaction should commit independently
-            yield* Effect.transaction(Effect.gen(function*() {
-              yield* TxRef.set(ref2, 200)
-            }))
+            yield* Effect.transaction(TxRef.set(ref2, 200))
 
             // This will cause parent transaction to fail
             return yield* Effect.fail("parent failed")
@@ -1424,9 +1422,7 @@ describe("Effect", () => {
             yield* Effect.transaction(Effect.gen(function*() {
               yield* TxRef.set(ref2, 2)
 
-              yield* Effect.transaction(Effect.gen(function*() {
-                yield* TxRef.set(ref3, 3)
-              }))
+              yield* Effect.transaction(TxRef.set(ref3, 3))
             }))
           }))
 

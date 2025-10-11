@@ -1826,7 +1826,7 @@ describe("Schema", () => {
     })
 
     it("effectful", () => {
-      const service = hole<ServiceMap.Key<"Tag", "-">>()
+      const service = hole<ServiceMap.Service<"Tag", "-">>()
 
       const schema = Schema.String.pipe(Schema.withConstructorDefault(() =>
         Effect.gen(function*() {

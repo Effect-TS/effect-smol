@@ -22,7 +22,7 @@ import { NodeWS } from "./NodeSocket.ts"
  * @since 1.0.0
  * @category tags
  */
-export class IncomingMessage extends ServiceMap.Key<
+export class IncomingMessage extends ServiceMap.Service<
   IncomingMessage,
   Http.IncomingMessage
 >()("@effect/platform-node-shared/NodeSocketServer/IncomingMessage") {}

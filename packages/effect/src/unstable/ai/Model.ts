@@ -74,7 +74,7 @@ export interface Model<in out Provider, in out Provides, in out Requires>
  * @since 4.0.0
  * @category services
  */
-export class ProviderName extends ServiceMap.Key<ProviderName, string>()(
+export class ProviderName extends ServiceMap.Service<ProviderName, string>()(
   "effect/unstable/ai/Model/ProviderName"
 ) {}
 

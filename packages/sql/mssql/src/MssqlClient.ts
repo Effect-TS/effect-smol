@@ -68,7 +68,7 @@ export interface MssqlClient extends Client.SqlClient {
  * @category tags
  * @since 1.0.0
  */
-export const MssqlClient = ServiceMap.Key<MssqlClient>("@effect/sql-mssql/MssqlClient")
+export const MssqlClient = ServiceMap.Service<MssqlClient>("@effect/sql-mssql/MssqlClient")
 
 /**
  * @category models
@@ -111,7 +111,7 @@ interface MssqlConnection extends Connection {
   readonly rollback: (name?: string) => Effect.Effect<void, SqlError>
 }
 
-const TransactionConnection = Client.TransactionConnection as unknown as ServiceMap.Key<
+const TransactionConnection = Client.TransactionConnection as unknown as ServiceMap.Service<
   readonly [conn: MssqlConnection, counter: number],
   readonly [conn: MssqlConnection, counter: number]
 >
@@ -364,7 +364,7 @@ export const make = (
     )
 
     const withTransaction = Client.makeWithTransaction({
-      transactionTag: TransactionConnection,
+      transactionService: TransactionConnection,
       spanAttributes,
       acquireConnection: Effect.gen(function*() {
         const scope = Scope.makeUnsafe()

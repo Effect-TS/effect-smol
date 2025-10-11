@@ -171,10 +171,10 @@ export class KeyValueStoreError extends Data.TaggedError("KeyValueStoreError")<{
  * @since 1.0.0
  * @category tags
  */
-export const KeyValueStore: ServiceMap.Key<
+export const KeyValueStore: ServiceMap.Service<
   KeyValueStore,
   KeyValueStore
-> = ServiceMap.Key("effect/persistence/KeyValueStore")
+> = ServiceMap.Service("effect/persistence/KeyValueStore")
 
 /**
  * @since 1.0.0

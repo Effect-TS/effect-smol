@@ -69,7 +69,7 @@ export interface ClickhouseClient extends Client.SqlClient {
  * @category tags
  * @since 1.0.0
  */
-export const ClickhouseClient = ServiceMap.Key<ClickhouseClient>("@effect/sql-clickhouse/ClickhouseClient")
+export const ClickhouseClient = ServiceMap.Service<ClickhouseClient>("@effect/sql-clickhouse/ClickhouseClient")
 
 /**
  * @category constructors

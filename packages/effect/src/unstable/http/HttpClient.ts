@@ -111,7 +111,7 @@ export declare namespace HttpClient {
  * @since 4.0.0
  * @category tags
  */
-export const HttpClient: ServiceMap.Key<HttpClient, HttpClient> = ServiceMap.Key<HttpClient, HttpClient>(
+export const HttpClient: ServiceMap.Service<HttpClient, HttpClient> = ServiceMap.Service<HttpClient, HttpClient>(
   "effect/HttpClient"
 )
 

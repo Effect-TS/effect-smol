@@ -720,7 +720,7 @@ export type OpenFlag =
  * @since 4.0.0
  * @category tag
  */
-export const FileSystem: ServiceMap.Key<FileSystem, FileSystem> = ServiceMap.Key("effect/platform/FileSystem")
+export const FileSystem: ServiceMap.Service<FileSystem, FileSystem> = ServiceMap.Service("effect/platform/FileSystem")
 
 /**
  * Creates a FileSystem implementation from a partial implementation.
@@ -1267,6 +1267,6 @@ export declare namespace WatchEvent {
  * @since 4.0.0
  * @category file watcher
  */
-export class WatchBackend extends ServiceMap.Key<WatchBackend, {
+export class WatchBackend extends ServiceMap.Service<WatchBackend, {
   readonly register: (path: string, stat: File.Info) => Stream.Stream<WatchEvent, PlatformError> | undefined
 }>()("effect/platform/FileSystem/WatchBackend") {}

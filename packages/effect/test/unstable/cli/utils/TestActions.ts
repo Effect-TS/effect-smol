@@ -19,7 +19,7 @@ export interface TestActions {
 /**
  * Service tag for TestActions service
  */
-export const TestActions = ServiceMap.Key<TestActions>("@effect/cli/test/TestActions")
+export const TestActions = ServiceMap.Service<TestActions>("@effect/cli/test/TestActions")
 
 /**
  * Implementation of TestActions using Ref

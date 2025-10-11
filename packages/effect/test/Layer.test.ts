@@ -8,7 +8,7 @@ import * as Scope from "effect/Scope"
 describe("Layer", () => {
   it.effect("layers can be acquired in parallel", () =>
     Effect.gen(function*() {
-      const BoolTag = ServiceMap.Key<boolean>("boolean")
+      const BoolTag = ServiceMap.Service<boolean>("boolean")
       const latch = Effect.makeLatchUnsafe()
       const layer1 = Layer.effectServices<never, never, never>(Effect.never)
       const layer2 = Layer.effectServices(
@@ -234,7 +234,7 @@ describe("Layer", () => {
   describe("mock", () => {
     it.effect("allows passing partial service", () =>
       Effect.gen(function*() {
-        class Service1 extends ServiceMap.Key<Service1, {
+        class Service1 extends ServiceMap.Service<Service1, {
           one: Effect.Effect<number>
           two(): Effect.Effect<number>
         }>()("Service1") {}
@@ -309,7 +309,7 @@ export class Service1 {
     return Effect.succeed(1)
   }
 }
-const Service1Tag = ServiceMap.Key<Service1>("Service1")
+const Service1Tag = ServiceMap.Service<Service1>("Service1")
 const makeLayer1 = (array: Array<string>): Layer.Layer<Service1> => {
   return Layer.effect(Service1Tag)(
     Effect.acquireRelease(
@@ -326,7 +326,7 @@ class Service2 {
     return Effect.succeed(2)
   }
 }
-const Service2Tag = ServiceMap.Key<Service2>("Service2")
+const Service2Tag = ServiceMap.Service<Service2>("Service2")
 const makeLayer2 = (array: Array<string>): Layer.Layer<Service2> => {
   return Layer.effect(Service2Tag)(
     Effect.acquireRelease(
@@ -343,7 +343,7 @@ class Service3 {
     return Effect.succeed(3)
   }
 }
-const Service3Tag = ServiceMap.Key<Service3>("Service3")
+const Service3Tag = ServiceMap.Service<Service3>("Service3")
 const makeLayer3 = (array: Array<string>): Layer.Layer<Service3> => {
   return Layer.effect(Service3Tag)(
     Effect.acquireRelease(

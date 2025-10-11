@@ -8,7 +8,7 @@ export class MiniflareError extends Data.TaggedError("MiniflareError")<{
   cause: unknown
 }> {}
 
-export class D1Miniflare extends ServiceMap.Key<
+export class D1Miniflare extends ServiceMap.Service<
   D1Miniflare,
   Miniflare
 >()("test/D1Miniflare") {

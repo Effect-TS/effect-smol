@@ -18,7 +18,7 @@ import * as Workflow from "./Workflow.ts"
  * @since 4.0.0
  * @category Services
  */
-export class WorkflowEngine extends ServiceMap.Key<
+export class WorkflowEngine extends ServiceMap.Service<
   WorkflowEngine,
   {
     /**
@@ -39,7 +39,13 @@ export class WorkflowEngine extends ServiceMap.Key<
     ) => Effect.Effect<
       void,
       never,
-      | Exclude<R, WorkflowEngine | WorkflowInstance | Workflow.Execution<Name> | Scope.Scope>
+      | Exclude<
+        R,
+        | WorkflowEngine
+        | WorkflowInstance
+        | Workflow.Execution<Name>
+        | Scope.Scope
+      >
       | Payload["DecodingServices"]
       | Payload["EncodingServices"]
       | Success["DecodingServices"]
@@ -63,12 +69,16 @@ export class WorkflowEngine extends ServiceMap.Key<
         readonly executionId: string
         readonly payload: Payload["Type"]
         readonly discard?: Discard | undefined
-        readonly suspendedRetrySchedule?: Schedule.Schedule<any, unknown> | undefined
+        readonly suspendedRetrySchedule?:
+          | Schedule.Schedule<any, unknown>
+          | undefined
       }
     ) => Effect.Effect<
       Discard extends true ? string : Success["Type"],
       Error["Type"],
-      Payload["EncodingServices"] | Success["DecodingServices"] | Error["DecodingServices"]
+      | Payload["EncodingServices"]
+      | Success["DecodingServices"]
+      | Error["DecodingServices"]
     >
 
     /**
@@ -117,7 +127,10 @@ export class WorkflowEngine extends ServiceMap.Key<
     ) => Effect.Effect<
       Workflow.Result<Success["Type"], Error["Type"]>,
       never,
-      Success["DecodingServices"] | Error["DecodingServices"] | R | WorkflowInstance
+      | Success["DecodingServices"]
+      | Error["DecodingServices"]
+      | R
+      | WorkflowInstance
     >
 
     /**
@@ -128,7 +141,11 @@ export class WorkflowEngine extends ServiceMap.Key<
       Error extends Schema.Top
     >(
       deferred: DurableDeferred.DurableDeferred<Success, Error>
-    ) => Effect.Effect<Exit.Exit<Success["Type"], Error["Type"]> | undefined, never, WorkflowInstance>
+    ) => Effect.Effect<
+      Exit.Exit<Success["Type"], Error["Type"]> | undefined,
+      never,
+      WorkflowInstance
+    >
 
     /**
      * Set the result of a DurableDeferred, and then resume any waiting
@@ -168,7 +185,7 @@ export class WorkflowEngine extends ServiceMap.Key<
  * @since 4.0.0
  * @category Services
  */
-export class WorkflowInstance extends ServiceMap.Key<
+export class WorkflowInstance extends ServiceMap.Service<
   WorkflowInstance,
   {
     /**
@@ -203,7 +220,10 @@ export class WorkflowInstance extends ServiceMap.Key<
     }
   }
 >()("effect/workflow/WorkflowEngine/WorkflowInstance") {
-  static initial(workflow: Workflow.Any, executionId: string): WorkflowInstance["Service"] {
+  static initial(
+    workflow: Workflow.Any,
+    executionId: string
+  ): WorkflowInstance["Service"] {
     return WorkflowInstance.of({
       executionId,
       workflow,
@@ -238,7 +258,9 @@ export interface Encoded {
       readonly discard: Discard
       readonly parent?: WorkflowInstance["Service"] | undefined
     }
-  ) => Effect.Effect<Discard extends true ? void : Workflow.Result<unknown, unknown>>
+  ) => Effect.Effect<
+    Discard extends true ? void : Workflow.Result<unknown, unknown>
+  >
   readonly poll: (
     workflow: Workflow.Any,
     executionId: string
@@ -254,18 +276,24 @@ export interface Encoded {
   readonly activityExecute: (
     activity: Activity.Any,
     attempt: number
-  ) => Effect.Effect<Workflow.Result<unknown, unknown>, never, WorkflowInstance>
+  ) => Effect.Effect<
+    Workflow.Result<unknown, unknown>,
+    never,
+    WorkflowInstance
+  >
   readonly deferredResult: (
     deferred: DurableDeferred.Any
-  ) => Effect.Effect<Exit.Exit<unknown, unknown> | undefined, never, WorkflowInstance>
-  readonly deferredDone: (
-    options: {
-      readonly workflowName: string
-      readonly executionId: string
-      readonly deferredName: string
-      readonly exit: Exit.Exit<unknown, unknown>
-    }
-  ) => Effect.Effect<void>
+  ) => Effect.Effect<
+    Exit.Exit<unknown, unknown> | undefined,
+    never,
+    WorkflowInstance
+  >
+  readonly deferredDone: (options: {
+    readonly workflowName: string
+    readonly executionId: string
+    readonly deferredName: string
+    readonly exit: Exit.Exit<unknown, unknown>
+  }) => Effect.Effect<void>
   readonly scheduleClock: (
     workflow: Workflow.Any,
     options: {
@@ -287,7 +315,9 @@ export const makeUnsafe = (options: Encoded): WorkflowEngine["Service"] =>
         Effect.suspend(() =>
           execute(payload, executionId)
         ).pipe(
-          Effect.updateServices((input) => ServiceMap.merge(services, input) as ServiceMap.ServiceMap<any>)
+          Effect.updateServices(
+            (input) => ServiceMap.merge(services, input) as ServiceMap.ServiceMap<any>
+          )
         ))
     }),
     execute: Effect.fnUntraced(function*<
@@ -302,7 +332,9 @@ export const makeUnsafe = (options: Encoded): WorkflowEngine["Service"] =>
         readonly executionId: string
         readonly payload: Payload["Type"]
         readonly discard?: Discard | undefined
-        readonly suspendedRetrySchedule?: Schedule.Schedule<any, unknown> | undefined
+        readonly suspendedRetrySchedule?:
+          | Schedule.Schedule<any, unknown>
+          | undefined
       }
     ) {
       const payload = opts.payload
@@ -339,7 +371,10 @@ export const makeUnsafe = (options: Encoded): WorkflowEngine["Service"] =>
         parent: Option.getOrUndefined(parentInstance)
       })
       if (Option.isSome(parentInstance)) {
-        result = yield* Workflow.wrapActivityResult(run, (result) => result._tag === "Suspended")
+        result = yield* Workflow.wrapActivityResult(
+          run,
+          (result) => result._tag === "Suspended"
+        )
         if (result._tag === "Suspended") {
           parentInstance.value.suspended = true
           return yield* Effect.interrupt
@@ -353,8 +388,14 @@ export const makeUnsafe = (options: Encoded): WorkflowEngine["Service"] =>
         if (result._tag === "Complete") {
           return yield* result.exit as Exit.Exit<any>
         }
-        sleep ??= (yield* Schedule.toStepWithSleep(suspendedRetrySchedule))(void 0).pipe(
-          Effect.catch(() => Effect.die(`${self.name}.execute: suspendedRetrySchedule exhausted`))
+        sleep ??= (yield* Schedule.toStepWithSleep(suspendedRetrySchedule))(
+          void 0
+        ).pipe(
+          Effect.catch(() =>
+            Effect.die(
+              `${self.name}.execute: suspendedRetrySchedule exhausted`
+            )
+          )
         )
         yield* sleep
       }
@@ -377,57 +418,70 @@ export const makeUnsafe = (options: Encoded): WorkflowEngine["Service"] =>
       return new Workflow.Complete({ exit })
     }),
     deferredResult: Effect.fnUntraced(
-      function*<
-        Success extends Schema.Top,
-        Error extends Schema.Top
-      >(deferred: DurableDeferred.DurableDeferred<Success, Error>) {
+      function*<Success extends Schema.Top, Error extends Schema.Top>(
+        deferred: DurableDeferred.DurableDeferred<Success, Error>
+      ) {
         const instance = yield* WorkflowInstance
-        yield* Effect.annotateCurrentSpan({ executionId: instance.executionId })
+        yield* Effect.annotateCurrentSpan({
+          executionId: instance.executionId
+        })
         const exit = yield* options.deferredResult(deferred)
         if (exit === undefined) {
           return exit
         }
-        return yield* (Effect.orDie(
+        return yield* Effect.orDie(
           Schema.decodeEffect(deferred.exitSchema)(toJsonExit(exit))
-        ) as Effect.Effect<Exit.Exit<Success["Type"], Error["Type"]>>)
+        ) as Effect.Effect<Exit.Exit<Success["Type"], Error["Type"]>>
       },
-      Effect.withSpan("WorkflowEngine.deferredResult", (deferred) => ({
-        attributes: { name: deferred.name }
-      }), { captureStackTrace: false })
+      Effect.withSpan(
+        "WorkflowEngine.deferredResult",
+        (deferred) => ({
+          attributes: { name: deferred.name }
+        }),
+        { captureStackTrace: false }
+      )
     ),
     deferredDone: Effect.fnUntraced(
-      function*<
-        Success extends Schema.Top,
-        Error extends Schema.Top
-      >(deferred: DurableDeferred.DurableDeferred<Success, Error>, opts: {
-        readonly workflowName: string
-        readonly executionId: string
-        readonly deferredName: string
-        readonly exit: Exit.Exit<Success["Type"], Error["Type"]>
-      }) {
+      function*<Success extends Schema.Top, Error extends Schema.Top>(
+        deferred: DurableDeferred.DurableDeferred<Success, Error>,
+        opts: {
+          readonly workflowName: string
+          readonly executionId: string
+          readonly deferredName: string
+          readonly exit: Exit.Exit<Success["Type"], Error["Type"]>
+        }
+      ) {
         return yield* options.deferredDone({
           workflowName: opts.workflowName,
           executionId: opts.executionId,
           deferredName: opts.deferredName,
-          exit: yield* (
-            Schema.encodeEffect(deferred.exitSchema)(opts.exit) as Effect.Effect<Exit.Exit<unknown, unknown>>
-          )
+          exit: yield* Schema.encodeEffect(deferred.exitSchema)(
+            opts.exit
+          ) as Effect.Effect<Exit.Exit<unknown, unknown>>
         })
       },
-      Effect.withSpan("WorkflowEngine.deferredDone", (_, { deferredName, executionId }) => ({
-        attributes: { name: deferredName, executionId }
-      }), { captureStackTrace: false })
+      Effect.withSpan(
+        "WorkflowEngine.deferredDone",
+        (_, { deferredName, executionId }) => ({
+          attributes: { name: deferredName, executionId }
+        }),
+        { captureStackTrace: false }
+      )
     ),
     scheduleClock: (workflow, opts) =>
       options.scheduleClock(workflow, opts).pipe(
-        Effect.withSpan("WorkflowEngine.scheduleClock", {
-          attributes: {
-            executionId: opts.executionId,
-            name: opts.clock.name
+        Effect.withSpan(
+          "WorkflowEngine.scheduleClock",
+          {
+            attributes: {
+              executionId: opts.executionId,
+              name: opts.clock.name
+            }
+          },
+          {
+            captureStackTrace: false
           }
-        }, {
-          captureStackTrace: false
-        })
+        )
       )
   })
 

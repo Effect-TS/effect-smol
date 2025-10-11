@@ -38,7 +38,7 @@ export class PersistenceError extends Schema.ErrorClass(ErrorTypeId)({
  * @since 4.0.0
  * @category Models
  */
-export class Persistence extends ServiceMap.Key<Persistence, {
+export class Persistence extends ServiceMap.Service<Persistence, {
   readonly make: (options: {
     readonly storeId: string
     readonly timeToLive?: (exit: Exit.Exit<unknown, unknown>, key: Persistable.Any) => Duration.DurationInput
@@ -81,7 +81,7 @@ export interface PersistenceStore {
  * @since 4.0.0
  * @category BackingPersistence
  */
-export class BackingPersistence extends ServiceMap.Key<BackingPersistence, {
+export class BackingPersistence extends ServiceMap.Service<BackingPersistence, {
   readonly make: (storeId: string) => Effect.Effect<BackingPersistenceStore, never, Scope.Scope>
 }>()("effect/persistence/BackingPersistence") {}
 

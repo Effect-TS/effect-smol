@@ -149,13 +149,13 @@ export const annotateMerge: {
  * @category annotations
  */
 export const annotate: {
-  <I, S>(key: ServiceMap.Key<I, S>, value: S): <A extends HttpApiSecurity>(self: A) => A
-  <A extends HttpApiSecurity, I, S>(self: A, key: ServiceMap.Key<I, S>, value: S): A
+  <I, S>(service: ServiceMap.Service<I, S>, value: S): <A extends HttpApiSecurity>(self: A) => A
+  <A extends HttpApiSecurity, I, S>(self: A, service: ServiceMap.Service<I, S>, value: S): A
 } = dual(
   3,
-  <A extends HttpApiSecurity, I, S>(self: A, key: ServiceMap.Key<I, S>, value: S): A =>
+  <A extends HttpApiSecurity, I, S>(self: A, service: ServiceMap.Service<I, S>, value: S): A =>
     Object.assign(Object.create(Proto), {
       ...self,
-      annotations: ServiceMap.add(self.annotations, key, value)
+      annotations: ServiceMap.add(self.annotations, service, value)
     })
 )

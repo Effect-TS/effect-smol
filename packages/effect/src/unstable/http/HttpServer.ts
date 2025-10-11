@@ -20,7 +20,7 @@ import type { HttpServerResponse } from "./HttpServerResponse.ts"
  * @since 4.0.0
  * @category models
  */
-export class HttpServer extends ServiceMap.Key<HttpServer, {
+export class HttpServer extends ServiceMap.Service<HttpServer, {
   readonly serve: {
     <E, R>(effect: Effect.Effect<HttpServerResponse, E, R>): Effect.Effect<
       void,

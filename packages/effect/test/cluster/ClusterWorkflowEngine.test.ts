@@ -267,7 +267,7 @@ const EmailWorkflow = Workflow.make({
   }
 })
 
-class Flags extends ServiceMap.Key<Flags>()("Flags", {
+class Flags extends ServiceMap.Service<Flags>()("Flags", {
   make: Effect.sync(() => new Map<string, boolean | string>())
 }) {
   static layer = Layer.effect(this)(this.make)

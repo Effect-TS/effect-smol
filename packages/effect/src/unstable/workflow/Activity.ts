@@ -99,8 +99,8 @@ export const make = <
   readonly error?: Error | undefined
   readonly execute: Effect.Effect<Success["Type"], Error["Type"], R>
 }): Activity<Success, Error, Exclude<R, WorkflowInstance | WorkflowEngine | Scope>> => {
-  const successSchema = options.success ?? Schema.Void as any as Success
-  const errorSchema = options.error ?? Schema.Never as any as Error
+  const successSchema = options.success ?? (Schema.Void as any as Success)
+  const errorSchema = options.error ?? (Schema.Never as any as Error)
   const successSchemaJson = Serializer.json(successSchema)
   const errorSchemaJson = Serializer.json(errorSchema)
   // eslint-disable-next-line prefer-const
@@ -135,9 +135,7 @@ export const retry: typeof Effect.retry = dual(
   (effect: Effect.Effect<any, any, any>, options: {}) =>
     Effect.suspend(() => {
       let attempt = 1
-      return Effect.suspend(() => Effect.provideService(effect, CurrentAttempt, attempt++)).pipe(
-        Effect.retry(options)
-      )
+      return Effect.suspend(() => Effect.provideService(effect, CurrentAttempt, attempt++)).pipe(Effect.retry(options))
     })
 )
 
@@ -145,9 +143,12 @@ export const retry: typeof Effect.retry = dual(
  * @since 4.0.0
  * @category Attempts
  */
-export const CurrentAttempt = ServiceMap.Reference<number>("effect/workflow/Activity/CurrentAttempt", {
-  defaultValue: () => 1
-})
+export const CurrentAttempt = ServiceMap.Reference<number>(
+  "effect/workflow/Activity/CurrentAttempt",
+  {
+    defaultValue: () => 1
+  }
+)
 
 /**
  * @since 4.0.0
@@ -171,8 +172,8 @@ export const raceAll = <const Activities extends NonEmptyReadonlyArray<Any>>(
   name: string,
   activities: Activities
 ): Effect.Effect<
-  (Activities[number] extends Activity<infer _A, infer _E, infer _R> ? _A["Type"] : never),
-  (Activities[number] extends Activity<infer _A, infer _E, infer _R> ? _E["Type"] : never),
+  Activities[number] extends Activity<infer _A, infer _E, infer _R> ? _A["Type"] : never,
+  Activities[number] extends Activity<infer _A, infer _E, infer _R> ? _E["Type"] : never,
   | (Activities[number] extends Activity<infer Success, infer Error, infer R>
     ? Success["DecodingServices"] | Error["DecodingServices"] | R
     : never)
@@ -194,10 +195,10 @@ export const raceAll = <const Activities extends NonEmptyReadonlyArray<Any>>(
 // internal
 // -----------------------------------------------------------------------------
 
-const EngineTag = ServiceMap.Key<WorkflowEngine, WorkflowEngine["Service"]>(
+const EngineTag = ServiceMap.Service<WorkflowEngine, WorkflowEngine["Service"]>(
   "effect/workflow/WorkflowEngine" satisfies typeof WorkflowEngine.key
 )
-const InstanceTag = ServiceMap.Key<WorkflowInstance, WorkflowInstance["Service"]>(
+const InstanceTag = ServiceMap.Service<WorkflowInstance, WorkflowInstance["Service"]>(
   "effect/workflow/WorkflowEngine/WorkflowInstance" satisfies typeof WorkflowInstance.key
 )
 

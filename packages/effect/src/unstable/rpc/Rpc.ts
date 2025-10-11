@@ -117,7 +117,7 @@ export interface Rpc<
    * Add an annotation on the rpc.
    */
   annotate<I, S>(
-    tag: ServiceMap.Key<I, S>,
+    tag: ServiceMap.Service<I, S>,
     value: S
   ): Rpc<Tag, Payload, Success, Error, Middleware, Requires>
 
@@ -376,7 +376,7 @@ export type Middleware<R> = R extends Rpc<
   infer _Error,
   infer _Middleware,
   infer _Requires
-> ? ServiceMap.Key.Identifier<_Middleware>
+> ? ServiceMap.Service.Identifier<_Middleware>
   : never
 
 /**
@@ -392,7 +392,7 @@ export type MiddlewareClient<R> = R extends Rpc<
   infer _Requires
 > ?
   _Middleware extends { readonly requiredForClient: true }
-    ? RpcMiddleware.ForClient<ServiceMap.Key.Identifier<_Middleware>>
+    ? RpcMiddleware.ForClient<ServiceMap.Service.Identifier<_Middleware>>
   : never
   : never
 
@@ -639,7 +639,7 @@ const Proto = {
       middlewares: this.middlewares
     })
   },
-  annotate(this: AnyWithProps, tag: ServiceMap.Key<any, any>, value: any) {
+  annotate(this: AnyWithProps, tag: ServiceMap.Service<any, any>, value: any) {
     return makeProto({
       _tag: this._tag,
       payloadSchema: this.payloadSchema,

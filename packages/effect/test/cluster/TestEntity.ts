@@ -41,7 +41,7 @@ export const TestEntity = Entity.make("TestEntity", [
   })
 ]).annotateRpcs(ClusterSchema.Persisted, true)
 
-export class TestEntityState extends ServiceMap.Key<TestEntityState>()("TestEntityState", {
+export class TestEntityState extends ServiceMap.Service<TestEntityState>()("TestEntityState", {
   make: Effect.gen(function*() {
     const messages = yield* Queue.make<void>()
     const streamMessages = yield* Queue.make<void, Queue.Done>()

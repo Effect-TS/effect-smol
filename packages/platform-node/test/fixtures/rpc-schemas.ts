@@ -20,7 +20,7 @@ class StreamUsers extends Rpc.make("StreamUsers", {
   stream: true
 }) {}
 
-class CurrentUser extends ServiceMap.Key<CurrentUser, User>()("CurrentUser") {}
+class CurrentUser extends ServiceMap.Service<CurrentUser, User>()("CurrentUser") {}
 
 class Unauthorized extends Schema.ErrorClass<Unauthorized>("Unauthorized")({
   _tag: Schema.tag("Unauthorized")

@@ -215,7 +215,7 @@ export abstract class FailureBase<Tag extends string> implements Cause.Cause.Fai
     this.annotations = annotations
   }
 
-  abstract annotate<I, S>(this: any, tag: ServiceMap.Key<I, S>, value: S): this
+  abstract annotate<I, S>(this: any, tag: ServiceMap.Service<I, S>, value: S): this
 
   pipe() {
     return pipeArguments(this, arguments)
@@ -256,7 +256,7 @@ export class Fail<E> extends FailureBase<"Fail"> implements Cause.Fail<E> {
       error: this.error
     }
   }
-  annotate<I, S>(tag: ServiceMap.Key<I, S>, value: S, options?: {
+  annotate<I, S>(tag: ServiceMap.Service<I, S>, value: S, options?: {
     readonly overwrite?: boolean | undefined
   }): this {
     if (options?.overwrite !== true && this.annotations.has(tag.key)) {
@@ -311,7 +311,7 @@ export class Die extends FailureBase<"Die"> implements Cause.Die {
       defect: this.defect
     }
   }
-  annotate<I, S>(tag: ServiceMap.Key<I, S>, value: S, options?: {
+  annotate<I, S>(tag: ServiceMap.Service<I, S>, value: S, options?: {
     readonly overwrite?: boolean | undefined
   }): this {
     if (options?.overwrite !== true && this.annotations.has(tag.key)) {
@@ -342,7 +342,7 @@ export const causeDie = (defect: unknown): Cause.Cause<never> => new CauseImpl([
 /** @internal */
 export const causeAnnotate: {
   <I, S>(
-    key: ServiceMap.Key<I, S>,
+    key: ServiceMap.Service<I, S>,
     value: NoInfer<S>,
     options?: {
       readonly overwrite?: boolean | undefined
@@ -350,7 +350,7 @@ export const causeAnnotate: {
   ): <E>(self: Cause.Cause<E>) => Cause.Cause<E>
   <E, I, S>(
     self: Cause.Cause<E>,
-    key: ServiceMap.Key<I, S>,
+    key: ServiceMap.Service<I, S>,
     value: NoInfer<S>,
     options?: {
       readonly overwrite?: boolean | undefined
@@ -360,7 +360,7 @@ export const causeAnnotate: {
   (args) => isCause(args[0]),
   <E, I, S>(
     self: Cause.Cause<E>,
-    key: ServiceMap.Key<I, S>,
+    key: ServiceMap.Service<I, S>,
     value: NoInfer<S>,
     options?: {
       readonly overwrite?: boolean | undefined
@@ -539,12 +539,12 @@ export const exitSucceed: <A>(a: A) => Exit.Exit<A> = makeExit({
 /** @internal */
 export const CurrentSpanKey = {
   key: "effect/Cause/CurrentSpan" satisfies typeof Cause.CurrentSpan.key
-} as ServiceMap.Key<Cause.CurrentSpan, Span>
+} as ServiceMap.Service<Cause.CurrentSpan, Span>
 
 /** @internal */
 export const InterruptorSpanKey = {
   key: "effect/Cause/InterruptorSpan" satisfies typeof Cause.InterruptorSpan.key
-} as ServiceMap.Key<Cause.InterruptorSpan, Span>
+} as ServiceMap.Service<Cause.InterruptorSpan, Span>
 
 /** @internal */
 export const exitFailCause: <E>(cause: Cause.Cause<E>) => Exit.Exit<never, E> = makeExit({

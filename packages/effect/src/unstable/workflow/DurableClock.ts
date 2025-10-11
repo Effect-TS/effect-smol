@@ -35,11 +35,14 @@ export const make = (options: {
   deferred: DurableDeferred.make(`DurableClock/${options.name}`)
 })
 
-const EngineTag = ServiceMap.Key<WorkflowEngine, WorkflowEngine["Service"]>(
+const EngineTag = ServiceMap.Service<WorkflowEngine, WorkflowEngine["Service"]>(
   "effect/workflow/WorkflowEngine" satisfies typeof WorkflowEngine.key
 )
 
-const InstanceTag = ServiceMap.Key<WorkflowInstance, WorkflowInstance["Service"]>(
+const InstanceTag = ServiceMap.Service<
+  WorkflowInstance,
+  WorkflowInstance["Service"]
+>(
   "effect/workflow/WorkflowEngine/WorkflowInstance" satisfies typeof WorkflowInstance.key
 )
 
@@ -47,16 +50,10 @@ const InstanceTag = ServiceMap.Key<WorkflowInstance, WorkflowInstance["Service"]
  * @since 4.0.0
  * @category Sleeping
  */
-export const sleep: (
-  options: {
-    readonly name: string
-    readonly duration: Duration.DurationInput
-  }
-) => Effect.Effect<
-  void,
-  never,
-  WorkflowEngine | WorkflowInstance
-> = Effect.fnUntraced(function*(options: {
+export const sleep: (options: {
+  readonly name: string
+  readonly duration: Duration.DurationInput
+}) => Effect.Effect<void, never, WorkflowEngine | WorkflowInstance> = Effect.fnUntraced(function*(options: {
   readonly name: string
   readonly duration: Duration.DurationInput
 }) {

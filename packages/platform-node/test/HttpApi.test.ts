@@ -632,7 +632,7 @@ const securityQuery = HttpApiSecurity.apiKey({
   key: "api_key"
 })
 
-class CurrentUser extends ServiceMap.Key<CurrentUser, User>()("CurrentUser") {}
+class CurrentUser extends ServiceMap.Service<CurrentUser, User>()("CurrentUser") {}
 
 class Authorization extends HttpApiMiddleware.Key<Authorization, {
   provides: CurrentUser
@@ -792,7 +792,7 @@ class Api extends HttpApi.make("api")
 
 // impl
 
-class UserRepo extends ServiceMap.Key<UserRepo, {
+class UserRepo extends ServiceMap.Service<UserRepo, {
   readonly findById: (id: number) => Effect.Effect<User>
 }>()("UserRepo") {
   static Live = Layer.succeed(this)({

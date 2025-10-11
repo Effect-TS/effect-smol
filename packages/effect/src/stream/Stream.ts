@@ -3045,19 +3045,19 @@ export const provideServices: {
  */
 export const provideService: {
   <I, S>(
-    key: ServiceMap.Key<I, S>,
+    key: ServiceMap.Service<I, S>,
     service: NoInfer<S>
   ): <A, E, R>(
     self: Stream<A, E, R>
   ) => Stream<A, E, Exclude<R, I>>
   <A, E, R, I, S>(
     self: Stream<A, E, R>,
-    key: ServiceMap.Key<I, S>,
+    key: ServiceMap.Service<I, S>,
     service: NoInfer<S>
   ): Stream<A, E, Exclude<R, I>>
 } = dual(3, <A, E, R, I, S>(
   self: Stream<A, E, R>,
-  key: ServiceMap.Key<I, S>,
+  key: ServiceMap.Service<I, S>,
   service: NoInfer<S>
 ): Stream<A, E, Exclude<R, I>> => fromChannel(Channel.provideService(self.channel, key, service)))
 
@@ -3067,19 +3067,19 @@ export const provideService: {
  */
 export const provideServiceEffect: {
   <I, S, ES, RS>(
-    key: ServiceMap.Key<I, S>,
+    key: ServiceMap.Service<I, S>,
     service: Effect.Effect<NoInfer<S>, ES, RS>
   ): <A, E, R>(
     self: Stream<A, E, R>
   ) => Stream<A, E | ES, Exclude<R, I> | RS>
   <A, E, R, I, S, ES, RS>(
     self: Stream<A, E, R>,
-    key: ServiceMap.Key<I, S>,
+    key: ServiceMap.Service<I, S>,
     service: Effect.Effect<NoInfer<S>, ES, RS>
   ): Stream<A, E | ES, Exclude<R, I> | RS>
 } = dual(3, <A, E, R, I, S, ES, RS>(
   self: Stream<A, E, R>,
-  key: ServiceMap.Key<I, S>,
+  key: ServiceMap.Service<I, S>,
   service: Effect.Effect<NoInfer<S>, ES, RS>
 ): Stream<A, E | ES, Exclude<R, I> | RS> => fromChannel(Channel.provideServiceEffect(self.channel, key, service)))
 
@@ -3108,26 +3108,26 @@ export const updateServices: {
  */
 export const updateService: {
   <I, S>(
-    key: ServiceMap.Key<I, S>,
+    key: ServiceMap.Service<I, S>,
     f: (service: NoInfer<S>) => S
   ): <A, E, R>(
     self: Stream<A, E, R>
   ) => Stream<A, E, R | I>
   <A, E, R, I, S>(
     self: Stream<A, E, R>,
-    key: ServiceMap.Key<I, S>,
+    key: ServiceMap.Service<I, S>,
     f: (service: NoInfer<S>) => S
   ): Stream<A, E, R | I>
 } = dual(3, <A, E, R, I, S>(
   self: Stream<A, E, R>,
-  key: ServiceMap.Key<I, S>,
+  service: ServiceMap.Service<I, S>,
   f: (service: NoInfer<S>) => S
 ): Stream<A, E, R | I> =>
   updateServices(self, (services) =>
     ServiceMap.add(
       services,
-      key,
-      f(ServiceMap.get(services, key))
+      service,
+      f(ServiceMap.get(services, service))
     )))
 
 /**

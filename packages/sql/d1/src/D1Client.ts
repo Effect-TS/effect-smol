@@ -47,7 +47,7 @@ export interface D1Client extends Client.SqlClient {
  * @category tags
  * @since 1.0.0
  */
-export const D1Client = ServiceMap.Key<D1Client>("@effect/sql-d1/D1Client")
+export const D1Client = ServiceMap.Service<D1Client>("@effect/sql-d1/D1Client")
 
 /**
  * @category models

@@ -13,7 +13,7 @@ import * as RpcServer from "effect/unstable/rpc/RpcServer"
 import * as RpcTest from "effect/unstable/rpc/RpcTest"
 import { AuthClient, AuthLive, TimingLive, User, UserRpcs, UsersLive } from "./rpc-schemas.ts"
 
-export class UsersClient extends ServiceMap.Key<
+export class UsersClient extends ServiceMap.Service<
   UsersClient,
   RpcClient.RpcClient<RpcGroup.Rpcs<typeof UserRpcs>, RpcClientError>
 >()("UsersClient") {

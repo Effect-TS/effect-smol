@@ -8,7 +8,7 @@ export class ContainerError extends Data.TaggedError("ContainerError")<{
   cause: unknown
 }> {}
 
-export class MysqlContainer extends ServiceMap.Key<
+export class MysqlContainer extends ServiceMap.Service<
   MysqlContainer,
   StartedMySqlContainer
 >()("test/MysqlContainer") {

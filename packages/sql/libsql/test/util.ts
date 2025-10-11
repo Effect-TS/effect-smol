@@ -2,7 +2,7 @@ import { LibsqlClient } from "@effect/sql-libsql"
 import { Effect, Layer, ServiceMap } from "effect"
 import { GenericContainer, type StartedTestContainer } from "testcontainers"
 
-export class LibsqlContainer extends ServiceMap.Key<
+export class LibsqlContainer extends ServiceMap.Service<
   LibsqlContainer,
   StartedTestContainer
 >()("test/LibsqlContainer") {

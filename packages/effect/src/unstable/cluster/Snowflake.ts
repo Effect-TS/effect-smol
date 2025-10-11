@@ -188,7 +188,7 @@ export const makeGenerator: Effect.Effect<Snowflake.Generator> = Effect.gen(func
  * @since 4.0.0
  * @category Generator
  */
-export class Generator extends ServiceMap.Key<
+export class Generator extends ServiceMap.Service<
   Generator,
   Snowflake.Generator
 >()("effect/cluster/Snowflake/Generator") {}

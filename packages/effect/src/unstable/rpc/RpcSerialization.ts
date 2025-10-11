@@ -12,7 +12,7 @@ import type * as RpcMessage from "./RpcMessage.ts"
  * @since 4.0.0
  * @category serialization
  */
-export class RpcSerialization extends ServiceMap.Key<RpcSerialization, {
+export class RpcSerialization extends ServiceMap.Service<RpcSerialization, {
   makeUnsafe(): Parser
   readonly contentType: string
   readonly includesFraming: boolean

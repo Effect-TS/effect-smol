@@ -217,7 +217,7 @@ export namespace State {
  * @since 2.0.0
  * @category tags
  */
-export const Scope: ServiceMap.Key<Scope, Scope> = effect.scopeTag
+export const Scope: ServiceMap.Service<Scope, Scope> = effect.scopeTag
 
 /**
  * Creates a new `Scope` with the specified finalizer strategy.

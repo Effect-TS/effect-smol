@@ -24,7 +24,7 @@ import * as Runners from "./Runners.ts"
  * @since 4.0.0
  * @category models
  */
-export class RunnerHealth extends ServiceMap.Key<
+export class RunnerHealth extends ServiceMap.Service<
   RunnerHealth,
   {
     readonly isAlive: (address: RunnerAddress) => Effect.Effect<boolean>

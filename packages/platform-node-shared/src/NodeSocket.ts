@@ -25,7 +25,9 @@ export * as NodeWS from "ws"
  * @since 1.0.0
  * @category tags
  */
-export class NetSocket extends ServiceMap.Key<NetSocket, Net.Socket>()("@effect/platform-node/NodeSocket/NetSocket") {}
+export class NetSocket extends ServiceMap.Service<NetSocket, Net.Socket>()(
+  "@effect/platform-node/NodeSocket/NetSocket"
+) {}
 
 /**
  * @since 1.0.0

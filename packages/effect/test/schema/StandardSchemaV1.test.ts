@@ -14,10 +14,7 @@ function validate<I, A>(
 
 const isPromise = (value: unknown): value is Promise<unknown> => value instanceof Promise
 
-const expectSuccess = <A>(
-  result: StandardSchemaV1.Result<A>,
-  a: A
-) => {
+const expectSuccess = <A>(result: StandardSchemaV1.Result<A>, a: A) => {
   deepStrictEqual(result, { value: a })
 }
 
@@ -150,7 +147,7 @@ describe("asStandardSchemaV1", () => {
   })
 
   describe("missing dependencies", () => {
-    class MagicNumber extends ServiceMap.Key<MagicNumber, number>()("MagicNumber") {}
+    class MagicNumber extends ServiceMap.Service<MagicNumber, number>()("MagicNumber") {}
 
     it("sync decoding should throw", () => {
       const DepString = Schema.Number.pipe(Schema.decode({
@@ -252,16 +249,13 @@ describe("asStandardSchemaV1", () => {
       })
 
       const standardSchema = Schema.asStandardSchemaV1(schema)
-      expectSyncFailure(standardSchema, { tags: ["a", ""] }, [
-        {
-          "message": `Expected a value with a length of at least 1, got ""`,
-          "path": ["tags", 1]
-        },
-        {
-          "message": `Expected a value with a length of at least 3, got ["a",""]`,
-          "path": ["tags"]
-        }
-      ])
+      expectSyncFailure(standardSchema, { tags: ["a", ""] }, [{
+        message: `Expected a value with a length of at least 1, got ""`,
+        path: ["tags", 1]
+      }, {
+        message: `Expected a value with a length of at least 3, got ["a",""]`,
+        path: ["tags"]
+      }])
     })
   })
 
@@ -343,9 +337,9 @@ describe("asStandardSchemaV1", () => {
       })
 
       it("String & annotation & minLength(annotation)", () => {
-        const schema = Schema.String.annotate({ message: "Custom message" }).check(Check.nonEmpty({
-          message: "Custom message 2"
-        }))
+        const schema = Schema.String.annotate({ message: "Custom message" }).check(
+          Check.nonEmpty({ message: "Custom message 2" })
+        )
         const standardSchema = Schema.asStandardSchemaV1(schema)
         expectSyncFailure(standardSchema, null, [
           {
@@ -362,9 +356,9 @@ describe("asStandardSchemaV1", () => {
       })
 
       it("String & annotation & minLength(annotation) & maxLength(annotation)", () => {
-        const schema = Schema.String.annotate({ message: "Custom message" }).check(Check.nonEmpty({
-          message: "Custom message 2"
-        })).check(Check.maxLength(2, { message: "Custom message 3" }))
+        const schema = Schema.String.annotate({ message: "Custom message" })
+          .check(Check.nonEmpty({ message: "Custom message 2" }))
+          .check(Check.maxLength(2, { message: "Custom message 3" }))
         const standardSchema = Schema.asStandardSchemaV1(schema)
         expectSyncFailure(standardSchema, null, [
           {

@@ -817,7 +817,7 @@ export const withHeaders: {
  * @since 4.0.0
  * @category protocol
  */
-export class Protocol extends ServiceMap.Key<Protocol, {
+export class Protocol extends ServiceMap.Service<Protocol, {
   readonly run: (
     f: (data: FromServerEncoded) => Effect.Effect<void>
   ) => Effect.Effect<never>

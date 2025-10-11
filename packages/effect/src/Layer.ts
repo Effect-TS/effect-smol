@@ -562,8 +562,8 @@ export const buildWithScope: {
  * @since 2.0.0
  * @category constructors
  */
-export const succeed = <I, S>(key: ServiceMap.Key<I, S>) => (resource: S): Layer<I> =>
-  succeedServices(ServiceMap.make(key, resource))
+export const succeed = <I, S>(service: ServiceMap.Service<I, S>) => (resource: S): Layer<I> =>
+  succeedServices(ServiceMap.make(service, resource))
 
 /**
  * Constructs a layer from the specified value, which must return one or more
@@ -634,8 +634,8 @@ export const empty: Layer<never> = succeedServices(ServiceMap.empty())
  * @since 2.0.0
  * @category constructors
  */
-export const sync = <I, S>(key: ServiceMap.Key<I, S>) => (evaluate: LazyArg<S>): Layer<I> =>
-  syncServices(() => ServiceMap.make(key, evaluate()))
+export const sync = <I, S>(service: ServiceMap.Service<I, S>) => (evaluate: LazyArg<S>): Layer<I> =>
+  syncServices(() => ServiceMap.make(service, evaluate()))
 
 /**
  * Lazily constructs a layer from the specified value, which must return one or more
@@ -690,7 +690,7 @@ export const syncServices = <A>(evaluate: LazyArg<ServiceMap.ServiceMap<A>>): La
  * @since 2.0.0
  * @category constructors
  */
-export const effect = <I, S>(key: ServiceMap.Key<I, S>): {
+export const effect = <I, S>(service: ServiceMap.Service<I, S>): {
   <E, R>(
     effect: Effect<S, E, R>
   ): Layer<I, E, Exclude<R, Scope.Scope>>
@@ -700,14 +700,14 @@ export const effect = <I, S>(key: ServiceMap.Key<I, S>): {
 } =>
 (effectOrFn: Effect<any, any, any> | ((...args: any) => Effect<any, any, any>)) =>
   typeof effectOrFn === "function"
-    ? (...args: any) => effectImpl(key, internalEffect.suspend(() => effectOrFn(...args)))
-    : effectImpl(key, effectOrFn) as any
+    ? (...args: any) => effectImpl(service, internalEffect.suspend(() => effectOrFn(...args)))
+    : effectImpl(service, effectOrFn) as any
 
 const effectImpl = <I, S, E, R>(
-  key: ServiceMap.Key<I, S>,
+  service: ServiceMap.Service<I, S>,
   effect: Effect<S, E, R>
 ): Layer<I, E, Exclude<R, Scope.Scope>> =>
-  effectServices(internalEffect.map(effect, (value) => ServiceMap.make(key, value)))
+  effectServices(internalEffect.map(effect, (value) => ServiceMap.make(service, value)))
 
 /**
  * Constructs a layer from the specified scoped effect, which must return one
@@ -722,7 +722,7 @@ const effectImpl = <I, S, E, R>(
  * import { Layer } from "effect"
  * import { ServiceMap } from "effect"
  *
- * class Database extends ServiceMap.Key<Database, { readonly query: (sql: string) => Effect.Effect<string> }>()("Database") {}
+ * class Database extends ServiceMap.Service<Database, { readonly query: (sql: string) => Effect.Effect<string> }>()("Database") {}
  *
  * const layer = Layer.effectServices(
  *   Effect.succeed(ServiceMap.make(Database, {
@@ -790,8 +790,8 @@ export const effectDiscard = <X, E, R>(effect: Effect<X, E, R>): Layer<never, E,
 export const unwrap = <A, E1, R1, E, R>(
   self: Effect<Layer<A, E1, R1>, E, R>
 ): Layer<A, E | E1, R1 | Exclude<R, Scope.Scope>> => {
-  const key = ServiceMap.Key<Layer<A, E1, R1>>("effect/Layer/unwrap")
-  return flatMap(effect(key)(self), ServiceMap.get(key))
+  const service = ServiceMap.Service<Layer<A, E1, R1>>("effect/Layer/unwrap")
+  return flatMap(effect(service)(self), ServiceMap.get(service))
 }
 
 const mergeAllEffect = <Layers extends [Layer<never, any, any>, ...Array<Layer<never, any, any>>]>(
@@ -1364,15 +1364,22 @@ export const catchCause: {
  * @category utils
  */
 export const updateService: {
-  <I, A>(key: ServiceMap.Key<I, A>, f: (a: A) => A): <A1, E1, R1>(layer: Layer<A1, E1, R1>) => Layer<A1, E1, I | R1>
-  <A1, E1, R1, I, A>(layer: Layer<A1, E1, R1>, key: ServiceMap.Key<I, A>, f: (a: A) => A): Layer<A1, E1, I | R1>
+  <I, A>(
+    service: ServiceMap.Service<I, A>,
+    f: (a: A) => A
+  ): <A1, E1, R1>(layer: Layer<A1, E1, R1>) => Layer<A1, E1, I | R1>
+  <A1, E1, R1, I, A>(
+    layer: Layer<A1, E1, R1>,
+    service: ServiceMap.Service<I, A>,
+    f: (a: A) => A
+  ): Layer<A1, E1, I | R1>
 } = dual(
   3,
-  <A1, E1, R1, I, A>(layer: Layer<A1, E1, R1>, key: ServiceMap.Key<I, A>, f: (a: A) => A): Layer<A1, E1, I | R1> =>
-    provide(
-      layer,
-      effect(key)(internalEffect.map(key.asEffect(), f))
-    )
+  <A1, E1, R1, I, A>(
+    layer: Layer<A1, E1, R1>,
+    service: ServiceMap.Service<I, A>,
+    f: (a: A) => A
+  ): Layer<A1, E1, I | R1> => provide(layer, effect(service)(internalEffect.map(service.asEffect(), f)))
 )
 
 /**
@@ -1385,7 +1392,7 @@ export const updateService: {
  * import { ServiceMap } from "effect"
  * import { Ref } from "effect"
  *
- * class Counter extends ServiceMap.Key<Counter, { readonly count: number; readonly increment: () => Effect.Effect<number> }>()("Counter") {}
+ * class Counter extends ServiceMap.Service<Counter, { readonly count: number; readonly increment: () => Effect.Effect<number> }>()("Counter") {}
  *
  * // Layer that creates a counter with shared state
  * const counterLayer = Layer.effect(Counter)(Effect.gen(function* () {
@@ -1521,7 +1528,7 @@ export type PartialEffectful<A extends object> = Types.Simplify<
  * import { Layer } from "effect"
  * import { ServiceMap } from "effect"
  *
- * class UserService extends ServiceMap.Key<UserService, {
+ * class UserService extends ServiceMap.Service<UserService, {
  *   readonly config: { apiUrl: string }
  *   readonly getUser: (id: string) => Effect.Effect<{ id: string; name: string }, Error>
  *   readonly deleteUser: (id: string) => Effect.Effect<void, Error>
@@ -1553,23 +1560,24 @@ export type PartialEffectful<A extends object> = Types.Simplify<
  * @since 4.0.0
  * @category Testing
  */
-export const mock = <I, S extends object>(key: ServiceMap.Key<I, S>) => (service: PartialEffectful<S>): Layer<I> =>
-  succeed(key)(
-    new Proxy({ ...service as object } as S, {
-      get(target, prop, _receiver) {
-        if (prop in target) {
-          return target[prop as keyof S]
-        }
-        const prevLimit = (Error as ErrorWithStackTraceLimit).stackTraceLimit
-        ;(Error as ErrorWithStackTraceLimit).stackTraceLimit = 2
-        const error = new Error(`${key.key}: Unimplemented method "${prop.toString()}"`)
-        ;(Error as ErrorWithStackTraceLimit).stackTraceLimit = prevLimit
-        error.name = "UnimplementedError"
-        return makeUnimplemented(error)
-      },
-      has: constTrue
-    })
-  )
+export const mock =
+  <I, S extends object>(service: ServiceMap.Service<I, S>) => (implementation: PartialEffectful<S>): Layer<I> =>
+    succeed(service)(
+      new Proxy({ ...implementation as object } as S, {
+        get(target, prop, _receiver) {
+          if (prop in target) {
+            return target[prop as keyof S]
+          }
+          const prevLimit = (Error as ErrorWithStackTraceLimit).stackTraceLimit
+          ;(Error as ErrorWithStackTraceLimit).stackTraceLimit = 2
+          const error = new Error(`${service.key}: Unimplemented method "${prop.toString()}"`)
+          ;(Error as ErrorWithStackTraceLimit).stackTraceLimit = prevLimit
+          error.name = "UnimplementedError"
+          return makeUnimplemented(error)
+        },
+        has: constTrue
+      })
+    )
 
 const makeUnimplemented = (error: globalThis.Error) => {
   const dead = internalEffect.die(error)

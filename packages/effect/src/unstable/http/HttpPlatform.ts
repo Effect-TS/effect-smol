@@ -17,7 +17,7 @@ import * as Response from "./HttpServerResponse.ts"
  * @since 4.0.0
  * @category tags
  */
-export class HttpPlatform extends ServiceMap.Key<HttpPlatform, {
+export class HttpPlatform extends ServiceMap.Service<HttpPlatform, {
   readonly fileResponse: (
     path: string,
     options?: Response.Options.WithContent & {

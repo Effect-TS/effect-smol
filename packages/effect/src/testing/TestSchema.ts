@@ -201,11 +201,11 @@ export class Decoding<S extends Schema.Top> {
    * decoding context.
    */
   provide<Id, Service>(
-    key: ServiceMap.Key<Id, Service>,
-    service: Service
+    service: ServiceMap.Service<Id, Service>,
+    implementation: Service
   ): Decoding<Schema.decodingMiddleware<S, Exclude<S["DecodingServices"], Id>>> {
     return new Decoding(
-      this.schema.pipe(Schema.decodingMiddleware(Effect.provideService(key, service))),
+      this.schema.pipe(Schema.decodingMiddleware(Effect.provideService(service, implementation))),
       this.options
     )
   }
@@ -277,11 +277,11 @@ class Encoding<S extends Schema.Top> {
    * encoding context.
    */
   provide<Id, Service>(
-    key: ServiceMap.Key<Id, Service>,
-    service: Service
+    service: ServiceMap.Service<Id, Service>,
+    implementation: Service
   ): Encoding<Schema.encodingMiddleware<S, Exclude<S["EncodingServices"], Id>>> {
     return new Encoding(
-      this.schema.pipe(Schema.encodingMiddleware(Effect.provideService(key, service))),
+      this.schema.pipe(Schema.encodingMiddleware(Effect.provideService(service, implementation))),
       this.options
     )
   }
