@@ -5,9 +5,9 @@
 import * as Cause from "../Cause.ts"
 import * as Arr from "../collections/Array.ts"
 import * as MutableHashMap from "../collections/MutableHashMap.ts"
-import type * as Filter from "../data/Filter.ts"
+import * as Filter from "../data/Filter.ts"
 import * as Option from "../data/Option.ts"
-import { hasProperty } from "../data/Predicate.ts"
+import { hasProperty, isTagged } from "../data/Predicate.ts"
 import * as Duration from "../Duration.ts"
 import * as Effect from "../Effect.ts"
 import * as Exit from "../Exit.ts"
@@ -26,9 +26,10 @@ import * as ServiceMap from "../ServiceMap.ts"
 import * as Channel from "../stream/Channel.ts"
 import * as Pull from "../stream/Pull.ts"
 import type * as Sink from "../stream/Sink.ts"
+import { isString } from "../String.ts"
 import type { ParentSpan, SpanOptions } from "../Tracer.ts"
 import type { TypeLambda } from "../types/HKT.ts"
-import type { Covariant } from "../types/Types.ts"
+import type { Covariant, ExcludeTag, ExtractTag, Tags } from "../types/Types.ts"
 import type * as Unify from "../types/Unify.ts"
 import type * as Take from "./Take.ts"
 
@@ -312,7 +313,7 @@ export const fromEffect = <A, E, R>(effect: Effect.Effect<A, E, R>): Stream<A, E
  * @category constructors
  */
 export const fromEffectDrain = <A, E, R>(effect: Effect.Effect<A, E, R>): Stream<never, E, R> =>
-  drain(fromEffect(effect))
+  fromPull(Effect.succeed(Effect.flatMap(effect, () => Pull.haltVoid)))
 
 /**
  * @since 4.0.0
@@ -1456,6 +1457,35 @@ export const mapEffect: {
   ))
 
 /**
+ * @since 2.0.0
+ * @category mapping
+ */
+export const flattenEffect: {
+  (
+    options?: {
+      readonly concurrency?: number | "unbounded" | undefined
+      readonly bufferSize?: number | undefined
+      readonly unordered?: boolean | undefined
+    } | undefined
+  ): <A, EX, RX, E, R>(self: Stream<Effect.Effect<A, EX, RX>, E, R>) => Stream<A, EX | E, RX | R>
+  <A, E, R, EX, RX>(
+    self: Stream<Effect.Effect<A, EX, RX>, E, R>,
+    options?: {
+      readonly concurrency?: number | "unbounded" | undefined
+      readonly bufferSize?: number | undefined
+      readonly unordered?: boolean | undefined
+    } | undefined
+  ): Stream<A, EX | E, RX | R>
+} = dual((args) => isStream(args[0]), <A, E, R, EX, RX>(
+  self: Stream<Effect.Effect<A, EX, RX>, E, R>,
+  options?: {
+    readonly concurrency?: number | "unbounded" | undefined
+    readonly bufferSize?: number | undefined
+    readonly unordered?: boolean | undefined
+  } | undefined
+): Stream<A, EX | E, RX | R> => mapEffect(self, identity, options))
+
+/**
  * @since 4.0.0
  * @category mapping
  */
@@ -1729,6 +1759,54 @@ export const merge: {
 )
 
 /**
+ * @since 3.7.0
+ * @category racing
+ */
+export const raceAll = <S extends ReadonlyArray<Stream<any, any, any>>>(
+  ...streams: S
+): Stream<Success<S[number]>, Error<S[number]>, Services<S[number]>> =>
+  fromChannel(Channel.fromTransform(Effect.fnUntraced(function*(_, scope) {
+    let winner:
+      | Pull.Pull<Arr.NonEmptyReadonlyArray<Success<S[number]>>, Error<S[number]>, void, Services<S[number]>>
+      | undefined
+    const race = Effect.raceAll(streams.map((stream) => {
+      const childScope = Scope.forkUnsafe(scope)
+      return Channel.toPullScoped(stream.channel, childScope).pipe(
+        Effect.flatMap((pull) => Effect.zip(Effect.succeed(pull), pull)),
+        Effect.onExit((exit) => {
+          if (exit._tag === "Success") {
+            if (winner) {
+              return Scope.close(childScope, exit)
+            }
+            winner = exit.value[0]
+            return Effect.void
+          }
+          return Scope.close(childScope, exit)
+        }),
+        Effect.map(([, chunk]) => chunk)
+      )
+    }))
+    return Effect.suspend(() => winner ?? race)
+  })))
+
+/**
+ * @since 3.7.0
+ * @category racing
+ */
+export const race: {
+  <AR, ER, RR>(
+    right: Stream<AR, ER, RR>
+  ): <AL, EL, RL>(left: Stream<AL, EL, RL>) => Stream<AL | AR, EL | ER, RL | RR>
+  <AL, EL, RL, AR, ER, RR>(
+    left: Stream<AL, EL, RL>,
+    right: Stream<AR, ER, RR>
+  ): Stream<AL | AR, EL | ER, RL | RR>
+} = dual(2, <AL, EL, RL, AR, ER, RR>(
+  left: Stream<AL, EL, RL>,
+  right: Stream<AR, ER, RR>
+): Stream<AL | AR, EL | ER, RL | RR> => raceAll(left, right))
+
+/**
  * @since 2.0.0
  * @category Filtering
  */
@@ -1886,6 +1964,118 @@ export const catchFilter: {
 ): Stream<A | A2, X | E2, R | R2> => fromChannel(Channel.catchFilter(toChannel(self), filter, (e) => f(e).channel)))
 
 /**
+ * @since 4.0.0
+ * @category Error handling
+ */
+export const catchTag: {
+  <const K extends Tags<E> | Arr.NonEmptyReadonlyArray<Tags<E>>, E, A1, E1, R1>(
+    k: K,
+    f: (
+      e: ExtractTag<NoInfer<E>, K extends Arr.NonEmptyReadonlyArray<string> ? K[number] : K>
+    ) => Stream<A1, E1, R1>
+  ): <A, R>(
+    self: Stream<A, E, R>
+  ) => Stream<A1 | A, E1 | ExcludeTag<E, K extends Arr.NonEmptyReadonlyArray<string> ? K[number] : K>, R1 | R>
+  <
+    A,
+    E,
+    R,
+    const K extends Tags<E> | Arr.NonEmptyReadonlyArray<Tags<E>>,
+    R1,
+    E1,
+    A1
+  >(
+    self: Stream<A, E, R>,
+    k: K,
+    f: (e: ExtractTag<E, K extends Arr.NonEmptyReadonlyArray<string> ? K[number] : K>) => Stream<A1, E1, R1>
+  ): Stream<A1 | A, E1 | ExcludeTag<E, K extends Arr.NonEmptyReadonlyArray<string> ? K[number] : K>, R1 | R>
+} = dual(
+  3,
+  <
+    A,
+    E,
+    R,
+    const K extends Tags<E> | Arr.NonEmptyReadonlyArray<Tags<E>>,
+    R1,
+    E1,
+    A1
+  >(
+    self: Stream<A, E, R>,
+    k: K,
+    f: (e: ExtractTag<E, K extends Arr.NonEmptyReadonlyArray<string> ? K[number] : K>) => Stream<A1, E1, R1>
+  ): Stream<A1 | A, E1 | ExcludeTag<E, K extends Arr.NonEmptyReadonlyArray<string> ? K[number] : K>, R1 | R> => {
+    const pred = Array.isArray(k)
+      ? ((e: E): e is any => hasProperty(e, "_tag") && k.includes(e._tag))
+      : isTagged(k as string)
+    return catchFilter(self, Filter.fromPredicate(pred), f) as any
+  }
+)
+
+/**
+ * @since 4.0.0
+ * @category Error handling
+ */
+export const catchTags: {
+  <
+    E,
+    Cases extends (E extends { _tag: string } ? {
+        [K in E["_tag"]]+?: (error: Extract<E, { _tag: K }>) => Stream<any, any, any>
+      } :
+      {})
+  >(
+    cases: Cases
+  ): <A, R>(self: Stream<A, E, R>) => Stream<
+    | A
+    | {
+      [K in keyof Cases]: Cases[K] extends ((...args: Array<any>) => Stream<infer A, any, any>) ? A : never
+    }[keyof Cases],
+    | Exclude<E, { _tag: keyof Cases }>
+    | {
+      [K in keyof Cases]: Cases[K] extends ((...args: Array<any>) => Stream<any, infer E, any>) ? E : never
+    }[keyof Cases],
+    | R
+    | {
+      [K in keyof Cases]: Cases[K] extends ((...args: Array<any>) => Stream<any, any, infer R>) ? R : never
+    }[keyof Cases]
+  >
+  <
+    R,
+    E,
+    A,
+    Cases extends (E extends { _tag: string } ? {
+        [K in E["_tag"]]+?: (error: Extract<E, { _tag: K }>) => Stream<any, any, any>
+      } :
+      {})
+  >(
+    self: Stream<A, E, R>,
+    cases: Cases
+  ): Stream<
+    | A
+    | {
+      [K in keyof Cases]: Cases[K] extends ((...args: Array<any>) => Stream<infer A, any, any>) ? A : never
+    }[keyof Cases],
+    | Exclude<E, { _tag: keyof Cases }>
+    | {
+      [K in keyof Cases]: Cases[K] extends ((...args: Array<any>) => Stream<any, infer E, any>) ? E : never
+    }[keyof Cases],
+    | R
+    | {
+      [K in keyof Cases]: Cases[K] extends ((...args: Array<any>) => Stream<any, any, infer R>) ? R : never
+    }[keyof Cases]
+  >
+} = dual(2, (self, cases) => {
+  let keys: Array<string>
+  return catchFilter(
+    self,
+    (e) => {
+      keys ??= Object.keys(cases)
+      return hasProperty(e, "_tag") && isString(e["_tag"]) && keys.includes(e["_tag"]) ? e : Filter.fail(e)
+    },
+    (e) => cases[e["_tag"] as string](e)
+  )
+})
+
+/**
  * Transforms the errors emitted by this stream using `f`.
  *
  * @since 2.0.0
@@ -1939,6 +2129,44 @@ export const catchCauseFilter: {
     Channel.catchCauseFilter(filter, (failure, cause) => f(failure, cause).channel),
     fromChannel
   ))
+
+/**
+ * @since 2.0.0
+ * @category Error handling
+ */
+export const orElseIfEmpty: {
+  <E, A2, E2, R2>(
+    orElse: LazyArg<Stream<A2, E2, R2>>
+  ): <A, R>(self: Stream<A, E, R>) => Stream<A | A2, E | E2, R | R2>
+  <A, E, R, A2, E2, R2>(
+    self: Stream<A, E, R>,
+    orElse: LazyArg<Stream<A2, E2, R2>>
+  ): Stream<A | A2, E | E2, R | R2>
+} = dual(2, <A, E, R, A2, E2, R2>(
+  self: Stream<A, E, R>,
+  orElse: LazyArg<Stream<A2, E2, R2>>
+): Stream<A | A2, E | E2, R | R2> =>
+  fromChannel(Channel.orElseIfEmpty(
+    self.channel,
+    (_) => toChannel(orElse())
+  )))
+
+/**
+ * @since 2.0.0
+ * @category Error handling
+ */
+export const orElseSucceed: {
+  <E, A2>(
+    f: (error: E) => A2
+  ): <A, R>(self: Stream<A, E, R>) => Stream<A | A2, never, R>
+  <A, E, R, A2>(
+    self: Stream<A, E, R>,
+    f: (error: E) => A2
+  ): Stream<A | A2, never, R>
+} = dual(2, <A, E, R, A2>(
+  self: Stream<A, E, R>,
+  f: (error: E) => A2
+): Stream<A | A2, never, R> => catch_(self, (e) => succeed(f(e))))
 
 /**
  * Converts stream failures into fiber terminations, making them unrecoverable.
@@ -2343,6 +2571,33 @@ export const mapAccum: {
  * @since 2.0.0
  * @category sequencing
  */
+export const mapAccumArray: {
+  <S, A, B>(
+    initial: LazyArg<S>,
+    f: (s: S, a: Arr.NonEmptyReadonlyArray<A>) => readonly [state: S, values: ReadonlyArray<B>]
+  ): <E, R>(self: Stream<A, E, R>) => Stream<B, E, R>
+  <A, E, R, S, B>(
+    self: Stream<A, E, R>,
+    initial: LazyArg<S>,
+    f: (s: S, a: Arr.NonEmptyReadonlyArray<A>) => readonly [state: S, values: ReadonlyArray<B>]
+  ): Stream<B, E, R>
+} = dual(3, <A, E, R, S, B>(
+  self: Stream<A, E, R>,
+  initial: LazyArg<S>,
+  f: (s: S, a: Arr.NonEmptyReadonlyArray<A>) => readonly [state: S, values: ReadonlyArray<B>]
+): Stream<B, E, R> =>
+  fromChannel(Channel.mapAccum(self.channel, initial, (state, arr) => {
+    const [newState, values] = f(state, arr)
+    state = newState
+    return [state, Arr.isReadonlyArrayNonEmpty(values) ? Arr.of(values) : emptyArr]
+  })))
+
+const emptyArr = Arr.empty<Arr.NonEmptyReadonlyArray<never>>()
+
+/**
+ * @since 2.0.0
+ * @category sequencing
+ */
 export const mapAccumEffect: {
   <S, A, B, E2, R2>(
     initial: LazyArg<S>,
@@ -2366,6 +2621,37 @@ export const mapAccumEffect: {
         ([state, values]) => [
           state,
           Arr.isReadonlyArrayNonEmpty(values) ? Arr.of(values) : Arr.empty<Arr.NonEmptyReadonlyArray<B>>()
+        ]
+      )),
+    fromChannel
+  ))
+
+/**
+ * @since 2.0.0
+ * @category sequencing
+ */
+export const mapAccumArrayEffect: {
+  <S, A, B, E2, R2>(
+    initial: LazyArg<S>,
+    f: (s: S, a: Arr.NonEmptyReadonlyArray<A>) => Effect.Effect<readonly [state: S, values: ReadonlyArray<B>], E2, R2>
+  ): <E, R>(self: Stream<A, E, R>) => Stream<B, E | E2, R | R2>
+  <A, E, R, S, B, E2, R2>(
+    self: Stream<A, E, R>,
+    initial: LazyArg<S>,
+    f: (s: S, a: Arr.NonEmptyReadonlyArray<A>) => Effect.Effect<readonly [state: S, values: ReadonlyArray<B>], E2, R2>
+  ): Stream<B, E | E2, R | R2>
+} = dual(3, <A, E, R, S, B, E2, R2>(
+  self: Stream<A, E, R>,
+  initial: LazyArg<S>,
+  f: (s: S, a: Arr.NonEmptyReadonlyArray<A>) => Effect.Effect<readonly [state: S, values: ReadonlyArray<B>], E2, R2>
+): Stream<B, E | E2, R | R2> =>
+  self.channel.pipe(
+    Channel.mapAccum(initial, (state, a) =>
+      Effect.map(
+        f(state, a),
+        ([state, values]) => [
+          state,
+          Arr.isReadonlyArrayNonEmpty(values) ? Arr.of(values) : emptyArr
         ]
       )),
     fromChannel
@@ -2889,6 +3175,22 @@ export const pipeThroughChannelOrFail: {
 ): Stream<A2, E | E2, R | R2> => fromChannel(Channel.pipeToOrFail(self.channel, channel)))
 
 /**
+ * @since 2.0.0
+ * @category accumulation
+ */
+export const collect = <A, E, R>(self: Stream<A, E, R>): Stream<Array<A>, E, R> => fromEffect(runCollect(self))
+
+/**
+ * @since 2.0.0
+ * @category accumulation
+ */
+export const accumulate = <A, E, R>(self: Stream<A, E, R>): Stream<Arr.NonEmptyArray<A>, E, R> =>
+  mapAccumArray(self, Arr.empty<A>, (acc, as) => {
+    const combined = Arr.appendAll(acc, as)
+    return [combined, [combined]]
+  })
+
+/**
  * Decode Uint8Array chunks into a stream of strings using the specified encoding.
  *
  * @example
@@ -2990,6 +3292,40 @@ export const onExit: {
   self: Stream<A, E, R>,
   finalizer: (exit: Exit.Exit<unknown, E>) => Effect.Effect<unknown, never, R2>
 ): Stream<A, E, R | R2> => fromChannel(Channel.onExit(self.channel, finalizer)))
+
+/**
+ * @since 4.0.0
+ * @category utils
+ */
+export const onStart: {
+  <X, EX, RX>(
+    onStart: Effect.Effect<X, EX, RX>
+  ): <A, E, R>(self: Stream<A, E, R>) => Stream<A, E | EX, R | RX>
+  <A, E, R, X, EX, RX>(
+    self: Stream<A, E, R>,
+    onStart: Effect.Effect<X, EX, RX>
+  ): Stream<A, E | EX, R | RX>
+} = dual(2, <A, E, R, X, EX, RX>(
+  self: Stream<A, E, R>,
+  onStart: Effect.Effect<X, EX, RX>
+): Stream<A, E | EX, R | RX> => fromChannel(Channel.onStart(self.channel, onStart)))
+
+/**
+ * @since 4.0.0
+ * @category utils
+ */
+export const onEnd: {
+  <X, EX, RX>(
+    onEnd: Effect.Effect<X, EX, RX>
+  ): <A, E, R>(self: Stream<A, E, R>) => Stream<A, E | EX, R | RX>
+  <A, E, R, X, EX, RX>(
+    self: Stream<A, E, R>,
+    onEnd: Effect.Effect<X, EX, RX>
+  ): Stream<A, E | EX, R | RX>
+} = dual(2, <A, E, R, X, EX, RX>(
+  self: Stream<A, E, R>,
+  onEnd: Effect.Effect<X, EX, RX>
+): Stream<A, E | EX, R | RX> => fromChannel(Channel.onEnd(self.channel, onEnd)))
 
 /**
  * @since 4.0.0
@@ -3348,6 +3684,18 @@ export const runCount = <A, E, R>(self: Stream<A, E, R>): Effect.Effect<number, 
  * @since 2.0.0
  * @category destructors
  */
+export const runSum = <E, R>(self: Stream<number, E, R>): Effect.Effect<number, E, R> =>
+  Channel.runFold(self.channel, () => 0, (acc, chunk) => {
+    for (let i = 0; i < chunk.length; i++) {
+      acc += chunk[i]
+    }
+    return acc
+  })
+
+/**
+ * @since 2.0.0
+ * @category destructors
+ */
 export const runFold: {
   <Z, A>(
     initial: LazyArg<Z>,
@@ -3370,6 +3718,43 @@ export const runFold: {
       acc = f(acc, arr[i])
     }
     return acc
+  }))
+
+/**
+ * @since 2.0.0
+ * @category destructors
+ */
+export const runFoldEffect: {
+  <Z, A, EX, RX>(
+    initial: LazyArg<Z>,
+    f: (acc: Z, a: A) => Effect.Effect<Z, EX, RX>
+  ): <E, R>(
+    self: Stream<A, E, R>
+  ) => Effect.Effect<Z, E | EX, R | RX>
+  <A, E, R, Z, EX, RX>(
+    self: Stream<A, E, R>,
+    initial: LazyArg<Z>,
+    f: (acc: Z, a: A) => Effect.Effect<Z, EX, RX>
+  ): Effect.Effect<Z, E | EX, R | RX>
+} = dual(3, <A, E, R, Z, EX, RX>(
+  self: Stream<A, E, R>,
+  initial: LazyArg<Z>,
+  f: (acc: Z, a: A) => Effect.Effect<Z, EX, RX>
+): Effect.Effect<Z, E | EX, R | RX> =>
+  Channel.runFoldEffect(self.channel, initial, (acc, arr) => {
+    let i = 0
+    let s = acc
+    return Effect.map(
+      Effect.whileLoop({
+        while: () => i < arr.length,
+        body: () => f(s, arr[i]),
+        step(z) {
+          s = z
+          i++
+        }
+      }),
+      () => s
+    )
   }))
 
 /**
@@ -3423,7 +3808,46 @@ export const runForEach: {
   self: Stream<A, E, R>,
   f: (a: A) => Effect.Effect<X, E2, R2>
 ): Effect.Effect<void, E | E2, R | R2> =>
-  Channel.runForEach(self.channel, Effect.forEach((_) => f(_), { discard: true })))
+  Channel.runForEach(self.channel, (arr) => {
+    let i = 0
+    return Effect.whileLoop({
+      while: () => i < arr.length,
+      body: () => f(arr[i++]),
+      step: constVoid
+    })
+  }))
+
+/**
+ * @since 2.0.0
+ * @category destructors
+ */
+export const runForEachWhile: {
+  <A, E2, R2>(
+    f: (a: A) => Effect.Effect<boolean, E2, R2>
+  ): <E, R>(self: Stream<A, E, R>) => Effect.Effect<void, E2 | E, R2 | R>
+  <A, E, R, E2, R2>(
+    self: Stream<A, E, R>,
+    f: (a: A) => Effect.Effect<boolean, E2, R2>
+  ): Effect.Effect<void, E | E2, R | R2>
+} = dual(2, <A, E, R, E2, R2>(
+  self: Stream<A, E, R>,
+  f: (a: A) => Effect.Effect<boolean, E2, R2>
+): Effect.Effect<void, E | E2, R | R2> =>
+  Channel.runForEachWhile(self.channel, (arr) => {
+    let done = false
+    let i = 0
+    return Effect.map(
+      Effect.whileLoop({
+        while: () => !done && i < arr.length,
+        body: () => f(arr[i]),
+        step(b) {
+          i++
+          if (!b) done = true
+        }
+      }),
+      () => done
+    )
+  }))
 
 /**
  * Consumes all elements of the stream, passing them to the specified
@@ -3767,6 +4191,32 @@ export const toAsyncIterable = <A, E>(self: Stream<A, E>): AsyncIterable<A> =>
  * @since 2.0.0
  * @category destructors
  */
+export const runIntoPubSub: {
+  <A>(
+    pubsub: PubSub.PubSub<A>,
+    options?: {
+      readonly shutdownOnEnd?: boolean | undefined
+    } | undefined
+  ): <E, R>(self: Stream<A, E, R>) => Effect.Effect<void, E, R>
+  <A, E, R>(
+    self: Stream<A, E, R>,
+    pubsub: PubSub.PubSub<A>,
+    options?: {
+      readonly shutdownOnEnd?: boolean | undefined
+    } | undefined
+  ): Effect.Effect<void, never, R>
+} = dual((args) => isStream(args[0]), <A, E, R>(
+  self: Stream<A, E, R>,
+  pubsub: PubSub.PubSub<A>,
+  options?: {
+    readonly shutdownOnEnd?: boolean | undefined
+  } | undefined
+): Effect.Effect<void, E, R> => Channel.runIntoPubSubArray(self.channel, pubsub, options))
+
+/**
+ * @since 2.0.0
+ * @category destructors
+ */
 export const toPubSub: {
   (
     options: {
@@ -3851,3 +4301,54 @@ export const toPubSubTake: {
   ): Effect.Effect<PubSub.PubSub<Take.Take<A, E>>, never, R | Scope.Scope> =>
     Channel.toPubSubTake(self.channel, options)
 )
+
+/**
+ * @since 2.0.0
+ * @category destructors
+ */
+export const toQueue: {
+  (
+    options: {
+      readonly capacity: "unbounded"
+    } | {
+      readonly capacity: number
+      readonly strategy?: "dropping" | "sliding" | "suspend" | undefined
+    }
+  ): <A, E, R>(self: Stream<A, E, R>) => Effect.Effect<Queue.Dequeue<A, E | Queue.Done>, never, R | Scope.Scope>
+  <A, E, R>(
+    self: Stream<A, E, R>,
+    options: {
+      readonly capacity: "unbounded"
+    } | {
+      readonly capacity: number
+      readonly strategy?: "dropping" | "sliding" | "suspend" | undefined
+    }
+  ): Effect.Effect<PubSub.PubSub<A>, never, R | Scope.Scope>
+} = dual(
+  2,
+  <A, E, R>(
+    self: Stream<A, E, R>,
+    options: {
+      readonly capacity: "unbounded"
+      readonly replay?: number | undefined
+      readonly shutdownOnEnd?: boolean | undefined
+    } | {
+      readonly capacity: number
+      readonly strategy?: "dropping" | "sliding" | "suspend" | undefined
+      readonly replay?: number | undefined
+      readonly shutdownOnEnd?: boolean | undefined
+    }
+  ): Effect.Effect<PubSub.PubSub<A>, never, R | Scope.Scope> => Channel.toPubSubArray(self.channel, options)
+)
+
+/**
+ * @since 2.0.0
+ * @category destructors
+ */
+export const runIntoQueue: {
+  <A, E>(queue: Queue.Queue<A, E | Queue.Done>): <R>(self: Stream<A, E, R>) => Effect.Effect<void, never, R>
+  <A, E, R>(self: Stream<A, E, R>, queue: Queue.Queue<A, E | Queue.Done>): Effect.Effect<void, never, R>
+} = dual(2, <A, E, R>(
+  self: Stream<A, E, R>,
+  queue: Queue.Queue<A, E | Queue.Done>
+): Effect.Effect<void, never, R> => Channel.runIntoQueueArray(self.channel, queue))
