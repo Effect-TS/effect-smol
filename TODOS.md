@@ -20,6 +20,7 @@ Pre-releases to npm from smol repo
 
 - [ ] Comprehensive JSDoc on every exported function
 - [ ] Codemod CLI for v3 migration
+- [ ] Determine strategy for keeping beta versions in sync with main Effect repo
 
 ## RC's
 

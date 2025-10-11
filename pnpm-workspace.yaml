@@ -2,5 +2,6 @@ packages:
   - scratchpad
   - scripts
   - packages/*
+  - packages/ai/*
   - packages/sql/*
   - examples/*

@@ -210,6 +210,18 @@ importers:
         specifier: ^5.3.3
         version: 5.9.3
 
+  packages/ai/amazon-bedrock:
+    devDependencies:
+      effect:
+        specifier: workspace:^
+        version: link:../../effect
+
+  packages/ai/openai:
+    devDependencies:
+      effect:
+        specifier: workspace:^
+        version: link:../../effect
+
   packages/effect:
     dependencies:
       '@standard-schema/spec':
