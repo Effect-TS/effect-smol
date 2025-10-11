@@ -7,30 +7,11 @@ import type { Kind, TypeLambda } from "./types/HKT.ts"
 import type * as Types from "./types/Types.ts"
 
 /**
- * Copyright 2014 Thom Chiovoloni, released under the MIT license.
- *
- * A random number generator based on the basic implementation of the PCG algorithm,
- * as described here: http://www.pcg-random.org/
- *
- * Adapted for TypeScript from Thom's original code at https://github.com/thomcc/pcg-random
- *
- * forked from https://github.com/frptools
- *
  * @since 2.0.0
  */
-
 const GenKindTypeId = "~effect/Utils/GenKind"
 
 /**
- * @example
- * ```ts
- * import { Utils } from "effect"
- * import * as Option from "effect/data/Option"
- *
- * // A GenKind wraps types to make them generator-compatible
- * declare const genKind: Utils.GenKind<Option.OptionTypeLambda, never, never, never, number>
- * ```
- *
  * @category models
  * @since 2.0.0
  */
@@ -41,90 +22,38 @@ export interface GenKind<F extends TypeLambda, R, O, E, A> extends Variance<F, R
 }
 
 /**
- * @example
- * ```ts
- * import { Utils } from "effect"
- *
- * // Check if a value is a GenKind wrapper
- * declare const someValue: unknown
- *
- * if (Utils.isGenKind(someValue)) {
- *   console.log("Value is a GenKind")
- * } else {
- *   console.log("Value is not a GenKind")
- * }
- * ```
- *
  * @category predicates
  * @since 3.0.6
  */
 export const isGenKind = (u: unknown): u is GenKind<any, any, any, any, any> => isObject(u) && GenKindTypeId in u
 
-/**
- * @example
- * ```ts
- * import { Utils } from "effect"
- *
- * // GenKindImpl is used internally by the Effect generator system
- * // This is typically not used directly by end users
- * declare const existingGenKind: Utils.GenKind<any, any, any, any, any>
- * console.log(Utils.isGenKind(existingGenKind)) // true
- * ```
- *
- * @category constructors
- * @since 2.0.0
- */
-export class GenKindImpl<F extends TypeLambda, R, O, E, A> implements GenKind<F, R, O, E, A> {
-  /**
-   * @since 2.0.0
-   */
+class GenKindImpl<F extends TypeLambda, R, O, E, A> implements GenKind<F, R, O, E, A> {
   readonly value: Kind<F, R, O, E, A>
 
   constructor(
-    /**
-     * @since 2.0.0
-     */
     value: Kind<F, R, O, E, A>
   ) {
     this.value = value
   }
 
-  /**
-   * @since 2.0.0
-   */
   get _F() {
     return identity
   }
 
-  /**
-   * @since 2.0.0
-   */
   get _R() {
     return (_: R) => _
   }
 
-  /**
-   * @since 2.0.0
-   */
   get _O() {
     return (_: never): O => _
   }
 
-  /**
-   * @since 2.0.0
-   */
   get _E() {
     return (_: never): E => _
   }
 
-  /**
-   * @since 2.0.0
-   */
   readonly [GenKindTypeId]: typeof GenKindTypeId = GenKindTypeId;
 
-  /**
-   * @since 2.0.0
-   */
   [Symbol.iterator](): IterableIterator<GenKind<F, R, O, E, A>, A> {
     return new SingleShotGen<GenKind<F, R, O, E, A>, A>(this as any)
   }
@@ -167,16 +96,6 @@ export class SingleShotGen<T, A> implements IterableIterator<T, A> {
 }
 
 /**
- * @example
- * ```ts
- * import { Utils } from "effect"
- *
- * // makeGenKind is used internally by the Effect generator system
- * // This is typically not used directly by end users
- * declare const existingGenKind: Utils.GenKind<any, any, any, any, any>
- * console.log(Utils.isGenKind(existingGenKind)) // true
- * ```
- *
  * @category constructors
  * @since 2.0.0
  */
