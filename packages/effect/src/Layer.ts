@@ -113,11 +113,11 @@ const MemoMapTypeId = "~effect/Layer/MemoMap"
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Layer } from "effect"
- * import { ServiceMap } from "effect"
+ * import { Effect, Layer, ServiceMap } from "effect"
  *
- * class Database extends ServiceMap.Key<Database, { readonly query: (sql: string) => Effect.Effect<string> }>()("Database") {}
+ * class Database extends ServiceMap.Service<Database, {
+ *   readonly query: (sql: string) => Effect.Effect<string>
+ * }>()("Database") {}
  *
  * // Create a custom MemoMap for manual layer building
  * const program = Effect.gen(function* () {
@@ -148,13 +148,15 @@ export interface MemoMap {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Layer } from "effect"
- * import { ServiceMap } from "effect"
+ * import { Effect, Layer, ServiceMap } from "effect"
  *
- * class Database extends ServiceMap.Key<Database, { readonly query: (sql: string) => Effect.Effect<string> }>()("Database") {}
+ * class Database extends ServiceMap.Service<Database, {
+ *   readonly query: (sql: string) => Effect.Effect<string>
+ * }>()("Database") {}
  *
- * const dbLayer = Layer.succeed(Database)({ query: (sql: string) => Effect.succeed("result") })
+ * const dbLayer = Layer.succeed(Database)({
+ *   query: (sql: string) => Effect.succeed("result")
+ * })
  * const notALayer = { someProperty: "value" }
  *
  * console.log(Layer.isLayer(dbLayer)) // true
@@ -196,14 +198,16 @@ const fromBuildUnsafe = <ROut, E, RIn>(
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Layer } from "effect"
- * import { ServiceMap } from "effect"
+ * import { Effect, Layer, ServiceMap } from "effect"
  *
- * class Database extends ServiceMap.Key<Database, { readonly query: (sql: string) => Effect.Effect<string> }>()("Database") {}
+ * class Database extends ServiceMap.Service<Database, {
+ *   readonly query: (sql: string) => Effect.Effect<string>
+ * }>()("Database") {}
  *
  * const databaseLayer = Layer.fromBuild(() =>
- *   Effect.sync(() => ServiceMap.make(Database, { query: (sql: string) => Effect.succeed("result") }))
+ *   Effect.sync(() => ServiceMap.make(Database, {
+ *     query: (sql: string) => Effect.succeed("result")
+ *   }))
  * )
  * ```
  *
@@ -233,14 +237,16 @@ export const fromBuild = <ROut, E, RIn>(
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Layer } from "effect"
- * import { ServiceMap } from "effect"
+ * import { Effect, Layer, ServiceMap } from "effect"
  *
- * class Database extends ServiceMap.Key<Database, { readonly query: (sql: string) => Effect.Effect<string> }>()("Database") {}
+ * class Database extends ServiceMap.Service<Database, {
+ *   readonly query: (sql: string) => Effect.Effect<string>
+ * }>()("Database") {}
  *
  * const databaseLayer = Layer.fromBuildMemo(() =>
- *   Effect.sync(() => ServiceMap.make(Database, { query: (sql: string) => Effect.succeed("result") }))
+ *   Effect.sync(() => ServiceMap.make(Database, {
+ *     query: (sql: string) => Effect.succeed("result")
+ *   }))
  * )
  * ```
  *
@@ -312,18 +318,20 @@ class MemoMapImpl implements MemoMap {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Layer } from "effect"
- * import { ServiceMap } from "effect"
+ * import { Effect, Layer, ServiceMap } from "effect"
  *
- * class Database extends ServiceMap.Key<Database, { readonly query: (sql: string) => Effect.Effect<string> }>()("Database") {}
+ * class Database extends ServiceMap.Service<Database, {
+ *   readonly query: (sql: string) => Effect.Effect<string>
+ * }>()("Database") {}
  *
  * // Create a memo map for manual layer building
  * const program = Effect.gen(function* () {
  *   const memoMap = Layer.makeMemoMapUnsafe()
  *   const scope = yield* Effect.scope
  *
- *   const dbLayer = Layer.succeed(Database)({ query: (sql: string) => Effect.succeed("result") })
+ *   const dbLayer = Layer.succeed(Database)({
+ *     query: (sql: string) => Effect.succeed("result")
+ *   })
  *   const services = yield* Layer.buildWithMemoMap(dbLayer, memoMap, scope)
  *
  *   return ServiceMap.get(services, Database)
@@ -340,18 +348,20 @@ export const makeMemoMapUnsafe = (): MemoMap => new MemoMapImpl()
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Layer } from "effect"
- * import { ServiceMap } from "effect"
+ * import { Effect, Layer, ServiceMap } from "effect"
  *
- * class Database extends ServiceMap.Key<Database, { readonly query: (sql: string) => Effect.Effect<string> }>()("Database") {}
+ * class Database extends ServiceMap.Service<Database, {
+ *   readonly query: (sql: string) => Effect.Effect<string>
+ * }>()("Database") {}
  *
  * // Create a memo map safely within an Effect
  * const program = Effect.gen(function* () {
  *   const memoMap = yield* Layer.makeMemoMap
  *   const scope = yield* Effect.scope
  *
- *   const dbLayer = Layer.succeed(Database)({ query: (sql: string) => Effect.succeed("result") })
+ *   const dbLayer = Layer.succeed(Database)({
+ *     query: (sql: string) => Effect.succeed("result")
+ *   })
  *   const services = yield* Layer.buildWithMemoMap(dbLayer, memoMap, scope)
  *
  *   return ServiceMap.get(services, Database)
@@ -391,13 +401,15 @@ export const CurrentMemoMap = ServiceMap.Reference<MemoMap>("effect/Layer/Curren
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Layer } from "effect"
- * import { ServiceMap } from "effect"
+ * import { Effect, Layer, ServiceMap } from "effect"
  *
- * class Database extends ServiceMap.Key<Database, { readonly query: (sql: string) => Effect.Effect<string> }>()("Database") {}
+ * class Database extends ServiceMap.Service<Database, {
+ *   readonly query: (sql: string) => Effect.Effect<string>
+ * }>()("Database") {}
  *
- * class Logger extends ServiceMap.Key<Logger, { readonly log: (msg: string) => Effect.Effect<void> }>()("Logger") {}
+ * class Logger extends ServiceMap.Service<Logger, {
+ *   readonly log: (msg: string) => Effect.Effect<void>
+ * }>()("Logger") {}
  *
  * // Build layers with explicit memoization control
  * const program = Effect.gen(function* () {
@@ -405,11 +417,15 @@ export const CurrentMemoMap = ServiceMap.Reference<MemoMap>("effect/Layer/Curren
  *   const scope = yield* Effect.scope
  *
  *   // Build database layer with memoization
- *   const dbLayer = Layer.succeed(Database)({ query: (sql: string) => Effect.succeed("result") })
+ *   const dbLayer = Layer.succeed(Database)({
+ *     query: (sql: string) => Effect.succeed("result")
+ *   })
  *   const dbServices = yield* Layer.buildWithMemoMap(dbLayer, memoMap, scope)
  *
  *   // Build logger layer with same memoization (reuses memo if same layer)
- *   const loggerLayer = Layer.succeed(Logger)({ log: (msg: string) => Effect.sync(() => console.log(msg)) })
+ *   const loggerLayer = Layer.succeed(Logger)({
+ *     log: (msg: string) => Effect.sync(() => console.log(msg))
+ *   })
  *   const loggerServices = yield* Layer.buildWithMemoMap(loggerLayer, memoMap, scope)
  *
  *   return {
@@ -448,15 +464,17 @@ export const buildWithMemoMap: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Layer } from "effect"
- * import { ServiceMap } from "effect"
+ * import { Effect, Layer, ServiceMap } from "effect"
  *
- * class Database extends ServiceMap.Key<Database, { readonly query: (sql: string) => Effect.Effect<string> }>()("Database") {}
+ * class Database extends ServiceMap.Service<Database, {
+ *   readonly query: (sql: string) => Effect.Effect<string>
+ * }>()("Database") {}
  *
  * // Build a layer to get its services
  * const program = Effect.gen(function* () {
- *   const dbLayer = Layer.succeed(Database)({ query: (sql: string) => Effect.succeed("result") })
+ *   const dbLayer = Layer.succeed(Database)({
+ *     query: (sql: string) => Effect.succeed("result")
+ *   })
  *
  *   // Build the layer into ServiceMap - automatically manages scope and memoization
  *   const services = yield* Layer.build(dbLayer)
@@ -485,12 +503,11 @@ export const build = <RIn, E, ROut>(
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Layer } from "effect"
- * import { ServiceMap } from "effect"
- * import { Scope } from "effect"
+ * import { Effect, Layer, Scope, ServiceMap } from "effect"
  *
- * class Database extends ServiceMap.Key<Database, { readonly query: (sql: string) => Effect.Effect<string> }>()("Database") {}
+ * class Database extends ServiceMap.Service<Database, {
+ *   readonly query: (sql: string) => Effect.Effect<string>
+ * }>()("Database") {}
  *
  * // Build a layer with explicit scope control
  * const program = Effect.gen(function* () {
@@ -527,13 +544,15 @@ export const buildWithScope: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Layer } from "effect"
- * import { ServiceMap } from "effect"
+ * import { Effect, Layer, ServiceMap } from "effect"
  *
- * class Database extends ServiceMap.Key<Database, { readonly query: (sql: string) => Effect.Effect<string> }>()("Database") {}
+ * class Database extends ServiceMap.Service<Database, {
+ *   readonly query: (sql: string) => Effect.Effect<string>
+ * }>()("Database") {}
  *
- * class Logger extends ServiceMap.Key<Logger, { readonly log: (msg: string) => Effect.Effect<void> }>()("Logger") {}
+ * class Logger extends ServiceMap.Service<Logger, {
+ *   readonly log: (msg: string) => Effect.Effect<void>
+ * }>()("Logger") {}
  *
  * // Create layers from concrete service implementations
  * const databaseLayer = Layer.succeed(Database)({
@@ -574,13 +593,15 @@ export const succeed = <I, S>(service: ServiceMap.Service<I, S>) => (resource: S
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Layer } from "effect"
- * import { ServiceMap } from "effect"
+ * import { Effect, Layer, ServiceMap } from "effect"
  *
- * class Database extends ServiceMap.Key<Database, { readonly query: (sql: string) => Effect.Effect<string> }>()("Database") {}
+ * class Database extends ServiceMap.Service<Database, {
+ *   readonly query: (sql: string) => Effect.Effect<string>
+ * }>()("Database") {}
  *
- * class Logger extends ServiceMap.Key<Logger, { readonly log: (msg: string) => Effect.Effect<void> }>()("Logger") {}
+ * class Logger extends ServiceMap.Service<Logger, {
+ *   readonly log: (msg: string) => Effect.Effect<void>
+ * }>()("Logger") {}
  *
  * const services = ServiceMap.make(Database, { query: (sql: string) => Effect.succeed("result") })
  *   .pipe(ServiceMap.add(Logger, { log: (msg: string) => Effect.sync(() => console.log(msg)) }))
@@ -620,11 +641,11 @@ export const empty: Layer<never> = succeedServices(ServiceMap.empty())
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Layer } from "effect"
- * import { ServiceMap } from "effect"
+ * import { Effect, Layer, ServiceMap } from "effect"
  *
- * class Database extends ServiceMap.Key<Database, { readonly query: (sql: string) => Effect.Effect<string> }>()("Database") {}
+ * class Database extends ServiceMap.Service<Database, {
+ *   readonly query: (sql: string) => Effect.Effect<string>
+ * }>()("Database") {}
  *
  * const layer = Layer.sync(Database)(() => ({
  *   query: (sql: string) => Effect.succeed(`Query: ${sql}`)
@@ -646,11 +667,11 @@ export const sync = <I, S>(service: ServiceMap.Service<I, S>) => (evaluate: Lazy
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Layer } from "effect"
- * import { ServiceMap } from "effect"
+ * import { Effect, Layer, ServiceMap } from "effect"
  *
- * class Database extends ServiceMap.Key<Database, { readonly query: (sql: string) => Effect.Effect<string> }>()("Database") {}
+ * class Database extends ServiceMap.Service<Database, {
+ *   readonly query: (sql: string) => Effect.Effect<string>
+ * }>()("Database") {}
  *
  * const layer = Layer.syncServices(() =>
  *   ServiceMap.make(Database, {
@@ -674,11 +695,11 @@ export const syncServices = <A>(evaluate: LazyArg<ServiceMap.ServiceMap<A>>): La
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Layer } from "effect"
- * import { ServiceMap } from "effect"
+ * import { Effect, Layer, ServiceMap } from "effect"
  *
- * class Database extends ServiceMap.Key<Database, { readonly query: (sql: string) => Effect.Effect<string> }>()("Database") {}
+ * class Database extends ServiceMap.Service<Database, {
+ *   readonly query: (sql: string) => Effect.Effect<string>
+ * }>()("Database") {}
  *
  * const layer = Layer.effect(Database)(
  *   Effect.sync(() => ({
@@ -771,11 +792,11 @@ export const effectDiscard = <X, E, R>(effect: Effect<X, E, R>): Layer<never, E,
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Layer } from "effect"
- * import { ServiceMap } from "effect"
+ * import { Effect, Layer, ServiceMap } from "effect"
  *
- * class Database extends ServiceMap.Key<Database, { readonly query: (sql: string) => Effect.Effect<string> }>()("Database") {}
+ * class Database extends ServiceMap.Service<Database, {
+ *   readonly query: (sql: string) => Effect.Effect<string>
+ * }>()("Database") {}
  *
  * const layerEffect = Effect.succeed(
  *   Layer.succeed(Database)({ query: (sql: string) => Effect.succeed("result") })
@@ -823,16 +844,22 @@ const mergeAllEffect = <Layers extends [Layer<never, any, any>, ...Array<Layer<n
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Layer } from "effect"
- * import { ServiceMap } from "effect"
+ * import { Effect, Layer, ServiceMap } from "effect"
  *
- * class Database extends ServiceMap.Key<Database, { readonly query: (sql: string) => Effect.Effect<string> }>()("Database") {}
+ * class Database extends ServiceMap.Service<Database, {
+ *   readonly query: (sql: string) => Effect.Effect<string>
+ * }>()("Database") {}
  *
- * class Logger extends ServiceMap.Key<Logger, { readonly log: (msg: string) => Effect.Effect<void> }>()("Logger") {}
+ * class Logger extends ServiceMap.Service<Logger, {
+ *   readonly log: (msg: string) => Effect.Effect<void>
+ * }>()("Logger") {}
  *
- * const dbLayer = Layer.succeed(Database)({ query: (sql: string) => Effect.succeed("result") })
- * const loggerLayer = Layer.succeed(Logger)({ log: (msg: string) => Effect.sync(() => console.log(msg)) })
+ * const dbLayer = Layer.succeed(Database)({
+ *   query: (sql: string) => Effect.succeed("result")
+ * })
+ * const loggerLayer = Layer.succeed(Logger)({
+ *   log: (msg: string) => Effect.sync(() => console.log(msg))
+ * })
  *
  * const mergedLayer = Layer.mergeAll(dbLayer, loggerLayer)
  * ```
@@ -856,16 +883,22 @@ export const mergeAll = <Layers extends [Layer<never, any, any>, ...Array<Layer<
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Layer } from "effect"
- * import { ServiceMap } from "effect"
+ * import { Effect, Layer, ServiceMap } from "effect"
  *
- * class Database extends ServiceMap.Key<Database, { readonly query: (sql: string) => Effect.Effect<string> }>()("Database") {}
+ * class Database extends ServiceMap.Service<Database, {
+ *   readonly query: (sql: string) => Effect.Effect<string>
+ * }>()("Database") {}
  *
- * class Logger extends ServiceMap.Key<Logger, { readonly log: (msg: string) => Effect.Effect<void> }>()("Logger") {}
+ * class Logger extends ServiceMap.Service<Logger, {
+ *   readonly log: (msg: string) => Effect.Effect<void>
+ * }>()("Logger") {}
  *
- * const dbLayer = Layer.succeed(Database)({ query: (sql: string) => Effect.succeed("result") })
- * const loggerLayer = Layer.succeed(Logger)({ log: (msg: string) => Effect.sync(() => console.log(msg)) })
+ * const dbLayer = Layer.succeed(Database)({
+ *   query: (sql: string) => Effect.succeed("result")
+ * })
+ * const loggerLayer = Layer.succeed(Logger)({
+ *   log: (msg: string) => Effect.sync(() => console.log(msg))
+ * })
  *
  * const mergedLayer = Layer.merge(dbLayer, loggerLayer)
  * ```
@@ -933,15 +966,21 @@ const provideWith = (
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Layer } from "effect"
- * import { ServiceMap } from "effect"
+ * import { Effect, Layer, ServiceMap } from "effect"
  *
- * class Database extends ServiceMap.Key<Database, { readonly query: (sql: string) => Effect.Effect<string> }>()("Database") {}
+ * class Database extends ServiceMap.Service<Database, {
+ *   readonly query: (sql: string) => Effect.Effect<string>
+ * }>()("Database") {}
  *
- * class UserService extends ServiceMap.Key<UserService, { readonly getUser: (id: string) => Effect.Effect<{ id: string; name: string }> }>()("UserService") {}
+ * class UserService extends ServiceMap.Service<UserService, {
+ *   readonly getUser: (id: string) => Effect.Effect<{
+ *     id: string; name: string
+ *   }>
+ * }>()("UserService") {}
  *
- * class Logger extends ServiceMap.Key<Logger, { readonly log: (msg: string) => Effect.Effect<void> }>()("Logger") {}
+ * class Logger extends ServiceMap.Service<Logger, {
+ *   readonly log: (msg: string) => Effect.Effect<void>
+ * }>()("Logger") {}
  *
  * // Create dependency layers
  * const databaseLayer = Layer.succeed(Database)({
@@ -960,7 +999,9 @@ const provideWith = (
  *   return {
  *     getUser: (id: string) => Effect.gen(function* () {
  *       yield* logger.log(`Looking up user ${id}`)
- *       const result = yield* database.query(`SELECT * FROM users WHERE id = ${id}`)
+ *       const result = yield* database.query(
+ *         `SELECT * FROM users WHERE id = ${id}`
+ *       )
  *       return { id, name: result }
  *     })
  *   }
@@ -1022,15 +1063,22 @@ export const provide: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Layer } from "effect"
- * import { ServiceMap } from "effect"
+ * import { Effect, Layer, ServiceMap } from "effect"
  *
- * class Database extends ServiceMap.Key<Database, { readonly query: (sql: string) => Effect.Effect<string> }>()("Database") {}
+ * class Database extends ServiceMap.Service<Database, {
+ *   readonly query: (sql: string) => Effect.Effect<string>
+ * }>()("Database") {}
  *
- * class Logger extends ServiceMap.Key<Logger, { readonly log: (msg: string) => Effect.Effect<void> }>()("Logger") {}
+ * class Logger extends ServiceMap.Service<Logger, {
+ *   readonly log: (msg: string) => Effect.Effect<void>
+ * }>()("Logger") {}
  *
- * class UserService extends ServiceMap.Key<UserService, { readonly getUser: (id: string) => Effect.Effect<{ id: string; name: string }> }>()("UserService") {}
+ * class UserService extends ServiceMap.Service<UserService, {
+ *   readonly getUser: (id: string) => Effect.Effect<{
+ *     id: string;
+ *     name: string
+ *   }>
+ * }>()("UserService") {}
  *
  * // Create dependency layers
  * const databaseLayer = Layer.succeed(Database)({
@@ -1049,7 +1097,9 @@ export const provide: {
  *   return {
  *     getUser: (id: string) => Effect.gen(function* () {
  *       yield* logger.log(`Looking up user ${id}`)
- *       const result = yield* database.query(`SELECT * FROM users WHERE id = ${id}`)
+ *       const result = yield* database.query(
+ *         `SELECT * FROM users WHERE id = ${id}`
+ *       )
  *       return { id, name: result }
  *     })
  *   }
@@ -1120,15 +1170,19 @@ export const provideMerge: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Layer } from "effect"
- * import { ServiceMap } from "effect"
+ * import { Effect, Layer, ServiceMap } from "effect"
  *
- * class Config extends ServiceMap.Key<Config, { readonly dbUrl: string; readonly logLevel: string }>()("Config") {}
+ * class Config extends ServiceMap.Service<Config, {
+ *   readonly dbUrl: string; readonly logLevel: string
+ * }>()("Config") {}
  *
- * class Database extends ServiceMap.Key<Database, { readonly query: (sql: string) => Effect.Effect<string> }>()("Database") {}
+ * class Database extends ServiceMap.Service<Database, {
+ *   readonly query: (sql: string) => Effect.Effect<string>
+ * }>()("Database") {}
  *
- * class Logger extends ServiceMap.Key<Logger, { readonly log: (msg: string) => Effect.Effect<void> }>()("Logger") {}
+ * class Logger extends ServiceMap.Service<Logger, {
+ *   readonly log: (msg: string) => Effect.Effect<void>
+ * }>()("Logger") {}
  *
  * // Base config layer
  * const configLayer = Layer.succeed(Config)({
@@ -1143,7 +1197,9 @@ export const provideMerge: {
  *
  *     // Create database layer based on config
  *     const dbLayer = Layer.succeed(Database)({
- *       query: (sql: string) => Effect.succeed(`Querying ${config.dbUrl}: ${sql}`)
+ *       query: (sql: string) => Effect.succeed(
+ *         `Querying ${config.dbUrl}: ${sql}`
+ *       )
  *     })
  *
  *     // Create logger layer based on config
@@ -1200,16 +1256,16 @@ export const flatMap: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Layer } from "effect"
- * import { ServiceMap } from "effect"
+ * import { Effect, Layer, ServiceMap } from "effect"
  * import { Data } from "effect/data"
  *
  * class DatabaseError extends Data.TaggedError("DatabaseError")<{
  *   message: string
  * }> {}
  *
- * class Database extends ServiceMap.Key<Database, { readonly query: (sql: string) => Effect.Effect<string> }>()("Database") {}
+ * class Database extends ServiceMap.Service<Database, {
+ *   readonly query: (sql: string) => Effect.Effect<string>
+ * }>()("Database") {}
  *
  * // Layer that can fail during construction
  * const flakyDatabaseLayer = Layer.effect(Database)(Effect.gen(function* () {
@@ -1277,9 +1333,7 @@ export {
  *
  * @example
  * ```ts
- * import { Effect, Cause } from "effect"
- * import { Layer } from "effect"
- * import { ServiceMap } from "effect"
+ * import { Cause, Effect, Layer, ServiceMap } from "effect"
  * import { Data } from "effect/data"
  *
  * class DatabaseError extends Data.TaggedError("DatabaseError")<{
@@ -1290,9 +1344,13 @@ export {
  *   reason: string
  * }> {}
  *
- * class Database extends ServiceMap.Key<Database, { readonly query: (sql: string) => Effect.Effect<string> }>()("Database") {}
+ * class Database extends ServiceMap.Service<Database, {
+ *   readonly query: (sql: string) => Effect.Effect<string>
+ * }>()("Database") {}
  *
- * class Logger extends ServiceMap.Key<Logger, { readonly log: (msg: string) => Effect.Effect<void> }>()("Logger") {}
+ * class Logger extends ServiceMap.Service<Logger, {
+ *   readonly log: (msg: string) => Effect.Effect<void>
+ * }>()("Logger") {}
  *
  * // Primary database layer that might fail
  * const primaryDatabaseLayer = Layer.effect(Database)(Effect.gen(function* () {
@@ -1387,12 +1445,12 @@ export const updateService: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Layer } from "effect"
- * import { ServiceMap } from "effect"
- * import { Ref } from "effect"
+ * import { Effect, Layer, Ref, ServiceMap } from "effect"
  *
- * class Counter extends ServiceMap.Service<Counter, { readonly count: number; readonly increment: () => Effect.Effect<number> }>()("Counter") {}
+ * class Counter extends ServiceMap.Service<Counter, {
+ *   readonly count: number;
+ *   readonly increment: () => Effect.Effect<number>
+ * }>()("Counter") {}
  *
  * // Layer that creates a counter with shared state
  * const counterLayer = Layer.effect(Counter)(Effect.gen(function* () {
@@ -1440,17 +1498,16 @@ export const fresh = <A, E, R>(self: Layer<A, E, R>): Layer<A, E, R> =>
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Layer } from "effect"
- * import { ServiceMap } from "effect"
- * import { Console } from "effect"
+ * import { Console, Effect, Layer, ServiceMap } from "effect"
  *
- * class HttpServer extends ServiceMap.Key<HttpServer, {
+ * class HttpServer extends ServiceMap.Service<HttpServer, {
  *   readonly start: () => Effect.Effect<string>
  *   readonly stop: () => Effect.Effect<string>
  * }>()("HttpServer") {}
  *
- * class Logger extends ServiceMap.Key<Logger, { readonly log: (msg: string) => Effect.Effect<void> }>()("Logger") {}
+ * class Logger extends ServiceMap.Service<Logger, {
+ *   readonly log: (msg: string) => Effect.Effect<void>
+ * }>()("Logger") {}
  *
  * // Server layer that starts an HTTP server
  * const serverLayer = Layer.effect(HttpServer)(Effect.gen(function* () {
@@ -1524,9 +1581,7 @@ export type PartialEffectful<A extends object> = Types.Simplify<
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Layer } from "effect"
- * import { ServiceMap } from "effect"
+ * import { Effect, Layer, ServiceMap } from "effect"
  *
  * class UserService extends ServiceMap.Service<UserService, {
  *   readonly config: { apiUrl: string }

@@ -88,14 +88,20 @@ export declare namespace ServiceClass {
  * import { ServiceMap } from "effect"
  *
  * // Create a simple service
- * const Database = ServiceMap.Service<{ query: (sql: string) => string }>("Database")
+ * const Database = ServiceMap.Service<{
+ *   query: (sql: string) => string
+ * }>("Database")
  *
  * // Create a service class
- * class Config extends ServiceMap.Service<ConfigKey, { port: number }>()("Config") {}
+ * class Config extends ServiceMap.Service<Config, {
+ *   port: number
+ * }>()("Config") {}
  *
  * // Use the services to create service maps
- * const db = ServiceMap.make(DatabaseKey, { query: (sql) => `Result: ${sql}` })
- * const config = ServiceMap.make(ConfigKey, { port: 8080 })
+ * const db = ServiceMap.make(Database, {
+ *   query: (sql) => `Result: ${sql}`
+ * })
+ * const config = ServiceMap.make(Config, { port: 8080 })
  * ```
  *
  * @since 4.0.0
@@ -226,13 +232,15 @@ export interface Reference<in out Shape> extends Service<never, Shape> {
  * ```ts
  * import { ServiceMap } from "effect"
  *
+ * const Database = ServiceMap.Service<{
+ *   query: (sql: string) => string
+ * }>("Database")
+ *
  * // Extract service type from a key
- * type DatabaseService = ServiceMap.Key.Service<typeof DatabaseKey>
+ * type DatabaseService = ServiceMap.Service.Shape<typeof Database>
  *
  * // Extract identifier type from a key
- * type DatabaseId = ServiceMap.Key.Identifier<typeof DatabaseKey>
- *
- * const DatabaseKey = ServiceMap.Key<{ query: (sql: string) => string }>("Database")
+ * type DatabaseId = ServiceMap.Service.Identifier<typeof Database>
  * ```
  *
  * @since 4.0.0
@@ -297,10 +305,10 @@ export declare namespace Service {
    * ```ts
    * import { ServiceMap } from "effect"
    *
-   * const DatabaseKey = ServiceMap.Service<{ query: (sql: string) => string }>("Database")
+   * const Database = ServiceMap.Service<{ query: (sql: string) => string }>("Database")
    *
    * // Extract the identifier type from a key
-   * type DatabaseId = ServiceMap.Service.Identifier<typeof DatabaseKey>
+   * type DatabaseId = ServiceMap.Service.Identifier<typeof Database>
    * // DatabaseId is the identifier type
    * ```
    *
@@ -431,7 +439,7 @@ export const isService = (u: unknown): u is Service<any, any> => hasProperty(u, 
  * const LoggerRef = ServiceMap.Reference("Logger", { defaultValue: () => ({ log: (msg: string) => console.log(msg) }) })
  *
  * assert.strictEqual(ServiceMap.isReference(LoggerRef), true)
- * assert.strictEqual(ServiceMap.isReference(ServiceMap.Key("Key")), false)
+ * assert.strictEqual(ServiceMap.isReference(ServiceMap.Service("Key")), false)
  * ```
  *
  * @since 4.0.0
@@ -464,7 +472,7 @@ const emptyServiceMap = makeUnsafe(new Map())
  * import * as assert from "node:assert"
  * import { ServiceMap } from "effect"
  *
- * const Port = ServiceMap.Key<{ PORT: number }>("Port")
+ * const Port = ServiceMap.Service<{ PORT: number }>("Port")
  *
  * const Services = ServiceMap.make(Port, { PORT: 8080 })
  *

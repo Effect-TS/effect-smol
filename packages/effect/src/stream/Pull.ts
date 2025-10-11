@@ -99,7 +99,7 @@ export type Leftover<P> = P extends Effect<infer _A, infer _E, infer _R> ? _E ex
  * interface MyService {
  *   readonly value: number
  * }
- * const MyService = ServiceMap.Key<MyService>("MyService")
+ * const MyService = ServiceMap.Service<MyService>("MyService")
  *
  * type MyPull = Pull.Pull<number, string, void, MyService>
  * type ServiceType = Pull.ServiceMap<MyPull> // MyService

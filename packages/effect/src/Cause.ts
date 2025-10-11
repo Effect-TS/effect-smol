@@ -930,11 +930,10 @@ export const UnknownError: new(cause: unknown, message?: string) => UnknownError
  *
  * @example
  * ```ts
- * import { Cause } from "effect"
- * import { ServiceMap } from "effect"
+ * import { Cause, ServiceMap } from "effect"
  *
  * // Define a custom annotation key
- * class UserId extends ServiceMap.Key<UserId, string>()("UserId") {}
+ * class UserId extends ServiceMap.Service<UserId, string>()("UserId") {}
  *
  * // Create a cause and add an annotation
  * const originalCause = Cause.fail("Something went wrong")

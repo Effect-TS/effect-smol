@@ -141,11 +141,12 @@ export interface ManagedRuntime<in R, out ER> {
  * import { ServiceMap } from "effect"
  * import { ManagedRuntime } from "effect"
  *
- * class Notifications extends ServiceMap.Key<
- *   Notifications,
- *   { readonly notify: (message: string) => Effect.Effect<void> }
- * >()("Notifications") {
- *   static layer = Layer.succeed(this)({ notify: (message) => Console.log(message) })
+ * class Notifications extends ServiceMap.Service< Notifications, {
+ *   readonly notify: (message: string) => Effect.Effect<void>
+ * }>()("Notifications") {
+ *   static layer = Layer.succeed(this)({
+ *     notify: (message) => Console.log(message)
+ *  })
  * }
  *
  * async function main() {
