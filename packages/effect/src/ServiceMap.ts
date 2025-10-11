@@ -1,9 +1,12 @@
 /**
- * This module provides a data structure called `ServiceMap` that can be used for dependency injection in effectful
- * programs. It is essentially a table mapping `Keys`s to their implementations (called `Service`s), and can be used to
- * manage dependencies in a type-safe way. The `ServiceMap` data structure is essentially a way of providing access to a set
- * of related services that can be passed around as a single unit. This module provides functions to create, modify, and
- * query the contents of a `ServiceMap`, as well as a number of utility types for working with keys and services.
+ * This module provides a data structure called `ServiceMap` that can be used
+ * for dependency injection in effectful programs. It is essentially a table
+ * mapping `Service`s identifiers to their implementations, and can be used to
+ * manage dependencies in a type-safe way. The `ServiceMap` data structure is
+ * essentially a way of providing access to a set of related services that can
+ * be passed around as a single unit. This module provides functions to create,
+ * modify, and query the contents of a `ServiceMap`, as well as a number of
+ * utility types for working with a `ServiceMap`.
  *
  * @since 4.0.0
  */
@@ -19,33 +22,34 @@ import { exitSucceed, PipeInspectableProto, withFiber, YieldableProto } from "./
 import type { ErrorWithStackTraceLimit } from "./internal/tracer.ts"
 import type * as Types from "./types/Types.ts"
 
-const KeyTypeId = "~effect/ServiceMap/Key"
+const ServiceTypeId = "~effect/ServiceMap/Service" as const
 
 /**
- * @since 4.0.0
- * @category Models
  * @example
  * ```ts
  * import { ServiceMap } from "effect"
  *
- * // Define a key for a database service
- * const DatabaseKey = ServiceMap.Key<{ query: (sql: string) => string }>("Database")
+ * // Define an identifier for a database service
+ * const Database = ServiceMap.Service<{ query: (sql: string) => string }>("Database")
  *
  * // The key can be used to store and retrieve services
- * const serviceMap = ServiceMap.make(DatabaseKey, { query: (sql) => `Result: ${sql}` })
+ * const services = ServiceMap.make(Database, { query: (sql) => `Result: ${sql}` })
  * ```
+ *
+ * @since 4.0.0
+ * @category Models
  */
-export interface Key<in out Id, in out Service>
-  extends Pipeable, Inspectable, Yieldable<Key<Id, Service>, Service, never, Id>
+export interface Service<in out Identifier, in out Shape>
+  extends Pipeable, Inspectable, Yieldable<Service<Identifier, Shape>, Shape, never, Identifier>
 {
-  readonly [KeyTypeId]: {
-    readonly _Service: Types.Invariant<Service>
-    readonly _Identifier: Types.Invariant<Id>
+  readonly [ServiceTypeId]: {
+    readonly _Service: Types.Invariant<Shape>
+    readonly _Identifier: Types.Invariant<Identifier>
   }
-  readonly Service: Service
-  readonly Identifier: Id
-  of(self: Service): Service
-  serviceMap(self: Service): ServiceMap<Id>
+  readonly Service: Shape
+  readonly Identifier: Identifier
+  of(self: Shape): Shape
+  serviceMap(self: Shape): ServiceMap<Identifier>
 
   readonly stack?: string | undefined
   readonly key: string
@@ -55,73 +59,76 @@ export interface Key<in out Id, in out Service>
  * @since 4.0.0
  * @category Models
  */
-export interface KeyClass<in out Self, in out Id extends string, in out Service> extends Key<Self, Service> {
-  new(_: never): KeyClass.Shape<Id, Service>
-  readonly key: Id
+export interface ServiceClass<in out Self, in out Identifier extends string, in out Shape>
+  extends Service<Self, Shape>
+{
+  new(_: never): ServiceClass.Shape<Identifier, Shape>
+  readonly key: Identifier
 }
 
 /**
  * @since 4.0.0
  * @category Models
  */
-export declare namespace KeyClass {
+export declare namespace ServiceClass {
   /**
    * @since 4.0.0
    * @category Models
    */
-  export interface Shape<Id extends string, Service> {
-    readonly [KeyTypeId]: typeof KeyTypeId
-    readonly key: Id
+  export interface Shape<Identifier extends string, Service> {
+    readonly [ServiceTypeId]: typeof ServiceTypeId
+    readonly key: Identifier
     readonly Service: Service
   }
 }
 
 /**
- * @since 4.0.0
- * @category Constructors
  * @example
  * ```ts
  * import { ServiceMap } from "effect"
  *
- * // Create a simple key
- * const DatabaseKey = ServiceMap.Key<{ query: (sql: string) => string }>("Database")
+ * // Create a simple service
+ * const Database = ServiceMap.Service<{ query: (sql: string) => string }>("Database")
  *
- * // Create a key class
- * class ConfigKey extends ServiceMap.Key<ConfigKey, { port: number }>()("Config") {}
+ * // Create a service class
+ * class Config extends ServiceMap.Service<ConfigKey, { port: number }>()("Config") {}
  *
- * // Use the keys to create service maps
+ * // Use the services to create service maps
  * const db = ServiceMap.make(DatabaseKey, { query: (sql) => `Result: ${sql}` })
  * const config = ServiceMap.make(ConfigKey, { port: 8080 })
  * ```
+ *
+ * @since 4.0.0
+ * @category Constructors
  */
-export const Key: {
-  <Id, Service = Id>(key: string): Key<Id, Service>
-  <Self, Service>(): <
-    const Id extends string,
+export const Service: {
+  <Identifier, Shape = Identifier>(key: string): Service<Identifier, Shape>
+  <Self, Shape>(): <
+    const Identifier extends string,
     E,
     R = Types.unassigned,
     Args extends ReadonlyArray<any> = never
   >(
-    id: Id,
+    id: Identifier,
     options?: {
-      readonly make: ((...args: Args) => Effect<Service, E, R>) | Effect<Service, E, R> | undefined
+      readonly make: ((...args: Args) => Effect<Shape, E, R>) | Effect<Shape, E, R> | undefined
     } | undefined
   ) =>
-    & KeyClass<Self, Id, Service>
+    & ServiceClass<Self, Identifier, Shape>
     & ([Types.unassigned] extends [R] ? unknown
-      : { readonly make: [Args] extends [never] ? Effect<Service, E, R> : (...args: Args) => Effect<Service, E, R> })
+      : { readonly make: [Args] extends [never] ? Effect<Shape, E, R> : (...args: Args) => Effect<Shape, E, R> })
   <Self>(): <
-    const Id extends string,
+    const Identifier extends string,
     Make extends Effect<any, any, any> | ((...args: any) => Effect<any, any, any>)
   >(
-    id: Id,
+    id: Identifier,
     options: {
       readonly make: Make
     }
   ) =>
-    & KeyClass<
+    & ServiceClass<
       Self,
-      Id,
+      Identifier,
       Make extends
         Effect<infer _A, infer _E, infer _R> | ((...args: infer _Args) => Effect<infer _A, infer _E, infer _R>) ? _A
         : never
@@ -135,7 +142,7 @@ export const Key: {
   ;(Error as ErrorWithStackTraceLimit).stackTraceLimit = prevLimit
   function KeyClass() {}
   const self = KeyClass as any as Types.Mutable<Reference<any>>
-  Object.setPrototypeOf(self, KeyProto)
+  Object.setPrototypeOf(self, ServiceProto)
   Object.defineProperty(self, "stack", {
     get() {
       return err.stack
@@ -160,16 +167,16 @@ export const Key: {
   }
 } as any
 
-const KeyProto: any = {
-  [KeyTypeId]: {
+const ServiceProto: any = {
+  [ServiceTypeId]: {
     _Service: (_: unknown) => _,
     _Identifier: (_: unknown) => _
   },
   ...PipeInspectableProto,
   ...YieldableProto,
-  toJSON<I, A>(this: Key<I, A>) {
+  toJSON<I, A>(this: Service<I, A>) {
     return {
-      _id: "Key",
+      _id: "Service",
       key: this.key,
       stack: this.stack
     }
@@ -181,19 +188,17 @@ const KeyProto: any = {
   of<Service>(self: Service): Service {
     return self
   },
-  serviceMap<Identifier, Service>(
-    this: Key<Identifier, Service>,
-    self: Service
+  serviceMap<Identifier, Shape>(
+    this: Service<Identifier, Shape>,
+    self: Shape
   ): ServiceMap<Identifier> {
     return make(this, self)
   }
 }
 
-const ReferenceTypeId = "~effect/ServiceMap/Reference"
+const ReferenceTypeId = "~effect/ServiceMap/Reference" as const
 
 /**
- * @since 4.0.0
- * @category Models
  * @example
  * ```ts
  * import { ServiceMap } from "effect"
@@ -206,16 +211,17 @@ const ReferenceTypeId = "~effect/ServiceMap/Reference"
  * const serviceMap = ServiceMap.empty()
  * const logger = ServiceMap.get(serviceMap, LoggerRef) // Uses default value
  * ```
+ *
+ * @since 4.0.0
+ * @category Models
  */
-export interface Reference<in out Service> extends Key<never, Service> {
+export interface Reference<in out Shape> extends Service<never, Shape> {
   readonly [ReferenceTypeId]: typeof ReferenceTypeId
-  readonly defaultValue: () => Service
-  [Symbol.iterator](): EffectIterator<Reference<Service>>
+  readonly defaultValue: () => Shape
+  [Symbol.iterator](): EffectIterator<Reference<Shape>>
 }
 
 /**
- * @since 4.0.0
- * @category Models
  * @example
  * ```ts
  * import { ServiceMap } from "effect"
@@ -228,88 +234,99 @@ export interface Reference<in out Service> extends Key<never, Service> {
  *
  * const DatabaseKey = ServiceMap.Key<{ query: (sql: string) => string }>("Database")
  * ```
+ *
+ * @since 4.0.0
+ * @category Models
  */
-export declare namespace Key {
+export declare namespace Service {
   /**
-   * @since 4.0.0
-   * @category Models
    * @example
    * ```ts
    * import { ServiceMap } from "effect"
    *
    * // Variance interface is used internally for type inference
-   * type MyVariance = ServiceMap.Key.Variance<"MyId", { value: number }>
+   * type MyVariance = ServiceMap.Service.Variance<"MyId", { value: number }>
    * ```
+   *
+   * @since 4.0.0
+   * @category Models
    */
-  export interface Variance<in out Id, in out Service> {
-    readonly [KeyTypeId]: {
-      readonly _Service: Types.Invariant<Service>
-      readonly _Identifier: Types.Invariant<Id>
+  export interface Variance<in out Identifier, in out Shape> {
+    readonly [ServiceTypeId]: {
+      readonly _Service: Types.Invariant<Shape>
+      readonly _Identifier: Types.Invariant<Identifier>
     }
   }
+
   /**
-   * @since 4.0.0
-   * @category Models
    * @example
    * ```ts
    * import { ServiceMap } from "effect"
    *
-   * // Any represents any possible key type
-   * const keys: ServiceMap.Key.Any[] = [
-   *   ServiceMap.Key<{ log: (msg: string) => void }>("Logger"),
-   *   ServiceMap.Key<{ query: (sql: string) => string }>("Database")
+   * // Any represents any possible service type
+   * const services: Array<ServiceMap.Service.Any> = [
+   *   ServiceMap.Service<{ log: (msg: string) => void }>("Logger"),
+   *   ServiceMap.Service<{ query: (sql: string) => string }>("Database")
    * ]
    * ```
-   */
-  export type Any = Key<never, any> | Key<any, any>
-  /**
+   *
    * @since 4.0.0
    * @category Models
+   */
+  export type Any = Service<never, any> | Service<any, any>
+
+  /**
    * @example
    * ```ts
    * import { ServiceMap } from "effect"
    *
-   * const DatabaseKey = ServiceMap.Key<{ query: (sql: string) => string }>("Database")
+   * const Database = ServiceMap.Service<{ query: (sql: string) => string }>("Database")
    *
-   * // Extract the service type from a key
-   * type DatabaseService = ServiceMap.Key.Service<typeof DatabaseKey>
+   * // Extract the service shape from the service
+   * type DatabaseService = ServiceMap.Service.Shape<typeof Database>
    * // DatabaseService is { query: (sql: string) => string }
    * ```
-   */
-  export type Service<T> = T extends Variance<infer _I, infer S> ? S : never
-  /**
+   *
    * @since 4.0.0
    * @category Models
+   */
+  export type Shape<T> = T extends Variance<infer _I, infer S> ? S : never
+
+  /**
    * @example
    * ```ts
    * import { ServiceMap } from "effect"
    *
-   * const DatabaseKey = ServiceMap.Key<{ query: (sql: string) => string }>("Database")
+   * const DatabaseKey = ServiceMap.Service<{ query: (sql: string) => string }>("Database")
    *
    * // Extract the identifier type from a key
-   * type DatabaseId = ServiceMap.Key.Identifier<typeof DatabaseKey>
+   * type DatabaseId = ServiceMap.Service.Identifier<typeof DatabaseKey>
    * // DatabaseId is the identifier type
    * ```
+   *
+   * @since 4.0.0
+   * @category Models
    */
   export type Identifier<T> = T extends Variance<infer I, infer _S> ? I : never
 }
 
-const TypeId = "~effect/ServiceMap"
+const TypeId = "~effect/ServiceMap" as const
 
 /**
- * @since 4.0.0
- * @category Models
  * @example
  * ```ts
  * import { ServiceMap } from "effect"
  *
  * // Create a service map with multiple services
- * const Logger = ServiceMap.Key<{ log: (msg: string) => void }>("Logger")
- * const Database = ServiceMap.Key<{ query: (sql: string) => string }>("Database")
+ * const Logger = ServiceMap.Service<{ log: (msg: string) => void }>("Logger")
+ * const Database = ServiceMap.Service<{ query: (sql: string) => string }>("Database")
  *
  * const services = ServiceMap.make(Logger, { log: (msg: string) => console.log(msg) })
  *   .pipe(ServiceMap.add(Database, { query: (sql) => `Result: ${sql}` }))
  * ```
+ *
+ * @since 4.0.0
+ * @category Models
  */
 export interface ServiceMap<in Services> extends Equal.Equal, Pipeable, Inspectable {
   readonly [TypeId]: {
@@ -319,20 +336,20 @@ export interface ServiceMap<in Services> extends Equal.Equal, Pipeable, Inspecta
 }
 
 /**
- * @since 4.0.0
- * @category Constructors
  * @example
  * ```ts
  * import { ServiceMap } from "effect"
  *
  * // Create a service map from a Map (unsafe)
- * const map = new Map([[
- *   "Logger",
- *   { log: (msg: string) => console.log(msg) }
- * ]])
+ * const map = new Map([
+ *   ["Logger", { log: (msg: string) => console.log(msg) }]
+ * ])
  *
  * const services = ServiceMap.makeUnsafe(map)
  * ```
+ *
+ * @since 4.0.0
+ * @category Constructors
  */
 export const makeUnsafe = <Services = never>(mapUnsafe: ReadonlyMap<string, any>): ServiceMap<Services> => {
   const self = Object.create(Proto)
@@ -374,8 +391,6 @@ const Proto: Omit<ServiceMap<never>, "mapUnsafe"> = {
 /**
  * Checks if the provided argument is a `ServiceMap`.
  *
- * @param u - The value to be checked if it is a `ServiceMap`.
- *
  * @example
  * ```ts
  * import * as assert from "node:assert"
@@ -390,22 +405,20 @@ const Proto: Omit<ServiceMap<never>, "mapUnsafe"> = {
 export const isServiceMap = (u: unknown): u is ServiceMap<never> => hasProperty(u, TypeId)
 
 /**
- * Checks if the provided argument is a `Key`.
- *
- * @param u - The value to be checked if it is a `Key`.
+ * Checks if the provided argument is a `Service`.
  *
  * @example
  * ```ts
  * import * as assert from "node:assert"
  * import { ServiceMap } from "effect"
  *
- * assert.strictEqual(ServiceMap.isKey(ServiceMap.Key("Key")), true)
+ * assert.strictEqual(ServiceMap.isService(ServiceMap.Service("Service")), true)
  * ```
  *
  * @since 4.0.0
  * @category Guards
  */
-export const isKey = (u: unknown): u is Key<any, any> => hasProperty(u, KeyTypeId)
+export const isService = (u: unknown): u is Service<any, any> => hasProperty(u, ServiceTypeId)
 
 /**
  * Checks if the provided argument is a `Reference`.
@@ -462,7 +475,7 @@ const emptyServiceMap = makeUnsafe(new Map())
  * @category Constructors
  */
 export const make = <I, S>(
-  key: Key<I, S>,
+  key: Service<I, S>,
   service: Types.NoInfer<S>
 ): ServiceMap<I> => makeUnsafe(new Map([[key.key, service]]))
 
@@ -475,8 +488,8 @@ export const make = <I, S>(
  * import { pipe } from "effect"
  * import { ServiceMap } from "effect"
  *
- * const Port = ServiceMap.Key<{ PORT: number }>("Port")
- * const Timeout = ServiceMap.Key<{ TIMEOUT: number }>("Timeout")
+ * const Port = ServiceMap.Service<{ PORT: number }>("Port")
+ * const Timeout = ServiceMap.Service<{ TIMEOUT: number }>("Timeout")
  *
  * const someServiceMap = ServiceMap.make(Port, { PORT: 8080 })
  *
@@ -494,17 +507,17 @@ export const make = <I, S>(
  */
 export const add: {
   <I, S>(
-    key: Key<I, S>,
+    key: Service<I, S>,
     service: Types.NoInfer<S>
   ): <Services>(self: ServiceMap<Services>) => ServiceMap<Services | I>
   <Services, I, S>(
     self: ServiceMap<Services>,
-    key: Key<I, S>,
+    key: Service<I, S>,
     service: Types.NoInfer<S>
   ): ServiceMap<Services | I>
 } = dual(3, <Services, I, S>(
   self: ServiceMap<Services>,
-  key: Key<I, S>,
+  key: Service<I, S>,
   service: Types.NoInfer<S>
 ): ServiceMap<Services | I> => {
   const map = new Map(self.mapUnsafe)
@@ -518,17 +531,17 @@ export const add: {
  */
 export const addOrOmit: {
   <I, S>(
-    key: Key<I, S>,
+    key: Service<I, S>,
     service: Option.Option<Types.NoInfer<S>>
   ): <Services>(self: ServiceMap<Services>) => ServiceMap<Services | I>
   <Services, I, S>(
     self: ServiceMap<Services>,
-    key: Key<I, S>,
+    key: Service<I, S>,
     service: Option.Option<Types.NoInfer<S>>
   ): ServiceMap<Services | I>
 } = dual(3, <Services, I, S>(
   self: ServiceMap<Services>,
-  key: Key<I, S>,
+  key: Service<I, S>,
   service: Option.Option<Types.NoInfer<S>>
 ): ServiceMap<Services | I> => {
   const map = new Map(self.mapUnsafe)
@@ -549,8 +562,8 @@ export const addOrOmit: {
  * import * as assert from "node:assert"
  * import { ServiceMap } from "effect"
  *
- * const Logger = ServiceMap.Key<{ log: (msg: string) => void }>("Logger")
- * const Database = ServiceMap.Key<{ query: (sql: string) => string }>("Database")
+ * const Logger = ServiceMap.Service<{ log: (msg: string) => void }>("Logger")
+ * const Database = ServiceMap.Service<{ query: (sql: string) => string }>("Database")
  *
  * const services = ServiceMap.make(Logger, { log: (msg: string) => console.log(msg) })
  *
@@ -565,9 +578,9 @@ export const addOrOmit: {
  * @category Getters
  */
 export const getOrElse: {
-  <S, I, B>(key: Key<I, S>, orElse: LazyArg<B>): <Services>(self: ServiceMap<Services>) => S | B
-  <Services, S, I, B>(self: ServiceMap<Services>, key: Key<I, S>, orElse: LazyArg<B>): S | B
-} = dual(3, <Services, S, I, B>(self: ServiceMap<Services>, key: Key<I, S>, orElse: LazyArg<B>): S | B => {
+  <S, I, B>(key: Service<I, S>, orElse: LazyArg<B>): <Services>(self: ServiceMap<Services>) => S | B
+  <Services, S, I, B>(self: ServiceMap<Services>, key: Service<I, S>, orElse: LazyArg<B>): S | B
+} = dual(3, <Services, S, I, B>(self: ServiceMap<Services>, key: Service<I, S>, orElse: LazyArg<B>): S | B => {
   if (self.mapUnsafe.has(key.key)) {
     return self.mapUnsafe.get(key.key)! as any
   }
@@ -579,26 +592,31 @@ export const getOrElse: {
  * @category Getters
  */
 export const getOrUndefined: {
-  <S, I>(key: Key<I, S>): <Services>(self: ServiceMap<Services>) => S | undefined
-  <Services, S, I>(self: ServiceMap<Services>, key: Key<I, S>): S | undefined
-} = dual(2, <Services, S, I>(self: ServiceMap<Services>, key: Key<I, S>): S | undefined => self.mapUnsafe.get(key.key))
+  <S, I>(key: Service<I, S>): <Services>(self: ServiceMap<Services>) => S | undefined
+  <Services, S, I>(self: ServiceMap<Services>, key: Service<I, S>): S | undefined
+} = dual(
+  2,
+  <Services, S, I>(self: ServiceMap<Services>, key: Service<I, S>): S | undefined => self.mapUnsafe.get(key.key)
+)
 
 /**
  * Get a service from the context that corresponds to the given key.
- * This function is unsafe because if the key is not present in the context, a runtime error will be thrown.
+ *
+ * This function is unsafe because if the key is not present in the context, a
+ * runtime error will be thrown.
  *
  * For a safer version see {@link getOption}.
  *
  * @param self - The `ServiceMap` to search for the service.
- * @param key - The `Key` of the service to retrieve.
+ * @param service - The `Service` of the service to retrieve.
  *
  * @example
  * ```ts
  * import * as assert from "node:assert"
  * import { ServiceMap } from "effect"
  *
- * const Port = ServiceMap.Key<{ PORT: number }>("Port")
- * const Timeout = ServiceMap.Key<{ TIMEOUT: number }>("Timeout")
+ * const Port = ServiceMap.Service<{ PORT: number }>("Port")
+ * const Timeout = ServiceMap.Service<{ TIMEOUT: number }>("Timeout")
  *
  * const Services = ServiceMap.make(Port, { PORT: 8080 })
  *
@@ -610,16 +628,16 @@ export const getOrUndefined: {
  * @category unsafe
  */
 export const getUnsafe: {
-  <S, I>(key: Key<I, S>): <Services>(self: ServiceMap<Services>) => S
-  <Services, S, I>(self: ServiceMap<Services>, key: Key<I, S>): S
+  <S, I>(service: Service<I, S>): <Services>(self: ServiceMap<Services>) => S
+  <Services, S, I>(self: ServiceMap<Services>, services: Service<I, S>): S
 } = dual(
   2,
-  <Services, I extends Services, S>(self: ServiceMap<Services>, key: Key<I, S>): S => {
-    if (!self.mapUnsafe.has(key.key)) {
-      if (ReferenceTypeId in key) return getDefaultValue(key as any)
-      throw serviceNotFoundError(key)
+  <Services, I extends Services, S>(self: ServiceMap<Services>, service: Service<I, S>): S => {
+    if (!self.mapUnsafe.has(service.key)) {
+      if (ReferenceTypeId in service) return getDefaultValue(service as any)
+      throw serviceNotFoundError(service)
     }
-    return self.mapUnsafe.get(key.key)! as any
+    return self.mapUnsafe.get(service.key)! as any
   }
 )
 
@@ -627,7 +645,7 @@ export const getUnsafe: {
  * Get a service from the context that corresponds to the given key.
  *
  * @param self - The `ServiceMap` to search for the service.
- * @param key - The `Key` of the service to retrieve.
+ * @param service - The `Service` of the service to retrieve.
  *
  * @example
  * ```ts
@@ -635,8 +653,8 @@ export const getUnsafe: {
  * import { pipe } from "effect"
  * import { ServiceMap } from "effect"
  *
- * const Port = ServiceMap.Key<{ PORT: number }>("Port")
- * const Timeout = ServiceMap.Key<{ TIMEOUT: number }>("Timeout")
+ * const Port = ServiceMap.Service<{ PORT: number }>("Port")
+ * const Timeout = ServiceMap.Service<{ TIMEOUT: number }>("Timeout")
  *
  * const Services = pipe(
  *   ServiceMap.make(Port, { PORT: 8080 }),
@@ -650,8 +668,8 @@ export const getUnsafe: {
  * @category Getters
  */
 export const get: {
-  <Services, I extends Services, S>(key: Key<I, S>): (self: ServiceMap<Services>) => S
-  <Services, I extends Services, S>(self: ServiceMap<Services>, key: Key<I, S>): S
+  <Services, I extends Services, S>(service: Service<I, S>): (self: ServiceMap<Services>) => S
+  <Services, I extends Services, S>(self: ServiceMap<Services>, service: Service<I, S>): S
 } = getUnsafe
 
 /**
@@ -673,14 +691,14 @@ export const get: {
  * @since 4.0.0
  * @category unsafe
  */
-export const getReferenceUnsafe = <Services, S>(self: ServiceMap<Services>, key: Reference<S>): S => {
-  if (!self.mapUnsafe.has(key.key)) {
-    return getDefaultValue(key as any)
+export const getReferenceUnsafe = <Services, S>(self: ServiceMap<Services>, service: Reference<S>): S => {
+  if (!self.mapUnsafe.has(service.key)) {
+    return getDefaultValue(service as any)
   }
-  return self.mapUnsafe.get(key.key)! as any
+  return self.mapUnsafe.get(service.key)! as any
 }
 
-const defaultValueCacheKey = "~effect/ServiceMap/defaultValue"
+const defaultValueCacheKey = "~effect/ServiceMap/defaultValue" as const
 
 const getDefaultValue = (ref: Reference<any>) => {
   if (defaultValueCacheKey in ref) {
@@ -689,12 +707,12 @@ const getDefaultValue = (ref: Reference<any>) => {
   return (ref as any)[defaultValueCacheKey] = ref.defaultValue()
 }
 
-const serviceNotFoundError = (key: Key<any, any>) => {
+const serviceNotFoundError = (service: Service<any, any>) => {
   const error = new Error(
-    `Service not found${key.key ? `: ${String(key.key)}` : ""}`
+    `Service not found${service.key ? `: ${String(service.key)}` : ""}`
   )
-  if (key.stack) {
-    const lines = key.stack.split("\n")
+  if (service.stack) {
+    const lines = service.stack.split("\n")
     if (lines.length > 2) {
       const afterAt = lines[2].match(/at (.*)/)
       if (afterAt) {
@@ -711,11 +729,12 @@ const serviceNotFoundError = (key: Key<any, any>) => {
 }
 
 /**
- * Get the value associated with the specified key from the context wrapped in an `Option` object. If the key is not
- * found, the `Option` object will be `None`.
+ * Get the value associated with the specified key from the context wrapped in
+ * an `Option` object. If the key is not found, the `Option` object will be
+ * `None`.
  *
  * @param self - The `ServiceMap` to search for the service.
- * @param key - The `Key` of the service to retrieve.
+ * @param service - The `Service` of the service to retrieve.
  *
  * @example
  * ```ts
@@ -723,8 +742,8 @@ const serviceNotFoundError = (key: Key<any, any>) => {
  * import { ServiceMap } from "effect"
  * import { Option } from "effect/data"
  *
- * const Port = ServiceMap.Key<{ PORT: number }>("Port")
- * const Timeout = ServiceMap.Key<{ TIMEOUT: number }>("Timeout")
+ * const Port = ServiceMap.Service<{ PORT: number }>("Port")
+ * const Timeout = ServiceMap.Service<{ TIMEOUT: number }>("Timeout")
  *
  * const Services = ServiceMap.make(Port, { PORT: 8080 })
  *
@@ -736,13 +755,13 @@ const serviceNotFoundError = (key: Key<any, any>) => {
  * @category Getters
  */
 export const getOption: {
-  <S, I>(key: Key<I, S>): <Services>(self: ServiceMap<Services>) => Option.Option<S>
-  <Services, S, I>(self: ServiceMap<Services>, key: Key<I, S>): Option.Option<S>
-} = dual(2, <Services, I extends Services, S>(self: ServiceMap<Services>, key: Key<I, S>): Option.Option<S> => {
-  if (self.mapUnsafe.has(key.key)) {
-    return Option.some(self.mapUnsafe.get(key.key)! as any)
+  <S, I>(service: Service<I, S>): <Services>(self: ServiceMap<Services>) => Option.Option<S>
+  <Services, S, I>(self: ServiceMap<Services>, service: Service<I, S>): Option.Option<S>
+} = dual(2, <Services, I extends Services, S>(self: ServiceMap<Services>, service: Service<I, S>): Option.Option<S> => {
+  if (self.mapUnsafe.has(service.key)) {
+    return Option.some(self.mapUnsafe.get(service.key)! as any)
   }
-  return isReference(key) ? Option.some(getDefaultValue(key as any)) : Option.none()
+  return isReference(service) ? Option.some(getDefaultValue(service as any)) : Option.none()
 })
 
 /**
@@ -756,8 +775,8 @@ export const getOption: {
  * import * as assert from "node:assert"
  * import { ServiceMap } from "effect"
  *
- * const Port = ServiceMap.Key<{ PORT: number }>("Port")
- * const Timeout = ServiceMap.Key<{ TIMEOUT: number }>("Timeout")
+ * const Port = ServiceMap.Service<{ PORT: number }>("Port")
+ * const Timeout = ServiceMap.Service<{ TIMEOUT: number }>("Timeout")
  *
  * const firstServiceMap = ServiceMap.make(Port, { PORT: 8080 })
  * const secondServiceMap = ServiceMap.make(Timeout, { TIMEOUT: 5000 })
@@ -786,7 +805,7 @@ export const merge: {
  * Returns a new `ServiceMap` that contains only the specified services.
  *
  * @param self - The `ServiceMap` to prune services from.
- * @param keys - The list of `Key`s to be included in the new `ServiceMap`.
+ * @param services - The list of `Service`s to be included in the new `ServiceMap`.
  *
  * @example
  * ```ts
@@ -795,8 +814,8 @@ export const merge: {
  * import { ServiceMap } from "effect"
  * import { Option } from "effect/data"
  *
- * const Port = ServiceMap.Key<{ PORT: number }>("Port")
- * const Timeout = ServiceMap.Key<{ TIMEOUT: number }>("Timeout")
+ * const Port = ServiceMap.Service<{ PORT: number }>("Port")
+ * const Timeout = ServiceMap.Service<{ TIMEOUT: number }>("Timeout")
  *
  * const someServiceMap = pipe(
  *   ServiceMap.make(Port, { PORT: 8080 }),
@@ -812,12 +831,12 @@ export const merge: {
  * @since 4.0.0
  * @category Utils
  */
-export const pick = <Keys extends ReadonlyArray<Key<any, any>>>(
-  ...keys: Keys
+export const pick = <S extends ReadonlyArray<Service<any, any>>>(
+  ...services: S
 ) =>
-<Services>(self: ServiceMap<Services>): ServiceMap<Services & Key.Identifier<Keys[number]>> => {
+<Services>(self: ServiceMap<Services>): ServiceMap<Services & Service.Identifier<S[number]>> => {
   const map = new Map<string, any>()
-  const keySet = new Set(keys.map((key) => key.key))
+  const keySet = new Set(services.map((key) => key.key))
   self.mapUnsafe.forEach((value, key) => {
     if (keySet.has(key)) {
       map.set(key, value)
@@ -834,8 +853,8 @@ export const pick = <Keys extends ReadonlyArray<Key<any, any>>>(
  * import { ServiceMap } from "effect"
  * import { Option } from "effect/data"
  *
- * const Port = ServiceMap.Key<{ PORT: number }>("Port")
- * const Timeout = ServiceMap.Key<{ TIMEOUT: number }>("Timeout")
+ * const Port = ServiceMap.Service<{ PORT: number }>("Port")
+ * const Timeout = ServiceMap.Service<{ TIMEOUT: number }>("Timeout")
  *
  * const someServiceMap = pipe(
  *   ServiceMap.make(Port, { PORT: 8080 }),
@@ -851,10 +870,10 @@ export const pick = <Keys extends ReadonlyArray<Key<any, any>>>(
  * @since 4.0.0
  * @category Utils
  */
-export const omit = <Keys extends ReadonlyArray<Key<any, any>>>(
-  ...keys: Keys
+export const omit = <S extends ReadonlyArray<Service<any, any>>>(
+  ...keys: S
 ) =>
-<Services>(self: ServiceMap<Services>): ServiceMap<Exclude<Services, Key.Identifier<Keys[number]>>> => {
+<Services>(self: ServiceMap<Services>): ServiceMap<Exclude<Services, Service.Identifier<S[number]>>> => {
   const map = new Map(self.mapUnsafe)
   for (let i = 0; i < keys.length; i++) {
     map.delete(keys[i].key)
@@ -867,8 +886,8 @@ export const omit = <Keys extends ReadonlyArray<Key<any, any>>>(
  *
  * **Details**
  *
- * `ServiceMap.Reference` allows you to create a key that can hold a value. You can
- * provide a default value for the service, which will automatically be used
+ * `ServiceMap.Reference` allows you to create a key that can hold a value. You
+ * can provide a default value for the service, which will automatically be used
  * when the context is accessed, or override it with a custom implementation
  * when needed.
  *
@@ -897,4 +916,4 @@ export const omit = <Keys extends ReadonlyArray<Key<any, any>>>(
 export const Reference: <Service>(
   key: string,
   options: { readonly defaultValue: () => Service }
-) => Reference<Service> = Key as any
+) => Reference<Service> = Service as any

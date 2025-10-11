@@ -59,7 +59,7 @@ export type HttpApiMiddlewareSecurity<
  * @since 4.0.0
  * @category models
  */
-export interface AnyKey extends ServiceMap.Key<any, any> {
+export interface AnyKey extends ServiceMap.Service<any, any> {
   readonly [TypeId]: typeof TypeId
   readonly provides: any
   readonly error: Schema.Top
@@ -148,9 +148,9 @@ export type KeyClass<
         HttpApiMiddlewareSecurity<Config["security"], Config["provides"], Config["error"], Config["requires"]>
       >)
 > =
-  & ServiceMap.Key<Self, Service>
+  & ServiceMap.Service<Self, Service>
   & {
-    new(_: never): ServiceMap.KeyClass.Shape<Id, Service> & {
+    new(_: never): ServiceMap.ServiceClass.Shape<Id, Service> & {
       readonly [TypeId]: {
         readonly error: Config["error"]
         readonly requires: Config["requires"]
@@ -204,7 +204,7 @@ export const Key = <
   const creationError = new Err()
   Err.stackTraceLimit = limit
 
-  class Key extends ServiceMap.Key<Self, any>()(id) {}
+  class Key extends ServiceMap.Service<Self, any>()(id) {}
   const self = Key as any
   Object.defineProperty(Key, "stack", {
     get() {

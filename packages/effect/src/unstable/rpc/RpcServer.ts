@@ -393,8 +393,8 @@ const applyMiddleware = <A, E, R>(
     readonly payload: A
   }
 ) => {
-  for (const tag of options.rpc.middlewares) {
-    const middleware = ServiceMap.getUnsafe(context, tag)
+  for (const service of options.rpc.middlewares) {
+    const middleware = ServiceMap.getUnsafe(context, service)
     handler = middleware(handler as any, options) as any
   }
 
@@ -710,7 +710,7 @@ export const layerHttp = <Rpcs extends Rpc.Any>(options: {
  * @since 4.0.0
  * @category protocol
  */
-export class Protocol extends ServiceMap.Key<Protocol, {
+export class Protocol extends ServiceMap.Service<Protocol, {
   readonly run: (
     f: (clientId: number, data: FromClientEncoded) => Effect.Effect<void>
   ) => Effect.Effect<never>

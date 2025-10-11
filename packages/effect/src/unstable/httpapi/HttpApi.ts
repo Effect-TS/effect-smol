@@ -69,13 +69,13 @@ export interface HttpApi<
    * api is called.
    */
   middleware<I extends HttpApiMiddleware.AnyId, S>(
-    middleware: ServiceMap.Key<I, S>
+    middleware: ServiceMap.Service<I, S>
   ): HttpApi<Id, HttpApiGroup.AddMiddleware<Groups, I>>
 
   /**
    * Annotate the `HttpApi`.
    */
-  annotate<I, S>(tag: ServiceMap.Key<I, S>, value: S): HttpApi<Id, Groups>
+  annotate<I, S>(tag: ServiceMap.Service<I, S>, value: S): HttpApi<Id, Groups>
 
   /**
    * Annotate the `HttpApi` with a ServiceMap.
@@ -146,7 +146,7 @@ const Proto = {
       annotations: this.annotations
     })
   },
-  annotate(this: AnyWithProps, key: ServiceMap.Key<any, any>, value: any) {
+  annotate(this: AnyWithProps, key: ServiceMap.Service<any, any>, value: any) {
     return makeProto({
       identifier: this.identifier,
       groups: this.groups,
@@ -349,7 +349,7 @@ const extractPayloads = (topAst: AST.AST): ReadonlyMap<string, {
  * @since 4.0.0
  * @category tags
  */
-export class AdditionalSchemas extends ServiceMap.Key<
+export class AdditionalSchemas extends ServiceMap.Service<
   AdditionalSchemas,
   ReadonlyArray<Schema.Top>
 >()("effect/httpapi/HttpApi/AdditionalSchemas") {}

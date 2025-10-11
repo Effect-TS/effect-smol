@@ -19,38 +19,38 @@ import type { HttpApiSecurity } from "./HttpApiSecurity.ts"
  * @since 4.0.0
  * @category annotations
  */
-export class Identifier extends ServiceMap.Key<Identifier, string>()("effect/httpapi/OpenApi/Identifier") {}
+export class Identifier extends ServiceMap.Service<Identifier, string>()("effect/httpapi/OpenApi/Identifier") {}
 
 /**
  * @since 4.0.0
  * @category annotations
  */
-export class Title extends ServiceMap.Key<Title, string>()("effect/httpapi/OpenApi/Title") {}
+export class Title extends ServiceMap.Service<Title, string>()("effect/httpapi/OpenApi/Title") {}
 
 /**
  * @since 4.0.0
  * @category annotations
  */
-export class Version extends ServiceMap.Key<Version, string>()("effect/httpapi/OpenApi/Version") {}
+export class Version extends ServiceMap.Service<Version, string>()("effect/httpapi/OpenApi/Version") {}
 
 /**
  * @since 4.0.0
  * @category annotations
  */
-export class Description extends ServiceMap.Key<Description, string>()("effect/httpapi/OpenApi/Description") {}
+export class Description extends ServiceMap.Service<Description, string>()("effect/httpapi/OpenApi/Description") {}
 
 /**
  * @since 4.0.0
  * @category annotations
  */
-export class License extends ServiceMap.Key<License, OpenAPISpecLicense>()("effect/httpapi/OpenApi/License") {}
+export class License extends ServiceMap.Service<License, OpenAPISpecLicense>()("effect/httpapi/OpenApi/License") {}
 
 /**
  * @since 4.0.0
  * @category annotations
  */
 export class ExternalDocs
-  extends ServiceMap.Key<ExternalDocs, OpenAPISpecExternalDocs>()("effect/httpapi/OpenApi/ExternalDocs")
+  extends ServiceMap.Service<ExternalDocs, OpenAPISpecExternalDocs>()("effect/httpapi/OpenApi/ExternalDocs")
 {}
 
 /**
@@ -58,32 +58,34 @@ export class ExternalDocs
  * @category annotations
  */
 export class Servers
-  extends ServiceMap.Key<Servers, ReadonlyArray<OpenAPISpecServer>>()("effect/httpapi/OpenApi/Servers")
+  extends ServiceMap.Service<Servers, ReadonlyArray<OpenAPISpecServer>>()("effect/httpapi/OpenApi/Servers")
 {}
 
 /**
  * @since 4.0.0
  * @category annotations
  */
-export class Format extends ServiceMap.Key<Format, string>()("effect/httpapi/OpenApi/Format") {}
+export class Format extends ServiceMap.Service<Format, string>()("effect/httpapi/OpenApi/Format") {}
 
 /**
  * @since 4.0.0
  * @category annotations
  */
-export class Summary extends ServiceMap.Key<Summary, string>()("effect/httpapi/OpenApi/Summary") {}
+export class Summary extends ServiceMap.Service<Summary, string>()("effect/httpapi/OpenApi/Summary") {}
 
 /**
  * @since 4.0.0
  * @category annotations
  */
-export class Deprecated extends ServiceMap.Key<Deprecated, boolean>()("effect/httpapi/OpenApi/Deprecated") {}
+export class Deprecated extends ServiceMap.Service<Deprecated, boolean>()("effect/httpapi/OpenApi/Deprecated") {}
 
 /**
  * @since 4.0.0
  * @category annotations
  */
-export class Override extends ServiceMap.Key<Override, Record<string, unknown>>()("effect/httpapi/OpenApi/Override") {}
+export class Override
+  extends ServiceMap.Service<Override, Record<string, unknown>>()("effect/httpapi/OpenApi/Override")
+{}
 
 /**
  * @since 4.0.0
@@ -99,16 +101,16 @@ export const Exclude = ServiceMap.Reference<boolean>("effect/httpapi/OpenApi/Exc
  * @since 4.0.0
  * @category annotations
  */
-export class Transform extends ServiceMap.Key<
+export class Transform extends ServiceMap.Service<
   Transform,
   (openApiSpec: Record<string, any>) => Record<string, any>
 >()("effect/httpapi/OpenApi/Transform") {}
 
-const servicesPartial = <Tags extends Record<string, ServiceMap.Key<any, any> | ServiceMap.Key<never, any>>>(
+const servicesPartial = <Tags extends Record<string, ServiceMap.Service<any, any> | ServiceMap.Service<never, any>>>(
   tags: Tags
 ): (
   options: {
-    readonly [K in keyof Tags]?: ServiceMap.Key.Service<Tags[K]> | undefined
+    readonly [K in keyof Tags]?: ServiceMap.Service.Shape<Tags[K]> | undefined
   }
 ) => ServiceMap.ServiceMap<never> => {
   const entries = Object.entries(tags)
@@ -168,10 +170,10 @@ const apiCache = new WeakMap<HttpApi.Any, OpenAPISpec>()
  */
 function processAnnotation<Services, S, I>(
   ctx: ServiceMap.ServiceMap<Services>,
-  tag: ServiceMap.Key<I, S>,
+  annotation: ServiceMap.Service<I, S>,
   f: (s: S) => void
 ) {
-  const o = ServiceMap.getOption(ctx, tag)
+  const o = ServiceMap.getOption(ctx, annotation)
   if (Option.isSome(o)) {
     f(o.value)
   }

@@ -169,7 +169,7 @@ export interface Tool<
    * instead of being provided when creating the tool call handler layer.
    */
   addDependency<Identifier, Service>(
-    tag: ServiceMap.Key<Identifier, Service>
+    tag: ServiceMap.Service<Identifier, Service>
   ): Tool<Name, Config, Identifier | Requirements>
 
   /**
@@ -227,7 +227,7 @@ export interface Tool<
   /**
    * Add an annotation to the tool.
    */
-  annotate<I, S>(tag: ServiceMap.Key<I, S>, value: S): Tool<Name, Config, Requirements>
+  annotate<I, S>(tag: ServiceMap.Service<I, S>, value: S): Tool<Name, Config, Requirements>
 
   /**
    * Add many annotations to the tool.
@@ -751,7 +751,7 @@ const Proto = {
   setFailure(this: Any, failureSchema: Schema.Top) {
     return userDefinedProto({ ...this, failureSchema })
   },
-  annotate<I, S>(this: Any, tag: ServiceMap.Key<I, S>, value: S) {
+  annotate<I, S>(this: Any, tag: ServiceMap.Service<I, S>, value: S) {
     return userDefinedProto({
       ...this,
       annotations: ServiceMap.add(this.annotations, tag, value)
@@ -859,7 +859,7 @@ export const make = <
   Success extends Schema.Top = typeof Schema.Void,
   Failure extends Schema.Top = typeof Schema.Never,
   Mode extends FailureMode | undefined = undefined,
-  Dependencies extends Array<ServiceMap.Key<any, any>> = []
+  Dependencies extends Array<ServiceMap.Service<any, any>> = []
 >(name: Name, options?: {
   /**
    * An optional description explaining what the tool does.
@@ -900,7 +900,7 @@ export const make = <
     readonly failure: Failure
     readonly failureMode: Mode extends undefined ? "error" : Mode
   },
-  ServiceMap.Key.Identifier<Dependencies[number]>
+  ServiceMap.Service.Identifier<Dependencies[number]>
 > => {
   const successSchema = options?.success ?? Schema.Void
   const failureSchema = options?.failure ?? Schema.Never
@@ -1147,7 +1147,7 @@ export const getJsonSchemaFromSchema = <S extends Schema.Top>(schema: S): JsonSc
  * @since 4.0.0
  * @category annotations
  */
-export class Title extends ServiceMap.Key<Title, string>()("effect/ai/Tool/Title") {}
+export class Title extends ServiceMap.Service<Title, string>()("effect/ai/Tool/Title") {}
 
 /**
  * Annotation indicating whether a tool only reads data without making changes.

@@ -17,7 +17,7 @@ import * as Stream from "../../stream/Stream.ts"
  * @since 4.0.0
  * @category tags
  */
-export class Reactivity extends ServiceMap.Key<
+export class Reactivity extends ServiceMap.Service<
   Reactivity,
   {
     readonly invalidateUnsafe: (keys: ReadonlyArray<unknown> | ReadonlyRecord<string, ReadonlyArray<unknown>>) => void

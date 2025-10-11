@@ -56,7 +56,7 @@ export {
  * @since 1.0.0
  * @category Dispatcher
  */
-export class Dispatcher extends ServiceMap.Key<Dispatcher, Undici.Dispatcher>()(
+export class Dispatcher extends ServiceMap.Service<Dispatcher, Undici.Dispatcher>()(
   "@effect/platform-node/NodeHttpClient/Dispatcher"
 ) {}
 
@@ -307,7 +307,7 @@ export const layerUndici: Layer.Layer<Client.HttpClient> = Layer.provide(layerUn
  * @since 1.0.0
  * @category HttpAgent
  */
-export class HttpAgent extends ServiceMap.Key<HttpAgent, {
+export class HttpAgent extends ServiceMap.Service<HttpAgent, {
   readonly http: Http.Agent
   readonly https: Https.Agent
 }>()("@effect/platform-node/NodeHttpClient/HttpAgent") {}

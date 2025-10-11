@@ -1605,7 +1605,9 @@ export const setPartsUtc: {
  * @since 3.11.0
  * @category current time zone
  */
-export class CurrentTimeZone extends ServiceMap.Key<CurrentTimeZone, TimeZone>()("effect/DateTime/CurrentTimeZone") {}
+export class CurrentTimeZone extends ServiceMap.Service<CurrentTimeZone, TimeZone>()(
+  "effect/DateTime/CurrentTimeZone"
+) {}
 
 /**
  * Set the time zone of a `DateTime` to the current time zone, which is

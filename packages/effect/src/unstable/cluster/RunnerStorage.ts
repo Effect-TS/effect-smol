@@ -19,7 +19,7 @@ import { ShardId } from "./ShardId.ts"
  * @since 4.0.0
  * @category models
  */
-export class RunnerStorage extends ServiceMap.Key<RunnerStorage, {
+export class RunnerStorage extends ServiceMap.Service<RunnerStorage, {
   /**
    * Register a new runner with the cluster.
    */

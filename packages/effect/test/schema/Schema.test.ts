@@ -2609,7 +2609,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       })
 
       it("Struct & Effect async & service", async () => {
-        class Service extends ServiceMap.Key<Service, { value: Effect.Effect<number> }>()("Service") {}
+        class Service extends ServiceMap.Service<Service, { value: Effect.Effect<number> }>()("Service") {}
 
         const schema = Schema.Struct({
           a: Schema.FiniteFromString.pipe(Schema.withConstructorDefault(() =>
@@ -4888,7 +4888,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
   })
 
   it("catchDecodingWithContext", async () => {
-    class Service extends ServiceMap.Key<Service, { fallback: Effect.Effect<string> }>()("Service") {}
+    class Service extends ServiceMap.Service<Service, { fallback: Effect.Effect<string> }>()("Service") {}
 
     const schema = Schema.String.pipe(Schema.catchDecodingWithContext(() =>
       Effect.gen(function*() {
@@ -4908,7 +4908,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
   describe("decodingMiddleware", () => {
     it("providing a service", async () => {
-      class Service extends ServiceMap.Key<Service, { fallback: Effect.Effect<string> }>()("Service") {}
+      class Service extends ServiceMap.Service<Service, { fallback: Effect.Effect<string> }>()("Service") {}
 
       const schema = Schema.String.pipe(
         Schema.catchDecodingWithContext(() =>
@@ -4946,7 +4946,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
   describe("encodingMiddleware", () => {
     it("providing a service", async () => {
-      class Service extends ServiceMap.Key<Service, { fallback: Effect.Effect<string> }>()("Service") {}
+      class Service extends ServiceMap.Service<Service, { fallback: Effect.Effect<string> }>()("Service") {}
 
       const schema = Schema.String.pipe(
         Schema.catchEncodingWithContext(() =>
@@ -5231,7 +5231,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     })
 
     it("with context", async () => {
-      class Service extends ServiceMap.Key<Service, { fallback: Effect.Effect<string> }>()("Service") {}
+      class Service extends ServiceMap.Service<Service, { fallback: Effect.Effect<string> }>()("Service") {}
 
       const schema = Schema.String.pipe(
         Schema.decode({
@@ -5325,7 +5325,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     })
 
     it("should die on missing dependency", () => {
-      class MagicNumber extends ServiceMap.Key<MagicNumber, number>()("MagicNumber") {}
+      class MagicNumber extends ServiceMap.Service<MagicNumber, number>()("MagicNumber") {}
       const DepString = Schema.Number.pipe(Schema.decode({
         decode: Getter.onSome((n) =>
           Effect.gen(function*() {

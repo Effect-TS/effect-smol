@@ -70,7 +70,7 @@ export interface HttpServerRequest extends HttpIncomingMessage.HttpIncomingMessa
  * @since 4.0.0
  * @category context
  */
-export const HttpServerRequest: ServiceMap.Key<HttpServerRequest, HttpServerRequest> = ServiceMap.Key(
+export const HttpServerRequest: ServiceMap.Service<HttpServerRequest, HttpServerRequest> = ServiceMap.Service(
   "effect/http/HttpServerRequest"
 )
 
@@ -78,7 +78,7 @@ export const HttpServerRequest: ServiceMap.Key<HttpServerRequest, HttpServerRequ
  * @since 4.0.0
  * @category search params
  */
-export class ParsedSearchParams extends ServiceMap.Key<
+export class ParsedSearchParams extends ServiceMap.Service<
   ParsedSearchParams,
   ReadonlyRecord<string, string | Array<string>>
 >()("effect/http/ParsedSearchParams") {}

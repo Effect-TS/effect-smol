@@ -9,7 +9,7 @@ import type { EntityState } from "./entityManager.ts"
 import type { ResourceMap } from "./resourceMap.ts"
 
 /** @internal */
-export class EntityReaper extends ServiceMap.Key<EntityReaper>()("effect/cluster/EntityReaper", {
+export class EntityReaper extends ServiceMap.Service<EntityReaper>()("effect/cluster/EntityReaper", {
   make: Effect.gen(function*() {
     let currentResolution = 30_000
     const registered: Array<{

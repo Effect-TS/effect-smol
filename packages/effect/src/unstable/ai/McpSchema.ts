@@ -1795,17 +1795,14 @@ export class ElicitationDeclined
  * @since 4.0.0
  * @category client
  */
-export class McpServerClient extends ServiceMap.Key<
-  McpServerClient,
-  {
-    readonly clientId: number
-    readonly getClient: Effect.Effect<
-      RpcClient.RpcClient<RpcGroup.Rpcs<typeof ServerRequestRpcs>, RpcClientError>,
-      never,
-      Scope.Scope
-    >
-  }
->()("effect/ai/McpSchema/McpServerClient") {}
+export class McpServerClient extends ServiceMap.Service<McpServerClient, {
+  readonly clientId: number
+  readonly getClient: Effect.Effect<
+    RpcClient.RpcClient<RpcGroup.Rpcs<typeof ServerRequestRpcs>, RpcClientError>,
+    never,
+    Scope.Scope
+  >
+}>()("effect/ai/McpSchema/McpServerClient") {}
 
 /**
  * @since 4.0.0

@@ -60,7 +60,7 @@ export interface BackupMetadata {
  * @category tags
  * @since 1.0.0
  */
-export const SqliteClient = ServiceMap.Key<SqliteClient>("@effect/sql-sqlite-node/SqliteClient")
+export const SqliteClient = ServiceMap.Service<SqliteClient>("@effect/sql-sqlite-node/SqliteClient")
 
 /**
  * @category models

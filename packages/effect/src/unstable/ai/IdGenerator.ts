@@ -73,7 +73,7 @@ import * as ServiceMap from "../../ServiceMap.ts"
  * @since 4.0.0
  * @category models
  */
-export class IdGenerator extends ServiceMap.Key<IdGenerator, Service>()(
+export class IdGenerator extends ServiceMap.Service<IdGenerator, Service>()(
   "@effect/ai/IdGenerator"
 ) {}
 

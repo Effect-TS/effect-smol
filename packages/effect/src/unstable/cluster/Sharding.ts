@@ -61,7 +61,7 @@ import * as Snowflake from "./Snowflake.ts"
  * @since 4.0.0
  * @category models
  */
-export class Sharding extends ServiceMap.Key<Sharding, {
+export class Sharding extends ServiceMap.Service<Sharding, {
   /**
    * Returns a stream of events that occur when the runner registers entities or
    * singletons.
@@ -1328,4 +1328,4 @@ export const layer: Layer.Layer<
 
 // Utilities
 
-const ClientAddressTag = ServiceMap.Key<EntityAddress>("effect/cluster/Sharding/ClientAddress")
+const ClientAddressTag = ServiceMap.Service<EntityAddress>("effect/cluster/Sharding/ClientAddress")

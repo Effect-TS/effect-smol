@@ -98,7 +98,7 @@ export class Interrupt extends FailureBase<"Interrupt"> implements Cause.Interru
       fiberId: this.fiberId
     }
   }
-  annotate<I, S>(key: ServiceMap.Key<I, S>, value: S, options?: {
+  annotate<I, S>(key: ServiceMap.Service<I, S>, value: S, options?: {
     readonly overwrite?: boolean | undefined
   }): this {
     if (options?.overwrite !== true && this.annotations.has(key.key)) {
@@ -1092,8 +1092,10 @@ export const fn: Effect.fn.Gen & Effect.fn.NonGen = (
   }
 }
 
-const defErrorKey = ServiceMap.Key<Error>("effect/Cause/FnDefinitionTrace" satisfies typeof Cause.FnDefinitionTrace.key)
-const callsiteErrorKey = ServiceMap.Key<Error>(
+const defErrorKey = ServiceMap.Service<Error>(
+  "effect/Cause/FnDefinitionTrace" satisfies typeof Cause.FnDefinitionTrace.key
+)
+const callsiteErrorKey = ServiceMap.Service<Error>(
   "effect/Cause/FnCallsiteTrace" satisfies typeof Cause.FnCallsiteTrace.key
 )
 
@@ -1883,21 +1885,21 @@ export const exitGetError = <A, E>(self: Exit.Exit<A, E>): Option.Option<E> => {
 
 /** @internal */
 export const service: {
-  <I, S>(key: ServiceMap.Key<I, S>): Effect.Effect<S, never, I>
+  <I, S>(service: ServiceMap.Service<I, S>): Effect.Effect<S, never, I>
 } = fromYieldable as any
 
 /** @internal */
 export const serviceOption = <I, S>(
-  key: ServiceMap.Key<I, S>
-): Effect.Effect<Option.Option<S>> => withFiber((fiber) => succeed(ServiceMap.getOption(fiber.services, key)))
+  service: ServiceMap.Service<I, S>
+): Effect.Effect<Option.Option<S>> => withFiber((fiber) => succeed(ServiceMap.getOption(fiber.services, service)))
 
 /** @internal */
 export const serviceOptional = <I, S>(
-  key: ServiceMap.Key<I, S>
+  service: ServiceMap.Service<I, S>
 ): Effect.Effect<S, Cause.NoSuchElementError> =>
   withFiber((fiber) =>
-    fiber.services.mapUnsafe.has(key.key)
-      ? succeed(ServiceMap.getUnsafe(fiber.services, key))
+    fiber.services.mapUnsafe.has(service.key)
+      ? succeed(ServiceMap.getUnsafe(fiber.services, service))
       : fail(new NoSuchElementError())
   )
 
@@ -1943,25 +1945,25 @@ export const updateServices: {
 /** @internal */
 export const updateService: {
   <I, A>(
-    key: ServiceMap.Key<I, A>,
+    service: ServiceMap.Service<I, A>,
     f: (value: A) => A
   ): <XA, E, R>(self: Effect.Effect<XA, E, R>) => Effect.Effect<XA, E, R | I>
   <XA, E, R, I, A>(
     self: Effect.Effect<XA, E, R>,
-    key: ServiceMap.Key<I, A>,
+    service: ServiceMap.Service<I, A>,
     f: (value: A) => A
   ): Effect.Effect<XA, E, R | I>
 } = dual(
   3,
   <XA, E, R, I, A>(
     self: Effect.Effect<XA, E, R>,
-    key: ServiceMap.Key<I, A>,
+    service: ServiceMap.Service<I, A>,
     f: (value: A) => A
   ): Effect.Effect<XA, E, R | I> =>
     withFiber((fiber) => {
-      const prev = ServiceMap.getUnsafe(fiber.services, key)
-      fiber.setServices(ServiceMap.add(fiber.services, key, f(prev)))
-      return onExit(self, () => fiber.setServices(ServiceMap.add(fiber.services, key, prev)))
+      const prev = ServiceMap.getUnsafe(fiber.services, service)
+      fiber.setServices(ServiceMap.add(fiber.services, service, f(prev)))
+      return onExit(self, () => fiber.setServices(ServiceMap.add(fiber.services, service, prev)))
     })
 )
 
@@ -1999,61 +2001,62 @@ export const provideServices: {
 /** @internal */
 export const provideService: {
   <I, S>(
-    key: ServiceMap.Key<I, S>
+    service: ServiceMap.Service<I, S>
   ): {
-    (service: S): <A, E, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<A, E, Exclude<R, I>>
-    <A, E, R>(self: Effect.Effect<A, E, R>, service: S): Effect.Effect<A, E, Exclude<R, I>>
+    (implementation: S): <A, E, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<A, E, Exclude<R, I>>
+    <A, E, R>(self: Effect.Effect<A, E, R>, implementation: S): Effect.Effect<A, E, Exclude<R, I>>
   }
   <I, S>(
-    key: ServiceMap.Key<I, S>,
-    service: S
+    key: ServiceMap.Service<I, S>,
+    implementation: S
   ): <A, E, R>(
     self: Effect.Effect<A, E, R>
   ) => Effect.Effect<A, E, Exclude<R, I>>
   <A, E, R, I, S>(
     self: Effect.Effect<A, E, R>,
-    key: ServiceMap.Key<I, S>,
-    service: S
+    service: ServiceMap.Service<I, S>,
+    implementation: S
   ): Effect.Effect<A, E, Exclude<R, I>>
 } = function(this: any) {
   if (arguments.length === 1) {
-    return dual(2, (self, service) => provideServiceImpl(self, arguments[0], service)) as any
+    return dual(2, (self, impl) => provideServiceImpl(self, arguments[0], impl)) as any
   }
-  return dual(3, (self, tag, service) => provideServiceImpl(self, tag, service))
+  return dual(3, (self, service, impl) => provideServiceImpl(self, service, impl))
     .apply(this, arguments as any) as any
 }
 
 const provideServiceImpl = <A, E, R, I, S>(
   self: Effect.Effect<A, E, R>,
-  key: ServiceMap.Key<I, S>,
-  service: S
+  service: ServiceMap.Service<I, S>,
+  implementation: S
 ): Effect.Effect<A, E, Exclude<R, I>> =>
   withFiber((fiber) => {
-    const prev = ServiceMap.getOption(fiber.services, key)
-    fiber.setServices(ServiceMap.add(fiber.services, key, service))
-    return onExit(self, () => fiber.setServices(ServiceMap.addOrOmit(fiber.services, key, prev)))
+    const prev = ServiceMap.getOption(fiber.services, service)
+    fiber.setServices(ServiceMap.add(fiber.services, service, implementation))
+    return onExit(self, () => fiber.setServices(ServiceMap.addOrOmit(fiber.services, service, prev)))
   }) as any
 
 /** @internal */
 export const provideServiceEffect: {
   <I, S, E2, R2>(
-    key: ServiceMap.Key<I, S>,
+    service: ServiceMap.Service<I, S>,
     acquire: Effect.Effect<S, E2, R2>
   ): <A, E, R>(
     self: Effect.Effect<A, E, R>
   ) => Effect.Effect<A, E | E2, Exclude<R, I> | R2>
   <A, E, R, I, S, E2, R2>(
     self: Effect.Effect<A, E, R>,
-    key: ServiceMap.Key<I, S>,
+    service: ServiceMap.Service<I, S>,
     acquire: Effect.Effect<S, E2, R2>
   ): Effect.Effect<A, E | E2, Exclude<R, I> | R2>
 } = dual(
   3,
   <A, E, R, I, S, E2, R2>(
     self: Effect.Effect<A, E, R>,
-    key: ServiceMap.Key<I, S>,
+    service: ServiceMap.Service<I, S>,
     acquire: Effect.Effect<S, E2, R2>
-  ): Effect.Effect<A, E | E2, Exclude<R, I> | R2> => flatMap(acquire, (service) => provideService(self, key, service))
+  ): Effect.Effect<A, E | E2, Exclude<R, I> | R2> =>
+    flatMap(acquire, (implementation) => provideService(self, service, implementation))
 )
 
 /** @internal */
@@ -3042,7 +3045,7 @@ export const ScopeTypeId = "~effect/Scope"
 export const ScopeCloseableTypeId = "~effect/Scope/Closeable"
 
 /** @internal */
-export const scopeTag: ServiceMap.Key<Scope.Scope, Scope.Scope> = ServiceMap.Key<Scope.Scope>("effect/Scope")
+export const scopeTag: ServiceMap.Service<Scope.Scope, Scope.Scope> = ServiceMap.Service<Scope.Scope>("effect/Scope")
 
 /** @internal */
 export const scopeClose = <A, E>(self: Scope.Scope, exit_: Exit.Exit<A, E>) =>

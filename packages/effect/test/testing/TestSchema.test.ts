@@ -15,7 +15,7 @@ describe("TestSchema", () => {
   })
 
   it("decoding.provide", async () => {
-    class Service extends ServiceMap.Key<Service, { fallback: Effect.Effect<string> }>()("Service") {}
+    class Service extends ServiceMap.Service<Service, { fallback: Effect.Effect<string> }>()("Service") {}
 
     const schema = Schema.String.pipe(
       Schema.decode({
@@ -23,7 +23,9 @@ describe("TestSchema", () => {
           Effect.gen(function*() {
             yield* Service
             if (s.length === 0) {
-              return new Issue.InvalidValue(Option.some(s), { message: "input should not be empty string" })
+              return new Issue.InvalidValue(Option.some(s), {
+                message: "input should not be empty string"
+              })
             }
           })
         ),
@@ -32,15 +34,9 @@ describe("TestSchema", () => {
     )
     const asserts = new TestSchema.Asserts(schema)
 
-    const decoding = asserts.decoding().provide(
-      Service,
-      { fallback: Effect.succeed("b") }
-    )
+    const decoding = asserts.decoding().provide(Service, { fallback: Effect.succeed("b") })
     await decoding.succeed("a")
-    await decoding.fail(
-      "",
-      "input should not be empty string"
-    )
+    await decoding.fail("", "input should not be empty string")
   })
 
   it("encoding", async () => {
@@ -52,7 +48,7 @@ describe("TestSchema", () => {
   })
 
   it("encoding.provide", async () => {
-    class Service extends ServiceMap.Key<Service, { fallback: Effect.Effect<string> }>()("Service") {}
+    class Service extends ServiceMap.Service<Service, { fallback: Effect.Effect<string> }>()("Service") {}
 
     const schema = Schema.String.pipe(
       Schema.decode({
@@ -61,7 +57,9 @@ describe("TestSchema", () => {
           Effect.gen(function*() {
             yield* Service
             if (s.length === 0) {
-              return new Issue.InvalidValue(Option.some(s), { message: "input should not be empty string" })
+              return new Issue.InvalidValue(Option.some(s), {
+                message: "input should not be empty string"
+              })
             }
           })
         )
@@ -69,15 +67,9 @@ describe("TestSchema", () => {
     )
     const asserts = new TestSchema.Asserts(schema)
 
-    const encoding = asserts.encoding().provide(
-      Service,
-      { fallback: Effect.succeed("b") }
-    )
+    const encoding = asserts.encoding().provide(Service, { fallback: Effect.succeed("b") })
     await encoding.succeed("a")
-    await encoding.fail(
-      "",
-      "input should not be empty string"
-    )
+    await encoding.fail("", "input should not be empty string")
   })
 
   it("verifyLosslessTransformation", async () => {

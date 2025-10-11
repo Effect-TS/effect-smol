@@ -98,7 +98,7 @@ export interface Command<Name extends string, Input, E = never, R = never>
   // TODO: I hate this name.
   readonly parsedConfig: ParsedConfig
   readonly handler?: (input: Input) => Effect.Effect<void, E, R>
-  readonly tag: ServiceMap.Key<Context<Name>, Input>
+  readonly service: ServiceMap.Service<Context<Name>, Input>
 
   /** @internal */
   readonly handle: (input: Input, commandPath: ReadonlyArray<string>) => Effect.Effect<void, E | CliError.CliError, R>
@@ -450,7 +450,7 @@ const Proto = {
     return pipeArguments(this, arguments)
   },
   asEffect(this: Command<any, any, any, any>) {
-    return this.tag.asEffect()
+    return this.service.asEffect()
   }
 }
 
@@ -688,7 +688,7 @@ export const withSubcommands = <const Subcommands extends ReadonlyArray<Command<
       }
       yield* child
         .handle(selected.result, [...commandPath, child.name])
-        .pipe(Effect.provideService(self.tag, input))
+        .pipe(Effect.provideService(self.service, input))
       return
     }
 
@@ -1280,7 +1280,7 @@ const makeCommand = <Name extends string, Input, E, R>(
   handler?: ((input: Input) => Effect.Effect<void, E, R>) | undefined
 ): Command<Name, Input, E, R> => {
   const parsedConfig = parseConfig(config)
-  const tag = ServiceMap.Key<Context<Name>, Input>(`${TypeId}/${name}`)
+  const service = ServiceMap.Service<Context<Name>, Input>(`${TypeId}/${name}`)
 
   const parse = Effect.fnUntraced(function*(input: Parser.ParsedCommandInput) {
     const parsedArgs: Param.ParsedArgs = { flags: input.flags, arguments: input.arguments }
@@ -1298,7 +1298,7 @@ const makeCommand = <Name extends string, Input, E, R>(
 
   return Object.assign(Object.create(Proto), {
     _tag: "Command",
-    tag,
+    service,
     name,
     config,
     description,
@@ -1325,7 +1325,7 @@ const makeOverride = <Name extends string, NewInput, E, R>(
 ): Command<Name, NewInput, E, R> =>
   Object.assign(Object.create(Proto), {
     ...base,
-    tag: ServiceMap.Key<Context<Name>, NewInput>(`${TypeId}/${base.name}`),
+    service: ServiceMap.Service<Context<Name>, NewInput>(`${TypeId}/${base.name}`),
     subcommands: overrides.subcommands ?? base.subcommands,
     handler: overrides.handler ?? base.handler,
     handle: overrides.handle,

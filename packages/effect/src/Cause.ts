@@ -229,7 +229,7 @@ export declare namespace Cause {
     readonly [FailureTypeId]: typeof FailureTypeId
     readonly _tag: Tag
     readonly annotations: ReadonlyMap<string, unknown>
-    annotate<I, S>(tag: ServiceMap.Key<I, S>, value: S, options?: {
+    annotate<I, S>(tag: ServiceMap.Service<I, S>, value: S, options?: {
       readonly overwrite?: boolean | undefined
     }): this
   }
@@ -946,13 +946,13 @@ export const UnknownError: new(cause: unknown, message?: string) => UnknownError
  */
 export const annotate: {
   <I, S>(
-    key: ServiceMap.Key<I, S>,
+    key: ServiceMap.Service<I, S>,
     value: NoInfer<S>,
     options?: { readonly overwrite?: boolean | undefined }
   ): <E>(self: Cause<E>) => Cause<E>
   <E, I, S>(
     self: Cause<E>,
-    key: ServiceMap.Key<I, S>,
+    key: ServiceMap.Service<I, S>,
     value: NoInfer<S>,
     options?: { readonly overwrite?: boolean | undefined }
   ): Cause<E>
@@ -980,7 +980,7 @@ export const annotations: <E>(self: Cause<E>) => ServiceMap.ServiceMap<never> = 
  * @category Annotations
  * @since 4.0.0
  */
-export class CurrentSpan extends ServiceMap.Key<CurrentSpan, Span>()("effect/Cause/CurrentSpan") {}
+export class CurrentSpan extends ServiceMap.Service<CurrentSpan, Span>()("effect/Cause/CurrentSpan") {}
 
 /**
  * Represents the span captured at the point of interruption.
@@ -988,7 +988,7 @@ export class CurrentSpan extends ServiceMap.Key<CurrentSpan, Span>()("effect/Cau
  * @category Annotations
  * @since 4.0.0
  */
-export class InterruptorSpan extends ServiceMap.Key<InterruptorSpan, Span>()("effect/Cause/InterruptorSpan") {}
+export class InterruptorSpan extends ServiceMap.Service<InterruptorSpan, Span>()("effect/Cause/InterruptorSpan") {}
 
 /**
  * Represents the trace captured at the point an Effect.fn was called.
@@ -996,7 +996,7 @@ export class InterruptorSpan extends ServiceMap.Key<InterruptorSpan, Span>()("ef
  * @category Annotations
  * @since 4.0.0
  */
-export class FnCallsiteTrace extends ServiceMap.Key<FnCallsiteTrace, Error>()("effect/Cause/FnCallsiteTrace") {}
+export class FnCallsiteTrace extends ServiceMap.Service<FnCallsiteTrace, Error>()("effect/Cause/FnCallsiteTrace") {}
 
 /**
  * Represents the trace captured at the point an Effect.fn was defined.
@@ -1004,4 +1004,6 @@ export class FnCallsiteTrace extends ServiceMap.Key<FnCallsiteTrace, Error>()("e
  * @category Annotations
  * @since 4.0.0
  */
-export class FnDefinitionTrace extends ServiceMap.Key<FnDefinitionTrace, Error>()("effect/Cause/FnDefinitionTrace") {}
+export class FnDefinitionTrace extends ServiceMap.Service<FnDefinitionTrace, Error>()(
+  "effect/Cause/FnDefinitionTrace"
+) {}

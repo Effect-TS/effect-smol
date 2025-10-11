@@ -35,7 +35,7 @@ import * as Snowflake from "./Snowflake.ts"
  * @since 4.0.0
  * @category context
  */
-export class Runners extends ServiceMap.Key<Runners, {
+export class Runners extends ServiceMap.Service<Runners, {
   /**
    * Checks if a Runner is responsive.
    */
@@ -634,7 +634,7 @@ export const layerRpc: Layer.Layer<
  * @since 4.0.0
  * @category Client
  */
-export class RpcClientProtocol extends ServiceMap.Key<
+export class RpcClientProtocol extends ServiceMap.Service<
   RpcClientProtocol,
   (address: RunnerAddress) => Effect.Effect<RpcClient_.Protocol["Service"], never, Scope>
 >()("effect/cluster/Runners/RpcClientProtocol") {}

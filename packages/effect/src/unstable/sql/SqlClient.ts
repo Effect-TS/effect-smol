@@ -69,7 +69,7 @@ export interface SqlClient extends Constructor {
  * @category models
  * @since 4.0.0
  */
-export const SqlClient = ServiceMap.Key<SqlClient>("effect/sql/SqlClient")
+export const SqlClient = ServiceMap.Service<SqlClient>("effect/sql/SqlClient")
 
 /**
  * @category models
@@ -118,7 +118,7 @@ export const make = Effect.fnUntraced(function*(options: SqlClient.MakeOptions) 
   const rollbackSavepoint = options.rollbackSavepoint ?? ((name: string) => `ROLLBACK TO SAVEPOINT ${name}`)
   const transactionAcquirer = options.transactionAcquirer ?? options.acquirer
   const withTransaction = makeWithTransaction({
-    transactionTag: TransactionConnection,
+    transactionService: TransactionConnection,
     spanAttributes: options.spanAttributes,
     acquireConnection: Effect.flatMap(
       Scope.make(),
@@ -180,7 +180,7 @@ export const make = Effect.fnUntraced(function*(options: SqlClient.MakeOptions) 
  * @category transactions
  */
 export const makeWithTransaction = <I, S>(options: {
-  readonly transactionTag: ServiceMap.Key<I, readonly [conn: S, counter: number]>
+  readonly transactionService: ServiceMap.Service<I, readonly [conn: S, counter: number]>
   readonly spanAttributes: ReadonlyArray<readonly [string, unknown]>
   readonly acquireConnection: Effect.Effect<readonly [Scope.Closeable | undefined, S], SqlError>
   readonly begin: (conn: NoInfer<S>) => Effect.Effect<void, SqlError>
@@ -201,7 +201,7 @@ export const makeWithTransaction = <I, S>(options: {
           }
           const services = fiber.services
           const clock = fiber.getRef(Clock)
-          const connOption = ServiceMap.getOption(services, options.transactionTag)
+          const connOption = ServiceMap.getOption(services, options.transactionService)
           const conn = connOption._tag === "Some"
             ? Effect.succeed([undefined, connOption.value[0]] as const)
             : options.acquireConnection
@@ -215,7 +215,7 @@ export const makeWithTransaction = <I, S>(options: {
                 Effect.flatMap(() =>
                   Effect.provideServices(
                     restore(effect),
-                    ServiceMap.add(services, options.transactionTag, [conn, id]).pipe(
+                    ServiceMap.add(services, options.transactionService, [conn, id]).pipe(
                       ServiceMap.add(Tracer.ParentSpan, span)
                     )
                   )
@@ -252,7 +252,7 @@ export const makeWithTransaction = <I, S>(options: {
  * @since 4.0.0
  */
 export class TransactionConnection
-  extends ServiceMap.Key<TransactionConnection, readonly [conn: Connection.Connection, depth: number]>()(
+  extends ServiceMap.Service<TransactionConnection, readonly [conn: Connection.Connection, depth: number]>()(
     "effect/sql/SqlClient/TransactionConnection"
   )
 {}

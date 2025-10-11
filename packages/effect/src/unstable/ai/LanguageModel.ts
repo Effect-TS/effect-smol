@@ -96,7 +96,7 @@ import * as Toolkit from "./Toolkit.ts"
  * @category Context
  */
 // @effect-diagnostics effect/leakingRequirements:off
-export class LanguageModel extends ServiceMap.Key<LanguageModel, Service>()(
+export class LanguageModel extends ServiceMap.Service<LanguageModel, Service>()(
   "effect/unstable/ai/LanguageModel"
 ) {}
 

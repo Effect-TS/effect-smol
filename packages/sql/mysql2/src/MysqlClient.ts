@@ -47,7 +47,7 @@ export interface MysqlClient extends Client.SqlClient {
  * @category tags
  * @since 1.0.0
  */
-export const MysqlClient = ServiceMap.Key<MysqlClient>("@effect/sql-mysql2/MysqlClient")
+export const MysqlClient = ServiceMap.Service<MysqlClient>("@effect/sql-mysql2/MysqlClient")
 
 /**
  * @category models

@@ -43,9 +43,9 @@ export interface LibsqlClient extends Client.SqlClient {
  * @category tags
  * @since 1.0.0
  */
-export const LibsqlClient = ServiceMap.Key<LibsqlClient>("@effect/sql-libsql/LibsqlClient")
+export const LibsqlClient = ServiceMap.Service<LibsqlClient>("@effect/sql-libsql/LibsqlClient")
 
-const LibsqlTransaction = ServiceMap.Key<readonly [LibsqlConnection, counter: number]>(
+const LibsqlTransaction = ServiceMap.Service<readonly [LibsqlConnection, counter: number]>(
   "@effect/sql-libsql/LibsqlClient/LibsqlTransaction"
 )
 
@@ -252,7 +252,7 @@ export const make = (
     const semaphore = yield* Effect.makeSemaphore(1)
 
     const withTransaction = Client.makeWithTransaction({
-      transactionTag: LibsqlTransaction,
+      transactionService: LibsqlTransaction,
       spanAttributes,
       acquireConnection: Effect.uninterruptibleMask(Effect.fnUntraced(function*(restore) {
         const scope = Scope.makeUnsafe()

@@ -58,7 +58,7 @@ export interface PgClient extends Client.SqlClient {
  * @category tags
  * @since 1.0.0
  */
-export const PgClient = ServiceMap.Key<PgClient>("@effect/sql-pg/PgClient")
+export const PgClient = ServiceMap.Service<PgClient>("@effect/sql-pg/PgClient")
 
 /**
  * @category constructors

@@ -69,65 +69,62 @@ import type * as Toolkit from "./Toolkit.ts"
  * @since 4.0.0
  * @category server
  */
-export class McpServer extends ServiceMap.Key<
-  McpServer,
-  {
-    readonly notifications: RpcClient.RpcClient<RpcGroup.Rpcs<typeof ServerNotificationRpcs>>
-    readonly notificationsQueue: Queue.Dequeue<RpcMessage.Request<any>>
-    readonly initializedClients: Set<number>
+export class McpServer extends ServiceMap.Service<McpServer, {
+  readonly notifications: RpcClient.RpcClient<RpcGroup.Rpcs<typeof ServerNotificationRpcs>>
+  readonly notificationsQueue: Queue.Dequeue<RpcMessage.Request<any>>
+  readonly initializedClients: Set<number>
 
-    readonly tools: ReadonlyArray<McpTool>
-    readonly addTool: (options: {
-      readonly tool: McpTool
-      readonly handle: (payload: any) => Effect.Effect<CallToolResult, never, McpServerClient>
-    }) => Effect.Effect<void>
-    readonly callTool: (
-      requests: typeof CallTool.payloadSchema.Type
-    ) => Effect.Effect<CallToolResult, InternalError | InvalidParams, McpServerClient>
+  readonly tools: ReadonlyArray<McpTool>
+  readonly addTool: (options: {
+    readonly tool: McpTool
+    readonly handle: (payload: any) => Effect.Effect<CallToolResult, never, McpServerClient>
+  }) => Effect.Effect<void>
+  readonly callTool: (
+    requests: typeof CallTool.payloadSchema.Type
+  ) => Effect.Effect<CallToolResult, InternalError | InvalidParams, McpServerClient>
 
-    readonly resources: ReadonlyArray<Resource>
-    readonly addResource: (
-      resource: Resource,
-      handle: Effect.Effect<typeof ReadResourceResult.Type, InternalError, McpServerClient>
-    ) => Effect.Effect<void>
+  readonly resources: ReadonlyArray<Resource>
+  readonly addResource: (
+    resource: Resource,
+    handle: Effect.Effect<typeof ReadResourceResult.Type, InternalError, McpServerClient>
+  ) => Effect.Effect<void>
 
-    readonly resourceTemplates: ReadonlyArray<ResourceTemplate>
-    readonly addResourceTemplate: (
-      options: {
-        readonly template: ResourceTemplate
-        readonly routerPath: string
-        readonly completions: Record<string, (input: string) => Effect.Effect<CompleteResult, InternalError>>
-        readonly handle: (
-          uri: string,
-          params: Array<string>
-        ) => Effect.Effect<typeof ReadResourceResult.Type, InvalidParams | InternalError, McpServerClient>
-      }
-    ) => Effect.Effect<void>
-
-    readonly findResource: (
-      uri: string
-    ) => Effect.Effect<typeof ReadResourceResult.Type, InvalidParams | InternalError, McpServerClient>
-
-    readonly prompts: ReadonlyArray<Prompt>
-    readonly addPrompt: (options: {
-      readonly prompt: Prompt
-      readonly completions: Record<
-        string,
-        (input: string) => Effect.Effect<CompleteResult, InternalError, McpServerClient>
-      >
+  readonly resourceTemplates: ReadonlyArray<ResourceTemplate>
+  readonly addResourceTemplate: (
+    options: {
+      readonly template: ResourceTemplate
+      readonly routerPath: string
+      readonly completions: Record<string, (input: string) => Effect.Effect<CompleteResult, InternalError>>
       readonly handle: (
-        params: Record<string, string>
-      ) => Effect.Effect<GetPromptResult, InternalError | InvalidParams, McpServerClient>
-    }) => Effect.Effect<void>
-    readonly getPromptResult: (
-      request: typeof GetPrompt.payloadSchema.Type
-    ) => Effect.Effect<GetPromptResult, InternalError | InvalidParams, McpServerClient>
+        uri: string,
+        params: Array<string>
+      ) => Effect.Effect<typeof ReadResourceResult.Type, InvalidParams | InternalError, McpServerClient>
+    }
+  ) => Effect.Effect<void>
 
-    readonly completion: (
-      complete: typeof Complete.payloadSchema.Type
-    ) => Effect.Effect<CompleteResult, InternalError, McpServerClient>
-  }
->()("effect/ai/McpServer") {
+  readonly findResource: (
+    uri: string
+  ) => Effect.Effect<typeof ReadResourceResult.Type, InvalidParams | InternalError, McpServerClient>
+
+  readonly prompts: ReadonlyArray<Prompt>
+  readonly addPrompt: (options: {
+    readonly prompt: Prompt
+    readonly completions: Record<
+      string,
+      (input: string) => Effect.Effect<CompleteResult, InternalError, McpServerClient>
+    >
+    readonly handle: (
+      params: Record<string, string>
+    ) => Effect.Effect<GetPromptResult, InternalError | InvalidParams, McpServerClient>
+  }) => Effect.Effect<void>
+  readonly getPromptResult: (
+    request: typeof GetPrompt.payloadSchema.Type
+  ) => Effect.Effect<GetPromptResult, InternalError | InvalidParams, McpServerClient>
+
+  readonly completion: (
+    complete: typeof Complete.payloadSchema.Type
+  ) => Effect.Effect<CompleteResult, InternalError, McpServerClient>
+}>()("effect/ai/McpServer") {
   /**
    * @since 4.0.0
    */

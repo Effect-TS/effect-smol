@@ -173,11 +173,11 @@ export const live: Vitest.Tester<Scope.Scope> = internal.live
  * import { Effect, Layer } from "effect"
  * import { ServiceMap } from "effect"
  *
- * class Foo extends ServiceMap.Key("Foo")<Foo, "foo">() {
+ * class Foo extends ServiceMap.Service("Foo")<Foo, "foo">() {
  *   static Live = Layer.succeed(Foo, "foo")
  * }
  *
- * class Bar extends ServiceMap.Key("Bar")<Bar, "bar">() {
+ * class Bar extends ServiceMap.Service("Bar")<Bar, "bar">() {
  *   static Live = Layer.effect(
  *     Bar,
  *     Effect.map(Foo, () => "bar" as const)

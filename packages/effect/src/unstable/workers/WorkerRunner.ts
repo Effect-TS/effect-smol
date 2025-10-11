@@ -37,6 +37,6 @@ export type PlatformMessage<I> = readonly [request: 0, I] | readonly [close: 1]
  * @since 4.0.0
  * @category models
  */
-export class WorkerRunnerPlatform extends ServiceMap.Key<WorkerRunnerPlatform, {
+export class WorkerRunnerPlatform extends ServiceMap.Service<WorkerRunnerPlatform, {
   readonly start: <O = unknown, I = unknown>() => Effect.Effect<WorkerRunner<O, I>, WorkerError>
 }>()("effect/workers/WorkerRunner/WorkerRunnerPlatform") {}

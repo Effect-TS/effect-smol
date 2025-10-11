@@ -14,7 +14,7 @@ import type { Protocol } from "./RpcServer.ts"
  * @since 4.0.0
  * @category initial message
  */
-export class InitialMessage extends ServiceMap.Key<
+export class InitialMessage extends ServiceMap.Service<
   InitialMessage,
   Effect.Effect<
     readonly [
@@ -39,7 +39,7 @@ export declare namespace InitialMessage {
   }
 }
 
-const ProtocolTag: typeof Protocol = ServiceMap.Key("@effect/rpc/RpcServer/Protocol") as any
+const ProtocolTag: typeof Protocol = ServiceMap.Service("@effect/rpc/RpcServer/Protocol") as any
 
 /**
  * @since 4.0.0

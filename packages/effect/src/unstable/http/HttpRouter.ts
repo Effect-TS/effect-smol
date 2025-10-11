@@ -80,7 +80,9 @@ export interface HttpRouter {
  * @since 4.0.0
  * @category HttpRouter
  */
-export const HttpRouter: ServiceMap.Key<HttpRouter, HttpRouter> = ServiceMap.Key<HttpRouter>("effect/http/HttpRouter")
+export const HttpRouter: ServiceMap.Service<HttpRouter, HttpRouter> = ServiceMap.Service<HttpRouter>(
+  "effect/http/HttpRouter"
+)
 
 /**
  * @since 4.0.0
@@ -221,7 +223,7 @@ export const RouterConfig = ServiceMap.Reference<Partial<FindMyWay.RouterConfig>
  * @since 4.0.0
  * @category RouteContext
  */
-export class RouteContext extends ServiceMap.Key<RouteContext, {
+export class RouteContext extends ServiceMap.Service<RouteContext, {
   readonly params: Readonly<Record<string, string | undefined>>
   readonly route: Route<unknown, unknown>
 }>()("effect/http/HttpRouter/RouteContext") {}
@@ -477,6 +479,7 @@ export const toHttpEffect = <A, E, R>(
       scope
     )
     const router = ServiceMap.get(context, HttpRouter)
+    // @effect-diagnostics effect/returnEffectInGen:off
     return router.asHttpEffect()
   }) as any
 
@@ -721,7 +724,7 @@ export interface Middleware<
  * const CorsMiddleware = HttpRouter.middleware(HttpMiddleware.cors()).layer
  * // You can also use HttpRouter.cors() to create a CORS middleware
  *
- * class CurrentSession extends ServiceMap.Key<CurrentSession, {
+ * class CurrentSession extends ServiceMap.Service<CurrentSession, {
  *   readonly token: string
  * }>()("CurrentSession") {}
  *

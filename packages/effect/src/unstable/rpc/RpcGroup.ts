@@ -130,12 +130,12 @@ export interface RpcGroup<in out R extends Rpc.Any> extends Pipeable {
   /**
    * Annotate the group with a value.
    */
-  annotate<I, S>(tag: ServiceMap.Key<I, S>, value: S): RpcGroup<R>
+  annotate<I, S>(service: ServiceMap.Service<I, S>, value: S): RpcGroup<R>
 
   /**
    * Annotate the Rpc's above this point with a value.
    */
-  annotateRpcs<I, S>(tag: ServiceMap.Key<I, S>, value: S): RpcGroup<R>
+  annotateRpcs<I, S>(service: ServiceMap.Service<I, S>, value: S): RpcGroup<R>
 
   /**
    * Annotate the group with the provided annotations.
@@ -282,12 +282,12 @@ const RpcGroupProto = {
     return Layer.effectServices(this.toHandlers(build))
   },
   of: identity,
-  toLayerHandler(this: RpcGroup<any>, tag: string, build: Effect.Effect<Record<string, (request: any) => any>>) {
+  toLayerHandler(this: RpcGroup<any>, service: string, build: Effect.Effect<Record<string, (request: any) => any>>) {
     return Layer.effectServices(Effect.gen(this, function*() {
       const services = yield* Effect.services<never>()
       const handler = Effect.isEffect(build) ? yield* build : build
       const contextMap = new Map<string, unknown>()
-      const rpc = this.requests.get(tag)!
+      const rpc = this.requests.get(service)!
       contextMap.set(rpc.key, {
         handler,
         services
@@ -295,9 +295,9 @@ const RpcGroupProto = {
       return ServiceMap.makeUnsafe(contextMap)
     }))
   },
-  accessHandler(this: RpcGroup<any>, tag: string) {
+  accessHandler(this: RpcGroup<any>, service: string) {
     return Effect.servicesWith((parentServices: ServiceMap.ServiceMap<any>) => {
-      const rpc = this.requests.get(tag)!
+      const rpc = this.requests.get(service)!
       const { handler, services } = parentServices.mapUnsafe.get(rpc.key) as Rpc.Handler<any>
       return Effect.succeed((payload: Rpc.Payload<any>, options: any) => {
         options.rpc = rpc
@@ -309,14 +309,14 @@ const RpcGroupProto = {
       })
     })
   },
-  annotate(this: RpcGroup<any>, tag: ServiceMap.Key<any, any>, value: any) {
+  annotate(this: RpcGroup<any>, service: ServiceMap.Service<any, any>, value: any) {
     return makeProto({
       requests: this.requests,
-      annotations: ServiceMap.add(this.annotations, tag, value)
+      annotations: ServiceMap.add(this.annotations, service, value)
     })
   },
-  annotateRpcs(this: RpcGroup<any>, tag: ServiceMap.Key<any, any>, value: any) {
-    return this.annotateRpcsMerge(ServiceMap.make(tag, value))
+  annotateRpcs(this: RpcGroup<any>, service: ServiceMap.Service<any, any>, value: any) {
+    return this.annotateRpcsMerge(ServiceMap.make(service, value))
   },
   annotateMerge(this: RpcGroup<any>, context: ServiceMap.ServiceMap<any>) {
     return makeProto({
@@ -324,10 +324,10 @@ const RpcGroupProto = {
       annotations: ServiceMap.merge(this.annotations, context)
     })
   },
-  annotateRpcsMerge(this: RpcGroup<any>, context: ServiceMap.ServiceMap<any>) {
+  annotateRpcsMerge(this: RpcGroup<any>, serviceMap: ServiceMap.ServiceMap<any>) {
     const requests = new Map<string, any>()
     for (const [tag, rpc] of this.requests) {
-      requests.set(tag, rpc.annotateMerge(ServiceMap.merge(context, rpc.annotations)))
+      requests.set(tag, rpc.annotateMerge(ServiceMap.merge(serviceMap, rpc.annotations)))
     }
     return makeProto({
       requests,

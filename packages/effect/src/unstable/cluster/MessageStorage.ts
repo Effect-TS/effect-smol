@@ -29,7 +29,7 @@ import * as Snowflake from "./Snowflake.ts"
  * @since 4.0.0
  * @category context
  */
-export class MessageStorage extends ServiceMap.Key<MessageStorage, {
+export class MessageStorage extends ServiceMap.Service<MessageStorage, {
   /**
    * Save the provided message and its associated metadata.
    */
@@ -623,7 +623,7 @@ export type MemoryEntry = {
  * @since 4.0.0
  * @category Memory
  */
-export class MemoryDriver extends ServiceMap.Key<MemoryDriver>()("effect/cluster/MessageStorage/MemoryDriver", {
+export class MemoryDriver extends ServiceMap.Service<MemoryDriver>()("effect/cluster/MessageStorage/MemoryDriver", {
   make: Effect.gen(function*() {
     const clock = yield* Clock
     const requests = new Map<string, MemoryEntry>()

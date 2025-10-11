@@ -34,7 +34,7 @@ export const isSocket = (u: unknown): u is Socket => Predicate.hasProperty(u, Ty
  * @since 4.0.0
  * @category tags
  */
-export const Socket: ServiceMap.Key<Socket, Socket> = ServiceMap.Key<Socket>("effect/socket/Socket")
+export const Socket: ServiceMap.Service<Socket, Socket> = ServiceMap.Service<Socket>("effect/socket/Socket")
 
 /**
  * @since 4.0.0
@@ -326,13 +326,15 @@ export const defaultCloseCodeIsError = (code: number) => code !== 1000 && code !
  * @since 4.0.0
  * @category tags
  */
-export class WebSocket extends ServiceMap.Key<WebSocket, globalThis.WebSocket>()("~effect/socket/Socket/WebSocket") {}
+export class WebSocket extends ServiceMap.Service<WebSocket, globalThis.WebSocket>()(
+  "~effect/socket/Socket/WebSocket"
+) {}
 
 /**
  * @since 4.0.0
  * @category tags
  */
-export class WebSocketConstructor extends ServiceMap.Key<
+export class WebSocketConstructor extends ServiceMap.Service<
   WebSocketConstructor,
   (url: string, protocols?: string | Array<string> | undefined) => globalThis.WebSocket
 >()("@effect/platform/Socket/WebSocketConstructor") {}

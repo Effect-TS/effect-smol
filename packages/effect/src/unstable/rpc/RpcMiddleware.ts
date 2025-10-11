@@ -100,8 +100,8 @@ export interface KeyClass<
   Provides,
   E extends Schema.Top,
   Requires
-> extends ServiceMap.Key<Self, RpcMiddleware<Provides, E, Requires>> {
-  new(_: never): ServiceMap.KeyClass.Shape<Name, RpcMiddleware<Provides, E, Requires>> & {
+> extends ServiceMap.Service<Self, RpcMiddleware<Provides, E, Requires>> {
+  new(_: never): ServiceMap.ServiceClass.Shape<Name, RpcMiddleware<Provides, E, Requires>> & {
     readonly [TypeId]: {
       readonly error: E
       readonly provides: Provides
@@ -161,7 +161,7 @@ export type ErrorServicesDecode<A> = ErrorSchema<A>["DecodingServices"]
  * @since 4.0.0
  * @category models
  */
-export interface AnyKey extends ServiceMap.Key<any, any> {
+export interface AnyKey extends ServiceMap.Service<any, any> {
   readonly [TypeId]: typeof TypeId
   readonly error: Schema.Top
   readonly requiredForClient: boolean
@@ -171,7 +171,7 @@ export interface AnyKey extends ServiceMap.Key<any, any> {
  * @since 4.0.0
  * @category models
  */
-export interface AnyKeyWithProps extends ServiceMap.Key<any, RpcMiddleware<any, any, any>> {
+export interface AnyKeyWithProps extends ServiceMap.Service<any, RpcMiddleware<any, any, any>> {
   readonly [TypeId]: typeof TypeId
   readonly error: Schema.Top
   readonly requiredForClient: boolean
@@ -219,7 +219,7 @@ export const Key = <
 
   function KeyClass() {}
   const KeyClass_ = KeyClass as any as Mutable<AnyKey>
-  Object.setPrototypeOf(KeyClass, Object.getPrototypeOf(ServiceMap.Key<Self, any>(id)))
+  Object.setPrototypeOf(KeyClass, Object.getPrototypeOf(ServiceMap.Service<Self, any>(id)))
   KeyClass.key = id
   Object.defineProperty(KeyClass, "stack", {
     get() {
@@ -237,7 +237,7 @@ export const Key = <
  * @category client
  */
 export const layerClient = <Id, S, R, EX = never, RX = never>(
-  tag: ServiceMap.Key<Id, S>,
+  tag: ServiceMap.Service<Id, S>,
   service: RpcMiddlewareClient<R> | Effect.Effect<RpcMiddlewareClient<R>, EX, RX>
 ): Layer.Layer<ForClient<Id>, EX, R | Exclude<RX, Scope>> =>
   Layer.effectServices(Effect.gen(function*() {

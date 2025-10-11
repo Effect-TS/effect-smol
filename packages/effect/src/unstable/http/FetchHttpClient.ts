@@ -22,9 +22,9 @@ export const Fetch = ServiceMap.Reference<typeof globalThis.fetch>("effect/http/
  * @since 4.0.0
  * @category tags
  */
-export class RequestInit
-  extends ServiceMap.Key<RequestInit, globalThis.RequestInit>()("effect/http/FetchHttpClient/RequestInit")
-{}
+export class RequestInit extends ServiceMap.Service<RequestInit, globalThis.RequestInit>()(
+  "effect/http/FetchHttpClient/RequestInit"
+) {}
 
 const fetch: HttpClient.HttpClient = HttpClient.make((request, url, signal, fiber) => {
   const fetch = fiber.getRef(Fetch)

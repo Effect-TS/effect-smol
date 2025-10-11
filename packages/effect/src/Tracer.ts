@@ -128,7 +128,7 @@ export const ParentSpanKey = "effect/Tracer/ParentSpan"
  * })
  * ```
  */
-export class ParentSpan extends ServiceMap.Key<ParentSpan, AnySpan>()(ParentSpanKey) {}
+export class ParentSpan extends ServiceMap.Service<ParentSpan, AnySpan>()(ParentSpanKey) {}
 
 /**
  * @since 2.0.0

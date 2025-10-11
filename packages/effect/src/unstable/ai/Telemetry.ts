@@ -486,6 +486,6 @@ export interface SpanTransformer {
  * @since 4.0.0
  * @category services
  */
-export class CurrentSpanTransformer extends ServiceMap.Key<CurrentSpanTransformer, SpanTransformer>()(
+export class CurrentSpanTransformer extends ServiceMap.Service<CurrentSpanTransformer, SpanTransformer>()(
   "effect/ai/Telemetry/CurrentSpanTransformer"
 ) {}

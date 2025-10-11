@@ -9,8 +9,8 @@ import { flow, pipe } from "effect/Function"
 import * as Request from "effect/Request"
 import * as Resolver from "effect/RequestResolver"
 
-class Counter extends ServiceMap.Key<Counter, { count: number }>()("Counter") {}
-class Requests extends ServiceMap.Key<Requests, { count: number }>()("Requests") {}
+class Counter extends ServiceMap.Service<Counter, { count: number }>()("Counter") {}
+class Requests extends ServiceMap.Service<Requests, { count: number }>()("Requests") {}
 const Interrupts = ServiceMap.Reference("Interrupts", {
   defaultValue: () => ({ interrupts: 0 })
 })

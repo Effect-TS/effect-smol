@@ -18,7 +18,7 @@ import { RunnerAddress } from "./RunnerAddress.ts"
  * @since 4.0.0
  * @category models
  */
-export class ShardingConfig extends ServiceMap.Key<ShardingConfig, {
+export class ShardingConfig extends ServiceMap.Service<ShardingConfig, {
   /**
    * The address for the current runner that other runners can use to
    * communicate with it.

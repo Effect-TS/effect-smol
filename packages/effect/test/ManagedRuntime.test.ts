@@ -16,7 +16,7 @@ describe("ManagedRuntime", () => {
   })
 
   test("provides context", async () => {
-    const tag = ServiceMap.Key<string>("string")
+    const tag = ServiceMap.Service<string>("string")
     const layer = Layer.succeed(tag)("test")
     const runtime = ManagedRuntime.make(layer)
     const result = await runtime.runPromise(tag.asEffect())
@@ -39,7 +39,7 @@ describe("ManagedRuntime", () => {
   })
 
   it("can be built synchronously", () => {
-    const tag = ServiceMap.Key<string>("string")
+    const tag = ServiceMap.Service<string>("string")
     const layer = Layer.succeed(tag)("test")
     const managedRuntime = ManagedRuntime.make(layer)
     const services = Effect.runSync(managedRuntime.servicesEffect)

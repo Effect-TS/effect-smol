@@ -23,7 +23,7 @@ const TypeId = "~effect/LayerMap"
  * import { LayerMap } from "effect"
  *
  * // Define a service key
- * const DatabaseService = ServiceMap.Key<{
+ * const DatabaseService = ServiceMap.Service<{
  *   readonly query: (sql: string) => Effect.Effect<string>
  * }>("Database")
  *
@@ -87,7 +87,7 @@ export interface LayerMap<in out K, in out I, in out E = never> {
  * import { LayerMap, Scope } from "effect"
  *
  * // Define a service key
- * const DatabaseService = ServiceMap.Key<{
+ * const DatabaseService = ServiceMap.Service<{
  *   readonly query: (sql: string) => Effect.Effect<string>
  * }>("Database")
  *
@@ -166,11 +166,11 @@ export const make: <
  * import { Layer, ServiceMap } from "effect"
  *
  * // Define service keys
- * const DevDatabase = ServiceMap.Key<{
+ * const DevDatabase = ServiceMap.Service<{
  *   readonly query: (sql: string) => Effect.Effect<string>
  * }>("DevDatabase")
  *
- * const ProdDatabase = ServiceMap.Key<{
+ * const ProdDatabase = ServiceMap.Service<{
  *   readonly query: (sql: string) => Effect.Effect<string>
  * }>("ProdDatabase")
  *
@@ -234,7 +234,7 @@ export interface TagClass<
   in out R,
   in out LE,
   in out Deps extends Layer.Layer<any, any, any>
-> extends ServiceMap.KeyClass<Self, Id, LayerMap<K, I, E>> {
+> extends ServiceMap.ServiceClass<Self, Id, LayerMap<K, I, E>> {
   /**
    * A default layer for the `LayerMap` service.
    */
@@ -282,7 +282,7 @@ export interface TagClass<
  * import { LayerMap } from "effect"
  *
  * // Define a service key
- * const Greeter = ServiceMap.Key<{
+ * const Greeter = ServiceMap.Service<{
  *   readonly greet: Effect.Effect<string>
  * }>("Greeter")
  *
@@ -356,7 +356,7 @@ export const Service = <Self>() =>
 
   function TagClass() {}
   const TagClass_ = TagClass as any as Mutable<TagClass<Self, Id, string, any, any, any, any, any>>
-  Object.setPrototypeOf(TagClass, Object.getPrototypeOf(ServiceMap.Key<Self, any>(id)))
+  Object.setPrototypeOf(TagClass, Object.getPrototypeOf(ServiceMap.Service<Self, any>(id)))
   TagClass.key = id
   Object.defineProperty(TagClass, "stack", {
     get() {

@@ -54,7 +54,7 @@ export interface SqliteClient extends Client.SqlClient {
  * @category tags
  * @since 1.0.0
  */
-export const SqliteClient = ServiceMap.Key<SqliteClient>("@effect/sql-sqlite-wasm/SqliteClient")
+export const SqliteClient = ServiceMap.Service<SqliteClient>("@effect/sql-sqlite-wasm/SqliteClient")
 
 /**
  * @category models

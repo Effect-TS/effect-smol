@@ -48,7 +48,7 @@ export const toString = (self: Etag): string => {
  * @since 4.0.0
  * @category models
  */
-export class Generator extends ServiceMap.Key<Generator, {
+export class Generator extends ServiceMap.Service<Generator, {
   readonly fromFileInfo: (info: FileSystem.File.Info) => Effect.Effect<Etag>
   readonly fromFileWeb: (file: Body.HttpBody.FileLike) => Effect.Effect<Etag>
 }>()("effect/http/Etag/Generator") {}
