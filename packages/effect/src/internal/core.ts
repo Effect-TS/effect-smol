@@ -8,6 +8,7 @@ import * as Hash from "../interfaces/Hash.ts"
 import { format, NodeInspectSymbol } from "../interfaces/Inspectable.ts"
 import { pipeArguments } from "../interfaces/Pipeable.ts"
 import type * as ServiceMap from "../ServiceMap.ts"
+import type { Halt as PullHalt } from "../stream/Pull.ts"
 import type { Span } from "../Tracer.ts"
 import type { Equals, NoInfer } from "../types/Types.ts"
 import { SingleShotGen } from "../Utils.ts"
@@ -648,3 +649,21 @@ export class NoSuchElementError extends TaggedError("NoSuchElementError") {
     super({ message } as any)
   }
 }
+
+/** @internal */
+export const DoneTypeId = "~effect/Cause/Done"
+
+/** @internal */
+export const HaltTypeId = "~effect/stream/Pull/Halt"
+
+/** @internal */
+export const isDone = (
+  u: unknown
+): u is Cause.Done => hasProperty(u, DoneTypeId)
+
+/** @internal */
+export const Done = new (class Done extends TaggedError("Done") implements PullHalt<void> {
+  readonly [DoneTypeId] = DoneTypeId
+  readonly [HaltTypeId] = HaltTypeId
+  readonly leftover = void 0 as void
+})()

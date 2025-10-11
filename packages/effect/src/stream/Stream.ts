@@ -489,7 +489,7 @@ export const toChannel = <A, E, R>(
  * @category constructors
  */
 export const callback = <A, E = never, R = never>(
-  f: (queue: Queue.Queue<A, E | Queue.Done>) => void | Effect.Effect<unknown, E, R | Scope.Scope>,
+  f: (queue: Queue.Queue<A, E | Cause.Done>) => void | Effect.Effect<unknown, E, R | Scope.Scope>,
   options?: {
     readonly bufferSize?: number | undefined
     readonly strategy?: "sliding" | "dropping" | "suspend" | undefined
@@ -846,7 +846,7 @@ export const fromArrays = <Arr extends ReadonlyArray<ReadonlyArray<any>>>(
  * @since 4.0.0
  * @category constructors
  */
-export const fromQueue = <A, E>(queue: Queue.Dequeue<A, E>): Stream<A, Exclude<E, Queue.Done>> =>
+export const fromQueue = <A, E>(queue: Queue.Dequeue<A, E>): Stream<A, Exclude<E, Cause.Done>> =>
   fromChannel(Channel.fromQueueArray(queue))
 
 /**
@@ -2591,8 +2591,8 @@ const groupByImpl = <A, E, R, K, V, E2, R2>(
   self: Stream<A, E, R>,
   f: (
     arr: Arr.NonEmptyReadonlyArray<A>,
-    queues: RcMap.RcMap<K, Queue.Queue<V, Queue.Done>>,
-    queueMap: MutableHashMap.MutableHashMap<K, Queue.Queue<V, Queue.Done>>
+    queues: RcMap.RcMap<K, Queue.Queue<V, Cause.Done>>,
+    queueMap: MutableHashMap.MutableHashMap<K, Queue.Queue<V, Cause.Done>>
   ) => Effect.Effect<void, E2, R2>,
   options?: {
     readonly bufferSize?: number | undefined
@@ -2605,11 +2605,11 @@ const groupByImpl = <A, E, R, K, V, E2, R2>(
       const out = yield* Queue.unbounded<readonly [K, Stream<V>], E | E2 | Pull.Halt<void>>()
       yield* Scope.addFinalizer(scope, Queue.shutdown(out))
 
-      const queueMap = MutableHashMap.empty<K, Queue.Queue<V, Queue.Done>>()
+      const queueMap = MutableHashMap.empty<K, Queue.Queue<V, Cause.Done>>()
       const queues = yield* RcMap.make({
         lookup: (key: K) =>
           Effect.acquireRelease(
-            Queue.make<V, Queue.Done>({ capacity: options?.bufferSize ?? 4096 }).pipe(
+            Queue.make<V, Cause.Done>({ capacity: options?.bufferSize ?? 4096 }).pipe(
               Effect.tap((queue) => {
                 MutableHashMap.set(queueMap, key, queue)
                 return Queue.offer(out, [key, fromQueue(queue)])
