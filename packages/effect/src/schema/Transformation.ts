@@ -4,6 +4,7 @@
 
 import * as Option from "../data/Option.ts"
 import * as Predicate from "../data/Predicate.ts"
+import * as Duration from "../Duration.ts"
 import * as Effect from "../Effect.ts"
 import type * as AST from "./AST.ts"
 import * as Getter from "./Getter.ts"
@@ -276,6 +277,32 @@ export const bigintFromString = new Transformation(
   Getter.String()
 )
 
+/**
+ * @since 4.0.0
+ */
+export const durationFromNanos: Transformation<Duration.Duration, bigint> = transformOrFail({
+  decode: (i) => Effect.succeed(Duration.nanos(i)),
+  encode: (a) => {
+    const nanos = Duration.toNanos(a)
+    if (Predicate.isUndefined(nanos)) {
+      return Effect.fail(
+        new Issue.InvalidValue(Option.some(a), {
+          message: `Unable to encode ${a} into a bigint`
+        })
+      )
+    }
+    return Effect.succeed(nanos)
+  }
+})
+
+/**
+ * @since 4.0.0
+ */
+export const durationFromMillis: Transformation<Duration.Duration, number> = transform({
+  decode: (i) => Duration.millis(i),
+  encode: (a) => Duration.toMillis(a)
+})
+
 /** @internal */
 export const errorFromErrorJsonEncoded: Transformation<Error, {
   message: string
@@ -330,7 +357,7 @@ export function optionFromOptional<T>(): Transformation<Option.Option<T>, T | un
 /**
  * @since 4.0.0
  */
-export const urlFromString = transformOrFail<URL, string>({
+export const urlFromString: Transformation<URL, string> = transformOrFail<URL, string>({
   decode: (s) =>
     Effect.try({
       try: () => new URL(s),
@@ -342,7 +369,7 @@ export const urlFromString = transformOrFail<URL, string>({
 /**
  * @since 4.0.0
  */
-export const uint8ArrayFromString = new Transformation(
+export const uint8ArrayFromString: Transformation<Uint8Array<ArrayBufferLike>, string> = new Transformation(
   Getter.decodeBase64(),
   Getter.encodeBase64()
 )

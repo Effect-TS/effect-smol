@@ -1166,6 +1166,28 @@ export const betweenBigInt = deriveBetween({
 })
 
 /**
+ * @category BigInt checks
+ * @since 4.0.0
+ */
+export function nonNegativeBigInt(annotations?: Annotations.Filter) {
+  return greaterThanOrEqualToBigInt(0n, {
+    title: "nonNegativeBigInt",
+    ...annotations
+  })
+}
+
+/**
+ * @category BigInt checks
+ * @since 4.0.0
+ */
+export function nonPositiveBigInt(annotations?: Annotations.Filter) {
+  return lessThanOrEqualToBigInt(0n, {
+    title: "nonPositiveBigInt",
+    ...annotations
+  })
+}
+
+/**
  * @category Length checks
  * @since 4.0.0
  */

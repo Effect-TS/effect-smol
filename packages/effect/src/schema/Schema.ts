@@ -4173,6 +4173,53 @@ export const Duration: Duration = declare(
 /**
  * @since 4.0.0
  */
+export interface DurationFromNanos extends decodeTo<Duration, BigInt> {}
+
+/**
+ * A transformation schema that decodes a non-negative `bigint` into a
+ * `Duration`, treating the `bigint` value as the duration in nanoseconds.
+ *
+ * Decoding:
+ * - A non-negative `bigint` representing nanoseconds is decoded as a `Duration`
+ *
+ * Encoding:
+ * - A `Duration` is encoded to a non-negative `bigint` representing nanoseconds
+ *
+ * @category Duration
+ * @since 4.0.0
+ */
+export const DurationFromNanos: DurationFromNanos = BigInt.check(Check.nonNegativeBigInt()).pipe(
+  decodeTo(Duration, Transformation.durationFromNanos)
+)
+
+/**
+ * @since 4.0.0
+ */
+export interface DurationFromMillis extends decodeTo<Duration, Number> {}
+
+/**
+ * A transformation schema that decodes a non-negative (possibly infinite)
+ * integer into a `Duration`, treating the integer value as the duration in
+ * milliseconds.
+ *
+ * Decoding:
+ * - A non-negative (possibly infinite) integer representing milliseconds is
+ *   decoded as a `Duration`
+ *
+ * Encoding:
+ * - A `Duration` is encoded to a non-negative (possibly infinite) integer
+ *   representing milliseconds
+ *
+ * @category Duration
+ * @since 4.0.0
+ */
+export const DurationFromMillis: DurationFromMillis = Number.check(Check.nonNegative()).pipe(
+  decodeTo(Duration, Transformation.durationFromMillis)
+)
+
+/**
+ * @since 4.0.0
+ */
 export interface UnknownFromJsonString extends decodeTo<Unknown, String> {}
 
 /**
