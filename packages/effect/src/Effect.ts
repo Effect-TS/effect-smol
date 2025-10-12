@@ -11417,21 +11417,21 @@ export const effectify: {
  * import { Effect } from "effect"
  *
  * // Define a constraint that the success type must be a number
- * const ensureNumber = Effect.ensureSuccessType<number>()
+ * const satisfiesNumber = Effect.satisfiesSuccess<number>()
  *
  * // This works - Effect<42, never, never> extends Effect<number, never, never>
- * const validEffect = ensureNumber(Effect.succeed(42))
+ * const validEffect = satisfiesNumber(Effect.succeed(42))
  *
  * // This would cause a TypeScript compilation error:
- * // const invalidEffect = ensureNumber(Effect.succeed("string"))
- * //                                   ^^^^^^^^^^^^^^^^^^^^^^
+ * // const invalidEffect = satisfiesNumber(Effect.succeed("string"))
+ * //                                      ^^^^^^^^^^^^^^^^^^^^^^
  * // Type 'string' is not assignable to type 'number'
  * ```
  *
  * @since 4.0.0
  * @category Type constraints
  */
-export const ensureSuccessType = <A>() => <A2 extends A, E, R>(effect: Effect<A2, E, R>): Effect<A2, E, R> => effect
+export const satisfiesSuccess = <A>() => <A2 extends A, E, R>(effect: Effect<A2, E, R>): Effect<A2, E, R> => effect
 
 /**
  * Ensures that an effect's error type extends a given type `E`.
@@ -11444,21 +11444,21 @@ export const ensureSuccessType = <A>() => <A2 extends A, E, R>(effect: Effect<A2
  * import { Effect } from "effect"
  *
  * // Define a constraint that the error type must be an Error
- * const ensureError = Effect.ensureErrorType<Error>()
+ * const satisfiesError = Effect.satisfiesError<Error>()
  *
  * // This works - Effect<number, TypeError, never> extends Effect<number, Error, never>
- * const validEffect = ensureError(Effect.fail(new TypeError("Invalid type")))
+ * const validEffect = satisfiesError(Effect.fail(new TypeError("Invalid type")))
  *
  * // This would cause a TypeScript compilation error:
- * // const invalidEffect = ensureError(Effect.fail("string error"))
- * //                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ * // const invalidEffect = satisfiesError(Effect.fail("string error"))
+ * //                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
  * // Type 'string' is not assignable to type 'Error'
  * ```
  *
  * @since 4.0.0
  * @category Type constraints
  */
-export const ensureErrorType = <E>() => <A, E2 extends E, R>(effect: Effect<A, E2, R>): Effect<A, E2, R> => effect
+export const satisfiesError = <E>() => <A, E2 extends E, R>(effect: Effect<A, E2, R>): Effect<A, E2, R> => effect
 
 /**
  * Ensures that an effect's requirements type extends a given type `R`.
@@ -11471,22 +11471,21 @@ export const ensureErrorType = <E>() => <A, E2 extends E, R>(effect: Effect<A, E
  * import { Effect } from "effect"
  *
  * // Define a constraint that requires a string as the requirements type
- * const ensureStringRequirement = Effect.ensureRequirementsType<string>()
+ * const satisfiesStringRequirement = Effect.satisfiesRequirements<string>()
  *
  * // This works - effect requires string
  * const validEffect: Effect.Effect<number, never, "config"> = Effect.succeed(42)
- * const constrainedEffect = ensureStringRequirement(validEffect)
+ * const constrainedEffect = satisfiesStringRequirement(validEffect)
  *
  * // This would cause a TypeScript compilation error if uncommented:
  * // const invalidEffect: Effect.Effect<number, never, number> = Effect.succeed(42)
- * // const constrainedInvalid = ensureStringRequirement(invalidEffect)
+ * // const constrainedInvalid = satisfiesStringRequirement(invalidEffect)
  * ```
  *
  * @since 4.0.0
  * @category Type constraints
  */
-export const ensureRequirementsType = <R>() => <A, E, R2 extends R>(effect: Effect<A, E, R2>): Effect<A, E, R2> =>
-  effect
+export const satisfiesRequirements = <R>() => <A, E, R2 extends R>(effect: Effect<A, E, R2>): Effect<A, E, R2> => effect
 
 /**
  * An optimized version of `map` that checks if an effect is already resolved
