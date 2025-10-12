@@ -247,11 +247,11 @@ This makes it easier to work with schemas in contexts where one direction has no
 
 ```ts
 import type { Effect } from "effect"
-import { ServiceMap } from "effect/services"
+import { ServiceMap } from "effect"
 import { Schema } from "effect/schema"
 
 // A service that retrieves full user info from an ID
-class UserDatabase extends ServiceMap.Key<
+class UserDatabase extends ServiceMap.Service<
   UserDatabase,
   {
     getUserById: (id: string) => Effect.Effect<{ readonly id: string; readonly name: string }>
@@ -956,7 +956,7 @@ Default values can also be computed using effects, as long as the environment is
 ```ts
 import { Effect } from "effect"
 import { Option } from "effect/data"
-import { Schema, SchemaResult, ToParser } from "effect/schema"
+import { Schema, ToParser } from "effect/schema"
 
 const schema = Schema.Struct({
   a: Schema.Number.pipe(
@@ -969,19 +969,19 @@ const schema = Schema.Struct({
   )
 })
 
-SchemaResult.asEffect(ToParser.makeSchemaResult(schema)({})).pipe(Effect.runPromise).then(console.log)
+ToParser.makeEffect(schema)({}).pipe(Effect.runPromise).then(console.log)
 // { a: -1 }
 ```
 
 **Example** (Providing a default from an optional service)
 
 ```ts
-import { ServiceMap, Effect } from "effect"
+import { Effect, ServiceMap } from "effect"
 import { Option } from "effect/data"
-import { Schema, SchemaResult, ToParser } from "effect/schema"
+import { Schema, ToParser } from "effect/schema"
 
 // Define a service that may provide a default value
-class ConstructorService extends ServiceMap.Key<ConstructorService, { defaultValue: Effect.Effect<number> }>()(
+class ConstructorService extends ServiceMap.Service<ConstructorService, { defaultValue: Effect.Effect<number> }>()(
   "ConstructorService"
 ) {}
 
@@ -1000,7 +1000,7 @@ const schema = Schema.Struct({
   )
 })
 
-SchemaResult.asEffect(ToParser.makeSchemaResult(schema)({}))
+ToParser.makeEffect(schema)({})
   .pipe(
     Effect.provideService(ConstructorService, ConstructorService.of({ defaultValue: Effect.succeed(-1) })),
     Effect.runPromise
@@ -4259,7 +4259,7 @@ import { Effect, ServiceMap } from "effect"
 import { Option } from "effect/data"
 import { Schema } from "effect/schema"
 
-class Service extends ServiceMap.Key<Service, { fallback: Effect.Effect<string> }>()("Service") {}
+class Service extends ServiceMap.Service<Service, { fallback: Effect.Effect<string> }>()("Service") {}
 
 //      ┌─── Codec<string, string, Service, never>
 //      ▼
