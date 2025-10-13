@@ -1127,31 +1127,7 @@ export const unfold = <S, A, E, R>(
   }))
 
 /**
- * Creates a stream by peeling off the "layers" of a value of type `S`.
- *
- * @since 4.0.0
- * @category constructors
- */
-export const unfoldArray = <S, A, E, R>(
-  s: S,
-  f: (s: S) => Effect.Effect<readonly [ReadonlyArray<A>, S] | undefined, E, R>
-): Stream<A, E, R> =>
-  fromPull(Effect.sync(() => {
-    let state = s
-    return Effect.flatMap(
-      Effect.suspend(() => f(state)),
-      function loop(next): Pull.Pull<Arr.NonEmptyReadonlyArray<A>, E, void, R> {
-        if (next === undefined) return Pull.haltVoid
-        state = next[1]
-        return Arr.isReadonlyArrayNonEmpty(next[0]) ? Effect.succeed(next[0]) : Effect.flatMap(f(state), loop)
-      }
-    )
-  }))
-
-/**
- * Like `Stream.unfoldChunkEffect`, but allows the emission of values to end one step
- * further than the unfolding of the state. This is useful for embedding
- * paginated APIs, hence the name.
+ * Create a stream that allows you to wrap a paginated resource.
  *
  * @example
  * ```ts
@@ -1159,7 +1135,7 @@ export const unfoldArray = <S, A, E, R>(
  * import { Effect } from "effect"
  * import * as Option from "effect/data/Option"
  *
- * const stream = Stream.paginateArray(0, (n: number) =>
+ * const stream = Stream.paginate(0, (n: number) =>
  *   Effect.succeed([
  *     [n],
  *     n < 3 ? Option.some(n + 1) : Option.none<number>()
@@ -1172,7 +1148,7 @@ export const unfoldArray = <S, A, E, R>(
  * @since 2.0.0
  * @category constructors
  */
-export const paginateArray = <S, A, E = never, R = never>(
+export const paginate = <S, A, E = never, R = never>(
   s: S,
   f: (
     s: S
@@ -1197,42 +1173,6 @@ export const paginateArray = <S, A, E = never, R = never>(
       })
     })
   }))
-
-/**
- * Like `Stream.unfoldEffect` but allows the emission of values to end one step
- * further than the unfolding of the state. This is useful for embedding
- * paginated APIs, hence the name.
- *
- * @example
- * ```ts
- * import { Stream } from "effect/stream"
- * import { Effect } from "effect"
- * import * as Option from "effect/data/Option"
- *
- * const stream = Stream.paginate(0, (n: number) =>
- *   Effect.succeed([
- *     n, // emit single value
- *     n < 3 ? Option.some(n + 1) : Option.none<number>()
- *   ] as const)
- * )
- *
- * Effect.runPromise(Stream.runCollect(stream)).then(console.log)
- * ```
- *
- * @since 2.0.0
- * @category constructors
- */
-export const paginate = <S, A, E = never, R = never>(
-  s: S,
-  f: (s: S) => Effect.Effect<readonly [A, Option.Option<S>], E, R> | readonly [A, Option.Option<S>]
-): Stream<A, E, R> =>
-  paginateArray(s, (s) => {
-    const result = f(s)
-    return Effect.map(
-      Effect.isEffect(result) ? result : Effect.succeed(result),
-      ([a, s]) => [[a], s]
-    )
-  })
 
 /**
  * The infinite stream of iterative function application: a, f(a), f(f(a)),

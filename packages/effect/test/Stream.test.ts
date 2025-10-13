@@ -198,24 +198,9 @@ describe("Stream", () => {
   describe("pagination", () => {
     it.effect("paginate", () =>
       Effect.gen(function*() {
-        const s: readonly [number, Array<number>] = [0, [1, 2, 3]]
-        const result = yield* Stream.paginate(
-          s,
-          (
-            [n, nums]
-          ): Effect.Effect<readonly [number, Option.Option<readonly [number, Array<number>]>]> =>
-            nums.length === 0 ?
-              Effect.succeed([n, Option.none()]) :
-              Effect.succeed([n, Option.some([nums[0], nums.slice(1)])])
-        ).pipe(Stream.runCollect)
-        assert.deepStrictEqual(result, [0, 1, 2, 3])
-      }))
-
-    it.effect("paginateArray", () =>
-      Effect.gen(function*() {
         const s: readonly [ReadonlyArray<number>, Array<number>] = [[0], [1, 2, 3, 4, 5]]
         const pageSize = 2
-        const result = yield* Stream.paginateArray(s, ([chunk, nums]) =>
+        const result = yield* Stream.paginate(s, ([chunk, nums]) =>
           nums.length === 0 ?
             Effect.succeed([chunk, Option.none<readonly [ReadonlyArray<number>, Array<number>]>()] as const) :
             Effect.succeed(
