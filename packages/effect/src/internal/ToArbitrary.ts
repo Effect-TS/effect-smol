@@ -10,122 +10,19 @@ import * as Struct from "../data/Struct.ts"
 import * as UndefinedOr from "../data/UndefinedOr.ts"
 import { memoize } from "../Function.ts"
 import * as Number from "../Number.ts"
-import * as FastCheck from "../testing/FastCheck.ts"
-import type * as Annotations from "./Annotations.ts"
-import * as AST from "./AST.ts"
-import type * as Schema from "./Schema.ts"
+import type * as Annotations from "../schema/Annotations.ts"
+import * as AST from "../schema/AST.ts"
+import type * as Schema from "../schema/Schema.ts"
+import type * as FastCheck from "../testing/FastCheck.ts"
 
-/**
- * @since 4.0.0
- */
-export declare namespace Annotation {
-  /**
-   * @since 4.0.0
-   */
-  export interface StringConstraints extends FastCheck.StringSharedConstraints {
-    readonly patterns?: readonly [string, ...Array<string>]
-  }
-
-  /**
-   * @since 4.0.0
-   */
-  export interface NumberConstraints extends FastCheck.FloatConstraints {
-    readonly isInteger?: boolean
-  }
-
-  /**
-   * @since 4.0.0
-   */
-  export interface BigIntConstraints extends FastCheck.BigIntConstraints {}
-
-  /**
-   * @since 4.0.0
-   */
-  export interface ArrayConstraints extends FastCheck.ArrayConstraints {
-    readonly comparator?: (a: any, b: any) => boolean
-  }
-
-  /**
-   * @since 4.0.0
-   */
-  export interface DateConstraints extends FastCheck.DateConstraints {}
-
-  /**
-   * @since 4.0.0
-   */
-  export type FastCheckConstraint =
-    | StringConstraints
-    | NumberConstraints
-    | BigIntConstraints
-    | ArrayConstraints
-    | DateConstraints
-
-  /**
-   * @since 4.0.0
-   */
-  export type Constraint = {
-    readonly _tag: "Constraint"
-    readonly constraint: {
-      readonly string?: StringConstraints | undefined
-      readonly number?: NumberConstraints | undefined
-      readonly bigint?: BigIntConstraints | undefined
-      readonly array?: ArrayConstraints | undefined
-      readonly date?: DateConstraints | undefined
-    }
-  }
-
-  /**
-   * @since 4.0.0
-   */
-  export type Override<T, TypeParameters extends ReadonlyArray<Schema.Top>> = {
-    readonly _tag: "Override"
-    readonly override: (
-      // Arbitraries for any type parameters of the schema (if present)
-      typeParameters: { readonly [K in keyof TypeParameters]: FastCheck.Arbitrary<TypeParameters[K]["Type"]> }
-    ) => (fc: typeof FastCheck, context?: Context) => FastCheck.Arbitrary<T>
-  }
-}
-
-/**
- * @since 4.0.0
- */
-export interface Context {
-  /**
-   * This flag is set to `true` when the current schema is a suspend. The goal
-   * is to avoid infinite recursion when generating arbitrary values for
-   * suspends, so implementations should try to avoid excessive recursion.
-   */
-  readonly isSuspend?: boolean | undefined
-  readonly constraints?: Annotation.Constraint["constraint"] | undefined
-}
-
-/**
- * @since 4.0.0
- */
-export type LazyArbitrary<T> = (fc: typeof FastCheck, context?: Context) => FastCheck.Arbitrary<T>
-
-/**
- * @since 4.0.0
- */
-export function makeLazy<S extends Schema.Top>(schema: S): LazyArbitrary<S["Type"]> {
-  return go(schema.ast)
-}
-
-/**
- * @since 4.0.0
- */
-export function make<S extends Schema.Top>(schema: S): FastCheck.Arbitrary<S["Type"]> {
-  return makeLazy(schema)(FastCheck, {})
-}
-
-const arbitraryMemoMap = new WeakMap<AST.AST, LazyArbitrary<any>>()
+const arbitraryMemoMap = new WeakMap<AST.AST, Schema.LazyArbitrary<any>>()
 
 function getAnnotation(
   annotations: Annotations.Annotations | undefined
 ):
-  | Annotation.Constraint
-  | Annotation.Constraint
-  | Annotation.Override<any, ReadonlyArray<any>>
+  | Annotations.Arbitrary.Constraint
+  | Annotations.Arbitrary.Constraint
+  | Annotations.Arbitrary.Override<any, ReadonlyArray<any>>
   | undefined
 {
   return annotations?.arbitrary as any
@@ -133,7 +30,7 @@ function getAnnotation(
 
 function getCheckAnnotation(
   check: AST.Check<any>
-): Annotation.Constraint | Annotation.Constraint | undefined {
+): Annotations.Arbitrary.Constraint | Annotations.Arbitrary.Constraint | undefined {
   return check.annotations?.arbitrary as any
 }
 
@@ -149,14 +46,14 @@ function applyChecks(
 }
 
 function isUniqueArrayConstraintsCustomCompare(
-  constraint: Annotation.ArrayConstraints | undefined
-): constraint is Annotation.ArrayConstraints & FastCheck.UniqueArrayConstraintsCustomCompare<any> {
+  constraint: Annotations.Arbitrary.ArrayConstraints | undefined
+): constraint is Annotations.Arbitrary.ArrayConstraints & FastCheck.UniqueArrayConstraintsCustomCompare<any> {
   return constraint?.comparator !== undefined
 }
 
 function array(
   fc: typeof FastCheck,
-  ctx: Context | undefined,
+  ctx: Annotations.Arbitrary.Context | undefined,
   item: FastCheck.Arbitrary<any>
 ) {
   const constraint = ctx?.constraints?.array
@@ -198,9 +95,9 @@ const combiner: Combiner.Combiner<any> = Struct.getCombiner({
 
 function merge(
   _tag: "string" | "number" | "bigint" | "array" | "date",
-  constraints: Annotation.Constraint["constraint"],
-  constraint: Annotation.FastCheckConstraint
-): Annotation.Constraint["constraint"] {
+  constraints: Annotations.Arbitrary.Constraint["constraint"],
+  constraint: Annotations.Arbitrary.FastCheckConstraint
+): Annotations.Arbitrary.Constraint["constraint"] {
   const c = constraints[_tag]
   if (c) {
     return { ...constraints, [_tag]: combiner.combine(c, constraint) }
@@ -217,17 +114,17 @@ const constraintsKeys = {
   date: null
 }
 
-function isConstraintKey(key: string): key is keyof Annotation.Constraint["constraint"] {
+function isConstraintKey(key: string): key is keyof Annotations.Arbitrary.Constraint["constraint"] {
   return key in constraintsKeys
 }
 
 /** @internal */
 export function mergeFiltersConstraints(
   filters: Array<AST.Filter<any>>
-): (ctx: Context | undefined) => Context | undefined {
+): (ctx: Annotations.Arbitrary.Context | undefined) => Annotations.Arbitrary.Context | undefined {
   const annotations = filters.map(getCheckAnnotation).filter(Predicate.isNotUndefined)
   return (ctx) => {
-    const constraints = annotations.reduce((acc: Annotation.Constraint["constraint"], c) => {
+    const constraints = annotations.reduce((acc: Annotations.Arbitrary.Constraint["constraint"], c) => {
       switch (c._tag) {
         case "Constraint": {
           const keys = Object.keys(c.constraint)
@@ -244,13 +141,14 @@ export function mergeFiltersConstraints(
   }
 }
 
-function resetContext(ctx: Context | undefined): Context | undefined {
+function resetContext(ctx: Annotations.Arbitrary.Context | undefined): Annotations.Arbitrary.Context | undefined {
   if (ctx) {
     return { ...ctx, constraints: undefined }
   }
 }
 
-const go = memoize((ast: AST.AST): LazyArbitrary<any> => {
+/** @internal */
+export const go = memoize((ast: AST.AST): Schema.LazyArbitrary<any> => {
   if (ast.checks) {
     const filters = AST.getFilters(ast.checks)
     const f = mergeFiltersConstraints(filters)
@@ -403,7 +301,8 @@ const go = memoize((ast: AST.AST): LazyArbitrary<any> => {
         return memo
       }
       const get = AST.memoizeThunk(() => go(ast.thunk()))
-      const out: LazyArbitrary<any> = (fc, ctx) => fc.constant(null).chain(() => get()(fc, { ...ctx, isSuspend: true }))
+      const out: Schema.LazyArbitrary<any> = (fc, ctx) =>
+        fc.constant(null).chain(() => get()(fc, { ...ctx, isSuspend: true }))
       arbitraryMemoMap.set(ast, out)
       return out
     }

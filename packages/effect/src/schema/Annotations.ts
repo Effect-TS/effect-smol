@@ -4,9 +4,9 @@
 
 import * as Predicate from "../data/Predicate.ts"
 import { memoize } from "../Function.ts"
+import type * as FastCheck from "../testing/FastCheck.ts"
 import type * as AST from "./AST.ts"
 import type * as Schema from "./Schema.ts"
-import type * as ToArbitrary from "./ToArbitrary.ts"
 import type * as ToEquivalence from "./ToEquivalence.ts"
 import type * as ToFormat from "./ToFormat.ts"
 import type * as ToJsonSchema from "./ToJsonSchema.ts"
@@ -96,8 +96,8 @@ export interface Bottom<T, TypeParameters extends ReadonlyArray<Schema.Top>> ext
     | ToJsonSchema.Annotation.Constraint
     | undefined
   readonly arbitrary?:
-    | ToArbitrary.Annotation.Override<T, TypeParameters>
-    | ToArbitrary.Annotation.Constraint
+    | Arbitrary.Override<T, TypeParameters>
+    | Arbitrary.Constraint
     | undefined
 }
 
@@ -139,7 +139,7 @@ export interface Declaration<T, TypeParameters extends ReadonlyArray<Schema.Top>
     | ((typeParameters: TypeParameters.Type<TypeParameters>) => AST.Link)
     | undefined
   readonly jsonSchema?: ToJsonSchema.Annotation.Override | undefined
-  readonly arbitrary?: ToArbitrary.Annotation.Override<T, TypeParameters> | undefined
+  readonly arbitrary?: Arbitrary.Override<T, TypeParameters> | undefined
   readonly equivalence?: ToEquivalence.Annotation.Override<T, TypeParameters> | undefined
   readonly format?: ToFormat.Annotation.Override<T, TypeParameters> | undefined
   /** @internal */
@@ -176,7 +176,7 @@ export interface Filter extends Annotations {
     | ToJsonSchema.Annotation.Constraint
     | undefined
   readonly arbitrary?:
-    | ToArbitrary.Annotation.Constraint
+    | Arbitrary.Constraint
     | undefined
   /**
    * Marks the filter as *structural*, meaning it applies to the shape or
@@ -186,6 +186,90 @@ export interface Filter extends Annotations {
    * Example: `minLength` on an array is a structural filter.
    */
   readonly "~structural"?: boolean | undefined
+}
+
+/**
+ * @since 4.0.0
+ */
+export declare namespace Arbitrary {
+  /**
+   * @since 4.0.0
+   */
+  export interface StringConstraints extends FastCheck.StringSharedConstraints {
+    readonly patterns?: readonly [string, ...Array<string>]
+  }
+
+  /**
+   * @since 4.0.0
+   */
+  export interface NumberConstraints extends FastCheck.FloatConstraints {
+    readonly isInteger?: boolean
+  }
+
+  /**
+   * @since 4.0.0
+   */
+  export interface BigIntConstraints extends FastCheck.BigIntConstraints {}
+
+  /**
+   * @since 4.0.0
+   */
+  export interface ArrayConstraints extends FastCheck.ArrayConstraints {
+    readonly comparator?: (a: any, b: any) => boolean
+  }
+
+  /**
+   * @since 4.0.0
+   */
+  export interface DateConstraints extends FastCheck.DateConstraints {}
+
+  /**
+   * @since 4.0.0
+   */
+  export type FastCheckConstraint =
+    | StringConstraints
+    | NumberConstraints
+    | BigIntConstraints
+    | ArrayConstraints
+    | DateConstraints
+
+  /**
+   * @since 4.0.0
+   */
+  export type Constraint = {
+    readonly _tag: "Constraint"
+    readonly constraint: {
+      readonly string?: StringConstraints | undefined
+      readonly number?: NumberConstraints | undefined
+      readonly bigint?: BigIntConstraints | undefined
+      readonly array?: ArrayConstraints | undefined
+      readonly date?: DateConstraints | undefined
+    }
+  }
+
+  /**
+   * @since 4.0.0
+   */
+  export interface Context {
+    /**
+     * This flag is set to `true` when the current schema is a suspend. The goal
+     * is to avoid infinite recursion when generating arbitrary values for
+     * suspends, so implementations should try to avoid excessive recursion.
+     */
+    readonly isSuspend?: boolean | undefined
+    readonly constraints?: Arbitrary.Constraint["constraint"] | undefined
+  }
+
+  /**
+   * @since 4.0.0
+   */
+  export type Override<T, TypeParameters extends ReadonlyArray<Schema.Top>> = {
+    readonly _tag: "Override"
+    readonly override: (
+      // Arbitraries for any type parameters of the schema (if present)
+      typeParameters: { readonly [K in keyof TypeParameters]: FastCheck.Arbitrary<TypeParameters[K]["Type"]> }
+    ) => (fc: typeof FastCheck, context?: Context) => FastCheck.Arbitrary<T>
+  }
 }
 
 /**

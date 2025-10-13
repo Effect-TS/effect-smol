@@ -11,7 +11,6 @@ import { flow, pipe } from "effect/Function"
 import * as Layer from "effect/Layer"
 import * as Schedule from "effect/Schedule"
 import * as Schema from "effect/schema/Schema"
-import * as ToArbitrary from "effect/schema/ToArbitrary"
 import * as Scope from "effect/Scope"
 import * as fc from "effect/testing/FastCheck"
 import * as TestClock from "effect/testing/TestClock"
@@ -89,7 +88,7 @@ const makeTester = <R>(
     if (Array.isArray(arbitraries)) {
       const arbs = arbitraries.map((arbitrary) => {
         if (Schema.isSchema(arbitrary)) {
-          return ToArbitrary.make(arbitrary)
+          return Schema.makeArbitrary(arbitrary)
         }
         return arbitrary as fc.Arbitrary<any>
       })
@@ -110,7 +109,7 @@ const makeTester = <R>(
       Object.keys(arbitraries).reduce(function(result, key) {
         const arb: any = arbitraries[key]
         if (Schema.isSchema(arb)) {
-          result[key] = ToArbitrary.make(arb)
+          result[key] = Schema.makeArbitrary(arb)
         }
         result[key] = arb
         return result

@@ -26,9 +26,11 @@ import * as Equal from "../interfaces/Equal.ts"
 import { format, formatDate } from "../interfaces/Inspectable.ts"
 import * as Pipeable from "../interfaces/Pipeable.ts"
 import * as core from "../internal/core.ts"
+import * as InternalArbitrary from "../internal/ToArbitrary.ts"
 import { remainder } from "../Number.ts"
 import * as Request from "../Request.ts"
 import * as Scheduler from "../Scheduler.ts"
+import * as FastCheck from "../testing/FastCheck.ts"
 import * as Annotations from "./Annotations.ts"
 import * as AST from "./AST.ts"
 import * as Getter from "./Getter.ts"
@@ -6498,3 +6500,26 @@ export const RequestClass =
       static readonly error = options.error
     } as any
   }
+
+// -----------------------------------------------------------------------------
+// Arbitrary APIs
+// -----------------------------------------------------------------------------
+
+/**
+ * @since 4.0.0
+ */
+export type LazyArbitrary<T> = (fc: typeof FastCheck, context?: Annotations.Arbitrary.Context) => FastCheck.Arbitrary<T>
+
+/**
+ * @since 4.0.0
+ */
+export function makeArbitraryLazy<S extends Top>(schema: S): LazyArbitrary<S["Type"]> {
+  return InternalArbitrary.go(schema.ast)
+}
+
+/**
+ * @since 4.0.0
+ */
+export function makeArbitrary<S extends Top>(schema: S): FastCheck.Arbitrary<S["Type"]> {
+  return makeArbitraryLazy(schema)(FastCheck, {})
+}

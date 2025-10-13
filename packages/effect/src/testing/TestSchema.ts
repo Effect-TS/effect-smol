@@ -10,7 +10,6 @@ import * as Effect from "../Effect.ts"
 import * as AST from "../schema/AST.ts"
 import type * as Issue from "../schema/Issue.ts"
 import * as Schema from "../schema/Schema.ts"
-import * as ToArbitrary from "../schema/ToArbitrary.ts"
 import * as ToParser from "../schema/ToParser.ts"
 import type * as ServiceMap from "../ServiceMap.ts"
 import * as FastCheck from "../testing/FastCheck.ts"
@@ -82,7 +81,7 @@ export class Asserts<S extends Schema.Top> {
   }) {
     const decodeUnknownEffect = ToParser.decodeUnknownEffect(this.schema)
     const encodeEffect = ToParser.encodeEffect(this.schema)
-    const arbitrary = ToArbitrary.make(this.schema)
+    const arbitrary = Schema.makeArbitrary(this.schema)
     return FastCheck.assert(
       FastCheck.asyncProperty(arbitrary, async (t) => {
         const r = await Effect.runPromise(
@@ -128,7 +127,7 @@ export class Asserts<S extends Schema.Top> {
       }) {
         const params = options?.params
         const is = Schema.is(schema)
-        const arb = ToArbitrary.make(schema)
+        const arb = Schema.makeArbitrary(schema)
         FastCheck.assert(FastCheck.property(arb, (a) => is(a)), { numRuns: 20, ...params })
       }
     }

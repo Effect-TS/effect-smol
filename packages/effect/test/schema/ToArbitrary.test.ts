@@ -1,12 +1,14 @@
-import { AST, Schema, ToArbitrary, ToEquivalence } from "effect/schema"
+import * as InternalArbitrary from "effect/internal/ToArbitrary"
+import type { Annotations } from "effect/schema"
+import { AST, Schema, ToEquivalence } from "effect/schema"
 import { TestSchema } from "effect/testing"
 import { deepStrictEqual } from "node:assert"
 import { describe, it } from "vitest"
 
-function assertFragments(schema: Schema.Schema<any>, ctx: ToArbitrary.Context) {
+function assertFragments(schema: Schema.Schema<any>, ctx: Annotations.Arbitrary.Context) {
   const ast = schema.ast
   const filters = AST.getFilters(ast.checks)
-  const f = ToArbitrary.mergeFiltersConstraints(filters)
+  const f = InternalArbitrary.mergeFiltersConstraints(filters)
   deepStrictEqual(f({}), ctx)
 }
 

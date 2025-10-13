@@ -1,12 +1,12 @@
 import * as DateTime from "effect/DateTime"
-import { Differ, Schema, ToArbitrary } from "effect/schema"
+import { Differ, Schema } from "effect/schema"
 import * as FastCheck from "effect/testing/FastCheck"
 import { describe, it } from "vitest"
 import { deepStrictEqual, strictEqual, throws } from "../utils/assert.ts"
 
 function roundtrip<T, E>(codec: Schema.Codec<T, E>) {
   const differ = Differ.makeJsonPatch(codec)
-  const arbitrary = ToArbitrary.make(codec)
+  const arbitrary = Schema.makeArbitrary(codec)
   const arb = arbitrary.filter((v) => {
     if (typeof v === "object" && v !== null && (Object.getPrototypeOf(v) === null || Object.hasOwn(v, "__proto__"))) {
       return false
