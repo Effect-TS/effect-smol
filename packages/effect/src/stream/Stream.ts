@@ -14,6 +14,7 @@ import * as Exit from "../Exit.ts"
 import * as Fiber from "../Fiber.ts"
 import type { LazyArg } from "../Function.ts"
 import { constant, constTrue, constVoid, dual, identity } from "../Function.ts"
+import * as Equal from "../interfaces/Equal.ts"
 import { type Pipeable, pipeArguments } from "../interfaces/Pipeable.ts"
 import type * as Layer from "../Layer.ts"
 import type * as PubSub from "../PubSub.ts"
@@ -2722,6 +2723,18 @@ export const scanEffect: {
  * @since 2.0.0
  * @category Grouping
  */
+export const grouped: {
+  (n: number): <A, E, R>(self: Stream<A, E, R>) => Stream<Arr.NonEmptyReadonlyArray<A>, E, R>
+  <A, E, R>(self: Stream<A, E, R>, n: number): Stream<Arr.NonEmptyReadonlyArray<A>, E, R>
+} = dual(
+  2,
+  <A, E, R>(self: Stream<A, E, R>, n: number): Stream<Arr.NonEmptyReadonlyArray<A>, E, R> => chunks(rechunk(self, n))
+)
+
+/**
+ * @since 2.0.0
+ * @category Grouping
+ */
 export const groupBy: {
   <A, K, V, E2, R2>(
     f: (a: NoInfer<A>) => Effect.Effect<readonly [K, V], E2, R2>,
@@ -2761,61 +2774,6 @@ export const groupBy: {
     }),
     options
   ))
-
-/**
- * Applies the Sink transducer to the stream and emits its outputs.
- *
- * @since 2.0.0
- * @category utils
- */
-export const transduce = dual<
-  <A2, A, E2, R2>(
-    sink: Sink.Sink<A2, A, A, E2, R2>
-  ) => <E, R>(self: Stream<A, E, R>) => Stream<A2, E2 | E, R2 | R>,
-  <A, E, R, A2, E2, R2>(
-    self: Stream<A, E, R>,
-    sink: Sink.Sink<A2, A, A, E2, R2>
-  ) => Stream<A2, E2 | E, R2 | R>
->(
-  2,
-  <A, E, R, A2, E2, R2>(
-    self: Stream<A, E, R>,
-    sink: Sink.Sink<A2, A, A, E2, R2>
-  ): Stream<A2, E2 | E, R2 | R> =>
-    transformPull(self, (upstream, scope) =>
-      Effect.sync(() => {
-        let done: Exit.Exit<never, Pull.Halt<void> | E> | undefined
-        let leftover: Arr.NonEmptyReadonlyArray<A> | undefined
-        const upstreamWithLeftover = Effect.suspend(() => {
-          if (leftover !== undefined) {
-            const chunk = leftover
-            leftover = undefined
-            return Effect.succeed(chunk)
-          }
-          return upstream
-        }).pipe(
-          Effect.catch((error) => {
-            done = Exit.fail(error)
-            return Pull.haltVoid
-          })
-        )
-        const pull = Effect.flatMap(
-          Effect.suspend(() => Channel.toTransform(sink.channel)(upstreamWithLeftover, scope)),
-          (pull) =>
-            Pull.catchHalt(pull, (end_) => {
-              const [value, leftover_] = end_ as Sink.End<A2, A>
-              leftover = leftover_
-              return Effect.succeed(Arr.of(value))
-            })
-        )
-        return Effect.suspend((): Pull.Pull<
-          Arr.NonEmptyReadonlyArray<A2>,
-          E | E2,
-          void,
-          R2
-        > => done ? done : pull)
-      }))
-)
 
 /**
  * @since 2.0.0
@@ -2921,6 +2879,119 @@ const groupByImpl = <A, E, R, K, V, E2, R2>(
       return Queue.toPullArray(out)
     })
   )
+
+/**
+ * @since 2.0.0
+ * @category Grouping
+ */
+export const groupAdjacentBy: {
+  <A, K>(
+    f: (a: NoInfer<A>) => K
+  ): <E, R>(self: Stream<A, E, R>) => Stream<readonly [K, Arr.NonEmptyArray<A>], E, R>
+  <A, E, R, K>(
+    self: Stream<A, E, R>,
+    f: (a: NoInfer<A>) => K
+  ): Stream<readonly [K, Arr.NonEmptyArray<A>], E, R>
+} = dual(2, <A, E, R, K>(
+  self: Stream<A, E, R>,
+  f: (a: NoInfer<A>) => K
+): Stream<readonly [K, Arr.NonEmptyArray<A>], E, R> =>
+  transformPull(self, (pull, _scope) =>
+    Effect.sync(() => {
+      let currentKey: K = undefined as any
+      let group: Arr.NonEmptyArray<A> | undefined
+      let toEmit = Arr.empty<readonly [K, Arr.NonEmptyArray<A>]>()
+      const loop: Pull.Pull<
+        Arr.NonEmptyReadonlyArray<readonly [K, Arr.NonEmptyArray<A>]>,
+        E
+      > = pull.pipe(
+        Effect.flatMap((chunk) => {
+          for (let i = 0; i < chunk.length; i++) {
+            const item = chunk[i]
+            const key = f(item)
+            if (group === undefined) {
+              currentKey = key
+              group = [item]
+              continue
+            } else if (Equal.equals(key, currentKey)) {
+              group.push(item)
+              continue
+            }
+            toEmit.push([currentKey, group])
+            currentKey = key
+            group = [item]
+          }
+          if (Arr.isArrayNonEmpty(toEmit)) {
+            const out = toEmit
+            toEmit = []
+            return Effect.succeed(out)
+          }
+          return loop
+        })
+      )
+      let done = false
+      return Pull.catchHalt(Effect.suspend(() => done ? Pull.haltVoid : loop), () => {
+        done = true
+        const out = group
+        group = undefined
+        return out && Arr.isArrayNonEmpty(out) ? Effect.succeed(Arr.of([currentKey, out])) : Pull.haltVoid
+      })
+    })))
+
+/**
+ * Applies the Sink transducer to the stream and emits its outputs.
+ *
+ * @since 2.0.0
+ * @category utils
+ */
+export const transduce = dual<
+  <A2, A, E2, R2>(
+    sink: Sink.Sink<A2, A, A, E2, R2>
+  ) => <E, R>(self: Stream<A, E, R>) => Stream<A2, E2 | E, R2 | R>,
+  <A, E, R, A2, E2, R2>(
+    self: Stream<A, E, R>,
+    sink: Sink.Sink<A2, A, A, E2, R2>
+  ) => Stream<A2, E2 | E, R2 | R>
+>(
+  2,
+  <A, E, R, A2, E2, R2>(
+    self: Stream<A, E, R>,
+    sink: Sink.Sink<A2, A, A, E2, R2>
+  ): Stream<A2, E2 | E, R2 | R> =>
+    transformPull(self, (upstream, scope) =>
+      Effect.sync(() => {
+        let done: Exit.Exit<never, Pull.Halt<void> | E> | undefined
+        let leftover: Arr.NonEmptyReadonlyArray<A> | undefined
+        const upstreamWithLeftover = Effect.suspend(() => {
+          if (leftover !== undefined) {
+            const chunk = leftover
+            leftover = undefined
+            return Effect.succeed(chunk)
+          }
+          return upstream
+        }).pipe(
+          Effect.catch((error) => {
+            done = Exit.fail(error)
+            return Pull.haltVoid
+          })
+        )
+        const pull = Effect.flatMap(
+          Effect.suspend(() => Channel.toTransform(sink.channel)(upstreamWithLeftover, scope)),
+          (pull) =>
+            Pull.catchHalt(pull, (end_) => {
+              const [value, leftover_] = end_ as Sink.End<A2, A>
+              leftover = leftover_
+              return Effect.succeed(Arr.of(value))
+            })
+        )
+        return Effect.suspend((): Pull.Pull<
+          Arr.NonEmptyReadonlyArray<A2>,
+          E | E2,
+          void,
+          R2
+        > => done ? done : pull)
+      }))
+)
 
 /**
  * @since 2.0.0

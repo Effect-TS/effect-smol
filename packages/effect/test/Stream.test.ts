@@ -998,6 +998,87 @@ describe("Stream", () => {
       strictEqual(counter, 1)
       deepStrictEqual(result, [1, 2, 3])
     }))
+
+  describe("groupAdjacentBy", () => {
+    it.effect("one big chunk", () =>
+      Effect.gen(function*() {
+        const result = yield* pipe(
+          Stream.fromIterable([
+            { code: 1, message: "A" },
+            { code: 1, message: "B" },
+            { code: 1, message: "D" },
+            { code: 2, message: "C" }
+          ]),
+          Stream.groupAdjacentBy((x) => x.code),
+          Stream.runCollect
+        )
+        deepStrictEqual(
+          result.map(([, chunk]) => chunk),
+          [
+            [
+              { code: 1, message: "A" },
+              { code: 1, message: "B" },
+              { code: 1, message: "D" }
+            ],
+            [
+              { code: 2, message: "C" }
+            ]
+          ]
+        )
+      }))
+
+    it.effect("several single element chunks", () =>
+      Effect.gen(function*() {
+        const result = yield* pipe(
+          Stream.fromArrays(
+            [{ code: 1, message: "A" }],
+            [{ code: 1, message: "B" }],
+            [{ code: 1, message: "D" }],
+            [{ code: 2, message: "C" }]
+          ),
+          Stream.groupAdjacentBy((x) => x.code),
+          Stream.runCollect
+        )
+        deepStrictEqual(
+          result.map(([, chunk]) => chunk),
+          [
+            [
+              { code: 1, message: "A" },
+              { code: 1, message: "B" },
+              { code: 1, message: "D" }
+            ],
+            [
+              { code: 2, message: "C" }
+            ]
+          ]
+        )
+      }))
+
+    it.effect("group across chunks", () =>
+      Effect.gen(function*() {
+        const result = yield* pipe(
+          Stream.fromArrays(
+            [{ code: 1, message: "A" }, { code: 1, message: "B" }],
+            [{ code: 1, message: "D" }, { code: 2, message: "C" }]
+          ),
+          Stream.groupAdjacentBy((x) => x.code),
+          Stream.runCollect
+        )
+        deepStrictEqual(
+          result.map(([, chunk]) => chunk),
+          [
+            [
+              { code: 1, message: "A" },
+              { code: 1, message: "B" },
+              { code: 1, message: "D" }
+            ],
+            [
+              { code: 2, message: "C" }
+            ]
+          ]
+        )
+      }))
+  })
 })
 
 const grouped = <A>(arr: Array<A>, size: number): Array<NonEmptyArray<A>> => {

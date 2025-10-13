@@ -98,7 +98,7 @@ The exports under each section are organized as they are in Effect 3.0. The cate
 |         `fromPull`         |  Done  |              `fromPull`              |          |
 |        `fromQueue`         |  Done  |             `fromQueue`              |          |
 |    `fromReadableStream`    |  Done  |         `fromReadableStream`         |          |
-|  `fromReadableStreamByob`  |   -    |                                      |          |
+|  `fromReadableStreamByob`  |   X    |                                      |          |
 |       `fromSchedule`       |  Done  |            `fromSchedule`            |          |
 |       `fromTPubSub`        |   -    |                                      |          |
 |        `fromTQueue`        |   -    |            `fromTxQueue`             |          |
@@ -250,10 +250,10 @@ The exports under each section are organized as they are in Effect 3.0. The cate
 
 |     Effect 3      | Ported |   Effect 4   | Comments |
 | :---------------: | :----: | :----------: | :------: |
-| `groupAdjacentBy` |   -    |              |          |
+| `groupAdjacentBy` |  Done  |              |          |
 |     `groupBy`     |  Done  |  `groupBy`   |          |
 |   `groupByKey`    |  Done  | `groupByKey` |          |
-|     `grouped`     |   -    |              |          |
+|     `grouped`     |  Done  |              |          |
 |  `groupedWithin`  |   -    |              |          |
 
 ### Mapping
