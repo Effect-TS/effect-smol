@@ -1,12 +1,12 @@
 import { DateTime, Duration } from "effect"
 import { Option, Redacted, Result } from "effect/data"
-import { Schema, ToFormat } from "effect/schema"
+import { Schema } from "effect/schema"
 import { describe, it } from "vitest"
 import { strictEqual } from "../utils/assert.ts"
 
 describe("ToFormat", () => {
   it("Any", () => {
-    const format = ToFormat.make(Schema.Any)
+    const format = Schema.makeFormat(Schema.Any)
     strictEqual(format(1), "1")
     strictEqual(format("a"), `"a"`)
     strictEqual(format(true), "true")
@@ -18,7 +18,7 @@ describe("ToFormat", () => {
   })
 
   it("Unknown", () => {
-    const format = ToFormat.make(Schema.Unknown)
+    const format = Schema.makeFormat(Schema.Unknown)
     strictEqual(format(1), "1")
     strictEqual(format("a"), `"a"`)
     strictEqual(format(true), "true")
@@ -30,48 +30,48 @@ describe("ToFormat", () => {
   })
 
   it("Void", () => {
-    const format = ToFormat.make(Schema.Void)
+    const format = Schema.makeFormat(Schema.Void)
     strictEqual(format(undefined), "void")
   })
 
   it("Null", () => {
-    const format = ToFormat.make(Schema.Null)
+    const format = Schema.makeFormat(Schema.Null)
     strictEqual(format(null), "null")
   })
 
   it("String", () => {
-    const format = ToFormat.make(Schema.String)
+    const format = Schema.makeFormat(Schema.String)
     strictEqual(format("a"), `"a"`)
   })
 
   it("Number", () => {
-    const format = ToFormat.make(Schema.Number)
+    const format = Schema.makeFormat(Schema.Number)
     strictEqual(format(1), "1")
   })
 
   it("Boolean", () => {
-    const format = ToFormat.make(Schema.Boolean)
+    const format = Schema.makeFormat(Schema.Boolean)
     strictEqual(format(true), "true")
     strictEqual(format(false), "false")
   })
 
   it("BigInt", () => {
-    const format = ToFormat.make(Schema.BigInt)
+    const format = Schema.makeFormat(Schema.BigInt)
     strictEqual(format(1n), "1n")
   })
 
   it("Symbol", () => {
-    const format = ToFormat.make(Schema.Symbol)
+    const format = Schema.makeFormat(Schema.Symbol)
     strictEqual(format(Symbol.for("a")), "Symbol(a)")
   })
 
   it("UniqueSymbol", () => {
-    const format = ToFormat.make(Schema.UniqueSymbol(Symbol.for("a")))
+    const format = Schema.makeFormat(Schema.UniqueSymbol(Symbol.for("a")))
     strictEqual(format(Symbol.for("a")), "Symbol(a)")
   })
 
   it("Object", () => {
-    const format = ToFormat.make(Schema.Object)
+    const format = Schema.makeFormat(Schema.Object)
     strictEqual(format({}), "{}")
     strictEqual(format({ a: 1 }), `{"a":1}`)
     strictEqual(format([1, 2, 3]), `[1,2,3]`)
@@ -79,35 +79,35 @@ describe("ToFormat", () => {
 
   describe("Literal", () => {
     it("string", () => {
-      const format = ToFormat.make(Schema.Literal("a"))
+      const format = Schema.makeFormat(Schema.Literal("a"))
       strictEqual(format("a"), `"a"`)
     })
 
     it("number", () => {
-      const format = ToFormat.make(Schema.Literal(1))
+      const format = Schema.makeFormat(Schema.Literal(1))
       strictEqual(format(1), "1")
     })
 
     it("boolean", () => {
-      const format = ToFormat.make(Schema.Literal(true))
+      const format = Schema.makeFormat(Schema.Literal(true))
       strictEqual(format(true), "true")
     })
 
     it("bigint", () => {
-      const format = ToFormat.make(Schema.Literal(1n))
+      const format = Schema.makeFormat(Schema.Literal(1n))
       strictEqual(format(1n), "1n")
     })
   })
 
   it("Literals", () => {
-    const format = ToFormat.make(Schema.Literals(["a", "b", "c"]))
+    const format = Schema.makeFormat(Schema.Literals(["a", "b", "c"]))
     strictEqual(format("a"), `"a"`)
     strictEqual(format("b"), `"b"`)
     strictEqual(format("c"), `"c"`)
   })
 
   it("TemplateLiteral", () => {
-    const format = ToFormat.make(Schema.TemplateLiteral([Schema.Literal("a"), Schema.String]))
+    const format = Schema.makeFormat(Schema.TemplateLiteral([Schema.Literal("a"), Schema.String]))
     strictEqual(format("a"), `"a"`)
     strictEqual(format("ab"), `"ab"`)
   })
@@ -118,7 +118,7 @@ describe("ToFormat", () => {
         Apple,
         Banana
       }
-      const format = ToFormat.make(Schema.Enums(Fruits))
+      const format = Schema.makeFormat(Schema.Enums(Fruits))
       strictEqual(format(Fruits.Apple), "0")
     })
 
@@ -128,7 +128,7 @@ describe("ToFormat", () => {
         Banana = "banana",
         Cantaloupe = 0
       }
-      const format = ToFormat.make(Schema.Enums(Fruits))
+      const format = Schema.makeFormat(Schema.Enums(Fruits))
       strictEqual(format(Fruits.Apple), `"apple"`)
     })
 
@@ -138,38 +138,38 @@ describe("ToFormat", () => {
         Banana: "banana",
         Cantaloupe: 3
       } as const
-      const format = ToFormat.make(Schema.Enums(Fruits))
+      const format = Schema.makeFormat(Schema.Enums(Fruits))
       strictEqual(format(Fruits.Apple), `"apple"`)
     })
   })
 
   it("Union", () => {
-    const format = ToFormat.make(Schema.Union([Schema.String, Schema.Number]))
+    const format = Schema.makeFormat(Schema.Union([Schema.String, Schema.Number]))
     strictEqual(format("a"), `"a"`)
     strictEqual(format(1), "1")
   })
 
   describe("Tuple", () => {
     it("empty", () => {
-      const format = ToFormat.make(Schema.Tuple([]))
+      const format = Schema.makeFormat(Schema.Tuple([]))
       strictEqual(format([]), "[]")
     })
 
     it("elements", () => {
-      const format = ToFormat.make(Schema.Tuple([Schema.Option(Schema.String)]))
+      const format = Schema.makeFormat(Schema.Tuple([Schema.Option(Schema.String)]))
       strictEqual(format([Option.some("a")]), `[some("a")]`)
       strictEqual(format([Option.none()]), `[none()]`)
     })
   })
 
   it("Array", () => {
-    const format = ToFormat.make(Schema.Array(Schema.Option(Schema.String)))
+    const format = Schema.makeFormat(Schema.Array(Schema.Option(Schema.String)))
     strictEqual(format([Option.some("a")]), `[some("a")]`)
     strictEqual(format([Option.none()]), `[none()]`)
   })
 
   it("TupleWithRest", () => {
-    const format = ToFormat.make(
+    const format = Schema.makeFormat(
       Schema.TupleWithRest(Schema.Tuple([Schema.Option(Schema.Boolean)]), [
         Schema.Option(Schema.Number),
         Schema.Option(Schema.String)
@@ -181,7 +181,7 @@ describe("ToFormat", () => {
 
   describe("Struct", () => {
     it("empty", () => {
-      const format = ToFormat.make(Schema.Struct({}))
+      const format = Schema.makeFormat(Schema.Struct({}))
       strictEqual(format({}), "{}")
       strictEqual(format(1), "1")
       strictEqual(format("a"), `"a"`)
@@ -192,7 +192,7 @@ describe("ToFormat", () => {
     })
 
     it("required fields", () => {
-      const format = ToFormat.make(Schema.Struct({
+      const format = Schema.makeFormat(Schema.Struct({
         a: Schema.Option(Schema.String)
       }))
       strictEqual(format({ a: Option.some("a") }), `{ "a": some("a") }`)
@@ -200,7 +200,7 @@ describe("ToFormat", () => {
     })
 
     it("required field with undefined", () => {
-      const format = ToFormat.make(Schema.Struct({
+      const format = Schema.makeFormat(Schema.Struct({
         a: Schema.Option(Schema.UndefinedOr(Schema.String))
       }))
       strictEqual(format({ a: Option.some("a") }), `{ "a": some("a") }`)
@@ -209,7 +209,7 @@ describe("ToFormat", () => {
     })
 
     it("optionalKey field", () => {
-      const format = ToFormat.make(Schema.Struct({
+      const format = Schema.makeFormat(Schema.Struct({
         a: Schema.optionalKey(Schema.Option(Schema.String))
       }))
       strictEqual(format({ a: Option.some("a") }), `{ "a": some("a") }`)
@@ -218,7 +218,7 @@ describe("ToFormat", () => {
     })
 
     it("optional field", () => {
-      const format = ToFormat.make(Schema.Struct({
+      const format = Schema.makeFormat(Schema.Struct({
         a: Schema.optional(Schema.Option(Schema.String))
       }))
       strictEqual(format({ a: Option.some("a") }), `{ "a": some("a") }`)
@@ -230,20 +230,20 @@ describe("ToFormat", () => {
 
   describe("Record", () => {
     it("Record(String, Option(Number))", () => {
-      const format = ToFormat.make(Schema.Record(Schema.String, Schema.Option(Schema.Number)))
+      const format = Schema.makeFormat(Schema.Record(Schema.String, Schema.Option(Schema.Number)))
       strictEqual(format({ a: Option.some(1) }), `{ "a": some(1) }`)
       strictEqual(format({ a: Option.none() }), `{ "a": none() }`)
     })
 
     it("Record(Symbol, Option(Number))", () => {
-      const format = ToFormat.make(Schema.Record(Schema.Symbol, Schema.Option(Schema.Number)))
+      const format = Schema.makeFormat(Schema.Record(Schema.Symbol, Schema.Option(Schema.Number)))
       strictEqual(format({ [Symbol.for("a")]: Option.some(1) }), `{ Symbol(a): some(1) }`)
       strictEqual(format({ [Symbol.for("a")]: Option.none() }), `{ Symbol(a): none() }`)
     })
   })
 
   it("StructWithRest", () => {
-    const format = ToFormat.make(Schema.StructWithRest(
+    const format = Schema.makeFormat(Schema.StructWithRest(
       Schema.Struct({ a: Schema.Number }),
       [Schema.Record(Schema.String, Schema.Number)]
     ))
@@ -254,7 +254,7 @@ describe("ToFormat", () => {
     class A extends Schema.Class<A>("A")({
       a: Schema.Option(Schema.String)
     }) {}
-    const format = ToFormat.make(A)
+    const format = Schema.makeFormat(A)
     strictEqual(format({ a: Option.some("a") }), `A({ "a": some("a") })`)
     strictEqual(format({ a: Option.none() }), `A({ "a": none() })`)
   })
@@ -266,7 +266,7 @@ describe("ToFormat", () => {
         Schema.Number,
         Schema.NullOr(Rec)
       ])
-      const format = ToFormat.make(schema)
+      const format = Schema.makeFormat(schema)
       strictEqual(format([1, null]), `[1, null]`)
       strictEqual(format([1, [2, null]]), `[1, [2, null]]`)
     })
@@ -274,7 +274,7 @@ describe("ToFormat", () => {
     it("Array", () => {
       const Rec = Schema.suspend((): Schema.Codec<any> => schema)
       const schema: any = Schema.Array(Schema.Union([Schema.String, Rec]))
-      const format = ToFormat.make(schema)
+      const format = Schema.makeFormat(schema)
       strictEqual(format(["a"]), `["a"]`)
     })
 
@@ -284,7 +284,7 @@ describe("ToFormat", () => {
         a: Schema.String,
         as: Schema.Array(Rec)
       })
-      const format = ToFormat.make(schema)
+      const format = Schema.makeFormat(schema)
       strictEqual(
         format({ a: "a", as: [{ a: "b", as: [] }, { a: "c", as: [] }] }),
         `{ "a": "a", "as": [{ "a": "b", "as": [] }, { "a": "c", "as": [] }] }`
@@ -294,7 +294,7 @@ describe("ToFormat", () => {
     it("Record", () => {
       const Rec = Schema.suspend((): Schema.Codec<any> => schema)
       const schema = Schema.Record(Schema.String, Rec)
-      const format = ToFormat.make(schema)
+      const format = Schema.makeFormat(schema)
       strictEqual(format({ a: { a: { a: {} } } }), `{ "a": { "a": { "a": {} } } }`)
     })
 
@@ -303,7 +303,7 @@ describe("ToFormat", () => {
       const schema: any = Schema.Struct({
         a: Schema.optional(Rec)
       })
-      const format = ToFormat.make(schema)
+      const format = Schema.makeFormat(schema)
       strictEqual(format({ a: "a" }), `{ "a": "a" }`)
     })
 
@@ -313,7 +313,7 @@ describe("ToFormat", () => {
         a: Schema.Array(Rec),
         b: Schema.Array(Rec)
       })
-      const format = ToFormat.make(schema)
+      const format = Schema.makeFormat(schema)
       strictEqual(
         format({
           a: [{ a: [{ a: [], b: [] }], b: [] }],
@@ -329,7 +329,7 @@ describe("ToFormat", () => {
         a: Schema.optional(Rec),
         b: Schema.Array(Rec)
       })
-      const format = ToFormat.make(schema)
+      const format = Schema.makeFormat(schema)
       strictEqual(format({ a: "a", b: [{ a: "b", b: [] }] }), `{ "a": "a", "b": [{ "a": "b", "b": [] }] }`)
     })
 
@@ -357,7 +357,7 @@ describe("ToFormat", () => {
         left: Expression,
         right: Expression
       })
-      const format = ToFormat.make(Operation)
+      const format = Schema.makeFormat(Operation)
       strictEqual(
         format({
           type: "operation",
@@ -375,7 +375,7 @@ describe("ToFormat", () => {
         a: Schema.String,
         as: Schema.Option(Rec)
       })
-      const format = ToFormat.make(schema)
+      const format = Schema.makeFormat(schema)
       strictEqual(
         format({ a: "a", as: Option.some({ a: "b", as: Option.none() }) }),
         `{ "a": "a", "as": some({ "a": "b", "as": none() }) }`
@@ -385,7 +385,7 @@ describe("ToFormat", () => {
     it("ReadonlySet", () => {
       const Rec = Schema.suspend((): Schema.Codec<any> => schema)
       const schema = Schema.ReadonlySet(Rec)
-      const format = ToFormat.make(schema)
+      const format = Schema.makeFormat(schema)
       strictEqual(format(new Set()), `ReadonlySet(0) {}`)
       strictEqual(format(new Set([new Set([new Set()])])), `ReadonlySet(1) { ReadonlySet(1) { ReadonlySet(0) {} } }`)
     })
@@ -393,7 +393,7 @@ describe("ToFormat", () => {
     it("ReadonlyMap", () => {
       const Rec = Schema.suspend((): Schema.Codec<any> => schema)
       const schema = Schema.ReadonlyMap(Schema.String, Rec)
-      const format = ToFormat.make(schema)
+      const format = Schema.makeFormat(schema)
       strictEqual(format(new Map()), `ReadonlyMap(0) {}`)
       strictEqual(
         format(new Map([["a", new Map([["b", new Map()]])]])),
@@ -403,54 +403,54 @@ describe("ToFormat", () => {
   })
 
   it("Date", () => {
-    const format = ToFormat.make(Schema.Date)
+    const format = Schema.makeFormat(Schema.Date)
     strictEqual(format(new Date(0)), "1970-01-01T00:00:00.000Z")
   })
 
   it("URL", () => {
-    const format = ToFormat.make(Schema.URL)
+    const format = Schema.makeFormat(Schema.URL)
     strictEqual(format(new URL("https://www.example.com")), "https://www.example.com/")
   })
 
   it("Option(String)", () => {
-    const format = ToFormat.make(Schema.Option(Schema.String))
+    const format = Schema.makeFormat(Schema.Option(Schema.String))
     strictEqual(format(Option.some("a")), `some("a")`)
     strictEqual(format(Option.none()), "none()")
   })
 
   it("Result(Number, String)", () => {
-    const format = ToFormat.make(Schema.Result(Schema.Number, Schema.String))
+    const format = Schema.makeFormat(Schema.Result(Schema.Number, Schema.String))
     strictEqual(format(Result.succeed(1)), `success(1)`)
     strictEqual(format(Result.fail("a")), `failure("a")`)
   })
 
   it("ReadonlyMap(String, Option(Number))", () => {
-    const format = ToFormat.make(Schema.ReadonlyMap(Schema.String, Schema.Option(Schema.Number)))
+    const format = Schema.makeFormat(Schema.ReadonlyMap(Schema.String, Schema.Option(Schema.Number)))
     strictEqual(format(new Map([["a", Option.some(1)]])), `ReadonlyMap(1) { "a" => some(1) }`)
     strictEqual(format(new Map([["a", Option.none()]])), `ReadonlyMap(1) { "a" => none() }`)
   })
 
   describe("Redacted", () => {
     it("Redacted(String)", () => {
-      const format = ToFormat.make(Schema.Redacted(Schema.String))
+      const format = Schema.makeFormat(Schema.Redacted(Schema.String))
       strictEqual(format(Redacted.make("a")), `<redacted>`)
     })
 
     it("with label", () => {
-      const format = ToFormat.make(Schema.Redacted(Schema.String, { label: "password" }))
+      const format = Schema.makeFormat(Schema.Redacted(Schema.String, { label: "password" }))
       strictEqual(format(Redacted.make("a", { label: "password" })), `<redacted:password>`)
     })
   })
 
   it("Duration", () => {
-    const format = ToFormat.make(Schema.Duration)
+    const format = Schema.makeFormat(Schema.Duration)
     strictEqual(format(Duration.millis(100)), `100 millis`)
     strictEqual(format(Duration.nanos(1000n)), `1000 nanos`)
     strictEqual(format(Duration.infinity), "Infinity")
   })
 
   it("DateTimeUtc", () => {
-    const format = ToFormat.make(Schema.DateTimeUtc)
+    const format = Schema.makeFormat(Schema.DateTimeUtc)
     strictEqual(format(DateTime.makeUnsafe("2021-01-01T00:00:00.000Z")), "DateTime.Utc(2021-01-01T00:00:00.000Z)")
   })
 
@@ -459,7 +459,7 @@ describe("ToFormat", () => {
       constructor(readonly a: string) {}
     }
     const schema = Schema.instanceOf(A)
-    const format = ToFormat.make(schema)
+    const format = Schema.makeFormat(schema)
     strictEqual(format(new A("a")), `A({"a":"a"})`)
   })
 
@@ -471,21 +471,23 @@ describe("ToFormat", () => {
       }
     }
     const schema = Schema.instanceOf(A)
-    const format = ToFormat.make(schema)
+    const format = Schema.makeFormat(schema)
     strictEqual(format(new A("a")), `A(a)`)
   })
 
   describe("Annotations", () => {
     describe("Override annotation", () => {
       it("String", () => {
-        const schema = Schema.String.pipe(ToFormat.override(() => (s) => s.toUpperCase()))
-        const format = ToFormat.make(schema)
+        const schema = Schema.String.pipe(Schema.overrideFormat(() => (s) => s.toUpperCase()))
+        const format = Schema.makeFormat(schema)
         strictEqual(format("a"), "A")
       })
 
       it("String & isMinLength(1)", () => {
-        const schema = Schema.String.check(Schema.isMinLength(1)).pipe(ToFormat.override(() => (s) => s.toUpperCase()))
-        const format = ToFormat.make(schema)
+        const schema = Schema.String.check(Schema.isMinLength(1)).pipe(
+          Schema.overrideFormat(() => (s) => s.toUpperCase())
+        )
+        const format = Schema.makeFormat(schema)
         strictEqual(format("a"), "A")
       })
     })
@@ -493,10 +495,10 @@ describe("ToFormat", () => {
 
   it("should allow for custom compilers", () => {
     const alg = {
-      ...ToFormat.defaultReducerAlg,
+      ...Schema.defaultFormatReducerAlg,
       "BooleanKeyword": () => (b: boolean) => b ? "True" : "False"
     }
-    const make = ToFormat.getReducer(alg)
+    const make = Schema.getFormatReducer(alg)
     strictEqual(make(Schema.Boolean)(true), `True`)
     const schema = Schema.Tuple([Schema.String, Schema.Boolean])
     strictEqual(make(schema)(["a", true]), `["a", True]`)

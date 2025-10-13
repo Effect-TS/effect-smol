@@ -1,5 +1,4 @@
 import * as Schema from "#dist/effect/schema/Schema"
-import * as SchemaToFormat from "#dist/effect/schema/ToFormat"
 
 const schema = Schema.Struct({
   a: Schema.String,
@@ -7,4 +6,4 @@ const schema = Schema.Struct({
   c: Schema.Array(Schema.String)
 })
 
-SchemaToFormat.make(schema)
+Schema.makeFormat(schema)

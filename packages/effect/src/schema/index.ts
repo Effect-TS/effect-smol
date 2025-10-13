@@ -45,11 +45,6 @@ export * as ToEquivalence from "./ToEquivalence.ts"
 /**
  * @since 4.0.0
  */
-export * as ToFormat from "./ToFormat.ts"
-
-/**
- * @since 4.0.0
- */
 export * as ToJsonSchema from "./ToJsonSchema.ts"
 
 /**

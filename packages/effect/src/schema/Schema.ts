@@ -9,6 +9,7 @@ import type { Brand } from "../data/Brand.ts"
 import type * as Combiner from "../data/Combiner.ts"
 import * as Data from "../data/Data.ts"
 import type * as Equivalence from "../data/Equivalence.ts"
+import type { Format } from "../data/Format.ts"
 import * as Option_ from "../data/Option.ts"
 import * as Order from "../data/Order.ts"
 import * as Predicate from "../data/Predicate.ts"
@@ -21,9 +22,9 @@ import * as DateTime from "../DateTime.ts"
 import * as Duration_ from "../Duration.ts"
 import * as Effect from "../Effect.ts"
 import * as Exit_ from "../Exit.ts"
-import { identity } from "../Function.ts"
+import { identity, memoize } from "../Function.ts"
 import * as Equal from "../interfaces/Equal.ts"
-import { format, formatDate } from "../interfaces/Inspectable.ts"
+import { format, formatDate, formatPropertyKey } from "../interfaces/Inspectable.ts"
 import * as Pipeable from "../interfaces/Pipeable.ts"
 import * as core from "../internal/core.ts"
 import * as InternalArbitrary from "../internal/ToArbitrary.ts"
@@ -6523,3 +6524,171 @@ export function makeArbitraryLazy<S extends Top>(schema: S): LazyArbitrary<S["Ty
 export function makeArbitrary<S extends Top>(schema: S): FastCheck.Arbitrary<S["Type"]> {
   return makeArbitraryLazy(schema)(FastCheck, {})
 }
+
+// -----------------------------------------------------------------------------
+// Format APIs
+// -----------------------------------------------------------------------------
+
+/**
+ * **Technical Note**
+ *
+ * This annotation cannot be added to `Annotations.Bottom` because it would make
+ * the schema invariant.
+ *
+ * @since 4.0.0
+ */
+export function overrideFormat<S extends Top>(override: () => Format<S["Type"]>) {
+  return (self: S): S["~rebuild.out"] => {
+    return self.annotate({ format: { _tag: "Override", override } })
+  }
+}
+
+function getFormatAnnotation(ast: AST.AST): Annotations.Format.Override<any, ReadonlyArray<any>> | undefined {
+  return Annotations.get(ast)?.["format"] as any
+}
+
+const defaultFormat = () => format
+
+/**
+ * @since 4.0.0
+ */
+export const defaultFormatReducerAlg: AST.ReducerAlg<Format<any>> = {
+  onEnter: (ast, reduce) => {
+    // ---------------------------------------------
+    // handle annotations
+    // ---------------------------------------------
+    const annotation = getFormatAnnotation(ast)
+    if (annotation) {
+      if (AST.isDeclaration(ast)) {
+        return Option_.some(annotation.override(ast.typeParameters.map(reduce)))
+      }
+      return Option_.some(annotation.override([]))
+    }
+    return Option_.none()
+  },
+  Declaration: defaultFormat,
+  NullKeyword: defaultFormat,
+  UndefinedKeyword: defaultFormat,
+  VoidKeyword: () => () => "void",
+  NeverKeyword: (ast) => {
+    throw new globalThis.Error("cannot generate Pretty, no annotation found for never", { cause: ast })
+  },
+  UnknownKeyword: defaultFormat,
+  AnyKeyword: defaultFormat,
+  StringKeyword: defaultFormat,
+  NumberKeyword: defaultFormat,
+  BooleanKeyword: defaultFormat,
+  BigIntKeyword: defaultFormat,
+  SymbolKeyword: defaultFormat,
+  UniqueSymbol: defaultFormat,
+  ObjectKeyword: defaultFormat,
+  Enums: defaultFormat,
+  LiteralType: defaultFormat,
+  TemplateLiteral: defaultFormat,
+  TupleType: (ast, reduce) => (t) => {
+    const elements = ast.elements.map(reduce)
+    const rest = ast.rest.map(reduce)
+    const out: Array<string> = []
+    let i = 0
+    // ---------------------------------------------
+    // handle elements
+    // ---------------------------------------------
+    for (; i < elements.length; i++) {
+      if (t.length < i + 1) {
+        if (AST.isOptional(ast.elements[i])) {
+          continue
+        }
+      } else {
+        out.push(elements[i](t[i]))
+      }
+    }
+    // ---------------------------------------------
+    // handle rest element
+    // ---------------------------------------------
+    if (rest.length > 0) {
+      const [head, ...tail] = rest
+      for (; i < t.length - tail.length; i++) {
+        out.push(head(t[i]))
+      }
+      // ---------------------------------------------
+      // handle post rest elements
+      // ---------------------------------------------
+      for (let j = 0; j < tail.length; j++) {
+        i += j
+        out.push(tail[j](t[i]))
+      }
+    }
+
+    return "[" + out.join(", ") + "]"
+  },
+  TypeLiteral: (ast, reduce) => {
+    const propertySignatures = ast.propertySignatures.map((ps) => reduce(ps.type))
+    const indexSignatures = ast.indexSignatures.map((is) => reduce(is.type))
+    if (ast.propertySignatures.length === 0 && ast.indexSignatures.length === 0) {
+      return format
+    }
+    return (t) => {
+      const out: Array<string> = []
+      const visited = new Set<PropertyKey>()
+      // ---------------------------------------------
+      // handle property signatures
+      // ---------------------------------------------
+      for (let i = 0; i < propertySignatures.length; i++) {
+        const ps = ast.propertySignatures[i]
+        const name = ps.name
+        visited.add(name)
+        if (AST.isOptional(ps.type) && !Object.hasOwn(t, name)) {
+          continue
+        }
+        out.push(
+          `${formatPropertyKey(name)}: ${propertySignatures[i](t[name])}`
+        )
+      }
+      // ---------------------------------------------
+      // handle index signatures
+      // ---------------------------------------------
+      for (let i = 0; i < indexSignatures.length; i++) {
+        const keys = AST.getIndexSignatureKeys(t, ast.indexSignatures[i].parameter)
+        for (const key of keys) {
+          if (visited.has(key)) {
+            continue
+          }
+          visited.add(key)
+          out.push(`${formatPropertyKey(key)}: ${indexSignatures[i](t[key])}`)
+        }
+      }
+
+      return out.length > 0 ? "{ " + out.join(", ") + " }" : "{}"
+    }
+  },
+  UnionType: (_, reduce, getCandidates) => (t) => {
+    const candidates = getCandidates(t)
+    const refinements = candidates.map(ToParser.refinement)
+    for (let i = 0; i < candidates.length; i++) {
+      const is = refinements[i]
+      if (is(t)) {
+        return reduce(candidates[i])(t)
+      }
+    }
+    return format(t)
+  },
+  Suspend: (ast, reduce) => {
+    const get = AST.memoizeThunk(() => reduce(ast.thunk()))
+    return (t) => get()(t)
+  }
+}
+
+/**
+ * @since 4.0.0
+ */
+export function getFormatReducer(alg: AST.ReducerAlg<Format<any>>) {
+  const reducer = memoize(AST.getReducer<Format<any>>(alg))
+  return <T>(schema: Schema<T>): Format<T> => {
+    return reducer(schema.ast)
+  }
+}
+
+/**
+ * @since 4.0.0
+ */
+export const makeFormat = getFormatReducer(defaultFormatReducerAlg)

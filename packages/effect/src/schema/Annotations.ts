@@ -2,13 +2,13 @@
  * @since 4.0.0
  */
 
+import type { Format } from "../data/Format.ts"
 import * as Predicate from "../data/Predicate.ts"
 import { memoize } from "../Function.ts"
 import type * as FastCheck from "../testing/FastCheck.ts"
 import type * as AST from "./AST.ts"
 import type * as Schema from "./Schema.ts"
 import type * as ToEquivalence from "./ToEquivalence.ts"
-import type * as ToFormat from "./ToFormat.ts"
 import type * as ToJsonSchema from "./ToJsonSchema.ts"
 
 /**
@@ -141,7 +141,7 @@ export interface Declaration<T, TypeParameters extends ReadonlyArray<Schema.Top>
   readonly jsonSchema?: ToJsonSchema.Annotation.Override | undefined
   readonly arbitrary?: Arbitrary.Override<T, TypeParameters> | undefined
   readonly equivalence?: ToEquivalence.Annotation.Override<T, TypeParameters> | undefined
-  readonly format?: ToFormat.Annotation.Override<T, TypeParameters> | undefined
+  readonly format?: Format.Override<T, TypeParameters> | undefined
   /** @internal */
   readonly "~sentinels"?: ReadonlyArray<AST.Sentinel> | undefined
 }
@@ -269,6 +269,21 @@ export declare namespace Arbitrary {
       // Arbitraries for any type parameters of the schema (if present)
       typeParameters: { readonly [K in keyof TypeParameters]: FastCheck.Arbitrary<TypeParameters[K]["Type"]> }
     ) => (fc: typeof FastCheck, context?: Context) => FastCheck.Arbitrary<T>
+  }
+}
+
+/**
+ * @since 4.0.0
+ */
+export declare namespace Format {
+  /**
+   * @since 4.0.0
+   */
+  export type Override<T, TypeParameters extends ReadonlyArray<Schema.Top>> = {
+    readonly _tag: "Override"
+    readonly override: (
+      typeParameters: { readonly [K in keyof TypeParameters]: Format<TypeParameters[K]["Type"]> }
+    ) => Format<T>
   }
 }
 
