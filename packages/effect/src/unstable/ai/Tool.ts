@@ -31,10 +31,9 @@ import type * as Struct from "../../data/Struct.ts"
 import type * as Effect from "../../Effect.ts"
 import { constFalse, constTrue, identity } from "../../Function.ts"
 import { pipeArguments } from "../../interfaces/Pipeable.ts"
-import * as SchemaAnnotations from "../../schema/Annotations.ts"
+import * as Annotations from "../../schema/Annotations.ts"
 import * as AST from "../../schema/AST.ts"
 import * as Schema from "../../schema/Schema.ts"
-import * as JsonSchema from "../../schema/ToJsonSchema.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import type * as Types from "../../types/Types.ts"
 
@@ -1065,7 +1064,7 @@ export const providerDefined = <
  * @category utilities
  */
 export const getDescription = <Tool extends Any>(tool: Tool): string | undefined =>
-  tool.description ?? SchemaAnnotations.getDescription(tool.parametersSchema.ast)
+  tool.description ?? Annotations.getDescription(tool.parametersSchema.ast)
 
 /**
  * Generates a JSON Schema for a tool.
@@ -1101,14 +1100,14 @@ export const getDescription = <Tool extends Any>(tool: Tool): string | undefined
  * @since 4.0.0
  * @category utilities
  */
-export const getJsonSchema = <Tool extends Any>(tool: Tool): JsonSchema.JsonSchema =>
+export const getJsonSchema = <Tool extends Any>(tool: Tool): Annotations.JsonSchema.JsonSchema =>
   getJsonSchemaFromSchema(tool.parametersSchema)
 
 /**
  * @since 4.0.0
  * @category utilities
  */
-export const getJsonSchemaFromSchema = <S extends Schema.Top>(schema: S): JsonSchema.JsonSchema => {
+export const getJsonSchemaFromSchema = <S extends Schema.Top>(schema: S): Annotations.JsonSchema.JsonSchema => {
   const props = AST.isTypeLiteral(schema.ast) ? schema.ast.propertySignatures : []
   if (props.length === 0) {
     return {
@@ -1119,7 +1118,7 @@ export const getJsonSchemaFromSchema = <S extends Schema.Top>(schema: S): JsonSc
     }
   }
   const $defs = {}
-  const jsonSchema = JsonSchema.makeDraft2020_12(schema, {
+  const jsonSchema = Schema.makeDraft2020_12(schema, {
     definitions: $defs,
     topLevelReferenceStrategy: "skip"
   })

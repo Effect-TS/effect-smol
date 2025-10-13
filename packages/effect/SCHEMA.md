@@ -4294,13 +4294,13 @@ By default, a plain schema (with no annotations) produces the minimal valid JSON
 **Example** (Tuple to draft-07 JSON Schema)
 
 ```ts
-import { Schema, ToJsonSchema } from "effect/schema"
+import { Schema } from "effect/schema"
 
 // Define a tuple: [string, number]
 const schema = Schema.Tuple([Schema.String, Schema.Number])
 
 // Generate a draft-07 JSON Schema
-const jsonSchema = ToJsonSchema.makeDraft07(schema)
+const jsonSchema = Schema.makeDraft07(schema)
 
 console.log(JSON.stringify(jsonSchema, null, 2))
 /*
@@ -4324,13 +4324,13 @@ Output:
 **Example** (Tuple to draft-2020-12 JSON Schema)
 
 ```ts
-import { Schema, ToJsonSchema } from "effect/schema"
+import { Schema } from "effect/schema"
 
 // Same tuple as above
 const schema = Schema.Tuple([Schema.String, Schema.Number])
 
 // Generate a draft-2020-12 JSON Schema
-const jsonSchema = ToJsonSchema.makeDraft2020_12(schema)
+const jsonSchema = Schema.makeDraft2020_12(schema)
 
 console.log(JSON.stringify(jsonSchema, null, 2))
 /*
@@ -4356,11 +4356,11 @@ If the top-level schema is a "Declaration" (e.g. `Schema.Option(Schema.String)`)
 **Example** (Unsupported top-level type)
 
 ```ts
-import { Schema, ToJsonSchema } from "effect/schema"
+import { Schema } from "effect/schema"
 
 const schema = Schema.BigInt
 
-ToJsonSchema.makeDraft07(schema)
+Schema.makeDraft07(schema)
 // throws Error: cannot generate JSON Schema for BigIntKeyword at root
 ```
 
@@ -4376,7 +4376,7 @@ Use `.annotate(...)` to attach standard JSON Schema annotations:
 **Example** (Adding basic annotations)
 
 ```ts
-import { Schema, ToJsonSchema } from "effect/schema"
+import { Schema } from "effect/schema"
 
 const schema = Schema.NonEmptyString.annotate({
   title: "Username",
@@ -4385,7 +4385,7 @@ const schema = Schema.NonEmptyString.annotate({
   examples: ["alice", "bob"]
 })
 
-const jsonSchema = ToJsonSchema.makeDraft07(schema)
+const jsonSchema = Schema.makeDraft07(schema)
 
 console.log(JSON.stringify(jsonSchema, null, 2))
 /*
@@ -4412,7 +4412,7 @@ Annotations are not validated when you set them. During generation, `examples` a
 **Example** (Filtering invalid annotations)
 
 ```ts
-import { Schema, ToJsonSchema } from "effect/schema"
+import { Schema } from "effect/schema"
 
 // Attaching invalid values is allowed at definition time
 const schema = Schema.NonEmptyString.annotate({
@@ -4421,7 +4421,7 @@ const schema = Schema.NonEmptyString.annotate({
 })
 
 // During generation invalid annotations are dropped
-const jsonSchema = ToJsonSchema.makeDraft07(schema)
+const jsonSchema = Schema.makeDraft07(schema)
 
 console.log(JSON.stringify(jsonSchema, null, 2))
 /*
@@ -4445,13 +4445,13 @@ Output:
 **Example** (Optional struct field from `UndefinedOr`)
 
 ```ts
-import { Schema, ToJsonSchema } from "effect/schema"
+import { Schema } from "effect/schema"
 
 const schema = Schema.Struct({
   a: Schema.UndefinedOr(Schema.Number) // 'a' may be undefined
 })
 
-const jsonSchema = ToJsonSchema.makeDraft07(schema)
+const jsonSchema = Schema.makeDraft07(schema)
 
 console.log(JSON.stringify(jsonSchema, null, 2))
 /*
@@ -4473,11 +4473,11 @@ Output:
 **Example** (Optional tuple element from `UndefinedOr`)
 
 ```ts
-import { Schema, ToJsonSchema } from "effect/schema"
+import { Schema } from "effect/schema"
 
 const schema = Schema.Tuple([Schema.UndefinedOr(Schema.Number)]) // first element may be undefined
 
-const jsonSchema = ToJsonSchema.makeDraft07(schema)
+const jsonSchema = Schema.makeDraft07(schema)
 
 console.log(JSON.stringify(jsonSchema, null, 2))
 /*
@@ -4523,13 +4523,13 @@ type Override = {
 **Example** (Without override, filter ignored in JSON Schema)
 
 ```ts
-import { Schema, ToJsonSchema } from "effect/schema"
+import { Schema } from "effect/schema"
 
 // Validation at runtime: n > 0
 const schema = Schema.Number.check(Schema.makeFilter((n) => n > 0))
 
 // No override: the JSON Schema keeps the basic 'number' shape
-const jsonSchema = ToJsonSchema.makeDraft07(schema)
+const jsonSchema = Schema.makeDraft07(schema)
 
 console.log(JSON.stringify(jsonSchema, null, 2))
 /*
@@ -4544,7 +4544,7 @@ Output:
 **Example** (With override, add 'minimum: 0')
 
 ```ts
-import { Schema, ToJsonSchema } from "effect/schema"
+import { Schema } from "effect/schema"
 
 const schema = Schema.Number.check(Schema.makeFilter((n) => n > 0)).annotate({
   jsonSchema: {
@@ -4554,7 +4554,7 @@ const schema = Schema.Number.check(Schema.makeFilter((n) => n > 0)).annotate({
   }
 })
 
-const jsonSchema = ToJsonSchema.makeDraft07(schema)
+const jsonSchema = Schema.makeDraft07(schema)
 
 console.log(JSON.stringify(jsonSchema, null, 2))
 /*
@@ -4574,7 +4574,7 @@ You can force a field to be required (or optional) regardless of `UndefinedOr` b
 **Example** (Mark an otherwise optional field as required)
 
 ```ts
-import { Schema, ToJsonSchema } from "effect/schema"
+import { Schema } from "effect/schema"
 
 const schema = Schema.Struct({
   a: Schema.UndefinedOr(Schema.Number).annotate({
@@ -4586,7 +4586,7 @@ const schema = Schema.Struct({
   })
 })
 
-const jsonSchema = ToJsonSchema.makeDraft07(schema)
+const jsonSchema = Schema.makeDraft07(schema)
 
 console.log(JSON.stringify(jsonSchema, null, 2))
 /*
@@ -4616,11 +4616,11 @@ When you call `.check(...)`, Effect attaches a filter. A filter may include a `"
 Effect's built-in checks already carry a `jsonSchema` fragment. For example:
 
 ```ts
-import { Schema, ToJsonSchema } from "effect/schema"
+import { Schema } from "effect/schema"
 
 const schema = Schema.String.check(Schema.isMinLength(1))
 
-const jsonSchema = ToJsonSchema.makeDraft07(schema)
+const jsonSchema = Schema.makeDraft07(schema)
 
 console.log(JSON.stringify(jsonSchema, null, 2))
 /*
@@ -4640,14 +4640,14 @@ Because no outer `.annotate(...)` is present and this is the first filter, the f
 **Example** (Multiple filters: top-level + `allOf`)
 
 ```ts
-import { Schema, ToJsonSchema } from "effect/schema"
+import { Schema } from "effect/schema"
 
 const schema = Schema.String.check(
   Schema.isMinLength(1), // first: merged at top-level
   Schema.isMaxLength(2) // subsequent: wrapped under allOf
 )
 
-const jsonSchema = ToJsonSchema.makeDraft07(schema)
+const jsonSchema = Schema.makeDraft07(schema)
 
 console.log(JSON.stringify(jsonSchema, null, 2))
 /*
@@ -4682,7 +4682,7 @@ You can define a custom filter and provide a JSON Schema fragment.
 **Example** (Custom `pattern` constraint)
 
 ```ts
-import { Schema, ToJsonSchema } from "effect/schema"
+import { Schema } from "effect/schema"
 
 const schema = Schema.String.check(
   Schema.makeFilter((s) => /foo/.test(s), {
@@ -4698,7 +4698,7 @@ const schema = Schema.String.check(
   })
 )
 
-const jsonSchema = ToJsonSchema.makeDraft07(schema)
+const jsonSchema = Schema.makeDraft07(schema)
 
 console.log(JSON.stringify(jsonSchema, null, 2))
 /*
@@ -4722,7 +4722,7 @@ With `fromJsonString` on `draft-2020-12` or `openApi3.1`, the generated schema u
 **Example** (Embedding `contentSchema` for JSON string content)
 
 ```ts
-import { Schema, ToJsonSchema } from "effect/schema"
+import { Schema } from "effect/schema"
 
 // Original value is an object with a string field 'a'
 const original = Schema.Struct({ a: Schema.String })
@@ -4731,7 +4731,7 @@ const original = Schema.Struct({ a: Schema.String })
 // but its content must be valid JSON matching 'original'
 const schema = Schema.fromJsonString(original)
 
-const jsonSchema = ToJsonSchema.makeDraft2020_12(schema)
+const jsonSchema = Schema.makeDraft2020_12(schema)
 
 console.log(JSON.stringify(jsonSchema, null, 2))
 /*

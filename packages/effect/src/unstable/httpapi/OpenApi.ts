@@ -6,7 +6,6 @@ import * as Option from "../../data/Option.ts"
 import { constFalse } from "../../Function.ts"
 import type * as AST from "../../schema/AST.ts"
 import * as Schema from "../../schema/Schema.ts"
-import * as ToJsonSchema from "../../schema/ToJsonSchema.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import * as HttpMethod from "../http/HttpMethod.ts"
 import * as HttpApi from "./HttpApi.ts"
@@ -238,7 +237,7 @@ export const fromApi = <Id extends string, Groups extends HttpApiGroup.Any>(
   }
 
   function processAST(ast: AST.AST): object {
-    const schema = ToJsonSchema.makeDraft2020_12(Schema.make(ast), {
+    const schema = Schema.makeDraft2020_12(Schema.make(ast), {
       getRef: (id) => `#/components/schemas/${id}`,
       additionalPropertiesStrategy: options?.additionalPropertiesStrategy,
       topLevelReferenceStrategy: "keep"

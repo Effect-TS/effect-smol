@@ -1,7 +1,7 @@
 import type { Options as AjvOptions } from "ajv"
 // eslint-disable-next-line import-x/no-named-as-default
 import Ajv from "ajv"
-import { Getter, Schema, ToJsonSchema } from "effect/schema"
+import { Getter, Schema } from "effect/schema"
 import { describe, it } from "vitest"
 import { assertFalse, assertTrue, deepStrictEqual, strictEqual, throws } from "../utils/assert.ts"
 
@@ -30,9 +30,9 @@ const ajv2020 = new Ajv2020.default(baseAjvOptions)
 async function assertDraft7<S extends Schema.Top>(
   schema: S,
   expected: object,
-  options?: ToJsonSchema.Draft07_Options
+  options?: Schema.Draft07Options
 ) {
-  const jsonSchema = ToJsonSchema.makeDraft07(schema, options)
+  const jsonSchema = Schema.makeDraft07(schema, options)
   deepStrictEqual(jsonSchema, {
     "$schema": "http://json-schema.org/draft-07/schema",
     ...expected
@@ -48,9 +48,9 @@ async function assertDraft7<S extends Schema.Top>(
 async function assertDraft2020_12<S extends Schema.Top>(
   schema: S,
   expected: object,
-  options?: ToJsonSchema.Draft2020_12_Options
+  options?: Schema.Draft2020_12_Options
 ) {
-  const jsonSchema = ToJsonSchema.makeDraft2020_12(schema, options)
+  const jsonSchema = Schema.makeDraft2020_12(schema, options)
   deepStrictEqual(jsonSchema, {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     ...expected
@@ -66,9 +66,9 @@ async function assertDraft2020_12<S extends Schema.Top>(
 async function assertOpenApi3_1<S extends Schema.Top>(
   schema: S,
   expected: object,
-  options?: ToJsonSchema.OpenApi3_1Options
+  options?: Schema.OpenApi3_1Options
 ) {
-  const jsonSchema = ToJsonSchema.makeOpenApi3_1(schema, options)
+  const jsonSchema = Schema.makeOpenApi3_1(schema, options)
   deepStrictEqual(jsonSchema, {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     ...expected
@@ -85,7 +85,7 @@ function assertAjvDraft7Success<S extends Schema.Top>(
   schema: S,
   input: S["Type"]
 ) {
-  const jsonSchema = ToJsonSchema.makeDraft07(schema)
+  const jsonSchema = Schema.makeDraft07(schema)
   const validate = getAjvValidate(jsonSchema)
   assertTrue(validate(input))
 }
@@ -94,13 +94,13 @@ function assertAjvDraft7Failure<S extends Schema.Top>(
   schema: S,
   input: unknown
 ) {
-  const jsonSchema = ToJsonSchema.makeDraft07(schema)
+  const jsonSchema = Schema.makeDraft07(schema)
   const validate = getAjvValidate(jsonSchema)
   assertFalse(validate(input))
 }
 
 function expectError(schema: Schema.Top, message: string) {
-  throws(() => ToJsonSchema.makeDraft07(schema), new Error(message))
+  throws(() => Schema.makeDraft07(schema), new Error(message))
 }
 
 describe("ToJsonSchema", () => {

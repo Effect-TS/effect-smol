@@ -40,11 +40,6 @@ export * as Serializer from "./Serializer.ts"
 /**
  * @since 4.0.0
  */
-export * as ToJsonSchema from "./ToJsonSchema.ts"
-
-/**
- * @since 4.0.0
- */
 export * as ToOptic from "./ToOptic.ts"
 
 /**

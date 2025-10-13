@@ -29,6 +29,7 @@ import * as Pipeable from "../interfaces/Pipeable.ts"
 import * as core from "../internal/core.ts"
 import * as InternalArbitrary from "../internal/ToArbitrary.ts"
 import * as InternalEquivalence from "../internal/ToEquivalence.ts"
+import * as InternalJsonSchema from "../internal/ToJsonSchema.ts"
 import { remainder } from "../Number.ts"
 import * as Request from "../Request.ts"
 import * as Scheduler from "../Scheduler.ts"
@@ -37,7 +38,6 @@ import * as Annotations from "./Annotations.ts"
 import * as AST from "./AST.ts"
 import * as Getter from "./Getter.ts"
 import * as Issue from "./Issue.ts"
-import type * as ToJsonSchema from "./ToJsonSchema.ts"
 import * as ToParser from "./ToParser.ts"
 import * as Transformation from "./Transformation.ts"
 
@@ -5828,12 +5828,12 @@ export interface fromJsonString<S extends Top> extends decodeTo<S, UnknownFromJs
  * **Example**
  *
  * ```ts
- * import { Schema, ToJsonSchema } from "effect/schema"
+ * import { Schema } from "effect/schema"
  *
  * const original = Schema.Struct({ a: Schema.String })
  * const schema = Schema.fromJsonString(original)
  *
- * const jsonSchema = ToJsonSchema.makeDraft2020_12(schema)
+ * const jsonSchema = Schema.makeDraft2020_12(schema)
  *
  * console.log(JSON.stringify(jsonSchema, null, 2))
  * // Output:
@@ -5862,7 +5862,7 @@ export function fromJsonString<S extends Top>(schema: S): fromJsonString<S> {
   return UnknownFromJsonString.pipe(decodeTo(schema)).annotate({
     jsonSchema: {
       _tag: "Override",
-      override: (ctx: ToJsonSchema.Annotation.OverrideContext) => {
+      override: (ctx: Annotations.JsonSchema.OverrideContext) => {
         switch (ctx.target) {
           case "draft-07":
             return {
@@ -6716,4 +6716,82 @@ export function overrideEquivalence<S extends Top>(override: () => Equivalence.E
  */
 export function makeEquivalence<T>(schema: Schema<T>): Equivalence.Equivalence<T> {
   return InternalEquivalence.go(schema.ast)
+}
+
+// -----------------------------------------------------------------------------
+// JsonSchema APIs
+// -----------------------------------------------------------------------------
+
+/**
+ * @since 4.0.0
+ */
+export type JsonSchemaAdditionalPropertiesStrategy = "allow" | "strict"
+
+/**
+ * @since 4.0.0
+ */
+export type JsonSchemaTopLevelReferenceStrategy = "skip" | "keep"
+
+/**
+ * @since 4.0.0
+ */
+export interface JsonSchemaOptions {
+  readonly definitions?: Record<string, Annotations.JsonSchema.JsonSchema> | undefined
+  readonly getRef?: ((id: string) => string) | undefined
+  readonly additionalPropertiesStrategy?: JsonSchemaAdditionalPropertiesStrategy | undefined
+  readonly topLevelReferenceStrategy?: JsonSchemaTopLevelReferenceStrategy | undefined
+}
+
+/**
+ * @since 4.0.0
+ */
+export interface Draft07Options extends JsonSchemaOptions {}
+
+/**
+ * Returns a JSON Schema Draft 07 object.
+ *
+ * @since 4.0.0
+ */
+export function makeDraft07<S extends Top>(
+  schema: S,
+  options?: Draft07Options
+): Annotations.JsonSchema.JsonSchema {
+  return InternalJsonSchema.make(schema, { ...options, target: "draft-07" })
+}
+
+/**
+ * @since 4.0.0
+ */
+export interface Draft2020_12_Options extends JsonSchemaOptions {}
+
+/**
+ * Returns a JSON Schema Draft 2020-12 object.
+ *
+ * **OpenAPI 3.1**
+ *
+ * OpenAPI 3.1 schemas are fully compatible with JSON Schema Draft 2020-12 (see
+ * OpenAPI Initiative blog announcement, February 18 2021)
+ *
+ * @since 4.0.0
+ */
+export function makeDraft2020_12<S extends Top>(
+  schema: S,
+  options?: Draft2020_12_Options
+): Annotations.JsonSchema.JsonSchema {
+  return InternalJsonSchema.make(schema, { ...options, target: "draft-2020-12" })
+}
+
+/**
+ * @since 4.0.0
+ */
+export interface OpenApi3_1Options extends JsonSchemaOptions {}
+
+/**
+ * @since 4.0.0
+ */
+export function makeOpenApi3_1<S extends Top>(
+  schema: S,
+  options?: OpenApi3_1Options
+): Annotations.JsonSchema.JsonSchema {
+  return InternalJsonSchema.make(schema, { ...options, target: "openApi3.1" })
 }
