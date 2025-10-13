@@ -4766,14 +4766,14 @@ You can convert any non-declaration, non-`never` schema to a Fast-Check `Arbitra
 **Example** (Tuple schema to Fast-Check Arbitrary)
 
 ```ts
-import { Schema, ToArbitrary } from "effect/schema"
+import { Schema } from "effect/schema"
 import { FastCheck } from "effect/testing"
 
 // Build a tuple schema: [string, number]
 const schema = Schema.Tuple([Schema.String, Schema.Number])
 
 // Create Arbitrary<readonly [string, number]>
-const arb = ToArbitrary.make(schema)
+const arb = Schema.makeArbitrary(schema)
 
 // Sample 10 values from the arbitrary
 console.log(FastCheck.sample(arb, 10))
@@ -4799,11 +4799,11 @@ If you want to avoid bundling Fast-Check automatically, use `makeLazy`.
 **Example** (Lazy creation to control bundling)
 
 ```ts
-import { Schema, ToArbitrary } from "effect/schema"
+import { Schema } from "effect/schema"
 import { FastCheck } from "effect/testing"
 
 // Create a factory that needs FastCheck passed in at call time
-const lazyArb = ToArbitrary.makeLazy(Schema.String)
+const lazyArb = Schema.makeArbitraryLazy(Schema.String)
 
 // Later, provide FastCheck (and an optional context) to get the Arbitrary<string>
 const arb = lazyArb(FastCheck, {}) // same result as make(...)
@@ -4828,7 +4828,7 @@ For a custom type, provide an `arbitrary` annotation to teach the generator how 
 **Example** (Custom Arbitrary for `URL`)
 
 ```ts
-import { Schema, ToArbitrary } from "effect/schema"
+import { Schema } from "effect/schema"
 import { FastCheck } from "effect/testing"
 
 const URL = Schema.instanceOf(globalThis.URL, {
@@ -4840,7 +4840,7 @@ const URL = Schema.instanceOf(globalThis.URL, {
   }
 })
 
-console.log(FastCheck.sample(ToArbitrary.make(URL), 3))
+console.log(FastCheck.sample(Schema.makeArbitrary(URL), 3))
 /*
 Example Output:
 [
@@ -4878,11 +4878,11 @@ type Override<T, TypeParameters extends ReadonlyArray<Schema.Top>> = {
 **Example** (Override number generator range)
 
 ```ts
-import { Schema, ToArbitrary } from "effect/schema"
+import { Schema } from "effect/schema"
 import { FastCheck } from "effect/testing"
 
 // Default number schema (no override)
-console.log(FastCheck.sample(ToArbitrary.make(Schema.Number), 3))
+console.log(FastCheck.sample(Schema.makeArbitrary(Schema.Number), 3))
 /*
 Example Output:
 [
@@ -4900,7 +4900,7 @@ const schema = Schema.Number.annotate({
   }
 })
 
-console.log(FastCheck.sample(ToArbitrary.make(schema), 3))
+console.log(FastCheck.sample(Schema.makeArbitrary(schema), 3))
 /*
 Example Output:
 [ 12, 12, 18 ]
@@ -4914,7 +4914,7 @@ Filters created with `.check(...)` can include Arbitrary hints so generators res
 **Example** (Declare Arbitrary constraints for a custom `nonEmpty` filter)
 
 ```ts
-import { Schema, ToArbitrary } from "effect/schema"
+import { Schema } from "effect/schema"
 import { FastCheck } from "effect/testing"
 
 // A reusable 'isNonEmpty' filter for strings and arrays
@@ -4935,7 +4935,7 @@ const isNonEmpty = Schema.makeFilter((s: string) => s.length > 0, {
 
 const schema = Schema.String.check(isNonEmpty)
 
-console.log(FastCheck.sample(ToArbitrary.make(schema), 3))
+console.log(FastCheck.sample(Schema.makeArbitrary(schema), 3))
 /*
 Example Output:
 [ 'R|I6', 'q#" Z', 'qc= f' ]
