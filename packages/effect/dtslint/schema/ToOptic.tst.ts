@@ -1,7 +1,7 @@
 import type { Cause, Exit, Optic } from "effect"
 import type { Brand, Option } from "effect/data"
 import { Data } from "effect/data"
-import { Check, Schema, ToOptic, Util } from "effect/schema"
+import { Schema, ToOptic, Util } from "effect/schema"
 import { describe, expect, it } from "tstyche"
 
 class Value extends Schema.Class<Value, { readonly brand: unique symbol }>("Value")({
@@ -33,7 +33,7 @@ describe("ToOptic", () => {
 
     describe("brand", () => {
       it("Number & positive", () => {
-        const schema = Schema.Number.check(Check.positive()).pipe(Schema.brand("positive"))
+        const schema = Schema.Number.check(Schema.isPositive()).pipe(Schema.brand("positive"))
         const optic = ToOptic.makeIso(schema)
 
         expect(optic).type.toBe<Optic.Iso<number & Brand.Brand<"positive">, number & Brand.Brand<"positive">>>()

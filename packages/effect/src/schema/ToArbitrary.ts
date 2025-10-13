@@ -13,7 +13,6 @@ import * as Number from "../Number.ts"
 import * as FastCheck from "../testing/FastCheck.ts"
 import type * as Annotations from "./Annotations.ts"
 import * as AST from "./AST.ts"
-import type * as Check from "./Check.ts"
 import type * as Schema from "./Schema.ts"
 
 /**
@@ -133,14 +132,14 @@ function getAnnotation(
 }
 
 function getCheckAnnotation(
-  check: Check.Check<any>
+  check: AST.Check<any>
 ): Annotation.Constraint | Annotation.Constraint | undefined {
   return check.annotations?.arbitrary as any
 }
 
 function applyChecks(
   ast: AST.AST,
-  filters: Array<Check.Filter<any>>,
+  filters: Array<AST.Filter<any>>,
   arbitrary: FastCheck.Arbitrary<any>
 ) {
   return filters.map((filter) => (a: any) => filter.run(a, ast, AST.defaultParseOptions) === undefined).reduce(
@@ -224,7 +223,7 @@ function isConstraintKey(key: string): key is keyof Annotation.Constraint["const
 
 /** @internal */
 export function mergeFiltersConstraints(
-  filters: Array<Check.Filter<any>>
+  filters: Array<AST.Filter<any>>
 ): (ctx: Context | undefined) => Context | undefined {
   const annotations = filters.map(getCheckAnnotation).filter(Predicate.isNotUndefined)
   return (ctx) => {

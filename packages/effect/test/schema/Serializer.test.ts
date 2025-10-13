@@ -1,6 +1,6 @@
 import { Cause, DateTime, Duration, Effect } from "effect"
 import { Option, Redacted, Result } from "effect/data"
-import { Check, Issue, Schema, Serializer, ToParser, Transformation } from "effect/schema"
+import { Issue, Schema, Serializer, ToParser, Transformation } from "effect/schema"
 import { TestSchema } from "effect/testing"
 import { deepStrictEqual } from "node:assert"
 import { describe, it } from "vitest"
@@ -704,7 +704,7 @@ describe("Serializer", () => {
         interface CategoryEncoded extends Category<string, CategoryEncoded> {}
 
         const schema = Schema.Struct({
-          a: Schema.FiniteFromString.check(Check.greaterThan(0)),
+          a: Schema.FiniteFromString.check(Schema.isGreaterThan(0)),
           categories: Schema.Array(Schema.suspend((): Schema.Codec<CategoryType, CategoryEncoded> => schema))
         })
         const asserts = new TestSchema.Asserts(Serializer.json(Schema.typeCodec(schema)))
@@ -1795,7 +1795,7 @@ describe("Serializer", () => {
         interface CategoryEncoded extends Category<string, CategoryEncoded> {}
 
         const schema = Schema.Struct({
-          a: Schema.FiniteFromString.check(Check.greaterThan(0)),
+          a: Schema.FiniteFromString.check(Schema.isGreaterThan(0)),
           categories: Schema.Array(Schema.suspend((): Schema.Codec<CategoryType, CategoryEncoded> => schema))
         })
         const asserts = new TestSchema.Asserts(Serializer.stringPojo(Schema.typeCodec(schema)))

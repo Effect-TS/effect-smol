@@ -1,6 +1,6 @@
 import { Cause, Exit } from "effect"
 import { Data, Option, Predicate, Record, Result } from "effect/data"
-import { Check, Schema, ToOptic, Transformation, Util } from "effect/schema"
+import { Schema, ToOptic, Transformation, Util } from "effect/schema"
 import { describe, it } from "vitest"
 import { assertNone, assertSome, deepStrictEqual, strictEqual, throws } from "../utils/assert.ts"
 
@@ -65,8 +65,8 @@ describe("ToOptic", () => {
     })
 
     describe("brand", () => {
-      it("Number & positive", () => {
-        const schema = Schema.Number.check(Check.positive()).pipe(Schema.brand("positive"))
+      it("Number & isPositive", () => {
+        const schema = Schema.Number.check(Schema.isPositive()).pipe(Schema.brand("isPositive"))
         const optic = ToOptic.makeIso(schema)
         const modify = optic.modify((n) => schema.makeUnsafe(n - 1))
 

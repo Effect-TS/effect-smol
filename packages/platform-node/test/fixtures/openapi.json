@@ -503,7 +503,7 @@
                     },
                     "length": {
                       "type": "integer",
-                      "title": "int",
+                      "title": "isInt",
                       "description": "an integer"
                     }
                   },
@@ -569,7 +569,7 @@
                     },
                     "length": {
                       "type": "integer",
-                      "title": "int",
+                      "title": "isInt",
                       "description": "an integer"
                     }
                   },
@@ -646,7 +646,7 @@
            },
            "length": {
              "description": "an integer",
-             "title": "int",
+             "title": "isInt",
              "type": "integer"
            }
          },
@@ -661,7 +661,7 @@
         "properties": {
           "id": {
             "type": "integer",
-            "title": "int",
+            "title": "isInt",
             "description": "an integer"
           },
           "name": {
@@ -694,7 +694,7 @@
         "properties": {
           "id": {
             "type": "integer",
-            "title": "int",
+            "title": "isInt",
             "description": "an integer"
           },
           "uuid": {

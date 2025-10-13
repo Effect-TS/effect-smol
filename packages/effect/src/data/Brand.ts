@@ -24,7 +24,6 @@
  */
 import * as Arr from "../collections/Array.ts"
 import * as AST from "../schema/AST.ts"
-import * as Check from "../schema/Check.ts"
 import type * as Issue from "../schema/Issue.ts"
 import type * as Types from "../types/Types.ts"
 import * as Option from "./Option.ts"
@@ -87,7 +86,7 @@ export interface Constructor<in out A extends Brand<any>> {
    *
    * @internal
    */
-  checks: readonly [Check.Check<Brand.Unbranded<A>>, ...Array<Check.Check<Brand.Unbranded<A>>>]
+  checks: readonly [AST.Check<Brand.Unbranded<A>>, ...Array<AST.Check<Brand.Unbranded<A>>>]
 }
 
 /**
@@ -223,7 +222,7 @@ export function make<A extends Brand<any>>(
     readonly message: string
   }
 ): Constructor<A> {
-  return check(Check.make(f))
+  return check(AST.makeFilter(f))
 }
 
 /**
@@ -231,8 +230,8 @@ export function make<A extends Brand<any>>(
  */
 export function check<A extends Brand<any>>(
   ...checks: readonly [
-    Check.Check<Brand.Unbranded<A>>,
-    ...Array<Check.Check<Brand.Unbranded<A>>>
+    AST.Check<Brand.Unbranded<A>>,
+    ...Array<AST.Check<Brand.Unbranded<A>>>
   ]
 ): Constructor<A> {
   const result = (input: Brand.Unbranded<A>): Result.Result<A, BrandError> => {
@@ -250,7 +249,7 @@ export function check<A extends Brand<any>>(
  * @since 4.0.0
  */
 export function refine<B extends string | symbol, T>(
-  refine: Check.Refine<T & Brand<B>, T>
+  refine: AST.Refine<T & Brand<B>, T>
 ): Constructor<T & Brand<B>> {
   return check(refine as any)
 }

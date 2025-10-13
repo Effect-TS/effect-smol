@@ -801,10 +801,10 @@ export const orElseResult: {
  *
  * @example
  * ```ts
- * import { Check, Schema } from "effect/schema"
+ * import { Schema } from "effect/schema"
  * import { Flag } from "effect/unstable/cli"
  *
- * const isEmail = Check.includes("@", {
+ * const isEmail = Schema.isIncludes("@", {
  *   message: "Must be a valid email address"
  * })
  *

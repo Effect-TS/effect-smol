@@ -1,6 +1,6 @@
 import { DateTime, Duration } from "effect"
 import { Equivalence, Option, Redacted, Result } from "effect/data"
-import { Check, Schema, ToEquivalence } from "effect/schema"
+import { Schema, ToEquivalence } from "effect/schema"
 import { describe, it } from "vitest"
 import { assertFalse, assertTrue } from "../utils/assert.ts"
 
@@ -423,8 +423,8 @@ describe("ToEquivalence", () => {
         assertTrue(equivalence("ab", "ac"))
       })
 
-      it("String & minLength(1)", () => {
-        const schema = Schema.String.check(Check.minLength(1)).pipe(
+      it("String & isMinLength(1)", () => {
+        const schema = Schema.String.check(Schema.isMinLength(1)).pipe(
           ToEquivalence.override(() => Equivalence.make((a, b) => a.substring(0, 1) === b.substring(0, 1)))
         )
         const equivalence = ToEquivalence.make(schema)

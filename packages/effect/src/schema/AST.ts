@@ -5,18 +5,18 @@
 import * as Cause from "../Cause.ts"
 import * as Arr from "../collections/Array.ts"
 import type * as Combiner from "../data/Combiner.ts"
-import * as Filter from "../data/Filter.ts"
+import * as Filter_ from "../data/Filter.ts"
 import * as Option from "../data/Option.ts"
 import * as Predicate from "../data/Predicate.ts"
 import * as Result from "../data/Result.ts"
 import * as Effect from "../Effect.ts"
 import type * as Exit from "../Exit.ts"
 import { memoize } from "../Function.ts"
+import * as Pipeable from "../interfaces/Pipeable.ts"
 import { effectIsExit } from "../internal/effect.ts"
 import * as internalRecord from "../internal/record.ts"
 import * as RegEx from "../RegExp.ts"
 import * as Annotations from "./Annotations.ts"
-import * as Check from "./Check.ts"
 import * as Getter from "./Getter.ts"
 import * as Issue from "./Issue.ts"
 import type * as Schema from "./Schema.ts"
@@ -293,7 +293,7 @@ export class Context {
  * @category model
  * @since 4.0.0
  */
-export type Checks = readonly [Check.Check<any>, ...Array<Check.Check<any>>]
+export type Checks = readonly [Check<any>, ...Array<Check<any>>]
 
 /**
  * @category model
@@ -1035,7 +1035,7 @@ export class TupleType extends Base {
         const exit = effectIsExit(eff) ? eff : yield* Effect.exit(eff)
         if (exit._tag === "Failure") {
           const issueElement = Cause.filterError(exit.cause)
-          if (Filter.isFail(issueElement)) {
+          if (Filter_.isFail(issueElement)) {
             return yield* exit
           }
           const issue = new Issue.Pointer([i], issueElement)
@@ -1070,7 +1070,7 @@ export class TupleType extends Base {
           const exit = effectIsExit(eff) ? eff : yield* Effect.exit(eff)
           if (exit._tag === "Failure") {
             const issueRest = Cause.filterError(exit.cause)
-            if (Filter.isFail(issueRest)) {
+            if (Filter_.isFail(issueRest)) {
               return yield* exit
             }
             const issue = new Issue.Pointer([i], issueRest)
@@ -1105,7 +1105,7 @@ export class TupleType extends Base {
             const exit = effectIsExit(eff) ? eff : yield* Effect.exit(eff)
             if (exit._tag === "Failure") {
               const issueRest = Cause.filterError(exit.cause)
-              if (Filter.isFail(issueRest)) {
+              if (Filter_.isFail(issueRest)) {
                 return yield* exit
               }
               const issue = new Issue.Pointer([i], issueRest)
@@ -1314,7 +1314,7 @@ export class TypeLiteral extends Base {
         const exit = effectIsExit(eff) ? eff : yield* Effect.exit(eff)
         if (exit._tag === "Failure") {
           const issueProp = Cause.filterError(exit.cause)
-          if (Filter.isFail(issueProp)) {
+          if (Filter_.isFail(issueProp)) {
             return yield* exit
           }
           const issue = new Issue.Pointer([p.name], issueProp)
@@ -1358,7 +1358,7 @@ export class TypeLiteral extends Base {
             >
             if (exitKey._tag === "Failure") {
               const issueKey = Cause.filterError(exitKey.cause)
-              if (Filter.isFail(issueKey)) {
+              if (Filter_.isFail(issueKey)) {
                 return yield* exitKey
               }
               const issue = new Issue.Pointer([key], issueKey)
@@ -1378,7 +1378,7 @@ export class TypeLiteral extends Base {
             const exitValue = effectIsExit(effValue) ? effValue : yield* Effect.exit(effValue)
             if (exitValue._tag === "Failure") {
               const issueValue = Cause.filterError(exitValue.cause)
-              if (Filter.isFail(issueValue)) {
+              if (Filter_.isFail(issueValue)) {
                 return yield* exitValue
               }
               const issue = new Issue.Pointer([key], issueValue)
@@ -1761,7 +1761,7 @@ export class UnionType<A extends AST = AST> extends Base {
         const exit = effectIsExit(eff) ? eff : yield* Effect.exit(eff)
         if (exit._tag === "Failure") {
           const issue = Cause.filterError(exit.cause)
-          if (Filter.isFail(issue)) {
+          if (Filter_.isFail(issue)) {
             return yield* exit
           }
           if (issues) issues.push(issue)
@@ -1848,6 +1848,175 @@ export class Suspend extends Base {
     return getExpected(this.thunk())
   }
 }
+
+// -----------------------------------------------------------------------------
+// Checks
+// -----------------------------------------------------------------------------
+
+/**
+ * @category model
+ * @since 4.0.0
+ */
+export class Filter<in E> extends Pipeable.Class {
+  readonly _tag = "Filter"
+  readonly run: (input: E, self: AST, options: ParseOptions) => Issue.Issue | undefined
+  readonly annotations: Annotations.Filter | undefined
+  /**
+   * Whether the parsing process should be aborted after this check has failed.
+   */
+  readonly aborted: boolean
+
+  constructor(
+    run: (input: E, self: AST, options: ParseOptions) => Issue.Issue | undefined,
+    annotations: Annotations.Filter | undefined = undefined,
+    /**
+     * Whether the parsing process should be aborted after this check has failed.
+     */
+    aborted: boolean = false
+  ) {
+    super()
+    this.run = run
+    this.annotations = annotations
+    this.aborted = aborted
+  }
+  annotate(annotations: Annotations.Filter): Filter<E> {
+    return new Filter(this.run, Annotations.combine(this.annotations, annotations), this.aborted)
+  }
+  abort(): Filter<E> {
+    return new Filter(this.run, this.annotations, true)
+  }
+  and<T extends E>(other: Refine<T, E>, annotations?: Annotations.Filter): RefinementGroup<T, E>
+  and(other: Check<E>, annotations?: Annotations.Filter): FilterGroup<E>
+  and(other: Check<E>, annotations?: Annotations.Filter): FilterGroup<E> {
+    return new FilterGroup([this, other], annotations)
+  }
+}
+
+/**
+ * @category model
+ * @since 4.0.0
+ */
+export class FilterGroup<in E> extends Pipeable.Class {
+  readonly _tag = "FilterGroup"
+  readonly checks: readonly [Check<E>, Check<E>, ...Array<Check<E>>]
+  readonly annotations: Annotations.Filter | undefined
+
+  constructor(
+    checks: readonly [Check<E>, Check<E>, ...Array<Check<E>>],
+    annotations: Annotations.Filter | undefined = undefined
+  ) {
+    super()
+    this.checks = checks
+    this.annotations = annotations
+  }
+  annotate(annotations: Annotations.Filter): FilterGroup<E> {
+    return new FilterGroup(this.checks, Annotations.combine(this.annotations, annotations))
+  }
+  and<T extends E>(other: Refine<T, E>, annotations?: Annotations.Filter): RefinementGroup<T, E>
+  and(other: Check<E>, annotations?: Annotations.Filter): FilterGroup<E>
+  and(other: Check<E>, annotations?: Annotations.Filter): FilterGroup<E> {
+    return new FilterGroup([this, other], annotations)
+  }
+}
+
+/**
+ * @category model
+ * @since 4.0.0
+ */
+export type Check<T> = Filter<T> | FilterGroup<T>
+
+/**
+ * @category model
+ * @since 4.0.0
+ */
+export interface Refinement<out T extends E, in E> extends Filter<E> {
+  readonly Type: T
+  annotate(annotations: Annotations.Filter): Refinement<T, E>
+  and<T2 extends E2, E2>(
+    other: Refine<T2, E2>,
+    annotations?: Annotations.Filter
+  ): RefinementGroup<T & T2, E & E2>
+  and(other: Check<E>, annotations?: Annotations.Filter): RefinementGroup<T, E>
+}
+
+/**
+ * @category model
+ * @since 4.0.0
+ */
+export interface RefinementGroup<T extends E, E> extends FilterGroup<E> {
+  readonly Type: T
+  annotate(annotations: Annotations.Filter): RefinementGroup<T, E>
+  and<T2 extends E2, E2>(
+    other: Refine<T2, E2>,
+    annotations?: Annotations.Filter
+  ): RefinementGroup<T & T2, E & E2>
+  and(other: Check<E>, annotations?: Annotations.Filter): RefinementGroup<T, E>
+}
+
+/**
+ * @category model
+ * @since 4.0.0
+ */
+export type Refine<T extends E, E> = Refinement<T, E> | RefinementGroup<T, E>
+
+/** @internal */
+export function makeFilter<T>(
+  filter: (
+    input: T,
+    ast: AST,
+    options: ParseOptions
+  ) => undefined | boolean | string | Issue.Issue | {
+    readonly path: ReadonlyArray<PropertyKey>
+    readonly message: string
+  },
+  annotations?: Annotations.Filter | undefined,
+  aborted: boolean = false
+): Filter<T> {
+  return new Filter(
+    (input, ast, options) => Issue.make(input, filter(input, ast, options)),
+    annotations,
+    aborted
+  )
+}
+
+/**
+ * @since 4.0.0
+ */
+export function isRegex(regex: RegExp, annotations?: Annotations.Filter) {
+  if (process.env.NODE_ENV !== "production") {
+    if (regex.flags !== "") {
+      throw new globalThis.Error("regex flags are not supported")
+    }
+  }
+  const source = regex.source
+  return makeFilter(
+    (s: string) => regex.test(s),
+    Annotations.combine({
+      title: `isRegex(${source})`,
+      description: `a string matching the regex ${source}`,
+      jsonSchema: {
+        _tag: "Constraint",
+        constraint: () => ({ pattern: regex.source })
+      },
+      meta: {
+        _tag: "isRegex",
+        regex
+      },
+      arbitrary: {
+        _tag: "Constraint",
+        constraint: {
+          string: {
+            patterns: [regex.source]
+          }
+        }
+      }
+    }, annotations)
+  )
+}
+
+// -----------------------------------------------------------------------------
+// AST APIs
+// -----------------------------------------------------------------------------
 
 function modifyOwnPropertyDescriptors<A extends AST>(
   ast: A,
@@ -2340,7 +2509,7 @@ export const enumsToLiterals = memoize((ast: Enums): UnionType<LiteralType> => {
 })
 
 /** @internal */
-export function getFilters(checks: Checks | undefined): Array<Check.Filter<any>> {
+export function getFilters(checks: Checks | undefined): Array<Filter<any>> {
   if (checks) {
     return checks.flatMap((check) => {
       switch (check._tag) {
@@ -2452,7 +2621,7 @@ const numberJsonLink = new Link(
 const numberKeywordPatternRegExp = new RegExp(`(?:${NUMBER_KEYWORD_PATTERN}|Infinity|-Infinity|NaN)`)
 
 const numberKeywordPattern = appendChecks(stringKeyword, [
-  Check.regex(numberKeywordPatternRegExp, {
+  isRegex(numberKeywordPatternRegExp, {
     title: "a string representing a number"
   })
 ])
@@ -2464,7 +2633,7 @@ const numberStringPojoLink = new Link(
 
 const bigIntJsonLink = new Link(
   appendChecks(stringKeyword, [
-    Check.regex(new RegExp(BIGINT_KEYWORD_PATTERN), { title: "a string representing a bigint" })
+    isRegex(new RegExp(BIGINT_KEYWORD_PATTERN), { title: "a string representing a bigint" })
   ]),
   new Transformation.Transformation(
     Getter.transform(BigInt),
@@ -2478,7 +2647,7 @@ const SYMBOL_PATTERN = /^Symbol\((.*)\)$/
  * to distinguish between Symbol and String, we need to add a check to the string keyword
  */
 const symbolJsonLink = new Link(
-  appendChecks(stringKeyword, [Check.regex(SYMBOL_PATTERN, { title: "a string representing a symbol" })]),
+  appendChecks(stringKeyword, [isRegex(SYMBOL_PATTERN, { title: "a string representing a symbol" })]),
   new Transformation.Transformation(
     Getter.transform((description) => Symbol.for(SYMBOL_PATTERN.exec(description)![1])),
     Getter.transformOrFail((sym: symbol) => {
@@ -2500,7 +2669,7 @@ const symbolJsonLink = new Link(
 
 /** @internal */
 export function collectIssues<T>(
-  checks: ReadonlyArray<Check.Check<T>>,
+  checks: ReadonlyArray<Check<T>>,
   value: T,
   issues: Array<Issue.Issue>,
   ast: AST,
@@ -2514,7 +2683,7 @@ export function collectIssues<T>(
       const issue = check.run(value, ast, options)
       if (issue) {
         issues.push(new Issue.Filter(value, check, issue))
-        if (check.abort || options?.errors !== "all") {
+        if (check.aborted || options?.errors !== "all") {
           return
         }
       }
@@ -2524,7 +2693,7 @@ export function collectIssues<T>(
 
 /** @internal */
 export function runChecks<T>(
-  checks: readonly [Check.Check<T>, ...Array<Check.Check<T>>],
+  checks: readonly [Check<T>, ...Array<Check<T>>],
   s: T
 ): Result.Result<T, Issue.Issue> {
   const issues: Array<Issue.Issue> = []
@@ -2537,7 +2706,7 @@ export function runChecks<T>(
 }
 
 /** @internal */
-export function runRefine<T extends E, E>(refine: Check.Refine<T, E>, s: E): Result.Result<T, Issue.Issue> {
+export function runRefine<T extends E, E>(refine: Refine<T, E>, s: E): Result.Result<T, Issue.Issue> {
   return runChecks([refine], s) as any
 }
 

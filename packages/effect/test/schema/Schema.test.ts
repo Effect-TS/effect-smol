@@ -1,12 +1,12 @@
 import { Cause, DateTime, Duration, Effect, Exit, flow, pipe, ServiceMap, String as Str } from "effect"
 import { Option, Order, Predicate, Redacted, Result, Struct, Tuple } from "effect/data"
 import { Equal } from "effect/interfaces"
-import { AST, Check, Getter, Issue, Schema, ToParser, Transformation } from "effect/schema"
+import { AST, Getter, Issue, Schema, ToParser, Transformation } from "effect/schema"
 import { TestSchema } from "effect/testing"
 import { produce } from "immer"
 import { deepStrictEqual, fail, ok, strictEqual } from "node:assert"
 import { describe, it } from "vitest"
-import { assertFalse, assertInclude, assertTrue, throws } from "../utils/assert.ts"
+import { assertFalse, assertGetter, assertInclude, assertTrue, throws } from "../utils/assert.ts"
 
 const isDeno = "Deno" in globalThis
 
@@ -61,7 +61,9 @@ describe("Schema", () => {
 
   describe("parseOptions annotation", () => {
     it("Number", async () => {
-      const schema = Schema.Number.check(Check.positive(), Check.int()).annotate({ parseOptions: { errors: "all" } })
+      const schema = Schema.Number.check(Schema.isPositive(), Schema.isInt()).annotate({
+        parseOptions: { errors: "all" }
+      })
       const asserts = new TestSchema.Asserts(schema)
 
       const decoding = asserts.decoding()
@@ -696,7 +698,7 @@ Missing key
           a: Schema.String,
           b: Schema.String
         }).check(
-          Check.make(({ a, b }) => a === b, { title: "a === b" })
+          Schema.makeFilter(({ a, b }) => a === b, { title: "a === b" })
         )
         const schema = from.mapFields(Struct.merge({ c: Schema.String }), { preserveChecks: true })
         const asserts = new TestSchema.Asserts(schema)
@@ -926,7 +928,7 @@ Unexpected key
   describe("Checks", () => {
     describe("check", () => {
       it("single check", async () => {
-        const schema = Schema.String.check(Check.minLength(3))
+        const schema = Schema.String.check(Schema.isMinLength(3))
         const asserts = new TestSchema.Asserts(schema)
 
         const decoding = asserts.decoding()
@@ -939,8 +941,8 @@ Unexpected key
 
       it("multiple checks", async () => {
         const schema = Schema.String.check(
-          Check.minLength(3),
-          Check.includes("c")
+          Schema.isMinLength(3),
+          Schema.isIncludes("c")
         )
         const asserts = new TestSchema.Asserts(schema)
 
@@ -960,8 +962,8 @@ Expected a string including "c", got "ab"`
 
       it("aborting checks", async () => {
         const schema = Schema.String.check(
-          Check.abort(Check.minLength(2)),
-          Check.includes("b")
+          Schema.isMinLength(2).abort(),
+          Schema.isIncludes("b")
         )
         const asserts = new TestSchema.Asserts(schema)
 
@@ -978,7 +980,7 @@ Expected a string including "c", got "ab"`
         const schema = Schema.Option(Schema.String).pipe(
           Schema.refineByGuard(Option.isSome, { title: "isSome" }),
           Schema.check(
-            Check.make(({ value }) => value.length > 0, { title: "length > 0" })
+            Schema.makeFilter(({ value }) => value.length > 0, { title: "length > 0" })
           )
         )
         const asserts = new TestSchema.Asserts(schema)
@@ -1042,20 +1044,20 @@ Expected a string including "c", got "ab"`
       })
 
       it("group", async () => {
-        const usernameGroup = Check.makeGroup(
+        const usernameGroup = Schema.makeFilterGroup(
           [
-            Check.minLength(3),
-            Check.regex(/^[a-zA-Z0-9]+$/, {
+            Schema.isMinLength(3),
+            Schema.isRegex(/^[a-zA-Z0-9]+$/, {
               title: "alphanumeric",
               description: "must contain only letters and numbers"
             }),
-            Check.trimmed()
+            Schema.isTrimmed()
           ],
           {
             title: "username",
             description: "a valid username"
           }
-        ).pipe(Check.brand("Username"))
+        ).pipe(Schema.isBranded("Username"))
 
         const Username = Schema.String.pipe(Schema.refine(usernameGroup))
         const asserts = new TestSchema.Asserts(Username)
@@ -1070,8 +1072,8 @@ Expected a string including "c", got "ab"`
     })
 
     describe("String checks", () => {
-      it("regex", async () => {
-        const schema = Schema.String.check(Check.regex(/^a/))
+      it("isRegex", async () => {
+        const schema = Schema.String.check(Schema.isRegex(/^a/))
         const asserts = new TestSchema.Asserts(schema)
 
         const decoding = asserts.decoding()
@@ -1089,8 +1091,8 @@ Expected a string including "c", got "ab"`
         )
       })
 
-      it("startsWith", async () => {
-        const schema = Schema.String.check(Check.startsWith("a"))
+      it("isStartsWith", async () => {
+        const schema = Schema.String.check(Schema.isStartsWith("a"))
         const asserts = new TestSchema.Asserts(schema)
 
         const decoding = asserts.decoding()
@@ -1108,8 +1110,8 @@ Expected a string including "c", got "ab"`
         )
       })
 
-      it("endsWith", async () => {
-        const schema = Schema.String.check(Check.endsWith("a"))
+      it("isEndsWith", async () => {
+        const schema = Schema.String.check(Schema.isEndsWith("a"))
         const asserts = new TestSchema.Asserts(schema)
 
         const decoding = asserts.decoding()
@@ -1127,8 +1129,8 @@ Expected a string including "c", got "ab"`
         )
       })
 
-      it("lowercased", async () => {
-        const schema = Schema.String.check(Check.lowercased())
+      it("isLowercased", async () => {
+        const schema = Schema.String.check(Schema.isLowercased())
         const asserts = new TestSchema.Asserts(schema)
 
         const decoding = asserts.decoding()
@@ -1146,8 +1148,8 @@ Expected a string including "c", got "ab"`
         )
       })
 
-      it("uppercased", async () => {
-        const schema = Schema.String.check(Check.uppercased())
+      it("isUppercased", async () => {
+        const schema = Schema.String.check(Schema.isUppercased())
         const asserts = new TestSchema.Asserts(schema)
 
         const decoding = asserts.decoding()
@@ -1165,8 +1167,8 @@ Expected a string including "c", got "ab"`
         )
       })
 
-      it("capitalized", async () => {
-        const schema = Schema.String.check(Check.capitalized())
+      it("isCapitalized", async () => {
+        const schema = Schema.String.check(Schema.isCapitalized())
         const asserts = new TestSchema.Asserts(schema)
 
         const decoding = asserts.decoding()
@@ -1184,8 +1186,8 @@ Expected a string including "c", got "ab"`
         )
       })
 
-      it("uncapitalized", async () => {
-        const schema = Schema.String.check(Check.uncapitalized())
+      it("isUncapitalized", async () => {
+        const schema = Schema.String.check(Schema.isUncapitalized())
         const asserts = new TestSchema.Asserts(schema)
 
         const decoding = asserts.decoding()
@@ -1203,8 +1205,8 @@ Expected a string including "c", got "ab"`
         )
       })
 
-      it("minLength", async () => {
-        const schema = Schema.String.check(Check.minLength(1))
+      it("isMinLength", async () => {
+        const schema = Schema.String.check(Schema.isMinLength(1))
         const asserts = new TestSchema.Asserts(schema)
 
         const decoding = asserts.decoding()
@@ -1222,8 +1224,8 @@ Expected a string including "c", got "ab"`
         )
       })
 
-      it("minEntries", async () => {
-        const schema = Schema.Record(Schema.String, Schema.Finite).check(Check.minEntries(1))
+      it("isMinEntries", async () => {
+        const schema = Schema.Record(Schema.String, Schema.Finite).check(Schema.isMinEntries(1))
         const asserts = new TestSchema.Asserts(schema)
 
         const decodingAll = asserts.decoding({ parseOptions: { errors: "all" } })
@@ -1234,8 +1236,8 @@ Expected a string including "c", got "ab"`
         )
       })
 
-      it("maxEntries", async () => {
-        const schema = Schema.Record(Schema.String, Schema.Finite).check(Check.maxEntries(2))
+      it("isMaxEntries", async () => {
+        const schema = Schema.Record(Schema.String, Schema.Finite).check(Schema.isMaxEntries(2))
         const asserts = new TestSchema.Asserts(schema)
 
         const decodingAll = asserts.decoding({ parseOptions: { errors: "all" } })
@@ -1252,8 +1254,8 @@ Expected a string including "c", got "ab"`
     })
 
     describe("Number checks", () => {
-      it("greaterThan", async () => {
-        const schema = Schema.Number.check(Check.greaterThan(1))
+      it("isGreaterThan", async () => {
+        const schema = Schema.Number.check(Schema.isGreaterThan(1))
         const asserts = new TestSchema.Asserts(schema)
 
         const decoding = asserts.decoding()
@@ -1271,8 +1273,8 @@ Expected a string including "c", got "ab"`
         )
       })
 
-      it("greaterThanOrEqualTo", async () => {
-        const schema = Schema.Number.check(Check.greaterThanOrEqualTo(1))
+      it("isGreaterThanOrEqualTo", async () => {
+        const schema = Schema.Number.check(Schema.isGreaterThanOrEqualTo(1))
         const asserts = new TestSchema.Asserts(schema)
 
         const decoding = asserts.decoding()
@@ -1283,8 +1285,8 @@ Expected a string including "c", got "ab"`
         )
       })
 
-      it("lessThan", async () => {
-        const schema = Schema.Number.check(Check.lessThan(1))
+      it("isLessThan", async () => {
+        const schema = Schema.Number.check(Schema.isLessThan(1))
         const asserts = new TestSchema.Asserts(schema)
 
         const decoding = asserts.decoding()
@@ -1295,8 +1297,8 @@ Expected a string including "c", got "ab"`
         )
       })
 
-      it("lessThanOrEqualTo", async () => {
-        const schema = Schema.Number.check(Check.lessThanOrEqualTo(1))
+      it("isLessThanOrEqualTo", async () => {
+        const schema = Schema.Number.check(Schema.isLessThanOrEqualTo(1))
         const asserts = new TestSchema.Asserts(schema)
 
         const decoding = asserts.decoding()
@@ -1307,8 +1309,8 @@ Expected a string including "c", got "ab"`
         )
       })
 
-      it("multipleOf", async () => {
-        const schema = Schema.Number.check(Check.multipleOf(2))
+      it("isMultipleOf", async () => {
+        const schema = Schema.Number.check(Schema.isMultipleOf(2))
         const asserts = new TestSchema.Asserts(schema)
 
         const decoding = asserts.decoding()
@@ -1319,8 +1321,8 @@ Expected a string including "c", got "ab"`
         )
       })
 
-      it("between", async () => {
-        const schema = Schema.Number.check(Check.between(1, 3))
+      it("isBetween", async () => {
+        const schema = Schema.Number.check(Schema.isBetween(1, 3))
         const asserts = new TestSchema.Asserts(schema)
 
         const decoding = asserts.decoding()
@@ -1338,8 +1340,8 @@ Expected a string including "c", got "ab"`
         )
       })
 
-      it("int", async () => {
-        const schema = Schema.Number.check(Check.int())
+      it("isInt", async () => {
+        const schema = Schema.Number.check(Schema.isInt())
         const asserts = new TestSchema.Asserts(schema)
 
         const decoding = asserts.decoding()
@@ -1369,8 +1371,8 @@ Expected a string including "c", got "ab"`
         )
       })
 
-      it("int32", async () => {
-        const schema = Schema.Number.check(Check.int32())
+      it("isInt32", async () => {
+        const schema = Schema.Number.check(Schema.isInt32())
         const asserts = new TestSchema.Asserts(schema)
 
         const decoding = asserts.decoding()
@@ -1414,14 +1416,14 @@ Expected a value between -2147483648 and 2147483647, got 9007199254740992`
     describe("BigInt Checks", () => {
       const options = { order: Order.bigint, format: (value: bigint) => `${value}n` }
 
-      const between = Check.deriveBetween(options)
-      const greaterThan = Check.deriveGreaterThan(options)
-      const greaterThanOrEqualTo = Check.deriveGreaterThanOrEqualTo(options)
-      const lessThan = Check.deriveLessThan(options)
-      const lessThanOrEqualTo = Check.deriveLessThanOrEqualTo(options)
+      const isBetween = Schema.deriveIsBetween(options)
+      const isGreaterThan = Schema.deriveIsGreaterThan(options)
+      const isGreaterThanOrEqualTo = Schema.deriveIsGreaterThanOrEqualTo(options)
+      const isLessThan = Schema.deriveIsLessThan(options)
+      const isLessThanOrEqualTo = Schema.deriveIsLessThanOrEqualTo(options)
 
-      it("between", async () => {
-        const schema = Schema.BigInt.check(between(5n, 10n))
+      it("isBetween", async () => {
+        const schema = Schema.BigInt.check(isBetween(5n, 10n))
         const asserts = new TestSchema.Asserts(schema)
 
         const decoding = asserts.decoding()
@@ -1434,8 +1436,8 @@ Expected a value between -2147483648 and 2147483647, got 9007199254740992`
         )
       })
 
-      it("greaterThan", async () => {
-        const schema = Schema.BigInt.check(greaterThan(5n))
+      it("isGreaterThan", async () => {
+        const schema = Schema.BigInt.check(isGreaterThan(5n))
         const asserts = new TestSchema.Asserts(schema)
 
         const decoding = asserts.decoding()
@@ -1446,8 +1448,8 @@ Expected a value between -2147483648 and 2147483647, got 9007199254740992`
         )
       })
 
-      it("greaterThanOrEqualTo", async () => {
-        const schema = Schema.BigInt.check(greaterThanOrEqualTo(5n))
+      it("isGreaterThanOrEqualTo", async () => {
+        const schema = Schema.BigInt.check(isGreaterThanOrEqualTo(5n))
         const asserts = new TestSchema.Asserts(schema)
 
         const decoding = asserts.decoding()
@@ -1459,8 +1461,8 @@ Expected a value between -2147483648 and 2147483647, got 9007199254740992`
         )
       })
 
-      it("lessThan", async () => {
-        const schema = Schema.BigInt.check(lessThan(5n))
+      it("isLessThan", async () => {
+        const schema = Schema.BigInt.check(isLessThan(5n))
         const asserts = new TestSchema.Asserts(schema)
 
         const decoding = asserts.decoding()
@@ -1471,8 +1473,8 @@ Expected a value between -2147483648 and 2147483647, got 9007199254740992`
         )
       })
 
-      it("lessThanOrEqualTo", async () => {
-        const schema = Schema.BigInt.check(lessThanOrEqualTo(5n))
+      it("isLessThanOrEqualTo", async () => {
+        const schema = Schema.BigInt.check(isLessThanOrEqualTo(5n))
         const asserts = new TestSchema.Asserts(schema)
 
         const decoding = asserts.decoding()
@@ -1487,7 +1489,7 @@ Expected a value between -2147483648 and 2147483647, got 9007199254740992`
 
     describe("Record checks", () => {
       it("entries", async () => {
-        const schema = Schema.Record(Schema.String, Schema.Number).check(Check.entries(2))
+        const schema = Schema.Record(Schema.String, Schema.Number).check(Schema.isEntriesLength(2))
         const asserts = new TestSchema.Asserts(schema)
 
         const decoding = asserts.decoding()
@@ -1505,9 +1507,9 @@ Expected a value between -2147483648 and 2147483647, got 9007199254740992`
     })
 
     describe("Structural checks", () => {
-      it("Array + minLength", async () => {
+      it("Array + isMinLength", async () => {
         const schema = Schema.Struct({
-          tags: Schema.Array(Schema.NonEmptyString).check(Check.minLength(3))
+          tags: Schema.Array(Schema.NonEmptyString).check(Schema.isMinLength(3))
         })
         const asserts = new TestSchema.Asserts(schema)
 
@@ -1527,8 +1529,8 @@ Expected a value with a length of at least 3, got ["a",""]
         )
       })
 
-      it("Record + maxEntries", async () => {
-        const schema = Schema.Record(Schema.String, Schema.Finite).check(Check.maxEntries(2))
+      it("Record + isMaxEntries", async () => {
+        const schema = Schema.Record(Schema.String, Schema.Finite).check(Schema.isMaxEntries(2))
         const asserts = new TestSchema.Asserts(schema)
 
         const decoding = asserts.decoding()
@@ -1545,8 +1547,8 @@ Expected an object with at most 2 entries, got {"a":1,"b":NaN,"c":3}`
         )
       })
 
-      it("ReadonlyMap + maxSize", async () => {
-        const schema = Schema.ReadonlyMap(Schema.String, Schema.Finite).check(Check.maxSize(2))
+      it("ReadonlyMap + isMaxSize", async () => {
+        const schema = Schema.ReadonlyMap(Schema.String, Schema.Finite).check(Schema.isMaxSize(2))
         const asserts = new TestSchema.Asserts(schema)
 
         const decoding = asserts.decoding()
@@ -1616,8 +1618,8 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       )
     })
 
-    it("NumberToString & greaterThan", async () => {
-      const schema = Schema.FiniteFromString.check(Check.greaterThan(2))
+    it("NumberToString & isGreaterThan", async () => {
+      const schema = Schema.FiniteFromString.check(Schema.isGreaterThan(2))
       const asserts = new TestSchema.Asserts(schema)
 
       const decoding = asserts.decoding()
@@ -1741,9 +1743,9 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
     it("double transformation with checks", async () => {
       const schema = Schema.Struct({
-        a: Schema.String.check(Check.minLength(2)).pipe(
+        a: Schema.String.check(Schema.isMinLength(2)).pipe(
           Schema.decodeTo(
-            Schema.String.check(Check.minLength(3)),
+            Schema.String.check(Schema.isMinLength(3)),
             Transformation.passthrough()
           ),
           Schema.decodeTo(
@@ -1921,11 +1923,11 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       const schema = Schema.Struct({
         a: Schema.String.pipe(
           Schema.encodeTo(
-            Schema.String.check(Check.minLength(3)),
+            Schema.String.check(Schema.isMinLength(3)),
             Transformation.passthrough()
           ),
           Schema.encodeTo(
-            Schema.String.check(Check.minLength(2)),
+            Schema.String.check(Schema.isMinLength(2)),
             Transformation.passthrough()
           )
         )
@@ -1978,11 +1980,11 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       strictEqual(flipped.schema, schema)
     })
 
-    it("string & minLength(3) <-> number & greaterThan(2)", async () => {
+    it("string & isMinLength(3) <-> number & isGreaterThan(2)", async () => {
       const schema = Schema.FiniteFromString.pipe(
-        Schema.check(Check.greaterThan(2)),
+        Schema.check(Schema.isGreaterThan(2)),
         Schema.flip,
-        Schema.check(Check.minLength(3))
+        Schema.check(Schema.isMinLength(3))
       )
       const asserts = new TestSchema.Asserts(schema)
 
@@ -2445,7 +2447,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       interface CategoryEncoded extends Category<string, CategoryEncoded> {}
 
       const schema = Schema.Struct({
-        a: Schema.FiniteFromString.check(Check.greaterThan(0)),
+        a: Schema.FiniteFromString.check(Schema.isGreaterThan(0)),
         categories: Schema.Array(Schema.suspend((): Schema.Codec<CategoryType, CategoryEncoded> => schema))
       })
       const asserts = new TestSchema.Asserts(schema)
@@ -3007,10 +3009,10 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       await decoding.fail(null, `Expected string | never, got null`)
     })
 
-    it(`String & minLength(1) | number & greaterThan(0)`, async () => {
+    it(`String & isMinLength(1) | number & isGreaterThan(0)`, async () => {
       const schema = Schema.Union([
         Schema.NonEmptyString,
-        Schema.Number.check(Check.greaterThan(0))
+        Schema.Number.check(Schema.isGreaterThan(0))
       ])
       const asserts = new TestSchema.Asserts(schema)
 
@@ -3235,11 +3237,11 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     it("should preserve both checks", async () => {
       const schema = Schema.StructWithRest(
         Schema.Struct({ a: Schema.Number }).check(
-          Check.make((s) => s.a > 0, { title: "agt(0)" })
+          Schema.makeFilter((s) => s.a > 0, { title: "agt(0)" })
         ),
         [
           Schema.Record(Schema.String, Schema.Number).check(
-            Check.make((s) => s.b === undefined || s.b > 1, { title: "bgt(1)" })
+            Schema.makeFilter((s) => s.b === undefined || s.b > 1, { title: "bgt(1)" })
           )
         ]
       )
@@ -4412,7 +4414,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       const schema = Schema.TemplateLiteralParser([
         "c",
         Schema.Union([
-          Schema.TemplateLiteralParser(["a", Schema.Finite.check(Check.int()), "b"]),
+          Schema.TemplateLiteralParser(["a", Schema.Finite.check(Schema.isInt()), "b"]),
           Schema.Literal("e")
         ]),
         "d"
@@ -4902,7 +4904,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
   describe("catchDecoding", () => {
     it("sync fallback", async () => {
       const fallback = Effect.succeed(Option.some("b"))
-      const schema = Schema.String.pipe(Schema.catchDecoding(() => fallback)).check(Check.nonEmpty())
+      const schema = Schema.String.pipe(Schema.catchDecoding(() => fallback)).check(Schema.isNonEmpty())
       const asserts = new TestSchema.Asserts(schema)
 
       const decoding = asserts.decoding()
@@ -5738,23 +5740,23 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     await encoding.succeed({ a: 1, b: "b" }, { c: "1", b: "b" })
   })
 
-  describe("Check.make", () => {
+  describe("Schema.make", () => {
     it("returns undefined", async () => {
-      const schema = Schema.String.check(Check.make(() => undefined))
+      const schema = Schema.String.check(Schema.makeFilter(() => undefined))
       const asserts = new TestSchema.Asserts(schema)
       const decoding = asserts.decoding()
       await decoding.succeed("a")
     })
 
     it("returns true", async () => {
-      const schema = Schema.String.check(Check.make(() => true))
+      const schema = Schema.String.check(Schema.makeFilter(() => true))
       const asserts = new TestSchema.Asserts(schema)
       const decoding = asserts.decoding()
       await decoding.succeed("a")
     })
 
     it("returns false", async () => {
-      const schema = Schema.String.check(Check.make(() => false))
+      const schema = Schema.String.check(Schema.makeFilter(() => false))
       const asserts = new TestSchema.Asserts(schema)
       const decoding = asserts.decoding()
       await decoding.fail(
@@ -5764,7 +5766,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     })
 
     it("returns string", async () => {
-      const schema = Schema.String.check(Check.make(() => "error message"))
+      const schema = Schema.String.check(Schema.makeFilter(() => "error message"))
       const asserts = new TestSchema.Asserts(schema)
       const decoding = asserts.decoding()
       await decoding.fail(
@@ -5776,10 +5778,10 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     describe("returns issue", () => {
       it("abort: false", async () => {
         const schema = Schema.String.check(
-          Check.make((s) => new Issue.InvalidValue(Option.some(s), { message: "error message 1" }), {
+          Schema.makeFilter((s) => new Issue.InvalidValue(Option.some(s), { message: "error message 1" }), {
             title: "filter title 1"
           }),
-          Check.make(() => false, { title: "filter title 2", message: "error message 2" })
+          Schema.makeFilter(() => false, { title: "filter title 2", message: "error message 2" })
         )
         const asserts = new TestSchema.Asserts(schema)
 
@@ -5793,10 +5795,10 @@ error message 2`
 
       it("abort: true", async () => {
         const schema = Schema.String.check(
-          Check.make((s) => new Issue.InvalidValue(Option.some(s), { message: "error message 1" }), {
+          Schema.makeFilter((s) => new Issue.InvalidValue(Option.some(s), { message: "error message 1" }), {
             title: "filter title 1"
           }, true),
-          Check.make(() => false, { title: "filter title 2", message: "error message 2" })
+          Schema.makeFilter(() => false, { title: "filter title 2", message: "error message 2" })
         )
         const asserts = new TestSchema.Asserts(schema)
 
@@ -5811,11 +5813,11 @@ error message 2`
     describe("returns object", () => {
       it("abort: false", async () => {
         const schema = Schema.String.check(
-          Check.make(() => ({
+          Schema.makeFilter(() => ({
             path: ["a"],
             message: "error message 1"
           }), { title: "filter title 1" }),
-          Check.make(() => false, { title: "filter title 2", message: "error message 2" })
+          Schema.makeFilter(() => false, { title: "filter title 2", message: "error message 2" })
         )
         const asserts = new TestSchema.Asserts(schema)
 
@@ -5830,8 +5832,8 @@ error message 2`
 
       it("abort: true", async () => {
         const schema = Schema.String.check(
-          Check.make(() => ({ path: ["a"], message: "error message 1" }), { title: "error title 1" }, true),
-          Check.make(() => false, { title: "error title 2", message: "error message 2" })
+          Schema.makeFilter(() => ({ path: ["a"], message: "error message 1" }), { title: "error title 1" }, true),
+          Schema.makeFilter(() => false, { title: "error title 2", message: "error message 2" })
         )
         const asserts = new TestSchema.Asserts(schema)
 
@@ -6234,7 +6236,7 @@ error message 2`
   it("Capitalize", async () => {
     const schema = Schema.String.pipe(
       Schema.decodeTo(
-        Schema.String.check(Check.capitalized()),
+        Schema.String.check(Schema.isCapitalized()),
         Transformation.capitalize()
       )
     )
@@ -6259,7 +6261,7 @@ error message 2`
   it("Uncapitalize", async () => {
     const schema = Schema.String.pipe(
       Schema.decodeTo(
-        Schema.String.check(Check.uncapitalized()),
+        Schema.String.check(Schema.isUncapitalized()),
         Transformation.uncapitalize()
       )
     )
@@ -6284,7 +6286,7 @@ error message 2`
   it("Lowercase", async () => {
     const schema = Schema.String.pipe(
       Schema.decodeTo(
-        Schema.String.check(Check.lowercased()),
+        Schema.String.check(Schema.isLowercased()),
         Transformation.toLowerCase()
       )
     )
@@ -6309,7 +6311,7 @@ error message 2`
   it("Uppercase", async () => {
     const schema = Schema.String.pipe(
       Schema.decodeTo(
-        Schema.String.check(Check.uppercased()),
+        Schema.String.check(Schema.isUppercased()),
         Transformation.toUpperCase()
       )
     )
@@ -6347,5 +6349,122 @@ describe("Getter", () => {
     const encoding = asserts.encoding()
     await encoding.succeed("a", 0)
     await encoding.fail("b", `Expected "a", got "b"`)
+  })
+})
+
+describe("Check", () => {
+  describe("Filter", () => {
+    describe("annotate", () => {
+      it("should keep getters", () => {
+        const filter = Schema.isNonEmpty().annotate({
+          get title() {
+            return "value"
+          }
+        })
+        const annotations = filter.annotations
+        assertGetter(annotations, "title", "value")
+      })
+
+      it("should preserve existing getters when merging", () => {
+        const filter = Schema.isNonEmpty()
+          .annotate({
+            a: "a",
+            get b() {
+              return "b"
+            },
+            get c() {
+              return "c"
+            }
+          })
+          .annotate({
+            get c() {
+              return "c2"
+            },
+            get d() {
+              return "d"
+            }
+          })
+
+        const annotations = filter.annotations
+        strictEqual(annotations?.a, "a")
+        assertGetter(annotations, "b", "b")
+        assertGetter(annotations, "c", "c2")
+        assertGetter(annotations, "d", "d")
+      })
+    })
+
+    it("should remove any existing identifier annotation", () => {
+      const filter = Schema.isNonEmpty().annotate({
+        identifier: "a"
+      })
+      strictEqual(filter.annotations?.identifier, "a")
+      strictEqual(filter.annotate({}).annotations?.identifier, undefined)
+    })
+  })
+
+  describe("FilterGroup", () => {
+    describe("annotate", () => {
+      it("should keep getters", () => {
+        const filter = Schema.isInt32().annotate({
+          get title() {
+            return "value"
+          }
+        })
+        const annotations = filter.annotations
+        assertGetter(annotations, "title", "value")
+      })
+
+      it("should preserve existing getters when merging", () => {
+        const filter = Schema.isInt32()
+          .annotate({
+            a: "a",
+            get b() {
+              return "b"
+            },
+            get c() {
+              return "c"
+            }
+          })
+          .annotate({
+            get c() {
+              return "c2"
+            },
+            get d() {
+              return "d"
+            }
+          })
+
+        const annotations = filter.annotations
+        strictEqual(annotations?.a, "a")
+        assertGetter(annotations, "b", "b")
+        assertGetter(annotations, "c", "c2")
+        assertGetter(annotations, "d", "d")
+      })
+
+      it("should remove any existing identifier annotation", () => {
+        const filter = Schema.isInt32().annotate({
+          identifier: "a"
+        })
+        strictEqual(filter.annotations?.identifier, "a")
+        strictEqual(filter.annotate({}).annotations?.identifier, undefined)
+      })
+    })
+  })
+
+  it("isUlid", async () => {
+    const schema = Schema.String.check(Schema.isUlid())
+    const asserts = new TestSchema.Asserts(schema)
+
+    if (verifyGeneration) {
+      const arbitrary = asserts.arbitrary()
+      arbitrary.verifyGeneration()
+    }
+
+    const decoding = asserts.decoding()
+    await decoding.succeed("01H4PGGGJVN2DKP2K1H7EH996V")
+    await decoding.fail(
+      "",
+      `Expected a string matching the regex ^[0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{26}$, got ""`
+    )
   })
 })

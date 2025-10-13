@@ -2,7 +2,7 @@ import type { Brand } from "effect/data"
 import type { ServiceMap } from "effect"
 import { Effect, flow, hole, String as Str  } from "effect"
 import { Option, Predicate, Struct, Tuple } from "effect/data"
-import { AST, Check, Getter, Schema, Transformation } from 'effect/schema'
+import { AST, Getter, Schema, Transformation } from 'effect/schema'
 import type { Array } from "effect/collections"
 import { immerable, produce } from "immer"
 import { describe, expect, it, when } from "tstyche"
@@ -99,7 +99,7 @@ describe("Schema", () => {
     })
 
     it("check", () => {
-      const schema = Schema.String.check(Check.minLength(1))
+      const schema = Schema.String.check(Schema.isMinLength(1))
       expect(schema.makeUnsafe).type.toBe<MakeUnsafe<string, string>>()
     })
 
@@ -747,8 +747,8 @@ describe("Schema", () => {
     })
 
     it("refine", () => {
-      const min2 = Check.greaterThanOrEqualTo(2).pipe(Check.brand("min2"))
-      const int = Check.int().pipe(Check.brand("int"))
+      const min2 = Schema.isGreaterThanOrEqualTo(2).pipe(Schema.isBranded("min2"))
+      const int = Schema.isInt().pipe(Schema.isBranded("int"))
 
       const schema = Schema.Number.pipe(
         Schema.refine(min2.and(int))

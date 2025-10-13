@@ -4,10 +4,13 @@
 
 import type { StandardSchemaV1 } from "@standard-schema/spec"
 import * as Cause_ from "../Cause.ts"
+import * as Arr from "../collections/Array.ts"
 import type { Brand } from "../data/Brand.ts"
 import type * as Combiner from "../data/Combiner.ts"
 import * as Data from "../data/Data.ts"
+import type * as Equivalence from "../data/Equivalence.ts"
 import * as Option_ from "../data/Option.ts"
+import * as Order from "../data/Order.ts"
 import * as Predicate from "../data/Predicate.ts"
 import * as Record_ from "../data/Record.ts"
 import * as Redacted_ from "../data/Redacted.ts"
@@ -23,11 +26,11 @@ import * as Equal from "../interfaces/Equal.ts"
 import { format, formatDate } from "../interfaces/Inspectable.ts"
 import * as Pipeable from "../interfaces/Pipeable.ts"
 import * as core from "../internal/core.ts"
+import { remainder } from "../Number.ts"
 import * as Request from "../Request.ts"
 import * as Scheduler from "../Scheduler.ts"
 import * as Annotations from "./Annotations.ts"
 import * as AST from "./AST.ts"
-import * as Check from "./Check.ts"
 import * as Getter from "./Getter.ts"
 import * as Issue from "./Issue.ts"
 import * as ToEquivalence from "./ToEquivalence.ts"
@@ -127,7 +130,7 @@ export interface Bottom<
 
   annotate(annotations: this["~annotate.in"]): this["~rebuild.out"]
   annotateKey(annotations: Annotations.Key<this["Type"]>): this["~rebuild.out"]
-  check(...checks: readonly [Check.Check<this["Type"]>, ...Array<Check.Check<this["Type"]>>]): this["~rebuild.out"]
+  check(...checks: readonly [AST.Check<this["Type"]>, ...Array<AST.Check<this["Type"]>>]): this["~rebuild.out"]
   rebuild(ast: this["ast"]): this["~rebuild.out"]
   /**
    * @throws {Error} The issue is contained in the error cause.
@@ -148,7 +151,7 @@ const SchemaProto = {
   annotateKey(this: Top, annotations: Annotations.Key<unknown>) {
     return this.rebuild(AST.annotateKey(this.ast, annotations))
   },
-  check(this: Top, ...checks: readonly [Check.Check<unknown>, ...Array<Check.Check<unknown>>]) {
+  check(this: Top, ...checks: readonly [AST.Check<unknown>, ...Array<AST.Check<unknown>>]) {
     return this.rebuild(AST.appendChecks(this.ast, checks))
   }
 }
@@ -161,6 +164,80 @@ export function makeProto<S extends Top>(ast: AST.AST, options: object): S {
   self.rebuild = (ast: AST.AST) => makeProto(ast, options)
   self.makeUnsafe = ToParser.makeUnsafe(self)
   return self
+}
+
+/**
+ * @since 4.0.0
+ */
+export interface declareConstructor<T, E, TypeParameters extends ReadonlyArray<Top>, Iso = T> extends
+  Bottom<
+    T,
+    E,
+    TypeParameters[number]["DecodingServices"],
+    TypeParameters[number]["EncodingServices"],
+    AST.Declaration,
+    declareConstructor<T, E, TypeParameters, Iso>,
+    T,
+    Iso,
+    TypeParameters
+  >
+{
+  readonly "~rebuild.out": this
+}
+
+/**
+ * An API for creating schemas for parametric types.
+ *
+ * @see {@link declare} for creating schemas for non parametric types.
+ *
+ * @category Constructors
+ * @since 4.0.0
+ */
+export function declareConstructor<T, E = T, Iso = T>() {
+  return <const TypeParameters extends ReadonlyArray<Top>>(
+    typeParameters: TypeParameters,
+    run: (
+      typeParameters: {
+        readonly [K in keyof TypeParameters]: Codec<TypeParameters[K]["Type"], TypeParameters[K]["Encoded"]>
+      }
+    ) => (u: unknown, self: AST.Declaration, options: AST.ParseOptions) => Effect.Effect<T, Issue.Issue>,
+    annotations?: Annotations.Declaration<T, TypeParameters>
+  ): declareConstructor<T, E, TypeParameters, Iso> => {
+    return make(
+      new AST.Declaration(
+        typeParameters.map(AST.getAST),
+        (typeParameters) => run(typeParameters.map(make) as any),
+        annotations
+      )
+    )
+  }
+}
+
+/**
+ * @category Constructors
+ * @since 4.0.0
+ */
+export interface declare<T, Iso = T> extends declareConstructor<T, T, readonly [], Iso> {}
+
+/**
+ * An API for creating schemas for non parametric types.
+ *
+ * @see {@link declareConstructor} for creating schemas for parametric types.
+ *
+ * @since 4.0.0
+ */
+export function declare<T, Iso = T>(
+  is: (u: unknown) => u is T,
+  annotations?: Annotations.Declaration<T> | undefined
+): declare<T, Iso> {
+  return declareConstructor<T, T, Iso>()(
+    [],
+    () => (input, ast) =>
+      is(input) ?
+        Effect.succeed(input) :
+        Effect.fail(new Issue.InvalidType(ast, Option_.some(input))),
+    annotations
+  )
 }
 
 /**
@@ -354,7 +431,7 @@ function makeStandardResult<A>(exit: Exit_.Exit<StandardSchemaV1.Result<A>>): St
  * **Example** (Creating a standard schema from a regular schema)
  *
  * ```ts
- * import { Schema, Check } from "effect/schema"
+ * import { Schema } from "effect/schema"
  *
  * // Define custom hook functions for error formatting
  * const leafHook = (issue: any) => {
@@ -379,7 +456,7 @@ function makeStandardResult<A>(exit: Exit_.Exit<StandardSchemaV1.Result<A>>): St
  * // Create a standard schema from a regular schema
  * const PersonSchema = Schema.Struct({
  *   name: Schema.NonEmptyString,
- *   age: Schema.Number.pipe(Schema.check(Check.between(0, 150)))
+ *   age: Schema.Number.check(Schema.isBetween(0, 150))
  * })
  *
  * const standardSchema = Schema.asStandardSchemaV1(PersonSchema, {
@@ -2058,7 +2135,7 @@ export interface UniqueArray<S extends Top> extends Array$<S> {}
  * @since 4.0.0
  */
 export function UniqueArray<S extends Top>(item: S): UniqueArray<S> {
-  return Array(item).check(Check.unique(ToEquivalence.make(item)))
+  return Array(item).check(isUnique(ToEquivalence.make(item)))
 }
 
 /**
@@ -2351,7 +2428,7 @@ export function suspend<S extends Top>(f: () => S): suspend<S> {
  * @category Filtering
  * @since 4.0.0
  */
-export function check<S extends Top>(...checks: readonly [Check.Check<S["Type"]>, ...Array<Check.Check<S["Type"]>>]) {
+export function check<S extends Top>(...checks: readonly [AST.Check<S["Type"]>, ...Array<AST.Check<S["Type"]>>]) {
   return (self: S): S["~rebuild.out"] => self.check(...checks)
 }
 
@@ -2384,7 +2461,7 @@ export interface refine<T extends S["Type"], S extends Top> extends
  * @category Filtering
  * @since 4.0.0
  */
-export function refine<T extends E, E>(refine: Check.Refine<T, E>) {
+export function refine<T extends E, E>(refine: AST.Refine<T, E>) {
   return <S extends Schema<E>>(self: S): refine<S["Type"] & T, S["~rebuild.out"]> => {
     const ast = AST.appendChecks(self.ast, [refine])
     return self.rebuild(ast) as any
@@ -2400,7 +2477,7 @@ export function refineByGuard<T extends S["Type"], S extends Top>(
   annotations?: Annotations.Filter
 ) {
   return (self: S): refine<T, S["~rebuild.out"]> => {
-    return self.pipe(refine(Check.makeRefineByGuard(is, annotations)))
+    return self.pipe(refine(makeRefinedByGuard(is, annotations)))
   }
 }
 
@@ -2410,7 +2487,7 @@ export function refineByGuard<T extends S["Type"], S extends Top>(
  */
 export function brand<B extends string | symbol>(brand: B, annotations?: Annotations.Filter) {
   return <S extends Top>(self: S): refine<S["Type"] & Brand<B>, S["~rebuild.out"]> => {
-    return self.pipe(refine(Check.makeBrand(brand, annotations)))
+    return self.pipe(refine(makeBrand(brand, annotations)))
   }
 }
 
@@ -2976,8 +3053,8 @@ export interface TaggedUnion<Cases extends Record<string, Top>> extends
 }
 
 /**
+ * @category Constructors
  * @since 4.0.0
- * @experimental
  */
 export function TaggedUnion<const CasesByTag extends Record<string, Struct.Fields>>(
   casesByTag: CasesByTag
@@ -2991,6 +3068,1559 @@ export function TaggedUnion<const CasesByTag extends Record<string, Struct.Field
   const { guards, isAnyOf, match } = asTaggedUnion("_tag")(union)
   return makeProto(union.ast, { cases, isAnyOf, guards, match })
 }
+
+/**
+ * @since 4.0.0
+ */
+export interface Opaque<Self, S extends Top, Brand> extends
+  Bottom<
+    Self,
+    S["Encoded"],
+    S["DecodingServices"],
+    S["EncodingServices"],
+    S["ast"],
+    S["~rebuild.out"],
+    S["~type.make.in"],
+    S["Iso"],
+    S["~type.parameters"],
+    S["~type.make"],
+    S["~type.mutability"],
+    S["~type.optionality"],
+    S["~type.constructor.default"],
+    S["~encoded.mutability"],
+    S["~encoded.optionality"]
+  >
+{
+  // intentionally left without `readonly "~rebuild.out": this`
+  new(_: never): S["Type"] & Brand
+}
+
+/**
+ * @since 4.0.0
+ */
+export function Opaque<Self, Brand = {}>() {
+  return <S extends Top>(schema: S): Opaque<Self, S, Brand> & Omit<S, "Type" | "Encoded"> => {
+    // eslint-disable-next-line @typescript-eslint/no-extraneous-class
+    class Opaque {}
+    Object.setPrototypeOf(Opaque, schema)
+    return Opaque as any
+  }
+}
+
+/**
+ * @since 4.0.0
+ */
+export interface instanceOf<T, Iso = T> extends declare<T, Iso> {
+  readonly "~rebuild.out": this
+}
+
+/**
+ * Creates a schema that validates an instance of a specific class constructor.
+ *
+ * It is recommended to add the `defaultJsonSerializer` annotation to the schema.
+ *
+ * @category Constructors
+ * @since 4.0.0
+ */
+export function instanceOf<C extends abstract new(...args: any) => any, Iso = InstanceType<C>>(
+  constructor: C,
+  annotations?: Annotations.Declaration<InstanceType<C>> | undefined
+): instanceOf<InstanceType<C>, Iso> {
+  return declare((u): u is InstanceType<C> => u instanceof constructor, annotations)
+}
+
+/**
+ * @since 4.0.0
+ * @experimental
+ */
+export function link<T>() { // TODO: better name
+  return <To extends Top>(
+    encodeTo: To,
+    transformation: {
+      readonly decode: Getter.Getter<T, NoInfer<To["Type"]>>
+      readonly encode: Getter.Getter<NoInfer<To["Type"]>, T>
+    }
+  ): AST.Link => {
+    return new AST.Link(encodeTo.ast, Transformation.make(transformation))
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Checks
+// -----------------------------------------------------------------------------
+
+/**
+ * @since 4.0.0
+ */
+export function makeRefinedByGuard<T extends E, E>(
+  is: (value: E) => value is T,
+  annotations?: Annotations.Filter
+): AST.Refinement<T, E> {
+  return new AST.Filter(
+    (input: E) => is(input) ? undefined : new Issue.InvalidValue(Option_.some(input)),
+    annotations,
+    true // after a guard, we always want to abort
+  ) as any
+}
+
+/**
+ * @since 4.0.0
+ */
+export function isRefinedByGuard<T extends E, E>(
+  is: (value: E) => value is T,
+  annotations?: Annotations.Filter
+) {
+  return (self: AST.Check<E>): AST.RefinementGroup<T, E> => {
+    return self.and(makeRefinedByGuard(is, annotations))
+  }
+}
+
+const brand_ = makeRefinedByGuard((_u): _u is any => true)
+
+/** @internal */
+export function makeBrand<B extends string | symbol, T>(
+  brand: B,
+  annotations?: Annotations.Filter
+): AST.Refinement<T & Brand<B>, T> {
+  return brand_.annotate(Annotations.combine({ [Annotations.BRAND_ANNOTATION_KEY]: brand }, annotations))
+}
+
+/**
+ * @since 4.0.0
+ */
+export function isBranded<B extends string | symbol>(brand: B, annotations?: Annotations.Filter) {
+  return <T>(self: AST.Check<T>): AST.RefinementGroup<T & Brand<B>, T> => {
+    return self.and(makeBrand(brand, annotations))
+  }
+}
+
+/**
+ * @category Constructors
+ * @since 4.0.0
+ */
+export const makeFilter: <T>(
+  filter: (input: T, ast: AST.AST, options: AST.ParseOptions) => undefined | boolean | string | Issue.Issue | {
+    readonly path: ReadonlyArray<PropertyKey>
+    readonly message: string
+  },
+  annotations?: Annotations.Filter | undefined,
+  abort?: boolean
+) => AST.Filter<T> = AST.makeFilter
+
+/**
+ * @category Constructors
+ * @since 4.0.0
+ */
+export function makeFilterGroup<T>(
+  checks: readonly [AST.Check<T>, AST.Check<T>, ...Array<AST.Check<T>>],
+  annotations: Annotations.Filter | undefined = undefined
+): AST.FilterGroup<T> {
+  return new AST.FilterGroup(checks, annotations)
+}
+
+const TRIMMED_PATTERN = "^\\S[\\s\\S]*\\S$|^\\S$|^$"
+
+/**
+ * @category String checks
+ * @since 4.0.0
+ */
+export function isTrimmed(annotations?: Annotations.Filter) {
+  return makeFilter(
+    (s: string) => s.trim() === s,
+    Annotations.combine({
+      title: "isTrimmed",
+      description: "a string with no leading or trailing whitespace",
+      jsonSchema: {
+        _tag: "Constraint",
+        constraint: () => ({ pattern: TRIMMED_PATTERN })
+      },
+      meta: {
+        _tag: "isTrimmed"
+      },
+      arbitrary: {
+        _tag: "Constraint",
+        constraint: {
+          string: {
+            patterns: [TRIMMED_PATTERN]
+          }
+        }
+      }
+    }, annotations)
+  )
+}
+
+/**
+ * @category String checks
+ * @since 4.0.0
+ */
+export const isRegex = AST.isRegex
+
+/**
+ * Returns a regex for validating an RFC 4122 UUID.
+ *
+ * Optionally specify a version 1-8. If no version is specified, all versions are supported.
+ */
+const getUUIDRegex = (version?: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8): RegExp => {
+  if (version) {
+    return new RegExp(
+      `^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-${version}[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$`
+    )
+  }
+  return /^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$/
+}
+
+/**
+ * Universally Unique Identifier (UUID)
+ *
+ * To specify a particular UUID version, pass the version number as an argument.
+ *
+ * @category String checks
+ * @since 4.0.0
+ */
+export function isUuid(version?: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8) {
+  const re = getUUIDRegex(version)
+  return isRegex(re, {
+    title: version ? `isUuid-v${version}` : "isUuid",
+    description: version ? `a UUID v${version}` : "a UUID",
+    jsonSchema: {
+      _tag: "Constraint",
+      constraint: () => ({
+        pattern: re.source,
+        format: "uuid"
+      })
+    }
+  })
+}
+
+/**
+ * @category String checks
+ * @since 4.0.0
+ */
+export function isUlid(annotations?: Annotations.Filter) {
+  return isRegex(
+    /^[0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{26}$/,
+    Annotations.combine({ title: "isUlid" }, annotations)
+  )
+}
+
+/**
+ * @category String checks
+ * @since 4.0.0
+ */
+export function isBase64(annotations?: Annotations.Filter) {
+  return isRegex(
+    /^([0-9a-zA-Z+/]{4})*(([0-9a-zA-Z+/]{2}==)|([0-9a-zA-Z+/]{3}=))?$/,
+    Annotations.combine({
+      title: "isBase64",
+      description: "a base64 encoded string",
+      contentEncoding: "base64"
+    }, annotations)
+  )
+}
+
+/**
+ * @category String checks
+ * @since 4.0.0
+ */
+export function isBase64url(annotations?: Annotations.Filter) {
+  return isRegex(
+    /^([0-9a-zA-Z-_]{4})*(([0-9a-zA-Z-_]{2}(==)?)|([0-9a-zA-Z-_]{3}(=)?))?$/,
+    Annotations.combine({
+      title: "isBase64url",
+      description: "a base64url encoded string",
+      contentEncoding: "base64"
+    }, annotations)
+  )
+}
+
+/**
+ * @category String checks
+ * @since 4.0.0
+ */
+export function isStartsWith(startsWith: string, annotations?: Annotations.Filter) {
+  const formatted = JSON.stringify(startsWith)
+  return makeFilter(
+    (s: string) => s.startsWith(startsWith),
+    Annotations.combine({
+      title: `isStartsWith(${formatted})`,
+      description: `a string starting with ${formatted}`,
+      jsonSchema: {
+        _tag: "Constraint",
+        constraint: () => ({ pattern: `^${startsWith}` })
+      },
+      meta: {
+        _tag: "isStartsWith",
+        startsWith
+      },
+      arbitrary: {
+        _tag: "Constraint",
+        constraint: {
+          string: {
+            patterns: [`^${startsWith}`]
+          }
+        }
+      }
+    }, annotations)
+  )
+}
+
+/**
+ * @category String checks
+ * @since 4.0.0
+ */
+export function isEndsWith(endsWith: string, annotations?: Annotations.Filter) {
+  const formatted = JSON.stringify(endsWith)
+  return makeFilter(
+    (s: string) => s.endsWith(endsWith),
+    Annotations.combine({
+      title: `isEndsWith(${formatted})`,
+      description: `a string ending with ${formatted}`,
+      jsonSchema: {
+        _tag: "Constraint",
+        constraint: () => ({ pattern: `${endsWith}$` })
+      },
+      meta: {
+        _tag: "isEndsWith",
+        endsWith
+      },
+      arbitrary: {
+        _tag: "Constraint",
+        constraint: {
+          string: {
+            patterns: [`${endsWith}$`]
+          }
+        }
+      }
+    }, annotations)
+  )
+}
+
+/**
+ * @category String checks
+ * @since 4.0.0
+ */
+export function isIncludes(includes: string, annotations?: Annotations.Filter) {
+  const formatted = JSON.stringify(includes)
+  return makeFilter(
+    (s: string) => s.includes(includes),
+    Annotations.combine({
+      title: `isIncludes(${formatted})`,
+      description: `a string including ${formatted}`,
+      jsonSchema: {
+        _tag: "Constraint",
+        constraint: () => ({ pattern: includes })
+      },
+      meta: {
+        _tag: "isIncludes",
+        includes
+      },
+      arbitrary: {
+        _tag: "Constraint",
+        constraint: {
+          string: {
+            patterns: [includes]
+          }
+        }
+      }
+    }, annotations)
+  )
+}
+
+const UPPERCASED_PATTERN = "^[^a-z]*$"
+
+/**
+ * @category String checks
+ * @since 4.0.0
+ */
+export function isUppercased(annotations?: Annotations.Filter) {
+  return makeFilter(
+    (s: string) => s.toUpperCase() === s,
+    Annotations.combine({
+      title: "isUppercased",
+      description: "a string with all characters in uppercase",
+      jsonSchema: {
+        _tag: "Constraint",
+        constraint: () => ({ pattern: UPPERCASED_PATTERN })
+      },
+      meta: {
+        _tag: "isUppercased"
+      },
+      arbitrary: {
+        _tag: "Constraint",
+        constraint: {
+          string: {
+            patterns: [UPPERCASED_PATTERN]
+          }
+        }
+      }
+    }, annotations)
+  )
+}
+
+const LOWERCASED_PATTERN = "^[^A-Z]*$"
+
+/**
+ * @category String checks
+ * @since 4.0.0
+ */
+export function isLowercased(annotations?: Annotations.Filter) {
+  return makeFilter(
+    (s: string) => s.toLowerCase() === s,
+    Annotations.combine({
+      title: "isLowercased",
+      description: "a string with all characters in lowercase",
+      jsonSchema: {
+        _tag: "Constraint",
+        constraint: () => ({ pattern: LOWERCASED_PATTERN })
+      },
+      meta: {
+        _tag: "isLowercased"
+      },
+      arbitrary: {
+        _tag: "Constraint",
+        constraint: {
+          string: {
+            patterns: [LOWERCASED_PATTERN]
+          }
+        }
+      }
+    }, annotations)
+  )
+}
+
+const CAPITALIZED_PATTERN = "^[^a-z]?.*$"
+
+/**
+ * Verifies that a string is capitalized.
+ *
+ * @category String checks
+ * @since 4.0.0
+ */
+export function isCapitalized(annotations?: Annotations.Filter) {
+  return makeFilter(
+    (s: string) => s.charAt(0).toUpperCase() === s.charAt(0),
+    Annotations.combine({
+      title: "isCapitalized",
+      description: "a string with the first character in uppercase",
+      jsonSchema: {
+        _tag: "Constraint",
+        constraint: () => ({ pattern: CAPITALIZED_PATTERN })
+      },
+      meta: {
+        _tag: "isCapitalized"
+      },
+      arbitrary: {
+        _tag: "Constraint",
+        constraint: {
+          string: {
+            patterns: [CAPITALIZED_PATTERN]
+          }
+        }
+      }
+    }, annotations)
+  )
+}
+
+const UNCAPITALIZED_PATTERN = "^[^A-Z]?.*$"
+
+/**
+ * Verifies that a string is uncapitalized.
+ *
+ * @category String checks
+ * @since 4.0.0
+ */
+export function isUncapitalized(annotations?: Annotations.Filter) {
+  return makeFilter(
+    (s: string) => s.charAt(0).toLowerCase() === s.charAt(0),
+    Annotations.combine({
+      title: "isUncapitalized",
+      description: "a string with the first character in lowercase",
+      jsonSchema: {
+        _tag: "Constraint",
+        constraint: () => ({ pattern: UNCAPITALIZED_PATTERN })
+      },
+      meta: {
+        _tag: "isUncapitalized"
+      },
+      arbitrary: {
+        _tag: "Constraint",
+        constraint: {
+          string: {
+            patterns: [UNCAPITALIZED_PATTERN]
+          }
+        }
+      }
+    }, annotations)
+  )
+}
+
+/**
+ * @category Number checks
+ * @since 4.0.0
+ */
+export function isFinite(annotations?: Annotations.Filter) {
+  return makeFilter(
+    (n: number) => globalThis.Number.isFinite(n),
+    Annotations.combine({
+      title: "isFinite",
+      description: "a finite number",
+      meta: {
+        _tag: "isFinite"
+      },
+      arbitrary: {
+        _tag: "Constraint",
+        constraint: {
+          number: {
+            noDefaultInfinity: true,
+            noNaN: true
+          }
+        }
+      }
+    }, annotations)
+  )
+}
+
+/**
+ * @category Order checks
+ * @since 4.0.0
+ */
+export function deriveIsGreaterThan<T>(options: {
+  readonly order: Order.Order<T>
+  readonly annotate?: ((exclusiveMinimum: T) => Annotations.Filter) | undefined
+  readonly format?: (value: T) => string | undefined
+}) {
+  const greaterThan = Order.greaterThan(options.order)
+  const fmt = options.format ?? format
+  return (exclusiveMinimum: T, annotations?: Annotations.Filter) => {
+    return makeFilter<T>(
+      (input) => greaterThan(input, exclusiveMinimum),
+      Annotations.combine({
+        title: `isGreaterThan(${fmt(exclusiveMinimum)})`,
+        description: `a value greater than ${fmt(exclusiveMinimum)}`,
+        ...options.annotate?.(exclusiveMinimum)
+      }, annotations)
+    )
+  }
+}
+
+/**
+ * @category Order checks
+ * @since 4.0.0
+ */
+export function deriveIsGreaterThanOrEqualTo<T>(options: {
+  readonly order: Order.Order<T>
+  readonly annotate?: ((exclusiveMinimum: T) => Annotations.Filter) | undefined
+  readonly format?: (value: T) => string | undefined
+}) {
+  const greaterThanOrEqualTo = Order.greaterThanOrEqualTo(options.order)
+  const fmt = options.format ?? format
+  return (minimum: T, annotations?: Annotations.Filter) => {
+    return makeFilter<T>(
+      (input) => greaterThanOrEqualTo(input, minimum),
+      Annotations.combine({
+        title: `isGreaterThanOrEqualTo(${fmt(minimum)})`,
+        description: `a value greater than or equal to ${fmt(minimum)}`,
+        ...options.annotate?.(minimum)
+      }, annotations)
+    )
+  }
+}
+
+/**
+ * @category Order checks
+ * @since 4.0.0
+ */
+export function deriveIsLessThan<T>(options: {
+  readonly order: Order.Order<T>
+  readonly annotate?: ((exclusiveMaximum: T) => Annotations.Filter) | undefined
+  readonly format?: (value: T) => string | undefined
+}) {
+  const lessThan = Order.lessThan(options.order)
+  const fmt = options.format ?? format
+  return (exclusiveMaximum: T, annotations?: Annotations.Filter) => {
+    return makeFilter<T>(
+      (input) => lessThan(input, exclusiveMaximum),
+      Annotations.combine({
+        title: `isLessThan(${fmt(exclusiveMaximum)})`,
+        description: `a value less than ${fmt(exclusiveMaximum)}`,
+        ...options.annotate?.(exclusiveMaximum)
+      }, annotations)
+    )
+  }
+}
+
+/**
+ * @category Order checks
+ * @since 4.0.0
+ */
+export function deriveIsLessThanOrEqualTo<T>(options: {
+  readonly order: Order.Order<T>
+  readonly annotate?: ((exclusiveMaximum: T) => Annotations.Filter) | undefined
+  readonly format?: (value: T) => string | undefined
+}) {
+  const lessThanOrEqualTo = Order.lessThanOrEqualTo(options.order)
+  const fmt = options.format ?? format
+  return (maximum: T, annotations?: Annotations.Filter) => {
+    return makeFilter<T>(
+      (input) => lessThanOrEqualTo(input, maximum),
+      Annotations.combine({
+        title: `isLessThanOrEqualTo(${fmt(maximum)})`,
+        description: `a value less than or equal to ${fmt(maximum)}`,
+        ...options.annotate?.(maximum)
+      }, annotations)
+    )
+  }
+}
+
+/**
+ * @category Order checks
+ * @since 4.0.0
+ */
+export function deriveIsBetween<T>(options: {
+  readonly order: Order.Order<T>
+  readonly annotate?: ((minimum: T, maximum: T) => Annotations.Filter) | undefined
+  readonly format?: (value: T) => string | undefined
+}) {
+  const greaterThanOrEqualTo = Order.greaterThanOrEqualTo(options.order)
+  const lessThanOrEqualTo = Order.lessThanOrEqualTo(options.order)
+  const fmt = options.format ?? format
+  return (minimum: T, maximum: T, annotations?: Annotations.Filter) => {
+    return makeFilter<T>(
+      (input) => greaterThanOrEqualTo(input, minimum) && lessThanOrEqualTo(input, maximum),
+      Annotations.combine({
+        title: `isBetween(${fmt(minimum)}, ${fmt(maximum)})`,
+        description: `a value between ${fmt(minimum)} and ${fmt(maximum)}`,
+        ...options.annotate?.(minimum, maximum)
+      }, annotations)
+    )
+  }
+}
+
+/**
+ * @category Numeric checks
+ * @since 4.0.0
+ */
+export function deriveIsMultipleOf<T>(options: {
+  readonly remainder: (input: T, divisor: T) => T
+  readonly zero: NoInfer<T>
+  readonly annotate?: ((divisor: T) => Annotations.Filter) | undefined
+  readonly format?: (value: T) => string | undefined
+}) {
+  return (divisor: T, annotations?: Annotations.Filter) => {
+    const fmt = options.format ?? format
+    return makeFilter<T>(
+      (input) => options.remainder(input, divisor) === options.zero,
+      Annotations.combine({
+        title: `isMultipleOf(${fmt(divisor)})`,
+        description: `a value that is a multiple of ${fmt(divisor)}`,
+        ...options.annotate?.(divisor)
+      }, annotations)
+    )
+  }
+}
+
+/**
+ * @category Number checks
+ * @since 4.0.0
+ */
+export const isGreaterThan = deriveIsGreaterThan({
+  order: Order.number,
+  annotate: (exclusiveMinimum) => ({
+    jsonSchema: {
+      _tag: "Constraint",
+      constraint: () => ({ exclusiveMinimum })
+    },
+    meta: {
+      _tag: "isGreaterThan",
+      exclusiveMinimum
+    },
+    arbitrary: {
+      _tag: "Constraint",
+      constraint: {
+        number: {
+          min: exclusiveMinimum,
+          minExcluded: true
+        }
+      }
+    }
+  })
+})
+
+/**
+ * @category Number checks
+ * @since 4.0.0
+ */
+export const isGreaterThanOrEqualTo = deriveIsGreaterThanOrEqualTo({
+  order: Order.number,
+  annotate: (minimum) => ({
+    jsonSchema: {
+      _tag: "Constraint",
+      constraint: () => ({ minimum })
+    },
+    meta: {
+      _tag: "isGreaterThanOrEqualTo",
+      minimum
+    },
+    arbitrary: {
+      _tag: "Constraint",
+      constraint: {
+        number: {
+          min: minimum
+        }
+      }
+    }
+  })
+})
+
+/**
+ * @category Number checks
+ * @since 4.0.0
+ */
+export const isLessThan = deriveIsLessThan({
+  order: Order.number,
+  annotate: (exclusiveMaximum) => ({
+    jsonSchema: {
+      _tag: "Constraint",
+      constraint: () => ({ exclusiveMaximum })
+    },
+    meta: {
+      _tag: "isLessThan",
+      exclusiveMaximum
+    },
+    arbitrary: {
+      _tag: "Constraint",
+      constraint: {
+        number: {
+          max: exclusiveMaximum,
+          maxExcluded: true
+        }
+      }
+    }
+  })
+})
+
+/**
+ * @category Number checks
+ * @since 4.0.0
+ */
+export const isLessThanOrEqualTo = deriveIsLessThanOrEqualTo({
+  order: Order.number,
+  annotate: (maximum) => ({
+    jsonSchema: {
+      _tag: "Constraint",
+      constraint: () => ({ maximum })
+    },
+    meta: {
+      _tag: "isLessThanOrEqualTo",
+      maximum
+    },
+    arbitrary: {
+      _tag: "Constraint",
+      constraint: {
+        number: {
+          max: maximum
+        }
+      }
+    }
+  })
+})
+
+/**
+ * @category Number checks
+ * @since 4.0.0
+ */
+export const isBetween = deriveIsBetween({
+  order: Order.number,
+  annotate: (minimum, maximum) => ({
+    jsonSchema: {
+      _tag: "Constraint",
+      constraint: () => ({ minimum, maximum })
+    },
+    meta: {
+      _tag: "isBetween",
+      minimum,
+      maximum
+    },
+    arbitrary: {
+      _tag: "Constraint",
+      constraint: {
+        number: {
+          min: minimum,
+          max: maximum
+        }
+      }
+    }
+  })
+})
+
+/**
+ * @category Number checks
+ * @since 4.0.0
+ */
+export function isPositive(annotations?: Annotations.Filter) {
+  return isGreaterThan(0, annotations)
+}
+
+/**
+ * @category Number checks
+ * @since 4.0.0
+ */
+export function isNegative(annotations?: Annotations.Filter) {
+  return isLessThan(0, annotations)
+}
+
+/**
+ * @category Number checks
+ * @since 4.0.0
+ */
+export function isNonNegative(annotations?: Annotations.Filter) {
+  return isGreaterThanOrEqualTo(0, annotations)
+}
+
+/**
+ * @category Number checks
+ * @since 4.0.0
+ */
+export function isNonPositive(annotations?: Annotations.Filter) {
+  return isLessThanOrEqualTo(0, annotations)
+}
+
+/**
+ * @category Number checks
+ * @since 4.0.0
+ */
+export const isMultipleOf = deriveIsMultipleOf({
+  remainder,
+  zero: 0,
+  annotate: (divisor) => ({
+    title: `isMultipleOf(${divisor})`,
+    description: `a value that is a multiple of ${divisor}`,
+    jsonSchema: {
+      _tag: "Constraint",
+      constraint: () => ({ multipleOf: Math.abs(divisor) })
+    }
+  })
+})
+
+/**
+ * Restricts to safe integer range
+ *
+ * @category Integer checks
+ * @since 4.0.0
+ */
+export function isInt(annotations?: Annotations.Filter) {
+  return makeFilter(
+    (n: number) => globalThis.Number.isSafeInteger(n),
+    Annotations.combine({
+      title: "isInt",
+      description: "an integer",
+      jsonSchema: {
+        _tag: "Constraint",
+        constraint: () => ({ type: "integer" })
+      },
+      meta: {
+        _tag: "isInt"
+      },
+      arbitrary: {
+        _tag: "Constraint",
+        constraint: {
+          number: {
+            isInteger: true
+          }
+        }
+      }
+    }, annotations)
+  )
+}
+
+/**
+ * @category Integer checks
+ * @since 4.0.0
+ */
+export function isInt32(annotations?: Annotations.Filter) {
+  return new AST.FilterGroup(
+    [
+      isInt(annotations),
+      isBetween(-2147483648, 2147483647)
+    ],
+    Annotations.combine({
+      title: "isInt32",
+      description: "a 32-bit integer",
+      jsonSchema: {
+        _tag: "Constraint",
+        constraint: (ctx) =>
+          ctx.target === "openApi3.1" ?
+            { format: "int32" } :
+            undefined
+      },
+      meta: {
+        _tag: "isInt32"
+      }
+    }, annotations)
+  )
+}
+
+/**
+ * @category Integer checks
+ * @since 4.0.0
+ */
+export function isUint32(annotations?: Annotations.Filter) {
+  return new AST.FilterGroup(
+    [
+      isInt(),
+      isBetween(0, 4294967295)
+    ],
+    Annotations.combine({
+      title: "isUint32",
+      description: "a 32-bit unsigned integer",
+      jsonSchema: {
+        _tag: "Constraint",
+        constraint: (ctx) =>
+          ctx.target === "openApi3.1" ?
+            { format: "uint32" } :
+            undefined
+      },
+      meta: {
+        _tag: "isUint32"
+      }
+    }, annotations)
+  )
+}
+
+/**
+ * @category Date checks
+ * @since 4.0.0
+ */
+export function isValidDate(annotations?: Annotations.Filter) {
+  return makeFilter<globalThis.Date>(
+    (date) => !isNaN(date.getTime()),
+    Annotations.combine({
+      title: "isValidDate",
+      description: "a valid date",
+      meta: {
+        _tag: "isValidDate"
+      },
+      arbitrary: {
+        _tag: "Constraint",
+        constraint: {
+          date: {
+            noInvalidDate: true
+          }
+        }
+      }
+    }, annotations)
+  )
+}
+
+/**
+ * @category Date checks
+ * @since 4.0.0
+ */
+export const isGreaterThanOrEqualToDate = deriveIsGreaterThanOrEqualTo({
+  order: Order.Date,
+  annotate: (minimum) => ({
+    meta: {
+      _tag: "isGreaterThanOrEqualToDate",
+      minimum
+    },
+    arbitrary: {
+      _tag: "Constraint",
+      constraint: {
+        date: {
+          min: minimum
+        }
+      }
+    }
+  })
+})
+
+/**
+ * @category Date checks
+ * @since 4.0.0
+ */
+export const isLessThanOrEqualToDate = deriveIsLessThanOrEqualTo({
+  order: Order.Date,
+  annotate: (maximum) => ({
+    meta: {
+      _tag: "isLessThanOrEqualToDate",
+      maximum
+    },
+    arbitrary: {
+      _tag: "Constraint",
+      constraint: {
+        date: {
+          max: maximum
+        }
+      }
+    }
+  })
+})
+
+/**
+ * @category Date checks
+ * @since 4.0.0
+ */
+export const isBetweenDate = deriveIsBetween({
+  order: Order.Date,
+  annotate: (minimum, maximum) => ({
+    meta: {
+      _tag: "isBetweenDate",
+      minimum,
+      maximum
+    },
+    arbitrary: {
+      _tag: "Constraint",
+      constraint: {
+        date: {
+          min: minimum,
+          max: maximum
+        }
+      }
+    }
+  })
+})
+
+/**
+ * @category BigInt checks
+ * @since 4.0.0
+ */
+export const isGreaterThanOrEqualToBigInt = deriveIsGreaterThanOrEqualTo({
+  order: Order.bigint,
+  annotate: (minimum) => ({
+    meta: {
+      _tag: "isGreaterThanOrEqualToBigInt",
+      minimum
+    },
+    arbitrary: {
+      _tag: "Constraint",
+      constraint: {
+        bigint: {
+          min: minimum
+        }
+      }
+    }
+  })
+})
+
+/**
+ * @category BigInt checks
+ * @since 4.0.0
+ */
+export const isLessThanOrEqualToBigInt = deriveIsLessThanOrEqualTo({
+  order: Order.bigint,
+  annotate: (maximum) => ({
+    meta: {
+      _tag: "isLessThanOrEqualToBigInt",
+      maximum
+    },
+    arbitrary: {
+      _tag: "Constraint",
+      constraint: {
+        bigint: {
+          max: maximum
+        }
+      }
+    }
+  })
+})
+
+/**
+ * @category BigInt checks
+ * @since 4.0.0
+ */
+export const isBetweenBigInt = deriveIsBetween({
+  order: Order.bigint,
+  annotate: (minimum, maximum) => ({
+    meta: {
+      _tag: "isBetweenBigInt",
+      minimum,
+      maximum
+    },
+    arbitrary: {
+      _tag: "Constraint",
+      constraint: {
+        bigint: {
+          min: minimum,
+          max: maximum
+        }
+      }
+    }
+  })
+})
+
+/**
+ * @category BigInt checks
+ * @since 4.0.0
+ */
+export function isNonNegativeBigInt(annotations?: Annotations.Filter) {
+  return isGreaterThanOrEqualToBigInt(0n, {
+    title: "isNonNegativeBigInt",
+    ...annotations
+  })
+}
+
+/**
+ * @category BigInt checks
+ * @since 4.0.0
+ */
+export function isNonPositiveBigInt(annotations?: Annotations.Filter) {
+  return isLessThanOrEqualToBigInt(0n, {
+    title: "isNonPositiveBigInt",
+    ...annotations
+  })
+}
+
+/**
+ * @category Length checks
+ * @since 4.0.0
+ */
+export function isMinLength(minLength: number, annotations?: Annotations.Filter) {
+  minLength = Math.max(0, Math.floor(minLength))
+  return makeFilter<{ readonly length: number }>(
+    (input) => input.length >= minLength,
+    Annotations.combine({
+      title: `isMinLength(${minLength})`,
+      description: `a value with a length of at least ${minLength}`,
+      jsonSchema: {
+        _tag: "Constraint",
+        constraint: (ctx) => {
+          switch (ctx.type) {
+            case "string":
+              return { minLength }
+            case "array":
+              return { minItems: minLength }
+            default:
+          }
+        }
+      },
+      meta: {
+        _tag: "isMinLength",
+        minLength
+      },
+      [Annotations.STRUCTURAL_ANNOTATION_KEY]: true,
+      arbitrary: {
+        _tag: "Constraint",
+        constraint: {
+          string: {
+            minLength
+          },
+          array: {
+            minLength
+          }
+        }
+      }
+    }, annotations)
+  )
+}
+
+/**
+ * @category Length checks
+ * @since 4.0.0
+ */
+export function isNonEmpty(annotations?: Annotations.Filter) {
+  return isMinLength(1, annotations)
+}
+
+/**
+ * @category Length checks
+ * @since 4.0.0
+ */
+export function isMaxLength(maxLength: number, annotations?: Annotations.Filter) {
+  maxLength = Math.max(0, Math.floor(maxLength))
+  return makeFilter<{ readonly length: number }>(
+    (input) => input.length <= maxLength,
+    Annotations.combine({
+      title: `isMaxLength(${maxLength})`,
+      description: `a value with a length of at most ${maxLength}`,
+      jsonSchema: {
+        _tag: "Constraint",
+        constraint: (ctx) => {
+          switch (ctx.type) {
+            case "string":
+              return { maxLength }
+            case "array":
+              return { maxItems: maxLength }
+          }
+        }
+      },
+      meta: {
+        _tag: "isMaxLength",
+        maxLength
+      },
+      [Annotations.STRUCTURAL_ANNOTATION_KEY]: true,
+      arbitrary: {
+        _tag: "Constraint",
+        constraint: {
+          string: {
+            maxLength
+          },
+          array: {
+            maxLength
+          }
+        }
+      }
+    }, annotations)
+  )
+}
+
+/**
+ * @category Length checks
+ * @since 4.0.0
+ */
+export function isLength(length: number, annotations?: Annotations.Filter) {
+  length = Math.max(0, Math.floor(length))
+  return makeFilter<{ readonly length: number }>(
+    (input) => input.length === length,
+    Annotations.combine({
+      title: `isLength(${length})`,
+      description: `a value with a length of ${length}`,
+      jsonSchema: {
+        _tag: "Constraint",
+        constraint: (ctx) => {
+          switch (ctx.type) {
+            case "string":
+              return { minLength: length, maxLength: length }
+            case "array":
+              return { minItems: length, maxItems: length }
+          }
+        }
+      },
+      meta: {
+        _tag: "isLength",
+        length
+      },
+      [Annotations.STRUCTURAL_ANNOTATION_KEY]: true,
+      arbitrary: {
+        _tag: "Constraint",
+        constraint: {
+          string: {
+            minLength: length,
+            maxLength: length
+          },
+          array: {
+            minLength: length,
+            maxLength: length
+          }
+        }
+      }
+    }, annotations)
+  )
+}
+
+/**
+ * @category Size checks
+ * @since 4.0.0
+ */
+export function isMinSize(minSize: number, annotations?: Annotations.Filter) {
+  minSize = Math.max(0, Math.floor(minSize))
+  return makeFilter<{ readonly size: number }>(
+    (input) => input.size >= minSize,
+    Annotations.combine({
+      title: `isMinSize(${minSize})`,
+      description: `a value with a size of at least ${minSize}`,
+      meta: {
+        _tag: "isMinSize",
+        minSize
+      },
+      [Annotations.STRUCTURAL_ANNOTATION_KEY]: true,
+      arbitrary: {
+        _tag: "Constraint",
+        constraint: {
+          array: {
+            minLength: minSize
+          }
+        }
+      }
+    }, annotations)
+  )
+}
+
+/**
+ * @category Size checks
+ * @since 4.0.0
+ */
+export function isMaxSize(maxSize: number, annotations?: Annotations.Filter) {
+  maxSize = Math.max(0, Math.floor(maxSize))
+  return makeFilter<{ readonly size: number }>(
+    (input) => input.size <= maxSize,
+    Annotations.combine({
+      title: `isMaxSize(${maxSize})`,
+      description: `a value with a size of at most ${maxSize}`,
+      meta: {
+        _tag: "isMaxSize",
+        maxSize
+      },
+      [Annotations.STRUCTURAL_ANNOTATION_KEY]: true,
+      arbitrary: {
+        _tag: "Constraint",
+        constraint: {
+          array: {
+            maxLength: maxSize
+          }
+        }
+      }
+    }, annotations)
+  )
+}
+
+/**
+ * @category Size checks
+ * @since 4.0.0
+ */
+export function isSize(size: number, annotations?: Annotations.Filter) {
+  size = Math.max(0, Math.floor(size))
+  return makeFilter<{ readonly size: number }>(
+    (input) => input.size === size,
+    Annotations.combine({
+      title: `isSize(${size})`,
+      description: `a value with a size of ${size}`,
+      meta: {
+        _tag: "isSize",
+        size
+      },
+      [Annotations.STRUCTURAL_ANNOTATION_KEY]: true,
+      arbitrary: {
+        _tag: "Constraint",
+        constraint: {
+          array: {
+            minLength: size,
+            maxLength: size
+          }
+        }
+      }
+    }, annotations)
+  )
+}
+
+/**
+ * @category Entries checks
+ * @since 4.0.0
+ */
+export function isMinEntries(minEntries: number, annotations?: Annotations.Filter) {
+  minEntries = Math.max(0, Math.floor(minEntries))
+  return makeFilter<object>(
+    (input) => Object.entries(input).length >= minEntries,
+    Annotations.combine({
+      title: `isMinEntries(${minEntries})`,
+      description: `an object with at least ${minEntries} entries`,
+      jsonSchema: {
+        _tag: "Constraint",
+        constraint: () => ({ minProperties: minEntries })
+      },
+      meta: {
+        _tag: "isMinEntries",
+        minEntries
+      },
+      [Annotations.STRUCTURAL_ANNOTATION_KEY]: true,
+      arbitrary: {
+        _tag: "Constraint",
+        constraint: {
+          array: {
+            minLength: minEntries
+          }
+        }
+      }
+    }, annotations)
+  )
+}
+
+/**
+ * @category Entries checks
+ * @since 4.0.0
+ */
+export function isMaxEntries(maxEntries: number, annotations?: Annotations.Filter) {
+  maxEntries = Math.max(0, Math.floor(maxEntries))
+  return makeFilter<object>(
+    (input) => Object.entries(input).length <= maxEntries,
+    Annotations.combine({
+      title: `isMaxEntries(${maxEntries})`,
+      description: `an object with at most ${maxEntries} entries`,
+      jsonSchema: {
+        _tag: "Constraint",
+        constraint: () => ({ maxProperties: maxEntries })
+      },
+      meta: {
+        _tag: "isMaxEntries",
+        maxEntries
+      },
+      [Annotations.STRUCTURAL_ANNOTATION_KEY]: true,
+      arbitrary: {
+        _tag: "Constraint",
+        constraint: {
+          array: {
+            maxLength: maxEntries
+          }
+        }
+      }
+    }, annotations)
+  )
+}
+
+/**
+ * @category Entries checks
+ * @since 4.0.0
+ */
+export function isEntriesLength(length: number, annotations?: Annotations.Filter) {
+  length = Math.max(0, Math.floor(length))
+  return makeFilter<object>(
+    (input) => Object.entries(input).length === length,
+    Annotations.combine({
+      title: `isEntriesLength(${length})`,
+      description: `an object with exactly ${length} entries`,
+      jsonSchema: {
+        _tag: "Constraint",
+        constraint: () => ({ minProperties: length, maxProperties: length })
+      },
+      meta: {
+        _tag: "isEntriesLength",
+        length
+      },
+      [Annotations.STRUCTURAL_ANNOTATION_KEY]: true,
+      arbitrary: {
+        _tag: "Constraint",
+        constraint: {
+          array: {
+            minLength: length,
+            maxLength: length
+          }
+        }
+      }
+    }, annotations)
+  )
+}
+
+/**
+ * @since 4.0.0
+ */
+export function isUnique<T>(equivalence: Equivalence.Equivalence<T>, annotations?: Annotations.Filter) {
+  return makeFilter<ReadonlyArray<T>>(
+    (input) => Arr.dedupeWith(input, equivalence).length === input.length,
+    Annotations.combine({
+      title: "isUnique",
+      description: "an array with unique items",
+      jsonSchema: {
+        _tag: "Constraint",
+        constraint: () => ({ uniqueItems: true })
+      },
+      meta: {
+        _tag: "isUnique",
+        equivalence
+      },
+      arbitrary: {
+        _tag: "Constraint",
+        constraint: {
+          array: {
+            comparator: equivalence
+          }
+        }
+      }
+    }, annotations)
+  )
+}
+
+/**
+ * A check that ensures the value is a `Some` value.
+ *
+ * @category Option checks
+ * @since 4.0.0
+ */
+export function isSome<A>(annotations?: Annotations.Filter) {
+  return makeRefinedByGuard<Option_.Some<A>, Option_.Option<A>>(
+    Option_.isSome,
+    Annotations.combine({ title: "isSome", description: "a Some value" }, annotations)
+  )
+}
+
+/**
+ * A check that ensures the value is a `None` value.
+ *
+ * @category Option checks
+ * @since 4.0.0
+ */
+export function isNone<A>(annotations?: Annotations.Filter) {
+  return makeRefinedByGuard<Option_.None<A>, Option_.Option<A>>(
+    Option_.isNone,
+    Annotations.combine({ title: "isNone", description: "a None value" }, annotations)
+  )
+}
+
+/**
+ * A check that ensures the value is a `Result.Success` value.
+ *
+ * @category Result checks
+ * @since 4.0.0
+ */
+export function isSuccess<A, E>(annotations?: Annotations.Filter) {
+  return makeRefinedByGuard<Result_.Success<A, E>, Result_.Result<A, E>>(
+    Result_.isSuccess,
+    Annotations.combine({ title: "isSuccess", description: "a Result.Success value" }, annotations)
+  )
+}
+
+/**
+ * A check that ensures the value is a `Result.Failure` value.
+ *
+ * @category Result checks
+ * @since 4.0.0
+ */
+export function isFailure<A, E>(annotations?: Annotations.Filter) {
+  return makeRefinedByGuard<Result_.Failure<A, E>, Result_.Result<A, E>>(
+    Result_.isFailure,
+    Annotations.combine({ title: "isFailure", description: "a Result.Failure value" }, annotations)
+  )
+}
+
+/**
+ * @since 4.0.0
+ */
+export function isNotUndefined<A>(annotations?: Annotations.Filter) {
+  return makeRefinedByGuard<Exclude<A, undefined>, A>(
+    Predicate.isNotUndefined,
+    Annotations.combine({ title: "isNotUndefined", description: "a value other than `undefined`" }, annotations)
+  )
+}
+
+/**
+ * @since 4.0.0
+ */
+export function isNotNull<A>(annotations?: Annotations.Filter) {
+  return makeRefinedByGuard<Exclude<A, null>, A>(
+    Predicate.isNotNull,
+    Annotations.combine({ title: "isNotNull", description: "a value other than `null`" }, annotations)
+  )
+}
+
+/**
+ * @since 4.0.0
+ */
+export function isNotNullish<A>(annotations?: Annotations.Filter) {
+  return makeRefinedByGuard<NonNullable<A>, A>(
+    Predicate.isNotNullish,
+    Annotations.combine(
+      { title: "isNotNullish", description: "a value other than `null` or `undefined  `" },
+      annotations
+    )
+  )
+}
+
+// -----------------------------------------------------------------------------
+// Built-in Schemas
+// -----------------------------------------------------------------------------
+
+/**
+ * A schema for non-empty strings. Validates that a string has at least one
+ * character.
+ *
+ * @since 4.0.0
+ */
+export const NonEmptyString = String.check(isNonEmpty())
+
+/**
+ * A schema representing a single character.
+ *
+ * @since 4.0.0
+ */
+export const Char = String.check(isLength(1))
 
 /**
  * @category Option
@@ -3748,21 +5378,6 @@ export function Exit<A extends Top, E extends Top, D extends Top>(value: A, erro
 }
 
 /**
- * A schema for non-empty strings. Validates that a string has at least one
- * character.
- *
- * @since 4.0.0
- */
-export const NonEmptyString = String.check(Check.nonEmpty())
-
-/**
- * A schema representing a single character.
- *
- * @since 4.0.0
- */
-export const Char = String.check(Check.length(1))
-
-/**
  * @category ReadonlyMap
  * @since 4.0.0
  */
@@ -3939,82 +5554,6 @@ export function ReadonlySet<Value extends Top>(value: Value): ReadonlySet$<Value
 /**
  * @since 4.0.0
  */
-export interface Opaque<Self, S extends Top, Brand> extends
-  Bottom<
-    Self,
-    S["Encoded"],
-    S["DecodingServices"],
-    S["EncodingServices"],
-    S["ast"],
-    S["~rebuild.out"],
-    S["~type.make.in"],
-    S["Iso"],
-    S["~type.parameters"],
-    S["~type.make"],
-    S["~type.mutability"],
-    S["~type.optionality"],
-    S["~type.constructor.default"],
-    S["~encoded.mutability"],
-    S["~encoded.optionality"]
-  >
-{
-  // intentionally left without `readonly "~rebuild.out": this`
-  new(_: never): S["Type"] & Brand
-}
-
-/**
- * @since 4.0.0
- */
-export function Opaque<Self, Brand = {}>() {
-  return <S extends Top>(schema: S): Opaque<Self, S, Brand> & Omit<S, "Type" | "Encoded"> => {
-    // eslint-disable-next-line @typescript-eslint/no-extraneous-class
-    class Opaque {}
-    Object.setPrototypeOf(Opaque, schema)
-    return Opaque as any
-  }
-}
-
-/**
- * @since 4.0.0
- */
-export interface instanceOf<T, Iso = T> extends declare<T, Iso> {
-  readonly "~rebuild.out": this
-}
-
-/**
- * Creates a schema that validates an instance of a specific class constructor.
- *
- * It is recommended to add the `defaultJsonSerializer` annotation to the schema.
- *
- * @category Constructors
- * @since 4.0.0
- */
-export function instanceOf<C extends abstract new(...args: any) => any, Iso = InstanceType<C>>(
-  constructor: C,
-  annotations?: Annotations.Declaration<InstanceType<C>> | undefined
-): instanceOf<InstanceType<C>, Iso> {
-  return declare((u): u is InstanceType<C> => u instanceof constructor, annotations)
-}
-
-/**
- * @since 4.0.0
- * @experimental
- */
-export function link<T>() { // TODO: better name
-  return <To extends Top>(
-    encodeTo: To,
-    transformation: {
-      readonly decode: Getter.Getter<T, NoInfer<To["Type"]>>
-      readonly encode: Getter.Getter<NoInfer<To["Type"]>, T>
-    }
-  ): AST.Link => {
-    return new AST.Link(encodeTo.ast, Transformation.make(transformation))
-  }
-}
-
-/**
- * @since 4.0.0
- */
 export interface URL extends instanceOf<globalThis.URL> {}
 
 /**
@@ -4109,7 +5648,7 @@ export interface ValidDate extends Date {}
  *
  * @since 4.0.0
  */
-export const ValidDate = Date.check(Check.validDate())
+export const ValidDate = Date.check(isValidDate())
 
 /**
  * @since 4.0.0
@@ -4188,7 +5727,7 @@ export interface DurationFromNanos extends decodeTo<Duration, BigInt> {}
  * @category Duration
  * @since 4.0.0
  */
-export const DurationFromNanos: DurationFromNanos = BigInt.check(Check.nonNegativeBigInt()).pipe(
+export const DurationFromNanos: DurationFromNanos = BigInt.check(isNonNegativeBigInt()).pipe(
   decodeTo(Duration, Transformation.durationFromNanos)
 )
 
@@ -4213,7 +5752,7 @@ export interface DurationFromMillis extends decodeTo<Duration, Number> {}
  * @category Duration
  * @since 4.0.0
  */
-export const DurationFromMillis: DurationFromMillis = Number.check(Check.nonNegative()).pipe(
+export const DurationFromMillis: DurationFromMillis = Number.check(isNonNegative()).pipe(
   decodeTo(Duration, Transformation.durationFromMillis)
 )
 
@@ -4351,14 +5890,14 @@ export interface Finite extends Number {}
  *
  * @since 4.0.0
  */
-export const Finite = Number.check(Check.finite())
+export const Finite = Number.check(isFinite())
 
 /**
  * A schema for integers, rejecting `NaN`, `Infinity`, and `-Infinity`.
  *
  * @since 4.0.0
  */
-export const Int = Number.check(Check.int())
+export const Int = Number.check(isInt())
 
 /**
  * @since 4.0.0
@@ -4389,7 +5928,7 @@ export const FiniteFromString: FiniteFromString = String.annotate({
  *
  * @since 4.0.0
  */
-export const Trimmed = String.check(Check.trimmed())
+export const Trimmed = String.check(isTrimmed())
 
 /**
  * A transformation schema that trims whitespace from a string.
@@ -4405,297 +5944,6 @@ export const Trimmed = String.check(Check.trimmed())
 export const Trim = String.annotate({
   description: "a string that will be trimmed"
 }).pipe(decodeTo(Trimmed, Transformation.trim()))
-
-//
-// Class APIs
-//
-
-/**
- * @since 4.0.0
- */
-export interface Class<Self, S extends Top & { readonly fields: Struct.Fields }, Inherited> extends
-  Bottom<
-    Self,
-    S["Encoded"],
-    S["DecodingServices"],
-    S["EncodingServices"],
-    AST.Declaration,
-    decodeTo<declareConstructor<Self, S["Encoded"], readonly [S], S["Iso"]>, S>,
-    S["~type.make.in"],
-    S["Iso"],
-    readonly [S],
-    Self,
-    S["~type.mutability"],
-    S["~type.optionality"],
-    S["~type.constructor.default"],
-    S["~encoded.mutability"],
-    S["~encoded.optionality"]
-  >
-{
-  // intentionally left without `readonly "~rebuild.out": this`
-  new(props: S["~type.make.in"], options?: MakeOptions): S["Type"] & Inherited
-  readonly identifier: string
-  readonly fields: S["fields"]
-}
-
-/**
- * Not all classes are extendable (e.g. `RequestClass`).
- *
- * @since 4.0.0
- */
-export interface ExtendableClass<Self, S extends Top & { readonly fields: Struct.Fields }, Inherited>
-  extends Class<Self, S, Inherited>
-{
-  extend<Extended>(
-    identifier: string
-  ): <NewFields extends Struct.Fields>(
-    fields: NewFields,
-    annotations?: Annotations.Declaration<Extended, readonly [Struct<Simplify<Merge<S["fields"], NewFields>>>]>
-  ) => ExtendableClass<Extended, Struct<Simplify<Merge<S["fields"], NewFields>>>, Self>
-}
-
-const immerable: unique symbol = globalThis.Symbol.for("immer-draftable") as any
-
-function makeClass<
-  Self,
-  S extends Top & {
-    readonly Type: object
-    readonly fields: Struct.Fields
-  },
-  Inherited extends new(...args: ReadonlyArray<any>) => any
->(
-  Inherited: Inherited,
-  identifier: string,
-  schema: S,
-  annotations?: Annotations.Declaration<Self, readonly [S]>
-): any {
-  const getClassSchema = getClassSchemaFactory(schema, identifier, annotations)
-
-  return class extends Inherited {
-    constructor(...[input, options]: ReadonlyArray<any>) {
-      if (options?.disableValidation) {
-        super(input, options)
-      } else {
-        const validated = schema.makeUnsafe(input, options)
-        super({ ...input, ...validated }, { ...options, disableValidation: true })
-      }
-    }
-
-    static readonly [TypeId] = TypeId
-    static readonly [immerable] = true
-
-    declare static readonly "~rebuild.out": decodeTo<declareConstructor<Self, S["Encoded"], readonly [S], S["Iso"]>, S>
-    declare static readonly "~annotate.in": Annotations.Bottom<Self, readonly [S]>
-
-    declare static readonly "Type": Self
-    declare static readonly "Encoded": S["Encoded"]
-    declare static readonly "DecodingServices": S["DecodingServices"]
-    declare static readonly "EncodingServices": S["EncodingServices"]
-
-    declare static readonly "~type.make.in": S["~type.make.in"]
-    declare static readonly "~type.make": Self
-    declare static readonly "~type.constructor.default": S["~type.constructor.default"]
-    declare static readonly "Iso": S["Iso"]
-
-    declare static readonly "~type.mutability": S["~type.mutability"]
-    declare static readonly "~type.optionality": S["~type.optionality"]
-    declare static readonly "~encoded.mutability": S["~encoded.mutability"]
-    declare static readonly "~encoded.optionality": S["~encoded.optionality"]
-
-    static readonly identifier = identifier
-    static readonly fields = schema.fields
-
-    static get ast(): AST.Declaration {
-      return getClassSchema(this).ast
-    }
-    static pipe() {
-      return Pipeable.pipeArguments(this, arguments)
-    }
-    static rebuild(ast: AST.Declaration) {
-      return getClassSchema(this).rebuild(ast)
-    }
-    static makeUnsafe(input: S["~type.make.in"], options?: MakeOptions): Self {
-      return new this(input, options)
-    }
-    static annotate(annotations: Annotations.Declaration<Self, readonly [S]>) {
-      return this.rebuild(AST.annotate(this.ast, annotations))
-    }
-    static annotateKey(annotations: Annotations.Key<Self>) {
-      return this.rebuild(AST.annotateKey(this.ast, annotations))
-    }
-    static check(...checks: readonly [Check.Check<Self>, ...Array<Check.Check<Self>>]) {
-      return this.rebuild(AST.appendChecks(this.ast, checks))
-    }
-    static extend<Extended>(
-      identifier: string
-    ): <NewFields extends Struct.Fields>(
-      fields: NewFields,
-      annotations?: Annotations.Declaration<Extended, readonly [Struct<Simplify<Merge<S["fields"], NewFields>>>]>
-    ) => Class<Extended, Struct<Simplify<Merge<S["fields"], NewFields>>>, Self> {
-      return (newFields, annotations) => {
-        const fields = { ...schema.fields, ...newFields }
-        const struct: any = makeStruct(AST.struct(fields, schema.ast.checks), fields)
-        return makeClass(this, identifier, struct, annotations)
-      }
-    }
-  }
-}
-
-function getClassTransformation(self: new(...args: ReadonlyArray<any>) => any) {
-  return new Transformation.Transformation<any, any, never, never>(
-    Getter.transform((input) => new self(input)),
-    Getter.passthrough()
-  )
-}
-
-function getClassSchemaFactory<S extends Top>(
-  from: S,
-  identifier: string,
-  annotations: Annotations.Declaration<any, readonly [S]> | undefined
-) {
-  let memo: decodeTo<declareConstructor<any, S["Encoded"], readonly [S]>, S> | undefined
-  return <Self extends (new(...args: ReadonlyArray<any>) => any) & { readonly identifier: string }>(
-    self: Self
-  ): decodeTo<declareConstructor<Self, S["Encoded"], readonly [S]>, S> => {
-    if (memo === undefined) {
-      const transformation = getClassTransformation(self)
-      const to = make<declareConstructor<Self, S["Encoded"], readonly [S]>>(
-        new AST.Declaration(
-          [from.ast],
-          () => (input, ast) => {
-            return input instanceof self ?
-              Effect.succeed(input) :
-              Effect.fail(new Issue.InvalidType(ast, Option_.some(input)))
-          },
-          Annotations.combine({
-            [AST.ClassTypeId]: ([from]: readonly [AST.AST]) => new AST.Link(from, transformation),
-            serializer: ([from]) => new AST.Link(from.ast, transformation),
-            arbitrary: {
-              _tag: "Override",
-              override: ([from]) => () => from.map((args) => new self(args))
-            },
-            format: {
-              _tag: "Override",
-              override: ([from]) => (t: Self) => `${self.identifier}(${from(t)})`
-            }
-          }, annotations)
-        )
-      )
-      memo = from.pipe(
-        decodeTo(
-          to,
-          getClassTransformation(self)
-        )
-      ).annotate({ identifier })
-    }
-    return memo
-  }
-}
-
-function isStruct(schema: Struct.Fields | Struct<Struct.Fields>): schema is Struct<Struct.Fields> {
-  return isSchema(schema)
-}
-
-/**
- * @category Constructors
- * @since 4.0.0
- */
-export const Class: {
-  <Self, Brand = {}>(id: string): {
-    <const Fields extends Struct.Fields>(
-      fields: Fields,
-      annotations?: Annotations.Declaration<Self, readonly [Struct<Fields>]>
-    ): ExtendableClass<Self, Struct<Fields>, Brand>
-    <S extends Struct<Struct.Fields>>(
-      schema: S,
-      annotations?: Annotations.Declaration<Self, readonly [S]>
-    ): ExtendableClass<Self, S, Brand>
-  }
-} = <Self, Brand = {}>(id: string) =>
-(
-  schema: Struct.Fields | Struct<Struct.Fields>,
-  annotations?: Annotations.Declaration<Self, readonly [Struct<Struct.Fields>]>
-): ExtendableClass<Self, Struct<Struct.Fields>, Brand> => {
-  const struct = isStruct(schema) ? schema : Struct(schema)
-  return makeClass(Data.Class, id, struct, annotations)
-}
-
-/**
- * @since 4.0.0
- */
-export interface ErrorClass<Self, S extends Top & { readonly fields: Struct.Fields }, Inherited>
-  extends ExtendableClass<Self, S, Inherited>
-{}
-
-/**
- * @category Constructors
- * @since 4.0.0
- */
-export const ErrorClass: {
-  <Self, Brand = {}>(id: string): {
-    <const Fields extends Struct.Fields>(
-      fields: Fields,
-      annotations?: Annotations.Declaration<Self, readonly [Struct<Fields>]>
-    ): ErrorClass<Self, Struct<Fields>, Cause_.YieldableError & Brand>
-    <S extends Struct<Struct.Fields>>(
-      schema: S,
-      annotations?: Annotations.Declaration<Self, readonly [S]>
-    ): ErrorClass<Self, S, Cause_.YieldableError & Brand>
-  }
-} = <Self, Brand = {}>(id: string) =>
-(
-  schema: Struct.Fields | Struct<Struct.Fields>,
-  annotations?: Annotations.Declaration<Self, readonly [Struct<Struct.Fields>]>
-): ErrorClass<Self, Struct<Struct.Fields>, Cause_.YieldableError & Brand> => {
-  const struct = isStruct(schema) ? schema : Struct(schema)
-  return makeClass(core.Error, id, struct, annotations)
-}
-
-/**
- * @since 4.0.0
- */
-export interface RequestClass<
-  Self,
-  Payload extends Struct<Struct.Fields>,
-  Success extends Top,
-  Error extends Top,
-  Inherited
-> extends Class<Self, Payload, Inherited> {
-  readonly payload: Payload
-  readonly success: Success
-  readonly error: Error
-}
-
-/**
- * @category Constructors
- * @since 4.0.0
- */
-export const RequestClass =
-  <Self, Brand = {}>(id: string) =>
-  <Payload extends Struct<Struct.Fields>, Success extends Top, Error extends Top>(
-    options: {
-      readonly payload: Payload
-      readonly success: Success
-      readonly error: Error
-      readonly annotations?: Annotations.Declaration<Self, readonly [Payload]>
-    }
-  ): RequestClass<
-    Self,
-    Payload,
-    Success,
-    Error,
-    Request.Request<
-      Success["Type"],
-      Error["Type"],
-      Success["DecodingServices"] | Success["EncodingServices"] | Error["DecodingServices"] | Error["EncodingServices"]
-    > & Brand
-  > => {
-    return class RequestClass extends makeClass(Request.Class, id, options.payload, options.annotations) {
-      static readonly payload = options.payload
-      static readonly success = options.success
-      static readonly error = options.error
-    } as any
-  }
 
 /**
  * @since 4.0.0
@@ -4960,76 +6208,293 @@ export const DateTimeUtcFromMillis: DateTimeUtcFromMillis = Number.annotate({
   })
 )
 
+// -----------------------------------------------------------------------------
+// Class APIs
+// -----------------------------------------------------------------------------
+
 /**
  * @since 4.0.0
  */
-export interface declareConstructor<T, E, TypeParameters extends ReadonlyArray<Top>, Iso = T> extends
+export interface Class<Self, S extends Top & { readonly fields: Struct.Fields }, Inherited> extends
   Bottom<
-    T,
-    E,
-    TypeParameters[number]["DecodingServices"],
-    TypeParameters[number]["EncodingServices"],
+    Self,
+    S["Encoded"],
+    S["DecodingServices"],
+    S["EncodingServices"],
     AST.Declaration,
-    declareConstructor<T, E, TypeParameters, Iso>,
-    T,
-    Iso,
-    TypeParameters
+    decodeTo<declareConstructor<Self, S["Encoded"], readonly [S], S["Iso"]>, S>,
+    S["~type.make.in"],
+    S["Iso"],
+    readonly [S],
+    Self,
+    S["~type.mutability"],
+    S["~type.optionality"],
+    S["~type.constructor.default"],
+    S["~encoded.mutability"],
+    S["~encoded.optionality"]
   >
 {
-  readonly "~rebuild.out": this
+  // intentionally left without `readonly "~rebuild.out": this`
+  new(props: S["~type.make.in"], options?: MakeOptions): S["Type"] & Inherited
+  readonly identifier: string
+  readonly fields: S["fields"]
 }
 
 /**
- * An API for creating schemas for parametric types.
+ * Not all classes are extendable (e.g. `RequestClass`).
  *
- * @see {@link declare} for creating schemas for non parametric types.
- *
- * @category Constructors
  * @since 4.0.0
  */
-export function declareConstructor<T, E = T, Iso = T>() {
-  return <const TypeParameters extends ReadonlyArray<Top>>(
-    typeParameters: TypeParameters,
-    run: (
-      typeParameters: {
-        readonly [K in keyof TypeParameters]: Codec<TypeParameters[K]["Type"], TypeParameters[K]["Encoded"]>
+export interface ExtendableClass<Self, S extends Top & { readonly fields: Struct.Fields }, Inherited>
+  extends Class<Self, S, Inherited>
+{
+  extend<Extended>(
+    identifier: string
+  ): <NewFields extends Struct.Fields>(
+    fields: NewFields,
+    annotations?: Annotations.Declaration<Extended, readonly [Struct<Simplify<Merge<S["fields"], NewFields>>>]>
+  ) => ExtendableClass<Extended, Struct<Simplify<Merge<S["fields"], NewFields>>>, Self>
+}
+
+const immerable: unique symbol = globalThis.Symbol.for("immer-draftable") as any
+
+function makeClass<
+  Self,
+  S extends Top & {
+    readonly Type: object
+    readonly fields: Struct.Fields
+  },
+  Inherited extends new(...args: ReadonlyArray<any>) => any
+>(
+  Inherited: Inherited,
+  identifier: string,
+  schema: S,
+  annotations?: Annotations.Declaration<Self, readonly [S]>
+): any {
+  const getClassSchema = getClassSchemaFactory(schema, identifier, annotations)
+
+  return class extends Inherited {
+    constructor(...[input, options]: ReadonlyArray<any>) {
+      if (options?.disableValidation) {
+        super(input, options)
+      } else {
+        const validated = schema.makeUnsafe(input, options)
+        super({ ...input, ...validated }, { ...options, disableValidation: true })
       }
-    ) => (u: unknown, self: AST.Declaration, options: AST.ParseOptions) => Effect.Effect<T, Issue.Issue>,
-    annotations?: Annotations.Declaration<T, TypeParameters>
-  ): declareConstructor<T, E, TypeParameters, Iso> => {
-    return make(
-      new AST.Declaration(
-        typeParameters.map(AST.getAST),
-        (typeParameters) => run(typeParameters.map(make) as any),
-        annotations
-      )
-    )
+    }
+
+    static readonly [TypeId] = TypeId
+    static readonly [immerable] = true
+
+    declare static readonly "~rebuild.out": decodeTo<declareConstructor<Self, S["Encoded"], readonly [S], S["Iso"]>, S>
+    declare static readonly "~annotate.in": Annotations.Bottom<Self, readonly [S]>
+
+    declare static readonly "Type": Self
+    declare static readonly "Encoded": S["Encoded"]
+    declare static readonly "DecodingServices": S["DecodingServices"]
+    declare static readonly "EncodingServices": S["EncodingServices"]
+
+    declare static readonly "~type.make.in": S["~type.make.in"]
+    declare static readonly "~type.make": Self
+    declare static readonly "~type.constructor.default": S["~type.constructor.default"]
+    declare static readonly "Iso": S["Iso"]
+
+    declare static readonly "~type.mutability": S["~type.mutability"]
+    declare static readonly "~type.optionality": S["~type.optionality"]
+    declare static readonly "~encoded.mutability": S["~encoded.mutability"]
+    declare static readonly "~encoded.optionality": S["~encoded.optionality"]
+
+    static readonly identifier = identifier
+    static readonly fields = schema.fields
+
+    static get ast(): AST.Declaration {
+      return getClassSchema(this).ast
+    }
+    static pipe() {
+      return Pipeable.pipeArguments(this, arguments)
+    }
+    static rebuild(ast: AST.Declaration) {
+      return getClassSchema(this).rebuild(ast)
+    }
+    static makeUnsafe(input: S["~type.make.in"], options?: MakeOptions): Self {
+      return new this(input, options)
+    }
+    static annotate(annotations: Annotations.Declaration<Self, readonly [S]>) {
+      return this.rebuild(AST.annotate(this.ast, annotations))
+    }
+    static annotateKey(annotations: Annotations.Key<Self>) {
+      return this.rebuild(AST.annotateKey(this.ast, annotations))
+    }
+    static check(...checks: readonly [AST.Check<Self>, ...Array<AST.Check<Self>>]) {
+      return this.rebuild(AST.appendChecks(this.ast, checks))
+    }
+    static extend<Extended>(
+      identifier: string
+    ): <NewFields extends Struct.Fields>(
+      fields: NewFields,
+      annotations?: Annotations.Declaration<Extended, readonly [Struct<Simplify<Merge<S["fields"], NewFields>>>]>
+    ) => Class<Extended, Struct<Simplify<Merge<S["fields"], NewFields>>>, Self> {
+      return (newFields, annotations) => {
+        const fields = { ...schema.fields, ...newFields }
+        const struct: any = makeStruct(AST.struct(fields, schema.ast.checks), fields)
+        return makeClass(this, identifier, struct, annotations)
+      }
+    }
   }
 }
 
+function getClassTransformation(self: new(...args: ReadonlyArray<any>) => any) {
+  return new Transformation.Transformation<any, any, never, never>(
+    Getter.transform((input) => new self(input)),
+    Getter.passthrough()
+  )
+}
+
+function getClassSchemaFactory<S extends Top>(
+  from: S,
+  identifier: string,
+  annotations: Annotations.Declaration<any, readonly [S]> | undefined
+) {
+  let memo: decodeTo<declareConstructor<any, S["Encoded"], readonly [S]>, S> | undefined
+  return <Self extends (new(...args: ReadonlyArray<any>) => any) & { readonly identifier: string }>(
+    self: Self
+  ): decodeTo<declareConstructor<Self, S["Encoded"], readonly [S]>, S> => {
+    if (memo === undefined) {
+      const transformation = getClassTransformation(self)
+      const to = make<declareConstructor<Self, S["Encoded"], readonly [S]>>(
+        new AST.Declaration(
+          [from.ast],
+          () => (input, ast) => {
+            return input instanceof self ?
+              Effect.succeed(input) :
+              Effect.fail(new Issue.InvalidType(ast, Option_.some(input)))
+          },
+          Annotations.combine({
+            [AST.ClassTypeId]: ([from]: readonly [AST.AST]) => new AST.Link(from, transformation),
+            serializer: ([from]) => new AST.Link(from.ast, transformation),
+            arbitrary: {
+              _tag: "Override",
+              override: ([from]) => () => from.map((args) => new self(args))
+            },
+            format: {
+              _tag: "Override",
+              override: ([from]) => (t: Self) => `${self.identifier}(${from(t)})`
+            }
+          }, annotations)
+        )
+      )
+      memo = from.pipe(
+        decodeTo(
+          to,
+          getClassTransformation(self)
+        )
+      ).annotate({ identifier })
+    }
+    return memo
+  }
+}
+
+function isStruct(schema: Struct.Fields | Struct<Struct.Fields>): schema is Struct<Struct.Fields> {
+  return isSchema(schema)
+}
+
 /**
  * @category Constructors
  * @since 4.0.0
  */
-export interface declare<T, Iso = T> extends declareConstructor<T, T, readonly [], Iso> {}
+export const Class: {
+  <Self, Brand = {}>(id: string): {
+    <const Fields extends Struct.Fields>(
+      fields: Fields,
+      annotations?: Annotations.Declaration<Self, readonly [Struct<Fields>]>
+    ): ExtendableClass<Self, Struct<Fields>, Brand>
+    <S extends Struct<Struct.Fields>>(
+      schema: S,
+      annotations?: Annotations.Declaration<Self, readonly [S]>
+    ): ExtendableClass<Self, S, Brand>
+  }
+} = <Self, Brand = {}>(id: string) =>
+(
+  schema: Struct.Fields | Struct<Struct.Fields>,
+  annotations?: Annotations.Declaration<Self, readonly [Struct<Struct.Fields>]>
+): ExtendableClass<Self, Struct<Struct.Fields>, Brand> => {
+  const struct = isStruct(schema) ? schema : Struct(schema)
+  return makeClass(Data.Class, id, struct, annotations)
+}
 
 /**
- * An API for creating schemas for non parametric types.
- *
- * @see {@link declareConstructor} for creating schemas for parametric types.
- *
  * @since 4.0.0
  */
-export function declare<T, Iso = T>(
-  is: (u: unknown) => u is T,
-  annotations?: Annotations.Declaration<T> | undefined
-): declare<T, Iso> {
-  return declareConstructor<T, T, Iso>()(
-    [],
-    () => (input, ast) =>
-      is(input) ?
-        Effect.succeed(input) :
-        Effect.fail(new Issue.InvalidType(ast, Option_.some(input))),
-    annotations
-  )
+export interface ErrorClass<Self, S extends Top & { readonly fields: Struct.Fields }, Inherited>
+  extends ExtendableClass<Self, S, Inherited>
+{}
+
+/**
+ * @category Constructors
+ * @since 4.0.0
+ */
+export const ErrorClass: {
+  <Self, Brand = {}>(id: string): {
+    <const Fields extends Struct.Fields>(
+      fields: Fields,
+      annotations?: Annotations.Declaration<Self, readonly [Struct<Fields>]>
+    ): ErrorClass<Self, Struct<Fields>, Cause_.YieldableError & Brand>
+    <S extends Struct<Struct.Fields>>(
+      schema: S,
+      annotations?: Annotations.Declaration<Self, readonly [S]>
+    ): ErrorClass<Self, S, Cause_.YieldableError & Brand>
+  }
+} = <Self, Brand = {}>(id: string) =>
+(
+  schema: Struct.Fields | Struct<Struct.Fields>,
+  annotations?: Annotations.Declaration<Self, readonly [Struct<Struct.Fields>]>
+): ErrorClass<Self, Struct<Struct.Fields>, Cause_.YieldableError & Brand> => {
+  const struct = isStruct(schema) ? schema : Struct(schema)
+  return makeClass(core.Error, id, struct, annotations)
 }
+
+/**
+ * @since 4.0.0
+ */
+export interface RequestClass<
+  Self,
+  Payload extends Struct<Struct.Fields>,
+  Success extends Top,
+  Error extends Top,
+  Inherited
+> extends Class<Self, Payload, Inherited> {
+  readonly payload: Payload
+  readonly success: Success
+  readonly error: Error
+}
+
+/**
+ * @category Constructors
+ * @since 4.0.0
+ */
+export const RequestClass =
+  <Self, Brand = {}>(id: string) =>
+  <Payload extends Struct<Struct.Fields>, Success extends Top, Error extends Top>(
+    options: {
+      readonly payload: Payload
+      readonly success: Success
+      readonly error: Error
+      readonly annotations?: Annotations.Declaration<Self, readonly [Payload]>
+    }
+  ): RequestClass<
+    Self,
+    Payload,
+    Success,
+    Error,
+    Request.Request<
+      Success["Type"],
+      Error["Type"],
+      Success["DecodingServices"] | Success["EncodingServices"] | Error["DecodingServices"] | Error["EncodingServices"]
+    > & Brand
+  > => {
+    return class RequestClass extends makeClass(Request.Class, id, options.payload, options.annotations) {
+      static readonly payload = options.payload
+      static readonly success = options.success
+      static readonly error = options.error
+    } as any
+  }

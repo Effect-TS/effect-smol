@@ -1,12 +1,12 @@
 import { Effect, ServiceMap } from "effect"
 import { Option } from "effect/data"
-import { Check, Getter, Issue, Schema } from "effect/schema"
+import { Getter, Issue, Schema } from "effect/schema"
 import { TestSchema } from "effect/testing"
 import { describe, it } from "vitest"
 
 describe("TestSchema", () => {
   it("decoding", async () => {
-    const schema = Schema.FiniteFromString.check(Check.positive())
+    const schema = Schema.FiniteFromString.check(Schema.isPositive())
     const assert = new TestSchema.Asserts(schema)
     const decoding = assert.decoding()
     await decoding.succeed("1", 1)
@@ -40,7 +40,7 @@ describe("TestSchema", () => {
   })
 
   it("encoding", async () => {
-    const schema = Schema.FiniteFromString.check(Check.positive())
+    const schema = Schema.FiniteFromString.check(Schema.isPositive())
     const assert = new TestSchema.Asserts(schema)
     const encoding = assert.encoding()
     await encoding.succeed(1, "1")
@@ -73,7 +73,7 @@ describe("TestSchema", () => {
   })
 
   it("verifyLosslessTransformation", async () => {
-    const schema = Schema.FiniteFromString.check(Check.positive())
+    const schema = Schema.FiniteFromString.check(Schema.isPositive())
     const assert = new TestSchema.Asserts(schema)
     await assert.verifyLosslessTransformation()
   })

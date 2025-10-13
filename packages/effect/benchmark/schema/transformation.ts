@@ -1,4 +1,4 @@
-import { Check, Schema, Transformation } from "effect/schema"
+import { Schema, Transformation } from "effect/schema"
 import { Bench } from "tinybench"
 import { z } from "zod"
 
@@ -18,13 +18,13 @@ const bench = new Bench()
 const schema = Schema.Struct({
   a: Schema.String,
   id: Schema.String,
-  c: Schema.Number.check(Check.nonNegative()),
+  c: Schema.Number.check(Schema.isNonNegative()),
   d: Schema.String
 }).pipe(Schema.decodeTo(
   Schema.Struct({
     a: Schema.String,
     b: Schema.Struct({ id: Schema.String }),
-    c: Schema.Number.check(Check.nonNegative()),
+    c: Schema.Number.check(Schema.isNonNegative()),
     d: Schema.String
   }),
   Transformation.transform({

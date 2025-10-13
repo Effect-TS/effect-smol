@@ -41,7 +41,7 @@ Ultimately, the intent is to eliminate the need for two separate paths like in v
 
 ### 5. Validation Pipeline
 
-- Filters (`Check`) are **first‑class values**:
+- Filters are **first‑class values**:
   - chainable without losing original schema type info,
   - reusable (groups, factories),
   - structural vs element filters,
@@ -119,7 +119,7 @@ export interface Bottom<
 
   annotate(annotations: this["~annotate.in"]): this["~rebuild.out"]
   annotateKey(annotations: Annotations.Key<this["Type"]>): this["~rebuild.out"]
-  check(...checks: readonly [Check.Check<this["Type"]>, ...Array<Check.Check<this["Type"]>>]): this["~rebuild.out"]
+  check(...checks: readonly [AST.Check<this["Type"]>, ...Array<AST.Check<this["Type"]>>]): this["~rebuild.out"]
   rebuild(ast: this["ast"]): this["~rebuild.out"]
   /**
    * @throws {Error} The issue is contained in the error cause.
@@ -1013,15 +1013,15 @@ ToParser.makeEffect(schema)({})
 
 You can apply filters with the `.check` method or the `Schema.check` function.
 
-Define custom filters with `Check.make`.
+Define custom filters with `Schema.makeFilter`.
 
 **Example** (Custom filter that checks minimum length)
 
 ```ts
-import { Check, Schema } from "effect/schema"
+import { Schema } from "effect/schema"
 
 // Filter: the string must have at least 3 characters
-const schema = Schema.String.check(Check.make((s) => s.length >= 3))
+const schema = Schema.String.check(Schema.makeFilter((s) => s.length >= 3))
 
 console.log(String(Schema.decodeUnknownExit(schema)("")))
 // Failure(Cause([Fail(SchemaError: Expected <filter>, got "")]))
@@ -1032,11 +1032,11 @@ You can attach annotations and provide a custom error message when defining a fi
 **Example** (Filter with annotations and a custom message)
 
 ```ts
-import { Check, Schema } from "effect/schema"
+import { Schema } from "effect/schema"
 
 // Filter with a title, description, and custom error message
 const schema = Schema.String.check(
-  Check.make((s) => s.length >= 3 || `length must be >= 3, got ${s.length}`, {
+  Schema.makeFilter((s) => s.length >= 3 || `length must be >= 3, got ${s.length}`, {
     title: "length >= 3",
     description: "a string with at least 3 characters"
   })
@@ -1053,7 +1053,7 @@ When you apply a filter using `Schema.check`, the original schema type and metho
 **Example** (Chaining filters and annotations without losing type information)
 
 ```ts
-import { Check, Schema } from "effect/schema"
+import { Schema } from "effect/schema"
 
 //      ┌─── Schema.String
 //      ▼
@@ -1061,7 +1061,7 @@ Schema.String
 
 //      ┌─── Schema.String
 //      ▼
-const NonEmptyString = Schema.String.check(Check.nonEmpty())
+const NonEmptyString = Schema.String.check(Schema.isNonEmpty())
 
 //      ┌─── Schema.String
 //      ▼
@@ -1073,13 +1073,13 @@ Even after adding a filter and an annotation, the schema is still a `Schema.Stri
 **Example** (Accessing struct fields after filtering)
 
 ```ts
-import { Check, Schema } from "effect/schema"
+import { Schema } from "effect/schema"
 
 // Define a struct and apply a (dummy) filter
 const schema = Schema.Struct({
   name: Schema.String,
   age: Schema.Number
-}).check(Check.make(() => true))
+}).check(Schema.makeFilter(() => true))
 
 // The `.fields` property is still available
 const fields = schema.fields
@@ -1087,31 +1087,31 @@ const fields = schema.fields
 
 ### 🆕 Filters as First-Class
 
-Filters are standalone values. You can reuse them across schemas, combine them, and apply them to any compatible type. For example, `Check.minLength` works not only with strings but also with arrays or any object that has a `length` property.
+Filters are standalone values. You can reuse them across schemas, combine them, and apply them to any compatible type. For example, `Schema.isMinLength` works not only with strings but also with arrays or any object that has a `length` property.
 
 You can pass multiple filters to a single `.check(...)` call.
 
 **Example** (Combining filters on a string)
 
 ```ts
-import { Check, Schema } from "effect/schema"
+import { Schema } from "effect/schema"
 
 const schema = Schema.String.check(
-  Check.minLength(3), // value must be at least 3 chars long
-  Check.trimmed() // no leading/trailing whitespace
+  Schema.isMinLength(3), // value must be at least 3 chars long
+  Schema.isTrimmed() // no leading/trailing whitespace
 )
 
 console.log(String(Schema.decodeUnknownExit(schema)(" a")))
 // Failure(Cause([Fail(SchemaError: Expected a value with a length of at least 3, got " a")]))
 ```
 
-**Example** (Using `minLength` with an object that has `length`)
+**Example** (Using `isMinLength` with an object that has `length`)
 
 ```ts
-import { Check, Schema } from "effect/schema"
+import { Schema } from "effect/schema"
 
 // Object must have a numeric `length` field that is >= 3
-const schema = Schema.Struct({ length: Schema.Number }).check(Check.minLength(3))
+const schema = Schema.Struct({ length: Schema.Number }).check(Schema.isMinLength(3))
 
 console.log(String(Schema.decodeUnknownExit(schema)({ length: 2 })))
 // Failure(Cause([Fail(SchemaError: Expected a value with a length of at least 3, got {"length":2}]))
@@ -1120,10 +1120,10 @@ console.log(String(Schema.decodeUnknownExit(schema)({ length: 2 })))
 **Example** (Validating array length)
 
 ```ts
-import { Check, Schema } from "effect/schema"
+import { Schema } from "effect/schema"
 
 // Array must contain at least 3 strings
-const schema = Schema.Array(Schema.String).check(Check.minLength(3))
+const schema = Schema.Array(Schema.String).check(Schema.isMinLength(3))
 
 console.log(String(Schema.decodeUnknownExit(schema)(["a", "b"])))
 // Failure(Cause([Fail(SchemaError: Expected a value with a length of at least 3, got ["a","b"]]))
@@ -1136,9 +1136,9 @@ By default, when `{ errors: "all" }` is passed, all filters are evaluated, even 
 **Example** (Collecting multiple validation issues)
 
 ```ts
-import { Check, Schema } from "effect/schema"
+import { Schema } from "effect/schema"
 
-const schema = Schema.String.check(Check.minLength(3), Check.trimmed())
+const schema = Schema.String.check(Schema.isMinLength(3), Schema.isTrimmed())
 
 console.log(
   String(
@@ -1153,18 +1153,18 @@ Expected a string with no leading or trailing whitespace, got " a")]))
 */
 ```
 
-### 🆕 Stop Validation
+### 🆕 Aborting Validation
 
-If you want to stop validation as soon as a filter fails, you can wrap it with `Check.abort`.
+If you want to stop validation as soon as a filter fails, you can call the `abort` method on the filter.
 
 **Example** (Short-circuit on first failure)
 
 ```ts
-import { Check, Schema } from "effect/schema"
+import { Schema } from "effect/schema"
 
 const schema = Schema.String.check(
-  Check.abort(Check.minLength(3)), // Stop on failure here
-  Check.trimmed() // This will not run if minLength fails
+  Schema.isMinLength(3).abort(), // Stop on failure here
+  Schema.isTrimmed() // This will not run if minLength fails
 )
 
 console.log(
@@ -1179,17 +1179,17 @@ console.log(
 
 ### 🆕 Filter Groups
 
-Group filters into a reusable unit with `Check.makeGroup`. This helps when the same set of checks appears in multiple places.
+Group filters into a reusable unit with `Schema.makeFilterGroup`. This helps when the same set of checks appears in multiple places.
 
 **Example** (Reusable group for 32-bit integers)
 
 ```ts
-import { Check } from "effect/schema"
+import { Schema } from "effect/schema"
 
 //      ┌─── FilterGroup<number>
 //      ▼
-const int32 = Check.makeGroup([Check.int(), Check.between(-2147483648, 2147483647)], {
-  title: "int32",
+const isInt32 = Schema.makeFilterGroup([Schema.isInt(), Schema.isBetween(-2147483648, 2147483647)], {
+  title: "isInt32",
   description: "a 32-bit integer"
 })
 ```
@@ -1199,13 +1199,13 @@ const int32 = Check.makeGroup([Check.int(), Check.between(-2147483648, 214748364
 Use `Schema.refine` to add extra checks to an existing schema. These checks can enforce type guards or add a brand.
 
 ```ts
-import { Check, Schema } from "effect/schema"
+import { Schema } from "effect/schema"
 
 //      ┌─── refine<readonly string[] & readonly [string, string, ...string[]], Schema.Array$<Schema.String>>
 //      ▼
 const guarded = Schema.Array(Schema.String).pipe(
   Schema.refine(
-    Check.makeRefineByGuard(
+    Schema.makeRefinedByGuard(
       (arr: ReadonlyArray<string>): arr is readonly [string, string, ...Array<string>] => arr.length >= 2
     )
   )
@@ -1213,7 +1213,7 @@ const guarded = Schema.Array(Schema.String).pipe(
 
 //      ┌─── refine<string & Brand<"UserId">, Schema.String>
 //      ▼
-const branded = Schema.String.pipe(Schema.refine(Check.makeBrand("UserId")))
+const branded = Schema.String.pipe(Schema.refine(Schema.makeBrand("UserId")))
 ```
 
 For convenience, `Schema.refineByGuard` and `Schema.brand` are shorthands for these patterns.
@@ -1242,12 +1242,12 @@ const branded = Schema.String.pipe(Schema.brand("UserId"))
 
 ### 🆕 Refinement Groups
 
-You can group multiple refinements using `Check.makeGroup` and then layer additional rules with guards or brands.
+You can group multiple refinements using `Schema.makeFilterGroup` and then layer additional rules with guards or brands.
 
 **Example** (Group with a type guard and other checks)
 
 ```ts
-import { Check } from "effect/schema"
+import { Schema } from "effect/schema"
 
 // A group that checks:
 // - minimum length of 3
@@ -1255,15 +1255,15 @@ import { Check } from "effect/schema"
 //
 //      ┌─── RefinementGroup<Lowercase<string>, string>
 //      ▼
-export const guardedGroup = Check.makeGroup([Check.minLength(3), Check.trimmed()]).pipe(
-  Check.refineByGuard((s): s is Lowercase<string> => s.toLowerCase() === s)
+export const guardedGroup = Schema.makeFilterGroup([Schema.isMinLength(3), Schema.isTrimmed()]).pipe(
+  Schema.isRefinedByGuard((s): s is Lowercase<string> => s.toLowerCase() === s)
 )
 ```
 
 **Example** (Group that adds a brand)
 
 ```ts
-import { Check } from "effect/schema"
+import { Schema } from "effect/schema"
 
 // A group that checks:
 // - minimum length of 3
@@ -1272,7 +1272,9 @@ import { Check } from "effect/schema"
 //
 //      ┌─── Check.RefinementGroup<string & Brand<"my-string">, string>
 //      ▼
-export const brandedGroup = Check.makeGroup([Check.minLength(3), Check.trimmed()]).pipe(Check.brand("my-string"))
+const brandedGroup = Schema.makeFilterGroup([Schema.isMinLength(3), Schema.isTrimmed()]).pipe(
+  Schema.isBranded("my-string")
+)
 ```
 
 A more complete example:
@@ -1289,29 +1291,29 @@ Usernames must:
 Group these constraints and brand the result for reuse.
 
 ```ts
-import { Check, Schema } from "effect/schema"
+import { Schema } from "effect/schema"
 
 // Group for a valid username
-const username = Check.makeGroup(
+const username = Schema.makeFilterGroup(
   [
-    Check.minLength(3),
-    Check.regex(/^[a-zA-Z0-9]+$/, {
+    Schema.isMinLength(3),
+    Schema.isRegex(/^[a-zA-Z0-9]+$/, {
       title: "alphanumeric",
       description: "must contain only letters and numbers"
     }),
-    Check.trimmed()
+    Schema.isTrimmed()
   ],
   {
     title: "username",
     description: "a valid username"
   }
-).pipe(Check.brand("Username"))
+).pipe(Schema.isBranded("Username"))
 
 // Apply the group to a string
 //
 //      ┌─── refine<string & Brand<"Username">, Schema.String>
 //      ▼
-export const Username = Schema.String.pipe(Schema.refine(username))
+const Username = Schema.String.pipe(Schema.refine(username))
 ```
 
 ### Structural Filters
@@ -1320,8 +1322,9 @@ Some filters apply not to individual elements, but to the overall structure of a
 
 Structural filters are different from regular filters in that they validate aspects of a container type, like the number of items in an array or the presence of keys in an object, rather than the contents themselves. Examples include:
 
-- `minLength` or `maxLength` on arrays
-- `minKeys` or `maxKeys` on objects
+- `isMinLength` or `isMaxLength` on arrays
+- `isMinSize` or `isMaxSize` on objects with a `size` property
+- `isMinEntries` or `isMaxEntries` on objects
 - any constraint that applies to the "shape" of a value rather than to its nested values
 
 These filters are evaluated separately from item-level filters and allow multiple issues to be reported when `{ errors: "all" }` is used.
@@ -1329,11 +1332,11 @@ These filters are evaluated separately from item-level filters and allow multipl
 **Example** (Validating an array with item and structural constraints)
 
 ```ts
-import { Check, Schema } from "effect/schema"
+import { Schema } from "effect/schema"
 
 const schema = Schema.Struct({
-  tags: Schema.Array(Schema.String.check(Check.nonEmpty())).check(
-    Check.minLength(3) // structural filter
+  tags: Schema.Array(Schema.String.check(Schema.isNonEmpty())).check(
+    Schema.isMinLength(3) // structural filter
   )
 })
 
@@ -1390,12 +1393,12 @@ const schema = Schema.Finite.pipe(
 
 A **filter factory** is a function that creates reusable, parameterized filters.
 
-**Example** (Factory for a `greaterThan` filter on ordered values)
+**Example** (Factory for a `isGreaterThan` filter on ordered values)
 
 ```ts
-import { Order } from "effect"
+import { Order } from "effect/data"
 import type { Annotations } from "effect/schema"
-import { Check } from "effect/schema"
+import { Schema } from "effect/schema"
 
 // Create a filter factory for values greater than a given value
 export const deriveGreaterThan = <T>(options: {
@@ -1406,7 +1409,7 @@ export const deriveGreaterThan = <T>(options: {
   const greaterThan = Order.greaterThan(options.order)
   const format = options.format ?? globalThis.String
   return (exclusiveMinimum: T, annotations?: Annotations.Filter) => {
-    return Check.make<T>((input) => greaterThan(input, exclusiveMinimum), {
+    return Schema.makeFilter<T>((input) => greaterThan(input, exclusiveMinimum), {
       title: `greaterThan(${format(exclusiveMinimum)})`,
       description: `a value greater than ${format(exclusiveMinimum)}`,
       ...options.annotate?.(exclusiveMinimum),
@@ -1418,16 +1421,16 @@ export const deriveGreaterThan = <T>(options: {
 
 #### Filters with brands
 
-You can combine `Schema.refine` with `Check.brand` to build branded filters.
+You can combine `Schema.refine` with `Schema.isBranded` to build branded filters.
 
 ```ts
-import { Check, Schema } from "effect/schema"
+import { Schema } from "effect/schema"
 
 // Constrain to integers and add "Int" brand
-const int = Schema.refine(Check.int().pipe(Check.brand("Int")))
+const int = Schema.refine(Schema.isInt().pipe(Schema.isBranded("Int")))
 
 // Constrain to positive numbers and add "Positive" brand
-const positive = Schema.refine(Check.positive().pipe(Check.brand("Positive")))
+const positive = Schema.refine(Schema.isPositive().pipe(Schema.isBranded("Positive")))
 
 // Compose both refinements to get a PositiveInt
 export const PositiveInt = Schema.Number.pipe(int, positive)
@@ -2097,12 +2100,12 @@ If you want to preserve the checks of the original struct, you can pass `{ prese
 
 ```ts
 import { Struct } from "effect/data"
-import { Check, Schema } from "effect/schema"
+import { Schema } from "effect/schema"
 
 const original = Schema.Struct({
   a: Schema.String,
   b: Schema.String
-}).check(Check.make(({ a, b }) => a === b, { title: "a === b" }))
+}).check(Schema.makeFilter(({ a, b }) => a === b, { title: "a === b" }))
 
 const schema = original.mapFields(Struct.merge({ c: Schema.String }), {
   preserveChecks: true
@@ -3068,7 +3071,7 @@ const schema = Schema.Tuple([Schema.String, Schema.Number, Schema.Boolean]).mapE
 
 You can deduplicate arrays using `Schema.UniqueArray`.
 
-Internally, `Schema.UniqueArray` uses `Schema.Array` and adds a check based on `Check.deduped` using `ToEquivalence.make(item)` for the equivalence.
+Internally, `Schema.UniqueArray` uses `Schema.Array` and adds a check based on `Schema.isUnique` using `ToEquivalence.make(item)` for the equivalence.
 
 ```ts
 import { Schema } from "effect/schema"
@@ -3361,10 +3364,10 @@ export const b: B = A.makeUnsafe({ a: "a" })
 #### Filters
 
 ```ts
-import { Check, Schema } from "effect/schema"
+import { Schema } from "effect/schema"
 
 class A extends Schema.Class<A>("A")({
-  a: Schema.String.check(Check.nonEmpty())
+  a: Schema.String.check(Schema.isNonEmpty())
 }) {}
 
 try {
@@ -4520,10 +4523,10 @@ type Override = {
 **Example** (Without override, filter ignored in JSON Schema)
 
 ```ts
-import { Check, Schema, ToJsonSchema } from "effect/schema"
+import { Schema, ToJsonSchema } from "effect/schema"
 
 // Validation at runtime: n > 0
-const schema = Schema.Number.check(Check.make((n) => n > 0))
+const schema = Schema.Number.check(Schema.makeFilter((n) => n > 0))
 
 // No override: the JSON Schema keeps the basic 'number' shape
 const jsonSchema = ToJsonSchema.makeDraft07(schema)
@@ -4541,9 +4544,9 @@ Output:
 **Example** (With override, add 'minimum: 0')
 
 ```ts
-import { Check, Schema, ToJsonSchema } from "effect/schema"
+import { Schema, ToJsonSchema } from "effect/schema"
 
-const schema = Schema.Number.check(Check.make((n) => n > 0)).annotate({
+const schema = Schema.Number.check(Schema.makeFilter((n) => n > 0)).annotate({
   jsonSchema: {
     _tag: "Override",
     // Evaluated during generation; return a JSON Schema object
@@ -4613,9 +4616,9 @@ When you call `.check(...)`, Effect attaches a filter. A filter may include a `"
 Effect's built-in checks already carry a `jsonSchema` fragment. For example:
 
 ```ts
-import { Check, Schema, ToJsonSchema } from "effect/schema"
+import { Schema, ToJsonSchema } from "effect/schema"
 
-const schema = Schema.String.check(Check.minLength(1))
+const schema = Schema.String.check(Schema.isMinLength(1))
 
 const jsonSchema = ToJsonSchema.makeDraft07(schema)
 
@@ -4637,11 +4640,11 @@ Because no outer `.annotate(...)` is present and this is the first filter, the f
 **Example** (Multiple filters: top-level + `allOf`)
 
 ```ts
-import { Check, Schema, ToJsonSchema } from "effect/schema"
+import { Schema, ToJsonSchema } from "effect/schema"
 
 const schema = Schema.String.check(
-  Check.minLength(1), // first: merged at top-level
-  Check.maxLength(2) // subsequent: wrapped under allOf
+  Schema.isMinLength(1), // first: merged at top-level
+  Schema.isMaxLength(2) // subsequent: wrapped under allOf
 )
 
 const jsonSchema = ToJsonSchema.makeDraft07(schema)
@@ -4679,10 +4682,10 @@ You can define a custom filter and provide a JSON Schema fragment.
 **Example** (Custom `pattern` constraint)
 
 ```ts
-import { Check, Schema, ToJsonSchema } from "effect/schema"
+import { Schema, ToJsonSchema } from "effect/schema"
 
 const schema = Schema.String.check(
-  Check.make((s) => /foo/.test(s), {
+  Schema.makeFilter((s) => /foo/.test(s), {
     title: "containsFoo",
     description: "must contain 'foo'",
     jsonSchema: {
@@ -4911,11 +4914,11 @@ Filters created with `.check(...)` can include Arbitrary hints so generators res
 **Example** (Declare Arbitrary constraints for a custom `nonEmpty` filter)
 
 ```ts
-import { Check, Schema, ToArbitrary } from "effect/schema"
+import { Schema, ToArbitrary } from "effect/schema"
 import { FastCheck } from "effect/testing"
 
-// A reusable 'nonEmpty' filter for strings and arrays
-const nonEmpty = Check.make((s: string) => s.length > 0, {
+// A reusable 'isNonEmpty' filter for strings and arrays
+const isNonEmpty = Schema.makeFilter((s: string) => s.length > 0, {
   arbitrary: {
     _tag: "Constraint",
     // Tell the generator how to satisfy this check
@@ -4930,7 +4933,7 @@ const nonEmpty = Check.make((s: string) => s.length > 0, {
   }
 })
 
-const schema = Schema.String.check(nonEmpty)
+const schema = Schema.String.check(isNonEmpty)
 
 console.log(FastCheck.sample(ToArbitrary.make(schema), 3))
 /*
@@ -5263,11 +5266,11 @@ export function getLogIssues(options?: {
 
 ```ts
 import { Predicate } from "effect/data"
-import { Check, Schema } from "effect/schema"
+import { Schema } from "effect/schema"
 import { getLogIssues, t } from "./utils.js"
 
 const Person = Schema.Struct({
-  name: Schema.String.check(Check.nonEmpty())
+  name: Schema.String.check(Schema.isNonEmpty())
 })
 
 // Configure hooks to customize how issues are rendered
@@ -5338,7 +5341,7 @@ You can attach custom error messages directly to a schema using annotations. The
 **Example** (Attaching custom messages to a struct field)
 
 ```ts
-import { Check, Schema } from "effect/schema"
+import { Schema } from "effect/schema"
 import { getLogIssues, t } from "./utils.js"
 
 const Person = Schema.Struct({
@@ -5348,7 +5351,7 @@ const Person = Schema.Struct({
     // Message to show when the key is missing
     .annotateKey({ missingKeyMessage: t("struct.missingKey") })
     // Message to show when the string is empty
-    .check(Check.nonEmpty({ message: t("string.minLength", { minLength: 1 }) }))
+    .check(Schema.isNonEmpty({ message: t("string.minLength", { minLength: 1 }) }))
 })
   // Message to show when the whole object has the wrong shape
   .annotate({ message: t("struct.mismatch") })
@@ -5509,17 +5512,17 @@ schema.members
 ### Strings
 
 ```ts
-import { Check, Schema } from "effect/schema"
+import { Schema } from "effect/schema"
 
-Schema.String.check(Check.maxLength(5))
-Schema.String.check(Check.minLength(5))
-Schema.String.check(Check.length(5))
-Schema.String.check(Check.regex(/^[a-z]+$/))
-Schema.String.check(Check.startsWith("aaa"))
-Schema.String.check(Check.endsWith("zzz"))
-Schema.String.check(Check.includes("---"))
-Schema.String.check(Check.uppercased)
-Schema.String.check(Check.lowercased)
+Schema.String.check(Schema.isMaxLength(5))
+Schema.String.check(Schema.isMinLength(5))
+Schema.String.check(Schema.isLength(5))
+Schema.String.check(Schema.isRegex(/^[a-z]+$/))
+Schema.String.check(Schema.isStartsWith("aaa"))
+Schema.String.check(Schema.isEndsWith("zzz"))
+Schema.String.check(Schema.isIncludes("---"))
+Schema.String.check(Schema.isUppercased())
+Schema.String.check(Schema.isLowercased())
 ```
 
 To perform some simple string transforms:
@@ -5535,11 +5538,11 @@ Schema.String.decode(Transformation.toUpperCase())
 ### String formats
 
 ```ts
-import { Check, Schema } from "effect/schema"
+import { Schema } from "effect/schema"
 
-Schema.String.check(Check.uuid())
-Schema.String.check(Check.base64)
-Schema.String.check(Check.base64url)
+Schema.String.check(Schema.isUuid())
+Schema.String.check(Schema.isBase64())
+Schema.String.check(Schema.isBase64url())
 ```
 
 ### Numbers
@@ -5554,76 +5557,76 @@ Schema.Finite // finite numbers (i.e. not +/-Infinity or NaN)
 number-specific validations
 
 ```ts
-import { Check, Schema } from "effect/schema"
+import { Schema } from "effect/schema"
 
-Schema.Number.check(Check.between(5, 10))
-Schema.Number.check(Check.greaterThan(5))
-Schema.Number.check(Check.greaterThanOrEqualTo(5))
-Schema.Number.check(Check.lessThan(5))
-Schema.Number.check(Check.lessThanOrEqualTo(5))
-Schema.Number.check(Check.positive)
-Schema.Number.check(Check.nonNegative)
-Schema.Number.check(Check.negative)
-Schema.Number.check(Check.nonPositive)
-Schema.Number.check(Check.multipleOf(5))
+Schema.Number.check(Schema.isBetween(5, 10))
+Schema.Number.check(Schema.isGreaterThan(5))
+Schema.Number.check(Schema.isGreaterThanOrEqualTo(5))
+Schema.Number.check(Schema.isLessThan(5))
+Schema.Number.check(Schema.isLessThanOrEqualTo(5))
+Schema.Number.check(Schema.isPositive())
+Schema.Number.check(Schema.isNonNegative())
+Schema.Number.check(Schema.isNegative())
+Schema.Number.check(Schema.isNonPositive())
+Schema.Number.check(Schema.isMultipleOf(5))
 ```
 
 ### Integers
 
 ```ts
-import { Check, Schema } from "effect/schema"
+import { Schema } from "effect/schema"
 
-Schema.Number.check(Check.int)
-Schema.Number.check(Check.int32)
+Schema.Number.check(Schema.isInt())
+Schema.Number.check(Schema.isInt32())
 ```
 
 ### BigInts
 
 ```ts
-import { Order } from "effect/data"
 import { BigInt } from "effect"
-import { Schema, Check } from "effect/schema"
+import { Order } from "effect/data"
+import { Schema } from "effect/schema"
 
 const options = { order: Order.bigint }
 
-const between = Check.deriveBetween(options)
-const greaterThan = Check.deriveGreaterThan(options)
-const greaterThanOrEqualTo = Check.deriveGreaterThanOrEqualTo(options)
-const lessThan = Check.deriveLessThan(options)
-const lessThanOrEqualTo = Check.deriveLessThanOrEqualTo(options)
-const multipleOf = Check.deriveMultipleOf({
+const isBetween = Schema.deriveIsBetween(options)
+const isGreaterThan = Schema.deriveIsGreaterThan(options)
+const isGreaterThanOrEqualTo = Schema.deriveIsGreaterThanOrEqualTo(options)
+const isLessThan = Schema.deriveIsLessThan(options)
+const isLessThanOrEqualTo = Schema.deriveIsLessThanOrEqualTo(options)
+const isMultipleOf = Schema.deriveIsMultipleOf({
   remainder: BigInt.remainder,
   zero: 0n
 })
 
-const positive = greaterThan(0n)
-const nonNegative = greaterThanOrEqualTo(0n)
-const negative = lessThan(0n)
-const nonPositive = lessThanOrEqualTo(0n)
+const isPositive = isGreaterThan(0n)
+const isNonNegative = isGreaterThanOrEqualTo(0n)
+const isNegative = isLessThan(0n)
+const isNonPositive = isLessThanOrEqualTo(0n)
 
-Schema.BigInt.check(between(5n, 10n))
-Schema.BigInt.check(greaterThan(5n))
-Schema.BigInt.check(greaterThanOrEqualTo(5n))
-Schema.BigInt.check(lessThan(5n))
-Schema.BigInt.check(lessThanOrEqualTo(5n))
-Schema.BigInt.check(multipleOf(5n))
-Schema.BigInt.check(positive)
-Schema.BigInt.check(nonNegative)
-Schema.BigInt.check(negative)
-Schema.BigInt.check(nonPositive)
+Schema.BigInt.check(isBetween(5n, 10n))
+Schema.BigInt.check(isGreaterThan(5n))
+Schema.BigInt.check(isGreaterThanOrEqualTo(5n))
+Schema.BigInt.check(isLessThan(5n))
+Schema.BigInt.check(isLessThanOrEqualTo(5n))
+Schema.BigInt.check(isMultipleOf(5n))
+Schema.BigInt.check(isPositive)
+Schema.BigInt.check(isNonNegative)
+Schema.BigInt.check(isNegative)
+Schema.BigInt.check(isNonPositive)
 ```
 
 ### Dates
 
 ```ts
-import { Schema, Getter } from "effect"
+import { Getter, Schema } from "effect/schema"
 
 Schema.Date
 
 const DateFromString = Schema.Date.pipe(
   Schema.encodeTo(Schema.String, {
-    decode: Getter.Date,
-    encode: Getter.String
+    decode: Getter.Date(),
+    encode: Getter.String()
   })
 )
 ```
@@ -5635,19 +5638,19 @@ You can use `Schema.TemplateLiteral` to define structured string patterns made o
 **Example** (Constraining parts of an email-like string)
 
 ```ts
-import { Check, Schema } from "effect/schema"
+import { Schema } from "effect/schema"
 
 // Construct a template literal schema for values like `${string}@${string}`
 // Apply constraints to both sides of the "@" symbol
 const email = Schema.TemplateLiteral([
   // Left part: must be a non-empty string
-  Schema.String.check(Check.minLength(1)),
+  Schema.String.check(Schema.isMinLength(1)),
 
   // Separator
   "@",
 
   // Right part: must be a string with a maximum length of 64
-  Schema.String.check(Check.maxLength(64))
+  Schema.String.check(Schema.isMaxLength(64))
 ])
 
 // The inferred type is `${string}@${string}`
@@ -5664,12 +5667,12 @@ If you want to extract the parts of a string that match a template, you can use 
 **Example** (Parsing a template literal into components)
 
 ```ts
-import { Check, Schema } from "effect/schema"
+import { Schema } from "effect/schema"
 
 const email = Schema.TemplateLiteralParser([
-  Schema.String.check(Check.minLength(1)),
+  Schema.String.check(Schema.isMinLength(1)),
   "@",
-  Schema.String.check(Check.maxLength(64))
+  Schema.String.check(Schema.isMaxLength(64))
 ])
 
 // The inferred type is `readonly [string, "@", string]`
@@ -6339,9 +6342,9 @@ const schema = Schema.String.pipe(Schema.filter((s) => s.length > 0))
 v4
 
 ```ts
-import { Check, Schema } from "effect/schema"
+import { Schema } from "effect/schema"
 
-const schema = Schema.String.check(Check.make((s) => s.length > 0))
+const schema = Schema.String.check(Schema.makeFilter((s) => s.length > 0))
 ```
 
 #### Refinement
@@ -6669,16 +6672,16 @@ const schema = Schema.String.pipe(Schema.pattern(/^[a-z]+$/))
 v4
 
 ```ts
-import { Check, Schema } from "effect/schema"
+import { Schema } from "effect/schema"
 
-const schema = Schema.String.pipe(Schema.check(Check.regex(/^[a-z]+$/)))
+const schema = Schema.String.pipe(Schema.check(Schema.isRegex(/^[a-z]+$/)))
 ```
 
-Reason: The `pattern` method was renamed to `regex` to align with the naming convention of [zod](https://zod.dev/api?id=strings) and [valibot](https://valibot.dev/api/regex/).
+Reason: The `pattern` method was renamed to `isRegex` to align with the naming convention of [zod](https://zod.dev/api?id=strings) and [valibot](https://valibot.dev/api/regex/).
 
 ### nonEmptyString
 
-Renamed to `nonEmpty`.
+Renamed to `isNonEmpty`.
 
 Reason: because it applies to any type with a `length` property.
 
@@ -6687,10 +6690,10 @@ Reason: because it applies to any type with a `length` property.
 v4
 
 ```ts
-import { Check, Schema, Transformation } from "effect/schema"
+import { Schema, Transformation } from "effect/schema"
 
 const schema = Schema.String.pipe(
-  Schema.decodeTo(Schema.String.check(Check.capitalized()), Transformation.capitalize())
+  Schema.decodeTo(Schema.String.check(Schema.isCapitalized()), Transformation.capitalize())
 )
 ```
 
@@ -6699,9 +6702,9 @@ const schema = Schema.String.pipe(
 v4
 
 ```ts
-import { Check, Schema } from "effect/schema"
+import { Schema } from "effect/schema"
 
-const schema = Schema.Trimmed.check(Check.nonEmpty())
+const schema = Schema.Trimmed.check(Schema.isNonEmpty())
 ```
 
 ### split
@@ -6767,9 +6770,9 @@ const schema = Schema.fromJsonString(Schema.Struct({ a: Schema.Number }))
 v4
 
 ```ts
-import { Check, Schema } from "effect/schema"
+import { Schema } from "effect/schema"
 
-const schema = Schema.String.check(Check.uuid())
+const schema = Schema.String.check(Schema.isUuid())
 ```
 
 ### ULID
@@ -6777,9 +6780,9 @@ const schema = Schema.String.check(Check.uuid())
 v4
 
 ```ts
-import { Check, Schema } from "effect/schema"
+import { Schema } from "effect/schema"
 
-const schema = Schema.String.check(Check.ulid())
+const schema = Schema.String.check(Schema.isUlid())
 ```
 
 ### URLFromSelf

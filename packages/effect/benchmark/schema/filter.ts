@@ -1,5 +1,5 @@
 import { type } from "arktype"
-import { Check, Schema } from "effect/schema"
+import { Schema } from "effect/schema"
 import { Bench } from "tinybench"
 import * as v from "valibot"
 import { z } from "zod/v4-mini"
@@ -21,7 +21,7 @@ import { z } from "zod/v4-mini"
 
 const bench = new Bench()
 
-const schema = Schema.String.pipe(Schema.check(Check.nonEmpty()))
+const schema = Schema.String.pipe(Schema.check(Schema.isNonEmpty()))
 
 const valibot = v.pipe(v.string(), v.nonEmpty())
 

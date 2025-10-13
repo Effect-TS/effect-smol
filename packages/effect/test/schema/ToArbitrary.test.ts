@@ -1,4 +1,4 @@
-import { AST, Check, Schema, ToArbitrary, ToEquivalence } from "effect/schema"
+import { AST, Schema, ToArbitrary, ToEquivalence } from "effect/schema"
 import { TestSchema } from "effect/testing"
 import { deepStrictEqual } from "node:assert"
 import { describe, it } from "vitest"
@@ -219,7 +219,7 @@ describe("ToArbitrary", () => {
     )
     verifyGeneration(
       Schema.TupleWithRest(Schema.Tuple([Schema.optionalKey(Schema.Boolean)]), [Schema.Number]).check(
-        Check.minLength(3)
+        Schema.isMinLength(3)
       )
     )
   })
@@ -396,102 +396,102 @@ describe("ToArbitrary", () => {
   })
 
   describe("checks", () => {
-    it("minLength(2)", () => {
-      verifyGeneration(Schema.String.pipe(Schema.check(Check.minLength(2))))
-      verifyGeneration(Schema.Array(Schema.String).pipe(Schema.check(Check.minLength(2))))
+    it("isMinLength(2)", () => {
+      verifyGeneration(Schema.String.pipe(Schema.check(Schema.isMinLength(2))))
+      verifyGeneration(Schema.Array(Schema.String).pipe(Schema.check(Schema.isMinLength(2))))
     })
 
-    it("maxLength(2)", () => {
-      verifyGeneration(Schema.String.pipe(Schema.check(Check.maxLength(2))))
-      verifyGeneration(Schema.Array(Schema.String).pipe(Schema.check(Check.maxLength(2))))
+    it("isMaxLength(2)", () => {
+      verifyGeneration(Schema.String.pipe(Schema.check(Schema.isMaxLength(2))))
+      verifyGeneration(Schema.Array(Schema.String).pipe(Schema.check(Schema.isMaxLength(2))))
     })
 
-    it("minLength(2) & maxLength(4)", () => {
-      verifyGeneration(Schema.String.pipe(Schema.check(Check.minLength(2), Check.maxLength(4))))
+    it("isMinLength(2) & isMaxLength(4)", () => {
+      verifyGeneration(Schema.String.pipe(Schema.check(Schema.isMinLength(2), Schema.isMaxLength(4))))
       verifyGeneration(
-        Schema.Array(Schema.String).pipe(Schema.check(Check.minLength(2), Check.maxLength(4)))
+        Schema.Array(Schema.String).pipe(Schema.check(Schema.isMinLength(2), Schema.isMaxLength(4)))
       )
     })
 
-    it("length(2)", () => {
-      verifyGeneration(Schema.String.pipe(Schema.check(Check.length(2))))
-      verifyGeneration(Schema.Array(Schema.String).pipe(Schema.check(Check.length(2))))
+    it("isLength(2)", () => {
+      verifyGeneration(Schema.String.pipe(Schema.check(Schema.isLength(2))))
+      verifyGeneration(Schema.Array(Schema.String).pipe(Schema.check(Schema.isLength(2))))
     })
 
-    it("minEntries(2)", () => {
+    it("isMinEntries(2)", () => {
       verifyGeneration(
-        Schema.Record(Schema.String, Schema.Number).check(Check.minEntries(2))
+        Schema.Record(Schema.String, Schema.Number).check(Schema.isMinEntries(2))
       )
     })
 
-    it("maxEntries(2)", () => {
+    it("isMaxEntries(2)", () => {
       verifyGeneration(
-        Schema.Record(Schema.String, Schema.Number).check(Check.maxEntries(2))
+        Schema.Record(Schema.String, Schema.Number).check(Schema.isMaxEntries(2))
       )
     })
 
-    it("minEntries(2) & maxEntries(4)", () => {
+    it("isMinEntries(2) & isMaxEntries(4)", () => {
       verifyGeneration(
-        Schema.Record(Schema.String, Schema.Number).check(Check.minEntries(2), Check.maxEntries(4))
+        Schema.Record(Schema.String, Schema.Number).check(Schema.isMinEntries(2), Schema.isMaxEntries(4))
       )
     })
 
-    it("entries(2)", () => {
+    it("isEntriesLength(2)", () => {
       verifyGeneration(
-        Schema.Record(Schema.String, Schema.Number).check(Check.entries(2))
+        Schema.Record(Schema.String, Schema.Number).check(Schema.isEntriesLength(2))
       )
     })
 
-    it("int", () => {
-      const schema = Schema.Number.check(Check.int())
+    it("isInt", () => {
+      const schema = Schema.Number.check(Schema.isInt())
       verifyGeneration(schema)
     })
 
-    it("int32", () => {
-      const schema = Schema.Number.check(Check.int32())
+    it("isInt32", () => {
+      const schema = Schema.Number.check(Schema.isInt32())
       verifyGeneration(schema)
     })
 
-    it("regex", () => {
-      verifyGeneration(Schema.String.check(Check.regex(/^[A-Z]{3}[0-9]{3}$/)))
+    it("isRegex", () => {
+      verifyGeneration(Schema.String.check(Schema.isRegex(/^[A-Z]{3}[0-9]{3}$/)))
     })
 
-    it("nonEmpty + regex", () => {
-      verifyGeneration(Schema.NonEmptyString.check(Check.regex(/^[-]*$/)))
+    it("isNonEmpty + isRegex", () => {
+      verifyGeneration(Schema.NonEmptyString.check(Schema.isRegex(/^[-]*$/)))
     })
 
-    it("regex + regex", () => {
+    it("isRegex + isRegex", () => {
       verifyGeneration(
-        Schema.String.check(Check.regex(/^[^A-Z]*$/), Check.regex(/^0x[0-9a-f]{40}$/))
+        Schema.String.check(Schema.isRegex(/^[^A-Z]*$/), Schema.isRegex(/^0x[0-9a-f]{40}$/))
       )
     })
 
-    it("greaterThanOrEqualToDate", () => {
-      verifyGeneration(Schema.Date.check(Check.greaterThanOrEqualToDate(new Date(0))))
+    it("isGreaterThanOrEqualToDate", () => {
+      verifyGeneration(Schema.Date.check(Schema.isGreaterThanOrEqualToDate(new Date(0))))
     })
 
-    it("lessThanOrEqualToDate", () => {
-      verifyGeneration(Schema.Date.check(Check.lessThanOrEqualToDate(new Date(10))))
+    it("isLessThanOrEqualToDate", () => {
+      verifyGeneration(Schema.Date.check(Schema.isLessThanOrEqualToDate(new Date(10))))
     })
 
-    it("betweenDate", () => {
-      verifyGeneration(Schema.Date.check(Check.betweenDate(new Date(0), new Date(10))))
+    it("isBetweenDate", () => {
+      verifyGeneration(Schema.Date.check(Schema.isBetweenDate(new Date(0), new Date(10))))
     })
 
     it("ValidDate", () => {
       verifyGeneration(Schema.ValidDate)
     })
 
-    it("greaterThanOrEqualToBigInt", () => {
-      verifyGeneration(Schema.BigInt.check(Check.greaterThanOrEqualToBigInt(BigInt(0))))
+    it("isGreaterThanOrEqualToBigInt", () => {
+      verifyGeneration(Schema.BigInt.check(Schema.isGreaterThanOrEqualToBigInt(BigInt(0))))
     })
 
-    it("lessThanOrEqualToBigInt", () => {
-      verifyGeneration(Schema.BigInt.check(Check.lessThanOrEqualToBigInt(BigInt(10))))
+    it("isLessThanOrEqualToBigInt", () => {
+      verifyGeneration(Schema.BigInt.check(Schema.isLessThanOrEqualToBigInt(BigInt(10))))
     })
 
-    it("betweenBigInt", () => {
-      verifyGeneration(Schema.BigInt.check(Check.betweenBigInt(BigInt(0), BigInt(10))))
+    it("isBetweenBigInt", () => {
+      verifyGeneration(Schema.BigInt.check(Schema.isBetweenBigInt(BigInt(0), BigInt(10))))
     })
   })
 
@@ -542,27 +542,27 @@ describe("ToArbitrary", () => {
       verifyGeneration(Schema.ReadonlyMap(Schema.String, Schema.Number))
     })
 
-    it("minSize(2)", () => {
+    it("isMinSize(2)", () => {
       verifyGeneration(
-        Schema.ReadonlyMap(Schema.String, Schema.Number).check(Check.minSize(2))
+        Schema.ReadonlyMap(Schema.String, Schema.Number).check(Schema.isMinSize(2))
       )
     })
 
-    it("maxSize(4)", () => {
+    it("isMaxSize(4)", () => {
       verifyGeneration(
-        Schema.ReadonlyMap(Schema.String, Schema.Number).check(Check.maxSize(4))
+        Schema.ReadonlyMap(Schema.String, Schema.Number).check(Schema.isMaxSize(4))
       )
     })
 
-    it("minSize(2) & maxSize(4)", () => {
+    it("isMinSize(2) & isMaxSize(4)", () => {
       verifyGeneration(
-        Schema.ReadonlyMap(Schema.String, Schema.Number).check(Check.minSize(2), Check.maxSize(4))
+        Schema.ReadonlyMap(Schema.String, Schema.Number).check(Schema.isMinSize(2), Schema.isMaxSize(4))
       )
     })
 
-    it("size(2)", () => {
+    it("isSize(2)", () => {
       verifyGeneration(
-        Schema.ReadonlyMap(Schema.String, Schema.Number).check(Check.size(2))
+        Schema.ReadonlyMap(Schema.String, Schema.Number).check(Schema.isSize(2))
       )
     })
   })
@@ -599,8 +599,8 @@ describe("ToArbitrary", () => {
       })
     })
 
-    it("String & nonEmpty & minLength(2)", () => {
-      assertFragments(Schema.String.check(Check.nonEmpty()).check(Check.minLength(2)), {
+    it("String & isNonEmpty & isMinLength(2)", () => {
+      assertFragments(Schema.String.check(Schema.isNonEmpty()).check(Schema.isMinLength(2)), {
         constraints: {
           array: {
             minLength: 2
@@ -612,8 +612,8 @@ describe("ToArbitrary", () => {
       })
     })
 
-    it("String & minLength(2) & nonEmpty", () => {
-      assertFragments(Schema.String.check(Check.minLength(2)).check(Check.nonEmpty()), {
+    it("String & isMinLength(2) & isNonEmpty", () => {
+      assertFragments(Schema.String.check(Schema.isMinLength(2)).check(Schema.isNonEmpty()), {
         constraints: {
           array: {
             minLength: 2
@@ -625,8 +625,8 @@ describe("ToArbitrary", () => {
       })
     })
 
-    it("String & nonEmpty & maxLength(2)", () => {
-      assertFragments(Schema.String.check(Check.nonEmpty()).check(Check.maxLength(2)), {
+    it("String & isNonEmpty & isMaxLength(2)", () => {
+      assertFragments(Schema.String.check(Schema.isNonEmpty()).check(Schema.isMaxLength(2)), {
         constraints: {
           array: {
             minLength: 1,
@@ -640,8 +640,8 @@ describe("ToArbitrary", () => {
       })
     })
 
-    it("String & length(2)", () => {
-      assertFragments(Schema.String.check(Check.length(2)), {
+    it("String & isLength(2)", () => {
+      assertFragments(Schema.String.check(Schema.isLength(2)), {
         constraints: {
           array: {
             minLength: 2,
@@ -655,8 +655,8 @@ describe("ToArbitrary", () => {
       })
     })
 
-    it("startsWith", () => {
-      assertFragments(Schema.String.check(Check.startsWith("a")), {
+    it("isStartsWith", () => {
+      assertFragments(Schema.String.check(Schema.isStartsWith("a")), {
         constraints: {
           string: {
             patterns: ["^a"]
@@ -665,8 +665,8 @@ describe("ToArbitrary", () => {
       })
     })
 
-    it("endsWith", () => {
-      assertFragments(Schema.String.check(Check.endsWith("a")), {
+    it("isEndsWith", () => {
+      assertFragments(Schema.String.check(Schema.isEndsWith("a")), {
         constraints: {
           string: {
             patterns: ["a$"]
@@ -681,8 +681,8 @@ describe("ToArbitrary", () => {
       })
     })
 
-    it("finite", () => {
-      assertFragments(Schema.Number.check(Check.finite()), {
+    it("isFinite", () => {
+      assertFragments(Schema.Number.check(Schema.isFinite()), {
         constraints: {
           number: {
             noDefaultInfinity: true,
@@ -692,8 +692,8 @@ describe("ToArbitrary", () => {
       })
     })
 
-    it("int", () => {
-      assertFragments(Schema.Number.check(Check.int()), {
+    it("isInt", () => {
+      assertFragments(Schema.Number.check(Schema.isInt()), {
         constraints: {
           number: {
             isInteger: true
@@ -702,8 +702,8 @@ describe("ToArbitrary", () => {
       })
     })
 
-    it("finite & int", () => {
-      assertFragments(Schema.Number.check(Check.finite(), Check.int()), {
+    it("isFinite & isInt", () => {
+      assertFragments(Schema.Number.check(Schema.isFinite(), Schema.isInt()), {
         constraints: {
           number: {
             noDefaultInfinity: true,
@@ -714,8 +714,8 @@ describe("ToArbitrary", () => {
       })
     })
 
-    it("int32", () => {
-      assertFragments(Schema.Number.check(Check.int32()), {
+    it("isInt32", () => {
+      assertFragments(Schema.Number.check(Schema.isInt32()), {
         constraints: {
           number: {
             isInteger: true,
@@ -726,8 +726,8 @@ describe("ToArbitrary", () => {
       })
     })
 
-    it("greaterThan", () => {
-      assertFragments(Schema.Number.check(Check.greaterThan(10)), {
+    it("isGreaterThan", () => {
+      assertFragments(Schema.Number.check(Schema.isGreaterThan(10)), {
         constraints: {
           number: {
             min: 10,
@@ -737,8 +737,8 @@ describe("ToArbitrary", () => {
       })
     })
 
-    it("greaterThanOrEqualToDate", () => {
-      assertFragments(Schema.Date.check(Check.greaterThanOrEqualToDate(new Date(0))), {
+    it("isGreaterThanOrEqualToDate", () => {
+      assertFragments(Schema.Date.check(Schema.isGreaterThanOrEqualToDate(new Date(0))), {
         constraints: {
           date: {
             min: new Date(0)
@@ -747,8 +747,8 @@ describe("ToArbitrary", () => {
       })
     })
 
-    it("lessThanOrEqualToDate", () => {
-      assertFragments(Schema.Date.check(Check.lessThanOrEqualToDate(new Date(10))), {
+    it("isLessThanOrEqualToDate", () => {
+      assertFragments(Schema.Date.check(Schema.isLessThanOrEqualToDate(new Date(10))), {
         constraints: {
           date: {
             max: new Date(10)
@@ -757,8 +757,8 @@ describe("ToArbitrary", () => {
       })
     })
 
-    it("betweenDate", () => {
-      assertFragments(Schema.Date.check(Check.betweenDate(new Date(0), new Date(10))), {
+    it("isBetweenDate", () => {
+      assertFragments(Schema.Date.check(Schema.isBetweenDate(new Date(0), new Date(10))), {
         constraints: {
           date: {
             min: new Date(0),
@@ -768,8 +768,8 @@ describe("ToArbitrary", () => {
       })
     })
 
-    it("validDate", () => {
-      assertFragments(Schema.Date.check(Check.validDate()), {
+    it("isValidDate", () => {
+      assertFragments(Schema.Date.check(Schema.isValidDate()), {
         constraints: {
           date: {
             noInvalidDate: true
@@ -778,8 +778,8 @@ describe("ToArbitrary", () => {
       })
     })
 
-    it("validDate & greaterThanOrEqualToDate", () => {
-      assertFragments(Schema.Date.check(Check.validDate(), Check.greaterThanOrEqualToDate(new Date(0))), {
+    it("isValidDate & isGreaterThanOrEqualToDate", () => {
+      assertFragments(Schema.Date.check(Schema.isValidDate(), Schema.isGreaterThanOrEqualToDate(new Date(0))), {
         constraints: {
           date: {
             noInvalidDate: true,
@@ -789,8 +789,8 @@ describe("ToArbitrary", () => {
       })
     })
 
-    it("greaterThanOrEqualToBigInt", () => {
-      assertFragments(Schema.BigInt.check(Check.greaterThanOrEqualToBigInt(BigInt(0))), {
+    it("isGreaterThanOrEqualToBigInt", () => {
+      assertFragments(Schema.BigInt.check(Schema.isGreaterThanOrEqualToBigInt(BigInt(0))), {
         constraints: {
           bigint: {
             min: BigInt(0)
@@ -799,8 +799,8 @@ describe("ToArbitrary", () => {
       })
     })
 
-    it("lessThanOrEqualToBigInt", () => {
-      assertFragments(Schema.BigInt.check(Check.lessThanOrEqualToBigInt(BigInt(10))), {
+    it("isLessThanOrEqualToBigInt", () => {
+      assertFragments(Schema.BigInt.check(Schema.isLessThanOrEqualToBigInt(BigInt(10))), {
         constraints: {
           bigint: {
             max: BigInt(10)
@@ -809,8 +809,8 @@ describe("ToArbitrary", () => {
       })
     })
 
-    it("betweenBigInt", () => {
-      assertFragments(Schema.BigInt.check(Check.betweenBigInt(BigInt(0), BigInt(10))), {
+    it("isBetweenBigInt", () => {
+      assertFragments(Schema.BigInt.check(Schema.isBetweenBigInt(BigInt(0), BigInt(10))), {
         constraints: {
           bigint: {
             min: BigInt(0),
@@ -829,7 +829,7 @@ describe("ToArbitrary", () => {
           }
         }
       })
-      assertFragments(Schema.UniqueArray(Schema.String).check(Check.maxLength(2)), {
+      assertFragments(Schema.UniqueArray(Schema.String).check(Schema.isMaxLength(2)), {
         constraints: {
           array: {
             maxLength: 2,

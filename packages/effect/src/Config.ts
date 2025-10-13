@@ -13,7 +13,6 @@ import type { Pipeable } from "./interfaces/Pipeable.ts"
 import { PipeInspectableProto, YieldableProto } from "./internal/core.ts"
 import * as LogLevel_ from "./LogLevel.ts"
 import * as AST from "./schema/AST.ts"
-import * as Check from "./schema/Check.ts"
 import * as Getter from "./schema/Getter.ts"
 import * as Issue from "./schema/Issue.ts"
 import * as Schema from "./schema/Schema.ts"
@@ -450,7 +449,7 @@ export const Duration = Schema.String.annotate({
  * @category Schema
  * @since 4.0.0
  */
-export const Port = Schema.Int.check(Check.between(1, 65535))
+export const Port = Schema.Int.check(Schema.isBetween(1, 65535))
 
 /**
  * A schema for strings that can be parsed as log level values.

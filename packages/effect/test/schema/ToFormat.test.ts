@@ -1,6 +1,6 @@
 import { DateTime, Duration } from "effect"
 import { Option, Redacted, Result } from "effect/data"
-import { Check, Schema, ToFormat } from "effect/schema"
+import { Schema, ToFormat } from "effect/schema"
 import { describe, it } from "vitest"
 import { strictEqual } from "../utils/assert.ts"
 
@@ -483,8 +483,8 @@ describe("ToFormat", () => {
         strictEqual(format("a"), "A")
       })
 
-      it("String & minLength(1)", () => {
-        const schema = Schema.String.check(Check.minLength(1)).pipe(ToFormat.override(() => (s) => s.toUpperCase()))
+      it("String & isMinLength(1)", () => {
+        const schema = Schema.String.check(Schema.isMinLength(1)).pipe(ToFormat.override(() => (s) => s.toUpperCase()))
         const format = ToFormat.make(schema)
         strictEqual(format("a"), "A")
       })

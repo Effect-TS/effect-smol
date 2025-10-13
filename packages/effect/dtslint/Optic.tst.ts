@@ -1,6 +1,6 @@
 import { Optic } from "effect"
 import type { Option, Result } from "effect/data"
-import { Check } from "effect/schema"
+import { Schema } from "effect/schema"
 import { describe, expect, it } from "tstyche"
 
 describe("Optic", () => {
@@ -101,12 +101,12 @@ describe("Optic", () => {
   })
 
   it("fromChecks", () => {
-    const optic = Optic.id<number>().compose(Optic.fromChecks(Check.positive(), Check.int()))
+    const optic = Optic.id<number>().compose(Optic.fromChecks(Schema.isPositive(), Schema.isInt()))
     expect(optic).type.toBe<Optic.Prism<number, number>>()
   })
 
   it("fromRefine", () => {
-    const optic = Optic.id<Option.Option<number>>().compose(Optic.fromRefine(Check.some()))
+    const optic = Optic.id<Option.Option<number>>().compose(Optic.fromRefine(Schema.isSome()))
     expect(optic).type.toBe<Optic.Prism<Option.Option<number>, Option.Some<number>>>()
   })
 

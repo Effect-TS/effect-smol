@@ -5,7 +5,6 @@
 import * as Predicate from "../data/Predicate.ts"
 import { memoize } from "../Function.ts"
 import type * as AST from "./AST.ts"
-import type * as Check from "./Check.ts"
 import type * as Schema from "./Schema.ts"
 import type * as ToArbitrary from "./ToArbitrary.ts"
 import type * as ToEquivalence from "./ToEquivalence.ts"
@@ -263,7 +262,7 @@ export const getExpected = memoize((ast: AST.AST): string => {
 export const BRAND_ANNOTATION_KEY = "~effect/schema/Check/brand"
 
 /** @internal */
-export function getBrand<T>(check: Check.Check<T>): string | symbol | undefined {
+export function getBrand<T>(check: AST.Check<T>): string | symbol | undefined {
   const brand = check.annotations?.[BRAND_ANNOTATION_KEY]
   if (Predicate.isString(brand) || Predicate.isSymbol(brand)) {
     return brand

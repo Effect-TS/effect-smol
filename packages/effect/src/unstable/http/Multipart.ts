@@ -12,7 +12,6 @@ import * as Inspectable from "../../interfaces/Inspectable.ts"
 import * as FileSystem from "../../platform/FileSystem.ts"
 import * as Path from "../../platform/Path.ts"
 import type { ParseOptions } from "../../schema/AST.ts"
-import * as Check from "../../schema/Check.ts"
 import * as Schema from "../../schema/Schema.ts"
 import * as Transformation from "../../schema/Transformation.ts"
 import type * as Scope from "../../Scope.ts"
@@ -176,7 +175,7 @@ export const FilesSchema: Schema.Array$<FileSchema> = Schema.Array(FileSchema)
  * @category Schemas
  */
 export const SingleFileSchema: Schema.decodeTo<FileSchema, Schema.Array$<FileSchema>> = FilesSchema.check(
-  Check.length(1)
+  Schema.isLength(1)
 ).pipe(
   Schema.decodeTo(
     FileSchema,

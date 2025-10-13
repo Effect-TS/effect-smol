@@ -4,7 +4,7 @@ import { DateTime, Effect, Layer, Ref, ServiceMap } from "effect"
 import { Array } from "effect/collections"
 import { Filter, Redacted, Struct } from "effect/data"
 import { FileSystem } from "effect/platform"
-import { Check, Getter, Schema, Transformation } from "effect/schema"
+import { Getter, Schema, Transformation } from "effect/schema"
 import { Stream } from "effect/stream"
 import {
   Cookies,
@@ -336,7 +336,7 @@ describe("HttpApi", () => {
                   { "$ref": "#/components/schemas/effect~1HttpApiSchemaError" },
                   {
                     "type": "integer",
-                    "title": "int",
+                    "title": "isInt",
                     "description": "an integer"
                   }
                 ]
@@ -427,7 +427,7 @@ describe("HttpApi", () => {
                     "type": "string",
                     "description": "a value with a length of at least 1",
                     "minLength": 1,
-                    "title": "minLength(1)"
+                    "title": "isMinLength(1)"
                   }
                 ]
               }
@@ -483,7 +483,7 @@ describe("HttpApi", () => {
           .add(HttpApiEndpoint.post("create", "/", {
             payload: Schema.String,
             success: Schema.String,
-            error: Schema.Union([Schema.String, Schema.Number]).check(Check.make(() => true)).annotate({
+            error: Schema.Union([Schema.String, Schema.Number]).check(Schema.makeFilter(() => true)).annotate({
               httpApiStatus: 400
             })
           }))

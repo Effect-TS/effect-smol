@@ -8,7 +8,6 @@ import * as Predicate from "../data/Predicate.ts"
 import { format, formatPath } from "../interfaces/Inspectable.ts"
 import * as Annotations from "./Annotations.ts"
 import type * as AST from "./AST.ts"
-import type * as Check from "./Check.ts"
 
 const TypeId = "~effect/schema/Issue"
 
@@ -66,7 +65,7 @@ export class Filter extends Base {
   /**
    * The filter that failed.
    */
-  readonly filter: Check.Filter<unknown>
+  readonly filter: AST.Filter<unknown>
   /**
    * The issue that occurred.
    */
@@ -80,7 +79,7 @@ export class Filter extends Base {
     /**
      * The filter that failed.
      */
-    filter: Check.Filter<any>,
+    filter: AST.Filter<any>,
     /**
      * The issue that occurred.
      */
@@ -626,7 +625,7 @@ function toDefaultIssues(
   }
 }
 
-function formatCheck<T>(check: Check.Check<T>): string {
+function formatCheck<T>(check: AST.Check<T>): string {
   const out = check.annotations?.description ?? check.annotations?.title
   if (Predicate.isString(out)) return out
 

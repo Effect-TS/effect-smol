@@ -7,7 +7,6 @@ import type * as Record from "../data/Record.ts"
 import { formatPath } from "../interfaces/Inspectable.ts"
 import * as Annotations from "./Annotations.ts"
 import * as AST from "./AST.ts"
-import type * as Check from "./Check.ts"
 import type * as Schema from "./Schema.ts"
 import * as ToParser from "./ToParser.ts"
 
@@ -248,7 +247,7 @@ function getAnnotation(
 }
 
 function getCheckJsonFragment<T>(
-  check: Check.Check<T>,
+  check: AST.Check<T>,
   target: Target,
   type?: Type
 ): JsonSchemaFragment | undefined {
@@ -268,7 +267,7 @@ function getChecksJsonFragment(
     allOf: []
   }
   if (ast.checks) {
-    function handle(check: Check.Check<any>) {
+    function handle(check: AST.Check<any>) {
       const fragment: JsonSchemaFragment = {
         ...getJsonSchemaAnnotations(ast, target, check.annotations),
         ...getCheckJsonFragment(check, target, type)
@@ -283,7 +282,7 @@ function getChecksJsonFragment(
         out = { ...out, ...fragment }
       }
     }
-    function go(check: Check.Check<any>) {
+    function go(check: AST.Check<any>) {
       handle(check)
       if (check._tag === "FilterGroup") {
         check.checks.forEach(go)

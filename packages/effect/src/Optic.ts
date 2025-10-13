@@ -11,9 +11,8 @@ import * as Result from "./data/Result.ts"
 import * as Struct from "./data/Struct.ts"
 import { identity, memoize } from "./Function.ts"
 import { format } from "./interfaces/Inspectable.ts"
-import type { Literal } from "./schema/AST.ts"
-import { runChecks, runRefine } from "./schema/AST.ts"
-import * as Check from "./schema/Check.ts"
+import * as AST from "./schema/AST.ts"
+import * as Schema from "./schema/Schema.ts"
 import type { IsUnion } from "./types/Types.ts"
 
 /**
@@ -66,7 +65,7 @@ export function makePrism<S, A>(getResult: (s: S) => Result.Result<A, string>, s
  * @category Constructors
  * @since 4.0.0
  */
-export function fromChecks<T>(...checks: readonly [Check.Check<T>, ...Array<Check.Check<T>>]): Prism<T, T> {
+export function fromChecks<T>(...checks: readonly [AST.Check<T>, ...Array<AST.Check<T>>]): Prism<T, T> {
   return make(new CheckNode(checks))
 }
 
@@ -74,7 +73,7 @@ export function fromChecks<T>(...checks: readonly [Check.Check<T>, ...Array<Chec
  * @category Constructors
  * @since 4.0.0
  */
-export function fromRefine<T extends E, E>(refine: Check.Refine<T, E>): Prism<E, T> {
+export function fromRefine<T extends E, E>(refine: AST.Refine<T, E>): Prism<E, T> {
   return make(new CheckNode([refine]))
 }
 
@@ -158,9 +157,9 @@ class PathNode {
 
 class CheckNode<T> {
   readonly _tag = "CheckNode"
-  readonly checks: readonly [Check.Check<T>, ...Array<Check.Check<T>>]
+  readonly checks: readonly [AST.Check<T>, ...Array<AST.Check<T>>]
 
-  constructor(checks: readonly [Check.Check<T>, ...Array<Check.Check<T>>]) {
+  constructor(checks: readonly [AST.Check<T>, ...Array<AST.Check<T>>]) {
     this.checks = checks
   }
 }
@@ -253,17 +252,17 @@ export interface Optional<in out S, in out A> {
     ..._err: ForbidUnion<A, "cannot use `optionalKey` on a union type">
   ): Optional<S, A[Key] | undefined>
 
-  check<S, A>(this: Prism<S, A>, ...checks: readonly [Check.Check<A>, ...Array<Check.Check<A>>]): Prism<S, A>
-  check<S, A>(this: Optional<S, A>, ...checks: readonly [Check.Check<A>, ...Array<Check.Check<A>>]): Optional<S, A>
+  check<S, A>(this: Prism<S, A>, ...checks: readonly [AST.Check<A>, ...Array<AST.Check<A>>]): Prism<S, A>
+  check<S, A>(this: Optional<S, A>, ...checks: readonly [AST.Check<A>, ...Array<AST.Check<A>>]): Optional<S, A>
 
-  refine<S, A, B extends A>(this: Prism<S, A>, refine: Check.Refine<B, A>): Prism<S, B>
-  refine<S, A, B extends A>(this: Optional<S, A>, refine: Check.Refine<B, A>): Optional<S, B>
+  refine<S, A, B extends A>(this: Prism<S, A>, refine: AST.Refine<B, A>): Prism<S, B>
+  refine<S, A, B extends A>(this: Optional<S, A>, refine: AST.Refine<B, A>): Optional<S, B>
 
-  tag<S, A extends { readonly _tag: Literal }, Tag extends A["_tag"]>(
+  tag<S, A extends { readonly _tag: AST.Literal }, Tag extends A["_tag"]>(
     this: Prism<S, A>,
     tag: Tag
   ): Prism<S, Extract<A, { readonly _tag: Tag }>>
-  tag<S, A extends { readonly _tag: Literal }, Tag extends A["_tag"]>(
+  tag<S, A extends { readonly _tag: AST.Literal }, Tag extends A["_tag"]>(
     this: Optional<S, A>,
     tag: Tag
   ): Optional<S, Extract<A, { readonly _tag: Tag }>>
@@ -395,10 +394,10 @@ class OptionalImpl<S, A> implements Optional<S, A> {
       )
     )
   }
-  check(...checks: readonly [Check.Check<any>, ...Array<Check.Check<any>>]): any {
+  check(...checks: readonly [AST.Check<any>, ...Array<AST.Check<any>>]): any {
     return make(compose(this.node, new CheckNode(checks)))
   }
-  refine(refine: Check.Refine<any, any>): any {
+  refine(refine: AST.Refine<any, any>): any {
     return make(compose(this.node, new CheckNode([refine])))
   }
   tag(tag: string): any {
@@ -442,7 +441,7 @@ class OptionalImpl<S, A> implements Optional<S, A> {
     return this.compose(makeLens(Struct.omit(keys), (o, a) => ({ ...a, ...o })))
   }
   notUndefined(): Prism<S, Exclude<A, undefined>> {
-    return this.refine(Check.notUndefined())
+    return this.refine(Schema.isNotUndefined())
   }
   forEach<S, A, B>(this: Traversal<S, A>, f: (iso: Iso<A, A>) => Optional<A, B>): Traversal<S, B> {
     const inner = f(id<A>())
@@ -614,7 +613,7 @@ const go = memoize((node: Node): Op => {
     case "CheckNode":
       return {
         _tag: "PrismNode",
-        get: (s: any) => Result.mapError(runChecks(node.checks, s), String),
+        get: (s: any) => Result.mapError(AST.runChecks(node.checks, s), String),
         set: identity
       }
     case "CompositionNode": {
@@ -745,7 +744,7 @@ export function entries<A>(): Iso<Record<string, A>, ReadonlyArray<readonly [str
 export function some<A>(): Prism<Option.Option<A>, A> {
   return makePrism(
     (s) =>
-      Result.mapBoth(runRefine(Check.some<A>(), s), {
+      Result.mapBoth(AST.runRefine(Schema.isSome<A>(), s), {
         onFailure: String,
         onSuccess: (s) => s.value
       }),
@@ -760,7 +759,7 @@ export function some<A>(): Prism<Option.Option<A>, A> {
 export function none<A>(): Prism<Option.Option<A>, undefined> {
   return makePrism(
     (s) =>
-      Result.mapBoth(runRefine(Check.none<A>(), s), {
+      Result.mapBoth(AST.runRefine(Schema.isNone<A>(), s), {
         onFailure: String,
         onSuccess: () => undefined
       }),
@@ -775,7 +774,7 @@ export function none<A>(): Prism<Option.Option<A>, undefined> {
 export function success<A, E>(): Prism<Result.Result<A, E>, A> {
   return makePrism(
     (s) =>
-      Result.mapBoth(runRefine(Check.success<A, E>(), s), {
+      Result.mapBoth(AST.runRefine(Schema.isSuccess<A, E>(), s), {
         onFailure: String,
         onSuccess: (s) => s.success
       }),
@@ -790,7 +789,7 @@ export function success<A, E>(): Prism<Result.Result<A, E>, A> {
 export function failure<A, E>(): Prism<Result.Result<A, E>, E> {
   return makePrism(
     (s) =>
-      Result.mapBoth(runRefine(Check.failure<A, E>(), s), {
+      Result.mapBoth(AST.runRefine(Schema.isFailure<A, E>(), s), {
         onFailure: String,
         onSuccess: (s) => s.failure
       }),

@@ -10,7 +10,7 @@ import {
   throws
 } from "@effect/vitest/utils"
 import { Brand, Result } from "effect/data"
-import { Check } from "effect/schema"
+import { Schema } from "effect/schema"
 
 function assertSuccess<T extends Brand.Brand<any>>(ctor: Brand.Constructor<T>, value: Brand.Brand.Unbranded<T>) {
   vassertSuccess(ctor.result(value), value as T)
@@ -27,7 +27,7 @@ function assertFailure<T extends Brand.Brand<any>>(
 describe("Brand", () => {
   it("toString", () => {
     type Int = number & Brand.Brand<"Int">
-    const Int = Brand.check<Int>(Check.int())
+    const Int = Brand.check<Int>(Schema.isInt())
     const result = Int.result(1.1)
     assertTrue(Result.isFailure(result))
     strictEqual(String(result.failure), "BrandError(Expected an integer, got 1.1)")
@@ -80,7 +80,7 @@ describe("Brand", () => {
   describe("check", () => {
     it("single check", () => {
       type Int = number & Brand.Brand<"Int">
-      const Int = Brand.check<Int>(Check.int())
+      const Int = Brand.check<Int>(Schema.isInt())
 
       strictEqual(Int(1), 1)
       throws(() => Int(1.1))
@@ -101,7 +101,7 @@ describe("Brand", () => {
 
     it("multiple checks", () => {
       type PositiveInt = number & Brand.Brand<"PositiveInt">
-      const PositiveInt = Brand.check<PositiveInt>(Check.int(), Check.positive())
+      const PositiveInt = Brand.check<PositiveInt>(Schema.isInt(), Schema.isPositive())
 
       assertSuccess(PositiveInt, 1)
       assertFailure(PositiveInt, 1.1, "Expected an integer, got 1.1")
@@ -117,8 +117,8 @@ Expected a value greater than 0, got -1.1`
     it("multiple checks + abort", () => {
       type PositiveInt = number & Brand.Brand<"PositiveInt">
       const PositiveInt = Brand.check<PositiveInt>(
-        Check.int().pipe(Check.abort), // abort the first check
-        Check.positive()
+        Schema.isInt().abort(), // abort the first check
+        Schema.isPositive()
       )
 
       assertSuccess(PositiveInt, 1)
@@ -129,7 +129,7 @@ Expected a value greater than 0, got -1.1`
   })
 
   it("refine", () => {
-    const Int = Brand.refine(Check.int().pipe(Check.brand("Int")))
+    const Int = Brand.refine(Schema.isInt().pipe(Schema.isBranded("Int")))
 
     assertSuccess(Int, 1)
     assertFailure(Int, 1.1, "Expected an integer, got 1.1")
@@ -137,10 +137,10 @@ Expected a value greater than 0, got -1.1`
   })
 
   it("intersection", () => {
-    const Int = Brand.refine(Check.int().pipe(Check.brand("Int")))
+    const Int = Brand.refine(Schema.isInt().pipe(Schema.isBranded("Int")))
 
     type Positive = number & Brand.Brand<"Positive">
-    const Positive = Brand.check<Positive>(Check.positive())
+    const Positive = Brand.check<Positive>(Schema.isPositive())
 
     const PositiveInt = Brand.all(Int, Positive)
 
