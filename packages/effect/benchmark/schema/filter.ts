@@ -21,7 +21,7 @@ import { z } from "zod/v4-mini"
 
 const bench = new Bench()
 
-const schema = Schema.String.pipe(Schema.check(Schema.isNonEmpty()))
+const schema = Schema.String.check(Schema.isNonEmpty())
 
 const valibot = v.pipe(v.string(), v.nonEmpty())
 
