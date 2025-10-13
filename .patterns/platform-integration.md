@@ -23,8 +23,8 @@ export interface FileSystem {
 }
 
 // Service key for dependency injection
-export const FileSystem: ServiceMap.Key<FileSystem, FileSystem> = 
-  ServiceMap.Key("effect/platform/FileSystem")
+export const FileSystem: ServiceMap.Service<FileSystem, FileSystem> =
+  ServiceMap.Service("effect/platform/FileSystem")
 
 // Type identification
 const TypeId: unique symbol = Symbol.for("effect/platform/FileSystem")
@@ -36,14 +36,14 @@ Use service classes for type-safe dependency injection:
 
 ```typescript
 // HTTP platform service
-export class HttpPlatform extends ServiceMap.Key<HttpPlatform, {
+export class HttpPlatform extends ServiceMap.Service<HttpPlatform, {
   readonly fileResponse: (path: string, options?: FileResponseOptions) => Effect.Effect<Response>
   readonly fileWebResponse: (file: FileLike, options?: FileWebResponseOptions) => Effect.Effect<Response>
   readonly formData: (source: Readable) => Effect.Effect<FormData>
 }>()("effect/http/HttpPlatform") {}
 
 // Socket service
-export class NetSocket extends ServiceMap.Key<NetSocket, Net.Socket>()(
+export class NetSocket extends ServiceMap.Service<NetSocket, Net.Socket>()(
   "@effect/platform-node/NodeSocket/NetSocket"
 ) {}
 ```

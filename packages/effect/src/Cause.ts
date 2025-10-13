@@ -925,7 +925,7 @@ export interface UnknownError extends YieldableError {
 export const UnknownError: new(cause: unknown, message?: string) => UnknownError = effect.UnknownError
 
 /**
- * Adds annotations to a `Cause` using a `ServiceMap.Key` to store metadata
+ * Adds annotations to a `Cause` using a `ServiceMap.Service` to store metadata
  * that can be retrieved later for debugging or tracing purposes.
  *
  * @example
