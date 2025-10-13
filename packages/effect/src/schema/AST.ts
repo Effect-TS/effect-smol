@@ -1554,8 +1554,7 @@ export type Sentinel = {
   readonly literal: Literal
 }
 
-/** @internal */
-export function getCandidateTypes(ast: AST): ReadonlyArray<Type> {
+function getCandidateTypes(ast: AST): ReadonlyArray<Type> {
   switch (ast._tag) {
     case "NullKeyword":
       return ["null"]
@@ -1638,7 +1637,6 @@ type CandidateIndex = {
 
 const candidateIndexCache = new WeakMap<ReadonlyArray<AST>, CandidateIndex>()
 
-/** @internal */
 function getIndex(types: ReadonlyArray<AST>): CandidateIndex {
   let idx = candidateIndexCache.get(types)
   if (idx) return idx
@@ -2039,8 +2037,7 @@ export function replaceEncoding<A extends AST>(ast: A, encoding: Encoding | unde
   })
 }
 
-/** @internal */
-export function replaceLastLink(encoding: Encoding, link: Link): Encoding {
+function replaceLastLink(encoding: Encoding, link: Link): Encoding {
   return Arr.append(encoding.slice(0, encoding.length - 1), link)
 }
 
@@ -2125,12 +2122,10 @@ function appendTransformation<A extends AST>(
 
 /**
  * Maps over the array but will return the original array if no changes occur.
- *
- * @internal
  */
-export function mapOrSame<A>(as: Arr.NonEmptyReadonlyArray<A>, f: (a: A) => A): Arr.NonEmptyReadonlyArray<A>
-export function mapOrSame<A>(as: ReadonlyArray<A>, f: (a: A) => A): ReadonlyArray<A>
-export function mapOrSame<A>(as: ReadonlyArray<A>, f: (a: A) => A): ReadonlyArray<A> {
+function mapOrSame<A>(as: Arr.NonEmptyReadonlyArray<A>, f: (a: A) => A): Arr.NonEmptyReadonlyArray<A>
+function mapOrSame<A>(as: ReadonlyArray<A>, f: (a: A) => A): ReadonlyArray<A>
+function mapOrSame<A>(as: ReadonlyArray<A>, f: (a: A) => A): ReadonlyArray<A> {
   let changed = false
   const out: Array<A> = new Array(as.length)
   for (let i = 0; i < as.length; i++) {

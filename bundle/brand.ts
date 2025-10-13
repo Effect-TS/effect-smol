@@ -1,5 +1,5 @@
 import * as Brand from "#dist/effect/data/Brand"
-import * as Check from "#dist/effect/schema/Check"
+import * as Schema from "#dist/effect/schema/Schema"
 
 type Positive = number & Brand.Brand<"Positive">
-const Positive = Brand.check<Positive>(Check.positive())
+const Positive = Brand.check<Positive>(Schema.isPositive())
