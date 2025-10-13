@@ -4947,14 +4947,14 @@ Example Output:
 **Example** (Deriving equivalence for a basic schema)
 
 ```ts
-import { Schema, ToEquivalence } from "effect/schema"
+import { Schema } from "effect/schema"
 
 const schema = Schema.Struct({
   a: Schema.String,
   b: Schema.Number
 })
 
-const equivalence = ToEquivalence.make(schema)
+const equivalence = Schema.makeEquivalence(schema)
 ```
 
 ### Declarations
@@ -4962,7 +4962,7 @@ const equivalence = ToEquivalence.make(schema)
 **Example** (Providing a custom equivalence for a class)
 
 ```ts
-import { Schema, ToEquivalence } from "effect/schema"
+import { Schema } from "effect/schema"
 
 class MyClass {
   constructor(readonly a: string) {}
@@ -4970,12 +4970,12 @@ class MyClass {
 
 const schema = Schema.instanceOf(MyClass, {
   equivalence: {
-    _tag: "Declaration",
-    declaration: () => (x, y) => x.a === y.a
+    _tag: "Override",
+    override: () => (x, y) => x.a === y.a
   }
 })
 
-const equivalence = ToEquivalence.make(schema)
+const equivalence = Schema.makeEquivalence(schema)
 ```
 
 ### Overrides
@@ -4985,15 +4985,15 @@ You can override the derived equivalence for a schema using `ToEquivalence.overr
 **Example** (Overriding equivalence for a struct)
 
 ```ts
-import { Equivalence } from "effect"
-import { Schema, ToEquivalence } from "effect/schema"
+import { Equivalence } from "effect/data"
+import { Schema } from "effect/schema"
 
 const schema = Schema.Struct({
   a: Schema.String,
   b: Schema.Number
-}).pipe(ToEquivalence.override(() => Equivalence.make((x, y) => x.a === y.a)))
+}).pipe(Schema.overrideEquivalence(() => Equivalence.make((x, y) => x.a === y.a)))
 
-const equivalence = ToEquivalence.make(schema)
+const equivalence = Schema.makeEquivalence(schema)
 ```
 
 ## Generating an Optic from a Schema

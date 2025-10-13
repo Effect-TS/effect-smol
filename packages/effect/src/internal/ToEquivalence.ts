@@ -5,52 +5,16 @@ import * as Equivalence from "../data/Equivalence.ts"
 import * as Predicate from "../data/Predicate.ts"
 import { memoize } from "../Function.ts"
 import * as Equal from "../interfaces/Equal.ts"
-import * as Annotations from "./Annotations.ts"
-import * as AST from "./AST.ts"
-import type * as Schema from "./Schema.ts"
-import * as ToParser from "./ToParser.ts"
+import * as Annotations from "../schema/Annotations.ts"
+import * as AST from "../schema/AST.ts"
+import * as ToParser from "../schema/ToParser.ts"
 
-/**
- * @since 4.0.0
- */
-export declare namespace Annotation {
-  /**
-   * @since 4.0.0
-   */
-  export type Override<T, TypeParameters extends ReadonlyArray<Schema.Top>> = {
-    readonly _tag: "Override"
-    readonly override: (
-      typeParameters: { readonly [K in keyof TypeParameters]: Equivalence.Equivalence<TypeParameters[K]["Type"]> }
-    ) => Equivalence.Equivalence<T>
-  }
-}
-
-/**
- * @since 4.0.0
- */
-export function make<T>(schema: Schema.Schema<T>): Equivalence.Equivalence<T> {
-  return go(schema.ast)
-}
-
-/**
- * **Technical Note**
- *
- * This annotation cannot be added to `Annotations.Bottom` because it would make
- * the schema invariant.
- *
- * @since 4.0.0
- */
-export function override<S extends Schema.Top>(override: () => Equivalence.Equivalence<S["Type"]>) {
-  return (self: S): S["~rebuild.out"] => {
-    return self.annotate({ equivalence: { _tag: "Override", override } })
-  }
-}
-
-function getAnnotation(ast: AST.AST): Annotation.Override<any, ReadonlyArray<any>> | undefined {
+function getAnnotation(ast: AST.AST): Annotations.Equivalence.Override<any, ReadonlyArray<any>> | undefined {
   return Annotations.get(ast)?.["equivalence"] as any
 }
 
-const go = memoize((ast: AST.AST): Equivalence.Equivalence<any> => {
+/** @internal */
+export const go = memoize((ast: AST.AST): Equivalence.Equivalence<any> => {
   // ---------------------------------------------
   // handle annotations
   // ---------------------------------------------

@@ -28,6 +28,7 @@ import { format, formatDate, formatPropertyKey } from "../interfaces/Inspectable
 import * as Pipeable from "../interfaces/Pipeable.ts"
 import * as core from "../internal/core.ts"
 import * as InternalArbitrary from "../internal/ToArbitrary.ts"
+import * as InternalEquivalence from "../internal/ToEquivalence.ts"
 import { remainder } from "../Number.ts"
 import * as Request from "../Request.ts"
 import * as Scheduler from "../Scheduler.ts"
@@ -36,7 +37,6 @@ import * as Annotations from "./Annotations.ts"
 import * as AST from "./AST.ts"
 import * as Getter from "./Getter.ts"
 import * as Issue from "./Issue.ts"
-import * as ToEquivalence from "./ToEquivalence.ts"
 import type * as ToJsonSchema from "./ToJsonSchema.ts"
 import * as ToParser from "./ToParser.ts"
 import * as Transformation from "./Transformation.ts"
@@ -2138,7 +2138,7 @@ export interface UniqueArray<S extends Top> extends Array$<S> {}
  * @since 4.0.0
  */
 export function UniqueArray<S extends Top>(item: S): UniqueArray<S> {
-  return Array(item).check(isUnique(ToEquivalence.make(item)))
+  return Array(item).check(isUnique(makeEquivalence(item)))
 }
 
 /**
@@ -6692,3 +6692,28 @@ export function getFormatReducer(alg: AST.ReducerAlg<Format<any>>) {
  * @since 4.0.0
  */
 export const makeFormat = getFormatReducer(defaultFormatReducerAlg)
+
+// -----------------------------------------------------------------------------
+// Equivalence APIs
+// -----------------------------------------------------------------------------
+
+/**
+ * **Technical Note**
+ *
+ * This annotation cannot be added to `Annotations.Bottom` because it would make
+ * the schema invariant.
+ *
+ * @since 4.0.0
+ */
+export function overrideEquivalence<S extends Top>(override: () => Equivalence.Equivalence<S["Type"]>) {
+  return (self: S): S["~rebuild.out"] => {
+    return self.annotate({ equivalence: { _tag: "Override", override } })
+  }
+}
+
+/**
+ * @since 4.0.0
+ */
+export function makeEquivalence<T>(schema: Schema<T>): Equivalence.Equivalence<T> {
+  return InternalEquivalence.go(schema.ast)
+}

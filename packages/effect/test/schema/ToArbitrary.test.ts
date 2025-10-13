@@ -1,6 +1,6 @@
 import * as InternalArbitrary from "effect/internal/ToArbitrary"
 import type { Annotations } from "effect/schema"
-import { AST, Schema, ToEquivalence } from "effect/schema"
+import { AST, Schema } from "effect/schema"
 import { TestSchema } from "effect/testing"
 import { deepStrictEqual } from "node:assert"
 import { describe, it } from "vitest"
@@ -823,7 +823,7 @@ describe("ToArbitrary", () => {
     })
 
     it("UniqueArray", () => {
-      const comparator = ToEquivalence.make(Schema.String)
+      const comparator = Schema.makeEquivalence(Schema.String)
       assertFragments(Schema.UniqueArray(Schema.String), {
         constraints: {
           array: {
