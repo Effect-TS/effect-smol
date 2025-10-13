@@ -58,14 +58,11 @@ const ParsedConfigTypeId = "~effect/cli/Command/ParsedConfig" as const
  *   },
  *   never,
  *   never
- * > = Command.make(
- *   "deploy",
- *   {
- *     env: Flag.string("env"),
- *     force: Flag.boolean("force"),
- *     files: Argument.string("files").pipe(Argument.variadic())
- *   }
- * )
+ * > = Command.make("deploy", {
+ *   env: Flag.string("env"),
+ *   force: Flag.boolean("force"),
+ *   files: Argument.string("files").pipe(Argument.variadic())
+ * })
  *
  * // Command with handler
  * const greet = Command.make("greet", {
@@ -273,8 +270,8 @@ export interface RawInput {
  */
 export interface CommandConfig {
   readonly [key: string]:
-    | Param.Param<any, Param.ParamKind>
-    | ReadonlyArray<Param.Param<any, Param.ParamKind> | CommandConfig>
+    | Param.Param<Param.ParamKind, any>
+    | ReadonlyArray<Param.Param<Param.ParamKind, any> | CommandConfig>
     | CommandConfig
 }
 
@@ -357,7 +354,7 @@ export type InferConfig<A extends CommandConfig> = Simplify<
  * @category models
  */
 export type InferConfigValue<A> = A extends ReadonlyArray<any> ? { readonly [Key in keyof A]: InferConfigValue<A[Key]> }
-  : A extends Param.Param<infer _Value, infer _Kind> ? _Value
+  : A extends Param.Param<infer _Kind, infer _Value> ? _Value
   : A extends CommandConfig ? InferConfig<A>
   : never
 

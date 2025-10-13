@@ -113,6 +113,7 @@
     "coverage": "vitest --coverage"
   },
   "devDependencies": {
+    "@types/ini": "^4.1.1",
     "@types/node": "^24.8.1",
     "ajv": "^8.17.1",
     "arktype": "^2.1.23",
@@ -125,8 +126,11 @@
     "@standard-schema/spec": "^1.0.0",
     "fast-check": "^4.3.0",
     "find-my-way-ts": "^0.1.6",
+    "ini": "^5.0.0",
     "msgpackr": "^1.11.5",
     "multipasta": "^0.2.7",
-    "uuid": "^13.0.0"
+    "toml": "^3.0.0",
+    "uuid": "^13.0.0",
+    "yaml": "^2.8.1"
   }
 }

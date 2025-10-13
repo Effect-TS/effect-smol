@@ -1,11 +1,16 @@
 /**
  * @since 4.0.0
  */
+import * as Ini from "ini"
+import * as Toml from "toml"
+import * as Yaml from "yaml"
 import * as Redacted from "../../data/Redacted.ts"
+import type * as Struct from "../../data/Struct.ts"
 import * as Effect from "../../Effect.ts"
 import { identity } from "../../Function.ts"
 import * as FileSystem from "../../platform/FileSystem.ts"
 import * as Path from "../../platform/Path.ts"
+import type { Formatter } from "../../schema/Issue.ts"
 import * as Schema from "../../schema/Schema.ts"
 import * as Transformation from "../../schema/Transformation.ts"
 import type { Covariant } from "../../types/Types.ts"
@@ -500,6 +505,77 @@ export const fileString: Primitive<string> = makePrimitive(
 )
 
 /**
+ * Represents options which can be provided to methods that deal with parsing
+ * file content.
+ *
+ * @since 4.0.0
+ * @category models
+ */
+export type FileParseOptions = {
+  readonly format?: "ini" | "json" | "toml" | "yaml"
+}
+
+const fileParsers: Record<string, (content: string) => unknown> = {
+  ini: (content: string) => Ini.parse(content),
+  json: (content: string) => JSON.parse(content),
+  tml: (content: string) => Toml.parse(content),
+  toml: (content: string) => Toml.parse(content),
+  yml: (content: string) => Yaml.parse(content),
+  yaml: (content: string) => Yaml.parse(content)
+}
+
+/**
+ * Reads and parses file content using the specified schema.
+ *
+ * @example
+ * ```ts
+ * import { Primitive } from "effect/unstable/cli"
+ * import { Effect } from "effect"
+ *
+ * const tomlFilePrimitive = Primitive.fileParse({ format: "toml" })
+ *
+ * const loadConfig = Effect.gen(function* () {
+ *   const config = yield* tomlFilePrimitive.parse("./config.toml")
+ *   console.log(config) // { name: "my-app", version: "1.0.0", port: 3000 }
+ *   return config
+ * })
+ * ```
+ *
+ * @since 4.0.0
+ * @category constructors
+ */
+export const fileParse = (options?: FileParseOptions): Primitive<unknown> => {
+  return makePrimitive(
+    "FileParse",
+    Effect.fnUntraced(function*(filePath) {
+      const fileFormat = options?.format ?? filePath.split(".").pop() as string
+      const parser = fileParsers[fileFormat]
+      if (parser === undefined) {
+        return yield* Effect.fail(`Unsupported file format: ${fileFormat}`)
+      }
+      const content = yield* fileString.parse(filePath)
+      return yield* Effect.try({
+        try: () => parser(content),
+        catch: (error) => `Failed to parse '.${fileFormat}' file content: ${error}`
+      })
+    })
+  )
+}
+
+/**
+ * Represents options which can be provided to methods that deal with parsing
+ * file content and decoding the file content with a `Schema`.
+ *
+ * @since 4.0.0
+ * @category models
+ */
+export type FileSchemaOptions = Struct.Simplify<
+  FileParseOptions & {
+    readonly errorFormatter?: Formatter<string> | undefined
+  }
+>
+
+/**
  * Reads and parses file content using the specified schema.
  *
  * @example
@@ -512,14 +588,13 @@ export const fileString: Primitive<string> = makePrimitive(
  *   name: Schema.String,
  *   version: Schema.String,
  *   port: Schema.Number
+ * }).pipe(Schema.fromJsonString)
+ *
+ * const jsonConfigPrimitive = Primitive.fileSchema(ConfigSchema, {
+ *   format: "json"
  * })
  *
- * const jsonConfigPrimitive = Primitive.fileSchema(
- *   Schema.fromJsonString(ConfigSchema),
- *   "JSON"
- * )
- *
- * const loadConfig = Effect.gen(function* () {
+ * const loadConfig = Effect.gen(function*() {
  *   const config = yield* jsonConfigPrimitive.parse("./config.json")
  *   console.log(config) // { name: "my-app", version: "1.0.0", port: 3000 }
  *   return config
@@ -531,17 +606,17 @@ export const fileString: Primitive<string> = makePrimitive(
  */
 export const fileSchema = <A>(
   schema: Schema.Codec<A, string>,
-  format?: string | undefined
+  options?: FileSchemaOptions | undefined
 ): Primitive<A> => {
   const decode = Schema.decodeUnknownEffect(schema)
   return makePrimitive(
     "FileSchema",
     Effect.fnUntraced(function*(filePath) {
-      const content = yield* fileString.parse(filePath)
-      return yield* Effect.mapError(decode(content), (error) => {
-        const formatHint = format ? ` (expected ${format} format)` : ""
-        return `Failed to parse file content${formatHint}: ${error.message}`
-      })
+      const content = yield* fileParse(options).parse(filePath)
+      return yield* Effect.mapError(
+        decode(content),
+        (error) => options?.errorFormatter?.format(error.issue) ?? error.toString()
+      )
     })
   )
 }

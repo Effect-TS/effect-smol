@@ -17,7 +17,7 @@ export const getCommandPath = (parsedInput: RawInput): ReadonlyArray<string> =>
     ? [parsedInput.subcommand.name, ...getCommandPath(parsedInput.subcommand.parsedInput)]
     : []
 
-type FlagParam = Param.Single<unknown, "flag">
+type FlagParam = Param.Single<typeof Param.Flag, unknown>
 type FlagMap = Record<string, ReadonlyArray<string>>
 type MutableFlagMap = Record<string, Array<string>>
 
@@ -37,8 +37,10 @@ const makeCursor = (tokens: ReadonlyArray<Token>): TokenCursor => {
 }
 
 /** Map canonicalized names/aliases → Single<A> (O(1) lookup). */
-const buildFlagIndex = (singles: ReadonlyArray<Param.Single<unknown>>): Map<string, Param.Single<unknown>> => {
-  const lookup = new Map<string, Param.Single<unknown>>()
+const buildFlagIndex = (
+  singles: ReadonlyArray<Param.Single<typeof Param.Flag, unknown>>
+): Map<string, Param.Single<typeof Param.Flag, unknown>> => {
+  const lookup = new Map<string, Param.Single<typeof Param.Flag, unknown>>()
   for (const single of singles) {
     if (lookup.has(single.name)) throw new Error(`Duplicate option name: ${single.name}`)
     lookup.set(single.name, single)
@@ -225,7 +227,8 @@ type LevelSubcommand = {
 
 type LevelResult = LevelLeaf | LevelSubcommand
 
-const isFlagParam = <A>(s: Param.Single<A, Param.ParamKind>): s is Param.Single<A, "flag"> => s.kind === "flag"
+const isFlagParam = <A>(s: Param.Single<Param.ParamKind, A>): s is Param.Single<typeof Param.Flag, A> =>
+  s.kind === "flag"
 
 const scanCommandLevel = <Name extends string, Input, E, R>(
   tokens: ReadonlyArray<Token>,
