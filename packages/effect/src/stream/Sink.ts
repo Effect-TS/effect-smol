@@ -815,6 +815,35 @@ export const collectAll = <In>(): Sink<Array<In>, In> =>
   })
 
 /**
+ * Accumulates incoming elements into an array, up to the specified number `n`.
+ *
+ * @since 4.0.0
+ * @category constructors
+ */
+export const collectN = <In>(n: number): Sink<Array<In>, In, In> =>
+  fromTransform((upstream) =>
+    Effect.sync(() => {
+      const taken: Array<In> = []
+      return upstream.pipe(
+        Pull.catchHalt(() => Pull.halt<End<Array<In>, In>>([taken])),
+        Effect.flatMap((arr) => {
+          const isFinal = taken.length + arr.length >= n
+          const toTake = isFinal ? n - taken.length : arr.length
+          for (let i = 0; i < toTake; i++) {
+            taken.push(arr[i])
+          }
+          if (!isFinal) return Effect.void
+          return Pull.halt<End<Array<In>, In>>([
+            taken,
+            toTake < arr.length ? (arr.slice(toTake) as any) : undefined
+          ])
+        }),
+        Effect.forever({ autoYield: false })
+      )
+    })
+  )
+
+/**
  * Accumulates incoming elements into an array as long as they verify predicate
  * `p`.
  *

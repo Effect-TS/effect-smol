@@ -2935,6 +2935,95 @@ export const transduce = dual<
 
 /**
  * @since 2.0.0
+ * @category Aggregation
+ */
+export const aggregateWithin: {
+  <B, A, A2, E2, R2, C, E3, R3>(
+    sink: Sink.Sink<B, A | A2, A2, E2, R2>,
+    schedule: Schedule.Schedule<C, Option.Option<B>, E3, R3>
+  ): <E, R>(self: Stream<A, E, R>) => Stream<B, E2 | E | E3, R2 | R3 | R>
+  <A, E, R, B, A2, E2, R2, C, E3, R3>(
+    self: Stream<A, E, R>,
+    sink: Sink.Sink<B, A | A2, A2, E2, R2>,
+    schedule: Schedule.Schedule<C, Option.Option<B>, E3, R3>
+  ): Stream<B, E | E2 | E3, R | R2 | R3>
+} = dual(3, <A, E, R, B, A2, E2, R2, C, E3, R3>(
+  self: Stream<A, E, R>,
+  sink: Sink.Sink<B, A | A2, A2, E2, R2>,
+  schedule: Schedule.Schedule<C, Option.Option<B>, E3, R3>
+): Stream<B, E | E2 | E3, R | R2 | R3> =>
+  fromChannel(Channel.fromTransformBracket(Effect.fnUntraced(function*(_upstream, _, scope) {
+    const pull = yield* Channel.toPullScoped(self.channel, _)
+
+    const pullLatch = Effect.makeLatchUnsafe(false)
+    const scheduleStep = Symbol()
+    const buffer = yield* Queue.make<Arr.NonEmptyReadonlyArray<A> | typeof scheduleStep, E | Pull.Halt<void>>({
+      capacity: 0
+    })
+
+    // upstream -> buffer
+    yield* pull.pipe(
+      pullLatch.whenOpen,
+      Effect.flatMap((arr) => {
+        pullLatch.closeUnsafe()
+        return Queue.offer(buffer, arr)
+      }),
+      Effect.forever, // don't autoYield to prevent choking the schedule
+      Queue.into(buffer),
+      Effect.forkIn(scope)
+    )
+
+    // schedule -> buffer
+    let lastOutput = Option.none<B>()
+    const step = yield* Schedule.toStepWithSleep(schedule)
+    const stepToBuffer = Effect.suspend(() => step(lastOutput)).pipe(
+      Effect.flatMap(() => Queue.offer(buffer, scheduleStep)),
+      Effect.flatMap(() => Effect.never),
+      Pull.catchHalt(() => Pull.haltVoid)
+    )
+
+    // buffer -> sink
+    const pullFromBuffer: Pull.Pull<
+      Arr.NonEmptyReadonlyArray<A>,
+      E
+    > = Queue.take(buffer).pipe(
+      Effect.flatMap((arr) => arr === scheduleStep ? Pull.haltVoid : Effect.succeed(arr))
+    )
+
+    let leftover: Arr.NonEmptyReadonlyArray<A2> | undefined
+    const sinkUpstream = Effect.suspend((): Pull.Pull<Arr.NonEmptyReadonlyArray<A | A2>, E> => {
+      if (leftover !== undefined) {
+        const chunk = leftover
+        leftover = undefined
+        return Effect.succeed(chunk)
+      }
+      pullLatch.openUnsafe()
+      return pullFromBuffer
+    })
+    const catchSinkHalt = Pull.catchHalt(([value, leftover_]: Sink.End<B, A2>) => {
+      lastOutput = Option.some(value)
+      leftover = leftover_
+      return Effect.succeed(Arr.of(value))
+    })
+
+    return Effect.suspend(() => {
+      // if the buffer has exited and there is no more data to process
+      if (buffer.state._tag === "Done") {
+        return buffer.state.exit as Exit.Exit<never, Pull.Halt<void> | E>
+      }
+      return Channel.toTransform(sink.channel)(sinkUpstream as any, scope)
+    }).pipe(
+      Effect.flatMap((pull) =>
+        Effect.raceFirst(
+          catchSinkHalt(pull) as Pull.Pull<Arr.NonEmptyReadonlyArray<B>, E | E2, void, R2>,
+          stepToBuffer
+        )
+      )
+    )
+  }))))
+
+/**
+ * @since 2.0.0
  * @category Broadcast
  */
 export const broadcast: {

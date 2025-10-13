@@ -2,7 +2,7 @@ import { describe, it } from "@effect/vitest"
 import { assertExitFailure, assertExitSuccess, deepStrictEqual, strictEqual } from "@effect/vitest/utils"
 import { Cause, Effect, Ref } from "effect"
 import { Array } from "effect/collections"
-import { constTrue } from "effect/Function"
+import { constTrue, pipe } from "effect/Function"
 import { Sink, Stream } from "effect/stream"
 
 describe("Sink", () => {
@@ -121,6 +121,41 @@ describe("Sink", () => {
           Stream.transduce(Sink.take<number>(3))
         )
         const result = yield* Stream.runCollect(stream)
+        deepStrictEqual(result, [[]])
+      }))
+  })
+
+  describe("collectN", () => {
+    it.effect("respects the given limit", () =>
+      Effect.gen(function*() {
+        const stream = pipe(
+          Stream.make(1, 2, 3, 4),
+          Stream.transduce(Sink.collectN<number>(3))
+        )
+        const result = yield* Stream.runCollect(stream)
+        deepStrictEqual(result, [[1, 2, 3], [4]])
+      }))
+
+    it.effect("produces empty trailing chunks", () =>
+      Effect.gen(function*() {
+        const stream = pipe(
+          Stream.make(1, 2, 3, 4),
+          Stream.transduce(Sink.collectN(4))
+        )
+        const result = yield* Stream.runCollect(stream)
+        deepStrictEqual(
+          result,
+          [[1, 2, 3, 4], []]
+        )
+      }))
+
+    it.effect("produces empty trailing chunks", () =>
+      Effect.gen(function*() {
+        const stream = pipe(
+          Stream.empty,
+          Stream.transduce(Sink.collectN<number>(3))
+        )
+        const result = yield* (Stream.runCollect(stream))
         deepStrictEqual(result, [[]])
       }))
   })
