@@ -3341,16 +3341,6 @@ export const accumulate = <A, E, R>(self: Stream<A, E, R>): Stream<Arr.NonEmptyA
  * previous element emitted, using natural equality to determine whether two
  * elements are equal.
  *
- * @example
- * ```ts
- * import { Effect, Stream } from "effect"
- *
- * const stream = Stream.make(1, 1, 1, 2, 2, 3, 4).pipe(Stream.changes)
- *
- * Effect.runPromise(Stream.runCollect(stream)).then(console.log)
- * // [ 1, 2, 3, 4 ]
- * ```
- *
  * @since 2.0.0
  * @category De-duplication
  */
