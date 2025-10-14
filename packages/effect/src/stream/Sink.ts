@@ -516,6 +516,10 @@ export const foldArray = <S, In, E = never, R = never>(
     })
   )
 
+/**
+ * @since 2.0.0
+ * @category folding
+ */
 export const foldUntil = <S, In, E = never, R = never>(
   s: LazyArg<S>,
   max: number,
