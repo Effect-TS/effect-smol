@@ -52,6 +52,7 @@
 import * as Option from "../../data/Option.ts"
 import * as Predicate from "../../data/Predicate.ts"
 import * as Effect from "../../Effect.ts"
+import * as Queue from "../../Queue.ts"
 import * as SchemaAnnotations from "../../schema/Annotations.ts"
 import * as Schema from "../../schema/Schema.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
@@ -869,13 +870,21 @@ export const make: (params: ConstructorParams) => Effect.Effect<Service> = Effec
 
         const ResponseSchema = Schema.NonEmptyArray(Response.StreamPart(toolkit))
         const decodeParts = Schema.decodeEffect(ResponseSchema)
-        return params.streamText(providerOptions).pipe(
-          Stream.mapArrayEffect(Effect.fnUntraced(function*(parts) {
-            const toolResults = yield* resolveToolCalls(parts, toolkit, options.concurrency)
-            const content = yield* decodeParts(parts)
-            return [...content, ...toolResults]
-          }))
-        ) as Stream.Stream<Response.StreamPart<Tools>, AiError.AiError | Schema.SchemaError, IdGenerator>
+        const queue = yield* Queue.make<
+          Response.StreamPart<Tools>,
+          AiError.AiError | Queue.Done | Schema.SchemaError
+        >()
+        yield* params.streamText(providerOptions).pipe(
+          Stream.runForEachArray(Effect.fnUntraced(function*(chunk) {
+            const parts = yield* decodeParts(chunk)
+            yield* Queue.offerAll(queue, parts)
+            const toolResults = yield* resolveToolCalls(chunk, toolkit, options.concurrency)
+            yield* Queue.offerAll(queue, toolResults as any)
+          })),
+          Queue.into(queue),
+          Effect.fork
+        )
+        return Stream.fromQueue(queue)
       }
     ) as any
 
