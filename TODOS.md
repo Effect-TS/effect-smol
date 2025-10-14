@@ -325,7 +325,7 @@ The exports under each section are organized as they are in Effect 3.0. The cate
 |       `changesWith`        |  Done  |                               |          |
 |    `changesWithEffect`     |  Done  |                               |          |
 |          `chunks`          |  Done  |           `chunks`            |          |
-|        `chunksWith`        |   -    |                               |          |
+|        `chunksWith`        |   X    |                               |          |
 |         `combine`          |   -    |                               |          |
 |      `combineChunks`       |   -    |                               |          |
 |          `concat`          |  Done  |           `concat`            |          |
@@ -372,7 +372,7 @@ The exports under each section are organized as they are in Effect 3.0. The cate
 |        `mergeRight`        |   -    |                               |          |
 |        `mergeWith`         |   -    |                               |          |
 |         `mkString`         |  Done  |          `mkString`           |          |
-|          `onDone`          |   -    |                               |          |
+|          `onDone`          |   X    |                               |          |
 |         `onError`          |   -    |                               |          |
 |        `partition`         |   -    |                               |          |
 |     `partitionEither`      |   -    |                               |          |
