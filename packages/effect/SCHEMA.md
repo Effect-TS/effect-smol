@@ -5036,14 +5036,14 @@ This allows you to keep working with plain JavaScript objects and collections wh
 **Example** (Generating an `Iso` automatically from a schema)
 
 ```ts
-import { Schema, ToOptic } from "effect/schema"
+import { Schema } from "effect/schema"
 
 class A extends Schema.Class<A>("A")({ s: Schema.String }) {}
 class B extends Schema.Class<B>("B")({ a: A }) {}
 
 // Automatically generate an Iso from the schema of B
 // const iso: Iso<B, { readonly a: { readonly s: string } }>
-const iso = ToOptic.makeIso(B)
+const iso = Schema.makeIso(B)
 
 const _s = iso.key("a").key("s")
 

@@ -1,7 +1,7 @@
 import type { Cause, Exit, Optic } from "effect"
 import type { Brand, Option } from "effect/data"
 import { Data } from "effect/data"
-import { Schema, ToOptic, Util } from "effect/schema"
+import { Schema, Util } from "effect/schema"
 import { describe, expect, it } from "tstyche"
 
 class Value extends Schema.Class<Value, { readonly brand: unique symbol }>("Value")({
@@ -12,21 +12,21 @@ describe("ToOptic", () => {
   describe("makeIso", () => {
     it("Class", () => {
       const schema = Value
-      const optic = ToOptic.makeIso(schema)
+      const optic = Schema.makeIso(schema)
 
       expect(optic).type.toBe<Optic.Iso<Value, { readonly a: Date }>>()
     })
 
     it("typeCodec(Class)", () => {
       const schema = Schema.typeCodec(Value)
-      const optic = ToOptic.makeIso(schema)
+      const optic = Schema.makeIso(schema)
 
       expect(optic).type.toBe<Optic.Iso<Value, { readonly a: Date }>>()
     })
 
     it("encodedCodec(Class)", () => {
       const schema = Schema.encodedCodec(Value)
-      const optic = ToOptic.makeIso(schema)
+      const optic = Schema.makeIso(schema)
 
       expect(optic).type.toBe<Optic.Iso<{ readonly a: Date }, { readonly a: Date }>>()
     })
@@ -34,7 +34,7 @@ describe("ToOptic", () => {
     describe("brand", () => {
       it("Number & positive", () => {
         const schema = Schema.Number.check(Schema.isPositive()).pipe(Schema.brand("positive"))
-        const optic = ToOptic.makeIso(schema)
+        const optic = Schema.makeIso(schema)
 
         expect(optic).type.toBe<Optic.Iso<number & Brand.Brand<"positive">, number & Brand.Brand<"positive">>>()
       })
@@ -42,7 +42,7 @@ describe("ToOptic", () => {
 
     it("Tuple", () => {
       const schema = Schema.Tuple([Value, Schema.optionalKey(Value)])
-      const optic = ToOptic.makeIso(schema)
+      const optic = Schema.makeIso(schema)
 
       expect(optic).type.toBe<
         Optic.Iso<
@@ -54,14 +54,14 @@ describe("ToOptic", () => {
 
     it("Array", () => {
       const schema = Schema.Array(Value)
-      const optic = ToOptic.makeIso(schema)
+      const optic = Schema.makeIso(schema)
 
       expect(optic).type.toBe<Optic.Iso<ReadonlyArray<Value>, ReadonlyArray<{ readonly a: Date }>>>()
     })
 
     it("NonEmptyArray", () => {
       const schema = Schema.NonEmptyArray(Value)
-      const optic = ToOptic.makeIso(schema)
+      const optic = Schema.makeIso(schema)
 
       expect(optic).type.toBeAssignableTo<
         Optic.Iso<
@@ -86,7 +86,7 @@ describe("ToOptic", () => {
 
     it("TupleWithRest", () => {
       const schema = Schema.TupleWithRest(Schema.Tuple([Value]), [Value, Value])
-      const optic = ToOptic.makeIso(schema)
+      const optic = Schema.makeIso(schema)
 
       expect(optic).type.toBeAssignableTo<
         Optic.Iso<
@@ -116,7 +116,7 @@ describe("ToOptic", () => {
         c: Schema.optionalKey(Value),
         d: Schema.mutableKey(Schema.optionalKey(Value))
       })
-      const optic = ToOptic.makeIso(schema)
+      const optic = Schema.makeIso(schema)
 
       expect(optic).type.toBe<
         Optic.Iso<{
@@ -135,7 +135,7 @@ describe("ToOptic", () => {
 
     it("Record", () => {
       const schema = Schema.Record(Schema.String, Value)
-      const optic = ToOptic.makeIso(schema)
+      const optic = Schema.makeIso(schema)
 
       expect(optic).type.toBe<
         Optic.Iso<{ readonly [x: string]: Value }, { readonly [x: string]: { readonly a: Date } }>
@@ -147,7 +147,7 @@ describe("ToOptic", () => {
         Schema.Struct({ a: Value }),
         [Schema.Record(Schema.String, Value)]
       )
-      const optic = ToOptic.makeIso(schema)
+      const optic = Schema.makeIso(schema)
 
       expect(optic).type.toBe<
         Optic.Iso<
@@ -159,7 +159,7 @@ describe("ToOptic", () => {
 
     it("Union", () => {
       const schema = Schema.Union([Schema.String, Value])
-      const optic = ToOptic.makeIso(schema)
+      const optic = Schema.makeIso(schema)
 
       expect(optic).type.toBe<Optic.Iso<string | Value, string | { readonly a: Date }>>()
     })
@@ -177,7 +177,7 @@ describe("ToOptic", () => {
         a: Value,
         as: Schema.Array(Schema.suspend((): Schema.Optic<A, AIso> => schema))
       })
-      const optic = ToOptic.makeIso(schema)
+      const optic = Schema.makeIso(schema)
 
       expect(optic).type.toBe<
         Optic.Iso<{
@@ -194,14 +194,14 @@ describe("ToOptic", () => {
 
     it("flip(schema)", () => {
       const schema = Schema.flip(Value)
-      const optic = ToOptic.makeIso(schema)
+      const optic = Schema.makeIso(schema)
 
       expect(optic).type.toBe<Optic.Iso<{ readonly a: Date }, { readonly a: Date }>>()
     })
 
     it("flip(flip(schema))", () => {
       const schema = Schema.flip(Schema.flip(Value))
-      const optic = ToOptic.makeIso(schema)
+      const optic = Schema.makeIso(schema)
 
       expect(optic).type.toBe<Optic.Iso<Value, { readonly a: Date }>>()
     })
@@ -209,14 +209,14 @@ describe("ToOptic", () => {
     it("Opaque", () => {
       class Value extends Schema.Opaque<Value>()(Schema.Struct({ a: Schema.Date })) {}
       const schema = Value
-      const optic = ToOptic.makeIso(schema)
+      const optic = Schema.makeIso(schema)
 
       expect(optic).type.toBe<Optic.Iso<Value, { readonly a: Date }>>()
     })
 
     it("Option", () => {
       const schema = Schema.Option(Value)
-      const optic = ToOptic.makeIso(schema)
+      const optic = Schema.makeIso(schema)
 
       expect(optic).type.toBe<
         Optic.Iso<
@@ -235,7 +235,7 @@ describe("ToOptic", () => {
 
     it("CauseFailure", () => {
       const schema = Schema.CauseFailure(Value, Value)
-      const optic = ToOptic.makeIso(schema)
+      const optic = Schema.makeIso(schema)
 
       expect(optic).type.toBe<
         Optic.Iso<
@@ -261,7 +261,7 @@ describe("ToOptic", () => {
 
   it("Cause", () => {
     const schema = Schema.Cause(Value, Value)
-    const optic = ToOptic.makeIso(schema)
+    const optic = Schema.makeIso(schema)
 
     expect(optic).type.toBe<
       Optic.Iso<Cause.Cause<Value>, ReadonlyArray<Schema.CauseFailureIso<typeof Value, typeof Value>>>
@@ -270,14 +270,14 @@ describe("ToOptic", () => {
 
   it("Error", () => {
     const schema = Schema.Error
-    const optic = ToOptic.makeIso(schema)
+    const optic = Schema.makeIso(schema)
 
     expect(optic).type.toBe<Optic.Iso<Error, Error>>()
   })
 
   it("Exit", () => {
     const schema = Schema.Exit(Value, Schema.Error, Schema.Defect)
-    const optic = ToOptic.makeIso(schema)
+    const optic = Schema.makeIso(schema)
 
     expect(optic).type.toBe<
       Optic.Iso<Exit.Exit<Value, Error>, Schema.ExitIso<typeof Value, Schema.Error, Schema.Defect>>
@@ -286,7 +286,7 @@ describe("ToOptic", () => {
 
   it("ReadonlyMap", () => {
     const schema = Schema.ReadonlyMap(Schema.String, Value)
-    const optic = ToOptic.makeIso(schema)
+    const optic = Schema.makeIso(schema)
 
     expect(optic).type.toBe<
       Optic.Iso<ReadonlyMap<string, Value>, ReadonlyArray<readonly [string, { readonly a: Date }]>>
@@ -303,7 +303,7 @@ describe("ToOptic", () => {
       }
     }
     const schema = Util.getNativeClassSchema(Err, { encoding: Props })
-    const optic = ToOptic.makeIso(schema)
+    const optic = Schema.makeIso(schema)
 
     expect(optic).type.toBe<
       Optic.Iso<Err, { readonly message: string }>

@@ -1,12 +1,12 @@
 import { describe, it } from "@effect/vitest"
-import { ToOptic } from "effect/schema"
+import { Schema } from "effect/schema"
 import { Headers } from "effect/unstable/http"
 import { assertSuccess } from "../../utils/assert.ts"
 
 describe("Headers", () => {
   describe("HeadersSchema", () => {
     it("defaultIsoSerializer", () => {
-      const _Accept = ToOptic.makeIso(Headers.HeadersSchema).at("Accept")
+      const _Accept = Schema.makeIso(Headers.HeadersSchema).at("Accept")
       const headers = Headers.fromRecordUnsafe({
         "Accept": "application/json, text/plain, */*",
         "Cache-Control": "no-cache"

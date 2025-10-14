@@ -35,11 +35,6 @@ export * as Schema from "./Schema.ts"
 /**
  * @since 4.0.0
  */
-export * as ToOptic from "./ToOptic.ts"
-
-/**
- * @since 4.0.0
- */
 export * as ToParser from "./ToParser.ts"
 
 /**

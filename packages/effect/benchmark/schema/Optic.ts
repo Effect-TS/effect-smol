@@ -1,5 +1,5 @@
 import { Optic } from "effect"
-import { Schema, ToOptic } from "effect/schema"
+import { Schema } from "effect/schema"
 import { Bench } from "tinybench"
 
 /*
@@ -44,7 +44,7 @@ const user = User.makeUnsafe({
   }
 })
 
-const iso = ToOptic.makeIso(User).key("profile").key("address").key("street")
+const iso = Schema.makeIso(User).key("profile").key("address").key("street")
 const optic = Optic.id<typeof User["Type"]>().key("profile").key("address").key("street")
 
 bench
