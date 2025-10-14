@@ -1,4 +1,3 @@
-import * as Differ from "#dist/effect/schema/Differ"
 import * as Schema from "#dist/effect/schema/Schema"
 
 const schema = Schema.Struct({
@@ -7,4 +6,4 @@ const schema = Schema.Struct({
   price: Schema.Number
 })
 
-Differ.makeJsonPatch(schema)
+Schema.makeDifferJsonPatch(schema)
