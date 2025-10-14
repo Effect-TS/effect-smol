@@ -1,6 +1,3 @@
-/**
- * @since 4.0.0
- */
 import * as Equivalence from "../data/Equivalence.ts"
 import * as Predicate from "../data/Predicate.ts"
 import { memoize } from "../Function.ts"

@@ -1,69 +1,15 @@
-/**
- * @since 4.0.0
- */
 import * as Predicate from "../data/Predicate.ts"
-import * as Schema from "./Schema.ts"
-import * as ToParser from "./ToParser.ts"
-
-/**
- * @category Model
- * @since 4.0.0
- */
-export interface Differ<in out T, in out Patch> {
-  readonly empty: Patch
-  diff(oldValue: T, newValue: T): Patch
-  combine(first: Patch, second: Patch): Patch
-  patch(oldValue: T, patch: Patch): T
-}
-
-/**
- * RFC 6902 (subset) JSON Patch operations
- * Keeping only "add", "remove", "replace"
- *
- * @category JsonPatch Differ
- * @since 4.0.0
- */
-export type JsonPatchOperation =
-  | { op: "add"; path: string; value: unknown } // path may end with "-" to append to arrays
-  | { op: "remove"; path: string }
-  | { op: "replace"; path: string; value: unknown }
-
-/**
- * A JSON Patch document is an array of operations
- *
- * @category JsonPatch Differ
- * @since 4.0.0
- */
-export type JsonPatch = ReadonlyArray<JsonPatchOperation>
-
-/**
- * @category JsonPatch Differ
- * @since 4.0.0
- */
-export function makeJsonPatch<T, E>(codec: Schema.Codec<T, E>): Differ<T, JsonPatch> {
-  const serializer = Schema.makeSerializerJson(codec)
-  const get = ToParser.encodeSync(serializer)
-  const set = ToParser.decodeSync(serializer)
-  return {
-    empty: [],
-    diff: (oldValue, newValue) => getJsonPatch(get(oldValue), get(newValue)),
-    combine: (first, second) => [...first, ...second],
-    patch: (oldValue, patch) => {
-      const value = get(oldValue)
-      const patched = applyJsonPatch(patch, value)
-      return Object.is(patched, value) ? oldValue : set(patched)
-    }
-  }
-}
+import type * as Schema from "../schema/Schema.ts"
 
 // Mutates op.path in place for perf; safe because child ops are freshly created and not shared.
-function prefixPathInPlace(op: JsonPatchOperation, parent: string): void {
+function prefixPathInPlace(op: Schema.JsonPatchOperation, parent: string): void {
   op.path = op.path === "" ? parent : parent + op.path
 }
 
-function getJsonPatch(oldValue: unknown, newValue: unknown): JsonPatch {
+/** @internal */
+export function getJsonPatch(oldValue: unknown, newValue: unknown): Schema.JsonPatch {
   if (Object.is(oldValue, newValue)) return []
-  const patches: Array<JsonPatchOperation> = []
+  const patches: Array<Schema.JsonPatchOperation> = []
   if (Array.isArray(oldValue) && Array.isArray(newValue)) {
     const len1 = oldValue.length
     const len2 = newValue.length
@@ -122,7 +68,8 @@ function getJsonPatch(oldValue: unknown, newValue: unknown): JsonPatch {
   return patches
 }
 
-function applyJsonPatch(patch: JsonPatch, oldValue: unknown): unknown {
+/** @internal */
+export function applyJsonPatch(patch: Schema.JsonPatch, oldValue: unknown): unknown {
   let doc = oldValue
 
   for (const op of patch) {

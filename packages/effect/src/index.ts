@@ -339,6 +339,11 @@ export * as DateTime from "./DateTime.ts"
 export * as Deferred from "./Deferred.ts"
 
 /**
+ * @since 4.0.0
+ */
+export * as Differ from "./Differ.ts"
+
+/**
  * This module provides utilities for working with durations of time. A `Duration`
  * is an immutable data type that represents a span of time with high precision,
  * supporting operations from nanoseconds to weeks.

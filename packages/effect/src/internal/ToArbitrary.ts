@@ -1,6 +1,3 @@
-/**
- * @since 4.0.0
- */
 import * as Boolean from "../Boolean.ts"
 import * as Array from "../collections/Array.ts"
 import type * as Combiner from "../data/Combiner.ts"

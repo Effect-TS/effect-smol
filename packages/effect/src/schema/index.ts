@@ -15,11 +15,6 @@ export * as AST from "./AST.ts"
 /**
  * @since 4.0.0
  */
-export * as Differ from "./Differ.ts"
-
-/**
- * @since 4.0.0
- */
 export * as Getter from "./Getter.ts"
 
 /**

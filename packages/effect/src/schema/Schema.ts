@@ -19,6 +19,7 @@ import * as Result_ from "../data/Result.ts"
 import type { Lambda, Merge, Mutable, Simplify } from "../data/Struct.ts"
 import { lambda, renameKeys } from "../data/Struct.ts"
 import * as DateTime from "../DateTime.ts"
+import type { Differ } from "../Differ.ts"
 import * as Duration_ from "../Duration.ts"
 import * as Effect from "../Effect.ts"
 import * as Exit_ from "../Exit.ts"
@@ -28,6 +29,7 @@ import { format, formatDate, formatPropertyKey } from "../interfaces/Inspectable
 import * as Pipeable from "../interfaces/Pipeable.ts"
 import * as core from "../internal/core.ts"
 import * as InternalArbitrary from "../internal/ToArbitrary.ts"
+import * as InternalDiffer from "../internal/ToDiffer.ts"
 import * as InternalEquivalence from "../internal/ToEquivalence.ts"
 import * as InternalJsonSchema from "../internal/ToJsonSchema.ts"
 import { remainder } from "../Number.ts"
@@ -7175,5 +7177,49 @@ export function overrideIso<S extends Top, Iso>(
       }),
       { schema }
     )
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Differ APIs
+// -----------------------------------------------------------------------------
+
+/**
+ * RFC 6902 (subset) JSON Patch operations
+ * Keeping only "add", "remove", "replace"
+ *
+ * @category JsonPatch Differ
+ * @since 4.0.0
+ */
+export type JsonPatchOperation =
+  | { op: "add"; path: string; value: unknown } // path may end with "-" to append to arrays
+  | { op: "remove"; path: string }
+  | { op: "replace"; path: string; value: unknown }
+
+/**
+ * A JSON Patch document is an array of operations
+ *
+ * @category JsonPatch Differ
+ * @since 4.0.0
+ */
+export type JsonPatch = ReadonlyArray<JsonPatchOperation>
+
+/**
+ * @category JsonPatch Differ
+ * @since 4.0.0
+ */
+export function makeDifferJsonPatch<T, E>(codec: Codec<T, E>): Differ<T, JsonPatch> {
+  const serializer = makeSerializerJson(codec)
+  const get = ToParser.encodeSync(serializer)
+  const set = ToParser.decodeSync(serializer)
+  return {
+    empty: [],
+    diff: (oldValue, newValue) => InternalDiffer.getJsonPatch(get(oldValue), get(newValue)),
+    combine: (first, second) => [...first, ...second],
+    patch: (oldValue, patch) => {
+      const value = get(oldValue)
+      const patched = InternalDiffer.applyJsonPatch(patch, value)
+      return Object.is(patched, value) ? oldValue : set(patched)
+    }
   }
 }

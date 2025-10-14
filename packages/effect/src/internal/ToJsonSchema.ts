@@ -1,6 +1,3 @@
-/**
- * @since 4.0.0
- */
 import type { Option } from "../data/Option.ts"
 import * as Predicate from "../data/Predicate.ts"
 import type * as Record from "../data/Record.ts"
