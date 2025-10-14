@@ -12,7 +12,6 @@ import * as Struct from "./data/Struct.ts"
 import { identity, memoize } from "./Function.ts"
 import { format } from "./interfaces/Inspectable.ts"
 import * as AST from "./schema/AST.ts"
-import * as Schema from "./schema/Schema.ts"
 import type { IsUnion } from "./types/Types.ts"
 
 /**
@@ -441,7 +440,7 @@ class OptionalImpl<S, A> implements Optional<S, A> {
     return this.compose(makeLens(Struct.omit(keys), (o, a) => ({ ...a, ...o })))
   }
   notUndefined(): Prism<S, Exclude<A, undefined>> {
-    return this.refine(Schema.isNotUndefined())
+    return this.refine(AST.isNotUndefined())
   }
   forEach<S, A, B>(this: Traversal<S, A>, f: (iso: Iso<A, A>) => Optional<A, B>): Traversal<S, B> {
     const inner = f(id<A>())
@@ -744,7 +743,7 @@ export function entries<A>(): Iso<Record<string, A>, ReadonlyArray<readonly [str
 export function some<A>(): Prism<Option.Option<A>, A> {
   return makePrism(
     (s) =>
-      Result.mapBoth(AST.runRefine(Schema.isSome<A>(), s), {
+      Result.mapBoth(AST.runRefine(AST.isSome<A>(), s), {
         onFailure: String,
         onSuccess: (s) => s.value
       }),
@@ -759,7 +758,7 @@ export function some<A>(): Prism<Option.Option<A>, A> {
 export function none<A>(): Prism<Option.Option<A>, undefined> {
   return makePrism(
     (s) =>
-      Result.mapBoth(AST.runRefine(Schema.isNone<A>(), s), {
+      Result.mapBoth(AST.runRefine(AST.isNone<A>(), s), {
         onFailure: String,
         onSuccess: () => undefined
       }),
@@ -774,7 +773,7 @@ export function none<A>(): Prism<Option.Option<A>, undefined> {
 export function success<A, E>(): Prism<Result.Result<A, E>, A> {
   return makePrism(
     (s) =>
-      Result.mapBoth(AST.runRefine(Schema.isSuccess<A, E>(), s), {
+      Result.mapBoth(AST.runRefine(AST.isSuccess<A, E>(), s), {
         onFailure: String,
         onSuccess: (s) => s.success
       }),
@@ -789,7 +788,7 @@ export function success<A, E>(): Prism<Result.Result<A, E>, A> {
 export function failure<A, E>(): Prism<Result.Result<A, E>, E> {
   return makePrism(
     (s) =>
-      Result.mapBoth(AST.runRefine(Schema.isFailure<A, E>(), s), {
+      Result.mapBoth(AST.runRefine(AST.isFailure<A, E>(), s), {
         onFailure: String,
         onSuccess: (s) => s.failure
       }),

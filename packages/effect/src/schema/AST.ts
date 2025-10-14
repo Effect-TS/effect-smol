@@ -1977,6 +1977,58 @@ export function makeFilter<T>(
   )
 }
 
+/** @internal */
+export function makeRefinedByGuard<T extends E, E>(
+  is: (value: E) => value is T,
+  annotations?: Annotations.Filter
+): Refinement<T, E> {
+  return new Filter(
+    (input: E) => is(input) ? undefined : new Issue.InvalidValue(Option.some(input)),
+    annotations,
+    true // after a guard, we always want to abort
+  ) as any
+}
+
+/** @internal */
+export function isNotUndefined<A>(annotations?: Annotations.Filter) {
+  return makeRefinedByGuard<Exclude<A, undefined>, A>(
+    Predicate.isNotUndefined,
+    Annotations.combine({ title: "isNotUndefined", description: "a value other than `undefined`" }, annotations)
+  )
+}
+
+/** @internal */
+export function isSome<A>(annotations?: Annotations.Filter) {
+  return makeRefinedByGuard<Option.Some<A>, Option.Option<A>>(
+    Option.isSome,
+    Annotations.combine({ title: "isSome", description: "a Some value" }, annotations)
+  )
+}
+
+/** @internal */
+export function isNone<A>(annotations?: Annotations.Filter) {
+  return makeRefinedByGuard<Option.None<A>, Option.Option<A>>(
+    Option.isNone,
+    Annotations.combine({ title: "isNone", description: "a None value" }, annotations)
+  )
+}
+
+/** @internal */
+export function isSuccess<A, E>(annotations?: Annotations.Filter) {
+  return makeRefinedByGuard<Result.Success<A, E>, Result.Result<A, E>>(
+    Result.isSuccess,
+    Annotations.combine({ title: "isSuccess", description: "a Result.Success value" }, annotations)
+  )
+}
+
+/** @internal */
+export function isFailure<A, E>(annotations?: Annotations.Filter) {
+  return makeRefinedByGuard<Result.Failure<A, E>, Result.Result<A, E>>(
+    Result.isFailure,
+    Annotations.combine({ title: "isFailure", description: "a Result.Failure value" }, annotations)
+  )
+}
+
 /**
  * @since 4.0.0
  */

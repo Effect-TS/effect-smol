@@ -1,6 +1,6 @@
 import { Optic } from "effect"
 import { Option, Result } from "effect/data"
-import { Schema } from "effect/schema"
+import { AST, Schema } from "effect/schema"
 import { describe, it } from "vitest"
 import { assertFailure, assertSuccess, assertTrue, deepStrictEqual, strictEqual, throws } from "./utils/assert.ts"
 
@@ -424,7 +424,7 @@ Expected a value greater than 0, got -1.1`
   })
 
   it("fromRefine", () => {
-    const optic = Optic.id<Option.Option<number>>().compose(Optic.fromRefine(Schema.isSome())).key("value")
+    const optic = Optic.id<Option.Option<number>>().compose(Optic.fromRefine(AST.isSome())).key("value")
     assertSuccess(optic.getResult(Option.some(1)), 1)
     assertFailure(optic.getResult(Option.none()), `Expected a Some value, got none()`)
   })

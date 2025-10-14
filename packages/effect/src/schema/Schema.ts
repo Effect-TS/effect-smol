@@ -3156,16 +3156,10 @@ export function link<T>() { // TODO: better name
 /**
  * @since 4.0.0
  */
-export function makeRefinedByGuard<T extends E, E>(
+export const makeRefinedByGuard: <T extends E, E>(
   is: (value: E) => value is T,
   annotations?: Annotations.Filter
-): AST.Refinement<T, E> {
-  return new AST.Filter(
-    (input: E) => is(input) ? undefined : new Issue.InvalidValue(Option_.some(input)),
-    annotations,
-    true // after a guard, we always want to abort
-  ) as any
-}
+) => AST.Refinement<T, E> = AST.makeRefinedByGuard
 
 /**
  * @since 4.0.0
@@ -4523,66 +4517,10 @@ export function isUnique<T>(equivalence: Equivalence.Equivalence<T>, annotations
 }
 
 /**
- * A check that ensures the value is a `Some` value.
- *
- * @category Option checks
  * @since 4.0.0
  */
-export function isSome<A>(annotations?: Annotations.Filter) {
-  return makeRefinedByGuard<Option_.Some<A>, Option_.Option<A>>(
-    Option_.isSome,
-    Annotations.combine({ title: "isSome", description: "a Some value" }, annotations)
-  )
-}
-
-/**
- * A check that ensures the value is a `None` value.
- *
- * @category Option checks
- * @since 4.0.0
- */
-export function isNone<A>(annotations?: Annotations.Filter) {
-  return makeRefinedByGuard<Option_.None<A>, Option_.Option<A>>(
-    Option_.isNone,
-    Annotations.combine({ title: "isNone", description: "a None value" }, annotations)
-  )
-}
-
-/**
- * A check that ensures the value is a `Result.Success` value.
- *
- * @category Result checks
- * @since 4.0.0
- */
-export function isSuccess<A, E>(annotations?: Annotations.Filter) {
-  return makeRefinedByGuard<Result_.Success<A, E>, Result_.Result<A, E>>(
-    Result_.isSuccess,
-    Annotations.combine({ title: "isSuccess", description: "a Result.Success value" }, annotations)
-  )
-}
-
-/**
- * A check that ensures the value is a `Result.Failure` value.
- *
- * @category Result checks
- * @since 4.0.0
- */
-export function isFailure<A, E>(annotations?: Annotations.Filter) {
-  return makeRefinedByGuard<Result_.Failure<A, E>, Result_.Result<A, E>>(
-    Result_.isFailure,
-    Annotations.combine({ title: "isFailure", description: "a Result.Failure value" }, annotations)
-  )
-}
-
-/**
- * @since 4.0.0
- */
-export function isNotUndefined<A>(annotations?: Annotations.Filter) {
-  return makeRefinedByGuard<Exclude<A, undefined>, A>(
-    Predicate.isNotUndefined,
-    Annotations.combine({ title: "isNotUndefined", description: "a value other than `undefined`" }, annotations)
-  )
-}
+export const isNotUndefined: <A>(annotations?: Annotations.Filter) => AST.Refinement<Exclude<A, undefined>, A> =
+  AST.isNotUndefined
 
 /**
  * @since 4.0.0
