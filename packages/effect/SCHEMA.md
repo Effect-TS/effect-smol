@@ -5058,7 +5058,7 @@ The `Differ` module lets you compute and apply JSON Patch (RFC 6902) changes for
 **Example** (Compare two values and apply the patch)
 
 ```ts
-import { Differ, Schema } from "effect/schema"
+import { Schema } from "effect/schema"
 
 // Describe the shape of your data
 const schema = Schema.Struct({
@@ -5068,14 +5068,14 @@ const schema = Schema.Struct({
 })
 
 // Build a differ tied to the schema
-const jsonPatchDiffer = Differ.makeJsonPatch(schema)
+const differ = Schema.makeDifferJsonPatch(schema)
 
 // Prepare two values to compare
 const oldValue = { id: 1, name: "a", price: 1 }
 const newValue = { id: 1, name: "b", price: 2 }
 
 // Compute a JSON Patch document (an array of operations)
-const jsonPatch = jsonPatchDiffer.diff(oldValue, newValue)
+const jsonPatch = differ.diff(oldValue, newValue)
 console.log(jsonPatch)
 /*
 [
@@ -5085,7 +5085,7 @@ console.log(jsonPatch)
 */
 
 // Apply the patch to the old value to get the new value
-const patched = jsonPatchDiffer.patch(oldValue, jsonPatch)
+const patched = differ.patch(oldValue, jsonPatch)
 console.log(patched)
 // { id: 1, name: 'b', price: 2 }
 ```
@@ -5095,21 +5095,21 @@ console.log(patched)
 **Example** (Compare two custom types)
 
 ```ts
-import { Differ, Schema } from "effect/schema"
+import { Schema } from "effect/schema"
 
 class A extends Schema.Class<A>("A")({ n: Schema.Number }) {}
 class B extends Schema.Class<B>("B")({ a: A }) {}
 
-const jsonPatchDiffer = Differ.makeJsonPatch(B)
+const differ = Schema.makeDifferJsonPatch(B)
 
 const oldValue = new B({ a: new A({ n: 0 }) })
 const newValue = new B({ a: new A({ n: 1 }) })
 
-const patch = jsonPatchDiffer.diff(oldValue, newValue)
+const patch = differ.diff(oldValue, newValue)
 console.log(patch)
 // [ { op: 'replace', path: '/a/n', value: 1 } ]
 
-console.log(jsonPatchDiffer.patch(oldValue, patch))
+console.log(differ.patch(oldValue, patch))
 // B { a: A { n: 1 } }
 ```
 
