@@ -2937,6 +2937,23 @@ export const transduce = dual<
  * @since 2.0.0
  * @category Aggregation
  */
+export const aggregate: {
+  <B, A, A2, E2, R2>(
+    sink: Sink.Sink<B, A | A2, A2, E2, R2>
+  ): <E, R>(self: Stream<A, E, R>) => Stream<B, E2 | E, R2 | R>
+  <A, E, R, B, A2, E2, R2>(
+    self: Stream<A, E, R>,
+    sink: Sink.Sink<B, A | A2, A2, E2, R2>
+  ): Stream<B, E | E2, R | R2>
+} = dual(2, <A, E, R, B, A2, E2, R2>(
+  self: Stream<A, E, R>,
+  sink: Sink.Sink<B, A | A2, A2, E2, R2>
+): Stream<B, E | E2, R | R2> => aggregateWithin(self, sink, Schedule.forever))
+
+/**
+ * @since 2.0.0
+ * @category Aggregation
+ */
 export const aggregateWithin: {
   <B, A, A2, E2, R2, C, E3, R3>(
     sink: Sink.Sink<B, A | A2, A2, E2, R2>,
@@ -2962,9 +2979,11 @@ export const aggregateWithin: {
     })
 
     // upstream -> buffer
+    let hadChunk = false
     yield* pull.pipe(
       pullLatch.whenOpen,
       Effect.flatMap((arr) => {
+        hadChunk = true
         pullLatch.closeUnsafe()
         return Queue.offer(buffer, arr)
       }),
@@ -2997,10 +3016,13 @@ export const aggregateWithin: {
         leftover = undefined
         return Effect.succeed(chunk)
       }
+      hadChunk = false
       pullLatch.openUnsafe()
       return pullFromBuffer
     })
     const catchSinkHalt = Pull.catchHalt(([value, leftover_]: Sink.End<B, A2>) => {
+      // ignore the last output if the upsteam only pulled a halt
+      if (!hadChunk && buffer.state._tag === "Done") return Pull.haltVoid
       lastOutput = Option.some(value)
       leftover = leftover_
       return Effect.succeed(Arr.of(value))

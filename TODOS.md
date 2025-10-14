@@ -312,9 +312,9 @@ The exports under each section are organized as they are in Effect 3.0. The cate
 | :------------------------: | :----: | :---------------------------: | :------: |
 |        `accumulate`        |  Done  |                               |          |
 |     `accumulateChunks`     |   X    | `accumulate` + `flattenArray` |          |
-|        `aggregate`         |   -    |                               |          |
-|     `aggregateWithin`      |   -    |                               |          |
-|  `aggregateWithinEither`   |   -    |                               |          |
+|        `aggregate`         |  Done  |                               |          |
+|     `aggregateWithin`      |  Done  |                               |          |
+|  `aggregateWithinEither`   |   X    |                               |          |
 |        `broadcast`         |  Done  |          `broadcast`          |          |
 |     `broadcastDynamic`     |   X    |          `broadcast`          |          |
 |    `broadcastedQueues`     |   X    |          `broadcast`          |          |
@@ -452,7 +452,7 @@ The exports under each section are organized as they are in Effect 3.0. The cate
 |           Effect 3            | Ported |         Effect 4         | Comments |
 | :---------------------------: | :----: | :----------------------: | :------: |
 |         `collectAll`          |  Done  |       `collectAll`       |          |
-|         `collectAllN`         |   -    |                          |          |
+|         `collectAllN`         |  Done  |        `collectN`        |          |
 |       `collectAllToMap`       |   -    |                          |          |
 |      `collectAllToMapN`       |   -    |                          |          |
 |       `collectAllToSet`       |   -    |                          |          |
@@ -493,11 +493,11 @@ The exports under each section are organized as they are in Effect 3.0. The cate
 | `foldWeightedDecomposeEffect` |   -    |                          |          |
 |     `foldWeightedEffect`      |   -    |                          |          |
 |           `forEach`           |  Done  |        `forEach`         |          |
-|        `forEachChunk`         |   -    |                          |          |
+|        `forEachChunk`         |  Done  |      `forEachArray`      |          |
 |      `forEachChunkWhile`      |   -    |                          |          |
 |        `forEachWhile`         |   -    |                          |          |
 |         `fromChannel`         |  Done  |      `fromChannel`       |          |
-|         `fromEffect`          |   -    |                          |          |
+|         `fromEffect`          |  Done  |                          |          |
 |         `fromPubSub`          |   -    |                          |          |
 |          `fromPush`           |   -    |                          |          |
 |          `fromQueue`          |   -    |                          |          |
@@ -554,10 +554,10 @@ The exports under each section are organized as they are in Effect 3.0. The cate
 
 ### Folding
 
-|  Effect 3  | Ported |   Effect 4    | Comments |
-| :--------: | :----: | :-----------: | :------: |
-|   `fold`   |  Done  | `reduceWhile` |          |
-| `foldSink` |   -    |               |          |
+|  Effect 3  | Ported | Effect 4 | Comments |
+| :--------: | :----: | :------: | :------: |
+|   `fold`   |  Done  |  `fold`  |          |
+| `foldSink` |   -    |          |          |
 
 ### Mapping
 

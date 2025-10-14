@@ -443,6 +443,98 @@ export const ignoreLeftover = <A, In, L, E, R>(self: Sink<A, In, L, E, R>): Sink
   fromChannel(Channel.mapDone(self.channel, ([a]) => [a]))
 
 /**
+ * @since 2.0.0
+ * @category constructors
+ */
+export const fromEffect = <A, E, R>(
+  effect: Effect.Effect<A, E, R>
+): Sink<A, unknown, never, Pull.ExcludeHalt<E>, R> =>
+  fromChannel(Channel.fromPull(Effect.succeed(Effect.flatMap(
+    effect,
+    (a) => Pull.halt<End<A>>([a])
+  ))))
+
+/**
+ * A sink that folds its inputs with the provided function, termination
+ * predicate and initial state.
+ *
+ * @since 2.0.0
+ * @category folding
+ */
+export const fold = <S, In, E = never, R = never>(
+  s: LazyArg<S>,
+  contFn: Predicate<S>,
+  f: (s: S, input: In) => S | Effect.Effect<S, E, R>
+): Sink<S, In, In, E, R> =>
+  fromTransform((upstream) =>
+    Effect.sync(() => {
+      let state = s()
+      const pull = upstream.pipe(
+        Pull.catchHalt(() => Pull.halt<End<S, In>>([state]))
+      )
+      return Effect.gen(function*() {
+        while (true) {
+          const arr = yield* pull
+          for (let i = 0; i < arr.length; i++) {
+            const result = f(state, arr[i])
+            state = Effect.isEffect(result) ? yield* result : result
+            if (contFn(state)) continue
+            return yield* Pull.halt<End<S, In>>([
+              state,
+              (i + 1) < arr.length ? (arr.slice(i + 1) as any) : undefined
+            ])
+          }
+        }
+      })
+    })
+  )
+
+/**
+ * @since 2.0.0
+ * @category folding
+ */
+export const foldArray = <S, In, E = never, R = never>(
+  s: LazyArg<S>,
+  contFn: Predicate<S>,
+  f: (s: S, input: Arr.NonEmptyReadonlyArray<In>) => S | Effect.Effect<S, E, R>
+): Sink<S, In, never, E, R> =>
+  fromTransform((upstream) =>
+    Effect.sync(() => {
+      let state = s()
+      const pull = upstream.pipe(
+        Pull.catchHalt(() => Pull.halt<End<S>>([state]))
+      )
+      return Effect.gen(function*() {
+        while (true) {
+          const arr = yield* pull
+          const result = f(state, arr)
+          state = Effect.isEffect(result) ? yield* result : result
+          if (contFn(state)) continue
+          return yield* Pull.halt<End<S>>([state])
+        }
+      })
+    })
+  )
+
+export const foldUntil = <S, In, E = never, R = never>(
+  s: LazyArg<S>,
+  max: number,
+  f: (s: S, input: In) => S | Effect.Effect<S, E, R>
+): Sink<S, In, In, E, R> =>
+  fold<readonly [S, number], In, E, R>(
+    () => [s(), 0],
+    (tuple) => tuple[1] < max,
+    ([output, count], input) => {
+      const result = f(output, input)
+      return Effect.isEffect(result)
+        ? Effect.map(result, (s) => [s, count + 1] as const)
+        : [result, count + 1] as const
+    }
+  ).pipe(
+    map((tuple) => tuple[0])
+  )
+
+/**
  * Transforms this sink's result.
  *
  * @since 2.0.0

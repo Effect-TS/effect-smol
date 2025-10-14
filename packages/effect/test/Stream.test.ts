@@ -1,11 +1,11 @@
 /* eslint-disable no-restricted-syntax */
 import { assert, describe, it } from "@effect/vitest"
-import { assertExitFailure, deepStrictEqual, strictEqual } from "@effect/vitest/utils"
-import { Cause, Deferred, Effect, Exit, Fiber, Queue, Ref, Schedule } from "effect"
+import { assertExitFailure, assertTrue, deepStrictEqual, strictEqual } from "@effect/vitest/utils"
+import { Cause, Deferred, Duration, Effect, Exit, Fiber, Queue, Ref, Schedule } from "effect"
 import { Array } from "effect/collections"
 import { isReadonlyArrayNonEmpty, type NonEmptyArray } from "effect/collections/Array"
 import { Filter, Option } from "effect/data"
-import { constTrue, pipe } from "effect/Function"
+import { constTrue, constVoid, pipe } from "effect/Function"
 import { Sink, Stream } from "effect/stream"
 import { TestClock } from "effect/testing"
 import * as fc from "effect/testing/FastCheck"
@@ -1063,6 +1063,155 @@ describe("Stream", () => {
           ]
         )
       }))
+  })
+
+  describe("aggregateWithin", () => {
+    it.effect("simple example", () =>
+      Effect.gen(function*() {
+        const result = yield* pipe(
+          Stream.make(1, 1, 1, 1, 2, 2),
+          Stream.aggregateWithin(
+            pipe(
+              Sink.fold(
+                () => [[] as Array<number>, true] as readonly [Array<number>, boolean],
+                (tuple) => tuple[1],
+                ([array], curr: number): readonly [Array<number>, boolean] => {
+                  if (curr === 1) {
+                    return [[curr, ...array], true]
+                  }
+                  return [[curr, ...array], false]
+                }
+              ),
+              Sink.map((tuple) => tuple[0])
+            ),
+            Schedule.spaced(Duration.minutes(30))
+          ),
+          Stream.runCollect
+        )
+        deepStrictEqual(result, [[2, 1, 1, 1, 1], [2]])
+      }))
+
+    it.effect("fails fast", () =>
+      Effect.gen(function*() {
+        const queue = yield* Queue.unbounded<number>()
+        yield* pipe(
+          Stream.range(1, 9),
+          Stream.tap((n) =>
+            pipe(
+              Effect.fail("Boom"),
+              Effect.when(() => n === 6),
+              Effect.andThen(Queue.offer(queue, n))
+            )
+          ),
+          Stream.aggregateWithin(
+            Sink.foldUntil(constVoid, 5, constVoid),
+            Schedule.forever
+          ),
+          Stream.runDrain,
+          Effect.catch(() => Effect.succeed(void 0))
+        )
+        const result = yield* Queue.takeAll(queue)
+        yield* Queue.shutdown(queue)
+        deepStrictEqual(result, [1, 2, 3, 4, 5])
+      }))
+
+    it.effect("error propagation #1", () =>
+      Effect.gen(function*() {
+        const error = new Error("Boom")
+        const result = yield* pipe(
+          Stream.make(1, 1, 1, 1),
+          Stream.aggregateWithin(
+            Sink.die(error),
+            Schedule.spaced(Duration.minutes(30))
+          ),
+          Stream.runCollect,
+          Effect.exit
+        )
+        deepStrictEqual(result, Exit.die(error))
+      }))
+
+    it.effect("error propagation #2", () =>
+      Effect.gen(function*() {
+        const error = new Error("Boom")
+        const result = yield* pipe(
+          Stream.make(1, 1),
+          Stream.aggregateWithin(
+            Sink.fold(() => [], constTrue, () => Effect.die(error)),
+            Schedule.spaced(Duration.minutes(30))
+          ),
+          Stream.runCollect,
+          Effect.exit
+        )
+        deepStrictEqual(result, Exit.die(error))
+      }))
+
+    it.effect("interruption propagation #1", () =>
+      Effect.gen(function*() {
+        const latch = yield* Deferred.make<void>()
+        const ref = yield* Ref.make(false)
+        const sink = Sink.fold(Array.empty<number>, constTrue, (acc, curr: number) => {
+          if (curr === 1) {
+            acc.push(curr)
+            return Effect.succeed(acc)
+          }
+          return pipe(
+            Deferred.succeed(latch, void 0),
+            Effect.andThen(Effect.never),
+            Effect.onInterrupt(() => Ref.set(ref, true))
+          )
+        })
+        const fiber = yield* pipe(
+          Stream.make(1, 1, 2),
+          Stream.aggregateWithin(sink, Schedule.spaced(Duration.minutes(30))),
+          Stream.runCollect,
+          Effect.fork
+        )
+        yield* Deferred.await(latch)
+        yield* Fiber.interrupt(fiber)
+        const result = yield* Ref.get(ref)
+        assertTrue(result)
+      }))
+
+    it.effect("interruption propagation #2", () =>
+      Effect.gen(function*() {
+        const ref = yield* Ref.make(false)
+        const sink = Sink.fromEffect(
+          Effect.never.pipe(
+            Effect.onInterrupt(() => Ref.set(ref, true))
+          )
+        )
+        const fiber = yield* Stream.make(1, 1, 2).pipe(
+          Stream.aggregateWithin(sink, Schedule.spaced(Duration.minutes(30))),
+          Stream.runCollect,
+          Effect.fork({ startImmediately: true })
+        )
+        yield* Fiber.interrupt(fiber)
+        const result = yield* Ref.get(ref)
+        assertTrue(result)
+      }))
+
+    // it.effect("leftover handling", () =>
+    //   Effect.gen(function*() {
+    //     const input = [1, 2, 2, 3, 2, 3]
+    //     const fiber = yield* pipe(
+    //       Stream.fromIterable(input),
+    //       Stream.aggregateWithin(
+    //         Sink.foldWeighted({
+    //           initial: Chunk.empty<number>(),
+    //           maxCost: 4,
+    //           cost: (_, n) => n,
+    //           body: (acc, curr) => Chunk.append(acc, curr)
+    //         }),
+    //         Schedule.spaced(Duration.millis(100))
+    //       ),
+    //       Stream.flattenIterable,
+    //       Stream.runCollect,
+    //       Effect.fork
+    //     )
+    //     yield* TestClock.adjust(Duration.minutes(31))
+    //     const result = yield* Fiber.join(fiber)
+    //     deepStrictEqual(result, input)
+    //   }))
   })
 })
 
