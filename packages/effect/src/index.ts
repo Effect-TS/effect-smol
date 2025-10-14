@@ -1043,12 +1043,11 @@ export * as PubSub from "./PubSub.ts"
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Queue } from "effect"
+ * import { Cause, Effect, Queue } from "effect"
  *
  * // Creating a bounded queue with capacity 10
  * const program = Effect.gen(function*() {
- *   const queue = yield* Queue.bounded<number, Queue.Done>(10)
+ *   const queue = yield* Queue.bounded<number, Cause.Done>(10)
  *
  *   // Producer: add items to queue
  *   yield* Queue.offer(queue, 1)

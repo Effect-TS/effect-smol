@@ -51,7 +51,7 @@ describe("Stream", () => {
     it.effect("signals the end of the stream", () =>
       Effect.gen(function*() {
         const result = yield* Stream.callback<number>((mb) => {
-          Queue.doneUnsafe(mb, Exit.void)
+          Queue.endUnsafe(mb)
           return Effect.void
         }).pipe(Stream.runCollect)
         assert.isTrue(result.length === 0)
@@ -61,7 +61,7 @@ describe("Stream", () => {
       Effect.gen(function*() {
         const error = new Error("boom")
         const result = yield* Stream.callback<number, Error>((mb) => {
-          Queue.doneUnsafe(mb, Exit.fail(error))
+          Queue.failCauseUnsafe(mb, Cause.fail(error))
           return Effect.void
         }).pipe(
           Stream.runCollect,

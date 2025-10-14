@@ -1,3 +1,4 @@
+import type { Cause } from "effect"
 import { Effect, Layer, MutableRef, Queue, Schedule, ServiceMap } from "effect"
 import { Schema } from "effect/schema"
 import { Stream } from "effect/stream"
@@ -44,7 +45,7 @@ export const TestEntity = Entity.make("TestEntity", [
 export class TestEntityState extends ServiceMap.Service<TestEntityState>()("TestEntityState", {
   make: Effect.gen(function*() {
     const messages = yield* Queue.make<void>()
-    const streamMessages = yield* Queue.make<void, Queue.Done>()
+    const streamMessages = yield* Queue.make<void, Cause.Done>()
     const envelopes = yield* Queue.make<
       RpcGroup.Rpcs<typeof TestEntity.protocol> extends infer R ? R extends Rpc.Any ? Envelope.Request<R> : never
         : never
