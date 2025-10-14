@@ -26,7 +26,7 @@ import * as Scope from "../Scope.ts"
 import * as ServiceMap from "../ServiceMap.ts"
 import * as Channel from "../stream/Channel.ts"
 import * as Pull from "../stream/Pull.ts"
-import type * as Sink from "../stream/Sink.ts"
+import * as Sink from "../stream/Sink.ts"
 import { isString } from "../String.ts"
 import type { ParentSpan, SpanOptions } from "../Tracer.ts"
 import type { TypeLambda } from "../types/HKT.ts"
@@ -2672,6 +2672,30 @@ export const grouped: {
 )
 
 /**
+ * Partitions the stream with the specified `chunkSize` or until the specified
+ * `duration` has passed, whichever is satisfied first.
+ *
+ * @since 2.0.0
+ * @category Grouping
+ */
+export const groupedWithin: {
+  (
+    chunkSize: number,
+    duration: Duration.DurationInput
+  ): <A, E, R>(self: Stream<A, E, R>) => Stream<Array<A>, E, R>
+  <A, E, R>(self: Stream<A, E, R>, chunkSize: number, duration: Duration.DurationInput): Stream<Array<A>, E, R>
+} = dual(3, <A, E, R>(
+  self: Stream<A, E, R>,
+  chunkSize: number,
+  duration: Duration.DurationInput
+): Stream<Array<A>, E, R> =>
+  aggregateWithin(
+    self,
+    Sink.collectN(chunkSize),
+    Schedule.spaced(duration)
+  ))
+
+/**
  * @since 2.0.0
  * @category Grouping
  */
@@ -3311,6 +3335,117 @@ export const accumulate = <A, E, R>(self: Stream<A, E, R>): Stream<Arr.NonEmptyA
     const combined = Arr.appendAll(acc, as)
     return [combined, [combined]]
   })
+
+/**
+ * Returns a new stream that only emits elements that are not equal to the
+ * previous element emitted, using natural equality to determine whether two
+ * elements are equal.
+ *
+ * @example
+ * ```ts
+ * import { Effect, Stream } from "effect"
+ *
+ * const stream = Stream.make(1, 1, 1, 2, 2, 3, 4).pipe(Stream.changes)
+ *
+ * Effect.runPromise(Stream.runCollect(stream)).then(console.log)
+ * // [ 1, 2, 3, 4 ]
+ * ```
+ *
+ * @since 2.0.0
+ * @category De-duplication
+ */
+export const changes = <A, E, R>(self: Stream<A, E, R>): Stream<A, E, R> => changesWith(self, Equal.equals)
+
+/**
+ * Returns a new stream that only emits elements that are not equal to the
+ * previous element emitted, using the specified function to determine whether
+ * two elements are equal.
+ *
+ * @since 2.0.0
+ * @category De-duplication
+ */
+export const changesWith: {
+  <A>(f: (x: A, y: A) => boolean): <E, R>(self: Stream<A, E, R>) => Stream<A, E, R>
+  <A, E, R>(self: Stream<A, E, R>, f: (x: A, y: A) => boolean): Stream<A, E, R>
+} = dual(
+  2,
+  <A, E, R>(self: Stream<A, E, R>, f: (x: A, y: A) => boolean): Stream<A, E, R> =>
+    transformPull(self, (pull, _scope) =>
+      Effect.sync(() => {
+        let first = true
+        let last: A
+        return Effect.flatMap(pull, function loop(arr): Pull.Pull<Arr.NonEmptyReadonlyArray<A>, E> {
+          const out: Array<A> = []
+          let i = 0
+          if (first) {
+            first = false
+            last = arr[0]
+            i = 1
+            out.push(last)
+          }
+          for (; i < arr.length; i++) {
+            const a = arr[i]
+            if (f(a, last)) continue
+            last = a
+            out.push(a)
+          }
+          return Arr.isArrayNonEmpty(out) ? Effect.succeed(out) : Effect.flatMap(pull, loop)
+        })
+      }))
+)
+
+/**
+ * Returns a new stream that only emits elements that are not equal to the
+ * previous element emitted, using the specified function to determine whether
+ * two elements are equal.
+ *
+ * @since 2.0.0
+ * @category De-duplication
+ */
+export const changesWithEffect: {
+  <A, E2, R2>(
+    f: (x: A, y: A) => Effect.Effect<boolean, E2, R2>
+  ): <E, R>(self: Stream<A, E, R>) => Stream<A, E | E2, R | R2>
+  <A, E, R, E2, R2>(
+    self: Stream<A, E, R>,
+    f: (x: A, y: A) => Effect.Effect<boolean, E2, R2>
+  ): Stream<A, E | E2, R | R2>
+} = dual(
+  2,
+  <A, E, R, E2, R2>(
+    self: Stream<A, E, R>,
+    f: (x: A, y: A) => Effect.Effect<boolean, E2, R2>
+  ): Stream<A, E | E2, R | R2> =>
+    transformPull(self, (pull, _scope) =>
+      Effect.sync(() => {
+        let first = true
+        let last: A
+        return Effect.flatMap(
+          pull,
+          Effect.fnUntraced(function* loop(arr): Generator<
+            Pull.Pull<any, E | E2, void, R2>,
+            Arr.NonEmptyReadonlyArray<A>,
+            any
+          > {
+            const out: Array<A> = []
+            let i = 0
+            if (first) {
+              first = false
+              last = arr[0]
+              i = 1
+              out.push(last)
+            }
+            for (; i < arr.length; i++) {
+              const a = arr[i]
+              if (yield* f(a, last)) continue
+              last = a
+              out.push(a)
+            }
+            return Arr.isArrayNonEmpty(out) ? out : yield* Effect.flatMap(pull, Effect.fnUntraced(loop))
+          })
+        )
+      }))
+)
 
 /**
  * Decode Uint8Array chunks into a stream of strings using the specified encoding.

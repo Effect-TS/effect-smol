@@ -321,9 +321,9 @@ The exports under each section are organized as they are in Effect 3.0. The cate
 | `broadcastedQueuesDynamic` |   X    |          `broadcast`          |          |
 |          `buffer`          |  Done  |           `buffer`            |          |
 |       `bufferChunks`       |  Done  |         `bufferArray`         |          |
-|         `changes`          |   -    |                               |          |
-|       `changesWith`        |   -    |                               |          |
-|    `changesWithEffect`     |   -    |                               |          |
+|         `changes`          |  Done  |                               |          |
+|       `changesWith`        |  Done  |                               |          |
+|    `changesWithEffect`     |  Done  |                               |          |
 |          `chunks`          |  Done  |           `chunks`            |          |
 |        `chunksWith`        |   -    |                               |          |
 |         `combine`          |   -    |                               |          |
