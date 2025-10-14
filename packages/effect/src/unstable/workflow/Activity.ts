@@ -5,7 +5,6 @@ import type { NonEmptyReadonlyArray } from "../../collections/Array.ts"
 import * as Effect from "../../Effect.ts"
 import { dual } from "../../Function.ts"
 import { PipeInspectableProto, YieldableProto } from "../../internal/core.ts"
-import { Serializer } from "../../schema/index.ts"
 import * as Schema from "../../schema/Schema.ts"
 import type { Scope } from "../../Scope.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
@@ -101,8 +100,8 @@ export const make = <
 }): Activity<Success, Error, Exclude<R, WorkflowInstance | WorkflowEngine | Scope>> => {
   const successSchema = options.success ?? (Schema.Void as any as Success)
   const errorSchema = options.error ?? (Schema.Never as any as Error)
-  const successSchemaJson = Serializer.json(successSchema)
-  const errorSchemaJson = Serializer.json(errorSchema)
+  const successSchemaJson = Schema.makeSerializerJson(successSchema)
+  const errorSchemaJson = Schema.makeSerializerJson(errorSchema)
   // eslint-disable-next-line prefer-const
   let execute!: Effect.Effect<Success["Type"], Error["Type"], any>
   const self: Activity<Success, Error, Exclude<R, WorkflowInstance | WorkflowEngine>> = {

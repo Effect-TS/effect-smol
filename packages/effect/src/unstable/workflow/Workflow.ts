@@ -12,7 +12,6 @@ import * as Layer from "../../Layer.ts"
 import type * as Schedule from "../../Schedule.ts"
 import * as Issue from "../../schema/Issue.ts"
 import * as Schema from "../../schema/Schema.ts"
-import * as Serializer from "../../schema/Serializer.ts"
 import * as ToParser from "../../schema/ToParser.ts"
 import * as Tranformation from "../../schema/Transformation.ts"
 import type * as Scope from "../../Scope.ts"
@@ -524,7 +523,7 @@ const AnyOrVoid = Schema.Union([Schema.Any, Schema.Void])
  * @category Result
  */
 export const ResultEncoded: Schema.Codec<ResultEncoded<any, any>> = Schema.encodedCodec(
-  Serializer.json(
+  Schema.makeSerializerJson(
     Result({
       success: AnyOrVoid,
       error: AnyOrVoid

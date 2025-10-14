@@ -10,7 +10,6 @@ import * as UndefinedOr from "../../data/UndefinedOr.ts"
 import * as Effect from "../../Effect.ts"
 import * as Exit from "../../Exit.ts"
 import * as Layer from "../../Layer.ts"
-import { Serializer } from "../../schema/index.ts"
 import * as Schema from "../../schema/Schema.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import type * as Rpc from "../rpc/Rpc.ts"
@@ -858,7 +857,7 @@ const EnvelopeWithReply: Schema.Struct<
     readonly lastSentReply: Schema.UndefinedOr<Schema.Codec<Reply.Encoded>>
   }
 > = Schema.Struct({
-  envelope: Serializer.json(Envelope.Partial),
+  envelope: Schema.makeSerializerJson(Envelope.Partial),
   lastSentReply: Schema.UndefinedOr(Reply.Encoded)
 })
 

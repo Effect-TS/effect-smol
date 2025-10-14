@@ -6,7 +6,6 @@ import * as Optic from "../Optic.ts"
 import * as AST from "./AST.ts"
 import type * as Getter from "./Getter.ts"
 import * as Schema from "./Schema.ts"
-import * as Serializer from "./Serializer.ts"
 import * as ToParser from "./ToParser.ts"
 import * as Transformation from "./Transformation.ts"
 
@@ -14,7 +13,7 @@ import * as Transformation from "./Transformation.ts"
  * @since 4.0.0
  */
 export function makeIso<S extends Schema.Top>(schema: S): Optic.Iso<S["Type"], S["Iso"]> {
-  const serializer = Serializer.iso(schema)
+  const serializer = Schema.makeSerializerIso(schema)
   return Optic.makeIso(ToParser.encodeSync(serializer), ToParser.decodeSync(serializer))
 }
 

@@ -6,7 +6,6 @@ import { dual } from "../../Function.ts"
 import * as Inspectable from "../../interfaces/Inspectable.ts"
 import type { ParseOptions } from "../../schema/AST.ts"
 import * as Schema from "../../schema/Schema.ts"
-import * as Serializer from "../../schema/Serializer.ts"
 import * as Stream from "../../stream/Stream.ts"
 import type { Unify } from "../../types/Unify.ts"
 import * as Cookies from "./Cookies.ts"
@@ -76,7 +75,7 @@ export const schemaJson = <
   schema: Schema.Codec<A, I, RD, RE>,
   options?: ParseOptions | undefined
 ) => {
-  const decode = Schema.decodeEffect(Serializer.json(schema).annotate({ options }))
+  const decode = Schema.decodeEffect(Schema.makeSerializerJson(schema).annotate({ options }))
   return (
     self: HttpClientResponse
   ): Effect.Effect<A, Schema.SchemaError | Error.ResponseError, RD> =>

@@ -16,7 +16,6 @@ import * as Pool from "../../Pool.ts"
 import * as Queue from "../../Queue.ts"
 import * as Schedule from "../../Schedule.ts"
 import * as Schema from "../../schema/Schema.ts"
-import * as Serializer from "../../schema/Serializer.ts"
 import * as Scope from "../../Scope.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import * as Stream from "../../stream/Stream.ts"
@@ -783,10 +782,10 @@ const rpcSchemas = (rpc: Rpc.AnyWithProps) => {
   const streamSchemas = RpcSchema.getStreamSchemas(rpc.successSchema)
   entry = {
     decodeChunk: streamSchemas ?
-      Schema.decodeUnknownEffect(Serializer.json(Schema.NonEmptyArray(streamSchemas.success))) :
+      Schema.decodeUnknownEffect(Schema.makeSerializerJson(Schema.NonEmptyArray(streamSchemas.success))) :
       undefined,
-    encodePayload: Schema.encodeEffect(Serializer.json(rpc.payloadSchema)),
-    decodeExit: Schema.decodeUnknownEffect(Serializer.json(Rpc.exitSchema(rpc as any)))
+    encodePayload: Schema.encodeEffect(Schema.makeSerializerJson(rpc.payloadSchema)),
+    decodeExit: Schema.decodeUnknownEffect(Schema.makeSerializerJson(Rpc.exitSchema(rpc as any)))
   }
   rpcSchemasCache.set(rpc, entry)
   return entry

@@ -11,7 +11,6 @@ import * as Exit from "../../Exit.ts"
 import { dual } from "../../Function.ts"
 import * as Getter from "../../schema/Getter.ts"
 import * as Schema from "../../schema/Schema.ts"
-import * as Serializer from "../../schema/Serializer.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import type * as Activity from "./Activity.ts"
 import * as Workflow from "./Workflow.ts"
@@ -78,9 +77,9 @@ export const make = <
     successSchema,
     errorSchema,
     exitSchema: Schema.Exit(
-      Serializer.json(successSchema),
-      Serializer.json(errorSchema),
-      Serializer.json(Schema.Defect)
+      Schema.makeSerializerJson(successSchema),
+      Schema.makeSerializerJson(errorSchema),
+      Schema.makeSerializerJson(Schema.Defect)
     ) as any,
     withActivityAttempt: Effect.gen(function*() {
       const attempt = yield* CurrentAttempt

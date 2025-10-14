@@ -5,7 +5,6 @@ import type { NoSuchElementError } from "../../Cause.ts"
 import * as Effect from "../../Effect.ts"
 import * as Layer from "../../Layer.ts"
 import * as Schema from "../../schema/Schema.ts"
-import * as Serializer from "../../schema/Serializer.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import * as Transferable from "../workers/Transferable.ts"
 import type { Protocol } from "./RpcServer.ts"
@@ -53,7 +52,7 @@ export const makeInitialMessage = <S extends Schema.Top, E, R2>(
   E | Schema.SchemaError,
   S["EncodingServices"] | R2
 > => {
-  const schemaJson = Serializer.json(schema)
+  const schemaJson = Schema.makeSerializerJson(schema)
   return Effect.flatMap(effect, (value) => {
     const collector = Transferable.makeCollectorUnsafe()
     return Schema.encodeEffect(schemaJson)(value).pipe(
@@ -89,5 +88,5 @@ export const initialMessage = <S extends Schema.Top>(
   ProtocolTag.asEffect().pipe(
     Effect.flatMap((protocol) => protocol.initialMessage),
     Effect.flatMap((o) => o.asEffect()),
-    Effect.flatMap(Schema.decodeUnknownEffect(Serializer.json(schema)))
+    Effect.flatMap(Schema.decodeUnknownEffect(Schema.makeSerializerJson(schema)))
   )

@@ -11,7 +11,6 @@ import * as Layer from "../../Layer.ts"
 import * as RcMap from "../../RcMap.ts"
 import * as Schedule from "../../Schedule.ts"
 import * as Schema from "../../schema/Schema.ts"
-import * as Serializer from "../../schema/Serializer.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import * as Rpc from "../rpc/Rpc.ts"
 import * as Activity from "../workflow/Activity.ts"
@@ -347,7 +346,7 @@ export const make = Effect.gen(function*() {
 
     poll: Effect.fnUntraced(function*(workflow, executionId) {
       const entity = ensureEntity(workflow)
-      const exitSchema = Serializer.json(
+      const exitSchema = Schema.makeSerializerJson(
         Rpc.exitSchema(entity.protocol.requests.get("run")!)
       )
       const reply = yield* requestReply({
@@ -527,7 +526,7 @@ const DeferredRpc = Rpc.make("deferred", {
   .annotate(ClusterSchema.Persisted, true)
   .annotate(ClusterSchema.Uninterruptible, true)
 
-const decodeDeferredWithExit = Schema.decodeSync(Serializer.json(Reply.WithExit.schema(DeferredRpc)))
+const decodeDeferredWithExit = Schema.decodeSync(Schema.makeSerializerJson(Reply.WithExit.schema(DeferredRpc)))
 
 const ResumeRpc = Rpc.make("resume")
   .annotate(ClusterSchema.Persisted, true)

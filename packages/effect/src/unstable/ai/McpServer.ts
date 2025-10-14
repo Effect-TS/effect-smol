@@ -12,7 +12,6 @@ import * as RcMap from "../../RcMap.ts"
 import * as SchemaAnnotations from "../../schema/Annotations.ts"
 import * as AST from "../../schema/AST.ts"
 import * as Schema from "../../schema/Schema.ts"
-import * as Serializer from "../../schema/Serializer.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import type { Sink } from "../../stream/Sink.ts"
 import type { Stream } from "../../stream/Stream.ts"
@@ -1025,7 +1024,7 @@ const compileUriTemplate = (segments: TemplateStringsArray, ...schemas: Readonly
   if (schemas.length > 0) {
     const arr: Array<Schema.Top> = []
     for (let i = 0; i < schemas.length; i++) {
-      const schema = Serializer.stringPojo(schemas[i])
+      const schema = Schema.makeSerializerStringPojo(schemas[i])
       const segment = segments[i + 1]
       const key = String(i)
       arr.push(schema)

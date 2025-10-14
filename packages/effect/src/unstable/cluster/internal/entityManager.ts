@@ -13,7 +13,6 @@ import { CurrentLogAnnotations } from "../../../References.ts"
 import * as Schedule from "../../../Schedule.ts"
 import * as Issue from "../../../schema/Issue.ts"
 import * as Schema from "../../../schema/Schema.ts"
-import * as Serializer from "../../../schema/Serializer.ts"
 import * as Scope from "../../../Scope.ts"
 import * as ServiceMap from "../../../ServiceMap.ts"
 import type * as Rpc from "../../rpc/Rpc.ts"
@@ -556,7 +555,7 @@ const makeMessageDecode = <Type extends string, Rpcs extends Rpc.Any>(
     message: Message.IncomingRequest<Rpcs>,
     rpc: Rpc.AnyWithProps
   ) {
-    const payload = yield* Schema.decodeEffect(Serializer.json(rpc.payloadSchema))(message.envelope.payload)
+    const payload = yield* Schema.decodeEffect(Schema.makeSerializerJson(rpc.payloadSchema))(message.envelope.payload)
     const lastSentReply = message.lastSentReply !== undefined
       ? yield* Schema.decodeEffect(Reply.Reply(rpc))(message.lastSentReply)
       : undefined

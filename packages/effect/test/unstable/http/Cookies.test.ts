@@ -1,5 +1,5 @@
 import { describe, it } from "@effect/vitest"
-import { Schema, Serializer, ToOptic } from "effect/schema"
+import { Schema, ToOptic } from "effect/schema"
 import { TestSchema } from "effect/testing"
 import { Cookies } from "effect/unstable/http"
 import { assertSuccess } from "../../utils/assert.ts"
@@ -21,7 +21,7 @@ describe("Cookies", () => {
 
     it("defaultJsonSerializer", async () => {
       const schema = Cookies.CookiesSchema
-      const asserts = new TestSchema.Asserts(Serializer.json(Schema.typeCodec(schema)))
+      const asserts = new TestSchema.Asserts(Schema.makeSerializerJson(Schema.typeCodec(schema)))
 
       const encoding = asserts.encoding()
 

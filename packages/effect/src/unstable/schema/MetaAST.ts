@@ -4,7 +4,6 @@
 
 import * as ast from "../../schema/AST.ts"
 import * as Schema from "../../schema/Schema.ts"
-import * as Serializer from "../../schema/Serializer.ts"
 import * as Transformation from "../../schema/Transformation.ts"
 
 /**
@@ -482,4 +481,4 @@ export const AST = Schema.Union([
 /**
  * @since 4.0.0
  */
-export const serializer = Serializer.json(AST)
+export const serializer = Schema.makeSerializerJson(AST)

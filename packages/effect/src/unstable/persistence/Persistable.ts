@@ -7,7 +7,6 @@ import type * as Exit from "../../Exit.ts"
 import * as PrimaryKey from "../../interfaces/PrimaryKey.ts"
 import * as Request from "../../Request.ts"
 import * as Schema from "../../schema/Schema.ts"
-import * as Serializer from "../../schema/Serializer.ts"
 import type * as Types from "../../types/Types.ts"
 import type { PersistenceError } from "./Persistence.ts"
 
@@ -178,7 +177,7 @@ export const serializeExit = <A extends Schema.Top, E extends Schema.Top>(
   self: Persistable<A, E>,
   exit: Exit.Exit<A["Type"], E["Type"]>
 ): Effect.Effect<unknown, Schema.SchemaError, A["EncodingServices"] | E["EncodingServices"]> => {
-  const schema = Serializer.json(exitSchema(self))
+  const schema = Schema.makeSerializerJson(exitSchema(self))
   return Schema.encodeEffect(schema)(exit)
 }
 
@@ -194,6 +193,6 @@ export const deserializeExit = <A extends Schema.Top, E extends Schema.Top>(
   Schema.SchemaError,
   A["DecodingServices"] | E["DecodingServices"]
 > => {
-  const schema = Serializer.json(exitSchema(self))
+  const schema = Schema.makeSerializerJson(exitSchema(self))
   return Schema.decodeEffect(schema)(encoded)
 }

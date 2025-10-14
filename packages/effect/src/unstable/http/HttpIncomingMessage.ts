@@ -7,7 +7,6 @@ import * as Inspectable from "../../interfaces/Inspectable.ts"
 import type * as FileSystem from "../../platform/FileSystem.ts"
 import type { ParseOptions } from "../../schema/AST.ts"
 import * as Schema from "../../schema/Schema.ts"
-import * as Serializer from "../../schema/Serializer.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import type * as Stream from "../../stream/Stream.ts"
 import type * as Headers from "./Headers.ts"
@@ -45,7 +44,7 @@ export interface HttpIncomingMessage<E = unknown> extends Inspectable.Inspectabl
  * @category schema
  */
 export const schemaBodyJson = <S extends Schema.Schema<any>>(schema: S, options?: ParseOptions | undefined) => {
-  const decode = Schema.decodeEffect(Serializer.json(schema).annotate({ options }))
+  const decode = Schema.decodeEffect(Schema.makeSerializerJson(schema).annotate({ options }))
   return <E>(
     self: HttpIncomingMessage<E>
   ): Effect.Effect<S["Type"], E | Schema.SchemaError, S["DecodingServices"]> => Effect.flatMap(self.json, decode)

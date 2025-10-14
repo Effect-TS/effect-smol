@@ -4,7 +4,6 @@
 import * as Data from "../../data/Data.ts"
 import * as Effect from "../../Effect.ts"
 import * as Schema from "../../schema/Schema.ts"
-import * as Serializer from "../../schema/Serializer.ts"
 import type { ServiceMap } from "../../ServiceMap.ts"
 import * as Rpc from "../rpc/Rpc.ts"
 import type { PersistenceError } from "./ClusterError.ts"
@@ -159,7 +158,7 @@ export const serializeRequest = <Rpc extends Rpc.Any>(
   self: OutgoingRequest<Rpc>
 ): Effect.Effect<Envelope.PartialRequest, MalformedMessage> => {
   const rpc = self.rpc as any as Rpc.AnyWithProps
-  return Schema.encodeEffect(Serializer.json(rpc.payloadSchema))(self.envelope.payload).pipe(
+  return Schema.encodeEffect(Schema.makeSerializerJson(rpc.payloadSchema))(self.envelope.payload).pipe(
     Effect.provideServices(self.services),
     MalformedMessage.refail,
     Effect.map((payload) => ({
@@ -188,7 +187,7 @@ export const deserializeLocal = <Rpc extends Rpc.Any>(
     )
   }
   const rpc = self.rpc as any as Rpc.AnyWithProps
-  return Schema.decodeEffect(Serializer.json(rpc.payloadSchema))(encoded.payload).pipe(
+  return Schema.decodeEffect(Schema.makeSerializerJson(rpc.payloadSchema))(encoded.payload).pipe(
     Effect.provideServices(self.services),
     MalformedMessage.refail,
     Effect.map((payload) =>

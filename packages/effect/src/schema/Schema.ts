@@ -6507,11 +6507,13 @@ export const RequestClass =
 // -----------------------------------------------------------------------------
 
 /**
+ * @category Arbitrary
  * @since 4.0.0
  */
 export type LazyArbitrary<T> = (fc: typeof FastCheck, context?: Annotations.Arbitrary.Context) => FastCheck.Arbitrary<T>
 
 /**
+ * @category Arbitrary
  * @since 4.0.0
  */
 export function makeArbitraryLazy<S extends Top>(schema: S): LazyArbitrary<S["Type"]> {
@@ -6519,6 +6521,7 @@ export function makeArbitraryLazy<S extends Top>(schema: S): LazyArbitrary<S["Ty
 }
 
 /**
+ * @category Arbitrary
  * @since 4.0.0
  */
 export function makeArbitrary<S extends Top>(schema: S): FastCheck.Arbitrary<S["Type"]> {
@@ -6535,6 +6538,7 @@ export function makeArbitrary<S extends Top>(schema: S): FastCheck.Arbitrary<S["
  * This annotation cannot be added to `Annotations.Bottom` because it would make
  * the schema invariant.
  *
+ * @category Format
  * @since 4.0.0
  */
 export function overrideFormat<S extends Top>(override: () => Format<S["Type"]>) {
@@ -6550,6 +6554,7 @@ function getFormatAnnotation(ast: AST.AST): Annotations.Format.Override<any, Rea
 const defaultFormat = () => format
 
 /**
+ * @category Format
  * @since 4.0.0
  */
 export const defaultVisitorFormat: AST.Visitor<Format<any>> = {
@@ -6679,6 +6684,7 @@ export const defaultVisitorFormat: AST.Visitor<Format<any>> = {
 }
 
 /**
+ * @category Format
  * @since 4.0.0
  */
 export function makeVisitFormat(visitor: AST.Visitor<Format<any>>) {
@@ -6689,6 +6695,7 @@ export function makeVisitFormat(visitor: AST.Visitor<Format<any>>) {
 }
 
 /**
+ * @category Format
  * @since 4.0.0
  */
 export const makeFormat = makeVisitFormat(defaultVisitorFormat)
@@ -6703,6 +6710,7 @@ export const makeFormat = makeVisitFormat(defaultVisitorFormat)
  * This annotation cannot be added to `Annotations.Bottom` because it would make
  * the schema invariant.
  *
+ * @category Equivalence
  * @since 4.0.0
  */
 export function overrideEquivalence<S extends Top>(override: () => Equivalence.Equivalence<S["Type"]>) {
@@ -6712,6 +6720,7 @@ export function overrideEquivalence<S extends Top>(override: () => Equivalence.E
 }
 
 /**
+ * @category Equivalence
  * @since 4.0.0
  */
 export function makeEquivalence<T>(schema: Schema<T>): Equivalence.Equivalence<T> {
@@ -6723,11 +6732,13 @@ export function makeEquivalence<T>(schema: Schema<T>): Equivalence.Equivalence<T
 // -----------------------------------------------------------------------------
 
 /**
+ * @category JsonSchema
  * @since 4.0.0
  */
 export type JsonSchemaAdditionalPropertiesStrategy = "allow" | "strict"
 
 /**
+ * @category JsonSchema
  * @since 4.0.0
  */
 export type JsonSchemaTopLevelReferenceStrategy = "skip" | "keep"
@@ -6743,6 +6754,7 @@ export interface JsonSchemaOptions {
 }
 
 /**
+ * @category JsonSchema
  * @since 4.0.0
  */
 export interface Draft07Options extends JsonSchemaOptions {}
@@ -6750,6 +6762,7 @@ export interface Draft07Options extends JsonSchemaOptions {}
 /**
  * Returns a JSON Schema Draft 07 object.
  *
+ * @category JsonSchema
  * @since 4.0.0
  */
 export function makeDraft07<S extends Top>(
@@ -6760,6 +6773,7 @@ export function makeDraft07<S extends Top>(
 }
 
 /**
+ * @category JsonSchema
  * @since 4.0.0
  */
 export interface Draft2020_12_Options extends JsonSchemaOptions {}
@@ -6772,6 +6786,7 @@ export interface Draft2020_12_Options extends JsonSchemaOptions {}
  * OpenAPI 3.1 schemas are fully compatible with JSON Schema Draft 2020-12 (see
  * OpenAPI Initiative blog announcement, February 18 2021)
  *
+ * @category JsonSchema
  * @since 4.0.0
  */
 export function makeDraft2020_12<S extends Top>(
@@ -6782,11 +6797,13 @@ export function makeDraft2020_12<S extends Top>(
 }
 
 /**
+ * @category JsonSchema
  * @since 4.0.0
  */
 export interface OpenApi3_1Options extends JsonSchemaOptions {}
 
 /**
+ * @category JsonSchema
  * @since 4.0.0
  */
 export function makeOpenApi3_1<S extends Top>(
@@ -6794,4 +6811,348 @@ export function makeOpenApi3_1<S extends Top>(
   options?: OpenApi3_1Options
 ): Annotations.JsonSchema.JsonSchema {
   return InternalJsonSchema.make(schema, { ...options, target: "openApi3.1" })
+}
+
+// -----------------------------------------------------------------------------
+// Serializer APIs
+// -----------------------------------------------------------------------------
+
+/**
+ * For use cases like RPC or messaging systems, the JSON format only needs to
+ * support round-trip encoding and decoding. The `Serializer.json` operator
+ * helps with this by taking a schema and returning a `Codec` that knows how to
+ * serialize and deserialize the data using a JSON-compatible format.
+ *
+ * @category Serializer
+ * @since 4.0.0
+ */
+export function makeSerializerJson<T, E, RD, RE>(
+  codec: Codec<T, E, RD, RE>
+): Codec<T, unknown, RD, RE> {
+  return make(goJson(codec.ast))
+}
+
+/**
+ * @category Serializer
+ * @since 4.0.0
+ */
+export function makeSerializerIso<S extends Top>(schema: S): Codec<S["Type"], S["Iso"]> {
+  return make(goIso(AST.typeAST(schema.ast)))
+}
+
+/**
+ * @category Serializer
+ * @since 4.0.0
+ */
+export type StringPojo = string | undefined | { [x: string]: StringPojo } | Array<StringPojo>
+
+/**
+ * @category Serializer
+ * @since 4.0.0
+ */
+export function makeSerializerStringPojo<T, E, RD, RE>(
+  codec: Codec<T, E, RD, RE>
+): Codec<T, StringPojo, RD, RE> {
+  return make(goStringPojo(codec.ast))
+}
+
+/**
+ * @category Serializer
+ * @since 4.0.0
+ */
+export function makeSerializerEnsureArray<T, RD, RE>(
+  codec: Codec<T, StringPojo, RD, RE>
+): Codec<T, StringPojo, RD, RE> {
+  return make(goEnsureArray(codec.ast))
+}
+
+type XmlEncoderOptions = {
+  /** Root element name for the returned XML string. Default: "root" */
+  readonly rootName?: string | undefined
+  /** When an array doesn't have a natural item name, use this. Default: "item" */
+  readonly arrayItemName?: string | undefined
+  /** Pretty-print output. Default: true */
+  readonly pretty?: boolean | undefined
+  /** Indentation used when pretty-printing. Default: "  " (two spaces) */
+  readonly indent?: string | undefined
+  /** Sort object keys for stable output. Default: true */
+  readonly sortKeys?: boolean | undefined
+}
+
+/**
+ * @category Serializer
+ * @since 4.0.0
+ */
+export function xmlEncoder<T, E, RD, RE>(
+  codec: Codec<T, E, RD, RE>,
+  options?: XmlEncoderOptions
+) {
+  const rootName = Annotations.getIdentifier(codec.ast) ?? Annotations.getTitle(codec.ast)
+  const serialize = encodeEffect(makeSerializerStringPojo(codec))
+  return (t: T) => serialize(t).pipe(Effect.map((pojo) => stringPojoToXml(pojo, { rootName, ...options })))
+}
+
+const goJson = memoize(AST.apply((ast: AST.AST): AST.AST => {
+  function go(ast: AST.AST): AST.AST {
+    switch (ast._tag) {
+      case "UnknownKeyword":
+      case "ObjectKeyword":
+      case "NeverKeyword":
+      case "Declaration": {
+        const getLink = ast.annotations?.defaultJsonSerializer ?? ast.annotations?.serializer
+        if (Predicate.isFunction(getLink)) {
+          const tps = AST.isDeclaration(ast)
+            ? ast.typeParameters.map((tp) => make(goJson(AST.encodedAST(tp))))
+            : []
+          const link = getLink(tps)
+          const to = goJson(link.to)
+          return AST.replaceEncoding(ast, to === link.to ? [link] : [new AST.Link(to, link.transformation)])
+        }
+        return requiredGoJsonAnnotation(ast)
+      }
+      case "VoidKeyword":
+      case "UndefinedKeyword":
+      case "SymbolKeyword":
+      case "UniqueSymbol":
+      case "BigIntKeyword":
+      case "LiteralType":
+      case "NumberKeyword":
+        return ast.goJson()
+      case "TypeLiteral":
+      case "TupleType":
+      case "UnionType":
+      case "Suspend": {
+        if (AST.isTypeLiteral(ast)) {
+          if (ast.propertySignatures.some((ps) => !Predicate.isString(ps.name))) {
+            return forbidden(ast, "TypeLiteral property names must be strings")
+          }
+          // TODO: check for index signatures
+        }
+        return ast.go(goJson)
+      }
+    }
+    return ast
+  }
+
+  const out = go(ast)
+  return AST.isOptional(ast) ? AST.optionalKey(out) : out
+}))
+
+function requiredGoJsonAnnotation(ast: AST.AST): AST.AST {
+  return forbidden(
+    ast,
+    `required \`defaultJsonSerializer\` or \`serializer\` annotation for ${ast._tag}`
+  )
+}
+
+function forbidden<A extends AST.AST>(ast: A, message: string): A {
+  return AST.replaceEncoding(ast, [
+    new AST.Link(
+      AST.neverKeyword,
+      new Transformation.Transformation(
+        Getter.passthrough(),
+        Getter.forbidden(() => message)
+      )
+    )
+  ])
+}
+
+const goIso = memoize((ast: AST.AST): AST.AST => {
+  function go(ast: AST.AST): AST.AST {
+    switch (ast._tag) {
+      case "Declaration": {
+        const getLink = ast.annotations?.defaultIsoSerializer ?? ast.annotations?.serializer
+        if (Predicate.isFunction(getLink)) {
+          const link = getLink(ast.typeParameters.map((tp) => make(goIso(tp))))
+          const to = goIso(link.to)
+          return AST.replaceEncoding(ast, to === link.to ? [link] : [new AST.Link(to, link.transformation)])
+        }
+        return ast
+      }
+      case "TupleType":
+      case "TypeLiteral":
+      case "UnionType":
+      case "Suspend":
+        return ast.go(goIso)
+    }
+    return ast
+  }
+  const out = go(ast)
+  return AST.isOptional(ast) ? AST.optionalKey(out) : out
+})
+
+const goStringPojo = memoize(AST.apply((ast: AST.AST): AST.AST => {
+  function go(ast: AST.AST): AST.AST {
+    switch (ast._tag) {
+      case "UnknownKeyword":
+      case "ObjectKeyword":
+      case "NeverKeyword":
+      case "Declaration": {
+        const getLink = ast.annotations?.defaultJsonSerializer ?? ast.annotations?.serializer
+        if (Predicate.isFunction(getLink)) {
+          const tps = AST.isDeclaration(ast)
+            ? ast.typeParameters.map((tp) => make(goStringPojo(AST.encodedAST(tp))))
+            : []
+          const link = getLink(tps)
+          const to = goStringPojo(link.to)
+          return AST.replaceEncoding(ast, to === link.to ? [link] : [new AST.Link(to, link.transformation)])
+        }
+        return requiredGoJsonAnnotation(ast)
+      }
+      case "NullKeyword":
+        return AST.replaceEncoding(ast, [nullStringPojoLink])
+      case "BooleanKeyword":
+        return AST.replaceEncoding(ast, [booleanStringPojoLink])
+      case "Enums":
+      case "NumberKeyword":
+      case "LiteralType":
+        return ast.goStringPojo()
+      case "BigIntKeyword":
+      case "SymbolKeyword":
+      case "UniqueSymbol":
+        return ast.goJson()
+      case "TypeLiteral":
+      case "TupleType":
+      case "UnionType":
+      case "Suspend": {
+        if (AST.isTypeLiteral(ast)) {
+          if (ast.propertySignatures.some((ps) => !Predicate.isString(ps.name))) {
+            return forbidden(ast, "TypeLiteral property names must be strings")
+          }
+        }
+        return ast.go(goStringPojo)
+      }
+    }
+    return ast
+  }
+  const out = go(ast)
+  return AST.isOptional(ast) ? AST.optionalKey(out) : out
+}))
+
+const nullStringPojoLink = new AST.Link(
+  AST.undefinedKeyword,
+  new Transformation.Transformation(
+    Getter.transform(() => null),
+    Getter.transform(() => undefined)
+  )
+)
+
+const booleanStringPojoLink = new AST.Link(
+  new AST.UnionType([new AST.LiteralType("true"), new AST.LiteralType("false")], "anyOf"),
+  new Transformation.Transformation(
+    Getter.transform((s) => s === "true"),
+    Getter.String()
+  )
+)
+
+const ENSURE_ARRAY_ANNOTATION_KEY = "~effect/schema/Serializer/ensureArray"
+
+const goEnsureArray = memoize(AST.apply((ast: AST.AST): AST.AST => {
+  if (AST.isUnionType(ast) && ast.annotations?.[ENSURE_ARRAY_ANNOTATION_KEY]) {
+    return ast
+  }
+  const out: AST.AST = (ast as any).go?.(goEnsureArray) ?? ast
+  if (AST.isTupleType(out)) {
+    const ensure = new AST.UnionType(
+      [
+        out,
+        AST.decodeTo(
+          AST.stringKeyword,
+          out,
+          new Transformation.Transformation(
+            Getter.split(),
+            Getter.passthrough()
+          )
+        )
+      ],
+      "anyOf",
+      { [ENSURE_ARRAY_ANNOTATION_KEY]: true }
+    )
+    return out.context?.isOptional ? AST.optionalKey(ensure) : ensure
+  }
+  return out
+}))
+
+// Convert a StringPojo to XML text.
+function stringPojoToXml(value: StringPojo, options: XmlEncoderOptions): string {
+  const opts: { [P in keyof XmlEncoderOptions]-?: Exclude<XmlEncoderOptions[P], undefined> } = {
+    rootName: options.rootName ?? "root",
+    arrayItemName: options.arrayItemName ?? "item",
+    pretty: options.pretty ?? true,
+    indent: options.indent ?? "  ",
+    sortKeys: options.sortKeys ?? true
+  }
+
+  const seen = new Set<{ [x: string]: StringPojo } | Array<StringPojo>>()
+  const lines: Array<string> = []
+  const push = (depth: number, text: string) => lines.push(opts.pretty ? opts.indent.repeat(depth) + text : text)
+
+  const tagInfo = (name: string, original?: string) => {
+    const { changed, safe } = parseTagName(name)
+    const needsMeta = changed || (original && original !== name)
+    const attrs = needsMeta ? ` data-name="${escapeAttribute(original ?? name)}"` : ""
+    return { safe, attrs }
+  }
+
+  const render = (tagName: string, node: StringPojo, depth: number, originalNameForMeta?: string): void => {
+    if (node === undefined) {
+      const { attrs, safe } = tagInfo(tagName, originalNameForMeta)
+      push(depth, `<${safe}${attrs}/>`)
+      return
+    }
+
+    if (typeof node === "string") {
+      const { attrs, safe } = tagInfo(tagName, originalNameForMeta)
+      push(depth, `<${safe}${attrs}>${escapeText(node)}</${safe}>`)
+      return
+    }
+
+    if (seen.has(node)) throw new globalThis.Error("Cycle detected while serializing to XML.")
+    seen.add(node)
+    try {
+      if (globalThis.Array.isArray(node)) {
+        const { attrs, safe: safeParent } = tagInfo(tagName, originalNameForMeta)
+        if (node.length === 0) {
+          push(depth, `<${safeParent}${attrs}/>`)
+        } else {
+          push(depth, `<${safeParent}${attrs}>`)
+          for (const item of node) render(opts.arrayItemName, item, depth + 1)
+          push(depth, `</${safeParent}>`)
+        }
+      } else {
+        const { attrs, safe } = tagInfo(tagName, originalNameForMeta)
+        const keys = Object.keys(node)
+        if (opts.sortKeys) keys.sort()
+        if (keys.length === 0) {
+          push(depth, `<${safe}${attrs}/>`)
+          return
+        }
+        push(depth, `<${safe}${attrs}>`)
+        for (const k of keys) {
+          const { safe: childSafe } = parseTagName(k)
+          render(childSafe, node[k], depth + 1, k)
+        }
+        push(depth, `</${safe}>`)
+      }
+    } finally {
+      seen.delete(node)
+    }
+  }
+
+  render(opts.rootName, value, 0)
+  return opts.pretty ? lines.join("\n") : lines.join("")
+}
+
+const escapeText = (s: string): string => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+
+const escapeAttribute = (s: string): string =>
+  s.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+
+const parseTagName = (name: string): { safe: string; changed: boolean } => {
+  const original = name
+  let safe = name
+  if (!/^[A-Za-z_]/.test(safe)) safe = "_" + safe
+  safe = safe.replace(/[^A-Za-z0-9._-]/g, "_")
+  if (/^xml/i.test(safe)) safe = "_" + safe
+  return { safe, changed: safe !== original }
 }

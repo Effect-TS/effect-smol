@@ -5,7 +5,6 @@ import * as Predicate from "../../data/Predicate.ts"
 import type { ReadonlyRecord } from "../../data/Record.ts"
 import * as PrimaryKey from "../../interfaces/PrimaryKey.ts"
 import * as Schema from "../../schema/Schema.ts"
-import * as Serializer from "../../schema/Serializer.ts"
 import * as Transformation from "../../schema/Transformation.ts"
 import * as Headers from "../http/Headers.ts"
 import type * as Rpc from "../rpc/Rpc.ts"
@@ -212,7 +211,7 @@ export type Partial = typeof Partial.Type
 export const PartialJson: Schema.Codec<
   AckChunk | Interrupt | PartialRequest,
   Encoded
-> = Serializer.json(Partial) as any
+> = Schema.makeSerializerJson(Partial) as any
 
 /**
  * @since 4.0.0

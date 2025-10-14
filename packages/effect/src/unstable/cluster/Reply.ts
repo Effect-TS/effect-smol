@@ -9,7 +9,6 @@ import * as Effect from "../../Effect.ts"
 import * as Exit from "../../Exit.ts"
 import * as Issue from "../../schema/Issue.ts"
 import * as Schema from "../../schema/Schema.ts"
-import * as Serializer from "../../schema/Serializer.ts"
 import * as ToParser from "../../schema/ToParser.ts"
 import * as Transformation from "../../schema/Transformation.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
@@ -324,7 +323,7 @@ export const Reply = <R extends Rpc.Any>(
   if (schemaCache.has(rpc)) {
     return schemaCache.get(rpc) as any
   }
-  const schema = Serializer.json(Schema.Union([WithExit.schema(rpc), Chunk.schema(rpc)]))
+  const schema = Schema.makeSerializerJson(Schema.Union([WithExit.schema(rpc), Chunk.schema(rpc)]))
   schemaCache.set(rpc, schema)
   return schema as any
 }

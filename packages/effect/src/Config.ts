@@ -16,7 +16,6 @@ import * as AST from "./schema/AST.ts"
 import * as Getter from "./schema/Getter.ts"
 import * as Issue from "./schema/Issue.ts"
 import * as Schema from "./schema/Schema.ts"
-import * as Serializer from "./schema/Serializer.ts"
 import * as ToParser from "./schema/ToParser.ts"
 import * as Transformation from "./schema/Transformation.ts"
 
@@ -284,7 +283,7 @@ export const unwrap = <T>(wrapped: Wrap<T>): Config<T> => {
 const dump: (
   provider: ConfigProvider.ConfigProvider,
   path: Path
-) => Effect.Effect<Serializer.StringPojo, SourceError> = Effect.fnUntraced(function*(
+) => Effect.Effect<Schema.StringPojo, SourceError> = Effect.fnUntraced(function*(
   provider,
   path
 ) {
@@ -296,7 +295,7 @@ const dump: (
     case "object": {
       // If the object has no children but has a co-located value, surface that value.
       if (stat.keys.size === 0 && stat.value !== undefined) return stat.value
-      const out: Record<string, Serializer.StringPojo> = {}
+      const out: Record<string, Schema.StringPojo> = {}
       for (const key of stat.keys) {
         const child = yield* dump(provider, [...path, key])
         if (child !== undefined) out[key] = child
@@ -306,7 +305,7 @@ const dump: (
     case "array": {
       // If the array has no children but has a co-located value, surface that value.
       if (stat.length === 0 && stat.value !== undefined) return stat.value
-      const out: Array<Serializer.StringPojo> = []
+      const out: Array<Schema.StringPojo> = []
       for (let i = 0; i < stat.length; i++) {
         const child = yield* dump(provider, [...path, i])
         if (child !== undefined) out.push(child)
@@ -320,11 +319,11 @@ const go: (
   ast: AST.AST,
   provider: ConfigProvider.ConfigProvider,
   path: Path
-) => Effect.Effect<Serializer.StringPojo, Schema.SchemaError | SourceError> = Effect.fnUntraced(
+) => Effect.Effect<Schema.StringPojo, Schema.SchemaError | SourceError> = Effect.fnUntraced(
   function*(ast, provider, path) {
     switch (ast._tag) {
       case "TypeLiteral": {
-        const out: Record<string, Serializer.StringPojo> = {}
+        const out: Record<string, Schema.StringPojo> = {}
         for (const ps of ast.propertySignatures) {
           const name = ps.name
           if (Predicate.isString(name)) {
@@ -356,7 +355,7 @@ const go: (
         }
         const stat = yield* provider.load(path)
         if (stat && stat._tag === "leaf") return stat.value
-        const out: Array<Serializer.StringPojo> = []
+        const out: Array<Schema.StringPojo> = []
         for (let i = 0; i < ast.elements.length; i++) {
           const value = yield* go(ast.elements[i], provider, [...path, i])
           if (value !== undefined) out.push(value)
@@ -387,7 +386,7 @@ const go: (
  * @since 4.0.0
  */
 export function schema<T, E>(codec: Schema.Codec<T, E>, path?: string | ConfigProvider.Path): Config<T> {
-  const serializer = Serializer.ensureArray(Serializer.stringPojo(codec))
+  const serializer = Schema.makeSerializerEnsureArray(Schema.makeSerializerStringPojo(codec))
   const decodeUnknownEffect = ToParser.decodeUnknownEffect(serializer)
   const serializerEncodedAST = AST.encodedAST(serializer.ast)
   const defaultPath = Predicate.isString(path) ? [path] : path ?? []
