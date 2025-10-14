@@ -29,7 +29,7 @@ Ultimately, the intent is to eliminate the need for two separate paths like in v
 
 ### 3. Encoding / Decoding
 
-- **Default JSON codec generator**: `Serializer.json(schema)` does round‑trip‑safe network serialization (Maps → pairs, Options → arrays, Dates → ISO strings, etc.).
+- **Default JSON codec generator**: `Schema.makeSerializerJson(schema)` does round‑trip‑safe network serialization (Maps → pairs, Options → arrays, Dates → ISO strings, etc.).
 - **Explicit helpers**: `Schema.UnknownFromJsonString`, `Schema.fromJsonString`.
 
 ### 4. Schema Algebra Goodies
@@ -314,18 +314,18 @@ This page starts with the network case, where you mainly need round-trip convers
 ### Transmitting Data Over the Network
 
 For RPC and messaging, it is enough that the JSON representation round-trips.
-`Serializer.json` takes a schema and returns a **new schema** that knows how to serialize to JSON and how to parse that JSON back.
+`Schema.makeSerializerJson` takes a schema and returns a **new schema** that knows how to serialize to JSON and how to parse that JSON back.
 
 **Example** (Round-tripping a `ReadonlySet<Date>`)
 
 ```ts
-import { Schema, Serializer } from "effect/schema"
+import { Schema } from "effect/schema"
 
 // Build a schema for ReadonlySet<Date>
 const schema = Schema.ReadonlySet(Schema.Date)
 
 // Ask for a JSON-capable schema
-const serializer = Serializer.json(schema)
+const serializer = Schema.makeSerializerJson(schema)
 
 // A sample value to send
 const data = new Set([new Date("2021-01-01"), new Date("2021-01-02")])
@@ -353,7 +353,7 @@ This schema chooses JSON formats based on its parts:
 
 `Schema` can encode and decode many values by default, including recursive structures.
 Some data types (for example `Schema.ReadonlyMap`, `Schema.Option`, `Schema.ReadonlySet`) are built using `SchemaAST.Declaration`.
-These types attach a **default JSON serializer** via an annotation so `Serializer.json` can discover how to encode them.
+These types attach a **default JSON serializer** via an annotation so `Schema.makeSerializerJson` can discover how to encode them.
 
 Here is how the built-in `Schema.Date` sets its annotation:
 
@@ -375,16 +375,16 @@ const Date = Schema.instanceOf(globalThis.Date, {
 })
 ```
 
-The same idea applies to `Schema.ReadonlySet`. When you call `Serializer.json` on `Schema.ReadonlySet(Schema.Date)`, the library walks the schema tree and combines the `defaultJsonSerializer` annotations it finds.
+The same idea applies to `Schema.ReadonlySet`. When you call `Schema.makeSerializerJson` on `Schema.ReadonlySet(Schema.Date)`, the library walks the schema tree and combines the `defaultJsonSerializer` annotations it finds.
 
 ### Custom JSON Formats
 
-`Serializer.json` respects **explicit encodings** you add to a schema. If you choose a custom representation, that choice takes priority.
+`Schema.makeSerializerJson` respects **explicit encodings** you add to a schema. If you choose a custom representation, that choice takes priority.
 
-**Example** (ReadonlySet<Date> encoded as epoch milliseconds)
+**Example** (`ReadonlySet<Date>` encoded as epoch milliseconds)
 
 ```ts
-import { Schema, Serializer, Transformation } from "effect/schema"
+import { Schema, Transformation } from "effect/schema"
 
 const DateFromEpochMillis = Schema.Date.pipe(
   Schema.encodeTo(
@@ -400,7 +400,7 @@ const DateFromEpochMillis = Schema.Date.pipe(
 const schema = Schema.ReadonlySet(DateFromEpochMillis)
 
 // Request a JSON-capable schema
-const serializer = Serializer.json(schema)
+const serializer = Schema.makeSerializerJson(schema)
 
 const data = new Set([new Date("2021-01-01"), new Date("2021-01-02")])
 
@@ -414,7 +414,7 @@ Here the set is still an array, but each `Date` uses the custom number format, a
 
 ## 🆕 String‑Pojo Serializer
 
-`Serializer.stringPojo` lets you funnel many string‑based inputs—URL queries, form posts, CLI args—into any **Schema** without adding custom transformations.
+`Schema.makeSerializerStringPojo` lets you funnel many string‑based inputs—URL queries, form posts, CLI args—into any **Schema** without adding custom transformations.
 
 The process has two steps:
 
@@ -429,18 +429,18 @@ The process has two steps:
    A normal schema decodes that tree into your typed model.
 
 Write the schema using the types you actually need: `Schema.Number`, `Schema.Boolean`, `Schema.Date`, and so on.
-`Serializer.stringPojo` will convert the string leaves to these types while decoding, so you do **not** have to insert helpers like `numberFromString` or `booleanFromString`.
+`Schema.makeSerializerStringPojo` will convert the string leaves to these types while decoding, so you do **not** have to insert helpers like `numberFromString` or `booleanFromString`.
 
 Below are two quick examples.
 
 **Example** (Decode `URLSearchParams`)
 
 ```ts
-import { Schema, Serializer } from "effect/schema"
+import { Schema } from "effect/schema"
 
 // 1. URL params ➜ StringPojo
-function toStringPojo(p: URLSearchParams): Serializer.StringPojo {
-  const out: Serializer.StringPojo = {}
+function toStringPojo(p: URLSearchParams): Schema.StringPojo {
+  const out: Schema.StringPojo = {}
   for (const [key, value] of p.entries()) {
     if (out[key] === undefined) {
       out[key] = value
@@ -459,7 +459,7 @@ const Query = Schema.Struct({
   q: Schema.optionalKey(Schema.Array(Schema.String))
 })
 
-const serializer = Serializer.ensureArray(Serializer.stringPojo(Query))
+const serializer = Schema.makeSerializerEnsureArray(Schema.makeSerializerStringPojo(Query))
 
 console.log(Schema.decodeSync(serializer)(toStringPojo(new URLSearchParams("?page=1&q=foo"))))
 // => { page: 1, q: [ 'foo' ] }
@@ -478,10 +478,10 @@ console.log(Schema.decodeSync(serializer)(toStringPojo(new URLSearchParams("?pag
 
 ```ts
 import * as Predicate from "effect/data/Predicate"
-import { Schema, Serializer } from "effect/schema"
+import { Schema } from "effect/schema"
 
 // 1. FormData ➜ StringPojo
-const toStringPojo = (fd: FormData): Serializer.StringPojo =>
+const toStringPojo = (fd: FormData): Schema.StringPojo =>
   // exclude File values
   Object.fromEntries([...fd.entries()].filter((entry): entry is [string, string] => Predicate.isString(entry[1])))
 
@@ -492,7 +492,7 @@ const User = Schema.Struct({
   age: Schema.Finite
 })
 
-const serializer = Serializer.stringPojo(User)
+const serializer = Schema.makeSerializerStringPojo(User)
 
 const fd = new FormData()
 fd.set("user", "alice")
@@ -506,12 +506,10 @@ console.log(Schema.decodeSync(serializer)(toStringPojo(fd)))
 
 ### How it works
 
-The `stringPojo` serializer first delegates to `Serializer.json` to obtain a plain JSON‑safe value, then converts every leaf (number, boolean, null) to a string so the whole tree matches `StringPojo`.
-
 **Example** (Difference between the two serializers)
 
 ```ts
-import { Schema, Serializer } from "effect/schema"
+import { Schema } from "effect/schema"
 
 const schema = Schema.Struct({
   name: Schema.String,
@@ -520,9 +518,9 @@ const schema = Schema.Struct({
   createdAt: Schema.Date
 })
 
-const json = Serializer.json(schema)
+const json = Schema.makeSerializerJson(schema)
 
-const stringPojo = Serializer.stringPojo(schema)
+const stringPojo = Schema.makeSerializerStringPojo(schema)
 
 const value = {
   name: "John",
@@ -555,14 +553,14 @@ everything is a string
 
 ## 🆕 XML Encoder
 
-`Serializer.xmlEncoder` lets you serialize values to XML.
+`Schema.xmlEncoder` lets you serialize values to XML.
 
 **Example**
 
 ```ts
 import { Effect } from "effect"
 import { Option } from "effect/data"
-import { Schema, Serializer } from "effect/schema"
+import { Schema } from "effect/schema"
 
 const schema = Schema.Struct({
   a: Schema.String,
@@ -575,7 +573,7 @@ const schema = Schema.Struct({
 })
 
 // const encoder: (t: {...}) => Effect<string, Schema.SchemaError, never>
-const xmlEncoder = Serializer.xmlEncoder(schema)
+const xmlEncoder = Schema.xmlEncoder(schema)
 
 console.log(
   Effect.runSync(
@@ -2447,7 +2445,7 @@ You can add static members to an opaque struct class to extend its behavior.
 **Example** (Custom serializer via static method)
 
 ```ts
-import { Schema, Serializer } from "effect/schema"
+import { Schema } from "effect/schema"
 
 class Person extends Schema.Opaque<Person>()(
   Schema.Struct({
@@ -2456,7 +2454,7 @@ class Person extends Schema.Opaque<Person>()(
   })
 ) {
   // Create a custom serializer using the class itself
-  static readonly serializer = Serializer.json(this)
+  static readonly serializer = Schema.makeSerializerJson(this)
 }
 
 console.log(
@@ -5383,7 +5381,7 @@ You can use the `Schema.StandardSchemaV1FailureResult` schema to send a `Standar
 **Example** (Sending a FailureResult over the wire)
 
 ```ts
-import { Issue, Schema, Serializer, ToParser } from "effect/schema"
+import { Issue, Schema, ToParser } from "effect/schema"
 
 const b = Symbol.for("b")
 
@@ -5399,7 +5397,7 @@ if (r._tag === "Failure") {
   const failures = r.cause.failures
   if (failures[0]?._tag === "Fail") {
     const failureResult = Issue.makeStandardSchemaV1().format(failures[0].error)
-    const serializer = Serializer.json(Schema.StandardSchemaV1FailureResult)
+    const serializer = Schema.makeSerializerJson(Schema.StandardSchemaV1FailureResult)
     console.dir(Schema.encodeSync(serializer)(failureResult), { depth: null })
   }
 }
