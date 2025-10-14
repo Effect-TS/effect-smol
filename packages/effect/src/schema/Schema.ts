@@ -6552,15 +6552,15 @@ const defaultFormat = () => format
 /**
  * @since 4.0.0
  */
-export const defaultFormatReducerAlg: AST.ReducerAlg<Format<any>> = {
-  onEnter: (ast, reduce) => {
+export const defaultVisitorFormat: AST.Visitor<Format<any>> = {
+  onEnter: (ast, visit) => {
     // ---------------------------------------------
     // handle annotations
     // ---------------------------------------------
     const annotation = getFormatAnnotation(ast)
     if (annotation) {
       if (AST.isDeclaration(ast)) {
-        return Option_.some(annotation.override(ast.typeParameters.map(reduce)))
+        return Option_.some(annotation.override(ast.typeParameters.map(visit)))
       }
       return Option_.some(annotation.override([]))
     }
@@ -6585,9 +6585,9 @@ export const defaultFormatReducerAlg: AST.ReducerAlg<Format<any>> = {
   Enums: defaultFormat,
   LiteralType: defaultFormat,
   TemplateLiteral: defaultFormat,
-  TupleType: (ast, reduce) => (t) => {
-    const elements = ast.elements.map(reduce)
-    const rest = ast.rest.map(reduce)
+  TupleType: (ast, visit) => (t) => {
+    const elements = ast.elements.map(visit)
+    const rest = ast.rest.map(visit)
     const out: Array<string> = []
     let i = 0
     // ---------------------------------------------
@@ -6621,9 +6621,9 @@ export const defaultFormatReducerAlg: AST.ReducerAlg<Format<any>> = {
 
     return "[" + out.join(", ") + "]"
   },
-  TypeLiteral: (ast, reduce) => {
-    const propertySignatures = ast.propertySignatures.map((ps) => reduce(ps.type))
-    const indexSignatures = ast.indexSignatures.map((is) => reduce(is.type))
+  TypeLiteral: (ast, visit) => {
+    const propertySignatures = ast.propertySignatures.map((ps) => visit(ps.type))
+    const indexSignatures = ast.indexSignatures.map((is) => visit(is.type))
     if (ast.propertySignatures.length === 0 && ast.indexSignatures.length === 0) {
       return format
     }
@@ -6661,19 +6661,19 @@ export const defaultFormatReducerAlg: AST.ReducerAlg<Format<any>> = {
       return out.length > 0 ? "{ " + out.join(", ") + " }" : "{}"
     }
   },
-  UnionType: (_, reduce, getCandidates) => (t) => {
+  UnionType: (_, visit, getCandidates) => (t) => {
     const candidates = getCandidates(t)
     const refinements = candidates.map(ToParser.refinement)
     for (let i = 0; i < candidates.length; i++) {
       const is = refinements[i]
       if (is(t)) {
-        return reduce(candidates[i])(t)
+        return visit(candidates[i])(t)
       }
     }
     return format(t)
   },
-  Suspend: (ast, reduce) => {
-    const get = AST.memoizeThunk(() => reduce(ast.thunk()))
+  Suspend: (ast, visit) => {
+    const get = AST.memoizeThunk(() => visit(ast.thunk()))
     return (t) => get()(t)
   }
 }
@@ -6681,17 +6681,17 @@ export const defaultFormatReducerAlg: AST.ReducerAlg<Format<any>> = {
 /**
  * @since 4.0.0
  */
-export function getFormatReducer(alg: AST.ReducerAlg<Format<any>>) {
-  const reducer = memoize(AST.getReducer<Format<any>>(alg))
+export function makeVisitFormat(visitor: AST.Visitor<Format<any>>) {
+  const visit = memoize(AST.makeVisit<Format<any>>(visitor))
   return <T>(schema: Schema<T>): Format<T> => {
-    return reducer(schema.ast)
+    return visit(schema.ast)
   }
 }
 
 /**
  * @since 4.0.0
  */
-export const makeFormat = getFormatReducer(defaultFormatReducerAlg)
+export const makeFormat = makeVisitFormat(defaultVisitorFormat)
 
 // -----------------------------------------------------------------------------
 // Equivalence APIs

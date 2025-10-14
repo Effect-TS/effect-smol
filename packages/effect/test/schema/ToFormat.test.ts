@@ -494,13 +494,13 @@ describe("ToFormat", () => {
   })
 
   it("should allow for custom compilers", () => {
-    const alg = {
-      ...Schema.defaultFormatReducerAlg,
+    const visitor = {
+      ...Schema.defaultVisitorFormat,
       "BooleanKeyword": () => (b: boolean) => b ? "True" : "False"
     }
-    const make = Schema.getFormatReducer(alg)
-    strictEqual(make(Schema.Boolean)(true), `True`)
+    const format = Schema.makeVisitFormat(visitor)
+    strictEqual(format(Schema.Boolean)(true), `True`)
     const schema = Schema.Tuple([Schema.String, Schema.Boolean])
-    strictEqual(make(schema)(["a", true]), `["a", True]`)
+    strictEqual(format(schema)(["a", true]), `["a", True]`)
   })
 })

@@ -2519,45 +2519,45 @@ export function getFilters(checks: Checks | undefined): Array<Filter<any>> {
 }
 
 /**
- * @category Reducer
+ * @category Visitor
  * @since 4.0.0
  */
-export type ReducerAlg<A> = {
-  readonly onEnter?: ((ast: AST, reduce: (ast: AST) => A) => Option.Option<A>) | undefined
-  readonly Declaration: (ast: Declaration, reduce: (ast: AST) => A) => A
-  readonly NullKeyword: (ast: NullKeyword, reduce: (ast: AST) => A) => A
-  readonly UndefinedKeyword: (ast: UndefinedKeyword, reduce: (ast: AST) => A) => A
-  readonly VoidKeyword: (ast: VoidKeyword, reduce: (ast: AST) => A) => A
-  readonly NeverKeyword: (ast: NeverKeyword, reduce: (ast: AST) => A) => A
-  readonly UnknownKeyword: (ast: UnknownKeyword, reduce: (ast: AST) => A) => A
-  readonly AnyKeyword: (ast: AnyKeyword, reduce: (ast: AST) => A) => A
-  readonly StringKeyword: (ast: StringKeyword, reduce: (ast: AST) => A) => A
-  readonly NumberKeyword: (ast: NumberKeyword, reduce: (ast: AST) => A) => A
-  readonly BooleanKeyword: (ast: BooleanKeyword, reduce: (ast: AST) => A) => A
-  readonly SymbolKeyword: (ast: SymbolKeyword, reduce: (ast: AST) => A) => A
-  readonly BigIntKeyword: (ast: BigIntKeyword, reduce: (ast: AST) => A) => A
-  readonly UniqueSymbol: (ast: UniqueSymbol, reduce: (ast: AST) => A) => A
-  readonly ObjectKeyword: (ast: ObjectKeyword, reduce: (ast: AST) => A) => A
-  readonly Enums: (ast: Enums, reduce: (ast: AST) => A) => A
-  readonly LiteralType: (ast: LiteralType, reduce: (ast: AST) => A) => A
-  readonly TemplateLiteral: (ast: TemplateLiteral, reduce: (ast: AST) => A) => A
-  readonly TupleType: (ast: TupleType, reduce: (ast: AST) => A) => A
-  readonly TypeLiteral: (ast: TypeLiteral, reduce: (ast: AST) => A) => A
-  readonly UnionType: (ast: UnionType, reduce: (ast: AST) => A, getCandidates: (ast: AST) => ReadonlyArray<AST>) => A
-  readonly Suspend: (ast: Suspend, reduce: (ast: AST) => A) => A
+export type Visitor<A> = {
+  readonly onEnter?: ((ast: AST, visit: (ast: AST) => A) => Option.Option<A>) | undefined
+  readonly Declaration: (ast: Declaration, visit: (ast: AST) => A) => A
+  readonly NullKeyword: (ast: NullKeyword, visit: (ast: AST) => A) => A
+  readonly UndefinedKeyword: (ast: UndefinedKeyword, visit: (ast: AST) => A) => A
+  readonly VoidKeyword: (ast: VoidKeyword, visit: (ast: AST) => A) => A
+  readonly NeverKeyword: (ast: NeverKeyword, visit: (ast: AST) => A) => A
+  readonly UnknownKeyword: (ast: UnknownKeyword, visit: (ast: AST) => A) => A
+  readonly AnyKeyword: (ast: AnyKeyword, visit: (ast: AST) => A) => A
+  readonly StringKeyword: (ast: StringKeyword, visit: (ast: AST) => A) => A
+  readonly NumberKeyword: (ast: NumberKeyword, visit: (ast: AST) => A) => A
+  readonly BooleanKeyword: (ast: BooleanKeyword, visit: (ast: AST) => A) => A
+  readonly SymbolKeyword: (ast: SymbolKeyword, visit: (ast: AST) => A) => A
+  readonly BigIntKeyword: (ast: BigIntKeyword, visit: (ast: AST) => A) => A
+  readonly UniqueSymbol: (ast: UniqueSymbol, visit: (ast: AST) => A) => A
+  readonly ObjectKeyword: (ast: ObjectKeyword, visit: (ast: AST) => A) => A
+  readonly Enums: (ast: Enums, visit: (ast: AST) => A) => A
+  readonly LiteralType: (ast: LiteralType, visit: (ast: AST) => A) => A
+  readonly TemplateLiteral: (ast: TemplateLiteral, visit: (ast: AST) => A) => A
+  readonly TupleType: (ast: TupleType, visit: (ast: AST) => A) => A
+  readonly TypeLiteral: (ast: TypeLiteral, visit: (ast: AST) => A) => A
+  readonly UnionType: (ast: UnionType, visit: (ast: AST) => A, getCandidates: (ast: AST) => ReadonlyArray<AST>) => A
+  readonly Suspend: (ast: Suspend, visit: (ast: AST) => A) => A
 }
 
 /**
- * @category Reducer
+ * @category Visitor
  * @since 4.0.0
  */
-export function getReducer<A>(alg: ReducerAlg<A>) {
-  return function reduce(ast: AST): A {
+export function makeVisit<A>(visitor: Visitor<A>) {
+  return function visit(ast: AST): A {
     // ---------------------------------------------
     // handle hooks
     // ---------------------------------------------
-    if (alg.onEnter) {
-      const oa = alg.onEnter(ast, reduce)
+    if (visitor.onEnter) {
+      const oa = visitor.onEnter(ast, visit)
       if (Option.isSome(oa)) {
         return oa.value
       }
@@ -2567,9 +2567,9 @@ export function getReducer<A>(alg: ReducerAlg<A>) {
     // ---------------------------------------------
     switch (ast._tag) {
       case "UnionType":
-        return alg.UnionType(ast, reduce, (t) => getCandidates(t, ast.types))
+        return visitor.UnionType(ast, visit, (t) => getCandidates(t, ast.types))
       default:
-        return alg[ast._tag](ast as any, reduce)
+        return visitor[ast._tag](ast as any, visit)
     }
   }
 }
