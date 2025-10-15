@@ -30,7 +30,7 @@ const TestLayer = Layer.mergeAll(
 
 describe("Command", () => {
   describe("run", () => {
-    it("should execute handler with parsed config", () =>
+    it.effect("should execute handler with parsed config", () =>
       Effect.gen(function*() {
         const path = yield* Path.Path
         const resolvedSrc = path.resolve("src.txt")
@@ -52,7 +52,7 @@ describe("Command", () => {
         })
       }).pipe(Effect.provide(TestLayer)))
 
-    it("should handle nested config in handler", () =>
+    it.effect("should handle nested config in handler", () =>
       Effect.gen(function*() {
         const username = "john_doe"
         const email = "john@example.com"
@@ -68,7 +68,7 @@ describe("Command", () => {
         })
       }).pipe(Effect.provide(TestLayer)))
 
-    it("should work with effectful handlers", () =>
+    it.effect("should work with effectful handlers", () =>
       Effect.gen(function*() {
         const files = ["file1.txt", "file2.txt", "dir/"]
 
@@ -87,7 +87,7 @@ describe("Command", () => {
         })
       }).pipe(Effect.provide(TestLayer)))
 
-    it("should work with option aliases in handler", () =>
+    it.effect("should work with option aliases in handler", () =>
       Effect.gen(function*() {
         const config = "build.json"
         const output = "dist/"
@@ -102,7 +102,7 @@ describe("Command", () => {
         })
       }).pipe(Effect.provide(TestLayer)))
 
-    it("should handle parsing errors from run", () =>
+    it.effect("should handle parsing errors from run", () =>
       Effect.gen(function*() {
         const runCommand = Command.runWith(Cli.ComprehensiveCli, {
           version: "1.0.0"
@@ -122,7 +122,7 @@ describe("Command", () => {
         assert.isTrue(stderr.some((line) => String(line).includes("invalid-command")))
       }).pipe(Effect.provide(TestLayer)))
 
-    it("should propagate handler errors from run", () =>
+    it.effect("should propagate handler errors from run", () =>
       Effect.gen(function*() {
         const result = yield* Effect.flip(Cli.run(["test-failing", "--input", "test"]))
         assert.strictEqual(result, "Handler error")
@@ -130,7 +130,7 @@ describe("Command", () => {
   })
 
   describe("withSubcommands", () => {
-    it("should execute parent handler when no subcommand provided", () =>
+    it.effect("should execute parent handler when no subcommand provided", () =>
       Effect.gen(function*() {
         const command = "git"
 
@@ -141,7 +141,7 @@ describe("Command", () => {
         assert.deepStrictEqual(actions[0], { command, details: { verbose: true } })
       }).pipe(Effect.provide(TestLayer)))
 
-    it("should execute subcommand when provided", () =>
+    it.effect("should execute subcommand when provided", () =>
       Effect.gen(function*() {
         const command = ["git", "clone"]
         const repository = "myrepo"
@@ -157,7 +157,7 @@ describe("Command", () => {
         })
       }).pipe(Effect.provide(TestLayer)))
 
-    it("should handle multiple subcommands correctly", () =>
+    it.effect("should handle multiple subcommands correctly", () =>
       Effect.gen(function*() {
         yield* Cli.run(["git", "clone", "repo1"])
         yield* Cli.run(["git", "add", "file1", "--update"])
@@ -179,7 +179,7 @@ describe("Command", () => {
         })
       }).pipe(Effect.provide(TestLayer)))
 
-    it("should handle nested config structures in subcommands", () =>
+    it.effect("should handle nested config structures in subcommands", () =>
       Effect.gen(function*() {
         const service = "api-service"
         const environment = "production"
@@ -213,7 +213,7 @@ describe("Command", () => {
         })
       }).pipe(Effect.provide(TestLayer)))
 
-    it("should execute parent handler with options when no subcommand provided", () =>
+    it.effect("should execute parent handler with options when no subcommand provided", () =>
       Effect.gen(function*() {
         // Use git command with only --verbose flag (git doesn't have an "unknown" option)
         // This will execute the parent git handler instead of trying to match subcommands
@@ -227,13 +227,13 @@ describe("Command", () => {
         })
       }).pipe(Effect.provide(TestLayer)))
 
-    it("should propagate subcommand errors", () =>
+    it.effect("should propagate subcommand errors", () =>
       Effect.gen(function*() {
         const result = yield* Effect.flip(Cli.run(["test-failing", "--input", "test"]))
         assert.strictEqual(result, "Handler error")
       }).pipe(Effect.provide(TestLayer)))
 
-    it("should provide parent context to subcommands", () =>
+    it.effect("should provide parent context to subcommands", () =>
       Effect.gen(function*() {
         const messages: Array<string> = []
 
@@ -283,7 +283,7 @@ describe("Command", () => {
         ])
       }).pipe(Effect.provide(TestLayer)))
 
-    it("should accept parent flags before or after a subcommand (npm-style)", () =>
+    it.effect("should accept parent flags before or after a subcommand (npm-style)", () =>
       Effect.gen(function*() {
         const messages: Array<string> = []
 
@@ -315,7 +315,7 @@ describe("Command", () => {
         ])
       }).pipe(Effect.provide(TestLayer)))
 
-    it("should allow direct accessing parent config in subcommands", () =>
+    it.effect("should allow direct accessing parent config in subcommands", () =>
       Effect.gen(function*() {
         const messages: Array<string> = []
 
@@ -345,7 +345,7 @@ describe("Command", () => {
         ])
       }).pipe(Effect.provide(TestLayer)))
 
-    it("should handle nested subcommands with context sharing", () =>
+    it.effect("should handle nested subcommands with context sharing", () =>
       Effect.gen(function*() {
         const messages: Array<string> = []
 
@@ -407,7 +407,7 @@ describe("Command", () => {
         ])
       }).pipe(Effect.provide(TestLayer)))
 
-    it("should handle boolean flags before subcommands", () =>
+    it.effect("should handle boolean flags before subcommands", () =>
       Effect.gen(function*() {
         const messages: Array<string> = []
 
@@ -451,7 +451,7 @@ describe("Command", () => {
         ])
       }).pipe(Effect.provide(TestLayer)))
 
-    it("should support options before, after, or between operands (relaxed POSIX Syntax Guideline No. 9)", () =>
+    it.effect("should support options before, after, or between operands (relaxed POSIX Syntax Guideline No. 9)", () =>
       Effect.gen(function*() {
         // Test both orderings work: POSIX (options before operands) and modern (mixed)
 
@@ -497,7 +497,7 @@ describe("Command", () => {
         }
       }).pipe(Effect.provide(TestLayer)))
 
-    it("should suggest similar subcommands for unknown subcommands", () =>
+    it.effect("should suggest similar subcommands for unknown subcommands", () =>
       Effect.gen(function*() {
         yield* Cli.run(["cpy"])
 
@@ -513,7 +513,7 @@ describe("Command", () => {
         `)
       }).pipe(Effect.provide(TestLayer)))
 
-    it("should suggest similar subcommands for nested unknown subcommands", () =>
+    it.effect("should suggest similar subcommands for nested unknown subcommands", () =>
       Effect.gen(function*() {
         yield* Cli.run(["admin", "usrs", "list"])
 
@@ -530,7 +530,7 @@ describe("Command", () => {
         `)
       }).pipe(Effect.provide(TestLayer)))
 
-    it("should suggest similar options for unrecognized options", () =>
+    it.effect("should suggest similar options for unrecognized options", () =>
       Effect.gen(function*() {
         yield* Cli.run(["--debugs", "copy", "src.txt", "dest.txt"])
 
@@ -546,7 +546,7 @@ describe("Command", () => {
         `)
       }).pipe(Effect.provide(TestLayer)))
 
-    it("should suggest similar short options for unrecognized short options", () =>
+    it.effect("should suggest similar short options for unrecognized short options", () =>
       Effect.gen(function*() {
         yield* Cli.run(["-u", "copy", "src.txt", "dest.txt"])
 

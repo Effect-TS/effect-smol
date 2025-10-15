@@ -4,18 +4,21 @@ import { FileSystem, Path } from "effect/platform"
 import { CliError, Command, Flag } from "effect/unstable/cli"
 import * as Lexer from "effect/unstable/cli/internal/lexer"
 import * as Parser from "effect/unstable/cli/internal/parser"
+import * as MockTerminal from "./services/MockTerminal.ts"
 
 const FileSystemLayer = FileSystem.layerNoop({})
 const PathLayer = Path.layer
+const TerminalLayer = MockTerminal.layer
 
 const TestLayer = Layer.mergeAll(
   FileSystemLayer,
-  PathLayer
+  PathLayer,
+  TerminalLayer
 )
 
 describe("Command errors", () => {
   describe("parse", () => {
-    it("fails with MissingOption when a required flag is absent", () =>
+    it.effect("fails with MissingOption when a required flag is absent", () =>
       Effect.gen(function*() {
         const command = Command.make("needs-value", {
           value: Flag.string("value")

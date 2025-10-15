@@ -2,7 +2,7 @@ import { describe, expect, it } from "@effect/vitest"
 import { Effect, Layer } from "effect"
 import { FileSystem, Path } from "effect/platform"
 import { TestConsole } from "effect/testing"
-import { Command, HelpFormatter } from "effect/unstable/cli"
+import { HelpFormatter } from "effect/unstable/cli"
 import * as Cli from "./fixtures/ComprehensiveCli.ts"
 import * as MockTerminal from "./services/MockTerminal.ts"
 import * as TestActions from "./services/TestActions.ts"
@@ -36,7 +36,7 @@ const runCommand = Effect.fnUntraced(
 )
 
 describe("Command help output", () => {
-  it("root command help", () =>
+  it.effect("root command help", () =>
     Effect.gen(function*() {
       const helpText = yield* runCommand(["--help"])
 
@@ -66,7 +66,7 @@ describe("Command help output", () => {
       `)
     }).pipe(Effect.provide(TestLayer)))
 
-  it("file operation command with positional args", () =>
+  it.effect("file operation command with positional args", () =>
     Effect.gen(function*() {
       const helpText = yield* runCommand(["copy", "--help"])
 
@@ -88,7 +88,7 @@ describe("Command help output", () => {
       `)
     }).pipe(Effect.provide(TestLayer)))
 
-  it("variadic arguments command", () =>
+  it.effect("variadic arguments command", () =>
     Effect.gen(function*() {
       const helpText = yield* runCommand(["remove", "--help"])
 
@@ -109,7 +109,7 @@ describe("Command help output", () => {
       `)
     }).pipe(Effect.provide(TestLayer)))
 
-  it("deeply nested subcommand", () =>
+  it.effect("deeply nested subcommand", () =>
     Effect.gen(function*() {
       const helpText = yield* runCommand(["admin", "users", "list", "--help"])
 
@@ -127,7 +127,7 @@ describe("Command help output", () => {
       `)
     }).pipe(Effect.provide(TestLayer)))
 
-  it("command with mixed positional args", () =>
+  it.effect("command with mixed positional args", () =>
     Effect.gen(function*() {
       const helpText = yield* runCommand(["admin", "users", "create", "--help"])
 
@@ -148,7 +148,7 @@ describe("Command help output", () => {
       `)
     }).pipe(Effect.provide(TestLayer)))
 
-  it("intermediate subcommand with options", () =>
+  it.effect("intermediate subcommand with options", () =>
     Effect.gen(function*() {
       const helpText = yield* runCommand(["admin", "config", "--help"])
 
@@ -168,7 +168,7 @@ describe("Command help output", () => {
       `)
     }).pipe(Effect.provide(TestLayer)))
 
-  it("variadic with minimum count", () =>
+  it.effect("variadic with minimum count", () =>
     Effect.gen(function*() {
       const helpText = yield* runCommand(["admin", "config", "set", "--help"])
 

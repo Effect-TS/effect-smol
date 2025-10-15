@@ -1,9 +1,16 @@
 import { assert, describe, it } from "@effect/vitest"
-import { Effect } from "effect"
+import { Effect, Layer } from "effect"
 import { Redacted } from "effect/data"
-import { FileSystem, PlatformError } from "effect/platform"
+import { FileSystem, Path, PlatformError } from "effect/platform"
 import { Primitive } from "effect/unstable/cli"
-import { MockEnvironmentLayer } from "./utils/MockServices.ts"
+
+const FileSystemLayer = FileSystem.layerNoop({})
+const PathLayer = Path.layer
+
+const TestLayer = Layer.mergeAll(
+  FileSystemLayer,
+  PathLayer
+)
 
 // Helper functions to reduce repetition
 const expectValidValues = <A>(
@@ -47,7 +54,7 @@ const expectValidDates = (
 
 describe("Primitive", () => {
   describe("boolean", () => {
-    it.layer(MockEnvironmentLayer)((it) => {
+    it.layer(TestLayer)((it) => {
       it.effect("should parse true values correctly", () =>
         expectValidValues(Primitive.boolean, [
           ["true", true],
@@ -80,7 +87,7 @@ describe("Primitive", () => {
   })
 
   describe("float", () => {
-    it.layer(MockEnvironmentLayer)((it) => {
+    it.layer(TestLayer)((it) => {
       it.effect("should parse valid float values", () =>
         expectValidValues(Primitive.float, [
           ["42", 42],
@@ -100,7 +107,7 @@ describe("Primitive", () => {
   })
 
   describe("date", () => {
-    it.layer(MockEnvironmentLayer)((it) => {
+    it.layer(TestLayer)((it) => {
       it.effect("should parse valid date values", () =>
         expectValidDates(Primitive.date, [
           // ISO date
@@ -137,7 +144,7 @@ describe("Primitive", () => {
   })
 
   describe("integer", () => {
-    it.layer(MockEnvironmentLayer)((it) => {
+    it.layer(TestLayer)((it) => {
       it.effect("should parse valid integer values", () =>
         expectValidValues(Primitive.integer, [
           ["42", 42],
@@ -163,7 +170,7 @@ describe("Primitive", () => {
   })
 
   describe("string", () => {
-    it.layer(MockEnvironmentLayer)((it) => {
+    it.layer(TestLayer)((it) => {
       it.effect("should parse string values", () =>
         expectValidValues(Primitive.string, [
           ["hello", "hello"],
@@ -186,7 +193,7 @@ describe("Primitive", () => {
       ["blue", "BLUE"]
     ])
 
-    it.layer(MockEnvironmentLayer)((it) => {
+    it.layer(TestLayer)((it) => {
       it.effect("should parse valid choices", () =>
         expectValidValues(colorChoice, [
           ["red", "RED"],
@@ -221,7 +228,7 @@ describe("Primitive", () => {
   })
 
   describe("path", () => {
-    it.layer(MockEnvironmentLayer)((it) => {
+    it.layer(TestLayer)((it) => {
       it.effect("should parse paths without validation", () =>
         Effect.gen(function*() {
           const pathPrimitive = Primitive.path("either")
@@ -292,7 +299,7 @@ describe("Primitive", () => {
   })
 
   describe("redacted", () => {
-    it.layer(MockEnvironmentLayer)((it) => {
+    it.layer(TestLayer)((it) => {
       it.effect("should parse and redact values", () =>
         Effect.gen(function*() {
           const result = yield* Primitive.redacted.parse("secret123")

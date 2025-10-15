@@ -77,7 +77,7 @@ export const make = Effect.gen(function*() {
 // Layer
 // =============================================================================
 
-export const layer: Layer.Layer<MockTerminal> = Layer.effect(MockTerminal, make)
+export const layer: Layer.Layer<Terminal.Terminal> = Layer.effect(MockTerminal, make)
 
 // =============================================================================
 // Accessors

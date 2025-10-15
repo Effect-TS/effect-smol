@@ -2,6 +2,7 @@ import { assert, describe, it } from "@effect/vitest"
 import { Effect, Layer, Logger } from "effect"
 import { FileSystem, Path } from "effect/platform"
 import { Command, Flag, HelpFormatter } from "effect/unstable/cli"
+import * as MockTerminal from "./services/MockTerminal.ts"
 
 // Create a test logger that captures log messages
 const makeTestLogger = () => {
@@ -27,12 +28,21 @@ const makeTestLogger = () => {
   return { testLogger, capturedLogs }
 }
 
-// Create a test layer with the test logger
+const FileSystemLayer = FileSystem.layerNoop({})
+const PathLayer = Path.layer
+const TerminalLayer = MockTerminal.layer
+const HelpFormatterLayer = HelpFormatter.layer(
+  HelpFormatter.defaultHelpRenderer({
+    colors: false
+  })
+)
+
 const makeTestLayer = (testLogger: Logger.Logger<unknown, void>) =>
   Layer.mergeAll(
-    FileSystem.layerNoop({}),
-    Path.layer,
-    HelpFormatter.layer(HelpFormatter.defaultHelpRenderer({ colors: false })),
+    FileSystemLayer,
+    PathLayer,
+    TerminalLayer,
+    HelpFormatterLayer,
     Logger.layer([testLogger])
   )
 
@@ -104,11 +114,11 @@ describe("LogLevel", () => {
     "none"
   ]
 
-  it.effect.each(testCases)("level=%s", (level) =>
+  it.each(testCases)("level=%s", (level) =>
     Effect.gen(function*() {
       const logs = yield* testLogLevels(level)
       assert.deepStrictEqual(logs, filterLogs(level))
-    }))
+    }).pipe(Effect.runPromise))
 
   it.effect("should use default log level when --log-level is not provided", () =>
     Effect.gen(function*() {
