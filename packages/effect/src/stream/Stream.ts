@@ -1701,6 +1701,50 @@ export const merge: {
 )
 
 /**
+ * Composes this stream with the specified stream to create a cartesian
+ * product of elements. The `right` stream would be run multiple times, for
+ * every element in the `left` stream.
+ *
+ * See also `Stream.zip` for the more common point-wise variant.
+ *
+ * @since 2.0.0
+ * @category utils
+ */
+export const cross: {
+  <AR, ER, RR>(right: Stream<AR, ER, RR>): <AL, EL, RL>(left: Stream<AL, EL, RL>) => Stream<[AL, AR], EL | ER, RL | RR>
+  <AL, ER, RR, AR, EL, RL>(left: Stream<AL, ER, RR>, right: Stream<AR, EL, RL>): Stream<[AL, AR], EL | ER, RL | RR>
+} = dual(2, <AL, EL, RL, AR, ER, RR>(
+  left: Stream<AL, EL, RL>,
+  right: Stream<AR, ER, RR>
+): Stream<[AL, AR], EL | ER, RL | RR> => crossWith(left, right, (l, r) => [l, r]))
+
+/**
+ * Composes this stream with the specified stream to create a cartesian
+ * product of elements with a specified function. The `right` stream would be
+ * run multiple times, for every element in the `left` stream.
+ *
+ * See also `Stream.zipWith` for the more common point-wise variant.
+ *
+ * @since 2.0.0
+ * @category utils
+ */
+export const crossWith: {
+  <AR, ER, RR, AL, A>(
+    right: Stream<AR, ER, RR>,
+    f: (left: AL, right: AR) => A
+  ): <EL, RL>(left: Stream<AL, EL, RL>) => Stream<A, EL | ER, RL | RR>
+  <AL, EL, RL, AR, ER, RR, A>(
+    left: Stream<AL, EL, RL>,
+    right: Stream<AR, ER, RR>,
+    f: (left: AL, right: AR) => A
+  ): Stream<A, EL | ER, RL | RR>
+} = dual(3, <AL, EL, RL, AR, ER, RR, A>(
+  left: Stream<AL, EL, RL>,
+  right: Stream<AR, ER, RR>,
+  f: (left: AL, right: AR) => A
+): Stream<A, EL | ER, RL | RR> => flatMap(left, (l) => map(right, (r) => f(l, r))))
+
+/**
  * @since 3.7.0
  * @category racing
  */

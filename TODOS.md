@@ -329,10 +329,10 @@ The exports under each section are organized as they are in Effect 3.0. The cate
 |         `combine`          |   -    |                               |          |
 |      `combineChunks`       |   -    |                               |          |
 |          `concat`          |  Done  |           `concat`            |          |
-|          `cross`           |   -    |                               |          |
-|        `crossLeft`         |   -    |                               |          |
-|        `crossRight`        |   -    |                               |          |
-|        `crossWith`         |   -    |                               |          |
+|          `cross`           |  Done  |                               |          |
+|        `crossLeft`         |   X    |                               |          |
+|        `crossRight`        |   X    |                               |          |
+|        `crossWith`         |  Done  |                               |          |
 |         `debounce`         |  Done  |                               |          |
 |     `distributedWith`      |   -    |                               |          |
 |  `distributedWithDynamic`  |   -    |                               |          |
