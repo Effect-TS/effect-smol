@@ -78,7 +78,7 @@ export interface UserInput {
   readonly key: Key
 }
 
-export const QuitErrorTypeId = "effect/platform/Terminal/QuitError"
+const QuitErrorTypeId = "effect/platform/Terminal/QuitError"
 
 /**
  * A `QuitError` represents an error that occurs when a user attempts to
