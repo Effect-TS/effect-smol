@@ -408,8 +408,8 @@ The exports under each section are organized as they are in Effect 3.0. The cate
 |     `takeUntilEffect`      |  Done  |       `takeUntilEffect`       |          |
 |        `takeWhile`         |  Done  |          `takeWhile`          |          |
 |      `tapErrorCause`       |  Done  |          `tapCause`           |          |
-|         `throttle`         |   -    |                               |          |
-|      `throttleEffect`      |   -    |                               |          |
+|         `throttle`         |  Done  |                               |          |
+|      `throttleEffect`      |  Done  |                               |          |
 |         `timeout`          |   -    |                               |          |
 |       `timeoutFail`        |  Done  |        `timeoutOrElse`        |          |
 |     `timeoutFailCause`     |   X    |                               |          |

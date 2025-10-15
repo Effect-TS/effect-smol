@@ -2738,6 +2738,244 @@ export const debounce: {
 )
 
 /**
+ * Delays the arrays of this stream according to the given bandwidth
+ * parameters using the token bucket algorithm. Allows for burst in the
+ * processing of elements by allowing the token bucket to accumulate tokens up
+ * to a `units + burst` threshold. The weight of each array is determined by
+ * the effectful `cost` function.
+ *
+ * If using the "enforce" strategy, arrays that do not meet the bandwidth
+ * constraints are dropped. If using the "shape" strategy, arrays are delayed
+ * until they can be emitted without exceeding the bandwidth constraints.
+ *
+ * Defaults to the "shape" strategy.
+ *
+ * @example
+ * ```ts
+ * import { Effect, Schedule } from "effect"
+ * import { Stream } from "effect/stream"
+ *
+ * // Using the "shape" strategy to delay elements
+ * const stream = Stream.fromSchedule(Schedule.spaced("50 millis")).pipe(
+ *   Stream.take(10),
+ *   Stream.throttleEffect({
+ *     // Cost function that returns an Effect
+ *     cost: (arr) => Effect.succeed(arr.length),
+ *     units: 1,
+ *     duration: "100 millis",
+ *     strategy: "shape"
+ *   })
+ * )
+ *
+ * Effect.runPromise(Stream.runCollect(stream)).then(console.log)
+ * // Elements are delayed to match the specified bandwidth
+ * ```
+ *
+ * @since 2.0.0
+ * @category utils
+ */
+export const throttleEffect: {
+  <A, E2, R2>(options: {
+    readonly cost: (arr: Arr.NonEmptyReadonlyArray<A>) => Effect.Effect<number, E2, R2>
+    readonly units: number
+    readonly duration: Duration.DurationInput
+    readonly burst?: number | undefined
+    readonly strategy?: "enforce" | "shape" | undefined
+  }): <E, R>(self: Stream<A, E, R>) => Stream<A, E2 | E, R2 | R>
+  <A, E, R, E2, R2>(
+    self: Stream<A, E, R>,
+    options: {
+      readonly cost: (arr: Arr.NonEmptyReadonlyArray<A>) => Effect.Effect<number, E2, R2>
+      readonly units: number
+      readonly duration: Duration.DurationInput
+      readonly burst?: number | undefined
+      readonly strategy?: "enforce" | "shape" | undefined
+    }
+  ): Stream<A, E | E2, R | R2>
+} = dual(
+  2,
+  <A, E, R, E2, R2>(
+    self: Stream<A, E, R>,
+    options: {
+      readonly cost: (arr: Arr.NonEmptyReadonlyArray<A>) => Effect.Effect<number, E2, R2>
+      readonly units: number
+      readonly duration: Duration.DurationInput
+      readonly burst?: number | undefined
+      readonly strategy?: "enforce" | "shape" | undefined
+    }
+  ): Stream<A, E | E2, R | R2> => {
+    const burst = options.burst ?? 0
+    if (options.strategy === "enforce") {
+      return throttleEnforceEffect(self, options.cost, options.units, options.duration, burst)
+    }
+    return throttleShapeEffect(self, options.cost, options.units, options.duration, burst)
+  }
+)
+
+const throttleEnforceEffect = <A, E, R, E2, R2>(
+  self: Stream<A, E, R>,
+  cost: (arr: Arr.NonEmptyReadonlyArray<A>) => Effect.Effect<number, E2, R2>,
+  units: number,
+  duration: Duration.DurationInput,
+  burst: number
+): Stream<A, E | E2, R | R2> =>
+  transformPull(
+    self,
+    Effect.fnUntraced(function*(pull) {
+      const clock = yield* Clock
+      const durationMs = Duration.toMillis(Duration.fromDurationInputUnsafe(duration))
+      const max = units + burst < 0 ? Number.POSITIVE_INFINITY : units + burst
+      let tokens = units
+      let timestampMs = clock.currentTimeMillisUnsafe()
+
+      return Effect.flatMap(pull, function loop(arr): Pull.Pull<Arr.NonEmptyReadonlyArray<A>, E | E2, void, R | R2> {
+        return Effect.flatMap(cost(arr), (weight) => {
+          const currentMs = clock.currentTimeMillisUnsafe()
+          const elapsed = currentMs - timestampMs
+          const cycles = elapsed / durationMs
+          const sum = tokens + (cycles * units)
+          const available = sum < 0 ? max : Math.min(sum, max)
+
+          if (weight <= available) {
+            tokens = available - weight
+            timestampMs = currentMs
+            return Effect.succeed(arr)
+          }
+          // Drop the array and continue
+          return Effect.flatMap(pull, loop)
+        })
+      })
+    })
+  )
+
+const throttleShapeEffect = <A, E, R, E2, R2>(
+  self: Stream<A, E, R>,
+  cost: (arr: Arr.NonEmptyReadonlyArray<A>) => Effect.Effect<number, E2, R2>,
+  units: number,
+  duration: Duration.DurationInput,
+  burst: number
+): Stream<A, E | E2, R | R2> =>
+  transformPull(
+    self,
+    Effect.fnUntraced(function*(pull) {
+      const clock = yield* Clock
+      const durationMs = Duration.toMillis(Duration.fromDurationInputUnsafe(duration))
+      const max = units + burst < 0 ? Number.POSITIVE_INFINITY : units + burst
+      let tokens = units
+      let timestampMs = clock.currentTimeMillisUnsafe()
+
+      return Effect.flatMap(pull, function loop(arr): Pull.Pull<Arr.NonEmptyReadonlyArray<A>, E | E2, void, R | R2> {
+        return Effect.flatMap(cost(arr), (weight) => {
+          const currentMs = clock.currentTimeMillisUnsafe()
+          const elapsed = currentMs - timestampMs
+          const cycles = elapsed / durationMs
+          const sum = tokens + (cycles * units)
+          const available = sum < 0 ? max : Math.min(sum, max)
+          const remaining = available - weight
+
+          if (remaining >= 0) {
+            tokens = remaining
+            timestampMs = currentMs
+            return Effect.succeed(arr)
+          }
+
+          // Calculate delay needed
+          const waitCycles = -remaining / units
+          const delayMs = Math.max(0, waitCycles * durationMs)
+
+          if (delayMs > 0) {
+            return Effect.flatMap(
+              Effect.sleep(Duration.millis(delayMs)),
+              () => {
+                tokens = remaining
+                timestampMs = currentMs
+                return Effect.succeed(arr)
+              }
+            )
+          }
+
+          tokens = remaining
+          timestampMs = currentMs
+          return Effect.succeed(arr)
+        })
+      })
+    })
+  )
+
+/**
+ * Delays the arrays of this stream according to the given bandwidth
+ * parameters using the token bucket algorithm. Allows for burst in the
+ * processing of elements by allowing the token bucket to accumulate tokens up
+ * to a `units + burst` threshold. The weight of each array is determined by
+ * the `cost` function.
+ *
+ * If using the "enforce" strategy, arrays that do not meet the bandwidth
+ * constraints are dropped. If using the "shape" strategy, arrays are delayed
+ * until they can be emitted without exceeding the bandwidth constraints.
+ *
+ * Defaults to the "shape" strategy.
+ *
+ * @example
+ * ```ts
+ * import { Effect, Schedule } from "effect"
+ * import { Stream } from "effect/stream"
+ *
+ * // Rate limiting a stream to 1 element per 100ms using array length as cost
+ * const stream = Stream.fromSchedule(Schedule.spaced("50 millis")).pipe(
+ *   Stream.take(6),
+ *   Stream.throttle({
+ *     cost: (arr) => arr.length,
+ *     units: 1,
+ *     duration: "100 millis",
+ *     strategy: "shape"
+ *   })
+ * )
+ *
+ * Effect.runPromise(Stream.runCollect(stream)).then(console.log)
+ * // Output: [0, 1, 2, 3, 4, 5]
+ * // Elements are emitted respecting the bandwidth constraints
+ * ```
+ *
+ * @since 2.0.0
+ * @category utils
+ */
+export const throttle: {
+  <A>(options: {
+    readonly cost: (arr: Arr.NonEmptyReadonlyArray<A>) => number
+    readonly units: number
+    readonly duration: Duration.DurationInput
+    readonly burst?: number | undefined
+    readonly strategy?: "enforce" | "shape" | undefined
+  }): <E, R>(self: Stream<A, E, R>) => Stream<A, E, R>
+  <A, E, R>(
+    self: Stream<A, E, R>,
+    options: {
+      readonly cost: (arr: Arr.NonEmptyReadonlyArray<A>) => number
+      readonly units: number
+      readonly duration: Duration.DurationInput
+      readonly burst?: number | undefined
+      readonly strategy?: "enforce" | "shape" | undefined
+    }
+  ): Stream<A, E, R>
+} = dual(
+  2,
+  <A, E, R>(
+    self: Stream<A, E, R>,
+    options: {
+      readonly cost: (arr: Arr.NonEmptyReadonlyArray<A>) => number
+      readonly units: number
+      readonly duration: Duration.DurationInput
+      readonly burst?: number | undefined
+      readonly strategy?: "enforce" | "shape" | undefined
+    }
+  ): Stream<A, E, R> =>
+    throttleEffect(self, {
+      ...options,
+      cost: (arr) => Effect.succeed(options.cost(arr))
+    })
+)
+
+/**
  * @since 2.0.0
  * @category Grouping
  */

@@ -1396,6 +1396,163 @@ describe("Stream", () => {
         assertTrue(result)
       }))
   })
+
+  describe("throttle", () => {
+    it.effect("throttleEnforce - free elements", () =>
+      Effect.gen(function*() {
+        const result = yield* pipe(
+          Stream.make(1, 2, 3, 4),
+          Stream.throttle({
+            cost: () => 0,
+            units: 0,
+            duration: Duration.infinity,
+            strategy: "enforce"
+          }),
+          Stream.runCollect
+        )
+        deepStrictEqual(result, [1, 2, 3, 4])
+      }))
+
+    it.effect("throttleEnforce - no bandwidth", () =>
+      Effect.gen(function*() {
+        const result = yield* pipe(
+          Stream.make(1, 2, 3, 4),
+          Stream.throttle({
+            cost: () => 1,
+            units: 0,
+            duration: Duration.infinity,
+            strategy: "enforce"
+          }),
+          Stream.runCollect
+        )
+        assertTrue(result.length === 0)
+      }))
+
+    it.effect("throttleEnforce - refill bucket tokens", () =>
+      Effect.gen(function*() {
+        const fiber = yield* pipe(
+          Stream.fromSchedule(Schedule.spaced(Duration.millis(100))),
+          Stream.take(10),
+          Stream.throttle({
+            cost: () => 1,
+            units: 1,
+            duration: Duration.millis(200),
+            strategy: "enforce"
+          }),
+          Stream.runCollect,
+          Effect.fork
+        )
+        yield* TestClock.adjust(Duration.seconds(1))
+        const result = yield* Fiber.join(fiber)
+        deepStrictEqual(result, [0, 2, 4, 6, 8])
+      }))
+
+    it.effect("throttleShape", () =>
+      Effect.gen(function*() {
+        const queue = yield* Queue.unbounded<number>()
+        const fiber = yield* pipe(
+          Stream.fromQueue(queue),
+          Stream.throttle({
+            strategy: "shape",
+            cost: (arr) => arr.reduce((a, b) => a + b, 0),
+            units: 1,
+            duration: Duration.seconds(1)
+          }),
+          Stream.toPull,
+          Effect.flatMap((pull) =>
+            Effect.gen(function*() {
+              yield* Queue.offer(queue, 1)
+              const result1 = yield* pull
+              yield* Queue.offer(queue, 2)
+              const result2 = yield* pull
+              yield* Effect.sleep(Duration.seconds(4))
+              yield* Queue.offer(queue, 3)
+              const result3 = yield* pull
+              return [result1, result2, result3] as const
+            })
+          ),
+          Effect.scoped,
+          Effect.fork
+        )
+        yield* TestClock.adjust(Duration.seconds(8))
+        const result = yield* Fiber.join(fiber)
+        deepStrictEqual(result, [[1], [2], [3]])
+      }))
+
+    it.effect("throttleShape - infinite bandwidth", () =>
+      Effect.gen(function*() {
+        const queue = yield* Queue.unbounded<number>()
+        const result = yield* pipe(
+          Stream.fromQueue(queue),
+          Stream.throttle({
+            strategy: "shape",
+            cost: () => 100_000,
+            units: 1,
+            duration: Duration.zero
+          }),
+          Stream.toPull,
+          Effect.flatMap((pull) =>
+            Effect.gen(function*() {
+              yield* Queue.offer(queue, 1)
+              const result1 = yield* pull
+              yield* Queue.offer(queue, 2)
+              const result2 = yield* pull
+              return [result1, result2] as const
+            })
+          ),
+          Effect.scoped
+        )
+        deepStrictEqual(result, [[1], [2]])
+      }))
+
+    it.effect("throttleShape - with burst", () =>
+      Effect.gen(function*() {
+        const queue = yield* Queue.unbounded<number>()
+        const fiber = yield* pipe(
+          Stream.fromQueue(queue),
+          Stream.throttle({
+            strategy: "shape",
+            cost: (arr) => arr.reduce((a, b) => a + b, 0),
+            units: 1,
+            duration: Duration.seconds(1),
+            burst: 2
+          }),
+          Stream.toPull,
+          Effect.flatMap((pull) =>
+            Effect.gen(function*() {
+              yield* Queue.offer(queue, 1)
+              const result1 = yield* pull
+              yield* TestClock.adjust(Duration.seconds(2))
+              yield* Queue.offer(queue, 2)
+              const result2 = yield* pull
+              yield* TestClock.adjust(Duration.seconds(4))
+              yield* Queue.offer(queue, 3)
+              const result3 = yield* pull
+              return [result1, result2, result3] as const
+            })
+          ),
+          Effect.scoped,
+          Effect.fork
+        )
+        const result = yield* Fiber.join(fiber)
+        deepStrictEqual(result, [[1], [2], [3]])
+      }))
+
+    it.effect("throttleShape - free elements", () =>
+      Effect.gen(function*() {
+        const result = yield* pipe(
+          Stream.make(1, 2, 3, 4),
+          Stream.throttle({
+            strategy: "shape",
+            cost: () => 0,
+            units: 1,
+            duration: Duration.infinity
+          }),
+          Stream.runCollect
+        )
+        deepStrictEqual(result, [1, 2, 3, 4])
+      }))
+  })
 })
 
 const grouped = <A>(arr: Array<A>, size: number): Array<NonEmptyArray<A>> => {
