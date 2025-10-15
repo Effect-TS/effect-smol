@@ -2819,34 +2819,34 @@ const throttleEnforceEffect = <A, E, R, E2, R2>(
   duration: Duration.DurationInput,
   burst: number
 ): Stream<A, E | E2, R | R2> =>
-  transformPull(
-    self,
-    Effect.fnUntraced(function*(pull) {
-      const clock = yield* Clock
+  transformPull(self, (pull) =>
+    Effect.clockWith((clock) => {
       const durationMs = Duration.toMillis(Duration.fromDurationInputUnsafe(duration))
       const max = units + burst < 0 ? Number.POSITIVE_INFINITY : units + burst
       let tokens = units
       let timestampMs = clock.currentTimeMillisUnsafe()
 
-      return Effect.flatMap(pull, function loop(arr): Pull.Pull<Arr.NonEmptyReadonlyArray<A>, E | E2, void, R | R2> {
-        return Effect.flatMap(cost(arr), (weight) => {
-          const currentMs = clock.currentTimeMillisUnsafe()
-          const elapsed = currentMs - timestampMs
-          const cycles = elapsed / durationMs
-          const sum = tokens + (cycles * units)
-          const available = sum < 0 ? max : Math.min(sum, max)
+      return Effect.succeed(
+        Effect.flatMap(pull, function loop(arr): Pull.Pull<Arr.NonEmptyReadonlyArray<A>, E | E2, void, R | R2> {
+          return Effect.flatMap(cost(arr), (weight) => {
+            const currentMs = clock.currentTimeMillisUnsafe()
+            const elapsed = currentMs - timestampMs
+            const cycles = elapsed / durationMs
+            const sum = tokens + (cycles * units)
+            const available = sum < 0 ? max : Math.min(sum, max)
 
-          if (weight <= available) {
-            tokens = available - weight
-            timestampMs = currentMs
-            return Effect.succeed(arr)
-          }
-          // Drop the array and continue
-          return Effect.flatMap(pull, loop)
+            if (weight <= available) {
+              tokens = available - weight
+              timestampMs = currentMs
+              return Effect.succeed(arr)
+            }
+
+            // Drop the array and continue
+            return Effect.flatMap(pull, loop)
+          })
         })
-      })
-    })
-  )
+      )
+    }))
 
 const throttleShapeEffect = <A, E, R, E2, R2>(
   self: Stream<A, E, R>,
@@ -2855,17 +2855,15 @@ const throttleShapeEffect = <A, E, R, E2, R2>(
   duration: Duration.DurationInput,
   burst: number
 ): Stream<A, E | E2, R | R2> =>
-  transformPull(
-    self,
-    Effect.fnUntraced(function*(pull) {
-      const clock = yield* Clock
+  transformPull(self, (pull) =>
+    Effect.clockWith((clock) => {
       const durationMs = Duration.toMillis(Duration.fromDurationInputUnsafe(duration))
       const max = units + burst < 0 ? Number.POSITIVE_INFINITY : units + burst
       let tokens = units
       let timestampMs = clock.currentTimeMillisUnsafe()
 
-      return Effect.flatMap(pull, function loop(arr): Pull.Pull<Arr.NonEmptyReadonlyArray<A>, E | E2, void, R | R2> {
-        return Effect.flatMap(cost(arr), (weight) => {
+      return Effect.succeed(Effect.flatMap(pull, (arr) =>
+        Effect.flatMap(cost(arr), (weight) => {
           const currentMs = clock.currentTimeMillisUnsafe()
           const elapsed = currentMs - timestampMs
           const cycles = elapsed / durationMs
@@ -2884,23 +2882,18 @@ const throttleShapeEffect = <A, E, R, E2, R2>(
           const delayMs = Math.max(0, waitCycles * durationMs)
 
           if (delayMs > 0) {
-            return Effect.flatMap(
-              Effect.sleep(Duration.millis(delayMs)),
-              () => {
-                tokens = remaining
-                timestampMs = currentMs
-                return Effect.succeed(arr)
-              }
-            )
+            return Effect.flatMap(Effect.sleep(delayMs), () => {
+              tokens = remaining
+              timestampMs = currentMs
+              return Effect.succeed(arr)
+            })
           }
 
           tokens = remaining
           timestampMs = currentMs
           return Effect.succeed(arr)
-        })
-      })
-    })
-  )
+        })))
+    }))
 
 /**
  * Delays the arrays of this stream according to the given bandwidth
