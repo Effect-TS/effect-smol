@@ -1745,6 +1745,102 @@ export const crossWith: {
 ): Stream<A, EL | ER, RL | RR> => flatMap(left, (l) => map(right, (r) => f(l, r))))
 
 /**
+ * Zips this stream with another point-wise and applies the function to the
+ * paired elements.
+ *
+ * The new stream will end when one of the sides ends.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ * import { Stream } from "effect/stream"
+ *
+ * const stream1 = Stream.make(1, 2, 3, 4, 5, 6)
+ * const stream2 = Stream.make("a", "b", "c")
+ *
+ * const zipped = Stream.zipWith(stream1, stream2, (n, s) => `${n}-${s}`)
+ *
+ * Effect.runPromise(Stream.runCollect(zipped)).then(console.log)
+ * // Output: ["1-a", "2-b", "3-c"]
+ * ```
+ *
+ * @since 2.0.0
+ * @category zipping
+ */
+export const zipWith: {
+  <AR, ER, RR, AL, A>(
+    right: Stream<AR, ER, RR>,
+    f: (left: AL, right: AR) => A
+  ): <EL, RL>(left: Stream<AL, EL, RL>) => Stream<A, EL | ER, RL | RR>
+  <AL, EL, RL, AR, ER, RR, A>(
+    left: Stream<AL, EL, RL>,
+    right: Stream<AR, ER, RR>,
+    f: (left: AL, right: AR) => A
+  ): Stream<A, EL | ER, RL | RR>
+} = dual(3, <AL, EL, RL, AR, ER, RR, A>(
+  left: Stream<AL, EL, RL>,
+  right: Stream<AR, ER, RR>,
+  f: (left: AL, right: AR) => A
+): Stream<A, EL | ER, RL | RR> =>
+  fromChannel(Channel.fromTransform(Effect.fnUntraced(function*(_, scope) {
+    const pullLeft = yield* Channel.toPullScoped(left.channel, scope)
+    const pullRight = yield* Channel.toPullScoped(right.channel, scope)
+
+    type State =
+      | { _tag: "PullBoth" }
+      | { _tag: "PullLeft"; rightArray: Arr.NonEmptyReadonlyArray<AR> }
+      | { _tag: "PullRight"; leftArray: Arr.NonEmptyReadonlyArray<AL> }
+    let state: State = { _tag: "PullBoth" }
+
+    const zipArrays = (
+      leftArr: Arr.NonEmptyReadonlyArray<AL>,
+      rightArr: Arr.NonEmptyReadonlyArray<AR>
+    ): readonly [
+      Arr.NonEmptyReadonlyArray<A>,
+      ReadonlyArray<AL>,
+      ReadonlyArray<AR>
+    ] => {
+      const minLength = Math.min(leftArr.length, rightArr.length)
+      const result: Array<A> = []
+
+      for (let i = 0; i < minLength; i++) {
+        result.push(f(leftArr[i], rightArr[i]))
+      }
+
+      const leftoverLeft = leftArr.slice(minLength)
+      const leftoverRight = rightArr.slice(minLength)
+
+      // Since both inputs are NonEmpty, minLength is at least 1, so result is NonEmpty
+      return [
+        result as unknown as Arr.NonEmptyReadonlyArray<A>,
+        leftoverLeft,
+        leftoverRight
+      ]
+    }
+
+    const pull: Effect.Effect<
+      Arr.NonEmptyReadonlyArray<A>,
+      EL | ER | Pull.Halt,
+      RL | RR
+    > = Effect.gen(function*() {
+      const [output, leftArray, rightArray] = zipArrays(
+        state._tag === "PullRight" ? state.leftArray : yield* pullLeft,
+        state._tag === "PullLeft" ? state.rightArray : yield* pullRight
+      )
+      if (Arr.isReadonlyArrayNonEmpty(leftArray)) {
+        state = { _tag: "PullRight", leftArray }
+      } else if (Arr.isReadonlyArrayNonEmpty(rightArray)) {
+        state = { _tag: "PullLeft", rightArray }
+      } else {
+        state = { _tag: "PullBoth" }
+      }
+      return output
+    })
+
+    return pull
+  }))))
+
+/**
  * @since 3.7.0
  * @category racing
  */

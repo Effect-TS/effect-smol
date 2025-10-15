@@ -1553,6 +1553,111 @@ describe("Stream", () => {
         deepStrictEqual(result, [1, 2, 3, 4])
       }))
   })
+
+  describe("zipping", () => {
+    it.effect("zipWith - combines elements point-wise", () =>
+      Effect.gen(function*() {
+        const stream1 = Stream.make(1, 2, 3)
+        const stream2 = Stream.make("a", "b", "c")
+        const result = yield* Stream.zipWith(stream1, stream2, (n, s) => `${n}-${s}`).pipe(
+          Stream.runCollect
+        )
+        assert.deepStrictEqual(result, ["1-a", "2-b", "3-c"])
+      }))
+
+    it.effect("zipWith - stops when shortest stream ends", () =>
+      Effect.gen(function*() {
+        const stream1 = Stream.make(1, 2, 3, 4, 5, 6)
+        const stream2 = Stream.make("a", "b", "c")
+        const result = yield* Stream.zipWith(stream1, stream2, (n, s) => `${n}-${s}`).pipe(
+          Stream.runCollect
+        )
+        assert.deepStrictEqual(result, ["1-a", "2-b", "3-c"])
+      }))
+
+    it.effect("zipWith - does not pull too much when one stream ends", () =>
+      Effect.gen(function*() {
+        const left = Stream.fromArrays([1, 2], [3, 4], [5]).pipe(
+          Stream.concat(Stream.fail("boom"))
+        )
+        const right = Stream.fromArrays(["a", "b"], ["c"])
+        const result = yield* Stream.zipWith(left, right, (n, s) => [n, s] as const).pipe(
+          Stream.runCollect
+        )
+        assert.deepStrictEqual(result, [[1, "a"], [2, "b"], [3, "c"]])
+      }))
+
+    it.effect("zipWith - prioritizes failures", () =>
+      Effect.gen(function*() {
+        const result = yield* Stream.zipWith(
+          Stream.never,
+          Stream.fail("Ouch"),
+          (a, b) => [a, b]
+        ).pipe(
+          Stream.runCollect,
+          Effect.exit
+        )
+        assertExitFailure(result, Cause.fail("Ouch"))
+      }))
+
+    it.effect("zipWith - handles exceptions", () =>
+      Effect.gen(function*() {
+        const error = new Error("Ouch")
+        const result = yield* Stream.make(1).pipe(
+          Stream.flatMap(() =>
+            Stream.sync(() => {
+              throw error
+            })
+          ),
+          Stream.zipWith(Stream.make(1), (a, b) => [a, b]),
+          Stream.runCollect,
+          Effect.exit
+        )
+        assertExitFailure(result, Cause.die(error))
+      }))
+
+    it.effect("zipWith - handles empty streams", () =>
+      Effect.gen(function*() {
+        const result1 = yield* Stream.zipWith(
+          Stream.empty,
+          Stream.make(1, 2, 3),
+          (a, b) => [a, b]
+        ).pipe(Stream.runCollect)
+
+        const result2 = yield* Stream.zipWith(
+          Stream.make(1, 2, 3),
+          Stream.empty,
+          (a, b) => [a, b]
+        ).pipe(Stream.runCollect)
+
+        assert.strictEqual(result1.length, 0)
+        assert.strictEqual(result2.length, 0)
+      }))
+
+    it.effect.prop(
+      "zipWith - equivalence with array operations",
+      {
+        left: fc.array(fc.integer()),
+        right: fc.array(fc.integer())
+      },
+      Effect.fnUntraced(function*({ left, right }) {
+        const stream = Stream.zipWith(
+          Stream.fromIterable(left),
+          Stream.fromIterable(right),
+          (a, b) => a + b
+        )
+        const result = yield* Stream.runCollect(stream)
+
+        const minLength = Math.min(left.length, right.length)
+        const expected = Array.empty<number>()
+        for (let i = 0; i < minLength; i++) {
+          expected.push(left[i] + right[i])
+        }
+
+        assert.deepStrictEqual(result, expected)
+      })
+    )
+  })
 })
 
 const grouped = <A>(arr: Array<A>, size: number): Array<NonEmptyArray<A>> => {
