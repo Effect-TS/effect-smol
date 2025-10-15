@@ -8,7 +8,7 @@ export const generateHandlers = (rows: ReadonlyArray<CommandRow>, executableName
 
   for (const { cmd, trail } of rows) {
     const funcName = handlerName(trail, executableName)
-    const flagParams = (cmd.parsedConfig.flags as ReadonlyArray<any>).filter(
+    const flagParams = (cmd.config.flags as ReadonlyArray<any>).filter(
       (f: any) => f.kind === "flag"
     )
     const singles = getSingles(flagParams)

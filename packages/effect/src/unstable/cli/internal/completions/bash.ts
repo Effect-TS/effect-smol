@@ -25,7 +25,7 @@ export const generateBashCompletions = <Name extends string, I, E, R>(
   const cmdCases: Array<string> = []
 
   for (const { cmd, trail } of rows) {
-    const singles = getSingles(cmd.parsedConfig.flags)
+    const singles = getSingles(cmd.config.flags)
     const words = [
       ...optionTokens(singles),
       ...cmd.subcommands.map((s) => s.name)

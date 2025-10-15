@@ -1,11 +1,11 @@
 /**
  * @since 4.0.0
  */
-import * as Data from "../data/Data.ts"
 import type * as Option from "../data/Option.ts"
-import { hasProperty } from "../data/Predicate.ts"
+import * as Predicate from "../data/Predicate.ts"
 import type * as Effect from "../Effect.ts"
-import type { Dequeue } from "../Queue.ts"
+import type * as Queue from "../Queue.ts"
+import * as Schema from "../schema/Schema.ts"
 import type * as Scope from "../Scope.ts"
 import * as ServiceMap from "../ServiceMap.ts"
 import type { PlatformError } from "./PlatformError.ts"
@@ -29,7 +29,7 @@ export interface Terminal {
   /**
    * Reads input events from the default standard input.
    */
-  readonly readInput: Effect.Effect<Dequeue<UserInput>, never, Scope.Scope>
+  readonly readInput: Effect.Effect<Queue.Dequeue<UserInput, Queue.Done>, never, Scope.Scope>
   /**
    * Reads a single line from the default standard input.
    */
@@ -78,7 +78,7 @@ export interface UserInput {
   readonly key: Key
 }
 
-const QuitErrorTypeId = "~effect/platform/Terminal/QuitError" as const
+export const QuitErrorTypeId = "effect/platform/Terminal/QuitError"
 
 /**
  * A `QuitError` represents an error that occurs when a user attempts to
@@ -87,18 +87,20 @@ const QuitErrorTypeId = "~effect/platform/Terminal/QuitError" as const
  * @since 4.0.0
  * @category QuitError
  */
-export class QuitError extends Data.TaggedError("QuitError") {
+export class QuitError extends Schema.ErrorClass("QuitError")({
+  tag: Schema.tag("QuitError")
+}) {
   /**
    * @since 4.0.0
    */
-  readonly [QuitErrorTypeId]: typeof QuitErrorTypeId = QuitErrorTypeId
+  readonly [QuitErrorTypeId] = QuitErrorTypeId
 }
 
 /**
  * @since 4.0.0
  * @category QuitError
  */
-export const isQuitError = (u: unknown): u is QuitError => hasProperty(u, QuitErrorTypeId)
+export const isQuitError = (u: unknown): u is QuitError => Predicate.hasProperty(u, QuitErrorTypeId)
 
 /**
  * @since 4.0.0

@@ -18,7 +18,7 @@ export const generateRouter = (
   for (const { cmd, trail } of rows) {
     const ctx = idFromTrail(trail)
     const singles = getSingles(
-      (cmd.parsedConfig.flags as ReadonlyArray<any>).filter((f: any) => f.kind === "flag")
+      (cmd.config.flags as ReadonlyArray<any>).filter((f: any) => f.kind === "flag")
     )
     const tokens: Array<string> = []
     for (const s of singles) {

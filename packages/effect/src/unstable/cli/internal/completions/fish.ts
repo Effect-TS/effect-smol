@@ -12,7 +12,7 @@ export const generateFishCompletions = <Name extends string, I, E, R>(
 
   const dfs = (cmd: AnyCommand, parents: Array<string> = []) => {
     const trail = [...parents, cmd.name]
-    const singles = getSingles(cmd.parsedConfig.flags)
+    const singles = getSingles(cmd.config.flags)
 
     for (const sub of cmd.subcommands) {
       const parts = [

@@ -4,30 +4,15 @@ import type { LogLevel } from "../../../LogLevel.ts"
 import type { FileSystem } from "../../../platform/FileSystem.ts"
 import type { Path } from "../../../platform/Path.ts"
 import * as CliError from "../CliError.ts"
-import type { Command } from "../Command.ts"
+import type { Command, RawInput } from "../Command.ts"
 import * as Param from "../Param.ts"
 import { isFalseValue, isTrueValue } from "../Primitive.ts"
 import { suggest } from "./auto-suggest.ts"
 import { completionsFlag, dynamicCompletionsFlag, helpFlag, logLevelFlag, versionFlag } from "./builtInFlags.ts"
 import { type LexResult, type Token } from "./lexer.ts"
 
-/**
- * Parsed arguments for a command *including* potential nested sub-command.
- *
- * @internal
- */
-export interface ParsedCommandInput {
-  readonly flags: Record<string, ReadonlyArray<string>>
-  readonly arguments: ReadonlyArray<string>
-  readonly subcommand?: {
-    readonly name: string
-    readonly parsedInput: ParsedCommandInput
-  }
-  readonly errors?: ReadonlyArray<CliError.CliError>
-}
-
 /** @internal */
-export const getCommandPath = (parsedInput: ParsedCommandInput): ReadonlyArray<string> =>
+export const getCommandPath = (parsedInput: RawInput): ReadonlyArray<string> =>
   parsedInput.subcommand
     ? [parsedInput.subcommand.name, ...getCommandPath(parsedInput.subcommand.parsedInput)]
     : []
@@ -246,7 +231,7 @@ const scanCommandLevel = <Name extends string, Input, E, R>(
   const operands: Array<string> = []
   const errors: Array<CliError.CliError> = []
   let seenFirstValue = false
-  const expectsArgs = command.parsedConfig.arguments.length > 0
+  const expectsArgs = command.config.arguments.length > 0
 
   const cursor = makeCursor(tokens)
 
@@ -306,13 +291,13 @@ export const parseArgs = <Name extends string, Input, E, R>(
   lexResult: LexResult,
   command: Command<Name, Input, E, R>,
   commandPath: ReadonlyArray<string> = []
-): Effect.Effect<ParsedCommandInput, CliError.CliError, FileSystem | Path> =>
+): Effect.Effect<RawInput, CliError.CliError, FileSystem | Path> =>
   Effect.gen(function*() {
     const { tokens, trailingOperands: afterEndOfOptions } = lexResult
     const newCommandPath = [...commandPath, command.name]
 
     // Flags available at this level (ignore arguments)
-    const singles = command.parsedConfig.flags.flatMap(Param.extractSingleParams)
+    const singles = command.config.flags.flatMap(Param.extractSingleParams)
     const flags = singles.filter(isFlagParam)
 
     const result = scanCommandLevel(tokens, command, flags, newCommandPath)

@@ -200,7 +200,7 @@ export const generateDynamicCompletions = <Name extends string, I, E, R>(
         continue
       }
 
-      const singles = getSingles(currentCmd.parsedConfig.flags)
+      const singles = getSingles(currentCmd.config.flags)
       const matchingOption = singles.find((s) =>
         optionToken === `--${s.name}` ||
         s.aliases.some((a) => optionToken === (a.length === 1 ? `-${a}` : `--${a}`))
@@ -230,7 +230,7 @@ export const generateDynamicCompletions = <Name extends string, I, E, R>(
   // Generate completions based on current context
   const currentWord = context.currentWord
 
-  const singles = getSingles(currentCmd.parsedConfig.flags)
+  const singles = getSingles(currentCmd.config.flags)
   const equalIndex = currentWord.indexOf("=")
   if (currentWord.startsWith("-") && equalIndex !== -1) {
     const optionToken = currentWord.slice(0, equalIndex)

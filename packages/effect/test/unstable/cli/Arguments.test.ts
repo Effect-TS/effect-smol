@@ -3,34 +3,46 @@ import { Effect, Layer, Ref } from "effect"
 import { FileSystem, Path, PlatformError } from "effect/platform"
 import { TestConsole } from "effect/testing"
 import { Argument, Command, Flag, HelpFormatter } from "effect/unstable/cli"
+import * as MockTerminal from "./services/MockTerminal.ts"
+
+const ConsoleLayer = TestConsole.layer
+const FileSystemLayer = FileSystem.layerNoop({
+  exists: (path) =>
+    path.includes("/non/existent/file.txt")
+      ? Effect.succeed(false)
+      : Effect.succeed(true),
+  stat: (path) => {
+    if (path.includes("/non/existent/file.txt")) {
+      return Effect.fail(new PlatformError.BadArgument({ module: "", method: "" }))
+    }
+    if (path.includes("workspace")) {
+      return Effect.succeed({ type: "Directory" } as any)
+    }
+    return Effect.succeed({ type: "File" } as any)
+  },
+  access: (path) =>
+    path.includes("/non/existent/file.txt")
+      ? Effect.fail(new PlatformError.BadArgument({ module: "", method: "" }))
+      : Effect.void
+})
+const PathLayer = Path.layer
+const TerminalLayer = MockTerminal.layer
+const HelpFormatterLayer = HelpFormatter.layer(
+  HelpFormatter.defaultHelpRenderer({
+    colors: false
+  })
+)
 
 const TestLayer = Layer.mergeAll(
-  TestConsole.layer,
-  HelpFormatter.layer(HelpFormatter.defaultHelpRenderer({ colors: false })),
-  FileSystem.layerNoop({
-    exists: (path) =>
-      path.includes("/non/existent/file.txt")
-        ? Effect.succeed(false)
-        : Effect.succeed(true),
-    stat: (path) => {
-      if (path.includes("/non/existent/file.txt")) {
-        return Effect.fail(new PlatformError.BadArgument({ module: "", method: "" }))
-      }
-      if (path.includes("workspace")) {
-        return Effect.succeed({ type: "Directory" } as any)
-      }
-      return Effect.succeed({ type: "File" } as any)
-    },
-    access: (path) =>
-      path.includes("/non/existent/file.txt")
-        ? Effect.fail(new PlatformError.BadArgument({ module: "", method: "" }))
-        : Effect.void
-  }),
-  Path.layer
+  ConsoleLayer,
+  FileSystemLayer,
+  PathLayer,
+  TerminalLayer,
+  HelpFormatterLayer
 )
 
 describe("Command arguments", () => {
-  it.effect("should parse all argument types correctly", () =>
+  it("should parse all argument types correctly", () =>
     Effect.gen(function*() {
       // Create a Ref to store the result
       const resultRef = yield* Ref.make<any>(null)
@@ -48,7 +60,7 @@ describe("Command arguments", () => {
       }, (config) => Ref.set(resultRef, config))
 
       // Test parsing with valid arguments
-      yield* Command.runWithArgs(testCommand, { version: "1.0.0" })([
+      yield* Command.runWith(testCommand, { version: "1.0.0" })([
         "myapp", // name
         "42", // count
         "3.14", // ratio
@@ -70,7 +82,7 @@ describe("Command arguments", () => {
       assert.strictEqual(result.verbose, true)
     }).pipe(Effect.provide(TestLayer)))
 
-  it.effect("should handle file mustExist validation", () =>
+  it("should handle file mustExist validation", () =>
     Effect.gen(function*() {
       // Test 1: mustExist: true with existing file - should pass
       const result1Ref = yield* Ref.make<string | null>(null)
@@ -78,12 +90,12 @@ describe("Command arguments", () => {
         file: Argument.file("file", { mustExist: true })
       }, ({ file }) => Ref.set(result1Ref, file))
 
-      yield* Command.runWithArgs(existingFileCommand, { version: "1.0.0" })(["/file.txt"])
+      yield* Command.runWith(existingFileCommand, { version: "1.0.0" })(["/file.txt"])
       const result1 = yield* Ref.get(result1Ref)
       assert.strictEqual(result1, "/file.txt")
 
       // Test 2: mustExist: true with non-existing file - should display error and help
-      const runCommand = Command.runWithArgs(existingFileCommand, { version: "1.0.0" })
+      const runCommand = Command.runWith(existingFileCommand, { version: "1.0.0" })
       yield* runCommand(["/non/existent/file.txt"])
 
       // Check that help was shown
@@ -101,14 +113,14 @@ describe("Command arguments", () => {
         file: Argument.file("file", { mustExist: false })
       }, ({ file }) => Ref.set(result3Ref, file))
 
-      yield* Command.runWithArgs(optionalFileCommand, { version: "1.0.0" })([
+      yield* Command.runWith(optionalFileCommand, { version: "1.0.0" })([
         "/non/existent/file.txt"
       ])
       const result3 = yield* Ref.get(result3Ref)
       assert.isTrue(result3!.includes("/non/existent/file.txt"))
     }).pipe(Effect.provide(TestLayer)))
 
-  it.effect("should fail with invalid arguments", () =>
+  it("should fail with invalid arguments", () =>
     Effect.gen(function*() {
       const testCommand = Command.make("test", {
         count: Argument.integer("count"),
@@ -116,7 +128,7 @@ describe("Command arguments", () => {
       }, (config) => Effect.succeed(config))
 
       // Test invalid integer - should display help and error
-      const runCommand = Command.runWithArgs(testCommand, { version: "1.0.0" })
+      const runCommand = Command.runWith(testCommand, { version: "1.0.0" })
       yield* runCommand(["not-a-number", "dev"])
 
       // Check help was shown
@@ -141,21 +153,24 @@ describe("Command arguments", () => {
       `)
     }).pipe(Effect.provide(TestLayer)))
 
-  it.effect("should handle variadic arguments", () =>
+  it("should handle variadic arguments", () =>
     Effect.gen(function*() {
-      const resultRef = yield* Ref.make<any>(null)
+      let result: { readonly files: ReadonlyArray<string> } | undefined
 
       const testCommand = Command.make("test", {
         files: Argument.string("files").pipe(Argument.repeated)
-      }, (config) => Ref.set(resultRef, config))
+      }, (config) =>
+        Effect.sync(() => {
+          result = config
+        }))
 
-      yield* Command.runWithArgs(testCommand, { version: "1.0.0" })([
+      yield* Command.runWith(testCommand, { version: "1.0.0" })([
         "file1.txt",
         "file2.txt",
         "file3.txt"
       ])
 
-      const result = yield* Ref.get(resultRef)
+      assert.isDefined(result)
       assert.deepStrictEqual(result.files, ["file1.txt", "file2.txt", "file3.txt"])
     }).pipe(Effect.provide(TestLayer)))
 })

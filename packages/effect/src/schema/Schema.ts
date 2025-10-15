@@ -6688,9 +6688,32 @@ export type JsonSchemaTopLevelReferenceStrategy = "skip" | "keep"
  * @since 4.0.0
  */
 export interface JsonSchemaOptions {
+  /**
+   * A record of definitions which are included in the schema.
+   *
+   * Defaults to the empty object `{}`.
+   */
   readonly definitions?: Record<string, Annotations.JsonSchema.JsonSchema> | undefined
+  /**
+   * A method which can be used to compute the reference identifier for a
+   * definition.
+   *
+   * Defaults to `(id: string) => "#/$defs/" + id`.
+   */
   readonly getRef?: ((id: string) => string) | undefined
+  /**
+   * Controls how additional properties are handled while resolving the JSON
+   * schema. Possible values include:
+   * - `"allow"`: Allow additional properties
+   * - `"strict"`: Disallow additional properties (default)
+   */
   readonly additionalPropertiesStrategy?: JsonSchemaAdditionalPropertiesStrategy | undefined
+  /**
+   * Controls how top-level references are handled while resolving the JSON
+   * schema. Possible values include:
+   * - `"keep"`: Keep the top-level reference (default)
+   * - `"skip"`: Skip the top-level reference
+   */
   readonly topLevelReferenceStrategy?: JsonSchemaTopLevelReferenceStrategy | undefined
 }
 

@@ -5,11 +5,17 @@ import { CliError, Command, Flag } from "effect/unstable/cli"
 import * as Lexer from "effect/unstable/cli/internal/lexer"
 import * as Parser from "effect/unstable/cli/internal/parser"
 
-const TestLayer = Layer.mergeAll(FileSystem.layerNoop({}), Path.layer)
+const FileSystemLayer = FileSystem.layerNoop({})
+const PathLayer = Path.layer
+
+const TestLayer = Layer.mergeAll(
+  FileSystemLayer,
+  PathLayer
+)
 
 describe("Command errors", () => {
   describe("parse", () => {
-    it.effect("fails with MissingOption when a required flag is absent", () =>
+    it("fails with MissingOption when a required flag is absent", () =>
       Effect.gen(function*() {
         const command = Command.make("needs-value", {
           value: Flag.string("value")
@@ -17,10 +23,8 @@ describe("Command errors", () => {
 
         const parsedInput = yield* Parser.parseArgs(Lexer.lex([]), command)
         const error = yield* Effect.flip(command.parse(parsedInput))
-        assert.strictEqual(error._tag, "MissingOption")
-        if (error._tag === "MissingOption") {
-          assert.strictEqual(error.option, "value")
-        }
+        assert.instanceOf(error, CliError.MissingOption)
+        assert.strictEqual(error.option, "value")
       }).pipe(Effect.provide(TestLayer)))
 
     it("throws DuplicateOption when parent and child reuse a flag name", () => {
