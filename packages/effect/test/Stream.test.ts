@@ -10,6 +10,7 @@ import { Sink, Stream } from "effect/stream"
 import { TestClock } from "effect/testing"
 import * as fc from "effect/testing/FastCheck"
 import { assertFailure } from "./utils/assert.ts"
+import { chunkCoordination } from "./utils/chunkCoordination.ts"
 
 describe("Stream", () => {
   describe("callback", () => {
@@ -1212,6 +1213,188 @@ describe("Stream", () => {
     //     const result = yield* Fiber.join(fiber)
     //     deepStrictEqual(result, input)
     //   }))
+  })
+
+  describe("debounce", () => {
+    it.effect("should drop earlier chunks within waitTime", () =>
+      Effect.gen(function*() {
+        const coordination = yield* chunkCoordination([
+          [1],
+          [3, 4],
+          [5],
+          [6, 7]
+        ])
+        const stream = pipe(
+          coordination.stream,
+          Stream.chunks,
+          Stream.debounce(Duration.seconds(1))
+        )
+        const fiber = yield* pipe(stream, Stream.runCollect, Effect.fork)
+        yield* coordination.offer
+        yield* pipe(
+          Effect.sleep(Duration.millis(500)),
+          Effect.andThen(coordination.offer),
+          Effect.fork
+        )
+        yield* pipe(
+          Effect.sleep(Duration.seconds(2)),
+          Effect.andThen(coordination.offer),
+          Effect.fork
+        )
+        yield* pipe(
+          Effect.sleep(Duration.millis(2500)),
+          Effect.andThen(coordination.offer),
+          Effect.fork
+        )
+        yield* TestClock.adjust(Duration.millis(3500))
+        const result = yield* Fiber.join(fiber)
+        deepStrictEqual(
+          result,
+          [[3, 4], [6, 7]]
+        )
+      }))
+
+    it.effect("should take latest chunk within waitTime", () =>
+      Effect.gen(function*() {
+        const coordination = yield* chunkCoordination([
+          [1, 2],
+          [3, 4],
+          [5, 6]
+        ])
+        const stream = pipe(
+          coordination.stream,
+          Stream.chunks,
+          Stream.debounce(Duration.seconds(1))
+        )
+        const fiber = yield* pipe(stream, Stream.runCollect, Effect.fork)
+        yield* pipe(
+          coordination.offer,
+          Effect.andThen(coordination.offer),
+          Effect.andThen(coordination.offer)
+        )
+        yield* TestClock.adjust(Duration.seconds(1))
+        const result = yield* Fiber.join(fiber)
+        deepStrictEqual(result, [[5, 6]])
+      }))
+
+    it.effect("should work properly with parallelization", () =>
+      Effect.gen(function*() {
+        const coordination = yield* chunkCoordination([
+          [1],
+          [2],
+          [3]
+        ])
+        const stream = pipe(
+          coordination.stream,
+          Stream.chunks,
+          Stream.debounce(Duration.seconds(1))
+        )
+        const fiber = yield* pipe(stream, Stream.runCollect, Effect.fork)
+        yield* Effect.all([
+          coordination.offer,
+          coordination.offer,
+          coordination.offer
+        ], { concurrency: 3, discard: true })
+        yield* TestClock.adjust(Duration.seconds(1))
+        const result = yield* Fiber.join(fiber)
+        deepStrictEqual(result, [[3]])
+      }))
+
+    it.effect("should handle empty chunks properly", () =>
+      Effect.gen(function*() {
+        const fiber = yield* pipe(
+          Stream.make(1, 2, 3),
+          Stream.tap(() => Effect.sleep(Duration.millis(500))),
+          Stream.debounce(Duration.seconds(1)),
+          Stream.runCollect,
+          Effect.fork({ startImmediately: true })
+        )
+        yield* TestClock.adjust(Duration.seconds(3))
+        const result = yield* Fiber.join(fiber)
+        deepStrictEqual(result, [3])
+      }))
+
+    it.effect("should fail immediately", () =>
+      Effect.gen(function*() {
+        const result = yield* pipe(
+          Stream.fromEffect(Effect.fail(Option.none())),
+          Stream.debounce(Duration.infinity),
+          Stream.runCollect,
+          Effect.exit
+        )
+        assertExitFailure(result, Cause.fail(Option.none()))
+      }))
+
+    it.effect("should work with empty streams", () =>
+      Effect.gen(function*() {
+        const result = yield* pipe(
+          Stream.empty,
+          Stream.debounce(Duration.seconds(5)),
+          Stream.runCollect
+        )
+        assertTrue(result.length === 0)
+      }))
+
+    it.effect("should pick last element from every chunk", () =>
+      Effect.gen(function*() {
+        const fiber = yield* pipe(
+          Stream.make(1, 2, 3),
+          Stream.debounce(Duration.seconds(1)),
+          Stream.runCollect,
+          Effect.fork
+        )
+        yield* TestClock.adjust(Duration.seconds(1))
+        const result = yield* Fiber.join(fiber)
+        deepStrictEqual(result, [3])
+      }))
+
+    it.effect("should interrupt fibers properly", () =>
+      Effect.gen(function*() {
+        const coordination = yield* chunkCoordination([
+          [1],
+          [2],
+          [3]
+        ])
+        const fiber = yield* pipe(
+          coordination.stream,
+          Stream.chunks,
+          Stream.tap(() => coordination.proceed),
+          Stream.flattenArray,
+          Stream.debounce(Duration.millis(200)),
+          // Stream.interruptWhen(Effect.never),
+          Stream.take(1),
+          Stream.runCollect,
+          Effect.fork
+        )
+        yield* pipe(
+          coordination.offer,
+          Effect.andThen(TestClock.adjust(Duration.millis(100))),
+          Effect.andThen(coordination.awaitNext),
+          Effect.repeat({ times: 2 })
+        )
+        yield* TestClock.adjust(Duration.millis(100))
+        const result = yield* Fiber.join(fiber)
+        deepStrictEqual(result, [3])
+      }))
+
+    it.effect("should interrupt children fiber on stream interruption", () =>
+      Effect.gen(function*() {
+        const ref = yield* (Ref.make(false))
+        const fiber = yield* pipe(
+          Stream.fromEffect(Effect.void),
+          Stream.concat(Stream.fromEffect(pipe(
+            Effect.never,
+            Effect.onInterrupt(() => Ref.set(ref, true))
+          ))),
+          Stream.debounce(Duration.millis(800)),
+          Stream.runDrain,
+          Effect.fork
+        )
+        yield* TestClock.adjust(Duration.minutes(1))
+        yield* Fiber.interrupt(fiber)
+        const result = yield* Ref.get(ref)
+        assertTrue(result)
+      }))
   })
 })
 

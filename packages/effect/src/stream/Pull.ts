@@ -143,7 +143,7 @@ export const HaltTypeId = "~effect/stream/Pull/Halt"
  * @since 4.0.0
  * @category Halt
  */
-export class Halt<out L> {
+export class Halt<out L = void> {
   /**
    * @since 4.0.0
    */

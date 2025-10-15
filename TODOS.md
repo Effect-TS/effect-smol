@@ -333,7 +333,7 @@ The exports under each section are organized as they are in Effect 3.0. The cate
 |        `crossLeft`         |   -    |                               |          |
 |        `crossRight`        |   -    |                               |          |
 |        `crossWith`         |   -    |                               |          |
-|         `debounce`         |   -    |                               |          |
+|         `debounce`         |  Done  |                               |          |
 |     `distributedWith`      |   -    |                               |          |
 |  `distributedWithDynamic`  |   -    |                               |          |
 |          `drain`           |  Done  |            `drain`            |          |

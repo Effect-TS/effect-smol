@@ -3,6 +3,7 @@
  */
 // @effect-diagnostics returnEffectInGen:off
 import * as Cause from "../Cause.ts"
+import { Clock } from "../Clock.ts"
 import * as Arr from "../collections/Array.ts"
 import * as MutableHashMap from "../collections/MutableHashMap.ts"
 import * as Filter from "../data/Filter.ts"
@@ -2661,6 +2662,83 @@ export const scanEffect: {
 
 /**
  * @since 2.0.0
+ * @category Rate-limiting
+ */
+export const debounce: {
+  (duration: Duration.DurationInput): <A, E, R>(self: Stream<A, E, R>) => Stream<A, E, R>
+  <A, E, R>(self: Stream<A, E, R>, duration: Duration.DurationInput): Stream<A, E, R>
+} = dual(
+  2,
+  <A, E, R>(self: Stream<A, E, R>, duration: Duration.DurationInput): Stream<A, E, R> =>
+    transformPull(
+      self,
+      Effect.fnUntraced(function*(pull, scope) {
+        const clock = yield* Clock
+        const durationMs = Duration.toMillis(Duration.fromDurationInputUnsafe(duration))
+        let lastArr: Arr.NonEmptyReadonlyArray<A> | undefined
+        let cause: Cause.Cause<Pull.Halt | E> | undefined
+        let emitAtMs = Infinity
+        const pullLatch = Effect.makeLatchUnsafe()
+        const emitLatch = Effect.makeLatchUnsafe()
+        const endLatch = Effect.makeLatchUnsafe()
+
+        yield* pull.pipe(
+          pullLatch.whenOpen,
+          Effect.flatMap((arr) => {
+            emitLatch.openUnsafe()
+            lastArr = arr
+            emitAtMs = clock.currentTimeMillisUnsafe() + durationMs
+            return Effect.void
+          }),
+          Effect.forever({ autoYield: false }),
+          Effect.onError((cause_) => {
+            cause = cause_
+            emitAtMs = clock.currentTimeMillisUnsafe()
+            emitLatch.openUnsafe()
+            endLatch.openUnsafe()
+            return Effect.void
+          }),
+          Effect.forkIn(scope)
+        )
+
+        const sleepLoop = Effect.suspend(function loop(): Pull.Pull<Arr.NonEmptyReadonlyArray<A>, E, void, R> {
+          const now = clock.currentTimeMillisUnsafe()
+          const timeMs = emitAtMs < now ? durationMs : Math.min(durationMs, emitAtMs - now)
+          return Effect.flatMap(Effect.raceFirst(Effect.sleep(timeMs), endLatch.await), () => {
+            const now = clock.currentTimeMillisUnsafe()
+            if (now < emitAtMs) {
+              return loop()
+            } else if (lastArr) {
+              emitLatch.closeUnsafe()
+              pullLatch.closeUnsafe()
+              const eff = Effect.succeed(Arr.of(Arr.lastNonEmpty(lastArr)))
+              lastArr = undefined
+              return eff
+            } else if (cause) {
+              return Effect.failCause(cause!)
+            }
+            return loop()
+          })
+        })
+
+        return Effect.suspend(() => {
+          if (cause) {
+            if (lastArr) {
+              const eff = Effect.succeed(Arr.of(Arr.lastNonEmpty(lastArr)))
+              lastArr = undefined
+              return eff
+            }
+            return Effect.failCause(cause)
+          }
+          pullLatch.openUnsafe()
+          return emitLatch.whenOpen(sleepLoop)
+        })
+      })
+    )
+)
+
+/**
+ * @since 2.0.0
  * @category Grouping
  */
 export const grouped: {
@@ -3611,7 +3689,7 @@ export const provide: {
  * dependency on `R`.
  *
  * @since 4.0.0
- * @category context
+ * @category Services
  */
 export const provideServices: {
   <R2>(services: ServiceMap.ServiceMap<R2>): <A, E, R>(self: Stream<A, E, R>) => Stream<A, E, Exclude<R, R2>>
