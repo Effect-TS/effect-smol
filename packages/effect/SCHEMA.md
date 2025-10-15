@@ -6042,6 +6042,34 @@ const schema = Schema.Struct({
 })
 ```
 
+#### nullable
+
+v3
+
+```ts
+import { Schema } from "effect"
+
+const schema = Schema.Struct({
+  a: Schema.optionalWith(Schema.String, { nullable: true })
+})
+```
+
+v4
+
+```ts
+import { Option, Predicate } from "effect/data"
+import { Getter, Schema } from "effect/schema"
+
+const schema = Schema.Struct({
+  a: Schema.optional(Schema.NullOr(Schema.String)).pipe(
+    Schema.decodeTo(Schema.optional(Schema.String), {
+      decode: Getter.transformOptional(Option.filter(Predicate.isNotNull)),
+      encode: Getter.passthrough()
+    })
+  )
+})
+```
+
 ### Record
 
 v3
