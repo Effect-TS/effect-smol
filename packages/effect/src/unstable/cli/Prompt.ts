@@ -879,7 +879,7 @@ export const run: <Output>(
     const input = yield* terminal.readInput
     return yield* runWithInput(self, terminal, input)
   },
-  Effect.mapError(() => new Terminal.QuitError()),
+  Effect.mapError(() => new Terminal.QuitError({})),
   Effect.scoped
 )
 
@@ -1046,7 +1046,7 @@ const allTupled = <const T extends ArrayLike<Prompt<any>>>(arg: T): Prompt<
 const runWithInput = <Output>(
   prompt: Prompt<Output>,
   terminal: Terminal.Terminal,
-  input: Queue.Dequeue<Terminal.UserInput>
+  input: Queue.Dequeue<Terminal.UserInput, Queue.Done>
 ): Effect.Effect<Output, NoSuchElementError, Environment> =>
   Effect.suspend(() => {
     const op = prompt as PromptPrimitive
@@ -1070,7 +1070,7 @@ const runLoop = Effect.fnUntraced(
   function*(
     loop: Loop,
     terminal: Terminal.Terminal,
-    input: Queue.Dequeue<Terminal.UserInput>
+    input: Queue.Dequeue<Terminal.UserInput, Queue.Done>
   ) {
     let state = Effect.isEffect(loop.initialState) ? yield* loop.initialState : loop.initialState
     let action: Action<unknown, unknown> = Action.NextFrame({ state })

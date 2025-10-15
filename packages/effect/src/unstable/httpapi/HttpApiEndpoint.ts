@@ -223,7 +223,7 @@ export interface HttpApiEndpoint<
   /**
    * Add an `HttpApiMiddleware` to the endpoint.
    */
-  middleware<I extends HttpApiMiddleware.AnyId, S>(middleware: ServiceMap.Key<I, S>): HttpApiEndpoint<
+  middleware<I extends HttpApiMiddleware.AnyId, S>(middleware: ServiceMap.Service<I, S>): HttpApiEndpoint<
     Name,
     Method,
     Path,
@@ -241,7 +241,7 @@ export interface HttpApiEndpoint<
    * Add an annotation on the endpoint.
    */
   annotate<I, S>(
-    key: ServiceMap.Key<I, S>,
+    key: ServiceMap.Service<I, S>,
     value: Types.NoInfer<S>
   ): HttpApiEndpoint<
     Name,
@@ -978,7 +978,7 @@ const Proto = {
       middlewares: new Set([...this.middlewares, middleware as any])
     })
   },
-  annotate(this: AnyWithProps, key: ServiceMap.Key<any, any>, value: any) {
+  annotate(this: AnyWithProps, key: ServiceMap.Service<any, any>, value: any) {
     return makeProto({
       ...this,
       annotations: ServiceMap.add(this.annotations, key, value)
@@ -1015,7 +1015,7 @@ const makeProto = <
   readonly successSchema: Success
   readonly errorSchema: Error
   readonly annotations: ServiceMap.ServiceMap<never>
-  readonly middlewares: ReadonlySet<ServiceMap.Key<Middleware, any>>
+  readonly middlewares: ReadonlySet<ServiceMap.Service<Middleware, any>>
 }): HttpApiEndpoint<
   Name,
   Method,
