@@ -669,7 +669,7 @@ export const sync: {
   if (arguments.length === 1) {
     return (evaluate: LazyArg<any>) => syncServices(() => ServiceMap.make(arguments[0], evaluate()))
   }
-  return syncServices(() => ServiceMap.make(arguments[0], arguments[1]))
+  return syncServices(() => ServiceMap.make(arguments[0], arguments[1]()))
 } as any
 
 /**

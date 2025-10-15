@@ -3,4 +3,5 @@ packages:
   - scripts
   - packages/*
   - packages/sql/*
+  - packages/tools/*
   - examples/*
