@@ -1310,13 +1310,16 @@ export const scoped = <A, E, R>(
  * @category mapping
  */
 export const map: {
-  <A, B>(f: (a: A) => B): <E, R>(self: Stream<A, E, R>) => Stream<B, E, R>
-  <A, E, R, B>(self: Stream<A, E, R>, f: (a: A) => B): Stream<B, E, R>
-} = dual(2, <A, E, R, B>(self: Stream<A, E, R>, f: (a: A) => B): Stream<B, E, R> =>
-  fromChannel(Channel.map(
-    self.channel,
-    Arr.map(f)
-  )))
+  <A, B>(f: (a: A) => B, i: number): <E, R>(self: Stream<A, E, R>) => Stream<B, E, R>
+  <A, E, R, B>(self: Stream<A, E, R>, f: (a: A, i: number) => B): Stream<B, E, R>
+} = dual(2, <A, E, R, B>(self: Stream<A, E, R>, f: (a: A, i: number) => B): Stream<B, E, R> =>
+  suspend(() => {
+    let i = 0
+    return fromChannel(Channel.map(
+      self.channel,
+      Arr.map((o) => f(o, i++))
+    ))
+  }))
 
 /**
  * @since 2.0.0
@@ -1324,15 +1327,15 @@ export const map: {
  */
 export const mapArray: {
   <A, B>(
-    f: (a: Arr.NonEmptyReadonlyArray<A>) => Arr.NonEmptyReadonlyArray<B>
+    f: (a: Arr.NonEmptyReadonlyArray<A>, i: number) => Arr.NonEmptyReadonlyArray<B>
   ): <E, R>(self: Stream<A, E, R>) => Stream<B, E, R>
   <A, E, R, B>(
     self: Stream<A, E, R>,
-    f: (a: Arr.NonEmptyReadonlyArray<A>) => Arr.NonEmptyReadonlyArray<B>
+    f: (a: Arr.NonEmptyReadonlyArray<A>, i: number) => Arr.NonEmptyReadonlyArray<B>
   ): Stream<B, E, R>
 } = dual(2, <A, E, R, B>(
   self: Stream<A, E, R>,
-  f: (a: Arr.NonEmptyReadonlyArray<A>) => Arr.NonEmptyReadonlyArray<B>
+  f: (a: Arr.NonEmptyReadonlyArray<A>, i: number) => Arr.NonEmptyReadonlyArray<B>
 ): Stream<B, E, R> => fromChannel(Channel.map(self.channel, f)))
 
 /**
@@ -1366,7 +1369,7 @@ export const mapArray: {
  */
 export const mapEffect: {
   <A, A2, E2, R2>(
-    f: (a: A) => Effect.Effect<A2, E2, R2>,
+    f: (a: A, i: number) => Effect.Effect<A2, E2, R2>,
     options?: {
       readonly concurrency?: number | "unbounded" | undefined
       readonly bufferSize?: number | undefined
@@ -1375,7 +1378,7 @@ export const mapEffect: {
   ): <E, R>(self: Stream<A, E, R>) => Stream<A2, E2 | E, R2 | R>
   <A, E, R, A2, E2, R2>(
     self: Stream<A, E, R>,
-    f: (a: A) => Effect.Effect<A2, E2, R2>,
+    f: (a: A, i: number) => Effect.Effect<A2, E2, R2>,
     options?: {
       readonly concurrency?: number | "unbounded" | undefined
       readonly bufferSize?: number | undefined
@@ -1384,7 +1387,7 @@ export const mapEffect: {
   ): Stream<A2, E | E2, R | R2>
 } = dual((args) => isStream(args[0]), <A, E, R, A2, E2, R2>(
   self: Stream<A, E, R>,
-  f: (a: A) => Effect.Effect<A2, E2, R2>,
+  f: (a: A, i: number) => Effect.Effect<A2, E2, R2>,
   options?: {
     readonly concurrency?: number | "unbounded" | undefined
     readonly bufferSize?: number | undefined
@@ -1433,15 +1436,15 @@ export const flattenEffect: {
  */
 export const mapArrayEffect: {
   <A, B, E2, R2>(
-    f: (a: Arr.NonEmptyReadonlyArray<A>) => Effect.Effect<Arr.NonEmptyReadonlyArray<B>, E2, R2>
+    f: (a: Arr.NonEmptyReadonlyArray<A>, i: number) => Effect.Effect<Arr.NonEmptyReadonlyArray<B>, E2, R2>
   ): <E, R>(self: Stream<A, E, R>) => Stream<B, E | E2, R | R2>
   <A, E, R, B, E2, R2>(
     self: Stream<A, E, R>,
-    f: (a: Arr.NonEmptyReadonlyArray<A>) => Effect.Effect<Arr.NonEmptyReadonlyArray<B>, E2, R2>
+    f: (a: Arr.NonEmptyReadonlyArray<A>, i: number) => Effect.Effect<Arr.NonEmptyReadonlyArray<B>, E2, R2>
   ): Stream<B, E | E2, R | R2>
 } = dual(2, <A, E, R, B, E2, R2>(
   self: Stream<A, E, R>,
-  f: (a: Arr.NonEmptyReadonlyArray<A>) => Effect.Effect<Arr.NonEmptyReadonlyArray<B>, E2, R2>
+  f: (a: Arr.NonEmptyReadonlyArray<A>, i: number) => Effect.Effect<Arr.NonEmptyReadonlyArray<B>, E2, R2>
 ): Stream<B, E | E2, R | R2> => fromChannel(Channel.mapEffect(self.channel, f)))
 
 /**

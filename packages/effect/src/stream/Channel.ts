@@ -1676,21 +1676,25 @@ export const fromAsyncIterableArray = <A, D, E>(
  */
 export const map: {
   <OutElem, OutElem2>(
-    f: (o: OutElem) => OutElem2
+    f: (o: OutElem, i: number) => OutElem2
   ): <OutErr, OutDone, InElem, InErr, InDone, Env>(
     self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>
   ) => Channel<OutElem2, OutErr, OutDone, InElem, InErr, InDone, Env>
   <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, OutElem2>(
     self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
-    f: (o: OutElem) => OutElem2
+    f: (o: OutElem, i: number) => OutElem2
   ): Channel<OutElem2, OutErr, OutDone, InElem, InErr, InDone, Env>
 } = dual(
   2,
   <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, OutElem2>(
     self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
-    f: (o: OutElem) => OutElem2
+    f: (o: OutElem, i: number) => OutElem2
   ): Channel<OutElem2, OutErr, OutDone, InElem, InErr, InDone, Env> =>
-    transformPull(self, (pull) => Effect.succeed(Effect.map(pull, f)))
+    transformPull(self, (pull) =>
+      Effect.sync(() => {
+        let i = 0
+        return Effect.map(pull, (o) => f(o, i++))
+      }))
 )
 
 /**
@@ -1799,7 +1803,7 @@ const concurrencyIsSequential = (
  */
 export const mapEffect: {
   <OutElem, OutElem1, OutErr1, Env1>(
-    f: (d: OutElem) => Effect.Effect<OutElem1, OutErr1, Env1>,
+    f: (d: OutElem, i: number) => Effect.Effect<OutElem1, OutErr1, Env1>,
     options?: {
       readonly concurrency?: number | "unbounded" | undefined
       readonly unordered?: boolean | undefined
@@ -1809,7 +1813,7 @@ export const mapEffect: {
   ) => Channel<OutElem1, OutErr1 | OutErr, OutDone, InElem, InErr, InDone, Env1 | Env>
   <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, OutElem1, OutErr1, Env1>(
     self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
-    f: (d: OutElem) => Effect.Effect<OutElem1, OutErr1, Env1>,
+    f: (d: OutElem, i: number) => Effect.Effect<OutElem1, OutErr1, Env1>,
     options?: {
       readonly concurrency?: number | "unbounded" | undefined
       readonly unordered?: boolean | undefined
@@ -1819,7 +1823,7 @@ export const mapEffect: {
   (args) => isChannel(args[0]),
   <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, OutElem1, OutErr1, Env1>(
     self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
-    f: (d: OutElem) => Effect.Effect<OutElem1, OutErr1, Env1>,
+    f: (d: OutElem, i: number) => Effect.Effect<OutElem1, OutErr1, Env1>,
     options?: {
       readonly concurrency?: number | "unbounded" | undefined
       readonly unordered?: boolean | undefined
@@ -1843,9 +1847,12 @@ const mapEffectSequential = <
   RX
 >(
   self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
-  f: (o: OutElem) => Effect.Effect<OutElem2, EX, RX>
+  f: (o: OutElem, i: number) => Effect.Effect<OutElem2, EX, RX>
 ): Channel<OutElem2, OutErr | EX, OutDone, InElem, InErr, InDone, Env | RX> =>
-  fromTransform((upstream, scope) => Effect.map(toTransform(self)(upstream, scope), Effect.flatMap(f)))
+  fromTransform((upstream, scope) => {
+    let i = 0
+    return Effect.map(toTransform(self)(upstream, scope), Effect.flatMap((o) => f(o, i++)))
+  })
 
 const mapEffectConcurrent = <
   OutElem,
@@ -1860,7 +1867,7 @@ const mapEffectConcurrent = <
   RX
 >(
   self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
-  f: (o: OutElem) => Effect.Effect<OutElem2, EX, RX>,
+  f: (o: OutElem, i: number) => Effect.Effect<OutElem2, EX, RX>,
   options: {
     readonly concurrency: number | "unbounded"
     readonly unordered?: boolean | undefined
@@ -1868,6 +1875,7 @@ const mapEffectConcurrent = <
 ): Channel<OutElem2, OutErr | EX, OutDone, InElem, InErr, InDone, Env | RX> =>
   fromTransformBracket(
     Effect.fnUntraced(function*(upstream, scope, forkedScope) {
+      let i = 0
       const pull = yield* toTransform(self)(upstream, scope)
       const concurrencyN = options.concurrency === "unbounded"
         ? Number.MAX_SAFE_INTEGER
@@ -1888,7 +1896,7 @@ const mapEffectConcurrent = <
         yield* semaphore.take(1).pipe(
           Effect.flatMap(() => pull),
           Effect.flatMap((value) => {
-            trackFiber(runFork(handle(f(value))))
+            trackFiber(runFork(handle(f(value, i++))))
             return Effect.void
           }),
           Effect.forever({ autoYield: false }),
@@ -1926,7 +1934,7 @@ const mapEffectConcurrent = <
         yield* pull.pipe(
           Effect.flatMap((value) => {
             if (errorCause) return Effect.failCause(errorCause)
-            const fiber = runFork(f(value))
+            const fiber = runFork(f(value, i++))
             trackFiber(fiber)
             fiber.addObserver(onExit)
             return Queue.offer(effects, Fiber.join(fiber))
