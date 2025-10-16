@@ -439,7 +439,7 @@ The exports under each section are organized as they are in Effect 3.0. The cate
 |        `zipLeft`         |   -    |          |          |
 |        `zipRight`        |   -    |          |          |
 |        `zipWith`         |  Done  |          |          |
-|     `zipWithChunks`      |   -    |          |          |
+|     `zipWithChunks`      |  Done  |          |          |
 |      `zipWithIndex`      |   -    |          |          |
 |      `zipWithNext`       |   -    |          |          |
 |    `zipWithPrevious`     |   -    |          |          |

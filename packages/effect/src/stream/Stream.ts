@@ -1781,6 +1781,67 @@ export const zipWith: {
   left: Stream<AL, EL, RL>,
   right: Stream<AR, ER, RR>,
   f: (left: AL, right: AR) => A
+): Stream<A, EL | ER, RL | RR> => zipWithArray(left, right, zipArrays(f)))
+
+const zipArrays = <AL, AR, A>(
+  f: (left: AL, right: AR) => A
+) =>
+(
+  leftArr: Arr.NonEmptyReadonlyArray<AL>,
+  rightArr: Arr.NonEmptyReadonlyArray<AR>
+) => {
+  const minLength = Math.min(leftArr.length, rightArr.length)
+  const result: Arr.NonEmptyArray<A> = [] as any
+
+  for (let i = 0; i < minLength; i++) {
+    result.push(f(leftArr[i], rightArr[i]))
+  }
+
+  return [result, leftArr.slice(minLength), rightArr.slice(minLength)] as const
+}
+
+/**
+ * Zips this stream with another stream using a function that operates on arrays
+ * (chunks) of elements rather than individual elements.
+ *
+ * @since 2.0.0
+ * @category zipping
+ */
+export const zipWithArray: {
+  <AR, ER, RR, AL, A>(
+    right: Stream<AR, ER, RR>,
+    f: (
+      left: Arr.NonEmptyReadonlyArray<AL>,
+      right: Arr.NonEmptyReadonlyArray<AR>
+    ) => readonly [
+      output: Arr.NonEmptyReadonlyArray<A>,
+      leftoverLeft: ReadonlyArray<AL>,
+      leftoverRight: ReadonlyArray<AR>
+    ]
+  ): <EL, RL>(left: Stream<AL, EL, RL>) => Stream<A, EL | ER, RL | RR>
+  <AL, EL, RL, AR, ER, RR, A>(
+    left: Stream<AL, EL, RL>,
+    right: Stream<AR, ER, RR>,
+    f: (
+      left: Arr.NonEmptyReadonlyArray<AL>,
+      right: Arr.NonEmptyReadonlyArray<AR>
+    ) => readonly [
+      output: Arr.NonEmptyReadonlyArray<A>,
+      leftoverLeft: ReadonlyArray<AL>,
+      leftoverRight: ReadonlyArray<AR>
+    ]
+  ): Stream<A, EL | ER, RL | RR>
+} = dual(3, <AL, EL, RL, AR, ER, RR, A>(
+  left: Stream<AL, EL, RL>,
+  right: Stream<AR, ER, RR>,
+  f: (
+    left: Arr.NonEmptyReadonlyArray<AL>,
+    right: Arr.NonEmptyReadonlyArray<AR>
+  ) => readonly [
+    output: Arr.NonEmptyReadonlyArray<A>,
+    leftoverLeft: ReadonlyArray<AL>,
+    leftoverRight: ReadonlyArray<AR>
+  ]
 ): Stream<A, EL | ER, RL | RR> =>
   fromChannel(Channel.fromTransform(Effect.fnUntraced(function*(_, scope) {
     const pullLeft = yield* Channel.toPullScoped(left.channel, scope)
@@ -1792,49 +1853,23 @@ export const zipWith: {
       | { _tag: "PullRight"; leftArray: Arr.NonEmptyReadonlyArray<AL> }
     let state: State = { _tag: "PullBoth" }
 
-    const zipArrays = (
-      leftArr: Arr.NonEmptyReadonlyArray<AL>,
-      rightArr: Arr.NonEmptyReadonlyArray<AR>
-    ): readonly [
-      Arr.NonEmptyReadonlyArray<A>,
-      ReadonlyArray<AL>,
-      ReadonlyArray<AR>
-    ] => {
-      const minLength = Math.min(leftArr.length, rightArr.length)
-      const result: Array<A> = []
-
-      for (let i = 0; i < minLength; i++) {
-        result.push(f(leftArr[i], rightArr[i]))
-      }
-
-      const leftoverLeft = leftArr.slice(minLength)
-      const leftoverRight = rightArr.slice(minLength)
-
-      // Since both inputs are NonEmpty, minLength is at least 1, so result is NonEmpty
-      return [
-        result as unknown as Arr.NonEmptyReadonlyArray<A>,
-        leftoverLeft,
-        leftoverRight
-      ]
-    }
-
     const pull: Effect.Effect<
       Arr.NonEmptyReadonlyArray<A>,
       EL | ER | Pull.Halt,
       RL | RR
     > = Effect.gen(function*() {
-      const [output, leftArray, rightArray] = zipArrays(
+      const result = f(
         state._tag === "PullRight" ? state.leftArray : yield* pullLeft,
         state._tag === "PullLeft" ? state.rightArray : yield* pullRight
       )
-      if (Arr.isReadonlyArrayNonEmpty(leftArray)) {
-        state = { _tag: "PullRight", leftArray }
-      } else if (Arr.isReadonlyArrayNonEmpty(rightArray)) {
-        state = { _tag: "PullLeft", rightArray }
+      if (Arr.isReadonlyArrayNonEmpty(result[1])) {
+        state = { _tag: "PullRight", leftArray: result[1] }
+      } else if (Arr.isReadonlyArrayNonEmpty(result[2])) {
+        state = { _tag: "PullLeft", rightArray: result[2] }
       } else {
         state = { _tag: "PullBoth" }
       }
-      return output
+      return result[0]
     })
 
     return pull
