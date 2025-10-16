@@ -26,6 +26,7 @@
   "bin": {
     "openapigen": "./src/bin.ts"
   },
+  "files": [],
   "publishConfig": {
     "provenance": true,
     "bin": {
