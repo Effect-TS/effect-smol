@@ -11,6 +11,6 @@
     "outDir": ".tsbuildinfo/src",
     "types": ["node"],
     "rootDir": "src",
-    "eraseableSyntaxOnly": false
+    "erasableSyntaxOnly": false
   }
 }
