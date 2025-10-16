@@ -434,8 +434,8 @@ The exports under each section are organized as they are in Effect 3.0. The cate
 |       `zipAllWith`       |   -    |          |          |
 |       `zipFlatten`       |  Done  |          |          |
 |       `zipLatest`        |   -    |          |          |
-|      `zipLatestAll`      |   -    |          |          |
-|     `zipLatestWith`      |   -    |          |          |
+|      `zipLatestAll`      |  Done  |          |          |
+|     `zipLatestWith`      |   X    |          |          |
 |        `zipLeft`         |  Done  |          |          |
 |        `zipRight`        |  Done  |          |          |
 |        `zipWith`         |  Done  |          |          |

@@ -1898,7 +1898,7 @@ export const zipWithArray: {
  * // Output: [[1, "a"], [2, "b"], [3, "c"]]
  * ```
  *
- * @since 3.8.0
+ * @since 2.0.0
  * @category zipping
  */
 export const zip: {
@@ -1932,7 +1932,7 @@ export const zip: {
  * // Output: [1, 2]
  * ```
  *
- * @since 3.8.0
+ * @since 2.0.0
  * @category zipping
  */
 export const zipLeft: {
@@ -1974,7 +1974,7 @@ export const zipLeft: {
  * // Output: ["a", "b"]
  * ```
  *
- * @since 3.8.0
+ * @since 2.0.0
  * @category zipping
  */
 export const zipRight: {
@@ -2016,7 +2016,7 @@ export const zipRight: {
  * // Output: [[1, "a", "x"], [2, "b", "y"], [3, "c", "z"]]
  * ```
  *
- * @since 3.8.0
+ * @since 2.0.0
  * @category zipping
  */
 export const zipFlatten: {
@@ -2051,10 +2051,53 @@ export const zipFlatten: {
  * // Output: [["a", 0], ["b", 1], ["c", 2], ["d", 3]]
  * ```
  *
- * @since 3.8.0
+ * @since 2.0.0
  * @category zipping
  */
 export const zipWithIndex = <A, E, R>(self: Stream<A, E, R>): Stream<[A, number], E, R> => map(self, (a, i) => [a, i])
+
+/**
+ * @since 2.0.0
+ * @category zipping
+ */
+export const zipLatestAll = <T extends ReadonlyArray<Stream<any, any, any>>>(
+  ...streams: T
+): Stream<
+  [T[number]] extends [never] ? never
+    : { [K in keyof T]: T[K] extends Stream<infer A, infer _E, infer _R> ? A : never },
+  [T[number]] extends [never] ? never : T[number] extends Stream<infer _A, infer _E, infer _R> ? _E : never,
+  [T[number]] extends [never] ? never : T[number] extends Stream<infer _A, infer _E, infer _R> ? _R : never
+> =>
+  fromChannel(Channel.suspend(() => {
+    const latest: Array<any> = []
+    const emitted = new Set<number>()
+    const readyLatch = Effect.makeLatchUnsafe()
+    return Channel.mergeAll(
+      Channel.fromArray(
+        streams.map((s, i) =>
+          s.channel.pipe(
+            Channel.flattenArray,
+            Channel.mapEffect((a) => {
+              latest[i] = a
+              if (!emitted.has(i)) {
+                emitted.add(i)
+                if (emitted.size < streams.length) {
+                  return readyLatch.await as Effect.Effect<undefined>
+                }
+                return Effect.as(readyLatch.open, Arr.of(latest.slice()))
+              }
+              return Effect.succeed(Arr.of(latest.slice()))
+            }),
+            Channel.filter((a) => a === undefined ? Filter.failVoid : a)
+          )
+        )
+      ),
+      {
+        concurrency: "unbounded",
+        bufferSize: 0
+      }
+    )
+  })) as any
 
 /**
  * @since 3.7.0
