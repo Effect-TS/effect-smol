@@ -23,38 +23,21 @@
     "openapi",
     "codegen"
   ],
-  "sideEffects": [],
-  "exports": {
-    "./package.json": "./package.json",
-    ".": "./src/index.ts",
-    "./*": "./src/*.ts",
-    "./internal/*": null,
-    "./*/index": null
+  "bin": {
+    "openapigen": "./src/bin.ts"
   },
-  "files": [
-    "src/**/*.ts",
-    "dist/**/*.js",
-    "dist/**/*.js.map",
-    "dist/**/*.d.ts",
-    "dist/**/*.d.ts.map"
-  ],
   "publishConfig": {
     "provenance": true,
-    "exports": {
-      "./package.json": "./package.json",
-      ".": "./dist/index.js",
-      "./*": "./dist/*.js",
-      "./internal/*": null,
-      "./*/index": null
+    "bin": {
+      "openapigen": "./dist/bin.js"
     }
   },
   "scripts": {
     "codegen": "build-utils prepare-v4",
-    "build": "tsup && pnpm copy-package-json",
+    "build": "tsup",
     "check": "tsc -b tsconfig.json",
     "test": "vitest",
-    "coverage": "vitest --coverage",
-    "copy-package-json": "tsx scripts/copy-package-json.ts"
+    "coverage": "vitest --coverage"
   },
   "peerDependencies": {
     "@effect/platform-node": "workspace:^",
