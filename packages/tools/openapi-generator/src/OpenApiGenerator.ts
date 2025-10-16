@@ -8,7 +8,7 @@ import * as String from "effect/String"
 import type { OpenAPISpec, OpenAPISpecMethodName, OpenAPISpecPathItem } from "effect/unstable/httpapi/OpenApi"
 import SwaggerToOpenApi from "swagger2openapi"
 import * as JsonSchemaGenerator from "./JsonSchemaGenerator.ts"
-import type * as JsonSchemaTransformer from "./JsonSchemaTransformer.ts"
+import * as JsonSchemaTransformer from "./JsonSchemaTransformer.ts"
 import * as OpenApiTransformer from "./OpenApiTransformer.ts"
 import * as ParsedOperation from "./ParsedOperation.ts"
 import * as Utils from "./Utils.ts"
@@ -42,11 +42,6 @@ const methodNames: ReadonlyArray<OpenAPISpecMethodName> = [
 ]
 
 export const make = Effect.gen(function*() {
-  const services = yield* Effect.services<
-    | JsonSchemaTransformer.JsonSchemaTransformer
-    | OpenApiTransformer.OpenApiTransformer
-  >()
-
   const generate = Effect.fn(
     function*(spec: OpenAPISpec, options: OpenApiGenerateOptions) {
       const generator = yield* JsonSchemaGenerator.JsonSchemaGenerator
@@ -245,19 +240,30 @@ export const make = Effect.gen(function*() {
       JsonSchemaGenerator.JsonSchemaGenerator,
       JsonSchemaGenerator.make
     ),
-    Effect.provideServices(services)
+    (effect, _, options) =>
+      Effect.provideService(
+        effect,
+        JsonSchemaTransformer.JsonSchemaTransformer,
+        options.typeOnly
+          ? JsonSchemaTransformer.makeTransformerTs
+          : JsonSchemaTransformer.makeTransformerSchema
+      ),
+    (effect, _, options) =>
+      Effect.provideServiceEffect(
+        effect,
+        OpenApiTransformer.OpenApiTransformer,
+        options.typeOnly
+          ? Effect.sync(OpenApiTransformer.makeTransformerTs)
+          : Effect.sync(OpenApiTransformer.makeTransformerSchema)
+      )
   )
 
   return { generate } as const
 })
 
-export const layerTransformerSchema: Layer.Layer<OpenApiGenerator> = Layer.effect(OpenApiGenerator, make).pipe(
-  Layer.provide(OpenApiTransformer.layerTransformerSchema)
-)
+export const layerTransformerSchema: Layer.Layer<OpenApiGenerator> = Layer.effect(OpenApiGenerator, make)
 
-export const layerTransformerTs: Layer.Layer<OpenApiGenerator> = Layer.effect(OpenApiGenerator, make).pipe(
-  Layer.provide(OpenApiTransformer.layerTransformerTs)
-)
+export const layerTransformerTs: Layer.Layer<OpenApiGenerator> = Layer.effect(OpenApiGenerator, make)
 
 const isSwaggerSpec = (spec: OpenAPISpec) => "swagger" in spec
 

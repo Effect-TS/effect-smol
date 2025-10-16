@@ -25,7 +25,7 @@ const httpClientMethodNames: Record<OpenAPISpecMethodName, string> = {
   trace: `make("TRACE")`
 }
 
-export const layerTransformerSchema = Layer.sync(OpenApiTransformer, () => {
+export const makeTransformerSchema = () => {
   const operationsToInterface = (
     _importName: string,
     name: string,
@@ -181,7 +181,10 @@ ${clientErrorSource(name)}`
     imports: (importName) =>
       [
         `import * as Data from "effect/data/Data"`,
+        `import * as Option from "effect/data/Option"`,
+        `import * as Predicate from "effect/data/Predicate"`,
         `import * as Effect from "effect/Effect"`,
+        `import * as Getter from "effect/schema/Getter"`,
         `import type { SchemaError } from "effect/schema/Schema"`,
         `import * as ${importName} from "effect/schema/Schema"`,
         `import type * as HttpClient from "effect/unstable/http/HttpClient"`,
@@ -192,9 +195,14 @@ ${clientErrorSource(name)}`
     toTypes: operationsToInterface,
     toImplementation: operationsToImpl
   })
-}).pipe(Layer.merge(JsonSchemaTransformer.layerTransformerSchema))
+}
 
-export const layerTransformerTs = Layer.sync(OpenApiTransformer, () => {
+export const layerTransformerSchema = Layer.sync(
+  OpenApiTransformer,
+  makeTransformerSchema
+).pipe(Layer.merge(JsonSchemaTransformer.layerTransformerSchema))
+
+export const makeTransformerTs = () => {
   const operationsToInterface = (
     _importName: string,
     name: string,
@@ -371,7 +379,12 @@ ${clientErrorSource(name)}`
     toTypes: operationsToInterface,
     toImplementation: operationsToImpl
   })
-}).pipe(Layer.merge(JsonSchemaTransformer.layerTransformerTs))
+}
+
+export const layerTransformerTs = Layer.sync(
+  OpenApiTransformer,
+  makeTransformerSchema
+).pipe(Layer.merge(JsonSchemaTransformer.layerTransformerTs))
 
 const commonSource = `const unexpectedStatus = (response: HttpClientResponse.HttpClientResponse) =>
     Effect.flatMap(
