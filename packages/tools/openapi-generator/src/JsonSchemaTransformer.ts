@@ -136,7 +136,7 @@ function applyAnnotations(S: string, options: {
     }
     const newSource = options.isNullable ? `${S}.NullOr(${source})` : source
     if (defaultSource) {
-      return `${newSource}.pipe(${S}.propertySignature, ${S}.withConstructorDefault(${defaultSource}))`
+      return `${newSource}.pipe(${S}.withConstructorDefault(${defaultSource}))`
     }
     return newSource
   }
@@ -182,7 +182,7 @@ export const makeTransformerSchema = JsonSchemaTransformer.of({
     return `${importName}.Boolean`
   },
   onRecord({ importName }) {
-    return `${importName}.Record({ key: ${importName}.String, value: ${importName}.Unknown })`
+    return `${importName}.Record(${importName}.String, ${importName}.Unknown)`
   },
   onEnum({ importName, items }) {
     return items.length === 1 ? `${importName}.Literal(${items[0]})` : `${importName}.Literals([${items.join(", ")}])`
