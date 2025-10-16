@@ -5736,7 +5736,13 @@ export interface UnknownFromJsonString extends decodeTo<Unknown, String> {}
 export const UnknownFromJsonString: UnknownFromJsonString = String.annotate({
   description: "a string that will be decoded as JSON"
 }).pipe(
-  decodeTo(Unknown, Transformation.unknownFromJsonString())
+  decodeTo(
+    Unknown,
+    new Transformation.Transformation<unknown, string>(
+      Getter.parseJson(),
+      Getter.stringifyJson()
+    )
+  )
 )
 
 /**

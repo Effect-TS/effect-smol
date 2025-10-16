@@ -346,15 +346,29 @@ export interface ParseJsonOptions {
 }
 
 /**
+ * The type that is guaranteed to return from `JSON.parse` if no reviver is
+ * passed.
+ *
+ * @since 4.0.0
+ */
+export type JsonValue =
+  | null
+  | string
+  | number
+  | boolean
+  | { [x: string]: JsonValue }
+  | Array<JsonValue>
+
+/**
  * @category string
  * @since 4.0.0
  */
-export function parseJson<E extends string>(options?: {
-  readonly options?: ParseJsonOptions | undefined
-}): Getter<unknown, E> {
+export function parseJson<E extends string>(): Getter<JsonValue, E>
+export function parseJson<E extends string>(options: ParseJsonOptions): Getter<unknown, E>
+export function parseJson<E extends string>(options?: ParseJsonOptions | undefined): Getter<unknown, E> {
   return onSome((input) =>
     Effect.try({
-      try: () => Option.some(JSON.parse(input, options?.options?.reviver)),
+      try: () => Option.some(JSON.parse(input, options?.reviver)),
       catch: (e) => new Issue.InvalidValue(Option.some(input), { message: globalThis.String(e) })
     })
   )
@@ -372,12 +386,10 @@ export interface StringifyJsonOptions {
  * @category string
  * @since 4.0.0
  */
-export function stringifyJson(options?: {
-  readonly options?: StringifyJsonOptions | undefined
-}): Getter<string, unknown> {
+export function stringifyJson(options?: StringifyJsonOptions): Getter<string, unknown> {
   return onSome((input) =>
     Effect.try({
-      try: () => Option.some(JSON.stringify(input, options?.options?.replacer, options?.options?.space)),
+      try: () => Option.some(JSON.stringify(input, options?.replacer, options?.space)),
       catch: (e) => new Issue.InvalidValue(Option.some(input), { message: globalThis.String(e) })
     })
   )

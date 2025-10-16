@@ -189,25 +189,6 @@ export function uncapitalize(): Transformation<string, string> {
 }
 
 /**
- * @since 4.0.0
- */
-export interface JsonOptions extends Getter.ParseJsonOptions, Getter.StringifyJsonOptions {}
-
-/**
- * A transformation that parses a JSON string into an unknown value and
- * stringifies an unknown value into a JSON string.
- *
- * @category String transformations
- * @since 4.0.0
- */
-export function unknownFromJsonString(options?: JsonOptions): Transformation<unknown, string> {
-  return new Transformation(
-    Getter.parseJson({ options }),
-    Getter.stringifyJson({ options })
-  )
-}
-
-/**
  * A transformation that decodes a string into a record of key-value pairs and
  * encodes a record of key-value pairs into a string.
  *
