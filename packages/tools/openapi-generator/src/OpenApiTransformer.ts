@@ -181,10 +181,7 @@ ${clientErrorSource(name)}`
     imports: (importName) =>
       [
         `import * as Data from "effect/data/Data"`,
-        `import * as Option from "effect/data/Option"`,
-        `import * as Predicate from "effect/data/Predicate"`,
         `import * as Effect from "effect/Effect"`,
-        `import * as Getter from "effect/schema/Getter"`,
         `import type { SchemaError } from "effect/schema/Schema"`,
         `import * as ${importName} from "effect/schema/Schema"`,
         `import type * as HttpClient from "effect/unstable/http/HttpClient"`,

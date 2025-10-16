@@ -27,7 +27,6 @@ import { layerHttpClientK8s } from "./NodeClusterRunnerSocket.ts"
 import * as NodeFileSystem from "./NodeFileSystem.ts"
 import * as NodeHttpClient from "./NodeHttpClient.ts"
 import * as NodeHttpServer from "./NodeHttpServer.ts"
-import type { NodeServices } from "./NodeServices.ts"
 import * as NodeSocket from "./NodeSocket.ts"
 
 /**

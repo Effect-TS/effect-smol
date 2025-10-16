@@ -45,7 +45,8 @@ export const make = Effect.gen(function*() {
   const generate = Effect.fn(
     function*(spec: OpenAPISpec, options: OpenApiGenerateOptions) {
       const generator = yield* JsonSchemaGenerator.JsonSchemaGenerator
-      const transformer = yield* OpenApiTransformer.OpenApiTransformer
+      const jsonSchemaTransformer = yield* JsonSchemaTransformer.JsonSchemaTransformer
+      const openApiTransformer = yield* OpenApiTransformer.OpenApiTransformer
 
       // If we receive a Swagger 2.0 spec, convert it to an OpenApi 3.0 spec
       if (isSwaggerSpec(spec)) {
@@ -227,13 +228,14 @@ export const make = Effect.gen(function*() {
       const schemas = yield* generator.generate(importName)
 
       return String.stripMargin(
-        `|${transformer.imports(importName)}
+        `|${openApiTransformer.imports(importName)}
+         |${jsonSchemaTransformer.imports()}
          |
          |${schemas}
          |
-         |${transformer.toImplementation(importName, options.name, operations)}
+         |${openApiTransformer.toImplementation(importName, options.name, operations)}
          |
-         |${transformer.toTypes(importName, options.name, operations)}`
+         |${openApiTransformer.toTypes(importName, options.name, operations)}`
       )
     },
     Effect.provideServiceEffect(
@@ -241,7 +243,7 @@ export const make = Effect.gen(function*() {
       JsonSchemaGenerator.make
     ),
     (effect, _, options) =>
-      Effect.provideService(
+      Effect.provideServiceEffect(
         effect,
         JsonSchemaTransformer.JsonSchemaTransformer,
         options.typeOnly
