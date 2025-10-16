@@ -34,7 +34,6 @@
     }
   },
   "scripts": {
-    "codegen": "build-utils prepare-v4",
     "build": "tsup",
     "check": "tsc -b tsconfig.json",
     "test": "vitest",
