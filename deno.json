@@ -23,6 +23,7 @@
     "packages/platform-bun/",
     "packages/platform-node/",
     "packages/platform-node-shared/",
+    "packages/tools/",
     "packages/sql"
   ]
 }
