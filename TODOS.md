@@ -423,7 +423,7 @@ The exports under each section are organized as they are in Effect 3.0. The cate
 
 |         Effect 3         | Ported | Effect 4 | Comments |
 | :----------------------: | :----: | :------: | :------: |
-|          `zip`           |   -    |          |          |
+|          `zip`           |  Done  |          |          |
 |         `zipAll`         |   -    |          |          |
 |       `zipAllLeft`       |   -    |          |          |
 |      `zipAllRight`       |   -    |          |          |
@@ -432,15 +432,15 @@ The exports under each section are organized as they are in Effect 3.0. The cate
 | `zipAllSortedByKeyRight` |   X    |          |          |
 | `zipAllSortedByKeyWith`  |   X    |          |          |
 |       `zipAllWith`       |   -    |          |          |
-|       `zipFlatten`       |   -    |          |          |
+|       `zipFlatten`       |  Done  |          |          |
 |       `zipLatest`        |   -    |          |          |
 |      `zipLatestAll`      |   -    |          |          |
 |     `zipLatestWith`      |   -    |          |          |
-|        `zipLeft`         |   -    |          |          |
-|        `zipRight`        |   -    |          |          |
+|        `zipLeft`         |  Done  |          |          |
+|        `zipRight`        |  Done  |          |          |
 |        `zipWith`         |  Done  |          |          |
 |     `zipWithChunks`      |  Done  |          |          |
-|      `zipWithIndex`      |   -    |          |          |
+|      `zipWithIndex`      |  Done  |          |          |
 |      `zipWithNext`       |   -    |          |          |
 |    `zipWithPrevious`     |   -    |          |          |
 | `zipWithPreviousAndNext` |   -    |          |          |

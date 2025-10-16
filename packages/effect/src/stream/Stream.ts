@@ -1310,7 +1310,7 @@ export const scoped = <A, E, R>(
  * @category mapping
  */
 export const map: {
-  <A, B>(f: (a: A) => B, i: number): <E, R>(self: Stream<A, E, R>) => Stream<B, E, R>
+  <A, B>(f: (a: A, i: number) => B): <E, R>(self: Stream<A, E, R>) => Stream<B, E, R>
   <A, E, R, B>(self: Stream<A, E, R>, f: (a: A, i: number) => B): Stream<B, E, R>
 } = dual(2, <A, E, R, B>(self: Stream<A, E, R>, f: (a: A, i: number) => B): Stream<B, E, R> =>
   suspend(() => {
@@ -1877,6 +1877,184 @@ export const zipWithArray: {
 
     return pull
   }))))
+
+/**
+ * Zips this stream with another point-wise and emits tuples of elements from
+ * both streams.
+ *
+ * The new stream will end when one of the sides ends.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ * import { Stream } from "effect/stream"
+ *
+ * const stream1 = Stream.make(1, 2, 3)
+ * const stream2 = Stream.make("a", "b", "c")
+ *
+ * const zipped = Stream.zip(stream1, stream2)
+ *
+ * Effect.runPromise(Stream.runCollect(zipped)).then(console.log)
+ * // Output: [[1, "a"], [2, "b"], [3, "c"]]
+ * ```
+ *
+ * @since 3.8.0
+ * @category zipping
+ */
+export const zip: {
+  <A2, E2, R2>(that: Stream<A2, E2, R2>): <A, E, R>(self: Stream<A, E, R>) => Stream<[A, A2], E2 | E, R2 | R>
+  <A, E, R, A2, E2, R2>(self: Stream<A, E, R>, that: Stream<A2, E2, R2>): Stream<[A, A2], E | E2, R | R2>
+} = dual(
+  2,
+  <A, E, R, A2, E2, R2>(
+    self: Stream<A, E, R>,
+    that: Stream<A2, E2, R2>
+  ): Stream<[A, A2], E | E2, R | R2> => zipWith(self, that, (a, a2) => [a, a2])
+)
+
+/**
+ * Zips this stream with another point-wise, but keeps only the outputs of
+ * the left stream.
+ *
+ * The new stream will end when one of the sides ends.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ * import { Stream } from "effect/stream"
+ *
+ * const stream1 = Stream.make(1, 2, 3, 4)
+ * const stream2 = Stream.make("a", "b")
+ *
+ * const zipped = Stream.zipLeft(stream1, stream2)
+ *
+ * Effect.runPromise(Stream.runCollect(zipped)).then(console.log)
+ * // Output: [1, 2]
+ * ```
+ *
+ * @since 3.8.0
+ * @category zipping
+ */
+export const zipLeft: {
+  <AR, ER, RR>(right: Stream<AR, ER, RR>): <AL, EL, RL>(left: Stream<AL, EL, RL>) => Stream<AL, ER | EL, RR | RL>
+  <AL, EL, RL, AR, ER, RR>(left: Stream<AL, EL, RL>, right: Stream<AR, ER, RR>): Stream<AL, EL | ER, RL | RR>
+} = dual(
+  2,
+  <AL, EL, RL, AR, ER, RR>(
+    left: Stream<AL, EL, RL>,
+    right: Stream<AR, ER, RR>
+  ): Stream<AL, EL | ER, RL | RR> =>
+    zipWithArray(left, right, (leftArr, rightArr) => {
+      const minLength = Math.min(leftArr.length, rightArr.length)
+      const output = leftArr.slice(0, minLength) as Arr.NonEmptyArray<AL>
+      const leftoverLeft = leftArr.slice(minLength)
+      const leftoverRight = rightArr.slice(minLength)
+
+      return [output, leftoverLeft, leftoverRight] as const
+    })
+)
+
+/**
+ * Zips this stream with another point-wise, but keeps only the outputs of
+ * the right stream.
+ *
+ * The new stream will end when one of the sides ends.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ * import { Stream } from "effect/stream"
+ *
+ * const stream1 = Stream.make(1, 2)
+ * const stream2 = Stream.make("a", "b", "c", "d")
+ *
+ * const zipped = Stream.zipRight(stream1, stream2)
+ *
+ * Effect.runPromise(Stream.runCollect(zipped)).then(console.log)
+ * // Output: ["a", "b"]
+ * ```
+ *
+ * @since 3.8.0
+ * @category zipping
+ */
+export const zipRight: {
+  <AR, ER, RR>(right: Stream<AR, ER, RR>): <AL, EL, RL>(left: Stream<AL, EL, RL>) => Stream<AR, ER | EL, RR | RL>
+  <AL, EL, RL, AR, ER, RR>(left: Stream<AL, EL, RL>, right: Stream<AR, ER, RR>): Stream<AR, EL | ER, RL | RR>
+} = dual(
+  2,
+  <AL, EL, RL, AR, ER, RR>(
+    left: Stream<AL, EL, RL>,
+    right: Stream<AR, ER, RR>
+  ): Stream<AR, EL | ER, RL | RR> =>
+    zipWithArray(left, right, (leftArr, rightArr) => {
+      const minLength = Math.min(leftArr.length, rightArr.length)
+      const output = rightArr.slice(0, minLength) as Arr.NonEmptyArray<AR>
+      const leftoverLeft = leftArr.slice(minLength)
+      const leftoverRight = rightArr.slice(minLength)
+
+      return [output, leftoverLeft, leftoverRight] as const
+    })
+)
+
+/**
+ * Zips this stream with another point-wise and emits tuples of elements from
+ * both streams, flattening the left tuple.
+ *
+ * The new stream will end when one of the sides ends.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ * import { Stream } from "effect/stream"
+ *
+ * const stream1 = Stream.make([1, "a"] as const, [2, "b"] as const, [3, "c"] as const)
+ * const stream2 = Stream.make("x", "y", "z")
+ *
+ * const zipped = Stream.zipFlatten(stream1, stream2)
+ *
+ * Effect.runPromise(Stream.runCollect(zipped)).then(console.log)
+ * // Output: [[1, "a", "x"], [2, "b", "y"], [3, "c", "z"]]
+ * ```
+ *
+ * @since 3.8.0
+ * @category zipping
+ */
+export const zipFlatten: {
+  <A2, E2, R2>(
+    that: Stream<A2, E2, R2>
+  ): <A extends ReadonlyArray<any>, E, R>(self: Stream<A, E, R>) => Stream<[...A, A2], E2 | E, R2 | R>
+  <A extends ReadonlyArray<any>, E, R, A2, E2, R2>(
+    self: Stream<A, E, R>,
+    that: Stream<A2, E2, R2>
+  ): Stream<[...A, A2], E | E2, R | R2>
+} = dual(
+  2,
+  <A extends ReadonlyArray<any>, E, R, A2, E2, R2>(
+    self: Stream<A, E, R>,
+    that: Stream<A2, E2, R2>
+  ): Stream<[...A, A2], E | E2, R | R2> => zipWith(self, that, (a, a2) => [...a, a2])
+)
+
+/**
+ * Zips this stream together with the index of elements.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ * import { Stream } from "effect/stream"
+ *
+ * const stream = Stream.make("a", "b", "c", "d")
+ *
+ * const indexed = Stream.zipWithIndex(stream)
+ *
+ * Effect.runPromise(Stream.runCollect(indexed)).then(console.log)
+ * // Output: [["a", 0], ["b", 1], ["c", 2], ["d", 3]]
+ * ```
+ *
+ * @since 3.8.0
+ * @category zipping
+ */
+export const zipWithIndex = <A, E, R>(self: Stream<A, E, R>): Stream<[A, number], E, R> => map(self, (a, i) => [a, i])
 
 /**
  * @since 3.7.0

@@ -1839,6 +1839,422 @@ describe("Stream", () => {
           assert.deepStrictEqual(result, [[1, "a"], [2, "b"], [3, "c"]])
         }))
     })
+
+    describe("zip", () => {
+      it.effect("zips two streams into tuples", () =>
+        Effect.gen(function*() {
+          const stream1 = Stream.make(1, 2, 3)
+          const stream2 = Stream.make("a", "b", "c")
+          const result = yield* Stream.zip(stream1, stream2).pipe(Stream.runCollect)
+
+          assert.deepStrictEqual(result, [[1, "a"], [2, "b"], [3, "c"]])
+        }))
+
+      it.effect("terminates when left stream ends first", () =>
+        Effect.gen(function*() {
+          const stream1 = Stream.make(1, 2)
+          const stream2 = Stream.make("a", "b", "c", "d")
+          const result = yield* Stream.zip(stream1, stream2).pipe(Stream.runCollect)
+
+          assert.deepStrictEqual(result, [[1, "a"], [2, "b"]])
+        }))
+
+      it.effect("terminates when right stream ends first", () =>
+        Effect.gen(function*() {
+          const stream1 = Stream.make(1, 2, 3, 4)
+          const stream2 = Stream.make("a", "b")
+          const result = yield* Stream.zip(stream1, stream2).pipe(Stream.runCollect)
+
+          assert.deepStrictEqual(result, [[1, "a"], [2, "b"]])
+        }))
+
+      it.effect("handles empty left stream", () =>
+        Effect.gen(function*() {
+          const stream1 = Stream.empty
+          const stream2 = Stream.make("a", "b", "c")
+          const result = yield* Stream.zip(stream1, stream2).pipe(Stream.runCollect)
+
+          assert.strictEqual(result.length, 0)
+        }))
+
+      it.effect("handles empty right stream", () =>
+        Effect.gen(function*() {
+          const stream1 = Stream.make(1, 2, 3)
+          const stream2 = Stream.empty
+          const result = yield* Stream.zip(stream1, stream2).pipe(Stream.runCollect)
+
+          assert.strictEqual(result.length, 0)
+        }))
+
+      it.effect("propagates errors from left stream", () =>
+        Effect.gen(function*() {
+          const stream1 = Stream.make(1, 2).pipe(Stream.concat(Stream.fail("boom")))
+          const stream2 = Stream.make("a", "b", "c")
+          const result = yield* Stream.zip(stream1, stream2).pipe(Stream.runCollect, Effect.exit)
+
+          assertExitFailure(result, Cause.fail("boom"))
+        }))
+
+      it.effect("propagates errors from right stream", () =>
+        Effect.gen(function*() {
+          const stream1 = Stream.make(1, 2, 3)
+          const stream2 = Stream.make("a", "b").pipe(Stream.concat(Stream.fail("ouch")))
+          const result = yield* Stream.zip(stream1, stream2).pipe(Stream.runCollect, Effect.exit)
+
+          assertExitFailure(result, Cause.fail("ouch"))
+        }))
+
+      it.effect("works with pipe syntax", () =>
+        Effect.gen(function*() {
+          const stream1 = Stream.make(1, 2, 3)
+          const stream2 = Stream.make("a", "b", "c")
+          const result = yield* stream1.pipe(Stream.zip(stream2), Stream.runCollect)
+
+          assert.deepStrictEqual(result, [[1, "a"], [2, "b"], [3, "c"]])
+        }))
+    })
+
+    describe("zipLeft", () => {
+      it.effect("keeps only left values", () =>
+        Effect.gen(function*() {
+          const stream1 = Stream.make(1, 2, 3)
+          const stream2 = Stream.make("a", "b", "c")
+          const result = yield* Stream.zipLeft(stream1, stream2).pipe(Stream.runCollect)
+
+          assert.deepStrictEqual(result, [1, 2, 3])
+        }))
+
+      it.effect("terminates when left stream ends first", () =>
+        Effect.gen(function*() {
+          const stream1 = Stream.make(1, 2)
+          const stream2 = Stream.make("a", "b", "c", "d")
+          const result = yield* Stream.zipLeft(stream1, stream2).pipe(Stream.runCollect)
+
+          assert.deepStrictEqual(result, [1, 2])
+        }))
+
+      it.effect("terminates when right stream ends first", () =>
+        Effect.gen(function*() {
+          const stream1 = Stream.make(1, 2, 3, 4)
+          const stream2 = Stream.make("a", "b")
+          const result = yield* Stream.zipLeft(stream1, stream2).pipe(Stream.runCollect)
+
+          assert.deepStrictEqual(result, [1, 2])
+        }))
+
+      it.effect("handles empty left stream", () =>
+        Effect.gen(function*() {
+          const stream1 = Stream.empty
+          const stream2 = Stream.make("a", "b", "c")
+          const result = yield* Stream.zipLeft(stream1, stream2).pipe(Stream.runCollect)
+
+          assert.strictEqual(result.length, 0)
+        }))
+
+      it.effect("handles empty right stream", () =>
+        Effect.gen(function*() {
+          const stream1 = Stream.make(1, 2, 3)
+          const stream2 = Stream.empty
+          const result = yield* Stream.zipLeft(stream1, stream2).pipe(Stream.runCollect)
+
+          assert.strictEqual(result.length, 0)
+        }))
+
+      it.effect("propagates errors from left stream", () =>
+        Effect.gen(function*() {
+          const stream1 = Stream.make(1, 2).pipe(Stream.concat(Stream.fail("boom")))
+          const stream2 = Stream.make("a", "b", "c")
+          const result = yield* Stream.zipLeft(stream1, stream2).pipe(Stream.runCollect, Effect.exit)
+
+          assertExitFailure(result, Cause.fail("boom"))
+        }))
+
+      it.effect("propagates errors from right stream", () =>
+        Effect.gen(function*() {
+          const stream1 = Stream.make(1, 2, 3)
+          const stream2 = Stream.make("a", "b").pipe(Stream.concat(Stream.fail("ouch")))
+          const result = yield* Stream.zipLeft(stream1, stream2).pipe(Stream.runCollect, Effect.exit)
+
+          assertExitFailure(result, Cause.fail("ouch"))
+        }))
+
+      it.effect("works with pipe syntax", () =>
+        Effect.gen(function*() {
+          const stream1 = Stream.make(1, 2, 3)
+          const stream2 = Stream.make("a", "b", "c")
+          const result = yield* stream1.pipe(Stream.zipLeft(stream2), Stream.runCollect)
+
+          assert.deepStrictEqual(result, [1, 2, 3])
+        }))
+
+      it.effect("consumes right stream elements", () =>
+        Effect.gen(function*() {
+          let rightPulled = 0
+          const stream1 = Stream.make(1, 2, 3)
+          const stream2 = Stream.make("a", "b", "c").pipe(
+            Stream.tap(() =>
+              Effect.sync(() => {
+                rightPulled++
+              })
+            )
+          )
+          const result = yield* Stream.zipLeft(stream1, stream2).pipe(Stream.runCollect)
+
+          assert.deepStrictEqual(result, [1, 2, 3])
+          assert.strictEqual(rightPulled, 3)
+        }))
+    })
+
+    describe("zipRight", () => {
+      it.effect("keeps only right values", () =>
+        Effect.gen(function*() {
+          const stream1 = Stream.make(1, 2, 3)
+          const stream2 = Stream.make("a", "b", "c")
+          const result = yield* Stream.zipRight(stream1, stream2).pipe(Stream.runCollect)
+
+          assert.deepStrictEqual(result, ["a", "b", "c"])
+        }))
+
+      it.effect("terminates when left stream ends first", () =>
+        Effect.gen(function*() {
+          const stream1 = Stream.make(1, 2)
+          const stream2 = Stream.make("a", "b", "c", "d")
+          const result = yield* Stream.zipRight(stream1, stream2).pipe(Stream.runCollect)
+
+          assert.deepStrictEqual(result, ["a", "b"])
+        }))
+
+      it.effect("terminates when right stream ends first", () =>
+        Effect.gen(function*() {
+          const stream1 = Stream.make(1, 2, 3, 4)
+          const stream2 = Stream.make("a", "b")
+          const result = yield* Stream.zipRight(stream1, stream2).pipe(Stream.runCollect)
+
+          assert.deepStrictEqual(result, ["a", "b"])
+        }))
+
+      it.effect("handles empty left stream", () =>
+        Effect.gen(function*() {
+          const stream1 = Stream.empty
+          const stream2 = Stream.make("a", "b", "c")
+          const result = yield* Stream.zipRight(stream1, stream2).pipe(Stream.runCollect)
+
+          assert.strictEqual(result.length, 0)
+        }))
+
+      it.effect("handles empty right stream", () =>
+        Effect.gen(function*() {
+          const stream1 = Stream.make(1, 2, 3)
+          const stream2 = Stream.empty
+          const result = yield* Stream.zipRight(stream1, stream2).pipe(Stream.runCollect)
+
+          assert.strictEqual(result.length, 0)
+        }))
+
+      it.effect("propagates errors from left stream", () =>
+        Effect.gen(function*() {
+          const stream1 = Stream.make(1, 2).pipe(Stream.concat(Stream.fail("boom")))
+          const stream2 = Stream.make("a", "b", "c")
+          const result = yield* Stream.zipRight(stream1, stream2).pipe(Stream.runCollect, Effect.exit)
+
+          assertExitFailure(result, Cause.fail("boom"))
+        }))
+
+      it.effect("propagates errors from right stream", () =>
+        Effect.gen(function*() {
+          const stream1 = Stream.make(1, 2, 3)
+          const stream2 = Stream.make("a", "b").pipe(Stream.concat(Stream.fail("ouch")))
+          const result = yield* Stream.zipRight(stream1, stream2).pipe(Stream.runCollect, Effect.exit)
+
+          assertExitFailure(result, Cause.fail("ouch"))
+        }))
+
+      it.effect("works with pipe syntax", () =>
+        Effect.gen(function*() {
+          const stream1 = Stream.make(1, 2, 3)
+          const stream2 = Stream.make("a", "b", "c")
+          const result = yield* stream1.pipe(Stream.zipRight(stream2), Stream.runCollect)
+
+          assert.deepStrictEqual(result, ["a", "b", "c"])
+        }))
+
+      it.effect("consumes left stream elements", () =>
+        Effect.gen(function*() {
+          let leftPulled = 0
+          const stream1 = Stream.make(1, 2, 3).pipe(
+            Stream.tap(() =>
+              Effect.sync(() => {
+                leftPulled++
+              })
+            )
+          )
+          const stream2 = Stream.make("a", "b", "c")
+          const result = yield* Stream.zipRight(stream1, stream2).pipe(Stream.runCollect)
+
+          assert.deepStrictEqual(result, ["a", "b", "c"])
+          assert.strictEqual(leftPulled, 3)
+        }))
+    })
+
+    describe("zipFlatten", () => {
+      it.effect("flattens tuples when zipping", () =>
+        Effect.gen(function*() {
+          const stream1 = Stream.make([1, "a"] as const, [2, "b"] as const, [3, "c"] as const)
+          const stream2 = Stream.make("x", "y", "z")
+          const result = yield* Stream.zipFlatten(stream1, stream2).pipe(Stream.runCollect)
+
+          assert.deepStrictEqual(result, [[1, "a", "x"], [2, "b", "y"], [3, "c", "z"]])
+        }))
+
+      it.effect("works with single element tuples", () =>
+        Effect.gen(function*() {
+          const stream1 = Stream.make([1] as const, [2] as const, [3] as const)
+          const stream2 = Stream.make("a", "b", "c")
+          const result = yield* Stream.zipFlatten(stream1, stream2).pipe(Stream.runCollect)
+
+          assert.deepStrictEqual(result, [[1, "a"], [2, "b"], [3, "c"]])
+        }))
+
+      it.effect("works with larger tuples", () =>
+        Effect.gen(function*() {
+          const stream1 = Stream.make([1, 2, 3] as const, [4, 5, 6] as const)
+          const stream2 = Stream.make("a", "b")
+          const result = yield* Stream.zipFlatten(stream1, stream2).pipe(Stream.runCollect)
+
+          assert.deepStrictEqual(result, [[1, 2, 3, "a"], [4, 5, 6, "b"]])
+        }))
+
+      it.effect("terminates when left stream ends first", () =>
+        Effect.gen(function*() {
+          const stream1 = Stream.make([1, "a"] as const, [2, "b"] as const)
+          const stream2 = Stream.make("x", "y", "z", "w")
+          const result = yield* Stream.zipFlatten(stream1, stream2).pipe(Stream.runCollect)
+
+          assert.deepStrictEqual(result, [[1, "a", "x"], [2, "b", "y"]])
+        }))
+
+      it.effect("terminates when right stream ends first", () =>
+        Effect.gen(function*() {
+          const stream1 = Stream.make([1, "a"] as const, [2, "b"] as const, [3, "c"] as const, [4, "d"] as const)
+          const stream2 = Stream.make("x", "y")
+          const result = yield* Stream.zipFlatten(stream1, stream2).pipe(Stream.runCollect)
+
+          assert.deepStrictEqual(result, [[1, "a", "x"], [2, "b", "y"]])
+        }))
+
+      it.effect("handles empty left stream", () =>
+        Effect.gen(function*() {
+          const stream1 = Stream.empty
+          const stream2 = Stream.make("a", "b", "c")
+          const result = yield* Stream.zipFlatten(stream1, stream2).pipe(Stream.runCollect)
+
+          assert.strictEqual(result.length, 0)
+        }))
+
+      it.effect("handles empty right stream", () =>
+        Effect.gen(function*() {
+          const stream1 = Stream.make([1, "a"] as const, [2, "b"] as const)
+          const stream2 = Stream.empty
+          const result = yield* Stream.zipFlatten(stream1, stream2).pipe(Stream.runCollect)
+
+          assert.strictEqual(result.length, 0)
+        }))
+
+      it.effect("propagates errors from left stream", () =>
+        Effect.gen(function*() {
+          const stream1 = Stream.make([1, "a"] as const, [2, "b"] as const).pipe(Stream.concat(Stream.fail("boom")))
+          const stream2 = Stream.make("x", "y", "z")
+          const result = yield* Stream.zipFlatten(stream1, stream2).pipe(Stream.runCollect, Effect.exit)
+
+          assertExitFailure(result, Cause.fail("boom"))
+        }))
+
+      it.effect("propagates errors from right stream", () =>
+        Effect.gen(function*() {
+          const stream1 = Stream.make([1, "a"] as const, [2, "b"] as const, [3, "c"] as const)
+          const stream2 = Stream.make("x", "y").pipe(Stream.concat(Stream.fail("ouch")))
+          const result = yield* Stream.zipFlatten(stream1, stream2).pipe(Stream.runCollect, Effect.exit)
+
+          assertExitFailure(result, Cause.fail("ouch"))
+        }))
+
+      it.effect("works with pipe syntax", () =>
+        Effect.gen(function*() {
+          const stream1 = Stream.make([1, "a"] as const, [2, "b"] as const, [3, "c"] as const)
+          const stream2 = Stream.make("x", "y", "z")
+          const result = yield* stream1.pipe(Stream.zipFlatten(stream2), Stream.runCollect)
+
+          assert.deepStrictEqual(result, [[1, "a", "x"], [2, "b", "y"], [3, "c", "z"]])
+        }))
+    })
+
+    describe("zipWithIndex", () => {
+      it.effect("zips stream with indices starting at 0", () =>
+        Effect.gen(function*() {
+          const stream = Stream.make("a", "b", "c", "d")
+          const result = yield* Stream.zipWithIndex(stream).pipe(Stream.runCollect)
+
+          assert.deepStrictEqual(result, [["a", 0], ["b", 1], ["c", 2], ["d", 3]])
+        }))
+
+      it.effect("handles empty stream", () =>
+        Effect.gen(function*() {
+          const stream = Stream.empty
+          const result = yield* Stream.zipWithIndex(stream).pipe(Stream.runCollect)
+
+          assert.strictEqual(result.length, 0)
+        }))
+
+      it.effect("handles single element stream", () =>
+        Effect.gen(function*() {
+          const stream = Stream.make("a")
+          const result = yield* Stream.zipWithIndex(stream).pipe(Stream.runCollect)
+
+          assert.deepStrictEqual(result, [["a", 0]])
+        }))
+
+      it.effect("preserves order", () =>
+        Effect.gen(function*() {
+          const stream = Stream.make(5, 4, 3, 2, 1)
+          const result = yield* Stream.zipWithIndex(stream).pipe(Stream.runCollect)
+
+          assert.deepStrictEqual(result, [[5, 0], [4, 1], [3, 2], [2, 3], [1, 4]])
+        }))
+
+      it.effect("works with numbers", () =>
+        Effect.gen(function*() {
+          const stream = Stream.make(10, 20, 30)
+          const result = yield* Stream.zipWithIndex(stream).pipe(Stream.runCollect)
+
+          assert.deepStrictEqual(result, [[10, 0], [20, 1], [30, 2]])
+        }))
+
+      it.effect("propagates errors", () =>
+        Effect.gen(function*() {
+          const stream = Stream.make(1, 2, 3).pipe(Stream.concat(Stream.fail("boom")))
+          const result = yield* Stream.zipWithIndex(stream).pipe(Stream.runCollect, Effect.exit)
+
+          assertExitFailure(result, Cause.fail("boom"))
+        }))
+
+      it.effect("works with pipe syntax", () =>
+        Effect.gen(function*() {
+          const stream = Stream.make("x", "y", "z")
+          const result = yield* stream.pipe(Stream.zipWithIndex, Stream.runCollect)
+
+          assert.deepStrictEqual(result, [["x", 0], ["y", 1], ["z", 2]])
+        }))
+
+      it.effect("index increments correctly for large streams", () =>
+        Effect.gen(function*() {
+          const stream = Stream.range(0, 99)
+          const result = yield* Stream.zipWithIndex(stream).pipe(Stream.runCollect)
+
+          assert.strictEqual(result.length, 100)
+          assert.deepStrictEqual(result[0], [0, 0])
+          assert.deepStrictEqual(result[99], [99, 99])
+        }))
+    })
   })
 })
 
