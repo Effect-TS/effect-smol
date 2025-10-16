@@ -1584,14 +1584,41 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     })
   })
 
+  it("Finite", async () => {
+    const schema = Schema.Finite
+    const asserts = new TestSchema.Asserts(schema)
+    if (verifyGeneration) {
+      const arbitrary = asserts.arbitrary()
+      arbitrary.verifyGeneration()
+    }
+  })
+
   describe("Transformations", () => {
-    it("Finite", async () => {
-      const schema = Schema.Finite
+    it("NumberFromString", async () => {
+      const schema = Schema.NumberFromString
       const asserts = new TestSchema.Asserts(schema)
+
       if (verifyGeneration) {
         const arbitrary = asserts.arbitrary()
         arbitrary.verifyGeneration()
       }
+
+      const decoding = asserts.decoding()
+      await decoding.succeed("1", 1)
+      await decoding.succeed("NaN", NaN)
+      await decoding.succeed("Infinity", Infinity)
+      await decoding.succeed("+Infinity", Infinity)
+      await decoding.succeed("-Infinity", -Infinity)
+
+      const encoding = asserts.encoding()
+      await encoding.succeed(1, "1")
+      await encoding.succeed(NaN, "NaN")
+      await encoding.succeed(Infinity, "Infinity")
+      await encoding.succeed(-Infinity, "-Infinity")
+      await encoding.fail(
+        "a",
+        `Expected number, got "a"`
+      )
     })
 
     it("FiniteFromString", async () => {
@@ -1609,6 +1636,22 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
         "a",
         `Expected a finite number, got NaN`
       )
+      await decoding.fail(
+        "NaN",
+        `Expected a finite number, got NaN`
+      )
+      await decoding.fail(
+        "Infintiy",
+        `Expected a finite number, got NaN`
+      )
+      await decoding.fail(
+        "+Infintiy",
+        `Expected a finite number, got NaN`
+      )
+      await decoding.fail(
+        "-Infintiy",
+        `Expected a finite number, got NaN`
+      )
 
       const encoding = asserts.encoding()
       await encoding.succeed(1, "1")
@@ -1618,7 +1661,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       )
     })
 
-    it("NumberToString & isGreaterThan", async () => {
+    it("FiniteFromString & isGreaterThan", async () => {
       const schema = Schema.FiniteFromString.check(Schema.isGreaterThan(2))
       const asserts = new TestSchema.Asserts(schema)
 

@@ -327,7 +327,7 @@ export const errorFromErrorJsonEncoded: Transformation<Error, {
 /**
  * @since 4.0.0
  */
-export function optionFromNullOr<T>(): Transformation<Option.Option<Exclude<T, null>>, T | null> {
+export function optionFromNullOr<T>(): Transformation<Option.Option<T>, T | null> {
   return transform({
     decode: Option.fromNullOr,
     encode: Option.getOrNull

@@ -32,6 +32,7 @@ import * as InternalArbitrary from "../internal/ToArbitrary.ts"
 import * as InternalDiffer from "../internal/ToDiffer.ts"
 import * as InternalEquivalence from "../internal/ToEquivalence.ts"
 import * as InternalJsonSchema from "../internal/ToJsonSchema.ts"
+import * as Number_ from "../Number.ts"
 import { remainder } from "../Number.ts"
 import * as Optic_ from "../Optic.ts"
 import * as Request from "../Request.ts"
@@ -836,7 +837,7 @@ export const optionalKey = lambda<optionalKeyLambda>(function optionalKey<S exte
 /**
  * @since 4.0.0
  */
-export interface optional<S extends Top> extends optionalKey<Union<readonly [S, Undefined]>> {}
+export interface optional<S extends Top> extends optionalKey<UndefinedOr<S>> {}
 
 interface optionalLambda extends Lambda {
   <S extends Top>(self: S): optional<S>
@@ -2231,14 +2232,14 @@ export const readonly = lambda<readonlyLambda>(function readonly<S extends Top>(
  */
 export interface Union<Members extends ReadonlyArray<Top>> extends
   Bottom<
-    Members[number]["Type"],
-    Members[number]["Encoded"],
-    Members[number]["DecodingServices"],
-    Members[number]["EncodingServices"],
-    AST.UnionType<Members[number]["ast"]>,
+    { [K in keyof Members]: Members[K]["Type"] }[number],
+    { [K in keyof Members]: Members[K]["Encoded"] }[number],
+    { [K in keyof Members]: Members[K]["DecodingServices"] }[number],
+    { [K in keyof Members]: Members[K]["EncodingServices"] }[number],
+    AST.UnionType<{ [K in keyof Members]: Members[K]["ast"] }[number]>,
     Union<Members>,
-    Members[number]["~type.make"],
-    Members[number]["Iso"]
+    { [K in keyof Members]: Members[K]["~type.make"] }[number],
+    { [K in keyof Members]: Members[K]["Iso"] }[number]
   >
 {
   readonly "~rebuild.out": this
@@ -4679,7 +4680,7 @@ export interface OptionFromNullOr<S extends Top> extends decodeTo<Option<typeCod
 export function OptionFromNullOr<S extends Top>(schema: S): OptionFromNullOr<S> {
   return NullOr(schema).pipe(decodeTo(
     Option(typeCodec(schema)),
-    Transformation.optionFromNullOr<any>()
+    Transformation.optionFromNullOr()
   ))
 }
 
@@ -5839,19 +5840,56 @@ export interface Finite extends Number {}
  *
  * @since 4.0.0
  */
-export const Finite = Number.check(isFinite())
+export const Finite: Finite = Number.check(isFinite())
+
+/**
+ * @since 4.0.0
+ */
+export interface Int extends Number {}
 
 /**
  * A schema for integers, rejecting `NaN`, `Infinity`, and `-Infinity`.
  *
  * @since 4.0.0
  */
-export const Int = Number.check(isInt())
+export const Int: Int = Number.check(isInt())
 
 /**
  * @since 4.0.0
  */
-export interface FiniteFromString extends decodeTo<Number, String> {}
+export interface NumberFromString extends decodeTo<Finite, String> {}
+
+/**
+ * A transformation schema that parses a string into a number.
+ *
+ * Decoding:
+ * - A `string` is decoded as a finite number.
+ *
+ * Encoding:
+ * - A number is encoded as a `string`.
+ *
+ * @since 4.0.0
+ */
+export const NumberFromString: NumberFromString = String.annotate({
+  description: "a string that will be decoded as a number"
+}).pipe(decodeTo(
+  Number,
+  {
+    decode: Getter.transformOrFail((s) => {
+      const n = Number_.parse(s)
+      if (n === undefined) {
+        return Effect.fail(new Issue.InvalidValue(Option_.some(s)))
+      }
+      return Effect.succeed(n)
+    }),
+    encode: Getter.String()
+  }
+))
+
+/**
+ * @since 4.0.0
+ */
+export interface FiniteFromString extends decodeTo<Finite, String> {}
 
 /**
  * A transformation schema that parses a string into a finite number.
@@ -5873,11 +5911,21 @@ export const FiniteFromString: FiniteFromString = String.annotate({
 ))
 
 /**
+ * @since 4.0.0
+ */
+export interface Trimmed extends String {}
+
+/**
  * A schema for strings that contains no leading or trailing whitespaces.
  *
  * @since 4.0.0
  */
-export const Trimmed = String.check(isTrimmed())
+export const Trimmed: Trimmed = String.check(isTrimmed())
+
+/**
+ * @since 4.0.0
+ */
+export interface Trim extends decodeTo<Trimmed, String> {}
 
 /**
  * A transformation schema that trims whitespace from a string.
@@ -5890,7 +5938,7 @@ export const Trimmed = String.check(isTrimmed())
  *
  * @since 4.0.0
  */
-export const Trim = String.annotate({
+export const Trim: Trim = String.annotate({
   description: "a string that will be trimmed"
 }).pipe(decodeTo(Trimmed, Transformation.trim()))
 
@@ -5935,7 +5983,7 @@ export const BooleanFromBit: BooleanFromBit = Literals([0, 1]).pipe(
  */
 export interface Uint8Array extends instanceOf<globalThis.Uint8Array<ArrayBufferLike>> {}
 
-const Base64 = String.annotate({ description: "a string that will be decoded as Uint8Array" })
+const StringBase64 = String.annotate({ description: "a string that will be decoded as Uint8Array" })
 
 /**
  * A schema for JavaScript `Uint8Array` objects.
@@ -5949,7 +5997,7 @@ const Base64 = String.annotate({ description: "a string that will be decoded as 
  */
 export const Uint8Array: Uint8Array = instanceOf(globalThis.Uint8Array<ArrayBufferLike>, {
   defaultJsonSerializer: () =>
-    link<globalThis.Uint8Array<ArrayBufferLike>>()(Base64, Transformation.uint8ArrayFromString),
+    link<globalThis.Uint8Array<ArrayBufferLike>>()(StringBase64, Transformation.uint8ArrayFromString),
   title: "Uint8Array",
   arbitrary: {
     _tag: "Override",
@@ -5975,7 +6023,7 @@ export interface Uint8ArrayFromBase64 extends decodeTo<Uint8Array, String> {}
  * @category Uint8Array
  * @since 4.0.0
  */
-export const Uint8ArrayFromBase64: Uint8ArrayFromBase64 = Base64.pipe(
+export const Uint8ArrayFromBase64: Uint8ArrayFromBase64 = StringBase64.pipe(
   decodeTo(Uint8Array, Transformation.uint8ArrayFromString)
 )
 
@@ -5997,7 +6045,7 @@ export interface Uint8ArrayFromBase64Url extends decodeTo<Uint8Array, String> {}
  * @category Uint8Array
  * @since 4.0.0
  */
-export const Uint8ArrayFromBase64Url: Uint8ArrayFromBase64 = String.annotate({
+export const Uint8ArrayFromBase64Url: Uint8ArrayFromBase64Url = String.annotate({
   description: "a string that will be decoded as Uint8Array"
 }).pipe(
   decodeTo(Uint8Array, {

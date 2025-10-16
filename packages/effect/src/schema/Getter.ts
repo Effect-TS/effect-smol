@@ -121,9 +121,9 @@ export function passthroughSubtype<T>(): Getter<T, T> {
  * @category Constructors
  * @since 4.0.0
  */
-export function onNone<T, R = never>(
+export function onNone<T, E extends T = T, R = never>(
   f: (options: AST.ParseOptions) => Effect.Effect<Option.Option<T>, Issue.Issue, R>
-): Getter<T, T, R> {
+): Getter<T, E, R> {
   return new Getter((ot, options) => Option.isNone(ot) ? f(options) : Effect.succeed(ot))
 }
 
@@ -133,7 +133,7 @@ export function onNone<T, R = never>(
  * @category Constructors
  * @since 4.0.0
  */
-export function required<T>(annotations?: Annotations.Key<T>): Getter<T, T> {
+export function required<T, E extends T = T>(annotations?: Annotations.Key<T>): Getter<T, E> {
   return onNone(() => Effect.fail(new Issue.MissingKey(annotations)))
 }
 
@@ -227,7 +227,12 @@ export function omit<T>(): Getter<never, T> {
  * @since 4.0.0
  */
 export function withDefault<T>(defaultValue: () => T): Getter<T, T | undefined> {
-  return transformOptional((oe) => oe.pipe(Option.filter(Predicate.isNotUndefined), Option.orElseSome(defaultValue)))
+  return transformOptional((o) =>
+    o.pipe(
+      Option.filter(Predicate.isNotUndefined),
+      Option.orElseSome(defaultValue)
+    )
+  )
 }
 
 /**

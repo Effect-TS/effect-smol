@@ -3965,12 +3965,14 @@ const NumberFromString =
   Schema.String.pipe(
     Schema.decodeTo(
       Schema.Number, // target schema: Number
-      Transformation.numberFromString // built-in transformation that converts a string to a number (and back)
+      Transformation.numberFromString // built-in transformation that coerce a string to a number (and back)
     )
   )
 
 console.log(Schema.decodeUnknownSync(NumberFromString)("123"))
 // 123
+console.log(Schema.decodeUnknownSync(NumberFromString)("a"))
+// NaN
 ```
 
 #### decode
@@ -6001,7 +6003,7 @@ v3
 import { Schema } from "effect"
 
 const schema = Schema.Struct({
-  a: Schema.optionalWith(Schema.String, { exact: true })
+  a: Schema.optionalWith(Schema.NumberFromString, { exact: true })
 })
 ```
 
@@ -6011,7 +6013,7 @@ v4
 import { Schema } from "effect/schema"
 
 const schema = Schema.Struct({
-  a: Schema.optionalKey(Schema.String)
+  a: Schema.optionalKey(Schema.NumberFromString)
 })
 ```
 
@@ -6023,7 +6025,7 @@ v3
 import { Schema } from "effect"
 
 const schema = Schema.Struct({
-  a: Schema.optionalWith(Schema.String, { default: () => "default value" })
+  a: Schema.optionalWith(Schema.NumberFromString, { default: () => "default value" })
 })
 ```
 
@@ -6032,14 +6034,49 @@ v4
 ```ts
 import { Getter, Schema } from "effect/schema"
 
+function f<S extends Schema.Top>(schema: S, defaultValue: () => S["Type"]) {
+  return Schema.Struct({
+    a: Schema.optional(schema).pipe(
+      Schema.decodeTo(Schema.typeCodec(schema), {
+        decode: Getter.withDefault(defaultValue),
+        encode: Getter.required()
+      })
+    )
+  })
+}
+
+const schema = f(Schema.NumberFromString, () => -1)
+```
+
+#### default & exact
+
+v3
+
+```ts
+import { Schema } from "effect"
+
 const schema = Schema.Struct({
-  a: Schema.optionalKey(Schema.String).pipe(
-    Schema.decode({
-      decode: Getter.withDefault(() => "default value"),
-      encode: Getter.passthrough()
-    })
-  )
+  a: Schema.optionalWith(Schema.NumberFromString, { default: () => "default value", exact: true })
 })
+```
+
+v4
+
+```ts
+import { Getter, Schema } from "effect/schema"
+
+function f<S extends Schema.Top>(schema: S, defaultValue: () => S["Type"]) {
+  return Schema.Struct({
+    a: Schema.optionalKey(schema).pipe(
+      Schema.decodeTo(Schema.typeCodec(schema), {
+        decode: Getter.withDefault(defaultValue),
+        encode: Getter.required()
+      })
+    )
+  })
+}
+
+const schema = f(Schema.NumberFromString, () => -1)
 ```
 
 #### nullable
@@ -6050,7 +6087,7 @@ v3
 import { Schema } from "effect"
 
 const schema = Schema.Struct({
-  a: Schema.optionalWith(Schema.String, { nullable: true })
+  a: Schema.optionalWith(Schema.NumberFromString, { nullable: true })
 })
 ```
 
@@ -6060,14 +6097,118 @@ v4
 import { Option, Predicate } from "effect/data"
 import { Getter, Schema } from "effect/schema"
 
+function f<S extends Schema.Top>(schema: S) {
+  return Schema.Struct({
+    a: Schema.optional(Schema.NullOr(schema)).pipe(
+      Schema.decodeTo(Schema.optional(Schema.typeCodec(schema)), {
+        decode: Getter.transformOptional(Option.filter(Predicate.isNotNull)),
+        encode: Getter.passthrough()
+      })
+    )
+  })
+}
+
+const schema = f(Schema.NumberFromString)
+```
+
+#### nullable & exact
+
+v3
+
+```ts
+import { Schema } from "effect"
+
 const schema = Schema.Struct({
-  a: Schema.optional(Schema.NullOr(Schema.String)).pipe(
-    Schema.decodeTo(Schema.optional(Schema.String), {
-      decode: Getter.transformOptional(Option.filter(Predicate.isNotNull)),
-      encode: Getter.passthrough()
-    })
-  )
+  a: Schema.optionalWith(Schema.NumberFromString, { nullable: true, exact: true })
 })
+```
+
+v4
+
+```ts
+import { Option, Predicate } from "effect/data"
+import { Getter, Schema } from "effect/schema"
+
+function f<S extends Schema.Top>(schema: S) {
+  return Schema.Struct({
+    a: Schema.optionalKey(Schema.NullOr(schema)).pipe(
+      Schema.decodeTo(Schema.optionalKey(Schema.typeCodec(schema)), {
+        decode: Getter.transformOptional(Option.filter(Predicate.isNotNull)),
+        encode: Getter.passthrough()
+      })
+    )
+  })
+}
+
+const schema = f(Schema.NumberFromString)
+```
+
+#### nullable & default
+
+v3
+
+```ts
+import { Schema } from "effect"
+
+const schema = Schema.Struct({
+  a: Schema.optionalWith(Schema.NumberFromString, { nullable: true, default: () => "default value" })
+})
+```
+
+v4
+
+```ts
+import { Option, Predicate } from "effect/data"
+import { Getter, Schema } from "effect/schema"
+
+function f<S extends Schema.Top>(schema: S, defaultValue: () => S["Type"]) {
+  return Schema.Struct({
+    a: Schema.optional(Schema.NullOr(schema)).pipe(
+      Schema.decodeTo(Schema.UndefinedOr(Schema.typeCodec(schema)), {
+        decode: Getter.transformOptional((o) =>
+          o.pipe(Option.filter(Predicate.isNotNull), Option.orElseSome(defaultValue))
+        ),
+        encode: Getter.required()
+      })
+    )
+  })
+}
+
+const schema = f(Schema.NumberFromString, () => -1)
+```
+
+#### nullable & default & exact
+
+v3
+
+```ts
+import { Schema } from "effect"
+
+const schema = Schema.Struct({
+  a: Schema.optionalWith(Schema.NumberFromString, { nullable: true, default: () => "default value", exact: true })
+})
+```
+
+v4
+
+```ts
+import { Option, Predicate } from "effect/data"
+import { Getter, Schema } from "effect/schema"
+
+function f<S extends Schema.Top>(schema: S, defaultValue: () => S["Type"]) {
+  return Schema.Struct({
+    a: Schema.optionalKey(Schema.NullOr(schema)).pipe(
+      Schema.decodeTo(Schema.typeCodec(schema), {
+        decode: Getter.transformOptional((o) =>
+          o.pipe(Option.filter(Predicate.isNotNull), Option.orElseSome(defaultValue))
+        ),
+        encode: Getter.required()
+      })
+    )
+  })
+}
+
+const schema = f(Schema.NumberFromString, () => -1)
 ```
 
 ### Record
@@ -6468,33 +6609,19 @@ const NumberFromString = Schema.transformOrFail(Schema.String, Schema.Number, {
 v4
 
 ```ts
-import { Effect } from "effect"
+import { Effect, Number } from "effect"
 import { Option } from "effect/data"
-import { Getter, Issue, Schema, Transformation } from "effect/schema"
+import { Getter, Issue, Schema } from "effect/schema"
 
-// manual
 const NumberFromString = Schema.String.pipe(
-  Schema.decodeTo(
-    Schema.Number,
-    Transformation.transformOrFail({
-      decode: (input) => {
-        const parsed = parseFloat(input)
-        if (isNaN(parsed)) {
-          return Effect.fail(
-            new Issue.InvalidValue(Option.some(input), { message: "Failed to convert string to number" })
-          )
-        }
-        return Effect.succeed(parsed)
-      },
-      encode: (input) => Effect.succeed(input.toString())
-    })
-  )
-)
-
-// or
-const NumberFromString2 = Schema.String.pipe(
-  Schema.decodeTo(Schema.Finite, {
-    decode: Getter.Number(),
+  Schema.decodeTo(Schema.Number, {
+    decode: Getter.transformOrFail((s) => {
+      const n = Number.parse(s)
+      if (n === undefined) {
+        return Effect.fail(new Issue.InvalidValue(Option.some(s)))
+      }
+      return Effect.succeed(n)
+    }),
     encode: Getter.String()
   })
 )
@@ -6812,10 +6939,6 @@ const schema = Schema.String.check(Schema.isUlid())
 ### URLFromSelf
 
 Renamed to `URL`.
-
-### NumberFromString
-
-Exported as the more useful `FiniteFromString` that excludes `NaN` and `+-Infinity`.
 
 ## RWC References
 
