@@ -1295,7 +1295,7 @@ import { Schema } from "effect/schema"
 const username = Schema.makeFilterGroup(
   [
     Schema.isMinLength(3),
-    Schema.isRegex(/^[a-zA-Z0-9]+$/, {
+    Schema.isPattern(/^[a-zA-Z0-9]+$/, {
       title: "alphanumeric",
       description: "must contain only letters and numbers"
     }),
@@ -5515,7 +5515,7 @@ import { Schema } from "effect/schema"
 Schema.String.check(Schema.isMaxLength(5))
 Schema.String.check(Schema.isMinLength(5))
 Schema.String.check(Schema.isLength(5))
-Schema.String.check(Schema.isRegex(/^[a-z]+$/))
+Schema.String.check(Schema.isPattern(/^[a-z]+$/))
 Schema.String.check(Schema.isStartsWith("aaa"))
 Schema.String.check(Schema.isEndsWith("zzz"))
 Schema.String.check(Schema.isIncludes("---"))
@@ -6700,10 +6700,8 @@ v4
 ```ts
 import { Schema } from "effect/schema"
 
-const schema = Schema.String.pipe(Schema.check(Schema.isRegex(/^[a-z]+$/)))
+const schema = Schema.String.pipe(Schema.check(Schema.isPattern(/^[a-z]+$/)))
 ```
-
-Reason: The `pattern` method was renamed to `isRegex` to align with the naming convention of [zod](https://zod.dev/api?id=strings) and [valibot](https://valibot.dev/api/regex/).
 
 ### nonEmptyString
 

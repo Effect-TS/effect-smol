@@ -454,17 +454,17 @@ describe("ToArbitrary", () => {
       verifyGeneration(schema)
     })
 
-    it("isRegex", () => {
-      verifyGeneration(Schema.String.check(Schema.isRegex(/^[A-Z]{3}[0-9]{3}$/)))
+    it("isPattern", () => {
+      verifyGeneration(Schema.String.check(Schema.isPattern(/^[A-Z]{3}[0-9]{3}$/)))
     })
 
-    it("isNonEmpty + isRegex", () => {
-      verifyGeneration(Schema.NonEmptyString.check(Schema.isRegex(/^[-]*$/)))
+    it("isNonEmpty + isPattern", () => {
+      verifyGeneration(Schema.NonEmptyString.check(Schema.isPattern(/^[-]*$/)))
     })
 
-    it("isRegex + isRegex", () => {
+    it("isPattern + isPattern", () => {
       verifyGeneration(
-        Schema.String.check(Schema.isRegex(/^[^A-Z]*$/), Schema.isRegex(/^0x[0-9a-f]{40}$/))
+        Schema.String.check(Schema.isPattern(/^[^A-Z]*$/), Schema.isPattern(/^0x[0-9a-f]{40}$/))
       )
     })
 

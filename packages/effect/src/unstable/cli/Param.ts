@@ -1369,7 +1369,7 @@ export const withPseudoName: {
  * import { Schema } from "effect/schema"
  * import { Param } from "effect/unstable/cli"
  *
- * const isEmail = Schema.isRegex(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)
+ * const isEmail = Schema.isPattern(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)
  *
  * const Email = Schema.String.pipe(
  *   Schema.check(isEmail)

@@ -3258,7 +3258,7 @@ export function isTrimmed(annotations?: Annotations.Filter) {
  * @category String checks
  * @since 4.0.0
  */
-export const isRegex = AST.isRegex
+export const isPattern: (regex: RegExp, annotations?: Annotations.Filter) => AST.Filter<string> = AST.isPattern
 
 /**
  * Returns a regex for validating an RFC 4122 UUID.
@@ -3284,7 +3284,7 @@ const getUUIDRegex = (version?: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8): RegExp => {
  */
 export function isUuid(version?: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8) {
   const re = getUUIDRegex(version)
-  return isRegex(re, {
+  return isPattern(re, {
     title: version ? `isUuid-v${version}` : "isUuid",
     description: version ? `a UUID v${version}` : "a UUID",
     jsonSchema: {
@@ -3302,7 +3302,7 @@ export function isUuid(version?: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8) {
  * @since 4.0.0
  */
 export function isUlid(annotations?: Annotations.Filter) {
-  return isRegex(
+  return isPattern(
     /^[0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{26}$/,
     Annotations.combine({ title: "isUlid" }, annotations)
   )
@@ -3313,7 +3313,7 @@ export function isUlid(annotations?: Annotations.Filter) {
  * @since 4.0.0
  */
 export function isBase64(annotations?: Annotations.Filter) {
-  return isRegex(
+  return isPattern(
     /^([0-9a-zA-Z+/]{4})*(([0-9a-zA-Z+/]{2}==)|([0-9a-zA-Z+/]{3}=))?$/,
     Annotations.combine({
       title: "isBase64",
@@ -3328,7 +3328,7 @@ export function isBase64(annotations?: Annotations.Filter) {
  * @since 4.0.0
  */
 export function isBase64url(annotations?: Annotations.Filter) {
-  return isRegex(
+  return isPattern(
     /^([0-9a-zA-Z-_]{4})*(([0-9a-zA-Z-_]{2}(==)?)|([0-9a-zA-Z-_]{3}(=)?))?$/,
     Annotations.combine({
       title: "isBase64url",

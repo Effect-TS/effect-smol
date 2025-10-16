@@ -2257,10 +2257,10 @@ describe("ToJsonSchema", () => {
         })
       })
 
-      it("isRegex", async () => {
-        await assertDraft7(Schema.String.check(Schema.isRegex(/^abb+$/)), {
+      it("isPattern", async () => {
+        await assertDraft7(Schema.String.check(Schema.isPattern(/^abb+$/)), {
           "type": "string",
-          "title": "isRegex(^abb+$)",
+          "title": "isPattern(^abb+$)",
           "description": "a string matching the regex ^abb+$",
           "pattern": "^abb+$"
         })

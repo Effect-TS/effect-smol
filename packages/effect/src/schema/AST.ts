@@ -2029,10 +2029,8 @@ export function isFailure<A, E>(annotations?: Annotations.Filter) {
   )
 }
 
-/**
- * @since 4.0.0
- */
-export function isRegex(regex: RegExp, annotations?: Annotations.Filter) {
+/** @internal */
+export function isPattern(regex: RegExp, annotations?: Annotations.Filter) {
   if (process.env.NODE_ENV !== "production") {
     if (regex.flags !== "") {
       throw new globalThis.Error("regex flags are not supported")
@@ -2042,14 +2040,14 @@ export function isRegex(regex: RegExp, annotations?: Annotations.Filter) {
   return makeFilter(
     (s: string) => regex.test(s),
     Annotations.combine({
-      title: `isRegex(${source})`,
+      title: `isPattern(${source})`,
       description: `a string matching the regex ${source}`,
       jsonSchema: {
         _tag: "Constraint",
         constraint: () => ({ pattern: regex.source })
       },
       meta: {
-        _tag: "isRegex",
+        _tag: "isPattern",
         regex
       },
       arbitrary: {
@@ -2668,7 +2666,7 @@ const numberJsonLink = new Link(
 const numberKeywordPatternRegExp = new RegExp(`(?:${NUMBER_KEYWORD_PATTERN}|Infinity|-Infinity|NaN)`)
 
 const numberKeywordPattern = appendChecks(stringKeyword, [
-  isRegex(numberKeywordPatternRegExp, {
+  isPattern(numberKeywordPatternRegExp, {
     title: "a string representing a number"
   })
 ])
@@ -2680,7 +2678,7 @@ const numberStringPojoLink = new Link(
 
 const bigIntJsonLink = new Link(
   appendChecks(stringKeyword, [
-    isRegex(new RegExp(BIGINT_KEYWORD_PATTERN), { title: "a string representing a bigint" })
+    isPattern(new RegExp(BIGINT_KEYWORD_PATTERN), { title: "a string representing a bigint" })
   ]),
   new Transformation.Transformation(
     Getter.transform(BigInt),
@@ -2694,7 +2692,7 @@ const SYMBOL_PATTERN = /^Symbol\((.*)\)$/
  * to distinguish between Symbol and String, we need to add a check to the string keyword
  */
 const symbolJsonLink = new Link(
-  appendChecks(stringKeyword, [isRegex(SYMBOL_PATTERN, { title: "a string representing a symbol" })]),
+  appendChecks(stringKeyword, [isPattern(SYMBOL_PATTERN, { title: "a string representing a symbol" })]),
   new Transformation.Transformation(
     Getter.transform((description) => Symbol.for(SYMBOL_PATTERN.exec(description)![1])),
     Getter.transformOrFail((sym: symbol) => {

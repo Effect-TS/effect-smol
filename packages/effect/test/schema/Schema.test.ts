@@ -1047,7 +1047,7 @@ Expected a string including "c", got "ab"`
         const usernameGroup = Schema.makeFilterGroup(
           [
             Schema.isMinLength(3),
-            Schema.isRegex(/^[a-zA-Z0-9]+$/, {
+            Schema.isPattern(/^[a-zA-Z0-9]+$/, {
               title: "alphanumeric",
               description: "must contain only letters and numbers"
             }),
@@ -1072,8 +1072,8 @@ Expected a string including "c", got "ab"`
     })
 
     describe("String checks", () => {
-      it("isRegex", async () => {
-        const schema = Schema.String.check(Schema.isRegex(/^a/))
+      it("isPattern", async () => {
+        const schema = Schema.String.check(Schema.isPattern(/^a/))
         const asserts = new TestSchema.Asserts(schema)
 
         const decoding = asserts.decoding()
