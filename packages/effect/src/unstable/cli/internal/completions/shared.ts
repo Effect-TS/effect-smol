@@ -6,8 +6,8 @@ import type { CommandRow, SingleFlagMeta } from "./types.ts"
 export const getSingles = (flags: ReadonlyArray<Param.Any>): ReadonlyArray<SingleFlagMeta> =>
   flags
     .flatMap(Param.extractSingleParams)
-    .filter((s: any) => s.kind === "flag")
-    .map((s: any) => {
+    .filter((s) => s.kind === "flag")
+    .map((s) => {
       const description = s.description
       const base = {
         name: s.name,
