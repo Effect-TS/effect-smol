@@ -127,8 +127,7 @@ const await_: <Success extends Schema.Top, Error extends Schema.Top>(
     Predicate.isUndefined
   )
   if (exit === undefined) {
-    instance.suspended = true
-    return yield* Effect.interrupt
+    return yield* Workflow.suspend(instance)
   }
   return yield* exit as Exit.Exit<any, any>
 })

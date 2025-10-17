@@ -47,6 +47,7 @@ describe.concurrent("ClusterWorkflowEngine", () => {
       expect(flags.get("compensation")).toBeFalsy()
       // ensuring will run
       expect(flags.get("ensuring")).toBeTruthy()
+      expect(flags.get("catchCause")).toBeFalsy()
 
       // --- resume the workflow using DurableDeferred.done
 
@@ -70,6 +71,7 @@ describe.concurrent("ClusterWorkflowEngine", () => {
 
       // ensuring will run
       expect(flags.get("ensuring")).toBeTruthy()
+      expect(flags.get("catchCause")).toBeFalsy()
 
       // test deduplication
       yield* EmailWorkflow.execute({
@@ -162,6 +164,7 @@ describe.concurrent("ClusterWorkflowEngine", () => {
       const fiber = yield* RaceWorkflow.execute({
         id: "race-1"
       }).pipe(Effect.forkChild({ startImmediately: true }))
+
       yield* TestClock.adjust(500)
 
       const result = yield* Fiber.join(fiber)
@@ -322,11 +325,16 @@ const EmailWorkflowLayer = EmailWorkflow.toLayer(Effect.fn(function*(payload) {
 
   yield* DurableDeferred.token(EmailTrigger)
   // suspended outside Activity
-  yield* Effect.ensuring(
-    DurableDeferred.await(EmailTrigger),
-    Effect.sync(() => {
-      flags.set("ensuring", true)
-    })
+  yield* DurableDeferred.await(EmailTrigger).pipe(
+    Effect.catchCause(() => {
+      flags.set("catchCause", true)
+      return Effect.void
+    }),
+    Effect.ensuring(
+      Effect.sync(() => {
+        flags.set("ensuring", true)
+      })
+    )
   )
 })).pipe(
   Layer.provideMerge(Flags.layer)

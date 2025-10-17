@@ -7,6 +7,7 @@ import * as Option from "../../data/Option.ts"
 import * as Predicate from "../../data/Predicate.ts"
 import * as Effect from "../../Effect.ts"
 import * as Exit from "../../Exit.ts"
+import * as Fiber from "../../Fiber.ts"
 import { constFalse, constTrue, dual, identity } from "../../Function.ts"
 import * as Layer from "../../Layer.ts"
 import type * as Schedule from "../../Schedule.ts"
@@ -553,7 +554,11 @@ export const intoResult = <A, E, R>(
       SuspendOnFailure
     )
     return Effect.uninterruptibleMask((restore) =>
-      restore(effect).pipe(
+      effect.pipe(
+        // so we can use external interruption to suspend the workflow
+        Effect.forkChild({ startImmediately: true }),
+        Effect.flatMap((fiber) => Effect.onInterrupt(Fiber.join(fiber), () => Fiber.interrupt(fiber))),
+        restore,
         suspendOnFailure
           ? Effect.catchCause((cause) => {
             instance.suspended = true
@@ -669,6 +674,17 @@ export const withCompensation: {
         ))
     )
 )
+
+/**
+ * @since 4.0.0
+ * @category Result
+ */
+export const suspend = (instance: WorkflowInstance["Service"]): Effect.Effect<never> =>
+  Effect.interruptible(Effect.callback<never>(() => {
+    instance.suspended = true
+    const fiber = Fiber.getCurrent()!
+    fiber.interruptUnsafe(fiber.id)
+  }))
 
 /**
  * If you set this annotation to `true` for a workflow, it will capture defects

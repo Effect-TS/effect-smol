@@ -6,6 +6,7 @@ import * as DateTime from "../../DateTime.ts"
 import * as Duration from "../../Duration.ts"
 import * as Effect from "../../Effect.ts"
 import * as Exit from "../../Exit.ts"
+import * as Fiber from "../../Fiber.ts"
 import * as PrimaryKey from "../../interfaces/PrimaryKey.ts"
 import * as Layer from "../../Layer.ts"
 import * as RcMap from "../../RcMap.ts"
@@ -275,7 +276,7 @@ export const make = Effect.gen(function*() {
                         instance.interrupted = true
                         return Effect.flatMap(
                           Effect.ignore(clearClock({ workflow, executionId })),
-                          () => Effect.interrupt
+                          () => Effect.interruptible(Fiber.interrupt(Fiber.getCurrent()!))
                         )
                       }),
                       Effect.orDie
@@ -300,12 +301,13 @@ export const make = Effect.gen(function*() {
                 serviceMap.set(Activity.CurrentAttempt.key, payload.attempt)
                 const instance = WorkflowEngine.WorkflowInstance.initial(workflow, executionId)
                 serviceMap.set(WorkflowEngine.WorkflowInstance.key, instance)
-                return yield* Effect.interruptible(entry.activity.executeEncoded).pipe(
+                return yield* entry.activity.executeEncoded.pipe(
                   Effect.onInterrupt(() => {
                     instance.suspended = true
                     return Effect.void
                   }),
                   Workflow.intoResult,
+                  Effect.interruptible,
                   Effect.provideServices(ServiceMap.makeUnsafe(serviceMap)),
                   Effect.ensuring(Effect.sync(() => {
                     activities.delete(activityId)

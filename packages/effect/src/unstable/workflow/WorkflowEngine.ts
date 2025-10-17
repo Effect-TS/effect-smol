@@ -376,8 +376,7 @@ export const makeUnsafe = (options: Encoded): WorkflowEngine["Service"] =>
           (result) => result._tag === "Suspended"
         )
         if (result._tag === "Suspended") {
-          parentInstance.value.suspended = true
-          return yield* Effect.interrupt
+          return yield* Workflow.suspend(parentInstance.value)
         }
         return yield* result.exit
       }

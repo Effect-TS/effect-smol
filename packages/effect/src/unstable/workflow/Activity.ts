@@ -214,8 +214,7 @@ const makeExecute = Effect.fnUntraced(function*<
     (_) => _._tag === "Suspended"
   )
   if (result._tag === "Suspended") {
-    instance.suspended = true
-    return yield* Effect.interrupt
+    return yield* Workflow.suspend(instance)
   }
   return yield* result.exit
 })
