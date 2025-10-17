@@ -113,9 +113,9 @@
     "coverage": "vitest --coverage"
   },
   "devDependencies": {
-    "@types/node": "^24.5.2",
+    "@types/node": "^24.8.1",
     "ajv": "^8.17.1",
-    "arktype": "^2.1.22",
+    "arktype": "^2.1.23",
     "ast-types": "^0.14.2",
     "immer": "^10.1.3",
     "tinybench": "^5.0.1",

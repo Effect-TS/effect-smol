@@ -24,7 +24,7 @@ jobs:
       - name: Install dependencies
         uses: ./.github/actions/setup
         with:
-          node-version: latest
+          node-version: 24.10.0
       - run: pnpm lint
 
   types:
@@ -38,7 +38,7 @@ jobs:
       - name: Install dependencies
         uses: ./.github/actions/setup
         with:
-          node-version: latest
+          node-version: 24.10.0
       - run: pnpm check
       - run: pnpm test-types --target '>=5.8'
 
@@ -70,7 +70,7 @@ jobs:
       - name: Install dependencies
         uses: ./.github/actions/setup
         with:
-          node-version: latest
+          node-version: 24.10.0
       - name: Clone base ref
         uses: actions/checkout@v4
         with:
@@ -142,7 +142,7 @@ jobs:
         if: matrix.runtime == 'Node'
         uses: ./.github/actions/setup
         with:
-          node-version: latest
+          node-version: 24.10.0
       - name: Test
         if: matrix.runtime == 'Node'
         run: pnpm test --shard ${{ matrix.shard }}
@@ -194,7 +194,7 @@ jobs:
       - name: Install dependencies
         uses: ./.github/actions/setup
         with:
-          node-version: latest
+          node-version: 24.10.0
       - name: Generate Documentation
         run: pnpm docgen
 
@@ -209,6 +209,6 @@ jobs:
       - name: Install dependencies
         uses: ./.github/actions/setup
         with:
-          node-version: latest
+          node-version: 24.10.0
       - name: Check for circular dependencies
         run: pnpm circular
