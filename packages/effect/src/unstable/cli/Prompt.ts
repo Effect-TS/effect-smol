@@ -1197,7 +1197,7 @@ const TRUE_VALUE_REGEX = /^y|t$/
 const FALSE_VALUE_REGEX = /^n|f$/
 
 const handleConfirmProcess = (input: Terminal.UserInput, defaultValue: boolean) => {
-  const value = Option.getOrElse(input.input, () => "")
+  const value = input.input ?? ""
   if (input.key.name === "enter" || input.key.name === "return") {
     return Effect.succeed(Action.Submit({ value: defaultValue }))
   }
@@ -1422,8 +1422,7 @@ const handleDateProcess = (options: DateOptionsReq) => {
         })
       }
       default: {
-        const value = Option.getOrElse(input.input, () => "")
-        return Effect.succeed(defaultDateProcessor(value, state))
+        return Effect.succeed(defaultDateProcessor(input.input ?? "", state))
       }
     }
   }
@@ -2348,7 +2347,7 @@ const processNumberBackspace = (state: NumberState) => {
   }))
 }
 
-const defaultIntProcessor = (state: NumberState, input: string) => {
+const defaultIntProcessor = (input: string, state: NumberState) => {
   if (state.value.length === 0 && input === "-") {
     return Effect.succeed(Action.NextFrame({
       state: { ...state, value: "-", error: undefined }
@@ -2365,10 +2364,7 @@ const defaultIntProcessor = (state: NumberState, input: string) => {
   }
 }
 
-const defaultFloatProcessor = (
-  state: NumberState,
-  input: string
-) => {
+const defaultFloatProcessor = (input: string, state: NumberState) => {
   if (input === "." && state.value.includes(".")) {
     return Effect.succeed(Action.Beep())
   }
@@ -2456,8 +2452,7 @@ const handleProcessInteger = (options: IntegerOptionsReq) => {
         }
       }
       default: {
-        const value = Option.getOrElse(input.input, () => "")
-        return defaultIntProcessor(state, value)
+        return defaultIntProcessor(input.input ?? "", state)
       }
     }
   }
@@ -2531,8 +2526,7 @@ const handleProcessFloat = (options: FloatOptionsReq) => {
         }
       }
       default: {
-        const value = Option.getOrElse(input.input, () => "")
-        return defaultFloatProcessor(state, value)
+        return defaultFloatProcessor(input.input ?? "", state)
       }
     }
   }
@@ -2909,8 +2903,7 @@ const handleTextProcess = (options: TextOptionsReq) => {
         return processTab(state, options)
       }
       default: {
-        const value = Option.getOrElse(input.input, () => "")
-        return defaultTextProcessor(value, state)
+        return defaultTextProcessor(input.input ?? "", state)
       }
     }
   }

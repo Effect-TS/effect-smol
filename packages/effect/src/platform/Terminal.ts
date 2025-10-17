@@ -1,7 +1,6 @@
 /**
  * @since 4.0.0
  */
-import type * as Option from "../data/Option.ts"
 import * as Predicate from "../data/Predicate.ts"
 import type * as Effect from "../Effect.ts"
 import type * as Queue from "../Queue.ts"
@@ -71,7 +70,7 @@ export interface UserInput {
   /**
    * The character read from the user (if any).
    */
-  readonly input: Option.Option<string>
+  readonly input: string | undefined
   /**
    * The key that the user pressed.
    */
