@@ -715,13 +715,13 @@ export const withSubcommands = <const Subcommands extends ReadonlyArray<Command<
   self: Command<Name, Input, E, R>
 ): Command<
   Name,
-  Input & { readonly subcommand: Option.Option<ExtractSubcommandInputs<Subcommands>> },
+  Input & { readonly subcommand: ExtractSubcommandInputs<Subcommands> | undefined },
   ExtractSubcommandErrors<Subcommands>,
   R | Exclude<ExtractSubcommandContext<Subcommands>, ParentCommand<Name>>
 > => {
   checkForDuplicateFlags(self, subcommands)
 
-  type NewInput = Input & { readonly subcommand: Option.Option<ExtractSubcommandInputs<Subcommands>> }
+  type NewInput = Input & { readonly subcommand: ExtractSubcommandInputs<Subcommands> | undefined }
 
   // Build a stable name → subcommand index to avoid repeated linear scans
   const subcommandIndex = new Map<string, Command<any, any, any, any>>()
@@ -734,27 +734,24 @@ export const withSubcommands = <const Subcommands extends ReadonlyArray<Command<
 
     const subRef = input.subcommand
     if (!subRef) {
-      return { ...parentResult, subcommand: Option.none() } as NewInput
+      return { ...parentResult, subcommand: undefined } as NewInput
     }
 
     const sub = subcommandIndex.get(subRef.name)
 
     // Parser guarantees valid subcommand names, but guard defensively
     if (!sub) {
-      return {
-        ...parentResult,
-        subcommand: Option.none()
-      } as NewInput
+      return { ...parentResult, subcommand: undefined }
     }
 
     const subResult = yield* sub.parse(subRef.parsedInput)
     const value = { name: sub.name, result: subResult } as ExtractSubcommandInputs<Subcommands>
-    return { ...parentResult, subcommand: Option.some(value) } as NewInput
+    return { ...parentResult, subcommand: value }
   })
 
   const handle = Effect.fnUntraced(function*(input: NewInput, commandPath: ReadonlyArray<string>) {
-    if (Option.isSome(input.subcommand)) {
-      const selected = input.subcommand.value
+    if (input.subcommand !== undefined) {
+      const selected = input.subcommand
       const child = subcommandIndex.get(selected.name)
       if (!child) {
         return yield* new CliError.ShowHelp({ commandPath })
