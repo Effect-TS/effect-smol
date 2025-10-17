@@ -55,7 +55,7 @@ const ParsedConfigTypeId = "~effect/cli/Command/ParsedConfig" as const
  *   {
  *     readonly env: string
  *     readonly force: boolean
- *     readonly files: ReadonlyArray<unknown>
+ *     readonly files: ReadonlyArray<string>
  *   },
  *   never,
  *   never
@@ -64,7 +64,7 @@ const ParsedConfigTypeId = "~effect/cli/Command/ParsedConfig" as const
  *   {
  *     env: Flag.string("env"),
  *     force: Flag.boolean("force"),
- *     files: Argument.string("files").pipe(Argument.variadic)
+ *     files: Argument.string("files").pipe(Argument.variadic())
  *   }
  * )
  *
