@@ -7,7 +7,7 @@ import * as AST from "../schema/AST.ts"
 import type * as Schema from "../schema/Schema.ts"
 import * as ToParser from "../schema/ToParser.ts"
 
-interface Options extends Schema.Draft07Options {
+interface Options extends Schema.JsonSchemaDraft07Options {
   readonly target?: Annotations.JsonSchema.Target | undefined
 }
 
@@ -35,7 +35,8 @@ export function make<S extends Schema.Top>(schema: S, options?: Options): Annota
       getRef,
       target,
       topLevelReferenceStrategy,
-      additionalPropertiesStrategy
+      additionalPropertiesStrategy,
+      onMissingJsonSchemaAnnotation: options?.onMissingJsonSchemaAnnotation
     })
   }
   if (Object.keys(definitions).length > 0) {
@@ -197,6 +198,7 @@ type GoOptions = {
   readonly target: Annotations.JsonSchema.Target
   readonly topLevelReferenceStrategy: Schema.JsonSchemaTopLevelReferenceStrategy
   readonly additionalPropertiesStrategy: Schema.JsonSchemaAdditionalPropertiesStrategy
+  readonly onMissingJsonSchemaAnnotation?: ((ast: AST.AST) => Annotations.JsonSchema.JsonSchema | undefined) | undefined
 }
 
 function getId(ast: AST.AST): string | undefined {
@@ -324,7 +326,11 @@ function go(
     case "SymbolKeyword":
     case "UniqueSymbol": {
       if (ignoreErrors) return {}
-      throw new Error(`cannot generate JSON Schema for ${ast._tag} at ${formatPath(path) || "root"}`)
+      if (options.onMissingJsonSchemaAnnotation) {
+        const out = options.onMissingJsonSchemaAnnotation(ast)
+        if (out) return out
+      }
+      throw new Error(`cannot generate JSON Schema for ${ast.getExpected()} at ${formatPath(path) || "root"}`)
     }
     case "UndefinedKeyword":
       return { not: {}, ...getChecksJsonFragment(ast, target) }

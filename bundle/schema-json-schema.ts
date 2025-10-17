@@ -6,4 +6,4 @@ const schema = Schema.Struct({
   c: Schema.Array(Schema.String)
 })
 
-Schema.makeDraft07(schema)
+Schema.makeJsonSchemaDraft07(schema)

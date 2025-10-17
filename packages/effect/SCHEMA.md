@@ -4300,7 +4300,7 @@ import { Schema } from "effect/schema"
 const schema = Schema.Tuple([Schema.String, Schema.Number])
 
 // Generate a draft-07 JSON Schema
-const jsonSchema = Schema.makeDraft07(schema)
+const jsonSchema = Schema.makeJsonSchemaDraft07(schema)
 
 console.log(JSON.stringify(jsonSchema, null, 2))
 /*
@@ -4330,7 +4330,7 @@ import { Schema } from "effect/schema"
 const schema = Schema.Tuple([Schema.String, Schema.Number])
 
 // Generate a draft-2020-12 JSON Schema
-const jsonSchema = Schema.makeDraft2020_12(schema)
+const jsonSchema = Schema.makeJsonSchemaDraft2020_12(schema)
 
 console.log(JSON.stringify(jsonSchema, null, 2))
 /*
@@ -4360,7 +4360,7 @@ import { Schema } from "effect/schema"
 
 const schema = Schema.BigInt
 
-Schema.makeDraft07(schema)
+Schema.makeJsonSchemaDraft07(schema)
 // throws Error: cannot generate JSON Schema for BigIntKeyword at root
 ```
 
@@ -4385,7 +4385,7 @@ const schema = Schema.NonEmptyString.annotate({
   examples: ["alice", "bob"]
 })
 
-const jsonSchema = Schema.makeDraft07(schema)
+const jsonSchema = Schema.makeJsonSchemaDraft07(schema)
 
 console.log(JSON.stringify(jsonSchema, null, 2))
 /*
@@ -4421,7 +4421,7 @@ const schema = Schema.NonEmptyString.annotate({
 })
 
 // During generation invalid annotations are dropped
-const jsonSchema = Schema.makeDraft07(schema)
+const jsonSchema = Schema.makeJsonSchemaDraft07(schema)
 
 console.log(JSON.stringify(jsonSchema, null, 2))
 /*
@@ -4451,7 +4451,7 @@ const schema = Schema.Struct({
   a: Schema.UndefinedOr(Schema.Number) // 'a' may be undefined
 })
 
-const jsonSchema = Schema.makeDraft07(schema)
+const jsonSchema = Schema.makeJsonSchemaDraft07(schema)
 
 console.log(JSON.stringify(jsonSchema, null, 2))
 /*
@@ -4477,7 +4477,7 @@ import { Schema } from "effect/schema"
 
 const schema = Schema.Tuple([Schema.UndefinedOr(Schema.Number)]) // first element may be undefined
 
-const jsonSchema = Schema.makeDraft07(schema)
+const jsonSchema = Schema.makeJsonSchemaDraft07(schema)
 
 console.log(JSON.stringify(jsonSchema, null, 2))
 /*
@@ -4529,7 +4529,7 @@ import { Schema } from "effect/schema"
 const schema = Schema.Number.check(Schema.makeFilter((n) => n > 0))
 
 // No override: the JSON Schema keeps the basic 'number' shape
-const jsonSchema = Schema.makeDraft07(schema)
+const jsonSchema = Schema.makeJsonSchemaDraft07(schema)
 
 console.log(JSON.stringify(jsonSchema, null, 2))
 /*
@@ -4554,7 +4554,7 @@ const schema = Schema.Number.check(Schema.makeFilter((n) => n > 0)).annotate({
   }
 })
 
-const jsonSchema = Schema.makeDraft07(schema)
+const jsonSchema = Schema.makeJsonSchemaDraft07(schema)
 
 console.log(JSON.stringify(jsonSchema, null, 2))
 /*
@@ -4586,7 +4586,7 @@ const schema = Schema.Struct({
   })
 })
 
-const jsonSchema = Schema.makeDraft07(schema)
+const jsonSchema = Schema.makeJsonSchemaDraft07(schema)
 
 console.log(JSON.stringify(jsonSchema, null, 2))
 /*
@@ -4607,6 +4607,86 @@ Output:
 */
 ```
 
+### Unsupported Schemas
+
+Some schemas cannot be represented in JSON Schema. For these, add a custom JSON Schema using the `Override` annotation.
+
+**Example** (Override `Date` as a string)
+
+```ts
+import { Schema } from "effect/schema"
+
+const schema = Schema.Struct({
+  // 'a' is a Date at runtime, but JSON Schema has no 'date' type
+  a: Schema.Date.annotate({
+    jsonSchema: {
+      _tag: "Override",
+      // Provide a replacement JSON Schema for this node
+      override: () => ({
+        type: "string",
+        description: "a string that will be decoded as a date"
+      })
+    }
+  })
+})
+
+const jsonSchema = Schema.makeJsonSchemaDraft07(schema)
+
+console.log(JSON.stringify(jsonSchema, null, 2))
+/*
+Output:
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "type": "object",
+  "properties": {
+    "a": {
+      "type": "string",
+      "description": "a string that will be decoded as a date"
+    }
+  },
+  "required": [
+    "a"
+  ],
+  "additionalProperties": false
+}
+*/
+```
+
+You can set a global hook to handle unsupported schemas.
+
+**Example** (Global hook for unsupported nodes)
+
+```ts
+import { Schema } from "effect/schema"
+
+const schema = Schema.Struct({
+  a: Schema.Date
+})
+
+const jsonSchema = Schema.makeJsonSchemaDraft07(schema, {
+  // Invoked when a node lacks a JSON Schema annotation and is unsupported.
+  // Return a JSON Schema fragment to use in its place.
+  // Return undefined to signal an error (you can inspect the AST to decide).
+  onMissingJsonSchemaAnnotation: (/* ast */) => ({})
+})
+
+console.log(JSON.stringify(jsonSchema, null, 2))
+/*
+Output:
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "type": "object",
+  "properties": {
+    "a": {}
+  },
+  "required": [
+    "a"
+  ],
+  "additionalProperties": false
+}
+*/
+```
+
 ### Adding JSON Schema Fragments For Filters
 
 When you call `.check(...)`, Effect attaches a filter. A filter may include a `"jsonSchema"` annotation that describes a JSON Schema fragment to merge into the final schema.
@@ -4620,7 +4700,7 @@ import { Schema } from "effect/schema"
 
 const schema = Schema.String.check(Schema.isMinLength(1))
 
-const jsonSchema = Schema.makeDraft07(schema)
+const jsonSchema = Schema.makeJsonSchemaDraft07(schema)
 
 console.log(JSON.stringify(jsonSchema, null, 2))
 /*
@@ -4647,7 +4727,7 @@ const schema = Schema.String.check(
   Schema.isMaxLength(2) // subsequent: wrapped under allOf
 )
 
-const jsonSchema = Schema.makeDraft07(schema)
+const jsonSchema = Schema.makeJsonSchemaDraft07(schema)
 
 console.log(JSON.stringify(jsonSchema, null, 2))
 /*
@@ -4698,7 +4778,7 @@ const schema = Schema.String.check(
   })
 )
 
-const jsonSchema = Schema.makeDraft07(schema)
+const jsonSchema = Schema.makeJsonSchemaDraft07(schema)
 
 console.log(JSON.stringify(jsonSchema, null, 2))
 /*
@@ -4731,7 +4811,7 @@ const original = Schema.Struct({ a: Schema.String })
 // but its content must be valid JSON matching 'original'
 const schema = Schema.fromJsonString(original)
 
-const jsonSchema = Schema.makeDraft2020_12(schema)
+const jsonSchema = Schema.makeJsonSchemaDraft2020_12(schema)
 
 console.log(JSON.stringify(jsonSchema, null, 2))
 /*

@@ -30,9 +30,9 @@ const ajv2020 = new Ajv2020.default(baseAjvOptions)
 async function assertDraft7<S extends Schema.Top>(
   schema: S,
   expected: object,
-  options?: Schema.Draft07Options
+  options?: Schema.JsonSchemaDraft07Options
 ) {
-  const jsonSchema = Schema.makeDraft07(schema, options)
+  const jsonSchema = Schema.makeJsonSchemaDraft07(schema, options)
   deepStrictEqual(jsonSchema, {
     "$schema": "http://json-schema.org/draft-07/schema",
     ...expected
@@ -48,9 +48,9 @@ async function assertDraft7<S extends Schema.Top>(
 async function assertDraft2020_12<S extends Schema.Top>(
   schema: S,
   expected: object,
-  options?: Schema.Draft2020_12_Options
+  options?: Schema.JsonSchemaDraft2020_12_Options
 ) {
-  const jsonSchema = Schema.makeDraft2020_12(schema, options)
+  const jsonSchema = Schema.makeJsonSchemaDraft2020_12(schema, options)
   deepStrictEqual(jsonSchema, {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     ...expected
@@ -66,9 +66,9 @@ async function assertDraft2020_12<S extends Schema.Top>(
 async function assertOpenApi3_1<S extends Schema.Top>(
   schema: S,
   expected: object,
-  options?: Schema.OpenApi3_1Options
+  options?: Schema.JsonSchemaOpenApi3_1Options
 ) {
-  const jsonSchema = Schema.makeOpenApi3_1(schema, options)
+  const jsonSchema = Schema.makeJsonSchemaOpenApi3_1(schema, options)
   deepStrictEqual(jsonSchema, {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     ...expected
@@ -85,7 +85,7 @@ function assertAjvDraft7Success<S extends Schema.Top>(
   schema: S,
   input: S["Type"]
 ) {
-  const jsonSchema = Schema.makeDraft07(schema)
+  const jsonSchema = Schema.makeJsonSchemaDraft07(schema)
   const validate = getAjvValidate(jsonSchema)
   assertTrue(validate(input))
 }
@@ -94,13 +94,13 @@ function assertAjvDraft7Failure<S extends Schema.Top>(
   schema: S,
   input: unknown
 ) {
-  const jsonSchema = Schema.makeDraft07(schema)
+  const jsonSchema = Schema.makeJsonSchemaDraft07(schema)
   const validate = getAjvValidate(jsonSchema)
   assertFalse(validate(input))
 }
 
-function expectError(schema: Schema.Top, message: string) {
-  throws(() => Schema.makeDraft07(schema), new Error(message))
+function expectError(schema: Schema.Top, message: string, options?: Schema.JsonSchemaDraft07Options) {
+  throws(() => Schema.makeJsonSchemaDraft07(schema, options), new Error(message))
 }
 
 describe("ToJsonSchema", () => {
@@ -372,28 +372,28 @@ describe("ToJsonSchema", () => {
     it("Declaration", async () => {
       expectError(
         Schema.instanceOf(globalThis.URL),
-        `cannot generate JSON Schema for Declaration at root`
+        `cannot generate JSON Schema for <Declaration> at root`
       )
     })
 
     it("BigInt", async () => {
       expectError(
         Schema.BigInt,
-        `cannot generate JSON Schema for BigIntKeyword at root`
+        `cannot generate JSON Schema for bigint at root`
       )
     })
 
     it("UniqueSymbol", async () => {
       expectError(
         Schema.UniqueSymbol(Symbol.for("effect/Schema/test/a")),
-        `cannot generate JSON Schema for UniqueSymbol at root`
+        `cannot generate JSON Schema for Symbol(effect/Schema/test/a) at root`
       )
     })
 
     it("Symbol", async () => {
       expectError(
         Schema.Symbol,
-        `cannot generate JSON Schema for SymbolKeyword at root`
+        `cannot generate JSON Schema for symbol at root`
       )
     })
 
@@ -423,7 +423,7 @@ describe("ToJsonSchema", () => {
       it("Unsupported element", () => {
         expectError(
           Schema.Tuple([Schema.Symbol]),
-          `cannot generate JSON Schema for SymbolKeyword at [0]`
+          `cannot generate JSON Schema for symbol at [0]`
         )
       })
 
@@ -439,7 +439,7 @@ describe("ToJsonSchema", () => {
       it("Unsupported field", () => {
         expectError(
           Schema.Struct({ a: Schema.Symbol }),
-          `cannot generate JSON Schema for SymbolKeyword at ["a"]`
+          `cannot generate JSON Schema for symbol at ["a"]`
         )
       })
 
@@ -455,6 +455,26 @@ describe("ToJsonSchema", () => {
         expectError(
           Schema.Record(Schema.Symbol, Schema.Number),
           `cannot generate JSON Schema for SymbolKeyword at root`
+        )
+      })
+    })
+
+    describe("onMissingJsonSchemaAnnotation", () => {
+      it("when returns a JSON Schema", async () => {
+        const schema = Schema.Date
+        await assertDraft7(schema, {}, {
+          onMissingJsonSchemaAnnotation: () => ({})
+        })
+      })
+
+      it("when returns undefined", async () => {
+        const schema = Schema.Date
+        expectError(
+          schema,
+          `cannot generate JSON Schema for Date at root`,
+          {
+            onMissingJsonSchemaAnnotation: () => undefined
+          }
         )
       })
     })

@@ -5572,7 +5572,7 @@ export const Date: Date = instanceOf(
     title: "Date",
     defaultJsonSerializer: () =>
       link<globalThis.Date>()(
-        String,
+        String.annotate({ description: "a string that will be decoded as a date" }),
         Transformation.transform({
           decode: (s) => new globalThis.Date(s),
           encode: formatDate
@@ -6792,13 +6792,14 @@ export interface JsonSchemaOptions {
    * - `"skip"`: Skip the top-level reference
    */
   readonly topLevelReferenceStrategy?: JsonSchemaTopLevelReferenceStrategy | undefined
+  readonly onMissingJsonSchemaAnnotation?: ((ast: AST.AST) => Annotations.JsonSchema.JsonSchema | undefined) | undefined
 }
 
 /**
  * @category JsonSchema
  * @since 4.0.0
  */
-export interface Draft07Options extends JsonSchemaOptions {}
+export interface JsonSchemaDraft07Options extends JsonSchemaOptions {}
 
 /**
  * Returns a JSON Schema Draft 07 object.
@@ -6806,18 +6807,21 @@ export interface Draft07Options extends JsonSchemaOptions {}
  * @category JsonSchema
  * @since 4.0.0
  */
-export function makeDraft07<S extends Top>(
+export function makeJsonSchemaDraft07<S extends Top>(
   schema: S,
-  options?: Draft07Options
+  options?: JsonSchemaDraft07Options
 ): Annotations.JsonSchema.JsonSchema {
-  return InternalJsonSchema.make(schema, { ...options, target: "draft-07" })
+  return InternalJsonSchema.make(schema, {
+    ...options,
+    target: "draft-07"
+  })
 }
 
 /**
  * @category JsonSchema
  * @since 4.0.0
  */
-export interface Draft2020_12_Options extends JsonSchemaOptions {}
+export interface JsonSchemaDraft2020_12_Options extends JsonSchemaOptions {}
 
 /**
  * Returns a JSON Schema Draft 2020-12 object.
@@ -6830,28 +6834,34 @@ export interface Draft2020_12_Options extends JsonSchemaOptions {}
  * @category JsonSchema
  * @since 4.0.0
  */
-export function makeDraft2020_12<S extends Top>(
+export function makeJsonSchemaDraft2020_12<S extends Top>(
   schema: S,
-  options?: Draft2020_12_Options
+  options?: JsonSchemaDraft2020_12_Options
 ): Annotations.JsonSchema.JsonSchema {
-  return InternalJsonSchema.make(schema, { ...options, target: "draft-2020-12" })
+  return InternalJsonSchema.make(schema, {
+    ...options,
+    target: "draft-2020-12"
+  })
 }
 
 /**
  * @category JsonSchema
  * @since 4.0.0
  */
-export interface OpenApi3_1Options extends JsonSchemaOptions {}
+export interface JsonSchemaOpenApi3_1Options extends JsonSchemaOptions {}
 
 /**
  * @category JsonSchema
  * @since 4.0.0
  */
-export function makeOpenApi3_1<S extends Top>(
+export function makeJsonSchemaOpenApi3_1<S extends Top>(
   schema: S,
-  options?: OpenApi3_1Options
+  options?: JsonSchemaOpenApi3_1Options
 ): Annotations.JsonSchema.JsonSchema {
-  return InternalJsonSchema.make(schema, { ...options, target: "openApi3.1" })
+  return InternalJsonSchema.make(schema, {
+    ...options,
+    target: "openApi3.1"
+  })
 }
 
 // -----------------------------------------------------------------------------
