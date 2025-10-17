@@ -717,11 +717,10 @@ export const file = (options: FileOptions = {}): Prompt<string> => {
     never,
     Environment
   > = Effect.gen(function*() {
-    const path = Option.none<string>()
-    const currentPath = yield* resolveCurrentPath(path, opts)
+    const currentPath = yield* resolveCurrentPath(undefined, opts)
     const files = yield* getFileList(currentPath, opts)
     const confirm = Confirm.Hide()
-    return { cursor: 0, files, path, confirm }
+    return { cursor: 0, files, path: undefined, confirm }
   })
   return custom(initialState, {
     render: handleFileRender(opts),
@@ -1769,7 +1768,7 @@ interface FileOptionsReq extends Required<Omit<FileOptions, "startingPath">> {
 interface FileState {
   readonly cursor: number
   readonly files: ReadonlyArray<string>
-  readonly path: Option.Option<string>
+  readonly path: string | undefined
   readonly confirm: Confirm
 }
 
@@ -1783,28 +1782,26 @@ const Confirm = Data.taggedEnum<Confirm>()
 const showConfirmation = Confirm.$is("Show")
 
 const resolveCurrentPath = (
-  path: Option.Option<string>,
+  path: string | undefined,
   options: FileOptionsReq
 ): Effect.Effect<string, never, FileSystem.FileSystem> => {
-  return Option.match(path, {
-    onNone: () => {
-      const path = options.startingPath
-      if (path !== undefined) {
-        return Effect.flatMap(FileSystem.FileSystem.asEffect(), (fs) =>
-          // Ensure the user provided starting path exists
-          Effect.orDie(fs.exists(path)).pipe(
-            Effect.flatMap((exists) =>
-              exists ? Effect.void : Effect.die(
-                `The provided starting path '${path}' does not exist`
-              )
-            ),
-            Effect.as(path)
-          ))
-      }
-      return Effect.sync(() => process.cwd())
-    },
-    onSome: (path) => Effect.succeed(path)
-  })
+  if (path !== undefined) {
+    return Effect.succeed(path)
+  }
+  const startingPath = options.startingPath
+  if (startingPath !== undefined) {
+    return Effect.flatMap(FileSystem.FileSystem.asEffect(), (fs) =>
+      // Ensure the user provided starting path exists
+      Effect.orDie(fs.exists(startingPath)).pipe(
+        Effect.flatMap((exists) =>
+          exists ? Effect.void : Effect.die(
+            `The provided starting path '${startingPath}' does not exist`
+          )
+        ),
+        Effect.as(startingPath)
+      ))
+  }
+  return Effect.sync(() => process.cwd())
 }
 
 const getFileList = Effect.fnUntraced(function*(directory: string, options: FileOptionsReq) {
@@ -1985,7 +1982,7 @@ const processSelection = Effect.fnUntraced(function*(state: FileState, options: 
       state: {
         cursor: 0,
         files,
-        path: Option.some(resolvedPath),
+        path: resolvedPath,
         confirm: Confirm.Hide()
       }
     })
@@ -2021,7 +2018,7 @@ const handleFileProcess = (options: FileOptionsReq) => {
             state: {
               cursor: 0,
               files,
-              path: Option.some(resolvedPath),
+              path: resolvedPath,
               confirm: Confirm.Hide()
             }
           })
