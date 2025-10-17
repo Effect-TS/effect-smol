@@ -932,7 +932,7 @@ export const multiSelect = <const A>(
       initialSelected.add(i)
     }
   }
-  return custom({ index: 0, selectedIndices: initialSelected, error: Option.none() }, {
+  return custom({ index: 0, selectedIndices: initialSelected, error: undefined }, {
     render: handleMultiSelectRender(opts),
     process: handleMultiSelectProcess(opts),
     clear: () => handleMultiSelectClear(opts)
@@ -2049,22 +2049,21 @@ interface MultiSelectOptionsReq extends MultiSelectOptions {}
 type MultiSelectState = {
   index: number
   selectedIndices: Set<number>
-  error: Option.Option<string>
+  error: string | undefined
 }
 
-const renderMultiSelectError = (state: MultiSelectState, pointer: string) => {
-  return Option.match(state.error, {
-    onNone: () => "",
-    onSome: (error) =>
-      Arr.match(error.split(NEWLINE_REGEX), {
-        onEmpty: () => "",
-        onNonEmpty: (errorLines) => {
-          const prefix = Ansi.annotate(pointer, Ansi.red) + " "
-          const lines = Arr.map(errorLines, (str) => annotateErrorLine(str))
-          return Ansi.cursorSavePosition + "\n" + prefix + lines.join("\n") + Ansi.cursorRestorePosition
-        }
-      })
-  })
+const renderMultiSelectError = (state: MultiSelectState, pointer: string): string => {
+  if (state.error !== undefined) {
+    return Arr.match(state.error.split(NEWLINE_REGEX), {
+      onEmpty: () => "",
+      onNonEmpty: (errorLines) => {
+        const prefix = Ansi.annotate(pointer, Ansi.red) + " "
+        const lines = Arr.map(errorLines, (str) => annotateErrorLine(str))
+        return Ansi.cursorSavePosition + "\n" + prefix + lines.join("\n") + Ansi.cursorRestorePosition
+      }
+    })
+  }
+  return ""
 }
 
 const renderChoiceDescription = <A>(
@@ -2216,12 +2215,12 @@ const handleMultiSelectProcess = <A>(options: SelectOptionsReq<A> & MultiSelectO
     switch (input.key.name) {
       case "k":
       case "up": {
-        return processMultiSelectCursorUp({ ...state, error: Option.none() }, totalChoices)
+        return processMultiSelectCursorUp({ ...state, error: undefined }, totalChoices)
       }
       case "j":
       case "down":
       case "tab": {
-        return processMultiSelectCursorDown({ ...state, error: Option.none() }, totalChoices)
+        return processMultiSelectCursorDown({ ...state, error: undefined }, totalChoices)
       }
       case "space": {
         return processSpace(state, options)
@@ -2231,12 +2230,12 @@ const handleMultiSelectProcess = <A>(options: SelectOptionsReq<A> & MultiSelectO
         const selectedCount = state.selectedIndices.size
         if (options.min !== undefined && selectedCount < options.min) {
           return Effect.succeed(
-            Action.NextFrame({ state: { ...state, error: Option.some(`At least ${options.min} are required`) } })
+            Action.NextFrame({ state: { ...state, error: `At least ${options.min} are required` } })
           )
         }
         if (options.max !== undefined && selectedCount > options.max) {
           return Effect.succeed(
-            Action.NextFrame({ state: { ...state, error: Option.some(`At most ${options.max} choices are allowed`) } })
+            Action.NextFrame({ state: { ...state, error: `At most ${options.max} choices are allowed` } })
           )
         }
         const selectedValues = Array.from(state.selectedIndices).sort(EffectNumber.Order).map((index) =>
