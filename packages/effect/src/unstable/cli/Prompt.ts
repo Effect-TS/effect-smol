@@ -1311,41 +1311,38 @@ const processDown = (state: DateState) => {
 }
 
 const processDateCursorLeft = (state: DateState) => {
-  const previousPart = state.dateParts[state.cursor].previousPart()
-  return Option.match(previousPart, {
-    onNone: () => Action.Beep(),
-    onSome: (previous) =>
-      Action.NextFrame({
-        state: {
-          ...state,
-          typed: "",
-          cursor: state.dateParts.indexOf(previous)
-        }
-      })
-  })
+  const previous = state.dateParts[state.cursor].previousPart()
+  if (previous !== undefined) {
+    return Action.NextFrame({
+      state: {
+        ...state,
+        typed: "",
+        cursor: state.dateParts.indexOf(previous)
+      }
+    })
+  }
+  return Action.Beep()
 }
 
 const processDateCursorRight = (state: DateState) => {
-  const nextPart = state.dateParts[state.cursor].nextPart()
-  return Option.match(nextPart, {
-    onNone: () => Action.Beep(),
-    onSome: (next) =>
-      Action.NextFrame({
-        state: {
-          ...state,
-          typed: "",
-          cursor: state.dateParts.indexOf(next)
-        }
-      })
-  })
+  const next = state.dateParts[state.cursor].nextPart()
+  if (next !== undefined) {
+    return Action.NextFrame({
+      state: {
+        ...state,
+        typed: "",
+        cursor: state.dateParts.indexOf(next)
+      }
+    })
+  }
+  return Action.Beep()
 }
 
 const processDateNext = (state: DateState) => {
-  const nextPart = state.dateParts[state.cursor].nextPart()
-  const cursor = Option.match(nextPart, {
-    onNone: () => state.dateParts.findIndex((part) => !part.isToken()),
-    onSome: (next) => state.dateParts.indexOf(next)
-  })
+  const next = state.dateParts[state.cursor].nextPart()
+  const cursor = next !== undefined
+    ? state.dateParts.indexOf(next)
+    : state.dateParts.findIndex((part) => !part.isToken())
   return Action.NextFrame({
     state: { ...state, cursor }
   })
@@ -1524,23 +1521,23 @@ abstract class DatePart {
   /**
    * Retrieves the next date part in the list of parts.
    */
-  nextPart(): Option.Option<DatePart> {
-    return Option.some(Arr.findFirstIndex(this.parts, (part) => part === this)).pipe(
-      Option.flatMap((currentPartIndex) =>
-        Arr.findFirst(this.parts.slice((currentPartIndex || 0) + 1), (part) => !part.isToken())
-      )
+  nextPart(): DatePart | undefined {
+    const currentPartIndex = Arr.findFirstIndex(this.parts, (part) => part === this) ?? 0
+    return Option.getOrUndefined(
+      Arr.findFirst(this.parts.slice(currentPartIndex + 1), (part) => !part.isToken())
     )
   }
 
   /**
    * Retrieves the previous date part in the list of parts.
    */
-  previousPart(): Option.Option<DatePart> {
-    return Option.some(Arr.findFirstIndex(this.parts, (part) => part === this)).pipe(
-      Option.flatMap((currentPartIndex) =>
+  previousPart(): DatePart | undefined {
+    const currentPartIndex = Arr.findFirstIndex(this.parts, (part) => part === this)
+    if (currentPartIndex !== undefined) {
+      return Option.getOrUndefined(
         Arr.findLast(this.parts.slice(0, currentPartIndex), (part) => !part.isToken())
       )
-    )
+    }
   }
 
   toString() {
