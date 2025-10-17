@@ -1,13 +1,13 @@
 /**
  * @since 4.0.0
  */
+import * as Config from "../../Config.ts"
 import * as Redacted from "../../data/Redacted.ts"
 import * as Effect from "../../Effect.ts"
 import { identity } from "../../Function.ts"
 import * as FileSystem from "../../platform/FileSystem.ts"
 import * as Path from "../../platform/Path.ts"
 import * as Schema from "../../schema/Schema.ts"
-import * as Transformation from "../../schema/Transformation.ts"
 import type { Covariant } from "../../types/Types.ts"
 
 const TypeId = "~effect/cli/Primitive"
@@ -73,16 +73,10 @@ const Proto = {
 }
 
 /** @internal */
-export const trueValues = Schema.Literals(["true", "1", "y", "yes", "on"])
+export const isTrueValue = Schema.is(Config.TrueValues)
 
 /** @internal */
-export const isTrueValue = Schema.is(trueValues)
-
-/** @internal */
-export const falseValues = Schema.Literals(["false", "0", "n", "no", "off"])
-
-/** @internal */
-export const isFalseValue = Schema.is(falseValues)
+export const isFalseValue = Schema.is(Config.FalseValues)
 
 const makePrimitive = <A>(
   tag: string,
@@ -95,12 +89,13 @@ const makePrimitive = <A>(
     parse
   })
 
-const makeSchemaPrimitive = <A>(
+const makeSchemaPrimitive = <T, E>(
   tag: string,
-  schema: Schema.Codec<A, string>,
+  schema: Schema.Codec<T, E>,
   errorPrefix: string
-): Primitive<A> => {
-  const decode = Schema.decodeUnknownEffect(schema)
+): Primitive<T> => {
+  const serializer = Schema.makeSerializerStringPojo(schema)
+  const decode = Schema.decodeUnknownEffect(serializer)
   return makePrimitive(tag, (value) =>
     Effect.mapError(
       decode(value),
@@ -138,11 +133,11 @@ const makeSchemaPrimitive = <A>(
  * @since 4.0.0
  * @category constructors
  */
-export const boolean: Primitive<boolean> = makePrimitive("Boolean", (value) => {
-  if (isTrueValue(value)) return Effect.succeed(true)
-  if (isFalseValue(value)) return Effect.succeed(false)
-  return Effect.fail(`Unable to recognize '${value}' as a valid boolean`)
-})
+export const boolean: Primitive<boolean> = makeSchemaPrimitive(
+  "Boolean",
+  Config.Boolean,
+  "Failed to parse boolean"
+)
 
 /**
  * Creates a primitive that parses floating-point numbers from string input.
@@ -169,9 +164,7 @@ export const boolean: Primitive<boolean> = makePrimitive("Boolean", (value) => {
  */
 export const float: Primitive<number> = makeSchemaPrimitive(
   "Float",
-  Schema.String.pipe(
-    Schema.decodeTo(Schema.Finite, Transformation.numberFromString)
-  ),
+  Schema.Finite,
   "Failed to parse number"
 )
 
@@ -200,27 +193,8 @@ export const float: Primitive<number> = makeSchemaPrimitive(
  */
 export const integer: Primitive<number> = makeSchemaPrimitive(
   "Integer",
-  Schema.String.pipe(
-    Schema.decodeTo(Schema.Int, Transformation.numberFromString)
-  ),
+  Schema.Int,
   "Failed to parse integer"
-)
-
-// Date
-const DateFromString = Schema.String.pipe(
-  Schema.decodeTo(
-    Schema.Date,
-    Transformation.transform({
-      decode: (input: string) => {
-        const date = new Date(input)
-        if (isNaN(date.getTime())) {
-          return new Date("invalid") // will be rejected by validation layer
-        }
-        return date
-      },
-      encode: (date) => date.toISOString()
-    })
-  )
 )
 
 /**
@@ -248,7 +222,7 @@ const DateFromString = Schema.String.pipe(
  */
 export const date: Primitive<Date> = makeSchemaPrimitive(
   "Date",
-  DateFromString,
+  Schema.ValidDate,
   "Failed to parse date"
 )
 
