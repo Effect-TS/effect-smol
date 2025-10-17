@@ -41,14 +41,18 @@ export const make = Effect.gen(function*() {
   const enums = new Set<string>()
   const seenRefs = new Set<string>()
 
-  function addSchema(name: string, root: JsonSchema, context?: OpenApiContext, asStruct = false): string {
+  function addSchema(name: string, root: JSONSchema, context?: OpenApiContext, asStruct = false): string {
+    if (typeof root === "boolean") {
+      return name
+    }
+
     root = cleanupSchema(root)
 
     function addRefs(schema: JSONSchema, childName: string | undefined, asStruct = true) {
       if (typeof schema === "boolean") {
         return
       }
-      schema = cleanupSchema(schema)
+      schema = cleanupSchema(schema) as JsonSchema
       const enumSuffix = childName?.endsWith("Enum") ? "" : "Enum"
       if (Predicate.isNotUndefined(schema.$ref)) {
         if (seenRefs.has(schema.$ref)) {
@@ -56,7 +60,7 @@ export const make = Effect.gen(function*() {
         }
         seenRefs.add(schema.$ref)
         const resolved = resolveRef(schema, {
-          ...root,
+          ...(typeof root === "object" ? root : {}),
           ...context
         })
         if (!resolved) {
@@ -68,7 +72,7 @@ export const make = Effect.gen(function*() {
         refStore.set(schema.$ref, resolved.schema)
         addRefs(resolved.schema, resolved.name)
         store.set(resolved.name, resolved.schema)
-        classes.add(resolved.name)
+        // classes.add(resolved.name)
       } else if (Predicate.isNotUndefined(schema.properties)) {
         for (const [name, propSchema] of Object.entries(schema.properties)) {
           addRefs(propSchema as JsonSchema, childName ? childName + Utils.identifier(name) : undefined)
@@ -81,7 +85,7 @@ export const make = Effect.gen(function*() {
         }
       } else if (Predicate.isNotUndefined(schema.allOf)) {
         const resolved = resolveAllOf(schema, {
-          ...root,
+          ...(typeof root === "object" ? root : {}),
           ...context
         })
         if (childName !== undefined) {
@@ -95,7 +99,7 @@ export const make = Effect.gen(function*() {
       } else if (Predicate.isNotUndefined(schema.oneOf)) {
         ;(schema as any).oneOf.forEach((s: any) => addRefs(s, childName ? childName + enumSuffix : undefined))
       } else if (Predicate.isNotUndefined(schema.enum)) {
-        if (childName !== undefined && !("const" in schema)) {
+        if (Predicate.isNotUndefined(childName) && Predicate.isUndefined(schema.const)) {
           store.set(childName, schema)
           enums.add(childName)
         }
@@ -107,7 +111,11 @@ export const make = Effect.gen(function*() {
       return Utils.identifier(root.$ref.split("/").pop()!)
     } else {
       addRefs(root, Predicate.isNotUndefined(root.properties) ? name : undefined)
-      store.set(name, root)
+      // If the schema has allOf, store the resolved version instead of the original
+      const resolvedRoot = Predicate.isNotUndefined(root.allOf)
+        ? resolveAllOf(root, { ...root, ...context })
+        : root
+      store.set(name, resolvedRoot)
       if (!asStruct) {
         classes.add(name)
       }
@@ -156,7 +164,9 @@ export const make = Effect.gen(function*() {
 
   function flattenAllOf(schema: JsonSchema): JsonSchema {
     if (Predicate.isNotUndefined(schema.allOf)) {
-      let out = {} as JsonSchema
+      // Start with the schema itself (excluding allOf) to preserve any direct properties
+      let out = { ...schema }
+      delete out.allOf
       for (const member of schema.allOf) {
         let s = getSchema(member as any)
         if (Predicate.isNotUndefined(s.allOf)) {
@@ -171,11 +181,21 @@ export const make = Effect.gen(function*() {
 
   function toSource(
     importName: string,
-    schema: JsonSchema,
+    schema: JSONSchema,
     currentIdentifier: string,
     topLevel = false
   ): Option.Option<string> {
+    if (typeof schema === "boolean") {
+      if (schema === true) {
+        // true = any/unknown
+        return Option.some(transformer.onUnknown({ importName }))
+      } else {
+        return Option.none()
+      }
+    }
+
     schema = cleanupSchema(schema)
+
     if (Predicate.isNotUndefined(schema.properties)) {
       const obj = schema as JSONSchema.Object
       const required = obj.required ?? []
@@ -362,6 +382,8 @@ export const make = Effect.gen(function*() {
       return { $id: "/schemas/any" }
     } else if (Array.isArray(schema)) {
       return { anyOf: schema }
+    } else if (typeof schema === "boolean") {
+      return schema === true ? { $id: "/schemas/any" } : { not: {} }
     }
     return schema as JsonSchema
   }
@@ -383,7 +405,7 @@ export const make = Effect.gen(function*() {
  * Cleans up the provided `schema`.
  */
 function cleanupSchema(schema: JsonSchema): JsonSchema {
-  const cleaned = { ...schema }
+  let cleaned = { ...schema }
 
   // Remove empty `oneOf` property if a `type` is also present
   if (
@@ -398,7 +420,7 @@ function cleanupSchema(schema: JsonSchema): JsonSchema {
   if (Predicate.isNotUndefined(cleaned.allOf) && cleaned.allOf.length === 1) {
     const item = cleaned.allOf[0]
     delete cleaned.allOf
-    Object.assign(cleaned, item)
+    cleaned = mergeSchemas(cleaned, item as JsonSchema)
   }
   if (Predicate.isNotUndefined(cleaned.anyOf) && cleaned.anyOf.length === 1) {
     const item = cleaned.anyOf[0]
@@ -447,15 +469,19 @@ function resolveAllOf(
     return resolved.schema
   } else if (Predicate.isNotUndefined(schema.allOf)) {
     if (schema.allOf.length <= 1) {
-      const out = { ...schema }
+      let out = { ...schema }
       delete out.allOf
       if (schema.allOf.length === 0) {
         return out
       }
-      Object.assign(out, schema.allOf[0])
+      // Merge the schemas properly instead of overwriting
+      const resolvedMember = resolveAllOf(schema.allOf[0] as JsonSchema, context, resolveRefs)
+      out = mergeSchemas(out, resolvedMember)
       return resolveAllOf(out, context, resolveRefs)
     }
-    let out = {} as JsonSchema
+    // Start with the schema itself (excluding allOf) to preserve any direct properties
+    let out = { ...schema }
+    delete out.allOf
     for (const member of schema.allOf) {
       out = mergeSchemas(out, resolveAllOf(member as any, context, resolveRefs))
     }
@@ -466,7 +492,7 @@ function resolveAllOf(
 
 function mergeSchemas(self: JsonSchema, other: JsonSchema): JsonSchema {
   if (
-    Predicate.isNotUndefined(self.properties) &&
+    Predicate.isNotUndefined(self.properties) ||
     Predicate.isNotUndefined(other.properties)
   ) {
     return {

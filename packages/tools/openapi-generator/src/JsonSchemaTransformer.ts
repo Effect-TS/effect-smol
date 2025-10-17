@@ -1,4 +1,5 @@
 import * as Option from "effect/data/Option"
+import * as Predicate from "effect/data/Predicate"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as ServiceMap from "effect/ServiceMap"
@@ -98,6 +99,8 @@ export class JsonSchemaTransformer extends ServiceMap.Service<
         readonly source: string
       }>
     }) => string
+
+    readonly onUnknown: (options: { importName: string }) => string
   }
 >()("JsonSchemaTransformer") {}
 
@@ -122,8 +125,9 @@ export const makeTransformerSchema = Effect.sync(() => {
         imports.add("import * as Getter from \"effect/schema/Getter\"")
         imports.add("import * as Option from \"effect/data/Option\"")
         imports.add("import * as Predicate from \"effect/data/Predicate\"")
-        return defaultSource
-          ? String.stripMargin(
+        if (Predicate.isNotUndefined(defaultSource)) {
+          imports.add("import { flow } from \"effect/Function\"")
+          return String.stripMargin(
             `|${S}.optional(${S}.NullOr(${source})).pipe(
              |  ${S}.decodeTo(${S}.optional(${source}), {
              |    decode: Getter.transformOptional(flow(
@@ -134,14 +138,15 @@ export const makeTransformerSchema = Effect.sync(() => {
              |  })
              |)`
           )
-          : String.stripMargin(
-            `|S.optional(S.NullOr(${source})).pipe(
+        }
+        return String.stripMargin(
+          `|S.optional(S.NullOr(${source})).pipe(
              |  S.decodeTo(S.optional(${source}), {
              |    decode: Getter.transformOptional(Option.filter(Predicate.isNotNull)),
              |    encode: Getter.passthrough()
              |  })
              |)`
-          )
+        )
       }
       const newSource = options.isNullable ? `${S}.NullOr(${source})` : source
       if (defaultSource) {
@@ -169,7 +174,7 @@ export const makeTransformerSchema = Effect.sync(() => {
       const comment = Utils.toComment(description)
       const variable = `export const ${name} = ${source}`
       const type = `export type ${name} = typeof ${name}.Type`
-      return `${comment}${variable}\n\n${type}`
+      return `${comment}${variable}\n${type}`
     },
     propertySeparator: ",\n  ",
     onProperty: (options) => {
@@ -252,6 +257,9 @@ export const makeTransformerSchema = Effect.sync(() => {
     },
     onUnion({ importName, items }) {
       return `${importName}.Union(${items.map((_) => `${Utils.toComment(_.description)}${_.source}`).join(",\n")})`
+    },
+    onUnknown({ importName }) {
+      return `${importName}.Unknown`
     }
   })
 })
@@ -325,6 +333,9 @@ export type ${name} = (typeof ${name})[keyof typeof ${name}];`
           `${Utils.toComment(description)}${JSON.stringify(Option.getOrNull(title))}: ${source}`
         ).join(",\n  ")
       }} as const\n`
+    },
+    onUnknown() {
+      return "unknown"
     }
   })
 })
