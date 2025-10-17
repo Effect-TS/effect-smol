@@ -777,7 +777,7 @@ export const float = (options: FloatOptions): Prompt<number> => {
   const initialState: NumberState = {
     cursor: 0,
     value: "",
-    error: Option.none()
+    error: undefined
   }
   return custom(initialState, {
     render: handleRenderFloat(opts),
@@ -817,7 +817,7 @@ export const integer = (options: IntegerOptions): Prompt<number> => {
   const initialState: NumberState = {
     cursor: 0,
     value: "",
-    error: Option.none()
+    error: undefined
   }
   return custom(initialState, {
     render: handleRenderInteger(opts),
@@ -2266,7 +2266,7 @@ interface FloatOptionsReq extends Required<FloatOptions> {}
 interface NumberState {
   readonly cursor: number
   readonly value: string
-  readonly error: Option.Option<string>
+  readonly error: string | undefined
 }
 
 const handleNumberClear = (options: IntegerOptionsReq) => {
@@ -2274,37 +2274,32 @@ const handleNumberClear = (options: IntegerOptionsReq) => {
     const terminal = yield* Terminal.Terminal
     const columns = yield* terminal.columns
     const resetCurrentLine = Ansi.eraseLine + Ansi.cursorLeft
-    const clearError = Option.match(state.error, {
-      onNone: () => "",
-      onSome: (error) => Ansi.cursorDown(lines(error, columns)) + eraseText(`\n${error}`, columns)
-    })
+    const clearError = state.error !== undefined
+      ? Ansi.cursorDown(lines(state.error, columns)) + eraseText(`\n${state.error}`, columns)
+      : ""
     const clearOutput = eraseText(options.message, columns)
     return clearError + clearOutput + resetCurrentLine
   })
 }
 
-const renderNumberInput = (state: NumberState, submitted: boolean) => {
-  const annotation = Option.match(state.error, {
-    onNone: () => Ansi.combine(Ansi.underlined, Ansi.cyanBright),
-    onSome: () => Ansi.red
-  })
+const renderNumberInput = (state: NumberState, submitted: boolean): string => {
+  const annotation = state.error !== undefined ? Ansi.red : Ansi.combine(Ansi.underlined, Ansi.cyanBright)
   const value = state.value === "" ? "" : `${state.value}`
   return submitted ? value : Ansi.annotate(value, annotation)
 }
 
 const renderNumberError = (state: NumberState, pointer: string) => {
-  return Option.match(state.error, {
-    onNone: () => "",
-    onSome: (error) =>
-      Arr.match(error.split(NEWLINE_REGEX), {
-        onEmpty: () => "",
-        onNonEmpty: (errorLines) => {
-          const prefix = Ansi.annotate(pointer, Ansi.red) + " "
-          const lines = Arr.map(errorLines, (str) => annotateErrorLine(str))
-          return Ansi.cursorSavePosition + "\n" + prefix + lines.join("\n") + Ansi.cursorRestorePosition
-        }
-      })
-  })
+  if (state.error !== undefined) {
+    return Arr.match(state.error.split(NEWLINE_REGEX), {
+      onEmpty: () => "",
+      onNonEmpty: (errorLines) => {
+        const prefix = Ansi.annotate(pointer, Ansi.red) + " "
+        const lines = Arr.map(errorLines, (str) => annotateErrorLine(str))
+        return Ansi.cursorSavePosition + "\n" + prefix + lines.join("\n") + Ansi.cursorRestorePosition
+      }
+    })
+  }
+  return ""
 }
 
 const renderNumberOutput = (
@@ -2347,14 +2342,14 @@ const processNumberBackspace = (state: NumberState) => {
   }
   const value = state.value.slice(0, state.value.length - 1)
   return Effect.succeed(Action.NextFrame({
-    state: { ...state, value, error: Option.none() }
+    state: { ...state, value, error: undefined }
   }))
 }
 
 const defaultIntProcessor = (state: NumberState, input: string) => {
   if (state.value.length === 0 && input === "-") {
     return Effect.succeed(Action.NextFrame({
-      state: { ...state, value: "-", error: Option.none() }
+      state: { ...state, value: "-", error: undefined }
     }))
   }
 
@@ -2363,7 +2358,7 @@ const defaultIntProcessor = (state: NumberState, input: string) => {
     return Effect.succeed(Action.Beep())
   } else {
     return Effect.succeed(Action.NextFrame({
-      state: { ...state, value: `${parsed}`, error: Option.none() }
+      state: { ...state, value: `${parsed}`, error: undefined }
     }))
   }
 }
@@ -2377,7 +2372,7 @@ const defaultFloatProcessor = (
   }
   if (state.value.length === 0 && input === "-") {
     return Effect.succeed(Action.NextFrame({
-      state: { ...state, value: "-", error: Option.none() }
+      state: { ...state, value: "-", error: undefined }
     }))
   }
 
@@ -2389,7 +2384,7 @@ const defaultFloatProcessor = (
       state: {
         ...state,
         value: input === "." ? `${parsed}.` : `parsed`,
-        error: Option.none()
+        error: undefined
       }
     }))
   }
@@ -2419,7 +2414,7 @@ const handleProcessInteger = (options: IntegerOptionsReq) => {
             value: state.value === "" || state.value === "-"
               ? `${options.incrementBy}`
               : `${Number.parseInt(state.value) + options.incrementBy}`,
-            error: Option.none()
+            error: undefined
           }
         }))
       }
@@ -2431,7 +2426,7 @@ const handleProcessInteger = (options: IntegerOptionsReq) => {
             value: state.value === "" || state.value === "-"
               ? `-${options.decrementBy}`
               : `${Number.parseInt(state.value) - options.decrementBy}`,
-            error: Option.none()
+            error: undefined
           }
         }))
       }
@@ -2442,7 +2437,7 @@ const handleProcessInteger = (options: IntegerOptionsReq) => {
           return Effect.succeed(Action.NextFrame({
             state: {
               ...state,
-              error: Option.some("Must provide an integer value")
+              error: "Must provide an integer value"
             }
           }))
         } else {
@@ -2451,7 +2446,7 @@ const handleProcessInteger = (options: IntegerOptionsReq) => {
               Action.NextFrame({
                 state: {
                   ...state,
-                  error: Option.some(error)
+                  error
                 }
               }),
             onSuccess: (value) => Action.Submit({ value })
@@ -2490,7 +2485,7 @@ const handleProcessFloat = (options: FloatOptionsReq) => {
             value: state.value === "" || state.value === "-"
               ? `${options.incrementBy}`
               : `${Number.parseFloat(state.value) + options.incrementBy}`,
-            error: Option.none()
+            error: undefined
           }
         }))
       }
@@ -2502,7 +2497,7 @@ const handleProcessFloat = (options: FloatOptionsReq) => {
             value: state.value === "" || state.value === "-"
               ? `-${options.decrementBy}`
               : `${Number.parseFloat(state.value) - options.decrementBy}`,
-            error: Option.none()
+            error: undefined
           }
         }))
       }
@@ -2513,7 +2508,7 @@ const handleProcessFloat = (options: FloatOptionsReq) => {
           return Effect.succeed(Action.NextFrame({
             state: {
               ...state,
-              error: Option.some("Must provide a floating point value")
+              error: "Must provide a floating point value"
             }
           }))
         } else {
@@ -2525,7 +2520,7 @@ const handleProcessFloat = (options: FloatOptionsReq) => {
                   Action.NextFrame({
                     state: {
                       ...state,
-                      error: Option.some(error)
+                      error
                     }
                   }),
                 onSuccess: (value) => Action.Submit({ value })
