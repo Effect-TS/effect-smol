@@ -708,7 +708,7 @@ export const file = (options: FileOptions = {}): Prompt<string> => {
   const opts: FileOptionsReq = {
     type: options.type ?? "file",
     message: options.message ?? `Choose a file`,
-    startingPath: Option.fromNullishOr(options.startingPath),
+    startingPath: options.startingPath,
     maxPerPage: options.maxPerPage ?? 10,
     filter: options.filter ?? (() => Effect.succeed(true))
   }
@@ -1763,7 +1763,7 @@ class Meridiem extends DatePart {
 }
 
 interface FileOptionsReq extends Required<Omit<FileOptions, "startingPath">> {
-  readonly startingPath: Option.Option<string>
+  readonly startingPath: string | undefined
 }
 
 interface FileState {
@@ -1787,21 +1787,22 @@ const resolveCurrentPath = (
   options: FileOptionsReq
 ): Effect.Effect<string, never, FileSystem.FileSystem> => {
   return Option.match(path, {
-    onNone: () =>
-      Option.match(options.startingPath, {
-        onNone: () => Effect.sync(() => process.cwd()),
-        onSome: (path) =>
-          Effect.flatMap(FileSystem.FileSystem.asEffect(), (fs) =>
-            // Ensure the user provided starting path exists
-            Effect.orDie(fs.exists(path)).pipe(
-              Effect.flatMap((exists) =>
-                exists ? Effect.void : Effect.die(
-                  `The provided starting path '${path}' does not exist`
-                )
-              ),
-              Effect.as(path)
-            ))
-      }),
+    onNone: () => {
+      const path = options.startingPath
+      if (path !== undefined) {
+        return Effect.flatMap(FileSystem.FileSystem.asEffect(), (fs) =>
+          // Ensure the user provided starting path exists
+          Effect.orDie(fs.exists(path)).pipe(
+            Effect.flatMap((exists) =>
+              exists ? Effect.void : Effect.die(
+                `The provided starting path '${path}' does not exist`
+              )
+            ),
+            Effect.as(path)
+          ))
+      }
+      return Effect.sync(() => process.cwd())
+    },
     onSome: (path) => Effect.succeed(path)
   })
 }
