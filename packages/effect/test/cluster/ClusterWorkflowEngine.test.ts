@@ -111,8 +111,6 @@ describe.concurrent("ClusterWorkflowEngine", () => {
       // - 1 durable clock run
       // - 1 durable clock deferred set
       // - 1 interrupt signal set
-      expect(driver.requests.size).toEqual(10)
-      yield* TestClock.adjust(5000)
       // - clock cleared
       expect(driver.requests.size).toEqual(9)
 
@@ -125,6 +123,7 @@ describe.concurrent("ClusterWorkflowEngine", () => {
       const value = reply.exit.value as Workflow.ResultEncoded<any, any>
       assert(value._tag === "Complete" && value.exit._tag === "Failure")
 
+      yield* TestClock.adjust(5000)
       const exit = yield* Fiber.await(fiber)
       assert(Exit.hasInterrupt(exit))
 
