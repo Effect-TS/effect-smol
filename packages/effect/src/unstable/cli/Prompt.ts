@@ -2283,7 +2283,9 @@ const handleNumberClear = (options: IntegerOptionsReq) => {
 }
 
 const renderNumberInput = (state: NumberState, submitted: boolean): string => {
-  const annotation = state.error !== undefined ? Ansi.red : Ansi.combine(Ansi.underlined, Ansi.cyanBright)
+  const annotation = state.error !== undefined ?
+    Ansi.red :
+    Ansi.combine(Ansi.underlined, Ansi.cyanBright)
   const value = state.value === "" ? "" : `${state.value}`
   return submitted ? value : Ansi.annotate(value, annotation)
 }

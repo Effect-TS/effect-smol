@@ -621,7 +621,6 @@ export const make: {
  * ```ts
  * import { Command, Flag } from "effect/unstable/cli"
  * import { Effect, Console } from "effect"
- * import { Option } from "effect/data"
  *
  * // First define subcommands
  * const clone = Command.make("clone", {
@@ -649,7 +648,7 @@ export const make: {
  *     Effect.gen(function*() {
  *       // Now config has the subcommand field
  *       yield* Console.log(`Git verbose: ${config.verbose}`)
- *       if (config.subcommand !== undefined) {
+ *       if (config.subcommand) {
  *         yield* Console.log(`Executed subcommand: ${config.subcommand.name}`)
  *       }
  *     })
@@ -723,34 +722,36 @@ export const withSubcommands = <const Subcommands extends ReadonlyArray<Command<
   type NewInput = Input & { readonly subcommand: ExtractSubcommandInputs<Subcommands> | undefined }
 
   // Build a stable name → subcommand index to avoid repeated linear scans
-  const subcommandIndex = new Map<string, Command<any, any, any, any>>()
+  const subcommandIndex = new Map<string, Command<string, any, any, any>>()
   for (const s of subcommands) {
     subcommandIndex.set(s.name, s)
   }
 
-  const parse = Effect.fnUntraced(function*(input: RawInput) {
-    const parentResult = yield* self.parse(input)
+  const parse: (input: RawInput) => Effect.Effect<NewInput, CliError.CliError, Environment> = Effect.fnUntraced(
+    function*(input: RawInput) {
+      const parentResult = yield* self.parse(input)
 
-    const subRef = input.subcommand
-    if (!subRef) {
-      return { ...parentResult, subcommand: undefined } as NewInput
+      const subRef = input.subcommand
+      if (!subRef) {
+        return { ...parentResult, subcommand: undefined }
+      }
+
+      const sub = subcommandIndex.get(subRef.name)
+
+      // Parser guarantees valid subcommand names, but guard defensively
+      if (!sub) {
+        return { ...parentResult, subcommand: undefined }
+      }
+
+      const subResult = yield* sub.parse(subRef.parsedInput)
+      const subcommand = { name: sub.name, result: subResult } as ExtractSubcommandInputs<Subcommands>
+      return { ...parentResult, subcommand }
     }
-
-    const sub = subcommandIndex.get(subRef.name)
-
-    // Parser guarantees valid subcommand names, but guard defensively
-    if (!sub) {
-      return { ...parentResult, subcommand: undefined }
-    }
-
-    const subResult = yield* sub.parse(subRef.parsedInput)
-    const value = { name: sub.name, result: subResult } as ExtractSubcommandInputs<Subcommands>
-    return { ...parentResult, subcommand: value }
-  })
+  )
 
   const handle = Effect.fnUntraced(function*(input: NewInput, commandPath: ReadonlyArray<string>) {
-    if (input.subcommand !== undefined) {
-      const selected = input.subcommand
+    const selected = input.subcommand
+    if (selected !== undefined) {
       const child = subcommandIndex.get(selected.name)
       if (!child) {
         return yield* new CliError.ShowHelp({ commandPath })
@@ -1223,17 +1224,15 @@ export const runWith = <const Name extends string, Input, E, R>(
         yield* Console.log(helpText)
         return
       } else if (completions !== undefined) {
-        const shell = completions
-        const script = shell === "bash"
+        const script = completions === "bash"
           ? generateBashCompletions(command, command.name)
-          : shell === "fish"
+          : completions === "fish"
           ? generateFishCompletions(command, command.name)
           : generateZshCompletions(command, command.name)
         yield* Console.log(script)
         return
       } else if (dynamicCompletions !== undefined) {
-        const shell = dynamicCompletions
-        const script = generateDynamicCompletion(command, command.name, shell)
+        const script = generateDynamicCompletion(command, command.name, dynamicCompletions)
         yield* Console.log(script)
         return
       } else if (version && command.subcommands.length === 0) {
