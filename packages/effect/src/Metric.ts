@@ -2700,7 +2700,7 @@ export const timer = (name: string, options?: {
  * - Gauge: `{ value: number | bigint }`
  * - Frequency: `{ occurrences: Map<string, number> }`
  * - Histogram: `{ buckets: Array<[number, number]>, count: number, min: number, max: number, sum: number }`
- * - Summary: `{ quantiles: Array<[number, Option<number>]>, count: number, min: number, max: number, sum: number }`
+ * - Summary: `{ quantiles: Array<[number, number | undefined]>, count: number, min: number, max: number, sum: number }`
  *
  * @example
  * ```ts

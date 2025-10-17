@@ -642,7 +642,7 @@ export const drop: {
  * // Type refinement
  * const mixed: (string | number)[] = [1, "hello", 2, "world"]
  * const firstString = Iterable.findFirst(mixed, (x): x is string => typeof x === "string")
- * console.log(firstString) // Option.some("hello") (typed as Option<string>)
+ * console.log(firstString) // Option.some("hello")
  *
  * // Transform during search
  * const findSquareRoot = Iterable.findFirst([1, 4, 9, 16], x => {
@@ -706,7 +706,7 @@ export const findFirst: {
  * // Type refinement
  * const mixed: (string | number)[] = [1, "hello", 2, "world", 3]
  * const lastString = Iterable.findLast(mixed, (x): x is string => typeof x === "string")
- * console.log(lastString) // Option.some("world") (typed as Option<string>)
+ * console.log(lastString) // Option.some("world")
  * ```
  *
  * @category elements
