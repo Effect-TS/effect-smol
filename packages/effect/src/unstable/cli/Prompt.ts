@@ -691,7 +691,7 @@ export const date = (options: DateOptions): Prompt<Date> => {
     typed: "",
     cursor: initialCursorPosition,
     value: opts.initial,
-    error: Option.none()
+    error: undefined
   }
   return custom(initialState, {
     render: handleDateRender(opts),
@@ -1218,7 +1218,7 @@ interface DateState {
   readonly cursor: number
   readonly value: globalThis.Date
   readonly dateParts: ReadonlyArray<DatePart>
-  readonly error: Option.Option<string>
+  readonly error: string | undefined
 }
 
 const handleDateClear = (options: DateOptionsReq) => {
@@ -1226,28 +1226,24 @@ const handleDateClear = (options: DateOptionsReq) => {
     const terminal = yield* Terminal.Terminal
     const columns = yield* terminal.columns
     const resetCurrentLine = Ansi.eraseLine + Ansi.cursorLeft
-    const clearError = Option.match(state.error, {
-      onNone: () => "",
-      onSome: (error) => Ansi.cursorDown(lines(error, columns)) + eraseText(`\n${error}`, columns)
-    })
+    const clearError = state.error === undefined
+      ? ""
+      : Ansi.cursorDown(lines(state.error, columns)) + eraseText(`\n${state.error}`, columns)
     const clearOutput = eraseText(options.message, columns)
     return clearError + clearOutput + resetCurrentLine
   })
 }
 
-const renderDateError = (state: DateState, pointer: string) => {
-  return Option.match(state.error, {
-    onNone: () => "",
-    onSome: (error) => {
-      const errorLines = error.split(NEWLINE_REGEX)
-      if (Arr.isReadonlyArrayNonEmpty(errorLines)) {
-        const prefix = Ansi.annotate(pointer, Ansi.red) + " "
-        const lines = Arr.map(errorLines, (str) => annotateErrorLine(str))
-        return Ansi.cursorSavePosition + "\n" + prefix + lines.join("\n") + Ansi.cursorRestorePosition
-      }
-      return ""
+const renderDateError = (state: DateState, pointer: string): string => {
+  if (state.error !== undefined) {
+    const errorLines = state.error.split(NEWLINE_REGEX)
+    if (Arr.isReadonlyArrayNonEmpty(errorLines)) {
+      const prefix = Ansi.annotate(pointer, Ansi.red) + " "
+      const lines = Arr.map(errorLines, (str) => annotateErrorLine(str))
+      return Ansi.cursorSavePosition + "\n" + prefix + lines.join("\n") + Ansi.cursorRestorePosition
     }
-  })
+  }
+  return ""
 }
 
 const renderParts = (state: DateState, submitted: boolean = false) => {
@@ -1423,7 +1419,7 @@ const handleDateProcess = (options: DateOptionsReq) => {
             Action.NextFrame({
               state: {
                 ...state,
-                error: Option.some(error)
+                error
               }
             }),
           onSuccess: (value) => Action.Submit({ value })
