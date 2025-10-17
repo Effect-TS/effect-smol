@@ -1006,7 +1006,6 @@ export const withDefault: {
  *
  * @example
  * ```ts
- * import { Option } from "effect/data"
  * import { Param } from "effect/unstable/cli"
  *
  * // Basic variadic parameter (0 to infinity)
@@ -1015,14 +1014,14 @@ export const withDefault: {
  * // Variadic with minimum count
  * const inputs = Param.variadic(
  *   Param.string("input", "flag"),
- *   Option.some(1)  // at least 1 required
+ *   1  // at least 1 required
  * )
  *
  * // Variadic with both min and max
  * const limited = Param.variadic(
  *   Param.string("item", "flag"),
- *   Option.some(2),  // at least 2
- *   Option.some(5)   // at most 5
+ *   2,  // at least 2
+ *   5   // at most 5
  * )
  * ```
  *

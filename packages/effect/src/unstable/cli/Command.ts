@@ -650,8 +650,8 @@ export const make: {
  *     Effect.gen(function*() {
  *       // Now config has the subcommand field
  *       yield* Console.log(`Git verbose: ${config.verbose}`)
- *       if (Option.isSome(config.subcommand)) {
- *         yield* Console.log(`Executed subcommand: ${config.subcommand.value.name}`)
+ *       if (config.subcommand !== undefined) {
+ *         yield* Console.log(`Executed subcommand: ${config.subcommand.name}`)
  *       }
  *     })
  *   )
