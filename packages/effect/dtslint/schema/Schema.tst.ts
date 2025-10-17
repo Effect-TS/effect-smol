@@ -1295,6 +1295,14 @@ describe("Schema", () => {
       expect(A.fields).type.toBe<{ readonly a: Schema.String }>()
     })
 
+    it("mapFields", () => {
+      class A extends Schema.Class<A>("A")({
+        a: Schema.String
+      }) {}
+      const schema = A.mapFields((fields) => ({ ...fields, b: Schema.Number }))
+      expect(schema).type.toBe<Schema.Struct<{ readonly a: Schema.String; readonly b: Schema.Number }>>()
+    })
+
     it("should reject non existing props", () => {
       class A extends Schema.Class<A>("A")({
         a: Schema.String

@@ -6241,6 +6241,20 @@ export interface Class<Self, S extends Top & { readonly fields: Struct.Fields },
   new(props: S["~type.make.in"], options?: MakeOptions): S["Type"] & Inherited
   readonly identifier: string
   readonly fields: S["fields"]
+  /**
+   * Returns a new struct with the fields modified by the provided function.
+   *
+   * **Options**
+   *
+   * - `preserveChecks` - if `true`, keep any `.check(...)` constraints that
+   *   were attached to the original struct. Defaults to `false`.
+   */
+  mapFields<To extends Struct.Fields>(
+    f: (fields: S["fields"]) => To,
+    options?: {
+      readonly preserveChecks?: boolean | undefined
+    } | undefined
+  ): Struct<Simplify<Readonly<To>>>
 }
 
 /**
@@ -6263,25 +6277,22 @@ const immerable: unique symbol = globalThis.Symbol.for("immer-draftable") as any
 
 function makeClass<
   Self,
-  S extends Top & {
-    readonly Type: object
-    readonly fields: Struct.Fields
-  },
+  S extends Struct<Struct.Fields>,
   Inherited extends new(...args: ReadonlyArray<any>) => any
 >(
   Inherited: Inherited,
   identifier: string,
-  schema: S,
+  struct: S,
   annotations?: Annotations.Declaration<Self, readonly [S]>
 ): any {
-  const getClassSchema = getClassSchemaFactory(schema, identifier, annotations)
+  const getClassSchema = getClassSchemaFactory(struct, identifier, annotations)
 
   return class extends Inherited {
     constructor(...[input, options]: ReadonlyArray<any>) {
       if (options?.disableValidation) {
         super(input, options)
       } else {
-        const validated = schema.makeUnsafe(input, options)
+        const validated = struct.makeUnsafe(input, options)
         super({ ...input, ...validated }, { ...options, disableValidation: true })
       }
     }
@@ -6308,7 +6319,7 @@ function makeClass<
     declare static readonly "~encoded.optionality": S["~encoded.optionality"]
 
     static readonly identifier = identifier
-    static readonly fields = schema.fields
+    static readonly fields = struct.fields
 
     static get ast(): AST.Declaration {
       return getClassSchema(this).ast
@@ -6338,10 +6349,17 @@ function makeClass<
       annotations?: Annotations.Declaration<Extended, readonly [Struct<Simplify<Merge<S["fields"], NewFields>>>]>
     ) => Class<Extended, Struct<Simplify<Merge<S["fields"], NewFields>>>, Self> {
       return (newFields, annotations) => {
-        const fields = { ...schema.fields, ...newFields }
-        const struct: any = makeStruct(AST.struct(fields, schema.ast.checks), fields)
-        return makeClass(this, identifier, struct, annotations)
+        const fields = { ...struct.fields, ...newFields }
+        return makeClass(this, identifier, makeStruct(AST.struct(fields, struct.ast.checks), fields), annotations)
       }
+    }
+    static mapFields<To extends Struct.Fields>(
+      f: (fields: S["fields"]) => To,
+      options?: {
+        readonly preserveChecks?: boolean | undefined
+      } | undefined
+    ): Struct<Simplify<Readonly<To>>> {
+      return struct.mapFields(f, options)
     }
   }
 }

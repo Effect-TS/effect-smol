@@ -4572,6 +4572,14 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       })
     })
 
+    it("mapFields", () => {
+      class A extends Schema.Class<A>("A")({
+        a: Schema.String
+      }) {}
+      const schema = A.mapFields((fields) => ({ ...fields, b: Schema.Number }))
+      deepStrictEqual(schema.fields, { a: Schema.String, b: Schema.Number })
+    })
+
     it("Struct with nested Class", async () => {
       class A extends Schema.Class<A, { readonly brand: unique symbol }>("A")(Schema.Struct({
         a: Schema.String
