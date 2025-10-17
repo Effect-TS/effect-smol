@@ -636,16 +636,7 @@ export const keyValueMap = <K extends ParamKind>(name: string, kind: K) =>
       makeSingle({ name, primitiveType: Primitive.keyValueMap, kind }),
       Option.some(1)
     ),
-    (entries) => {
-      const record: Record<string, string> = {}
-      for (let i = 0; i < entries.length; i++) {
-        const entry = entries[i]
-        for (const key in entry) {
-          record[key] = entry[key]
-        }
-      }
-      return record
-    }
+    (objects) => Object.assign({}, ...objects)
   )
 
 /**
