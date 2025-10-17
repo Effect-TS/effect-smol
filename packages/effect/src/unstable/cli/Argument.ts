@@ -1,7 +1,7 @@
 /**
  * @since 4.0.0
  */
-import * as Option from "../../data/Option.ts"
+import type * as Option from "../../data/Option.ts"
 import type * as Redacted from "../../data/Redacted.ts"
 import type * as Effect from "../../Effect.ts"
 import { dual } from "../../Function.ts"
@@ -301,15 +301,23 @@ export const withDefault: {
  * @category combinators
  */
 export const variadic: {
-  (options?: { min?: number; max?: number }): <A>(self: Argument<A>) => Argument<ReadonlyArray<A>>
-  <A>(self: Argument<A>, options?: { min?: number; max?: number }): Argument<ReadonlyArray<A>>
+  (
+    options?: { readonly min?: number | undefined; readonly max?: number | undefined }
+  ): <A>(self: Argument<A>) => Argument<ReadonlyArray<A>>
+  <A>(
+    self: Argument<A>,
+    options?: { readonly min?: number | undefined; readonly max?: number | undefined }
+  ): Argument<ReadonlyArray<A>>
 } = dual(
   2,
-  <A>(self: Argument<A>, options?: { min?: number; max?: number }): Argument<ReadonlyArray<A>> =>
+  <A>(
+    self: Argument<A>,
+    options?: { readonly min?: number | undefined; readonly max?: number | undefined }
+  ): Argument<ReadonlyArray<A>> =>
     Param.variadic(
       self,
-      options?.min !== undefined ? Option.some(options.min) : Option.none(),
-      options?.max !== undefined ? Option.some(options.max) : Option.none()
+      options?.min,
+      options?.max
     )
 )
 
