@@ -42,30 +42,29 @@ import * as BunStream from "./BunStream.ts"
  * @since 1.0.0
  * @category Options
  */
-export type ServeOptions<R extends { [K in keyof R]: Bun.RouterTypes.RouteValue<Extract<K, string>> }> =
+export type ServeOptions<R extends string> =
   & (
-    | Omit<Bun.ServeOptions, "fetch" | "error">
-    | Bun.TLSServeOptions
-    | Bun.UnixServeOptions
-    | Bun.UnixTLSServeOptions
+    | Bun.Serve.UnixServeOptions<WebSocketContext>
+    | Bun.Serve.HostnamePortServeOptions<WebSocketContext>
   )
-  & { readonly routes?: R }
+  & { readonly routes?: Bun.Serve.Routes<WebSocketContext, R> }
 
 /**
  * @since 1.0.0
  * @category Constructors
  */
 export const make = Effect.fnUntraced(
-  function*<R extends { [K in keyof R]: Bun.RouterTypes.RouteValue<Extract<K, string>> } = {}>(
+  function*<R extends string>(
     options: ServeOptions<R>
   ) {
-    const handlerStack: Array<(request: Request, server: BunServer) => Response | Promise<Response>> = [
-      function(_request, _server) {
-        return new Response("not found", { status: 404 })
-      }
-    ]
+    const handlerStack: Array<(request: Request, server: BunServer<WebSocketContext>) => Response | Promise<Response>> =
+      [
+        function(_request, _server) {
+          return new Response("not found", { status: 404 })
+        }
+      ]
     const server = Bun.serve<WebSocketContext, R>({
-      ...options as Bun.WebSocketServeOptions<WebSocketContext>,
+      ...options as ServeOptions<R>,
       fetch: handlerStack[0],
       websocket: {
         open(ws) {
@@ -97,7 +96,7 @@ export const make = Effect.fnUntraced(
             ;(request as BunServerRequest).resolve(makeResponse(request, response, services, scope))
           }), middleware)
 
-        function handler(request: Request, server: BunServer) {
+        function handler(request: Request, server: BunServer<WebSocketContext>) {
           return new Promise<Response>((resolve, _reject) => {
             const map = new Map(services.mapUnsafe)
             map.set(
@@ -193,7 +192,7 @@ const makeResponse = (
  * @since 1.0.0
  * @category Layers
  */
-export const layerServer: <R extends { [K in keyof R]: Bun.RouterTypes.RouteValue<Extract<K, string>> }>(
+export const layerServer: <R extends string>(
   options: ServeOptions<R>
 ) => Layer.Layer<Server.HttpServer> = Layer.effect(Server.HttpServer)(make)
 
@@ -216,7 +215,7 @@ export const layerHttpServices: Layer.Layer<
  * @since 1.0.0
  * @category Layers
  */
-export const layer = <R extends { [K in keyof R]: Bun.RouterTypes.RouteValue<Extract<K, string>> }>(
+export const layer = <R extends string>(
   options: ServeOptions<R>
 ): Layer.Layer<
   | Server.HttpServer
@@ -243,7 +242,7 @@ export const layerTest: Layer.Layer<
  * @since 1.0.0
  * @category Layers
  */
-export const layerConfig = <R extends { [K in keyof R]: Bun.RouterTypes.RouteValue<Extract<K, string>> }>(
+export const layerConfig = <R extends string>(
   options: Config.Wrap<ServeOptions<R>>
 ): Layer.Layer<
   Server.HttpServer | HttpPlatform | FileSystem.FileSystem | Etag.Generator | Path.Path,
@@ -275,7 +274,7 @@ class BunServerRequest extends Inspectable.Class implements ServerRequest.HttpSe
   readonly source: Request
   public resolve: (response: Response) => void
   readonly url: string
-  private bunServer: BunServer
+  private bunServer: BunServer<WebSocketContext>
   public headersOverride?: Headers.Headers | undefined
   private remoteAddressOverride?: string | undefined
 
@@ -283,7 +282,7 @@ class BunServerRequest extends Inspectable.Class implements ServerRequest.HttpSe
     source: Request,
     resolve: (response: Response) => void,
     url: string,
-    bunServer: BunServer,
+    bunServer: BunServer<WebSocketContext>,
     headersOverride?: Headers.Headers,
     remoteAddressOverride?: string
   ) {
@@ -457,7 +456,7 @@ class BunServerRequest extends Inspectable.Class implements ServerRequest.HttpSe
       const closeDeferred = Deferred.makeUnsafe<void, Socket.SocketError>()
       const semaphore = Effect.makeSemaphoreUnsafe(1)
 
-      const success = this.bunServer.upgrade<WebSocketContext>(this.source, {
+      const success = this.bunServer.upgrade(this.source, {
         data: {
           deferred,
           closeDeferred,
