@@ -734,7 +734,7 @@ export const keyValueMap = <Kind extends ParamKind>(
         primitiveType: Primitive.keyValueMap,
         kind
       }),
-      1
+      { min: 1 }
     ),
     (objects) => Object.assign({}, ...objects)
   )

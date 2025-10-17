@@ -1,7 +1,6 @@
 /**
  * @since 1.0.0
  */
-import * as Option from "effect/data/Option"
 import * as Predicate from "effect/data/Predicate"
 import * as Effect from "effect/Effect"
 import * as Exit from "effect/Exit"
@@ -53,7 +52,7 @@ export const make: (
       const queue = yield* Queue.make<Terminal.UserInput, Queue.Done>()
       const handleKeypress = (s: string | undefined, k: readline.Key) => {
         const userInput = {
-          input: Option.fromNullishOr(s),
+          input: s,
           key: { name: k.name ?? "", ctrl: !!k.ctrl, meta: !!k.meta, shift: !!k.shift }
         }
         Queue.offerUnsafe(queue, userInput)
