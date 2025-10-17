@@ -1,4 +1,4 @@
-import type * as Option from "../../../data/Option.ts"
+import * as Option from "../../../data/Option.ts"
 import * as Effect from "../../../Effect.ts"
 import type { LogLevel } from "../../../LogLevel.ts"
 import type { FileSystem } from "../../../platform/FileSystem.ts"
@@ -176,10 +176,10 @@ export const extractBuiltInOptions = (
 ): Effect.Effect<
   {
     help: boolean
-    logLevel: Option.Option<LogLevel>
+    logLevel: LogLevel | undefined
     version: boolean
-    completions: Option.Option<"bash" | "zsh" | "fish">
-    dynamicCompletions: Option.Option<"bash" | "zsh" | "fish">
+    completions: "bash" | "zsh" | "fish" | undefined
+    dynamicCompletions: "bash" | "zsh" | "fish" | undefined
     remainder: ReadonlyArray<Token>
   },
   CliError.CliError,
@@ -193,7 +193,14 @@ export const extractBuiltInOptions = (
     const [, version] = yield* versionFlag.parse(emptyArgs)
     const [, completions] = yield* completionsFlag.parse(emptyArgs)
     const [, dynamicCompletions] = yield* dynamicCompletionsFlag.parse(emptyArgs)
-    return { help, logLevel, version, completions, dynamicCompletions, remainder }
+    return {
+      help,
+      logLevel: Option.getOrUndefined(logLevel),
+      version,
+      completions: Option.getOrUndefined(completions),
+      dynamicCompletions: Option.getOrUndefined(dynamicCompletions),
+      remainder
+    }
   })
 
 /* ====================================================================== */

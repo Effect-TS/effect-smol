@@ -2,7 +2,6 @@
  * @since 4.0.0
  */
 import * as Console from "../../Console.ts"
-import * as Option from "../../data/Option.ts"
 import * as Predicate from "../../data/Predicate.ts"
 import * as Effect from "../../Effect.ts"
 import { dual } from "../../Function.ts"
@@ -1223,8 +1222,8 @@ export const runWith = <const Name extends string, Input, E, R>(
         const helpText = helpRenderer.formatHelpDoc(helpDoc)
         yield* Console.log(helpText)
         return
-      } else if (Option.isSome(completions)) {
-        const shell = completions.value
+      } else if (completions !== undefined) {
+        const shell = completions
         const script = shell === "bash"
           ? generateBashCompletions(command, command.name)
           : shell === "fish"
@@ -1232,8 +1231,8 @@ export const runWith = <const Name extends string, Input, E, R>(
           : generateZshCompletions(command, command.name)
         yield* Console.log(script)
         return
-      } else if (Option.isSome(dynamicCompletions)) {
-        const shell = dynamicCompletions.value
+      } else if (dynamicCompletions !== undefined) {
+        const shell = dynamicCompletions
         const script = generateDynamicCompletion(command, command.name, shell)
         yield* Console.log(script)
         return
@@ -1282,8 +1281,8 @@ export const runWith = <const Name extends string, Input, E, R>(
       const program = command.handle(parsed, [command.name])
 
       // Apply log level if provided via built-ins
-      const finalProgram = Option.isSome(logLevel)
-        ? Effect.provideService(program, References.MinimumLogLevel, logLevel.value)
+      const finalProgram = logLevel !== undefined
+        ? Effect.provideService(program, References.MinimumLogLevel, logLevel)
         : program
 
       // Normalize non-CLI errors into CliError.UserError so downstream catchTags

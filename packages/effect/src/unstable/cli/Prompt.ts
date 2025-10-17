@@ -1225,9 +1225,9 @@ const handleDateClear = (options: DateOptionsReq) => {
     const terminal = yield* Terminal.Terminal
     const columns = yield* terminal.columns
     const resetCurrentLine = Ansi.eraseLine + Ansi.cursorLeft
-    const clearError = state.error === undefined
-      ? ""
-      : Ansi.cursorDown(lines(state.error, columns)) + eraseText(`\n${state.error}`, columns)
+    const clearError = state.error !== undefined
+      ? Ansi.cursorDown(lines(state.error, columns)) + eraseText(`\n${state.error}`, columns)
+      : ""
     const clearOutput = eraseText(options.message, columns)
     return clearError + clearOutput + resetCurrentLine
   })
