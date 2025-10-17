@@ -119,7 +119,7 @@ export interface FlagDoc {
   /**
    * Description of what the flag does
    */
-  readonly description: string
+  readonly description: string | undefined
 
   /**
    * Whether this flag is required
@@ -217,7 +217,7 @@ export interface ArgDoc {
   /**
    * Description of what the argument is for
    */
-  readonly description: string
+  readonly description: string | undefined
 
   /**
    * Whether this argument is required or optional

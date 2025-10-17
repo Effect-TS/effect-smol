@@ -399,7 +399,7 @@ const formatHelpDocImpl = (doc: HelpDoc, colors: ColorFunctions): string => {
       const nameType = `${coloredName} ${coloredType}`
 
       const optionalSuffix = arg.required ? "" : colors.dim(" (optional)")
-      const description = (arg.description || "") + optionalSuffix
+      const description = (arg.description ?? "") + optionalSuffix
 
       return {
         left: nameType,
@@ -431,7 +431,7 @@ const formatHelpDocImpl = (doc: HelpDoc, colors: ColorFunctions): string => {
 
       return {
         left: namesPart + typePart,
-        right: flag.description || ""
+        right: flag.description ?? ""
       }
     })
 
@@ -445,7 +445,7 @@ const formatHelpDocImpl = (doc: HelpDoc, colors: ColorFunctions): string => {
 
     const subcommandRows: Array<Row> = doc.subcommands.map((sub) => ({
       left: colors.cyan(sub.name),
-      right: sub.description || ""
+      right: sub.description
     }))
 
     sections.push(renderTable(subcommandRows, 20))

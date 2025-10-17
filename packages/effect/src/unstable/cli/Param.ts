@@ -119,7 +119,7 @@ export interface Single<out A, Kind extends ParamKind = "flag"> extends Param<A,
   readonly _tag: "Single"
   readonly kind: Kind
   readonly name: string
-  readonly description: Option.Option<string>
+  readonly description: string | undefined
   readonly aliases: ReadonlyArray<string>
   readonly primitiveType: Primitive.Primitive<A>
   readonly typeName?: string | undefined
@@ -229,7 +229,7 @@ export const makeSingle = <A, K extends ParamKind>(params: {
   readonly primitiveType: Primitive.Primitive<A>
   readonly kind: K
   readonly typeName?: string | undefined
-  readonly description?: Option.Option<string> | undefined
+  readonly description?: string | undefined
   readonly aliases?: ReadonlyArray<string> | undefined
 }): Single<A, K> => {
   const parse: Parse<A> = (args) =>
@@ -239,7 +239,7 @@ export const makeSingle = <A, K extends ParamKind>(params: {
   return Object.assign(Object.create(Proto), {
     _tag: "Single",
     ...params,
-    description: params.description ?? Option.none(),
+    description: params.description,
     aliases: params.aliases ?? [],
     parse
   })
@@ -740,7 +740,7 @@ export const withDescription: {
     return transformSingle(self, <X>(single: Single<X, K>) =>
       makeSingle({
         ...single,
-        description: Option.some(description)
+        description
       }))
   }
 )

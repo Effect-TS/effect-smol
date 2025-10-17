@@ -902,7 +902,7 @@ export const getHelpDoc = <Name extends string, Input>(
       args.push({
         name: single.name,
         type: single.typeName ?? Primitive.getTypeName(single.primitiveType),
-        description: Option.getOrElse(single.description, () => ""),
+        description: single.description,
         required: !metadata.isOptional,
         variadic: metadata.isVariadic
       })
@@ -940,7 +940,7 @@ export const getHelpDoc = <Name extends string, Input>(
         name: single.name,
         aliases: formattedAliases,
         type: single.typeName ?? Primitive.getTypeName(single.primitiveType),
-        description: Option.getOrElse(single.description, () => ""),
+        description: single.description,
         required: single.primitiveType._tag !== "Boolean"
       })
     }
