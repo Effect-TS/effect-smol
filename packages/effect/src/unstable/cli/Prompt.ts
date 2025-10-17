@@ -2707,7 +2707,7 @@ interface TextOptionsReq extends Required<TextOptions> {
 interface TextState {
   readonly cursor: number
   readonly value: string
-  readonly error: Option.Option<string>
+  readonly error: string | undefined
 }
 
 const getValue = (state: TextState, options: TextOptionsReq): string => {
@@ -2720,15 +2720,13 @@ const renderClearScreen = Effect.fnUntraced(function*(state: TextState, options:
   // Erase the current line and place the cursor in column one
   const resetCurrentLine = Ansi.eraseLine + Ansi.cursorLeft
   // Check for any error output
-  const clearError = Option.match(state.error, {
-    onNone: () => "",
-    onSome: (error) =>
-      // If there was an error, move the cursor down to the final error line and
-      // then clear all lines of error output
-      // Add a leading newline to the error message to ensure that the corrrect
-      // number of error lines are erased
-      Ansi.cursorDown(lines(error, columns)) + eraseText(`\n${error}`, columns)
-  })
+  const clearError = state.error !== undefined
+    // If there was an error, move the cursor down to the final error line and
+    // then clear all lines of error output
+    // Add a leading newline to the error message to ensure that the corrrect
+    // number of error lines are erased
+    ? Ansi.cursorDown(lines(state.error, columns)) + eraseText(`\n${state.error}`, columns)
+    : ""
   // Ensure that the prior prompt output is cleaned up
   const clearOutput = eraseText(options.message, columns)
   // Concatenate and render all documents
@@ -2738,20 +2736,13 @@ const renderClearScreen = Effect.fnUntraced(function*(state: TextState, options:
 const renderTextInput = (nextState: TextState, options: TextOptionsReq, submitted: boolean) => {
   const text = getValue(nextState, options)
 
-  const annotation = Option.match(nextState.error, {
-    onNone: () => {
-      if (submitted) {
-        return Ansi.white
-      }
-
-      if (nextState.value.length === 0) {
-        return Ansi.blackBright
-      }
-
-      return Ansi.combine(Ansi.underlined, Ansi.cyanBright)
-    },
-    onSome: () => Ansi.red
-  })
+  const annotation = nextState.error !== undefined ?
+    Ansi.red
+    : submitted ?
+    Ansi.white
+    : nextState.value.length === 0 ?
+    Ansi.blackBright
+    : Ansi.combine(Ansi.underlined, Ansi.cyanBright)
 
   switch (options.type) {
     case "hidden": {
@@ -2766,19 +2757,18 @@ const renderTextInput = (nextState: TextState, options: TextOptionsReq, submitte
   }
 }
 
-const renderTextError = (nextState: TextState, pointer: string) => {
-  return Option.match(nextState.error, {
-    onNone: () => "",
-    onSome: (error) =>
-      Arr.match(error.split(NEWLINE_REGEX), {
-        onEmpty: () => "",
-        onNonEmpty: (errorLines) => {
-          const prefix = Ansi.annotate(pointer, Ansi.red) + " "
-          const lines = Arr.map(errorLines, (str) => annotateErrorLine(str))
-          return Ansi.cursorSavePosition + "\n" + prefix + lines.join("\n") + Ansi.cursorRestorePosition
-        }
-      })
-  })
+const renderTextError = (nextState: TextState, pointer: string): string => {
+  if (nextState.error !== undefined) {
+    return Arr.match(nextState.error.split(NEWLINE_REGEX), {
+      onEmpty: () => "",
+      onNonEmpty: (errorLines) => {
+        const prefix = Ansi.annotate(pointer, Ansi.red) + " "
+        const lines = Arr.map(errorLines, (str) => annotateErrorLine(str))
+        return Ansi.cursorSavePosition + "\n" + prefix + lines.join("\n") + Ansi.cursorRestorePosition
+      }
+    })
+  }
+  return ""
 }
 
 const renderTextOutput = (
@@ -2826,7 +2816,7 @@ const processTextBackspace = (state: TextState) => {
   const value = `${beforeCursor}${afterCursor}`
   return Effect.succeed(
     Action.NextFrame({
-      state: { ...state, cursor, value, error: Option.none() }
+      state: { ...state, cursor, value, error: undefined }
     })
   )
 }
@@ -2838,7 +2828,7 @@ const processTextCursorLeft = (state: TextState) => {
   const cursor = state.cursor - 1
   return Effect.succeed(
     Action.NextFrame({
-      state: { ...state, cursor, error: Option.none() }
+      state: { ...state, cursor, error: undefined }
     })
   )
 }
@@ -2850,7 +2840,7 @@ const processTextCursorRight = (state: TextState) => {
   const cursor = Math.min(state.cursor + 1, state.value.length)
   return Effect.succeed(
     Action.NextFrame({
-      state: { ...state, cursor, error: Option.none() }
+      state: { ...state, cursor, error: undefined }
     })
   )
 }
@@ -2863,7 +2853,7 @@ const processTab = (state: TextState, options: TextOptionsReq) => {
   const cursor = value.length
   return Effect.succeed(
     Action.NextFrame({
-      state: { ...state, value, cursor, error: Option.none() }
+      state: { ...state, value, cursor, error: undefined }
     })
   )
 }
@@ -2875,7 +2865,7 @@ const defaultTextProcessor = (input: string, state: TextState) => {
   const cursor = state.cursor + input.length
   return Effect.succeed(
     Action.NextFrame({
-      state: { ...state, cursor, value, error: Option.none() }
+      state: { ...state, cursor, value, error: undefined }
     })
   )
 }
@@ -2908,7 +2898,7 @@ const handleTextProcess = (options: TextOptionsReq) => {
         return Effect.match(options.validate(value), {
           onFailure: (error) =>
             Action.NextFrame({
-              state: { ...state, value, error: Option.some(error) }
+              state: { ...state, value, error }
             }),
           onSuccess: (value) => Action.Submit({ value })
         })
@@ -2944,7 +2934,7 @@ const basePrompt = (
   const initialState: TextState = {
     cursor: 0,
     value: "",
-    error: Option.none()
+    error: undefined
   }
   return custom(initialState, {
     render: handleTextRender(opts),
