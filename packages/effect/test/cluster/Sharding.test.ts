@@ -80,9 +80,8 @@ describe.concurrent("Sharding", () => {
 
       yield* Effect.gen(function*() {
         const makeClient = yield* TestEntity.client
-        yield* TestClock.adjust(2000)
         const client = makeClient("1")
-        const fiber = yield* client.NeverVolatile().pipe(Effect.forkChild)
+        const fiber = yield* client.NeverVolatile().pipe(Effect.forkChild({ startImmediately: true }))
         yield* TestClock.adjust(1)
         const config = yield* ShardingConfig.ShardingConfig
         ;(config as any).runnerAddress = Option.some(RunnerAddress.make("localhost", 1234))
