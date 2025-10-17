@@ -102,6 +102,96 @@ describe("Command", () => {
         })
       }).pipe(Effect.provide(TestLayer)))
 
+    it.effect("should merge repeated key=value flags into a single record", () =>
+      Effect.gen(function*() {
+        const captured: Array<Record<string, string>> = []
+
+        const command = Command.make("env", {
+          env: Flag.keyValueMap("env")
+        }, (config) =>
+          Effect.sync(() => {
+            captured.push(config.env)
+          }))
+
+        const runCommand = Command.runWith(command, {
+          version: "1.0.0"
+        })
+
+        yield* runCommand([
+          "--env",
+          "foo=bar",
+          "--env",
+          "cool=dude"
+        ])
+
+        assert.deepStrictEqual(captured, [{ foo: "bar", cool: "dude" }])
+      }).pipe(Effect.provide(TestLayer)))
+
+    it.effect("should merge key=value flags even when interleaved with other options", () =>
+      Effect.gen(function*() {
+        const captured: Array<Record<string, unknown>> = []
+
+        const command = Command.make("env", {
+          env: Flag.keyValueMap("env"),
+          verbose: Flag.boolean("verbose"),
+          profile: Flag.string("profile")
+        }, (config) =>
+          Effect.sync(() => {
+            captured.push(config)
+          }))
+
+        const runCommand = Command.runWith(command, {
+          version: "1.0.0"
+        })
+
+        yield* runCommand([
+          "--env",
+          "foo=bar",
+          "--profile",
+          "dev",
+          "--env",
+          "cool=dude",
+          "--verbose",
+          "--env",
+          "zip=zop"
+        ])
+
+        assert.deepStrictEqual(captured, [{
+          env: { foo: "bar", cool: "dude", zip: "zop" },
+          verbose: true,
+          profile: "dev"
+        }])
+      }).pipe(Effect.provide(TestLayer)))
+
+    it.effect("should fail for malformed key=value flags", () =>
+      Effect.gen(function*() {
+        let invoked = false
+
+        const command = Command.make("env", {
+          env: Flag.keyValueMap("env")
+        }, () =>
+          Effect.sync(() => {
+            invoked = true
+          }))
+
+        const runCommand = Command.runWith(command, {
+          version: "1.0.0"
+        })
+
+        yield* runCommand([
+          "--env",
+          "invalid"
+        ])
+
+        const stderr = yield* TestConsole.errorLines
+        assert.isTrue(
+          stderr.some((line) => String(line).includes("Invalid key=value format")),
+          "expected CLI to report invalid key=value format"
+        )
+
+        assert.isFalse(invoked)
+      }).pipe(Effect.provide(TestLayer)))
+
     it.effect("should handle parsing errors from run", () =>
       Effect.gen(function*() {
         const runCommand = Command.runWith(Cli.ComprehensiveCli, {
