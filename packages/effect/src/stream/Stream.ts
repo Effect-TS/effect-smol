@@ -2100,6 +2100,135 @@ export const zipLatestAll = <T extends ReadonlyArray<Stream<any, any, any>>>(
   })) as any
 
 /**
+ * Zips the two streams so that when a value is emitted by either of the two
+ * streams, it is combined with the latest value from the other stream to
+ * produce a result.
+ *
+ * Note: tracking the latest value is done on a per-array basis. That means
+ * that emitted elements that are not the last value in arrays will never be
+ * used for zipping.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ * import { Stream } from "effect/stream"
+ *
+ * const s1 = Stream.make(1, 2, 3)
+ * const s2 = Stream.make("a", "b", "c", "d")
+ *
+ * const stream = Stream.zipLatest(s1, s2)
+ *
+ * Effect.runPromise(Stream.runCollect(stream)).then(console.log)
+ * // Output combines values as they arrive
+ * ```
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ * import { Stream } from "effect/stream"
+ *
+ * // Combining sensor readings with timestamps
+ * const temperatures = Stream.make(20.5, 21.0, 20.8, 22.1)
+ * const timestamps = Stream.make("10:00", "10:01", "10:02", "10:03", "10:04")
+ *
+ * const readings = Stream.zipLatest(temperatures, timestamps)
+ *
+ * Effect.runPromise(Stream.runCollect(readings)).then((result) =>
+ *   console.log(result)
+ * )
+ * // Each temperature is paired with the latest timestamp
+ * ```
+ *
+ * @since 2.0.0
+ * @category zipping
+ */
+export const zipLatest: {
+  <AR, ER, RR>(
+    right: Stream<AR, ER, RR>
+  ): <AL, EL, RL>(left: Stream<AL, EL, RL>) => Stream<[AL, AR], EL | ER, RL | RR>
+  <AL, EL, RL, AR, ER, RR>(
+    left: Stream<AL, EL, RL>,
+    right: Stream<AR, ER, RR>
+  ): Stream<[AL, AR], EL | ER, RL | RR>
+} = dual(
+  2,
+  <AL, EL, RL, AR, ER, RR>(
+    left: Stream<AL, EL, RL>,
+    right: Stream<AR, ER, RR>
+  ): Stream<[AL, AR], EL | ER, RL | RR> => zipLatestAll(left, right)
+)
+
+/**
+ * Zips the two streams so that when a value is emitted by either of the two
+ * streams, it is combined with the latest value from the other stream using
+ * the provided function to produce a result.
+ *
+ * Note: tracking the latest value is done on a per-array basis. That means
+ * that emitted elements that are not the last value in arrays will never be
+ * used for zipping.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ * import { Stream } from "effect/stream"
+ *
+ * const numbers = Stream.make(1, 2, 3)
+ * const multipliers = Stream.make(10, 20, 30)
+ *
+ * const stream = Stream.zipLatestWith(
+ *   numbers,
+ *   multipliers,
+ *   (n: number, m: number) => n * m
+ * )
+ *
+ * Effect.runPromise(Stream.runCollect(stream)).then(console.log)
+ * // Combines values using multiplication as they arrive
+ * ```
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ * import { Stream } from "effect/stream"
+ *
+ * // Combining first and last names
+ * const firstNames = Stream.make("Alice", "Bob", "Charlie")
+ * const lastNames = Stream.make("Smith", "Jones")
+ *
+ * const fullNames = Stream.zipLatestWith(
+ *   firstNames,
+ *   lastNames,
+ *   (first: string, last: string) => `${first} ${last}`
+ * )
+ *
+ * Effect.runPromise(Stream.runCollect(fullNames)).then((result) =>
+ *   console.log(result)
+ * )
+ * // ["Alice Smith", "Bob Smith", "Bob Jones", "Charlie Jones"]
+ * ```
+ *
+ * @since 2.0.0
+ * @category zipping
+ */
+export const zipLatestWith: {
+  <AR, ER, RR, AL, A>(
+    right: Stream<AR, ER, RR>,
+    f: (left: AL, right: AR) => A
+  ): <EL, RL>(left: Stream<AL, EL, RL>) => Stream<A, EL | ER, RL | RR>
+  <AL, EL, RL, AR, ER, RR, A>(
+    left: Stream<AL, EL, RL>,
+    right: Stream<AR, ER, RR>,
+    f: (left: AL, right: AR) => A
+  ): Stream<A, EL | ER, RL | RR>
+} = dual(
+  3,
+  <AL, EL, RL, AR, ER, RR, A>(
+    left: Stream<AL, EL, RL>,
+    right: Stream<AR, ER, RR>,
+    f: (left: AL, right: AR) => A
+  ): Stream<A, EL | ER, RL | RR> => map(zipLatestAll(left, right), ([a, a2]) => f(a, a2))
+)
+
+/**
  * @since 3.7.0
  * @category racing
  */

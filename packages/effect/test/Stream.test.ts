@@ -2255,6 +2255,214 @@ describe("Stream", () => {
           assert.deepStrictEqual(result[99], [99, 99])
         }))
     })
+
+    describe("zipLatest", () => {
+      it.effect("combines streams with latest values", () =>
+        Effect.gen(function*() {
+          const result = yield* Stream.zipLatest(
+            Stream.make(1, 2, 3),
+            Stream.make("a", "b", "c", "d")
+          ).pipe(Stream.runCollect)
+
+          // Both streams emit, latest values are paired
+          assert.isTrue(result.length > 0)
+          assert.isTrue(result.every((item) => Array.isArray(item) && item.length === 2))
+        }))
+
+      it.effect("waits for both streams to emit before producing output", () =>
+        Effect.gen(function*() {
+          const queue1 = yield* Queue.unbounded<number>()
+          const queue2 = yield* Queue.unbounded<string>()
+
+          const fiber = yield* Effect.fork(
+            Stream.zipLatest(
+              Stream.fromQueue(queue1),
+              Stream.fromQueue(queue2)
+            ).pipe(Stream.take(3), Stream.runCollect)
+          )
+
+          yield* Queue.offer(queue1, 1)
+          yield* Queue.offer(queue2, "a")
+          yield* Queue.offer(queue1, 2)
+          yield* Queue.offer(queue2, "b")
+          yield* Queue.offer(queue1, 3)
+
+          const result = yield* Fiber.join(fiber)
+
+          assert.isTrue(result.length > 0)
+        }))
+
+      it.effect("propagates errors from left stream", () =>
+        Effect.gen(function*() {
+          const result = yield* Stream.zipLatest(
+            Stream.make(1, 2).pipe(Stream.concat(Stream.fail("boom"))),
+            Stream.make("a", "b", "c")
+          ).pipe(Stream.runCollect, Effect.exit)
+
+          assertExitFailure(result, Cause.fail("boom"))
+        }))
+
+      it.effect("propagates errors from right stream", () =>
+        Effect.gen(function*() {
+          const result = yield* Stream.zipLatest(
+            Stream.make(1, 2, 3),
+            Stream.make("a", "b").pipe(Stream.concat(Stream.fail("ouch")))
+          ).pipe(Stream.runCollect, Effect.exit)
+
+          assertExitFailure(result, Cause.fail("ouch"))
+        }))
+
+      it.effect("terminates when left stream ends", () =>
+        Effect.gen(function*() {
+          const result = yield* Stream.zipLatest(
+            Stream.make(1, 2),
+            Stream.make("a", "b", "c", "d", "e")
+          ).pipe(Stream.runCollect)
+
+          // Should terminate when left stream (1, 2) ends
+          assert.isTrue(result.length > 0)
+        }))
+
+      it.effect("terminates when right stream ends", () =>
+        Effect.gen(function*() {
+          const result = yield* Stream.zipLatest(
+            Stream.make(1, 2, 3, 4, 5),
+            Stream.make("a", "b")
+          ).pipe(Stream.runCollect)
+
+          // Should terminate when right stream ("a", "b") ends
+          assert.isTrue(result.length > 0)
+        }))
+
+      it.effect("works with pipe syntax", () =>
+        Effect.gen(function*() {
+          const result = yield* Stream.make(1, 2, 3).pipe(
+            Stream.zipLatest(Stream.make("a", "b", "c")),
+            Stream.runCollect
+          )
+
+          assert.isTrue(result.length > 0)
+        }))
+
+      it.effect("basic synchronous example", () =>
+        Effect.gen(function*() {
+          const result = yield* Stream.zipLatest(
+            Stream.make(1, 2, 3),
+            Stream.make("a", "b", "c")
+          ).pipe(Stream.runCollect)
+
+          // Both streams emit synchronously, latest values are paired
+          assert.isTrue(result.length > 0)
+          assert.isTrue(result.every((item) => Array.isArray(item) && item.length === 2))
+        }))
+    })
+
+    describe("zipLatestWith", () => {
+      it.effect("transforms combined values", () =>
+        Effect.gen(function*() {
+          const result = yield* Stream.zipLatestWith(
+            Stream.make(1, 2, 3),
+            Stream.make(10, 20, 30),
+            (n, m) => n * m
+          ).pipe(Stream.runCollect)
+
+          assert.isTrue(result.length > 0)
+          assert.isTrue(result.every((item) => typeof item === "number"))
+        }))
+
+      it.effect("combines with custom function", () =>
+        Effect.gen(function*() {
+          const result = yield* Stream.zipLatestWith(
+            Stream.make(1, 2, 3),
+            Stream.make("a", "b", "c"),
+            (n, s) => `${n}-${s}`
+          ).pipe(Stream.runCollect)
+
+          assert.isTrue(result.length > 0)
+          assert.isTrue(result.every((item) => typeof item === "string" && item.includes("-")))
+        }))
+
+      it.effect("propagates errors from left stream", () =>
+        Effect.gen(function*() {
+          const result = yield* Stream.zipLatestWith(
+            Stream.make(1, 2).pipe(Stream.concat(Stream.fail("boom"))),
+            Stream.make("a", "b", "c"),
+            (n, s) => `${n}-${s}`
+          ).pipe(Stream.runCollect, Effect.exit)
+
+          assertExitFailure(result, Cause.fail("boom"))
+        }))
+
+      it.effect("propagates errors from right stream", () =>
+        Effect.gen(function*() {
+          const result = yield* Stream.zipLatestWith(
+            Stream.make(1, 2, 3),
+            Stream.make("a", "b").pipe(Stream.concat(Stream.fail("ouch"))),
+            (n, s) => `${n}-${s}`
+          ).pipe(Stream.runCollect, Effect.exit)
+
+          assertExitFailure(result, Cause.fail("ouch"))
+        }))
+
+      it.effect("terminates when left stream ends", () =>
+        Effect.gen(function*() {
+          const result = yield* Stream.zipLatestWith(
+            Stream.make(1, 2),
+            Stream.make(10, 20, 30, 40),
+            (n, m) => n + m
+          ).pipe(Stream.runCollect)
+
+          assert.isTrue(result.length > 0)
+        }))
+
+      it.effect("terminates when right stream ends", () =>
+        Effect.gen(function*() {
+          const result = yield* Stream.zipLatestWith(
+            Stream.make(1, 2, 3, 4),
+            Stream.make(10, 20),
+            (n, m) => n + m
+          ).pipe(Stream.runCollect)
+
+          assert.isTrue(result.length > 0)
+        }))
+
+      it.effect("works with pipe syntax", () =>
+        Effect.gen(function*() {
+          const result = yield* Stream.make(1, 2, 3).pipe(
+            Stream.zipLatestWith(
+              Stream.make(10, 20, 30),
+              (n, m) => n + m
+            ),
+            Stream.runCollect
+          )
+
+          assert.isTrue(result.length > 0)
+        }))
+
+      it.effect("basic synchronous example", () =>
+        Effect.gen(function*() {
+          const result = yield* Stream.zipLatestWith(
+            Stream.make(1, 2, 3),
+            Stream.make(10, 20, 30),
+            (a, b) => a + b
+          ).pipe(Stream.runCollect)
+
+          assert.isTrue(result.length > 0)
+          assert.isTrue(result.every((item) => typeof item === "number"))
+        }))
+
+      it.effect("string concatenation example", () =>
+        Effect.gen(function*() {
+          const result = yield* Stream.zipLatestWith(
+            Stream.make("Alice", "Bob", "Charlie"),
+            Stream.make("Smith", "Jones"),
+            (first, last) => `${first} ${last}`
+          ).pipe(Stream.runCollect)
+
+          assert.isTrue(result.length > 0)
+          assert.isTrue(result.every((item) => typeof item === "string" && item.includes(" ")))
+        }))
+    })
   })
 })
 

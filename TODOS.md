@@ -433,9 +433,9 @@ The exports under each section are organized as they are in Effect 3.0. The cate
 | `zipAllSortedByKeyWith`  |   X    |          |          |
 |       `zipAllWith`       |   -    |          |          |
 |       `zipFlatten`       |  Done  |          |          |
-|       `zipLatest`        |   -    |          |          |
+|       `zipLatest`        |  Done  |          |          |
 |      `zipLatestAll`      |  Done  |          |          |
-|     `zipLatestWith`      |   X    |          |          |
+|     `zipLatestWith`      |  Done  |          |          |
 |        `zipLeft`         |  Done  |          |          |
 |        `zipRight`        |  Done  |          |          |
 |        `zipWith`         |  Done  |          |          |
