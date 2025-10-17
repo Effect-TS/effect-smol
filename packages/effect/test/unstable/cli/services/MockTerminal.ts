@@ -1,6 +1,5 @@
 import * as Array from "effect/collections/Array"
 import * as Console from "effect/Console"
-import * as Option from "effect/data/Option"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as Terminal from "effect/platform/Terminal"
@@ -127,7 +126,7 @@ const toUserInput = (
 ): Terminal.UserInput => {
   const { ctrl = false, meta = false, shift = false } = modifiers
   return {
-    input: Option.some(key),
+    input: key,
     key: { name: key, ctrl, meta, shift }
   }
 }
