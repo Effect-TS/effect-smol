@@ -122,7 +122,10 @@ export interface Command<Name extends string, Input, E = never, R = never> exten
    * The method which will be invoked with the command-line input and path to
    * execute the logic associated with the command.
    */
-  readonly handle: (input: Input, commandPath: ReadonlyArray<string>) => Effect.Effect<void, E | CliError.CliError, R>
+  readonly handle: (
+    input: Input,
+    commandPath: ReadonlyArray<string>
+  ) => Effect.Effect<void, E | CliError.CliError, R | Environment>
 }
 
 /**
@@ -1463,13 +1466,18 @@ const makeCommand = <const Name extends string, Input, E, R>(options: {
   readonly description?: string | undefined
   readonly subcommands?: ReadonlyArray<Command<any, unknown, unknown, unknown>> | undefined
   readonly parse?: ((input: RawInput) => Effect.Effect<Input, CliError.CliError, Environment>) | undefined
-  readonly handle?: ((input: Input, commandPath: ReadonlyArray<string>) => Effect.Effect<void, E, R>) | undefined
+  readonly handle?:
+    | ((input: Input, commandPath: ReadonlyArray<string>) => Effect.Effect<void, E, R | Environment>)
+    | undefined
 }): Command<Name, Input, E, R> => {
   const service = options.service ?? ServiceMap.Service<ParentCommand<Name>, Input>(`${TypeId}/${options.name}`)
 
   const config = isParsedConfig(options.config) ? options.config : parseConfig(options.config)
 
-  const handle = (input: Input, commandPath: ReadonlyArray<string>): Effect.Effect<void, CliError.CliError | E, R> =>
+  const handle = (
+    input: Input,
+    commandPath: ReadonlyArray<string>
+  ): Effect.Effect<void, CliError.CliError | E, R | Environment> =>
     Predicate.isNotUndefined(options.handle)
       ? options.handle(input, commandPath)
       : Effect.fail(new CliError.ShowHelp({ commandPath }))
