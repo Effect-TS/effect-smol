@@ -619,13 +619,13 @@ export const make: {
 export const prompt = <Name extends string, A, E, R>(
   name: Name,
   prompt: Prompt.Prompt<A>,
-  handler: (_: A) => Effect.Effect<void, E, R>
-): Command<Name, A, E | Terminal.QuitError, R | Environment> => {
-  return makeCommand(name, {}, "", [], () =>
-    Effect.flatMap(
-      Prompt.run(prompt),
-      (value) => handler(value)
-    ))
+  handler: (value: A) => Effect.Effect<void, E, R>
+): Command<Name, A, E | Terminal.QuitError, R> => {
+  return makeCommand({
+    name,
+    config: {},
+    handle: () => Effect.flatMap(Prompt.run(prompt), (value) => handler(value))
+  })
 }
 
 /**
