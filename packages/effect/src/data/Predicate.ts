@@ -659,16 +659,16 @@ export function isObjectOrArray(input: unknown): input is { [x: PropertyKey]: un
  * @example
  * ```ts
  * import * as assert from "node:assert"
- * import { isRecord } from "effect/data/Predicate"
+ * import { isObject } from "effect/data/Predicate"
  *
- * assert.deepStrictEqual(isRecord({}), true)
- * assert.deepStrictEqual(isRecord({ a: 1 }), true)
+ * assert.deepStrictEqual(isObject({}), true)
+ * assert.deepStrictEqual(isObject({ a: 1 }), true)
  *
- * assert.deepStrictEqual(isRecord([]), false)
- * assert.deepStrictEqual(isRecord([1, 2, 3]), false)
- * assert.deepStrictEqual(isRecord(null), false)
- * assert.deepStrictEqual(isRecord(undefined), false)
- * assert.deepStrictEqual(isRecord(() => null), false)
+ * assert.deepStrictEqual(isObject([]), false)
+ * assert.deepStrictEqual(isObject([1, 2, 3]), false)
+ * assert.deepStrictEqual(isObject(null), false)
+ * assert.deepStrictEqual(isObject(undefined), false)
+ * assert.deepStrictEqual(isObject(() => null), false)
  * ```
  *
  * @category guards
@@ -684,14 +684,14 @@ export function isObject(input: unknown): input is { [x: PropertyKey]: unknown }
  * @example
  * ```ts
  * import * as assert from "node:assert"
- * import { isReadonlyRecord } from "effect/data/Predicate"
+ * import { isReadonlyObject } from "effect/data/Predicate"
  *
- * assert.deepStrictEqual(isReadonlyRecord({ a: 1 }), true)
+ * assert.deepStrictEqual(isReadonlyObject({ a: 1 }), true)
  *
- * assert.deepStrictEqual(isReadonlyRecord([1, 2, 3]), false)
- * assert.deepStrictEqual(isReadonlyRecord(null), false)
- * assert.deepStrictEqual(isReadonlyRecord(undefined), false)
- * ```
+ * assert.deepStrictEqual(isReadonlyObject([1, 2, 3]), false)
+ * assert.deepStrictEqual(isReadonlyObject(null), false)
+ * assert.deepStrictEqual(isReadonlyObject(undefined), false)
+ * ```x
  *
  * @category guards
  * @since 2.0.0
