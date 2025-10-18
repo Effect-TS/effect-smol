@@ -404,19 +404,25 @@ export function schema<T, E>(codec: Schema.Codec<T, E>, path?: string | ConfigPr
   )
 }
 
+/** @internal */
+export const TrueValues = Schema.Literals(["true", "yes", "on", "1", "y"])
+
+/** @internal */
+export const FalseValues = Schema.Literals(["false", "no", "off", "0", "n"])
+
 /**
  * A schema for strings that can be parsed as boolean values.
  *
- * Booleans can be encoded as `true`, `false`, `yes`, `no`, `on`, `off`, `1`, or `0`.
+ * Booleans can be encoded as `true`, `false`, `yes`, `no`, `on`, `off`, `1`, `0`, `y`, `n`.
  *
  * @category Schema
  * @since 4.0.0
  */
-export const Boolean = Schema.Literals(["true", "yes", "on", "1", "false", "no", "off", "0"]).pipe(
+export const Boolean = Schema.Literals([...TrueValues.literals, ...FalseValues.literals]).pipe(
   Schema.decodeTo(
     Schema.Boolean,
     Transformation.transform({
-      decode: (value) => value === "true" || value === "yes" || value === "on" || value === "1",
+      decode: (value) => value === "true" || value === "yes" || value === "on" || value === "1" || value === "y",
       encode: (value) => value ? "true" : "false"
     })
   )

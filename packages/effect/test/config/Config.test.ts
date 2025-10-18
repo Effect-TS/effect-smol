@@ -773,6 +773,8 @@ describe("Config", () => {
         f: "off",
         g: "1",
         h: "0",
+        i: "y",
+        j: "n",
         failure: "value"
       })
 
@@ -784,10 +786,12 @@ describe("Config", () => {
       await succeed(Config.boolean("f"), provider, false)
       await succeed(Config.boolean("g"), provider, true)
       await succeed(Config.boolean("h"), provider, false)
+      await succeed(Config.boolean("i"), provider, true)
+      await succeed(Config.boolean("j"), provider, false)
       await fail(
         Config.boolean("failure"),
         provider,
-        `Expected "true" | "yes" | "on" | "1" | "false" | "no" | "off" | "0", got "value"
+        `Expected "true" | "yes" | "on" | "1" | "y" | "false" | "no" | "off" | "0" | "n", got "value"
   at ["failure"]`
       )
     })
