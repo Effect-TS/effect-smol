@@ -92,7 +92,7 @@ export const go = memoize((ast: AST.AST): Equivalence.Equivalence<any> => {
       const propertySignatures = ast.propertySignatures.map((ps) => go(ps.type))
       const indexSignatures = ast.indexSignatures.map((is) => go(is.type))
       return Equivalence.make((a, b) => {
-        if (!Predicate.isRecord(a) || !Predicate.isRecord(b)) {
+        if (!Predicate.isObject(a) || !Predicate.isObject(b)) {
           return false
         }
         // ---------------------------------------------

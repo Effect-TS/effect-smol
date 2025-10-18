@@ -35,7 +35,7 @@ export function getJsonPatch(oldValue: unknown, newValue: unknown): Schema.JsonP
     for (let i = len1; i < len2; i++) {
       patches.push({ op: "add", path: `/${i}`, value: newValue[i] })
     }
-  } else if (Predicate.isRecord(oldValue) && Predicate.isRecord(newValue)) {
+  } else if (Predicate.isObject(oldValue) && Predicate.isObject(newValue)) {
     // Get all keys from both objects
     const keys1 = Object.keys(oldValue)
     const keys2 = Object.keys(newValue)

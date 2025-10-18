@@ -204,17 +204,17 @@ describe("Predicate", () => {
     assertTrue(Predicate.isUnknown([]))
   })
 
-  it("isObject", () => {
-    assertTrue(Predicate.isObject({}))
-    assertTrue(Predicate.isObject([]))
-    assertTrue(Predicate.isObject(() => 1))
-    assertFalse(Predicate.isObject(null))
-    assertFalse(Predicate.isObject(undefined))
-    assertFalse(Predicate.isObject("a"))
-    assertFalse(Predicate.isObject(1))
-    assertFalse(Predicate.isObject(true))
-    assertFalse(Predicate.isObject(1n))
-    assertFalse(Predicate.isObject(Symbol.for("a")))
+  it("isObjectKeyword", () => {
+    assertTrue(Predicate.isObjectKeyword({}))
+    assertTrue(Predicate.isObjectKeyword([]))
+    assertTrue(Predicate.isObjectKeyword(() => 1))
+    assertFalse(Predicate.isObjectKeyword(null))
+    assertFalse(Predicate.isObjectKeyword(undefined))
+    assertFalse(Predicate.isObjectKeyword("a"))
+    assertFalse(Predicate.isObjectKeyword(1))
+    assertFalse(Predicate.isObjectKeyword(true))
+    assertFalse(Predicate.isObjectKeyword(1n))
+    assertFalse(Predicate.isObjectKeyword(Symbol.for("a")))
   })
 
   it("isSet", () => {
@@ -308,25 +308,25 @@ describe("Predicate", () => {
     assertFalse(Predicate.isIterable({}))
   })
 
-  it("isRecord", () => {
-    assertTrue(Predicate.isRecord({}))
-    assertTrue(Predicate.isRecord({ a: 1 }))
+  it("isObject", () => {
+    assertTrue(Predicate.isObject({}))
+    assertTrue(Predicate.isObject({ a: 1 }))
 
-    assertFalse(Predicate.isRecord([]))
-    assertFalse(Predicate.isRecord([1, 2, 3]))
-    assertFalse(Predicate.isRecord(null))
-    assertFalse(Predicate.isRecord(undefined))
-    assertFalse(Predicate.isRecord(() => null))
+    assertFalse(Predicate.isObject([]))
+    assertFalse(Predicate.isObject([1, 2, 3]))
+    assertFalse(Predicate.isObject(null))
+    assertFalse(Predicate.isObject(undefined))
+    assertFalse(Predicate.isObject(() => null))
   })
 
-  it("isReadonlyRecord", () => {
-    assertTrue(Predicate.isReadonlyRecord({}))
-    assertTrue(Predicate.isReadonlyRecord({ a: 1 }))
+  it("isReadonlyObject", () => {
+    assertTrue(Predicate.isReadonlyObject({}))
+    assertTrue(Predicate.isReadonlyObject({ a: 1 }))
 
-    assertFalse(Predicate.isReadonlyRecord([]))
-    assertFalse(Predicate.isReadonlyRecord([1, 2, 3]))
-    assertFalse(Predicate.isReadonlyRecord(null))
-    assertFalse(Predicate.isReadonlyRecord(undefined))
+    assertFalse(Predicate.isReadonlyObject([]))
+    assertFalse(Predicate.isReadonlyObject([1, 2, 3]))
+    assertFalse(Predicate.isReadonlyObject(null))
+    assertFalse(Predicate.isReadonlyObject(undefined))
   })
 
   it("isTupleOf", () => {

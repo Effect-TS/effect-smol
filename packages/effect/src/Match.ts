@@ -1532,7 +1532,7 @@ export const date: Predicate.Refinement<unknown, Date> = Predicate.isDate
  * @category predicates
  * @since 4.0.0
  */
-export const record: Predicate.Refinement<unknown, { [x: string | symbol]: unknown }> = Predicate.isRecord
+export const record: Predicate.Refinement<unknown, { [x: PropertyKey]: unknown }> = Predicate.isObject
 
 /**
  * Matches instances of a given class.

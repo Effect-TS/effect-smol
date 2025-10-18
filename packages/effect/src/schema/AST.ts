@@ -530,7 +530,7 @@ export class ObjectKeyword extends Base {
   readonly _tag = "ObjectKeyword"
   /** @internal */
   parser() {
-    return fromRefinement(this, Predicate.isObject)
+    return fromRefinement(this, Predicate.isObjectKeyword)
   }
   /** @internal */
   getExpected(): string {

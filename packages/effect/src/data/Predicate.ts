@@ -642,35 +642,86 @@ export const isNever: (input: unknown) => input is never = (_: unknown): _ is ne
 export const isUnknown: (input: unknown) => input is unknown = (_): _ is unknown => true
 
 /**
- * Tests if a value is a `Record` or an `Array`.
+ * Tests if a value is an object or an array.
  *
  * Equivalent to `typeof input === "object" && input !== null`.
  *
  * @category guards
  * @since 4.0.0
  */
-export const isRecordOrArray = (input: unknown): input is { [x: PropertyKey]: unknown } | Array<unknown> =>
-  typeof input === "object" && input !== null
+export function isObjectOrArray(input: unknown): input is { [x: PropertyKey]: unknown } | Array<unknown> {
+  return typeof input === "object" && input !== null
+}
 
 /**
- * Tests if a value is an `object`.
+ * Tests if a value is an object.
  *
  * @example
  * ```ts
  * import * as assert from "node:assert"
- * import { isObject } from "effect/data/Predicate"
+ * import { isRecord } from "effect/data/Predicate"
  *
- * assert.deepStrictEqual(isObject({}), true)
- * assert.deepStrictEqual(isObject([]), true)
+ * assert.deepStrictEqual(isRecord({}), true)
+ * assert.deepStrictEqual(isRecord({ a: 1 }), true)
  *
- * assert.deepStrictEqual(isObject(null), false)
- * assert.deepStrictEqual(isObject(undefined), false)
+ * assert.deepStrictEqual(isRecord([]), false)
+ * assert.deepStrictEqual(isRecord([1, 2, 3]), false)
+ * assert.deepStrictEqual(isRecord(null), false)
+ * assert.deepStrictEqual(isRecord(undefined), false)
+ * assert.deepStrictEqual(isRecord(() => null), false)
  * ```
  *
  * @category guards
  * @since 2.0.0
  */
-export const isObject = (input: unknown): input is object => isRecordOrArray(input) || isFunction(input)
+export function isObject(input: unknown): input is { [x: PropertyKey]: unknown } {
+  return isObjectOrArray(input) && !Array.isArray(input)
+}
+
+/**
+ * Tests if a value is a readonly object.
+ *
+ * @example
+ * ```ts
+ * import * as assert from "node:assert"
+ * import { isReadonlyRecord } from "effect/data/Predicate"
+ *
+ * assert.deepStrictEqual(isReadonlyRecord({ a: 1 }), true)
+ *
+ * assert.deepStrictEqual(isReadonlyRecord([1, 2, 3]), false)
+ * assert.deepStrictEqual(isReadonlyRecord(null), false)
+ * assert.deepStrictEqual(isReadonlyRecord(undefined), false)
+ * ```
+ *
+ * @category guards
+ * @since 2.0.0
+ */
+export function isReadonlyObject(input: unknown): input is { readonly [x: PropertyKey]: unknown } {
+  return isObject(input)
+}
+
+/**
+ * Tests if a value is an `object` (i.e. objects, arrays, functions).
+ *
+ * @example
+ * ```ts
+ * import * as assert from "node:assert"
+ * import { isObjectKeyword } from "effect/data/Predicate"
+ *
+ * assert.deepStrictEqual(isObjectKeyword({}), true)
+ * assert.deepStrictEqual(isObjectKeyword([]), true)
+ * assert.deepStrictEqual(isObjectKeyword(() => 1), true)
+ *
+ * assert.deepStrictEqual(isObjectKeyword(null), false)
+ * assert.deepStrictEqual(isObjectKeyword(undefined), false)
+ * ```
+ *
+ * @category guards
+ * @since 2.0.0
+ */
+export function isObjectKeyword(input: unknown): input is object {
+  return isObjectOrArray(input) || isFunction(input)
+}
 
 /**
  * Checks whether a value is an `object` containing a specified property key.
@@ -709,7 +760,7 @@ export const hasProperty: {
 } = dual(
   2,
   <P extends PropertyKey>(self: unknown, property: P): self is { [K in P]: unknown } =>
-    isObject(self) && (property in self)
+    isObjectKeyword(self) && (property in self)
 )
 
 /**
@@ -817,54 +868,6 @@ export const isDate = (input: unknown): input is Date => input instanceof Date
 export function isIterable(input: unknown): input is Iterable<unknown> {
   return hasProperty(input, Symbol.iterator) || isString(input)
 }
-
-/**
- * A guard that succeeds when the input is a record.
- *
- * @example
- * ```ts
- * import * as assert from "node:assert"
- * import { isRecord } from "effect/data/Predicate"
- *
- * assert.deepStrictEqual(isRecord({}), true)
- * assert.deepStrictEqual(isRecord({ a: 1 }), true)
- *
- * assert.deepStrictEqual(isRecord([]), false)
- * assert.deepStrictEqual(isRecord([1, 2, 3]), false)
- * assert.deepStrictEqual(isRecord(null), false)
- * assert.deepStrictEqual(isRecord(undefined), false)
- * assert.deepStrictEqual(isRecord(() => null), false)
- * ```
- *
- * @category guards
- * @since 2.0.0
- */
-export const isRecord = (input: unknown): input is { [x: PropertyKey]: unknown } =>
-  isRecordOrArray(input) && !Array.isArray(input)
-
-/**
- * A guard that succeeds when the input is a readonly record.
- *
- * @example
- * ```ts
- * import * as assert from "node:assert"
- * import { isReadonlyRecord } from "effect/data/Predicate"
- *
- * assert.deepStrictEqual(isReadonlyRecord({}), true)
- * assert.deepStrictEqual(isReadonlyRecord({ a: 1 }), true)
- *
- * assert.deepStrictEqual(isReadonlyRecord([]), false)
- * assert.deepStrictEqual(isReadonlyRecord([1, 2, 3]), false)
- * assert.deepStrictEqual(isReadonlyRecord(null), false)
- * assert.deepStrictEqual(isReadonlyRecord(undefined), false)
- * ```
- *
- * @category guards
- * @since 2.0.0
- */
-export const isReadonlyRecord: (
-  input: unknown
-) => input is { readonly [x: PropertyKey]: unknown } = isRecord
 
 /**
  * A guard that succeeds when the input is a Promise.
