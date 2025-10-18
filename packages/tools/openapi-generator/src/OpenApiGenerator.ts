@@ -116,7 +116,7 @@ export const make = Effect.gen(function*() {
 
               const paramSchema = parameter.schema
               const added: Array<string> = []
-              if ("properties" in paramSchema && Predicate.isRecord(paramSchema.properties)) {
+              if ("properties" in paramSchema && Predicate.isObject(paramSchema.properties)) {
                 const required = "required" in paramSchema
                   ? paramSchema.required as Array<string>
                   : []
