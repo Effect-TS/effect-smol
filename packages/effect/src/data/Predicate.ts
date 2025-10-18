@@ -649,9 +649,8 @@ export const isUnknown: (input: unknown) => input is unknown = (_): _ is unknown
  * @category guards
  * @since 4.0.0
  */
-export function isObjectOrArray(input: unknown): input is { [x: PropertyKey]: unknown } | Array<unknown> {
-  return typeof input === "object" && input !== null
-}
+export const isObjectOrArray = (input: unknown): input is { [x: PropertyKey]: unknown } | Array<unknown> =>
+  typeof input === "object" && input !== null
 
 /**
  * Tests if a value is an object.
@@ -674,9 +673,8 @@ export function isObjectOrArray(input: unknown): input is { [x: PropertyKey]: un
  * @category guards
  * @since 2.0.0
  */
-export function isObject(input: unknown): input is { [x: PropertyKey]: unknown } {
-  return isObjectOrArray(input) && !Array.isArray(input)
-}
+export const isObject = (input: unknown): input is { [x: PropertyKey]: unknown } =>
+  isObjectOrArray(input) && !Array.isArray(input)
 
 /**
  * Tests if a value is a readonly object.
@@ -696,9 +694,7 @@ export function isObject(input: unknown): input is { [x: PropertyKey]: unknown }
  * @category guards
  * @since 2.0.0
  */
-export function isReadonlyObject(input: unknown): input is { readonly [x: PropertyKey]: unknown } {
-  return isObject(input)
-}
+export const isReadonlyObject: (input: unknown) => input is { readonly [x: PropertyKey]: unknown } = isObject
 
 /**
  * Tests if a value is an `object` (i.e. objects, arrays, functions).
@@ -719,9 +715,7 @@ export function isReadonlyObject(input: unknown): input is { readonly [x: Proper
  * @category guards
  * @since 2.0.0
  */
-export function isObjectKeyword(input: unknown): input is object {
-  return isObjectOrArray(input) || isFunction(input)
-}
+export const isObjectKeyword = (input: unknown): input is object => isObjectOrArray(input) || isFunction(input)
 
 /**
  * Checks whether a value is an `object` containing a specified property key.
