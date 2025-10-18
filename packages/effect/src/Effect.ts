@@ -11417,7 +11417,7 @@ export const effectify: {
  * import { Effect } from "effect"
  *
  * // Define a constraint that the success type must be a number
- * const satisfiesNumber = Effect.satisfiesSuccess<number>()
+ * const satisfiesNumber = Effect.satisfiesSuccessType<number>()
  *
  * // This works - Effect<42, never, never> extends Effect<number, never, never>
  * const validEffect = satisfiesNumber(Effect.succeed(42))
@@ -11431,7 +11431,7 @@ export const effectify: {
  * @since 4.0.0
  * @category Type constraints
  */
-export const satisfiesSuccess = <A>() => <A2 extends A, E, R>(effect: Effect<A2, E, R>): Effect<A2, E, R> => effect
+export const satisfiesSuccessType = <A>() => <A2 extends A, E, R>(effect: Effect<A2, E, R>): Effect<A2, E, R> => effect
 
 /**
  * Ensures that an effect's error type extends a given type `E`.
@@ -11444,7 +11444,7 @@ export const satisfiesSuccess = <A>() => <A2 extends A, E, R>(effect: Effect<A2,
  * import { Effect } from "effect"
  *
  * // Define a constraint that the error type must be an Error
- * const satisfiesError = Effect.satisfiesError<Error>()
+ * const satisfiesError = Effect.satisfiesErrorType<Error>()
  *
  * // This works - Effect<number, TypeError, never> extends Effect<number, Error, never>
  * const validEffect = satisfiesError(Effect.fail(new TypeError("Invalid type")))
@@ -11458,7 +11458,7 @@ export const satisfiesSuccess = <A>() => <A2 extends A, E, R>(effect: Effect<A2,
  * @since 4.0.0
  * @category Type constraints
  */
-export const satisfiesError = <E>() => <A, E2 extends E, R>(effect: Effect<A, E2, R>): Effect<A, E2, R> => effect
+export const satisfiesErrorType = <E>() => <A, E2 extends E, R>(effect: Effect<A, E2, R>): Effect<A, E2, R> => effect
 
 /**
  * Ensures that an effect's requirements type extends a given type `R`.
@@ -11471,7 +11471,7 @@ export const satisfiesError = <E>() => <A, E2 extends E, R>(effect: Effect<A, E2
  * import { Effect } from "effect"
  *
  * // Define a constraint that requires a string as the requirements type
- * const satisfiesStringRequirement = Effect.satisfiesRequirements<string>()
+ * const satisfiesStringRequirement = Effect.satisfiesRequirementsType<string>()
  *
  * // This works - effect requires string
  * const validEffect: Effect.Effect<number, never, "config"> = Effect.succeed(42)
@@ -11485,7 +11485,8 @@ export const satisfiesError = <E>() => <A, E2 extends E, R>(effect: Effect<A, E2
  * @since 4.0.0
  * @category Type constraints
  */
-export const satisfiesRequirements = <R>() => <A, E, R2 extends R>(effect: Effect<A, E, R2>): Effect<A, E, R2> => effect
+export const satisfiesRequirementsType = <R>() => <A, E, R2 extends R>(effect: Effect<A, E, R2>): Effect<A, E, R2> =>
+  effect
 
 /**
  * An optimized version of `map` that checks if an effect is already resolved
