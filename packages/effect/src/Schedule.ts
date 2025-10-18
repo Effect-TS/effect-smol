@@ -3216,23 +3216,23 @@ export const forever: Schedule<number> = spaced(Duration.zero)
  *
  * // Ensure schedule accepts string inputs
  * const stringSchedule = Schedule.exponential("100 millis").pipe(
- *   Schedule.ensureInput<string>()
+ *   Schedule.satisfiesInputType<string>()
  * )
  *
  * // Ensure schedule accepts number inputs
  * const numberSchedule = Schedule.spaced("1 second").pipe(
- *   Schedule.ensureInput<number>()
+ *   Schedule.satisfiesInputType<number>()
  * )
  *
  * // Type-level constraint - this would be a compile error:
- * // Schedule.recurs(3).pipe(Schedule.ensureInput<CustomType>())
+ * // Schedule.recurs(3).pipe(Schedule.satisfiesInputType<CustomType>())
  * // where CustomType doesn't match the schedule's input type
  * ```
  *
  * @since 2.0.0
  * @category ensuring types
  */
-export const ensureInput = <T>() =>
+export const satisfiesInputType = <T>() =>
 <Input extends T, Output = never, Error = never, Env = never>(
   self: Schedule<Output, Input, Error, Env>
 ): Schedule<Output, Input, Error, Env> => self
@@ -3245,20 +3245,20 @@ export const ensureInput = <T>() =>
  * import { Schedule } from "effect"
  * import { Duration } from "effect"
  *
- * // ensureOutput is a type-level function for compile-time constraints
+ * // satisfiesOutputType is a type-level function for compile-time constraints
  * // It ensures that a schedule's output type matches the specified type
  *
  * // Example with string output
  * const stringSchedule = Schedule.exponential("100 millis").pipe(
  *   Schedule.map(() => "hello"),
- *   Schedule.ensureOutput<string>()
+ *   Schedule.satisfiesOutputType<string>()
  * )
  * ```
  *
  * @since 2.0.0
  * @category ensuring types
  */
-export const ensureOutput = <T>() =>
+export const satisfiesOutputType = <T>() =>
 <Output extends T, Error = never, Input = unknown, Env = never>(
   self: Schedule<Output, Input, Error, Env>
 ): Schedule<Output, Input, Error, Env> => self
@@ -3278,19 +3278,19 @@ export const ensureOutput = <T>() =>
  *
  * // Ensure schedule handles CustomError types
  * const errorSchedule = Schedule.exponential("100 millis").pipe(
- *   Schedule.ensureError<CustomError>()
+ *   Schedule.satisfiesErrorType<CustomError>()
  * )
  *
  * // Ensure schedule handles never errors (no errors)
  * const safeSchedule = Schedule.spaced("1 second").pipe(
- *   Schedule.ensureError<never>()
+ *   Schedule.satisfiesErrorType<never>()
  * )
  * ```
  *
  * @since 2.0.0
  * @category ensuring types
  */
-export const ensureError = <T>() =>
+export const satisfiesErrorType = <T>() =>
 <Error extends T, Output = never, Input = unknown, Env = never>(
   self: Schedule<Output, Input, Error, Env>
 ): Schedule<Output, Input, Error, Env> => self
@@ -3313,19 +3313,19 @@ export const ensureError = <T>() =>
  *
  * // Ensure schedule requires Logger service
  * const loggerSchedule = Schedule.spaced("1 second").pipe(
- *   Schedule.ensureServices<Logger>()
+ *   Schedule.satisfiesServicesType<Logger>()
  * )
  *
  * // Ensure schedule requires both Logger and Database services
  * const multiServiceSchedule = Schedule.exponential("100 millis").pipe(
- *   Schedule.ensureServices<Logger | Database>()
+ *   Schedule.satisfiesServicesType<Logger | Database>()
  * )
  * ```
  *
  * @since 2.0.0
  * @category ensuring types
  */
-export const ensureServices = <T>() =>
+export const satisfiesServicesType = <T>() =>
 <Env extends T, Output = never, Input = unknown, Error = never>(
   self: Schedule<Output, Input, Error, Env>
 ): Schedule<Output, Input, Error, Env> => self
