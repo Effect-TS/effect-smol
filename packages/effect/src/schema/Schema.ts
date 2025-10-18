@@ -2859,7 +2859,7 @@ export function withDecodingDefault<S extends Top>(
 export interface tag<Tag extends AST.LiteralValue> extends withConstructorDefault<Literal<Tag>> {}
 
 /**
- * Creates a schema for a literal value that automatically provides itself as a
+ * Creates a schema for a literal value and automatically provides itself as a
  * default.
  *
  * The `tag` function combines a literal schema with a constructor default,
@@ -2871,6 +2871,16 @@ export interface tag<Tag extends AST.LiteralValue> extends withConstructorDefaul
  */
 export function tag<Tag extends AST.LiteralValue>(literal: Tag): tag<Tag> {
   return Literal(literal).pipe(withConstructorDefault(() => Option_.some(literal)))
+}
+
+/**
+ * Similar to `tag`, but provides itself as a default when decoding and omits
+ * the value from the output when encoding.
+ *
+ * @since 4.0.0
+ */
+export function tagDefaultOmit<Tag extends AST.LiteralValue>(literal: Tag) {
+  return tag(literal).pipe(withDecodingDefaultKey(() => literal, { encodingStrategy: "omit" }))
 }
 
 /**

@@ -6798,12 +6798,7 @@ console.log(Schema.decodeUnknownSync(DiscriminatedShape)({ radius: 10 }))
 // { radius: 10, kind: 'circle' }
 
 // encoding
-console.log(
-  Schema.encodeSync(DiscriminatedShape)({
-    kind: "circle",
-    radius: 10
-  })
-)
+console.log(Schema.encodeSync(DiscriminatedShape)({ kind: "circle", radius: 10 }))
 // { radius: 10 }
 ```
 
@@ -6812,30 +6807,26 @@ v4
 ```ts
 import { Schema } from "effect/schema"
 
-const schema = Schema.Struct({
-  a: Schema.String,
-  b: Schema.Literal("b").pipe(Schema.withDecodingDefaultKey(() => "b", { encodingStrategy: "omit" }))
+const Circle = Schema.Struct({
+  radius: Schema.Number
 })
 
+const Square = Schema.Struct({
+  sideLength: Schema.Number
+})
+
+const DiscriminatedShape = Schema.Union([
+  Circle.mapFields((fields) => ({ ...fields, kind: Schema.tagDefaultOmit("circle") })),
+  Square.mapFields((fields) => ({ ...fields, kind: Schema.tagDefaultOmit("square") }))
+])
+
 // decoding
-
-console.log(Schema.decodeUnknownSync(schema)({ a: "a", b: "b" }))
-// { a: 'a', b: 'b' }
-
-console.log(Schema.decodeUnknownSync(schema)({ a: "a", b: "b" }))
-// { a: 'a', b: 'b' }
-
-Schema.decodeUnknownSync(schema)({ a: "a", b: "c" })
-/*
-throws:
-Error: Expected "b", got "c"
-  at ["b"]
-*/
+console.log(Schema.decodeUnknownSync(DiscriminatedShape)({ radius: 10 }))
+// { radius: 10, kind: 'circle' }
 
 // encoding
-
-console.log(Schema.encodeUnknownSync(schema)({ a: "a", b: "b" }))
-// { a: 'a' }
+console.log(Schema.encodeSync(DiscriminatedShape)({ kind: "circle", radius: 10 }))
+// { radius: 10 }
 ```
 
 ### annotations

@@ -3773,6 +3773,36 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     })
   })
 
+  it("tagDefaultOmit", async () => {
+    const schema = Schema.Struct({
+      _tag: Schema.tagDefaultOmit("a"),
+      a: Schema.FiniteFromString
+    })
+    const asserts = new TestSchema.Asserts(schema)
+
+    const make = asserts.make()
+    await make.succeed({ _tag: "a", a: 1 })
+    await make.succeed({ a: 1 }, { _tag: "a", a: 1 })
+    await make.fail(
+      { _tag: "c", a: 1 },
+      `Expected "a", got "c"
+  at ["_tag"]`
+    )
+
+    const decoding = asserts.decoding()
+    await decoding.succeed({ _tag: "a", a: "1" }, { _tag: "a", a: 1 })
+    await decoding.succeed({ a: "1" }, { _tag: "a", a: 1 })
+    await decoding.fail(
+      { _tag: "c", a: 1 },
+      `Expected "a", got "c"
+  at ["_tag"]`
+    )
+
+    const encoding = asserts.encoding()
+    await encoding.succeed({ _tag: "a", a: 1 }, { a: "1" })
+    await encoding.succeed({ a: 1 }, { a: "1" })
+  })
+
   it("URL", async () => {
     const schema = Schema.URL
     const asserts = new TestSchema.Asserts(schema)
