@@ -674,7 +674,7 @@ export const isObjectOrArray = (input: unknown): input is { [x: PropertyKey]: un
  * @since 2.0.0
  */
 export const isObject = (input: unknown): input is { [x: PropertyKey]: unknown } =>
-  isObjectOrArray(input) && !Array.isArray(input)
+  typeof input === "object" && input !== null && !Array.isArray(input)
 
 /**
  * Tests if a value is a readonly object.
@@ -715,7 +715,8 @@ export const isReadonlyObject: (input: unknown) => input is { readonly [x: Prope
  * @category guards
  * @since 2.0.0
  */
-export const isObjectKeyword = (input: unknown): input is object => isObjectOrArray(input) || isFunction(input)
+export const isObjectKeyword = (input: unknown): input is object =>
+  (typeof input === "object" && input !== null) || isFunction(input)
 
 /**
  * Checks whether a value is an `object` containing a specified property key.
