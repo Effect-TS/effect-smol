@@ -72,7 +72,6 @@ export const make = Effect.gen(function*() {
         refStore.set(schema.$ref, resolved.schema)
         addRefs(resolved.schema, resolved.name)
         store.set(resolved.name, resolved.schema)
-        // classes.add(resolved.name)
       } else if (Predicate.isNotUndefined(schema.properties)) {
         for (const [name, propSchema] of Object.entries(schema.properties)) {
           addRefs(propSchema as JsonSchema, childName ? childName + Utils.identifier(name) : undefined)
