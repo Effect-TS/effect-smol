@@ -27,6 +27,7 @@ import * as Lexer from "./internal/lexer.ts"
 import * as Parser from "./internal/parser.ts"
 import * as Param from "./Param.ts"
 import * as Primitive from "./Primitive.ts"
+import * as Prompt from "./Prompt.ts"
 
 const TypeId = "~effect/cli/Command" as const
 const ParsedConfigTypeId = "~effect/cli/Command/ParsedConfig" as const
@@ -610,6 +611,22 @@ export const make: {
     config: config ?? {} as CommandConfig,
     ...(Predicate.isNotUndefined(handler) ? { handle: handler } : {})
   })) as any
+
+/**
+ * @since 4.0.0
+ * @category constructors
+ */
+export const prompt = <Name extends string, A, E, R>(
+  name: Name,
+  prompt: Prompt.Prompt<A>,
+  handler: (_: A) => Effect.Effect<void, E, R>
+): Command<Name, A, E | Terminal.QuitError, R | Environment> => {
+  return makeCommand(name, {}, "", [], () =>
+    Effect.flatMap(
+      Prompt.run(prompt),
+      (value) => handler(value)
+    ))
+}
 
 /**
  * Adds or replaces the handler for a command.
