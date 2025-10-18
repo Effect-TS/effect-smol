@@ -70,8 +70,8 @@ describe("ToFormat", () => {
     strictEqual(format(Symbol.for("a")), "Symbol(a)")
   })
 
-  it("Object", () => {
-    const format = Schema.makeFormat(Schema.Object)
+  it("ObjectKeyword", () => {
+    const format = Schema.makeFormat(Schema.ObjectKeyword)
     strictEqual(format({}), "{}")
     strictEqual(format({ a: 1 }), `{"a":1}`)
     strictEqual(format([1, 2, 3]), `[1,2,3]`)
@@ -496,7 +496,7 @@ describe("ToFormat", () => {
   it("should allow for custom compilers", () => {
     const visitor = {
       ...Schema.defaultVisitorFormat,
-      "BooleanKeyword": () => (b: boolean) => b ? "True" : "False"
+      "Boolean": () => (b: boolean) => b ? "True" : "False"
     }
     const format = Schema.makeVisitFormat(visitor)
     strictEqual(format(Schema.Boolean)(true), `True`)

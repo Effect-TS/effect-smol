@@ -322,7 +322,7 @@ const go: (
 ) => Effect.Effect<Schema.StringPojo, Schema.SchemaError | SourceError> = Effect.fnUntraced(
   function*(ast, provider, path) {
     switch (ast._tag) {
-      case "TypeLiteral": {
+      case "Objects": {
         const out: Record<string, Schema.StringPojo> = {}
         for (const ps of ast.propertySignatures) {
           const name = ps.name
@@ -347,7 +347,7 @@ const go: (
         }
         return out
       }
-      case "TupleType": {
+      case "Arrays": {
         if (ast.rest.length > 0) {
           const out = yield* dump(provider, path)
           if (Predicate.isString(out)) return out
@@ -362,7 +362,7 @@ const go: (
         }
         return out
       }
-      case "UnionType":
+      case "Union":
         // Let downstream decoding decide; dump can return a string, object, or array.
         return yield* dump(provider, path)
       case "Suspend":
@@ -601,7 +601,7 @@ export function int(name?: string) {
  * @category Constructors
  * @since 4.0.0
  */
-export function literal<L extends AST.Literal>(literal: L, name?: string) {
+export function literal<L extends AST.LiteralValue>(literal: L, name?: string) {
   return schema(Schema.Literal(literal), name)
 }
 

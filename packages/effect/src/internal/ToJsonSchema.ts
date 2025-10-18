@@ -176,14 +176,14 @@ function getPattern(
   ignoreErrors: boolean
 ): string | undefined {
   switch (ast._tag) {
-    case "StringKeyword": {
+    case "String": {
       const json = go(ast, path, options)
       if (Object.hasOwn(json, "pattern") && Predicate.isString(json.pattern)) {
         return json.pattern
       }
       return undefined
     }
-    case "NumberKeyword":
+    case "Number":
       return "^[0-9]+$"
     case "TemplateLiteral":
       return AST.getTemplateLiteralRegExp(ast).source
@@ -322,8 +322,8 @@ function go(
   // ---------------------------------------------
   switch (ast._tag) {
     case "Declaration":
-    case "BigIntKeyword":
-    case "SymbolKeyword":
+    case "BigInt":
+    case "Symbol":
     case "UniqueSymbol": {
       if (ignoreErrors) return {}
       if (options.onMissingJsonSchemaAnnotation) {
@@ -332,23 +332,23 @@ function go(
       }
       throw new Error(`cannot generate JSON Schema for ${ast.getExpected()} at ${formatPath(path) || "root"}`)
     }
-    case "UndefinedKeyword":
+    case "Undefined":
       return { not: {}, ...getChecksJsonFragment(ast, target) }
-    case "VoidKeyword":
-    case "UnknownKeyword":
-    case "AnyKeyword":
+    case "Void":
+    case "Unknown":
+    case "Any":
       return { ...getChecksJsonFragment(ast, target) }
-    case "NeverKeyword":
+    case "Never":
       return { not: {}, ...getChecksJsonFragment(ast, target) }
-    case "NullKeyword": {
+    case "Null": {
       const constraint = getChecksJsonFragment(ast, target, "null")
       return { type: "null", ...constraint }
     }
-    case "StringKeyword":
+    case "String":
       return { type: "string", ...getChecksJsonFragment(ast, target, "string") }
-    case "NumberKeyword":
+    case "Number":
       return { type: "number", ...getChecksJsonFragment(ast, target, "number") }
-    case "BooleanKeyword":
+    case "Boolean":
       return { type: "boolean", ...getChecksJsonFragment(ast, target, "boolean") }
     case "ObjectKeyword":
       return {
@@ -358,7 +358,7 @@ function go(
         ],
         ...getChecksJsonFragment(ast, target)
       }
-    case "LiteralType": {
+    case "Literal": {
       if (Predicate.isString(ast.literal)) {
         return { type: "string", enum: [ast.literal], ...getChecksJsonFragment(ast, target, "string") }
       } else if (Predicate.isNumber(ast.literal)) {
@@ -381,7 +381,7 @@ function go(
         pattern: AST.getTemplateLiteralRegExp(ast).source,
         ...getChecksJsonFragment(ast, target, "string")
       }
-    case "TupleType": {
+    case "Arrays": {
       // ---------------------------------------------
       // handle post rest elements
       // ---------------------------------------------
@@ -428,7 +428,7 @@ function go(
       }
       return out
     }
-    case "TypeLiteral": {
+    case "Objects": {
       if (ast.propertySignatures.length === 0 && ast.indexSignatures.length === 0) {
         return {
           anyOf: [
@@ -486,10 +486,10 @@ function go(
       }
       return out
     }
-    case "UnionType": {
+    case "Union": {
       const members = compactLiterals(
         ast.types
-          .filter((ast) => !AST.isUndefinedKeyword(ast)) // prune undefined
+          .filter((ast) => !AST.isUndefined(ast)) // prune undefined
           .map((ast) => {
             const out = go(ast, path, options)
             if (path.length > 0) {

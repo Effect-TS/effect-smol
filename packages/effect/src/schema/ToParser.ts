@@ -26,8 +26,8 @@ const goDefaults = memoize((ast: AST.AST): AST.AST => {
       }
       return ast
     }
-    case "TypeLiteral":
-    case "TupleType":
+    case "Objects":
+    case "Arrays":
       return ast.go((ast) => {
         const defaultValue = ast.context?.defaultValue
         if (defaultValue) {
@@ -348,7 +348,7 @@ const go = memoize(
         return parser(ou, Annotations.get(ast)?.["parseOptions"] ?? options)
       }
     }
-    const isStructural = AST.isTupleType(ast) || AST.isTypeLiteral(ast) ||
+    const isStructural = AST.isArrays(ast) || AST.isObjects(ast) ||
       (AST.isDeclaration(ast) && ast.typeParameters.length > 0)
     return (ou, options) => {
       options = Annotations.get(ast)?.["parseOptions"] ?? options

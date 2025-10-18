@@ -1108,7 +1108,7 @@ export const getJsonSchema = <Tool extends Any>(tool: Tool): Annotations.JsonSch
  * @category utilities
  */
 export const getJsonSchemaFromSchema = <S extends Schema.Top>(schema: S): Annotations.JsonSchema.JsonSchema => {
-  const props = AST.isTypeLiteral(schema.ast) ? schema.ast.propertySignatures : []
+  const props = AST.isObjects(schema.ast) ? schema.ast.propertySignatures : []
   if (props.length === 0) {
     return {
       type: "object",

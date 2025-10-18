@@ -379,7 +379,7 @@ describe("Schema", () => {
   describe("typeCodec", () => {
     it("ast type", () => {
       const schema = Schema.typeCodec(Schema.FiniteFromString)
-      expect(schema.ast).type.toBe<AST.NumberKeyword>()
+      expect(schema.ast).type.toBe<AST.Number>()
     })
 
     it("revealCodec + annotate", () => {
@@ -393,7 +393,7 @@ describe("Schema", () => {
   describe("encodedCodec", () => {
     it("ast type", () => {
       const schema = Schema.FiniteFromString
-      expect(schema.ast).type.toBe<AST.NumberKeyword>()
+      expect(schema.ast).type.toBe<AST.Number>()
     })
 
     it("revealCodec + annotate", () => {
@@ -408,7 +408,7 @@ describe("Schema", () => {
     const schema = Schema.Never
 
     it("ast type", () => {
-      expect(schema.ast).type.toBe<AST.NeverKeyword>()
+      expect(schema.ast).type.toBe<AST.Never>()
     })
 
     it("revealCodec + annotate", () => {
@@ -422,7 +422,7 @@ describe("Schema", () => {
     const schema = Schema.Unknown
 
     it("ast type", () => {
-      expect(schema.ast).type.toBe<AST.UnknownKeyword>()
+      expect(schema.ast).type.toBe<AST.Unknown>()
     })
 
     it("revealCodec + annotate", () => {
@@ -436,7 +436,7 @@ describe("Schema", () => {
     const schema = Schema.Null
 
     it("ast type", () => {
-      expect(schema.ast).type.toBe<AST.NullKeyword>()
+      expect(schema.ast).type.toBe<AST.Null>()
     })
 
     it("revealCodec + annotate", () => {
@@ -450,7 +450,7 @@ describe("Schema", () => {
     const schema = Schema.Undefined
 
     it("ast type", () => {
-      expect(schema.ast).type.toBe<AST.UndefinedKeyword>()
+      expect(schema.ast).type.toBe<AST.Undefined>()
     })
 
     it("revealCodec + annotate", () => {
@@ -464,7 +464,7 @@ describe("Schema", () => {
     const schema = Schema.String
 
     it("ast type", () => {
-      expect(schema.ast).type.toBe<AST.StringKeyword>()
+      expect(schema.ast).type.toBe<AST.String>()
     })
 
     it("revealCodec + annotate", () => {
@@ -478,7 +478,7 @@ describe("Schema", () => {
     const schema = Schema.Number
 
     it("ast type", () => {
-      expect(schema.ast).type.toBe<AST.NumberKeyword>()
+      expect(schema.ast).type.toBe<AST.Number>()
     })
 
     it("revealCodec + annotate", () => {
@@ -492,7 +492,7 @@ describe("Schema", () => {
     const schema = Schema.Literal("a")
 
     it("ast type", () => {
-      expect(schema.ast).type.toBe<AST.LiteralType>()
+      expect(schema.ast).type.toBe<AST.Literal>()
     })
 
     it("revealCodec + annotate", () => {
@@ -504,7 +504,7 @@ describe("Schema", () => {
   describe("Struct", () => {
     it("ast type", () => {
       const schema = Schema.Struct({ a: Schema.String })
-      expect(schema.ast).type.toBe<AST.TypeLiteral>()
+      expect(schema.ast).type.toBe<AST.Objects>()
     })
 
     it("Never should be usable as a field", () => {
@@ -1022,7 +1022,7 @@ describe("Schema", () => {
       expect(schema.annotate({})).type.toBe<
         Schema.Struct<{ readonly a: Schema.decodeTo<Schema.Number, Schema.String> }>
       >()
-      expect(schema.ast).type.toBe<AST.TypeLiteral>()
+      expect(schema.ast).type.toBe<AST.Objects>()
       expect(schema.makeUnsafe).type.toBe<
         (input: { readonly a: number }, options?: Schema.MakeOptions | undefined) => A
       >()

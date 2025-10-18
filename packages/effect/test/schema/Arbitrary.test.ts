@@ -58,8 +58,8 @@ describe("ToArbitrary", () => {
     verifyGeneration(Schema.UniqueSymbol(Symbol.for("a")))
   })
 
-  it("Object", () => {
-    verifyGeneration(Schema.Object)
+  it("ObjectKeyword", () => {
+    verifyGeneration(Schema.ObjectKeyword)
   })
 
   describe("Literal", () => {

@@ -698,12 +698,12 @@ const toResponseError = toResponseSchema(HttpApiSchema.getStatusError)
 
 function isSingleStringType(ast: AST.AST, key?: PropertyKey): boolean {
   switch (ast._tag) {
-    case "StringKeyword":
-    case "LiteralType":
+    case "String":
+    case "Literal":
     case "TemplateLiteral":
     case "Enums":
       return true
-    case "TypeLiteral": {
+    case "Objects": {
       if (key !== undefined) {
         const ps = ast.propertySignatures.find((ps) => ps.name === key)
         return ps !== undefined
@@ -714,7 +714,7 @@ function isSingleStringType(ast: AST.AST, key?: PropertyKey): boolean {
       }
       return false
     }
-    case "UnionType":
+    case "Union":
       return ast.types.some((type) => isSingleStringType(type, key))
     case "Suspend":
       return isSingleStringType(ast.thunk(), key)

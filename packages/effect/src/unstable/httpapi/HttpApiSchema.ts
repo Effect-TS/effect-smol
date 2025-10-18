@@ -45,7 +45,7 @@ const getHttpApiStatus = Annotations.getAt("httpApiStatus", Predicate.isNumber)
 export function isVoidEncoded(ast: AST.AST): boolean {
   ast = AST.encodedAST(ast)
   switch (ast._tag) {
-    case "VoidKeyword":
+    case "Void":
       return true
     case "Suspend":
       return isVoidEncoded(ast.thunk())
@@ -94,12 +94,12 @@ export const UnionUnifyAST = (self: AST.AST, that: AST.AST): AST.AST => {
   if (asts.size === 1) {
     return Iterable.headUnsafe(asts)
   }
-  return new AST.UnionType(
+  return new AST.Union(
     Array.from(asts),
     "anyOf",
     {
-      ...(AST.isUnionType(self) ? self.annotations : {}),
-      ...(AST.isUnionType(that) ? that.annotations : {})
+      ...(AST.isUnion(self) ? self.annotations : {}),
+      ...(AST.isUnion(that) ? that.annotations : {})
     }
   )
 }
@@ -110,7 +110,7 @@ const extractUnionTypes = (ast: AST.AST): ReadonlyArray<AST.AST> => {
   return out
 
   function process(ast: AST.AST): void {
-    if (AST.isUnionType(ast) && shouldExtractUnion(ast)) {
+    if (AST.isUnion(ast) && shouldExtractUnion(ast)) {
       for (const type of ast.types) {
         process(type)
       }
@@ -120,7 +120,7 @@ const extractUnionTypes = (ast: AST.AST): ReadonlyArray<AST.AST> => {
   }
 }
 
-function shouldExtractUnion(ast: AST.UnionType): boolean {
+function shouldExtractUnion(ast: AST.Union): boolean {
   if (ast.encoding) return false
   if (
     ast.types.some((ast) => {
@@ -477,7 +477,7 @@ export const forEachMember = (
     return
   }
   const ast = schema.ast
-  if (AST.isUnionType(ast)) {
+  if (AST.isUnion(ast)) {
     let unionCache = unionCaches.get(ast)
     if (!unionCache) {
       unionCache = new WeakMap<AST.AST, Schema.Top>()
@@ -487,7 +487,7 @@ export const forEachMember = (
       if (unionCache.has(astType)) {
         f(unionCache.get(astType)!)
         continue
-      } else if (astType._tag === "NeverKeyword") {
+      } else if (astType._tag === "Never") {
         continue
       }
       const memberSchema = Schema.make(astType).annotate({
@@ -497,7 +497,7 @@ export const forEachMember = (
       unionCache.set(astType, memberSchema)
       f(memberSchema)
     }
-  } else if (ast._tag !== "NeverKeyword") {
+  } else if (ast._tag !== "Never") {
     astCache.set(ast, schema)
     f(schema)
   }

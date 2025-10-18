@@ -172,17 +172,17 @@ export const go = memoize((ast: AST.AST): Schema.LazyArbitrary<any> => {
   switch (ast._tag) {
     case "Declaration":
       throw new Error(`cannot generate Arbitrary, no annotation found for declaration`, { cause: ast })
-    case "NullKeyword":
+    case "Null":
       return (fc) => fc.constant(null)
-    case "VoidKeyword":
-    case "UndefinedKeyword":
+    case "Void":
+    case "Undefined":
       return (fc) => fc.constant(undefined)
-    case "NeverKeyword":
+    case "Never":
       throw new Error(`cannot generate Arbitrary, no annotation found for never`, { cause: ast })
-    case "UnknownKeyword":
-    case "AnyKeyword":
+    case "Unknown":
+    case "Any":
       return (fc) => fc.anything()
-    case "StringKeyword":
+    case "String":
       return (fc, ctx) => {
         const constraint = ctx?.constraints?.string
         const patterns = constraint?.patterns
@@ -191,7 +191,7 @@ export const go = memoize((ast: AST.AST): Schema.LazyArbitrary<any> => {
         }
         return fc.string(constraint)
       }
-    case "NumberKeyword":
+    case "Number":
       return (fc, ctx) => {
         const constraint = ctx?.constraints?.number
         if (constraint?.isInteger) {
@@ -199,13 +199,13 @@ export const go = memoize((ast: AST.AST): Schema.LazyArbitrary<any> => {
         }
         return fc.float(constraint)
       }
-    case "BooleanKeyword":
+    case "Boolean":
       return (fc) => fc.boolean()
-    case "BigIntKeyword":
+    case "BigInt":
       return (fc, ctx) => fc.bigInt(ctx?.constraints?.bigint ?? {})
-    case "SymbolKeyword":
+    case "Symbol":
       return (fc) => fc.string().map(Symbol.for)
-    case "LiteralType":
+    case "Literal":
       return (fc) => fc.constant(ast.literal)
     case "UniqueSymbol":
       return (fc) => fc.constant(ast.symbol)
@@ -215,7 +215,7 @@ export const go = memoize((ast: AST.AST): Schema.LazyArbitrary<any> => {
       return go(AST.enumsToLiterals(ast))
     case "TemplateLiteral":
       return (fc) => fc.stringMatching(AST.getTemplateLiteralRegExp(ast))
-    case "TupleType":
+    case "Arrays":
       return (fc, ctx) => {
         const reset = resetContext(ctx)
         // ---------------------------------------------
@@ -258,7 +258,7 @@ export const go = memoize((ast: AST.AST): Schema.LazyArbitrary<any> => {
         }
         return out
       }
-    case "TypeLiteral":
+    case "Objects":
       return (fc, ctx) => {
         const reset = resetContext(ctx)
         // ---------------------------------------------
@@ -290,7 +290,7 @@ export const go = memoize((ast: AST.AST): Schema.LazyArbitrary<any> => {
         }
         return out
       }
-    case "UnionType":
+    case "Union":
       return (fc, ctx) => fc.oneof(...ast.types.map((ast) => go(ast)(fc, ctx)))
     case "Suspend": {
       const memo = arbitraryMemoMap.get(ast)

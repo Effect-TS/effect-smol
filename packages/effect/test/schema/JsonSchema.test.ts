@@ -400,7 +400,7 @@ describe("ToJsonSchema", () => {
     it("Literal(bigint)", () => {
       expectError(
         Schema.Literal(1n),
-        `cannot generate JSON Schema for LiteralType at root`
+        `cannot generate JSON Schema for Literal at root`
       )
     })
 
@@ -447,14 +447,14 @@ describe("ToJsonSchema", () => {
         const a = Symbol.for("effect/Schema/test/a")
         expectError(
           Schema.Struct({ [a]: Schema.String }),
-          `cannot generate JSON Schema for TypeLiteral at [Symbol(effect/Schema/test/a)]`
+          `cannot generate JSON Schema for Objects at [Symbol(effect/Schema/test/a)]`
         )
       })
 
       it("Unsupported index signature parameter", () => {
         expectError(
           Schema.Record(Schema.Symbol, Schema.Number),
-          `cannot generate JSON Schema for SymbolKeyword at root`
+          `cannot generate JSON Schema for Symbol at root`
         )
       })
     })
@@ -942,9 +942,9 @@ describe("ToJsonSchema", () => {
       })
     })
 
-    describe("Object", () => {
-      it("Object", async () => {
-        const schema = Schema.Object
+    describe("ObjectKeyword", () => {
+      it("ObjectKeyword", async () => {
+        const schema = Schema.ObjectKeyword
         await assertDraft7(schema, {
           anyOf: [
             { type: "object" },
@@ -953,8 +953,8 @@ describe("ToJsonSchema", () => {
         })
       })
 
-      it("Object & annotate", async () => {
-        const schema = Schema.Object.annotate({
+      it("ObjectKeyword & annotate", async () => {
+        const schema = Schema.ObjectKeyword.annotate({
           title: "title",
           description: "description",
           default: {},

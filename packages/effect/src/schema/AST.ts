@@ -29,25 +29,25 @@ import * as Transformation from "./Transformation.ts"
  */
 export type AST =
   | Declaration
-  | NullKeyword
-  | UndefinedKeyword
-  | VoidKeyword
-  | NeverKeyword
-  | UnknownKeyword
-  | AnyKeyword
-  | StringKeyword
-  | NumberKeyword
-  | BooleanKeyword
-  | BigIntKeyword
-  | SymbolKeyword
-  | LiteralType
+  | Null
+  | Undefined
+  | Void
+  | Never
+  | Unknown
+  | Any
+  | String
+  | Number
+  | Boolean
+  | BigInt
+  | Symbol
+  | Literal
   | UniqueSymbol
   | ObjectKeyword
   | Enums
   | TemplateLiteral
-  | TupleType
-  | TypeLiteral
-  | UnionType
+  | Arrays
+  | Objects
+  | Union
   | Suspend
 
 function makeGuard<T extends AST["_tag"]>(tag: T) {
@@ -64,73 +64,73 @@ export const isDeclaration = makeGuard("Declaration")
  * @category Guard
  * @since 4.0.0
  */
-export const isNullKeyword = makeGuard("NullKeyword")
+export const isNull = makeGuard("Null")
 
 /**
  * @category Guard
  * @since 4.0.0
  */
-export const isUndefinedKeyword = makeGuard("UndefinedKeyword")
+export const isUndefined = makeGuard("Undefined")
 
 /**
  * @category Guard
  * @since 4.0.0
  */
-export const isVoidKeyword = makeGuard("VoidKeyword")
+export const isVoid = makeGuard("Void")
 
 /**
  * @category Guard
  * @since 4.0.0
  */
-export const isNeverKeyword = makeGuard("NeverKeyword")
+export const isNever = makeGuard("Never")
 
 /**
  * @category Guard
  * @since 4.0.0
  */
-export const isUnknownKeyword = makeGuard("UnknownKeyword")
+export const isUnknown = makeGuard("Unknown")
 
 /**
  * @category Guard
  * @since 4.0.0
  */
-export const isAnyKeyword = makeGuard("AnyKeyword")
+export const isAny = makeGuard("Any")
 
 /**
  * @category Guard
  * @since 4.0.0
  */
-export const isStringKeyword = makeGuard("StringKeyword")
+export const isString = makeGuard("String")
 
 /**
  * @category Guard
  * @since 4.0.0
  */
-export const isNumberKeyword = makeGuard("NumberKeyword")
+export const isNumber = makeGuard("Number")
 
 /**
  * @category Guard
  * @since 4.0.0
  */
-export const isBooleanKeyword = makeGuard("BooleanKeyword")
+export const isBoolean = makeGuard("Boolean")
 
 /**
  * @category Guard
  * @since 4.0.0
  */
-export const isBigIntKeyword = makeGuard("BigIntKeyword")
+export const isBigInt = makeGuard("BigInt")
 
 /**
  * @category Guard
  * @since 4.0.0
  */
-export const isSymbolKeyword = makeGuard("SymbolKeyword")
+export const isSymbol = makeGuard("Symbol")
 
 /**
  * @category Guard
  * @since 4.0.0
  */
-export const isLiteralType = makeGuard("LiteralType")
+export const isLiteral = makeGuard("Literal")
 
 /**
  * @category Guard
@@ -160,19 +160,19 @@ export const isTemplateLiteral = makeGuard("TemplateLiteral")
  * @category Guard
  * @since 4.0.0
  */
-export const isTupleType = makeGuard("TupleType")
+export const isArrays = makeGuard("Arrays")
 
 /**
  * @category Guard
  * @since 4.0.0
  */
-export const isTypeLiteral = makeGuard("TypeLiteral")
+export const isObjects = makeGuard("Objects")
 
 /**
  * @category Guard
  * @since 4.0.0
  */
-export const isUnionType = makeGuard("UnionType")
+export const isUnion = makeGuard("Union")
 
 /**
  * @category Guard
@@ -322,15 +322,6 @@ export abstract class Base {
  * @category model
  * @since 4.0.0
  */
-export abstract class AbstractParser extends Base {
-  /** @internal */
-  abstract parser(go: (ast: AST) => ToParser.Parser): ToParser.Parser
-}
-
-/**
- * @category model
- * @since 4.0.0
- */
 export class Declaration extends Base {
   readonly _tag = "Declaration"
   readonly typeParameters: ReadonlyArray<AST>
@@ -384,8 +375,8 @@ export class Declaration extends Base {
  * @category model
  * @since 4.0.0
  */
-export class NullKeyword extends AbstractParser {
-  readonly _tag = "NullKeyword"
+export class Null extends Base {
+  readonly _tag = "Null"
   /** @internal */
   parser() {
     return fromConst(this, null)
@@ -396,17 +387,20 @@ export class NullKeyword extends AbstractParser {
   }
 }
 
-/**
- * @since 4.0.0
- */
-export const nullKeyword = new NullKeyword()
+const null_ = new Null()
+export {
+  /**
+   * @since 4.0.0
+   */
+  null_ as null
+}
 
 /**
  * @category model
  * @since 4.0.0
  */
-export class UndefinedKeyword extends AbstractParser {
-  readonly _tag = "UndefinedKeyword"
+export class Undefined extends Base {
+  readonly _tag = "Undefined"
   /** @internal */
   parser() {
     return fromConst(this, undefined)
@@ -421,13 +415,16 @@ export class UndefinedKeyword extends AbstractParser {
   }
 }
 
-/**
- * @since 4.0.0
- */
-export const undefinedKeyword = new UndefinedKeyword()
+const undefined_ = new Undefined()
+export {
+  /**
+   * @since 4.0.0
+   */
+  undefined_ as undefined
+}
 
 const undefinedJsonLink = new Link(
-  nullKeyword,
+  null_,
   new Transformation.Transformation(
     Getter.transform(() => undefined),
     Getter.transform(() => null)
@@ -438,8 +435,8 @@ const undefinedJsonLink = new Link(
  * @category model
  * @since 4.0.0
  */
-export class VoidKeyword extends AbstractParser {
-  readonly _tag = "VoidKeyword"
+export class Void extends Base {
+  readonly _tag = "Void"
   /** @internal */
   parser() {
     return fromConst(this, undefined)
@@ -454,17 +451,20 @@ export class VoidKeyword extends AbstractParser {
   }
 }
 
-/**
- * @since 4.0.0
- */
-export const voidKeyword = new VoidKeyword()
+const void_ = new Void()
+export {
+  /**
+   * @since 4.0.0
+   */
+  void_ as void
+}
 
 /**
  * @category model
  * @since 4.0.0
  */
-export class NeverKeyword extends AbstractParser {
-  readonly _tag = "NeverKeyword"
+export class Never extends Base {
+  readonly _tag = "Never"
   /** @internal */
   parser() {
     return fromRefinement(this, Predicate.isNever)
@@ -478,14 +478,14 @@ export class NeverKeyword extends AbstractParser {
 /**
  * @since 4.0.0
  */
-export const neverKeyword = new NeverKeyword()
+export const never = new Never()
 
 /**
  * @category model
  * @since 4.0.0
  */
-export class AnyKeyword extends AbstractParser {
-  readonly _tag = "AnyKeyword"
+export class Any extends Base {
+  readonly _tag = "Any"
   /** @internal */
   parser() {
     return fromRefinement(this, Predicate.isUnknown)
@@ -499,14 +499,14 @@ export class AnyKeyword extends AbstractParser {
 /**
  * @since 4.0.0
  */
-export const anyKeyword = new AnyKeyword()
+export const any = new Any()
 
 /**
  * @category model
  * @since 4.0.0
  */
-export class UnknownKeyword extends AbstractParser {
-  readonly _tag = "UnknownKeyword"
+export class Unknown extends Base {
+  readonly _tag = "Unknown"
   /** @internal */
   parser() {
     return fromRefinement(this, Predicate.isUnknown)
@@ -520,13 +520,13 @@ export class UnknownKeyword extends AbstractParser {
 /**
  * @since 4.0.0
  */
-export const unknownKeyword = new UnknownKeyword()
+export const unknown = new Unknown()
 
 /**
  * @category model
  * @since 4.0.0
  */
-export class ObjectKeyword extends AbstractParser {
+export class ObjectKeyword extends Base {
   readonly _tag = "ObjectKeyword"
   /** @internal */
   parser() {
@@ -539,10 +539,15 @@ export class ObjectKeyword extends AbstractParser {
 }
 
 /**
+ * @since 4.0.0
+ */
+export const objectKeyword = new ObjectKeyword()
+
+/**
  * @category model
  * @since 4.0.0
  */
-export class Enums extends AbstractParser {
+export class Enums extends Base {
   readonly _tag = "Enums"
   readonly enums: ReadonlyArray<readonly [string, string | number]>
 
@@ -567,10 +572,10 @@ export class Enums extends AbstractParser {
   /** @internal */
   goStringPojo(): AST {
     if (this.enums.some(([_, v]) => Predicate.isNumber(v))) {
-      const coercions = Object.fromEntries(this.enums.map(([_, v]) => [String(v), v]))
+      const coercions = Object.fromEntries(this.enums.map(([_, v]) => [globalThis.String(v), v]))
       return replaceEncoding(this, [
         new Link(
-          new UnionType(Object.keys(coercions).map((k) => new LiteralType(k)), "anyOf"),
+          new Union(Object.keys(coercions).map((k) => new Literal(k)), "anyOf"),
           new Transformation.Transformation(
             Getter.transform((s) => coercions[s]),
             Getter.String()
@@ -586,28 +591,23 @@ export class Enums extends AbstractParser {
   }
 }
 
-/**
- * @since 4.0.0
- */
-export const objectKeyword = new ObjectKeyword()
-
 type TemplateLiteralPart =
-  | StringKeyword
-  | NumberKeyword
-  | BigIntKeyword
-  | LiteralType
+  | String
+  | Number
+  | BigInt
+  | Literal
   | TemplateLiteral
-  | UnionType<TemplateLiteralPart>
+  | Union<TemplateLiteralPart>
 
 function isTemplateLiteralPart(ast: AST): ast is TemplateLiteralPart {
   switch (ast._tag) {
-    case "StringKeyword":
-    case "NumberKeyword":
-    case "BigIntKeyword":
-    case "LiteralType":
+    case "String":
+    case "Number":
+    case "BigInt":
+    case "Literal":
     case "TemplateLiteral":
       return true
-    case "UnionType":
+    case "Union":
       return ast.types.every(isTemplateLiteralPart)
     default:
       return false
@@ -618,7 +618,7 @@ function isTemplateLiteralPart(ast: AST): ast is TemplateLiteralPart {
  * @category model
  * @since 4.0.0
  */
-export class TemplateLiteral extends AbstractParser {
+export class TemplateLiteral extends Base {
   readonly _tag = "TemplateLiteral"
   readonly parts: ReadonlyArray<AST>
   /** @internal */
@@ -658,11 +658,11 @@ export class TemplateLiteral extends AbstractParser {
     return formatTemplateLiteral(this)
   }
   /** @internal */
-  asTemplateLiteralParser(): TupleType {
-    const tuple = goTemplateLiteral(new TupleType(false, this.parts, [])) as TupleType
+  asTemplateLiteralParser(): Arrays {
+    const tuple = goTemplateLiteral(new Arrays(false, this.parts, [])) as Arrays
     const regex = getTemplateLiteralRegExp(this)
     return decodeTo(
-      stringKeyword,
+      string,
       tuple,
       new Transformation.Transformation(
         Getter.transform((s: string) => {
@@ -682,13 +682,7 @@ export class TemplateLiteral extends AbstractParser {
  * @category model
  * @since 4.0.0
  */
-export type Literal = string | number | boolean | bigint
-
-/**
- * @category model
- * @since 4.0.0
- */
-export class UniqueSymbol extends AbstractParser {
+export class UniqueSymbol extends Base {
   readonly _tag = "UniqueSymbol"
   readonly symbol: symbol
 
@@ -712,16 +706,16 @@ export class UniqueSymbol extends AbstractParser {
   }
   /** @internal */
   getExpected(): string {
-    return String(this.symbol)
+    return globalThis.String(this.symbol)
   }
 }
 
 /** @internal */
-export function coerceLiteral(ast: LiteralType): LiteralType {
-  const s = String(ast.literal)
+export function coerceLiteral(ast: Literal): Literal {
+  const s = globalThis.String(ast.literal)
   return replaceEncoding(ast, [
     new Link(
-      new LiteralType(s),
+      new Literal(s),
       new Transformation.Transformation(
         Getter.transform(() => ast.literal),
         Getter.transform(() => s)
@@ -734,12 +728,18 @@ export function coerceLiteral(ast: LiteralType): LiteralType {
  * @category model
  * @since 4.0.0
  */
-export class LiteralType extends AbstractParser {
-  readonly _tag = "LiteralType"
-  readonly literal: Literal
+export type LiteralValue = string | number | boolean | bigint
+
+/**
+ * @category model
+ * @since 4.0.0
+ */
+export class Literal extends Base {
+  readonly _tag = "Literal"
+  readonly literal: LiteralValue
 
   constructor(
-    literal: Literal,
+    literal: LiteralValue,
     annotations?: Annotations.Annotations,
     checks?: Checks,
     encoding?: Encoding,
@@ -747,7 +747,7 @@ export class LiteralType extends AbstractParser {
   ) {
     super(annotations, checks, encoding, context)
     if (process.env.NODE_ENV !== "production") {
-      if (Predicate.isNumber(literal) && !Number.isFinite(literal)) {
+      if (Predicate.isNumber(literal) && !globalThis.Number.isFinite(literal)) {
         throw new Error(`LiteralType must be a finite number, got: ${literal}`)
       }
     }
@@ -767,7 +767,7 @@ export class LiteralType extends AbstractParser {
   }
   /** @internal */
   getExpected(): string {
-    return Predicate.isString(this.literal) ? JSON.stringify(this.literal) : String(this.literal)
+    return Predicate.isString(this.literal) ? JSON.stringify(this.literal) : globalThis.String(this.literal)
   }
 }
 
@@ -775,8 +775,8 @@ export class LiteralType extends AbstractParser {
  * @category model
  * @since 4.0.0
  */
-export class StringKeyword extends AbstractParser {
-  readonly _tag = "StringKeyword"
+export class String extends Base {
+  readonly _tag = "String"
   /** @internal */
   parser() {
     return fromRefinement(this, Predicate.isString)
@@ -790,7 +790,7 @@ export class StringKeyword extends AbstractParser {
 /**
  * @since 4.0.0
  */
-export const stringKeyword = new StringKeyword()
+export const string = new String()
 
 /**
  * **Default Json Serializer**
@@ -801,8 +801,8 @@ export const stringKeyword = new StringKeyword()
  * @category model
  * @since 4.0.0
  */
-export class NumberKeyword extends AbstractParser {
-  readonly _tag = "NumberKeyword"
+export class Number extends Base {
+  readonly _tag = "Number"
   /** @internal */
   parser() {
     return fromRefinement(this, Predicate.isNumber)
@@ -824,14 +824,14 @@ export class NumberKeyword extends AbstractParser {
 /**
  * @since 4.0.0
  */
-export const numberKeyword = new NumberKeyword()
+export const number = new Number()
 
 /**
  * @category model
  * @since 4.0.0
  */
-export class BooleanKeyword extends AbstractParser {
-  readonly _tag = "BooleanKeyword"
+export class Boolean extends Base {
+  readonly _tag = "Boolean"
   /** @internal */
   parser() {
     return fromRefinement(this, Predicate.isBoolean)
@@ -845,14 +845,14 @@ export class BooleanKeyword extends AbstractParser {
 /**
  * @since 4.0.0
  */
-export const booleanKeyword = new BooleanKeyword()
+export const boolean = new Boolean()
 
 /**
  * @category model
  * @since 4.0.0
  */
-export class SymbolKeyword extends AbstractParser {
-  readonly _tag = "SymbolKeyword"
+export class Symbol extends Base {
+  readonly _tag = "Symbol"
   /** @internal */
   parser() {
     return fromRefinement(this, Predicate.isSymbol)
@@ -870,14 +870,14 @@ export class SymbolKeyword extends AbstractParser {
 /**
  * @since 4.0.0
  */
-export const symbolKeyword = new SymbolKeyword()
+export const symbol = new Symbol()
 
 /**
  * @category model
  * @since 4.0.0
  */
-export class BigIntKeyword extends AbstractParser {
-  readonly _tag = "BigIntKeyword"
+export class BigInt extends Base {
+  readonly _tag = "BigInt"
   /** @internal */
   parser() {
     return fromRefinement(this, Predicate.isBigInt)
@@ -895,80 +895,16 @@ export class BigIntKeyword extends AbstractParser {
 /**
  * @since 4.0.0
  */
-export const bigIntKeyword = new BigIntKeyword()
+export const bigInt = new BigInt()
 
 /**
+ * Describes both tuples and arrays.
+ *
  * @category model
  * @since 4.0.0
  */
-export class PropertySignature {
-  readonly name: PropertyKey
-  readonly type: AST
-
-  constructor(
-    name: PropertyKey,
-    type: AST
-  ) {
-    this.name = name
-    this.type = type
-  }
-}
-
-/**
- * @category model
- * @since 4.0.0
- */
-export class KeyValueCombiner {
-  readonly decode: Combiner.Combiner<readonly [key: PropertyKey, value: any]> | undefined
-  readonly encode: Combiner.Combiner<readonly [key: PropertyKey, value: any]> | undefined
-
-  constructor(
-    decode: Combiner.Combiner<readonly [key: PropertyKey, value: any]> | undefined,
-    encode: Combiner.Combiner<readonly [key: PropertyKey, value: any]> | undefined
-  ) {
-    this.decode = decode
-    this.encode = encode
-  }
-  /** @internal */
-  flip(): KeyValueCombiner {
-    return new KeyValueCombiner(this.encode, this.decode)
-  }
-}
-
-/**
- * @category model
- * @since 4.0.0
- */
-export class IndexSignature {
-  readonly isMutable: boolean
-  readonly parameter: AST
-  readonly type: AST
-  readonly merge: KeyValueCombiner | undefined
-
-  constructor(
-    isMutable: boolean,
-    parameter: AST,
-    type: AST,
-    merge: KeyValueCombiner | undefined
-  ) {
-    this.isMutable = isMutable
-    this.parameter = parameter
-    this.type = type
-    this.merge = merge
-    if (process.env.NODE_ENV !== "production") {
-      if (isOptional(type) && !containsUndefined(type)) {
-        throw new Error("Cannot use `Schema.optionalKey` with index signatures, use `Schema.optional` instead.")
-      }
-    }
-  }
-}
-
-/**
- * @category model
- * @since 4.0.0
- */
-export class TupleType extends Base {
-  readonly _tag = "TupleType"
+export class Arrays extends Base {
+  readonly _tag = "Arrays"
   readonly isMutable: boolean
   readonly elements: ReadonlyArray<AST>
   readonly rest: ReadonlyArray<AST>
@@ -1154,7 +1090,7 @@ export class TupleType extends Base {
     const rest = mapOrSame(this.rest, go)
     return elements === this.elements && rest === this.rest ?
       this :
-      new TupleType(this.isMutable, elements, rest, this.annotations, this.checks, undefined, this.context)
+      new Arrays(this.isMutable, elements, rest, this.annotations, this.checks, undefined, this.context)
   }
   /** @internal */
   getExpected(): string {
@@ -1164,7 +1100,9 @@ export class TupleType extends Base {
 
 function getIndexSignatureHash(ast: AST): string {
   if (isTemplateLiteral(ast)) {
-    return ast.parts.map((part) => isLiteralType(part) ? String(part.literal) : `\${${getIndexSignatureHash(part)}}`)
+    return ast.parts.map((part) =>
+      isLiteral(part) ? globalThis.String(part.literal) : `\${${getIndexSignatureHash(part)}}`
+    )
       .join("")
   }
   return ast._tag
@@ -1181,10 +1119,10 @@ export function getIndexSignatureKeys(
       const regex = getTemplateLiteralRegExp(p)
       return Object.keys(input).filter((key) => regex.test(key))
     }
-    case "SymbolKeyword":
+    case "Symbol":
       return Object.getOwnPropertySymbols(input)
-    case "NumberKeyword":
-      return Object.keys(input).filter((key) => numberKeywordPatternRegExp.test(key))
+    case "Number":
+      return Object.keys(input).filter((key) => numberPatternRegExp.test(key))
     default:
       return Object.keys(input)
   }
@@ -1194,8 +1132,76 @@ export function getIndexSignatureKeys(
  * @category model
  * @since 4.0.0
  */
-export class TypeLiteral extends Base {
-  readonly _tag = "TypeLiteral"
+export class PropertySignature {
+  readonly name: PropertyKey
+  readonly type: AST
+
+  constructor(
+    name: PropertyKey,
+    type: AST
+  ) {
+    this.name = name
+    this.type = type
+  }
+}
+
+/**
+ * @category model
+ * @since 4.0.0
+ */
+export class KeyValueCombiner {
+  readonly decode: Combiner.Combiner<readonly [key: PropertyKey, value: any]> | undefined
+  readonly encode: Combiner.Combiner<readonly [key: PropertyKey, value: any]> | undefined
+
+  constructor(
+    decode: Combiner.Combiner<readonly [key: PropertyKey, value: any]> | undefined,
+    encode: Combiner.Combiner<readonly [key: PropertyKey, value: any]> | undefined
+  ) {
+    this.decode = decode
+    this.encode = encode
+  }
+  /** @internal */
+  flip(): KeyValueCombiner {
+    return new KeyValueCombiner(this.encode, this.decode)
+  }
+}
+
+/**
+ * @category model
+ * @since 4.0.0
+ */
+export class IndexSignature {
+  readonly isMutable: boolean
+  readonly parameter: AST
+  readonly type: AST
+  readonly merge: KeyValueCombiner | undefined
+
+  constructor(
+    isMutable: boolean,
+    parameter: AST,
+    type: AST,
+    merge: KeyValueCombiner | undefined
+  ) {
+    this.isMutable = isMutable
+    this.parameter = parameter
+    this.type = type
+    this.merge = merge
+    if (process.env.NODE_ENV !== "production") {
+      if (isOptional(type) && !containsUndefined(type)) {
+        throw new Error("Cannot use `Schema.optionalKey` with index signatures, use `Schema.optional` instead.")
+      }
+    }
+  }
+}
+
+/**
+ * Describes both structs and records.
+ *
+ * @category model
+ * @since 4.0.0
+ */
+export class Objects extends Base {
+  readonly _tag = "Objects"
   readonly propertySignatures: ReadonlyArray<PropertySignature>
   readonly indexSignatures: ReadonlyArray<IndexSignature>
 
@@ -1309,7 +1315,9 @@ export class TypeLiteral extends Base {
       // ---------------------------------------------
       for (let i = 0; i < propertyCount; i++) {
         const p = properties[i]
-        const value: Option.Option<unknown> = Object.hasOwn(input, p.name) ? Option.some(input[p.name]) : Option.none()
+        const value: Option.Option<unknown> = Object.hasOwn(input, p.name)
+          ? Option.some(input[p.name])
+          : Option.none()
         const eff = p.parser(value, options)
         const exit = effectIsExit(eff) ? eff : yield* Effect.exit(eff)
         if (exit._tag === "Failure") {
@@ -1425,7 +1433,7 @@ export class TypeLiteral extends Base {
   private rebuild(
     go: (ast: AST) => AST,
     flipMerge: boolean
-  ): TypeLiteral {
+  ): Objects {
     const props = mapOrSame(this.propertySignatures, (ps) => {
       const t = go(ps.type)
       return t === ps.type ? ps : new PropertySignature(ps.name, t)
@@ -1442,7 +1450,7 @@ export class TypeLiteral extends Base {
 
     return props === this.propertySignatures && indexes === this.indexSignatures
       ? this
-      : new TypeLiteral(props, indexes, this.annotations, this.checks, undefined, this.context)
+      : new Objects(props, indexes, this.annotations, this.checks, undefined, this.context)
   }
   /** @internal */
   flip(go: (ast: AST) => AST): AST {
@@ -1475,8 +1483,8 @@ function mergeChecks(checks: Checks | undefined, b: AST): Checks | undefined {
 export function struct<Fields extends Schema.Struct.Fields>(
   fields: Fields,
   checks: Checks | undefined
-): TypeLiteral {
-  return new TypeLiteral(
+): Objects {
+  return new Objects(
     Reflect.ownKeys(fields).map((key) => {
       return new PropertySignature(key, fields[key].ast)
     }),
@@ -1495,8 +1503,8 @@ export function getAST<S extends Schema.Top>(self: S): S["ast"] {
 export function tuple<Elements extends Schema.Tuple.Elements>(
   elements: Elements,
   checks: Checks | undefined = undefined
-): TupleType {
-  return new TupleType(false, elements.map((e) => e.ast), [], undefined, checks)
+): Arrays {
+  return new Arrays(false, elements.map((e) => e.ast), [], undefined, checks)
 }
 
 /** @internal */
@@ -1504,12 +1512,12 @@ export function union<Members extends ReadonlyArray<Schema.Top>>(
   members: Members,
   mode: "anyOf" | "oneOf",
   checks: Checks | undefined
-): UnionType<Members[number]["ast"]> {
-  return new UnionType(members.map(getAST), mode, undefined, checks)
+): Union<Members[number]["ast"]> {
+  return new Union(members.map(getAST), mode, undefined, checks)
 }
 
 /** @internal */
-export function structWithRest(ast: TypeLiteral, records: ReadonlyArray<TypeLiteral>): TypeLiteral {
+export function structWithRest(ast: Objects, records: ReadonlyArray<Objects>): Objects {
   if (process.env.NODE_ENV !== "production") {
     if (ast.encoding || records.some((r) => r.encoding)) {
       throw new Error("StructWithRest does not support encodings")
@@ -1523,17 +1531,17 @@ export function structWithRest(ast: TypeLiteral, records: ReadonlyArray<TypeLite
     indexSignatures = indexSignatures.concat(r.indexSignatures)
     checks = mergeChecks(checks, r)
   }
-  return new TypeLiteral(propertySignatures, indexSignatures, undefined, checks)
+  return new Objects(propertySignatures, indexSignatures, undefined, checks)
 }
 
 /** @internal */
-export function tupleWithRest(ast: TupleType, rest: ReadonlyArray<AST>): TupleType {
+export function tupleWithRest(ast: Arrays, rest: ReadonlyArray<AST>): Arrays {
   if (process.env.NODE_ENV !== "production") {
     if (ast.encoding) {
       throw new Error("TupleWithRest does not support encodings")
     }
   }
-  return new TupleType(ast.isMutable, ast.elements, rest, undefined, ast.checks)
+  return new Arrays(ast.isMutable, ast.elements, rest, undefined, ast.checks)
 }
 
 type Type =
@@ -1551,39 +1559,39 @@ type Type =
 /** @internal */
 export type Sentinel = {
   readonly key: PropertyKey
-  readonly literal: Literal
+  readonly literal: LiteralValue
 }
 
 function getCandidateTypes(ast: AST): ReadonlyArray<Type> {
   switch (ast._tag) {
-    case "NullKeyword":
+    case "Null":
       return ["null"]
-    case "UndefinedKeyword":
-    case "VoidKeyword":
+    case "Undefined":
+    case "Void":
       return ["undefined"]
-    case "StringKeyword":
+    case "String":
     case "TemplateLiteral":
       return ["string"]
-    case "NumberKeyword":
+    case "Number":
       return ["number"]
-    case "BooleanKeyword":
+    case "Boolean":
       return ["boolean"]
-    case "SymbolKeyword":
+    case "Symbol":
     case "UniqueSymbol":
       return ["symbol"]
-    case "BigIntKeyword":
+    case "BigInt":
       return ["bigint"]
-    case "TupleType":
+    case "Arrays":
       return ["array"]
     case "ObjectKeyword":
       return ["object", "array", "function"]
-    case "TypeLiteral":
+    case "Objects":
       return ast.propertySignatures.length || ast.indexSignatures.length
         ? ["object"]
         : ["object", "array"]
     case "Enums":
       return ["string", "number"]
-    case "LiteralType":
+    case "Literal":
       return [typeof ast.literal]
     default:
       return [
@@ -1608,17 +1616,17 @@ export function collectSentinels(ast: AST): Array<Sentinel> | undefined {
       const s = ast.annotations?.["~sentinels"]
       return Array.isArray(s) && s.length ? s : undefined
     }
-    case "TypeLiteral": {
+    case "Objects": {
       const v = ast.propertySignatures.flatMap((ps) =>
-        isLiteralType(ps.type) && !isOptional(ps.type)
+        isLiteral(ps.type) && !isOptional(ps.type)
           ? [{ key: ps.name, literal: ps.type.literal }]
           : []
       )
       return v.length ? v : undefined
     }
-    case "TupleType": {
+    case "Arrays": {
       const v = ast.elements.flatMap((e, i) =>
-        isLiteralType(e) && !isOptional(e)
+        isLiteral(e) && !isOptional(e)
           ? [{ key: i, literal: e.literal }]
           : []
       )
@@ -1631,7 +1639,7 @@ export function collectSentinels(ast: AST): Array<Sentinel> | undefined {
 
 type CandidateIndex = {
   byType?: { [K in Type]?: Array<AST> }
-  bySentinel?: Map<PropertyKey, Map<Literal, Array<AST>>>
+  bySentinel?: Map<PropertyKey, Map<LiteralValue, Array<AST>>>
   otherwise?: { [K in Type]?: Array<AST> }
 }
 
@@ -1644,7 +1652,7 @@ function getIndex(types: ReadonlyArray<AST>): CandidateIndex {
   idx = {}
   for (const a of types) {
     const encoded = encodedAST(a)
-    if (isNeverKeyword(encoded)) continue
+    if (isNever(encoded)) continue
 
     const types = getCandidateTypes(encoded)
     const sentinels = collectSentinels(encoded)
@@ -1675,7 +1683,7 @@ function getIndex(types: ReadonlyArray<AST>): CandidateIndex {
 function filterLiterals(input: any) {
   return (ast: AST) => {
     const encoded = encodedAST(ast)
-    return encoded._tag === "LiteralType" ?
+    return encoded._tag === "Literal" ?
       encoded.literal === input
       : encoded._tag === "UniqueSymbol" ?
       encoded.symbol === input
@@ -1715,8 +1723,8 @@ export function getCandidates(input: any, types: ReadonlyArray<AST>): ReadonlyAr
  * @category model
  * @since 4.0.0
  */
-export class UnionType<A extends AST = AST> extends Base {
-  readonly _tag = "UnionType"
+export class Union<A extends AST = AST> extends Base {
+  readonly _tag = "Union"
   readonly types: ReadonlyArray<A>
   readonly mode: "anyOf" | "oneOf"
 
@@ -1790,7 +1798,7 @@ export class UnionType<A extends AST = AST> extends Base {
     const types = mapOrSame(this.types, go)
     return types === this.types ?
       this :
-      new UnionType(types, this.mode, this.annotations, this.checks, undefined, this.context)
+      new Union(types, this.mode, this.annotations, this.checks, undefined, this.context)
   }
   /** @internal */
   getExpected(getExpected: (ast: AST) => string): string {
@@ -2245,7 +2253,7 @@ export function withConstructorDefault<A extends AST>(
     }),
     Getter.passthrough()
   )
-  const encoding: Encoding = [new Link(unknownKeyword, transformation)]
+  const encoding: Encoding = [new Link(unknown, transformation)]
   const context = ast.context ?
     new Context(ast.context.isOptional, ast.context.isMutable, encoding, ast.context.annotations) :
     new Context(false, false, encoding)
@@ -2263,10 +2271,10 @@ export function decodeTo<A extends AST>(
 
 function mutableContext(ast: AST, isMutable: boolean): AST {
   switch (ast._tag) {
-    case "TupleType":
-      return new TupleType(isMutable, ast.elements, ast.rest, ast.annotations, ast.checks, ast.encoding, ast.context)
-    case "TypeLiteral":
-      return new TypeLiteral(
+    case "Arrays":
+      return new Arrays(isMutable, ast.elements, ast.rest, ast.annotations, ast.checks, ast.encoding, ast.context)
+    case "Objects":
+      return new Objects(
         ast.propertySignatures.map((ps) => {
           const ast = ps.type
           return new PropertySignature(
@@ -2290,8 +2298,8 @@ function mutableContext(ast: AST, isMutable: boolean): AST {
         ast.encoding,
         ast.context
       )
-    case "UnionType":
-      return new UnionType(ast.types.map(mutable), ast.mode, ast.annotations, ast.checks, ast.encoding, ast.context)
+    case "Union":
+      return new Union(ast.types.map(mutable), ast.mode, ast.annotations, ast.checks, ast.encoding, ast.context)
     case "Suspend":
       return new Suspend(() => mutable(ast.thunk()), ast.annotations, ast.checks, ast.encoding, ast.context)
     default:
@@ -2314,7 +2322,7 @@ function parseParameter(ast: AST): {
   parameters: ReadonlyArray<AST>
 } {
   switch (ast._tag) {
-    case "LiteralType":
+    case "Literal":
       return {
         literals: Predicate.isPropertyKey(ast.literal) ? [ast.literal] : [],
         parameters: []
@@ -2324,15 +2332,15 @@ function parseParameter(ast: AST): {
         literals: [ast.symbol],
         parameters: []
       }
-    case "StringKeyword":
-    case "NumberKeyword":
-    case "SymbolKeyword":
+    case "String":
+    case "Number":
+    case "Symbol":
     case "TemplateLiteral":
       return {
         literals: [],
         parameters: [ast]
       }
-    case "UnionType": {
+    case "Union": {
       const out: {
         literals: ReadonlyArray<PropertyKey>
         parameters: ReadonlyArray<AST>
@@ -2349,9 +2357,9 @@ function parseParameter(ast: AST): {
 }
 
 /** @internal */
-export function record(key: AST, value: AST, keyValueCombiner: KeyValueCombiner | undefined): TypeLiteral {
+export function record(key: AST, value: AST, keyValueCombiner: KeyValueCombiner | undefined): Objects {
   const { literals, parameters: indexSignatures } = parseParameter(key)
-  return new TypeLiteral(
+  return new Objects(
     literals.map((literal) => new PropertySignature(literal, value)),
     indexSignatures.map((parameter) => new IndexSignature(false, parameter, value, keyValueCombiner))
   )
@@ -2418,9 +2426,9 @@ export const flip = memoize((ast: AST): AST => {
 /** @internal */
 export function containsUndefined(ast: AST): boolean {
   switch (ast._tag) {
-    case "UndefinedKeyword":
+    case "Undefined":
       return true
-    case "UnionType":
+    case "Union":
       return ast.types.some(containsUndefined)
     default:
       return false
@@ -2429,17 +2437,17 @@ export function containsUndefined(ast: AST): boolean {
 
 function formatTemplateLiteral(ast: TemplateLiteral): string {
   const formatUnionPart = (part: TemplateLiteralPart): string => {
-    if (isUnionType(part)) {
+    if (isUnion(part)) {
       return part.types.map(formatUnionPart).join(" | ")
     }
     switch (part._tag) {
-      case "LiteralType":
+      case "Literal":
         return Annotations.getExpected(part)
-      case "StringKeyword":
+      case "String":
         return "string"
-      case "NumberKeyword":
+      case "Number":
         return "number"
-      case "BigIntKeyword":
+      case "BigInt":
         return "bigint"
       case "TemplateLiteral":
         return formatTemplateLiteral(part)
@@ -2448,17 +2456,17 @@ function formatTemplateLiteral(ast: TemplateLiteral): string {
 
   return "`" + ast.encodedParts.map((part) => {
     switch (part._tag) {
-      case "LiteralType":
-        return String(part.literal)
-      case "StringKeyword":
+      case "Literal":
+        return globalThis.String(part.literal)
+      case "String":
         return "${string}"
-      case "NumberKeyword":
+      case "Number":
         return "${number}"
-      case "BigIntKeyword":
+      case "BigInt":
         return "${bigint}"
       case "TemplateLiteral":
         return "${" + formatTemplateLiteral(part) + "}"
-      case "UnionType":
+      case "Union":
         return "${" + part.types.map(formatUnionPart).join(" | ") + "}"
     }
   }).join("") + "`"
@@ -2478,35 +2486,35 @@ export const getTemplateLiteralRegExp = memoize((ast: TemplateLiteral): RegExp =
 /**
  * any string, including newlines
  */
-const STRING_KEYWORD_PATTERN = "[\\s\\S]*?"
+const STRING_PATTERN = "[\\s\\S]*?"
 /**
  * floating point or integer, with optional exponent
  */
-const NUMBER_KEYWORD_PATTERN = "[+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?"
+const NUMBER_PATTERN = "[+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?"
 /**
  * signed integer only (no leading "+")
  */
-const BIGINT_KEYWORD_PATTERN = "-?\\d+"
+const BIGINT_PATTERN = "-?\\d+"
 
 function getTemplateLiteralASTPartPattern(part: TemplateLiteralPart): string {
   switch (part._tag) {
-    case "LiteralType":
-      return RegEx.escape(String(part.literal))
-    case "StringKeyword":
-      return STRING_KEYWORD_PATTERN
-    case "NumberKeyword":
-      return NUMBER_KEYWORD_PATTERN
-    case "BigIntKeyword":
-      return BIGINT_KEYWORD_PATTERN
+    case "Literal":
+      return RegEx.escape(globalThis.String(part.literal))
+    case "String":
+      return STRING_PATTERN
+    case "Number":
+      return NUMBER_PATTERN
+    case "BigInt":
+      return BIGINT_PATTERN
     case "TemplateLiteral":
       return getTemplateLiteralSource(part, false)
-    case "UnionType":
+    case "Union":
       return part.types.map((type) => getTemplateLiteralASTPartPattern(type)).join("|")
   }
 }
 
 function handleTemplateLiteralASTPartParens(part: TemplateLiteralPart, s: string, top: boolean): string {
-  if (isUnionType(part)) {
+  if (isUnion(part)) {
     if (!top) {
       return `(?:${s})`
     }
@@ -2546,9 +2554,9 @@ function fromRefinement<T>(
 }
 
 /** @internal */
-export const enumsToLiterals = memoize((ast: Enums): UnionType<LiteralType> => {
-  return new UnionType(
-    ast.enums.map((e) => new LiteralType(e[1], { title: e[0] })),
+export const enumsToLiterals = memoize((ast: Enums): Union<Literal> => {
+  return new Union(
+    ast.enums.map((e) => new Literal(e[1], { title: e[0] })),
     "anyOf"
   )
 })
@@ -2575,25 +2583,25 @@ export function getFilters(checks: Checks | undefined): Array<Filter<any>> {
 export type Visitor<A> = {
   readonly onEnter?: ((ast: AST, visit: (ast: AST) => A) => Option.Option<A>) | undefined
   readonly Declaration: (ast: Declaration, visit: (ast: AST) => A) => A
-  readonly NullKeyword: (ast: NullKeyword, visit: (ast: AST) => A) => A
-  readonly UndefinedKeyword: (ast: UndefinedKeyword, visit: (ast: AST) => A) => A
-  readonly VoidKeyword: (ast: VoidKeyword, visit: (ast: AST) => A) => A
-  readonly NeverKeyword: (ast: NeverKeyword, visit: (ast: AST) => A) => A
-  readonly UnknownKeyword: (ast: UnknownKeyword, visit: (ast: AST) => A) => A
-  readonly AnyKeyword: (ast: AnyKeyword, visit: (ast: AST) => A) => A
-  readonly StringKeyword: (ast: StringKeyword, visit: (ast: AST) => A) => A
-  readonly NumberKeyword: (ast: NumberKeyword, visit: (ast: AST) => A) => A
-  readonly BooleanKeyword: (ast: BooleanKeyword, visit: (ast: AST) => A) => A
-  readonly SymbolKeyword: (ast: SymbolKeyword, visit: (ast: AST) => A) => A
-  readonly BigIntKeyword: (ast: BigIntKeyword, visit: (ast: AST) => A) => A
+  readonly Null: (ast: Null, visit: (ast: AST) => A) => A
+  readonly Undefined: (ast: Undefined, visit: (ast: AST) => A) => A
+  readonly Void: (ast: Void, visit: (ast: AST) => A) => A
+  readonly Never: (ast: Never, visit: (ast: AST) => A) => A
+  readonly Unknown: (ast: Unknown, visit: (ast: AST) => A) => A
+  readonly Any: (ast: Any, visit: (ast: AST) => A) => A
+  readonly String: (ast: String, visit: (ast: AST) => A) => A
+  readonly Number: (ast: Number, visit: (ast: AST) => A) => A
+  readonly Boolean: (ast: Boolean, visit: (ast: AST) => A) => A
+  readonly Symbol: (ast: Symbol, visit: (ast: AST) => A) => A
+  readonly BigInt: (ast: BigInt, visit: (ast: AST) => A) => A
   readonly UniqueSymbol: (ast: UniqueSymbol, visit: (ast: AST) => A) => A
   readonly ObjectKeyword: (ast: ObjectKeyword, visit: (ast: AST) => A) => A
   readonly Enums: (ast: Enums, visit: (ast: AST) => A) => A
-  readonly LiteralType: (ast: LiteralType, visit: (ast: AST) => A) => A
+  readonly Literal: (ast: Literal, visit: (ast: AST) => A) => A
   readonly TemplateLiteral: (ast: TemplateLiteral, visit: (ast: AST) => A) => A
-  readonly TupleType: (ast: TupleType, visit: (ast: AST) => A) => A
-  readonly TypeLiteral: (ast: TypeLiteral, visit: (ast: AST) => A) => A
-  readonly UnionType: (ast: UnionType, visit: (ast: AST) => A, getCandidates: (ast: AST) => ReadonlyArray<AST>) => A
+  readonly Arrays: (ast: Arrays, visit: (ast: AST) => A) => A
+  readonly Objects: (ast: Objects, visit: (ast: AST) => A) => A
+  readonly Union: (ast: Union, visit: (ast: AST) => A, getCandidates: (ast: AST) => ReadonlyArray<AST>) => A
   readonly Suspend: (ast: Suspend, visit: (ast: AST) => A) => A
 }
 
@@ -2616,8 +2624,8 @@ export function makeVisit<A>(visitor: Visitor<A>) {
     // handle AST nodes
     // ---------------------------------------------
     switch (ast._tag) {
-      case "UnionType":
-        return visitor.UnionType(ast, visit, (t) => getCandidates(t, ast.types))
+      case "Union":
+        return visitor.Union(ast, visit, (t) => getCandidates(t, ast.types))
       default:
         return visitor[ast._tag](ast as any, visit)
     }
@@ -2626,9 +2634,9 @@ export function makeVisit<A>(visitor: Visitor<A>) {
 
 const goIndexSignature = memoize(apply((ast: AST): AST => {
   switch (ast._tag) {
-    case "NumberKeyword":
+    case "Number":
       return ast.goStringPojo()
-    case "UnionType":
+    case "Union":
       return ast.go(goIndexSignature)
     default:
       return ast
@@ -2637,51 +2645,51 @@ const goIndexSignature = memoize(apply((ast: AST): AST => {
 
 const goTemplateLiteral = memoize(apply((ast: AST): AST => {
   switch (ast._tag) {
-    case "StringKeyword":
+    case "String":
     case "TemplateLiteral":
       return ast
-    case "BigIntKeyword":
+    case "BigInt":
       return ast.goJson()
-    case "NumberKeyword":
-    case "LiteralType":
+    case "Number":
+    case "Literal":
       return ast.goStringPojo()
-    case "TupleType":
-    case "UnionType":
+    case "Arrays":
+    case "Union":
       return ast.go(goTemplateLiteral)
   }
   throw new Error(`Unsupported template literal part tag: ${ast._tag}`)
 }))
 
 const numberJsonLink = new Link(
-  new UnionType(
-    [numberKeyword, new LiteralType("Infinity"), new LiteralType("-Infinity"), new LiteralType("NaN")],
+  new Union(
+    [number, new Literal("Infinity"), new Literal("-Infinity"), new Literal("NaN")],
     "anyOf"
   ),
   new Transformation.Transformation(
     Getter.Number(),
-    Getter.transform((n) => Number.isFinite(n) ? n : String(n))
+    Getter.transform((n) => globalThis.Number.isFinite(n) ? n : globalThis.String(n))
   )
 )
 
-const numberKeywordPatternRegExp = new RegExp(`(?:${NUMBER_KEYWORD_PATTERN}|Infinity|-Infinity|NaN)`)
+const numberPatternRegExp = new RegExp(`(?:${NUMBER_PATTERN}|Infinity|-Infinity|NaN)`)
 
-const numberKeywordPattern = appendChecks(stringKeyword, [
-  isPattern(numberKeywordPatternRegExp, {
+const numberPattern = appendChecks(string, [
+  isPattern(numberPatternRegExp, {
     title: "a string representing a number"
   })
 ])
 
 const numberStringPojoLink = new Link(
-  numberKeywordPattern,
+  numberPattern,
   Transformation.numberFromString
 )
 
 const bigIntJsonLink = new Link(
-  appendChecks(stringKeyword, [
-    isPattern(new RegExp(BIGINT_KEYWORD_PATTERN), { title: "a string representing a bigint" })
+  appendChecks(string, [
+    isPattern(new RegExp(BIGINT_PATTERN), { title: "a string representing a bigint" })
   ]),
   new Transformation.Transformation(
-    Getter.transform(BigInt),
+    Getter.transform(globalThis.BigInt),
     Getter.String()
   )
 )
@@ -2692,14 +2700,14 @@ const SYMBOL_PATTERN = /^Symbol\((.*)\)$/
  * to distinguish between Symbol and String, we need to add a check to the string keyword
  */
 const symbolJsonLink = new Link(
-  appendChecks(stringKeyword, [isPattern(SYMBOL_PATTERN, { title: "a string representing a symbol" })]),
+  appendChecks(string, [isPattern(SYMBOL_PATTERN, { title: "a string representing a symbol" })]),
   new Transformation.Transformation(
-    Getter.transform((description) => Symbol.for(SYMBOL_PATTERN.exec(description)![1])),
+    Getter.transform((description) => globalThis.Symbol.for(SYMBOL_PATTERN.exec(description)![1])),
     Getter.transformOrFail((sym: symbol) => {
       const description = sym.description
       if (description !== undefined) {
-        if (Symbol.for(description) === sym) {
-          return Effect.succeed(String(sym))
+        if (globalThis.Symbol.for(description) === sym) {
+          return Effect.succeed(globalThis.String(sym))
         }
         return Effect.fail(
           new Issue.Forbidden(Option.some(sym), { message: "cannot serialize to string, Symbol is not registered" })
@@ -2742,9 +2750,9 @@ export function runChecks<T>(
   s: T
 ): Result.Result<T, Issue.Issue> {
   const issues: Array<Issue.Issue> = []
-  collectIssues(checks, s, issues, unknownKeyword, { errors: "all" })
+  collectIssues(checks, s, issues, unknown, { errors: "all" })
   if (Arr.isArrayNonEmpty(issues)) {
-    const issue = new Issue.Composite(unknownKeyword, Option.some(s), issues)
+    const issue = new Issue.Composite(unknown, Option.some(s), issues)
     return Result.fail(issue)
   }
   return Result.succeed(s)

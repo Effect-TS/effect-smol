@@ -41,12 +41,12 @@ describe("Serializer", () => {
           const encoding = asserts.encoding()
           await encoding.fail(
             "a",
-            "required `defaultJsonSerializer` or `serializer` annotation for UnknownKeyword"
+            "required `defaultJsonSerializer` or `serializer` annotation for Unknown"
           )
         })
 
-        it("Object", async () => {
-          const schema = Schema.Object
+        it("ObjectKeyword", async () => {
+          const schema = Schema.ObjectKeyword
           const asserts = new TestSchema.Asserts(Schema.makeSerializerJson(Schema.typeCodec(schema)))
 
           const encoding = asserts.encoding()
@@ -1251,12 +1251,12 @@ describe("Serializer", () => {
           const encoding = asserts.encoding()
           await encoding.fail(
             "a",
-            "required `defaultJsonSerializer` or `serializer` annotation for UnknownKeyword"
+            "required `defaultJsonSerializer` or `serializer` annotation for Unknown"
           )
         })
 
-        it("Object", async () => {
-          const schema = Schema.Object
+        it("ObjectKeyword", async () => {
+          const schema = Schema.ObjectKeyword
           const asserts = new TestSchema.Asserts(Schema.makeSerializerStringPojo(Schema.typeCodec(schema)))
 
           const encoding = asserts.encoding()
@@ -2063,7 +2063,7 @@ describe("Serializer", () => {
         await assertXmlFailure(
           Schema.Unknown,
           "test",
-          "required `defaultJsonSerializer` or `serializer` annotation for UnknownKeyword"
+          "required `defaultJsonSerializer` or `serializer` annotation for Unknown"
         )
       })
 
@@ -2071,9 +2071,9 @@ describe("Serializer", () => {
         await assertXmlFailure(Schema.Never, "test", `Expected never, got "test"`)
       })
 
-      it("Object", async () => {
+      it("ObjectKeyword", async () => {
         await assertXmlFailure(
-          Schema.Object,
+          Schema.ObjectKeyword,
           {},
           "required `defaultJsonSerializer` or `serializer` annotation for ObjectKeyword"
         )

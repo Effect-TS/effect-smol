@@ -23,26 +23,26 @@ export const go = memoize((ast: AST.AST): Equivalence.Equivalence<any> => {
     return annotation.override([])
   }
   switch (ast._tag) {
-    case "NeverKeyword":
+    case "Never":
       throw new Error("cannot generate Equivalence, no annotation found for never", { cause: ast })
     case "Declaration":
-    case "NullKeyword":
-    case "UndefinedKeyword":
-    case "VoidKeyword":
-    case "UnknownKeyword":
-    case "AnyKeyword":
-    case "StringKeyword":
-    case "NumberKeyword":
-    case "BooleanKeyword":
-    case "BigIntKeyword":
-    case "SymbolKeyword":
-    case "LiteralType":
+    case "Null":
+    case "Undefined":
+    case "Void":
+    case "Unknown":
+    case "Any":
+    case "String":
+    case "Number":
+    case "Boolean":
+    case "BigInt":
+    case "Symbol":
+    case "Literal":
     case "UniqueSymbol":
     case "ObjectKeyword":
     case "Enums":
     case "TemplateLiteral":
       return Equal.equals
-    case "TupleType": {
+    case "Arrays": {
       const elements = ast.elements.map(go)
       const rest = ast.rest.map(go)
       return Equivalence.make((a, b) => {
@@ -85,7 +85,7 @@ export const go = memoize((ast: AST.AST): Equivalence.Equivalence<any> => {
         return true
       })
     }
-    case "TypeLiteral": {
+    case "Objects": {
       if (ast.propertySignatures.length === 0 && ast.indexSignatures.length === 0) {
         return Equal.equals
       }
@@ -132,7 +132,7 @@ export const go = memoize((ast: AST.AST): Equivalence.Equivalence<any> => {
         return true
       })
     }
-    case "UnionType":
+    case "Union":
       return Equivalence.make((a, b) => {
         const candidates = AST.getCandidates(a, ast.types)
         const types = candidates.map(ToParser.refinement)

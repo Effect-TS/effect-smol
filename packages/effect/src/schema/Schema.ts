@@ -1035,7 +1035,7 @@ export function flip<S extends Top>(schema: S): flip<S> {
 /**
  * @since 4.0.0
  */
-export interface Literal<L extends AST.Literal> extends Bottom<L, L, never, never, AST.LiteralType, Literal<L>> {
+export interface Literal<L extends AST.LiteralValue> extends Bottom<L, L, never, never, AST.Literal, Literal<L>> {
   readonly "~rebuild.out": this
   readonly literal: L
 }
@@ -1046,8 +1046,8 @@ export interface Literal<L extends AST.Literal> extends Bottom<L, L, never, neve
  * used as a discriminator field in tagged unions and has a constructor default.
  * @since 4.0.0
  */
-export function Literal<L extends AST.Literal>(literal: L): Literal<L> {
-  return makeProto(new AST.LiteralType(literal), { literal })
+export function Literal<L extends AST.LiteralValue>(literal: L): Literal<L> {
+  return makeProto(new AST.Literal(literal), { literal })
 }
 
 /**
@@ -1108,7 +1108,7 @@ export interface TemplateLiteral<Parts extends TemplateLiteral.Parts> extends
 }
 
 function templateLiteralFromParts<Parts extends TemplateLiteral.Parts>(parts: Parts) {
-  return new AST.TemplateLiteral(parts.map((part) => isSchema(part) ? part.ast : new AST.LiteralType(part)))
+  return new AST.TemplateLiteral(parts.map((part) => isSchema(part) ? part.ast : new AST.Literal(part)))
 }
 
 /**
@@ -1143,7 +1143,7 @@ export interface TemplateLiteralParser<Parts extends TemplateLiteral.Parts> exte
     TemplateLiteral.Encoded<Parts>,
     never,
     never,
-    AST.TupleType,
+    AST.Arrays,
     TemplateLiteralParser<Parts>
   >
 {
@@ -1187,67 +1187,67 @@ export function Enums<A extends { [x: string]: string | number }>(enums: A): Enu
 /**
  * @since 4.0.0
  */
-export interface Never extends Bottom<never, never, never, never, AST.NeverKeyword, Never> {
+export interface Never extends Bottom<never, never, never, never, AST.Never, Never> {
   readonly "~rebuild.out": this
 }
 
 /**
  * @since 4.0.0
  */
-export const Never: Never = make(AST.neverKeyword)
+export const Never: Never = make(AST.never)
 
 /**
  * @since 4.0.0
  */
-export interface Any extends Bottom<any, any, never, never, AST.AnyKeyword, Any> {
+export interface Any extends Bottom<any, any, never, never, AST.Any, Any> {
   readonly "~rebuild.out": this
 }
 
 /**
  * @since 4.0.0
  */
-export const Any: Any = make(AST.anyKeyword)
+export const Any: Any = make(AST.any)
 
 /**
  * @since 4.0.0
  */
-export interface Unknown extends Bottom<unknown, unknown, never, never, AST.UnknownKeyword, Unknown> {
+export interface Unknown extends Bottom<unknown, unknown, never, never, AST.Unknown, Unknown> {
   readonly "~rebuild.out": this
 }
 
 /**
  * @since 4.0.0
  */
-export const Unknown: Unknown = make(AST.unknownKeyword)
+export const Unknown: Unknown = make(AST.unknown)
 
 /**
  * @since 4.0.0
  */
-export interface Null extends Bottom<null, null, never, never, AST.NullKeyword, Null> {
+export interface Null extends Bottom<null, null, never, never, AST.Null, Null> {
   readonly "~rebuild.out": this
 }
 
 /**
  * @since 4.0.0
  */
-export const Null: Null = make(AST.nullKeyword)
+export const Null: Null = make(AST.null)
 
 /**
  * @since 4.0.0
  */
-export interface Undefined extends Bottom<undefined, undefined, never, never, AST.UndefinedKeyword, Undefined> {
+export interface Undefined extends Bottom<undefined, undefined, never, never, AST.Undefined, Undefined> {
   readonly "~rebuild.out": this
 }
 
 /**
  * @since 4.0.0
  */
-export const Undefined: Undefined = make(AST.undefinedKeyword)
+export const Undefined: Undefined = make(AST.undefined)
 
 /**
  * @since 4.0.0
  */
-export interface String extends Bottom<string, string, never, never, AST.StringKeyword, String> {
+export interface String extends Bottom<string, string, never, never, AST.String, String> {
   readonly "~rebuild.out": this
 }
 
@@ -1256,12 +1256,12 @@ export interface String extends Bottom<string, string, never, never, AST.StringK
  *
  * @since 4.0.0
  */
-export const String: String = make(AST.stringKeyword)
+export const String: String = make(AST.string)
 
 /**
  * @since 4.0.0
  */
-export interface Number extends Bottom<number, number, never, never, AST.NumberKeyword, Number> {
+export interface Number extends Bottom<number, number, never, never, AST.Number, Number> {
   readonly "~rebuild.out": this
 }
 
@@ -1275,12 +1275,12 @@ export interface Number extends Bottom<number, number, never, never, AST.NumberK
  *
  * @since 4.0.0
  */
-export const Number: Number = make(AST.numberKeyword)
+export const Number: Number = make(AST.number)
 
 /**
  * @since 4.0.0
  */
-export interface Boolean extends Bottom<boolean, boolean, never, never, AST.BooleanKeyword, Boolean> {
+export interface Boolean extends Bottom<boolean, boolean, never, never, AST.Boolean, Boolean> {
   readonly "~rebuild.out": this
 }
 
@@ -1290,12 +1290,12 @@ export interface Boolean extends Bottom<boolean, boolean, never, never, AST.Bool
  * @category Boolean
  * @since 4.0.0
  */
-export const Boolean: Boolean = make(AST.booleanKeyword)
+export const Boolean: Boolean = make(AST.boolean)
 
 /**
  * @since 4.0.0
  */
-export interface Symbol extends Bottom<symbol, symbol, never, never, AST.SymbolKeyword, Symbol> {
+export interface Symbol extends Bottom<symbol, symbol, never, never, AST.Symbol, Symbol> {
   readonly "~rebuild.out": this
 }
 
@@ -1304,12 +1304,12 @@ export interface Symbol extends Bottom<symbol, symbol, never, never, AST.SymbolK
  *
  * @since 4.0.0
  */
-export const Symbol: Symbol = make(AST.symbolKeyword)
+export const Symbol: Symbol = make(AST.symbol)
 
 /**
  * @since 4.0.0
  */
-export interface BigInt extends Bottom<bigint, bigint, never, never, AST.BigIntKeyword, BigInt> {
+export interface BigInt extends Bottom<bigint, bigint, never, never, AST.BigInt, BigInt> {
   readonly "~rebuild.out": this
 }
 
@@ -1318,12 +1318,12 @@ export interface BigInt extends Bottom<bigint, bigint, never, never, AST.BigIntK
  *
  * @since 4.0.0
  */
-export const BigInt: BigInt = make(AST.bigIntKeyword)
+export const BigInt: BigInt = make(AST.bigInt)
 
 /**
  * @since 4.0.0
  */
-export interface Void extends Bottom<void, void, never, never, AST.VoidKeyword, Void> {
+export interface Void extends Bottom<void, void, never, never, AST.Void, Void> {
   readonly "~rebuild.out": this
 }
 
@@ -1332,25 +1332,21 @@ export interface Void extends Bottom<void, void, never, never, AST.VoidKeyword, 
  *
  * @since 4.0.0
  */
-export const Void: Void = make(AST.voidKeyword)
+export const Void: Void = make(AST.void)
 
 /**
  * @since 4.0.0
  */
-export interface Object$ extends Bottom<object, object, never, never, AST.ObjectKeyword, Object$> {
+export interface ObjectKeyword extends Bottom<object, object, never, never, AST.ObjectKeyword, ObjectKeyword> {
   readonly "~rebuild.out": this
 }
 
-const Object_: Object$ = make(AST.objectKeyword)
-
-export {
-  /**
-   * A schema for the `object` type.
-   *
-   * @since 4.0.0
-   */
-  Object_ as Object
-}
+/**
+ * A schema for the `object` type.
+ *
+ * @since 4.0.0
+ */
+export const ObjectKeyword: ObjectKeyword = make(AST.objectKeyword)
 
 /**
  * @since 4.0.0
@@ -1488,7 +1484,7 @@ export interface Struct<Fields extends Struct.Fields> extends
     Simplify<Struct.Encoded<Fields>>,
     Struct.DecodingServices<Fields>,
     Struct.EncodingServices<Fields>,
-    AST.TypeLiteral,
+    AST.Objects,
     Struct<Fields>,
     Simplify<Struct.MakeIn<Fields>>,
     Simplify<Struct.Iso<Fields>>
@@ -1512,7 +1508,7 @@ export interface Struct<Fields extends Struct.Fields> extends
   ): Struct<Simplify<Readonly<To>>>
 }
 
-function makeStruct<const Fields extends Struct.Fields>(ast: AST.TypeLiteral, fields: Fields): Struct<Fields> {
+function makeStruct<const Fields extends Struct.Fields>(ast: AST.Objects, fields: Fields): Struct<Fields> {
   return makeProto(ast, {
     fields,
     mapFields<To extends Struct.Fields>(
@@ -1701,7 +1697,7 @@ export interface Record$<Key extends Record.Key, Value extends Top> extends
     Record.Encoded<Key, Value>,
     Record.DecodingServices<Key, Value>,
     Record.EncodingServices<Key, Value>,
-    AST.TypeLiteral,
+    AST.Objects,
     Record$<Key, Value>,
     Simplify<Record.MakeIn<Key, Value>>,
     Record.Iso<Key, Value>
@@ -1738,7 +1734,7 @@ export declare namespace StructWithRest {
   /**
    * @since 4.0.0
    */
-  export type TypeLiteral = Top & { readonly ast: AST.TypeLiteral }
+  export type TypeLiteral = Top & { readonly ast: AST.Objects }
 
   /**
    * @since 4.0.0
@@ -1804,7 +1800,7 @@ export interface StructWithRest<
     Simplify<StructWithRest.Encoded<S, Records>>,
     StructWithRest.DecodingServices<S, Records>,
     StructWithRest.EncodingServices<S, Records>,
-    AST.TypeLiteral,
+    AST.Objects,
     StructWithRest<S, Records>,
     Simplify<StructWithRest.MakeIn<S, Records>>,
     Simplify<StructWithRest.Iso<S, Records>>
@@ -1919,7 +1915,7 @@ export interface Tuple<Elements extends Tuple.Elements> extends
     Tuple.Encoded<Elements>,
     Tuple.DecodingServices<Elements>,
     Tuple.EncodingServices<Elements>,
-    AST.TupleType,
+    AST.Arrays,
     Tuple<Elements>,
     Tuple.MakeIn<Elements>,
     Tuple.Iso<Elements>
@@ -1943,7 +1939,7 @@ export interface Tuple<Elements extends Tuple.Elements> extends
   ): Tuple<Simplify<Readonly<To>>>
 }
 
-function makeTuple<Elements extends Tuple.Elements>(ast: AST.TupleType, elements: Elements): Tuple<Elements> {
+function makeTuple<Elements extends Tuple.Elements>(ast: AST.Arrays, elements: Elements): Tuple<Elements> {
   return makeProto(ast, {
     elements,
     mapElements<To extends Tuple.Elements>(
@@ -1977,7 +1973,7 @@ export declare namespace TupleWithRest {
   export type TupleType = Top & {
     readonly Type: ReadonlyArray<unknown>
     readonly Encoded: ReadonlyArray<unknown>
-    readonly ast: AST.TupleType
+    readonly ast: AST.Arrays
     readonly "~type.make": ReadonlyArray<unknown>
     readonly "Iso": ReadonlyArray<unknown>
   }
@@ -2044,7 +2040,7 @@ export interface TupleWithRest<
     TupleWithRest.Encoded<S["Encoded"], Rest>,
     S["DecodingServices"] | Rest[number]["DecodingServices"],
     S["EncodingServices"] | Rest[number]["EncodingServices"],
-    AST.TupleType,
+    AST.Arrays,
     TupleWithRest<S, Rest>,
     TupleWithRest.MakeIn<S["~type.make"], Rest>,
     TupleWithRest.Iso<S["Iso"], Rest>
@@ -2075,7 +2071,7 @@ export interface Array$<S extends Top> extends
     ReadonlyArray<S["Encoded"]>,
     S["DecodingServices"],
     S["EncodingServices"],
-    AST.TupleType,
+    AST.Arrays,
     Array$<S>,
     ReadonlyArray<S["~type.make"]>,
     ReadonlyArray<S["Iso"]>
@@ -2095,7 +2091,7 @@ interface ArrayLambda extends Lambda {
  * @since 4.0.0
  */
 export const Array = lambda<ArrayLambda>(function Array<S extends Top>(schema: S): Array$<S> {
-  return makeProto(new AST.TupleType(false, [], [schema.ast]), { schema })
+  return makeProto(new AST.Arrays(false, [], [schema.ast]), { schema })
 })
 
 /**
@@ -2107,7 +2103,7 @@ export interface NonEmptyArray<S extends Top> extends
     readonly [S["Encoded"], ...Array<S["Encoded"]>],
     S["DecodingServices"],
     S["EncodingServices"],
-    AST.TupleType,
+    AST.Arrays,
     NonEmptyArray<S>,
     readonly [S["~type.make"], ...Array<S["~type.make"]>],
     readonly [S["Iso"], ...Array<S["Iso"]>]
@@ -2128,7 +2124,7 @@ interface NonEmptyArrayLambda extends Lambda {
  */
 export const NonEmptyArray = lambda<NonEmptyArrayLambda>(
   function NonEmptyArray<S extends Top>(schema: S): NonEmptyArray<S> {
-    return makeProto(new AST.TupleType(false, [schema.ast], [schema.ast]), { schema })
+    return makeProto(new AST.Arrays(false, [schema.ast], [schema.ast]), { schema })
   }
 )
 
@@ -2236,7 +2232,7 @@ export interface Union<Members extends ReadonlyArray<Top>> extends
     { [K in keyof Members]: Members[K]["Encoded"] }[number],
     { [K in keyof Members]: Members[K]["DecodingServices"] }[number],
     { [K in keyof Members]: Members[K]["EncodingServices"] }[number],
-    AST.UnionType<{ [K in keyof Members]: Members[K]["ast"] }[number]>,
+    AST.Union<{ [K in keyof Members]: Members[K]["ast"] }[number]>,
     Union<Members>,
     { [K in keyof Members]: Members[K]["~type.make"] }[number],
     { [K in keyof Members]: Members[K]["Iso"] }[number]
@@ -2261,7 +2257,7 @@ export interface Union<Members extends ReadonlyArray<Top>> extends
 }
 
 function makeUnion<Members extends ReadonlyArray<Top>>(
-  ast: AST.UnionType<Members[number]["ast"]>,
+  ast: AST.Union<Members[number]["ast"]>,
   members: Members
 ): Union<Members> {
   return makeProto(ast, {
@@ -2303,8 +2299,8 @@ export function Union<const Members extends ReadonlyArray<Top>>(
 /**
  * @since 4.0.0
  */
-export interface Literals<L extends ReadonlyArray<AST.Literal>>
-  extends Bottom<L[number], L[number], never, never, AST.UnionType<AST.LiteralType>, Literals<L>>
+export interface Literals<L extends ReadonlyArray<AST.LiteralValue>>
+  extends Bottom<L[number], L[number], never, never, AST.Union<AST.Literal>, Literals<L>>
 {
   readonly "~rebuild.out": this
   readonly literals: L
@@ -2322,7 +2318,7 @@ export interface Literals<L extends ReadonlyArray<AST.Literal>>
  * @category Constructors
  * @since 4.0.0
  */
-export function Literals<const L extends ReadonlyArray<AST.Literal>>(literals: L): Literals<L> {
+export function Literals<const L extends ReadonlyArray<AST.LiteralValue>>(literals: L): Literals<L> {
   const members = literals.map(Literal) as { readonly [K in keyof L]: Literal<L[K]> }
   return makeProto(AST.union(members, "anyOf", undefined), {
     literals,
@@ -2860,7 +2856,7 @@ export function withDecodingDefault<S extends Top>(
 /**
  * @since 4.0.0
  */
-export interface tag<Tag extends AST.Literal> extends withConstructorDefault<Literal<Tag>> {}
+export interface tag<Tag extends AST.LiteralValue> extends withConstructorDefault<Literal<Tag>> {}
 
 /**
  * Creates a schema for a literal value that automatically provides itself as a
@@ -2873,14 +2869,14 @@ export interface tag<Tag extends AST.Literal> extends withConstructorDefault<Lit
  *
  * @since 4.0.0
  */
-export function tag<Tag extends AST.Literal>(literal: Tag): tag<Tag> {
+export function tag<Tag extends AST.LiteralValue>(literal: Tag): tag<Tag> {
   return Literal(literal).pipe(withConstructorDefault(() => Option_.some(literal)))
 }
 
 /**
  * @since 4.0.0
  */
-export type TaggedStruct<Tag extends AST.Literal, Fields extends Struct.Fields> = Struct<
+export type TaggedStruct<Tag extends AST.LiteralValue, Fields extends Struct.Fields> = Struct<
   { readonly _tag: tag<Tag> } & Fields
 >
 
@@ -2926,7 +2922,7 @@ export type TaggedStruct<Tag extends AST.Literal, Fields extends Struct.Fields> 
  * @category Constructors
  * @since 4.0.0
  */
-export function TaggedStruct<const Tag extends AST.Literal, const Fields extends Struct.Fields>(
+export function TaggedStruct<const Tag extends AST.LiteralValue, const Fields extends Struct.Fields>(
   value: Tag,
   fields: Fields
 ): TaggedStruct<Tag, Fields> {
@@ -2966,10 +2962,10 @@ type TaggedUnionUtils<
 
 /** @internal */
 export function getTag(tag: PropertyKey, ast: AST.AST): PropertyKey | undefined {
-  if (AST.isTypeLiteral(ast)) {
+  if (AST.isObjects(ast)) {
     const ps = ast.propertySignatures.find((p) => p.name === tag)
     if (ps) {
-      if (AST.isLiteralType(ps.type) && Predicate.isPropertyKey(ps.type.literal)) {
+      if (AST.isLiteral(ps.type) && Predicate.isPropertyKey(ps.type.literal)) {
         return ps.type.literal
       } else if (AST.isUniqueSymbol(ps.type)) {
         return ps.type.symbol
@@ -3001,9 +2997,9 @@ export function asTaggedUnion<const Tag extends PropertyKey>(tag: Tag) {
 
     function process(schema: any) {
       const ast = schema.ast
-      if (AST.isUnionType(ast)) {
+      if (AST.isUnion(ast)) {
         schema.members.forEach(process)
-      } else if (AST.isTypeLiteral(ast)) {
+      } else if (AST.isObjects(ast)) {
         const value = getTag(tag, ast)
         if (value) {
           cases[value] = schema
@@ -3042,7 +3038,7 @@ export interface TaggedUnion<Cases extends Record<string, Top>> extends
     { [K in keyof Cases]: Cases[K]["Encoded"] }[keyof Cases],
     { [K in keyof Cases]: Cases[K]["DecodingServices"] }[keyof Cases],
     { [K in keyof Cases]: Cases[K]["EncodingServices"] }[keyof Cases],
-    AST.UnionType<AST.TypeLiteral>,
+    AST.Union<AST.Objects>,
     TaggedUnion<Cases>,
     { [K in keyof Cases]: Cases[K]["~type.make"] }[keyof Cases]
   >
@@ -6590,25 +6586,25 @@ export const defaultVisitorFormat: AST.Visitor<Format<any>> = {
     return Option_.none()
   },
   Declaration: defaultFormat,
-  NullKeyword: defaultFormat,
-  UndefinedKeyword: defaultFormat,
-  VoidKeyword: () => () => "void",
-  NeverKeyword: (ast) => {
+  Null: defaultFormat,
+  Undefined: defaultFormat,
+  Void: () => () => "void",
+  Never: (ast) => {
     throw new globalThis.Error("cannot generate Pretty, no annotation found for never", { cause: ast })
   },
-  UnknownKeyword: defaultFormat,
-  AnyKeyword: defaultFormat,
-  StringKeyword: defaultFormat,
-  NumberKeyword: defaultFormat,
-  BooleanKeyword: defaultFormat,
-  BigIntKeyword: defaultFormat,
-  SymbolKeyword: defaultFormat,
+  Unknown: defaultFormat,
+  Any: defaultFormat,
+  String: defaultFormat,
+  Number: defaultFormat,
+  Boolean: defaultFormat,
+  BigInt: defaultFormat,
+  Symbol: defaultFormat,
   UniqueSymbol: defaultFormat,
   ObjectKeyword: defaultFormat,
   Enums: defaultFormat,
-  LiteralType: defaultFormat,
+  Literal: defaultFormat,
   TemplateLiteral: defaultFormat,
-  TupleType: (ast, visit) => (t) => {
+  Arrays: (ast, visit) => (t) => {
     const elements = ast.elements.map(visit)
     const rest = ast.rest.map(visit)
     const out: Array<string> = []
@@ -6644,7 +6640,7 @@ export const defaultVisitorFormat: AST.Visitor<Format<any>> = {
 
     return "[" + out.join(", ") + "]"
   },
-  TypeLiteral: (ast, visit) => {
+  Objects: (ast, visit) => {
     const propertySignatures = ast.propertySignatures.map((ps) => visit(ps.type))
     const indexSignatures = ast.indexSignatures.map((is) => visit(is.type))
     if (ast.propertySignatures.length === 0 && ast.indexSignatures.length === 0) {
@@ -6684,7 +6680,7 @@ export const defaultVisitorFormat: AST.Visitor<Format<any>> = {
       return out.length > 0 ? "{ " + out.join(", ") + " }" : "{}"
     }
   },
-  UnionType: (_, visit, getCandidates) => (t) => {
+  Union: (_, visit, getCandidates) => (t) => {
     const candidates = getCandidates(t)
     const refinements = candidates.map(ToParser.refinement)
     for (let i = 0; i < candidates.length; i++) {
@@ -6946,9 +6942,9 @@ export function xmlEncoder<T, E, RD, RE>(
 const goJson = memoize(AST.apply((ast: AST.AST): AST.AST => {
   function go(ast: AST.AST): AST.AST {
     switch (ast._tag) {
-      case "UnknownKeyword":
+      case "Unknown":
       case "ObjectKeyword":
-      case "NeverKeyword":
+      case "Never":
       case "Declaration": {
         const getLink = ast.annotations?.defaultJsonSerializer ?? ast.annotations?.serializer
         if (Predicate.isFunction(getLink)) {
@@ -6961,19 +6957,19 @@ const goJson = memoize(AST.apply((ast: AST.AST): AST.AST => {
         }
         return requiredGoJsonAnnotation(ast)
       }
-      case "VoidKeyword":
-      case "UndefinedKeyword":
-      case "SymbolKeyword":
+      case "Void":
+      case "Undefined":
+      case "Symbol":
       case "UniqueSymbol":
-      case "BigIntKeyword":
-      case "LiteralType":
-      case "NumberKeyword":
+      case "BigInt":
+      case "Literal":
+      case "Number":
         return ast.goJson()
-      case "TypeLiteral":
-      case "TupleType":
-      case "UnionType":
+      case "Objects":
+      case "Arrays":
+      case "Union":
       case "Suspend": {
-        if (AST.isTypeLiteral(ast)) {
+        if (AST.isObjects(ast)) {
           if (ast.propertySignatures.some((ps) => !Predicate.isString(ps.name))) {
             return forbidden(ast, "TypeLiteral property names must be strings")
           }
@@ -6999,7 +6995,7 @@ function requiredGoJsonAnnotation(ast: AST.AST): AST.AST {
 function forbidden<A extends AST.AST>(ast: A, message: string): A {
   return AST.replaceEncoding(ast, [
     new AST.Link(
-      AST.neverKeyword,
+      AST.never,
       new Transformation.Transformation(
         Getter.passthrough(),
         Getter.forbidden(() => message)
@@ -7020,9 +7016,9 @@ const goIso = memoize((ast: AST.AST): AST.AST => {
         }
         return ast
       }
-      case "TupleType":
-      case "TypeLiteral":
-      case "UnionType":
+      case "Arrays":
+      case "Objects":
+      case "Union":
       case "Suspend":
         return ast.go(goIso)
     }
@@ -7035,9 +7031,9 @@ const goIso = memoize((ast: AST.AST): AST.AST => {
 const goStringPojo = memoize(AST.apply((ast: AST.AST): AST.AST => {
   function go(ast: AST.AST): AST.AST {
     switch (ast._tag) {
-      case "UnknownKeyword":
+      case "Unknown":
       case "ObjectKeyword":
-      case "NeverKeyword":
+      case "Never":
       case "Declaration": {
         const getLink = ast.annotations?.defaultJsonSerializer ?? ast.annotations?.serializer
         if (Predicate.isFunction(getLink)) {
@@ -7050,23 +7046,23 @@ const goStringPojo = memoize(AST.apply((ast: AST.AST): AST.AST => {
         }
         return requiredGoJsonAnnotation(ast)
       }
-      case "NullKeyword":
+      case "Null":
         return AST.replaceEncoding(ast, [nullStringPojoLink])
-      case "BooleanKeyword":
+      case "Boolean":
         return AST.replaceEncoding(ast, [booleanStringPojoLink])
       case "Enums":
-      case "NumberKeyword":
-      case "LiteralType":
+      case "Number":
+      case "Literal":
         return ast.goStringPojo()
-      case "BigIntKeyword":
-      case "SymbolKeyword":
+      case "BigInt":
+      case "Symbol":
       case "UniqueSymbol":
         return ast.goJson()
-      case "TypeLiteral":
-      case "TupleType":
-      case "UnionType":
+      case "Objects":
+      case "Arrays":
+      case "Union":
       case "Suspend": {
-        if (AST.isTypeLiteral(ast)) {
+        if (AST.isObjects(ast)) {
           if (ast.propertySignatures.some((ps) => !Predicate.isString(ps.name))) {
             return forbidden(ast, "TypeLiteral property names must be strings")
           }
@@ -7081,7 +7077,7 @@ const goStringPojo = memoize(AST.apply((ast: AST.AST): AST.AST => {
 }))
 
 const nullStringPojoLink = new AST.Link(
-  AST.undefinedKeyword,
+  AST.undefined,
   new Transformation.Transformation(
     Getter.transform(() => null),
     Getter.transform(() => undefined)
@@ -7089,7 +7085,7 @@ const nullStringPojoLink = new AST.Link(
 )
 
 const booleanStringPojoLink = new AST.Link(
-  new AST.UnionType([new AST.LiteralType("true"), new AST.LiteralType("false")], "anyOf"),
+  new AST.Union([new AST.Literal("true"), new AST.Literal("false")], "anyOf"),
   new Transformation.Transformation(
     Getter.transform((s) => s === "true"),
     Getter.String()
@@ -7099,16 +7095,16 @@ const booleanStringPojoLink = new AST.Link(
 const ENSURE_ARRAY_ANNOTATION_KEY = "~effect/schema/Serializer/ensureArray"
 
 const goEnsureArray = memoize(AST.apply((ast: AST.AST): AST.AST => {
-  if (AST.isUnionType(ast) && ast.annotations?.[ENSURE_ARRAY_ANNOTATION_KEY]) {
+  if (AST.isUnion(ast) && ast.annotations?.[ENSURE_ARRAY_ANNOTATION_KEY]) {
     return ast
   }
   const out: AST.AST = (ast as any).go?.(goEnsureArray) ?? ast
-  if (AST.isTupleType(out)) {
-    const ensure = new AST.UnionType(
+  if (AST.isArrays(out)) {
+    const ensure = new AST.Union(
       [
         out,
         AST.decodeTo(
-          AST.stringKeyword,
+          AST.string,
           out,
           new Transformation.Transformation(
             Getter.split(),

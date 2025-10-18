@@ -423,7 +423,7 @@ export class OneOf extends Base {
   /**
    * The schema that caused the issue.
    */
-  readonly ast: AST.UnionType
+  readonly ast: AST.Union
   /**
    * The input value that caused the issue.
    */
@@ -437,7 +437,7 @@ export class OneOf extends Base {
     /**
      * The schema that caused the issue.
      */
-    ast: AST.UnionType,
+    ast: AST.Union,
     /**
      * The input value that caused the issue.
      */

@@ -6780,15 +6780,31 @@ v3
 ```ts
 import { Schema } from "effect"
 
-const schema = Schema.Struct({
-  a: Schema.String
-}).pipe(Schema.attachPropertySignature("b", "b"))
+const Circle = Schema.Struct({
+  radius: Schema.Number
+})
 
-console.log(Schema.decodeUnknownSync(schema)({ a: "a" }))
-// { a: 'a', b: 'b' }
+const Square = Schema.Struct({
+  sideLength: Schema.Number
+})
 
-console.log(Schema.encodeUnknownSync(schema)({ a: "a", b: "b" }))
-// { a: 'a' }
+const DiscriminatedShape = Schema.Union(
+  Circle.pipe(Schema.attachPropertySignature("kind", "circle")),
+  Square.pipe(Schema.attachPropertySignature("kind", "square"))
+)
+
+// decoding
+console.log(Schema.decodeUnknownSync(DiscriminatedShape)({ radius: 10 }))
+// { radius: 10, kind: 'circle' }
+
+// encoding
+console.log(
+  Schema.encodeSync(DiscriminatedShape)({
+    kind: "circle",
+    radius: 10
+  })
+)
+// { radius: 10 }
 ```
 
 v4
@@ -6801,14 +6817,13 @@ const schema = Schema.Struct({
   b: Schema.Literal("b").pipe(Schema.withDecodingDefaultKey(() => "b", { encodingStrategy: "omit" }))
 })
 
-console.log(Schema.decodeUnknownSync(schema)({ a: "a", b: "b" }))
-// { a: 'a', b: 'b' }
+// decoding
 
 console.log(Schema.decodeUnknownSync(schema)({ a: "a", b: "b" }))
 // { a: 'a', b: 'b' }
 
-console.log(Schema.encodeUnknownSync(schema)({ a: "a", b: "b" }))
-// { a: 'a' }
+console.log(Schema.decodeUnknownSync(schema)({ a: "a", b: "b" }))
+// { a: 'a', b: 'b' }
 
 Schema.decodeUnknownSync(schema)({ a: "a", b: "c" })
 /*
@@ -6816,6 +6831,11 @@ throws:
 Error: Expected "b", got "c"
   at ["b"]
 */
+
+// encoding
+
+console.log(Schema.encodeUnknownSync(schema)({ a: "a", b: "b" }))
+// { a: 'a' }
 ```
 
 ### annotations

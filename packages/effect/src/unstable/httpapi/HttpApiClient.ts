@@ -472,7 +472,7 @@ const schemaFromArrayBuffer = (
   ast: AST.AST,
   encoding: HttpApiSchema.Encoding
 ): Schema.decodeTo<Schema.Any, Schema.instanceOf<ArrayBuffer>> => {
-  if (AST.isUnionType(ast)) {
+  if (AST.isUnion(ast)) {
     return Schema.Union(
       ast.types.map((ast) => schemaFromArrayBuffer(ast, HttpApiSchema.getEncoding(ast, encoding)))
     ) as any
@@ -522,7 +522,7 @@ const responseAsVoid = (_response: HttpClientResponse.HttpClientResponse) => Eff
 const HttpBodySchema = Schema.declare(HttpBody.isHttpBody)
 
 const payloadSchemaBody = (schema: Schema.Top): Schema.decodeTo<typeof HttpBodySchema, Schema.Any> =>
-  AST.isUnionType(schema.ast)
+  AST.isUnion(schema.ast)
     ? Schema.Union(schema.ast.types.map(bodyFromPayload)) as any
     : bodyFromPayload(schema.ast) as any
 

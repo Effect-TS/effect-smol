@@ -257,11 +257,11 @@ export interface Optional<in out S, in out A> {
   refine<S, A, B extends A>(this: Prism<S, A>, refine: AST.Refine<B, A>): Prism<S, B>
   refine<S, A, B extends A>(this: Optional<S, A>, refine: AST.Refine<B, A>): Optional<S, B>
 
-  tag<S, A extends { readonly _tag: AST.Literal }, Tag extends A["_tag"]>(
+  tag<S, A extends { readonly _tag: AST.LiteralValue }, Tag extends A["_tag"]>(
     this: Prism<S, A>,
     tag: Tag
   ): Prism<S, Extract<A, { readonly _tag: Tag }>>
-  tag<S, A extends { readonly _tag: AST.Literal }, Tag extends A["_tag"]>(
+  tag<S, A extends { readonly _tag: AST.LiteralValue }, Tag extends A["_tag"]>(
     this: Optional<S, A>,
     tag: Tag
   ): Optional<S, Extract<A, { readonly _tag: Tag }>>

@@ -344,8 +344,8 @@ Expected an integer, got -1.2`
     await encoding.fail("1", `Expected void, got "1"`)
   })
 
-  it("Object", async () => {
-    const schema = Schema.Object
+  it("ObjectKeyword", async () => {
+    const schema = Schema.ObjectKeyword
     const asserts = new TestSchema.Asserts(schema)
 
     const make = asserts.make()
@@ -368,7 +368,7 @@ Expected an integer, got -1.2`
     it("should throw an error if there are duplicate property signatures", () => {
       throws(
         () =>
-          new AST.TypeLiteral(
+          new AST.Objects(
             [
               new AST.PropertySignature("a", Schema.String.ast),
               new AST.PropertySignature("b", Schema.String.ast),
@@ -1685,7 +1685,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     it("should expose the source and the target schemas", () => {
       const schema = Schema.FiniteFromString
 
-      strictEqual(schema.from.ast._tag, "StringKeyword")
+      strictEqual(schema.from.ast._tag, "String")
       strictEqual(schema.to, Schema.Finite)
     })
 
@@ -3206,7 +3206,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
               Schema.Record(Schema.TemplateLiteral(["a", Schema.String]), Schema.Number)
             ]
           ),
-        new Error(`Duplicate index signatures: ["StringKeyword","a\${StringKeyword}"]. ts(2374)`)
+        new Error(`Duplicate index signatures: ["String","a\${String}"]. ts(2374)`)
       )
     })
 

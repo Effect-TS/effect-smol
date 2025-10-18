@@ -18,24 +18,24 @@ export const Declaration = Schema.instanceOf(
 )
 
 // TODO: do this for all of the other schemas
-const NullKeywordIso = Schema.Struct({
-  _tag: Schema.tag("NullKeyword")
+const NullIso = Schema.Struct({
+  _tag: Schema.tag("Null")
 })
 
 /**
  * @since 4.0.0
  */
-export const NullKeyword = Schema.instanceOf<typeof ast.NullKeyword, typeof NullKeywordIso["Iso"]>(
-  ast.NullKeyword,
+export const Null = Schema.instanceOf<typeof ast.Null, typeof NullIso["Iso"]>(
+  ast.Null,
   {
-    identifier: "NullKeyword",
-    "~sentinels": [{ key: "_tag", literal: "NullKeyword" }],
+    identifier: "Null",
+    "~sentinels": [{ key: "_tag", literal: "Null" }],
     serializer: () =>
-      Schema.link<ast.NullKeyword>()(
-        NullKeywordIso,
+      Schema.link<ast.Null>()(
+        NullIso,
         Transformation.transform({
-          decode: () => ast.nullKeyword,
-          encode: () => ({ _tag: "NullKeyword" }) as const
+          decode: () => ast.null,
+          encode: () => ({ _tag: "Null" }) as const
         })
       )
   }
@@ -44,19 +44,19 @@ export const NullKeyword = Schema.instanceOf<typeof ast.NullKeyword, typeof Null
 /**
  * @since 4.0.0
  */
-export const UndefinedKeyword = Schema.instanceOf(
-  ast.UndefinedKeyword,
+export const Undefined = Schema.instanceOf(
+  ast.Undefined,
   {
-    identifier: "UndefinedKeyword",
-    "~sentinels": [{ key: "_tag", literal: "UndefinedKeyword" }],
+    identifier: "Undefined",
+    "~sentinels": [{ key: "_tag", literal: "Undefined" }],
     serializer: () =>
-      Schema.link<ast.UndefinedKeyword>()(
+      Schema.link<ast.Undefined>()(
         Schema.Struct({
-          _tag: Schema.tag("UndefinedKeyword")
+          _tag: Schema.tag("Undefined")
         }),
         Transformation.transform({
-          decode: () => ast.undefinedKeyword,
-          encode: () => ({ _tag: "UndefinedKeyword" }) as const
+          decode: () => ast.undefined,
+          encode: () => ({ _tag: "Undefined" }) as const
         })
       )
   }
@@ -65,19 +65,19 @@ export const UndefinedKeyword = Schema.instanceOf(
 /**
  * @since 4.0.0
  */
-export const VoidKeyword = Schema.instanceOf(
-  ast.VoidKeyword,
+export const Void = Schema.instanceOf(
+  ast.Void,
   {
-    identifier: "VoidKeyword",
-    "~sentinels": [{ key: "_tag", literal: "VoidKeyword" }],
+    identifier: "Void",
+    "~sentinels": [{ key: "_tag", literal: "Void" }],
     serializer: () =>
-      Schema.link<ast.VoidKeyword>()(
+      Schema.link<ast.Void>()(
         Schema.Struct({
-          _tag: Schema.tag("VoidKeyword")
+          _tag: Schema.tag("Void")
         }),
         Transformation.transform({
-          decode: () => ast.voidKeyword,
-          encode: () => ({ _tag: "VoidKeyword" }) as const
+          decode: () => ast.void,
+          encode: () => ({ _tag: "Void" }) as const
         })
       )
   }
@@ -86,19 +86,19 @@ export const VoidKeyword = Schema.instanceOf(
 /**
  * @since 4.0.0
  */
-export const NeverKeyword = Schema.instanceOf(
-  ast.NeverKeyword,
+export const Never = Schema.instanceOf(
+  ast.Never,
   {
-    identifier: "NeverKeyword",
-    "~sentinels": [{ key: "_tag", literal: "NeverKeyword" }],
+    identifier: "Never",
+    "~sentinels": [{ key: "_tag", literal: "Never" }],
     serializer: () =>
-      Schema.link<ast.NeverKeyword>()(
+      Schema.link<ast.Never>()(
         Schema.Struct({
-          _tag: Schema.tag("NeverKeyword")
+          _tag: Schema.tag("Never")
         }),
         Transformation.transform({
-          decode: () => ast.neverKeyword,
-          encode: () => ({ _tag: "NeverKeyword" }) as const
+          decode: () => ast.never,
+          encode: () => ({ _tag: "Never" }) as const
         })
       )
   }
@@ -107,19 +107,19 @@ export const NeverKeyword = Schema.instanceOf(
 /**
  * @since 4.0.0
  */
-export const UnknownKeyword = Schema.instanceOf(
-  ast.UnknownKeyword,
+export const Unknown = Schema.instanceOf(
+  ast.Unknown,
   {
-    identifier: "UnknownKeyword",
-    "~sentinels": [{ key: "_tag", literal: "UnknownKeyword" }],
+    identifier: "Unknown",
+    "~sentinels": [{ key: "_tag", literal: "Unknown" }],
     serializer: () =>
-      Schema.link<ast.UnknownKeyword>()(
+      Schema.link<ast.Unknown>()(
         Schema.Struct({
-          _tag: Schema.tag("UnknownKeyword")
+          _tag: Schema.tag("Unknown")
         }),
         Transformation.transform({
-          decode: () => ast.unknownKeyword,
-          encode: () => ({ _tag: "UnknownKeyword" }) as const
+          decode: () => ast.unknown,
+          encode: () => ({ _tag: "Unknown" }) as const
         })
       )
   }
@@ -128,19 +128,19 @@ export const UnknownKeyword = Schema.instanceOf(
 /**
  * @since 4.0.0
  */
-export const AnyKeyword = Schema.instanceOf(
-  ast.AnyKeyword,
+export const Any = Schema.instanceOf(
+  ast.Any,
   {
-    identifier: "AnyKeyword",
-    "~sentinels": [{ key: "_tag", literal: "AnyKeyword" }],
+    identifier: "Any",
+    "~sentinels": [{ key: "_tag", literal: "Any" }],
     serializer: () =>
-      Schema.link<ast.AnyKeyword>()(
+      Schema.link<ast.Any>()(
         Schema.Struct({
-          _tag: Schema.tag("AnyKeyword")
+          _tag: Schema.tag("Any")
         }),
         Transformation.transform({
-          decode: () => ast.anyKeyword,
-          encode: () => ({ _tag: "AnyKeyword" }) as const
+          decode: () => ast.any,
+          encode: () => ({ _tag: "Any" }) as const
         })
       )
   }
@@ -149,19 +149,19 @@ export const AnyKeyword = Schema.instanceOf(
 /**
  * @since 4.0.0
  */
-export const StringKeyword = Schema.instanceOf(
-  ast.StringKeyword,
+export const String = Schema.instanceOf(
+  ast.String,
   {
-    identifier: "StringKeyword",
-    "~sentinels": [{ key: "_tag", literal: "StringKeyword" }],
+    identifier: "String",
+    "~sentinels": [{ key: "_tag", literal: "String" }],
     serializer: () =>
-      Schema.link<ast.StringKeyword>()(
+      Schema.link<ast.String>()(
         Schema.Struct({
-          _tag: Schema.tag("StringKeyword")
+          _tag: Schema.tag("String")
         }),
         Transformation.transform({
-          decode: () => ast.stringKeyword,
-          encode: () => ({ _tag: "StringKeyword" }) as const
+          decode: () => ast.string,
+          encode: () => ({ _tag: "String" }) as const
         })
       )
   }
@@ -170,19 +170,19 @@ export const StringKeyword = Schema.instanceOf(
 /**
  * @since 4.0.0
  */
-export const NumberKeyword = Schema.instanceOf(
-  ast.NumberKeyword,
+export const Number = Schema.instanceOf(
+  ast.Number,
   {
-    identifier: "NumberKeyword",
-    "~sentinels": [{ key: "_tag", literal: "NumberKeyword" }],
+    identifier: "Number",
+    "~sentinels": [{ key: "_tag", literal: "Number" }],
     serializer: () =>
-      Schema.link<ast.NumberKeyword>()(
+      Schema.link<ast.Number>()(
         Schema.Struct({
-          _tag: Schema.tag("NumberKeyword")
+          _tag: Schema.tag("Number")
         }),
         Transformation.transform({
-          decode: () => ast.numberKeyword,
-          encode: () => ({ _tag: "NumberKeyword" }) as const
+          decode: () => ast.number,
+          encode: () => ({ _tag: "Number" }) as const
         })
       )
   }
@@ -191,19 +191,19 @@ export const NumberKeyword = Schema.instanceOf(
 /**
  * @since 4.0.0
  */
-export const BooleanKeyword = Schema.instanceOf(
-  ast.BooleanKeyword,
+export const Boolean = Schema.instanceOf(
+  ast.Boolean,
   {
-    identifier: "BooleanKeyword",
-    "~sentinels": [{ key: "_tag", literal: "BooleanKeyword" }],
+    identifier: "Boolean",
+    "~sentinels": [{ key: "_tag", literal: "Boolean" }],
     serializer: () =>
-      Schema.link<ast.BooleanKeyword>()(
+      Schema.link<ast.Boolean>()(
         Schema.Struct({
-          _tag: Schema.tag("BooleanKeyword")
+          _tag: Schema.tag("Boolean")
         }),
         Transformation.transform({
-          decode: () => ast.booleanKeyword,
-          encode: () => ({ _tag: "BooleanKeyword" }) as const
+          decode: () => ast.boolean,
+          encode: () => ({ _tag: "Boolean" }) as const
         })
       )
   }
@@ -212,19 +212,19 @@ export const BooleanKeyword = Schema.instanceOf(
 /**
  * @since 4.0.0
  */
-export const BigIntKeyword = Schema.instanceOf(
-  ast.BigIntKeyword,
+export const BigInt = Schema.instanceOf(
+  ast.BigInt,
   {
-    identifier: "BigIntKeyword",
-    "~sentinels": [{ key: "_tag", literal: "BigIntKeyword" }],
+    identifier: "BigInt",
+    "~sentinels": [{ key: "_tag", literal: "BigInt" }],
     serializer: () =>
-      Schema.link<ast.BigIntKeyword>()(
+      Schema.link<ast.BigInt>()(
         Schema.Struct({
-          _tag: Schema.tag("BigIntKeyword")
+          _tag: Schema.tag("BigInt")
         }),
         Transformation.transform({
-          decode: () => ast.bigIntKeyword,
-          encode: () => ({ _tag: "BigIntKeyword" }) as const
+          decode: () => ast.bigInt,
+          encode: () => ({ _tag: "BigInt" }) as const
         })
       )
   }
@@ -233,19 +233,19 @@ export const BigIntKeyword = Schema.instanceOf(
 /**
  * @since 4.0.0
  */
-export const SymbolKeyword = Schema.instanceOf(
-  ast.SymbolKeyword,
+export const Symbol = Schema.instanceOf(
+  ast.Symbol,
   {
-    identifier: "SymbolKeyword",
-    "~sentinels": [{ key: "_tag", literal: "SymbolKeyword" }],
+    identifier: "Symbol",
+    "~sentinels": [{ key: "_tag", literal: "Symbol" }],
     serializer: () =>
-      Schema.link<ast.SymbolKeyword>()(
+      Schema.link<ast.Symbol>()(
         Schema.Struct({
-          _tag: Schema.tag("SymbolKeyword")
+          _tag: Schema.tag("Symbol")
         }),
         Transformation.transform({
-          decode: () => ast.symbolKeyword,
-          encode: () => ({ _tag: "SymbolKeyword" }) as const
+          decode: () => ast.symbol,
+          encode: () => ({ _tag: "Symbol" }) as const
         })
       )
   }
@@ -254,20 +254,20 @@ export const SymbolKeyword = Schema.instanceOf(
 /**
  * @since 4.0.0
  */
-export const LiteralType = Schema.instanceOf(
-  ast.LiteralType,
+export const Literal = Schema.instanceOf(
+  ast.Literal,
   {
-    identifier: "LiteralType",
-    "~sentinels": [{ key: "_tag", literal: "LiteralType" }],
+    identifier: "Literal",
+    "~sentinels": [{ key: "_tag", literal: "Literal" }],
     serializer: () =>
-      Schema.link<ast.LiteralType>()(
+      Schema.link<ast.Literal>()(
         Schema.Struct({
-          _tag: Schema.tag("LiteralType"),
+          _tag: Schema.tag("Literal"),
           literal: Schema.Union([Schema.String, Schema.Number, Schema.Boolean, Schema.BigInt])
         }),
         Transformation.transform({
-          decode: (i) => new ast.LiteralType(i.literal),
-          encode: (a) => ({ _tag: "LiteralType", literal: a.literal }) as const
+          decode: (i) => new ast.Literal(i.literal),
+          encode: (a) => ({ _tag: "Literal", literal: a.literal }) as const
         })
       )
   }
@@ -365,22 +365,22 @@ export const TemplateLiteral = Schema.instanceOf(
 /**
  * @since 4.0.0
  */
-export const TupleType = Schema.instanceOf(
-  ast.TupleType,
+export const Arrays = Schema.instanceOf(
+  ast.Arrays,
   {
-    identifier: "TupleType",
-    "~sentinels": [{ key: "_tag", literal: "TupleType" }],
+    identifier: "Arrays",
+    "~sentinels": [{ key: "_tag", literal: "Arrays" }],
     serializer: () =>
-      Schema.link<ast.TupleType>()(
+      Schema.link<ast.Arrays>()(
         Schema.Struct({
-          _tag: Schema.tag("TupleType"),
+          _tag: Schema.tag("Arrays"),
           isMutable: Schema.Boolean,
           elements: Schema.Array(SuspendedAST),
           rest: Schema.Array(SuspendedAST)
         }),
         Transformation.transform({
-          decode: (i) => new ast.TupleType(i.isMutable, i.elements, i.rest),
-          encode: (a) => ({ _tag: "TupleType", isMutable: a.isMutable, elements: a.elements, rest: a.rest }) as const
+          decode: (i) => new ast.Arrays(i.isMutable, i.elements, i.rest),
+          encode: (a) => ({ _tag: "Arrays", isMutable: a.isMutable, elements: a.elements, rest: a.rest }) as const
         })
       )
   }
@@ -394,24 +394,24 @@ const PropertySignature = Schema.Struct({
 /**
  * @since 4.0.0
  */
-export const TypeLiteral = Schema.instanceOf(
-  ast.TypeLiteral,
+export const Objects = Schema.instanceOf(
+  ast.Objects,
   {
-    identifier: "TypeLiteral",
-    "~sentinels": [{ key: "_tag", literal: "TypeLiteral" }],
+    identifier: "Objects",
+    "~sentinels": [{ key: "_tag", literal: "Objects" }],
     serializer: () =>
-      Schema.link<ast.TypeLiteral>()(
+      Schema.link<ast.Objects>()(
         Schema.Struct({
-          _tag: Schema.tag("TypeLiteral"),
+          _tag: Schema.tag("Objects"),
           propertySignatures: Schema.Array(PropertySignature)
         }),
         Transformation.transform({
           decode: (i) =>
-            new ast.TypeLiteral(
+            new ast.Objects(
               i.propertySignatures.map(({ name, type }) => new ast.PropertySignature(name, type)),
               []
             ),
-          encode: (a) => ({ _tag: "TypeLiteral", propertySignatures: a.propertySignatures }) as const
+          encode: (a) => ({ _tag: "Objects", propertySignatures: a.propertySignatures }) as const
         })
       )
   }
@@ -420,21 +420,21 @@ export const TypeLiteral = Schema.instanceOf(
 /**
  * @since 4.0.0
  */
-export const UnionType = Schema.instanceOf(
-  ast.UnionType,
+export const Union = Schema.instanceOf(
+  ast.Union,
   {
-    identifier: "UnionType",
-    "~sentinels": [{ key: "_tag", literal: "UnionType" }],
+    identifier: "Union",
+    "~sentinels": [{ key: "_tag", literal: "Union" }],
     serializer: () =>
-      Schema.link<ast.UnionType>()(
+      Schema.link<ast.Union>()(
         Schema.Struct({
-          _tag: Schema.tag("UnionType"),
+          _tag: Schema.tag("Union"),
           mode: Schema.Literals(["anyOf", "oneOf"]),
           types: Schema.Array(SuspendedAST)
         }),
         Transformation.transform({
-          decode: (i) => new ast.UnionType(i.types, i.mode),
-          encode: (a) => ({ _tag: "UnionType", mode: a.mode, types: a.types }) as const
+          decode: (i) => new ast.Union(i.types, i.mode),
+          encode: (a) => ({ _tag: "Union", mode: a.mode, types: a.types }) as const
         })
       )
   }
@@ -456,25 +456,25 @@ export const Suspend = Schema.instanceOf(
  */
 export const AST = Schema.Union([
   Declaration,
-  NullKeyword,
-  UndefinedKeyword,
-  VoidKeyword,
-  NeverKeyword,
-  UnknownKeyword,
-  AnyKeyword,
-  StringKeyword,
-  NumberKeyword,
-  BooleanKeyword,
-  BigIntKeyword,
-  SymbolKeyword,
-  LiteralType,
+  Null,
+  Undefined,
+  Void,
+  Never,
+  Unknown,
+  Any,
+  String,
+  Number,
+  Boolean,
+  BigInt,
+  Symbol,
+  Literal,
   UniqueSymbol,
   ObjectKeyword,
   Enums,
   TemplateLiteral,
-  TupleType,
-  TypeLiteral,
-  UnionType,
+  Arrays,
+  Objects,
+  Union,
   Suspend
 ]).annotate({ identifier: "AST" })
 
