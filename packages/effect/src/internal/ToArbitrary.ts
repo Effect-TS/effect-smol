@@ -211,7 +211,7 @@ export const go = memoize((ast: AST.AST): Schema.LazyArbitrary<any> => {
       return (fc) => fc.constant(ast.symbol)
     case "ObjectKeyword":
       return (fc) => fc.oneof(fc.object(), fc.array(fc.anything()))
-    case "Enums":
+    case "Enum":
       return go(AST.enumsToLiterals(ast))
     case "TemplateLiteral":
       return (fc) => fc.stringMatching(AST.getTemplateLiteralRegExp(ast))

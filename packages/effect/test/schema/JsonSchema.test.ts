@@ -1174,13 +1174,13 @@ describe("ToJsonSchema", () => {
       })
     })
 
-    describe("Enums", () => {
+    describe("Enum", () => {
       it("empty enum", async () => {
         enum Empty {}
-        await assertDraft7(Schema.Enums(Empty), {
+        await assertDraft7(Schema.Enum(Empty), {
           "not": {}
         })
-        await assertDraft7(Schema.Enums(Empty).annotate({ description: "description" }), {
+        await assertDraft7(Schema.Enum(Empty).annotate({ description: "description" }), {
           "not": {},
           "description": "description"
         })
@@ -1190,12 +1190,12 @@ describe("ToJsonSchema", () => {
         enum Fruits {
           Apple
         }
-        await assertDraft7(Schema.Enums(Fruits), {
+        await assertDraft7(Schema.Enum(Fruits), {
           "type": "number",
           "title": "Apple",
           "enum": [0]
         })
-        await assertDraft7(Schema.Enums(Fruits).annotate({ description: "description" }), {
+        await assertDraft7(Schema.Enum(Fruits).annotate({ description: "description" }), {
           "type": "number",
           "title": "Apple",
           "enum": [0],
@@ -1203,14 +1203,14 @@ describe("ToJsonSchema", () => {
         })
       })
 
-      it("Enums", async () => {
+      it("Enum", async () => {
         enum Fruits {
           Apple,
           Banana,
           Orange = "orange"
         }
 
-        const schema = Schema.Enums(Fruits)
+        const schema = Schema.Enum(Fruits)
         await assertDraft7(schema, {
           anyOf: [
             { type: "number", enum: [0], title: "Apple" },
@@ -1220,14 +1220,14 @@ describe("ToJsonSchema", () => {
         })
       })
 
-      it("Enums & annotate", async () => {
+      it("Enum & annotate", async () => {
         enum Fruits {
           Apple,
           Banana,
           Orange = "orange"
         }
 
-        const schema = Schema.Enums(Fruits).annotate({
+        const schema = Schema.Enum(Fruits).annotate({
           title: "title",
           description: "description",
           default: Fruits.Apple,
@@ -1246,13 +1246,13 @@ describe("ToJsonSchema", () => {
         })
       })
 
-      it("const enums", async () => {
+      it("const enum", async () => {
         const Fruits = {
           Apple: "apple",
           Banana: "banana",
           Cantaloupe: 3
         } as const
-        await assertDraft7(Schema.Enums(Fruits), {
+        await assertDraft7(Schema.Enum(Fruits), {
           "anyOf": [
             { "type": "string", "title": "Apple", "enum": ["apple"] },
             { "type": "string", "title": "Banana", "enum": ["banana"] },

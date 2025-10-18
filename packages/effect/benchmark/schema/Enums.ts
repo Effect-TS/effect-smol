@@ -17,7 +17,7 @@ enum Enum {
   B = "b"
 }
 
-const schema = Schema.Enums(Enum)
+const schema = Schema.Enum(Enum)
 
 const good = "b"
 const bad = "c"

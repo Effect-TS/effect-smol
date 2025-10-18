@@ -137,31 +137,31 @@ describe("ToArbitrary", () => {
     })
   })
 
-  describe("Enums", () => {
-    it("Numeric enums", () => {
+  describe("Enum", () => {
+    it("Numeric enum", () => {
       enum Fruits {
         Apple,
         Banana
       }
-      verifyGeneration(Schema.Enums(Fruits))
+      verifyGeneration(Schema.Enum(Fruits))
     })
 
-    it("String enums", () => {
+    it("String enum", () => {
       enum Fruits {
         Apple = "apple",
         Banana = "banana",
         Cantaloupe = 0
       }
-      verifyGeneration(Schema.Enums(Fruits))
+      verifyGeneration(Schema.Enum(Fruits))
     })
 
-    it("Const enums", () => {
+    it("Const enum", () => {
       const Fruits = {
         Apple: "apple",
         Banana: "banana",
         Cantaloupe: 3
       } as const
-      verifyGeneration(Schema.Enums(Fruits))
+      verifyGeneration(Schema.Enum(Fruits))
     })
   })
 

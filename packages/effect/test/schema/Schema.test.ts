@@ -4869,17 +4869,17 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
         Apple,
         Banana
       }
-      const schema = Schema.Enums(Fruits)
+      const schema = Schema.Enum(Fruits)
       strictEqual(schema.enums.Apple, 0)
       strictEqual(schema.enums.Banana, 1)
     })
 
-    it("Numeric enums", async () => {
+    it("Numeric enum", async () => {
       enum Fruits {
         Apple,
         Banana
       }
-      const schema = Schema.Enums(Fruits)
+      const schema = Schema.Enum(Fruits)
       const asserts = new TestSchema.Asserts(schema)
 
       const decoding = asserts.decoding()
@@ -4898,13 +4898,13 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       await encoding.succeed(Fruits.Banana, 1)
     })
 
-    it("String enums", async () => {
+    it("String enum", async () => {
       enum Fruits {
         Apple = "apple",
         Banana = "banana",
         Cantaloupe = 0
       }
-      const schema = Schema.Enums(Fruits)
+      const schema = Schema.Enum(Fruits)
       const asserts = new TestSchema.Asserts(schema)
 
       const decoding = asserts.decoding()
@@ -4926,13 +4926,13 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       await encoding.succeed(Fruits.Cantaloupe)
     })
 
-    it("Const enums", async () => {
+    it("Const enum", async () => {
       const Fruits = {
         Apple: "apple",
         Banana: "banana",
         Cantaloupe: 3
       } as const
-      const schema = Schema.Enums(Fruits)
+      const schema = Schema.Enum(Fruits)
       const asserts = new TestSchema.Asserts(schema)
 
       const decoding = asserts.decoding()

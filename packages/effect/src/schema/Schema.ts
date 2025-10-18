@@ -1163,8 +1163,8 @@ export function TemplateLiteralParser<const Parts extends TemplateLiteral.Parts>
 /**
  * @since 4.0.0
  */
-export interface Enums<A extends { [x: string]: string | number }>
-  extends Bottom<A[keyof A], A[keyof A], never, never, AST.Enums, Enums<A>>
+export interface Enum<A extends { [x: string]: string | number }>
+  extends Bottom<A[keyof A], A[keyof A], never, never, AST.Enum, Enum<A>>
 {
   readonly "~rebuild.out": this
   readonly enums: A
@@ -1173,9 +1173,9 @@ export interface Enums<A extends { [x: string]: string | number }>
 /**
  * @since 4.0.0
  */
-export function Enums<A extends { [x: string]: string | number }>(enums: A): Enums<A> {
+export function Enum<A extends { [x: string]: string | number }>(enums: A): Enum<A> {
   return makeProto(
-    new AST.Enums(
+    new AST.Enum(
       Object.keys(enums).filter(
         (key) => typeof enums[enums[key]] !== "number"
       ).map((key) => [key, enums[key]])
@@ -6601,7 +6601,7 @@ export const defaultVisitorFormat: AST.Visitor<Format<any>> = {
   Symbol: defaultFormat,
   UniqueSymbol: defaultFormat,
   ObjectKeyword: defaultFormat,
-  Enums: defaultFormat,
+  Enum: defaultFormat,
   Literal: defaultFormat,
   TemplateLiteral: defaultFormat,
   Arrays: (ast, visit) => (t) => {
@@ -7050,7 +7050,7 @@ const goStringPojo = memoize(AST.apply((ast: AST.AST): AST.AST => {
         return AST.replaceEncoding(ast, [nullStringPojoLink])
       case "Boolean":
         return AST.replaceEncoding(ast, [booleanStringPojoLink])
-      case "Enums":
+      case "Enum":
       case "Number":
       case "Literal":
         return ast.goStringPojo()

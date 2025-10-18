@@ -39,7 +39,7 @@ export const go = memoize((ast: AST.AST): Equivalence.Equivalence<any> => {
     case "Literal":
     case "UniqueSymbol":
     case "ObjectKeyword":
-    case "Enums":
+    case "Enum":
     case "TemplateLiteral":
       return Equal.equals
     case "Arrays": {

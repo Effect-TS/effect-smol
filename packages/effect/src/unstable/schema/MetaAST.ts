@@ -319,20 +319,20 @@ export const ObjectKeyword = Schema.instanceOf(
 /**
  * @since 4.0.0
  */
-export const Enums = Schema.instanceOf(
-  ast.Enums,
+export const Enum = Schema.instanceOf(
+  ast.Enum,
   {
-    identifier: "Enums",
-    "~sentinels": [{ key: "_tag", literal: "Enums" }],
+    identifier: "Enum",
+    "~sentinels": [{ key: "_tag", literal: "Enum" }],
     serializer: () =>
-      Schema.link<ast.Enums>()(
+      Schema.link<ast.Enum>()(
         Schema.Struct({
-          _tag: Schema.tag("Enums"),
+          _tag: Schema.tag("Enum"),
           enums: Schema.Array(Schema.Tuple([Schema.String, Schema.Union([Schema.String, Schema.Number])]))
         }),
         Transformation.transform({
-          decode: (i) => new ast.Enums(i.enums),
-          encode: (a) => ({ _tag: "Enums", enums: a.enums }) as const
+          decode: (i) => new ast.Enum(i.enums),
+          encode: (a) => ({ _tag: "Enum", enums: a.enums }) as const
         })
       )
   }
@@ -470,7 +470,7 @@ export const AST = Schema.Union([
   Literal,
   UniqueSymbol,
   ObjectKeyword,
-  Enums,
+  Enum,
   TemplateLiteral,
   Arrays,
   Objects,

@@ -112,33 +112,33 @@ describe("ToFormat", () => {
     strictEqual(format("ab"), `"ab"`)
   })
 
-  describe("Enums", () => {
-    it("Numeric enums", () => {
+  describe("Enum", () => {
+    it("Numeric enum", () => {
       enum Fruits {
         Apple,
         Banana
       }
-      const format = Schema.makeFormat(Schema.Enums(Fruits))
+      const format = Schema.makeFormat(Schema.Enum(Fruits))
       strictEqual(format(Fruits.Apple), "0")
     })
 
-    it("String enums", () => {
+    it("String enum", () => {
       enum Fruits {
         Apple = "apple",
         Banana = "banana",
         Cantaloupe = 0
       }
-      const format = Schema.makeFormat(Schema.Enums(Fruits))
+      const format = Schema.makeFormat(Schema.Enum(Fruits))
       strictEqual(format(Fruits.Apple), `"apple"`)
     })
 
-    it("Const enums", () => {
+    it("Const enum", () => {
       const Fruits = {
         Apple: "apple",
         Banana: "banana",
         Cantaloupe: 3
       } as const
-      const format = Schema.makeFormat(Schema.Enums(Fruits))
+      const format = Schema.makeFormat(Schema.Enum(Fruits))
       strictEqual(format(Fruits.Apple), `"apple"`)
     })
   })

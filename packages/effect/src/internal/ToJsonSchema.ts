@@ -369,7 +369,7 @@ function go(
       if (ignoreErrors) return {}
       throw new Error(`cannot generate JSON Schema for ${ast._tag} at ${formatPath(path) || "root"}`)
     }
-    case "Enums": {
+    case "Enum": {
       return {
         ...go(AST.enumsToLiterals(ast), path, options),
         ...getChecksJsonFragment(ast, target)

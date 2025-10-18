@@ -43,7 +43,7 @@ export type AST =
   | Literal
   | UniqueSymbol
   | ObjectKeyword
-  | Enums
+  | Enum
   | TemplateLiteral
   | Arrays
   | Objects
@@ -148,7 +148,7 @@ export const isObjectKeyword = makeGuard("ObjectKeyword")
  * @category Guard
  * @since 4.0.0
  */
-export const isEnums = makeGuard("Enums")
+export const isEnum = makeGuard("Enum")
 
 /**
  * @category Guard
@@ -547,8 +547,8 @@ export const objectKeyword = new ObjectKeyword()
  * @category model
  * @since 4.0.0
  */
-export class Enums extends Base {
-  readonly _tag = "Enums"
+export class Enum extends Base {
+  readonly _tag = "Enum"
   readonly enums: ReadonlyArray<readonly [string, string | number]>
 
   constructor(
@@ -1589,7 +1589,7 @@ function getCandidateTypes(ast: AST): ReadonlyArray<Type> {
       return ast.propertySignatures.length || ast.indexSignatures.length
         ? ["object"]
         : ["object", "array"]
-    case "Enums":
+    case "Enum":
       return ["string", "number"]
     case "Literal":
       return [typeof ast.literal]
@@ -2554,7 +2554,7 @@ function fromRefinement<T>(
 }
 
 /** @internal */
-export const enumsToLiterals = memoize((ast: Enums): Union<Literal> => {
+export const enumsToLiterals = memoize((ast: Enum): Union<Literal> => {
   return new Union(
     ast.enums.map((e) => new Literal(e[1], { title: e[0] })),
     "anyOf"
@@ -2596,7 +2596,7 @@ export type Visitor<A> = {
   readonly BigInt: (ast: BigInt, visit: (ast: AST) => A) => A
   readonly UniqueSymbol: (ast: UniqueSymbol, visit: (ast: AST) => A) => A
   readonly ObjectKeyword: (ast: ObjectKeyword, visit: (ast: AST) => A) => A
-  readonly Enums: (ast: Enums, visit: (ast: AST) => A) => A
+  readonly Enum: (ast: Enum, visit: (ast: AST) => A) => A
   readonly Literal: (ast: Literal, visit: (ast: AST) => A) => A
   readonly TemplateLiteral: (ast: TemplateLiteral, visit: (ast: AST) => A) => A
   readonly Arrays: (ast: Arrays, visit: (ast: AST) => A) => A
