@@ -5359,9 +5359,9 @@ const logIssues = getLogIssues({
   leafHook: (issue) => {
     switch (issue._tag) {
       case "InvalidType": {
-        if (issue.ast._tag === "StringKeyword") {
+        if (issue.ast._tag === "String") {
           return t("string.mismatch") // Wrong type for a string
-        } else if (issue.ast._tag === "TypeLiteral") {
+        } else if (issue.ast._tag === "Objects") {
           return t("struct.mismatch") // Value is not an object
         }
         return t("default.mismatch") // Fallback for other types
@@ -5379,13 +5379,14 @@ const logIssues = getLogIssues({
         return t("default.oneOf")
     }
   },
-  // Format custom check errors (like minLength or user-defined validations)
+  // Format custom check errors (like isMinLength or user-defined validations)
   checkHook: (issue) => {
     const meta = issue.filter.annotations?.meta
+    console.log(meta)
     if (Predicate.isObject(meta)) {
-      const id = meta.id
-      if (Predicate.isString(id)) {
-        if (id === "minLength") {
+      const _tag = meta._tag
+      if (Predicate.isString(_tag)) {
+        if (_tag === "isMinLength") {
           const minLength = meta.minLength
           if (Predicate.isNumber(minLength)) {
             return t("string.minLength", { minLength })
@@ -5411,7 +5412,7 @@ logIssues(Person, { name: 1 })
 
 // "name" is an empty string
 logIssues(Person, { name: "" })
-// Failure(Cause([Fail([{"path":["name"],"message":"The value does not match the check"}])]))
+// Failure(Cause([Fail([{"path":["name"],"message":"Please enter at least 1 character(s)"}])]))
 ```
 
 #### Inline custom messages
