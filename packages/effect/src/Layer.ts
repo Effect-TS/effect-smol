@@ -1690,7 +1690,7 @@ export const satisfiesSuccessType =
  * ```ts
  * import { Layer } from "effect"
  *
- * declare const ErrorLayer: Layer<never, Error, never>
+ * declare const ErrorLayer: Layer.Layer<never, Error, never>
  * declare const TypeErrorLayer: Layer.Layer<never, TypeError, never>
  * declare const StringLayer: Layer.Layer<never, string, never>
  *
