@@ -1644,3 +1644,101 @@ const makeUnimplemented = (error: globalThis.Error) => {
   Object.setPrototypeOf(unimplemented, Object.getPrototypeOf(dead))
   return unimplemented
 }
+
+// -----------------------------------------------------------------------------
+// Type constraints
+// -----------------------------------------------------------------------------
+
+/**
+ * Ensures that an layer's success type extends a given type `ROut`.
+ *
+ * This function provides compile-time type checking to ensure that the success
+ * value of an layer conforms to a specific type constraint.
+ *
+ * @example
+ * ```ts
+ * import { Layer } from "effect"
+ *
+ * declare const FortyTwoLayer: Layer<42, never, never>
+ * declare const StringLayer: Layer<string, never, never>
+ *
+ * // Define a constraint that the success type must be a number
+ * const satisfiesNumber = Layer.satisfiesSuccessType<number>()
+ *
+ * // This works - Layer<42, never, never> extends Layer<number, never, never>
+ * const validLayer = satisfiesNumber(FortyTwoLayer)
+ *
+ * // This would cause a TypeScript compilation error:
+ * // const invalidLayer = satisfiesNumber(StringLayer)
+ * //                                     ^^^^^^^^^^^
+ * // Type 'number' is not assignable to type 'string'
+ * ```
+ *
+ * @since 4.0.0
+ * @category Type constraints
+ */
+export const satisfiesSuccessType =
+  <ROut>() => <ROut2 extends ROut, E, RIn>(layer: Layer<ROut2, E, RIn>): Layer<ROut2, E, RIn> => layer
+
+/**
+ * Ensures that an layer's error type extends a given type `E`.
+ *
+ * This function provides compile-time type checking to ensure that the error
+ * type of an layer conforms to a specific type constraint.
+ *
+ * @example
+ * ```ts
+ * import { Layer } from "effect"
+ *
+ * declare const ErrorLayer: Layer<never, Error, never>
+ * declare const TypeErrorLayer: Layer<never, TypeError, never>
+ * declare const StringLayer: Layer<never, string, never>
+ *
+ *  // Define a constraint that the error type must be an Error
+ * const satisfiesError = Layer.satisfiesFailureType<Error>()
+ *
+ * // This works - Layer<never, TypeError, never> extends Layer<never, Error, never>
+ * const validLayer = satisfiesError(TypeErrorLayer)
+ *
+ * // This would cause a TypeScript compilation error:
+ * // const invalidLayer = satisfiesError(StringLayer)
+ * //                                     ^^^^^^^^^^^
+ * // Type 'string' is not assignable to type 'Error'
+ * ```
+ *
+ * @since 4.0.0
+ * @category Type constraints
+ */
+export const satisfiesFailureType =
+  <E>() => <ROut, E2 extends E, RIn>(layer: Layer<ROut, E2, RIn>): Layer<ROut, E2, RIn> => layer
+
+/**
+ * Ensures that an layer's requirements type extends a given type `R`.
+ *
+ * This function provides compile-time type checking to ensure that the
+ * requirements (context) type of an layer conforms to a specific type constraint.
+ *
+ * @example
+ * ```ts
+ * import { Layer } from "effect"
+ *
+ * declare const FortyTwoLayer: Layer<never, never, 42>
+ * declare const StringLayer: Layer<never, never, string>
+ *
+ * // Define a constraint that the success type must be a number
+ * const satisfiesNumber = Layer.satisfiesContextType<number>()
+ *
+ * // This works - Layer<never, never, 42> extends Layer<never, never, number>
+ * const validLayer = satisfiesNumber(FortyTwoLayer)
+ *
+ * // This would cause a TypeScript compilation error:
+ * // const invalidLayer = satisfiesNumber(StringLayer)
+ * //                                     ^^^^^^^^^^^
+ * // Type 'string' is not assignable to type 'number'
+ * ```
+ *
+ * @since 4.0.0
+ * @category Type constraints
+ */
+export const satisfiesContextType =
+  <RIn>() => <ROut, E, RIn2 extends RIn>(layer: Layer<ROut, E, RIn2>): Layer<ROut, E, RIn2> => layer
