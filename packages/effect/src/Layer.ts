@@ -1691,8 +1691,8 @@ export const satisfiesSuccessType =
  * import { Layer } from "effect"
  *
  * declare const ErrorLayer: Layer<never, Error, never>
- * declare const TypeErrorLayer: Layer<never, TypeError, never>
- * declare const StringLayer: Layer<never, string, never>
+ * declare const TypeErrorLayer: Layer.Layer<never, TypeError, never>
+ * declare const StringLayer: Layer.Layer<never, string, never>
  *
  *  // Define a constraint that the error type must be an Error
  * const satisfiesError = Layer.satisfiesErrorType<Error>()
