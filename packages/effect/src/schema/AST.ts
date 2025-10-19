@@ -2675,7 +2675,7 @@ const numberPatternRegExp = new RegExp(`(?:${NUMBER_PATTERN}|Infinity|-Infinity|
 
 const numberPattern = appendChecks(string, [
   isPattern(numberPatternRegExp, {
-    title: "a string representing a number"
+    description: "a string representing a number"
   })
 ])
 
@@ -2686,7 +2686,7 @@ const numberStringPojoLink = new Link(
 
 const bigIntJsonLink = new Link(
   appendChecks(string, [
-    isPattern(new RegExp(BIGINT_PATTERN), { title: "a string representing a bigint" })
+    isPattern(new RegExp(BIGINT_PATTERN), { description: "a string representing a bigint" })
   ]),
   new Transformation.Transformation(
     Getter.transform(globalThis.BigInt),
@@ -2700,7 +2700,7 @@ const SYMBOL_PATTERN = /^Symbol\((.*)\)$/
  * to distinguish between Symbol and String, we need to add a check to the string keyword
  */
 const symbolJsonLink = new Link(
-  appendChecks(string, [isPattern(SYMBOL_PATTERN, { title: "a string representing a symbol" })]),
+  appendChecks(string, [isPattern(SYMBOL_PATTERN, { description: "a string representing a symbol" })]),
   new Transformation.Transformation(
     Getter.transform((description) => globalThis.Symbol.for(SYMBOL_PATTERN.exec(description)![1])),
     Getter.transformOrFail((sym: symbol) => {

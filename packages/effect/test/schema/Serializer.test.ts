@@ -1351,6 +1351,7 @@ describe("Serializer", () => {
         await decoding.succeed("Infinity", Infinity)
         await decoding.succeed("-Infinity", -Infinity)
         await decoding.succeed("NaN", NaN)
+        await decoding.fail("a", `Expected a string representing a number, got "a"`)
       })
 
       it("Boolean", async () => {
@@ -1383,6 +1384,7 @@ describe("Serializer", () => {
 
         const decoding = asserts.decoding()
         await decoding.succeed("Symbol(a)", Symbol.for("a"))
+        await decoding.fail("a", `Expected a string representing a symbol, got "a"`)
       })
 
       it("UniqueSymbol", async () => {
@@ -1394,6 +1396,7 @@ describe("Serializer", () => {
 
         const decoding = asserts.decoding()
         await decoding.succeed("Symbol(a)", Symbol.for("a"))
+        await decoding.fail("a", `Expected a string representing a symbol, got "a"`)
       })
 
       it("BigInt", async () => {
@@ -1405,6 +1408,7 @@ describe("Serializer", () => {
 
         const decoding = asserts.decoding()
         await decoding.succeed("1", 1n)
+        await decoding.fail("a", `Expected a string representing a bigint, got "a"`)
       })
 
       it("PropertyKey", async () => {
