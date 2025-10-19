@@ -1659,8 +1659,8 @@ const makeUnimplemented = (error: globalThis.Error) => {
  * ```ts
  * import { Layer } from "effect"
  *
- * declare const FortyTwoLayer: Layer<42, never, never>
- * declare const StringLayer: Layer<string, never, never>
+ * declare const FortyTwoLayer: Layer.Layer<42, never, never>
+ * declare const StringLayer: Layer.Layer<string, never, never>
  *
  * // Define a constraint that the success type must be a number
  * const satisfiesNumber = Layer.satisfiesSuccessType<number>()
