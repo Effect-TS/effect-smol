@@ -6532,8 +6532,8 @@ describe("Check", () => {
     })
   })
 
-  it("isUlid", async () => {
-    const schema = Schema.String.check(Schema.isUlid())
+  it("isULID", async () => {
+    const schema = Schema.String.check(Schema.isULID())
     const asserts = new TestSchema.Asserts(schema)
 
     if (verifyGeneration) {

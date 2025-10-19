@@ -2054,20 +2054,20 @@ describe("ToJsonSchema", () => {
     })
 
     describe("Checks", () => {
-      it("isUuid", async () => {
-        await assertDraft7(Schema.String.check(Schema.isUuid()), {
+      it("isUUID", async () => {
+        await assertDraft7(Schema.String.check(Schema.isUUID()), {
           "description": "a UUID",
           "format": "uuid",
           "pattern":
             "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$",
-          "title": "isUuid",
+          "title": "isUUID",
           "type": "string"
         })
-        await assertDraft7(Schema.String.check(Schema.isUuid(4)), {
+        await assertDraft7(Schema.String.check(Schema.isUUID(4)), {
           "description": "a UUID v4",
           "format": "uuid",
           "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$",
-          "title": "isUuid-v4",
+          "title": "isUUID-v4",
           "type": "string"
         })
       })
