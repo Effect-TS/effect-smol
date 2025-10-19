@@ -1722,8 +1722,8 @@ export const satisfiesErrorType =
  * ```ts
  * import { Layer } from "effect"
  *
- * declare const FortyTwoLayer: Layer<never, never, 42>
- * declare const StringLayer: Layer<never, never, string>
+ * declare const FortyTwoLayer: Layer.Layer<never, never, 42>
+ * declare const StringLayer: Layer.Layer<never, never, string>
  *
  * // Define a constraint that the success type must be a number
  * const satisfiesNumber = Layer.satisfiesServicesType<number>()
