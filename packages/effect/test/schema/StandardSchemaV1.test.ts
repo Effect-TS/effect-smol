@@ -161,7 +161,7 @@ describe("asStandardSchemaV1", () => {
       }))
 
       const schema = DepString
-      const standardSchema = Schema.asStandardSchemaV1(schema)
+      const standardSchema = Schema.asStandardSchemaV1(schema as any)
       expectSyncFailure(standardSchema, 1, (issues) => {
         strictEqual(issues.length, 1)
         deepStrictEqual(issues[0].path, undefined)
@@ -182,7 +182,7 @@ describe("asStandardSchemaV1", () => {
       }))
 
       const schema = DepString
-      const standardSchema = Schema.asStandardSchemaV1(schema)
+      const standardSchema = Schema.asStandardSchemaV1(schema as any)
       expectSyncFailure(standardSchema, 1, (issues) => {
         strictEqual(issues.length, 1)
         deepStrictEqual(issues[0].path, undefined)

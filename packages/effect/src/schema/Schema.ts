@@ -486,14 +486,16 @@ function makeStandardResult<A>(exit: Exit_.Exit<StandardSchemaV1.Result<A>>): St
  *
  * @since 4.0.0
  */
-export const asStandardSchemaV1 = <S extends Top>(
+export function asStandardSchemaV1<
+  S extends Top & { readonly DecodingServices: never }
+>(
   self: S,
   options?: {
     readonly leafHook?: Issue.LeafHook | undefined
     readonly checkHook?: Issue.CheckHook | undefined
     readonly parseOptions?: AST.ParseOptions | undefined
   }
-): StandardSchemaV1<S["Encoded"], S["Type"]> & S => {
+): StandardSchemaV1<S["Encoded"], S["Type"]> & S {
   const decodeUnknownEffect = ToParser.decodeUnknownEffect(self) as (
     input: unknown,
     options?: AST.ParseOptions

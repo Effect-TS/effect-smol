@@ -1,6 +1,6 @@
 import type { Brand } from "effect/data"
-import type { ServiceMap , Exit  } from "effect"
-import { Effect, flow, hole, String as Str  } from "effect"
+import type { Exit  } from "effect";
+import { ServiceMap, Effect, flow, hole, String as Str     } from "effect"
 import { Option, Predicate, Struct, Tuple } from "effect/data"
 import { AST, Getter, Schema, Transformation } from 'effect/schema'
 import type { Array } from "effect/collections"
@@ -2863,5 +2863,19 @@ describe("Schema", () => {
       return Schema.encodeSync(schemas[key])
     })("a")({ a: 1 })
     expect(encodeSync).type.toBe<{ readonly a: string }>()
+  })
+
+  it("asStandardSchemaV1 should not be callable with a schema with DecodingServices", () => {
+    class MagicNumber extends ServiceMap.Service<MagicNumber, number>()("MagicNumber") {}
+    const DepString = Schema.Number.pipe(Schema.decode({
+      decode: Getter.onSome((n) =>
+        Effect.gen(function*() {
+          const magicNumber = yield* MagicNumber
+          return Option.some(n * magicNumber)
+        })
+      ),
+      encode: Getter.passthrough()
+    }))
+    expect(Schema.asStandardSchemaV1).type.not.toBeCallableWith(DepString)
   })
 })
