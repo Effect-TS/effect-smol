@@ -1726,7 +1726,7 @@ export const satisfiesErrorType =
  * declare const StringLayer: Layer<never, never, string>
  *
  * // Define a constraint that the success type must be a number
- * const satisfiesNumber = Layer.satisfiesContextType<number>()
+ * const satisfiesNumber = Layer.satisfiesRequirementsType<number>()
  *
  * // This works - Layer<never, never, 42> extends Layer<never, never, number>
  * const validLayer = satisfiesNumber(FortyTwoLayer)
@@ -1740,5 +1740,5 @@ export const satisfiesErrorType =
  * @since 4.0.0
  * @category Type constraints
  */
-export const satisfiesContextType =
+export const satisfiesRequirementsType =
   <RIn>() => <ROut, E, RIn2 extends RIn>(layer: Layer<ROut, E, RIn2>): Layer<ROut, E, RIn2> => layer
