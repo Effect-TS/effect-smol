@@ -1695,7 +1695,7 @@ export const satisfiesSuccessType =
  * declare const StringLayer: Layer<never, string, never>
  *
  *  // Define a constraint that the error type must be an Error
- * const satisfiesError = Layer.satisfiesFailureType<Error>()
+ * const satisfiesError = Layer.satisfiesErrorType<Error>()
  *
  * // This works - Layer<never, TypeError, never> extends Layer<never, Error, never>
  * const validLayer = satisfiesError(TypeErrorLayer)
@@ -1709,7 +1709,7 @@ export const satisfiesSuccessType =
  * @since 4.0.0
  * @category Type constraints
  */
-export const satisfiesFailureType =
+export const satisfiesErrorType =
   <E>() => <ROut, E2 extends E, RIn>(layer: Layer<ROut, E2, RIn>): Layer<ROut, E2, RIn> => layer
 
 /**
