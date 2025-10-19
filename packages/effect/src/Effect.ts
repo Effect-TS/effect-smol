@@ -11471,22 +11471,21 @@ export const satisfiesErrorType = <E>() => <A, E2 extends E, R>(effect: Effect<A
  * import { Effect } from "effect"
  *
  * // Define a constraint that requires a string as the requirements type
- * const satisfiesStringRequirement = Effect.satisfiesRequirementsType<string>()
+ * const satisfiesStringServices = Effect.satisfiesServicesType<string>()
  *
  * // This works - effect requires string
  * const validEffect: Effect.Effect<number, never, "config"> = Effect.succeed(42)
- * const constrainedEffect = satisfiesStringRequirement(validEffect)
+ * const constrainedEffect = satisfiesStringServices(validEffect)
  *
  * // This would cause a TypeScript compilation error if uncommented:
  * // const invalidEffect: Effect.Effect<number, never, number> = Effect.succeed(42)
- * // const constrainedInvalid = satisfiesStringRequirement(invalidEffect)
+ * // const constrainedInvalid = satisfiesStringServices(invalidEffect)
  * ```
  *
  * @since 4.0.0
  * @category Type constraints
  */
-export const satisfiesRequirementsType = <R>() => <A, E, R2 extends R>(effect: Effect<A, E, R2>): Effect<A, E, R2> =>
-  effect
+export const satisfiesServicesType = <R>() => <A, E, R2 extends R>(effect: Effect<A, E, R2>): Effect<A, E, R2> => effect
 
 /**
  * An optimized version of `map` that checks if an effect is already resolved
