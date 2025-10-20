@@ -1,7 +1,7 @@
 import { Cause, DateTime, Duration, Effect, Exit, flow, pipe, ServiceMap, String as Str } from "effect"
 import { Option, Order, Predicate, Redacted, Result, Struct, Tuple } from "effect/data"
 import { Equal } from "effect/interfaces"
-import { AST, Getter, Issue, Schema, ToParser, Transformation } from "effect/schema"
+import { Annotations, AST, Getter, Issue, Schema, ToParser, Transformation } from "effect/schema"
 import { TestSchema } from "effect/testing"
 import { produce } from "immer"
 import { deepStrictEqual, fail, ok, strictEqual } from "node:assert"
@@ -6532,6 +6532,33 @@ describe("Check", () => {
     })
   })
 
+  it("isNumberString", async () => {
+    const schema = Schema.String.check(Schema.isNumberString())
+
+    deepStrictEqual(Annotations.getMeta(schema.ast), {
+      _tag: "isNumberString",
+      regex: /(?:[+-]?\d*\.?\d+(?:[Ee][+-]?\d+)?|Infinity|-Infinity|NaN)/
+    })
+  })
+
+  it("isBigIntString", async () => {
+    const schema = Schema.String.check(Schema.isBigIntString())
+
+    deepStrictEqual(Annotations.getMeta(schema.ast), {
+      _tag: "isBigIntString",
+      regex: /-?\d+/
+    })
+  })
+
+  it("isSymbolString", async () => {
+    const schema = Schema.String.check(Schema.isSymbolString())
+
+    deepStrictEqual(Annotations.getMeta(schema.ast), {
+      _tag: "isSymbolString",
+      regex: /^Symbol\((.*)\)$/
+    })
+  })
+
   it("isULID", async () => {
     const schema = Schema.String.check(Schema.isULID())
     const asserts = new TestSchema.Asserts(schema)
@@ -6541,11 +6568,34 @@ describe("Check", () => {
       arbitrary.verifyGeneration()
     }
 
+    deepStrictEqual(Annotations.getMeta(schema.ast), {
+      _tag: "isULID",
+      regex: /^[0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{26}$/
+    })
+
     const decoding = asserts.decoding()
     await decoding.succeed("01H4PGGGJVN2DKP2K1H7EH996V")
     await decoding.fail(
       "",
       `Expected a string matching the regex ^[0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{26}$, got ""`
     )
+  })
+
+  it("isBase64", async () => {
+    const schema = Schema.String.check(Schema.isBase64())
+
+    deepStrictEqual(Annotations.getMeta(schema.ast), {
+      _tag: "isBase64",
+      regex: /^([0-9a-zA-Z+/]{4})*(([0-9a-zA-Z+/]{2}==)|([0-9a-zA-Z+/]{3}=))?$/
+    })
+  })
+
+  it("isBase64url", async () => {
+    const schema = Schema.String.check(Schema.isBase64url())
+
+    deepStrictEqual(Annotations.getMeta(schema.ast), {
+      _tag: "isBase64url",
+      regex: /^([0-9a-zA-Z-_]{4})*(([0-9a-zA-Z-_]{2}(==)?)|([0-9a-zA-Z-_]{3}(=)?))?$/
+    })
   })
 })

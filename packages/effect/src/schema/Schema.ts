@@ -3270,6 +3270,24 @@ export function isTrimmed(annotations?: Annotations.Filter) {
 export const isPattern: (regex: RegExp, annotations?: Annotations.Filter) => AST.Filter<string> = AST.isPattern
 
 /**
+ * @category String checks
+ * @since 4.0.0
+ */
+export const isNumberString: (annotations?: Annotations.Filter) => AST.Filter<string> = AST.isNumberString
+
+/**
+ * @category String checks
+ * @since 4.0.0
+ */
+export const isBigIntString: (annotations?: Annotations.Filter) => AST.Filter<string> = AST.isBigIntString
+
+/**
+ * @category String checks
+ * @since 4.0.0
+ */
+export const isSymbolString: (annotations?: Annotations.Filter) => AST.Filter<string> = AST.isSymbolString
+
+/**
  * Returns a regex for validating an RFC 4122 UUID.
  *
  * Optionally specify a version 1-8. If no version is specified, all versions are supported.
@@ -3311,9 +3329,16 @@ export function isUUID(version?: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8) {
  * @since 4.0.0
  */
 export function isULID(annotations?: Annotations.Filter) {
+  const regex = /^[0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{26}$/
   return isPattern(
-    /^[0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{26}$/,
-    Annotations.combine({ title: "isULID" }, annotations)
+    regex,
+    Annotations.combine({
+      title: "isULID",
+      meta: {
+        _tag: "isULID",
+        regex
+      }
+    }, annotations)
   )
 }
 
@@ -3322,12 +3347,17 @@ export function isULID(annotations?: Annotations.Filter) {
  * @since 4.0.0
  */
 export function isBase64(annotations?: Annotations.Filter) {
+  const regex = /^([0-9a-zA-Z+/]{4})*(([0-9a-zA-Z+/]{2}==)|([0-9a-zA-Z+/]{3}=))?$/
   return isPattern(
-    /^([0-9a-zA-Z+/]{4})*(([0-9a-zA-Z+/]{2}==)|([0-9a-zA-Z+/]{3}=))?$/,
+    regex,
     Annotations.combine({
       title: "isBase64",
       description: "a base64 encoded string",
-      contentEncoding: "base64"
+      contentEncoding: "base64",
+      meta: {
+        _tag: "isBase64",
+        regex
+      }
     }, annotations)
   )
 }
@@ -3337,12 +3367,17 @@ export function isBase64(annotations?: Annotations.Filter) {
  * @since 4.0.0
  */
 export function isBase64url(annotations?: Annotations.Filter) {
+  const regex = /^([0-9a-zA-Z-_]{4})*(([0-9a-zA-Z-_]{2}(==)?)|([0-9a-zA-Z-_]{3}(=)?))?$/
   return isPattern(
-    /^([0-9a-zA-Z-_]{4})*(([0-9a-zA-Z-_]{2}(==)?)|([0-9a-zA-Z-_]{3}(=)?))?$/,
+    regex,
     Annotations.combine({
       title: "isBase64url",
       description: "a base64url encoded string",
-      contentEncoding: "base64"
+      contentEncoding: "base64",
+      meta: {
+        _tag: "isBase64url",
+        regex
+      }
     }, annotations)
   )
 }

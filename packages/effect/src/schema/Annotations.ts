@@ -436,6 +436,11 @@ export const getTitle = getAt("title", Predicate.isString)
  */
 export const getDescription = getAt("description", Predicate.isString)
 
+/**
+ * @since 4.0.0
+ */
+export const getMeta = getAt("meta", Predicate.isObject)
+
 /** @internal */
 export const getExpected = memoize((ast: AST.AST): string => {
   return getIdentifier(ast) ?? ast.getExpected(getExpected)

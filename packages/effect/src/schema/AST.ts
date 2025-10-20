@@ -1122,7 +1122,7 @@ export function getIndexSignatureKeys(
     case "Symbol":
       return Object.getOwnPropertySymbols(input)
     case "Number":
-      return Object.keys(input).filter((key) => numberPatternRegExp.test(key))
+      return Object.keys(input).filter((key) => isNumberStringRegExp.test(key))
     default:
       return Object.keys(input)
   }
@@ -2671,38 +2671,74 @@ const numberJsonLink = new Link(
   )
 )
 
-const numberPatternRegExp = new RegExp(`(?:${NUMBER_PATTERN}|Infinity|-Infinity|NaN)`)
+const isNumberStringRegExp = new RegExp(`(?:${NUMBER_PATTERN}|Infinity|-Infinity|NaN)`)
 
-const numberPattern = appendChecks(string, [
-  isPattern(numberPatternRegExp, {
-    description: "a string representing a number"
-  })
-])
+/** @internal */
+export function isNumberString(annotations?: Annotations.Filter) {
+  return isPattern(
+    isNumberStringRegExp,
+    Annotations.combine({
+      description: "a string representing a number",
+      meta: {
+        _tag: "isNumberString",
+        regex: isNumberStringRegExp
+      }
+    }, annotations)
+  )
+}
 
 const numberStringPojoLink = new Link(
-  numberPattern,
+  appendChecks(string, [isNumberString()]),
   Transformation.numberFromString
 )
 
+const isBigIntStringRegExp = new RegExp(BIGINT_PATTERN)
+
+/** @internal */
+export function isBigIntString(annotations?: Annotations.Filter) {
+  return isPattern(
+    isBigIntStringRegExp,
+    Annotations.combine({
+      description: "a string representing a bigint",
+      meta: {
+        _tag: "isBigIntString",
+        regex: isBigIntStringRegExp
+      }
+    }, annotations)
+  )
+}
+
 const bigIntJsonLink = new Link(
-  appendChecks(string, [
-    isPattern(new RegExp(BIGINT_PATTERN), { description: "a string representing a bigint" })
-  ]),
+  appendChecks(string, [isBigIntString()]),
   new Transformation.Transformation(
     Getter.transform(globalThis.BigInt),
     Getter.String()
   )
 )
 
-const SYMBOL_PATTERN = /^Symbol\((.*)\)$/
+const isSymbolStringRegExp = /^Symbol\((.*)\)$/
+
+/** @internal */
+export function isSymbolString(annotations?: Annotations.Filter) {
+  return isPattern(
+    isSymbolStringRegExp,
+    Annotations.combine({
+      description: "a string representing a symbol",
+      meta: {
+        _tag: "isSymbolString",
+        regex: isSymbolStringRegExp
+      }
+    }, annotations)
+  )
+}
 
 /**
  * to distinguish between Symbol and String, we need to add a check to the string keyword
  */
 const symbolJsonLink = new Link(
-  appendChecks(string, [isPattern(SYMBOL_PATTERN, { description: "a string representing a symbol" })]),
+  appendChecks(string, [isSymbolString()]),
   new Transformation.Transformation(
-    Getter.transform((description) => globalThis.Symbol.for(SYMBOL_PATTERN.exec(description)![1])),
+    Getter.transform((description) => globalThis.Symbol.for(isSymbolStringRegExp.exec(description)![1])),
     Getter.transformOrFail((sym: symbol) => {
       const description = sym.description
       if (description !== undefined) {
