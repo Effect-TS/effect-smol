@@ -90,6 +90,10 @@ export interface Bottom<T, TypeParameters extends ReadonlyArray<Schema.Top>> ext
   readonly messageUnexpectedKey?: string | undefined
   readonly identifier?: string | undefined
   readonly parseOptions?: AST.ParseOptions | undefined
+  /**
+   * Optional metadata used to identify or extend the filter with custom data.
+   */
+  readonly meta?: Meta | undefined
   readonly jsonSchema?:
     | JsonSchema.Override
     | JsonSchema.Constraint
@@ -166,10 +170,7 @@ export interface Filter extends Annotations {
   /**
    * Optional metadata used to identify or extend the filter with custom data.
    */
-  readonly meta?: {
-    readonly _tag: string
-    readonly [x: string]: unknown
-  } | undefined
+  readonly meta?: Meta | undefined
   readonly jsonSchema?:
     | JsonSchema.Override
     | JsonSchema.Constraint
@@ -436,11 +437,6 @@ export const getTitle = getAt("title", Predicate.isString)
  */
 export const getDescription = getAt("description", Predicate.isString)
 
-/**
- * @since 4.0.0
- */
-export const getMeta = getAt("meta", Predicate.isObject)
-
 /** @internal */
 export const getExpected = memoize((ast: AST.AST): string => {
   return getIdentifier(ast) ?? ast.getExpected(getExpected)
@@ -476,3 +472,191 @@ export function getUnsafe<S extends Schema.Top>(schema: S): S["~annotate.in"] | 
 export interface Issue extends Annotations {
   readonly message?: string | undefined
 }
+
+/**
+ * @since 4.0.0
+ */
+export interface MetaRegistry {
+  readonly isNumberString: {
+    readonly _tag: "isNumberString"
+    readonly regex: RegExp
+  }
+  readonly isBigIntString: {
+    readonly _tag: "isBigIntString"
+    readonly regex: RegExp
+  }
+  readonly isSymbolString: {
+    readonly _tag: "isSymbolString"
+    readonly regex: RegExp
+  }
+  readonly isPattern: {
+    readonly _tag: "isPattern"
+    readonly regex: RegExp
+  }
+  readonly isTrimmed: {
+    readonly _tag: "isTrimmed"
+  }
+  readonly isUUID: {
+    readonly _tag: "isUUID"
+    readonly regex: RegExp
+  }
+  readonly isULID: {
+    readonly _tag: "isULID"
+    readonly regex: RegExp
+  }
+  readonly isBase64: {
+    readonly _tag: "isBase64"
+    readonly regex: RegExp
+  }
+  readonly isBase64Url: {
+    readonly _tag: "isBase64Url"
+    readonly regex: RegExp
+  }
+  readonly isStartsWith: {
+    readonly _tag: "isStartsWith"
+    readonly startsWith: string
+  }
+  readonly isEndsWith: {
+    readonly _tag: "isEndsWith"
+    readonly endsWith: string
+  }
+  readonly isIncludes: {
+    readonly _tag: "isIncludes"
+    readonly includes: string
+  }
+  readonly isUppercased: {
+    readonly _tag: "isUppercased"
+  }
+  readonly isLowercased: {
+    readonly _tag: "isLowercased"
+  }
+  readonly isCapitalized: {
+    readonly _tag: "isCapitalized"
+  }
+  readonly isUncapitalized: {
+    readonly _tag: "isUncapitalized"
+  }
+  readonly isFinite: {
+    readonly _tag: "isFinite"
+  }
+  readonly isGreaterThan: {
+    readonly _tag: "isGreaterThan"
+    readonly exclusiveMinimum: number
+  }
+  readonly isGreaterThanOrEqualTo: {
+    readonly _tag: "isGreaterThanOrEqualTo"
+    readonly minimum: number
+  }
+  readonly isLessThan: {
+    readonly _tag: "isLessThan"
+    readonly exclusiveMaximum: number
+  }
+  readonly isLessThanOrEqualTo: {
+    readonly _tag: "isLessThanOrEqualTo"
+    readonly maximum: number
+  }
+  readonly isBetween: {
+    readonly _tag: "isBetween"
+    readonly minimum: number
+    readonly maximum: number
+  }
+  readonly isInt: {
+    readonly _tag: "isInt"
+  }
+  readonly isInt32: {
+    readonly _tag: "isInt32"
+  }
+  readonly isUint32: {
+    readonly _tag: "isUint32"
+  }
+  readonly isValidDate: {
+    readonly _tag: "isValidDate"
+  }
+  readonly isGreaterThanDate: {
+    readonly _tag: "isGreaterThanDate"
+    readonly exclusiveMinimum: Date
+  }
+  readonly isGreaterThanOrEqualToDate: {
+    readonly _tag: "isGreaterThanOrEqualToDate"
+    readonly minimum: Date
+  }
+  readonly isLessThanDate: {
+    readonly _tag: "isLessThanDate"
+    readonly exclusiveMaximum: Date
+  }
+  readonly isLessThanOrEqualToDate: {
+    readonly _tag: "isLessThanOrEqualToDate"
+    readonly maximum: Date
+  }
+  readonly isBetweenDate: {
+    readonly _tag: "isBetweenDate"
+    readonly minimum: Date
+    readonly maximum: Date
+  }
+  readonly isGreaterThanBigInt: {
+    readonly _tag: "isGreaterThanBigInt"
+    readonly exclusiveMinimum: bigint
+  }
+  readonly isGreaterThanOrEqualToBigInt: {
+    readonly _tag: "isGreaterThanOrEqualToBigInt"
+    readonly minimum: bigint
+  }
+  readonly isLessThanBigInt: {
+    readonly _tag: "isLessThanBigInt"
+    readonly exclusiveMaximum: bigint
+  }
+  readonly isLessThanOrEqualToBigInt: {
+    readonly _tag: "isLessThanOrEqualToBigInt"
+    readonly maximum: bigint
+  }
+  readonly isBetweenBigInt: {
+    readonly _tag: "isBetweenBigInt"
+    readonly minimum: bigint
+    readonly maximum: bigint
+  }
+  readonly isMinLength: {
+    readonly _tag: "isMinLength"
+    readonly minLength: number
+  }
+  readonly isMaxLength: {
+    readonly _tag: "isMaxLength"
+    readonly maxLength: number
+  }
+  readonly isLength: {
+    readonly _tag: "isLength"
+    readonly length: number
+  }
+  readonly isMinSize: {
+    readonly _tag: "isMinSize"
+    readonly minSize: number
+  }
+  readonly isMaxSize: {
+    readonly _tag: "isMaxSize"
+    readonly maxSize: number
+  }
+  readonly isSize: {
+    readonly _tag: "isSize"
+    readonly size: number
+  }
+  readonly isMinEntries: {
+    readonly _tag: "isMinEntries"
+    readonly minEntries: number
+  }
+  readonly isMaxEntries: {
+    readonly _tag: "isMaxEntries"
+    readonly maxEntries: number
+  }
+  readonly isEntriesLength: {
+    readonly _tag: "isEntriesLength"
+    readonly length: number
+  }
+  readonly isUnique: {
+    readonly _tag: "isUnique"
+    readonly equivalence: Equivalence<any>
+  }
+}
+
+/**
+ * @since 4.0.0
+ */
+export type Meta = MetaRegistry[keyof MetaRegistry]

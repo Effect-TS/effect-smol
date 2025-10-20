@@ -3366,16 +3366,16 @@ export function isBase64(annotations?: Annotations.Filter) {
  * @category String checks
  * @since 4.0.0
  */
-export function isBase64url(annotations?: Annotations.Filter) {
+export function isBase64Url(annotations?: Annotations.Filter) {
   const regex = /^([0-9a-zA-Z-_]{4})*(([0-9a-zA-Z-_]{2}(==)?)|([0-9a-zA-Z-_]{3}(=)?))?$/
   return isPattern(
     regex,
     Annotations.combine({
-      title: "isBase64url",
+      title: "isBase64Url",
       description: "a base64url encoded string",
       contentEncoding: "base64",
       meta: {
-        _tag: "isBase64url",
+        _tag: "isBase64Url",
         regex
       }
     }, annotations)

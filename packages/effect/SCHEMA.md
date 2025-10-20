@@ -5621,9 +5621,9 @@ Schema.String.decode(Transformation.toUpperCase())
 ```ts
 import { Schema } from "effect/schema"
 
-Schema.String.check(Schema.isUuid())
+Schema.String.check(Schema.isUUID())
 Schema.String.check(Schema.isBase64())
-Schema.String.check(Schema.isBase64url())
+Schema.String.check(Schema.isBase64Url())
 ```
 
 ### Numbers
@@ -7015,7 +7015,7 @@ v4
 ```ts
 import { Schema } from "effect/schema"
 
-const schema = Schema.String.check(Schema.isUuid())
+const schema = Schema.String.check(Schema.isUUID())
 ```
 
 ### ULID
@@ -7025,7 +7025,7 @@ v4
 ```ts
 import { Schema } from "effect/schema"
 
-const schema = Schema.String.check(Schema.isUlid())
+const schema = Schema.String.check(Schema.isULID())
 ```
 
 ### URLFromSelf

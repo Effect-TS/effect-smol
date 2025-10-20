@@ -2122,7 +2122,7 @@ describe("ToJsonSchema", () => {
       })
 
       it("isBase64url", async () => {
-        await assertDraft7(Schema.String.check(Schema.isBase64url()), {
+        await assertDraft7(Schema.String.check(Schema.isBase64Url()), {
           "type": "string",
           "title": "isBase64url",
           "description": "a base64url encoded string",
@@ -3226,7 +3226,7 @@ describe("ToJsonSchema", () => {
       })
 
       it("base64url", async () => {
-        await assertDraft2020_12(Schema.String.check(Schema.isBase64url()), {
+        await assertDraft2020_12(Schema.String.check(Schema.isBase64Url()), {
           "type": "string",
           "title": "isBase64url",
           "description": "a base64url encoded string",
@@ -3334,7 +3334,7 @@ describe("ToJsonSchema", () => {
       })
 
       it("base64url", async () => {
-        await assertOpenApi3_1(Schema.String.check(Schema.isBase64url()), {
+        await assertOpenApi3_1(Schema.String.check(Schema.isBase64Url()), {
           "type": "string",
           "title": "isBase64url",
           "description": "a base64url encoded string",

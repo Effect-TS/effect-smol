@@ -6535,7 +6535,7 @@ describe("Check", () => {
   it("isNumberString", async () => {
     const schema = Schema.String.check(Schema.isNumberString())
 
-    deepStrictEqual(Annotations.getMeta(schema.ast), {
+    deepStrictEqual(Annotations.getUnsafe(schema)?.["meta"], {
       _tag: "isNumberString",
       regex: /(?:[+-]?\d*\.?\d+(?:[Ee][+-]?\d+)?|Infinity|-Infinity|NaN)/
     })
@@ -6544,7 +6544,7 @@ describe("Check", () => {
   it("isBigIntString", async () => {
     const schema = Schema.String.check(Schema.isBigIntString())
 
-    deepStrictEqual(Annotations.getMeta(schema.ast), {
+    deepStrictEqual(Annotations.getUnsafe(schema)?.["meta"], {
       _tag: "isBigIntString",
       regex: /-?\d+/
     })
@@ -6553,7 +6553,7 @@ describe("Check", () => {
   it("isSymbolString", async () => {
     const schema = Schema.String.check(Schema.isSymbolString())
 
-    deepStrictEqual(Annotations.getMeta(schema.ast), {
+    deepStrictEqual(Annotations.getUnsafe(schema)?.["meta"], {
       _tag: "isSymbolString",
       regex: /^Symbol\((.*)\)$/
     })
@@ -6568,7 +6568,7 @@ describe("Check", () => {
       arbitrary.verifyGeneration()
     }
 
-    deepStrictEqual(Annotations.getMeta(schema.ast), {
+    deepStrictEqual(Annotations.getUnsafe(schema)?.["meta"], {
       _tag: "isULID",
       regex: /^[0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{26}$/
     })
@@ -6584,16 +6584,16 @@ describe("Check", () => {
   it("isBase64", async () => {
     const schema = Schema.String.check(Schema.isBase64())
 
-    deepStrictEqual(Annotations.getMeta(schema.ast), {
+    deepStrictEqual(Annotations.getUnsafe(schema)?.["meta"], {
       _tag: "isBase64",
       regex: /^([0-9a-zA-Z+/]{4})*(([0-9a-zA-Z+/]{2}==)|([0-9a-zA-Z+/]{3}=))?$/
     })
   })
 
   it("isBase64url", async () => {
-    const schema = Schema.String.check(Schema.isBase64url())
+    const schema = Schema.String.check(Schema.isBase64Url())
 
-    deepStrictEqual(Annotations.getMeta(schema.ast), {
+    deepStrictEqual(Annotations.getUnsafe(schema)?.["meta"], {
       _tag: "isBase64url",
       regex: /^([0-9a-zA-Z-_]{4})*(([0-9a-zA-Z-_]{2}(==)?)|([0-9a-zA-Z-_]{3}(=)?))?$/
     })
