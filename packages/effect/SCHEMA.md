@@ -5345,7 +5345,7 @@ export function getLogIssues(options?: {
 **Example** (Using hooks to translate common messages)
 
 ```ts
-import { Predicate } from "effect/data"
+import type { Annotations } from "effect/schema"
 import { Schema } from "effect/schema"
 import { getLogIssues, t } from "./utils.js"
 
@@ -5381,16 +5381,11 @@ const logIssues = getLogIssues({
   },
   // Format custom check errors (like isMinLength or user-defined validations)
   checkHook: (issue) => {
-    const meta = issue.filter.annotations?.meta
-    console.log(meta)
-    if (Predicate.isObject(meta)) {
-      const _tag = meta._tag
-      if (Predicate.isString(_tag)) {
-        if (_tag === "isMinLength") {
-          const minLength = meta.minLength
-          if (Predicate.isNumber(minLength)) {
-            return t("string.minLength", { minLength })
-          }
+    const meta = issue.filter.annotations?.meta as Annotations.Meta | undefined
+    if (meta) {
+      switch (meta._tag) {
+        case "isMinLength": {
+          return t("string.minLength", { minLength: meta.minLength })
         }
       }
     }
