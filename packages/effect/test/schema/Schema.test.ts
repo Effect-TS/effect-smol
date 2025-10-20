@@ -6590,11 +6590,11 @@ describe("Check", () => {
     })
   })
 
-  it("isBase64url", async () => {
+  it("isBase64Url", async () => {
     const schema = Schema.String.check(Schema.isBase64Url())
 
     deepStrictEqual(Annotations.getUnsafe(schema)?.["meta"], {
-      _tag: "isBase64url",
+      _tag: "isBase64Url",
       regex: /^([0-9a-zA-Z-_]{4})*(([0-9a-zA-Z-_]{2}(==)?)|([0-9a-zA-Z-_]{3}(=)?))?$/
     })
   })
