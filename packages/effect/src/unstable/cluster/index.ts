@@ -70,11 +70,6 @@ export * as Envelope from "./Envelope.ts"
 /**
  * @since 4.0.0
  */
-export * as HttpCommon from "./HttpCommon.ts"
-
-/**
- * @since 4.0.0
- */
 export * as HttpRunner from "./HttpRunner.ts"
 
 /**

@@ -12,7 +12,7 @@ import * as MessageStorage from "./MessageStorage.ts"
 import * as Reply from "./Reply.ts"
 import * as RunnerHealth from "./RunnerHealth.ts"
 import * as Runners from "./Runners.ts"
-import * as RunnerStorage from "./RunnerStorage.ts"
+import type * as RunnerStorage from "./RunnerStorage.ts"
 import * as Sharding from "./Sharding.ts"
 import { ShardingConfig } from "./ShardingConfig.ts"
 
@@ -151,7 +151,7 @@ export const layerWithClients: Layer.Layer<
 /**
  * A `Runners` layer that is client only.
  *
- * It will not register with the ShardManager and recieve shard assignments,
+ * It will not register with RunnerStorage and recieve shard assignments,
  * so this layer can be used to embed a cluster client inside another effect
  * application.
  *
@@ -164,9 +164,9 @@ export const layerClientOnly: Layer.Layer<
   | ShardingConfig
   | Runners.RpcClientProtocol
   | MessageStorage.MessageStorage
+  | RunnerStorage.RunnerStorage
 > = Sharding.layer.pipe(
   Layer.provideMerge(Runners.layerRpc),
-  Layer.provide(RunnerStorage.layerNoop),
   Layer.provide(RunnerHealth.layerNoop),
   Layer.updateService(ShardingConfig, (config) => ({
     ...config,

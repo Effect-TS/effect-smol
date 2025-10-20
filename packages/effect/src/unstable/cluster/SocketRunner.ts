@@ -52,5 +52,5 @@ export const layer: Layer.Layer<
 export const layerClientOnly: Layer.Layer<
   Sharding.Sharding | Runners.Runners,
   never,
-  Runners.RpcClientProtocol | ShardingConfig | MessageStorage
+  Runners.RpcClientProtocol | ShardingConfig | MessageStorage | RunnerStorage.RunnerStorage
 > = RunnerServer.layerClientOnly

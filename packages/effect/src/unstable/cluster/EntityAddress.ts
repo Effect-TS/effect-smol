@@ -48,6 +48,7 @@ export class EntityAddress extends Schema.Class<EntityAddress>(TypeId)({
     return Hash.string(`${this.entityType}:${this.entityId}:${this.shardId.toString()}`)
   }
 }
+
 /**
  * @since 4.0.0
  * @category constructors

@@ -21,7 +21,7 @@ import * as RpcSerialization from "effect/unstable/rpc/RpcSerialization"
 import type { SqlClient } from "effect/unstable/sql/SqlClient"
 import type { SqlError } from "effect/unstable/sql/SqlError"
 import { createServer } from "node:http"
-import { layerHttpClientK8s } from "./NodeClusterRunnerSocket.ts"
+import { layerHttpClientK8s } from "./NodeClusterSocket.ts"
 import * as NodeFileSystem from "./NodeFileSystem.ts"
 import * as NodeHttpClient from "./NodeHttpClient.ts"
 import * as NodeHttpServer from "./NodeHttpServer.ts"
@@ -113,7 +113,7 @@ export const layerHttpServer: Layer.Layer<
   const config = yield* ShardingConfig.ShardingConfig
   const listenAddress = config.runnerListenAddress ?? config.runnerAddress
   if (listenAddress === undefined) {
-    return yield* Effect.die("NodeClusterHttpRunner.layerHttpServer: ShardingConfig.podAddress is None")
+    return yield* Effect.die("NodeClusterHttp.layerHttpServer: ShardingConfig.runnerAddress is None")
   }
   return NodeHttpServer.layer(createServer, listenAddress)
 }).pipe(Layer.unwrap)
