@@ -760,10 +760,38 @@ describe("Config", () => {
   at ["b"]`
       )
     })
+
+    it("redacted", async () => {
+      const provider = ConfigProvider.fromStringPojo({
+        a: "value"
+      })
+
+      await succeed(Config.redacted("a"), provider, Redacted.make("value"))
+      await fail(
+        Config.redacted("failure"),
+        provider,
+        `Expected string, got undefined
+  at ["failure"]`
+      )
+    })
+
+    it("url", async () => {
+      const provider = ConfigProvider.fromStringPojo({
+        a: "https://example.com"
+      })
+
+      await succeed(Config.url("a"), provider, new URL("https://example.com"))
+      await fail(
+        Config.url("failure"),
+        provider,
+        `Expected string, got undefined
+  at ["failure"]`
+      )
+    })
   })
 
   describe("schemas", () => {
-    it("Boolean / boolean", async () => {
+    it("Boolean", async () => {
       const provider = ConfigProvider.fromStringPojo({
         a: "true",
         b: "false",
@@ -773,6 +801,8 @@ describe("Config", () => {
         f: "off",
         g: "1",
         h: "0",
+        i: "y",
+        j: "n",
         failure: "value"
       })
 
@@ -784,15 +814,17 @@ describe("Config", () => {
       await succeed(Config.boolean("f"), provider, false)
       await succeed(Config.boolean("g"), provider, true)
       await succeed(Config.boolean("h"), provider, false)
+      await succeed(Config.boolean("i"), provider, true)
+      await succeed(Config.boolean("j"), provider, false)
       await fail(
         Config.boolean("failure"),
         provider,
-        `Expected "true" | "yes" | "on" | "1" | "false" | "no" | "off" | "0", got "value"
+        `Expected "true" | "yes" | "on" | "1" | "y" | "false" | "no" | "off" | "0" | "n", got "value"
   at ["failure"]`
       )
     })
 
-    it("Duration / duration", async () => {
+    it("Duration", async () => {
       const provider = ConfigProvider.fromStringPojo({
         a: "1000 millis",
         b: "1 second",
@@ -809,7 +841,7 @@ describe("Config", () => {
       )
     })
 
-    it("Port / port", async () => {
+    it("Port", async () => {
       const provider = ConfigProvider.fromStringPojo({
         a: "8080",
         failure: "-1"
@@ -843,34 +875,6 @@ describe("Config", () => {
         provider,
         `Expected "All" | "Fatal" | "Error" | "Warn" | "Info" | "Debug" | "Trace" | "None", got "value"
   at ["failure_2"]`
-      )
-    })
-
-    it("redacted", async () => {
-      const provider = ConfigProvider.fromStringPojo({
-        a: "value"
-      })
-
-      await succeed(Config.redacted("a"), provider, Redacted.make("value"))
-      await fail(
-        Config.redacted("failure"),
-        provider,
-        `Expected string, got undefined
-  at ["failure"]`
-      )
-    })
-
-    it("url", async () => {
-      const provider = ConfigProvider.fromStringPojo({
-        a: "https://example.com"
-      })
-
-      await succeed(Config.url("a"), provider, new URL("https://example.com"))
-      await fail(
-        Config.url("failure"),
-        provider,
-        `Expected string, got undefined
-  at ["failure"]`
       )
     })
 
