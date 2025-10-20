@@ -315,7 +315,7 @@ export class InvalidValue extends Base {
   /**
    * The metadata for the issue.
    */
-  readonly annotations?: Annotations.Annotations | undefined
+  readonly annotations: Annotations.Issue | undefined
 
   constructor(
     /**
@@ -325,7 +325,7 @@ export class InvalidValue extends Base {
     /**
      * The metadata for the issue.
      */
-    annotations?: Annotations.Annotations | undefined
+    annotations?: Annotations.Issue | undefined
   ) {
     super()
     this.actual = actual
@@ -350,7 +350,7 @@ export class Forbidden extends Base {
   /**
    * The metadata for the issue.
    */
-  readonly annotations: Annotations.Annotations | undefined
+  readonly annotations: Annotations.Issue | undefined
 
   constructor(
     /**
@@ -360,7 +360,7 @@ export class Forbidden extends Base {
     /**
      * The metadata for the issue.
      */
-    annotations: Annotations.Annotations | undefined
+    annotations: Annotations.Issue | undefined
   ) {
     super()
     this.actual = actual

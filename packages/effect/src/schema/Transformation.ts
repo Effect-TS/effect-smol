@@ -267,9 +267,7 @@ export const durationFromNanos: Transformation<Duration.Duration, bigint> = tran
     const nanos = Duration.toNanos(a)
     if (Predicate.isUndefined(nanos)) {
       return Effect.fail(
-        new Issue.InvalidValue(Option.some(a), {
-          message: `Unable to encode ${a} into a bigint`
-        })
+        new Issue.InvalidValue(Option.some(a), { message: `Unable to encode ${a} into a bigint` })
       )
     }
     return Effect.succeed(nanos)

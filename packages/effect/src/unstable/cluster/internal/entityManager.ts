@@ -589,7 +589,7 @@ const makeMessageDecode = <Type extends string, Rpcs extends Rpc.Any>(
       return Effect.fail(
         new Schema.SchemaError(
           new Issue.InvalidValue(Option.some(message), {
-            description: `Unknown tag ${message.envelope.tag} for entity type ${entity.type}`
+            message: `Unknown tag ${message.envelope.tag} for entity type ${entity.type}`
           })
         )
       )

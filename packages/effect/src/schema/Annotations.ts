@@ -463,3 +463,11 @@ export function getBrand<T>(check: AST.Check<T>): string | symbol | undefined {
 export function getUnsafe<S extends Schema.Top>(schema: S): S["~annotate.in"] | undefined {
   return get(schema.ast)
 }
+
+/**
+ * @category Model
+ * @since 4.0.0
+ */
+export interface Issue extends Annotations {
+  readonly message?: string | undefined
+}

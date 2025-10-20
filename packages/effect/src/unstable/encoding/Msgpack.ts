@@ -273,7 +273,7 @@ export const transformation: Transformation.Transformation<
     } catch (cause) {
       return Effect.fail(
         new Issue.InvalidValue(Option.some(e), {
-          description: Predicate.hasProperty(cause, "message") ? String(cause.message) : String(cause)
+          message: Predicate.hasProperty(cause, "message") ? String(cause.message) : String(cause)
         })
       )
     }
@@ -284,7 +284,7 @@ export const transformation: Transformation.Transformation<
     } catch (cause) {
       return Effect.fail(
         new Issue.InvalidValue(Option.some(t), {
-          description: Predicate.hasProperty(cause, "message") ? String(cause.message) : String(cause)
+          message: Predicate.hasProperty(cause, "message") ? String(cause.message) : String(cause)
         })
       )
     }
