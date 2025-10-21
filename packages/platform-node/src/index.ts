@@ -95,6 +95,11 @@ export * as NodeStream from "./NodeStream.ts"
 /**
  * @since 1.0.0
  */
+export * as NodeTerminal from "./NodeTerminal.ts"
+
+/**
+ * @since 1.0.0
+ */
 export * as NodeWorker from "./NodeWorker.ts"
 
 /**

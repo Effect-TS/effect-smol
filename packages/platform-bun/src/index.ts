@@ -85,6 +85,11 @@ export * as BunStream from "./BunStream.ts"
 /**
  * @since 1.0.0
  */
+export * as BunTerminal from "./BunTerminal.ts"
+
+/**
+ * @since 1.0.0
+ */
 export * as BunWorker from "./BunWorker.ts"
 
 /**

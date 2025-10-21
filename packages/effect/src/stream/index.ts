@@ -87,4 +87,9 @@ export * as Stream from "./Stream.ts"
 /**
  * @since 2.0.0
  */
+export * as SubscriptionRef from "./SubscriptionRef.ts"
+
+/**
+ * @since 2.0.0
+ */
 export * as Take from "./Take.ts"

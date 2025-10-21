@@ -1262,11 +1262,14 @@ export * as ScopedCache from "./ScopedCache.ts"
 export * as ScopedRef from "./ScopedRef.ts"
 
 /**
- * This module provides a data structure called `ServiceMap` that can be used for dependency injection in effectful
- * programs. It is essentially a table mapping `Keys`s to their implementations (called `Service`s), and can be used to
- * manage dependencies in a type-safe way. The `ServiceMap` data structure is essentially a way of providing access to a set
- * of related services that can be passed around as a single unit. This module provides functions to create, modify, and
- * query the contents of a `ServiceMap`, as well as a number of utility types for working with keys and services.
+ * This module provides a data structure called `ServiceMap` that can be used
+ * for dependency injection in effectful programs. It is essentially a table
+ * mapping `Service`s identifiers to their implementations, and can be used to
+ * manage dependencies in a type-safe way. The `ServiceMap` data structure is
+ * essentially a way of providing access to a set of related services that can
+ * be passed around as a single unit. This module provides functions to create,
+ * modify, and query the contents of a `ServiceMap`, as well as a number of
+ * utility types for working with a `ServiceMap`.
  *
  * @since 4.0.0
  */
