@@ -9,7 +9,7 @@ Releases are snapshot only
 - [ ] Port platform-browser
 - [x] Add CLI modules
 - [ ] Add opentelemetry package
-- [ ] Port SubscriptionRef
+- [x] Port SubscriptionRef
 - [ ] RateLimiter with persistence
 - [x] Reduce nesting of modules
 - [ ] Effect.fn call site trace
