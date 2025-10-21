@@ -9,8 +9,8 @@ import { constTrue, constVoid, pipe } from "effect/Function"
 import { Sink, Stream } from "effect/stream"
 import { TestClock } from "effect/testing"
 import * as fc from "effect/testing/FastCheck"
-import { assertFailure } from "./utils/assert.ts"
-import { chunkCoordination } from "./utils/chunkCoordination.ts"
+import { assertFailure } from "../utils/assert.ts"
+import { chunkCoordination } from "../utils/chunkCoordination.ts"
 
 describe("Stream", () => {
   describe("callback", () => {
