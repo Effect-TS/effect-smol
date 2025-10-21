@@ -77,8 +77,8 @@ export const make: <A>(value: A) => Effect.Effect<SubscriptionRef<A>> = Effect.f
  *
  * @example
  * ```ts
- * import { Effect, Stream } from "effect"
- * import { SubscriptionRef } from "effect/stream"
+ * import { Effect } from "effect"
+ * import { Stream, SubscriptionRef } from "effect/stream"
  *
  * const program = Effect.gen(function* () {
  *   const ref = yield* SubscriptionRef.make(0)
