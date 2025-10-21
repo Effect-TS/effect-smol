@@ -382,7 +382,7 @@ describe("asStandardSchemaV1", () => {
     })
 
     describe("Struct", () => {
-      it("Struct & messageMissingKey", () => {
+      it("messageMissingKey", () => {
         const schema = Schema.Struct({
           a: Schema.String.annotateKey({ messageMissingKey: "Custom message" })
         })
@@ -395,7 +395,7 @@ describe("asStandardSchemaV1", () => {
         ])
       })
 
-      it("Struct & messageUnexpectedKey", () => {
+      it("messageUnexpectedKey", () => {
         const schema = Schema.Struct({
           a: Schema.String
         }).annotate({ messageUnexpectedKey: "Custom message" })
@@ -406,6 +406,36 @@ describe("asStandardSchemaV1", () => {
           {
             message: "Custom message",
             path: ["b"]
+          }
+        ])
+      })
+    })
+
+    describe("Tuple", () => {
+      it("messageMissingKey", () => {
+        const schema = Schema.Tuple([
+          Schema.String.annotateKey({ messageMissingKey: "Custom message" })
+        ])
+        const standardSchema = Schema.asStandardSchemaV1(schema)
+        expectSyncFailure(standardSchema, [], [
+          {
+            message: "Custom message",
+            path: [0]
+          }
+        ])
+      })
+
+      it("messageUnexpectedKey", () => {
+        const schema = Schema.Tuple([
+          Schema.String
+        ]).annotate({ messageUnexpectedKey: "Custom message" })
+        const standardSchema = Schema.asStandardSchemaV1(schema, {
+          parseOptions: { onExcessProperty: "error" }
+        })
+        expectSyncFailure(standardSchema, ["a", "b"], [
+          {
+            message: "Custom message",
+            path: [1]
           }
         ])
       })
