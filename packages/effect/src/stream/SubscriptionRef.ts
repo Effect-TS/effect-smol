@@ -53,6 +53,8 @@ const Proto = {
 }
 
 /**
+ * Constructs a new `SubscriptionRef` from an initial value.
+ *
  * @since 2.0.0
  * @category constructors
  */
@@ -66,6 +68,35 @@ export const make: <A>(value: A) => Effect.Effect<SubscriptionRef<A>> = Effect.f
   }
 )
 
+/**
+ * Creates a stream that emits the current value and all subsequent changes to
+ * the `SubscriptionRef`.
+ *
+ * The stream will first emit the current value, then emit all future changes
+ * as they occur.
+ *
+ * @example
+ * ```ts
+ * import { Effect, Stream } from "effect"
+ * import { SubscriptionRef } from "effect/stream"
+ *
+ * const program = Effect.gen(function* () {
+ *   const ref = yield* SubscriptionRef.make(0)
+ *
+ *   const stream = SubscriptionRef.changes(ref)
+ *
+ *   const fiber = yield* Stream.runForEach(stream, (value) =>
+ *     Effect.sync(() => console.log("Value:", value))
+ *   ).pipe(Effect.fork)
+ *
+ *   yield* SubscriptionRef.set(ref, 1)
+ *   yield* SubscriptionRef.set(ref, 2)
+ * })
+ * ```
+ *
+ * @category changes
+ * @since 2.0.0
+ */
 export const changes = <A>(self: SubscriptionRef<A>): Stream.Stream<A> =>
   Stream.unwrap(
     self.semaphore.withPermits(1)(Effect.sync(() => {
@@ -78,17 +109,74 @@ export const changes = <A>(self: SubscriptionRef<A>): Stream.Stream<A> =>
   )
 
 /**
+ * Unsafely retrieves the current value of the `SubscriptionRef`.
+ *
+ * This function directly accesses the underlying reference without any
+ * synchronization. It should only be used when you're certain there are no
+ * concurrent modifications.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ * import { SubscriptionRef } from "effect/stream"
+ *
+ * const program = Effect.gen(function* () {
+ *   const ref = yield* SubscriptionRef.make(42)
+ *
+ *   const value = SubscriptionRef.getUnsafe(ref)
+ *   console.log(value)
+ * })
+ * ```
+ *
  * @since 2.0.0
  * @category getters
  */
 export const getUnsafe = <A>(self: SubscriptionRef<A>): A => self.backing.ref.current
 
 /**
+ * Retrieves the current value of the `SubscriptionRef`.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ * import { SubscriptionRef } from "effect/stream"
+ *
+ * const program = Effect.gen(function* () {
+ *   const ref = yield* SubscriptionRef.make(42)
+ *
+ *   const value = yield* SubscriptionRef.get(ref)
+ *   console.log(value)
+ * })
+ * ```
+ *
  * @since 2.0.0
  * @category getters
  */
 export const get = <A>(self: SubscriptionRef<A>): Effect.Effect<A> => Effect.sync(() => getUnsafe(self))
 
+/**
+ * Atomically retrieves the current value and sets a new value, notifying
+ * subscribers of the change.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ * import { SubscriptionRef } from "effect/stream"
+ *
+ * const program = Effect.gen(function* () {
+ *   const ref = yield* SubscriptionRef.make(10)
+ *
+ *   const oldValue = yield* SubscriptionRef.getAndSet(ref, 20)
+ *   console.log("Old value:", oldValue)
+ *
+ *   const newValue = yield* SubscriptionRef.get(ref)
+ *   console.log("New value:", newValue)
+ * })
+ * ```
+ *
+ * @since 2.0.0
+ * @category getters
+ */
 export const getAndSet: {
   <A>(value: A): (self: SubscriptionRef<A>) => Effect.Effect<A>
   <A>(self: SubscriptionRef<A>, value: A): Effect.Effect<A>
@@ -98,6 +186,29 @@ export const getAndSet: {
     (oldValue) => Effect.as(PubSub.publish(self.pubsub, value), oldValue)
   )))
 
+/**
+ * Atomically retrieves the current value and updates it with the result of
+ * applying a function, notifying subscribers of the change.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ * import { SubscriptionRef } from "effect/stream"
+ *
+ * const program = Effect.gen(function* () {
+ *   const ref = yield* SubscriptionRef.make(10)
+ *
+ *   const oldValue = yield* SubscriptionRef.getAndUpdate(ref, (n) => n * 2)
+ *   console.log("Old value:", oldValue)
+ *
+ *   const newValue = yield* SubscriptionRef.get(ref)
+ *   console.log("New value:", newValue)
+ * })
+ * ```
+ *
+ * @since 2.0.0
+ * @category getters
+ */
 export const getAndUpdate: {
   <A>(update: (a: A) => A): (self: SubscriptionRef<A>) => Effect.Effect<A>
   <A>(self: SubscriptionRef<A>, update: (a: A) => A): Effect.Effect<A>
@@ -109,6 +220,31 @@ export const getAndUpdate: {
     return Effect.as(PubSub.publish(self.pubsub, newValue), current)
   })))
 
+/**
+ * Atomically retrieves the current value and updates it with the result of
+ * applying an effectful function, notifying subscribers of the change.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ * import { SubscriptionRef } from "effect/stream"
+ *
+ * const program = Effect.gen(function* () {
+ *   const ref = yield* SubscriptionRef.make(10)
+ *
+ *   const oldValue = yield* SubscriptionRef.getAndUpdateEffect(ref, (n) =>
+ *     Effect.succeed(n + 5)
+ *   )
+ *   console.log("Old value:", oldValue)
+ *
+ *   const newValue = yield* SubscriptionRef.get(ref)
+ *   console.log("New value:", newValue)
+ * })
+ * ```
+ *
+ * @since 2.0.0
+ * @category getters
+ */
 export const getAndUpdateEffect: {
   <A, E, R>(update: (a: A) => Effect.Effect<A, E, R>): (self: SubscriptionRef<A>) => Effect.Effect<A, E, R>
   <A, E, R>(self: SubscriptionRef<A>, update: (a: A) => Effect.Effect<A, E, R>): Effect.Effect<A, E, R>
@@ -124,6 +260,33 @@ export const getAndUpdateEffect: {
     })
   })))
 
+/**
+ * Atomically retrieves the current value and optionally updates it with the
+ * result of applying a function that returns an `Option`, notifying
+ * subscribers only if the value changes.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ * import { Option } from "effect/data"
+ * import { SubscriptionRef } from "effect/stream"
+ *
+ * const program = Effect.gen(function* () {
+ *   const ref = yield* SubscriptionRef.make(10)
+ *
+ *   const oldValue = yield* SubscriptionRef.getAndUpdateSome(ref, (n) =>
+ *     n > 5 ? Option.some(n * 2) : Option.none()
+ *   )
+ *   console.log("Old value:", oldValue)
+ *
+ *   const newValue = yield* SubscriptionRef.get(ref)
+ *   console.log("New value:", newValue)
+ * })
+ * ```
+ *
+ * @since 2.0.0
+ * @category getters
+ */
 export const getAndUpdateSome: {
   <A>(update: (a: A) => Option.Option<A>): (self: SubscriptionRef<A>) => Effect.Effect<A>
   <A>(self: SubscriptionRef<A>, update: (a: A) => Option.Option<A>): Effect.Effect<A>
@@ -141,6 +304,34 @@ export const getAndUpdateSome: {
     return Effect.map(PubSub.publish(self.pubsub, option.value), () => current)
   })))
 
+/**
+ * Atomically retrieves the current value and optionally updates it with the
+ * result of applying an effectful function that returns an `Option`,
+ * notifying subscribers only if the value changes.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ * import { Option } from "effect/data"
+ * import { SubscriptionRef } from "effect/stream"
+ *
+ * const program = Effect.gen(function* () {
+ *   const ref = yield* SubscriptionRef.make(10)
+ *
+ *   const oldValue = yield* SubscriptionRef.getAndUpdateSomeEffect(
+ *     ref,
+ *     (n) => Effect.succeed(n > 5 ? Option.some(n + 3) : Option.none())
+ *   )
+ *   console.log("Old value:", oldValue)
+ *
+ *   const newValue = yield* SubscriptionRef.get(ref)
+ *   console.log("New value:", newValue)
+ * })
+ * ```
+ *
+ * @since 2.0.0
+ * @category getters
+ */
 export const getAndUpdateSomeEffect: {
   <A, R, E>(
     update: (a: A) => Effect.Effect<Option.Option<A>, E, R>
@@ -164,6 +355,32 @@ export const getAndUpdateSomeEffect: {
     })
   })))
 
+/**
+ * Atomically modifies the `SubscriptionRef` with a function that computes a
+ * return value and a new value, notifying subscribers of the change.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ * import { SubscriptionRef } from "effect/stream"
+ *
+ * const program = Effect.gen(function* () {
+ *   const ref = yield* SubscriptionRef.make(10)
+ *
+ *   const result = yield* SubscriptionRef.modify(ref, (n) => [
+ *     `Old value was ${n}`,
+ *     n * 2
+ *   ])
+ *   console.log(result)
+ *
+ *   const newValue = yield* SubscriptionRef.get(ref)
+ *   console.log("New value:", newValue)
+ * })
+ * ```
+ *
+ * @since 2.0.0
+ * @category modifications
+ */
 export const modify: {
   <A, B>(modify: (a: A) => readonly [B, A]): (self: SubscriptionRef<A>) => Effect.Effect<B>
   <A, B>(self: SubscriptionRef<A>, f: (a: A) => readonly [B, A]): Effect.Effect<B>
@@ -177,6 +394,32 @@ export const modify: {
     return Effect.as(PubSub.publish(self.pubsub, newValue), b)
   })))
 
+/**
+ * Atomically modifies the `SubscriptionRef` with an effectful function that
+ * computes a return value and a new value, notifying subscribers of the
+ * change.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ * import { SubscriptionRef } from "effect/stream"
+ *
+ * const program = Effect.gen(function* () {
+ *   const ref = yield* SubscriptionRef.make(10)
+ *
+ *   const result = yield* SubscriptionRef.modifyEffect(ref, (n) =>
+ *     Effect.succeed([`Doubled from ${n}`, n * 2] as const)
+ *   )
+ *   console.log(result)
+ *
+ *   const newValue = yield* SubscriptionRef.get(ref)
+ *   console.log("New value:", newValue)
+ * })
+ * ```
+ *
+ * @since 2.0.0
+ * @category modifications
+ */
 export const modifyEffect: {
   <B, A, E, R>(
     modify: (a: A) => Effect.Effect<readonly [B, A], E, R>
@@ -197,6 +440,33 @@ export const modifyEffect: {
     })
   })))
 
+/**
+ * Atomically modifies the `SubscriptionRef` with a function that computes a
+ * return value and optionally a new value, notifying subscribers only if the
+ * value changes.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ * import { Option } from "effect/data"
+ * import { SubscriptionRef } from "effect/stream"
+ *
+ * const program = Effect.gen(function* () {
+ *   const ref = yield* SubscriptionRef.make(10)
+ *
+ *   const result = yield* SubscriptionRef.modifySome(ref, (n) =>
+ *     n > 5 ? ["Updated", Option.some(n * 2)] : ["Not updated", Option.none()]
+ *   )
+ *   console.log(result)
+ *
+ *   const newValue = yield* SubscriptionRef.get(ref)
+ *   console.log("New value:", newValue)
+ * })
+ * ```
+ *
+ * @since 2.0.0
+ * @category modifications
+ */
 export const modifySome: {
   <B, A>(
     modify: (a: A) => readonly [B, Option.Option<A>]
@@ -218,6 +488,37 @@ export const modifySome: {
     return Effect.as(PubSub.publish(self.pubsub, option.value), b)
   })))
 
+/**
+ * Atomically modifies the `SubscriptionRef` with an effectful function that
+ * computes a return value and optionally a new value, notifying subscribers
+ * only if the value changes.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ * import { Option } from "effect/data"
+ * import { SubscriptionRef } from "effect/stream"
+ *
+ * const program = Effect.gen(function* () {
+ *   const ref = yield* SubscriptionRef.make(10)
+ *
+ *   const result = yield* SubscriptionRef.modifySomeEffect(ref, (n) =>
+ *     Effect.succeed(
+ *       n > 5
+ *         ? (["Updated", Option.some(n + 5)] as const)
+ *         : (["Not updated", Option.none()] as const)
+ *     )
+ *   )
+ *   console.log(result)
+ *
+ *   const newValue = yield* SubscriptionRef.get(ref)
+ *   console.log("New value:", newValue)
+ * })
+ * ```
+ *
+ * @since 2.0.0
+ * @category modifications
+ */
 export const modifySomeEffect: {
   <A, B, R, E>(
     modify: (a: A) => Effect.Effect<readonly [B, Option.Option<A>], E, R>
@@ -241,6 +542,28 @@ export const modifySomeEffect: {
     })
   })))
 
+/**
+ * Sets the value of the `SubscriptionRef`, notifying all subscribers of the
+ * change.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ * import { SubscriptionRef } from "effect/stream"
+ *
+ * const program = Effect.gen(function* () {
+ *   const ref = yield* SubscriptionRef.make(0)
+ *
+ *   yield* SubscriptionRef.set(ref, 42)
+ *
+ *   const value = yield* SubscriptionRef.get(ref)
+ *   console.log(value)
+ * })
+ * ```
+ *
+ * @since 2.0.0
+ * @category setters
+ */
 export const set: {
   <A>(value: A): (self: SubscriptionRef<A>) => Effect.Effect<void>
   <A>(self: SubscriptionRef<A>, value: A): Effect.Effect<void>
@@ -250,6 +573,26 @@ export const set: {
     return Effect.asVoid(PubSub.publish(self.pubsub, value))
   })))
 
+/**
+ * Sets the value of the `SubscriptionRef` and returns the new value,
+ * notifying all subscribers of the change.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ * import { SubscriptionRef } from "effect/stream"
+ *
+ * const program = Effect.gen(function* () {
+ *   const ref = yield* SubscriptionRef.make(0)
+ *
+ *   const newValue = yield* SubscriptionRef.setAndGet(ref, 42)
+ *   console.log("New value:", newValue)
+ * })
+ * ```
+ *
+ * @since 2.0.0
+ * @category setters
+ */
 export const setAndGet: {
   <A>(value: A): (self: SubscriptionRef<A>) => Effect.Effect<A>
   <A>(self: SubscriptionRef<A>, value: A): Effect.Effect<A>
@@ -259,6 +602,28 @@ export const setAndGet: {
     return Effect.map(PubSub.publish(self.pubsub, value), () => value)
   })))
 
+/**
+ * Updates the value of the `SubscriptionRef` with the result of applying a
+ * function, notifying subscribers of the change.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ * import { SubscriptionRef } from "effect/stream"
+ *
+ * const program = Effect.gen(function* () {
+ *   const ref = yield* SubscriptionRef.make(10)
+ *
+ *   yield* SubscriptionRef.update(ref, (n) => n * 2)
+ *
+ *   const value = yield* SubscriptionRef.get(ref)
+ *   console.log(value)
+ * })
+ * ```
+ *
+ * @since 2.0.0
+ * @category updating
+ */
 export const update: {
   <A>(update: (a: A) => A): (self: SubscriptionRef<A>) => Effect.Effect<void>
   <A>(self: SubscriptionRef<A>, update: (a: A) => A): Effect.Effect<void>
@@ -269,6 +634,30 @@ export const update: {
     return Effect.asVoid(PubSub.publish(self.pubsub, newValue))
   })))
 
+/**
+ * Updates the value of the `SubscriptionRef` with the result of applying an
+ * effectful function, notifying subscribers of the change.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ * import { SubscriptionRef } from "effect/stream"
+ *
+ * const program = Effect.gen(function* () {
+ *   const ref = yield* SubscriptionRef.make(10)
+ *
+ *   yield* SubscriptionRef.updateEffect(ref, (n) =>
+ *     Effect.succeed(n + 5)
+ *   )
+ *
+ *   const value = yield* SubscriptionRef.get(ref)
+ *   console.log(value)
+ * })
+ * ```
+ *
+ * @since 2.0.0
+ * @category updating
+ */
 export const updateEffect: {
   <A, E, R>(update: (a: A) => Effect.Effect<A, E, R>): (self: SubscriptionRef<A>) => Effect.Effect<void, E, R>
   <A, E, R>(self: SubscriptionRef<A>, update: (a: A) => Effect.Effect<A, E, R>): Effect.Effect<void, E, R>
@@ -284,6 +673,26 @@ export const updateEffect: {
     })
   })))
 
+/**
+ * Updates the value of the `SubscriptionRef` with the result of applying a
+ * function and returns the new value, notifying subscribers of the change.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ * import { SubscriptionRef } from "effect/stream"
+ *
+ * const program = Effect.gen(function* () {
+ *   const ref = yield* SubscriptionRef.make(10)
+ *
+ *   const newValue = yield* SubscriptionRef.updateAndGet(ref, (n) => n * 2)
+ *   console.log("New value:", newValue)
+ * })
+ * ```
+ *
+ * @since 2.0.0
+ * @category updating
+ */
 export const updateAndGet: {
   <A>(update: (a: A) => A): (self: SubscriptionRef<A>) => Effect.Effect<A>
   <A>(self: SubscriptionRef<A>, update: (a: A) => A): Effect.Effect<A>
@@ -294,6 +703,29 @@ export const updateAndGet: {
     return Effect.as(PubSub.publish(self.pubsub, newValue), newValue)
   })))
 
+/**
+ * Updates the value of the `SubscriptionRef` with the result of applying an
+ * effectful function and returns the new value, notifying subscribers of the
+ * change.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ * import { SubscriptionRef } from "effect/stream"
+ *
+ * const program = Effect.gen(function* () {
+ *   const ref = yield* SubscriptionRef.make(10)
+ *
+ *   const newValue = yield* SubscriptionRef.updateAndGetEffect(ref, (n) =>
+ *     Effect.succeed(n + 5)
+ *   )
+ *   console.log("New value:", newValue)
+ * })
+ * ```
+ *
+ * @since 2.0.0
+ * @category updating
+ */
 export const updateAndGetEffect: {
   <A, E, R>(update: (a: A) => Effect.Effect<A, E, R>): (self: SubscriptionRef<A>) => Effect.Effect<A, E, R>
   <A, E, R>(self: SubscriptionRef<A>, update: (a: A) => Effect.Effect<A, E, R>): Effect.Effect<A, E, R>
@@ -309,6 +741,32 @@ export const updateAndGetEffect: {
     })
   })))
 
+/**
+ * Optionally updates the value of the `SubscriptionRef` with the result of
+ * applying a function that returns an `Option`, notifying subscribers only if
+ * the value changes.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ * import { Option } from "effect/data"
+ * import { SubscriptionRef } from "effect/stream"
+ *
+ * const program = Effect.gen(function* () {
+ *   const ref = yield* SubscriptionRef.make(10)
+ *
+ *   yield* SubscriptionRef.updateSome(ref, (n) =>
+ *     n > 5 ? Option.some(n * 2) : Option.none()
+ *   )
+ *
+ *   const value = yield* SubscriptionRef.get(ref)
+ *   console.log(value)
+ * })
+ * ```
+ *
+ * @since 2.0.0
+ * @category updating
+ */
 export const updateSome: {
   <A>(update: (a: A) => Option.Option<A>): (self: SubscriptionRef<A>) => Effect.Effect<void>
   <A>(self: SubscriptionRef<A>, update: (a: A) => Option.Option<A>): Effect.Effect<void>
@@ -325,6 +783,32 @@ export const updateSome: {
     return Effect.asVoid(PubSub.publish(self.pubsub, option.value))
   })))
 
+/**
+ * Optionally updates the value of the `SubscriptionRef` with the result of
+ * applying an effectful function that returns an `Option`, notifying
+ * subscribers only if the value changes.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ * import { Option } from "effect/data"
+ * import { SubscriptionRef } from "effect/stream"
+ *
+ * const program = Effect.gen(function* () {
+ *   const ref = yield* SubscriptionRef.make(10)
+ *
+ *   yield* SubscriptionRef.updateSomeEffect(ref, (n) =>
+ *     Effect.succeed(n > 5 ? Option.some(n + 3) : Option.none())
+ *   )
+ *
+ *   const value = yield* SubscriptionRef.get(ref)
+ *   console.log(value)
+ * })
+ * ```
+ *
+ * @since 2.0.0
+ * @category updating
+ */
 export const updateSomeEffect: {
   <A, E, R>(
     update: (a: A) => Effect.Effect<Option.Option<A>, E, R>
@@ -348,6 +832,30 @@ export const updateSomeEffect: {
     })
   })))
 
+/**
+ * Optionally updates the value of the `SubscriptionRef` with the result of
+ * applying a function that returns an `Option` and returns the new value,
+ * notifying subscribers only if the value changes.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ * import { Option } from "effect/data"
+ * import { SubscriptionRef } from "effect/stream"
+ *
+ * const program = Effect.gen(function* () {
+ *   const ref = yield* SubscriptionRef.make(10)
+ *
+ *   const newValue = yield* SubscriptionRef.updateSomeAndGet(ref, (n) =>
+ *     n > 5 ? Option.some(n * 2) : Option.none()
+ *   )
+ *   console.log("New value:", newValue)
+ * })
+ * ```
+ *
+ * @since 2.0.0
+ * @category updating
+ */
 export const updateSomeAndGet: {
   <A>(update: (a: A) => Option.Option<A>): (self: SubscriptionRef<A>) => Effect.Effect<A>
   <A>(self: SubscriptionRef<A>, update: (a: A) => Option.Option<A>): Effect.Effect<A>
@@ -365,6 +873,31 @@ export const updateSomeAndGet: {
     return Effect.as(PubSub.publish(self.pubsub, option.value), option.value)
   })))
 
+/**
+ * Optionally updates the value of the `SubscriptionRef` with the result of
+ * applying an effectful function that returns an `Option` and returns the new
+ * value, notifying subscribers only if the value changes.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ * import { Option } from "effect/data"
+ * import { SubscriptionRef } from "effect/stream"
+ *
+ * const program = Effect.gen(function* () {
+ *   const ref = yield* SubscriptionRef.make(10)
+ *
+ *   const newValue = yield* SubscriptionRef.updateSomeAndGetEffect(
+ *     ref,
+ *     (n) => Effect.succeed(n > 5 ? Option.some(n + 3) : Option.none())
+ *   )
+ *   console.log("New value:", newValue)
+ * })
+ * ```
+ *
+ * @since 2.0.0
+ * @category updating
+ */
 export const updateSomeAndGetEffect: {
   <A, E, R>(
     update: (a: A) => Effect.Effect<Option.Option<A>, E, R>
