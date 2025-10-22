@@ -324,7 +324,13 @@ export function format(
       Predicate.isFunction(v["toString"]) &&
       v["toString"] !== Object.prototype.toString &&
       v["toString"] !== Array.prototype.toString
-    ) return safeToString(v)
+    ) {
+      const s = safeToString(v)
+      if (v instanceof Error && v.cause) {
+        return `${s} (cause: ${go(v.cause, d)})`
+      }
+      return s
+    }
 
     if (Predicate.isString(v)) return JSON.stringify(v)
 

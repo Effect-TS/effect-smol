@@ -90,6 +90,7 @@ describe("Inspectable", () => {
 
     it("Error", () => {
       strictEqual(format(new Error("a")), `Error: a`)
+      strictEqual(format(new Error("a", { cause: "b" })), `Error: a (cause: "b")`)
     })
 
     it("Date", () => {
