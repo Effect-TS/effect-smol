@@ -127,7 +127,7 @@ describe("Inspectable", () => {
       class E extends Schema.ErrorClass<E>("E")({
         a: Schema.String
       }) {}
-      strictEqual(format(new E({ a: "a" })), `Error`)
+      strictEqual(format(new E({ a: "a" })), `E({"a":"a"})`)
     })
 
     describe("whitespace", () => {

@@ -6340,6 +6340,10 @@ function makeClass<
       }
     }
 
+    toString() {
+      return `${identifier}(${format({ ...this })})`
+    }
+
     static readonly [TypeId] = TypeId
     static readonly [immerable] = true
 
