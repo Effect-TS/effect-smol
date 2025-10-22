@@ -1387,6 +1387,29 @@ describe("Schema", () => {
       fBBranded(BBranded.makeUnsafe({ a: "a" }))
       when(fBBranded).isCalledWith(expect(ABranded.makeUnsafe).type.not.toBeCallableWith({ a: "a" }))
     })
+
+    it("extend & branded (unique symbol)", () => {
+      class Common extends Schema.Class<Common>("Common")({
+        a: Schema.String
+      }) {}
+      class E1 extends Common.extend<E1, {}, { readonly brand: unique symbol }>("E1")({
+        b: Schema.String
+      }) {}
+      class E2 extends Common.extend<E2, {}, { readonly brand: unique symbol }>("E2")({
+        b: Schema.String
+      }) {}
+
+      const f1 = (e1: E1) => e1
+
+      f1(E1.makeUnsafe({ a: "a", b: "b" }))
+      when(f1).isCalledWith(expect(E2.makeUnsafe).type.not.toBeCallableWith({ a: "a", b: "b" }))
+
+      const f2 = (e2: E2) => e2
+
+      f2(E2.makeUnsafe({ a: "a", b: "b" }))
+      when(f2).isCalledWith(expect(E1.makeUnsafe).type.not.toBeCallableWith({ a: "a", b: "b" }))
+    })
+
   })
 
   describe("Error", () => {

@@ -4782,37 +4782,51 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       assertTrue(Annotated.makeUnsafe(new A({ a: "a" })) instanceof A)
     })
 
-    it("extend", async () => {
-      class A extends Schema.Class<A>("A")(Schema.Struct({
-        a: Schema.String
-      })) {
-        readonly _a = 1
-      }
-      class B extends A.extend<B>("B")({
-        b: Schema.Number
-      }) {
-        readonly _b = 2
-      }
-      const asserts = new TestSchema.Asserts(B)
+    describe("extend", () => {
+      it("basic", async () => {
+        class A extends Schema.Class<A>("A")(Schema.Struct({
+          a: Schema.String
+        })) {
+          readonly _a = 1
+        }
+        class B extends A.extend<B>("B")({
+          b: Schema.Number
+        }) {
+          readonly _b = 2
+        }
+        const asserts = new TestSchema.Asserts(B)
 
-      const instance = new B({ a: "a", b: 2 })
+        const instance = new B({ a: "a", b: 2 })
 
-      assertTrue(instance instanceof A)
-      assertTrue(B.makeUnsafe({ a: "a", b: 2 }) instanceof A)
-      assertTrue(instance instanceof B)
-      assertTrue(B.makeUnsafe({ a: "a", b: 2 }) instanceof B)
+        assertTrue(instance instanceof A)
+        assertTrue(B.makeUnsafe({ a: "a", b: 2 }) instanceof A)
+        assertTrue(instance instanceof B)
+        assertTrue(B.makeUnsafe({ a: "a", b: 2 }) instanceof B)
 
-      strictEqual(instance.a, "a")
-      strictEqual(instance._a, 1)
-      strictEqual(instance.b, 2)
-      strictEqual(instance._b, 2)
+        strictEqual(instance.a, "a")
+        strictEqual(instance._a, 1)
+        strictEqual(instance.b, 2)
+        strictEqual(instance._b, 2)
 
-      const make = asserts.make()
-      await make.succeed(new B({ a: "a", b: 2 }))
-      await make.succeed({ a: "a", b: 2 }, new B({ a: "a", b: 2 }))
+        const make = asserts.make()
+        await make.succeed(new B({ a: "a", b: 2 }))
+        await make.succeed({ a: "a", b: 2 }, new B({ a: "a", b: 2 }))
 
-      const decoding = asserts.decoding()
-      await decoding.succeed({ a: "a", b: 2 }, new B({ a: "a", b: 2 }))
+        const decoding = asserts.decoding()
+        await decoding.succeed({ a: "a", b: 2 }, new B({ a: "a", b: 2 }))
+      })
+
+      it("static members", async () => {
+        class A extends Schema.Class<A>("A")({
+          a: Schema.String
+        }) {
+          static readonly aStatic = "value"
+        }
+        class B extends A.extend<B, typeof A>("B")({
+          b: Schema.Number
+        }) {}
+        strictEqual(B.aStatic, "value")
+      })
     })
   })
 

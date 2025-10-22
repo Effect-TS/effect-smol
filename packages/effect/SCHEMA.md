@@ -3299,14 +3299,16 @@ const builtIn = Util.getNativeClassSchema(Err, { encoding: Props })
 
 ### Class API
 
-**Example**
+**Example** (Constructing and decoding a class)
 
 ```ts
 import { Schema } from "effect/schema"
 
+// Define a class with a single string field "a"
 class A extends Schema.Class<A>("A")({
   a: Schema.String
 }) {
+  // Regular class fields are allowed
   readonly _a = 1
 }
 
@@ -3318,13 +3320,47 @@ console.log(Schema.decodeUnknownSync(A)({ a: "a" }))
 // A { a: 'a', _a: 1 }
 ```
 
-#### Branded Classes
+#### Filters
 
-You can optionally add a brand to a class to prevent accidental mixing of different types.
+To attach a filter to the whole class, pass a `Struct` instead of a field record and call `.check(...)` on it.
+
+**Example** (Validating a relationship between fields)
 
 ```ts
 import { Schema } from "effect/schema"
 
+class A extends Schema.Class<A>("A")(
+  Schema.Struct({
+    a: Schema.String,
+    b: Schema.String
+  }).check(Schema.makeFilter(({ a, b }) => a === b, { title: "a === b" }))
+) {}
+
+try {
+  new A({ a: "a", b: "b" })
+} catch (error: any) {
+  console.log(error.message)
+}
+// Expected a === b, got {"a":"a","b":"b"}
+
+try {
+  Schema.decodeUnknownSync(A)({ a: "a", b: "b" })
+} catch (error: any) {
+  console.log(error.message)
+}
+// Expected a === b, got {"a":"a","b":"b"}
+```
+
+#### Branded Classes
+
+Attach a brand to a class to avoid mixing values from different domains that share the same structure.
+
+**Example** (Unique brands block assignment)
+
+```ts
+import { Schema } from "effect/schema"
+
+// Brand the class using a unique symbol type parameter
 class A extends Schema.Class<A, { readonly brand: unique symbol }>("A")({
   a: Schema.String
 }) {}
@@ -3333,13 +3369,16 @@ class B extends Schema.Class<B, { readonly brand: unique symbol }>("B")({
   a: Schema.String
 }) {}
 
+// Even though A and B have the same fields, their brands are different,
+// so they are not assignable to each other.
+
 // @ts-expect-error
 export const a: A = B.makeUnsafe({ a: "a" })
 // @ts-expect-error
 export const b: B = A.makeUnsafe({ a: "a" })
 ```
 
-or using the `Brand` module:
+**Example** (Using the Brand module)
 
 ```ts
 import type { Brand } from "effect"
@@ -3353,57 +3392,45 @@ class B extends Schema.Class<B, Brand.Brand<"B">>("B")({
   a: Schema.String
 }) {}
 
+// Different named brands are still not assignable
+
 // @ts-expect-error
 export const a: A = B.makeUnsafe({ a: "a" })
 // @ts-expect-error
 export const b: B = A.makeUnsafe({ a: "a" })
 ```
 
-#### Filters
-
-```ts
-import { Schema } from "effect/schema"
-
-class A extends Schema.Class<A>("A")({
-  a: Schema.String.check(Schema.isNonEmpty())
-}) {}
-
-try {
-  new A({ a: "" })
-} catch (error) {
-  if (error instanceof Error) {
-    console.log(error.message)
-  }
-}
-/*
-Expected a value with a length of at least 1, got ""
-  at ["a"]
-*/
-```
-
 #### Annotations
 
+Attach metadata to a class schema. The metadata is stored as annotations on the schema AST and can be read at runtime.
+
+**Example** (Attaching and reading annotations)
+
 ```ts
 import { Schema } from "effect/schema"
 
-export class A extends Schema.Class<A>("A")({ a: Schema.String }, { title: "A" }) {}
+export class A extends Schema.Class<A>("A")(
+  {
+    a: Schema.String
+  },
+  // Attach metadata (e.g., title) alongside the schema
+  { title: "my title" }
+) {}
 
-try {
-  Schema.decodeUnknownSync(A)({ a: null })
-} catch (error: any) {
-  console.log(error.message)
-}
-/*
-Expected string, got null
-  at ["a"]
-*/
+console.log(A.ast.annotations?.title)
+// "my title"
 ```
 
 #### extend
 
+Use `extend` to create a subclass that adds fields to the base schema. Instance fields declared on the base class are also available on the subclass.
+
+**Example** (Extending a class with new fields)
+
 ```ts
 import { Schema } from "effect/schema"
 
+// Base class with one schema field ("a") and one regular class field ("_a")
 class A extends Schema.Class<A>("A")(
   Schema.Struct({
     a: Schema.String
@@ -3411,6 +3438,8 @@ class A extends Schema.Class<A>("A")(
 ) {
   readonly _a = 1
 }
+
+// Subclass adds a new schema field ("b") and its own regular field ("_b")
 class B extends A.extend<B>("B")({
   b: Schema.Number
 }) {
@@ -3425,11 +3454,40 @@ console.log(Schema.decodeUnknownSync(B)({ a: "a", b: 2 }))
 // B { a: 'a', _a: 1, _b: 2 }
 ```
 
-#### Recursive Classes
+#### extends and static members
+
+To keep static members from the base class, pass `typeof Base` as the second generic parameter when calling `extend`.
+
+**Example** (Preserving static members on subclasses)
 
 ```ts
 import { Schema } from "effect/schema"
 
+class A extends Schema.Class<A>("A")({
+  a: Schema.String
+}) {
+  static readonly foo = "foo"
+}
+
+class B extends A.extend<B, typeof A>("B")({
+  b: Schema.Number
+}) {}
+
+console.log(B.foo)
+// "foo"
+```
+
+#### Recursive Classes
+
+Use `Schema.suspend` to reference a class inside its own definition. This is common for tree-like data structures.
+
+**Example** (Self-referential tree structure)
+
+```ts
+import { Schema } from "effect/schema"
+
+// A simple tree of categories where each node can have child categories.
+// Use Schema.suspend to refer to Category while it is being defined.
 export class Category extends Schema.Class<Category>("Category")(
   Schema.Struct({
     name: Schema.String,
@@ -3446,13 +3504,18 @@ type Encoded = {
 export type Encoded = (typeof Category)["Encoded"]
 ```
 
-**Example** (Recursive Opaque Struct with Different Encoded and Type)
+**Example** (Recursive schema with different Encoded and Type)
 
 ```ts
 import { Schema } from "effect/schema"
 
+// Define the encoded representation for Category separately.
+// This is useful when the Encoded type differs from the Type type.
 interface CategoryEncoded extends Schema.Codec.Encoded<typeof Category> {}
 
+// The runtime type is Category; the encoded form is CategoryEncoded.
+// "name" is decoded from a string to a finite number to show that
+// Type and Encoded types can differ.
 export class Category extends Schema.Class<Category>("Category")(
   Schema.Struct({
     name: Schema.FiniteFromString,
@@ -3469,7 +3532,7 @@ type Encoded = {
 export type Encoded = (typeof Category)["Encoded"]
 ```
 
-**Example** (Mutually Recursive Schemas)
+**Example** (Mutually recursive expression language)
 
 ```ts
 import { Schema } from "effect/schema"
