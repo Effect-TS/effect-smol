@@ -4825,7 +4825,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
       const err = new E({ id: 1 })
 
-      strictEqual(String(err), `Error`)
+      strictEqual(String(err), `E({"id":1})`)
       assertInclude(err.stack, "Schema.test.ts:")
       strictEqual(err.id, 1)
 
@@ -4842,7 +4842,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
       const err = new E({ id: 1 })
 
-      strictEqual(String(err), `Error`)
+      strictEqual(String(err), `E({"id":1})`)
       assertInclude(err.stack, "Schema.test.ts:")
       strictEqual(err.id, 1)
 
@@ -4871,7 +4871,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
       const instance = new B({ a: "a", b: 2 })
 
-      strictEqual(String(instance), `Error`)
+      strictEqual(String(instance), `B({"a":"a","b":2,"_a":1,"_b":2})`)
       assertInclude(instance.stack, "Schema.test.ts:")
 
       assertTrue(instance instanceof A)
