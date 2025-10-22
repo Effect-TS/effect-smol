@@ -32,7 +32,6 @@ import * as InternalArbitrary from "../internal/ToArbitrary.ts"
 import * as InternalDiffer from "../internal/ToDiffer.ts"
 import * as InternalEquivalence from "../internal/ToEquivalence.ts"
 import * as InternalJsonSchema from "../internal/ToJsonSchema.ts"
-import * as Number_ from "../Number.ts"
 import { remainder } from "../Number.ts"
 import * as Optic_ from "../Optic.ts"
 import * as Request from "../Request.ts"
@@ -5923,16 +5922,7 @@ export const NumberFromString: NumberFromString = String.annotate({
   description: "a string that will be decoded as a number"
 }).pipe(decodeTo(
   Number,
-  {
-    decode: Getter.transformOrFail((s) => {
-      const n = Number_.parse(s)
-      if (n === undefined) {
-        return Effect.fail(new Issue.InvalidValue(Option_.some(s)))
-      }
-      return Effect.succeed(n)
-    }),
-    encode: Getter.String()
-  }
+  Transformation.numberFromString
 ))
 
 /**
