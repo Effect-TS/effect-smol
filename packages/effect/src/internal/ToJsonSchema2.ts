@@ -81,6 +81,37 @@ function go(
     return go(ast.encoding[ast.encoding.length - 1].to, path, options, false, false, ignoreErrors)
   }
   // ---------------------------------------------
+  // handle checks
+  // ---------------------------------------------
+  if (ast.checks) {
+    let base = go(AST.replaceChecks(ast, undefined), path, options, false, false, ignoreErrors)
+    const allOf = getChecksConstraints(ast, ast.checks, options.target, base.type)
+    if (options.target === "draft-07" && "$ref" in base) {
+      base = { allOf: [base] }
+    }
+    if (Array.isArray(base.allOf)) {
+      base = { ...base, allOf: [...base.allOf, ...allOf] }
+    } else {
+      base = { ...base, allOf }
+    }
+
+    return base
+  }
+  // ---------------------------------------------
+  // handle json schema annotations
+  // ---------------------------------------------
+  if (ast.annotations) {
+    let base = go(AST.replaceAnnotations(ast, undefined), path, options, false, false, ignoreErrors)
+    const annotations = getJsonSchemaAnnotations(ast, options.target, ast.annotations)
+    if (annotations) {
+      if (options.target === "draft-07" && "$ref" in base) {
+        base = { allOf: [base] }
+      }
+      base = { ...base, ...annotations }
+    }
+    return base
+  }
+  // ---------------------------------------------
   // handle base cases
   // ---------------------------------------------
   switch (ast._tag) {
@@ -94,59 +125,51 @@ function go(
         const out = options.onMissingJsonSchemaAnnotation(ast)
         if (out) return out
       }
-      throw new Error(`cannot generate JSON Schema for ${ast.getExpected()} at ${formatPath(path) || "root"}`)
+      throw new Error(`cannot generate JSON Schema for ${ast._tag} at ${formatPath(path) || "root"}`)
     }
 
     case "Never":
-      return handleAnnotations({ not: {} }, ast, options)
+      return { not: {} }
 
     case "Void":
     case "Unknown":
     case "Any":
-      return handleAnnotations({}, ast, options)
+      return {}
 
     case "Null":
-      return handleAnnotations({ type: "null" }, ast, options)
+      return { type: "null" }
 
     case "String":
-      return handleAnnotations({ type: "string" }, ast, options)
+      return { type: "string" }
 
     case "Number":
-      return handleAnnotations({ type: "number" }, ast, options)
+      return { type: "number" }
 
     case "Boolean":
-      return handleAnnotations({ type: "boolean" }, ast, options)
+      return { type: "boolean" }
 
     case "ObjectKeyword":
-      return handleAnnotations({ anyOf: [{ type: "object" }, { type: "array" }] }, ast, options)
+      return { anyOf: [{ type: "object" }, { type: "array" }] }
 
     case "Literal": {
       if (Predicate.isString(ast.literal)) {
-        return handleAnnotations({ type: "string", enum: [ast.literal] }, ast, options)
+        return { type: "string", enum: [ast.literal] }
       }
       if (Predicate.isNumber(ast.literal)) {
-        return handleAnnotations({ type: "number", enum: [ast.literal] }, ast, options)
+        return { type: "number", enum: [ast.literal] }
       }
       if (Predicate.isBoolean(ast.literal)) {
-        return handleAnnotations({ type: "boolean", enum: [ast.literal] }, ast, options)
+        return { type: "boolean", enum: [ast.literal] }
       }
       if (ignoreErrors) return {}
       throw new Error(`cannot generate JSON Schema for ${ast._tag} at ${formatPath(path) || "root"}`)
     }
 
     case "Enum":
-      return handleAnnotations(
-        go(AST.enumsToLiterals(ast), path, options, false, false, ignoreErrors),
-        ast,
-        options
-      )
+      return go(AST.enumsToLiterals(ast), path, options, false, false, ignoreErrors)
 
     case "TemplateLiteral":
-      return handleAnnotations(
-        { type: "string", pattern: AST.getTemplateLiteralRegExp(ast).source },
-        ast,
-        options
-      )
+      return { type: "string", pattern: AST.getTemplateLiteralRegExp(ast).source }
 
     case "Arrays": {
       // ---------------------------------------------
@@ -158,18 +181,18 @@ function go(
           "Generating a JSON Schema for post-rest elements is not currently supported. You're welcome to contribute by submitting a Pull Request"
         )
       }
-      const out: any = handleAnnotations({ type: "array" }, ast, options)
+      const out: any = { type: "array" }
       // ---------------------------------------------
       // handle elements
       // ---------------------------------------------
-      const items = ast.elements.map((e, i) =>
-        overwrite(
+      const items = ast.elements.map((e, i) => {
+        return merge(
           go(e, [...path, i], options, false, false, ignoreErrors),
           getJsonSchemaAnnotations(e, options.target, e.context?.annotations),
           options.target
         )
-      )
-      const minItems = ast.elements.findIndex(isLooseOptional)
+      })
+      const minItems = ast.elements.findIndex(isOptional)
       if (minItems !== -1) {
         out.minItems = minItems
       }
@@ -199,9 +222,9 @@ function go(
     }
     case "Objects": {
       if (ast.propertySignatures.length === 0 && ast.indexSignatures.length === 0) {
-        return handleAnnotations({ anyOf: [{ type: "object" }, { type: "array" }] }, ast, options)
+        return { anyOf: [{ type: "object" }, { type: "array" }] }
       }
-      const out: any = handleAnnotations({ type: "object" }, ast, options)
+      const out: any = { type: "object" }
       // ---------------------------------------------
       // handle property signatures
       // ---------------------------------------------
@@ -213,12 +236,12 @@ function go(
           if (ignoreErrors) return {}
           throw new Error(`cannot generate JSON Schema for ${ast._tag} at ${formatPath([...path, name]) || "root"}`)
         } else {
-          out.properties[name] = overwrite(
+          out.properties[name] = merge(
             go(ps.type, [...path, name], options, false, false, ignoreErrors),
             getJsonSchemaAnnotations(ps.type, options.target, ps.type.context?.annotations),
             options.target
           )
-          if (!isLooseOptional(ps.type)) {
+          if (!isOptional(ps.type)) {
             out.required.push(name)
           }
         }
@@ -248,12 +271,17 @@ function go(
       return out
     }
     case "Union": {
-      const types = ast.types.map((t) => go(t, path, options, false, false, ignoreErrors))
-      return handleAnnotations(
-        ast.mode === "anyOf" ? { anyOf: types } : { oneOf: types },
-        ast,
-        options
+      const types = ast.types.filter((ast) => !AST.isUndefined(ast)).map((t) =>
+        go(t, path, options, false, false, ignoreErrors)
       )
+      switch (types.length) {
+        case 0:
+          return { not: {} }
+        case 1:
+          return types[0]
+        default:
+          return ast.mode === "anyOf" ? { anyOf: types } : { oneOf: types }
+      }
     }
     case "Suspend": {
       const id = getId(ast)
@@ -291,13 +319,37 @@ function getPointer(target: Annotations.JsonSchema.Target) {
   }
 }
 
-/** Either the AST is optional or it contains an undefined keyword */
-function isLooseOptional(ast: AST.AST): boolean {
-  const annotation = getAnnotation(ast.annotations)
-  if (annotation && annotation._tag === "Override" && annotation.required === true) {
-    return false
+function getChecksConstraints(
+  ast: AST.AST,
+  checks: AST.Checks,
+  target: Annotations.JsonSchema.Target,
+  type?: Annotations.JsonSchema.Type
+): Array<Annotations.JsonSchema.Fragment> {
+  const fragments: Array<Annotations.JsonSchema.Fragment> = []
+  function filter(check: AST.Check<any>) {
+    const annotations = getJsonSchemaAnnotations(ast, target, check.annotations)
+    const fragment = getCheckConstraint(check, target, type)
+    fragments.push({ ...annotations, ...fragment })
+    if (check._tag === "FilterGroup") {
+      go(check.checks)
+    }
   }
-  return AST.isOptional(ast) || AST.containsUndefined(ast)
+  function go(checks: ReadonlyArray<AST.Check<any>>) {
+    for (let i = 0; i < checks.length; i++) {
+      filter(checks[i])
+    }
+  }
+  go(checks)
+  return fragments
+}
+
+function isOptional(ast: AST.AST): boolean {
+  const annotation = getAnnotation(ast.annotations)
+  if (annotation && annotation._tag === "Override" && annotation.required !== undefined) {
+    return !annotation.required
+  }
+  const encodedAST = AST.encodedAST(ast)
+  return AST.isOptional(encodedAST) || AST.containsUndefined(encodedAST)
 }
 
 function getPattern(
@@ -384,49 +436,48 @@ function getJsonSchemaAnnotations(
   }
 }
 
-function hasIntersection(
-  jsonSchema: Annotations.JsonSchema.JsonSchema,
-  fragment: Annotations.JsonSchema.Fragment
-): boolean {
-  const keys = new Set(Object.keys(jsonSchema))
-  for (const key of Object.keys(fragment)) {
-    if (keys.has(key)) return true
-  }
-  return false
-}
+// function hasIntersection(
+//   jsonSchema: Annotations.JsonSchema.JsonSchema,
+//   fragment: Annotations.JsonSchema.Fragment
+// ): boolean {
+//   const keys = new Set(Object.keys(jsonSchema))
+//   for (const key of Object.keys(fragment)) {
+//     if (keys.has(key)) return true
+//   }
+//   return false
+// }
 
 function merge(
-  jsonSchema: Annotations.JsonSchema.JsonSchema,
-  fragment: Annotations.JsonSchema.Fragment,
-  target: Annotations.JsonSchema.Target
-): Annotations.JsonSchema.JsonSchema {
-  if (target === "draft-07" && "$ref" in jsonSchema) {
-    jsonSchema = { allOf: [jsonSchema] }
-  }
-  if (hasIntersection(jsonSchema, fragment)) {
-    if (Array.isArray(jsonSchema.allOf)) {
-      return { ...jsonSchema, allOf: [...jsonSchema.allOf, fragment] }
-    } else {
-      return { ...jsonSchema, allOf: [fragment] }
-    }
-  } else {
-    return { ...jsonSchema, ...fragment }
-  }
-}
-
-function overwrite(
   jsonSchema: Annotations.JsonSchema.JsonSchema,
   fragment: Annotations.JsonSchema.Fragment | undefined,
   target: Annotations.JsonSchema.Target
 ): Annotations.JsonSchema.JsonSchema {
   if (fragment) {
     if (target === "draft-07" && "$ref" in jsonSchema) {
-      jsonSchema = { allOf: [jsonSchema], ...fragment }
+      jsonSchema = { allOf: [jsonSchema] }
     }
-    return { ...jsonSchema, ...fragment }
+    if (Array.isArray(jsonSchema.allOf)) {
+      return { ...jsonSchema, allOf: [...jsonSchema.allOf, fragment] }
+    } else {
+      return { ...jsonSchema, allOf: [fragment] }
+    }
   }
   return jsonSchema
 }
+
+// function overwrite(
+//   jsonSchema: Annotations.JsonSchema.JsonSchema,
+//   fragment: Annotations.JsonSchema.Fragment | undefined,
+//   target: Annotations.JsonSchema.Target
+// ): Annotations.JsonSchema.JsonSchema {
+//   if (fragment) {
+//     if (target === "draft-07" && "$ref" in jsonSchema) {
+//       jsonSchema = { allOf: [jsonSchema], ...fragment }
+//     }
+//     return { ...jsonSchema, ...fragment }
+//   }
+//   return jsonSchema
+// }
 
 function getAnnotation(
   annotations: Annotations.Annotations | undefined
@@ -434,7 +485,7 @@ function getAnnotation(
   return annotations?.jsonSchema as Annotations.JsonSchema.Override | Annotations.JsonSchema.Constraint | undefined
 }
 
-function getCheckJsonFragment<T>(
+function getCheckConstraint<T>(
   check: AST.Check<T>,
   target: Annotations.JsonSchema.Target,
   type?: Annotations.JsonSchema.Type
@@ -445,33 +496,18 @@ function getCheckJsonFragment<T>(
   }
 }
 
-function handleAnnotations(
-  jsonSchema: Annotations.JsonSchema.JsonSchema,
-  ast: AST.AST,
-  options: GoOptions
-): Annotations.JsonSchema.JsonSchema {
-  const target = options.target
-  const blacklist = new Set<string>()
-  if (ast.checks) {
-    for (let i = ast.checks.length - 1; i >= 0; i--) {
-      const check = ast.checks[i]
-      const annotations = getJsonSchemaAnnotations(ast, target, check.annotations)
-      if (annotations) {
-        for (const key of Object.keys(annotations)) blacklist.add(key)
-      }
-      const fragment = {
-        ...annotations,
-        ...getCheckJsonFragment(check, target, jsonSchema.type)
-      }
-      jsonSchema = merge(jsonSchema, fragment, target)
-    }
-  }
-  const annotations = getJsonSchemaAnnotations(ast, target, ast.annotations, blacklist)
-  if (annotations) {
-    jsonSchema = merge(jsonSchema, annotations, target)
-  }
-  return jsonSchema
-}
+// function handleAnnotations(
+//   jsonSchema: Annotations.JsonSchema.JsonSchema,
+//   ast: AST.AST,
+//   options: GoOptions
+// ): Annotations.JsonSchema.JsonSchema {
+//   const target = options.target
+//   const annotations = getJsonSchemaAnnotations(ast, target, ast.annotations)
+//   if (annotations) {
+//     jsonSchema = merge(jsonSchema, annotations, target)
+//   }
+//   return jsonSchema
+// }
 
 function getId(ast: AST.AST): string | undefined {
   const id = Annotations.getIdentifier(ast)
