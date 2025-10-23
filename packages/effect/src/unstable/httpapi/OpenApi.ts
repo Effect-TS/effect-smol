@@ -237,14 +237,12 @@ export const fromApi = <Id extends string, Groups extends HttpApiGroup.Any>(
   }
 
   function processAST(ast: AST.AST): object {
-    const schema = Schema.makeJsonSchemaDraft2020_12(Schema.make(ast), {
-      getRef: (id) => `#/components/schemas/${id}`,
+    const { definitions, jsonSchema } = Schema.makeJsonSchemaOpenApi3_1(Schema.make(ast), {
       additionalPropertiesStrategy: options?.additionalPropertiesStrategy,
-      topLevelReferenceStrategy: "keep"
-    }) as any
-    Object.assign(jsonSchemaDefs, schema.$defs)
-    delete schema.$defs
-    return schema
+      referenceStrategy: "keep"
+    })
+    Object.assign(jsonSchemaDefs, definitions) // TODO: try passing jsonSchemaDefs above instead
+    return jsonSchema
   }
 
   function processHttpApiSecurity(

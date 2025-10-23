@@ -30,13 +30,11 @@ const ajv2020 = new Ajv2020.default(baseAjvOptions)
 async function assertDraft7<S extends Schema.Top>(
   schema: S,
   expected: object,
-  options?: Schema.JsonSchemaDraft07Options
+  options?: Schema.JsonSchemaOptions
 ) {
-  const jsonSchema = Schema.makeJsonSchemaDraft07(schema, options)
-  deepStrictEqual(jsonSchema, {
-    "$schema": "http://json-schema.org/draft-07/schema",
-    ...expected
-  })
+  const { jsonSchema, uri } = Schema.makeJsonSchemaDraft07(schema, options)
+  strictEqual(uri, "http://json-schema.org/draft-07/schema")
+  deepStrictEqual(jsonSchema, expected)
   const valid = ajvDraft7.validateSchema(jsonSchema)
   if (valid instanceof Promise) {
     await valid
@@ -48,13 +46,11 @@ async function assertDraft7<S extends Schema.Top>(
 async function assertDraft2020_12<S extends Schema.Top>(
   schema: S,
   expected: object,
-  options?: Schema.JsonSchemaDraft2020_12_Options
+  options?: Schema.JsonSchemaOptions
 ) {
-  const jsonSchema = Schema.makeJsonSchemaDraft2020_12(schema, options)
-  deepStrictEqual(jsonSchema, {
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    ...expected
-  })
+  const { jsonSchema, uri } = Schema.makeJsonSchemaDraft2020_12(schema, options)
+  strictEqual(uri, "https://json-schema.org/draft/2020-12/schema")
+  deepStrictEqual(jsonSchema, expected)
   const valid = ajv2020.validateSchema(jsonSchema)
   if (valid instanceof Promise) {
     await valid
@@ -66,13 +62,11 @@ async function assertDraft2020_12<S extends Schema.Top>(
 async function assertOpenApi3_1<S extends Schema.Top>(
   schema: S,
   expected: object,
-  options?: Schema.JsonSchemaOpenApi3_1Options
+  options?: Schema.JsonSchemaOptions
 ) {
-  const jsonSchema = Schema.makeJsonSchemaOpenApi3_1(schema, options)
-  deepStrictEqual(jsonSchema, {
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    ...expected
-  })
+  const { jsonSchema, uri } = Schema.makeJsonSchemaOpenApi3_1(schema, options)
+  strictEqual(uri, "https://json-schema.org/draft/2020-12/schema")
+  deepStrictEqual(jsonSchema, expected)
   const valid = ajv2020.validateSchema(jsonSchema)
   if (valid instanceof Promise) {
     await valid
@@ -99,34 +93,12 @@ function assertAjvDraft7Failure<S extends Schema.Top>(
   assertFalse(validate(input))
 }
 
-function expectError(schema: Schema.Top, message: string, options?: Schema.JsonSchemaDraft07Options) {
+function expectError(schema: Schema.Top, message: string, options?: Schema.JsonSchemaOptions) {
   throws(() => Schema.makeJsonSchemaDraft07(schema, options), new Error(message))
 }
 
 describe("ToJsonSchema", () => {
   describe("options", () => {
-    it("definitionsPath", async () => {
-      const schema = Schema.String.annotate({ identifier: "ID" })
-      const definitions = {}
-      await assertDraft7(schema, {
-        "$schema": "http://json-schema.org/draft-07/schema",
-        "$defs": {
-          "ID": {
-            "type": "string"
-          }
-        },
-        "$ref": "#/components/schemas/ID"
-      }, {
-        getRef: (id) => `#/components/schemas/${id}`,
-        definitions
-      })
-      deepStrictEqual(definitions, {
-        "ID": {
-          "type": "string"
-        }
-      })
-    })
-
     describe("topLevelReferenceStrategy", () => {
       describe(`"skip"`, () => {
         it("top level identifier", async () => {
@@ -136,7 +108,7 @@ describe("ToJsonSchema", () => {
             "$schema": "http://json-schema.org/draft-07/schema",
             "type": "string"
           }, {
-            topLevelReferenceStrategy: "skip",
+            referenceStrategy: "skip",
             definitions
           })
           deepStrictEqual(definitions, {})
@@ -178,7 +150,7 @@ describe("ToJsonSchema", () => {
             "required": ["a", "b", "d"],
             "additionalProperties": false
           }, {
-            topLevelReferenceStrategy: "skip",
+            referenceStrategy: "skip",
             definitions
           })
           deepStrictEqual(definitions, {})
@@ -234,7 +206,7 @@ describe("ToJsonSchema", () => {
               },
               "additionalProperties": false
             }, {
-              topLevelReferenceStrategy: "skip"
+              referenceStrategy: "skip"
             })
           })
 
@@ -287,7 +259,7 @@ describe("ToJsonSchema", () => {
               },
               "additionalProperties": false
             }, {
-              topLevelReferenceStrategy: "skip"
+              referenceStrategy: "skip"
             })
           })
 
@@ -340,7 +312,7 @@ describe("ToJsonSchema", () => {
                 }
               }
             }, {
-              topLevelReferenceStrategy: "skip"
+              referenceStrategy: "skip"
             })
           })
         })
@@ -756,6 +728,31 @@ describe("ToJsonSchema", () => {
         // should ignore the annotations if the schema is not contextual
         await assertDraft7(schema, {
           type: "string"
+        })
+      })
+
+      it("String & identifier & annotateKey", async () => {
+        const ID = Schema.String.annotate({ identifier: "ID" })
+        const schema = Schema.Struct({
+          a: ID.annotateKey({ title: "a" })
+        })
+        await assertDraft7(schema, {
+          type: "object",
+          properties: {
+            a: {
+              "allOf": [
+                { "$ref": "#/$defs/ID" },
+                { "title": "a" }
+              ]
+            }
+          },
+          required: ["a"],
+          additionalProperties: false,
+          "$defs": {
+            "ID": {
+              type: "string"
+            }
+          }
         })
       })
 
@@ -1203,7 +1200,7 @@ describe("ToJsonSchema", () => {
         })
       })
 
-      it("Enum", async () => {
+      it("many enums", async () => {
         enum Fruits {
           Apple,
           Banana,
@@ -1258,6 +1255,27 @@ describe("ToJsonSchema", () => {
             { "type": "string", "title": "Banana", "enum": ["banana"] },
             { "type": "number", "title": "Cantaloupe", "enum": [3] }
           ]
+        })
+      })
+
+      it("enum & identifier", async () => {
+        enum Fruits {
+          Apple
+        }
+        await assertDraft7(Schema.Enum(Fruits).annotate({ identifier: "ID", title: "title" }), {
+          "$defs": {
+            "ID": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "title": "Apple",
+                  "enum": [0]
+                }
+              ],
+              "title": "title"
+            }
+          },
+          "$ref": "#/$defs/ID"
         })
       })
     })
@@ -2009,7 +2027,7 @@ describe("ToJsonSchema", () => {
             }
           }
         }, {
-          topLevelReferenceStrategy: "skip"
+          referenceStrategy: "skip"
         })
       })
     })

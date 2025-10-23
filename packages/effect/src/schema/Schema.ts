@@ -31,7 +31,7 @@ import * as core from "../internal/core.ts"
 import * as InternalArbitrary from "../internal/ToArbitrary.ts"
 import * as InternalDiffer from "../internal/ToDiffer.ts"
 import * as InternalEquivalence from "../internal/ToEquivalence.ts"
-import * as InternalJsonSchema from "../internal/ToJsonSchema.ts"
+import * as InternalJsonSchema2 from "../internal/ToJsonSchema2.ts"
 import { remainder } from "../Number.ts"
 import * as Optic_ from "../Optic.ts"
 import * as Request from "../Request.ts"
@@ -6801,7 +6801,7 @@ export type JsonSchemaAdditionalPropertiesStrategy = "allow" | "strict"
  * @category JsonSchema
  * @since 4.0.0
  */
-export type JsonSchemaTopLevelReferenceStrategy = "skip" | "keep"
+export type JsonSchemaReferenceStrategy = "skip" | "keep"
 
 /**
  * @since 4.0.0
@@ -6814,13 +6814,6 @@ export interface JsonSchemaOptions {
    */
   readonly definitions?: Record<string, Annotations.JsonSchema.JsonSchema> | undefined
   /**
-   * A method which can be used to compute the reference identifier for a
-   * definition.
-   *
-   * Defaults to `(id: string) => "#/$defs/" + id`.
-   */
-  readonly getRef?: ((id: string) => string) | undefined
-  /**
    * Controls how additional properties are handled while resolving the JSON
    * schema. Possible values include:
    * - `"allow"`: Allow additional properties
@@ -6828,20 +6821,14 @@ export interface JsonSchemaOptions {
    */
   readonly additionalPropertiesStrategy?: JsonSchemaAdditionalPropertiesStrategy | undefined
   /**
-   * Controls how top-level references are handled while resolving the JSON
-   * schema. Possible values include:
+   * Controls how references are handled while resolving the JSON schema.
+   * Possible values include:
    * - `"keep"`: Keep the top-level reference (default)
    * - `"skip"`: Skip the top-level reference
    */
-  readonly topLevelReferenceStrategy?: JsonSchemaTopLevelReferenceStrategy | undefined
+  readonly referenceStrategy?: JsonSchemaReferenceStrategy | undefined
   readonly onMissingJsonSchemaAnnotation?: ((ast: AST.AST) => Annotations.JsonSchema.JsonSchema | undefined) | undefined
 }
-
-/**
- * @category JsonSchema
- * @since 4.0.0
- */
-export interface JsonSchemaDraft07Options extends JsonSchemaOptions {}
 
 /**
  * Returns a JSON Schema Draft 07 object.
@@ -6851,19 +6838,17 @@ export interface JsonSchemaDraft07Options extends JsonSchemaOptions {}
  */
 export function makeJsonSchemaDraft07<S extends Top>(
   schema: S,
-  options?: JsonSchemaDraft07Options
-): Annotations.JsonSchema.JsonSchema {
-  return InternalJsonSchema.make(schema, {
+  options?: JsonSchemaOptions
+): {
+  readonly uri: string
+  readonly jsonSchema: Annotations.JsonSchema.JsonSchema
+  readonly definitions: Record<string, Annotations.JsonSchema.JsonSchema>
+} {
+  return InternalJsonSchema2.make(schema, {
     ...options,
     target: "draft-07"
   })
 }
-
-/**
- * @category JsonSchema
- * @since 4.0.0
- */
-export interface JsonSchemaDraft2020_12_Options extends JsonSchemaOptions {}
 
 /**
  * Returns a JSON Schema Draft 2020-12 object.
@@ -6878,9 +6863,13 @@ export interface JsonSchemaDraft2020_12_Options extends JsonSchemaOptions {}
  */
 export function makeJsonSchemaDraft2020_12<S extends Top>(
   schema: S,
-  options?: JsonSchemaDraft2020_12_Options
-): Annotations.JsonSchema.JsonSchema {
-  return InternalJsonSchema.make(schema, {
+  options?: JsonSchemaOptions
+): {
+  readonly uri: string
+  readonly jsonSchema: Annotations.JsonSchema.JsonSchema
+  readonly definitions: Record<string, Annotations.JsonSchema.JsonSchema>
+} {
+  return InternalJsonSchema2.make(schema, {
     ...options,
     target: "draft-2020-12"
   })
@@ -6890,17 +6879,15 @@ export function makeJsonSchemaDraft2020_12<S extends Top>(
  * @category JsonSchema
  * @since 4.0.0
  */
-export interface JsonSchemaOpenApi3_1Options extends JsonSchemaOptions {}
-
-/**
- * @category JsonSchema
- * @since 4.0.0
- */
 export function makeJsonSchemaOpenApi3_1<S extends Top>(
   schema: S,
-  options?: JsonSchemaOpenApi3_1Options
-): Annotations.JsonSchema.JsonSchema {
-  return InternalJsonSchema.make(schema, {
+  options?: JsonSchemaOptions
+): {
+  readonly uri: string
+  readonly jsonSchema: Annotations.JsonSchema.JsonSchema
+  readonly definitions: Record<string, Annotations.JsonSchema.JsonSchema>
+} {
+  return InternalJsonSchema2.make(schema, {
     ...options,
     target: "openApi3.1"
   })
