@@ -29,12 +29,13 @@ const ajv2020 = new Ajv2020.default(baseAjvOptions)
 
 async function assertDraft7<S extends Schema.Top>(
   schema: S,
-  expected: object,
+  expected: { schema: object; definitions?: Record<string, object> },
   options?: Schema.JsonSchemaOptions
 ) {
-  const { jsonSchema, uri } = Schema.makeJsonSchemaDraft07(schema, options)
+  const { definitions, jsonSchema, uri } = Schema.makeJsonSchemaDraft07(schema, options)
   strictEqual(uri, "http://json-schema.org/draft-07/schema")
-  deepStrictEqual(jsonSchema, expected)
+  deepStrictEqual(jsonSchema, expected.schema)
+  deepStrictEqual(definitions, expected.definitions ?? {})
   const valid = ajvDraft7.validateSchema(jsonSchema)
   if (valid instanceof Promise) {
     await valid
@@ -98,25 +99,348 @@ export function expectError(schema: Schema.Top, message: string, options?: Schem
 }
 
 describe("ToJsonSchema", () => {
-  describe("draft-07", () => {
-    describe("Any", () => {
-      it("Any", async () => {
-        const schema = Schema.Any
-        await assertDraft7(schema, {})
+  describe("Unsupported schemas", () => {
+    it("Declaration", async () => {
+      expectError(
+        Schema.instanceOf(globalThis.URL),
+        `cannot generate JSON Schema for <Declaration> at root`
+      )
+    })
+
+    it("Undefined", async () => {
+      expectError(
+        Schema.Undefined,
+        `cannot generate JSON Schema for undefined at root`
+      )
+    })
+
+    it("BigInt", async () => {
+      expectError(
+        Schema.BigInt,
+        `cannot generate JSON Schema for bigint at root`
+      )
+    })
+
+    it("UniqueSymbol", async () => {
+      expectError(
+        Schema.UniqueSymbol(Symbol.for("effect/Schema/test/a")),
+        `cannot generate JSON Schema for Symbol(effect/Schema/test/a) at root`
+      )
+    })
+
+    it("Symbol", async () => {
+      expectError(
+        Schema.Symbol,
+        `cannot generate JSON Schema for symbol at root`
+      )
+    })
+
+    it("Literal(bigint)", () => {
+      expectError(
+        Schema.Literal(1n),
+        `cannot generate JSON Schema for Literal at root`
+      )
+    })
+
+    it("Suspend", () => {
+      interface A {
+        readonly a: string
+        readonly as: ReadonlyArray<A>
+      }
+      const schema = Schema.Struct({
+        a: Schema.String,
+        as: Schema.Array(Schema.suspend((): Schema.Schema<A> => schema))
+      })
+      expectError(
+        schema,
+        "cannot generate JSON Schema for Suspend at [\"as\"][0], required `identifier` annotation"
+      )
+    })
+
+    describe("Tuple", () => {
+      it("Unsupported element", () => {
+        expectError(
+          Schema.Tuple([Schema.Symbol]),
+          `cannot generate JSON Schema for symbol at [0]`
+        )
       })
 
-      it("Any & annotate", async () => {
-        const schema = Schema.Any.annotate({
+      it("Unsupported post-rest elements", () => {
+        expectError(
+          Schema.TupleWithRest(Schema.Tuple([]), [Schema.Number, Schema.String]),
+          "Generating a JSON Schema for post-rest elements is not currently supported. You're welcome to contribute by submitting a Pull Request"
+        )
+      })
+    })
+
+    describe("Struct", () => {
+      it("Unsupported field", () => {
+        expectError(
+          Schema.Struct({ a: Schema.Symbol }),
+          `cannot generate JSON Schema for symbol at ["a"]`
+        )
+      })
+
+      it("Unsupported property signature key", () => {
+        const a = Symbol.for("effect/Schema/test/a")
+        expectError(
+          Schema.Struct({ [a]: Schema.String }),
+          `cannot generate JSON Schema for Objects at [Symbol(effect/Schema/test/a)]`
+        )
+      })
+
+      it("Unsupported index signature parameter", () => {
+        expectError(
+          Schema.Record(Schema.Symbol, Schema.Number),
+          `cannot generate JSON Schema for Symbol at root`
+        )
+      })
+    })
+
+    describe("onMissingJsonSchemaAnnotation", () => {
+      it("when returns a JSON Schema", async () => {
+        const schema = Schema.Date
+        await assertDraft7(schema, { schema: {} }, {
+          onMissingJsonSchemaAnnotation: () => ({})
+        })
+      })
+
+      it("when returns undefined", async () => {
+        const schema = Schema.Date
+        expectError(
+          schema,
+          `cannot generate JSON Schema for Date at root`,
+          {
+            onMissingJsonSchemaAnnotation: () => undefined
+          }
+        )
+      })
+    })
+  })
+
+  describe("draft-07", () => {
+    describe("String", () => {
+      it("String", async () => {
+        const schema = Schema.String
+        await assertDraft7(
+          schema,
+          {
+            schema: {
+              type: "string"
+            }
+          }
+        )
+      })
+
+      it("String & annotate", async () => {
+        const schema = Schema.String.annotate({
           title: "title",
           description: "description",
-          default: "default",
-          examples: ["a"]
+          default: "",
+          examples: ["", "a", "aa", "aaa", "aaaa"]
         })
         await assertDraft7(schema, {
+          schema: {
+            type: "string",
+            title: "title",
+            description: "description",
+            default: "",
+            examples: ["", "a", "aa", "aaa", "aaaa"]
+          }
+        })
+      })
+
+      it("String & check", async () => {
+        const schema = Schema.String.check(Schema.isMinLength(2))
+        await assertDraft7(schema, {
+          schema: {
+            type: "string",
+            title: "isMinLength(2)",
+            description: "a value with a length of at least 2",
+            minLength: 2
+          }
+        })
+      })
+
+      it("String & annotate & check", async () => {
+        const schema = Schema.String.annotate({
+          title: "title",
+          description: "description",
+          default: "aa",
+          examples: ["", "a", "aa", "aaa", "aaaa"]
+        }).check(Schema.isMinLength(2))
+        await assertDraft7(schema, {
+          schema: {
+            type: "string",
+            title: "isMinLength(2)",
+            description: "a value with a length of at least 2",
+            default: "aa",
+            examples: ["aa", "aaa", "aaaa"],
+            minLength: 2
+          }
+        })
+      })
+
+      it("String & check & annotate", async () => {
+        const schema = Schema.String.check(Schema.isMinLength(2)).annotate({
           title: "title",
           description: "description",
           default: "default",
-          examples: ["a"]
+          examples: ["", "a", "aa", "aaa", "aaaa"]
+        })
+        await assertDraft7(schema, {
+          schema: {
+            type: "string",
+            title: "title",
+            description: "description",
+            default: "default",
+            examples: ["aa", "aaa", "aaaa"],
+            minLength: 2
+          }
+        })
+      })
+
+      it("String & check & check", async () => {
+        const schema = Schema.String.check(Schema.isMinLength(2), Schema.isMaxLength(3))
+        await assertDraft7(schema, {
+          schema: {
+            type: "string",
+            title: "isMaxLength(3)",
+            description: "a value with a length of at most 3",
+            maxLength: 3,
+            allOf: [
+              {
+                title: "isMinLength(2)",
+                description: "a value with a length of at least 2",
+                minLength: 2
+              }
+            ]
+          }
+        })
+      })
+
+      it("String & check & check & annotate", async () => {
+        const schema = Schema.String.check(Schema.isMinLength(2), Schema.isMaxLength(3)).annotate({
+          title: "title",
+          description: "description",
+          default: "aaa",
+          examples: ["", "a", "aa", "aaa", "aaaa"]
+        })
+        await assertDraft7(schema, {
+          schema: {
+            type: "string",
+            title: "title",
+            description: "description",
+            maxLength: 3,
+            default: "aaa",
+            examples: ["aa", "aaa"],
+            allOf: [
+              {
+                title: "isMinLength(2)",
+                description: "a value with a length of at least 2",
+                minLength: 2
+              }
+            ]
+          }
+        })
+      })
+
+      it("String & check & remove & check & annotate", async () => {
+        const schema = Schema.String.check(
+          Schema.isMinLength(2, { title: undefined, description: undefined }),
+          Schema.isMaxLength(3)
+        ).annotate({
+          title: "title",
+          description: "description",
+          default: "aaa",
+          examples: ["", "a", "aa", "aaa", "aaaa"]
+        })
+        await assertDraft7(schema, {
+          schema: {
+            type: "string",
+            title: "title",
+            description: "description",
+            maxLength: 3,
+            minLength: 2,
+            default: "aaa",
+            examples: ["aa", "aaa"]
+          }
+        })
+      })
+
+      it("String & check & remove & check & remove", async () => {
+        const schema = Schema.String.check(
+          Schema.isMinLength(2, { title: undefined, description: undefined }),
+          Schema.isMaxLength(3, { title: undefined, description: undefined })
+        )
+        await assertDraft7(schema, {
+          schema: {
+            type: "string",
+            maxLength: 3,
+            minLength: 2
+          }
+        })
+      })
+    })
+
+    describe("Struct", () => {
+      it("Struct", async () => {
+        const Id3 = Schema.String.annotate({ identifier: "id3" })
+        const schema = Schema.Struct({
+          a: Schema.String,
+          b: Schema.String.annotate({ description: "b" }),
+          c: Schema.String.annotateKey({ description: "c-key" }),
+          d: Schema.String.annotate({ description: "d" }).annotateKey({ description: "d-key" }),
+          id1: Schema.String.annotate({ identifier: "id1" }),
+          id2: Schema.String.annotate({ identifier: "id2" }).annotateKey({ description: "id2-key" }),
+          id3_1: Id3.annotateKey({ description: "id3_1-key" }),
+          id3_2: Id3.annotateKey({ description: "id3_2-key" })
+        })
+        await assertDraft7(schema, {
+          schema: {
+            type: "object",
+            properties: {
+              a: { type: "string" },
+              b: { type: "string", description: "b" },
+              c: { type: "string", description: "c-key" },
+              d: { type: "string", description: "d-key" },
+              id1: { "$ref": "#/definitions/id1" },
+              id2: {
+                allOf: [
+                  { "$ref": "#/definitions/id2" }
+                ],
+                description: "id2-key"
+              },
+              id3_1: {
+                allOf: [
+                  { "$ref": "#/definitions/id3" }
+                ],
+                description: "id3_1-key"
+              },
+              id3_2: {
+                allOf: [
+                  { "$ref": "#/definitions/id3" }
+                ],
+                description: "id3_2-key"
+              }
+            },
+            required: ["a", "b", "c", "d", "id1", "id2", "id3_1", "id3_2"],
+            additionalProperties: false
+          },
+          definitions: {
+            id1: { type: "string" },
+            id2: { type: "string" },
+            id3: { type: "string" }
+          }
+        })
+      })
+    })
+
+    describe("Union", () => {
+      it("String | Number", async () => {
+        const schema = Schema.Union([Schema.String, Schema.Number])
+        await assertDraft7(schema, {
+          schema: { anyOf: [{ type: "string" }, { type: "number" }] }
         })
       })
     })
