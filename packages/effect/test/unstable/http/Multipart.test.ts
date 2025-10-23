@@ -1,21 +1,21 @@
 import { describe, it } from "@effect/vitest"
 import { Schema } from "effect/schema"
 import { Multipart } from "effect/unstable/http"
-import { deepStrictEqual } from "node:assert"
+import { deepStrictEqual, strictEqual } from "node:assert"
 
 describe("Multipart", () => {
   describe("FileSchema", () => {
     it("jsonSchema", () => {
-      const jsonSchema = Schema.makeJsonSchemaDraft07(Multipart.FileSchema)
+      const { definitions, jsonSchema, uri } = Schema.makeJsonSchemaDraft07(Multipart.FileSchema)
+      strictEqual(uri, "http://json-schema.org/draft-07/schema")
       deepStrictEqual(jsonSchema, {
-        "$schema": "http://json-schema.org/draft-07/schema",
-        "$defs": {
-          "PersistedFile": {
-            "type": "string",
-            "format": "binary"
-          }
-        },
         "$ref": "#/$defs/PersistedFile"
+      })
+      deepStrictEqual(definitions, {
+        "PersistedFile": {
+          "type": "string",
+          "format": "binary"
+        }
       })
     })
   })

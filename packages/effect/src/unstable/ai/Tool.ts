@@ -1118,13 +1118,13 @@ export const getJsonSchemaFromSchema = <S extends Schema.Top>(schema: S): Annota
     }
   }
   const $defs = {}
-  const jsonSchema = Schema.makeJsonSchemaDraft2020_12(schema, {
+  const { definitions, jsonSchema } = Schema.makeJsonSchemaDraft2020_12(schema, {
     definitions: $defs,
-    topLevelReferenceStrategy: "skip"
+    referenceStrategy: "skip"
   })
-  delete jsonSchema.$schema
-  if (Object.keys($defs).length === 0) return jsonSchema
-  jsonSchema.$defs = $defs
+  if (Object.keys(definitions).length > 0) {
+    jsonSchema.$defs = definitions
+  }
   return jsonSchema
 }
 

@@ -166,7 +166,7 @@ export const go = memoize((ast: AST.AST): Schema.LazyArbitrary<any> => {
         return annotation.override([])
       }
       case "Constraint":
-        throw new Error("Constraint annotation found on non-constrained AST")
+        throw new Error("Constraint annotation found on non-constrained AST", { cause: ast })
     }
   }
   switch (ast._tag) {
