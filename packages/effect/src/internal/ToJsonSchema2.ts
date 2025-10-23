@@ -2,7 +2,7 @@ import type { Option } from "../data/Option.ts"
 import * as Predicate from "../data/Predicate.ts"
 import type * as Record from "../data/Record.ts"
 import { formatPath } from "../interfaces/Inspectable.ts"
-import type * as Annotations from "../schema/Annotations.ts"
+import * as Annotations from "../schema/Annotations.ts"
 import * as AST from "../schema/AST.ts"
 import type * as Schema from "../schema/Schema.ts"
 import * as ToParser from "../schema/ToParser.ts"
@@ -42,6 +42,234 @@ export function make<S extends Schema.Top>(schema: S, options: Options): {
   }
 }
 
+interface GoOptions extends Options {
+  readonly definitions: Record<string, Annotations.JsonSchema.JsonSchema>
+}
+
+function go(
+  ast: AST.AST,
+  path: ReadonlyArray<PropertyKey>,
+  options: GoOptions,
+  ignoreIdentifier: boolean,
+  ignoreAnnotation: boolean,
+  ignoreErrors: boolean
+): Annotations.JsonSchema.JsonSchema {
+  // ---------------------------------------------
+  // handle identifier annotation
+  // ---------------------------------------------
+  if (
+    !ignoreIdentifier &&
+    (options.referenceStrategy !== "skip" || AST.isSuspend(ast))
+  ) {
+    const identifier = getId(ast)
+    if (identifier !== undefined) {
+      const escapedIdentifier = identifier.replace(/~/ig, "~0").replace(/\//ig, "~1")
+      const $ref = { $ref: getPointer(options.target) + escapedIdentifier }
+      if (Object.hasOwn(options.definitions, identifier)) {
+        return $ref
+      } else {
+        options.definitions[identifier] = $ref
+        options.definitions[identifier] = go(ast, path, options, true, false, ignoreErrors)
+        return $ref
+      }
+    }
+  }
+  // ---------------------------------------------
+  // handle encoding
+  // ---------------------------------------------
+  if (ast.encoding) {
+    return go(ast.encoding[ast.encoding.length - 1].to, path, options, false, false, ignoreErrors)
+  }
+  // ---------------------------------------------
+  // handle base cases
+  // ---------------------------------------------
+  switch (ast._tag) {
+    case "Declaration":
+    case "BigInt":
+    case "Symbol":
+    case "Undefined":
+    case "UniqueSymbol": {
+      if (ignoreErrors) return {}
+      if (options.onMissingJsonSchemaAnnotation) {
+        const out = options.onMissingJsonSchemaAnnotation(ast)
+        if (out) return out
+      }
+      throw new Error(`cannot generate JSON Schema for ${ast.getExpected()} at ${formatPath(path) || "root"}`)
+    }
+
+    case "Never":
+      return handleAnnotations({ not: {} }, ast, options)
+
+    case "Void":
+    case "Unknown":
+    case "Any":
+      return handleAnnotations({}, ast, options)
+
+    case "Null":
+      return handleAnnotations({ type: "null" }, ast, options)
+
+    case "String":
+      return handleAnnotations({ type: "string" }, ast, options)
+
+    case "Number":
+      return handleAnnotations({ type: "number" }, ast, options)
+
+    case "Boolean":
+      return handleAnnotations({ type: "boolean" }, ast, options)
+
+    case "ObjectKeyword":
+      return handleAnnotations({ anyOf: [{ type: "object" }, { type: "array" }] }, ast, options)
+
+    case "Literal": {
+      if (Predicate.isString(ast.literal)) {
+        return handleAnnotations({ type: "string", enum: [ast.literal] }, ast, options)
+      }
+      if (Predicate.isNumber(ast.literal)) {
+        return handleAnnotations({ type: "number", enum: [ast.literal] }, ast, options)
+      }
+      if (Predicate.isBoolean(ast.literal)) {
+        return handleAnnotations({ type: "boolean", enum: [ast.literal] }, ast, options)
+      }
+      if (ignoreErrors) return {}
+      throw new Error(`cannot generate JSON Schema for ${ast._tag} at ${formatPath(path) || "root"}`)
+    }
+
+    case "Enum":
+      return handleAnnotations(
+        go(AST.enumsToLiterals(ast), path, options, false, false, ignoreErrors),
+        ast,
+        options
+      )
+
+    case "TemplateLiteral":
+      return handleAnnotations(
+        { type: "string", pattern: AST.getTemplateLiteralRegExp(ast).source },
+        ast,
+        options
+      )
+
+    case "Arrays": {
+      // ---------------------------------------------
+      // handle post rest elements
+      // ---------------------------------------------
+      if (ast.rest.length > 1) {
+        if (ignoreErrors) return {}
+        throw new Error(
+          "Generating a JSON Schema for post-rest elements is not currently supported. You're welcome to contribute by submitting a Pull Request"
+        )
+      }
+      const out: any = handleAnnotations({ type: "array" }, ast, options)
+      // ---------------------------------------------
+      // handle elements
+      // ---------------------------------------------
+      const items = ast.elements.map((e, i) =>
+        overwrite(
+          go(e, [...path, i], options, false, false, ignoreErrors),
+          getJsonSchemaAnnotations(e, options.target, e.context?.annotations),
+          options.target
+        )
+      )
+      const minItems = ast.elements.findIndex(isLooseOptional)
+      if (minItems !== -1) {
+        out.minItems = minItems
+      }
+      // ---------------------------------------------
+      // handle rest element
+      // ---------------------------------------------
+      const additionalItems = ast.rest.length > 0
+        ? go(ast.rest[0], [...path, ast.elements.length], options, false, false, ignoreErrors)
+        : false
+      if (items.length === 0) {
+        out.items = additionalItems
+      } else {
+        switch (options.target) {
+          case "draft-07": {
+            out.items = items
+            out.additionalItems = additionalItems
+            break
+          }
+          case "draft-2020-12": {
+            out.prefixItems = items
+            out.items = additionalItems
+            break
+          }
+        }
+      }
+      return out
+    }
+    case "Objects": {
+      if (ast.propertySignatures.length === 0 && ast.indexSignatures.length === 0) {
+        return handleAnnotations({ anyOf: [{ type: "object" }, { type: "array" }] }, ast, options)
+      }
+      const out: any = handleAnnotations({ type: "object" }, ast, options)
+      // ---------------------------------------------
+      // handle property signatures
+      // ---------------------------------------------
+      out.properties = {}
+      out.required = []
+      for (const ps of ast.propertySignatures) {
+        const name = ps.name as string
+        if (Predicate.isSymbol(name)) {
+          if (ignoreErrors) return {}
+          throw new Error(`cannot generate JSON Schema for ${ast._tag} at ${formatPath([...path, name]) || "root"}`)
+        } else {
+          out.properties[name] = overwrite(
+            go(ps.type, [...path, name], options, false, false, ignoreErrors),
+            getJsonSchemaAnnotations(ps.type, options.target, ps.type.context?.annotations),
+            options.target
+          )
+          if (!isLooseOptional(ps.type)) {
+            out.required.push(name)
+          }
+        }
+      }
+      // ---------------------------------------------
+      // handle index signatures
+      // ---------------------------------------------
+      if (options.additionalPropertiesStrategy === "strict") {
+        out.additionalProperties = false
+      } else {
+        out.additionalProperties = true
+      }
+      const patternProperties: Record<string, object> = {}
+      for (const is of ast.indexSignatures) {
+        const type = go(is.type, path, options, false, false, ignoreErrors)
+        const pattern = getPattern(is.parameter, path, options, ignoreErrors)
+        if (pattern !== undefined) {
+          patternProperties[pattern] = type
+        } else {
+          out.additionalProperties = type
+        }
+      }
+      if (Object.keys(patternProperties).length > 0) {
+        out.patternProperties = patternProperties
+        delete out.additionalProperties
+      }
+      return out
+    }
+    case "Union": {
+      const types = ast.types.map((t) => go(t, path, options, false, false, ignoreErrors))
+      return handleAnnotations(
+        ast.mode === "anyOf" ? { anyOf: types } : { oneOf: types },
+        ast,
+        options
+      )
+    }
+    case "Suspend": {
+      const id = getId(ast)
+      if (id !== undefined) {
+        return go(ast.thunk(), path, options, true, false, ignoreErrors)
+      }
+      if (ignoreErrors) return {}
+      throw new Error(
+        `cannot generate JSON Schema for ${ast._tag} at ${
+          formatPath(path) || "root"
+        }, required \`identifier\` annotation`
+      )
+    }
+  }
+}
+
 function getMetaSchemaUri(target: Annotations.JsonSchema.Target) {
   switch (target) {
     case "draft-07":
@@ -52,16 +280,48 @@ function getMetaSchemaUri(target: Annotations.JsonSchema.Target) {
   }
 }
 
-// function getPointer(target: Annotations.JsonSchema.Target) {
-//   switch (target) {
-//     case "draft-07":
-//       return "#/definitions/"
-//     case "draft-2020-12":
-//       return "#/$defs/"
-//     case "openApi3.1":
-//       return "#/components/schemas/"
-//   }
-// }
+function getPointer(target: Annotations.JsonSchema.Target) {
+  switch (target) {
+    case "draft-07":
+      return "#/definitions/"
+    case "draft-2020-12":
+      return "#/$defs/"
+    case "openApi3.1":
+      return "#/components/schemas/"
+  }
+}
+
+/** Either the AST is optional or it contains an undefined keyword */
+function isLooseOptional(ast: AST.AST): boolean {
+  const annotation = getAnnotation(ast.annotations)
+  if (annotation && annotation._tag === "Override" && annotation.required === true) {
+    return false
+  }
+  return AST.isOptional(ast) || AST.containsUndefined(ast)
+}
+
+function getPattern(
+  ast: AST.AST,
+  path: ReadonlyArray<PropertyKey>,
+  options: GoOptions,
+  ignoreErrors: boolean
+): string | undefined {
+  switch (ast._tag) {
+    case "String": {
+      const jsonSchema = go(ast, path, options, false, false, ignoreErrors)
+      if (Object.hasOwn(jsonSchema, "pattern") && Predicate.isString(jsonSchema.pattern)) {
+        return jsonSchema.pattern
+      }
+      return undefined
+    }
+    case "Number":
+      return "^[0-9]+$"
+    case "TemplateLiteral":
+      return AST.getTemplateLiteralRegExp(ast).source
+  }
+  if (ignoreErrors) return undefined
+  throw new Error(`cannot generate JSON Schema for ${ast._tag} at ${formatPath(path) || "root"}`)
+}
 
 function getAnnotationsParser(ast: AST.AST) {
   return ToParser.asOption(ToParser.run(AST.flip(ast)))
@@ -77,29 +337,29 @@ function isContentEncodingSupported(target: Annotations.JsonSchema.Target): bool
   }
 }
 
-/** @internal */
-export function getJsonSchemaAnnotations(
+function getJsonSchemaAnnotations(
   ast: AST.AST,
   target: Annotations.JsonSchema.Target,
-  annotations: Annotations.Annotations | undefined
+  annotations: Annotations.Annotations | undefined,
+  blacklist?: ReadonlySet<string>
 ): Annotations.JsonSchema.Fragment | undefined {
   let parser: (input: unknown, options?: AST.ParseOptions) => Option<unknown>
   if (annotations) {
     const out: Annotations.JsonSchema.Fragment = {}
-    if (Predicate.isString(annotations.title)) {
+    if (!blacklist?.has("title") && Predicate.isString(annotations.title)) {
       out.title = annotations.title
     }
-    if (Predicate.isString(annotations.description)) {
+    if (!blacklist?.has("description") && Predicate.isString(annotations.description)) {
       out.description = annotations.description
     }
-    if (annotations.default !== undefined) {
+    if (!blacklist?.has("default") && annotations.default !== undefined) {
       parser ??= getAnnotationsParser(ast)
       const o = parser(annotations.default)
       if (o._tag === "Some") {
         out.default = o.value
       }
     }
-    if (Array.isArray(annotations.examples)) {
+    if (!blacklist?.has("examples") && Array.isArray(annotations.examples)) {
       parser ??= getAnnotationsParser(ast)
       const examples = []
       for (const example of annotations.examples) {
@@ -114,10 +374,11 @@ export function getJsonSchemaAnnotations(
         out.examples = examples
       }
     }
-    if (isContentEncodingSupported(target)) {
-      if (Predicate.isString(annotations.contentEncoding)) {
-        out.contentEncoding = annotations.contentEncoding
-      }
+    if (
+      !blacklist?.has("contentEncoding") && isContentEncodingSupported(target) &&
+      Predicate.isString(annotations.contentEncoding)
+    ) {
+      out.contentEncoding = annotations.contentEncoding
     }
     return Object.keys(out).length > 0 ? out : undefined
   }
@@ -136,22 +397,33 @@ function hasIntersection(
 
 function merge(
   jsonSchema: Annotations.JsonSchema.JsonSchema,
+  fragment: Annotations.JsonSchema.Fragment,
+  target: Annotations.JsonSchema.Target
+): Annotations.JsonSchema.JsonSchema {
+  if (target === "draft-07" && "$ref" in jsonSchema) {
+    jsonSchema = { allOf: [jsonSchema] }
+  }
+  if (hasIntersection(jsonSchema, fragment)) {
+    if (Array.isArray(jsonSchema.allOf)) {
+      return { ...jsonSchema, allOf: [...jsonSchema.allOf, fragment] }
+    } else {
+      return { ...jsonSchema, allOf: [fragment] }
+    }
+  } else {
+    return { ...jsonSchema, ...fragment }
+  }
+}
+
+function overwrite(
+  jsonSchema: Annotations.JsonSchema.JsonSchema,
   fragment: Annotations.JsonSchema.Fragment | undefined,
   target: Annotations.JsonSchema.Target
 ): Annotations.JsonSchema.JsonSchema {
   if (fragment) {
     if (target === "draft-07" && "$ref" in jsonSchema) {
-      jsonSchema = { allOf: [jsonSchema] }
+      jsonSchema = { allOf: [jsonSchema], ...fragment }
     }
-    if (hasIntersection(jsonSchema, fragment)) {
-      if (Array.isArray(jsonSchema.allOf)) {
-        return { ...jsonSchema, allOf: [...jsonSchema.allOf, fragment] }
-      } else {
-        return { allOf: [jsonSchema, fragment] }
-      }
-    } else {
-      return { ...jsonSchema, ...fragment }
-    }
+    return { ...jsonSchema, ...fragment }
   }
   return jsonSchema
 }
@@ -176,106 +448,35 @@ function getCheckJsonFragment<T>(
 function handleAnnotations(
   jsonSchema: Annotations.JsonSchema.JsonSchema,
   ast: AST.AST,
-  target: Annotations.JsonSchema.Target
+  options: GoOptions
 ): Annotations.JsonSchema.JsonSchema {
+  const target = options.target
+  const blacklist = new Set<string>()
   if (ast.checks) {
     for (let i = ast.checks.length - 1; i >= 0; i--) {
       const check = ast.checks[i]
       const annotations = getJsonSchemaAnnotations(ast, target, check.annotations)
-      jsonSchema = merge(jsonSchema, annotations, target)
-      const fragment = getCheckJsonFragment(check, target, jsonSchema.type)
+      if (annotations) {
+        for (const key of Object.keys(annotations)) blacklist.add(key)
+      }
+      const fragment = {
+        ...annotations,
+        ...getCheckJsonFragment(check, target, jsonSchema.type)
+      }
       jsonSchema = merge(jsonSchema, fragment, target)
     }
   }
-  const annotations = getJsonSchemaAnnotations(ast, target, ast.annotations)
-  jsonSchema = merge(jsonSchema, annotations, target)
+  const annotations = getJsonSchemaAnnotations(ast, target, ast.annotations, blacklist)
+  if (annotations) {
+    jsonSchema = merge(jsonSchema, annotations, target)
+  }
   return jsonSchema
 }
 
-function go(
-  ast: AST.AST,
-  path: ReadonlyArray<PropertyKey>,
-  options: Options,
-  ignoreIdentifier: boolean,
-  ignoreAnnotation: boolean,
-  ignoreErrors: boolean
-): Annotations.JsonSchema.JsonSchema {
-  // ---------------------------------------------
-  // handle encoding
-  // ---------------------------------------------
-  if (ast.encoding) {
-    return go(ast.encoding[ast.encoding.length - 1].to, path, options, ignoreIdentifier, ignoreAnnotation, ignoreErrors)
-  }
-  // ---------------------------------------------
-  // handle base cases
-  // ---------------------------------------------
-  switch (ast._tag) {
-    case "Declaration":
-    case "BigInt":
-    case "Symbol":
-    case "UniqueSymbol": {
-      if (ignoreErrors) return {}
-      if (options.onMissingJsonSchemaAnnotation) {
-        const out = options.onMissingJsonSchemaAnnotation(ast)
-        if (out) return out
-      }
-      throw new Error(`cannot generate JSON Schema for ${ast.getExpected()} at ${formatPath(path) || "root"}`)
-    }
-
-    case "Never":
-    case "Undefined":
-      return handleAnnotations({ not: {} }, ast, options.target)
-
-    case "Void":
-    case "Unknown":
-    case "Any":
-      return handleAnnotations({}, ast, options.target)
-
-    case "Null":
-      return handleAnnotations({ type: "null" }, ast, options.target)
-
-    case "String":
-      return handleAnnotations({ type: "string" }, ast, options.target)
-
-    case "Number":
-      return handleAnnotations({ type: "number" }, ast, options.target)
-
-    case "Boolean":
-      return handleAnnotations({ type: "boolean" }, ast, options.target)
-
-    case "ObjectKeyword":
-      return handleAnnotations({ anyOf: [{ type: "object" }, { type: "array" }] }, ast, options.target)
-
-    case "Literal": {
-      if (Predicate.isString(ast.literal)) {
-        return handleAnnotations({ type: "string", enum: [ast.literal] }, ast, options.target)
-      } else if (Predicate.isNumber(ast.literal)) {
-        return handleAnnotations({ type: "number", enum: [ast.literal] }, ast, options.target)
-      } else if (Predicate.isBoolean(ast.literal)) {
-        return handleAnnotations({ type: "boolean", enum: [ast.literal] }, ast, options.target)
-      }
-      if (ignoreErrors) return {}
-      throw new Error(`cannot generate JSON Schema for ${ast._tag} at ${formatPath(path) || "root"}`)
-    }
-
-    case "Enum":
-      return handleAnnotations(
-        go(AST.enumsToLiterals(ast), path, options, ignoreIdentifier, ignoreAnnotation, ignoreErrors),
-        ast,
-        options.target
-      )
-
-    case "TemplateLiteral":
-      return handleAnnotations(
-        { type: "string", pattern: AST.getTemplateLiteralRegExp(ast).source },
-        ast,
-        options.target
-      )
-
-    case "Arrays":
-    case "Objects":
-    case "Union":
-    case "Suspend":
-      return handleAnnotations({}, ast, options.target)
+function getId(ast: AST.AST): string | undefined {
+  const id = Annotations.getIdentifier(ast)
+  if (id !== undefined) return id
+  if (AST.isSuspend(ast)) {
+    return getId(ast.thunk())
   }
 }
