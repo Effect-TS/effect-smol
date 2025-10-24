@@ -81,35 +81,39 @@ function go(
     return go(ast.encoding[ast.encoding.length - 1].to, path, options, false, false, ignoreErrors)
   }
   // ---------------------------------------------
-  // handle checks
+  // handle checks and annotatios
   // ---------------------------------------------
-  if (ast.checks) {
-    let base = go(AST.replaceChecks(ast, undefined), path, options, false, false, ignoreErrors)
-    const allOf = getChecksConstraints(ast, ast.checks, options.target, base.type)
-    if (options.target === "draft-07" && "$ref" in base) {
-      base = { allOf: [base] }
-    }
-    if (Array.isArray(base.allOf)) {
-      base = { ...base, allOf: [...base.allOf, ...allOf] }
-    } else {
-      base = { ...base, allOf }
-    }
+  if (ast.checks || ast.annotations) {
+    let out = go(
+      AST.replaceAnnotations(AST.replaceChecks(ast, undefined), undefined),
+      path,
+      options,
+      false,
+      false,
+      ignoreErrors
+    )
 
-    return base
-  }
-  // ---------------------------------------------
-  // handle json schema annotations
-  // ---------------------------------------------
-  if (ast.annotations) {
-    let base = go(AST.replaceAnnotations(ast, undefined), path, options, false, false, ignoreErrors)
     const annotations = getJsonSchemaAnnotations(ast, options.target, ast.annotations)
     if (annotations) {
-      if (options.target === "draft-07" && "$ref" in base) {
-        base = { allOf: [base] }
+      if (options.target === "draft-07" && "$ref" in out) {
+        out = { allOf: [out] }
       }
-      base = { ...base, ...annotations }
+      out = { ...out, ...annotations }
     }
-    return base
+
+    if (ast.checks) {
+      const allOf = getChecksConstraints(ast, ast.checks, options.target, out.type)
+      if (options.target === "draft-07" && "$ref" in out) {
+        out = { allOf: [out] }
+      }
+      if (Array.isArray(out.allOf)) {
+        out = { ...out, allOf: [...out.allOf, ...allOf] }
+      } else {
+        out = { ...out, allOf }
+      }
+    }
+
+    return out
   }
   // ---------------------------------------------
   // handle base cases
@@ -326,20 +330,27 @@ function getChecksConstraints(
   type?: Annotations.JsonSchema.Type
 ): Array<Annotations.JsonSchema.Fragment> {
   const fragments: Array<Annotations.JsonSchema.Fragment> = []
-  function filter(check: AST.Check<any>) {
+  for (let i = 0; i < checks.length; i++) {
+    const check = checks[i]
     const annotations = getJsonSchemaAnnotations(ast, target, check.annotations)
-    const fragment = getCheckConstraint(check, target, type)
-    fragments.push({ ...annotations, ...fragment })
-    if (check._tag === "FilterGroup") {
-      go(check.checks)
+    switch (check._tag) {
+      case "Filter": {
+        const fragment = getCheckConstraint(check, target, type)
+        fragments.push({
+          ...annotations,
+          ...fragment
+        })
+        break
+      }
+      case "FilterGroup": {
+        fragments.push({
+          ...annotations,
+          allOf: getChecksConstraints(ast, check.checks, target, type)
+        })
+        break
+      }
     }
   }
-  function go(checks: ReadonlyArray<AST.Check<any>>) {
-    for (let i = 0; i < checks.length; i++) {
-      filter(checks[i])
-    }
-  }
-  go(checks)
   return fragments
 }
 
